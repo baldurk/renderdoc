@@ -74,32 +74,61 @@ bool CanQuery(base *b)
   return SUCCEEDED(check) && d != NULL;
 }
 
-class TrackedResource
-{
-public:
-  TrackedResource() { m_ID = ResourceIDGen::GetNewUniqueID(); }
-  ResourceId GetResourceID() { return m_ID; }
-private:
-  TrackedResource(const TrackedResource &);
-  TrackedResource &operator=(const TrackedResource &);
-
-  ResourceId m_ID;
-};
-
 extern const GUID RENDERDOC_ID3D11ShaderGUID_ShaderDebugMagicValue;
+extern const GUID RENDERDOC_DeleteSelf;
 
 template <typename NestedType, typename NestedType1 = NestedType, typename NestedType2 = NestedType1>
-class WrappedDeviceChild11 : public RefCounter, public NestedType2, public TrackedResource
+class WrappedDeviceChild11 : public NestedType2
 {
+private:
+  ResourceId m_ID;
+
+  //////////////////////////////////////////////////////////////////////////
+  // D3D11's refcounting behaviour is incredibly messy, with several cycles possible:
+  //
+  // All ID3D11DeviceChild objects can query back the device.
+  // The device can query its immediate context
+  // Contexts can query objects currently bound to them
+  // Views can query out the resource they point to
+  //
+  // Adding to this, some games check the refcount on objects expecting it to be a certain value,
+  // which restricts how we can refcount. E.g. the immediate context can't have a refcount on its
+  // bound objects that applications can see, or some will break.
+  //
+  // By experimentation, all ID3D11DeviceChild objects that have a reference held by the application
+  // also hold one reference on the device. This means there's surprising behaviour where the device
+  // refcount can bounce up and down when child objects hit refcount 0 while still being alive
+  // (which is quite possible - bind a VB and then release it, its refcount is 0 but it's alive and
+  // will come back to 1 if you query it out again). This reference is externally visible so the
+  // ID3D11Device has more refcounts than the application "knows" about.
+  //
+  // All other references seem invisible to the application - views on the resource, context on
+  // bound objects, device on the immediate context.
+  //
+  // So we clone D3D's internal implementation of having an external ref (user facing) and an
+  // internal ref. Objects are only deleted when both are zero, and even then we defer destruction
+  // to avoid needing excessive extra refcounting when temporarily changing bindings.
+  //
+  // This also means the device is released if and only if its external ref count hits 0. That means
+  // that the user has no access to the device or any of its children so the whole cycle can be
+  // cleaned up
+  //
+  // See D3D11RenderState and the D3D11_Refcount_Check test.
+
+  int32_t m_ExtRef;
+  int32_t m_IntRef;
+
 protected:
   WrappedID3D11Device *m_pDevice;
   NestedType *m_pReal;
-  unsigned int m_PipelineRefs;
 
   WrappedDeviceChild11(NestedType *real, WrappedID3D11Device *device)
-      : RefCounter(real), m_pDevice(device), m_pReal(real), m_PipelineRefs(0)
+      : m_pDevice(device), m_pReal(real), m_ExtRef(1), m_IntRef(0)
   {
-    m_pDevice->SoftRef();
+    m_ID = ResourceIDGen::GetNewUniqueID();
+
+    // start off with a strong reference on the device.
+    m_pDevice->AddRef();
 
     bool ret = m_pDevice->GetResourceManager()->AddWrapper(this, real);
     if(!ret)
@@ -108,20 +137,11 @@ protected:
     m_pDevice->GetResourceManager()->AddCurrentResource(GetResourceID(), this);
   }
 
-  void Shutdown()
-  {
-    m_pDevice->GetResourceManager()->RemoveWrapper(m_pReal);
-    m_pDevice->GetResourceManager()->ReleaseCurrentResource(GetResourceID());
-    m_pDevice->ReleaseResource((NestedType *)this);
-    SAFE_RELEASE(m_pReal);
-    m_pDevice = NULL;
-  }
-
   virtual ~WrappedDeviceChild11()
   {
-    // should have already called shutdown (needs to be called from child class to ensure
-    // vtables are still in place when we call ReleaseResource)
-    RDCASSERT(m_pDevice == NULL && m_pReal == NULL);
+    SAFE_RELEASE(m_pReal);
+    // we removed the reference to the device before releasing ourselves, so just NULL it out.
+    m_pDevice = NULL;
   }
 
 public:
@@ -129,16 +149,55 @@ public:
   typedef NestedType1 InnerType1;
   typedef NestedType2 InnerType2;
 
+  ResourceId GetResourceID() { return m_ID; }
   NestedType *GetReal() { return m_pReal; }
-  ULONG STDMETHODCALLTYPE AddRef() { return RefCounter::SoftRef(m_pDevice) - m_PipelineRefs; }
+  // internal addref/release
+  void IntAddRef() { Atomic::Inc32(&m_IntRef); }
+  void IntRelease()
+  {
+    Atomic::Dec32(&m_IntRef);
+    ASSERT_REFCOUNT(m_IntRef);
+    // due to deferred destruction, report our death but don't immediately delete ourselves. If
+    // we're still dead when the device reaps the list of deaths, we'll be deleted.
+    if(m_IntRef + m_ExtRef == 0)
+      m_pDevice->ReportDeath(this);
+  }
+  int32_t GetExtRefCount() { return m_ExtRef; }
+  int32_t GetIntRefCount() { return m_IntRef; }
+  //////////////////////////////
+  // implement IUnknown
+
+  ULONG STDMETHODCALLTYPE AddRef()
+  {
+    // if we're about to create a new external reference on this object, add back our reference on
+    // the device
+    if(m_ExtRef == 0)
+      m_pDevice->AddRef();
+    Atomic::Inc32(&m_ExtRef);
+    return (ULONG)m_ExtRef;
+  }
   ULONG STDMETHODCALLTYPE Release()
   {
-    unsigned int piperefs = m_PipelineRefs;
-    return RefCounter::SoftRelease(m_pDevice) - piperefs;
-  }
+    Atomic::Dec32(&m_ExtRef);
+    ASSERT_REFCOUNT(m_ExtRef);
 
-  void PipelineAddRef() { InterlockedIncrement(&m_PipelineRefs); }
-  void PipelineRelease() { InterlockedDecrement(&m_PipelineRefs); }
+    WrappedID3D11Device *dev = m_pDevice;
+
+    int32_t intRef = m_IntRef;
+    int32_t extRef = m_ExtRef;
+
+    // report our own death first, so that if we're about to release the last external reference on
+    // the device below that we are ready to be cleaned up.
+    if(intRef + extRef == 0)
+      dev->ReportDeath(this);
+
+    // if we just released the last external reference on this object, release our reference on the
+    // device.
+    if(extRef == 0)
+      dev->Release();
+
+    return (ULONG)extRef;
+  }
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
   {
     if(riid == __uuidof(IUnknown))
@@ -260,7 +319,7 @@ public:
       return S_OK;
     }
 
-    return RefCounter::QueryInterface(riid, ppvObject);
+    return RefCountDXGIObject::WrapQueryInterface(m_pReal, riid, ppvObject);
   }
 
   //////////////////////////////
@@ -299,6 +358,12 @@ public:
     if(guid == RENDERDOC_ID3D11ShaderGUID_ShaderDebugMagicValue)
       return m_pDevice->SetShaderDebugPath(this, (const char *)pData);
 
+    if(guid == RENDERDOC_DeleteSelf)
+    {
+      delete this;
+      return S_OK;
+    }
+
     if(guid == WKPDID_D3DDebugObjectName)
     {
       const char *pStrData = (const char *)pData;
@@ -333,66 +398,52 @@ public:
   }
 };
 
+inline void IntAddRef(ID3D11DeviceChild *child)
+{
+  // assume it's wrapped, do a default cast with template parameters (the exact type doesn't matter)
+  if(child)
+    ((WrappedDeviceChild11<ID3D11DeviceChild> *)child)->IntAddRef();
+}
+
+inline void IntRelease(ID3D11DeviceChild *child)
+{
+  if(child)
+    ((WrappedDeviceChild11<ID3D11DeviceChild> *)child)->IntRelease();
+}
+
+inline int32_t GetIntRefCount(ID3D11DeviceChild *child)
+{
+  if(child)
+    return ((WrappedDeviceChild11<ID3D11DeviceChild> *)child)->GetIntRefCount();
+  return -1;
+}
+
+inline int32_t GetExtRefCount(ID3D11DeviceChild *child)
+{
+  if(child)
+    return ((WrappedDeviceChild11<ID3D11DeviceChild> *)child)->GetExtRefCount();
+  return -1;
+}
+
 template <typename NestedType, typename DescType, typename NestedType1 = NestedType>
 class WrappedResource11 : public WrappedDeviceChild11<NestedType, NestedType1>
 {
 private:
-  unsigned int m_ViewRefcount;    // refcount from views (invisible to the end-user)
-
 protected:
 #if ENABLED(RDOC_DEVEL)
   DescType m_Desc;
 #endif
 
   WrappedResource11(NestedType *real, WrappedID3D11Device *device)
-      : WrappedDeviceChild11(real, device), m_ViewRefcount(0)
+      : WrappedDeviceChild11(real, device)
   {
 #if ENABLED(RDOC_DEVEL)
     real->GetDesc(&m_Desc);
 #endif
-
-    // we'll handle deleting on release, so we can check against m_ViewRefcount
-    RefCounter::SetSelfDeleting(false);
   }
 
   virtual ~WrappedResource11() {}
 public:
-  void ViewAddRef()
-  {
-    InterlockedIncrement(&m_ViewRefcount);
-
-    RefCounter::AddDeviceSoftref(m_pDevice);
-  }
-
-  void ViewRelease()
-  {
-    InterlockedDecrement(&m_ViewRefcount);
-    unsigned int extRefCount = RefCounter::GetRefCount();
-
-    WrappedID3D11Device *dev = m_pDevice;
-
-    if(extRefCount == 0 && m_ViewRefcount == 0)
-      delete this;
-
-    RefCounter::ReleaseDeviceSoftref(dev);
-  }
-
-  ULONG STDMETHODCALLTYPE AddRef() { return RefCounter::SoftRef(m_pDevice) - m_PipelineRefs; }
-  ULONG STDMETHODCALLTYPE Release()
-  {
-    unsigned int extRefCount = RefCounter::Release();
-    unsigned int pipeRefs = m_PipelineRefs;
-
-    WrappedID3D11Device *dev = m_pDevice;
-
-    if(extRefCount == 0 && m_ViewRefcount == 0)
-      delete this;
-
-    RefCounter::ReleaseDeviceSoftref(dev);
-
-    return extRefCount - pipeRefs;
-  }
-
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
   {
     if(riid == __uuidof(ID3D11Resource))
@@ -459,8 +510,6 @@ public:
   {
     if(RenderDoc::Inst().IsReplayApp())
     {
-      SCOPED_LOCK(m_pDevice->D3DLock());
-
       RDCASSERT(m_BufferList.find(GetResourceID()) == m_BufferList.end());
       m_BufferList[GetResourceID()] = BufferEntry(this, byteLength);
     }
@@ -477,15 +526,11 @@ public:
 
   virtual ~WrappedID3D11Buffer()
   {
-    SCOPED_LOCK(m_pDevice->D3DLock());
-
     if(RenderDoc::Inst().IsReplayApp())
     {
       if(m_BufferList.find(GetResourceID()) != m_BufferList.end())
         m_BufferList.erase(GetResourceID());
     }
-
-    Shutdown();
   }
 
   virtual void STDMETHODCALLTYPE GetType(D3D11_RESOURCE_DIMENSION *pResourceDimension)
@@ -520,8 +565,6 @@ public:
     {
       if(RenderDoc::Inst().IsReplayApp())
       {
-        SCOPED_LOCK(m_pDevice->D3DLock());
-
         RDCASSERT(m_TextureList.find(GetResourceID()) == m_TextureList.end());
         m_TextureList[GetResourceID()] = TextureEntry(this, type);
       }
@@ -530,15 +573,11 @@ public:
 
   virtual ~WrappedTexture()
   {
-    SCOPED_LOCK(m_pDevice->D3DLock());
-
     if(RenderDoc::Inst().IsReplayApp())
     {
       if(m_TextureList.find(GetResourceID()) != m_TextureList.end())
         m_TextureList.erase(GetResourceID());
     }
-
-    Shutdown();
   }
 };
 
@@ -648,7 +687,7 @@ public:
       : WrappedDeviceChild11<ID3D11InputLayout>(real, device)
   {
   }
-  virtual ~WrappedID3D11InputLayout() { Shutdown(); }
+  virtual ~WrappedID3D11InputLayout() {}
 };
 
 class WrappedID3D11RasterizerState2
@@ -661,7 +700,7 @@ public:
       : WrappedDeviceChild11(real, device)
   {
   }
-  virtual ~WrappedID3D11RasterizerState2() { Shutdown(); }
+  virtual ~WrappedID3D11RasterizerState2() {}
   //////////////////////////////
   // implement ID3D11RasterizerState
 
@@ -702,8 +741,7 @@ public:
       : WrappedDeviceChild11(real, device)
   {
   }
-  virtual ~WrappedID3D11BlendState1() { Shutdown(); }
-  static bool IsState1(ID3D11BlendState *state) { return CanQuery<ID3D11BlendState1>(state); }
+  virtual ~WrappedID3D11BlendState1() {}
   //////////////////////////////
   // implement ID3D11BlendState
 
@@ -731,7 +769,7 @@ public:
       : WrappedDeviceChild11<ID3D11DepthStencilState>(real, device)
   {
   }
-  virtual ~WrappedID3D11DepthStencilState() { Shutdown(); }
+  virtual ~WrappedID3D11DepthStencilState() {}
   //////////////////////////////
   // implement ID3D11DepthStencilState
 
@@ -750,7 +788,7 @@ public:
       : WrappedDeviceChild11<ID3D11SamplerState>(real, device)
   {
   }
-  virtual ~WrappedID3D11SamplerState() { Shutdown(); }
+  virtual ~WrappedID3D11SamplerState() {}
   //////////////////////////////
   // implement ID3D11SamplerState
 
@@ -769,14 +807,12 @@ protected:
       : WrappedDeviceChild11(real, device), m_pResource(res), m_ResourceRange(this)
   {
     m_ResourceResID = GetIDForResource(m_pResource);
-    // cast is potentially invalid but functions in WrappedResource will be identical across each
-    ((WrappedID3D11Buffer *)m_pResource)->ViewAddRef();
+    ::IntAddRef(m_pResource);
   }
 
   virtual ~WrappedView1()
   {
-    // cast is potentially invalid but functions in WrappedResource will be identical across each
-    ((WrappedID3D11Buffer *)m_pResource)->ViewRelease();
+    ::IntRelease(m_pResource);
     m_pResource = NULL;
   }
 
@@ -804,8 +840,10 @@ public:
   {
     RDCASSERT(m_pResource);
     if(pResource)
+    {
       *pResource = m_pResource;
-    m_pResource->AddRef();
+      m_pResource->AddRef();
+    }
   }
 
   //////////////////////////////
@@ -830,7 +868,7 @@ public:
       : WrappedView1(real, device, res)
   {
   }
-  virtual ~WrappedID3D11RenderTargetView1() { Shutdown(); }
+  virtual ~WrappedID3D11RenderTargetView1() {}
   //////////////////////////////
   // implement ID3D11RenderTargetView1
   virtual void STDMETHODCALLTYPE GetDesc1(D3D11_RENDER_TARGET_VIEW_DESC1 *pDesc1)
@@ -856,7 +894,7 @@ public:
       : WrappedView1(real, device, res)
   {
   }
-  virtual ~WrappedID3D11ShaderResourceView1() { Shutdown(); }
+  virtual ~WrappedID3D11ShaderResourceView1() {}
   //////////////////////////////
   // implement ID3D11ShaderResourceView1
   virtual void STDMETHODCALLTYPE GetDesc1(D3D11_SHADER_RESOURCE_VIEW_DESC1 *pDesc1)
@@ -882,7 +920,7 @@ public:
       : WrappedView1(real, device, res)
   {
   }
-  virtual ~WrappedID3D11DepthStencilView() { Shutdown(); }
+  virtual ~WrappedID3D11DepthStencilView() {}
 };
 
 class WrappedID3D11UnorderedAccessView1
@@ -897,7 +935,7 @@ public:
       : WrappedView1(real, device, res)
   {
   }
-  virtual ~WrappedID3D11UnorderedAccessView1() { Shutdown(); }
+  virtual ~WrappedID3D11UnorderedAccessView1() {}
   //////////////////////////////
   // implement ID3D11UnorderedAccessView1
   virtual void STDMETHODCALLTYPE GetDesc1(D3D11_UNORDERED_ACCESS_VIEW_DESC1 *pDesc1)
@@ -1034,7 +1072,7 @@ public:
         WrappedShader(device, origId, GetResourceID(), code, codeLen)
   {
   }
-  virtual ~WrappedID3D11Shader() { Shutdown(); }
+  virtual ~WrappedID3D11Shader() {}
 };
 
 class WrappedID3D11Counter : public WrappedDeviceChild11<ID3D11Counter>
@@ -1046,7 +1084,7 @@ public:
       : WrappedDeviceChild11(real, device)
   {
   }
-  virtual ~WrappedID3D11Counter() { Shutdown(); }
+  virtual ~WrappedID3D11Counter() {}
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
   {
     if(riid == __uuidof(ID3D11Asynchronous))
@@ -1078,7 +1116,7 @@ public:
       : WrappedDeviceChild11(real, device)
   {
   }
-  virtual ~WrappedID3D11Query1() { Shutdown(); }
+  virtual ~WrappedID3D11Query1() {}
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
   {
     if(riid == __uuidof(ID3D11Asynchronous))
@@ -1122,7 +1160,7 @@ public:
       : WrappedDeviceChild11(real, device)
   {
   }
-  virtual ~WrappedID3D11Predicate() { Shutdown(); }
+  virtual ~WrappedID3D11Predicate() {}
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
   {
     if(riid == __uuidof(ID3D11Asynchronous))
@@ -1159,12 +1197,7 @@ public:
   {
     SAFE_ADDREF(m_pLinkage);
   }
-  virtual ~WrappedID3D11ClassInstance()
-  {
-    SAFE_RELEASE(m_pLinkage);
-    Shutdown();
-  }
-
+  virtual ~WrappedID3D11ClassInstance() { SAFE_RELEASE(m_pLinkage); }
   //////////////////////////////
   // implement ID3D11ClassInstance
 
@@ -1174,8 +1207,8 @@ public:
   {
     if(ppLinkage)
     {
-      SAFE_ADDREF(m_pLinkage);
       *ppLinkage = m_pLinkage;
+      AddRef();
     }
   }
 
@@ -1214,7 +1247,7 @@ public:
       : WrappedDeviceChild11(real, device)
   {
   }
-  virtual ~WrappedID3D11ClassLinkage() { Shutdown(); }
+  virtual ~WrappedID3D11ClassLinkage() {}
   //////////////////////////////
   // implement ID3D11ClassLinkage
 
@@ -1313,7 +1346,6 @@ public:
     }
 
     // context isn't defined type at this point.
-    Shutdown();
   }
 
   WrappedID3D11DeviceContext *GetContext() { return m_pContext; }
@@ -1359,7 +1391,7 @@ public:
       : WrappedDeviceChild11(real, device)
   {
   }
-  virtual ~WrappedID3D11Fence() { Shutdown(); }
+  virtual ~WrappedID3D11Fence() {}
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
   {
     return WrappedDeviceChild11<ID3D11Fence>::QueryInterface(riid, ppvObject);

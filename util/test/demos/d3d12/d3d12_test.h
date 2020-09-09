@@ -75,7 +75,6 @@ struct D3D12GraphicsTest : public GraphicsTest
   ID3DBlobPtr Compile(std::string src, std::string entry, std::string profile);
   void WriteBlob(std::string name, ID3DBlobPtr blob, bool compress);
 
-  const std::vector<D3D12_INPUT_ELEMENT_DESC> &DefaultInputLayout() { return m_DefaultInputLayout; }
   void SetBlobPath(std::string name, ID3DBlobPtr &blob);
   void SetBlobPath(std::string name, ID3D12DeviceChild *shader);
 
@@ -89,45 +88,45 @@ struct D3D12GraphicsTest : public GraphicsTest
       UINT NumStaticSamplers = 0, const D3D12_STATIC_SAMPLER_DESC *StaticSamplers = NULL);
   ID3D12CommandSignaturePtr MakeCommandSig(ID3D12RootSignaturePtr rootSig,
                                            const std::vector<D3D12_INDIRECT_ARGUMENT_DESC> &params);
-  D3D12PSOCreator MakePSO() { return D3D12PSOCreator(this); }
-  D3D12BufferCreator MakeBuffer() { return D3D12BufferCreator(this); }
+  D3D12PSOCreator MakePSO() { return D3D12PSOCreator(dev); }
+  D3D12BufferCreator MakeBuffer() { return D3D12BufferCreator(dev, this); }
   D3D12TextureCreator MakeTexture(DXGI_FORMAT format, UINT width)
   {
-    return D3D12TextureCreator(this, format, width, 1, 1);
+    return D3D12TextureCreator(dev, format, width, 1, 1);
   }
   D3D12TextureCreator MakeTexture(DXGI_FORMAT format, UINT width, UINT height)
   {
-    return D3D12TextureCreator(this, format, width, height, 1);
+    return D3D12TextureCreator(dev, format, width, height, 1);
   }
   D3D12TextureCreator MakeTexture(DXGI_FORMAT format, UINT width, UINT height, UINT depth)
   {
-    return D3D12TextureCreator(this, format, width, height, depth);
+    return D3D12TextureCreator(dev, format, width, height, depth);
   }
 
   template <typename T>
   D3D12ViewCreator MakeCBV(T res)
   {
-    return D3D12ViewCreator(this, m_CBVUAVSRV, NULL, ViewType::CBV, res);
+    return D3D12ViewCreator(dev, m_CBVUAVSRV, NULL, ViewType::CBV, res);
   }
   template <typename T>
   D3D12ViewCreator MakeSRV(T res)
   {
-    return D3D12ViewCreator(this, m_CBVUAVSRV, NULL, ViewType::SRV, res);
+    return D3D12ViewCreator(dev, m_CBVUAVSRV, NULL, ViewType::SRV, res);
   }
   template <typename T>
   D3D12ViewCreator MakeRTV(T res)
   {
-    return D3D12ViewCreator(this, m_RTV, NULL, ViewType::RTV, res);
+    return D3D12ViewCreator(dev, m_RTV, NULL, ViewType::RTV, res);
   }
   template <typename T>
   D3D12ViewCreator MakeDSV(T res)
   {
-    return D3D12ViewCreator(this, m_DSV, NULL, ViewType::DSV, res);
+    return D3D12ViewCreator(dev, m_DSV, NULL, ViewType::DSV, res);
   }
   template <typename T>
   D3D12ViewCreator MakeUAV(T res)
   {
-    return D3D12ViewCreator(this, m_CBVUAVSRV, m_Clear, ViewType::UAV, res);
+    return D3D12ViewCreator(dev, m_CBVUAVSRV, m_Clear, ViewType::UAV, res);
   }
 
   std::vector<byte> GetBufferData(ID3D12ResourcePtr buffer, D3D12_RESOURCE_STATES state,
@@ -226,8 +225,6 @@ struct D3D12GraphicsTest : public GraphicsTest
   ID3D12GraphicsCommandListPtr m_DebugList;
 
   ID3D12CommandQueuePtr queue;
-
-  std::vector<D3D12_INPUT_ELEMENT_DESC> m_DefaultInputLayout;
 
   ID3D12FencePtr m_GPUSyncFence;
   HANDLE m_GPUSyncHandle = NULL;

@@ -42,26 +42,18 @@ WRAPPED_POOL_INST(WrappedID3D11Device);
 
 WrappedID3D11Device *WrappedID3D11Device::m_pCurrentWrappedDevice = NULL;
 
-void WrappedID3D11Device::NewSwapchainBuffer(IUnknown *backbuffer)
-{
-  WrappedID3D11Texture2D1 *wrapped = (WrappedID3D11Texture2D1 *)backbuffer;
-
-  if(wrapped)
-  {
-    // keep ref as a 'view' (invisible to user)
-    wrapped->ViewAddRef();
-    wrapped->Release();
-  }
-}
-
 WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitParams params)
-    : m_RefCounter(realDevice, false),
-      m_SoftRefCounter(NULL, false),
-      m_pDevice(realDevice),
-      m_ScratchSerialiser(new StreamWriter(1024), Ownership::Stream)
+    : m_pDevice(realDevice), m_ScratchSerialiser(new StreamWriter(1024), Ownership::Stream)
 {
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(WrappedID3D11Device));
+
+  // if there's no other device, claim it!
+  if(m_pCurrentWrappedDevice == NULL)
+    m_pCurrentWrappedDevice = this;
+
+  // start with a refcount of 1
+  m_RefCount = 1;
 
   m_SectionVersion = D3D11InitParams::CurrentVersion;
 
@@ -90,13 +82,8 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
     m_pDevice->QueryInterface(__uuidof(ID3D11Device5), (void **)&m_pDevice5);
   }
 
-  // refcounters implicitly construct with one reference, but we don't start with any soft
-  // references.
-  m_SoftRefCounter.Release();
-  m_InternalRefcount = 0;
-  m_Alive = true;
-
   m_DummyInfoQueue.m_pDevice = this;
+  m_WrappedInfoQueue.m_pDevice = this;
   m_DummyDebug.m_pDevice = this;
   m_WrappedDebug.m_pDevice = this;
   m_WrappedMultithread.m_pDevice = this;
@@ -183,6 +170,11 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
 
   m_pImmediateContext = new WrappedID3D11DeviceContext(this, context);
 
+  // add an internal reference to keep the immediate context always alive until we destroy it, and
+  // remove the implicit external ref from when any device child is created
+  m_pImmediateContext->IntAddRef();
+  m_pImmediateContext->Release();
+
   m_pImmediateContext->GetScratchSerialiser().SetChunkMetadataRecording(
       m_ScratchSerialiser.GetChunkMetadataRecording());
 
@@ -192,6 +184,7 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
   if(realDevice)
   {
     realDevice->QueryInterface(__uuidof(ID3D11InfoQueue), (void **)&m_pInfoQueue);
+    realDevice->QueryInterface(__uuidof(ID3D11InfoQueue), (void **)&m_WrappedInfoQueue.m_pReal);
     realDevice->QueryInterface(__uuidof(ID3D11Debug), (void **)&m_WrappedDebug.m_pDebug);
     realDevice->QueryInterface(__uuidof(ID3D11Multithread), (void **)&m_WrappedMultithread.m_pReal);
     realDevice->QueryInterface(__uuidof(ID3D11VideoDevice), (void **)&m_WrappedVideo.m_pReal);
@@ -240,6 +233,7 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
 
   // ATI workaround - these dlls can get unloaded and cause a crash.
 
+  /*
   if(GetModuleHandleA("aticfx32.dll"))
     LoadLibraryA("aticfx32.dll");
   if(GetModuleHandleA("atiuxpag.dll"))
@@ -258,6 +252,7 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
 
   if(GetModuleHandleA("nvwgf2umx.dll"))
     LoadLibraryA("nvwgf2umx.dll");
+  */
 }
 
 WrappedID3D11Device::~WrappedID3D11Device()
@@ -271,7 +266,7 @@ WrappedID3D11Device::~WrappedID3D11Device()
 
   for(auto it = m_CachedStateObjects.begin(); it != m_CachedStateObjects.end(); ++it)
     if(*it)
-      (*it)->Release();
+      IntRelease(*it);
 
   m_CachedStateObjects.clear();
 
@@ -285,7 +280,8 @@ WrappedID3D11Device::~WrappedID3D11Device()
 
   SAFE_RELEASE(m_RealAnnotations);
 
-  SAFE_RELEASE(m_pImmediateContext);
+  m_pImmediateContext->IntRelease();
+  m_pImmediateContext = NULL;
 
   for(auto it = m_SwapChains.begin(); it != m_SwapChains.end(); ++it)
     SAFE_RELEASE(it->second);
@@ -312,6 +308,7 @@ WrappedID3D11Device::~WrappedID3D11Device()
   SAFE_DELETE(m_ResourceManager);
 
   SAFE_RELEASE(m_pInfoQueue);
+  SAFE_RELEASE(m_WrappedInfoQueue.m_pReal);
   SAFE_RELEASE(m_WrappedMultithread.m_pReal);
   SAFE_RELEASE(m_WrappedVideo.m_pReal);
   SAFE_RELEASE(m_WrappedVideo.m_pReal1);
@@ -327,40 +324,40 @@ WrappedID3D11Device::~WrappedID3D11Device()
     RDCASSERT(WrappedID3D11Texture3D1::m_TextureList.empty());
   }
 
-  delete m_Replay;
+  SAFE_DELETE(m_Replay);
 
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
 }
 
-void WrappedID3D11Device::CheckForDeath()
+HRESULT STDMETHODCALLTYPE DummyID3D11InfoQueue::QueryInterface(REFIID riid, void **ppvObject)
 {
-  if(!m_Alive)
-    return;
-
-  if(m_RefCounter.GetRefCount() == 0)
-  {
-    RDCASSERT(m_SoftRefCounter.GetRefCount() >= m_InternalRefcount);
-
-    // MEGA HACK
-    if(m_SoftRefCounter.GetRefCount() <= m_InternalRefcount || IsReplayMode(m_State))
-    {
-      m_Alive = false;
-      delete this;
-    }
-  }
+  return m_pDevice->QueryInterface(riid, ppvObject);
 }
 
 ULONG STDMETHODCALLTYPE DummyID3D11InfoQueue::AddRef()
 {
-  m_pDevice->AddRef();
-  return 1;
+  return m_pDevice->AddRef();
 }
 
 ULONG STDMETHODCALLTYPE DummyID3D11InfoQueue::Release()
 {
-  m_pDevice->Release();
-  return 1;
+  return m_pDevice->Release();
+}
+
+HRESULT STDMETHODCALLTYPE WrappedID3D11InfoQueue::QueryInterface(REFIID riid, void **ppvObject)
+{
+  return m_pDevice->QueryInterface(riid, ppvObject);
+}
+
+ULONG STDMETHODCALLTYPE WrappedID3D11InfoQueue::AddRef()
+{
+  return m_pDevice->AddRef();
+}
+
+ULONG STDMETHODCALLTYPE WrappedID3D11InfoQueue::Release()
+{
+  return m_pDevice->Release();
 }
 
 HRESULT STDMETHODCALLTYPE DummyID3D11Debug::QueryInterface(REFIID riid, void **ppvObject)
@@ -370,43 +367,27 @@ HRESULT STDMETHODCALLTYPE DummyID3D11Debug::QueryInterface(REFIID riid, void **p
 
 ULONG STDMETHODCALLTYPE DummyID3D11Debug::AddRef()
 {
-  m_pDevice->AddRef();
-  return 1;
+  return m_pDevice->AddRef();
 }
 
 ULONG STDMETHODCALLTYPE DummyID3D11Debug::Release()
 {
-  m_pDevice->Release();
-  return 1;
+  return m_pDevice->Release();
 }
 
 HRESULT STDMETHODCALLTYPE WrappedD3D11Multithread::QueryInterface(REFIID riid, void **ppvObject)
 {
-  if(riid == __uuidof(IUnknown))
-  {
-    *ppvObject = (IUnknown *)this;
-    AddRef();
-    return S_OK;
-  }
-  if(riid == __uuidof(ID3D11Multithread))
-  {
-    *ppvObject = (ID3D11Multithread *)this;
-    AddRef();
-    return S_OK;
-  }
-  return E_NOINTERFACE;
+  return m_pDevice->QueryInterface(riid, ppvObject);
 }
 
 ULONG STDMETHODCALLTYPE WrappedD3D11Multithread::AddRef()
 {
-  m_pDevice->AddRef();
-  return 1;
+  return m_pDevice->AddRef();
 }
 
 ULONG STDMETHODCALLTYPE WrappedD3D11Multithread::Release()
 {
-  m_pDevice->Release();
-  return 1;
+  return m_pDevice->Release();
 }
 
 void STDMETHODCALLTYPE WrappedD3D11Multithread::Enter()
@@ -693,8 +674,8 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
   }
   else if(riid == __uuidof(ID3D11Multithread))
   {
-    AddRef();
     *ppvObject = (ID3D11Multithread *)&m_WrappedMultithread;
+    m_WrappedMultithread.AddRef();
     return S_OK;
   }
   else if(riid == ID3D11ShaderTraceFactory_uuid)
@@ -727,8 +708,8 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
   {
     if(m_pInfoQueue)
     {
-      *ppvObject = m_pInfoQueue;
-      m_pInfoQueue->AddRef();
+      *ppvObject = (ID3D11InfoQueue *)&m_WrappedInfoQueue;
+      m_WrappedInfoQueue.AddRef();
       return S_OK;
     }
     else
@@ -749,8 +730,8 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
     // return our wrapper
     if(m_WrappedDebug.m_pDebug)
     {
-      AddRef();
       *ppvObject = (ID3D11Debug *)&m_WrappedDebug;
+      m_WrappedDebug.AddRef();
       return S_OK;
     }
     else
@@ -775,7 +756,7 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
 
   WarnUnknownGUID("ID3D11Device", riid);
 
-  return m_RefCounter.QueryInterface(riid, ppvObject);
+  return RefCountDXGIObject::WrapQueryInterface(m_pDevice, riid, ppvObject);
 }
 
 rdcstr WrappedID3D11Device::GetChunkName(uint32_t idx)
@@ -1444,6 +1425,16 @@ void WrappedID3D11Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
   D3D11MarkerRegion::Set("!!!!RenderDoc Internal: Done replay");
 }
 
+void WrappedID3D11Device::NewSwapchainBuffer(IUnknown *backbuffer)
+{
+  WrappedID3D11Texture2D1 *wrapped = (WrappedID3D11Texture2D1 *)backbuffer;
+
+  // add internal reference to keep this texture alive
+  SAFE_INTADDREF(wrapped);
+  // release the external reference
+  wrapped->Release();
+}
+
 void WrappedID3D11Device::ReleaseSwapchainResources(IDXGISwapper *swapper, UINT QueueCount,
                                                     IUnknown *const *ppPresentQueue,
                                                     IUnknown **unwrappedQueues)
@@ -1476,7 +1467,7 @@ void WrappedID3D11Device::ReleaseSwapchainResources(IDXGISwapper *swapper, UINT 
         }
       }
 
-      wrapped11->ViewRelease();
+      SAFE_INTRELEASE(wrapped11);
     }
 
     wrapped11 = NULL;
@@ -1488,6 +1479,8 @@ void WrappedID3D11Device::ReleaseSwapchainResources(IDXGISwapper *swapper, UINT 
     SAFE_RELEASE(it->second);
     m_SwapChains.erase(it);
   }
+
+  FlushPendingDead();
 }
 
 template <typename SerialiserType>
@@ -1631,6 +1624,88 @@ IDXGIResource *WrappedID3D11Device::WrapExternalDXGIResource(IDXGIResource *res)
   SERIALISE_TIME_CALL(voidRes = (void *)res);
   OpenSharedResourceInternal(D3D11Chunk::ExternalDXGIResource, __uuidof(IDXGIResource), &voidRes);
   return (IDXGIResource *)voidRes;
+}
+
+void WrappedID3D11Device::ReportDeath(ID3D11DeviceChild *obj)
+{
+  SCOPED_LOCK(m_D3DLock);
+
+  m_DeadObjects.push_back(obj);
+
+  // if we're shutting down, immediately flush the object as dead. This isn't super efficient but
+  // it's not the end of the world
+  if(m_RefCount == 0)
+    FlushPendingDead();
+}
+
+void WrappedID3D11Device::FlushPendingDead()
+{
+  SCOPED_LOCK(m_D3DLock);
+
+  // to be safe, don't destroy anything while active capturing
+  if(IsActiveCapturing(m_State))
+    return;
+
+  D3D11ResourceManager *rm = GetResourceManager();
+
+  int pass = 0;
+  do
+  {
+    rdcarray<ID3D11DeviceChild *> objs;
+    objs.swap(m_DeadObjects);
+
+    for(ID3D11DeviceChild *child : objs)
+    {
+      // only wrapped objects are reported for death
+      WrappedDeviceChild11<ID3D11DeviceChild> *wrapped =
+          (WrappedDeviceChild11<ID3D11DeviceChild> *)child;
+
+      // is this object still dead? If so delete it, otherwise ignore it.
+      if(wrapped->GetIntRefCount() == 0 && wrapped->GetExtRefCount() == 0)
+      {
+        ResourceId id = wrapped->GetResourceID();
+
+        // clean up book-keeping
+        rm->RemoveWrapper(wrapped->GetReal());
+        rm->ReleaseCurrentResource(id);
+        D3D11ResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
+        if(record)
+          record->Delete(GetResourceManager());
+
+        if(GetResourceManager()->HasLiveResource(id))
+          GetResourceManager()->EraseLiveResource(id);
+
+        // this is a bit of a hack. the vtable for e.g. a wrapped blend state will have:
+        //
+        //   [IUnknown][ID3D11DeviceChild][ID3D11BlendState]
+        //
+        // but a buffer will have
+        //
+        //   [IUnknown][ID3D11DeviceChild][ID3D11Resource][ID3D11Buffer]
+        //
+        // If we have WrappedDeviceChild11 having a virtual descructor then because it's templated
+        // it will insert it in a variable location after all the I* functions. Even if we avoided
+        // that with another base class we'd then need two vtable pointers or we'd need to know the
+        // type to custom offset into the vtable (i.e. do the proper type cast to get the compiler
+        // to do that).
+        //
+        // Instead we hijack ID3D11DeviceChild's SetPrivateData with a custom GUID to get the object
+        // to delete itself.
+        wrapped->SetPrivateData(RENDERDOC_DeleteSelf, 0, NULL);
+      }
+    }
+
+    objs.clear();
+
+    // loop again if m_DeadObjects has had some things added - e.g. if we destroyed a view and that
+    // caused a texture to be added to the dead objects list. Technically this isn't needed, but to
+    // keep behaviour consistent with the D3D runtime in testing we do this. It should only require
+    // at most three passes since we only have two layers of dependency (context free'd destroys a
+    // view, view free'd destroys a resource, resource free'd).
+    pass++;
+    if(pass > 3)
+      break;
+  } while(!m_DeadObjects.empty());
 }
 
 void WrappedID3D11Device::SetMarker(uint32_t col, const wchar_t *name)
@@ -2314,6 +2389,8 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapper *swapper, UINT SyncInterval, U
   if(IsBackgroundCapturing(m_State))
     RenderDoc::Inst().Tick();
 
+  FlushPendingDead();
+
   m_pImmediateContext->EndFrame();
 
   m_FrameCounter++;    // first present becomes frame #1, this function is at the end of the frame
@@ -2406,13 +2483,14 @@ void WrappedID3D11Device::CachedObjectsGarbageCollect()
   {
     ID3D11DeviceChild *o = *it;
 
-    o->AddRef();
-    if(o->Release() == 1)
+    // if there are no external references and only one internal reference then this object should
+    // have been deleted because that internal reference is the one we added at creation to keep the
+    // object alive.
+    if(GetExtRefCount(o) == 0 && GetIntRefCount(o) == 1)
     {
       auto eraseit = it;
       ++it;
-      o->Release();
-      InternalRelease();
+      IntRelease(o);
       m_CachedStateObjects.erase(eraseit);
     }
     else
@@ -2420,6 +2498,8 @@ void WrappedID3D11Device::CachedObjectsGarbageCollect()
       ++it;
     }
   }
+
+  FlushPendingDead();
 }
 
 void WrappedID3D11Device::AddDeferredContext(WrappedID3D11DeviceContext *defctx)
@@ -2588,29 +2668,6 @@ void WrappedID3D11Device::SetResourceName(ID3D11DeviceChild *pResource, const ch
       record->AddChunk(scope.Get());
     }
   }
-}
-
-void WrappedID3D11Device::ReleaseResource(ID3D11DeviceChild *res)
-{
-  ResourceId idx = GetIDForResource(res);
-
-  // wrapped resources get released all the time, we don't want to
-  // try and slerp in a resource release. Just the explicit ones
-  if(!IsCaptureMode(m_State))
-  {
-    if(GetResourceManager()->HasLiveResource(idx))
-      GetResourceManager()->EraseLiveResource(idx);
-    return;
-  }
-
-  SCOPED_LOCK(m_D3DLock);
-
-  if(WrappedID3D11DeviceContext::IsAlloc(res))
-    RemoveDeferredContext((WrappedID3D11DeviceContext *)res);
-
-  D3D11ResourceRecord *record = GetResourceManager()->GetResourceRecord(idx);
-  if(record)
-    record->Delete(GetResourceManager());
 }
 
 WrappedID3D11DeviceContext *WrappedID3D11Device::GetDeferredContext(size_t idx)

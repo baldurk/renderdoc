@@ -5533,6 +5533,8 @@ void WrappedID3D11DeviceContext::Flush()
 
   m_EmptyCommandList = false;
 
+  m_pDevice->FlushPendingDead();
+
   SERIALISE_TIME_CALL(m_pRealContext->Flush());
 
   if(IsActiveCapturing(m_State))

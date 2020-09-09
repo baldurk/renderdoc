@@ -1357,28 +1357,41 @@ void STDMETHODCALLTYPE WrappedID3D11VideoProcessorOutputView::GetResource(
 template <typename NestedType, typename NestedType1>
 Wrapped11VideoDeviceChild<NestedType, NestedType1>::Wrapped11VideoDeviceChild(
     NestedType *real, WrappedID3D11Device *device)
-    : RefCounter(real), m_pDevice(device), m_pReal(real)
+    : m_pDevice(device), m_pReal(real), m_ExtRef(1)
 {
-  m_pDevice->SoftRef();
+  m_pDevice->AddRef();
 }
 
 template <typename NestedType, typename NestedType1>
 Wrapped11VideoDeviceChild<NestedType, NestedType1>::~Wrapped11VideoDeviceChild()
 {
   SAFE_RELEASE(m_pReal);
-  m_pDevice = NULL;
+  // remove our device ref here as we don't have IntRef counter to keep the device alive when it
+  // hits ExtRef 0, which is when we'd normally release the device ref.
+  SAFE_RELEASE(m_pDevice);
 }
 
 template <typename NestedType, typename NestedType1>
 ULONG STDMETHODCALLTYPE Wrapped11VideoDeviceChild<NestedType, NestedType1>::AddRef()
 {
-  return RefCounter::SoftRef(m_pDevice);
+  if(m_ExtRef == 0)
+    m_pDevice->AddRef();
+  Atomic::Inc32(&m_ExtRef);
+  return m_ExtRef;
 }
 
 template <typename NestedType, typename NestedType1>
 ULONG STDMETHODCALLTYPE Wrapped11VideoDeviceChild<NestedType, NestedType1>::Release()
 {
-  return RefCounter::SoftRelease(m_pDevice);
+  Atomic::Dec32(&m_ExtRef);
+  ASSERT_REFCOUNT(m_ExtRef);
+  // don't defer destruction of video objects, delete them immediately.
+  if(m_ExtRef == 0)
+  {
+    delete this;
+    return 0;
+  }
+  return (ULONG)m_ExtRef;
 }
 
 template <typename NestedType, typename NestedType1>
@@ -1424,7 +1437,7 @@ Wrapped11VideoDeviceChild<NestedType, NestedType1>::QueryInterface(REFIID riid, 
     return m_pDevice->QueryInterface(riid, ppvObject);
   }
 
-  return RefCounter::QueryInterface(riid, ppvObject);
+  return RefCountDXGIObject::WrapQueryInterface(m_pReal, riid, ppvObject);
 }
 
 template <typename NestedType, typename NestedType1>

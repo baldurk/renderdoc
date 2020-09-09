@@ -75,7 +75,7 @@ struct D3D12GraphicsTest;
 class D3D12PSOCreator
 {
 public:
-  D3D12PSOCreator(D3D12GraphicsTest *test);
+  D3D12PSOCreator(ID3D12DevicePtr dev);
 
   D3D12PSOCreator &VS(ID3DBlobPtr blob);
   D3D12PSOCreator &HS(ID3DBlobPtr blob);
@@ -104,13 +104,13 @@ public:
   D3D12_COMPUTE_PIPELINE_STATE_DESC ComputeDesc = {};
 
 private:
-  D3D12GraphicsTest *m_Test;
+  ID3D12DevicePtr m_Dev;
 };
 
 class D3D12BufferCreator
 {
 public:
-  D3D12BufferCreator(D3D12GraphicsTest *test);
+  D3D12BufferCreator(ID3D12DevicePtr dev, D3D12GraphicsTest *test);
 
   D3D12BufferCreator &UAV();
 
@@ -135,6 +135,7 @@ public:
   operator ID3D12ResourcePtr() const;
 
 private:
+  ID3D12DevicePtr m_Dev;
   D3D12GraphicsTest *m_Test;
 
   D3D12_RESOURCE_DESC m_BufDesc;
@@ -145,8 +146,7 @@ private:
 class D3D12TextureCreator
 {
 public:
-  D3D12TextureCreator(D3D12GraphicsTest *test, DXGI_FORMAT format, UINT width, UINT height,
-                      UINT depth);
+  D3D12TextureCreator(ID3D12DevicePtr dev, DXGI_FORMAT format, UINT width, UINT height, UINT depth);
 
   D3D12TextureCreator &Mips(UINT mips);
   D3D12TextureCreator &Array(UINT size);
@@ -167,7 +167,7 @@ public:
   operator ID3D12ResourcePtr() const;
 
 protected:
-  D3D12GraphicsTest *m_Test;
+  ID3D12DevicePtr m_Dev;
 
   D3D12_RESOURCE_STATES m_InitialState;
   D3D12_RESOURCE_DESC m_TexDesc;
@@ -178,8 +178,8 @@ protected:
 class D3D12ViewCreator
 {
 public:
-  D3D12ViewCreator(D3D12GraphicsTest *test, ID3D12DescriptorHeap *heap,
-                   ID3D12DescriptorHeap *clearHeap, ViewType viewType, ID3D12Resource *res);
+  D3D12ViewCreator(ID3D12DevicePtr dev, ID3D12DescriptorHeap *heap, ID3D12DescriptorHeap *clearHeap,
+                   ViewType viewType, ID3D12Resource *res);
 
   // common params
   D3D12ViewCreator &Format(DXGI_FORMAT format);
@@ -229,7 +229,7 @@ public:
 private:
   void SetupDescriptors(ViewType viewType, ResourceType resType);
 
-  D3D12GraphicsTest *m_Test;
+  ID3D12DevicePtr m_Dev;
   ID3D12Resource *m_Res;
   ID3D12DescriptorHeap *m_Heap;
   ID3D12DescriptorHeap *m_ClearHeap;
@@ -275,13 +275,6 @@ D3D12_INDIRECT_ARGUMENT_DESC constArg(UINT root, UINT wordOffset, UINT wordCount
 D3D12_INDIRECT_ARGUMENT_DESC drawArg();
 D3D12_INDIRECT_ARGUMENT_DESC drawIndexedArg();
 D3D12_INDIRECT_ARGUMENT_DESC dispatchArg();
-
-#define GET_REFCOUNT(val, obj) \
-  do                           \
-  {                            \
-    obj->AddRef();             \
-    val = obj->Release();      \
-  } while(0)
 
 #define CHECK_HR(expr)                                                                    \
   {                                                                                       \

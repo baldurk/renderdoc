@@ -199,7 +199,8 @@ D3D12_ROOT_PARAMETER1 tableParam(D3D12_SHADER_VISIBILITY vis, D3D12_DESCRIPTOR_R
   return ret;
 }
 
-D3D12BufferCreator::D3D12BufferCreator(D3D12GraphicsTest *test) : m_Test(test)
+D3D12BufferCreator::D3D12BufferCreator(ID3D12DevicePtr dev, D3D12GraphicsTest *test)
+    : m_Dev(dev), m_Test(test)
 {
   m_BufDesc.Alignment = 0;
   m_BufDesc.DepthOrArraySize = 1;
@@ -260,20 +261,19 @@ D3D12BufferCreator::operator ID3D12ResourcePtr() const
     initialState = D3D12_RESOURCE_STATE_COPY_DEST;
 
   ID3D12ResourcePtr buf;
-  CHECK_HR(m_Test->dev->CreateCommittedResource(&m_HeapDesc, D3D12_HEAP_FLAG_NONE, &m_BufDesc,
-                                                initialState, NULL, __uuidof(ID3D12Resource),
-                                                (void **)&buf));
+  CHECK_HR(m_Dev->CreateCommittedResource(&m_HeapDesc, D3D12_HEAP_FLAG_NONE, &m_BufDesc, initialState,
+                                          NULL, __uuidof(ID3D12Resource), (void **)&buf));
 
-  if(m_Initdata)
+  if(m_Initdata && m_Test)
     m_Test->SetBufferData(buf, D3D12_RESOURCE_STATE_COMMON, (const byte *)m_Initdata,
                           m_BufDesc.Width);
 
   return buf;
 }
 
-D3D12TextureCreator::D3D12TextureCreator(D3D12GraphicsTest *test, DXGI_FORMAT format, UINT width,
+D3D12TextureCreator::D3D12TextureCreator(ID3D12DevicePtr dev, DXGI_FORMAT format, UINT width,
                                          UINT height, UINT depth)
-    : m_Test(test)
+    : m_Dev(dev)
 {
   m_InitialState = D3D12_RESOURCE_STATE_COMMON;
 
@@ -371,15 +371,15 @@ D3D12TextureCreator &D3D12TextureCreator::InitialState(D3D12_RESOURCE_STATES sta
 D3D12TextureCreator::operator ID3D12ResourcePtr() const
 {
   ID3D12ResourcePtr tex;
-  CHECK_HR(m_Test->dev->CreateCommittedResource(&m_HeapDesc, m_HeapFlags, &m_TexDesc, m_InitialState,
-                                                NULL, __uuidof(ID3D12Resource), (void **)&tex));
+  CHECK_HR(m_Dev->CreateCommittedResource(&m_HeapDesc, m_HeapFlags, &m_TexDesc, m_InitialState,
+                                          NULL, __uuidof(ID3D12Resource), (void **)&tex));
   return tex;
 }
 
-D3D12ViewCreator::D3D12ViewCreator(D3D12GraphicsTest *test, ID3D12DescriptorHeap *heap,
+D3D12ViewCreator::D3D12ViewCreator(ID3D12DevicePtr dev, ID3D12DescriptorHeap *heap,
                                    ID3D12DescriptorHeap *clearHeap, ViewType viewType,
                                    ID3D12Resource *res)
-    : m_Test(test), m_Type(viewType), m_Heap(heap), m_ClearHeap(clearHeap), m_Res(res)
+    : m_Dev(dev), m_Type(viewType), m_Heap(heap), m_ClearHeap(clearHeap), m_Res(res)
 {
   D3D12_RESOURCE_DESC resdesc = res->GetDesc();
   D3D12_RESOURCE_DIMENSION dim = resdesc.Dimension;
@@ -784,10 +784,10 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12ViewCreator::CreateCPU(ID3D12DescriptorHeap *he
                                                         uint32_t descriptor)
 {
   static UINT increment[] = {
-      m_Test->dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV),
+      m_Dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV),
       0,    // D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER
-      m_Test->dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV),
-      m_Test->dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV),
+      m_Dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV),
+      m_Dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV),
   };
 
   D3D12_CPU_DESCRIPTOR_HANDLE cpu = heap->GetCPUDescriptorHandleForHeapStart();
@@ -797,17 +797,17 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12ViewCreator::CreateCPU(ID3D12DescriptorHeap *he
   if(m_Type == ViewType::DSV)
   {
     cpu.ptr += increment[D3D12_DESCRIPTOR_HEAP_TYPE_DSV] * descriptor;
-    m_Test->dev->CreateDepthStencilView(m_Res, &desc.dsv, cpu);
+    m_Dev->CreateDepthStencilView(m_Res, &desc.dsv, cpu);
   }
   else if(m_Type == ViewType::RTV)
   {
     cpu.ptr += increment[D3D12_DESCRIPTOR_HEAP_TYPE_RTV] * descriptor;
-    m_Test->dev->CreateRenderTargetView(m_Res, &desc.rtv, cpu);
+    m_Dev->CreateRenderTargetView(m_Res, &desc.rtv, cpu);
   }
   else if(m_Type == ViewType::CBV)
   {
     cpu.ptr += increment[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV] * descriptor;
-    m_Test->dev->CreateConstantBufferView(&desc.cbv, cpu);
+    m_Dev->CreateConstantBufferView(&desc.cbv, cpu);
   }
   else if(m_Type == ViewType::SRV)
   {
@@ -830,7 +830,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12ViewCreator::CreateCPU(ID3D12DescriptorHeap *he
     desc.srv.Shader4ComponentMapping = Shader4ComponentMapping;
 
     cpu.ptr += increment[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV] * descriptor;
-    m_Test->dev->CreateShaderResourceView(m_Res, &desc.srv, cpu);
+    m_Dev->CreateShaderResourceView(m_Res, &desc.srv, cpu);
   }
   else if(m_Type == ViewType::UAV)
   {
@@ -851,7 +851,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12ViewCreator::CreateCPU(ID3D12DescriptorHeap *he
     }
 
     cpu.ptr += increment[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV] * descriptor;
-    m_Test->dev->CreateUnorderedAccessView(m_Res, NULL, &desc.uav, cpu);
+    m_Dev->CreateUnorderedAccessView(m_Res, NULL, &desc.uav, cpu);
   }
 
   return cpu;
@@ -863,10 +863,10 @@ D3D12_GPU_DESCRIPTOR_HANDLE D3D12ViewCreator::CreateGPU(ID3D12DescriptorHeap *he
   CreateCPU(heap, descriptor);
 
   static UINT increment[] = {
-      m_Test->dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV),
+      m_Dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV),
       0,    // D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER
-      m_Test->dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV),
-      m_Test->dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV),
+      m_Dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV),
+      m_Dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV),
   };
 
   D3D12_GPU_DESCRIPTOR_HANDLE gpu = heap->GetGPUDescriptorHandleForHeapStart();
@@ -881,7 +881,7 @@ D3D12_GPU_DESCRIPTOR_HANDLE D3D12ViewCreator::CreateGPU(ID3D12DescriptorHeap *he
   return gpu;
 }
 
-D3D12PSOCreator::D3D12PSOCreator(D3D12GraphicsTest *test) : m_Test(test)
+D3D12PSOCreator::D3D12PSOCreator(ID3D12DevicePtr dev) : m_Dev(dev)
 {
   GraphicsDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
   GraphicsDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
@@ -963,7 +963,13 @@ D3D12PSOCreator &D3D12PSOCreator::InputLayout(const std::vector<D3D12_INPUT_ELEM
 
 D3D12PSOCreator &D3D12PSOCreator::InputLayout()
 {
-  return InputLayout(m_Test->DefaultInputLayout());
+  const D3D12_INPUT_CLASSIFICATION vertex = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+  static const std::vector<D3D12_INPUT_ELEMENT_DESC> defaultLayout = {
+      {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, vertex, 0},
+      {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, vertex, 0},
+      {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 28, vertex, 0},
+  };
+  return InputLayout(defaultLayout);
 }
 
 D3D12PSOCreator &D3D12PSOCreator::StripRestart(D3D12_INDEX_BUFFER_STRIP_CUT_VALUE stripCut)
@@ -1011,13 +1017,13 @@ D3D12PSOCreator::operator ID3D12PipelineStatePtr() const
   ID3D12PipelineStatePtr pso;
   if(ComputeDesc.CS.BytecodeLength > 0)
   {
-    CHECK_HR(m_Test->dev->CreateComputePipelineState(&ComputeDesc, __uuidof(ID3D12PipelineState),
-                                                     (void **)&pso));
+    CHECK_HR(m_Dev->CreateComputePipelineState(&ComputeDesc, __uuidof(ID3D12PipelineState),
+                                               (void **)&pso));
   }
   else
   {
-    CHECK_HR(m_Test->dev->CreateGraphicsPipelineState(&GraphicsDesc, __uuidof(ID3D12PipelineState),
-                                                      (void **)&pso));
+    CHECK_HR(m_Dev->CreateGraphicsPipelineState(&GraphicsDesc, __uuidof(ID3D12PipelineState),
+                                                (void **)&pso));
   }
   return pso;
 }

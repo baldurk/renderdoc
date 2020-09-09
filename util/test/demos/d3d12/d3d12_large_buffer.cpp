@@ -55,7 +55,7 @@ RD_TEST(D3D12_Large_Buffer, D3D12GraphicsTest)
     verts[indices[1]] = DefaultTri[1];
     verts[indices[2]] = DefaultTri[2];
 
-    range.End = vb->GetDesc().Width;
+    range.End = (SIZE_T)vb->GetDesc().Width;
 
     vb->Unmap(0, &range);
 

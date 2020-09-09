@@ -37,37 +37,33 @@ WRAPPED_POOL_INST(WrappedID3D11CommandList);
 
 INT STDMETHODCALLTYPE WrappedID3DUserDefinedAnnotation::BeginEvent(LPCWSTR Name)
 {
-  if(m_Context)
-    return m_Context->PushMarker(0, Name);
-
-  return -1;
+  return m_Context->PushMarker(0, Name);
 }
 
 INT STDMETHODCALLTYPE WrappedID3DUserDefinedAnnotation::EndEvent()
 {
-  if(m_Context)
-    return m_Context->PopMarker();
-
-  return -1;
+  return m_Context->PopMarker();
 }
 
 void STDMETHODCALLTYPE WrappedID3DUserDefinedAnnotation::SetMarker(LPCWSTR Name)
 {
-  if(m_Context)
-    return m_Context->SetMarker(0, Name);
+  return m_Context->SetMarker(0, Name);
+}
+
+ULONG STDMETHODCALLTYPE WrappedID3DUserDefinedAnnotation::AddRef()
+{
+  return m_Context->AddRef();
+}
+
+ULONG STDMETHODCALLTYPE WrappedID3DUserDefinedAnnotation::Release()
+{
+  return m_Context->Release();
 }
 
 HRESULT STDMETHODCALLTYPE WrappedID3DUserDefinedAnnotation::QueryInterface(REFIID riid,
                                                                            void **ppvObject)
 {
-  if(riid == __uuidof(ID3DUserDefinedAnnotation))
-  {
-    *ppvObject = (ID3DUserDefinedAnnotation *)this;
-    AddRef();
-    return S_OK;
-  }
-
-  return E_NOINTERFACE;
+  return m_Context->QueryInterface(riid, ppvObject);
 }
 
 extern uint32_t NullCBOffsets[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
@@ -75,8 +71,7 @@ extern uint32_t NullCBCounts[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
 
 WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *realDevice,
                                                        ID3D11DeviceContext *context)
-    : RefCounter(context),
-      m_pDevice(realDevice),
+    : m_pDevice(realDevice),
       m_pRealContext(context),
       m_ScratchSerialiser(new StreamWriter(1024), Ownership::Stream)
 {
@@ -129,6 +124,8 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *real
     m_pRealContext->QueryInterface(__uuidof(ID3D11VideoContext2), (void **)&m_WrappedVideo.m_pReal2);
   }
 
+  m_UserAnnotation.SetContext(this);
+
   m_NeedUpdateSubWorkaround = false;
   if(m_pRealContext)
   {
@@ -177,11 +174,17 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *real
   m_CurDrawcallID = 1;
 
   m_MarkerIndentLevel = 0;
-  m_UserAnnotation.SetContext(this);
 
   m_CurrentPipelineState = new D3D11RenderState(D3D11RenderState::Empty);
   m_DeferredSavedState = NULL;
   m_DoStateVerify = IsCaptureMode(m_State);
+
+  // take a reference on the device, as with all ID3D11DeviceChild objects.
+  m_pDevice->AddRef();
+
+  // start with 1 ext ref and 0 int refs
+  m_ExtRef = 1;
+  m_IntRef = 0;
 
   if(!context || GetType() == D3D11_DEVICE_CONTEXT_IMMEDIATE)
   {
@@ -192,7 +195,6 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *real
   else
   {
     m_CurrentPipelineState->SetDevice(m_pDevice);
-    m_pDevice->SoftRef();
 
     // we haven't actually marked active, but this makes the check much easier - just look at this
     // bool flag rather than "if immediate and not flagged"
@@ -240,8 +242,11 @@ WrappedID3D11DeviceContext::~WrappedID3D11DeviceContext()
 
 void WrappedID3D11DeviceContext::GetDevice(ID3D11Device **ppDevice)
 {
-  *ppDevice = (ID3D11Device *)m_pDevice;
-  (*ppDevice)->AddRef();
+  if(ppDevice)
+  {
+    *ppDevice = (ID3D11Device *)m_pDevice;
+    (*ppDevice)->AddRef();
+  }
 }
 
 bool WrappedID3D11DeviceContext::HasNonMarkerEvents()
@@ -1360,6 +1365,46 @@ void WrappedID3D11DeviceContext::ClearMaps()
   m_OpenMaps.clear();
 }
 
+void WrappedID3D11DeviceContext::IntAddRef()
+{
+  Atomic::Inc32(&m_IntRef);
+}
+
+void WrappedID3D11DeviceContext::IntRelease()
+{
+  Atomic::Dec32(&m_IntRef);
+  ASSERT_REFCOUNT(m_IntRef);
+  // don't defer destruction of device contexts, delete them immediately.
+  if(m_IntRef + m_ExtRef == 0)
+    delete this;
+}
+
+ULONG STDMETHODCALLTYPE WrappedID3D11DeviceContext::AddRef()
+{
+  // if we're about to create a new external reference on this object, add back our reference on
+  // the device
+  if(m_ExtRef == 0)
+    m_pDevice->AddRef();
+  Atomic::Inc32(&m_ExtRef);
+  return (ULONG)m_ExtRef;
+}
+
+ULONG STDMETHODCALLTYPE WrappedID3D11DeviceContext::Release()
+{
+  Atomic::Dec32(&m_ExtRef);
+  ASSERT_REFCOUNT(m_ExtRef);
+  // if we just released the last external reference on this object, release our reference on the
+  // device.
+  if(m_ExtRef == 0)
+    m_pDevice->Release();
+  if(m_IntRef + m_ExtRef == 0)
+  {
+    delete this;
+    return 0;
+  }
+  return (ULONG)m_ExtRef;
+}
+
 HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface(REFIID riid, void **ppvObject)
 {
   if(riid == __uuidof(IUnknown))
@@ -1443,7 +1488,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface(REFIID riid
   else if(riid == __uuidof(ID3DUserDefinedAnnotation))
   {
     *ppvObject = (ID3DUserDefinedAnnotation *)&m_UserAnnotation;
-    m_UserAnnotation.AddRef();
+    AddRef();
     return S_OK;
   }
   else if(riid == __uuidof(ID3D11InfoQueue))
@@ -1461,7 +1506,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface(REFIID riid
     WarnUnknownGUID("ID3D11DeviceContext", riid);
   }
 
-  return RefCounter::QueryInterface(riid, ppvObject);
+  return RefCountDXGIObject::WrapQueryInterface(m_pRealContext, riid, ppvObject);
 }
 
 #pragma region Record Statistics

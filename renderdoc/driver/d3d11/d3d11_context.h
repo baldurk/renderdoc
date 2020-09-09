@@ -69,14 +69,13 @@ struct MapIntercept
 class WrappedID3D11DeviceContext;
 
 // ID3DUserDefinedAnnotation
-class WrappedID3DUserDefinedAnnotation : public RefCounter, public ID3DUserDefinedAnnotation
+class WrappedID3DUserDefinedAnnotation : public ID3DUserDefinedAnnotation
 {
 public:
-  WrappedID3DUserDefinedAnnotation() : RefCounter(NULL), m_Context(NULL) {}
+  WrappedID3DUserDefinedAnnotation() : m_Context(NULL) {}
   void SetContext(WrappedID3D11DeviceContext *ctx) { m_Context = ctx; }
-  // doesn't need to soft-ref the device, for once!
-  IMPLEMENT_IUNKNOWN_WITH_REFCOUNTER_CUSTOMQUERY;
-
+  ULONG STDMETHODCALLTYPE AddRef();
+  ULONG STDMETHODCALLTYPE Release();
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
 
   virtual INT STDMETHODCALLTYPE BeginEvent(LPCWSTR Name);
@@ -94,7 +93,7 @@ enum CaptureFailReason
   CaptureFailed_UncappedCmdlist,
 };
 
-class WrappedID3D11DeviceContext : public RefCounter, public ID3D11DeviceContext4
+class WrappedID3D11DeviceContext : public ID3D11DeviceContext4
 {
 private:
   friend class WrappedID3D11DeviceContext;
@@ -116,6 +115,10 @@ private:
     }
   };
 
+  // we manually implement ID3D11DeviceChild instead of using WrappedID3D11DeviceChild because the
+  // device contexts can be special
+  int32_t m_ExtRef;
+  int32_t m_IntRef;
   std::set<ResourceId> m_DeferredDirty;
   std::set<ResourceId> m_DeferredReferences;
 
@@ -325,14 +328,18 @@ public:
   int ThreadSafe_BeginEvent(uint32_t col, const wchar_t *name);
   int ThreadSafe_EndEvent();
 
+  // internal addref/release
+  void IntAddRef();
+  void IntRelease();
+
   //////////////////////////////
   // implement IUnknown
-  ULONG STDMETHODCALLTYPE AddRef() { return RefCounter::SoftRef(m_pDevice); }
-  ULONG STDMETHODCALLTYPE Release() { return RefCounter::SoftRelease(m_pDevice); }
+  ULONG STDMETHODCALLTYPE AddRef();
+  ULONG STDMETHODCALLTYPE Release();
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
 
   //////////////////////////////
-  // implement IDXGIDeviceChild
+  // implement ID3D11DeviceChild
 
   virtual HRESULT STDMETHODCALLTYPE SetPrivateData(REFGUID Name, UINT DataSize, const void *pData)
   {

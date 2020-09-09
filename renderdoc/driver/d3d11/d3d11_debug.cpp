@@ -37,6 +37,23 @@
 
 #include "data/hlsl/hlsl_cbuffers.h"
 
+static void InternalRef(ID3D11DeviceChild *child)
+{
+  if(child)
+  {
+    // we don't want any of our internal resources to show up as external references but we do
+    // certainly want to keep them alive.
+    // To solve this, we add an internal refcount and remove the implicit external refcount.
+    // Removing the external refcount means the device will also have no refcount so it will still
+    // be destroyed at the same time regardless of these objects. The internal ref will keep them
+    // alive even if the user doesn't have any pointers to them and they aren't bound anywhere.
+    // Effectively you can think of this as the same as if they were bound to some unknown undefined
+    // pipeline slot
+    IntAddRef(child);
+    child->Release();
+  }
+}
+
 D3D11DebugManager::D3D11DebugManager(WrappedID3D11Device *wrapper)
 {
   if(RenderDoc::Inst().GetCrashHandler())
@@ -142,31 +159,24 @@ void D3D11DebugManager::InitCommonResources()
   {
     CopyMSToArrayPS =
         shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_CopyMSToArray", "ps_5_0");
-    if(CopyMSToArrayPS)
-      m_pDevice->InternalRef();
+    InternalRef(CopyMSToArrayPS);
     CopyArrayToMSPS =
         shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_CopyArrayToMS", "ps_5_0");
-    if(CopyArrayToMSPS)
-      m_pDevice->InternalRef();
+    InternalRef(CopyArrayToMSPS);
     FloatCopyMSToArrayPS =
         shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_FloatCopyMSToArray", "ps_5_0");
-    if(FloatCopyMSToArrayPS)
-      m_pDevice->InternalRef();
+    InternalRef(FloatCopyMSToArrayPS);
     FloatCopyArrayToMSPS =
         shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_FloatCopyArrayToMS", "ps_5_0");
-    if(FloatCopyArrayToMSPS)
-      m_pDevice->InternalRef();
+    InternalRef(FloatCopyArrayToMSPS);
     DepthCopyMSToArrayPS =
         shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyMSToArray", "ps_5_0");
-    if(DepthCopyMSToArrayPS)
-      m_pDevice->InternalRef();
+    InternalRef(DepthCopyMSToArrayPS);
     DepthCopyArrayToMSPS =
         shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyArrayToMS", "ps_5_0");
-    if(DepthCopyArrayToMSPS)
-      m_pDevice->InternalRef();
+    InternalRef(DepthCopyArrayToMSPS);
     MSArrayCopyVS = shaderCache->MakeVShader(hlsl.c_str(), "RENDERDOC_FullscreenVS", "vs_4_0");
-    if(MSArrayCopyVS)
-      m_pDevice->InternalRef();
+    InternalRef(MSArrayCopyVS);
   }
   else
   {
@@ -191,7 +201,7 @@ void D3D11DebugManager::InitCommonResources()
   for(int i = 0; i < ARRAY_COUNT(PublicCBuffers); i++)
   {
     PublicCBuffers[i] = MakeCBuffer(PublicCBufferSize);
-    m_pDevice->InternalRef();
+    InternalRef(PublicCBuffers[i]);
     rm->SetInternalResource(PublicCBuffers[i]);
   }
 
@@ -327,25 +337,18 @@ void D3D11DebugManager::ShutdownResources()
 
   SAFE_RELEASE(PredicateDSV);
 
-  SAFE_RELEASE(CopyMSToArrayPS);
-  m_pDevice->InternalRelease();
-  SAFE_RELEASE(CopyArrayToMSPS);
-  m_pDevice->InternalRelease();
-  SAFE_RELEASE(FloatCopyMSToArrayPS);
-  m_pDevice->InternalRelease();
-  SAFE_RELEASE(FloatCopyArrayToMSPS);
-  m_pDevice->InternalRelease();
-  SAFE_RELEASE(DepthCopyMSToArrayPS);
-  m_pDevice->InternalRelease();
-  SAFE_RELEASE(DepthCopyArrayToMSPS);
-  m_pDevice->InternalRelease();
-  SAFE_RELEASE(PixelHistoryUnusedCS);
-  m_pDevice->InternalRelease();
-  SAFE_RELEASE(PixelHistoryCopyCS);
-  m_pDevice->InternalRelease();
+  // the objects we added with an internal ref, because they're used during capture, should also be
+  // released with an internal ref.
+  SAFE_INTRELEASE(CopyMSToArrayPS);
+  SAFE_INTRELEASE(CopyArrayToMSPS);
+  SAFE_INTRELEASE(FloatCopyMSToArrayPS);
+  SAFE_INTRELEASE(FloatCopyArrayToMSPS);
+  SAFE_INTRELEASE(DepthCopyMSToArrayPS);
+  SAFE_INTRELEASE(DepthCopyArrayToMSPS);
+  SAFE_INTRELEASE(MSArrayCopyVS);
 
-  SAFE_RELEASE(MSArrayCopyVS);
-  m_pDevice->InternalRelease();
+  SAFE_RELEASE(PixelHistoryUnusedCS);
+  SAFE_RELEASE(PixelHistoryCopyCS);
 
   for(auto it = m_DiscardPatterns.begin(); it != m_DiscardPatterns.end(); it++)
     if(it->second)
@@ -358,8 +361,7 @@ void D3D11DebugManager::ShutdownResources()
 
   for(int i = 0; i < ARRAY_COUNT(PublicCBuffers); i++)
   {
-    SAFE_RELEASE(PublicCBuffers[i]);
-    m_pDevice->InternalRelease();
+    SAFE_INTRELEASE(PublicCBuffers[i]);
   }
 }
 

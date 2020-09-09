@@ -154,7 +154,7 @@ struct DummyID3D11InfoQueue : public ID3D11InfoQueue
   DummyID3D11InfoQueue() : m_pDevice(NULL) {}
   //////////////////////////////
   // implement IUnknown
-  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject) { return E_NOINTERFACE; }
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
   ULONG STDMETHODCALLTYPE AddRef();
   ULONG STDMETHODCALLTYPE Release();
 
@@ -242,6 +242,152 @@ struct DummyID3D11InfoQueue : public ID3D11InfoQueue
   virtual BOOL STDMETHODCALLTYPE GetMuteDebugOutput() { return TRUE; }
 };
 
+// This one actually works and requires a special GUID to access. We only wrap it
+// so we can keep the refcounting on our own device
+struct WrappedID3D11InfoQueue : public ID3D11InfoQueue
+{
+  WrappedID3D11Device *m_pDevice;
+  ID3D11InfoQueue *m_pReal;
+
+  WrappedID3D11InfoQueue() : m_pDevice(NULL) {}
+  //////////////////////////////
+  // implement IUnknown
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
+  ULONG STDMETHODCALLTYPE AddRef();
+  ULONG STDMETHODCALLTYPE Release();
+
+  //////////////////////////////
+  // implement ID3D11InfoQueue
+  virtual HRESULT STDMETHODCALLTYPE SetMessageCountLimit(UINT64 MessageCountLimit)
+  {
+    return m_pReal->SetMessageCountLimit(MessageCountLimit);
+  }
+  virtual void STDMETHODCALLTYPE ClearStoredMessages() { return m_pReal->ClearStoredMessages(); }
+  virtual HRESULT STDMETHODCALLTYPE GetMessage(UINT64 MessageIndex, D3D11_MESSAGE *pMessage,
+                                               SIZE_T *pMessageByteLength)
+  {
+    return m_pReal->GetMessage(MessageIndex, pMessage, pMessageByteLength);
+  }
+  virtual UINT64 STDMETHODCALLTYPE GetNumMessagesAllowedByStorageFilter()
+  {
+    return m_pReal->GetNumMessagesAllowedByStorageFilter();
+  }
+  virtual UINT64 STDMETHODCALLTYPE GetNumMessagesDeniedByStorageFilter()
+  {
+    return m_pReal->GetNumMessagesDeniedByStorageFilter();
+  }
+  virtual UINT64 STDMETHODCALLTYPE GetNumStoredMessages()
+  {
+    return m_pReal->GetNumStoredMessages();
+  }
+  virtual UINT64 STDMETHODCALLTYPE GetNumStoredMessagesAllowedByRetrievalFilter()
+  {
+    return m_pReal->GetNumStoredMessagesAllowedByRetrievalFilter();
+  }
+  virtual UINT64 STDMETHODCALLTYPE GetNumMessagesDiscardedByMessageCountLimit()
+  {
+    return m_pReal->GetNumMessagesDiscardedByMessageCountLimit();
+  }
+  virtual UINT64 STDMETHODCALLTYPE GetMessageCountLimit()
+  {
+    return m_pReal->GetMessageCountLimit();
+  }
+  virtual HRESULT STDMETHODCALLTYPE AddStorageFilterEntries(D3D11_INFO_QUEUE_FILTER *pFilter)
+  {
+    return m_pReal->AddStorageFilterEntries(pFilter);
+  }
+  virtual HRESULT STDMETHODCALLTYPE GetStorageFilter(D3D11_INFO_QUEUE_FILTER *pFilter,
+                                                     SIZE_T *pFilterByteLength)
+  {
+    return m_pReal->GetStorageFilter(pFilter, pFilterByteLength);
+  }
+  virtual void STDMETHODCALLTYPE ClearStorageFilter() { return m_pReal->ClearStorageFilter(); }
+  virtual HRESULT STDMETHODCALLTYPE PushEmptyStorageFilter()
+  {
+    return m_pReal->PushEmptyStorageFilter();
+  }
+  virtual HRESULT STDMETHODCALLTYPE PushCopyOfStorageFilter()
+  {
+    return m_pReal->PushCopyOfStorageFilter();
+  }
+  virtual HRESULT STDMETHODCALLTYPE PushStorageFilter(D3D11_INFO_QUEUE_FILTER *pFilter)
+  {
+    return m_pReal->PushStorageFilter(pFilter);
+  }
+  virtual void STDMETHODCALLTYPE PopStorageFilter() { return m_pReal->PopStorageFilter(); }
+  virtual UINT STDMETHODCALLTYPE GetStorageFilterStackSize()
+  {
+    return m_pReal->GetStorageFilterStackSize();
+  }
+  virtual HRESULT STDMETHODCALLTYPE AddRetrievalFilterEntries(D3D11_INFO_QUEUE_FILTER *pFilter)
+  {
+    return m_pReal->AddRetrievalFilterEntries(pFilter);
+  }
+  virtual HRESULT STDMETHODCALLTYPE GetRetrievalFilter(D3D11_INFO_QUEUE_FILTER *pFilter,
+                                                       SIZE_T *pFilterByteLength)
+  {
+    return m_pReal->GetRetrievalFilter(pFilter, pFilterByteLength);
+  }
+  virtual void STDMETHODCALLTYPE ClearRetrievalFilter() { return m_pReal->ClearRetrievalFilter(); }
+  virtual HRESULT STDMETHODCALLTYPE PushEmptyRetrievalFilter()
+  {
+    return m_pReal->PushEmptyRetrievalFilter();
+  }
+  virtual HRESULT STDMETHODCALLTYPE PushCopyOfRetrievalFilter()
+  {
+    return m_pReal->PushCopyOfRetrievalFilter();
+  }
+  virtual HRESULT STDMETHODCALLTYPE PushRetrievalFilter(D3D11_INFO_QUEUE_FILTER *pFilter)
+  {
+    return m_pReal->PushRetrievalFilter(pFilter);
+  }
+  virtual void STDMETHODCALLTYPE PopRetrievalFilter() { return m_pReal->PopRetrievalFilter(); }
+  virtual UINT STDMETHODCALLTYPE GetRetrievalFilterStackSize()
+  {
+    return m_pReal->GetRetrievalFilterStackSize();
+  }
+  virtual HRESULT STDMETHODCALLTYPE AddMessage(D3D11_MESSAGE_CATEGORY Category,
+                                               D3D11_MESSAGE_SEVERITY Severity, D3D11_MESSAGE_ID ID,
+                                               LPCSTR pDescription)
+  {
+    return m_pReal->AddMessage(Category, Severity, ID, pDescription);
+  }
+  virtual HRESULT STDMETHODCALLTYPE AddApplicationMessage(D3D11_MESSAGE_SEVERITY Severity,
+                                                          LPCSTR pDescription)
+  {
+    return m_pReal->AddApplicationMessage(Severity, pDescription);
+  }
+  virtual HRESULT STDMETHODCALLTYPE SetBreakOnCategory(D3D11_MESSAGE_CATEGORY Category, BOOL bEnable)
+  {
+    return m_pReal->SetBreakOnCategory(Category, bEnable);
+  }
+  virtual HRESULT STDMETHODCALLTYPE SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY Severity, BOOL bEnable)
+  {
+    return m_pReal->SetBreakOnSeverity(Severity, bEnable);
+  }
+  virtual HRESULT STDMETHODCALLTYPE SetBreakOnID(D3D11_MESSAGE_ID ID, BOOL bEnable)
+  {
+    return m_pReal->SetBreakOnID(ID, bEnable);
+  }
+  virtual BOOL STDMETHODCALLTYPE GetBreakOnCategory(D3D11_MESSAGE_CATEGORY Category)
+  {
+    return m_pReal->GetBreakOnCategory(Category);
+  }
+  virtual BOOL STDMETHODCALLTYPE GetBreakOnSeverity(D3D11_MESSAGE_SEVERITY Severity)
+  {
+    return m_pReal->GetBreakOnSeverity(Severity);
+  }
+  virtual BOOL STDMETHODCALLTYPE GetBreakOnID(D3D11_MESSAGE_ID ID)
+  {
+    return m_pReal->GetBreakOnID(ID);
+  }
+  virtual void STDMETHODCALLTYPE SetMuteDebugOutput(BOOL bMute)
+  {
+    return m_pReal->SetMuteDebugOutput(bMute);
+  }
+  virtual BOOL STDMETHODCALLTYPE GetMuteDebugOutput() { return m_pReal->GetMuteDebugOutput(); }
+};
+
 // give every impression of working but do nothing.
 // Same idea as DummyID3D11InfoQueue above, a dummy interface so that users
 // expecting a ID3D11Debug don't get confused if we have turned off the debug
@@ -295,6 +441,7 @@ private:
 
   WrappedD3D11Multithread m_WrappedMultithread;
   DummyID3D11InfoQueue m_DummyInfoQueue;
+  WrappedID3D11InfoQueue m_WrappedInfoQueue;
   DummyID3D11Debug m_DummyDebug;
   WrappedID3D11Debug m_WrappedDebug;
   WrappedID3D11VideoDevice2 m_WrappedVideo;
@@ -302,10 +449,12 @@ private:
   ID3DUserDefinedAnnotation *m_RealAnnotations;
   int m_ReplayEventCount;
 
-  unsigned int m_InternalRefcount;
-  RefCounter m_RefCounter;
-  RefCounter m_SoftRefCounter;
-  bool m_Alive;
+  // the device only has one refcount, all device childs take precisely one when they have external
+  // references (if they lose their external references they release it) and when it reaches 0 the
+  // device is deleted.
+  int32_t m_RefCount;
+
+  rdcarray<ID3D11DeviceChild *> m_DeadObjects;
 
   int32_t m_ChunkAtomic;
 
@@ -429,8 +578,6 @@ public:
   void AddDeferredContext(WrappedID3D11DeviceContext *defctx);
   void RemoveDeferredContext(WrappedID3D11DeviceContext *defctx);
   WrappedID3D11DeviceContext *GetDeferredContext(size_t idx);
-
-  void ReleaseResource(ID3D11DeviceChild *pResource);
 
   ResourceId GetResourceID() { return m_ResourceID; }
   const DrawcallDescription *GetDrawcall(uint32_t eventId);
@@ -557,15 +704,8 @@ public:
   virtual IDXGIResource *WrapExternalDXGIResource(IDXGIResource *res);
 
   ResourceId GetBackbufferResourceID() { return m_BBID; }
-  void InternalRef() { InterlockedIncrement(&m_InternalRefcount); }
-  void InternalRelease() { InterlockedDecrement(&m_InternalRefcount); }
-  void SoftRef() { m_SoftRefCounter.AddRef(); }
-  void SoftRelease()
-  {
-    m_SoftRefCounter.Release();
-    CheckForDeath();
-  }
-  void CheckForDeath();
+  void ReportDeath(ID3D11DeviceChild *obj);
+  void FlushPendingDead();
 
   ////////////////////////////////////////////////////////////////
   // Functions for D3D9 hooks to call into (D3DPERF api)
@@ -576,12 +716,22 @@ public:
 
   //////////////////////////////
   // implement IUnknown
-  ULONG STDMETHODCALLTYPE AddRef() { return m_RefCounter.AddRef(); }
+  ULONG STDMETHODCALLTYPE AddRef()
+  {
+    Atomic::Inc32(&m_RefCount);
+    return (ULONG)m_RefCount;
+  }
   ULONG STDMETHODCALLTYPE Release()
   {
-    unsigned int ret = m_RefCounter.Release();
-    CheckForDeath();
-    return ret;
+    Atomic::Dec32(&m_RefCount);
+    ASSERT_REFCOUNT(m_RefCount);
+    if(m_RefCount == 0)
+    {
+      FlushPendingDead();
+      delete this;
+      return 0;
+    }
+    return (ULONG)m_RefCount;
   }
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
 

@@ -301,14 +301,6 @@ bool D3D12GraphicsTest::Init()
 
   m_GPUSyncFence->SetName(L"GPUSync fence");
 
-  const D3D12_INPUT_CLASSIFICATION vertex = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-
-  m_DefaultInputLayout = {
-      {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, vertex, 0},
-      {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, vertex, 0},
-      {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 28, vertex, 0},
-  };
-
   CHECK_HR(dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
                                        __uuidof(ID3D12CommandAllocator), (void **)&m_Alloc));
 

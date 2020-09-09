@@ -819,8 +819,7 @@ HRESULT WrappedID3D11Device::CreateRasterizerState2(const D3D11_RASTERIZER_DESC2
 
     {
       RDCASSERT(m_CachedStateObjects.find(wrapped) == m_CachedStateObjects.end());
-      wrapped->AddRef();
-      InternalRef();
+      IntAddRef(wrapped);
       m_CachedStateObjects.insert(wrapped);
     }
 

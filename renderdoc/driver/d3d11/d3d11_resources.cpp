@@ -70,6 +70,12 @@ rdcarray<WrappedID3DDeviceContextState *> WrappedID3DDeviceContextState::m_List;
 Threading::CriticalSection WrappedID3DDeviceContextState::m_Lock;
 
 const GUID RENDERDOC_ID3D11ShaderGUID_ShaderDebugMagicValue = RENDERDOC_ShaderDebugMagicValue_struct;
+const GUID RENDERDOC_DeleteSelf = {
+    0x1e4bf855,
+    0xcc83,
+    0x4b7a,
+    {0x91, 0x8a, 0xd6, 0x64, 0x56, 0x7c, 0xdd, 0x40},
+};
 
 void WrappedShader::ShaderEntry::BuildReflection()
 {
@@ -708,46 +714,6 @@ void GetDXTextureProperties(void *dxObject, ResourceFormat &fmt, uint32_t &width
   RDCERR("Getting DX texture properties for unknown/unhandled objects %p", dxObject);
 }
 
-HRESULT STDMETHODCALLTYPE RefCounter::QueryInterface(
-    /* [in] */ REFIID riid,
-    /* [annotation][iid_is][out] */
-    __RPC__deref_out void **ppvObject)
-{
-  return RefCountDXGIObject::WrapQueryInterface(m_pReal, riid, ppvObject);
-}
-
-unsigned int RefCounter::SoftRef(WrappedID3D11Device *device)
-{
-  unsigned int ret = AddRef();
-  if(device)
-    device->SoftRef();
-  else
-    RDCWARN("No device pointer, is a deleted resource being AddRef()d?");
-  return ret;
-}
-
-unsigned int RefCounter::SoftRelease(WrappedID3D11Device *device)
-{
-  unsigned int ret = Release();
-  if(device)
-    device->SoftRelease();
-  else
-    RDCWARN("No device pointer, is a deleted resource being Release()d?");
-  return ret;
-}
-
-void RefCounter::AddDeviceSoftref(WrappedID3D11Device *device)
-{
-  if(device)
-    device->SoftRef();
-}
-
-void RefCounter::ReleaseDeviceSoftref(WrappedID3D11Device *device)
-{
-  if(device)
-    device->SoftRelease();
-}
-
 WrappedID3DDeviceContextState::WrappedID3DDeviceContextState(ID3DDeviceContextState *real,
                                                              WrappedID3D11Device *device)
     : WrappedDeviceChild11(real, device)
@@ -763,7 +729,6 @@ WrappedID3DDeviceContextState::WrappedID3DDeviceContextState(ID3DDeviceContextSt
 WrappedID3DDeviceContextState::~WrappedID3DDeviceContextState()
 {
   SAFE_DELETE(state);
-  Shutdown();
 
   {
     SCOPED_LOCK(WrappedID3DDeviceContextState::m_Lock);

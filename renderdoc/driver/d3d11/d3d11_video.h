@@ -1033,8 +1033,13 @@ struct WrappedID3D11VideoContext2 : public ID3D11VideoContext2
 // we don't want to depend on d3d11_resources.h in this header, so replicate
 // WrappedID3D11DeviceChild here (and it's simpler because these are pure pass-through wrappers)
 template <typename NestedType, typename NestedType1 = NestedType>
-struct Wrapped11VideoDeviceChild : public RefCounter, public NestedType1
+struct Wrapped11VideoDeviceChild : public NestedType1
 {
+private:
+  // we don't need internal references because nothing holds internal references on these video
+  // objects
+  int32_t m_ExtRef;
+
 protected:
   WrappedID3D11Device *m_pDevice;
   NestedType *m_pReal;

@@ -453,7 +453,7 @@ void main()
 
       {
         std::unique_lock<std::mutex> scoped(doneLock);
-        while(threadsDone < threadCount)
+        while(threadsDone < (int)threadCount)
           doneCV.wait(scoped);
         threadsDone = 0;
       }

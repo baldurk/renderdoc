@@ -210,6 +210,7 @@ HRESULT WrappedID3D11Device::CreateBuffer(const D3D11_BUFFER_DESC *pDesc,
   {
     SCOPED_LOCK(m_D3DLock);
 
+    FlushPendingDead();
     wrapped = new WrappedID3D11Buffer(real, pDesc->ByteWidth, this);
 
     if(IsCaptureMode(m_State))
@@ -463,6 +464,7 @@ HRESULT WrappedID3D11Device::CreateTexture1D(const D3D11_TEXTURE1D_DESC *pDesc,
   {
     SCOPED_LOCK(m_D3DLock);
 
+    FlushPendingDead();
     wrapped = new WrappedID3D11Texture1D(real, this);
 
     if(IsCaptureMode(m_State))
@@ -598,6 +600,7 @@ HRESULT WrappedID3D11Device::CreateTexture2D(const D3D11_TEXTURE2D_DESC *pDesc,
   {
     SCOPED_LOCK(m_D3DLock);
 
+    FlushPendingDead();
     wrapped = new WrappedID3D11Texture2D1(real, this);
 
     if(IsCaptureMode(m_State))
@@ -732,6 +735,7 @@ HRESULT WrappedID3D11Device::CreateTexture3D(const D3D11_TEXTURE3D_DESC *pDesc,
   {
     SCOPED_LOCK(m_D3DLock);
 
+    FlushPendingDead();
     wrapped = new WrappedID3D11Texture3D1(real, this);
 
     if(IsCaptureMode(m_State))
@@ -860,6 +864,7 @@ HRESULT WrappedID3D11Device::CreateShaderResourceView(ID3D11Resource *pResource,
   {
     SCOPED_LOCK(m_D3DLock);
 
+    FlushPendingDead();
     wrapped = new WrappedID3D11ShaderResourceView1(real, pResource, this);
 
     Chunk *chunk = NULL;
@@ -1006,6 +1011,7 @@ HRESULT WrappedID3D11Device::CreateUnorderedAccessView(ID3D11Resource *pResource
   {
     SCOPED_LOCK(m_D3DLock);
 
+    FlushPendingDead();
     wrapped = new WrappedID3D11UnorderedAccessView1(real, pResource, this);
 
     Chunk *chunk = NULL;
@@ -1148,6 +1154,7 @@ HRESULT WrappedID3D11Device::CreateRenderTargetView(ID3D11Resource *pResource,
   {
     SCOPED_LOCK(m_D3DLock);
 
+    FlushPendingDead();
     wrapped = new WrappedID3D11RenderTargetView1(real, pResource, this);
 
     Chunk *chunk = NULL;
@@ -1252,6 +1259,7 @@ HRESULT WrappedID3D11Device::CreateDepthStencilView(ID3D11Resource *pResource,
   {
     SCOPED_LOCK(m_D3DLock);
 
+    FlushPendingDead();
     wrapped = new WrappedID3D11DepthStencilView(real, pResource, this);
 
     Chunk *chunk = NULL;
@@ -1373,6 +1381,7 @@ HRESULT WrappedID3D11Device::CreateInputLayout(const D3D11_INPUT_ELEMENT_DESC *p
   {
     SCOPED_LOCK(m_D3DLock);
 
+    FlushPendingDead();
     wrapped = new WrappedID3D11InputLayout(real, this);
 
     if(IsCaptureMode(m_State))
@@ -1461,6 +1470,7 @@ HRESULT WrappedID3D11Device::CreateVertexShader(const void *pShaderBytecode, SIZ
   {
     SCOPED_LOCK(m_D3DLock);
 
+    FlushPendingDead();
     wrapped = new WrappedID3D11Shader<ID3D11VertexShader>(
         real, ResourceId(), (const byte *)pShaderBytecode, BytecodeLength, this);
 
@@ -1557,6 +1567,7 @@ HRESULT WrappedID3D11Device::CreateGeometryShader(const void *pShaderBytecode, S
   {
     SCOPED_LOCK(m_D3DLock);
 
+    FlushPendingDead();
     wrapped = new WrappedID3D11Shader<ID3D11GeometryShader>(
         real, ResourceId(), (const byte *)pShaderBytecode, BytecodeLength, this);
 
@@ -1663,6 +1674,7 @@ HRESULT WrappedID3D11Device::CreateGeometryShaderWithStreamOutput(
   {
     SCOPED_LOCK(m_D3DLock);
 
+    FlushPendingDead();
     wrapped = new WrappedID3D11Shader<ID3D11GeometryShader>(
         real, ResourceId(), (const byte *)pShaderBytecode, BytecodeLength, this);
 
@@ -1760,6 +1772,7 @@ HRESULT WrappedID3D11Device::CreatePixelShader(const void *pShaderBytecode, SIZE
   {
     SCOPED_LOCK(m_D3DLock);
 
+    FlushPendingDead();
     wrapped = new WrappedID3D11Shader<ID3D11PixelShader>(
         real, ResourceId(), (const byte *)pShaderBytecode, BytecodeLength, this);
 
@@ -1853,6 +1866,7 @@ HRESULT WrappedID3D11Device::CreateHullShader(const void *pShaderBytecode, SIZE_
   {
     SCOPED_LOCK(m_D3DLock);
 
+    FlushPendingDead();
     wrapped = new WrappedID3D11Shader<ID3D11HullShader>(
         real, ResourceId(), (const byte *)pShaderBytecode, BytecodeLength, this);
 
@@ -1948,6 +1962,7 @@ HRESULT WrappedID3D11Device::CreateDomainShader(const void *pShaderBytecode, SIZ
   {
     SCOPED_LOCK(m_D3DLock);
 
+    FlushPendingDead();
     wrapped = new WrappedID3D11Shader<ID3D11DomainShader>(
         real, ResourceId(), (const byte *)pShaderBytecode, BytecodeLength, this);
 
@@ -2044,6 +2059,7 @@ HRESULT WrappedID3D11Device::CreateComputeShader(const void *pShaderBytecode, SI
   {
     SCOPED_LOCK(m_D3DLock);
 
+    FlushPendingDead();
     wrapped = new WrappedID3D11Shader<ID3D11ComputeShader>(
         real, ResourceId(), (const byte *)pShaderBytecode, BytecodeLength, this);
 
@@ -2117,6 +2133,7 @@ bool WrappedID3D11Device::Serialise_CreateClassInstance(SerialiserType &ser, LPC
     }
     else
     {
+      FlushPendingDead();
       wrapped = new WrappedID3D11ClassInstance(real, pClassLinkage, this);
 
       GetResourceManager()->AddLiveResource(pInstance, wrapped);
@@ -2139,6 +2156,7 @@ ID3D11ClassInstance *WrappedID3D11Device::CreateClassInstance(
   {
     SCOPED_LOCK(m_D3DLock);
 
+    FlushPendingDead();
     wrapped = new WrappedID3D11ClassInstance(*ppInstance, pClassLinkage, this);
 
     {
@@ -2188,6 +2206,7 @@ bool WrappedID3D11Device::Serialise_GetClassInstance(SerialiserType &ser, LPCSTR
     }
     else
     {
+      FlushPendingDead();
       wrapped = new WrappedID3D11ClassInstance(real, pClassLinkage, this);
 
       GetResourceManager()->AddLiveResource(pInstance, wrapped);
@@ -2211,6 +2230,7 @@ ID3D11ClassInstance *WrappedID3D11Device::GetClassInstance(LPCSTR pClassInstance
   {
     SCOPED_LOCK(m_D3DLock);
 
+    FlushPendingDead();
     wrapped = new WrappedID3D11ClassInstance(*ppInstance, pClassLinkage, this);
 
     {
@@ -2275,6 +2295,7 @@ HRESULT WrappedID3D11Device::CreateClassLinkage(ID3D11ClassLinkage **ppLinkage)
   {
     SCOPED_LOCK(m_D3DLock);
 
+    FlushPendingDead();
     wrapped = new WrappedID3D11ClassLinkage(real, this);
 
     if(IsCaptureMode(m_State))
@@ -2361,14 +2382,16 @@ HRESULT WrappedID3D11Device::CreateBlendState(const D3D11_BLEND_DESC *pBlendStat
       return ret;
     }
 
+    FlushPendingDead();
     ID3D11BlendState *wrapped = new WrappedID3D11BlendState1(real, this);
 
     CachedObjectsGarbageCollect();
 
     {
       RDCASSERT(m_CachedStateObjects.find(wrapped) == m_CachedStateObjects.end());
-      wrapped->AddRef();
-      InternalRef();
+      // add an internal reference too just so if the application creates and destroys state objects
+      // at high frequency we keep it around.
+      IntAddRef(wrapped);
       m_CachedStateObjects.insert(wrapped);
     }
 
@@ -2465,14 +2488,14 @@ HRESULT WrappedID3D11Device::CreateDepthStencilState(const D3D11_DEPTH_STENCIL_D
       return ret;
     }
 
+    FlushPendingDead();
     ID3D11DepthStencilState *wrapped = new WrappedID3D11DepthStencilState(real, this);
 
     CachedObjectsGarbageCollect();
 
     {
       RDCASSERT(m_CachedStateObjects.find(wrapped) == m_CachedStateObjects.end());
-      wrapped->AddRef();
-      InternalRef();
+      IntAddRef(wrapped);
       m_CachedStateObjects.insert(wrapped);
     }
 
@@ -2569,14 +2592,14 @@ HRESULT WrappedID3D11Device::CreateRasterizerState(const D3D11_RASTERIZER_DESC *
       return ret;
     }
 
+    FlushPendingDead();
     ID3D11RasterizerState *wrapped = new WrappedID3D11RasterizerState2(real, this);
 
     CachedObjectsGarbageCollect();
 
     {
       RDCASSERT(m_CachedStateObjects.find(wrapped) == m_CachedStateObjects.end());
-      wrapped->AddRef();
-      InternalRef();
+      IntAddRef(wrapped);
       m_CachedStateObjects.insert(wrapped);
     }
 
@@ -2673,14 +2696,14 @@ HRESULT WrappedID3D11Device::CreateSamplerState(const D3D11_SAMPLER_DESC *pSampl
       return ret;
     }
 
+    FlushPendingDead();
     ID3D11SamplerState *wrapped = new WrappedID3D11SamplerState(real, this);
 
     CachedObjectsGarbageCollect();
 
     {
       RDCASSERT(m_CachedStateObjects.find(wrapped) == m_CachedStateObjects.end());
-      wrapped->AddRef();
-      InternalRef();
+      IntAddRef(wrapped);
       m_CachedStateObjects.insert(wrapped);
     }
 
@@ -2756,6 +2779,7 @@ HRESULT WrappedID3D11Device::CreateQuery(const D3D11_QUERY_DESC *pQueryDesc, ID3
   {
     SCOPED_LOCK(m_D3DLock);
 
+    FlushPendingDead();
     wrapped = new WrappedID3D11Query1(real, this);
 
     if(IsCaptureMode(m_State))
@@ -2842,6 +2866,7 @@ HRESULT WrappedID3D11Device::CreatePredicate(const D3D11_QUERY_DESC *pPredicateD
   {
     SCOPED_LOCK(m_D3DLock);
 
+    FlushPendingDead();
     wrapped = new WrappedID3D11Predicate(real, this);
 
     if(IsCaptureMode(m_State))
@@ -2923,6 +2948,7 @@ HRESULT WrappedID3D11Device::CreateCounter(const D3D11_COUNTER_DESC *pCounterDes
   {
     SCOPED_LOCK(m_D3DLock);
 
+    FlushPendingDead();
     wrapped = new WrappedID3D11Counter(real, this);
 
     if(IsCaptureMode(m_State))

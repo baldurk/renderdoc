@@ -94,12 +94,6 @@ struct D3D11RenderState
   /////////////////////////////////////////////////////////////////////////
   // Utility functions to swap resources around, removing and adding refs
 
-  void TakeRef(ID3D11DeviceChild *p);
-  void ReleaseRef(ID3D11DeviceChild *p);
-
-  void TakeRef(ID3D11Buffer *p);
-  void ReleaseRef(ID3D11Buffer *p);
-
   template <typename T>
   void ChangeRefRead(T *&stateItem, T *newItem)
   {
@@ -110,7 +104,7 @@ struct D3D11RenderState
 
     // release the old item, which may destroy it but we won't use it again as we know is not the
     // same as the new item.
-    ReleaseRef(stateItem);
+    IntRelease(stateItem);
 
     // assign the new item, but don't ref it yet
     stateItem = newItem;
@@ -123,37 +117,36 @@ struct D3D11RenderState
     }
 
     // finally we take the ref on the new item
-    TakeRef(stateItem);
+    IntAddRef(stateItem);
   }
 
   template <typename T>
   void ChangeRefRead(T **stateArray, T *const *newArray, size_t offset, size_t num)
   {
-    // addref the whole array so none of it can be destroyed during processing
-    for(size_t i = 0; i < num; i++)
-      if(newArray[i])
-        newArray[i]->AddRef();
-
+    // we don't really care if some objects temporarily hit 0 ext and int refcounts while changing
+    // hands. Consider the case:
+    //
+    // previous: [0] = A [1] = B
+    // bind: [0] = B [1] = A
+    //
+    // after processing slot 0, B has two refs (leftover [1] and updated [0]) and A has no refs. If
+    // A also has no external references this may look like it can be deleted, but all that will
+    // happen is the death will be reported to the device. By the time the device actually processes
+    // it the object will have an intref again.
     for(size_t i = 0; i < num; i++)
       ChangeRefRead(stateArray[offset + i], newArray[i]);
-
-    // release the ref we added above
-    for(size_t i = 0; i < num; i++)
-      if(newArray[i])
-        newArray[i]->Release();
   }
 
   template <typename T>
   void ChangeRefWrite(T *&stateItem, T *newItem)
   {
-    // don't do anything for redundant changes. This prevents the object from bouncing off refcount
-    // 0 during the changeover if it's only bound once, has no external refcount.
+    // don't do anything for redundant changes
     if(stateItem == newItem)
       return;
 
     // release the old item, which may destroy it but we won't use it again as we know is not the
     // same as the new item. We NULL it out so that it doesn't get unbound again below
-    ReleaseRef(stateItem);
+    IntRelease(stateItem);
     stateItem = NULL;
 
     // if we're not binding NULL, then unbind any other conflicting uses
@@ -166,24 +159,14 @@ struct D3D11RenderState
 
     // now bind the new item and ref it
     stateItem = newItem;
-    TakeRef(stateItem);
+    IntAddRef(stateItem);
   }
 
   template <typename T>
   void ChangeRefWrite(T **stateArray, T *const *newArray, size_t offset, size_t num)
   {
-    // addref the whole array so none of it can be destroyed during processing
-    for(size_t i = 0; i < num; i++)
-      if(newArray[i])
-        newArray[i]->AddRef();
-
     for(size_t i = 0; i < num; i++)
       ChangeRefWrite(stateArray[offset + i], newArray[i]);
-
-    // release the ref we added above
-    for(size_t i = 0; i < num; i++)
-      if(newArray[i])
-        newArray[i]->Release();
   }
 
   template <typename T>

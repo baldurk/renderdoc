@@ -225,9 +225,8 @@ private:
       dummyUsed = true;
     }
 
-    HRESULT ret =
-        real(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion,
-             pUsedSwapDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
+    HRESULT ret = real(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels,
+                       SDKVersion, pUsedSwapDesc, ppSwapChain, ppDevice, pFeatureLevel, NULL);
 
     SAFE_RELEASE(dummydev);
     if(dummyUsed)
@@ -263,12 +262,7 @@ private:
 
         *ppDevice = wrap;
 
-        if(ppImmediateContext)
-        {
-          if(*ppImmediateContext)
-            (*ppImmediateContext)->Release();
-          wrap->GetImmediateContext(ppImmediateContext);
-        }
+        wrap->GetImmediateContext(ppImmediateContext);
 
         if(ppSwapChain && *ppSwapChain)
           *ppSwapChain = new WrappedIDXGISwapChain4(

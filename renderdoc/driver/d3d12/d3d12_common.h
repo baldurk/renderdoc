@@ -361,9 +361,6 @@ struct D3D12CommandSignature
   rdcarray<D3D12_INDIRECT_ARGUMENT_DESC> arguments;
 };
 
-#define IMPLEMENT_IUNKNOWN_WITH_REFCOUNTER_CUSTOMQUERY                \
-  ULONG STDMETHODCALLTYPE AddRef() { return RefCounter12::AddRef(); } \
-  ULONG STDMETHODCALLTYPE Release() { return RefCounter12::Release(); }
 #define IMPLEMENT_FUNCTION_SERIALISED(ret, func, ...) \
   ret func(__VA_ARGS__);                              \
   template <typename SerialiserType>                  \

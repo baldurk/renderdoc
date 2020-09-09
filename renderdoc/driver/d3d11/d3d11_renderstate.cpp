@@ -100,54 +100,54 @@ D3D11RenderState::~D3D11RenderState()
 
 void D3D11RenderState::ReleaseRefs()
 {
-  ReleaseRef(IA.IndexBuffer);
-  ReleaseRef(IA.Layout);
+  IntRelease(IA.IndexBuffer);
+  IntRelease(IA.Layout);
 
   for(UINT i = 0; i < D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT; i++)
-    ReleaseRef(IA.VBs[i]);
+    IntRelease(IA.VBs[i]);
 
   Shader *stages[] = {&VS, &HS, &DS, &GS, &PS, &CS};
   for(int s = 0; s < 6; s++)
   {
     Shader *sh = stages[s];
 
-    ReleaseRef(sh->Object);
+    IntRelease(sh->Object);
 
     for(UINT i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
-      ReleaseRef(sh->ConstantBuffers[i]);
+      IntRelease(sh->ConstantBuffers[i]);
 
     for(UINT i = 0; i < D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT; i++)
-      ReleaseRef(sh->Samplers[i]);
+      IntRelease(sh->Samplers[i]);
 
     for(UINT i = 0; i < D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT; i++)
-      ReleaseRef(sh->SRVs[i]);
+      IntRelease(sh->SRVs[i]);
 
     for(UINT i = 0; i < D3D11_SHADER_MAX_INTERFACES; i++)
-      ReleaseRef(sh->Instances[i]);
+      IntRelease(sh->Instances[i]);
 
     sh++;
   }
 
   for(UINT i = 0; i < D3D11_1_UAV_SLOT_COUNT; i++)
-    ReleaseRef(CSUAVs[i]);
+    IntRelease(CSUAVs[i]);
 
   for(UINT i = 0; i < D3D11_SO_BUFFER_SLOT_COUNT; i++)
-    ReleaseRef(SO.Buffers[i]);
+    IntRelease(SO.Buffers[i]);
 
-  ReleaseRef(RS.State);
+  IntRelease(RS.State);
 
-  ReleaseRef(OM.BlendState);
-  ReleaseRef(OM.DepthStencilState);
+  IntRelease(OM.BlendState);
+  IntRelease(OM.DepthStencilState);
 
   for(UINT i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
-    ReleaseRef(OM.RenderTargets[i]);
+    IntRelease(OM.RenderTargets[i]);
 
   for(UINT i = 0; i < D3D11_1_UAV_SLOT_COUNT; i++)
-    ReleaseRef(OM.UAVs[i]);
+    IntRelease(OM.UAVs[i]);
 
-  ReleaseRef(OM.DepthView);
+  IntRelease(OM.DepthView);
 
-  ReleaseRef(Predicate);
+  IntRelease(Predicate);
 
   RDCEraseEl(IA);
   RDCEraseEl(VS);
@@ -276,54 +276,54 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
 
 void D3D11RenderState::AddRefs()
 {
-  TakeRef(IA.IndexBuffer);
-  TakeRef(IA.Layout);
+  IntAddRef(IA.IndexBuffer);
+  IntAddRef(IA.Layout);
 
   for(UINT i = 0; i < D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT; i++)
-    TakeRef(IA.VBs[i]);
+    IntAddRef(IA.VBs[i]);
 
   Shader *stages[] = {&VS, &HS, &DS, &GS, &PS, &CS};
   for(int s = 0; s < 6; s++)
   {
     Shader *sh = stages[s];
 
-    TakeRef(sh->Object);
+    IntAddRef(sh->Object);
 
     for(UINT i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
-      TakeRef(sh->ConstantBuffers[i]);
+      IntAddRef(sh->ConstantBuffers[i]);
 
     for(UINT i = 0; i < D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT; i++)
-      TakeRef(sh->Samplers[i]);
+      IntAddRef(sh->Samplers[i]);
 
     for(UINT i = 0; i < D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT; i++)
-      TakeRef(sh->SRVs[i]);
+      IntAddRef(sh->SRVs[i]);
 
     for(UINT i = 0; i < D3D11_SHADER_MAX_INTERFACES; i++)
-      TakeRef(sh->Instances[i]);
+      IntAddRef(sh->Instances[i]);
 
     sh++;
   }
 
   for(UINT i = 0; i < D3D11_1_UAV_SLOT_COUNT; i++)
-    TakeRef(CSUAVs[i]);
+    IntAddRef(CSUAVs[i]);
 
   for(UINT i = 0; i < D3D11_SO_BUFFER_SLOT_COUNT; i++)
-    TakeRef(SO.Buffers[i]);
+    IntAddRef(SO.Buffers[i]);
 
-  TakeRef(RS.State);
+  IntAddRef(RS.State);
 
-  TakeRef(OM.BlendState);
-  TakeRef(OM.DepthStencilState);
+  IntAddRef(OM.BlendState);
+  IntAddRef(OM.DepthStencilState);
 
   for(UINT i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
-    TakeRef(OM.RenderTargets[i]);
+    IntAddRef(OM.RenderTargets[i]);
 
   for(UINT i = 0; i < D3D11_1_UAV_SLOT_COUNT; i++)
-    TakeRef(OM.UAVs[i]);
+    IntAddRef(OM.UAVs[i]);
 
-  TakeRef(OM.DepthView);
+  IntAddRef(OM.DepthView);
 
-  TakeRef(Predicate);
+  IntAddRef(Predicate);
 }
 
 D3D11RenderState::D3D11RenderState(WrappedID3D11DeviceContext *context)
@@ -561,78 +561,6 @@ void D3D11RenderState::ApplyState(WrappedID3D11DeviceContext *context) const
   context->SetPredication(Predicate, PredicateValue);
 }
 
-void D3D11RenderState::TakeRef(ID3D11DeviceChild *p)
-{
-  if(p)
-  {
-    p->AddRef();
-    if(m_ImmediatePipeline)
-    {
-      if(WrappedID3D11RenderTargetView1::IsAlloc(p) || WrappedID3D11ShaderResourceView1::IsAlloc(p) ||
-         WrappedID3D11DepthStencilView::IsAlloc(p) || WrappedID3D11UnorderedAccessView1::IsAlloc(p))
-        m_pDevice->InternalRef();
-
-      m_pDevice->InternalRef();
-
-      // we can use any specialisation of device child here, as all that is templated
-      // is the nested pointer type. Saves having another class in the inheritance
-      // heirarchy :(
-      ((WrappedDeviceChild11<ID3D11Buffer> *)p)->PipelineAddRef();
-    }
-  }
-}
-
-void D3D11RenderState::ReleaseRef(ID3D11DeviceChild *p)
-{
-  if(p)
-  {
-    p->Release();
-    if(m_ImmediatePipeline)
-    {
-      if(WrappedID3D11RenderTargetView1::IsAlloc(p) || WrappedID3D11ShaderResourceView1::IsAlloc(p) ||
-         WrappedID3D11DepthStencilView::IsAlloc(p) || WrappedID3D11UnorderedAccessView1::IsAlloc(p))
-        m_pDevice->InternalRelease();
-
-      m_pDevice->InternalRelease();
-
-      // see above
-      ((WrappedDeviceChild11<ID3D11Buffer> *)p)->PipelineRelease();
-    }
-  }
-}
-
-// these are overloads that take a buffer to skip the view IsAlloc checks
-
-void D3D11RenderState::TakeRef(ID3D11Buffer *p)
-{
-  if(p)
-  {
-    p->AddRef();
-    if(m_ImmediatePipeline)
-    {
-      m_pDevice->InternalRef();
-
-      // see above
-      ((WrappedDeviceChild11<ID3D11Buffer> *)p)->PipelineAddRef();
-    }
-  }
-}
-
-void D3D11RenderState::ReleaseRef(ID3D11Buffer *p)
-{
-  if(p)
-  {
-    p->Release();
-    if(m_ImmediatePipeline)
-    {
-      m_pDevice->InternalRelease();
-
-      // see above
-      ((WrappedDeviceChild11<ID3D11Buffer> *)p)->PipelineRelease();
-    }
-  }
-}
-
 bool D3D11RenderState::IsRangeBoundForWrite(const ResourceRange &range)
 {
   for(UINT i = 0; i < D3D11_1_UAV_SLOT_COUNT; i++)
@@ -707,7 +635,7 @@ void D3D11RenderState::UnbindRangeForWrite(const ResourceRange &range)
   {
     if(CSUAVs[i] && range.Intersects(GetResourceRange(CSUAVs[i])))
     {
-      ReleaseRef(CSUAVs[i]);
+      IntRelease(CSUAVs[i]);
       CSUAVs[i] = NULL;
     }
   }
@@ -716,7 +644,7 @@ void D3D11RenderState::UnbindRangeForWrite(const ResourceRange &range)
   {
     if(SO.Buffers[i] && range.Intersects(ResourceRange(SO.Buffers[i])))
     {
-      ReleaseRef(SO.Buffers[i]);
+      IntRelease(SO.Buffers[i]);
       SO.Buffers[i] = NULL;
     }
   }
@@ -725,7 +653,7 @@ void D3D11RenderState::UnbindRangeForWrite(const ResourceRange &range)
   {
     if(OM.RenderTargets[i] && range.Intersects(GetResourceRange(OM.RenderTargets[i])))
     {
-      ReleaseRef(OM.RenderTargets[i]);
+      IntRelease(OM.RenderTargets[i]);
       OM.RenderTargets[i] = NULL;
     }
   }
@@ -734,14 +662,14 @@ void D3D11RenderState::UnbindRangeForWrite(const ResourceRange &range)
   {
     if(OM.UAVs[i] && range.Intersects(GetResourceRange(OM.UAVs[i])))
     {
-      ReleaseRef(OM.UAVs[i]);
+      IntRelease(OM.UAVs[i]);
       OM.UAVs[i] = NULL;
     }
   }
 
   if(OM.DepthView && range.Intersects(GetResourceRange(OM.DepthView)))
   {
-    ReleaseRef(OM.DepthView);
+    IntRelease(OM.DepthView);
     OM.DepthView = NULL;
   }
 }
@@ -753,7 +681,7 @@ void D3D11RenderState::UnbindRangeForRead(const ResourceRange &range)
     if(IA.VBs[i] && range.Intersects(ResourceRange(IA.VBs[i])))
     {
       // RDCDEBUG("Resource was bound on IA VB %u", i);
-      ReleaseRef(IA.VBs[i]);
+      IntRelease(IA.VBs[i]);
       IA.VBs[i] = NULL;
     }
   }
@@ -761,7 +689,7 @@ void D3D11RenderState::UnbindRangeForRead(const ResourceRange &range)
   if(IA.IndexBuffer && range.Intersects(ResourceRange(IA.IndexBuffer)))
   {
     // RDCDEBUG("Resource was bound on IA IB");
-    ReleaseRef(IA.IndexBuffer);
+    IntRelease(IA.IndexBuffer);
     IA.IndexBuffer = NULL;
   }
 
@@ -776,7 +704,7 @@ void D3D11RenderState::UnbindRangeForRead(const ResourceRange &range)
       if(sh->ConstantBuffers[i] && range.Intersects(ResourceRange(sh->ConstantBuffers[i])))
       {
         // RDCDEBUG("Resource was bound on %s CB %u", names[s], i);
-        ReleaseRef(sh->ConstantBuffers[i]);
+        IntRelease(sh->ConstantBuffers[i]);
         sh->ConstantBuffers[i] = NULL;
       }
     }
@@ -803,7 +731,7 @@ void D3D11RenderState::UnbindRangeForRead(const ResourceRange &range)
         else
         {
           // RDCDEBUG("Unbinding.");
-          ReleaseRef(sh->SRVs[i]);
+          IntRelease(sh->SRVs[i]);
           sh->SRVs[i] = NULL;
         }
       }

@@ -44,6 +44,13 @@ COM_SMARTPTR(IDXGIAdapter);
 COM_SMARTPTR(IDXGISurface);
 COM_SMARTPTR(IDXGIResource);
 
+template <typename T>
+ULONG GetRefcount(T *ptr)
+{
+  ptr->AddRef();
+  return ptr->Release();
+}
+
 std::vector<IDXGIAdapterPtr> FindD3DAdapters(IDXGIFactoryPtr factory, int argc, char **argv,
                                              bool &warp);
 
