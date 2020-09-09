@@ -584,9 +584,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV:           \
   case VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_VERSION_KHR:                           \
   case VK_STRUCTURE_TYPE_ACQUIRE_PROFILING_LOCK_INFO_KHR:                              \
-  case VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_FORMAT_PROPERTIES_ANDROID:            \
-  case VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_PROPERTIES_ANDROID:                   \
-  case VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_USAGE_ANDROID:                        \
   case VK_STRUCTURE_TYPE_BIND_ACCELERATION_STRUCTURE_MEMORY_INFO_KHR:                  \
   case VK_STRUCTURE_TYPE_CHECKPOINT_DATA_NV:                                           \
   case VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_RENDER_PASS_TRANSFORM_INFO_QCOM:   \
@@ -600,7 +597,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_DISPLAY_NATIVE_HDR_SURFACE_CAPABILITIES_AMD:                  \
   case VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_EXT:                           \
   case VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_LIST_EXT:                      \
-  case VK_STRUCTURE_TYPE_EXTERNAL_FORMAT_ANDROID:                                      \
   case VK_STRUCTURE_TYPE_FRAMEBUFFER_MIXED_SAMPLES_COMBINATION_NV:                     \
   case VK_STRUCTURE_TYPE_GENERATED_COMMANDS_INFO_NV:                                   \
   case VK_STRUCTURE_TYPE_GENERATED_COMMANDS_MEMORY_REQUIREMENTS_INFO_NV:               \
@@ -616,12 +612,10 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_PROPERTIES_EXT:                     \
   case VK_STRUCTURE_TYPE_IMAGE_VIEW_ADDRESS_PROPERTIES_NVX:                            \
   case VK_STRUCTURE_TYPE_IMAGE_VIEW_HANDLE_INFO_NVX:                                   \
-  case VK_STRUCTURE_TYPE_IMPORT_ANDROID_HARDWARE_BUFFER_INFO_ANDROID:                  \
   case VK_STRUCTURE_TYPE_IMPORT_MEMORY_HOST_POINTER_INFO_EXT:                          \
   case VK_STRUCTURE_TYPE_INDIRECT_COMMANDS_LAYOUT_CREATE_INFO_NV:                      \
   case VK_STRUCTURE_TYPE_INDIRECT_COMMANDS_LAYOUT_TOKEN_NV:                            \
   case VK_STRUCTURE_TYPE_INITIALIZE_PERFORMANCE_API_INFO_INTEL:                        \
-  case VK_STRUCTURE_TYPE_MEMORY_GET_ANDROID_HARDWARE_BUFFER_INFO_ANDROID:              \
   case VK_STRUCTURE_TYPE_MEMORY_HOST_POINTER_PROPERTIES_EXT:                           \
   case VK_STRUCTURE_TYPE_PERFORMANCE_CONFIGURATION_ACQUIRE_INFO_INTEL:                 \
   case VK_STRUCTURE_TYPE_PERFORMANCE_MARKER_INFO_INTEL:                                \
@@ -857,6 +851,32 @@ size_t GetNextPatchSize(const void *pNext)
         }
         break;
       }
+
+// Android External Buffer Memory Extension
+#if ENABLED(RDOC_ANDROID)
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_IMPORT_ANDROID_HARDWARE_BUFFER_INFO_ANDROID,
+                                 VkImportAndroidHardwareBufferInfoANDROID);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_USAGE_ANDROID,
+                                 VkAndroidHardwareBufferUsageANDROID);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_EXTERNAL_FORMAT_ANDROID, VkExternalFormatANDROID);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_FORMAT_PROPERTIES_ANDROID,
+                                 VkAndroidHardwareBufferFormatPropertiesANDROID);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_PROPERTIES_ANDROID,
+                                 VkAndroidHardwareBufferPropertiesANDROID);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_MEMORY_GET_ANDROID_HARDWARE_BUFFER_INFO_ANDROID,
+                                 VkMemoryGetAndroidHardwareBufferInfoANDROID);
+#else
+      case VK_STRUCTURE_TYPE_IMPORT_ANDROID_HARDWARE_BUFFER_INFO_ANDROID:
+      case VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_USAGE_ANDROID:
+      case VK_STRUCTURE_TYPE_EXTERNAL_FORMAT_ANDROID:
+      case VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_FORMAT_PROPERTIES_ANDROID:
+      case VK_STRUCTURE_TYPE_MEMORY_GET_ANDROID_HARDWARE_BUFFER_INFO_ANDROID:
+      case VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_PROPERTIES_ANDROID:
+      {
+        RDCERR("Support for android external memory buffer extension not compiled in");
+        break;
+      }
+#endif
 
 // NV win32 external memory extensions
 #if ENABLED(RDOC_WIN32)
@@ -1443,6 +1463,33 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
         break;
       }
 
+// Android External Buffer Memory Extension
+#if ENABLED(RDOC_ANDROID)
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_IMPORT_ANDROID_HARDWARE_BUFFER_INFO_ANDROID,
+                                 VkImportAndroidHardwareBufferInfoANDROID);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_USAGE_ANDROID,
+                                 VkAndroidHardwareBufferUsageANDROID);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_EXTERNAL_FORMAT_ANDROID, VkExternalFormatANDROID);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_FORMAT_PROPERTIES_ANDROID,
+                                 VkAndroidHardwareBufferFormatPropertiesANDROID);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_PROPERTIES_ANDROID,
+                                 VkAndroidHardwareBufferPropertiesANDROID);
+        UNWRAP_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_MEMORY_GET_ANDROID_HARDWARE_BUFFER_INFO_ANDROID,
+                                   VkMemoryGetAndroidHardwareBufferInfoANDROID,
+                                   UnwrapInPlace(out->memory));
+#else
+      case VK_STRUCTURE_TYPE_IMPORT_ANDROID_HARDWARE_BUFFER_INFO_ANDROID:
+      case VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_USAGE_ANDROID:
+      case VK_STRUCTURE_TYPE_EXTERNAL_FORMAT_ANDROID:
+      case VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_FORMAT_PROPERTIES_ANDROID:
+      case VK_STRUCTURE_TYPE_MEMORY_GET_ANDROID_HARDWARE_BUFFER_INFO_ANDROID:
+      case VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_PROPERTIES_ANDROID:
+      {
+        RDCERR("Support for android external memory buffer extension not compiled in");
+        break;
+      }
+#endif
+
 // NV win32 external memory extensions
 #if ENABLED(RDOC_WIN32)
         // Structs that can be copied into place
@@ -1655,6 +1702,33 @@ void CopyNextChainForPatching(const char *structName, byte *&tempMem, VkBaseInSt
       case VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET:
         CopyNextChainedStruct(sizeof(VkWriteDescriptorSet), tempMem, nextInput, nextChainTail);
         break;
+
+// Android External Buffer Memory Extension
+#if ENABLED(RDOC_ANDROID)
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_IMPORT_ANDROID_HARDWARE_BUFFER_INFO_ANDROID,
+                                 VkImportAndroidHardwareBufferInfoANDROID);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_USAGE_ANDROID,
+                                 VkAndroidHardwareBufferUsageANDROID);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_EXTERNAL_FORMAT_ANDROID, VkExternalFormatANDROID);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_FORMAT_PROPERTIES_ANDROID,
+                                 VkAndroidHardwareBufferFormatPropertiesANDROID);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_PROPERTIES_ANDROID,
+                                 VkAndroidHardwareBufferPropertiesANDROID);
+        UNWRAP_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_MEMORY_GET_ANDROID_HARDWARE_BUFFER_INFO_ANDROID,
+                                   VkMemoryGetAndroidHardwareBufferInfoANDROID,
+                                   UnwrapInPlace(out->memory));
+#else
+      case VK_STRUCTURE_TYPE_IMPORT_ANDROID_HARDWARE_BUFFER_INFO_ANDROID:
+      case VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_USAGE_ANDROID:
+      case VK_STRUCTURE_TYPE_EXTERNAL_FORMAT_ANDROID:
+      case VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_FORMAT_PROPERTIES_ANDROID:
+      case VK_STRUCTURE_TYPE_MEMORY_GET_ANDROID_HARDWARE_BUFFER_INFO_ANDROID:
+      case VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_PROPERTIES_ANDROID:
+      {
+        RDCERR("Support for android external memory buffer extension not compiled in");
+        break;
+      }
+#endif
 
 // NV win32 external memory extensions
 #if ENABLED(RDOC_WIN32)

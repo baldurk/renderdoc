@@ -9349,7 +9349,7 @@ void DoSerialise(SerialiserType &ser, VkAndroidHardwareBufferPropertiesANDROID &
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER(allocationSize);
-  SERIALISE_MEMBER_TYPED(uint32_t, memoryTypeBits);
+  SERIALISE_MEMBER(memoryTypeBits);
 }
 
 template <>
@@ -9434,7 +9434,14 @@ void DoSerialise(SerialiserType &ser, VkImportAndroidHardwareBufferInfoANDROID &
             el.sType == VK_STRUCTURE_TYPE_IMPORT_ANDROID_HARDWARE_BUFFER_INFO_ANDROID);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  // SERIALISE_MEMBER(buffer);
+  {
+    uint64_t buffer = (uint64_t)el.buffer;
+    ser.Serialise("buffer"_lit, buffer);
+
+    // won't be valid on read, though we won't try to replay this anyway
+    if(ser.IsReading())
+      el.buffer = NULL;
+  }
 }
 
 template <>
