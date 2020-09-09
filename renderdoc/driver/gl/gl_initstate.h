@@ -146,6 +146,7 @@ struct TextureStateInitialData
   GLResource texBuffer;
   uint32_t texBufOffs;
   uint32_t texBufSize;
+  float maxAniso;
 };
 
 DECLARE_REFLECTION_STRUCT(TextureStateInitialData);

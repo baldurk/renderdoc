@@ -132,6 +132,11 @@ void DoSerialise(SerialiserType &ser, SamplerInitialData &el)
   SERIALISE_MEMBER(magFilter);
   SERIALISE_MEMBER(maxAniso);
   SERIALISE_MEMBER(wrap);
+
+  // samplers from before 0x23 didn't have this field filled out at all. Set it to 1.0 as a
+  // reasonably sensible default
+  if(ser.VersionLess(0x23))
+    el.maxAniso = 1.0f;
 }
 
 template <typename SerialiserType>
@@ -165,6 +170,12 @@ void DoSerialise(SerialiserType &ser, TextureStateInitialData &el)
   SERIALISE_MEMBER(texBuffer);
   SERIALISE_MEMBER(texBufOffs);
   SERIALISE_MEMBER(texBufSize);
+
+  if(ser.VersionAtLeast(0x23))
+    SERIALISE_MEMBER(maxAniso);
+  else if(ser.IsReading())
+    el.maxAniso = 1.0f;    // no default is perfect, but at least set 1.0 instead of leaving it
+                           // uninitialised or 0.0
 }
 
 void WrappedOpenGL::TextureData::GetCompressedImageDataGLES(int mip, GLenum target, size_t size,
@@ -400,6 +411,9 @@ void GLResourceManager::ContextPrepare_InitialState(GLResource res)
       GL.glGetSamplerParameterfv(res.name, eGL_TEXTURE_MAX_LOD, &data.maxLod);
       if(!IsGLES)
         GL.glGetSamplerParameterfv(res.name, eGL_TEXTURE_LOD_BIAS, &data.lodBias);
+
+      if(HasExt[ARB_texture_filter_anisotropic])
+        GL.glGetSamplerParameterfv(res.name, eGL_TEXTURE_MAX_ANISOTROPY, &data.maxAniso);
 
       // technically border color has been in since GL 1.0, but since this extension was really
       // early and dovetails nicely with OES_texture_border_color which added both border colors and
@@ -698,6 +712,10 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
       if(!IsGLES)
         GL.glGetTextureParameterfvEXT(res.name, details.curType, eGL_TEXTURE_LOD_BIAS,
                                       &state.lodBias);
+
+      if(HasExt[ARB_texture_filter_anisotropic])
+        GL.glGetTextureParameterfvEXT(res.name, details.curType, eGL_TEXTURE_MAX_ANISOTROPY,
+                                      &state.maxAniso);
 
       // CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
       if(state.wrap[0] == eGL_CLAMP)
@@ -2127,6 +2145,10 @@ void GLResourceManager::Apply_InitialState(GLResource live, const GLInitialConte
         if(!IsGLES)
           GL.glTextureParameterfvEXT(live.name, details.curType, eGL_TEXTURE_LOD_BIAS,
                                      &state.lodBias);
+
+        if(HasExt[ARB_texture_filter_anisotropic])
+          GL.glTextureParameterfvEXT(live.name, details.curType, eGL_TEXTURE_MAX_ANISOTROPY,
+                                     &state.maxAniso);
         if(details.curType != eGL_TEXTURE_RECTANGLE)
         {
           GL.glTextureParameterfvEXT(live.name, details.curType, eGL_TEXTURE_MIN_LOD, &state.minLod);
@@ -2357,6 +2379,8 @@ void GLResourceManager::Apply_InitialState(GLResource live, const GLInitialConte
         GL.glSamplerParameterf(live.name, eGL_TEXTURE_MAX_LOD, data.maxLod);
         if(!IsGLES)
           GL.glSamplerParameterf(live.name, eGL_TEXTURE_LOD_BIAS, data.lodBias);
+        if(HasExt[ARB_texture_filter_anisotropic])
+          GL.glSamplerParameterf(live.name, eGL_TEXTURE_MAX_ANISOTROPY, data.maxAniso);
 
         // see fetch in PrepareTextureInitialContents
         if(HasExt[ARB_texture_border_clamp])

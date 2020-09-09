@@ -1194,6 +1194,10 @@ bool GLInitParams::IsSupportedVersion(uint64_t ver)
   if(ver == 0x21)
     return true;
 
+  // 0x22 -> 0x23 - Add missing serialisation of maxAniso in texture initial contents.
+  if(ver == 0x21)
+    return true;
+
   return false;
 }
 

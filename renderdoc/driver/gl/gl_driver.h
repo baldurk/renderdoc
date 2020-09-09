@@ -59,7 +59,7 @@ struct GLInitParams
   rdcstr renderer, version;
 
   // check if a frame capture section version is supported
-  static const uint64_t CurrentVersion = 0x22;
+  static const uint64_t CurrentVersion = 0x23;
   static bool IsSupportedVersion(uint64_t ver);
 };
 
