@@ -493,7 +493,7 @@ struct ResourceRecord
   bool DataWritten;
 
 protected:
-  volatile int32_t RefCount;
+  int32_t RefCount;
 
   byte *DataPtr;
   uint64_t DataOffset;
@@ -504,7 +504,7 @@ protected:
 
   int64_t GetID()
   {
-    static volatile int64_t globalIDCounter = 10;
+    static int64_t globalIDCounter = 10;
 
     return Atomic::Inc64(&globalIDCounter);
   }

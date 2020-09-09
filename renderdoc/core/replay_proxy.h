@@ -696,8 +696,8 @@ private:
     RemoteExecution_ThreadActive = 2,
   };
 
-  volatile int32_t m_RemoteExecutionKill = 0;
-  volatile int32_t m_RemoteExecutionState = RemoteExecution_Inactive;
+  int32_t m_RemoteExecutionKill = 0;
+  int32_t m_RemoteExecutionState = RemoteExecution_Inactive;
 
   bool IsThreadIdle()
   {

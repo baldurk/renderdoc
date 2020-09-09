@@ -346,7 +346,7 @@ private:
   std::map<GLsync, ResourceId> m_SyncIDs;
   std::map<GLuint, GLsync> m_CurrentSyncs;
   std::map<ResourceId, rdcstr> m_Names;
-  volatile int64_t m_SyncName;
+  int64_t m_SyncName;
 
   struct FBOCache
   {

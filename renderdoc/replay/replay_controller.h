@@ -235,8 +235,8 @@ private:
   APIProperties m_APIProps;
   rdcarray<rdcstr> m_GCNTargets;
 
-  volatile int32_t m_ReplayLoopCancel = 0;
-  volatile int32_t m_ReplayLoopFinished = 0;
+  int32_t m_ReplayLoopCancel = 0;
+  int32_t m_ReplayLoopFinished = 0;
 
   uint32_t m_EventID;
 

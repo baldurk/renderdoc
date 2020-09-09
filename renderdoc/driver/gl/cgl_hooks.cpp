@@ -38,7 +38,7 @@ public:
   WrappedOpenGL driver;
   std::set<CGLContextObj> contexts;
 
-  volatile int32_t suppressed = 0;
+  int32_t suppressed = 0;
 } cglhook;
 
 CGLError GL_EXPORT_NAME(CGLCreateContext)(CGLPixelFormatObj pix, CGLContextObj share,

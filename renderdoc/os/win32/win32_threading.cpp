@@ -54,32 +54,32 @@ time_t Timing::GetUTCTime()
 
 namespace Atomic
 {
-int32_t Inc32(volatile int32_t *i)
+int32_t Inc32(int32_t *i)
 {
   return (int32_t)InterlockedIncrement((volatile LONG *)i);
 }
 
-int32_t Dec32(volatile int32_t *i)
+int32_t Dec32(int32_t *i)
 {
   return (int32_t)InterlockedDecrement((volatile LONG *)i);
 }
 
-int64_t Inc64(volatile int64_t *i)
+int64_t Inc64(int64_t *i)
 {
   return (int64_t)InterlockedIncrement64((volatile LONG64 *)i);
 }
 
-int64_t Dec64(volatile int64_t *i)
+int64_t Dec64(int64_t *i)
 {
   return (int64_t)InterlockedDecrement64((volatile LONG64 *)i);
 }
 
-int64_t ExchAdd64(volatile int64_t *i, int64_t a)
+int64_t ExchAdd64(int64_t *i, int64_t a)
 {
   return (int64_t)InterlockedExchangeAdd64((volatile LONG64 *)i, a);
 }
 
-int32_t CmpExch32(volatile int32_t *dest, int32_t oldVal, int32_t newVal)
+int32_t CmpExch32(int32_t *dest, int32_t oldVal, int32_t newVal)
 {
   return (int32_t)InterlockedCompareExchange((volatile LONG *)dest, newVal, oldVal);
 }

@@ -41,32 +41,32 @@ time_t Timing::GetUTCTime()
 
 namespace Atomic
 {
-int32_t Inc32(volatile int32_t *i)
+int32_t Inc32(int32_t *i)
 {
   return __sync_add_and_fetch(i, int32_t(1));
 }
 
-int32_t Dec32(volatile int32_t *i)
+int32_t Dec32(int32_t *i)
 {
   return __sync_add_and_fetch(i, int32_t(-1));
 }
 
-int64_t Inc64(volatile int64_t *i)
+int64_t Inc64(int64_t *i)
 {
   return __sync_add_and_fetch(i, int64_t(1));
 }
 
-int64_t Dec64(volatile int64_t *i)
+int64_t Dec64(int64_t *i)
 {
   return __sync_add_and_fetch(i, int64_t(-1));
 }
 
-int64_t ExchAdd64(volatile int64_t *i, int64_t a)
+int64_t ExchAdd64(int64_t *i, int64_t a)
 {
   return __sync_add_and_fetch(i, int64_t(a));
 }
 
-int32_t CmpExch32(volatile int32_t *dest, int32_t oldVal, int32_t newVal)
+int32_t CmpExch32(int32_t *dest, int32_t oldVal, int32_t newVal)
 {
   return __sync_val_compare_and_swap(dest, oldVal, newVal);
 }

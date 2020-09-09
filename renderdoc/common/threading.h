@@ -79,7 +79,7 @@ public:
   bool Trylock() { return Atomic::CmpExch32(&val, 0, 1) == 0; }
   void Unlock() { Atomic::CmpExch32(&val, 1, 0); }
 private:
-  volatile int32_t val = 0;
+  int32_t val = 0;
 };
 
 class ScopedSpinLock

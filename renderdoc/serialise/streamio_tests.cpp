@@ -174,7 +174,7 @@ TEST_CASE("Test stream I/O operations over the network", "[streamio][network]")
     rdcarray<uint64_t> list = {1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597};
 
     // Tracks the lifetime of each thread.
-    volatile int32_t threadA = 0, threadB = 0;
+    int32_t threadA = 0, threadB = 0;
 
     Threading::ThreadHandle recvThread =
         Threading::CreateThread([&threadA, &reader, &receivedValues]() {

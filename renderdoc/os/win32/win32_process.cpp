@@ -1135,7 +1135,7 @@ struct GlobalHookData
     rdcwstr appinitDLLs;
   } dataNative, dataWow32;
 
-  volatile int32_t finished = 0;
+  int32_t finished = 0;
   Threading::ThreadHandle pipeThread = 0;
 };
 

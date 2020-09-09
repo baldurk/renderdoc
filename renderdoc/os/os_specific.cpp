@@ -500,7 +500,7 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
 
   SECTION("Atomics")
   {
-    volatile int32_t value = 0;
+    int32_t value = 0;
 
     // check that thread atomics work on multiple overlapping threads
     Threading::ThreadHandle threads[numThreads];

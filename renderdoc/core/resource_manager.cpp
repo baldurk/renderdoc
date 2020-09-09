@@ -29,7 +29,7 @@
 
 namespace ResourceIDGen
 {
-static volatile int64_t globalIDCounter = 1;
+static int64_t globalIDCounter = 1;
 
 ResourceId GetNewUniqueID()
 {

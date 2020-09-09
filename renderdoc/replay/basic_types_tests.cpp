@@ -37,14 +37,14 @@
 
 #include "catch/catch.hpp"
 
-static volatile int32_t constructor = 0;
-static volatile int32_t moveConstructor = 0;
-static volatile int32_t valueConstructor = 0;
-static volatile int32_t copyConstructor = 0;
-static volatile int32_t destructor = 0;
-static volatile int32_t movedDestructor = 0;
-static volatile int32_t copyAssignment = 0;
-static volatile int32_t moveAssignment = 0;
+static int32_t constructor = 0;
+static int32_t moveConstructor = 0;
+static int32_t valueConstructor = 0;
+static int32_t copyConstructor = 0;
+static int32_t destructor = 0;
+static int32_t movedDestructor = 0;
+static int32_t copyAssignment = 0;
+static int32_t moveAssignment = 0;
 
 struct ConstructorCounter
 {

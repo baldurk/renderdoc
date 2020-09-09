@@ -294,7 +294,7 @@ private:
   CaptureState m_State;
   bool m_AppControlledCapture = false;
 
-  volatile int32_t m_ReuseEnabled = 1;
+  int32_t m_ReuseEnabled = 1;
 
   PerformanceTimer m_CaptureTimer;
 
@@ -761,7 +761,7 @@ private:
   rdcarray<VkResourceRecord *> m_ForcedReferences;
   Threading::CriticalSection m_ForcedReferencesLock;
 
-  volatile int64_t m_QueueCounter = 0;
+  int64_t m_QueueCounter = 0;
 
   rdcarray<VkResourceRecord *> GetForcedReferences()
   {

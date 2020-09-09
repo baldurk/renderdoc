@@ -51,7 +51,7 @@ DLOPENPROC realdlopen = NULL;
 FORKPROC realfork = NULL;
 DLSYMPROC realdlsym = NULL;
 
-static volatile int32_t tlsbusyflag = 0;
+static int32_t tlsbusyflag = 0;
 
 __attribute__((visibility("default"))) void *dlopen(const char *filename, int flag)
 {

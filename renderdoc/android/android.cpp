@@ -1124,7 +1124,7 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
   rdcstr intentArgs = c && c[0] ? c : "";
 
   // we spin up a thread to Ping() every second, since starting a package can block for a long time.
-  volatile int32_t done = 0;
+  int32_t done = 0;
   Threading::ThreadHandle pingThread = Threading::CreateThread([&done, this]() {
     Threading::SetCurrentThreadName("Android Ping");
 

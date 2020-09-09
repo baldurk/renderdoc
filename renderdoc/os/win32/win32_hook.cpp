@@ -164,7 +164,7 @@ struct CachedHookData
 
   bool missedOrdinals;
 
-  volatile int32_t posthooking = 0;
+  int32_t posthooking = 0;
 
   void ApplyHooks(const char *modName, HMODULE module)
   {
