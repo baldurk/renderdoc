@@ -2010,7 +2010,8 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
       while(next)
       {
         if(next->sType == VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_NV ||
-           next->sType == VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO)
+           next->sType == VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO ||
+           next->sType == VK_STRUCTURE_TYPE_EXTERNAL_FORMAT_ANDROID)
         {
           isExternal = true;
           break;
@@ -2050,6 +2051,8 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
                                       VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_NV);
           removed |= RemoveNextStruct(&createInfo_adjusted,
                                       VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO);
+          removed |=
+              RemoveNextStruct(&createInfo_adjusted, VK_STRUCTURE_TYPE_EXTERNAL_FORMAT_ANDROID);
 
           RDCASSERTMSG("Couldn't find next struct indicating external memory", removed);
 
