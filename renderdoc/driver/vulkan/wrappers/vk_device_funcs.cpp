@@ -2919,6 +2919,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         if(existing)
         {
           existing->bufferDeviceAddress = VK_TRUE;
+          existing->bufferDeviceAddressCaptureReplay = VK_TRUE;
         }
         else
         {
@@ -2932,8 +2933,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
           if(!existingKHR && !existingEXT)
           {
             // don't add a new VkPhysicalDeviceVulkan12Features to the pNext chain because if we do
-            // we
-            // have to remove any components etc. Instead just add the individual
+            // we have to remove any components etc. Instead just add the individual
             // VkPhysicalDeviceBufferDeviceAddressFeaturesKHR
             bufAddrKHRFeatures.bufferDeviceAddress = VK_TRUE;
             bufAddrKHRFeatures.bufferDeviceAddressMultiDevice = VK_FALSE;
@@ -2961,6 +2961,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         {
           // if so, make sure the feature is enabled
           existing->bufferDeviceAddress = VK_TRUE;
+          existing->bufferDeviceAddressCaptureReplay = VK_TRUE;
         }
         else
         {
@@ -2998,6 +2999,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         {
           // if so, make sure the feature is enabled
           existing->bufferDeviceAddress = VK_TRUE;
+          existing->bufferDeviceAddressCaptureReplay = VK_TRUE;
         }
         else
         {
@@ -3017,30 +3019,6 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
         Extensions.removeOne(VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
       }
-    }
-
-    {
-      VkPhysicalDeviceVulkan12Features *enabledFeaturesVK12 =
-          (VkPhysicalDeviceVulkan12Features *)FindNextStruct(
-              &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES);
-      VkPhysicalDeviceBufferDeviceAddressFeatures *bufferAddressFeaturesCoreKHR =
-          (VkPhysicalDeviceBufferDeviceAddressFeatures *)FindNextStruct(
-              &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES);
-      VkPhysicalDeviceBufferDeviceAddressFeaturesEXT *bufferAddressFeaturesEXT =
-          (VkPhysicalDeviceBufferDeviceAddressFeaturesEXT *)FindNextStruct(
-              &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_EXT);
-
-      // turn on bufferDeviceAddressCaptureReplay if available, so that a capture that uses it is
-      // safe
-      // to replay. Enabling this without using it is fine.
-      if(enabledFeaturesVK12 && enabledFeaturesVK12->bufferDeviceAddress)
-        enabledFeaturesVK12->bufferDeviceAddressCaptureReplay = VK_TRUE;
-
-      if(bufferAddressFeaturesCoreKHR)
-        bufferAddressFeaturesCoreKHR->bufferDeviceAddressCaptureReplay = VK_TRUE;
-
-      if(bufferAddressFeaturesEXT)
-        bufferAddressFeaturesEXT->bufferDeviceAddressCaptureReplay = VK_TRUE;
     }
 
     rdcarray<const char *> layerArray(Layers.size());
