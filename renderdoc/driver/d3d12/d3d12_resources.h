@@ -656,8 +656,6 @@ public:
   class ShaderEntry : public WrappedDeviceChild12<ID3D12DeviceChild>
   {
   public:
-    ALLOCATE_WITH_WRAPPED_POOL(ShaderEntry);
-
     static bool m_InternalResources;
 
     static void InternalResources(bool internalResources)

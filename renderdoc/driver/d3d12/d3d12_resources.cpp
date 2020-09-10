@@ -38,8 +38,6 @@ const GUID RENDERDOC_ID3D12ShaderGUID_ShaderDebugMagicValue = RENDERDOC_ShaderDe
 
 ALL_D3D12_TYPES;
 
-WRAPPED_POOL_INST(WrappedID3D12Shader);
-
 D3D12ResourceType IdentifyTypeByPtr(ID3D12Object *ptr)
 {
   if(ptr == NULL)
@@ -73,9 +71,6 @@ TrackedResource12 *GetTracked(ID3D12Object *ptr)
     return (TrackedResource12 *)GetWrapped((iface *)ptr);
 
   ALL_D3D12_TYPES;
-
-  if(WrappedID3D12Shader::IsAlloc(ptr))
-    return (TrackedResource12 *)(WrappedID3D12Shader *)ptr;
 
   return NULL;
 }

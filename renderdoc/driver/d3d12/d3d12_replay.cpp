@@ -412,7 +412,7 @@ rdcarray<ShaderEntryPoint> D3D12Replay::GetShaderEntryPoints(ResourceId shader)
 {
   ID3D12DeviceChild *res = m_pDevice->GetResourceManager()->GetCurrentResource(shader);
 
-  if(!res || !WrappedID3D12Shader::IsAlloc(res))
+  if(!res)
     return {};
 
   WrappedID3D12Shader *sh = (WrappedID3D12Shader *)res;
@@ -2714,12 +2714,6 @@ void D3D12Replay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, r
     return;
 
   ID3D12DeviceChild *res = m_pDevice->GetResourceManager()->GetCurrentResource(shader);
-
-  if(!WrappedID3D12Shader::IsAlloc(res))
-  {
-    RDCERR("Shader ID %s does not correspond to a known fake shader", ToStr(shader).c_str());
-    return;
-  }
 
   WrappedID3D12Shader *sh = (WrappedID3D12Shader *)res;
 
