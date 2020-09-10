@@ -122,7 +122,6 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
   if(!RenderDoc::Inst().IsReplayApp())
   {
     m_DeviceRecord = GetResourceManager()->AddResourceRecord(m_ResourceID);
-    m_DeviceRecord->ResType = Resource_Unknown;
     m_DeviceRecord->DataInSerialiser = false;
     m_DeviceRecord->InternalResource = true;
     m_DeviceRecord->Length = 0;
@@ -1334,7 +1333,7 @@ ReplayStatus WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc, bool store
     for(const BufferDescription &b : counterBuffers)
     {
       ID3D11UnorderedAccessView *uav = GetDebugManager()->GetCounterBufferUAV(b.resourceId);
-      ResourceId uavId = GetResourceManager()->GetOriginalID(GetIDForResource(uav));
+      ResourceId uavId = GetResourceManager()->GetOriginalID(GetIDForDeviceChild(uav));
 
       ResourceDescription &uavDesc = GetReplay()->GetResourceDesc(uavId);
       ResourceDescription &bufDesc = GetReplay()->GetResourceDesc(b.resourceId);
@@ -1575,7 +1574,6 @@ IUnknown *WrappedID3D11Device::WrapSwapchainBuffer(IDXGISwapper *swapper, DXGI_F
   if(IsCaptureMode(m_State))
   {
     D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
-    record->ResType = Resource_Texture2D;
     record->DataInSerialiser = false;
     record->Length = 0;
     record->NumSubResources = 0;
@@ -2539,7 +2537,7 @@ void WrappedID3D11Device::AddResourceCurChunk(ResourceId id)
 
 void WrappedID3D11Device::DerivedResource(ID3D11DeviceChild *parent, ResourceId child)
 {
-  ResourceId parentId = GetResourceManager()->GetOriginalID(GetIDForResource(parent));
+  ResourceId parentId = GetResourceManager()->GetOriginalID(GetIDForDeviceChild(parent));
 
   GetReplay()->GetResourceDesc(parentId).derivedResources.push_back(child);
   GetReplay()->GetResourceDesc(child).parentResources.push_back(parentId);
@@ -2556,11 +2554,11 @@ bool WrappedID3D11Device::Serialise_SetShaderDebugPath(SerialiserType &ser,
 
   if(IsReplayingAndReading() && pResource)
   {
-    ResourceId resId = GetResourceManager()->GetOriginalID(GetIDForResource(pResource));
+    ResourceId resId = GetResourceManager()->GetOriginalID(GetIDForDeviceChild(pResource));
 
     AddResourceCurChunk(resId);
 
-    auto it = WrappedShader::m_ShaderList.find(GetIDForResource(pResource));
+    auto it = WrappedShader::m_ShaderList.find(GetIDForDeviceChild(pResource));
 
     if(it != WrappedShader::m_ShaderList.end())
       it->second->SetDebugInfoPath(Path);
@@ -2573,7 +2571,7 @@ HRESULT WrappedID3D11Device::SetShaderDebugPath(ID3D11DeviceChild *pResource, co
 {
   if(IsCaptureMode(m_State))
   {
-    ResourceId idx = GetIDForResource(pResource);
+    ResourceId idx = GetIDForDeviceChild(pResource);
     D3D11ResourceRecord *record = GetResourceManager()->GetResourceRecord(idx);
 
     if(record == NULL)
@@ -2610,7 +2608,7 @@ bool WrappedID3D11Device::Serialise_SetResourceName(SerialiserType &ser,
   if(IsReplayingAndReading() && pResource)
   {
     ResourceDescription &descr = GetReplay()->GetResourceDesc(
-        GetResourceManager()->GetOriginalID(GetIDForResource(pResource)));
+        GetResourceManager()->GetOriginalID(GetIDForDeviceChild(pResource)));
     if(Name && Name[0])
       descr.SetCustomName(Name);
     AddResourceCurChunk(descr);
@@ -2628,7 +2626,7 @@ void WrappedID3D11Device::SetResourceName(ID3D11DeviceChild *pResource, const ch
   if(IsCaptureMode(m_State) && !WrappedID3D11DeviceContext::IsAlloc(pResource) &&
      !WrappedID3D11CommandList::IsAlloc(pResource))
   {
-    ResourceId idx = GetIDForResource(pResource);
+    ResourceId idx = GetIDForDeviceChild(pResource);
     D3D11ResourceRecord *record = GetResourceManager()->GetResourceRecord(idx);
 
     if(record == NULL)

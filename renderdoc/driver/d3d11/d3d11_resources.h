@@ -30,9 +30,6 @@
 #include "d3d11_manager.h"
 
 D3D11ResourceType IdentifyTypeByPtr(IUnknown *ptr);
-ResourceId GetIDForDeviceChild(ID3D11DeviceChild *ptr);
-template <typename T>
-inline ResourceId GetIDForResource(T *ptr);
 template <typename T>
 inline ResourceId GetViewResourceResID(T *);
 
@@ -397,6 +394,27 @@ public:
     return m_pReal->SetPrivateDataInterface(guid, pData);
   }
 };
+
+inline ID3D11DeviceChild *UnwrapResource(ID3D11DeviceChild *child)
+{
+  if(child)
+    return ((WrappedDeviceChild11<ID3D11DeviceChild> *)child)->GetReal();
+  return NULL;
+}
+
+inline ID3D11Resource *UnwrapResource(ID3D11Resource *child)
+{
+  if(child)
+    return ((WrappedDeviceChild11<ID3D11Resource> *)child)->GetReal();
+  return NULL;
+}
+
+inline ResourceId GetIDForDeviceChild(ID3D11DeviceChild *child)
+{
+  if(child)
+    return ((WrappedDeviceChild11<ID3D11Resource> *)child)->GetResourceID();
+  return ResourceId();
+}
 
 inline void IntAddRef(ID3D11DeviceChild *child)
 {
@@ -806,7 +824,7 @@ protected:
   WrappedView1(NestedType *real, WrappedID3D11Device *device, ID3D11Resource *res)
       : WrappedDeviceChild11(real, device), m_pResource(res), m_ResourceRange(this)
   {
-    m_ResourceResID = GetIDForResource(m_pResource);
+    m_ResourceResID = GetIDForDeviceChild(m_pResource);
     ::IntAddRef(m_pResource);
   }
 
@@ -1426,6 +1444,7 @@ GET_RANGE(WrappedID3D11UnorderedAccessView1, ID3D11UnorderedAccessView1);
 GET_RANGE(WrappedID3D11ShaderResourceView1, ID3D11ShaderResourceView);
 GET_RANGE(WrappedID3D11ShaderResourceView1, ID3D11ShaderResourceView1);
 GET_RANGE(WrappedID3D11DepthStencilView, ID3D11DepthStencilView);
+GET_RANGE(WrappedID3D11ShaderResourceView1, ID3D11View);
 
 #define GET_VIEW_RESOURCE_RES_ID(wrapped, unwrapped)              \
   template <>                                                     \
@@ -1440,96 +1459,4 @@ GET_VIEW_RESOURCE_RES_ID(WrappedID3D11UnorderedAccessView1, ID3D11UnorderedAcces
 GET_VIEW_RESOURCE_RES_ID(WrappedID3D11ShaderResourceView1, ID3D11ShaderResourceView);
 GET_VIEW_RESOURCE_RES_ID(WrappedID3D11ShaderResourceView1, ID3D11ShaderResourceView1);
 GET_VIEW_RESOURCE_RES_ID(WrappedID3D11DepthStencilView, ID3D11DepthStencilView);
-
-// macro that only handles non-revisioned interfaces, 1:1 with its parent
-#define GET_RES_ID(wrapped)                                    \
-  template <>                                                  \
-  inline ResourceId GetIDForResource(wrapped::InnerType *v)    \
-  {                                                            \
-    return v ? ((wrapped *)v)->GetResourceID() : ResourceId(); \
-  }
-
-// macro for interfaces with a '1' version that has two parents
-#define GET_RES_ID1(wrapped)                                   \
-  template <>                                                  \
-  inline ResourceId GetIDForResource(wrapped::InnerType *v)    \
-  {                                                            \
-    return v ? ((wrapped *)v)->GetResourceID() : ResourceId(); \
-  }                                                            \
-  template <>                                                  \
-  inline ResourceId GetIDForResource(wrapped::InnerType1 *v)   \
-  {                                                            \
-    return v ? ((wrapped *)v)->GetResourceID() : ResourceId(); \
-  }
-
-// macro for '2' interfaces with three parents
-#define GET_RES_ID2(wrapped)                                   \
-  template <>                                                  \
-  inline ResourceId GetIDForResource(wrapped::InnerType *v)    \
-  {                                                            \
-    return v ? ((wrapped *)v)->GetResourceID() : ResourceId(); \
-  }                                                            \
-  template <>                                                  \
-  inline ResourceId GetIDForResource(wrapped::InnerType1 *v)   \
-  {                                                            \
-    return v ? ((wrapped *)v)->GetResourceID() : ResourceId(); \
-  }                                                            \
-  template <>                                                  \
-  inline ResourceId GetIDForResource(wrapped::InnerType2 *v)   \
-  {                                                            \
-    return v ? ((wrapped *)v)->GetResourceID() : ResourceId(); \
-  }
-GET_RES_ID(WrappedID3D11Buffer);
-GET_RES_ID(WrappedID3D11Texture1D);
-GET_RES_ID1(WrappedID3D11Texture2D1);
-GET_RES_ID1(WrappedID3D11Texture3D1);
-GET_RES_ID(WrappedID3D11InputLayout);
-GET_RES_ID(WrappedID3D11SamplerState);
-GET_RES_ID2(WrappedID3D11RasterizerState2);
-GET_RES_ID(WrappedID3D11DepthStencilState);
-GET_RES_ID1(WrappedID3D11BlendState1);
-GET_RES_ID1(WrappedID3D11ShaderResourceView1);
-GET_RES_ID1(WrappedID3D11UnorderedAccessView1);
-GET_RES_ID1(WrappedID3D11RenderTargetView1);
-GET_RES_ID(WrappedID3D11DepthStencilView);
-GET_RES_ID(WrappedID3D11Shader<ID3D11VertexShader>);
-GET_RES_ID(WrappedID3D11Shader<ID3D11HullShader>);
-GET_RES_ID(WrappedID3D11Shader<ID3D11DomainShader>);
-GET_RES_ID(WrappedID3D11Shader<ID3D11GeometryShader>);
-GET_RES_ID(WrappedID3D11Shader<ID3D11PixelShader>);
-GET_RES_ID(WrappedID3D11Shader<ID3D11ComputeShader>);
-GET_RES_ID(WrappedID3D11Counter);
-GET_RES_ID1(WrappedID3D11Query1);
-GET_RES_ID(WrappedID3D11Predicate);
-GET_RES_ID(WrappedID3D11ClassInstance);
-GET_RES_ID(WrappedID3D11ClassLinkage);
-GET_RES_ID(WrappedID3DDeviceContextState);
-GET_RES_ID(WrappedID3D11CommandList);
-GET_RES_ID(WrappedID3D11Fence);
-
-// generic version that checks all the wrapped pools. We can use this for resource since it checks
-// buffer and textures first, and also for purely virtual interfaces like asynchronous even though
-// it's a little less efficient as we know we could narrow the set of types to search.
-template <>
-inline ResourceId GetIDForResource(ID3D11DeviceChild *v)
-{
-  return GetIDForDeviceChild(v);
-}
-
-template <>
-inline ResourceId GetIDForResource(ID3D11Resource *v)
-{
-  return GetIDForDeviceChild(v);
-}
-
-template <>
-inline ResourceId GetIDForResource(ID3D11Asynchronous *v)
-{
-  return GetIDForDeviceChild(v);
-}
-
-template <>
-inline ResourceId GetIDForResource(ID3D11View *v)
-{
-  return GetIDForDeviceChild(v);
-}
+GET_VIEW_RESOURCE_RES_ID(WrappedID3D11ShaderResourceView1, ID3D11View);

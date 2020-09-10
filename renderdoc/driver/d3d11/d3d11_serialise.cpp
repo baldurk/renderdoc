@@ -37,7 +37,7 @@ void DoSerialiseViaResourceId(SerialiserType &ser, Interface *&el)
   ResourceId id;
 
   if(ser.IsWriting() && rm)
-    id = GetIDForResource(el);
+    id = GetIDForDeviceChild(el);
 
   DoSerialise(ser, id);
 

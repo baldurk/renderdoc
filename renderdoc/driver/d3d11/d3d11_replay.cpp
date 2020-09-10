@@ -704,7 +704,7 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
   {
     const rdcarray<D3D11_INPUT_ELEMENT_DESC> &vec = m_pDevice->GetLayoutDesc(rs->IA.Layout);
 
-    ResourceId layoutId = GetIDForResource(rs->IA.Layout);
+    ResourceId layoutId = GetIDForDeviceChild(rs->IA.Layout);
 
     ret.inputAssembly.resourceId = rm->GetOriginalID(layoutId);
     ret.inputAssembly.bytecode = GetShader(ResourceId(), layoutId, ShaderEntryPoint());
@@ -729,12 +729,13 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
   {
     D3D11Pipe::VertexBuffer &vb = ret.inputAssembly.vertexBuffers[i];
 
-    vb.resourceId = rm->GetOriginalID(GetIDForResource(rs->IA.VBs[i]));
+    vb.resourceId = rm->GetOriginalID(GetIDForDeviceChild(rs->IA.VBs[i]));
     vb.byteOffset = rs->IA.Offsets[i];
     vb.byteStride = rs->IA.Strides[i];
   }
 
-  ret.inputAssembly.indexBuffer.resourceId = rm->GetOriginalID(GetIDForResource(rs->IA.IndexBuffer));
+  ret.inputAssembly.indexBuffer.resourceId =
+      rm->GetOriginalID(GetIDForDeviceChild(rs->IA.IndexBuffer));
   ret.inputAssembly.indexBuffer.byteOffset = rs->IA.IndexOffset;
 
   /////////////////////////////////////////////////
@@ -754,7 +755,7 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
 
       dst.stage = (ShaderStage)stage;
 
-      ResourceId id = GetIDForResource(src.Object);
+      ResourceId id = GetIDForDeviceChild(src.Object);
 
       WrappedShader *shad = (WrappedShader *)(WrappedID3D11Shader<ID3D11VertexShader> *)src.Object;
 
@@ -777,7 +778,7 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
       for(size_t s = 0; s < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; s++)
       {
         dst.constantBuffers[s].resourceId =
-            rm->GetOriginalID(GetIDForResource(src.ConstantBuffers[s]));
+            rm->GetOriginalID(GetIDForDeviceChild(src.ConstantBuffers[s]));
         dst.constantBuffers[s].vecOffset = src.CBOffsets[s];
         dst.constantBuffers[s].vecCount = src.CBCounts[s];
       }
@@ -787,7 +788,7 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
       {
         D3D11Pipe::Sampler &samp = dst.samplers[s];
 
-        samp.resourceId = rm->GetOriginalID(GetIDForResource(src.Samplers[s]));
+        samp.resourceId = rm->GetOriginalID(GetIDForDeviceChild(src.Samplers[s]));
 
         if(samp.resourceId != ResourceId())
         {
@@ -816,7 +817,7 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
       {
         D3D11Pipe::View &view = dst.srvs[s];
 
-        view.viewResourceId = rm->GetOriginalID(GetIDForResource(src.SRVs[s]));
+        view.viewResourceId = rm->GetOriginalID(GetIDForDeviceChild(src.SRVs[s]));
 
         if(view.viewResourceId != ResourceId())
         {
@@ -834,7 +835,7 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
           view.elementByteSize =
               desc.Format == DXGI_FORMAT_UNKNOWN ? 1 : GetByteSize(1, 1, 1, desc.Format, 0);
 
-          view.resourceResourceId = rm->GetOriginalID(GetIDForResource(res));
+          view.resourceResourceId = rm->GetOriginalID(GetIDForDeviceChild(res));
 
           view.type = MakeTextureDim(desc.ViewDimension);
 
@@ -942,7 +943,7 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
       {
         D3D11Pipe::View &view = dst.uavs[s];
 
-        view.viewResourceId = rm->GetOriginalID(GetIDForResource(rs->CSUAVs[s]));
+        view.viewResourceId = rm->GetOriginalID(GetIDForDeviceChild(rs->CSUAVs[s]));
 
         if(view.viewResourceId != ResourceId())
         {
@@ -968,7 +969,7 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
             view.counterResourceId = GetDebugManager()->GetCounterBufferID(rs->CSUAVs[s]);
           }
 
-          view.resourceResourceId = rm->GetOriginalID(GetIDForResource(res));
+          view.resourceResourceId = rm->GetOriginalID(GetIDForDeviceChild(res));
 
           view.viewFormat = MakeResourceFormat(desc.Format);
           view.type = MakeTextureDim(desc.ViewDimension);
@@ -1054,7 +1055,7 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
     ret.streamOut.outputs.resize(D3D11_SO_BUFFER_SLOT_COUNT);
     for(size_t s = 0; s < D3D11_SO_BUFFER_SLOT_COUNT; s++)
     {
-      ret.streamOut.outputs[s].resourceId = rm->GetOriginalID(GetIDForResource(rs->SO.Buffers[s]));
+      ret.streamOut.outputs[s].resourceId = rm->GetOriginalID(GetIDForDeviceChild(rs->SO.Buffers[s]));
       ret.streamOut.outputs[s].byteOffset = rs->SO.Offsets[s];
     }
   }
@@ -1115,7 +1116,7 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
                 : ConservativeRaster::Disabled;
       }
 
-      ret.rasterizer.state.resourceId = rm->GetOriginalID(GetIDForResource(rs->RS.State));
+      ret.rasterizer.state.resourceId = rm->GetOriginalID(GetIDForDeviceChild(rs->RS.State));
     }
     else
     {
@@ -1164,7 +1165,7 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
     {
       D3D11Pipe::View &view = ret.outputMerger.renderTargets[i];
 
-      view.viewResourceId = rm->GetOriginalID(GetIDForResource(rs->OM.RenderTargets[i]));
+      view.viewResourceId = rm->GetOriginalID(GetIDForDeviceChild(rs->OM.RenderTargets[i]));
 
       if(view.viewResourceId != ResourceId())
       {
@@ -1179,7 +1180,7 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
         view.elementByteSize =
             desc.Format == DXGI_FORMAT_UNKNOWN ? 1 : GetByteSize(1, 1, 1, desc.Format, 0);
 
-        view.resourceResourceId = rm->GetOriginalID(GetIDForResource(res));
+        view.resourceResourceId = rm->GetOriginalID(GetIDForDeviceChild(res));
 
         view.viewFormat = MakeResourceFormat(desc.Format);
         view.type = MakeTextureDim(desc.ViewDimension);
@@ -1241,7 +1242,7 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
     {
       D3D11Pipe::View view;
 
-      view.viewResourceId = rm->GetOriginalID(GetIDForResource(rs->OM.UAVs[s]));
+      view.viewResourceId = rm->GetOriginalID(GetIDForDeviceChild(rs->OM.UAVs[s]));
 
       if(view.viewResourceId != ResourceId())
       {
@@ -1264,7 +1265,7 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
           view.counterResourceId = GetDebugManager()->GetCounterBufferID(rs->OM.UAVs[s]);
         }
 
-        view.resourceResourceId = rm->GetOriginalID(GetIDForResource(res));
+        view.resourceResourceId = rm->GetOriginalID(GetIDForDeviceChild(res));
 
         view.viewFormat = MakeResourceFormat(desc.Format);
         view.type = MakeTextureDim(desc.ViewDimension);
@@ -1328,7 +1329,7 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
     {
       D3D11Pipe::View &view = ret.outputMerger.depthTarget;
 
-      view.viewResourceId = rm->GetOriginalID(GetIDForResource(rs->OM.DepthView));
+      view.viewResourceId = rm->GetOriginalID(GetIDForDeviceChild(rs->OM.DepthView));
 
       if(view.viewResourceId != ResourceId())
       {
@@ -1351,7 +1352,7 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
         if(desc.Flags & D3D11_DSV_READ_ONLY_STENCIL)
           ret.outputMerger.stencilReadOnly = true;
 
-        view.resourceResourceId = rm->GetOriginalID(GetIDForResource(res));
+        view.resourceResourceId = rm->GetOriginalID(GetIDForDeviceChild(res));
 
         view.viewFormat = MakeResourceFormat(desc.Format);
         view.type = MakeTextureDim(desc.ViewDimension);
@@ -1403,7 +1404,8 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
       D3D11_BLEND_DESC desc;
       rs->OM.BlendState->GetDesc(&desc);
 
-      ret.outputMerger.blendState.resourceId = rm->GetOriginalID(GetIDForResource(rs->OM.BlendState));
+      ret.outputMerger.blendState.resourceId =
+          rm->GetOriginalID(GetIDForDeviceChild(rs->OM.BlendState));
 
       ret.outputMerger.blendState.alphaToCoverage = desc.AlphaToCoverageEnable == TRUE;
       ret.outputMerger.blendState.independentBlend = desc.IndependentBlendEnable == TRUE;
@@ -1481,7 +1483,7 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
           desc.DepthWriteMask == D3D11_DEPTH_WRITE_MASK_ALL;
       ret.outputMerger.depthStencilState.stencilEnable = desc.StencilEnable == TRUE;
       ret.outputMerger.depthStencilState.resourceId =
-          rm->GetOriginalID(GetIDForResource(rs->OM.DepthStencilState));
+          rm->GetOriginalID(GetIDForDeviceChild(rs->OM.DepthStencilState));
 
       ret.outputMerger.depthStencilState.frontFace.function =
           MakeCompareFunc(desc.FrontFace.StencilFunc);
@@ -1543,7 +1545,7 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
   // Predication
   /////////////////////////////////////////////////
 
-  ret.predication.resourceId = rm->GetOriginalID(GetIDForResource(rs->Predicate));
+  ret.predication.resourceId = rm->GetOriginalID(GetIDForDeviceChild(rs->Predicate));
   ret.predication.value = rs->PredicateValue == TRUE ? true : false;
   ret.predication.isPassing = rs->PredicationWouldPass();
 }
@@ -3308,7 +3310,7 @@ void D3D11Replay::CreateCustomShaderTex(uint32_t w, uint32_t h)
   }
   else
   {
-    m_CustomShaderResourceId = GetIDForResource(m_CustomShaderTex);
+    m_CustomShaderResourceId = GetIDForDeviceChild(m_CustomShaderTex);
   }
 }
 

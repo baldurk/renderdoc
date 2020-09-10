@@ -153,7 +153,6 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *real
   if(!RenderDoc::Inst().IsReplayApp())
   {
     m_ContextRecord = m_pDevice->GetResourceManager()->AddResourceRecord(m_ResourceID);
-    m_ContextRecord->ResType = Resource_DeviceContext;
     m_ContextRecord->DataInSerialiser = false;
     m_ContextRecord->InternalResource = true;
     m_ContextRecord->Length = 0;
@@ -328,7 +327,7 @@ bool WrappedID3D11DeviceContext::Serialise_BeginCaptureFrame(SerialiserType &ser
 
       if(buf)
       {
-        ResourceId id = GetIDForResource(buf);
+        ResourceId id = GetIDForDeviceChild(buf);
 
         if(m_StreamOutCounters[id].running)
         {
@@ -372,7 +371,7 @@ bool WrappedID3D11DeviceContext::Serialise_BeginCaptureFrame(SerialiserType &ser
 
       if(buf && restart[b])
       {
-        ResourceId id = GetIDForResource(buf);
+        ResourceId id = GetIDForDeviceChild(buf);
 
         // release any previous query as the hidden counter is overwritten
         SAFE_RELEASE(m_StreamOutCounters[id].query);
@@ -1005,12 +1004,12 @@ void WrappedID3D11DeviceContext::AddUsage(const DrawcallDescription &d)
   // IA
 
   if(d.flags & DrawFlags::Indexed && pipe->IA.IndexBuffer != NULL)
-    m_ResourceUses[GetIDForResource(pipe->IA.IndexBuffer)].push_back(
+    m_ResourceUses[GetIDForDeviceChild(pipe->IA.IndexBuffer)].push_back(
         EventUsage(e, ResourceUsage::IndexBuffer));
 
   for(int i = 0; i < D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT; i++)
     if(pipe->IA.Used_VB(m_pDevice, i))
-      m_ResourceUses[GetIDForResource(pipe->IA.VBs[i])].push_back(
+      m_ResourceUses[GetIDForDeviceChild(pipe->IA.VBs[i])].push_back(
           EventUsage(e, ResourceUsage::VertexBuffer));
 
   //////////////////////////////
@@ -1025,7 +1024,8 @@ void WrappedID3D11DeviceContext::AddUsage(const DrawcallDescription &d)
 
     for(int i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
       if(sh.Used_CB(i))
-        m_ResourceUses[GetIDForResource(sh.ConstantBuffers[i])].push_back(EventUsage(e, CBUsage(s)));
+        m_ResourceUses[GetIDForDeviceChild(sh.ConstantBuffers[i])].push_back(
+            EventUsage(e, CBUsage(s)));
 
     for(int i = 0; i < D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT; i++)
     {
@@ -1061,7 +1061,7 @@ void WrappedID3D11DeviceContext::AddUsage(const DrawcallDescription &d)
 
   for(int i = 0; i < D3D11_SO_BUFFER_SLOT_COUNT; i++)
     if(pipe->SO.Buffers[i])    // assuming for now that any SO target bound is used.
-      m_ResourceUses[GetIDForResource(pipe->SO.Buffers[i])].push_back(
+      m_ResourceUses[GetIDForDeviceChild(pipe->SO.Buffers[i])].push_back(
           EventUsage(e, ResourceUsage::StreamOut));
 
   //////////////////////////////
@@ -1358,8 +1358,7 @@ void WrappedID3D11DeviceContext::ClearMaps()
     ID3D11Resource *res =
         (ID3D11Resource *)m_pDevice->GetResourceManager()->GetLiveResource(it->first.resource);
 
-    m_pRealContext->Unmap(m_pDevice->GetResourceManager()->UnwrapResource(res),
-                          it->first.subresource);
+    m_pRealContext->Unmap(UnwrapResource(res), it->first.subresource);
   }
 
   m_OpenMaps.clear();

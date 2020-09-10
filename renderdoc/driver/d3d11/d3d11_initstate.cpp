@@ -30,7 +30,7 @@
 bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
 {
   D3D11ResourceType type = IdentifyTypeByPtr(res);
-  ResourceId Id = GetIDForResource(res);
+  ResourceId Id = GetIDForDeviceChild(res);
 
   RDCASSERT(IsCaptureMode(m_State));
 
@@ -381,7 +381,7 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
   D3D11ResourceType type = Resource_Unknown;
 
   if(IsCaptureMode(m_State))
-    type = record->ResType;
+    type = initial->resourceType;
 
   bool ret = true;
 
@@ -1303,7 +1303,7 @@ void WrappedID3D11Device::Apply_InitialState(ID3D11DeviceChild *live,
     }
     else if(initial.tag == D3D11InitialContents::Copy)
     {
-      ID3D11Resource *liveResource = (ID3D11Resource *)m_ResourceManager->UnwrapResource(live);
+      ID3D11Resource *liveResource = (ID3D11Resource *)UnwrapResource(live);
       ID3D11Resource *initialResource = (ID3D11Resource *)initial.resource;
 
       m_pImmediateContext->GetReal()->CopyResource(liveResource, initialResource);

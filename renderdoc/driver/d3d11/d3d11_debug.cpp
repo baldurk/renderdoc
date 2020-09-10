@@ -369,7 +369,7 @@ void D3D11DebugManager::FillWithDiscardPattern(DiscardType type, ID3D11Resource 
                                                UINT mip, const D3D11_RECT *pRect, UINT NumRects)
 {
   D3D11MarkerRegion region(StringFormat::Fmt("FillWithDiscardPattern %s slice %u mip %u",
-                                             ToStr(GetIDForResource(res)).c_str(), slice, mip));
+                                             ToStr(GetIDForDeviceChild(res)).c_str(), slice, mip));
 
   D3D11_RECT all = {0, 0, 65536, 65536};
   if(NumRects == 0)
@@ -763,8 +763,8 @@ void D3D11DebugManager::FillWithDiscardPattern(DiscardType type, ID3D11Resource 
 void D3D11DebugManager::FillWithDiscardPattern(DiscardType type, ID3D11View *view,
                                                const D3D11_RECT *pRect, UINT NumRects)
 {
-  D3D11MarkerRegion region(
-      StringFormat::Fmt("FillWithDiscardPattern view %s", ToStr(GetIDForResource(view)).c_str()));
+  D3D11MarkerRegion region(StringFormat::Fmt("FillWithDiscardPattern view %s",
+                                             ToStr(GetIDForDeviceChild(view)).c_str()));
 
   ResourceRange range = ResourceRange::Null;
 

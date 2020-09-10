@@ -31,32 +31,6 @@ WRAPPED_POOL_INST(WrappedID3D11VideoDecoderOutputView);
 WRAPPED_POOL_INST(WrappedID3D11VideoProcessorInputView);
 WRAPPED_POOL_INST(WrappedID3D11VideoProcessorOutputView);
 
-ID3D11Resource *UnwrapD3D11Resource(ID3D11Resource *dxObject)
-{
-  if(WrappedID3D11Buffer::IsAlloc(dxObject))
-  {
-    WrappedID3D11Buffer *w = (WrappedID3D11Buffer *)dxObject;
-    return w->GetReal();
-  }
-  else if(WrappedID3D11Texture1D::IsAlloc(dxObject))
-  {
-    WrappedID3D11Texture1D *w = (WrappedID3D11Texture1D *)dxObject;
-    return w->GetReal();
-  }
-  else if(WrappedID3D11Texture2D1::IsAlloc(dxObject))
-  {
-    WrappedID3D11Texture2D1 *w = (WrappedID3D11Texture2D1 *)dxObject;
-    return w->GetReal();
-  }
-  else if(WrappedID3D11Texture3D1::IsAlloc(dxObject))
-  {
-    WrappedID3D11Texture3D1 *w = (WrappedID3D11Texture3D1 *)dxObject;
-    return w->GetReal();
-  }
-
-  return NULL;
-}
-
 ULONG STDMETHODCALLTYPE WrappedID3D11VideoDevice2::AddRef()
 {
   return m_pDevice->AddRef();
@@ -217,17 +191,17 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11VideoDevice2::CreateVideoDecoderOutputVie
     /* [annotation] */ _COM_Outptr_opt_ ID3D11VideoDecoderOutputView **ppVDOVView)
 {
   if(ppVDOVView == NULL)
-    return m_pReal->CreateVideoDecoderOutputView(UnwrapD3D11Resource(pResource), pDesc, NULL);
+    return m_pReal->CreateVideoDecoderOutputView(UnwrapResource(pResource), pDesc, NULL);
 
   ID3D11VideoDecoderOutputView *real = NULL;
 
-  HRESULT hr = m_pReal->CreateVideoDecoderOutputView(UnwrapD3D11Resource(pResource), pDesc, &real);
+  HRESULT hr = m_pReal->CreateVideoDecoderOutputView(UnwrapResource(pResource), pDesc, &real);
 
   if(SUCCEEDED(hr))
   {
     *ppVDOVView = new WrappedID3D11VideoDecoderOutputView(real, m_pDevice);
 
-    m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForResource(pResource));
+    m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForDeviceChild(pResource));
   }
   else
   {
@@ -245,20 +219,20 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11VideoDevice2::CreateVideoProcessorInputVi
 {
   if(ppVPIView == NULL)
     return m_pReal->CreateVideoProcessorInputView(
-        UnwrapD3D11Resource(pResource), VIDEO_UNWRAP(WrappedID3D11VideoProcessorEnumerator1, pEnum),
+        UnwrapResource(pResource), VIDEO_UNWRAP(WrappedID3D11VideoProcessorEnumerator1, pEnum),
         pDesc, NULL);
 
   ID3D11VideoProcessorInputView *real = NULL;
 
   HRESULT hr = m_pReal->CreateVideoProcessorInputView(
-      UnwrapD3D11Resource(pResource), VIDEO_UNWRAP(WrappedID3D11VideoProcessorEnumerator1, pEnum),
-      pDesc, &real);
+      UnwrapResource(pResource), VIDEO_UNWRAP(WrappedID3D11VideoProcessorEnumerator1, pEnum), pDesc,
+      &real);
 
   if(SUCCEEDED(hr))
   {
     *ppVPIView = new WrappedID3D11VideoProcessorInputView(real, m_pDevice);
 
-    m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForResource(pResource));
+    m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForDeviceChild(pResource));
   }
   else
   {
@@ -276,20 +250,20 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11VideoDevice2::CreateVideoProcessorOutputV
 {
   if(ppVPOView == NULL)
     return m_pReal->CreateVideoProcessorOutputView(
-        UnwrapD3D11Resource(pResource), VIDEO_UNWRAP(WrappedID3D11VideoProcessorEnumerator1, pEnum),
+        UnwrapResource(pResource), VIDEO_UNWRAP(WrappedID3D11VideoProcessorEnumerator1, pEnum),
         pDesc, NULL);
 
   ID3D11VideoProcessorOutputView *real = NULL;
 
   HRESULT hr = m_pReal->CreateVideoProcessorOutputView(
-      UnwrapD3D11Resource(pResource), VIDEO_UNWRAP(WrappedID3D11VideoProcessorEnumerator1, pEnum),
-      pDesc, &real);
+      UnwrapResource(pResource), VIDEO_UNWRAP(WrappedID3D11VideoProcessorEnumerator1, pEnum), pDesc,
+      &real);
 
   if(SUCCEEDED(hr))
   {
     *ppVPOView = new WrappedID3D11VideoProcessorOutputView(real, m_pDevice);
 
-    m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForResource(pResource));
+    m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForDeviceChild(pResource));
   }
   else
   {
@@ -559,7 +533,7 @@ APP_DEPRECATED_HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::DecoderExte
 
   unwrappedRes.resize(unwrappedExt.ResourceCount);
   for(UINT i = 0; i < unwrappedExt.ResourceCount; i++)
-    unwrappedRes[i] = UnwrapD3D11Resource(unwrappedExt.ppResourceList[i]);
+    unwrappedRes[i] = UnwrapResource(unwrappedExt.ppResourceList[i]);
 
   unwrappedExt.ppResourceList = unwrappedRes.data();
 

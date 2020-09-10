@@ -48,7 +48,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture2D1(SerialiserType &ser,
     SERIALISE_ELEMENT_ARRAY(pInitialData, pInitialData ? numSubresources : 0);
   }
 
-  SERIALISE_ELEMENT_LOCAL(pTexture, GetIDForResource(*ppTexture2D))
+  SERIALISE_ELEMENT_LOCAL(pTexture, GetIDForDeviceChild(*ppTexture2D))
       .TypedAs("ID3D11Texture2D *"_lit);
 
   rdcarray<D3D11_SUBRESOURCE_DATA> descs =
@@ -152,7 +152,7 @@ HRESULT WrappedID3D11Device::CreateTexture2D1(const D3D11_TEXTURE2D_DESC1 *pDesc
       }
 
       D3D11ResourceRecord *record =
-          GetResourceManager()->GetResourceRecord(GetIDForResource(wrapped));
+          GetResourceManager()->GetResourceRecord(GetIDForDeviceChild(wrapped));
       RDCASSERT(record);
 
       record->AddChunk(chunk);
@@ -188,7 +188,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture3D1(SerialiserType &ser,
     SERIALISE_ELEMENT_ARRAY(pInitialData, pInitialData ? numSubresources : 0);
   }
 
-  SERIALISE_ELEMENT_LOCAL(pTexture, GetIDForResource(*ppTexture3D))
+  SERIALISE_ELEMENT_LOCAL(pTexture, GetIDForDeviceChild(*ppTexture3D))
       .TypedAs("ID3D11Texture3D *"_lit);
 
   rdcarray<D3D11_SUBRESOURCE_DATA> descs =
@@ -292,7 +292,7 @@ HRESULT WrappedID3D11Device::CreateTexture3D1(const D3D11_TEXTURE3D_DESC1 *pDesc
       }
 
       D3D11ResourceRecord *record =
-          GetResourceManager()->GetResourceRecord(GetIDForResource(wrapped));
+          GetResourceManager()->GetResourceRecord(GetIDForDeviceChild(wrapped));
       RDCASSERT(record);
 
       record->AddChunk(chunk);
@@ -318,7 +318,7 @@ bool WrappedID3D11Device::Serialise_CreateShaderResourceView1(
 {
   SERIALISE_ELEMENT(pResource);
   SERIALISE_ELEMENT_OPT(pDesc);
-  SERIALISE_ELEMENT_LOCAL(pView, GetIDForResource(*ppSRView))
+  SERIALISE_ELEMENT_LOCAL(pView, GetIDForDeviceChild(*ppSRView))
       .TypedAs("ID3D11ShaderResourceView1 *"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -366,8 +366,7 @@ bool WrappedID3D11Device::Serialise_CreateShaderResourceView1(
 
     if(m_pDevice3)
     {
-      hr = m_pDevice3->CreateShaderResourceView1(GetResourceManager()->UnwrapResource(pResource),
-                                                 pSRVDesc, &ret);
+      hr = m_pDevice3->CreateShaderResourceView1(UnwrapResource(pResource), pSRVDesc, &ret);
     }
     else
     {
@@ -402,14 +401,13 @@ HRESULT WrappedID3D11Device::CreateShaderResourceView1(ID3D11Resource *pResource
 
   // validation, returns S_FALSE for valid params, or an error code
   if(ppSRView == NULL)
-    return m_pDevice3->CreateShaderResourceView1(GetResourceManager()->UnwrapResource(pResource),
-                                                 pDesc, NULL);
+    return m_pDevice3->CreateShaderResourceView1(UnwrapResource(pResource), pDesc, NULL);
 
   ID3D11ShaderResourceView1 *real = NULL;
   ID3D11ShaderResourceView1 *wrapped = NULL;
   HRESULT ret;
-  SERIALISE_TIME_CALL(ret = m_pDevice3->CreateShaderResourceView1(
-                          GetResourceManager()->UnwrapResource(pResource), pDesc, &real));
+  SERIALISE_TIME_CALL(
+      ret = m_pDevice3->CreateShaderResourceView1(UnwrapResource(pResource), pDesc, &real));
 
   if(SUCCEEDED(ret))
   {
@@ -427,11 +425,9 @@ HRESULT WrappedID3D11Device::CreateShaderResourceView1(ID3D11Resource *pResource
 
       chunk = scope.Get();
 
-      if(WrappedID3D11Texture1D::IsAlloc(pResource) || WrappedID3D11Texture2D1::IsAlloc(pResource) ||
-         WrappedID3D11Texture3D1::IsAlloc(pResource) || WrappedID3D11Buffer::IsAlloc(pResource))
       {
         D3D11ResourceRecord *parent =
-            GetResourceManager()->GetResourceRecord(GetIDForResource(pResource));
+            GetResourceManager()->GetResourceRecord(GetIDForDeviceChild(pResource));
 
         RDCASSERT(parent);
 
@@ -441,18 +437,11 @@ HRESULT WrappedID3D11Device::CreateShaderResourceView1(ID3D11Resource *pResource
         RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
         D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
-        record->ResType = IdentifyTypeByPtr(wrapped);
         record->Length = 0;
 
         record->AddParent(parent);
 
         record->AddChunk(chunk);
-      }
-      else
-      {
-        RDCERR("Unexpected resource type in SRV creation");
-
-        m_DeviceRecord->AddChunk(chunk);
       }
     }
 
@@ -469,7 +458,7 @@ bool WrappedID3D11Device::Serialise_CreateRenderTargetView1(SerialiserType &ser,
 {
   SERIALISE_ELEMENT(pResource);
   SERIALISE_ELEMENT_OPT(pDesc);
-  SERIALISE_ELEMENT_LOCAL(pView, GetIDForResource(*ppRTView))
+  SERIALISE_ELEMENT_LOCAL(pView, GetIDForDeviceChild(*ppRTView))
       .TypedAs("ID3D11RenderTargetView1 *"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -513,8 +502,7 @@ bool WrappedID3D11Device::Serialise_CreateRenderTargetView1(SerialiserType &ser,
 
     if(m_pDevice3)
     {
-      hr = m_pDevice3->CreateRenderTargetView1(GetResourceManager()->UnwrapResource(pResource),
-                                               pRTVDesc, &ret);
+      hr = m_pDevice3->CreateRenderTargetView1(UnwrapResource(pResource), pRTVDesc, &ret);
     }
     else
     {
@@ -549,14 +537,13 @@ HRESULT WrappedID3D11Device::CreateRenderTargetView1(ID3D11Resource *pResource,
 
   // validation, returns S_FALSE for valid params, or an error code
   if(ppRTView == NULL)
-    return m_pDevice3->CreateRenderTargetView1(GetResourceManager()->UnwrapResource(pResource),
-                                               pDesc, NULL);
+    return m_pDevice3->CreateRenderTargetView1(UnwrapResource(pResource), pDesc, NULL);
 
   ID3D11RenderTargetView1 *real = NULL;
   ID3D11RenderTargetView1 *wrapped = NULL;
   HRESULT ret;
-  SERIALISE_TIME_CALL(ret = m_pDevice3->CreateRenderTargetView1(
-                          GetResourceManager()->UnwrapResource(pResource), pDesc, &real));
+  SERIALISE_TIME_CALL(
+      ret = m_pDevice3->CreateRenderTargetView1(UnwrapResource(pResource), pDesc, &real));
 
   if(SUCCEEDED(ret))
   {
@@ -574,11 +561,9 @@ HRESULT WrappedID3D11Device::CreateRenderTargetView1(ID3D11Resource *pResource,
 
       chunk = scope.Get();
 
-      if(WrappedID3D11Texture1D::IsAlloc(pResource) || WrappedID3D11Texture2D1::IsAlloc(pResource) ||
-         WrappedID3D11Texture3D1::IsAlloc(pResource) || WrappedID3D11Buffer::IsAlloc(pResource))
       {
         D3D11ResourceRecord *parent =
-            GetResourceManager()->GetResourceRecord(GetIDForResource(pResource));
+            GetResourceManager()->GetResourceRecord(GetIDForDeviceChild(pResource));
 
         RDCASSERT(parent);
 
@@ -588,18 +573,12 @@ HRESULT WrappedID3D11Device::CreateRenderTargetView1(ID3D11Resource *pResource,
         RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
         D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
-        record->ResType = IdentifyTypeByPtr(wrapped);
+
         record->Length = 0;
 
         record->AddParent(parent);
 
         record->AddChunk(chunk);
-      }
-      else
-      {
-        RDCERR("Unexpected resource type in RTV creation");
-
-        m_DeviceRecord->AddChunk(chunk);
       }
     }
 
@@ -616,7 +595,7 @@ bool WrappedID3D11Device::Serialise_CreateUnorderedAccessView1(
 {
   SERIALISE_ELEMENT(pResource);
   SERIALISE_ELEMENT_OPT(pDesc);
-  SERIALISE_ELEMENT_LOCAL(pView, GetIDForResource(*ppUAView))
+  SERIALISE_ELEMENT_LOCAL(pView, GetIDForDeviceChild(*ppUAView))
       .TypedAs("ID3D11UnorderedAccessView1 *"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -629,8 +608,7 @@ bool WrappedID3D11Device::Serialise_CreateUnorderedAccessView1(
 
     if(m_pDevice3)
     {
-      hr = m_pDevice3->CreateUnorderedAccessView1(GetResourceManager()->UnwrapResource(pResource),
-                                                  pDesc, &ret);
+      hr = m_pDevice3->CreateUnorderedAccessView1(UnwrapResource(pResource), pDesc, &ret);
     }
     else
     {
@@ -678,14 +656,13 @@ HRESULT WrappedID3D11Device::CreateUnorderedAccessView1(ID3D11Resource *pResourc
 
   // validation, returns S_FALSE for valid params, or an error code
   if(ppUAView == NULL)
-    return m_pDevice3->CreateUnorderedAccessView1(GetResourceManager()->UnwrapResource(pResource),
-                                                  pDesc, NULL);
+    return m_pDevice3->CreateUnorderedAccessView1(UnwrapResource(pResource), pDesc, NULL);
 
   ID3D11UnorderedAccessView1 *real = NULL;
   ID3D11UnorderedAccessView1 *wrapped = NULL;
   HRESULT ret;
-  SERIALISE_TIME_CALL(ret = m_pDevice3->CreateUnorderedAccessView1(
-                          GetResourceManager()->UnwrapResource(pResource), pDesc, &real));
+  SERIALISE_TIME_CALL(
+      ret = m_pDevice3->CreateUnorderedAccessView1(UnwrapResource(pResource), pDesc, &real));
 
   if(SUCCEEDED(ret))
   {
@@ -703,11 +680,9 @@ HRESULT WrappedID3D11Device::CreateUnorderedAccessView1(ID3D11Resource *pResourc
 
       chunk = scope.Get();
 
-      if(WrappedID3D11Texture1D::IsAlloc(pResource) || WrappedID3D11Texture2D1::IsAlloc(pResource) ||
-         WrappedID3D11Texture3D1::IsAlloc(pResource) || WrappedID3D11Buffer::IsAlloc(pResource))
       {
         D3D11ResourceRecord *parent =
-            GetResourceManager()->GetResourceRecord(GetIDForResource(pResource));
+            GetResourceManager()->GetResourceRecord(GetIDForDeviceChild(pResource));
 
         RDCASSERT(parent);
 
@@ -717,18 +692,12 @@ HRESULT WrappedID3D11Device::CreateUnorderedAccessView1(ID3D11Resource *pResourc
         RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
         D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
-        record->ResType = IdentifyTypeByPtr(wrapped);
+
         record->Length = 0;
 
         record->AddParent(parent);
 
         record->AddChunk(chunk);
-      }
-      else
-      {
-        RDCERR("Unexpected resource type in UAV creation");
-
-        m_DeviceRecord->AddChunk(chunk);
       }
     }
 
@@ -743,7 +712,7 @@ bool WrappedID3D11Device::Serialise_CreateRasterizerState2(
     ID3D11RasterizerState2 **ppRasterizerState)
 {
   SERIALISE_ELEMENT_LOCAL(Descriptor, *pRasterizerDesc);
-  SERIALISE_ELEMENT_LOCAL(pState, GetIDForResource(*ppRasterizerState))
+  SERIALISE_ELEMENT_LOCAL(pState, GetIDForDeviceChild(*ppRasterizerState))
       .TypedAs("ID3D11RasterizerState2 *"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -835,7 +804,7 @@ HRESULT WrappedID3D11Device::CreateRasterizerState2(const D3D11_RASTERIZER_DESC2
       RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
       D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
-      record->ResType = IdentifyTypeByPtr(wrapped);
+
       record->Length = 0;
 
       record->AddChunk(scope.Get());
@@ -853,7 +822,7 @@ bool WrappedID3D11Device::Serialise_CreateQuery1(SerialiserType &ser,
                                                  ID3D11Query1 **ppQuery)
 {
   SERIALISE_ELEMENT_LOCAL(Descriptor, *pQueryDesc);
-  SERIALISE_ELEMENT_LOCAL(pQuery, GetIDForResource(*ppQuery)).TypedAs("ID3D11Query1 *"_lit);
+  SERIALISE_ELEMENT_LOCAL(pQuery, GetIDForDeviceChild(*ppQuery)).TypedAs("ID3D11Query1 *"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -917,7 +886,7 @@ HRESULT WrappedID3D11Device::CreateQuery1(const D3D11_QUERY_DESC1 *pQueryDesc, I
       RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
 
       D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
-      record->ResType = IdentifyTypeByPtr(wrapped);
+
       record->Length = 0;
 
       record->AddChunk(scope.Get());

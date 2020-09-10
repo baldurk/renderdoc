@@ -70,7 +70,7 @@ struct D3D11ResourceRecord : public ResourceRecord
   };
 
   D3D11ResourceRecord(ResourceId id)
-      : ResourceRecord(id, true), ResType(Resource_Unknown), NumSubResources(0), SubResources(NULL)
+      : ResourceRecord(id, true), NumSubResources(0), SubResources(NULL)
   {
     RDCEraseEl(ImmediateShadow);
   }
@@ -194,7 +194,6 @@ struct D3D11ResourceRecord : public ResourceRecord
     }
   }
 
-  D3D11ResourceType ResType;
   int NumSubResources;
   D3D11ResourceRecord **SubResources;
 
@@ -308,11 +307,6 @@ public:
       : ResourceManager(state), m_Device(dev)
   {
   }
-  ID3D11DeviceChild *UnwrapResource(ID3D11DeviceChild *res);
-  ID3D11Resource *UnwrapResource(ID3D11Resource *res)
-  {
-    return (ID3D11Resource *)UnwrapResource((ID3D11DeviceChild *)res);
-  }
 
   void SetInternalResource(ID3D11DeviceChild *res);
   void FreeCaptureData();
@@ -333,10 +327,12 @@ private:
   WrappedID3D11Device *m_Device;
 };
 
+#define WRAPPING_DEBUG OPTION_OFF
+
 template <typename Dest>
 typename Dest::InnerType *Unwrap(typename Dest::InnerType *obj)
 {
-#if ENABLED(RDOC_DEVEL)
+#if ENABLED(WRAPPING_DEBUG)
   if(obj && !Dest::IsAlloc(obj))
   {
     RDCERR("Trying to unwrap invalid type");

@@ -31,29 +31,11 @@ byte D3D11ResourceRecord::ShadowPointerData::markerValue[32] = {
     0xaa, 0xbb, 0xcc, 0xdd, 0x88, 0x77, 0x66, 0x55, 0x01, 0x23, 0x45, 0x67, 0x98, 0x76, 0x54, 0x32,
 };
 
-ID3D11DeviceChild *D3D11ResourceManager::UnwrapResource(ID3D11DeviceChild *res)
-{
-  if(res == NULL)
-    return res;
-
-  if(WrappedID3D11Buffer::IsAlloc(res))
-    return UNWRAP(WrappedID3D11Buffer, res);
-  else if(WrappedID3D11Texture1D::IsAlloc(res))
-    return UNWRAP(WrappedID3D11Texture1D, res);
-  else if(WrappedID3D11Texture2D1::IsAlloc(res))
-    return UNWRAP(WrappedID3D11Texture2D1, res);
-  else if(WrappedID3D11Texture3D1::IsAlloc(res))
-    return UNWRAP(WrappedID3D11Texture3D1, res);
-
-  RDCERR("UnwrapResource(): Unexpected non-wrapped resource");
-  return res;
-}
-
 void D3D11ResourceManager::SetInternalResource(ID3D11DeviceChild *res)
 {
   if(res && !RenderDoc::Inst().IsReplayApp())
   {
-    D3D11ResourceRecord *record = GetResourceRecord(GetIDForResource(res));
+    D3D11ResourceRecord *record = GetResourceRecord(GetIDForDeviceChild(res));
     if(record)
       record->InternalResource = true;
   }
@@ -74,7 +56,7 @@ void D3D11ResourceManager::FreeCaptureData()
 
 ResourceId D3D11ResourceManager::GetID(ID3D11DeviceChild *res)
 {
-  return GetIDForResource(res);
+  return GetIDForDeviceChild(res);
 }
 
 bool D3D11ResourceManager::ResourceTypeRelease(ID3D11DeviceChild *res)
