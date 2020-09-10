@@ -877,7 +877,8 @@ private:
   void AdvanceFrame();
   void Present(void *dev, void *wnd);
 
-  void HandleVRFrameMarkers(const char *marker, VkCommandBuffer commandBuffer);
+  void HandleFrameMarkers(const char *marker, VkCommandBuffer commandBuffer);
+  void HandleFrameMarkers(const char *marker, VkQueue queue);
 
   template <typename SerialiserType>
   bool Serialise_SetShaderDebugPath(SerialiserType &ser, VkShaderModule ShaderObject,

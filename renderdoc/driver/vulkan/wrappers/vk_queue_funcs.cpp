@@ -841,6 +841,24 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
 
   VkResult ret = VK_SUCCESS;
   bool present = false;
+  bool beginCapture = false;
+  bool endCapture = false;
+
+  for(uint32_t s = 0; s < submitCount; s++)
+  {
+    for(uint32_t i = 0; i < pSubmits[s].commandBufferCount; i++)
+    {
+      VkResourceRecord *record = GetRecord(pSubmits[s].pCommandBuffers[i]);
+      present |= record->bakedCommands->cmdInfo->present;
+      beginCapture |= record->bakedCommands->cmdInfo->beginCapture;
+      endCapture |= record->bakedCommands->cmdInfo->endCapture;
+    }
+  }
+
+  if(beginCapture)
+  {
+    RenderDoc::Inst().StartFrameCapture(LayerDisp(m_Instance), NULL);
+  }
 
   {
     SCOPED_READLOCK(m_CapTransitionLock);
@@ -857,7 +875,6 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
         ResourceId cmd = GetResID(pSubmits[s].pCommandBuffers[i]);
 
         VkResourceRecord *record = GetRecord(pSubmits[s].pCommandBuffers[i]);
-        present |= record->bakedCommands->cmdInfo->present;
 
         UpdateImageStates(record->bakedCommands->cmdInfo->imageStates);
 
@@ -1214,6 +1231,11 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
               GetResID(pSubmits[s].pSignalSemaphores[sem]), eFrameRef_Read);
       }
     }
+  }
+
+  if(endCapture)
+  {
+    RenderDoc::Inst().EndFrameCapture(LayerDisp(m_Instance), NULL);
   }
 
   if(present)
@@ -1675,6 +1697,8 @@ void WrappedVulkan::vkQueueInsertDebugUtilsLabelEXT(VkQueue queue,
     SERIALISE_TIME_CALL(ObjDisp(queue)->QueueInsertDebugUtilsLabelEXT(Unwrap(queue), pLabelInfo));
   }
 
+  if(pLabelInfo)
+    HandleFrameMarkers(pLabelInfo->pLabelName, queue);
   if(IsActiveCapturing(m_State))
   {
     CACHE_THREAD_SERIALISER();

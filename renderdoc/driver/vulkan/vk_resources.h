@@ -1028,6 +1028,10 @@ struct CmdBufferRecordingInfo
 
   // AdvanceFrame/Present should be called after this buffer is submitted
   bool present;
+  // BeginFrameCapture should be called *before* this buffer is submitted.
+  bool beginCapture;
+  // EndFrameCapture should be called *after* this buffer is submitted.
+  bool endCapture;
 };
 
 struct DescSetLayout;

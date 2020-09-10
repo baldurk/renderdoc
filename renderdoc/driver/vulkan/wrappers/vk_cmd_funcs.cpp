@@ -697,6 +697,8 @@ VkResult WrappedVulkan::vkAllocateCommandBuffers(VkDevice device,
         record->cmdInfo->allocInfo.commandBufferCount = 1;
         record->cmdInfo->allocRecord = allocRecord;
         record->cmdInfo->present = false;
+        record->cmdInfo->beginCapture = false;
+        record->cmdInfo->endCapture = false;
         record->cmdInfo->alloc = &record->pool->cmdPoolInfo->alloc;
       }
       else
@@ -1033,6 +1035,8 @@ VkResult WrappedVulkan::vkBeginCommandBuffer(VkCommandBuffer commandBuffer,
     record->bakedCommands->cmdInfo->device = record->cmdInfo->device;
     record->bakedCommands->cmdInfo->allocInfo = record->cmdInfo->allocInfo;
     record->bakedCommands->cmdInfo->present = false;
+    record->bakedCommands->cmdInfo->beginCapture = false;
+    record->bakedCommands->cmdInfo->endCapture = false;
 
     {
       CACHE_THREAD_SERIALISER();
@@ -4326,15 +4330,6 @@ void WrappedVulkan::vkCmdDebugMarkerEndEXT(VkCommandBuffer commandBuffer)
   }
 }
 
-void WrappedVulkan::HandleVRFrameMarkers(const char *marker, VkCommandBuffer commandBuffer)
-{
-  if(strstr(marker, "vr-marker,frame_end,type,application") != NULL)
-  {
-    VkResourceRecord *record = GetRecord(commandBuffer);
-    record->bakedCommands->cmdInfo->present = true;
-  }
-}
-
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkCmdDebugMarkerInsertEXT(SerialiserType &ser,
                                                         VkCommandBuffer commandBuffer,
@@ -4390,7 +4385,8 @@ void WrappedVulkan::vkCmdDebugMarkerInsertEXT(VkCommandBuffer commandBuffer,
         ObjDisp(commandBuffer)->CmdDebugMarkerInsertEXT(Unwrap(commandBuffer), pMarker));
   }
 
-  HandleVRFrameMarkers(pMarker->pMarkerName, commandBuffer);
+  if(pMarker)
+    HandleFrameMarkers(pMarker->pMarkerName, commandBuffer);
   if(IsCaptureMode(m_State))
   {
     VkResourceRecord *record = GetRecord(commandBuffer);
@@ -5307,6 +5303,8 @@ void WrappedVulkan::vkCmdInsertDebugUtilsLabelEXT(VkCommandBuffer commandBuffer,
         ObjDisp(commandBuffer)->CmdInsertDebugUtilsLabelEXT(Unwrap(commandBuffer), pLabelInfo));
   }
 
+  if(pLabelInfo)
+    HandleFrameMarkers(pLabelInfo->pLabelName, commandBuffer);
   if(IsCaptureMode(m_State))
   {
     VkResourceRecord *record = GetRecord(commandBuffer);

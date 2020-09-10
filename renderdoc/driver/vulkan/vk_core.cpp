@@ -2165,6 +2165,43 @@ void WrappedVulkan::Present(void *dev, void *wnd)
   }
 }
 
+void WrappedVulkan::HandleFrameMarkers(const char *marker, VkCommandBuffer commandBuffer)
+{
+  if(!marker)
+    return;
+
+  if(strstr(marker, "vr-marker,frame_end,type,application") != NULL)
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+    record->bakedCommands->cmdInfo->present = true;
+  }
+  if(strstr(marker, "capture-marker,begin_capture") != NULL)
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+    record->bakedCommands->cmdInfo->beginCapture = true;
+  }
+  if(strstr(marker, "capture-marker,end_capture") != NULL)
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+    record->bakedCommands->cmdInfo->endCapture = true;
+  }
+}
+
+void WrappedVulkan::HandleFrameMarkers(const char *marker, VkQueue queue)
+{
+  if(!marker)
+    return;
+
+  if(strstr(marker, "capture-marker,begin_capture") != NULL)
+  {
+    RenderDoc::Inst().StartFrameCapture(LayerDisp(m_Instance), NULL);
+  }
+  if(strstr(marker, "capture-marker,end_capture") != NULL)
+  {
+    RenderDoc::Inst().EndFrameCapture(LayerDisp(m_Instance), NULL);
+  }
+}
+
 ResourceDescription &WrappedVulkan::GetResourceDesc(ResourceId id)
 {
   return GetReplay()->GetResourceDesc(id);
