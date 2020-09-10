@@ -949,6 +949,13 @@ bool ShouldHookEGL()
     return true;
   }
 
+  const char *ignore_layers = Process::GetEnvVariable("IGNORE_LAYERS");
+
+  // if we set IGNORE_LAYERS externally that means the layers are broken or can't be configured, so
+  // hook EGL in spite of the layers being present
+  if(ignore_layers && ignore_layers[0] == '1')
+    return true;
+
   const char *eglExts = query_string(EGL_NO_DISPLAY, EGL_EXTENSIONS);
 
   if(eglExts && strstr(eglExts, "EGL_ANDROID_GLES_layers"))
