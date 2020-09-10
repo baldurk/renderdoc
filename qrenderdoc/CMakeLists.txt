@@ -216,7 +216,7 @@ option(QRENDERDOC_ENABLE_PYSIDE2 "Enable PySide2 if found" ON)
 
 if(NOT QRENDERDOC_ENABLE_PYSIDE2)
     message(STATUS "PySide2 integration disabled")
-elseif(PySide2_FOUND AND Shiboken2_FOUND)
+elseif(PySide2_FOUND AND Shiboken2_FOUND AND TARGET Shiboken2::libshiboken AND TARGET PySide2::pyside2)
     message(STATUS "Building with PySide2 ${PySide2_VERSION} from ${PySide2_DIR}")
 
     if(NOT PYTHONLIBS_VERSION_STRING MATCHES "${SHIBOKEN_PYTHON_VERSION_MAJOR}.${SHIBOKEN_PYTHON_VERSION_MINOR}")
