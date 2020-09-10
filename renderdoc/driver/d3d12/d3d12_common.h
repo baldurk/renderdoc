@@ -147,22 +147,35 @@ class RefCounter12
 {
 private:
   unsigned int m_iRefcount;
-  bool m_SelfDeleting;
+  unsigned int m_InternalRefcount : 30;
+  unsigned int resident : 1;
+  unsigned int m_SelfDeleting : 1;
 
 protected:
   RealType *m_pReal;
 
-  void SetSelfDeleting(bool selfDelete) { m_SelfDeleting = selfDelete; }
+  void SetSelfDeleting(bool selfDelete) { m_SelfDeleting = selfDelete ? 1 : 0; }
   // used for derived classes that need to soft ref but are handling their
   // own self-deletion
 
 public:
   RefCounter12(RealType *real, bool selfDelete = true)
-      : m_pReal(real), m_iRefcount(1), m_SelfDeleting(selfDelete)
+      : m_pReal(real),
+        m_iRefcount(1),
+        m_InternalRefcount(0),
+        resident(1),
+        m_SelfDeleting(selfDelete ? 1 : 0)
   {
   }
   virtual ~RefCounter12() {}
   unsigned int GetRefCount() { return m_iRefcount; }
+  // some applications wrongly check refcount return values and expect them to
+  // match D3D's values. When we have some internal refs we need to hide, we
+  // add them here and they're subtracted from return values
+  void AddInternalRef() { m_InternalRefcount++; }
+  void ReleaseInternalRef() { m_InternalRefcount--; }
+  bool Resident() { return resident != 0; }
+  void SetResident(bool r) { resident = r ? 1 : 0; }
   //////////////////////////////
   // implement IUnknown
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
@@ -193,6 +206,10 @@ public:
       device->SoftRef();
     else
       RDCWARN("No device pointer, is a deleted resource being AddRef()d?");
+
+    if(ret >= m_InternalRefcount)
+      ret -= m_InternalRefcount;
+
     return ret;
   }
 
@@ -203,6 +220,10 @@ public:
       device->SoftRelease();
     else
       RDCWARN("No device pointer, is a deleted resource being Release()d?");
+
+    if(ret >= m_InternalRefcount)
+      ret -= m_InternalRefcount;
+
     return ret;
   }
 };

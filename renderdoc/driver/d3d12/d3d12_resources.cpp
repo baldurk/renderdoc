@@ -174,8 +174,6 @@ ID3D12DeviceChild *Unwrap(ID3D12DeviceChild *ptr)
 
 WrappedID3D12Resource1::~WrappedID3D12Resource1()
 {
-  SAFE_RELEASE(m_pReal1);
-
   // perform an implicit unmap on release
   if(GetResourceRecord())
   {

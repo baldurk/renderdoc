@@ -68,13 +68,10 @@ class WrappedDeviceChild12 : public RefCounter12<NestedType>,
 {
 protected:
   WrappedID3D12Device *m_pDevice;
-  ULONG m_InternalRefcount;
 
   WrappedDeviceChild12(NestedType *real, WrappedID3D12Device *device)
       : RefCounter12(real), m_pDevice(device)
   {
-    m_InternalRefcount = 0;
-
     m_pDevice->SoftRef();
 
     if(real)
@@ -108,31 +105,9 @@ protected:
 public:
   typedef NestedType InnerType;
 
-  // some applications wrongly check refcount return values and expect them to
-  // match D3D's values. When we have some internal refs we need to hide, we
-  // add them here and they're subtracted from return values
-  void AddInternalRef() { InterlockedIncrement(&m_InternalRefcount); }
-  void ReleaseInternalRef() { InterlockedDecrement(&m_InternalRefcount); }
   NestedType *GetReal() { return m_pReal; }
-  ULONG STDMETHODCALLTYPE AddRef()
-  {
-    ULONG ret = RefCounter12::SoftRef(m_pDevice);
-
-    if(ret >= m_InternalRefcount)
-      ret -= m_InternalRefcount;
-
-    return ret;
-  }
-  ULONG STDMETHODCALLTYPE Release()
-  {
-    ULONG ret = RefCounter12::SoftRelease(m_pDevice);
-
-    if(ret >= m_InternalRefcount)
-      ret -= m_InternalRefcount;
-
-    return ret;
-  }
-
+  ULONG STDMETHODCALLTYPE AddRef() { return RefCounter12::SoftRef(m_pDevice); }
+  ULONG STDMETHODCALLTYPE Release() { return RefCounter12::SoftRelease(m_pDevice); }
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
   {
     if(riid == __uuidof(IUnknown))
@@ -413,8 +388,7 @@ class WrappedID3D12DescriptorHeap : public WrappedDeviceChild12<ID3D12Descriptor
   D3D12_CPU_DESCRIPTOR_HANDLE realCPUBase;
   D3D12_GPU_DESCRIPTOR_HANDLE realGPUBase;
 
-  UINT increment : 24;
-  UINT resident : 8;
+  UINT increment;
   UINT numDescriptors;
 
   D3D12Descriptor *descriptors;
@@ -433,8 +407,6 @@ public:
 
   D3D12Descriptor *GetDescriptors() { return descriptors; }
   UINT GetNumDescriptors() { return numDescriptors; }
-  bool Resident() { return resident != 0; }
-  void SetResident(bool r) { resident = r ? 1 : 0; }
   //////////////////////////////
   // implement ID3D12DescriptorHeap
 
@@ -470,8 +442,6 @@ public:
 
 class WrappedID3D12Fence1 : public WrappedDeviceChild12<ID3D12Fence, ID3D12Fence1>
 {
-  ID3D12Fence1 *m_pReal1 = NULL;
-
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12Fence1);
 
@@ -483,13 +453,8 @@ public:
   WrappedID3D12Fence1(ID3D12Fence *real, WrappedID3D12Device *device)
       : WrappedDeviceChild12(real, device)
   {
-    real->QueryInterface(__uuidof(ID3D12Fence1), (void **)&m_pReal1);
   }
-  virtual ~WrappedID3D12Fence1()
-  {
-    SAFE_RELEASE(m_pReal1);
-    Shutdown();
-  }
+  virtual ~WrappedID3D12Fence1() { Shutdown(); }
   //////////////////////////////
   // implement ID3D12Fence
 
@@ -504,7 +469,16 @@ public:
   // implement ID3D12Fence1
   virtual D3D12_FENCE_FLAGS STDMETHODCALLTYPE GetCreationFlags()
   {
-    return m_pReal1->GetCreationFlags();
+    ID3D12Fence1 *real1 = NULL;
+    m_pReal->QueryInterface(__uuidof(ID3D12Fence1), (void **)&real1);
+
+    if(!real1)
+      return D3D12_FENCE_FLAG_NONE;
+
+    D3D12_FENCE_FLAGS ret = real1->GetCreationFlags();
+
+    SAFE_RELEASE(real1);
+    return ret;
   }
 };
 
@@ -567,8 +541,6 @@ public:
 
 class WrappedID3D12Heap1 : public WrappedDeviceChild12<ID3D12Heap, ID3D12Heap1>
 {
-  ID3D12Heap1 *m_pReal1 = NULL;
-
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12Heap1);
 
@@ -580,14 +552,8 @@ public:
   WrappedID3D12Heap1(ID3D12Heap *real, WrappedID3D12Device *device)
       : WrappedDeviceChild12(real, device)
   {
-    real->QueryInterface(__uuidof(ID3D12Heap1), (void **)&m_pReal1);
   }
-  virtual ~WrappedID3D12Heap1()
-  {
-    SAFE_RELEASE(m_pReal1);
-    Shutdown();
-  }
-
+  virtual ~WrappedID3D12Heap1() { Shutdown(); }
   //////////////////////////////
   // implement ID3D12Heap
   virtual D3D12_HEAP_DESC STDMETHODCALLTYPE GetDesc() { return m_pReal->GetDesc(); }
@@ -596,8 +562,16 @@ public:
   virtual HRESULT STDMETHODCALLTYPE
   GetProtectedResourceSession(REFIID riid, _COM_Outptr_opt_ void **ppProtectedSession)
   {
+    ID3D12Heap1 *real1 = NULL;
+    m_pReal->QueryInterface(__uuidof(ID3D12Heap1), (void **)&real1);
+
+    if(!real1)
+      return E_NOINTERFACE;
+
     void *iface = NULL;
-    HRESULT ret = m_pReal1->GetProtectedResourceSession(riid, &iface);
+    HRESULT ret = real1->GetProtectedResourceSession(riid, &iface);
+
+    SAFE_RELEASE(real1);
 
     if(ret != S_OK)
       return ret;
@@ -880,11 +854,7 @@ public:
 
 class WrappedID3D12Resource1 : public WrappedDeviceChild12<ID3D12Resource, ID3D12Resource1>
 {
-  ID3D12Resource1 *m_pReal1 = NULL;
-
   static GPUAddressRangeTracker m_Addresses;
-
-  bool resident;
 
   WriteSerialiser &GetThreadSerialiser();
 
@@ -924,10 +894,6 @@ public:
     if(IsReplayMode(device->GetState()))
       device->GetResourceList()[GetResourceID()] = this;
 
-    real->QueryInterface(__uuidof(ID3D12Resource1), (void **)&m_pReal1);
-
-    SetResident(true);
-
     // assuming only valid for buffers
     if(m_pReal->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
     {
@@ -943,8 +909,6 @@ public:
   }
   virtual ~WrappedID3D12Resource1();
 
-  bool Resident() { return resident; }
-  void SetResident(bool r) { resident = r; }
   byte *GetMap(UINT Subresource);
   byte *GetShadow(UINT Subresource);
   void AllocShadow(UINT Subresource, size_t size);
@@ -1003,8 +967,16 @@ public:
   virtual HRESULT STDMETHODCALLTYPE
   GetProtectedResourceSession(REFIID riid, _COM_Outptr_opt_ void **ppProtectedSession)
   {
+    ID3D12Resource1 *real1 = NULL;
+    m_pReal->QueryInterface(__uuidof(ID3D12Resource1), (void **)&real1);
+
+    if(!real1)
+      return E_NOINTERFACE;
+
     void *iface = NULL;
-    HRESULT ret = m_pReal1->GetProtectedResourceSession(riid, &iface);
+    HRESULT ret = real1->GetProtectedResourceSession(riid, &iface);
+
+    SAFE_RELEASE(real1);
 
     if(ret != S_OK)
       return ret;
