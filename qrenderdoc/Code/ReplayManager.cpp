@@ -342,7 +342,7 @@ void ReplayManager::DisconnectFromRemoteServer()
     QMutexLocker autolock(&m_RemoteLock);
     // give the remote to the thread to shut down since the lifetime is tied to the replay
     // controller it has.
-    if(m_Thread->isRunning())
+    if(IsRunning())
     {
       m_OrphanedRemote = m_Remote;
     }
