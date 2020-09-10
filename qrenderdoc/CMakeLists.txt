@@ -128,11 +128,8 @@ ExternalProject_Add(custom_swig
     BUILD_COMMAND ${GENERATOR_MAKE} > /dev/null 2>&1
     INSTALL_COMMAND ${GENERATOR_MAKE} install > /dev/null 2>&1)
 
-# Lastly find PySide 2, optionally, for Qt5 Python bindings
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
-
-find_package(Shiboken2)
-find_package(PySide2)
+find_package(Shiboken2 QUIET)
+find_package(PySide2 QUIET)
 
 set(PYTHON_LINK "${PYTHON_LIBRARY}")
 
