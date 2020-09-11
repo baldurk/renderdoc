@@ -1044,8 +1044,6 @@ Callstack::AddressDetails Win32CallstackResolver::GetAddr(DWORD64 addr)
         // the module it came from, and an offset
         info.funcName = get_basename(info.fileName);
 
-        info.funcName = StringFormat::Fmt("%s+0x%08llx", info.funcName.c_str(), addr - base);
-
         int offs = info.funcName.find(".pdb");
 
         if(offs >= 0)
@@ -1057,6 +1055,8 @@ Callstack::AddressDetails Win32CallstackResolver::GetAddr(DWORD64 addr)
           else
             info.funcName += "dll";
         }
+
+        info.funcName = StringFormat::Fmt("%s+0x%08llx", info.funcName.c_str(), addr - base);
       }
 
       break;
