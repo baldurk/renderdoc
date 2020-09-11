@@ -414,6 +414,9 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
   CHECK_VKR(vkh::enumerateInstanceLayerProperties(availInstLayers));
   CHECK_VKR(vkh::enumerateInstanceExtensionProperties(availInstExts, NULL));
 
+  instExts = enabledInstExts;
+  instLayers = enabledLayers;
+
   for(const char *l : instLayers)
   {
     bool layerSupported = false;
@@ -461,9 +464,6 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
       return;
     }
   }
-
-  instExts = enabledInstExts;
-  instLayers = enabledLayers;
 
   std::vector<VkExtensionProperties> supportedExts;
   CHECK_VKR(vkh::enumerateDeviceExtensionProperties(supportedExts, phys, NULL));
