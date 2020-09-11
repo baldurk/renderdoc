@@ -402,7 +402,13 @@ HRESULT WrappedID3D12GraphicsCommandList::Reset(ID3D12CommandAllocator *pAllocat
 
   if(IsCaptureMode(m_State))
   {
-    bool firstTime = false;
+    // If this is the creation reset we won't have our init params yet and this reset is 'fake' to
+    // record the initial allocator and state. Don't actually call Reset(), just pretend it was so
+    // that we can pretend D3D12 doesn't have weird behaviour.
+    bool resetcall = true;
+
+    if(m_Init.riid.Data1 == 0 && m_Init.riid.Data2 == 0 && m_Init.riid.Data3 == 0)
+      resetcall = false;
 
     m_ListRecord->DisableChunkLocking();
 
@@ -410,14 +416,11 @@ HRESULT WrappedID3D12GraphicsCommandList::Reset(ID3D12CommandAllocator *pAllocat
     m_ListRecord->DeleteChunks();
     m_ListRecord->ContainsExecuteIndirect = false;
 
-    // free any baked commands. If we don't have any, this is the creation reset
-    // so we don't actually do the 'real' reset.
+    // free any baked commands.
     if(m_ListRecord->bakedCommands)
       m_ListRecord->bakedCommands->Delete(GetResourceManager());
-    else
-      firstTime = true;
 
-    if(!firstTime)
+    if(resetcall)
     {
       SERIALISE_TIME_CALL(ret = m_pList->Reset(Unwrap(pAllocator), Unwrap(pInitialState)));
     }
@@ -446,9 +449,6 @@ HRESULT WrappedID3D12GraphicsCommandList::Reset(ID3D12CommandAllocator *pAllocat
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pAllocator), eFrameRef_Read);
     if(pInitialState)
       m_ListRecord->MarkResourceFrameReferenced(GetResID(pInitialState), eFrameRef_Read);
-
-    if(firstTime)
-      return S_OK;
   }
   else
   {

@@ -341,8 +341,8 @@ HRESULT WrappedID3D12Device::CreateCommandList(UINT nodeMask, D3D12_COMMAND_LIST
     if(IsCaptureMode(m_State))
     {
       // we just serialise out command allocator creation as a reset, since it's equivalent.
-      wrapped->SetInitParams(riid, nodeMask, type);
       wrapped->Reset(pCommandAllocator, pInitialState);
+      wrapped->SetInitParams(riid, nodeMask, type);
 
       {
         CACHE_THREAD_SERIALISER();
