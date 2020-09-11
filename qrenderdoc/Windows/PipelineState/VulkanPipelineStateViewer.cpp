@@ -1533,9 +1533,11 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
       if(!usedSlot)
         setInactiveRow(node);
 
-      parentNode = node;
+      ubos->addTopLevelItem(node);
 
+      // show the tree column
       ubos->showColumn(0);
+      parentNode = node;
     }
 
     for(int32_t idx = firstUsedBind; idx <= lastUsedBind && idx < arrayLength; idx++)
