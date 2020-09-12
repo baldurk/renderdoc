@@ -248,29 +248,30 @@ uint64_t Log2Floor(uint64_t value)
 }
 #endif
 
-static rdcstr logfile;
+// deliberately leak so it doesn't get destroyed before our static RenderDoc destructor needs it
+static rdcstr *logfile = new rdcstr;
 static FileIO::LogFileHandle *logfileHandle = NULL;
 
 const char *rdclog_getfilename()
 {
-  return logfile.c_str();
+  return logfile->c_str();
 }
 
 void rdclog_filename(const char *filename)
 {
-  rdcstr previous = logfile;
+  rdcstr previous = *logfile;
 
-  logfile = "";
+  *logfile = "";
   if(filename && filename[0])
-    logfile = filename;
+    *logfile = filename;
 
   FileIO::logfile_close(logfileHandle, NULL);
 
   logfileHandle = NULL;
 
-  if(!logfile.empty())
+  if(!logfile->empty())
   {
-    logfileHandle = FileIO::logfile_open(logfile.c_str());
+    logfileHandle = FileIO::logfile_open(logfile->c_str());
 
     if(logfileHandle && previous.c_str())
     {
@@ -295,7 +296,7 @@ void rdclog_enableoutput()
 void rdclog_closelog()
 {
   log_output_enabled = false;
-  FileIO::logfile_close(logfileHandle, logfile.c_str());
+  FileIO::logfile_close(logfileHandle, logfile->c_str());
 }
 
 void rdclog_flush()
