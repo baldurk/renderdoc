@@ -221,6 +221,9 @@ public:
     else
       RDCWARN("No device pointer, is a deleted resource being Release()d?");
 
+    if(ret == 0)
+      return ret;
+
     if(ret >= m_InternalRefcount)
       ret -= m_InternalRefcount;
 

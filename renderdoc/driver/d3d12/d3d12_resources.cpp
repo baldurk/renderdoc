@@ -65,14 +65,7 @@ TrackedResource12 *GetTracked(ID3D12Object *ptr)
   if(ptr == NULL)
     return NULL;
 
-#undef D3D12_TYPE_MACRO
-#define D3D12_TYPE_MACRO(iface)         \
-  if(UnwrapHelper<iface>::IsAlloc(ptr)) \
-    return (TrackedResource12 *)GetWrapped((iface *)ptr);
-
-  ALL_D3D12_TYPES;
-
-  return NULL;
+  return (TrackedResource12 *)(WrappedDeviceChild12<ID3D12DeviceChild> *)ptr;
 }
 
 template <>
@@ -80,13 +73,6 @@ ID3D12Object *Unwrap(ID3D12Object *ptr)
 {
   if(ptr == NULL)
     return NULL;
-
-#undef D3D12_TYPE_MACRO
-#define D3D12_TYPE_MACRO(iface)         \
-  if(UnwrapHelper<iface>::IsAlloc(ptr)) \
-    return (ID3D12Object *)GetWrapped((iface *)ptr)->GetReal();
-
-  ALL_D3D12_TYPES;
 
   if(WrappedID3D12GraphicsCommandList::IsAlloc(ptr))
     return (ID3D12Object *)(((WrappedID3D12GraphicsCommandList *)ptr)->GetReal());
@@ -104,21 +90,12 @@ ResourceId GetResID(ID3D12Object *ptr)
   if(ptr == NULL)
     return ResourceId();
 
-  TrackedResource12 *res = GetTracked(ptr);
+  if(WrappedID3D12GraphicsCommandList::IsAlloc(ptr))
+    return ((WrappedID3D12GraphicsCommandList *)ptr)->GetResourceID();
+  if(WrappedID3D12CommandQueue::IsAlloc(ptr))
+    return ((WrappedID3D12CommandQueue *)ptr)->GetResourceID();
 
-  if(res == NULL)
-  {
-    if(WrappedID3D12GraphicsCommandList::IsAlloc(ptr))
-      return ((WrappedID3D12GraphicsCommandList *)ptr)->GetResourceID();
-    if(WrappedID3D12CommandQueue::IsAlloc(ptr))
-      return ((WrappedID3D12CommandQueue *)ptr)->GetResourceID();
-
-    RDCERR("Unknown type of ptr 0x%p", ptr);
-
-    return ResourceId();
-  }
-
-  return res->GetResourceID();
+  return GetTracked(ptr)->GetResourceID();
 }
 
 template <>
@@ -127,21 +104,12 @@ D3D12ResourceRecord *GetRecord(ID3D12Object *ptr)
   if(ptr == NULL)
     return NULL;
 
-  TrackedResource12 *res = GetTracked(ptr);
+  if(WrappedID3D12GraphicsCommandList::IsAlloc(ptr))
+    return ((WrappedID3D12GraphicsCommandList *)ptr)->GetResourceRecord();
+  if(WrappedID3D12CommandQueue::IsAlloc(ptr))
+    return ((WrappedID3D12CommandQueue *)ptr)->GetResourceRecord();
 
-  if(res == NULL)
-  {
-    if(WrappedID3D12GraphicsCommandList::IsAlloc(ptr))
-      return ((WrappedID3D12GraphicsCommandList *)ptr)->GetResourceRecord();
-    if(WrappedID3D12CommandQueue::IsAlloc(ptr))
-      return ((WrappedID3D12CommandQueue *)ptr)->GetResourceRecord();
-
-    RDCERR("Unknown type of ptr 0x%p", ptr);
-
-    return NULL;
-  }
-
-  return res->GetResourceRecord();
+  return GetTracked(ptr)->GetResourceRecord();
 }
 
 template <>

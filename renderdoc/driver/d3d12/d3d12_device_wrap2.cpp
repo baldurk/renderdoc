@@ -84,7 +84,8 @@ bool WrappedID3D12Device::Serialise_CreatePipelineState(SerialiserType &ser,
         }
         else
         {
-          WrappedID3D12Shader *entry = WrappedID3D12Shader::AddShader(*shaders[i], this, wrapped);
+          WrappedID3D12Shader *entry = WrappedID3D12Shader::AddShader(*shaders[i], this);
+          entry->AddRef();
 
           shaders[i]->pShaderBytecode = entry;
 
@@ -212,7 +213,9 @@ HRESULT WrappedID3D12Device::CreatePipelineState(const D3D12_PIPELINE_STATE_STRE
         }
         else
         {
-          shaders[i]->pShaderBytecode = WrappedID3D12Shader::AddShader(*shaders[i], this, NULL);
+          WrappedID3D12Shader *sh = WrappedID3D12Shader::AddShader(*shaders[i], this);
+          sh->AddRef();
+          shaders[i]->pShaderBytecode = sh;
         }
       }
 

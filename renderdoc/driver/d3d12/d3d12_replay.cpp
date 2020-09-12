@@ -2848,7 +2848,9 @@ void D3D12Replay::BuildShader(ShaderEncoding sourceEncoding, const bytebuf &sour
   byteCode.BytecodeLength = dxbcLength;
   byteCode.pShaderBytecode = dxbcBytes;
 
-  WrappedID3D12Shader *sh = WrappedID3D12Shader::AddShader(byteCode, m_pDevice, NULL);
+  WrappedID3D12Shader *sh = WrappedID3D12Shader::AddShader(byteCode, m_pDevice);
+
+  sh->AddRef();
 
   id = sh->GetResourceID();
 }

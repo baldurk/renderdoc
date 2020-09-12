@@ -437,7 +437,8 @@ bool WrappedID3D12Device::Serialise_CreateGraphicsPipelineState(
         }
         else
         {
-          WrappedID3D12Shader *entry = WrappedID3D12Shader::AddShader(*shaders[i], this, wrapped);
+          WrappedID3D12Shader *entry = WrappedID3D12Shader::AddShader(*shaders[i], this);
+          entry->AddRef();
 
           shaders[i]->pShaderBytecode = entry;
 
@@ -560,7 +561,9 @@ HRESULT WrappedID3D12Device::CreateGraphicsPipelineState(const D3D12_GRAPHICS_PI
         }
         else
         {
-          shaders[i]->pShaderBytecode = WrappedID3D12Shader::AddShader(*shaders[i], this, NULL);
+          WrappedID3D12Shader *sh = WrappedID3D12Shader::AddShader(*shaders[i], this);
+          sh->AddRef();
+          shaders[i]->pShaderBytecode = sh;
         }
       }
 
@@ -643,8 +646,8 @@ bool WrappedID3D12Device::Serialise_CreateComputePipelineState(
 
       wrapped->compute = new D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(Descriptor);
 
-      WrappedID3D12Shader *entry =
-          WrappedID3D12Shader::AddShader(wrapped->compute->CS, this, wrapped);
+      WrappedID3D12Shader *entry = WrappedID3D12Shader::AddShader(wrapped->compute->CS, this);
+      entry->AddRef();
 
       AddResourceCurChunk(entry->GetResourceID());
 
@@ -710,8 +713,9 @@ HRESULT WrappedID3D12Device::CreateComputePipelineState(const D3D12_COMPUTE_PIPE
 
       wrapped->compute = new D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(*pDesc);
 
-      wrapped->compute->CS.pShaderBytecode =
-          WrappedID3D12Shader::AddShader(wrapped->compute->CS, this, NULL);
+      WrappedID3D12Shader *sh = WrappedID3D12Shader::AddShader(wrapped->compute->CS, this);
+      sh->AddRef();
+      wrapped->compute->CS.pShaderBytecode = sh;
     }
 
     *ppPipelineState = (ID3D12PipelineState *)wrapped;

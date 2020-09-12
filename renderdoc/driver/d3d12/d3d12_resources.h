@@ -695,16 +695,13 @@ public:
       Shutdown();
     }
 
-    static ShaderEntry *AddShader(const D3D12_SHADER_BYTECODE &byteCode,
-                                  WrappedID3D12Device *device, WrappedID3D12PipelineState *pipeline)
+    static ShaderEntry *AddShader(const D3D12_SHADER_BYTECODE &byteCode, WrappedID3D12Device *device)
     {
       DXBCKey key(byteCode);
       ShaderEntry *shader = m_Shaders[key];
 
       if(shader == NULL)
         shader = m_Shaders[key] = new ShaderEntry(byteCode, device);
-      else
-        shader->AddRef();
 
       return shader;
     }
