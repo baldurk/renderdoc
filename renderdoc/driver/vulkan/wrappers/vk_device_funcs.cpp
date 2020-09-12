@@ -2918,8 +2918,9 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
         if(existing)
         {
+          if(existing->bufferDeviceAddress)
+            existing->bufferDeviceAddressCaptureReplay = VK_TRUE;
           existing->bufferDeviceAddress = VK_TRUE;
-          existing->bufferDeviceAddressCaptureReplay = VK_TRUE;
         }
         else
         {
@@ -2959,9 +2960,10 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
         if(existing)
         {
+          if(existing->bufferDeviceAddress)
+            existing->bufferDeviceAddressCaptureReplay = VK_TRUE;
           // if so, make sure the feature is enabled
           existing->bufferDeviceAddress = VK_TRUE;
-          existing->bufferDeviceAddressCaptureReplay = VK_TRUE;
         }
         else
         {
@@ -2997,9 +2999,11 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
         if(existing)
         {
+          if(existing->bufferDeviceAddress)
+            existing->bufferDeviceAddressCaptureReplay = VK_TRUE;
+
           // if so, make sure the feature is enabled
           existing->bufferDeviceAddress = VK_TRUE;
-          existing->bufferDeviceAddressCaptureReplay = VK_TRUE;
         }
         else
         {
