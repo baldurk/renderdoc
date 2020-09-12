@@ -246,10 +246,9 @@ struct DummyID3D11InfoQueue : public ID3D11InfoQueue
 // so we can keep the refcounting on our own device
 struct WrappedID3D11InfoQueue : public ID3D11InfoQueue
 {
-  WrappedID3D11Device *m_pDevice;
-  ID3D11InfoQueue *m_pReal;
+  WrappedID3D11Device *m_pDevice = NULL;
+  ID3D11InfoQueue *m_pReal = NULL;
 
-  WrappedID3D11InfoQueue() : m_pDevice(NULL) {}
   //////////////////////////////
   // implement IUnknown
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);

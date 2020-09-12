@@ -56,6 +56,8 @@ void D3D11ResourceManager::FreeCaptureData()
 
 ResourceId D3D11ResourceManager::GetID(ID3D11DeviceChild *res)
 {
+  if(WrappedID3D11DeviceContext::IsAlloc(res))
+    return ((WrappedID3D11DeviceContext *)res)->GetResourceID();
   return GetIDForDeviceChild(res);
 }
 

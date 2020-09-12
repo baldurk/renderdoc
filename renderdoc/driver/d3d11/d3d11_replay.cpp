@@ -76,7 +76,8 @@ void D3D11Replay::Shutdown()
     m_ProxyResources[i]->Release();
   m_ProxyResources.clear();
 
-  m_pDevice->Release();
+  // explicitly delete the device, as all the replay resources created will be keeping refs on it
+  delete m_pDevice;
 }
 
 void D3D11Replay::CreateResources(IDXGIFactory *factory)

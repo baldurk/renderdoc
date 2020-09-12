@@ -302,6 +302,8 @@ WrappedID3D11Device::~WrappedID3D11Device()
   m_LayoutShaders.clear();
   m_LayoutDescs.clear();
 
+  FlushPendingDead();
+
   m_ResourceManager->Shutdown();
 
   SAFE_DELETE(m_ResourceManager);
@@ -1630,9 +1632,9 @@ void WrappedID3D11Device::ReportDeath(ID3D11DeviceChild *obj)
 
   m_DeadObjects.push_back(obj);
 
-  // if we're shutting down, immediately flush the object as dead. This isn't super efficient but
-  // it's not the end of the world
-  if(m_RefCount == 0)
+  // if we're shutting down or replaying, immediately flush the object as dead. This isn't super
+  // efficient but it's not the end of the world
+  if(m_RefCount == 0 || IsReplayMode(m_State))
     FlushPendingDead();
 }
 
