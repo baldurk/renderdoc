@@ -235,6 +235,8 @@ WrappedID3D11DeviceContext::~WrappedID3D11DeviceContext()
   SAFE_DELETE(m_CurrentPipelineState);
   SAFE_RELEASE(m_pRealContext);
 
+  m_pDevice = NULL;
+
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
 }
@@ -1392,16 +1394,26 @@ ULONG STDMETHODCALLTYPE WrappedID3D11DeviceContext::Release()
 {
   Atomic::Dec32(&m_ExtRef);
   ASSERT_REFCOUNT(m_ExtRef);
-  // if we just released the last external reference on this object, release our reference on the
-  // device.
-  if(m_ExtRef == 0)
-    m_pDevice->Release();
-  if(m_IntRef + m_ExtRef == 0)
+
+  WrappedID3D11Device *dev = m_pDevice;
+
+  int32_t intRef = m_IntRef;
+  int32_t extRef = m_ExtRef;
+
+  // handle our own death first, so that if we're about to release the last external reference on
+  // the device below that we don't then double delete. The immediate context can never die like
+  // this because the device holds an internal reference on it.
+  if(intRef + extRef == 0)
   {
     delete this;
-    return 0;
   }
-  return (ULONG)m_ExtRef;
+
+  // if we just released the last external reference on this object, release our reference on the
+  // device.
+  if(extRef == 0)
+    dev->Release();
+
+  return (ULONG)extRef;
 }
 
 HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface(REFIID riid, void **ppvObject)
