@@ -282,8 +282,10 @@ void main()
         pushMarker(cmd, "Primary: Dispatches");
 
         vkh::cmdPipelineBarrier(
-            cmd, {}, {vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT,
-                                               VK_ACCESS_INDIRECT_COMMAND_READ_BIT, ssbo.buffer)});
+            cmd, {},
+            {vkh::BufferMemoryBarrier(
+                VK_ACCESS_TRANSFER_WRITE_BIT,
+                VK_ACCESS_INDIRECT_COMMAND_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT, ssbo.buffer)});
 
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, comppipe);
         vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, complayout, 0, {descset}, {});
@@ -301,8 +303,10 @@ void main()
         vkCmdDispatch(cmd, 1, 1, 1);
 
         vkh::cmdPipelineBarrier(
-            cmd, {}, {vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT,
-                                               VK_ACCESS_INDIRECT_COMMAND_READ_BIT, ssbo.buffer)});
+            cmd, {},
+            {vkh::BufferMemoryBarrier(
+                VK_ACCESS_SHADER_WRITE_BIT,
+                VK_ACCESS_INDIRECT_COMMAND_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT, ssbo.buffer)});
 
         mode = 2;
         vkCmdPushConstants(cmd, complayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, 4, &mode);
@@ -478,7 +482,7 @@ void main()
         vkCmdDispatch(cmd, 1, 1, 1);
 
         vkh::cmdPipelineBarrier(
-            cmd, {}, {vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT,
+            cmd, {}, {vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT,
                                                VK_ACCESS_INDIRECT_COMMAND_READ_BIT, ssbo.buffer)});
 
         mode = 2;
