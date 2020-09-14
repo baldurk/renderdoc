@@ -496,6 +496,7 @@ struct VulkanCreationInfo
     VkBufferUsageFlags usage;
     uint64_t size;
     uint64_t gpuAddress;
+    bool external;
   };
   std::unordered_map<ResourceId, Buffer> m_Buffer;
 
@@ -523,6 +524,7 @@ struct VulkanCreationInfo
     VkSampleCountFlagBits samples;
 
     bool linear;
+    bool external;
     bool cube;
     TextureCategory creationFlags;
   };

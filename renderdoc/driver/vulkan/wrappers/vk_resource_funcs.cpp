@@ -189,7 +189,8 @@ VkBindImageMemoryInfo *WrappedVulkan::UnwrapInfos(const VkBindImageMemoryInfo *i
 }
 
 bool WrappedVulkan::CheckMemoryRequirements(const char *resourceName, ResourceId memId,
-                                            VkDeviceSize memoryOffset, VkMemoryRequirements mrq)
+                                            VkDeviceSize memoryOffset, VkMemoryRequirements mrq,
+                                            bool external)
 {
   // verify that the memory meets basic requirements. If not, something changed and we should
   // bail loading this capture. This is a bit of an under-estimate since we just make sure
@@ -209,6 +210,20 @@ bool WrappedVulkan::CheckMemoryRequirements(const char *resourceName, ResourceId
     {
       if(mrq.memoryTypeBits & (1U << i))
         bitsString += StringFormat::Fmt("%s%u", bitsString.empty() ? "" : ", ", i);
+    }
+
+    if(external)
+    {
+      RDCERR(
+          "Trying to bind %s to memory %s which is type %u, "
+          "but only these types are allowed: %s\n"
+          "This resource was created with external memory bindings, which is not represented in "
+          "the capture.\n"
+          "Some drivers do not allow externally-imported resources to be bound to non-external "
+          "memory, meaning this cannot be replayed.",
+          resourceName, ToStr(memOrigId).c_str(), memInfo.memoryTypeIndex, bitsString.c_str());
+      m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
+      return false;
     }
 
     RDCERR(
@@ -1167,11 +1182,13 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory(SerialiserType &ser, VkDevice d
     ResourceId resOrigId = GetResourceManager()->GetOriginalID(GetResID(buffer));
     ResourceId memOrigId = GetResourceManager()->GetOriginalID(GetResID(memory));
 
+    VulkanCreationInfo::Buffer &bufInfo = m_CreationInfo.m_Buffer[GetResID(buffer)];
+
     VkMemoryRequirements mrq = {};
     ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), Unwrap(buffer), &mrq);
 
     bool ok = CheckMemoryRequirements(("Buffer " + ToStr(resOrigId)).c_str(), GetResID(memory),
-                                      memoryOffset, mrq);
+                                      memoryOffset, mrq, bufInfo.external);
 
     if(!ok)
       return false;
@@ -1186,7 +1203,6 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory(SerialiserType &ser, VkDevice d
 
     // for buffers created with device addresses, fetch it now as that's possible for both EXT and
     // KHR variants now.
-    VulkanCreationInfo::Buffer &bufInfo = m_CreationInfo.m_Buffer[GetResID(buffer)];
     if(bufInfo.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
     {
       VkBufferDeviceAddressInfo getInfo = {
@@ -1284,8 +1300,10 @@ bool WrappedVulkan::Serialise_vkBindImageMemory(SerialiserType &ser, VkDevice de
     VkMemoryRequirements mrq = {};
     ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(image), &mrq);
 
+    VulkanCreationInfo::Image &imgInfo = m_CreationInfo.m_Image[GetResID(image)];
+
     bool ok = CheckMemoryRequirements(("Image " + ToStr(resOrigId)).c_str(), GetResID(memory),
-                                      memoryOffset, mrq);
+                                      memoryOffset, mrq, imgInfo.external);
 
     if(!ok)
       return false;
@@ -1313,7 +1331,6 @@ bool WrappedVulkan::Serialise_vkBindImageMemory(SerialiserType &ser, VkDevice de
     AddResourceCurChunk(memOrigId);
     AddResourceCurChunk(resOrigId);
 
-    VulkanCreationInfo::Image &imgInfo = m_CreationInfo.m_Image[GetResID(image)];
     m_CreationInfo.m_Memory[GetResID(memory)].BindMemory(
         memoryOffset, mrq.size,
         imgInfo.linear ? VulkanCreationInfo::Memory::Linear : VulkanCreationInfo::Memory::Tiled);
@@ -2318,11 +2335,14 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory2(SerialiserType &ser, VkDevice 
       ResourceId resOrigId = GetResourceManager()->GetOriginalID(GetResID(bindInfo.buffer));
       ResourceId memOrigId = GetResourceManager()->GetOriginalID(GetResID(bindInfo.memory));
 
+      VulkanCreationInfo::Buffer &bufInfo = m_CreationInfo.m_Buffer[GetResID(bindInfo.buffer)];
+
       VkMemoryRequirements mrq = {};
       ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), Unwrap(bindInfo.buffer), &mrq);
 
-      bool ok = CheckMemoryRequirements(("Buffer " + ToStr(resOrigId)).c_str(),
-                                        GetResID(bindInfo.memory), bindInfo.memoryOffset, mrq);
+      bool ok =
+          CheckMemoryRequirements(("Buffer " + ToStr(resOrigId)).c_str(), GetResID(bindInfo.memory),
+                                  bindInfo.memoryOffset, mrq, bufInfo.external);
 
       if(!ok)
         return false;
@@ -2335,7 +2355,6 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory2(SerialiserType &ser, VkDevice 
 
       // for buffers created with device addresses, fetch it now as that's possible for both EXT and
       // KHR variants now.
-      VulkanCreationInfo::Buffer &bufInfo = m_CreationInfo.m_Buffer[GetResID(bindInfo.buffer)];
       if(bufInfo.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
       {
         VkBufferDeviceAddressInfo getInfo = {
@@ -2440,11 +2459,14 @@ bool WrappedVulkan::Serialise_vkBindImageMemory2(SerialiserType &ser, VkDevice d
       ResourceId resOrigId = GetResourceManager()->GetOriginalID(GetResID(bindInfo.image));
       ResourceId memOrigId = GetResourceManager()->GetOriginalID(GetResID(bindInfo.memory));
 
+      VulkanCreationInfo::Image &imgInfo = m_CreationInfo.m_Image[GetResID(bindInfo.image)];
+
       VkMemoryRequirements mrq = {};
       ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(bindInfo.image), &mrq);
 
-      bool ok = CheckMemoryRequirements(("Image " + ToStr(resOrigId)).c_str(),
-                                        GetResID(bindInfo.memory), bindInfo.memoryOffset, mrq);
+      bool ok =
+          CheckMemoryRequirements(("Image " + ToStr(resOrigId)).c_str(), GetResID(bindInfo.memory),
+                                  bindInfo.memoryOffset, mrq, imgInfo.external);
 
       if(!ok)
         return false;
@@ -2471,7 +2493,6 @@ bool WrappedVulkan::Serialise_vkBindImageMemory2(SerialiserType &ser, VkDevice d
       AddResourceCurChunk(memOrigId);
       AddResourceCurChunk(resOrigId);
 
-      VulkanCreationInfo::Image &imgInfo = m_CreationInfo.m_Image[GetResID(bindInfo.image)];
       m_CreationInfo.m_Memory[GetResID(bindInfo.memory)].BindMemory(
           bindInfo.memoryOffset, mrq.size,
           imgInfo.linear ? VulkanCreationInfo::Memory::Linear : VulkanCreationInfo::Memory::Tiled);

@@ -861,7 +861,7 @@ private:
   void FirstFrame();
 
   bool CheckMemoryRequirements(const char *resourceName, ResourceId memId,
-                               VkDeviceSize memoryOffset, VkMemoryRequirements mrq);
+                               VkDeviceSize memoryOffset, VkMemoryRequirements mrq, bool external);
 
   void AddImplicitResolveResourceUsage(uint32_t subpass = 0);
   rdcarray<VkImageMemoryBarrier> GetImplicitRenderPassBarriers(uint32_t subpass = 0);

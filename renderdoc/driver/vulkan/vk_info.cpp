@@ -1091,6 +1091,13 @@ void VulkanCreationInfo::Buffer::Init(VulkanResourceManager *resourceMan, Vulkan
   usage = pCreateInfo->usage;
   size = pCreateInfo->size;
   gpuAddress = 0;
+
+  external = false;
+
+  if(FindNextStruct(pCreateInfo, VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO))
+  {
+    external = true;
+  }
 }
 
 void VulkanCreationInfo::BufferView::Init(VulkanResourceManager *resourceMan,
@@ -1114,6 +1121,15 @@ void VulkanCreationInfo::Image::Init(VulkanResourceManager *resourceMan, VulkanC
   samples = RDCMAX(VK_SAMPLE_COUNT_1_BIT, pCreateInfo->samples);
 
   linear = pCreateInfo->tiling == VK_IMAGE_TILING_LINEAR;
+
+  external = false;
+
+  if(FindNextStruct(pCreateInfo, VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_NV) ||
+     FindNextStruct(pCreateInfo, VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO) ||
+     FindNextStruct(pCreateInfo, VK_STRUCTURE_TYPE_EXTERNAL_FORMAT_ANDROID))
+  {
+    external = true;
+  }
 
   creationFlags = TextureCategory::NoFlags;
 
