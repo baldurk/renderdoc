@@ -29,7 +29,7 @@ def printVar(v, indent = ''):
 def sampleCode(controller):
 	print("Available disassembly formats:")
 
-	targets = controller.GetDisassemblyTargets()
+	targets = controller.GetDisassemblyTargets(True)
 
 	for disasm in targets:
 		print("  - " + disasm)
