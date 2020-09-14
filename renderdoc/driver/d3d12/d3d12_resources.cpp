@@ -79,9 +79,7 @@ ID3D12Object *Unwrap(ID3D12Object *ptr)
   if(WrappedID3D12CommandQueue::IsAlloc(ptr))
     return (ID3D12Object *)(((WrappedID3D12CommandQueue *)ptr)->GetReal());
 
-  RDCERR("Unknown type of ptr 0x%p", ptr);
-
-  return NULL;
+  return ((WrappedDeviceChild12<ID3D12DeviceChild> *)ptr)->GetReal();
 }
 
 template <>
