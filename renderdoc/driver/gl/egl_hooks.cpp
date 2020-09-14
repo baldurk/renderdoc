@@ -328,6 +328,14 @@ HOOK_EXPORT EGLContext EGLAPIENTRY eglCreateContext_renderdoc_hooked(EGLDisplay 
   // We will set isSRGB when we see the surface.
   init.isSRGB = 0;
 
+  EGLint rgbSize[3] = {};
+  EGL.GetConfigAttrib(display, config, EGL_RED_SIZE, &rgbSize[0]);
+  EGL.GetConfigAttrib(display, config, EGL_GREEN_SIZE, &rgbSize[1]);
+  EGL.GetConfigAttrib(display, config, EGL_BLUE_SIZE, &rgbSize[2]);
+
+  if(rgbSize[0] == rgbSize[1] && rgbSize[1] == rgbSize[2] && rgbSize[2] == 10)
+    init.colorBits = 10;
+
   GLWindowingData data;
   data.egl_dpy = display;
   data.wnd = 0;

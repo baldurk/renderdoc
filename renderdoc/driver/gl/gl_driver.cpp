@@ -741,7 +741,11 @@ void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceI
 
   GLenum colfmt = eGL_RGBA8;
 
-  if(params.colorBits == 32)
+  if(params.colorBits == 64)
+  {
+    colfmt = eGL_RGBA16F;
+  }
+  else if(params.colorBits == 32)
   {
     colfmt = params.isSRGB ? eGL_SRGB8_ALPHA8 : eGL_RGBA8;
   }
@@ -758,6 +762,10 @@ void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceI
       colfmt = eGL_RGB565;
     else
       colfmt = eGL_RGB8;
+  }
+  else if(params.colorBits == 10)
+  {
+    colfmt = eGL_RGB10_A2;
   }
   else
   {
