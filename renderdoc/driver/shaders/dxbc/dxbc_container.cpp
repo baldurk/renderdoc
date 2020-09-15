@@ -1974,7 +1974,7 @@ TEST_CASE("DO NOT COMMIT - convenience test", "[dxbc]")
   bytebuf buf;
   FileIO::ReadAll("/path/to/container_file.dxbc", buf);
 
-  DXBC::DXBCContainer container(buf.data(), buf.size());
+  DXBC::DXBCContainer container(buf, rdcstr());
 
   // the only thing fetched lazily is the disassembly, so grab that here
 
