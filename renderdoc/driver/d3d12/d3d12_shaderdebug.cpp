@@ -1310,11 +1310,9 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
     case DXBCDebug::GatherChannel::Alpha: strGatherChannel = "Alpha"; break;
   }
 
-  rdcstr vsProgram = "float4 main(uint id : SV_VertexID) : SV_Position {\n";
-  vsProgram += "return float4((id == 2) ? 3.0f : -1.0f, (id == 0) ? -3.0f : 1.0f, 0.5, 1.0);\n";
-  vsProgram += "}";
-
-  rdcstr sampleProgram;
+  rdcstr uvSnippet = "float4 doUV(uint id) { return 0.0f.xxxx; }\n";
+  rdcstr colSnippet = funcRet + " doCol() { return 0.0f.xxxx; }\n";
+  rdcstr sampleSnippet;
 
   rdcstr strResourceBinding = StringFormat::Fmt("t%u, space%u", resourceData.binding.shaderRegister,
                                                 resourceData.binding.registerSpace);
@@ -1329,34 +1327,32 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
     rdcstr ddy = StringFormat::Fmt(formats[offsetDim + texdimOffs - 1][0], ddyCalc.value.f.x,
                                    ddyCalc.value.f.y, ddyCalc.value.f.z, ddyCalc.value.f.w);
 
-    sampleProgram = StringFormat::Fmt("%s : register(%s);\n%s : register(%s);\n\n",
+    sampleSnippet = StringFormat::Fmt("%s : register(%s);\n%s : register(%s);\n\n",
                                       textureDecl.c_str(), strResourceBinding.c_str(),
                                       samplerDecl.c_str(), strSamplerBinding.c_str());
-    sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
-    sampleProgram += StringFormat::Fmt("t.SampleGrad(s, %s, %s, %s %s)%s;\n", texcoords.c_str(),
+    sampleSnippet += funcRet + " doSample(float4 uv)\n{\nreturn ";
+    sampleSnippet += StringFormat::Fmt("t.SampleGrad(s, %s, %s, %s %s)%s;\n", texcoords.c_str(),
                                        ddx.c_str(), ddy.c_str(), offsets.c_str(), strSwizzle.c_str());
-    sampleProgram += "}\n";
+    sampleSnippet += "}\n";
   }
   else if(opcode == OPCODE_SAMPLE_L)
   {
     // lod selection
-    sampleProgram = StringFormat::Fmt("%s : register(%s);\n%s : register(%s);\n\n",
+    sampleSnippet = StringFormat::Fmt("%s : register(%s);\n%s : register(%s);\n\n",
                                       textureDecl.c_str(), strResourceBinding.c_str(),
                                       samplerDecl.c_str(), strSamplerBinding.c_str());
-    sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
-    sampleProgram += StringFormat::Fmt("t.SampleLevel(s, %s, %.10f %s)%s;\n", texcoords.c_str(),
+    sampleSnippet += funcRet + " doSample(float4 uv)\n{\nreturn ";
+    sampleSnippet += StringFormat::Fmt("t.SampleLevel(s, %s, %.10f %s)%s;\n", texcoords.c_str(),
                                        lodOrCompareValue, offsets.c_str(), strSwizzle.c_str());
-    sampleProgram += "}\n";
+    sampleSnippet += "}\n";
   }
   else if(opcode == OPCODE_SAMPLE_C || opcode == OPCODE_LOD)
   {
     // these operations need derivatives but have no hlsl function to call to provide them, so
     // we fake it in the vertex shader
 
-    rdcstr uvdecl = StringFormat::Fmt("float%d uv : uvs", texdim + texdimOffs);
-
-    vsProgram =
-        "void main(uint id : SV_VertexID, out float4 pos : SV_Position, out " + uvdecl + ") {\n";
+    rdcstr uvswizzle = "xyzw";
+    uvswizzle.resize(texdim);
 
     rdcstr uvPlusDDX = StringFormat::Fmt(
         formats[texdim + texdimOffs - 1][texcoordType], uv.value.f.x + ddyCalc.value.f.x * 2.0f,
@@ -1368,89 +1364,139 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
         uv.value.f.y + ddxCalc.value.f.y * 2.0f, uv.value.f.z + ddxCalc.value.f.z * 2.0f,
         uv.value.f.w + ddxCalc.value.f.w * 2.0f);
 
-    vsProgram += "if(id == 0) uv = " + uvPlusDDX + ";\n";
-    vsProgram += "if(id == 1) uv = " + texcoords + ";\n";
-    vsProgram += "if(id == 2) uv = " + uvPlusDDY + ";\n";
-    vsProgram += "pos = float4((id == 2) ? 3.0f : -1.0f, (id == 0) ? -3.0f : 1.0f, 0.5, 1.0);\n";
-    vsProgram += "}";
+    uvSnippet = "float4 uv(uint id) {\n";
+    uvSnippet += "if(id == 0) return " + uvPlusDDX + ";\n";
+    uvSnippet += "if(id == 1) return " + texcoords + ";\n";
+    uvSnippet += "            return " + uvPlusDDY + ";\n";
+    uvSnippet += "}\n";
 
     if(opcode == OPCODE_SAMPLE_C)
     {
       // comparison value
-      sampleProgram = StringFormat::Fmt("%s : register(%s);\n%s : register(%s);\n\n",
+      sampleSnippet = StringFormat::Fmt("%s : register(%s);\n%s : register(%s);\n\n",
                                         textureDecl.c_str(), strResourceBinding.c_str(),
                                         samplerDecl.c_str(), strSamplerBinding.c_str());
-      sampleProgram +=
-          funcRet + " main(float4 pos : SV_Position, " + uvdecl + ") : SV_Target0\n{\n";
-      sampleProgram += StringFormat::Fmt("t.SampleCmpLevelZero(s, uv, %.10f %s).xxxx;\n",
-                                         lodOrCompareValue, offsets.c_str());
-      sampleProgram += "}\n";
+      sampleSnippet += funcRet + " doSample(float4 uv)\n{\n";
+      sampleSnippet += StringFormat::Fmt("t.SampleCmpLevelZero(s, uv.%s, %.10f %s).xxxx;\n",
+                                         uvswizzle.c_str(), lodOrCompareValue, offsets.c_str());
+      sampleSnippet += "}\n";
     }
     else if(opcode == OPCODE_LOD)
     {
-      sampleProgram = StringFormat::Fmt("%s : register(%s);\n%s : register(%s);\n\n",
+      sampleSnippet = StringFormat::Fmt("%s : register(%s);\n%s : register(%s);\n\n",
                                         textureDecl.c_str(), strResourceBinding.c_str(),
                                         samplerDecl.c_str(), strSamplerBinding.c_str());
-      sampleProgram +=
-          funcRet + " main(float4 pos : SV_Position, " + uvdecl + ") : SV_Target0\n{\n";
-      sampleProgram +=
-          "return float4(t.CalculateLevelOfDetail(s, uv),\n"
-          "              t.CalculateLevelOfDetailUnclamped(s, uv),\n"
-          "              0.0f, 0.0f);\n";
-      sampleProgram += "}\n";
+      sampleSnippet += funcRet + " doSample(float4 uv)\n{\n";
+      sampleSnippet += StringFormat::Fmt(
+          "return float4(t.CalculateLevelOfDetail(s, uv.%s),\n"
+          "              t.CalculateLevelOfDetailUnclamped(s, uv.%s),\n"
+          "              0.0f, 0.0f);\n",
+          uvswizzle.c_str(), uvswizzle.c_str());
+      sampleSnippet += "}\n";
     }
   }
   else if(opcode == OPCODE_SAMPLE_C_LZ)
   {
     // comparison value
-    sampleProgram = StringFormat::Fmt("%s : register(%s);\n%s : register(%s);\n\n",
+    sampleSnippet = StringFormat::Fmt("%s : register(%s);\n%s : register(%s);\n\n",
                                       textureDecl.c_str(), strResourceBinding.c_str(),
                                       samplerDecl.c_str(), strSamplerBinding.c_str());
-    sampleProgram += funcRet + " main() : SV_Target0\n{\n";
-    sampleProgram +=
+    sampleSnippet += funcRet + " doSample(float4 uv)\n{\n";
+    sampleSnippet +=
         StringFormat::Fmt("return t.SampleCmpLevelZero(s, %s, %.10f %s)%s;\n", texcoords.c_str(),
                           lodOrCompareValue, offsets.c_str(), strSwizzle.c_str());
-    sampleProgram += "}\n";
+    sampleSnippet += "}\n";
   }
   else if(opcode == OPCODE_LD)
   {
-    sampleProgram =
+    sampleSnippet =
         StringFormat::Fmt("%s : register(%s);\n\n", textureDecl.c_str(), strResourceBinding.c_str());
-    sampleProgram += funcRet + " main() : SV_Target0\n{\n";
-    sampleProgram += "return t.Load(" + texcoords + offsets + ")" + strSwizzle + ";";
-    sampleProgram += "\n}\n";
+    sampleSnippet += funcRet + " doSample(float4 uv)\n{\n";
+    sampleSnippet += "return t.Load(" + texcoords + offsets + ")" + strSwizzle + ";";
+    sampleSnippet += "\n}\n";
   }
   else if(opcode == OPCODE_LD_MS)
   {
-    sampleProgram =
+    sampleSnippet =
         StringFormat::Fmt("%s : register(%s);\n\n", textureDecl.c_str(), strResourceBinding.c_str());
-    sampleProgram += funcRet + " main() : SV_Target0\n{\n";
-    sampleProgram += StringFormat::Fmt("return t.Load(%s, int(%d) %s)%s;\n", texcoords.c_str(),
+    sampleSnippet += funcRet + " doSample(float4 uv)\n{\n";
+    sampleSnippet += StringFormat::Fmt("return t.Load(%s, int(%d) %s)%s;\n", texcoords.c_str(),
                                        multisampleIndex, offsets.c_str(), strSwizzle.c_str());
-    sampleProgram += "\n}\n";
+    sampleSnippet += "\n}\n";
   }
   else if(opcode == OPCODE_GATHER4 || opcode == OPCODE_GATHER4_PO)
   {
-    sampleProgram = StringFormat::Fmt("%s : register(%s);\n%s : register(%s);\n\n",
+    sampleSnippet = StringFormat::Fmt("%s : register(%s);\n%s : register(%s);\n\n",
                                       textureDecl.c_str(), strResourceBinding.c_str(),
                                       samplerDecl.c_str(), strSamplerBinding.c_str());
-    sampleProgram += funcRet + " main() : SV_Target0\n{\n";
-    sampleProgram += StringFormat::Fmt("return t.Gather%s(s, %s %s)%s;\n", strGatherChannel.c_str(),
+    sampleSnippet += funcRet + " doSample(float4 uv)\n{\n";
+    sampleSnippet += StringFormat::Fmt("return t.Gather%s(s, %s %s)%s;\n", strGatherChannel.c_str(),
                                        texcoords.c_str(), offsets.c_str(), strSwizzle.c_str());
-    sampleProgram += "}\n";
+    sampleSnippet += "}\n";
   }
   else if(opcode == OPCODE_GATHER4_C || opcode == OPCODE_GATHER4_PO_C)
   {
     // comparison value
-    sampleProgram = StringFormat::Fmt("%s : register(%s);\n%s : register(%s);\n\n",
+    sampleSnippet = StringFormat::Fmt("%s : register(%s);\n%s : register(%s);\n\n",
                                       textureDecl.c_str(), strResourceBinding.c_str(),
                                       samplerDecl.c_str(), strSamplerBinding.c_str());
-    sampleProgram += funcRet + " main() : SV_Target0\n{\n";
-    sampleProgram += StringFormat::Fmt("return t.GatherCmp%s(s, %s, %.10f %s)%s;\n",
+    sampleSnippet += funcRet + " doSample(float4 uv)\n{\n";
+    sampleSnippet += StringFormat::Fmt("return t.GatherCmp%s(s, %s, %.10f %s)%s;\n",
                                        strGatherChannel.c_str(), texcoords.c_str(),
                                        lodOrCompareValue, offsets.c_str(), strSwizzle.c_str());
-    sampleProgram += "}\n";
+    sampleSnippet += "}\n";
   }
+
+  rdcstr evalSnippet;
+
+  // if the sample happens in the vertex shader we need to do that too, otherwise root signature
+  // visibility may not match
+  if(GetShaderType() == DXBC::ShaderType::Vertex)
+  {
+    // include the sampleSnippet in the vertex shader and return it into the col
+    colSnippet = sampleSnippet;
+    // we can pass 0.0f to doSample() because the only doSample()s needing UVs are in the pixel
+    // shader
+    colSnippet += funcRet + " doCol() { return doSample(0.0f.xxxx); }\n";
+
+    // return the passed through col
+    evalSnippet = funcRet + " evalResult(" + funcRet + " col, float4 uv) { return col; }\n";
+  }
+  else
+  {
+    if(GetShaderType() != DXBC::ShaderType::Pixel && GetShaderType() != DXBC::ShaderType::Compute)
+    {
+      // other stages can't re-use the pixel shader visibility in the root signature, and it's not
+      // feasible to do the sampling in a fake geometry/tessellation shader. Instead if we intend to
+      // support other stages we need to stop re-using the root signature and instead patch it to be
+      // set up how we want for pixel shader sampling.
+      RDCERR("shader stages other than pixel/compute need special handling.");
+    }
+
+    // include the sample snippet and forward to doSample
+    evalSnippet = sampleSnippet;
+    evalSnippet +=
+        funcRet + " evalResult(" + funcRet + " col, float4 uv) { return doSample(uv); }\n";
+  }
+
+  rdcstr vsProgram;
+
+  vsProgram += uvSnippet;
+  vsProgram += colSnippet;
+  vsProgram += "void main(uint id : SV_VertexID, out float4 pos : SV_Position, out " + funcRet +
+               " col : COL, out float4 uv : UV) {\n";
+  vsProgram += "  pos = float4((id == 2) ? 3.0f : -1.0f, (id == 0) ? -3.0f : 1.0f, 0.5, 1.0);\n";
+  vsProgram += "  uv = doUV(id);\n";
+  vsProgram += "  col = doCol();\n";
+  vsProgram += "}";
+
+  rdcstr psProgram;
+
+  psProgram += evalSnippet;
+  psProgram += funcRet + " main(float4 pos : SV_Position, " + funcRet +
+               " col : COL, float4 uv : UV) : SV_Target0 {\n";
+  psProgram += "  return evalResult(col, uv);\n";
+  psProgram += "}";
 
   // Create VS/PS to fetch the sample. Because the program being debugged might be using SM 5.1, we
   // need to do that too, to support reusing the existing root signature that may use a non-zero
@@ -1464,7 +1510,7 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
     RDCERR("Failed to create shader to extract inputs");
     return false;
   }
-  if(m_pDevice->GetShaderCache()->GetShaderBlob(sampleProgram.c_str(), "main", flags, "ps_5_1",
+  if(m_pDevice->GetShaderCache()->GetShaderBlob(psProgram.c_str(), "main", flags, "ps_5_1",
                                                 &psBlob) != "")
   {
     RDCERR("Failed to create shader to extract inputs");
