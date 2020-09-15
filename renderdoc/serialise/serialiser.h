@@ -1534,9 +1534,10 @@ private:
 // passed around and moved between owners before being serialised out
 class Chunk
 {
+  Chunk(bool fromAllocator) : m_FromAllocator(fromAllocator) {}
   ~Chunk()
   {
-    if(m_DataAlloced)
+    if(!m_FromAllocator)
       FreeAlignedBuffer(m_Data);
 
 #if ENABLED(RDOC_DEVEL)
@@ -1548,10 +1549,10 @@ class Chunk
 public:
   void Delete()
   {
-    if(m_ChunkAlloced)
-      delete this;
-    else
+    if(m_FromAllocator)
       this->~Chunk();
+    else
+      delete this;
   }
 
   template <typename ChunkType>
@@ -1567,20 +1568,19 @@ public:
   static uint64_t TotalMem() { return 0; }
 #endif
 
-  // grab current contents of the serialiser into this chunk
-  Chunk(Serialiser<SerialiserMode::Writing> &ser, uint16_t chunkType,
-        ChunkAllocator *allocator = NULL);
+  // grab current contents of the serialiser into a new chunk
+  static Chunk *Create(Serialiser<SerialiserMode::Writing> &ser, uint16_t chunkType,
+                       ChunkAllocator *allocator = NULL);
 
   byte *GetData() const { return m_Data; }
   Chunk *Duplicate()
   {
     Chunk *ret = new Chunk();
-    ret->m_ChunkAlloced = true;
     ret->m_Length = m_Length;
     ret->m_ChunkType = m_ChunkType;
 
     ret->m_Data = AllocAlignedBuffer(m_Length);
-    ret->m_DataAlloced = true;
+    ret->m_FromAllocator = false;
 
     memcpy(ret->m_Data, m_Data, (size_t)m_Length);
 
@@ -1602,12 +1602,9 @@ private:
   Chunk(const Chunk &) = delete;
   Chunk &operator=(const Chunk &) = delete;
 
-  friend class ScopedChunk;
-
   uint16_t m_ChunkType;
 
-  bool m_ChunkAlloced = true;
-  bool m_DataAlloced = true;
+  bool m_FromAllocator = false;
 
   uint32_t m_Length;
   byte *m_Data;
@@ -1636,10 +1633,7 @@ public:
   Chunk *Get(ChunkAllocator *allocator = NULL)
   {
     End();
-    if(allocator)
-      return new(allocator->AllocChunk()) Chunk(m_Ser, m_Idx, allocator);
-    else
-      return new Chunk(m_Ser, m_Idx);
+    return Chunk::Create(m_Ser, m_Idx, allocator);
   }
 
 private:

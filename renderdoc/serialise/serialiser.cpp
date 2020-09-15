@@ -958,43 +958,60 @@ rdcstr DoStringise(const bool &el)
   return "False";
 }
 
-Chunk::Chunk(Serialiser<SerialiserMode::Writing> &ser, uint16_t chunkType, ChunkAllocator *allocator)
+Chunk *Chunk::Create(Serialiser<SerialiserMode::Writing> &ser, uint16_t chunkType,
+                     ChunkAllocator *allocator)
 {
   RDCCOMPILE_ASSERT(sizeof(Chunk) <= 16, "Chunk should be no more than 16 bytes");
 
-  m_Length = (uint32_t)ser.GetWriter()->GetOffset();
-
   RDCASSERT(ser.GetWriter()->GetOffset() < 0xffffffff);
+  uint32_t length = (uint32_t)ser.GetWriter()->GetOffset();
 
-  m_ChunkType = chunkType;
-
-  m_Data = NULL;
+  byte *data = NULL;
   if(allocator)
   {
-    m_ChunkAlloced = false;
-    m_Data = allocator->AllocAlignedBuffer(m_Length);
-    if(m_Data)
-      m_DataAlloced = false;
-  }
-  else
-  {
-    m_ChunkAlloced = true;
+    // try to allocate from the allocator
+    data = allocator->AllocAlignedBuffer(length);
+
+    // if we couldn't satisfy the allocation then pretend we never had an allocator in the first
+    // place. We'll externally allocate the chunk and the data.
+    if(!data)
+      allocator = NULL;
   }
 
-  if(m_Data == NULL)
-  {
-    m_Data = AllocAlignedBuffer(m_Length);
-    m_DataAlloced = true;
-  }
+  // if we don't have an allocator or we gave up on it above, allocate the data externally
+  if(!allocator)
+    data = AllocAlignedBuffer(length);
 
-  memcpy(m_Data, ser.GetWriter()->GetData(), (size_t)m_Length);
+  memcpy(data, ser.GetWriter()->GetData(), (size_t)length);
 
   ser.GetWriter()->Rewind();
 
+  Chunk *ret = NULL;
+
+  // if allocator wasn't NULL'd above, use it to allocate the chunk as well. We always either
+  // allocate both chunk and data from the allocator (so we don't have anything to do on
+  // destruction) or neither. Otherwise if we allocated the chunk from the allocator and the data
+  // externally, our data pointer might be corrupted or the bool indicating that it's external.
+  // Consider the case where we allocate some chunks from an allocator - one of which allocated
+  // external data - then the allocator is reset. Now the chunk could be overwritten by subsequent
+  // recording before it is deleted. We don't want the allocator to have to explicitly delete all
+  // chunks that were allocated from it and external data allocations should be rare (only really
+  // massive chunks bigger than a page) so we can afford to externally allocate the chunk too.
+  if(allocator)
+    ret = new(allocator->AllocChunk()) Chunk(true);
+  else
+    ret = new Chunk(false);
+
+  ret->m_Length = length;
+  ret->m_ChunkType = chunkType;
+  ret->m_Data = data;
+
 #if ENABLED(RDOC_DEVEL)
   Atomic::Inc64(&m_LiveChunks);
-  Atomic::ExchAdd64(&m_TotalMem, int64_t(m_Length));
+  Atomic::ExchAdd64(&m_TotalMem, int64_t(length));
 #endif
+
+  return ret;
 }
 
 ChunkAllocator::~ChunkAllocator()

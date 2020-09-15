@@ -499,7 +499,7 @@ TEST_CASE("Read/writing large buffers", "[serialiser]")
 
     Chunk *c;
 
-    c = new Chunk(ser, 1);
+    c = Chunk::Create(ser, 1);
     c->Write(fileser);
     c->Delete();
 
@@ -507,7 +507,7 @@ TEST_CASE("Read/writing large buffers", "[serialiser]")
     ser.Serialise("buffer"_lit, buffer);
     ser.EndChunk();
 
-    c = new Chunk(ser, 1);
+    c = Chunk::Create(ser, 1);
     c->Write(fileser);
     c->Delete();
 
@@ -515,7 +515,7 @@ TEST_CASE("Read/writing large buffers", "[serialiser]")
     ser.Serialise("buffer"_lit, buffer);
     ser.EndChunk();
 
-    c = new Chunk(ser, 1);
+    c = Chunk::Create(ser, 1);
     c->Write(fileser);
     c->Delete();
 
@@ -523,7 +523,7 @@ TEST_CASE("Read/writing large buffers", "[serialiser]")
     ser.Serialise("dummy"_lit, dummy2);
     ser.EndChunk();
 
-    c = new Chunk(ser, 1);
+    c = Chunk::Create(ser, 1);
     c->Write(fileser);
     c->Delete();
   }
