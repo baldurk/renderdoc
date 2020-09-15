@@ -792,8 +792,9 @@ bool Program::ExtractOperand(uint32_t *&tokenStream, ToString flags, Operand &re
     if(retOper.indices[idx].relative)
     {
       retOper.indices[idx].str = StringFormat::Fmt(
-          "[%s + 0]",
-          retOper.indices[idx].operand.toString(m_Reflection, flags | ToString::ShowSwizzle).c_str());
+          "[%s + %llu]",
+          retOper.indices[idx].operand.toString(m_Reflection, flags | ToString::ShowSwizzle).c_str(),
+          retOper.indices[idx].index);
     }
     else
     {
