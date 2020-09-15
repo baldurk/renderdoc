@@ -161,6 +161,8 @@ private:
     D3D12_COMMAND_LIST_TYPE type;
   } m_Init;
 
+  bool m_FakeCreationReset = false;
+
   static rdcstr GetChunkName(uint32_t idx);
   D3D12ResourceManager *GetResourceManager() { return m_pDevice->GetResourceManager(); }
 public:
@@ -196,6 +198,8 @@ public:
     m_Init.nodeMask = nodeMask;
     m_Init.type = type;
   }
+  HRESULT ResetInternal(ID3D12CommandAllocator *pAllocator, ID3D12PipelineState *pInitialState,
+                        bool fakeCreationReset);
 
   bool ValidateRootGPUVA(D3D12_GPU_VIRTUAL_ADDRESS buffer);
 

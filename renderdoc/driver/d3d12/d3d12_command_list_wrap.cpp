@@ -398,18 +398,17 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
 HRESULT WrappedID3D12GraphicsCommandList::Reset(ID3D12CommandAllocator *pAllocator,
                                                 ID3D12PipelineState *pInitialState)
 {
+  return ResetInternal(pAllocator, pInitialState, false);
+}
+
+HRESULT WrappedID3D12GraphicsCommandList::ResetInternal(ID3D12CommandAllocator *pAllocator,
+                                                        ID3D12PipelineState *pInitialState,
+                                                        bool fakeCreationReset)
+{
   HRESULT ret = S_OK;
 
   if(IsCaptureMode(m_State))
   {
-    // If this is the creation reset we won't have our init params yet and this reset is 'fake' to
-    // record the initial allocator and state. Don't actually call Reset(), just pretend it was so
-    // that we can pretend D3D12 doesn't have weird behaviour.
-    bool resetcall = true;
-
-    if(m_Init.riid.Data1 == 0 && m_Init.riid.Data2 == 0 && m_Init.riid.Data3 == 0)
-      resetcall = false;
-
     m_ListRecord->DisableChunkLocking();
 
     // reset for new recording
@@ -420,7 +419,9 @@ HRESULT WrappedID3D12GraphicsCommandList::Reset(ID3D12CommandAllocator *pAllocat
     if(m_ListRecord->bakedCommands)
       m_ListRecord->bakedCommands->Delete(GetResourceManager());
 
-    if(resetcall)
+    // If this reset is 'fake' to record the initial allocator and state. Don't actually call
+    // Reset(), just pretend it was so that we can pretend D3D12 doesn't have weird behaviour.
+    if(!fakeCreationReset)
     {
       SERIALISE_TIME_CALL(ret = m_pList->Reset(Unwrap(pAllocator), Unwrap(pInitialState)));
     }
