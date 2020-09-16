@@ -2937,7 +2937,8 @@ bool WrappedID3D11Device::Serialise_CreateDeferredContext(SerialiserType &ser,
                                                           ID3D11DeviceContext **ppDeferredContext)
 {
   SERIALISE_ELEMENT(ContextFlags);
-  SERIALISE_ELEMENT_LOCAL(pDeferredContext, GetIDForDeviceChild(*ppDeferredContext))
+  SERIALISE_ELEMENT_LOCAL(pDeferredContext,
+                          ((WrappedID3D11DeviceContext *)*ppDeferredContext)->GetResourceID())
       .TypedAs("ID3D11DeviceContext *"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
