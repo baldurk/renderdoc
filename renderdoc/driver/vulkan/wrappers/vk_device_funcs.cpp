@@ -29,7 +29,14 @@
 #include "../vk_replay.h"
 #include "../vk_shader_cache.h"
 #include "api/replay/version.h"
+#include "core/settings.h"
 #include "strings/string_utils.h"
+
+RDOC_CONFIG(
+    bool, Vulkan_Debug_ReplaceAppInfo, true,
+    "By default we have no choice but to replace VkApplicationInfo to safely work on all drivers. "
+    "This behaviour can be disabled with this flag, which lets it through both during capture and "
+    "on replay.");
 
 // intercept and overwrite the application info if present. We must use the same appinfo on
 // capture and replay, and the safer default is not to replay as if we were the original app but
@@ -385,6 +392,16 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
   if(params.APIVersion >= VK_API_VERSION_1_0)
     renderdocAppInfo.apiVersion = params.APIVersion;
 
+  if(!Vulkan_Debug_ReplaceAppInfo())
+  {
+    // if we're not replacing the app info, set renderdocAppInfo's parameters to the ones from the
+    // capture
+    renderdocAppInfo.pEngineName = params.EngineName.c_str();
+    renderdocAppInfo.engineVersion = params.EngineVersion;
+    renderdocAppInfo.pApplicationName = params.AppName.c_str();
+    renderdocAppInfo.applicationVersion = params.AppVersion;
+  }
+
   m_Instance = VK_NULL_HANDLE;
 
   VkResult ret = GetInstanceDispatchTable(NULL)->CreateInstance(&instinfo, NULL, &m_Instance);
@@ -652,7 +669,10 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
     if(modifiedCreateInfo.pApplicationInfo->apiVersion >= VK_API_VERSION_1_0)
       renderdocAppInfo.apiVersion = modifiedCreateInfo.pApplicationInfo->apiVersion;
 
-    modifiedCreateInfo.pApplicationInfo = &renderdocAppInfo;
+    if(Vulkan_Debug_ReplaceAppInfo())
+    {
+      modifiedCreateInfo.pApplicationInfo = &renderdocAppInfo;
+    }
   }
 
   for(uint32_t i = 0; i < modifiedCreateInfo.enabledLayerCount; i++)
@@ -690,6 +710,7 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
 
   record->instDevInfo->vulkanVersion = VK_API_VERSION_1_0;
 
+  // whether or not we're using it, we updated the apiVersion in renderdocAppInfo
   if(renderdocAppInfo.apiVersion > VK_API_VERSION_1_0)
     record->instDevInfo->vulkanVersion = renderdocAppInfo.apiVersion;
 
