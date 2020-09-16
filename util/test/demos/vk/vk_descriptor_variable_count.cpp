@@ -84,7 +84,7 @@ void main()
 
 )EOSHADER";
 
-  const static uint32_t numDescriptorSetsInLayout = 100 * 1024;
+  const uint32_t numDescriptorSetsInLayout = 100 * 1024;
 
   void Prepare(int argc, char **argv)
   {

@@ -19,7 +19,7 @@ class D3D11_PrimitiveID(rdtest.TestCase):
         primInput = self.find_input_source_var(trace, rd.ShaderBuiltin.PrimitiveIndex)
         if primInput is None:
             # If we didn't find it, then we should be expecting a 0
-            if len(expected_prim) > 1 or expected_prim[0] is not 0:
+            if len(expected_prim) > 1 or expected_prim[0] != 0:
                 rdtest.log.error("Expected prim {} at {},{} did not match actual prim {}.".format(
                     str(expected_prim), x, y, prim))
                 return False
