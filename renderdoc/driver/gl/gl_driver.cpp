@@ -1149,11 +1149,13 @@ void WrappedOpenGL::CreateContext(GLWindowingData winData, void *shareContext,
   {
     // no sharing, allocate a new group
     ctxdata.shareGroup = new ContextShareGroup(m_Platform, winData);
+    RDCLOG("Created new sharegroup %p", ctxdata.shareGroup);
   }
   else
   {
     // use the same shareGroup ID as the share context.
     ctxdata.shareGroup = GetShareGroup(shareContext);
+    RDCLOG("Reusing old sharegroup %p", ctxdata.shareGroup);
   }
 
   RenderDoc::Inst().AddDeviceFrameCapturer(ctxdata.ctx, this);
