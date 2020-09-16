@@ -133,13 +133,13 @@ public:
 
   inline void RemoveResourceRecord(ResourceId id)
   {
-    for(auto it = m_CurrentResources.begin(); it != m_CurrentResources.end(); it++)
+    GLResourceRecord *record = ResourceManager::GetResourceRecord(id);
+
+    if(record)
     {
-      if(it->second.first == id)
-      {
-        m_CurrentResources.erase(it);
-        break;
-      }
+      auto it = m_CurrentResources.find(record->Resource);
+      if(it != m_CurrentResources.end())
+        it->second.second = NULL;
     }
 
     ResourceManager::RemoveResourceRecord(id);
