@@ -975,18 +975,21 @@ rdcstr RenderDoc::GetOverlayText(RDCDriver driver, uint32_t frameNumber, int fla
                                        m_WindowFrameCapturers.size());
     }
 
-    for(size_t i = 0; i < keys.size(); i++)
+    if(Keyboard::PlatformHasKeyInput())
     {
-      if(i == 0)
-        overlayText += " ";
-      else
-        overlayText += ", ";
+      for(size_t i = 0; i < keys.size(); i++)
+      {
+        if(i == 0)
+          overlayText += " ";
+        else
+          overlayText += ", ";
 
-      overlayText += ToStr(keys[i]);
+        overlayText += ToStr(keys[i]);
+      }
+
+      if(!keys.empty())
+        overlayText += " to cycle between windows";
     }
-
-    if(!keys.empty())
-      overlayText += " to cycle between windows";
 
     overlayText += "\n";
   }
