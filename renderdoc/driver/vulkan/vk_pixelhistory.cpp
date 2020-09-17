@@ -2293,14 +2293,32 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     {
       for(uint32_t i = 0; i < 2; i++)
       {
-        if(i == 0 && !m_pDriver->GetDeviceEnabledFeatures().geometryShader)
-        {
-          // without geometryShader, can't read primitive ID in pixel shader
-          continue;
-        }
+        uint32_t storeOffset = (fragsProcessed + f) * sizeof(PerFragmentInfo);
 
         VkMarkerRegion region(cmd, StringFormat::Fmt("Getting %s for %u",
                                                      i == 0 ? "primitive ID" : "shader output", eid));
+
+        if(i == 0 && !m_pDriver->GetDeviceEnabledFeatures().geometryShader)
+        {
+          // without geometryShader, can't read primitive ID in pixel shader
+          VkMarkerRegion::Set("Can't get primitive ID without geometryShader feature", cmd);
+
+          ObjDisp(cmd)->CmdFillBuffer(Unwrap(cmd), Unwrap(m_CallbackInfo.dstBuffer), storeOffset,
+                                      16, ~0U);
+          continue;
+        }
+
+        if(pipesIter[i] == VK_NULL_HANDLE)
+        {
+          // without one of the pipelines (e.g. if there was a geometry shader in use and we can't
+          // read primitive ID in the fragment shader) we can't continue.
+          // technically we can if the geometry shader outs a primitive ID, but that is unlikely.
+          VkMarkerRegion::Set("Can't get primitive ID with geometry shader in use", cmd);
+
+          ObjDisp(cmd)->CmdFillBuffer(Unwrap(cmd), Unwrap(m_CallbackInfo.dstBuffer), storeOffset,
+                                      16, ~0U);
+          continue;
+        }
 
         VkImageMemoryBarrier barrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                                         NULL,
@@ -2359,7 +2377,6 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
                                 drawcall->vertexOffset, drawcall->instanceOffset);
         state.EndRenderPass(cmd);
 
-        uint32_t storeOffset = (fragsProcessed + f) * sizeof(PerFragmentInfo);
         if(i == 1)
         {
           storeOffset += offsetof(struct PerFragmentInfo, shaderOut);
@@ -2600,14 +2617,19 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     stageCI.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
     stageCI.module = m_ShaderCache->GetPrimitiveIdShader(colorOutputIndex);
     stageCI.pName = "main";
+    bool gsFound = false;
     bool fsFound = false;
     for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
     {
+      if(stages[i].stage == VK_SHADER_STAGE_GEOMETRY_BIT)
+      {
+        gsFound = true;
+        break;
+      }
       if(stages[i].stage == VK_SHADER_STAGE_FRAGMENT_BIT)
       {
         stages[i] = stageCI;
         fsFound = true;
-        break;
       }
     }
     if(!fsFound)
@@ -2617,10 +2639,18 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       pipeCreateInfo.pStages = stages.data();
     }
 
-    vkr = m_pDriver->vkCreateGraphicsPipelines(m_pDriver->GetDev(), VK_NULL_HANDLE, 1,
-                                               &pipeCreateInfo, NULL, &pipes.primitiveIdPipe);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-    m_PipesToDestroy.push_back(pipes.primitiveIdPipe);
+    if(!gsFound)
+    {
+      vkr = m_pDriver->vkCreateGraphicsPipelines(m_pDriver->GetDev(), VK_NULL_HANDLE, 1,
+                                                 &pipeCreateInfo, NULL, &pipes.primitiveIdPipe);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      m_PipesToDestroy.push_back(pipes.primitiveIdPipe);
+    }
+    else
+    {
+      pipes.primitiveIdPipe = VK_NULL_HANDLE;
+      RDCWARN("Can't get primitive ID at event %u due to geometry shader usage", eid);
+    }
 
     return pipes;
   }
