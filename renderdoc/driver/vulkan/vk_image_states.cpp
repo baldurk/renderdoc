@@ -982,7 +982,9 @@ void ImageState::RecordQueueFamilyRelease(const VkImageMemoryBarrier &barrier)
   {
     if(ImageSubresourceRange(barrier.subresourceRange).Overlaps(it->subresourceRange))
     {
+#if ENABLED(RDOC_DEVEL)
       RDCWARN("Queue family release barriers overlap");
+#endif
       RemoveQueueFamilyTransfer(it);
       --it;
     }
