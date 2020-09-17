@@ -3090,17 +3090,6 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     AddResource(Device, ResourceType::Device, "Device");
     DerivedResource(origPhysDevice, Device);
 
-    VkPhysicalDeviceVulkan12Properties phys12Props = {
-        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES,
-    };
-
-    if(physProps.apiVersion >= VK_MAKE_VERSION(1, 2, 0))
-    {
-      VkPhysicalDeviceProperties2 availBase = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
-      availBase.pNext = &phys12Props;
-      ObjDisp(physicalDevice)->GetPhysicalDeviceProperties2(Unwrap(physicalDevice), &availBase);
-    }
-
 // we unset the extension because it may be a 'shared' extension that's available at both instance
 // and device. Only set it to enabled if it's really enabled for this device. This can happen with a
 // device extension that is reported by another physical device than the one selected - it becomes
