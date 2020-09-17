@@ -209,10 +209,10 @@ class Iter_Test(rdtest.TestCase):
             mod = history[i]
             draw = self.find_draw('', mod.eventId)
 
-            rdtest.log.print("  hit %d at %d is %s (%s)" % (i, mod.eventId, draw.name, str(draw.flags)))
-
             if draw is None or not (draw.flags & rd.DrawFlags.Drawcall):
                 continue
+
+            rdtest.log.print("  hit %d at %d is %s (%s)" % (i, mod.eventId, draw.name, str(draw.flags)))
 
             lastmod = history[i]
 
