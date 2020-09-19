@@ -2408,7 +2408,7 @@ VkResult WrappedVulkan::vkBindBufferMemory2(VkDevice device, uint32_t bindInfoCo
         CACHE_THREAD_SERIALISER();
 
         SCOPED_SERIALISE_CHUNK(VulkanChunk::vkBindBufferMemory2);
-        Serialise_vkBindBufferMemory2(ser, device, bindInfoCount, pBindInfos);
+        Serialise_vkBindBufferMemory2(ser, device, 1, pBindInfos + i);
 
         chunk = scope.Get();
       }
