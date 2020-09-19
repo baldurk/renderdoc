@@ -232,7 +232,6 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
 
   // ATI workaround - these dlls can get unloaded and cause a crash.
 
-  /*
   if(GetModuleHandleA("aticfx32.dll"))
     LoadLibraryA("aticfx32.dll");
   if(GetModuleHandleA("atiuxpag.dll"))
@@ -251,7 +250,6 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
 
   if(GetModuleHandleA("nvwgf2umx.dll"))
     LoadLibraryA("nvwgf2umx.dll");
-  */
 }
 
 WrappedID3D11Device::~WrappedID3D11Device()
