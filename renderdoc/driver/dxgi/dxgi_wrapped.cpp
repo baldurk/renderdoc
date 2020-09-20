@@ -367,6 +367,8 @@ void WrappedIDXGISwapChain4::WrapBuffersAfterResize()
 
   if(desc.SwapEffect == DXGI_SWAP_EFFECT_DISCARD)
     bufCount = 1;
+  else if(desc.SwapEffect == DXGI_SWAP_EFFECT_FLIP_DISCARD)
+    bufCount = 1;
 
   RDCASSERT(bufCount < MAX_NUM_BACKBUFFERS);
 
