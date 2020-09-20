@@ -365,8 +365,13 @@ void WrappedIDXGISwapChain4::WrapBuffersAfterResize()
 
   int bufCount = desc.BufferCount;
 
-  if(desc.SwapEffect == DXGI_SWAP_EFFECT_DISCARD)
+  // discard swap effects only allow querying buffer 0, but only on D3D11 - on D3D12 they can (and
+  // must) still query the full set of buffers.
+  if(m_pDevice->GetFrameCapturer()->GetFrameCaptureDriver() == RDCDriver::D3D11 &&
+     (desc.SwapEffect == DXGI_SWAP_EFFECT_DISCARD || desc.SwapEffect == DXGI_SWAP_EFFECT_FLIP_DISCARD))
+  {
     bufCount = 1;
+  }
 
   RDCASSERT(bufCount < MAX_NUM_BACKBUFFERS);
 
