@@ -1332,7 +1332,7 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
   while(i < indices.size() && !leaf->members.empty())
   {
     uint32_t idx = indices[i++];
-    if(idx > leaf->members.size())
+    if(idx >= leaf->members.size())
     {
       apiWrapper->AddDebugMessage(
           MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
