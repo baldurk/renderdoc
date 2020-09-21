@@ -3060,6 +3060,21 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     createInfo.enabledExtensionCount = (uint32_t)extArray.size();
     createInfo.ppEnabledExtensionNames = extArray.data();
 
+    byte *tempMem = GetTempMemory(GetNextPatchSize(createInfo.pNext));
+
+    UnwrapNextChain(m_State, "VkDeviceCreateInfo", tempMem, (VkBaseInStructure *)&createInfo);
+
+    VkDeviceGroupDeviceCreateInfo *device_group_info =
+        (VkDeviceGroupDeviceCreateInfo *)FindNextStruct(
+            &createInfo, VK_STRUCTURE_TYPE_DEVICE_GROUP_DEVICE_CREATE_INFO);
+    // decode physical devices that are actually indices
+    if(device_group_info)
+    {
+      VkPhysicalDevice *physDevs = (VkPhysicalDevice *)device_group_info->pPhysicalDevices;
+      for(uint32_t i = 0; i < device_group_info->physicalDeviceCount; i++)
+        physDevs[i] = Unwrap(m_PhysicalDevices[GetPhysicalDeviceIndexFromHandle(physDevs[i])]);
+    }
+
     vkr = GetDeviceDispatchTable(NULL)->CreateDevice(Unwrap(physicalDevice), &createInfo, NULL,
                                                      &device);
 
