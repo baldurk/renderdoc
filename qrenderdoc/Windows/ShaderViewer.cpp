@@ -702,7 +702,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
         finished = nextStates.empty();
       } while(!finished && m_BackgroundRunning.available() == 1);
 
-      if(!me || m_BackgroundRunning.available() != 1)
+      if(!me)
         return;
 
       m_BackgroundRunning.tryAcquire(1);
