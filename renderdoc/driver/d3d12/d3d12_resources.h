@@ -801,6 +801,7 @@ public:
       SAFE_DELETE_ARRAY(graphics->InputLayout.pInputElementDescs);
       SAFE_DELETE_ARRAY(graphics->StreamOutput.pSODeclaration);
       SAFE_DELETE_ARRAY(graphics->StreamOutput.pBufferStrides);
+      SAFE_DELETE_ARRAY(graphics->ViewInstancing.pViewInstanceLocations);
 
       SAFE_DELETE(graphics);
     }

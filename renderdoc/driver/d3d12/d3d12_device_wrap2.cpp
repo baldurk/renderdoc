@@ -141,6 +141,20 @@ bool WrappedID3D12Device::Serialise_CreatePipelineState(SerialiserType &ser,
         {
           wrapped->graphics->StreamOutput.pBufferStrides = NULL;
         }
+
+        if(wrapped->graphics->ViewInstancing.ViewInstanceCount)
+        {
+          wrapped->graphics->ViewInstancing.pViewInstanceLocations =
+              new D3D12_VIEW_INSTANCE_LOCATION[wrapped->graphics->ViewInstancing.ViewInstanceCount];
+          memcpy((void *)wrapped->graphics->ViewInstancing.pViewInstanceLocations,
+                 Descriptor.ViewInstancing.pViewInstanceLocations,
+                 sizeof(D3D12_VIEW_INSTANCE_LOCATION) *
+                     wrapped->graphics->ViewInstancing.ViewInstanceCount);
+        }
+        else
+        {
+          wrapped->graphics->ViewInstancing.pViewInstanceLocations = NULL;
+        }
       }
 
       GetResourceManager()->AddLiveResource(pPipelineState, ret);
@@ -264,6 +278,20 @@ HRESULT WrappedID3D12Device::CreatePipelineState(const D3D12_PIPELINE_STATE_STRE
         else
         {
           wrapped->graphics->StreamOutput.pBufferStrides = NULL;
+        }
+
+        if(wrapped->graphics->ViewInstancing.ViewInstanceCount)
+        {
+          wrapped->graphics->ViewInstancing.pViewInstanceLocations =
+              new D3D12_VIEW_INSTANCE_LOCATION[wrapped->graphics->ViewInstancing.ViewInstanceCount];
+          memcpy((void *)wrapped->graphics->ViewInstancing.pViewInstanceLocations,
+                 expandedDesc.ViewInstancing.pViewInstanceLocations,
+                 sizeof(D3D12_VIEW_INSTANCE_LOCATION) *
+                     wrapped->graphics->ViewInstancing.ViewInstanceCount);
+        }
+        else
+        {
+          wrapped->graphics->ViewInstancing.pViewInstanceLocations = NULL;
         }
       }
     }
