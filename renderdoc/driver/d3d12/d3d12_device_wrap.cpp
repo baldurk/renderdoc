@@ -1255,6 +1255,9 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource(
     // always allow SRVs on replay so we can inspect resources
     desc.Flags &= ~D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
 
+    // don't create resources non-resident
+    HeapFlags &= ~D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT;
+
     if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
     {
       GPUAddressRange range;
@@ -1378,6 +1381,9 @@ HRESULT WrappedID3D12Device::CreateCommittedResource(const D3D12_HEAP_PROPERTIES
       Serialise_CreateCommittedResource(ser, pHeapProperties, HeapFlags, pDesc, InitialResourceState,
                                         pOptimizedClearValue, riidResource, (void **)&wrapped);
 
+      if(HeapFlags & D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT)
+        wrapped->SetResident(false);
+
       D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
       record->type = Resource_Resource;
       record->Length = 0;
@@ -1434,6 +1440,10 @@ bool WrappedID3D12Device::Serialise_CreateHeap(SerialiserType &ser, const D3D12_
   if(IsReplayingAndReading())
   {
     void *realptr = NULL;
+
+    // don't create resources non-resident
+    Descriptor.Flags &= ~D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT;
+
     HRESULT hr = m_pDevice->CreateHeap(&Descriptor, guid, &realptr);
 
     ID3D12Heap *ret = NULL;
@@ -1489,6 +1499,9 @@ HRESULT WrappedID3D12Device::CreateHeap(const D3D12_HEAP_DESC *pDesc, REFIID rii
 
       SCOPED_SERIALISE_CHUNK(D3D12Chunk::Device_CreateHeap);
       Serialise_CreateHeap(ser, pDesc, riid, (void **)&wrapped);
+
+      if(pDesc->Flags & D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT)
+        wrapped->SetResident(false);
 
       D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
       record->type = Resource_Heap;
@@ -2324,6 +2337,9 @@ bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE
       heapFlags &= ~(D3D12_HEAP_FLAG_DENY_BUFFERS | D3D12_HEAP_FLAG_DENY_NON_RT_DS_TEXTURES |
                      D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES);
 
+      // don't create resources non-resident
+      heapFlags &= ~D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT;
+
       HRESULT hr;
       ID3D12Resource *ret;
       hr = m_pDevice->CreateCommittedResource(&heapProperties, heapFlags, &desc,
@@ -2446,10 +2462,13 @@ HRESULT WrappedID3D12Device::OpenSharedHandle(HANDLE NTHandle, REFIID riid, void
     return hr;
   }
 
-  return OpenSharedHandleInternal(D3D12Chunk::Device_OpenSharedHandle, riid, ppvObj);
+  return OpenSharedHandleInternal(D3D12Chunk::Device_OpenSharedHandle, D3D12_HEAP_FLAG_NONE, riid,
+                                  ppvObj);
 }
 
-HRESULT WrappedID3D12Device::OpenSharedHandleInternal(D3D12Chunk chunkType, REFIID riid, void **ppvObj)
+HRESULT WrappedID3D12Device::OpenSharedHandleInternal(D3D12Chunk chunkType,
+                                                      D3D12_HEAP_FLAGS HeapFlags, REFIID riid,
+                                                      void **ppvObj)
 {
   if(IsReplayMode(m_State))
   {
@@ -2586,6 +2605,9 @@ HRESULT WrappedID3D12Device::OpenSharedHandleInternal(D3D12Chunk chunkType, REFI
 
       WrappedID3D12Resource1 *wrapped = new WrappedID3D12Resource1(real, this);
 
+      if(HeapFlags & D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT)
+        wrapped->SetResident(false);
+
       wrappedDeviceChild = wrapped;
 
       D3D12_RESOURCE_DESC desc = wrapped->GetDesc();
@@ -2627,6 +2649,9 @@ HRESULT WrappedID3D12Device::OpenSharedHandleInternal(D3D12Chunk chunkType, REFI
         real = (ID3D12Heap1 *)ret;
 
       WrappedID3D12Heap1 *wrapped = new WrappedID3D12Heap1(real, this);
+
+      if(HeapFlags & D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT)
+        wrapped->SetResident(false);
 
       wrappedDeviceChild = wrapped;
 

@@ -246,8 +246,8 @@ HRESULT STDMETHODCALLTYPE WrappedCompatibilityDevice::CreateSharedResource(
     return hr;
   }
 
-  return m_pDevice.OpenSharedHandleInternal(D3D12Chunk::CompatDevice_CreateSharedResource, riid,
-                                            ppResource);
+  return m_pDevice.OpenSharedHandleInternal(D3D12Chunk::CompatDevice_CreateSharedResource,
+                                            HeapFlags, riid, ppResource);
 }
 
 HRESULT STDMETHODCALLTYPE WrappedCompatibilityDevice::CreateSharedHeap(
@@ -268,7 +268,8 @@ HRESULT STDMETHODCALLTYPE WrappedCompatibilityDevice::CreateSharedHeap(
     return hr;
   }
 
-  return m_pDevice.OpenSharedHandleInternal(D3D12Chunk::CompatDevice_CreateSharedHeap, riid, ppHeap);
+  return m_pDevice.OpenSharedHandleInternal(D3D12Chunk::CompatDevice_CreateSharedHeap,
+                                            pHeapDesc->Flags, riid, ppHeap);
 }
 
 HRESULT STDMETHODCALLTYPE WrappedCompatibilityDevice::ReflectSharedProperties(
@@ -1272,8 +1273,8 @@ IDXGIResource *WrappedID3D12Device::WrapExternalDXGIResource(IDXGIResource *res)
   }
 
   void *voidRes = (void *)res;
-  OpenSharedHandleInternal(D3D12Chunk::Device_ExternalDXGIResource, __uuidof(IDXGIResource),
-                           &voidRes);
+  OpenSharedHandleInternal(D3D12Chunk::Device_ExternalDXGIResource, D3D12_HEAP_FLAG_NONE,
+                           __uuidof(IDXGIResource), &voidRes);
   return (IDXGIResource *)voidRes;
 }
 

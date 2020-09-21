@@ -1061,8 +1061,8 @@ public:
                                        const SECURITY_ATTRIBUTES *pAttributes, DWORD Access,
                                        LPCWSTR Name, HANDLE *pHandle);
 
-  HRESULT STDMETHODCALLTYPE OpenSharedHandleInternal(D3D12Chunk chunkType, REFIID riid,
-                                                     void **ppvObj);
+  HRESULT STDMETHODCALLTYPE OpenSharedHandleInternal(D3D12Chunk chunkType, D3D12_HEAP_FLAGS HeapFlags,
+                                                     REFIID riid, void **ppvObj);
 
   IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, OpenSharedHandle,
                                        HANDLE NTHandle, REFIID riid, void **ppvObj);

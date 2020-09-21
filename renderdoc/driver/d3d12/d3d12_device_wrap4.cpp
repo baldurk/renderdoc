@@ -412,6 +412,10 @@ bool WrappedID3D12Device::Serialise_CreateHeap1(SerialiserType &ser, const D3D12
   if(IsReplayingAndReading())
   {
     void *realptr = NULL;
+
+    // don't create resources non-resident
+    Descriptor.Flags &= ~D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT;
+
     // don't replay with a protected session
     HRESULT hr = E_NOINTERFACE;
     if(m_pDevice4)
@@ -475,6 +479,9 @@ HRESULT WrappedID3D12Device::CreateHeap1(const D3D12_HEAP_DESC *pDesc,
 
       SCOPED_SERIALISE_CHUNK(D3D12Chunk::Device_CreateHeap1);
       Serialise_CreateHeap1(ser, pDesc, pProtectedSession, riid, (void **)&wrapped);
+
+      if(pDesc->Flags & D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT)
+        wrapped->SetResident(false);
 
       D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
       record->type = Resource_Heap;
