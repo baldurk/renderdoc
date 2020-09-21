@@ -254,6 +254,7 @@ void WrappedVulkan::AddFreeCommandBuffer(VkCommandBuffer cmd)
 void WrappedVulkan::SubmitCmds(VkSemaphore *unwrappedWaitSemaphores,
                                VkPipelineStageFlags *waitStageMask, uint32_t waitSemaphoreCount)
 {
+  RENDERDOC_PROFILEFUNCTION();
   // nothing to do
   if(m_InternalCmds.pendingcmds.empty())
     return;
@@ -333,6 +334,7 @@ void WrappedVulkan::SubmitSemaphores()
 
 void WrappedVulkan::FlushQ()
 {
+  RENDERDOC_PROFILEFUNCTION();
   // VKTODOLOW could do away with the need for this function by keeping
   // commands until N presents later, or something, or checking on fences.
   // If we do so, then check each use for FlushQ to see if it needs a
@@ -2695,6 +2697,7 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
 
 void WrappedVulkan::ApplyInitialContents()
 {
+  RENDERDOC_PROFILEFUNCTION();
   VkMarkerRegion region("ApplyInitialContents");
 
   // check that we have all external queues necessary

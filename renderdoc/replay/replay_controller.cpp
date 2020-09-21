@@ -91,6 +91,7 @@ ReplayController::~ReplayController()
 void ReplayController::SetFrameEvent(uint32_t eventId, bool force)
 {
   CHECK_REPLAY_THREAD();
+  RENDERDOC_PROFILEFUNCTION();
 
   if(eventId != m_EventID || force)
   {
@@ -164,6 +165,8 @@ rdcstr ReplayController::DisassembleShader(ResourceId pipeline, const ShaderRefl
                                            const char *target)
 {
   CHECK_REPLAY_THREAD();
+
+  RENDERDOC_PROFILEFUNCTION();
 
   if(refl == NULL)
     return "; Error: No shader specified";
@@ -419,6 +422,8 @@ rdcarray<CounterResult> ReplayController::FetchCounters(const rdcarray<GPUCounte
 {
   CHECK_REPLAY_THREAD();
 
+  RENDERDOC_PROFILEFUNCTION();
+
   return m_pDevice->FetchCounters(counters);
 }
 
@@ -533,6 +538,7 @@ bytebuf ReplayController::GetBufferData(ResourceId buff, uint64_t offset, uint64
 bytebuf ReplayController::GetTextureData(ResourceId tex, const Subresource &sub)
 {
   CHECK_REPLAY_THREAD();
+  RENDERDOC_PROFILEFUNCTION();
 
   bytebuf ret;
 
@@ -552,6 +558,7 @@ bytebuf ReplayController::GetTextureData(ResourceId tex, const Subresource &sub)
 bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path)
 {
   CHECK_REPLAY_THREAD();
+  RENDERDOC_PROFILEFUNCTION();
 
   TextureSave sd = saveData;    // mutable copy
   ResourceId liveid = m_pDevice->GetLiveID(sd.resourceId);
@@ -1414,6 +1421,8 @@ rdcarray<PixelModification> ReplayController::PixelHistory(ResourceId target, ui
 {
   CHECK_REPLAY_THREAD();
 
+  RENDERDOC_PROFILEFUNCTION();
+
   rdcarray<PixelModification> ret;
 
   Subresource subresource = sub;
@@ -1541,6 +1550,7 @@ PixelValue ReplayController::PickPixel(ResourceId tex, uint32_t x, uint32_t y,
                                        const Subresource &sub, CompType typeCast)
 {
   CHECK_REPLAY_THREAD();
+  RENDERDOC_PROFILEFUNCTION();
 
   PixelValue ret;
 
@@ -1587,6 +1597,8 @@ ShaderDebugTrace *ReplayController::DebugVertex(uint32_t vertid, uint32_t instid
 {
   CHECK_REPLAY_THREAD();
 
+  RENDERDOC_PROFILEFUNCTION();
+
   ShaderDebugTrace *ret = m_pDevice->DebugVertex(m_EventID, vertid, instid, idx, view);
 
   SetFrameEvent(m_EventID, true);
@@ -1599,6 +1611,8 @@ ShaderDebugTrace *ReplayController::DebugPixel(uint32_t x, uint32_t y, uint32_t 
 {
   CHECK_REPLAY_THREAD();
 
+  RENDERDOC_PROFILEFUNCTION();
+
   ShaderDebugTrace *ret = m_pDevice->DebugPixel(m_EventID, x, y, sample, primitive);
 
   SetFrameEvent(m_EventID, true);
@@ -1610,6 +1624,8 @@ ShaderDebugTrace *ReplayController::DebugThread(const uint32_t groupid[3], const
 {
   CHECK_REPLAY_THREAD();
 
+  RENDERDOC_PROFILEFUNCTION();
+
   ShaderDebugTrace *ret = m_pDevice->DebugThread(m_EventID, groupid, threadid);
 
   SetFrameEvent(m_EventID, true);
@@ -1620,6 +1636,8 @@ ShaderDebugTrace *ReplayController::DebugThread(const uint32_t groupid[3], const
 rdcarray<ShaderDebugState> ReplayController::ContinueDebug(ShaderDebugger *debugger)
 {
   CHECK_REPLAY_THREAD();
+
+  RENDERDOC_PROFILEFUNCTION();
 
   rdcarray<ShaderDebugState> ret = m_pDevice->ContinueDebug(debugger);
 
@@ -1642,6 +1660,8 @@ rdcarray<ShaderVariable> ReplayController::GetCBufferVariableContents(
     ResourceId buffer, uint64_t offset, uint64_t length)
 {
   CHECK_REPLAY_THREAD();
+
+  RENDERDOC_PROFILEFUNCTION();
 
   bytebuf data;
   if(buffer != ResourceId())
@@ -1857,6 +1877,8 @@ rdcpair<ResourceId, rdcstr> ReplayController::BuildTargetShader(
 {
   CHECK_REPLAY_THREAD();
 
+  RENDERDOC_PROFILEFUNCTION();
+
   if(source.empty())
     return rdcpair<ResourceId, rdcstr>(ResourceId(), "0-byte shader is not valid");
 
@@ -1975,6 +1997,8 @@ ReplayStatus ReplayController::CreateDevice(RDCFile *rdc, const ReplayOptions &o
 {
   CHECK_REPLAY_THREAD();
 
+  RENDERDOC_PROFILEFUNCTION();
+
   IReplayDriver *driver = NULL;
   ReplayStatus status = RenderDoc::Inst().CreateReplayDriver(rdc, opts, &driver);
 
@@ -2005,6 +2029,8 @@ ReplayStatus ReplayController::SetDevice(IReplayDriver *device)
 ReplayStatus ReplayController::PostCreateInit(IReplayDriver *device, RDCFile *rdc)
 {
   CHECK_REPLAY_THREAD();
+
+  RENDERDOC_PROFILEFUNCTION();
 
   m_pDevice = device;
 
@@ -2053,6 +2079,8 @@ APIProperties ReplayController::GetAPIProperties()
 void ReplayController::FetchPipelineState(uint32_t eventId)
 {
   CHECK_REPLAY_THREAD();
+
+  RENDERDOC_PROFILEFUNCTION();
 
   m_pDevice->SavePipelineState(eventId);
 

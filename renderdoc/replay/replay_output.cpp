@@ -389,6 +389,8 @@ rdcpair<uint32_t, uint32_t> ReplayOutput::PickVertex(uint32_t x, uint32_t y)
 {
   CHECK_REPLAY_THREAD();
 
+  RENDERDOC_PROFILEFUNCTION();
+
   DrawcallDescription *draw = m_pRenderer->GetDrawcallByEID(m_EventID);
 
   const rdcpair<uint32_t, uint32_t> errorReturn = {~0U, ~0U};
@@ -566,6 +568,8 @@ void ReplayOutput::Display()
 {
   CHECK_REPLAY_THREAD();
 
+  RENDERDOC_PROFILEFUNCTION();
+
   if(m_pDevice->CheckResizeOutputWindow(m_MainOutput.outputID))
   {
     m_pDevice->GetOutputWindowDimensions(m_MainOutput.outputID, m_Width, m_Height);
@@ -680,6 +684,8 @@ void ReplayOutput::DisplayTex()
 {
   CHECK_REPLAY_THREAD();
 
+  RENDERDOC_PROFILEFUNCTION();
+
   DrawcallDescription *draw = m_pRenderer->GetDrawcallByEID(m_EventID);
 
   if(m_MainOutput.outputID == 0)
@@ -766,6 +772,8 @@ void ReplayOutput::DisplayTex()
 void ReplayOutput::DisplayMesh()
 {
   CHECK_REPLAY_THREAD();
+
+  RENDERDOC_PROFILEFUNCTION();
 
   DrawcallDescription *draw = m_pRenderer->GetDrawcallByEID(m_EventID);
 

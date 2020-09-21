@@ -1271,6 +1271,8 @@ ID3D12Resource *WrappedID3D12Device::GetUploadBuffer(uint64_t chunkOffset, uint6
 
 void WrappedID3D12Device::ApplyInitialContents()
 {
+  RENDERDOC_PROFILEFUNCTION();
+
   initStateCurBatch = 0;
   initStateCurList = NULL;
 

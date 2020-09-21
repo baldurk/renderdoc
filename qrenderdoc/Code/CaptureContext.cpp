@@ -66,6 +66,8 @@
 
 CaptureContext::CaptureContext(PersistantConfig &cfg) : m_Config(cfg)
 {
+  RENDERDOC_PROFILEFUNCTION();
+
   m_CaptureLoaded = false;
   m_LoadInProgress = false;
 
@@ -699,6 +701,8 @@ void CaptureContext::CleanMenu(QAction *action)
 void CaptureContext::LoadCapture(const rdcstr &captureFile, const ReplayOptions &opts,
                                  const rdcstr &origFilename, bool temporary, bool local)
 {
+  RENDERDOC_PROFILEFUNCTION();
+
   CloseCapture();
 
   PointerTypeRegistry::Init();
@@ -1458,6 +1462,8 @@ void CaptureContext::ExportCapture(const CaptureFileFormat &fmt, const rdcstr &e
 void CaptureContext::SetEventID(const rdcarray<ICaptureViewer *> &exclude, uint32_t selectedEventID,
                                 uint32_t eventId, bool force)
 {
+  RENDERDOC_PROFILEFUNCTION();
+
   if(!IsCaptureLoaded())
     return;
 
