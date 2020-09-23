@@ -446,10 +446,10 @@ void Program::MakeDisassemblyString()
       if(g.flags & GlobalFlags::IsExternal)
         m_Disassembly += "external ";
     }
-    if(!(g.flags & GlobalFlags::IsExternal))
-      m_Disassembly += "internal ";
     if(g.flags & GlobalFlags::IsAppending)
       m_Disassembly += "appending ";
+    else if(!(g.flags & GlobalFlags::IsExternal))
+      m_Disassembly += "internal ";
     if(g.type->addrSpace)
       m_Disassembly += StringFormat::Fmt("addrspace(%d) ", g.type->addrSpace);
     if(g.flags & GlobalFlags::LocalUnnamedAddr)
@@ -527,7 +527,8 @@ void Program::MakeDisassemblyString()
             if(m.isConstant && m.constant && m.constant->symbol)
               ret += m.constant->toString(withTypes);
             else if(m.isConstant && m.constant &&
-                    (m.constant->type->type == Type::Scalar || m.constant->nullconst))
+                    (m.constant->type->type == Type::Scalar || m.constant->nullconst ||
+                     m.constant->type->name.beginsWith("class.matrix.")))
               ret += m.constant->toString(withTypes);
             else
               ret += StringFormat::Fmt("!%u", GetOrAssignMetaID(&m));

@@ -942,6 +942,7 @@ Program::Program(const byte *bytes, size_t length)
       else if(IS_KNOWN(rootchild.id, KnownBlocks::CONSTANTS_BLOCK))
       {
         const Type *t = NULL;
+        m_Constants.reserve(m_Constants.size() + rootchild.children.size());
         for(const LLVMBC::BlockOrRecord &constant : rootchild.children)
         {
           if(constant.IsBlock())
