@@ -13,9 +13,9 @@ machine-readable definition of the API, parameter and member validation
 language incorporated into the Specification and reference pages, and other
 material which is registered by Khronos, such as tags used by extension and
 layer authors. The authoritative public version of vk.xml is maintained in
-the master branch of the Khronos Vulkan GitHub project. The authoritative
-private version is maintained in the master branch of the member gitlab
-server.
+the default branch (currently named main) of the Khronos Vulkan GitHub
+project. The authoritative private version is maintained in the default
+branch of the member gitlab server.
     </comment>
 
     <platforms comment="Vulkan platform names, reserved for use with platform- and window system-specific extensions">
@@ -23,6 +23,7 @@ server.
         <platform name="xlib_xrandr" protect="VK_USE_PLATFORM_XLIB_XRANDR_EXT" comment="X Window System, Xlib client library, XRandR extension"/>
         <platform name="xcb" protect="VK_USE_PLATFORM_XCB_KHR" comment="X Window System, Xcb client library"/>
         <platform name="wayland" protect="VK_USE_PLATFORM_WAYLAND_KHR" comment="Wayland display server protocol"/>
+        <platform name="directfb" protect="VK_USE_PLATFORM_DIRECTFB_EXT" comment="DirectFB library"/>
         <platform name="android" protect="VK_USE_PLATFORM_ANDROID_KHR" comment="Android OS"/>
         <platform name="win32" protect="VK_USE_PLATFORM_WIN32_KHR" comment="Microsoft Win32 API (also refers to Win64 apps)"/>
         <platform name="vi" protect="VK_USE_PLATFORM_VI_NN" comment="Nintendo Vi"/>
@@ -77,6 +78,7 @@ server.
         <type category="include" name="wayland-client.h"/>
         <type category="include" name="windows.h"/>
         <type category="include" name="xcb/xcb.h"/>
+        <type category="include" name="directfb.h"/>
         <type category="include" name="zircon/types.h"/>
         <type category="include" name="ggp_c/vulkan_types.h"/>
             <comment>
@@ -112,6 +114,8 @@ server.
         <type requires="xcb/xcb.h" name="xcb_connection_t"/>
         <type requires="xcb/xcb.h" name="xcb_visualid_t"/>
         <type requires="xcb/xcb.h" name="xcb_window_t"/>
+        <type requires="directfb.h" name="IDirectFB"/>
+        <type requires="directfb.h" name="IDirectFBSurface"/>
         <type requires="zircon/types.h" name="zx_handle_t"/>
         <type requires="ggp_c/vulkan_types.h" name="GgpStreamDescriptor"/>
         <type requires="ggp_c/vulkan_types.h" name="GgpFrameToken"/>
@@ -131,7 +135,7 @@ server.
         <type category="define">// Vulkan 1.2 version number
 #define <name>VK_API_VERSION_1_2</name> <type>VK_MAKE_VERSION</type>(1, 2, 0)// Patch version should always be set to 0</type>
         <type category="define">// Version of this file
-#define <name>VK_HEADER_VERSION</name> 145</type>
+#define <name>VK_HEADER_VERSION</name> 153</type>
         <type category="define" requires="VK_HEADER_VERSION">// Complete version of this file
 #define <name>VK_HEADER_VERSION_COMPLETE</name> <type>VK_MAKE_VERSION</type>(1, 2, VK_HEADER_VERSION)</type>
 
@@ -272,6 +276,7 @@ typedef void <name>CAMetalLayer</name>;
         <type                                             category="bitmask">typedef <type>VkFlags</type> <name>VkWin32SurfaceCreateFlagsKHR</name>;</type>
         <type                                             category="bitmask">typedef <type>VkFlags</type> <name>VkXlibSurfaceCreateFlagsKHR</name>;</type>
         <type                                             category="bitmask">typedef <type>VkFlags</type> <name>VkXcbSurfaceCreateFlagsKHR</name>;</type>
+        <type                                             category="bitmask">typedef <type>VkFlags</type> <name>VkDirectFBSurfaceCreateFlagsEXT</name>;</type>
         <type                                             category="bitmask">typedef <type>VkFlags</type> <name>VkIOSSurfaceCreateFlagsMVK</name>;</type>
         <type                                             category="bitmask">typedef <type>VkFlags</type> <name>VkMacOSSurfaceCreateFlagsMVK</name>;</type>
         <type                                             category="bitmask">typedef <type>VkFlags</type> <name>VkMetalSurfaceCreateFlagsEXT</name>;</type>
@@ -1128,9 +1133,9 @@ typedef void <name>CAMetalLayer</name>;
             <member values="VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO"><type>VkStructureType</type> <name>sType</name></member>
             <member>const <type>void</type>*            <name>pNext</name></member>
             <member optional="true"><type>VkPipelineViewportStateCreateFlags</type>    <name>flags</name></member>
-            <member><type>uint32_t</type>               <name>viewportCount</name></member>
+            <member optional="true"><type>uint32_t</type>               <name>viewportCount</name></member>
             <member noautovalidity="true" optional="true" len="viewportCount">const <type>VkViewport</type>*      <name>pViewports</name></member>
-            <member><type>uint32_t</type>               <name>scissorCount</name></member>
+            <member optional="true"><type>uint32_t</type>               <name>scissorCount</name></member>
             <member noautovalidity="true" optional="true" len="scissorCount">const <type>VkRect2D</type>*        <name>pScissors</name></member>
         </type>
         <type category="struct" name="VkPipelineRasterizationStateCreateInfo">
@@ -1727,6 +1732,13 @@ typedef void <name>CAMetalLayer</name>;
             <member optional="true"><type>VkXcbSurfaceCreateFlagsKHR</type>   <name>flags</name></member>
             <member noautovalidity="true"><type>xcb_connection_t</type>*                <name>connection</name></member>
             <member><type>xcb_window_t</type>                     <name>window</name></member>
+        </type>
+        <type category="struct" name="VkDirectFBSurfaceCreateInfoEXT">
+            <member values="VK_STRUCTURE_TYPE_DIRECTFB_SURFACE_CREATE_INFO_EXT"><type>VkStructureType</type> <name>sType</name></member>
+            <member>const <type>void</type>*                      <name>pNext</name></member>
+            <member optional="true"><type>VkDirectFBSurfaceCreateFlagsEXT</type>   <name>flags</name></member>
+            <member noautovalidity="true"><type>IDirectFB</type>*                       <name>dfb</name></member>
+            <member noautovalidity="true"><type>IDirectFBSurface</type>*                <name>surface</name></member>
         </type>
         <type category="struct" name="VkImagePipeSurfaceCreateInfoFUCHSIA">
             <member values="VK_STRUCTURE_TYPE_IMAGEPIPE_SURFACE_CREATE_INFO_FUCHSIA"><type>VkStructureType</type> <name>sType</name></member>
@@ -3140,7 +3152,7 @@ typedef void <name>CAMetalLayer</name>;
             <member len="null-terminated">const <type>char</type>*      <name>pLabelName</name></member>
             <member optional="true"><type>float</type>                  <name>color</name>[4]</member>
         </type>
-        <type category="struct" name="VkDebugUtilsMessengerCreateInfoEXT" structextends="VkInstanceCreateInfo">
+        <type category="struct" name="VkDebugUtilsMessengerCreateInfoEXT" allowduplicate="true" structextends="VkInstanceCreateInfo">
             <member values="VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT"><type>VkStructureType</type> <name>sType</name></member>
             <member>const <type>void</type>*                                          <name>pNext</name></member>
             <member optional="true"><type>VkDebugUtilsMessengerCreateFlagsEXT</type>  <name>flags</name></member>
@@ -3285,7 +3297,7 @@ typedef void <name>CAMetalLayer</name>;
             <member values="VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO"><type>VkStructureType</type> <name>sType</name></member>
             <member>const <type>void</type>*                                                        <name>pNext</name></member>
             <member optional="true"><type>uint32_t</type>                                           <name>bindingCount</name></member>
-            <member len="bindingCount" optional="true">const <type>VkDescriptorBindingFlags</type>* <name>pBindingFlags</name></member>
+            <member len="bindingCount" optional="false,true">const <type>VkDescriptorBindingFlags</type>* <name>pBindingFlags</name></member>
         </type>
         <type category="struct" name="VkDescriptorSetLayoutBindingFlagsCreateInfoEXT"          alias="VkDescriptorSetLayoutBindingFlagsCreateInfo"/>
         <type category="struct" name="VkDescriptorSetVariableDescriptorCountAllocateInfo" structextends="VkDescriptorSetAllocateInfo">
@@ -3516,6 +3528,22 @@ typedef void <name>CAMetalLayer</name>;
             <member><type>VkBool32</type>                            <name>shaderSharedInt64Atomics</name></member>
         </type>
         <type category="struct" name="VkPhysicalDeviceShaderAtomicInt64FeaturesKHR"            alias="VkPhysicalDeviceShaderAtomicInt64Features"/>
+        <type category="struct" name="VkPhysicalDeviceShaderAtomicFloatFeaturesEXT" structextends="VkPhysicalDeviceFeatures2,VkDeviceCreateInfo">
+            <member values="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_FLOAT_FEATURES_EXT"><type>VkStructureType</type> <name>sType</name></member>
+            <member><type>void</type>*                               <name>pNext</name></member>
+            <member><type>VkBool32</type>                            <name>shaderBufferFloat32Atomics</name></member>
+            <member><type>VkBool32</type>                            <name>shaderBufferFloat32AtomicAdd</name></member>
+            <member><type>VkBool32</type>                            <name>shaderBufferFloat64Atomics</name></member>
+            <member><type>VkBool32</type>                            <name>shaderBufferFloat64AtomicAdd</name></member>
+            <member><type>VkBool32</type>                            <name>shaderSharedFloat32Atomics</name></member>
+            <member><type>VkBool32</type>                            <name>shaderSharedFloat32AtomicAdd</name></member>
+            <member><type>VkBool32</type>                            <name>shaderSharedFloat64Atomics</name></member>
+            <member><type>VkBool32</type>                            <name>shaderSharedFloat64AtomicAdd</name></member>
+            <member><type>VkBool32</type>                            <name>shaderImageFloat32Atomics</name></member>
+            <member><type>VkBool32</type>                            <name>shaderImageFloat32AtomicAdd</name></member>
+            <member><type>VkBool32</type>                            <name>sparseImageFloat32Atomics</name></member>
+            <member><type>VkBool32</type>                            <name>sparseImageFloat32AtomicAdd</name></member>
+        </type>
         <type category="struct" name="VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT" structextends="VkPhysicalDeviceFeatures2,VkDeviceCreateInfo">
             <member values="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_FEATURES_EXT"><type>VkStructureType</type> <name>sType</name></member>
             <member noautovalidity="true"><type>void</type>*        <name>pNext</name></member>
@@ -3641,7 +3669,7 @@ typedef void <name>CAMetalLayer</name>;
             <member values="VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_SHADING_RATE_IMAGE_STATE_CREATE_INFO_NV"><type>VkStructureType</type> <name>sType</name></member>
             <member>const <type>void</type>*                                                             <name>pNext</name></member>
             <member><type>VkBool32</type>                                                                <name>shadingRateImageEnable</name></member>
-            <member noautovalidity="true"><type>uint32_t</type>                                          <name>viewportCount</name></member>
+            <member><type>uint32_t</type>                                                <name>viewportCount</name></member>
             <member noautovalidity="true" len="viewportCount">const <type>VkShadingRatePaletteNV</type>* <name>pShadingRatePalettes</name></member>
         </type>
         <type category="struct" name="VkPhysicalDeviceShadingRateImageFeaturesNV" structextends="VkPhysicalDeviceFeatures2,VkDeviceCreateInfo">
@@ -3925,12 +3953,17 @@ typedef void <name>CAMetalLayer</name>;
             <member>const <type>void</type>*                      <name>pNext</name></member>
             <member><type>VkMemoryOverallocationBehaviorAMD</type> <name>overallocationBehavior</name></member>
         </type>
-        <type category="struct" name="VkPhysicalDeviceFragmentDensityMapFeaturesEXT" returnedonly="true" structextends="VkPhysicalDeviceFeatures2,VkDeviceCreateInfo">
+        <type category="struct" name="VkPhysicalDeviceFragmentDensityMapFeaturesEXT" structextends="VkPhysicalDeviceFeatures2,VkDeviceCreateInfo">
             <member values="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_FEATURES_EXT"><type>VkStructureType</type> <name>sType</name></member>
             <member><type>void</type>*                            <name>pNext</name></member>
             <member><type>VkBool32</type>                         <name>fragmentDensityMap</name></member>
             <member><type>VkBool32</type>                         <name>fragmentDensityMapDynamic</name></member>
             <member><type>VkBool32</type>                         <name>fragmentDensityMapNonSubsampledImages</name></member>
+        </type>
+        <type category="struct" name="VkPhysicalDeviceFragmentDensityMap2FeaturesEXT" structextends="VkPhysicalDeviceFeatures2,VkDeviceCreateInfo">
+            <member values="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_2_FEATURES_EXT"><type>VkStructureType</type> <name>sType</name></member>
+            <member><type>void</type>*                            <name>pNext</name></member>
+            <member><type>VkBool32</type>                         <name>fragmentDensityMapDeferred</name></member>
         </type>
         <type category="struct" name="VkPhysicalDeviceFragmentDensityMapPropertiesEXT" returnedonly="true" structextends="VkPhysicalDeviceProperties2">
             <member values="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_PROPERTIES_EXT"><type>VkStructureType</type> <name>sType</name></member>
@@ -3938,6 +3971,14 @@ typedef void <name>CAMetalLayer</name>;
             <member><type>VkExtent2D</type>                       <name>minFragmentDensityTexelSize</name></member>
             <member><type>VkExtent2D</type>                       <name>maxFragmentDensityTexelSize</name></member>
             <member><type>VkBool32</type>                         <name>fragmentDensityInvocations</name></member>
+        </type>
+        <type category="struct" name="VkPhysicalDeviceFragmentDensityMap2PropertiesEXT" returnedonly="true" structextends="VkPhysicalDeviceProperties2">
+            <member values="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_2_PROPERTIES_EXT"><type>VkStructureType</type> <name>sType</name></member>
+            <member><type>void</type>*                          <name>pNext</name></member>
+            <member><type>VkBool32</type>                       <name>subsampledLoads</name></member>
+            <member><type>VkBool32</type>                       <name>subsampledCoarseReconstructionEarlyAccess</name></member>
+            <member><type>uint32_t</type>                       <name>maxSubsampledArrayLayers</name></member>
+            <member><type>uint32_t</type>                       <name>maxDescriptorSetSubsampledSamplers</name></member>
         </type>
         <type category="struct" name="VkRenderPassFragmentDensityMapCreateInfoEXT" structextends="VkRenderPassCreateInfo,VkRenderPassCreateInfo2">
             <member values="VK_STRUCTURE_TYPE_RENDER_PASS_FRAGMENT_DENSITY_MAP_CREATE_INFO_EXT"><type>VkStructureType</type> <name>sType</name></member>
@@ -4237,7 +4278,7 @@ typedef void <name>CAMetalLayer</name>;
         <type category="struct" name="VkInitializePerformanceApiInfoINTEL" >
             <member values="VK_STRUCTURE_TYPE_INITIALIZE_PERFORMANCE_API_INFO_INTEL"><type>VkStructureType</type> <name>sType</name></member>
             <member>const <type>void</type>*                         <name>pNext</name></member>
-            <member optional="false"><type>void</type>*             <name>pUserData</name></member>
+            <member optional="true"><type>void</type>*               <name>pUserData</name></member>
         </type>
         <type category="struct" name="VkQueryPoolPerformanceQueryCreateInfoINTEL" structextends="VkQueryPoolCreateInfo">
             <member values="VK_STRUCTURE_TYPE_QUERY_POOL_PERFORMANCE_QUERY_CREATE_INFO_INTEL"><type>VkStructureType</type> <name>sType</name></member>
@@ -4808,6 +4849,17 @@ typedef void <name>CAMetalLayer</name>;
             <member noautovalidity="true"><type>void</type>*        <name>pNext</name></member>
             <member><type>VkDeviceSize</type>                       <name>robustStorageBufferAccessSizeAlignment</name></member>
             <member><type>VkDeviceSize</type>                       <name>robustUniformBufferAccessSizeAlignment</name></member>
+        </type>
+        <type category="struct" name="VkPhysicalDeviceImageRobustnessFeaturesEXT" structextends="VkPhysicalDeviceFeatures2,VkDeviceCreateInfo">
+            <member values="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_ROBUSTNESS_FEATURES_EXT"><type>VkStructureType</type> <name>sType</name></member>
+            <member noautovalidity="true"><type>void</type>*        <name>pNext</name></member>
+            <member><type>VkBool32</type>                           <name>robustImageAccess</name></member>
+        </type>
+        <type category="struct" name="VkPhysicalDevice4444FormatsFeaturesEXT" structextends="VkPhysicalDeviceFeatures2,VkDeviceCreateInfo">
+            <member values="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_4444_FORMATS_FEATURES_EXT"><type>VkStructureType</type> <name>sType</name></member>
+            <member noautovalidity="true"><type>void</type>*        <name>pNext</name></member>
+            <member><type>VkBool32</type>                           <name>formatA4R4G4B4</name></member>
+            <member><type>VkBool32</type>                           <name>formatA4B4G4R4</name></member>
         </type>
     </types>
 
@@ -5721,6 +5773,7 @@ typedef void <name>CAMetalLayer</name>;
         <enum value="1"     name="VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT"/>
         <enum value="2"     name="VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT"/>
         <enum value="3"     name="VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT"/>
+        <enum value="4"     name="VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT"/>
     </enums>
     <enums name="VkValidationFeatureDisableEXT" type="enum">
         <enum value="0"     name="VK_VALIDATION_FEATURE_DISABLE_ALL_EXT"/>
@@ -5782,6 +5835,7 @@ typedef void <name>CAMetalLayer</name>;
         <enum bitpos="1"    name="VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_BIT"/>
         <enum bitpos="2"    name="VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_KMT_BIT"/>
         <enum bitpos="3"    name="VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_D3D12_FENCE_BIT"/>
+        <enum               name="VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_D3D11_FENCE_BIT" alias="VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_D3D12_FENCE_BIT"/>
         <enum bitpos="4"    name="VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_SYNC_FD_BIT"/>
     </enums>
     <enums name="VkExternalSemaphoreFeatureFlagBits" type="bitmask">
@@ -5958,6 +6012,7 @@ typedef void <name>CAMetalLayer</name>;
         <enum value="11"      name="VK_DRIVER_ID_GGP_PROPRIETARY"               comment="Google LLC"/>
         <enum value="12"      name="VK_DRIVER_ID_BROADCOM_PROPRIETARY"          comment="Broadcom Inc."/>
         <enum value="13"      name="VK_DRIVER_ID_MESA_LLVMPIPE"                 comment="Mesa"/>
+        <enum value="14"      name="VK_DRIVER_ID_MOLTENVK"                      comment="MoltenVK"/>
     </enums>
     <enums name="VkConditionalRenderingFlagBitsEXT" type="bitmask">
         <enum bitpos="0"    name="VK_CONDITIONAL_RENDERING_INVERTED_BIT_EXT"/>
@@ -6300,7 +6355,7 @@ typedef void <name>CAMetalLayer</name>;
                 <param>all sname:VkQueue objects created from pname:device</param>
             </implicitexternsyncparams>
         </command>
-        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_OUT_OF_DEVICE_MEMORY,VK_ERROR_TOO_MANY_OBJECTS,VK_ERROR_INVALID_EXTERNAL_HANDLE,VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS_KHR">
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_OUT_OF_DEVICE_MEMORY,VK_ERROR_INVALID_EXTERNAL_HANDLE,VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS_KHR">
             <proto><type>VkResult</type> <name>vkAllocateMemory</name></proto>
             <param><type>VkDevice</type> <name>device</name></param>
             <param>const <type>VkMemoryAllocateInfo</type>* <name>pAllocateInfo</name></param>
@@ -6409,7 +6464,7 @@ typedef void <name>CAMetalLayer</name>;
             <param optional="true" externsync="true"><type>VkFence</type> <name>fence</name></param>
             <param optional="true">const <type>VkAllocationCallbacks</type>* <name>pAllocator</name></param>
         </command>
-        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_OUT_OF_DEVICE_MEMORY">
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_DEVICE_MEMORY">
             <proto><type>VkResult</type> <name>vkResetFences</name></proto>
             <param><type>VkDevice</type> <name>device</name></param>
             <param><type>uint32_t</type> <name>fenceCount</name></param>
@@ -6464,7 +6519,7 @@ typedef void <name>CAMetalLayer</name>;
             <param><type>VkDevice</type> <name>device</name></param>
             <param externsync="true"><type>VkEvent</type> <name>event</name></param>
         </command>
-        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_OUT_OF_DEVICE_MEMORY">
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_DEVICE_MEMORY">
             <proto><type>VkResult</type> <name>vkResetEvent</name></proto>
             <param><type>VkDevice</type> <name>device</name></param>
             <param externsync="true"><type>VkEvent</type> <name>event</name></param>
@@ -6637,7 +6692,7 @@ typedef void <name>CAMetalLayer</name>;
             <param optional="true" externsync="true"><type>VkPipelineLayout</type> <name>pipelineLayout</name></param>
             <param optional="true">const <type>VkAllocationCallbacks</type>* <name>pAllocator</name></param>
         </command>
-        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_OUT_OF_DEVICE_MEMORY,VK_ERROR_TOO_MANY_OBJECTS">
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_OUT_OF_DEVICE_MEMORY">
             <proto><type>VkResult</type> <name>vkCreateSampler</name></proto>
             <param><type>VkDevice</type> <name>device</name></param>
             <param>const <type>VkSamplerCreateInfo</type>* <name>pCreateInfo</name></param>
@@ -6751,7 +6806,7 @@ typedef void <name>CAMetalLayer</name>;
             <param optional="true" externsync="true"><type>VkCommandPool</type> <name>commandPool</name></param>
             <param optional="true">const <type>VkAllocationCallbacks</type>* <name>pAllocator</name></param>
         </command>
-        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_OUT_OF_DEVICE_MEMORY">
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_DEVICE_MEMORY">
             <proto><type>VkResult</type> <name>vkResetCommandPool</name></proto>
             <param><type>VkDevice</type> <name>device</name></param>
             <param externsync="true"><type>VkCommandPool</type> <name>commandPool</name></param>
@@ -6785,7 +6840,7 @@ typedef void <name>CAMetalLayer</name>;
                 <param>the sname:VkCommandPool that pname:commandBuffer was allocated from</param>
             </implicitexternsyncparams>
         </command>
-        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_OUT_OF_DEVICE_MEMORY">
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_DEVICE_MEMORY">
             <proto><type>VkResult</type> <name>vkResetCommandBuffer</name></proto>
             <param externsync="true"><type>VkCommandBuffer</type> <name>commandBuffer</name></param>
             <param optional="true"><type>VkCommandBufferResetFlags</type> <name>flags</name></param>
@@ -7329,6 +7384,19 @@ typedef void <name>CAMetalLayer</name>;
             <param><type>xcb_visualid_t</type> <name>visual_id</name></param>
         </command>
         <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_OUT_OF_DEVICE_MEMORY">
+            <proto><type>VkResult</type> <name>vkCreateDirectFBSurfaceEXT</name></proto>
+            <param><type>VkInstance</type> <name>instance</name></param>
+            <param>const <type>VkDirectFBSurfaceCreateInfoEXT</type>* <name>pCreateInfo</name></param>
+            <param optional="true">const <type>VkAllocationCallbacks</type>* <name>pAllocator</name></param>
+            <param><type>VkSurfaceKHR</type>* <name>pSurface</name></param>
+        </command>
+        <command>
+            <proto><type>VkBool32</type> <name>vkGetPhysicalDeviceDirectFBPresentationSupportEXT</name></proto>
+            <param><type>VkPhysicalDevice</type> <name>physicalDevice</name></param>
+            <param><type>uint32_t</type> <name>queueFamilyIndex</name></param>
+            <param><type>IDirectFB</type>* <name>dfb</name></param>
+        </command>
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_OUT_OF_DEVICE_MEMORY">
             <proto><type>VkResult</type> <name>vkCreateImagePipeSurfaceFUCHSIA</name></proto>
             <param><type>VkInstance</type> <name>instance</name></param>
             <param>const <type>VkImagePipeSurfaceCreateInfoFUCHSIA</type>* <name>pCreateInfo</name></param>
@@ -7521,7 +7589,7 @@ typedef void <name>CAMetalLayer</name>;
             <param>const <type>VkMemoryGetWin32HandleInfoKHR</type>* <name>pGetWin32HandleInfo</name></param>
             <param><type>HANDLE</type>* <name>pHandle</name></param>
         </command>
-        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_INVALID_EXTERNAL_HANDLE">
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_INVALID_EXTERNAL_HANDLE">
             <proto><type>VkResult</type> <name>vkGetMemoryWin32HandlePropertiesKHR</name></proto>
             <param><type>VkDevice</type> <name>device</name></param>
             <param><type>VkExternalMemoryHandleTypeFlagBits</type> <name>handleType</name></param>
@@ -7534,7 +7602,7 @@ typedef void <name>CAMetalLayer</name>;
             <param>const <type>VkMemoryGetFdInfoKHR</type>* <name>pGetFdInfo</name></param>
             <param><type>int</type>* <name>pFd</name></param>
         </command>
-        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_INVALID_EXTERNAL_HANDLE">
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_INVALID_EXTERNAL_HANDLE">
             <proto><type>VkResult</type> <name>vkGetMemoryFdPropertiesKHR</name></proto>
             <param><type>VkDevice</type> <name>device</name></param>
             <param><type>VkExternalMemoryHandleTypeFlagBits</type> <name>handleType</name></param>
@@ -7604,33 +7672,33 @@ typedef void <name>CAMetalLayer</name>;
             <param><type>VkPhysicalDevice</type> <name>physicalDevice</name></param>
             <param><type>VkDisplayKHR</type> <name>display</name></param>
         </command>
-        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_INITIALIZATION_FAILED">
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_INITIALIZATION_FAILED">
             <proto><type>VkResult</type> <name>vkAcquireXlibDisplayEXT</name></proto>
             <param><type>VkPhysicalDevice</type> <name>physicalDevice</name></param>
             <param><type>Display</type>* <name>dpy</name></param>
             <param><type>VkDisplayKHR</type> <name>display</name></param>
         </command>
-        <command successcodes="VK_SUCCESS">
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY">
             <proto><type>VkResult</type> <name>vkGetRandROutputDisplayEXT</name></proto>
             <param><type>VkPhysicalDevice</type> <name>physicalDevice</name></param>
             <param><type>Display</type>* <name>dpy</name></param>
             <param><type>RROutput</type> <name>rrOutput</name></param>
             <param><type>VkDisplayKHR</type>* <name>pDisplay</name></param>
         </command>
-        <command successcodes="VK_SUCCESS">
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY">
             <proto><type>VkResult</type> <name>vkDisplayPowerControlEXT</name></proto>
             <param><type>VkDevice</type> <name>device</name></param>
             <param><type>VkDisplayKHR</type> <name>display</name></param>
             <param>const <type>VkDisplayPowerInfoEXT</type>* <name>pDisplayPowerInfo</name></param>
         </command>
-        <command successcodes="VK_SUCCESS">
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY">
             <proto><type>VkResult</type> <name>vkRegisterDeviceEventEXT</name></proto>
             <param><type>VkDevice</type> <name>device</name></param>
             <param>const <type>VkDeviceEventInfoEXT</type>* <name>pDeviceEventInfo</name></param>
             <param optional="true">const <type>VkAllocationCallbacks</type>* <name>pAllocator</name></param>
             <param><type>VkFence</type>* <name>pFence</name></param>
         </command>
-        <command successcodes="VK_SUCCESS">
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY">
             <proto><type>VkResult</type> <name>vkRegisterDisplayEventEXT</name></proto>
             <param><type>VkDevice</type> <name>device</name></param>
             <param><type>VkDisplayKHR</type> <name>display</name></param>
@@ -7638,7 +7706,7 @@ typedef void <name>CAMetalLayer</name>;
             <param optional="true">const <type>VkAllocationCallbacks</type>* <name>pAllocator</name></param>
             <param><type>VkFence</type>* <name>pFence</name></param>
         </command>
-        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_DEVICE_LOST,VK_ERROR_OUT_OF_DATE_KHR">
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_DEVICE_LOST,VK_ERROR_OUT_OF_DATE_KHR">
             <proto><type>VkResult</type> <name>vkGetSwapchainCounterEXT</name></proto>
             <param><type>VkDevice</type> <name>device</name></param>
             <param><type>VkSwapchainKHR</type> <name>swapchain</name></param>
@@ -7765,13 +7833,13 @@ typedef void <name>CAMetalLayer</name>;
             <param><type>VkDevice</type> <name>device</name></param>
             <param externsync="true"><type>VkSwapchainKHR</type> <name>swapchain</name></param>
         </command>
-        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_DEVICE_LOST,VK_ERROR_SURFACE_LOST_KHR">
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_DEVICE_LOST,VK_ERROR_SURFACE_LOST_KHR">
             <proto><type>VkResult</type> <name>vkGetRefreshCycleDurationGOOGLE</name></proto>
             <param><type>VkDevice</type> <name>device</name></param>
             <param externsync="true"><type>VkSwapchainKHR</type> <name>swapchain</name></param>
             <param><type>VkRefreshCycleDurationGOOGLE</type>* <name>pDisplayTimingProperties</name></param>
         </command>
-        <command successcodes="VK_SUCCESS,VK_INCOMPLETE" errorcodes="VK_ERROR_DEVICE_LOST,VK_ERROR_OUT_OF_DATE_KHR,VK_ERROR_SURFACE_LOST_KHR">
+        <command successcodes="VK_SUCCESS,VK_INCOMPLETE" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_DEVICE_LOST,VK_ERROR_OUT_OF_DATE_KHR,VK_ERROR_SURFACE_LOST_KHR">
             <proto><type>VkResult</type> <name>vkGetPastPresentationTimingGOOGLE</name></proto>
             <param><type>VkDevice</type> <name>device</name></param>
             <param externsync="true"><type>VkSwapchainKHR</type> <name>swapchain</name></param>
@@ -8058,7 +8126,7 @@ typedef void <name>CAMetalLayer</name>;
             <param><type>VkDebugUtilsMessageTypeFlagsEXT</type> <name>messageTypes</name></param>
             <param>const <type>VkDebugUtilsMessengerCallbackDataEXT</type>* <name>pCallbackData</name></param>
         </command>
-        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_INVALID_EXTERNAL_HANDLE">
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_INVALID_EXTERNAL_HANDLE">
             <proto><type>VkResult</type> <name>vkGetMemoryHostPointerPropertiesEXT</name></proto>
             <param><type>VkDevice</type> <name>device</name></param>
             <param><type>VkExternalMemoryHandleTypeFlagBits</type> <name>handleType</name></param>
@@ -8121,7 +8189,7 @@ typedef void <name>CAMetalLayer</name>;
             <param>const <type>VkSemaphoreSignalInfo</type>* <name>pSignalInfo</name></param>
         </command>
         <command name="vkSignalSemaphoreKHR"                       alias="vkSignalSemaphore"/>
-        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR">
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR">
             <proto><type>VkResult</type> <name>vkGetAndroidHardwareBufferPropertiesANDROID</name></proto>
             <param><type>VkDevice</type> <name>device</name></param>
             <param>const struct <type>AHardwareBuffer</type>* <name>buffer</name></param>
@@ -8476,7 +8544,7 @@ typedef void <name>CAMetalLayer</name>;
             <param><type>VkDevice</type> <name>device</name></param>
             <param>const <type>VkImageViewHandleInfoNVX</type>* <name>pInfo</name></param>
         </command>
-        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_UNKNOWN">
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_UNKNOWN">
             <proto><type>VkResult</type> <name>vkGetImageViewAddressNVX</name></proto>
             <param><type>VkDevice</type> <name>device</name></param>
             <param><type>VkImageView</type> <name>imageView</name></param>
@@ -8519,7 +8587,7 @@ typedef void <name>CAMetalLayer</name>;
             <param>const <type>VkQueryPoolPerformanceCreateInfoKHR</type>* <name>pPerformanceQueryCreateInfo</name></param>
             <param><type>uint32_t</type>* <name>pNumPasses</name></param>
         </command>
-        <command successcodes="VK_SUCCESS" errorcodes="VK_TIMEOUT">
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_TIMEOUT">
             <proto><type>VkResult</type> <name>vkAcquireProfilingLockKHR</name></proto>
             <param><type>VkDevice</type> <name>device</name></param>
             <param>const <type>VkAcquireProfilingLockInfoKHR</type>* <name>pInfo</name></param>
@@ -8528,7 +8596,7 @@ typedef void <name>CAMetalLayer</name>;
             <proto><type>void</type> <name>vkReleaseProfilingLockKHR</name></proto>
             <param><type>VkDevice</type> <name>device</name></param>
         </command>
-        <command successcodes="VK_SUCCESS">
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY">
             <proto><type>VkResult</type> <name>vkGetImageDrmFormatModifierPropertiesEXT</name></proto>
             <param><type>VkDevice</type> <name>device</name></param>
             <param><type>VkImage</type> <name>image</name></param>
@@ -8593,7 +8661,7 @@ typedef void <name>CAMetalLayer</name>;
         <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_TOO_MANY_OBJECTS,VK_ERROR_OUT_OF_HOST_MEMORY">
             <proto><type>VkResult</type> <name>vkReleasePerformanceConfigurationINTEL</name></proto>
             <param><type>VkDevice</type> <name>device</name></param>
-            <param><type>VkPerformanceConfigurationINTEL</type> <name>configuration</name></param>
+            <param optional="true" externsync="true"><type>VkPerformanceConfigurationINTEL</type> <name>configuration</name></param>
         </command>
         <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_TOO_MANY_OBJECTS,VK_ERROR_OUT_OF_HOST_MEMORY">
             <proto><type>VkResult</type> <name>vkQueueSetPerformanceConfigurationINTEL</name></proto>
@@ -8639,7 +8707,7 @@ typedef void <name>CAMetalLayer</name>;
             <param><type>uint32_t</type> <name>lineStippleFactor</name></param>
             <param><type>uint16_t</type> <name>lineStipplePattern</name></param>
         </command>
-        <command successcodes="VK_SUCCESS,VK_INCOMPLETE">
+        <command successcodes="VK_SUCCESS,VK_INCOMPLETE" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY">
             <proto><type>VkResult</type> <name>vkGetPhysicalDeviceToolPropertiesEXT</name></proto>
             <param><type>VkPhysicalDevice</type> <name>physicalDevice</name></param>
             <param optional="false,true"><type>uint32_t</type>* <name>pToolCount</name></param>
@@ -11344,9 +11412,9 @@ typedef void <name>CAMetalLayer</name>;
                 <command name="vkGetDisplayPlaneCapabilities2KHR"/>
             </require>
         </extension>
-        <extension name="VK_MVK_ios_surface" number="123" type="instance" requires="VK_KHR_surface" platform="ios" supported="vulkan" author="MVK" contact="Bill Hollings @billhollings">
+        <extension name="VK_MVK_ios_surface" number="123" type="instance" requires="VK_KHR_surface" platform="ios" supported="vulkan" author="MVK" contact="Bill Hollings @billhollings" deprecatedby="VK_EXT_metal_surface">
             <require>
-                <enum value="2"                                             name="VK_MVK_IOS_SURFACE_SPEC_VERSION"/>
+                <enum value="3"                                             name="VK_MVK_IOS_SURFACE_SPEC_VERSION"/>
                 <enum value="&quot;VK_MVK_ios_surface&quot;"                name="VK_MVK_IOS_SURFACE_EXTENSION_NAME"/>
                 <enum offset="0" extends="VkStructureType"                  name="VK_STRUCTURE_TYPE_IOS_SURFACE_CREATE_INFO_MVK"/>
                 <type name="VkIOSSurfaceCreateFlagsMVK"/>
@@ -11354,9 +11422,9 @@ typedef void <name>CAMetalLayer</name>;
                 <command name="vkCreateIOSSurfaceMVK"/>
             </require>
         </extension>
-        <extension name="VK_MVK_macos_surface" number="124" type="instance" requires="VK_KHR_surface" platform="macos" supported="vulkan" author="MVK" contact="Bill Hollings @billhollings">
+        <extension name="VK_MVK_macos_surface" number="124" type="instance" requires="VK_KHR_surface" platform="macos" supported="vulkan" author="MVK" contact="Bill Hollings @billhollings" deprecatedby="VK_EXT_metal_surface">
             <require>
-                <enum value="2"                                             name="VK_MVK_MACOS_SURFACE_SPEC_VERSION"/>
+                <enum value="3"                                             name="VK_MVK_MACOS_SURFACE_SPEC_VERSION"/>
                 <enum value="&quot;VK_MVK_macos_surface&quot;"              name="VK_MVK_MACOS_SURFACE_EXTENSION_NAME"/>
                 <enum offset="0" extends="VkStructureType"                  name="VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK"/>
                 <type name="VkMacOSSurfaceCreateFlagsMVK"/>
@@ -12162,6 +12230,8 @@ typedef void <name>CAMetalLayer</name>;
                 <enum value="0"                                             name="VK_EXT_EXTENSION_168_SPEC_VERSION"/>
                 <enum value="&quot;VK_NV_extension_168&quot;"               name="VK_EXT_EXTENSION_168_EXTENSION_NAME"/>
                 <enum bitpos="19" extends="VkPipelineCreateFlagBits"        name="VK_PIPELINE_CREATE_RESERVED_19_BIT_KHR"/>
+                <enum bitpos="19" extends="VkBufferUsageFlagBits"           name="VK_BUFFER_USAGE_RESERVED_19_BIT_KHR"/>
+                <enum bitpos="20" extends="VkBufferUsageFlagBits"           name="VK_BUFFER_USAGE_RESERVED_20_BIT_KHR"/>
             </require>
         </extension>
         <extension name="VK_KHR_maintenance3" number="169" type="device" requires="VK_KHR_get_physical_device_properties2" author="KHR" contact="Jeff Bolz @jeffbolznv" supported="vulkan" promotedto="VK_VERSION_1_1">
@@ -12183,7 +12253,7 @@ typedef void <name>CAMetalLayer</name>;
                 <command name="vkCmdDrawIndexedIndirectCountKHR"/>
             </require>
         </extension>
-        <extension name="VK_EXT_filter_cubic" number="171" type="device" requires="VK_IMG_filter_cubic" author="QCOM" contact="Bill Licea-Kane @wwlk" supported="vulkan">
+        <extension name="VK_EXT_filter_cubic" number="171" type="device" author="QCOM" contact="Bill Licea-Kane @wwlk" supported="vulkan">
             <require>
                 <enum value="3"                                             name="VK_EXT_FILTER_CUBIC_SPEC_VERSION"/>
                 <enum value="&quot;VK_EXT_filter_cubic&quot;"               name="VK_EXT_FILTER_CUBIC_EXTENSION_NAME"/>
@@ -12398,6 +12468,8 @@ typedef void <name>CAMetalLayer</name>;
             <require>
                 <enum value="0"                                         name="VK_GOOGLE_EXTENSION_196_SPEC_VERSION"/>
                 <enum value="&quot;VK_GOOGLE_extension_196&quot;"       name="VK_GOOGLE_EXTENSION_196_EXTENSION_NAME"/>
+                <enum bitpos="1"  extends="VkPipelineCacheCreateFlagBits"
+                    name="VK_PIPELINE_CACHE_CREATE_RESERVED_1_BIT_EXT"/>
             </require>
         </extension>
         <extension name="VK_KHR_driver_properties" number="197" type="device" requires="VK_KHR_get_physical_device_properties2" author="KHR" contact="Daniel Rakos @drakos-amd" supported="vulkan" promotedto="VK_VERSION_1_2">
@@ -12934,7 +13006,7 @@ typedef void <name>CAMetalLayer</name>;
         </extension>
         <extension name="VK_EXT_validation_features" number="248" type="instance" author="LUNARG" contact="Karl Schultz @karl-lunarg" specialuse="debugging" supported="vulkan">
             <require>
-                <enum value="3"                                             name="VK_EXT_VALIDATION_FEATURES_SPEC_VERSION"/>
+                <enum value="4"                                             name="VK_EXT_VALIDATION_FEATURES_SPEC_VERSION"/>
                 <enum value="&quot;VK_EXT_validation_features&quot;"        name="VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME"/>
                 <enum offset="0" extends="VkStructureType"                  name="VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT"/>
                 <type name="VkValidationFeaturesEXT"/>
@@ -13088,10 +13160,12 @@ typedef void <name>CAMetalLayer</name>;
                 <command name="vkCmdSetLineStippleEXT"/>
             </require>
         </extension>
-        <extension name="VK_NV_extension_261" number="261" author="NV" contact="Kedarnath Thangudu @kthangudu" supported="disabled">
+        <extension name="VK_EXT_shader_atomic_float" number="261" type="device" author="NV" requires="VK_KHR_get_physical_device_properties2" contact="Vikram Kushwaha @vkushwaha-nv" supported="vulkan">
             <require>
-                <enum value="0"                                             name="VK_NV_EXTENSION_261_SPEC_VERSION"/>
-                <enum value="&quot;VK_NV_extension_261&quot;"               name="VK_NV_EXTENSION_261_EXTENSION_NAME"/>
+                <enum value="1"                                             name="VK_EXT_SHADER_ATOMIC_FLOAT_SPEC_VERSION"/>
+                <enum value="&quot;VK_EXT_shader_atomic_float&quot;"        name="VK_EXT_SHADER_ATOMIC_FLOAT_EXTENSION_NAME"/>
+                <enum offset="0" extends="VkStructureType"                  name="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_FLOAT_FEATURES_EXT"/>
+                <type name="VkPhysicalDeviceShaderAtomicFloatFeaturesEXT"/>
             </require>
         </extension>
         <extension name="VK_EXT_host_query_reset" number="262" author="EXT" contact="Bas Nieuwenhuizen @BNieuwenhuizen" supported="vulkan" type="device" requires="VK_KHR_get_physical_device_properties2" promotedto="VK_VERSION_1_2">
@@ -13335,7 +13409,6 @@ typedef void <name>CAMetalLayer</name>;
                 <enum offset="0" extends="VkStructureType"                  name="VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_RENDER_PASS_TRANSFORM_INFO_QCOM"/>
                 <enum offset="1" extends="VkStructureType"                  name="VK_STRUCTURE_TYPE_RENDER_PASS_TRANSFORM_BEGIN_INFO_QCOM"/>
                 <enum bitpos="1" extends="VkRenderPassCreateFlagBits"       name="VK_RENDER_PASS_CREATE_TRANSFORM_BIT_QCOM"/>
-                <type name="VkRenderPassCreateFlags"/>
                 <type name="VkRenderPassTransformBeginInfoQCOM"/>
                 <type name="VkCommandBufferInheritanceRenderPassTransformInfoQCOM"/>
             </require>
@@ -13720,11 +13793,15 @@ typedef void <name>CAMetalLayer</name>;
                 <enum value="&quot;VK_NV_extension_332&quot;"               name="VK_NV_EXTENSION_332_EXTENSION_NAME"/>
             </require>
         </extension>
-        <extension name="VK_EXT_extension_333" number="333" author="EXT" contact="Matthew Netsch @mnetsch" supported="disabled">
+        <extension name="VK_EXT_fragment_density_map2" number="333" type="device" requires="VK_EXT_fragment_density_map" author="EXT" contact="Matthew Netsch @mnetsch" supported="vulkan">
             <require>
-                <enum value="0"                                             name="VK_EXT_EXTENSION_333_SPEC_VERSION"/>
-                <enum value="&quot;VK_EXT_extension_333&quot;"              name="VK_EXT_EXTENSION_333_EXTENSION_NAME"/>
-                <enum bitpos="1"  extends="VkImageViewCreateFlagBits"       name="VK_IMAGE_VIEW_CREATE_RESERVED_1_BIT_EXT"/>
+                <enum value="1"                                             name="VK_EXT_FRAGMENT_DENSITY_MAP_2_SPEC_VERSION"/>
+                <enum value="&quot;VK_EXT_fragment_density_map2&quot;"      name="VK_EXT_FRAGMENT_DENSITY_MAP_2_EXTENSION_NAME"/>
+                <enum offset="0"  extends="VkStructureType"                 name="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_2_FEATURES_EXT"/>
+                <enum offset="1"  extends="VkStructureType"                 name="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_2_PROPERTIES_EXT"/>
+                <enum bitpos="1"  extends="VkImageViewCreateFlagBits"       name="VK_IMAGE_VIEW_CREATE_FRAGMENT_DENSITY_MAP_DEFERRED_BIT_EXT"/>
+                <type name="VkPhysicalDeviceFragmentDensityMap2FeaturesEXT"/>
+                <type name="VkPhysicalDeviceFragmentDensityMap2PropertiesEXT"/>
             </require>
         </extension>
         <extension name="VK_EXT_extension_334" number="334" author="EXT" contact="Jeff Leger @jackohound" supported="disabled">
@@ -13739,10 +13816,12 @@ typedef void <name>CAMetalLayer</name>;
                 <enum value="&quot;VK_KHR_extension_335&quot;"              name="VK_KHR_EXTENSION_335_EXTENSION_NAME"/>
             </require>
         </extension>
-        <extension name="VK_EXT_extension_336" number="336" author="EXT" contact="Graeme Leese @gnl21" supported="disabled">
+        <extension name="VK_EXT_image_robustness" number="336" type="device" author="EXT" contact="Graeme Leese @gnl21" supported="vulkan" requires="VK_KHR_get_physical_device_properties2">
             <require>
-                <enum value="0"                                             name="VK_EXT_EXTENSION_336_SPEC_VERSION"/>
-                <enum value="&quot;VK_EXT_extension_336&quot;"              name="VK_EXT_EXTENSION_336_EXTENSION_NAME"/>
+                <enum value="1"                                                 name="VK_EXT_IMAGE_ROBUSTNESS_SPEC_VERSION"/>
+                <enum value="&quot;VK_EXT_image_robustness&quot;"               name="VK_EXT_IMAGE_ROBUSTNESS_EXTENSION_NAME"/>
+                <enum offset="0" extends="VkStructureType" name="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_ROBUSTNESS_FEATURES_EXT"/>
+                <type name="VkPhysicalDeviceImageRobustnessFeaturesEXT"/>
             </require>
         </extension>
         <extension name="VK_KHR_extension_337" number="337" type="device" author="KHR" contact="Caio Marcelo de Oliveira Filho @cmarcelo" supported="disabled">
@@ -13769,10 +13848,14 @@ typedef void <name>CAMetalLayer</name>;
                 <enum value="&quot;VK_EXT_extension_340&quot;"              name="VK_EXT_EXTENSION_340_EXTENSION_NAME"/>
             </require>
         </extension>
-        <extension name="VK_EXT_extension_341" number="341" author="EXT" contact="Joshua Ashton @Joshua-Ashton" supported="disabled">
+        <extension name="VK_EXT_4444_formats" number="341" type="device" requires="VK_KHR_get_physical_device_properties2" author="EXT" contact="Joshua Ashton @Joshua-Ashton" supported="vulkan">
             <require>
-                <enum value="0"                                             name="VK_EXT_EXTENSION_341_SPEC_VERSION"/>
-                <enum value="&quot;VK_EXT_extension_341&quot;"              name="VK_EXT_EXTENSION_341_EXTENSION_NAME"/>
+                <enum value="1"                                             name="VK_EXT_4444_FORMATS_SPEC_VERSION"/>
+                <enum value="&quot;VK_EXT_4444_formats&quot;"               name="VK_EXT_4444_FORMATS_EXTENSION_NAME"/>
+                <enum offset="0" extends="VkStructureType"                  name="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_4444_FORMATS_FEATURES_EXT"/>
+                <enum offset="0" extends="VkFormat"                         name="VK_FORMAT_A4R4G4B4_UNORM_PACK16_EXT"/>
+                <enum offset="1" extends="VkFormat"                         name="VK_FORMAT_A4B4G4R4_UNORM_PACK16_EXT"/>
+                <type name="VkPhysicalDevice4444FormatsFeaturesEXT"/>
             </require>
         </extension>
         <extension name="VK_EXT_extension_342" number="342" author="EXT" contact="Ralph Potter gitlab:@r_potter" supported="disabled">
@@ -13805,10 +13888,15 @@ typedef void <name>CAMetalLayer</name>;
                 <enum value="&quot;VK_NV_extension_346&quot;"               name="VK_NV_EXTENSION_346_EXTENSION_NAME"/>
             </require>
         </extension>
-        <extension name="VK_EXT_extension_347" number="347" author="EXT" contact="Nicolas Caramelli @caramelli" supported="disabled">
+        <extension name="VK_EXT_directfb_surface" number="347" type="instance" requires="VK_KHR_surface" platform="directfb" supported="vulkan" author="EXT" contact="Nicolas Caramelli @caramelli">
             <require>
-                <enum value="0"                                             name="VK_EXT_EXTENSION_347_SPEC_VERSION"/>
-                <enum value="&quot;VK_EXT_extension_347&quot;"              name="VK_EXT_EXTENSION_347_EXTENSION_NAME"/>
+                <enum value="1"                                             name="VK_EXT_DIRECTFB_SURFACE_SPEC_VERSION"/>
+                <enum value="&quot;VK_EXT_directfb_surface&quot;"           name="VK_EXT_DIRECTFB_SURFACE_EXTENSION_NAME"/>
+                <enum offset="0" extends="VkStructureType"                  name="VK_STRUCTURE_TYPE_DIRECTFB_SURFACE_CREATE_INFO_EXT"/>
+                <type name="VkDirectFBSurfaceCreateFlagsEXT"/>
+                <type name="VkDirectFBSurfaceCreateInfoEXT"/>
+                <command name="vkCreateDirectFBSurfaceEXT"/>
+                <command name="vkGetPhysicalDeviceDirectFBPresentationSupportEXT"/>
             </require>
         </extension>
         <extension name="VK_KHR_extension_348" number="348" author="KHR" contact="Daniel Koch @dgkoch" supported="disabled">
@@ -13821,6 +13909,37 @@ typedef void <name>CAMetalLayer</name>;
             <require>
                 <enum value="0"                                             name="VK_KHR_EXTENSION_349_SPEC_VERSION"/>
                 <enum value="&quot;VK_KHR_extension_349&quot;"              name="VK_KHR_EXTENSION_349_EXTENSION_NAME"/>
+            </require>
+        </extension>
+        <extension name="VK_KHR_extension_350" number="350" author="KHR" contact="Mark Bellamy @mark.bellamy_arm" supported="disabled">
+            <require>
+                <enum value="0"                                             name="VK_KHR_EXTENSION_350_SPEC_VERSION"/>
+                <enum value="&quot;VK_KHR_extension_350&quot;"              name="VK_KHR_EXTENSION_350_EXTENSION_NAME"/>
+                <enum bitpos="2"  extends="VkPipelineCacheCreateFlagBits"   name="VK_PIPELINE_CACHE_CREATE_RESERVED_2_BIT_EXT"/>
+            </require>
+        </extension>
+        <extension name="VK_NV_extension_351" number="351" author="NV" contact="Liam Middlebrook @liam-middlebrook" supported="disabled">
+            <require>
+                <enum value="0"                                             name="VK_NV_EXTENSION_351_SPEC_VERSION"/>
+                <enum value="&quot;VK_NV_extension_351&quot;"               name="VK_NV_EXTENSION_351_EXTENSION_NAME"/>
+            </require>
+        </extension>
+        <extension name="VK_EXT_extension_352" number="352" author="EXT" contact="Joshua Ashton @Joshua-Ashton" supported="disabled">
+            <require>
+                <enum value="0"                                             name="VK_EXT_EXTENSION_352_SPEC_VERSION"/>
+                <enum value="&quot;VK_EXT_extension_352&quot;"              name="VK_EXT_EXTENSION_352_EXTENSION_NAME"/>
+            </require>
+        </extension>
+        <extension name="VK_EXT_extension_353" number="353" author="EXT" contact="Piers Daniell @pdaniell-nv" supported="disabled">
+            <require>
+                <enum value="0"                                             name="VK_EXT_EXTENSION_353_SPEC_VERSION"/>
+                <enum value="&quot;VK_EXT_extension_353&quot;"              name="VK_EXT_EXTENSION_353_EXTENSION_NAME"/>
+            </require>
+        </extension>
+        <extension name="VK_EXT_extension_354" number="354" author="EXT" contact="Simon Ser @emersion" supported="disabled">
+            <require>
+                <enum value="0"                                             name="VK_EXT_EXTENSION_354_SPEC_VERSION"/>
+                <enum value="&quot;VK_EXT_extension_354&quot;"              name="VK_EXT_EXTENSION_354_EXTENSION_NAME"/>
             </require>
         </extension>
     </extensions>

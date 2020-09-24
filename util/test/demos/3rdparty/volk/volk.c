@@ -607,6 +607,14 @@ static void volkGenLoadDevice(void* context, PFN_vkVoidFunction (*load)(void*, c
 	vkGetBufferOpaqueCaptureAddressKHR = (PFN_vkGetBufferOpaqueCaptureAddressKHR)load(context, "vkGetBufferOpaqueCaptureAddressKHR");
 	vkGetDeviceMemoryOpaqueCaptureAddressKHR = (PFN_vkGetDeviceMemoryOpaqueCaptureAddressKHR)load(context, "vkGetDeviceMemoryOpaqueCaptureAddressKHR");
 #endif /* defined(VK_KHR_buffer_device_address) */
+#if defined(VK_KHR_copy_commands2)
+	vkCmdBlitImage2KHR = (PFN_vkCmdBlitImage2KHR)load(context, "vkCmdBlitImage2KHR");
+	vkCmdCopyBuffer2KHR = (PFN_vkCmdCopyBuffer2KHR)load(context, "vkCmdCopyBuffer2KHR");
+	vkCmdCopyBufferToImage2KHR = (PFN_vkCmdCopyBufferToImage2KHR)load(context, "vkCmdCopyBufferToImage2KHR");
+	vkCmdCopyImage2KHR = (PFN_vkCmdCopyImage2KHR)load(context, "vkCmdCopyImage2KHR");
+	vkCmdCopyImageToBuffer2KHR = (PFN_vkCmdCopyImageToBuffer2KHR)load(context, "vkCmdCopyImageToBuffer2KHR");
+	vkCmdResolveImage2KHR = (PFN_vkCmdResolveImage2KHR)load(context, "vkCmdResolveImage2KHR");
+#endif /* defined(VK_KHR_copy_commands2) */
 #if defined(VK_KHR_create_renderpass2)
 	vkCmdBeginRenderPass2KHR = (PFN_vkCmdBeginRenderPass2KHR)load(context, "vkCmdBeginRenderPass2KHR");
 	vkCmdEndRenderPass2KHR = (PFN_vkCmdEndRenderPass2KHR)load(context, "vkCmdEndRenderPass2KHR");
@@ -1073,6 +1081,14 @@ static void volkGenLoadDeviceTable(struct VolkDeviceTable* table, void* context,
 	table->vkGetBufferOpaqueCaptureAddressKHR = (PFN_vkGetBufferOpaqueCaptureAddressKHR)load(context, "vkGetBufferOpaqueCaptureAddressKHR");
 	table->vkGetDeviceMemoryOpaqueCaptureAddressKHR = (PFN_vkGetDeviceMemoryOpaqueCaptureAddressKHR)load(context, "vkGetDeviceMemoryOpaqueCaptureAddressKHR");
 #endif /* defined(VK_KHR_buffer_device_address) */
+#if defined(VK_KHR_copy_commands2)
+	table->vkCmdBlitImage2KHR = (PFN_vkCmdBlitImage2KHR)load(context, "vkCmdBlitImage2KHR");
+	table->vkCmdCopyBuffer2KHR = (PFN_vkCmdCopyBuffer2KHR)load(context, "vkCmdCopyBuffer2KHR");
+	table->vkCmdCopyBufferToImage2KHR = (PFN_vkCmdCopyBufferToImage2KHR)load(context, "vkCmdCopyBufferToImage2KHR");
+	table->vkCmdCopyImage2KHR = (PFN_vkCmdCopyImage2KHR)load(context, "vkCmdCopyImage2KHR");
+	table->vkCmdCopyImageToBuffer2KHR = (PFN_vkCmdCopyImageToBuffer2KHR)load(context, "vkCmdCopyImageToBuffer2KHR");
+	table->vkCmdResolveImage2KHR = (PFN_vkCmdResolveImage2KHR)load(context, "vkCmdResolveImage2KHR");
+#endif /* defined(VK_KHR_copy_commands2) */
 #if defined(VK_KHR_create_renderpass2)
 	table->vkCmdBeginRenderPass2KHR = (PFN_vkCmdBeginRenderPass2KHR)load(context, "vkCmdBeginRenderPass2KHR");
 	table->vkCmdEndRenderPass2KHR = (PFN_vkCmdEndRenderPass2KHR)load(context, "vkCmdEndRenderPass2KHR");
@@ -1259,7 +1275,11 @@ static void volkGenLoadDeviceTable(struct VolkDeviceTable* table, void* context,
 }
 
 #ifdef __GNUC__
+#ifdef VOLK_DEFAULT_VISIBILITY
+#	pragma GCC visibility push(default)
+#else
 #	pragma GCC visibility push(hidden)
+#endif
 #endif
 
 /* VOLK_GENERATE_PROTOTYPES_C */
@@ -1623,6 +1643,14 @@ PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR;
 PFN_vkGetBufferOpaqueCaptureAddressKHR vkGetBufferOpaqueCaptureAddressKHR;
 PFN_vkGetDeviceMemoryOpaqueCaptureAddressKHR vkGetDeviceMemoryOpaqueCaptureAddressKHR;
 #endif /* defined(VK_KHR_buffer_device_address) */
+#if defined(VK_KHR_copy_commands2)
+PFN_vkCmdBlitImage2KHR vkCmdBlitImage2KHR;
+PFN_vkCmdCopyBuffer2KHR vkCmdCopyBuffer2KHR;
+PFN_vkCmdCopyBufferToImage2KHR vkCmdCopyBufferToImage2KHR;
+PFN_vkCmdCopyImage2KHR vkCmdCopyImage2KHR;
+PFN_vkCmdCopyImageToBuffer2KHR vkCmdCopyImageToBuffer2KHR;
+PFN_vkCmdResolveImage2KHR vkCmdResolveImage2KHR;
+#endif /* defined(VK_KHR_copy_commands2) */
 #if defined(VK_KHR_create_renderpass2)
 PFN_vkCmdBeginRenderPass2KHR vkCmdBeginRenderPass2KHR;
 PFN_vkCmdEndRenderPass2KHR vkCmdEndRenderPass2KHR;
