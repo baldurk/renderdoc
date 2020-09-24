@@ -975,10 +975,17 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
 
       list->DrawInstanced(3, 1, 0, 0);
 
-      viewport.TopLeftX = (float)rs.scissors[0].left;
-      viewport.TopLeftY = (float)rs.scissors[0].top;
-      viewport.Width = (float)(rs.scissors[0].right - rs.scissors[0].left);
-      viewport.Height = (float)(rs.scissors[0].bottom - rs.scissors[0].top);
+      if(rs.scissors.empty())
+      {
+        viewport = {};
+      }
+      else
+      {
+        viewport.TopLeftX = (float)rs.scissors[0].left;
+        viewport.TopLeftY = (float)rs.scissors[0].top;
+        viewport.Width = (float)(rs.scissors[0].right - rs.scissors[0].left);
+        viewport.Height = (float)(rs.scissors[0].bottom - rs.scissors[0].top);
+      }
       list->RSSetViewports(1, &viewport);
 
       // black/white checkered border
