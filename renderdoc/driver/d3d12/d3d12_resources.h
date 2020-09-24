@@ -714,6 +714,15 @@ public:
       shader->Release();
     }
 
+    static bool IsShader(ResourceId id)
+    {
+      for(auto it = m_Shaders.begin(); it != m_Shaders.end(); ++it)
+        if(it->second->GetResourceID() == id)
+          return true;
+
+      return false;
+    }
+
     DXBCKey GetKey() { return m_Key; }
     D3D12_SHADER_BYTECODE GetDesc()
     {
