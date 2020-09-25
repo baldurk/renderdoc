@@ -100,10 +100,6 @@ VkWriteDescriptorSet WrappedVulkan::UnwrapInfo(const VkWriteDescriptorSet *write
 {
   VkWriteDescriptorSet ret = *writeDesc;
 
-  // nothing to unwrap for inline uniform block
-  if(ret.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
-    return ret;
-
   byte *memory = GetTempMemory(sizeof(VkDescriptorBufferInfo) * writeDesc->descriptorCount);
 
   VkDescriptorBufferInfo *bufInfos = (VkDescriptorBufferInfo *)memory;
@@ -111,6 +107,10 @@ VkWriteDescriptorSet WrappedVulkan::UnwrapInfo(const VkWriteDescriptorSet *write
   VkBufferView *bufViews = (VkBufferView *)memory;
 
   ret.dstSet = Unwrap(ret.dstSet);
+
+  // nothing to unwrap for inline uniform block
+  if(ret.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+    return ret;
 
   RDCCOMPILE_ASSERT(sizeof(VkDescriptorBufferInfo) >= sizeof(VkDescriptorImageInfo),
                     "Structure sizes mean not enough space is allocated for write data");
