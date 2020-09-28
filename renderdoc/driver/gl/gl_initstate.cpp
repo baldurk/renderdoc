@@ -980,7 +980,7 @@ uint64_t GLResourceManager::GetSize_InitialState(ResourceId resid, const GLIniti
   if(initial.type == eResBuffer)
   {
     // buffers just have their contents, no metadata needed
-    return initial.bufferLength + WriteSerialiser::GetChunkAlignment() + 16;
+    return initial.bufferLength + WriteSerialiser::GetChunkAlignment() + 64;
   }
   else if(initial.type == eResProgram)
   {
