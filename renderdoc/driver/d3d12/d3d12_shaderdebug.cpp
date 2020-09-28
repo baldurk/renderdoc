@@ -2598,6 +2598,8 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
 
   uint32_t sigElem = uint32_t(modsig.Parameters.size() - 1);
 
+  modsig.Flags &= ~D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
+
   // Create the root signature for gathering initial pixel shader values
   ID3DBlob *root = m_pDevice->GetShaderCache()->MakeRootSig(modsig);
   ID3D12RootSignature *pRootSignature = NULL;
