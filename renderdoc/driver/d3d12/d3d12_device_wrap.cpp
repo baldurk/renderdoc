@@ -850,6 +850,7 @@ bool WrappedID3D12Device::Serialise_CreateRootSignature(SerialiserType &ser, UIN
     {
       if(GetResourceManager()->HasWrapper(ret))
       {
+        ret->Release();
         ret = (ID3D12RootSignature *)GetResourceManager()->GetWrapper(ret);
         ret->AddRef();
 
@@ -937,8 +938,6 @@ HRESULT WrappedID3D12Device::CreateRootSignature(UINT nodeMask, const void *pBlo
     else
     {
       wrapped->sig = GetShaderCache()->GetRootSig(pBlobWithRootSignature, blobLengthInBytes);
-
-      GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
     }
 
     *ppvRootSignature = (ID3D12RootSignature *)wrapped;
