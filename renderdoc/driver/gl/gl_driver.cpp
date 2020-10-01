@@ -3071,7 +3071,8 @@ void WrappedOpenGL::Serialise_DebugMessages(SerialiserType &ser)
   if(ser.IsReading() && IsLoading(m_State) && m_ReplayOptions.apiValidation)
   {
     DebugMessages = m_DebugMessages;
-    m_DebugMessages.clear();
+    m_DebugMessages.removeIf([](const DebugMessage &msg) { return msg.eventId == 0; });
+    DebugMessages.removeIf([](const DebugMessage &msg) { return msg.eventId != 0; });
   }
 
   // hide empty sets of messages.
