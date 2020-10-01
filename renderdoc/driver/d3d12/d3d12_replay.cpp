@@ -697,7 +697,7 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor 
         view.firstMip = 0;
         view.numMips = 1;
         view.numSlices = rtv.Texture2DMSArray.ArraySize;
-        view.firstSlice = rtv.Texture2DArray.FirstArraySlice;
+        view.firstSlice = rtv.Texture2DMSArray.FirstArraySlice;
       }
       else if(rtv.ViewDimension == D3D12_RTV_DIMENSION_TEXTURE3D)
       {
@@ -742,7 +742,7 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor 
       else if(dsv.ViewDimension == D3D12_DSV_DIMENSION_TEXTURE2DMSARRAY)
       {
         view.numSlices = dsv.Texture2DMSArray.ArraySize;
-        view.firstSlice = dsv.Texture2DArray.FirstArraySlice;
+        view.firstSlice = dsv.Texture2DMSArray.FirstArraySlice;
       }
     }
     else if(desc->GetType() == D3D12DescriptorType::SRV)
