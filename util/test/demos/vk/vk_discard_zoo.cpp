@@ -49,9 +49,11 @@ RD_TEST(VK_Discard_Zoo, VulkanGraphicsTest)
 
     vkh::cmdPipelineBarrier(
         cmd, {
-                 vkh::ImageMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
-                                         VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-                                         img.image, range),
+                 vkh::ImageMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT |
+                                             VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+                                             VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                                         VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                         VK_IMAGE_LAYOUT_GENERAL, img.image, range),
              });
 
     VkClearDepthStencilValue val = {0.4f, 0x40};
@@ -264,7 +266,7 @@ RD_TEST(VK_Discard_Zoo, VulkanGraphicsTest)
         VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL,
         VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE));
     renderPassCreateInfo.attachments.push_back(vkh::AttachmentDescription(
-        depthStencilFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+        depthStencilFormat, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL,
         VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_SAMPLE_COUNT_1_BIT,
         VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE));
     renderPassCreateInfo.attachments.push_back(vkh::AttachmentDescription(
@@ -275,6 +277,16 @@ RD_TEST(VK_Discard_Zoo, VulkanGraphicsTest)
                                     VK_IMAGE_LAYOUT_GENERAL);
 
     VkRenderPass renderPass = createRenderPass(renderPassCreateInfo);
+
+    renderPassCreateInfo.attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    renderPassCreateInfo.attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    renderPassCreateInfo.attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    renderPassCreateInfo.attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    renderPassCreateInfo.attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    renderPassCreateInfo.attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    renderPassCreateInfo.attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    renderPassCreateInfo.attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    VkRenderPass undefLoadRP = createRenderPass(renderPassCreateInfo);
 
     VkFramebuffer fb = createFramebuffer(vkh::FramebufferCreateInfo(
         renderPass, {colview, depthview, ignoreview}, mainWindow->scissor.extent));
@@ -501,6 +513,21 @@ RD_TEST(VK_Discard_Zoo, VulkanGraphicsTest)
       vkCmdClearColorImage(cmd, swapimg, VK_IMAGE_LAYOUT_GENERAL,
                            vkh::ClearColorValue(0.2f, 0.2f, 0.2f, 1.0f), 1,
                            vkh::ImageSubresourceRange());
+
+      // make sure a renderpass with UNDEFINED initialLayout and LOAD_OP_LOAD still gets an
+      // undefined pattern.
+
+      // first re-clear the attachments
+      Clear(cmd, ignoreimg);
+      Clear(cmd, colimg);
+      setMarker(cmd, "UndefinedLoad_Before");
+      Clear(cmd, depthimg);
+
+      vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(undefLoadRP, fb, sc),
+                           VK_SUBPASS_CONTENTS_INLINE);
+      vkCmdEndRenderPass(cmd);
+
+      setMarker(cmd, "UndefinedLoad_After");
 
       FinishUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
 

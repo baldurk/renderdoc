@@ -100,3 +100,39 @@ class VK_Discard_Zoo(rdtest.Discard_Zoo):
 
         self.check(middle_col_bytes != end_col_bytes)
         self.check(middle_depth_bytes != end_depth_bytes)
+
+        draw = self.find_draw("UndefinedLoad_Before")
+
+        self.controller.SetFrameEvent(draw.next.eventId, True)
+
+        # check that they are cleared again
+        for y in range(0, rpcol.height-1, 17):
+            for x in range(0, rpcol.width-1, 17):
+                self.check_pixel_value(rpcol.resourceId, x, y, [0.0, 1.0, 0.0, 1.0])
+                self.check_pixel_value(rpdepth.resourceId, x, y, [0.4, float(0x40)/float(255), 0.0, 1.0])
+
+        rdtest.log.success("Values are correct before the UNDEFINED initial layout renderpass")
+
+        draw = self.find_draw("UndefinedLoad_After")
+
+        self.controller.SetFrameEvent(draw.next.eventId, True)
+
+        # check that they are all undefined pattern - initial layout affects the whole resource
+        for y in range(0, rpcol.height-1, 17):
+            for x in range(0, rpcol.width-1, 17):
+                c: rd.PixelValue = self.controller.PickPixel(rpcol.resourceId, x, y, rd.Subresource(),
+                                                             rd.CompType.Typeless)
+                d: rd.PixelValue = self.controller.PickPixel(rpdepth.resourceId, x, y, rd.Subresource(),
+                                                             rd.CompType.Typeless)
+
+                if not rdtest.value_compare(c.floatValue, [0.0] * 4) and not rdtest.value_compare(c.floatValue,
+                                                                                                  [1000.0] * 4):
+                    raise rdtest.TestFailureException(
+                        'undefined color has unexpected value at {},{}: {}'.format(x, y, c.floatValue))
+
+                if not rdtest.value_compare(d.floatValue[0:2], [0.0] * 2) and not rdtest.value_compare(
+                        d.floatValue[0:2], [1.0] * 2):
+                    raise rdtest.TestFailureException(
+                        'undefined depth has unexpected value at {},{}: {}'.format(x, y, d.floatValue))
+
+        rdtest.log.success("Values are correct after the UNDEFINED initial layout renderpass")

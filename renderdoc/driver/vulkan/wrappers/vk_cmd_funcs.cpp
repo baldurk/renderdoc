@@ -1357,6 +1357,21 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
         const VulkanCreationInfo::RenderPass &rpinfo =
             m_CreationInfo.m_RenderPass[GetCmdRenderState().renderPass];
 
+        rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
+
+        // if we're just replaying the vkCmdBeginRenderPass on its own, we use the first loadRP
+        // instead of the real thing. This then doesn't require us to finish off any subpasses etc.
+        // we need to manually do the subpass 0 barriers, since loadRP expects the image to already
+        // be in subpass 0's layout
+        // we also need to manually do any clears, since the loadRP will load all attachments
+        if(m_FirstEventID == m_LastEventID)
+        {
+          unwrappedInfo.renderPass = Unwrap(rpinfo.loadRPs[0]);
+          unwrappedInfo.framebuffer = Unwrap(fbinfo.loadFBs[0]);
+
+          DoPipelineBarrier(commandBuffer, imgBarriers.size(), imgBarriers.data());
+        }
+
         if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest)
         {
           const rdcarray<ResourceId> &attachments = GetCmdRenderState().GetFramebufferAttachments();
@@ -1369,10 +1384,14 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
             const VulkanCreationInfo::Image &imInfo =
                 GetDebugManager()->GetImageInfo(GetResID(image));
 
-            if(rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE &&
+            VkImageLayout initialLayout = rpinfo.attachments[i].initialLayout;
+
+            VkRect2D rect = RenderPassBegin.renderArea;
+
+            if((rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE ||
+                initialLayout == VK_IMAGE_LAYOUT_UNDEFINED) &&
                rpinfo.attachments[i].used)
             {
-              VkImageLayout initialLayout = rpinfo.attachments[i].initialLayout;
               // if originally it was UNDEFINED (which is fine with DONT_CARE) and we promoted to
               // load so we could preserve the discard pattern, transition to general.
               if(initialLayout == VK_IMAGE_LAYOUT_UNDEFINED)
@@ -1393,28 +1412,31 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
                 DoPipelineBarrier(commandBuffer, 1, &dstimBarrier);
 
                 initialLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+                // undefined transitions apply to the whole subresource not just the render area.
+                // But we don't want to do an undefined discard pattern that will be completely
+                // overwritten, and it's common for the render area to be the whole subresource. So
+                // check that here now and only do the undefined if we're not about to DONT_CARE
+                // over it or if the render area is a subset
+                if(rpinfo.attachments[i].loadOp != VK_ATTACHMENT_LOAD_OP_DONT_CARE ||
+                   rect.offset.x > 0 || rect.offset.y > 0 ||
+                   rect.extent.width < RDCMAX(1U, imInfo.extent.width >> viewInfo.range.baseMipLevel) ||
+                   rect.extent.height <
+                       RDCMAX(1U, imInfo.extent.height >> viewInfo.range.baseMipLevel))
+                {
+                  GetDebugManager()->FillWithDiscardPattern(
+                      commandBuffer, DiscardType::UndefinedTransition, image, initialLayout,
+                      viewInfo.range, {{0, 0}, {imInfo.extent.width, imInfo.extent.height}});
+                }
               }
 
-              GetDebugManager()->FillWithDiscardPattern(commandBuffer, DiscardType::RenderPassLoad,
-                                                        image, initialLayout, viewInfo.range,
-                                                        RenderPassBegin.renderArea);
+              if(rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
+              {
+                GetDebugManager()->FillWithDiscardPattern(commandBuffer, DiscardType::RenderPassLoad,
+                                                          image, initialLayout, viewInfo.range, rect);
+              }
             }
           }
-        }
-
-        rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
-
-        // if we're just replaying the vkCmdBeginRenderPass on its own, we use the first loadRP
-        // instead of the real thing. This then doesn't require us to finish off any subpasses etc.
-        // we need to manually do the subpass 0 barriers, since loadRP expects the image to already
-        // be in subpass 0's layout
-        // we also need to manually do any clears, since the loadRP will load all attachments
-        if(m_FirstEventID == m_LastEventID)
-        {
-          unwrappedInfo.renderPass = Unwrap(rpinfo.loadRPs[0]);
-          unwrappedInfo.framebuffer = Unwrap(fbinfo.loadFBs[0]);
-
-          DoPipelineBarrier(commandBuffer, imgBarriers.size(), imgBarriers.data());
         }
 
         DrawFlags drawFlags = DrawFlags::PassBoundary | DrawFlags::BeginPass;

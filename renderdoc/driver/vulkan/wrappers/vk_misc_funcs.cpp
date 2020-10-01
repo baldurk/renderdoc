@@ -909,14 +909,22 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(SerialiserType &ser, VkDevice d
         if(att[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
         {
           att[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-          if(att[i].initialLayout == VK_IMAGE_LAYOUT_UNDEFINED)
-            att[i].initialLayout = VK_IMAGE_LAYOUT_GENERAL;
+        }
+        if(att[i].loadOp == VK_ATTACHMENT_LOAD_OP_LOAD &&
+           att[i].initialLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+        {
+          att[i].initialLayout = VK_IMAGE_LAYOUT_GENERAL;
         }
         if(att[i].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
         {
           att[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
           if(att[i].initialLayout == VK_IMAGE_LAYOUT_UNDEFINED)
             att[i].initialLayout = VK_IMAGE_LAYOUT_GENERAL;
+        }
+        if(att[i].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD &&
+           att[i].initialLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+        {
+          att[i].initialLayout = VK_IMAGE_LAYOUT_GENERAL;
         }
       }
 
