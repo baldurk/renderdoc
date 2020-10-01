@@ -754,14 +754,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
   {
     m_ReadbackWindow.Create(driver, dev, STAGE_BUFFER_BYTE_SIZE, 1, GPUBuffer::eGPUBufferReadback);
   }
-  else
-  {
-    m_ReadbackWindow.Create(driver, dev, 256 * 1024 * 1024ULL, 1, GPUBuffer::eGPUBufferReadback);
-
-    vkr = ObjDisp(dev)->MapMemory(Unwrap(dev), Unwrap(m_ReadbackWindow.mem), 0, VK_WHOLE_SIZE, 0,
-                                  (void **)&m_ReadbackPtr);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-  }
 }
 
 VulkanDebugManager::~VulkanDebugManager()
@@ -2167,12 +2159,20 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
   DoPipelineBarrier(cmd, 1, &dstimBarrier);
 }
 
-void VulkanDebugManager::InitReadbackBuffer()
+void VulkanDebugManager::InitReadbackBuffer(VkDeviceSize sz)
 {
-  if(m_ReadbackWindow.buf == VK_NULL_HANDLE)
+  if(m_ReadbackWindow.buf == VK_NULL_HANDLE || m_ReadbackWindow.sz < sz)
   {
+    if(m_ReadbackWindow.buf != VK_NULL_HANDLE)
+    {
+      m_ReadbackWindow.Destroy();
+    }
+
     VkDevice dev = m_pDriver->GetDev();
-    m_ReadbackWindow.Create(m_pDriver, dev, 256 * 1024 * 1024ULL, 1, GPUBuffer::eGPUBufferReadback);
+    m_ReadbackWindow.Create(m_pDriver, dev, AlignUp(sz, (VkDeviceSize)4096), 1,
+                            GPUBuffer::eGPUBufferReadback);
+
+    RDCLOG("Allocating readback window of %llu bytes", m_ReadbackWindow.sz);
 
     VkResult vkr = ObjDisp(dev)->MapMemory(Unwrap(dev), Unwrap(m_ReadbackWindow.mem), 0,
                                            VK_WHOLE_SIZE, 0, (void **)&m_ReadbackPtr);
