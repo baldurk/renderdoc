@@ -301,9 +301,9 @@ private:
   struct BufferData
   {
     GLResource resource;
-    GLenum curType;
-    BufferCategory creationFlags;
-    uint64_t size;
+    GLenum curType = eGL_NONE;
+    BufferCategory creationFlags = BufferCategory::NoFlags;
+    uint64_t size = 0;
   };
 
   std::map<ResourceId, BufferData> m_Buffers;

@@ -250,7 +250,7 @@ bool WrappedOpenGL::Check_SafeDraw(bool indexed)
           GLuint size = 0;
           GL.glGetNamedBufferParameterivEXT(vb, eGL_BUFFER_SIZE, (GLint *)&size);
 
-          if(size == 0)
+          if(size == 0 || m_Buffers[GetResourceManager()->GetResID(BufferRes(GetCtx(), vb))].size == 0)
           {
             ResourceId id = GetResourceManager()->GetResID(BufferRes(GetCtx(), vb));
             AddDebugMessage(

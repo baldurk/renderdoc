@@ -663,24 +663,7 @@ BufferDescription GLReplay::GetBuffer(ResourceId id)
 
   ret.creationFlags = res.creationFlags;
 
-  GLuint size = 0;
-  // if the type is NONE it's probably a DSA created buffer
-  if(res.curType == eGL_NONE)
-  {
-    drv.glGetNamedBufferParameterivEXT(res.resource.name, eGL_BUFFER_SIZE, (GLint *)&size);
-  }
-  else
-  {
-    drv.glGetBufferParameteriv(res.curType, eGL_BUFFER_SIZE, (GLint *)&size);
-  }
-
-  ret.length = size;
-
-  if(res.size == 0)
-  {
-    RDCWARN("BufferData::size didn't get filled out, setting at last minute");
-    res.size = ret.length;
-  }
+  ret.length = res.size;
 
   if(res.curType != eGL_NONE)
     drv.glBindBuffer(res.curType, prevBind);

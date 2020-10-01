@@ -580,7 +580,16 @@ bool WrappedOpenGL::Serialise_glNamedBufferDataEXT(SerialiserType &ser, GLuint b
     }
     else
     {
-      GL.glNamedBufferDataEXT(buffer.name, (GLsizeiptr)bytesize, data, usage);
+      if(bytesize == 0)
+      {
+        // don't create 0 byte buffers, they just cause problems. Instead create the buffer as 4
+        // bytes
+        GL.glNamedBufferDataEXT(buffer.name, 4, NULL, usage);
+      }
+      else
+      {
+        GL.glNamedBufferDataEXT(buffer.name, (GLsizeiptr)bytesize, data, usage);
+      }
 
       m_Buffers[id].size = bytesize;
     }
