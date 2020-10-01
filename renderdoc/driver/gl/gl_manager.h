@@ -138,7 +138,7 @@ public:
     if(record)
     {
       auto it = m_CurrentResources.find(record->Resource);
-      if(it != m_CurrentResources.end())
+      if(it != m_CurrentResources.end() && it->second.first == id)
         it->second.second = NULL;
     }
 
