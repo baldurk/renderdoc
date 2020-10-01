@@ -2574,22 +2574,33 @@ void VulkanPipelineStateViewer::setState()
   ui->stencils->clear();
   if(state.depthStencil.stencilTestEnable)
   {
-    ui->stencils->addTopLevelItem(new RDTreeWidgetItem(
-        {tr("Front"), ToQStr(state.depthStencil.frontFace.function),
-         ToQStr(state.depthStencil.frontFace.failOperation),
-         ToQStr(state.depthStencil.frontFace.depthFailOperation),
-         ToQStr(state.depthStencil.frontFace.passOperation),
-         Formatter::Format((uint8_t)state.depthStencil.frontFace.writeMask, true),
-         Formatter::Format((uint8_t)state.depthStencil.frontFace.compareMask, true),
-         Formatter::Format((uint8_t)state.depthStencil.frontFace.reference, true)}));
-    ui->stencils->addTopLevelItem(new RDTreeWidgetItem(
-        {tr("Back"), ToQStr(state.depthStencil.backFace.function),
-         ToQStr(state.depthStencil.backFace.failOperation),
-         ToQStr(state.depthStencil.backFace.depthFailOperation),
-         ToQStr(state.depthStencil.backFace.passOperation),
-         Formatter::Format((uint8_t)state.depthStencil.backFace.writeMask, true),
-         Formatter::Format((uint8_t)state.depthStencil.backFace.compareMask, true),
-         Formatter::Format((uint8_t)state.depthStencil.backFace.reference, true)}));
+    ui->stencils->addTopLevelItem(new RDTreeWidgetItem({
+        tr("Front"), ToQStr(state.depthStencil.frontFace.function),
+        ToQStr(state.depthStencil.frontFace.failOperation),
+        ToQStr(state.depthStencil.frontFace.depthFailOperation),
+        ToQStr(state.depthStencil.frontFace.passOperation), QVariant(), QVariant(), QVariant(),
+    }));
+
+    m_Common.SetStencilTreeItemValue(ui->stencils->topLevelItem(0), 5,
+                                     state.depthStencil.frontFace.writeMask);
+    m_Common.SetStencilTreeItemValue(ui->stencils->topLevelItem(0), 6,
+                                     state.depthStencil.frontFace.compareMask);
+    m_Common.SetStencilTreeItemValue(ui->stencils->topLevelItem(0), 7,
+                                     state.depthStencil.frontFace.reference);
+
+    ui->stencils->addTopLevelItem(new RDTreeWidgetItem({
+        tr("Back"), ToQStr(state.depthStencil.backFace.function),
+        ToQStr(state.depthStencil.backFace.failOperation),
+        ToQStr(state.depthStencil.backFace.depthFailOperation),
+        ToQStr(state.depthStencil.backFace.passOperation), QVariant(), QVariant(), QVariant(),
+    }));
+
+    m_Common.SetStencilTreeItemValue(ui->stencils->topLevelItem(1), 5,
+                                     state.depthStencil.backFace.writeMask);
+    m_Common.SetStencilTreeItemValue(ui->stencils->topLevelItem(1), 6,
+                                     state.depthStencil.backFace.compareMask);
+    m_Common.SetStencilTreeItemValue(ui->stencils->topLevelItem(1), 7,
+                                     state.depthStencil.backFace.reference);
   }
   else
   {

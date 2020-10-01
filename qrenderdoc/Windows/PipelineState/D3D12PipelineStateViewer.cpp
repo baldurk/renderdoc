@@ -1800,12 +1800,12 @@ void D3D12PipelineStateViewer::setState()
   }
 
   ui->stencilEnabled->setPixmap(state.outputMerger.depthStencilState.stencilEnable ? tick : cross);
-  ui->stencilReadMask->setText(
-      Formatter::Format((uint8_t)state.outputMerger.depthStencilState.frontFace.compareMask, true));
-  ui->stencilWriteMask->setText(
-      Formatter::Format((uint8_t)state.outputMerger.depthStencilState.frontFace.writeMask, true));
-  ui->stencilRef->setText(
-      Formatter::Format((uint8_t)state.outputMerger.depthStencilState.frontFace.reference, true));
+  m_Common.SetStencilLabelValue(
+      ui->stencilReadMask, (uint8_t)state.outputMerger.depthStencilState.frontFace.compareMask);
+  m_Common.SetStencilLabelValue(ui->stencilWriteMask,
+                                (uint8_t)state.outputMerger.depthStencilState.frontFace.writeMask);
+  m_Common.SetStencilLabelValue(ui->stencilRef,
+                                (uint8_t)state.outputMerger.depthStencilState.frontFace.reference);
 
   ui->stencils->beginUpdate();
   ui->stencils->clear();

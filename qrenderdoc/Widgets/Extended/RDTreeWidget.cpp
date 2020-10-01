@@ -358,7 +358,8 @@ QVariant RDTreeWidgetItem::data(int column, int role) const
   }
   else if(role == Qt::ToolTipRole && !m_widget->m_instantTooltips)
   {
-    return m_tooltip;
+    if(!m_tooltip.isEmpty())
+      return m_tooltip;
   }
   else if(role == Qt::FontRole)
   {

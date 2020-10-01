@@ -32,6 +32,7 @@
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
 #include "Widgets/Extended/RDLabel.h"
+#include "Widgets/Extended/RDTreeWidget.h"
 #include "toolwindowmanager/ToolWindowManager.h"
 #include "D3D11PipelineStateViewer.h"
 #include "D3D12PipelineStateViewer.h"
@@ -654,6 +655,24 @@ void PipelineStateViewer::showEvent(QShowEvent *event)
   {
     setToD3D11();
   }
+}
+
+void PipelineStateViewer::SetStencilLabelValue(QLabel *label, uint8_t value)
+{
+  label->setText(Formatter::Format(value, true));
+  label->setToolTip(tr("%1 / 0x%2 / 0b%3")
+                        .arg(value, 3, 10, QLatin1Char(' '))
+                        .arg(Formatter::Format(value, true))
+                        .arg(value, 8, 2, QLatin1Char('0')));
+}
+
+void PipelineStateViewer::SetStencilTreeItemValue(RDTreeWidgetItem *item, int column, uint8_t value)
+{
+  item->setText(column, Formatter::Format(value, true));
+  item->setToolTip(column, tr("%1 / 0x%2 / 0b%3")
+                               .arg(value, 3, 10, QLatin1Char(' '))
+                               .arg(Formatter::Format(value, true))
+                               .arg(value, 8, 2, QLatin1Char('0')));
 }
 
 QString PipelineStateViewer::GenerateHLSLStub(const ShaderBindpointMapping &bindpointMapping,

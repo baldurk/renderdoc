@@ -2102,14 +2102,19 @@ void GLPipelineStateViewer::setState()
   ui->stencils->clear();
   if(state.stencilState.stencilEnable)
   {
-    ui->stencils->addTopLevelItem(new RDTreeWidgetItem(
-        {tr("Front"), ToQStr(state.stencilState.frontFace.function),
-         ToQStr(state.stencilState.frontFace.failOperation),
-         ToQStr(state.stencilState.frontFace.depthFailOperation),
-         ToQStr(state.stencilState.frontFace.passOperation),
-         Formatter::Format((uint8_t)state.stencilState.frontFace.writeMask, true),
-         Formatter::Format((uint8_t)state.stencilState.frontFace.compareMask, true),
-         Formatter::Format((uint8_t)state.stencilState.frontFace.reference, true)}));
+    ui->stencils->addTopLevelItem(new RDTreeWidgetItem({
+        tr("Front"), ToQStr(state.stencilState.frontFace.function),
+        ToQStr(state.stencilState.frontFace.failOperation),
+        ToQStr(state.stencilState.frontFace.depthFailOperation),
+        ToQStr(state.stencilState.frontFace.passOperation), QVariant(), QVariant(), QVariant(),
+    }));
+
+    m_Common.SetStencilTreeItemValue(ui->stencils->topLevelItem(0), 5,
+                                     state.stencilState.frontFace.writeMask);
+    m_Common.SetStencilTreeItemValue(ui->stencils->topLevelItem(0), 6,
+                                     state.stencilState.frontFace.compareMask);
+    m_Common.SetStencilTreeItemValue(ui->stencils->topLevelItem(0), 7,
+                                     state.stencilState.frontFace.reference);
 
     ui->stencils->addTopLevelItem(new RDTreeWidgetItem(
         {tr("Back"), ToQStr(state.stencilState.backFace.function),
@@ -2119,6 +2124,13 @@ void GLPipelineStateViewer::setState()
          Formatter::Format((uint8_t)state.stencilState.backFace.writeMask, true),
          Formatter::Format((uint8_t)state.stencilState.backFace.compareMask, true),
          Formatter::Format((uint8_t)state.stencilState.backFace.reference, true)}));
+
+    m_Common.SetStencilTreeItemValue(ui->stencils->topLevelItem(1), 5,
+                                     state.stencilState.backFace.writeMask);
+    m_Common.SetStencilTreeItemValue(ui->stencils->topLevelItem(1), 6,
+                                     state.stencilState.backFace.compareMask);
+    m_Common.SetStencilTreeItemValue(ui->stencils->topLevelItem(1), 7,
+                                     state.stencilState.backFace.reference);
   }
   else
   {

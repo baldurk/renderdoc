@@ -38,6 +38,7 @@ class QXmlStreamWriter;
 class QToolButton;
 class QMenu;
 class RDLabel;
+class RDTreeWidgetItem;
 
 class D3D11PipelineStateViewer;
 class D3D12PipelineStateViewer;
@@ -66,6 +67,9 @@ public:
 
   QVariant persistData();
   void setPersistData(const QVariant &persistData);
+
+  void SetStencilLabelValue(QLabel *label, uint8_t value);
+  void SetStencilTreeItemValue(RDTreeWidgetItem *item, int column, uint8_t value);
 
   void SetupShaderEditButton(QToolButton *button, ResourceId pipelineId, ResourceId shaderId,
                              const ShaderBindpointMapping &bindpointMapping,

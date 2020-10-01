@@ -1082,6 +1082,7 @@ void TextureViewer::UI_UpdateStatusText()
   ui->hoverText->setText(hoverText);
 
   QString pickedText;
+  QString pickedTooltip;
 
   if(m_PickedPoint.x() >= 0)
   {
@@ -1126,10 +1127,24 @@ void TextureViewer::UI_UpdateStatusText()
         pickedText += Formatter::Format(val.floatValue[0]);
       }
 
-      int stencil = (int)(255.0f * val.floatValue[1]);
+      if(tex.format.type == ResourceFormatType::D16S8 ||
+         tex.format.type == ResourceFormatType::D24S8 ||
+         tex.format.type == ResourceFormatType::D32S8 || tex.format.type == ResourceFormatType::S8)
+      {
+        int stencil = (int)(255.0f * val.floatValue[1]);
 
-      pickedText +=
-          tr(", Stencil %1 / 0x%2").arg(stencil).arg(Formatter::Format(uint8_t(stencil & 0xff), true));
+        if(tex.format.type == ResourceFormatType::S8)
+          pickedText.clear();
+        else
+          pickedText += lit(", ");
+
+        pickedText += tr("Stencil 0x%1").arg(Formatter::Format(uint8_t(stencil & 0xff), true));
+
+        pickedTooltip = tr("Stencil: %1 / 0x%2 / 0b%3")
+                            .arg(stencil, 3, 10, QLatin1Char(' '))
+                            .arg(Formatter::Format(uint8_t(stencil & 0xff), true))
+                            .arg(stencil, 8, 2, QLatin1Char('0'));
+      }
     }
     else
     {
@@ -1185,6 +1200,7 @@ void TextureViewer::UI_UpdateStatusText()
     pickedText += QString(m_HighWaterStatusLength - pickedText.length(), QLatin1Char(' '));
 
   ui->pickedText->setText(pickedText);
+  ui->pickedText->setToolTip(pickedTooltip);
 }
 
 void TextureViewer::UI_UpdateTextureDetails()
