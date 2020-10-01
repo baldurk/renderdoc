@@ -1786,8 +1786,6 @@ void ReplayController::ReplayLoop(WindowingData window, ResourceId texid)
 
 void ReplayController::CancelReplayLoop()
 {
-  CHECK_REPLAY_THREAD();
-
   Atomic::Inc32(&m_ReplayLoopCancel);
 
   // wait for it to actually finish before returning
