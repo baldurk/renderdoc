@@ -31,10 +31,9 @@
 #include "d3d12_manager.h"
 #include "d3d12_resources.h"
 
-RDOC_DEBUG_CONFIG(
-    bool, D3D12_Debug_HideInitialDescriptors, false,
-    "Hide the initial contents of descriptor heaps. "
-    "For extremely large descriptor heaps this can drastically reduce memory consumption.");
+RDOC_CONFIG(bool, D3D12_Debug_HideInitialDescriptors, false,
+            "Hide the initial contents of descriptor heaps. "
+            "For extremely large descriptor heaps this can drastically reduce memory consumption.");
 
 bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 {

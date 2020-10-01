@@ -25,8 +25,8 @@
 #include "core/settings.h"
 #include "vk_core.h"
 
-RDOC_DEBUG_CONFIG(bool, Vulkan_Debug_MemoryAllocationLogging, false,
-                  "Output verbose debug logging messages when allocating internal memory.");
+RDOC_CONFIG(bool, Vulkan_Debug_MemoryAllocationLogging, false,
+            "Output verbose debug logging messages when allocating internal memory.");
 
 void WrappedVulkan::ChooseMemoryIndices()
 {

@@ -39,8 +39,8 @@ RDOC_CONFIG(uint32_t, Android_MaxConnectTimeout, 30,
             "Maximum time in seconds to try connecting to the target app before giving up. "
             "Useful primarily for apps that take a very long time to start up.");
 
-RDOC_DEBUG_CONFIG(bool, Android_Debug_ProcessLaunch, false,
-                  "Output verbose debug logging messages when launching android apps.");
+RDOC_CONFIG(bool, Android_Debug_ProcessLaunch, false,
+            "Output verbose debug logging messages when launching android apps.");
 
 namespace Android
 {

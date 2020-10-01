@@ -36,10 +36,9 @@
 // command buffer that stalls the GPU).
 // See INITSTATEBATCH
 
-RDOC_DEBUG_CONFIG(
-    bool, Vulkan_Debug_HideInitialDescriptors, false,
-    "Hide the initial contents of descriptor sets. "
-    "For extremely large descriptor sets this can drastically reduce memory consumption.");
+RDOC_CONFIG(bool, Vulkan_Debug_HideInitialDescriptors, false,
+            "Hide the initial contents of descriptor sets. "
+            "For extremely large descriptor sets this can drastically reduce memory consumption.");
 
 bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 {

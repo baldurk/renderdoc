@@ -33,8 +33,8 @@
 #include "vk_replay.h"
 #include "vk_shader_cache.h"
 
-RDOC_DEBUG_CONFIG(rdcstr, Vulkan_Debug_PostVSDumpDirPath, "",
-                  "Path to dump gnerated SPIR-V compute shaders for fetching post-vs.");
+RDOC_CONFIG(rdcstr, Vulkan_Debug_PostVSDumpDirPath, "",
+            "Path to dump gnerated SPIR-V compute shaders for fetching post-vs.");
 
 #undef None
 

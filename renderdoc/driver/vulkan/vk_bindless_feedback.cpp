@@ -31,8 +31,8 @@
 #include "vk_replay.h"
 #include "vk_shader_cache.h"
 
-RDOC_DEBUG_CONFIG(rdcstr, Vulkan_Debug_FeedbackDumpDirPath, "",
-                  "Path to dump bindless feedback annotation generated SPIR-V files.");
+RDOC_CONFIG(rdcstr, Vulkan_Debug_FeedbackDumpDirPath, "",
+            "Path to dump bindless feedback annotation generated SPIR-V files.");
 RDOC_CONFIG(
     bool, Vulkan_BindlessFeedback, true,
     "Enable fetching from GPU which descriptors were dynamically used in descriptor arrays.");
