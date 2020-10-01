@@ -36,6 +36,7 @@ RDOC_DEBUG_CONFIG(rdcstr, Vulkan_Debug_FeedbackDumpDirPath, "",
 RDOC_CONFIG(
     bool, Vulkan_BindlessFeedback, true,
     "Enable fetching from GPU which descriptors were dynamically used in descriptor arrays.");
+RDOC_EXTERN_CONFIG(bool, Vulkan_Debug_DisableBufferDeviceAddress);
 
 struct feedbackData
 {
@@ -550,6 +551,10 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   bool useBufferAddress = (m_pDriver->GetExtensions(NULL).ext_KHR_buffer_device_address ||
                            m_pDriver->GetExtensions(NULL).ext_EXT_buffer_device_address) &&
                           m_pDriver->GetDeviceEnabledFeatures().shaderInt64;
+
+  if(Vulkan_Debug_DisableBufferDeviceAddress() ||
+     m_pDriver->GetDriverInfo().AMDBufferDeviceAddressBrokenDriver())
+    useBufferAddress = false;
 
   bool useBufferAddressKHR = m_pDriver->GetExtensions(NULL).ext_KHR_buffer_device_address;
 

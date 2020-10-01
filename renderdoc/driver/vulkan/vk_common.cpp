@@ -970,6 +970,12 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps)
     if(physProps.driverVersion < VK_MAKE_VERSION(2, 0, 33))
       amdStorageMSAABrokenDriver = true;
   }
+
+  if(m_Vendor == GPUVendor::AMD)
+  {
+    // not yet fixed
+    amdBDABrokenDriver = true;
+  }
 #endif
 
   // not fixed yet

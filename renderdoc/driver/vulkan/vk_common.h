@@ -253,6 +253,9 @@ public:
   // On Qualcomm emitting an image sample operation with DRef and explicit lod will crash on non-2D
   // textures. Since 2D is the common/expected case, we avoid compiling that case entirely.
   bool QualcommDrefNon2DCompileCrash() const { return qualcommDrefNon2DCompileCrash; }
+  // On AMD unfortunately the initial implementation of KHR_buffer_device_address is broken and
+  // produces bad results.
+  bool AMDBufferDeviceAddressBrokenDriver() const { return amdBDABrokenDriver; }
 private:
   GPUVendor m_Vendor;
 
@@ -264,6 +267,7 @@ private:
   bool amdStorageMSAABrokenDriver = false;
   bool qualcommLeakingUBOOffsets = false;
   bool qualcommDrefNon2DCompileCrash = false;
+  bool amdBDABrokenDriver = false;
 };
 
 enum
