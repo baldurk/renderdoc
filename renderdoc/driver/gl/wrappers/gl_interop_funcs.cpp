@@ -341,6 +341,12 @@ bool WrappedOpenGL::Serialise_wglDXRegisterObjectNV(SerialiserType &ser, GLResou
       m_Textures[liveId].mipsValid = (1 << mips) - 1;
     }
 
+    if(type == eGL_NONE || type == eGL_TEXTURE_BUFFER)
+    {
+      ResourceId liveId = GetResourceManager()->GetResID(Resource);
+      m_Buffers[liveId].size = width;
+    }
+
     AddResourceInitChunk(Resource);
   }
 
