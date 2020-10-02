@@ -2698,11 +2698,19 @@ void D3D12Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t lengt
 
   if(it == m_pDevice->GetResourceList().end())
   {
-    RDCERR("Getting buffer data for unknown buffer %s!", ToStr(buff).c_str());
+    RDCERR("Getting buffer data for unknown buffer %s!",
+           ToStr(m_pDevice->GetResourceManager()->GetLiveID(buff)).c_str());
     return;
   }
 
   WrappedID3D12Resource1 *buffer = it->second;
+
+  if(buffer->GetDesc().Dimension != D3D12_RESOURCE_DIMENSION_BUFFER)
+  {
+    RDCERR("Getting buffer data for non-buffer %s!",
+           ToStr(m_pDevice->GetResourceManager()->GetLiveID(buff)).c_str());
+    return;
+  }
 
   RDCASSERT(buffer);
 
@@ -3012,7 +3020,15 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
 
   if(resource == NULL)
   {
-    RDCERR("Trying to get texture data for unknown ID %s!", ToStr(tex).c_str());
+    RDCERR("Trying to get texture data for unknown ID %s!",
+           ToStr(m_pDevice->GetResourceManager()->GetLiveID(tex)).c_str());
+    return;
+  }
+
+  if(resource->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+  {
+    RDCERR("Getting texture data for buffer %s!",
+           ToStr(m_pDevice->GetResourceManager()->GetLiveID(tex)).c_str());
     return;
   }
 

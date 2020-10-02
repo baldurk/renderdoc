@@ -48,3 +48,12 @@ class GL_Simple_Triangle(rdtest.TestCase):
         }
 
         self.check_mesh_data(postvs_ref, postvs_data)
+
+        # Check that nothing breaks if we call typical enumeration functions on resources
+        for res in self.controller.GetResources():
+            res: rd.ResourceDescription
+
+            self.controller.GetShaderEntryPoints(res.resourceId)
+            self.controller.GetUsage(res.resourceId)
+            self.controller.GetBufferData(res.resourceId, 0, 0)
+            self.controller.GetTextureData(res.resourceId, rd.Subresource())
