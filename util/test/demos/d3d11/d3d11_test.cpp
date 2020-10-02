@@ -37,7 +37,7 @@ namespace
 HMODULE d3d11 = NULL;
 HMODULE dxgi = NULL;
 HMODULE d3dcompiler = NULL;
-IDXGIFactoryPtr factory;
+IDXGIFactory1Ptr factory;
 std::vector<IDXGIAdapterPtr> adapters;
 bool warp = false;
 
@@ -74,7 +74,9 @@ void D3D11GraphicsTest::Prepare(int argc, char **argv)
     PFN_CREATE_DXGI_FACTORY createFactory = NULL;
 
     if(dxgi)
-      createFactory = (PFN_CREATE_DXGI_FACTORY)GetProcAddress(dxgi, "CreateDXGIFactory");
+    {
+      createFactory = (PFN_CREATE_DXGI_FACTORY)GetProcAddress(dxgi, "CreateDXGIFactory1");
+    }
 
     if(d3d11 && d3dcompiler)
     {
@@ -91,7 +93,7 @@ void D3D11GraphicsTest::Prepare(int argc, char **argv)
 
     if(createFactory)
     {
-      hr = createFactory(__uuidof(IDXGIFactory), (void **)&factory);
+      hr = createFactory(__uuidof(IDXGIFactory1), (void **)&factory);
 
       if(SUCCEEDED(hr))
         adapters = FindD3DAdapters(factory, argc, argv, warp);
@@ -313,6 +315,8 @@ void D3D11GraphicsTest::PostDeviceCreate()
   ctx2 = ctx;
   ctx3 = ctx;
   ctx4 = ctx;
+
+  fact = factory;
 
   annot = ctx;
 

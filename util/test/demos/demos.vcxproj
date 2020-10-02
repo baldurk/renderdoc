@@ -164,6 +164,7 @@
     <ClCompile Include="d3d11\d3d11_structured_buffer_misaligned_dirty.cpp" />
     <ClCompile Include="d3d11\d3d11_structured_buffer_nested.cpp" />
     <ClCompile Include="d3d11\d3d11_structured_buffer_read.cpp" />
+    <ClCompile Include="d3d11\d3d11_swapchain_zoo.cpp" />
     <ClCompile Include="d3d11\d3d11_test.cpp" />
     <ClCompile Include="d3d11\d3d11_texture_3d.cpp" />
     <ClCompile Include="d3d11\d3d11_texture_zoo.cpp" />
@@ -195,6 +196,7 @@
     <ClCompile Include="d3d12\d3d12_sharing.cpp" />
     <ClCompile Include="d3d12\d3d12_simple_dispatch.cpp" />
     <ClCompile Include="d3d12\d3d12_simple_triangle.cpp" />
+    <ClCompile Include="d3d12\d3d12_swapchain_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_test.cpp" />
     <ClCompile Include="d3d12\d3d12_texture_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_untyped_backbuffer_descriptor.cpp" />

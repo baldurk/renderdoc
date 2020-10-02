@@ -181,6 +181,7 @@ struct D3D11GraphicsTest : public GraphicsTest
 
   GraphicsWindow *mainWindow = NULL;
 
+  IDXGIFactory1Ptr fact;
   IDXGISwapChainPtr swap;
 
   ID3D11InputLayoutPtr defaultLayout;

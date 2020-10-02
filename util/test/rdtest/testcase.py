@@ -134,6 +134,7 @@ class TestCase:
     internal = False
     demos_test_name = ''
     demos_frame_cap = 5
+    demos_frame_count = 1
     _test_list = {}
 
     @staticmethod
@@ -203,8 +204,8 @@ class TestCase:
         if self.demos_test_name != '':
             logfile = os.path.join(util.get_tmp_dir(), 'demos.log')
             return capture.run_and_capture(util.get_demos_binary(), self.demos_test_name + " --log " + logfile,
-                                           self.demos_frame_cap, logfile=logfile, opts=self.get_capture_options(),
-                                           timeout=util.get_demos_timeout())
+                                           self.demos_frame_cap, frame_count=self.demos_frame_count, logfile=logfile,
+                                           opts=self.get_capture_options(), timeout=util.get_demos_timeout())
 
         raise NotImplementedError("If run() is not implemented in a test, then"
                                   "get_capture() and check_capture() must be.")
