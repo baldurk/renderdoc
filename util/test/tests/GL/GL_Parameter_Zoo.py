@@ -6,6 +6,7 @@ import rdtest
 
 class GL_Parameter_Zoo(rdtest.TestCase):
     demos_test_name = 'GL_Parameter_Zoo'
+    demos_frame_cap = 6
 
     def check_capture(self):
         id = self.get_last_draw().copyDestination

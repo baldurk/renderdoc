@@ -214,6 +214,9 @@ void main()
       glProgramUniform1i(program, glGetUniformLocation(program, "mode"), 1);
       glDrawArrays(GL_TRIANGLES, 0, 3);
 
+      if(GLAD_GL_GREMEDY_frame_terminator)
+        glFrameTerminatorGREMEDY();
+
       Present();
     }
 
