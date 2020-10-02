@@ -326,7 +326,7 @@ void GLReplay::GetOutputWindowData(uint64_t id, bytebuf &retData)
   MakeCurrentReplayContext(m_DebugCtx);
 
   m_pDriver->glBindFramebuffer(eGL_READ_FRAMEBUFFER, outw.BlitData.windowFBO);
-  m_pDriver->glReadBuffer(eGL_BACK);
+  m_pDriver->glReadBuffer(eGL_COLOR_ATTACHMENT0);
   m_pDriver->glBindBuffer(eGL_PIXEL_PACK_BUFFER, 0);
   m_pDriver->glPixelStorei(eGL_PACK_ROW_LENGTH, 0);
   m_pDriver->glPixelStorei(eGL_PACK_SKIP_ROWS, 0);
