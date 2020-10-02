@@ -5,6 +5,20 @@ import time
 import os
 
 
+def srgb2linear(f):
+    if f <= 0.04045:
+        return f / 12.92
+    else:
+        return ((f + 0.055) / 1.055) ** 2.4
+
+
+def linear2srgb(f):
+    if f <= 0.0031308:
+        return f * 12.92
+    else:
+        return 1.055 * (f ** (1 / 2.4)) - 0.055
+
+
 # Not a real test, re-used by API-specific tests
 class Texture_Zoo():
     def __init__(self):
@@ -15,6 +29,8 @@ class Texture_Zoo():
         self.textures = {}
         self.controller: rd.ReplayController
         self.controller = None
+        self.out: rd.ReplayOutput
+        self.out = None
         self.pipeType = rd.GraphicsAPI.D3D11
         self.opengl_mode = False
         self.d3d_mode = False
@@ -172,106 +188,131 @@ class Texture_Zoo():
                     z = sl
 
                 for sm in range(tex.msSamp):
+                    cur_sub = self.sub(mp, sl, sm)
+
+                    tex_display = rd.TextureDisplay()
+                    tex_display.resourceId = tex_id
+                    tex_display.subresource = cur_sub
+                    tex_display.flipY = self.opengl_mode
+                    tex_display.typeCast = comp_type
+                    tex_display.alpha = False
+                    tex_display.scale = 1.0 / float(1<<mp)
+                    tex_display.backgroundColor = rd.FloatVector(0.0, 0.0, 0.0, 1.0)
+
+                    if comp_type == rd.CompType.UInt:
+                        tex_display.rangeMin = 0.0
+                        tex_display.rangeMax = 255.0
+                    elif comp_type == rd.CompType.SInt:
+                        tex_display.rangeMin = -255.0
+                        tex_display.rangeMax = 0.0
+                    elif comp_type == rd.CompType.SNorm:
+                        tex_display.rangeMin = -1.0
+                        tex_display.rangeMax = 0.0
+
+                    self.out.SetTextureDisplay(tex_display)
+
+                    self.out.Display()
+
+                    pixels: bytes = self.out.ReadbackOutputTexture()
+                    dim = self.out.GetDimensions()
+
+                    stencilpixels = None
+
+                    # Grab stencil separately
+                    if tex.format.type == rd.ResourceFormatType.D16S8 or tex.format.type == rd.ResourceFormatType.D24S8 or tex.format.type == rd.ResourceFormatType.D32S8:
+                        tex_display.red = False
+                        tex_display.green = True
+                        tex_display.blue = False
+                        tex_display.alpha = False
+
+                        self.out.SetTextureDisplay(tex_display)
+                        self.out.Display()
+
+                        stencilpixels: bytes = self.out.ReadbackOutputTexture()
+
+                    # Grab alpha if needed (since the readback output is RGB only)
+                    if comp_count == 4 or tex.format.type == rd.ResourceFormatType.A8:
+                        tex_display.red = False
+                        tex_display.green = False
+                        tex_display.blue = False
+                        tex_display.alpha = True
+
+                        self.out.SetTextureDisplay(tex_display)
+                        self.out.Display()
+
+                        alphapixels: bytes = self.out.ReadbackOutputTexture()
+
+                    all_good = True
+
                     for x in range(max(1, tex.width >> mp)):
+                        if not all_good:
+                            break
                         for y in range(max(1, tex.height >> mp)):
-                            picked: rd.PixelValue = self.pick(tex_id, x, y, self.sub(mp, sl, sm), comp_type)
+                            expected = self.get_expected_value(comp_count, comp_type, cur_sub, test_mode, tex, x, y, z)
 
-                            # each 3D slice cycles the x. This only affects the primary diagonal
-                            offs_x = (x + z) % max(1, tex.width >> mp)
+                            # for this test to work the expected values have to be within the range we selected for
+                            # display above
+                            for i in expected:
+                                if i < tex_display.rangeMin or tex_display.rangeMax < i:
+                                    raise rdtest.TestFailureException("expected value {} is outside of texture display range! {} - {}".format(i, tex_display.rangeMin, tex_display.rangeMax))
 
-                            # The diagonal inverts the colors
-                            inverted = (offs_x != y)
+                            # convert the expected values to range-adapted values
+                            for i in range(len(expected)):
+                                expected[i] = (expected[i] - tex_display.rangeMin) / (
+                                            tex_display.rangeMax - tex_display.rangeMin)
 
-                            # second slice adds a coarse checkerboard pattern of inversion
-                            if tex.arraysize > 1 and sl == 1 and ((int(x / 2) % 2) != (int(y / 2) % 2)):
-                                inverted = not inverted
+                            # get the bytes from the displayed pixel
+                            offs = y * dim[0] * 3 + x * 3
+                            displayed = [int(a) for a in pixels[offs:offs + comp_count]]
+                            if comp_count == 4:
+                                del displayed[3]
+                                displayed.append(int(alphapixels[offs]))
+                            if stencilpixels is not None:
+                                del displayed[1:]
+                                displayed.append(int(stencilpixels[offs]))
+                            if tex.format.type == rd.ResourceFormatType.A8:
+                                displayed = [int(alphapixels[offs])]
 
-                            if comp_type == rd.CompType.UInt or comp_type == rd.CompType.SInt:
-                                expected = [10, 40, 70, 100]
+                            # normalise the displayed values
+                            for i in range(len(displayed)):
+                                displayed[i] = float(displayed[i]) / 255.0
 
-                                if inverted:
-                                    expected = list(reversed(expected))
-
-                                expected = [c + 10 * (sm + mp) for c in expected]
-
-                                if comp_type == rd.CompType.SInt:
-                                    picked = picked.intValue
-                                else:
-                                    picked = picked.uintValue
-                            elif (tex.format.type == rd.ResourceFormatType.D16S8 or
-                                  tex.format.type == rd.ResourceFormatType.D24S8 or
-                                  tex.format.type == rd.ResourceFormatType.D32S8):
-                                # depth/stencil is a bit special
-                                expected = [0.1, 10, 100, 0.85]
-
-                                if inverted:
-                                    expected = list(reversed(expected))
-
-                                expected[0] += 0.075 * (sm + mp)
-                                expected[1] += 10 * (sm + mp)
-
-                                # Normalise stencil value
-                                expected[1] = expected[1] / 255.0
-
-                                picked = picked.floatValue
-                            else:
-                                expected = [0.1, 0.35, 0.6, 0.85]
-
-                                if inverted:
-                                    expected = list(reversed(expected))
-
-                                expected = [c + 0.075 * (sm + mp) for c in expected]
-
-                                picked = picked.floatValue
-
-                            # SNorm/SInt is negative
-                            if comp_type == rd.CompType.SNorm or comp_type == rd.CompType.SInt:
-                                expected = [-c for c in expected]
-
-                            # BGRA textures have a swizzle applied
-                            if tex.format.BGRAOrder():
-                                expected[0:3] = reversed(expected[0:3])
+                            # For SRGB textures match linear picked values. We do this for alpha too since it's rendered
+                            # via RGB
+                            if comp_type == rd.CompType.UNormSRGB:
+                                displayed[0:4] = [srgb2linear(x) for x in displayed[0:4]]
 
                             # alpha channel in 10:10:10:2 has extremely low precision, and the ULP requirements mean
                             # we basically can't trust anything between 0 and 1 on float formats. Just round in that
                             # case as it still lets us differentiate between alpha 0.0-0.5 and 0.5-1.0
-                            if tex.format.type == rd.ResourceFormatType.R10G10B10A2:
-                                if comp_type == rd.CompType.UInt:
-                                    expected[3] = min(3, expected[3])
-                                else:
-                                    expected[3] = round(expected[3]) * 1.0
-                                    picked[3] = round(picked[3]) * 1.0
+                            if tex.format.type == rd.ResourceFormatType.R10G10B10A2 and comp_type != rd.CompType.UInt:
+                                displayed[3] = round(displayed[3]) * 1.0
 
                             # Handle 1-bit alpha
                             if tex.format.type == rd.ResourceFormatType.R5G5B5A1:
-                                expected[3] = 1.0 if expected[3] >= 0.5 else 0.0
-                                picked[3] = 1.0 if picked[3] >= 0.5 else 0.0
+                                displayed[3] = 1.0 if displayed[3] >= 0.5 else 0.0
 
-                            # A8 picked values come out in alpha, but we want to compare against the single channel
-                            if tex.format.type == rd.ResourceFormatType.A8:
-                                picked[0] = picked[3]
+                            # Need an additional 1/255 epsilon to account for us going via a 8-bit backbuffer for display
+                            if not rdtest.value_compare(displayed, expected, 1.0/255.0 + eps):
+                                #rdtest.log.print(
+                                #    "Quick-checking ({},{}) of slice {}, mip {}, sample {} of {} {} got {}. Expected {}.".format(
+                                #        x, y, sl, mp, sm, name, fmt_name, displayed, expected) +
+                                #    "Falling back to pixel picking tests.")
+                                # Currently this seems to fail in some proxy scenarios with sRGB, but since it's not a
+                                # real error we just silently swallow it
+                                all_good = False
+                                break
 
-                            # Clamp to number of components in the texture
-                            expected = expected[0:comp_count]
-                            picked = picked[0:comp_count]
+                    if all_good:
+                        continue
+
+                    for x in range(max(1, tex.width >> mp)):
+                        for y in range(max(1, tex.height >> mp)):
+                            expected = self.get_expected_value(comp_count, comp_type, cur_sub, test_mode, tex, x, y, z)
+                            picked = self.get_picked_pixel_value(comp_count, comp_type, cur_sub, tex, tex_id, x, y)
 
                             if mp == 0 and sl == 0 and sm == 0 and x == 0 and y == 0:
                                 value0 = picked
-
-                            # For SRGB textures picked values will come out as linear
-                            def srgb2linear(f):
-                                if f <= 0.04045:
-                                    return f / 12.92
-                                else:
-                                    return ((f + 0.055) / 1.055) ** 2.4
-
-                            if comp_type == rd.CompType.UNormSRGB:
-                                expected[0:3] = [srgb2linear(x) for x in expected[0:3]]
-
-                            if test_mode == Texture_Zoo.TEST_PNG:
-                                orig_comp = self.textures[self.filename].format.compType
-                                if orig_comp == rd.CompType.SNorm or orig_comp == rd.CompType.SInt:
-                                    expected = [1.0 - x for x in expected]
 
                             if not rdtest.value_compare(picked, expected, eps):
                                 raise rdtest.TestFailureException(
@@ -296,6 +337,10 @@ class Texture_Zoo():
 
             # Clamp to number of components in the texture
             picked = picked[0:comp_count]
+
+            # If we didn't get a value0 (because we did all texture render compares) then fetch it here
+            if len(value0) == 0:
+                value0 = self.get_picked_pixel_value(comp_count, comp_type, rd.Subresource(), tex, tex_id, 0, 0)
 
             # Up-convert any non-float expected values to floats
             value0 = [float(x) for x in value0]
@@ -322,6 +367,117 @@ class Texture_Zoo():
                 raise rdtest.TestFailureException(
                     "In {} {} Top-left pixel as rendered is {}. Expected {}".format(name, fmt_name, picked, value0))
 
+    def get_expected_value(self, comp_count: int, comp_type: rd.CompType, cur_sub: rd.Subresource, test_mode: int,
+                           tex: rd.TextureDescription, x: int, y: int, z: int):
+        mp, sl, sm = cur_sub.mip, cur_sub.slice, cur_sub.sample
+
+        if self.fake_msaa:
+            sm = sl % 2
+            sl = sl // 2
+
+        # each 3D slice cycles the x. This only affects the primary diagonal
+        offs_x = (x + z) % max(1, tex.width >> mp)
+
+        # The diagonal inverts the colors
+        inverted = (offs_x != y)
+
+        # second slice adds a coarse checkerboard pattern of inversion
+        if tex.arraysize > 1 and sl == 1 and ((int(x / 2) % 2) != (int(y / 2) % 2)):
+            inverted = not inverted
+
+        if comp_type == rd.CompType.UInt or comp_type == rd.CompType.SInt:
+            expected = [10.0, 40.0, 70.0, 100.0]
+
+            if inverted:
+                expected = list(reversed(expected))
+
+            expected = [c + 10.0 * (sm + mp) for c in expected]
+        elif (tex.format.type == rd.ResourceFormatType.D16S8 or
+              tex.format.type == rd.ResourceFormatType.D24S8 or
+              tex.format.type == rd.ResourceFormatType.D32S8):
+            # depth/stencil is a bit special
+            expected = [0.1, 10.0, 100.0, 0.85]
+
+            if inverted:
+                expected = list(reversed(expected))
+
+            expected[0] += 0.075 * (sm + mp)
+            expected[1] += 10.0 * (sm + mp)
+
+            # Normalise stencil value
+            expected[1] = expected[1] / 255.0
+        else:
+            expected = [0.1, 0.35, 0.6, 0.85]
+
+            if inverted:
+                expected = list(reversed(expected))
+
+            expected = [c + 0.075 * (sm + mp) for c in expected]
+
+        # SNorm/SInt is negative
+        if comp_type == rd.CompType.SNorm or comp_type == rd.CompType.SInt:
+            expected = [-c for c in expected]
+
+        # BGRA textures have a swizzle applied
+        if tex.format.BGRAOrder():
+            expected[0:3] = reversed(expected[0:3])
+
+        # alpha channel in 10:10:10:2 has extremely low precision, and the ULP requirements mean
+        # we basically can't trust anything between 0 and 1 on float formats. Just round in that
+        # case as it still lets us differentiate between alpha 0.0-0.5 and 0.5-1.0
+        if tex.format.type == rd.ResourceFormatType.R10G10B10A2:
+            if comp_type == rd.CompType.UInt:
+                expected[3] = min(3.0, expected[3])
+            else:
+                expected[3] = round(expected[3]) * 1.0
+
+        # Handle 1-bit alpha
+        if tex.format.type == rd.ResourceFormatType.R5G5B5A1:
+            expected[3] = 1.0 if expected[3] >= 0.5 else 0.0
+
+        # Clamp to number of components in the texture
+        expected = expected[0:comp_count]
+
+        # For SRGB textures picked values will come out as linear
+        if comp_type == rd.CompType.UNormSRGB:
+            expected[0:3] = [srgb2linear(x) for x in expected[0:3]]
+
+        if test_mode == Texture_Zoo.TEST_PNG:
+            orig_comp = self.textures[self.filename].format.compType
+            if orig_comp == rd.CompType.SNorm or orig_comp == rd.CompType.SInt:
+                expected = [1.0 - x for x in expected]
+
+        return expected
+
+    def get_picked_pixel_value(self, comp_count, comp_type, cur_sub, tex, tex_id, x, y):
+        picked_combo: rd.PixelValue = self.pick(tex_id, x, y, cur_sub, comp_type)
+
+        if comp_type == rd.CompType.SInt:
+            picked = [float(a) for a in picked_combo.intValue]
+        elif comp_type == rd.CompType.UInt:
+            picked = [float(a) for a in picked_combo.uintValue]
+        else:
+            picked = picked_combo.floatValue
+
+        # alpha channel in 10:10:10:2 has extremely low precision, and the ULP requirements mean
+        # we basically can't trust anything between 0 and 1 on float formats. Just round in that
+        # case as it still lets us differentiate between alpha 0.0-0.5 and 0.5-1.0
+        if tex.format.type == rd.ResourceFormatType.R10G10B10A2 and comp_type != rd.CompType.UInt:
+            picked[3] = round(picked[3]) * 1.0
+
+        # Handle 1-bit alpha
+        if tex.format.type == rd.ResourceFormatType.R5G5B5A1:
+            picked[3] = 1.0 if picked[3] >= 0.5 else 0.0
+
+        # A8 picked values come out in alpha, but we want to compare against the single channel
+        if tex.format.type == rd.ResourceFormatType.A8:
+            picked[0] = picked[3]
+
+        # Clamp to number of components in the texture
+        picked = picked[0:comp_count]
+
+        return picked
+
     def check_capture_with_controller(self, proxy_api: str):
         any_failed = False
 
@@ -331,6 +487,8 @@ class Texture_Zoo():
         else:
             rdtest.log.print('Running on direct replay')
             self.proxied = False
+
+        self.out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
 
         for d in self.controller.GetDrawcalls():
 
@@ -364,6 +522,9 @@ class Texture_Zoo():
 
                 if not failed:
                     rdtest.log.success("All {} texture tests for {} are OK".format(tests_run, d.name))
+
+        self.out.Shutdown()
+        self.out = None
 
         if not any_failed:
             if proxy_api != '':
@@ -403,6 +564,15 @@ class Texture_Zoo():
         ret: Tuple[rd.ReplayStatus, rd.RemoteServer] = rd.CreateRemoteServerConnection('localhost')
         status, remote = ret
 
+        if status != rd.ReplayStatus.Succeeded:
+            time.sleep(2)
+
+            ret: Tuple[rd.ReplayStatus, rd.RemoteServer] = rd.CreateRemoteServerConnection('localhost')
+            status, remote = ret
+
+        if status != rd.ReplayStatus.Succeeded:
+            raise rdtest.TestFailureException("Couldn't connect to remote server: {}".format(str(status)))
+
         proxies = remote.LocalProxies()
 
         try:
@@ -426,7 +596,7 @@ class Texture_Zoo():
                     rdtest.log.error(str(ex))
                     failed = True
                 finally:
-                    self.controller.Shutdown()
+                    remote.CloseCapture(self.controller)
                     self.controller = None
         finally:
             remote.ShutdownServerAndConnection()
@@ -477,7 +647,12 @@ class Texture_Zoo():
                 if was_opengl and not is_compressed:
                     self.opengl_mode = True
 
+                self.out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
+
                 self.check_test(a, b, Texture_Zoo.TEST_DDS if '.dds' in file.name else Texture_Zoo.TEST_PNG)
+
+                self.out.Shutdown()
+                self.out = None
 
                 rdtest.log.success("{} loaded with the correct data".format(file.name))
             except rdtest.TestFailureException as ex:
