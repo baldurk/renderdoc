@@ -88,9 +88,9 @@ void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource, CompTyp
   if(IsDepthAndStencilFormat(resourceDesc.Format))
     resType++;
 
-  if(IsUIntFormat(resourceDesc.Format))
+  if(IsUIntFormat(srvDesc.Format))
     srvOffset += 10;
-  if(IsIntFormat(resourceDesc.Format))
+  if(IsIntFormat(srvDesc.Format))
     srvOffset += 20;
 
   D3D12_RESOURCE_STATES realResourceState =
@@ -471,9 +471,11 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
   if(cfg.overlay == DebugOverlay::Clipping)
     pixelData.OutputDisplayFormat |= TEXDISPLAY_CLIPPING;
 
-  if(IsUIntFormat(resourceDesc.Format))
+  DXGI_FORMAT fmt = GetTypedFormat(resourceDesc.Format, cfg.typeCast);
+
+  if(IsUIntFormat(fmt))
     pixelData.OutputDisplayFormat |= TEXDISPLAY_UINT_TEX;
-  else if(IsIntFormat(resourceDesc.Format))
+  else if(IsIntFormat(fmt))
     pixelData.OutputDisplayFormat |= TEXDISPLAY_SINT_TEX;
 
   // Check both the resource format and view format for sRGB
