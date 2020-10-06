@@ -1104,7 +1104,7 @@ void D3D12Replay::FillRootElements(const D3D12RenderState::RootSignature &rootSi
           desc += e->offset;
           desc += offset;
 
-          if(num == UINT_MAX)
+          if(num >= heap->GetNumDescriptors())
           {
             UINT availDescriptors = heap->GetNumDescriptors() - offset - UINT(e->offset);
 
