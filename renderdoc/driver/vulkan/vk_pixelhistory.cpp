@@ -1177,13 +1177,7 @@ private:
     uint32_t occlIndex = (uint32_t)m_OcclusionQueries.size();
     ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), m_OcclusionPool, occlIndex, m_QueryFlags);
 
-    if(drawcall->flags & DrawFlags::Indexed)
-      ObjDisp(cmd)->CmdDrawIndexed(Unwrap(cmd), drawcall->numIndices, drawcall->numInstances,
-                                   drawcall->indexOffset, drawcall->baseVertex,
-                                   drawcall->instanceOffset);
-    else
-      ObjDisp(cmd)->CmdDraw(Unwrap(cmd), drawcall->numIndices, drawcall->numInstances,
-                            drawcall->vertexOffset, drawcall->instanceOffset);
+    m_pDriver->ReplayDraw(cmd, *drawcall);
 
     ObjDisp(cmd)->CmdEndQuery(Unwrap(cmd), m_OcclusionPool, occlIndex);
     m_OcclusionQueries.insert(std::make_pair(eventId, occlIndex));
@@ -1602,13 +1596,7 @@ private:
     }
 
     const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eventId);
-    if(drawcall->flags & DrawFlags::Indexed)
-      ObjDisp(cmd)->CmdDrawIndexed(Unwrap(cmd), drawcall->numIndices, drawcall->numInstances,
-                                   drawcall->indexOffset, drawcall->baseVertex,
-                                   drawcall->instanceOffset);
-    else
-      ObjDisp(cmd)->CmdDraw(Unwrap(cmd), drawcall->numIndices, drawcall->numInstances,
-                            drawcall->vertexOffset, drawcall->instanceOffset);
+    m_pDriver->ReplayDraw(cmd, *drawcall);
 
     m_pDriver->GetCmdRenderState().EndRenderPass(cmd);
   }
@@ -2141,13 +2129,7 @@ private:
     ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), m_OcclusionPool, index, m_QueryFlags);
 
     const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eventId);
-    if(drawcall->flags & DrawFlags::Indexed)
-      ObjDisp(cmd)->CmdDrawIndexed(Unwrap(cmd), drawcall->numIndices, drawcall->numInstances,
-                                   drawcall->indexOffset, drawcall->baseVertex,
-                                   drawcall->instanceOffset);
-    else
-      ObjDisp(cmd)->CmdDraw(Unwrap(cmd), drawcall->numIndices, drawcall->numInstances,
-                            drawcall->vertexOffset, drawcall->instanceOffset);
+    m_pDriver->ReplayDraw(cmd, *drawcall);
 
     ObjDisp(cmd)->CmdEndQuery(Unwrap(cmd), m_OcclusionPool, index);
   }
@@ -2368,13 +2350,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
         ObjDisp(cmd)->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_AND_BACK, 0xff);
         ObjDisp(cmd)->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_FRONT_AND_BACK, f);
         const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eid);
-        if(drawcall->flags & DrawFlags::Indexed)
-          ObjDisp(cmd)->CmdDrawIndexed(Unwrap(cmd), drawcall->numIndices, drawcall->numInstances,
-                                       drawcall->indexOffset, drawcall->baseVertex,
-                                       drawcall->instanceOffset);
-        else
-          ObjDisp(cmd)->CmdDraw(Unwrap(cmd), drawcall->numIndices, drawcall->numInstances,
-                                drawcall->vertexOffset, drawcall->instanceOffset);
+        m_pDriver->ReplayDraw(cmd, *drawcall);
         state.EndRenderPass(cmd);
 
         if(i == 1)
@@ -2465,13 +2441,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       ObjDisp(cmd)->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_AND_BACK, 0xff);
       ObjDisp(cmd)->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_FRONT_AND_BACK, f);
       const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eid);
-      if(drawcall->flags & DrawFlags::Indexed)
-        ObjDisp(cmd)->CmdDrawIndexed(Unwrap(cmd), drawcall->numIndices, drawcall->numInstances,
-                                     drawcall->indexOffset, drawcall->baseVertex,
-                                     drawcall->instanceOffset);
-      else
-        ObjDisp(cmd)->CmdDraw(Unwrap(cmd), drawcall->numIndices, drawcall->numInstances,
-                              drawcall->vertexOffset, drawcall->instanceOffset);
+      m_pDriver->ReplayDraw(cmd, *drawcall);
       state.EndRenderPass(cmd);
 
       CopyImagePixel(cmd, colourCopyParams, (fragsProcessed + f) * sizeof(PerFragmentInfo) +
@@ -2736,20 +2706,15 @@ struct VulkanPixelHistoryDiscardedFragmentsCallback : VulkanPixelHistoryCallback
       ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), m_OcclusionPool, queryId, m_QueryFlags);
       const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eid);
       uint32_t primId = primIds[i];
+      DrawcallDescription draw = *drawcall;
+      draw.numIndices = RENDERDOC_NumVerticesPerPrimitive(drawcall->topology);
+      draw.indexOffset += RENDERDOC_VertexOffset(drawcall->topology, primId);
+      draw.vertexOffset += RENDERDOC_VertexOffset(drawcall->topology, primId);
       // TODO once pixel history distinguishes between instances, draw only the instance for
-      // this fragment
-      if(drawcall->flags & DrawFlags::Indexed)
-        ObjDisp(cmd)->CmdDrawIndexed(
-            Unwrap(cmd), RENDERDOC_NumVerticesPerPrimitive(drawcall->topology),
-            RDCMAX(1U, drawcall->numInstances),
-            drawcall->indexOffset + RENDERDOC_VertexOffset(drawcall->topology, primId),
-            drawcall->baseVertex, drawcall->instanceOffset);
-      else
-        ObjDisp(cmd)->CmdDraw(
-            Unwrap(cmd), RENDERDOC_NumVerticesPerPrimitive(drawcall->topology),
-            RDCMAX(1U, drawcall->numInstances),
-            drawcall->vertexOffset + RENDERDOC_VertexOffset(drawcall->topology, primId),
-            drawcall->instanceOffset);
+      // this fragment.
+      // TODO replay with a dummy index buffer so that all primitives other than the target one are
+      // degenerate - that way the vertex index etc is still the same as it should be.
+      m_pDriver->ReplayDraw(cmd, draw);
       ObjDisp(cmd)->CmdEndQuery(Unwrap(cmd), m_OcclusionPool, queryId);
 
       m_OcclusionIndices[make_rdcpair<uint32_t, uint32_t>(eid, primId)] = queryId;

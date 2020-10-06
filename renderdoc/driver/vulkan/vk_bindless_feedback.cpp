@@ -884,17 +884,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
     {
       modifiedstate.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics);
 
-      if(drawcall->flags & DrawFlags::Indexed)
-      {
-        ObjDisp(cmd)->CmdDrawIndexed(Unwrap(cmd), drawcall->numIndices, drawcall->numInstances,
-                                     drawcall->indexOffset, drawcall->baseVertex,
-                                     drawcall->instanceOffset);
-      }
-      else
-      {
-        ObjDisp(cmd)->CmdDraw(Unwrap(cmd), drawcall->numIndices, drawcall->numInstances,
-                              drawcall->vertexOffset, drawcall->instanceOffset);
-      }
+      m_pDriver->ReplayDraw(cmd, *drawcall);
 
       modifiedstate.EndRenderPass(cmd);
     }

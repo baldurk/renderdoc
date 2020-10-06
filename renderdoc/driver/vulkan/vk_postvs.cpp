@@ -2676,17 +2676,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
 
     ObjDisp(cmd)->CmdBeginTransformFeedbackEXT(Unwrap(cmd), 0, 1, NULL, NULL);
 
-    if(drawcall->flags & DrawFlags::Indexed)
-    {
-      ObjDisp(cmd)->CmdDrawIndexed(Unwrap(cmd), drawcall->numIndices, drawcall->numInstances,
-                                   drawcall->indexOffset, drawcall->baseVertex,
-                                   drawcall->instanceOffset);
-    }
-    else
-    {
-      ObjDisp(cmd)->CmdDraw(Unwrap(cmd), drawcall->numIndices, drawcall->numInstances,
-                            drawcall->vertexOffset, drawcall->instanceOffset);
-    }
+    m_pDriver->ReplayDraw(cmd, *drawcall);
 
     ObjDisp(cmd)->CmdEndTransformFeedbackEXT(Unwrap(cmd), 0, 1, NULL, NULL);
 
@@ -2731,6 +2721,8 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
 
     state.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics);
 
+    DrawcallDescription draw = *drawcall;
+
     // do incremental draws to get the output size. We have to do this O(N^2) style because
     // there's no way to replay only a single instance. We have to replay 1, 2, 3, ... N
     // instances and count the total number of verts each time, then we can see from the
@@ -2745,16 +2737,8 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
 
       ObjDisp(cmd)->CmdBeginTransformFeedbackEXT(Unwrap(cmd), 0, 1, NULL, NULL);
 
-      if(drawcall->flags & DrawFlags::Indexed)
-      {
-        ObjDisp(cmd)->CmdDrawIndexed(Unwrap(cmd), drawcall->numIndices, inst, drawcall->indexOffset,
-                                     drawcall->baseVertex, drawcall->instanceOffset);
-      }
-      else
-      {
-        ObjDisp(cmd)->CmdDraw(Unwrap(cmd), drawcall->numIndices, inst, drawcall->vertexOffset,
-                              drawcall->instanceOffset);
-      }
+      draw.numInstances = inst;
+      m_pDriver->ReplayDraw(cmd, draw);
 
       ObjDisp(cmd)->CmdEndTransformFeedbackEXT(Unwrap(cmd), 0, 1, NULL, NULL);
 

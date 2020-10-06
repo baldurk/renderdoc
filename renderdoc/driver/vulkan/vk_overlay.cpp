@@ -1036,8 +1036,11 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       // do single draw
       m_pDriver->m_RenderState.BeginRenderPassAndApplyState(m_pDriver, cmd,
                                                             VulkanRenderState::BindGraphics);
-      ObjDisp(cmd)->CmdDrawIndexed(Unwrap(cmd), patchedIndexCount, mainDraw->numInstances, 0, 0,
-                                   mainDraw->instanceOffset);
+      DrawcallDescription draw = *mainDraw;
+      draw.numIndices = patchedIndexCount;
+      draw.baseVertex = 0;
+      draw.indexOffset = 0;
+      m_pDriver->ReplayDraw(cmd, draw);
       m_pDriver->m_RenderState.EndRenderPass(cmd);
 
       vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));

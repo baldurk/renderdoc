@@ -1030,6 +1030,7 @@ public:
   }
   void Shutdown();
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
+  void ReplayDraw(VkCommandBuffer cmd, const DrawcallDescription &drawcall);
   ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
 
   SDFile &GetStructuredFile() { return *m_StructuredFile; }

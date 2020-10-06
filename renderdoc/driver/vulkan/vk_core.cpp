@@ -2434,7 +2434,7 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
     // create indirect draw buffer
     m_IndirectBufferSize = AlignUp(m_IndirectBufferSize + 63, (size_t)64);
 
-    m_IndirectBuffer.Create(this, GetDev(), m_IndirectBufferSize, 1,
+    m_IndirectBuffer.Create(this, GetDev(), m_IndirectBufferSize * 2, 1,
                             GPUBuffer::eGPUBufferGPULocal | GPUBuffer::eGPUBufferIndirectBuffer);
 
     m_IndirectCommandBuffer = GetNextCmd();
@@ -4439,6 +4439,106 @@ void WrappedVulkan::UpdateImageStates(const rdcflatmap<ResourceId, ImageState> &
     // merge in the info into the entry.
     it->second.LockWrite()->Merge(dstIt->second, info);
     ++dstIt;
+  }
+}
+
+void WrappedVulkan::ReplayDraw(VkCommandBuffer cmd, const DrawcallDescription &drawcall)
+{
+  // if this isn't a multidraw (or it's the first draw in a multidraw, it's fairly easy
+  if(drawcall.drawIndex == 0)
+  {
+    if(drawcall.flags & DrawFlags::Indexed)
+      ObjDisp(cmd)->CmdDrawIndexed(Unwrap(cmd), drawcall.numIndices, drawcall.numInstances,
+                                   drawcall.indexOffset, drawcall.baseVertex,
+                                   drawcall.instanceOffset);
+    else
+      ObjDisp(cmd)->CmdDraw(Unwrap(cmd), drawcall.numIndices, drawcall.numInstances,
+                            drawcall.vertexOffset, drawcall.instanceOffset);
+  }
+  else
+  {
+    // otherwise it's a bit more complex, we need to set up a multidraw with the first N draws nop'd
+    // out and the parameters added into the last one
+
+    VkMarkerRegion::Begin(StringFormat::Fmt("ReplayDraw(drawIndex=%u)", drawcall.drawIndex), cmd);
+
+    bytebuf params;
+
+    if(drawcall.flags & DrawFlags::Indexed)
+    {
+      VkDrawIndexedIndirectCommand drawParams;
+      drawParams.indexCount = drawcall.numIndices;
+      drawParams.instanceCount = drawcall.numInstances;
+      drawParams.firstIndex = drawcall.indexOffset;
+      drawParams.vertexOffset = drawcall.baseVertex;
+      drawParams.firstInstance = drawcall.instanceOffset;
+
+      params.resize(sizeof(drawParams));
+      memcpy(params.data(), &drawParams, sizeof(drawParams));
+    }
+    else
+    {
+      VkDrawIndirectCommand drawParams;
+
+      drawParams.vertexCount = drawcall.numIndices;
+      drawParams.instanceCount = drawcall.numInstances;
+      drawParams.firstVertex = drawcall.vertexOffset;
+      drawParams.firstInstance = drawcall.instanceOffset;
+
+      params.resize(sizeof(drawParams));
+      memcpy(params.data(), &drawParams, sizeof(drawParams));
+    }
+
+    // ensure the custom buffer is large enough
+    VkDeviceSize bufLength = params.size() * (drawcall.drawIndex + 1);
+
+    RDCASSERT(bufLength <= m_IndirectBufferSize, bufLength, m_IndirectBufferSize);
+
+    VkBufferMemoryBarrier bufBarrier = {
+        VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+        NULL,
+        VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
+        VK_ACCESS_TRANSFER_WRITE_BIT,
+        VK_QUEUE_FAMILY_IGNORED,
+        VK_QUEUE_FAMILY_IGNORED,
+        Unwrap(m_IndirectBuffer.buf),
+        m_IndirectBufferSize,
+        m_IndirectBufferSize,
+    };
+
+    // wait for any previous indirect draws to complete before filling/transferring
+    DoPipelineBarrier(cmd, 1, &bufBarrier);
+
+    // initialise to 0 so all other draws don't draw anything
+    ObjDisp(cmd)->CmdFillBuffer(Unwrap(cmd), Unwrap(m_IndirectBuffer.buf), m_IndirectBufferSize,
+                                m_IndirectBufferSize, 0);
+
+    // wait for fill to complete before update
+    bufBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    bufBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+    DoPipelineBarrier(cmd, 1, &bufBarrier);
+
+    // upload the parameters for the draw we want
+    ObjDisp(cmd)->CmdUpdateBuffer(Unwrap(cmd), Unwrap(m_IndirectBuffer.buf),
+                                  m_IndirectBufferSize + params.size() * drawcall.drawIndex,
+                                  params.size(), params.data());
+
+    // finally wait for copy to complete before drawing from it
+    bufBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    bufBarrier.dstAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+
+    DoPipelineBarrier(cmd, 1, &bufBarrier);
+
+    if(drawcall.flags & DrawFlags::Indexed)
+      ObjDisp(cmd)->CmdDrawIndexedIndirect(Unwrap(cmd), Unwrap(m_IndirectBuffer.buf),
+                                           m_IndirectBufferSize, drawcall.drawIndex + 1,
+                                           (uint32_t)params.size());
+    else
+      ObjDisp(cmd)->CmdDrawIndirect(Unwrap(cmd), Unwrap(m_IndirectBuffer.buf), m_IndirectBufferSize,
+                                    drawcall.drawIndex + 1, (uint32_t)params.size());
+
+    VkMarkerRegion::End(cmd);
   }
 }
 

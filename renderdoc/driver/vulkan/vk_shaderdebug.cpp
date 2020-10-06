@@ -4084,16 +4084,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
     modifiedstate.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics);
 
-    if(draw->flags & DrawFlags::Indexed)
-    {
-      ObjDisp(cmd)->CmdDrawIndexed(Unwrap(cmd), draw->numIndices, draw->numInstances,
-                                   draw->indexOffset, draw->baseVertex, draw->instanceOffset);
-    }
-    else
-    {
-      ObjDisp(cmd)->CmdDraw(Unwrap(cmd), draw->numIndices, draw->numInstances, draw->vertexOffset,
-                            draw->instanceOffset);
-    }
+    m_pDriver->ReplayDraw(cmd, *draw);
 
     modifiedstate.EndRenderPass(cmd);
 
