@@ -2567,6 +2567,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
 
     {
       ds->depthBoundsTestEnable = VK_FALSE;
+      ds->depthWriteEnable = VK_TRUE;
       ds->depthCompareOp = VK_COMPARE_OP_ALWAYS;
     }
 
