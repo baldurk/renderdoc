@@ -236,6 +236,7 @@ public:
   QAbstractItemDelegate *itemDelegate() const;
 
   void setColumns(const QStringList &columns);
+  const QStringList &getHeaders() const { return m_headers; }
   QString headerText(int column) const { return m_headers[column]; }
   void setHeaderText(int column, const QString &text);
   RDTreeWidgetItem *selectedItem() const;

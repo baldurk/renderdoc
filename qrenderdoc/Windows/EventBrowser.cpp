@@ -740,62 +740,8 @@ void EventBrowser::on_exportDraws_clicked()
 
 void EventBrowser::on_colSelect_clicked()
 {
-  QDialog dialog;
-  RDListWidget list;
-  QDialogButtonBox buttons;
-
-  dialog.setWindowTitle(tr("Select Event Browser Columns"));
-  dialog.setWindowFlags(dialog.windowFlags() & ~Qt::WindowContextHelpButtonHint);
-
-  for(int visIdx = 0; visIdx < COL_COUNT; visIdx++)
-  {
-    int logIdx = ui->events->header()->logicalIndex(visIdx);
-
-    QListWidgetItem *item = new QListWidgetItem(ui->events->headerText(logIdx), &list);
-
-    item->setData(Qt::UserRole, logIdx);
-
-    item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
-
-    // this must stay enabled
-    if(logIdx == COL_NAME)
-      item->setFlags(item->flags() & ~Qt::ItemIsEnabled);
-
-    item->setCheckState(ui->events->header()->isSectionHidden(logIdx) ? Qt::Unchecked : Qt::Checked);
-  }
-
-  list.setSelectionMode(QAbstractItemView::SingleSelection);
-  list.setDragDropMode(QAbstractItemView::DragDrop);
-  list.setDefaultDropAction(Qt::MoveAction);
-
-  buttons.setOrientation(Qt::Horizontal);
-  buttons.setStandardButtons(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
-  buttons.setCenterButtons(true);
-
-  QObject::connect(&buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
-  QObject::connect(&buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
-
-  QVBoxLayout *layout = new QVBoxLayout(&dialog);
-  layout->addWidget(new QLabel(tr("Select the columns to enable."), &dialog));
-  layout->addWidget(&list);
-  layout->addWidget(&buttons);
-
-  int res = RDDialog::show(&dialog);
-
-  if(res)
-  {
-    for(int i = 0; i < COL_COUNT; i++)
-    {
-      int logicalIdx = list.item(i)->data(Qt::UserRole).toInt();
-
-      if(list.item(i)->checkState() == Qt::Unchecked)
-        ui->events->header()->hideSection(logicalIdx);
-      else
-        ui->events->header()->showSection(logicalIdx);
-
-      ui->events->header()->moveSection(ui->events->header()->visualIndex(logicalIdx), i);
-    }
-  }
+  UpdateVisibleColumns(tr("Select Event Browser Columns"), COL_COUNT, ui->events->header(),
+                       ui->events->getHeaders());
 }
 
 QString EventBrowser::GetExportDrawcallString(int indent, bool firstchild,

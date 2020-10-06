@@ -1308,10 +1308,25 @@ See FAQ on &quot;Gamma display of linear data&quot;</string>
         </property>
        </widget>
       </item>
-     </layout>
+      <item>
+        <widget class="QToolButton" name="colSelect">
+          <property name="toolTip">
+            <string>Select visible columns</string>
+          </property>
+          <property name="icon">
+            <iconset resource="../Resources/resources.qrc">
+              <normaloff>:/timeline_marker.png</normaloff>:/timeline_marker.png
+            </iconset>
+          </property>
+          <property name="autoRaise">
+            <bool>true</bool>
+          </property>
+        </widget>
+      </item>
+      </layout>
     </item>
     <item>
-     <widget class="RDListView" name="textureList">
+     <widget class="RDTreeWidget" name="textureList">
       <property name="frameShape">
        <enum>QFrame::Box</enum>
       </property>
@@ -1324,17 +1339,29 @@ See FAQ on &quot;Gamma display of linear data&quot;</string>
       <property name="showDropIndicator" stdset="0">
        <bool>false</bool>
       </property>
-      <property name="defaultDropAction">
-       <enum>Qt::CopyAction</enum>
+      <property name="indentation">
+        <number>0</number>
       </property>
-      <property name="selectionMode">
-       <enum>QAbstractItemView::NoSelection</enum>
+      <property name="rootIsDecorated">
+        <bool>true</bool>
       </property>
-      <property name="viewMode">
-       <enum>QListView::ListMode</enum>
+      <property name="allColumnsShowFocus">
+        <bool>true</bool>
       </property>
-      <property name="uniformItemSizes">
+      <property name="uniformRowHeights">
+        <bool>true</bool>
+      </property>
+      <property name="clearSelectionOnFocusLoss">
+        <bool>false</bool>
+      </property>
+      <property name="itemsExpandable">
+        <bool>false</bool>
+      </property>
+      <property name="sortingEnabled">
        <bool>true</bool>
+      </property>
+      <property name="wordWrap">
+        <bool>false</bool>
       </property>
      </widget>
     </item>
@@ -1378,6 +1405,11 @@ See FAQ on &quot;Gamma display of linear data&quot;</string>
    <class>RDToolButton</class>
    <extends>QToolButton</extends>
    <header>Widgets/Extended/RDToolButton.h</header>
+  </customwidget>
+  <customwidget>
+    <class>RDTreeWidget</class>
+    <extends>QTreeView</extends>
+    <header>Widgets/Extended/RDTreeWidget.h</header>
   </customwidget>
  </customwidgets>
  <resources>
