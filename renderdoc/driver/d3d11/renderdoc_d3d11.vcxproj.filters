@@ -185,5 +185,6 @@
     <ClInclude Include="d3d11_video.h">
       <Filter>Wrapped</Filter>
     </ClInclude>
+    <ClInclude Include="d3d11_hooks.h" />
   </ItemGroup>
 </Project>

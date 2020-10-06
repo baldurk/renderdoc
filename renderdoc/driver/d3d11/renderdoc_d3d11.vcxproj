@@ -142,6 +142,7 @@
     <ClInclude Include="d3d11_context.h" />
     <ClInclude Include="d3d11_debug.h" />
     <ClInclude Include="d3d11_device.h" />
+    <ClInclude Include="d3d11_hooks.h" />
     <ClInclude Include="d3d11_manager.h" />
     <ClInclude Include="d3d11_renderstate.h" />
     <ClInclude Include="d3d11_rendertext.h" />

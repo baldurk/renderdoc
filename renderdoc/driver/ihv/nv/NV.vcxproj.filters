@@ -7,6 +7,12 @@
     <ClInclude Include="nv_counters.h">
       <Filter>Counters</Filter>
     </ClInclude>
+    <ClInclude Include="official\nvapi\nvapi.h">
+      <Filter>official\nvapi</Filter>
+    </ClInclude>
+    <ClInclude Include="official\nvapi\nvapi_interface.h">
+      <Filter>official\nvapi</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="official">
@@ -21,10 +27,19 @@
     <Filter Include="Counters">
       <UniqueIdentifier>{630ba7bc-f1cd-4dd7-ba0d-5e4d689be9fd}</UniqueIdentifier>
     </Filter>
+    <Filter Include="official\nvapi">
+      <UniqueIdentifier>{fb35dcda-304a-43af-abfd-86e81fb701ae}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="nvapi">
+      <UniqueIdentifier>{f9b6bd25-7b71-4814-b8de-ca40545419a9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="nv_counters.cpp">
       <Filter>Counters</Filter>
+    </ClCompile>
+    <ClCompile Include="nvapi_hooks.cpp">
+      <Filter>nvapi</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

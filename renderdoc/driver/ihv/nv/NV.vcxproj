@@ -96,10 +96,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="nvapi_hooks.cpp" />
     <ClCompile Include="nv_counters.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="nv_counters.h" />
+    <ClInclude Include="official\nvapi\nvapi.h" />
+    <ClInclude Include="official\nvapi\nvapi_interface.h" />
     <ClInclude Include="official\PerfKit\include\NvPmApi.h" />
   </ItemGroup>
   <ItemGroup>
