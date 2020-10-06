@@ -289,6 +289,16 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(SerialiserType &ser, VkDevice dev
 
     UnwrapNextChain(m_State, "VkMemoryAllocateInfo", tempMem, (VkBaseInStructure *)&patched);
 
+    if(patched.memoryTypeIndex >= m_PhysicalDeviceData.memProps.memoryTypeCount)
+    {
+      RDCERR(
+          "Tried to allocate memory from index %u, but on replay we only have %u memory types.\n"
+          "This is most likely caused by incompatible hardware or drivers between capture and "
+          "replay, causing a change in memory requirements.",
+          patched.memoryTypeIndex, m_PhysicalDeviceData.memProps.memoryTypeCount);
+      return false;
+    }
+
     VkResult ret = ObjDisp(device)->AllocateMemory(Unwrap(device), &patched, NULL, &mem);
 
     if(ret != VK_SUCCESS)
