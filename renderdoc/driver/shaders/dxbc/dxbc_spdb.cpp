@@ -1282,8 +1282,9 @@ SPDBChunk::SPDBChunk(void *chunk)
           uint32_t comp = (varOffset % 16) / 4;
 
           // should now be down to a vector, so the remaining offset is the component. Unless we had
-          // multiple indices in which case it's a multi-dimensional array
-          RDCASSERT(varOffset < 16 || defrange->regIndices > 1);
+          // multiple indices in which case it's a multi-dimensional array, or this is a subrange of
+          // an array mapped to a single register.
+          RDCASSERT(varOffset < 16 || defrange->regIndices > 1 || varLen < varTypeByteSize);
 
           if(vartype->leafType == LF_MATRIX)
           {
