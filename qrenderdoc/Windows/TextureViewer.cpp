@@ -38,6 +38,7 @@
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
 #include "Dialogs/TextureSaveDialog.h"
+#include "Widgets/Extended/RDHeaderView.h"
 #include "Widgets/ResourcePreview.h"
 #include "Widgets/TextureGoto.h"
 #include "flowlayout/FlowLayout.h"
@@ -349,141 +350,19 @@ const ShaderBindpointMapping &Following::GetMapping(ICaptureContext &ctx)
   return GetMapping(ctx, Stage);
 }
 
-class TextureListItemModel : public QAbstractItemModel
+namespace TextureListFilter
 {
-public:
-  enum FilterType
-  {
-    Textures,
-    RenderTargets,
-    String
-  };
-
-  TextureListItemModel(ICaptureContext &ctx, QWidget *parent)
-      : QAbstractItemModel(parent), m_Ctx(ctx)
-  {
-    goArrow.addPixmap(Pixmaps::action(parent), QIcon::Normal, QIcon::Off);
-    goArrow.addPixmap(Pixmaps::action_hover(parent), QIcon::Normal, QIcon::Off);
-  }
-  void reset(FilterType type, const QString &filter)
-  {
-    const rdcarray<TextureDescription> src = m_Ctx.GetTextures();
-
-    texs.clear();
-    texs.reserve(src.count());
-
-    emit beginResetModel();
-
-    TextureCategory rtFlags = TextureCategory::ColorTarget | TextureCategory::DepthTarget;
-
-    for(const TextureDescription &t : src)
-    {
-      if(type == Textures)
-      {
-        if(!(t.creationFlags & rtFlags))
-          texs.push_back(t);
-      }
-      else if(type == RenderTargets)
-      {
-        if((t.creationFlags & rtFlags))
-          texs.push_back(t);
-      }
-      else
-      {
-        if(filter.isEmpty())
-          texs.push_back(t);
-        else if(QString(m_Ctx.GetResourceName(t.resourceId)).contains(filter, Qt::CaseInsensitive))
-          texs.push_back(t);
-      }
-    }
-
-    emit endResetModel();
-  }
-
-  QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override
-  {
-    if(row < 0 || row >= rowCount())
-      return QModelIndex();
-
-    return createIndex(row, 0);
-  }
-
-  QModelIndex parent(const QModelIndex &index) const override { return QModelIndex(); }
-  int rowCount(const QModelIndex &parent = QModelIndex()) const override { return texs.count(); }
-  int columnCount(const QModelIndex &parent = QModelIndex()) const override { return 1; }
-  Qt::ItemFlags flags(const QModelIndex &index) const override
-  {
-    if(!index.isValid())
-      return 0;
-
-    return QAbstractItemModel::flags(index);
-  }
-
-  QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override
-  {
-    if(index.isValid())
-    {
-      if(role == Qt::DisplayRole)
-      {
-        if(index.row() >= 0 && index.row() < texs.count())
-          return m_Ctx.GetResourceName(texs[index.row()].resourceId);
-      }
-
-      if(role == Qt::UserRole)
-      {
-        return QVariant::fromValue(texs[index.row()].resourceId);
-      }
-
-      if(role == Qt::DecorationRole)
-      {
-        return QVariant(goArrow);
-      }
-    }
-
-    return QVariant();
-  }
-
-private:
-  ICaptureContext &m_Ctx;
-  QVector<TextureDescription> texs;
-  QIcon goArrow;
-};
-
-class TextureListItemDelegate : public QItemDelegate
+enum Columns
 {
-public:
-  TextureListItemDelegate(QObject *parent = 0) : QItemDelegate(parent) {}
-  void paint(QPainter *painter, const QStyleOptionViewItem &opt, const QModelIndex &index) const override
-  {
-    if(index.isValid())
-    {
-      QStyleOptionViewItem option = opt;
-      option.decorationAlignment = Qt::AlignBaseline | Qt::AlignRight;
-      painter->eraseRect(option.rect);
-
-      QIcon icon = index.model()->data(index, Qt::DecorationRole).value<QIcon>();
-
-      drawBackground(painter, option, index);
-      if(option.state & QStyle::State_MouseOver)
-        drawDecoration(painter, option, option.rect,
-                       icon.pixmap(option.decorationSize, QIcon::Active));
-      else
-        drawDecoration(painter, option, option.rect,
-                       icon.pixmap(option.decorationSize, QIcon::Normal));
-      drawDisplay(painter, option, option.rect,
-                  index.model()->data(index, Qt::DisplayRole).toString());
-      drawFocus(painter, option, option.rect);
-
-      if(option.state & QStyle::State_MouseOver)
-      {
-        QRect r = option.rect;
-        r.adjust(0, 0, -1, -1);
-
-        painter->drawRect(r);
-      }
-    }
-  }
+  Column_TexName,
+  Column_TexWidth,
+  Column_TexHeight,
+  Column_TexDepth,
+  Column_MipsCount,
+  Column_TexFormat,
+  Column_Count,
 };
+}
 
 TextureDescription *TextureViewer::GetCurrentTexture()
 {
@@ -635,6 +514,9 @@ TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
     });
   }
 
+  QObject::connect(ui->textureList, &RDTreeWidget::itemActivated, this,
+                   &TextureViewer::texture_itemActivated);
+
   QWidget *renderContainer = ui->renderContainer;
 
   ui->dockarea->addToolWindow(ui->renderContainer, ToolWindowManager::EmptySpace);
@@ -642,6 +524,12 @@ TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
       renderContainer, ToolWindowManager::DisallowUserDocking | ToolWindowManager::HideCloseButton |
                            ToolWindowManager::DisableDraggableTab |
                            ToolWindowManager::AlwaysDisplayFullTabs);
+
+  ui->dockarea->addToolWindow(
+      ui->textureListFrame,
+      ToolWindowManager::AreaReference(ToolWindowManager::NoArea,
+                                       ui->dockarea->areaOf(renderContainer), 0.25f));
+  ui->dockarea->setToolWindowProperties(ui->textureListFrame, ToolWindowManager::HideOnClose);
 
   ui->dockarea->addToolWindow(ui->inputThumbs, ToolWindowManager::AreaReference(
                                                    ToolWindowManager::RightOf,
@@ -659,9 +547,6 @@ TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
                                        ui->dockarea->areaOf(ui->outputThumbs), 0.25f));
   ui->dockarea->setToolWindowProperties(ui->pixelContextLayout, ToolWindowManager::HideCloseButton);
 
-  ui->dockarea->addToolWindow(ui->textureListFrame, ToolWindowManager::NoArea);
-  ui->dockarea->setToolWindowProperties(ui->textureListFrame, ToolWindowManager::HideOnClose);
-
   ui->dockarea->setAllowFloatingWindow(false);
 
   renderContainer->setWindowTitle(tr("Unbound"));
@@ -669,8 +554,6 @@ TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
   ui->outputThumbs->setWindowTitle(tr("Outputs"));
   ui->inputThumbs->setWindowTitle(tr("Inputs"));
   ui->textureListFrame->setWindowTitle(tr("Texture List"));
-
-  ui->textureList->setHoverCursor(Qt::PointingHandCursor);
 
   m_Goto = new TextureGoto(this, [this](QPoint p) { GotoLocation(p.x(), p.y()); });
 
@@ -749,9 +632,20 @@ TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
 
   ui->textureListFilter->addItems({QString(), tr("Textures"), tr("Render Targets")});
 
-  ui->textureList->setModel(new TextureListItemModel(m_Ctx, this));
-  ui->textureList->setItemDelegate(new TextureListItemDelegate(ui->textureList));
+  ui->textureList->setColumns({tr("Texture Name"), tr("Width"), tr("Height"), tr("Depth/Slices"),
+                               tr("Mips Count"), tr("Format"), tr("Go")});
+  ui->textureList->setHoverIconColumn(6, Icons::action(), Icons::action_hover());
   ui->textureList->viewport()->setAttribute(Qt::WA_Hover);
+  ui->textureList->setMouseTracking(true);
+  {
+    RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
+    ui->textureList->setHeader(header);
+
+    header->setColumnStretchHints({1, -1, -1, -1, -1, -1, -1});
+  }
+
+  ui->textureList->header()->sortIndicatorChanged(TextureListFilter::Column_TexName,
+                                                  Qt::SortOrder::DescendingOrder);
 
   ui->zoomOption->setCurrentText(QString());
   ui->fitToWindow->toggle();
@@ -2881,10 +2775,6 @@ void TextureViewer::OnCaptureLoaded()
   ui->debugPixelContext->setEnabled(false);
   ui->pixelHistory->setToolTip(QString());
 
-  TextureListItemModel *model = (TextureListItemModel *)ui->textureList->model();
-
-  model->reset(TextureListItemModel::String, QString());
-
   m_TexDisplay.backgroundColor =
       backCol.isValid() ? FloatVector(backCol.redF(), backCol.greenF(), backCol.blueF(), 1.0f)
                         : FloatVector();
@@ -2975,6 +2865,71 @@ void TextureViewer::Reset()
 
   UI_UpdateTextureDetails();
   UI_UpdateChannels();
+}
+
+void TextureViewer::refreshTextureList()
+{
+  refreshTextureList(FilterType::None, QString());
+}
+
+void addToRoot(RDTreeWidgetItem *root, const TextureDescription &t)
+{
+  const QVariant &res = QVariant::fromValue(t.resourceId);
+  RDTreeWidgetItem *child =
+      new RDTreeWidgetItem({res, t.width, t.height, (3 == t.dimension ? t.depth : t.arraysize),
+                            t.mips, t.format.Name(), QString()});
+
+  child->setTag(res);
+  root->addChild(child);
+}
+
+void TextureViewer::refreshTextureList(FilterType filterType, const QString &filterStr)
+{
+  ui->textureList->beginUpdate();
+  ui->textureList->clearSelection();
+
+  ui->textureList->clear();
+  RDTreeWidgetItem *root = ui->textureList->invisibleRootItem();
+
+  TextureCategory rtFlags = TextureCategory::ColorTarget | TextureCategory::DepthTarget;
+
+  for(const TextureDescription &t : m_Ctx.GetTextures())
+  {
+    if(filterType == FilterType::Textures)
+    {
+      if(!(t.creationFlags & rtFlags))
+        addToRoot(root, t);
+    }
+    else if(filterType == FilterType::RenderTargets)
+    {
+      if((t.creationFlags & rtFlags))
+        addToRoot(root, t);
+    }
+    else
+    {
+      if(filterStr.isEmpty())
+      {
+        addToRoot(root, t);
+      }
+      else
+      {
+        if(QString(m_Ctx.GetResourceName(t.resourceId)).contains(filterStr, Qt::CaseInsensitive) ||
+           QString::number(t.width).contains(filterStr, Qt::CaseInsensitive) ||
+           QString::number(t.height).contains(filterStr, Qt::CaseInsensitive) ||
+           QString::number((3 == t.dimension ? t.depth : t.arraysize))
+               .contains(filterStr, Qt::CaseInsensitive) ||
+           QString::number(t.mips).contains(filterStr, Qt::CaseInsensitive) ||
+           QString(t.format.Name()).contains(filterStr, Qt::CaseInsensitive))
+          addToRoot(root, t);
+      }
+    }
+  }
+
+  ui->textureList->setSelectedItem(root);
+
+  ui->textureList->setUpdatesEnabled(true);
+
+  ui->textureList->endUpdate();
 }
 
 void TextureViewer::OnCaptureClosed()
@@ -3145,6 +3100,18 @@ QVariant TextureViewer::persistData()
 {
   QVariantMap state = ui->dockarea->saveState();
 
+  QVariantList columns;
+  for(int i = 0; i < TextureListFilter::Column_Count; i++)
+  {
+    QVariantMap col;
+
+    bool hidden = ui->textureList->header()->isSectionHidden(i);
+
+    col[lit("hidden")] = hidden;
+    columns.push_back(col);
+  }
+
+  state[lit("columns")] = columns;
   state[lit("backCol")] = backCol;
   state[lit("checker")] = !backCol.isValid();
 
@@ -3154,6 +3121,19 @@ QVariant TextureViewer::persistData()
 void TextureViewer::setPersistData(const QVariant &persistData)
 {
   QVariantMap state = persistData.toMap();
+
+  QVariantList columns = state[lit("columns")].toList();
+  for(int i = 0; i < columns.count() && i < TextureListFilter::Column_Count; i++)
+  {
+    QVariantMap col = columns[i].toMap();
+
+    bool hidden = col[lit("hidden")].toBool();
+
+    if(hidden)
+      ui->textureList->header()->hideSection(i);
+    else
+      ui->textureList->header()->showSection(i);
+  }
 
   backCol = state[lit("backCol")].value<QColor>();
   bool checker = state[lit("checker")].value<bool>();
@@ -3958,7 +3938,7 @@ void TextureViewer::on_texListShow_clicked()
     ui->textureListFilter->setCurrentText(QString());
     ui->dockarea->moveToolWindow(
         ui->textureListFrame,
-        ToolWindowManager::AreaReference(ToolWindowManager::LeftOf,
+        ToolWindowManager::AreaReference(ToolWindowManager::BottomOf,
                                          ui->dockarea->areaOf(ui->renderContainer), 0.2f));
     ui->dockarea->setToolWindowProperties(ui->textureListFrame, ToolWindowManager::HideOnClose);
   }
@@ -3969,40 +3949,55 @@ void TextureViewer::on_cancelTextureListFilter_clicked()
   ui->textureListFilter->setCurrentText(QString());
 }
 
+void TextureViewer::on_colSelect_clicked()
+{
+  QStringList headers;
+  for(int i = 0; i < TextureListFilter::Column_Count; ++i)
+  {
+    headers.push_back(
+        ui->textureList->model()->headerData(i, Qt::Horizontal, Qt::DisplayRole).toString());
+  }
+
+  UpdateVisibleColumns(tr("Select Texture List Columns"), TextureListFilter::Column_Count,
+                       ui->textureList->header(), headers);
+}
+
 void TextureViewer::on_textureListFilter_editTextChanged(const QString &text)
 {
-  TextureListItemModel *model = (TextureListItemModel *)ui->textureList->model();
-
-  if(model == NULL)
-    return;
-
-  model->reset(TextureListItemModel::String, text);
+  refreshTextureList(FilterType::String, text);
 }
 
 void TextureViewer::on_textureListFilter_currentIndexChanged(int index)
 {
-  refreshTextureList();
+  if(ui->textureListFilter->currentIndex() == 1)
+    refreshTextureList(FilterType::Textures, QString());
+  else if(ui->textureListFilter->currentIndex() == 2)
+    refreshTextureList(FilterType::RenderTargets, QString());
+  else
+    refreshTextureList(FilterType::String, ui->textureListFilter->currentText());
 }
 
-void TextureViewer::refreshTextureList()
+void TextureViewer::texture_itemActivated(RDTreeWidgetItem *item, int column)
 {
-  TextureListItemModel *model = (TextureListItemModel *)ui->textureList->model();
-
-  if(model == NULL)
+  QVariant tag = item->tag();
+  if(!tag.canConvert<ResourceId>())
     return;
 
-  if(ui->textureListFilter->currentIndex() == 1)
-    model->reset(TextureListItemModel::Textures, QString());
-  else if(ui->textureListFilter->currentIndex() == 2)
-    model->reset(TextureListItemModel::RenderTargets, QString());
-  else
-    model->reset(TextureListItemModel::String, ui->textureListFilter->currentText());
-}
+  TextureDescription *tex = m_Ctx.GetTexture(tag.value<ResourceId>());
+  if(!tex)
+    return;
 
-void TextureViewer::on_textureList_clicked(const QModelIndex &index)
-{
-  ResourceId id = index.model()->data(index, Qt::UserRole).value<ResourceId>();
-  ViewTexture(id, false);
+  if(tex->type == TextureType::Buffer)
+  {
+    IBufferViewer *viewer = m_Ctx.ViewTextureAsBuffer(
+        tex->resourceId, Subresource(), BufferFormatter::GetTextureFormatString(*tex));
+
+    m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
+  }
+  else
+  {
+    ViewTexture(tex->resourceId, true);
+  }
 }
 
 bool TextureViewer::canCompileCustomShader(ShaderEncoding encoding)

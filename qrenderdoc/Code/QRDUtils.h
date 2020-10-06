@@ -37,6 +37,8 @@
 #include <QStyledItemDelegate>
 #include "Code/Interface/QRDInterface.h"
 
+class QHeaderView;
+
 template <typename T>
 inline T AlignUp(T x, T a)
 {
@@ -733,3 +735,6 @@ float getLuminance(const QColor &col);
 QColor contrastingColor(const QColor &col, const QColor &defaultCol);
 
 void *AccessWaylandPlatformInterface(const QByteArray &resource, QWindow *window);
+
+void UpdateVisibleColumns(rdcstr windowTitle, int columnCount, QHeaderView *header,
+                          const QStringList &headers);

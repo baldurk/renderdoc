@@ -28,11 +28,13 @@
 #include <QCloseEvent>
 #include <QCollator>
 #include <QDesktopServices>
+#include <QDialogButtonBox>
 #include <QElapsedTimer>
 #include <QFileSystemModel>
 #include <QFontDatabase>
 #include <QGridLayout>
 #include <QGuiApplication>
+#include <QHeaderView>
 #include <QJsonDocument>
 #include <QKeyEvent>
 #include <QLabel>
@@ -51,6 +53,7 @@
 #include <QTextDocument>
 #include <QtMath>
 #include "Code/Resources.h"
+#include "Widgets/Extended/RDListWidget.h"
 #include "Widgets/Extended/RDTreeWidget.h"
 
 // normally this is in the renderdoc core library, but it's needed for the 'unknown enum' path,
@@ -2669,3 +2672,62 @@ void LambdaThread::windowsSetName()
 }
 
 #endif
+
+void UpdateVisibleColumns(rdcstr windowTitle, int columnCount, QHeaderView *header,
+                          const QStringList &headers)
+{
+  QDialog dialog;
+  RDListWidget list;
+  QDialogButtonBox buttons;
+
+  dialog.setWindowTitle(windowTitle);
+  dialog.setWindowFlags(dialog.windowFlags() & ~Qt::WindowContextHelpButtonHint);
+
+  for(int visIdx = 0; visIdx < columnCount; visIdx++)
+  {
+    int logIdx = header->logicalIndex(visIdx);
+
+    QListWidgetItem *item = new QListWidgetItem(headers[logIdx], &list);
+
+    item->setData(Qt::UserRole, logIdx);
+
+    item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
+
+    // The first column must stay enabled
+    if(logIdx == 0)
+      item->setFlags(item->flags() & ~Qt::ItemIsEnabled);
+
+    item->setCheckState(header->isSectionHidden(logIdx) ? Qt::Unchecked : Qt::Checked);
+  }
+
+  list.setSelectionMode(QAbstractItemView::SingleSelection);
+  list.setDragDropMode(QAbstractItemView::DragDrop);
+  list.setDefaultDropAction(Qt::MoveAction);
+
+  buttons.setOrientation(Qt::Horizontal);
+  buttons.setStandardButtons(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+  buttons.setCenterButtons(true);
+
+  QObject::connect(&buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+  QObject::connect(&buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+
+  QVBoxLayout *layout = new QVBoxLayout(&dialog);
+  layout->addWidget(new QLabel(QString::fromUtf8("Select the columns to enable."), &dialog));
+  layout->addWidget(&list);
+  layout->addWidget(&buttons);
+
+  if(!RDDialog::show(&dialog))
+    return;
+
+  for(int i = 0; i < columnCount; i++)
+  {
+    int logicalIdx = list.item(i)->data(Qt::UserRole).toInt();
+
+    if(list.item(i)->checkState() == Qt::Unchecked)
+      header->hideSection(logicalIdx);
+    else
+      header->showSection(logicalIdx);
+
+    header->moveSection(header->visualIndex(logicalIdx), i);
+  }
+}

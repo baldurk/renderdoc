@@ -36,6 +36,7 @@ namespace Ui
 class TextureViewer;
 }
 
+class RDTreeWidgetItem;
 class ResourcePreview;
 class ThumbnailStrip;
 class TextureGoto;
@@ -128,6 +129,15 @@ private:
 
   Q_PROPERTY(QVariant persistData READ persistData WRITE setPersistData DESIGNABLE false SCRIPTABLE false)
 
+  // Texture List
+  enum class FilterType
+  {
+    None,
+    Textures,
+    RenderTargets,
+    String
+  };
+
 public:
   explicit TextureViewer(ICaptureContext &ctx, QWidget *parent = 0);
   ~TextureViewer();
@@ -182,7 +192,8 @@ private slots:
   void on_cancelTextureListFilter_clicked();
   void on_textureListFilter_editTextChanged(const QString &text);
   void on_textureListFilter_currentIndexChanged(int index);
-  void on_textureList_clicked(const QModelIndex &index);
+  void on_colSelect_clicked();
+  void texture_itemActivated(RDTreeWidgetItem *item, int column);
 
   // manual slots
   void render_mouseClick(QMouseEvent *e);
@@ -243,6 +254,7 @@ private:
   void Reset();
 
   void refreshTextureList();
+  void refreshTextureList(FilterType filterType, const QString &filterStr);
 
   ResourcePreview *UI_CreateThumbnail(ThumbnailStrip *strip);
   void UI_CreateThumbnails();
