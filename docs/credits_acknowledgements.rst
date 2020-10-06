@@ -112,6 +112,10 @@ The following libraries and components are incorporated into RenderDoc, listed h
 
   Used to provide shell thumbnail previews for block compressed DDS files.
 
+* `nvapi open source SDK <http://download.nvidia.com/XFree86/nvapi-open-source-sdk/>`_ - Copyright (c) 2019, NVIDIA CORPORATION. Distributed under the MIT License.
+
+  Used to intercept nvapi calls on D3D11/D3D12.
+
 Thanks
 ------
 
