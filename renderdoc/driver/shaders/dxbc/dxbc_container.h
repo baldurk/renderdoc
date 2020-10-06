@@ -142,7 +142,8 @@ ShaderCompileFlags EncodeFlags(const uint32_t flags, const rdcstr &profile);
 class DXBCContainer
 {
 public:
-  DXBCContainer(bytebuf &ByteCode, const rdcstr &debugInfoPath);
+  DXBCContainer(bytebuf &ByteCode, const rdcstr &debugInfoPath, uint32_t shaderExtReg,
+                uint32_t shaderExtSpace);
   ~DXBCContainer();
   DXBC::ShaderType m_Type = DXBC::ShaderType::Max;
   struct
@@ -164,6 +165,9 @@ public:
   DXBCBytecode::Program *GetDXBCByteCode() { return m_DXBCByteCode; }
   const DXIL::Program *GetDXILByteCode() { return m_DXILByteCode; }
   static void GetHash(uint32_t hash[4], const void *ByteCode, size_t BytecodeLength);
+
+  static bool UsesExtensionUAV(uint32_t slot, uint32_t space, const void *ByteCode,
+                               size_t BytecodeLength);
 
   static bool CheckForDebugInfo(const void *ByteCode, size_t ByteCodeLength);
   static bool CheckForDXIL(const void *ByteCode, size_t ByteCodeLength);

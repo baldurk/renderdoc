@@ -251,6 +251,10 @@ inline rdcstr GetDebugName(T *pObj)
   template <typename SerialiserType>                  \
   bool CONCAT(Serialise_, func(SerialiserType &ser, __VA_ARGS__));
 
+#define INSTANTIATE_FUNCTION_SERIALISED(ret, parent, func, ...)                     \
+  template bool parent::CONCAT(Serialise_, func(ReadSerialiser &ser, __VA_ARGS__)); \
+  template bool parent::CONCAT(Serialise_, func(WriteSerialiser &ser, __VA_ARGS__));
+
 #define USE_SCRATCH_SERIALISER() WriteSerialiser &ser = m_ScratchSerialiser;
 
 #define SERIALISE_TIME_CALL(...)                                          \
@@ -398,6 +402,7 @@ enum class D3D11Chunk : uint32_t
   ExternalDXGIResource,
   OpenSharedResource1,
   OpenSharedResourceByName,
+  SetShaderExtUAV,
   Max,
 };
 

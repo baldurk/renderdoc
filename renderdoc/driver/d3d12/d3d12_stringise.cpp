@@ -28,7 +28,7 @@
 template <>
 rdcstr DoStringise(const D3D12Chunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1109, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1110, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(D3D12Chunk)
   {
@@ -197,6 +197,7 @@ rdcstr DoStringise(const D3D12Chunk &el)
                                "ID3D12CompatibilityDevice::CreateSharedResource");
     STRINGISE_ENUM_CLASS_NAMED(CompatDevice_CreateSharedHeap,
                                "ID3D12CompatibilityDevice::CreateSharedHeap");
+    STRINGISE_ENUM_CLASS_NAMED(SetShaderExtUAV, "Vendor Extension: Set magic shader UAV slot");
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }
   END_ENUM_STRINGISE()

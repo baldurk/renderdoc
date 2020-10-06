@@ -2507,6 +2507,16 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
 
 void D3D11Replay::ReplaceResource(ResourceId from, ResourceId to)
 {
+  auto fromit = WrappedShader::m_ShaderList.find(from);
+
+  if(fromit != WrappedShader::m_ShaderList.end())
+  {
+    auto toit = WrappedShader::m_ShaderList.find(to);
+
+    // copy the shader ext slot
+    toit->second->SetShaderExtSlot(fromit->second->GetShaderExtSlot());
+  }
+
   m_pDevice->GetResourceManager()->ReplaceResource(from, to);
   ClearPostVSCache();
 }
@@ -3902,6 +3912,27 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
         initParams.SDKVersion, D3D11_SDK_VERSION);
   }
 
+  INVAPID3DDevice *nvapiDev = NULL;
+
+  if(initParams.VendorExtensions == GPUVendor::nVidia)
+  {
+    nvapiDev = InitialiseNVAPIReplay();
+
+    if(!nvapiDev)
+    {
+      RDCERR("Capture requires nvapi to replay, but it's not available or can't be initialised");
+      return ReplayStatus::APIHardwareUnsupported;
+    }
+  }
+  else if(initParams.VendorExtensions != GPUVendor::Unknown)
+  {
+    RDCERR(
+        "Capture requires vendor extensions by %s to replay, but no support for that is "
+        "available.",
+        ToStr(initParams.VendorExtensions).c_str());
+    return ReplayStatus::APIInitFailed;
+  }
+
   IDXGIAdapter *adapter = NULL;
   ID3D11Device *device = NULL;
   HRESULT hr = E_FAIL;
@@ -4078,8 +4109,23 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
 
   if(SUCCEEDED(hr) && device)
   {
+    if(nvapiDev)
+    {
+      BOOL ok = nvapiDev->SetReal(device);
+      if(!ok)
+      {
+        RDCERR(
+            "This capture needs nvapi to replay, but device selected for replay can't support "
+            "nvapi");
+        SAFE_RELEASE(device);
+        SAFE_RELEASE(nvapiDev);
+        SAFE_RELEASE(factory);
+        return ReplayStatus::APIHardwareUnsupported;
+      }
+    }
+
     WrappedID3D11Device *wrappedDev = new WrappedID3D11Device(device, initParams);
-    wrappedDev->SetInitParams(initParams, ver, opts);
+    wrappedDev->SetInitParams(initParams, ver, opts, nvapiDev);
 
     if(!isProxy)
       RDCLOG("Created device.");

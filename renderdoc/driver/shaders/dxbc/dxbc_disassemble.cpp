@@ -308,6 +308,108 @@ void Program::FetchTypeVersion()
   m_Minor = VersionToken::MinorVersion.Get(cur[0]);
 }
 
+bool Program::UsesExtensionUAV(uint32_t slot, uint32_t space, const byte *bytes, size_t length)
+{
+  uint32_t *begin = (uint32_t *)bytes;
+  uint32_t *cur = begin;
+  uint32_t *end = begin + (length / sizeof(uint32_t));
+
+  const bool sm51 = (VersionToken::MajorVersion.Get(cur[0]) == 0x5 &&
+                     VersionToken::MinorVersion.Get(cur[0]) == 0x1);
+
+  if(sm51 && space == ~0U)
+    return false;
+
+  // skip version and length
+  cur += 2;
+
+  while(cur < end)
+  {
+    uint32_t OpcodeToken0 = cur[0];
+
+    OpcodeType op = Opcode::Type.Get(OpcodeToken0);
+
+    // nvidia is a structured buffer with counter
+    // AMD is a RW byte address buffer
+    if((op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED &&
+        Opcode::HasOrderPreservingCounter.Get(OpcodeToken0)) ||
+       op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW)
+    {
+      uint32_t *tokenStream = cur;
+
+      // skip opcode and length
+      tokenStream++;
+
+      uint32_t indexDim = Oper::IndexDimension.Get(tokenStream[0]);
+      OperandIndexType idx0Type = Oper::Index0.Get(tokenStream[0]);
+      OperandIndexType idx1Type = Oper::Index1.Get(tokenStream[0]);
+      OperandIndexType idx2Type = Oper::Index2.Get(tokenStream[0]);
+
+      // expect only one immediate index for the operand on SM <= 5.0, and three immediate indices
+      // on SM5.1
+      if((indexDim == 1 && idx0Type == INDEX_IMMEDIATE32) ||
+         (indexDim == 3 && idx0Type == INDEX_IMMEDIATE32 && idx1Type == INDEX_IMMEDIATE32 &&
+          idx2Type == INDEX_IMMEDIATE32))
+      {
+        bool extended = Oper::Extended.Get(tokenStream[0]);
+
+        tokenStream++;
+
+        while(extended)
+        {
+          extended = ExtendedOperand::Extended.Get(tokenStream[0]) == 1;
+
+          tokenStream++;
+        }
+
+        uint32_t opreg = tokenStream[0];
+        tokenStream++;
+
+        // on 5.1 opreg is just the identifier which means nothing, the binding comes next as a
+        // range, like U1[7:7] is bound to slot 7
+        if(indexDim == 3)
+        {
+          uint32_t lower = tokenStream[0];
+          uint32_t upper = tokenStream[1];
+          tokenStream += 2;
+
+          // the magic UAV should be lower == upper. If that isn't the case, don't match this even
+          // if the range includes our target register
+          if(lower == upper)
+            opreg = lower;
+          else
+            opreg = ~0U;
+        }
+
+        if(op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED)
+        {
+          // stride
+          tokenStream++;
+        }
+
+        uint32_t opspace = ~0U;
+        if(sm51)
+          opspace = tokenStream[0];
+
+        if(space == opspace && slot == opreg)
+          return true;
+      }
+    }
+
+    if(op == OPCODE_CUSTOMDATA)
+    {
+      // length in opcode token is 0, full length is in second dword
+      cur += cur[1];
+    }
+    else
+    {
+      cur += Opcode::Length.Get(OpcodeToken0);
+    }
+  }
+
+  return false;
+}
+
 void Program::FetchComputeProperties(DXBC::Reflection *reflection)
 {
   if(m_HexDump.empty())

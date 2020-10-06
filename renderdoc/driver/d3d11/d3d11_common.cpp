@@ -520,6 +520,10 @@ bool D3D11InitParams::IsSupportedVersion(uint64_t ver)
   if(ver == 0x10)
     return true;
 
+  // 0x11 -> 0x12 - added serialisation of vendor extension use in D3D11InitParams
+  if(ver == 0x11)
+    return true;
+
   return false;
 }
 
@@ -538,6 +542,16 @@ void DoSerialise(SerialiserType &ser, D3D11InitParams &el)
   else
   {
     RDCEraseEl(el.AdapterDesc);
+  }
+  if(ser.VersionAtLeast(0x12))
+  {
+    SERIALISE_MEMBER(VendorExtensions);
+    SERIALISE_MEMBER(VendorUAV);
+  }
+  else
+  {
+    el.VendorExtensions = GPUVendor::Unknown;
+    el.VendorUAV = ~0U;
   }
 }
 

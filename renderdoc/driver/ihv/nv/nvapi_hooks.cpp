@@ -22,12 +22,22 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "driver/d3d11/d3d11_device.h"
+#include <unordered_map>
+#include "common/formatting.h"
+#include "core/core.h"
 #include "driver/d3d11/d3d11_hooks.h"
 #include "hooks/hooks.h"
+#include "nvapi_wrapper.h"
+
+#include "driver/dx/official/d3d11.h"
+#include "driver/dx/official/d3d12.h"
 
 #include "official/nvapi/nvapi.h"
+
+namespace
+{
 #include "official/nvapi/nvapi_interface.h"
+};
 
 #if ENABLED(RDOC_X64)
 
@@ -129,17 +139,170 @@ private:
   HookedFunction<PFNNVQueryInterface> nvapi_QueryInterface;
   HookedFunction<PFN_NvEncodeAPICreateInstance> NvEncodeCreate;
 
-#define HOOK_NVAPI(fname, ID) HookedFunction<decltype(&fname)> fname;
+#define HOOK_NVAPI(fname, ID) HookedFunction<decltype(&::fname)> fname;
 #define WHITELIST_NVAPI(fname, ID)
 
-#define NVAPI_FUNCS()                                           \
-  HOOK_NVAPI(NvAPI_D3D11_CreateDevice, 0x6A16D3A0);             \
-  HOOK_NVAPI(NvAPI_D3D11_CreateDeviceAndSwapChain, 0xBB939EE5); \
-  WHITELIST_NVAPI(NvAPI_Initialize, 0x0150E828);
+#define NVAPI_FUNCS()                                                      \
+  HOOK_NVAPI(NvAPI_D3D11_CreateDevice, 0x6a16d3a0);                        \
+  HOOK_NVAPI(NvAPI_D3D11_CreateDeviceAndSwapChain, 0xbb939ee5);            \
+  HOOK_NVAPI(NvAPI_D3D11_IsNvShaderExtnOpCodeSupported, 0x5f68da40);       \
+  HOOK_NVAPI(NvAPI_D3D11_SetNvShaderExtnSlot, 0x8e90bb9f);                 \
+  HOOK_NVAPI(NvAPI_D3D11_SetNvShaderExtnSlotLocalThread, 0x0e6482a0);      \
+  HOOK_NVAPI(NvAPI_D3D12_IsNvShaderExtnOpCodeSupported, 0x3dfacec8);       \
+  HOOK_NVAPI(NvAPI_D3D12_SetNvShaderExtnSlotSpace, 0xac2dfeb5);            \
+  HOOK_NVAPI(NvAPI_D3D12_SetNvShaderExtnSlotSpaceLocalThread, 0x43d867c0); \
+  WHITELIST_NVAPI(NvAPI_Initialize, 0x0150e828);                           \
+  WHITELIST_NVAPI(NvAPI_Unload, 0xd22bdd7e);                               \
+  WHITELIST_NVAPI(NvAPI_GetErrorMessage, 0x6c2d048c);                      \
+  WHITELIST_NVAPI(NvAPI_GetInterfaceVersionString, 0x01053fa5);
 
   NVAPI_FUNCS();
 
-  static HRESULT WINAPI NvAPI_D3D11_CreateDevice_hook(
+  static NvAPI_Status __cdecl NvAPI_D3D11_IsNvShaderExtnOpCodeSupported_hook(__in IUnknown *pDev,
+                                                                             __in NvU32 opCode,
+                                                                             __out bool *pSupported)
+  {
+    INVAPID3DDevice *nvapiDev = NULL;
+    HRESULT hr = pDev->QueryInterface(__uuidof(INVAPID3DDevice), (void **)&nvapiDev);
+    // this will only succeed if it's our own wrapped device. It doesn't change the refcount, this
+    // is a COM-breaking backdoor
+    if(SUCCEEDED(hr))
+    {
+      NvAPI_Status ret = nvhooks.NvAPI_D3D11_IsNvShaderExtnOpCodeSupported()(nvapiDev->GetReal(),
+                                                                             opCode, pSupported);
+
+      if(pSupported)
+        *pSupported = (*pSupported && SupportedOpcode((NvShaderOpcode)opCode)) ? TRUE : FALSE;
+
+      return ret;
+    }
+    else
+    {
+      return NVAPI_INVALID_POINTER;
+    }
+  }
+
+  static NvAPI_Status __cdecl NvAPI_D3D12_IsNvShaderExtnOpCodeSupported_hook(__in IUnknown *pDev,
+                                                                             __in NvU32 opCode,
+                                                                             __out bool *pSupported)
+  {
+    INVAPID3DDevice *nvapiDev = NULL;
+    HRESULT hr = pDev->QueryInterface(__uuidof(INVAPID3DDevice), (void **)&nvapiDev);
+    // this will only succeed if it's our own wrapped device. It doesn't change the refcount, this
+    // is a COM-breaking backdoor
+    if(SUCCEEDED(hr))
+    {
+      IUnknown *real = nvapiDev->GetReal();
+
+      ID3D12Device *dev = NULL;
+      hr = real->QueryInterface(__uuidof(ID3D12Device), (void **)&dev);
+
+      if(SUCCEEDED(hr))
+      {
+        NvAPI_Status ret =
+            nvhooks.NvAPI_D3D12_IsNvShaderExtnOpCodeSupported()(dev, opCode, pSupported);
+
+        dev->Release();
+
+        if(pSupported)
+          *pSupported = (*pSupported && SupportedOpcode((NvShaderOpcode)opCode)) ? TRUE : FALSE;
+
+        return ret;
+      }
+    }
+
+    return NVAPI_INVALID_POINTER;
+  }
+
+  static NvAPI_Status __cdecl NvAPI_D3D11_SetNvShaderExtnSlot_hook(__in IUnknown *pDev,
+                                                                   __in NvU32 uavSlot)
+  {
+    INVAPID3DDevice *nvapiDev = NULL;
+    HRESULT hr = pDev->QueryInterface(__uuidof(INVAPID3DDevice), (void **)&nvapiDev);
+    // this will only succeed if it's our own wrapped device. It doesn't change the refcount, this
+    // is a COM-breaking backdoor
+    if(SUCCEEDED(hr))
+    {
+      NvAPI_Status ret = nvhooks.NvAPI_D3D11_SetNvShaderExtnSlot()(nvapiDev->GetReal(), uavSlot);
+
+      nvapiDev->SetShaderExtUAV(~0U, uavSlot, TRUE);
+
+      return ret;
+    }
+    else
+    {
+      return NVAPI_INVALID_POINTER;
+    }
+  }
+
+  static NvAPI_Status __cdecl NvAPI_D3D11_SetNvShaderExtnSlotLocalThread_hook(__in IUnknown *pDev,
+                                                                              __in NvU32 uavSlot)
+  {
+    INVAPID3DDevice *nvapiDev = NULL;
+    HRESULT hr = pDev->QueryInterface(__uuidof(INVAPID3DDevice), (void **)&nvapiDev);
+    // this will only succeed if it's our own wrapped device. It doesn't change the refcount, this
+    // is a COM-breaking backdoor
+    if(SUCCEEDED(hr))
+    {
+      NvAPI_Status ret =
+          nvhooks.NvAPI_D3D11_SetNvShaderExtnSlotLocalThread()(nvapiDev->GetReal(), uavSlot);
+
+      nvapiDev->SetShaderExtUAV(~0U, uavSlot, FALSE);
+
+      return ret;
+    }
+    else
+    {
+      return NVAPI_INVALID_POINTER;
+    }
+  }
+
+  static NvAPI_Status __cdecl NvAPI_D3D12_SetNvShaderExtnSlotSpace_hook(__in IUnknown *pDev,
+                                                                        __in NvU32 uavSlot,
+                                                                        __in NvU32 uavSpace)
+  {
+    INVAPID3DDevice *nvapiDev = NULL;
+    HRESULT hr = pDev->QueryInterface(__uuidof(INVAPID3DDevice), (void **)&nvapiDev);
+    // this will only succeed if it's our own wrapped device. It doesn't change the refcount, this
+    // is a COM-breaking backdoor
+    if(SUCCEEDED(hr))
+    {
+      NvAPI_Status ret =
+          nvhooks.NvAPI_D3D12_SetNvShaderExtnSlotSpace()(nvapiDev->GetReal(), uavSlot, uavSpace);
+
+      nvapiDev->SetShaderExtUAV(uavSpace, uavSlot, TRUE);
+
+      return ret;
+    }
+    else
+    {
+      return NVAPI_INVALID_POINTER;
+    }
+  }
+
+  static NvAPI_Status __cdecl NvAPI_D3D12_SetNvShaderExtnSlotSpaceLocalThread_hook(
+      __in IUnknown *pDev, __in NvU32 uavSlot, __in NvU32 uavSpace)
+  {
+    INVAPID3DDevice *nvapiDev = NULL;
+    HRESULT hr = pDev->QueryInterface(__uuidof(INVAPID3DDevice), (void **)&nvapiDev);
+    // this will only succeed if it's our own wrapped device. It doesn't change the refcount, this
+    // is a COM-breaking backdoor
+    if(SUCCEEDED(hr))
+    {
+      NvAPI_Status ret = nvhooks.NvAPI_D3D12_SetNvShaderExtnSlotSpaceLocalThread()(
+          nvapiDev->GetReal(), uavSlot, uavSpace);
+
+      nvapiDev->SetShaderExtUAV(uavSpace, uavSlot, FALSE);
+
+      return ret;
+    }
+    else
+    {
+      return NVAPI_INVALID_POINTER;
+    }
+  }
+
+  static HRESULT __cdecl NvAPI_D3D11_CreateDevice_hook(
       IDXGIAdapter *pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags,
       CONST D3D_FEATURE_LEVEL *pFeatureLevels, UINT FeatureLevels, UINT SDKVersion,
       ID3D11Device **ppDevice, D3D_FEATURE_LEVEL *pFeatureLevel,
@@ -162,7 +325,7 @@ private:
         NULL, ppDevice, pFeatureLevel, ppImmediateContext);
   }
 
-  static HRESULT WINAPI NvAPI_D3D11_CreateDeviceAndSwapChain_hook(
+  static HRESULT __cdecl NvAPI_D3D11_CreateDeviceAndSwapChain_hook(
       IDXGIAdapter *pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags,
       CONST D3D_FEATURE_LEVEL *pFeatureLevels, UINT FeatureLevels, UINT SDKVersion,
       CONST DXGI_SWAP_CHAIN_DESC *pSwapChainDesc, IDXGISwapChain **ppSwapChain,
@@ -206,9 +369,9 @@ private:
       NVAPI_FUNCS();
       // unknown, but these are fetched inside NvAPI_Initialize so allow them through to avoid
       // causing problems.
-      WHITELIST_NVAPI(unknown_func, 0xAD298D3F);
-      WHITELIST_NVAPI(unknown_func, 0x33C7358C);
-      WHITELIST_NVAPI(unknown_func, 0x593E8644);
+      WHITELIST_NVAPI(unknown_func, 0xad298d3f);
+      WHITELIST_NVAPI(unknown_func, 0x33c7358c);
+      WHITELIST_NVAPI(unknown_func, 0x593e8644);
       default: break;
     }
 

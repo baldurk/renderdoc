@@ -97,9 +97,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="nvapi_hooks.cpp" />
+    <ClCompile Include="nvapi_wrapper.cpp" />
     <ClCompile Include="nv_counters.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="nvapi_wrapper.h" />
     <ClInclude Include="nv_counters.h" />
     <ClInclude Include="official\nvapi\nvapi.h" />
     <ClInclude Include="official\nvapi\nvapi_interface.h" />

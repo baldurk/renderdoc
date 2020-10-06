@@ -26,6 +26,12 @@
 #include "driver/dxgi/dxgi_common.h"
 #include "d3d12_resources.h"
 
+static bool UsesExtensionUAV(const D3D12_SHADER_BYTECODE &sh, uint32_t reg, uint32_t space)
+{
+  return sh.BytecodeLength > 0 && sh.pShaderBytecode &&
+         DXBC::DXBCContainer::UsesExtensionUAV(reg, space, sh.pShaderBytecode, sh.BytecodeLength);
+}
+
 template <typename SerialiserType>
 bool WrappedID3D12Device::Serialise_CreatePipelineState(SerialiserType &ser,
                                                         const D3D12_PIPELINE_STATE_STREAM_DESC *pDesc,
@@ -88,6 +94,9 @@ bool WrappedID3D12Device::Serialise_CreatePipelineState(SerialiserType &ser,
           entry->AddRef();
 
           shaders[i]->pShaderBytecode = entry;
+
+          if(m_GlobalEXTUAV != ~0U)
+            entry->SetShaderExtSlot(m_GlobalEXTUAV, m_GlobalEXTUAVSpace);
 
           AddResourceCurChunk(entry->GetResourceID());
 
@@ -157,6 +166,14 @@ bool WrappedID3D12Device::Serialise_CreatePipelineState(SerialiserType &ser,
         }
       }
 
+      // if this shader was initialised with nvidia's dynamic UAV, pull in that chunk as one of ours
+      // and unset it (there will be one for each create that actually used vendor extensions)
+      if(m_VendorEXT == GPUVendor::nVidia && m_GlobalEXTUAV != ~0U)
+      {
+        GetResourceDesc(pPipelineState)
+            .initialisationChunks.push_back((uint32_t)m_StructuredFile->chunks.size() - 2);
+        m_GlobalEXTUAV = ~0U;
+      }
       GetResourceManager()->AddLiveResource(pPipelineState, ret);
     }
   }
@@ -193,6 +210,31 @@ HRESULT WrappedID3D12Device::CreatePipelineState(const D3D12_PIPELINE_STATE_STRE
     {
       CACHE_THREAD_SERIALISER();
 
+      Chunk *vendorChunk = NULL;
+      if(m_VendorEXT != GPUVendor::Unknown)
+      {
+        uint32_t reg = ~0U, space = ~0U;
+        GetShaderExtUAV(reg, space);
+
+        if(UsesExtensionUAV(expandedDesc.VS, reg, space) ||
+           UsesExtensionUAV(expandedDesc.HS, reg, space) ||
+           UsesExtensionUAV(expandedDesc.DS, reg, space) ||
+           UsesExtensionUAV(expandedDesc.GS, reg, space) ||
+           UsesExtensionUAV(expandedDesc.PS, reg, space) ||
+           UsesExtensionUAV(expandedDesc.CS, reg, space))
+        {
+          // don't set initparams until we've seen at least one shader actually created using the
+          // extensions.
+          m_InitParams.VendorExtensions = m_VendorEXT;
+
+          // if this shader uses the UAV slot registered for vendor extensions, serialise that out
+          // too
+          SCOPED_SERIALISE_CHUNK(D3D12Chunk::SetShaderExtUAV);
+          Serialise_SetShaderExtUAV(ser, m_VendorEXT, reg, space, true);
+          vendorChunk = scope.Get();
+        }
+      }
+
       SCOPED_SERIALISE_CHUNK(D3D12Chunk::Device_CreatePipelineState);
       Serialise_CreatePipelineState(ser, pDesc, riid, (void **)&wrapped);
 
@@ -204,6 +246,8 @@ HRESULT WrappedID3D12Device::CreatePipelineState(const D3D12_PIPELINE_STATE_STRE
       if(expandedDesc.pRootSignature)
         record->AddParent(GetRecord(expandedDesc.pRootSignature));
 
+      if(vendorChunk)
+        record->AddChunk(vendorChunk);
       record->AddChunk(scope.Get());
     }
     else

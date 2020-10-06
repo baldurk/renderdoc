@@ -677,6 +677,45 @@ void DXBCContainer::GetHash(uint32_t hash[4], const void *ByteCode, size_t Bytec
   }
 }
 
+bool DXBCContainer::UsesExtensionUAV(uint32_t slot, uint32_t space, const void *ByteCode,
+                                     size_t BytecodeLength)
+{
+  if(slot == ~0U && space == ~0U)
+    return false;
+
+  const FileHeader *header = (const FileHeader *)ByteCode;
+
+  const byte *data = (const byte *)ByteCode;    // just for convenience
+
+  if(header->fourcc != FOURCC_DXBC)
+    return false;
+
+  if(header->fileLength != (uint32_t)BytecodeLength)
+    return false;
+
+  const uint32_t *chunkOffsets = (const uint32_t *)(header + 1);    // right after the header
+
+  for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
+  {
+    const uint32_t *fourcc = (const uint32_t *)(data + chunkOffsets[chunkIdx]);
+    const uint32_t *chunkSize = (const uint32_t *)(fourcc + 1);
+
+    const byte *chunkContents = (const byte *)(chunkSize + 1);
+
+    if(*fourcc == FOURCC_SHEX || *fourcc == FOURCC_SHDR)
+      return DXBCBytecode::Program::UsesExtensionUAV(slot, space, chunkContents, *chunkSize);
+
+    // far too expensive to figure out if a DXIL blob references the shader UAV. Just assume it does
+    // - this is only as an opportunistic thing to avoid requiring vendor extensions on programs
+    // that initialise but don't use them. If a user is bothering with DXIL they deserve what they
+    // get.
+    if(*fourcc == FOURCC_DXIL || *fourcc == FOURCC_ILDB)
+      return true;
+  }
+
+  return false;
+}
+
 bool DXBCContainer::CheckForDebugInfo(const void *ByteCode, size_t ByteCodeLength)
 {
   FileHeader *header = (FileHeader *)ByteCode;
@@ -912,7 +951,8 @@ void DXBCContainer::TryFetchSeparateDebugInfo(bytebuf &byteCode, const rdcstr &d
   }
 }
 
-DXBCContainer::DXBCContainer(bytebuf &ByteCode, const rdcstr &debugInfoPath)
+DXBCContainer::DXBCContainer(bytebuf &ByteCode, const rdcstr &debugInfoPath, uint32_t shaderExtReg,
+                             uint32_t shaderExtSpace)
 {
   RDCEraseEl(m_ShaderStats);
 

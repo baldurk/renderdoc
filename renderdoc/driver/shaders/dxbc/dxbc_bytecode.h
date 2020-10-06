@@ -973,6 +973,8 @@ public:
   bool HasCoverageInput() const { return m_InputCoverage; }
   rdcstr GetRegisterName(OperandType oper, uint32_t index) const;
 
+  static bool UsesExtensionUAV(uint32_t slot, uint32_t space, const byte *bytes, size_t length);
+
 private:
   void FetchTypeVersion();
   void DisassembleHexDump();

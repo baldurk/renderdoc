@@ -31,6 +31,7 @@
 #include "common/timing.h"
 #include "core/core.h"
 #include "driver/dxgi/dxgi_wrapped.h"
+#include "driver/ihv/nv/nvapi_wrapper.h"
 #include "d3d11_common.h"
 #include "d3d11_manager.h"
 #include "d3d11_video.h"
@@ -62,8 +63,11 @@ struct D3D11InitParams
 
   DXGI_ADAPTER_DESC AdapterDesc = {};
 
+  GPUVendor VendorExtensions = GPUVendor::Unknown;
+  uint32_t VendorUAV = ~0U;
+
   // check if a frame capture section version is supported
-  static const uint64_t CurrentVersion = 0x11;
+  static const uint64_t CurrentVersion = 0x12;
   static bool IsSupportedVersion(uint64_t ver);
 };
 
@@ -142,6 +146,21 @@ struct WrappedID3D11Debug : public ID3D11Debug
   {
     return m_pDebug->ValidateContextForDispatch(pContext);
   }
+};
+
+struct WrappedNVAPI11 : public INVAPID3DDevice
+{
+private:
+  WrappedID3D11Device &m_pDevice;
+
+public:
+  WrappedNVAPI11(WrappedID3D11Device &dev) : m_pDevice(dev) {}
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
+  ULONG STDMETHODCALLTYPE AddRef();
+  ULONG STDMETHODCALLTYPE Release();
+  virtual BOOL STDMETHODCALLTYPE SetReal(IUnknown *);
+  virtual IUnknown *STDMETHODCALLTYPE GetReal();
+  virtual BOOL STDMETHODCALLTYPE SetShaderExtUAV(DWORD space, DWORD reg, BOOL global);
 };
 
 // give every impression of working but do nothing.
@@ -444,6 +463,7 @@ private:
   DummyID3D11Debug m_DummyDebug;
   WrappedID3D11Debug m_WrappedDebug;
   WrappedID3D11VideoDevice2 m_WrappedVideo;
+  WrappedNVAPI11 m_WrappedNVAPI;
 
   ID3DUserDefinedAnnotation *m_RealAnnotations;
   int m_ReplayEventCount;
@@ -476,6 +496,11 @@ private:
   ID3D11Device5 *m_pDevice5;
   ID3D11InfoQueue *m_pInfoQueue;
   WrappedID3D11DeviceContext *m_pImmediateContext;
+
+  uint32_t m_GlobalEXTUAV = ~0U;
+  uint64_t m_ThreadLocalEXTUAVSlot = ~0ULL;
+  GPUVendor m_VendorEXT = GPUVendor::Unknown;
+  INVAPID3DDevice *m_ReplayNVAPI = NULL;
 
   // ensure all calls in via the D3D wrapped interface are thread safe
   // protects wrapped resource creation and serialiser access
@@ -543,11 +568,13 @@ public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Device);
 
   WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitParams params);
-  void SetInitParams(const D3D11InitParams &params, uint64_t sectionVersion, const ReplayOptions &opts)
+  void SetInitParams(const D3D11InitParams &params, uint64_t sectionVersion,
+                     const ReplayOptions &opts, INVAPID3DDevice *nvapi)
   {
     m_InitParams = params;
     m_SectionVersion = sectionVersion;
     m_ReplayOptions = opts;
+    m_ReplayNVAPI = nvapi;
   }
   const ReplayOptions &GetReplayOptions() { return m_ReplayOptions; }
   uint64_t GetLogVersion() { return m_SectionVersion; }
@@ -674,6 +701,10 @@ public:
                                 const char *Name);
   IMPLEMENT_FUNCTION_SERIALISED(HRESULT, SetShaderDebugPath, ID3D11DeviceChild *pResource,
                                 const char *Path);
+
+  // IHV APIs
+  IMPLEMENT_FUNCTION_SERIALISED(void, SetShaderExtUAV, GPUVendor vendor, uint32_t reg, bool global);
+  uint32_t GetShaderExtUAV();
 
   // Swap Chain
   IMPLEMENT_FUNCTION_SERIALISED(IUnknown *, WrapSwapchainBuffer, IDXGISwapper *swapper,

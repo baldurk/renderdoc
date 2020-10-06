@@ -877,5 +877,6 @@ enum class D3D12Chunk : uint32_t
   List_ClearState,
   CompatDevice_CreateSharedResource,
   CompatDevice_CreateSharedHeap,
+  SetShaderExtUAV,
   Max,
 };

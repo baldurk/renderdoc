@@ -2878,6 +2878,22 @@ void D3D12Replay::BuildTargetShader(ShaderEncoding sourceEncoding, const bytebuf
 
 void D3D12Replay::ReplaceResource(ResourceId from, ResourceId to)
 {
+  if(WrappedID3D12Shader::IsShader(from))
+  {
+    WrappedID3D12Shader *fromsh =
+        (WrappedID3D12Shader *)m_pDevice->GetResourceManager()->GetCurrentResource(from);
+    WrappedID3D12Shader *tosh =
+        (WrappedID3D12Shader *)m_pDevice->GetResourceManager()->GetCurrentResource(to);
+
+    if(fromsh && tosh)
+    {
+      uint32_t slot = ~0U, space = ~0U;
+      // copy the shader ext slot
+      fromsh->GetShaderExtSlot(slot, space);
+      tosh->SetShaderExtSlot(slot, space);
+    }
+  }
+
   // replace the shader module
   m_pDevice->GetResourceManager()->ReplaceResource(from, to);
 
@@ -3925,6 +3941,27 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
     ChooseBestMatchingAdapter(GraphicsAPI::D3D12, factory, initParams.AdapterDesc, opts, NULL,
                               &adapter);
 
+  INVAPID3DDevice *nvapiDev = NULL;
+
+  if(initParams.VendorExtensions == GPUVendor::nVidia)
+  {
+    nvapiDev = InitialiseNVAPIReplay();
+
+    if(!nvapiDev)
+    {
+      RDCERR("Capture requires nvapi to replay, but it's not available or can't be initialised");
+      return ReplayStatus::APIHardwareUnsupported;
+    }
+  }
+  else if(initParams.VendorExtensions != GPUVendor::Unknown)
+  {
+    RDCERR(
+        "Capture requires vendor extensions by %s to replay, but no support for that is "
+        "available.",
+        ToStr(initParams.VendorExtensions).c_str());
+    return ReplayStatus::APIInitFailed;
+  }
+
   bool debugLayerEnabled = false;
 
   if(!isProxy)
@@ -3974,8 +4011,24 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
     return ReplayStatus::APIHardwareUnsupported;
   }
 
+  if(nvapiDev)
+  {
+    BOOL ok = nvapiDev->SetReal(dev);
+    if(!ok)
+    {
+      RDCERR(
+          "This capture needs nvapi to replay, but device selected for replay can't support "
+          "nvapi");
+      SAFE_RELEASE(dev);
+      SAFE_RELEASE(nvapiDev);
+      SAFE_RELEASE(factory);
+      SAFE_DELETE(rgp);
+      return ReplayStatus::APIHardwareUnsupported;
+    }
+  }
+
   WrappedID3D12Device *wrappedDev = new WrappedID3D12Device(dev, initParams, debugLayerEnabled);
-  wrappedDev->SetInitParams(initParams, ver, opts);
+  wrappedDev->SetInitParams(initParams, ver, opts, nvapiDev);
 
   if(!isProxy)
     RDCLOG("Created device.");

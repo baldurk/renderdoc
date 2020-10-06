@@ -279,6 +279,38 @@ HRESULT STDMETHODCALLTYPE WrappedCompatibilityDevice::ReflectSharedProperties(
   return m_pReal->ReflectSharedProperties(Unwrap(pHeapOrResource), ReflectType, pData, DataSize);
 }
 
+HRESULT STDMETHODCALLTYPE WrappedNVAPI12::QueryInterface(REFIID riid, void **ppvObject)
+{
+  return E_NOINTERFACE;
+}
+
+ULONG STDMETHODCALLTYPE WrappedNVAPI12::AddRef()
+{
+  return 1;
+}
+
+ULONG STDMETHODCALLTYPE WrappedNVAPI12::Release()
+{
+  return 1;
+}
+
+BOOL STDMETHODCALLTYPE WrappedNVAPI12::SetReal(IUnknown *)
+{
+  // shouldn't be called on capture, do nothing
+  return FALSE;
+}
+
+IUnknown *STDMETHODCALLTYPE WrappedNVAPI12::GetReal()
+{
+  return m_pDevice.GetReal();
+}
+
+BOOL STDMETHODCALLTYPE WrappedNVAPI12::SetShaderExtUAV(DWORD space, DWORD reg, BOOL global)
+{
+  m_pDevice.SetShaderExtUAV(GPUVendor::nVidia, reg, space, global ? true : false);
+  return TRUE;
+}
+
 WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitParams params,
                                          bool enabledDebugLayer)
     : m_RefCounter(realDevice, false),
@@ -288,7 +320,8 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
       m_WrappedDownlevel(*this),
       m_DRED(*this),
       m_DREDSettings(*this),
-      m_CompatDevice(*this)
+      m_CompatDevice(*this),
+      m_WrappedNVAPI(*this)
 {
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(WrappedID3D12Device));
@@ -628,6 +661,8 @@ WrappedID3D12Device::~WrappedID3D12Device()
 
   delete m_Replay;
 
+  SAFE_RELEASE(m_ReplayNVAPI);
+
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
 }
@@ -841,6 +876,12 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
         "Returning a dummy ID3D12InfoQueue that does nothing. This ID3D12InfoQueue will not work!");
     *ppvObject = (ID3D12InfoQueue *)&m_DummyInfoQueue;
     m_DummyInfoQueue.AddRef();
+    return S_OK;
+  }
+  else if(riid == __uuidof(INVAPID3DDevice))
+  {
+    // don't addref, this is an internal interface so we just don't addref at all
+    *ppvObject = (INVAPID3DDevice *)&m_WrappedNVAPI;
     return S_OK;
   }
   else if(riid == __uuidof(ID3D12DebugDevice))
@@ -2661,6 +2702,125 @@ void WrappedID3D12Device::SetName(ID3D12DeviceChild *pResource, const char *Name
   }
 }
 
+template <typename SerialiserType>
+bool WrappedID3D12Device::Serialise_SetShaderExtUAV(SerialiserType &ser, GPUVendor vendor,
+                                                    uint32_t reg, uint32_t space, bool global)
+{
+  SERIALISE_ELEMENT(vendor);
+  SERIALISE_ELEMENT(reg);
+  SERIALISE_ELEMENT(space);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_VendorEXT = vendor;
+    m_GlobalEXTUAV = reg;
+    if(vendor == GPUVendor::nVidia)
+    {
+      if(!m_ReplayNVAPI)
+      {
+        RDCERR("This capture uses nvapi extensions but it failed to initialise.");
+        m_FailedReplayStatus = ReplayStatus::APIUnsupported;
+        return false;
+      }
+      m_ReplayNVAPI->SetShaderExtUAV(space, reg, true);
+    }
+    else
+    {
+      RDCERR("This capture uses unexpected %s extensions which are not supported.",
+             ToStr(vendor).c_str());
+      m_FailedReplayStatus = ReplayStatus::APIUnsupported;
+      return false;
+    }
+  }
+
+  return true;
+}
+
+void WrappedID3D12Device::SetShaderExtUAV(GPUVendor vendor, uint32_t reg, uint32_t space, bool global)
+{
+  // just overwrite, we don't expect to switch back and forth on a given device.
+  m_VendorEXT = vendor;
+  if(global)
+  {
+    SCOPED_LOCK(m_EXTUAVLock);
+    m_GlobalEXTUAV = reg;
+    m_GlobalEXTUAVSpace = space;
+    m_InitParams.VendorUAV = reg;
+    m_InitParams.VendorUAVSpace = space;
+  }
+  else
+  {
+    if(m_ThreadLocalEXTUAVSlot == ~0ULL)
+      m_ThreadLocalEXTUAVSlot = Threading::AllocateTLSSlot();
+
+    uint64_t packedVal = 0U;
+
+// on 64-bit we can store both values in the pointer fine.
+#if ENABLED(RDOC_X64)
+    packedVal |= space;
+    packedVal <<= 32U;
+    packedVal |= reg;
+#else
+    // no-one should be writing D3D12 applications in 32-bit, but if they are we assume that the
+    // space and register are less than 16-bit. We error if this would truncate.
+
+    // AMD's space is too big, so we steal 0xFFFF for that space
+    if(reg > 0xFFFFU || space >= 0xFFFFU)
+    {
+      RDCERR("Register %u space %u is too large! Capture this as an 64-bit application", reg, space);
+
+      space = RDCMIN(0xFFFEU, space);
+      reg = RDCMIN(0xFFFFU, space);
+    }
+
+    if(space == 2147420894U)
+      space = 0xFFFFU;
+
+    packedVal |= space;
+    packedVal <<= 16U;
+    packedVal |= reg;
+#endif
+
+    Threading::SetTLSValue(m_ThreadLocalEXTUAVSlot, (void *)(uintptr_t)packedVal);
+  }
+}
+
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12Device, SetShaderExtUAV, GPUVendor vendor,
+                                uint32_t reg, uint32_t space, bool global);
+
+void WrappedID3D12Device::GetShaderExtUAV(uint32_t &reg, uint32_t &space)
+{
+  if(m_ThreadLocalEXTUAVSlot != ~0ULL)
+  {
+    // see just above in SetShaderExtUAV for the packing
+    uint64_t threadVal = (uint64_t)(uintptr_t)Threading::GetTLSValue(m_ThreadLocalEXTUAVSlot);
+
+#if ENABLED(RDOC_X64)
+    uint32_t threadReg = (threadVal & 0xFFFFFFFFU);
+    uint32_t threadSpace = ((threadVal >> 32U) & 0xFFFFFFFFU);
+#else
+    uint32_t threadReg = (threadVal & 0xFFFFU);
+    uint32_t threadSpace = ((threadVal >> 16U) & 0xFFFFU);
+
+    if(threadSpace == 0xFFFFU)
+      threadSpace = 2147420894U;
+#endif
+
+    if(threadReg != ~0U)
+    {
+      reg = threadReg;
+      space = threadSpace;
+      return;
+    }
+  }
+
+  SCOPED_LOCK(m_EXTUAVLock);
+  reg = m_GlobalEXTUAV;
+  space = m_GlobalEXTUAVSpace;
+}
+
 HRESULT STDMETHODCALLTYPE WrappedID3D12Device::QueryVideoMemoryInfo(
     UINT NodeIndex, DXGI_MEMORY_SEGMENT_GROUP MemorySegmentGroup,
     _Out_ DXGI_QUERY_VIDEO_MEMORY_INFO *pVideoMemoryInfo)
@@ -3105,6 +3265,8 @@ bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
     case D3D12Chunk::CompatDevice_CreateSharedResource:
     case D3D12Chunk::CompatDevice_CreateSharedHeap:
       return Serialise_OpenSharedHandle(ser, NULL, IID(), NULL);
+    case D3D12Chunk::SetShaderExtUAV:
+      return Serialise_SetShaderExtUAV(ser, GPUVendor::Unknown, 0, 0, true);
 
     // in order to get a warning if we miss a case, we explicitly handle the list/queue chunks here.
     // If we actually encounter one it's an error (we should hit CaptureBegin first and switch to

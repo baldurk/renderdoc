@@ -934,6 +934,7 @@ bool WrappedID3D11DeviceContext::ProcessChunk(ReadSerialiser &ser, D3D11Chunk ch
     case D3D11Chunk::OpenSharedResource1:
     case D3D11Chunk::OpenSharedResourceByName:
     case D3D11Chunk::SetShaderDebugPath:
+    case D3D11Chunk::SetShaderExtUAV:
       RDCERR("Unexpected chunk while processing frame: %s", ToStr(chunk).c_str());
       return false;
 

@@ -31,6 +31,7 @@
 #include "common/wrapped_pool.h"
 #include "core/core.h"
 #include "driver/dxgi/dxgi_wrapped.h"
+#include "driver/ihv/nv/nvapi_wrapper.h"
 #include "replay/replay_driver.h"
 #include "d3d12_common.h"
 #include "d3d12_manager.h"
@@ -45,8 +46,12 @@ struct D3D12InitParams
 
   bool usedDXIL = false;
 
+  GPUVendor VendorExtensions = GPUVendor::Unknown;
+  uint32_t VendorUAV = ~0U;
+  uint32_t VendorUAVSpace = ~0U;
+
   // check if a frame capture section version is supported
-  static const uint64_t CurrentVersion = 0x9;
+  static const uint64_t CurrentVersion = 0xA;
 
   static bool IsSupportedVersion(uint64_t ver);
 };
@@ -423,6 +428,21 @@ struct WrappedCompatibilityDevice : public ID3D12CompatibilityDevice
                                                             UINT DataSize);
 };
 
+struct WrappedNVAPI12 : public INVAPID3DDevice
+{
+private:
+  WrappedID3D12Device &m_pDevice;
+
+public:
+  WrappedNVAPI12(WrappedID3D12Device &dev) : m_pDevice(dev) {}
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
+  ULONG STDMETHODCALLTYPE AddRef();
+  ULONG STDMETHODCALLTYPE Release();
+  virtual BOOL STDMETHODCALLTYPE SetReal(IUnknown *);
+  virtual IUnknown *STDMETHODCALLTYPE GetReal();
+  virtual BOOL STDMETHODCALLTYPE SetShaderExtUAV(DWORD space, DWORD reg, BOOL global);
+};
+
 class WrappedID3D12CommandQueue;
 
 #define IMPLEMENT_FUNCTION_THREAD_SERIALISED(ret, func, ...) \
@@ -467,6 +487,7 @@ private:
   WrappedDRED m_DRED;
   WrappedDREDSettings m_DREDSettings;
   WrappedCompatibilityDevice m_CompatDevice;
+  WrappedNVAPI12 m_WrappedNVAPI;
 
   rdcarray<ID3D12CommandAllocator *> m_CommandAllocators;
 
@@ -480,6 +501,13 @@ private:
   void DestroyInternalResources();
 
   IAmdExtD3DFactory *m_pAMDExtObject = NULL;
+
+  Threading::CriticalSection m_EXTUAVLock;
+  uint32_t m_GlobalEXTUAV = ~0U;
+  uint32_t m_GlobalEXTUAVSpace = ~0U;
+  uint64_t m_ThreadLocalEXTUAVSlot = ~0ULL;
+  GPUVendor m_VendorEXT = GPUVendor::Unknown;
+  INVAPID3DDevice *m_ReplayNVAPI = NULL;
 
   D3D12ResourceManager *m_ResourceManager;
   DummyID3D12InfoQueue m_DummyInfoQueue;
@@ -665,11 +693,13 @@ public:
   }
   const std::map<ResourceId, DXGI_FORMAT> &GetBackbufferFormats() { return m_BackbufferFormat; }
   void SetLogFile(const char *logfile);
-  void SetInitParams(const D3D12InitParams &params, uint64_t sectionVersion, const ReplayOptions &opts)
+  void SetInitParams(const D3D12InitParams &params, uint64_t sectionVersion,
+                     const ReplayOptions &opts, INVAPID3DDevice *nvapi)
   {
     m_InitParams = params;
     m_SectionVersion = sectionVersion;
     m_ReplayOptions = opts;
+    m_ReplayNVAPI = nvapi;
   }
   const ReplayOptions &GetReplayOptions() { return m_ReplayOptions; }
   uint64_t GetLogVersion() { return m_SectionVersion; }
@@ -913,6 +943,11 @@ public:
   IMPLEMENT_FUNCTION_THREAD_SERIALISED(void, SetName, ID3D12DeviceChild *pResource, const char *Name);
   IMPLEMENT_FUNCTION_THREAD_SERIALISED(HRESULT, SetShaderDebugPath, ID3D12DeviceChild *pResource,
                                        const char *Path);
+
+  // IHV APIs
+  IMPLEMENT_FUNCTION_SERIALISED(void, SetShaderExtUAV, GPUVendor vendor, uint32_t reg,
+                                uint32_t space, bool global);
+  void GetShaderExtUAV(uint32_t &reg, uint32_t &space);
 
   // Protected session
   ID3D12Fence *CreateProtectedSessionFence(ID3D12Fence *real);

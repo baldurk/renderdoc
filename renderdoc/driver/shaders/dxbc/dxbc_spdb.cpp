@@ -1694,7 +1694,7 @@ SPDBChunk::SPDBChunk(void *chunk)
   m_HasDebugInfo = true;
 }
 
-void SPDBChunk::GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &lineInfo) const
+void SPDBChunk::GetLineInfo(size_t, uintptr_t offset, LineColumnInfo &lineInfo) const
 {
   auto it = m_InstructionInfo.lower_bound((uint32_t)offset);
 
@@ -1702,7 +1702,7 @@ void SPDBChunk::GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo
     lineInfo = it->second.lineInfo;
 }
 
-void SPDBChunk::GetCallstack(size_t instruction, uintptr_t offset, rdcarray<rdcstr> &callstack) const
+void SPDBChunk::GetCallstack(size_t, uintptr_t offset, rdcarray<rdcstr> &callstack) const
 {
   auto it = m_InstructionInfo.lower_bound((uint32_t)offset);
 
@@ -1715,7 +1715,7 @@ bool SPDBChunk::HasSourceMapping() const
   return true;
 }
 
-void SPDBChunk::GetLocals(const DXBC::DXBCContainer *dxbc, size_t instruction, uintptr_t offset,
+void SPDBChunk::GetLocals(const DXBC::DXBCContainer *dxbc, size_t, uintptr_t offset,
                           rdcarray<SourceVariableMapping> &locals) const
 {
   locals.clear();

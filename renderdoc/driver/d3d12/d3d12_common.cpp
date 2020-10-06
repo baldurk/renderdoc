@@ -219,6 +219,10 @@ bool D3D12InitParams::IsSupportedVersion(uint64_t ver)
   if(ver == 0x8)
     return true;
 
+  // 0x9 -> 0xA - Added serialisation of vendor extension use in D3D12InitParams
+  if(ver == 0x9)
+    return true;
+
   return false;
 }
 
@@ -239,6 +243,19 @@ void DoSerialise(SerialiserType &ser, D3D12InitParams &el)
   if(ser.VersionAtLeast(0x9))
   {
     SERIALISE_MEMBER(usedDXIL);
+  }
+
+  if(ser.VersionAtLeast(0xA))
+  {
+    SERIALISE_MEMBER(VendorExtensions);
+    SERIALISE_MEMBER(VendorUAV);
+    SERIALISE_MEMBER(VendorUAVSpace);
+  }
+  else
+  {
+    el.VendorExtensions = GPUVendor::Unknown;
+    el.VendorUAV = ~0U;
+    el.VendorUAVSpace = ~0U;
   }
 }
 

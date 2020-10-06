@@ -1401,6 +1401,16 @@ bool WrappedID3D11Device::Serialise_CreateVertexShader(SerialiserType &ser,
     }
 
     AddResource(pShader, ResourceType::Shader, "Vertex Shader");
+    // if this shader was initialised with a shader ext UAV, pull in that chunk as one of ours
+    // and unset it (there will be one for each create that actually used vendor extensions)
+    if(m_GlobalEXTUAV != ~0U)
+    {
+      // set the UAV slot used, for post-processing DXBC
+      ((WrappedID3D11Shader<ID3D11VertexShader> *)ret)->SetShaderExtSlot(m_GlobalEXTUAV);
+      GetResourceDesc(pShader).initialisationChunks.push_back(
+          (uint32_t)m_StructuredFile->chunks.size() - 2);
+      m_GlobalEXTUAV = ~0U;
+    }
   }
 
   return true;
@@ -1432,6 +1442,26 @@ HRESULT WrappedID3D11Device::CreateVertexShader(const void *pShaderBytecode, SIZ
 
     if(IsCaptureMode(m_State))
     {
+      Chunk *vendorChunk = NULL;
+      if(m_VendorEXT != GPUVendor::Unknown)
+      {
+        uint32_t slot = GetShaderExtUAV();
+
+        if(DXBC::DXBCContainer::UsesExtensionUAV(slot, ~0U, pShaderBytecode, BytecodeLength))
+        {
+          // don't set initparams until we've seen at least one shader actually created using the
+          // extensions.
+          m_InitParams.VendorExtensions = m_VendorEXT;
+
+          // if this shader uses the UAV slot registered for vendor extensions, serialise that out
+          // too
+          USE_SCRATCH_SERIALISER();
+          SCOPED_SERIALISE_CHUNK(D3D11Chunk::SetShaderExtUAV);
+          Serialise_SetShaderExtUAV(GET_SERIALISER, m_VendorEXT, slot, true);
+          vendorChunk = scope.Get();
+        }
+      }
+
       USE_SCRATCH_SERIALISER();
       SCOPED_SERIALISE_CHUNK(D3D11Chunk::CreateVertexShader);
       Serialise_CreateVertexShader(GET_SERIALISER, pShaderBytecode, BytecodeLength, pClassLinkage,
@@ -1452,6 +1482,9 @@ HRESULT WrappedID3D11Device::CreateVertexShader(const void *pShaderBytecode, SIZ
     else
     {
       WrappedID3D11Shader<ID3D11VertexShader> *w = (WrappedID3D11Shader<ID3D11VertexShader> *)wrapped;
+
+      if(m_GlobalEXTUAV != ~0U)
+        w->SetShaderExtSlot(m_GlobalEXTUAV);
 
       GetResourceManager()->AddLiveResource(w->GetResourceID(), wrapped);
     }
@@ -1498,6 +1531,16 @@ bool WrappedID3D11Device::Serialise_CreateGeometryShader(SerialiserType &ser,
     }
 
     AddResource(pShader, ResourceType::Shader, "Geometry Shader");
+    // if this shader was initialised with a shader ext UAV, pull in that chunk as one of ours
+    // and unset it (there will be one for each create that actually used vendor extensions)
+    if(m_GlobalEXTUAV != ~0U)
+    {
+      // set the UAV slot used, for post-processing DXBC
+      ((WrappedID3D11Shader<ID3D11GeometryShader> *)ret)->SetShaderExtSlot(m_GlobalEXTUAV);
+      GetResourceDesc(pShader).initialisationChunks.push_back(
+          (uint32_t)m_StructuredFile->chunks.size() - 2);
+      m_GlobalEXTUAV = ~0U;
+    }
   }
 
   return true;
@@ -1529,6 +1572,26 @@ HRESULT WrappedID3D11Device::CreateGeometryShader(const void *pShaderBytecode, S
 
     if(IsCaptureMode(m_State))
     {
+      Chunk *vendorChunk = NULL;
+      if(m_VendorEXT != GPUVendor::Unknown)
+      {
+        uint32_t slot = GetShaderExtUAV();
+
+        if(DXBC::DXBCContainer::UsesExtensionUAV(slot, ~0U, pShaderBytecode, BytecodeLength))
+        {
+          // don't set initparams until we've seen at least one shader actually created using the
+          // extensions.
+          m_InitParams.VendorExtensions = m_VendorEXT;
+
+          // if this shader uses the UAV slot registered for vendor extensions, serialise that out
+          // too
+          USE_SCRATCH_SERIALISER();
+          SCOPED_SERIALISE_CHUNK(D3D11Chunk::SetShaderExtUAV);
+          Serialise_SetShaderExtUAV(GET_SERIALISER, m_VendorEXT, slot, true);
+          vendorChunk = scope.Get();
+        }
+      }
+
       USE_SCRATCH_SERIALISER();
       SCOPED_SERIALISE_CHUNK(D3D11Chunk::CreateGeometryShader);
       Serialise_CreateGeometryShader(GET_SERIALISER, pShaderBytecode, BytecodeLength, pClassLinkage,
@@ -1544,12 +1607,17 @@ HRESULT WrappedID3D11Device::CreateGeometryShader(const void *pShaderBytecode, S
 
       record->Length = 0;
 
+      if(vendorChunk)
+        record->AddChunk(vendorChunk);
       record->AddChunk(scope.Get());
     }
     else
     {
       WrappedID3D11Shader<ID3D11GeometryShader> *w =
           (WrappedID3D11Shader<ID3D11GeometryShader> *)wrapped;
+
+      if(m_GlobalEXTUAV != ~0U)
+        w->SetShaderExtSlot(m_GlobalEXTUAV);
 
       GetResourceManager()->AddLiveResource(w->GetResourceID(), wrapped);
     }
@@ -1601,6 +1669,16 @@ bool WrappedID3D11Device::Serialise_CreateGeometryShaderWithStreamOutput(
     }
 
     AddResource(pShader, ResourceType::Shader, "Geometry Shader");
+    // if this shader was initialised with a shader ext UAV, pull in that chunk as one of ours
+    // and unset it (there will be one for each create that actually used vendor extensions)
+    if(m_GlobalEXTUAV != ~0U)
+    {
+      // set the UAV slot used, for post-processing DXBC
+      ((WrappedID3D11Shader<ID3D11GeometryShader> *)ret)->SetShaderExtSlot(m_GlobalEXTUAV);
+      GetResourceDesc(pShader).initialisationChunks.push_back(
+          (uint32_t)m_StructuredFile->chunks.size() - 2);
+      m_GlobalEXTUAV = ~0U;
+    }
   }
 
   return true;
@@ -1636,6 +1714,26 @@ HRESULT WrappedID3D11Device::CreateGeometryShaderWithStreamOutput(
 
     if(IsCaptureMode(m_State))
     {
+      Chunk *vendorChunk = NULL;
+      if(m_VendorEXT != GPUVendor::Unknown)
+      {
+        uint32_t slot = GetShaderExtUAV();
+
+        if(DXBC::DXBCContainer::UsesExtensionUAV(slot, ~0U, pShaderBytecode, BytecodeLength))
+        {
+          // don't set initparams until we've seen at least one shader actually created using the
+          // extensions.
+          m_InitParams.VendorExtensions = m_VendorEXT;
+
+          // if this shader uses the UAV slot registered for vendor extensions, serialise that out
+          // too
+          USE_SCRATCH_SERIALISER();
+          SCOPED_SERIALISE_CHUNK(D3D11Chunk::SetShaderExtUAV);
+          Serialise_SetShaderExtUAV(GET_SERIALISER, m_VendorEXT, slot, true);
+          vendorChunk = scope.Get();
+        }
+      }
+
       USE_SCRATCH_SERIALISER();
       SCOPED_SERIALISE_CHUNK(D3D11Chunk::CreateGeometryShaderWithStreamOutput);
       Serialise_CreateGeometryShaderWithStreamOutput(
@@ -1652,12 +1750,17 @@ HRESULT WrappedID3D11Device::CreateGeometryShaderWithStreamOutput(
 
       record->Length = 0;
 
+      if(vendorChunk)
+        record->AddChunk(vendorChunk);
       record->AddChunk(scope.Get());
     }
     else
     {
       WrappedID3D11Shader<ID3D11GeometryShader> *w =
           (WrappedID3D11Shader<ID3D11GeometryShader> *)wrapped;
+
+      if(m_GlobalEXTUAV != ~0U)
+        w->SetShaderExtSlot(m_GlobalEXTUAV);
 
       GetResourceManager()->AddLiveResource(w->GetResourceID(), wrapped);
     }
@@ -1703,6 +1806,16 @@ bool WrappedID3D11Device::Serialise_CreatePixelShader(SerialiserType &ser,
     }
 
     AddResource(pShader, ResourceType::Shader, "Pixel Shader");
+    // if this shader was initialised with a shader ext UAV, pull in that chunk as one of ours
+    // and unset it (there will be one for each create that actually used vendor extensions)
+    if(m_GlobalEXTUAV != ~0U)
+    {
+      // set the UAV slot used, for post-processing DXBC
+      ((WrappedID3D11Shader<ID3D11PixelShader> *)ret)->SetShaderExtSlot(m_GlobalEXTUAV);
+      GetResourceDesc(pShader).initialisationChunks.push_back(
+          (uint32_t)m_StructuredFile->chunks.size() - 2);
+      m_GlobalEXTUAV = ~0U;
+    }
   }
 
   return true;
@@ -1734,6 +1847,26 @@ HRESULT WrappedID3D11Device::CreatePixelShader(const void *pShaderBytecode, SIZE
 
     if(IsCaptureMode(m_State))
     {
+      Chunk *vendorChunk = NULL;
+      if(m_VendorEXT != GPUVendor::Unknown)
+      {
+        uint32_t slot = GetShaderExtUAV();
+
+        if(DXBC::DXBCContainer::UsesExtensionUAV(slot, ~0U, pShaderBytecode, BytecodeLength))
+        {
+          // don't set initparams until we've seen at least one shader actually created using the
+          // extensions.
+          m_InitParams.VendorExtensions = m_VendorEXT;
+
+          // if this shader uses the UAV slot registered for vendor extensions, serialise that out
+          // too
+          USE_SCRATCH_SERIALISER();
+          SCOPED_SERIALISE_CHUNK(D3D11Chunk::SetShaderExtUAV);
+          Serialise_SetShaderExtUAV(GET_SERIALISER, m_VendorEXT, slot, true);
+          vendorChunk = scope.Get();
+        }
+      }
+
       USE_SCRATCH_SERIALISER();
       SCOPED_SERIALISE_CHUNK(D3D11Chunk::CreatePixelShader);
       Serialise_CreatePixelShader(GET_SERIALISER, pShaderBytecode, BytecodeLength, pClassLinkage,
@@ -1748,11 +1881,16 @@ HRESULT WrappedID3D11Device::CreatePixelShader(const void *pShaderBytecode, SIZE
 
       record->Length = 0;
 
+      if(vendorChunk)
+        record->AddChunk(vendorChunk);
       record->AddChunk(scope.Get());
     }
     else
     {
       WrappedID3D11Shader<ID3D11PixelShader> *w = (WrappedID3D11Shader<ID3D11PixelShader> *)wrapped;
+
+      if(m_GlobalEXTUAV != ~0U)
+        w->SetShaderExtSlot(m_GlobalEXTUAV);
 
       GetResourceManager()->AddLiveResource(w->GetResourceID(), wrapped);
     }
@@ -1797,6 +1935,16 @@ bool WrappedID3D11Device::Serialise_CreateHullShader(SerialiserType &ser, const 
     }
 
     AddResource(pShader, ResourceType::Shader, "Hull Shader");
+    // if this shader was initialised with a shader ext UAV, pull in that chunk as one of ours
+    // and unset it (there will be one for each create that actually used vendor extensions)
+    if(m_GlobalEXTUAV != ~0U)
+    {
+      // set the UAV slot used, for post-processing DXBC
+      ((WrappedID3D11Shader<ID3D11HullShader> *)ret)->SetShaderExtSlot(m_GlobalEXTUAV);
+      GetResourceDesc(pShader).initialisationChunks.push_back(
+          (uint32_t)m_StructuredFile->chunks.size() - 2);
+      m_GlobalEXTUAV = ~0U;
+    }
   }
 
   return true;
@@ -1828,6 +1976,26 @@ HRESULT WrappedID3D11Device::CreateHullShader(const void *pShaderBytecode, SIZE_
 
     if(IsCaptureMode(m_State))
     {
+      Chunk *vendorChunk = NULL;
+      if(m_VendorEXT != GPUVendor::Unknown)
+      {
+        uint32_t slot = GetShaderExtUAV();
+
+        if(DXBC::DXBCContainer::UsesExtensionUAV(slot, ~0U, pShaderBytecode, BytecodeLength))
+        {
+          // don't set initparams until we've seen at least one shader actually created using the
+          // extensions.
+          m_InitParams.VendorExtensions = m_VendorEXT;
+
+          // if this shader uses the UAV slot registered for vendor extensions, serialise that out
+          // too
+          USE_SCRATCH_SERIALISER();
+          SCOPED_SERIALISE_CHUNK(D3D11Chunk::SetShaderExtUAV);
+          Serialise_SetShaderExtUAV(GET_SERIALISER, m_VendorEXT, slot, true);
+          vendorChunk = scope.Get();
+        }
+      }
+
       USE_SCRATCH_SERIALISER();
       SCOPED_SERIALISE_CHUNK(D3D11Chunk::CreateHullShader);
       Serialise_CreateHullShader(GET_SERIALISER, pShaderBytecode, BytecodeLength, pClassLinkage,
@@ -1842,11 +2010,16 @@ HRESULT WrappedID3D11Device::CreateHullShader(const void *pShaderBytecode, SIZE_
 
       record->Length = 0;
 
+      if(vendorChunk)
+        record->AddChunk(vendorChunk);
       record->AddChunk(scope.Get());
     }
     else
     {
       WrappedID3D11Shader<ID3D11HullShader> *w = (WrappedID3D11Shader<ID3D11HullShader> *)wrapped;
+
+      if(m_GlobalEXTUAV != ~0U)
+        w->SetShaderExtSlot(m_GlobalEXTUAV);
 
       GetResourceManager()->AddLiveResource(w->GetResourceID(), wrapped);
     }
@@ -1893,6 +2066,16 @@ bool WrappedID3D11Device::Serialise_CreateDomainShader(SerialiserType &ser,
     }
 
     AddResource(pShader, ResourceType::Shader, "Domain Shader");
+    // if this shader was initialised with a shader ext UAV, pull in that chunk as one of ours
+    // and unset it (there will be one for each create that actually used vendor extensions)
+    if(m_GlobalEXTUAV != ~0U)
+    {
+      // set the UAV slot used, for post-processing DXBC
+      ((WrappedID3D11Shader<ID3D11DomainShader> *)ret)->SetShaderExtSlot(m_GlobalEXTUAV);
+      GetResourceDesc(pShader).initialisationChunks.push_back(
+          (uint32_t)m_StructuredFile->chunks.size() - 2);
+      m_GlobalEXTUAV = ~0U;
+    }
   }
 
   return true;
@@ -1924,6 +2107,26 @@ HRESULT WrappedID3D11Device::CreateDomainShader(const void *pShaderBytecode, SIZ
 
     if(IsCaptureMode(m_State))
     {
+      Chunk *vendorChunk = NULL;
+      if(m_VendorEXT != GPUVendor::Unknown)
+      {
+        uint32_t slot = GetShaderExtUAV();
+
+        if(DXBC::DXBCContainer::UsesExtensionUAV(slot, ~0U, pShaderBytecode, BytecodeLength))
+        {
+          // don't set initparams until we've seen at least one shader actually created using the
+          // extensions.
+          m_InitParams.VendorExtensions = m_VendorEXT;
+
+          // if this shader uses the UAV slot registered for vendor extensions, serialise that out
+          // too
+          USE_SCRATCH_SERIALISER();
+          SCOPED_SERIALISE_CHUNK(D3D11Chunk::SetShaderExtUAV);
+          Serialise_SetShaderExtUAV(GET_SERIALISER, m_VendorEXT, slot, true);
+          vendorChunk = scope.Get();
+        }
+      }
+
       USE_SCRATCH_SERIALISER();
       SCOPED_SERIALISE_CHUNK(D3D11Chunk::CreateDomainShader);
       Serialise_CreateDomainShader(GET_SERIALISER, pShaderBytecode, BytecodeLength, pClassLinkage,
@@ -1939,11 +2142,16 @@ HRESULT WrappedID3D11Device::CreateDomainShader(const void *pShaderBytecode, SIZ
 
       record->Length = 0;
 
+      if(vendorChunk)
+        record->AddChunk(vendorChunk);
       record->AddChunk(scope.Get());
     }
     else
     {
       WrappedID3D11Shader<ID3D11DomainShader> *w = (WrappedID3D11Shader<ID3D11DomainShader> *)wrapped;
+
+      if(m_GlobalEXTUAV != ~0U)
+        w->SetShaderExtSlot(m_GlobalEXTUAV);
 
       GetResourceManager()->AddLiveResource(w->GetResourceID(), wrapped);
     }
@@ -1990,6 +2198,16 @@ bool WrappedID3D11Device::Serialise_CreateComputeShader(SerialiserType &ser,
     }
 
     AddResource(pShader, ResourceType::Shader, "Compute Shader");
+    // if this shader was initialised with a shader ext UAV, pull in that chunk as one of ours
+    // and unset it (there will be one for each create that actually used vendor extensions)
+    if(m_GlobalEXTUAV != ~0U)
+    {
+      // set the UAV slot used, for post-processing DXBC
+      ((WrappedID3D11Shader<ID3D11ComputeShader> *)ret)->SetShaderExtSlot(m_GlobalEXTUAV);
+      GetResourceDesc(pShader).initialisationChunks.push_back(
+          (uint32_t)m_StructuredFile->chunks.size() - 2);
+      m_GlobalEXTUAV = ~0U;
+    }
   }
 
   return true;
@@ -2021,6 +2239,26 @@ HRESULT WrappedID3D11Device::CreateComputeShader(const void *pShaderBytecode, SI
 
     if(IsCaptureMode(m_State))
     {
+      Chunk *vendorChunk = NULL;
+      if(m_VendorEXT != GPUVendor::Unknown)
+      {
+        uint32_t slot = GetShaderExtUAV();
+
+        if(DXBC::DXBCContainer::UsesExtensionUAV(slot, ~0U, pShaderBytecode, BytecodeLength))
+        {
+          // don't set initparams until we've seen at least one shader actually created using the
+          // extensions.
+          m_InitParams.VendorExtensions = m_VendorEXT;
+
+          // if this shader uses the UAV slot registered for vendor extensions, serialise that out
+          // too
+          USE_SCRATCH_SERIALISER();
+          SCOPED_SERIALISE_CHUNK(D3D11Chunk::SetShaderExtUAV);
+          Serialise_SetShaderExtUAV(GET_SERIALISER, m_VendorEXT, slot, true);
+          vendorChunk = scope.Get();
+        }
+      }
+
       USE_SCRATCH_SERIALISER();
       SCOPED_SERIALISE_CHUNK(D3D11Chunk::CreateComputeShader);
       Serialise_CreateComputeShader(GET_SERIALISER, pShaderBytecode, BytecodeLength, pClassLinkage,
@@ -2036,12 +2274,17 @@ HRESULT WrappedID3D11Device::CreateComputeShader(const void *pShaderBytecode, SI
 
       record->Length = 0;
 
+      if(vendorChunk)
+        record->AddChunk(vendorChunk);
       record->AddChunk(scope.Get());
     }
     else
     {
       WrappedID3D11Shader<ID3D11ComputeShader> *w =
           (WrappedID3D11Shader<ID3D11ComputeShader> *)wrapped;
+
+      if(m_GlobalEXTUAV != ~0U)
+        w->SetShaderExtSlot(m_GlobalEXTUAV);
 
       GetResourceManager()->AddLiveResource(w->GetResourceID(), wrapped);
     }

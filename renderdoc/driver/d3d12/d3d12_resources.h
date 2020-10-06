@@ -723,6 +723,32 @@ public:
       return false;
     }
 
+    void GetShaderExtSlot(uint32_t &slot, uint32_t &space)
+    {
+      slot = m_ShaderExtSlot;
+      space = m_ShaderExtSpace;
+    }
+
+    void SetShaderExtSlot(uint32_t slot, uint32_t space)
+    {
+      // it doesn't make sense to build the same DXBC with different slots/spaces since it's baked
+      // in.
+
+      if(slot != m_ShaderExtSlot && m_ShaderExtSlot != ~0U)
+        RDCERR(
+            "Unexpected case - different valid slot %u being set for same shader already "
+            "configured with slot %u",
+            slot, m_ShaderExtSlot);
+      if(space != m_ShaderExtSpace && m_ShaderExtSpace != ~0U)
+        RDCERR(
+            "Unexpected case - different valid space %u being set for same shader already "
+            "configured with space %u",
+            space, m_ShaderExtSpace);
+
+      m_ShaderExtSlot = slot;
+      m_ShaderExtSpace = space;
+    }
+
     DXBCKey GetKey() { return m_Key; }
     D3D12_SHADER_BYTECODE GetDesc()
     {
@@ -736,7 +762,7 @@ public:
     {
       if(m_DXBCFile == NULL && !m_Bytecode.empty())
       {
-        m_DXBCFile = new DXBC::DXBCContainer(m_Bytecode, rdcstr());
+        m_DXBCFile = new DXBC::DXBCContainer(m_Bytecode, rdcstr(), m_ShaderExtSlot, m_ShaderExtSpace);
       }
       return m_DXBCFile;
     }
@@ -766,6 +792,7 @@ public:
     DXBCKey m_Key;
 
     bytebuf m_Bytecode;
+    uint32_t m_ShaderExtSlot = ~0U, m_ShaderExtSpace = ~0U;
 
     bool m_Built;
     DXBC::DXBCContainer *m_DXBCFile;

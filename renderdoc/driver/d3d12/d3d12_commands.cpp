@@ -759,6 +759,7 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
     case D3D12Chunk::Device_ExternalDXGIResource:
     case D3D12Chunk::CompatDevice_CreateSharedResource:
     case D3D12Chunk::CompatDevice_CreateSharedHeap:
+    case D3D12Chunk::SetShaderExtUAV:
       RDCERR("Unexpected chunk while processing frame: %s", ToStr(chunk).c_str());
       return false;
 
