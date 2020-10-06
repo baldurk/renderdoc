@@ -3582,7 +3582,8 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
         else if(flags == DepthTest_GreaterEqual)
           passed = (shadDepth >= history[h].preMod.depth);
 
-        history[h].depthTestFailed = !passed;
+        if(!passed)
+          history[h].depthTestFailed = true;
       }
     }
   }
