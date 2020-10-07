@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "d3d12_hooks.h"
 #include "driver/dxgi/dxgi_wrapped.h"
 #include "hooks/hooks.h"
 #include "serialise/serialiser.h"
@@ -29,18 +30,6 @@
 #include "d3d12_device.h"
 
 #include "driver/dx/official/D3D11On12On7.h"
-
-#if ENABLED(RDOC_X64)
-
-#define BIT_SPECIFIC_DLL(dll32, dll64) dll64
-
-#else
-
-#define BIT_SPECIFIC_DLL(dll32, dll64) dll32
-
-#endif
-
-typedef HRESULT(__cdecl *PFN_AmdExtD3DCreateInterface)(IUnknown *, REFIID, void **);
 
 typedef HRESULT(WINAPI *PFN_D3D12_ENABLE_EXPERIMENTAL_FEATURES)(UINT NumFeatures, const IID *pIIDs,
                                                                 void *pConfigurationStructs,
@@ -194,12 +183,6 @@ public:
 
     LibraryHooks::RegisterLibraryHook("d3d12.dll", NULL);
 
-    // these are hooked to prevent AMD extensions from activating and causing later crashes when not
-    // replayed correctly
-    LibraryHooks::RegisterLibraryHook(BIT_SPECIFIC_DLL("amdxc32.dll", "amdxc64.dll"), NULL);
-    AmdExtD3DCreateInterface.Register(BIT_SPECIFIC_DLL("amdxc32.dll", "amdxc64.dll"),
-                                      "AmdExtD3DCreateInterface", AmdExtD3DCreateInterface_hook);
-
     CreateDevice.Register("d3d12.dll", "D3D12CreateDevice", D3D12CreateDevice_hook);
     GetDebugInterface.Register("d3d12.dll", "D3D12GetDebugInterface", D3D12GetDebugInterface_hook);
     EnableExperimentalFeatures.Register("d3d12.dll", "D3D12EnableExperimentalFeatures",
@@ -211,18 +194,6 @@ public:
 private:
   static D3D12Hook d3d12hooks;
 
-  HookedFunction<PFN_AmdExtD3DCreateInterface> AmdExtD3DCreateInterface;
-
-  static HRESULT __cdecl AmdExtD3DCreateInterface_hook(IUnknown *, REFIID, void **ppvObject)
-  {
-    RDCLOG("Attempt to create AMD extension interface via AmdExtD3DCreateInterface was blocked.");
-
-    if(ppvObject)
-      *ppvObject = NULL;
-
-    return E_FAIL;
-  }
-
   HookedFunction<PFN_D3D12_GET_DEBUG_INTERFACE> GetDebugInterface;
   HookedFunction<PFN_D3D12_CREATE_DEVICE> CreateDevice;
   HookedFunction<PFN_D3D12_ENABLE_EXPERIMENTAL_FEATURES> EnableExperimentalFeatures;
@@ -231,31 +202,17 @@ private:
   // re-entrancy detection (can happen in rare cases with e.g. fraps)
   bool m_InsideCreate = false;
 
-  HRESULT Create_Internal(IUnknown *pAdapter, D3D_FEATURE_LEVEL MinimumFeatureLevel, REFIID riid,
-                          void **ppDevice)
+  friend HRESULT CreateD3D12_Internal(RealD3D12CreateFunction real, IUnknown *pAdapter,
+                                      D3D_FEATURE_LEVEL MinimumFeatureLevel, REFIID riid,
+                                      void **ppDevice);
+
+  HRESULT Create_Internal(RealD3D12CreateFunction real, IUnknown *pAdapter,
+                          D3D_FEATURE_LEVEL MinimumFeatureLevel, REFIID riid, void **ppDevice)
   {
     // if we're already inside a wrapped create i.e. this function, then DON'T do anything
     // special. Just grab the trampolined function and call it.
     if(m_InsideCreate)
-    {
-      PFN_D3D12_CREATE_DEVICE createFunc = CreateDevice();
-
-      if(!createFunc)
-      {
-        HMODULE d3d12 = GetModuleHandleA("d3d12.dll");
-
-        if(d3d12)
-          createFunc = (PFN_D3D12_CREATE_DEVICE)GetProcAddress(d3d12, "D3D12CreateDevice");
-
-        if(!createFunc)
-        {
-          RDCERR("Something went seriously wrong, d3d12.dll couldn't be loaded!");
-          return E_UNEXPECTED;
-        }
-      }
-
-      return createFunc(pAdapter, MinimumFeatureLevel, riid, ppDevice);
-    }
+      return real(pAdapter, MinimumFeatureLevel, riid, ppDevice);
 
     m_InsideCreate = true;
 
@@ -281,24 +238,7 @@ private:
 
     RDCDEBUG("Calling real createdevice...");
 
-    PFN_D3D12_CREATE_DEVICE createFunc = CreateDevice();
-
-    if(createFunc == NULL)
-      createFunc = (PFN_D3D12_CREATE_DEVICE)GetProcAddress(GetModuleHandleA("d3d12.dll"),
-                                                           "D3D12CreateDevice");
-
-    // shouldn't ever get here, we should either have it from procaddress or the trampoline, but
-    // let's be safe.
-    if(createFunc == NULL)
-    {
-      RDCERR("Something went seriously wrong with the hooks!");
-
-      m_InsideCreate = false;
-
-      return E_UNEXPECTED;
-    }
-
-    HRESULT ret = createFunc(pAdapter, MinimumFeatureLevel, riid, ppDevice);
+    HRESULT ret = real(pAdapter, MinimumFeatureLevel, riid, ppDevice);
 
     RDCDEBUG("Called real createdevice... HRESULT: %s", ToStr(ret).c_str());
 
@@ -396,7 +336,23 @@ private:
                                                D3D_FEATURE_LEVEL MinimumFeatureLevel, REFIID riid,
                                                void **ppDevice)
   {
-    return d3d12hooks.Create_Internal(pAdapter, MinimumFeatureLevel, riid, ppDevice);
+    PFN_D3D12_CREATE_DEVICE createFunc = d3d12hooks.CreateDevice();
+
+    if(!createFunc)
+    {
+      HMODULE d3d12 = GetModuleHandleA("d3d12.dll");
+
+      if(d3d12)
+        createFunc = (PFN_D3D12_CREATE_DEVICE)GetProcAddress(d3d12, "D3D12CreateDevice");
+
+      if(!createFunc)
+      {
+        RDCERR("Something went seriously wrong, d3d12.dll couldn't be loaded!");
+        return E_UNEXPECTED;
+      }
+    }
+
+    return d3d12hooks.Create_Internal(createFunc, pAdapter, MinimumFeatureLevel, riid, ppDevice);
   }
 
   static HRESULT WINAPI D3D12EnableExperimentalFeatures_hook(UINT NumFeatures, const IID *pIIDs,
@@ -471,3 +427,9 @@ private:
 };
 
 D3D12Hook D3D12Hook::d3d12hooks;
+
+HRESULT CreateD3D12_Internal(RealD3D12CreateFunction real, IUnknown *pAdapter,
+                             D3D_FEATURE_LEVEL MinimumFeatureLevel, REFIID riid, void **ppDevice)
+{
+  return D3D12Hook::d3d12hooks.Create_Internal(real, pAdapter, MinimumFeatureLevel, riid, ppDevice);
+}

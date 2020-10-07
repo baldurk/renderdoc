@@ -28,6 +28,12 @@
     <Filter Include="RGP">
       <UniqueIdentifier>{9977fd12-32d0-49d3-b20d-c38b0df2dc95}</UniqueIdentifier>
     </Filter>
+    <Filter Include="official\ags">
+      <UniqueIdentifier>{38a2da39-3393-42d3-aa9f-58c8811963e2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ags">
+      <UniqueIdentifier>{2ce9ee54-2687-42e5-89e9-c16ba9fb12ad}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="amd_counters.cpp">
@@ -47,6 +53,12 @@
     </ClCompile>
     <ClCompile Include="amd_rgp.cpp">
       <Filter>RGP</Filter>
+    </ClCompile>
+    <ClCompile Include="amd_hooks.cpp">
+      <Filter>ags</Filter>
+    </ClCompile>
+    <ClCompile Include="ags_wrapper.cpp">
+      <Filter>ags</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -115,6 +127,12 @@
     </ClInclude>
     <ClInclude Include="amd_rgp.h">
       <Filter>RGP</Filter>
+    </ClInclude>
+    <ClInclude Include="official\ags\amd_ags.h">
+      <Filter>official\ags</Filter>
+    </ClInclude>
+    <ClInclude Include="ags_wrapper.h">
+      <Filter>ags</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

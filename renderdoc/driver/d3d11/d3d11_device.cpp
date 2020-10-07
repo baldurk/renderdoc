@@ -45,7 +45,8 @@ WrappedID3D11Device *WrappedID3D11Device::m_pCurrentWrappedDevice = NULL;
 WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitParams params)
     : m_pDevice(realDevice),
       m_ScratchSerialiser(new StreamWriter(1024), Ownership::Stream),
-      m_WrappedNVAPI(*this)
+      m_WrappedNVAPI(*this),
+      m_WrappedAGS(*this)
 {
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(WrappedID3D11Device));
@@ -328,6 +329,7 @@ WrappedID3D11Device::~WrappedID3D11Device()
   SAFE_DELETE(m_Replay);
 
   SAFE_RELEASE(m_ReplayNVAPI);
+  SAFE_RELEASE(m_ReplayAGS);
 
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
@@ -485,6 +487,54 @@ BOOL STDMETHODCALLTYPE WrappedNVAPI11::SetShaderExtUAV(DWORD space, DWORD reg, B
 {
   m_pDevice.SetShaderExtUAV(GPUVendor::nVidia, reg, global ? true : false);
   return TRUE;
+}
+
+HRESULT STDMETHODCALLTYPE WrappedAGS11::QueryInterface(REFIID riid, void **ppvObject)
+{
+  return E_NOINTERFACE;
+}
+
+ULONG STDMETHODCALLTYPE WrappedAGS11::AddRef()
+{
+  return 1;
+}
+
+ULONG STDMETHODCALLTYPE WrappedAGS11::Release()
+{
+  return 1;
+}
+
+IUnknown *STDMETHODCALLTYPE WrappedAGS11::GetReal()
+{
+  return m_pDevice.GetReal();
+}
+
+BOOL STDMETHODCALLTYPE WrappedAGS11::SetShaderExtUAV(DWORD space, DWORD reg)
+{
+  m_pDevice.SetShaderExtUAV(GPUVendor::AMD, reg, true);
+  return TRUE;
+}
+
+HRESULT STDMETHODCALLTYPE WrappedAGS11::CreateD3D11(IDXGIAdapter *, D3D_DRIVER_TYPE, HMODULE, UINT,
+                                                    CONST D3D_FEATURE_LEVEL *, UINT FeatureLevels,
+                                                    UINT, CONST DXGI_SWAP_CHAIN_DESC *,
+                                                    IDXGISwapChain **, ID3D11Device **,
+                                                    D3D_FEATURE_LEVEL *, ID3D11DeviceContext **)
+{
+  // shouldn't be called on capture
+  return E_NOTIMPL;
+}
+HRESULT STDMETHODCALLTYPE WrappedAGS11::CreateD3D12(IUnknown *pAdapter,
+                                                    D3D_FEATURE_LEVEL MinimumFeatureLevel,
+                                                    REFIID riid, void **ppDevice)
+{
+  // shouldn't be called on capture
+  return E_NOTIMPL;
+}
+
+BOOL STDMETHODCALLTYPE WrappedAGS11::ExtensionsSupported()
+{
+  return FALSE;
 }
 
 HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
@@ -743,6 +793,12 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
   {
     // don't addref, this is an internal interface so we just don't addref at all
     *ppvObject = (INVAPID3DDevice *)&m_WrappedNVAPI;
+    return S_OK;
+  }
+  else if(riid == __uuidof(IAGSD3DDevice))
+  {
+    // don't addref, this is an internal interface so we just don't addref at all
+    *ppvObject = (IAGSD3DDevice *)&m_WrappedAGS;
     return S_OK;
   }
   else if(riid == unwrappedID3D11InfoQueue__uuid)
@@ -2731,6 +2787,10 @@ bool WrappedID3D11Device::Serialise_SetShaderExtUAV(SerialiserType &ser, GPUVend
         return false;
       }
       m_ReplayNVAPI->SetShaderExtUAV(~0U, reg, true);
+    }
+    else if(vendor == GPUVendor::AMD)
+    {
+      // do nothing, it was configured at device create time. This is purely informational
     }
     else
     {

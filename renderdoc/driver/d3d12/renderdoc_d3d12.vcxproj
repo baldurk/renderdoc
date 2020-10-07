@@ -153,6 +153,7 @@
     <ClInclude Include="d3d12_common.h" />
     <ClInclude Include="d3d12_debug.h" />
     <ClInclude Include="d3d12_device.h" />
+    <ClInclude Include="d3d12_hooks.h" />
     <ClInclude Include="d3d12_manager.h" />
     <ClInclude Include="..\dx\official\d3d12.h" />
     <ClInclude Include="..\dx\official\d3d12sdklayers.h" />

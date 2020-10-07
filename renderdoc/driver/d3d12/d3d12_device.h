@@ -31,6 +31,7 @@
 #include "common/wrapped_pool.h"
 #include "core/core.h"
 #include "driver/dxgi/dxgi_wrapped.h"
+#include "driver/ihv/amd/ags_wrapper.h"
 #include "driver/ihv/nv/nvapi_wrapper.h"
 #include "replay/replay_driver.h"
 #include "d3d12_common.h"
@@ -501,6 +502,30 @@ public:
   virtual BOOL STDMETHODCALLTYPE SetShaderExtUAV(DWORD space, DWORD reg, BOOL global);
 };
 
+struct WrappedAGS12 : public IAGSD3DDevice
+{
+private:
+  WrappedID3D12Device &m_pDevice;
+
+public:
+  WrappedAGS12(WrappedID3D12Device &dev) : m_pDevice(dev) {}
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
+  ULONG STDMETHODCALLTYPE AddRef();
+  ULONG STDMETHODCALLTYPE Release();
+  virtual IUnknown *STDMETHODCALLTYPE GetReal();
+  virtual BOOL STDMETHODCALLTYPE SetShaderExtUAV(DWORD space, DWORD reg);
+
+  virtual HRESULT STDMETHODCALLTYPE CreateD3D11(IDXGIAdapter *, D3D_DRIVER_TYPE, HMODULE, UINT,
+                                                CONST D3D_FEATURE_LEVEL *, UINT FeatureLevels, UINT,
+                                                CONST DXGI_SWAP_CHAIN_DESC *, IDXGISwapChain **,
+                                                ID3D11Device **, D3D_FEATURE_LEVEL *,
+                                                ID3D11DeviceContext **);
+  virtual HRESULT STDMETHODCALLTYPE CreateD3D12(IUnknown *pAdapter,
+                                                D3D_FEATURE_LEVEL MinimumFeatureLevel, REFIID riid,
+                                                void **ppDevice);
+  virtual BOOL STDMETHODCALLTYPE ExtensionsSupported();
+};
+
 class WrappedID3D12CommandQueue;
 
 #define IMPLEMENT_FUNCTION_THREAD_SERIALISED(ret, func, ...) \
@@ -548,6 +573,7 @@ private:
   WrappedDREDSettings m_DREDSettings;
   WrappedCompatibilityDevice m_CompatDevice;
   WrappedNVAPI12 m_WrappedNVAPI;
+  WrappedAGS12 m_WrappedAGS;
 
   rdcarray<ID3D12CommandAllocator *> m_CommandAllocators;
 
@@ -568,6 +594,7 @@ private:
   uint64_t m_ThreadLocalEXTUAVSlot = ~0ULL;
   GPUVendor m_VendorEXT = GPUVendor::Unknown;
   INVAPID3DDevice *m_ReplayNVAPI = NULL;
+  IAGSD3DDevice *m_ReplayAGS = NULL;
 
   D3D12ResourceManager *m_ResourceManager;
   DummyID3D12InfoQueue m_DummyInfoQueue;
@@ -755,12 +782,13 @@ public:
   const std::map<ResourceId, DXGI_FORMAT> &GetBackbufferFormats() { return m_BackbufferFormat; }
   void SetLogFile(const char *logfile);
   void SetInitParams(const D3D12InitParams &params, uint64_t sectionVersion,
-                     const ReplayOptions &opts, INVAPID3DDevice *nvapi)
+                     const ReplayOptions &opts, INVAPID3DDevice *nvapi, IAGSD3DDevice *ags)
   {
     m_InitParams = params;
     m_SectionVersion = sectionVersion;
     m_ReplayOptions = opts;
     m_ReplayNVAPI = nvapi;
+    m_ReplayAGS = ags;
   }
   const ReplayOptions &GetReplayOptions() { return m_ReplayOptions; }
   uint64_t GetLogVersion() { return m_SectionVersion; }

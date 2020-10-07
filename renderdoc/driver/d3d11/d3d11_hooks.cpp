@@ -25,19 +25,8 @@
 
 #include "d3d11_hooks.h"
 #include "driver/dxgi/dxgi_wrapped.h"
-#include "driver/ihv/amd/official/DXExt/AmdDxExtApi.h"
 #include "hooks/hooks.h"
 #include "d3d11_device.h"
-
-#if ENABLED(RDOC_X64)
-
-#define BIT_SPECIFIC_DLL(dll32, dll64) dll64
-
-#else
-
-#define BIT_SPECIFIC_DLL(dll32, dll64) dll32
-
-#endif
 
 ID3DDevice *GetD3D11DeviceIfAlloc(IUnknown *dev)
 {
@@ -68,12 +57,6 @@ public:
     CreateDevice.Register("d3d11.dll", "D3D11CreateDevice", D3D11CreateDevice_hook);
     CreateDeviceAndSwapChain.Register("d3d11.dll", "D3D11CreateDeviceAndSwapChain",
                                       D3D11CreateDeviceAndSwapChain_hook);
-
-    // these are hooked to prevent AMD extensions from activating and causing later crashes when not
-    // replayed correctly
-    LibraryHooks::RegisterLibraryHook(BIT_SPECIFIC_DLL("atidxx32.dll", "atidxx64.dll"), NULL);
-    AmdCreate11.Register(BIT_SPECIFIC_DLL("atidxx32.dll", "atidxx64.dll"), "AmdDxExtCreate11",
-                         AmdCreate11_hook);
   }
 
 private:
@@ -81,9 +64,6 @@ private:
 
   HookedFunction<PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN> CreateDeviceAndSwapChain;
   HookedFunction<PFN_D3D11_CREATE_DEVICE> CreateDevice;
-
-  // optional extension hooks
-  HookedFunction<PFNAmdDxExtCreate11> AmdCreate11;
 
   // re-entrancy detection (can happen in rare cases with e.g. fraps)
   bool m_InsideCreate = false;
@@ -246,21 +226,9 @@ private:
       return E_UNEXPECTED;
     }
 
-    HRESULT ret = d3d11hooks.Create_Internal(
-        createFunc, pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels,
-        SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
-
-    return ret;
-  }
-
-  static HRESULT __cdecl AmdCreate11_hook(ID3D11Device *pDevice, IAmdDxExt **ppExt)
-  {
-    RDCLOG("Attempt to create AMD extension interface via AmdDxExtCreate11 was blocked.");
-
-    if(ppExt)
-      *ppExt = NULL;
-
-    return E_FAIL;
+    return d3d11hooks.Create_Internal(createFunc, pAdapter, DriverType, Software, Flags,
+                                      pFeatureLevels, FeatureLevels, SDKVersion, pSwapChainDesc,
+                                      ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
   }
 };
 

@@ -37,6 +37,7 @@
 #include "d3d11_context.h"
 #include "d3d11_debug.h"
 #include "d3d11_device.h"
+#include "d3d11_hooks.h"
 #include "d3d11_renderstate.h"
 #include "d3d11_resources.h"
 #include "d3d11_shader_cache.h"
@@ -3777,8 +3778,10 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
     return ReplayStatus::APIInitFailed;
   }
 
-  PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN CreateDeviceAndSwapChain =
+  PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN CreateDeviceAndSwapChainPtr =
       (PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN)GetProcAddress(lib, "D3D11CreateDeviceAndSwapChain");
+
+  RealD3D11CreateFunction CreateDeviceAndSwapChain = CreateDeviceAndSwapChainPtr;
 
   lib = LoadLibraryA("d3d9.dll");
   if(lib == NULL)
@@ -3917,6 +3920,7 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
   }
 
   INVAPID3DDevice *nvapiDev = NULL;
+  IAGSD3DDevice *agsDev = NULL;
 
   if(initParams.VendorExtensions == GPUVendor::nVidia)
   {
@@ -3927,6 +3931,27 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
       RDCERR("Capture requires nvapi to replay, but it's not available or can't be initialised");
       return ReplayStatus::APIHardwareUnsupported;
     }
+  }
+  else if(initParams.VendorExtensions == GPUVendor::AMD)
+  {
+    agsDev = InitialiseAGSReplay(~0U, initParams.VendorUAV);
+
+    if(!agsDev)
+    {
+      RDCERR("Capture requires ags to replay, but it's not available or can't be initialised");
+      return ReplayStatus::APIHardwareUnsupported;
+    }
+
+    CreateDeviceAndSwapChain = [agsDev](
+        IDXGIAdapter *pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags,
+        CONST D3D_FEATURE_LEVEL *pFeatureLevels, UINT FeatureLevels, UINT SDKVersion,
+        CONST DXGI_SWAP_CHAIN_DESC *pSwapChainDesc, IDXGISwapChain **ppSwapChain,
+        ID3D11Device **ppDevice, D3D_FEATURE_LEVEL *pFeatureLevel,
+        ID3D11DeviceContext **ppImmediateContext) {
+      return agsDev->CreateD3D11(pAdapter, DriverType, Software, Flags, pFeatureLevels,
+                                 FeatureLevels, SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice,
+                                 pFeatureLevel, ppImmediateContext);
+    };
   }
   else if(initParams.VendorExtensions != GPUVendor::Unknown)
   {
@@ -4119,8 +4144,22 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
       if(!ok)
       {
         RDCERR(
-            "This capture needs nvapi to replay, but device selected for replay can't support "
-            "nvapi");
+            "This capture needs nvapi extensions to replay, but device selected for replay can't "
+            "support nvapi extensions");
+        SAFE_RELEASE(device);
+        SAFE_RELEASE(nvapiDev);
+        SAFE_RELEASE(factory);
+        return ReplayStatus::APIHardwareUnsupported;
+      }
+    }
+
+    if(agsDev)
+    {
+      if(!agsDev->ExtensionsSupported())
+      {
+        RDCERR(
+            "This capture needs AGS extesnions to replay, but device selected for replay can't "
+            "support AGS extensions");
         SAFE_RELEASE(device);
         SAFE_RELEASE(nvapiDev);
         SAFE_RELEASE(factory);
@@ -4129,7 +4168,7 @@ ReplayStatus D3D11_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
     }
 
     WrappedID3D11Device *wrappedDev = new WrappedID3D11Device(device, initParams);
-    wrappedDev->SetInitParams(initParams, ver, opts, nvapiDev);
+    wrappedDev->SetInitParams(initParams, ver, opts, nvapiDev, agsDev);
 
     if(!isProxy)
       RDCLOG("Created device.");

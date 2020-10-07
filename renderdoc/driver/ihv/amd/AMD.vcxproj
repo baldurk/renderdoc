@@ -96,7 +96,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ags_wrapper.cpp" />
     <ClCompile Include="amd_counters.cpp" />
+    <ClCompile Include="amd_hooks.cpp" />
     <ClCompile Include="amd_isa.cpp" />
     <ClCompile Include="amd_isa_devices.cpp" />
     <ClCompile Include="amd_isa_posix.cpp">
@@ -106,10 +108,12 @@
     <ClCompile Include="amd_rgp.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ags_wrapper.h" />
     <ClInclude Include="amd_counters.h" />
     <ClInclude Include="amd_isa.h" />
     <ClInclude Include="amd_isa_devices.h" />
     <ClInclude Include="amd_rgp.h" />
+    <ClInclude Include="official\ags\amd_ags.h" />
     <ClInclude Include="official\DXExt\AmdDxExt.h" />
     <ClInclude Include="official\DXExt\AmdDxExtApi.h" />
     <ClInclude Include="official\DXExt\AmdDxExtIface.h" />

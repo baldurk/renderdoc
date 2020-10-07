@@ -37,6 +37,7 @@
 #include "d3d12_command_queue.h"
 #include "d3d12_debug.h"
 #include "d3d12_device.h"
+#include "d3d12_hooks.h"
 #include "d3d12_resources.h"
 #include "d3d12_shader_cache.h"
 
@@ -3829,8 +3830,10 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
     }
   }
 
-  PFN_D3D12_CREATE_DEVICE createDevice =
+  PFN_D3D12_CREATE_DEVICE createDevicePtr =
       (PFN_D3D12_CREATE_DEVICE)GetProcAddress(d3d12lib, "D3D12CreateDevice");
+
+  RealD3D12CreateFunction createDevice = createDevicePtr;
 
   HMODULE dxgilib = LoadLibraryA("dxgi.dll");
   if(dxgilib == NULL)
@@ -3945,6 +3948,7 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
                               &adapter);
 
   INVAPID3DDevice *nvapiDev = NULL;
+  IAGSD3DDevice *agsDev = NULL;
 
   if(initParams.VendorExtensions == GPUVendor::nVidia)
   {
@@ -3955,6 +3959,21 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
       RDCERR("Capture requires nvapi to replay, but it's not available or can't be initialised");
       return ReplayStatus::APIHardwareUnsupported;
     }
+  }
+  else if(initParams.VendorExtensions == GPUVendor::AMD)
+  {
+    agsDev = InitialiseAGSReplay(initParams.VendorUAVSpace, initParams.VendorUAV);
+
+    if(!agsDev)
+    {
+      RDCERR("Capture requires ags to replay, but it's not available or can't be initialised");
+      return ReplayStatus::APIHardwareUnsupported;
+    }
+
+    createDevice = [agsDev](IUnknown *pAdapter, D3D_FEATURE_LEVEL MinimumFeatureLevel, REFIID riid,
+                            void **ppDevice) {
+      return agsDev->CreateD3D12(pAdapter, MinimumFeatureLevel, riid, ppDevice);
+    };
   }
   else if(initParams.VendorExtensions != GPUVendor::Unknown)
   {
@@ -4020,8 +4039,23 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
     if(!ok)
     {
       RDCERR(
-          "This capture needs nvapi to replay, but device selected for replay can't support "
-          "nvapi");
+          "This capture needs nvapi extensions to replay, but device selected for replay can't "
+          "support nvapi extensions");
+      SAFE_RELEASE(dev);
+      SAFE_RELEASE(nvapiDev);
+      SAFE_RELEASE(factory);
+      SAFE_DELETE(rgp);
+      return ReplayStatus::APIHardwareUnsupported;
+    }
+  }
+
+  if(agsDev)
+  {
+    if(!agsDev->ExtensionsSupported())
+    {
+      RDCERR(
+          "This capture needs AGS extensions to replay, but device selected for replay can't "
+          "support AGS extensions");
       SAFE_RELEASE(dev);
       SAFE_RELEASE(nvapiDev);
       SAFE_RELEASE(factory);
@@ -4031,7 +4065,7 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
   }
 
   WrappedID3D12Device *wrappedDev = new WrappedID3D12Device(dev, initParams, debugLayerEnabled);
-  wrappedDev->SetInitParams(initParams, ver, opts, nvapiDev);
+  wrappedDev->SetInitParams(initParams, ver, opts, nvapiDev, agsDev);
 
   if(!isProxy)
     RDCLOG("Created device.");

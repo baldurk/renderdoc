@@ -31,6 +31,7 @@
 #include "common/timing.h"
 #include "core/core.h"
 #include "driver/dxgi/dxgi_wrapped.h"
+#include "driver/ihv/amd/ags_wrapper.h"
 #include "driver/ihv/nv/nvapi_wrapper.h"
 #include "d3d11_common.h"
 #include "d3d11_manager.h"
@@ -161,6 +162,30 @@ public:
   virtual BOOL STDMETHODCALLTYPE SetReal(IUnknown *);
   virtual IUnknown *STDMETHODCALLTYPE GetReal();
   virtual BOOL STDMETHODCALLTYPE SetShaderExtUAV(DWORD space, DWORD reg, BOOL global);
+};
+
+struct WrappedAGS11 : public IAGSD3DDevice
+{
+private:
+  WrappedID3D11Device &m_pDevice;
+
+public:
+  WrappedAGS11(WrappedID3D11Device &dev) : m_pDevice(dev) {}
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
+  ULONG STDMETHODCALLTYPE AddRef();
+  ULONG STDMETHODCALLTYPE Release();
+  virtual IUnknown *STDMETHODCALLTYPE GetReal();
+  virtual BOOL STDMETHODCALLTYPE SetShaderExtUAV(DWORD space, DWORD reg);
+
+  virtual HRESULT STDMETHODCALLTYPE CreateD3D11(IDXGIAdapter *, D3D_DRIVER_TYPE, HMODULE, UINT,
+                                                CONST D3D_FEATURE_LEVEL *, UINT FeatureLevels, UINT,
+                                                CONST DXGI_SWAP_CHAIN_DESC *, IDXGISwapChain **,
+                                                ID3D11Device **, D3D_FEATURE_LEVEL *,
+                                                ID3D11DeviceContext **);
+  virtual HRESULT STDMETHODCALLTYPE CreateD3D12(IUnknown *pAdapter,
+                                                D3D_FEATURE_LEVEL MinimumFeatureLevel, REFIID riid,
+                                                void **ppDevice);
+  virtual BOOL STDMETHODCALLTYPE ExtensionsSupported();
 };
 
 // give every impression of working but do nothing.
@@ -464,6 +489,7 @@ private:
   WrappedID3D11Debug m_WrappedDebug;
   WrappedID3D11VideoDevice2 m_WrappedVideo;
   WrappedNVAPI11 m_WrappedNVAPI;
+  WrappedAGS11 m_WrappedAGS;
 
   ID3DUserDefinedAnnotation *m_RealAnnotations;
   int m_ReplayEventCount;
@@ -501,6 +527,7 @@ private:
   uint64_t m_ThreadLocalEXTUAVSlot = ~0ULL;
   GPUVendor m_VendorEXT = GPUVendor::Unknown;
   INVAPID3DDevice *m_ReplayNVAPI = NULL;
+  IAGSD3DDevice *m_ReplayAGS = NULL;
 
   // ensure all calls in via the D3D wrapped interface are thread safe
   // protects wrapped resource creation and serialiser access
@@ -569,12 +596,13 @@ public:
 
   WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitParams params);
   void SetInitParams(const D3D11InitParams &params, uint64_t sectionVersion,
-                     const ReplayOptions &opts, INVAPID3DDevice *nvapi)
+                     const ReplayOptions &opts, INVAPID3DDevice *nvapi, IAGSD3DDevice *ags)
   {
     m_InitParams = params;
     m_SectionVersion = sectionVersion;
     m_ReplayOptions = opts;
     m_ReplayNVAPI = nvapi;
+    m_ReplayAGS = ags;
   }
   const ReplayOptions &GetReplayOptions() { return m_ReplayOptions; }
   uint64_t GetLogVersion() { return m_SectionVersion; }
