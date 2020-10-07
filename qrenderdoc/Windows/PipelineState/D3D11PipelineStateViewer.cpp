@@ -1746,8 +1746,9 @@ void D3D11PipelineStateViewer::setState()
           }
         }
       }
-      addResourceRow(D3D11ViewTag(D3D11ViewTag::UAV, i, state.outputMerger.uavs[i]), shaderInput,
-                     map, ui->targetOutputs);
+      addResourceRow(D3D11ViewTag(D3D11ViewTag::UAV, i + (int)state.outputMerger.uavStartSlot,
+                                  state.outputMerger.uavs[i]),
+                     shaderInput, map, ui->targetOutputs);
     }
 
     addResourceRow(D3D11ViewTag(D3D11ViewTag::OMDepth, 0, state.outputMerger.depthTarget), NULL,
