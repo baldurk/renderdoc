@@ -29,7 +29,7 @@ sudo apt-get install libx11-dev libx11-xcb-dev mesa-common-dev libgl1-mesa-dev l
 For the base dependencies. On Ubuntu 18.04 and above Qt is available in the default repositories:
 
 ```
-sudo apt-get install qt5-qmake libqt5svg5-dev libqt5x11extras5-dev 
+sudo apt-get install qt5-qmake libqt5svg5-dev libqt5x11extras5-dev qt5-default 
 ```
 
 For older versions of Ubuntu they might not include a recent enough Qt version, so you can use [Stephan Binner's ppas](https://launchpad.net/~beineri) to install a more recent version of Qt. At least 5.6.2 is required. If you choose to instead install an [official Qt release](https://download.qt.io/official_releases/qt/) or build Qt from source, add `-DQMAKE_QT5_COMMAND=/path/to/qmake` to your cmake arguments.
