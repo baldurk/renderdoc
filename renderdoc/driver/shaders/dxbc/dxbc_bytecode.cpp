@@ -416,6 +416,12 @@ rdcstr Program::GetDebugStatus()
       bool supported = false;
 
       // whitelist supported instructions here
+      switch(op.operation)
+      {
+        case OPCODE_AMD_U64_ATOMIC:
+        case OPCODE_NV_U64_ATOMIC: supported = true; break;
+        default: break;
+      }
 
       if(!supported)
         return StringFormat::Fmt("Unsupported shader extension '%s' used",

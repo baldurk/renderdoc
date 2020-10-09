@@ -234,6 +234,9 @@ VarType OperationType(const DXBCBytecode::OpcodeType &op)
     case OPCODE_ITOD:
     case OPCODE_UTOD: return VarType::Double;
 
+    case OPCODE_AMD_U64_ATOMIC:
+    case OPCODE_NV_U64_ATOMIC: return VarType::UInt;
+
     default: RDCERR("Unhandled operation %d in shader debugging", op); return VarType::Float;
   }
 }
@@ -438,6 +441,9 @@ bool OperationFlushing(const DXBCBytecode::OpcodeType &op)
     case OPCODE_DRCP:
     case OPCODE_ITOD:
     case OPCODE_UTOD: return false;
+
+    case OPCODE_AMD_U64_ATOMIC:
+    case OPCODE_NV_U64_ATOMIC: return false;
 
     default: RDCERR("Unhandled operation %d in shader debugging", op); break;
   }
@@ -4280,6 +4286,141 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       }
       break;
     }
+
+    //////////////////////////////////////////////////////////////////////////
+    // Vendor extensions
+    //////////////////////////////////////////////////////////////////////////
+    case OPCODE_AMD_U64_ATOMIC:
+    case OPCODE_NV_U64_ATOMIC:
+    {
+      VendorAtomicOp atomicOp = (VendorAtomicOp)op.preciseValues;
+
+      uint32_t resIndex = (uint32_t)op.operands[2].indices[0].index;
+      ShaderVariable dstAddress, compare, value;
+
+      int param = 2;
+
+      if(op.texelOffset[0] == 1)
+      {
+        // single operand for address - simple
+        dstAddress = srcOpers[param++];
+      }
+      else if(op.texelOffset[0] == 2)
+      {
+        dstAddress = srcOpers[param++];
+        dstAddress.value.u.y = srcOpers[param++].value.u.x;
+        dstAddress.value.u.z = srcOpers[param++].value.u.z;
+      }
+      else
+      {
+        RDCERR("Unexpected parameter compression value %d ", op.texelOffset[0]);
+        break;
+      }
+
+      if(atomicOp == ATOMIC_OP_CAS)
+      {
+        if(op.texelOffset[1] == 1)
+        {
+          compare = srcOpers[param++];
+        }
+        else if(op.texelOffset[1] == 2)
+        {
+          compare = srcOpers[param++];
+          compare.value.u.y = srcOpers[param++].value.u.x;
+          compare.value.u.z = srcOpers[param++].value.u.z;
+        }
+        else
+        {
+          RDCERR("Unexpected parameter compression value %d ", op.texelOffset[1]);
+          break;
+        }
+      }
+
+      if(op.texelOffset[2] == 1)
+      {
+        value = srcOpers[param++];
+      }
+      else if(op.texelOffset[2] == 2)
+      {
+        value = srcOpers[param++];
+        value.value.u.y = srcOpers[param++].value.u.x;
+        value.value.u.z = srcOpers[param++].value.u.z;
+      }
+      else
+      {
+        RDCERR("Unexpected parameter compression value %d ", op.texelOffset[2]);
+        break;
+      }
+
+      BindingSlot slot = GetBindingSlotForIdentifier(*program, TYPE_UNORDERED_ACCESS_VIEW, resIndex);
+      GlobalState::UAVIterator uav = global.uavs.find(slot);
+      if(uav == global.uavs.end())
+      {
+        if(!apiWrapper->FetchUAV(slot))
+        {
+          RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
+          return;
+        }
+        uav = global.uavs.find(slot);
+      }
+
+      MarkResourceAccess(state, TYPE_UNORDERED_ACCESS_VIEW, slot);
+
+      const uint32_t stride = sizeof(uint64_t);
+      byte *data = &uav->second.data[0];
+
+      RDCASSERT(data);
+
+      if(data)
+      {
+        if(uav->second.tex)
+        {
+          data += dstAddress.value.u.x * stride;
+          data += dstAddress.value.u.y * uav->second.rowPitch;
+          data += dstAddress.value.u.z * uav->second.depthPitch;
+        }
+        else
+        {
+          data += uav->second.firstElement * stride + dstAddress.value.u.x;
+        }
+      }
+
+      if(data && data < uav->second.data.end() && !Finished())
+      {
+        ShaderVariable result(rdcstr(), 0U, 0U, 0U, 0U);
+
+        uint64_t *data64 = (uint64_t *)data;
+
+        result.value.u.x = uint32_t(*data64);
+        SetDst(state, op.operands[0], op, result);
+        result.value.u.x = uint32_t((*data64) >> 32U);
+        SetDst(state, op.operands[1], op, result);
+
+        uint64_t compare64 = compare.value.u64v[0];
+        uint64_t value64 = value.value.u64v[0];
+
+        switch(atomicOp)
+        {
+          case ATOMIC_OP_NONE: break;
+          case ATOMIC_OP_AND: *data64 = *data64 & value64; break;
+          case ATOMIC_OP_OR: *data64 = *data64 | value64; break;
+          case ATOMIC_OP_XOR: *data64 = *data64 ^ value64; break;
+          case ATOMIC_OP_ADD: *data64 = *data64 + value64; break;
+          case ATOMIC_OP_MAX: *data64 = RDCMAX(*data64, value64); break;
+          case ATOMIC_OP_MIN: *data64 = RDCMIN(*data64, value64); break;
+          case ATOMIC_OP_SWAP: *data64 = value64; break;
+          case ATOMIC_OP_CAS:
+            if(*data64 == compare64)
+              *data64 = value64;
+            break;
+        }
+      }
+      break;
+    }
+
+    //////////////////////////////////////////////////////////////////////////
+    //
+    //////////////////////////////////////////////////////////////////////////
     default:
     {
       RDCERR("Unsupported operation %d in assembly debugging", op.operation);

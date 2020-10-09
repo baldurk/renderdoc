@@ -1227,15 +1227,24 @@ void Program::PostprocessVendorExtensions()
                 op.operands.back().setComps(srcParam[0].comps[0], srcParam[1].comps[0],
                                             srcParam[2].comps[0], 0xff);
                 op.operands.back().name = "address";
+
+                // store in texelOffset whether the parameter is combined (1) or split (2)
+                op.texelOffset[0] = 1;
               }
               else
               {
                 op.operands.push_back(srcParam[0]);
                 op.operands.back().name = "address.x";
+                op.operands.back().setComps(srcParam[0].comps[0], 0xff, 0xff, 0xff);
                 op.operands.push_back(srcParam[1]);
                 op.operands.back().name = "address.y";
+                op.operands.back().setComps(srcParam[1].comps[0], 0xff, 0xff, 0xff);
                 op.operands.push_back(srcParam[2]);
                 op.operands.back().name = "address.z";
+                op.operands.back().setComps(srcParam[2].comps[0], 0xff, 0xff, 0xff);
+
+                // store in texelOffset whether the parameter is combined (1) or split (2)
+                op.texelOffset[0] = 2;
               }
 
               // for CAS, the compare value next
@@ -1247,13 +1256,21 @@ void Program::PostprocessVendorExtensions()
                   op.operands.back().setComps(srcParam[5].comps[0], srcParam[6].comps[0], 0xff, 0xff);
                   op.operands.back().values[1] = srcParam[6].values[0];
                   op.operands.back().name = "compare_value";
+
+                  // store in texelOffset whether the parameter is combined (1) or split (2)
+                  op.texelOffset[1] = 1;
                 }
                 else
                 {
                   op.operands.push_back(srcParam[5].swizzle(0));
                   op.operands.back().name = "compare_value.x";
+                  op.operands.back().setComps(srcParam[5].comps[0], 0xff, 0xff, 0xff);
                   op.operands.push_back(srcParam[6].swizzle(0));
                   op.operands.back().name = "compare_value.y";
+                  op.operands.back().setComps(srcParam[6].comps[0], 0xff, 0xff, 0xff);
+
+                  // store in texelOffset whether the parameter is combined (1) or split (2)
+                  op.texelOffset[1] = 2;
                 }
               }
 
@@ -1264,13 +1281,21 @@ void Program::PostprocessVendorExtensions()
                 op.operands.back().setComps(srcParam[3].comps[0], srcParam[4].comps[0], 0xff, 0xff);
                 op.operands.back().values[1] = srcParam[4].values[0];
                 op.operands.back().name = "value";
+
+                // store in texelOffset whether the parameter is combined (1) or split (2)
+                op.texelOffset[2] = 1;
               }
               else
               {
                 op.operands.push_back(srcParam[3].swizzle(0));
                 op.operands.back().name = "value.x";
+                op.operands.back().setComps(srcParam[3].comps[0], 0xff, 0xff, 0xff);
                 op.operands.push_back(srcParam[4].swizzle(0));
                 op.operands.back().name = "value.y";
+                op.operands.back().setComps(srcParam[4].comps[0], 0xff, 0xff, 0xff);
+
+                // store in texelOffset whether the parameter is combined (1) or split (2)
+                op.texelOffset[2] = 2;
               }
             }
 
@@ -1907,12 +1932,26 @@ void Program::PostprocessVendorExtensions()
                   break;
                 }
 
+                // insert second dummy return value for high bits
+                op.operands.insert(0, curOp.operands[1]);
+
+                // make both of them NULL
+                op.operands[0].type = TYPE_NULL;
+                op.operands[0].setComps(0xff, 0xff, 0xff, 0xff);
+                op.operands[1].type = TYPE_NULL;
+                op.operands[1].setComps(0xff, 0xff, 0xff, 0xff);
+
                 atomicop = (NvShaderAtomic)srcParam[2].values[0];
 
                 op.operands.push_back(srcParam[0]);
                 op.operands.back().numComponents = NUMCOMPS_1;
-                op.operands.back().setComps(srcParam[0].comps[0], 0xff, 0xff, 0xff);
-                op.operands.back().name = "byteAddress";
+                op.operands.back().name = "address";
+
+                // store in texelOffset whether the parameter is combined (1) or split (2).
+                // on nv we assume the parameters are always combined
+                op.texelOffset[0] = 1;
+                op.texelOffset[1] = 1;
+                op.texelOffset[2] = 1;
 
                 if(atomicop == NvShaderAtomic::CompareAndSwap)
                 {
@@ -2146,6 +2185,14 @@ void Program::PostprocessVendorExtensions()
                 op.offset = curOp.offset;
                 op.operands[0] = curOp.operands[0];
                 op.str = ToStr(op.operation);
+
+                // if this is an atomic64, the low/high bits are separate operands
+                if(op.operation == OPCODE_NV_U64_ATOMIC)
+                {
+                  op.operands[1] = curOp.operands[0];
+                  op.operands[0].setComps(curOp.operands[0].comps[0], 0xff, 0xff, 0xff);
+                  op.operands[1].setComps(curOp.operands[0].comps[1], 0xff, 0xff, 0xff);
+                }
 
                 switch((VendorAtomicOp)op.preciseValues)
                 {
