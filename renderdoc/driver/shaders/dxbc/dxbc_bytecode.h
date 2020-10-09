@@ -316,7 +316,59 @@ enum OpcodeType
 
   OPCODE_CHECK_ACCESS_FULLY_MAPPED,
 
-  NUM_OPCODES,
+  NUM_REAL_OPCODES,
+
+  OPCODE_VENDOR_REMOVED,
+
+  OPCODE_VENDOR_FIRST,
+
+  OPCODE_AMD_READFIRSTLANE,
+  OPCODE_AMD_READLANE,
+  OPCODE_AMD_LANEID,
+  OPCODE_AMD_SWIZZLE,
+  OPCODE_AMD_BALLOT,
+  OPCODE_AMD_MBCNT,
+  OPCODE_AMD_MIN3U,
+  OPCODE_AMD_MIN3F,
+  OPCODE_AMD_MED3U,
+  OPCODE_AMD_MED3F,
+  OPCODE_AMD_MAX3U,
+  OPCODE_AMD_MAX3F,
+  OPCODE_AMD_BARYCOORD,
+  OPCODE_AMD_VTXPARAM,
+  OPCODE_AMD_GET_VIEWPORTINDEX,
+  OPCODE_AMD_GET_RTARRAYSLICE,
+  OPCODE_AMD_WAVE_REDUCE,
+  OPCODE_AMD_WAVE_SCAN,
+  OPCODE_AMD_LOADDWATADDR,
+  OPCODE_AMD_GET_DRAWINDEX,
+  OPCODE_AMD_U64_ATOMIC,
+  OPCODE_AMD_GET_WAVESIZE,
+  OPCODE_AMD_GET_BASEINSTANCE,
+  OPCODE_AMD_GET_BASEVERTEX,
+
+  OPCODE_NV_SHUFFLE,
+  OPCODE_NV_SHUFFLE_UP,
+  OPCODE_NV_SHUFFLE_DOWN,
+  OPCODE_NV_SHUFFLE_XOR,
+  OPCODE_NV_VOTE_ALL,
+  OPCODE_NV_VOTE_ANY,
+  OPCODE_NV_VOTE_BALLOT,
+  OPCODE_NV_GET_LANEID,
+  OPCODE_NV_FP16_ATOMIC,
+  OPCODE_NV_FP32_ATOMIC,
+  OPCODE_NV_GET_THREADLTMASK,
+  OPCODE_NV_GET_FOOTPRINT_SINGLELOD,
+  OPCODE_NV_U64_ATOMIC,
+  OPCODE_NV_MATCH_ANY,
+  OPCODE_NV_FOOTPRINT,
+  OPCODE_NV_FOOTPRINT_BIAS,
+  OPCODE_NV_GET_SHADING_RATE,
+  OPCODE_NV_FOOTPRINT_LEVEL,
+  OPCODE_NV_FOOTPRINT_GRAD,
+  OPCODE_NV_SHUFFLE_GENERIC,
+  OPCODE_NV_VPRS_EVAL_ATTRIB_SAMPLE,
+  OPCODE_NV_VPRS_EVAL_ATTRIB_SNAPPED,
 };
 
 size_t NumOperands(OpcodeType op);
@@ -622,6 +674,39 @@ enum ResourceDimension
   NUM_DIMENSIONS,
 };
 
+enum VendorAtomicOp
+{
+  ATOMIC_OP_NONE = 0,
+  ATOMIC_OP_AND,
+  ATOMIC_OP_OR,
+  ATOMIC_OP_XOR,
+  ATOMIC_OP_ADD,
+  ATOMIC_OP_MAX,
+  ATOMIC_OP_MIN,
+  ATOMIC_OP_SWAP,
+  ATOMIC_OP_CAS,
+};
+
+enum VendorWaveOp
+{
+  WAVE_OP_NONE = 0,
+  WAVE_OP_ADD_FLOAT,
+  WAVE_OP_ADD_SINT,
+  WAVE_OP_ADD_UINT,
+  WAVE_OP_MUL_FLOAT,
+  WAVE_OP_MUL_SINT,
+  WAVE_OP_MUL_UINT,
+  WAVE_OP_MIN_FLOAT,
+  WAVE_OP_MIN_SINT,
+  WAVE_OP_MIN_UINT,
+  WAVE_OP_MAX_FLOAT,
+  WAVE_OP_MAX_SINT,
+  WAVE_OP_MAX_UINT,
+  WAVE_OP_AND,
+  WAVE_OP_OR,
+  WAVE_OP_XOR,
+};
+
 /////////////////////////////////////////////////////////////////////////
 // Main structures
 /////////////////////////////////////////////////////////////////////////
@@ -671,9 +756,13 @@ struct Operand
 
   ///////////////////////////////////////
 
-  OperandType
-      type;    // temp register, constant buffer, input, output, other more specialised types
-  NumOperandComponents numComponents;    // scalar, 4-vector or N-vector (currently unused)
+  // operands can be given names to make the assembly easier to read.
+  // mostly used on vendor extensions where the syntax is non-standard/undocumented
+  rdcstr name;
+  // temp register, constant buffer, input, output, other more specialised types
+  OperandType type;
+  // scalar, 4-vector or N-vector (currently unused)
+  NumOperandComponents numComponents;
 
   uint8_t comps[4];    // the components. each is 0,1,2,3 for x,y,z,w or 0xff if unused.
                        // e.g. .x    = {  0, -1, -1, -1 }
@@ -683,12 +772,50 @@ struct Operand
                        //		.xyzw = {  0,  1,  2,  3 }
                        //		.wzyx = {  3,  2,  1,  0 }
 
-  rdcarray<RegIndex> indices;    // indices for this register.
-                                 // 0 means this is a special register, specified by type alone.
+  Operand swizzle(uint8_t c)
+  {
+    Operand ret = *this;
+    ret.numComponents = NUMCOMPS_1;
+    ret.comps[0] = comps[c];
+    ret.comps[1] = 0xff;
+    ret.comps[2] = 0xff;
+    ret.comps[3] = 0xff;
+    ret.values[0] = values[c];
+    ret.values[1] = 0;
+    ret.values[2] = 0;
+    ret.values[3] = 0;
+    return ret;
+  }
+
+  Operand swizzle(uint8_t x, uint8_t y, uint8_t z, uint8_t w)
+  {
+    Operand ret = *this;
+    ret.comps[0] = comps[x];
+    ret.comps[1] = comps[y];
+    ret.comps[2] = z < 4 ? comps[z] : 0xff;
+    ret.comps[3] = w < 4 ? comps[w] : 0xff;
+    ret.values[0] = values[x];
+    ret.values[1] = values[y];
+    ret.values[2] = z < 4 ? values[z] : 0;
+    ret.values[3] = w < 4 ? values[w] : 0;
+    return ret;
+  }
+
+  void setComps(uint8_t x, uint8_t y, uint8_t z, uint8_t w)
+  {
+    comps[0] = x;
+    comps[1] = y;
+    comps[2] = z;
+    comps[3] = w;
+  }
+
+  // indices for this register.
+  // 0 means this is a special register, specified by type alone.
   // 1 is probably most common. Indicates RegIndex specifies the register
   // 2 is for constant buffers, array inputs etc. [0] indicates the cbuffer, [1] indicates the
   // cbuffer member
   // 3 is rare but follows the above pattern
+  rdcarray<RegIndex> indices;
 
   // the declaration of the resource in this operand (not always present)
   Declaration *declaration;
@@ -748,7 +875,7 @@ struct Declaration
     offset = 0;
     length = 0;
     instruction = 0;
-    declaration = NUM_OPCODES;
+    declaration = NUM_REAL_OPCODES;
     refactoringAllowed = doublePrecisionFloats = forceEarlyDepthStencil =
         enableRawAndStructuredBuffers = skipOptimisation = enableMinPrecision =
             enableD3D11_1DoubleExtensions = enableD3D11_1ShaderExtensions =
@@ -907,7 +1034,7 @@ struct Operation
     line = 0;
     length = 0;
     stride = 0;
-    operation = NUM_OPCODES;
+    operation = NUM_REAL_OPCODES;
     nonzero = false;
     saturate = false;
     preciseValues = 0;
@@ -946,8 +1073,15 @@ class Program
 public:
   Program(const byte *bytes, size_t length);
 
+  void SetShaderEXTUAV(GraphicsAPI api, uint32_t space, uint32_t reg)
+  {
+    m_API = api;
+    m_ShaderExt = {space, reg};
+  }
   void FetchComputeProperties(DXBC::Reflection *reflection);
   DXBC::Reflection *GuessReflection();
+
+  rdcstr GetDebugStatus();
 
   void SetReflection(const DXBC::Reflection *refl) { m_Reflection = refl; }
   void SetDebugInfo(const DXBC::IDebugInfo *debug) { m_DebugInfo = debug; }
@@ -978,6 +1112,9 @@ public:
 private:
   void FetchTypeVersion();
   void DisassembleHexDump();
+
+  void PostprocessVendorExtensions();
+
   void MakeDisassemblyString();
 
   const DXBC::Reflection *m_Reflection = NULL;
@@ -1002,6 +1139,9 @@ private:
   bool m_InputCoverage = false;
 
   bool m_Disassembled = false;
+
+  GraphicsAPI m_API = GraphicsAPI::D3D11;
+  rdcpair<uint32_t, uint32_t> m_ShaderExt = {~0U, ~0U};
 
   rdcstr m_Disassembly;
 

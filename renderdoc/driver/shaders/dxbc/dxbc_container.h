@@ -142,8 +142,8 @@ ShaderCompileFlags EncodeFlags(const uint32_t flags, const rdcstr &profile);
 class DXBCContainer
 {
 public:
-  DXBCContainer(bytebuf &ByteCode, const rdcstr &debugInfoPath, uint32_t shaderExtReg,
-                uint32_t shaderExtSpace);
+  DXBCContainer(bytebuf &ByteCode, const rdcstr &debugInfoPath, GraphicsAPI api,
+                uint32_t shaderExtReg, uint32_t shaderExtSpace);
   ~DXBCContainer();
   DXBC::ShaderType m_Type = DXBC::ShaderType::Max;
   struct
@@ -189,6 +189,8 @@ private:
   std::map<uint32_t, CBufferVariableType> m_Variables;
 
   uint32_t m_Hash[4];
+
+  rdcpair<uint32_t, uint32_t> m_ShaderExt = {~0U, ~0U};
 
   rdcstr m_DebugFileName;
   GlobalShaderFlags m_GlobalFlags = GlobalShaderFlags::None;

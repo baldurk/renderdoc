@@ -994,7 +994,8 @@ public:
     {
       if(m_DXBCFile == NULL && !m_Bytecode.empty())
       {
-        m_DXBCFile = new DXBC::DXBCContainer(m_Bytecode, m_DebugInfoPath, m_ShaderExtSlot, ~0U);
+        m_DXBCFile = new DXBC::DXBCContainer(m_Bytecode, m_DebugInfoPath, GraphicsAPI::D3D11,
+                                             m_ShaderExtSlot, ~0U);
         m_Bytecode.clear();
       }
       return m_DXBCFile;

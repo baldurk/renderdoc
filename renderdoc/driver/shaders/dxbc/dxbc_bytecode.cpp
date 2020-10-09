@@ -400,6 +400,33 @@ DXBC::Reflection *Program::GuessReflection()
   return ret;
 }
 
+rdcstr Program::GetDebugStatus()
+{
+  // if there are no vendor extensions this is always debuggable
+  if(m_ShaderExt.second == ~0U)
+    return rdcstr();
+
+  // otherwise we need to check that no unsupported vendor extensions are used
+  DisassembleHexDump();
+
+  for(const Operation &op : m_Instructions)
+  {
+    if(op.operation >= OPCODE_VENDOR_FIRST)
+    {
+      bool supported = false;
+
+      // whitelist supported instructions here
+
+      if(!supported)
+        return StringFormat::Fmt("Unsupported shader extension '%s' used",
+                                 ToStr(op.operation).c_str());
+    }
+  }
+
+  // no unsupported instructions used
+  return rdcstr();
+}
+
 D3D_PRIMITIVE_TOPOLOGY Program::GetOutputTopology()
 {
   DisassembleHexDump();

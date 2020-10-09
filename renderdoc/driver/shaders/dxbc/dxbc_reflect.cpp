@@ -25,6 +25,7 @@
 #include "dxbc_reflect.h"
 #include "common/formatting.h"
 #include "core/core.h"
+#include "dxbc_bytecode.h"
 #include "dxbc_container.h"
 
 static ShaderConstant MakeConstantBufferVariable(const DXBC::CBufferVariable &var);
@@ -276,7 +277,9 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl,
 
   if(dxbc->GetDXBCByteCode())
   {
-    refl->debugInfo.debuggable = true;
+    refl->debugInfo.debugStatus = dxbc->GetDXBCByteCode()->GetDebugStatus();
+
+    refl->debugInfo.debuggable = refl->debugInfo.debugStatus.empty();
   }
   else
   {

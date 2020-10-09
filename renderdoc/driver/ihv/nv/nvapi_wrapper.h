@@ -29,11 +29,39 @@
 
 enum class NvShaderOpcode : uint32_t
 {
-  UINT64Atomic = 20,
+  Unknown = 0,
+  Shuffle = 1,
+  ShuffleUp = 2,
+  ShuffleDown = 3,
+  ShuffleXor = 4,
+  VoteAll = 5,
+  VoteAny = 6,
+  VoteBallot = 7,
+  GetLaneId = 8,
+  FP16Atomic = 12,
+  FP32Atomic = 13,
+  GetSpecial = 19,
+  U64Atomic = 20,
+  MatchAny = 21,
+  Footprint = 28,
+  FootprintBias = 29,
+  GetShadingRate = 30,
+  FootprintLevel = 31,
+  FootprintGrad = 32,
+  ShuffleGeneric = 33,
+  VPRSEvalAttribAtSample = 51,
+  VPRSEvalAttribSnapped = 52,
 };
 
-enum class NvShaderAtomic : uint32_t
+enum class NvShaderSpecial
 {
+  ThreadLtMask = 4,
+  FootprintSingleLOD = 5,
+};
+
+enum class NvShaderAtomic
+{
+  Unknown = -1,
   And = 0,
   Or = 1,
   Xor = 2,

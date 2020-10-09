@@ -153,7 +153,7 @@ bool SupportedOpcode(NvShaderOpcode opcode)
 {
   if(NV_nvapi_AllowUnknownShaderOpcodes())
     return true;
-  return opcode == NvShaderOpcode::UINT64Atomic;
+  return opcode == NvShaderOpcode::U64Atomic;
 }
 
 // try to initialise nvapi for replay

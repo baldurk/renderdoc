@@ -762,7 +762,8 @@ public:
     {
       if(m_DXBCFile == NULL && !m_Bytecode.empty())
       {
-        m_DXBCFile = new DXBC::DXBCContainer(m_Bytecode, rdcstr(), m_ShaderExtSlot, m_ShaderExtSpace);
+        m_DXBCFile = new DXBC::DXBCContainer(m_Bytecode, rdcstr(), GraphicsAPI::D3D12,
+                                             m_ShaderExtSlot, m_ShaderExtSpace);
       }
       return m_DXBCFile;
     }
