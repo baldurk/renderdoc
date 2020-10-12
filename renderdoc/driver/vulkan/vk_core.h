@@ -403,6 +403,7 @@ private:
 
   bool m_SeparateDepthStencil = false;
   bool m_NULLDescriptorsAllowed = false;
+  bool m_ExtendedDynState = false;
 
   PFN_vkSetDeviceLoaderData m_SetDeviceLoaderData;
 
@@ -1092,6 +1093,7 @@ public:
 
   bool SeparateDepthStencil() const { return m_SeparateDepthStencil; }
   bool NULLDescriptorsAllowed() const { return m_NULLDescriptorsAllowed; }
+  bool ExtendedDynamicState() const { return m_ExtendedDynState; }
   VulkanRenderState &GetRenderState() { return m_RenderState; }
   void SetDrawcallCB(VulkanDrawcallCallback *cb) { m_DrawcallCallback = cb; }
   void SetSubmitChain(void *submitChain) { m_SubmitChain = submitChain; }

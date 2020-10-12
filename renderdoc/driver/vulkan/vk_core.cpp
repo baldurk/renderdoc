@@ -3415,8 +3415,7 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
       else
       {
         // even outside of render passes, we need to restore the state
-        m_RenderState.BindPipeline(this, cmd, VulkanRenderState::BindCompute, false);
-        m_RenderState.BindPipeline(this, cmd, VulkanRenderState::BindGraphics, false);
+        m_RenderState.BindPipeline(this, cmd, VulkanRenderState::BindInitial, false);
       }
     }
 

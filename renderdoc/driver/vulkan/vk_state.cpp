@@ -133,43 +133,87 @@ bool VulkanRenderState::IsConditionalRenderingEnabled()
 void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
                                      PipelineBinding binding, bool subpass0)
 {
-  if(graphics.pipeline != ResourceId() && binding == BindGraphics)
+  if(binding == BindGraphics || binding == BindInitial)
   {
-    VkPipeline pipe = vk->GetResourceManager()->GetCurrentHandle<VkPipeline>(graphics.pipeline);
-    const VulkanCreationInfo::Pipeline pipeinfo =
-        vk->GetDebugManager()->GetPipelineInfo(graphics.pipeline);
+    bool dynamicStates[VkDynamicCount] = {};
 
-    if(subpass0 && pipeinfo.subpass0pipe != VK_NULL_HANDLE)
-      pipe = pipeinfo.subpass0pipe;
+    if(graphics.pipeline != ResourceId())
+    {
+      VkPipeline pipe = vk->GetResourceManager()->GetCurrentHandle<VkPipeline>(graphics.pipeline);
+      const VulkanCreationInfo::Pipeline pipeinfo =
+          vk->GetDebugManager()->GetPipelineInfo(graphics.pipeline);
 
-    ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(pipe));
+      if(subpass0 && pipeinfo.subpass0pipe != VK_NULL_HANDLE)
+        pipe = pipeinfo.subpass0pipe;
 
-    ResourceId pipeLayoutId = pipeinfo.layout;
-    VkPipelineLayout layout =
-        vk->GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeLayoutId);
+      ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(pipe));
 
-    const rdcarray<VkPushConstantRange> &pushRanges =
-        vk->GetDebugManager()->GetPipelineLayoutInfo(pipeLayoutId).pushRanges;
+      ResourceId pipeLayoutId = pipeinfo.layout;
+      VkPipelineLayout layout =
+          vk->GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeLayoutId);
 
-    const bool(&dynamicStates)[VkDynamicCount] = pipeinfo.dynamicStates;
+      const rdcarray<VkPushConstantRange> &pushRanges =
+          vk->GetDebugManager()->GetPipelineLayoutInfo(pipeLayoutId).pushRanges;
+
+      // only set push constant ranges that the layout uses
+      for(size_t i = 0; i < pushRanges.size(); i++)
+        ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(layout), pushRanges[i].stageFlags,
+                                       pushRanges[i].offset, pushRanges[i].size,
+                                       pushconsts + pushRanges[i].offset);
+
+      for(size_t i = 0; i < VkDynamicCount; i++)
+        dynamicStates[i] = pipeinfo.dynamicStates[i];
+    }
+    else if(binding == BindInitial)
+    {
+      // if we're setting up a partial command buffer, bind all dynamic state we have. This will
+      // then get overridden, but we need it in case a pipeline expects to inherit some dynamic
+      // state from earlier in the command buffer but there's no pipeline bound yet.
+      for(size_t i = 0; i < VkDynamicCount; i++)
+        dynamicStates[i] = true;
+    }
 
     if(!views.empty() && dynamicStates[VkDynamicViewport])
       ObjDisp(cmd)->CmdSetViewport(Unwrap(cmd), 0, (uint32_t)views.size(), &views[0]);
     if(!scissors.empty() && dynamicStates[VkDynamicScissor])
       ObjDisp(cmd)->CmdSetScissor(Unwrap(cmd), 0, (uint32_t)scissors.size(), &scissors[0]);
 
-    if(dynamicStates[VkDynamicViewportCountEXT])
-      ObjDisp(cmd)->CmdSetViewportWithCountEXT(Unwrap(cmd), (uint32_t)views.size(), views.data());
-    if(dynamicStates[VkDynamicScissorCountEXT])
-      ObjDisp(cmd)->CmdSetScissorWithCountEXT(Unwrap(cmd), (uint32_t)scissors.size(),
-                                              scissors.data());
+    if(vk->ExtendedDynamicState())
+    {
+      if(!views.empty() && dynamicStates[VkDynamicViewportCountEXT])
+        ObjDisp(cmd)->CmdSetViewportWithCountEXT(Unwrap(cmd), (uint32_t)views.size(), views.data());
+      if(!scissors.empty() && dynamicStates[VkDynamicScissorCountEXT])
+        ObjDisp(cmd)->CmdSetScissorWithCountEXT(Unwrap(cmd), (uint32_t)scissors.size(),
+                                                scissors.data());
 
-    if(dynamicStates[VkDynamicCullModeEXT])
-      ObjDisp(cmd)->CmdSetCullModeEXT(Unwrap(cmd), cullMode);
-    if(dynamicStates[VkDynamicFrontFaceEXT])
-      ObjDisp(cmd)->CmdSetFrontFaceEXT(Unwrap(cmd), frontFace);
-    if(dynamicStates[VkDynamicPrimitiveTopologyEXT])
-      ObjDisp(cmd)->CmdSetPrimitiveTopologyEXT(Unwrap(cmd), primitiveTopology);
+      if(dynamicStates[VkDynamicCullModeEXT])
+        ObjDisp(cmd)->CmdSetCullModeEXT(Unwrap(cmd), cullMode);
+      if(dynamicStates[VkDynamicFrontFaceEXT])
+        ObjDisp(cmd)->CmdSetFrontFaceEXT(Unwrap(cmd), frontFace);
+      if(dynamicStates[VkDynamicPrimitiveTopologyEXT])
+        ObjDisp(cmd)->CmdSetPrimitiveTopologyEXT(Unwrap(cmd), primitiveTopology);
+
+      if(dynamicStates[VkDynamicDepthBoundsTestEnableEXT])
+        ObjDisp(cmd)->CmdSetDepthBoundsTestEnableEXT(Unwrap(cmd), depthBoundsTestEnable);
+
+      if(dynamicStates[VkDynamicDepthTestEnableEXT])
+        ObjDisp(cmd)->CmdSetDepthTestEnableEXT(Unwrap(cmd), depthTestEnable);
+      if(dynamicStates[VkDynamicDepthWriteEnableEXT])
+        ObjDisp(cmd)->CmdSetDepthWriteEnableEXT(Unwrap(cmd), depthWriteEnable);
+      if(dynamicStates[VkDynamicDepthCompareOpEXT])
+        ObjDisp(cmd)->CmdSetDepthCompareOpEXT(Unwrap(cmd), depthCompareOp);
+
+      if(dynamicStates[VkDynamicStencilTestEnableEXT])
+        ObjDisp(cmd)->CmdSetStencilTestEnableEXT(Unwrap(cmd), stencilTestEnable);
+
+      if(dynamicStates[VkDynamicStencilOpEXT])
+      {
+        ObjDisp(cmd)->CmdSetStencilOpEXT(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, front.failOp,
+                                         front.passOp, front.depthFailOp, front.compareOp);
+        ObjDisp(cmd)->CmdSetStencilOpEXT(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, front.failOp,
+                                         front.passOp, front.depthFailOp, front.compareOp);
+      }
+    }
 
     if(dynamicStates[VkDynamicLineWidth])
       ObjDisp(cmd)->CmdSetLineWidth(Unwrap(cmd), lineWidth);
@@ -180,28 +224,8 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
     if(dynamicStates[VkDynamicBlendConstants])
       ObjDisp(cmd)->CmdSetBlendConstants(Unwrap(cmd), blendConst);
 
-    if(dynamicStates[VkDynamicDepthBoundsTestEnableEXT])
-      ObjDisp(cmd)->CmdSetDepthBoundsTestEnableEXT(Unwrap(cmd), depthBoundsTestEnable);
     if(dynamicStates[VkDynamicDepthBounds])
       ObjDisp(cmd)->CmdSetDepthBounds(Unwrap(cmd), mindepth, maxdepth);
-
-    if(dynamicStates[VkDynamicDepthTestEnableEXT])
-      ObjDisp(cmd)->CmdSetDepthTestEnableEXT(Unwrap(cmd), depthTestEnable);
-    if(dynamicStates[VkDynamicDepthWriteEnableEXT])
-      ObjDisp(cmd)->CmdSetDepthWriteEnableEXT(Unwrap(cmd), depthWriteEnable);
-    if(dynamicStates[VkDynamicDepthCompareOpEXT])
-      ObjDisp(cmd)->CmdSetDepthCompareOpEXT(Unwrap(cmd), depthCompareOp);
-
-    if(dynamicStates[VkDynamicStencilTestEnableEXT])
-      ObjDisp(cmd)->CmdSetStencilTestEnableEXT(Unwrap(cmd), stencilTestEnable);
-
-    if(dynamicStates[VkDynamicStencilOpEXT])
-    {
-      ObjDisp(cmd)->CmdSetStencilOpEXT(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, front.failOp,
-                                       front.passOp, front.depthFailOp, front.compareOp);
-      ObjDisp(cmd)->CmdSetStencilOpEXT(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, front.failOp,
-                                       front.passOp, front.depthFailOp, front.compareOp);
-    }
 
     if(dynamicStates[VkDynamicStencilCompareMask])
     {
@@ -221,7 +245,7 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
       ObjDisp(cmd)->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, front.ref);
     }
 
-    if(dynamicStates[VkDynamicSampleLocationsEXT])
+    if(!sampleLocations.locations.empty() && dynamicStates[VkDynamicSampleLocationsEXT])
     {
       VkSampleLocationsInfoEXT info = {VK_STRUCTURE_TYPE_SAMPLE_LOCATIONS_INFO_EXT};
       info.pSampleLocations = sampleLocations.locations.data();
@@ -235,16 +259,11 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
       ObjDisp(cmd)->CmdSetDiscardRectangleEXT(Unwrap(cmd), 0, (uint32_t)discardRectangles.size(),
                                               &discardRectangles[0]);
 
-    if(dynamicStates[VkDynamicLineStippleEXT])
+    if(stippleFactor && dynamicStates[VkDynamicLineStippleEXT])
       ObjDisp(cmd)->CmdSetLineStippleEXT(Unwrap(cmd), stippleFactor, stipplePattern);
 
-    // only set push constant ranges that the layout uses
-    for(size_t i = 0; i < pushRanges.size(); i++)
-      ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(layout), pushRanges[i].stageFlags,
-                                     pushRanges[i].offset, pushRanges[i].size,
-                                     pushconsts + pushRanges[i].offset);
-
-    BindDescriptorSets(vk, cmd, graphics, VK_PIPELINE_BIND_POINT_GRAPHICS);
+    if(graphics.pipeline != ResourceId())
+      BindDescriptorSets(vk, cmd, graphics, VK_PIPELINE_BIND_POINT_GRAPHICS);
 
     if(ibuffer.buf != ResourceId())
     {
@@ -259,7 +278,8 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
           ibuffer.offs, type);
     }
 
-    bool dynamicStride = dynamicStates[VkDynamicVertexInputBindingStrideEXT];
+    bool dynamicStride =
+        dynamicStates[VkDynamicVertexInputBindingStrideEXT] && vk->ExtendedDynamicState();
 
     for(size_t i = 0; i < vbuffers.size(); i++)
     {
@@ -322,7 +342,7 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
     }
   }
 
-  if(compute.pipeline != ResourceId() && binding == BindCompute)
+  if(compute.pipeline != ResourceId() && (binding == BindCompute || binding == BindInitial))
   {
     ObjDisp(cmd)->CmdBindPipeline(
         Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,

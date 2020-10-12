@@ -51,6 +51,7 @@ struct VulkanRenderState
     BindNone = 0x0,
     BindGraphics = 0x1,
     BindCompute = 0x2,
+    BindInitial = 0x4,
   };
 
   VulkanRenderState();
