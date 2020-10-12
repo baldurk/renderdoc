@@ -2376,9 +2376,9 @@ void Debugger::RegisterOp(Iter it)
   {
     // don't automatically kill function parameters and variables. They will be manually killed when
     // returning from a function's scope
-    for(const Id id : curFunction->parameters)
+    for(const Id &id : curFunction->parameters)
       idDeathOffset[id] = ~0U;
-    for(const Id id : curFunction->variables)
+    for(const Id &id : curFunction->variables)
       idDeathOffset[id] = ~0U;
 
     curFunction = NULL;
