@@ -329,7 +329,8 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         -Wno-type-limits
         -Wno-missing-field-initializers
         -Wno-unknown-pragmas
-        -Wno-reorder)
+        -Wno-reorder
+        -Wno-range-loop-analysis)
     if(CMAKE_COMPILER_IS_GNUCXX)
         list(APPEND warning_flags -Wno-unused-but-set-variable -Wno-maybe-uninitialized -Wno-class-memaccess)
 
