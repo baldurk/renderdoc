@@ -83,14 +83,20 @@ X11Window::X11Window(int width, int height, int visualid_override, const char *t
   xcb_intern_atom_cookie_t cookie = xcb_intern_atom(connection, 1, 12, "WM_PROTOCOLS");
   xcb_intern_atom_reply_t *reply = xcb_intern_atom_reply(connection, cookie, 0);
 
-  xcb_change_property(connection, XCB_PROP_MODE_REPLACE, window, XCB_ATOM_WM_NAME, XCB_ATOM_STRING,
-                      8, strlen(title), title);
+  if(title)
+  {
+    xcb_change_property(connection, XCB_PROP_MODE_REPLACE, window, XCB_ATOM_WM_NAME,
+                        XCB_ATOM_STRING, 8, strlen(title), title);
+  }
 
   xcb_change_property(connection, XCB_PROP_MODE_REPLACE, window, (*reply).atom, 4, 32, 1,
                       &(*atom_wm_delete_window).atom);
   free(reply);
 
-  xcb_map_window(connection, window);
+  if(title)
+  {
+    xcb_map_window(connection, window);
+  }
 
   xlib.display = display;
   xlib.window = (Drawable)window;
