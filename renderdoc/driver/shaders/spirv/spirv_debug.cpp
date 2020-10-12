@@ -330,7 +330,7 @@ void ThreadState::ProcessScopeChange(const rdcarray<Id> &oldLive, const rdcarray
 
   const rdcarray<Id> &liveGlobals = debugger.GetLiveGlobals();
 
-  for(const Id id : oldLive)
+  for(const Id &id : oldLive)
   {
     if(liveGlobals.contains(id))
       continue;
@@ -338,7 +338,7 @@ void ThreadState::ProcessScopeChange(const rdcarray<Id> &oldLive, const rdcarray
     m_State->changes.push_back({debugger.GetPointerValue(ids[id])});
   }
 
-  for(const Id id : newLive)
+  for(const Id &id : newLive)
   {
     if(liveGlobals.contains(id))
       continue;
