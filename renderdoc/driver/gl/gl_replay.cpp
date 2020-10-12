@@ -339,6 +339,7 @@ void GLReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, byt
   if(m_pDriver->m_Buffers.find(buff) == m_pDriver->m_Buffers.end())
   {
     RDCWARN("Requesting data for non-existant buffer %s", ToStr(buff).c_str());
+    ret.clear();
     return;
   }
 
@@ -2353,6 +2354,13 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
                               const GetTextureDataParams &params, bytebuf &data)
 {
   WrappedOpenGL &drv = *m_pDriver;
+
+  if(m_pDriver->m_Textures.find(tex) == m_pDriver->m_Textures.end())
+  {
+    data.clear();
+    RDCWARN("Requesting data for non-existant texture %s", ToStr(tex).c_str());
+    return;
+  }
 
   WrappedOpenGL::TextureData &texDetails = m_pDriver->m_Textures[tex];
 

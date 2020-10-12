@@ -1609,10 +1609,15 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
       return;
     }
   }
-  else
+  else if(WrappedVkBuffer::IsAlloc(res))
   {
     srcBuf = m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(buff);
     bufsize = m_pDriver->m_CreationInfo.m_Buffer[buff].size;
+  }
+  else
+  {
+    RDCERR("Getting buffer data for object that isn't buffer or memory %s!", ToStr(buff).c_str());
+    return;
   }
 
   if(offset >= bufsize)
