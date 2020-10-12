@@ -2900,7 +2900,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
   m_pDriver->vkDestroyShaderModule(dev, module, NULL);
 }
 
-void VulkanReplay::InitPostVSBuffers(uint32_t eventId, VulkanRenderState &state)
+void VulkanReplay::InitPostVSBuffers(uint32_t eventId, VulkanRenderState state)
 {
   // go through any aliasing
   if(m_PostVS.Alias.find(eventId) != m_PostVS.Alias.end())

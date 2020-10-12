@@ -330,7 +330,7 @@ public:
                                     VkImageView imgView2);
 
   void InitPostVSBuffers(uint32_t eventId);
-  void InitPostVSBuffers(uint32_t eventId, VulkanRenderState &state);
+  void InitPostVSBuffers(uint32_t eventId, VulkanRenderState state);
   void InitPostVSBuffers(const rdcarray<uint32_t> &passEvents);
 
   // indicates that EID alias is the same as eventId
