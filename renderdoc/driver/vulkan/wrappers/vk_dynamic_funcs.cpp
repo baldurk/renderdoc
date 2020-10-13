@@ -941,7 +941,7 @@ bool WrappedVulkan::Serialise_vkCmdSetCullModeEXT(SerialiserType &ser, VkCommand
                                                   VkCullModeFlags cullMode)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(cullMode);
+  SERIALISE_ELEMENT_TYPED(VkCullModeFlagBits, cullMode);
 
   Serialise_DebugMessages(ser);
 
@@ -1429,7 +1429,7 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilOpEXT(SerialiserType &ser, VkComman
                                                    VkCompareOp compareOp)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(faceMask);
+  SERIALISE_ELEMENT_TYPED(VkStencilFaceFlagBits, faceMask);
   SERIALISE_ELEMENT(failOp);
   SERIALISE_ELEMENT(passOp);
   SERIALISE_ELEMENT(depthFailOp);
