@@ -99,6 +99,7 @@ public:
   void AddCapability(Capability cap);
   void AddExtension(const rdcstr &extension);
   void AddExecutionMode(const Operation &mode);
+  Id HasExtInst(const char *setname);
   Id ImportExtInst(const char *setname);
   Id AddType(const Operation &op);
   Id AddVariable(const Operation &op);

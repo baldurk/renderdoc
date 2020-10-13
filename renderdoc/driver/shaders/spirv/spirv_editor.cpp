@@ -280,6 +280,17 @@ void Editor::AddExecutionMode(const Operation &mode)
   addWords(offset, mode.size());
 }
 
+Id Editor::HasExtInst(const char *setname)
+{
+  for(auto it = extSets.begin(); it != extSets.end(); ++it)
+  {
+    if(it->second == setname)
+      return it->first;
+  }
+
+  return Id();
+}
+
 Id Editor::ImportExtInst(const char *setname)
 {
   for(auto it = extSets.begin(); it != extSets.end(); ++it)
