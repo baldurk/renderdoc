@@ -692,6 +692,12 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
       reflection.debugInfo.files.push_back({sources[i].name, sources[i].contents});
   }
 
+  if(knownExtSet[ExtSet_ShaderDbg] != Id() && !reflection.debugInfo.files.empty())
+  {
+    reflection.debugInfo.compileFlags.flags.push_back({"preferSourceDebug", "1"});
+    reflection.debugInfo.sourceDebugInformation = true;
+  }
+
   std::set<Id> usedIds;
   std::map<Id, std::set<uint32_t>> usedStructChildren;
 
