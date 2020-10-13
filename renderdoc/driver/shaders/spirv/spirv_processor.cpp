@@ -526,6 +526,13 @@ void Processor::RegisterOp(Iter it)
   {
     OpExtInstImport decoded(it);
     extSets[decoded.result] = decoded.name;
+
+    if(decoded.name == "GLSL.std.450")
+      knownExtSet[ExtSet_GLSL450] = decoded.result;
+    else if(decoded.name == "NonSemantic.DebugPrintf")
+      knownExtSet[ExtSet_Printf] = decoded.result;
+    else if(decoded.name == "NonSemantic.Shader.DebugInfo.100")
+      knownExtSet[ExtSet_ShaderDbg] = decoded.result;
   }
   else if(opdata.op == Op::EntryPoint)
   {

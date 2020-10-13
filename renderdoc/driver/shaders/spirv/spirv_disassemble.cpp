@@ -1534,44 +1534,74 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
           break;
         }
 
-        // need to handle this by hand anyway
         case Op::ExtInst:
         {
-          OpDecoder decoded(it);
-          ret += indent;
-          ret += StringFormat::Fmt("%s = ", declName(decoded.resultType, decoded.result).c_str());
+          OpExtInst decoded(it);
 
-          rdcstr setname = extSets.find(Id::fromWord(it.word(3)))->second;
+          rdcstr setname = extSets.find(decoded.set)->second;
           uint32_t inst = it.word(4);
 
-          const bool IsGLSL450 = (setname == "GLSL.std.450");
-          const bool IsDebugPrintf = (setname == "NonSemantic.DebugPrintf");
+          const bool IsGLSL450 = knownExtSet[ExtSet_GLSL450] == decoded.set;
+          const bool IsDebugPrintf = knownExtSet[ExtSet_Printf] == decoded.set;
+          const bool IsShaderDbg = knownExtSet[ExtSet_ShaderDbg] == decoded.set;
           // GLSL.std.450 all parameters are Ids
           const bool idParams = IsGLSL450 || setname.beginsWith("NonSemantic.");
 
-          if(IsGLSL450)
-            ret += StringFormat::Fmt("%s::%s(", setname.c_str(), ToStr(GLSLstd450(inst)).c_str());
-          else if(IsDebugPrintf)
-            ret += "DebugPrintf(";
-          else
-            ret += StringFormat::Fmt("%s::[%u](", setname.c_str(), inst);
-
-          for(size_t i = 5; i < it.size(); i++)
+          // most vulkan debug info instructions don't get printed explicitly, and those that do
+          // have no return value that we print
+          if(IsShaderDbg)
           {
-            if(i == 5 && IsDebugPrintf)
-              ret += "\"";
+            OpShaderDbg dbg(it);
 
-            // TODO could generate this from the instruction set grammar.
-            ret += idParams ? idName(Id::fromWord(it.word(i))) : ToStr(it.word(i));
-
-            if(i == 5 && IsDebugPrintf)
-              ret += "\"";
-
-            if(i + 1 < it.size())
+            if(dbg.inst == ShaderDbg::Source)
+            {
+              dynamicNames[dbg.result] = idName(dbg.arg<Id>(0));
+              continue;
+            }
+            else if(dbg.inst == ShaderDbg::CompilationUnit)
+            {
+              uint32_t lang = EvaluateConstant(dbg.arg<Id>(3), {}).value.u32v[0];
+              ret += indent;
+              ret += "DebugCompilationUnit(";
+              ret += idName(dbg.arg<Id>(2));
               ret += ", ";
+              ret += ToStr(rdcspv::SourceLanguage(lang));
+              ret += ")";
+            }
+            else
+            {
+              continue;
+            }
           }
+          else
+          {
+            ret += indent;
+            ret += StringFormat::Fmt("%s = ", declName(decoded.resultType, decoded.result).c_str());
 
-          ret += ")";
+            if(IsGLSL450)
+              ret += StringFormat::Fmt("%s::%s(", setname.c_str(), ToStr(GLSLstd450(inst)).c_str());
+            else if(IsDebugPrintf)
+              ret += "DebugPrintf(";
+            else
+              ret += StringFormat::Fmt("%s::[%u](", setname.c_str(), inst);
+
+            for(uint32_t i = 0; i < decoded.params.size(); i++)
+            {
+              if(i == 5 && IsDebugPrintf)
+                ret += "\"";
+
+              // TODO could generate this from the instruction set grammar.
+              ret += idParams ? idName(decoded.arg<Id>(i)) : ToStr(decoded.arg<uint32_t>(i));
+
+              if(i == 5 && IsDebugPrintf)
+                ret += "\"";
+
+              if(i + 1 < decoded.params.size())
+                ret += ", ";
+            }
+
+            ret += ")";
+          }
           break;
         }
 

@@ -567,7 +567,16 @@ protected:
   SparseIdMap<SampledImage> sampledImageTypes;
   SparseIdMap<FunctionType> functionTypes;
 
+  enum ExtSet
+  {
+    ExtSet_GLSL450 = 0,
+    ExtSet_Printf = 1,
+    ExtSet_ShaderDbg = 2,
+    ExtSet_Count,
+  };
+
   std::map<Id, rdcstr> extSets;
+  Id knownExtSet[ExtSet_Count];
 
   struct LogicalSection
   {

@@ -2413,7 +2413,7 @@ void Debugger::RegisterOp(Iter it)
   {
     OpExtInst extinst(it);
 
-    if(extSets[extinst.set] == "GLSL.std.450")
+    if(knownExtSet[ExtSet_GLSL450] == extinst.set)
     {
       // all parameters to GLSL.std.450 are Ids, extend idDeathOffset appropriately
       for(const uint32_t param : extinst.params)
@@ -2422,7 +2422,7 @@ void Debugger::RegisterOp(Iter it)
         idDeathOffset[id] = RDCMAX(it.offs() + 1, idDeathOffset[id]);
       }
     }
-    else if(extSets[extinst.set] == "NonSemantic.DebugPrintf")
+    else if(knownExtSet[ExtSet_Printf] == extinst.set)
     {
       // all parameters to NonSemantic.DebugPrintf are Ids, extend idDeathOffset appropriately
       for(const uint32_t param : extinst.params)
