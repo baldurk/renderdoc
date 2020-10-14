@@ -260,6 +260,7 @@ public:
   const DataType &GetType(Id typeId);
   const DataType &GetTypeForId(Id ssaId);
   const Decorations &GetDecorations(Id typeId);
+  bool IsDebugExtInstSet(Id id) const;
   rdcstr GetRawName(Id id) const;
   rdcstr GetHumanName(Id id);
   void AddSourceVars(rdcarray<SourceVariableMapping> &sourceVars, const ShaderVariable &var, Id id);

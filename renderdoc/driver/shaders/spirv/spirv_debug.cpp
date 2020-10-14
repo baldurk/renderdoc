@@ -579,6 +579,15 @@ void ThreadState::SkipIgnoredInstructions()
       continue;
     }
 
+    if(op == Op::ExtInst)
+    {
+      if(debugger.IsDebugExtInstSet(Id::fromWord(it.word(3))))
+      {
+        nextInstruction++;
+        continue;
+      }
+    }
+
     if(op == Op::SelectionMerge)
     {
       OpSelectionMerge merge(it);

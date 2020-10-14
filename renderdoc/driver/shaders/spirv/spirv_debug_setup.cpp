@@ -2375,6 +2375,11 @@ uint32_t Debugger::ApplyDerivatives(uint32_t quadIndex, const Decorations &curDe
   return outVar.rows;
 }
 
+bool Debugger::IsDebugExtInstSet(Id id) const
+{
+  return knownExtSet[ExtSet_ShaderDbg] == id;
+}
+
 void Debugger::PreParse(uint32_t maxId)
 {
   Processor::PreParse(maxId);
