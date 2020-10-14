@@ -246,7 +246,7 @@ private:
   void SetDst(Id id, const ShaderVariable &val);
   void ProcessScopeChange(const rdcarray<Id> &oldLive, const rdcarray<Id> &newLive);
   void JumpToLabel(Id target);
-  void ReferencePointer(Id id);
+  bool ReferencePointer(Id id);
 
   void SkipIgnoredInstructions();
 

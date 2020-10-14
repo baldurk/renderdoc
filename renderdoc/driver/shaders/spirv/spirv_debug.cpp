@@ -238,7 +238,7 @@ void ThreadState::WritePointerValue(Id pointer, const ShaderVariable &val)
     // plus any additional ones for other pointers.
     Id ptrid = debugger.GetPointerBaseId(var);
 
-    ReferencePointer(ptrid);
+    bool firstLocalWrite = ReferencePointer(ptrid);
 
     ShaderVariableChange basechange;
 
@@ -289,6 +289,11 @@ void ThreadState::WritePointerValue(Id pointer, const ShaderVariable &val)
     // always add a change for the base storage variable written itself, even if that's a no-op.
     // This one is not included in any of the pointers lists above
     basechange.after = debugger.GetPointerValue(ids[ptrid]);
+
+    // if this is the first local write, mark this variable as becoming alive here
+    if(firstLocalWrite)
+      basechange.before.name = "";
+
     m_State->changes.push_back(basechange);
   }
 }
@@ -308,6 +313,13 @@ void ThreadState::SetDst(Id id, const ShaderVariable &val)
 
   auto it = std::lower_bound(live.begin(), live.end(), id);
   live.insert(it - live.begin(), id);
+
+  if(val.type == VarType::GPUPointer)
+  {
+    Id ptrId = debugger.GetPointerBaseId(val);
+    if(ptrId != Id() && ptrId != id)
+      pointersForId[ptrId].push_back(id);
+  }
 
   if(m_State)
   {
@@ -474,8 +486,10 @@ void ThreadState::JumpToLabel(Id target)
   SkipIgnoredInstructions();
 }
 
-void ThreadState::ReferencePointer(Id id)
+bool ThreadState::ReferencePointer(Id id)
 {
+  bool firstLocalWrite = false;
+
   if(m_State)
   {
     StackFrame *frame = callstack.back();
@@ -491,6 +505,7 @@ void ThreadState::ReferencePointer(Id id)
         {
           debugger.AddSourceVars(sourceVars, frame->locals[i], id);
           frame->localsUsed.push_back(id);
+          firstLocalWrite = true;
         }
 
         break;
@@ -514,6 +529,8 @@ void ThreadState::ReferencePointer(Id id)
 
     sourceVars.append(refs);
   }
+
+  return firstLocalWrite;
 }
 
 void ThreadState::SkipIgnoredInstructions()
@@ -630,7 +647,8 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       for(Id id : chain.indexes)
         indices.push_back(GetSrc(id).value.uv[0]);
 
-      SetDst(chain.result, debugger.MakeCompositePointer(ids[chain.base], chain.base, indices));
+      SetDst(chain.result, debugger.MakeCompositePointer(
+                               ids[chain.base], debugger.GetPointerBaseId(ids[chain.base]), indices));
 
       break;
     }
