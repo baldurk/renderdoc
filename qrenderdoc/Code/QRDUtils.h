@@ -197,7 +197,8 @@ bool RichResourceTextCheck(const QVariant &var);
 
 // Paint the given variant containing rich text with the given parameters.
 void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, QFont font,
-                           QPalette palette, bool mouseOver, QPoint mousePos, const QVariant &var);
+                           QPalette palette, QStyle::State state, QPoint mousePos,
+                           const QVariant &var);
 
 // Gives the width for a size hint for the rich text (since it might be larger than the original
 // text)

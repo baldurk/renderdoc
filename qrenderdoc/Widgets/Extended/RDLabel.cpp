@@ -209,6 +209,8 @@ void RDLabel::paintEvent(QPaintEvent *event)
     r.setLeft(r.left() + contentsMargins().left() + margin());
     r.setRight(r.right() - contentsMargins().right() - margin());
 
-    RichResourceTextPaint(this, &painter, r, font(), palette(), r.contains(pos), pos, m_variant);
+    RichResourceTextPaint(this, &painter, r, font(), palette(),
+                          r.contains(pos) ? QStyle::State_MouseOver : QStyle::State_None, pos,
+                          m_variant);
   }
 }

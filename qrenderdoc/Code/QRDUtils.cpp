@@ -452,13 +452,17 @@ bool RichResourceTextCheck(const QVariant &var)
 static const int RichResourceTextMargin = 2;
 
 void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, QFont font,
-                           QPalette palette, bool mouseOver, QPoint mousePos, const QVariant &var)
+                           QPalette palette, QStyle::State state, QPoint mousePos,
+                           const QVariant &var)
 {
+  QBrush foreBrush = palette.brush(state & QStyle::State_Selected ? QPalette::HighlightedText
+                                                                  : QPalette::WindowText);
+
+  painter->save();
+
   // special case handling for ResourceId/GPUAddress on its own
   if(var.userType() == qMetaTypeId<ResourceId>() || var.userType() == qMetaTypeId<GPUAddressPtr>())
   {
-    painter->save();
-
     QFont f = painter->font();
     f.setBold(true);
     painter->setFont(f);
@@ -511,6 +515,7 @@ void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, 
       }
     }
 
+    painter->setPen(foreBrush.color());
     painter->drawText(rect, Qt::AlignLeft | Qt::AlignVCenter, name);
 
     QRect textRect =
@@ -530,11 +535,11 @@ void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, 
 
     painter->drawPixmap(pos, px, px.rect());
 
-    if(mouseOver && textRect.contains(mousePos) && valid)
+    if((state & QStyle::State_MouseOver) && textRect.contains(mousePos) && valid)
     {
       int underline_y = textRect.bottom() - margin;
 
-      painter->setPen(QPen(palette.brush(QPalette::WindowText), 1.0));
+      painter->setPen(QPen(foreBrush, 1.0));
       painter->drawLine(QPoint(textRect.left(), underline_y), QPoint(textRect.right(), underline_y));
     }
 
@@ -560,11 +565,17 @@ void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, 
   else
     painter->translate(1, 0);
 
-  linkedText->doc.drawContents(painter, QRectF(0, 0, rect.width() - 1, rect.height()));
+  QAbstractTextDocumentLayout::PaintContext docCtx;
+  docCtx.palette = palette;
+  docCtx.palette.setColor(QPalette::Text, foreBrush.color());
 
-  if(mouseOver)
+  docCtx.clip = QRectF(0, 0, rect.width() - 1, rect.height());
+
+  linkedText->doc.documentLayout()->draw(painter, docCtx);
+
+  if(state & QStyle::State_MouseOver)
   {
-    painter->setPen(QPen(palette.brush(QPalette::WindowText), 1.0));
+    painter->setPen(QPen(foreBrush, 1.0));
 
     QAbstractTextDocumentLayout *layout = linkedText->doc.documentLayout();
 
@@ -608,6 +619,8 @@ void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, 
       }
     }
   }
+
+  painter->restore();
 }
 
 int RichResourceTextWidthHint(const QWidget *owner, const QFont &font, const QVariant &var)
@@ -885,8 +898,7 @@ void RichTextViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
         rect.setX(rect.x() + opt.icon.actualSize(opt.decorationSize, mode, state).width() + 4);
       }
 
-      RichResourceTextPaint(m_widget, painter, rect, opt.font, option.palette,
-                            option.state & QStyle::State_MouseOver,
+      RichResourceTextPaint(m_widget, painter, rect, opt.font, option.palette, option.state,
                             m_widget->viewport()->mapFromGlobal(QCursor::pos()), v);
 
       painter->restore();
