@@ -133,7 +133,35 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
     // otherwise try the string
     rdcstr ret = strings[id];
     if(!ret.empty())
+    {
+      // escape and truncate any multiline strings
+      if(ret.indexOf('\n') >= 0 || ret.indexOf('\r') >= 0)
+      {
+        rdcstr escaped = "\"";
+
+        for(int i = 0; i < ret.size(); i++)
+        {
+          if(i == 100 && i + 1 < ret.size())
+          {
+            escaped += "...";
+            break;
+          }
+
+          if(ret[i] == '\r')
+            escaped += "\\r";
+          else if(ret[i] == '\t')
+            escaped += "\\t";
+          else if(ret[i] == '\n')
+            escaped += "\\n";
+          else
+            escaped += ret[i];
+        }
+
+        escaped.push_back('"');
+        return escaped;
+      }
       return ret;
+    }
 
     // for non specialised constants, see if we can stringise them directly if they're unnamed
     ret = StringiseConstant(id);
