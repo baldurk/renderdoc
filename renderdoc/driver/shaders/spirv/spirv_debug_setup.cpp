@@ -207,7 +207,7 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
        ext == "SPV_EXT_descriptor_indexing" || ext == "SPV_KHR_vulkan_memory_model" ||
        ext == "SPV_EXT_fragment_invocation_density" ||
        ext == "SPV_KHR_no_integer_wrap_decoration" || ext == "SPV_KHR_float_controls" ||
-       ext == "SPV_KHR_shader_clock")
+       ext == "SPV_KHR_shader_clock" || ext == "SPV_KHR_non_semantic_info")
     {
       continue;
     }
