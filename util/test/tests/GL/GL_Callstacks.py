@@ -1,6 +1,15 @@
 import renderdoc as rd
 import rdtest
 
+prevProgress = -1.0
+
+
+def resolve_progress(progress: float):
+    global prevProgress
+    if progress - prevProgress > 0.01 or progress == 1.0:
+        prevProgress = progress
+        rdtest.log.print("Resolve progress: {:.2f}%".format(progress*100.0))
+
 
 class GL_Callstacks(rdtest.TestCase):
     demos_test_name = 'GL_Callstacks'
@@ -25,7 +34,7 @@ class GL_Callstacks(rdtest.TestCase):
         if not cap.HasCallstacks():
             raise rdtest.TestFailureException("Capture does not report having callstacks")
 
-        if not cap.InitResolver(False, None):
+        if not cap.InitResolver(False, resolve_progress):
             raise rdtest.TestFailureException("Failed to initialise callstack resolver")
 
         draw = self.find_draw("Draw")
