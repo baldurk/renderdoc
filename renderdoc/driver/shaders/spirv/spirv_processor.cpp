@@ -946,6 +946,16 @@ void Processor::PostParse()
   m_MemberDecorations.clear();
 }
 
+Iter Processor::GetID(Id id)
+{
+  size_t offs = idOffsets[id];
+
+  if(offs)
+    return Iter(m_SPIRV, offs);
+
+  return Iter();
+}
+
 ShaderVariable Processor::MakeNULL(const DataType &type, uint64_t value)
 {
   ShaderVariable v("", 0, 0, 0, 0);

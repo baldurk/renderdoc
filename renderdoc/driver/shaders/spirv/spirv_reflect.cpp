@@ -446,6 +446,31 @@ void Reflector::RegisterOp(Iter it)
   {
     loopBlocks.insert(curBlock);
   }
+  else if(opdata.op == Op::ExtInst)
+  {
+    OpShaderDbg dbg(it);
+
+    // we don't care about much debug info for just reflection. Only pay attention to source files,
+    // and potential names of global variables that might be missing.
+    if(dbg.set == knownExtSet[ExtSet_ShaderDbg])
+    {
+      if(dbg.inst == ShaderDbg::CompilationUnit)
+      {
+        OpShaderDbg src(GetID(dbg.arg<Id>(2)));
+        sources.push_back({
+            (SourceLanguage)EvaluateConstant(dbg.arg<Id>(3), {}).value.u32v[0],
+            strings[src.arg<Id>(0)], src.params.size() > 1 ? strings[src.arg<Id>(1)] : rdcstr(),
+        });
+      }
+      else if(dbg.inst == ShaderDbg::GlobalVariable)
+      {
+        // copy the name string to the variable string only if it's empty. If it has a name already,
+        // we prefer that. If the variable is DebugInfoNone then we don't care about it's name.
+        if(strings[dbg.arg<Id>(7)].empty())
+          strings[dbg.arg<Id>(7)] = strings[dbg.arg<Id>(0)];
+      }
+    }
+  }
 }
 
 void Reflector::UnregisterOp(Iter it)

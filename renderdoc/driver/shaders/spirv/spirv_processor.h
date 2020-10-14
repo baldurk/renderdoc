@@ -538,6 +538,8 @@ protected:
   // after parsing - e.g. to do any deferred post-processing
   virtual void PostParse();
 
+  Iter GetID(Id id);
+
   ShaderVariable MakeNULL(const DataType &type, uint64_t value);
 
   ShaderVariable EvaluateConstant(Id constID, const rdcarray<SpecConstant> &specInfo) const;
