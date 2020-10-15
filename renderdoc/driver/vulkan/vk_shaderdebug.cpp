@@ -935,7 +935,7 @@ public:
         if(coords >= 3)
           uniformParams.uvwa.z = uv.value.f.z;
         if(coords >= 4)
-          uniformParams.uvwa.z = uv.value.f.w;
+          uniformParams.uvwa.w = uv.value.f.w;
 
         if(proj)
         {
