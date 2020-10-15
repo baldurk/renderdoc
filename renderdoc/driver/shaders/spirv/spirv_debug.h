@@ -240,6 +240,29 @@ private:
   ShaderDebugState *m_State = NULL;
 };
 
+enum class DebugScope
+{
+  CompilationUnit,
+  Block,
+};
+struct ScopeData
+{
+  DebugScope type;
+  ScopeData *parent;
+  uint32_t line;
+  uint32_t column;
+  int32_t fileIndex;
+  size_t end;
+};
+typedef rdcpair<size_t, Id> LocalLocation;
+struct LocalData
+{
+  rdcstr name;
+  ScopeData *scope;
+
+  rdcarray<LocalLocation> locations;
+};
+
 class Debugger : public Processor, public ShaderDebugger
 {
 public:
@@ -358,6 +381,22 @@ private:
   std::set<rdcstr> usedNames;
   std::map<Id, rdcstr> dynamicNames;
   void CalcActiveMask(rdcarray<bool> &activeMask);
+
+  struct
+  {
+    bool valid = false;
+
+    SparseIdMap<ScopeData> scopes;
+    ScopeData *curScope = NULL;
+
+    rdcarray<Id> globals;
+
+    SparseIdMap<LocalData> locals;
+
+    std::map<rdcstr, int32_t> files;
+
+    std::map<size_t, ScopeData *> m_LineScope;
+  } m_DebugInfo;
 };
 
 // this does a 'safe' value assignment, by doing parallel depth-first iteration of both variables

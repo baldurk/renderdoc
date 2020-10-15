@@ -2398,6 +2398,32 @@ void Debugger::PostParse()
   for(const Variable &v : globals)
     idDeathOffset[v.id] = ~0U;
 
+  if(m_DebugInfo.valid)
+  {
+    // every scope's parent lasts at least as long as it
+    for(auto it = m_DebugInfo.scopes.begin(); it != m_DebugInfo.scopes.end(); ++it)
+    {
+      ScopeData *scope = &it->second;
+      while(scope->parent)
+      {
+        scope->parent->end = RDCMAX(scope->parent->end, scope->end);
+        scope = scope->parent;
+      }
+    }
+
+    for(auto it = m_DebugInfo.locals.begin(); it != m_DebugInfo.locals.end(); ++it)
+    {
+      LocalData &l = it->second;
+      if(l.locations.empty() || l.scope == NULL)
+        continue;
+
+      // keep last raw ID alive until the scope ends
+      Id id = l.locations.back().second;
+
+      idDeathOffset[id] = RDCMAX(l.scope->end + 1, idDeathOffset[id]);
+    }
+  }
+
   memberNames.clear();
 }
 
@@ -2413,6 +2439,8 @@ void Debugger::RegisterOp(Iter it)
   OpDecoder::ForEachID(it, [this, &it](Id id, bool result) {
     idDeathOffset[id] = RDCMAX(it.offs() + 1, idDeathOffset[id]);
   });
+
+  bool leaveScope = false;
 
   if(opdata.op == Op::ExtInst)
   {
@@ -2436,6 +2464,107 @@ void Debugger::RegisterOp(Iter it)
         idDeathOffset[id] = RDCMAX(it.offs() + 1, idDeathOffset[id]);
       }
     }
+    else if(knownExtSet[ExtSet_ShaderDbg] == extinst.set)
+    {
+      // the types are identical just with different accessors
+      OpShaderDbg &dbg = (OpShaderDbg &)extinst;
+
+      if(dbg.inst == ShaderDbg::CompilationUnit)
+      {
+        OpShaderDbg src(GetID(dbg.arg<Id>(2)));
+
+        int32_t fileIndex = (int32_t)m_DebugInfo.files.size();
+
+        m_DebugInfo.files[strings[src.arg<Id>(0)]] = fileIndex;
+
+        m_DebugInfo.scopes[dbg.result] = {DebugScope::CompilationUnit, NULL, 1, 1, fileIndex, 0};
+      }
+      else if(dbg.inst == ShaderDbg::LexicalBlock)
+      {
+        ScopeData *parent = &m_DebugInfo.scopes[dbg.arg<Id>(3)];
+        uint32_t line = EvaluateConstant(dbg.arg<Id>(1), {}).value.u32v[0];
+        uint32_t column = EvaluateConstant(dbg.arg<Id>(2), {}).value.u32v[0];
+        int32_t fileIndex = parent ? parent->fileIndex : -1;
+
+        m_DebugInfo.scopes[dbg.result] = {DebugScope::Block, parent, line, column, fileIndex, 0};
+      }
+      else if(dbg.inst == ShaderDbg::Scope)
+      {
+        if(m_DebugInfo.curScope)
+          m_DebugInfo.curScope->end = it.offs();
+
+        m_DebugInfo.curScope = &m_DebugInfo.scopes[dbg.arg<Id>(0)];
+
+        // TODO inline information
+      }
+      else if(dbg.inst == ShaderDbg::NoScope)
+      {
+        // don't want to set curScope to NULL until after this instruction. That way flood-fill of
+        // scopes in PostParse() can find this instruction in a scope.
+        leaveScope = true;
+      }
+      else if(dbg.inst == ShaderDbg::GlobalVariable)
+      {
+        // copy the name string to the variable string only if it's empty. If it has a name already,
+        // we prefer that. If the variable is DebugInfoNone then we don't care about it's name.
+        if(strings[dbg.arg<Id>(7)].empty())
+          strings[dbg.arg<Id>(7)] = strings[dbg.arg<Id>(0)];
+
+        OpVariable var(GetID(dbg.arg<Id>(7)));
+
+        if(var.storageClass == StorageClass::Private ||
+           var.storageClass == StorageClass::Workgroup || var.storageClass == StorageClass::Output)
+        {
+          m_DebugInfo.globals.push_back(var.result);
+        }
+      }
+      else if(dbg.inst == ShaderDbg::LocalVariable)
+      {
+        m_DebugInfo.locals[dbg.result] = {
+            strings[dbg.arg<Id>(0)], &m_DebugInfo.scopes[dbg.arg<Id>(5)],
+        };
+      }
+      else if(dbg.inst == ShaderDbg::Declare || dbg.inst == ShaderDbg::Value)
+      {
+        Id id = dbg.arg<Id>(1);
+
+        LocalData &local = m_DebugInfo.locals[dbg.arg<Id>(0)];
+
+        // keep the previous raw ID alive at least until this location starts
+        if(!local.locations.empty())
+        {
+          Id prevId = local.locations.back().second;
+          idDeathOffset[prevId] = RDCMAX(it.offs() + 1, idDeathOffset[prevId]);
+        }
+
+        local.locations.push_back({it.offs(), id});
+
+        OpShaderDbg expr(GetID(dbg.arg<Id>(2)));
+
+        // don't support expressions yet
+        RDCASSERT(expr.params.empty());
+
+        // don't support indexes yet for values
+        RDCASSERT(dbg.params.size() == 3);
+      }
+      else if(dbg.inst == ShaderDbg::InlinedAt)
+      {
+        // TODO inline information
+      }
+      else if(dbg.inst == ShaderDbg::InlinedVariable)
+      {
+        // TODO inline information
+      }
+    }
+  }
+  else if(opdata.op == Op::ExtInstImport)
+  {
+    OpExtInstImport extimport(it);
+
+    if(extimport.result == knownExtSet[ExtSet_ShaderDbg])
+    {
+      m_DebugInfo.valid = true;
+    }
   }
 
   if(opdata.op == Op::Source)
@@ -2451,10 +2580,25 @@ void Debugger::RegisterOp(Iter it)
   {
     OpLine line(it);
 
-    m_CurLineCol.lineStart = line.line;
-    m_CurLineCol.lineEnd = line.line;
-    m_CurLineCol.colStart = line.column;
-    m_CurLineCol.fileIndex = (int32_t)m_Files[line.file];
+    if(m_DebugInfo.valid)
+    {
+      m_CurLineCol.lineStart = line.line;
+      m_CurLineCol.lineEnd = line.line;
+      m_CurLineCol.colStart = line.column;
+      // find file index by filename matching, this would be nice to improve as it's brittle
+      auto file = m_DebugInfo.files.find(strings[line.file]);
+      if(file != m_DebugInfo.files.end())
+        m_CurLineCol.fileIndex = file->second;
+      else
+        m_CurLineCol.fileIndex = -1;
+    }
+    else
+    {
+      m_CurLineCol.lineStart = line.line;
+      m_CurLineCol.lineEnd = line.line;
+      m_CurLineCol.colStart = line.column;
+      m_CurLineCol.fileIndex = (int32_t)m_Files[line.file];
+    }
   }
   else if(opdata.op == Op::NoLine)
   {
@@ -2463,6 +2607,21 @@ void Debugger::RegisterOp(Iter it)
   else
   {
     m_LineColInfo[it.offs()] = m_CurLineCol;
+
+    if(m_DebugInfo.valid)
+      m_DebugInfo.m_LineScope[it.offs()] = m_DebugInfo.curScope;
+  }
+
+  // if we're explicitly leaving the scope because of a DebugNoScope, or if we're leaving due to the
+  // end of a block then set scope to NULL now.
+  if(leaveScope || it.opcode() == Op::Kill || it.opcode() == Op::Unreachable ||
+     it.opcode() == Op::Branch || it.opcode() == Op::BranchConditional ||
+     it.opcode() == Op::Switch || it.opcode() == Op::Return || it.opcode() == Op::ReturnValue)
+  {
+    if(m_DebugInfo.curScope)
+      m_DebugInfo.curScope->end = it.offs();
+
+    m_DebugInfo.curScope = NULL;
   }
 
   if(opdata.op == Op::String)
@@ -2520,8 +2679,10 @@ void Debugger::RegisterOp(Iter it)
     // give the variable a name based on the type. This is a common pattern in GLSL for global
     // blocks, and since the variable is how we access commonly we should give it a recognisable
     // name.
+    //
+    // Don't do this if we have debug info, rely on it purely to give us the right data
     if(strings[var.result].empty() && dataTypes[varType].type == DataType::StructType &&
-       !strings[varType].empty())
+       !strings[varType].empty() && !m_DebugInfo.valid)
     {
       strings[var.result] = strings[varType] + "_var";
     }
