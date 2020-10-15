@@ -629,7 +629,10 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
 
   // evaluate all constants
   for(auto it = constants.begin(); it != constants.end(); it++)
+  {
     active.ids[it->first] = EvaluateConstant(it->first, specInfo);
+    active.ids[it->first].name = GetRawName(it->first);
+  }
 
   rdcarray<rdcstr> inputSigNames, outputSigNames;
 
@@ -704,8 +707,10 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
 
       const rdcarray<rdcstr> &sigNames = isInput ? inputSigNames : outputSigNames;
 
+      bool addSource = m_DebugInfo.valid ? m_DebugInfo.globals.contains(v.id) : true;
+
       // fill the interface variable
-      auto fillInputCallback = [this, isInput, ret, &sigNames, &rawName, &sourceName](
+      auto fillInputCallback = [this, isInput, addSource, ret, &sigNames, &rawName, &sourceName](
           ShaderVariable &var, const Decorations &curDecorations, const DataType &type,
           uint64_t location, const rdcstr &accessSuffix) {
 
@@ -753,7 +758,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
                 isInput ? DebugVariableType::Input : DebugVariableType::Variable, debugVarName, x));
 
           ret->sourceVars.push_back(sourceVar);
-          if(!isInput)
+          if(!isInput && addSource)
             globalSourceVars.push_back(sourceVar);
         }
       };
@@ -1105,7 +1110,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
 
       liveGlobals.push_back(v.id);
 
-      if(sourceName != var.name)
+      if(sourceName != var.name && (!m_DebugInfo.valid || m_DebugInfo.globals.contains(v.id)))
       {
         SourceVariableMapping sourceVar;
         sourceVar.name = sourceName;
@@ -1226,6 +1231,9 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
         thread.FillCallstack(initial);
         initial.nextInstruction = thread.nextInstruction;
         initial.sourceVars = thread.sourceVars;
+
+        if(m_DebugInfo.valid)
+          initial.sourceVars = globalSourceVars;
       }
       else
       {
@@ -1279,11 +1287,13 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
         {
           ShaderDebugState state;
 
+          size_t instOffs = instructionOffsets[thread.nextInstruction];
+
           // see if we're retiring any IDs at this state
           for(size_t l = 0; l < thread.live.size();)
           {
             Id id = thread.live[l];
-            if(idDeathOffset[id] < instructionOffsets[thread.nextInstruction])
+            if(idDeathOffset[id] < instOffs)
             {
               thread.live.erase(l);
               ShaderVariableChange change;
@@ -1304,7 +1314,64 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
 
           thread.StepNext(&state, workgroup);
           state.stepIndex = steps;
-          state.sourceVars = thread.sourceVars;
+
+          if(m_DebugInfo.valid)
+          {
+            instOffs = instructionOffsets[thread.nextInstruction - 1];
+
+            // start with the global source vars
+            state.sourceVars = globalSourceVars;
+            ScopeData *scope = m_DebugInfo.m_LineScope[instOffs];
+            rdcarray<ScopeData *> scopes;
+            while(scope)
+            {
+              scopes.push_back(scope);
+              scope = scope->parent;
+            }
+
+            for(auto it = m_DebugInfo.locals.begin(); it != m_DebugInfo.locals.end(); ++it)
+            {
+              const LocalData &l = it->second;
+              // if this variable is live in the current scope or any of its parents, it's live now.
+              if(scopes.contains(l.scope))
+              {
+                LocalLocation lastLoc;
+                for(const LocalLocation &loc : l.locations)
+                {
+                  if(loc.first > instOffs)
+                    break;
+                  lastLoc = loc;
+                }
+
+                if(lastLoc.second != Id())
+                {
+                  ShaderVariable var = ReadFromPointer(thread.ids[lastLoc.second]);
+
+                  // don't map locals to IDs that don't exist yet, or to constants
+                  if(!var.name.empty() && constants.find(lastLoc.second) == constants.end())
+                  {
+                    SourceVariableMapping sourceVar;
+
+                    sourceVar.name = l.name;
+                    sourceVar.offset = 0;
+                    sourceVar.type = var.type;
+                    sourceVar.rows = RDCMAX(1U, (uint32_t)var.rows);
+                    sourceVar.columns = RDCMAX(1U, (uint32_t)var.columns);
+                    for(uint32_t x = 0; x < sourceVar.rows * sourceVar.columns; x++)
+                      sourceVar.variables.push_back(
+                          DebugVariableReference(DebugVariableType::Variable, var.name, x));
+
+                    state.sourceVars.push_back(sourceVar);
+                  }
+                }
+              }
+            }
+          }
+          else
+          {
+            state.sourceVars = thread.sourceVars;
+          }
+
           thread.FillCallstack(state);
           ret.push_back(state);
 
@@ -1914,9 +1981,18 @@ rdcstr Debugger::GetHumanName(Id id)
   return name;
 }
 
+const rdcarray<SourceVariableMapping> &Debugger::GetGlobalSourceVars()
+{
+  static const rdcarray<SourceVariableMapping> empty;
+  return m_DebugInfo.valid ? empty : globalSourceVars;
+}
+
 void Debugger::AddSourceVars(rdcarray<SourceVariableMapping> &sourceVars, const ShaderVariable &var,
                              Id id)
 {
+  if(m_DebugInfo.valid)
+    return;
+
   rdcstr name;
 
   auto it = dynamicNames.find(id);
@@ -1927,8 +2003,6 @@ void Debugger::AddSourceVars(rdcarray<SourceVariableMapping> &sourceVars, const 
 
   if(!name.empty())
   {
-    Id type = idTypes[id];
-
     SourceVariableMapping sourceVar;
 
     sourceVar.name = name;
@@ -2607,10 +2681,10 @@ void Debugger::RegisterOp(Iter it)
   else
   {
     m_LineColInfo[it.offs()] = m_CurLineCol;
-
-    if(m_DebugInfo.valid)
-      m_DebugInfo.m_LineScope[it.offs()] = m_DebugInfo.curScope;
   }
+
+  if(m_DebugInfo.valid)
+    m_DebugInfo.m_LineScope[it.offs()] = m_DebugInfo.curScope;
 
   // if we're explicitly leaving the scope because of a DebugNoScope, or if we're leaving due to the
   // end of a block then set scope to NULL now.

@@ -305,7 +305,7 @@ public:
   uint32_t GetNumInstructions() { return (uint32_t)instructionOffsets.size(); }
   GlobalState GetGlobal() { return global; }
   const rdcarray<Id> &GetLiveGlobals() { return liveGlobals; }
-  const rdcarray<SourceVariableMapping> &GetGlobalSourceVars() { return globalSourceVars; }
+  const rdcarray<SourceVariableMapping> &GetGlobalSourceVars();
   ThreadState &GetActiveLane() { return workgroup[activeLaneIndex]; }
   const ThreadState &GetActiveLane() const { return workgroup[activeLaneIndex]; }
 private:
