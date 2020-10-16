@@ -2241,7 +2241,10 @@ bool WrappedID3D11DeviceContext::Serialise_SOSetTargets(SerialiserType &ser, UIN
         qdesc.MiscFlags = 0;
         qdesc.Query = queryTypes[b];
 
-        m_pDevice->GetReal()->CreateQuery(&qdesc, &m_StreamOutCounters[id].query);
+        HRESULT hr = m_pDevice->GetReal()->CreateQuery(&qdesc, &m_StreamOutCounters[id].query);
+
+        if(FAILED(hr))
+          RDCERR("Couldn't create streamout query: %s", ToStr(hr).c_str());
 
         m_pRealContext->Begin(m_StreamOutCounters[id].query);
         m_StreamOutCounters[id].running = true;
