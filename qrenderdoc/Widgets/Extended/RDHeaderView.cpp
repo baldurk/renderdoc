@@ -98,7 +98,10 @@ void RDHeaderView::setModel(QAbstractItemModel *model)
     QObject::connect(model, &QAbstractItemModel::rowsRemoved, this, &RDHeaderView::rowsChanged);
     QObject::connect(model, &QAbstractItemModel::dataChanged,
                      [this](const QModelIndex &topLeft, const QModelIndex &bottomRight,
-                            const QVector<int> &roles) { rowsChanged(QModelIndex(), 0, 0); });
+                            const QVector<int> &roles) {
+                       if(roles.contains(Qt::DisplayRole))
+                         rowsChanged(QModelIndex(), 0, 0);
+                     });
   }
 }
 
