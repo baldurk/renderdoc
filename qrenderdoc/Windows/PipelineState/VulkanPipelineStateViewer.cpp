@@ -1124,12 +1124,16 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
 
     for(int idx = firstUsedBind; idx <= lastUsedBind && idx < arrayLength; idx++)
     {
+      bool dynamicUsed = usedSlot;
+
       const VKPipe::BindingElement *descriptorBind = NULL;
       if(slotBinds != NULL)
       {
         descriptorBind = &(*slotBinds)[idx];
 
-        if(!showNode(usedSlot && descriptorBind->dynamicallyUsed, filledSlot))
+        dynamicUsed &= descriptorBind->dynamicallyUsed;
+
+        if(!showNode(dynamicUsed, filledSlot))
           continue;
       }
 
@@ -1215,6 +1219,9 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
           });
 
           setEmptyRow(node);
+
+          if(!dynamicUsed)
+            setInactiveRow(node);
         }
         else
         {
@@ -1230,7 +1237,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
           if(!filledSlot)
             setEmptyRow(node);
 
-          if(!usedSlot)
+          if(!dynamicUsed)
             setInactiveRow(node);
         }
       }
@@ -1247,7 +1254,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
         if(!filledSlot)
           setEmptyRow(node);
 
-        if(!usedSlot)
+        if(!dynamicUsed)
           setInactiveRow(node);
       }
       else if(bindType == BindType::Sampler)
@@ -1260,6 +1267,9 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
           });
 
           setEmptyRow(node);
+
+          if(!dynamicUsed)
+            setInactiveRow(node);
         }
         else
         {
@@ -1268,7 +1278,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
           if(!filledSlot)
             setEmptyRow(node);
 
-          if(!usedSlot)
+          if(!dynamicUsed)
             setInactiveRow(node);
         }
       }
@@ -1282,6 +1292,9 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
           });
 
           setEmptyRow(node);
+
+          if(!dynamicUsed)
+            setInactiveRow(node);
         }
         else
         {
@@ -1327,7 +1340,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
           if(!filledSlot)
             setEmptyRow(node);
 
-          if(!usedSlot)
+          if(!dynamicUsed)
             setInactiveRow(node);
 
           if(bindType == BindType::ImageSampler)
@@ -1340,6 +1353,9 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
               });
 
               setEmptyRow(samplerNode);
+
+              if(!dynamicUsed)
+                setInactiveRow(samplerNode);
             }
             else
             {
@@ -1351,7 +1367,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
                 if(!filledSlot)
                   setEmptyRow(samplerNode);
 
-                if(!usedSlot)
+                if(!dynamicUsed)
                   setInactiveRow(samplerNode);
 
                 CombinedSamplerData sampData;
