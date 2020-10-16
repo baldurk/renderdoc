@@ -87,13 +87,19 @@ public:
   inline void setForegroundColor(QColor foreground) { setForeground(QBrush(foreground)); }
   inline void setBackground(QBrush background)
   {
-    m_back = background;
-    dataChanged(0, Qt::BackgroundRole);
+    if(m_back != background)
+    {
+      m_back = background;
+      dataChanged(0, Qt::BackgroundRole);
+    }
   }
   inline void setForeground(QBrush foreground)
   {
-    m_fore = foreground;
-    dataChanged(0, Qt::ForegroundRole);
+    if(m_fore != foreground)
+    {
+      m_fore = foreground;
+      dataChanged(0, Qt::ForegroundRole);
+    }
   }
   inline QBrush background() { return m_back; }
   inline QBrush foreground() { return m_fore; }
