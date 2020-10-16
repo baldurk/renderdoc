@@ -1372,6 +1372,15 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
             state.sourceVars = thread.sourceVars;
           }
 
+          // sort sourceVars by last write to the underlying variable
+          std::sort(state.sourceVars.begin(), state.sourceVars.end(),
+                    [&thread](const SourceVariableMapping &a, const SourceVariableMapping &b) {
+                      Id aId = ParseRawName(a.variables[0].name);
+                      Id bId = ParseRawName(b.variables[0].name);
+
+                      return thread.lastWrite[aId] < thread.lastWrite[bId];
+                    });
+
           thread.FillCallstack(state);
           ret.push_back(state);
 
@@ -1949,6 +1958,24 @@ void Debugger::WriteThroughPointer(const ShaderVariable &ptr, const ShaderVariab
 rdcstr Debugger::GetRawName(Id id) const
 {
   return StringFormat::Fmt("_%u", id.value());
+}
+
+Id Debugger::ParseRawName(const rdcstr &name)
+{
+  if(name[0] != '_')
+    return Id();
+
+  uint32_t val = 0;
+  for(int i = 1; i < name.count(); i++)
+  {
+    if(name[i] < '0' || name[i] > '9')
+      return Id();
+
+    val *= 10;
+    val += uint32_t(name[i] - '0');
+  }
+
+  return Id::fromWord(val);
 }
 
 rdcstr Debugger::GetHumanName(Id id)

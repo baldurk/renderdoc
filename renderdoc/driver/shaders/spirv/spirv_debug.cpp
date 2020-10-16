@@ -310,6 +310,14 @@ void ThreadState::WritePointerValue(Id pointer, const ShaderVariable &val)
       basechange.before.name = "";
 
     m_State->changes.push_back(basechange);
+
+    if(ptrIdx == -1)
+      pointers.push_back(pointer);
+    if(!pointers.contains(ptrid) && ptrid != Id())
+      pointers.push_back(ptrid);
+
+    for(size_t i = 0; i < pointers.size(); i++)
+      lastWrite[pointers[i]] = nextInstruction;
   }
 }
 
@@ -325,6 +333,8 @@ void ThreadState::SetDst(Id id, const ShaderVariable &val)
 
   ids[id] = val;
   ids[id].name = debugger.GetRawName(id);
+
+  lastWrite[id] = nextInstruction;
 
   auto it = std::lower_bound(live.begin(), live.end(), id);
   live.insert(it - live.begin(), id);
@@ -542,23 +552,6 @@ bool ThreadState::ReferencePointer(Id id)
         break;
       }
     }
-
-    // otherwise if we have sourcevars referencing this ID, shuffle them to the back as they are
-    // newly touched.
-    rdcarray<SourceVariableMapping> refs;
-    for(size_t i = 0; i < sourceVars.size();)
-    {
-      if(!sourceVars[i].variables.empty() && sourceVars[i].variables[0].name == name)
-      {
-        refs.push_back(sourceVars[i]);
-        sourceVars.erase(i);
-        continue;
-      }
-
-      i++;
-    }
-
-    sourceVars.append(refs);
   }
 
   return firstLocalWrite;

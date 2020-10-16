@@ -217,6 +217,8 @@ struct ThreadState
   // the list of IDs that are currently valid and live
   rdcarray<Id> live;
 
+  std::map<Id, uint32_t> lastWrite;
+
   rdcarray<SourceVariableMapping> sourceVars;
 
   // index in the pixel quad
@@ -322,6 +324,8 @@ private:
                         std::function<void(ShaderVarType &, const Decorations &, const DataType &,
                                            uint64_t, const rdcstr &)>
                             callback) const;
+
+  static Id ParseRawName(const rdcstr &name);
 
   void MakeSignatureNames(const rdcarray<SPIRVInterfaceAccess> &sigList, rdcarray<rdcstr> &sigNames);
 
