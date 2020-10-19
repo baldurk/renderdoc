@@ -109,7 +109,10 @@ void Init()
 
 void Shutdown()
 {
-  WSACleanup();
+  // we'd normally call WSACleanup() here but we can't - like many functions we call anyway it's not
+  // safe to call in DllMain when shutting down. Unlike other functions, it has minimal impact to
+  // just skip the call and 'leak' winsock since we're shutting down the process anyway.
+  // WSACleanup();
 }
 
 Socket::~Socket()
