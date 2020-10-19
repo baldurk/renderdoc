@@ -606,7 +606,7 @@ void main()
       if(props1D.maxExtent.width >= texWidth || props2D.maxExtent.width >= texWidth ||
          props3D.maxExtent.width >= texWidth)
       {
-        TEST_ERROR("Format %d can't be loaded in shader but can be a texture!", f.texFmt);
+        TEST_WARN("Format %d can't be loaded in shader but can be a texture!", f.texFmt);
       }
     }
 
