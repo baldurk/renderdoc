@@ -65,6 +65,7 @@ set(OPENGL_SRC
         gl/gl_cbuffer_zoo.cpp
         gl/gl_depthstencil_fbo.cpp
         gl/gl_discard_zoo.cpp
+        gl/gl_draw_zoo.cpp
         gl/gl_empty_capture.cpp
         gl/gl_entry_points.cpp
         gl/gl_large_bcn_arrays.cpp
@@ -83,6 +84,7 @@ set(OPENGL_SRC
         gl/gl_runtime_bind_prog_to_pipe.cpp
         gl/gl_separable_geometry_shader.cpp
         gl/gl_shader_editing.cpp
+        gl/gl_shader_isa.cpp
         gl/gl_simple_triangle.cpp
         gl/gl_spirv_shader.cpp
         gl/gl_state_trashing.cpp
