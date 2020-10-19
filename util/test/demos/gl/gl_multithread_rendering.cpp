@@ -90,7 +90,7 @@ void main()
 
     A.tex = MakeTexture();
     glBindTexture(GL_TEXTURE_2D, A.tex);
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, screenWidth, screenHeight);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_SRGB8_ALPHA8, screenWidth, screenHeight);
 
     B.VB = MakeBuffer();
     glBindBuffer(GL_ARRAY_BUFFER, B.VB);
@@ -100,7 +100,7 @@ void main()
 
     B.tex = MakeTexture();
     glBindTexture(GL_TEXTURE_2D, B.tex);
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, screenWidth, screenHeight);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_SRGB8_ALPHA8, screenWidth, screenHeight);
 
     // make FBOs on the main context for reading
     GLuint Afbo = MakeFBO();
@@ -129,6 +129,8 @@ void main()
       ctxdata &ctx = (idx == 0 ? A : B);
 
       ActivateContext(ctx.win, ctx.ctx);
+
+      glEnable(GL_FRAMEBUFFER_SRGB);
 
       glGenVertexArrays(1, &ctx.VAO);
       glBindVertexArray(ctx.VAO);
