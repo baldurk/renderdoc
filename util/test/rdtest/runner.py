@@ -418,7 +418,9 @@ def internal_run_test(test_name):
 
     for testclass in testcases:
         if testclass.__name__ == test_name:
-            rd.InitialiseReplay(rd.GlobalEnvironment(), [])
+            globalenv = rd.GlobalEnvironment()
+            globalenv.enumerateGPUs = False
+            rd.InitialiseReplay(globalenv, [])
 
             log.begin_test(test_name, print_header=False)
 
