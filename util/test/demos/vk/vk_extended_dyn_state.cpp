@@ -33,6 +33,8 @@ RD_TEST(VK_Extended_Dynamic_State, VulkanGraphicsTest)
   {
     devExts.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
 
+    features.depthBounds = VK_TRUE;
+
     VulkanGraphicsTest::Prepare(argc, argv);
 
     if(!Avail.empty())
@@ -46,8 +48,6 @@ RD_TEST(VK_Extended_Dynamic_State, VulkanGraphicsTest)
 
     if(!extFeatures.extendedDynamicState)
       Avail = "feature 'extendedDynamicState' not available";
-
-    features.depthBounds = VK_TRUE;
 
     devInfoNext = &extFeatures;
   }
