@@ -168,6 +168,9 @@ struct VkInstDispatchTable
   PFN_vkGetDisplayModeProperties2KHR GetDisplayModeProperties2KHR;
   PFN_vkGetDisplayPlaneCapabilities2KHR GetDisplayPlaneCapabilities2KHR;
 
+  // VK_KHR_fragment_shading_rate
+  PFN_vkGetPhysicalDeviceFragmentShadingRatesKHR GetPhysicalDeviceFragmentShadingRatesKHR;
+
   // VK_EXT_debug_report
   PFN_vkCreateDebugReportCallbackEXT CreateDebugReportCallbackEXT;
   PFN_vkDestroyDebugReportCallbackEXT DestroyDebugReportCallbackEXT;
@@ -535,6 +538,9 @@ struct VkDevDispatchTable
   PFN_vkWaitSemaphoresKHR WaitSemaphoresKHR;
   PFN_vkSignalSemaphoreKHR SignalSemaphoreKHR;
 
+  // VK_KHR_fragment_shading_rate
+  PFN_vkCmdSetFragmentShadingRateKHR CmdSetFragmentShadingRateKHR;
+
   // VK_KHR_buffer_device_address
   PFN_vkGetBufferDeviceAddressKHR GetBufferDeviceAddressKHR;
   PFN_vkGetBufferOpaqueCaptureAddressKHR GetBufferOpaqueCaptureAddressKHR;
@@ -553,6 +559,14 @@ struct VkDevDispatchTable
   PFN_vkGetPipelineExecutablePropertiesKHR GetPipelineExecutablePropertiesKHR;
   PFN_vkGetPipelineExecutableStatisticsKHR GetPipelineExecutableStatisticsKHR;
   PFN_vkGetPipelineExecutableInternalRepresentationsKHR GetPipelineExecutableInternalRepresentationsKHR;
+
+  // VK_KHR_copy_commands2
+  PFN_vkCmdCopyBuffer2KHR CmdCopyBuffer2KHR;
+  PFN_vkCmdCopyImage2KHR CmdCopyImage2KHR;
+  PFN_vkCmdCopyBufferToImage2KHR CmdCopyBufferToImage2KHR;
+  PFN_vkCmdCopyImageToBuffer2KHR CmdCopyImageToBuffer2KHR;
+  PFN_vkCmdBlitImage2KHR CmdBlitImage2KHR;
+  PFN_vkCmdResolveImage2KHR CmdResolveImage2KHR;
 
   // VK_EXT_debug_marker
   PFN_vkDebugMarkerSetObjectTagEXT DebugMarkerSetObjectTagEXT;

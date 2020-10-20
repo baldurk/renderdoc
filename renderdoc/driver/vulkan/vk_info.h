@@ -49,6 +49,7 @@ enum VulkanDynamicStateIndex
   VkDynamicViewportShadingRatePaletteNV,
   VkDynamicViewportCoarseSampleOrderNV,
   VkDynamicExclusiveScissorNV,
+  VkDynamicShadingRateKHR,
   VkDynamicLineStippleEXT,
   VkDynamicCullModeEXT,
   VkDynamicFrontFaceEXT,
