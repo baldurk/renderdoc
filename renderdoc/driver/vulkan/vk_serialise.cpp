@@ -767,6 +767,19 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_MEMORY_OPAQUE_CAPTURE_ADDRESS_INFO,                            \
                VkDeviceMemoryOpaqueCaptureAddressInfo)                                                 \
                                                                                                        \
+  /* VK_KHR_copy_commands2 */                                                                          \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_COPY_BUFFER_INFO_2_KHR, VkBlitImageInfo2KHR)                          \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_COPY_IMAGE_INFO_2_KHR, VkBufferCopy2KHR)                              \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_COPY_BUFFER_TO_IMAGE_INFO_2_KHR, VkBufferImageCopy2KHR)               \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_COPY_IMAGE_TO_BUFFER_INFO_2_KHR, VkCopyBufferInfo2KHR)                \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2_KHR, VkCopyBufferToImageInfo2KHR)                   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_RESOLVE_IMAGE_INFO_2_KHR, VkCopyImageInfo2KHR)                        \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_BUFFER_COPY_2_KHR, VkCopyImageToBufferInfo2KHR)                       \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_COPY_2_KHR, VkImageBlit2KHR)                                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_BLIT_2_KHR, VkImageCopy2KHR)                                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_BUFFER_IMAGE_COPY_2_KHR, VkImageResolve2KHR)                          \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_RESOLVE_2_KHR, VkResolveImageInfo2KHR)                          \
+                                                                                                       \
   /* VK_KHR_create_renderpass2 */                                                                      \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2, VkAttachmentDescription2)                   \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2, VkAttachmentReference2)                       \
@@ -1141,19 +1154,6 @@ SERIALISE_VK_HANDLES();
                                                                                                        \
   /* VK_INTEL_shader_integer_functions2 */                                                             \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_INTEGER_FUNCTIONS_2_FEATURES_INTEL)       \
-                                                                                                       \
-  /* VK_KHR_copy_commands2 */                                                                          \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_COPY_BUFFER_INFO_2_KHR)                                          \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_COPY_IMAGE_INFO_2_KHR)                                           \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_COPY_BUFFER_TO_IMAGE_INFO_2_KHR)                                 \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_COPY_IMAGE_TO_BUFFER_INFO_2_KHR)                                 \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2_KHR)                                           \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RESOLVE_IMAGE_INFO_2_KHR)                                        \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_BUFFER_COPY_2_KHR)                                               \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_COPY_2_KHR)                                                \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_BLIT_2_KHR)                                                \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_BUFFER_IMAGE_COPY_2_KHR)                                         \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_RESOLVE_2_KHR)                                             \
                                                                                                        \
   /* VK_KHR_deferred_host_operations */                                                                \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DEFERRED_OPERATION_INFO_KHR)                                     \
@@ -6020,6 +6020,222 @@ void Deserialise(const VkPipelineRasterizationStateStreamCreateInfoEXT &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkBufferCopy2KHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_BUFFER_COPY_2_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(srcOffset);
+  SERIALISE_MEMBER(dstOffset);
+  SERIALISE_MEMBER(size);
+}
+
+template <>
+void Deserialise(const VkBufferCopy2KHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkCopyBufferInfo2KHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_COPY_BUFFER_INFO_2_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(srcBuffer);
+  SERIALISE_MEMBER(dstBuffer);
+  SERIALISE_MEMBER(regionCount);
+  SERIALISE_MEMBER_ARRAY(pRegions, regionCount);
+}
+
+template <>
+void Deserialise(const VkCopyBufferInfo2KHR &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pRegions;
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkImageCopy2KHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_IMAGE_COPY_2_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(srcSubresource);
+  SERIALISE_MEMBER(srcOffset);
+  SERIALISE_MEMBER(dstSubresource);
+  SERIALISE_MEMBER(dstOffset);
+  SERIALISE_MEMBER(extent);
+}
+
+template <>
+void Deserialise(const VkImageCopy2KHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkCopyImageInfo2KHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_COPY_IMAGE_INFO_2_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(srcImage);
+  SERIALISE_MEMBER(srcImageLayout);
+  SERIALISE_MEMBER(dstImage);
+  SERIALISE_MEMBER(dstImageLayout);
+  SERIALISE_MEMBER(regionCount);
+  SERIALISE_MEMBER_ARRAY(pRegions, regionCount);
+}
+
+template <>
+void Deserialise(const VkCopyImageInfo2KHR &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pRegions;
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkBufferImageCopy2KHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_BUFFER_IMAGE_COPY_2_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(bufferOffset);
+  SERIALISE_MEMBER(bufferRowLength);
+  SERIALISE_MEMBER(bufferImageHeight);
+  SERIALISE_MEMBER(imageSubresource);
+  SERIALISE_MEMBER(imageOffset);
+  SERIALISE_MEMBER(imageExtent);
+}
+
+template <>
+void Deserialise(const VkBufferImageCopy2KHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkCopyBufferToImageInfo2KHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_COPY_BUFFER_TO_IMAGE_INFO_2_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(srcBuffer);
+  SERIALISE_MEMBER(dstImage);
+  SERIALISE_MEMBER(dstImageLayout);
+  SERIALISE_MEMBER(regionCount);
+  SERIALISE_MEMBER_ARRAY(pRegions, regionCount);
+}
+
+template <>
+void Deserialise(const VkCopyBufferToImageInfo2KHR &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pRegions;
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkCopyImageToBufferInfo2KHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_COPY_IMAGE_TO_BUFFER_INFO_2_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(srcImage);
+  SERIALISE_MEMBER(srcImageLayout);
+  SERIALISE_MEMBER(dstBuffer);
+  SERIALISE_MEMBER(regionCount);
+  SERIALISE_MEMBER_ARRAY(pRegions, regionCount);
+}
+
+template <>
+void Deserialise(const VkCopyImageToBufferInfo2KHR &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pRegions;
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkImageBlit2KHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_IMAGE_BLIT_2_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(srcSubresource);
+  SERIALISE_MEMBER(srcOffsets);
+  SERIALISE_MEMBER(dstSubresource);
+  SERIALISE_MEMBER(dstOffsets);
+}
+
+template <>
+void Deserialise(const VkImageBlit2KHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkBlitImageInfo2KHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(srcImage);
+  SERIALISE_MEMBER(srcImageLayout);
+  SERIALISE_MEMBER(dstImage);
+  SERIALISE_MEMBER(dstImageLayout);
+  SERIALISE_MEMBER(regionCount);
+  SERIALISE_MEMBER_ARRAY(pRegions, regionCount);
+  SERIALISE_MEMBER(filter);
+}
+
+template <>
+void Deserialise(const VkBlitImageInfo2KHR &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pRegions;
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkImageResolve2KHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_IMAGE_RESOLVE_2_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(srcSubresource);
+  SERIALISE_MEMBER(srcOffset);
+  SERIALISE_MEMBER(dstSubresource);
+  SERIALISE_MEMBER(dstOffset);
+  SERIALISE_MEMBER(extent);
+}
+
+template <>
+void Deserialise(const VkImageResolve2KHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkResolveImageInfo2KHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_RESOLVE_IMAGE_INFO_2_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(srcImage);
+  SERIALISE_MEMBER(srcImageLayout);
+  SERIALISE_MEMBER(dstImage);
+  SERIALISE_MEMBER(dstImageLayout);
+  SERIALISE_MEMBER(regionCount);
+  SERIALISE_MEMBER_ARRAY(pRegions, regionCount);
+}
+
+template <>
+void Deserialise(const VkResolveImageInfo2KHR &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pRegions;
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkAttachmentDescription2 &el)
 {
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2);
@@ -8524,9 +8740,12 @@ INSTANTIATE_SERIALISE_TYPE(VkBindImageMemoryInfo);
 INSTANTIATE_SERIALISE_TYPE(VkBindImageMemorySwapchainInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkBindImagePlaneMemoryInfo);
 INSTANTIATE_SERIALISE_TYPE(VkBindSparseInfo);
+INSTANTIATE_SERIALISE_TYPE(VkBlitImageInfo2KHR);
+INSTANTIATE_SERIALISE_TYPE(VkBufferCopy2KHR);
 INSTANTIATE_SERIALISE_TYPE(VkBufferCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkBufferDeviceAddressCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkBufferDeviceAddressInfo);
+INSTANTIATE_SERIALISE_TYPE(VkBufferImageCopy2KHR);
 INSTANTIATE_SERIALISE_TYPE(VkBufferMemoryBarrier);
 INSTANTIATE_SERIALISE_TYPE(VkBufferMemoryRequirementsInfo2);
 INSTANTIATE_SERIALISE_TYPE(VkBufferOpaqueCaptureAddressCreateInfo);
@@ -8539,7 +8758,11 @@ INSTANTIATE_SERIALISE_TYPE(VkCommandBufferInheritanceInfo);
 INSTANTIATE_SERIALISE_TYPE(VkCommandPoolCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkComputePipelineCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkConditionalRenderingBeginInfoEXT);
+INSTANTIATE_SERIALISE_TYPE(VkCopyBufferInfo2KHR);
+INSTANTIATE_SERIALISE_TYPE(VkCopyBufferToImageInfo2KHR);
 INSTANTIATE_SERIALISE_TYPE(VkCopyDescriptorSet);
+INSTANTIATE_SERIALISE_TYPE(VkCopyImageInfo2KHR);
+INSTANTIATE_SERIALISE_TYPE(VkCopyImageToBufferInfo2KHR);
 INSTANTIATE_SERIALISE_TYPE(VkDebugMarkerMarkerInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkDebugMarkerObjectNameInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkDebugMarkerObjectTagInfoEXT);
@@ -8605,12 +8828,15 @@ INSTANTIATE_SERIALISE_TYPE(VkFramebufferAttachmentsCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkFramebufferCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkGraphicsPipelineCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkHdrMetadataEXT);
+INSTANTIATE_SERIALISE_TYPE(VkImageBlit2KHR);
+INSTANTIATE_SERIALISE_TYPE(VkImageCopy2KHR);
 INSTANTIATE_SERIALISE_TYPE(VkImageCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkImageFormatListCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkImageFormatProperties2);
 INSTANTIATE_SERIALISE_TYPE(VkImageMemoryBarrier);
 INSTANTIATE_SERIALISE_TYPE(VkImageMemoryRequirementsInfo2);
 INSTANTIATE_SERIALISE_TYPE(VkImagePlaneMemoryRequirementsInfo);
+INSTANTIATE_SERIALISE_TYPE(VkImageResolve2KHR);
 INSTANTIATE_SERIALISE_TYPE(VkImageSparseMemoryRequirementsInfo2);
 INSTANTIATE_SERIALISE_TYPE(VkImageStencilUsageCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkImageSwapchainCreateInfoKHR);
@@ -8775,6 +9001,7 @@ INSTANTIATE_SERIALISE_TYPE(VkRenderPassFragmentDensityMapCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkRenderPassInputAttachmentAspectCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkRenderPassMultiviewCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkRenderPassSampleLocationsBeginInfoEXT);
+INSTANTIATE_SERIALISE_TYPE(VkResolveImageInfo2KHR);
 INSTANTIATE_SERIALISE_TYPE(VkSampleLocationsInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkSamplerCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkSamplerCustomBorderColorCreateInfoEXT);

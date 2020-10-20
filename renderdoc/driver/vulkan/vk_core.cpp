@@ -988,6 +988,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, VK_KHR_BUFFER_DEVICE_ADDRESS_SPEC_VERSION,
     },
     {
+        VK_KHR_COPY_COMMANDS_2_EXTENSION_NAME, VK_KHR_COPY_COMMANDS_2_SPEC_VERSION,
+    },
+    {
         VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME, VK_KHR_CREATE_RENDERPASS_2_SPEC_VERSION,
     },
     {
@@ -3213,6 +3216,19 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       return Serialise_vkCmdSetStencilOpEXT(ser, VK_NULL_HANDLE, VK_STENCIL_FACE_FLAG_BITS_MAX_ENUM,
                                             VK_STENCIL_OP_MAX_ENUM, VK_STENCIL_OP_MAX_ENUM,
                                             VK_STENCIL_OP_MAX_ENUM, VK_COMPARE_OP_MAX_ENUM);
+
+    case VulkanChunk::vkCmdCopyBuffer2KHR:
+      return Serialise_vkCmdCopyBuffer2KHR(ser, VK_NULL_HANDLE, NULL);
+    case VulkanChunk::vkCmdCopyImage2KHR:
+      return Serialise_vkCmdCopyImage2KHR(ser, VK_NULL_HANDLE, NULL);
+    case VulkanChunk::vkCmdCopyBufferToImage2KHR:
+      return Serialise_vkCmdCopyBufferToImage2KHR(ser, VK_NULL_HANDLE, NULL);
+    case VulkanChunk::vkCmdCopyImageToBuffer2KHR:
+      return Serialise_vkCmdCopyImageToBuffer2KHR(ser, VK_NULL_HANDLE, NULL);
+    case VulkanChunk::vkCmdBlitImage2KHR:
+      return Serialise_vkCmdBlitImage2KHR(ser, VK_NULL_HANDLE, NULL);
+    case VulkanChunk::vkCmdResolveImage2KHR:
+      return Serialise_vkCmdResolveImage2KHR(ser, VK_NULL_HANDLE, NULL);
 
     // chunks that are reserved but not yet serialised
     case VulkanChunk::vkResetCommandPool:

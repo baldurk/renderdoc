@@ -2387,4 +2387,18 @@ public:
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetStencilOpEXT, VkCommandBuffer commandBuffer,
                                 VkStencilFaceFlags faceMask, VkStencilOp failOp, VkStencilOp passOp,
                                 VkStencilOp depthFailOp, VkCompareOp compareOp);
+
+  // VK_KHR_copy_commands2
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyBuffer2KHR, VkCommandBuffer commandBuffer,
+                                const VkCopyBufferInfo2KHR *pCopyBufferInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyImage2KHR, VkCommandBuffer commandBuffer,
+                                const VkCopyImageInfo2KHR *pCopyImageInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyBufferToImage2KHR, VkCommandBuffer commandBuffer,
+                                const VkCopyBufferToImageInfo2KHR *pCopyBufferToImageInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyImageToBuffer2KHR, VkCommandBuffer commandBuffer,
+                                const VkCopyImageToBufferInfo2KHR *pCopyImageToBufferInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBlitImage2KHR, VkCommandBuffer commandBuffer,
+                                const VkBlitImageInfo2KHR *pBlitImageInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdResolveImage2KHR, VkCommandBuffer commandBuffer,
+                                const VkResolveImageInfo2KHR *pResolveImageInfo);
 };

@@ -525,7 +525,8 @@
   DeclExt(EXT_robustness2);                     \
   DeclExt(EXT_pipeline_creation_cache_control); \
   DeclExt(EXT_private_data);                    \
-  DeclExt(EXT_extended_dynamic_state);
+  DeclExt(EXT_extended_dynamic_state);          \
+  DeclExt(KHR_copy_commands2);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -623,7 +624,8 @@
   CheckExt(EXT_robustness2, VKXX);                     \
   CheckExt(EXT_pipeline_creation_cache_control, VKXX); \
   CheckExt(EXT_private_data, VKXX);                    \
-  CheckExt(EXT_extended_dynamic_state, VKXX);
+  CheckExt(EXT_extended_dynamic_state, VKXX);          \
+  CheckExt(KHR_copy_commands2, VKXX);
 
 #define HookInitVulkanInstanceExts_PhysDev()                                                         \
   HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                                \
@@ -851,6 +853,12 @@
   HookInitExtension(EXT_extended_dynamic_state, CmdSetDepthBoundsTestEnableEXT);                   \
   HookInitExtension(EXT_extended_dynamic_state, CmdSetStencilTestEnableEXT);                       \
   HookInitExtension(EXT_extended_dynamic_state, CmdSetStencilOpEXT);                               \
+  HookInitExtension(KHR_copy_commands2, CmdCopyBuffer2KHR);                                        \
+  HookInitExtension(KHR_copy_commands2, CmdCopyImage2KHR);                                         \
+  HookInitExtension(KHR_copy_commands2, CmdCopyBufferToImage2KHR);                                 \
+  HookInitExtension(KHR_copy_commands2, CmdCopyImageToBuffer2KHR);                                 \
+  HookInitExtension(KHR_copy_commands2, CmdBlitImage2KHR);                                         \
+  HookInitExtension(KHR_copy_commands2, CmdResolveImage2KHR);                                      \
   HookInitExtension_Device_Win32();                                                                \
   HookInitExtension_Device_Linux();                                                                \
   HookInitExtension_Device_GGP();                                                                  \
@@ -1507,6 +1515,18 @@
   HookDefine6(void, vkCmdSetStencilOpEXT, VkCommandBuffer, commandBuffer, VkStencilFaceFlags,        \
               faceMask, VkStencilOp, failOp, VkStencilOp, passOp, VkStencilOp, depthFailOp,          \
               VkCompareOp, compareOp);                                                               \
+  HookDefine2(void, vkCmdCopyBuffer2KHR, VkCommandBuffer, commandBuffer,                             \
+              const VkCopyBufferInfo2KHR *, pCopyBufferInfo);                                        \
+  HookDefine2(void, vkCmdCopyImage2KHR, VkCommandBuffer, commandBuffer,                              \
+              const VkCopyImageInfo2KHR *, pCopyImageInfo);                                          \
+  HookDefine2(void, vkCmdCopyBufferToImage2KHR, VkCommandBuffer, commandBuffer,                      \
+              const VkCopyBufferToImageInfo2KHR *, pCopyBufferToImageInfo);                          \
+  HookDefine2(void, vkCmdCopyImageToBuffer2KHR, VkCommandBuffer, commandBuffer,                      \
+              const VkCopyImageToBufferInfo2KHR *, pCopyImageToBufferInfo);                          \
+  HookDefine2(void, vkCmdBlitImage2KHR, VkCommandBuffer, commandBuffer,                              \
+              const VkBlitImageInfo2KHR *, pBlitImageInfo);                                          \
+  HookDefine2(void, vkCmdResolveImage2KHR, VkCommandBuffer, commandBuffer,                           \
+              const VkResolveImageInfo2KHR *, pResolveImageInfo);                                    \
   HookDefine_Win32();                                                                                \
   HookDefine_Linux();                                                                                \
   HookDefine_GGP();                                                                                  \
