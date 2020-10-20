@@ -208,7 +208,7 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
        ext == "SPV_EXT_fragment_invocation_density" ||
        ext == "SPV_KHR_no_integer_wrap_decoration" || ext == "SPV_KHR_float_controls" ||
        ext == "SPV_KHR_shader_clock" || ext == "SPV_KHR_non_semantic_info" ||
-       ext == "SPV_KHR_terminate_invocation")
+       ext == "SPV_KHR_terminate_invocation" || ext == "SPV_EXT_shader_atomic_float_add")
     {
       continue;
     }
@@ -286,7 +286,7 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       case Capability::VulkanMemoryModel:
       case Capability::VulkanMemoryModelDeviceScope:
       case Capability::DemoteToHelperInvocationEXT:
-      case Capability::Float64:
+      case Capability::AtomicFloat32AddEXT:
       {
         supported = true;
         break;
@@ -307,12 +307,10 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       case Capability::StorageBuffer8BitAccess:
       case Capability::UniformAndStorageBuffer8BitAccess:
       case Capability::StoragePushConstant8:
-
-      // atomics
+      case Capability::Float64:
+      case Capability::AtomicFloat64AddEXT:
       case Capability::Int64Atomics:
       case Capability::Int64ImageEXT:
-      case Capability::AtomicFloat32AddEXT:
-      case Capability::AtomicFloat64AddEXT:
 
       // physical pointers
       case Capability::PhysicalStorageBufferAddresses:

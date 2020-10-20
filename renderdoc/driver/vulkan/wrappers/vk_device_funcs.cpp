@@ -2652,6 +2652,24 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         CHECK_PHYS_EXT_FEATURE(robustImageAccess);
       }
       END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceShaderAtomicFloatFeaturesEXT,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_FLOAT_FEATURES_EXT);
+      {
+        CHECK_PHYS_EXT_FEATURE(shaderBufferFloat32Atomics);
+        CHECK_PHYS_EXT_FEATURE(shaderBufferFloat32AtomicAdd);
+        CHECK_PHYS_EXT_FEATURE(shaderBufferFloat64Atomics);
+        CHECK_PHYS_EXT_FEATURE(shaderBufferFloat64AtomicAdd);
+        CHECK_PHYS_EXT_FEATURE(shaderSharedFloat32Atomics);
+        CHECK_PHYS_EXT_FEATURE(shaderSharedFloat32AtomicAdd);
+        CHECK_PHYS_EXT_FEATURE(shaderSharedFloat64Atomics);
+        CHECK_PHYS_EXT_FEATURE(shaderSharedFloat64AtomicAdd);
+        CHECK_PHYS_EXT_FEATURE(shaderImageFloat32Atomics);
+        CHECK_PHYS_EXT_FEATURE(shaderImageFloat32AtomicAdd);
+        CHECK_PHYS_EXT_FEATURE(sparseImageFloat32Atomics);
+        CHECK_PHYS_EXT_FEATURE(sparseImageFloat32AtomicAdd);
+      }
+      END_PHYS_EXT_CHECK();
     }
 
     if(availFeatures.depthClamp)

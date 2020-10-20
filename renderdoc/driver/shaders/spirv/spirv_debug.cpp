@@ -2871,6 +2871,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       }
       break;
     }
+    case Op::AtomicFAddEXT:
     case Op::AtomicIAdd:
     case Op::AtomicISub:
     case Op::AtomicSMin:
@@ -2930,6 +2931,8 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         result.value.uv[0] |= value.value.uv[0];
       else if(opdata.op == Op::AtomicXor)
         result.value.uv[0] ^= value.value.uv[0];
+      else if(opdata.op == Op::AtomicFAddEXT)
+        result.value.fv[0] += value.value.fv[0];
 
       // write the new value
       if(ptr.members.empty())
@@ -3083,7 +3086,6 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       break;
     }
 
-    case Op::AtomicFAddEXT:
     case Op::GroupIAddNonUniformAMD:
     case Op::GroupFAddNonUniformAMD:
     case Op::GroupFMinNonUniformAMD:
