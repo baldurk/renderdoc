@@ -381,7 +381,7 @@ struct ResourceRecord
     if(!dataWritten)
     {
       for(auto it = m_Chunks.begin(); it != m_Chunks.end(); ++it)
-        recordlist[it->first] = it->second;
+        recordlist[it->id] = it->chunk;
     }
   }
 
@@ -395,7 +395,7 @@ struct ResourceRecord
     if(ID == 0)
       ID = GetID();
     LockChunks();
-    m_Chunks.push_back({ID, chunk});
+    m_Chunks.push_back(StoredChunk(ID, chunk));
     UnlockChunks();
   }
 
@@ -428,7 +428,7 @@ struct ResourceRecord
     other->LockChunks();
 
     for(auto it = other->m_Chunks.begin(); it != other->m_Chunks.end(); ++it)
-      AddChunk(it->second->Duplicate());
+      AddChunk(it->chunk->Duplicate());
 
     for(auto it = other->Parents.begin(); it != other->Parents.end(); ++it)
       AddParent(*it);
@@ -441,7 +441,7 @@ struct ResourceRecord
   {
     LockChunks();
     for(auto it = m_Chunks.begin(); it != m_Chunks.end(); ++it)
-      it->second->Delete();
+      it->chunk->Delete(it->fromAllocator != 0);
     m_Chunks.clear();
     UnlockChunks();
   }
@@ -449,13 +449,13 @@ struct ResourceRecord
   Chunk *GetLastChunk() const
   {
     RDCASSERT(HasChunks());
-    return m_Chunks.back().second;
+    return m_Chunks.back().chunk;
   }
 
   int64_t GetLastChunkID() const
   {
     RDCASSERT(HasChunks());
-    return m_Chunks.back().first;
+    return m_Chunks.back().id;
   }
 
   void PopChunk() { m_Chunks.pop_back(); }
@@ -509,7 +509,22 @@ protected:
     return Atomic::Inc64(&globalIDCounter);
   }
 
-  rdcarray<rdcpair<int64_t, Chunk *>> m_Chunks;
+  struct StoredChunk
+  {
+    StoredChunk(int64_t i, Chunk *c)
+    {
+      id = i;
+      // we store this here because by the time it comes to delete the chunks the allocator may have
+      // already been reset and the contents trashed.
+      fromAllocator = c->IsFromAllocator() ? 1 : 0;
+      chunk = c;
+    }
+    int64_t id : 63;
+    int64_t fromAllocator : 1;
+    Chunk *chunk;
+  };
+
+  rdcarray<StoredChunk> m_Chunks;
   Threading::CriticalSection *m_ChunkLock;
 
   std::map<ResourceId, FrameRefType> m_FrameRefs;

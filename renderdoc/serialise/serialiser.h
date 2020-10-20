@@ -1537,8 +1537,7 @@ class Chunk
   Chunk(bool fromAllocator) : m_FromAllocator(fromAllocator) {}
   ~Chunk()
   {
-    if(!m_FromAllocator)
-      FreeAlignedBuffer(m_Data);
+    FreeAlignedBuffer(m_Data);
 
 #if ENABLED(RDOC_DEVEL)
     Atomic::Dec64(&m_LiveChunks);
@@ -1547,11 +1546,11 @@ class Chunk
   }
 
 public:
-  void Delete()
+  void Delete() { Delete(m_FromAllocator); }
+  bool IsFromAllocator() { return m_FromAllocator; }
+  void Delete(bool fromAllocator)
   {
-    if(m_FromAllocator)
-      this->~Chunk();
-    else
+    if(!fromAllocator)
       delete this;
   }
 

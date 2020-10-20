@@ -187,7 +187,7 @@ struct D3D11ResourceRecord : public ResourceRecord
     if(!dataWritten)
     {
       for(auto it = m_Chunks.begin(); it != m_Chunks.end(); ++it)
-        recordlist[it->first] = it->second;
+        recordlist[it->id] = it->chunk;
 
       for(int i = 0; i < NumSubResources; i++)
         SubResources[i]->Insert(recordlist);

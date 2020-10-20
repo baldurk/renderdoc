@@ -1006,10 +1006,13 @@ Chunk *Chunk::Create(Serialiser<SerialiserMode::Writing> &ser, uint16_t chunkTyp
   ret->m_ChunkType = chunkType;
   ret->m_Data = data;
 
+  if(allocator == NULL)
+  {
 #if ENABLED(RDOC_DEVEL)
-  Atomic::Inc64(&m_LiveChunks);
-  Atomic::ExchAdd64(&m_TotalMem, int64_t(length));
+    Atomic::Inc64(&m_LiveChunks);
+    Atomic::ExchAdd64(&m_TotalMem, int64_t(length));
 #endif
+  }
 
   return ret;
 }
