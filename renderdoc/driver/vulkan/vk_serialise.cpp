@@ -697,6 +697,10 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DEMOTE_TO_HELPER_INVOCATION_FEATURES_EXT,      \
                VkPhysicalDeviceShaderDemoteToHelperInvocationFeaturesEXT)                              \
                                                                                                        \
+  /* VK_EXT_shader_image_atomic_int64 */                                                               \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_IMAGE_ATOMIC_INT64_FEATURES_EXT,               \
+               VkPhysicalDeviceShaderImageAtomicInt64FeaturesEXT)                                      \
+                                                                                                       \
   /* VK_EXT_separate_stencil_usage */                                                                  \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_STENCIL_USAGE_CREATE_INFO, VkImageStencilUsageCreateInfo)       \
                                                                                                        \
@@ -1143,9 +1147,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT)                  \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT)              \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_PROPERTIES_EXT)                        \
-                                                                                                       \
-  /* VK_EXT_shader_image_atomic_int64 */                                                               \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_IMAGE_ATOMIC_INT64_FEATURES_EXT)          \
                                                                                                        \
   /* VK_EXT_texture_compression_astc_hdr */                                                            \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXTURE_COMPRESSION_ASTC_HDR_FEATURES_EXT)       \
@@ -7721,6 +7722,23 @@ void Deserialise(const VkPhysicalDeviceShaderAtomicFloatFeaturesEXT &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceShaderImageAtomicInt64FeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_IMAGE_ATOMIC_INT64_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(shaderImageInt64Atomics);
+  SERIALISE_MEMBER(sparseImageInt64Atomics);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceShaderImageAtomicInt64FeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPhysicalDeviceShaderAtomicInt64Features &el)
 {
   RDCASSERT(ser.IsReading() ||
@@ -8996,6 +9014,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderCorePropertiesAMD);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderDemoteToHelperInvocationFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderDrawParametersFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderFloat16Int8Features);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderImageAtomicInt64FeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderImageFootprintFeaturesNV);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderSubgroupExtendedTypesFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderTerminateInvocationFeaturesKHR);
