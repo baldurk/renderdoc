@@ -609,6 +609,10 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES,                            \
                VkPhysicalDeviceHostQueryResetFeatures)                                                 \
                                                                                                        \
+  /* VK_EXT_image_robustness */                                                                        \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_ROBUSTNESS_FEATURES_EXT,                        \
+               VkPhysicalDeviceImageRobustnessFeaturesEXT)                                             \
+                                                                                                       \
   /* VK_EXT_index_type_uint8 */                                                                        \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT,                        \
                VkPhysicalDeviceIndexTypeUint8FeaturesEXT)                                              \
@@ -1135,9 +1139,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT)                  \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT)              \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_PROPERTIES_EXT)                        \
-                                                                                                       \
-  /* VK_EXT_image_robustness */                                                                        \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_ROBUSTNESS_FEATURES_EXT)                   \
                                                                                                        \
   /* VK_EXT_shader_atomic_float */                                                                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_FLOAT_FEATURES_EXT)                \
@@ -5268,6 +5269,22 @@ void Deserialise(const VkImageFormatListCreateInfo &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceImageRobustnessFeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_ROBUSTNESS_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(robustImageAccess);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceImageRobustnessFeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPhysicalDeviceImagelessFramebufferFeatures &el)
 {
   RDCASSERT(ser.IsReading() ||
@@ -8915,6 +8932,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceHostQueryResetFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceIDProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceImageFormatInfo2);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceImagelessFramebufferFeatures);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceImageRobustnessFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceImageViewImageFormatInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceIndexTypeUint8FeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceLineRasterizationFeaturesEXT);
