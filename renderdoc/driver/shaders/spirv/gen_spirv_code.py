@@ -882,6 +882,7 @@ for inst in spirv['instructions']:
     stringise += '    STRINGISE_ENUM_CLASS({});\n'.format(inst['opname'][2:])
 
     result = -1
+    resultCount = 0
     resultType = -1
 
     used_ids += '    case rdcspv::Op::{}:\n'.format(inst['opname'][2:])
@@ -895,6 +896,9 @@ for inst in spirv['instructions']:
         for i,operand in enumerate(operands):
             if operand['kind'] == 'IdResult':
                 result = i+1
+                resultCount += 1
+            elif 'name' in operand and operand['name'][0:6] == 'result':
+                resultCount += 1
             if operand['kind'] == 'IdResultType':
                 resultType = i+1
 
@@ -906,7 +910,9 @@ for inst in spirv['instructions']:
 
         disassemble += '      OpDecoder decoded(it);\n'.format(inst['opname'][2:])
 
-        if resultType > 0 and result > 0:
+        if resultCount == 2:
+            raise ValueError("Unexpected multiple results without decoded opcode")
+        elif resultType > 0 and result > 0:
             disassemble += '      ret += declName(decoded.resultType, decoded.result) + " = ";\n'
         elif resultType > 0 and result == -1:
             raise ValueError("Unexpected result type without result")
@@ -933,7 +939,9 @@ for inst in spirv['instructions']:
 
         disassemble += '      Op{} decoded(it);\n'.format(inst['opname'][2:])
         
-        if resultType > 0 and result > 0:
+        if resultCount == 2:
+            disassemble += '      ret += declName(decoded.resultType, decoded.result0) + ", " + idName(decoded.result1) + " = ";\n'
+        elif resultType > 0 and result > 0:
             disassemble += '      ret += declName(decoded.resultType, decoded.result) + " = ";\n'
         elif resultType > 0 and result == -1:
             raise ValueError("Unexpected result type without result")

@@ -25,7 +25,7 @@
 /******************************************************************************
  * Generated from Khronos SPIR-V machine-readable JSON grammar.
  *
- * Copyright (c) 2014-2016 The Khronos Group Inc.
+ * Copyright (c) 2014-2020 The Khronos Group Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and/or associated documentation files (the "Materials"),
@@ -339,6 +339,41 @@ inline LoopControlAndParamDatas DecodeParam(const ConstIter &it, uint32_t &word)
     ret.partialCount = (uint32_t)it.word(word);
     word += 1;
   }
+  if(ret.flags & LoopControl::InitiationIntervalINTEL)
+  {
+    ret.initiationIntervalINTEL = (uint32_t)it.word(word);
+    word += 1;
+  }
+  if(ret.flags & LoopControl::MaxConcurrencyINTEL)
+  {
+    ret.maxConcurrencyINTEL = (uint32_t)it.word(word);
+    word += 1;
+  }
+  if(ret.flags & LoopControl::DependencyArrayINTEL)
+  {
+    ret.dependencyArrayINTEL = (uint32_t)it.word(word);
+    word += 1;
+  }
+  if(ret.flags & LoopControl::PipelineEnableINTEL)
+  {
+    ret.pipelineEnableINTEL = (uint32_t)it.word(word);
+    word += 1;
+  }
+  if(ret.flags & LoopControl::LoopCoalesceINTEL)
+  {
+    ret.loopCoalesceINTEL = (uint32_t)it.word(word);
+    word += 1;
+  }
+  if(ret.flags & LoopControl::MaxInterleavingINTEL)
+  {
+    ret.maxInterleavingINTEL = (uint32_t)it.word(word);
+    word += 1;
+  }
+  if(ret.flags & LoopControl::SpeculatedIterationsINTEL)
+  {
+    ret.speculatedIterationsINTEL = (uint32_t)it.word(word);
+    word += 1;
+  }
   return ret;
 }
 
@@ -369,6 +404,34 @@ inline void EncodeParam(rdcarray<uint32_t> &words, const LoopControlAndParamData
   {
     words.push_back((uint32_t)param.partialCount);
   }
+  if(param.flags & LoopControl::InitiationIntervalINTEL)
+  {
+    words.push_back((uint32_t)param.initiationIntervalINTEL);
+  }
+  if(param.flags & LoopControl::MaxConcurrencyINTEL)
+  {
+    words.push_back((uint32_t)param.maxConcurrencyINTEL);
+  }
+  if(param.flags & LoopControl::DependencyArrayINTEL)
+  {
+    words.push_back((uint32_t)param.dependencyArrayINTEL);
+  }
+  if(param.flags & LoopControl::PipelineEnableINTEL)
+  {
+    words.push_back((uint32_t)param.pipelineEnableINTEL);
+  }
+  if(param.flags & LoopControl::LoopCoalesceINTEL)
+  {
+    words.push_back((uint32_t)param.loopCoalesceINTEL);
+  }
+  if(param.flags & LoopControl::MaxInterleavingINTEL)
+  {
+    words.push_back((uint32_t)param.maxInterleavingINTEL);
+  }
+  if(param.flags & LoopControl::SpeculatedIterationsINTEL)
+  {
+    words.push_back((uint32_t)param.speculatedIterationsINTEL);
+  }
 }
 
 inline uint16_t ExtraWordCount(const LoopControl loopControl)
@@ -381,6 +444,13 @@ inline uint16_t ExtraWordCount(const LoopControl loopControl)
     case LoopControl::IterationMultiple: return 1;
     case LoopControl::PeelCount: return 1;
     case LoopControl::PartialCount: return 1;
+    case LoopControl::InitiationIntervalINTEL: return 1;
+    case LoopControl::MaxConcurrencyINTEL: return 1;
+    case LoopControl::DependencyArrayINTEL: return 1;
+    case LoopControl::PipelineEnableINTEL: return 1;
+    case LoopControl::LoopCoalesceINTEL: return 1;
+    case LoopControl::MaxInterleavingINTEL: return 1;
+    case LoopControl::SpeculatedIterationsINTEL: return 1;
     default: break;
   }
   return 0;
@@ -664,6 +734,47 @@ struct ExecutionModeParam<ExecutionMode::OutputPrimitivesNV>
   }
 };
 
+template<>
+struct ExecutionModeParam<ExecutionMode::MaxWorkgroupSizeINTEL>
+{
+  MaxWorkgroupSizeINTELParams maxWorkgroupSizeINTEL;
+  ExecutionModeParam(uint32_t max_x_size, uint32_t max_y_size, uint32_t max_z_size) {  maxWorkgroupSizeINTEL.max_x_size = max_x_size; maxWorkgroupSizeINTEL.max_y_size = max_y_size; maxWorkgroupSizeINTEL.max_z_size = max_z_size; }
+  operator ExecutionModeAndParamData()
+  {
+    ExecutionModeAndParamData ret(ExecutionMode::MaxWorkgroupSizeINTEL);
+    ret.maxWorkgroupSizeINTEL.max_x_size = maxWorkgroupSizeINTEL.max_x_size;
+    ret.maxWorkgroupSizeINTEL.max_y_size = maxWorkgroupSizeINTEL.max_y_size;
+    ret.maxWorkgroupSizeINTEL.max_z_size = maxWorkgroupSizeINTEL.max_z_size;
+    return ret;
+  }
+};
+
+template<>
+struct ExecutionModeParam<ExecutionMode::MaxWorkDimINTEL>
+{
+  uint32_t maxWorkDimINTEL;
+  ExecutionModeParam(uint32_t maxWorkDimINTELParam) {  maxWorkDimINTEL = maxWorkDimINTELParam; }
+  operator ExecutionModeAndParamData()
+  {
+    ExecutionModeAndParamData ret(ExecutionMode::MaxWorkDimINTEL);
+    ret.maxWorkDimINTEL = maxWorkDimINTEL;
+    return ret;
+  }
+};
+
+template<>
+struct ExecutionModeParam<ExecutionMode::NumSIMDWorkitemsINTEL>
+{
+  uint32_t numSIMDWorkitemsINTEL;
+  ExecutionModeParam(uint32_t numSIMDWorkitemsINTELParam) {  numSIMDWorkitemsINTEL = numSIMDWorkitemsINTELParam; }
+  operator ExecutionModeAndParamData()
+  {
+    ExecutionModeAndParamData ret(ExecutionMode::NumSIMDWorkitemsINTEL);
+    ret.numSIMDWorkitemsINTEL = numSIMDWorkitemsINTEL;
+    return ret;
+  }
+};
+
 
 
 template<>
@@ -745,6 +856,20 @@ inline ExecutionModeAndParamData DecodeParam(const ConstIter &it, uint32_t &word
       ret.outputPrimitivesNV = (uint32_t)it.word(word);
       word += 1;
       break;
+    case ExecutionMode::MaxWorkgroupSizeINTEL:
+      ret.maxWorkgroupSizeINTEL.max_x_size = (uint32_t)it.word(word+0);
+      ret.maxWorkgroupSizeINTEL.max_y_size = (uint32_t)it.word(word+1);
+      ret.maxWorkgroupSizeINTEL.max_z_size = (uint32_t)it.word(word+2);
+      word += 3;
+      break;
+    case ExecutionMode::MaxWorkDimINTEL:
+      ret.maxWorkDimINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
+    case ExecutionMode::NumSIMDWorkitemsINTEL:
+      ret.numSIMDWorkitemsINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
     default: break;
   }
   return ret;
@@ -809,6 +934,17 @@ inline void EncodeParam(rdcarray<uint32_t> &words, const ExecutionModeAndParamDa
     case ExecutionMode::OutputPrimitivesNV:
       words.push_back((uint32_t)param.outputPrimitivesNV);
       break;
+    case ExecutionMode::MaxWorkgroupSizeINTEL:
+      words.push_back((uint32_t)param.maxWorkgroupSizeINTEL.max_x_size);
+      words.push_back((uint32_t)param.maxWorkgroupSizeINTEL.max_y_size);
+      words.push_back((uint32_t)param.maxWorkgroupSizeINTEL.max_z_size);
+      break;
+    case ExecutionMode::MaxWorkDimINTEL:
+      words.push_back((uint32_t)param.maxWorkDimINTEL);
+      break;
+    case ExecutionMode::NumSIMDWorkitemsINTEL:
+      words.push_back((uint32_t)param.numSIMDWorkitemsINTEL);
+      break;
     default: break;
   }
 }
@@ -833,6 +969,9 @@ inline uint16_t ExtraWordCount(const ExecutionMode executionMode)
     case ExecutionMode::RoundingModeRTE: return 1;
     case ExecutionMode::RoundingModeRTZ: return 1;
     case ExecutionMode::OutputPrimitivesNV: return 1;
+    case ExecutionMode::MaxWorkgroupSizeINTEL: return 3;
+    case ExecutionMode::MaxWorkDimINTEL: return 1;
+    case ExecutionMode::NumSIMDWorkitemsINTEL: return 1;
     default: break;
   }
   return 0;
@@ -1174,6 +1313,84 @@ struct DecorationParam<Decoration::CounterBuffer>
   }
 };
 
+template<>
+struct DecorationParam<Decoration::NumbanksINTEL>
+{
+  uint32_t numbanksINTEL;
+  DecorationParam(uint32_t numbanksINTELParam) {  numbanksINTEL = numbanksINTELParam; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::NumbanksINTEL);
+    ret.numbanksINTEL = numbanksINTEL;
+    return ret;
+  }
+};
+
+template<>
+struct DecorationParam<Decoration::BankwidthINTEL>
+{
+  uint32_t bankwidthINTEL;
+  DecorationParam(uint32_t bankwidthINTELParam) {  bankwidthINTEL = bankwidthINTELParam; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::BankwidthINTEL);
+    ret.bankwidthINTEL = bankwidthINTEL;
+    return ret;
+  }
+};
+
+template<>
+struct DecorationParam<Decoration::MaxPrivateCopiesINTEL>
+{
+  uint32_t maxPrivateCopiesINTEL;
+  DecorationParam(uint32_t maxPrivateCopiesINTELParam) {  maxPrivateCopiesINTEL = maxPrivateCopiesINTELParam; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::MaxPrivateCopiesINTEL);
+    ret.maxPrivateCopiesINTEL = maxPrivateCopiesINTEL;
+    return ret;
+  }
+};
+
+template<>
+struct DecorationParam<Decoration::MaxReplicatesINTEL>
+{
+  uint32_t maxReplicatesINTEL;
+  DecorationParam(uint32_t maxReplicatesINTELParam) {  maxReplicatesINTEL = maxReplicatesINTELParam; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::MaxReplicatesINTEL);
+    ret.maxReplicatesINTEL = maxReplicatesINTEL;
+    return ret;
+  }
+};
+
+template<>
+struct DecorationParam<Decoration::BankBitsINTEL>
+{
+  uint32_t bankBitsINTEL;
+  DecorationParam(uint32_t bankBitsINTELParam) {  bankBitsINTEL = bankBitsINTELParam; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::BankBitsINTEL);
+    ret.bankBitsINTEL = bankBitsINTEL;
+    return ret;
+  }
+};
+
+template<>
+struct DecorationParam<Decoration::ForcePow2DepthINTEL>
+{
+  uint32_t forcePow2DepthINTEL;
+  DecorationParam(uint32_t forcePow2DepthINTELParam) {  forcePow2DepthINTEL = forcePow2DepthINTELParam; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::ForcePow2DepthINTEL);
+    ret.forcePow2DepthINTEL = forcePow2DepthINTEL;
+    return ret;
+  }
+};
+
 
 
 template<>
@@ -1281,6 +1498,30 @@ inline DecorationAndParamData DecodeParam(const ConstIter &it, uint32_t &word)
       ret.counterBuffer = Id::fromWord(it.word(word));
       word += 1;
       break;
+    case Decoration::NumbanksINTEL:
+      ret.numbanksINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
+    case Decoration::BankwidthINTEL:
+      ret.bankwidthINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
+    case Decoration::MaxPrivateCopiesINTEL:
+      ret.maxPrivateCopiesINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
+    case Decoration::MaxReplicatesINTEL:
+      ret.maxReplicatesINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
+    case Decoration::BankBitsINTEL:
+      ret.bankBitsINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
+    case Decoration::ForcePow2DepthINTEL:
+      ret.forcePow2DepthINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
     default: break;
   }
   return ret;
@@ -1363,6 +1604,24 @@ inline void EncodeParam(rdcarray<uint32_t> &words, const DecorationAndParamData 
     case Decoration::CounterBuffer:
       words.push_back(param.counterBuffer.value());
       break;
+    case Decoration::NumbanksINTEL:
+      words.push_back((uint32_t)param.numbanksINTEL);
+      break;
+    case Decoration::BankwidthINTEL:
+      words.push_back((uint32_t)param.bankwidthINTEL);
+      break;
+    case Decoration::MaxPrivateCopiesINTEL:
+      words.push_back((uint32_t)param.maxPrivateCopiesINTEL);
+      break;
+    case Decoration::MaxReplicatesINTEL:
+      words.push_back((uint32_t)param.maxReplicatesINTEL);
+      break;
+    case Decoration::BankBitsINTEL:
+      words.push_back((uint32_t)param.bankBitsINTEL);
+      break;
+    case Decoration::ForcePow2DepthINTEL:
+      words.push_back((uint32_t)param.forcePow2DepthINTEL);
+      break;
     default: break;
   }
 }
@@ -1395,6 +1654,12 @@ inline uint16_t ExtraWordCount(const Decoration decoration)
     case Decoration::MaxByteOffsetId: return 1;
     case Decoration::SecondaryViewportRelativeNV: return 1;
     case Decoration::CounterBuffer: return 1;
+    case Decoration::NumbanksINTEL: return 1;
+    case Decoration::BankwidthINTEL: return 1;
+    case Decoration::MaxPrivateCopiesINTEL: return 1;
+    case Decoration::MaxReplicatesINTEL: return 1;
+    case Decoration::BankBitsINTEL: return 1;
+    case Decoration::ForcePow2DepthINTEL: return 1;
     default: break;
   }
   return 0;
@@ -1409,6 +1674,12 @@ inline uint16_t OptionalWordCount(const GroupOperation val) { return val != Grou
 inline uint16_t OptionalWordCount(const KernelEnqueueFlags val) { return val != KernelEnqueueFlags::Invalid ? 1 : 0; }
 
 inline uint16_t OptionalWordCount(const Capability val) { return val != Capability::Invalid ? 1 : 0; }
+
+inline uint16_t OptionalWordCount(const RayQueryIntersection val) { return val != RayQueryIntersection::Invalid ? 1 : 0; }
+
+inline uint16_t OptionalWordCount(const RayQueryCommittedIntersectionType val) { return val != RayQueryCommittedIntersectionType::Invalid ? 1 : 0; }
+
+inline uint16_t OptionalWordCount(const RayQueryCandidateIntersectionType val) { return val != RayQueryCandidateIntersectionType::Invalid ? 1 : 0; }
 
 
 inline uint16_t ExtraWordCount(const rdcstr &val)
@@ -11645,6 +11916,26 @@ struct OpPtrDiff
   Id operand2;
 };
 
+struct OpTerminateInvocation
+{
+  OpTerminateInvocation(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpTerminateInvocation()
+      : op(Op::TerminateInvocation)
+      , wordCount(FixedWordSize)
+  {
+    // no operands
+  }
+
+  static constexpr Op OpCode = Op::TerminateInvocation;
+  static constexpr uint16_t FixedWordSize = 1U;
+  Op op;
+  uint16_t wordCount;
+  // no operands
+};
+
 struct OpSubgroupBallotKHR
 {
   OpSubgroupBallotKHR(const ConstIter &it)
@@ -11789,6 +12080,172 @@ struct OpSubgroupReadInvocationKHR
   IdResult result;
   Id value;
   Id index;
+};
+
+struct OpTypeRayQueryProvisionalKHR
+{
+  OpTypeRayQueryProvisionalKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpTypeRayQueryProvisionalKHR(IdResult result)
+      : op(Op::TypeRayQueryProvisionalKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->result = result;
+  }
+
+  static constexpr Op OpCode = Op::TypeRayQueryProvisionalKHR;
+  static constexpr uint16_t FixedWordSize = 2U;
+  Op op;
+  uint16_t wordCount;
+  IdResult result;
+};
+
+struct OpRayQueryInitializeKHR
+{
+  OpRayQueryInitializeKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpRayQueryInitializeKHR(Id rayQuery, Id accel, Id rayFlags, Id cullMask, Id rayOrigin, Id rayTMin, Id rayDirection, Id rayTMax)
+      : op(Op::RayQueryInitializeKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->rayQuery = rayQuery;
+    this->accel = accel;
+    this->rayFlags = rayFlags;
+    this->cullMask = cullMask;
+    this->rayOrigin = rayOrigin;
+    this->rayTMin = rayTMin;
+    this->rayDirection = rayDirection;
+    this->rayTMax = rayTMax;
+  }
+
+  static constexpr Op OpCode = Op::RayQueryInitializeKHR;
+  static constexpr uint16_t FixedWordSize = 9U;
+  Op op;
+  uint16_t wordCount;
+  Id rayQuery;
+  Id accel;
+  Id rayFlags;
+  Id cullMask;
+  Id rayOrigin;
+  Id rayTMin;
+  Id rayDirection;
+  Id rayTMax;
+};
+
+struct OpRayQueryTerminateKHR
+{
+  OpRayQueryTerminateKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpRayQueryTerminateKHR(Id rayQuery)
+      : op(Op::RayQueryTerminateKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->rayQuery = rayQuery;
+  }
+
+  static constexpr Op OpCode = Op::RayQueryTerminateKHR;
+  static constexpr uint16_t FixedWordSize = 2U;
+  Op op;
+  uint16_t wordCount;
+  Id rayQuery;
+};
+
+struct OpRayQueryGenerateIntersectionKHR
+{
+  OpRayQueryGenerateIntersectionKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpRayQueryGenerateIntersectionKHR(Id rayQuery, Id hitT)
+      : op(Op::RayQueryGenerateIntersectionKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->rayQuery = rayQuery;
+    this->hitT = hitT;
+  }
+
+  static constexpr Op OpCode = Op::RayQueryGenerateIntersectionKHR;
+  static constexpr uint16_t FixedWordSize = 3U;
+  Op op;
+  uint16_t wordCount;
+  Id rayQuery;
+  Id hitT;
+};
+
+struct OpRayQueryConfirmIntersectionKHR
+{
+  OpRayQueryConfirmIntersectionKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpRayQueryConfirmIntersectionKHR(Id rayQuery)
+      : op(Op::RayQueryConfirmIntersectionKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->rayQuery = rayQuery;
+  }
+
+  static constexpr Op OpCode = Op::RayQueryConfirmIntersectionKHR;
+  static constexpr uint16_t FixedWordSize = 2U;
+  Op op;
+  uint16_t wordCount;
+  Id rayQuery;
+};
+
+struct OpRayQueryProceedKHR
+{
+  OpRayQueryProceedKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpRayQueryProceedKHR(IdResultType resultType, IdResult result, Id rayQuery)
+      : op(Op::RayQueryProceedKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->rayQuery = rayQuery;
+  }
+
+  static constexpr Op OpCode = Op::RayQueryProceedKHR;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id rayQuery;
+};
+
+struct OpRayQueryGetIntersectionTypeKHR
+{
+  OpRayQueryGetIntersectionTypeKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpRayQueryGetIntersectionTypeKHR(IdResultType resultType, IdResult result, Id rayQuery, Id intersection)
+      : op(Op::RayQueryGetIntersectionTypeKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->rayQuery = rayQuery;
+    this->intersection = intersection;
+  }
+
+  static constexpr Op OpCode = Op::RayQueryGetIntersectionTypeKHR;
+  static constexpr uint16_t FixedWordSize = 5U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id rayQuery;
+  Id intersection;
 };
 
 struct OpGroupIAddNonUniformAMD
@@ -13216,6 +13673,70 @@ struct OpUMul32x16INTEL
   IdResult result;
   Id operand1;
   Id operand2;
+};
+
+struct OpFunctionPointerINTEL
+{
+  OpFunctionPointerINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpFunctionPointerINTEL(IdResultType resultType, IdResult result, Id function)
+      : op(Op::FunctionPointerINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->function = function;
+  }
+
+  static constexpr Op OpCode = Op::FunctionPointerINTEL;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id function;
+};
+
+struct OpFunctionPointerCallINTEL
+{
+  OpFunctionPointerCallINTEL(const ConstIter &it)
+  {
+    this->op = OpCode;
+    this->wordCount = (uint16_t)it.size();
+    this->resultType = Id::fromWord(it.word(1));
+    this->result = Id::fromWord(it.word(2));
+    uint32_t word = 3;
+    this->operand1 = MultiParam<Id>(it, word);
+  }
+  OpFunctionPointerCallINTEL(IdResultType resultType, IdResult result, const rdcarray<Id> &operand1 = {})
+      : op(Op::FunctionPointerCallINTEL)
+      , wordCount(MinWordSize + MultiWordCount(operand1))
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->operand1 = operand1;
+  }
+  operator Operation() const
+  {
+    rdcarray<uint32_t> words;
+    words.push_back(resultType.value());
+    words.push_back(result.value());
+    for(size_t i=0; i < operand1.size(); i++)
+    {
+      words.push_back(operand1[i].value());
+    }
+    return Operation(OpCode, words);
+  }
+
+  static constexpr Op OpCode = Op::FunctionPointerCallINTEL;
+  static constexpr uint16_t MinWordSize = 3U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  rdcarray<Id> operand1;
 };
 
 struct OpDecorateString
@@ -16320,6 +16841,578 @@ struct OpSubgroupAvcSicGetInterRawSadsINTEL
   IdResultType resultType;
   IdResult result;
   Id payload;
+};
+
+struct OpLoopControlINTEL
+{
+  OpLoopControlINTEL(const ConstIter &it)
+  {
+    this->op = OpCode;
+    this->wordCount = (uint16_t)it.size();
+    uint32_t word = 1;
+    this->loopControlParameters = MultiParam<uint32_t>(it, word);
+  }
+  OpLoopControlINTEL(const rdcarray<uint32_t> &loopControlParameters = {})
+      : op(Op::LoopControlINTEL)
+      , wordCount(MinWordSize + MultiWordCount(loopControlParameters))
+  {
+    this->loopControlParameters = loopControlParameters;
+  }
+  operator Operation() const
+  {
+    rdcarray<uint32_t> words;
+    for(size_t i=0; i < loopControlParameters.size(); i++)
+    {
+      words.push_back((uint32_t)loopControlParameters[i]);
+    }
+    return Operation(OpCode, words);
+  }
+
+  static constexpr Op OpCode = Op::LoopControlINTEL;
+  static constexpr uint16_t MinWordSize = 1U;
+  Op op;
+  uint16_t wordCount;
+  rdcarray<uint32_t> loopControlParameters;
+};
+
+struct OpReadPipeBlockingINTEL
+{
+  OpReadPipeBlockingINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpReadPipeBlockingINTEL(IdResultType resultType, IdResult result, Id packetSize, Id packetAlignment)
+      : op(Op::ReadPipeBlockingINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->packetSize = packetSize;
+    this->packetAlignment = packetAlignment;
+  }
+
+  static constexpr Op OpCode = Op::ReadPipeBlockingINTEL;
+  static constexpr uint16_t FixedWordSize = 5U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id packetSize;
+  Id packetAlignment;
+};
+
+struct OpWritePipeBlockingINTEL
+{
+  OpWritePipeBlockingINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpWritePipeBlockingINTEL(IdResultType resultType, IdResult result, Id packetSize, Id packetAlignment)
+      : op(Op::WritePipeBlockingINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->packetSize = packetSize;
+    this->packetAlignment = packetAlignment;
+  }
+
+  static constexpr Op OpCode = Op::WritePipeBlockingINTEL;
+  static constexpr uint16_t FixedWordSize = 5U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id packetSize;
+  Id packetAlignment;
+};
+
+struct OpFPGARegINTEL
+{
+  OpFPGARegINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpFPGARegINTEL(IdResultType resultType, IdResult result0, Id result1, Id input)
+      : op(Op::FPGARegINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result0 = result0;
+    this->result1 = result1;
+    this->input = input;
+  }
+
+  static constexpr Op OpCode = Op::FPGARegINTEL;
+  static constexpr uint16_t FixedWordSize = 5U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result0;
+  Id result1;
+  Id input;
+};
+
+struct OpRayQueryGetRayTMinKHR
+{
+  OpRayQueryGetRayTMinKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpRayQueryGetRayTMinKHR(IdResultType resultType, IdResult result, Id rayQuery)
+      : op(Op::RayQueryGetRayTMinKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->rayQuery = rayQuery;
+  }
+
+  static constexpr Op OpCode = Op::RayQueryGetRayTMinKHR;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id rayQuery;
+};
+
+struct OpRayQueryGetRayFlagsKHR
+{
+  OpRayQueryGetRayFlagsKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpRayQueryGetRayFlagsKHR(IdResultType resultType, IdResult result, Id rayQuery)
+      : op(Op::RayQueryGetRayFlagsKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->rayQuery = rayQuery;
+  }
+
+  static constexpr Op OpCode = Op::RayQueryGetRayFlagsKHR;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id rayQuery;
+};
+
+struct OpRayQueryGetIntersectionTKHR
+{
+  OpRayQueryGetIntersectionTKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpRayQueryGetIntersectionTKHR(IdResultType resultType, IdResult result, Id rayQuery, Id intersection)
+      : op(Op::RayQueryGetIntersectionTKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->rayQuery = rayQuery;
+    this->intersection = intersection;
+  }
+
+  static constexpr Op OpCode = Op::RayQueryGetIntersectionTKHR;
+  static constexpr uint16_t FixedWordSize = 5U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id rayQuery;
+  Id intersection;
+};
+
+struct OpRayQueryGetIntersectionInstanceCustomIndexKHR
+{
+  OpRayQueryGetIntersectionInstanceCustomIndexKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpRayQueryGetIntersectionInstanceCustomIndexKHR(IdResultType resultType, IdResult result, Id rayQuery, Id intersection)
+      : op(Op::RayQueryGetIntersectionInstanceCustomIndexKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->rayQuery = rayQuery;
+    this->intersection = intersection;
+  }
+
+  static constexpr Op OpCode = Op::RayQueryGetIntersectionInstanceCustomIndexKHR;
+  static constexpr uint16_t FixedWordSize = 5U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id rayQuery;
+  Id intersection;
+};
+
+struct OpRayQueryGetIntersectionInstanceIdKHR
+{
+  OpRayQueryGetIntersectionInstanceIdKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpRayQueryGetIntersectionInstanceIdKHR(IdResultType resultType, IdResult result, Id rayQuery, Id intersection)
+      : op(Op::RayQueryGetIntersectionInstanceIdKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->rayQuery = rayQuery;
+    this->intersection = intersection;
+  }
+
+  static constexpr Op OpCode = Op::RayQueryGetIntersectionInstanceIdKHR;
+  static constexpr uint16_t FixedWordSize = 5U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id rayQuery;
+  Id intersection;
+};
+
+struct OpRayQueryGetIntersectionInstanceShaderBindingTableRecordOffsetKHR
+{
+  OpRayQueryGetIntersectionInstanceShaderBindingTableRecordOffsetKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpRayQueryGetIntersectionInstanceShaderBindingTableRecordOffsetKHR(IdResultType resultType, IdResult result, Id rayQuery, Id intersection)
+      : op(Op::RayQueryGetIntersectionInstanceShaderBindingTableRecordOffsetKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->rayQuery = rayQuery;
+    this->intersection = intersection;
+  }
+
+  static constexpr Op OpCode = Op::RayQueryGetIntersectionInstanceShaderBindingTableRecordOffsetKHR;
+  static constexpr uint16_t FixedWordSize = 5U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id rayQuery;
+  Id intersection;
+};
+
+struct OpRayQueryGetIntersectionGeometryIndexKHR
+{
+  OpRayQueryGetIntersectionGeometryIndexKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpRayQueryGetIntersectionGeometryIndexKHR(IdResultType resultType, IdResult result, Id rayQuery, Id intersection)
+      : op(Op::RayQueryGetIntersectionGeometryIndexKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->rayQuery = rayQuery;
+    this->intersection = intersection;
+  }
+
+  static constexpr Op OpCode = Op::RayQueryGetIntersectionGeometryIndexKHR;
+  static constexpr uint16_t FixedWordSize = 5U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id rayQuery;
+  Id intersection;
+};
+
+struct OpRayQueryGetIntersectionPrimitiveIndexKHR
+{
+  OpRayQueryGetIntersectionPrimitiveIndexKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpRayQueryGetIntersectionPrimitiveIndexKHR(IdResultType resultType, IdResult result, Id rayQuery, Id intersection)
+      : op(Op::RayQueryGetIntersectionPrimitiveIndexKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->rayQuery = rayQuery;
+    this->intersection = intersection;
+  }
+
+  static constexpr Op OpCode = Op::RayQueryGetIntersectionPrimitiveIndexKHR;
+  static constexpr uint16_t FixedWordSize = 5U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id rayQuery;
+  Id intersection;
+};
+
+struct OpRayQueryGetIntersectionBarycentricsKHR
+{
+  OpRayQueryGetIntersectionBarycentricsKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpRayQueryGetIntersectionBarycentricsKHR(IdResultType resultType, IdResult result, Id rayQuery, Id intersection)
+      : op(Op::RayQueryGetIntersectionBarycentricsKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->rayQuery = rayQuery;
+    this->intersection = intersection;
+  }
+
+  static constexpr Op OpCode = Op::RayQueryGetIntersectionBarycentricsKHR;
+  static constexpr uint16_t FixedWordSize = 5U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id rayQuery;
+  Id intersection;
+};
+
+struct OpRayQueryGetIntersectionFrontFaceKHR
+{
+  OpRayQueryGetIntersectionFrontFaceKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpRayQueryGetIntersectionFrontFaceKHR(IdResultType resultType, IdResult result, Id rayQuery, Id intersection)
+      : op(Op::RayQueryGetIntersectionFrontFaceKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->rayQuery = rayQuery;
+    this->intersection = intersection;
+  }
+
+  static constexpr Op OpCode = Op::RayQueryGetIntersectionFrontFaceKHR;
+  static constexpr uint16_t FixedWordSize = 5U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id rayQuery;
+  Id intersection;
+};
+
+struct OpRayQueryGetIntersectionCandidateAABBOpaqueKHR
+{
+  OpRayQueryGetIntersectionCandidateAABBOpaqueKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpRayQueryGetIntersectionCandidateAABBOpaqueKHR(IdResultType resultType, IdResult result, Id rayQuery)
+      : op(Op::RayQueryGetIntersectionCandidateAABBOpaqueKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->rayQuery = rayQuery;
+  }
+
+  static constexpr Op OpCode = Op::RayQueryGetIntersectionCandidateAABBOpaqueKHR;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id rayQuery;
+};
+
+struct OpRayQueryGetIntersectionObjectRayDirectionKHR
+{
+  OpRayQueryGetIntersectionObjectRayDirectionKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpRayQueryGetIntersectionObjectRayDirectionKHR(IdResultType resultType, IdResult result, Id rayQuery, Id intersection)
+      : op(Op::RayQueryGetIntersectionObjectRayDirectionKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->rayQuery = rayQuery;
+    this->intersection = intersection;
+  }
+
+  static constexpr Op OpCode = Op::RayQueryGetIntersectionObjectRayDirectionKHR;
+  static constexpr uint16_t FixedWordSize = 5U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id rayQuery;
+  Id intersection;
+};
+
+struct OpRayQueryGetIntersectionObjectRayOriginKHR
+{
+  OpRayQueryGetIntersectionObjectRayOriginKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpRayQueryGetIntersectionObjectRayOriginKHR(IdResultType resultType, IdResult result, Id rayQuery, Id intersection)
+      : op(Op::RayQueryGetIntersectionObjectRayOriginKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->rayQuery = rayQuery;
+    this->intersection = intersection;
+  }
+
+  static constexpr Op OpCode = Op::RayQueryGetIntersectionObjectRayOriginKHR;
+  static constexpr uint16_t FixedWordSize = 5U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id rayQuery;
+  Id intersection;
+};
+
+struct OpRayQueryGetWorldRayDirectionKHR
+{
+  OpRayQueryGetWorldRayDirectionKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpRayQueryGetWorldRayDirectionKHR(IdResultType resultType, IdResult result, Id rayQuery)
+      : op(Op::RayQueryGetWorldRayDirectionKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->rayQuery = rayQuery;
+  }
+
+  static constexpr Op OpCode = Op::RayQueryGetWorldRayDirectionKHR;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id rayQuery;
+};
+
+struct OpRayQueryGetWorldRayOriginKHR
+{
+  OpRayQueryGetWorldRayOriginKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpRayQueryGetWorldRayOriginKHR(IdResultType resultType, IdResult result, Id rayQuery)
+      : op(Op::RayQueryGetWorldRayOriginKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->rayQuery = rayQuery;
+  }
+
+  static constexpr Op OpCode = Op::RayQueryGetWorldRayOriginKHR;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id rayQuery;
+};
+
+struct OpRayQueryGetIntersectionObjectToWorldKHR
+{
+  OpRayQueryGetIntersectionObjectToWorldKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpRayQueryGetIntersectionObjectToWorldKHR(IdResultType resultType, IdResult result, Id rayQuery, Id intersection)
+      : op(Op::RayQueryGetIntersectionObjectToWorldKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->rayQuery = rayQuery;
+    this->intersection = intersection;
+  }
+
+  static constexpr Op OpCode = Op::RayQueryGetIntersectionObjectToWorldKHR;
+  static constexpr uint16_t FixedWordSize = 5U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id rayQuery;
+  Id intersection;
+};
+
+struct OpRayQueryGetIntersectionWorldToObjectKHR
+{
+  OpRayQueryGetIntersectionWorldToObjectKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpRayQueryGetIntersectionWorldToObjectKHR(IdResultType resultType, IdResult result, Id rayQuery, Id intersection)
+      : op(Op::RayQueryGetIntersectionWorldToObjectKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->rayQuery = rayQuery;
+    this->intersection = intersection;
+  }
+
+  static constexpr Op OpCode = Op::RayQueryGetIntersectionWorldToObjectKHR;
+  static constexpr uint16_t FixedWordSize = 5U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id rayQuery;
+  Id intersection;
+};
+
+struct OpAtomicFAddEXT
+{
+  OpAtomicFAddEXT(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpAtomicFAddEXT(IdResultType resultType, IdResult result, Id pointer, IdScope memory, IdMemorySemantics semantics, Id value)
+      : op(Op::AtomicFAddEXT)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->pointer = pointer;
+    this->memory = memory;
+    this->semantics = semantics;
+    this->value = value;
+  }
+
+  static constexpr Op OpCode = Op::AtomicFAddEXT;
+  static constexpr uint16_t FixedWordSize = 7U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id pointer;
+  IdScope memory;
+  IdMemorySemantics semantics;
+  Id value;
 };
 
 template<typename T>

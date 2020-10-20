@@ -207,7 +207,8 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
        ext == "SPV_EXT_descriptor_indexing" || ext == "SPV_KHR_vulkan_memory_model" ||
        ext == "SPV_EXT_fragment_invocation_density" ||
        ext == "SPV_KHR_no_integer_wrap_decoration" || ext == "SPV_KHR_float_controls" ||
-       ext == "SPV_KHR_shader_clock" || ext == "SPV_KHR_non_semantic_info")
+       ext == "SPV_KHR_shader_clock" || ext == "SPV_KHR_non_semantic_info" ||
+       ext == "SPV_KHR_terminate_invocation")
     {
       continue;
     }
@@ -309,6 +310,9 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
 
       // atomics
       case Capability::Int64Atomics:
+      case Capability::Int64ImageEXT:
+      case Capability::AtomicFloat32AddEXT:
+      case Capability::AtomicFloat64AddEXT:
 
       // physical pointers
       case Capability::PhysicalStorageBufferAddresses:
@@ -347,6 +351,22 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       case Capability::FragmentShaderSampleInterlockEXT:
       case Capability::FragmentShaderShadingRateInterlockEXT:
       case Capability::FragmentShaderPixelInterlockEXT:
+      {
+        supported = false;
+        break;
+      }
+
+      // fragment shading rate
+      case Capability::FragmentShadingRateKHR:
+      {
+        supported = false;
+        break;
+      }
+
+      // raytracing
+      case Capability::RayQueryProvisionalKHR:
+      case Capability::RayTraversalPrimitiveCullingProvisionalKHR:
+      case Capability::RayTracingProvisionalKHR:
       {
         supported = false;
         break;
@@ -393,6 +413,15 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       case Capability::SubgroupAvcMotionEstimationINTEL:
       case Capability::SubgroupAvcMotionEstimationIntraINTEL:
       case Capability::SubgroupAvcMotionEstimationChromaINTEL:
+      case Capability::FunctionPointersINTEL:
+      case Capability::IndirectReferencesINTEL:
+      case Capability::FPGAKernelAttributesINTEL:
+      case Capability::FPGALoopControlsINTEL:
+      case Capability::FPGAMemoryAttributesINTEL:
+      case Capability::FPGARegINTEL:
+      case Capability::UnstructuredLoopControlsINTEL:
+      case Capability::KernelAttributesINTEL:
+      case Capability::BlockingPipesINTEL:
       case Capability::Max:
       case Capability::Invalid:
       {

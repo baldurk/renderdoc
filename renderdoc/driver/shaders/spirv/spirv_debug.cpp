@@ -2596,6 +2596,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       break;
     }
 
+    case Op::TerminateInvocation:
     case Op::Kill:
     {
       killed = true;
@@ -3082,6 +3083,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       break;
     }
 
+    case Op::AtomicFAddEXT:
     case Op::GroupIAddNonUniformAMD:
     case Op::GroupFAddNonUniformAMD:
     case Op::GroupFMinNonUniformAMD:
@@ -3250,6 +3252,33 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::SubgroupAvcSicGetPackedSkcLumaCountThresholdINTEL:
     case Op::SubgroupAvcSicGetPackedSkcLumaSumThresholdINTEL:
     case Op::SubgroupAvcSicGetInterRawSadsINTEL:
+    case Op::FunctionPointerINTEL:
+    case Op::FunctionPointerCallINTEL:
+    case Op::LoopControlINTEL:
+    case Op::RayQueryGetRayTMinKHR:
+    case Op::RayQueryGetRayFlagsKHR:
+    case Op::RayQueryGetIntersectionTKHR:
+    case Op::RayQueryGetIntersectionInstanceCustomIndexKHR:
+    case Op::RayQueryGetIntersectionInstanceIdKHR:
+    case Op::RayQueryGetIntersectionInstanceShaderBindingTableRecordOffsetKHR:
+    case Op::RayQueryGetIntersectionGeometryIndexKHR:
+    case Op::RayQueryGetIntersectionPrimitiveIndexKHR:
+    case Op::RayQueryGetIntersectionBarycentricsKHR:
+    case Op::RayQueryGetIntersectionFrontFaceKHR:
+    case Op::RayQueryGetIntersectionCandidateAABBOpaqueKHR:
+    case Op::RayQueryGetIntersectionObjectRayDirectionKHR:
+    case Op::RayQueryGetIntersectionObjectRayOriginKHR:
+    case Op::RayQueryGetWorldRayDirectionKHR:
+    case Op::RayQueryGetWorldRayOriginKHR:
+    case Op::RayQueryGetIntersectionObjectToWorldKHR:
+    case Op::RayQueryGetIntersectionWorldToObjectKHR:
+    case Op::TypeRayQueryProvisionalKHR:
+    case Op::RayQueryInitializeKHR:
+    case Op::RayQueryTerminateKHR:
+    case Op::RayQueryGenerateIntersectionKHR:
+    case Op::RayQueryConfirmIntersectionKHR:
+    case Op::RayQueryProceedKHR:
+    case Op::RayQueryGetIntersectionTypeKHR:
     {
       RDCERR("Unsupported extension opcode used %s", ToStr(opdata.op).c_str());
 
@@ -3381,6 +3410,9 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::TypePipeStorage:
     case Op::ConstantPipeStorage:
     case Op::CreatePipeFromPipeStorage:
+    case Op::FPGARegINTEL:
+    case Op::ReadPipeBlockingINTEL:
+    case Op::WritePipeBlockingINTEL:
     {
       // these are kernel only
       RDCERR("Encountered unexpected kernel SPIR-V operation %s", ToStr(opdata.op).c_str());
