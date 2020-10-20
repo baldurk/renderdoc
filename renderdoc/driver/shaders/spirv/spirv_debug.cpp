@@ -876,11 +876,11 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         for(size_t i = 0; i < construct.constituents.size(); i++)
         {
           ShaderVariable &mem = var.members[i];
-          var.members[i] = GetSrc(construct.constituents[i]);
+          mem = GetSrc(construct.constituents[i]);
           if(!type.children[i].name.empty())
-            var.members[i].name = type.children[i].name;
+            mem.name = type.children[i].name;
           else
-            var.members[i].name = StringFormat::Fmt("_child%zu", i);
+            mem.name = StringFormat::Fmt("_child%zu", i);
         }
       }
       else if(type.type == DataType::VectorType)
@@ -888,8 +888,8 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         RDCASSERT(construct.constituents.size() <= 4);
 
         var.type = type.scalar().Type();
-        var.rows = 1;
-        var.columns = RDCMAX(1U, type.vector().count);
+        var.rows = 1U;
+        var.columns = RDCMAX(1U, type.vector().count) & 0xff;
 
         // it is possible to construct larger vectors from a collection of scalars and smaller
         // vectors.
@@ -913,8 +913,8 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       {
         // matrices are constructed from a list of columns
         var.type = type.scalar().Type();
-        var.columns = RDCMAX(1U, type.matrix().count);
-        var.rows = RDCMAX(1U, type.vector().count);
+        var.columns = RDCMAX(1U, type.matrix().count) & 0xff;
+        var.rows = RDCMAX(1U, type.vector().count) & 0xff;
 
         RDCASSERTEQUAL(var.columns, construct.constituents.size());
 
@@ -949,7 +949,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       var.type = type.scalar().Type();
       var.rows = 1;
-      var.columns = RDCMAX(1U, (uint32_t)shuffle.components.size());
+      var.columns = RDCMAX(1U, (uint32_t)shuffle.components.size()) & 0xff;
 
       ShaderVariable src1 = GetSrc(shuffle.vector1);
       ShaderVariable src2 = GetSrc(shuffle.vector2);
@@ -1200,7 +1200,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         }
 
         var.type = type.scalar().Type();
-        var.columns = type.vector().count;
+        var.columns = type.vector().count & 0xff;
         var.value = ShaderValue();
 
         byte *b = bytes.data();
@@ -2332,7 +2332,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       }
 
       result.rows = 1;
-      result.columns = RDCMAX(1U, resultType.vector().count);
+      result.columns = RDCMAX(1U, resultType.vector().count) & 0xff;
 
       SetDst(opdata.result, result);
       break;
@@ -2409,7 +2409,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       }
 
       result.rows = 1;
-      result.columns = RDCMAX(1U, resultType.vector().count);
+      result.columns = RDCMAX(1U, resultType.vector().count) & 0xff;
 
       SetDst(read.result, result);
       break;
@@ -2540,7 +2540,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       result.type = resultType.scalar().Type();
       result.rows = 1;
-      result.columns = RDCMAX(1U, resultType.vector().count);
+      result.columns = RDCMAX(1U, resultType.vector().count) & 0xff;
 
       result.value.u64v[0] = global.clock;
 

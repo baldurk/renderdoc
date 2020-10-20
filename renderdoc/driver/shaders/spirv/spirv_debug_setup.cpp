@@ -1542,7 +1542,7 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
   uint32_t scalar0 = (uint32_t)ptr.value.u64v[Scalar0VariableSlot];
   uint32_t scalar1 = (uint32_t)ptr.value.u64v[Scalar1VariableSlot];
 
-  ShaderValue val;
+  ShaderValue val = {};
 
   if(ret.rows > 1)
   {
@@ -1636,8 +1636,6 @@ void Debugger::WriteThroughPointer(const ShaderVariable &ptr, const ShaderVariab
     rdcspv::Id typeId =
         rdcspv::Id::fromWord(uint32_t(ptr.value.u64v[BufferPointerTypeIdVariableSlot]));
     uint64_t byteOffset = ptr.value.u64v[BufferPointerByteOffsetVariableSlot];
-
-    const DataType &type = dataTypes[typeId];
 
     BindpointIndex bind = storage->GetBinding();
 
@@ -1974,10 +1972,10 @@ uint32_t Debugger::WalkVariable(
       if(outVar)
       {
         outVar->type = type.scalar().Type();
-        outVar->rows = 1;
-        outVar->columns = RDCMAX(1U, type.vector().count);
+        outVar->rows = 1U;
+        outVar->columns = RDCMAX(1U, type.vector().count) & 0xff;
       }
-      numLocations = 1;
+      numLocations = 1U;
       break;
     }
     case DataType::MatrixType:
@@ -1985,8 +1983,8 @@ uint32_t Debugger::WalkVariable(
       if(outVar)
       {
         outVar->type = type.scalar().Type();
-        outVar->columns = RDCMAX(1U, type.matrix().count);
-        outVar->rows = RDCMAX(1U, type.vector().count);
+        outVar->columns = RDCMAX(1U, type.matrix().count) & 0xff;
+        outVar->rows = RDCMAX(1U, type.vector().count) & 0xff;
       }
       numLocations = var.rows;
       break;
