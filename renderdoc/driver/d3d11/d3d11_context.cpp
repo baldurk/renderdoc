@@ -1002,6 +1002,8 @@ void WrappedID3D11DeviceContext::AddUsage(const DrawcallDescription &d)
   if(!(d.flags & DrawMask))
     return;
 
+  const bool isDispatch = bool(d.flags & DrawFlags::Dispatch);
+
   //////////////////////////////
   // IA
 
@@ -1020,7 +1022,16 @@ void WrappedID3D11DeviceContext::AddUsage(const DrawcallDescription &d)
   const D3D11RenderState::Shader *shArr[6] = {
       &pipe->VS, &pipe->HS, &pipe->DS, &pipe->GS, &pipe->PS, &pipe->CS,
   };
-  for(int s = 0; s < 6; s++)
+
+  int firstShader = 0, numShaders = 5;
+
+  if(isDispatch)
+  {
+    firstShader = 5;
+    numShaders = 1;
+  }
+
+  for(int s = firstShader; s < firstShader + numShaders; s++)
   {
     const D3D11RenderState::Shader &sh = *shArr[s];
 
@@ -1055,7 +1066,7 @@ void WrappedID3D11DeviceContext::AddUsage(const DrawcallDescription &d)
   }
 
   // don't record usage for rasterization pipeline on dispatch calls
-  if(d.flags & DrawFlags::Dispatch)
+  if(isDispatch)
     return;
 
   //////////////////////////////
