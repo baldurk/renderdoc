@@ -164,8 +164,7 @@ struct D3D11GraphicsTest : public GraphicsTest
   DXGI_FORMAT backbufferFmt = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
   int backbufferCount = 2;
   int backbufferMSAA = 1;
-  bool d3d11_1 = false;
-  bool d3d11_2 = false;
+  D3D_FEATURE_LEVEL feature_level = D3D_FEATURE_LEVEL_11_0;
   UINT createFlags = 0;
 
   DXGI_ADAPTER_DESC adapterDesc = {};

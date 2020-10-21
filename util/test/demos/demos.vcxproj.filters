@@ -550,6 +550,9 @@
     <ClCompile Include="d3d11\d3d11_swapchain_zoo.cpp">
       <Filter>D3D11\demos</Filter>
     </ClCompile>
+    <ClCompile Include="d3d11\d3d11_feature_level_9.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D11">

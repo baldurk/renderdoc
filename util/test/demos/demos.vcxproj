@@ -137,6 +137,7 @@
     <ClCompile Include="d3d11\d3d11_empty_compute_dispatch.cpp" />
     <ClCompile Include="d3d11\d3d11_empty_drawcall.cpp" />
     <ClCompile Include="d3d11\d3d11_empty_viewports.cpp" />
+    <ClCompile Include="d3d11\d3d11_feature_level_9.cpp" />
     <ClCompile Include="d3d11\d3d11_helpers.cpp" />
     <ClCompile Include="d3d11\d3d11_large_buffer.cpp" />
     <ClCompile Include="d3d11\d3d11_many_rtvs.cpp" />

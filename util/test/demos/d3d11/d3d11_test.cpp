@@ -139,10 +139,7 @@ bool D3D11GraphicsTest::Init(IDXGIAdapterPtr pAdapter)
   if(!GraphicsTest::Init())
     return false;
 
-  D3D_FEATURE_LEVEL features[] = {D3D_FEATURE_LEVEL_11_0};
-
-  if(d3d11_1)
-    features[0] = D3D_FEATURE_LEVEL_11_1;
+  D3D_FEATURE_LEVEL features[] = {feature_level};
 
   HRESULT hr = S_OK;
 
@@ -331,8 +328,11 @@ float4 main(float4 pos : SV_Position) : SV_Target0
 
 )EOSHADER";
 
-  swapBlitVS = CreateVS(Compile(D3DFullscreenQuadVertex, "main", "vs_4_0"));
-  swapBlitPS = CreatePS(Compile(blitPixel, "main", "ps_5_0"));
+  if(feature_level >= D3D_FEATURE_LEVEL_10_0)
+  {
+    swapBlitVS = CreateVS(Compile(D3DFullscreenQuadVertex, "main", "vs_4_0"));
+    swapBlitPS = CreatePS(Compile(blitPixel, "main", "ps_5_0"));
+  }
 }
 
 void D3D11GraphicsTest::Shutdown()

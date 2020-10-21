@@ -57,7 +57,7 @@ struct v2f
 	float2 uv : TEXCOORD0;
 };
 
-v2f main(vertin IN, uint vid : SV_VertexID)
+v2f main(vertin IN)
 {
 	v2f OUT = (v2f)0;
 

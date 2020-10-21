@@ -44,7 +44,7 @@ float4 main() : SV_Target0
 
   int main()
   {
-    d3d11_1 = true;
+    feature_level = D3D_FEATURE_LEVEL_11_1;
 
     // initialise, create window, create device, etc
     if(!Init())

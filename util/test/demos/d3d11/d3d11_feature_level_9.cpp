@@ -24,53 +24,46 @@
 
 #include "d3d11_test.h"
 
-RD_TEST(D3D11_Many_UAVs, D3D11GraphicsTest)
+RD_TEST(D3D11_Feature_Level_9, D3D11GraphicsTest)
 {
   static constexpr const char *Description =
-      "Test using more than 8 compute shader UAVs (D3D11.1 feature)";
-
-  std::string compute = R"EOSHADER(
-
-RWBuffer<uint4> uav : register(u20);
-
-[numthreads(1, 1, 1)]
-void main()
-{
-	uav[0] = uint4(7,8,9,10);
-}
-
-)EOSHADER";
+      "Tests drawing a simple triangle on feature level 9.1 to ensure it can be captured and "
+      "replayed correctly.";
 
   int main()
   {
-    feature_level = D3D_FEATURE_LEVEL_11_1;
+    feature_level = D3D_FEATURE_LEVEL_9_1;
 
     // initialise, create window, create device, etc
     if(!Init())
       return 3;
 
-    ID3D11ComputeShaderPtr cs = CreateCS(Compile(compute, "main", "cs_5_0"));
+    ID3DBlobPtr vsblob = Compile(D3DDefaultVertex, "main", "vs_4_0_level_9_1");
+    ID3DBlobPtr psblob = Compile(D3DDefaultPixel, "main", "ps_4_0_level_9_1");
 
-    ID3D11BufferPtr buf = MakeBuffer().Size(16).UAV();
-    ID3D11UnorderedAccessViewPtr uav = MakeUAV(buf).Format(DXGI_FORMAT_R32G32B32A32_UINT);
+    CreateDefaultInputLayout(vsblob);
+
+    ID3D11VertexShaderPtr vs = CreateVS(vsblob);
+    ID3D11PixelShaderPtr ps = CreatePS(psblob);
+
+    ID3D11BufferPtr vb = MakeBuffer().Vertex().Data(DefaultTri);
 
     while(Running())
     {
-      Vec4f col(0.2f, 0.2f, 0.2f, 1.0f);
-      ClearRenderTargetView(bbRTV, col);
+      ClearRenderTargetView(bbRTV, {0.2f, 0.2f, 0.2f, 1.0f});
 
-      ctx->ClearUnorderedAccessViewUint(uav, (uint32_t *)&col.x);
+      IASetVertexBuffer(vb, sizeof(DefaultA2V), 0);
+      ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+      ctx->IASetInputLayout(defaultLayout);
 
-      ctx->CSSetUnorderedAccessViews(20, 1, &uav.GetInterfacePtr(), NULL);
-      ctx->CSSetShader(cs, NULL, 0);
+      ctx->VSSetShader(vs, NULL, 0);
+      ctx->PSSetShader(ps, NULL, 0);
 
-      ctx->Dispatch(1, 1, 1);
+      RSSetViewport({0.0f, 0.0f, (float)screenWidth, (float)screenHeight, 0.0f, 1.0f});
 
-      std::vector<byte> contents = GetBufferData(buf);
+      ctx->OMSetRenderTargets(1, &bbRTV.GetInterfacePtr(), NULL);
 
-      uint32_t *u32 = (uint32_t *)&contents[0];
-
-      TEST_LOG("Data: %u %u %u %u", u32[0], u32[1], u32[2], u32[3]);
+      ctx->Draw(3, 0);
 
       Present();
     }
