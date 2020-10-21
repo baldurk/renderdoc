@@ -352,6 +352,11 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   rm->SetInternalResource(m_DebugAlloc);
 
+  m_pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), (void **)&m_DebugFence);
+  m_pDevice->InternalRef();
+
+  rm->SetInternalResource(m_DebugFence);
+
   ID3D12GraphicsCommandList *list = NULL;
 
   hr = m_pDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_DebugAlloc, NULL,
@@ -402,6 +407,12 @@ D3D12DebugManager::~D3D12DebugManager()
     for(size_t p = 0; p < MeshDisplayPipelines::ePipe_Count; p++)
       SAFE_RELEASE(it->second.pipes[p]);
 
+  for(auto it = m_MS2ArrayPSOCache.begin(); it != m_MS2ArrayPSOCache.end(); ++it)
+  {
+    SAFE_RELEASE(it->second.first);
+    SAFE_RELEASE(it->second.second);
+  }
+
   SAFE_RELEASE(dsvHeap);
   SAFE_RELEASE(rtvHeap);
   SAFE_RELEASE(cbvsrvuavHeap);
@@ -440,6 +451,7 @@ D3D12DebugManager::~D3D12DebugManager()
 
   SAFE_RELEASE(m_DebugAlloc);
   SAFE_RELEASE(m_DebugList);
+  SAFE_RELEASE(m_DebugFence);
 
   for(auto it = m_DiscardPipes.begin(); it != m_DiscardPipes.end(); it++)
     if(it->second)
@@ -1769,12 +1781,23 @@ void D3D12Replay::OverlayRendering::Init(WrappedID3D12Device *device, D3D12Debug
     pipeDesc.BlendState.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
     pipeDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
-    hr = device->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
-                                             (void **)&QuadResolvePipe);
-
-    if(FAILED(hr))
+    for(size_t i = 0; i < ARRAY_COUNT(QuadResolvePipe); i++)
     {
-      RDCERR("Couldn't create m_QuadResolvePipe! HRESULT: %s", ToStr(hr).c_str());
+      pipeDesc.SampleDesc.Count = UINT(1 << i);
+
+      D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS check = {};
+      check.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+      check.SampleCount = pipeDesc.SampleDesc.Count;
+      device->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &check, sizeof(check));
+
+      if(check.NumQualityLevels == 0)
+        continue;
+
+      hr = device->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
+                                               (void **)&QuadResolvePipe[i]);
+
+      if(FAILED(hr))
+        RDCERR("Couldn't create QuadResolvePipe[%zu]! HRESULT: %s", i, ToStr(hr).c_str());
     }
 
     SAFE_RELEASE(FullscreenVS);
@@ -1792,7 +1815,8 @@ void D3D12Replay::OverlayRendering::Release()
   SAFE_RELEASE(QuadOverdrawWritePS);
   SAFE_RELEASE(QuadOverdrawWriteDXILPS);
   SAFE_RELEASE(QuadResolveRootSig);
-  SAFE_RELEASE(QuadResolvePipe);
+  for(size_t i = 0; i < ARRAY_COUNT(QuadResolvePipe); i++)
+    SAFE_RELEASE(QuadResolvePipe[i]);
 
   SAFE_RELEASE(Texture);
 }

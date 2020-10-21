@@ -30,11 +30,109 @@
 
 #include "driver/dx/official/d3dcompiler.h"
 
-void D3D12DebugManager::CopyTex2DMSToArray(ID3D12Resource *destArray, ID3D12Resource *srcMS)
+rdcpair<ID3D12PipelineState *, ID3D12PipelineState *> D3D12DebugManager::GetMSToArrayPSOs(
+    DXGI_FORMAT format)
+{
+  rdcpair<ID3D12PipelineState *, ID3D12PipelineState *> &cache = m_MS2ArrayPSOCache[format];
+
+  if(cache.first == NULL)
+  {
+    const bool stencil = IsDepthAndStencilFormat(format);
+
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeDesc = {};
+
+    pipeDesc.pRootSignature = Unwrap(m_ArrayMSAARootSig);
+    pipeDesc.VS.BytecodeLength = m_FullscreenVS->GetBufferSize();
+    pipeDesc.VS.pShaderBytecode = m_FullscreenVS->GetBufferPointer();
+
+    pipeDesc.PS.BytecodeLength = m_FloatMS2Array->GetBufferSize();
+    pipeDesc.PS.pShaderBytecode = m_FloatMS2Array->GetBufferPointer();
+
+    if(IsDepthFormat(format))
+    {
+      pipeDesc.PS.BytecodeLength = m_DepthMS2Array->GetBufferSize();
+      pipeDesc.PS.pShaderBytecode = m_DepthMS2Array->GetBufferPointer();
+      pipeDesc.NumRenderTargets = 0;
+      pipeDesc.RTVFormats[0] = DXGI_FORMAT_UNKNOWN;
+      pipeDesc.DSVFormat = format;
+      pipeDesc.DepthStencilState.DepthEnable = TRUE;
+      pipeDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+      pipeDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+    }
+    else if(IsUIntFormat(format) || IsIntFormat(format))
+    {
+      pipeDesc.NumRenderTargets = 1;
+      pipeDesc.RTVFormats[0] = format;
+      pipeDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
+      pipeDesc.PS.BytecodeLength = m_IntMS2Array->GetBufferSize();
+      pipeDesc.PS.pShaderBytecode = m_IntMS2Array->GetBufferPointer();
+    }
+
+    pipeDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+    pipeDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+    pipeDesc.SampleMask = 0xFFFFFFFF;
+    pipeDesc.SampleDesc.Count = 1;
+    pipeDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+    pipeDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    pipeDesc.BlendState.RenderTarget[0].BlendEnable = FALSE;
+    pipeDesc.BlendState.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
+    pipeDesc.BlendState.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+    pipeDesc.BlendState.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
+    pipeDesc.BlendState.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_SRC_ALPHA;
+    pipeDesc.BlendState.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA;
+    pipeDesc.BlendState.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+    pipeDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+    HRESULT hr = m_pDevice->GetReal()->CreateGraphicsPipelineState(
+        &pipeDesc, __uuidof(ID3D12PipelineState), (void **)&cache.first);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Couldn't create MSAA conversion pipeline for %s! HRESULT: %s", ToStr(format).c_str(),
+             ToStr(hr).c_str());
+      SAFE_RELEASE(cache.first);
+      SAFE_RELEASE(cache.second);
+      return cache;
+    }
+
+    if(stencil)
+    {
+      pipeDesc.DepthStencilState.DepthEnable = FALSE;
+      pipeDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+      pipeDesc.DepthStencilState.StencilEnable = TRUE;
+      pipeDesc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+      pipeDesc.DepthStencilState.FrontFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
+      pipeDesc.DepthStencilState.FrontFace.StencilFailOp = D3D12_STENCIL_OP_REPLACE;
+      pipeDesc.DepthStencilState.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_REPLACE;
+      pipeDesc.DepthStencilState.BackFace = pipeDesc.DepthStencilState.FrontFace;
+      pipeDesc.DepthStencilState.StencilReadMask = 0xff;
+      pipeDesc.DepthStencilState.StencilWriteMask = 0xff;
+
+      hr = m_pDevice->GetReal()->CreateGraphicsPipelineState(
+          &pipeDesc, __uuidof(ID3D12PipelineState), (void **)&cache.second);
+      if(FAILED(hr))
+      {
+        RDCERR("Couldn't create MSAA stencil conversion pipeline for %s! HRESULT: %s",
+               ToStr(format).c_str(), ToStr(hr).c_str());
+        SAFE_RELEASE(cache.first);
+        SAFE_RELEASE(cache.second);
+        return cache;
+      }
+    }
+  }
+
+  return cache;
+}
+
+void D3D12DebugManager::CopyTex2DMSToArray(ID3D12GraphicsCommandList *list,
+                                           ID3D12Resource *destArray, ID3D12Resource *srcMS)
 {
   // this function operates during capture so we work on unwrapped objects
+  const bool externalList = list != NULL;
 
-  D3D12MarkerRegion renderoverlay(m_pDevice->GetQueue(), "CopyTex2DMSToArray");
+  D3D12MarkerRegion renderoverlay =
+      externalList ? D3D12MarkerRegion(list, "CopyTex2DMSToArray")
+                   : D3D12MarkerRegion(m_pDevice->GetQueue(), "CopyTex2DMSToArray");
 
   D3D12_RESOURCE_DESC descMS = srcMS->GetDesc();
   D3D12_RESOURCE_DESC descArr = destArray->GetDesc();
@@ -62,12 +160,12 @@ void D3D12DebugManager::CopyTex2DMSToArray(ID3D12Resource *destArray, ID3D12Reso
   dsvDesc.Texture2DArray.FirstArraySlice = 0;
   dsvDesc.Texture2DArray.MipSlice = 0;
 
-  bool isDepth = IsDepthFormat(rtvDesc.Format) ||
-                 (descMS.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) != 0 ||
-                 (descArr.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) != 0;
-  bool intFormat = IsUIntFormat(rtvDesc.Format) || IsIntFormat(rtvDesc.Format);
+  const bool isDepth = IsDepthFormat(rtvDesc.Format) ||
+                       (descMS.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) != 0 ||
+                       (descArr.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) != 0;
+  const bool intFormat = IsUIntFormat(rtvDesc.Format) || IsIntFormat(rtvDesc.Format);
 
-  bool stencil = false;
+  const bool stencil = IsDepthAndStencilFormat(rtvDesc.Format);
   DXGI_FORMAT stencilFormat = DXGI_FORMAT_UNKNOWN;
 
   if(isDepth)
@@ -88,7 +186,6 @@ void D3D12DebugManager::CopyTex2DMSToArray(ID3D12Resource *destArray, ID3D12Reso
         dsvDesc.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
         srvDesc.Format = DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
         stencilFormat = DXGI_FORMAT_X32_TYPELESS_G8X24_UINT;
-        stencil = true;
         break;
 
       case DXGI_FORMAT_D24_UNORM_S8_UINT:
@@ -98,7 +195,6 @@ void D3D12DebugManager::CopyTex2DMSToArray(ID3D12Resource *destArray, ID3D12Reso
         dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
         srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
         stencilFormat = DXGI_FORMAT_X24_TYPELESS_G8_UINT;
-        stencil = true;
         break;
 
       case DXGI_FORMAT_D16_UNORM:
@@ -109,6 +205,12 @@ void D3D12DebugManager::CopyTex2DMSToArray(ID3D12Resource *destArray, ID3D12Reso
 
       default: break;
     }
+
+    rtvDesc.Format = dsvDesc.Format;
+  }
+  else
+  {
+    dsvDesc.Format = DXGI_FORMAT_UNKNOWN;
   }
 
   for(CBVUAVSRVSlot slot : {MSAA_SRV2x, MSAA_SRV4x, MSAA_SRV8x, MSAA_SRV16x, MSAA_SRV32x})
@@ -132,63 +234,15 @@ void D3D12DebugManager::CopyTex2DMSToArray(ID3D12Resource *destArray, ID3D12Reso
   D3D12_CPU_DESCRIPTOR_HANDLE rtv = Unwrap(GetCPUHandle(MSAA_RTV));
   D3D12_CPU_DESCRIPTOR_HANDLE dsv = Unwrap(GetCPUHandle(MSAA_DSV));
 
-  D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeDesc = {};
-
-  pipeDesc.pRootSignature = Unwrap(m_ArrayMSAARootSig);
-  pipeDesc.VS.BytecodeLength = m_FullscreenVS->GetBufferSize();
-  pipeDesc.VS.pShaderBytecode = m_FullscreenVS->GetBufferPointer();
-
-  pipeDesc.PS.BytecodeLength = m_FloatMS2Array->GetBufferSize();
-  pipeDesc.PS.pShaderBytecode = m_FloatMS2Array->GetBufferPointer();
-  pipeDesc.NumRenderTargets = 1;
-  pipeDesc.RTVFormats[0] = rtvDesc.Format;
-  pipeDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
-
-  if(isDepth)
-  {
-    pipeDesc.PS.BytecodeLength = m_DepthMS2Array->GetBufferSize();
-    pipeDesc.PS.pShaderBytecode = m_DepthMS2Array->GetBufferPointer();
-    pipeDesc.NumRenderTargets = 0;
-    pipeDesc.RTVFormats[0] = DXGI_FORMAT_UNKNOWN;
-    pipeDesc.DSVFormat = dsvDesc.Format;
-    pipeDesc.DepthStencilState.DepthEnable = TRUE;
-    pipeDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-    pipeDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-  }
-  else if(intFormat)
-  {
-    pipeDesc.PS.BytecodeLength = m_IntMS2Array->GetBufferSize();
-    pipeDesc.PS.pShaderBytecode = m_IntMS2Array->GetBufferPointer();
-  }
-
-  pipeDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-  pipeDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-  pipeDesc.SampleMask = 0xFFFFFFFF;
-  pipeDesc.SampleDesc.Count = 1;
-  pipeDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
-  pipeDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-  pipeDesc.BlendState.RenderTarget[0].BlendEnable = FALSE;
-  pipeDesc.BlendState.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
-  pipeDesc.BlendState.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
-  pipeDesc.BlendState.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
-  pipeDesc.BlendState.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_SRC_ALPHA;
-  pipeDesc.BlendState.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA;
-  pipeDesc.BlendState.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
-  pipeDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-
   ID3D12PipelineState *pso = NULL, *psoStencil = NULL;
-  HRESULT hr = m_pDevice->GetReal()->CreateGraphicsPipelineState(
-      &pipeDesc, __uuidof(ID3D12PipelineState), (void **)&pso);
+  rdctie(pso, psoStencil) = GetMSToArrayPSOs(rtvDesc.Format);
 
-  if(FAILED(hr))
+  if(!externalList)
   {
-    RDCERR("Couldn't create MSAA conversion pipeline! HRESULT: %s", ToStr(hr).c_str());
-    return;
+    list = Unwrap(m_DebugList);
+
+    list->Reset(Unwrap(m_DebugAlloc), NULL);
   }
-
-  ID3D12GraphicsCommandList *list = Unwrap(m_DebugList);
-
-  list->Reset(Unwrap(m_DebugAlloc), NULL);
 
   D3D12_VIEWPORT viewport = {0, 0, (float)descArr.Width, (float)descArr.Height, 0.0f, 1.0f};
   D3D12_RECT scissor = {0, 0, (LONG)descArr.Width, (LONG)descArr.Height};
@@ -233,21 +287,6 @@ void D3D12DebugManager::CopyTex2DMSToArray(ID3D12Resource *destArray, ID3D12Reso
 
   if(stencil)
   {
-    pipeDesc.DepthStencilState.DepthEnable = FALSE;
-    pipeDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
-    pipeDesc.DepthStencilState.StencilEnable = TRUE;
-    pipeDesc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-    pipeDesc.DepthStencilState.FrontFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
-    pipeDesc.DepthStencilState.FrontFace.StencilFailOp = D3D12_STENCIL_OP_REPLACE;
-    pipeDesc.DepthStencilState.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_REPLACE;
-    pipeDesc.DepthStencilState.BackFace = pipeDesc.DepthStencilState.FrontFace;
-    pipeDesc.DepthStencilState.StencilReadMask = 0xff;
-    pipeDesc.DepthStencilState.StencilWriteMask = 0xff;
-
-    hr = m_pDevice->GetReal()->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
-                                                           (void **)&psoStencil);
-    RDCASSERTEQUAL(hr, S_OK);
-
     list->SetPipelineState(psoStencil);
 
     dsvDesc.Flags = D3D12_DSV_FLAG_READ_ONLY_DEPTH;
@@ -279,20 +318,15 @@ void D3D12DebugManager::CopyTex2DMSToArray(ID3D12Resource *destArray, ID3D12Reso
     }
   }
 
-  list->Close();
+  if(!externalList)
+  {
+    list->Close();
 
-  ID3D12Fence *tmpFence = NULL;
-  m_pDevice->GetReal()->CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence),
-                                    (void **)&tmpFence);
-
-  ID3D12CommandList *l = list;
-  m_pDevice->GetQueue()->GetReal()->ExecuteCommandLists(1, &l);
-  m_pDevice->GPUSync(m_pDevice->GetQueue()->GetReal(), tmpFence);
-  m_DebugAlloc->Reset();
-
-  SAFE_RELEASE(tmpFence);
-  SAFE_RELEASE(pso);
-  SAFE_RELEASE(psoStencil);
+    ID3D12CommandList *l = list;
+    m_pDevice->GetQueue()->GetReal()->ExecuteCommandLists(1, &l);
+    m_pDevice->GPUSync(m_pDevice->GetQueue()->GetReal(), Unwrap(m_DebugFence));
+    m_DebugAlloc->Reset();
+  }
 }
 
 void D3D12DebugManager::CopyArrayToTex2DMS(ID3D12Resource *destMS, ID3D12Resource *srcArray,

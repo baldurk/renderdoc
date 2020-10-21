@@ -44,11 +44,15 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
 {
   D3D12QuadOverdrawCallback(WrappedID3D12Device *dev, D3D12_SHADER_BYTECODE quadWrite,
                             D3D12_SHADER_BYTECODE quadWriteDXIL, const rdcarray<uint32_t> &events,
+                            ID3D12Resource *depth, ID3D12Resource *msdepth, PortableHandle dsv,
                             PortableHandle uav)
       : m_pDevice(dev),
         m_QuadWritePS(quadWrite),
         m_QuadWriteDXILPS(quadWriteDXIL),
         m_Events(events),
+        m_Depth(depth),
+        m_MSDepth(msdepth),
+        m_DSV(dsv),
         m_UAV(uav)
   {
     m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = this;
@@ -136,6 +140,10 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
       pipeDesc.DepthStencilState.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
       pipeDesc.DepthStencilState.StencilWriteMask = 0;
 
+      // disable any multisampling
+      pipeDesc.SampleDesc.Count = 1;
+      pipeDesc.SampleDesc.Quality = 0;
+
       bool dxil =
           DXBC::DXBCContainer::CheckForDXIL(pipeDesc.VS.pShaderBytecode, pipeDesc.VS.BytecodeLength);
 
@@ -166,6 +174,28 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
     rs.pipe = GetResID(cache.pipe);
     rs.graphics.rootsig = GetResID(cache.sig);
 
+    rs.rts.clear();
+    if(m_Depth)
+    {
+      rs.dsv = *DescriptorFromPortableHandle(m_pDevice->GetResourceManager(), m_DSV);
+
+      D3D12_RESOURCE_BARRIER b = {};
+
+      b.Transition.pResource = m_Depth;
+      b.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+      b.Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
+      b.Transition.StateAfter = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+      cmd->ResourceBarrier(1, &b);
+
+      b.Transition.pResource = m_MSDepth;
+      b.Transition.StateBefore = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+      b.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+      cmd->ResourceBarrier(1, &b);
+
+      m_pDevice->GetDebugManager()->CopyTex2DMSToArray(Unwrap(cmd), Unwrap(m_Depth),
+                                                       Unwrap(m_MSDepth));
+    }
+
     AddDebugDescriptorsToRenderState(m_pDevice, rs, {m_UAV}, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
                                      cache.sigElem, m_CopiedHeaps);
 
@@ -179,6 +209,22 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
   {
     if(!m_Events.contains(eid))
       return false;
+
+    if(m_Depth)
+    {
+      D3D12_RESOURCE_BARRIER b = {};
+
+      b.Transition.pResource = m_Depth;
+      b.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+      b.Transition.StateBefore = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+      b.Transition.StateAfter = D3D12_RESOURCE_STATE_COMMON;
+      cmd->ResourceBarrier(1, &b);
+
+      b.Transition.pResource = m_MSDepth;
+      b.Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+      b.Transition.StateAfter = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+      cmd->ResourceBarrier(1, &b);
+    }
 
     // restore the render state and go ahead with the real draw
     m_pDevice->GetQueue()->GetCommandData()->GetCurRenderState() = m_PrevState;
@@ -209,6 +255,8 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
   D3D12_SHADER_BYTECODE m_QuadWriteDXILPS;
   const rdcarray<uint32_t> &m_Events;
   PortableHandle m_UAV;
+  PortableHandle m_DSV;
+  ID3D12Resource *m_Depth, *m_MSDepth;
 
   // cache modified pipelines
   struct CachedPipeline
@@ -1056,7 +1104,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       pipe->Fill(pipeDesc);
       pipeDesc.pRootSignature = GetDebugManager()->GetMeshRootSig();
       pipeDesc.SampleMask = 0xFFFFFFFF;
-      pipeDesc.SampleDesc.Count = 1;
+      pipeDesc.SampleDesc = overlayTexDesc.SampleDesc;
       pipeDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
 
       RDCEraseEl(pipeDesc.RTVFormats.RTFormats);
@@ -1314,8 +1362,36 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
         quadWriteDXIL.pShaderBytecode = m_Overlay.QuadOverdrawWriteDXILPS->GetBufferPointer();
       }
 
+      ID3D12Resource *overrideDepth = NULL;
+
+      ResourceId res = rs.GetDSVID();
+
+      ID3D12Resource *curDepth = m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(res);
+      D3D12_RESOURCE_DESC curDepthDesc = curDepth ? curDepth->GetDesc() : D3D12_RESOURCE_DESC();
+      if(curDepthDesc.SampleDesc.Count > 1)
+      {
+        curDepthDesc.Alignment = 0;
+        curDepthDesc.DepthOrArraySize *= (UINT16)curDepthDesc.SampleDesc.Count;
+        curDepthDesc.SampleDesc.Count = 1;
+        curDepthDesc.SampleDesc.Quality = 0;
+
+        hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &curDepthDesc,
+                                                D3D12_RESOURCE_STATE_COMMON, NULL,
+                                                __uuidof(ID3D12Resource), (void **)&overrideDepth);
+        if(FAILED(hr))
+        {
+          RDCERR("Failed to create overrideDepth HRESULT: %s", ToStr(hr).c_str());
+          return m_Overlay.resourceId;
+        }
+
+        dsv = GetDebugManager()->GetCPUHandle(OVERLAY_DSV);
+        m_pDevice->CreateDepthStencilView(overrideDepth, NULL, dsv);
+      }
+
       // declare callback struct here
-      D3D12QuadOverdrawCallback cb(m_pDevice, quadWrite, quadWriteDXIL, events,
+      D3D12QuadOverdrawCallback cb(m_pDevice, quadWrite, quadWriteDXIL, events, overrideDepth,
+                                   overrideDepth ? curDepth : NULL,
+                                   overrideDepth ? ToPortableHandle(dsv) : PortableHandle(),
                                    ToPortableHandle(GetDebugManager()->GetCPUHandle(OVERDRAW_UAV)));
 
       m_pDevice->ReplayLog(events.front(), events.back(), eReplay_Full);
@@ -1348,7 +1424,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
 
         list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-        list->SetPipelineState(m_Overlay.QuadResolvePipe);
+        list->SetPipelineState(m_Overlay.QuadResolvePipe[Log2Floor(overlayTexDesc.SampleDesc.Count)]);
 
         list->SetGraphicsRootSignature(m_Overlay.QuadResolveRootSig);
 
@@ -1372,6 +1448,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       }
 
       SAFE_RELEASE(overdrawTex);
+      SAFE_RELEASE(overrideDepth);
     }
 
     if(overlay == DebugOverlay::QuadOverdrawPass)

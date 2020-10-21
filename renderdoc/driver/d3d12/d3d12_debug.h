@@ -167,11 +167,17 @@ public:
   MeshDisplayPipelines CacheMeshDisplayPipelines(const MeshFormat &primary,
                                                  const MeshFormat &secondary);
 
-  void CopyTex2DMSToArray(ID3D12Resource *destArray, ID3D12Resource *srcMS);
+  void CopyTex2DMSToArray(ID3D12GraphicsCommandList *list, ID3D12Resource *destArray,
+                          ID3D12Resource *srcMS);
   void CopyArrayToTex2DMS(ID3D12Resource *destMS, ID3D12Resource *srcArray, UINT selectedSlice);
 
 private:
   bool CreateMathIntrinsicsResources();
+
+  rdcpair<ID3D12PipelineState *, ID3D12PipelineState *> D3D12DebugManager::GetMSToArrayPSOs(
+      DXGI_FORMAT format);
+
+  std::map<DXGI_FORMAT, rdcpair<ID3D12PipelineState *, ID3D12PipelineState *>> m_MS2ArrayPSOCache;
 
   WrappedID3D12Device *m_pDevice = NULL;
 
@@ -221,6 +227,7 @@ private:
   // Debug lists
   ID3D12GraphicsCommandListX *m_DebugList = NULL;
   ID3D12CommandAllocator *m_DebugAlloc = NULL;
+  ID3D12Fence *m_DebugFence = NULL;
 
   // Discard pattern rendering
   ID3DBlob *m_DiscardPS = NULL;

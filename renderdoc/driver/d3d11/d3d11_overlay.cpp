@@ -938,7 +938,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       uint32_t height = 1080 >> 1;
 
       D3D11_TEXTURE2D_DESC overrideDepthDesc = {};
-      ID3D11Texture2D *depthTex = NULL;
+      ID3D11Texture2D *origDepthTex = NULL;
 
       {
         ID3D11Resource *res = NULL;
@@ -981,7 +981,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
             overrideDepthDesc.ArraySize = texdesc.SampleDesc.Count;
             overrideDepthDesc.SampleDesc.Count = 1;
             overrideDepthDesc.SampleDesc.Quality = 0;
-            depthTex = ((ID3D11Texture2D *)res);
+            origDepthTex = ((ID3D11Texture2D *)res);
 
             D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc;
             state->OM.DepthView->GetDesc(&dsvDesc);
@@ -1007,22 +1007,24 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       }
 
       ID3D11DepthStencilView *depthOverride = NULL;
+      ID3D11Texture2D *depthOverrideTex = NULL;
 
       if(overrideDepthDesc.Width > 0)
       {
-        ID3D11Texture2D *tex = NULL;
-        m_pDevice->CreateTexture2D(&overrideDepthDesc, NULL, &tex);
+        m_pDevice->CreateTexture2D(&overrideDepthDesc, NULL, &depthOverrideTex);
 
         D3D11_DEPTH_STENCIL_VIEW_DESC viewDesc = {};
         viewDesc.Format = overrideDepthDesc.Format;
         viewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
         viewDesc.Texture2DArray.ArraySize = 1;
 
-        m_pDevice->GetDebugManager()->CopyTex2DMSToArray(UNWRAP(WrappedID3D11Texture2D1, tex),
-                                                         UNWRAP(WrappedID3D11Texture2D1, depthTex));
+        if(overlay != DebugOverlay::QuadOverdrawPass)
+          m_pDevice->GetDebugManager()->CopyTex2DMSToArray(
+              UNWRAP(WrappedID3D11Texture2D1, depthOverrideTex),
+              UNWRAP(WrappedID3D11Texture2D1, origDepthTex));
 
-        m_pDevice->CreateDepthStencilView(tex, &viewDesc, &depthOverride);
-        SAFE_RELEASE(tex);
+        m_pDevice->CreateDepthStencilView(depthOverrideTex, &viewDesc, &depthOverride);
+        depthOverrideTex->Release();
       }
 
       D3D11_TEXTURE2D_DESC uavTexDesc = {
@@ -1118,6 +1120,11 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
             &UAVcount);
 
         m_pImmediateContext->PSSetShader(m_Overlay.QuadOverdrawPS, NULL, 0);
+
+        if(overlay == DebugOverlay::QuadOverdrawPass && depthOverrideTex)
+          m_pDevice->GetDebugManager()->CopyTex2DMSToArray(
+              UNWRAP(WrappedID3D11Texture2D1, depthOverrideTex),
+              UNWRAP(WrappedID3D11Texture2D1, origDepthTex));
 
         m_pDevice->ReplayLog(events[i], events[i], eReplay_OnlyDraw);
 

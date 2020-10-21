@@ -254,7 +254,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
         m_Device->FlushLists();
 
         // expand multisamples out to array
-        m_Device->GetDebugManager()->CopyTex2DMSToArray(arrayTexture, r->GetReal());
+        m_Device->GetDebugManager()->CopyTex2DMSToArray(NULL, arrayTexture, r->GetReal());
 
         // open the initial state list again for the remainder of the work
         list = Unwrap(m_Device->GetInitialStateList());
