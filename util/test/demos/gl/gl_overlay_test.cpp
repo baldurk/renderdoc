@@ -181,7 +181,7 @@ void main()
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
     // Color render texture
-    GLuint attachments[] = {MakeTexture(), MakeTexture(), MakeTexture()};
+    GLuint attachments[] = {MakeTexture(), MakeTexture(), MakeTexture(), MakeTexture()};
 
     glBindTexture(GL_TEXTURE_2D, attachments[0]);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_SRGB8_ALPHA8, screenWidth, screenHeight);
@@ -191,6 +191,21 @@ void main()
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH24_STENCIL8, screenWidth, screenHeight);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D,
                            attachments[1], 0);
+
+    GLuint msaafbo = MakeFBO();
+    glBindFramebuffer(GL_FRAMEBUFFER, msaafbo);
+
+    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, attachments[2]);
+    glTexStorage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_SRGB8_ALPHA8, screenWidth,
+                              screenHeight, GL_TRUE);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE,
+                           attachments[2], 0);
+
+    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, attachments[3]);
+    glTexStorage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_DEPTH24_STENCIL8, screenWidth,
+                              screenHeight, GL_TRUE);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE,
+                           attachments[3], 0);
 
     GLuint subtex = MakeTexture();
     glBindTexture(GL_TEXTURE_2D_ARRAY, subtex);
@@ -223,52 +238,58 @@ void main()
 
       glUseProgram(program);
 
-      glEnable(GL_CULL_FACE);
-      glFrontFace(GL_CW);
+      for(GLuint fb : {fbo, msaafbo})
+      {
+        glEnable(GL_CULL_FACE);
+        glFrontFace(GL_CW);
 
-      glDepthMask(GL_TRUE);
-      glEnable(GL_DEPTH_TEST);
-      glEnable(GL_SCISSOR_TEST);
-      glDisable(GL_DEPTH_CLAMP);
-      glDisable(GL_STENCIL_TEST);
-      glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-      glStencilFunc(GL_ALWAYS, 0x55, 0xff);
+        glDepthMask(GL_TRUE);
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_SCISSOR_TEST);
+        glDisable(GL_DEPTH_CLAMP);
+        glDisable(GL_STENCIL_TEST);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        glStencilFunc(GL_ALWAYS, 0x55, 0xff);
 
-      glViewport(10, 10, GLsizei(screenWidth) - 20, GLsizei(screenHeight) - 20);
-      glScissor(0, 0, screenWidth, screenHeight);
+        glViewport(10, 10, GLsizei(screenWidth) - 20, GLsizei(screenHeight) - 20);
+        glScissor(0, 0, screenWidth, screenHeight);
 
-      glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-      float col[] = {0.2f, 0.2f, 0.2f, 1.0f};
-      glClearBufferfv(GL_COLOR, 0, col);
-      glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0f, 0);
+        glBindFramebuffer(GL_FRAMEBUFFER, fb);
+        float col[] = {0.2f, 0.2f, 0.2f, 1.0f};
+        glClearBufferfv(GL_COLOR, 0, col);
+        glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0f, 0);
 
-      // 1: write depth
-      glDepthFunc(GL_ALWAYS);
-      glDrawArrays(GL_TRIANGLES, 0, 3);
+        // 1: write depth
+        glDepthFunc(GL_ALWAYS);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
 
-      // 2: write stencil
-      glDepthFunc(GL_LEQUAL);
-      glEnable(GL_STENCIL_TEST);
-      glDrawArrays(GL_TRIANGLES, 3, 3);
+        // 2: write stencil
+        glDepthFunc(GL_LEQUAL);
+        glEnable(GL_STENCIL_TEST);
+        glDrawArrays(GL_TRIANGLES, 3, 3);
 
-      // 3: write background
-      glDisable(GL_STENCIL_TEST);
-      glDrawArrays(GL_TRIANGLES, 6, 3);
+        // 3: write background
+        glDisable(GL_STENCIL_TEST);
+        glDrawArrays(GL_TRIANGLES, 6, 3);
 
-      // add a marker so we can easily locate this draw
-      setMarker("Test Begin");
+        // add a marker so we can easily locate this draw
+        setMarker(fb == msaafbo ? "MSAA Test" : "Normal Test");
 
-      glEnable(GL_STENCIL_TEST);
-      glStencilFunc(GL_GREATER, 0x55, 0xff);
-      glDrawArrays(GL_TRIANGLES, 9, 24);
+        glEnable(GL_STENCIL_TEST);
+        glStencilFunc(GL_GREATER, 0x55, 0xff);
+        glDrawArrays(GL_TRIANGLES, 9, 24);
 
-      setMarker("Viewport Test");
-      glDisable(GL_STENCIL_TEST);
-      glViewport(10, screenHeight - 90, 80, 80);
-      glScissor(24, screenHeight - 76, 52, 52);
-      glDrawArrays(GL_TRIANGLES, 33, 3);
+        if(fb != msaafbo)
+        {
+          setMarker("Viewport Test");
+          glDisable(GL_STENCIL_TEST);
+          glViewport(10, screenHeight - 90, 80, 80);
+          glScissor(24, screenHeight - 76, 52, 52);
+          glDrawArrays(GL_TRIANGLES, 33, 3);
+        }
 
-      glScissor(0, 0, screenWidth, screenHeight);
+        glScissor(0, 0, screenWidth, screenHeight);
+      }
 
       glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
       glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);

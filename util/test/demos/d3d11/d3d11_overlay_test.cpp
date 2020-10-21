@@ -124,6 +124,23 @@ float4 main() : SV_Target0
         MakeTexture(DXGI_FORMAT_D32_FLOAT_S8X24_UINT, screenWidth, screenHeight).DSV();
     ID3D11DepthStencilViewPtr dsv = MakeDSV(depthtex);
 
+    UINT numQuals = 0;
+    dev->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, 4, &numQuals);
+
+    // when there's more than one quality, use a non-zero just to be awkward.
+    ID3D11Texture2DPtr msaatex =
+        MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, screenWidth, screenHeight)
+            .RTV()
+            .Multisampled(4, numQuals > 1 ? 1 : 0);
+    ID3D11RenderTargetViewPtr msaartv = MakeRTV(msaatex);
+
+    dev->CheckMultisampleQualityLevels(DXGI_FORMAT_D32_FLOAT_S8X24_UINT, 4, &numQuals);
+    ID3D11Texture2DPtr msaadepthtex =
+        MakeTexture(DXGI_FORMAT_D32_FLOAT_S8X24_UINT, screenWidth, screenHeight)
+            .DSV()
+            .Multisampled(4, numQuals > 1 ? 1 : 0);
+    ID3D11DepthStencilViewPtr msaadsv = MakeDSV(msaadepthtex);
+
     ID3D11Texture2DPtr subtex =
         MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, screenWidth, screenHeight).RTV().Array(5).Mips(4);
     ID3D11RenderTargetViewPtr subrtv =
@@ -140,64 +157,72 @@ float4 main() : SV_Target0
       ctx->VSSetShader(vs, NULL, 0);
       ctx->PSSetShader(ps, NULL, 0);
 
-      D3D11_DEPTH_STENCIL_DESC depth = GetDepthState();
+      for(ID3D11RenderTargetViewPtr rtv : {bbRTV, msaartv})
+      {
+        D3D11_DEPTH_STENCIL_DESC depth = GetDepthState();
 
-      depth.StencilEnable = FALSE;
-      depth.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-      depth.FrontFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
+        depth.StencilEnable = FALSE;
+        depth.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+        depth.FrontFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
 
-      SetDepthState(depth);
-      SetStencilRef(0x55);
+        SetDepthState(depth);
+        SetStencilRef(0x55);
 
-      D3D11_RASTERIZER_DESC raster = GetRasterState();
+        D3D11_RASTERIZER_DESC raster = GetRasterState();
 
-      raster.ScissorEnable = TRUE;
+        raster.ScissorEnable = TRUE;
 
-      SetRasterState(raster);
+        SetRasterState(raster);
 
-      RSSetViewport(
-          {10.0f, 10.0f, (float)screenWidth - 20.0f, (float)screenHeight - 20.0f, 0.0f, 1.0f});
-      RSSetScissor({0, 0, screenWidth, screenHeight});
+        RSSetViewport(
+            {10.0f, 10.0f, (float)screenWidth - 20.0f, (float)screenHeight - 20.0f, 0.0f, 1.0f});
+        RSSetScissor({0, 0, screenWidth, screenHeight});
 
-      ctx->OMSetRenderTargets(1, &bbRTV.GetInterfacePtr(), dsv);
+        ID3D11DepthStencilViewPtr curDSV = rtv == msaartv ? msaadsv : dsv;
 
-      ClearRenderTargetView(bbRTV, {0.2f, 0.2f, 0.2f, 1.0f});
-      ctx->ClearDepthStencilView(dsv, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+        ctx->OMSetRenderTargets(1, &rtv.GetInterfacePtr(), curDSV);
 
-      // draw the setup triangles
+        ClearRenderTargetView(rtv, {0.2f, 0.2f, 0.2f, 1.0f});
+        ctx->ClearDepthStencilView(curDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-      // 1: write depth
-      depth.DepthFunc = D3D11_COMPARISON_ALWAYS;
-      SetDepthState(depth);
-      ctx->Draw(3, 0);
+        // draw the setup triangles
 
-      // 2: write stencil
-      depth.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
-      depth.StencilEnable = TRUE;
-      SetDepthState(depth);
-      ctx->Draw(3, 3);
+        // 1: write depth
+        depth.DepthFunc = D3D11_COMPARISON_ALWAYS;
+        SetDepthState(depth);
+        ctx->Draw(3, 0);
 
-      // 3: write background
-      depth.StencilEnable = FALSE;
-      SetDepthState(depth);
-      ctx->Draw(3, 6);
+        // 2: write stencil
+        depth.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+        depth.StencilEnable = TRUE;
+        SetDepthState(depth);
+        ctx->Draw(3, 3);
 
-      // add a marker so we can easily locate this draw
-      setMarker("Test Begin");
+        // 3: write background
+        depth.StencilEnable = FALSE;
+        SetDepthState(depth);
+        ctx->Draw(3, 6);
 
-      depth.StencilEnable = TRUE;
-      depth.FrontFace.StencilFunc = D3D11_COMPARISON_GREATER;
-      SetDepthState(depth);
-      ctx->Draw(24, 9);
+        // add a marker so we can easily locate this draw
+        setMarker(rtv == msaartv ? "MSAA Test" : "Normal Test");
 
-      depth.StencilEnable = FALSE;
-      depth.DepthFunc = D3D11_COMPARISON_ALWAYS;
-      SetDepthState(depth);
+        depth.StencilEnable = TRUE;
+        depth.FrontFace.StencilFunc = D3D11_COMPARISON_GREATER;
+        SetDepthState(depth);
+        ctx->Draw(24, 9);
 
-      setMarker("Viewport Test");
-      RSSetViewport({10.0f, 10.0f, 80.0f, 80.0f, 0.0f, 1.0f});
-      RSSetScissor({24, 24, 76, 76});
-      ctx->Draw(3, 33);
+        depth.StencilEnable = FALSE;
+        depth.DepthFunc = D3D11_COMPARISON_ALWAYS;
+        SetDepthState(depth);
+
+        if(rtv == bbRTV)
+        {
+          setMarker("Viewport Test");
+          RSSetViewport({10.0f, 10.0f, 80.0f, 80.0f, 0.0f, 1.0f});
+          RSSetScissor({24, 24, 76, 76});
+          ctx->Draw(3, 33);
+        }
+      }
 
       ctx->PSSetShader(whiteps, NULL, 0);
 

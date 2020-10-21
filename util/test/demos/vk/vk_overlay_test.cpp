@@ -206,6 +206,17 @@ void main()
 
     VkRenderPass renderPass = createRenderPass(renderPassCreateInfo);
 
+    renderPassCreateInfo.attachments[0].samples = VK_SAMPLE_COUNT_4_BIT;
+    renderPassCreateInfo.attachments[1].samples = VK_SAMPLE_COUNT_4_BIT;
+
+    VkRenderPass msaaRP = createRenderPass(renderPassCreateInfo);
+
+    renderPassCreateInfo.attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
+    renderPassCreateInfo.attachments.pop_back();
+    renderPassCreateInfo.subpasses[0].pDepthStencilAttachment = NULL;
+
+    VkRenderPass subrp = createRenderPass(renderPassCreateInfo);
+
     // create framebuffers using swapchain images and DS image
     std::vector<VkFramebuffer> fbs;
     fbs.resize(mainWindow->GetCount());
@@ -218,7 +229,6 @@ void main()
     vkh::GraphicsPipelineCreateInfo pipeCreateInfo;
 
     pipeCreateInfo.layout = layout;
-    pipeCreateInfo.renderPass = renderPass;
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
@@ -245,26 +255,46 @@ void main()
     pipeCreateInfo.depthStencilState.back = pipeCreateInfo.depthStencilState.front;
 
     pipeCreateInfo.depthStencilState.depthCompareOp = VK_COMPARE_OP_ALWAYS;
-    VkPipeline depthWritePipe = createGraphicsPipeline(pipeCreateInfo);
+    VkPipeline depthWritePipe[2];
+    pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    pipeCreateInfo.renderPass = renderPass;
+    depthWritePipe[0] = createGraphicsPipeline(pipeCreateInfo);
+    pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
+    pipeCreateInfo.renderPass = msaaRP;
+    depthWritePipe[1] = createGraphicsPipeline(pipeCreateInfo);
 
     pipeCreateInfo.depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
     pipeCreateInfo.depthStencilState.stencilTestEnable = VK_TRUE;
-    VkPipeline stencilWritePipe = createGraphicsPipeline(pipeCreateInfo);
+    VkPipeline stencilWritePipe[2];
+    pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    pipeCreateInfo.renderPass = renderPass;
+    stencilWritePipe[0] = createGraphicsPipeline(pipeCreateInfo);
+    pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
+    pipeCreateInfo.renderPass = msaaRP;
+    stencilWritePipe[1] = createGraphicsPipeline(pipeCreateInfo);
 
     pipeCreateInfo.depthStencilState.stencilTestEnable = VK_FALSE;
-    VkPipeline backgroundPipe = createGraphicsPipeline(pipeCreateInfo);
+    VkPipeline backgroundPipe[2];
+    pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    pipeCreateInfo.renderPass = renderPass;
+    backgroundPipe[0] = createGraphicsPipeline(pipeCreateInfo);
+    pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
+    pipeCreateInfo.renderPass = msaaRP;
+    backgroundPipe[1] = createGraphicsPipeline(pipeCreateInfo);
 
     pipeCreateInfo.depthStencilState.stencilTestEnable = VK_TRUE;
     pipeCreateInfo.depthStencilState.front.compareOp = VK_COMPARE_OP_GREATER;
-    VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
-
-    renderPassCreateInfo.attachments.pop_back();
-    renderPassCreateInfo.subpasses[0].pDepthStencilAttachment = NULL;
-
-    VkRenderPass subrp = createRenderPass(renderPassCreateInfo);
+    VkPipeline pipe[2];
+    pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    pipeCreateInfo.renderPass = renderPass;
+    pipe[0] = createGraphicsPipeline(pipeCreateInfo);
+    pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
+    pipeCreateInfo.renderPass = msaaRP;
+    pipe[1] = createGraphicsPipeline(pipeCreateInfo);
 
     pipeCreateInfo.stages[1] =
         CompileShaderModule(whitepixel, ShaderLang::glsl, ShaderStage::frag, "main");
+    pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
     pipeCreateInfo.renderPass = subrp;
     pipeCreateInfo.depthStencilState.stencilTestEnable = VK_FALSE;
     pipeCreateInfo.depthStencilState.depthCompareOp = VK_COMPARE_OP_ALWAYS;
@@ -294,6 +324,31 @@ void main()
             {mainWindow->scissor.extent.width / 8, mainWindow->scissor.extent.height / 8})),
     };
 
+    AllocatedImage msaaimg(
+        this, vkh::ImageCreateInfo(mainWindow->scissor.extent.width,
+                                   mainWindow->scissor.extent.height, 0, mainWindow->format,
+                                   VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, 1, 1, VK_SAMPLE_COUNT_4_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+
+    AllocatedImage msaadepthimg(
+        this, vkh::ImageCreateInfo(
+                  mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0,
+                  VK_FORMAT_D32_SFLOAT_S8_UINT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 1, 1,
+                  VK_SAMPLE_COUNT_4_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+
+    VkImageView msaaRTV = createImageView(
+        vkh::ImageViewCreateInfo(msaaimg.image, VK_IMAGE_VIEW_TYPE_2D, mainWindow->format));
+    VkImageView msaaDSV = createImageView(vkh::ImageViewCreateInfo(
+        msaadepthimg.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_D32_SFLOAT_S8_UINT, {},
+        vkh::ImageSubresourceRange(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)));
+
+    VkFramebuffer msaaFB = createFramebuffer(vkh::FramebufferCreateInfo(
+        msaaRP, {msaaRTV, msaaDSV},
+        {mainWindow->scissor.extent.width, mainWindow->scissor.extent.height}));
+
+    (void)msaaFB;
+
     while(Running())
     {
       VkCommandBuffer cmd = GetCommandBuffer();
@@ -302,60 +357,70 @@ void main()
 
       StartUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
 
-      VkViewport v = mainWindow->viewport;
-      v.x += 10.0f;
-      v.y += 10.0f;
-      v.width -= 20.0f;
-      v.height -= 20.0f;
+      VkViewport v;
+      VkRect2D s;
 
-      // if we're using KHR_maintenance1, check that negative viewport height is handled
-      if(KHR_maintenance1)
+      for(bool is_msaa : {false, true})
       {
-        v.y += v.height;
-        v.height = -v.height;
+        v = mainWindow->viewport;
+        v.x += 10.0f;
+        v.y += 10.0f;
+        v.width -= 20.0f;
+        v.height -= 20.0f;
+
+        // if we're using KHR_maintenance1, check that negative viewport height is handled
+        if(KHR_maintenance1)
+        {
+          v.y += v.height;
+          v.height = -v.height;
+        }
+
+        vkCmdSetViewport(cmd, 0, 1, &v);
+        vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
+        vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
+
+        vkCmdBeginRenderPass(
+            cmd, vkh::RenderPassBeginInfo(
+                     is_msaa ? msaaRP : renderPass, is_msaa ? msaaFB : fbs[mainWindow->imgIndex],
+                     mainWindow->scissor,
+                     {vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f), vkh::ClearValue(1.0f, 0)}),
+            VK_SUBPASS_CONTENTS_INLINE);
+
+        // draw the setup triangles
+
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, depthWritePipe[is_msaa ? 1 : 0]);
+        vkCmdDraw(cmd, 3, 1, 0, 0);
+
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, stencilWritePipe[is_msaa ? 1 : 0]);
+        vkCmdDraw(cmd, 3, 1, 3, 0);
+
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, backgroundPipe[is_msaa ? 1 : 0]);
+        vkCmdDraw(cmd, 3, 1, 6, 0);
+
+        // add a marker so we can easily locate this draw
+        setMarker(cmd, is_msaa ? "MSAA Test" : "Normal Test");
+
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe[is_msaa ? 1 : 0]);
+        vkCmdDraw(cmd, 24, 1, 9, 0);
+
+        if(!is_msaa)
+        {
+          setMarker(cmd, "Viewport Test");
+          v = {10.0f, 10.0f, 80.0f, 80.0f, 0.0f, 1.0f};
+          if(KHR_maintenance1)
+          {
+            v.y += v.height;
+            v.height = -v.height;
+          }
+          s = {{24, 24}, {52, 52}};
+          vkCmdSetViewport(cmd, 0, 1, &v);
+          vkCmdSetScissor(cmd, 0, 1, &s);
+          vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, backgroundPipe[0]);
+          vkCmdDraw(cmd, 3, 1, 33, 0);
+        }
+
+        vkCmdEndRenderPass(cmd);
       }
-
-      vkCmdSetViewport(cmd, 0, 1, &v);
-      vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
-      vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
-
-      vkCmdBeginRenderPass(cmd,
-                           vkh::RenderPassBeginInfo(
-                               renderPass, fbs[mainWindow->imgIndex], mainWindow->scissor,
-                               {vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f), vkh::ClearValue(1.0f, 0)}),
-                           VK_SUBPASS_CONTENTS_INLINE);
-
-      // draw the setup triangles
-
-      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, depthWritePipe);
-      vkCmdDraw(cmd, 3, 1, 0, 0);
-
-      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, stencilWritePipe);
-      vkCmdDraw(cmd, 3, 1, 3, 0);
-
-      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, backgroundPipe);
-      vkCmdDraw(cmd, 3, 1, 6, 0);
-
-      // add a marker so we can easily locate this draw
-      setMarker(cmd, "Test Begin");
-
-      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);
-      vkCmdDraw(cmd, 24, 1, 9, 0);
-
-      setMarker(cmd, "Viewport Test");
-      v = {10.0f, 10.0f, 80.0f, 80.0f, 0.0f, 1.0f};
-      if(KHR_maintenance1)
-      {
-        v.y += v.height;
-        v.height = -v.height;
-      }
-      VkRect2D s = {{24, 24}, {52, 52}};
-      vkCmdSetViewport(cmd, 0, 1, &v);
-      vkCmdSetScissor(cmd, 0, 1, &s);
-      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, backgroundPipe);
-      vkCmdDraw(cmd, 3, 1, 33, 0);
-
-      vkCmdEndRenderPass(cmd);
 
       v = mainWindow->viewport;
       v.width /= 4.0f;
