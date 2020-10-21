@@ -229,22 +229,79 @@ bool GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
 
 RenderOutputSubresource GLReplay::GetRenderOutputSubresource(ResourceId id)
 {
-  id = m_pDriver->GetResourceManager()->GetOriginalID(id);
+  MakeCurrentReplayContext(&m_ReplayCtx);
 
-  for(const GLPipe::Attachment &att : m_CurPipelineState.framebuffer.drawFBO.colorAttachments)
+  WrappedOpenGL &drv = *m_pDriver;
+  ContextPair &ctx = drv.GetCtx();
+
+  RenderOutputSubresource ret(~0U, ~0U, 0);
+
+  GLint numCols = 8;
+  drv.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
+
+  WrappedOpenGL::TextureData &details = m_pDriver->m_Textures[id];
+
+  GLuint curDrawFBO = 0;
+  drv.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&curDrawFBO);
+
+  GLuint name = 0;
+  GLenum type = eGL_TEXTURE;
+  for(GLint i = 0; i < numCols + 2; i++)
   {
-    if(att.resourceId == id)
-      return RenderOutputSubresource(att.mipLevel, att.slice, att.numSlices);
+    GLenum att = GLenum(eGL_COLOR_ATTACHMENT0 + i);
+
+    if(i == numCols)
+      att = eGL_DEPTH_ATTACHMENT;
+    else if(i == numCols + 1)
+      att = eGL_STENCIL_ATTACHMENT;
+
+    drv.glGetFramebufferAttachmentParameteriv(
+        eGL_DRAW_FRAMEBUFFER, att, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&name);
+    drv.glGetFramebufferAttachmentParameteriv(
+        eGL_DRAW_FRAMEBUFFER, att, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
+
+    GLResource res;
+    if(type == eGL_RENDERBUFFER)
+      res = RenderbufferRes(ctx, name);
+    else
+      res = TextureRes(ctx, name);
+
+    if(res == details.resource)
+    {
+      GetFramebufferMipAndLayer(curDrawFBO, att, (GLint *)&ret.mip, (GLint *)&ret.slice);
+
+      ret.numSlices = 1;
+
+      if(type == eGL_TEXTURE)
+      {
+        // desktop GL allows layered attachments which attach all slices from 0 to N
+        if(!IsGLES)
+        {
+          GLint layered = 0;
+          GL.glGetNamedFramebufferAttachmentParameterivEXT(
+              curDrawFBO, att, eGL_FRAMEBUFFER_ATTACHMENT_LAYERED, &layered);
+
+          if(layered)
+            ret.numSlices = details.depth;
+        }
+        else
+        {
+          // on GLES there's an OVR extension that allows attaching multiple layers
+          if(HasExt[OVR_multiview])
+          {
+            GLint numViews = 0;
+            GL.glGetNamedFramebufferAttachmentParameterivEXT(
+                curDrawFBO, att, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_NUM_VIEWS_OVR, &numViews);
+
+            if(numViews > 1)
+              ret.numSlices = numViews;
+          }
+        }
+      }
+    }
   }
 
-  for(const GLPipe::Attachment &att : {m_CurPipelineState.framebuffer.drawFBO.depthAttachment,
-                                       m_CurPipelineState.framebuffer.drawFBO.stencilAttachment})
-  {
-    if(att.resourceId == id)
-      return RenderOutputSubresource(att.mipLevel, att.slice, att.numSlices);
-  }
-
-  return RenderOutputSubresource(~0U, ~0U, 0);
+  return ret;
 }
 
 void GLReplay::BindFramebufferTexture(RenderOutputSubresource &sub, GLenum texBindingEnum,
@@ -304,6 +361,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
 {
   WrappedOpenGL &drv = *m_pDriver;
 
+  MakeCurrentReplayContext(&m_ReplayCtx);
+
   RenderOutputSubresource sub = GetRenderOutputSubresource(texid);
 
   if(sub.slice == ~0U)
@@ -311,8 +370,6 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
     RDCERR("Rendering overlay for %s couldn't find output to get subresource.", ToStr(texid).c_str());
     sub = RenderOutputSubresource(0, 0, 1);
   }
-
-  MakeCurrentReplayContext(&m_ReplayCtx);
 
   GLMarkerRegion renderoverlay(StringFormat::Fmt("RenderOverlay %d", overlay));
 
