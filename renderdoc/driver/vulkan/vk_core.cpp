@@ -274,10 +274,13 @@ void WrappedVulkan::SubmitCmds(VkSemaphore *unwrappedWaitSemaphores,
       NULL,    // signal semaphores
   };
 
-  // we might have work to do (e.g. debug manager creation command buffer) but
-  // no queue, if the device is destroyed immediately. In this case we can just
-  // skip the submit
-  if(m_Queue != VK_NULL_HANDLE)
+  // we might have work to do (e.g. debug manager creation command buffer) but no queue, if the
+  // device is destroyed immediately. In this case we can just skip the submit. We don't mark these
+  // command buffers as submitted in case we're capturing an early frame - we can't lose these so we
+  // just defer them until later.
+  if(m_Queue == VK_NULL_HANDLE)
+    return;
+
   {
     VkResult vkr = ObjDisp(m_Queue)->QueueSubmit(Unwrap(m_Queue), 1, &submitInfo, VK_NULL_HANDLE);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
