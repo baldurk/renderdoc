@@ -1014,6 +1014,7 @@ rdcstr DoStringise(const SectionType &el)
     STRINGISE_ENUM_CLASS_NAMED(AMDRGPProfile, "amd/rgp/profile");
     STRINGISE_ENUM_CLASS_NAMED(ExtendedThumbnail, "renderdoc/internal/exthumb");
     STRINGISE_ENUM_CLASS_NAMED(EmbeddedLogfile, "renderdoc/internal/logfile");
+    STRINGISE_ENUM_CLASS_NAMED(EditedShaders, "renderdoc/ui/edits");
   }
   END_ENUM_STRINGISE();
 }

@@ -564,6 +564,8 @@ DOCUMENT(R"(A shader window used for viewing, editing, or debugging.
 
   :param CaptureContext context: The current capture context.
   :param ShaderViewer viewer: The open shader viewer.
+  :param ResourceId id: The id of the shader being replaced.
+  :param ShaderStage stage: The shader stage of the shader being replaced.
   :param ShaderEncoding encoding: The encoding of the files being passed.
   :param ShaderCompileFlags flags: The flags to use during compilation.
   :param str entryFunc: The name of the entry point.
@@ -577,13 +579,15 @@ DOCUMENT(R"(A shader window used for viewing, editing, or debugging.
   Called whenever a shader viewer that was open for editing is closed.
 
   :param CaptureContext context: The current capture context.
+  :param ShaderViewer viewer: The open shader viewer.
+  :param ResourceId id: The id of the shader being replaced.
 )");
 struct IShaderViewer
 {
-  typedef std::function<void(ICaptureContext *ctx, IShaderViewer *, ShaderEncoding,
-                             ShaderCompileFlags, rdcstr, bytebuf)>
+  typedef std::function<void(ICaptureContext *, IShaderViewer *, ResourceId, ShaderStage,
+                             ShaderEncoding, ShaderCompileFlags, rdcstr, bytebuf)>
       SaveCallback;
-  typedef std::function<void(ICaptureContext *ctx)> CloseCallback;
+  typedef std::function<void(ICaptureContext *, IShaderViewer *, ResourceId)> CloseCallback;
 
   DOCUMENT(
       "Retrieves the QWidget for this :class:`ShaderViewer` if PySide2 is available, or otherwise "
@@ -1011,6 +1015,10 @@ This is a bitmask, so several values can be present at once.
 
   The general notes field has been changed.
 
+.. data:: EditedShaders
+
+  There are shader editing changes (new edits or reverts).
+
 .. data:: All
 
   Fixed value with all bits set, indication all modifications have been made.
@@ -1021,6 +1029,7 @@ enum class CaptureModifications : uint32_t
   Renames = 0x0001,
   Bookmarks = 0x0002,
   Notes = 0x0004,
+  EditedShaders = 0x0008,
   All = 0xffffffff,
 };
 
@@ -1161,6 +1170,12 @@ The capture must be available locally, if it's not this function will fail.
 been made.
 )");
   virtual void RefreshStatus() = 0;
+
+  DOCUMENT(R"(Determine if a resource has been replaced. See :meth:`RegisterReplacement`.
+
+:param ResourceId id: The id of the resource to check.
+)");
+  virtual bool IsResourceReplaced(ResourceId id) = 0;
 
   DOCUMENT(R"(Register that a resource has replaced, so that the UI can be updated to reflect the
 change.

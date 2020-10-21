@@ -92,6 +92,12 @@ version of RenderDoc that addes a new section type. They should be considered eq
   This section contains the log file at the time of capture, for debugging.
 
   The name for this section will be "renderdoc/internal/logfile".
+
+.. data:: EditedShaders
+
+  This section contains any edited shaders.
+
+  The name for this section will be "renderdoc/ui/edits".
 )");
 enum class SectionType : uint32_t
 {
@@ -105,6 +111,7 @@ enum class SectionType : uint32_t
   AMDRGPProfile,
   ExtendedThumbnail,
   EmbeddedLogfile,
+  EditedShaders,
   Count,
 };
 

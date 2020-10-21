@@ -210,6 +210,10 @@ struct CaptureContextInvoker : ICaptureContext
     InvokeVoidFunction(&ICaptureContext::SetEventID, exclude, selectedEventID, eventId, force);
   }
   virtual void RefreshStatus() override { InvokeVoidFunction(&ICaptureContext::RefreshStatus); }
+  virtual bool IsResourceReplaced(ResourceId id) override
+  {
+    return InvokeRetFunction<bool>(&ICaptureContext::IsResourceReplaced, id);
+  }
   virtual void RegisterReplacement(ResourceId id) override
   {
     InvokeVoidFunction(&ICaptureContext::RegisterReplacement, id);

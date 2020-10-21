@@ -74,15 +74,25 @@ class ShaderViewer : public QFrame, public IShaderViewer, public ICaptureViewer
   Q_OBJECT
 
 public:
-  static IShaderViewer *EditShader(ICaptureContext &ctx, ResourceId id, ShaderStage stage,
-                                   const QString &entryPoint, const rdcstrpairs &files,
-                                   ShaderEncoding shaderEncoding, ShaderCompileFlags flags,
-                                   IShaderViewer::SaveCallback saveCallback,
-                                   IShaderViewer::CloseCallback closeCallback, QWidget *parent)
+  typedef std::function<void(ShaderViewer *viewer, bool closed)> ModifyCallback;
+
+  static ShaderViewer *LoadEditor(ICaptureContext &ctx, QVariantMap data,
+                                  IShaderViewer::SaveCallback saveCallback,
+                                  IShaderViewer::CloseCallback closeCallback,
+                                  ModifyCallback modifyCallback, QWidget *parent);
+  QVariantMap SaveEditor();
+
+  static ShaderViewer *EditShader(ICaptureContext &ctx, ResourceId id, ShaderStage stage,
+                                  const QString &entryPoint, const rdcstrpairs &files,
+                                  ShaderEncoding shaderEncoding, ShaderCompileFlags flags,
+                                  IShaderViewer::SaveCallback saveCallback,
+                                  IShaderViewer::CloseCallback closeCallback,
+                                  ModifyCallback modifyCallback, QWidget *parent)
   {
     ShaderViewer *ret = new ShaderViewer(ctx, parent);
     ret->m_SaveCallback = saveCallback;
     ret->m_CloseCallback = closeCallback;
+    ret->m_ModifyCallback = modifyCallback;
     ret->editShader(id, stage, entryPoint, files, shaderEncoding, flags);
     return ret;
   }
@@ -177,6 +187,8 @@ private:
                    ResourceId pipeline, ShaderDebugTrace *trace, const QString &debugContext);
   bool eventFilter(QObject *watched, QEvent *event) override;
 
+  void MarkModification();
+
   void PopulateCompileTools();
   void PopulateCompileToolParameters();
   bool ProcessIncludeDirectives(QString &source, const rdcstrpairs &files);
@@ -207,6 +219,7 @@ private:
   ShaderBindpointMapping m_Mapping;
   const ShaderReflection *m_ShaderDetails = NULL;
   bool m_CustomShader = false;
+  ResourceId m_EditingShader;
   ShaderCompileFlags m_Flags;
   QList<ShaderEncoding> m_Encodings;
   ShaderStage m_Stage;
@@ -250,6 +263,9 @@ private:
 
   SaveCallback m_SaveCallback;
   CloseCallback m_CloseCallback;
+  ModifyCallback m_ModifyCallback;
+
+  bool m_Modified = true;
 
   ShaderDebugTrace *m_Trace = NULL;
   rdcarray<ShaderDebugState> m_States;
@@ -314,6 +330,8 @@ private:
   void ensureLineScrolled(ScintillaEdit *s, int i);
 
   void find(bool down);
+
+  void setEditorWindowTitle();
 
   void runTo(QVector<size_t> runToInstructions, bool forward,
              ShaderEvents condition = ShaderEvents::NoEvent);

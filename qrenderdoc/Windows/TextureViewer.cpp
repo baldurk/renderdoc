@@ -4368,8 +4368,9 @@ void TextureViewer::on_customEdit_clicked()
       ResourceId(), ShaderStage::Fragment, lit("main"), files,
       encodingExtensions[QFileInfo(filename).completeSuffix()], ShaderCompileFlags(),
       // Save Callback
-      [thisPointer, key, filename, path](ICaptureContext *ctx, IShaderViewer *viewer,
-                                         ShaderEncoding, ShaderCompileFlags, rdcstr, bytebuf bytes) {
+      [thisPointer, key, filename, path](ICaptureContext *ctx, IShaderViewer *viewer, ResourceId,
+                                         ShaderStage, ShaderEncoding, ShaderCompileFlags, rdcstr,
+                                         bytebuf bytes) {
         {
           // don't trigger a full refresh
           if(thisPointer)
@@ -4397,7 +4398,7 @@ void TextureViewer::on_customEdit_clicked()
         }
       },
 
-      [thisPointer, key](ICaptureContext *ctx) {
+      [thisPointer, key](ICaptureContext *, IShaderViewer *, ResourceId) {
         if(thisPointer)
           thisPointer->m_CustomShaderEditor.remove(key);
       });

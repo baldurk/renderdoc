@@ -215,6 +215,7 @@ void ShaderViewer::editShader(ResourceId id, ShaderStage stage, const QString &e
   m_Flags = flags;
 
   m_CustomShader = (id == ResourceId());
+  m_EditingShader = id;
 
   // set up compilation parameters
   for(ShaderEncoding i : values<ShaderEncoding>())
@@ -230,12 +231,22 @@ void ShaderViewer::editShader(ResourceId id, ShaderStage stage, const QString &e
   ui->encoding->setCurrentIndex(m_Encodings.indexOf(shaderEncoding));
   ui->entryFunc->setText(entryPoint);
 
+  QObject::connect(ui->entryFunc, &QLineEdit::textChanged,
+                   [this](const QString &) { MarkModification(); });
+  QObject::connect(ui->toolCommandLine, &QTextEdit::textChanged, [this]() { MarkModification(); });
+
   PopulateCompileTools();
 
   QObject::connect(ui->encoding, OverloadedSlot<int>::of(&QComboBox::currentIndexChanged),
-                   [this](int) { PopulateCompileTools(); });
+                   [this](int) {
+                     PopulateCompileTools();
+                     MarkModification();
+                   });
   QObject::connect(ui->compileTool, OverloadedSlot<int>::of(&QComboBox::currentIndexChanged),
-                   [this](int) { PopulateCompileToolParameters(); });
+                   [this](int) {
+                     PopulateCompileToolParameters();
+                     MarkModification();
+                   });
 
   // if it's a custom shader, hide the group entirely (don't allow customisation of compile
   // parameters). We can still use it to store the parameters passed in. When visible we collapse it
@@ -289,6 +300,8 @@ void ShaderViewer::editShader(ResourceId id, ShaderStage stage, const QString &e
                                                                  const QByteArray &, int, int, int) {
       if(type & (SC_MOD_INSERTTEXT | SC_MOD_DELETETEXT | SC_MOD_BEFOREINSERT | SC_MOD_BEFOREDELETE))
         m_FindState = FindState();
+
+      MarkModification();
     });
 
     m_Ctx.GetMainWindow()->RegisterShortcut(QKeySequence(QKeySequence::Refresh).toString(), this,
@@ -961,6 +974,131 @@ void ShaderViewer::gotoDisassemblyDebugging()
   m_DisassemblyFrame->setFocus(Qt::MouseFocusReason);
 }
 
+ShaderViewer *ShaderViewer::LoadEditor(ICaptureContext &ctx, QVariantMap data,
+                                       IShaderViewer::SaveCallback saveCallback,
+                                       IShaderViewer::CloseCallback closeCallback,
+                                       ModifyCallback modifyCallback, QWidget *parent)
+{
+  if(data.isEmpty())
+    return NULL;
+
+  ResourceId id;
+
+  {
+    QVariant v = data[lit("id")];
+    RichResourceTextInitialise(v);
+    id = v.value<ResourceId>();
+  }
+  ShaderStage stage = (ShaderStage)data[lit("stage")].toUInt();
+  rdcstr entryPoint = data[lit("entryPoint")].toString();
+  ShaderEncoding encoding = (ShaderEncoding)data[lit("encoding")].toUInt();
+  QString commandLine = data[lit("commandLine")].toString();
+  QString toolName = data[lit("tool")].toString();
+
+  ShaderCompileFlags flags;
+
+  {
+    QVariantMap v = data[lit("flags")].toMap();
+
+    for(const QString &str : v.keys())
+      flags.flags.push_back({(rdcstr)str, (rdcstr)v[str].toString()});
+  }
+
+  rdcstrpairs files;
+
+  {
+    QVariantList v = data[lit("files")].toList();
+
+    for(QVariant f : v)
+    {
+      QVariantMap file = f.toMap();
+      files.push_back(
+          {(rdcstr)file[lit("name")].toString(), (rdcstr)file[lit("contents")].toString()});
+    }
+  }
+
+  rdcstr errors;
+
+  if((uint32_t)encoding >= (uint32_t)ShaderEncoding::Count)
+  {
+    errors += tr("Unrecognised shader encoding '%1'").arg(ToStr(encoding));
+    // with no other information let's guess HLSL as the most likely
+    encoding = ShaderEncoding::HLSL;
+  }
+
+  ShaderViewer *view = EditShader(ctx, id, stage, entryPoint, files, encoding, flags, saveCallback,
+                                  closeCallback, modifyCallback, parent);
+
+  int toolIndex = -1;
+
+  for(int i = 0; i < view->ui->compileTool->count(); i++)
+  {
+    QString tool = view->ui->compileTool->itemText(i);
+    if(tool == toolName)
+    {
+      toolIndex = i;
+      break;
+    }
+  }
+
+  if(toolIndex == -1)
+  {
+    errors += tr("Unknown shader tool '%1'").arg(toolName);
+    // let's pick the highest priority tool for the current encoding
+    toolIndex = 0;
+  }
+
+  view->ui->encoding->setCurrentIndex(view->m_Encodings.indexOf(encoding));
+  view->ui->compileTool->setCurrentIndex(toolIndex);
+  view->ui->entryFunc->setText(entryPoint);
+  view->ui->toolCommandLine->setText(commandLine);
+
+  return view;
+}
+
+QVariantMap ShaderViewer::SaveEditor()
+{
+  QVariantMap ret;
+
+  if(m_EditingShader != ResourceId())
+  {
+    ret[lit("id")] = m_EditingShader;
+    ret[lit("stage")] = (uint32_t)m_Stage;
+    ret[lit("entryPoint")] = ui->entryFunc->text();
+    ret[lit("encoding")] = (uint32_t)currentEncoding();
+    ret[lit("commandLine")] = ui->toolCommandLine->toPlainText();
+    ret[lit("tool")] = ui->compileTool->currentText();
+
+    {
+      QVariantMap v;
+
+      for(const ShaderCompileFlag &flag : m_Flags.flags)
+        v[flag.name] = QString(flag.value);
+
+      ret[lit("flags")] = v;
+    }
+
+    {
+      QVariantList v;
+
+      for(ScintillaEdit *edit : m_Scintillas)
+      {
+        QWidget *w = (QWidget *)edit;
+
+        QVariantMap f;
+        f[lit("name")] = w->property("filename").toString();
+        f[lit("contents")] = QString::fromUtf8(edit->getText(edit->textLength() + 1));
+
+        v.push_back(f);
+      }
+
+      ret[lit("files")] = v;
+    }
+  }
+
+  return ret;
+}
+
 ShaderViewer::~ShaderViewer()
 {
   delete m_FindResults;
@@ -975,7 +1113,10 @@ ShaderViewer::~ShaderViewer()
   m_Ctx.Replay().AsyncInvoke([trace](IReplayController *r) { r->FreeTrace(trace); });
 
   if(m_CloseCallback)
-    m_CloseCallback(&m_Ctx);
+    m_CloseCallback(&m_Ctx, this, m_EditingShader);
+
+  if(m_ModifyCallback)
+    m_ModifyCallback(this, true);
 
   m_Ctx.RemoveCaptureViewer(this);
   delete ui;
@@ -2306,6 +2447,30 @@ bool ShaderViewer::getVar(RDTreeWidgetItem *item, ShaderVariable *var, QString *
     }
 
     return false;
+  }
+}
+
+void ShaderViewer::setEditorWindowTitle()
+{
+  if(m_EditingShader != ResourceId())
+  {
+    if(!m_Ctx.IsResourceReplaced(m_EditingShader))
+      m_Modified = true;
+
+    if(m_Modified)
+    {
+      QString title = windowTitle();
+      if(title[0] != QLatin1Char('*'))
+        title.prepend(lit("* "));
+      setWindowTitle(title);
+    }
+    else
+    {
+      QString title = windowTitle();
+      if(title[0] == QLatin1Char('*'))
+        title.remove(0, 2);
+      setWindowTitle(title);
+    }
   }
 }
 
@@ -3872,6 +4037,8 @@ void ShaderViewer::ShowErrors(const rdcstr &errors)
     if(!errors.isEmpty())
       ToolWindowManager::raiseToolWindow(m_Errors);
   }
+
+  setEditorWindowTitle();
 }
 
 void ShaderViewer::AddWatch(const rdcstr &variable)
@@ -4340,6 +4507,16 @@ bool ShaderViewer::eventFilter(QObject *watched, QEvent *event)
   return QFrame::eventFilter(watched, event);
 }
 
+void ShaderViewer::MarkModification()
+{
+  if(m_ModifyCallback)
+    m_ModifyCallback(this, false);
+
+  m_Modified = true;
+
+  setEditorWindowTitle();
+}
+
 void ShaderViewer::disasm_tooltipShow(int x, int y)
 {
   // do nothing if there's no trace
@@ -4757,7 +4934,10 @@ void ShaderViewer::on_refresh_clicked()
     if(!found)
       flags.flags.push_back({"@cmdline", ui->toolCommandLine->toPlainText()});
 
-    m_SaveCallback(&m_Ctx, this, encoding, flags, ui->entryFunc->text(), shaderBytes);
+    m_Modified = false;
+
+    m_SaveCallback(&m_Ctx, this, m_EditingShader, m_Stage, encoding, flags, ui->entryFunc->text(),
+                   shaderBytes);
   }
 }
 
