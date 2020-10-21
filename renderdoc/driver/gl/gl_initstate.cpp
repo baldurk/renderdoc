@@ -945,6 +945,7 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
 
         GLuint msaaTex = tex;
 
+        tex = 0;
         m_Driver->CopyTex2DMSToArray(tex, msaaTex, details.width, details.height, details.depth,
                                      details.samples, details.internalFormat);
 

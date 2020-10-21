@@ -2658,6 +2658,7 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
 
     // copy multisampled texture to an array. This creates tempTex and returns it in that variable,
     // for us to own
+    tempTex = 0;
     m_pDriver->CopyTex2DMSToArray(tempTex, texname, width, height, arraysize, samples, intFormat);
 
     // CopyTex2DMSToArray is unwrapped, so register the resource here now

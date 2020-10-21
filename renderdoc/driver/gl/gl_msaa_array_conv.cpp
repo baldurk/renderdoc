@@ -119,10 +119,17 @@ void WrappedOpenGL::CopyTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint wi
 
   intFormat = GetSizedFormat(intFormat);
 
+  bool needInit = false;
+
   // create temporary texture array, which we'll initialise to be the width/height in same format,
   // with the same number of array slices as multi samples.
-  GL.glGenTextures(1, &destArray);
-  GL.glBindTexture(eGL_TEXTURE_2D_ARRAY, destArray);
+  if(destArray == 0)
+  {
+    GL.glGenTextures(1, &destArray);
+    GL.glBindTexture(eGL_TEXTURE_2D_ARRAY, destArray);
+
+    needInit = true;
+  }
 
   bool failed = false;
 
@@ -156,16 +163,20 @@ void WrappedOpenGL::CopyTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint wi
   {
     // create using the non-storage API which is always available, so the texture is at least valid
     // (but with undefined/empty contents).
-    GL.glTextureImage3DEXT(destArray, eGL_TEXTURE_2D_ARRAY, 0, intFormat, width, height,
-                           arraySize * samples, 0, GetBaseFormat(intFormat), GetDataType(intFormat),
-                           NULL);
-    GL.glTextureParameteriEXT(destArray, eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
+    if(needInit)
+    {
+      GL.glTextureImage3DEXT(destArray, eGL_TEXTURE_2D_ARRAY, 0, intFormat, width, height,
+                             arraySize * samples, 0, GetBaseFormat(intFormat),
+                             GetDataType(intFormat), NULL);
+      GL.glTextureParameteriEXT(destArray, eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
+    }
     return;
   }
 
   // initialise the texture using texture storage, as required for texture views.
-  GL.glTextureStorage3DEXT(destArray, eGL_TEXTURE_2D_ARRAY, 1, intFormat, width, height,
-                           arraySize * samples);
+  if(needInit)
+    GL.glTextureStorage3DEXT(destArray, eGL_TEXTURE_2D_ARRAY, 1, intFormat, width, height,
+                             arraySize * samples);
 
   if(IsDepthStencilFormat(intFormat))
   {
@@ -293,16 +304,6 @@ void WrappedOpenGL::CopyDepthTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLi
     // depth aspect
     GL.glActiveTexture(eGL_TEXTURE0);
     GL.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, texs[1]);
-    GL.glTextureParameteriEXT(texs[1], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MIN_FILTER,
-                              eGL_NEAREST);
-    GL.glTextureParameteriEXT(texs[1], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAG_FILTER,
-                              eGL_NEAREST);
-    GL.glTextureParameteriEXT(texs[1], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_S,
-                              eGL_CLAMP_TO_EDGE);
-    GL.glTextureParameteriEXT(texs[1], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_T,
-                              eGL_CLAMP_TO_EDGE);
-    GL.glTextureParameteriEXT(texs[1], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
-    GL.glTextureParameteriEXT(texs[1], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
     GL.glTextureParameteriEXT(texs[1], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY,
                               eGL_DEPTH_STENCIL_TEXTURE_MODE, eGL_DEPTH_COMPONENT);
   }
@@ -312,16 +313,6 @@ void WrappedOpenGL::CopyDepthTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLi
     // stencil aspect
     GL.glActiveTexture(eGL_TEXTURE1);
     GL.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, texs[2]);
-    GL.glTextureParameteriEXT(texs[2], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MIN_FILTER,
-                              eGL_NEAREST);
-    GL.glTextureParameteriEXT(texs[2], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAG_FILTER,
-                              eGL_NEAREST);
-    GL.glTextureParameteriEXT(texs[2], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_S,
-                              eGL_CLAMP_TO_EDGE);
-    GL.glTextureParameteriEXT(texs[2], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_T,
-                              eGL_CLAMP_TO_EDGE);
-    GL.glTextureParameteriEXT(texs[2], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
-    GL.glTextureParameteriEXT(texs[2], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
     GL.glTextureParameteriEXT(texs[2], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY,
                               eGL_DEPTH_STENCIL_TEXTURE_MODE, eGL_STENCIL_INDEX);
   }
