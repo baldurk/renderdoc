@@ -50,6 +50,20 @@ void main()
 
 )EOSHADER";
 
+  const std::string immutpixel = R"EOSHADER(
+#version 450 core
+
+layout(location = 0, index = 0) out vec4 Color;
+
+layout(binding = 0) uniform sampler2D tex;
+
+void main()
+{
+	Color = vec4(0, 1, 0, 1) * textureLod(tex, vec2(0), 0);
+}
+
+)EOSHADER";
+
   const std::string refpixel = R"EOSHADER(
 #version 450 core
 #extension GL_EXT_samplerless_texture_functions : enable
@@ -362,10 +376,14 @@ void main()
     VkSampler invalidSampler = (VkSampler)0x1234;
     VkSampler validSampler = createSampler(vkh::SamplerCreateInfo(VK_FILTER_LINEAR));
 
-    VkDescriptorSetLayout immutsetlayout = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
-        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_VERTEX_BIT, &validSampler},
-        {99, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_VERTEX_BIT, &invalidSampler},
-    }));
+    setName(validSampler, "validSampler");
+
+    VkDescriptorSetLayout immutsetlayout =
+        createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
+            {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT,
+             &validSampler},
+            {99, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_VERTEX_BIT, &invalidSampler},
+        }));
 
     VkPipelineLayout layout, reflayout;
 
@@ -458,13 +476,18 @@ void main()
 
     VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
 
-    pipeCreateInfo.layout = immutlayout;
-
-    VkPipeline immutpipe = createGraphicsPipeline(pipeCreateInfo);
-
     pipeCreateInfo.layout = reflayout;
 
     VkPipeline refpipe = createGraphicsPipeline(pipeCreateInfo);
+
+    pipeCreateInfo.layout = immutlayout;
+
+    pipeCreateInfo.stages = {
+        CompileShaderModule(VKDefaultVertex, ShaderLang::glsl, ShaderStage::vert, "main"),
+        CompileShaderModule(immutpixel, ShaderLang::glsl, ShaderStage::frag, "main"),
+    };
+
+    VkPipeline immutpipe = createGraphicsPipeline(pipeCreateInfo);
 
     pipeCreateInfo.stages = {
         CompileShaderModule(VKDefaultVertex, ShaderLang::glsl, ShaderStage::vert, "main"),
@@ -946,6 +969,21 @@ void main()
                                     {vkh::DescriptorImageInfo(view3, VK_IMAGE_LAYOUT_GENERAL)}),
         });
 
+    VkSampler mutableSampler = createSampler(vkh::SamplerCreateInfo(VK_FILTER_NEAREST));
+
+    setName(mutableSampler, "mutableSampler");
+
+    // try writing a different sampler to the immutable sampler, it should not be applied
+    vkh::updateDescriptorSets(
+        device,
+        {
+            vkh::WriteDescriptorSet(
+                immutdescset, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                {
+                    vkh::DescriptorImageInfo(validImgView, VK_IMAGE_LAYOUT_GENERAL, mutableSampler),
+                }),
+        });
+
     refdatastruct resetrefdata = {};
     resetrefdata.sampler.sampler = resetrefdata.combined.sampler = validSampler;
     resetrefdata.sampled.imageView = resetrefdata.combined.imageView =
@@ -1374,6 +1412,7 @@ void main()
         vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, immutlayout, 0,
                                    {immutdescset}, {});
 
+        setMarker(cmd, "Immutable Draw");
         vkCmdDraw(cmd, 3, 1, 0, 0);
 
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe2);

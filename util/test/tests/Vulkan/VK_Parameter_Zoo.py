@@ -177,6 +177,26 @@ class VK_Parameter_Zoo(rdtest.TestCase):
 
         rdtest.log.success("ASM Draw is as expected")
 
+        draw = self.find_draw("Immutable Draw")
+
+        self.check(draw is not None)
+
+        draw = draw.next
+
+        self.controller.SetFrameEvent(draw.eventId, False)
+
+        vkpipe: rd.VKState = self.controller.GetVulkanPipelineState()
+
+        desc_set: rd.VKDescriptorSet = vkpipe.graphics.descriptorSets[0]
+
+        if desc_set.bindings[0].binds[0].filter.minify != rd.FilterMode.Linear:
+            raise rdtest.TestFailureException(
+                "Expected linear sampler at binding slot 0 in immutable draw")
+
+        if self.get_resource(desc_set.bindings[0].binds[0].samplerResourceId).name != "validSampler":
+            raise rdtest.TestFailureException(
+                "Expected validSampler to be at binding slot 0 in immutable draw")
+
         # Check for resource leaks
         if len(self.controller.GetStructuredFile().chunks) > 500:
             raise rdtest.TestFailureException(
