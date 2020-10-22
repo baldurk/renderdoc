@@ -553,6 +553,9 @@
     <ClCompile Include="d3d11\d3d11_feature_level_9.cpp">
       <Filter>D3D11\demos</Filter>
     </ClCompile>
+    <ClCompile Include="gl\gl_queries_in_use.cpp">
+      <Filter>OpenGL\demos</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D11">
