@@ -5177,13 +5177,13 @@ ReplayStatus WrappedOpenGL::ContextReplayLog(CaptureState readType, uint32_t sta
 
   if(IsActiveReplaying(m_State) && !m_FetchCounters)
   {
-    for(size_t i = 0; i < 8; i++)
+    for(size_t i = 0; i < MAX_QUERIES; i++)
     {
       GLenum q = QueryEnum(i);
       if(q == eGL_NONE)
         break;
 
-      int indices = IsGLES ? 1 : 8;    // GLES does not support indices
+      int indices = IsGLES ? 1 : MAX_QUERY_INDICES;    // GLES does not support indices
       for(int j = 0; j < indices; j++)
       {
         if(m_ActiveQueries[i][j])
