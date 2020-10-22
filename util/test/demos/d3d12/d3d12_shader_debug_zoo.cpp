@@ -737,7 +737,10 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
     MakeSRV(srvBuf).Format(DXGI_FORMAT_R32_FLOAT).CreateGPU(0);
 
     ID3D12ResourcePtr testTex = MakeTexture(DXGI_FORMAT_R32G32B32A32_FLOAT, 16, 16).Mips(3);
-    MakeSRV(testTex).NumMips(3).CreateGPU(3);
+
+    D3D12_CPU_DESCRIPTOR_HANDLE cpu = m_CBVUAVSRV->GetCPUDescriptorHandleForHeapStart();
+    cpu.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 3;
+    dev->CreateShaderResourceView(testTex, NULL, cpu);
 
     ID3D12ResourcePtr rawBuf = MakeBuffer().Data(testdata);
     MakeSRV(rawBuf)
