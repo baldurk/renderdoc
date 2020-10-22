@@ -244,6 +244,11 @@ RD_TEST(D3D11_Discard_Zoo, D3D11GraphicsTest)
                MakeTexture(DXGI_FORMAT_R16G16B16A16_FLOAT, 300, 300).Multisampled(4).Array(5).RTV());
       DiscardView<ID3D11RenderTargetViewPtr>(MakeRTV(tex).FirstSlice(2).NumSlices(1));
 
+      // test with DiscardView1 and NULL rect
+      TEX_TEST("DiscardAll Slice2",
+               MakeTexture(DXGI_FORMAT_R16G16B16A16_FLOAT, 300, 300).Multisampled(4).Array(5).RTV());
+      ctx1->DiscardView1((ID3D11RenderTargetViewPtr)MakeRTV(tex).FirstSlice(2).NumSlices(1), NULL, 0);
+
       // test 1D/3D textures
       ctx1->DiscardResource(tex1d);
       ctx1->DiscardResource(tex3d);

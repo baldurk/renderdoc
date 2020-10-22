@@ -402,6 +402,18 @@ float4 main(v2f IN) : SV_Target0
       TEX_TEST(L"DiscardAll", MakeTexture(DXGI_FORMAT_BC7_UNORM, 300, 300));
       DiscardResource(cmd, tex);
 
+      // test with discarding a NULL region
+      TEX_TEST(L"DiscardAll", MakeTexture(DXGI_FORMAT_R16G16B16A16_FLOAT, 300, 300));
+      cmd->DiscardResource(tex, NULL);
+      // and with NULL rects
+      TEX_TEST(L"DiscardAll", MakeTexture(DXGI_FORMAT_R16G16B16A16_FLOAT, 300, 300));
+      {
+        D3D12_DISCARD_REGION reg = {};
+        reg.FirstSubresource = 0;
+        reg.NumSubresources = 1;
+        cmd->DiscardResource(tex, &reg);
+      }
+
       // test with different mips/array sizes
       TEX_TEST(L"DiscardAll", MakeTexture(DXGI_FORMAT_R16G16B16A16_FLOAT, 300, 300).Mips(5));
       DiscardResource(cmd, tex);
