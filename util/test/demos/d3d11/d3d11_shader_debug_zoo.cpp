@@ -106,8 +106,13 @@ ByteAddressBuffer byterotest : register(t1);
 StructuredBuffer<MyStruct> structrotest : register(t2);
 Texture2D<float> dimtex : register(t3);
 Texture2DMS<float> dimtexms : register(t4);
+Texture2D<float4> smiley : register(t5);
+
 RWByteAddressBuffer byterwtest : register(u1);
 RWStructuredBuffer<MyStruct> structrwtest : register(u2);
+
+SamplerState linearclamp : register(s0);
+SamplerState linearwrap : register(s1);
 
 float4 main(v2f IN) : SV_Target0
 {
@@ -605,6 +610,21 @@ float4 main(v2f IN) : SV_Target0
     // try to force a swizzle on the load
     return asfloat(byterotest.Load4(z+0).yz).xyxy;
   }
+  if(IN.tri == 69)
+  {
+    float2 uv = posone * float2(1.81f, 0.48f);
+    return smiley.Sample(linearclamp, uv);
+  }
+  if(IN.tri == 70)
+  {
+    float2 uv = posone * float2(1.81f, 0.48f);
+    return smiley.Sample(linearwrap, uv);
+  }
+  if(IN.tri == 71)
+  {
+    float2 uv = posone * float2(1.81f, 0.48f) / zero;
+    return smiley.Sample(linearclamp, uv);
+  }
 
   return float4(0.4f, 0.4f, 0.4f, 0.4f);
 }
@@ -623,7 +643,7 @@ struct v2f
 Buffer<float> test : register(t0);
 
 Texture2D<float4> tex : register(t3);
-SamplerState s : register(s0);
+SamplerState linearclamp : register(s0);
 
 float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0 
 {
@@ -645,7 +665,7 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
 
   // do a condition that relies on texture samples and math operations so that we can check that
   // evaluating those has no side-effects
-  if(IN.pos.x + sin(IN.pos.y) + tex.Sample(s, IN.uv).z < 1000.0f)
+  if(IN.pos.x + sin(IN.pos.y) + tex.Sample(linearclamp, IN.uv).z < 1000.0f)
   {
     // RT should still have the same properties
     numSamples = GetRenderTargetSampleCount();
@@ -756,8 +776,17 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
     ID3D11UnorderedAccessViewPtr structuav =
         MakeUAV(structBuf2).Format(DXGI_FORMAT_UNKNOWN).FirstElement(3).NumElements(5);
 
+    Texture rgba8;
+    LoadXPM(SmileyTexture, rgba8);
+
+    ID3D11Texture2DPtr smiley =
+        MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM, rgba8.width, rgba8.height).SRV();
+    ID3D11ShaderResourceViewPtr smileysrv = MakeSRV(smiley);
+
+    ctx->UpdateSubresource(smiley, 0, NULL, rgba8.data.data(), rgba8.width * sizeof(uint32_t), 0);
+
     ID3D11ShaderResourceView *srvs[] = {
-        srv, rawsrv, structsrv, testSRV, msSRV,
+        srv, rawsrv, structsrv, testSRV, msSRV, smileysrv,
     };
 
     ctx->PSSetShaderResources(0, ARRAY_COUNT(srvs), srvs);
@@ -768,8 +797,10 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
 
     CreateDefaultInputLayout(vsmsaablob);
 
-    ID3D11SamplerStatePtr samp = MakeSampler();
-    ctx->PSSetSamplers(0, 1, &samp.GetInterfacePtr());
+    ID3D11SamplerStatePtr linearclamp = MakeSampler();
+    ctx->PSSetSamplers(0, 1, &linearclamp.GetInterfacePtr());
+    ID3D11SamplerStatePtr linearwrap = MakeSampler();
+    ctx->PSSetSamplers(1, 1, &linearwrap.GetInterfacePtr());
 
     ID3D11VertexShaderPtr vsmsaa = CreateVS(vsmsaablob);
     ID3D11PixelShaderPtr psmsaa = CreatePS(psmsaablob);
