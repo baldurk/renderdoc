@@ -1245,6 +1245,14 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
     for(const Id &v : liveGlobals)
       initial.changes.push_back({ShaderVariable(), GetPointerValue(active.ids[v])});
 
+    if(m_DebugInfo.valid)
+    {
+      // debug info can refer to constants for source variable values. Add an initial change for any
+      // that are so referenced
+      for(const Id &v : m_DebugInfo.constants)
+        initial.changes.push_back({ShaderVariable(), GetPointerValue(active.ids[v])});
+    }
+
     ret.push_back(initial);
 
     steps++;
@@ -1347,8 +1355,8 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
                 {
                   ShaderVariable var = ReadFromPointer(thread.ids[lastLoc.second]);
 
-                  // don't map locals to IDs that don't exist yet, or to constants
-                  if(!var.name.empty() && constants.find(lastLoc.second) == constants.end())
+                  // don't map locals to IDs that don't exist yet
+                  if(!var.name.empty())
                   {
                     SourceVariableMapping sourceVar;
 
@@ -2639,6 +2647,9 @@ void Debugger::RegisterOp(Iter it)
         }
 
         local.locations.push_back({it.offs(), id});
+
+        if(constants.find(id) != constants.end() && !m_DebugInfo.constants.contains(id))
+          m_DebugInfo.constants.push_back(id);
 
         OpShaderDbg expr(GetID(dbg.arg<Id>(2)));
 

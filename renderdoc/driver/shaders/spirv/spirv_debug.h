@@ -394,6 +394,7 @@ private:
     ScopeData *curScope = NULL;
 
     rdcarray<Id> globals;
+    rdcarray<Id> constants;
 
     SparseIdMap<LocalData> locals;
 
