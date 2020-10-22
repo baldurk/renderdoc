@@ -255,15 +255,18 @@ struct ScopeData
   uint32_t column;
   int32_t fileIndex;
   size_t end;
+
+  rdcarray<Id> locals;
 };
-typedef rdcpair<size_t, Id> LocalLocation;
 struct LocalData
 {
   rdcstr name;
   ScopeData *scope;
 
-  rdcarray<LocalLocation> locations;
+  Id curId;
 };
+
+typedef rdcpair<Id, Id> LocalMapping;
 
 class Debugger : public Processor, public ShaderDebugger
 {
@@ -400,7 +403,8 @@ private:
 
     std::map<rdcstr, int32_t> files;
 
-    std::map<size_t, ScopeData *> m_LineScope;
+    std::map<size_t, ScopeData *> lineScope;
+    std::map<size_t, LocalMapping> localMappings;
   } m_DebugInfo;
 };
 

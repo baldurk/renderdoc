@@ -1325,35 +1325,58 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
 
           if(m_DebugInfo.valid)
           {
-            instOffs = instructionOffsets[thread.nextInstruction - 1];
+            size_t startOffs = instOffs;
+            size_t endOffs = instructionOffsets[thread.nextInstruction - 1];
+
+            // apply any local mapping changes
+            for(auto it = m_DebugInfo.localMappings.lower_bound(startOffs);
+                it != m_DebugInfo.localMappings.end(); ++it)
+            {
+              // if we've gone too far, end
+              if(it->first > endOffs)
+                break;
+
+              const LocalMapping &mapping = it->second;
+
+              if(mapping.second == Id())
+              {
+                // if the Ids are empty, this is a scope exiting. Potentially multiple scopes at
+                // once. The only scopes that could have exited are the ones that we were previously
+                // in, so start from the scope of the previous instruction and walk up its parents.
+                // Set curId to empty on all the locals of any scope that's exited
+                ScopeData *scope = m_DebugInfo.lineScope[startOffs];
+                while(scope)
+                {
+                  if(scope->end <= endOffs)
+                  {
+                    for(Id id : scope->locals)
+                      m_DebugInfo.locals[id].curId = Id();
+                  }
+
+                  scope = scope->parent;
+                }
+              }
+              else
+              {
+                // otherwise this is indicating the new current Id of a local
+                m_DebugInfo.locals[mapping.first].curId = mapping.second;
+              }
+            }
 
             // start with the global source vars
             state.sourceVars = globalSourceVars;
-            ScopeData *scope = m_DebugInfo.m_LineScope[instOffs];
-            rdcarray<ScopeData *> scopes;
+
+            // now go from the innermost scope to the outermost. At each scope add its locals
+            ScopeData *scope = m_DebugInfo.lineScope[endOffs];
             while(scope)
             {
-              scopes.push_back(scope);
-              scope = scope->parent;
-            }
-
-            for(auto it = m_DebugInfo.locals.begin(); it != m_DebugInfo.locals.end(); ++it)
-            {
-              const LocalData &l = it->second;
-              // if this variable is live in the current scope or any of its parents, it's live now.
-              if(scopes.contains(l.scope))
+              for(Id id : scope->locals)
               {
-                LocalLocation lastLoc;
-                for(const LocalLocation &loc : l.locations)
-                {
-                  if(loc.first > instOffs)
-                    break;
-                  lastLoc = loc;
-                }
+                const LocalData &l = m_DebugInfo.locals[id];
 
-                if(lastLoc.second != Id())
+                if(l.curId != Id())
                 {
-                  ShaderVariable var = ReadFromPointer(thread.ids[lastLoc.second]);
+                  ShaderVariable var = ReadFromPointer(thread.ids[l.curId]);
 
                   // don't map locals to IDs that don't exist yet
                   if(!var.name.empty())
@@ -1373,6 +1396,8 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
                   }
                 }
               }
+
+              scope = scope->parent;
             }
           }
           else
@@ -2513,6 +2538,7 @@ void Debugger::PostParse()
     for(auto it = m_DebugInfo.scopes.begin(); it != m_DebugInfo.scopes.end(); ++it)
     {
       ScopeData *scope = &it->second;
+
       while(scope->parent)
       {
         scope->parent->end = RDCMAX(scope->parent->end, scope->end);
@@ -2520,17 +2546,28 @@ void Debugger::PostParse()
       }
     }
 
-    for(auto it = m_DebugInfo.locals.begin(); it != m_DebugInfo.locals.end(); ++it)
+    // add a dummy localMappings entry for each scope end
+    for(auto it = m_DebugInfo.scopes.begin(); it != m_DebugInfo.scopes.end(); ++it)
+      m_DebugInfo.localMappings[it->second.end] = {Id(), Id()};
+
+    for(auto it = m_DebugInfo.localMappings.begin(); it != m_DebugInfo.localMappings.end(); ++it)
     {
-      LocalData &l = it->second;
-      if(l.locations.empty() || l.scope == NULL)
+      if(it->second.second == Id())
+        continue;
+
+      const LocalData &l = m_DebugInfo.locals[it->second.first];
+      if(l.scope == NULL)
         continue;
 
       // keep last raw ID alive until the scope ends
-      Id id = l.locations.back().second;
+      Id id = it->second.second;
 
-      idDeathOffset[id] = RDCMAX(l.scope->end + 1, idDeathOffset[id]);
+      idDeathOffset[id] = RDCMAX(l.scope->end + 1, RDCMAX(it->first + 1, idDeathOffset[id]));
     }
+
+    // reset current Ids
+    for(auto it = m_DebugInfo.locals.begin(); it != m_DebugInfo.locals.end(); ++it)
+      it->second.curId = Id();
   }
 
   memberNames.clear();
@@ -2632,21 +2669,22 @@ void Debugger::RegisterOp(Iter it)
         m_DebugInfo.locals[dbg.result] = {
             strings[dbg.arg<Id>(0)], &m_DebugInfo.scopes[dbg.arg<Id>(5)],
         };
+
+        m_DebugInfo.scopes[dbg.arg<Id>(5)].locals.push_back(dbg.result);
       }
       else if(dbg.inst == ShaderDbg::Declare || dbg.inst == ShaderDbg::Value)
       {
         Id id = dbg.arg<Id>(1);
 
+        m_DebugInfo.localMappings[it.offs()] = {dbg.arg<Id>(0), dbg.arg<Id>(1)};
+
         LocalData &local = m_DebugInfo.locals[dbg.arg<Id>(0)];
 
         // keep the previous raw ID alive at least until this location starts
-        if(!local.locations.empty())
-        {
-          Id prevId = local.locations.back().second;
-          idDeathOffset[prevId] = RDCMAX(it.offs() + 1, idDeathOffset[prevId]);
-        }
+        if(local.curId != Id())
+          idDeathOffset[local.curId] = RDCMAX(it.offs() + 1, idDeathOffset[local.curId]);
 
-        local.locations.push_back({it.offs(), id});
+        local.curId = id;
 
         if(constants.find(id) != constants.end() && !m_DebugInfo.constants.contains(id))
           m_DebugInfo.constants.push_back(id);
@@ -2722,7 +2760,7 @@ void Debugger::RegisterOp(Iter it)
   }
 
   if(m_DebugInfo.valid)
-    m_DebugInfo.m_LineScope[it.offs()] = m_DebugInfo.curScope;
+    m_DebugInfo.lineScope[it.offs()] = m_DebugInfo.curScope;
 
   // if we're explicitly leaving the scope because of a DebugNoScope, or if we're leaving due to the
   // end of a block then set scope to NULL now.
