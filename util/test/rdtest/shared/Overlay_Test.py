@@ -633,7 +633,7 @@ class Overlay_Test(rdtest.TestCase):
                 if overlay == rd.DebugOverlay.ClearBeforeDraw or overlay == rd.DebugOverlay.ClearBeforePass:
                     continue
 
-                rdtest.log.success("Checking overlay {} with mip/slice rendering".format(str(overlay)))
+                rdtest.log.print("Checking overlay {} with mip/slice rendering".format(str(overlay)))
 
                 tex.resourceId = col_tex
                 tex.overlay = overlay

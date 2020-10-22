@@ -182,6 +182,7 @@ float4 main() : SV_Target0
     pipe[1] = creator;
 
     creator.GraphicsDesc.DepthStencilState.StencilEnable = FALSE;
+    creator.GraphicsDesc.DepthStencilState.DepthEnable = FALSE;
     creator.GraphicsDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
     creator.PS(whitepsblob);
     creator.DSV(DXGI_FORMAT_UNKNOWN);
@@ -309,9 +310,35 @@ float4 main() : SV_Target0
       setMarker(cmd, "Subresources mip 3");
       cmd->DrawInstanced(24, 1, 9, 0);
 
-      FinishUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
       cmd->Close();
+
+      Submit({cmd});
+
+      {
+        cmd = GetCommandBuffer();
+
+        Reset(cmd);
+
+        D3D12_CPU_DESCRIPTOR_HANDLE rtv =
+            MakeRTV(bb).Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB).CreateCPU(0);
+
+        cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        IASetVertexBuffer(cmd, vb, sizeof(DefaultA2V), 0);
+        cmd->SetGraphicsRootSignature(sig);
+
+        OMSetRenderTargets(cmd, {rtv}, {});
+
+        cmd->SetPipelineState(whitepipe);
+
+        setMarker(cmd, "NoView draw");
+
+        cmd->DrawInstanced(3, 1, 33, 0);
+
+        FinishUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+        cmd->Close();
+      }
 
       Submit({cmd});
 
