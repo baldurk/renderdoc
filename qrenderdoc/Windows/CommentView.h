@@ -44,6 +44,8 @@ public:
 
   // ICommentView
   QWidget *Widget() override { return this; }
+  void SetComments(const rdcstr &text);
+  rdcstr GetComments();
   // ICaptureViewer
   void OnCaptureLoaded() override;
   void OnCaptureClosed() override;
@@ -55,6 +57,8 @@ private slots:
 private:
   Ui::CommentView *ui;
   ICaptureContext &m_Ctx;
+
+  void Restyle(int start, int end);
 
   bool m_ignoreModifications;
 

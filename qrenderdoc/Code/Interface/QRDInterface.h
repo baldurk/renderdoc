@@ -474,6 +474,19 @@ struct ICommentView
       "QWidget.");
   virtual QWidget *Widget() = 0;
 
+  DOCUMENT(R"(Sets the current comments text.
+
+:param str text: The new comments text.
+)");
+  virtual void SetComments(const rdcstr &text) = 0;
+
+  DOCUMENT(R"(Gets the current comments text.
+
+:return: The current comments text.
+:rtype: str
+)");
+  virtual rdcstr GetComments() = 0;
+
 protected:
   ICommentView() = default;
   ~ICommentView() = default;

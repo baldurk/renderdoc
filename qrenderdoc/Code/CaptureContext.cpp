@@ -1447,6 +1447,15 @@ void CaptureContext::ExportCapture(const CaptureFileFormat &fmt, const rdcstr &e
 void CaptureContext::SetEventID(const rdcarray<ICaptureViewer *> &exclude, uint32_t selectedEventID,
                                 uint32_t eventId, bool force)
 {
+  if(!IsCaptureLoaded())
+    return;
+
+  if(eventId > m_LastDrawcall->eventId)
+  {
+    qCritical() << "Invalid EID being selected " << eventId;
+    return;
+  }
+
   uint32_t prevSelectedEventID = m_SelectedEventID;
   m_SelectedEventID = selectedEventID;
   uint32_t prevEventID = m_EventID;
