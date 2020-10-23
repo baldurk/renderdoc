@@ -154,7 +154,7 @@ void APIInspector::fillAPIView()
 
         root->setText(1, chunk->name);
 
-        addStructuredObjects(root, chunk->data.children, false);
+        addStructuredChildren(root, *chunk);
       }
       else
       {

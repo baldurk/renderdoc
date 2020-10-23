@@ -210,9 +210,8 @@ void Serialiser<SerialiserMode::Reading>::SkipCurrentChunk()
 
     SDObject &current = *m_StructureStack.back();
 
-    current.data.children.push_back(new SDObject("Opaque chunk"_lit, "Byte Buffer"_lit));
+    SDObject &obj = *current.AddAndOwnChild(new SDObject("Opaque chunk"_lit, "Byte Buffer"_lit));
 
-    SDObject &obj = *current.data.children.back();
     obj.type.basetype = SDBasic::Buffer;
     obj.type.byteSize = m_ChunkMetadata.length;
 
@@ -243,7 +242,7 @@ void Serialiser<SerialiserMode::Reading>::SkipCurrentChunk()
     {
       SDObject &current = *m_StructureStack.back();
 
-      SDObject &obj = *current.data.children.back();
+      SDObject &obj = *current.GetChild(current.NumChildren() - 1);
 
       obj.data.basic.u = m_StructuredFile->buffers.size();
 
@@ -590,9 +589,9 @@ void Serialiser<SerialiserMode::Writing>::WriteStructuredFile(const SDFile &file
 
     if(chunk.metadata.flags & SDChunkFlags::OpaqueChunk)
     {
-      RDCASSERT(chunk.data.children.size() == 1);
+      RDCASSERT(chunk.NumChildren() == 1);
 
-      size_t bufID = (size_t)chunk.data.children[0]->data.basic.u;
+      size_t bufID = (size_t)chunk.GetChild(0)->data.basic.u;
       byte *ptr = m_StructuredFile->buffers[bufID]->data();
       size_t len = m_StructuredFile->buffers[bufID]->size();
 
@@ -600,10 +599,10 @@ void Serialiser<SerialiserMode::Writing>::WriteStructuredFile(const SDFile &file
     }
     else
     {
-      for(size_t o = 0; o < chunk.data.children.size(); o++)
+      for(size_t o = 0; o < chunk.NumChildren(); o++)
       {
         // note, we don't need names because we aren't exporting structured data
-        ser->Serialise(""_lit, chunk.data.children[o]);
+        ser->Serialise(""_lit, chunk.GetChild(o));
       }
     }
 
@@ -753,8 +752,8 @@ void DoSerialise(SerialiserType &ser, SDObject *el)
   {
     case SDBasic::Chunk: RDCERR("Unexpected chunk inside object!"); break;
     case SDBasic::Struct:
-      for(size_t o = 0; o < el->data.children.size(); o++)
-        ser.Serialise(""_lit, el->data.children[o]);
+      for(size_t o = 0; o < el->NumChildren(); o++)
+        ser.Serialise(""_lit, el->GetChild(o));
       break;
     case SDBasic::Array: ser.Serialise(""_lit, (rdcarray<SDObject *> &)el->data.children); break;
     case SDBasic::Null:

@@ -315,7 +315,7 @@ void ResourceInspector::Inspect(ResourceId id)
 
         root->setText(0, chunkObj->name);
 
-        addStructuredObjects(root, chunkObj->data.children, false);
+        addStructuredChildren(root, *chunkObj);
       }
       else
       {

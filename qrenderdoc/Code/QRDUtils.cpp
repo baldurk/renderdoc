@@ -1332,17 +1332,16 @@ void CombineUsageEvents(ICaptureContext &ctx, const rdcarray<EventUsage> &usage,
     callback(start, end, us);
 }
 
-void addStructuredObjects(RDTreeWidgetItem *parent, const StructuredObjectList &objs,
-                          bool parentIsArray)
+void addStructuredChildren(RDTreeWidgetItem *parent, const SDObject &parentObj)
 {
-  for(const SDObject *obj : objs)
+  for(const SDObject *obj : parentObj)
   {
     if(obj->type.flags & SDTypeFlags::Hidden)
       continue;
 
     QVariant param;
 
-    if(parentIsArray)
+    if(parentObj.type.basetype == SDBasic::Array)
       param = QFormatStr("[%1]").arg(parent->childCount());
     else
       param = obj->name;
@@ -1377,11 +1376,11 @@ void addStructuredObjects(RDTreeWidgetItem *parent, const StructuredObjectList &
         case SDBasic::Chunk:
         case SDBasic::Struct:
           param = QFormatStr("%1()").arg(obj->type.name);
-          addStructuredObjects(item, obj->data.children, false);
+          addStructuredChildren(item, *obj);
           break;
         case SDBasic::Array:
           param = QFormatStr("%1[]").arg(obj->type.name);
-          addStructuredObjects(item, obj->data.children, true);
+          addStructuredChildren(item, *obj);
           break;
         case SDBasic::Null: param = lit("NULL"); break;
         case SDBasic::Buffer: param = lit("(%1 bytes)").arg(obj->type.byteSize); break;

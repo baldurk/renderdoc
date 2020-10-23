@@ -253,15 +253,15 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     CHECK(chunk.metadata.length < ser.GetReader()->GetSize());
     CHECK(chunk.type.basetype == SDBasic::Chunk);
     CHECK(chunk.type.name == "Chunk");
-    CHECK(chunk.data.children.size() == 16);
+    CHECK(chunk.NumChildren() == 16);
 
-    for(SDObject *o : chunk.data.children)
+    for(SDObject *o : chunk)
       REQUIRE(o);
 
     int childIdx = 0;
 
     {
-      SDObject &o = *chunk.data.children[childIdx++];
+      SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "a");
       CHECK(o.type.name == "int64_t");
@@ -273,7 +273,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.data.children[childIdx++];
+      SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "b");
       CHECK(o.type.name == "uint64_t");
@@ -285,7 +285,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.data.children[childIdx++];
+      SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "c");
       CHECK(o.type.name == "int32_t");
@@ -297,7 +297,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.data.children[childIdx++];
+      SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "d");
       CHECK(o.type.name == "uint32_t");
@@ -309,7 +309,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.data.children[childIdx++];
+      SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "e");
       CHECK(o.type.name == "int16_t");
@@ -321,7 +321,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.data.children[childIdx++];
+      SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "f");
       CHECK(o.type.name == "uint16_t");
@@ -333,7 +333,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.data.children[childIdx++];
+      SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "g");
       CHECK(o.type.name == "int8_t");
@@ -345,7 +345,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.data.children[childIdx++];
+      SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "h");
       CHECK(o.type.name == "uint8_t");
@@ -357,7 +357,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.data.children[childIdx++];
+      SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "i");
       CHECK(o.type.name == "bool");
@@ -369,7 +369,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.data.children[childIdx++];
+      SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "j");
       CHECK(o.type.name == "char");
@@ -381,7 +381,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.data.children[childIdx++];
+      SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "k");
       CHECK(o.type.name == "double");
@@ -393,7 +393,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.data.children[childIdx++];
+      SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "l");
       CHECK(o.type.name == "float");
@@ -405,7 +405,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.data.children[childIdx++];
+      SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "m");
       CHECK(o.type.name == "string");
@@ -417,7 +417,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.data.children[childIdx++];
+      SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "n");
       CHECK(o.type.name == "string");
@@ -429,7 +429,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.data.children[childIdx++];
+      SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "s");
       CHECK(o.type.name == "string");
@@ -441,7 +441,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.data.children[childIdx++];
+      SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "t");
       CHECK(o.type.name == "int32_t");
@@ -449,12 +449,12 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
       CHECK(o.type.byteSize == 4);
       CHECK(o.type.flags == SDTypeFlags::FixedArray);
 
-      CHECK(o.data.children.size() == 4);
+      CHECK(o.NumChildren() == 4);
 
-      CHECK(o.data.children[0]->data.basic.i == 20);
-      CHECK(o.data.children[1]->data.basic.c == 20);
-      CHECK(o.data.children[2]->data.basic.c == 20);
-      CHECK(o.data.children[3]->data.basic.c == 20);
+      CHECK(o.GetChild(0)->data.basic.i == 20);
+      CHECK(o.GetChild(1)->data.basic.c == 20);
+      CHECK(o.GetChild(2)->data.basic.c == 20);
+      CHECK(o.GetChild(3)->data.basic.c == 20);
     }
 
     StreamWriter *rewriteBuf = new StreamWriter(StreamWriter::DefaultScratchSize);
@@ -933,48 +933,48 @@ TEST_CASE("Read/write container types", "[serialiser][structured]")
 
     const SDChunk &chunk = *structData.chunks[0];
 
-    CHECK(chunk.data.children.size() == 2);
+    CHECK(chunk.NumChildren() == 2);
 
-    for(SDObject *o : chunk.data.children)
+    for(SDObject *o : chunk)
       REQUIRE(o);
 
     int childIdx = 0;
 
     {
-      SDObject &o = *chunk.data.children[childIdx++];
+      SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "v");
       CHECK(o.type.basetype == SDBasic::Array);
       CHECK(o.type.byteSize == 6);
       CHECK(o.type.flags == SDTypeFlags::NoFlags);
-      CHECK(o.data.children.size() == 6);
+      CHECK(o.NumChildren() == 6);
 
-      for(SDObject *child : o.data.children)
+      for(SDObject *child : o)
       {
         CHECK(child->type.basetype == SDBasic::SignedInteger);
         CHECK(child->type.byteSize == 4);
       }
 
-      CHECK(o.data.children[0]->data.basic.i == 1);
-      CHECK(o.data.children[1]->data.basic.i == 1);
-      CHECK(o.data.children[2]->data.basic.i == 2);
-      CHECK(o.data.children[3]->data.basic.i == 3);
-      CHECK(o.data.children[4]->data.basic.i == 5);
-      CHECK(o.data.children[5]->data.basic.i == 8);
+      CHECK(o.GetChild(0)->data.basic.i == 1);
+      CHECK(o.GetChild(1)->data.basic.i == 1);
+      CHECK(o.GetChild(2)->data.basic.i == 2);
+      CHECK(o.GetChild(3)->data.basic.i == 3);
+      CHECK(o.GetChild(4)->data.basic.i == 5);
+      CHECK(o.GetChild(5)->data.basic.i == 8);
     }
 
     {
-      SDObject &o = *chunk.data.children[childIdx++];
+      SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "p");
       CHECK(o.type.name == "pair");
       CHECK(o.type.basetype == SDBasic::Struct);
       CHECK(o.type.byteSize == 2);
       CHECK(o.type.flags == SDTypeFlags::NoFlags);
-      CHECK(o.data.children.size() == 2);
+      CHECK(o.NumChildren() == 2);
 
       {
-        SDObject &first = *o.data.children[0];
+        SDObject &first = *o.GetChild(0);
 
         CHECK(first.name == "first");
         CHECK(first.type.name == "float");
@@ -986,7 +986,7 @@ TEST_CASE("Read/write container types", "[serialiser][structured]")
       }
 
       {
-        SDObject &second = *o.data.children[1];
+        SDObject &second = *o.GetChild(1);
 
         CHECK(second.name == "second");
         CHECK(second.type.name == "string");
@@ -1225,15 +1225,15 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
 
     const SDChunk &chunk = *structData.chunks[0];
 
-    CHECK(chunk.data.children.size() == 5);
+    CHECK(chunk.NumChildren() == 5);
 
-    for(SDObject *o : chunk.data.children)
+    for(SDObject *o : chunk)
       REQUIRE(o);
 
     int childIdx = 0;
 
     {
-      SDObject &o = *chunk.data.children[childIdx++];
+      SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "enumVal");
       CHECK(o.type.basetype == SDBasic::Enum);
@@ -1244,62 +1244,62 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
     }
 
     {
-      SDObject &o = *chunk.data.children[childIdx++];
+      SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "sparseStructArray");
       CHECK(o.type.basetype == SDBasic::Array);
       CHECK(o.type.byteSize == 10);
       CHECK(o.type.flags == SDTypeFlags::NoFlags);
-      CHECK(o.data.children.size() == 10);
+      CHECK(o.NumChildren() == 10);
 
-      for(SDObject *child : o.data.children)
+      for(SDObject *child : o)
       {
         CHECK(child->type.basetype == SDBasic::Struct);
         CHECK(child->type.name == "struct1");
         CHECK(child->type.byteSize == sizeof(struct1));
-        CHECK(child->data.children.size() == 4);
-        CHECK(child->data.children[0]->type.basetype == SDBasic::Float);
-        CHECK(child->data.children[0]->type.byteSize == 4);
-        CHECK(child->data.children[0]->name == "x");
-        CHECK(child->data.children[1]->type.basetype == SDBasic::Float);
-        CHECK(child->data.children[1]->type.byteSize == 4);
-        CHECK(child->data.children[1]->name == "y");
-        CHECK(child->data.children[2]->type.basetype == SDBasic::Float);
-        CHECK(child->data.children[2]->type.byteSize == 4);
-        CHECK(child->data.children[2]->name == "width");
-        CHECK(child->data.children[3]->type.basetype == SDBasic::Float);
-        CHECK(child->data.children[3]->type.byteSize == 4);
-        CHECK(child->data.children[3]->name == "height");
+        CHECK(child->NumChildren() == 4);
+        CHECK(child->GetChild(0)->type.basetype == SDBasic::Float);
+        CHECK(child->GetChild(0)->type.byteSize == 4);
+        CHECK(child->GetChild(0)->name == "x");
+        CHECK(child->GetChild(1)->type.basetype == SDBasic::Float);
+        CHECK(child->GetChild(1)->type.byteSize == 4);
+        CHECK(child->GetChild(1)->name == "y");
+        CHECK(child->GetChild(2)->type.basetype == SDBasic::Float);
+        CHECK(child->GetChild(2)->type.byteSize == 4);
+        CHECK(child->GetChild(2)->name == "width");
+        CHECK(child->GetChild(3)->type.basetype == SDBasic::Float);
+        CHECK(child->GetChild(3)->type.byteSize == 4);
+        CHECK(child->GetChild(3)->name == "height");
       }
 
-      CHECK(o.data.children[0]->data.children[0]->data.basic.d == 0.0f);
-      CHECK(o.data.children[0]->data.children[1]->data.basic.d == 0.0f);
-      CHECK(o.data.children[0]->data.children[2]->data.basic.d == 0.0f);
-      CHECK(o.data.children[0]->data.children[3]->data.basic.d == 0.0f);
+      CHECK(o.GetChild(0)->GetChild(0)->data.basic.d == 0.0f);
+      CHECK(o.GetChild(0)->GetChild(1)->data.basic.d == 0.0f);
+      CHECK(o.GetChild(0)->GetChild(2)->data.basic.d == 0.0f);
+      CHECK(o.GetChild(0)->GetChild(3)->data.basic.d == 0.0f);
 
-      CHECK(o.data.children[5]->data.children[0]->data.basic.d == 1.0f);
-      CHECK(o.data.children[5]->data.children[1]->data.basic.d == 2.0f);
-      CHECK(o.data.children[5]->data.children[2]->data.basic.d == 3.0f);
-      CHECK(o.data.children[5]->data.children[3]->data.basic.d == 4.0f);
+      CHECK(o.GetChild(5)->GetChild(0)->data.basic.d == 1.0f);
+      CHECK(o.GetChild(5)->GetChild(1)->data.basic.d == 2.0f);
+      CHECK(o.GetChild(5)->GetChild(2)->data.basic.d == 3.0f);
+      CHECK(o.GetChild(5)->GetChild(3)->data.basic.d == 4.0f);
 
-      CHECK(o.data.children[8]->data.children[0]->data.basic.d == 10.0f);
-      CHECK(o.data.children[8]->data.children[1]->data.basic.d == 20.0f);
-      CHECK(o.data.children[8]->data.children[2]->data.basic.d == 30.0f);
-      CHECK(o.data.children[8]->data.children[3]->data.basic.d == 40.0f);
+      CHECK(o.GetChild(8)->GetChild(0)->data.basic.d == 10.0f);
+      CHECK(o.GetChild(8)->GetChild(1)->data.basic.d == 20.0f);
+      CHECK(o.GetChild(8)->GetChild(2)->data.basic.d == 30.0f);
+      CHECK(o.GetChild(8)->GetChild(3)->data.basic.d == 40.0f);
     }
 
     {
-      SDObject &o = *chunk.data.children[childIdx++];
+      SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "complex");
       CHECK(o.type.name == "struct2");
       CHECK(o.type.basetype == SDBasic::Struct);
       CHECK(o.type.byteSize == sizeof(struct2));
       CHECK(o.type.flags == SDTypeFlags::NoFlags);
-      CHECK(o.data.children.size() == 3);
+      CHECK(o.NumChildren() == 3);
 
       {
-        SDObject &c = *o.data.children[0];
+        SDObject &c = *o.GetChild(0);
 
         CHECK(c.name == "name");
         CHECK(c.type.name == "string");
@@ -1310,58 +1310,58 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
       }
 
       {
-        SDObject &c = *o.data.children[1];
+        SDObject &c = *o.GetChild(1);
 
         CHECK(c.name == "floats");
         CHECK(c.type.basetype == SDBasic::Array);
         CHECK(c.type.flags == SDTypeFlags::NoFlags);
-        CHECK(c.data.children.size() == 3);
-        for(SDObject *ch : c.data.children)
+        CHECK(c.NumChildren() == 3);
+        for(SDObject *ch : c)
         {
           CHECK(ch->type.basetype == SDBasic::Float);
           CHECK(ch->type.byteSize == 4);
         }
 
-        CHECK(c.data.children[0]->data.basic.d == 1.2f);
-        CHECK(c.data.children[1]->data.basic.d == 3.4f);
-        CHECK(c.data.children[2]->data.basic.d == 5.6f);
+        CHECK(c.GetChild(0)->data.basic.d == 1.2f);
+        CHECK(c.GetChild(1)->data.basic.d == 3.4f);
+        CHECK(c.GetChild(2)->data.basic.d == 5.6f);
       }
 
       {
-        SDObject &c = *o.data.children[2];
+        SDObject &c = *o.GetChild(2);
 
         CHECK(c.name == "viewports");
         CHECK(c.type.basetype == SDBasic::Array);
         CHECK(c.type.flags == SDTypeFlags::NoFlags);
-        CHECK(c.data.children.size() == 4);
-        for(SDObject *ch : c.data.children)
+        CHECK(c.NumChildren() == 4);
+        for(SDObject *ch : c)
         {
           CHECK(ch->type.basetype == SDBasic::Struct);
           CHECK(ch->type.name == "struct1");
         }
 
-        CHECK(c.data.children[0]->data.children[0]->data.basic.d == 512.0f);
-        CHECK(c.data.children[0]->data.children[1]->data.basic.d == 0.0f);
-        CHECK(c.data.children[0]->data.children[2]->data.basic.d == 256.0f);
-        CHECK(c.data.children[0]->data.children[3]->data.basic.d == 256.0f);
+        CHECK(c.GetChild(0)->GetChild(0)->data.basic.d == 512.0f);
+        CHECK(c.GetChild(0)->GetChild(1)->data.basic.d == 0.0f);
+        CHECK(c.GetChild(0)->GetChild(2)->data.basic.d == 256.0f);
+        CHECK(c.GetChild(0)->GetChild(3)->data.basic.d == 256.0f);
       }
     }
 
     {
-      SDObject &o = *chunk.data.children[childIdx++];
+      SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "inputParam1");
       CHECK(o.type.basetype == SDBasic::Struct);
       CHECK(o.type.flags == SDTypeFlags::Nullable);
 
-      CHECK(o.data.children[0]->data.basic.d == 9.0f);
-      CHECK(o.data.children[1]->data.basic.d == 9.9f);
-      CHECK(o.data.children[2]->data.basic.d == 9.99f);
-      CHECK(o.data.children[3]->data.basic.d == 9.999f);
+      CHECK(o.GetChild(0)->data.basic.d == 9.0f);
+      CHECK(o.GetChild(1)->data.basic.d == 9.9f);
+      CHECK(o.GetChild(2)->data.basic.d == 9.99f);
+      CHECK(o.GetChild(3)->data.basic.d == 9.999f);
     }
 
     {
-      SDObject &o = *chunk.data.children[childIdx++];
+      SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "inputParam2");
       CHECK(o.type.basetype == SDBasic::Null);

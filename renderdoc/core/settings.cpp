@@ -119,13 +119,13 @@ static void Config2XML(pugi::xml_node &parent, SDObject &child)
     obj.append_attribute("type") = ToStr(value->type.basetype).c_str();
     if(value->type.basetype == SDBasic::Array)
     {
-      if(!value->data.children.empty())
-        obj.append_attribute("elemtype") = ToStr(value->data.children[0]->type.basetype).c_str();
+      if(value->NumChildren() > 0)
+        obj.append_attribute("elemtype") = ToStr(value->GetChild(0)->type.basetype).c_str();
       else
         obj.append_attribute("elemtype") = "";
 
-      for(size_t o = 0; o < value->data.children.size(); o++)
-        saveSDObject(*value->data.children[o], obj.append_child("item"));
+      for(size_t o = 0; o < value->NumChildren(); o++)
+        saveSDObject(*value->GetChild(o), obj.append_child("item"));
     }
     else
     {
@@ -149,7 +149,7 @@ static SDObject *XML2Config(pugi::xml_node &obj)
       SDObject *childObj = XML2Config(child);
       if(childObj)
       {
-        ret->data.children.push_back(childObj);
+        ret->AddAndOwnChild(childObj);
       }
       else
       {
@@ -194,7 +194,7 @@ static SDObject *XML2Config(pugi::xml_node &obj)
 
         if(childObj)
         {
-          valueObj->data.children.push_back(childObj);
+          valueObj->AddAndOwnChild(childObj);
         }
         else
         {
@@ -244,7 +244,7 @@ static SDObject *importXMLConfig(StreamReader &stream)
     {
       SDObject *childObj = XML2Config(child);
       if(childObj)
-        ret->data.children.push_back(XML2Config(child));
+        ret->AddAndOwnChild(XML2Config(child));
     }
   }
 
@@ -258,8 +258,8 @@ static void exportXMLConfig(StreamWriter &stream, const SDObject *obj)
   pugi::xml_node xRoot = doc.append_child("config");
   xRoot.append_attribute("version") = (uint32_t)1;
 
-  for(size_t o = 0; o < obj->data.children.size(); o++)
-    Config2XML(xRoot, *obj->data.children[o]);
+  for(size_t o = 0; o < obj->NumChildren(); o++)
+    Config2XML(xRoot, *obj->GetChild(o));
 
   xml_stream_writer writer(stream);
   doc.save(writer, "  ", pugi::format_default | pugi::format_no_empty_element_tags);
@@ -325,8 +325,8 @@ static bool MergeConfigValues(const rdcstr &prefix, SDObject *dstConfig, const S
 
           dstVal->DeleteChildren();
 
-          for(size_t c = 0; c < srcVal->data.children.size(); c++)
-            dstVal->data.children.push_back(srcVal->data.children[c]->Duplicate());
+          for(size_t c = 0; c < srcVal->NumChildren(); c++)
+            dstVal->DuplicateAndAddChild(srcVal->GetChild(c));
         }
 
         // if the description has changed from the loaded, need to write the new one
@@ -344,7 +344,7 @@ static bool MergeConfigValues(const rdcstr &prefix, SDObject *dstConfig, const S
       ret |= true;
 
       // if we're copying nodes, do that now
-      dstConfig->AddChild(srcChild->Duplicate());
+      dstConfig->DuplicateAndAddChild(srcChild->Duplicate());
     }
   }
 
@@ -385,9 +385,9 @@ rdcstr DefValString(const T &el)
 // this one needs a special implementation unfortunately to convert
 const rdcarray<rdcstr> &ConfigVarRegistration<rdcarray<rdcstr>>::value()
 {
-  tmp.resize(obj->data.children.size());
+  tmp.resize(obj->NumChildren());
   for(size_t i = 0; i < tmp.size(); i++)
-    tmp[i] = obj->data.children[i]->data.str;
+    tmp[i] = obj->GetChild(i)->data.str;
 
   return tmp;
 }
@@ -410,7 +410,7 @@ inline SDObject *makeSDObject(const char *name, const rdcarray<rdcstr> &vals)
   SDObject *ret = new SDObject(name, "array"_lit);
   ret->type.basetype = SDBasic::Array;
   for(const rdcstr &s : vals)
-    ret->data.children.push_back(makeSDObject("$el", s));
+    ret->AddAndOwnChild(makeSDObject("$el", s));
   return ret;
 }
 
@@ -581,9 +581,9 @@ void RenderDoc::RegisterSetting(const rdcstr &settingPath, SDObject *setting)
     {
       child = new SDObject(node, "category"_lit);
       auto it =
-          std::lower_bound(cur->data.children.begin(), cur->data.children.end(), child,
+          std::lower_bound(cur->begin(), cur->end(), child,
                            [](const SDObject *a, const SDObject *b) { return a->name < b->name; });
-      cur->data.children.insert(it - cur->data.children.begin(), child);
+      cur->InsertAndOwnChild(it - cur->begin(), child);
     }
 
     cur = child;

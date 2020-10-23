@@ -65,7 +65,7 @@ static bool anyChildChanged(const SDObject *o)
   if(val && def)
     return !val->HasEqualValue(def);
 
-  for(const SDObject *c : o->data.children)
+  for(const SDObject *c : *o)
   {
     if(anyChildChanged(c))
       return true;
@@ -95,7 +95,7 @@ public:
     if(row < 0 || row > rowCount(parent))
       return QModelIndex();
 
-    return createIndex(row, column, o->data.children[row]);
+    return createIndex(row, column, o->GetChild(row));
   }
 
   QModelIndex parent(const QModelIndex &index) const override
@@ -121,7 +121,7 @@ public:
     if(o->FindChild("value"))
       return 0;
 
-    return o->data.children.count();
+    return (int)o->NumChildren();
   }
 
   enum Columns
@@ -312,7 +312,7 @@ private:
       return;
 
     int i = 0;
-    for(SDObject *c : o->GetChildren())
+    for(SDObject *c : *o)
     {
       parents[c] = parent;
       populateParents(c, index(i++, 0, parent));
@@ -343,11 +343,14 @@ protected:
 
     SDObject *o = obj(source_parent);
 
-    return matchesAnyChild(o->data.children[source_row]);
+    return matchesAnyChild(o->GetChild(source_row));
   }
 
   bool matchesAnyChild(SDObject *o) const
   {
+    if(!o)
+      return false;
+
     if(QString(o->name).contains(m_Text, Qt::CaseInsensitive))
       return true;
 
@@ -360,7 +363,7 @@ protected:
       return false;
     }
 
-    for(SDObject *c : o->GetChildren())
+    for(SDObject *c : *o)
       if(matchesAnyChild(c))
         return true;
 
@@ -459,8 +462,8 @@ bool SettingDelegate::editorEvent(QEvent *event, QAbstractItemModel *model,
 
       val->DeleteChildren();
 
-      for(size_t c = 0; c < def->data.children.size(); c++)
-        val->data.children.push_back(def->data.children[c]->Duplicate());
+      for(size_t c = 0; c < def->NumChildren(); c++)
+        val->DuplicateAndAddChild(def->GetChild(c));
 
       // call setData() to emit the dataChanged for this element and all parents
       model->setData(index, QVariant(), Qt::UserRole);
@@ -585,7 +588,7 @@ QWidget *SettingDelegate::createEditor(QWidget *parent, const QStyleOptionViewIt
 
       QStringList items;
 
-      for(SDObject *c : val->data.children)
+      for(SDObject *c : *val)
         items << c->data.str;
 
       list.setItems(items);
@@ -597,10 +600,10 @@ QWidget *SettingDelegate::createEditor(QWidget *parent, const QStyleOptionViewIt
         items = list.getItems();
 
         val->DeleteChildren();
-        val->data.children.resize(items.size());
+        val->ReserveChildren(items.size());
 
         for(int i = 0; i < items.size(); i++)
-          val->data.children[i] = makeSDString("$el", items[i]);
+          val->AddAndOwnChild(makeSDString("$el", items[i]));
       }
 
       // we've handled the edit synchronously, don't create an edit widget

@@ -231,12 +231,12 @@ static void Obj2XML(pugi::xml_node &parent, SDObject &child)
   }
   else if(child.type.basetype == SDBasic::Struct || child.type.basetype == SDBasic::Array)
   {
-    if(child.type.basetype == SDBasic::Array && !child.data.children.empty())
+    if(child.type.basetype == SDBasic::Array && child.NumChildren() > 0)
       obj.remove_attribute("typename");
 
-    for(size_t o = 0; o < child.data.children.size(); o++)
+    for(size_t o = 0; o < child.NumChildren(); o++)
     {
-      Obj2XML(obj, *child.data.children[o]);
+      Obj2XML(obj, *child.GetChild(o));
 
       if(child.type.basetype == SDBasic::Array)
         obj.last_child().remove_attribute("name");
@@ -444,15 +444,15 @@ static ReplayStatus Structured2XML(const char *filename, const RDCFile &file, ui
     {
       xChunk.append_attribute("opaque") = true;
 
-      RDCASSERT(!chunk->data.children.empty());
+      RDCASSERT(chunk->NumChildren() > 0);
       pugi::xml_node opaque = xChunk.append_child("buffer");
-      opaque.append_attribute("byteLength") = chunk->data.children[0]->type.byteSize;
-      opaque.text() = chunk->data.children[0]->data.basic.u;
+      opaque.append_attribute("byteLength") = chunk->GetChild(0)->type.byteSize;
+      opaque.text() = chunk->GetChild(0)->data.basic.u;
     }
     else
     {
-      for(size_t o = 0; o < chunk->data.children.size(); o++)
-        Obj2XML(xChunk, *chunk->data.children[o]);
+      for(size_t o = 0; o < chunk->NumChildren(); o++)
+        Obj2XML(xChunk, *chunk->GetChild(o));
     }
 
     if(progress)
@@ -516,14 +516,14 @@ static SDObject *XML2Obj(pugi::xml_node &obj)
   {
     for(pugi::xml_node child = obj.first_child(); child; child = child.next_sibling())
     {
-      ret->data.children.push_back(XML2Obj(child));
+      SDObject *c = ret->AddAndOwnChild(XML2Obj(child));
 
       if(ret->type.basetype == SDBasic::Array)
-        ret->data.children.back()->name = "$el";
+        c->name = "$el";
     }
 
-    if(ret->type.basetype == SDBasic::Array && !ret->data.children.empty())
-      ret->type.name = ret->data.children.back()->type.name;
+    if(ret->type.basetype == SDBasic::Array && ret->NumChildren() > 0)
+      ret->type.name = ret->GetChild(0)->type.name;
   }
   else if(ret->type.basetype == SDBasic::Buffer)
   {
@@ -813,15 +813,15 @@ static ReplayStatus XML2Structured(const char *xml, const ThumbTypeAndData &thum
 
       chunk->metadata.flags |= SDChunkFlags::OpaqueChunk;
 
-      chunk->data.children.push_back(new SDObject("Opaque chunk"_lit, "Byte Buffer"_lit));
-      chunk->data.children[0]->type.basetype = SDBasic::Buffer;
-      chunk->data.children[0]->type.byteSize = opaque.attribute("byteLength").as_ullong();
-      chunk->data.children[0]->data.basic.u = opaque.text().as_ullong();
+      SDObject *buf = chunk->AddAndOwnChild(new SDObject("Opaque chunk"_lit, "Byte Buffer"_lit));
+      buf->type.basetype = SDBasic::Buffer;
+      buf->type.byteSize = opaque.attribute("byteLength").as_ullong();
+      buf->data.basic.u = opaque.text().as_ullong();
     }
     else
     {
       for(pugi::xml_node child = xChunk.first_child(); child; child = child.next_sibling())
-        chunk->data.children.push_back(XML2Obj(child));
+        chunk->AddAndOwnChild(XML2Obj(child));
     }
 
     chunks.push_back(chunk);

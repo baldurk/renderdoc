@@ -494,7 +494,7 @@ void SettingsDialog::on_chooseSearchPaths_clicked()
 
   QStringList items;
 
-  for(SDObject *c : getPaths->data.children)
+  for(SDObject *c : *getPaths)
     items << c->data.str;
 
   list.setItems(items);
@@ -508,10 +508,10 @@ void SettingsDialog::on_chooseSearchPaths_clicked()
     SDObject *setPaths = RENDERDOC_SetConfigSetting("DXBC.Debug.SearchDirPaths");
 
     setPaths->DeleteChildren();
-    setPaths->data.children.resize(items.size());
+    setPaths->ReserveChildren(items.size());
 
     for(int i = 0; i < items.size(); i++)
-      setPaths->data.children[i] = makeSDString("$el", items[i]);
+      setPaths->AddAndOwnChild(makeSDString("$el", items[i]));
 
     RENDERDOC_SaveConfigSettings();
   }

@@ -130,13 +130,14 @@ struct ExtRefcount<SDChunk *> : public ActiveRefcounter<SDChunk>
   {
     // dec ref any python-owned objects in the children array, so the default destructor doesn't
     // just delete them.
-    for(size_t i = 0; i < c->data.children.size(); i++)
-      if(ActiveRefcounter<SDObject>::HasPyObject(c->data.children[i]))
-        ActiveRefcounter<SDObject>::Dec(c->data.children[i]);
+    for(size_t i = 0; i < c->NumChildren(); i++)
+      if(ActiveRefcounter<SDObject>::HasPyObject(c->GetChild(i)))
+        ActiveRefcounter<SDObject>::Dec(c->GetChild(i));
 
     // we clear the array, because anything still left is C++ owned. We're just borrowing a
     // reference to it, so C++ will control the lifetime.
-    c->data.children.clear();
+    StructuredObjectList discard;
+    c->TakeAllChildren(discard);
 
     ActiveRefcounter<SDChunk>::DelPyObject(py, c);
   }
@@ -154,13 +155,14 @@ struct ExtRefcount<SDObject *> : public ActiveRefcounter<SDObject>
   {
     // dec ref any python-owned objects in the children array, so the default destructor doesn't
     // just delete them.
-    for(size_t i = 0; i < o->data.children.size(); i++)
-      if(ActiveRefcounter<SDObject>::HasPyObject(o->data.children[i]))
-        ActiveRefcounter<SDObject>::Dec(o->data.children[i]);
+    for(size_t i = 0; i < o->NumChildren(); i++)
+      if(ActiveRefcounter<SDObject>::HasPyObject(o->GetChild(i)))
+        ActiveRefcounter<SDObject>::Dec(o->GetChild(i));
 
     // we clear the array, because anything still left is C++ owned. We're just borrowing a
     // reference to it, so C++ will control the lifetime.
-    o->data.children.clear();
+    StructuredObjectList discard;
+    o->TakeAllChildren(discard);
 
     ActiveRefcounter<SDObject>::DelPyObject(py, o);
   }

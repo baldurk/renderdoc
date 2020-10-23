@@ -351,13 +351,22 @@ struct SDObjectData
   DOCUMENT("The string contents of the object.");
   rdcstr str;
 
-  DOCUMENT("A list of :class:`SDObject` containing the children of this :class:`SDObject`.");
-  StructuredObjectList children;
-
   SDObjectData(const SDObjectData &) = delete;
   SDObjectData &operator=(const SDObjectData &other) = delete;
 
 private:
+  friend struct SDObject;
+  friend struct SDChunk;
+
+  // allow serialisation functions access to the data
+  template <class SerialiserType>
+  friend void DoSerialise(SerialiserType &ser, SDObjectData &el);
+  template <class SerialiserType>
+  friend void DoSerialise(SerialiserType &ser, SDObject *el);
+
+  DOCUMENT("A list of :class:`SDObject` containing the children of this :class:`SDObject`.");
+  StructuredObjectList children;
+
   void *operator new(size_t count) = delete;
   void *operator new[](size_t count) = delete;
   void operator delete(void *p) = delete;
@@ -366,7 +375,13 @@ private:
 
 DECLARE_REFLECTION_STRUCT(SDObjectData);
 
-DOCUMENT("Defines a single structured object.");
+DOCUMENT(R"(Defines a single structured object. Structured objects are defined recursively and one
+object can either be a basic type (integer, float, etc), an array, or a struct. Arrays and structs
+are defined similarly.
+
+Each object owns its children and they will be deleted when it is deleted. You can use
+:meth:`Duplicate` to make a deep copy of an object.
+)");
 struct SDObject
 {
   /////////////////////////////////////////////////////////////////
@@ -400,7 +415,12 @@ struct SDObject
     data.basic.u = 0;
   }
 
-  ~SDObject() { DeleteChildren(); }
+  ~SDObject()
+  {
+    // we own our children, so delete them now.
+    DeleteChildren();
+  }
+
   DOCUMENT("Create a deep copy of this object.");
   SDObject *Duplicate() const
   {
@@ -426,7 +446,13 @@ struct SDObject
   DOCUMENT("The :class:`SDObjectData` with the contents of this object.");
   SDObjectData data;
 
-  DOCUMENT("Checks if the given object has the same value as this one.");
+  DOCUMENT(R"(Checks if the given object has the same value as this one. This equality is defined
+recursively through children.
+
+:param SDObject obj: The object to compare against
+:return: A boolean indicating if the object is equal to this one.
+:rtype: ``bool``
+)");
   bool HasEqualValue(const SDObject *o) const
   {
     bool ret = true;
@@ -452,10 +478,21 @@ struct SDObject
     return ret;
   }
 
-  DOCUMENT("Add a new child object by duplicating it.");
-  inline void AddChild(SDObject *child) { data.children.push_back(child->Duplicate()); }
-  DOCUMENT("Find a child object by a given name.");
-  inline SDObject *FindChild(const char *childName) const
+  // this is renamed to just AddChild in the python interface file, since we always duplicate for
+  // python.
+  DOCUMENT(R"(Add a new child object.
+
+:param SDObject obj: The new child to add
+)");
+  inline void DuplicateAndAddChild(SDObject *child) { data.children.push_back(child->Duplicate()); }
+  DOCUMENT(R"(Find a child object by a given name. If no matching child is found, ``None`` is
+returned.
+
+:param str name: The name to search for.
+:return: A reference to the child object if found, or ``None`` if not.
+:rtype: SDObject
+)");
+  inline SDObject *FindChild(const rdcstr &childName) const
   {
     for(size_t i = 0; i < data.children.size(); i++)
       if(data.children[i]->name == childName)
@@ -463,12 +500,28 @@ struct SDObject
     return NULL;
   }
 
-  DOCUMENT("Get a child object at a given index.");
+  DOCUMENT(R"(Find a child object by a given index. If the index is out of bounds, ``None`` is
+returned.
+
+:param int index: The index to look up.
+:return: A reference to the child object if valid, or ``None`` if not.
+:rtype: SDObject
+)");
   inline SDObject *GetChild(size_t index) const
   {
     if(index < data.children.size())
       return data.children[index];
     return NULL;
+  }
+
+  DOCUMENT(R"(Delete the child object at an index. If the index is out of bounds, nothing happens.
+
+:param int index: The index to remove.
+)");
+  inline void RemoveChild(size_t index)
+  {
+    if(index < data.children.size())
+      delete data.children.takeAt(index);
   }
 
   DOCUMENT("Delete all child objects.");
@@ -480,16 +533,44 @@ struct SDObject
     data.children.clear();
   }
 
-  DOCUMENT("Get the number of child objects.");
+  DOCUMENT(R"(Get the number of child objects.
+
+:return: The number of children this object contains.
+:rtype: ``int``
+)");
   inline size_t NumChildren() const { return data.children.size(); }
-  DOCUMENT("Get a ``list`` of :class:`SDObject` children.");
-  inline StructuredObjectList &GetChildren() { return data.children; }
 #if !defined(SWIG)
   // these are for C++ iteration so not defined when SWIG is generating interfaces
   inline SDObject *const *begin() const { return data.children.begin(); }
   inline SDObject *const *end() const { return data.children.end(); }
   inline SDObject **begin() { return data.children.begin(); }
   inline SDObject **end() { return data.children.end(); }
+#endif
+
+#if !defined(SWIG)
+  // this interface is 'more advanced' and is intended for C++ code manipulating structured data.
+  // reserve a number of children up front, useful when constructing an array to avoid repeated
+  // allocations.
+  void ReserveChildren(size_t num) { data.children.reserve(num); }
+  // add a new child without duplicating it, and take ownership of it. Returns the child back
+  // immediately for easy chaining.
+  SDObject *AddAndOwnChild(SDObject *child)
+  {
+    data.children.push_back(child);
+    return child;
+  }
+  // similar to AddAndOwnChild, but insert at a given offset
+  SDObject *InsertAndOwnChild(size_t offs, SDObject *child)
+  {
+    data.children.insert(offs, child);
+    return child;
+  }
+  // Take ownership of the whole children array from the object.
+  void TakeAllChildren(StructuredObjectList &objs)
+  {
+    objs.clear();
+    objs.swap(data.children);
+  }
 #endif
 
 // C++ gets more extensive typecasts. We'll add a couple for python in the interface file
@@ -577,8 +658,6 @@ struct SDObject
     type.flags = SDTypeFlags::HasCustomString;
     return this;
   }
-
-  void AddAndOwnChild(SDObject *child) { data.children.push_back(child); }
 #endif
 
   // these are common to both python and C++
@@ -720,9 +799,9 @@ inline SDObject *makeSDObject(const char *name, QVariant val)
       QVariantList list = val.toList();
       ret->type.name = "array"_lit;
       ret->type.basetype = SDBasic::Array;
-      ret->data.children.reserve(list.size());
+      ret->ReserveChildren(list.size());
       for(int i = 0; i < list.size(); i++)
-        ret->data.children.push_back(makeSDObject("[]", list.at(i)));
+        ret->AddAndOwnChild(makeSDObject("[]", list.at(i)));
       ret->type.byteSize = list.size();
       break;
     }
@@ -731,9 +810,9 @@ inline SDObject *makeSDObject(const char *name, QVariant val)
       QVariantMap map = val.toMap();
       ret->type.name = "struct"_lit;
       ret->type.basetype = SDBasic::Struct;
-      ret->data.children.reserve(map.size());
+      ret->ReserveChildren(map.size());
       for(const QString &str : map.keys())
-        ret->data.children.push_back(makeSDObject(str.toUtf8().data(), map[str]));
+        ret->AddAndOwnChild(makeSDObject(str.toUtf8().data(), map[str]));
       ret->type.byteSize = map.size();
       break;
     }

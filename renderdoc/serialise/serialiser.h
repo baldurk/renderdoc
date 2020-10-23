@@ -226,10 +226,9 @@ public:
 
       SDObject &current = *m_StructureStack.back();
 
-      current.data.children.push_back(new SDObject(name, TypeName<T>()));
-      m_StructureStack.push_back(current.data.children.back());
+      SDObject &obj = *current.AddAndOwnChild(new SDObject(name, TypeName<T>()));
+      m_StructureStack.push_back(&obj);
 
-      SDObject &obj = *m_StructureStack.back();
       obj.type.byteSize = sizeof(T);
       if(std::is_union<T>::value)
         obj.type.flags |= SDTypeFlags::Union;
@@ -272,10 +271,9 @@ public:
 
       SDObject &current = *m_StructureStack.back();
 
-      current.data.children.push_back(new SDObject(name, "Byte Buffer"_lit));
-      m_StructureStack.push_back(current.data.children.back());
+      SDObject &obj = *current.AddAndOwnChild(new SDObject(name, "Byte Buffer"_lit));
+      m_StructureStack.push_back(&obj);
 
-      SDObject &obj = *m_StructureStack.back();
       obj.type.basetype = SDBasic::Buffer;
       obj.type.byteSize = byteSize;
     }
@@ -382,10 +380,9 @@ public:
 
       SDObject &current = *m_StructureStack.back();
 
-      current.data.children.push_back(new SDObject(name, "Byte Buffer"_lit));
-      m_StructureStack.push_back(current.data.children.back());
+      SDObject &obj = *current.AddAndOwnChild(new SDObject(name, "Byte Buffer"_lit));
+      m_StructureStack.push_back(&obj);
 
-      SDObject &obj = *m_StructureStack.back();
       obj.type.basetype = SDBasic::Buffer;
       obj.type.byteSize = count;
     }
@@ -494,22 +491,20 @@ public:
       }
 
       SDObject &parent = *m_StructureStack.back();
-      parent.data.children.push_back(new SDObject(name, TypeName<T>()));
-      m_StructureStack.push_back(parent.data.children.back());
 
-      SDObject &arr = *m_StructureStack.back();
+      SDObject &arr = *parent.AddAndOwnChild(new SDObject(name, TypeName<T>()));
+      m_StructureStack.push_back(&arr);
+
       arr.type.basetype = SDBasic::Array;
       arr.type.byteSize = N;
       arr.type.flags |= SDTypeFlags::FixedArray;
 
-      arr.data.children.resize(N);
+      arr.ReserveChildren(N);
 
       for(size_t i = 0; i < N; i++)
       {
-        arr.data.children[i] = new SDObject("$el"_lit, TypeName<T>());
-        m_StructureStack.push_back(arr.data.children[i]);
-
-        SDObject &obj = *m_StructureStack.back();
+        SDObject &obj = *arr.AddAndOwnChild(new SDObject("$el"_lit, TypeName<T>()));
+        m_StructureStack.push_back(&obj);
 
         // default to struct. This will be overwritten if appropriate
         obj.type.basetype = SDBasic::Struct;
@@ -613,14 +608,14 @@ public:
       }
 
       SDObject &parent = *m_StructureStack.back();
-      parent.data.children.push_back(new SDObject(name, TypeName<T>()));
-      m_StructureStack.push_back(parent.data.children.back());
 
-      SDObject &arr = *m_StructureStack.back();
+      SDObject &arr = *parent.AddAndOwnChild(new SDObject(name, TypeName<T>()));
+      m_StructureStack.push_back(&arr);
+
       arr.type.basetype = SDBasic::Array;
       arr.type.byteSize = arrayCount;
 
-      arr.data.children.resize((size_t)arrayCount);
+      arr.ReserveChildren((size_t)arrayCount);
 
 // Coverity is unable to tie this allocation together with the automatic scoped deallocation in the
 // ScopedDeseralise* classes. We can verify with e.g. valgrind that there are no leaks, so to keep
@@ -637,10 +632,8 @@ public:
 
       for(uint64_t i = 0; el && i < arrayCount; i++)
       {
-        arr.data.children[(size_t)i] = new SDObject("$el"_lit, TypeName<T>());
-        m_StructureStack.push_back(arr.data.children[(size_t)i]);
-
-        SDObject &obj = *m_StructureStack.back();
+        SDObject &obj = *arr.AddAndOwnChild(new SDObject("$el"_lit, TypeName<T>()));
+        m_StructureStack.push_back(&obj);
 
         // default to struct. This will be overwritten if appropriate
         obj.type.basetype = SDBasic::Struct;
@@ -704,24 +697,22 @@ public:
       }
 
       SDObject &parent = *m_StructureStack.back();
-      parent.data.children.push_back(new SDObject(name, TypeName<U>()));
-      m_StructureStack.push_back(parent.data.children.back());
 
-      SDObject &arr = *m_StructureStack.back();
+      SDObject &arr = *parent.AddAndOwnChild(new SDObject(name, TypeName<U>()));
+      m_StructureStack.push_back(&arr);
+
       arr.type.basetype = SDBasic::Array;
       arr.type.byteSize = size;
 
-      arr.data.children.resize((size_t)size);
+      arr.ReserveChildren((size_t)size);
 
       if(IsReading())
         el.resize((int)size);
 
       for(size_t i = 0; i < (size_t)size; i++)
       {
-        arr.data.children[i] = new SDObject("$el"_lit, TypeName<U>());
-        m_StructureStack.push_back(arr.data.children[i]);
-
-        SDObject &obj = *m_StructureStack.back();
+        SDObject &obj = *arr.AddAndOwnChild(new SDObject("$el"_lit, TypeName<U>()));
+        m_StructureStack.push_back(&obj);
 
         // default to struct. This will be overwritten if appropriate
         obj.type.basetype = SDBasic::Struct;
@@ -759,20 +750,18 @@ public:
       }
 
       SDObject &parent = *m_StructureStack.back();
-      parent.data.children.push_back(new SDObject(name, "pair"_lit));
-      m_StructureStack.push_back(parent.data.children.back());
 
-      SDObject &arr = *m_StructureStack.back();
+      SDObject &arr = *parent.AddAndOwnChild(new SDObject(name, "pair"_lit));
+      m_StructureStack.push_back(&arr);
+
       arr.type.basetype = SDBasic::Struct;
       arr.type.byteSize = 2;
 
-      arr.data.children.resize(2);
+      arr.ReserveChildren(2);
 
       {
-        arr.data.children[0] = new SDObject("first"_lit, TypeName<U>());
-        m_StructureStack.push_back(arr.data.children[0]);
-
-        SDObject &obj = *m_StructureStack.back();
+        SDObject &obj = *arr.AddAndOwnChild(new SDObject("first"_lit, TypeName<U>()));
+        m_StructureStack.push_back(&obj);
 
         // default to struct. This will be overwritten if appropriate
         obj.type.basetype = SDBasic::Struct;
@@ -784,10 +773,8 @@ public:
       }
 
       {
-        arr.data.children[1] = new SDObject("second"_lit, TypeName<V>());
-        m_StructureStack.push_back(arr.data.children[1]);
-
-        SDObject &obj = *m_StructureStack.back();
+        SDObject &obj = *arr.AddAndOwnChild(new SDObject("second"_lit, TypeName<V>()));
+        m_StructureStack.push_back(&obj);
 
         // default to struct. This will be overwritten if appropriate
         obj.type.basetype = SDBasic::Struct;
@@ -866,7 +853,7 @@ public:
 
         SDObject &parent = *m_StructureStack.back();
 
-        SDObject &nullable = *parent.data.children.back();
+        SDObject &nullable = *parent.GetChild(parent.NumChildren() - 1);
 
         nullable.type.flags |= SDTypeFlags::Nullable;
         if(std::is_union<T>::value)
@@ -875,9 +862,9 @@ public:
       else
       {
         SDObject &parent = *m_StructureStack.back();
-        parent.data.children.push_back(new SDObject(name, TypeName<T>()));
 
-        SDObject &nullable = *parent.data.children.back();
+        SDObject &nullable = *parent.AddAndOwnChild(new SDObject(name, TypeName<T>()));
+
         nullable.type.basetype = SDBasic::Null;
         nullable.type.byteSize = 0;
         nullable.type.flags |= SDTypeFlags::Nullable;
@@ -962,10 +949,9 @@ public:
 
       SDObject &current = *m_StructureStack.back();
 
-      current.data.children.push_back(new SDObject(name.c_str(), "Byte Buffer"_lit));
-      m_StructureStack.push_back(current.data.children.back());
+      SDObject &obj = *current.AddAndOwnChild(new SDObject(name, "Byte Buffer"_lit));
+      m_StructureStack.push_back(&obj);
 
-      SDObject &obj = *m_StructureStack.back();
       obj.type.basetype = SDBasic::Buffer;
       obj.type.byteSize = totalSize;
 
@@ -1040,8 +1026,8 @@ public:
     {
       SDObject &current = *m_StructureStack.back();
 
-      if(!current.data.children.empty())
-        current.data.children.back()->type.flags |= SDTypeFlags::Hidden;
+      if(current.NumChildren() > 0)
+        current.GetChild(current.NumChildren() - 1)->type.flags |= SDTypeFlags::Hidden;
     }
 
     return *this;
@@ -1053,14 +1039,14 @@ public:
     {
       SDObject &current = *m_StructureStack.back();
 
-      if(!current.data.children.empty())
+      if(current.NumChildren() > 0)
       {
-        SDObject *last = current.data.children.back();
+        SDObject *last = current.GetChild(current.NumChildren() - 1);
         last->type.name = name;
 
         if(last->type.basetype == SDBasic::Array)
         {
-          for(SDObject *obj : last->data.children)
+          for(SDObject *obj : *last)
             obj->type.name = name;
         }
       }
@@ -1075,8 +1061,8 @@ public:
     {
       SDObject &current = *m_StructureStack.back();
 
-      if(!current.data.children.empty())
-        current.data.children.back()->name = name;
+      if(current.NumChildren() > 0)
+        current.GetChild(current.NumChildren() - 1)->name = name;
     }
 
     return *this;

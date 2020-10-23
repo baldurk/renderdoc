@@ -126,8 +126,7 @@ void CombineUsageEvents(
 
 class RDTreeWidgetItem;
 
-void addStructuredObjects(RDTreeWidgetItem *parent, const StructuredObjectList &objs,
-                          bool parentIsArray);
+void addStructuredChildren(RDTreeWidgetItem *parent, const SDObject &parentObj);
 
 struct PointerTypeRegistry
 {

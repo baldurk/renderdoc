@@ -52,6 +52,10 @@
 
 %rename("string") "SDObjectData::str";
 
+// convenience - in C++ we have both duplicating and non-duplicating adds, but in python we only
+// expose the duplicating add. Rename it to be simpler
+%rename("AddChild") "SDObject::DuplicateAndAddChild";
+
 %begin %{
   #undef slots
 %}
