@@ -227,6 +227,7 @@ struct VulkanGraphicsTest : public GraphicsTest
   VkSampler createSampler(const VkSamplerCreateInfo *info);
 
   void getPhysFeatures2(void *nextStruct);
+  void getPhysProperties2(void *nextStruct);
 
   std::mutex mutex;
 

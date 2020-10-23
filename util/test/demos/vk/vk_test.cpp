@@ -1399,6 +1399,18 @@ void VulkanGraphicsTest::getPhysFeatures2(void *nextStruct)
   }
 }
 
+void VulkanGraphicsTest::getPhysProperties2(void *nextStruct)
+{
+  for(const char *ext : enabledInstExts)
+  {
+    if(!strcmp(ext, VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME))
+    {
+      vkGetPhysicalDeviceProperties2KHR(phys, vkh::PhysicalDeviceProperties2KHR().next(nextStruct));
+      return;
+    }
+  }
+}
+
 template <>
 VkFormat vkh::_FormatFromObj<Vec4f>()
 {

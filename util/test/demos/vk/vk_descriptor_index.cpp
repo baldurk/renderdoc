@@ -262,7 +262,15 @@ void main()
       Avail =
           "Descriptor indexing feature 'shaderSampledImageArrayNonUniformIndexing' not available";
 
-    devInfoNext = &descIndexing;
+    static VkPhysicalDeviceDescriptorIndexingFeaturesEXT descIndexingEnable = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT,
+    };
+
+    descIndexingEnable.descriptorBindingPartiallyBound = VK_TRUE;
+    descIndexingEnable.runtimeDescriptorArray = VK_TRUE;
+    descIndexingEnable.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+
+    devInfoNext = &descIndexingEnable;
   }
 
   int main()

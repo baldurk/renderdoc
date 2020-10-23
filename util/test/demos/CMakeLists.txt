@@ -26,6 +26,7 @@ set(VULKAN_SRC
         vk/vk_int8_ibuffer.cpp
         vk/vk_khr_buffer_address.cpp
         vk/vk_large_buffer.cpp
+        vk/vk_large_descriptor_sets.cpp
         vk/vk_line_raster.cpp
         vk/vk_mesh_zoo.cpp
         vk/vk_misaligned_dirty.cpp

@@ -556,6 +556,9 @@
     <ClCompile Include="gl\gl_queries_in_use.cpp">
       <Filter>OpenGL\demos</Filter>
     </ClCompile>
+    <ClCompile Include="vk\vk_large_descriptor_sets.cpp">
+      <Filter>Vulkan\demos</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D11">

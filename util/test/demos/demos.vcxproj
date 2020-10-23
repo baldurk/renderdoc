@@ -274,6 +274,7 @@
     <ClCompile Include="vk\vk_extended_dyn_state.cpp" />
     <ClCompile Include="vk\vk_khr_buffer_address.cpp" />
     <ClCompile Include="vk\vk_large_buffer.cpp" />
+    <ClCompile Include="vk\vk_large_descriptor_sets.cpp" />
     <ClCompile Include="vk\vk_mesh_zoo.cpp" />
     <ClCompile Include="vk\vk_parameter_zoo.cpp" />
     <ClCompile Include="vk\vk_imageless_framebuffer.cpp" />
