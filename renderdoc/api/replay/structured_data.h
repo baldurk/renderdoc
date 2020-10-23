@@ -297,10 +297,6 @@ union SDObjectPODData
   DOCUMENT("The value as a :class:`ResourceId`.");
   ResourceId id;
 
-  // mostly here just for debugging
-  DOCUMENT("A useful alias of :data:`u` - the number of children when a struct/array.");
-  uint64_t numChildren;
-
   SDObjectPODData() : u(0) {}
 private:
   void *operator new(size_t count) = delete;

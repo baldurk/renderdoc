@@ -226,7 +226,6 @@ public:
 
       SDObject &current = *m_StructureStack.back();
 
-      current.data.basic.numChildren++;
       current.data.children.push_back(new SDObject(name, TypeName<T>()));
       m_StructureStack.push_back(current.data.children.back());
 
@@ -273,7 +272,6 @@ public:
 
       SDObject &current = *m_StructureStack.back();
 
-      current.data.basic.numChildren++;
       current.data.children.push_back(new SDObject(name, "Byte Buffer"_lit));
       m_StructureStack.push_back(current.data.children.back());
 
@@ -384,7 +382,6 @@ public:
 
       SDObject &current = *m_StructureStack.back();
 
-      current.data.basic.numChildren++;
       current.data.children.push_back(new SDObject(name, "Byte Buffer"_lit));
       m_StructureStack.push_back(current.data.children.back());
 
@@ -497,7 +494,6 @@ public:
       }
 
       SDObject &parent = *m_StructureStack.back();
-      parent.data.basic.numChildren++;
       parent.data.children.push_back(new SDObject(name, TypeName<T>()));
       m_StructureStack.push_back(parent.data.children.back());
 
@@ -506,7 +502,6 @@ public:
       arr.type.byteSize = N;
       arr.type.flags |= SDTypeFlags::FixedArray;
 
-      arr.data.basic.numChildren = (uint64_t)N;
       arr.data.children.resize(N);
 
       for(size_t i = 0; i < N; i++)
@@ -618,7 +613,6 @@ public:
       }
 
       SDObject &parent = *m_StructureStack.back();
-      parent.data.basic.numChildren++;
       parent.data.children.push_back(new SDObject(name, TypeName<T>()));
       m_StructureStack.push_back(parent.data.children.back());
 
@@ -626,7 +620,6 @@ public:
       arr.type.basetype = SDBasic::Array;
       arr.type.byteSize = arrayCount;
 
-      arr.data.basic.numChildren = arrayCount;
       arr.data.children.resize((size_t)arrayCount);
 
 // Coverity is unable to tie this allocation together with the automatic scoped deallocation in the
@@ -711,7 +704,6 @@ public:
       }
 
       SDObject &parent = *m_StructureStack.back();
-      parent.data.basic.numChildren++;
       parent.data.children.push_back(new SDObject(name, TypeName<U>()));
       m_StructureStack.push_back(parent.data.children.back());
 
@@ -719,7 +711,6 @@ public:
       arr.type.basetype = SDBasic::Array;
       arr.type.byteSize = size;
 
-      arr.data.basic.numChildren = size;
       arr.data.children.resize((size_t)size);
 
       if(IsReading())
@@ -768,7 +759,6 @@ public:
       }
 
       SDObject &parent = *m_StructureStack.back();
-      parent.data.basic.numChildren++;
       parent.data.children.push_back(new SDObject(name, "pair"_lit));
       m_StructureStack.push_back(parent.data.children.back());
 
@@ -776,7 +766,6 @@ public:
       arr.type.basetype = SDBasic::Struct;
       arr.type.byteSize = 2;
 
-      arr.data.basic.numChildren = 2;
       arr.data.children.resize(2);
 
       {
@@ -886,7 +875,6 @@ public:
       else
       {
         SDObject &parent = *m_StructureStack.back();
-        parent.data.basic.numChildren++;
         parent.data.children.push_back(new SDObject(name, TypeName<T>()));
 
         SDObject &nullable = *parent.data.children.back();
@@ -974,7 +962,6 @@ public:
 
       SDObject &current = *m_StructureStack.back();
 
-      current.data.basic.numChildren++;
       current.data.children.push_back(new SDObject(name.c_str(), "Byte Buffer"_lit));
       m_StructureStack.push_back(current.data.children.back());
 

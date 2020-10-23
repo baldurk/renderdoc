@@ -210,7 +210,6 @@ void Serialiser<SerialiserMode::Reading>::SkipCurrentChunk()
 
     SDObject &current = *m_StructureStack.back();
 
-    current.data.basic.numChildren++;
     current.data.children.push_back(new SDObject("Opaque chunk"_lit, "Byte Buffer"_lit));
 
     SDObject &obj = *current.data.children.back();
