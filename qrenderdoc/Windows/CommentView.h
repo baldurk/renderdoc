@@ -44,8 +44,8 @@ public:
 
   // ICommentView
   QWidget *Widget() override { return this; }
-  void SetComments(const rdcstr &text);
-  rdcstr GetComments();
+  void SetComments(const rdcstr &text) override;
+  rdcstr GetComments() override;
   // ICaptureViewer
   void OnCaptureLoaded() override;
   void OnCaptureClosed() override;
