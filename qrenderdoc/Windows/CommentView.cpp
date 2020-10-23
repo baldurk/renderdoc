@@ -24,6 +24,7 @@
 
 #include "CommentView.h"
 #include <QFontDatabase>
+#include <QRegularExpression>
 #include "Code/ScintillaSyntax.h"
 #include "scintilla/include/SciLexer.h"
 #include "scintilla/include/qt/ScintillaEdit.h"
