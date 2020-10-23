@@ -299,6 +299,8 @@ private:
   rdcarray<DebugMessage> m_DebugMessages;
   int m_UnreadMessageCount = 0;
 
+  void SetModification(CaptureModifications mod);
+
   void SaveChanges();
 
   bool SaveRenames();

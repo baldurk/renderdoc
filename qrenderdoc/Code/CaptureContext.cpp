@@ -1558,8 +1558,7 @@ void CaptureContext::SetNotes(const rdcstr &key, const rdcstr &contents)
 
   m_Notes[key] = contents;
 
-  m_CaptureMods |= CaptureModifications::Notes;
-  m_MainWindow->captureModified();
+  SetModification(CaptureModifications::Notes);
 
   RefreshUIStatus({}, true, true);
 }
@@ -1582,8 +1581,7 @@ void CaptureContext::SetBookmark(const EventBookmark &mark)
     m_Bookmarks.push_back(mark);
   }
 
-  m_CaptureMods |= CaptureModifications::Bookmarks;
-  m_MainWindow->captureModified();
+  SetModification(CaptureModifications::Bookmarks);
 
   RefreshUIStatus({}, true, true);
 }
@@ -1592,10 +1590,15 @@ void CaptureContext::RemoveBookmark(uint32_t EID)
 {
   m_Bookmarks.removeOne(EventBookmark(EID));
 
-  m_CaptureMods |= CaptureModifications::Bookmarks;
-  m_MainWindow->captureModified();
+  SetModification(CaptureModifications::Bookmarks);
 
   RefreshUIStatus({}, true, true);
+}
+
+void CaptureContext::SetModification(CaptureModifications mod)
+{
+  m_CaptureMods |= mod;
+  m_MainWindow->captureModified();
 }
 
 void CaptureContext::SaveChanges()
@@ -1793,7 +1796,7 @@ void CaptureContext::LoadEdits(const QString &data)
     ShaderViewer *edit =
         ShaderViewer::LoadEditor(*this, e.toMap(), replaceSaveCallback, replaceCloseCallback,
                                  [this](ShaderViewer *view, bool closed) {
-                                   m_CaptureMods |= CaptureModifications::EditedShaders;
+                                   SetModification(CaptureModifications::EditedShaders);
                                    if(closed)
                                      m_ShaderEditors.removeOne(view);
                                  },
@@ -1944,8 +1947,7 @@ void CaptureContext::SetResourceCustomName(ResourceId id, const rdcstr &name)
     m_CustomNames[id] = name;
   }
 
-  m_CaptureMods |= CaptureModifications::Renames;
-  m_MainWindow->captureModified();
+  SetModification(CaptureModifications::Renames);
 
   CacheResources();
 
@@ -2299,14 +2301,14 @@ IShaderViewer *CaptureContext::EditShader(ResourceId id, ShaderStage stage,
     viewer = ShaderViewer::EditShader(*this, id, stage, entryPoint, files, shaderEncoding, flags,
                                       replaceSaveCallback, replaceCloseCallback,
                                       [this](ShaderViewer *view, bool closed) {
-                                        m_CaptureMods |= CaptureModifications::EditedShaders;
+                                        SetModification(CaptureModifications::EditedShaders);
                                         if(closed)
                                           m_ShaderEditors.removeOne(view);
                                       },
                                       m_MainWindow->Widget());
 
     m_ShaderEditors.push_back(viewer);
-    m_CaptureMods |= CaptureModifications::EditedShaders;
+    SetModification(CaptureModifications::EditedShaders);
   }
   else
   {
