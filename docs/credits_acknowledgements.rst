@@ -167,6 +167,7 @@ There have been many people who have helped in the creation of RenderDoc. Whethe
 * Haiyu Zhen
 * Alex Kharlamov
 * Steve Karolewics
+* Kevin McCullough
 
 Contributors
 ------------
