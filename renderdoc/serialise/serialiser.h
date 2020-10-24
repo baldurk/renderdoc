@@ -630,20 +630,34 @@ public:
       }
 #endif
 
-      for(uint64_t i = 0; el && i < arrayCount; i++)
+      if(m_LazyThreshold > 0 && arrayCount > m_LazyThreshold)
       {
-        SDObject &obj = *arr.AddAndOwnChild(new SDObject("$el"_lit, TypeName<T>()));
-        m_StructureStack.push_back(&obj);
+        PushInternal();
 
-        // default to struct. This will be overwritten if appropriate
-        obj.type.basetype = SDBasic::Struct;
-        obj.type.byteSize = sizeof(T);
-        if(std::is_union<T>::value)
-          obj.type.flags |= SDTypeFlags::Union;
+        for(uint64_t i = 0; el && i < arrayCount; i++)
+          SerialiseDispatch<Serialiser, T>::Do(*this, el[i]);
 
-        SerialiseDispatch<Serialiser, T>::Do(*this, el[i]);
+        PopInternal();
 
-        m_StructureStack.pop_back();
+        arr.SetLazyArray(arrayCount, el, MakeLazySerialiser<T>());
+      }
+      else
+      {
+        for(uint64_t i = 0; el && i < arrayCount; i++)
+        {
+          SDObject &obj = *arr.AddAndOwnChild(new SDObject("$el"_lit, TypeName<T>()));
+          m_StructureStack.push_back(&obj);
+
+          // default to struct. This will be overwritten if appropriate
+          obj.type.basetype = SDBasic::Struct;
+          obj.type.byteSize = sizeof(T);
+          if(std::is_union<T>::value)
+            obj.type.flags |= SDTypeFlags::Union;
+
+          SerialiseDispatch<Serialiser, T>::Do(*this, el[i]);
+
+          m_StructureStack.pop_back();
+        }
       }
 
       m_StructureStack.pop_back();
@@ -709,18 +723,32 @@ public:
       if(IsReading())
         el.resize((int)size);
 
-      for(size_t i = 0; i < (size_t)size; i++)
+      if(m_LazyThreshold > 0 && size > m_LazyThreshold)
       {
-        SDObject &obj = *arr.AddAndOwnChild(new SDObject("$el"_lit, TypeName<U>()));
-        m_StructureStack.push_back(&obj);
+        PushInternal();
 
-        // default to struct. This will be overwritten if appropriate
-        obj.type.basetype = SDBasic::Struct;
-        obj.type.byteSize = sizeof(U);
+        for(size_t i = 0; i < (size_t)size; i++)
+          SerialiseDispatch<Serialiser, U>::Do(*this, el[i]);
 
-        SerialiseDispatch<Serialiser, U>::Do(*this, el[i]);
+        PopInternal();
 
-        m_StructureStack.pop_back();
+        arr.SetLazyArray(size, el.data(), MakeLazySerialiser<U>());
+      }
+      else
+      {
+        for(size_t i = 0; i < (size_t)size; i++)
+        {
+          SDObject &obj = *arr.AddAndOwnChild(new SDObject("$el"_lit, TypeName<U>()));
+          m_StructureStack.push_back(&obj);
+
+          // default to struct. This will be overwritten if appropriate
+          obj.type.basetype = SDBasic::Struct;
+          obj.type.byteSize = sizeof(U);
+
+          SerialiseDispatch<Serialiser, U>::Do(*this, el[i]);
+
+          m_StructureStack.pop_back();
+        }
       }
 
       m_StructureStack.pop_back();
@@ -1072,6 +1100,9 @@ public:
   // anything serialised while internal is set.
   void PushInternal() { m_InternalElement++; }
   void PopInternal() { m_InternalElement--; }
+  // this sets the current threshold for making structured data lazy for arrays above this size.
+  // If set to 0, structured data is never set as lazy
+  void SetLazyThreshold(uint32_t arraySize) { m_LazyThreshold = arraySize; }
   /////////////////////////////////////////////////////////////////////////////
 
   // for basic/leaf types. Read/written just as byte soup, MUST be plain old data
@@ -1223,6 +1254,9 @@ protected:
   Serialiser(StreamWriter *writer, Ownership own);
   Serialiser(StreamReader *reader, Ownership own, SDObject *rootStructuredObj);
 
+  template <SerialiserMode othertype>
+  friend class Serialiser;
+
   void SetDummy(bool dummy) { m_Dummy = dummy; }
 private:
   static const uint64_t ChunkAlignment = 64;
@@ -1274,6 +1308,32 @@ private:
     }
   }
 
+  template <typename T>
+  LazyGenerator MakeLazySerialiser()
+  {
+    ChunkLookup lookup = m_ChunkLookup;
+    return [lookup](const void *ptr) {
+      T &input = *(T *)ptr;
+      static StreamReader dummy(StreamReader::DummyStream);
+
+      SDObject *ret = new SDObject("$el"_lit, TypeName<T>());
+
+      ret->type.byteSize = sizeof(T);
+      if(std::is_union<T>::value)
+        ret->type.flags |= SDTypeFlags::Union;
+
+      Serialiser<SerialiserMode::Reading> ser(&dummy, Ownership::Nothing, ret);
+
+      ser.ConfigureStructuredExport(lookup, false, 0, 1.0);
+      ser.SetStreamingMode(true);
+      ser.SetDummy(true);
+
+      SerialiseDispatch<Serialiser<SerialiserMode::Reading>, T>::Do(ser, input);
+
+      return ret;
+    };
+  }
+
   void *m_pUserData = NULL;
   uint64_t m_Version = 0;
 
@@ -1295,6 +1355,7 @@ private:
   bool m_ExportStructured = false;
   bool m_ExportBuffers = false;
   int m_InternalElement = 0;
+  uint32_t m_LazyThreshold = 0;
   SDFile m_StructData;
   SDFile *m_StructuredFile = &m_StructData;
   rdcarray<SDObject *> m_StructureStack;

@@ -255,13 +255,13 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     CHECK(chunk.type.name == "Chunk");
     CHECK(chunk.NumChildren() == 16);
 
-    for(SDObject *o : chunk)
+    for(const SDObject *o : chunk)
       REQUIRE(o);
 
     int childIdx = 0;
 
     {
-      SDObject &o = *chunk.GetChild(childIdx++);
+      const SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "a");
       CHECK(o.type.name == "int64_t");
@@ -273,7 +273,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.GetChild(childIdx++);
+      const SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "b");
       CHECK(o.type.name == "uint64_t");
@@ -285,7 +285,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.GetChild(childIdx++);
+      const SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "c");
       CHECK(o.type.name == "int32_t");
@@ -297,7 +297,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.GetChild(childIdx++);
+      const SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "d");
       CHECK(o.type.name == "uint32_t");
@@ -309,7 +309,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.GetChild(childIdx++);
+      const SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "e");
       CHECK(o.type.name == "int16_t");
@@ -321,7 +321,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.GetChild(childIdx++);
+      const SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "f");
       CHECK(o.type.name == "uint16_t");
@@ -333,7 +333,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.GetChild(childIdx++);
+      const SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "g");
       CHECK(o.type.name == "int8_t");
@@ -345,7 +345,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.GetChild(childIdx++);
+      const SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "h");
       CHECK(o.type.name == "uint8_t");
@@ -357,7 +357,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.GetChild(childIdx++);
+      const SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "i");
       CHECK(o.type.name == "bool");
@@ -369,7 +369,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.GetChild(childIdx++);
+      const SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "j");
       CHECK(o.type.name == "char");
@@ -381,7 +381,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.GetChild(childIdx++);
+      const SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "k");
       CHECK(o.type.name == "double");
@@ -393,7 +393,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.GetChild(childIdx++);
+      const SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "l");
       CHECK(o.type.name == "float");
@@ -405,7 +405,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.GetChild(childIdx++);
+      const SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "m");
       CHECK(o.type.name == "string");
@@ -417,7 +417,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.GetChild(childIdx++);
+      const SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "n");
       CHECK(o.type.name == "string");
@@ -429,7 +429,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.GetChild(childIdx++);
+      const SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "s");
       CHECK(o.type.name == "string");
@@ -441,7 +441,7 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
     }
 
     {
-      SDObject &o = *chunk.GetChild(childIdx++);
+      const SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "t");
       CHECK(o.type.name == "int32_t");
@@ -935,13 +935,13 @@ TEST_CASE("Read/write container types", "[serialiser][structured]")
 
     CHECK(chunk.NumChildren() == 2);
 
-    for(SDObject *o : chunk)
+    for(const SDObject *o : chunk)
       REQUIRE(o);
 
     int childIdx = 0;
 
     {
-      SDObject &o = *chunk.GetChild(childIdx++);
+      const SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "v");
       CHECK(o.type.basetype == SDBasic::Array);
@@ -949,7 +949,7 @@ TEST_CASE("Read/write container types", "[serialiser][structured]")
       CHECK(o.type.flags == SDTypeFlags::NoFlags);
       CHECK(o.NumChildren() == 6);
 
-      for(SDObject *child : o)
+      for(const SDObject *child : o)
       {
         CHECK(child->type.basetype == SDBasic::SignedInteger);
         CHECK(child->type.byteSize == 4);
@@ -964,7 +964,7 @@ TEST_CASE("Read/write container types", "[serialiser][structured]")
     }
 
     {
-      SDObject &o = *chunk.GetChild(childIdx++);
+      const SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "p");
       CHECK(o.type.name == "pair");
@@ -974,7 +974,7 @@ TEST_CASE("Read/write container types", "[serialiser][structured]")
       CHECK(o.NumChildren() == 2);
 
       {
-        SDObject &first = *o.GetChild(0);
+        const SDObject &first = *o.GetChild(0);
 
         CHECK(first.name == "first");
         CHECK(first.type.name == "float");
@@ -986,7 +986,7 @@ TEST_CASE("Read/write container types", "[serialiser][structured]")
       }
 
       {
-        SDObject &second = *o.GetChild(1);
+        const SDObject &second = *o.GetChild(1);
 
         CHECK(second.name == "second");
         CHECK(second.type.name == "string");
@@ -1227,13 +1227,13 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
 
     CHECK(chunk.NumChildren() == 5);
 
-    for(SDObject *o : chunk)
+    for(const SDObject *o : chunk)
       REQUIRE(o);
 
     int childIdx = 0;
 
     {
-      SDObject &o = *chunk.GetChild(childIdx++);
+      const SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "enumVal");
       CHECK(o.type.basetype == SDBasic::Enum);
@@ -1244,7 +1244,7 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
     }
 
     {
-      SDObject &o = *chunk.GetChild(childIdx++);
+      const SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "sparseStructArray");
       CHECK(o.type.basetype == SDBasic::Array);
@@ -1252,7 +1252,7 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
       CHECK(o.type.flags == SDTypeFlags::NoFlags);
       CHECK(o.NumChildren() == 10);
 
-      for(SDObject *child : o)
+      for(const SDObject *child : o)
       {
         CHECK(child->type.basetype == SDBasic::Struct);
         CHECK(child->type.name == "struct1");
@@ -1289,7 +1289,7 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
     }
 
     {
-      SDObject &o = *chunk.GetChild(childIdx++);
+      const SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "complex");
       CHECK(o.type.name == "struct2");
@@ -1299,7 +1299,7 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
       CHECK(o.NumChildren() == 3);
 
       {
-        SDObject &c = *o.GetChild(0);
+        const SDObject &c = *o.GetChild(0);
 
         CHECK(c.name == "name");
         CHECK(c.type.name == "string");
@@ -1310,13 +1310,13 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
       }
 
       {
-        SDObject &c = *o.GetChild(1);
+        const SDObject &c = *o.GetChild(1);
 
         CHECK(c.name == "floats");
         CHECK(c.type.basetype == SDBasic::Array);
         CHECK(c.type.flags == SDTypeFlags::NoFlags);
         CHECK(c.NumChildren() == 3);
-        for(SDObject *ch : c)
+        for(const SDObject *ch : c)
         {
           CHECK(ch->type.basetype == SDBasic::Float);
           CHECK(ch->type.byteSize == 4);
@@ -1328,13 +1328,13 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
       }
 
       {
-        SDObject &c = *o.GetChild(2);
+        const SDObject &c = *o.GetChild(2);
 
         CHECK(c.name == "viewports");
         CHECK(c.type.basetype == SDBasic::Array);
         CHECK(c.type.flags == SDTypeFlags::NoFlags);
         CHECK(c.NumChildren() == 4);
-        for(SDObject *ch : c)
+        for(const SDObject *ch : c)
         {
           CHECK(ch->type.basetype == SDBasic::Struct);
           CHECK(ch->type.name == "struct1");
@@ -1348,7 +1348,7 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
     }
 
     {
-      SDObject &o = *chunk.GetChild(childIdx++);
+      const SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "inputParam1");
       CHECK(o.type.basetype == SDBasic::Struct);
@@ -1361,7 +1361,7 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
     }
 
     {
-      SDObject &o = *chunk.GetChild(childIdx++);
+      const SDObject &o = *chunk.GetChild(childIdx++);
 
       CHECK(o.name == "inputParam2");
       CHECK(o.type.basetype == SDBasic::Null);

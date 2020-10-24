@@ -59,8 +59,8 @@ static QString valueString(const SDObject *o)
 
 static bool anyChildChanged(const SDObject *o)
 {
-  SDObject *def = o->FindChild("default");
-  SDObject *val = o->FindChild("value");
+  const SDObject *def = o->FindChild("default");
+  const SDObject *val = o->FindChild("value");
 
   if(val && def)
     return !val->HasEqualValue(def);

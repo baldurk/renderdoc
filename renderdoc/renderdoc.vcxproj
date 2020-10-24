@@ -573,7 +573,9 @@
     <ClCompile Include="common\threading_tests.cpp" />
     <ClCompile Include="core\bit_flag_iterator_tests.cpp" />
     <ClCompile Include="core\settings.cpp" />
-    <ClCompile Include="core\core.cpp" />
+    <ClCompile Include="core\core.cpp">
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
     <ClCompile Include="core\image_viewer.cpp" />
     <ClCompile Include="core\intervals_tests.cpp" />
     <ClCompile Include="core\plugins.cpp" />

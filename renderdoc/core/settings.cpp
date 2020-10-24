@@ -79,7 +79,7 @@ static SDObject *makeSDObject(const char *name, SDBasic type, pugi::xml_node &va
   return NULL;
 }
 
-static void saveSDObject(SDObject &value, pugi::xml_node obj)
+static void saveSDObject(const SDObject &value, pugi::xml_node obj)
 {
   switch(value.type.basetype)
   {
@@ -100,7 +100,7 @@ static void saveSDObject(SDObject &value, pugi::xml_node obj)
   }
 }
 
-static void Config2XML(pugi::xml_node &parent, SDObject &child)
+static void Config2XML(pugi::xml_node &parent, const SDObject &child)
 {
   pugi::xml_node obj = parent.append_child(child.name.c_str());
 
@@ -111,7 +111,7 @@ static void Config2XML(pugi::xml_node &parent, SDObject &child)
   }
   else
   {
-    SDObject *value = child.FindChild("value");
+    const SDObject *value = child.FindChild("value");
 
     parent.insert_child_before(pugi::node_comment, obj)
         .set_value((" " + child.FindChild("description")->data.str + " ").c_str());

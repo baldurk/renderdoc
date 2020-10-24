@@ -36,10 +36,6 @@
 // command buffer that stalls the GPU).
 // See INITSTATEBATCH
 
-RDOC_CONFIG(bool, Vulkan_Debug_HideInitialDescriptors, false,
-            "Hide the initial contents of descriptor sets. "
-            "For extremely large descriptor sets this can drastically reduce memory consumption.");
-
 bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 {
   ResourceId id = GetResourceManager()->GetID(res);
@@ -578,10 +574,10 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
     uint32_t NumBindings = 0;
     bytebuf InlineData;
 
-    const bool hide = Vulkan_Debug_HideInitialDescriptors();
-
-    if(hide)
-      ser.PushInternal();
+    // there's no point in setting up a lazy array when we're structured exporting because we KNOW
+    // we're going to need all the data anyway.
+    if(!IsStructuredExporting(m_State))
+      ser.SetLazyThreshold(1000);
 
     // while writing, fetching binding information from prepared initial contents
     if(ser.IsWriting())
@@ -595,13 +591,12 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
     SERIALISE_ELEMENT_ARRAY(Bindings, NumBindings);
     SERIALISE_ELEMENT(NumBindings);
 
+    ser.SetLazyThreshold(0);
+
     if(ser.VersionAtLeast(0x12))
     {
       SERIALISE_ELEMENT(InlineData);
     }
-
-    if(hide)
-      ser.PopInternal();
 
     SERIALISE_CHECK_READ_ERRORS();
 

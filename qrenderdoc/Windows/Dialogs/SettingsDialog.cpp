@@ -494,7 +494,7 @@ void SettingsDialog::on_chooseSearchPaths_clicked()
 
   QStringList items;
 
-  for(SDObject *c : *getPaths)
+  for(const SDObject *c : *getPaths)
     items << c->data.str;
 
   list.setItems(items);

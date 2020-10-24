@@ -25,6 +25,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <functional>
 #include "apidefs.h"
 #include "rdcarray.h"
 #include "rdcstr.h"
@@ -339,6 +340,11 @@ private:
 
 DECLARE_REFLECTION_STRUCT(StructuredObjectList);
 
+// due to some objects potentially being lazily generated, we use the ugly 'mutable' keyword here
+// to avoid completely losing const on these objects but allowing us to actually modify objects
+// behind the scenes inside const objects. This is only used for effectively caching the lazy
+// generated results, so to the outside world the object is still const.
+
 DOCUMENT("The data inside an :class:`SDObject` whether it's plain old data or complex children.");
 struct SDObjectData
 {
@@ -365,7 +371,7 @@ private:
   friend void DoSerialise(SerialiserType &ser, SDObject *el);
 
   DOCUMENT("A list of :class:`SDObject` containing the children of this :class:`SDObject`.");
-  StructuredObjectList children;
+  mutable StructuredObjectList children;
 
   void *operator new(size_t count) = delete;
   void *operator new[](size_t count) = delete;
@@ -374,6 +380,17 @@ private:
 };
 
 DECLARE_REFLECTION_STRUCT(SDObjectData);
+
+#if !defined(SWIG)
+using LazyGenerator = std::function<SDObject *(const void *)>;
+
+struct LazyArrayData
+{
+  byte *data;
+  size_t elemSize;
+  LazyGenerator generator;
+};
+#endif
 
 DOCUMENT(R"(Defines a single structured object. Structured objects are defined recursively and one
 object can either be a basic type (integer, float, etc), an array, or a struct. Arrays and structs
@@ -384,28 +401,70 @@ Each object owns its children and they will be deleted when it is deleted. You c
 )");
 struct SDObject
 {
+#if !defined(SWIG)
+  template <typename MaybeConstSDObject>
+  struct SDObjectIt
+  {
+  private:
+    MaybeConstSDObject *o;
+    size_t i;
+
+  public:
+    using iterator_category = std::bidirectional_iterator_tag;
+    using value_type = MaybeConstSDObject *;
+    using difference_type = ptrdiff_t;
+    using pointer = value_type *;
+    using reference = value_type &;
+
+    SDObjectIt(MaybeConstSDObject *obj, size_t index) : o(obj), i(index) {}
+    SDObjectIt(const SDObjectIt &rhs) : o(rhs.o), i(rhs.i) {}
+    SDObjectIt &operator++()
+    {
+      ++i;
+      return *this;
+    }
+    SDObjectIt operator++(int)
+    {
+      SDObjectIt tmp(*this);
+      operator++();
+      return tmp;
+    }
+    SDObjectIt &operator--()
+    {
+      --i;
+      return *this;
+    }
+    SDObjectIt operator--(int)
+    {
+      SDObjectIt tmp(*this);
+      operator--();
+      return tmp;
+    }
+    size_t operator-(const SDObjectIt &rhs) { return i - rhs.i; }
+    SDObjectIt operator+(int shift)
+    {
+      SDObjectIt ret(*this);
+      ret.i += shift;
+      return ret;
+    }
+    bool operator==(const SDObjectIt &rhs) { return o == rhs.o && i == rhs.i; }
+    bool operator!=(const SDObjectIt &rhs) { return !(*this == rhs); }
+    SDObjectIt &operator=(const SDObjectIt &rhs)
+    {
+      o = rhs.o;
+      i = rhs.i;
+      return *this;
+    }
+
+    inline MaybeConstSDObject *operator*() const { return o->GetChild(i); }
+    inline MaybeConstSDObject &operator->() const { return *o->GetChild(i); }
+  };
+#endif
+
   /////////////////////////////////////////////////////////////////
   // memory management, in a dll safe way
-  void *operator new(size_t sz)
-  {
-    void *ret = NULL;
-#ifdef RENDERDOC_EXPORTS
-    ret = malloc(sz);
-    if(ret == NULL)
-      RENDERDOC_OutOfMemory(sz);
-#else
-    ret = RENDERDOC_AllocArrayMem(sz);
-#endif
-    return ret;
-  }
-  void operator delete(void *p)
-  {
-#ifdef RENDERDOC_EXPORTS
-    free(p);
-#else
-    RENDERDOC_FreeArrayMem(p);
-#endif
-  }
+  void *operator new(size_t sz) { return SDObject::alloc(sz); }
+  void operator delete(void *p) { SDObject::dealloc(p); }
   void *operator new[](size_t count) = delete;
   void operator delete[](void *p) = delete;
 
@@ -413,12 +472,16 @@ struct SDObject
   {
     name = n;
     data.basic.u = 0;
+    m_Lazy = NULL;
   }
 
   ~SDObject()
   {
     // we own our children, so delete them now.
     DeleteChildren();
+
+    // delete the lazy array data if we used it (rare)
+    DeleteLazyGenerator();
   }
 
   DOCUMENT("Create a deep copy of this object.");
@@ -429,6 +492,11 @@ struct SDObject
     ret->type = type;
     ret->data.basic = data.basic;
     ret->data.str = data.str;
+
+    if(m_Lazy)
+    {
+      PopulateAllChildren();
+    }
 
     ret->data.children.resize(data.children.size());
     for(size_t i = 0; i < data.children.size(); i++)
@@ -472,7 +540,10 @@ recursively through children.
     else
     {
       for(size_t c = 0; c < o->data.children.size(); c++)
-        ret &= data.children[c]->HasEqualValue(o->data.children[c]);
+      {
+        PopulateChild(c);
+        ret &= data.children[c]->HasEqualValue(o->GetChild(c));
+      }
     }
 
     return ret;
@@ -484,7 +555,14 @@ recursively through children.
 
 :param SDObject obj: The new child to add
 )");
-  inline void DuplicateAndAddChild(SDObject *child) { data.children.push_back(child->Duplicate()); }
+  inline void DuplicateAndAddChild(const SDObject *child)
+  {
+    // if we're adding to a lazy-generated array we can't have a mixture between lazy generation and
+    // fully owned children. This shouldn't happen, but just in case we'll evaluate the lazy array
+    // here.
+    PopulateAllChildren();
+    data.children.push_back(child->Duplicate());
+  }
   DOCUMENT(R"(Find a child object by a given name. If no matching child is found, ``None`` is
 returned.
 
@@ -492,11 +570,11 @@ returned.
 :return: A reference to the child object if found, or ``None`` if not.
 :rtype: SDObject
 )");
-  inline SDObject *FindChild(const rdcstr &childName) const
+  inline SDObject *FindChild(const rdcstr &childName)
   {
     for(size_t i = 0; i < data.children.size(); i++)
-      if(data.children[i]->name == childName)
-        return data.children[i];
+      if(GetChild(i)->name == childName)
+        return GetChild(i);
     return NULL;
   }
 
@@ -507,12 +585,37 @@ returned.
 :return: A reference to the child object if valid, or ``None`` if not.
 :rtype: SDObject
 )");
-  inline SDObject *GetChild(size_t index) const
+  inline SDObject *GetChild(size_t index)
   {
     if(index < data.children.size())
+    {
+      PopulateChild(index);
       return data.children[index];
+    }
+
     return NULL;
   }
+
+#if !defined(SWIG)
+  // const versions of FindChild/GetChild
+  inline const SDObject *FindChild(const rdcstr &childName) const
+  {
+    for(size_t i = 0; i < data.children.size(); i++)
+      if(GetChild(i)->name == childName)
+        return GetChild(i);
+    return NULL;
+  }
+  inline const SDObject *GetChild(size_t index) const
+  {
+    if(index < data.children.size())
+    {
+      PopulateChild(index);
+      return data.children[index];
+    }
+
+    return NULL;
+  }
+#endif
 
   DOCUMENT(R"(Delete the child object at an index. If the index is out of bounds, nothing happens.
 
@@ -521,7 +624,12 @@ returned.
   inline void RemoveChild(size_t index)
   {
     if(index < data.children.size())
+    {
+      // we really shouldn't be deleting individually from a lazy array but just in case we are,
+      // fully evaluate it first.
+      PopulateAllChildren();
       delete data.children.takeAt(index);
+    }
   }
 
   DOCUMENT("Delete all child objects.");
@@ -531,6 +639,8 @@ returned.
       delete data.children[i];
 
     data.children.clear();
+
+    DeleteLazyGenerator();
   }
 
   DOCUMENT(R"(Get the number of child objects.
@@ -541,10 +651,13 @@ returned.
   inline size_t NumChildren() const { return data.children.size(); }
 #if !defined(SWIG)
   // these are for C++ iteration so not defined when SWIG is generating interfaces
-  inline SDObject *const *begin() const { return data.children.begin(); }
-  inline SDObject *const *end() const { return data.children.end(); }
-  inline SDObject **begin() { return data.children.begin(); }
-  inline SDObject **end() { return data.children.end(); }
+  inline SDObjectIt<const SDObject> begin() const { return SDObjectIt<const SDObject>(this, 0); }
+  inline SDObjectIt<const SDObject> end() const
+  {
+    return SDObjectIt<const SDObject>(this, data.children.size());
+  }
+  inline SDObjectIt<SDObject> begin() { return SDObjectIt<SDObject>(this, 0); }
+  inline SDObjectIt<SDObject> end() { return SDObjectIt<SDObject>(this, data.children.size()); }
 #endif
 
 #if !defined(SWIG)
@@ -556,20 +669,38 @@ returned.
   // immediately for easy chaining.
   SDObject *AddAndOwnChild(SDObject *child)
   {
+    PopulateAllChildren();
     data.children.push_back(child);
     return child;
   }
   // similar to AddAndOwnChild, but insert at a given offset
   SDObject *InsertAndOwnChild(size_t offs, SDObject *child)
   {
+    PopulateAllChildren();
     data.children.insert(offs, child);
     return child;
   }
   // Take ownership of the whole children array from the object.
   void TakeAllChildren(StructuredObjectList &objs)
   {
+    PopulateAllChildren();
     objs.clear();
     objs.swap(data.children);
+  }
+
+  template <typename T>
+  void SetLazyArray(uint64_t arrayCount, T *arrayData, LazyGenerator generator)
+  {
+    DeleteChildren();
+
+    void *lazyAlloc = alloc(sizeof(LazyArrayData));
+
+    m_Lazy = new(lazyAlloc) LazyArrayData;
+    m_Lazy->generator = generator;
+    m_Lazy->elemSize = sizeof(T);
+    m_Lazy->data = (byte *)alloc(sizeof(T) * arrayCount);
+    memcpy(m_Lazy->data, arrayData, sizeof(T) * arrayCount);
+    data.children.resize(arrayCount);
   }
 #endif
 
@@ -709,6 +840,62 @@ protected:
   SDObject() {}
   SDObject(const SDObject &other) = delete;
   SDObject &operator=(const SDObject &other) = delete;
+
+  // these functions can be const because we have 'mutable' allowing us to modify these members.
+  // It's ugly, but necessary
+  inline void PopulateChild(size_t idx) const
+  {
+    if(m_Lazy)
+    {
+      if(data.children[idx] == NULL)
+        data.children[idx] = m_Lazy->generator(m_Lazy->data + idx * m_Lazy->elemSize);
+    }
+  }
+
+  void PopulateAllChildren() const
+  {
+    if(m_Lazy)
+    {
+      for(size_t i = 0; i < data.children.size(); i++)
+        PopulateChild(i);
+
+      DeleteLazyGenerator();
+    }
+  }
+
+  static void *alloc(size_t sz)
+  {
+    void *ret = NULL;
+#ifdef RENDERDOC_EXPORTS
+    ret = malloc(sz);
+    if(ret == NULL)
+      RENDERDOC_OutOfMemory(sz);
+#else
+    ret = RENDERDOC_AllocArrayMem(sz);
+#endif
+    return ret;
+  }
+  static void dealloc(void *p)
+  {
+#ifdef RENDERDOC_EXPORTS
+    free(p);
+#else
+    RENDERDOC_FreeArrayMem(p);
+#endif
+  }
+
+private:
+  mutable LazyArrayData *m_Lazy = NULL;
+
+  void DeleteLazyGenerator() const
+  {
+    if(m_Lazy)
+    {
+      dealloc(m_Lazy->data);
+      dealloc(m_Lazy);
+      m_Lazy = NULL;
+    }
+  }
 };
 
 DECLARE_REFLECTION_STRUCT(SDObject);
@@ -1002,6 +1189,9 @@ struct SDChunk : public SDObject
     ret->data.str = data.str;
 
     ret->data.children.resize(data.children.size());
+
+    PopulateAllChildren();
+
     for(size_t i = 0; i < data.children.size(); i++)
       ret->data.children[i] = data.children[i]->Duplicate();
 

@@ -602,7 +602,7 @@ void Serialiser<SerialiserMode::Writing>::WriteStructuredFile(const SDFile &file
       for(size_t o = 0; o < chunk.NumChildren(); o++)
       {
         // note, we don't need names because we aren't exporting structured data
-        ser->Serialise(""_lit, chunk.GetChild(o));
+        ser->Serialise(""_lit, (SDObject *)chunk.GetChild(o));
       }
     }
 
@@ -755,7 +755,15 @@ void DoSerialise(SerialiserType &ser, SDObject *el)
       for(size_t o = 0; o < el->NumChildren(); o++)
         ser.Serialise(""_lit, el->GetChild(o));
       break;
-    case SDBasic::Array: ser.Serialise(""_lit, (rdcarray<SDObject *> &)el->data.children); break;
+    case SDBasic::Array:
+    {
+      uint64_t arraySize = el->NumChildren();
+      ser.Serialise(""_lit, arraySize);
+      // ensure all children are ready
+      for(size_t o = 0; o < el->NumChildren(); o++)
+        ser.Serialise(""_lit, el->GetChild(o));
+      break;
+    }
     case SDBasic::Null:
       // nothing to do, we serialised present flag above
       RDCASSERT(el->type.flags & SDTypeFlags::Nullable);
