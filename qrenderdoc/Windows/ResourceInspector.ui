@@ -232,7 +232,7 @@
     </item>
    </layout>
   </widget>
-  <widget class="RDTreeWidget" name="initChunks">
+  <widget class="RDTreeView" name="initChunks">
    <property name="geometry">
     <rect>
      <x>60</x>
@@ -319,6 +319,11 @@
    <class>RDLineEdit</class>
    <extends>QLineEdit</extends>
    <header>Widgets/Extended/RDLineEdit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>RDTreeView</class>
+   <extends>QTreeView</extends>
+   <header>Widgets/Extended/RDTreeView.h</header>
   </customwidget>
   <customwidget>
    <class>RDTreeWidget</class>

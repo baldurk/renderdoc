@@ -36,6 +36,8 @@ class QCollatorSortFilterProxyModel;
 
 class RDTreeWidgetItem;
 class ResourceListItemModel;
+class StructuredDataItemModel;
+class RichTextViewDelegate;
 
 class ResourceInspector : public QFrame, public IResourceInspector, public ICaptureViewer
 {
@@ -87,4 +89,6 @@ private:
   ResourceListItemModel *m_ResourceModel;
   int m_ResourceCacheID = -1;
   QCollatorSortFilterProxyModel *m_FilterModel;
+  StructuredDataItemModel *m_ChunksModel;
+  RichTextViewDelegate *m_delegate;
 };

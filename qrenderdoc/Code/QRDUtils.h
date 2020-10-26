@@ -577,6 +577,67 @@ private:
   QAbstractItemView *m_widget;
 };
 
+class StructuredDataItemModel : public QAbstractItemModel
+{
+public:
+  enum SDColumn
+  {
+    Name,
+    Value,
+    Type,
+  };
+
+  void setColumns(QStringList names, rdcarray<SDColumn> values)
+  {
+    m_ColumnNames = names;
+    m_ColumnValues = values;
+  }
+
+  void setObjects(const rdcarray<SDObject *> &objs);
+  StructuredDataItemModel(QWidget *parent) : QAbstractItemModel(parent) {}
+  QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override;
+  QModelIndex parent(const QModelIndex &index) const override;
+  int rowCount(const QModelIndex &parent = QModelIndex()) const override;
+  int columnCount(const QModelIndex &parent = QModelIndex()) const override;
+  Qt::ItemFlags flags(const QModelIndex &index) const override;
+  QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
+  QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+
+private:
+  enum IndexTag
+  {
+    Direct,
+    PageNode,
+    ArrayMember,
+  };
+
+  struct Index
+  {
+    IndexTag tag;
+    SDObject *obj;
+    int indexInArray;
+  };
+
+  Index decodeIndex(QModelIndex idx) const;
+  quintptr encodeIndex(Index idx) const;
+  bool isLargeArray(SDObject *obj) const;
+
+  rdcarray<SDObject *> m_Objects;
+  QStringList m_ColumnNames;
+  rdcarray<SDColumn> m_ColumnValues;
+
+  // these below members have to be mutable since we update these caches in const functions
+
+  // set of large arrays, so we can refer to them by compressed index instead of needing a full
+  // pointer.
+  mutable rdcarray<SDObject *> m_Arrays;
+  // objects that are in large arrays. This map gives us the index they are in their parent.
+  // This is only used for parent() when the parent is an array member, so we only add into this
+  // list when creating a child index of such an array member - which only happens when the array
+  // member is expanded. That keeps to a minimum the number of entries.
+  mutable QMap<SDObject *, int> m_ArrayMembers;
+};
+
 // helper functions for using a double spinbox for 64-bit integers. We do this because it's
 // infeasible in Qt to actually derive and create a real 64-bit integer spinbox because critical
 // functionality depends on deriving QAbstractSpinBoxPrivate which is unavailable. So instead we use

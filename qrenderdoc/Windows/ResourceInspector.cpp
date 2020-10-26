@@ -128,6 +128,9 @@ ResourceInspector::ResourceInspector(ICaptureContext &ctx, QWidget *parent)
   m_ChunksModel->setColumns({tr("Parameter"), tr("Value")},
                             {StructuredDataItemModel::Name, StructuredDataItemModel::Value});
 
+  m_delegate = new RichTextViewDelegate(ui->initChunks);
+  ui->initChunks->setItemDelegate(m_delegate);
+
   ui->initChunks->header()->resizeSection(0, 200);
 
   ui->initChunks->setFont(Formatter::PreferredFont());
@@ -308,27 +311,17 @@ void ResourceInspector::Inspect(ResourceId id)
     }
     ui->relatedResources->endUpdate();
 
+    rdcarray<SDObject *> objs;
+
     for(uint32_t chunk : desc->initialisationChunks)
     {
-      RDTreeWidgetItem *root = new RDTreeWidgetItem({QString(), QString()});
-
       if(chunk < file.chunks.size())
-      {
-        SDChunk *chunkObj = file.chunks[chunk];
-
-        root->setText(0, chunkObj->name);
-
-        addStructuredChildren(root, *chunkObj);
-      }
+        objs.push_back(file.chunks[chunk]);
       else
-      {
-        root->setText(1, tr("Invalid chunk index %1").arg(chunk));
-      }
-
-      ui->initChunks->addTopLevelItem(root);
-
-      ui->initChunks->setSelectedItem(root);
+        qCritical() << "Invalid chunk index" << chunk;
     }
+
+    m_ChunksModel->setObjects(objs);
   }
   else
   {
@@ -376,7 +369,7 @@ void ResourceInspector::OnCaptureClosed()
 
   m_ResourceModel->reset();
 
-  ui->initChunks->clear();
+  m_ChunksModel->setObjects({});
   ui->initChunks->clearInternalExpansions();
   ui->relatedResources->clear();
   ui->resourceUsage->clear();
