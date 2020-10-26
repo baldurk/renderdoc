@@ -477,12 +477,14 @@ struct SDObject
   SDObject(const rdcinflexiblestr &n, const rdcinflexiblestr &t) : name(n), type(t)
   {
     data.basic.u = 0;
+    m_Parent = NULL;
     m_Lazy = NULL;
   }
 #if !defined(SWIG)
   SDObject(rdcinflexiblestr &&n, rdcinflexiblestr &&t) : name(std::move(n)), type(std::move(t))
   {
     data.basic.u = 0;
+    m_Parent = NULL;
     m_Lazy = NULL;
   }
 #endif
@@ -494,6 +496,8 @@ struct SDObject
 
     // delete the lazy array data if we used it (rare)
     DeleteLazyGenerator();
+
+    m_Parent = NULL;
   }
 
   DOCUMENT("Create a deep copy of this object.");
@@ -574,6 +578,7 @@ recursively through children.
     // here.
     PopulateAllChildren();
     data.children.push_back(child->Duplicate());
+    data.children.back()->m_Parent = this;
   }
   DOCUMENT(R"(Find a child object by a given name. If no matching child is found, ``None`` is
 returned.
@@ -608,7 +613,14 @@ returned.
     return NULL;
   }
 
+  DOCUMENT(R"(Get the parent of this object. If this object has no parent, ``None`` is returned.
+
+:return: A reference to the parent object if valid, or ``None`` if not.
+:rtype: SDObject
+)");
+  inline SDObject *GetParent() { return m_Parent; }
 #if !defined(SWIG)
+  inline const SDObject *GetParent() const { return m_Parent; }
   // const versions of FindChild/GetChild
   inline const SDObject *FindChild(const rdcstr &childName) const
   {
@@ -682,6 +694,7 @@ returned.
   SDObject *AddAndOwnChild(SDObject *child)
   {
     PopulateAllChildren();
+    child->m_Parent = this;
     data.children.push_back(child);
     return child;
   }
@@ -689,6 +702,7 @@ returned.
   SDObject *InsertAndOwnChild(size_t offs, SDObject *child)
   {
     PopulateAllChildren();
+    child->m_Parent = this;
     data.children.insert(offs, child);
     return child;
   }
@@ -696,6 +710,8 @@ returned.
   void TakeAllChildren(StructuredObjectList &objs)
   {
     PopulateAllChildren();
+    for(size_t i = 0; i < data.children.size(); i++)
+      data.children[i]->m_Parent = NULL;
     objs.clear();
     objs.swap(data.children);
   }
@@ -860,7 +876,10 @@ protected:
     if(m_Lazy)
     {
       if(data.children[idx] == NULL)
+      {
         data.children[idx] = m_Lazy->generator(m_Lazy->data + idx * m_Lazy->elemSize);
+        data.children[idx]->m_Parent = (SDObject *)this;
+      }
     }
   }
 
@@ -897,6 +916,7 @@ protected:
   }
 
 private:
+  SDObject *m_Parent = NULL;
   mutable LazyArrayData *m_Lazy = NULL;
 
   void DeleteLazyGenerator() const
