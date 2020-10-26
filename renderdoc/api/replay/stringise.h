@@ -52,6 +52,7 @@ rdcstr ToStr(const T &el)
 #define BEGIN_ENUM_STRINGISE(type)                               \
   using enumType = type;                                         \
   static const char unknown_prefix[] = #type "(";                \
+  static rdcliteral empty_ret = STRING_LITERAL(#type "(0)");     \
   static_assert(std::is_same<const type &, decltype(el)>::value, \
                 "Type in macro doesn't match el");               \
   (void)(enumType) el;                                           \
@@ -78,13 +79,13 @@ rdcstr ToStr(const T &el)
 // end enum switches
 #define END_ENUM_STRINGISE() \
   }                          \
-  return unknown_prefix + ToStr((uint32_t)el) + ")";
+  return (uint32_t)el == 0 ? rdcstr(empty_ret) : unknown_prefix + ToStr((uint32_t)el) + ")";
 
 // helper macros for common bitfield check-and-append
 #define BEGIN_BITFIELD_STRINGISE(type)                           \
   using enumType = type;                                         \
   static const char unknown_prefix[] = " | " #type "(";          \
-  static const char empty_ret[] = #type "(0)";                   \
+  static rdcliteral empty_ret = STRING_LITERAL(#type "(0)");     \
   static_assert(std::is_same<const type &, decltype(el)>::value, \
                 "Type in macro doesn't match el");               \
   uint64_t local = (uint64_t)el;                                 \
@@ -108,6 +109,7 @@ rdcstr ToStr(const T &el)
     return STRING_LITERAL(str);
 
 #define STRINGISE_BITFIELD_BIT(b) \
+  STRINGISE_BITFIELD_VALUE(b);    \
   if(el & b)                      \
   {                               \
     local &= ~uint64_t(b);        \
@@ -115,6 +117,7 @@ rdcstr ToStr(const T &el)
   }
 
 #define STRINGISE_BITFIELD_CLASS_BIT(b) \
+  STRINGISE_BITFIELD_CLASS_VALUE(b);    \
   if(el & enumType::b)                  \
   {                                     \
     local &= ~uint64_t(enumType::b);    \
@@ -122,6 +125,7 @@ rdcstr ToStr(const T &el)
   }
 
 #define STRINGISE_BITFIELD_BIT_NAMED(b, str) \
+  STRINGISE_BITFIELD_VALUE_NAMED(b, str);    \
   if(el & b)                                 \
   {                                          \
     local &= ~uint64_t(b);                   \
@@ -129,6 +133,7 @@ rdcstr ToStr(const T &el)
   }
 
 #define STRINGISE_BITFIELD_CLASS_BIT_NAMED(b, str) \
+  STRINGISE_BITFIELD_CLASS_VALUE_NAMED(b, str);    \
   if(el & enumType::b)                             \
   {                                                \
     local &= ~uint64_t(enumType::b);               \

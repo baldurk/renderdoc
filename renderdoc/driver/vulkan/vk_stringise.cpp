@@ -261,7 +261,7 @@ rdcstr DoStringise(const VkFlagWithNoBits &el)
 {
   if(el != 0)
     return StringFormat::Fmt("Invalid bits set: %x", el);
-  return "0";
+  return "0"_lit;
 }
 
 template <>
@@ -732,7 +732,7 @@ rdcstr DoStringise(const VkExternalMemoryHandleTypeFlagBitsNV &el)
 {
   BEGIN_BITFIELD_STRINGISE(VkExternalMemoryHandleTypeFlagBitsNV);
   {
-    STRINGISE_BITFIELD_BIT(VK_MEMORY_HEAP_DEVICE_LOCAL_BIT);
+    STRINGISE_BITFIELD_BIT(VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT_NV);
     STRINGISE_BITFIELD_BIT(VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_KMT_BIT_NV);
     STRINGISE_BITFIELD_BIT(VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_IMAGE_BIT_NV);
     STRINGISE_BITFIELD_BIT(VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_IMAGE_KMT_BIT_NV);
@@ -1413,6 +1413,9 @@ rdcstr DoStringise(const VkSubpassContents &el)
 template <>
 rdcstr DoStringise(const VkImageLayout &el)
 {
+  if(el == UNKNOWN_PREV_IMG_LAYOUT)
+    return "Unknown previous layout"_lit;
+
   BEGIN_ENUM_STRINGISE(VkImageLayout);
   {
     STRINGISE_ENUM(VK_IMAGE_LAYOUT_UNDEFINED)

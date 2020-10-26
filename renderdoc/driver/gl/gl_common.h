@@ -700,6 +700,9 @@ DECLARE_REFLECTION_ENUM(AttribType);
 
 enum GLframebufferbitfield
 {
+  COLOR_BUFFER_BIT = 0x4000,
+  DEPTH_BUFFER_BIT = 0x100,
+  STENCIL_BUFFER_BIT = 0x400,
 };
 
 DECLARE_REFLECTION_ENUM(GLframebufferbitfield);
