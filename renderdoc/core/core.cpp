@@ -133,7 +133,11 @@ rdcstr DoStringise(const PointerVal &el)
   }
 }
 
-BASIC_TYPE_SERIALISE_STRINGIFY(ResourceId, (uint64_t &)el, SDBasic::Resource, 8);
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, ResourceId &el)
+{
+  ser.SerialiseValue(SDBasic::Resource, 8, (uint64_t &)el);
+}
 
 INSTANTIATE_SERIALISE_TYPE(ResourceId);
 
