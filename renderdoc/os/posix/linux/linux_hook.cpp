@@ -146,6 +146,9 @@ __attribute__((visibility("default"))) pid_t fork()
             usleep(1000);
         }
 
+        if(ident == ownIdent)
+          ident = 0;
+
         RDCLOG("PID %u has ident %u", ret, ident);
 
         RenderDoc::Inst().AddChildProcess((uint32_t)ret, (uint32_t)ident);
