@@ -1126,10 +1126,7 @@ VkResult WrappedVulkan::vkCreateDisplayPlaneSurfaceKHR(VkInstance instance,
     fakeWindowHandle += pCreateInfo->planeIndex;
     fakeWindowHandle += pCreateInfo->planeStackIndex << 4;
 
-    // since there's no point in allocating a full resource record and storing the window
-    // handle under there somewhere, we just cast. We won't use the resource record for anything
-
-    wrapped->record = (VkResourceRecord *)fakeWindowHandle;
+    wrapped->record = RegisterSurface(WindowingSystem::Headless, (void *)fakeWindowHandle);
   }
 
   return ret;
@@ -1291,10 +1288,7 @@ VkResult WrappedVulkan::vkCreateHeadlessSurfaceEXT(VkInstance instance,
     // in use.
     uintptr_t fakeWindowHandle = (uintptr_t)wrapped->real.handle;
 
-    // since there's no point in allocating a full resource record and storing the window
-    // handle under there somewhere, we just cast. We won't use the resource record for anything
-
-    wrapped->record = (VkResourceRecord *)fakeWindowHandle;
+    wrapped->record = RegisterSurface(WindowingSystem::Headless, (void *)fakeWindowHandle);
   }
 
   return ret;
