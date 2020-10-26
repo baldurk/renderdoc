@@ -467,8 +467,8 @@ static ReplayStatus Structured2XML(const char *filename, const RDCFile &file, ui
 
 static SDObject *XML2Obj(pugi::xml_node &obj)
 {
-  SDObject *ret =
-      new SDObject(obj.attribute("name").as_string(), obj.attribute("typename").as_string());
+  SDObject *ret = new SDObject(rdcstr(obj.attribute("name").as_string()),
+                               rdcstr(obj.attribute("typename").as_string()));
 
   rdcstr name = obj.name();
 
@@ -783,7 +783,7 @@ static ReplayStatus XML2Structured(const char *xml, const ThumbTypeAndData &thum
     if(strcmp(xChunk.name(), "chunk") != 0)
       return ReplayStatus::FileCorrupted;
 
-    SDChunk *chunk = new SDChunk(xChunk.attribute("name").as_string());
+    SDChunk *chunk = new SDChunk(rdcstr(xChunk.attribute("name").as_string()));
 
     chunk->metadata.chunkID = xChunk.attribute("id").as_uint();
     chunk->metadata.length = xChunk.attribute("length").as_uint();

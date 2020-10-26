@@ -511,7 +511,7 @@ void SettingsDialog::on_chooseSearchPaths_clicked()
     setPaths->ReserveChildren(items.size());
 
     for(int i = 0; i < items.size(); i++)
-      setPaths->AddAndOwnChild(makeSDString("$el", items[i]));
+      setPaths->AddAndOwnChild(makeSDString("$el"_lit, items[i]));
 
     RENDERDOC_SaveConfigSettings();
   }

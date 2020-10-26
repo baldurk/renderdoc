@@ -664,6 +664,67 @@ struct TypeConversion<rdcstr, false>
   }
 };
 
+template <>
+struct TypeConversion<rdcinflexiblestr, false>
+{
+  static swig_type_info *GetTypeInfo()
+  {
+    static swig_type_info *cached_type_info = NULL;
+
+    if(cached_type_info)
+      return cached_type_info;
+
+    cached_type_info = SWIG_TypeQuery("rdcinflexiblestr *");
+
+    return cached_type_info;
+  }
+
+  static int ConvertFromPy(PyObject *in, rdcinflexiblestr &out)
+  {
+    if(PyUnicode_Check(in))
+    {
+      PyObject *bytes = PyUnicode_AsUTF8String(in);
+
+      if(!bytes)
+        return SWIG_ERROR;
+
+      char *buf = NULL;
+      Py_ssize_t size = 0;
+
+      int ret = PyBytes_AsStringAndSize(bytes, &buf, &size);
+
+      if(ret == 0)
+      {
+        out = rdcstr(buf, size);
+
+        Py_DecRef(bytes);
+
+        return SWIG_OK;
+      }
+
+      Py_DecRef(bytes);
+
+      return SWIG_ERROR;
+    }
+
+    swig_type_info *type_info = GetTypeInfo();
+    if(!type_info)
+      return SWIG_ERROR;
+
+    rdcinflexiblestr *ptr = NULL;
+    int res = SWIG_ConvertPtr(in, (void **)&ptr, type_info, 0);
+    if(SWIG_IsOK(res))
+      out = *ptr;
+
+    return res;
+  }
+
+  static PyObject *ConvertToPy(const rdcinflexiblestr &in)
+  {
+    return PyUnicode_FromString(in.c_str());
+  }
+};
+
 #include "structured_conversion.h"
 
 // free functions forward to struct

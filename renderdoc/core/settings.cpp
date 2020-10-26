@@ -63,7 +63,7 @@ struct xml_stream_writer : pugi::xml_writer
   void write(const void *data, size_t size) { stream.Write(data, size); }
 };
 
-static SDObject *makeSDObject(const char *name, SDBasic type, pugi::xml_node &value)
+static SDObject *makeSDObject(const rdcinflexiblestr &name, SDBasic type, pugi::xml_node &value)
 {
   switch(type)
   {
@@ -136,7 +136,8 @@ static void Config2XML(pugi::xml_node &parent, const SDObject &child)
 
 static SDObject *XML2Config(pugi::xml_node &obj)
 {
-  SDObject *ret = new SDObject(obj.name(), obj.attribute("type") ? "setting"_lit : "category"_lit);
+  SDObject *ret =
+      new SDObject(rdcstr(obj.name()), obj.attribute("type") ? "setting"_lit : "category"_lit);
 
   if(ret->type.name == "category"_lit)
   {
@@ -167,7 +168,7 @@ static SDObject *XML2Config(pugi::xml_node &obj)
     rdcstr description = obj.previous_sibling().value();
     description.trim();
 
-    ret->AddAndOwnChild(makeSDObject("description", description));
+    ret->AddAndOwnChild(makeSDObject("description"_lit, description));
 
     SDObject *valueObj = NULL;
 
@@ -185,12 +186,12 @@ static SDObject *XML2Config(pugi::xml_node &obj)
     if(type == SDBasic::Array)
     {
       type = types[basicTypeStrings.indexOf(obj.attribute("elemtype").as_string())];
-      valueObj = makeSDArray("value");
+      valueObj = makeSDArray("value"_lit);
 
       uint32_t i = 0;
       for(pugi::xml_node el = value.first_child(); el; el = el.next_sibling())
       {
-        SDObject *childObj = makeSDObject("$el", type, el);
+        SDObject *childObj = makeSDObject("$el"_lit, type, el);
 
         if(childObj)
         {
@@ -209,7 +210,7 @@ static SDObject *XML2Config(pugi::xml_node &obj)
     }
     else
     {
-      valueObj = makeSDObject("value", type, value);
+      valueObj = makeSDObject("value"_lit, type, value);
 
       if(!valueObj)
       {
@@ -372,8 +373,8 @@ const uint32_t &ConfigVarRegistration<uint32_t>::value()
 
 const rdcstr &ConfigVarRegistration<rdcstr>::value()
 {
-  (void)tmp;
-  return obj->data.str;
+  tmp = obj->data.str;
+  return tmp;
 }
 
 template <typename T>
@@ -405,12 +406,12 @@ rdcstr DefValString(const rdcarray<rdcstr> &el)
   return ret;
 }
 
-inline SDObject *makeSDObject(const char *name, const rdcarray<rdcstr> &vals)
+inline SDObject *makeSDObject(const rdcinflexiblestr &name, const rdcarray<rdcstr> &vals)
 {
   SDObject *ret = new SDObject(name, "array"_lit);
   ret->type.basetype = SDBasic::Array;
   for(const rdcstr &s : vals)
-    ret->AddAndOwnChild(makeSDObject("$el", s));
+    ret->AddAndOwnChild(makeSDObject("$el"_lit, s));
   return ret;
 }
 
@@ -436,10 +437,10 @@ inline SDObject *makeSDObject(const char *name, const rdcarray<rdcstr> &vals)
     }                                                                                     \
                                                                                           \
     SDObject *setting = new SDObject(settingName, "setting"_lit);                         \
-    setting->AddAndOwnChild(makeSDObject("value", defaultValue));                         \
-    setting->AddAndOwnChild(makeSDObject("key", name));                                   \
-    setting->AddAndOwnChild(makeSDObject("default", defaultValue));                       \
-    setting->AddAndOwnChild(makeSDObject("description", desc.c_str()));                   \
+    setting->AddAndOwnChild(makeSDObject("value"_lit, defaultValue));                     \
+    setting->AddAndOwnChild(makeSDObject("key"_lit, name));                               \
+    setting->AddAndOwnChild(makeSDObject("default"_lit, defaultValue));                   \
+    setting->AddAndOwnChild(makeSDObject("description"_lit, desc));                       \
                                                                                           \
     obj = setting->GetChild(0);                                                           \
                                                                                           \

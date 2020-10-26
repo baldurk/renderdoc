@@ -188,7 +188,7 @@ uint32_t Serialiser<SerialiserMode::Reading>::BeginChunk(uint32_t, uint64_t)
     if(name.empty())
       name = "<Unknown Chunk>";
 
-    SDChunk *chunk = new SDChunk(name.c_str());
+    SDChunk *chunk = new SDChunk(name);
     chunk->metadata = m_ChunkMetadata;
 
     m_StructuredFile->chunks.push_back(chunk);
@@ -446,7 +446,7 @@ uint32_t Serialiser<SerialiserMode::Writing>::BeginChunk(uint32_t chunkID, uint6
     if(name.empty())
       name = "<Unknown Chunk>";
 
-    SDChunk *chunk = new SDChunk(name.c_str());
+    SDChunk *chunk = new SDChunk(name);
     chunk->metadata = m_ChunkMetadata;
 
     m_StructuredFile->chunks.push_back(chunk);
@@ -698,7 +698,7 @@ void DoSerialise(SerialiserType &ser, StructuredObjectList &el)
   {
     // we also assume that the caller serialising these objects will handle lifetime management.
     if(ser.IsReading())
-      el[c] = new SDObject("", "");
+      el[c] = new SDObject(""_lit, ""_lit);
 
     ser.Serialise("$el"_lit, *el[c]);
   }
@@ -871,6 +871,12 @@ void DoSerialise(SerialiserType &ser, SDObject *el)
 
 template <>
 rdcstr DoStringise(const rdcstr &el)
+{
+  return el;
+}
+
+template <>
+rdcstr DoStringise(const rdcinflexiblestr &el)
 {
   return el;
 }

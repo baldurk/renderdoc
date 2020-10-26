@@ -2733,7 +2733,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
         multidraw.topology = MakePrimitiveTopology(mode);
 
         // add a fake chunk for this individual indirect draw
-        SDChunk *fakeChunk = new SDChunk(multidraw.name.c_str());
+        SDChunk *fakeChunk = new SDChunk(multidraw.name);
         fakeChunk->metadata = baseChunk->metadata;
         fakeChunk->metadata.chunkID = (uint32_t)GLChunk::glIndirectSubCommand;
 
@@ -2959,7 +2959,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
         multidraw.indexByteWidth = IdxSize;
 
         // add a fake chunk for this individual indirect draw
-        SDChunk *fakeChunk = new SDChunk(multidraw.name.c_str());
+        SDChunk *fakeChunk = new SDChunk(multidraw.name);
         fakeChunk->metadata = baseChunk->metadata;
         fakeChunk->metadata.chunkID = (uint32_t)GLChunk::glIndirectSubCommand;
 
@@ -3185,7 +3185,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
         multidraw.topology = MakePrimitiveTopology(mode);
 
         // add a fake chunk for this individual indirect draw
-        SDChunk *fakeChunk = new SDChunk(multidraw.name.c_str());
+        SDChunk *fakeChunk = new SDChunk(multidraw.name);
         fakeChunk->metadata = baseChunk->metadata;
         fakeChunk->metadata.chunkID = (uint32_t)GLChunk::glIndirectSubCommand;
 
@@ -3420,7 +3420,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
         multidraw.indexByteWidth = IdxSize;
 
         // add a fake chunk for this individual indirect draw
-        SDChunk *fakeChunk = new SDChunk(multidraw.name.c_str());
+        SDChunk *fakeChunk = new SDChunk(multidraw.name);
         fakeChunk->metadata = baseChunk->metadata;
         fakeChunk->metadata.chunkID = (uint32_t)GLChunk::glIndirectSubCommand;
 

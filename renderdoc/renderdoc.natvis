@@ -1,5 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?> 
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="rdcinflexiblestr">
+    <DisplayString>{(char*)pointer,s}</DisplayString>
+    <StringView>(char*)pointer,s</StringView>
+    <Expand>
+      <Synthetic Name="[mode]" Condition="is_literal != 0">
+        <DisplayString>Compile-Time Literal</DisplayString>
+      </Synthetic>
+      <Synthetic Name="[mode]" Condition="is_literal == 0">
+        <DisplayString>Heap allocated</DisplayString>
+      </Synthetic>
+      <ArrayItems>
+        <Size>strlen((char *)pointer)</Size>
+        <ValuePointer>(char *)pointer</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
   <Type Name="rdcstr">
     <DisplayString Condition="d.fixed.flags &amp; rdcstr::FIXED_STATE">{d.fixed.str,s}</DisplayString>
     <DisplayString Condition="d.fixed.flags &amp; rdcstr::ALLOC_STATE">{d.alloc.str,s}</DisplayString>

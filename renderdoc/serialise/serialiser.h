@@ -1204,6 +1204,22 @@ public:
     }
   }
 
+  void SerialiseValue(SDBasic type, size_t byteSize, rdcinflexiblestr &el)
+  {
+    if(IsReading())
+    {
+      rdcstr str;
+      SerialiseValue(type, byteSize, str);
+      el = str;
+    }
+    else
+    {
+      rdcstr str;
+      str = el;
+      SerialiseValue(type, byteSize, str);
+    }
+  }
+
   void SerialiseValue(SDBasic type, size_t byteSize, char *&el)
   {
     int32_t len = 0;
@@ -1482,6 +1498,17 @@ inline rdcliteral TypeName<rdcstr>()
 }
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, rdcstr &el)
+{
+  ser.SerialiseValue(SDBasic::String, 0, el);
+}
+
+template <>
+inline rdcliteral TypeName<rdcinflexiblestr>()
+{
+  return "string"_lit;
+}
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, rdcinflexiblestr &el)
 {
   ser.SerialiseValue(SDBasic::String, 0, el);
 }

@@ -271,7 +271,7 @@ void PersistantConfig::applyValues(const QVariantMap &values)
         debug->ReserveChildren(searchPaths.size());
 
         for(int i = 0; i < searchPaths.size(); i++)
-          debug->AddAndOwnChild(makeSDString("$el", searchPaths[i]));
+          debug->AddAndOwnChild(makeSDString("$el"_lit, searchPaths[i]));
       }
 
       if(settings.contains(lit("d3d12ShaderDebugging")))

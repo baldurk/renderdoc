@@ -33,6 +33,8 @@
 void RENDERDOC_OutOfMemory(uint64_t sz);
 #endif
 
+class rdcinflexiblestr;
+
 // special type for storing literals. This allows functions to force callers to pass them literals
 class rdcliteral
 {
@@ -41,6 +43,9 @@ class rdcliteral
 
   // make the literal operator a friend so it can construct fixed strings. No-one else can.
   friend rdcliteral operator"" _lit(const char *str, size_t len);
+
+  // similarly friend inflexible strings to allow them to decompose to a literal
+  friend class rdcinflexiblestr;
 
   rdcliteral(const char *s, size_t l) : str(s), len(l) {}
   rdcliteral() = delete;
@@ -128,6 +133,9 @@ private:
   bool is_alloc() const { return !!(d.fixed.flags & ALLOC_STATE); }
   bool is_fixed() const { return !!(d.fixed.flags & FIXED_STATE); }
   bool is_array() const { return !is_alloc() && !is_fixed(); }
+  // allow inflexible string to introspect to see if we're a literal
+  friend class rdcinflexiblestr;
+
   /////////////////////////////////////////////////////////////////
   // memory management, in a dll safe way
 
@@ -938,3 +946,189 @@ inline rdcstr operator+(const QChar &left, const rdcstr &right)
   return rdcstr(left) += right;
 }
 #endif
+
+// this class generally should not be used directly. You almost always want rdcstr (or rarely
+// rdcliteral) instead. This class is used for structured data where the vast majority of the time
+// it stores a literal and is only accessed for the string contents, but it has to allow for
+// modification just in case the structured data is dynamically generated.
+// It is optimised for storage space and uses a single tagged pointer on x64 - if the tag is set,
+// the pointer is to a null-terminated literal, otherwise it is to an allocated null-terminated
+// string. There are no built-in modification functions but it can be assigned from an rdcstr and
+// converted to an rdcstr - whenever it's assigned, the old storage is deallocated and new storage
+// is allocated so it is highly inefficient if the string is being modified.
+class rdcinflexiblestr
+{
+  static char *allocate(size_t count)
+  {
+    char *ret = NULL;
+#ifdef RENDERDOC_EXPORTS
+    ret = (char *)malloc(count);
+    if(ret == NULL)
+      RENDERDOC_OutOfMemory(count);
+#else
+    ret = (char *)RENDERDOC_AllocArrayMem(count);
+#endif
+    return ret;
+  }
+  static void deallocate(char *p)
+  {
+#ifdef RENDERDOC_EXPORTS
+    free((void *)p);
+#else
+    RENDERDOC_FreeArrayMem((void *)p);
+#endif
+  }
+
+// we use tagged pointers on x86-64 to minimise storage. On other architecture this isn't safe
+// so we have to keep it separate. This is still a storage win over rdcstr
+
+#if defined(__x86_64__) || defined(_M_X64)
+  // use a signed pointer to sign-extend for canonical form
+  intptr_t pointer : 63;
+  intptr_t is_literal : 1;
+#else
+  intptr_t pointer;
+  intptr_t is_literal;
+#endif
+
+public:
+  rdcinflexiblestr()
+  {
+    pointer = (intptr_t)(void *)"";
+    is_literal |= 0x1;
+  }
+  ~rdcinflexiblestr()
+  {
+    if(is_literal == 0)
+      deallocate((char *)pointer);
+    pointer = 0;
+    is_literal = 0;
+  }
+  rdcinflexiblestr(rdcinflexiblestr &&in)
+  {
+    pointer = in.pointer;
+    is_literal = in.is_literal;
+    in.pointer = 0;
+    in.is_literal = 0;
+  }
+  rdcinflexiblestr &operator=(rdcinflexiblestr &&in)
+  {
+    if(is_literal == 0)
+      deallocate((char *)pointer);
+
+    pointer = in.pointer;
+    is_literal = in.is_literal;
+    in.pointer = 0;
+    in.is_literal = 0;
+
+    return *this;
+  }
+  rdcinflexiblestr(const rdcinflexiblestr &in)
+  {
+    pointer = 0;
+    is_literal = 0;
+    *this = in;
+  }
+
+  rdcinflexiblestr(const rdcliteral &lit)
+  {
+    pointer = (intptr_t)lit.c_str();
+    is_literal |= 0x1;
+  }
+  rdcinflexiblestr &operator=(const rdcliteral &in)
+  {
+    if(is_literal == 0)
+      deallocate((char *)pointer);
+    pointer = (intptr_t)in.c_str();
+    is_literal |= 0x1;
+    return *this;
+  }
+  rdcinflexiblestr(const rdcstr &in)
+  {
+    pointer = 0;
+    is_literal = 0;
+    *this = in;
+  }
+  rdcinflexiblestr &operator=(const rdcstr &in)
+  {
+    if(is_literal == 0)
+      deallocate((char *)pointer);
+
+    // unbox a literal from the rdcstr if it has one
+    if(in.is_fixed())
+    {
+      pointer = (intptr_t)in.c_str();
+      is_literal |= 0x1;
+    }
+    else
+    {
+      // always allocate for rdcstr, don't try to unbox a literal if one exists
+      size_t size = in.size() + 1;
+      void *dst = allocate(size);
+      memcpy(dst, in.c_str(), size);
+      pointer = (intptr_t)dst;
+      is_literal = 0;
+    }
+    return *this;
+  }
+  rdcinflexiblestr &operator=(const rdcinflexiblestr &in)
+  {
+    if(is_literal == 0)
+      deallocate((char *)pointer);
+
+    if(in.is_literal != 0)
+    {
+      pointer = in.pointer;
+      is_literal = in.is_literal;
+    }
+    else
+    {
+      size_t size = in.size() + 1;
+      void *dst = allocate(size);
+      memcpy(dst, in.c_str(), size);
+      pointer = (intptr_t)dst;
+      is_literal = 0;
+    }
+
+    return *this;
+  }
+
+  bool operator==(const rdcstr &o) const
+  {
+    if(o.c_str()[0] == 0)
+      return c_str()[0] == 0;
+    return !strcmp(o.c_str(), c_str());
+  }
+  bool operator==(const rdcinflexiblestr &o) const
+  {
+    if(o.c_str()[0] == 0)
+      return c_str()[0] == 0;
+    return !strcmp(o.c_str(), c_str());
+  }
+  bool operator==(const rdcliteral &o) const
+  {
+    if(o.c_str()[0] == 0)
+      return c_str()[0] == 0;
+    return !strcmp(o.c_str(), c_str());
+  }
+
+  bool operator!=(const rdcinflexiblestr &o) const { return !(*this == o); }
+  bool operator!=(const rdcstr &o) const { return !(*this == o); }
+  bool operator<(const rdcinflexiblestr &o) const { return strcmp(c_str(), o.c_str()) < 0; }
+  bool operator>(const rdcinflexiblestr &o) const { return strcmp(c_str(), o.c_str()) > 0; }
+  bool empty() const { return c_str()[0] == 0; }
+  const char *c_str() const { return (const char *)pointer; }
+  size_t size() const { return strlen(c_str()); }
+  operator rdcstr() const
+  {
+    if(is_literal == 0)
+      return rdcstr(c_str());
+    else
+      return rdcstr(rdcliteral(c_str(), size()));
+  }
+
+#if defined(RENDERDOC_QT_COMPAT)
+  operator QString() const { return QString::fromUtf8(c_str(), (int32_t)size()); }
+  operator QVariant() const { return QVariant(QString::fromUtf8(c_str(), (int32_t)size())); }
+#endif
+};

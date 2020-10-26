@@ -166,13 +166,19 @@ struct SDChunk;
 DOCUMENT("Details the name and properties of a structured type");
 struct SDType
 {
-  SDType(const rdcstr &n)
+  SDType(const rdcinflexiblestr &n)
       : name(n), basetype(SDBasic::Struct), flags(SDTypeFlags::NoFlags), byteSize(0)
   {
   }
+#if !defined(SWIG)
+  SDType(rdcinflexiblestr &&n)
+      : name(std::move(n)), basetype(SDBasic::Struct), flags(SDTypeFlags::NoFlags), byteSize(0)
+  {
+  }
+#endif
 
   DOCUMENT("The name of this type.");
-  rdcstr name;
+  rdcinflexiblestr name;
 
   DOCUMENT("The :class:`SDBasic` category that this type belongs to.");
   SDBasic basetype;
@@ -355,7 +361,7 @@ struct SDObjectData
   SDObjectPODData basic;
 
   DOCUMENT("The string contents of the object.");
-  rdcstr str;
+  rdcinflexiblestr str;
 
   SDObjectData(const SDObjectData &) = delete;
   SDObjectData &operator=(const SDObjectData &other) = delete;
@@ -468,12 +474,18 @@ struct SDObject
   void *operator new[](size_t count) = delete;
   void operator delete[](void *p) = delete;
 
-  SDObject(const rdcstr &n, const rdcstr &t) : type(t)
+  SDObject(const rdcinflexiblestr &n, const rdcinflexiblestr &t) : name(n), type(t)
   {
-    name = n;
     data.basic.u = 0;
     m_Lazy = NULL;
   }
+#if !defined(SWIG)
+  SDObject(rdcinflexiblestr &&n, rdcinflexiblestr &&t) : name(std::move(n)), type(std::move(t))
+  {
+    data.basic.u = 0;
+    m_Lazy = NULL;
+  }
+#endif
 
   ~SDObject()
   {
@@ -506,7 +518,7 @@ struct SDObject
   }
 
   DOCUMENT("The name of this object.");
-  rdcstr name;
+  rdcinflexiblestr name;
 
   DOCUMENT("The :class:`SDType` of this object.");
   SDType type;
@@ -715,7 +727,7 @@ returned.
   inline double AsDouble() const { return data.basic.d; }
   inline float AsFloat() const { return (float)data.basic.d; }
   inline char AsChar() const { return data.basic.c; }
-  inline const rdcstr &AsString() const { return data.str; }
+  inline const rdcinflexiblestr &AsString() const { return data.str; }
   inline uint64_t AsUInt64() const { return (uint64_t)data.basic.u; }
   inline int64_t AsInt64() const { return (int64_t)data.basic.i; }
   inline uint32_t AsUInt32() const { return (uint32_t)data.basic.u; }
@@ -901,7 +913,7 @@ private:
 DECLARE_REFLECTION_STRUCT(SDObject);
 
 #if defined(RENDERDOC_QT_COMPAT)
-inline SDObject *makeSDObject(const char *name, QVariant val)
+inline SDObject *makeSDObject(const rdcinflexiblestr &name, QVariant val)
 {
   SDObject *ret = new SDObject(name, "QVariant"_lit);
   ret->type.basetype = SDBasic::Null;
@@ -988,7 +1000,7 @@ inline SDObject *makeSDObject(const char *name, QVariant val)
       ret->type.basetype = SDBasic::Array;
       ret->ReserveChildren(list.size());
       for(int i = 0; i < list.size(); i++)
-        ret->AddAndOwnChild(makeSDObject("[]", list.at(i)));
+        ret->AddAndOwnChild(makeSDObject("[]"_lit, list.at(i)));
       ret->type.byteSize = list.size();
       break;
     }
@@ -999,7 +1011,7 @@ inline SDObject *makeSDObject(const char *name, QVariant val)
       ret->type.basetype = SDBasic::Struct;
       ret->ReserveChildren(map.size());
       for(const QString &str : map.keys())
-        ret->AddAndOwnChild(makeSDObject(str.toUtf8().data(), map[str]));
+        ret->AddAndOwnChild(makeSDObject(rdcstr(str.toUtf8().data()), map[str]));
       ret->type.byteSize = map.size();
       break;
     }
@@ -1011,7 +1023,7 @@ inline SDObject *makeSDObject(const char *name, QVariant val)
 #endif
 
 DOCUMENT("Make a structured object out of a signed integer");
-inline SDObject *makeSDInt64(const char *name, int64_t val)
+inline SDObject *makeSDInt64(const rdcinflexiblestr &name, int64_t val)
 {
   SDObject *ret = new SDObject(name, "int64_t"_lit);
   ret->type.basetype = SDBasic::SignedInteger;
@@ -1021,7 +1033,7 @@ inline SDObject *makeSDInt64(const char *name, int64_t val)
 }
 
 DOCUMENT("Make a structured object out of an unsigned integer");
-inline SDObject *makeSDUInt64(const char *name, uint64_t val)
+inline SDObject *makeSDUInt64(const rdcinflexiblestr &name, uint64_t val)
 {
   SDObject *ret = new SDObject(name, "uint64_t"_lit);
   ret->type.basetype = SDBasic::UnsignedInteger;
@@ -1031,7 +1043,7 @@ inline SDObject *makeSDUInt64(const char *name, uint64_t val)
 }
 
 DOCUMENT("Make a structured object out of a integer, stored as signed 32-bits");
-inline SDObject *makeSDInt32(const char *name, int32_t val)
+inline SDObject *makeSDInt32(const rdcinflexiblestr &name, int32_t val)
 {
   SDObject *ret = new SDObject(name, "int32_t"_lit);
   ret->type.basetype = SDBasic::SignedInteger;
@@ -1041,7 +1053,7 @@ inline SDObject *makeSDInt32(const char *name, int32_t val)
 }
 
 DOCUMENT("Make a structured object out of a integer, stored as unsigned 32-bits");
-inline SDObject *makeSDUInt32(const char *name, uint32_t val)
+inline SDObject *makeSDUInt32(const rdcinflexiblestr &name, uint32_t val)
 {
   SDObject *ret = new SDObject(name, "uint32_t"_lit);
   ret->type.basetype = SDBasic::UnsignedInteger;
@@ -1051,7 +1063,7 @@ inline SDObject *makeSDUInt32(const char *name, uint32_t val)
 }
 
 DOCUMENT("Make a structured object out of a floating point value");
-inline SDObject *makeSDFloat(const char *name, float val)
+inline SDObject *makeSDFloat(const rdcinflexiblestr &name, float val)
 {
   SDObject *ret = new SDObject(name, "float"_lit);
   ret->type.basetype = SDBasic::Float;
@@ -1061,7 +1073,7 @@ inline SDObject *makeSDFloat(const char *name, float val)
 }
 
 DOCUMENT("Make a structured object out of a boolean value");
-inline SDObject *makeSDBool(const char *name, bool val)
+inline SDObject *makeSDBool(const rdcinflexiblestr &name, bool val)
 {
   SDObject *ret = new SDObject(name, "bool"_lit);
   ret->type.basetype = SDBasic::Boolean;
@@ -1071,7 +1083,7 @@ inline SDObject *makeSDBool(const char *name, bool val)
 }
 
 DOCUMENT("Make a structured object out of a string");
-inline SDObject *makeSDString(const char *name, const rdcstr &val)
+inline SDObject *makeSDString(const rdcinflexiblestr &name, const rdcstr &val)
 {
   SDObject *ret = new SDObject(name, "string"_lit);
   ret->type.basetype = SDBasic::String;
@@ -1081,7 +1093,7 @@ inline SDObject *makeSDString(const char *name, const rdcstr &val)
 }
 
 DOCUMENT("Make a structured object out of a ResourceId");
-inline SDObject *makeSDResourceId(const char *name, ResourceId val)
+inline SDObject *makeSDResourceId(const rdcinflexiblestr &name, ResourceId val)
 {
   SDObject *ret = new SDObject(name, "ResourceId"_lit);
   ret->type.basetype = SDBasic::Resource;
@@ -1091,7 +1103,7 @@ inline SDObject *makeSDResourceId(const char *name, ResourceId val)
 }
 
 DOCUMENT("Make a structured object out of an enumeration value");
-inline SDObject *makeSDEnum(const char *name, uint32_t val)
+inline SDObject *makeSDEnum(const rdcinflexiblestr &name, uint32_t val)
 {
   SDObject *ret = new SDObject(name, "enum"_lit);
   ret->type.basetype = SDBasic::Enum;
@@ -1101,7 +1113,7 @@ inline SDObject *makeSDEnum(const char *name, uint32_t val)
 }
 
 DOCUMENT("Make an array-type structured object");
-inline SDObject *makeSDArray(const char *name)
+inline SDObject *makeSDArray(const rdcinflexiblestr &name)
 {
   SDObject *ret = new SDObject(name, "array"_lit);
   ret->type.basetype = SDBasic::Array;
@@ -1109,7 +1121,7 @@ inline SDObject *makeSDArray(const char *name)
 }
 
 DOCUMENT("Make an struct-type structured object");
-inline SDObject *makeSDStruct(const char *name, const char *structtype)
+inline SDObject *makeSDStruct(const rdcinflexiblestr &name, const rdcinflexiblestr &structtype)
 {
   SDObject *ret = new SDObject(name, structtype);
   ret->type.basetype = SDBasic::Struct;
@@ -1120,16 +1132,16 @@ inline SDObject *makeSDStruct(const char *name, const char *structtype)
 // concept of different width types like 32-bit vs 64-bit ints
 #if !defined(SWIG)
 
-#define SDOBJECT_MAKER(basetype, makeSDFunc)                                                       \
-  inline SDObject *makeSDObject(const char *name, basetype value, const char *customString = NULL, \
-                                const char *customTypeName = NULL)                                 \
-  {                                                                                                \
-    SDObject *ptr = makeSDFunc(name, value);                                                       \
-    if(customString)                                                                               \
-      ptr->SetCustomString(customString);                                                          \
-    if(customTypeName)                                                                             \
-      ptr->SetTypeName(customTypeName);                                                            \
-    return ptr;                                                                                    \
+#define SDOBJECT_MAKER(basetype, makeSDFunc)                                                        \
+  inline SDObject *makeSDObject(const rdcinflexiblestr &name, basetype value,                       \
+                                const char *customString = NULL, const char *customTypeName = NULL) \
+  {                                                                                                 \
+    SDObject *ptr = makeSDFunc(name, value);                                                        \
+    if(customString)                                                                                \
+      ptr->SetCustomString(customString);                                                           \
+    if(customTypeName)                                                                              \
+      ptr->SetTypeName(customTypeName);                                                             \
+    return ptr;                                                                                     \
   }
 
 SDOBJECT_MAKER(int64_t, makeSDInt64);
@@ -1174,7 +1186,10 @@ struct SDChunk : public SDObject
   void *operator new[](size_t count) = delete;
   void operator delete[](void *p) = delete;
 
-  SDChunk(const char *name) : SDObject(name, "Chunk"_lit) { type.basetype = SDBasic::Chunk; }
+  SDChunk(const rdcinflexiblestr &name) : SDObject(name, "Chunk"_lit)
+  {
+    type.basetype = SDBasic::Chunk;
+  }
   DOCUMENT("The :class:`SDChunkMetaData` with the metadata for this chunk.");
   SDChunkMetaData metadata;
 

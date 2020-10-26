@@ -123,7 +123,11 @@ ResourceInspector::ResourceInspector(ICaptureContext &ctx, QWidget *parent)
 
   ui->resourceList->setModel(m_FilterModel);
 
-  ui->initChunks->setColumns({lit("Parameter"), tr("Value")});
+  m_ChunksModel = new StructuredDataItemModel(this);
+  ui->initChunks->setModel(m_ChunksModel);
+  m_ChunksModel->setColumns({tr("Parameter"), tr("Value")},
+                            {StructuredDataItemModel::Name, StructuredDataItemModel::Value});
+
   ui->initChunks->header()->resizeSection(0, 200);
 
   ui->initChunks->setFont(Formatter::PreferredFont());
@@ -228,7 +232,6 @@ void ResourceInspector::Inspect(ResourceId id)
     ui->resetName->hide();
 
   ui->initChunks->setUpdatesEnabled(false);
-  ui->initChunks->clear();
   ui->resourceUsage->clear();
 
   const SDFile &file = m_Ctx.GetStructuredFile();

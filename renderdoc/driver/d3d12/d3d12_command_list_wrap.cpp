@@ -3623,7 +3623,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
         curEvent = &dummy;
       }
 
-      SDChunk *fakeChunk = new SDChunk("");
+      SDChunk *fakeChunk = new SDChunk(""_lit);
       fakeChunk->metadata = baseChunk->metadata;
       fakeChunk->metadata.chunkID = (uint32_t)D3D12Chunk::List_IndirectSubCommand;
 

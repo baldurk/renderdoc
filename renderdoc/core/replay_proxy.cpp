@@ -1829,7 +1829,7 @@ void ReplayProxy::Proxied_FetchStructuredFile(ParamSerialiser &paramser, ReturnS
     for(size_t c = 0; c < (size_t)chunkCount; c++)
     {
       if(retser.IsReading())
-        file->chunks[c] = new SDChunk("");
+        file->chunks[c] = new SDChunk(""_lit);
 
       ser.Serialise("chunk"_lit, *file->chunks[c]);
     }

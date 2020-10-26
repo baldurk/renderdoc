@@ -670,7 +670,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
         AddEvent();
 
         // add a fake chunk for this individual indirect draw
-        SDChunk *fakeChunk = new SDChunk("Indirect sub-command");
+        SDChunk *fakeChunk = new SDChunk("Indirect sub-command"_lit);
         fakeChunk->metadata = baseChunk->metadata;
         fakeChunk->metadata.chunkID = (uint32_t)VulkanChunk::vkCmdIndirectSubCommand;
 
@@ -738,7 +738,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
         multi.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indirect;
 
         // add a fake chunk for this individual indirect draw
-        SDChunk *fakeChunk = new SDChunk("Indirect sub-command");
+        SDChunk *fakeChunk = new SDChunk("Indirect sub-command"_lit);
         fakeChunk->metadata = baseChunk->metadata;
         fakeChunk->metadata.chunkID = (uint32_t)VulkanChunk::vkCmdIndirectSubCommand;
 
@@ -1053,7 +1053,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
         AddEvent();
 
         // add a fake chunk for this individual indirect draw
-        SDChunk *fakeChunk = new SDChunk("Indirect sub-command");
+        SDChunk *fakeChunk = new SDChunk("Indirect sub-command"_lit);
         fakeChunk->metadata = baseChunk->metadata;
         fakeChunk->metadata.chunkID = (uint32_t)VulkanChunk::vkCmdIndirectSubCommand;
 
@@ -1124,7 +1124,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
             DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indexed | DrawFlags::Indirect;
 
         // add a fake chunk for this individual indirect draw
-        SDChunk *fakeChunk = new SDChunk("Indirect sub-command");
+        SDChunk *fakeChunk = new SDChunk("Indirect sub-command"_lit);
         fakeChunk->metadata = baseChunk->metadata;
         fakeChunk->metadata.chunkID = (uint32_t)VulkanChunk::vkCmdIndirectSubCommand;
 
@@ -2947,7 +2947,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCount(SerialiserType &ser,
         multi.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indirect;
 
         // add a fake chunk for this individual indirect draw
-        SDChunk *fakeChunk = new SDChunk("Indirect sub-command");
+        SDChunk *fakeChunk = new SDChunk("Indirect sub-command"_lit);
         fakeChunk->metadata = baseChunk->metadata;
         fakeChunk->metadata.chunkID = (uint32_t)VulkanChunk::vkCmdIndirectSubCommand;
 
@@ -3310,7 +3310,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCount(
             DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indexed | DrawFlags::Indirect;
 
         // add a fake chunk for this individual indirect draw
-        SDChunk *fakeChunk = new SDChunk("Indirect sub-command");
+        SDChunk *fakeChunk = new SDChunk("Indirect sub-command"_lit);
         fakeChunk->metadata = baseChunk->metadata;
         fakeChunk->metadata.chunkID = (uint32_t)VulkanChunk::vkCmdIndirectSubCommand;
 

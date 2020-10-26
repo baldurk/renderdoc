@@ -603,7 +603,7 @@ QWidget *SettingDelegate::createEditor(QWidget *parent, const QStyleOptionViewIt
         val->ReserveChildren(items.size());
 
         for(int i = 0; i < items.size(); i++)
-          val->AddAndOwnChild(makeSDString("$el", items[i]));
+          val->AddAndOwnChild(makeSDString("$el"_lit, items[i]));
       }
 
       // we've handled the edit synchronously, don't create an edit widget

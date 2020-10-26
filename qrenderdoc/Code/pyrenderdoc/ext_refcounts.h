@@ -47,7 +47,7 @@ inline SDChunk *MakeFromArgsTuple<SDChunk>(PyObject *args)
   if(!SWIG_IsOK(res))
     SWIG_exception_fail(SWIG_ArgError(res), "invalid name used to create SDChunk, expected string");
 
-  result = new SDChunk(name.c_str());
+  result = new SDChunk(name);
 
   return result;
 fail:
@@ -77,7 +77,7 @@ inline SDObject *MakeFromArgsTuple<SDObject>(PyObject *args)
     SWIG_exception_fail(SWIG_ArgError(res),
                         "invalid type name used to create SDObject, expected string");
 
-  result = new SDObject(name.c_str(), typeName);
+  result = new SDObject(name, typeName);
 
   return result;
 fail:
