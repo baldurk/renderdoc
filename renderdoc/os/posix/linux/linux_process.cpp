@@ -25,6 +25,7 @@
 #include <elf.h>
 #include <sys/ptrace.h>
 #include <sys/types.h>
+#include <sys/uio.h>
 #include <sys/user.h>
 #include <sys/wait.h>
 #include <time.h>
@@ -190,17 +191,50 @@ static uint64_t get_nanotime()
   return ret;
 }
 
+#if defined(__arm__)
+
+// for some reason arm doesn't have the same struct name. Sigh :(
+#define user_regs_struct user_regs
+
+#define INST_PTR_REG ARM_pc
+
+#define BREAK_INST 0xe7f001f0ULL
+#define BREAK_INST_BYTES_SIZE 4
+// on ARM seemingly the instruction isn't actually considered executed, so we don't have to modify
+// the instruction pointer at all.
+#define BREAK_INST_INST_PTR_ADJUST 0
+
+#elif defined(__aarch64__)
+
+#define INST_PTR_REG pc
+
+#define BREAK_INST 0xd4200000ULL
+#define BREAK_INST_BYTES_SIZE 4
+// on ARM seemingly the instruction isn't actually considered executed, so we don't have to modify
+// the instruction pointer at all.
+#define BREAK_INST_INST_PTR_ADJUST 0
+
+#else
+
+#define BREAK_INST 0xccULL
+#define BREAK_INST_BYTES_SIZE 1
+// step back over the instruction
+#define BREAK_INST_INST_PTR_ADJUST 1
+
 #if ENABLED(RDOC_X64)
 #define INST_PTR_REG rip
 #else
 #define INST_PTR_REG eip
 #endif
 
+#endif
+
 static uint64_t get_child_ip(pid_t childPid)
 {
   user_regs_struct regs = {};
 
-  long ptraceRet = ptrace(PTRACE_GETREGS, childPid, NULL, &regs);
+  iovec regs_iovec = {&regs, sizeof(regs)};
+  long ptraceRet = ptrace(PTRACE_GETREGSET, childPid, (void *)NT_PRSTATUS, &regs_iovec);
   if(ptraceRet == 0)
     return uint64_t(regs.INST_PTR_REG);
 
@@ -278,7 +312,7 @@ bool StopChildAtMain(pid_t childPid)
   if(Linux_Debug_PtraceLogging())
     RDCLOG("Child PID %u is stopped in StopAtMainInChild()", childPid);
 
-  long ptraceRet = 0;
+  int64_t ptraceRet = 0;
 
   // continue until exec
   ptraceRet = ptrace(PTRACE_SETOPTIONS, childPid, NULL, PTRACE_O_TRACEEXEC);
@@ -437,7 +471,8 @@ bool StopChildAtMain(pid_t childPid)
     RDCLOG("Read word %llx from %p in child process %u running executable %s",
            (uint64_t)origEntryWord, entry, childPid, exepath.c_str());
 
-  uint64_t breakpointWord = (origEntryWord & 0xffffffffffffff00ULL) | 0xccULL;
+  uint64_t breakpointWord =
+      (origEntryWord & (0xffffffffffffffffULL << (BREAK_INST_BYTES_SIZE * 8))) | BREAK_INST;
   // downcast back to long, if that means truncating
   ptraceRet = ptrace(PTRACE_POKETEXT, childPid, entry, (long)breakpointWord);
   RDCASSERTEQUAL(ptraceRet, 0);
@@ -464,16 +499,17 @@ bool StopChildAtMain(pid_t childPid)
 
   user_regs_struct regs = {};
 
-  ptraceRet = ptrace(PTRACE_GETREGS, childPid, NULL, &regs);
+  iovec regs_iovec = {&regs, sizeof(regs)};
+  ptraceRet = ptrace(PTRACE_GETREGSET, childPid, (void *)NT_PRSTATUS, &regs_iovec);
   RDCASSERTEQUAL(ptraceRet, 0);
 
   if(Linux_Debug_PtraceLogging())
     RDCLOG("Process %u instruction pointer is at %llx, for entry point %p", childPid,
            (uint64_t)(regs.INST_PTR_REG), entry);
 
-  // step back past the byte we inserted the breakpoint on
-  regs.INST_PTR_REG--;
-  ptraceRet = ptrace(PTRACE_SETREGS, childPid, NULL, &regs);
+  // step back past the byte(s) we inserted the breakpoint on
+  regs.INST_PTR_REG -= BREAK_INST_INST_PTR_ADJUST;
+  ptraceRet = ptrace(PTRACE_SETREGSET, childPid, (void *)NT_PRSTATUS, &regs_iovec);
   RDCASSERTEQUAL(ptraceRet, 0);
 
   // restore the function
