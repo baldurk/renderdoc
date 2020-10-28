@@ -1328,7 +1328,10 @@ private:
   LazyGenerator MakeLazySerialiser()
   {
     ChunkLookup lookup = m_ChunkLookup;
-    return [lookup](const void *ptr) {
+    void *userData = m_pUserData;
+    bool buffers = m_ExportBuffers;
+    std::set<rdcstr> *stringDB = m_ExtStringDB;
+    return [lookup, userData, buffers, stringDB](const void *ptr) {
       T &input = *(T *)ptr;
       static StreamReader dummy(StreamReader::DummyStream);
 
@@ -1340,9 +1343,11 @@ private:
 
       Serialiser<SerialiserMode::Reading> ser(&dummy, Ownership::Nothing, ret);
 
-      ser.ConfigureStructuredExport(lookup, false, 0, 1.0);
+      ser.ConfigureStructuredExport(lookup, buffers, 0, 1.0);
       ser.SetStreamingMode(true);
       ser.SetDummy(true);
+      ser.SetUserData(userData);
+      ser.SetStringDatabase(stringDB);
 
       SerialiseDispatch<Serialiser<SerialiserMode::Reading>, T>::Do(ser, input);
 
