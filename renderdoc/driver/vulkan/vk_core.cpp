@@ -2394,6 +2394,9 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
 
       m_FrameReader = new StreamReader(reader, frameDataSize);
 
+      for(auto it = m_CreationInfo.m_Memory.begin(); it != m_CreationInfo.m_Memory.end(); ++it)
+        it->second.SimplifyBindings();
+
       ReplayStatus status = ContextReplayLog(m_State, 0, 0, false);
 
       if(status != ReplayStatus::Succeeded)
@@ -2463,9 +2466,6 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
   }
 
   FreeAllMemory(MemoryScope::IndirectReadback);
-
-  for(auto it = m_CreationInfo.m_Memory.begin(); it != m_CreationInfo.m_Memory.end(); ++it)
-    it->second.SimplifyBindings();
 
   return ReplayStatus::Succeeded;
 }

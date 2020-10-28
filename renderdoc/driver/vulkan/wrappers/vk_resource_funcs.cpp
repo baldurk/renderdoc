@@ -765,7 +765,7 @@ bool WrappedVulkan::Serialise_vkUnmapMemory(SerialiserType &ser, VkDevice device
 
     // iterate the bindings that this map region overlaps, if we overlap with any tiled memory we
     // need to take the slow path
-    while(it->finish() < finish)
+    while(it != bindings.end() && it->start() < finish)
     {
       if(it->value() == VulkanCreationInfo::Memory::Tiled)
       {
@@ -806,7 +806,7 @@ bool WrappedVulkan::Serialise_vkUnmapMemory(SerialiserType &ser, VkDevice device
 
     // iterate the bindings that this map region overlaps, and only memcpy the bits that we overlap
     // which are linear
-    while(it->finish() < finish)
+    while(it != bindings.end() && it->start() < finish)
     {
       if(it->value() != VulkanCreationInfo::Memory::Tiled)
       {
@@ -968,7 +968,7 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
 
     // iterate the bindings that this map region overlaps, if we overlap with any tiled memory we
     // need to take the slow path
-    while(it->finish() < finish)
+    while(it != bindings.end() && it->start() < finish)
     {
       if(it->value() == VulkanCreationInfo::Memory::Tiled)
       {
@@ -1009,7 +1009,7 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
 
     // iterate the bindings that this map region overlaps, and only memcpy the bits that we overlap
     // which are linear
-    while(it->finish() < finish)
+    while(it != bindings.end() && it->start() < finish)
     {
       if(it->value() != VulkanCreationInfo::Memory::Tiled)
       {
