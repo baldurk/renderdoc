@@ -1268,7 +1268,7 @@ void CombineUsageEvents(ICaptureContext &ctx, const rdcarray<EventUsage> &usage,
   uint32_t end = 0;
   ResourceUsage us = ResourceUsage::IndexBuffer;
 
-  for(const EventUsage u : usage)
+  for(const EventUsage &u : usage)
   {
     if(start == 0)
     {
