@@ -1671,12 +1671,12 @@ rdcpair<ReplayStatus, IReplayController *> RemoteServer::OpenCapture(
 
 void RemoteServer::CloseCapture(IReplayController *rend)
 {
+  rend->Shutdown();
+
   {
     WRITE_DATA_SCOPE();
     SCOPED_SERIALISE_CHUNK(eRemoteServer_CloseLog);
   }
-
-  rend->Shutdown();
 }
 
 rdcstr RemoteServer::DriverName()
