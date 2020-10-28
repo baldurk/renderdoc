@@ -995,6 +995,7 @@ public:
   rdcinflexiblestr()
   {
     pointer = (intptr_t)(void *)"";
+    is_literal = 0;
     is_literal |= 0x1;
   }
   ~rdcinflexiblestr()
