@@ -86,6 +86,7 @@ class Serialiser
 public:
   static constexpr bool IsReading() { return sertype != SerialiserMode::Writing; }
   static constexpr bool IsWriting() { return sertype == SerialiserMode::Writing; }
+  bool IsStructurising() const { return m_Structuriser; }
   bool ExportStructure() const
   {
     // in debug builds, allow structured export during write for debugging. In release, only allow
@@ -116,7 +117,6 @@ public:
 
   bool IsErrored() { return IsReading() ? m_Read->IsErrored() : m_Write->IsErrored(); }
   void SetErrored() { IsReading() ? m_Read->SetErrored() : m_Write->SetErrored(); }
-  bool IsDummy() { return m_Dummy; }
   StreamWriter *GetWriter() { return m_Write; }
   StreamReader *GetReader() { return m_Read; }
   uint32_t GetChunkMetadataRecording() { return m_ChunkFlags; }
@@ -300,7 +300,7 @@ public:
 // ScopedDeseralise* classes. We can verify with e.g. valgrind that there are no leaks, so to keep
 // the analysis non-spammy we just don't allocate for coverity builds
 #if !defined(__COVERITY__)
-        if(!m_Dummy && (flags & SerialiserFlags::AllocateMemory))
+        if(!m_Structuriser && (flags & SerialiserFlags::AllocateMemory))
         {
           if(byteSize > 0)
             el = AllocAlignedBuffer(byteSize);
@@ -621,7 +621,7 @@ public:
 // ScopedDeseralise* classes. We can verify with e.g. valgrind that there are no leaks, so to keep
 // the analysis non-spammy we just don't allocate for coverity builds
 #if !defined(__COVERITY__)
-      if(IsReading() && !m_Dummy && (flags & SerialiserFlags::AllocateMemory))
+      if(IsReading() && !m_Structuriser && (flags & SerialiserFlags::AllocateMemory))
       {
         if(arrayCount > 0)
           el = new T[(size_t)arrayCount];
@@ -668,7 +668,7 @@ public:
 // ScopedDeseralise* classes. We can verify with e.g. valgrind that there are no leaks, so to keep
 // the analysis non-spammy we just don't allocate for coverity builds
 #if !defined(__COVERITY__)
-      if(IsReading() && !m_Dummy && (flags & SerialiserFlags::AllocateMemory))
+      if(IsReading() && !m_Structuriser && (flags & SerialiserFlags::AllocateMemory))
       {
         if(arrayCount > 0)
           el = new T[(size_t)arrayCount];
@@ -1273,7 +1273,7 @@ protected:
   template <SerialiserMode othertype>
   friend class Serialiser;
 
-  void SetDummy(bool dummy) { m_Dummy = dummy; }
+  void SetStructuriser(bool s) { m_Structuriser = s; }
 private:
   static const uint64_t ChunkAlignment = 64;
   template <class SerialiserMode, typename T, bool isEnum = std::is_enum<T>::value>
@@ -1345,7 +1345,7 @@ private:
 
       ser.ConfigureStructuredExport(lookup, buffers, 0, 1.0);
       ser.SetStreamingMode(true);
-      ser.SetDummy(true);
+      ser.SetStructuriser(true);
       ser.SetUserData(userData);
       ser.SetStringDatabase(stringDB);
 
@@ -1368,7 +1368,7 @@ private:
   // See SetStreamingMode
   bool m_DataStreaming = false;
   bool m_DrawChunk = false;
-  bool m_Dummy = false;
+  bool m_Structuriser = false;
 
   uint64_t m_LastChunkOffset = 0;
   uint64_t m_ChunkFixup = 0;
@@ -1437,7 +1437,7 @@ public:
   {
     ConfigureStructuredExport(lookup, false, 0, 1.0);
     SetStreamingMode(true);
-    SetDummy(true);
+    SetStructuriser(true);
   }
 };
 #endif

@@ -237,6 +237,8 @@ void DoSerialiseViaResourceId(SerialiserType &ser, type &el)
 
   if(ser.IsWriting() && rm)
     id = GetResID(el);
+  if(ser.IsStructurising() && rm)
+    id = rm->GetOriginalID(GetResID(el));
 
   DoSerialise(ser, id);
 
@@ -1297,7 +1299,7 @@ static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const voi
   // this is the parent sType, serialised here for convenience
   ser.Serialise("sType"_lit, sType);
 
-  if(ser.IsReading())
+  if(ser.IsReading() && !ser.IsStructurising())
   {
     // default to a NULL pNext
     pNext = NULL;
@@ -4191,7 +4193,7 @@ void DoSerialise(SerialiserType &ser, ImageState &el)
   SERIALISE_ELEMENT_LOCAL(imageInfo, el.GetImageInfo());
 
   rdcarray<ImageSubresourceStateForRange> subresourceStates;
-  if(ser.IsWriting())
+  if(ser.IsWriting() || ser.IsStructurising())
   {
     el.subresourceStates.ToArray(subresourceStates);
   }
@@ -4254,7 +4256,7 @@ void DoSerialise(SerialiserType &ser, VkDescriptorUpdateTemplateEntry &el)
   {
     uint64_t offset = 0;
     uint64_t stride = 0;
-    if(ser.IsWriting())
+    if(ser.IsWriting() || ser.IsStructurising())
     {
       offset = el.offset;
       stride = el.stride;
@@ -9279,7 +9281,7 @@ void DoSerialise(SerialiserType &ser, VkImportMemoryWin32HandleInfoKHR &el)
   {
     rdcstr name;
 
-    if(ser.IsWriting())
+    if(ser.IsWriting() || ser.IsStructurising())
       name = el.name ? StringFormat::Wide2UTF8(el.name) : "";
 
     ser.Serialise("name"_lit, name);
@@ -9317,7 +9319,7 @@ void DoSerialise(SerialiserType &ser, VkExportMemoryWin32HandleInfoKHR &el)
   {
     rdcstr name;
 
-    if(ser.IsWriting())
+    if(ser.IsWriting() || ser.IsStructurising())
       name = el.name ? StringFormat::Wide2UTF8(el.name) : "";
 
     ser.Serialise("name"_lit, name);
@@ -9386,7 +9388,7 @@ void DoSerialise(SerialiserType &ser, VkExportFenceWin32HandleInfoKHR &el)
   {
     rdcstr name;
 
-    if(ser.IsWriting())
+    if(ser.IsWriting() || ser.IsStructurising())
       name = el.name ? StringFormat::Wide2UTF8(el.name) : "";
 
     ser.Serialise("name"_lit, name);
@@ -9425,7 +9427,7 @@ void DoSerialise(SerialiserType &ser, VkImportFenceWin32HandleInfoKHR &el)
   {
     rdcstr name;
 
-    if(ser.IsWriting())
+    if(ser.IsWriting() || ser.IsStructurising())
       name = el.name ? StringFormat::Wide2UTF8(el.name) : "";
 
     ser.Serialise("name"_lit, name);
@@ -9479,7 +9481,7 @@ void DoSerialise(SerialiserType &ser, VkExportSemaphoreWin32HandleInfoKHR &el)
   {
     rdcstr name;
 
-    if(ser.IsWriting())
+    if(ser.IsWriting() || ser.IsStructurising())
       name = el.name ? StringFormat::Wide2UTF8(el.name) : "";
 
     ser.Serialise("name"_lit, name);
@@ -9518,7 +9520,7 @@ void DoSerialise(SerialiserType &ser, VkImportSemaphoreWin32HandleInfoKHR &el)
   {
     rdcstr name;
 
-    if(ser.IsWriting())
+    if(ser.IsWriting() || ser.IsStructurising())
       name = el.name ? StringFormat::Wide2UTF8(el.name) : "";
 
     ser.Serialise("name"_lit, name);
