@@ -1000,7 +1000,7 @@ public:
   ~rdcinflexiblestr()
   {
     if(is_literal == 0)
-      deallocate((char *)pointer);
+      deallocate((char *)(uintptr_t)pointer);
     pointer = 0;
     is_literal = 0;
   }
@@ -1014,7 +1014,7 @@ public:
   rdcinflexiblestr &operator=(rdcinflexiblestr &&in)
   {
     if(is_literal == 0)
-      deallocate((char *)pointer);
+      deallocate((char *)(uintptr_t)pointer);
 
     pointer = in.pointer;
     is_literal = in.is_literal;
@@ -1038,7 +1038,7 @@ public:
   rdcinflexiblestr &operator=(const rdcliteral &in)
   {
     if(is_literal == 0)
-      deallocate((char *)pointer);
+      deallocate((char *)(uintptr_t)pointer);
     pointer = (intptr_t)in.c_str();
     is_literal |= 0x1;
     return *this;
@@ -1052,7 +1052,7 @@ public:
   rdcinflexiblestr &operator=(const rdcstr &in)
   {
     if(is_literal == 0)
-      deallocate((char *)pointer);
+      deallocate((char *)(uintptr_t)pointer);
 
     // unbox a literal from the rdcstr if it has one
     if(in.is_fixed())
@@ -1074,7 +1074,7 @@ public:
   rdcinflexiblestr &operator=(const rdcinflexiblestr &in)
   {
     if(is_literal == 0)
-      deallocate((char *)pointer);
+      deallocate((char *)(uintptr_t)pointer);
 
     if(in.is_literal != 0)
     {
@@ -1117,7 +1117,7 @@ public:
   bool operator<(const rdcinflexiblestr &o) const { return strcmp(c_str(), o.c_str()) < 0; }
   bool operator>(const rdcinflexiblestr &o) const { return strcmp(c_str(), o.c_str()) > 0; }
   bool empty() const { return c_str()[0] == 0; }
-  const char *c_str() const { return (const char *)pointer; }
+  const char *c_str() const { return (const char *)(uintptr_t)pointer; }
   size_t size() const { return strlen(c_str()); }
   operator rdcstr() const
   {

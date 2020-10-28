@@ -418,7 +418,7 @@ struct SDObject
   public:
     using iterator_category = std::bidirectional_iterator_tag;
     using value_type = MaybeConstSDObject *;
-    using difference_type = ptrdiff_t;
+    using difference_type = intptr_t;
     using pointer = value_type *;
     using reference = value_type &;
 
@@ -726,9 +726,10 @@ returned.
     m_Lazy = new(lazyAlloc) LazyArrayData;
     m_Lazy->generator = generator;
     m_Lazy->elemSize = sizeof(T);
-    m_Lazy->data = (byte *)alloc(sizeof(T) * arrayCount);
-    memcpy(m_Lazy->data, arrayData, sizeof(T) * arrayCount);
-    data.children.resize(arrayCount);
+    size_t sz = size_t(sizeof(T) * arrayCount);
+    m_Lazy->data = (byte *)alloc(sz);
+    memcpy(m_Lazy->data, arrayData, sz);
+    data.children.resize((size_t)arrayCount);
   }
 #endif
 
