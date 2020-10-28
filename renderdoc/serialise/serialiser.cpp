@@ -715,6 +715,11 @@ void DoSerialise(SerialiserType &ser, SDObjectData &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, SDObject &el)
 {
+  if(ser.IsWriting())
+  {
+    el.PopulateAllChildren();
+  }
+
   SERIALISE_MEMBER(name);
   SERIALISE_MEMBER(type);
   SERIALISE_MEMBER(data);
