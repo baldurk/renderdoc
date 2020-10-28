@@ -273,7 +273,8 @@ public:
   {
     return rdcarray<PixelModification>();
   }
-  ShaderDebugTrace *DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid, uint32_t idx)
+  ShaderDebugTrace *DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid, uint32_t idx,
+                                uint32_t view)
   {
     return new ShaderDebugTrace();
   }

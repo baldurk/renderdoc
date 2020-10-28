@@ -185,7 +185,7 @@ public:
                                   float minval, float maxval, bool channels[4]);
   rdcarray<PixelModification> PixelHistory(ResourceId target, uint32_t x, uint32_t y,
                                            const Subresource &sub, CompType typeCast);
-  ShaderDebugTrace *DebugVertex(uint32_t vertid, uint32_t instid, uint32_t idx);
+  ShaderDebugTrace *DebugVertex(uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t view);
   ShaderDebugTrace *DebugPixel(uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive);
   ShaderDebugTrace *DebugThread(const uint32_t groupid[3], const uint32_t threadid[3]);
   rdcarray<ShaderDebugState> ContinueDebug(ShaderDebugger *debugger);

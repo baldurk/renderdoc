@@ -4184,12 +4184,13 @@ void BufferViewer::debugVertex()
       m_CurView->model()->data(m_CurView->model()->index(idx.row(), 0), Qt::DisplayRole).toUInt();
   uint32_t index =
       m_CurView->model()->data(m_CurView->model()->index(idx.row(), 1), Qt::DisplayRole).toUInt();
+  uint32_t view = m_Config.curView;
 
   bool done = false;
   ShaderDebugTrace *trace = NULL;
 
-  m_Ctx.Replay().AsyncInvoke([this, &done, &trace, vertid, index](IReplayController *r) {
-    trace = r->DebugVertex(vertid, m_Config.curInstance, index);
+  m_Ctx.Replay().AsyncInvoke([this, &done, &trace, vertid, index, view](IReplayController *r) {
+    trace = r->DebugVertex(vertid, m_Config.curInstance, index, view);
 
     if(trace->debugger == NULL)
     {

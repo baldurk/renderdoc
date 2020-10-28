@@ -3435,7 +3435,7 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
 }
 
 ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
-                                            uint32_t idx)
+                                            uint32_t idx, uint32_t view)
 {
   if(!GetAPIProperties().shaderDebugging)
   {
@@ -3447,7 +3447,7 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
   VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
 
   rdcstr regionName =
-      StringFormat::Fmt("DebugVertex @ %u of (%u,%u,%u)", eventId, vertid, instid, idx);
+      StringFormat::Fmt("DebugVertex @ %u of (%u,%u,%u,%u)", eventId, vertid, instid, idx, view);
 
   VkMarkerRegion region(regionName);
 
@@ -3491,6 +3491,13 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
   VulkanAPIWrapper *apiWrapper =
       new VulkanAPIWrapper(m_pDriver, c, VK_SHADER_STAGE_VERTEX_BIT, eventId);
 
+  // clamp the view index to the number of multiviews, just to be sure
+  size_t numViews = c.m_RenderPass[state.renderPass].subpasses[state.subpass].multiviews.size();
+  if(numViews > 1)
+    view = RDCMIN((uint32_t)numViews - 1, view);
+  else
+    view = 0;
+
   std::map<ShaderBuiltin, ShaderVariable> &builtins = apiWrapper->builtin_inputs;
   builtins[ShaderBuiltin::BaseInstance] = ShaderVariable(rdcstr(), draw->instanceOffset, 0U, 0U, 0U);
   builtins[ShaderBuiltin::BaseVertex] = ShaderVariable(
@@ -3503,6 +3510,7 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
   else
     builtins[ShaderBuiltin::VertexIndex] = ShaderVariable(rdcstr(), vertid + vertOffset, 0U, 0U, 0U);
   builtins[ShaderBuiltin::InstanceIndex] = ShaderVariable(rdcstr(), instid + instOffset, 0U, 0U, 0U);
+  builtins[ShaderBuiltin::ViewportIndex] = ShaderVariable(rdcstr(), view, 0U, 0U, 0U);
 
   rdcarray<ShaderVariable> &locations = apiWrapper->location_inputs;
   for(const VulkanCreationInfo::Pipeline::Attribute &attr : pipe.vertexAttrs)

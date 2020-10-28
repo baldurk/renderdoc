@@ -836,11 +836,13 @@ bucket when the pixel values are divided between ``minval`` and ``maxval``.
 :param int instid: The instance ID as a 0-based index up to the number of instances in the draw.
 :param int idx: The actual index used to look up vertex inputs, either from the vertex ID for non-
   indexed draws or drawn from the index buffer. This must have all drawcall offsets applied.
+:param int view: The index of the multiview viewport to use, or 0 if multiview is not in use.
 :return: The resulting trace resulting from debugging. Destroy with
   :meth:`FreeTrace`.
 :rtype: ShaderDebugTrace
 )");
-  virtual ShaderDebugTrace *DebugVertex(uint32_t vertid, uint32_t instid, uint32_t idx) = 0;
+  virtual ShaderDebugTrace *DebugVertex(uint32_t vertid, uint32_t instid, uint32_t idx,
+                                        uint32_t view) = 0;
 
   DOCUMENT(R"(Retrieve a debugging trace from running a pixel shader.
 

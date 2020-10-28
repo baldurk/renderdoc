@@ -1455,7 +1455,8 @@ rdcarray<PixelModification> ReplayProxy::PixelHistory(rdcarray<EventUsage> event
 template <typename ParamSerialiser, typename ReturnSerialiser>
 ShaderDebugTrace *ReplayProxy::Proxied_DebugVertex(ParamSerialiser &paramser,
                                                    ReturnSerialiser &retser, uint32_t eventId,
-                                                   uint32_t vertid, uint32_t instid, uint32_t idx)
+                                                   uint32_t vertid, uint32_t instid, uint32_t idx,
+                                                   uint32_t view)
 {
   const ReplayProxyPacket expectedPacket = eReplayProxy_DebugVertex;
   ReplayProxyPacket packet = eReplayProxy_DebugVertex;
@@ -1467,13 +1468,14 @@ ShaderDebugTrace *ReplayProxy::Proxied_DebugVertex(ParamSerialiser &paramser,
     SERIALISE_ELEMENT(vertid);
     SERIALISE_ELEMENT(instid);
     SERIALISE_ELEMENT(idx);
+    SERIALISE_ELEMENT(view);
     END_PARAMS();
   }
 
   {
     REMOTE_EXECUTION();
     if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
-      ret = m_Remote->DebugVertex(eventId, vertid, instid, idx);
+      ret = m_Remote->DebugVertex(eventId, vertid, instid, idx, view);
     else
       ret = new ShaderDebugTrace;
   }
@@ -1484,9 +1486,9 @@ ShaderDebugTrace *ReplayProxy::Proxied_DebugVertex(ParamSerialiser &paramser,
 }
 
 ShaderDebugTrace *ReplayProxy::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
-                                           uint32_t idx)
+                                           uint32_t idx, uint32_t view)
 {
-  PROXY_FUNCTION(DebugVertex, eventId, vertid, instid, idx);
+  PROXY_FUNCTION(DebugVertex, eventId, vertid, instid, idx, view);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
@@ -2819,7 +2821,7 @@ bool ReplayProxy::Tick(int type)
     }
     case eReplayProxy_ReplaceResource: ReplaceResource(ResourceId(), ResourceId()); break;
     case eReplayProxy_RemoveReplacement: RemoveReplacement(ResourceId()); break;
-    case eReplayProxy_DebugVertex: DebugVertex(0, 0, 0, 0); break;
+    case eReplayProxy_DebugVertex: DebugVertex(0, 0, 0, 0, 0); break;
     case eReplayProxy_DebugPixel: DebugPixel(0, 0, 0, 0, 0); break;
     case eReplayProxy_DebugThread:
     {

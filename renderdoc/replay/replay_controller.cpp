@@ -1582,11 +1582,12 @@ rdcarray<uint32_t> ReplayController::GetHistogram(ResourceId textureId, const Su
   return hist;
 }
 
-ShaderDebugTrace *ReplayController::DebugVertex(uint32_t vertid, uint32_t instid, uint32_t idx)
+ShaderDebugTrace *ReplayController::DebugVertex(uint32_t vertid, uint32_t instid, uint32_t idx,
+                                                uint32_t view)
 {
   CHECK_REPLAY_THREAD();
 
-  ShaderDebugTrace *ret = m_pDevice->DebugVertex(m_EventID, vertid, instid, idx);
+  ShaderDebugTrace *ret = m_pDevice->DebugVertex(m_EventID, vertid, instid, idx, view);
 
   SetFrameEvent(m_EventID, true);
 

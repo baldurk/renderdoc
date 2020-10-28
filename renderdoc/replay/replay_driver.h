@@ -200,7 +200,7 @@ public:
                                                    uint32_t x, uint32_t y, const Subresource &sub,
                                                    CompType typeCast) = 0;
   virtual ShaderDebugTrace *DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
-                                        uint32_t idx) = 0;
+                                        uint32_t idx, uint32_t view) = 0;
   virtual ShaderDebugTrace *DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
                                        uint32_t primitive) = 0;
   virtual ShaderDebugTrace *DebugThread(uint32_t eventId, const uint32_t groupid[3],

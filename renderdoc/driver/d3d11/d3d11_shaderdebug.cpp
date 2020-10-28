@@ -1709,7 +1709,7 @@ void AddCBuffersToGlobalState(const DXBCBytecode::Program &program, D3D11DebugMa
 }
 
 ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
-                                           uint32_t idx)
+                                           uint32_t idx, uint32_t view)
 {
   using namespace DXBCBytecode;
   using namespace DXBCDebug;
