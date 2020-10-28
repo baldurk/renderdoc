@@ -920,6 +920,12 @@ private:
   SDObject *m_Parent = NULL;
   mutable LazyArrayData *m_Lazy = NULL;
 
+  // object serialisers need to be able to set the parent pointer. This is only for proxying really
+  template <class SerialiserType>
+  friend void DoSerialise(SerialiserType &ser, SDObject &el);
+  template <class SerialiserType>
+  friend void DoSerialise(SerialiserType &ser, SDChunk &el);
+
   void DeleteLazyGenerator() const
   {
     if(m_Lazy)

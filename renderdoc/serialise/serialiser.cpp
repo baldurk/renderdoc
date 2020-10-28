@@ -718,6 +718,12 @@ void DoSerialise(SerialiserType &ser, SDObject &el)
   SERIALISE_MEMBER(name);
   SERIALISE_MEMBER(type);
   SERIALISE_MEMBER(data);
+
+  if(ser.IsReading())
+  {
+    for(size_t i = 0; i < el.NumChildren(); i++)
+      el.GetChild(i)->m_Parent = &el;
+  }
 }
 
 template <class SerialiserType>
@@ -727,6 +733,12 @@ void DoSerialise(SerialiserType &ser, SDChunk &el)
   SERIALISE_MEMBER(type);
   SERIALISE_MEMBER(data);
   SERIALISE_MEMBER(metadata);
+
+  if(ser.IsReading())
+  {
+    for(size_t i = 0; i < el.NumChildren(); i++)
+      el.GetChild(i)->m_Parent = &el;
+  }
 }
 
 INSTANTIATE_SERIALISE_TYPE(SDChunk);
