@@ -181,6 +181,7 @@
     <ClCompile Include="d3d12\d3d12_existing_heap.cpp" />
     <ClCompile Include="d3d12\d3d12_helpers.cpp" />
     <ClCompile Include="d3d12\d3d12_large_buffer.cpp" />
+    <ClCompile Include="d3d12\d3d12_list_types.cpp" />
     <ClCompile Include="d3d12\d3d12_mesh_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_overlay_test.cpp" />
     <ClCompile Include="d3d12\d3d12_parameter_zoo.cpp" />
