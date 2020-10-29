@@ -63,6 +63,13 @@ float4 main() : SV_Target0
     psoCreator.GraphicsDesc.StreamOutput.NumStrides = 0xcccccccc;
     psoCreator.GraphicsDesc.StreamOutput.pBufferStrides = (UINT *)0x1234;
 
+    ID3D12RootSignaturePtr duplicateSig = MakeSig(
+        {
+            cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 0),
+            constParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 1, 1),
+        },
+        D3D12_ROOT_SIGNATURE_FLAG_NONE);
+
     ID3D12PipelineStatePtr pso = psoCreator;
 
     // if D3D12.4 (??) is available, use different interfaces
@@ -123,6 +130,9 @@ float4 main() : SV_Target0
       ID3D12DebugCommandListPtr debug = cmd;
 
       ID3D12ResourcePtr bb = StartUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+      // force duplicate signature to be used
+      cmd->SetGraphicsRootSignature(duplicateSig);
 
       if(debug)
         debug->AssertResourceState(bb, D3D12_RESOURCE_STATE_RENDER_TARGET, 0);
