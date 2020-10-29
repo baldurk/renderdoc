@@ -85,6 +85,16 @@ void main()
 
     uint32_t idxs[3] = {0, 1, 2};
 
+    for(int i = 0; i < 100; i++)
+    {
+      GraphicsWindow *win2 = MakeWindow(32, 32, NULL);
+      void *ctx2 = MakeContext(win2, mainContext);
+      ActivateContext(win2, ctx2);
+      ActivateContext(mainWindow, mainContext);
+      DestroyContext(ctx2);
+      delete win2;
+    }
+
     GLuint vb = MakeBuffer();
     glBindBuffer(GL_ARRAY_BUFFER, vb);
     glBufferStorage(GL_ARRAY_BUFFER, sizeof(DefaultTri), DefaultTri, 0);
