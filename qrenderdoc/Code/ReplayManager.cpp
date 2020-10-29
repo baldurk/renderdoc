@@ -350,10 +350,10 @@ void ReplayManager::DisconnectFromRemoteServer()
     {
       m_Remote->ShutdownConnection();
     }
+    m_Remote = NULL;
   }
 
   m_RemoteHost = RemoteHost();
-  m_Remote = NULL;
 }
 
 void ReplayManager::ShutdownServer()

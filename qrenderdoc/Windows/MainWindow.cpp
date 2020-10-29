@@ -488,6 +488,8 @@ MainWindow::~MainWindow()
   m_NetManagerThread->thread()->quit();
   m_NetManagerThread->deleteLater();
 
+  m_Ctx.Replay().DisconnectFromRemoteServer();
+
   // explicitly delete our children here, so that the MainWindow is still alive while they are
   // closing.
 
