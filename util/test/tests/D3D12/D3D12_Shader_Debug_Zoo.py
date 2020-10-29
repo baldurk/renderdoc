@@ -85,6 +85,46 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
 
         rdtest.log.end_section("MSAA tests")
 
+        test_marker: rd.DrawcallDescription = self.find_draw("VertexSample")
+        draw = test_marker.next
+        self.controller.SetFrameEvent(draw.eventId, False)
+        pipe: rd.PipeState = self.controller.GetPipelineState()
+
+        # Debug the vertex shader
+        trace: rd.ShaderDebugTrace = self.controller.DebugVertex(0, 0, 0, 0)
+
+        cycles, variables = self.process_trace(trace)
+
+        output = self.find_output_source_var(trace, rd.ShaderBuiltin.Undefined, 1)
+
+        debugged = self.evaluate_source_var(output, variables)
+
+        if not rdtest.value_compare(debugged.value.fv[0:4], [0.3, 0.5, 0.8, 1.0]):
+            failed = True
+            rdtest.log.error(
+                "Vertex shader color output did not match expectation ({}). {}".format(str(debugged.value.fv[0:4]),
+                                                                                       str(ex)))
+
+        rdtest.log.success("VertexSample VS was debugged correctly")
+
+        # Debug the pixel shader
+        trace: rd.ShaderDebugTrace = self.controller.DebugPixel(51, 51, 0, rd.ReplayController.NoPreference)
+
+        cycles, variables = self.process_trace(trace)
+
+        output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+
+        debugged = self.evaluate_source_var(output, variables)
+
+        # Validate the debug output result
+        try:
+            self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 51, 51, debugged.value.fv[0:4])
+        except rdtest.TestFailureException as ex:
+            failed = True
+            rdtest.log.error("Vertex sample pixel shader output did not match. {}".format(str(ex)))
+
+        rdtest.log.success("VertexSample PS was debugged correctly")
+
         if failed:
             raise rdtest.TestFailureException("Some tests were not as expected")
 

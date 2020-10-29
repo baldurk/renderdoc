@@ -36,6 +36,40 @@ RD_TEST(D3D12_Shader_Debug_Zoo, D3D12GraphicsTest)
     float negone;
   };
 
+  std::string vertexSampleVS = R"EOSHADER(
+
+Texture2D<float4> intex : register(t0);
+
+struct v2f { float4 pos : SV_Position; float4 col : COL; };
+
+v2f main(uint vid : SV_VertexID)
+{
+	float2 positions[] = {
+		float2(-1.0f,  1.0f),
+		float2( 1.0f,  1.0f),
+		float2(-1.0f, -1.0f),
+		float2( 1.0f, -1.0f),
+	};
+
+  v2f ret = (v2f)0;
+	ret.pos = float4(positions[vid], 0, 1);
+  ret.col = intex.Load(float3(0,0,0));
+  return ret;
+}
+
+)EOSHADER";
+
+  std::string vertexSamplePS = R"EOSHADER(
+
+struct v2f { float4 pos : SV_Position; float4 col : COL; };
+
+float4 main(v2f IN) : SV_Target0
+{
+	return IN.col;
+}
+
+)EOSHADER";
+
   std::string pixelBlit = R"EOSHADER(
 
 cbuffer rootconsts : register(b0)
@@ -780,6 +814,11 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
     D3D12_CPU_DESCRIPTOR_HANDLE uav2cpu = uavView2.CreateClearCPU(6);
     D3D12_GPU_DESCRIPTOR_HANDLE uav2gpu = uavView2.CreateGPU(6);
 
+    // need to create non-structured version for clearing
+    uavView2 = MakeUAV(structBuf2).Format(DXGI_FORMAT_R32_UINT);
+    uav2cpu = uavView2.CreateClearCPU(8);
+    uav2gpu = uavView2.CreateGPU(8);
+
     // Create resources for MSAA draw
     ID3DBlobPtr vsmsaablob = Compile(D3DDefaultVertex, "main", "vs_5_0");
     ID3DBlobPtr psmsaablob = Compile(msaaPixel, "main", "ps_5_0");
@@ -808,6 +847,15 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
         tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 1, 7),
     });
     ID3D12PipelineStatePtr blitpso = MakePSO().RootSig(blitSig).VS(vsblob).PS(psblob);
+
+    vsblob = Compile(vertexSampleVS, "main", "vs_5_0");
+    psblob = Compile(vertexSamplePS, "main", "ps_5_0");
+    ID3D12RootSignaturePtr vertexSampleSig = MakeSig(
+        {
+            tableParam(D3D12_SHADER_VISIBILITY_VERTEX, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 1, 7),
+        },
+        D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS);
+    ID3D12PipelineStatePtr vertexSamplePSO = MakePSO().RootSig(vertexSampleSig).VS(vsblob).PS(psblob);
 
     while(Running())
     {
@@ -849,7 +897,7 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
         cmd->ClearUnorderedAccessViewUint(uav2gpu, uav2cpu, structBuf2, zero, 0, NULL);
 
         // Add a marker so we can easily locate this draw
-        cmd->SetMarker(1, markers[i], (UINT)strlen(markers[i]));
+        setMarker(cmd, markers[i]);
         cmd->DrawInstanced(3, numTests, 0, 0);
 
         ResourceBarrier(cmd, fltTex, D3D12_RESOURCE_STATE_RENDER_TARGET,
@@ -882,8 +930,28 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
       RSSetScissorRect(cmd, {0, 0, 8, 8});
 
       // Add a marker so we can easily locate this draw
-      cmd->SetMarker(1, "MSAA", 4);
+      setMarker(cmd, "MSAA");
       cmd->DrawInstanced(3, 1, 0, 0);
+
+      OMSetRenderTargets(cmd, {fltRTV}, {});
+      ClearRenderTargetView(cmd, fltRTV, {0.3f, 0.5f, 0.8f, 1.0f});
+
+      ResourceBarrier(cmd, fltTex, D3D12_RESOURCE_STATE_RENDER_TARGET,
+                      D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+
+      OMSetRenderTargets(cmd, {rtv}, {});
+      RSSetViewport(cmd, {50.0f, 50.0f, 10.0f, 10.0f, 0.0f, 1.0f});
+      RSSetScissorRect(cmd, {50, 50, 60, 60});
+
+      cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+      cmd->SetGraphicsRootSignature(vertexSampleSig);
+      cmd->SetPipelineState(vertexSamplePSO);
+      cmd->SetGraphicsRootDescriptorTable(0, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
+      setMarker(cmd, "VertexSample");
+      cmd->DrawInstanced(4, 1, 0, 0);
+
+      ResourceBarrier(cmd, fltTex, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+                      D3D12_RESOURCE_STATE_RENDER_TARGET);
 
       FinishUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
