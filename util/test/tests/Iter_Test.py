@@ -104,7 +104,7 @@ class Iter_Test(rdtest.TestCase):
 
         postvs = self.get_postvs(draw, rd.MeshDataStage.VSOut, first_index=vtx, num_indices=1, instance=inst)
 
-        trace: rd.ShaderDebugTrace = self.controller.DebugVertex(vtx, inst, idx)
+        trace: rd.ShaderDebugTrace = self.controller.DebugVertex(vtx, inst, idx, 0)
 
         if trace.debugger is None:
             self.controller.FreeTrace(trace)

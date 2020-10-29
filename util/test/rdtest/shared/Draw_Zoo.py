@@ -138,7 +138,7 @@ class Draw_Zoo(rdtest.TestCase):
         rdtest.log.success("Checked draw {}".format(draw.eventId))
 
     def check_debug(self, vtx, idx, inst, postvs):
-        trace: rd.ShaderDebugTrace = self.controller.DebugVertex(vtx, inst, idx)
+        trace: rd.ShaderDebugTrace = self.controller.DebugVertex(vtx, inst, idx, 0)
 
         if trace.debugger is None:
             self.controller.FreeTrace(trace)
