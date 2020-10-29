@@ -426,12 +426,10 @@ void DoSerialise(SerialiserType &ser, D3D12Descriptor &el)
       // convert to Live ID on replay
       if(ser.IsReading())
       {
-        el.data.nonsamp.resource = rm->HasLiveResource(el.data.nonsamp.resource)
-                                       ? rm->GetLiveID(el.data.nonsamp.resource)
-                                       : ResourceId();
-        el.data.nonsamp.counterResource = rm->HasLiveResource(el.data.nonsamp.counterResource)
-                                              ? rm->GetLiveID(el.data.nonsamp.counterResource)
-                                              : ResourceId();
+        el.data.nonsamp.resource =
+            rm->HasLiveResource(Resource) ? rm->GetLiveID(Resource) : ResourceId();
+        el.data.nonsamp.counterResource =
+            rm->HasLiveResource(CounterResource) ? rm->GetLiveID(CounterResource) : ResourceId();
       }
 
       // special case because of squeezed descriptor
