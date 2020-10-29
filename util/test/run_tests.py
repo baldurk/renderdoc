@@ -42,6 +42,16 @@ parser.add_argument('--internal_vulkan_register', help=argparse.SUPPRESS, action
 parser.add_argument('--internal_remote_server', help=argparse.SUPPRESS, action="store_true", required=False)
 args = parser.parse_args()
 
+custom_pyrenderdoc = None
+
+if args.pyrenderdoc is not None:
+    if os.path.isfile(args.pyrenderdoc):
+        custom_pyrenderdoc = os.path.abspath(os.path.dirname(args.pyrenderdoc))
+    elif os.path.isdir(args.pyrenderdoc):
+        custom_pyrenderdoc = os.path.abspath(args.pyrenderdoc)
+    else:
+        raise RuntimeError("'{}' is not a valid path to the pyrenderdoc module".format(args.pyrenderdoc))
+
 if args.renderdoc is not None:
     if os.path.isfile(args.renderdoc):
         renderdoc_dirpath = os.path.abspath(os.path.dirname(args.renderdoc))
@@ -54,17 +64,19 @@ if args.renderdoc is not None:
     if sys.platform == 'win32' and sys.version_info[1] >= 8:
         os.add_dll_directory(renderdoc_dirpath)
 
-custom_pyrenderdoc = None
+    # if the user didn't specify a pyrenderdoc but we do have a renderdoc, try the default location as a backup
+    if custom_pyrenderdoc is None:
+        if sys.platform == 'win32':
+            custom_pyrenderdoc = os.path.abspath(args.renderdoc) + os.path.sep + "pymodules"
+        else:
+            custom_pyrenderdoc = os.path.abspath(args.renderdoc)
 
-if args.pyrenderdoc is not None:
-    if os.path.isfile(args.pyrenderdoc):
-        custom_pyrenderdoc = os.path.abspath(os.path.dirname(args.pyrenderdoc))
-    elif os.path.isdir(args.pyrenderdoc):
-        custom_pyrenderdoc = os.path.abspath(args.pyrenderdoc)
+if custom_pyrenderdoc is not None:
+    # explicit paths go at the start, implicit paths go at the end
+    if args.pyrenderdoc is not None:
+        sys.path.insert(0, custom_pyrenderdoc)
     else:
-        raise RuntimeError("'{}' is not a valid path to the pyrenderdoc module".format(args.pyrenderdoc))
-
-    sys.path.insert(0, custom_pyrenderdoc)
+        sys.path.append(custom_pyrenderdoc)
 
 sys.path.insert(0, os.path.realpath(os.path.dirname(__file__)))
 
