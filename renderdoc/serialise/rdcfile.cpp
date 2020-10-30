@@ -782,6 +782,12 @@ void RDCFile::Create(const char *filename)
   FileIO::fclose(m_File);
   m_File = FileIO::fopen(filename, "rb");
   FileIO::fseek64(m_File, 0, SEEK_END);
+
+  if(!m_File)
+  {
+    RETURNERROR(ContainerError::FileIO, "Can't open capture file '%s' as read-only, errno %d",
+                filename, errno);
+  }
 }
 
 int RDCFile::SectionIndex(SectionType type) const
