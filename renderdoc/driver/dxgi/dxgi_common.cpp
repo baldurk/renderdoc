@@ -1144,7 +1144,9 @@ DXGI_FORMAT GetTypedFormat(DXGI_FORMAT f, CompType typeCast)
         return DXGI_FORMAT_R16_FLOAT;
       if(typeCast == CompType::Depth)
         return DXGI_FORMAT_D16_UNORM;
-      return DXGI_FORMAT_R16_UNORM;
+      if(typeCast == CompType::UNorm)
+        return DXGI_FORMAT_R16_UNORM;
+      return DXGI_FORMAT_R16_FLOAT;
     }
 
     case DXGI_FORMAT_R16G16_TYPELESS:
@@ -1157,7 +1159,9 @@ DXGI_FORMAT GetTypedFormat(DXGI_FORMAT f, CompType typeCast)
         return DXGI_FORMAT_R16G16_SNORM;
       if(typeCast == CompType::Float)
         return DXGI_FORMAT_R16G16_FLOAT;
-      return DXGI_FORMAT_R16G16_UNORM;
+      if(typeCast == CompType::UNorm)
+        return DXGI_FORMAT_R16G16_UNORM;
+      return DXGI_FORMAT_R16G16_FLOAT;
     }
 
     case DXGI_FORMAT_R16G16B16A16_TYPELESS:
@@ -1170,7 +1174,9 @@ DXGI_FORMAT GetTypedFormat(DXGI_FORMAT f, CompType typeCast)
         return DXGI_FORMAT_R16G16B16A16_SNORM;
       if(typeCast == CompType::Float)
         return DXGI_FORMAT_R16G16B16A16_FLOAT;
-      return DXGI_FORMAT_R16G16B16A16_UNORM;
+      if(typeCast == CompType::UNorm)
+        return DXGI_FORMAT_R16G16B16A16_UNORM;
+      return DXGI_FORMAT_R16G16B16A16_FLOAT;
     }
 
     case DXGI_FORMAT_R32_TYPELESS:
