@@ -1028,6 +1028,8 @@ void WrappedOpenGL::DeleteContext(void *contextHandle)
 {
   ContextData &ctxdata = m_ContextData[contextHandle];
 
+  RDCLOG("Deleting context %p", contextHandle);
+
   RenderDoc::Inst().RemoveDeviceFrameCapturer(ctxdata.ctx);
 
   // delete the context
@@ -1049,6 +1051,7 @@ void WrappedOpenGL::DeleteContext(void *contextHandle)
   // if this is the last context in the share group, delete the group.
   if(lastInGroup)
   {
+    RDCLOG("Deleting shader group %p", ctxdata.shareGroup);
     delete ctxdata.shareGroup;
   }
 
