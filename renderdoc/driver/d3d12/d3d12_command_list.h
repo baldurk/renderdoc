@@ -132,6 +132,7 @@ private:
   ID3D12GraphicsCommandList3 *m_pList3 = NULL;
   ID3D12GraphicsCommandList4 *m_pList4 = NULL;
   ID3D12GraphicsCommandList5 *m_pList5 = NULL;
+  ID3D12GraphicsCommandList6 *m_pList6 = NULL;
 
   RefCounter12<ID3D12GraphicsCommandList> m_RefCounter;
 
@@ -179,6 +180,7 @@ public:
   ID3D12GraphicsCommandList3 *GetReal3() { return m_pList3; }
   ID3D12GraphicsCommandList4 *GetReal4() { return m_pList4; }
   ID3D12GraphicsCommandList5 *GetReal5() { return m_pList5; }
+  ID3D12GraphicsCommandList6 *GetReal6() { return m_pList6; }
   WrappedID3D12Device *GetWrappedDevice() { return m_pDevice; }
   D3D12ResourceRecord *GetResourceRecord() { return m_ListRecord; }
   D3D12ResourceRecord *GetCreationRecord() { return m_CreationRecord; }
@@ -188,6 +190,7 @@ public:
   ID3D12GraphicsCommandList3 *GetCrackedList3();
   ID3D12GraphicsCommandList4 *GetCrackedList4();
   ID3D12GraphicsCommandList5 *GetCrackedList5();
+  ID3D12GraphicsCommandList6 *GetCrackedList6();
   ID3D12GraphicsCommandListX *GetWrappedCrackedList();
 
   void SetAMDMarkerInterface(IAmdExtD3DCommandListMarker *marker) { m_AMDMarkers = marker; }
@@ -552,6 +555,12 @@ public:
 
   IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, RSSetShadingRateImage,
                                 ID3D12Resource *shadingRateImage);
+
+  //////////////////////////////
+  // implement ID3D12GraphicsCommandList6
+  IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, DispatchMesh,
+                                _In_ UINT ThreadGroupCountX, _In_ UINT ThreadGroupCountY,
+                                _In_ UINT ThreadGroupCountZ);
 };
 
 template <>
@@ -579,21 +588,26 @@ template <>
 ResourceId GetResID(ID3D12GraphicsCommandList4 *obj);
 template <>
 ResourceId GetResID(ID3D12GraphicsCommandList5 *obj);
+template <>
+ResourceId GetResID(ID3D12GraphicsCommandList6 *obj);
 
 ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList1 *obj);
 ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList2 *obj);
 ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList3 *obj);
 ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList4 *obj);
 ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList5 *obj);
+ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList6 *obj);
 
 ID3D12GraphicsCommandList1 *Unwrap1(ID3D12GraphicsCommandList1 *obj);
 ID3D12GraphicsCommandList2 *Unwrap2(ID3D12GraphicsCommandList2 *obj);
 ID3D12GraphicsCommandList3 *Unwrap3(ID3D12GraphicsCommandList3 *obj);
 ID3D12GraphicsCommandList4 *Unwrap4(ID3D12GraphicsCommandList4 *obj);
 ID3D12GraphicsCommandList5 *Unwrap5(ID3D12GraphicsCommandList5 *obj);
+ID3D12GraphicsCommandList6 *Unwrap6(ID3D12GraphicsCommandList6 *obj);
 
 WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList1 *obj);
 WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList2 *obj);
 WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList3 *obj);
 WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList4 *obj);
 WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList5 *obj);
+WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList6 *obj);

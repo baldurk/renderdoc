@@ -48,7 +48,7 @@ HRESULT WrappedID3D12Device::CreatePipelineLibrary(_In_reads_(BlobLength) const 
   if(BlobLength > 0)
     return D3D12_ERROR_DRIVER_VERSION_MISMATCH;
 
-  WrappedID3D12PipelineLibrary1 *pipeLibrary = new WrappedID3D12PipelineLibrary1(this);
+  WrappedID3D12PipelineLibrary *pipeLibrary = new WrappedID3D12PipelineLibrary(this);
 
   if(riid == __uuidof(ID3D12PipelineLibrary))
   {

@@ -80,7 +80,7 @@ void WrappedID3D12GraphicsCommandList::WriteBufferImmediate(
     m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     for(UINT i = 0; i < Count; i++)
       m_ListRecord->MarkResourceFrameReferenced(
-          WrappedID3D12Resource1::GetResIDFromAddr(pParams[i].Dest), eFrameRef_PartialWrite);
+          WrappedID3D12Resource::GetResIDFromAddr(pParams[i].Dest), eFrameRef_PartialWrite);
   }
 }
 

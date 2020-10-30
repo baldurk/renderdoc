@@ -85,7 +85,7 @@ HRESULT WrappedID3D12Device::CreateCommandList1(UINT nodeMask, D3D12_COMMAND_LIS
   if(riid != __uuidof(ID3D12GraphicsCommandList) && riid != __uuidof(ID3D12CommandList) &&
      riid != __uuidof(ID3D12GraphicsCommandList1) && riid != __uuidof(ID3D12GraphicsCommandList2) &&
      riid != __uuidof(ID3D12GraphicsCommandList3) && riid != __uuidof(ID3D12GraphicsCommandList4) &&
-     riid != __uuidof(ID3D12GraphicsCommandList5))
+     riid != __uuidof(ID3D12GraphicsCommandList5) && riid != __uuidof(ID3D12GraphicsCommandList6))
     return E_NOINTERFACE;
 
   void *realptr = NULL;
@@ -109,6 +109,8 @@ HRESULT WrappedID3D12Device::CreateCommandList1(UINT nodeMask, D3D12_COMMAND_LIS
     real = (ID3D12GraphicsCommandList4 *)realptr;
   else if(riid == __uuidof(ID3D12GraphicsCommandList5))
     real = (ID3D12GraphicsCommandList5 *)realptr;
+  else if(riid == __uuidof(ID3D12GraphicsCommandList6))
+    real = (ID3D12GraphicsCommandList6 *)realptr;
 
   if(SUCCEEDED(ret))
   {
@@ -156,6 +158,8 @@ HRESULT WrappedID3D12Device::CreateCommandList1(UINT nodeMask, D3D12_COMMAND_LIS
       *ppCommandList = (ID3D12GraphicsCommandList4 *)wrapped;
     else if(riid == __uuidof(ID3D12GraphicsCommandList5))
       *ppCommandList = (ID3D12GraphicsCommandList5 *)wrapped;
+    else if(riid == __uuidof(ID3D12GraphicsCommandList6))
+      *ppCommandList = (ID3D12GraphicsCommandList6 *)wrapped;
     else if(riid == __uuidof(ID3D12CommandList))
       *ppCommandList = (ID3D12CommandList *)wrapped;
     else
@@ -172,20 +176,26 @@ HRESULT WrappedID3D12Device::CreateProtectedResourceSession(
   if(ppSession == NULL)
     return m_pDevice4->CreateProtectedResourceSession(pDesc, riid, NULL);
 
-  // this is the only UUID in the headers that we can support
-  if(riid != __uuidof(ID3D12ProtectedResourceSession))
+  if(riid != __uuidof(ID3D12ProtectedResourceSession) &&
+     riid != __uuidof(ID3D12ProtectedResourceSession1) && riid != __uuidof(ID3D12ProtectedSession))
     return E_NOINTERFACE;
 
   ID3D12ProtectedResourceSession *real = NULL;
   HRESULT ret;
-  SERIALISE_TIME_CALL(ret = m_pDevice4->CreateProtectedResourceSession(pDesc, riid, (void **)&real));
+  SERIALISE_TIME_CALL(ret = m_pDevice4->CreateProtectedResourceSession(
+                          pDesc, __uuidof(ID3D12ProtectedResourceSession), (void **)&real));
 
   if(SUCCEEDED(ret))
   {
     WrappedID3D12ProtectedResourceSession *wrapped =
         new WrappedID3D12ProtectedResourceSession(real, this);
 
-    *ppSession = (ID3D12ProtectedResourceSession *)wrapped;
+    if(riid == __uuidof(ID3D12ProtectedResourceSession))
+      *ppSession = (ID3D12ProtectedResourceSession *)wrapped;
+    else if(riid == __uuidof(ID3D12ProtectedResourceSession1))
+      *ppSession = (ID3D12ProtectedResourceSession1 *)wrapped;
+    else if(riid == __uuidof(ID3D12ProtectedSession))
+      *ppSession = (ID3D12ProtectedSession *)wrapped;
   }
 
   return ret;
@@ -206,11 +216,11 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource1(
   // placeholder for future use if we properly capture & replay protected sessions
   SERIALISE_ELEMENT_LOCAL(ProtectedSession, ResourceId()).Named("pProtectedSession"_lit);
   SERIALISE_ELEMENT_LOCAL(guid, riidResource).Named("riidResource"_lit);
-  SERIALISE_ELEMENT_LOCAL(pResource, ((WrappedID3D12Resource1 *)*ppvResource)->GetResourceID())
+  SERIALISE_ELEMENT_LOCAL(pResource, ((WrappedID3D12Resource *)*ppvResource)->GetResourceID())
       .TypedAs("ID3D12Resource *"_lit);
 
   SERIALISE_ELEMENT_LOCAL(gpuAddress,
-                          ((WrappedID3D12Resource1 *)*ppvResource)->GetGPUVirtualAddressIfBuffer())
+                          ((WrappedID3D12Resource *)*ppvResource)->GetGPUVirtualAddressIfBuffer())
       .Hidden();
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -264,7 +274,7 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource1(
       SetObjName(ret, StringFormat::Fmt("Committed Resource %s ID %s",
                                         ToStr(desc.Dimension).c_str(), ToStr(pResource).c_str()));
 
-      ret = new WrappedID3D12Resource1(ret, this);
+      ret = new WrappedID3D12Resource(ret, this);
 
       GetResourceManager()->AddLiveResource(pResource, ret);
 
@@ -325,7 +335,8 @@ HRESULT WrappedID3D12Device::CreateCommittedResource1(
                                                 InitialResourceState, pOptimizedClearValue,
                                                 Unwrap(pProtectedSession), riidResource, NULL);
 
-  if(riidResource != __uuidof(ID3D12Resource) && riidResource != __uuidof(ID3D12Resource1))
+  if(riidResource != __uuidof(ID3D12Resource) && riidResource != __uuidof(ID3D12Resource1) &&
+     riidResource != __uuidof(ID3D12Resource2))
     return E_NOINTERFACE;
 
   void *realptr = NULL;
@@ -339,10 +350,12 @@ HRESULT WrappedID3D12Device::CreateCommittedResource1(
     real = (ID3D12Resource *)realptr;
   else if(riidResource == __uuidof(ID3D12Resource1))
     real = (ID3D12Resource1 *)realptr;
+  else if(riidResource == __uuidof(ID3D12Resource2))
+    real = (ID3D12Resource2 *)realptr;
 
   if(SUCCEEDED(ret))
   {
-    WrappedID3D12Resource1 *wrapped = new WrappedID3D12Resource1(real, this);
+    WrappedID3D12Resource *wrapped = new WrappedID3D12Resource(real, this);
 
     if(IsCaptureMode(m_State))
     {
@@ -377,7 +390,12 @@ HRESULT WrappedID3D12Device::CreateCommittedResource1(
       states.fill(GetNumSubresources(m_pDevice, pDesc), InitialResourceState);
     }
 
-    *ppvResource = (ID3D12Resource *)wrapped;
+    if(riidResource == __uuidof(ID3D12Resource))
+      *ppvResource = (ID3D12Resource *)wrapped;
+    else if(riidResource == __uuidof(ID3D12Resource1))
+      *ppvResource = (ID3D12Resource1 *)wrapped;
+    else if(riidResource == __uuidof(ID3D12Resource2))
+      *ppvResource = (ID3D12Resource2 *)wrapped;
 
     // while actively capturing we keep all buffers around to prevent the address lookup from
     // losing addresses we might need (or the manageable but annoying problem of an address being
@@ -404,7 +422,7 @@ bool WrappedID3D12Device::Serialise_CreateHeap1(SerialiserType &ser, const D3D12
   // placeholder for future use if we properly capture & replay protected sessions
   SERIALISE_ELEMENT_LOCAL(ProtectedSession, ResourceId()).Named("pProtectedSession"_lit);
   SERIALISE_ELEMENT_LOCAL(guid, riid).Named("riid"_lit);
-  SERIALISE_ELEMENT_LOCAL(pHeap, ((WrappedID3D12Heap1 *)*ppvHeap)->GetResourceID())
+  SERIALISE_ELEMENT_LOCAL(pHeap, ((WrappedID3D12Heap *)*ppvHeap)->GetResourceID())
       .TypedAs("ID3D12Heap *"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -436,7 +454,7 @@ bool WrappedID3D12Device::Serialise_CreateHeap1(SerialiserType &ser, const D3D12
     }
     else
     {
-      ret = new WrappedID3D12Heap1(ret, this);
+      ret = new WrappedID3D12Heap(ret, this);
 
       GetResourceManager()->AddLiveResource(pHeap, ret);
     }
@@ -471,7 +489,7 @@ HRESULT WrappedID3D12Device::CreateHeap1(const D3D12_HEAP_DESC *pDesc,
 
   if(SUCCEEDED(ret))
   {
-    WrappedID3D12Heap1 *wrapped = new WrappedID3D12Heap1(real, this);
+    WrappedID3D12Heap *wrapped = new WrappedID3D12Heap(real, this);
 
     if(IsCaptureMode(m_State))
     {
@@ -522,7 +540,7 @@ D3D12_RESOURCE_ALLOCATION_INFO WrappedID3D12Device::GetResourceAllocationInfo1(
 
 ID3D12Fence *WrappedID3D12Device::CreateProtectedSessionFence(ID3D12Fence *real)
 {
-  WrappedID3D12Fence1 *wrapped = NULL;
+  WrappedID3D12Fence *wrapped = NULL;
 
   {
     SCOPED_LOCK(m_WrapDeduplicateLock);
@@ -535,7 +553,7 @@ ID3D12Fence *WrappedID3D12Device::CreateProtectedSessionFence(ID3D12Fence *real)
 
     // we basically treat this kind of like CreateFence and serialise it as such, and guess at the
     // parameters to CreateFence.
-    wrapped = new WrappedID3D12Fence1(real, this);
+    wrapped = new WrappedID3D12Fence(real, this);
   }
 
   if(IsCaptureMode(m_State))

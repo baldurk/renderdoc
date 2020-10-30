@@ -165,6 +165,104 @@ HRESULT STDMETHODCALLTYPE WrappedDownlevelDevice::QueryVideoMemoryInfo(
   return m_pDevice.QueryVideoMemoryInfo(NodeIndex, MemorySegmentGroup, pVideoMemoryInfo);
 }
 
+HRESULT STDMETHODCALLTYPE WrappedID3D12SharingContract::QueryInterface(REFIID riid, void **ppvObject)
+{
+  return m_pDevice.QueryInterface(riid, ppvObject);
+}
+
+ULONG STDMETHODCALLTYPE WrappedID3D12SharingContract::AddRef()
+{
+  return m_pDevice.AddRef();
+}
+
+ULONG STDMETHODCALLTYPE WrappedID3D12SharingContract::Release()
+{
+  return m_pDevice.Release();
+}
+
+ID3DDevice *WrappedID3D12SharingContract::GetD3DDevice()
+{
+  return &m_pDevice;
+}
+
+UINT WrappedID3D12SharingContract::GetWidth()
+{
+  D3D12_RESOURCE_DESC desc = m_pPresentSource->GetDesc();
+  return (UINT)desc.Width;
+}
+
+UINT WrappedID3D12SharingContract::GetHeight()
+{
+  D3D12_RESOURCE_DESC desc = m_pPresentSource->GetDesc();
+  return desc.Height;
+}
+
+DXGI_FORMAT WrappedID3D12SharingContract::GetFormat()
+{
+  D3D12_RESOURCE_DESC desc = m_pPresentSource->GetDesc();
+  return desc.Format;
+}
+
+HWND WrappedID3D12SharingContract::GetHWND()
+{
+  return m_pPresentHWND;
+}
+
+void STDMETHODCALLTYPE WrappedID3D12SharingContract::Present(_In_ ID3D12Resource *pResource,
+                                                             UINT Subresource, _In_ HWND window)
+{
+  // this is similar to the downlevel queue present
+
+  if(m_pPresentHWND != NULL)
+  {
+    // don't let the device actually release any refs on the resource, just make it release internal
+    // resources
+    m_pPresentSource->AddRef();
+    m_pDevice.ReleaseSwapchainResources(this, 0, NULL, NULL);
+  }
+
+  if(m_pPresentHWND != window)
+  {
+    if(m_pPresentHWND != NULL)
+    {
+      Keyboard::RemoveInputWindow(WindowingSystem::Win32, m_pPresentHWND);
+      RenderDoc::Inst().RemoveFrameCapturer(m_pDevice.GetFrameCapturerDevice(), m_pPresentHWND);
+    }
+
+    Keyboard::AddInputWindow(WindowingSystem::Win32, window);
+
+    RenderDoc::Inst().AddFrameCapturer(m_pDevice.GetFrameCapturerDevice(), window,
+                                       m_pDevice.GetFrameCapturer());
+  }
+
+  m_pPresentSource = pResource;
+  m_pPresentHWND = window;
+
+  m_pDevice.WrapSwapchainBuffer(this, GetFormat(), 0, m_pPresentSource);
+
+  m_pDevice.Present(NULL, this, 0, 0);
+
+  m_pReal->Present(Unwrap(pResource), Subresource, window);
+}
+
+void STDMETHODCALLTYPE WrappedID3D12SharingContract::SharedFenceSignal(_In_ ID3D12Fence *pFence,
+                                                                       UINT64 FenceValue)
+{
+  m_pReal->SharedFenceSignal(Unwrap(pFence), FenceValue);
+}
+
+void STDMETHODCALLTYPE WrappedID3D12SharingContract::BeginCapturableWork(_In_ REFGUID guid)
+{
+  // undocumented what this does
+  m_pReal->BeginCapturableWork(guid);
+}
+
+void STDMETHODCALLTYPE WrappedID3D12SharingContract::EndCapturableWork(_In_ REFGUID guid)
+{
+  // undocumented what this does
+  m_pReal->EndCapturableWork(guid);
+}
+
 HRESULT STDMETHODCALLTYPE WrappedDRED::QueryInterface(REFIID riid, void **ppvObject)
 {
   return m_pDevice.QueryInterface(riid, ppvObject);
@@ -320,6 +418,7 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
       m_WrappedDownlevel(*this),
       m_DRED(*this),
       m_DREDSettings(*this),
+      m_SharingContract(*this),
       m_CompatDevice(*this),
       m_WrappedNVAPI(*this)
 {
@@ -343,6 +442,8 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   m_pDevice4 = NULL;
   m_pDevice5 = NULL;
   m_pDevice6 = NULL;
+  m_pDevice7 = NULL;
+  m_pDevice8 = NULL;
   m_pDownlevel = NULL;
   if(m_pDevice)
   {
@@ -352,11 +453,17 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
     m_pDevice->QueryInterface(__uuidof(ID3D12Device4), (void **)&m_pDevice4);
     m_pDevice->QueryInterface(__uuidof(ID3D12Device5), (void **)&m_pDevice5);
     m_pDevice->QueryInterface(__uuidof(ID3D12Device6), (void **)&m_pDevice6);
+    m_pDevice->QueryInterface(__uuidof(ID3D12Device7), (void **)&m_pDevice7);
+    m_pDevice->QueryInterface(__uuidof(ID3D12Device8), (void **)&m_pDevice8);
     m_pDevice->QueryInterface(__uuidof(ID3D12DeviceRemovedExtendedData), (void **)&m_DRED.m_pReal);
+    m_pDevice->QueryInterface(__uuidof(ID3D12DeviceRemovedExtendedData1), (void **)&m_DRED.m_pReal1);
     m_pDevice->QueryInterface(__uuidof(ID3D12DeviceRemovedExtendedDataSettings),
                               (void **)&m_DREDSettings.m_pReal);
+    m_pDevice->QueryInterface(__uuidof(ID3D12DeviceRemovedExtendedDataSettings1),
+                              (void **)&m_DREDSettings.m_pReal1);
     m_pDevice->QueryInterface(__uuidof(ID3D12DeviceDownlevel), (void **)&m_pDownlevel);
     m_pDevice->QueryInterface(__uuidof(ID3D12CompatibilityDevice), (void **)&m_CompatDevice.m_pReal);
+    m_pDevice->QueryInterface(__uuidof(ID3D12SharingContract), (void **)&m_SharingContract.m_pReal);
 
     for(size_t i = 0; i < ARRAY_COUNT(m_DescriptorIncrements); i++)
       m_DescriptorIncrements[i] =
@@ -410,7 +517,7 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
 
     if(realDevice)
     {
-      m_ResourceList = new std::map<ResourceId, WrappedID3D12Resource1 *>();
+      m_ResourceList = new std::map<ResourceId, WrappedID3D12Resource *>();
       m_PipelineList = new rdcarray<WrappedID3D12PipelineState *>();
     }
 
@@ -631,9 +738,14 @@ WrappedID3D12Device::~WrappedID3D12Device()
   SAFE_DELETE(m_ResourceManager);
 
   SAFE_RELEASE(m_DRED.m_pReal);
+  SAFE_RELEASE(m_DRED.m_pReal1);
   SAFE_RELEASE(m_DREDSettings.m_pReal);
+  SAFE_RELEASE(m_DREDSettings.m_pReal1);
   SAFE_RELEASE(m_CompatDevice.m_pReal);
+  SAFE_RELEASE(m_SharingContract.m_pReal);
   SAFE_RELEASE(m_pDownlevel);
+  SAFE_RELEASE(m_pDevice8);
+  SAFE_RELEASE(m_pDevice7);
   SAFE_RELEASE(m_pDevice6);
   SAFE_RELEASE(m_pDevice5);
   SAFE_RELEASE(m_pDevice4);
@@ -851,11 +963,29 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
   }
   else if(riid == __uuidof(ID3D12Device7))
   {
-    return E_NOINTERFACE;
+    if(m_pDevice7)
+    {
+      AddRef();
+      *ppvObject = (ID3D12Device7 *)this;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
   }
   else if(riid == __uuidof(ID3D12Device8))
   {
-    return E_NOINTERFACE;
+    if(m_pDevice8)
+    {
+      AddRef();
+      *ppvObject = (ID3D12Device8 *)this;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
   }
   else if(riid == __uuidof(ID3D12DeviceDownlevel))
   {
@@ -959,12 +1089,38 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
       return E_NOINTERFACE;
     }
   }
+  else if(riid == __uuidof(ID3D12DeviceRemovedExtendedData1))
+  {
+    if(m_DRED.m_pReal1)
+    {
+      AddRef();
+      *ppvObject = (ID3D12DeviceRemovedExtendedData1 *)&m_DRED;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
   else if(riid == __uuidof(ID3D12DeviceRemovedExtendedDataSettings))
   {
     if(m_DREDSettings.m_pReal)
     {
       AddRef();
       *ppvObject = (ID3D12DeviceRemovedExtendedDataSettings *)&m_DREDSettings;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(ID3D12DeviceRemovedExtendedDataSettings1))
+  {
+    if(m_DREDSettings.m_pReal1)
+    {
+      AddRef();
+      *ppvObject = (ID3D12DeviceRemovedExtendedDataSettings1 *)&m_DREDSettings;
       return S_OK;
     }
     else
@@ -984,6 +1140,19 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
     {
       AddRef();
       *ppvObject = (ID3D12CompatibilityDevice *)&m_CompatDevice;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(ID3D12SharingContract))
+  {
+    if(m_SharingContract.m_pReal)
+    {
+      AddRef();
+      *ppvObject = (ID3D12SharingContract *)&m_SharingContract;
       return S_OK;
     }
     else
@@ -1124,7 +1293,7 @@ void WrappedID3D12Device::ReleaseSwapchainResources(IDXGISwapper *swapper, UINT 
     if(!res)
       continue;
 
-    WrappedID3D12Resource1 *wrapped = (WrappedID3D12Resource1 *)res;
+    WrappedID3D12Resource *wrapped = (WrappedID3D12Resource *)res;
     wrapped->ReleaseInternalRef();
     SAFE_RELEASE(wrapped);
   }
@@ -1145,7 +1314,7 @@ void WrappedID3D12Device::NewSwapchainBuffer(IUnknown *backbuffer)
 
   if(pRes)
   {
-    WrappedID3D12Resource1 *wrapped = (WrappedID3D12Resource1 *)pRes;
+    WrappedID3D12Resource *wrapped = (WrappedID3D12Resource *)pRes;
     wrapped->AddInternalRef();
   }
 }
@@ -1155,7 +1324,7 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(SerialiserType &ser, IDX
                                                         DXGI_FORMAT bufferFormat, UINT Buffer,
                                                         IUnknown *realSurface)
 {
-  WrappedID3D12Resource1 *pRes = (WrappedID3D12Resource1 *)realSurface;
+  WrappedID3D12Resource *pRes = (WrappedID3D12Resource *)realSurface;
 
   SERIALISE_ELEMENT(Buffer);
   SERIALISE_ELEMENT_LOCAL(SwapbufferID, GetResID(pRes)).TypedAs("ID3D12Resource *"_lit);
@@ -1196,7 +1365,7 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(SerialiserType &ser, IDX
     }
     else
     {
-      WrappedID3D12Resource1 *wrapped = new WrappedID3D12Resource1(fakeBB, this);
+      WrappedID3D12Resource *wrapped = new WrappedID3D12Resource(fakeBB, this);
       fakeBB = wrapped;
 
       fakeBB->SetName(L"Swap Chain Buffer");
@@ -1231,14 +1400,14 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(IDXGISwapper *swapper, DXGI_F
 
     realSurface->Release();
   }
-  else if(WrappedID3D12Resource1::IsAlloc(query))
+  else if(WrappedID3D12Resource::IsAlloc(query))
   {
     // this could be possible if we're doing downlevel presenting
     pRes = query;
   }
   else
   {
-    pRes = new WrappedID3D12Resource1((ID3D12Resource *)realSurface, this);
+    pRes = new WrappedID3D12Resource((ID3D12Resource *)realSurface, this);
 
     ResourceId id = GetResID(pRes);
 
@@ -1253,7 +1422,7 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(IDXGISwapper *swapper, DXGI_F
       record->DataInSerialiser = false;
       record->Length = 0;
 
-      WrappedID3D12Resource1 *wrapped = (WrappedID3D12Resource1 *)pRes;
+      WrappedID3D12Resource *wrapped = (WrappedID3D12Resource *)pRes;
 
       wrapped->SetResourceRecord(record);
 
@@ -1971,7 +2140,7 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
     }
 
     m_RefQueues = m_Queues;
-    m_RefBuffers = WrappedID3D12Resource1::AddRefBuffersBeforeCapture(GetResourceManager());
+    m_RefBuffers = WrappedID3D12Resource::AddRefBuffersBeforeCapture(GetResourceManager());
   }
 
   GetResourceManager()->MarkResourceFrameReferenced(m_ResourceID, eFrameRef_Read);
@@ -2032,7 +2201,7 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
       ContainsExecuteIndirect |= (*it)->GetResourceRecord()->ContainsExecuteIndirect;
 
     if(ContainsExecuteIndirect)
-      WrappedID3D12Resource1::RefBuffers(GetResourceManager());
+      WrappedID3D12Resource::RefBuffers(GetResourceManager());
 
     m_State = CaptureState::BackgroundCapturing;
 
@@ -2828,14 +2997,6 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12Device::QueryVideoMemoryInfo(
   return m_pDownlevel->QueryVideoMemoryInfo(NodeIndex, MemorySegmentGroup, pVideoMemoryInfo);
 }
 
-HRESULT STDMETHODCALLTYPE WrappedID3D12Device::SetBackgroundProcessingMode(
-    D3D12_BACKGROUND_PROCESSING_MODE Mode, D3D12_MEASUREMENTS_ACTION MeasurementsAction,
-    _In_opt_ HANDLE hEventToSignalUponCompletion, _Out_opt_ BOOL *pbFurtherMeasurementsDesired)
-{
-  return m_pDevice6->SetBackgroundProcessingMode(
-      Mode, MeasurementsAction, hEventToSignalUponCompletion, pbFurtherMeasurementsDesired);
-}
-
 byte *WrappedID3D12Device::GetTempMemory(size_t s)
 {
   TempMem *mem = (TempMem *)Threading::GetTLSValue(tempMemoryTLSSlot);
@@ -3267,6 +3428,12 @@ bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
       return Serialise_OpenSharedHandle(ser, NULL, IID(), NULL);
     case D3D12Chunk::SetShaderExtUAV:
       return Serialise_SetShaderExtUAV(ser, GPUVendor::Unknown, 0, 0, true);
+    case D3D12Chunk::Device_CreateCommittedResource2:
+      return Serialise_CreateCommittedResource2(ser, NULL, D3D12_HEAP_FLAG_NONE, NULL,
+                                                D3D12_RESOURCE_STATE_COMMON, NULL, NULL, IID(), NULL);
+    case D3D12Chunk::Device_CreatePlacedResource1:
+      return Serialise_CreatePlacedResource1(ser, NULL, 0, NULL, D3D12_RESOURCE_STATE_COMMON, NULL,
+                                             IID(), NULL);
 
     // in order to get a warning if we miss a case, we explicitly handle the list/queue chunks here.
     // If we actually encounter one it's an error (we should hit CaptureBegin first and switch to

@@ -257,12 +257,13 @@ struct WrappedID3D11VideoDevice2 : public ID3D11VideoDevice2
       _Inout_updates_bytes_(DataSize) void *pData);
 };
 
-struct WrappedID3D11VideoContext2 : public ID3D11VideoContext2
+struct WrappedID3D11VideoContext : public ID3D11VideoContext3
 {
   WrappedID3D11DeviceContext *m_pContext = NULL;
   ID3D11VideoContext *m_pReal = NULL;
   ID3D11VideoContext1 *m_pReal1 = NULL;
   ID3D11VideoContext2 *m_pReal2 = NULL;
+  ID3D11VideoContext3 *m_pReal3 = NULL;
 
   //////////////////////////////
   // implement IUnknown
@@ -1028,6 +1029,30 @@ struct WrappedID3D11VideoContext2 : public ID3D11VideoContext2
       _In_ UINT Size,
       /* [annotation] */
       _Out_writes_bytes_opt_(Size) void *pMetaData);
+
+  //////////////////////////////
+  // implement ID3D11VideoContext3
+  virtual HRESULT STDMETHODCALLTYPE DecoderBeginFrame1(
+      /* [annotation] */
+      _In_ ID3D11VideoDecoder *pDecoder,
+      /* [annotation] */
+      _In_ ID3D11VideoDecoderOutputView *pView, UINT ContentKeySize,
+      /* [annotation] */
+      _In_reads_bytes_opt_(ContentKeySize) const void *pContentKey,
+      /* [annotation] */
+      _In_range_(0, D3D11_4_VIDEO_DECODER_MAX_HISTOGRAM_COMPONENTS) UINT NumComponentHistograms,
+      /* [annotation] */
+      _In_reads_opt_(NumComponentHistograms) const UINT *pHistogramOffsets,
+      /* [annotation] */
+      _In_reads_opt_(NumComponentHistograms) ID3D11Buffer *const *ppHistogramBuffers);
+
+  virtual HRESULT STDMETHODCALLTYPE SubmitDecoderBuffers2(
+      /* [annotation] */
+      _In_ ID3D11VideoDecoder *pDecoder,
+      /* [annotation] */
+      _In_ UINT NumBuffers,
+      /* [annotation] */
+      _In_reads_(NumBuffers) const D3D11_VIDEO_DECODER_BUFFER_DESC2 *pBufferDesc);
 };
 
 // we don't want to depend on d3d11_resources.h in this header, so replicate

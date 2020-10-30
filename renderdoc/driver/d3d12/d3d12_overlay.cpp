@@ -374,7 +374,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
   if(m_Overlay.Texture)
     currentOverlayDesc = m_Overlay.Texture->GetDesc();
 
-  WrappedID3D12Resource1 *wrappedCustomRenderTex = (WrappedID3D12Resource1 *)m_Overlay.Texture;
+  WrappedID3D12Resource *wrappedCustomRenderTex = (WrappedID3D12Resource *)m_Overlay.Texture;
 
   // need to recreate backing custom render tex
   if(overlayTexDesc.Width != currentOverlayDesc.Width ||
@@ -397,7 +397,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       RDCERR("Failed to create custom render tex HRESULT: %s", ToStr(hr).c_str());
       return ResourceId();
     }
-    wrappedCustomRenderTex = (WrappedID3D12Resource1 *)customRenderTex;
+    wrappedCustomRenderTex = (WrappedID3D12Resource *)customRenderTex;
 
     customRenderTex->SetName(L"customRenderTex");
 
@@ -1154,7 +1154,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       vertexData.SpriteSize = Vec2f();
 
       D3D12RenderState::SignatureElement vertexElem(eRootCBV, ResourceId(), 0);
-      WrappedID3D12Resource1::GetResIDFromAddr(
+      WrappedID3D12Resource::GetResIDFromAddr(
           GetDebugManager()->UploadConstants(&vertexData, sizeof(vertexData)), vertexElem.id,
           vertexElem.offset);
 
@@ -1168,7 +1168,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
           viewport = Vec4f(rs.views[0].Width, rs.views[0].Height);
 
         D3D12RenderState::SignatureElement viewportElem(eRootCBV, ResourceId(), 0);
-        WrappedID3D12Resource1::GetResIDFromAddr(
+        WrappedID3D12Resource::GetResIDFromAddr(
             GetDebugManager()->UploadConstants(&viewport, sizeof(viewport)), viewportElem.id,
             viewportElem.offset);
 

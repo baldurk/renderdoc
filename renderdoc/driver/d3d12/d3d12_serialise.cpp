@@ -299,7 +299,7 @@ void DoSerialise(SerialiserType &ser, D3D12BufferLocation &el)
   UINT64 offs = 0;
 
   if(ser.IsWriting() || ser.IsStructurising())
-    WrappedID3D12Resource1::GetResIDFromAddr(el.Location, buffer, offs);
+    WrappedID3D12Resource::GetResIDFromAddr(el.Location, buffer, offs);
   if(ser.IsStructurising() && rm)
     buffer = rm->GetOriginalID(buffer);
 
@@ -504,6 +504,30 @@ void DoSerialise(SerialiserType &ser, D3D12_RESOURCE_DESC &el)
   SERIALISE_MEMBER(SampleDesc);
   SERIALISE_MEMBER(Layout);
   SERIALISE_MEMBER(Flags);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_MIP_REGION &el)
+{
+  SERIALISE_MEMBER(Width);
+  SERIALISE_MEMBER(Height);
+  SERIALISE_MEMBER(Depth);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_RESOURCE_DESC1 &el)
+{
+  SERIALISE_MEMBER(Dimension);
+  SERIALISE_MEMBER(Alignment);
+  SERIALISE_MEMBER(Width);
+  SERIALISE_MEMBER(Height);
+  SERIALISE_MEMBER(DepthOrArraySize);
+  SERIALISE_MEMBER(MipLevels);
+  SERIALISE_MEMBER(Format);
+  SERIALISE_MEMBER(SampleDesc);
+  SERIALISE_MEMBER(Layout);
+  SERIALISE_MEMBER(Flags);
+  SERIALISE_MEMBER(SamplerFeedbackMipRegion);
 }
 
 template <class SerialiserType>
@@ -1523,6 +1547,7 @@ INSTANTIATE_SERIALISE_TYPE(D3D12Descriptor);
 INSTANTIATE_SERIALISE_TYPE(D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC);
 
 INSTANTIATE_SERIALISE_TYPE(D3D12_RESOURCE_DESC);
+INSTANTIATE_SERIALISE_TYPE(D3D12_RESOURCE_DESC1);
 INSTANTIATE_SERIALISE_TYPE(D3D12_COMMAND_QUEUE_DESC);
 INSTANTIATE_SERIALISE_TYPE(D3D12_SHADER_BYTECODE);
 INSTANTIATE_SERIALISE_TYPE(D3D12_GRAPHICS_PIPELINE_STATE_DESC);

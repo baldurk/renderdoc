@@ -441,7 +441,7 @@ struct CmdListRecordingInfo
   rdcarray<D3D12ResourceRecord *> bundles;
 };
 
-class WrappedID3D12Resource1;
+class WrappedID3D12Resource;
 
 struct GPUAddressRange
 {

@@ -484,7 +484,7 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
 
       for(auto it = maps.begin(); it != maps.end(); ++it)
       {
-        WrappedID3D12Resource1 *res = GetWrapped(it->res);
+        WrappedID3D12Resource *res = GetWrapped(it->res);
         UINT subres = it->subres;
         size_t size = (size_t)it->totalSize;
 

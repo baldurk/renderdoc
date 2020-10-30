@@ -185,5 +185,17 @@
     <ClCompile Include="d3d12_shaderdebug.cpp">
       <Filter>Replay</Filter>
     </ClCompile>
+    <ClCompile Include="d3d12_command_list6_wrap.cpp">
+      <Filter>Wrapped</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d12_device_wrap6.cpp">
+      <Filter>Wrapped</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d12_device_wrap7.cpp">
+      <Filter>Wrapped</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d12_device_wrap8.cpp">
+      <Filter>Wrapped</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

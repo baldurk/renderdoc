@@ -59,7 +59,7 @@ struct D3D12InitParams
 DECLARE_REFLECTION_STRUCT(D3D12InitParams);
 
 class WrappedID3D12Device;
-class WrappedID3D12Resource1;
+class WrappedID3D12Resource;
 class WrappedID3D12PipelineState;
 
 class D3D12Replay;
@@ -292,10 +292,11 @@ struct WrappedDownlevelDevice : public ID3D12DeviceDownlevel
                        _Out_ DXGI_QUERY_VIDEO_MEMORY_INFO *pVideoMemoryInfo);
 };
 
-struct WrappedDRED : public ID3D12DeviceRemovedExtendedData
+struct WrappedDRED : public ID3D12DeviceRemovedExtendedData1
 {
   WrappedID3D12Device &m_pDevice;
   ID3D12DeviceRemovedExtendedData *m_pReal = NULL;
+  ID3D12DeviceRemovedExtendedData1 *m_pReal1 = NULL;
 
   WrappedDRED(WrappedID3D12Device &dev) : m_pDevice(dev) {}
   //////////////////////////////
@@ -315,12 +316,25 @@ struct WrappedDRED : public ID3D12DeviceRemovedExtendedData
   {
     return m_pReal->GetPageFaultAllocationOutput(pOutput);
   }
+
+  //////////////////////////////
+  // implement ID3D12DeviceRemovedExtendedData1
+  virtual HRESULT STDMETHODCALLTYPE GetAutoBreadcrumbsOutput1(D3D12_DRED_AUTO_BREADCRUMBS_OUTPUT1 *pOutput)
+  {
+    return m_pReal1->GetAutoBreadcrumbsOutput1(pOutput);
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE GetPageFaultAllocationOutput1(D3D12_DRED_PAGE_FAULT_OUTPUT1 *pOutput)
+  {
+    return m_pReal1->GetPageFaultAllocationOutput1(pOutput);
+  }
 };
 
-struct WrappedDREDSettings : public ID3D12DeviceRemovedExtendedDataSettings
+struct WrappedDREDSettings : public ID3D12DeviceRemovedExtendedDataSettings1
 {
   WrappedID3D12Device &m_pDevice;
   ID3D12DeviceRemovedExtendedDataSettings *m_pReal = NULL;
+  ID3D12DeviceRemovedExtendedDataSettings1 *m_pReal1 = NULL;
 
   WrappedDREDSettings(WrappedID3D12Device &dev) : m_pDevice(dev) {}
   //////////////////////////////
@@ -343,6 +357,50 @@ struct WrappedDREDSettings : public ID3D12DeviceRemovedExtendedDataSettings
   {
     m_pReal->SetWatsonDumpEnablement(setting);
   }
+
+  //////////////////////////////
+  // implement ID3D12DeviceRemovedExtendedDataSettings1
+  virtual void STDMETHODCALLTYPE SetBreadcrumbContextEnablement(D3D12_DRED_ENABLEMENT Enablement)
+  {
+    m_pReal1->SetBreadcrumbContextEnablement(Enablement);
+  }
+};
+
+struct WrappedID3D12SharingContract : public ID3D12SharingContract, public IDXGISwapper
+{
+private:
+  ID3D12Resource *m_pPresentSource = NULL;
+  HWND m_pPresentHWND = NULL;
+
+public:
+  WrappedID3D12Device &m_pDevice;
+  ID3D12SharingContract *m_pReal = NULL;
+
+  WrappedID3D12SharingContract(WrappedID3D12Device &dev) : m_pDevice(dev) {}
+  //////////////////////////////
+  // implement IDXGISwapper
+  virtual ID3DDevice *GetD3DDevice();
+  virtual int GetNumBackbuffers() { return 1; }
+  virtual IUnknown **GetBackbuffers() { return (IUnknown **)&m_pPresentSource; }
+  virtual int GetLastPresentedBuffer() { return 0; }
+  virtual UINT GetWidth();
+  virtual UINT GetHeight();
+  virtual DXGI_FORMAT GetFormat();
+  virtual HWND GetHWND();
+
+  //////////////////////////////
+  // implement IUnknown
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
+  ULONG STDMETHODCALLTYPE AddRef();
+  ULONG STDMETHODCALLTYPE Release();
+
+  //////////////////////////////
+  // implement ID3D12SharingContract
+  virtual void STDMETHODCALLTYPE Present(_In_ ID3D12Resource *pResource, UINT Subresource,
+                                         _In_ HWND window);
+  virtual void STDMETHODCALLTYPE SharedFenceSignal(_In_ ID3D12Fence *pFence, UINT64 FenceValue);
+  virtual void STDMETHODCALLTYPE BeginCapturableWork(_In_ REFGUID guid);
+  virtual void STDMETHODCALLTYPE EndCapturableWork(_In_ REFGUID guid);
 };
 
 // these aren't documented, they're defined in D3D12TranslationLayer in the d3d11on12 codebase
@@ -450,7 +508,7 @@ class WrappedID3D12CommandQueue;
   template <typename SerialiserType>                         \
   bool CONCAT(Serialise_, func(SerialiserType &ser, __VA_ARGS__));
 
-class WrappedID3D12Device : public IFrameCapturer, public ID3DDevice, public ID3D12Device6
+class WrappedID3D12Device : public IFrameCapturer, public ID3DDevice, public ID3D12Device8
 {
 private:
   ID3D12Device *m_pDevice;
@@ -460,6 +518,8 @@ private:
   ID3D12Device4 *m_pDevice4;
   ID3D12Device5 *m_pDevice5;
   ID3D12Device6 *m_pDevice6;
+  ID3D12Device7 *m_pDevice7;
+  ID3D12Device8 *m_pDevice8;
   ID3D12DeviceDownlevel *m_pDownlevel;
 
   // list of all queues being captured
@@ -513,6 +573,7 @@ private:
   DummyID3D12InfoQueue m_DummyInfoQueue;
   DummyID3D12DebugDevice m_DummyDebug;
   WrappedID3D12DebugDevice m_WrappedDebug;
+  WrappedID3D12SharingContract m_SharingContract;
 
   D3D12Replay *m_Replay;
   D3D12ShaderCache *m_ShaderCache = NULL;
@@ -598,7 +659,7 @@ private:
   std::set<ResourceId> m_Cubemaps;
 
   // only valid on replay
-  std::map<ResourceId, WrappedID3D12Resource1 *> *m_ResourceList = NULL;
+  std::map<ResourceId, WrappedID3D12Resource *> *m_ResourceList = NULL;
   rdcarray<WrappedID3D12PipelineState *> *m_PipelineList = NULL;
 
   struct SwapPresentInfo
@@ -650,7 +711,7 @@ public:
   void RemoveQueue(WrappedID3D12CommandQueue *queue);
 
   // only valid on replay
-  std::map<ResourceId, WrappedID3D12Resource1 *> &GetResourceList() { return *m_ResourceList; }
+  std::map<ResourceId, WrappedID3D12Resource *> &GetResourceList() { return *m_ResourceList; }
   rdcarray<WrappedID3D12PipelineState *> &GetPipelineList() { return *m_PipelineList; }
   ////////////////////////////////////////////////////////////////
   // non wrapping interface
@@ -808,7 +869,8 @@ public:
     if(iid == __uuidof(ID3D12Device) || iid == __uuidof(ID3D12Device1) ||
        iid == __uuidof(ID3D12Device2) || iid == __uuidof(ID3D12Device3) ||
        iid == __uuidof(ID3D12Device4) || iid == __uuidof(ID3D12Device5) ||
-       iid == __uuidof(ID3D12Device6))
+       iid == __uuidof(ID3D12Device6) || iid == __uuidof(ID3D12Device7) ||
+       iid == __uuidof(ID3D12Device8))
       return true;
 
     return false;
@@ -829,6 +891,10 @@ public:
       return (ID3D12Device5 *)this;
     else if(iid == __uuidof(ID3D12Device6))
       return (ID3D12Device6 *)this;
+    else if(iid == __uuidof(ID3D12Device7))
+      return (ID3D12Device7 *)this;
+    else if(iid == __uuidof(ID3D12Device8))
+      return (ID3D12Device8 *)this;
 
     RDCERR("Requested unknown device interface %s", ToStr(iid).c_str());
 
@@ -899,6 +965,18 @@ public:
     else if(riid == __uuidof(ID3D12Device6))
     {
       *ppvDevice = (ID3D12Device6 *)this;
+      this->AddRef();
+      return S_OK;
+    }
+    else if(riid == __uuidof(ID3D12Device7))
+    {
+      *ppvDevice = (ID3D12Device7 *)this;
+      this->AddRef();
+      return S_OK;
+    }
+    else if(riid == __uuidof(ID3D12Device8))
+    {
+      *ppvDevice = (ID3D12Device8 *)this;
       this->AddRef();
       return S_OK;
     }
@@ -1271,4 +1349,51 @@ public:
   virtual HRESULT STDMETHODCALLTYPE SetBackgroundProcessingMode(
       D3D12_BACKGROUND_PROCESSING_MODE Mode, D3D12_MEASUREMENTS_ACTION MeasurementsAction,
       _In_opt_ HANDLE hEventToSignalUponCompletion, _Out_opt_ BOOL *pbFurtherMeasurementsDesired);
+
+  //////////////////////////////
+  // implement ID3D12Device7
+  virtual HRESULT STDMETHODCALLTYPE AddToStateObject(const D3D12_STATE_OBJECT_DESC *pAddition,
+                                                     ID3D12StateObject *pStateObjectToGrowFrom,
+                                                     REFIID riid,
+                                                     _COM_Outptr_ void **ppNewStateObject);
+
+  virtual HRESULT STDMETHODCALLTYPE
+  CreateProtectedResourceSession1(_In_ const D3D12_PROTECTED_RESOURCE_SESSION_DESC1 *pDesc,
+                                  _In_ REFIID riid, _COM_Outptr_ void **ppSession);
+
+  //////////////////////////////
+  // implement ID3D12Device8
+  virtual D3D12_RESOURCE_ALLOCATION_INFO STDMETHODCALLTYPE GetResourceAllocationInfo2(
+      UINT visibleMask, UINT numResourceDescs,
+      _In_reads_(numResourceDescs) const D3D12_RESOURCE_DESC1 *pResourceDescs,
+      _Out_writes_opt_(numResourceDescs) D3D12_RESOURCE_ALLOCATION_INFO1 *pResourceAllocationInfo1);
+
+  IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateCommittedResource2,
+                                       _In_ const D3D12_HEAP_PROPERTIES *pHeapProperties,
+                                       D3D12_HEAP_FLAGS HeapFlags,
+                                       _In_ const D3D12_RESOURCE_DESC1 *pDesc,
+                                       D3D12_RESOURCE_STATES InitialResourceState,
+                                       _In_opt_ const D3D12_CLEAR_VALUE *pOptimizedClearValue,
+                                       _In_opt_ ID3D12ProtectedResourceSession *pProtectedSession,
+                                       REFIID riidResource, _COM_Outptr_opt_ void **ppvResource);
+
+  IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreatePlacedResource1,
+                                       _In_ ID3D12Heap *pHeap, UINT64 HeapOffset,
+                                       _In_ const D3D12_RESOURCE_DESC1 *pDesc,
+                                       D3D12_RESOURCE_STATES InitialState,
+                                       _In_opt_ const D3D12_CLEAR_VALUE *pOptimizedClearValue,
+                                       REFIID riid, _COM_Outptr_opt_ void **ppvResource);
+
+  virtual void STDMETHODCALLTYPE CreateSamplerFeedbackUnorderedAccessView(
+      _In_opt_ ID3D12Resource *pTargetedResource, _In_opt_ ID3D12Resource *pFeedbackResource,
+      _In_ D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor);
+
+  virtual void STDMETHODCALLTYPE GetCopyableFootprints1(
+      _In_ const D3D12_RESOURCE_DESC1 *pResourceDesc,
+      _In_range_(0, D3D12_REQ_SUBRESOURCES) UINT FirstSubresource,
+      _In_range_(0, D3D12_REQ_SUBRESOURCES - FirstSubresource) UINT NumSubresources,
+      UINT64 BaseOffset,
+      _Out_writes_opt_(NumSubresources) D3D12_PLACED_SUBRESOURCE_FOOTPRINT *pLayouts,
+      _Out_writes_opt_(NumSubresources) UINT *pNumRows,
+      _Out_writes_opt_(NumSubresources) UINT64 *pRowSizeInBytes, _Out_opt_ UINT64 *pTotalBytes);
 };

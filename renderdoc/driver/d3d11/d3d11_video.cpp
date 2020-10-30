@@ -418,17 +418,17 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11VideoDevice2::NegotiateCryptoSessionKeyEx
       VIDEO_UNWRAP(WrappedID3D11CryptoSession, pCryptoSession), flags, DataSize, pData);
 }
 
-ULONG STDMETHODCALLTYPE WrappedID3D11VideoContext2::AddRef()
+ULONG STDMETHODCALLTYPE WrappedID3D11VideoContext::AddRef()
 {
   return m_pContext->AddRef();
 }
 
-ULONG STDMETHODCALLTYPE WrappedID3D11VideoContext2::Release()
+ULONG STDMETHODCALLTYPE WrappedID3D11VideoContext::Release()
 {
   return m_pContext->Release();
 }
 
-HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::QueryInterface(REFIID riid, void **ppvObject)
+HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext::QueryInterface(REFIID riid, void **ppvObject)
 {
   if(riid == __uuidof(IUnknown))
   {
@@ -470,16 +470,30 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::QueryInterface(REFIID riid
       return E_NOINTERFACE;
     }
   }
+  else if(riid == __uuidof(ID3D11VideoContext3))
+  {
+    if(m_pReal3)
+    {
+      *ppvObject = (ID3D11VideoContext3 *)this;
+      AddRef();
+      return S_OK;
+    }
+    else
+    {
+      *ppvObject = NULL;
+      return E_NOINTERFACE;
+    }
+  }
 
   return m_pContext->QueryInterface(riid, ppvObject);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::GetDevice(ID3D11Device **ppDevice)
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::GetDevice(ID3D11Device **ppDevice)
 {
   m_pContext->GetDevice(ppDevice);
 }
 
-HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::GetDecoderBuffer(
+HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext::GetDecoderBuffer(
     /* [annotation] */ _In_ ID3D11VideoDecoder *pDecoder, D3D11_VIDEO_DECODER_BUFFER_TYPE Type,
     /* [annotation] */ _Out_ UINT *pBufferSize,
     /* [annotation] */ _Outptr_result_bytebuffer_(*pBufferSize) void **ppBuffer)
@@ -488,14 +502,14 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::GetDecoderBuffer(
                                    pBufferSize, ppBuffer);
 }
 
-HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::ReleaseDecoderBuffer(
+HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext::ReleaseDecoderBuffer(
     /* [annotation] */ _In_ ID3D11VideoDecoder *pDecoder,
     /* [annotation] */ _In_ D3D11_VIDEO_DECODER_BUFFER_TYPE Type)
 {
   return m_pReal->ReleaseDecoderBuffer(VIDEO_UNWRAP(WrappedID3D11VideoDecoder, pDecoder), Type);
 }
 
-HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::DecoderBeginFrame(
+HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext::DecoderBeginFrame(
     /* [annotation] */ _In_ ID3D11VideoDecoder *pDecoder,
     /* [annotation] */ _In_ ID3D11VideoDecoderOutputView *pView, UINT ContentKeySize,
     /* [annotation] */ _In_reads_bytes_opt_(ContentKeySize) const void *pContentKey)
@@ -506,12 +520,12 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::DecoderBeginFrame(
 }
 
 HRESULT STDMETHODCALLTYPE
-WrappedID3D11VideoContext2::DecoderEndFrame(/* [annotation] */ _In_ ID3D11VideoDecoder *pDecoder)
+WrappedID3D11VideoContext::DecoderEndFrame(/* [annotation] */ _In_ ID3D11VideoDecoder *pDecoder)
 {
   return m_pReal->DecoderEndFrame(VIDEO_UNWRAP(WrappedID3D11VideoDecoder, pDecoder));
 }
 
-HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::SubmitDecoderBuffers(
+HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext::SubmitDecoderBuffers(
     /* [annotation] */ _In_ ID3D11VideoDecoder *pDecoder, /* [annotation] */ _In_ UINT NumBuffers,
     /* [annotation] */ _In_reads_(NumBuffers) const D3D11_VIDEO_DECODER_BUFFER_DESC *pBufferDesc)
 {
@@ -519,7 +533,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::SubmitDecoderBuffers(
                                        NumBuffers, pBufferDesc);
 }
 
-APP_DEPRECATED_HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::DecoderExtension(
+APP_DEPRECATED_HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext::DecoderExtension(
     /* [annotation] */ _In_ ID3D11VideoDecoder *pDecoder,
     /* [annotation] */ _In_ const D3D11_VIDEO_DECODER_EXTENSION *pExtensionData)
 {
@@ -540,7 +554,7 @@ APP_DEPRECATED_HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::DecoderExte
   return m_pReal->DecoderExtension(VIDEO_UNWRAP(WrappedID3D11VideoDecoder, pDecoder), &unwrappedExt);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetOutputTargetRect(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorSetOutputTargetRect(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ BOOL Enable, /* [annotation] */ _In_opt_ const RECT *pRect)
 {
@@ -548,7 +562,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetOutputTarget
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), Enable, pRect);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetOutputBackgroundColor(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorSetOutputBackgroundColor(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ BOOL YCbCr, /* [annotation] */ _In_ const D3D11_VIDEO_COLOR *pColor)
 {
@@ -556,7 +570,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetOutputBackgr
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), YCbCr, pColor);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetOutputColorSpace(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorSetOutputColorSpace(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ const D3D11_VIDEO_PROCESSOR_COLOR_SPACE *pColorSpace)
 {
@@ -564,7 +578,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetOutputColorS
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), pColorSpace);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetOutputAlphaFillMode(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorSetOutputAlphaFillMode(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ D3D11_VIDEO_PROCESSOR_ALPHA_FILL_MODE AlphaFillMode,
     /* [annotation] */ _In_ UINT StreamIndex)
@@ -573,7 +587,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetOutputAlphaF
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), AlphaFillMode, StreamIndex);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetOutputConstriction(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorSetOutputConstriction(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ BOOL Enable, /* [annotation] */ _In_ SIZE Size)
 {
@@ -581,14 +595,14 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetOutputConstr
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), Enable, Size);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetOutputStereoMode(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorSetOutputStereoMode(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor, /* [annotation] */ _In_ BOOL Enable)
 {
   return m_pReal->VideoProcessorSetOutputStereoMode(
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), Enable);
 }
 
-APP_DEPRECATED_HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetOutputExtension(
+APP_DEPRECATED_HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorSetOutputExtension(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ const GUID *pExtensionGuid, /* [annotation] */ _In_ UINT DataSize,
     /* [annotation] */ _In_ void *pData)
@@ -597,7 +611,7 @@ APP_DEPRECATED_HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProces
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), pExtensionGuid, DataSize, pData);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetOutputTargetRect(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorGetOutputTargetRect(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _Out_ BOOL *Enabled, /* [annotation] */ _Out_ RECT *pRect)
 {
@@ -605,7 +619,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetOutputTarget
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), Enabled, pRect);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetOutputBackgroundColor(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorGetOutputBackgroundColor(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _Out_ BOOL *pYCbCr, /* [annotation] */ _Out_ D3D11_VIDEO_COLOR *pColor)
 {
@@ -613,7 +627,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetOutputBackgr
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), pYCbCr, pColor);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetOutputColorSpace(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorGetOutputColorSpace(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _Out_ D3D11_VIDEO_PROCESSOR_COLOR_SPACE *pColorSpace)
 {
@@ -621,7 +635,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetOutputColorS
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), pColorSpace);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetOutputAlphaFillMode(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorGetOutputAlphaFillMode(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _Out_ D3D11_VIDEO_PROCESSOR_ALPHA_FILL_MODE *pAlphaFillMode,
     /* [annotation] */ _Out_ UINT *pStreamIndex)
@@ -630,7 +644,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetOutputAlphaF
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), pAlphaFillMode, pStreamIndex);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetOutputConstriction(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorGetOutputConstriction(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _Out_ BOOL *pEnabled, /* [annotation] */ _Out_ SIZE *pSize)
 {
@@ -638,7 +652,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetOutputConstr
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), pEnabled, pSize);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetOutputStereoMode(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorGetOutputStereoMode(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _Out_ BOOL *pEnabled)
 {
@@ -646,7 +660,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetOutputStereo
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), pEnabled);
 }
 
-APP_DEPRECATED_HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetOutputExtension(
+APP_DEPRECATED_HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorGetOutputExtension(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ const GUID *pExtensionGuid, /* [annotation] */ _In_ UINT DataSize,
     /* [annotation] */ _Out_writes_bytes_(DataSize) void *pData)
@@ -655,7 +669,7 @@ APP_DEPRECATED_HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProces
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), pExtensionGuid, DataSize, pData);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamFrameFormat(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorSetStreamFrameFormat(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex,
     /* [annotation] */ _In_ D3D11_VIDEO_FRAME_FORMAT FrameFormat)
@@ -664,7 +678,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamFrameF
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), StreamIndex, FrameFormat);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamColorSpace(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorSetStreamColorSpace(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex,
     /* [annotation] */ _In_ const D3D11_VIDEO_PROCESSOR_COLOR_SPACE *pColorSpace)
@@ -673,7 +687,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamColorS
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), StreamIndex, pColorSpace);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamOutputRate(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorSetStreamOutputRate(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex,
     /* [annotation] */ _In_ D3D11_VIDEO_PROCESSOR_OUTPUT_RATE OutputRate,
@@ -685,7 +699,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamOutput
       RepeatFrame, pCustomRate);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamSourceRect(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorSetStreamSourceRect(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex, /* [annotation] */ _In_ BOOL Enable,
     /* [annotation] */ _In_opt_ const RECT *pRect)
@@ -694,7 +708,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamSource
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), StreamIndex, Enable, pRect);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamDestRect(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorSetStreamDestRect(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex, /* [annotation] */ _In_ BOOL Enable,
     /* [annotation] */ _In_opt_ const RECT *pRect)
@@ -703,7 +717,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamDestRe
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), StreamIndex, Enable, pRect);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamAlpha(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorSetStreamAlpha(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex, /* [annotation] */ _In_ BOOL Enable,
     /* [annotation] */ _In_ FLOAT Alpha)
@@ -712,7 +726,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamAlpha(
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), StreamIndex, Enable, Alpha);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamPalette(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorSetStreamPalette(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex, /* [annotation] */ _In_ UINT Count,
     /* [annotation] */ _In_reads_opt_(Count) const UINT *pEntries)
@@ -721,7 +735,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamPalett
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), StreamIndex, Count, pEntries);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamPixelAspectRatio(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorSetStreamPixelAspectRatio(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex, /* [annotation] */ _In_ BOOL Enable,
     /* [annotation] */ _In_opt_ const DXGI_RATIONAL *pSourceAspectRatio,
@@ -732,7 +746,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamPixelA
       pSourceAspectRatio, pDestinationAspectRatio);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamLumaKey(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorSetStreamLumaKey(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex, /* [annotation] */ _In_ BOOL Enable,
     /* [annotation] */ _In_ FLOAT Lower, /* [annotation] */ _In_ FLOAT Upper)
@@ -741,7 +755,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamLumaKe
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), StreamIndex, Enable, Lower, Upper);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamStereoFormat(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorSetStreamStereoFormat(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex, /* [annotation] */ _In_ BOOL Enable,
     /* [annotation] */ _In_ D3D11_VIDEO_PROCESSOR_STEREO_FORMAT Format,
@@ -754,7 +768,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamStereo
       LeftViewFrame0, BaseViewFrame0, FlipMode, MonoOffset);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamAutoProcessingMode(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorSetStreamAutoProcessingMode(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex, /* [annotation] */ _In_ BOOL Enable)
 {
@@ -762,7 +776,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamAutoPr
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), StreamIndex, Enable);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamFilter(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorSetStreamFilter(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex,
     /* [annotation] */ _In_ D3D11_VIDEO_PROCESSOR_FILTER Filter,
@@ -772,7 +786,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamFilter
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), StreamIndex, Filter, Enable, Level);
 }
 
-APP_DEPRECATED_HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamExtension(
+APP_DEPRECATED_HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorSetStreamExtension(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex, /* [annotation] */ _In_ const GUID *pExtensionGuid,
     /* [annotation] */ _In_ UINT DataSize, /* [annotation] */ _In_ void *pData)
@@ -782,7 +796,7 @@ APP_DEPRECATED_HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProces
       DataSize, pData);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamFrameFormat(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorGetStreamFrameFormat(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex,
     /* [annotation] */ _Out_ D3D11_VIDEO_FRAME_FORMAT *pFrameFormat)
@@ -791,7 +805,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamFrameF
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), StreamIndex, pFrameFormat);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamColorSpace(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorGetStreamColorSpace(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex,
     /* [annotation] */ _Out_ D3D11_VIDEO_PROCESSOR_COLOR_SPACE *pColorSpace)
@@ -800,7 +814,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamColorS
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), StreamIndex, pColorSpace);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamOutputRate(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorGetStreamOutputRate(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex,
     /* [annotation] */ _Out_ D3D11_VIDEO_PROCESSOR_OUTPUT_RATE *pOutputRate,
@@ -811,7 +825,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamOutput
       pRepeatFrame, pCustomRate);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamSourceRect(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorGetStreamSourceRect(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex, /* [annotation] */ _Out_ BOOL *pEnabled,
     /* [annotation] */ _Out_ RECT *pRect)
@@ -820,7 +834,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamSource
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), StreamIndex, pEnabled, pRect);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamDestRect(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorGetStreamDestRect(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex, /* [annotation] */ _Out_ BOOL *pEnabled,
     /* [annotation] */ _Out_ RECT *pRect)
@@ -829,7 +843,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamDestRe
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), StreamIndex, pEnabled, pRect);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamAlpha(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorGetStreamAlpha(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex, /* [annotation] */ _Out_ BOOL *pEnabled,
     /* [annotation] */ _Out_ FLOAT *pAlpha)
@@ -838,7 +852,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamAlpha(
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), StreamIndex, pEnabled, pAlpha);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamPalette(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorGetStreamPalette(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex, /* [annotation] */ _In_ UINT Count,
     /* [annotation] */ _Out_writes_(Count) UINT *pEntries)
@@ -847,7 +861,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamPalett
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), StreamIndex, Count, pEntries);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamPixelAspectRatio(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorGetStreamPixelAspectRatio(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex, /* [annotation] */ _Out_ BOOL *pEnabled,
     /* [annotation] */ _Out_ DXGI_RATIONAL *pSourceAspectRatio,
@@ -858,7 +872,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamPixelA
       pSourceAspectRatio, pDestinationAspectRatio);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamLumaKey(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorGetStreamLumaKey(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex, /* [annotation] */ _Out_ BOOL *pEnabled,
     /* [annotation] */ _Out_ FLOAT *pLower, /* [annotation] */ _Out_ FLOAT *pUpper)
@@ -868,7 +882,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamLumaKe
       pUpper);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamStereoFormat(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorGetStreamStereoFormat(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex, /* [annotation] */ _Out_ BOOL *pEnable,
     /* [annotation] */ _Out_ D3D11_VIDEO_PROCESSOR_STEREO_FORMAT *pFormat,
@@ -881,7 +895,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamStereo
       pLeftViewFrame0, pBaseViewFrame0, pFlipMode, MonoOffset);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamAutoProcessingMode(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorGetStreamAutoProcessingMode(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex, /* [annotation] */ _Out_ BOOL *pEnabled)
 {
@@ -889,7 +903,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamAutoPr
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), StreamIndex, pEnabled);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamFilter(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorGetStreamFilter(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex,
     /* [annotation] */ _In_ D3D11_VIDEO_PROCESSOR_FILTER Filter,
@@ -900,7 +914,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamFilter
       pLevel);
 }
 
-APP_DEPRECATED_HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamExtension(
+APP_DEPRECATED_HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorGetStreamExtension(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex, /* [annotation] */ _In_ const GUID *pExtensionGuid,
     /* [annotation] */ _In_ UINT DataSize,
@@ -911,7 +925,7 @@ APP_DEPRECATED_HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProces
       DataSize, pData);
 }
 
-HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorBlt(
+HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorBlt(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ ID3D11VideoProcessorOutputView *pView,
     /* [annotation] */ _In_ UINT OutputFrame, /* [annotation] */ _In_ UINT StreamCount,
@@ -992,7 +1006,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorBlt(
                                     OutputFrame, StreamCount, unwrappedStreams.data());
 }
 
-HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::NegotiateCryptoSessionKeyExchange(
+HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext::NegotiateCryptoSessionKeyExchange(
     /* [annotation] */ _In_ ID3D11CryptoSession *pCryptoSession,
     /* [annotation] */ _In_ UINT DataSize,
     /* [annotation] */ _Inout_updates_bytes_(DataSize) void *pData)
@@ -1001,7 +1015,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::NegotiateCryptoSessionKeyE
       VIDEO_UNWRAP(WrappedID3D11CryptoSession, pCryptoSession), DataSize, pData);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::EncryptionBlt(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::EncryptionBlt(
     /* [annotation] */ _In_ ID3D11CryptoSession *pCryptoSession,
     /* [annotation] */ _In_ ID3D11Texture2D *pSrcSurface,
     /* [annotation] */ _In_ ID3D11Texture2D *pDstSurface, /* [annotation] */ _In_ UINT IVSize,
@@ -1012,7 +1026,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::EncryptionBlt(
                                 UNWRAP(WrappedID3D11Texture2D1, pDstSurface), IVSize, pIV);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::DecryptionBlt(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::DecryptionBlt(
     /* [annotation] */ _In_ ID3D11CryptoSession *pCryptoSession,
     /* [annotation] */ _In_ ID3D11Texture2D *pSrcSurface,
     /* [annotation] */ _In_ ID3D11Texture2D *pDstSurface,
@@ -1027,7 +1041,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::DecryptionBlt(
                                 ContentKeySize, pContentKey, IVSize, pIV);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::StartSessionKeyRefresh(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::StartSessionKeyRefresh(
     /* [annotation] */ _In_ ID3D11CryptoSession *pCryptoSession,
     /* [annotation] */ _In_ UINT RandomNumberSize,
     /* [annotation] */ _Out_writes_bytes_(RandomNumberSize) void *pRandomNumber)
@@ -1036,13 +1050,13 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::StartSessionKeyRefresh(
                                          RandomNumberSize, pRandomNumber);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::FinishSessionKeyRefresh(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::FinishSessionKeyRefresh(
     /* [annotation] */ _In_ ID3D11CryptoSession *pCryptoSession)
 {
   return m_pReal->FinishSessionKeyRefresh(VIDEO_UNWRAP(WrappedID3D11CryptoSession, pCryptoSession));
 }
 
-HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::GetEncryptionBltKey(
+HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext::GetEncryptionBltKey(
     /* [annotation] */ _In_ ID3D11CryptoSession *pCryptoSession, /* [annotation] */ _In_ UINT KeySize,
     /* [annotation] */ _Out_writes_bytes_(KeySize) void *pReadbackKey)
 {
@@ -1050,7 +1064,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::GetEncryptionBltKey(
                                       KeySize, pReadbackKey);
 }
 
-HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::NegotiateAuthenticatedChannelKeyExchange(
+HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext::NegotiateAuthenticatedChannelKeyExchange(
     /* [annotation] */ _In_ ID3D11AuthenticatedChannel *pChannel,
     /* [annotation] */ _In_ UINT DataSize,
     /* [annotation] */ _Inout_updates_bytes_(DataSize) void *pData)
@@ -1059,7 +1073,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::NegotiateAuthenticatedChan
       VIDEO_UNWRAP(WrappedID3D11AuthenticatedChannel, pChannel), DataSize, pData);
 }
 
-HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::QueryAuthenticatedChannel(
+HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext::QueryAuthenticatedChannel(
     /* [annotation] */ _In_ ID3D11AuthenticatedChannel *pChannel,
     /* [annotation] */ _In_ UINT InputSize,
     /* [annotation] */ _In_reads_bytes_(InputSize) const void *pInput,
@@ -1070,7 +1084,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::QueryAuthenticatedChannel(
                                             InputSize, pInput, OutputSize, pOutput);
 }
 
-HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::ConfigureAuthenticatedChannel(
+HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext::ConfigureAuthenticatedChannel(
     /* [annotation] */ _In_ ID3D11AuthenticatedChannel *pChannel,
     /* [annotation] */ _In_ UINT InputSize,
     /* [annotation] */ _In_reads_bytes_(InputSize) const void *pInput,
@@ -1080,7 +1094,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::ConfigureAuthenticatedChan
       VIDEO_UNWRAP(WrappedID3D11AuthenticatedChannel, pChannel), InputSize, pInput, pOutput);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamRotation(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorSetStreamRotation(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex, /* [annotation] */ _In_ BOOL Enable,
     /* [annotation] */ _In_ D3D11_VIDEO_PROCESSOR_ROTATION Rotation)
@@ -1089,7 +1103,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamRotati
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), StreamIndex, Enable, Rotation);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamRotation(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorGetStreamRotation(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex, /* [annotation] */ _Out_ BOOL *pEnable,
     /* [annotation] */ _Out_ D3D11_VIDEO_PROCESSOR_ROTATION *pRotation)
@@ -1098,7 +1112,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamRotati
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), StreamIndex, pEnable, pRotation);
 }
 
-HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::SubmitDecoderBuffers1(
+HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext::SubmitDecoderBuffers1(
     /* [annotation] */ _In_ ID3D11VideoDecoder *pDecoder, /* [annotation] */ _In_ UINT NumBuffers,
     /* [annotation] */ _In_reads_(NumBuffers) const D3D11_VIDEO_DECODER_BUFFER_DESC1 *pBufferDesc)
 {
@@ -1108,7 +1122,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::SubmitDecoderBuffers1(
                                          NumBuffers, pBufferDesc);
 }
 
-HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::GetDataForNewHardwareKey(
+HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext::GetDataForNewHardwareKey(
     /* [annotation] */ _In_ ID3D11CryptoSession *pCryptoSession,
     /* [annotation] */ _In_ UINT PrivateInputSize,
     /* [annotation] */ _In_reads_(PrivateInputSize) const void *pPrivatInputData,
@@ -1120,7 +1134,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::GetDataForNewHardwareKey(
                                             PrivateInputSize, pPrivatInputData, pPrivateOutputData);
 }
 
-HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::CheckCryptoSessionStatus(
+HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext::CheckCryptoSessionStatus(
     /* [annotation] */ _In_ ID3D11CryptoSession *pCryptoSession,
     /* [annotation] */ _Out_ D3D11_CRYPTO_SESSION_STATUS *pStatus)
 {
@@ -1130,7 +1144,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::CheckCryptoSessionStatus(
       VIDEO_UNWRAP(WrappedID3D11CryptoSession, pCryptoSession), pStatus);
 }
 
-HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::DecoderEnableDownsampling(
+HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext::DecoderEnableDownsampling(
     /* [annotation] */ _In_ ID3D11VideoDecoder *pDecoder,
     /* [annotation] */ _In_ DXGI_COLOR_SPACE_TYPE InputColorSpace,
     /* [annotation] */ _In_ const D3D11_VIDEO_SAMPLE_DESC *pOutputDesc,
@@ -1142,7 +1156,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::DecoderEnableDownsampling(
                                              InputColorSpace, pOutputDesc, ReferenceFrameCount);
 }
 
-HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::DecoderUpdateDownsampling(
+HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext::DecoderUpdateDownsampling(
     /* [annotation] */ _In_ ID3D11VideoDecoder *pDecoder,
     /* [annotation] */ _In_ const D3D11_VIDEO_SAMPLE_DESC *pOutputDesc)
 {
@@ -1152,7 +1166,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::DecoderUpdateDownsampling(
                                              pOutputDesc);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetOutputColorSpace1(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorSetOutputColorSpace1(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ DXGI_COLOR_SPACE_TYPE ColorSpace)
 {
@@ -1162,7 +1176,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetOutputColorS
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), ColorSpace);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetOutputShaderUsage(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorSetOutputShaderUsage(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ BOOL ShaderUsage)
 {
@@ -1172,7 +1186,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetOutputShader
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), ShaderUsage);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetOutputColorSpace1(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorGetOutputColorSpace1(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _Out_ DXGI_COLOR_SPACE_TYPE *pColorSpace)
 {
@@ -1182,7 +1196,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetOutputColorS
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), pColorSpace);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetOutputShaderUsage(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorGetOutputShaderUsage(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _Out_ BOOL *pShaderUsage)
 {
@@ -1192,7 +1206,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetOutputShader
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), pShaderUsage);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamColorSpace1(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorSetStreamColorSpace1(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex,
     /* [annotation] */ _In_ DXGI_COLOR_SPACE_TYPE ColorSpace)
@@ -1203,7 +1217,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamColorS
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), StreamIndex, ColorSpace);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamMirror(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorSetStreamMirror(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex, /* [annotation] */ _In_ BOOL Enable,
     /* [annotation] */ _In_ BOOL FlipHorizontal, /* [annotation] */ _In_ BOOL FlipVertical)
@@ -1215,7 +1229,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamMirror
       FlipHorizontal, FlipVertical);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamColorSpace1(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorGetStreamColorSpace1(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex,
     /* [annotation] */ _Out_ DXGI_COLOR_SPACE_TYPE *pColorSpace)
@@ -1226,7 +1240,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamColorS
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), StreamIndex, pColorSpace);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamMirror(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorGetStreamMirror(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex, /* [annotation] */ _Out_ BOOL *pEnable,
     /* [annotation] */ _Out_ BOOL *pFlipHorizontal, /* [annotation] */ _Out_ BOOL *pFlipVertical)
@@ -1238,7 +1252,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamMirror
       pFlipHorizontal, pFlipVertical);
 }
 
-HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetBehaviorHints(
+HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorGetBehaviorHints(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT OutputWidth, /* [annotation] */ _In_ UINT OutputHeight,
     /* [annotation] */ _In_ DXGI_FORMAT OutputFormat, /* [annotation] */ _In_ UINT StreamCount,
@@ -1253,7 +1267,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetBehaviorH
       OutputFormat, StreamCount, pStreams, pBehaviorHints);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetOutputHDRMetaData(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorSetOutputHDRMetaData(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ DXGI_HDR_METADATA_TYPE Type, /* [annotation] */ _In_ UINT Size,
     /* [annotation] */ _In_reads_bytes_opt_(Size) const void *pHDRMetaData)
@@ -1264,7 +1278,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetOutputHDRMet
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), Type, Size, pHDRMetaData);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetOutputHDRMetaData(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorGetOutputHDRMetaData(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _Out_ DXGI_HDR_METADATA_TYPE *pType, /* [annotation] */ _In_ UINT Size,
     /* [annotation] */ _Out_writes_bytes_opt_(Size) void *pMetaData)
@@ -1275,7 +1289,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetOutputHDRMet
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), pType, Size, pMetaData);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamHDRMetaData(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorSetStreamHDRMetaData(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex, /* [annotation] */ _In_ DXGI_HDR_METADATA_TYPE Type,
     /* [annotation] */ _In_ UINT Size,
@@ -1288,7 +1302,7 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorSetStreamHDRMet
       pHDRMetaData);
 }
 
-void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamHDRMetaData(
+void STDMETHODCALLTYPE WrappedID3D11VideoContext::VideoProcessorGetStreamHDRMetaData(
     /* [annotation] */ _In_ ID3D11VideoProcessor *pVideoProcessor,
     /* [annotation] */ _In_ UINT StreamIndex,
     /* [annotation] */ _Out_ DXGI_HDR_METADATA_TYPE *pType, /* [annotation] */ _In_ UINT Size,
@@ -1299,6 +1313,33 @@ void STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorGetStreamHDRMet
   return m_pReal2->VideoProcessorGetStreamHDRMetaData(
       VIDEO_UNWRAP(WrappedID3D11VideoProcessor, pVideoProcessor), StreamIndex, pType, Size,
       pMetaData);
+}
+
+HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext::DecoderBeginFrame1(
+    /* [annotation] */ _In_ ID3D11VideoDecoder *pDecoder,
+    /* [annotation] */ _In_ ID3D11VideoDecoderOutputView *pView, UINT ContentKeySize,
+    /* [annotation] */ _In_reads_bytes_opt_(ContentKeySize) const void *pContentKey,
+    /* [annotation] */ _In_range_(0, D3D11_4_VIDEO_DECODER_MAX_HISTOGRAM_COMPONENTS)
+        UINT NumComponentHistograms,
+    /* [annotation] */ _In_reads_opt_(NumComponentHistograms) const UINT *pHistogramOffsets,
+    /* [annotation] */ _In_reads_opt_(NumComponentHistograms) ID3D11Buffer *const *ppHistogramBuffers)
+{
+  if(!m_pReal3)
+    return E_NOINTERFACE;
+  return m_pReal3->DecoderBeginFrame1(VIDEO_UNWRAP(WrappedID3D11VideoDecoder, pDecoder),
+                                      VIDEO_UNWRAP(WrappedID3D11VideoDecoderOutputView, pView),
+                                      ContentKeySize, pContentKey, NumComponentHistograms,
+                                      pHistogramOffsets, ppHistogramBuffers);
+}
+
+HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext::SubmitDecoderBuffers2(
+    /* [annotation] */ _In_ ID3D11VideoDecoder *pDecoder, /* [annotation] */ _In_ UINT NumBuffers,
+    /* [annotation] */ _In_reads_(NumBuffers) const D3D11_VIDEO_DECODER_BUFFER_DESC2 *pBufferDesc)
+{
+  if(!m_pReal3)
+    return E_NOINTERFACE;
+  return m_pReal3->SubmitDecoderBuffers2(VIDEO_UNWRAP(WrappedID3D11VideoDecoder, pDecoder),
+                                         NumBuffers, pBufferDesc);
 }
 
 void STDMETHODCALLTYPE WrappedID3D11VideoDecoderOutputView::GetResource(

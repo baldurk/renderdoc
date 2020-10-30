@@ -32,6 +32,44 @@
 
 class WrappedID3D12CommandQueue;
 
+// this aren't documented, they're defined in D3D12TranslationLayer in the d3d11on12 codebase
+MIDL_INTERFACE("7974c836-9520-4cda-8d43-d996622e8926")
+ID3D12CompatibilityQueue : public IUnknown
+{
+public:
+  virtual HRESULT STDMETHODCALLTYPE AcquireKeyedMutex(
+      _In_ ID3D12Object * pHeapOrResourceWithKeyedMutex, UINT64 Key, DWORD dwTimeout,
+      _Reserved_ void *pReserved, _In_range_(0, 0) UINT Reserved) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE ReleaseKeyedMutex(
+      _In_ ID3D12Object * pHeapOrResourceWithKeyedMutex, UINT64 Key, _Reserved_ void *pReserved,
+      _In_range_(0, 0) UINT Reserved) = 0;
+};
+
+struct WrappedID3D12CompatibilityQueue : public ID3D12CompatibilityQueue
+{
+  WrappedID3D12CommandQueue &m_pQueue;
+  ID3D12CompatibilityQueue *m_pReal = NULL;
+
+  WrappedID3D12CompatibilityQueue(WrappedID3D12CommandQueue &dev) : m_pQueue(dev) {}
+  //////////////////////////////
+  // implement IUnknown
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
+  ULONG STDMETHODCALLTYPE AddRef();
+  ULONG STDMETHODCALLTYPE Release();
+
+  //////////////////////////////
+  // implement ID3D12CompatibilityQueue
+  virtual HRESULT STDMETHODCALLTYPE AcquireKeyedMutex(_In_ ID3D12Object *pHeapOrResourceWithKeyedMutex,
+                                                      UINT64 Key, DWORD dwTimeout,
+                                                      _Reserved_ void *pReserved,
+                                                      _In_range_(0, 0) UINT Reserved);
+
+  virtual HRESULT STDMETHODCALLTYPE ReleaseKeyedMutex(_In_ ID3D12Object *pHeapOrResourceWithKeyedMutex,
+                                                      UINT64 Key, _Reserved_ void *pReserved,
+                                                      _In_range_(0, 0) UINT Reserved);
+};
+
 struct WrappedID3D12DebugCommandQueue : public ID3D12DebugCommandQueue
 {
   WrappedID3D12CommandQueue *m_pQueue;
@@ -114,6 +152,7 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
   ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
 
   WrappedID3D12DebugCommandQueue m_WrappedDebug;
+  WrappedID3D12CompatibilityQueue m_WrappedCompat;
 
   rdcarray<D3D12ResourceRecord *> m_CmdListRecords;
 

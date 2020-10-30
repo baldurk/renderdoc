@@ -40,7 +40,7 @@ HRESULT WrappedID3D12Device::OpenExistingHeapFromAddress(const void *pAddress, R
 
   if(SUCCEEDED(ret))
   {
-    WrappedID3D12Heap1 *wrapped = new WrappedID3D12Heap1(real, this);
+    WrappedID3D12Heap *wrapped = new WrappedID3D12Heap(real, this);
 
     if(IsCaptureMode(m_State))
     {
@@ -108,7 +108,7 @@ HRESULT WrappedID3D12Device::OpenExistingHeapFromFileMapping(HANDLE hFileMapping
 
   if(SUCCEEDED(ret))
   {
-    WrappedID3D12Heap1 *wrapped = new WrappedID3D12Heap1(real, this);
+    WrappedID3D12Heap *wrapped = new WrappedID3D12Heap(real, this);
 
     if(IsCaptureMode(m_State))
     {
@@ -173,9 +173,9 @@ HRESULT WrappedID3D12Device::EnqueueMakeResident(D3D12_RESIDENCY_FLAGS Flags, UI
       heap->SetResident(true);
       unwrapped[i] = heap->GetReal();
     }
-    else if(WrappedID3D12Resource1::IsAlloc(ppObjects[i]))
+    else if(WrappedID3D12Resource::IsAlloc(ppObjects[i]))
     {
-      WrappedID3D12Resource1 *res = (WrappedID3D12Resource1 *)ppObjects[i];
+      WrappedID3D12Resource *res = (WrappedID3D12Resource *)ppObjects[i];
       res->SetResident(true);
       unwrapped[i] = res->GetReal();
     }

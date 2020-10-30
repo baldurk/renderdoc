@@ -1196,8 +1196,8 @@ void D3D12Replay::FillRootElements(const D3D12RenderState::RootSignature &rootSi
             if(desc)
             {
               const D3D12_CONSTANT_BUFFER_VIEW_DESC &cbv = desc->GetCBV();
-              WrappedID3D12Resource1::GetResIDFromAddr(cbv.BufferLocation, cb.resourceId,
-                                                       cb.byteOffset);
+              WrappedID3D12Resource::GetResIDFromAddr(cbv.BufferLocation, cb.resourceId,
+                                                      cb.byteOffset);
               cb.resourceId = rm->GetOriginalID(cb.resourceId);
               cb.byteSize = cbv.SizeInBytes;
 
@@ -2703,7 +2703,7 @@ void D3D12Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t lengt
     return;
   }
 
-  WrappedID3D12Resource1 *buffer = it->second;
+  WrappedID3D12Resource *buffer = it->second;
 
   if(buffer->GetDesc().Dimension != D3D12_RESOURCE_DIMENSION_BUFFER)
   {

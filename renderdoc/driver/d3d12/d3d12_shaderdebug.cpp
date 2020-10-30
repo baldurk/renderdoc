@@ -1730,7 +1730,7 @@ void GatherConstantBuffers(WrappedID3D12Device *pDevice, const DXBCBytecode::Pro
             const D3D12_CONSTANT_BUFFER_VIEW_DESC &cbv = desc->GetCBV();
             ResourceId resId;
             uint64_t byteOffset = 0;
-            WrappedID3D12Resource1::GetResIDFromAddr(cbv.BufferLocation, resId, byteOffset);
+            WrappedID3D12Resource::GetResIDFromAddr(cbv.BufferLocation, resId, byteOffset);
             ID3D12Resource *pCbvResource =
                 pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(resId);
             cbufData.clear();

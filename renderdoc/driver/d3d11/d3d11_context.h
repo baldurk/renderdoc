@@ -146,7 +146,7 @@ private:
   ID3D11DeviceContext3 *m_pRealContext3;
   ID3D11DeviceContext4 *m_pRealContext4;
 
-  WrappedID3D11VideoContext2 m_WrappedVideo;
+  WrappedID3D11VideoContext m_WrappedVideo;
 
   D3D11_DEVICE_CONTEXT_TYPE m_Type;
   bool m_NeedUpdateSubWorkaround;

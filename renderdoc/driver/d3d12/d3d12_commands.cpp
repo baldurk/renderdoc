@@ -80,6 +80,14 @@ ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList5 *obj)
   return ((WrappedID3D12GraphicsCommandList *)obj)->GetReal();
 }
 
+ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList6 *obj)
+{
+  if(obj == NULL)
+    return NULL;
+
+  return ((WrappedID3D12GraphicsCommandList *)obj)->GetReal();
+}
+
 ID3D12GraphicsCommandList1 *Unwrap1(ID3D12GraphicsCommandList1 *obj)
 {
   if(obj == NULL)
@@ -118,6 +126,14 @@ ID3D12GraphicsCommandList5 *Unwrap5(ID3D12GraphicsCommandList5 *obj)
     return NULL;
 
   return ((WrappedID3D12GraphicsCommandList *)obj)->GetReal5();
+}
+
+ID3D12GraphicsCommandList6 *Unwrap6(ID3D12GraphicsCommandList6 *obj)
+{
+  if(obj == NULL)
+    return NULL;
+
+  return ((WrappedID3D12GraphicsCommandList *)obj)->GetReal6();
 }
 
 template <>
@@ -176,6 +192,15 @@ ResourceId GetResID(ID3D12GraphicsCommandList4 *obj)
 
 template <>
 ResourceId GetResID(ID3D12GraphicsCommandList5 *obj)
+{
+  if(obj == NULL)
+    return ResourceId();
+
+  return ((WrappedID3D12GraphicsCommandList *)obj)->GetResourceID();
+}
+
+template <>
+ResourceId GetResID(ID3D12GraphicsCommandList6 *obj)
 {
   if(obj == NULL)
     return ResourceId();
@@ -262,6 +287,11 @@ WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList5 *obj)
   return ((WrappedID3D12GraphicsCommandList *)obj);
 }
 
+WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList6 *obj)
+{
+  return ((WrappedID3D12GraphicsCommandList *)obj);
+}
+
 ULONG STDMETHODCALLTYPE WrappedID3D12DebugCommandQueue::AddRef()
 {
   if(m_pQueue)
@@ -290,6 +320,37 @@ ULONG STDMETHODCALLTYPE WrappedID3D12DebugCommandList::Release()
   return 1;
 }
 
+HRESULT STDMETHODCALLTYPE WrappedID3D12CompatibilityQueue::QueryInterface(REFIID riid,
+                                                                          void **ppvObject)
+{
+  return m_pQueue.QueryInterface(riid, ppvObject);
+}
+
+ULONG STDMETHODCALLTYPE WrappedID3D12CompatibilityQueue::AddRef()
+{
+  return m_pQueue.AddRef();
+}
+
+ULONG STDMETHODCALLTYPE WrappedID3D12CompatibilityQueue::Release()
+{
+  return m_pQueue.Release();
+}
+
+HRESULT STDMETHODCALLTYPE WrappedID3D12CompatibilityQueue::AcquireKeyedMutex(
+    _In_ ID3D12Object *pHeapOrResourceWithKeyedMutex, UINT64 Key, DWORD dwTimeout,
+    _Reserved_ void *pReserved, _In_range_(0, 0) UINT Reserved)
+{
+  return m_pReal->AcquireKeyedMutex(Unwrap(pHeapOrResourceWithKeyedMutex), Key, dwTimeout,
+                                    pReserved, Reserved);
+}
+
+HRESULT STDMETHODCALLTYPE WrappedID3D12CompatibilityQueue::ReleaseKeyedMutex(
+    _In_ ID3D12Object *pHeapOrResourceWithKeyedMutex, UINT64 Key, _Reserved_ void *pReserved,
+    _In_range_(0, 0) UINT Reserved)
+{
+  return m_pReal->ReleaseKeyedMutex(Unwrap(pHeapOrResourceWithKeyedMutex), Key, pReserved, Reserved);
+}
+
 HRESULT STDMETHODCALLTYPE WrappedDownlevelQueue::QueryInterface(REFIID riid, void **ppvObject)
 {
   return m_pQueue.QueryInterface(riid, ppvObject);
@@ -314,7 +375,11 @@ HRESULT STDMETHODCALLTYPE WrappedDownlevelQueue::Present(ID3D12GraphicsCommandLi
 
 WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
                                                      WrappedID3D12Device *device, CaptureState &state)
-    : RefCounter12(real), m_pDevice(device), m_State(state), m_WrappedDownlevel(*this)
+    : RefCounter12(real),
+      m_pDevice(device),
+      m_State(state),
+      m_WrappedDownlevel(*this),
+      m_WrappedCompat(*this)
 {
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this,
@@ -326,6 +391,7 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
   {
     m_pReal->QueryInterface(__uuidof(ID3D12DebugCommandQueue), (void **)&m_WrappedDebug.m_pReal);
     m_pReal->QueryInterface(__uuidof(ID3D12CommandQueueDownlevel), (void **)&m_pDownlevel);
+    m_pReal->QueryInterface(__uuidof(ID3D12CompatibilityQueue), (void **)&m_WrappedCompat.m_pReal);
   }
 
   if(RenderDoc::Inst().IsReplayApp())
@@ -383,6 +449,7 @@ WrappedID3D12CommandQueue::~WrappedID3D12CommandQueue()
   for(size_t i = 0; i < m_Cmd.m_IndirectBuffers.size(); i++)
     SAFE_RELEASE(m_Cmd.m_IndirectBuffers[i]);
 
+  SAFE_RELEASE(m_WrappedCompat.m_pReal);
   SAFE_RELEASE(m_WrappedDebug.m_pReal);
   SAFE_RELEASE(m_pReal);
 }
@@ -407,6 +474,19 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::QueryInterface(REFIID riid,
     {
       AddRef();
       *ppvObject = (ID3D12DebugCommandQueue *)&m_WrappedDebug;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(ID3D12CompatibilityQueue))
+  {
+    if(m_WrappedCompat.m_pReal)
+    {
+      AddRef();
+      *ppvObject = (ID3D12CompatibilityQueue *)&m_WrappedCompat;
       return S_OK;
     }
     else
@@ -760,6 +840,8 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
     case D3D12Chunk::CompatDevice_CreateSharedResource:
     case D3D12Chunk::CompatDevice_CreateSharedHeap:
     case D3D12Chunk::SetShaderExtUAV:
+    case D3D12Chunk::Device_CreateCommittedResource2:
+    case D3D12Chunk::Device_CreatePlacedResource1:
       RDCERR("Unexpected chunk while processing frame: %s", ToStr(chunk).c_str());
       return false;
 
@@ -1255,7 +1337,16 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12GraphicsCommandList::QueryInterface(REFII
   }
   else if(riid == __uuidof(ID3D12GraphicsCommandList6))
   {
-    return E_NOINTERFACE;
+    if(m_pList6)
+    {
+      *ppvObject = (ID3D12GraphicsCommandList6 *)this;
+      AddRef();
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
   }
   else if(riid == __uuidof(ID3D12CommandList))
   {
@@ -1725,7 +1816,7 @@ void D3D12CommandData::AddUsage(const D3D12RenderState &state, D3D12DrawcallTree
               for(UINT i = 0; i < num; i++)
               {
                 ResourceId id =
-                    WrappedID3D12Resource1::GetResIDFromAddr(desc->GetCBV().BufferLocation);
+                    WrappedID3D12Resource::GetResIDFromAddr(desc->GetCBV().BufferLocation);
 
                 AddUsage(drawNode, id, e, cb);
 

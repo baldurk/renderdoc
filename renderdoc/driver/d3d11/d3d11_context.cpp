@@ -122,6 +122,7 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *real
     m_pRealContext->QueryInterface(__uuidof(ID3D11VideoContext), (void **)&m_WrappedVideo.m_pReal);
     m_pRealContext->QueryInterface(__uuidof(ID3D11VideoContext1), (void **)&m_WrappedVideo.m_pReal1);
     m_pRealContext->QueryInterface(__uuidof(ID3D11VideoContext2), (void **)&m_WrappedVideo.m_pReal2);
+    m_pRealContext->QueryInterface(__uuidof(ID3D11VideoContext3), (void **)&m_WrappedVideo.m_pReal3);
   }
 
   m_UserAnnotation.SetContext(this);
@@ -224,6 +225,7 @@ WrappedID3D11DeviceContext::~WrappedID3D11DeviceContext()
   SAFE_RELEASE(m_WrappedVideo.m_pReal);
   SAFE_RELEASE(m_WrappedVideo.m_pReal1);
   SAFE_RELEASE(m_WrappedVideo.m_pReal2);
+  SAFE_RELEASE(m_WrappedVideo.m_pReal3);
 
   SAFE_RELEASE(m_pRealContext1);
   SAFE_RELEASE(m_pRealContext2);
@@ -1520,7 +1522,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface(REFIID riid
     return m_pDevice->QueryInterface(riid, ppvObject);
   }
   else if(riid == __uuidof(ID3D11VideoContext) || riid == __uuidof(ID3D11VideoContext1) ||
-          riid == __uuidof(ID3D11VideoContext2))
+          riid == __uuidof(ID3D11VideoContext2) || riid == __uuidof(ID3D11VideoContext3))
   {
     return m_WrappedVideo.QueryInterface(riid, ppvObject);
   }
