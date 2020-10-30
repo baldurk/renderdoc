@@ -277,7 +277,7 @@ private:
     HRESULT ret = dxgihooks.CreateDXGIFactory()(riid, ppFactory);
 
     if(SUCCEEDED(ret))
-      RefCountDXGIObject::HandleWrap(riid, ppFactory);
+      RefCountDXGIObject::HandleWrap("CreateDXGIFactory", riid, ppFactory);
 
     return ret;
   }
@@ -289,7 +289,7 @@ private:
     HRESULT ret = dxgihooks.CreateDXGIFactory1()(riid, ppFactory);
 
     if(SUCCEEDED(ret))
-      RefCountDXGIObject::HandleWrap(riid, ppFactory);
+      RefCountDXGIObject::HandleWrap("CreateDXGIFactory1", riid, ppFactory);
 
     return ret;
   }
@@ -301,7 +301,7 @@ private:
     HRESULT ret = dxgihooks.CreateDXGIFactory2()(Flags, riid, ppFactory);
 
     if(SUCCEEDED(ret))
-      RefCountDXGIObject::HandleWrap(riid, ppFactory);
+      RefCountDXGIObject::HandleWrap("CreateDXGIFactory2", riid, ppFactory);
 
     return ret;
   }

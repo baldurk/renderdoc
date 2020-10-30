@@ -525,12 +525,8 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::QueryInterface(REFIID riid,
       return E_NOINTERFACE;
     }
   }
-  else
-  {
-    WarnUnknownGUID("ID3D12CommandQueue", riid);
-  }
 
-  return RefCounter12::QueryInterface(riid, ppvObject);
+  return RefCounter12::QueryInterface("ID3D12CommandQueue", riid, ppvObject);
 }
 
 void WrappedID3D12CommandQueue::ClearAfterCapture()
@@ -1372,12 +1368,8 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12GraphicsCommandList::QueryInterface(REFII
     AddRef();
     return S_OK;
   }
-  else
-  {
-    WarnUnknownGUID("ID3D12GraphicsCommandList", riid);
-  }
 
-  return m_RefCounter.QueryInterface(riid, ppvObject);
+  return m_RefCounter.QueryInterface("ID3D12GraphicsCommandList", riid, ppvObject);
 }
 
 void BakedCmdListInfo::ShiftForRemoved(uint32_t shiftDrawID, uint32_t shiftEID, size_t idx)

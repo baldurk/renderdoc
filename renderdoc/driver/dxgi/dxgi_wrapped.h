@@ -48,8 +48,9 @@ class RefCountDXGIObject : public IDXGIObject
 public:
   RefCountDXGIObject(IDXGIObject *real) : m_pReal(real), m_iRefcount(1) {}
   virtual ~RefCountDXGIObject() {}
-  static bool HandleWrap(REFIID riid, void **ppvObject);
-  static HRESULT WrapQueryInterface(IUnknown *real, REFIID riid, void **ppvObject);
+  static bool HandleWrap(const char *ifaceName, REFIID riid, void **ppvObject);
+  static HRESULT WrapQueryInterface(IUnknown *real, const char *ifaceName, REFIID riid,
+                                    void **ppvObject);
 
   //////////////////////////////
   // implement IUnknown
@@ -58,6 +59,13 @@ public:
       /* [annotation][iid_is][out] */
       __RPC__deref_out void **ppvObject)
   {
+    return QueryInterface("IUnknown", riid, ppvObject);
+  }
+
+  // optional overload that's useful for passing down the name of the current interface to put in
+  // any 'unknown interface' query logs.
+  HRESULT STDMETHODCALLTYPE QueryInterface(const char *ifaceName, REFIID riid, void **ppvObject)
+  {
     if(riid == __uuidof(IUnknown))
     {
       AddRef();
@@ -65,7 +73,7 @@ public:
       return S_OK;
     }
 
-    return WrapQueryInterface(m_pReal, riid, ppvObject);
+    return WrapQueryInterface(m_pReal, ifaceName, riid, ppvObject);
   }
 
   ULONG STDMETHODCALLTYPE AddRef()
@@ -111,30 +119,6 @@ public:
       /* [in] */ REFIID riid,
       /* [retval][out] */ void **ppParent);
 };
-
-#define IMPLEMENT_IDXGIOBJECT_WITH_REFCOUNTDXGIOBJECT                                      \
-  ULONG STDMETHODCALLTYPE AddRef() { return RefCountDXGIObject::AddRef(); }                \
-  ULONG STDMETHODCALLTYPE Release() { return RefCountDXGIObject::Release(); }              \
-  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)                  \
-  {                                                                                        \
-    return RefCountDXGIObject::QueryInterface(riid, ppvObject);                            \
-  }                                                                                        \
-  HRESULT STDMETHODCALLTYPE SetPrivateData(REFIID Name, UINT DataSize, const void *pData)  \
-  {                                                                                        \
-    return RefCountDXGIObject::SetPrivateData(Name, DataSize, pData);                      \
-  }                                                                                        \
-  HRESULT STDMETHODCALLTYPE SetPrivateDataInterface(REFIID Name, const IUnknown *pUnknown) \
-  {                                                                                        \
-    return RefCountDXGIObject::SetPrivateDataInterface(Name, pUnknown);                    \
-  }                                                                                        \
-  HRESULT STDMETHODCALLTYPE GetPrivateData(REFIID Name, UINT *pDataSize, void *pData)      \
-  {                                                                                        \
-    return RefCountDXGIObject::GetPrivateData(Name, pDataSize, pData);                     \
-  }                                                                                        \
-  HRESULT STDMETHODCALLTYPE GetParent(REFIID riid, void **ppvObject)                       \
-  {                                                                                        \
-    return RefCountDXGIObject::GetParent(riid, ppvObject);                                 \
-  }
 
 #define IMPLEMENT_IDXGIOBJECT_WITH_REFCOUNTDXGIOBJECT_CUSTOMQUERY                          \
   ULONG STDMETHODCALLTYPE AddRef() { return RefCountDXGIObject::AddRef(); }                \
@@ -1692,8 +1676,7 @@ public:
     }
     else
     {
-      RDCWARN("Wrapping unknown adapter GUID %s", ToStr(riid).c_str());
-      RefCountDXGIObject::HandleWrap(riid, ppvAdapter);
+      RefCountDXGIObject::HandleWrap("IDXGIAdapter", riid, ppvAdapter);
     }
   }
 

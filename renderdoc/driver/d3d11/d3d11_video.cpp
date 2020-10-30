@@ -1452,7 +1452,7 @@ Wrapped11VideoDeviceChild<NestedType, NestedType1>::QueryInterface(REFIID riid, 
     return m_pDevice->QueryInterface(riid, ppvObject);
   }
 
-  return RefCountDXGIObject::WrapQueryInterface(m_pReal, riid, ppvObject);
+  return RefCountDXGIObject::WrapQueryInterface(m_pReal, "ID3D11Video", riid, ppvObject);
 }
 
 template <typename NestedType, typename NestedType1>

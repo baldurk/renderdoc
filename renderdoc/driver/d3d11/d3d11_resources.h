@@ -316,7 +316,7 @@ public:
       return S_OK;
     }
 
-    return RefCountDXGIObject::WrapQueryInterface(m_pReal, riid, ppvObject);
+    return RefCountDXGIObject::WrapQueryInterface(m_pReal, "ID3D11DeviceChild", riid, ppvObject);
   }
 
   //////////////////////////////

@@ -805,6 +805,11 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
   static const GUID ID3D12CompatibilityDevice_uuid = {
       0x8f1c0e3c, 0xfae3, 0x4a82, {0xb0, 0x98, 0xbf, 0xe1, 0x70, 0x82, 0x07, 0xff}};
 
+  // unknown/undocumented internal interface
+  // {de18ef3a-0x2089-0x4936-0xa3 0xf3- 0xec 0x78 0x7a 0xc6 0xa4 0x0d}
+  static const GUID ID3D12DeviceDriverDetails_RS5_uuid = {
+      0xde18ef3a, 0x2089, 0x4936, {0xa3, 0xf3, 0xec, 0x78, 0x7a, 0xc6, 0xa4, 0x0d}};
+
   HRESULT hr = S_OK;
 
   if(riid == __uuidof(IUnknown))
@@ -1160,12 +1165,21 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
       return E_NOINTERFACE;
     }
   }
-  else
+  else if(riid == ID3D12DeviceDriverDetails_RS5_uuid)
   {
-    WarnUnknownGUID("ID3D12Device", riid);
+    static bool printed = false;
+    if(!printed)
+    {
+      RDCWARN(
+          "Querying ID3D12Device for unsupported/undocumented interface: "
+          "ID3D12DeviceDriverDetails_RS5");
+      printed = true;
+    }
+    // return the real thing unwrapped and hope this is OK
+    return m_pDevice->QueryInterface(riid, ppvObject);
   }
 
-  return m_RefCounter.QueryInterface(riid, ppvObject);
+  return m_RefCounter.QueryInterface("ID3D12Device", riid, ppvObject);
 }
 
 ID3D12Resource *WrappedID3D12Device::GetUploadBuffer(uint64_t chunkOffset, uint64_t byteSize)

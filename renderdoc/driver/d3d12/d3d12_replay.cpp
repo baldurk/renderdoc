@@ -76,7 +76,7 @@ void D3D12Replay::Initialise(IDXGIFactory1 *factory)
 
   if(m_pFactory)
   {
-    RefCountDXGIObject::HandleWrap(__uuidof(IDXGIFactory1), (void **)&m_pFactory);
+    RefCountDXGIObject::HandleWrap("D3D12Replay", __uuidof(IDXGIFactory1), (void **)&m_pFactory);
 
     LUID luid = m_pDevice->GetAdapterLuid();
 

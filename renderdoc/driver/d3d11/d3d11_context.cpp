@@ -1526,12 +1526,9 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface(REFIID riid
   {
     return m_WrappedVideo.QueryInterface(riid, ppvObject);
   }
-  else
-  {
-    WarnUnknownGUID("ID3D11DeviceContext", riid);
-  }
 
-  return RefCountDXGIObject::WrapQueryInterface(m_pRealContext, riid, ppvObject);
+  return RefCountDXGIObject::WrapQueryInterface(m_pRealContext, "ID3D11DeviceContext", riid,
+                                                ppvObject);
 }
 
 #pragma region Record Statistics

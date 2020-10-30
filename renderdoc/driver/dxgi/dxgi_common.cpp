@@ -1619,6 +1619,22 @@ D3D_PRIMITIVE_TOPOLOGY MakeD3DPrimitiveTopology(Topology Topo)
 
 void WarnUnknownGUID(const char *name, REFIID riid)
 {
+  // unknown/undocumented internal interface
+  // {7abb6563-02bc-47c4-8ef9-acc4795edbcf}
+  static const GUID IDXGIAdapterInternal2_uuid = {
+      0x7abb6563, 0x02bc, 0x47c4, {0x8e, 0xf9, 0xac, 0xc4, 0x79, 0x5e, 0xdb, 0xcf}};
+
+  if(riid == IDXGIAdapterInternal2_uuid)
+  {
+    static bool printed = false;
+    if(!printed)
+    {
+      printed = true;
+      RDCWARN("Querying %s for unsupported/undocumented interface: IDXGIAdapterInternal2", name);
+    }
+    return;
+  }
+
   static Threading::CriticalSection lock;
   // we use a vector here, because the number of *distinct* unknown GUIDs encountered is likely to
   // be low (e.g. less than 10).
@@ -1635,12 +1651,12 @@ void WarnUnknownGUID(const char *name, REFIID riid)
         if(w.second > 5)
           return;
 
-        RDCWARN("Querying %s for interface: %s", name, ToStr(riid).c_str());
+        RDCWARN("Querying %s for unknown/unhandled interface: %s", name, ToStr(riid).c_str());
         return;
       }
     }
 
-    RDCWARN("Querying %s for interface: %s", name, ToStr(riid).c_str());
+    RDCWARN("Querying %s for unknown/unhandled interface: %s", name, ToStr(riid).c_str());
     warned.push_back(make_rdcpair(riid, 1));
   }
 }

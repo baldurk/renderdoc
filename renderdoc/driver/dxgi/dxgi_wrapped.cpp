@@ -48,11 +48,11 @@ ID3DDevice *GetD3DDevice(IUnknown *pDevice)
   return wrapDevice;
 }
 
-bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
+bool RefCountDXGIObject::HandleWrap(const char *ifaceName, REFIID riid, void **ppvObject)
 {
   if(ppvObject == NULL || *ppvObject == NULL)
   {
-    RDCWARN("HandleWrap called with NULL ppvObject");
+    RDCWARN("HandleWrap called with NULL ppvObject querying %s", ifaceName);
     return false;
   }
 
@@ -66,15 +66,10 @@ bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
   static const GUID ID3D10Texture2D_uuid = {
       0x9b7e4c04, 0x342c, 0x4106, {0xa1, 0x9f, 0x4f, 0x27, 0x04, 0xf6, 0x89, 0xf0}};
 
-  // unknown/undocumented internal interface
-  // {7abb6563-02bc-47c4-8ef9-acc4795edbcf}
-  static const GUID IDXGIAdapterInternal2_uuid = {
-      0x7abb6563, 0x02bc, 0x47c4, {0x8e, 0xf9, 0xac, 0xc4, 0x79, 0x5e, 0xdb, 0xcf}};
-
   if(riid == __uuidof(IDXGIDevice))
   {
     // should have been handled elsewhere, so we can properly create this device
-    RDCERR("Unexpected uuid in RefCountDXGIObject::HandleWrap");
+    RDCERR("Unexpected uuid in RefCountDXGIObject::HandleWrap querying %s", ifaceName);
     return false;
   }
   else if(riid == __uuidof(IDXGIAdapter))
@@ -122,7 +117,7 @@ bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
   else if(riid == __uuidof(IDXGIDevice1))
   {
     // should have been handled elsewhere, so we can properly create this device
-    RDCERR("Unexpected uuid in RefCountDXGIObject::HandleWrap");
+    RDCERR("Unexpected uuid in RefCountDXGIObject::HandleWrap querying %s", ifaceName);
     return false;
   }
   else if(riid == __uuidof(IDXGIFactory1))
@@ -173,19 +168,7 @@ bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
     if(!printed)
     {
       printed = true;
-      RDCWARN("Querying IDXGIObject for unsupported D3D10 interface: %s", ToStr(riid).c_str());
-    }
-    return false;
-  }
-  else if(riid == IDXGIAdapterInternal2_uuid)
-  {
-    static bool printed = false;
-    if(!printed)
-    {
-      printed = true;
-      RDCWARN(
-          "Querying IDXGIObject for unsupported/undocumented IDXGIAdapterInternal2 interface: %s",
-          ToStr(riid).c_str());
+      RDCWARN("Querying %s for unsupported D3D10 interface: %s", ifaceName, ToStr(riid).c_str());
     }
     return false;
   }
@@ -195,12 +178,12 @@ bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
     if(!printed)
     {
       printed = true;
-      RDCWARN("Querying IDXGIObject for unknown GUID: %s", ToStr(riid).c_str());
+      RDCWARN("Querying %s for unknown GUID: %s", ifaceName, ToStr(riid).c_str());
     }
   }
   else
   {
-    WarnUnknownGUID("IDXGIObject", riid);
+    WarnUnknownGUID(ifaceName, riid);
   }
 
   return false;
@@ -213,17 +196,18 @@ HRESULT STDMETHODCALLTYPE RefCountDXGIObject::GetParent(
   HRESULT ret = m_pReal->GetParent(riid, ppParent);
 
   if(SUCCEEDED(ret))
-    HandleWrap(riid, ppParent);
+    HandleWrap("GetParent", riid, ppParent);
 
   return ret;
 }
 
-HRESULT RefCountDXGIObject::WrapQueryInterface(IUnknown *real, REFIID riid, void **ppvObject)
+HRESULT RefCountDXGIObject::WrapQueryInterface(IUnknown *real, const char *ifaceName, REFIID riid,
+                                               void **ppvObject)
 {
   HRESULT ret = real->QueryInterface(riid, ppvObject);
 
   if(SUCCEEDED(ret))
-    HandleWrap(riid, ppvObject);
+    HandleWrap(ifaceName, riid, ppvObject);
 
   return ret;
 }
@@ -344,12 +328,8 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::QueryInterface(REFIID riid, vo
       return E_NOINTERFACE;
     }
   }
-  else
-  {
-    WarnUnknownGUID("IDXGISwapChain", riid);
-  }
 
-  return RefCountDXGIObject::QueryInterface(riid, ppvObject);
+  return RefCountDXGIObject::QueryInterface("IDXGISwapChain", riid, ppvObject);
 }
 
 void WrappedIDXGISwapChain4::ReleaseBuffersForResize(UINT QueueCount, IUnknown *const *ppPresentQueue,
@@ -566,7 +546,7 @@ HRESULT WrappedIDXGISwapChain4::GetDevice(
       *ppDevice = this;
       AddRef();
     }
-    else if(!HandleWrap(riid, ppDevice))
+    else if(!HandleWrap("GetDevice", riid, ppDevice))
     {
       // can probably get away with returning the real result here,
       // but it worries me a bit.
@@ -857,12 +837,8 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIOutput6::QueryInterface(REFIID riid, void 
       return E_NOINTERFACE;
     }
   }
-  else
-  {
-    WarnUnknownGUID("IDXGIOutput", riid);
-  }
 
-  return RefCountDXGIObject::QueryInterface(riid, ppvObject);
+  return RefCountDXGIObject::QueryInterface("IDXGIOutput", riid, ppvObject);
 }
 
 WrappedIDXGIAdapter4::WrappedIDXGIAdapter4(IDXGIAdapter *real)
@@ -947,12 +923,8 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIAdapter4::QueryInterface(REFIID riid, void
       return E_NOINTERFACE;
     }
   }
-  else
-  {
-    WarnUnknownGUID("IDXGIAdapter", riid);
-  }
 
-  return RefCountDXGIObject::QueryInterface(riid, ppvObject);
+  return RefCountDXGIObject::QueryInterface("IDXGIAdapter", riid, ppvObject);
 }
 
 WrappedIDXGIDevice4::WrappedIDXGIDevice4(IDXGIDevice *real, ID3DDevice *d3d)
@@ -1051,12 +1023,8 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice4::QueryInterface(REFIID riid, void 
       return E_NOINTERFACE;
     }
   }
-  else
-  {
-    WarnUnknownGUID("IDXGIDevice", riid);
-  }
 
-  return RefCountDXGIObject::QueryInterface(riid, ppvObject);
+  return RefCountDXGIObject::QueryInterface("IDXGIDevice", riid, ppvObject);
 }
 
 rdcarray<IDXGIResource *> UnwrapResourceSet(UINT NumResources, IDXGIResource *const *ppResources)
@@ -1259,12 +1227,8 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIFactory::QueryInterface(REFIID riid, void 
     RDCWARN("Blocking QueryInterface for IDXGIFactoryDWM8");
     return E_NOINTERFACE;
   }
-  else
-  {
-    WarnUnknownGUID("IDXGIFactory", riid);
-  }
 
-  return RefCountDXGIObject::QueryInterface(riid, ppvObject);
+  return RefCountDXGIObject::QueryInterface("IDXGIFactory", riid, ppvObject);
 }
 
 HRESULT WrappedIDXGIFactory::CreateSwapChain(IUnknown *pDevice, DXGI_SWAP_CHAIN_DESC *pDesc,
@@ -1488,10 +1452,6 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIOutputDuplication::QueryInterface(REFIID r
     *ppvObject = (IDXGIOutputDuplication *)this;
     return S_OK;
   }
-  else
-  {
-    WarnUnknownGUID("IDXGIOutputDuplication", riid);
-  }
 
-  return RefCountDXGIObject::QueryInterface(riid, ppvObject);
+  return RefCountDXGIObject::QueryInterface("IDXGIOutputDuplication", riid, ppvObject);
 }

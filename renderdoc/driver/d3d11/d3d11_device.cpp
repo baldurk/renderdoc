@@ -795,9 +795,7 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
     return m_WrappedVideo.QueryInterface(riid, ppvObject);
   }
 
-  WarnUnknownGUID("ID3D11Device", riid);
-
-  return RefCountDXGIObject::WrapQueryInterface(m_pDevice, riid, ppvObject);
+  return RefCountDXGIObject::WrapQueryInterface(m_pDevice, "ID3D11Device", riid, ppvObject);
 }
 
 rdcstr WrappedID3D11Device::GetChunkName(uint32_t idx)

@@ -82,7 +82,8 @@ void D3D11Replay::Shutdown()
 
 void D3D11Replay::CreateResources(IDXGIFactory *factory)
 {
-  bool wrapped = RefCountDXGIObject::HandleWrap(__uuidof(IDXGIFactory), (void **)&factory);
+  bool wrapped =
+      RefCountDXGIObject::HandleWrap("D3D11Replay", __uuidof(IDXGIFactory), (void **)&factory);
   RDCASSERT(wrapped);
   m_pFactory = factory;
 

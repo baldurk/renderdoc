@@ -258,7 +258,7 @@ public:
       return S_OK;
     }
 
-    return RefCounter12::QueryInterface(riid, ppvObject);
+    return RefCounter12::QueryInterface("ID3D12DeviceChild", riid, ppvObject);
   }
 
   //////////////////////////////

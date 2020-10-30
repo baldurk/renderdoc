@@ -180,10 +180,15 @@ public:
   // implement IUnknown
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
   {
+    return QueryInterface("ID3D12Object", riid, ppvObject);
+  }
+
+  HRESULT STDMETHODCALLTYPE QueryInterface(const char *ifaceName, REFIID riid, void **ppvObject)
+  {
     if(!m_pReal)
       return E_NOINTERFACE;
 
-    return RefCountDXGIObject::WrapQueryInterface(m_pReal, riid, ppvObject);
+    return RefCountDXGIObject::WrapQueryInterface(m_pReal, ifaceName, riid, ppvObject);
   }
 
   ULONG STDMETHODCALLTYPE AddRef()
