@@ -3781,6 +3781,26 @@ HRESULT WrappedID3D11Device::CheckCounter(const D3D11_COUNTER_DESC *pDesc, D3D11
 HRESULT WrappedID3D11Device::CheckFeatureSupport(D3D11_FEATURE Feature, void *pFeatureSupportData,
                                                  UINT FeatureSupportDataSize)
 {
+  if(Feature == D3D11_FEATURE_D3D11_OPTIONS2)
+  {
+    HRESULT hr = m_pDevice->CheckFeatureSupport(Feature, pFeatureSupportData, FeatureSupportDataSize);
+
+    if(SUCCEEDED(hr))
+    {
+      D3D11_FEATURE_DATA_D3D11_OPTIONS2 *opts =
+          (D3D11_FEATURE_DATA_D3D11_OPTIONS2 *)pFeatureSupportData;
+      if(FeatureSupportDataSize != sizeof(D3D11_FEATURE_DATA_D3D11_OPTIONS2))
+        return E_INVALIDARG;
+
+      // don't support tiled resources
+      opts->TiledResourcesTier = D3D11_TILED_RESOURCES_NOT_SUPPORTED;
+
+      return S_OK;
+    }
+
+    return hr;
+  }
+
   return m_pDevice->CheckFeatureSupport(Feature, pFeatureSupportData, FeatureSupportDataSize);
 }
 
