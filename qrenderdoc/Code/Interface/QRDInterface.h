@@ -255,9 +255,13 @@ struct ITextureViewer
   DOCUMENT(R"(Open a texture view, optionally raising this window to the foreground.
 
 :param ~renderdoc.ResourceId resourceId: The ID of the texture to view.
+:param CompType typeCast: If possible interpret the texture with this type instead of its normal
+  type. If set to :data:`CompType.Typeless` then no cast is applied, otherwise where allowed the
+  texture data will be reinterpreted - e.g. from unsigned integers to floats, or to unsigned
+  normalised values.
 :param bool focus: ``True`` if the :class:`TextureViewer` should be raised.
 )");
-  virtual void ViewTexture(ResourceId resourceId, bool focus) = 0;
+  virtual void ViewTexture(ResourceId resourceId, CompType typeCast, bool focus) = 0;
   DOCUMENT(R"(Highlights the given pixel location in the current texture.
 
 :param int x: The X co-ordinate.

@@ -102,6 +102,20 @@ struct VulkanBufferTag
 
 Q_DECLARE_METATYPE(VulkanBufferTag);
 
+struct VulkanTextureTag
+{
+  VulkanTextureTag() { compType = CompType::Typeless; }
+  VulkanTextureTag(ResourceId id, CompType ty)
+  {
+    ID = id;
+    compType = ty;
+  }
+  ResourceId ID;
+  CompType compType;
+};
+
+Q_DECLARE_METATYPE(VulkanTextureTag);
+
 VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
                                                      PipelineStateViewer &common, QWidget *parent)
     : QFrame(parent), ui(new Ui::VulkanPipelineStateViewer), m_Ctx(ctx), m_Common(common)
@@ -1176,7 +1190,8 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
           restype = tex->type;
           samples = tex->msSamp;
 
-          tag = QVariant::fromValue(descriptorBind->resourceResourceId);
+          tag = QVariant::fromValue(VulkanTextureTag(descriptorBind->resourceResourceId,
+                                                     descriptorBind->viewFormat.compType));
         }
 
         // if not a texture, it must be a buffer
@@ -2487,7 +2502,8 @@ void VulkanPipelineStateViewer::setState()
             {slotname, p.imageResourceId, typeName, w, h, d, a, format, QString()});
 
         if(tex)
-          node->setTag(QVariant::fromValue(p.imageResourceId));
+          node->setTag(
+              QVariant::fromValue(VulkanTextureTag(p.imageResourceId, p.viewFormat.compType)));
 
         if(p.imageResourceId == ResourceId())
         {
@@ -2732,9 +2748,11 @@ void VulkanPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, i
 
   QVariant tag = item->tag();
 
-  if(tag.canConvert<ResourceId>())
+  if(tag.canConvert<VulkanTextureTag>())
   {
-    TextureDescription *tex = m_Ctx.GetTexture(tag.value<ResourceId>());
+    VulkanTextureTag vtex = tag.value<VulkanTextureTag>();
+
+    TextureDescription *tex = m_Ctx.GetTexture(vtex.ID);
 
     if(tex)
     {
@@ -2750,7 +2768,7 @@ void VulkanPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, i
         if(!m_Ctx.HasTextureViewer())
           m_Ctx.ShowTextureViewer();
         ITextureViewer *viewer = m_Ctx.GetTextureViewer();
-        viewer->ViewTexture(tex->resourceId, true);
+        viewer->ViewTexture(tex->resourceId, vtex.compType, true);
       }
 
       return;

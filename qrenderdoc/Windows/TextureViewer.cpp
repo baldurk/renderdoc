@@ -1981,13 +1981,16 @@ void TextureViewer::GotoLocation(int x, int y)
   UI_UpdateStatusText();
 }
 
-void TextureViewer::ViewTexture(ResourceId ID, bool focus)
+void TextureViewer::ViewTexture(ResourceId ID, CompType typeCast, bool focus)
 {
   if(QThread::currentThread() != QCoreApplication::instance()->thread())
   {
-    GUIInvoke::call(this, [this, ID, focus] { this->ViewTexture(ID, focus); });
+    GUIInvoke::call(this, [this, ID, typeCast, focus] { this->ViewTexture(ID, typeCast, focus); });
     return;
   }
+
+  if(typeCast != CompType::Typeless)
+    m_TextureSettings[ID].typeCast = typeCast;
 
   if(m_LockedTabs.contains(ID))
   {
@@ -2062,10 +2065,15 @@ void TextureViewer::texContextItem_triggered()
     return;
   }
 
-  QVariant id = act->property("id");
-  if(id.isValid())
+  QVariant idvar = act->property("id");
+  if(idvar.isValid())
   {
-    ViewTexture(id.value<ResourceId>(), false);
+    ResourceId id = idvar.value<ResourceId>();
+    CompType typeCast = CompType::Typeless;
+    if(m_TextureSettings.contains(id))
+      typeCast = m_TextureSettings[id].typeCast;
+
+    ViewTexture(id, typeCast, false);
     return;
   }
 }
@@ -2361,7 +2369,9 @@ void TextureViewer::thumb_doubleClicked(QMouseEvent *e)
     ResourceId id = m_Following.GetResourceId(m_Ctx);
 
     if(id != ResourceId())
-      ViewTexture(id, false);
+    {
+      ViewTexture(id, m_Following.GetTypeHint(m_Ctx), false);
+    }
   }
 }
 
@@ -3996,7 +4006,10 @@ void TextureViewer::texture_itemActivated(RDTreeWidgetItem *item, int column)
   }
   else
   {
-    ViewTexture(tex->resourceId, true);
+    CompType typeCast = CompType::Typeless;
+    if(m_TextureSettings.contains(tex->resourceId))
+      typeCast = m_TextureSettings[tex->resourceId].typeCast;
+    ViewTexture(tex->resourceId, typeCast, true);
   }
 }
 

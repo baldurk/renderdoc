@@ -1930,6 +1930,7 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
 
   TextureDescription *tex = NULL;
   BufferDescription *buf = NULL;
+  CompType typeCast = CompType::Typeless;
 
   if(tag.canConvert<ResourceId>())
   {
@@ -1942,6 +1943,7 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
     D3D12ViewTag view = tag.value<D3D12ViewTag>();
     tex = m_Ctx.GetTexture(view.res.resourceId);
     buf = m_Ctx.GetBuffer(view.res.resourceId);
+    typeCast = view.res.viewFormat.compType;
   }
 
   if(tex)
@@ -1958,7 +1960,7 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
       if(!m_Ctx.HasTextureViewer())
         m_Ctx.ShowTextureViewer();
       ITextureViewer *viewer = m_Ctx.GetTextureViewer();
-      viewer->ViewTexture(tex->resourceId, true);
+      viewer->ViewTexture(tex->resourceId, typeCast, true);
     }
 
     return;

@@ -144,7 +144,7 @@ public:
 
   // ITextureViewer
   QWidget *Widget() override { return this; }
-  void ViewTexture(ResourceId ID, bool focus) override;
+  void ViewTexture(ResourceId ID, CompType typeCast, bool focus) override;
   void GotoLocation(int x, int y) override;
 
   // ICaptureViewer
