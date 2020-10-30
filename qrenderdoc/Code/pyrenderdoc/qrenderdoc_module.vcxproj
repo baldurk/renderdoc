@@ -108,9 +108,9 @@
   </ItemDefinitionGroup>
   <!-- use globbing to find conservative dependency list -->
   <ItemGroup>
-    <SwigInterfaces Include="Code\pyrenderdoc\*.i" />
-    <SwigHeaders Include="Code\pyrenderdoc\*.h" />
-    <QRDHeaders Include="Code\Interface\*.h" />
+    <SwigInterfaces Include="$(ProjectDir)\*.i" />
+    <SwigHeaders Include="$(ProjectDir)\*.h" />
+    <QRDHeaders Include="$(ProjectDir)\..\Interface\*.h" />
     <CoreReplayHeaders Include="$(SolutionDir)renderdoc\api\replay\*.h" />
   </ItemGroup>
   <PropertyGroup>
