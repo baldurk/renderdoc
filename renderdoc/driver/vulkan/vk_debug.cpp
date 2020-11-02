@@ -1028,6 +1028,9 @@ uint32_t VulkanReplay::PickVertex(uint32_t eventId, int32_t w, int32_t h, const 
     if(cfg.ortho)
       guessProj = Matrix4f::Orthographic(cfg.position.nearPlane, cfg.position.farPlane);
 
+    if(cfg.position.flipY)
+      guessProj[5] *= -1.0f;
+
     pickMVPProj = projMat.Mul(camMat.Mul(guessProj.Inverse()));
   }
 

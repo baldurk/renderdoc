@@ -1762,6 +1762,9 @@ uint32_t D3D12Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height
     if(cfg.ortho)
       guessProj = Matrix4f::Orthographic(cfg.position.nearPlane, cfg.position.farPlane);
 
+    if(cfg.position.flipY)
+      guessProj[5] *= -1.0f;
+
     pickMVPProj = projMat.Mul(camMat.Mul(guessProj.Inverse()));
   }
 
