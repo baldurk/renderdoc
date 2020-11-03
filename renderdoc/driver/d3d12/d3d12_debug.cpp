@@ -92,7 +92,11 @@ inline static D3D12_ROOT_PARAMETER1 tableParam(D3D12_SHADER_VISIBILITY vis,
   range.BaseShaderRegister = basereg;
   range.NumDescriptors = numreg;
   range.OffsetInDescriptorsFromTableStart = 0;
-  range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
+  if(type != D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
+    range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE |
+                  D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
+  else
+    range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
 
   return ret;
 }
