@@ -1635,12 +1635,13 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootSignature(
       D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
 
       // From the docs
-      // (https://msdn.microsoft.com/en-us/library/windows/desktop/dn903950(v=vs.85).aspx)
-      // "If a root signature is changed on a command list, all previous root signature bindings
-      // become stale and all newly expected bindings must be set before Draw/Dispatch;
-      // otherwise, the behavior is undefined. If the root signature is redundantly set to the
-      // same one currently set, existing root signature bindings do not become stale."
-      if(state.compute.rootsig != GetResID(pRootSignature))
+      // (https://microsoft.github.io/DirectX-Specs/d3d/ResourceBinding.html#command-list-semantics)
+      // "If a root signature is changed on a command list, all previous root arguments become stale
+      // and all newly expected arguments must be set before Draw/Dispatch otherwise behavior is
+      // undefined. If the root signature is redundantly set to the same one currently set, existing
+      // root signature bindings do not become stale."
+      if(Unwrap(GetResourceManager()->GetCurrentAs<ID3D12RootSignature>(state.compute.rootsig)) !=
+         Unwrap(pRootSignature))
         state.compute.sigelems.clear();
       state.compute.rootsig = GetResID(pRootSignature);
     }
@@ -2211,12 +2212,13 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootSignature(
       D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
 
       // From the docs
-      // (https://msdn.microsoft.com/en-us/library/windows/desktop/dn903950(v=vs.85).aspx)
-      // "If a root signature is changed on a command list, all previous root signature bindings
-      // become stale and all newly expected bindings must be set before Draw/Dispatch;
-      // otherwise, the behavior is undefined. If the root signature is redundantly set to the
-      // same one currently set, existing root signature bindings do not become stale."
-      if(state.graphics.rootsig != GetResID(pRootSignature))
+      // (https://microsoft.github.io/DirectX-Specs/d3d/ResourceBinding.html#command-list-semantics)
+      // "If a root signature is changed on a command list, all previous root arguments become stale
+      // and all newly expected arguments must be set before Draw/Dispatch otherwise behavior is
+      // undefined. If the root signature is redundantly set to the same one currently set, existing
+      // root signature bindings do not become stale."
+      if(Unwrap(GetResourceManager()->GetCurrentAs<ID3D12RootSignature>(state.graphics.rootsig)) !=
+         Unwrap(pRootSignature))
         state.graphics.sigelems.clear();
       state.graphics.rootsig = GetResID(pRootSignature);
     }
