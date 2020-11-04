@@ -168,13 +168,8 @@ private:
     // is a COM-breaking backdoor
     if(SUCCEEDED(hr))
     {
-      NvAPI_Status ret = nvhooks.NvAPI_D3D11_IsNvShaderExtnOpCodeSupported()(nvapiDev->GetReal(),
-                                                                             opCode, pSupported);
-
-      if(pSupported)
-        *pSupported = (*pSupported && SupportedOpcode((NvShaderOpcode)opCode)) ? TRUE : FALSE;
-
-      return ret;
+      return nvhooks.NvAPI_D3D11_IsNvShaderExtnOpCodeSupported()(nvapiDev->GetReal(), opCode,
+                                                                 pSupported);
     }
     else
     {
@@ -203,9 +198,6 @@ private:
             nvhooks.NvAPI_D3D12_IsNvShaderExtnOpCodeSupported()(dev, opCode, pSupported);
 
         dev->Release();
-
-        if(pSupported)
-          *pSupported = (*pSupported && SupportedOpcode((NvShaderOpcode)opCode)) ? TRUE : FALSE;
 
         return ret;
       }

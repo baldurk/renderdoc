@@ -81,4 +81,3 @@ INVAPID3DDevice : public IUnknown
 };
 
 INVAPID3DDevice *InitialiseNVAPIReplay();
-bool SupportedOpcode(NvShaderOpcode opcode);

@@ -36,9 +36,6 @@ namespace
 #include "official/nvapi/nvapi_interface.h"
 };
 
-RDOC_CONFIG(bool, NV_nvapi_AllowUnknownShaderOpcodes, false,
-            "Allow shader opcodes that we don't support in debugging or disassembly.");
-
 typedef void *(*PFN_nvapi_QueryInterface)(NvU32 id);
 
 struct ReplayNVAPID3DDevice : INVAPID3DDevice
@@ -147,13 +144,6 @@ uint32_t getId(const char *name)
   RDCERR("Couldn't get function ID for %s", name);
 
   return 0;
-}
-
-bool SupportedOpcode(NvShaderOpcode opcode)
-{
-  if(NV_nvapi_AllowUnknownShaderOpcodes())
-    return true;
-  return opcode == NvShaderOpcode::U64Atomic;
 }
 
 // try to initialise nvapi for replay
