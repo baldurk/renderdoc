@@ -214,8 +214,8 @@ def unpack_data(fmt: rd.ResourceFormat, data: bytes, data_offset: int):
 
     format_chars = {
         #                   012345678
-        rd.CompType.UInt:  "xBHxIxxxL",
-        rd.CompType.SInt:  "xbhxixxxl",
+        rd.CompType.UInt:  "xBHxIxxxQ",
+        rd.CompType.SInt:  "xbhxixxxq",
         rd.CompType.Float: "xxexfxxxd",  # only 2, 4 and 8 are valid
     }
 

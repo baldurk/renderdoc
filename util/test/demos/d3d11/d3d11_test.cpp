@@ -163,20 +163,7 @@ bool D3D11GraphicsTest::Init(IDXGIAdapterPtr pAdapter)
 
   mainWindow = win;
 
-  DXGI_SWAP_CHAIN_DESC swapDesc;
-  ZeroMemory(&swapDesc, sizeof(swapDesc));
-
-  swapDesc.BufferCount = backbufferCount;
-  swapDesc.BufferDesc.Format = backbufferFmt;
-  swapDesc.BufferDesc.Width = screenWidth;
-  swapDesc.BufferDesc.Height = screenHeight;
-  swapDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
-  swapDesc.SampleDesc.Count = backbufferMSAA;
-  swapDesc.SampleDesc.Quality = 0;
-  swapDesc.OutputWindow = win->wnd;
-  swapDesc.Windowed = TRUE;
-  swapDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-  swapDesc.Flags = 0;
+  DXGI_SWAP_CHAIN_DESC swapDesc = MakeSwapchainDesc(win);
 
   hr = CreateDevice(pAdapter, &swapDesc, features, flags);
 
@@ -210,9 +197,33 @@ bool D3D11GraphicsTest::Init(IDXGIAdapterPtr pAdapter)
   return true;
 }
 
+DXGI_SWAP_CHAIN_DESC D3D11GraphicsTest::MakeSwapchainDesc(GraphicsWindow *win)
+{
+  DXGI_SWAP_CHAIN_DESC swapDesc = {};
+
+  swapDesc.BufferCount = backbufferCount;
+  swapDesc.BufferDesc.Format = backbufferFmt;
+  swapDesc.BufferDesc.Width = screenWidth;
+  swapDesc.BufferDesc.Height = screenHeight;
+  swapDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
+  swapDesc.SampleDesc.Count = backbufferMSAA;
+  swapDesc.SampleDesc.Quality = 0;
+  swapDesc.OutputWindow = ((Win32Window *)win)->wnd;
+  swapDesc.Windowed = TRUE;
+  swapDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+  swapDesc.Flags = 0;
+
+  return swapDesc;
+}
+
 GraphicsWindow *D3D11GraphicsTest::MakeWindow(int width, int height, const char *title)
 {
   return new Win32Window(width, height, title);
+}
+
+std::vector<IDXGIAdapterPtr> D3D11GraphicsTest::GetAdapters()
+{
+  return adapters;
 }
 
 HRESULT D3D11GraphicsTest::CreateDevice(IDXGIAdapterPtr adapterToTry, DXGI_SWAP_CHAIN_DESC *swapDesc,
@@ -597,16 +608,21 @@ void D3D11GraphicsTest::SetStencilRef(UINT ref)
   ctx->OMSetDepthStencilState(state, ref);
 }
 
-ID3DBlobPtr D3D11GraphicsTest::Compile(std::string src, std::string entry, std::string profile)
+ID3DBlobPtr D3D11GraphicsTest::Compile(std::string src, std::string entry, std::string profile,
+                                       bool skipoptimise)
 {
   ID3DBlobPtr blob = NULL;
   ID3DBlobPtr error = NULL;
 
-  HRESULT hr =
-      dyn_D3DCompile(src.c_str(), src.length(), "", NULL, NULL, entry.c_str(), profile.c_str(),
-                     D3DCOMPILE_WARNINGS_ARE_ERRORS | D3DCOMPILE_DEBUG |
-                         D3DCOMPILE_SKIP_OPTIMIZATION | D3DCOMPILE_OPTIMIZATION_LEVEL0,
-                     0, &blob, &error);
+  UINT flags = D3DCOMPILE_WARNINGS_ARE_ERRORS | D3DCOMPILE_DEBUG;
+
+  if(skipoptimise)
+    flags |= D3DCOMPILE_SKIP_OPTIMIZATION | D3DCOMPILE_OPTIMIZATION_LEVEL0;
+  else
+    flags |= D3DCOMPILE_OPTIMIZATION_LEVEL0;
+
+  HRESULT hr = dyn_D3DCompile(src.c_str(), src.length(), "", NULL, NULL, entry.c_str(),
+                              profile.c_str(), flags, 0, &blob, &error);
 
   if(FAILED(hr))
   {

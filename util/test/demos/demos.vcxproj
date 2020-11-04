@@ -121,6 +121,7 @@
   <ItemGroup>
     <ClCompile Include="3rdparty\fmt\format.cc" />
     <ClCompile Include="d3d11\d3d11_1_many_uavs.cpp" />
+    <ClCompile Include="d3d11\d3d11_amd_shader_extensions.cpp" />
     <ClCompile Include="d3d11\d3d11_array_interpolator.cpp" />
     <ClCompile Include="d3d11\d3d11_binding_hazards.cpp" />
     <ClCompile Include="d3d11\d3d11_buffer_truncation.cpp" />
@@ -321,6 +322,9 @@
     <ClCompile Include="win32\win32_window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="3rdparty\ags\ags_shader_intrinsics_dx11.hlsl.h" />
+    <ClInclude Include="3rdparty\ags\ags_shader_intrinsics_dx12.hlsl.h" />
+    <ClInclude Include="3rdparty\ags\amd_ags.h" />
     <ClInclude Include="3rdparty\fmt\core.h" />
     <ClInclude Include="3rdparty\fmt\format-inl.h" />
     <ClInclude Include="3rdparty\fmt\format.h" />

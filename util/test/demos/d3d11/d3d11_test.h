@@ -47,8 +47,12 @@ struct D3D11GraphicsTest : public GraphicsTest
 
   void Prepare(int argc, char **argv);
   bool Init(IDXGIAdapterPtr pAdapter = NULL);
+
   void Shutdown();
   GraphicsWindow *MakeWindow(int width, int height, const char *title);
+  DXGI_SWAP_CHAIN_DESC MakeSwapchainDesc(GraphicsWindow *win);
+
+  std::vector<IDXGIAdapterPtr> GetAdapters();
 
   HRESULT CreateDevice(IDXGIAdapterPtr adapterToTry, DXGI_SWAP_CHAIN_DESC *swapDesc,
                        D3D_FEATURE_LEVEL *features, UINT flags);
@@ -70,7 +74,8 @@ struct D3D11GraphicsTest : public GraphicsTest
     BufUAVType = 0xf00,
   };
 
-  ID3DBlobPtr Compile(std::string src, std::string entry, std::string profile);
+  ID3DBlobPtr Compile(std::string src, std::string entry, std::string profile,
+                      bool skipoptimise = true);
   void Strip(ID3DBlobPtr &ptr);
   void WriteBlob(std::string name, ID3DBlobPtr blob, bool compress);
 

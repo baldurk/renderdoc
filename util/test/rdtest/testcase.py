@@ -486,6 +486,16 @@ class TestCase:
 
         return None
 
+    def get_resource_by_name(self, name: str):
+        resources = self.controller.GetResources()
+
+        for r in resources:
+            r: rd.ResourceDescription
+            if r.name == name:
+                return r
+
+        return None
+
     def get_last_draw(self):
         last_draw: rd.DrawcallDescription = self.controller.GetDrawcalls()[-1]
 
