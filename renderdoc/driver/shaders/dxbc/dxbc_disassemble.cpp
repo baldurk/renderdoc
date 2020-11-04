@@ -918,10 +918,28 @@ void Program::PostprocessVendorExtensions()
     if(state == InstructionState::Broken)
       break;
 
-    if(curOp.operation == OPCODE_IMM_ATOMIC_CMP_EXCH && curOp.operands[1].indices[0].index == magicID)
+    if((curOp.operation == OPCODE_IMM_ATOMIC_CMP_EXCH &&
+        curOp.operands[1].indices[0].index == magicID) ||
+       (curOp.operation == OPCODE_ATOMIC_CMP_STORE && curOp.operands[0].indices[0].index == magicID))
     {
+      // AMD operations where the return value isn't used becomes an atomic_cmp_store instead of
+      // imm_atomic_cmp_exch
+
+      const int32_t instructionIndex = curOp.operation == OPCODE_ATOMIC_CMP_STORE ? 1 : 2;
+      const int32_t param0Index = instructionIndex + 1;
+      const int32_t param1Index = param0Index + 1;
+
+      Operand dstOperand = curOp.operands[0];
+      // if we have a store there's no destination, so set it to null
+      if(curOp.operation == OPCODE_ATOMIC_CMP_STORE)
+      {
+        dstOperand = Operand();
+        dstOperand.type = TYPE_NULL;
+        dstOperand.setComps(0xff, 0xff, 0xff, 0xff);
+      }
+
       // AMD operation
-      if(curOp.operands[2].type != TYPE_IMMEDIATE32)
+      if(curOp.operands[instructionIndex].type != TYPE_IMMEDIATE32)
       {
         RDCERR(
             "Expected literal value for AMD extension instruction. Was the shader compiled with "
@@ -930,7 +948,7 @@ void Program::PostprocessVendorExtensions()
         break;
       }
 
-      uint32_t instruction = curOp.operands[2].values[0];
+      uint32_t instruction = curOp.operands[instructionIndex].values[0];
 
       if(AMDInstruction::Magic.Get(instruction) == 5)
       {
@@ -944,27 +962,26 @@ void Program::PostprocessVendorExtensions()
         uint32_t phase = AMDInstruction::Phase.Get(instruction);
         if(phase == 0)
         {
-          srcParam[0] = curOp.operands[3];
-          srcParam[1] = curOp.operands[4];
+          srcParam[0] = curOp.operands[param0Index];
+          srcParam[1] = curOp.operands[param1Index];
         }
         else if(phase == 1)
         {
-          srcParam[2] = curOp.operands[3];
-          srcParam[3] = curOp.operands[4];
+          srcParam[2] = curOp.operands[param0Index];
+          srcParam[3] = curOp.operands[param1Index];
         }
         else if(phase == 2)
         {
-          srcParam[4] = curOp.operands[3];
-          srcParam[5] = curOp.operands[4];
+          srcParam[4] = curOp.operands[param0Index];
+          srcParam[5] = curOp.operands[param1Index];
         }
         else if(phase == 3)
         {
-          srcParam[6] = curOp.operands[3];
-          srcParam[7] = curOp.operands[4];
+          srcParam[6] = curOp.operands[param0Index];
+          srcParam[7] = curOp.operands[param1Index];
         }
 
         Operation op;
-        op.operands.resize(1);
 
         switch(amdop)
         {
@@ -972,7 +989,7 @@ void Program::PostprocessVendorExtensions()
           {
             op.operation = OPCODE_AMD_READFIRSTLANE;
             op.operands.resize(2);
-            op.operands[0] = curOp.operands[0];
+            op.operands[0] = dstOperand;
             op.operands[1].name = "src";
             op.operands[1] = srcParam[0];
             break;
@@ -981,7 +998,7 @@ void Program::PostprocessVendorExtensions()
           {
             op.operation = OPCODE_AMD_READLANE;
             op.operands.resize(3);
-            op.operands[0] = curOp.operands[0];
+            op.operands[0] = dstOperand;
             op.operands[1].name = "src";
             op.operands[1] = srcParam[0];
             // lane is encoded in instruction data
@@ -994,14 +1011,14 @@ void Program::PostprocessVendorExtensions()
           case AMDInstruction::DX12Op::LaneId:
           {
             op.operation = OPCODE_AMD_LANEID;
-            op.operands = {curOp.operands[0]};
+            op.operands = {dstOperand};
             break;
           }
           case AMDInstruction::DX12Op::Swizzle:
           {
             op.operation = OPCODE_AMD_SWIZZLE;
             op.operands.resize(2);
-            op.operands[0] = curOp.operands[0];
+            op.operands[0] = dstOperand;
             op.operands[1].name = "src";
             op.operands[1] = srcParam[0];
             break;
@@ -1011,14 +1028,14 @@ void Program::PostprocessVendorExtensions()
             if(phase == 0)
             {
               // srcParams already stored, store the dst for phase 0
-              dstParam[0] = curOp.operands[0];
+              dstParam[0] = dstOperand;
             }
             else if(phase == 1)
             {
               op.operation = OPCODE_AMD_BALLOT;
               op.operands.resize(3);
               op.operands[0] = dstParam[0];
-              op.operands[1] = curOp.operands[0];
+              op.operands[1] = dstOperand;
               op.operands[2] = srcParam[0];
               op.operands[2].name = "predicate";
             }
@@ -1028,7 +1045,7 @@ void Program::PostprocessVendorExtensions()
           {
             op.operation = OPCODE_AMD_MBCNT;
             op.operands.resize(3);
-            op.operands[0] = curOp.operands[0];
+            op.operands[0] = dstOperand;
             op.operands[1] = srcParam[0];
             op.operands[2] = srcParam[1];
             break;
@@ -1057,7 +1074,7 @@ void Program::PostprocessVendorExtensions()
                 default: break;
               }
               op.operands.resize(4);
-              op.operands[0] = curOp.operands[0];
+              op.operands[0] = dstOperand;
               op.operands[1] = srcParam[0];
               op.operands[2] = srcParam[1];
               op.operands[3] = srcParam[2];
@@ -1069,7 +1086,7 @@ void Program::PostprocessVendorExtensions()
             if(phase == 0)
             {
               // srcParams already stored, store the dst for phase 0
-              dstParam[0] = curOp.operands[0];
+              dstParam[0] = dstOperand;
             }
             else if(phase == 1)
             {
@@ -1081,11 +1098,11 @@ void Program::PostprocessVendorExtensions()
                 op.operands[0].name = "i";
                 op.operands[0] = dstParam[0];
                 op.operands[0].name = "j";
-                op.operands[1] = curOp.operands[0];
+                op.operands[1] = dstOperand;
               }
               else
               {
-                dstParam[1] = curOp.operands[0];
+                dstParam[1] = dstOperand;
               }
             }
             else if(phase == 2)
@@ -1098,7 +1115,7 @@ void Program::PostprocessVendorExtensions()
               op.operands[1].name = "invI";
               op.operands[1] = dstParam[1];
               op.operands[2].name = "invJ";
-              op.operands[2] = curOp.operands[0];
+              op.operands[2] = dstOperand;
             }
             break;
           }
@@ -1106,7 +1123,7 @@ void Program::PostprocessVendorExtensions()
           {
             op.operation = OPCODE_AMD_VTXPARAM;
             op.operands.resize(3);
-            op.operands[0] = curOp.operands[0];
+            op.operands[0] = dstOperand;
             // vertexIndex is encoded in instruction data
             op.operands[1].name = "vertexIndex";
             op.operands[1].type = TYPE_IMMEDIATE32;
@@ -1128,13 +1145,13 @@ void Program::PostprocessVendorExtensions()
           case AMDInstruction::DX12Op::ViewportIndex:
           {
             op.operation = OPCODE_AMD_GET_VIEWPORTINDEX;
-            op.operands = {curOp.operands[0]};
+            op.operands = {dstOperand};
             break;
           }
           case AMDInstruction::DX12Op::RtArraySlice:
           {
             op.operation = OPCODE_AMD_GET_RTARRAYSLICE;
-            op.operands = {curOp.operands[0]};
+            op.operands = {dstOperand};
             break;
           }
           case AMDInstruction::DX12Op::WaveReduce:
@@ -1158,7 +1175,7 @@ void Program::PostprocessVendorExtensions()
             {
               op.operation = OPCODE_AMD_LOADDWATADDR;
               op.operands.resize(4);
-              op.operands[0] = curOp.operands[0];
+              op.operands[0] = dstOperand;
               op.operands[1] = srcParam[0];
               op.operands[1].name = "gpuVaLoBits";
               op.operands[2] = srcParam[1];
@@ -1171,25 +1188,25 @@ void Program::PostprocessVendorExtensions()
           case AMDInstruction::DX12Op::DrawIndex:
           {
             op.operation = OPCODE_AMD_GET_DRAWINDEX;
-            op.operands = {curOp.operands[0]};
+            op.operands = {dstOperand};
             break;
           }
           case AMDInstruction::DX12Op::GetWaveSize:
           {
             op.operation = OPCODE_AMD_GET_WAVESIZE;
-            op.operands = {curOp.operands[0]};
+            op.operands = {dstOperand};
             break;
           }
           case AMDInstruction::DX12Op::BaseInstance:
           {
             op.operation = OPCODE_AMD_GET_BASEINSTANCE;
-            op.operands = {curOp.operands[0]};
+            op.operands = {dstOperand};
             break;
           }
           case AMDInstruction::DX12Op::BaseVertex:
           {
             op.operation = OPCODE_AMD_GET_BASEVERTEX;
-            op.operands = {curOp.operands[0]};
+            op.operands = {dstOperand};
             break;
           }
           case AMDInstruction::DX12Op::AtomicU64:
@@ -1213,7 +1230,7 @@ void Program::PostprocessVendorExtensions()
 
               // output values first
               op.operands.push_back(dstParam[0]);
-              op.operands.push_back(op.operands[0]);
+              op.operands.push_back(dstOperand);
 
               // then the saved UAV
               op.operands.push_back(uavParam);
@@ -1301,7 +1318,7 @@ void Program::PostprocessVendorExtensions()
 
             // phase 0's destination is the first destination
             if(phase == 0)
-              dstParam[0] = op.operands[0];
+              dstParam[0] = dstOperand;
 
             break;
           }
