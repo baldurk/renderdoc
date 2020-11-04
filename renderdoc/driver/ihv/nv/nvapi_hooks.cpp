@@ -143,6 +143,7 @@ private:
 #define WHITELIST_NVAPI(fname, ID)
 
 #define NVAPI_FUNCS()                                                      \
+  HOOK_NVAPI(NvAPI_Initialize, 0x0150e828);                                \
   HOOK_NVAPI(NvAPI_D3D11_CreateDevice, 0x6a16d3a0);                        \
   HOOK_NVAPI(NvAPI_D3D11_CreateDeviceAndSwapChain, 0xbb939ee5);            \
   HOOK_NVAPI(NvAPI_D3D11_IsNvShaderExtnOpCodeSupported, 0x5f68da40);       \
@@ -151,7 +152,6 @@ private:
   HOOK_NVAPI(NvAPI_D3D12_IsNvShaderExtnOpCodeSupported, 0x3dfacec8);       \
   HOOK_NVAPI(NvAPI_D3D12_SetNvShaderExtnSlotSpace, 0xac2dfeb5);            \
   HOOK_NVAPI(NvAPI_D3D12_SetNvShaderExtnSlotSpaceLocalThread, 0x43d867c0); \
-  WHITELIST_NVAPI(NvAPI_Initialize, 0x0150e828);                           \
   WHITELIST_NVAPI(NvAPI_Unload, 0xd22bdd7e);                               \
   WHITELIST_NVAPI(NvAPI_GetErrorMessage, 0x6c2d048c);                      \
   WHITELIST_NVAPI(NvAPI_GetInterfaceVersionString, 0x01053fa5);
@@ -292,6 +292,38 @@ private:
     {
       return NVAPI_INVALID_POINTER;
     }
+  }
+
+  static NvAPI_Status __cdecl NvAPI_Initialize_hook()
+  {
+    NvAPI_Status ret = nvhooks.NvAPI_Initialize()();
+
+    if(ret == NVAPI_OK)
+    {
+      using PFN_NvAPI_GetInterfaceVersionString = decltype(&::NvAPI_GetInterfaceVersionString);
+      PFN_NvAPI_GetInterfaceVersionString getver =
+          (PFN_NvAPI_GetInterfaceVersionString)nvhooks.nvapi_QueryInterface()(0x01053fa5);
+
+      if(getver)
+      {
+        NvAPI_ShortString ver = {};
+        getver(ver);
+        if(ver[0])
+          RDCLOG("Initialised nvapi, version %s", ver);
+        else
+          RDCLOG("Initialised nvapi, unknown version");
+      }
+      else
+      {
+        RDCLOG("Initialised nvapi, unknown version");
+      }
+    }
+    else
+    {
+      RDCERR("Error in NvAPI_Initialize: %d", ret);
+    }
+
+    return ret;
   }
 
   static HRESULT __cdecl NvAPI_D3D11_CreateDevice_hook(
