@@ -14,7 +14,7 @@ For qrenderdoc you need Qt5 >= 5.6 along with the 'svg' and 'x11extras' packages
 
 On any distribution if you find qmake isn't available under its default name, or if `qmake -v` lists a Qt4 version, make sure you have qtchooser installed in your package manager and use it to select Qt5. This might be done by exporting `QT_SELECT=qt5`, but check with your distribution for details.
 
-For some distributions such as CentOS, the Qt5 qmake command is `qmake-qt5`. To select this explicitly, pass `-DQMAKE_QT5_COMMAND=qmake-qt5` when invoking `cmake`.
+For some distributions such as CentOS and Fedora, the Qt5 qmake command is `qmake-qt5`. To select this explicitly, pass `-DQMAKE_QT5_COMMAND=qmake-qt5` when invoking `cmake`.
 
 Below are specific per-distribution instructions. If you know the required packages for another distribution, please share (or pull request this file!)
 
@@ -75,6 +75,14 @@ scl enable devtoolset-7 bash
 ```
 
 And build within the resulting bash shell, which has the tools first in PATH.
+
+### Fedora
+
+On Fedora 33 (as of 2020.11.05), you'll need:
+
+```
+sudo yum install libX11-devel libxcb-devel mesa-libGL-devel xcb-util-keysyms-devel cmake qt5-qtbase-devel qt5-qtsvg-devel qt5-qtx11extras-devel bison autoconf automake pcre-devel python3-devel
+```
 
 ### Debian
 
