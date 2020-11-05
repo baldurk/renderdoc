@@ -894,6 +894,14 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
           if(builtin == ShaderBuiltin::VertexIndex)
           {
             valueID = vertexIndexID;
+            // although for indexed draws we accounted for vertexOffset when looking up fixed
+            // function vertex inputs, we still need to apply it to the VertexIndex builtin here.
+            if(draw->flags & DrawFlags::Indexed)
+            {
+              valueID =
+                  ops.add(rdcspv::OpIAdd(uint32ID, editor.MakeId(), valueID,
+                                         editor.AddConstantImmediate<uint32_t>(draw->vertexOffset)));
+            }
           }
           else if(builtin == ShaderBuiltin::InstanceIndex)
           {
