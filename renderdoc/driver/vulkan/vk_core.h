@@ -541,8 +541,6 @@ private:
   // allocation objects with size by incrementally allocating larger blocks.
   VkDeviceSize m_MemoryBlockSize[arraydim<MemoryScope>()] = {};
 
-  MemoryAllocation AllocateMemoryForResource(VkImage im, MemoryScope scope, MemoryType type);
-  MemoryAllocation AllocateMemoryForResource(VkBuffer buf, MemoryScope scope, MemoryType type);
   void FreeAllMemory(MemoryScope scope);
   void FreeMemoryAllocation(MemoryAllocation alloc);
 
@@ -1051,6 +1049,9 @@ public:
   uint32_t GetReadbackMemoryIndex(uint32_t resourceCompatibleBitmask);
   uint32_t GetUploadMemoryIndex(uint32_t resourceCompatibleBitmask);
   uint32_t GetGPULocalMemoryIndex(uint32_t resourceCompatibleBitmask);
+
+  MemoryAllocation AllocateMemoryForResource(VkImage im, MemoryScope scope, MemoryType type);
+  MemoryAllocation AllocateMemoryForResource(VkBuffer buf, MemoryScope scope, MemoryType type);
 
   void ChooseMemoryIndices();
 

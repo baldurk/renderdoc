@@ -225,7 +225,7 @@ struct ShaderDebugData
   VkPipelineLayout PipeLayout = VK_NULL_HANDLE;
   VkDescriptorSet DescSet = VK_NULL_HANDLE;
 
-  VkPipeline MathPipe = VK_NULL_HANDLE;
+  VkPipeline MathPipe[3] = {};
 
   VkImage Image = VK_NULL_HANDLE;
   VkImageView ImageView = VK_NULL_HANDLE;
@@ -236,10 +236,11 @@ struct ShaderDebugData
   VkDescriptorImageInfo DummyImageInfos[3][6] = {};
   VkWriteDescriptorSet DummyWrites[3][7] = {};
 
-  VkShaderModule Module[4] = {};
+  VkShaderModule Module[6] = {};
 
   std::map<uint32_t, VkPipeline> m_Pipelines;
 
+  GPUBuffer MathResult;
   GPUBuffer ConstantsBuffer;
   GPUBuffer ReadbackBuffer;
 };

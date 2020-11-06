@@ -85,6 +85,7 @@ enum class ShaderDebugBind
   Sampler = 7,
   Constants = 8,
   Count,
+  MathResult = 9,
 };
 
 struct Vec3i
@@ -129,9 +130,9 @@ struct ShaderUniformParameters
 {
   Vec3i texel_uvw;
   int texel_lod;
-  Vec4f uvwa;
-  Vec3f ddx;
-  Vec3f ddy;
+  float uvwa[4];
+  float ddx[3];
+  float ddy[3];
   Vec3i offset;
   int sampleIdx;
   float compare;
@@ -630,21 +631,23 @@ public:
         uint32_t mip = viewProps.range.baseMipLevel;
 
         if(opcode == rdcspv::Op::ImageQuerySizeLod)
-          mip += lane.GetSrc(operands.lod).value.u.x;
+          mip += uintComp(lane.GetSrc(operands.lod), 0);
+
+        RDCEraseEl(output.value);
 
         int i = 0;
-        output.value.uv[i++] = RDCMAX(1U, imageProps.extent.width >> mip);
+        setUintComp(output, i++, RDCMAX(1U, imageProps.extent.width >> mip));
         if(coords >= 2)
-          output.value.uv[i++] = RDCMAX(1U, imageProps.extent.height >> mip);
+          setUintComp(output, i++, RDCMAX(1U, imageProps.extent.height >> mip));
         if(viewProps.viewType == VK_IMAGE_VIEW_TYPE_3D)
-          output.value.uv[i++] = RDCMAX(1U, imageProps.extent.depth >> mip);
+          setUintComp(output, i++, RDCMAX(1U, imageProps.extent.depth >> mip));
 
         if(viewProps.viewType == VK_IMAGE_VIEW_TYPE_1D_ARRAY ||
            viewProps.viewType == VK_IMAGE_VIEW_TYPE_2D_ARRAY)
-          output.value.uv[i++] = imageProps.arrayLayers;
+          setUintComp(output, i++, imageProps.arrayLayers);
         else if(viewProps.viewType == VK_IMAGE_VIEW_TYPE_CUBE ||
                 viewProps.viewType == VK_IMAGE_VIEW_TYPE_CUBE_ARRAY)
-          output.value.uv[i++] = imageProps.arrayLayers / 6;
+          setUintComp(output, i++, imageProps.arrayLayers / 6);
 
         if(buffer)
         {
@@ -659,8 +662,7 @@ public:
             size = bufProps.size - bufViewProps.offset;
           }
 
-          output.value.uv[0] = uint32_t(size / GetByteSize(1, 1, 1, bufViewProps.format, 0));
-          output.value.uv[1] = output.value.uv[2] = output.value.uv[3] = 0;
+          setUintComp(output, 0, uint32_t(size / GetByteSize(1, 1, 1, bufViewProps.format, 0)));
         }
 
         return true;
@@ -703,7 +705,15 @@ public:
 
     if(operands.flags & rdcspv::ImageOperands::Bias)
     {
-      float bias = lane.GetSrc(operands.bias).value.f.x;
+      const ShaderVariable &biasVar = lane.GetSrc(operands.bias);
+
+      float bias = biasVar.value.f.x;
+      // silently cast parameters to 32-bit floats
+      if(biasVar.type == VarType::Half)
+        bias = ConvertFromHalf(biasVar.value.u16v[0]);
+      else if(biasVar.type == VarType::Double)
+        bias = (float)biasVar.value.dv[0];
+
       if(bias != 0.0f)
       {
         // bias can only be used with implicit lod operations, but we want to do everything with
@@ -847,32 +857,41 @@ public:
       {
         // co-ordinates after the used ones are read as 0s. This allows us to then read an implicit
         // 0 for array layer when we promote accesses to arrays.
-        uniformParams.texel_uvw.x = uv.value.u.x;
+        uniformParams.texel_uvw.x = uintComp(uv, 0);
         if(coords >= 2)
-          uniformParams.texel_uvw.y = uv.value.u.y;
+          uniformParams.texel_uvw.y = uintComp(uv, 1);
         if(coords >= 3)
-          uniformParams.texel_uvw.z = uv.value.u.z;
+          uniformParams.texel_uvw.z = uintComp(uv, 2);
 
         if(!buffer && operands.flags & rdcspv::ImageOperands::Lod)
-          uniformParams.texel_lod = lane.GetSrc(operands.lod).value.i.x;
+          uniformParams.texel_lod = uintComp(lane.GetSrc(operands.lod), 0);
         else
           uniformParams.texel_lod = 0;
 
         if(operands.flags & rdcspv::ImageOperands::Sample)
-          uniformParams.sampleIdx = lane.GetSrc(operands.sample).value.u.x;
+          uniformParams.sampleIdx = uintComp(lane.GetSrc(operands.sample), 0);
 
         break;
       }
       case rdcspv::Op::ImageGather:
       case rdcspv::Op::ImageDrefGather:
       {
-        uniformParams.uvwa.x = uv.value.f.x;
-        if(coords >= 2)
-          uniformParams.uvwa.y = uv.value.f.y;
-        if(coords >= 3)
-          uniformParams.uvwa.z = uv.value.f.z;
-        if(coords >= 4)
-          uniformParams.uvwa.z = uv.value.f.w;
+        // silently cast parameters to 32-bit floats
+        if(uv.type == VarType::Float)
+        {
+          for(int i = 0; i < coords; i++)
+            uniformParams.uvwa[i] = uv.value.fv[i];
+        }
+        else if(uv.type == VarType::Half)
+        {
+          for(int i = 0; i < coords; i++)
+            uniformParams.uvwa[i] = ConvertFromHalf(uv.value.u16v[i]);
+        }
+        else if(uv.type == VarType::Double)
+        {
+          for(int i = 0; i < coords; i++)
+            uniformParams.uvwa[i] = (float)uv.value.dv[i];
+        }
 
         if(useCompare)
           uniformParams.compare = compare.value.f.x;
@@ -888,19 +907,44 @@ public:
           // should be an array of ivec2
           RDCASSERT(constOffsets.members.size() == 4);
 
+          // sign extend variables lower than 32-bits
+          for(int i = 0; i < 4; i++)
+          {
+            if(constOffsets.members[i].type == VarType::SByte)
+            {
+              constOffsets.members[i].value.i.x = constOffsets.members[i].value.s8v[0];
+              constOffsets.members[i].value.i.y = constOffsets.members[i].value.s8v[1];
+            }
+            else if(constOffsets.members[i].type == VarType::SShort)
+            {
+              constOffsets.members[i].value.i.x = constOffsets.members[i].value.s16v[0];
+              constOffsets.members[i].value.i.y = constOffsets.members[i].value.s16v[1];
+            }
+          }
+
           constParams.gatherOffsets.u0 = constOffsets.members[0].value.i.x;
           constParams.gatherOffsets.v0 = constOffsets.members[0].value.i.y;
           constParams.gatherOffsets.u1 = constOffsets.members[1].value.i.x;
           constParams.gatherOffsets.v1 = constOffsets.members[1].value.i.y;
-          constParams.gatherOffsets.u2 = constOffsets.members[1].value.i.x;
-          constParams.gatherOffsets.v2 = constOffsets.members[1].value.i.y;
-          constParams.gatherOffsets.u3 = constOffsets.members[1].value.i.x;
-          constParams.gatherOffsets.v3 = constOffsets.members[1].value.i.y;
+          constParams.gatherOffsets.u2 = constOffsets.members[2].value.i.x;
+          constParams.gatherOffsets.v2 = constOffsets.members[2].value.i.y;
+          constParams.gatherOffsets.u3 = constOffsets.members[3].value.i.x;
+          constParams.gatherOffsets.v3 = constOffsets.members[3].value.i.y;
         }
 
         if(operands.flags & rdcspv::ImageOperands::ConstOffset)
         {
           ShaderVariable constOffset = lane.GetSrc(operands.constOffset);
+
+          // sign extend variables lower than 32-bits
+          for(uint8_t c = 0; c < constOffset.columns; c++)
+          {
+            if(constOffset.type == VarType::SByte)
+              constOffset.value.iv[c] = constOffset.value.s8v[c];
+            else if(constOffset.type == VarType::SShort)
+              constOffset.value.iv[c] = constOffset.value.s16v[c];
+          }
+
           uniformParams.offset.x = constOffset.value.i.x;
           if(gradCoords >= 2)
             uniformParams.offset.y = constOffset.value.i.y;
@@ -910,6 +954,16 @@ public:
         else if(operands.flags & rdcspv::ImageOperands::Offset)
         {
           ShaderVariable offset = lane.GetSrc(operands.offset);
+
+          // sign extend variables lower than 32-bits
+          for(uint8_t c = 0; c < offset.columns; c++)
+          {
+            if(offset.type == VarType::SByte)
+              offset.value.iv[c] = offset.value.s8v[c];
+            else if(offset.type == VarType::SShort)
+              offset.value.iv[c] = offset.value.s16v[c];
+          }
+
           uniformParams.offset.x = offset.value.i.x;
           if(gradCoords >= 2)
             uniformParams.offset.y = offset.value.i.y;
@@ -929,13 +983,22 @@ public:
       case rdcspv::Op::ImageSampleProjDrefExplicitLod:
       case rdcspv::Op::ImageSampleProjDrefImplicitLod:
       {
-        uniformParams.uvwa.x = uv.value.f.x;
-        if(coords >= 2)
-          uniformParams.uvwa.y = uv.value.f.y;
-        if(coords >= 3)
-          uniformParams.uvwa.z = uv.value.f.z;
-        if(coords >= 4)
-          uniformParams.uvwa.w = uv.value.f.w;
+        // silently cast parameters to 32-bit floats
+        if(uv.type == VarType::Float)
+        {
+          for(int i = 0; i < coords; i++)
+            uniformParams.uvwa[i] = uv.value.fv[i];
+        }
+        else if(uv.type == VarType::Half)
+        {
+          for(int i = 0; i < coords; i++)
+            uniformParams.uvwa[i] = ConvertFromHalf(uv.value.u16v[i]);
+        }
+        else if(uv.type == VarType::Double)
+        {
+          for(int i = 0; i < coords; i++)
+            uniformParams.uvwa[i] = (float)uv.value.dv[i];
+        }
 
         if(proj)
         {
@@ -946,20 +1009,48 @@ public:
           // do the divide ourselves rather than severely complicating the sample shader (as proj
           // variants need non-arrayed textures)
           float q = uv.value.fv[coords];
-          uniformParams.uvwa.x /= q;
-          uniformParams.uvwa.y /= q;
-          uniformParams.uvwa.z /= q;
+          if(uv.type == VarType::Half)
+            q = ConvertFromHalf(uv.value.u16v[coords]);
+          else if(uv.type == VarType::Double)
+            q = (float)uv.value.dv[coords];
+
+          uniformParams.uvwa[0] /= q;
+          uniformParams.uvwa[1] /= q;
+          uniformParams.uvwa[2] /= q;
         }
 
         if(operands.flags & rdcspv::ImageOperands::MinLod)
-          uniformParams.minlod = lane.GetSrc(operands.minLod).value.f.x;
+        {
+          const ShaderVariable &minLodVar = lane.GetSrc(operands.minLod);
+
+          uniformParams.minlod = minLodVar.value.f.x;
+          // silently cast parameters to 32-bit floats
+          if(minLodVar.type == VarType::Half)
+            uniformParams.minlod = ConvertFromHalf(minLodVar.value.u16v[0]);
+          else if(minLodVar.type == VarType::Double)
+            uniformParams.minlod = (float)minLodVar.value.dv[0];
+        }
 
         if(useCompare)
+        {
           uniformParams.compare = compare.value.f.x;
+          // silently cast parameters to 32-bit floats
+          if(compare.type == VarType::Half)
+            uniformParams.compare = ConvertFromHalf(compare.value.u16v[0]);
+          else if(compare.type == VarType::Double)
+            uniformParams.compare = (float)compare.value.dv[0];
+        }
 
         if(operands.flags & rdcspv::ImageOperands::Lod)
         {
-          uniformParams.lod = lane.GetSrc(operands.lod).value.f.x;
+          const ShaderVariable &lodVar = lane.GetSrc(operands.lod);
+
+          uniformParams.lod = lodVar.value.f.x;
+          // silently cast parameters to 32-bit floats
+          if(lodVar.type == VarType::Half)
+            uniformParams.lod = ConvertFromHalf(lodVar.value.u16v[0]);
+          else if(lodVar.type == VarType::Double)
+            uniformParams.lod = (float)lodVar.value.dv[0];
           constParams.useGradOrGatherOffsets = VK_FALSE;
         }
         else if(operands.flags & rdcspv::ImageOperands::Grad)
@@ -969,17 +1060,32 @@ public:
 
           constParams.useGradOrGatherOffsets = VK_TRUE;
 
-          uniformParams.ddx.x = ddx.value.f.x;
-          if(gradCoords >= 2)
-            uniformParams.ddx.y = ddx.value.f.y;
-          if(gradCoords >= 3)
-            uniformParams.ddx.z = ddx.value.f.z;
-
-          uniformParams.ddy.x = ddy.value.f.x;
-          if(gradCoords >= 2)
-            uniformParams.ddy.y = ddy.value.f.y;
-          if(gradCoords >= 3)
-            uniformParams.ddy.z = ddy.value.f.z;
+          // silently cast parameters to 32-bit floats
+          RDCASSERTEQUAL(ddx.type, ddy.type);
+          if(ddx.type == VarType::Float)
+          {
+            for(int i = 0; i < gradCoords; i++)
+            {
+              uniformParams.ddx[i] = ddx.value.fv[i];
+              uniformParams.ddy[i] = ddy.value.fv[i];
+            }
+          }
+          else if(ddx.type == VarType::Half)
+          {
+            for(int i = 0; i < gradCoords; i++)
+            {
+              uniformParams.ddx[i] = ConvertFromHalf(ddx.value.u16v[i]);
+              uniformParams.ddy[i] = ConvertFromHalf(ddy.value.u16v[i]);
+            }
+          }
+          else if(ddx.type == VarType::Double)
+          {
+            for(int i = 0; i < gradCoords; i++)
+            {
+              uniformParams.ddx[i] = (float)ddx.value.dv[i];
+              uniformParams.ddy[i] = (float)ddy.value.dv[i];
+            }
+          }
         }
 
         if(opcode == rdcspv::Op::ImageSampleImplicitLod ||
@@ -988,22 +1094,47 @@ public:
           // use grad to sub in for the implicit lod
           constParams.useGradOrGatherOffsets = VK_TRUE;
 
-          uniformParams.ddx.x = ddxCalc.value.f.x;
-          if(gradCoords >= 2)
-            uniformParams.ddx.y = ddxCalc.value.f.y;
-          if(gradCoords >= 3)
-            uniformParams.ddx.z = ddxCalc.value.f.z;
-
-          uniformParams.ddy.x = ddyCalc.value.f.x;
-          if(gradCoords >= 2)
-            uniformParams.ddy.y = ddyCalc.value.f.y;
-          if(gradCoords >= 3)
-            uniformParams.ddy.z = ddyCalc.value.f.z;
+          // silently cast parameters to 32-bit floats
+          RDCASSERTEQUAL(ddxCalc.type, ddyCalc.type);
+          if(ddxCalc.type == VarType::Float)
+          {
+            for(int i = 0; i < gradCoords; i++)
+            {
+              uniformParams.ddx[i] = ddxCalc.value.fv[i];
+              uniformParams.ddy[i] = ddyCalc.value.fv[i];
+            }
+          }
+          else if(ddxCalc.type == VarType::Half)
+          {
+            for(int i = 0; i < gradCoords; i++)
+            {
+              uniformParams.ddx[i] = ConvertFromHalf(ddxCalc.value.u16v[i]);
+              uniformParams.ddy[i] = ConvertFromHalf(ddyCalc.value.u16v[i]);
+            }
+          }
+          else if(ddxCalc.type == VarType::Double)
+          {
+            for(int i = 0; i < gradCoords; i++)
+            {
+              uniformParams.ddx[i] = (float)ddxCalc.value.dv[i];
+              uniformParams.ddy[i] = (float)ddyCalc.value.dv[i];
+            }
+          }
         }
 
         if(operands.flags & rdcspv::ImageOperands::ConstOffset)
         {
           ShaderVariable constOffset = lane.GetSrc(operands.constOffset);
+
+          // sign extend variables lower than 32-bits
+          for(uint8_t c = 0; c < constOffset.columns; c++)
+          {
+            if(constOffset.type == VarType::SByte)
+              constOffset.value.iv[c] = constOffset.value.s8v[c];
+            else if(constOffset.type == VarType::SShort)
+              constOffset.value.iv[c] = constOffset.value.s16v[c];
+          }
+
           uniformParams.offset.x = constOffset.value.i.x;
           if(gradCoords >= 2)
             uniformParams.offset.y = constOffset.value.i.y;
@@ -1013,6 +1144,16 @@ public:
         else if(operands.flags & rdcspv::ImageOperands::Offset)
         {
           ShaderVariable offset = lane.GetSrc(operands.offset);
+
+          // sign extend variables lower than 32-bits
+          for(uint8_t c = 0; c < offset.columns; c++)
+          {
+            if(offset.type == VarType::SByte)
+              offset.value.iv[c] = offset.value.s8v[c];
+            else if(offset.type == VarType::SShort)
+              offset.value.iv[c] = offset.value.s16v[c];
+          }
+
           uniformParams.offset.x = offset.value.i.x;
           if(gradCoords >= 2)
             uniformParams.offset.y = offset.value.i.y;
@@ -1043,7 +1184,7 @@ public:
                             uniformParams.offset.x, uniformParams.offset.y, uniformParams.offset.z));
     }
 
-    VkPipeline pipe = MakePipe(constParams, uintTex, sintTex);
+    VkPipeline pipe = MakePipe(constParams, 32, uintTex, sintTex);
 
     if(pipe == VK_NULL_HANDLE)
     {
@@ -1171,9 +1312,23 @@ public:
       m_pDriver->FlushQ();
     }
 
-    Vec4f *ret = (Vec4f *)m_DebugData.ReadbackBuffer.Map(NULL, 0);
+    float *ret = (float *)m_DebugData.ReadbackBuffer.Map(NULL, 0);
 
-    memcpy(output.value.uv, ret, sizeof(Vec4f));
+    // convert float results, we did all sampling at 32-bit precision
+    if(output.type == VarType::Half)
+    {
+      for(uint8_t c = 0; c < 4; c++)
+        output.value.u16v[c] = ConvertToHalf(ret[c]);
+    }
+    else if(output.type == VarType::Double)
+    {
+      for(uint8_t c = 0; c < 4; c++)
+        output.value.dv[c] = ret[c];
+    }
+    else
+    {
+      memcpy(output.value.uv, ret, sizeof(Vec4f));
+    }
 
     m_DebugData.ReadbackBuffer.Unmap();
 
@@ -1185,13 +1340,20 @@ public:
   {
     RDCASSERT(params.size() <= 3, params.size());
 
-    if(m_DebugData.MathPipe == VK_NULL_HANDLE)
+    int floatSizeIdx = 0;
+    if(params[0].type == VarType::Half)
+      floatSizeIdx = 1;
+    else if(params[0].type == VarType::Double)
+      floatSizeIdx = 2;
+
+    if(m_DebugData.MathPipe[floatSizeIdx] == VK_NULL_HANDLE)
     {
       ShaderConstParameters pipeParams = {};
       pipeParams.operation = (uint32_t)rdcspv::Op::ExtInst;
-      m_DebugData.MathPipe = MakePipe(pipeParams, false, false);
+      m_DebugData.MathPipe[floatSizeIdx] =
+          MakePipe(pipeParams, VarTypeByteSize(params[0].type) * 8, false, false);
 
-      if(m_DebugData.MathPipe == VK_NULL_HANDLE)
+      if(m_DebugData.MathPipe[floatSizeIdx] == VK_NULL_HANDLE)
       {
         m_pDriver->AddDebugMessage(MessageCategory::Execution, MessageSeverity::High,
                                    MessageSource::RuntimeWarning,
@@ -1199,6 +1361,21 @@ public:
         return false;
       }
     }
+
+    VkDescriptorBufferInfo storageWriteInfo = {};
+    m_DebugData.MathResult.FillDescriptor(storageWriteInfo);
+
+    VkWriteDescriptorSet writeSets[] = {
+        {
+            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_DebugData.DescSet),
+            (uint32_t)ShaderDebugBind::MathResult, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, NULL,
+            &storageWriteInfo, NULL,
+        },
+    };
+
+    VkDevice dev = m_pDriver->GetDev();
+
+    ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), 1, writeSets, 0, NULL);
 
     {
       VkCommandBuffer cmd = m_pDriver->GetNextCmd();
@@ -1209,58 +1386,51 @@ public:
       VkResult vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-      VkClearValue clear = {};
+      ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
+                                    Unwrap(m_DebugData.MathPipe[floatSizeIdx]));
 
-      VkRenderPassBeginInfo rpbegin = {
-          VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-          NULL,
-          Unwrap(m_DebugData.RenderPass),
-          Unwrap(m_DebugData.Framebuffer),
-          {{0, 0}, {1, 1}},
-          1,
-          &clear,
-      };
-      ObjDisp(cmd)->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
-
-      ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                    Unwrap(m_DebugData.MathPipe));
+      ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
+                                          Unwrap(m_DebugData.PipeLayout), 0, 1,
+                                          UnwrapPtr(m_DebugData.DescSet), 0, NULL);
 
       // push the parameters
       for(size_t i = 0; i < params.size(); i++)
       {
-        float p[4] = {};
-        memcpy(p, params[i].value.fv, sizeof(float) * params[i].columns);
+        RDCASSERTEQUAL(params[i].type, params[0].type);
+        double p[4] = {};
+        memcpy(p, params[i].value.fv, VarTypeByteSize(params[i].type) * params[i].columns);
         ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_DebugData.PipeLayout),
-                                       VK_SHADER_STAGE_ALL, uint32_t(sizeof(Vec4f) * i),
-                                       sizeof(Vec4f), p);
+                                       VK_SHADER_STAGE_ALL, uint32_t(sizeof(p) * i), sizeof(p), p);
       }
 
       // push the operation afterwards
       ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_DebugData.PipeLayout),
-                                     VK_SHADER_STAGE_ALL, sizeof(Vec4f) * 3, sizeof(uint32_t), &op);
+                                     VK_SHADER_STAGE_ALL, sizeof(Vec4f) * 6, sizeof(uint32_t), &op);
 
-      ObjDisp(cmd)->CmdDraw(Unwrap(cmd), 3, 1, 0, 0);
-
-      ObjDisp(cmd)->CmdEndRenderPass(Unwrap(cmd));
-
-      VkBufferImageCopy region = {
-          0, sizeof(Vec4f), 1, {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1}, {0, 0, 0}, {1, 1, 1},
-      };
-      ObjDisp(cmd)->CmdCopyImageToBuffer(Unwrap(cmd), Unwrap(m_DebugData.Image),
-                                         VK_IMAGE_LAYOUT_GENERAL,
-                                         Unwrap(m_DebugData.ReadbackBuffer.buf), 1, &region);
+      ObjDisp(cmd)->CmdDispatch(Unwrap(cmd), 1, 1, 1);
 
       VkBufferMemoryBarrier bufBarrier = {
           VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
           NULL,
-          VK_ACCESS_TRANSFER_WRITE_BIT,
-          VK_ACCESS_HOST_READ_BIT,
+          VK_ACCESS_SHADER_WRITE_BIT,
+          VK_ACCESS_TRANSFER_READ_BIT,
           VK_QUEUE_FAMILY_IGNORED,
           VK_QUEUE_FAMILY_IGNORED,
-          Unwrap(m_DebugData.ReadbackBuffer.buf),
+          Unwrap(m_DebugData.MathResult.buf),
           0,
           VK_WHOLE_SIZE,
       };
+
+      DoPipelineBarrier(cmd, 1, &bufBarrier);
+
+      VkBufferCopy bufCopy = {0, 0, 0};
+      bufCopy.size = sizeof(Vec4f) * 2;
+      ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(m_DebugData.MathResult.buf),
+                                  Unwrap(m_DebugData.ReadbackBuffer.buf), 1, &bufCopy);
+
+      bufBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+      bufBarrier.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
+      bufBarrier.buffer = Unwrap(m_DebugData.ReadbackBuffer.buf);
 
       // wait for copy to finish before reading back to host
       DoPipelineBarrier(cmd, 1, &bufBarrier);
@@ -1272,15 +1442,15 @@ public:
       m_pDriver->FlushQ();
     }
 
-    Vec4f *ret = (Vec4f *)m_DebugData.ReadbackBuffer.Map(NULL, 0);
-
-    memcpy(output.value.uv, ret, sizeof(Vec4f));
-
-    m_DebugData.ReadbackBuffer.Unmap();
+    byte *ret = (byte *)m_DebugData.ReadbackBuffer.Map(NULL, 0);
 
     // these two operations change the type of the output
     if(op == rdcspv::GLSLstd450::Length || op == rdcspv::GLSLstd450::Distance)
       output.columns = 1;
+
+    memcpy(output.value.uv, ret, VarTypeByteSize(output.type) * output.columns);
+
+    m_DebugData.ReadbackBuffer.Unmap();
 
     return true;
   }
@@ -1511,7 +1681,8 @@ private:
     return data;
   }
 
-  VkPipeline MakePipe(const ShaderConstParameters &params, bool uintTex, bool sintTex)
+  VkPipeline MakePipe(const ShaderConstParameters &params, uint32_t floatBitSize, bool uintTex,
+                      bool sintTex)
   {
     VkSpecializationMapEntry specMaps[sizeof(params) / sizeof(uint32_t)];
     for(size_t i = 0; i < ARRAY_COUNT(specMaps); i++)
@@ -1534,16 +1705,28 @@ private:
       shaderIndex = 2;
 
     if(params.operation == (uint32_t)rdcspv::Op::ExtInst)
+    {
       shaderIndex = 3;
+      if(floatBitSize == 16)
+        shaderIndex = 4;
+      else if(floatBitSize == 64)
+        shaderIndex = 5;
+    }
 
     if(m_DebugData.Module[shaderIndex] == VK_NULL_HANDLE)
     {
       rdcarray<uint32_t> spirv;
 
-      if(shaderIndex == 3)
-        GenerateMathShaderModule(spirv);
+      if(params.operation == (uint32_t)rdcspv::Op::ExtInst)
+      {
+        GenerateMathShaderModule(spirv, floatBitSize);
+      }
       else
+      {
+        RDCASSERTMSG("Assume sampling happens with 32-bit float inputs", floatBitSize == 32,
+                     floatBitSize);
         GenerateSamplingShaderModule(spirv, uintTex, sintTex);
+      }
 
       VkShaderModuleCreateInfo moduleCreateInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
       moduleCreateInfo.pCode = spirv.data();
@@ -1555,7 +1738,7 @@ private:
 
       const char *filename[] = {
           "/debug_psgather_float.spv", "/debug_psgather_uint.spv", "/debug_psgather_sint.spv",
-          "/debug_psmath.spv",
+          "/debug_psmath32.spv",       "/debug_psmath16.spv",      "/debug_psmath64.spv",
       };
 
       if(!Vulkan_Debug_PSDebugDumpDirPath().empty())
@@ -1572,6 +1755,34 @@ private:
         " gather channel %u, gather offsets...",
         shaderIndex, ToStr((rdcspv::Op)params.operation).c_str(), params.dim,
         params.useGradOrGatherOffsets, params.gatherChannel);
+
+    if(params.operation == (uint32_t)rdcspv::Op::ExtInst)
+    {
+      VkComputePipelineCreateInfo computePipeInfo = {
+          VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+          NULL,
+          0,
+          {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0,
+           VK_SHADER_STAGE_COMPUTE_BIT, m_DebugData.Module[shaderIndex], "main", NULL},
+          m_DebugData.PipeLayout,
+          VK_NULL_HANDLE,
+          0,
+      };
+
+      VkPipeline pipe = VK_NULL_HANDLE;
+      VkResult vkr = m_pDriver->vkCreateComputePipelines(m_pDriver->GetDev(),
+                                                         m_pDriver->GetShaderCache()->GetPipeCache(),
+                                                         1, &computePipeInfo, NULL, &pipe);
+      if(vkr != VK_SUCCESS)
+      {
+        RDCERR("Failed creating debug pipeline: %s", ToStr(vkr).c_str());
+        return VK_NULL_HANDLE;
+      }
+
+      m_DebugData.m_Pipelines[key] = pipe;
+
+      return pipe;
+    }
 
     const VkPipelineShaderStageCreateInfo shaderStages[2] = {
         {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_VERTEX_BIT,
@@ -1672,7 +1883,7 @@ private:
     return pipe;
   }
 
-  void GenerateMathShaderModule(rdcarray<uint32_t> &spirv)
+  void GenerateMathShaderModule(rdcarray<uint32_t> &spirv, uint32_t floatBitSize)
   {
     rdcspv::Editor editor(spirv);
 
@@ -1689,21 +1900,29 @@ private:
 
     rdcspv::Id glsl450 = editor.ImportExtInst("GLSL.std.450");
 
+    rdcspv::Scalar sizedScalar;
+    if(floatBitSize == 32)
+      sizedScalar = rdcspv::scalar<float>();
+    else if(floatBitSize == 64)
+      sizedScalar = rdcspv::scalar<double>();
+    else
+      sizedScalar = rdcspv::scalar<half_float::half>();
+
     rdcspv::Id u32 = editor.DeclareType(rdcspv::scalar<uint32_t>());
-    rdcspv::Id f32 = editor.DeclareType(rdcspv::scalar<float>());
-    rdcspv::Id v4f32 = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<float>(), 4));
+    rdcspv::Id floatType = editor.DeclareType(sizedScalar);
+    rdcspv::Id vec4Type = editor.DeclareType(rdcspv::Vector(sizedScalar, 4));
 
     rdcspv::Id pushStructID =
-        editor.AddType(rdcspv::OpTypeStruct(editor.MakeId(), {v4f32, v4f32, v4f32, u32}));
+        editor.AddType(rdcspv::OpTypeStruct(editor.MakeId(), {vec4Type, vec4Type, vec4Type, u32}));
     editor.AddDecoration(rdcspv::OpDecorate(pushStructID, rdcspv::Decoration::Block));
     editor.AddDecoration(rdcspv::OpMemberDecorate(
         pushStructID, 0, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(0)));
     editor.AddDecoration(rdcspv::OpMemberDecorate(
-        pushStructID, 1, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(sizeof(Vec4f))));
+        pushStructID, 1, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(sizeof(Vec4f) * 2)));
     editor.AddDecoration(rdcspv::OpMemberDecorate(
-        pushStructID, 2, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(sizeof(Vec4f) * 2)));
+        pushStructID, 2, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(sizeof(Vec4f) * 4)));
     editor.AddDecoration(rdcspv::OpMemberDecorate(
-        pushStructID, 3, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(sizeof(Vec4f) * 3)));
+        pushStructID, 3, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(sizeof(Vec4f) * 6)));
     editor.SetMemberName(pushStructID, 0, "a");
     editor.SetMemberName(pushStructID, 1, "b");
     editor.SetMemberName(pushStructID, 2, "c");
@@ -1715,24 +1934,35 @@ private:
         rdcspv::OpVariable(pushPtrType, editor.MakeId(), rdcspv::StorageClass::PushConstant));
     editor.SetName(pushVar, "pushData");
 
-    rdcspv::Id pushv4f32Type =
-        editor.DeclareType(rdcspv::Pointer(v4f32, rdcspv::StorageClass::PushConstant));
+    rdcspv::Id pushv4Type =
+        editor.DeclareType(rdcspv::Pointer(vec4Type, rdcspv::StorageClass::PushConstant));
     rdcspv::Id pushu32Type =
         editor.DeclareType(rdcspv::Pointer(u32, rdcspv::StorageClass::PushConstant));
 
-    rdcspv::Id outPtrType = editor.DeclareType(rdcspv::Pointer(v4f32, rdcspv::StorageClass::Output));
+    rdcspv::Id storageStructType = editor.AddType(rdcspv::OpTypeStruct(editor.MakeId(), {vec4Type}));
 
-    rdcspv::Id outVar = editor.AddVariable(
-        rdcspv::OpVariable(outPtrType, editor.MakeId(), rdcspv::StorageClass::Output));
-    editor.AddDecoration(
-        rdcspv::OpDecorate(outVar, rdcspv::DecorationParam<rdcspv::Decoration::Location>(0)));
+    rdcspv::Id storageStructPtrType =
+        editor.DeclareType(rdcspv::Pointer(storageStructType, editor.StorageBufferClass()));
+    rdcspv::Id storageVec4PtrType =
+        editor.DeclareType(rdcspv::Pointer(vec4Type, editor.StorageBufferClass()));
 
-    editor.SetName(outVar, "output");
+    rdcspv::Id storageVar = editor.AddVariable(
+        rdcspv::OpVariable(storageStructPtrType, editor.MakeId(), editor.StorageBufferClass()));
+    editor.AddDecoration(rdcspv::OpDecorate(
+        storageVar, rdcspv::DecorationParam<rdcspv::Decoration::DescriptorSet>(0U)));
+    editor.AddDecoration(rdcspv::OpDecorate(
+        storageVar,
+        rdcspv::DecorationParam<rdcspv::Decoration::Binding>((uint32_t)ShaderDebugBind::MathResult)));
+    editor.DecorateStorageBufferStruct(storageVar);
+
+    editor.SetName(storageVar, "resultStorage");
 
     // register the entry point
-    editor.AddOperation(
-        editor.Begin(rdcspv::Section::EntryPoints),
-        rdcspv::OpEntryPoint(rdcspv::ExecutionModel::Fragment, entryId, "main", {outVar}));
+    editor.AddOperation(editor.Begin(rdcspv::Section::EntryPoints),
+                        rdcspv::OpEntryPoint(rdcspv::ExecutionModel::GLCompute, entryId, "main", {}));
+    editor.AddExecutionMode(rdcspv::OpExecutionMode(
+        entryId, rdcspv::ExecutionModeParam<rdcspv::ExecutionMode::LocalSize>(1, 1, 1)));
+
     editor.AddOperation(editor.Begin(rdcspv::Section::ExecutionMode),
                         rdcspv::OpExecutionMode(entryId, rdcspv::ExecutionMode::OriginUpperLeft));
 
@@ -1748,19 +1978,31 @@ private:
         editor.AddConstantImmediate<uint32_t>(2), editor.AddConstantImmediate<uint32_t>(3),
     };
 
+    rdcspv::Id zerof;
+    if(floatBitSize == 32)
+      zerof = editor.AddConstantImmediate<float>(0.0f);
+    else if(floatBitSize == 64)
+      zerof = editor.AddConstantImmediate<double>(0.0);
+    else
+      zerof = editor.AddConstantImmediate<half_float::half>(half_float::half(0.0f));
+
     // load the parameters and the op
     rdcspv::Id aPtr =
-        func.add(rdcspv::OpAccessChain(pushv4f32Type, editor.MakeId(), pushVar, {consts[0]}));
+        func.add(rdcspv::OpAccessChain(pushv4Type, editor.MakeId(), pushVar, {consts[0]}));
     rdcspv::Id bPtr =
-        func.add(rdcspv::OpAccessChain(pushv4f32Type, editor.MakeId(), pushVar, {consts[1]}));
+        func.add(rdcspv::OpAccessChain(pushv4Type, editor.MakeId(), pushVar, {consts[1]}));
     rdcspv::Id cPtr =
-        func.add(rdcspv::OpAccessChain(pushv4f32Type, editor.MakeId(), pushVar, {consts[2]}));
+        func.add(rdcspv::OpAccessChain(pushv4Type, editor.MakeId(), pushVar, {consts[2]}));
     rdcspv::Id opPtr =
         func.add(rdcspv::OpAccessChain(pushu32Type, editor.MakeId(), pushVar, {consts[3]}));
-    rdcspv::Id a = func.add(rdcspv::OpLoad(v4f32, editor.MakeId(), aPtr));
-    rdcspv::Id b = func.add(rdcspv::OpLoad(v4f32, editor.MakeId(), bPtr));
-    rdcspv::Id c = func.add(rdcspv::OpLoad(v4f32, editor.MakeId(), cPtr));
+    rdcspv::Id a = func.add(rdcspv::OpLoad(vec4Type, editor.MakeId(), aPtr));
+    rdcspv::Id b = func.add(rdcspv::OpLoad(vec4Type, editor.MakeId(), bPtr));
+    rdcspv::Id c = func.add(rdcspv::OpLoad(vec4Type, editor.MakeId(), cPtr));
     rdcspv::Id opParam = func.add(rdcspv::OpLoad(u32, editor.MakeId(), opPtr));
+
+    // access chain the output
+    rdcspv::Id outVar =
+        func.add(rdcspv::OpAccessChain(storageVec4PtrType, editor.MakeId(), storageVar, {consts[0]}));
 
     rdcspv::Id breakLabel = editor.MakeId();
     rdcspv::Id defaultLabel = editor.MakeId();
@@ -1783,28 +2025,35 @@ private:
             rdcspv::GLSLstd450::Normalize,
         })
     {
+      // most operations aren't allowed on doubles
+      if(floatBitSize == 64 && op != rdcspv::GLSLstd450::Sqrt &&
+         op != rdcspv::GLSLstd450::InverseSqrt && op != rdcspv::GLSLstd450::Normalize)
+        continue;
+
       rdcspv::Id label = editor.MakeId();
       targets.push_back({(uint32_t)op, label});
 
       cases.add(rdcspv::OpLabel(label));
-      rdcspv::Id result = cases.add(rdcspv::OpGLSL450(v4f32, editor.MakeId(), glsl450, op, {a}));
+      rdcspv::Id result = cases.add(rdcspv::OpGLSL450(vec4Type, editor.MakeId(), glsl450, op, {a}));
       cases.add(rdcspv::OpStore(outVar, result));
       cases.add(rdcspv::OpBranch(breakLabel));
     }
 
-    // these take two parameters, but are otherwise identical
-    for(rdcspv::GLSLstd450 op : {rdcspv::GLSLstd450::Atan2, rdcspv::GLSLstd450::Pow})
+    if(floatBitSize != 64)
     {
-      rdcspv::Id label = editor.MakeId();
-      targets.push_back({(uint32_t)op, label});
+      // these take two parameters, but are otherwise identical
+      for(rdcspv::GLSLstd450 op : {rdcspv::GLSLstd450::Atan2, rdcspv::GLSLstd450::Pow})
+      {
+        rdcspv::Id label = editor.MakeId();
+        targets.push_back({(uint32_t)op, label});
 
-      cases.add(rdcspv::OpLabel(label));
-      rdcspv::Id result = cases.add(rdcspv::OpGLSL450(v4f32, editor.MakeId(), glsl450, op, {a, b}));
-      cases.add(rdcspv::OpStore(outVar, result));
-      cases.add(rdcspv::OpBranch(breakLabel));
+        cases.add(rdcspv::OpLabel(label));
+        rdcspv::Id result =
+            cases.add(rdcspv::OpGLSL450(vec4Type, editor.MakeId(), glsl450, op, {a, b}));
+        cases.add(rdcspv::OpStore(outVar, result));
+        cases.add(rdcspv::OpBranch(breakLabel));
+      }
     }
-
-    rdcspv::Id zerof = editor.AddConstantImmediate<float>(0.0f);
 
     {
       rdcspv::GLSLstd450 op = rdcspv::GLSLstd450::Fma;
@@ -1814,7 +2063,7 @@ private:
 
       cases.add(rdcspv::OpLabel(label));
       rdcspv::Id result =
-          cases.add(rdcspv::OpGLSL450(v4f32, editor.MakeId(), glsl450, op, {a, b, c}));
+          cases.add(rdcspv::OpGLSL450(vec4Type, editor.MakeId(), glsl450, op, {a, b, c}));
       cases.add(rdcspv::OpStore(outVar, result));
       cases.add(rdcspv::OpBranch(breakLabel));
     }
@@ -1827,9 +2076,9 @@ private:
       targets.push_back({(uint32_t)op, label});
 
       cases.add(rdcspv::OpLabel(label));
-      rdcspv::Id result = cases.add(rdcspv::OpGLSL450(f32, editor.MakeId(), glsl450, op, {a}));
+      rdcspv::Id result = cases.add(rdcspv::OpGLSL450(floatType, editor.MakeId(), glsl450, op, {a}));
       rdcspv::Id resultvec = cases.add(
-          rdcspv::OpCompositeConstruct(v4f32, editor.MakeId(), {result, zerof, zerof, zerof}));
+          rdcspv::OpCompositeConstruct(vec4Type, editor.MakeId(), {result, zerof, zerof, zerof}));
       cases.add(rdcspv::OpStore(outVar, resultvec));
       cases.add(rdcspv::OpBranch(breakLabel));
     }
@@ -1841,9 +2090,10 @@ private:
       targets.push_back({(uint32_t)op, label});
 
       cases.add(rdcspv::OpLabel(label));
-      rdcspv::Id result = cases.add(rdcspv::OpGLSL450(f32, editor.MakeId(), glsl450, op, {a, b}));
+      rdcspv::Id result =
+          cases.add(rdcspv::OpGLSL450(floatType, editor.MakeId(), glsl450, op, {a, b}));
       rdcspv::Id resultvec = cases.add(
-          rdcspv::OpCompositeConstruct(v4f32, editor.MakeId(), {result, zerof, zerof, zerof}));
+          rdcspv::OpCompositeConstruct(vec4Type, editor.MakeId(), {result, zerof, zerof, zerof}));
       cases.add(rdcspv::OpStore(outVar, resultvec));
       cases.add(rdcspv::OpBranch(breakLabel));
     }
@@ -1855,9 +2105,9 @@ private:
       targets.push_back({(uint32_t)op, label});
 
       cases.add(rdcspv::OpLabel(label));
-      rdcspv::Id eta = cases.add(rdcspv::OpCompositeExtract(f32, editor.MakeId(), c, {0}));
+      rdcspv::Id eta = cases.add(rdcspv::OpCompositeExtract(floatType, editor.MakeId(), c, {0}));
       rdcspv::Id result =
-          cases.add(rdcspv::OpGLSL450(v4f32, editor.MakeId(), glsl450, op, {a, b, eta}));
+          cases.add(rdcspv::OpGLSL450(vec4Type, editor.MakeId(), glsl450, op, {a, b, eta}));
       cases.add(rdcspv::OpStore(outVar, result));
       cases.add(rdcspv::OpBranch(breakLabel));
     }
@@ -1869,8 +2119,8 @@ private:
 
     // default: store NULL data
     func.add(rdcspv::OpLabel(defaultLabel));
-    func.add(rdcspv::OpStore(outVar,
-                             editor.AddConstant(rdcspv::OpConstantNull(v4f32, editor.MakeId()))));
+    func.add(rdcspv::OpStore(
+        outVar, editor.AddConstant(rdcspv::OpConstantNull(vec4Type, editor.MakeId()))));
     func.add(rdcspv::OpBranch(breakLabel));
 
     func.add(rdcspv::OpLabel(breakLabel));
@@ -1982,16 +2232,16 @@ private:
     DECL_UNIFORM(int32_t, texel_v, texel_uvw.y);
     DECL_UNIFORM(int32_t, texel_w, texel_uvw.z);
     DECL_UNIFORM(int32_t, texel_lod, texel_lod);
-    DECL_UNIFORM(float, u, uvwa.x);
-    DECL_UNIFORM(float, v, uvwa.y);
-    DECL_UNIFORM(float, w, uvwa.z);
-    DECL_UNIFORM(float, cube_a, uvwa.w);
-    DECL_UNIFORM(float, dudx, ddx.x);
-    DECL_UNIFORM(float, dvdx, ddx.y);
-    DECL_UNIFORM(float, dwdx, ddx.z);
-    DECL_UNIFORM(float, dudy, ddy.x);
-    DECL_UNIFORM(float, dvdy, ddy.y);
-    DECL_UNIFORM(float, dwdy, ddy.z);
+    DECL_UNIFORM(float, u, uvwa[0]);
+    DECL_UNIFORM(float, v, uvwa[1]);
+    DECL_UNIFORM(float, w, uvwa[2]);
+    DECL_UNIFORM(float, cube_a, uvwa[3]);
+    DECL_UNIFORM(float, dudx, ddx[0]);
+    DECL_UNIFORM(float, dvdx, ddx[1]);
+    DECL_UNIFORM(float, dwdx, ddx[2]);
+    DECL_UNIFORM(float, dudy, ddy[0]);
+    DECL_UNIFORM(float, dvdy, ddy[1]);
+    DECL_UNIFORM(float, dwdy, ddy[2]);
     DECL_UNIFORM(int32_t, offset_x, offset.x);
     DECL_UNIFORM(int32_t, offset_y, offset.y);
     DECL_UNIFORM(int32_t, offset_z, offset.z);
@@ -2100,8 +2350,7 @@ private:
     editor.AddOperation(editor.Begin(rdcspv::Section::EntryPoints),
                         rdcspv::OpEntryPoint(rdcspv::ExecutionModel::Fragment, entryId, "main",
                                              {input_uvwa_var, outVar}));
-    editor.AddOperation(editor.Begin(rdcspv::Section::ExecutionMode),
-                        rdcspv::OpExecutionMode(entryId, rdcspv::ExecutionMode::OriginUpperLeft));
+    editor.AddExecutionMode(rdcspv::OpExecutionMode(entryId, rdcspv::ExecutionMode::OriginUpperLeft));
 
     rdcspv::Id voidType = editor.DeclareType(rdcspv::scalar<void>());
     rdcspv::Id funcType = editor.DeclareType(rdcspv::FunctionType(voidType, {}));

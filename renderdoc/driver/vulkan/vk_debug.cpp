@@ -3931,9 +3931,12 @@ void ShaderDebugData::Init(WrappedVulkan *driver, VkDescriptorPool descriptorPoo
           {7, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, NULL},
           // ShaderDebugBind::Constants
           {8, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, NULL},
+          // ShaderDebugBind::MathResult
+          {9, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1,
+           VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT, NULL},
       });
 
-  CREATE_OBJECT(PipeLayout, DescSetLayout, sizeof(Vec4f) * 3 + sizeof(uint32_t));
+  CREATE_OBJECT(PipeLayout, DescSetLayout, sizeof(Vec4f) * 6 + sizeof(uint32_t));
 
   CREATE_OBJECT(DescSet, descriptorPool, DescSetLayout);
 
@@ -4040,8 +4043,12 @@ void ShaderDebugData::Init(WrappedVulkan *driver, VkDescriptorPool descriptorPoo
   vkr = driver->vkCreateFramebuffer(driver->GetDev(), &fbinfo, NULL, &Framebuffer);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
+  MathResult.Create(driver, driver->GetDev(), sizeof(Vec4f) * 4, 1,
+                    GPUBuffer::eGPUBufferGPULocal | GPUBuffer::eGPUBufferSSBO);
+
   // don't need to ring this, as we hard-sync for readback anyway
-  ReadbackBuffer.Create(driver, driver->GetDev(), sizeof(Vec4f), 1, GPUBuffer::eGPUBufferReadback);
+  ReadbackBuffer.Create(driver, driver->GetDev(), sizeof(Vec4f) * 4, 1,
+                        GPUBuffer::eGPUBufferReadback);
   ConstantsBuffer.Create(driver, driver->GetDev(), 1024, 1, 0);
 }
 
@@ -4050,7 +4057,8 @@ void ShaderDebugData::Destroy(WrappedVulkan *driver)
   ConstantsBuffer.Destroy();
   ReadbackBuffer.Destroy();
 
-  driver->vkDestroyPipeline(driver->GetDev(), MathPipe, NULL);
+  for(size_t i = 0; i < ARRAY_COUNT(MathPipe); i++)
+    driver->vkDestroyPipeline(driver->GetDev(), MathPipe[i], NULL);
 
   driver->vkDestroyDescriptorSetLayout(driver->GetDev(), DescSetLayout, NULL);
   driver->vkDestroyPipelineLayout(driver->GetDev(), PipeLayout, NULL);
@@ -4062,9 +4070,8 @@ void ShaderDebugData::Destroy(WrappedVulkan *driver)
   driver->vkDestroyRenderPass(driver->GetDev(), RenderPass, NULL);
 
   // one module each for float, uint, sint.
-  driver->vkDestroyShaderModule(driver->GetDev(), Module[0], NULL);
-  driver->vkDestroyShaderModule(driver->GetDev(), Module[1], NULL);
-  driver->vkDestroyShaderModule(driver->GetDev(), Module[2], NULL);
+  for(size_t i = 0; i < ARRAY_COUNT(Module); i++)
+    driver->vkDestroyShaderModule(driver->GetDev(), Module[i], NULL);
 
   for(auto it = m_Pipelines.begin(); it != m_Pipelines.end(); it++)
     driver->vkDestroyPipeline(driver->GetDev(), it->second, NULL);
