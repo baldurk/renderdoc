@@ -29,34 +29,49 @@
 #include "maths/half_convert.h"
 #include "os/os_specific.h"
 #include "spirv_op_helpers.h"
+#include "var_dispatch_helpers.h"
 
-static bool ContainsNaNInf(const ShaderVariable &val)
+static bool ContainsNaNInf(const ShaderVariable &var)
 {
   bool ret = false;
 
-  for(const ShaderVariable &member : val.members)
+  for(const ShaderVariable &member : var.members)
     ret |= ContainsNaNInf(member);
 
-  int count = int(val.rows) * int(val.columns);
+  int count = int(var.rows) * int(var.columns);
 
-  if(val.type == VarType::Float || val.type == VarType::Half)
+  for(int c = 0; c < count; c++)
   {
-    for(int i = 0; i < count; i++)
-    {
-      ret |= RDCISINF(val.value.fv[i]);
-      ret |= RDCISNAN(val.value.fv[i]) != 0;
-    }
-  }
-  else if(val.type == VarType::Double)
-  {
-    for(int i = 0; i < count; i++)
-    {
-      ret |= RDCISINF(val.value.dv[i]);
-      ret |= RDCISNAN(val.value.dv[i]) != 0;
-    }
+#undef _IMPL
+#define _IMPL(T) RDCISINF(comp<T>(var, c)) || RDCISNAN(comp<T>(var, c))
+
+    IMPL_FOR_FLOAT_TYPES(_IMPL);
   }
 
   return ret;
+}
+
+namespace Bits
+{
+// add simple overloads that upcast for small types
+inline uint16_t CountOnes(uint16_t value)
+{
+  return Bits::CountOnes((uint32_t)value) & 0xffffu;
+}
+inline uint8_t CountOnes(uint8_t value)
+{
+  return Bits::CountOnes((uint32_t)value) & 0xffu;
+}
+
+// on non-64-bit platforms we implement a two-half manual bitcount for 64-bit integers
+#if DISABLED(RDOC_X64)
+inline uint64_t CountOnes(uint64_t value)
+{
+  uint32_t words[2];
+  memcpy(words, &value, sizeof(value));
+  return Bits::CountOnes(words[0]) + Bits::CountOnes(words[1]);
+}
+#endif
 }
 
 namespace rdcspv
@@ -452,11 +467,17 @@ ShaderVariable ThreadState::CalcDeriv(ThreadState::DerivDir dir, ThreadState::De
 
   ShaderVariable aval = a->GetSrc(val);
   ShaderVariable bval = b->GetSrc(val);
+  ShaderVariable var = aval;
 
-  for(uint8_t c = 0; c < aval.columns; c++)
-    aval.value.fv[c] = bval.value.fv[c] - aval.value.fv[c];
+  for(uint8_t c = 0; c < var.columns; c++)
+  {
+#undef _IMPL
+#define _IMPL(T) comp<T>(var, c) = comp<T>(bval, c) - comp<T>(aval, c)
 
-  return aval;
+    IMPL_FOR_FLOAT_TYPES(_IMPL);
+  }
+
+  return var;
 }
 
 void ThreadState::JumpToLabel(Id target)
@@ -645,7 +666,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       // evaluate the indices
       indices.reserve(chain.indexes.size());
       for(Id id : chain.indexes)
-        indices.push_back(GetSrc(id).value.uv[0]);
+        indices.push_back(uintComp(GetSrc(id), 0));
 
       SetDst(chain.result, debugger.MakeCompositePointer(
                                ids[chain.base], debugger.GetPointerBaseId(ids[chain.base]), indices));
@@ -670,7 +691,6 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       ShaderVariable result;
       result.rows = result.columns = 1;
-      result.type = VarType::UInt;
 
       BindpointIndex bind = debugger.GetPointerValue(structPointer).GetBinding();
 
@@ -681,7 +701,9 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       RDCASSERT(dec.flags & Decorations::HasArrayStride);
       byteLen /= dec.arrayStride;
 
-      result.value.uv[0] = uint32_t(byteLen);
+      // Result Type must be an OpTypeInt with 32-bit Width and 0 Signedness
+      result.type = VarType::UInt;
+      setUintComp(result, 0, uint32_t(byteLen));
 
       SetDst(len.result, result);
 
@@ -702,9 +724,9 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       var.type = VarType::Bool;
 
       if(opdata.op == Op::PtrEqual)
-        var.value.uv[0] = isEqual ? 1 : 0;
+        setUintComp(var, 0, isEqual ? 1 : 0);
       else
-        var.value.uv[0] = isEqual ? 0 : 1;
+        setUintComp(var, 0, isEqual ? 0 : 1);
 
       SetDst(equal.result, var);
       break;
@@ -756,7 +778,12 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       ShaderVariable ddy = CalcDeriv(DDY, type, workgroup, deriv.p);
 
       for(uint32_t c = 0; c < var.columns; c++)
-        var.value.fv[c] = fabsf(var.value.fv[c]) + fabsf(ddy.value.fv[c]);
+      {
+#undef _IMPL
+#define _IMPL(T) comp<T>(var, c) = fabs(comp<T>(var, c)) + fabs(comp<T>(ddy, c))
+
+        IMPL_FOR_FLOAT_TYPES(_IMPL);
+      }
 
       SetDst(deriv.result, var);
 
@@ -817,20 +844,12 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
           RDCASSERTEQUAL(mod->rows, obj.columns);
 
           for(uint32_t row = 0; row < mod->rows; row++)
-          {
-            if(VarTypeByteSize(mod->type) == 8)
-              mod->value.u64v[row * mod->columns + column] = obj.value.u64v[row];
-            else
-              mod->value.uv[row * mod->columns + column] = obj.value.uv[row];
-          }
+            copyComp(*mod, row * mod->columns + column, obj, row);
         }
         else
         {
           // if it's a vector, replace one scalar
-          if(VarTypeByteSize(mod->type) == 8)
-            mod->value.u64v[idx] = obj.value.u64v[0];
-          else
-            mod->value.uv[idx] = obj.value.uv[0];
+          copyComp(*mod, idx, obj, 0);
         }
       }
       else if(i + 2 == insert.indexes.size())
@@ -839,10 +858,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         uint32_t column = insert.indexes[i];
         uint32_t row = insert.indexes[i + 1];
 
-        if(VarTypeByteSize(mod->type) == 8)
-          mod->value.u64v[row * mod->columns + column] = obj.value.u64v[0];
-        else
-          mod->value.uv[row * mod->columns + column] = obj.value.uv[0];
+        copyComp(*mod, row * mod->columns + column, obj, 0);
       }
 
       // then evaluate it, to get the extracted value
@@ -893,20 +909,15 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
         // it is possible to construct larger vectors from a collection of scalars and smaller
         // vectors.
-        size_t dst = 0;
+        uint32_t dst = 0;
         for(size_t i = 0; i < construct.constituents.size(); i++)
         {
           ShaderVariable src = GetSrc(construct.constituents[i]);
 
           RDCASSERTEQUAL(src.rows, 1);
 
-          for(size_t j = 0; j < src.columns; j++)
-          {
-            if(VarTypeByteSize(var.type) == 8)
-              var.value.u64v[dst++] = src.value.u64v[j];
-            else
-              var.value.uv[dst++] = src.value.uv[j];
-          }
+          for(uint32_t j = 0; j < src.columns; j++)
+            copyComp(var, dst++, src, j);
         }
       }
       else if(type.type == DataType::MatrixType)
@@ -923,16 +934,9 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         for(size_t i = 0; i < construct.constituents.size(); i++)
           columns[i] = GetSrc(construct.constituents[i]);
 
-        for(size_t r = 0; r < var.rows; r++)
-        {
-          for(size_t c = 0; c < var.columns; c++)
-          {
-            if(VarTypeByteSize(var.type) == 8)
-              var.value.u64v[r * var.columns + c] = columns[c].value.u64v[r];
-            else
-              var.value.uv[r * var.columns + c] = columns[c].value.uv[r];
-          }
-        }
+        for(uint32_t r = 0; r < var.rows; r++)
+          for(uint32_t c = 0; c < var.columns; c++)
+            copyComp(var, r * var.columns + c, columns[c], r);
       }
 
       SetDst(construct.result, var);
@@ -956,13 +960,13 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       uint32_t vec1Cols = src1.columns;
 
-      for(size_t i = 0; i < shuffle.components.size(); i++)
+      for(uint32_t i = 0; i < shuffle.components.size(); i++)
       {
         uint32_t c = shuffle.components[i];
         if(c < vec1Cols)
-          var.value.uv[i] = src1.value.uv[c];
+          copyComp(var, i, src1, c);
         else
-          var.value.uv[i] = src2.value.uv[c - vec1Cols];
+          copyComp(var, i, src2, c - vec1Cols);
       }
 
       SetDst(shuffle.result, var);
@@ -976,12 +980,10 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       ShaderVariable var = GetSrc(extract.vector);
       ShaderVariable idx = GetSrc(extract.index);
 
-      uint32_t comp = idx.value.uv[0];
+      uint32_t comp = uintComp(idx, 0);
 
-      if(VarTypeByteSize(var.type) == 8)
-        var.value.u64v[0] = var.value.u64v[comp];
-      else
-        var.value.uv[0] = var.value.uv[comp];
+      if(comp != 0)
+        copyComp(var, 0, var, comp);
 
       // result is now scalar
       var.columns = 1;
@@ -997,12 +999,9 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       ShaderVariable scalar = GetSrc(insert.component);
       ShaderVariable idx = GetSrc(insert.index);
 
-      uint32_t comp = idx.value.uv[0];
+      uint32_t comp = uintComp(idx, 0);
 
-      if(VarTypeByteSize(var.type) == 8)
-        var.value.u64v[comp] = scalar.value.u64v[0];
-      else
-        var.value.uv[comp] = scalar.value.uv[0];
+      copyComp(var, comp, scalar, 0);
 
       SetDst(insert.result, var);
       break;
@@ -1019,20 +1018,15 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       ShaderVariable b = GetSrc(select.object2);
       if(cond.columns == 1)
       {
-        if(cond.value.uv[0] == 0)
+        if(uintComp(cond, 0) == 0)
           var = b;
       }
       else
       {
         for(uint8_t c = 0; c < cond.columns; c++)
         {
-          if(cond.value.uv[c] == 0)
-          {
-            if(VarTypeByteSize(var.type) == 8)
-              var.value.u64v[c] = b.value.u64v[c];
-            else
-              var.value.uv[c] = b.value.uv[c];
-          }
+          if(uintComp(cond, c) == 0)
+            copyComp(var, c, b, c);
         }
       }
 
@@ -1052,36 +1046,82 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::ConvertSToF:
     case Op::ConvertUToF:
     {
-      OpConvertFToS conv(it);
+      OpConvertFToS convert(it);
 
-      ShaderVariable var = GetSrc(conv.floatValue);
+      const ShaderVariable &var = GetSrc(convert.floatValue);
+      const DataType &resultType = debugger.GetType(convert.resultType);
+
+      ShaderVariable conv = var;
+      conv.type = resultType.scalar().Type();
 
       if(opdata.op == Op::ConvertFToS)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.iv[c] = (int)var.value.fv[c];
-        var.type = VarType::SInt;
+        {
+          double x = 0.0;
+
+#undef _IMPL
+#define _IMPL(T) x = comp<T>(var, c);
+          IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, var.type);
+
+#undef _IMPL
+#define _IMPL(I, S, U) comp<S>(conv, c) = (S)x;
+          IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, conv.type);
+        }
       }
       else if(opdata.op == Op::ConvertFToU)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = var.value.fv[c] > 0.0f ? (uint32_t)var.value.fv[c] : 0U;
-        var.type = VarType::UInt;
+        {
+          double x = 0.0;
+
+#undef _IMPL
+#define _IMPL(T) x = comp<T>(var, c);
+          IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, var.type);
+
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(conv, c) = (U)x;
+          IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, conv.type);
+        }
       }
       else if(opdata.op == Op::ConvertSToF)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.fv[c] = (float)var.value.iv[c];
-        var.type = VarType::Float;
+        {
+          int64_t x = 0;
+
+#undef _IMPL
+#define _IMPL(I, S, U) x = comp<S>(var, c);
+          IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, var.type);
+
+          if(conv.type == VarType::Float)
+            comp<float>(conv, c) = (float)x;
+          else if(conv.type == VarType::Half)
+            comp<half_float::half>(conv, c) = (float)x;
+          else if(conv.type == VarType::Double)
+            comp<double>(conv, c) = (double)x;
+        }
       }
       else if(opdata.op == Op::ConvertUToF)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.fv[c] = (float)var.value.uv[c];
-        var.type = VarType::Float;
+        {
+          uint64_t x = 0;
+
+#undef _IMPL
+#define _IMPL(I, S, U) x = comp<U>(var, c);
+          IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, var.type);
+
+          if(conv.type == VarType::Float)
+            comp<float>(conv, c) = (float)x;
+          else if(conv.type == VarType::Half)
+            comp<half_float::half>(conv, c) = (float)x;
+          else if(conv.type == VarType::Double)
+            comp<double>(conv, c) = (double)x;
+        }
       }
 
-      SetDst(conv.result, var);
+      SetDst(convert.result, conv);
       break;
     }
     case Op::QuantizeToF16:
@@ -1089,31 +1129,74 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       OpQuantizeToF16 quant(it);
 
       ShaderVariable var = GetSrc(quant.value);
+      ShaderVariable conv = var;
+
+      // Result Type must be a scalar or vector of floating-point type. The component width must be
+      // 32 bits.
+      conv.type = VarType::Float;
 
       for(uint8_t c = 0; c < var.columns; c++)
-        var.value.fv[c] = ConvertFromHalf(ConvertToHalf(var.value.fv[c]));
+        setFloatComp(conv, c, ConvertFromHalf(ConvertToHalf(floatComp(var, c))));
 
-      SetDst(quant.result, var);
+      SetDst(quant.result, conv);
       break;
     }
     case Op::UConvert:
     {
       OpUConvert cast(it);
 
-      ShaderVariable var = GetSrc(cast.unsignedValue);
+      const ShaderVariable &var = GetSrc(cast.unsignedValue);
+      const DataType &resultType = debugger.GetType(cast.resultType);
 
-      // TODO - conversion between bit widths once we support it
+      ShaderVariable conv = var;
+      conv.type = resultType.scalar().Type();
 
-      SetDst(cast.result, var);
+      RDCEraseEl(conv.value);
+
+      // this is a zero-extend or truncate. Column-wise we read the variable out into a u64 then
+      // cast
+      for(uint8_t c = 0; c < var.columns; c++)
+      {
+        uint64_t x = 0;
+
+#undef _IMPL
+#define _IMPL(I, S, U) x = comp<U>(var, c);
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, var.type);
+
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(conv, c) = (U)x;
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, conv.type);
+      }
+
+      SetDst(cast.result, conv);
       break;
     }
     case Op::SConvert:
     {
       OpSConvert cast(it);
 
-      ShaderVariable var = GetSrc(cast.signedValue);
+      const ShaderVariable &var = GetSrc(cast.signedValue);
+      const DataType &resultType = debugger.GetType(cast.resultType);
 
-      // TODO - conversion between bit widths once we support it
+      ShaderVariable conv = var;
+      conv.type = resultType.scalar().Type();
+
+      RDCEraseEl(conv.value);
+
+      // this is a sign-extend or truncate. Column-wise we read the variable out into a u64 then
+      // cast
+      for(uint8_t c = 0; c < var.columns; c++)
+      {
+        int64_t x = 0;
+
+#undef _IMPL
+#define _IMPL(I, S, U) x = comp<S>(var, c);
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, var.type);
+
+#undef _IMPL
+#define _IMPL(I, S, U) comp<S>(conv, c) = (S)x;
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, conv.type);
+      }
 
       SetDst(cast.result, var);
       break;
@@ -1122,42 +1205,35 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     {
       OpFConvert cast(it);
 
-      const DataType &type = debugger.GetType(cast.resultType);
+      const ShaderVariable &var = GetSrc(cast.floatValue);
+      const DataType &resultType = debugger.GetType(cast.resultType);
 
-      ShaderVariable var = GetSrc(cast.floatValue);
+      ShaderVariable conv = var;
+      conv.type = resultType.scalar().Type();
 
-      ShaderVariable result = var;
-
-      uint32_t srcWidth = VarTypeByteSize(var.type);
-      uint32_t dstWidth = type.scalar().width / 8;
-
+      // we can safely upconvert to double as an intermediary because the IEEE format is the same.
+      // All we're doing effectively is sign extending the exponent and zero extending the mantissa.
       for(uint8_t c = 0; c < var.columns; c++)
       {
-        if(srcWidth == 8)
-        {
-          if(dstWidth == 8)
-          {
-            // nop
-          }
-          else
-          {
-            result.value.fv[c] = (float)var.value.dv[c];
-          }
-        }
-        else if(srcWidth == 4)
-        {
-          if(dstWidth == 8)
-          {
-            result.value.dv[c] = (double)var.value.dv[c];
-          }
-          else
-          {
-            // nop
-          }
-        }
+        double x = 0.0;
+
+#undef _IMPL
+#define _IMPL(T) x = comp<T>(var, c);
+        IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, var.type);
+
+#undef _IMPL
+#define _IMPL(T) comp<T>(conv, c) = (T)x;
+        // IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, conv.type);
+
+        if(conv.type == VarType::Float)
+          comp<float>(conv, c) = (float)x;
+        else if(conv.type == VarType::Half)
+          comp<half_float::half>(conv, c) = (float)x;
+        else if(conv.type == VarType::Double)
+          comp<double>(conv, c) = (double)x;
       }
 
-      SetDst(cast.result, result);
+      SetDst(cast.result, conv);
       break;
     }
     case Op::Bitcast:
@@ -1188,30 +1264,13 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         // must be identical bit count
         RDCASSERT(dstByteCount * type.vector().count == srcByteCount * var.columns);
 
-        uint32_t byteSize = VarTypeByteSize(var.type);
-
-        bytebuf bytes;
-        for(uint32_t c = 0; c < var.columns; c++)
-        {
-          if(byteSize == 8)
-            bytes.append((const byte *)&var.value.u64v[c], byteSize);
-          else
-            bytes.append((const byte *)&var.value.uv[c], byteSize);
-        }
+        // because this is a bitcast, we leave var.value entirely alone. There is the same number of
+        // bytes so the union handles it. E.g. uv[0], uv[1] being bitcast to a single 64-bit
+        // corresponds exactly to the LSB and MSB of u64v[0]
 
         var.type = type.scalar().Type();
         var.columns = type.vector().count & 0xff;
         var.value = ShaderValue();
-
-        byte *b = bytes.data();
-        for(uint32_t c = 0; c < var.columns; c++)
-        {
-          if(byteSize == 8)
-            memcpy(&var.value.u64v[c], b, byteSize);
-          else
-            memcpy(&var.value.uv[c], b, byteSize);
-          b += byteSize;
-        }
       }
 
       SetDst(cast.result, var);
@@ -1298,70 +1357,131 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::FUnordLessThan:
     case Op::FUnordLessThanEqual:
     {
-      OpFMul comp(it);
+      OpFMul compare(it);
 
-      ShaderVariable var = GetSrc(comp.operand1);
-      ShaderVariable b = GetSrc(comp.operand2);
+      ShaderVariable a = GetSrc(compare.operand1);
+      ShaderVariable b = GetSrc(compare.operand2);
+      ShaderVariable var = a;
 
       if(opdata.op == Op::IEqual || opdata.op == Op::LogicalEqual)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = (var.value.uv[c] == b.value.uv[c]) ? 1 : 0;
+        {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(var, c) = comp<I>(a, c) == comp<I>(b, c) ? 1 : 0
+
+          IMPL_FOR_INT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::INotEqual || opdata.op == Op::LogicalNotEqual)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = (var.value.uv[c] != b.value.uv[c]) ? 1 : 0;
+        {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(var, c) = comp<I>(a, c) != comp<I>(b, c) ? 1 : 0
+
+          IMPL_FOR_INT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::LogicalAnd)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = var.value.uv[c] & b.value.uv[c];
+        {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(var, c) = comp<I>(a, c) & comp<I>(b, c)
+
+          IMPL_FOR_INT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::LogicalOr)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = var.value.uv[c] | b.value.uv[c];
+        {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(var, c) = comp<I>(a, c) | comp<I>(b, c)
+
+          IMPL_FOR_INT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::UGreaterThan)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = (var.value.uv[c] > b.value.uv[c]) ? 1 : 0;
+        {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(var, c) = comp<U>(a, c) > comp<U>(b, c) ? 1 : 0
+
+          IMPL_FOR_INT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::UGreaterThanEqual)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = (var.value.uv[c] >= b.value.uv[c]) ? 1 : 0;
+        {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(var, c) = comp<U>(a, c) >= comp<U>(b, c) ? 1 : 0
+
+          IMPL_FOR_INT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::ULessThan)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = (var.value.uv[c] < b.value.uv[c]) ? 1 : 0;
+        {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(var, c) = comp<U>(a, c) < comp<U>(b, c) ? 1 : 0
+
+          IMPL_FOR_INT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::ULessThanEqual)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = (var.value.uv[c] <= b.value.uv[c]) ? 1 : 0;
+        {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(var, c) = comp<U>(a, c) <= comp<U>(b, c) ? 1 : 0
+
+          IMPL_FOR_INT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::SGreaterThan)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = (var.value.iv[c] > b.value.iv[c]) ? 1 : 0;
+        {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(var, c) = comp<S>(a, c) > comp<S>(b, c) ? 1 : 0
+
+          IMPL_FOR_INT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::SGreaterThanEqual)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = (var.value.iv[c] >= b.value.iv[c]) ? 1 : 0;
+        {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(var, c) = comp<S>(a, c) >= comp<S>(b, c) ? 1 : 0
+
+          IMPL_FOR_INT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::SLessThan)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = (var.value.iv[c] < b.value.iv[c]) ? 1 : 0;
+        {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(var, c) = comp<S>(a, c) < comp<S>(b, c) ? 1 : 0
+
+          IMPL_FOR_INT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::SLessThanEqual)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = (var.value.iv[c] <= b.value.iv[c]) ? 1 : 0;
+        {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(var, c) = comp<S>(a, c) <= comp<S>(b, c) ? 1 : 0
+
+          IMPL_FOR_INT_TYPES(_IMPL);
+        }
       }
 
       // FOrd are all "Floating-point comparison if operands are ordered and Operand 1 is ... than
@@ -1380,68 +1500,128 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       if(opdata.op == Op::FOrdEqual)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = (var.value.fv[c] == b.value.fv[c]) ? 1 : 0;
+        {
+#undef _IMPL
+#define _IMPL(T) comp<uint32_t>(var, c) = (comp<T>(a, c) == comp<T>(b, c)) ? 1 : 0
+
+          IMPL_FOR_FLOAT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::FOrdNotEqual)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = (var.value.fv[c] != b.value.fv[c]) ? 1 : 0;
+        {
+#undef _IMPL
+#define _IMPL(T) comp<uint32_t>(var, c) = (comp<T>(a, c) != comp<T>(b, c)) ? 1 : 0
+
+          IMPL_FOR_FLOAT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::FOrdGreaterThan)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = (var.value.fv[c] > b.value.fv[c]) ? 1 : 0;
+        {
+#undef _IMPL
+#define _IMPL(T) comp<uint32_t>(var, c) = (comp<T>(a, c) > comp<T>(b, c)) ? 1 : 0
+
+          IMPL_FOR_FLOAT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::FOrdGreaterThanEqual)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = (var.value.fv[c] >= b.value.fv[c]) ? 1 : 0;
+        {
+#undef _IMPL
+#define _IMPL(T) comp<uint32_t>(var, c) = (comp<T>(a, c) >= comp<T>(b, c)) ? 1 : 0
+
+          IMPL_FOR_FLOAT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::FOrdLessThan)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = (var.value.fv[c] < b.value.fv[c]) ? 1 : 0;
+        {
+#undef _IMPL
+#define _IMPL(T) comp<uint32_t>(var, c) = (comp<T>(a, c) < comp<T>(b, c)) ? 1 : 0
+
+          IMPL_FOR_FLOAT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::FOrdLessThanEqual)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = (var.value.fv[c] <= b.value.fv[c]) ? 1 : 0;
+        {
+#undef _IMPL
+#define _IMPL(T) comp<uint32_t>(var, c) = (comp<T>(a, c) <= comp<T>(b, c)) ? 1 : 0
+
+          IMPL_FOR_FLOAT_TYPES(_IMPL);
+        }
       }
 
       if(opdata.op == Op::FUnordEqual)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = (var.value.fv[c] != b.value.fv[c]) ? 0 : 1;
+        {
+#undef _IMPL
+#define _IMPL(T) comp<uint32_t>(var, c) = (comp<T>(a, c) != comp<T>(b, c)) ? 0 : 1
+
+          IMPL_FOR_FLOAT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::FUnordNotEqual)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = (var.value.fv[c] == b.value.fv[c]) ? 0 : 1;
+        {
+#undef _IMPL
+#define _IMPL(T) comp<uint32_t>(var, c) = (comp<T>(a, c) == comp<T>(b, c)) ? 0 : 1
+
+          IMPL_FOR_FLOAT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::FUnordGreaterThan)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = (var.value.fv[c] <= b.value.fv[c]) ? 0 : 1;
+        {
+#undef _IMPL
+#define _IMPL(T) comp<uint32_t>(var, c) = (comp<T>(a, c) <= comp<T>(b, c)) ? 0 : 1
+
+          IMPL_FOR_FLOAT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::FUnordGreaterThanEqual)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = (var.value.fv[c] < b.value.fv[c]) ? 0 : 1;
+        {
+#undef _IMPL
+#define _IMPL(T) comp<uint32_t>(var, c) = (comp<T>(a, c) < comp<T>(b, c)) ? 0 : 1
+
+          IMPL_FOR_FLOAT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::FUnordLessThan)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = (var.value.fv[c] >= b.value.fv[c]) ? 0 : 1;
+        {
+#undef _IMPL
+#define _IMPL(T) comp<uint32_t>(var, c) = (comp<T>(a, c) >= comp<T>(b, c)) ? 0 : 1
+
+          IMPL_FOR_FLOAT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::FUnordLessThanEqual)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = (var.value.fv[c] > b.value.fv[c]) ? 0 : 1;
+        {
+#undef _IMPL
+#define _IMPL(T) comp<uint32_t>(var, c) = (comp<T>(a, c) <= comp<T>(b, c)) ? 0 : 1
+
+          IMPL_FOR_FLOAT_TYPES(_IMPL);
+        }
       }
 
       var.type = VarType::Bool;
 
-      SetDst(comp.result, var);
+      SetDst(compare.result, var);
       break;
     }
     case Op::LogicalNot:
@@ -1451,7 +1631,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       ShaderVariable var = GetSrc(negate.operand);
 
       for(uint8_t c = 0; c < var.columns; c++)
-        var.value.uv[c] = 1U - var.value.uv[c];
+        setUintComp(var, c, 1U - uintComp(var, c));
 
       var.type = VarType::Bool;
 
@@ -1468,9 +1648,9 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       for(uint8_t c = 1; c < var.columns; c++)
       {
         if(opdata.op == Op::Any)
-          var.value.uv[0] |= var.value.uv[c];
+          setUintComp(var, 0, uintComp(var, 0) | uintComp(var, c));
         else
-          var.value.uv[0] &= var.value.uv[c];
+          setUintComp(var, 0, uintComp(var, 0) & uintComp(var, c));
       }
 
       var.columns = 1;
@@ -1482,10 +1662,16 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     {
       OpIsNan is(it);
 
-      ShaderVariable var = GetSrc(is.x);
+      ShaderVariable x = GetSrc(is.x);
+      ShaderVariable var = x;
 
       for(uint8_t c = 0; c < var.columns; c++)
-        var.value.uv[c] = RDCISNAN(var.value.fv[c]) ? 1 : 0;
+      {
+#undef _IMPL
+#define _IMPL(T) setUintComp(var, c, RDCISNAN(comp<T>(x, c)) ? 1 : 0)
+
+        IMPL_FOR_FLOAT_TYPES(_IMPL);
+      }
 
       var.type = VarType::Bool;
 
@@ -1496,10 +1682,16 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     {
       OpIsNan is(it);
 
-      ShaderVariable var = GetSrc(is.x);
+      ShaderVariable x = GetSrc(is.x);
+      ShaderVariable var = x;
 
       for(uint8_t c = 0; c < var.columns; c++)
-        var.value.uv[c] = RDCISINF(var.value.fv[c]) ? 1 : 0;
+      {
+#undef _IMPL
+#define _IMPL(T) setUintComp(var, c, RDCISINF(comp<T>(x, c)) ? 1 : 0);
+
+        IMPL_FOR_FLOAT_TYPES(_IMPL);
+      }
 
       var.type = VarType::Bool;
 
@@ -1517,12 +1709,20 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     {
       OpBitCount bitwise(it);
 
+      const DataType &type = debugger.GetType(bitwise.resultType);
       ShaderVariable var = GetSrc(bitwise.base);
+      ShaderVariable ret = var;
+      ret.type = type.scalar().Type();
 
       for(uint8_t c = 0; c < var.columns; c++)
-        var.value.uv[c] = Bits::CountOnes(var.value.uv[c]);
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) setUintComp(ret, c, (uint32_t)Bits::CountOnes(comp<U>(var, c)));
 
-      SetDst(bitwise.result, var);
+        IMPL_FOR_INT_TYPES(_IMPL);
+      }
+
+      SetDst(bitwise.result, ret);
       break;
     }
     case Op::BitReverse:
@@ -1533,13 +1733,17 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       for(uint8_t c = 0; c < var.columns; c++)
       {
-        uint32_t u = var.value.uv[c];
-        var.value.uv[c] = 0;
-        for(uint8_t b = 0; b < 32; b++)
-        {
-          uint32_t bit = u & (1u << b);
-          var.value.uv[c] |= bit << (31 - b);
-        }
+#undef _IMPL
+#define _IMPL(I, S, U)                  \
+  U v = comp<U>(var, c);                \
+  comp<U>(var, c) = 0;                  \
+  for(uint8_t b = 0; b < 32; b++)       \
+  {                                     \
+    uint32_t bit = (v >> b) & 0x1;      \
+    comp<U>(var, c) |= bit << (31 - b); \
+  }
+
+        IMPL_FOR_INT_TYPES(_IMPL);
       }
 
       SetDst(bitwise.result, var);
@@ -1556,17 +1760,21 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       for(uint8_t c = 0; c < var.columns; c++)
       {
-        const uint32_t mask = (1u << count.value.uv[c]) - 1;
+#undef _IMPL
+#define _IMPL(I, S, U)                               \
+  const U mask = (U(1) << comp<U>(count, c)) - U(1); \
+                                                     \
+  comp<U>(var, c) >>= comp<U>(offset, c);            \
+  comp<U>(var, c) &= mask;                           \
+                                                     \
+  if(opdata.op == Op::BitFieldSExtract)              \
+  {                                                  \
+    U topbit = (mask + U(1)) >> U(1);                \
+    if(comp<U>(var, c) & topbit)                     \
+      comp<U>(var, c) |= (~0ULL ^ mask);             \
+  }
 
-        var.value.uv[c] >>= offset.value.uv[c];
-        var.value.uv[c] &= (1u << count.value.uv[c]) - 1;
-
-        if(opdata.op == Op::BitFieldSExtract)
-        {
-          uint32_t topbit = (mask + 1u) >> 1u;
-          if(var.value.uv[c] & topbit)
-            var.value.uv[c] |= (0xffffffffu ^ mask);
-        }
+        IMPL_FOR_INT_TYPES(_IMPL);
       }
 
       SetDst(bitwise.result, var);
@@ -1583,10 +1791,14 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       for(uint8_t c = 0; c < var.columns; c++)
       {
-        const uint32_t mask = (1u << count.value.uv[c]) - 1;
+#undef _IMPL
+#define _IMPL(I, S, U)                               \
+  const U mask = (U(1) << comp<U>(count, c)) - U(1); \
+                                                     \
+  comp<U>(var, c) &= ~(mask << comp<U>(offset, c));  \
+  comp<U>(var, c) |= (comp<U>(insert, c) & mask) << comp<U>(offset, c);
 
-        var.value.uv[c] &= ~(mask << offset.value.uv[c]);
-        var.value.uv[c] |= (insert.value.uv[c] & mask) << offset.value.uv[c];
+        IMPL_FOR_INT_TYPES(_IMPL);
       }
 
       SetDst(bitwise.result, var);
@@ -1607,32 +1819,62 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       if(opdata.op == Op::BitwiseOr)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = var.value.uv[c] | b.value.uv[c];
+        {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(var, c) = comp<U>(var, c) | comp<U>(b, c)
+
+          IMPL_FOR_INT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::BitwiseAnd)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = var.value.uv[c] & b.value.uv[c];
+        {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(var, c) = comp<U>(var, c) & comp<U>(b, c)
+
+          IMPL_FOR_INT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::BitwiseXor)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = var.value.uv[c] ^ b.value.uv[c];
+        {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(var, c) = comp<U>(var, c) ^ comp<U>(b, c)
+
+          IMPL_FOR_INT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::ShiftLeftLogical)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = var.value.uv[c] << b.value.uv[c];
+        {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(var, c) = comp<U>(var, c) << comp<U>(b, c)
+
+          IMPL_FOR_INT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::ShiftRightArithmetic)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.iv[c] = var.value.iv[c] >> b.value.uv[c];
+        {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<S>(var, c) = comp<S>(var, c) >> comp<S>(b, c)
+
+          IMPL_FOR_INT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::ShiftRightLogical)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] = var.value.uv[c] >> b.value.uv[c];
+        {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(var, c) = comp<U>(var, c) >> comp<U>(b, c)
+
+          IMPL_FOR_INT_TYPES(_IMPL);
+        }
       }
 
       SetDst(bitwise.result, var);
@@ -1645,7 +1887,12 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       ShaderVariable var = GetSrc(bitwise.operand);
 
       for(uint8_t c = 0; c < var.columns; c++)
-        var.value.uv[c] = ~var.value.uv[c];
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(var, c) = ~comp<U>(var, c)
+
+        IMPL_FOR_INT_TYPES(_IMPL);
+      }
 
       SetDst(bitwise.result, var);
       break;
@@ -1680,125 +1927,184 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       if(opdata.op == Op::FMul)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.fv[c] *= b.value.fv[c];
+        {
+#undef _IMPL
+#define _IMPL(T) comp<T>(var, c) *= comp<T>(b, c)
+
+          IMPL_FOR_FLOAT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::FDiv)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.fv[c] /= b.value.fv[c];
+        {
+#undef _IMPL
+#define _IMPL(T) comp<T>(var, c) /= comp<T>(b, c)
+
+          IMPL_FOR_FLOAT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::FMod)
       {
         for(uint8_t c = 0; c < var.columns; c++)
         {
-          float af = var.value.fv[c], bf = b.value.fv[c];
-          var.value.fv[c] = fmodf(af, bf);
-          if(var.value.fv[c] < 0.0f && bf >= 0.0f)
-            var.value.fv[c] += fabsf(bf);
-          else if(var.value.fv[c] >= 0.0f && bf < 0.0f)
-            var.value.fv[c] -= fabsf(bf);
+#undef _IMPL
+#define _IMPL(T)                                \
+  T af = comp<T>(var, c), bf = comp<T>(b, c);   \
+  comp<T>(var, c) = fmod(af, bf);               \
+  if(comp<T>(var, c) < 0.0f && bf >= 0.0f)      \
+    comp<T>(var, c) += fabs(bf);                \
+  else if(comp<T>(var, c) >= 0.0f && bf < 0.0f) \
+    comp<T>(var, c) -= fabs(bf);
+
+          IMPL_FOR_FLOAT_TYPES(_IMPL);
         }
       }
       else if(opdata.op == Op::FRem)
       {
         for(uint8_t c = 0; c < var.columns; c++)
         {
-          float af = var.value.fv[c], bf = b.value.fv[c];
-          var.value.fv[c] = fmodf(af, bf);
-          if(var.value.fv[c] < 0.0f && af >= 0.0f)
-            var.value.fv[c] += fabsf(bf);
-          else if(var.value.fv[c] >= 0.0f && af < 0.0f)
-            var.value.fv[c] -= fabsf(bf);
+#undef _IMPL
+#define _IMPL(T)                                \
+  T af = comp<T>(var, c), bf = comp<T>(b, c);   \
+  comp<T>(var, c) = fmod(af, bf);               \
+  if(comp<T>(var, c) < 0.0f && af >= 0.0f)      \
+    comp<T>(var, c) += fabs(bf);                \
+  else if(comp<T>(var, c) >= 0.0f && af < 0.0f) \
+    comp<T>(var, c) -= fabs(bf);
+
+          IMPL_FOR_FLOAT_TYPES(_IMPL);
         }
       }
       else if(opdata.op == Op::FAdd)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.fv[c] += b.value.fv[c];
+        {
+#undef _IMPL
+#define _IMPL(T) comp<T>(var, c) += comp<T>(b, c)
+
+          IMPL_FOR_FLOAT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::FSub)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.fv[c] -= b.value.fv[c];
+        {
+#undef _IMPL
+#define _IMPL(T) comp<T>(var, c) -= comp<T>(b, c)
+
+          IMPL_FOR_FLOAT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::IMul)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] *= b.value.uv[c];
+        {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<I>(var, c) *= comp<I>(b, c)
+
+          IMPL_FOR_INT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::SDiv)
       {
         for(uint8_t c = 0; c < var.columns; c++)
         {
-          if(b.value.iv[c] != 0)
-          {
-            var.value.iv[c] /= b.value.iv[c];
-          }
-          else
-          {
-            var.value.uv[c] = ~0U;
-            if(m_State)
-              m_State->flags |= ShaderEvents::GeneratedNanOrInf;
-          }
+#undef _IMPL
+#define _IMPL(I, S, U)                                   \
+  if(comp<S>(b, c) != 0)                                 \
+  {                                                      \
+    comp<S>(var, c) /= comp<S>(b, c);                    \
+  }                                                      \
+  else                                                   \
+  {                                                      \
+    comp<U>(var, c) = 0;                                 \
+    if(m_State)                                          \
+      m_State->flags |= ShaderEvents::GeneratedNanOrInf; \
+  }
+
+          IMPL_FOR_INT_TYPES(_IMPL);
         }
       }
       else if(opdata.op == Op::UDiv)
       {
         for(uint8_t c = 0; c < var.columns; c++)
         {
-          if(b.value.uv[c] != 0)
-          {
-            var.value.uv[c] /= b.value.uv[c];
-          }
-          else
-          {
-            var.value.uv[c] = ~0U;
-            if(m_State)
-              m_State->flags |= ShaderEvents::GeneratedNanOrInf;
-          }
+#undef _IMPL
+#define _IMPL(I, S, U)                                   \
+  if(comp<U>(b, c) != 0)                                 \
+  {                                                      \
+    comp<U>(var, c) /= comp<U>(b, c);                    \
+  }                                                      \
+  else                                                   \
+  {                                                      \
+    comp<U>(var, c) = 0;                                 \
+    if(m_State)                                          \
+      m_State->flags |= ShaderEvents::GeneratedNanOrInf; \
+  }
+
+          IMPL_FOR_INT_TYPES(_IMPL);
         }
       }
       else if(opdata.op == Op::UMod)
       {
         for(uint8_t c = 0; c < var.columns; c++)
         {
-          if(b.value.uv[c] != 0)
-          {
-            var.value.uv[c] %= b.value.uv[c];
-          }
-          else
-          {
-            var.value.uv[c] = ~0U;
-            if(m_State)
-              m_State->flags |= ShaderEvents::GeneratedNanOrInf;
-          }
+#undef _IMPL
+#define _IMPL(I, S, U)                                   \
+  if(comp<U>(b, c) != 0)                                 \
+  {                                                      \
+    comp<U>(var, c) %= comp<U>(b, c);                    \
+  }                                                      \
+  else                                                   \
+  {                                                      \
+    comp<U>(var, c) = 0;                                 \
+    if(m_State)                                          \
+      m_State->flags |= ShaderEvents::GeneratedNanOrInf; \
+  }
+
+          IMPL_FOR_INT_TYPES(_IMPL);
         }
       }
       else if(opdata.op == Op::SRem || opdata.op == Op::SMod)
       {
         for(uint8_t c = 0; c < var.columns; c++)
         {
-          if(b.value.iv[c] != 0)
-          {
-            var.value.iv[c] %= b.value.iv[c];
-          }
-          else
-          {
-            var.value.uv[c] = ~0U;
-            if(m_State)
-              m_State->flags |= ShaderEvents::GeneratedNanOrInf;
-          }
+#undef _IMPL
+#define _IMPL(I, S, U)                                   \
+  if(comp<S>(b, c) != 0)                                 \
+  {                                                      \
+    comp<S>(var, c) %= comp<S>(b, c);                    \
+  }                                                      \
+  else                                                   \
+  {                                                      \
+    comp<S>(var, c) = 0;                                 \
+    if(m_State)                                          \
+      m_State->flags |= ShaderEvents::GeneratedNanOrInf; \
+  }
+
+          IMPL_FOR_INT_TYPES(_IMPL);
         }
       }
       else if(opdata.op == Op::IAdd)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] += b.value.uv[c];
+        {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<I>(var, c) += comp<I>(b, c)
+
+          IMPL_FOR_INT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::ISub)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] -= b.value.uv[c];
+        {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<I>(var, c) -= comp<I>(b, c)
+
+          IMPL_FOR_INT_TYPES(_IMPL);
+        }
       }
 
       SetDst(math.result, var);
@@ -1818,64 +2124,85 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       ShaderVariable lsb = a;
       ShaderVariable msb = a;
 
+      uint32_t elemSize = VarTypeByteSize(a.type);
+      uint32_t elemBits = elemSize * 8;
+
       if(opdata.op == Op::UMulExtended)
       {
         // if this is less than 64-bit precision inputs, we can just upcast, do the mul, and then
         // mask off the bits we care about
-        if(VarTypeByteSize(a.type) < 8)
+        if(elemSize < 8)
         {
+          uint32_t mask = 0xFFFFFFFFu >> (32 - elemBits);
           for(uint8_t c = 0; c < a.columns; c++)
           {
-            const uint64_t x = a.value.uv[c];
-            const uint64_t y = b.value.uv[c];
+            const uint64_t x = uintComp(a, c);
+            const uint64_t y = uintComp(b, c);
             const uint64_t res = x * y;
 
-            lsb.value.uv[c] = uint32_t(res & 0xFFFFFFFFu);
-            msb.value.uv[c] = uint32_t(res >> 32);
+            setUintComp(lsb, c, uint32_t(res & mask));
+            setUintComp(msb, c, uint32_t(res >> elemBits));
           }
+        }
+        else
+        {
+          RDCERR("Unsupported UMulExtended on 64-bit operands");
         }
       }
       else if(opdata.op == Op::SMulExtended)
       {
-        if(VarTypeByteSize(a.type) < 8)
+        if(elemSize < 8)
         {
+          uint32_t mask = 0xFFFFFFFFu >> (32 - elemBits);
           for(uint8_t c = 0; c < a.columns; c++)
           {
-            const int64_t x = a.value.iv[c];
-            const int64_t y = b.value.iv[c];
+            const int64_t x = intComp(a, c);
+            const int64_t y = intComp(b, c);
             const int64_t res = x * y;
 
-            lsb.value.iv[c] = int32_t(res & 0xFFFFFFFFu);
-            msb.value.iv[c] = int32_t(res >> 32);
+            setIntComp(lsb, c, int32_t(res & mask));
+            setIntComp(msb, c, int32_t(res >> elemBits));
           }
+        }
+        else
+        {
+          RDCERR("Unsupported SMulExtended on 64-bit operands");
         }
       }
       else if(opdata.op == Op::IAddCarry)
       {
         for(uint8_t c = 0; c < a.columns; c++)
         {
-          // unsigned overflow is well-defined to wrap around, giving us the lsb we want.
-          lsb.value.uv[c] = a.value.uv[c] + b.value.uv[c];
-          // if the result is less than one of the operands, we overflowed so set msb
-          msb.value.uv[c] = (lsb.value.uv[c] < b.value.uv[c]) ? 1 : 0;
+// unsigned overflow is well-defined to wrap around, giving us the lsb we want.
+// if the result is less than one of the operands, we overflowed so set msb
+#undef _IMPL
+#define _IMPL(I, S, U)                             \
+  comp<U>(lsb, c) = comp<U>(a, c) + comp<U>(b, c); \
+  comp<U>(msb, c) = (comp<U>(lsb, c) < comp<U>(b, c)) ? 1 : 0;
+
+          IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
         }
       }
       else if(opdata.op == Op::ISubBorrow)
       {
         for(uint8_t c = 0; c < a.columns; c++)
         {
-          // if b <= a we don't need to borrow
-          if(b.value.uv[c] <= a.value.uv[c])
-          {
-            msb.value.uv[c] = 0;
-            lsb.value.uv[c] = a.value.uv[c] - b.value.uv[c];
-          }
-          else
-          {
-            // otherwise set borrow bit
-            msb.value.uv[c] = 1;
-            lsb.value.uv[c] = 0xFFFFFFFFu - (b.value.uv[c] - a.value.uv[c] - 1);
-          }
+// if b <= a we don't need to borrow, otherwise set the borrow bit
+
+#undef _IMPL
+#define _IMPL(I, S, U)                                              \
+  if(comp<U>(b, c) <= comp<U>(a, c))                                \
+  {                                                                 \
+    comp<U>(msb, c) = 0;                                            \
+    comp<U>(lsb, c) = comp<U>(a, c) - comp<U>(b, c);                \
+  }                                                                 \
+  else                                                              \
+  {                                                                 \
+    comp<U>(msb, c) = 1;                                            \
+    comp<U>(lsb, c) = ~0ULL - (comp<U>(b, c) - comp<U>(a, c) - 1U); \
+  }
+
+          IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
         }
       }
 
@@ -1900,12 +2227,22 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       if(opdata.op == Op::FNegate)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.fv[c] = -var.value.fv[c];
+        {
+#undef _IMPL
+#define _IMPL(T) comp<T>(var, c) = -comp<T>(var, c)
+
+          IMPL_FOR_FLOAT_TYPES(_IMPL);
+        }
       }
       else if(opdata.op == Op::SNegate)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.iv[c] = -var.value.iv[c];
+        {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<S>(var, c) = -comp<S>(var, c)
+
+          IMPL_FOR_INT_TYPES(_IMPL);
+        }
       }
 
       SetDst(math.result, var);
@@ -1920,12 +2257,16 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       RDCASSERTEQUAL(var.columns, b.columns);
 
-      float ret = 0;
-      for(uint8_t c = 0; c < var.columns; c++)
-        ret += var.value.fv[c] * b.value.fv[c];
+#undef _IMPL
+#define _IMPL(T)                            \
+  T ret(0.0);                               \
+  for(uint8_t c = 0; c < var.columns; c++)  \
+    ret += comp<T>(var, c) * comp<T>(b, c); \
+  comp<T>(var, 0) = ret;
+
+      IMPL_FOR_FLOAT_TYPES(_IMPL);
 
       var.columns = 1;
-      var.value.fv[0] = ret;
 
       SetDst(dot.result, var);
       break;
@@ -1938,7 +2279,12 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       ShaderVariable scalar = GetSrc(mul.scalar);
 
       for(uint8_t c = 0; c < var.columns; c++)
-        var.value.fv[c] *= scalar.value.fv[0];
+      {
+#undef _IMPL
+#define _IMPL(T) comp<T>(var, c) *= comp<T>(scalar, 0)
+
+        IMPL_FOR_FLOAT_TYPES(_IMPL);
+      }
 
       SetDst(mul.result, var);
       break;
@@ -1951,7 +2297,12 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       ShaderVariable scalar = GetSrc(mul.scalar);
 
       for(uint8_t c = 0; c < var.rows * var.columns; c++)
-        var.value.fv[c] *= scalar.value.fv[0];
+      {
+#undef _IMPL
+#define _IMPL(T) comp<T>(var, c) *= comp<T>(scalar, 0)
+
+        IMPL_FOR_FLOAT_TYPES(_IMPL);
+      }
 
       SetDst(mul.result, var);
       break;
@@ -1966,20 +2317,19 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       ShaderVariable var = vector;
       var.columns = matrix.columns;
 
-      float *m = matrix.value.fv;
-      float *v = vector.value.fv;
-
       const DataType &type = debugger.GetType(mul.resultType);
       RDCASSERTEQUAL(type.vector().count, var.columns);
       RDCASSERTEQUAL(matrix.rows, vector.columns);
 
       for(uint8_t c = 0; c < matrix.columns; c++)
       {
-        var.value.fv[c] = 0.0f;
-        for(uint8_t r = 0; r < matrix.rows; r++)
-        {
-          var.value.fv[c] += m[r * matrix.columns + c] * v[r];
-        }
+#undef _IMPL
+#define _IMPL(T)                           \
+  comp<T>(var, c) = 0.0;                   \
+  for(uint8_t r = 0; r < matrix.rows; r++) \
+    comp<T>(var, c) += comp<T>(matrix, r * matrix.columns + c) * comp<T>(vector, r);
+
+        IMPL_FOR_FLOAT_TYPES(_IMPL);
       }
 
       SetDst(mul.result, var);
@@ -1994,8 +2344,15 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       std::swap(var.rows, var.columns);
 
       for(uint8_t r = 0; r < var.rows; r++)
+      {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.fv[r * var.columns + c] = matrix.value.fv[c * matrix.columns + r];
+        {
+#undef _IMPL
+#define _IMPL(T) comp<T>(var, r * var.columns + c) = comp<T>(matrix, c * matrix.columns + r)
+
+          IMPL_FOR_FLOAT_TYPES(_IMPL);
+        }
+      }
 
       SetDst(transpose.result, var);
       break;
@@ -2010,20 +2367,19 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       ShaderVariable var = vector;
       var.columns = matrix.rows;
 
-      float *m = matrix.value.fv;
-      float *v = vector.value.fv;
-
       const DataType &type = debugger.GetType(mul.resultType);
       RDCASSERTEQUAL(type.vector().count, var.columns);
       RDCASSERTEQUAL(matrix.columns, vector.columns);
 
       for(uint8_t r = 0; r < matrix.rows; r++)
       {
-        var.value.fv[r] = 0.0f;
-        for(uint8_t c = 0; c < matrix.columns; c++)
-        {
-          var.value.fv[r] += m[r * matrix.columns + c] * v[c];
-        }
+#undef _IMPL
+#define _IMPL(T)                              \
+  comp<T>(var, r) = 0.0;                      \
+  for(uint8_t c = 0; c < matrix.columns; c++) \
+    comp<T>(var, r) += comp<T>(matrix, r * matrix.columns + c) * comp<T>(vector, c);
+
+        IMPL_FOR_FLOAT_TYPES(_IMPL);
       }
 
       SetDst(mul.result, var);
@@ -2040,22 +2396,21 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       var.rows = left.rows;
       var.columns = right.columns;
 
-      float *l = left.value.fv;
-      float *r = right.value.fv;
-
       RDCASSERTEQUAL(left.columns, right.rows);
 
       for(uint8_t dstr = 0; dstr < var.rows; dstr++)
       {
         for(uint8_t dstc = 0; dstc < var.columns; dstc++)
         {
-          float &dstval = var.value.fv[dstr * var.columns + dstc];
-          dstval = 0.0f;
+#undef _IMPL
+#define _IMPL(T)                                       \
+  T &dstval = comp<T>(var, dstr * var.columns + dstc); \
+  dstval = 0.0;                                        \
+                                                       \
+  for(uint8_t src = 0; src < right.rows; src++)        \
+    dstval += comp<T>(left, dstr * left.columns + src) * comp<T>(right, src * right.columns + dstc);
 
-          for(uint8_t src = 0; src < right.rows; src++)
-          {
-            dstval += l[dstr * left.columns + src] * r[src * right.columns + dstc];
-          }
+          IMPL_FOR_FLOAT_TYPES(_IMPL);
         }
       }
 
@@ -2077,7 +2432,9 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       {
         for(uint8_t c = 0; c < var.columns; c++)
         {
-          var.value.fv[r * var.columns + c] = left.value.fv[r] * right.value.fv[c];
+#undef _IMPL
+#define _IMPL(T) comp<T>(var, r * var.columns + c) = comp<T>(left, r) * comp<T>(right, c);
+          IMPL_FOR_FLOAT_TYPES(_IMPL);
         }
       }
 
@@ -2164,7 +2521,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
         sampler = img = GetSrc(image.sampledImage);
         uv = GetSrc(image.coordinate);
-        gather = GatherChannel(GetSrc(image.component).value.uv[0]);
+        gather = GatherChannel(uintComp(GetSrc(image.component), 0));
         operands = image.imageOperands;
       }
       else if(opdata.op == Op::ImageDrefGather)
@@ -2317,17 +2674,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
              compare, gather, operands, result))
       {
         // sample failed. Pretend we got 0 columns back
-
-        result.value.uv[0] = 0;
-        result.value.uv[1] = 0;
-        result.value.uv[2] = 0;
-
-        if(result.type == VarType::Float || result.type == VarType::Half)
-          result.value.fv[3] = 1.0f;
-        else if(result.type == VarType::Double)
-          result.value.dv[3] = 1.0;
-        else
-          result.value.uv[3] = 1;
+        set0001(result);
       }
 
       result.rows = 1;
@@ -2360,8 +2707,8 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         debugger.GetAPIWrapper()->FillInputValue(curCoord, ShaderBuiltin::Position, 0, 0);
 
         // co-ords are relative to the current position
-        coord.value.uv[0] += curCoord.value.uv[0];
-        coord.value.uv[1] += curCoord.value.uv[1];
+        setUintComp(coord, 0, uintComp(coord, 0) + uintComp(curCoord, 0));
+        setUintComp(coord, 1, uintComp(coord, 1) + uintComp(curCoord, 1));
 
         // do it with samplegather as ImageFetch rather than a Read which caches the whole texture
         // on the CPU for no reason (since we can't write to it)
@@ -2372,37 +2719,19 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
                ImageOperandsAndParamDatas(), result))
         {
           // sample failed. Pretend we got 0 columns back
-          result.value.uv[0] = 0;
-          result.value.uv[1] = 0;
-          result.value.uv[2] = 0;
-
-          if(result.type == VarType::Float || result.type == VarType::Half)
-            result.value.fv[3] = 1.0f;
-          else if(result.type == VarType::Double)
-            result.value.dv[3] = 1.0;
-          else
-            result.value.uv[3] = 1;
+          set0001(result);
         }
       }
       else
       {
         if(!debugger.GetAPIWrapper()->ReadTexel(img.GetBinding(), coord,
                                                 read.imageOperands.flags & ImageOperands::Sample
-                                                    ? GetSrc(read.imageOperands.sample).value.uv[0]
+                                                    ? uintComp(GetSrc(read.imageOperands.sample), 0)
                                                     : 0,
                                                 result))
         {
           // sample failed. Pretend we got 0 columns back
-          result.value.uv[0] = 0;
-          result.value.uv[1] = 0;
-          result.value.uv[2] = 0;
-
-          if(result.type == VarType::Float || result.type == VarType::Half)
-            result.value.fv[3] = 1.0f;
-          else if(result.type == VarType::Double)
-            result.value.dv[3] = 1.0;
-          else
-            result.value.uv[3] = 1;
+          set0001(result);
         }
       }
 
@@ -2425,7 +2754,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       debugger.GetAPIWrapper()->WriteTexel(img.GetBinding(), coord,
                                            write.imageOperands.flags & ImageOperands::Sample
-                                               ? GetSrc(write.imageOperands.sample).value.uv[0]
+                                               ? uintComp(GetSrc(write.imageOperands.sample), 0)
                                                : 0,
                                            texel);
 
@@ -2462,7 +2791,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       for(const PairLiteralIntegerIdRef &case_ : switch_.target)
       {
-        if(selector.value.uv[0] == case_.first)
+        if(uintComp(selector, 0) == case_.first)
         {
           targetLabel = case_.second;
           break;
@@ -2483,7 +2812,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       OpBranchConditional branch(it);
 
       Id target = branch.falseLabel;
-      if(GetSrc(branch.condition).value.uv[0])
+      if(uintComp(GetSrc(branch.condition), 0))
         target = branch.trueLabel;
 
       JumpToLabel(target);
@@ -2540,6 +2869,9 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       result.rows = 1;
       result.columns = RDCMAX(1U, resultType.vector().count) & 0xff;
 
+      // whatever the type is, we just write the full 64-bit value. If it's a 64-bit integer it gets
+      // it natively, or if it's a 2-vector of uint32_t then it gets the lsb/msb automatically from
+      // the union.
       result.value.u64v[0] = global.clock;
 
       SetDst(opdata.result, result);
@@ -2549,11 +2881,11 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     {
       ShaderVariable result;
 
-      result.type = VarType::UInt;
+      result.type = VarType::Bool;
       result.rows = 1;
       result.columns = 1;
 
-      result.value.uv[0] = helperInvocation;
+      setUintComp(result, 0, helperInvocation ? 1 : 0);
 
       SetDst(opdata.result, result);
       break;
@@ -2698,10 +3030,10 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         result.type = resultType.scalar().Type();
 
         if(!debugger.GetAPIWrapper()->ReadTexel(ptr.members[0].GetBinding(), ptr.members[1],
-                                                ptr.members[2].value.uv[0], result))
+                                                uintComp(ptr.members[2], 0), result))
         {
           // sample failed. Pretend we got 0 columns back
-          result.value.uv[0] = 0;
+          RDCEraseEl(result.value);
         }
       }
 
@@ -2726,7 +3058,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       else
       {
         debugger.GetAPIWrapper()->WriteTexel(ptr.members[0].GetBinding(), ptr.members[1],
-                                             ptr.members[2].value.uv[0], value);
+                                             uintComp(ptr.members[2], 0), value);
       }
 
       break;
@@ -2756,14 +3088,14 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         result.type = resultType.scalar().Type();
 
         if(!debugger.GetAPIWrapper()->ReadTexel(ptr.members[0].GetBinding(), ptr.members[1],
-                                                ptr.members[2].value.uv[0], result))
+                                                uintComp(ptr.members[2], 0), result))
         {
           // sample failed. Pretend we got 0 columns back
-          result.value.uv[0] = 0;
+          RDCEraseEl(result.value);
         }
 
         debugger.GetAPIWrapper()->WriteTexel(ptr.members[0].GetBinding(), ptr.members[1],
-                                             ptr.members[2].value.uv[0], value);
+                                             uintComp(ptr.members[2], 0), value);
       }
 
       SetDst(excg.result, result);
@@ -2782,6 +3114,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       ShaderVariable result;
       const ShaderVariable &ptr = GetSrc(cmpexcg.pointer);
       const ShaderVariable &value = GetSrc(cmpexcg.value);
+      const ShaderVariable &comparator = GetSrc(cmpexcg.comparator);
 
       if(ptr.members.empty())
       {
@@ -2795,17 +3128,29 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         result.type = resultType.scalar().Type();
 
         if(!debugger.GetAPIWrapper()->ReadTexel(ptr.members[0].GetBinding(), ptr.members[1],
-                                                ptr.members[2].value.uv[0], result))
+                                                uintComp(ptr.members[2], 0), result))
         {
           // sample failed. Pretend we got 0 columns back
-          result.value.uv[0] = 0;
+          RDCEraseEl(result.value);
         }
       }
 
       SetDst(cmpexcg.result, result);
 
-      // write the new value, only if the value is the same as expected
-      if(result.value.u64v[0] == GetSrc(cmpexcg.comparator).value.u64v[0])
+      uint64_t resultVal = 0, compareVal = 0;
+
+#undef _IMPL
+#define _IMPL(I, S, U) resultVal = comp<U>(result, 0);
+
+      IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, result.type);
+
+#undef _IMPL
+#define _IMPL(I, S, U) compareVal = comp<U>(comparator, 0);
+
+      IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, comparator.type);
+
+      // write the new value, only if the value is the same as expected.
+      if(resultVal == compareVal)
       {
         if(ptr.members.empty())
         {
@@ -2814,7 +3159,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         else
         {
           debugger.GetAPIWrapper()->WriteTexel(ptr.members[0].GetBinding(), ptr.members[1],
-                                               ptr.members[2].value.uv[0], value);
+                                               uintComp(ptr.members[2], 0), value);
         }
       }
       break;
@@ -2843,19 +3188,25 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         result.type = resultType.scalar().Type();
 
         if(!debugger.GetAPIWrapper()->ReadTexel(ptr.members[0].GetBinding(), ptr.members[1],
-                                                ptr.members[2].value.uv[0], result))
+                                                uintComp(ptr.members[2], 0), result))
         {
           // sample failed. Pretend we got 0 columns back
-          result.value.uv[0] = 0;
+          RDCEraseEl(result.value);
         }
       }
 
       SetDst(atomic.result, result);
 
-      if(opdata.op == Op::AtomicIIncrement)
-        result.value.uv[0]++;
-      else
-        result.value.uv[0]--;
+      {
+#undef _IMPL
+#define _IMPL(I, S, U)                  \
+  if(opdata.op == Op::AtomicIIncrement) \
+    comp<I>(result, 0)++;               \
+  else                                  \
+    comp<I>(result, 0)--;
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, result.type);
+      }
 
       // write the new value
       if(ptr.members.empty())
@@ -2865,7 +3216,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       else
       {
         debugger.GetAPIWrapper()->WriteTexel(ptr.members[0].GetBinding(), ptr.members[1],
-                                             ptr.members[2].value.uv[0], result);
+                                             uintComp(ptr.members[2], 0), result);
       }
       break;
     }
@@ -2902,35 +3253,84 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         result.type = resultType.scalar().Type();
 
         if(!debugger.GetAPIWrapper()->ReadTexel(ptr.members[0].GetBinding(), ptr.members[1],
-                                                ptr.members[2].value.uv[0], result))
+                                                uintComp(ptr.members[2], 0), result))
         {
           // sample failed. Pretend we got 0 columns back
-          result.value.uv[0] = 0;
+          RDCEraseEl(result.value);
         }
       }
 
       SetDst(atomic.result, result);
 
       if(opdata.op == Op::AtomicIAdd)
-        result.value.uv[0] += value.value.uv[0];
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<I>(result, 0) += comp<I>(value, 0)
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, value.type);
+      }
       else if(opdata.op == Op::AtomicISub)
-        result.value.uv[0] -= value.value.uv[0];
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<I>(result, 0) -= comp<I>(value, 0)
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, value.type);
+      }
       else if(opdata.op == Op::AtomicSMin)
-        result.value.iv[0] = RDCMIN(result.value.iv[0], value.value.iv[0]);
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<S>(result, 0) = RDCMIN(comp<S>(result, 0), comp<S>(value, 0))
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, value.type);
+      }
       else if(opdata.op == Op::AtomicUMin)
-        result.value.uv[0] = RDCMIN(result.value.uv[0], value.value.uv[0]);
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(result, 0) = RDCMIN(comp<U>(result, 0), comp<U>(value, 0))
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, value.type);
+      }
       else if(opdata.op == Op::AtomicSMax)
-        result.value.iv[0] = RDCMAX(result.value.iv[0], value.value.iv[0]);
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<S>(result, 0) = RDCMAX(comp<S>(result, 0), comp<S>(value, 0))
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, value.type);
+      }
       else if(opdata.op == Op::AtomicUMax)
-        result.value.uv[0] = RDCMAX(result.value.uv[0], value.value.uv[0]);
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(result, 0) = RDCMAX(comp<U>(result, 0), comp<U>(value, 0))
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, value.type);
+      }
       else if(opdata.op == Op::AtomicAnd)
-        result.value.uv[0] &= value.value.uv[0];
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(result, 0) &= comp<U>(value, 0)
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, value.type);
+      }
       else if(opdata.op == Op::AtomicOr)
-        result.value.uv[0] |= value.value.uv[0];
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(result, 0) |= comp<U>(value, 0)
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, value.type);
+      }
       else if(opdata.op == Op::AtomicXor)
-        result.value.uv[0] ^= value.value.uv[0];
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(result, 0) ^= comp<U>(value, 0)
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, value.type);
+      }
       else if(opdata.op == Op::AtomicFAddEXT)
-        result.value.fv[0] += value.value.fv[0];
+      {
+#undef _IMPL
+#define _IMPL(T) comp<T>(result, 0) += comp<T>(value, 0)
+        IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, value.type);
+      }
 
       // write the new value
       if(ptr.members.empty())
@@ -2940,7 +3340,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       else
       {
         debugger.GetAPIWrapper()->WriteTexel(ptr.members[0].GetBinding(), ptr.members[1],
-                                             ptr.members[2].value.uv[0], result);
+                                             uintComp(ptr.members[2], 0), result);
       }
       break;
     }
