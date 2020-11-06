@@ -27,6 +27,39 @@
 #include "maths/half_convert.h"
 #include "maths/matrix.h"
 #include "os/os_specific.h"
+#include "var_dispatch_helpers.h"
+
+// add some overloads we'll use to avoid the mess of math function definitions across compilers and
+// C/C++
+inline int8_t RDCABS(int8_t v)
+{
+  return v < 0 ? -v : v;
+}
+inline int16_t RDCABS(int16_t v)
+{
+  return v < 0 ? -v : v;
+}
+inline int32_t RDCABS(int32_t v)
+{
+  return v < 0 ? -v : v;
+}
+inline int64_t RDCABS(int64_t v)
+{
+  return v < 0 ? -v : v;
+}
+
+inline float RDCMODF(float a, float *b)
+{
+  return modff(a, b);
+}
+inline double RDCMODF(double a, double *b)
+{
+  return modf(a, b);
+}
+inline half_float::half RDCMODF(half_float::half a, half_float::half *b)
+{
+  return half_float::modf(a, b);
+}
 
 namespace rdcspv
 {
@@ -48,9 +81,13 @@ ShaderVariable RoundEven(ThreadState &state, uint32_t, const rdcarray<Id> &param
 
   for(uint32_t c = 0; c < var.columns; c++)
   {
-    float x = var.value.fv[c];
-    if(RDCISFINITE(x))
-      var.value.fv[c] = x - remainderf(x, 1.0f);
+#undef _IMPL
+#define _IMPL(T)         \
+  T x = comp<T>(var, c); \
+  if(RDCISFINITE(x))     \
+    comp<T>(var, c) = x - remainder(x, (T)1.0);
+
+    IMPL_FOR_FLOAT_TYPES(_IMPL);
   }
 
   return var;
@@ -69,7 +106,12 @@ ShaderVariable Trunc(ThreadState &state, uint32_t, const rdcarray<Id> &params)
   ShaderVariable var = state.GetSrc(params[0]);
 
   for(uint32_t c = 0; c < var.columns; c++)
-    var.value.fv[c] = truncf(var.value.fv[c]);
+  {
+#undef _IMPL
+#define _IMPL(T) comp<T>(var, c) = trunc(comp<T>(var, c))
+
+    IMPL_FOR_FLOAT_TYPES(_IMPL);
+  }
 
   return var;
 }
@@ -81,7 +123,12 @@ ShaderVariable FAbs(ThreadState &state, uint32_t, const rdcarray<Id> &params)
   ShaderVariable var = state.GetSrc(params[0]);
 
   for(uint32_t c = 0; c < var.columns; c++)
-    var.value.fv[c] = fabsf(var.value.fv[c]);
+  {
+#undef _IMPL
+#define _IMPL(T) comp<T>(var, c) = fabs(comp<T>(var, c))
+
+    IMPL_FOR_FLOAT_TYPES(_IMPL);
+  }
 
   return var;
 }
@@ -93,7 +140,12 @@ ShaderVariable SAbs(ThreadState &state, uint32_t, const rdcarray<Id> &params)
   ShaderVariable var = state.GetSrc(params[0]);
 
   for(uint32_t c = 0; c < var.columns; c++)
-    var.value.iv[c] = abs(var.value.iv[c]);
+  {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<S>(var, c) = RDCABS(comp<S>(var, c))
+
+    IMPL_FOR_INT_TYPES(_IMPL);
+  }
 
   return var;
 }
@@ -106,10 +158,15 @@ ShaderVariable FSign(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 
   for(uint32_t c = 0; c < var.columns; c++)
   {
-    if(var.value.fv[c] > 0.0f)
-      var.value.fv[c] = 1.0f;
-    else if(var.value.fv[c] < 0.0f)
-      var.value.fv[c] = -1.0f;
+#undef _IMPL
+#define _IMPL(T)           \
+  T val = comp<T>(var, c); \
+  if(val > 0.0)            \
+    comp<T>(var, c) = 1.0; \
+  else if(val < 0.0)       \
+    comp<T>(var, c) = -1.0;
+
+    IMPL_FOR_FLOAT_TYPES(_IMPL);
   }
 
   return var;
@@ -123,11 +180,15 @@ ShaderVariable SSign(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 
   for(uint32_t c = 0; c < var.columns; c++)
   {
-    if(var.value.iv[c] > 0)
-      var.value.iv[c] = 1;
-    else if(var.value.iv[c] < 0)
-      var.value.iv[c] = -1;
-    // 0 is left alone
+#undef _IMPL
+#define _IMPL(I, S, U)     \
+  S val = comp<S>(var, c); \
+  if(val > 0)              \
+    comp<S>(var, c) = 1;   \
+  else if(val < 0)         \
+    comp<S>(var, c) = -1;
+
+    IMPL_FOR_INT_TYPES(_IMPL);
   }
 
   return var;
@@ -140,7 +201,12 @@ ShaderVariable Floor(ThreadState &state, uint32_t, const rdcarray<Id> &params)
   ShaderVariable var = state.GetSrc(params[0]);
 
   for(uint32_t c = 0; c < var.columns; c++)
-    var.value.fv[c] = floorf(var.value.fv[c]);
+  {
+#undef _IMPL
+#define _IMPL(T) comp<T>(var, c) = floor(comp<T>(var, c))
+
+    IMPL_FOR_FLOAT_TYPES(_IMPL);
+  }
 
   return var;
 }
@@ -152,7 +218,12 @@ ShaderVariable Ceil(ThreadState &state, uint32_t, const rdcarray<Id> &params)
   ShaderVariable var = state.GetSrc(params[0]);
 
   for(uint32_t c = 0; c < var.columns; c++)
-    var.value.fv[c] = ceilf(var.value.fv[c]);
+  {
+#undef _IMPL
+#define _IMPL(T) comp<T>(var, c) = ceil(comp<T>(var, c))
+
+    IMPL_FOR_FLOAT_TYPES(_IMPL);
+  }
 
   return var;
 }
@@ -164,7 +235,12 @@ ShaderVariable Fract(ThreadState &state, uint32_t, const rdcarray<Id> &params)
   ShaderVariable var = state.GetSrc(params[0]);
 
   for(uint32_t c = 0; c < var.columns; c++)
-    var.value.fv[c] = var.value.fv[c] - floorf(var.value.fv[c]);
+  {
+#undef _IMPL
+#define _IMPL(T) comp<T>(var, c) = comp<T>(var, c) - floor(comp<T>(var, c))
+
+    IMPL_FOR_FLOAT_TYPES(_IMPL);
+  }
 
   return var;
 }
@@ -179,7 +255,12 @@ ShaderVariable Radians(ThreadState &state, uint32_t, const rdcarray<Id> &params)
   ShaderVariable var = state.GetSrc(params[0]);
 
   for(uint32_t c = 0; c < var.columns; c++)
-    var.value.fv[c] = var.value.fv[c] * piOver180;
+  {
+#undef _IMPL
+#define _IMPL(T) comp<T>(var, c) = comp<T>(var, c) * piOver180;
+
+    IMPL_FOR_FLOAT_TYPES(_IMPL);
+  }
 
   return var;
 }
@@ -191,7 +272,12 @@ ShaderVariable Degrees(ThreadState &state, uint32_t, const rdcarray<Id> &params)
   ShaderVariable var = state.GetSrc(params[0]);
 
   for(uint32_t c = 0; c < var.columns; c++)
-    var.value.fv[c] = var.value.fv[c] * piUnder180;
+  {
+#undef _IMPL
+#define _IMPL(T) comp<T>(var, c) = comp<T>(var, c) * piUnder180;
+
+    IMPL_FOR_FLOAT_TYPES(_IMPL);
+  }
 
   return var;
 }
@@ -200,7 +286,21 @@ ShaderVariable Determinant(ThreadState &state, uint32_t, const rdcarray<Id> &par
 {
   CHECK_PARAMS(1);
 
-  ShaderVariable m = state.GetSrc(params[0]);
+  ShaderVariable var = state.GetSrc(params[0]);
+  ShaderVariable m = var;
+
+  if(var.type != VarType::Float)
+  {
+    static bool warned = false;
+    if(!warned)
+    {
+      warned = true;
+      RDCLOG("Calculating determinant in floats instead of %s", ToStr(m.type).c_str());
+    }
+
+    for(uint8_t c = 0; c < m.rows * m.columns; c++)
+      m.value.fv[c] = floatComp(var, c);
+  }
 
   RDCASSERTEQUAL(m.rows, m.columns);
 
@@ -224,6 +324,12 @@ ShaderVariable Determinant(ThreadState &state, uint32_t, const rdcarray<Id> &par
   }
   m.rows = m.columns = 1;
 
+  if(var.type != VarType::Float)
+  {
+    float f = m.value.fv[0];
+    setFloatComp(m, 0, f);
+  }
+
   return m;
 }
 
@@ -231,7 +337,21 @@ ShaderVariable MatrixInverse(ThreadState &state, uint32_t, const rdcarray<Id> &p
 {
   CHECK_PARAMS(1);
 
-  ShaderVariable m = state.GetSrc(params[0]);
+  ShaderVariable var = state.GetSrc(params[0]);
+  ShaderVariable m = var;
+
+  if(var.type != VarType::Float)
+  {
+    static bool warned = false;
+    if(!warned)
+    {
+      warned = true;
+      RDCLOG("Calculating determinant in floats instead of %s", ToStr(m.type).c_str());
+    }
+
+    for(uint8_t c = 0; c < m.rows * m.columns; c++)
+      m.value.fv[c] = floatComp(var, c);
+  }
 
   RDCASSERTEQUAL(m.rows, m.columns);
 
@@ -254,6 +374,13 @@ ShaderVariable MatrixInverse(ThreadState &state, uint32_t, const rdcarray<Id> &p
     memcpy(m.value.fv, mat.Inverse().Data(), sizeof(mat));
   }
 
+  if(var.type != VarType::Float)
+  {
+    var = m;
+    for(uint8_t c = 0; c < m.rows * m.columns; c++)
+      setFloatComp(m, c, var.value.fv[c]);
+  }
+
   return m;
 }
 
@@ -261,35 +388,45 @@ ShaderVariable Modf(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(2);
 
-  ShaderVariable x = state.GetSrc(params[0]);
+  ShaderVariable var = state.GetSrc(params[0]);
   Id iptr = params[1];
 
-  ShaderVariable whole = x;
+  ShaderVariable whole = var;
 
-  for(uint32_t c = 0; c < x.columns; c++)
-    x.value.fv[c] = modff(x.value.fv[c], &whole.value.fv[c]);
+  for(uint32_t c = 0; c < var.columns; c++)
+  {
+#undef _IMPL
+#define _IMPL(T) comp<T>(var, c) = RDCMODF(comp<T>(var, c), &comp<T>(whole, c));
+
+    IMPL_FOR_FLOAT_TYPES(_IMPL);
+  }
 
   state.WritePointerValue(iptr, whole);
 
-  return x;
+  return var;
 }
 
 ShaderVariable ModfStruct(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(1);
 
-  ShaderVariable x = state.GetSrc(params[0]);
+  ShaderVariable var = state.GetSrc(params[0]);
 
   ShaderVariable ret;
   ret.rows = 1;
   ret.columns = 1;
   ret.isStruct = true;
-  ret.members = {x, x};
+  ret.members = {var, var};
   ret.members[0].name = "_child0";
   ret.members[1].name = "_child1";
 
-  for(uint32_t c = 0; c < x.columns; c++)
-    ret.members[0].value.fv[c] = modff(x.value.fv[c], &ret.members[1].value.fv[c]);
+  for(uint32_t c = 0; c < var.columns; c++)
+  {
+#undef _IMPL
+#define _IMPL(T) comp<T>(ret.members[0], c) = RDCMODF(comp<T>(var, c), &comp<T>(ret.members[1], c));
+
+    IMPL_FOR_FLOAT_TYPES(_IMPL);
+  }
 
   return ret;
 }
@@ -358,6 +495,32 @@ double GLSLMin(double x, double y)
     return y < x ? y : x;
 }
 
+template <>
+half_float::half GLSLMax(half_float::half x, half_float::half y)
+{
+  const bool xnan = RDCISNAN(x);
+  const bool ynan = RDCISNAN(y);
+  if(xnan && !ynan)
+    return y;
+  else if(!xnan && ynan)
+    return x;
+  else
+    return x < y ? y : x;
+}
+
+template <>
+half_float::half GLSLMin(half_float::half x, half_float::half y)
+{
+  const bool xnan = RDCISNAN(x);
+  const bool ynan = RDCISNAN(y);
+  if(xnan && !ynan)
+    return y;
+  else if(!xnan && ynan)
+    return x;
+  else
+    return y < x ? y : x;
+}
+
 ShaderVariable FMax(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(2);
@@ -367,10 +530,10 @@ ShaderVariable FMax(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 
   for(uint32_t c = 0; c < var.columns; c++)
   {
-    if(var.type == VarType::Double)
-      var.value.dv[c] = GLSLMax(var.value.dv[c], y.value.dv[c]);
-    else
-      var.value.fv[c] = GLSLMax(var.value.fv[c], y.value.fv[c]);
+#undef _IMPL
+#define _IMPL(T) comp<T>(var, c) = GLSLMax(comp<T>(var, c), comp<T>(y, c));
+
+    IMPL_FOR_FLOAT_TYPES(_IMPL);
   }
 
   return var;
@@ -384,7 +547,12 @@ ShaderVariable UMax(ThreadState &state, uint32_t, const rdcarray<Id> &params)
   ShaderVariable y = state.GetSrc(params[1]);
 
   for(uint32_t c = 0; c < var.columns; c++)
-    var.value.uv[c] = GLSLMax(var.value.uv[c], y.value.uv[c]);
+  {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(var, c) = GLSLMax(comp<U>(var, c), comp<U>(y, c));
+
+    IMPL_FOR_INT_TYPES(_IMPL);
+  }
 
   return var;
 }
@@ -397,7 +565,12 @@ ShaderVariable SMax(ThreadState &state, uint32_t, const rdcarray<Id> &params)
   ShaderVariable y = state.GetSrc(params[1]);
 
   for(uint32_t c = 0; c < var.columns; c++)
-    var.value.iv[c] = GLSLMax(var.value.iv[c], y.value.iv[c]);
+  {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<S>(var, c) = GLSLMax(comp<S>(var, c), comp<S>(y, c));
+
+    IMPL_FOR_INT_TYPES(_IMPL);
+  }
 
   return var;
 }
@@ -411,10 +584,10 @@ ShaderVariable FMin(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 
   for(uint32_t c = 0; c < var.columns; c++)
   {
-    if(var.type == VarType::Double)
-      var.value.dv[c] = GLSLMin(var.value.dv[c], y.value.dv[c]);
-    else
-      var.value.fv[c] = GLSLMin(var.value.fv[c], y.value.fv[c]);
+#undef _IMPL
+#define _IMPL(T) comp<T>(var, c) = GLSLMin(comp<T>(var, c), comp<T>(y, c));
+
+    IMPL_FOR_FLOAT_TYPES(_IMPL);
   }
 
   return var;
@@ -428,7 +601,12 @@ ShaderVariable UMin(ThreadState &state, uint32_t, const rdcarray<Id> &params)
   ShaderVariable y = state.GetSrc(params[1]);
 
   for(uint32_t c = 0; c < var.columns; c++)
-    var.value.uv[c] = GLSLMin(var.value.uv[c], y.value.uv[c]);
+  {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(var, c) = GLSLMin(comp<U>(var, c), comp<U>(y, c));
+
+    IMPL_FOR_INT_TYPES(_IMPL);
+  }
 
   return var;
 }
@@ -441,7 +619,12 @@ ShaderVariable SMin(ThreadState &state, uint32_t, const rdcarray<Id> &params)
   ShaderVariable y = state.GetSrc(params[1]);
 
   for(uint32_t c = 0; c < var.columns; c++)
-    var.value.iv[c] = GLSLMin(var.value.iv[c], y.value.iv[c]);
+  {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<S>(var, c) = GLSLMin(comp<S>(var, c), comp<S>(y, c));
+
+    IMPL_FOR_INT_TYPES(_IMPL);
+  }
 
   return var;
 }
@@ -456,10 +639,11 @@ ShaderVariable FClamp(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 
   for(uint32_t c = 0; c < var.columns; c++)
   {
-    if(var.type == VarType::Double)
-      var.value.dv[c] = GLSLMin(GLSLMax(var.value.dv[c], minVal.value.dv[c]), maxVal.value.dv[c]);
-    else
-      var.value.fv[c] = GLSLMin(GLSLMax(var.value.fv[c], minVal.value.fv[c]), maxVal.value.fv[c]);
+#undef _IMPL
+#define _IMPL(T) \
+  comp<T>(var, c) = GLSLMin(GLSLMax(comp<T>(var, c), comp<T>(minVal, c)), comp<T>(maxVal, c));
+
+    IMPL_FOR_FLOAT_TYPES(_IMPL);
   }
 
   return var;
@@ -474,7 +658,13 @@ ShaderVariable UClamp(ThreadState &state, uint32_t, const rdcarray<Id> &params)
   ShaderVariable maxVal = state.GetSrc(params[2]);
 
   for(uint32_t c = 0; c < var.columns; c++)
-    var.value.uv[c] = GLSLMin(GLSLMax(var.value.uv[c], minVal.value.uv[c]), maxVal.value.uv[c]);
+  {
+#undef _IMPL
+#define _IMPL(I, S, U) \
+  comp<U>(var, c) = GLSLMin(GLSLMax(comp<U>(var, c), comp<U>(minVal, c)), comp<U>(maxVal, c));
+
+    IMPL_FOR_INT_TYPES(_IMPL);
+  }
 
   return var;
 }
@@ -488,7 +678,13 @@ ShaderVariable SClamp(ThreadState &state, uint32_t, const rdcarray<Id> &params)
   ShaderVariable maxVal = state.GetSrc(params[2]);
 
   for(uint32_t c = 0; c < var.columns; c++)
-    var.value.iv[c] = GLSLMin(GLSLMax(var.value.iv[c], minVal.value.iv[c]), maxVal.value.iv[c]);
+  {
+#undef _IMPL
+#define _IMPL(I, S, U) \
+  comp<S>(var, c) = GLSLMin(GLSLMax(comp<S>(var, c), comp<S>(minVal, c)), comp<S>(maxVal, c));
+
+    IMPL_FOR_INT_TYPES(_IMPL);
+  }
 
   return var;
 }
@@ -503,11 +699,15 @@ ShaderVariable FMix(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 
   for(uint32_t c = 0; c < var.columns; c++)
   {
-    float xf = var.value.fv[c];
-    float yf = y.value.fv[c];
-    float af = a.value.fv[c];
+#undef _IMPL
+#define _IMPL(T)          \
+  T xf = comp<T>(var, c); \
+  T yf = comp<T>(y, c);   \
+  T af = comp<T>(a, c);   \
+                          \
+  comp<T>(var, c) = xf * (1 - af) + yf * af;
 
-    var.value.fv[c] = xf * (1 - af) + yf * af;
+    IMPL_FOR_FLOAT_TYPES(_IMPL);
   }
 
   return var;
@@ -518,12 +718,17 @@ ShaderVariable Step(ThreadState &state, uint32_t, const rdcarray<Id> &params)
   CHECK_PARAMS(2);
 
   ShaderVariable edge = state.GetSrc(params[0]);
-  ShaderVariable x = state.GetSrc(params[1]);
+  ShaderVariable var = state.GetSrc(params[1]);
 
-  for(uint32_t c = 0; c < x.columns; c++)
-    x.value.fv[c] = x.value.fv[c] < edge.value.fv[c] ? 0.0f : 1.0f;
+  for(uint32_t c = 0; c < var.columns; c++)
+  {
+#undef _IMPL
+#define _IMPL(T) comp<T>(var, c) = comp<T>(var, c) < comp<T>(edge, c) ? T(0.0) : T(1.0);
 
-  return x;
+    IMPL_FOR_FLOAT_TYPES(_IMPL);
+  }
+
+  return var;
 }
 
 ShaderVariable SmoothStep(ThreadState &state, uint32_t, const rdcarray<Id> &params)
@@ -532,68 +737,72 @@ ShaderVariable SmoothStep(ThreadState &state, uint32_t, const rdcarray<Id> &para
 
   ShaderVariable edge0 = state.GetSrc(params[0]);
   ShaderVariable edge1 = state.GetSrc(params[1]);
-  ShaderVariable x = state.GetSrc(params[2]);
+  ShaderVariable var = state.GetSrc(params[2]);
 
-  for(uint32_t c = 0; c < x.columns; c++)
+  for(uint32_t c = 0; c < var.columns; c++)
   {
-    if(x.type == VarType::Double)
-    {
-      const double edge0f = edge0.value.dv[c];
-      const double edge1f = edge1.value.dv[c];
-      const double xf = x.value.dv[c];
+#undef _IMPL
+#define _IMPL(T)                                                             \
+  T edge0f = comp<T>(edge0, c);                                              \
+  T edge1f = comp<T>(edge1, c);                                              \
+  T xf = comp<T>(var, c);                                                    \
+                                                                             \
+  T t = GLSLMin(GLSLMax((xf - edge0f) / (edge1f - edge0f), T(0.0)), T(1.0)); \
+                                                                             \
+  comp<T>(var, c) = t * t * (T(3.0) - T(2.0) * t);
 
-      const double t = GLSLMin(GLSLMax((xf - edge0f) / (edge1f - edge0f), 0.0), 1.0);
-
-      x.value.dv[c] = t * t * (3 - 2 * t);
-    }
-    else
-    {
-      const float edge0f = edge0.value.fv[c];
-      const float edge1f = edge1.value.fv[c];
-      const float xf = x.value.fv[c];
-
-      const float t = GLSLMin(GLSLMax((xf - edge0f) / (edge1f - edge0f), 0.0f), 1.0f);
-
-      x.value.fv[c] = t * t * (3 - 2 * t);
-    }
+    IMPL_FOR_FLOAT_TYPES(_IMPL);
   }
 
-  return x;
+  return var;
 }
 
 ShaderVariable Frexp(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(2);
 
-  ShaderVariable x = state.GetSrc(params[0]);
+  ShaderVariable var = state.GetSrc(params[0]);
   Id iptr = params[1];
 
-  ShaderVariable whole = x;
+  ShaderVariable whole = var;
 
-  for(uint32_t c = 0; c < x.columns; c++)
-    x.value.fv[c] = frexpf(x.value.fv[c], &whole.value.iv[c]);
+  for(uint32_t c = 0; c < var.columns; c++)
+  {
+#undef _IMPL
+#define _IMPL(T) comp<T>(var, c) = frexp(comp<T>(var, c), &comp<int32_t>(whole, c));
+
+    IMPL_FOR_FLOAT_TYPES(_IMPL);
+  }
 
   state.WritePointerValue(iptr, whole);
 
-  return x;
+  return var;
 }
 
 ShaderVariable FrexpStruct(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(1);
 
-  ShaderVariable x = state.GetSrc(params[0]);
+  ShaderVariable var = state.GetSrc(params[0]);
 
   ShaderVariable ret;
   ret.rows = 1;
   ret.columns = 1;
   ret.isStruct = true;
-  ret.members = {x, x};
+  ret.members = {var, var};
   ret.members[0].name = "_child0";
   ret.members[1].name = "_child1";
+  // member 1 must be a scalar or vector with integer type, and 32-bit width
+  ret.members[1].type = VarType::SInt;
 
-  for(uint32_t c = 0; c < x.columns; c++)
-    ret.members[0].value.fv[c] = frexpf(x.value.fv[c], &ret.members[1].value.iv[c]);
+  for(uint32_t c = 0; c < var.columns; c++)
+  {
+#undef _IMPL
+#define _IMPL(T) \
+  comp<T>(ret.members[0], c) = frexp(comp<T>(var, c), &comp<int32_t>(ret.members[1], c));
+
+    IMPL_FOR_FLOAT_TYPES(_IMPL);
+  }
 
   return ret;
 }
@@ -602,13 +811,18 @@ ShaderVariable Ldexp(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(2);
 
-  ShaderVariable x = state.GetSrc(params[0]);
+  ShaderVariable var = state.GetSrc(params[0]);
   ShaderVariable exp = state.GetSrc(params[1]);
 
-  for(uint8_t c = 0; c < x.columns; c++)
-    x.value.fv[c] = ldexpf(x.value.fv[c], exp.value.iv[c]);
+  for(uint8_t c = 0; c < var.columns; c++)
+  {
+#undef _IMPL
+#define _IMPL(T) comp<T>(var, c) = ldexp(comp<T>(var, c), comp<int32_t>(exp, c));
 
-  return x;
+    IMPL_FOR_FLOAT_TYPES(_IMPL);
+  }
+
+  return var;
 }
 
 ShaderVariable PackSnorm4x8(ThreadState &state, uint32_t, const rdcarray<Id> &params)
@@ -619,6 +833,7 @@ ShaderVariable PackSnorm4x8(ThreadState &state, uint32_t, const rdcarray<Id> &pa
 
   uint32_t packed = 0;
 
+  // The v operand must be a vector of 4 components whose type is a 32-bit floating-point.
   packed |= (int32_t(RDCCLAMP(v.value.fv[0], -1.0f, 1.0f) * 127.0f) & 0xff) << 0;
   packed |= (int32_t(RDCCLAMP(v.value.fv[1], -1.0f, 1.0f) * 127.0f) & 0xff) << 8;
   packed |= (int32_t(RDCCLAMP(v.value.fv[2], -1.0f, 1.0f) * 127.0f) & 0xff) << 16;
@@ -640,6 +855,7 @@ ShaderVariable PackUnorm4x8(ThreadState &state, uint32_t, const rdcarray<Id> &pa
 
   uint32_t packed = 0;
 
+  // The v operand must be a vector of 4 components whose type is a 32-bit floating-point.
   packed |= (uint32_t(RDCCLAMP(v.value.fv[0], 0.0f, 1.0f) * 255.0f) & 0xff) << 0;
   packed |= (uint32_t(RDCCLAMP(v.value.fv[1], 0.0f, 1.0f) * 255.0f) & 0xff) << 8;
   packed |= (uint32_t(RDCCLAMP(v.value.fv[2], 0.0f, 1.0f) * 255.0f) & 0xff) << 16;
@@ -661,6 +877,7 @@ ShaderVariable PackSnorm2x16(ThreadState &state, uint32_t, const rdcarray<Id> &p
 
   uint32_t packed = 0;
 
+  // The v operand must be a vector of 4 components whose type is a 32-bit floating-point.
   packed |= (int32_t(RDCCLAMP(v.value.fv[0], -1.0f, 1.0f) * 32767.0f) & 0xffff) << 0;
   packed |= (int32_t(RDCCLAMP(v.value.fv[1], -1.0f, 1.0f) * 32767.0f) & 0xffff) << 16;
 
@@ -680,6 +897,7 @@ ShaderVariable PackUnorm2x16(ThreadState &state, uint32_t, const rdcarray<Id> &p
 
   uint32_t packed = 0;
 
+  // The v operand must be a vector of 4 components whose type is a 32-bit floating-point.
   packed |= (uint32_t(RDCCLAMP(v.value.fv[0], 0.0f, 1.0f) * 65535.0f) & 0xffff) << 0;
   packed |= (uint32_t(RDCCLAMP(v.value.fv[1], 0.0f, 1.0f) * 65535.0f) & 0xffff) << 16;
 
@@ -699,6 +917,7 @@ ShaderVariable PackHalf2x16(ThreadState &state, uint32_t, const rdcarray<Id> &pa
 
   uint32_t packed = 0;
 
+  // The v operand must be a vector of 4 components whose type is a 32-bit floating-point.
   packed |= ConvertToHalf(v.value.fv[0]) << 0;
   packed |= ConvertToHalf(v.value.fv[1]) << 16;
 
@@ -733,6 +952,7 @@ ShaderVariable UnpackSnorm4x8(ThreadState &state, uint32_t, const rdcarray<Id> &
 
   uint32_t packed = v.value.uv[0];
 
+  // The v operand must be a vector of 4 components whose type is a 32-bit floating-point.
   v.value.fv[0] = RDCCLAMP(float(int8_t((packed >> 0) & 0xff)) / 127.0f, -1.0f, 1.0f);
   v.value.fv[1] = RDCCLAMP(float(int8_t((packed >> 8) & 0xff)) / 127.0f, -1.0f, 1.0f);
   v.value.fv[2] = RDCCLAMP(float(int8_t((packed >> 16) & 0xff)) / 127.0f, -1.0f, 1.0f);
@@ -842,9 +1062,13 @@ ShaderVariable Cross(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 
   ShaderVariable var = x;
 
-  var.value.fv[0] = x.value.fv[1] * y.value.fv[2] - y.value.fv[1] * x.value.fv[2];
-  var.value.fv[1] = x.value.fv[2] * y.value.fv[0] - y.value.fv[2] * x.value.fv[0];
-  var.value.fv[2] = x.value.fv[0] * y.value.fv[1] - y.value.fv[0] * x.value.fv[1];
+#undef _IMPL
+#define _IMPL(T)                                                                   \
+  comp<T>(var, 0) = comp<T>(x, 1) * comp<T>(y, 2) - comp<T>(y, 1) * comp<T>(x, 2); \
+  comp<T>(var, 1) = comp<T>(x, 2) * comp<T>(y, 0) - comp<T>(y, 2) * comp<T>(x, 0); \
+  comp<T>(var, 2) = comp<T>(x, 0) * comp<T>(y, 1) - comp<T>(y, 0) * comp<T>(x, 1);
+
+  IMPL_FOR_FLOAT_TYPES(_IMPL);
 
   return var;
 }
@@ -857,17 +1081,22 @@ ShaderVariable FaceForward(ThreadState &state, uint32_t, const rdcarray<Id> &par
   ShaderVariable I = state.GetSrc(params[1]);
   ShaderVariable Nref = state.GetSrc(params[2]);
 
-  float dot = 0;
-  for(uint8_t c = 0; c < Nref.columns; c++)
-    dot += Nref.value.fv[c] * I.value.fv[c];
+  ShaderVariable var = N;
 
-  if(dot >= 0.0f)
-  {
-    for(uint8_t c = 0; c < Nref.columns; c++)
-      N.value.fv[c] = -N.value.fv[c];
+#undef _IMPL
+#define _IMPL(T)                             \
+  T dot(0.0);                                \
+  for(uint8_t c = 0; c < var.columns; c++)   \
+    dot += comp<T>(Nref, c) * comp<T>(I, c); \
+  if(dot >= 0.0)                             \
+  {                                          \
+    for(uint8_t c = 0; c < var.columns; c++) \
+      comp<T>(var, c) = -comp<T>(N, c);      \
   }
 
-  return N;
+  IMPL_FOR_FLOAT_TYPES(_IMPL);
+
+  return var;
 }
 
 ShaderVariable Reflect(ThreadState &state, uint32_t, const rdcarray<Id> &params)
@@ -877,14 +1106,20 @@ ShaderVariable Reflect(ThreadState &state, uint32_t, const rdcarray<Id> &params)
   ShaderVariable I = state.GetSrc(params[0]);
   ShaderVariable N = state.GetSrc(params[1]);
 
-  float dot = 0;
-  for(uint8_t c = 0; c < N.columns; c++)
-    dot += N.value.fv[c] * I.value.fv[c];
+  ShaderVariable var = N;
 
-  for(uint8_t c = 0; c < N.columns; c++)
-    N.value.fv[c] = I.value.fv[c] - 2.0f * dot * N.value.fv[c];
+#undef _IMPL
+#define _IMPL(T)                           \
+  T dot(0.0);                              \
+  for(uint8_t c = 0; c < var.columns; c++) \
+    dot += comp<T>(N, c) * comp<T>(I, c);  \
+                                           \
+  for(uint8_t c = 0; c < var.columns; c++) \
+    comp<T>(var, c) = comp<T>(I, c) - T(2.0) * dot * comp<T>(N, c);
 
-  return N;
+  IMPL_FOR_FLOAT_TYPES(_IMPL);
+
+  return var;
 }
 
 ShaderVariable FindILsb(ThreadState &state, uint32_t, const rdcarray<Id> &params)
@@ -893,6 +1128,7 @@ ShaderVariable FindILsb(ThreadState &state, uint32_t, const rdcarray<Id> &params
 
   ShaderVariable x = state.GetSrc(params[0]);
 
+  // This instruction is currently limited to 32-bit width components.
   for(uint8_t c = 0; c < x.columns; c++)
     x.value.iv[c] = x.value.uv[c] == 0 ? -1 : Bits::CountTrailingZeroes(x.value.uv[c]);
 
@@ -905,6 +1141,7 @@ ShaderVariable FindSMsb(ThreadState &state, uint32_t, const rdcarray<Id> &params
 
   ShaderVariable x = state.GetSrc(params[0]);
 
+  // This instruction is currently limited to 32-bit width components.
   for(uint8_t c = 0; c < x.columns; c++)
   {
     if(x.value.iv[c] == 0 || x.value.iv[c] == -1)
@@ -924,6 +1161,7 @@ ShaderVariable FindUMsb(ThreadState &state, uint32_t, const rdcarray<Id> &params
 
   ShaderVariable x = state.GetSrc(params[0]);
 
+  // This instruction is currently limited to 32-bit width components.
   for(uint8_t c = 0; c < x.columns; c++)
   {
     x.value.iv[c] = x.value.iv[c] == 0 ? -1 : 31 - Bits::CountLeadingZeroes(x.value.uv[c]);
@@ -940,7 +1178,12 @@ ShaderVariable NMin(ThreadState &state, uint32_t, const rdcarray<Id> &params)
   ShaderVariable y = state.GetSrc(params[1]);
 
   for(uint32_t c = 0; c < var.columns; c++)
-    var.value.fv[c] = GLSLMin(var.value.fv[c], y.value.fv[c]);
+  {
+#undef _IMPL
+#define _IMPL(T) comp<T>(var, c) = GLSLMin(comp<T>(var, c), comp<T>(y, c));
+
+    IMPL_FOR_FLOAT_TYPES(_IMPL);
+  }
 
   return var;
 }
@@ -954,10 +1197,10 @@ ShaderVariable NMax(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 
   for(uint32_t c = 0; c < var.columns; c++)
   {
-    if(var.type == VarType::Double)
-      var.value.dv[c] = GLSLMax(var.value.dv[c], y.value.dv[c]);
-    else
-      var.value.fv[c] = GLSLMax(var.value.fv[c], y.value.fv[c]);
+#undef _IMPL
+#define _IMPL(T) comp<T>(var, c) = GLSLMax(comp<T>(var, c), comp<T>(y, c));
+
+    IMPL_FOR_FLOAT_TYPES(_IMPL);
   }
 
   return var;
@@ -973,10 +1216,11 @@ ShaderVariable NClamp(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 
   for(uint32_t c = 0; c < var.columns; c++)
   {
-    if(var.type == VarType::Double)
-      var.value.dv[c] = GLSLMin(GLSLMax(var.value.dv[c], minVal.value.dv[c]), maxVal.value.dv[c]);
-    else
-      var.value.fv[c] = GLSLMin(GLSLMax(var.value.fv[c], minVal.value.fv[c]), maxVal.value.fv[c]);
+#undef _IMPL
+#define _IMPL(T) \
+  comp<T>(var, c) = GLSLMin(GLSLMax(comp<T>(var, c), comp<T>(minVal, c)), comp<T>(maxVal, c));
+
+    IMPL_FOR_FLOAT_TYPES(_IMPL);
   }
 
   return var;
