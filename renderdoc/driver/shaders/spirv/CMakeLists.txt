@@ -108,6 +108,7 @@ set(sources
     spirv_processor.h
     spirv_disassemble.cpp
     spirv_stringise.cpp
+    var_dispatch_helpers.h
     ${glslang_sources})
 
 add_definitions(-DAMD_EXTENSIONS)

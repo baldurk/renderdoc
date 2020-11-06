@@ -209,6 +209,18 @@ union ShaderValue
 
   DOCUMENT("64-bit signed integer values.");
   int64_t s64v[16];
+
+  DOCUMENT("16-bit unsigned integer values.");
+  uint16_t u16v[16];
+
+  DOCUMENT("16-bit signed integer values.");
+  int16_t s16v[16];
+
+  DOCUMENT("8-bit unsigned integer values.");
+  uint8_t u8v[16];
+
+  DOCUMENT("8-bit signed integer values.");
+  int8_t s8v[16];
 };
 
 DOCUMENT(R"(Holds a single named shader variable. It contains either a primitive type (up to a 4x4
