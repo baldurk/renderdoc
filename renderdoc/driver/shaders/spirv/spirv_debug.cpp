@@ -660,7 +660,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       // get the pointer base offset (should be zero for any binding but could be non-zero for a
       // buffer_device_address pointer)
-      uint64_t offset = structPointer.value.u64v[BufferPointerByteOffsetVariableSlot];
+      uint64_t offset = debugger.GetPointerByteOffset(structPointer);
 
       // add the offset of the member
       const DataType &pointerType = debugger.GetTypeForId(len.structure);
@@ -2299,8 +2299,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
                 sampler.type == VarType::Sampler);
 
       // at setup time we stored the texture type for easy access here
-      DebugAPIWrapper::TextureType texType =
-          (DebugAPIWrapper::TextureType)img.value.u64v[TextureTypeVariableSlot];
+      DebugAPIWrapper::TextureType texType = debugger.GetTextureType(img);
 
       // should not be sampling or fetching from subpass textures
       RDCASSERT((texType & DebugAPIWrapper::Subpass_Texture) == 0);
@@ -2352,8 +2351,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       ShaderVariable result;
       result.type = resultType.scalar().Type();
 
-      DebugAPIWrapper::TextureType texType =
-          (DebugAPIWrapper::TextureType)img.value.u64v[TextureTypeVariableSlot];
+      DebugAPIWrapper::TextureType texType = debugger.GetTextureType(img);
 
       if(texType & DebugAPIWrapper::Subpass_Texture)
       {

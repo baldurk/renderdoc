@@ -27,6 +27,19 @@
 #include "spirv_op_helpers.h"
 #include "spirv_reflect.h"
 
+// this could be cleaner if ShaderVariable wasn't a very public struct, but it's not worth it so
+// we just reserve value slots that we know won't be used in opaque variables
+static const uint32_t PointerVariableSlot = 0;
+static const uint32_t Scalar0VariableSlot = 1;
+static const uint32_t Scalar1VariableSlot = 2;
+static const uint32_t BaseIdVariableSlot = 3;
+static const uint32_t MajorStrideVariableSlot = 4;
+static const uint32_t ArrayVariableSlot = 8;
+static const uint32_t TextureTypeVariableSlot = 9;
+static const uint32_t BufferPointerByteOffsetVariableSlot = 9;
+static const uint32_t BufferPointerTypeIdVariableSlot = 10;
+static const uint32_t SSBOVariableSlot = 11;
+
 static ShaderVariable *pointerIfMutable(const ShaderVariable &var)
 {
   return NULL;
@@ -1400,6 +1413,16 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
     ret.value.u64v[ArrayVariableSlot] = indices[0];
 
   return ret;
+}
+
+uint64_t Debugger::GetPointerByteOffset(const ShaderVariable &ptr) const
+{
+  return ptr.value.u64v[BufferPointerByteOffsetVariableSlot];
+}
+
+DebugAPIWrapper::TextureType Debugger::GetTextureType(const ShaderVariable &img) const
+{
+  return (DebugAPIWrapper::TextureType)img.value.u64v[TextureTypeVariableSlot];
 }
 
 ShaderVariable Debugger::GetPointerValue(const ShaderVariable &ptr) const

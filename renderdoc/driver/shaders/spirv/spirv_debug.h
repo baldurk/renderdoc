@@ -102,19 +102,6 @@ public:
                                          uint32_t component) = 0;
 };
 
-// this could be cleaner if ShaderVariable wasn't a very public struct, but it's not worth it so
-// we just reserve value slots that we know won't be used in opaque variables
-static const uint32_t PointerVariableSlot = 0;
-static const uint32_t Scalar0VariableSlot = 1;
-static const uint32_t Scalar1VariableSlot = 2;
-static const uint32_t BaseIdVariableSlot = 3;
-static const uint32_t MajorStrideVariableSlot = 4;
-static const uint32_t ArrayVariableSlot = 8;
-static const uint32_t TextureTypeVariableSlot = 9;
-static const uint32_t BufferPointerByteOffsetVariableSlot = 9;
-static const uint32_t BufferPointerTypeIdVariableSlot = 10;
-static const uint32_t SSBOVariableSlot = 11;
-
 typedef ShaderVariable (*ExtInstImpl)(ThreadState &, uint32_t, const rdcarray<Id> &);
 
 struct ExtInstDispatcher
@@ -280,6 +267,8 @@ public:
 
   ShaderVariable ReadFromPointer(const ShaderVariable &v) const;
   ShaderVariable GetPointerValue(const ShaderVariable &v) const;
+  uint64_t GetPointerByteOffset(const ShaderVariable &ptr) const;
+  DebugAPIWrapper::TextureType GetTextureType(const ShaderVariable &img) const;
   ShaderVariable MakePointerVariable(Id id, const ShaderVariable *v, uint32_t scalar0 = ~0U,
                                      uint32_t scalar1 = ~0U) const;
   Id GetPointerBaseId(const ShaderVariable &v) const;
