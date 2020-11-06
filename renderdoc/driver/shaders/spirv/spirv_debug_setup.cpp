@@ -1258,6 +1258,12 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
     RDCASSERT(type->type == DataType::PointerType);
     type = &dataTypes[type->InnerType()];
 
+    rdcspv::Id typeId =
+        rdcspv::Id::fromWord(uint32_t(base.value.u64v[BufferPointerTypeIdVariableSlot]));
+
+    if(typeId != rdcspv::Id())
+      type = &dataTypes[typeId];
+
     // first walk any aggregate types
     size_t i = 0;
 
