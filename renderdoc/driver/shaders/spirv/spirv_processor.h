@@ -27,7 +27,6 @@
 #include <stdint.h>
 #include <map>
 #include <set>
-#include "3rdparty/half/half.hpp"
 #include "api/replay/rdcarray.h"
 #include "api/replay/rdcpair.h"
 #include "api/replay/rdcstr.h"
@@ -35,6 +34,11 @@
 #include "api/replay/shader_types.h"
 #include "common/common.h"
 #include "spirv_common.h"
+
+namespace half_float
+{
+class half;
+};
 
 namespace rdcspv
 {

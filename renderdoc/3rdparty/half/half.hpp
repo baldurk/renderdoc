@@ -1028,7 +1028,7 @@ namespace half_float
 		/// \exception FE_OVERFLOW on overflows
 		/// \exception FE_UNDERFLOW on underflows
 		/// \exception FE_INEXACT if value had to be rounded
-		template<std::float_round_style R,typename T> unsigned int float2half_impl(T value, ...)
+		template<std::float_round_style R,typename T> unsigned int float2half_impl(T value, false_type)
 		{
 			unsigned int hbits = static_cast<unsigned>(builtin_signbit(value)) << 15;
 			if(value == T())
@@ -1280,7 +1280,7 @@ namespace half_float
 		/// \tparam T type to convert to (builtin integer type)
 		/// \param value half-precision value to convert
 		/// \return floating-point value
-		template<typename T> T half2float_impl(unsigned int value, T, ...)
+		template<typename T> T half2float_impl(unsigned int value, T, false_type)
 		{
 			T out;
 			unsigned int abs = value & 0x7FFF;
@@ -1381,7 +1381,8 @@ namespace half_float
 		{
 		#if HALF_ENABLE_CPP11_LONG_LONG
 			unsigned long long xx = static_cast<unsigned long long>(x) << 32;
-			return s = (xx%y!=0), static_cast<uint32>(xx/y);
+			s = (xx%y!=0);
+		  return static_cast<uint32>(xx/y);
 		#else
 			y >>= 1;
 			uint32 rem = x, div = 0;
@@ -1395,7 +1396,8 @@ namespace half_float
 				}
 				rem <<= 1;
 			}
-			return s = rem > 1, div;
+			s = rem > 1;
+			return div;
 		#endif
 		}
 
@@ -1440,7 +1442,10 @@ namespace half_float
 				{
 					q &= (1<<(std::numeric_limits<int>::digits-1)) - 1;
 					if(!mx)
-						return *quo = q, 0;
+					{
+						*quo = q;
+						return 0;
+					}
 				}
 				for(; mx<0x400; mx<<=1,--expy) ;
 				x = (expy>0) ? ((expy<<10)|(mx&0x3FF)) : (mx>>(1-expy));
@@ -1606,7 +1611,10 @@ namespace half_float
 			uint32 m = (abs&0x3FF) | ((abs>0x3FF)<<10);
 			int exp = (abs>>10) + (abs<=0x3FF) - 15;
 			if(abs < 0x3A48)
-				return k = 0, m << (exp+20);
+			{
+				k = 0;
+				return m << (exp+20);
+			}
 		#if HALF_ENABLE_CPP11_LONG_LONG
 			unsigned long long y = m * 0xA2F9836E4E442, mask = (1ULL<<(62-exp)) - 1, yi = (y+(mask>>1)) & ~mask, f = y - yi;
 			uint32 sign = -static_cast<uint32>(f>>63);
@@ -2255,7 +2263,7 @@ namespace half_float
 		friend HALF_CONSTEXPR bool islessequal(half, half);
 		friend HALF_CONSTEXPR bool islessgreater(half, half);
 		template<typename,typename,std::float_round_style> friend struct detail::half_caster;
-		friend class std::numeric_limits<half>;
+		friend std::numeric_limits<half>;
 	#if HALF_ENABLE_CPP11_HASH
 		friend struct std::hash<half>;
 	#endif
@@ -2784,15 +2792,19 @@ namespace half_float
 	{
 		unsigned int absx = x.data_ & 0x7FFF, absy = y.data_ & 0x7FFF, value = x.data_ & 0x8000;
 		if(absx >= 0x7C00 || absy >= 0x7C00)
+		{
+			*quo = 0;
 			return half(detail::binary,	(absx>0x7C00 || absy>0x7C00) ? detail::signal(x.data_, y.data_) :
-										(absx==0x7C00) ? detail::invalid() : (*quo = 0, x.data_));
+										(absx==0x7C00) ? detail::invalid() : (x.data_));
+		}
 		if(!absy)
 			return half(detail::binary, detail::invalid());
 		bool qsign = ((value^y.data_)&0x8000) != 0;
 		int q = 1;
 		if(absx != absy)
 			value ^= detail::mod<true, true>(absx, absy, &q);
-		return *quo = qsign ? -q : q, half(detail::binary, value);
+		*quo = qsign ? -q : q;
+		return half(detail::binary, value);
 	}
 
 	/// Fused multiply add.
@@ -4196,12 +4208,19 @@ namespace half_float
 		if(abs > 0x7C00)
 		{
 			arg = half(detail::binary, detail::signal(arg.data_));
-			return *iptr = arg, arg;
+			*iptr = arg;
+			return arg;
 		}
 		if(abs >= 0x6400)
-			return *iptr = arg, half(detail::binary, arg.data_&0x8000);
+		{
+			*iptr = arg;
+			return half(detail::binary, arg.data_&0x8000);
+		}
 		if(abs < 0x3C00)
-			return iptr->data_ = arg.data_ & 0x8000, arg;
+		{
+			iptr->data_ = arg.data_ & 0x8000;
+			return arg;
+		}
 		unsigned int exp = abs >> 10, mask = (1<<(25-exp)) - 1, m = arg.data_ & mask;
 		iptr->data_ = arg.data_ & ~mask;
 		if(!m)
