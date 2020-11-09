@@ -67,6 +67,7 @@ enum class KnownBlocks : uint32_t
   METADATA_BLOCK = 15,
   METADATA_ATTACHMENT = 16,
   TYPE_BLOCK = 17,
+  USELIST_BLOCK = 18,
 };
 
 enum class ModuleRecord : uint32_t
@@ -1346,6 +1347,10 @@ Program::Program(const byte *bytes, size_t length)
                 else
                   f.instructions[(size_t)meta.ops[0]].attachedMeta.swap(attach);
               }
+            }
+            else if(IS_KNOWN(funcChild.id, KnownBlocks::USELIST_BLOCK))
+            {
+              RDCDEBUG("Ignoring uselist block");
             }
             else
             {
