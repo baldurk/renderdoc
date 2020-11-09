@@ -571,6 +571,8 @@ void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, 
 
   docCtx.clip = QRectF(0, 0, rect.width() - 1, rect.height());
 
+  painter->setClipRect(docCtx.clip);
+
   linkedText->doc.documentLayout()->draw(painter, docCtx);
 
   if(state & QStyle::State_MouseOver)
