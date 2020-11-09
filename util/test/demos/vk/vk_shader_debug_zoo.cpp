@@ -1984,6 +1984,24 @@ void main()
                           op, a, b),
           });
 
+          if(features.shaderFloat64)
+          {
+            append_tests({
+                fmt::format("%_x = {0} %double %double_{1} %double_{2}\n"
+                            "%_y = {0} %double %double_neg{1} %double_{2}\n"
+                            "%_z = {0} %double %double_{2} %double_{1}\n"
+                            "%_w = {0} %double %double_neg{2} %double_{1}\n"
+                            "%_out_double4 = OpCompositeConstruct %double4 %_x %_y %_z %_w\n",
+                            op, a, b),
+                fmt::format("%_x = {0} %double %double_dyn_{1} %double_dyn_{2}\n"
+                            "%_y = {0} %double %double_dyn_neg{1} %double_dyn_{2}\n"
+                            "%_z = {0} %double %double_dyn_{2} %double_dyn_{1}\n"
+                            "%_w = {0} %double %double_dyn_neg{2} %double_dyn_{1}\n"
+                            "%_out_double4 = OpCompositeConstruct %double4 %_x %_y %_z %_w\n",
+                            op, a, b),
+            });
+          }
+
           // also test 0 op A/B
 
           append_tests({
@@ -2620,12 +2638,16 @@ void main()
       append_tests({
           "%_ptr = OpAccessChain %ptr_Uniform_uint2 %cbuffer %uint_16\n"
           "%_double_pack_source = OpLoad %uint2 %_ptr\n"
-          "%_unpacked = OpExtInst %double %glsl450 PackDouble2x32 %_double_pack_source\n"
-          "%_out_float = OpFConvert %float %_unpacked\n",
+          "%_out_double = OpExtInst %double %glsl450 PackDouble2x32 %_double_pack_source\n",
 
           "%_ptr = OpAccessChain %ptr_Uniform_double %cbuffer %uint_17\n"
           "%_double_unpack_source = OpLoad %double %_ptr\n"
           "%_out_uint2 = OpExtInst %uint2 %glsl450 UnpackDouble2x32 %_double_unpack_source\n",
+
+          "%_ptr = OpAccessChain %ptr_Uniform_double %cbuffer %uint_17\n"
+          "%_pi = OpLoad %double %_ptr\n"
+          "%_two = OpFConvert %double %float_2_0\n"
+          "%_out_double = OpFMul %double %_pi %_two\n",
       });
     }
 
@@ -2856,27 +2878,30 @@ OpBranch %_bottomlabel
       }
 
       // find any float constants referenced
-      offs = test.find("%float_");
-      while(offs != std::string::npos)
+      for(std::string prefix : {"%float_", "%double_", "%half_"})
       {
-        offs += 7;    // past %float_
+        offs = test.find(prefix);
+        while(offs != std::string::npos)
+        {
+          offs += prefix.size();
 
-        // we generate dynamic and negative versions of all constants, skip to the first digit
-        offs = test.find_first_of("0123456789", offs);
+          // we generate dynamic and negative versions of all constants, skip to the first digit
+          offs = test.find_first_of("0123456789", offs);
 
-        size_t begin = offs;
-        offs = test.find_first_of("\n\t ", offs);
+          size_t begin = offs;
+          offs = test.find_first_of("\n\t ", offs);
 
-        std::string val = test.substr(begin, offs - begin);
+          std::string val = test.substr(begin, offs - begin);
 
-        // convert any _ to a .
-        for(char &c : val)
-          if(c == '_')
-            c = '.';
+          // convert any _ to a .
+          for(char &c : val)
+            if(c == '_')
+              c = '.';
 
-        float_constants.insert(std::strtof(val.c_str(), NULL));
+          float_constants.insert(std::strtof(val.c_str(), NULL));
 
-        offs = test.find("%float_", offs);
+          offs = test.find(prefix, offs);
+        }
       }
 
       // find any int constants referenced
@@ -2971,6 +2996,32 @@ OpBranch %_bottomlabel
           cases += fmt::format(
               "%Color_{0} = OpVectorShuffle %float4 %_out_float3_{0} %_out_float3_{0} 0 1 2 0\n", i);
         }
+        else if(test.find("%_out_double_") != std::string::npos)
+        {
+          cases += fmt::format(
+              "%_out_float_{0} = OpFConvert %float %_out_double_{0}\n"
+              "%Color_{0} = OpCompositeConstruct %float4 "
+              " %_out_float_{0} %_out_float_{0} %_out_float_{0} %_out_float_{0}\n",
+              i);
+        }
+        else if(test.find("%_out_double2_") != std::string::npos)
+        {
+          cases += fmt::format(
+              "%_out_float2_{0} = OpFConvert %float2 %_out_double2_{0}\n"
+              "%Color_{0} = OpVectorShuffle %float4 %_out_float2_{0} %_out_float2_{0} 0 1 0 1\n",
+              i);
+        }
+        else if(test.find("%_out_double3_") != std::string::npos)
+        {
+          cases += fmt::format(
+              "%_out_float3_{0} = OpFConvert %float3 %_out_double3_{0}\n"
+              "%Color_{0} = OpVectorShuffle %float4 %_out_float3_{0} %_out_float3_{0} 0 1 2 0\n",
+              i);
+        }
+        else if(test.find("%_out_double4_") != std::string::npos)
+        {
+          cases += fmt::format("%Color_{0} = OpFConvert %float4 %_out_double4_{0}\n", i);
+        }
         else if(test.find("%_out_int_") != std::string::npos)
         {
           cases += fmt::format(
@@ -3039,20 +3090,49 @@ OpBranch %_bottomlabel
 
     if(features.shaderFloat64)
     {
-      typesConstants += "%double = OpTypeFloat 64\n";
+      typesConstants +=
+          "%double = OpTypeFloat 64\n"
+          "%double2 = OpTypeVector %double 2\n"
+          "%double3 = OpTypeVector %double 3\n"
+          "%double4 = OpTypeVector %double 4\n"
+          "%double2x2 = OpTypeMatrix %double2 2\n"
+          "%double3x3 = OpTypeMatrix %double3 3\n"
+          "%double2x4 = OpTypeMatrix %double2 4\n"
+          "%double4x2 = OpTypeMatrix %double4 2\n"
+          "%double4x4 = OpTypeMatrix %double4 4\n";
+
       typesConstants += "%ptr_Uniform_double = OpTypePointer Uniform %double\n";
       capabilities += "OpCapability Float64\n";
+    }
+
+    if(float16Int8Features.shaderFloat16 || storage16Features.storageBuffer16BitAccess ||
+       storage16Features.uniformAndStorageBuffer16BitAccess ||
+       storage16Features.storagePushConstant16 || storage16Features.storageInputOutput16)
+    {
+      typesConstants += "%half = OpTypeFloat 16\n";
+      capabilities += "OpCapability Float16\n";
+    }
+
+    if(float16Int8Features.shaderInt8 || storage8Features.storageBuffer8BitAccess ||
+       storage8Features.uniformAndStorageBuffer8BitAccess || storage8Features.storagePushConstant8)
+    {
+      typesConstants +=
+          "%i8 = OpTypeInt 8 1\n"
+          "%u8 = OpTypeInt 8 0\n";
+      capabilities += "OpCapability Int8\n";
     }
 
     if(features.shaderInt64)
     {
       typesConstants +=
           "%i64 = OpTypeInt 64 1\n"
-          "%u16 = OpTypeInt 16 0\n";
+          "%u64 = OpTypeInt 64 0\n";
       capabilities += "OpCapability Int64\n";
     }
 
-    if(features.shaderInt16)
+    if(features.shaderInt16 || storage16Features.storageBuffer16BitAccess ||
+       storage16Features.uniformAndStorageBuffer16BitAccess ||
+       storage16Features.storagePushConstant16 || storage16Features.storageInputOutput16)
     {
       typesConstants +=
           "%i16 = OpTypeInt 16 1\n"
@@ -3117,6 +3197,12 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
           c = '_';
       typesConstants += fmt::format("%float_{} = OpConstant %float {}\n", name, f);
       typesConstants += fmt::format("%float_neg{} = OpConstant %float -{}\n", name, f);
+
+      if(features.shaderFloat64)
+      {
+        typesConstants += fmt::format("%double_{} = OpConstant %double {}\n", name, f);
+        typesConstants += fmt::format("%double_neg{} = OpConstant %double -{}\n", name, f);
+      }
     }
 
     typesConstants += "\n";
@@ -3200,6 +3286,9 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
 )EOSHADER";
 
+    if(features.shaderFloat64)
+      ret += "%zerof64 = OpFConvert %double %zerof\n";
+
     // generate dynamic versions of the constants
     for(float f : float_constants)
     {
@@ -3209,6 +3298,12 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
           c = '_';
       ret += fmt::format("%float_dyn_{0} = OpFAdd %float %zerof %float_{0}\n", name);
       ret += fmt::format("%float_dyn_neg{0} = OpFAdd %float %zerof %float_neg{0}\n", name);
+
+      if(features.shaderFloat64)
+      {
+        ret += fmt::format("%double_dyn_{0} = OpFAdd %double %zerof64 %double_{0}\n", name);
+        ret += fmt::format("%double_dyn_neg{0} = OpFAdd %double %zerof64 %double_neg{0}\n", name);
+      }
     }
 
     ret += "\n";
@@ -3263,6 +3358,16 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
   uint32_t vk_version = 0x10;
 
+  VkPhysicalDevice16BitStorageFeaturesKHR storage16Features = {
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES_KHR,
+  };
+  VkPhysicalDevice8BitStorageFeaturesKHR storage8Features = {
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES_KHR,
+  };
+  VkPhysicalDeviceFloat16Int8FeaturesKHR float16Int8Features = {
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_FLOAT16_INT8_FEATURES_KHR,
+  };
+
   void Prepare(int argc, char **argv)
   {
     // require descriptor indexing
@@ -3270,6 +3375,14 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
     // dependencies of VK_EXT_descriptor_indexing
     optDevExts.push_back(VK_KHR_MAINTENANCE3_EXTENSION_NAME);
+
+    // add float16/int8 extensions
+    optDevExts.push_back(VK_KHR_8BIT_STORAGE_EXTENSION_NAME);
+    optDevExts.push_back(VK_KHR_16BIT_STORAGE_EXTENSION_NAME);
+    optDevExts.push_back(VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME);
+
+    // dependencies of VK_KHR_8bit_storage
+    optDevExts.push_back(VK_KHR_STORAGE_BUFFER_STORAGE_CLASS_EXTENSION_NAME);
 
     // we require this to pixel shader debug anyway, so we might as well require it for all tests.
     features.fragmentStoresAndAtomics = VK_TRUE;
@@ -3284,6 +3397,12 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
     const bool descIndexing = std::find(devExts.begin(), devExts.end(),
                                         VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME) != devExts.end();
+    const bool storage16 = std::find(devExts.begin(), devExts.end(),
+                                     VK_KHR_16BIT_STORAGE_EXTENSION_NAME) != devExts.end();
+    const bool storage8 = std::find(devExts.begin(), devExts.end(),
+                                    VK_KHR_8BIT_STORAGE_EXTENSION_NAME) != devExts.end();
+    const bool float16int8 = std::find(devExts.begin(), devExts.end(),
+                                       VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME) != devExts.end();
 
     vk_version = 0x10;
 
@@ -3310,9 +3429,12 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
     VkPhysicalDeviceFeatures supported;
     vkGetPhysicalDeviceFeatures(phys, &supported);
 
-    // Disabled until we support these in debugging
-    // if(supported.shaderFloat64)
-    // features.shaderFloat64 = VK_TRUE;
+    if(supported.shaderFloat64)
+      features.shaderFloat64 = VK_TRUE;
+    if(supported.shaderInt64)
+      features.shaderInt64 = VK_TRUE;
+    if(supported.shaderInt16)
+      features.shaderInt16 = VK_TRUE;
 
     if(descIndexing)
     {
@@ -3359,6 +3481,33 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
       devInfoNext = &descIndexingFeatures;
     }
+
+    if(storage16)
+    {
+      // enable all available features
+      getPhysFeatures2(&storage16Features);
+
+      storage16Features.pNext = (void *)devInfoNext;
+      devInfoNext = &storage16Features;
+    }
+
+    if(storage8)
+    {
+      // enable all available features
+      getPhysFeatures2(&storage8Features);
+
+      storage8Features.pNext = (void *)devInfoNext;
+      devInfoNext = &storage8Features;
+    }
+
+    if(float16int8)
+    {
+      // enable all available features
+      getPhysFeatures2(&float16Int8Features);
+
+      float16Int8Features.pNext = (void *)devInfoNext;
+      devInfoNext = &float16Int8Features;
+    }
   }
 
   int main()
@@ -3371,6 +3520,30 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
     const bool descIndexing = std::find(devExts.begin(), devExts.end(),
                                         VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME) != devExts.end();
+    const bool storage16 = std::find(devExts.begin(), devExts.end(),
+                                     VK_KHR_16BIT_STORAGE_EXTENSION_NAME) != devExts.end();
+    const bool storage8 = std::find(devExts.begin(), devExts.end(),
+                                    VK_KHR_8BIT_STORAGE_EXTENSION_NAME) != devExts.end();
+    const bool float16int8 = std::find(devExts.begin(), devExts.end(),
+                                       VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME) != devExts.end();
+
+    if(storage16)
+      TEST_LOG("Running tests on 16-bit storage");
+
+    if(storage8)
+      TEST_LOG("Running tests on 8-bit storage");
+
+    if(float16int8)
+      TEST_LOG("Running tests on half and int8 arithmetic");
+
+    if(features.shaderFloat64)
+      TEST_LOG("Running tests on doubles");
+
+    if(features.shaderInt64)
+      TEST_LOG("Running tests on int64");
+
+    if(features.shaderInt16)
+      TEST_LOG("Running tests on int16 arithmetic");
 
     pixel_glsl1.replace(pixel_glsl1.find("#define TEST_DESC_INDEXING"),
                         sizeof("#define TEST_DESC_INDEXING"),
