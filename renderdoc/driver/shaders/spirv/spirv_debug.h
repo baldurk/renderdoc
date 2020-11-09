@@ -92,14 +92,14 @@ public:
 
   struct DerivativeDeltas
   {
-    Vec4f ddxcoarse;
-    Vec4f ddycoarse;
-    Vec4f ddxfine;
-    Vec4f ddyfine;
+    ShaderVariable ddxcoarse;
+    ShaderVariable ddycoarse;
+    ShaderVariable ddxfine;
+    ShaderVariable ddyfine;
   };
 
   virtual DerivativeDeltas GetDerivative(ShaderBuiltin builtin, uint32_t location,
-                                         uint32_t component) = 0;
+                                         uint32_t component, VarType type) = 0;
 };
 
 typedef ShaderVariable (*ExtInstImpl)(ThreadState &, uint32_t, const rdcarray<Id> &);

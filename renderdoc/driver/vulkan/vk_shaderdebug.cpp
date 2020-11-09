@@ -26,6 +26,7 @@
 #include "driver/shaders/spirv/spirv_debug.h"
 #include "driver/shaders/spirv/spirv_editor.h"
 #include "driver/shaders/spirv/spirv_op_helpers.h"
+#include "driver/shaders/spirv/var_dispatch_helpers.h"
 #include "maths/formatpacking.h"
 #include "vk_core.h"
 #include "vk_debug.h"
@@ -377,19 +378,22 @@ public:
     if(data.width == 0)
       return false;
 
-    if(coord.value.uv[0] > data.width || coord.value.uv[1] > data.height ||
-       coord.value.uv[2] > data.depth)
+    uint32_t coords[4];
+    for(int i = 0; i < 4; i++)
+      coords[i] = uintComp(coord, i);
+
+    if(coords[0] > data.width || coords[1] > data.height || coords[2] > data.depth)
     {
       m_pDriver->AddDebugMessage(
           MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
           StringFormat::Fmt(
               "Out of bounds access to image, coord %u,%u,%u outside of dimensions %ux%ux%u",
-              coord.value.uv[0], coord.value.uv[1], coord.value.uv[2], data.width, data.height,
-              data.depth));
+              coords[0], coords[1], coords[2], data.width, data.height, data.depth));
       return false;
     }
 
-    memcpy(output.value.uv, data.texel(coord.value.uv, sample), data.texelSize);
+    RDCASSERTEQUAL(data.texelSize, VarTypeByteSize(output.type) * output.columns);
+    memcpy(output.value.u64v, data.texel(coords, sample), data.texelSize);
 
     return true;
   }
@@ -402,19 +406,22 @@ public:
     if(data.width == 0)
       return false;
 
-    if(coord.value.uv[0] > data.width || coord.value.uv[1] > data.height ||
-       coord.value.uv[2] > data.depth)
+    uint32_t coords[4];
+    for(int i = 0; i < 4; i++)
+      coords[i] = uintComp(coord, i);
+
+    if(coords[0] > data.width || coords[1] > data.height || coords[2] > data.depth)
     {
       m_pDriver->AddDebugMessage(
           MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
           StringFormat::Fmt(
               "Out of bounds access to image, coord %u,%u,%u outside of dimensions %ux%ux%u",
-              coord.value.uv[0], coord.value.uv[1], coord.value.uv[2], data.width, data.height,
-              data.depth));
+              coords[0], coords[1], coords[2], data.width, data.height, data.depth));
       return false;
     }
 
-    memcpy(data.texel(coord.value.uv, sample), value.value.uv, data.texelSize);
+    RDCASSERTEQUAL(data.texelSize, VarTypeByteSize(value.type) * value.columns);
+    memcpy(data.texel(coords, sample), value.value.u64v, data.texelSize);
 
     return true;
   }
@@ -440,28 +447,18 @@ public:
       const uint32_t typeSize = VarTypeByteSize(var.type);
       if(var.rows == 1)
       {
-        if(component > 3)
-          RDCERR("Unexpected component %u ", component);
+        if(component + var.columns > 4)
+          RDCERR("Unexpected component %u for column count %u", component, var.columns);
 
-        if(typeSize == 8)
-          memcpy(var.value.u64v, &location_inputs[location].value.u64v[component],
-                 var.rows * var.columns * typeSize);
-        else
-          memcpy(var.value.uv, &location_inputs[location].value.uv[component],
-                 var.rows * var.columns * typeSize);
+        for(uint8_t c = 0; c < var.columns; c++)
+          copyComp(var, c, location_inputs[location], component + c, var.type);
       }
       else
       {
+        RDCASSERTEQUAL(component, 0);
         for(uint8_t r = 0; r < var.rows; r++)
-        {
           for(uint8_t c = 0; c < var.columns; c++)
-          {
-            if(typeSize == 8)
-              var.value.u64v[r * var.columns + c] = location_inputs[location + c].value.u64v[r];
-            else
-              var.value.uv[r * var.columns + c] = location_inputs[location + c].value.uv[r];
-          }
-        }
+            copyComp(var, r * var.columns + c, location_inputs[location + c], r, var.type);
       }
       return;
     }
@@ -471,7 +468,7 @@ public:
   }
 
   virtual DerivativeDeltas GetDerivative(ShaderBuiltin builtin, uint32_t location,
-                                         uint32_t component) override
+                                         uint32_t component, VarType type) override
   {
     if(builtin != ShaderBuiltin::Undefined)
     {
@@ -495,10 +492,10 @@ public:
 
       for(uint32_t src = component, dst = 0; src < 4; src++, dst++)
       {
-        ret.ddxcoarse.fv[dst] = deriv.ddxcoarse.fv[src];
-        ret.ddxfine.fv[dst] = deriv.ddxfine.fv[src];
-        ret.ddycoarse.fv[dst] = deriv.ddycoarse.fv[src];
-        ret.ddyfine.fv[dst] = deriv.ddyfine.fv[src];
+        copyComp(ret.ddxcoarse, dst, deriv.ddxcoarse, src, type);
+        copyComp(ret.ddxfine, dst, deriv.ddxfine, src, type);
+        copyComp(ret.ddycoarse, dst, deriv.ddycoarse, src, type);
+        copyComp(ret.ddyfine, dst, deriv.ddyfine, src, type);
       }
 
       return ret;
@@ -2841,7 +2838,8 @@ struct PSHit
 
 static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structStride,
                                  VulkanCreationInfo::ShaderModuleReflection &shadRefl,
-                                 StorageMode storageMode, bool usePrimitiveID, bool useSampleID)
+                                 const uint32_t paramAlign, StorageMode storageMode,
+                                 bool usePrimitiveID, bool useSampleID)
 {
   rdcspv::Editor editor(fragspv);
 
@@ -3769,7 +3767,7 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
     if(Vulkan_Debug_ShaderDebugLogging())
       RDCLOG("Populating location %u", attr.location);
 
-    ShaderValue &val = locations[attr.location].value;
+    ShaderVariable &var = locations[attr.location];
 
     bytebuf data;
 
@@ -3839,10 +3837,7 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
               "(index %u) in instance %u.",
               attr.location, attr.binding, vertid, idx, instid));
 
-      if(IsUIntFormat(attr.format) || IsSIntFormat(attr.format))
-        val.u = {0, 0, 0, 1};
-      else
-        val.f = {0.0f, 0.0f, 0.0f, 1.0f};
+      set0001(var);
     }
     else
     {
@@ -3856,31 +3851,25 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
           // this is the only packed UINT format
           Vec4u decoded = ConvertFromR10G10B10A2UInt(*(uint32_t *)data.data());
 
-          val.u.x = decoded.x;
-          val.u.y = decoded.y;
-          val.u.z = decoded.z;
-          val.u.w = decoded.w;
+          setUintComp(var, 0, decoded.x);
+          setUintComp(var, 1, decoded.y);
+          setUintComp(var, 2, decoded.z);
+          setUintComp(var, 3, decoded.w);
         }
         else
         {
-          for(uint32_t i = 0; i < fmt.compCount; i++)
-          {
-            const byte *src = data.data() + i * fmt.compByteWidth;
-            if(fmt.compByteWidth == 8)
-              memcpy(&val.u64v[i], src, fmt.compByteWidth);
-            else
-              memcpy(&val.uv[i], src, fmt.compByteWidth);
-          }
+          RDCASSERTEQUAL(fmt.compByteWidth, VarTypeByteSize(var.type));
+          memcpy(var.value.u64v, data.data(), fmt.compByteWidth * fmt.compCount);
         }
       }
       else
       {
         FloatVector decoded = DecodeFormattedComponents(fmt, data.data());
 
-        val.f.x = decoded.x;
-        val.f.y = decoded.y;
-        val.f.z = decoded.z;
-        val.f.w = decoded.w;
+        setFloatComp(var, 0, decoded.x);
+        setFloatComp(var, 1, decoded.y);
+        setFloatComp(var, 2, decoded.z);
+        setFloatComp(var, 3, decoded.w);
       }
     }
   }
@@ -4053,8 +4042,17 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   if(!Vulkan_Debug_PSDebugDumpDirPath().empty())
     FileIO::WriteAll(Vulkan_Debug_PSDebugDumpDirPath() + "/debug_psinput_before.spv", fragspv);
 
+  uint32_t paramAlign = 16;
+
+  for(const SigParameter &sig : shadRefl.refl.inputSignature)
+  {
+    if(VarTypeByteSize(sig.varType) * sig.compCount > paramAlign)
+      paramAlign = 32;
+  }
+
   uint32_t structStride = 0;
-  CreatePSInputFetcher(fragspv, structStride, shadRefl, storageMode, usePrimitiveID, useSampleID);
+  CreatePSInputFetcher(fragspv, structStride, shadRefl, paramAlign, storageMode, usePrimitiveID,
+                       useSampleID);
 
   if(!Vulkan_Debug_PSDebugDumpDirPath().empty())
     FileIO::WriteAll(Vulkan_Debug_PSDebugDumpDirPath() + "/debug_psinput_after.spv", fragspv);
@@ -4486,14 +4484,15 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     rdcspv::Debugger *debugger = new rdcspv::Debugger;
     debugger->Parse(shader.spirv.GetSPIRV());
 
-    // the data immediately follows the PSHit header. Every piece of data is vec4 aligned, and the
-    // output is in input signature order.
+    // the data immediately follows the PSHit header. Every piece of data is uniformly aligned,
+    // either 16-byte by default or 32-byte if larger components exist. The output is in input
+    // signature order.
     byte *PSInputs = (byte *)(winner + 1);
-    Vec4f *value = (Vec4f *)(PSInputs + 0 * structStride);
-    Vec4f *ddxcoarse = (Vec4f *)(PSInputs + 1 * structStride);
-    Vec4f *ddycoarse = (Vec4f *)(PSInputs + 2 * structStride);
-    Vec4f *ddxfine = (Vec4f *)(PSInputs + 3 * structStride);
-    Vec4f *ddyfine = (Vec4f *)(PSInputs + 4 * structStride);
+    byte *value = (byte *)(PSInputs + 0 * structStride);
+    byte *ddxcoarse = (byte *)(PSInputs + 1 * structStride);
+    byte *ddycoarse = (byte *)(PSInputs + 2 * structStride);
+    byte *ddxfine = (byte *)(PSInputs + 3 * structStride);
+    byte *ddyfine = (byte *)(PSInputs + 4 * structStride);
 
     for(size_t i = 0; i < shadRefl.refl.inputSignature.size(); i++)
     {
@@ -4515,15 +4514,16 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
           builtin ? apiWrapper->builtin_derivatives[param.systemValue]
                   : apiWrapper->location_derivatives[param.regIndex];
 
-      uint32_t comp = Bits::CountTrailingZeroes(uint32_t(param.regChannelMask));
+      const uint32_t comp = Bits::CountTrailingZeroes(uint32_t(param.regChannelMask));
+      const uint32_t elemSize = VarTypeByteSize(param.varType);
 
-      const size_t sz = sizeof(Vec4f) - sizeof(uint32_t) * comp;
+      const size_t sz = elemSize * param.compCount;
 
-      memcpy(&var.value.uv[comp], &value[i], sz);
-      memcpy(&deriv.ddxcoarse.fv[comp], &ddxcoarse[i], sz);
-      memcpy(&deriv.ddycoarse.fv[comp], &ddycoarse[i], sz);
-      memcpy(&deriv.ddxfine.fv[comp], &ddxfine[i], sz);
-      memcpy(&deriv.ddyfine.fv[comp], &ddyfine[i], sz);
+      memcpy(((byte *)var.value.u64v) + elemSize * comp, value + i * paramAlign, sz);
+      memcpy(((byte *)deriv.ddxcoarse.value.u64v) + elemSize * comp, ddxcoarse + i * paramAlign, sz);
+      memcpy(((byte *)deriv.ddycoarse.value.u64v) + elemSize * comp, ddycoarse + i * paramAlign, sz);
+      memcpy(((byte *)deriv.ddxfine.value.u64v) + elemSize * comp, ddxfine + i * paramAlign, sz);
+      memcpy(((byte *)deriv.ddyfine.value.u64v) + elemSize * comp, ddyfine + i * paramAlign, sz);
     }
 
     ret = debugger->BeginDebug(apiWrapper, ShaderStage::Pixel, entryPoint, spec,

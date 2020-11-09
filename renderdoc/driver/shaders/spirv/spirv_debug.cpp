@@ -2697,6 +2697,8 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       ShaderVariable result;
       result.type = resultType.scalar().Type();
+      result.rows = 1;
+      result.columns = RDCMAX(1U, resultType.vector().count) & 0xff;
 
       DebugAPIWrapper::TextureType texType = debugger.GetTextureType(img);
 
@@ -2734,9 +2736,6 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
           set0001(result);
         }
       }
-
-      result.rows = 1;
-      result.columns = RDCMAX(1U, resultType.vector().count) & 0xff;
 
       SetDst(read.result, result);
       break;

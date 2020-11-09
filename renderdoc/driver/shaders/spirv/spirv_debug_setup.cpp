@@ -26,6 +26,7 @@
 #include "common/formatting.h"
 #include "spirv_op_helpers.h"
 #include "spirv_reflect.h"
+#include "var_dispatch_helpers.h"
 
 // this could be cleaner if ShaderVariable wasn't a very public struct, but it's not worth it so
 // we just reserve value slots that we know won't be used in opaque variables
@@ -87,6 +88,20 @@ static uint32_t VarByteSize(const ShaderVariable &var)
 {
   return VarTypeByteSize(var.type) * RDCMAX(1U, (uint32_t)var.rows) *
          RDCMAX(1U, (uint32_t)var.columns);
+}
+
+static void *VarElemPointer(ShaderVariable &var, uint32_t comp)
+{
+  RDCASSERTNOTEQUAL(var.type, VarType::Unknown);
+  byte *ret = (byte *)var.value.u64v;
+  return ret + comp * VarTypeByteSize(var.type);
+}
+
+static const void *VarElemPointer(const ShaderVariable &var, uint32_t comp)
+{
+  RDCASSERTNOTEQUAL(var.type, VarType::Unknown);
+  const byte *ret = (const byte *)var.value.u64v;
+  return ret + comp * VarTypeByteSize(var.type);
 }
 
 namespace rdcspv
@@ -779,8 +794,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
             else
             {
               // matrix case is more complicated. Either read column by column or row by row
-              // depending on
-              // majorness
+              // depending on majorness
               uint32_t matrixStride = curDecorations.matrixStride;
 
               if(!(curDecorations.flags & Decorations::HasMatrixStride))
@@ -791,18 +805,19 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
 
               if(curDecorations.flags & Decorations::ColMajor)
               {
-                ShaderValue tmp;
+                ShaderVariable tmp;
+                tmp.type = var.type;
 
                 uint32_t colSize = VarTypeByteSize(var.type) * var.rows;
                 for(uint32_t c = 0; c < var.columns; c++)
                 {
                   // read the column
                   this->apiWrapper->ReadBufferValue(bindpoint, offset + c * matrixStride, colSize,
-                                                    &tmp.uv[0]);
+                                                    VarElemPointer(tmp, 0));
 
                   // now write it into the appropiate elements in the destination ShaderValue
                   for(uint32_t r = 0; r < var.rows; r++)
-                    var.value.uv[r * var.columns + c] = tmp.uv[r];
+                    copyComp(var, r * var.columns + c, tmp, r, var.type);
                 }
               }
               else
@@ -814,7 +829,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
                   // read the column into the destination ShaderValue, which is tightly packed with
                   // rows
                   this->apiWrapper->ReadBufferValue(bindpoint, offset + r * matrixStride, rowSize,
-                                                    &var.value.uv[r * var.columns]);
+                                                    VarElemPointer(var, r * var.columns));
                 }
               }
             }
@@ -1493,30 +1508,26 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
           {
             apiWrapper->ReadBufferValue(bind, offset + r * matrixStride,
                                         VarTypeByteSize(var.type) * var.columns,
-                                        &var.value.uv[r * var.columns]);
+                                        VarElemPointer(var, r * var.columns));
           }
         }
         else
         {
-          ShaderValue tmp = {};
+          ShaderVariable tmp;
+          tmp.type = var.type;
+
           // read column-wise
           for(uint8_t c = 0; c < var.columns; c++)
           {
             apiWrapper->ReadBufferValue(bind, offset + c * matrixStride,
-                                        VarTypeByteSize(var.type) * var.rows, &tmp.uv[c * var.rows]);
+                                        VarTypeByteSize(var.type) * var.rows,
+                                        VarElemPointer(tmp, c * var.rows));
           }
 
           // transpose into our row major storage
           for(uint8_t r = 0; r < var.rows; r++)
-          {
             for(uint8_t c = 0; c < var.columns; c++)
-            {
-              if(VarTypeByteSize(var.type) == 8)
-                var.value.u64v[r * var.columns + c] = tmp.u64v[c * var.rows + r];
-              else
-                var.value.uv[r * var.columns + c] = tmp.uv[c * var.rows + r];
-            }
-          }
+              copyComp(var, r * var.columns + c, tmp, c * var.rows + r, var.type);
         }
       }
       else if(type.type == DataType::VectorType)
@@ -1525,24 +1536,20 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
         {
           // we can read a vector at a time if the matrix is column major
           apiWrapper->ReadBufferValue(bind, offset, VarTypeByteSize(var.type) * var.columns,
-                                      var.value.uv);
+                                      VarElemPointer(var, 0));
         }
         else
         {
           for(uint8_t c = 0; c < var.columns; c++)
           {
-            if(VarTypeByteSize(var.type) == 8)
-              apiWrapper->ReadBufferValue(bind, offset + c * matrixStride,
-                                          VarTypeByteSize(var.type), &var.value.u64v[c]);
-            else
-              apiWrapper->ReadBufferValue(bind, offset + c * matrixStride,
-                                          VarTypeByteSize(var.type), &var.value.uv[c]);
+            apiWrapper->ReadBufferValue(bind, offset + c * matrixStride, VarTypeByteSize(var.type),
+                                        VarElemPointer(var, VarTypeByteSize(var.type) * c));
           }
         }
       }
       else if(type.type == DataType::ScalarType)
       {
-        apiWrapper->ReadBufferValue(bind, offset, VarTypeByteSize(var.type), var.value.uv);
+        apiWrapper->ReadBufferValue(bind, offset, VarTypeByteSize(var.type), VarElemPointer(var, 0));
       }
     };
 
@@ -1569,7 +1576,7 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
   uint32_t scalar0 = (uint32_t)ptr.value.u64v[Scalar0VariableSlot];
   uint32_t scalar1 = (uint32_t)ptr.value.u64v[Scalar1VariableSlot];
 
-  ShaderValue val = {};
+  ShaderVariable tmp = ret;
 
   if(ret.rows > 1)
   {
@@ -1580,29 +1587,19 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
     {
       // two indices - selecting a scalar. scalar0 is the first index in the chain so it chooses
       // column
-      if(VarTypeByteSize(ret.type) == 8)
-        val.u64v[0] = ret.value.u64v[scalar1 * ret.columns + scalar0];
-      else
-        val.uv[0] = ret.value.uv[scalar1 * ret.columns + scalar0];
+      copyComp(ret, 0, tmp, scalar1 * ret.columns + scalar0);
 
       // it's a scalar now, even if it was a matrix before
       ret.rows = ret.columns = 1;
-      ret.value = val;
     }
     else if(scalar0 != ~0U)
     {
       // one index, selecting a column
       for(uint32_t row = 0; row < ret.rows; row++)
-      {
-        if(VarTypeByteSize(ret.type) == 8)
-          val.u64v[row] = ret.value.u64v[row * ret.columns + scalar0];
-        else
-          val.uv[row] = ret.value.uv[row * ret.columns + scalar0];
-      }
+        copyComp(ret, row, tmp, row * ret.columns + scalar0);
 
       // it's a vector now, even if it was a matrix before
       ret.rows = 1;
-      ret.value = val;
     }
   }
   else
@@ -1612,14 +1609,10 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
     // vector case, selecting a scalar (if anything)
     if(scalar0 != ~0U)
     {
-      if(VarTypeByteSize(ret.type) == 8)
-        val.u64v[0] = ret.value.u64v[scalar0];
-      else
-        val.uv[0] = ret.value.uv[scalar0];
+      copyComp(ret, 0, tmp, scalar0);
 
       // it's a scalar now, even if it was a matrix before
       ret.columns = 1;
-      ret.value = val;
     }
   }
 
@@ -1687,30 +1680,24 @@ void Debugger::WriteThroughPointer(const ShaderVariable &ptr, const ShaderVariab
           {
             apiWrapper->WriteBufferValue(bind, offset + r * matrixStride,
                                          VarTypeByteSize(var.type) * var.columns,
-                                         &var.value.uv[r * var.columns]);
+                                         VarElemPointer(var, r * var.columns));
           }
         }
         else
         {
-          ShaderValue tmp = {};
+          ShaderVariable tmp;
 
           // transpose from our row major storage
           for(uint8_t r = 0; r < var.rows; r++)
-          {
             for(uint8_t c = 0; c < var.columns; c++)
-            {
-              if(VarTypeByteSize(var.type) == 8)
-                tmp.u64v[c * var.rows + r] = var.value.u64v[r * var.columns + c];
-              else
-                tmp.uv[c * var.rows + r] = var.value.uv[r * var.columns + c];
-            }
-          }
+              copyComp(tmp, c * var.rows + r, var, r * var.columns + c, var.type);
 
           // read column-wise
           for(uint8_t c = 0; c < var.columns; c++)
           {
             apiWrapper->WriteBufferValue(bind, offset + c * matrixStride,
-                                         VarTypeByteSize(var.type) * var.rows, &tmp.uv[c * var.rows]);
+                                         VarTypeByteSize(var.type) * var.rows,
+                                         VarElemPointer(tmp, c * var.rows));
           }
         }
       }
@@ -1720,24 +1707,18 @@ void Debugger::WriteThroughPointer(const ShaderVariable &ptr, const ShaderVariab
         {
           // we can write a vector at a time if the matrix is column major
           apiWrapper->WriteBufferValue(bind, offset, VarTypeByteSize(var.type) * var.columns,
-                                       var.value.uv);
+                                       VarElemPointer(var, 0));
         }
         else
         {
           for(uint8_t c = 0; c < var.columns; c++)
-          {
-            if(VarTypeByteSize(var.type) == 8)
-              apiWrapper->WriteBufferValue(bind, offset + c * matrixStride,
-                                           VarTypeByteSize(var.type), &var.value.u64v[c]);
-            else
-              apiWrapper->WriteBufferValue(bind, offset + c * matrixStride,
-                                           VarTypeByteSize(var.type), &var.value.uv[c]);
-          }
+            apiWrapper->WriteBufferValue(bind, offset + c * matrixStride, VarTypeByteSize(var.type),
+                                         VarElemPointer(var, c));
         }
       }
       else if(type.type == DataType::ScalarType)
       {
-        apiWrapper->WriteBufferValue(bind, offset, VarTypeByteSize(var.type), var.value.uv);
+        apiWrapper->WriteBufferValue(bind, offset, VarTypeByteSize(var.type), VarElemPointer(var, 0));
       }
     };
 
@@ -1770,21 +1751,13 @@ void Debugger::WriteThroughPointer(const ShaderVariable &ptr, const ShaderVariab
       {
         // two indices - selecting a scalar. scalar0 is the first index in the chain so it chooses
         // column
-        if(VarTypeByteSize(storage->type) == 8)
-          storage->value.u64v[scalar1 * storage->columns + scalar0] = val.value.u64v[0];
-        else
-          storage->value.uv[scalar1 * storage->columns + scalar0] = val.value.uv[0];
+        copyComp(*storage, scalar1 * storage->columns + scalar0, val, 0);
       }
       else if(scalar0 != ~0U)
       {
         // one index, selecting a column
         for(uint32_t row = 0; row < storage->rows; row++)
-        {
-          if(VarTypeByteSize(storage->type) == 8)
-            storage->value.u64v[row * storage->columns + scalar0] = val.value.u64v[row];
-          else
-            storage->value.uv[row * storage->columns + scalar0] = val.value.uv[row];
-        }
+          copyComp(*storage, row * storage->columns + scalar0, val, row);
       }
     }
     else
@@ -1792,10 +1765,7 @@ void Debugger::WriteThroughPointer(const ShaderVariable &ptr, const ShaderVariab
       ClampScalars(apiWrapper, *storage, scalar0);
 
       // vector case, selecting a scalar
-      if(VarTypeByteSize(storage->type) == 8)
-        storage->value.u64v[scalar0] = val.value.u64v[0];
-      else
-        storage->value.uv[scalar0] = val.value.uv[0];
+      copyComp(*storage, scalar0, val, 0);
     }
   }
 }
@@ -2057,8 +2027,8 @@ uint32_t Debugger::WalkVariable(
 
       uint32_t childOffset = 0;
 
-      ShaderVariable len = GetActiveLane().ids[type.length];
-      for(uint32_t i = 0; i < len.value.u.x; i++)
+      uint32_t len = uintComp(GetActiveLane().ids[type.length], 0);
+      for(uint32_t i = 0; i < len; i++)
       {
         if(outVar)
         {
@@ -2101,11 +2071,167 @@ uint32_t Debugger::WalkVariable(
   return numLocations;
 }
 
+template <typename FloatType>
+static void ApplyDerivative(uint32_t activeLaneIndex, uint32_t quadIndex, FloatType *dst,
+                            DebugAPIWrapper::DerivativeDeltas &derivs)
+{
+  // We make the assumption that the coarse derivatives are generated from (0,0) in the quad, and
+  // fine derivatives are generated from the destination index and its neighbours in X and Y.
+  // This isn't spec'd but we must assume something and this will hopefully get us closest to
+  // reproducing actual results.
+  //
+  // For debugging, we need members of the quad to be able to generate coarse and fine
+  // derivatives.
+  //
+  // For (0,0) we only need the coarse derivatives to get our neighbours (1,0) and (0,1) which
+  // will give us coarse and fine derivatives being identical.
+  //
+  // For the others we will need to use a combination of coarse and fine derivatives to get the
+  // diagonal element in the quad. In the examples below, remember that the quad indices are:
+  //
+  // +---+---+
+  // | 0 | 1 |
+  // +---+---+
+  // | 2 | 3 |
+  // +---+---+
+  //
+  // And that we have definitions of the derivatives:
+  //
+  // ddx_coarse = (1,0) - (0,0)
+  // ddy_coarse = (0,1) - (0,0)
+  //
+  // i.e. the same for all members of the quad
+  //
+  // ddx_fine   = (x,y) - (1-x,y)
+  // ddy_fine   = (x,y) - (x,1-y)
+  //
+  // i.e. the difference to the neighbour of our desired invocation (the one we have the actual
+  // inputs for, from gathering above).
+  //
+  // So e.g. if our thread is at (1,1) destIdx = 3
+  //
+  // (1,0) = (1,1) - ddx_fine
+  // (0,1) = (1,1) - ddy_fine
+  // (0,0) = (1,1) - ddy_fine - ddx_coarse
+  //
+  // and ddy_coarse is unused. For (1,0) destIdx = 1:
+  //
+  // (1,1) = (1,0) + ddy_fine
+  // (0,1) = (1,0) - ddx_coarse + ddy_coarse
+  // (0,0) = (1,0) - ddx_coarse
+  //
+  // and ddx_fine is unused (it's identical to ddx_coarse anyway)
+
+  // in the diagrams below * marks the active lane index.
+  //
+  //   V and ^ == coarse ddy
+  //   , and ` == fine ddy
+  //   < and > == coarse ddx
+  //   { and } == fine ddx
+  //
+  // We are basically making one or two cardinal direction moves from the starting point
+  // (activeLaneIndex) to the end point (quadIndex).
+  RDCASSERTNOTEQUAL(activeLaneIndex, quadIndex);
+
+#define ADD_DERIV(src)       \
+  for(int i = 0; i < 4; i++) \
+    dst[i] += ((FloatType *)src.value.u64v)[i];
+#define SUB_DERIV(src)       \
+  for(int i = 0; i < 4; i++) \
+    dst[i] -= ((FloatType *)src.value.u64v)[i];
+
+  switch(activeLaneIndex)
+  {
+    case 0:
+    {
+      // +---+---+
+      // |*0 > 1 |
+      // +-V-+-V-+
+      // | 2 | 3 |
+      // +---+---+
+      switch(quadIndex)
+      {
+        case 0: break;
+        case 1: ADD_DERIV(derivs.ddxcoarse); break;
+        case 2: ADD_DERIV(derivs.ddycoarse); break;
+        case 3:
+          ADD_DERIV(derivs.ddxcoarse);
+          ADD_DERIV(derivs.ddycoarse);
+          break;
+        default: break;
+      }
+      break;
+    }
+    case 1:
+    {
+      // we need to use fine to get from 1 to 3 as coarse only ever involves 0->1 and 0->2
+      // +---+---+
+      // | 0 < 1*|
+      // +-V-+-,-+
+      // | 2 | 3 |
+      // +---+---+
+      switch(quadIndex)
+      {
+        case 0: SUB_DERIV(derivs.ddxcoarse); break;
+        case 1: break;
+        case 2:
+          SUB_DERIV(derivs.ddxcoarse);
+          ADD_DERIV(derivs.ddycoarse);
+          break;
+        case 3: ADD_DERIV(derivs.ddyfine); break;
+        default: break;
+      }
+      break;
+    }
+    case 2:
+    {
+      // +---+---+
+      // | 0 > 1 |
+      // +-^-+---+
+      // |*2 } 3 |
+      // +---+---+
+      switch(quadIndex)
+      {
+        case 0: SUB_DERIV(derivs.ddycoarse); break;
+        case 1:
+          SUB_DERIV(derivs.ddycoarse);
+          ADD_DERIV(derivs.ddxcoarse);
+          break;
+        case 2: break;
+        case 3: ADD_DERIV(derivs.ddxfine); break;
+        default: break;
+      }
+      break;
+    }
+    case 3:
+    {
+      // +---+---+
+      // | 0 < 1 |
+      // +---+-`-+
+      // | 2 { 3*|
+      // +---+---+
+      switch(quadIndex)
+      {
+        case 0:
+          SUB_DERIV(derivs.ddyfine);
+          SUB_DERIV(derivs.ddxcoarse);
+          break;
+        case 1: SUB_DERIV(derivs.ddyfine); break;
+        case 2: SUB_DERIV(derivs.ddxfine); break;
+        case 3: break;
+        default: break;
+      }
+      break;
+    }
+    default: break;
+  }
+}
+
 uint32_t Debugger::ApplyDerivatives(uint32_t quadIndex, const Decorations &curDecorations,
                                     uint32_t location, const DataType &inType, ShaderVariable &outVar)
 {
   // only floats have derivatives
-  if(outVar.type == VarType::Float)
+  if(outVar.type == VarType::Float || outVar.type == VarType::Half || outVar.type == VarType::Double)
   {
     ShaderBuiltin builtin = ShaderBuiltin::Undefined;
     if(curDecorations.flags & Decorations::HasBuiltIn)
@@ -2121,157 +2247,19 @@ uint32_t Debugger::ApplyDerivatives(uint32_t quadIndex, const Decorations &curDe
       }
     }
 
-    // We make the assumption that the coarse derivatives are generated from (0,0) in the quad, and
-    // fine derivatives are generated from the destination index and its neighbours in X and Y.
-    // This isn't spec'd but we must assume something and this will hopefully get us closest to
-    // reproducing actual results.
-    //
-    // For debugging, we need members of the quad to be able to generate coarse and fine
-    // derivatives.
-    //
-    // For (0,0) we only need the coarse derivatives to get our neighbours (1,0) and (0,1) which
-    // will give us coarse and fine derivatives being identical.
-    //
-    // For the others we will need to use a combination of coarse and fine derivatives to get the
-    // diagonal element in the quad. In the examples below, remember that the quad indices are:
-    //
-    // +---+---+
-    // | 0 | 1 |
-    // +---+---+
-    // | 2 | 3 |
-    // +---+---+
-    //
-    // And that we have definitions of the derivatives:
-    //
-    // ddx_coarse = (1,0) - (0,0)
-    // ddy_coarse = (0,1) - (0,0)
-    //
-    // i.e. the same for all members of the quad
-    //
-    // ddx_fine   = (x,y) - (1-x,y)
-    // ddy_fine   = (x,y) - (x,1-y)
-    //
-    // i.e. the difference to the neighbour of our desired invocation (the one we have the actual
-    // inputs for, from gathering above).
-    //
-    // So e.g. if our thread is at (1,1) destIdx = 3
-    //
-    // (1,0) = (1,1) - ddx_fine
-    // (0,1) = (1,1) - ddy_fine
-    // (0,0) = (1,1) - ddy_fine - ddx_coarse
-    //
-    // and ddy_coarse is unused. For (1,0) destIdx = 1:
-    //
-    // (1,1) = (1,0) + ddy_fine
-    // (0,1) = (1,0) - ddx_coarse + ddy_coarse
-    // (0,0) = (1,0) - ddx_coarse
-    //
-    // and ddx_fine is unused (it's identical to ddx_coarse anyway)
-
     if(curDecorations.flags & Decorations::HasLocation)
       location = curDecorations.location;
 
     DebugAPIWrapper::DerivativeDeltas derivs =
-        apiWrapper->GetDerivative(builtin, location, component);
+        apiWrapper->GetDerivative(builtin, location, component, outVar.type);
 
-    Vec4f &dst = *(Vec4f *)outVar.value.fv;
-
-    // in the diagrams below * marks the active lane index.
-    //
-    //   V and ^ == coarse ddy
-    //   , and ` == fine ddy
-    //   < and > == coarse ddx
-    //   { and } == fine ddx
-    //
-    // We are basically making one or two cardinal direction moves from the starting point
-    // (activeLaneIndex) to the end point (quadIndex).
-    RDCASSERTNOTEQUAL(activeLaneIndex, quadIndex);
-
-    switch(activeLaneIndex)
-    {
-      case 0:
-      {
-        // +---+---+
-        // |*0 > 1 |
-        // +-V-+-V-+
-        // | 2 | 3 |
-        // +---+---+
-        switch(quadIndex)
-        {
-          case 0: break;
-          case 1: dst += derivs.ddxcoarse; break;
-          case 2: dst += derivs.ddycoarse; break;
-          case 3:
-            dst += derivs.ddxcoarse;
-            dst += derivs.ddycoarse;
-            break;
-          default: break;
-        }
-        break;
-      }
-      case 1:
-      {
-        // we need to use fine to get from 1 to 3 as coarse only ever involves 0->1 and 0->2
-        // +---+---+
-        // | 0 < 1*|
-        // +-V-+-,-+
-        // | 2 | 3 |
-        // +---+---+
-        switch(quadIndex)
-        {
-          case 0: dst -= derivs.ddxcoarse; break;
-          case 1: break;
-          case 2:
-            dst -= derivs.ddxcoarse;
-            dst += derivs.ddycoarse;
-            break;
-          case 3: dst += derivs.ddyfine; break;
-          default: break;
-        }
-        break;
-      }
-      case 2:
-      {
-        // +---+---+
-        // | 0 > 1 |
-        // +-^-+---+
-        // |*2 } 3 |
-        // +---+---+
-        switch(quadIndex)
-        {
-          case 0: dst -= derivs.ddycoarse; break;
-          case 1:
-            dst -= derivs.ddycoarse;
-            dst += derivs.ddxcoarse;
-            break;
-          case 2: break;
-          case 3: dst += derivs.ddxfine; break;
-          default: break;
-        }
-        break;
-      }
-      case 3:
-      {
-        // +---+---+
-        // | 0 < 1 |
-        // +---+-`-+
-        // | 2 { 3*|
-        // +---+---+
-        switch(quadIndex)
-        {
-          case 0:
-            dst -= derivs.ddyfine;
-            dst -= derivs.ddxcoarse;
-            break;
-          case 1: dst -= derivs.ddyfine; break;
-          case 2: dst -= derivs.ddxfine; break;
-          case 3: break;
-          default: break;
-        }
-        break;
-      }
-      default: break;
-    }
+    if(outVar.type == VarType::Float)
+      ApplyDerivative<float>(activeLaneIndex, quadIndex, outVar.value.fv, derivs);
+    else if(outVar.type == VarType::Half)
+      ApplyDerivative<half_float::half>(activeLaneIndex, quadIndex,
+                                        (half_float::half *)outVar.value.u16v, derivs);
+    else if(outVar.type == VarType::Double)
+      ApplyDerivative<double>(activeLaneIndex, quadIndex, outVar.value.dv, derivs);
   }
 
   // each row consumes a new location
