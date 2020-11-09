@@ -224,22 +224,49 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
     debuggable = false;
   }
 
+  // this list is sorted in order of the SPIR-V registry.
+  const rdcstr whitelist[] = {
+      "SPV_KHR_shader_draw_parameters",
+      "SPV_KHR_16bit_storage",
+      "SPV_KHR_device_group",
+      "SPV_KHR_multiview",
+      "SPV_KHR_storage_buffer_storage_class",
+      "SPV_KHR_post_depth_coverage",
+      "SPV_KHR_shader_atomic_counter_ops",
+      "SPV_EXT_shader_stencil_export",
+      "SPV_EXT_shader_viewport_index_layer",
+      "SPV_EXT_fragment_fully_covered",
+      "SPV_GOOGLE_decorate_string",
+      "SPV_GOOGLE_hlsl_functionality1",
+      "SPV_EXT_descriptor_indexing",
+      "SPV_KHR_8bit_storage",
+      "SPV_KHR_vulkan_memory_model",
+      "SPV_EXT_fragment_invocation_density",
+      "SPV_KHR_no_integer_wrap_decoration",
+      "SPV_KHR_float_controls",
+      "SPV_KHR_shader_clock",
+      "SPV_EXT_demote_to_helper_invocation",
+      "SPV_KHR_non_semantic_info",
+      "SPV_EXT_shader_atomic_float_add",
+      "SPV_KHR_terminate_invocation",
+      "SPV_EXT_shader_image_int64",
+  };
+
   // whitelist supported extensions
   for(const rdcstr &ext : extensions)
   {
-    if(ext == "SPV_KHR_shader_draw_parameters" || ext == "SPV_KHR_device_group" ||
-       ext == "SPV_KHR_multiview" || ext == "SPV_KHR_storage_buffer_storage_class" ||
-       ext == "SPV_KHR_post_depth_coverage" || ext == "SPV_EXT_shader_stencil_export" ||
-       ext == "SPV_EXT_shader_viewport_index_layer" || ext == "SPV_EXT_fragment_fully_covered" ||
-       ext == "SPV_GOOGLE_decorate_string" || ext == "SPV_GOOGLE_hlsl_functionality1" ||
-       ext == "SPV_EXT_descriptor_indexing" || ext == "SPV_KHR_vulkan_memory_model" ||
-       ext == "SPV_EXT_fragment_invocation_density" ||
-       ext == "SPV_KHR_no_integer_wrap_decoration" || ext == "SPV_KHR_float_controls" ||
-       ext == "SPV_KHR_shader_clock" || ext == "SPV_KHR_non_semantic_info" ||
-       ext == "SPV_KHR_terminate_invocation" || ext == "SPV_EXT_shader_atomic_float_add")
+    bool supported = false;
+    for(const rdcstr &check : whitelist)
     {
-      continue;
+      if(ext == check)
+      {
+        supported = true;
+        break;
+      }
     }
+
+    if(supported)
+      continue;
 
     debuggable = false;
     debugStatus += StringFormat::Fmt("Unsupported SPIR-V extension %s\n", ext.c_str());
@@ -315,14 +342,6 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       case Capability::VulkanMemoryModelDeviceScope:
       case Capability::DemoteToHelperInvocationEXT:
       case Capability::AtomicFloat32AddEXT:
-      {
-        supported = true;
-        break;
-      }
-
-      // we plan to support these but needs additional testing/proving
-
-      // all these are related to non-32-bit types
       case Capability::Float16Buffer:
       case Capability::Float16:
       case Capability::Int64:
@@ -339,6 +358,12 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       case Capability::AtomicFloat64AddEXT:
       case Capability::Int64Atomics:
       case Capability::Int64ImageEXT:
+      {
+        supported = true;
+        break;
+      }
+
+      // we plan to support these but needs additional testing/proving
 
       // physical pointers
       case Capability::PhysicalStorageBufferAddresses:
