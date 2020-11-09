@@ -490,7 +490,7 @@ bool WrappedVulkan::PatchIndirectDraw(size_t drawIndex, uint32_t paramStride,
 
       draw.numIndices = arg->indexCount;
       draw.numInstances = arg->instanceCount;
-      draw.vertexOffset = arg->vertexOffset;
+      draw.baseVertex = arg->vertexOffset;
       draw.indexOffset = arg->firstIndex;
       draw.instanceOffset = arg->firstInstance;
 
@@ -535,7 +535,7 @@ bool WrappedVulkan::PatchIndirectDraw(size_t drawIndex, uint32_t paramStride,
       if(SDObject *sub = command->FindChild("firstVertex"))
         sub->data.basic.u = draw.vertexOffset;
       if(SDObject *sub = command->FindChild("vertexOffset"))
-        sub->data.basic.u = draw.vertexOffset;
+        sub->data.basic.u = draw.baseVertex;
       if(SDObject *sub = command->FindChild("firstIndex"))
         sub->data.basic.u = draw.indexOffset;
       if(SDObject *sub = command->FindChild("firstInstance"))
