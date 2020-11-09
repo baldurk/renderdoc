@@ -1810,6 +1810,43 @@ void TextureViewer::SetupTextureTabs()
 
   QObject::connect(textureTabs->tabBar(), &QTabBar::customContextMenuRequested, this,
                    &TextureViewer::textureTab_Menu);
+
+  // show any fixed panels that got closed by previous bugs and saved as closed
+
+  if(ui->dockarea->areaOf(ui->inputThumbs) == NULL)
+    ui->dockarea->moveToolWindow(
+        ui->inputThumbs,
+        ToolWindowManager::AreaReference(ToolWindowManager::RightOf,
+                                         ui->dockarea->areaOf(ui->renderContainer), 0.25f));
+
+  if(ui->dockarea->areaOf(ui->outputThumbs) == NULL)
+    ui->dockarea->moveToolWindow(
+        ui->outputThumbs, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
+                                                           ui->dockarea->areaOf(ui->inputThumbs)));
+
+  if(ui->dockarea->areaOf(ui->pixelContextLayout) == NULL)
+    ui->dockarea->moveToolWindow(
+        ui->pixelContextLayout,
+        ToolWindowManager::AreaReference(ToolWindowManager::BottomOf,
+                                         ui->dockarea->areaOf(ui->outputThumbs), 0.25f));
+
+  ui->renderContainer->setLayout(ui->renderLayout);
+}
+
+void TextureViewer::RemoveTextureTabs(int firstIndex)
+{
+  ToolWindowManagerArea *textureTabs = ui->dockarea->areaOf(ui->renderContainer);
+
+  // remove all tabs from firstIndex, except unclosable tabs
+  for(int i = firstIndex; i < textureTabs->count();)
+  {
+    if(ui->dockarea->toolWindowProperties(textureTabs->widget(i)) & ToolWindowManager::HideCloseButton)
+    {
+      i++;
+      continue;
+    }
+    textureTabs->removeTab(i);
+  }
 }
 
 void TextureViewer::textureTab_Menu(const QPoint &pos)
@@ -1825,7 +1862,8 @@ void TextureViewer::textureTab_Menu(const QPoint &pos)
   QAction closeOtherTabs(tr("Close other tabs"), this);
   QAction closeRightTabs(tr("Close tabs to the right"), this);
 
-  if(textureTabs->widget(tabIndex) == ui->renderContainer)
+  if(ui->dockarea->toolWindowProperties(textureTabs->widget(tabIndex)) &
+     ToolWindowManager::HideCloseButton)
     closeTab.setEnabled(false);
 
   QMenu contextMenu(this);
@@ -1839,22 +1877,10 @@ void TextureViewer::textureTab_Menu(const QPoint &pos)
     textureTabs->removeTab(tabIndex);
   });
 
-  QObject::connect(&closeRightTabs, &QAction::triggered, [textureTabs, tabIndex]() {
-    // remove all tabs with a greater index
-    while(textureTabs->count() > tabIndex + 1)
-      textureTabs->removeTab(tabIndex + 1);
-  });
+  QObject::connect(&closeRightTabs, &QAction::triggered,
+                   [this, tabIndex]() { RemoveTextureTabs(tabIndex + 1); });
 
-  QObject::connect(&closeOtherTabs, &QAction::triggered, [textureTabs, tabIndex]() {
-    // remove all tabs with a greater index
-    while(textureTabs->count() > tabIndex + 1)
-      textureTabs->removeTab(tabIndex + 1);
-
-    // remove all tabs at index 1 until there's only two, these are the ones between the locked tab
-    // 0 and the tabIndex
-    while(textureTabs->count() > 2)
-      textureTabs->removeTab(1);
-  });
+  QObject::connect(&closeOtherTabs, &QAction::triggered, [this]() { RemoveTextureTabs(0); });
 
   RDDialog::show(&contextMenu, QCursor::pos());
 }
@@ -2951,9 +2977,7 @@ void TextureViewer::OnCaptureClosed()
   delete m_Watcher;
   m_Watcher = NULL;
 
-  ToolWindowManagerArea *textureTabs = ui->dockarea->areaOf(ui->renderContainer);
-  while(textureTabs->count() > 1)
-    textureTabs->removeTab(1);
+  RemoveTextureTabs(0);
 
   m_LockedTabs.clear();
 
@@ -3157,9 +3181,7 @@ void TextureViewer::setPersistData(const QVariant &persistData)
   m_TexDisplay.backgroundColor =
       checker ? FloatVector() : FloatVector(backCol.redF(), backCol.greenF(), backCol.blueF(), 1.0f);
 
-  ToolWindowManagerArea *textureTabs = ui->dockarea->areaOf(ui->renderContainer);
-  while(textureTabs->count() > 1)
-    textureTabs->removeTab(1);
+  RemoveTextureTabs(0);
 
   m_LockedTabs.clear();
 

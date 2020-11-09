@@ -250,6 +250,7 @@ private:
   void HighlightUsage();
 
   void SetupTextureTabs();
+  void RemoveTextureTabs(int firstIndex);
 
   void Reset();
 
