@@ -1368,6 +1368,8 @@ size_t QueryIdx(GLenum query)
     case eGL_GEOMETRY_SHADER_INVOCATIONS: idx = 14; break;
     case eGL_FRAGMENT_SHADER_INVOCATIONS_ARB: idx = 15; break;
     case eGL_COMPUTE_SHADER_INVOCATIONS_ARB: idx = 16; break;
+    case eGL_TRANSFORM_FEEDBACK_OVERFLOW: idx = 17; break;
+    case eGL_TRANSFORM_FEEDBACK_STREAM_OVERFLOW: idx = 18; break;
 
     default: RDCERR("Unexpected enum as query target: %s", ToStr(query).c_str());
   }
@@ -1380,23 +1382,27 @@ size_t QueryIdx(GLenum query)
 
 GLenum QueryEnum(size_t idx)
 {
-  GLenum enums[] = {eGL_SAMPLES_PASSED,
-                    eGL_ANY_SAMPLES_PASSED,
-                    eGL_ANY_SAMPLES_PASSED_CONSERVATIVE,
-                    eGL_PRIMITIVES_GENERATED,
-                    eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN,
-                    eGL_TIME_ELAPSED,
-                    eGL_VERTICES_SUBMITTED_ARB,
-                    eGL_PRIMITIVES_SUBMITTED_ARB,
-                    eGL_GEOMETRY_SHADER_PRIMITIVES_EMITTED_ARB,
-                    eGL_CLIPPING_INPUT_PRIMITIVES_ARB,
-                    eGL_CLIPPING_OUTPUT_PRIMITIVES_ARB,
-                    eGL_VERTEX_SHADER_INVOCATIONS_ARB,
-                    eGL_TESS_CONTROL_SHADER_PATCHES_ARB,
-                    eGL_TESS_EVALUATION_SHADER_INVOCATIONS_ARB,
-                    eGL_GEOMETRY_SHADER_INVOCATIONS,
-                    eGL_FRAGMENT_SHADER_INVOCATIONS_ARB,
-                    eGL_COMPUTE_SHADER_INVOCATIONS_ARB};
+  GLenum enums[] = {
+      eGL_SAMPLES_PASSED,
+      eGL_ANY_SAMPLES_PASSED,
+      eGL_ANY_SAMPLES_PASSED_CONSERVATIVE,
+      eGL_PRIMITIVES_GENERATED,
+      eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN,
+      eGL_TIME_ELAPSED,
+      eGL_VERTICES_SUBMITTED_ARB,
+      eGL_PRIMITIVES_SUBMITTED_ARB,
+      eGL_GEOMETRY_SHADER_PRIMITIVES_EMITTED_ARB,
+      eGL_CLIPPING_INPUT_PRIMITIVES_ARB,
+      eGL_CLIPPING_OUTPUT_PRIMITIVES_ARB,
+      eGL_VERTEX_SHADER_INVOCATIONS_ARB,
+      eGL_TESS_CONTROL_SHADER_PATCHES_ARB,
+      eGL_TESS_EVALUATION_SHADER_INVOCATIONS_ARB,
+      eGL_GEOMETRY_SHADER_INVOCATIONS,
+      eGL_FRAGMENT_SHADER_INVOCATIONS_ARB,
+      eGL_COMPUTE_SHADER_INVOCATIONS_ARB,
+      eGL_TRANSFORM_FEEDBACK_OVERFLOW,
+      eGL_TRANSFORM_FEEDBACK_STREAM_OVERFLOW,
+  };
 
   if(idx < ARRAY_COUNT(enums))
     return enums[idx];
@@ -1412,6 +1418,11 @@ size_t GLTypeSize(GLenum type)
     case eGL_BYTE: return 1;
     case eGL_UNSIGNED_SHORT:
     case eGL_UNSIGNED_SHORT_5_6_5:
+    case eGL_UNSIGNED_SHORT_5_6_5_REV:
+    case eGL_UNSIGNED_SHORT_4_4_4_4:
+    case eGL_UNSIGNED_SHORT_4_4_4_4_REV:
+    case eGL_UNSIGNED_SHORT_5_5_5_1:
+    case eGL_UNSIGNED_SHORT_1_5_5_5_REV:
     case eGL_SHORT:
     case eGL_HALF_FLOAT_OES:
     case eGL_HALF_FLOAT: return 2;

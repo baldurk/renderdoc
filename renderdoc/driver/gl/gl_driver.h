@@ -190,7 +190,7 @@ private:
 public:
   enum
   {
-    MAX_QUERIES = 17,
+    MAX_QUERIES = 19,
     MAX_QUERY_INDICES = 8
   };
 
