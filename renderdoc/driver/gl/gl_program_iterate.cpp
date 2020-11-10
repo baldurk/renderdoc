@@ -1365,6 +1365,9 @@ bool SerialiseProgramBindings(SerialiserType &ser, CaptureState state,
   for(size_t i = 0; i < 6; i++)
     IsProgramSPIRV |= stages.refls[i] && stages.refls[i]->encoding == ShaderEncoding::SPIRV;
 
+  const bool hasVert = stages.refls[0] != NULL;
+  const bool hasFrag = stages.refls[5] != NULL;
+
   if(ser.IsWriting() && !IsProgramSPIRV)
   {
     char buf[128] = {};
@@ -1435,11 +1438,11 @@ bool SerialiseProgramBindings(SerialiserType &ser, CaptureState state,
           if(bind.Name.beginsWith("gl_"))
             continue;
 
-          if(sigType == 0)
+          if(sigType == 0 && hasVert)
           {
             GL.glBindAttribLocation(prog, (GLuint)bind.Binding, bind.Name.c_str());
           }
-          else
+          else if(sigType == 1 && hasFrag)
           {
             // glBindFragDataLocation is not core GLES. However when it's not available that means
             // the user must have explicitly specified locations so we don't need to set them.
