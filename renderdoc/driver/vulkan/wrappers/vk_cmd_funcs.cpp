@@ -1027,12 +1027,14 @@ VkResult WrappedVulkan::vkBeginCommandBuffer(VkCommandBuffer commandBuffer,
       record->bakedCommands->Delete(GetResourceManager());
 
     record->bakedCommands = GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
+    record->bakedCommands->resType = eResCommandBuffer;
     record->bakedCommands->DisableChunkLocking();
     record->bakedCommands->InternalResource = true;
     record->bakedCommands->Resource = (WrappedVkRes *)commandBuffer;
     record->bakedCommands->cmdInfo = new CmdBufferRecordingInfo();
 
     record->bakedCommands->cmdInfo->device = record->cmdInfo->device;
+    record->bakedCommands->cmdInfo->alloc = record->cmdInfo->alloc;
     record->bakedCommands->cmdInfo->allocInfo = record->cmdInfo->allocInfo;
     record->bakedCommands->cmdInfo->present = false;
     record->bakedCommands->cmdInfo->beginCapture = false;
