@@ -169,149 +169,151 @@ rdcstr CaptureContext::TempCaptureFilename(const rdcstr &appname)
 
 rdcarray<ExtensionMetadata> CaptureContext::GetInstalledExtensions()
 {
-  QString extensionFolder = configFilePath("extensions");
-
   rdcarray<ExtensionMetadata> ret;
 
-  QDirIterator it(extensionFolder, QDirIterator::Subdirectories);
-
-  while(it.hasNext())
+  for(QString extensionFolder : PythonContext::GetApplicationExtensionsPaths())
   {
-    QFileInfo fileinfo(it.next());
+    QDirIterator it(extensionFolder, QDirIterator::Subdirectories);
 
-    if(fileinfo.fileName().toLower() == lit("extension.json"))
+    while(it.hasNext())
     {
-      QFile f(fileinfo.absoluteFilePath());
+      QFileInfo fileinfo(it.next());
 
-      QString package = fileinfo.absolutePath()
-                            .replace(extensionFolder, QString())
-                            .replace(QLatin1Char('/'), QLatin1Char('.'));
-
-      while(package[0] == QLatin1Char('.'))
-        package.remove(0, 1);
-
-      while(package[package.size() - 1] == QLatin1Char('.'))
-        package.remove(package.size() - 1, 1);
-
-      if(f.exists() && f.open(QIODevice::ReadOnly | QIODevice::Text))
+      if(fileinfo.fileName().toLower() == lit("extension.json"))
       {
-        QVariantMap json = JSONToVariant(QString::fromUtf8(f.readAll()));
+        QFile f(fileinfo.absoluteFilePath());
 
-        if(json.empty())
-        {
-          qCritical() << fileinfo.absoluteFilePath() << "is corrupt, cannot parse json";
-          continue;
-        }
+        QString package = fileinfo.absolutePath()
+                              .replace(extensionFolder, QString())
+                              .replace(QLatin1Char('/'), QLatin1Char('.'));
 
-        ExtensionMetadata ext;
+        while(package[0] == QLatin1Char('.'))
+          package.remove(0, 1);
 
-        ext.package = package;
-        ext.filePath = fileinfo.absolutePath();
+        while(package[package.size() - 1] == QLatin1Char('.'))
+          package.remove(package.size() - 1, 1);
 
-        if(json.contains(lit("name")))
+        if(f.exists() && f.open(QIODevice::ReadOnly | QIODevice::Text))
         {
-          ext.name = json[lit("name")].toString();
-        }
-        else
-        {
-          qCritical() << "Extension" << package << "is corrupt, no name entry";
-          continue;
-        }
+          QVariantMap json = JSONToVariant(QString::fromUtf8(f.readAll()));
 
-        ext.extensionAPI = 1;
-        if(json.contains(lit("extension_api")))
-        {
-          ext.extensionAPI = json[lit("extension_api")].toInt();
-        }
-        else
-        {
-          qCritical() << "Extension" << QString(ext.name) << "is corrupt, no api version entry";
-          continue;
-        }
-
-        if(json.contains(lit("version")))
-        {
-          ext.version = json[lit("version")].toString();
-        }
-        else
-        {
-          qCritical() << "Extension" << QString(ext.name) << "is corrupt, no version entry";
-          continue;
-        }
-
-        if(json.contains(lit("description")))
-        {
-          ext.description = json[lit("description")].toString();
-        }
-        else
-        {
-          qCritical() << "Extension" << QString(ext.name) << "is corrupt, no description entry";
-          continue;
-        }
-
-        if(json.contains(lit("author")))
-        {
-          ext.author = json[lit("author")].toString();
-        }
-        else
-        {
-          qCritical() << "Extension" << QString(ext.name) << "is corrupt, no author entry";
-          continue;
-        }
-
-        if(json.contains(lit("url")))
-        {
-          ext.extensionURL = json[lit("url")].toString();
-        }
-        else
-        {
-          qCritical() << "Extension" << QString(ext.name) << "is corrupt, no URL entry";
-          continue;
-        }
-
-        if(json.contains(lit("minimum_renderdoc")))
-        {
-          QString minVer = json[lit("minimum_renderdoc")].toString();
-
-          QRegularExpression re(lit("([0-9]*).([0-9]*)"));
-          QRegularExpressionMatch match = re.match(minVer);
-
-          bool ok = false, badversion = false;
-
-          if(match.hasMatch())
+          if(json.empty())
           {
-            int major = match.captured(1).toInt(&ok);
+            qCritical() << fileinfo.absoluteFilePath() << "is corrupt, cannot parse json";
+            continue;
+          }
 
-            if(ok)
+          ExtensionMetadata ext;
+
+          ext.package = package;
+          ext.filePath = fileinfo.absolutePath();
+
+          if(json.contains(lit("name")))
+          {
+            ext.name = json[lit("name")].toString();
+          }
+          else
+          {
+            qCritical() << "Extension" << package << "is corrupt, no name entry";
+            continue;
+          }
+
+          ext.extensionAPI = 1;
+          if(json.contains(lit("extension_api")))
+          {
+            ext.extensionAPI = json[lit("extension_api")].toInt();
+          }
+          else
+          {
+            qCritical() << "Extension" << QString(ext.name) << "is corrupt, no api version entry";
+            continue;
+          }
+
+          if(json.contains(lit("version")))
+          {
+            ext.version = json[lit("version")].toString();
+          }
+          else
+          {
+            qCritical() << "Extension" << QString(ext.name) << "is corrupt, no version entry";
+            continue;
+          }
+
+          if(json.contains(lit("description")))
+          {
+            ext.description = json[lit("description")].toString();
+          }
+          else
+          {
+            qCritical() << "Extension" << QString(ext.name) << "is corrupt, no description entry";
+            continue;
+          }
+
+          if(json.contains(lit("author")))
+          {
+            ext.author = json[lit("author")].toString();
+          }
+          else
+          {
+            qCritical() << "Extension" << QString(ext.name) << "is corrupt, no author entry";
+            continue;
+          }
+
+          if(json.contains(lit("url")))
+          {
+            ext.extensionURL = json[lit("url")].toString();
+          }
+          else
+          {
+            qCritical() << "Extension" << QString(ext.name) << "is corrupt, no URL entry";
+            continue;
+          }
+
+          if(json.contains(lit("minimum_renderdoc")))
+          {
+            QString minVer = json[lit("minimum_renderdoc")].toString();
+
+            QRegularExpression re(lit("([0-9]*).([0-9]*)"));
+            QRegularExpressionMatch match = re.match(minVer);
+
+            bool ok = false, badversion = false;
+
+            if(match.hasMatch())
             {
-              int minor = match.captured(2).toInt(&ok);
+              int major = match.captured(1).toInt(&ok);
 
-              // if it needs a higher major version, we can't load it
-              if(major > RENDERDOC_VERSION_MAJOR)
-                badversion = true;
+              if(ok)
+              {
+                int minor = match.captured(2).toInt(&ok);
 
-              // if major versions are the same and it needs a higher minor, we can't load it either
-              if(major == RENDERDOC_VERSION_MAJOR && minor > RENDERDOC_VERSION_MINOR)
-                badversion = true;
+                // if it needs a higher major version, we can't load it
+                if(major > RENDERDOC_VERSION_MAJOR)
+                  badversion = true;
+
+                // if major versions are the same and it needs a higher minor, we can't load it
+                // either
+                if(major == RENDERDOC_VERSION_MAJOR && minor > RENDERDOC_VERSION_MINOR)
+                  badversion = true;
+              }
+            }
+
+            if(!ok)
+            {
+              qCritical() << "Extension" << QString(ext.name)
+                          << "is corrupt, minimum_renderdoc doesn't match a MAJOR.MINOR version";
+              continue;
+            }
+
+            if(badversion)
+            {
+              qInfo() << "Extension" << QString(ext.name) << "declares minimum_renderdoc" << minVer
+                      << "so skipping";
+              continue;
             }
           }
 
-          if(!ok)
-          {
-            qCritical() << "Extension" << QString(ext.name)
-                        << "is corrupt, minimum_renderdoc doesn't match a MAJOR.MINOR version";
-            continue;
-          }
-
-          if(badversion)
-          {
-            qInfo() << "Extension" << QString(ext.name) << "declares minimum_renderdoc" << minVer
-                    << "so skipping";
-            continue;
-          }
+          ret.push_back(ext);
         }
-
-        ret.push_back(ext);
       }
     }
   }

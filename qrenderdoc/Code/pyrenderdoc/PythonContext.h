@@ -55,6 +55,7 @@ public:
   static void GlobalInit();
   static void GlobalShutdown();
 
+  static QStringList GetApplicationExtensionsPaths();
   static void ProcessExtensionWork(std::function<void()> callback);
   static bool LoadExtension(ICaptureContext &ctx, const rdcstr &extension);
   static void ConvertPyArgs(const ExtensionCallbackData &data,

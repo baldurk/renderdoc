@@ -509,6 +509,22 @@ void PythonContext::GlobalShutdown()
   Py_Finalize();
 }
 
+QStringList PythonContext::GetApplicationExtensionsPaths()
+{
+  QStringList ret;
+
+  for(QString d : QStandardPaths::standardLocations(QStandardPaths::AppDataLocation))
+  {
+    QDir dir(d);
+    dir.cd(lit("extensions"));
+
+    if(dir.exists())
+      ret.append(dir.absolutePath());
+  }
+
+  return ret;
+}
+
 void PythonContext::ProcessExtensionWork(std::function<void()> callback)
 {
   PyGILState_STATE gil = PyGILState_Ensure();
@@ -524,18 +540,20 @@ bool PythonContext::LoadExtension(ICaptureContext &ctx, const rdcstr &extension)
 
   PyObject *syspath = PyObject_GetAttrString(sysobj, "path");
 
-  QString configPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-  QDir dir(configPath);
+  // add extensions directories in
+  for(QString p : PythonContext::GetApplicationExtensionsPaths())
+  {
+    QDir dir(p);
 
-  dir.cd(lit("extensions"));
+    rdcstr path = dir.absolutePath();
 
-  rdcstr path = dir.absolutePath();
-
-  PyObject *str = PyUnicode_FromString(path.c_str());
-
-  PyList_Append(syspath, str);
-
-  Py_DecRef(str);
+    if(dir.exists())
+    {
+      PyObject *str = PyUnicode_FromString(path.c_str());
+      PyList_Append(syspath, str);
+      Py_DecRef(str);
+    }
+  }
 
   PyObject *ext = NULL;
 
