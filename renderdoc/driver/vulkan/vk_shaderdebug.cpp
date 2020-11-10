@@ -3788,6 +3788,8 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
         {
           VkDeviceSize vertexOffset = 0;
 
+          found = true;
+
           if(bind.perInstance)
           {
             if(bind.instanceDivisor == 0)
@@ -3837,6 +3839,11 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
               "(index %u) in instance %u.",
               attr.location, attr.binding, vertid, idx, instid));
 
+      if(IsUIntFormat(attr.format) || IsSIntFormat(attr.format))
+        var.type = VarType::UInt;
+      else
+        var.type = VarType::Float;
+
       set0001(var);
     }
     else
@@ -3850,6 +3857,8 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
         {
           // this is the only packed UINT format
           Vec4u decoded = ConvertFromR10G10B10A2UInt(*(uint32_t *)data.data());
+
+          var.type = VarType::UInt;
 
           setUintComp(var, 0, decoded.x);
           setUintComp(var, 1, decoded.y);
@@ -3865,6 +3874,8 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
       else
       {
         FloatVector decoded = DecodeFormattedComponents(fmt, data.data());
+
+        var.type = VarType::Float;
 
         setFloatComp(var, 0, decoded.x);
         setFloatComp(var, 1, decoded.y);
