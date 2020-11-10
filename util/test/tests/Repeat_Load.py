@@ -23,7 +23,7 @@ class Repeat_Load(rdtest.TestCase):
 
             # We measure the baseline memory usage during the second peak to avoid any persistent caches etc that might
             # not be full
-            if i == 1:
+            if i == 2:
                 memory_baseline = memory_usage
 
             controller.Shutdown()
