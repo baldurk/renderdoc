@@ -1749,6 +1749,11 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
     {
       uint64_t readBytes = qMax(maxIdx, maxIdx + 1) * vb.byteStride + maxAttrOffset;
 
+      // if the stride is 0, allow reading at most one float4. This will still get clamped by the
+      // declared vertex buffer size below
+      if(vb.byteStride == 0)
+        readBytes += 16;
+
       offset *= vb.byteStride;
 
       if(vb.byteSize > offset)
