@@ -170,6 +170,12 @@
                   <File Id='amdrgpDLL' Name='DevDriverAPI-x64.dll' DiskId='1' Source='dist/Release64/plugins/amd/rgp/DevDriverAPI-x64.dll' KeyPath='yes' />
                 </Component>
               </Directory>
+              
+              <Directory Id='plugins_amd_ags' Name='ags'>
+                <Component Id='ags_plugin' Win64="yes" Guid='B7BD4CB6-0823-4EA0-8A86-A77CBA2BE6B0'>
+                  <File Id='amdagsDLL' Name='amd_ags_x64.dll' DiskId='1' Source='dist/Release64/plugins/amd/ags/amd_ags_x64.dll' KeyPath='yes' />
+                </Component>
+              </Directory>
 
               <Directory Id='plugins_amd_counters' Name='counters'>
                 <Component Id='gpa_plugin' Win64="yes" Guid='F248EE26-5919-4F9B-8727-6C2CEFA0DC2C'>
@@ -367,6 +373,7 @@
 
         <ComponentRef Id='gcn_plugin' />
         <ComponentRef Id='rgp_plugin' />
+        <ComponentRef Id='ags_plugin' />
         <ComponentRef Id='gpa_plugin' />
         <ComponentRef Id='android_plugin' />
         <ComponentRef Id='spirv_plugin' />

@@ -174,6 +174,12 @@
                 </Component>
               </Directory>
 
+              <Directory Id='plugins_amd_ags' Name='ags'>
+                <Component Id='ags_plugin' Guid='1F42FA40-EC82-4E9C-9A6F-67CCF0251DB0'>
+                  <File Id='amdagsDLL' Name='amd_ags_x86.dll' DiskId='1' Source='dist/Release32/plugins/amd/ags/amd_ags_x86.dll' KeyPath='yes' />
+                </Component>
+              </Directory>
+
               <Directory Id='plugins_amd_counters' Name='counters'>
                 <Component Id='gpa_plugin' Guid='16CFF53A-CB61-49A1-8FE8-CDBB02DE29A4'>
                   <File Id='GPUPerfAPICounters' Name='GPUPerfAPICounters.dll' DiskId='1' Source='dist/Release32/plugins/amd/counters/GPUPerfAPICounters.dll' KeyPath='yes' />
@@ -330,6 +336,7 @@
         <ComponentRef Id='LICENSE' />
 
         <ComponentRef Id='rgp_plugin' />
+        <ComponentRef Id='ags_plugin' />
         <ComponentRef Id='gpa_plugin' />
         <ComponentRef Id='android_plugin' />
         <ComponentRef Id='spirv_plugin' />
