@@ -1316,7 +1316,7 @@ DOCUMENT(R"(What to do with the alpha channel from a texture while saving out to
 
 .. data:: Discard
 
-  Completely discard the alpha channel and only write RGB t othe file.
+  Completely discard the alpha channel and only write RGB to the file.
 
 .. data:: BlendToColor
 

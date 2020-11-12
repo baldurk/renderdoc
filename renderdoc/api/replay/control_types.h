@@ -444,7 +444,7 @@ written
   // for formats without an alpha channel, define how it should be
   // mapped. Only available for uncompressed simple formats, done
   // in RGBA8 space.
-  DOCUMENT(R"(Controls handling of alpha channel, mostly relevant for file formats that without
+  DOCUMENT(R"(Controls handling of alpha channel, only relevant for file formats that don't have
 alpha.
 
 It is an :class:`AlphaMapping` that controls what behaviour to use.
