@@ -108,6 +108,11 @@ class VulkanHook : LibraryHook
     Process::RegisterEnvironmentModification(
         EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "DISABLE_RTSS_LAYER", "1"));
 
+    // mesa device select layer crashes when it calls GPDP2 inside vkCreateInstance, which fails on
+    // the current loader.
+    Process::RegisterEnvironmentModification(
+        EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "NODEVICE_SELECT", "1"));
+
 #if ENABLED(RDOC_WIN32)
     // on windows support self-hosted capture by checking our filename and tweaking the env var we
     // set

@@ -4144,6 +4144,11 @@ ReplayStatus Vulkan_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, 
   Process::RegisterEnvironmentModification(
       EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "DISABLE_VULKAN_OBS_CAPTURE", "1"));
 
+  // mesa device select layer crashes when it calls GPDP2 inside vkCreateInstance, which fails on
+  // the current loader.
+  Process::RegisterEnvironmentModification(
+      EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "NODEVICE_SELECT", "1"));
+
   Process::ApplyEnvironmentModification();
 
   void *module = LoadVulkanLibrary();
