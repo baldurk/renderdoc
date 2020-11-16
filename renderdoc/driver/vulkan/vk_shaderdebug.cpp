@@ -3867,6 +3867,8 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
         }
         else
         {
+          var.type = VarType::Float;
+
           RDCASSERTEQUAL(fmt.compByteWidth, VarTypeByteSize(var.type));
           memcpy(var.value.u64v, data.data(), fmt.compByteWidth * fmt.compCount);
         }
