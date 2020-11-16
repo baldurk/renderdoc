@@ -702,6 +702,8 @@ bool WrappedOpenGL::Serialise_glTextureView(SerialiserType &ser, GLuint textureH
     m_Textures[liveTexId].width = m_Textures[liveOrigId].width;
     m_Textures[liveTexId].height = m_Textures[liveOrigId].height;
     m_Textures[liveTexId].depth = numlayers;
+    if(target == eGL_TEXTURE_3D)
+      m_Textures[liveTexId].depth = m_Textures[liveOrigId].depth;
     m_Textures[liveTexId].mipsValid = (1 << numlevels) - 1;
     m_Textures[liveTexId].emulated = emulated;
 
