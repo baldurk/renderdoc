@@ -473,25 +473,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
     maxlevel[0] = -1;
   }
 
-  TextureSamplerMode mode = TextureSamplerMode::Point;
-
   bool intTexture = intIdx > 0 || (flags & eTexDisplay_RemapUInt) || (flags & eTexDisplay_RemapSInt);
-
-  if(cfg.subresource.mip == 0 && cfg.scale < 1.0f && dsTexMode == eGL_NONE &&
-     resType != RESTYPE_TEXBUFFER && resType != RESTYPE_TEXRECT && !intTexture)
-  {
-    mode = TextureSamplerMode::Linear;
-  }
-  else
-  {
-    if(resType == RESTYPE_TEXRECT || resType == RESTYPE_TEX2DMS ||
-       resType == RESTYPE_TEX2DMSARRAY || resType == RESTYPE_TEXBUFFER)
-      mode = TextureSamplerMode::PointNoMip;
-    else
-      mode = TextureSamplerMode::Point;
-  }
-
-  TextureSamplerState prevSampState = SetSamplerParams(target, texname, mode);
 
   GLint tex_x = texDetails.width, tex_y = texDetails.height, tex_z = texDetails.depth;
 
@@ -513,7 +495,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
     float xscale = DebugData.outWidth / float(tex_x);
     float yscale = DebugData.outHeight / float(tex_y);
 
-    ubo->Scale = RDCMIN(xscale, yscale);
+    ubo->Scale = cfg.scale = RDCMIN(xscale, yscale);
 
     if(yscale > xscale)
     {
@@ -609,6 +591,24 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
   ubo->YUVAChannels = {};
 
   drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+
+  TextureSamplerMode mode = TextureSamplerMode::Point;
+
+  if(cfg.subresource.mip == 0 && cfg.scale < 1.0f && dsTexMode == eGL_NONE &&
+     resType != RESTYPE_TEXBUFFER && resType != RESTYPE_TEXRECT && !intTexture)
+  {
+    mode = TextureSamplerMode::Linear;
+  }
+  else
+  {
+    if(resType == RESTYPE_TEXRECT || resType == RESTYPE_TEX2DMS ||
+       resType == RESTYPE_TEX2DMSARRAY || resType == RESTYPE_TEXBUFFER)
+      mode = TextureSamplerMode::PointNoMip;
+    else
+      mode = TextureSamplerMode::Point;
+  }
+
+  TextureSamplerState prevSampState = SetSamplerParams(target, texname, mode);
 
   HeatmapData heatmapData = {};
 
