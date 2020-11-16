@@ -170,14 +170,15 @@ public:
     auto it = m_CurrentResources.find(res);
     if(it != m_CurrentResources.end())
     {
-      m_Names.erase(it->second.first);
+      ResourceId id = it->second.first;
+      m_Names.erase(id);
 
-      if(IsReplayMode(m_State) && HasLiveResource(it->second.first))
-        EraseLiveResource(it->second.first);
-      ReleaseCurrentResource(it->second.first);
+      if(IsReplayMode(m_State) && HasLiveResource(id))
+        EraseLiveResource(id);
+      ReleaseCurrentResource(id);
       m_CurrentResources.erase(res);
 
-      auto fboit = m_FBOAttachmentsCache.find(it->second.first);
+      auto fboit = m_FBOAttachmentsCache.find(id);
       if(fboit != m_FBOAttachmentsCache.end())
       {
         delete fboit->second;
