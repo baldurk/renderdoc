@@ -64,6 +64,7 @@ struct ExceptionHandler
     this->~ExceptionHandler();
     m_storage = o.m_storage;
     m_storage->m_ref++;
+    return *this;
   }
   ExceptionData &data() { return m_storage->data; }
   const ExceptionData &data() const { return m_storage->data; }
@@ -74,7 +75,7 @@ private:
   {
     ExceptionData data;
     bool valid = true;
-    std::atomic_int32_t m_ref;
+    std::atomic<int32_t> m_ref;
   };
   Storage *m_storage = NULL;
 };

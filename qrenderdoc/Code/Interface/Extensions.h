@@ -732,6 +732,11 @@ passed nothing will happen.
 :param ``list`` of ``str`` options: The new options for the combo box.
 )");
   virtual void SetComboOptions(QWidget *combo, const rdcarray<rdcstr> &options) = 0;
+
+protected:
+  DOCUMENT("");
+  IMiniQtHelper() = default;
+  ~IMiniQtHelper() = default;
 };
 
 DECLARE_REFLECTION_STRUCT(IMiniQtHelper);
