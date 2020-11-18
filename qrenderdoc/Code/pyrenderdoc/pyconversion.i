@@ -89,9 +89,9 @@ SIMPLE_TYPEMAPS_VARIANT(SimpleType, SimpleType &)
   $1 = ConvertFunc<$1_ltype>("$symname", func, exHandle$argnum);
 }
 
-%typemap(argout) std::function (ExceptionHandling exHandle) {
-  if(exHandle.failFlag) {
-    PyErr_Restore(exHandle.exObj, exHandle.valueObj, exHandle.tracebackObj);
+%typemap(argout) std::function (StackExceptionHandler exHandle) {
+  if(exHandle.data().failFlag) {
+    PyErr_Restore(exHandle.data().exObj, exHandle.data().valueObj, exHandle.data().tracebackObj);
     SWIG_fail;
   }
 }
