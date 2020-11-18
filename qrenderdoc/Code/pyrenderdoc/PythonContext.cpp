@@ -944,6 +944,9 @@ QWidget *PythonContext::QWidgetFromPy(PyObject *widget)
   if(!initialised())
     return NULL;
 
+  if(widget == Py_None || widget == NULL)
+    return NULL;
+
   if(!SbkPySide2_QtCoreTypes || !SbkPySide2_QtGuiTypes || !SbkPySide2_QtWidgetsTypes)
     return UnwrapBareQWidget(widget);
 
@@ -1039,6 +1042,11 @@ PyObject *PythonContext::QtObjectToPython(const char *typeName, QObject *object)
     if(w)
       return WrapBareQWidget(w);
 
+    Py_RETURN_NONE;
+  }
+
+  if(object == NULL)
+  {
     Py_RETURN_NONE;
   }
 
