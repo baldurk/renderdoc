@@ -57,6 +57,7 @@
 #include "Windows/StatisticsViewer.h"
 #include "Windows/TextureViewer.h"
 #include "Windows/TimelineBar.h"
+#include "MiniQtHelper.h"
 #include "QRDUtils.h"
 #include "RGPInterop.h"
 #include "version.h"
@@ -81,6 +82,8 @@ CaptureContext::CaptureContext(PersistantConfig &cfg) : m_Config(cfg)
   m_Drawcalls = &m_EmptyDraws;
 
   m_StructuredFile = &m_DummySDFile;
+
+  m_QtHelper = new MiniQtHelper(*this);
 
   qApp->setApplicationVersion(QString::fromLatin1(RENDERDOC_GetVersionString()));
 
@@ -112,6 +115,7 @@ CaptureContext::CaptureContext(PersistantConfig &cfg) : m_Config(cfg)
 
 CaptureContext::~CaptureContext()
 {
+  delete m_QtHelper;
   RENDERDOC_UnregisterMemoryRegion(this);
   delete m_Icon;
   m_Replay.CloseThread();
@@ -502,6 +506,11 @@ void CaptureContext::MenuDisplaying(PanelMenu panelMenu, QMenu *menu, QWidget *e
     QObject::connect(emptyAction, &QAction::triggered,
                      [this]() { m_MainWindow->showExtensionManager(); });
   }
+}
+
+IMiniQtHelper &CaptureContext::GetMiniQtHelper()
+{
+  return *m_QtHelper;
 }
 
 void CaptureContext::MessageDialog(const rdcstr &text, const rdcstr &title)

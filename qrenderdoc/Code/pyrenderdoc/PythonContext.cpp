@@ -491,6 +491,17 @@ void PythonContext::Finish()
   PyGILState_Release(gil);
 }
 
+void PythonContext::PausePythonThreading()
+{
+  m_SavedThread = PyEval_SaveThread();
+}
+
+void PythonContext::ResumePythonThreading()
+{
+  PyEval_RestoreThread((PyThreadState *)m_SavedThread);
+  m_SavedThread = NULL;
+}
+
 void PythonContext::GlobalShutdown()
 {
   if(!initialised())

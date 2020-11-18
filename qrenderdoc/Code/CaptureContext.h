@@ -53,6 +53,7 @@ class TimelineBar;
 class PythonShell;
 class ResourceInspector;
 class ShaderViewer;
+class MiniQtHelper;
 
 class CaptureContext : public ICaptureContext, IExtensionManager
 {
@@ -85,6 +86,8 @@ public:
                       const ExtensionCallbackData &data) override;
   void MenuDisplaying(PanelMenu panelMenu, QMenu *menu, QWidget *extensionButton,
                       const ExtensionCallbackData &data) override;
+
+  IMiniQtHelper &GetMiniQtHelper() override;
 
   void MessageDialog(const rdcstr &text, const rdcstr &title = "Python Extension Message") override;
   void ErrorDialog(const rdcstr &text, const rdcstr &title = "Python Extension Error") override;
@@ -399,6 +402,8 @@ private:
   QList<QPointer<RegisteredMenuItem>> m_RegisteredMenuItems;
 
   QList<ShaderViewer *> m_ShaderEditors;
+
+  MiniQtHelper *m_QtHelper = NULL;
 
   // Windows
   MainWindow *m_MainWindow = NULL;

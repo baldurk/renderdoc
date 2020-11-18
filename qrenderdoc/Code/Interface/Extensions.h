@@ -312,6 +312,430 @@ DECLARE_REFLECTION_STRUCT(ExtensionMetadata);
 
 typedef struct _object PyObject;
 
+DOCUMENT(R"(Python can have direct access to Qt via PySide2, but this is not always available in
+all RenderDoc builds. To aid extensions to manipulate widgets in a simple but portable fashion this
+helper exposes a small subset of Qt via RenderDoc's python bindings.
+
+The intention is not to allow fully flexible building of Qt panels, but to allow access to some
+basic UI building tools for simple data input and display which can be used on any RenderDoc build.
+
+.. note::
+  The widget handles returned are PySide2 widgets where that is available, so this can be used to
+  make a basic UI and optionally customise it further with PySide2 when possible.
+
+.. function:: WidgetCallback(context, widget, text)
+
+  Not a member function - the signature for any ``WidgetCallback`` callbacks.
+
+  Callback for widgets can be registered at creation time, the text field is optional and may be
+  blank depending on the event, but the context and widget are always valid.
+
+  :param CaptureContext context: The current capture context.
+  :param QWidget widget: The widget sending the callback.
+  :param str text: Additional data for the call, such as the current or selected text.
+)");
+struct IMiniQtHelper
+{
+  typedef std::function<void(ICaptureContext *, QWidget *, rdcstr)> WidgetCallback;
+
+  // top level widgets
+
+  DOCUMENT(R"(Creates and returns a top-level widget for creating layouts.
+
+The widget is not immediately visible. It should be shown either with :meth:`ShowWidgetAsDialog` or
+with :meth:`CaptureContext.AddDockWindow` once it's ready.
+
+This widget can have children added, but it is recommended to immediately add only one child which
+is a layout type widget, to allow customising how children are added. By default the children are
+added in a vertical layout.
+
+:param str windowTitle: The title of any window with this widget as its root.
+:return: The handle to the newly created widget.
+:rtype: ``QWidget``
+)");
+  virtual QWidget *CreateToplevelWidget(const rdcstr &windowTitle) = 0;
+
+  // widget hierarchy
+
+  DOCUMENT(R"(Set the internal name of a widget. This is not displayed anywhere but can be used by
+:meth:`FindChildByName` to locate a widget within a hierarchy.
+
+.. note::
+  Names are optional and only for your use. Nothing prevents from you from setting duplicate names,
+  but this makes searches by name ambiguous.
+
+:param QWidget widget: The widget to set an internal name for.
+:param str name: The internal name to set for the widget.
+)");
+  virtual void SetWidgetName(QWidget *widget, const rdcstr &name) = 0;
+
+  DOCUMENT(R"(Return the internal name of a widget, as set my :meth:`SetWidgetName`.
+
+:param QWidget widget: The widget to query.
+:return: The widget's internal name, which may be an empty string if no name has been set.
+:rtype: str
+)");
+  virtual rdcstr GetWidgetName(QWidget *widget) = 0;
+
+  DOCUMENT(R"(Return the type of the widget as a string. This type is the Qt type name so this
+should only be used for debugging as the name may change even if for the same type of widget.
+
+:param QWidget widget: The widget to query.
+:return: The widget's type name.
+:rtype: str
+)");
+  virtual rdcstr GetWidgetType(QWidget *widget) = 0;
+
+  DOCUMENT(R"(Find a child widget of a parent by internal name.
+
+:param QWidget widget: The widget to start the search from.
+:param str name: The internal name to search for.
+:return: The handle to the first widget with a matching name, or ``None`` if no widget is found.
+:rtype: ``QWidget``
+)");
+  virtual QWidget *FindChildByName(QWidget *parent, const rdcstr &name) = 0;
+
+  DOCUMENT(R"(Return the parent of a widget in the widget hierarchy.
+
+.. note::
+  The widget returned may not be a widget created through this helper interface if the specified
+  widget has been docked somewhere. Beware making changes to any widgets returned as you may modify
+  the RenderDoc UI itself.
+
+:param QWidget widget: The widget to query.
+:return: The handle to the parent widget with a matching name, or ``None`` if this widget is either
+  not yet parented or is a top-level window.
+:rtype: ``QWidget``
+)");
+  virtual QWidget *GetParent(QWidget *widget) = 0;
+
+  DOCUMENT(R"(Return the number of children this widget has. This is generally only useful for
+layout type widgets.
+
+:param QWidget widget: The widget to query.
+:return: The number of child widgets this widget has.
+:rtype: int
+)");
+  virtual int GetNumChildren(QWidget *widget) = 0;
+
+  DOCUMENT(R"(Return a child widget for a parent.
+
+:param QWidget parent: The parent widget to look up.
+:param int index: The child index to return.
+:return: The specified child of the parent, or ``None`` if the index is out of bounds.
+:rtype: ``QWidget``
+)");
+  virtual QWidget *GetChild(QWidget *parent, int index) = 0;
+
+  // dialogs
+
+  DOCUMENT(R"(Show a top-level widget as a blocking modal dialog. This is most useful to prompt the
+user for some specific information.
+
+The dialog is only closed when the user closes the window explicitly or if you call
+:meth:`CloseCurrentDialog` in a widget callback, e.g. upon a button press.
+
+:param QWidget widget: The top-level widget to show as a dialog.
+:return: Whether the dialog was closed successfully, via :meth:`CloseCurrentDialog`.
+:rtype: bool
+)");
+  virtual bool ShowWidgetAsDialog(QWidget *widget) = 0;
+
+  DOCUMENT(R"(Close the active modal dialog. This does nothing if no dialog is being shown.
+
+.. note::
+  Closing a dialog 'sucessfully' does nothing except modify the return value of
+  :meth:`CloseCurrentDialog`. It allows quick distinguishing between OK and Cancel actions without
+  having to carry that information separately in a global or other state.
+
+:param bool success: ``True`` if the dialog was successful (the user clicked an OK/Accept type
+  button).
+)");
+  virtual void CloseCurrentDialog(bool success) = 0;
+
+  // layout functions
+
+  DOCUMENT(R"(Creates and returns a horizontal layout widget.
+
+The widget needs to be added to a parent to become part of a panel or window.
+
+Children added to this layout widget are listed horizontally. Widget sizing follows default logic,
+which typically has some widgets be only large enough for their content and others which are
+'greedy' evenly divide any remaining free space.
+
+:return: The handle to the newly created widget.
+:rtype: ``QWidget``
+)");
+  virtual QWidget *CreateHorizontalContainer() = 0;
+
+  DOCUMENT(R"(Creates and returns a vertical layout widget.
+
+The widget needs to be added to a parent to become part of a panel or window.
+
+Children added to this layout widget are listed vertically. Widget sizing follows default logic,
+which typically has some widgets be only large enough for their content and others which are
+'greedy' evenly divide any remaining free space.
+
+:return: The handle to the newly created widget.
+:rtype: ``QWidget``
+)");
+  virtual QWidget *CreateVerticalContainer() = 0;
+
+  DOCUMENT(R"(Creates and returns a grid layout widget.
+
+The widget needs to be added to a parent to become part of a panel or window.
+
+Children added to this layout widget are arranged in a grid. Widget sizing follows default logic,
+which typically has some widgets be only large enough for their content and others which are
+'greedy' evenly divide any remaining free space. This will not violate the grid constraint though.
+
+:return: The handle to the newly created widget.
+:rtype: ``QWidget``
+)");
+  virtual QWidget *CreateGridContainer() = 0;
+
+  DOCUMENT(R"(Removes all child widgets from a parent and makes them invisible.
+
+These widgets remain valid and can be re-added to another parent or the same parent.
+
+:param QWidget parent: The parent widget to clear of  children.
+)");
+  virtual void ClearContainedWidgets(QWidget *parent) = 0;
+
+  DOCUMENT(R"(Adds a child widget to a grid layout. If the parent is not a grid layout nothing will
+happen and the widget will not be added anywhere.
+
+:param QWidget parent: The parent grid layout widget.
+:param int row: The row at which to add the child widget.
+:param int column: The column at which to add the child widget.
+:param QWidget child: The child widget to add.
+:param int rowSpan: How many rows should this child span over.
+:param int columnSpan: How many columns should this child span over.
+)");
+  virtual void AddGridWidget(QWidget *parent, int row, int column, QWidget *child, int rowSpan,
+                             int columnSpan) = 0;
+
+  DOCUMENT(R"(Adds a child widget to the end of an ordered layout (either horizontal or vertical).
+If the parent is not an ordered layout nothing will happen and the widget will not be added anywhere.
+
+:param QWidget parent: The parent grid layout widget.
+:param QWidget child: The child widget to add.
+)");
+  virtual void AddWidget(QWidget *parent, QWidget *child) = 0;
+
+  DOCUMENT(R"(Insert a child widget at the specified index in an ordered layout (either horizontal
+or vertical). If the parent is not an ordered layout nothing will happen and the widget will not be
+added anywhere.
+
+:param QWidget parent: The parent grid layout widget.
+:param int index: The index to insert the widget at. If this index is out of bounds it will be
+  clamped, so that negative indices will be equivalent to index 0 and all indices above the number
+  of children will append the widget
+:param QWidget child: The child widget to add.
+)");
+  virtual void InsertWidget(QWidget *parent, int index, QWidget *child) = 0;
+
+  // widget manipulation
+
+  DOCUMENT(R"(Set the 'text' of a widget. How this manifests depends on the type of the widget, for
+example a text-box or label will set the text directly. For a checkbox or radio button this will
+add text next to it.
+
+:param QWidget widget: The widget to set text for.
+:param str text: The text to set for the widget.
+)");
+  virtual void SetWidgetText(QWidget *widget, const rdcstr &text) = 0;
+
+  DOCUMENT(R"(Return the current text of a widget. See :meth:`SetWidgetText`.
+
+:param QWidget widget: The widget to query.
+:return: The widget's current text, which may be an empty string if no valid text is available.
+:rtype: str
+)");
+  virtual rdcstr GetWidgetText(QWidget *widget) = 0;
+
+  DOCUMENT(R"(Change the font properties of a widget.
+
+:param QWidget widget: The widget to change font of.
+:param str font: The new font family to use, or an empty string to leave the font family the same.
+:param int fontSize: The new font point size to use, or 0 to leave the size the same.
+:param bool bold: ``True`` if the font should be bold.
+:param bool italic: ``True`` if the font should be italic.
+)");
+  virtual void SetWidgetFont(QWidget *widget, const rdcstr &font, int fontSize, bool bold,
+                             bool italic) = 0;
+
+  DOCUMENT(R"(Set whether the widget is enabled or not. This generally only affects interactive
+widgets and not fixed widgets, interactive widgets become read-only while still displaying the same
+data.
+
+.. note::
+  Disabled widgets can still be modified programmatically, they are only disabled for the user.
+
+:param QWidget widget: The widget to enable or disable.
+:param bool enabled: ``True`` if the widget should be enabled.
+)");
+  virtual void SetWidgetEnabled(QWidget *widget, bool enabled) = 0;
+
+  DOCUMENT(R"(Return the current enabled-state of a widget. See :meth:`SetWidgetEnabled`.
+
+:param QWidget widget: The widget to query.
+:return: ``True`` if the widget is currently enabled.
+:rtype: bool
+)");
+  virtual bool IsWidgetEnabled(QWidget *widget) = 0;
+
+  // specific widgets
+
+  DOCUMENT(R"(Create a groupbox widget which can optionally allow collapsing.
+
+This widget can have children added, but it is recommended to immediately add only one child which
+is a layout type widget, to allow customising how children are added. By default the children are
+added in a vertical layout.
+
+The widget needs to be added to a parent to become part of a panel or window.
+
+:param bool collapsible: ``True`` if the groupbox should have a toggle in its header to allow
+  collapsing its contents down vertically.
+:return: The handle to the newly created widget.
+:rtype: ``QWidget``
+)");
+  virtual QWidget *CreateGroupBox(bool collapsible) = 0;
+
+  DOCUMENT(R"(Create a normal button widget.
+
+:param WidgetCallback pressed: Callback to be called when the button is pressed.
+:return: The handle to the newly created widget.
+:rtype: ``QWidget``
+)");
+  virtual QWidget *CreateButton(WidgetCallback pressed) = 0;
+
+  DOCUMENT(R"(Create a read-only label widget.
+
+.. note::
+  This widget will be blank by default, you can set the text with :meth:`SetWidgetText`.
+
+:return: The handle to the newly created widget.
+:rtype: ``QWidget``
+)");
+  virtual QWidget *CreateLabel() = 0;
+
+  DOCUMENT(R"(Create a checkbox widget which can be toggled between unchecked and checked. When
+created the checkbox is unchecked.
+
+:param WidgetCallback changed: Callback to be called when the widget is toggled.
+:return: The handle to the newly created widget.
+:rtype: ``QWidget``
+)");
+  virtual QWidget *CreateCheckbox(WidgetCallback changed) = 0;
+
+  DOCUMENT(R"(Create a radio box widget which can be toggled between unchecked and checked but with
+at most one radio box in any group of sibling radio boxes being checked.
+
+Upon creation the radio box is unchecked, even in a group of other radio boxes that are unchecked.
+If you want a default radio box to be checked, you should use :meth:`SetWidgetChecked`.
+
+:param WidgetCallback changed: Callback to be called when the widget is toggled.
+:return: The handle to the newly created widget.
+:rtype: ``QWidget``
+)");
+  virtual QWidget *CreateRadiobox(WidgetCallback changed) = 0;
+
+  DOCUMENT(R"(Set whether the widget is checked or not. This only affects checkboxes and radio
+boxes. If another type of widget is passed nothing will happen.
+
+:param QWidget checkableWidget: The widget to check or uncheck.
+:param bool checked: ``True`` if the widget should be checked.
+)");
+  virtual void SetWidgetChecked(QWidget *checkableWidget, bool checked) = 0;
+
+  DOCUMENT(R"(Return the current checked-state of a widget. See :meth:`SetWidgetChecked`. If another
+type of widget is passed other than a checkbox or radio box ``False`` will be returned.
+
+:param QWidget checkableWidget: The widget to query.
+:return: ``True`` if the widget is currently checked.
+:rtype: bool
+)");
+  virtual bool IsWidgetChecked(QWidget *checkableWidget) = 0;
+
+  DOCUMENT(R"(Create a spinbox widget with a numerical value and up/down buttons to change it.
+
+The number of decimal places can be set to 0 for an integer spinbox, and in that case the step
+should be set to 1.0.
+
+By default the spinbox has minimum and maximum values of 0.0 and 100.0, these can be changed with
+:meth:`SetSpinboxBounds`.
+
+:param int decimalPlaces: The number of decimal places to display when showing the number.
+:param float step: The step value to apply in each direction when clicking up or down.
+:return: The handle to the newly created widget.
+:rtype: ``QWidget``
+)");
+  virtual QWidget *CreateSpinbox(int decimalPlaces, double step) = 0;
+
+  DOCUMENT(R"(Set the minimum and maximum values allowed in the spinbox. If another type of widget
+is passed nothing will happen.
+
+:param QWidget spinbox: The spinbox.
+:param float minVal: The minimum value allowed for the spinbox to reach. Lower values entered will
+  be clamped to this.
+:param float maxVal: The maximum value allowed for the spinbox to reach. Higher values entered will
+  be clamped to this.
+)");
+  virtual void SetSpinboxBounds(QWidget *spinbox, double minVal, double maxVal) = 0;
+
+  DOCUMENT(R"(Set the value contained in a spinbox. If another type of widget is passed nothing will
+happen.
+
+:param QWidget spinbox: The spinbox.
+:param float value: The value for the spinbox, which will be clamped by the current bounds.
+)");
+  virtual void SetSpinboxValue(QWidget *spinbox, double value) = 0;
+
+  DOCUMENT(R"(Return the current value of a spinbox widget. If another type of widget is passed
+``0.0`` will be returned.
+
+:param QWidget spinbox: The widget to query.
+:return: The current  value of the spinbox.
+:rtype: float
+)");
+  virtual double GetSpinboxValue(QWidget *spinbox) = 0;
+
+  DOCUMENT(R"(Create a text box widget for the user to enter text into.
+
+:param bool singleLine: ``True`` if the widget should be a single-line entry, otherwise it is a
+  multi-line text box.
+:param WidgetCallback changed: Callback to be called when the text in the textbox is changed.
+:return: The handle to the newly created widget.
+:rtype: ``QWidget``
+)");
+  virtual QWidget *CreateTextBox(bool singleLine, WidgetCallback changed) = 0;
+
+  DOCUMENT(R"(Create a drop-down combo box widget.
+
+When created there are no pre-defined entries in the drop-down section. This can be changed with
+:meth:`SetComboOptions`.
+
+:param bool editable: ``True`` if the widget should allow the user to enter any text they wish as
+  well as being able to select a pre-defined entry.
+:param WidgetCallback changed: Callback to be called when the text in the combobox is changed. This
+  will be called both when a new option is selected or when the user edits the text.
+:return: The handle to the newly created widget.
+:rtype: ``QWidget``
+)");
+  virtual QWidget *CreateComboBox(bool editable, WidgetCallback changed) = 0;
+
+  DOCUMENT(R"(Set the pre-defined options in a drop-down combo box. If another type of widget is
+passed nothing will happen.
+
+:param QWidget combo: The combo box.
+:param ``list`` of ``str`` options: The new options for the combo box.
+)");
+  virtual void SetComboOptions(QWidget *combo, const rdcarray<rdcstr> &options) = 0;
+};
+
+DECLARE_REFLECTION_STRUCT(IMiniQtHelper);
+
 DOCUMENT(R"(A manager for listing available and active extensions, as well as the interface for
 extensions to register hooks and additional functionality.
 
@@ -411,6 +835,13 @@ struct IExtensionManager
 
   //////////////////////////////////////////////////////////////////////////
   // Utility UI functions
+
+  DOCUMENT(R"(Returns a handle to the mini Qt helper. See :class:`MiniQtHelper`.
+
+:return: The helper interface.
+:rtype: MiniQtHelper
+)");
+  virtual IMiniQtHelper &GetMiniQtHelper() = 0;
 
   DOCUMENT(R"(Display a simple informational message dialog.
 

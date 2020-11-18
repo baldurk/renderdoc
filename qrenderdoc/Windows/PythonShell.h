@@ -47,6 +47,9 @@ public:
 
   ~PythonShell();
 
+  // for UI-forwarding helper classes
+  PythonContext *GetScriptContext();
+
   // IPythonShell
   QWidget *Widget() override { return this; }
 private slots:

@@ -741,6 +741,9 @@
     <ClCompile Include="$(IntDir)generated\moc_RDMenu.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="Code\MiniQtHelper.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -1102,6 +1105,9 @@
     </ClInclude>
     <ClInclude Include="$(IntDir)generated\ui_ConfigEditor.h">
       <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\MiniQtHelper.h">
+      <Filter>Code</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

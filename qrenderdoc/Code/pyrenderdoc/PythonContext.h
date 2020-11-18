@@ -52,6 +52,9 @@ public:
   void Finish();
 
   PyThreadState *GetExecutingThreadState() { return m_State; }
+  void PausePythonThreading();
+  void ResumePythonThreading();
+
   static void GlobalInit();
   static void GlobalShutdown();
 
@@ -130,6 +133,9 @@ private:
   // this is set during an execute, so we can identify when a callback happens within our execute or
   // not
   PyThreadState *m_State = NULL;
+
+  // this is stored so we can push/pop the GIL state properly
+  void *m_SavedThread = NULL;
 
   struct
   {

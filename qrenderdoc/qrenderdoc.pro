@@ -169,6 +169,7 @@ SOURCES += Code/qrenderdoc.cpp \
     Code/CaptureContext.cpp \
     Code/ScintillaSyntax.cpp \
     Code/QRDUtils.cpp \
+    Code/MiniQtHelper.cpp \
     Code/BufferFormatter.cpp \
     Code/Resources.cpp \
     Code/RGPInterop.cpp \
@@ -248,6 +249,7 @@ HEADERS += Code/CaptureContext.h \
     Code/ReplayManager.h \
     Code/ScintillaSyntax.h \
     Code/QRDUtils.h \
+    Code/MiniQtHelper.h \
     Code/Resources.h \
     Code/RGPInterop.h \
     Code/pyrenderdoc/PythonContext.h \

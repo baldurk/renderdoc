@@ -545,8 +545,8 @@ struct IPerformanceCounterViewer
 {
   DOCUMENT(
       "Retrieves the QWidget for this :class:`PerformanceCounterViewer` if PySide2 is available, "
-      "or "
-      "``None``.");
+      "or otherwise unique opaque pointer that can be passed to RenderDoc functions expecting a "
+      "QWidget.");
   virtual QWidget *Widget() = 0;
 
 protected:
@@ -1980,8 +1980,7 @@ This function is intended for internal use for restoring layouts, and generally 
 by user code.
 
 :param str objectName: The built-in name of a singleton window.
-:return: The handle to the existing or newly created window of this type, or ``None`` if PySide2 is
-  not available.
+:return: The handle to the existing or newly created window of this type.
 :rtype: ``QWidget``
 )");
   virtual QWidget *CreateBuiltinWindow(const rdcstr &objectName) = 0;
