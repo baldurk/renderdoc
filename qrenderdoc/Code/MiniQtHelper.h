@@ -33,7 +33,7 @@ class MiniQtHelper : public IMiniQtHelper
 {
 public:
   MiniQtHelper(ICaptureContext &ctx);
-  ~MiniQtHelper();
+  virtual ~MiniQtHelper();
 
   QWidget *CreateToplevelWidget(const rdcstr &windowTitle) override;
 
