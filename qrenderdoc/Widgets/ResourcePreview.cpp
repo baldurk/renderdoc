@@ -32,15 +32,8 @@ ResourcePreview::ResourcePreview(ICaptureContext &c, IReplayOutput *output, QWid
 {
   ui->setupUi(this);
 
-  CustomPaintWidget *thumb = new CustomPaintWidget(&c, this);
-  thumb->setOutput(output);
-  thumb->setObjectName(ui->thumbnail->objectName());
-  thumb->setSizePolicy(ui->thumbnail->sizePolicy());
-  thumb->setMinimumSize(QSize(0, 0));
-
-  delete ui->thumbnail;
-  ui->thumbnail = thumb;
-  ui->gridLayout->addWidget(ui->thumbnail, 0, 0, 1, 2);
+  ui->thumbnail->SetContext(c);
+  ui->thumbnail->SetOutput(output);
 
   setBackgroundRole(QPalette::Background);
   setForegroundRole(QPalette::Highlight);
@@ -119,7 +112,7 @@ void ResourcePreview::changeEvent(QEvent *event)
     setSelected(m_Selected);
 }
 
-QWidget *ResourcePreview::thumbWidget()
+WindowingData ResourcePreview::GetWidgetWindowingData()
 {
-  return ui->thumbnail;
+  return ui->thumbnail->GetWidgetWindowingData();
 }

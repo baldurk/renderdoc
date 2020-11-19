@@ -450,6 +450,9 @@ TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
 {
   ui->setupUi(this);
 
+  ui->render->SetContext(m_Ctx);
+  ui->pixelContext->SetContext(m_Ctx);
+
   ui->textureList->setFont(Formatter::PreferredFont());
   ui->textureListFilter->setFont(Formatter::PreferredFont());
   ui->rangeBlack->setFont(Formatter::PreferredFont());
@@ -675,15 +678,6 @@ void TextureViewer::enterEvent(QEvent *event)
 void TextureViewer::showEvent(QShowEvent *event)
 {
   HighlightUsage();
-}
-
-void TextureViewer::changeEvent(QEvent *event)
-{
-  if(event->type() == QEvent::PaletteChange || event->type() == QEvent::StyleChange)
-  {
-    updateBackgroundColors();
-    ui->render->update();
-  }
 }
 
 void TextureViewer::HighlightUsage()
@@ -2231,7 +2225,7 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, BoundResource res
 
     prev->setResourceName(fullname);
 
-    WindowingData winData = m_Ctx.CreateWindowingData(prev->thumbWidget());
+    WindowingData winData = prev->GetWidgetWindowingData();
 
     prev->setProperty("f", QVariant::fromValue(follow));
     prev->setSlotName(slotName);
@@ -2262,7 +2256,7 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, BoundResource res
     prev->setActive(true);
     prev->setSelected(true);
 
-    WindowingData winData = m_Ctx.CreateWindowingData(prev->thumbWidget());
+    WindowingData winData = prev->GetWidgetWindowingData();
     m_Ctx.Replay().AsyncInvoke([this, winData](IReplayController *) {
       m_Output->AddThumbnail(winData, ResourceId(), {0, 0, ~0U}, CompType::Typeless);
     });
@@ -2743,30 +2737,6 @@ void TextureViewer::on_renderVScroll_valueChanged(int position)
 
 void TextureViewer::UI_RecreatePanels()
 {
-  ICaptureContext *ctx = &m_Ctx;
-
-  // while a capture is loaded, pass NULL into the widget
-  if(!m_Ctx.IsCaptureLoaded())
-    ctx = NULL;
-
-  {
-    CustomPaintWidget *render = new CustomPaintWidget(ctx, ui->renderContainer);
-    render->setObjectName(ui->render->objectName());
-    render->setSizePolicy(ui->render->sizePolicy());
-    delete ui->render;
-    ui->render = render;
-    ui->gridLayout->addWidget(render, 1, 0, 1, 1);
-  }
-
-  {
-    CustomPaintWidget *pixelContext = new CustomPaintWidget(ctx, ui->pixelContextLayout);
-    pixelContext->setObjectName(ui->pixelContext->objectName());
-    pixelContext->setSizePolicy(ui->pixelContext->sizePolicy());
-    delete ui->pixelContext;
-    ui->pixelContext = pixelContext;
-    ui->pixelcontextgrid->addWidget(pixelContext, 0, 0, 1, 2);
-  }
-
   updateBackgroundColors();
 
   QObject::connect(ui->render, &CustomPaintWidget::clicked, this, &TextureViewer::render_mouseClick);
@@ -2782,24 +2752,16 @@ void TextureViewer::UI_RecreatePanels()
 
 void TextureViewer::updateBackgroundColors()
 {
-  if(backCol.isValid())
-  {
-    ui->render->setColours(backCol, backCol);
-    ui->pixelContext->setColours(backCol, backCol);
-  }
-  else
-  {
-    ui->render->setColours(Formatter::DarkCheckerColor(), Formatter::LightCheckerColor());
-    ui->pixelContext->setColours(Formatter::DarkCheckerColor(), Formatter::LightCheckerColor());
-  }
+  ui->render->SetBackCol(backCol);
+  ui->pixelContext->SetBackCol(backCol);
 }
 
 void TextureViewer::OnCaptureLoaded()
 {
   Reset();
 
-  WindowingData renderData = m_Ctx.CreateWindowingData(ui->render);
-  WindowingData contextData = m_Ctx.CreateWindowingData(ui->pixelContext);
+  WindowingData renderData = ui->render->GetWidgetWindowingData();
+  WindowingData contextData = ui->pixelContext->GetWidgetWindowingData();
 
   ui->saveTex->setEnabled(true);
   ui->locationGoto->setEnabled(true);
@@ -2820,8 +2782,8 @@ void TextureViewer::OnCaptureLoaded()
 
     m_Output->SetPixelContext(contextData);
 
-    ui->render->setOutput(m_Output);
-    ui->pixelContext->setOutput(m_Output);
+    ui->render->SetOutput(m_Output);
+    ui->pixelContext->SetOutput(m_Output);
 
     RT_UpdateAndDisplay(r);
 

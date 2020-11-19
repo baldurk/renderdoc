@@ -1315,7 +1315,7 @@ void CaptureContext::CloseCapture()
 
   for(ICaptureViewer *viewer : capviewers)
   {
-    if(viewer)
+    if(viewer && m_CaptureViewers.contains(viewer))
       viewer->OnCaptureClosed();
   }
 

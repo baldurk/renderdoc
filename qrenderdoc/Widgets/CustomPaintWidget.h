@@ -25,32 +25,61 @@
 #pragma once
 
 #include <QWidget>
+#include "Code/Interface/QRDInterface.h"
 
-struct IReplayOutput;
-struct ICaptureContext;
+class CustomPaintWidget;
 
-class CustomPaintWidget : public QWidget
+// this is the internal widget that gets recreated
+class CustomPaintWidgetInternal : public QWidget
+{
+private:
+  Q_OBJECT
+
+  CustomPaintWidget &m_Custom;
+  bool m_Rendering = false;
+
+public:
+  explicit CustomPaintWidgetInternal(CustomPaintWidget &parentCustom, bool rendering);
+  ~CustomPaintWidgetInternal();
+
+  bool IsRendering() const { return m_Rendering; }
+protected:
+  void mousePressEvent(QMouseEvent *e) override;
+  void mouseDoubleClickEvent(QMouseEvent *event) override;
+  void mouseMoveEvent(QMouseEvent *e) override;
+  void wheelEvent(QWheelEvent *e) override;
+  void resizeEvent(QResizeEvent *e) override;
+
+#if defined(RENDERDOC_PLATFORM_APPLE)
+  bool event(QEvent *event) override;
+#endif
+
+  void paintEvent(QPaintEvent *e) override;
+  QPaintEngine *paintEngine() const override { return m_Rendering ? NULL : QWidget::paintEngine(); }
+};
+
+// this is the public-facing widget which is persistent and contains & recreates the internal widget
+class CustomPaintWidget : public QWidget, ICaptureViewer
 {
 private:
   Q_OBJECT
 public:
   explicit CustomPaintWidget(QWidget *parent = 0);
-  explicit CustomPaintWidget(ICaptureContext *c, QWidget *parent = 0);
   ~CustomPaintWidget();
 
-  // this is needed to solve a chicken-and-egg problem. We need to recreate the widget
-  // whenever we go from custom rendering to painting (e.g. capture loaded or closed). But
-  // we need the widget to have been recreated before we create the output, so we can
-  // pass in the winId.
-  // So we go by whether or not we have a CaptureContext * and go on faith that the
-  // output will be set before any painting work has to happen.
-  void setOutput(IReplayOutput *out) { m_Output = out; }
-  void setColours(QColor dark, QColor light)
-  {
-    m_Dark = dark;
-    m_Light = light;
-  }
+  void SetContext(ICaptureContext &ctx);
 
+  // ICaptureViewer
+  void OnCaptureLoaded() override;
+  void OnCaptureClosed() override;
+  void OnSelectedEventChanged(uint32_t eventId) override;
+  void OnEventChanged(uint32_t eventId) override;
+
+  void update();
+
+  WindowingData GetWidgetWindowingData();
+  void SetOutput(IReplayOutput *out);
+  void SetBackCol(QColor col) { m_BackCol = col; }
 signals:
   void clicked(QMouseEvent *e);
   void doubleClicked(QMouseEvent *e);
@@ -61,26 +90,26 @@ signals:
   void keyRelease(QKeyEvent *e);
 
 private:
-  void mousePressEvent(QMouseEvent *e) override;
-  void mouseDoubleClickEvent(QMouseEvent *event) override;
-  void mouseMoveEvent(QMouseEvent *e) override;
-  void wheelEvent(QWheelEvent *e) override;
-  void resizeEvent(QResizeEvent *e) override;
+  void changeEvent(QEvent *event) override;
   void keyPressEvent(QKeyEvent *e) override;
   void keyReleaseEvent(QKeyEvent *e) override;
-
-public slots:
-
-protected:
-#if defined(RENDERDOC_PLATFORM_APPLE)
-  bool event(QEvent *event) override;
-#endif
-
   void paintEvent(QPaintEvent *e) override;
-  QPaintEngine *paintEngine() const override { return m_Ctx ? NULL : QWidget::paintEngine(); }
-  ICaptureContext *m_Ctx;
-  IReplayOutput *m_Output;
+
+  QPaintEngine *paintEngine() const override { return NULL; }
+  friend class CustomPaintWidgetInternal;
+
+  CustomPaintWidgetInternal *m_Internal = NULL;
+
+  bool m_Rendering = false;
+
+  void RecreateInternalWidget();
+  void renderInternal(QPaintEvent *e);
+  void paintInternal(QPaintEvent *e);
+
+  ICaptureContext *m_Ctx = NULL;
+  IReplayOutput *m_Output = NULL;
   QString m_Tag;
   QColor m_Dark;
   QColor m_Light;
+  QColor m_BackCol;
 };

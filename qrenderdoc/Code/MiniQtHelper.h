@@ -83,6 +83,12 @@ public:
 
   QWidget *CreateLabel() override;
 
+  QWidget *CreateOutputRenderingWidget() override;
+
+  WindowingData GetWidgetWindowingData(QWidget *widget) override;
+  void SetWidgetReplayOutput(QWidget *widget, IReplayOutput *output) override;
+  void SetWidgetBackgroundColor(QWidget *widget, float red, float green, float blue) override;
+
   QWidget *CreateCheckbox(WidgetCallback changed) override;
   QWidget *CreateRadiobox(WidgetCallback changed) override;
 

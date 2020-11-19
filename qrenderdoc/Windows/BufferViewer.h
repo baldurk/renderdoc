@@ -134,9 +134,6 @@ private slots:
   void exportData(const BufferExport &params);
   void debugVertex();
 
-protected:
-  void changeEvent(QEvent *event) override;
-
 private:
   bool eventFilter(QObject *watched, QEvent *event) override;
   Ui::BufferViewer *ui;
@@ -246,8 +243,6 @@ private:
   void meshHeaderMenu(MeshDataStage stage, const QPoint &pos);
 
   void Reset();
-
-  void updateCheckerboardColours();
 
   void ClearModels();
 

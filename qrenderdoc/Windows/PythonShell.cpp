@@ -207,6 +207,24 @@ struct MiniQtInvoker : ObjectForwarder<IMiniQtHelper>
   }
 
   QWidget *CreateLabel() { return InvokeRetFunction<QWidget *>(&IMiniQtHelper::CreateLabel); }
+  QWidget *CreateOutputRenderingWidget()
+  {
+    return InvokeRetFunction<QWidget *>(&IMiniQtHelper::CreateOutputRenderingWidget);
+  }
+  WindowingData GetWidgetWindowingData(QWidget *widget)
+  {
+    return InvokeRetFunction<WindowingData>(&IMiniQtHelper::GetWidgetWindowingData, widget);
+  }
+
+  void SetWidgetReplayOutput(QWidget *widget, IReplayOutput *output)
+  {
+    InvokeVoidFunction(&IMiniQtHelper::SetWidgetReplayOutput, widget, output);
+  }
+
+  void SetWidgetBackgroundColor(QWidget *widget, float red, float green, float blue)
+  {
+    InvokeVoidFunction(&IMiniQtHelper::SetWidgetBackgroundColor, widget, red, green, blue);
+  }
   QWidget *CreateCheckbox(WidgetCallback changed)
   {
     return InvokeRetFunction<QWidget *>(&IMiniQtHelper::CreateCheckbox, changed);

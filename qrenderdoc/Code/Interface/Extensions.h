@@ -620,6 +620,67 @@ The widget needs to be added to a parent to become part of a panel or window.
 )");
   virtual QWidget *CreateLabel() = 0;
 
+  DOCUMENT(R"(Create a widget suitable for rendering to with a :class:`renderdoc.ReplayOutput`. This
+widget takes care of painting on demand and recreating the internal display widget when necessary,
+however this means you must use :meth:`GetWidgetWindowingData` to retrieve the windowing data for
+creating the output as well as call :meth:`SetWidgetReplayOutput` to notify the widget of the
+current output.
+
+:return: The handle to the newly created widget.
+:rtype: ``QWidget``
+)");
+  virtual QWidget *CreateOutputRenderingWidget() = 0;
+
+  DOCUMENT(R"(Return the opaque pointer of windowing data suitable for passing to
+:meth:`~renderdoc.ReplayController.CreateOutput` or other functions that expect windowing data.
+
+If the widget is not a output rendering widget created with :meth:`CreateOutputRenderingWidget` this
+function will fail and return an invalid set of windowing data.
+
+It's important to note that the windowing data is not valid forever, so this function should be
+called as close to where you call :meth:`~renderdoc.ReplayController.CreateOutput` as possible.
+Also don't fetch windowing data unless you are going to create an output, because this function will
+cause the widget to go into an undefined state unless an output is created to render onto it.
+
+.. note::
+  This function must be called on the main UI thread.
+
+:param QWidget window: The widget to create windowing data for.
+:return: The windowing data.
+:rtype: ~renderdoc.WindowingData
+)");
+  virtual WindowingData GetWidgetWindowingData(QWidget *widget) = 0;
+
+  DOCUMENT(R"(Set the current output for a widget. This only affects output rendering widgets. If
+another type of widget is passed nothing will happen.
+
+Passing ``None`` as the output will reset the widget and make it display the default background
+until another output is set.
+
+When a capture is closed and all outputs are destroyed, the widget will automatically unset the
+output so there is no need to do that manually.
+
+:param QWidget widget: The widget to set the output for.
+:param ~renderdoc.ReplayOutput output: The new output to set, or ``None`` to unset any previous
+  output.
+)");
+  virtual void SetWidgetReplayOutput(QWidget *widget, IReplayOutput *output) = 0;
+
+  DOCUMENT(R"(Set the default backkground color for a rendering widget. This background color is
+used when no output is currently configured, e.g. when a capture is closed.
+
+For all other widget types this has no effect.
+
+To disable the background color pass negative values for the components, this will cause a default
+checkerboard to be rendered instead. This is the default behaviour when a widget is created.
+
+:param QWidget widget: The widget to set the background color of.
+:param float red: The red component of the color, in the range ``0.0 - 1.0``.
+:param float green: The green component of the color, in the range ``0.0 - 1.0``.
+:param float blue: The blue component of the color, in the range ``0.0 - 1.0``.
+)");
+  virtual void SetWidgetBackgroundColor(QWidget *widget, float red, float green, float blue) = 0;
+
   DOCUMENT(R"(Create a checkbox widget which can be toggled between unchecked and checked. When
 created the checkbox is unchecked.
 

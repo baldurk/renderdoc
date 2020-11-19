@@ -1918,6 +1918,8 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
 {
   ui->setupUi(this);
 
+  ui->render->SetContext(m_Ctx);
+
   byteRangeStart = (RDSpinBox64 *)ui->byteRangeStart;
   byteRangeLength = (RDSpinBox64 *)ui->byteRangeLength;
 
@@ -2381,12 +2383,12 @@ void BufferViewer::OnCaptureLoaded()
   if(!m_MeshView)
     return;
 
-  WindowingData winData = m_Ctx.CreateWindowingData(ui->render);
+  WindowingData winData = ui->render->GetWidgetWindowingData();
 
   m_Ctx.Replay().BlockInvoke([winData, this](IReplayController *r) {
     m_Output = r->CreateOutput(winData, ReplayOutputType::Mesh);
 
-    ui->render->setOutput(m_Output);
+    ui->render->SetOutput(m_Output);
 
     RT_UpdateAndDisplay(r);
   });
@@ -3603,21 +3605,6 @@ void BufferViewer::Reset()
 
   m_BBoxes.clear();
 
-  ICaptureContext *ctx = &m_Ctx;
-
-  // while a capture is loaded, pass NULL into the widget
-  if(!m_Ctx.IsCaptureLoaded())
-    ctx = NULL;
-
-  {
-    CustomPaintWidget *render = new CustomPaintWidget(ctx, this);
-    render->setObjectName(ui->render->objectName());
-    render->setSizePolicy(ui->render->sizePolicy());
-    delete ui->render;
-    ui->render = render;
-    ui->renderContainerGridLayout->addWidget(ui->render, 1, 1, 1, 1);
-  }
-
   QObject::connect(ui->render, &CustomPaintWidget::mouseMove, this, &BufferViewer::render_mouseMove);
   QObject::connect(ui->render, &CustomPaintWidget::clicked, this, &BufferViewer::render_clicked);
   QObject::connect(ui->render, &CustomPaintWidget::keyPress, this, &BufferViewer::render_keyPress);
@@ -3625,12 +3612,6 @@ void BufferViewer::Reset()
                    &BufferViewer::render_keyRelease);
   QObject::connect(ui->render, &CustomPaintWidget::mouseWheel, this,
                    &BufferViewer::render_mouseWheel);
-  updateCheckerboardColours();
-}
-
-void BufferViewer::updateCheckerboardColours()
-{
-  ui->render->setColours(Formatter::DarkCheckerColor(), Formatter::LightCheckerColor());
 }
 
 void BufferViewer::ClearModels()
@@ -4236,15 +4217,6 @@ void BufferViewer::debugVertex()
   IShaderViewer *s = m_Ctx.DebugShader(&bindMapping, shaderDetails, pipeline, trace, debugContext);
 
   m_Ctx.AddDockWindow(s->Widget(), DockReference::AddTo, this);
-}
-
-void BufferViewer::changeEvent(QEvent *event)
-{
-  if(event->type() == QEvent::PaletteChange || event->type() == QEvent::StyleChange)
-  {
-    updateCheckerboardColours();
-    ui->render->update();
-  }
 }
 
 void BufferViewer::SyncViews(RDTableView *primary, bool selection, bool scroll)

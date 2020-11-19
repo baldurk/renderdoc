@@ -36,6 +36,7 @@
 #include "Code/QRDUtils.h"
 #include "Code/pyrenderdoc/PythonContext.h"
 #include "Widgets/CollapseGroupBox.h"
+#include "Widgets/CustomPaintWidget.h"
 #include "Widgets/Extended/RDDoubleSpinBox.h"
 #include "Widgets/Extended/RDLabel.h"
 #include "Widgets/Extended/RDLineEdit.h"
@@ -417,6 +418,52 @@ QWidget *MiniQtHelper::CreateButton(WidgetCallback pressed)
 QWidget *MiniQtHelper::CreateLabel()
 {
   return new RDLabel();
+}
+
+QWidget *MiniQtHelper::CreateOutputRenderingWidget()
+{
+  CustomPaintWidget *widget = new CustomPaintWidget(NULL);
+  widget->SetContext(m_Ctx);
+  return widget;
+}
+
+WindowingData MiniQtHelper::GetWidgetWindowingData(QWidget *widget)
+{
+  if(!widget)
+    return {};
+
+  CustomPaintWidget *paintWidget = qobject_cast<CustomPaintWidget *>(widget);
+
+  if(paintWidget)
+    return paintWidget->GetWidgetWindowingData();
+
+  return {};
+}
+
+void MiniQtHelper::SetWidgetReplayOutput(QWidget *widget, IReplayOutput *output)
+{
+  if(!widget)
+    return;
+
+  CustomPaintWidget *paintWidget = qobject_cast<CustomPaintWidget *>(widget);
+
+  if(paintWidget)
+    paintWidget->SetOutput(output);
+}
+
+void MiniQtHelper::SetWidgetBackgroundColor(QWidget *widget, float red, float green, float blue)
+{
+  if(!widget)
+    return;
+
+  CustomPaintWidget *paintWidget = qobject_cast<CustomPaintWidget *>(widget);
+
+  if(paintWidget)
+    paintWidget->SetBackCol(red < 0.0 || green < 0.0 || blue < 0.0
+                                ? QColor()
+                                : QColor::fromRgb(qMin<int>(red * 255, 255),
+                                                  qMin<int>(green * 255, 255),
+                                                  qMin<int>(blue * 255, 255)));
 }
 
 QWidget *MiniQtHelper::CreateCheckbox(WidgetCallback changed)
