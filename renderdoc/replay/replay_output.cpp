@@ -490,14 +490,12 @@ void ReplayOutput::ClearBackground(uint64_t outputID, const FloatVector &backgro
 {
   CHECK_REPLAY_THREAD();
 
-  if(m_RenderData.texDisplay.backgroundColor.x == 0.0f &&
-     m_RenderData.texDisplay.backgroundColor.y == 0.0f &&
-     m_RenderData.texDisplay.backgroundColor.z == 0.0f &&
-     m_RenderData.texDisplay.backgroundColor.w == 0.0f)
+  if(backgroundColor.x == 0.0f && backgroundColor.y == 0.0f && backgroundColor.z == 0.0f &&
+     backgroundColor.w == 0.0f)
     m_pDevice->RenderCheckerboard(RenderDoc::Inst().DarkCheckerboardColor(),
                                   RenderDoc::Inst().LightCheckerboardColor());
   else
-    m_pDevice->ClearOutputWindowColor(outputID, m_RenderData.texDisplay.backgroundColor);
+    m_pDevice->ClearOutputWindowColor(outputID, ConvertSRGBToLinear(backgroundColor));
 }
 
 void ReplayOutput::DisplayContext()
