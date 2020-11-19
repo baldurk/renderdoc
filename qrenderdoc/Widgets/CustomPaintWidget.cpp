@@ -29,6 +29,7 @@
 #include <QPointer>
 #include <QVBoxLayout>
 #include "Code/Interface/QRDInterface.h"
+#include "Code/QRDUtils.h"
 
 CustomPaintWidgetInternal::CustomPaintWidgetInternal(CustomPaintWidget &parentCustom, bool rendering)
     : m_Custom(parentCustom), m_Rendering(rendering)
