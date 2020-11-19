@@ -22,7 +22,10 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "api/replay/rdcstr.h"
+#include "common/common.h"
 #include "common/globalconfig.h"
+#include "os/os_specific.h"
 #include "superluminal/PerformanceAPI_capi.h"
 
 // use registry to locate superluminal DLL

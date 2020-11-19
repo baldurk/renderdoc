@@ -215,6 +215,8 @@ set(sources
     3rdparty/lz4/lz4.h
     3rdparty/miniz/miniz.c
     3rdparty/miniz/miniz.h
+    3rdparty/superluminal/superluminal.cpp
+    3rdparty/superluminal/superluminal.h
     3rdparty/zstd/bitstream.h
     3rdparty/zstd/compiler.h
     3rdparty/zstd/cpu.h
