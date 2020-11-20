@@ -2746,6 +2746,11 @@ void UpdateVisibleColumns(rdcstr windowTitle, int columnCount, QHeaderView *head
   }
 }
 
+const rdcarray<SDObject *> &StructuredDataItemModel::objects() const
+{
+  return m_Objects;
+}
+
 void StructuredDataItemModel::setObjects(const rdcarray<SDObject *> &objs)
 {
   emit beginResetModel();

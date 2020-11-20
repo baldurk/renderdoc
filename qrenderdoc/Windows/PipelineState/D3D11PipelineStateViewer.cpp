@@ -467,6 +467,11 @@ void D3D11PipelineStateViewer::OnEventChanged(uint32_t eventId)
   setState();
 }
 
+void D3D11PipelineStateViewer::SelectPipelineStage(PipelineStage stage)
+{
+  ui->pipeFlow->setSelectedStage((int)stage);
+}
+
 void D3D11PipelineStateViewer::on_showUnused_toggled(bool checked)
 {
   setState();

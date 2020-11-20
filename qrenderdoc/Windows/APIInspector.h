@@ -45,6 +45,8 @@ public:
   // IAPIInspector
   QWidget *Widget() override { return this; }
   void Refresh() override { on_apiEvents_itemSelectionChanged(); }
+  void RevealParameter(SDObject *param) override;
+
   // ICaptureViewer
   void OnCaptureLoaded() override;
   void OnCaptureClosed() override;
@@ -58,6 +60,8 @@ private:
   ICaptureContext &m_Ctx;
 
   uint32_t m_EventID = 0;
+
+  rdcarray<SDChunk *> m_Chunks;
 
   void addCallstack(rdcarray<rdcstr> calls);
   void fillAPIView();

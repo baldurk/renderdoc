@@ -79,13 +79,15 @@ public:
   explicit BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent = 0);
   ~BufferViewer();
 
+  void ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id, const rdcstr &format = "");
+  void ViewTexture(ResourceId id, const Subresource &sub, const rdcstr &format = "");
+
   // IBufferViewer
   QWidget *Widget() override { return this; }
   void ScrollToRow(int row, MeshDataStage stage = MeshDataStage::VSIn) override;
   void ScrollToColumn(int column, MeshDataStage stage = MeshDataStage::VSIn) override;
-  void ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
-                  const rdcstr &format = "") override;
-  void ViewTexture(ResourceId id, const Subresource &sub, const rdcstr &format = "") override;
+  void SetCurrentInstance(int instance) override;
+  void SetCurrentView(int view) override;
 
   // ICaptureViewer
   void OnCaptureLoaded() override;

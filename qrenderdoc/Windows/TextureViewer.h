@@ -43,14 +43,6 @@ class TextureGoto;
 class QFileSystemWatcher;
 class TextureViewer;
 
-enum struct FollowType
-{
-  OutputColour,
-  OutputDepth,
-  ReadWrite,
-  ReadOnly
-};
-
 struct Following
 {
   FollowType Type;
@@ -145,7 +137,25 @@ public:
   // ITextureViewer
   QWidget *Widget() override { return this; }
   void ViewTexture(ResourceId ID, CompType typeCast, bool focus) override;
+  void ViewFollowedResource(FollowType followType, ShaderStage stage, int32_t index,
+                            int32_t arrayElement) override;
+  ResourceId GetCurrentResource() override;
+
+  Subresource GetSelectedSubresource() override;
+  void SetSelectedSubresource(Subresource sub) override;
   void GotoLocation(int x, int y) override;
+  DebugOverlay GetTextureOverlay() override;
+  void SetTextureOverlay(DebugOverlay overlay) override;
+
+  bool IsZoomAutoFit() override;
+  float GetZoomLevel() override;
+  void SetZoomLevel(bool autofit, float zoom) override;
+
+  rdcpair<float, float> GetHistogramRange() override;
+  void SetHistogramRange(float blackpoint, float whitepoint) override;
+
+  uint32_t GetChannelVisibilityBits() override;
+  void SetChannelVisibility(bool red, bool green, bool blue, bool alpha) override;
 
   // ICaptureViewer
   void OnCaptureLoaded() override;
@@ -248,6 +258,8 @@ private:
 
   void HighlightUsage();
 
+  void SelectPreview(ResourcePreview *prev);
+
   void SetupTextureTabs();
   void RemoveTextureTabs(int firstIndex);
 
@@ -278,7 +290,6 @@ private:
   void setFitToWindow(bool checked);
 
   void setCurrentZoomValue(float zoom);
-  float getCurrentZoomValue();
 
   bool ScrollUpdateScrollbars = true;
 

@@ -107,7 +107,7 @@ bool Following::operator!=(const Following &o)
 
 bool Following::operator==(const Following &o)
 {
-  return Type == o.Type && Stage == o.Stage && index == o.index;
+  return Type == o.Type && Stage == o.Stage && index == o.index && arrayEl == o.arrayEl;
 }
 
 void Following::GetDrawContext(ICaptureContext &ctx, bool &copy, bool &clear, bool &compute)
@@ -144,7 +144,7 @@ BoundResource Following::GetBoundResource(ICaptureContext &ctx, int arrayIdx)
 {
   BoundResource ret;
 
-  if(Type == FollowType::OutputColour)
+  if(Type == FollowType::OutputColor)
   {
     rdcarray<BoundResource> outputs = GetOutputTargets(ctx);
 
@@ -446,7 +446,7 @@ TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
     : QFrame(parent),
       ui(new Ui::TextureViewer),
       m_Ctx(ctx),
-      m_Following(*this, FollowType::OutputColour, ShaderStage::Pixel, 0, 0)
+      m_Following(*this, FollowType::OutputColor, ShaderStage::Pixel, 0, 0)
 {
   ui->setupUi(this);
 
@@ -686,6 +686,30 @@ void TextureViewer::HighlightUsage()
 
   if(texptr && m_Ctx.HasTimelineBar())
     m_Ctx.GetTimelineBar()->HighlightResourceUsage(texptr->resourceId);
+}
+
+void TextureViewer::SelectPreview(ResourcePreview *prev)
+{
+  Following follow = prev->property("f").value<Following>();
+
+  for(ResourcePreview *p : ui->outputThumbs->thumbs())
+    p->setSelected(false);
+
+  for(ResourcePreview *p : ui->inputThumbs->thumbs())
+    p->setSelected(false);
+
+  m_Following = Following(follow);
+  prev->setSelected(true);
+
+  UI_UpdateCachedTexture();
+
+  ResourceId id = m_Following.GetResourceId(m_Ctx);
+
+  if(id != ResourceId())
+  {
+    UI_OnTextureSelectionChanged(false);
+    ui->renderContainer->show();
+  }
 }
 
 void TextureViewer::RT_FetchCurrentPixel(IReplayController *r, uint32_t x, uint32_t y,
@@ -1126,7 +1150,7 @@ void TextureViewer::UI_UpdateTextureDetails()
 
       switch(m_Following.Type)
       {
-        case FollowType::OutputColour:
+        case FollowType::OutputColor:
           title = QString(tr("Cur Output %1 - %2")).arg(m_Following.index).arg(name);
           break;
         case FollowType::OutputDepth: title = QString(tr("Cur Depth Output - %1")).arg(name); break;
@@ -1142,7 +1166,7 @@ void TextureViewer::UI_UpdateTextureDetails()
     {
       switch(m_Following.Type)
       {
-        case FollowType::OutputColour:
+        case FollowType::OutputColor:
           title = QString(tr("Cur Output %1")).arg(m_Following.index);
           break;
         case FollowType::OutputDepth: title = QString(tr("Cur Depth Output")); break;
@@ -1967,40 +1991,6 @@ void TextureViewer::UI_CreateThumbnails()
     UI_CreateThumbnail(ui->inputThumbs);
 }
 
-void TextureViewer::GotoLocation(int x, int y)
-{
-  if(!m_Ctx.IsCaptureLoaded())
-    return;
-
-  TextureDescription *tex = GetCurrentTexture();
-
-  if(tex == NULL)
-    return;
-
-  x = qMin(x << m_TexDisplay.subresource.mip, int(tex->width - 1));
-  y = qMin(y << m_TexDisplay.subresource.mip, int(tex->height - 1));
-
-  m_PickedPoint = QPoint(x, y);
-
-  if(m_Ctx.APIProps().pipelineType == GraphicsAPI::OpenGL)
-    m_PickedPoint.setY((int)(tex->height - 1) - m_PickedPoint.y());
-  if(m_TexDisplay.flipY)
-    m_PickedPoint.setY((int)(tex->height - 1) - m_PickedPoint.x());
-
-  // centre the picked point.
-  QPoint scrollPos;
-  scrollPos.setX(-m_PickedPoint.x() * m_TexDisplay.scale + realRenderWidth() / 2);
-  scrollPos.setY(-m_PickedPoint.y() * m_TexDisplay.scale + realRenderHeight() / 2);
-
-  setScrollPosition(scrollPos);
-
-  if(m_Output != NULL)
-    INVOKE_MEMFN(RT_PickPixelsAndUpdate);
-  INVOKE_MEMFN(RT_UpdateAndDisplay);
-
-  UI_UpdateStatusText();
-}
-
 void TextureViewer::ViewTexture(ResourceId ID, CompType typeCast, bool focus)
 {
   if(QThread::currentThread() != QCoreApplication::instance()->thread())
@@ -2072,6 +2062,179 @@ void TextureViewer::ViewTexture(ResourceId ID, CompType typeCast, bool focus)
 
     m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
   }
+}
+
+void TextureViewer::ViewFollowedResource(FollowType followType, ShaderStage stage, int32_t index,
+                                         int32_t arrayElement)
+{
+  Following f;
+  f.Type = followType;
+  f.Stage = stage;
+  f.index = index;
+  f.arrayEl = arrayElement;
+
+  if(f.Type == FollowType::OutputColor || f.Type == FollowType::OutputDepth)
+  {
+    f.Stage = ShaderStage::Pixel;
+    f.arrayEl = 0;
+  }
+
+  if(f.Type == FollowType::OutputDepth)
+    f.index = 0;
+
+  for(ResourcePreview *p :
+      (f.Type == FollowType::ReadOnly ? ui->inputThumbs->thumbs() : ui->outputThumbs->thumbs()))
+  {
+    Following follow = p->property("f").value<Following>();
+
+    if(follow == f)
+    {
+      SelectPreview(p);
+
+      ToolWindowManagerArea *textureTabs = ui->dockarea->areaOf(ui->renderContainer);
+
+      // following tab is always tab 0.
+      textureTabs->setCurrentIndex(0);
+
+      return;
+    }
+  }
+
+  qWarning() << "Couldn't find matching bound resource";
+}
+
+ResourceId TextureViewer::GetCurrentResource()
+{
+  TextureDescription *tex = GetCurrentTexture();
+  if(tex)
+    return tex->resourceId;
+  return ResourceId();
+}
+
+Subresource TextureViewer::GetSelectedSubresource()
+{
+  return m_TexDisplay.subresource;
+}
+
+void TextureViewer::SetSelectedSubresource(Subresource sub)
+{
+  TextureDescription *tex = GetCurrentTexture();
+  if(!tex)
+    return;
+
+  if(tex->mips > 1)
+    ui->mipLevel->setCurrentIndex(qMin(sub.mip, tex->mips - 1));
+  else if(tex->msSamp > 1)
+    ui->mipLevel->setCurrentIndex(qMin(sub.sample, tex->msSamp - 1));
+
+  if(tex->depth > 1)
+    ui->sliceFace->setCurrentIndex(qMin(sub.slice, tex->depth - 1));
+  else
+    ui->sliceFace->setCurrentIndex(qMin(sub.slice, tex->arraysize - 1));
+}
+
+void TextureViewer::GotoLocation(int x, int y)
+{
+  if(!m_Ctx.IsCaptureLoaded())
+    return;
+
+  TextureDescription *tex = GetCurrentTexture();
+
+  if(tex == NULL)
+    return;
+
+  x = qMin(x << m_TexDisplay.subresource.mip, int(tex->width - 1));
+  y = qMin(y << m_TexDisplay.subresource.mip, int(tex->height - 1));
+
+  m_PickedPoint = QPoint(x, y);
+
+  if(m_Ctx.APIProps().pipelineType == GraphicsAPI::OpenGL)
+    m_PickedPoint.setY((int)(tex->height - 1) - m_PickedPoint.y());
+  if(m_TexDisplay.flipY)
+    m_PickedPoint.setY((int)(tex->height - 1) - m_PickedPoint.x());
+
+  // centre the picked point.
+  QPoint scrollPos;
+  scrollPos.setX(-m_PickedPoint.x() * m_TexDisplay.scale + realRenderWidth() / 2);
+  scrollPos.setY(-m_PickedPoint.y() * m_TexDisplay.scale + realRenderHeight() / 2);
+
+  setScrollPosition(scrollPos);
+
+  if(m_Output != NULL)
+    INVOKE_MEMFN(RT_PickPixelsAndUpdate);
+  INVOKE_MEMFN(RT_UpdateAndDisplay);
+
+  UI_UpdateStatusText();
+}
+
+DebugOverlay TextureViewer::GetTextureOverlay()
+{
+  return m_TexDisplay.overlay;
+}
+
+void TextureViewer::SetTextureOverlay(DebugOverlay overlay)
+{
+  ui->overlay->setCurrentIndex((int)overlay);
+}
+
+bool TextureViewer::IsZoomAutoFit()
+{
+  return ui->fitToWindow->isChecked();
+}
+
+float TextureViewer::GetZoomLevel()
+{
+  if(ui->fitToWindow->isChecked())
+    return m_TexDisplay.scale;
+
+  QString zoomText = ui->zoomOption->currentText().replace(QLatin1Char('%'), QLatin1Char(' '));
+
+  bool ok = false;
+  int zoom = zoomText.toInt(&ok);
+
+  if(!ok)
+    zoom = 100;
+
+  return (float)(zoom) / 100.0f;
+}
+
+void TextureViewer::SetZoomLevel(bool autofit, float zoom)
+{
+  ui->fitToWindow->setChecked(autofit);
+  if(!autofit)
+    UI_SetScale(zoom);
+}
+
+rdcpair<float, float> TextureViewer::GetHistogramRange()
+{
+  return {m_TexDisplay.rangeMin, m_TexDisplay.rangeMax};
+}
+
+void TextureViewer::SetHistogramRange(float blackpoint, float whitepoint)
+{
+  ui->rangeHistogram->setRange(blackpoint, whitepoint);
+}
+
+uint32_t TextureViewer::GetChannelVisibilityBits()
+{
+  uint32_t ret = 0;
+  if(m_TexDisplay.red)
+    ret |= 0x1;
+  if(m_TexDisplay.green)
+    ret |= 0x2;
+  if(m_TexDisplay.blue)
+    ret |= 0x4;
+  if(m_TexDisplay.alpha)
+    ret |= 0x8;
+  return ret;
+}
+
+void TextureViewer::SetChannelVisibility(bool red, bool green, bool blue, bool alpha)
+{
+  ui->channelRed->setChecked(red);
+  ui->channelGreen->setChecked(green);
+  ui->channelBlue->setChecked(blue);
+  ui->channelAlpha->setChecked(alpha);
 }
 
 void TextureViewer::texContextItem_triggered()
@@ -2401,26 +2564,7 @@ void TextureViewer::thumb_clicked(QMouseEvent *e)
   {
     ResourcePreview *prev = qobject_cast<ResourcePreview *>(QObject::sender());
 
-    Following follow = prev->property("f").value<Following>();
-
-    for(ResourcePreview *p : ui->outputThumbs->thumbs())
-      p->setSelected(false);
-
-    for(ResourcePreview *p : ui->inputThumbs->thumbs())
-      p->setSelected(false);
-
-    m_Following = Following(follow);
-    prev->setSelected(true);
-
-    UI_UpdateCachedTexture();
-
-    ResourceId id = m_Following.GetResourceId(m_Ctx);
-
-    if(id != ResourceId())
-    {
-      UI_OnTextureSelectionChanged(false);
-      ui->renderContainer->show();
-    }
+    SelectPreview(prev);
   }
 
   if(e->buttons() & Qt::RightButton)
@@ -3001,7 +3145,7 @@ void TextureViewer::OnEventChanged(uint32_t eventId)
 
     outIndex++;
 
-    Following follow(*this, FollowType::OutputColour, ShaderStage::Pixel, rt, 0);
+    Following follow(*this, FollowType::OutputColor, ShaderStage::Pixel, rt, 0);
     QString bindName = (copy || clear) ? tr("Destination") : QString();
     QString slotName = (copy || clear)
                            ? tr("DST")
@@ -3219,22 +3363,6 @@ void TextureViewer::setCurrentZoomValue(float zoom)
   ui->zoomOption->setCurrentText(QString::number(ceil(zoom * 100)) + lit("%"));
 }
 
-float TextureViewer::getCurrentZoomValue()
-{
-  if(ui->fitToWindow->isChecked())
-    return m_TexDisplay.scale;
-
-  QString zoomText = ui->zoomOption->currentText().replace(QLatin1Char('%'), QLatin1Char(' '));
-
-  bool ok = false;
-  int zoom = zoomText.toInt(&ok);
-
-  if(!ok)
-    zoom = 100;
-
-  return (float)(zoom) / 100.0f;
-}
-
 void TextureViewer::setFitToWindow(bool checked)
 {
   if(checked)
@@ -3268,13 +3396,13 @@ void TextureViewer::on_zoomOption_currentIndexChanged(int index)
   {
     setFitToWindow(false);
     ui->zoomOption->setCurrentText(ui->zoomOption->itemText(index));
-    UI_SetScale(getCurrentZoomValue());
+    UI_SetScale(GetZoomLevel());
   }
 }
 
 void TextureViewer::zoomOption_returnPressed()
 {
-  UI_SetScale(getCurrentZoomValue());
+  UI_SetScale(GetZoomLevel());
 }
 
 void TextureViewer::on_overlay_currentIndexChanged(int index)

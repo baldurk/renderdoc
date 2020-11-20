@@ -51,6 +51,7 @@ public:
   QWidget *Widget() override { return this; }
   void Inspect(ResourceId id) override;
   ResourceId CurrentResource() override { return m_Resource; }
+  void RevealParameter(SDObject *param) override;
   // ICaptureViewer
   void OnCaptureLoaded() override;
   void OnCaptureClosed() override;

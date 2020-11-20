@@ -593,6 +593,7 @@ public:
     m_ColumnValues = values;
   }
 
+  const rdcarray<SDObject *> &objects() const;
   void setObjects(const rdcarray<SDObject *> &objs);
   StructuredDataItemModel(QWidget *parent) : QAbstractItemModel(parent) {}
   QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override;

@@ -450,6 +450,11 @@ void GLPipelineStateViewer::OnEventChanged(uint32_t eventId)
   setState();
 }
 
+void GLPipelineStateViewer::SelectPipelineStage(PipelineStage stage)
+{
+  ui->pipeFlow->setSelectedStage((int)stage);
+}
+
 void GLPipelineStateViewer::on_showUnused_toggled(bool checked)
 {
   setState();

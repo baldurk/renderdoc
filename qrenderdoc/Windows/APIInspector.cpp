@@ -56,6 +56,62 @@ APIInspector::~APIInspector()
   delete ui;
 }
 
+void APIInspector::RevealParameter(SDObject *param)
+{
+  if(!param)
+    return;
+
+  rdcarray<SDObject *> hierarchy;
+  while(param)
+  {
+    hierarchy.push_back(param);
+    param = param->GetParent();
+  }
+
+  if(hierarchy.back()->type.basetype == SDBasic::Chunk)
+  {
+    SDChunk *chunk = (SDChunk *)hierarchy.back();
+    hierarchy.pop_back();
+
+    int rootIdx = m_Chunks.indexOf(chunk);
+
+    SDObject *current = chunk;
+
+    if(rootIdx >= 0)
+    {
+      RDTreeWidgetItem *parent = ui->apiEvents->topLevelItem(rootIdx);
+
+      while(parent)
+      {
+        ui->apiEvents->expandItem(parent);
+
+        SDObject *next = hierarchy.back();
+        hierarchy.pop_back();
+
+        RDTreeWidgetItem *item = NULL;
+
+        for(size_t i = 0; i < current->NumChildren(); i++)
+        {
+          if(current->GetChild(i) == next)
+          {
+            current = next;
+            item = parent->child((int)i);
+            break;
+          }
+        }
+
+        parent = item;
+
+        if(hierarchy.empty())
+          break;
+      }
+
+      ui->apiEvents->setSelectedItem(parent);
+      ui->apiEvents->scrollToItem(parent);
+    }
+  }
+}
+
 void APIInspector::OnCaptureLoaded()
 {
   OnSelectedEventChanged(m_Ctx.CurSelectedEvent());
@@ -63,6 +119,7 @@ void APIInspector::OnCaptureLoaded()
 
 void APIInspector::OnCaptureClosed()
 {
+  m_Chunks.clear();
   ui->apiEvents->clear();
   ui->callstack->clear();
   ui->apiEvents->clearInternalExpansions();
@@ -139,6 +196,8 @@ void APIInspector::fillAPIView()
   ui->apiEvents->setUpdatesEnabled(false);
   ui->apiEvents->clear();
 
+  m_Chunks.clear();
+
   const SDFile &file = m_Ctx.GetStructuredFile();
   const DrawcallDescription *draw = m_Ctx.CurSelectedDrawcall();
 
@@ -151,6 +210,8 @@ void APIInspector::fillAPIView()
       if(ev.chunkIndex < file.chunks.size())
       {
         SDChunk *chunk = file.chunks[ev.chunkIndex];
+
+        m_Chunks.push_back(chunk);
 
         root->setText(1, chunk->name);
 

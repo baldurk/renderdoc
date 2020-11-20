@@ -58,6 +58,7 @@ public:
   // IPipelineStateViewer
   QWidget *Widget() override { return this; }
   bool SaveShaderFile(const ShaderReflection *shader) override;
+  void SelectPipelineStage(PipelineStage stage) override;
 
   // ICaptureViewer
   void OnCaptureLoaded() override;

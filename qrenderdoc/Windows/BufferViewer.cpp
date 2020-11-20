@@ -3378,6 +3378,18 @@ void BufferViewer::ScrollToColumn(RDTableView *view, int column)
   view->verticalScrollBar()->setValue(vs);
 }
 
+void BufferViewer::SetCurrentInstance(int instance)
+{
+  if(ui->instance->isVisible() && ui->instance->isEnabled())
+    ui->instance->setValue(instance);
+}
+
+void BufferViewer::SetCurrentView(int view)
+{
+  if(ui->viewIndex->isVisible() && ui->viewIndex->isEnabled())
+    ui->viewIndex->setValue(view);
+}
+
 void BufferViewer::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
                               const rdcstr &format)
 {

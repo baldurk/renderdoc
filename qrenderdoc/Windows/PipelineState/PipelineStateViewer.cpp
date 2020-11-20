@@ -1195,3 +1195,15 @@ bool PipelineStateViewer::SaveShaderFile(const ShaderReflection *shader)
 
   return true;
 }
+
+void PipelineStateViewer::SelectPipelineStage(PipelineStage stage)
+{
+  if(m_D3D11)
+    m_D3D11->SelectPipelineStage(stage);
+  else if(m_D3D12)
+    m_D3D12->SelectPipelineStage(stage);
+  else if(m_GL)
+    m_GL->SelectPipelineStage(stage);
+  else if(m_Vulkan)
+    m_Vulkan->SelectPipelineStage(stage);
+}

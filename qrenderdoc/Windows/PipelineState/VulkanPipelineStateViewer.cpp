@@ -463,6 +463,11 @@ void VulkanPipelineStateViewer::OnEventChanged(uint32_t eventId)
   setState();
 }
 
+void VulkanPipelineStateViewer::SelectPipelineStage(PipelineStage stage)
+{
+  ui->pipeFlow->setSelectedStage((int)stage);
+}
+
 void VulkanPipelineStateViewer::on_showUnused_toggled(bool checked)
 {
   setState();

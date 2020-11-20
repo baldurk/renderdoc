@@ -214,12 +214,106 @@ struct IAPIInspector
   DOCUMENT("Refresh the current API view - useful if callstacks are now available.");
   virtual void Refresh() = 0;
 
+  DOCUMENT(R"(Expand the API view to reveal a given parameter and select it.
+
+:param SDObject param: The parameter to reveal and select.
+)");
+  virtual void RevealParameter(SDObject *param) = 0;
+
 protected:
   IAPIInspector() = default;
   ~IAPIInspector() = default;
 };
 
 DECLARE_REFLECTION_STRUCT(IAPIInspector);
+
+DOCUMENT(R"(Specifies a pipeline stage for the :class:`PipelineStateViewer`.
+
+.. data:: VertexInput
+
+  The fixed function vertex input stage.
+
+.. data:: VertexShader
+
+  The vertex shader.
+
+.. data:: HullShader
+
+  The vertex shader.
+
+.. data:: TessControlShader
+
+  The tessellation control shader.
+
+.. data:: DomainShader
+
+  The domain shader.
+
+.. data:: TessEvalShader
+
+  The tessellation evaluation shader.
+
+.. data:: GeometryShader
+
+  The geometry shader, including stream-out/transform feedback.
+
+.. data:: Rasterizer
+
+  The fixed function rasterizer stage.
+
+.. data:: ViewportsScissors
+
+  The viewports and scissors. Helper alias for :data:`Rasterizer`.
+
+.. data:: PixelShader
+
+  The pixel shader.
+
+.. data:: FragmentShader
+
+  The fragment shader.
+
+.. data:: ColorDepthOutput
+
+  The fixed function color and depth output stage, including color blending and depth/stencil
+  testing state.
+
+.. data:: Blending
+
+  The color blending state. Helper alias for :data:`ColorDepthOutput`.
+
+.. data:: DepthTest
+
+  The depth test state. Helper alias for :data:`ColorDepthOutput`.
+
+.. data:: StencilTest
+
+  The stencil test state. Helper alias for :data:`ColorDepthOutput`.
+
+.. data:: ComputeShader
+
+  The compute shader.
+)");
+enum class PipelineStage : int
+{
+  VertexInput = 0,
+
+  VertexShader,
+  HullShader,
+  TessControlShader = HullShader,
+  DomainShader,
+  TessEvalShader = DomainShader,
+  GeometryShader,
+  Rasterizer,
+  ViewportsScissors = Rasterizer,
+  PixelShader,
+  FragmentShader = PixelShader,
+  ColorDepthOutput,
+  Blending = ColorDepthOutput,
+  DepthTest = ColorDepthOutput,
+  StencilTest = ColorDepthOutput,
+  ComputeShader,
+};
 
 DOCUMENT("The pipeline state viewer window.");
 struct IPipelineStateViewer
@@ -236,12 +330,48 @@ struct IPipelineStateViewer
 )");
   virtual bool SaveShaderFile(const ShaderReflection *shader) = 0;
 
+  DOCUMENT(R"(Select a given pipeline stage in the viewer.
+
+:param PipelineStage stage: The stage to select.
+)");
+  virtual void SelectPipelineStage(PipelineStage stage) = 0;
+
 protected:
   IPipelineStateViewer() = default;
   ~IPipelineStateViewer() = default;
 };
 
 DECLARE_REFLECTION_STRUCT(IPipelineStateViewer);
+
+DOCUMENT(R"(Specifies a type of followed resource for the :class:`TextureViewer`.
+
+.. data:: OutputColor
+
+  The index specifies which output color target to select. Shader stage and array index are ignored.
+
+.. data:: OutputDepth
+
+  The resource followed is the depth/stencil output target. All other parameters are ignored.
+
+.. data:: ReadWrite
+
+  The index specifies a resource within the given shader's
+  :data:`read-write resources <~renderdoc.ShaderReflection.readWriteResources>`. The array element
+  then specifies the index within that resource's array, if applicable.
+
+.. data:: ReadOnly
+
+  The index specifies a resource within the given shader's
+  :data:`read-only resources <~renderdoc.ShaderReflection.readOnlyResources>`. The array element
+  then specifies the index within that resource's array, if applicable.
+)");
+enum class FollowType : int
+{
+  OutputColor,
+  OutputDepth,
+  ReadWrite,
+  ReadOnly
+};
 
 DOCUMENT("The texture viewer window.");
 struct ITextureViewer
@@ -262,12 +392,114 @@ struct ITextureViewer
 :param bool focus: ``True`` if the :class:`TextureViewer` should be raised.
 )");
   virtual void ViewTexture(ResourceId resourceId, CompType typeCast, bool focus) = 0;
+
+  DOCUMENT(R"(Select the 'following' view and choose which resource slot to follow.
+
+:param FollowType followType: The type of followed resource.
+:param ShaderStage stage: The shader stage of the shader reflection data to look up.
+:param int index: The index within the given resource list (if applicable) to follow.
+:param int arrayElement: The index within the given resource array (if applicable) to follow.
+)");
+  virtual void ViewFollowedResource(FollowType followType, ShaderStage stage, int32_t index,
+                                    int32_t arrayElement) = 0;
+
+  DOCUMENT(R"(Return which resource is currently being displayed in the active tab.
+
+:return: The ID of the resource being displayed.
+:rtype: ~renderdoc.ResourceId
+)");
+  virtual ResourceId GetCurrentResource() = 0;
+
+  DOCUMENT(R"(Return which subresource is currently selected for viewing.
+
+:return: The subresource currently selected.
+:rtype: ~renderdoc.Subresource
+)");
+  virtual Subresource GetSelectedSubresource() = 0;
+
+  DOCUMENT(R"(Select a particular subresource within the currently selected texture. Any out of
+bounds parameters will be clamped to the available subresources.
+
+:param Subresource sub: The subresource to select.
+)");
+  virtual void SetSelectedSubresource(Subresource sub) = 0;
+
   DOCUMENT(R"(Highlights the given pixel location in the current texture.
 
 :param int x: The X co-ordinate.
 :param int y: The Y co-ordinate.
 )");
   virtual void GotoLocation(int x, int y) = 0;
+
+  DOCUMENT(R"(Return the currently selected texture overlay.
+
+:return: The currently selected texture overlay.
+:rtype: ~renderdoc.DebugOverlay
+)");
+  virtual DebugOverlay GetTextureOverlay() = 0;
+
+  DOCUMENT(R"(Changes the currently selected overlay the given pixel location in the current texture.
+
+:param ~renderdoc.DebugOverlay overlay: The overlay to enable.
+:param int y: The Y co-ordinate.
+)");
+  virtual void SetTextureOverlay(DebugOverlay overlay) = 0;
+
+  DOCUMENT(R"(Return whether or not the texture viewer is currently auto-fitting the zoom level.
+
+:return: ``True`` if the zoom level is currently auto-fitting.
+:rtype: ``bool``
+)");
+  virtual bool IsZoomAutoFit() = 0;
+
+  DOCUMENT(R"(Return the current zoom level, whether manually set or auto-calculated.
+
+:return: The current zoom level, with 100% being represented as 1.0.
+:rtype: ``float``
+)");
+  virtual float GetZoomLevel() = 0;
+
+  DOCUMENT(R"(Set the zoom level for displaying textures.
+
+:param bool autofit: ``True`` if the zoom level should be auto-calculated continuously to
+  automatically fit the texture completely in view.
+:param float zoom: The zoom level as a percentage, with 100% being 1.0. Ignored if :param:`autofit`
+  is ``True``.
+)");
+  virtual void SetZoomLevel(bool autofit, float zoom) = 0;
+
+  DOCUMENT(R"(Return the current histogram blackpoint to whitepoint range.
+
+:return: The current histogram range.
+:rtype: ``tuple`` of two ``float``
+)");
+  virtual rdcpair<float, float> GetHistogramRange() = 0;
+
+  DOCUMENT(R"(Set the current histogram blackpoint to whitepoint range.
+
+:param float blackpoint: The value that should be mapped to black, component-wise.
+:param float whitepoint: The value that should be mapped to white, component-wise.
+)");
+  virtual void SetHistogramRange(float blackpoint, float whitepoint) = 0;
+
+  DOCUMENT(R"(Return which channels are currently displayed, as a bitmask.
+
+If red is visible ``0x1`` will be set in the returned value, if blue is visible ``0x2`` will be set,
+etc.
+
+:return: The current bitmask showing channel visibility.
+:rtype: ``int``
+)");
+  virtual uint32_t GetChannelVisibilityBits() = 0;
+
+  DOCUMENT(R"(Set the visibility of each channel.
+
+:param bool red: Whether the red channel should be visible.
+:param bool green: Whether the green channel should be visible.
+:param bool blue: Whether the blue channel should be visible.
+:param bool alpha: Whether the alpha channel should be visible.
+)");
+  virtual void SetChannelVisibility(bool red, bool green, bool blue, bool alpha) = 0;
 
 protected:
   ITextureViewer() = default;
@@ -298,22 +530,19 @@ struct IBufferViewer
 )");
   virtual void ScrollToColumn(int column, MeshDataStage stage = MeshDataStage::VSIn) = 0;
 
-  DOCUMENT(R"(In a raw buffer viewer, load the contents from a particular buffer resource.
+  DOCUMENT(R"(For a mesh view, set the current instance. This is ignored when called on a raw buffer
+view.
 
-:param int byteOffset: The offset in bytes to the start of the data.
-:param int byteSize: The number of bytes to read out.
-:param ~renderdoc.ResourceId id: The ID of the buffer itself.
-:param str format: Optionally a HLSL/GLSL style formatting string.
+:param int instance: The instance to select, will be clamped to the range [0, numInstances-1]
 )");
-  virtual void ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
-                          const rdcstr &format = "") = 0;
-  DOCUMENT(R"(In a raw buffer viewer, load the contents from a particular texture resource.
+  virtual void SetCurrentInstance(int instance) = 0;
 
-:param ~renderdoc.ResourceId id: The ID of the texture itself.
-:param Subresource sub: The subresource within this texture to use.
-:param str format: Optionally a HLSL/GLSL style formatting string.
+  DOCUMENT(R"(For a mesh view, set the current multiview view. This is ignored when called on a raw
+buffer view.
+
+:param int view: The view to select, will be clamped to the range [0, numViews-1]
 )");
-  virtual void ViewTexture(ResourceId id, const Subresource &sub, const rdcstr &format = "") = 0;
+  virtual void SetCurrentView(int view) = 0;
 
 protected:
   IBufferViewer() = default;
@@ -343,6 +572,12 @@ struct IResourceInspector
 :rtype: ~renderdoc.ResourceId
 )");
   virtual ResourceId CurrentResource() = 0;
+
+  DOCUMENT(R"(Expand the resource initialisation chunks to reveal and select a given parameter.
+
+:param SDObject param: The parameter to reveal and select.
+)");
+  virtual void RevealParameter(SDObject *param) = 0;
 
 protected:
   IResourceInspector() = default;

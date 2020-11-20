@@ -55,6 +55,8 @@ public:
   void OnSelectedEventChanged(uint32_t eventId) override {}
   void OnEventChanged(uint32_t eventId) override;
 
+  void SelectPipelineStage(PipelineStage stage);
+
 private slots:
   // automatic slots
   void on_showUnused_toggled(bool checked);

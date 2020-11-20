@@ -26,11 +26,19 @@ API Inspector
 Pipeline State
 --------------
 
+.. autoclass:: qrenderdoc.PipelineStage
+  :members:
+  :exclude-members: enum_constants__, 
+
 .. autoclass:: qrenderdoc.PipelineStateViewer
   :members:
 
 Texture Viewer
 --------------
+
+.. autoclass:: qrenderdoc.FollowType
+  :members:
+  :exclude-members: enum_constants__, 
 
 .. autoclass:: qrenderdoc.TextureViewer
   :members:

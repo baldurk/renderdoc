@@ -336,6 +336,58 @@ void ResourceInspector::Inspect(ResourceId id)
                                    0);
 }
 
+void ResourceInspector::RevealParameter(SDObject *param)
+{
+  if(!param)
+    return;
+
+  rdcarray<SDObject *> hierarchy;
+  while(param)
+  {
+    hierarchy.push_back(param);
+    param = param->GetParent();
+  }
+
+  SDObject *current = hierarchy.back();
+  hierarchy.pop_back();
+
+  int rootIdx = m_ChunksModel->objects().indexOf(current);
+
+  if(rootIdx >= 0)
+  {
+    QModelIndex parent = m_ChunksModel->index(rootIdx, 0);
+
+    while(parent.isValid())
+    {
+      ui->initChunks->expand(parent);
+
+      SDObject *next = hierarchy.back();
+      hierarchy.pop_back();
+
+      QModelIndex item;
+
+      for(size_t i = 0; i < current->NumChildren(); i++)
+      {
+        if(current->GetChild(i) == next)
+        {
+          current = next;
+          item = parent.child((int)i, 0);
+          break;
+        }
+      }
+
+      parent = item;
+
+      if(hierarchy.empty())
+        break;
+    }
+
+    ui->initChunks->selectionModel()->select(
+        parent, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+    ui->initChunks->scrollTo(parent);
+  }
+}
+
 void ResourceInspector::OnCaptureLoaded()
 {
   ui->renameResource->setEnabled(true);
