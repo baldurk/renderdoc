@@ -345,7 +345,6 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   hr = m_pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
                                          __uuidof(ID3D12CommandAllocator), (void **)&m_DebugAlloc);
-  ((WrappedID3D12CommandAllocator *)m_DebugAlloc)->SetInternal(true);
   m_pDevice->InternalRef();
 
   if(FAILED(hr))

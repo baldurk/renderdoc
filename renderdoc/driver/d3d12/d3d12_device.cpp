@@ -2136,6 +2136,8 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
 
   RDCLOG("Starting capture");
 
+  WrappedID3D12CommandAllocator::PauseResets();
+
   m_CaptureTimer.Restart();
 
   m_AppControlledCapture = true;
@@ -2531,6 +2533,8 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
   for(ID3D12Resource *r : m_RefBuffers)
     r->Release();
 
+  WrappedID3D12CommandAllocator::ResumeResets();
+
   GetResourceManager()->MarkUnwrittenResources();
 
   GetResourceManager()->ClearReferencedResources();
@@ -2582,6 +2586,8 @@ bool WrappedID3D12Device::DiscardFrameCapture(void *dev, void *wnd)
 
   for(ID3D12Resource *r : m_RefBuffers)
     r->Release();
+
+  WrappedID3D12CommandAllocator::ResumeResets();
 
   GetResourceManager()->MarkUnwrittenResources();
 
@@ -3190,7 +3196,6 @@ void WrappedID3D12Device::CreateInternalResources()
 
   CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator),
                          (void **)&m_Alloc);
-  ((WrappedID3D12CommandAllocator *)m_Alloc)->SetInternal(true);
   InternalRef();
   CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), (void **)&m_GPUSyncFence);
   InternalRef();
@@ -3201,7 +3206,6 @@ void WrappedID3D12Device::CreateInternalResources()
 
   CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator),
                          (void **)&m_DataUploadAlloc);
-  ((WrappedID3D12CommandAllocator *)m_DataUploadAlloc)->SetInternal(true);
   InternalRef();
 
   GetResourceManager()->SetInternalResource(m_DataUploadAlloc);

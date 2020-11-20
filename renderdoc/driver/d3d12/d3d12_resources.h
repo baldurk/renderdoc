@@ -328,6 +328,8 @@ public:
 
 class WrappedID3D12CommandAllocator : public WrappedDeviceChild12<ID3D12CommandAllocator>
 {
+  static int32_t m_ResetEnabled;
+
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12CommandAllocator);
 
@@ -344,18 +346,15 @@ public:
   {
   }
   virtual ~WrappedID3D12CommandAllocator() { Shutdown(); }
-  void SetInternal(bool internalAlloc) { m_Internal = internalAlloc; }
+  static void PauseResets() { Atomic::Dec32(&m_ResetEnabled); }
+  static void ResumeResets() { Atomic::Inc32(&m_ResetEnabled); }
   //////////////////////////////
   // implement ID3D12CommandAllocator
 
   virtual HRESULT STDMETHODCALLTYPE Reset()
   {
-    if(!m_Internal)
-      m_pDevice->GetCapTransitionLock().ReadLock();
-    if(IsBackgroundCapturing(m_pDevice->GetState()))
+    if(Atomic::CmpExch32(&m_ResetEnabled, 1, 1) == 1)
       alloc.Reset();
-    if(!m_Internal)
-      m_pDevice->GetCapTransitionLock().ReadUnlock();
     return m_pReal->Reset();
   }
 };
