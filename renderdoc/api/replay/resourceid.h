@@ -53,9 +53,13 @@ DOCUMENT(R"(This is an opaque identifier that uniquely locates a resource.
 struct ResourceId
 {
   ResourceId() : id() {}
-#if defined(SWIG)
-  ResourceId(const ResourceId &other) : id(other.id) {}
+  ResourceId(const ResourceId &) = default;
+  ResourceId &operator=(const ResourceId &) = default;
+#if !defined(SWIG)
+  ResourceId(ResourceId &&) = default;
+  ResourceId &operator=(ResourceId &&) = default;
 #endif
+
   DOCUMENT("A helper function that explicitly creates an empty/invalid/null :class:`ResourceId`.");
   inline static ResourceId Null() { return ResourceId(); }
   DOCUMENT("Compares two ``ResourceId`` objects for equality.");
