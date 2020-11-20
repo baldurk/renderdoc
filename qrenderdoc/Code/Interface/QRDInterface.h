@@ -463,8 +463,8 @@ bounds parameters will be clamped to the available subresources.
 
 :param bool autofit: ``True`` if the zoom level should be auto-calculated continuously to
   automatically fit the texture completely in view.
-:param float zoom: The zoom level as a percentage, with 100% being 1.0. Ignored if :param:`autofit`
-  is ``True``.
+:param float zoom: The zoom level as a percentage, with 100% being 1.0. Ignored if
+  :paramref:`autofit` is ``True``.
 )");
   virtual void SetZoomLevel(bool autofit, float zoom) = 0;
 
