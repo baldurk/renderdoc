@@ -1625,7 +1625,7 @@ AddressMode MakeAddressMode(GLenum addr)
   return AddressMode::Wrap;
 }
 
-TextureFilter MakeFilter(GLenum minf, GLenum magf, bool shadowSampler, float maxAniso)
+TextureFilter MakeFilter(GLenum minf, GLenum magf, float maxAniso)
 {
   TextureFilter ret;
 
@@ -1653,7 +1653,6 @@ TextureFilter MakeFilter(GLenum minf, GLenum magf, bool shadowSampler, float max
 
     ret.magnify = (magf == eGL_LINEAR) ? FilterMode::Linear : FilterMode::Point;
   }
-  ret.filter = shadowSampler ? FilterFunction::Comparison : FilterFunction::Normal;
 
   return ret;
 }

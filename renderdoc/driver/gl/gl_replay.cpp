@@ -1195,8 +1195,6 @@ void GLReplay::SavePipelineState(uint32_t eventId)
     GLenum target = eGL_NONE;
     TextureType resType = TextureType::Unknown;
 
-    bool shadow = false;
-
     for(size_t s = 0; s < ARRAY_COUNT(refls); s++)
     {
       if(refls[s] == NULL)
@@ -1208,9 +1206,6 @@ void GLReplay::SavePipelineState(uint32_t eventId)
         if(mappings[s]->readOnlyResources[res.bindPoint].bind == unit)
         {
           GLenum t = eGL_NONE;
-
-          if(strstr(res.variableType.descriptor.name.c_str(), "Shadow"))
-            shadow = true;
 
           switch(res.resType)
           {
@@ -1432,7 +1427,16 @@ void GLReplay::SavePipelineState(uint32_t eventId)
           }
 
           pipe.samplers[unit].filter =
-              MakeFilter((GLenum)minf, (GLenum)magf, shadow, pipe.samplers[unit].maxAnisotropy);
+              MakeFilter((GLenum)minf, (GLenum)magf, pipe.samplers[unit].maxAnisotropy);
+
+          v = 0;
+          if(samp != 0)
+            drv.glGetSamplerParameteriv(samp, eGL_TEXTURE_COMPARE_MODE, &v);
+          else
+            drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_COMPARE_MODE, &v);
+          pipe.samplers[unit].filter.filter = (GLenum)v == eGL_COMPARE_REF_TO_TEXTURE
+                                                  ? FilterFunction::Comparison
+                                                  : FilterFunction::Normal;
 
           if(samp != 0)
             drv.glGetSamplerParameterfv(samp, eGL_TEXTURE_MAX_LOD, &pipe.samplers[unit].maxLOD);
