@@ -3105,9 +3105,7 @@ OpBranch %_bottomlabel
       capabilities += "OpCapability Float64\n";
     }
 
-    if(float16Int8Features.shaderFloat16 || storage16Features.storageBuffer16BitAccess ||
-       storage16Features.uniformAndStorageBuffer16BitAccess ||
-       storage16Features.storagePushConstant16 || storage16Features.storageInputOutput16)
+    if(float16Int8Features.shaderFloat16)
     {
       typesConstants += "%half = OpTypeFloat 16\n";
       capabilities += "OpCapability Float16\n";
