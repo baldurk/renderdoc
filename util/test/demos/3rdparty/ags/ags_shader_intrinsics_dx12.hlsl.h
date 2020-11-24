@@ -306,6 +306,7 @@ float AmdExtD3DShaderIntrinsics_ReadfirstlaneF(float src)
     return asfloat(retVal);
 }
 
+
 /**
 ***********************************************************************************************************************
 *   AmdExtD3DShaderIntrinsics_ReadfirstlaneU
@@ -2101,8 +2102,7 @@ int2 AmdExtD3DShaderIntrinsics_WaveActiveProduct(int2 src)
     return AmdExtD3DShaderIntrinsics_WaveReduce(AmdExtD3DShaderIntrinsicsWaveOp_MulI, src);
 }
 
-)EOSHADER",
-                                                              R"EOSHADER(
+)EOSHADER", R"EOSHADER(
 
 /**
 ***********************************************************************************************************************

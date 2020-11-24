@@ -106,7 +106,7 @@
 
 #define AMD_AGS_VERSION_MAJOR 6             ///< AGS major version
 #define AMD_AGS_VERSION_MINOR 0             ///< AGS minor version
-#define AMD_AGS_VERSION_PATCH 0             ///< AGS patch version
+#define AMD_AGS_VERSION_PATCH 1             ///< AGS patch version
 
 #ifdef __cplusplus
 extern "C" {
@@ -468,8 +468,8 @@ typedef struct AGSDX12ReturnedParams
         unsigned int        baseInstance : 1;                   ///< Supported in Radeon Software Version 20.2.1 onwards.
         unsigned int        getWaveSize : 1;                    ///< Supported in Radeon Software Version 20.5.1 onwards.
         unsigned int        floatConversion : 1;                ///< Supported in Radeon Software Version 20.5.1 onwards.
-        unsigned int        readLaneAt : 1;                     ///< Supported in Radeon Software Version 20.11.1 onwards.
-        unsigned int        rayHitToken : 1;                    ///< Supported in Radeon Software Version 20.11.1 onwards.
+        unsigned int        readLaneAt : 1;                     ///< Supported in Radeon Software Version 20.11.2 onwards.
+        unsigned int        rayHitToken : 1;                    ///< Supported in Radeon Software Version 20.11.2 onwards.
         unsigned int        padding : 20;                       ///< Reserved
     } ExtensionsSupported;
     ExtensionsSupported     extensionsSupported;                ///< List of supported extensions

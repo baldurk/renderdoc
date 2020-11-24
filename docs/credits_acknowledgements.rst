@@ -124,6 +124,10 @@ The following libraries and components are incorporated into RenderDoc, listed h
 
   Used to emit profiling events in development builds.
 
+* `AGS <https://github.com/GPUOpen-LibrariesAndSDKs/AGS_SDK/>`_ - Copyright (c) 2020 Advanced Micro Devices, Inc. Distributed under the MIT License.
+
+  Used to intercept and test AGS calls on D3D11/D3D12.
+
 Thanks
 ------
 
