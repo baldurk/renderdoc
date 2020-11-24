@@ -1960,9 +1960,6 @@ private:
     editor.AddExecutionMode(rdcspv::OpExecutionMode(
         entryId, rdcspv::ExecutionModeParam<rdcspv::ExecutionMode::LocalSize>(1, 1, 1)));
 
-    editor.AddOperation(editor.Begin(rdcspv::Section::ExecutionMode),
-                        rdcspv::OpExecutionMode(entryId, rdcspv::ExecutionMode::OriginUpperLeft));
-
     rdcspv::Id voidType = editor.DeclareType(rdcspv::scalar<void>());
     rdcspv::Id funcType = editor.DeclareType(rdcspv::FunctionType(voidType, {}));
 
