@@ -246,8 +246,6 @@ private:
   void RT_UpdateAndDisplay(IReplayController *);
   void RT_UpdateVisualRange(IReplayController *);
 
-  void UI_RecreatePanels();
-
   void UI_UpdateStatusText();
   void UI_UpdateTextureDetails();
   void UI_OnTextureSelectionChanged(bool newdraw);

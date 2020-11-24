@@ -656,6 +656,16 @@ TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
   m_Ctx.AddCaptureViewer(this);
 
   SetupTextureTabs();
+
+  QObject::connect(ui->render, &CustomPaintWidget::clicked, this, &TextureViewer::render_mouseClick);
+  QObject::connect(ui->render, &CustomPaintWidget::mouseMove, this, &TextureViewer::render_mouseMove);
+  QObject::connect(ui->render, &CustomPaintWidget::mouseWheel, this,
+                   &TextureViewer::render_mouseWheel);
+  QObject::connect(ui->render, &CustomPaintWidget::resize, this, &TextureViewer::render_resize);
+  QObject::connect(ui->render, &CustomPaintWidget::keyPress, this, &TextureViewer::render_keyPress);
+
+  QObject::connect(ui->pixelContext, &CustomPaintWidget::keyPress, this,
+                   &TextureViewer::render_keyPress);
 }
 
 TextureViewer::~TextureViewer()
@@ -2879,21 +2889,6 @@ void TextureViewer::on_renderVScroll_valueChanged(int position)
   ScrollUpdateScrollbars = true;
 }
 
-void TextureViewer::UI_RecreatePanels()
-{
-  updateBackgroundColors();
-
-  QObject::connect(ui->render, &CustomPaintWidget::clicked, this, &TextureViewer::render_mouseClick);
-  QObject::connect(ui->render, &CustomPaintWidget::mouseMove, this, &TextureViewer::render_mouseMove);
-  QObject::connect(ui->render, &CustomPaintWidget::mouseWheel, this,
-                   &TextureViewer::render_mouseWheel);
-  QObject::connect(ui->render, &CustomPaintWidget::resize, this, &TextureViewer::render_resize);
-  QObject::connect(ui->render, &CustomPaintWidget::keyPress, this, &TextureViewer::render_keyPress);
-
-  QObject::connect(ui->pixelContext, &CustomPaintWidget::keyPress, this,
-                   &TextureViewer::render_keyPress);
-}
-
 void TextureViewer::updateBackgroundColors()
 {
   ui->render->SetBackCol(backCol);
@@ -3000,7 +2995,7 @@ void TextureViewer::Reset()
 
   ui->customShader->clear();
 
-  UI_RecreatePanels();
+  updateBackgroundColors();
 
   ui->inputThumbs->clearThumbs();
   ui->outputThumbs->clearThumbs();

@@ -2083,6 +2083,14 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
     });
   }
 
+  QObject::connect(ui->render, &CustomPaintWidget::mouseMove, this, &BufferViewer::render_mouseMove);
+  QObject::connect(ui->render, &CustomPaintWidget::clicked, this, &BufferViewer::render_clicked);
+  QObject::connect(ui->render, &CustomPaintWidget::keyPress, this, &BufferViewer::render_keyPress);
+  QObject::connect(ui->render, &CustomPaintWidget::keyRelease, this,
+                   &BufferViewer::render_keyRelease);
+  QObject::connect(ui->render, &CustomPaintWidget::mouseWheel, this,
+                   &BufferViewer::render_mouseWheel);
+
   Reset();
 
   m_Ctx.AddCaptureViewer(this);
@@ -3616,14 +3624,6 @@ void BufferViewer::Reset()
   ui->gsoutData->setColumnWidths({40, 40});
 
   m_BBoxes.clear();
-
-  QObject::connect(ui->render, &CustomPaintWidget::mouseMove, this, &BufferViewer::render_mouseMove);
-  QObject::connect(ui->render, &CustomPaintWidget::clicked, this, &BufferViewer::render_clicked);
-  QObject::connect(ui->render, &CustomPaintWidget::keyPress, this, &BufferViewer::render_keyPress);
-  QObject::connect(ui->render, &CustomPaintWidget::keyRelease, this,
-                   &BufferViewer::render_keyRelease);
-  QObject::connect(ui->render, &CustomPaintWidget::mouseWheel, this,
-                   &BufferViewer::render_mouseWheel);
 }
 
 void BufferViewer::ClearModels()
