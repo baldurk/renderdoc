@@ -1937,6 +1937,9 @@ private:
         editor.DeclareType(rdcspv::Pointer(u32, rdcspv::StorageClass::PushConstant));
 
     rdcspv::Id storageStructType = editor.AddType(rdcspv::OpTypeStruct(editor.MakeId(), {vec4Type}));
+    editor.AddDecoration(rdcspv::OpMemberDecorate(
+        storageStructType, 0, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(0)));
+    editor.DecorateStorageBufferStruct(storageStructType);
 
     rdcspv::Id storageStructPtrType =
         editor.DeclareType(rdcspv::Pointer(storageStructType, editor.StorageBufferClass()));
@@ -1950,7 +1953,6 @@ private:
     editor.AddDecoration(rdcspv::OpDecorate(
         storageVar,
         rdcspv::DecorationParam<rdcspv::Decoration::Binding>((uint32_t)ShaderDebugBind::MathResult)));
-    editor.DecorateStorageBufferStruct(storageVar);
 
     editor.SetName(storageVar, "resultStorage");
 
