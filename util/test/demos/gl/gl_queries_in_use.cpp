@@ -91,7 +91,8 @@ RD_TEST(GL_Queries_In_Use, OpenGLGraphicsTest)
     glGenTransformFeedbacks(1, &xfb);
 
     GLuint xfbBuffer = MakeBuffer();
-    glNamedBufferDataEXT(xfbBuffer, 1024, NULL, GL_DYNAMIC_READ);
+    glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, xfbBuffer);
+    glBufferData(GL_TRANSFORM_FEEDBACK_BUFFER, 1024, NULL, GL_DYNAMIC_READ);
     glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, xfbBuffer);
 
     GLuint queries[4];
