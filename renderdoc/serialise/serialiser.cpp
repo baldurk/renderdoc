@@ -1142,18 +1142,19 @@ byte *ChunkAllocator::AllocateFromPages(bool chunkAlloc, size_t size)
   if(size > BufferPageSize)
     return NULL;
 
-  if(!freePages.empty())
+  while(!freePages.empty())
   {
-    // if the last free page can't satisfy this allocation, retire it to the full list
-    if((chunkAlloc && GetRemainingChunkBytes(freePages.back()) < size) ||
-       (!chunkAlloc && GetRemainingBufferBytes(freePages.back()) < size))
-    {
-      // mark this page as used in the current set
-      usedPages.push_back(freePages.back().ID);
+    // if the last free page can satisfy this allocation, stop iterating as we'll use it.
+    if(GetRemainingBytes(chunkAlloc, freePages.back()) >= size)
+      break;
 
-      fullPages.push_back(freePages.back());
-      freePages.pop_back();
-    }
+    // otherwise the last page doesn't have enough free, so remove it from the free list
+
+    // mark this page as used in the current set
+    usedPages.push_back(freePages.back().ID);
+
+    fullPages.push_back(freePages.back());
+    freePages.pop_back();
   }
 
   // if there are no free pages, allocate a new one

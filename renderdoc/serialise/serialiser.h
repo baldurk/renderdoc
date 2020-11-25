@@ -1585,13 +1585,17 @@ private:
   // includes it there
   rdcarray<uint32_t> usedPages;
 
-  size_t GetRemainingBufferBytes(const Page &p)
+  inline size_t GetRemainingBufferBytes(const Page &p)
   {
     return BufferPageSize - (p.bufferHead - p.bufferBase);
   }
-  size_t GetRemainingChunkBytes(const Page &p)
+  inline size_t GetRemainingChunkBytes(const Page &p)
   {
     return ChunkPageSize - (p.chunkHead - p.chunkBase);
+  }
+  inline size_t GetRemainingBytes(bool chunkAlloc, const Page &p)
+  {
+    return chunkAlloc ? GetRemainingChunkBytes(p) : GetRemainingBufferBytes(p);
   }
   byte *AllocateFromPages(bool chunkAlloc, size_t size);
 };
