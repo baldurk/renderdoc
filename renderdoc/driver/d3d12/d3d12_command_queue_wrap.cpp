@@ -357,10 +357,10 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
 
   if(IsCaptureMode(m_State))
   {
-    SCOPED_LOCK(m_Lock);
-
     if(!InFrameCaptureBoundary)
       m_pDevice->GetCapTransitionLock().ReadLock();
+
+    m_Lock.Lock();
 
     bool capframe = IsActiveCapturing(m_State);
     std::set<ResourceId> refdIDs;
@@ -555,6 +555,8 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
         m_QueueRecord->AddChunk(scope.Get());
       }
     }
+
+    m_Lock.Unlock();
 
     if(!InFrameCaptureBoundary)
       m_pDevice->GetCapTransitionLock().ReadUnlock();
