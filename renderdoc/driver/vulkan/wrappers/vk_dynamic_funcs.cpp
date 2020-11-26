@@ -89,7 +89,7 @@ void WrappedVulkan::vkCmdSetViewport(VkCommandBuffer commandBuffer, uint32_t fir
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetViewport);
     Serialise_vkCmdSetViewport(ser, commandBuffer, firstViewport, viewportCount, pViewports);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
@@ -153,7 +153,7 @@ void WrappedVulkan::vkCmdSetViewportWithCountEXT(VkCommandBuffer commandBuffer,
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetViewportWithCountEXT);
     Serialise_vkCmdSetViewportWithCountEXT(ser, commandBuffer, viewportCount, pViewports);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
@@ -221,7 +221,7 @@ void WrappedVulkan::vkCmdSetScissor(VkCommandBuffer commandBuffer, uint32_t firs
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetScissor);
     Serialise_vkCmdSetScissor(ser, commandBuffer, firstScissor, scissorCount, pScissors);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
@@ -284,7 +284,7 @@ void WrappedVulkan::vkCmdSetScissorWithCountEXT(VkCommandBuffer commandBuffer,
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetScissorWithCountEXT);
     Serialise_vkCmdSetScissorWithCountEXT(ser, commandBuffer, scissorCount, pScissors);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
@@ -341,7 +341,7 @@ void WrappedVulkan::vkCmdSetLineWidth(VkCommandBuffer commandBuffer, float lineW
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetLineWidth);
     Serialise_vkCmdSetLineWidth(ser, commandBuffer, lineWidth);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
@@ -408,7 +408,7 @@ void WrappedVulkan::vkCmdSetDepthBias(VkCommandBuffer commandBuffer, float depth
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetDepthBias);
     Serialise_vkCmdSetDepthBias(ser, commandBuffer, depthBias, depthBiasClamp, slopeScaledDepthBias);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
@@ -467,7 +467,7 @@ void WrappedVulkan::vkCmdSetBlendConstants(VkCommandBuffer commandBuffer, const 
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetBlendConstants);
     Serialise_vkCmdSetBlendConstants(ser, commandBuffer, blendConst);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
@@ -529,7 +529,7 @@ void WrappedVulkan::vkCmdSetDepthBounds(VkCommandBuffer commandBuffer, float min
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetDepthBounds);
     Serialise_vkCmdSetDepthBounds(ser, commandBuffer, minDepthBounds, maxDepthBounds);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
@@ -595,7 +595,7 @@ void WrappedVulkan::vkCmdSetStencilCompareMask(VkCommandBuffer commandBuffer,
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetStencilCompareMask);
     Serialise_vkCmdSetStencilCompareMask(ser, commandBuffer, faceMask, compareMask);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
@@ -661,7 +661,7 @@ void WrappedVulkan::vkCmdSetStencilWriteMask(VkCommandBuffer commandBuffer,
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetStencilWriteMask);
     Serialise_vkCmdSetStencilWriteMask(ser, commandBuffer, faceMask, writeMask);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
@@ -727,7 +727,7 @@ void WrappedVulkan::vkCmdSetStencilReference(VkCommandBuffer commandBuffer,
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetStencilReference);
     Serialise_vkCmdSetStencilReference(ser, commandBuffer, faceMask, reference);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
@@ -791,7 +791,7 @@ void WrappedVulkan::vkCmdSetSampleLocationsEXT(VkCommandBuffer commandBuffer,
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetSampleLocationsEXT);
     Serialise_vkCmdSetSampleLocationsEXT(ser, commandBuffer, pSampleLocationsInfo);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
@@ -866,7 +866,7 @@ void WrappedVulkan::vkCmdSetDiscardRectangleEXT(VkCommandBuffer commandBuffer,
     Serialise_vkCmdSetDiscardRectangleEXT(ser, commandBuffer, firstDiscardRectangle,
                                           discardRectangleCount, pDiscardRectangles);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
@@ -932,7 +932,7 @@ void WrappedVulkan::vkCmdSetLineStippleEXT(VkCommandBuffer commandBuffer,
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetLineStippleEXT);
     Serialise_vkCmdSetLineStippleEXT(ser, commandBuffer, lineStippleFactor, lineStipplePattern);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
@@ -990,7 +990,7 @@ void WrappedVulkan::vkCmdSetCullModeEXT(VkCommandBuffer commandBuffer, VkCullMod
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetCullModeEXT);
     Serialise_vkCmdSetCullModeEXT(ser, commandBuffer, cullMode);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
@@ -1048,7 +1048,7 @@ void WrappedVulkan::vkCmdSetFrontFaceEXT(VkCommandBuffer commandBuffer, VkFrontF
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetFrontFaceEXT);
     Serialise_vkCmdSetFrontFaceEXT(ser, commandBuffer, frontFace);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
@@ -1113,7 +1113,7 @@ void WrappedVulkan::vkCmdSetPrimitiveTopologyEXT(VkCommandBuffer commandBuffer,
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetPrimitiveTopologyEXT);
     Serialise_vkCmdSetPrimitiveTopologyEXT(ser, commandBuffer, primitiveTopology);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
@@ -1173,7 +1173,7 @@ void WrappedVulkan::vkCmdSetDepthTestEnableEXT(VkCommandBuffer commandBuffer, Vk
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetDepthTestEnableEXT);
     Serialise_vkCmdSetDepthTestEnableEXT(ser, commandBuffer, depthTestEnable);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
@@ -1234,7 +1234,7 @@ void WrappedVulkan::vkCmdSetDepthWriteEnableEXT(VkCommandBuffer commandBuffer,
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetDepthWriteEnableEXT);
     Serialise_vkCmdSetDepthWriteEnableEXT(ser, commandBuffer, depthWriteEnable);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
@@ -1295,7 +1295,7 @@ void WrappedVulkan::vkCmdSetDepthCompareOpEXT(VkCommandBuffer commandBuffer,
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetDepthCompareOpEXT);
     Serialise_vkCmdSetDepthCompareOpEXT(ser, commandBuffer, depthCompareOp);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
@@ -1357,7 +1357,7 @@ void WrappedVulkan::vkCmdSetDepthBoundsTestEnableEXT(VkCommandBuffer commandBuff
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetDepthBoundsTestEnableEXT);
     Serialise_vkCmdSetDepthBoundsTestEnableEXT(ser, commandBuffer, depthBoundsTestEnable);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
@@ -1418,7 +1418,7 @@ void WrappedVulkan::vkCmdSetStencilTestEnableEXT(VkCommandBuffer commandBuffer,
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetStencilTestEnableEXT);
     Serialise_vkCmdSetStencilTestEnableEXT(ser, commandBuffer, stencilTestEnable);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
@@ -1502,7 +1502,7 @@ void WrappedVulkan::vkCmdSetStencilOpEXT(VkCommandBuffer commandBuffer, VkStenci
     Serialise_vkCmdSetStencilOpEXT(ser, commandBuffer, faceMask, failOp, passOp, depthFailOp,
                                    compareOp);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 

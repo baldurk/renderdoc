@@ -1522,16 +1522,42 @@ DECLARE_STRINGISE_TYPE(SDObject *);
 
 class ScopedChunk;
 
-class ChunkAllocator
+struct ChunkPage
+{
+  // compare just with the ID, so that old pages w hich have been reset in the pool don't get reset
+  // again if an allocator subsequently tries to free them
+  bool operator==(const ChunkPage &o) { return ID == o.ID; }
+  size_t ID;
+
+  // we allocate at two granularities, chunks are 16 bytes, buffers are multiples of 64-bytes
+  // to keep things simple we allocate the chunk memory as 16/64 = a quarter the size of the
+  // buffer memory. This will waste a bit of memory because we expect buffers to be on average
+  // larger than 64 bytes.
+
+  // base of the buffer
+  byte *bufferBase;
+  // head of the buffer
+  byte *bufferHead;
+
+  byte *chunkBase;
+  byte *chunkHead;
+};
+
+// this is the first level, it allocates whole pages and returns them to allocators for finer
+// grained allocation, and those allocators can return whole pages back. This is necessary because
+// when fine-grained resetting is allowed we need to associate whole pages with objects and if those
+// objects are allocating interleaved we need to immediately associate pages with them.
+class ChunkPagePool
 {
 public:
-  ChunkAllocator(size_t PageSize) : BufferPageSize(PageSize), ChunkPageSize(PageSize / 4) {}
-  ChunkAllocator(const ChunkAllocator &) = delete;
-  ChunkAllocator(ChunkAllocator &&) = delete;
-  ChunkAllocator &operator=(const ChunkAllocator &) = delete;
-  ~ChunkAllocator();
-  byte *AllocAlignedBuffer(uint64_t size);
-  byte *AllocChunk();
+  ChunkPagePool(size_t PageSize) : BufferPageSize(PageSize), ChunkPageSize(PageSize / 32) {}
+  ChunkPagePool(const ChunkPagePool &) = delete;
+  ChunkPagePool(ChunkPagePool &&) = delete;
+  ChunkPagePool &operator=(const ChunkPagePool &) = delete;
+  ~ChunkPagePool();
+
+  // Allocate a page
+  ChunkPage AllocPage();
 
   // really free any unused pages
   void Trim();
@@ -1540,63 +1566,64 @@ public:
   void Reset();
 
   // reset a page set, other pages will remain in use
-  void ResetPageSet(const rdcarray<uint32_t> &pages);
+  void ResetPageSet(const rdcarray<ChunkPage> &pages);
 
-  // get the pages that have been used since the last reset, or call to GetPageSet.
-  // these can then be freed later without affecting any other pages.
-  // note that not all pages will be full (e.g. even if only one 64-bit chunk is used in the last
-  // page it will be marked as full so it can be freed without another allocation overlapping).
-  rdcarray<uint32_t> GetPageSet();
-
+  size_t GetBufferPageSize() { return BufferPageSize; }
+  size_t GetChunkPageSize() { return ChunkPageSize; }
 private:
   size_t BufferPageSize;
   size_t ChunkPageSize;
 
-  struct Page
+  size_t m_ID = 1;
+
+  // a page is in precisely ONE of these arrays at any time.
+  // Reset() will move all allocated pages back to free pages and reclaim all that memory
+  // ResetPageSet() will move any referenced pages from allocatedPages back to freePages
+  rdcarray<ChunkPage> freePages;
+  rdcarray<ChunkPage> allocatedPages;
+};
+
+// this is the second level, it should only be used by one object (or a group of objects that are
+// always reset together). It pulls pages from the pool and allocates from them, and can then
+// release those pages back again with a reset operation.
+class ChunkAllocator
+{
+public:
+  ChunkAllocator(ChunkPagePool &pool) : m_Pool(pool) {}
+  ChunkAllocator(const ChunkAllocator &) = delete;
+  ChunkAllocator(ChunkAllocator &&) = delete;
+  ChunkAllocator &operator=(const ChunkAllocator &) = delete;
+  ~ChunkAllocator();
+
+  // swap with another chunk allocator - must be from the same pool
+  void swap(ChunkAllocator &alloc);
+
+  byte *AllocAlignedBuffer(uint64_t size);
+  byte *AllocChunk();
+
+  void Reset();
+
+private:
+  ChunkPagePool &m_Pool;
+
+  // as we're recording each new page we start gets added here. The last page is the one we're
+  // currently allocating from.
+  rdcarray<ChunkPage> pages;
+
+  // given a page and the known page size, how much is left
+  inline size_t GetRemainingBufferBytes(const ChunkPage &p)
   {
-    // this is an ID we can use to find this page in a pageset
-    uint32_t ID;
-
-    // we allocate at two granularities, chunks are 16 bytes, buffers are multiples of 64-bytes
-    // to keep things simple we allocate the chunk memory as 16/64 = a quarter the size of the
-    // buffer memory. This will waste a bit of memory because we expect buffers to be on average
-    // larger than 64 bytes.
-
-    // base of the buffer
-    byte *bufferBase;
-    // head of the buffer
-    byte *bufferHead;
-
-    byte *chunkBase;
-    byte *chunkHead;
-  };
-
-  // a page is in precisely ONE of these arrays at any time, either it's free (and the last free
-  // page may be partially used) or it's "full".
-  // Reset() will move all full pages back to free pages and reclaim all that memory
-  // ResetPageSet() will move any referenced pages from fullPages back to freePages
-  rdcarray<Page> freePages;
-  rdcarray<Page> fullPages;
-
-  // as we're recording each new page we start gets added here. If the user calls GetPageSet we
-  // return this and the user can then free it later without freeing all pages.
-  // note, the *current* page (freePages.back) isn't in this list, we only append to this list when
-  // we retire a full page. That means GetPageSet checks if the last page has been used at all and
-  // includes it there
-  rdcarray<uint32_t> usedPages;
-
-  inline size_t GetRemainingBufferBytes(const Page &p)
-  {
-    return BufferPageSize - (p.bufferHead - p.bufferBase);
+    return m_Pool.GetBufferPageSize() - (p.bufferHead - p.bufferBase);
   }
-  inline size_t GetRemainingChunkBytes(const Page &p)
+  inline size_t GetRemainingChunkBytes(const ChunkPage &p)
   {
-    return ChunkPageSize - (p.chunkHead - p.chunkBase);
+    return m_Pool.GetChunkPageSize() - (p.chunkHead - p.chunkBase);
   }
-  inline size_t GetRemainingBytes(bool chunkAlloc, const Page &p)
+  inline size_t GetRemainingBytes(bool chunkAlloc, const ChunkPage &p)
   {
     return chunkAlloc ? GetRemainingChunkBytes(p) : GetRemainingBufferBytes(p);
   }
+
   byte *AllocateFromPages(bool chunkAlloc, size_t size);
 };
 

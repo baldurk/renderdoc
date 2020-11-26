@@ -333,6 +333,7 @@ class WrappedID3D12CommandAllocator : public WrappedDeviceChild12<ID3D12CommandA
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12CommandAllocator);
 
+  ChunkPagePool allocPool;
   ChunkAllocator alloc;
   bool m_Internal = false;
 
@@ -342,7 +343,7 @@ public:
   };
 
   WrappedID3D12CommandAllocator(ID3D12CommandAllocator *real, WrappedID3D12Device *device)
-      : WrappedDeviceChild12(real, device), alloc(32 * 1024)
+      : WrappedDeviceChild12(real, device), allocPool(32 * 1024), alloc(allocPool)
   {
   }
   virtual ~WrappedID3D12CommandAllocator() { Shutdown(); }
@@ -353,6 +354,8 @@ public:
 
   virtual HRESULT STDMETHODCALLTYPE Reset()
   {
+    // reset the allocator. D3D12 munges the pool and the allocator together, so the allocator
+    // becomes redundant as the only pool client and the pool is reset together.
     if(Atomic::CmpExch32(&m_ResetEnabled, 1, 1) == 1)
       alloc.Reset();
     return m_pReal->Reset();

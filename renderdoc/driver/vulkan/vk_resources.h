@@ -989,19 +989,35 @@ struct MemRefs;
 struct ImgRefs;
 struct ImageState;
 
+struct CmdPoolInfo
+{
+  CmdPoolInfo() : pool(4 * 1024) {}
+  CmdPoolInfo(const CmdPoolInfo &) = delete;
+  CmdPoolInfo(CmdPoolInfo &&) = delete;
+  CmdPoolInfo &operator=(const CmdPoolInfo &) = delete;
+  ~CmdPoolInfo()
+  {    // nothing to do, pool will free its pages
+  }
+
+  uint32_t queueFamilyIndex;
+  ChunkPagePool pool;
+};
+
 struct CmdBufferRecordingInfo
 {
+  CmdBufferRecordingInfo(CmdPoolInfo &pool) : alloc(pool.pool) {}
+  CmdBufferRecordingInfo(const CmdBufferRecordingInfo &) = delete;
+  CmdBufferRecordingInfo(CmdBufferRecordingInfo &&) = delete;
+  CmdBufferRecordingInfo &operator=(const CmdBufferRecordingInfo &) = delete;
   ~CmdBufferRecordingInfo()
   {
-    if(alloc)
-      alloc->ResetPageSet(pageSet);
+    // nothing to do explicitly, the alloc destructor will clean up any pages it holds
   }
 
   VkDevice device;
   VkCommandBufferAllocateInfo allocInfo;
 
-  ChunkAllocator *alloc = NULL;
-  rdcarray<uint32_t> pageSet;
+  ChunkAllocator alloc;
 
   VkResourceRecord *framebuffer = NULL;
   VkResourceRecord *allocRecord = NULL;
@@ -1074,17 +1090,6 @@ struct PipelineLayoutData
 struct DescPoolInfo
 {
   rdcarray<VkResourceRecord *> freelist;
-};
-
-struct CmdPoolInfo
-{
-  CmdPoolInfo(uint32_t allocPageSize, bool allowReset)
-      : alloc(allocPageSize), allowCmdBufReset(allowReset)
-  {
-  }
-  uint32_t queueFamilyIndex;
-  bool allowCmdBufReset;
-  ChunkAllocator alloc;
 };
 
 struct MemMapState
@@ -2129,6 +2134,7 @@ public:
   {
     RDCASSERT(cmdInfo);
     SwapChunks(bakedCommands);
+    cmdInfo->alloc.swap(bakedCommands->cmdInfo->alloc);
     cmdInfo->boundDescSets.swap(bakedCommands->cmdInfo->boundDescSets);
     cmdInfo->subcmds.swap(bakedCommands->cmdInfo->subcmds);
     cmdInfo->sparse.swap(bakedCommands->cmdInfo->sparse);

@@ -686,7 +686,7 @@ void WrappedVulkan::vkCmdSetEvent(VkCommandBuffer commandBuffer, VkEvent event,
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetEvent);
     Serialise_vkCmdSetEvent(ser, commandBuffer, event, stageMask);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
     record->MarkResourceFrameReferenced(GetResID(event), eFrameRef_Read);
   }
 }
@@ -743,7 +743,7 @@ void WrappedVulkan::vkCmdResetEvent(VkCommandBuffer commandBuffer, VkEvent event
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdResetEvent);
     Serialise_vkCmdResetEvent(ser, commandBuffer, event, stageMask);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
     record->MarkResourceFrameReferenced(GetResID(event), eFrameRef_Read);
   }
 }
@@ -948,7 +948,7 @@ void WrappedVulkan::vkCmdWaitEvents(VkCommandBuffer commandBuffer, uint32_t even
                                            imageMemoryBarrierCount, pImageMemoryBarriers);
     }
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
     for(uint32_t i = 0; i < eventCount; i++)
       record->MarkResourceFrameReferenced(GetResID(pEvents[i]), eFrameRef_Read);
   }

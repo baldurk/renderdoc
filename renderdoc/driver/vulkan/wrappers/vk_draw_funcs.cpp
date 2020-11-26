@@ -274,7 +274,7 @@ void WrappedVulkan::vkCmdDraw(VkCommandBuffer commandBuffer, uint32_t vertexCoun
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdDraw);
     Serialise_vkCmdDraw(ser, commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
@@ -376,7 +376,7 @@ void WrappedVulkan::vkCmdDrawIndexed(VkCommandBuffer commandBuffer, uint32_t ind
     Serialise_vkCmdDrawIndexed(ser, commandBuffer, indexCount, instanceCount, firstIndex,
                                vertexOffset, firstInstance);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
@@ -792,7 +792,7 @@ void WrappedVulkan::vkCmdDrawIndirect(VkCommandBuffer commandBuffer, VkBuffer bu
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdDrawIndirect);
     Serialise_vkCmdDrawIndirect(ser, commandBuffer, buffer, offset, count, stride);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
 
     VkDeviceSize size = 0;
     if(count > 0)
@@ -1178,7 +1178,7 @@ void WrappedVulkan::vkCmdDrawIndexedIndirect(VkCommandBuffer commandBuffer, VkBu
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdDrawIndexedIndirect);
     Serialise_vkCmdDrawIndexedIndirect(ser, commandBuffer, buffer, offset, count, stride);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
 
     VkDeviceSize size = 0;
     if(count > 0)
@@ -1262,7 +1262,7 @@ void WrappedVulkan::vkCmdDispatch(VkCommandBuffer commandBuffer, uint32_t x, uin
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdDispatch);
     Serialise_vkCmdDispatch(ser, commandBuffer, x, y, z);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
@@ -1351,7 +1351,7 @@ void WrappedVulkan::vkCmdDispatchIndirect(VkCommandBuffer commandBuffer, VkBuffe
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdDispatchIndirect);
     Serialise_vkCmdDispatchIndirect(ser, commandBuffer, buffer, offset);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
 
     record->MarkBufferFrameReferenced(GetRecord(buffer), offset, sizeof(VkDispatchIndirectCommand),
                                       eFrameRef_Read);
@@ -1478,7 +1478,7 @@ void WrappedVulkan::vkCmdBlitImage(VkCommandBuffer commandBuffer, VkImage srcIma
     Serialise_vkCmdBlitImage(ser, commandBuffer, srcImage, srcImageLayout, destImage,
                              destImageLayout, regionCount, pRegions, filter);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
 
     for(uint32_t i = 0; i < regionCount; i++)
     {
@@ -1627,7 +1627,7 @@ void WrappedVulkan::vkCmdResolveImage(VkCommandBuffer commandBuffer, VkImage src
     Serialise_vkCmdResolveImage(ser, commandBuffer, srcImage, srcImageLayout, destImage,
                                 destImageLayout, regionCount, pRegions);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
 
     for(uint32_t i = 0; i < regionCount; i++)
     {
@@ -1765,7 +1765,7 @@ void WrappedVulkan::vkCmdCopyImage(VkCommandBuffer commandBuffer, VkImage srcIma
     Serialise_vkCmdCopyImage(ser, commandBuffer, srcImage, srcImageLayout, destImage,
                              destImageLayout, regionCount, pRegions);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
     for(uint32_t i = 0; i < regionCount; i++)
     {
       const VkImageCopy &region = pRegions[i];
@@ -1888,7 +1888,7 @@ void WrappedVulkan::vkCmdCopyBufferToImage(VkCommandBuffer commandBuffer, VkBuff
     Serialise_vkCmdCopyBufferToImage(ser, commandBuffer, srcBuffer, destImage, destImageLayout,
                                      regionCount, pRegions);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
     record->MarkBufferImageCopyFrameReferenced(GetRecord(srcBuffer), GetRecord(destImage),
                                                regionCount, pRegions, eFrameRef_Read,
                                                eFrameRef_CompleteWrite);
@@ -2001,7 +2001,7 @@ void WrappedVulkan::vkCmdCopyImageToBuffer(VkCommandBuffer commandBuffer, VkImag
     Serialise_vkCmdCopyImageToBuffer(ser, commandBuffer, srcImage, srcImageLayout, destBuffer,
                                      regionCount, pRegions);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
     record->MarkBufferImageCopyFrameReferenced(GetRecord(destBuffer), GetRecord(srcImage),
                                                regionCount, pRegions, eFrameRef_CompleteWrite,
                                                eFrameRef_Read);
@@ -2114,7 +2114,7 @@ void WrappedVulkan::vkCmdCopyBuffer(VkCommandBuffer commandBuffer, VkBuffer srcB
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdCopyBuffer);
     Serialise_vkCmdCopyBuffer(ser, commandBuffer, srcBuffer, destBuffer, regionCount, pRegions);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
     for(uint32_t i = 0; i < regionCount; i++)
     {
       record->MarkBufferFrameReferenced(GetRecord(srcBuffer), pRegions[i].srcOffset,
@@ -2211,7 +2211,7 @@ void WrappedVulkan::vkCmdFillBuffer(VkCommandBuffer commandBuffer, VkBuffer dest
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdFillBuffer);
     Serialise_vkCmdFillBuffer(ser, commandBuffer, destBuffer, destOffset, fillSize, data);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
 
     record->MarkBufferFrameReferenced(GetRecord(destBuffer), destOffset, fillSize,
                                       eFrameRef_CompleteWrite);
@@ -2320,7 +2320,7 @@ void WrappedVulkan::vkCmdClearColorImage(VkCommandBuffer commandBuffer, VkImage 
     Serialise_vkCmdClearColorImage(ser, commandBuffer, image, imageLayout, pColor, rangeCount,
                                    pRanges);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
     record->MarkResourceFrameReferenced(GetRecord(image)->baseResource, eFrameRef_Read);
     VkResourceRecord *imageRecord = GetRecord(image);
     if(imageRecord->resInfo && imageRecord->resInfo->IsSparse())
@@ -2437,7 +2437,7 @@ void WrappedVulkan::vkCmdClearDepthStencilImage(VkCommandBuffer commandBuffer, V
     Serialise_vkCmdClearDepthStencilImage(ser, commandBuffer, image, imageLayout, pDepthStencil,
                                           rangeCount, pRanges);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
     record->MarkResourceFrameReferenced(GetResID(image), eFrameRef_PartialWrite);
     record->MarkResourceFrameReferenced(GetRecord(image)->baseResource, eFrameRef_Read);
     VkResourceRecord *imageRecord = GetRecord(image);
@@ -2591,7 +2591,7 @@ void WrappedVulkan::vkCmdClearAttachments(VkCommandBuffer commandBuffer, uint32_
     Serialise_vkCmdClearAttachments(ser, commandBuffer, attachmentCount, pAttachments, rectCount,
                                     pRects);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
 
     // image/attachments are referenced when the render pass is started and the framebuffer is
     // bound.
@@ -2691,7 +2691,7 @@ void WrappedVulkan::vkCmdDispatchBase(VkCommandBuffer commandBuffer, uint32_t ba
     Serialise_vkCmdDispatchBase(ser, commandBuffer, baseGroupX, baseGroupY, baseGroupZ, groupCountX,
                                 groupCountY, groupCountZ);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
@@ -3002,7 +3002,7 @@ void WrappedVulkan::vkCmdDrawIndirectCount(VkCommandBuffer commandBuffer, VkBuff
     Serialise_vkCmdDrawIndirectCount(ser, commandBuffer, buffer, offset, countBuffer,
                                      countBufferOffset, maxDrawCount, stride);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
 
     record->MarkBufferFrameReferenced(GetRecord(buffer), offset,
                                       stride * (maxDrawCount - 1) + sizeof(VkDrawIndirectCommand),
@@ -3365,7 +3365,7 @@ void WrappedVulkan::vkCmdDrawIndexedIndirectCount(VkCommandBuffer commandBuffer,
     Serialise_vkCmdDrawIndexedIndirectCount(ser, commandBuffer, buffer, offset, countBuffer,
                                             countBufferOffset, maxDrawCount, stride);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
 
     record->MarkBufferFrameReferenced(GetRecord(buffer), offset,
                                       stride * (maxDrawCount - 1) + sizeof(VkDrawIndirectCommand),
@@ -3493,7 +3493,7 @@ void WrappedVulkan::vkCmdDrawIndirectByteCountEXT(VkCommandBuffer commandBuffer,
                                             counterBuffer, counterBufferOffset, counterOffset,
                                             vertexStride);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
 
     record->MarkBufferFrameReferenced(GetRecord(counterBuffer), counterBufferOffset, 4,
                                       eFrameRef_Read);
@@ -3612,7 +3612,7 @@ void WrappedVulkan::vkCmdCopyBuffer2KHR(VkCommandBuffer commandBuffer,
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdCopyBuffer2KHR);
     Serialise_vkCmdCopyBuffer2KHR(ser, commandBuffer, pCopyBufferInfo);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
 
     for(uint32_t i = 0; i < pCopyBufferInfo->regionCount; i++)
     {
@@ -3735,7 +3735,7 @@ void WrappedVulkan::vkCmdCopyImage2KHR(VkCommandBuffer commandBuffer,
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdCopyImage2KHR);
     Serialise_vkCmdCopyImage2KHR(ser, commandBuffer, pCopyImageInfo);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
 
     for(uint32_t i = 0; i < pCopyImageInfo->regionCount; i++)
     {
@@ -3865,7 +3865,7 @@ void WrappedVulkan::vkCmdCopyBufferToImage2KHR(VkCommandBuffer commandBuffer,
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdCopyBufferToImage2KHR);
     Serialise_vkCmdCopyBufferToImage2KHR(ser, commandBuffer, pCopyBufferToImageInfo);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
 
     // downcast the VkBufferImageCopy2KHR to VkBufferImageCopy for ease of use, as we don't need
     // anything in the next chains here
@@ -3998,7 +3998,7 @@ void WrappedVulkan::vkCmdCopyImageToBuffer2KHR(VkCommandBuffer commandBuffer,
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdCopyImageToBuffer2KHR);
     Serialise_vkCmdCopyImageToBuffer2KHR(ser, commandBuffer, pCopyImageToBufferInfo);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
 
     // downcast the VkBufferImageCopy2KHR to VkBufferImageCopy for ease of use, as we don't need
     // anything in the next chains here
@@ -4133,7 +4133,7 @@ void WrappedVulkan::vkCmdBlitImage2KHR(VkCommandBuffer commandBuffer,
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdBlitImage2KHR);
     Serialise_vkCmdBlitImage2KHR(ser, commandBuffer, pBlitImageInfo);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
 
     for(uint32_t i = 0; i < pBlitImageInfo->regionCount; i++)
     {
@@ -4278,7 +4278,7 @@ void WrappedVulkan::vkCmdResolveImage2KHR(VkCommandBuffer commandBuffer,
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdResolveImage2KHR);
     Serialise_vkCmdResolveImage2KHR(ser, commandBuffer, pResolveImageInfo);
 
-    record->AddChunk(scope.Get(record->cmdInfo->alloc));
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
 
     for(uint32_t i = 0; i < pResolveImageInfo->regionCount; i++)
     {
