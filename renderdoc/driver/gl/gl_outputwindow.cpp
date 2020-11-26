@@ -100,6 +100,9 @@ void GLReplay::InitOutputWindow(OutputWindow &outwin)
   drv.glGenFramebuffers(1, &outwin.BlitData.readFBO);
   drv.glBindFramebuffer(eGL_READ_FRAMEBUFFER, outwin.BlitData.readFBO);
   drv.glReadBuffer(eGL_COLOR_ATTACHMENT0);
+
+  if(HasExt[EXT_framebuffer_sRGB])
+    drv.glEnable(eGL_FRAMEBUFFER_SRGB);
 }
 
 bool GLReplay::CheckResizeOutputWindow(uint64_t id)
@@ -209,9 +212,6 @@ void GLReplay::FlipOutputWindow(uint64_t id)
   drv.glFramebufferTexture2D(eGL_READ_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
                              outw.BlitData.backbuffer, 0);
   drv.glReadBuffer(eGL_COLOR_ATTACHMENT0);
-
-  if(HasExt[EXT_framebuffer_sRGB])
-    drv.glEnable(eGL_FRAMEBUFFER_SRGB);
 
   drv.glBlitFramebuffer(0, 0, outw.width, outw.height, 0, 0, outw.width, outw.height,
                         GL_COLOR_BUFFER_BIT, eGL_NEAREST);
