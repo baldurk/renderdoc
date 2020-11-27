@@ -311,7 +311,7 @@ static bool MergeConfigValues(const rdcstr &prefix, SDObject *dstConfig, const S
                  oldVal.c_str(), newVal.c_str());
 
 #if RENDERDOC_STABLE_BUILD
-          if(dstDesc->data.str.contains(debugOnlyString))
+          if(rdcstr(dstDesc->data.str).contains(debugOnlyString))
           {
             RDCWARN("%s customisation will not apply - read only in this build",
                     (prefix + dstChild->name).c_str());
