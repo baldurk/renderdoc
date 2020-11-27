@@ -26,6 +26,7 @@ Remote Servers
 --------------
 
 .. autofunction:: renderdoc.CreateRemoteServerConnection
+.. autofunction:: renderdoc.CheckRemoteServerConnection
 .. autofunction:: renderdoc.BecomeRemoteServer
 
 Device Protocols
@@ -53,6 +54,13 @@ Logging & Versioning
 .. autofunction:: renderdoc.GetVersionString
 .. autofunction:: renderdoc.GetCommitHash
 .. autofunction:: renderdoc.GetDriverInformation
+.. autofunction:: renderdoc.IsReleaseBuild
+
+Settings & Configuration
+------------------------
+
+.. autofunction:: renderdoc.GetConfigSetting
+.. autofunction:: renderdoc.SetConfigSetting
 
 Maths & Utilities
 -----------------
@@ -78,5 +86,6 @@ Maths & Utilities
 .. autofunction:: renderdoc.MaskForStage
 .. autofunction:: renderdoc.StartSelfHostCapture
 .. autofunction:: renderdoc.EndSelfHostCapture
+.. autofunction:: renderdoc.GetCurrentProcessMemoryUsage
 .. autofunction:: renderdoc.VarTypeByteSize
 .. autofunction:: renderdoc.VarTypeCompType

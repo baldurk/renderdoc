@@ -11,6 +11,12 @@ Extension Manager
 .. autoclass:: qrenderdoc.ExtensionManager
   :members:
 
+Mini-Qt Helper
+--------------
+
+.. autoclass:: qrenderdoc.MiniQtHelper
+  :members:
+
 Helpers
 -------
 

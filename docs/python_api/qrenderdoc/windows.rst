@@ -67,6 +67,12 @@ Debug Messages
 .. autoclass:: qrenderdoc.DebugMessageView
   :members:
 
+Diagnostic Log
+--------------
+
+.. autoclass:: qrenderdoc.DiagnosticLogView
+  :members:
+
 Comment View
 ------------
 
