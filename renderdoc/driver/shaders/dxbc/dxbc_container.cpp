@@ -1784,13 +1784,17 @@ DXBCContainer::DXBCContainer(bytebuf &ByteCode, const rdcstr &debugInfoPath, Gra
           {
             *c = 0;
 
+            rdcstr fname = filename;
+            if(fname.empty())
+              fname = "shader";
+
             // find the new destination file
             bool found = false;
             size_t dstFileIdx = 0;
 
             for(size_t f = 0; f < splitFiles.size(); f++)
             {
-              if(splitFiles[f].filename == filename)
+              if(splitFiles[f].filename == fname)
               {
                 found = true;
                 dstFileIdx = f;
@@ -1805,11 +1809,11 @@ DXBCContainer::DXBCContainer(bytebuf &ByteCode, const rdcstr &debugInfoPath, Gra
             }
             else
             {
-              RDCWARN("Couldn't find filename '%s' in #line directive in debug info", filename);
+              RDCWARN("Couldn't find filename '%s' in #line directive in debug info", fname.c_str());
 
               // make a dummy file to write into that won't be used.
               splitFiles.push_back(SplitFile());
-              splitFiles.back().filename = filename;
+              splitFiles.back().filename = fname;
               splitFiles.back().modified = true;
 
               changedFile = true;
