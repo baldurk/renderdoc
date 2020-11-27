@@ -295,6 +295,13 @@ void WrappedOpenGL::glBindTexture(GLenum target, GLuint texture)
   if(IsCaptureMode(m_State))
   {
     GLResourceRecord *r = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
+
+    if(r == NULL)
+    {
+      RDCERR("Called glBindTexture with unrecognised or deleted texture");
+      return;
+    }
+
     cd.SetActiveTexRecord(target, r);
 
     if(r->datatype)
@@ -398,9 +405,12 @@ void WrappedOpenGL::glBindTextures(GLuint first, GLsizei count, const GLuint *te
       {
         GLResourceRecord *texrecord =
             GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), textures[i]));
-        GLenum target = TextureTarget(texrecord->datatype);
+        if(texrecord)
+        {
+          GLenum target = TextureTarget(texrecord->datatype);
 
-        cd.SetTexUnitRecordIndexed(target, first + i, texrecord);
+          cd.SetTexUnitRecordIndexed(target, first + i, texrecord);
+        }
       }
     }
   }
@@ -460,6 +470,13 @@ void WrappedOpenGL::glBindMultiTextureEXT(GLenum texunit, GLenum target, GLuint 
   if(IsCaptureMode(m_State))
   {
     GLResourceRecord *r = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
+
+    if(!r)
+    {
+      RDCERR("Called glBindMultiTextureEXT with unrecognised or deleted buffer");
+      return;
+    }
+
     cd.SetTexUnitRecord(target, texunit, r);
 
     if(r->datatype)
@@ -532,9 +549,13 @@ void WrappedOpenGL::glBindTextureUnit(GLuint unit, GLuint texture)
     {
       GLResourceRecord *texrecord =
           GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-      GLenum target = TextureTarget(texrecord->datatype);
 
-      cd.SetTexUnitRecordIndexed(target, unit, texrecord);
+      if(texrecord)
+      {
+        GLenum target = TextureTarget(texrecord->datatype);
+
+        cd.SetTexUnitRecordIndexed(target, unit, texrecord);
+      }
     }
   }
 }
@@ -1025,6 +1046,10 @@ void WrappedOpenGL::glInvalidateTexImage(GLuint texture, GLint level)
   if(IsCaptureMode(m_State))
   {
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
+    RDCASSERTMSG("Couldn't identify texture object. Unbound or bad GLuint?", record, texture);
+
+    if(!record)
+      return;
 
     if(IsActiveCapturing(m_State))
     {
@@ -1178,6 +1203,10 @@ void WrappedOpenGL::glInvalidateTexSubImage(GLuint texture, GLint level, GLint x
   if(IsCaptureMode(m_State))
   {
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
+    RDCASSERTMSG("Couldn't identify texture object. Unbound or bad GLuint?", record, texture);
+
+    if(!record)
+      return;
 
     if(IsActiveCapturing(m_State))
     {
@@ -1293,8 +1322,9 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
   {
     GLResourceRecord *dstrecord = GetResourceManager()->GetResourceRecord(dstRes);
 
-    GetResourceManager()->MarkResourceFrameReferenced(dstrecord->GetResourceID(),
-                                                      eFrameRef_CompleteWrite);
+    if(dstrecord)
+      GetResourceManager()->MarkResourceFrameReferenced(dstrecord->GetResourceID(),
+                                                        eFrameRef_CompleteWrite);
   }
 
   SERIALISE_TIME_CALL(GL.glCopyImageSubData(srcName, srcTarget, srcLevel, srcX, srcY, srcZ, dstName,
