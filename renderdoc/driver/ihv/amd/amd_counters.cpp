@@ -366,12 +366,20 @@ CounterDescription AMDCounters::InternalGetCounterDescription(uint32_t internalI
     default: desc.resultType = CompType::UInt; desc.resultByteWidth = sizeof(uint32_t);
   }
 
-  status = m_pGPUPerfAPI->GPA_GetCounterUuid(m_gpaContextId, internalIndex, (GPA_UUID *)&desc.uuid);
+  GPA_UUID gpa_uuid;
+  status = m_pGPUPerfAPI->GPA_GetCounterUuid(m_gpaContextId, internalIndex, &gpa_uuid);
   if(AMD_FAILED(status))
   {
     GPA_ERROR("Get counter UUID.", status);
     return desc;
   }
+
+#if ENABLED(RDOC_WIN32)
+  memcpy(&desc.uuid, &gpa_uuid, sizeof(desc.uuid));
+#else
+  memcpy(&desc.uuid.words[0], &gpa_uuid.m_data1, sizeof(uint32_t));
+  memcpy(&desc.uuid.words[1], &gpa_uuid.m_data2, sizeof(uint32_t) * 3);
+#endif
 
   return desc;
 }
