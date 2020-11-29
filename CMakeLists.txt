@@ -212,7 +212,8 @@ if(ENABLE_WAYLAND)
     endif()
 endif()
 
-if(WIN32)
+# Use Visual Stduio solution file instead of CMake
+if(CMAKE_GENERATOR MATCHES "Visual Studio")
     message(FATAL_ERROR "CMake is not needed on Windows, just open and build renderdoc.sln")
 endif()
 
@@ -381,6 +382,8 @@ elseif(UNIX)
     if(ENABLE_WAYLAND)
         add_definitions(-DRENDERDOC_WINDOWING_WAYLAND)
     endif()
+elseif(WIN32)
+    add_definitions(-DRENDERDOC_PLATFORM_WIN32)
 endif()
 
 add_subdirectory(renderdoc)
