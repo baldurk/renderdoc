@@ -333,7 +333,10 @@ void ThreadState::SetDst(Id id, const ShaderVariable &val)
   {
     Id ptrId = debugger.GetPointerBaseId(val);
     if(ptrId != Id() && ptrId != id)
-      pointersForId[ptrId].push_back(id);
+    {
+      if(!pointersForId[ptrId].contains(id))
+        pointersForId[ptrId].push_back(id);
+    }
   }
 
   if(m_State)
@@ -363,6 +366,13 @@ void ThreadState::ProcessScopeChange(const rdcarray<Id> &oldLive, const rdcarray
       continue;
 
     m_State->changes.push_back({debugger.GetPointerValue(ids[id])});
+
+    if(ids[id].type == VarType::GPUPointer && !debugger.IsOpaquePointer(ids[id]))
+    {
+      Id ptrId = debugger.GetPointerBaseId(ids[id]);
+      pointersForId[ptrId].removeOne(id);
+      pointersForId.erase(id);
+    }
   }
 
   for(const Id &id : newLive)
