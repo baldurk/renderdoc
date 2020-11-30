@@ -250,6 +250,7 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       "SPV_EXT_shader_atomic_float_add",
       "SPV_KHR_terminate_invocation",
       "SPV_EXT_shader_image_int64",
+      "SPV_GOOGLE_user_type",
   };
 
   // whitelist supported extensions
