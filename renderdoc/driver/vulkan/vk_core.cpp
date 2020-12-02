@@ -3448,6 +3448,19 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
           }
         }
 
+        // if we have an indirect draw with one draw, the subcommand will have an event which isn't
+        // a DrawcallDescription and selecting it will still replay that indirect draw. We need to
+        // detect this case and ensure we prepare the RP.
+        // This doesn't happen for multi-draw indirects because there each subcommand has an actual
+        // DrawcallDescription
+        if(rpUnneeded)
+        {
+          APIEvent ev = GetEvent(endEventID);
+          if(m_StructuredFile->chunks[ev.chunkIndex]->metadata.chunkID ==
+             (uint32_t)VulkanChunk::vkCmdIndirectSubCommand)
+            rpUnneeded = false;
+        }
+
         // if a render pass was active, begin it and set up the partial replay state
         m_RenderState.BeginRenderPassAndApplyState(
             this, cmd, rpUnneeded ? VulkanRenderState::BindNone : VulkanRenderState::BindGraphics);
