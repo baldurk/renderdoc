@@ -103,6 +103,7 @@ private slots:
   // manual slots
   void vulkanLayerWarn_mouseClick();
   void androidWarn_mouseClick();
+  void lineEdit_keyPress(QKeyEvent *);
 
 private:
   Ui::CaptureDialog *ui;

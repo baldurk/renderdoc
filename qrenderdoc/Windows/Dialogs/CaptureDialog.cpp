@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "CaptureDialog.h"
+#include <QKeyEvent>
 #include <QMouseEvent>
 #include <QSortFilterProxyModel>
 #include <QStandardItemModel>
@@ -206,6 +207,10 @@ CaptureDialog::CaptureDialog(ICaptureContext &ctx, OnCaptureMethod captureCallba
   // Set up warning for Android apps
   initWarning(ui->androidWarn);
   QObject::connect(ui->androidWarn, &RDLabel::clicked, this, &CaptureDialog::androidWarn_mouseClick);
+
+  QObject::connect(ui->exePath, &RDLineEdit::keyPress, this, &CaptureDialog::lineEdit_keyPress);
+  QObject::connect(ui->workDirPath, &RDLineEdit::keyPress, this, &CaptureDialog::lineEdit_keyPress);
+  QObject::connect(ui->cmdline, &RDLineEdit::keyPress, this, &CaptureDialog::lineEdit_keyPress);
 
   m_AndroidFlags = AndroidFlags::NoFlags;
 
@@ -681,6 +686,15 @@ Would you like RenderDoc to try patching your package?
 
     if(patchSucceeded)
       ui->androidWarn->setVisible(false);
+  }
+}
+
+void CaptureDialog::lineEdit_keyPress(QKeyEvent *ev)
+{
+  if((ev->key() == Qt::Key_Return || ev->key() == Qt::Key_Enter) &&
+     ev->modifiers() & Qt::ControlModifier)
+  {
+    TriggerCapture();
   }
 }
 
