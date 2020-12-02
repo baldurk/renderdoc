@@ -1602,7 +1602,7 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
   if(WrappedVkDeviceMemory::IsAlloc(res))
   {
     srcBuf = m_pDriver->m_CreationInfo.m_Memory[buff].wholeMemBuf;
-    bufsize = m_pDriver->m_CreationInfo.m_Memory[buff].size;
+    bufsize = m_pDriver->m_CreationInfo.m_Memory[buff].wholeMemBufSize;
 
     if(srcBuf == VK_NULL_HANDLE)
     {

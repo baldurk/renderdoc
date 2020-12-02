@@ -1807,6 +1807,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
     VkBuffer srcBuf = initial.buf;
 
     VkBuffer dstBuf = m_CreationInfo.m_Memory[id].wholeMemBuf;
+    VkDeviceSize dstBufSize = RDCMIN(initial.mem.size, m_CreationInfo.m_Memory[id].wholeMemBufSize);
     if(dstBuf == VK_NULL_HANDLE)
     {
       RDCERR("Whole memory buffer not present for %s", ToStr(id).c_str());
@@ -1830,15 +1831,15 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
     uint32_t fillCount = 0;
     for(auto it = resetReq.begin(); it != resetReq.end(); it++)
     {
-      if(it->start() >= initial.mem.size)
+      if(it->start() >= dstBufSize)
         continue;
       VkDeviceSize start = it->start();
-      VkDeviceSize finish = RDCMIN(it->finish(), initial.mem.size);
+      VkDeviceSize finish = RDCMIN(it->finish(), dstBufSize);
       VkDeviceSize size = finish - start;
       switch(it->value())
       {
         case eInitReq_Clear:
-          if(finish >= initial.mem.size)
+          if(finish >= dstBufSize)
             size = VK_WHOLE_SIZE;
           ObjDisp(cmd)->CmdFillBuffer(Unwrap(cmd), Unwrap(dstBuf), start, size, 0);
           fillCount++;

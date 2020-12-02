@@ -465,7 +465,12 @@ struct VulkanCreationInfo
               const VkMemoryAllocateInfo *pAllocInfo);
 
     uint32_t memoryTypeIndex;
-    uint64_t size;
+
+    // allocSize is the raw size of this allocation, useful for checking if resources fit.
+    uint64_t allocSize;
+    // wholeMemBufSize is the size of wholeMemBuf, which could be lower in the case of dedicated
+    // buffers with larger memory allocations than the buffer
+    uint64_t wholeMemBufSize;
 
     VkBuffer wholeMemBuf;
 

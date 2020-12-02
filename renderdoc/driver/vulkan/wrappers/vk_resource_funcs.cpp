@@ -250,7 +250,7 @@ bool WrappedVulkan::CheckMemoryRequirements(const char *resourceName, ResourceId
   }
 
   // verify size
-  if(mrq.size > memInfo.size - memoryOffset)
+  if(mrq.size > memInfo.allocSize - memoryOffset)
   {
     RDCERR(
         "Trying to bind %s to memory %s which is type %u, "
@@ -258,7 +258,7 @@ bool WrappedVulkan::CheckMemoryRequirements(const char *resourceName, ResourceId
         "This is most likely caused by incompatible hardware or drivers between capture and "
         "replay, causing a change in memory requirements.",
         resourceName, ToStr(memOrigId).c_str(), memInfo.memoryTypeIndex, memoryOffset, mrq.size,
-        memInfo.size);
+        memInfo.allocSize);
     m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
     return false;
   }
@@ -323,10 +323,28 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(SerialiserType &ser, VkDevice dev
       {
         // either set the buffer that's dedicated, or if this is dedicated image memory set NULL
         m_CreationInfo.m_Memory[live].wholeMemBuf = dedicated->buffer;
+
+        uint64_t bufSize = m_CreationInfo.m_Buffer[GetResID(dedicated->buffer)].size;
+        uint64_t &memSize = m_CreationInfo.m_Memory[live].wholeMemBufSize;
+        if(memSize > bufSize)
+        {
+          RDCDEBUG("Truncating memory size %llu to dedicated buffer size %llu for %s", memSize,
+                   bufSize, ToStr(Memory).c_str());
+          memSize = bufSize;
+        }
       }
       else if(dedicatedNV)
       {
         m_CreationInfo.m_Memory[live].wholeMemBuf = dedicatedNV->buffer;
+
+        uint64_t bufSize = m_CreationInfo.m_Buffer[GetResID(dedicatedNV->buffer)].size;
+        uint64_t &memSize = m_CreationInfo.m_Memory[live].wholeMemBufSize;
+        if(memSize > bufSize)
+        {
+          RDCDEBUG("Truncating memory size %llu to dedicated buffer size %llu for %s", memSize,
+                   bufSize, ToStr(Memory).c_str());
+          memSize = bufSize;
+        }
       }
       else
       {

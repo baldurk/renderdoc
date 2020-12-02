@@ -1049,7 +1049,7 @@ void VulkanCreationInfo::Memory::Init(VulkanResourceManager *resourceMan, Vulkan
                                       const VkMemoryAllocateInfo *pAllocInfo)
 {
   memoryTypeIndex = pAllocInfo->memoryTypeIndex;
-  size = pAllocInfo->allocationSize;
+  allocSize = wholeMemBufSize = pAllocInfo->allocationSize;
 }
 
 void VulkanCreationInfo::Memory::SimplifyBindings()

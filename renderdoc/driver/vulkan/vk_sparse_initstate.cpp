@@ -741,7 +741,7 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkBuffer *buf, const VkIniti
 
     VkBuffer dstBuf = m_CreationInfo.m_Memory[id].wholeMemBuf;
 
-    VkDeviceSize size = m_CreationInfo.m_Memory[id].size;
+    VkDeviceSize size = m_CreationInfo.m_Memory[id].wholeMemBufSize;
 
     // fill the whole memory from the given offset
     VkBufferCopy region = {info.memDataOffs[i].memOffs, 0, size};
@@ -878,7 +878,7 @@ bool WrappedVulkan::Apply_SparseInitialState(WrappedVkImage *im, const VkInitial
     // since this is short lived it isn't wrapped. Note that we want
     // to cache this up front, so it will then be wrapped
     VkBuffer dstBuf = m_CreationInfo.m_Memory[id].wholeMemBuf;
-    VkDeviceSize size = m_CreationInfo.m_Memory[id].size;
+    VkDeviceSize size = m_CreationInfo.m_Memory[id].wholeMemBufSize;
 
     // fill the whole memory from the given offset
     VkBufferCopy region = {info.memDataOffs[i].memOffs, 0, size};
