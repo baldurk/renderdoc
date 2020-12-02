@@ -222,7 +222,7 @@ struct RichResourceText
 
     int i = 0;
 
-    bool highdpi = widget->devicePixelRatioF() > 1.0;
+    bool highdpi = widget && widget->devicePixelRatioF() > 1.0;
 
     QVector<int> fragmentIndexFromBlockIndex;
 
@@ -265,7 +265,8 @@ struct RichResourceText
 
     doc.setDocumentMargin(0);
     doc.setHtml(html);
-    doc.setDefaultFont(widget->font());
+    if(widget)
+      doc.setDefaultFont(widget->font());
 
     if(doc.blockCount() != fragmentIndexFromBlockIndex.count())
     {
@@ -328,6 +329,7 @@ Q_DECLARE_METATYPE(GPUAddressPtr);
 
 QString ResIdTextToString(RichResourceTextPtr ptr)
 {
+  ptr->cacheDocument(NULL);
   return ptr->text;
 }
 
@@ -351,7 +353,7 @@ void RegisterMetatypeConversions()
   QMetaType::registerConverter<GPUAddressPtr, QString>(&GPUAddressToString);
 }
 
-void RichResourceTextInitialise(QVariant &var)
+void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx)
 {
   // we only upconvert from strings, any other type with a string representation is not expected to
   // contain ResourceIds. In particular if the variant is already a ResourceId we can return.
@@ -413,6 +415,8 @@ void RichResourceTextInitialise(QVariant &var)
     }
 
     RichResourceTextPtr linkedText(new RichResourceText);
+
+    linkedText->ctxptr = ctx;
 
     while(match.hasMatch())
     {
@@ -846,7 +850,7 @@ bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect
 
 QString RichResourceTextFormat(ICaptureContext &ctx, QVariant var)
 {
-  RichResourceTextInitialise(var);
+  RichResourceTextInitialise(var, &ctx);
   if(var.userType() == qMetaTypeId<ResourceId>())
     return GetTruncatedResourceName(ctx, var.value<ResourceId>());
 

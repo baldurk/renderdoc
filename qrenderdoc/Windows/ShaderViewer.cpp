@@ -986,7 +986,7 @@ ShaderViewer *ShaderViewer::LoadEditor(ICaptureContext &ctx, QVariantMap data,
 
   {
     QVariant v = data[lit("id")];
-    RichResourceTextInitialise(v);
+    RichResourceTextInitialise(v, &ctx);
     id = v.value<ResourceId>();
   }
   ShaderStage stage = (ShaderStage)data[lit("stage")].toUInt();

@@ -109,7 +109,7 @@ public:
           case 5:
           {
             QVariant desc = msg.description;
-            RichResourceTextInitialise(desc);
+            RichResourceTextInitialise(desc, &m_Ctx);
             return desc;
           }
           default: break;

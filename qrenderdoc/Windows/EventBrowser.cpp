@@ -359,7 +359,7 @@ QPair<uint32_t, uint32_t> EventBrowser::AddDrawcalls(RDTreeWidgetItem *parent,
 
     QVariant name = QString(d.name);
 
-    RichResourceTextInitialise(name);
+    RichResourceTextInitialise(name, &m_Ctx);
 
     RDTreeWidgetItem *child = new RDTreeWidgetItem(
         {name, QString::number(d.eventId), QString::number(d.drawcallId), lit("---")});

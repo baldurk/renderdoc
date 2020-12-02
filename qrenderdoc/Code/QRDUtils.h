@@ -187,7 +187,7 @@ struct GPUAddress
 // NOTE: It is not possible to move a RichResourceText instance from one ICaptureContext to another
 // as the pointer is cached internally. Instead you should delete the old and re-initialise from
 // scratch.
-void RichResourceTextInitialise(QVariant &var);
+void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx = NULL);
 
 // Checks if a variant is rich resource text and should be treated specially
 // Particularly meaning we need mouse tracking on the widget to handle the on-hover highlighting

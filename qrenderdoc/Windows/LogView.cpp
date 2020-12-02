@@ -121,7 +121,7 @@ public:
             case Column_Message:
             {
               QVariant desc = msg.Message;
-              RichResourceTextInitialise(desc);
+              RichResourceTextInitialise(desc, &m_Viewer->m_Ctx);
               return desc;
             }
             default: break;

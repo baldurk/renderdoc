@@ -65,7 +65,7 @@ QSize RDLabel::minimumSizeHint() const
 void RDLabel::setText(const QString &text)
 {
   m_variant = text;
-  RichResourceTextInitialise(m_variant);
+  RichResourceTextInitialise(m_variant, getCaptureContext(this));
   if(RichResourceTextCheck(m_variant))
   {
     setMouseTracking(true);

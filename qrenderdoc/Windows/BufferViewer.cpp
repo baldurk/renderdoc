@@ -1092,7 +1092,7 @@ public:
                   v = ToQStr(ptr);
                 }
 
-                RichResourceTextInitialise(v);
+                RichResourceTextInitialise(v, getCaptureContext(view));
 
                 if(RichResourceTextCheck(v))
                   return v;
