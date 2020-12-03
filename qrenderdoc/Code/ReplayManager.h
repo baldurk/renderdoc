@@ -55,6 +55,7 @@ public:
   bool IsRunning();
   ReplayStatus GetCreateStatus() { return m_CreateStatus; }
   float GetCurrentProcessingTime();
+  QString GetCurrentProcessingTag();
   // this tagged version is for cases when we might send a request - e.g. to pick a vertex or pixel
   // - and want to pre-empt it with a new request before the first has returned. Either because some
   // other work is taking a while or because we're sending requests faster than they can be
@@ -119,6 +120,7 @@ private:
 
   QMutex m_TimerLock;
   QElapsedTimer m_CommandTimer;
+  QString m_CommandTag;
 
   QMutex m_RenderLock;
   QQueue<InvokeHandle *> m_RenderQueue;

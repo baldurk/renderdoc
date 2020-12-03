@@ -1478,14 +1478,35 @@ void CaptureContext::SetEventID(const rdcarray<ICaptureViewer *> &exclude, uint3
   uint32_t prevEventID = m_EventID;
   m_EventID = eventId;
 
-  m_Replay.BlockInvoke([this, eventId, force](IReplayController *r) {
+  bool done = false;
+
+  QString tag = lit("replaySetEvent");
+
+  // we can't return until the event is selected, but a blocking invoke on the UI thread can cause
+  // the UI to stall. We ideally want to have at least an interactive UI and a progress bar.
+  m_Replay.AsyncInvoke(tag, [this, eventId, force, &done](IReplayController *r) {
     r->SetFrameEvent(eventId, force);
     m_CurD3D11PipelineState = r->GetD3D11PipelineState();
     m_CurD3D12PipelineState = r->GetD3D12PipelineState();
     m_CurGLPipelineState = r->GetGLPipelineState();
     m_CurVulkanPipelineState = r->GetVulkanPipelineState();
     m_CurPipelineState = &r->GetPipelineState();
+
+    done = true;
   });
+
+  // wait a short while before displaying the progress dialog (which won't show if we're already
+  // done by the time we reach it).
+  // Keep waiting if the current tag is a set event, we don't want to be popping up progress bars
+  // when the user is browsing the frame if it's going slow. If that's the case we'll just block the
+  // UI thread. Instead only pop up the progress bar if some other large task is blocking.
+  for(int i = 0; !done && (i < 100 || m_Replay.GetCurrentProcessingTag().isEmpty() ||
+                           m_Replay.GetCurrentProcessingTag() == tag);
+      i++)
+    QThread::msleep(5);
+
+  ShowProgressDialog(m_MainWindow->Widget(), tr("Please wait, working..."),
+                     [&done]() { return done; });
 
   bool updateSelectedEvent = force || prevSelectedEventID != selectedEventID;
   bool updateEvent = force || prevEventID != eventId;

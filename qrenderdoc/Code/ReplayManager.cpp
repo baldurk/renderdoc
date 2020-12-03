@@ -240,6 +240,12 @@ float ReplayManager::GetCurrentProcessingTime()
   return m_CommandTimer.isValid() ? double(m_CommandTimer.elapsed()) / 1000.0 : 0.0;
 }
 
+QString ReplayManager::GetCurrentProcessingTag()
+{
+  QMutexLocker lock(&m_TimerLock);
+  return m_CommandTag;
+}
+
 void ReplayManager::AsyncInvoke(const rdcstr &tag, ReplayManager::InvokeCallback m)
 {
   QString qtag(tag);
@@ -486,6 +492,7 @@ void ReplayManager::run(int proxyRenderer, const QString &capturefile, const Rep
       {
         QMutexLocker lock(&m_TimerLock);
         m_CommandTimer.start();
+        m_CommandTag = cmd->tag;
       }
 
       cmd->method(m_Renderer);
@@ -493,6 +500,7 @@ void ReplayManager::run(int proxyRenderer, const QString &capturefile, const Rep
       {
         QMutexLocker lock(&m_TimerLock);
         m_CommandTimer.invalidate();
+        m_CommandTag = QString();
       }
     }
 
