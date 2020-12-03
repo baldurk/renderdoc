@@ -219,7 +219,9 @@ struct ShaderProcessingTool
 
 DECLARE_REFLECTION_STRUCT(ShaderProcessingTool);
 
+#if !defined(SWIG)
 #define BUGREPORT_URL "https://renderdoc.org/bugreporter"
+#endif
 
 DOCUMENT("Describes a submitted bug report.");
 struct BugReport

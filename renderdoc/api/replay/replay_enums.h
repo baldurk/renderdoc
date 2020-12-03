@@ -469,7 +469,29 @@ enum class AddressMode : uint32_t
 
 DECLARE_REFLECTION_ENUM(AddressMode);
 
-enum YcbcrConversion
+DOCUMENT(R"(The color model conversion that a YCbCr sampler uses to convert from YCbCr to RGB.
+
+.. data:: Raw
+
+  The input values are not converted at all.
+
+.. data:: RangeOnly
+
+  There is no model conversion but the inputs are range expanded as for YCbCr.
+
+.. data:: BT709
+
+  The conversion uses the BT.709 color model conversion.
+
+.. data:: BT601
+
+  The conversion uses the BT.601 color model conversion.
+
+.. data:: BT2020
+
+  The conversion uses the BT.2020 color model conversion.
+)");
+enum class YcbcrConversion
 {
   Raw,
   RangeOnly,
@@ -480,7 +502,18 @@ enum YcbcrConversion
 
 DECLARE_REFLECTION_ENUM(YcbcrConversion);
 
-enum YcbcrRange
+DOCUMENT(R"(Specifies the range of encoded values and their interpretation.
+
+.. data:: ITUFull
+
+  The full range of input values are valid and interpreted according to ITU "full range" rules.
+
+.. data:: ITUNarrow
+
+  A head and foot are reserved in the encoded values, and the remaining values are expanded
+  according to "narrow range" rules.
+)");
+enum class YcbcrRange
 {
   ITUFull,
   ITUNarrow,
@@ -488,7 +521,18 @@ enum YcbcrRange
 
 DECLARE_REFLECTION_ENUM(YcbcrRange);
 
-enum ChromaSampleLocation
+DOCUMENT(R"(Determines where in the pixel downsampled chrome samples are positioned.
+
+.. data:: CositedEven
+
+  The chroma samples are positioned exactly in the same place as the even luma co-ordinates.
+
+.. data:: Midpoint
+
+  The chrome samples are positioned half way between each even luma sample and the next highest odd
+  luma sample.
+)");
+enum class ChromaSampleLocation
 {
   CositedEven,
   Midpoint,

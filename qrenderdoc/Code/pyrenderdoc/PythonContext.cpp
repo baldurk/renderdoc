@@ -480,8 +480,36 @@ bool PythonContext::CheckInterfaces(rdcstr &log)
   PyGILState_STATE gil = PyGILState_Ensure();
   errors |= CheckCoreInterface(log);
   errors |= CheckQtInterface(log);
+
+  for(rdcstr module_name : {"renderdoc", "qrenderdoc"})
+  {
+    PyObject *mod = PyImport_ImportModule(module_name.c_str());
+    PyObject *dict = PyModule_GetDict(mod);
+
+    PyObject *key, *value;
+    Py_ssize_t pos = 0;
+
+    while(PyDict_Next(dict, &pos, &key, &value))
+    {
+      rdcstr name = ToQStr(key);
+
+      if(name.beginsWith("__"))
+        continue;
+
+      if(!PyCallable_Check(value))
+      {
+        log += "Non-callable object found: " + module_name + "." + name +
+               ". Expected only classes and functions.\n";
+        errors = true;
+      }
+    }
+
+    Py_DECREF(mod);
+  }
+
   PyGILState_Release(gil);
 
+  log.trim();
   return errors;
 }
 
