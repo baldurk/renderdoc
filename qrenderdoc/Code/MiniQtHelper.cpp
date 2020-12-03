@@ -81,11 +81,15 @@ void MiniQtHelper::AddWidgetCallback(QWidget *widget, QMetaObject::Connection co
   });
 }
 
-QWidget *MiniQtHelper::CreateToplevelWidget(const rdcstr &windowTitle)
+QWidget *MiniQtHelper::CreateToplevelWidget(const rdcstr &windowTitle, WidgetCallback closed)
 {
   QWidget *ret = new QWidget();
   ret->setWindowTitle(windowTitle);
   ret->setLayout(new QVBoxLayout());
+  if(closed)
+    AddWidgetCallback(ret, QObject::connect(ret, &QWidget::destroyed, [this, ret, closed]() {
+                        closed(&m_Ctx, ret, rdcstr());
+                      }));
   return ret;
 }
 
@@ -153,6 +157,11 @@ QWidget *MiniQtHelper::GetChild(QWidget *parent, int index)
     return NULL;
 
   return item->widget();
+}
+
+void MiniQtHelper::DestroyWidget(QWidget *widget)
+{
+  widget->deleteLater();
 }
 
 bool MiniQtHelper::ShowWidgetAsDialog(QWidget *widget)
@@ -393,6 +402,22 @@ bool MiniQtHelper::IsWidgetEnabled(QWidget *widget)
     return false;
 
   return widget->isEnabled();
+}
+
+void MiniQtHelper::SetWidgetVisible(QWidget *widget, bool visible)
+{
+  if(!widget)
+    return;
+
+  widget->setVisible(visible);
+}
+
+bool MiniQtHelper::IsWidgetVisible(QWidget *widget)
+{
+  if(!widget)
+    return false;
+
+  return widget->isVisible();
 }
 
 QWidget *MiniQtHelper::CreateGroupBox(bool collapsible)

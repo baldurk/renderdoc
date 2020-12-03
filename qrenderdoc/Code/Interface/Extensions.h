@@ -350,10 +350,13 @@ is a layout type widget, to allow customising how children are added. By default
 added in a vertical layout.
 
 :param str windowTitle: The title of any window with this widget as its root.
+:param WidgetCallback closed: A callback that will be called when the widget is closed by the user.
+  This implicitly deletes the widget and all its children, which will no longer be valid even if a
+  handle to them exists.
 :return: The handle to the newly created widget.
 :rtype: ``QWidget``
 )");
-  virtual QWidget *CreateToplevelWidget(const rdcstr &windowTitle) = 0;
+  virtual QWidget *CreateToplevelWidget(const rdcstr &windowTitle, WidgetCallback closed) = 0;
 
   // widget hierarchy
 
@@ -426,6 +429,22 @@ layout type widgets.
 :rtype: ``QWidget``
 )");
   virtual QWidget *GetChild(QWidget *parent, int index) = 0;
+
+  DOCUMENT(R"(Destroy a widget. Widgets stay alive unless explicitly destroyed here, OR in one other
+case when they are in a widget hiearchy under a top-level window which the user closes, which can
+be detected with the callback parameter in :meth:`CreateToplevelWidget`.
+
+If the widget being destroyed is a top-level window, it will be closed. Otherwise if it is part of a
+widget hierarchy it will be removed from its parent automatically. You can remove a widget and then
+destroy it if you wish, but you must not destroy a widget then attempt to remove it from its parent,
+as after the call to this function the widget is no longer valid to use.
+
+All children under this widget will be destroyed recursively as well, which will be made invalid
+even if a handle to them exists.
+
+:param QWidget widget: The widget to destroy.
+)");
+  virtual void DestroyWidget(QWidget *widget) = 0;
 
   // dialogs
 
@@ -584,6 +603,25 @@ data.
 :rtype: bool
 )");
   virtual bool IsWidgetEnabled(QWidget *widget) = 0;
+
+  DOCUMENT(R"(Set whether the widget is visible or not. An invisible widget maintains its position
+in the hierarchy but is not visible and cannot be interacted with in any way.
+
+:param QWidget widget: The widget to show or hide.
+:param bool enabled: ``True`` if the widget should be made visible (shown).
+)");
+  virtual void SetWidgetVisible(QWidget *widget, bool visible) = 0;
+
+  DOCUMENT(R"(Return the current visibility of a widget. See :meth:`SetWidgetVisible`.
+
+This query is recursive - a widget could be individually visible, but if it is under a parent which
+is invisible then this widget will be returned as invisible.
+
+:param QWidget widget: The widget to query.
+:return: ``True`` if the widget is currently visible.
+:rtype: bool
+)");
+  virtual bool IsWidgetVisible(QWidget *widget) = 0;
 
   // specific widgets
 

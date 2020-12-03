@@ -89,9 +89,9 @@ struct MiniQtInvoker : ObjectForwarder<IMiniQtHelper>
   // all functions invoke onto the UI thread since they deal with widgets!
   ///////////////////////////////////////////////////////////////////////
 
-  QWidget *CreateToplevelWidget(const rdcstr &windowTitle)
+  QWidget *CreateToplevelWidget(const rdcstr &windowTitle, WidgetCallback closed)
   {
-    return InvokeRetFunction<QWidget *>(&IMiniQtHelper::CreateToplevelWidget, windowTitle);
+    return InvokeRetFunction<QWidget *>(&IMiniQtHelper::CreateToplevelWidget, windowTitle, closed);
   }
 
   // widget hierarchy
@@ -124,7 +124,7 @@ struct MiniQtInvoker : ObjectForwarder<IMiniQtHelper>
   {
     return InvokeRetFunction<QWidget *>(&IMiniQtHelper::GetChild, parent, index);
   }
-
+  void DestroyWidget(QWidget *widget) { InvokeVoidFunction(&IMiniQtHelper::DestroyWidget, widget); }
   // dialogs
 
   bool ShowWidgetAsDialog(QWidget *widget)
@@ -192,6 +192,14 @@ struct MiniQtInvoker : ObjectForwarder<IMiniQtHelper>
   bool IsWidgetEnabled(QWidget *widget)
   {
     return InvokeRetFunction<bool>(&IMiniQtHelper::IsWidgetEnabled, widget);
+  }
+  void SetWidgetVisible(QWidget *widget, bool visible)
+  {
+    InvokeVoidFunction(&IMiniQtHelper::SetWidgetVisible, widget, visible);
+  }
+  bool IsWidgetVisible(QWidget *widget)
+  {
+    return InvokeRetFunction<bool>(&IMiniQtHelper::IsWidgetVisible, widget);
   }
 
   // specific widgets

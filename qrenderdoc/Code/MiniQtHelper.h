@@ -35,7 +35,7 @@ public:
   MiniQtHelper(ICaptureContext &ctx);
   virtual ~MiniQtHelper();
 
-  QWidget *CreateToplevelWidget(const rdcstr &windowTitle) override;
+  QWidget *CreateToplevelWidget(const rdcstr &windowTitle, WidgetCallback closed) override;
 
   // widget hierarchy
 
@@ -46,6 +46,7 @@ public:
   QWidget *GetParent(QWidget *widget) override;
   int GetNumChildren(QWidget *widget) override;
   QWidget *GetChild(QWidget *parent, int index) override;
+  void DestroyWidget(QWidget *widget) override;
 
   // dialogs
 
@@ -74,6 +75,9 @@ public:
 
   void SetWidgetEnabled(QWidget *widget, bool enabled) override;
   bool IsWidgetEnabled(QWidget *widget) override;
+
+  void SetWidgetVisible(QWidget *widget, bool visible) override;
+  bool IsWidgetVisible(QWidget *widget) override;
 
   // specific widgets
 
