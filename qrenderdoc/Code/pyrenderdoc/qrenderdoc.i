@@ -21,6 +21,10 @@
   PyDateTime_IMPORT;
 %}
 
+%{
+  #include "Code/Interface/QRDInterface.h"
+%}
+
 %include "pyconversion.i"
 
 // import the renderdoc interface that we depend on
@@ -53,6 +57,95 @@ TEMPLATE_ARRAY_DECLARE(rdcarray);
   $result = QWidgetToPy($1);
 }
 
+// create a wrapper for passing python ICaptureViewer interface implementations to C++
+
+%{
+  struct PythonCaptureViewer : public ICaptureViewer
+  {
+    PythonCaptureViewer(PyObject *s) : self(s)
+    {
+      Py_INCREF(self);
+      
+      StackExceptionHandler ex;
+
+      PyObject *meth = NULL;
+
+      {
+        meth = PyObject_GetAttrString(self, "OnCaptureLoaded");
+        m_OnCaptureLoaded = ConvertFunc<std::function<void()>>("ICaptureViewer::OnCaptureLoaded", meth, ex);
+        Py_XDECREF(meth);
+      }
+
+      {
+        meth = PyObject_GetAttrString(self, "OnCaptureClosed");
+        m_OnCaptureClosed = ConvertFunc<std::function<void()>>("ICaptureViewer::OnCaptureClosed", meth, ex);
+        Py_XDECREF(meth);
+      }
+
+      {
+        meth = PyObject_GetAttrString(self, "OnSelectedEventChanged");
+        m_OnSelectedEventChanged = ConvertFunc<std::function<void(uint32_t)>>("ICaptureViewer::OnSelectedEventChanged", meth, ex);
+        Py_XDECREF(meth);
+      }
+
+      {
+        meth = PyObject_GetAttrString(self, "OnEventChanged");
+        m_OnEventChanged = ConvertFunc<std::function<void(uint32_t)>>("ICaptureViewer::OnEventChanged", meth, ex);
+        Py_XDECREF(meth);
+      }
+    }
+
+    ~PythonCaptureViewer()
+    {
+      Py_DECREF(self);
+    }
+    void OnCaptureLoaded() override { if(m_OnCaptureLoaded) m_OnCaptureLoaded(); }
+    void OnCaptureClosed() override { if(m_OnCaptureClosed) m_OnCaptureClosed(); }
+    void OnSelectedEventChanged(uint32_t eventId) override { if(m_OnSelectedEventChanged) m_OnSelectedEventChanged(eventId); }
+    void OnEventChanged(uint32_t eventId) override { if(m_OnEventChanged) m_OnEventChanged(eventId); }
+
+  private:
+    PyObject *self;
+
+    std::function<void()> m_OnCaptureLoaded, m_OnCaptureClosed;
+    std::function<void(uint32_t)> m_OnSelectedEventChanged, m_OnEventChanged;
+  };
+
+  static int capviewer_init(PyObject *self, PyObject *args) {
+    PyObject *resultobj = 0;
+    ICaptureViewer *result = 0;
+
+    result = new PythonCaptureViewer(self);
+    resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_ICaptureViewer, SWIG_BUILTIN_INIT | 0);
+    return resultobj == Py_None ? -1 : 0;
+  }
+
+  SWIGINTERN PyObject *capviewer_deinit(PyObject *self, PyObject *args)
+  {
+    void *ptr = NULL;
+    int res = SWIG_ConvertPtr(self, &ptr, SWIGTYPE_p_ICaptureViewer, SWIG_POINTER_DISOWN | 0);
+
+    if(!SWIG_IsOK(res))
+    {
+      SWIG_exception_fail(SWIG_ArgError(res), "in method '" "delete_CaptureViewer" "', argument " "1"" of type '" "CaptureViewer *""'");
+    }
+
+    PythonCaptureViewer *viewer = (PythonCaptureViewer *)ptr;
+    delete viewer;
+
+    return SWIG_Py_Void();
+  fail:
+    return NULL;
+  }
+
+SWIGPY_DESTRUCTOR_CLOSURE(capviewer_deinit) /* defines capviewer_deinit_destructor_closure */
+
+%}
+
+%feature("python:tp_init") ICaptureViewer "&capviewer_init";
+%feature("python:tp_dealloc") ICaptureViewer "&capviewer_deinit_destructor_closure";
+
+
 // need to ignore the original function and add a helper that releases the python GIL while calling
 %ignore IReplayManager::BlockInvoke;
 
@@ -64,8 +157,6 @@ TEMPLATE_ARRAY_DECLARE(rdcarray);
 %rename("%(regex:/^I([A-Z].*)/\\1/)s", %$isclass) "";
 
 %{
-  #include "Code/Interface/QRDInterface.h"
-
   #ifndef slots
   #define slots
   #endif
