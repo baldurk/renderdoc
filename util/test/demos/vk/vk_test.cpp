@@ -265,7 +265,11 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
           vkh::InstanceCreateInfo(app, enabledLayers, enabledInstExts).next(instInfoNext), NULL,
           &inst);
 
-      if(vkr == VK_SUCCESS)
+      if(vkr != VK_SUCCESS)
+      {
+        TEST_ERROR("Error initialising vulkan instance: %d", vkr);
+      }
+      else
       {
         volkLoadInstance((VkInstance)inst);
 
