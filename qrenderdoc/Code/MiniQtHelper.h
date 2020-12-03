@@ -58,6 +58,7 @@ public:
   QWidget *CreateHorizontalContainer() override;
   QWidget *CreateVerticalContainer() override;
   QWidget *CreateGridContainer() override;
+  QWidget *CreateSpacer(bool horizontal) override;
 
   void ClearContainedWidgets(QWidget *parent) override;
   void AddGridWidget(QWidget *parent, int row, int column, QWidget *child, int rowSpan,

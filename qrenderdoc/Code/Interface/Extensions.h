@@ -513,6 +513,19 @@ which typically has some widgets be only large enough for their content and othe
 )");
   virtual QWidget *CreateGridContainer() = 0;
 
+  DOCUMENT(R"(Creates and returns a spacer widget.
+
+This widget is completely empty but consumes empty space, meaning all other non-greedy widgets in
+the same container will be minimally sized. This can be useful for simple layouts.
+
+:param bool horizontal: ``True`` if this spacer should consume horizontal space, ``False`` if this
+  spacer should consume vertical space. Typically this matches the direction of the layout it is
+  in.
+:return: The handle to the newly created widget.
+:rtype: ``QWidget``
+)");
+  virtual QWidget *CreateSpacer(bool horizontal) = 0;
+
   DOCUMENT(R"(Removes all child widgets from a parent and makes them invisible.
 
 These widgets remain valid and can be re-added to another parent or the same parent.

@@ -220,6 +220,15 @@ QWidget *MiniQtHelper::CreateGridContainer()
   return ret;
 }
 
+QWidget *MiniQtHelper::CreateSpacer(bool horizontal)
+{
+  QWidget *ret = new QWidget();
+  ret->setSizePolicy(horizontal ? QSizePolicy::Expanding : QSizePolicy::Preferred,
+                     horizontal ? QSizePolicy::Preferred : QSizePolicy::Expanding);
+  ret->setMinimumSize(1, 1);
+  return ret;
+}
+
 void MiniQtHelper::ClearContainedWidgets(QWidget *parent)
 {
   if(!parent)
@@ -427,6 +436,7 @@ QWidget *MiniQtHelper::CreateGroupBox(bool collapsible)
     ret = new CollapseGroupBox();
   else
     ret = new QGroupBox();
+  ret->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
   ret->setLayout(new QVBoxLayout());
   return ret;
 }
@@ -449,6 +459,7 @@ QWidget *MiniQtHelper::CreateOutputRenderingWidget()
 {
   CustomPaintWidget *widget = new CustomPaintWidget(NULL);
   widget->SetContext(m_Ctx);
+  widget->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
   return widget;
 }
 
@@ -597,6 +608,7 @@ QWidget *MiniQtHelper::CreateTextBox(bool singleLine, WidgetCallback changed)
       AddWidgetCallback(w, QObject::connect(w, &RDTextEdit::textChanged, [this, w, changed]() {
                           changed(&m_Ctx, w, w->toPlainText());
                         }));
+    w->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
     return w;
   }
 }

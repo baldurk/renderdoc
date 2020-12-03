@@ -150,7 +150,10 @@ struct MiniQtInvoker : ObjectForwarder<IMiniQtHelper>
   {
     return InvokeRetFunction<QWidget *>(&IMiniQtHelper::CreateGridContainer);
   }
-
+  QWidget *CreateSpacer(bool horizontal)
+  {
+    return InvokeRetFunction<QWidget *>(&IMiniQtHelper::CreateSpacer, horizontal);
+  }
   void ClearContainedWidgets(QWidget *parent)
   {
     InvokeVoidFunction(&IMiniQtHelper::ClearContainedWidgets, parent);
