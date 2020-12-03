@@ -338,6 +338,21 @@ struct IMiniQtHelper
 {
   typedef std::function<void(ICaptureContext *, QWidget *, rdcstr)> WidgetCallback;
 
+  DOCUMENT(R"(Invoke a callback on the UI thread. All widget accesses must come from the UI thread,
+so if work has been done on the render thread then this function can be used to asynchronously and
+safely go back to the UI thread.
+
+This function is safe to call on the UI thread, but it will synchronously call the callback
+immediately before returning.
+
+.. note::
+  No parameters are provided to the callback, it is assumed that the callback will maintain its own
+  context as needed.
+
+:param function callback: The callback to invoke on the UI thread.
+)");
+  virtual void InvokeOntoUIThread(std::function<void()> callback) = 0;
+
   // top level widgets
 
   DOCUMENT(R"(Creates and returns a top-level widget for creating layouts.

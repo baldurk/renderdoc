@@ -58,6 +58,11 @@ MiniQtHelper::~MiniQtHelper()
   });
 }
 
+void MiniQtHelper::InvokeOntoUIThread(std::function<void()> callback)
+{
+  GUIInvoke::call(m_Ctx.GetMainWindow()->Widget(), callback);
+}
+
 void MiniQtHelper::AddWidgetCallback(QWidget *widget, QMetaObject::Connection connection)
 {
   // remember the connection and delete it python-safely at shutdown if it's still there

@@ -35,6 +35,8 @@ public:
   MiniQtHelper(ICaptureContext &ctx);
   virtual ~MiniQtHelper();
 
+  void InvokeOntoUIThread(std::function<void()> callback) override;
+
   QWidget *CreateToplevelWidget(const rdcstr &windowTitle, WidgetCallback closed) override;
 
   // widget hierarchy

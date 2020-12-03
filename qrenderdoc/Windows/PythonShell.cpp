@@ -85,6 +85,12 @@ struct MiniQtInvoker : ObjectForwarder<IMiniQtHelper>
 {
   MiniQtInvoker(PythonShell *shell, IMiniQtHelper &obj) : ObjectForwarder(shell, obj) {}
   virtual ~MiniQtInvoker() {}
+  void InvokeOntoUIThread(std::function<void()> callback)
+  {
+    // this function is already thread safe since it's invoking, so just call it directly
+    m_Obj.InvokeOntoUIThread(callback);
+  }
+
   ///////////////////////////////////////////////////////////////////////
   // all functions invoke onto the UI thread since they deal with widgets!
   ///////////////////////////////////////////////////////////////////////
