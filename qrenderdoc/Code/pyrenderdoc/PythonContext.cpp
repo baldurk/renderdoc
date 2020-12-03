@@ -137,6 +137,10 @@ QMap<rdcstr, PyObject *> PythonContext::extensions;
 
 static PyObject *current_global_handle = NULL;
 
+static QMutex decrefQueueMutex;
+static QList<PyObject *> decrefQueue;
+extern "C" void ProcessDecRefQueue();
+
 void FetchException(QString &typeStr, QString &valueStr, int &finalLine, QList<QString> &frames)
 {
   PyObject *exObj = NULL, *valueObj = NULL, *tracebackObj = NULL;
@@ -845,6 +849,8 @@ void PythonContext::executeString(const QString &filename, const QString &source
 
     PyEval_SetTrace(NULL, NULL);
 
+    ProcessDecRefQueue();
+
     Py_XDECREF(thisobj);
     Py_XDECREF(traceContext);
   }
@@ -1325,6 +1331,26 @@ extern "C" void SetThreadBlocking(PyObject *global_handle, bool block)
   OutputRedirector *redirector = (OutputRedirector *)global_handle;
   if(redirector)
     redirector->block = block;
+}
+
+extern "C" void QueueDecRef(PyObject *obj)
+{
+  QMutexLocker lock(&decrefQueueMutex);
+
+  decrefQueue.push_back(obj);
+}
+
+extern "C" void ProcessDecRefQueue()
+{
+  QMutexLocker lock(&decrefQueueMutex);
+
+  if(decrefQueue.isEmpty())
+    return;
+
+  for(PyObject *obj : decrefQueue)
+    Py_XDECREF(obj);
+
+  decrefQueue.clear();
 }
 
 extern "C" QWidget *QWidgetFromPy(PyObject *widget)

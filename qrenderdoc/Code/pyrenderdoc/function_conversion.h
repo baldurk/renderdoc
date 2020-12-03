@@ -33,6 +33,8 @@ extern "C" PyObject *GetCurrentGlobalHandle();
 extern "C" void HandleException(PyObject *global_handle);
 extern "C" bool IsThreadBlocking(PyObject *global_handle);
 extern "C" void SetThreadBlocking(PyObject *global_handle, bool block);
+extern "C" void QueueDecRef(PyObject *obj);
+extern "C" void ProcessDecRefQueue();
 
 struct ExceptionData
 {
@@ -184,17 +186,15 @@ struct PyObjectRefCounter
   }
   ~PyObjectRefCounter()
   {
-// in non-release, check that we're currently executing if we're about to delete the object.
-#if !defined(RELEASE)
-    if(obj->ob_refcnt == 1 && PyGILState_Check() == 0)
-    {
-      RENDERDOC_LogMessage(LogType::Error, "QTRD", __FILE__, __LINE__,
-                           "Deleting PyObjectRefCounter without python executing on this thread");
-      // return and leak the object rather than crashing
-      return;
-    }
-#endif
-    Py_DECREF(obj);
+    // it may not be safe at the point this is destroyed to decref the object. For example if a
+    // python lambda is passed into a C++ invoke function, we will be holding the only reference to
+    // that lambda here when the async invoke completes and destroyed the std::function wrapping it.
+    // Without python executing we can't decref it to 0. Instead we queue the decref, and it will be
+    // done as soon as safely possible.
+    if(PyGILState_Check() == 0)
+      QueueDecRef(obj);
+    else
+      Py_DECREF(obj);
   }
   PyObject *obj;
 };
@@ -246,6 +246,8 @@ struct varfunc
       HandleCallbackFailure(global_handle, exHandle);
       return rettype();
     }
+
+    ProcessDecRefQueue();
 
     PyObject *result = PyObject_Call(func, args, 0);
 
@@ -308,6 +310,9 @@ funcType ConvertFunc(const char *funcname, PyObject *func, ExceptionHandler exHa
 
   if(!global_internal_handle)
     global_internal_handle = GetCurrentGlobalHandle();
+
+  // process any dangling functions that may need to be cleared up
+  ProcessDecRefQueue();
 
   // create a copy that will keep the function object alive as long as the lambda is
   PyObjectRefCounter funcptr(func);

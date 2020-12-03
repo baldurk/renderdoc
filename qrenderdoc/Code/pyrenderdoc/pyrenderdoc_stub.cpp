@@ -64,4 +64,12 @@ extern "C" void SetThreadBlocking(PyObject *global_handle, bool block)
 {
 }
 
+extern "C" void QueueDecRef(PyObject *obj)
+{
+}
+
+extern "C" void ProcessDecRefQueue()
+{
+}
+
 REPLAY_PROGRAM_MARKER()
