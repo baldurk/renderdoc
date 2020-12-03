@@ -957,7 +957,7 @@ to a marker region.
 
 protected:
   ICaptureViewer() = default;
-  ~ICaptureViewer() = default;
+  virtual ~ICaptureViewer() = default;
 };
 
 DECLARE_REFLECTION_STRUCT(ICaptureViewer);

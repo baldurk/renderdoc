@@ -95,7 +95,7 @@ TEMPLATE_ARRAY_DECLARE(rdcarray);
       }
     }
 
-    ~PythonCaptureViewer()
+    virtual ~PythonCaptureViewer()
     {
       Py_DECREF(self);
     }
@@ -122,6 +122,7 @@ TEMPLATE_ARRAY_DECLARE(rdcarray);
 
   SWIGINTERN PyObject *capviewer_deinit(PyObject *self, PyObject *args)
   {
+    PythonCaptureViewer *viewer = NULL;
     void *ptr = NULL;
     int res = SWIG_ConvertPtr(self, &ptr, SWIGTYPE_p_ICaptureViewer, SWIG_POINTER_DISOWN | 0);
 
@@ -130,7 +131,7 @@ TEMPLATE_ARRAY_DECLARE(rdcarray);
       SWIG_exception_fail(SWIG_ArgError(res), "in method '" "delete_CaptureViewer" "', argument " "1"" of type '" "CaptureViewer *""'");
     }
 
-    PythonCaptureViewer *viewer = (PythonCaptureViewer *)ptr;
+    viewer = (PythonCaptureViewer *)ptr;
     delete viewer;
 
     return SWIG_Py_Void();
