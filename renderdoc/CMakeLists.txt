@@ -603,9 +603,11 @@ if(ANDROID)
     # rename output library
     set_target_properties(renderdoc PROPERTIES OUTPUT_NAME "VkLayer_GLES_RenderDoc")
 
-    if(STRIP_ANDROID_LIBRARY AND CMAKE_STRIP AND CMAKE_BUILD_TYPE STREQUAL "Release")
+    if(STRIP_ANDROID_LIBRARY AND CMAKE_STRIP AND RELEASE_MODE)
+        message(STATUS "renderdoc library will be stripped")
         add_custom_command(TARGET renderdoc POST_BUILD
             COMMAND echo Stripping $<TARGET_FILE:renderdoc>
+            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:renderdoc> $<TARGET_FILE:renderdoc>.dbg
             COMMAND ${CMAKE_STRIP} --strip-unneeded $<TARGET_FILE:renderdoc>)
     endif()
 endif()
