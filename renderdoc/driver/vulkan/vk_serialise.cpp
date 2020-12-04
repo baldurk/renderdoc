@@ -275,6 +275,17 @@ void DoSerialiseViaResourceId(SerialiserType &ser, type &el)
 
 SERIALISE_VK_HANDLES();
 
+#ifdef VK_USE_PLATFORM_GGP
+
+#define HANDLE_PNEXT_OS_GGP() \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PRESENT_FRAME_TOKEN_GGP, VkPresentFrameTokenGGP)
+
+#else
+
+#define HANDLE_PNEXT_OS_GGP() PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PRESENT_FRAME_TOKEN_GGP)
+
+#endif
+
 #ifdef VK_USE_PLATFORM_WIN32_KHR
 
 #define HANDLE_PNEXT_OS_WIN32()                                                                       \
@@ -390,6 +401,7 @@ SERIALISE_VK_HANDLES();
   /* OS-specific extensions */                                                                         \
   HANDLE_PNEXT_OS_WIN32()                                                                              \
   HANDLE_PNEXT_OS_ANDROID()                                                                            \
+  HANDLE_PNEXT_OS_GGP()                                                                                \
                                                                                                        \
   /* Core 1.0 structs. Should never be serialised in a pNext chain */                                  \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_APPLICATION_INFO, VkApplicationInfo)                                  \
@@ -1098,7 +1110,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IOS_SURFACE_CREATE_INFO_MVK)                                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK)                                   \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT)                                   \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PRESENT_FRAME_TOKEN_GGP)                                         \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_STREAM_DESCRIPTOR_SURFACE_CREATE_INFO_GGP)                       \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_VI_SURFACE_CREATE_INFO_NN)                                       \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR)                                 \
@@ -5411,7 +5422,7 @@ void DoSerialise(SerialiserType &ser, VkPastPresentationTimingGOOGLE &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPresentTimesInfoGOOGLE &el)
 {
-  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_PRESENT_REGIONS_KHR);
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_PRESENT_TIMES_INFO_GOOGLE);
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER(swapchainCount);
@@ -9210,6 +9221,23 @@ INSTANTIATE_SERIALISE_TYPE(ImageInfo);
 INSTANTIATE_SERIALISE_TYPE(ImageSubresourceRange);
 INSTANTIATE_SERIALISE_TYPE(ImageSubresourceStateForRange);
 INSTANTIATE_SERIALISE_TYPE(ImageState);
+
+#ifdef VK_USE_PLATFORM_GGP
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPresentFrameTokenGGP &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_PRESENT_FRAME_TOKEN_GGP);
+  SerialiseNext(ser, el.sType, el.pNext);
+}
+
+template <>
+void Deserialise(const VkPresentFrameTokenGGP &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+#endif
 
 #ifdef VK_USE_PLATFORM_WIN32_KHR
 template <typename SerialiserType>
