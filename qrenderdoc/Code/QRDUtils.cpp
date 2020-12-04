@@ -327,6 +327,19 @@ typedef QSharedPointer<GPUAddress> GPUAddressPtr;
 
 Q_DECLARE_METATYPE(GPUAddressPtr);
 
+ICaptureContext *getCaptureContext(const QWidget *widget)
+{
+  void *ctxptr = NULL;
+
+  while(widget && !ctxptr)
+  {
+    ctxptr = widget->property("ICaptureContext").value<void *>();
+    widget = widget->parentWidget();
+  }
+
+  return (ICaptureContext *)ctxptr;
+}
+
 QString ResIdTextToString(RichResourceTextPtr ptr)
 {
   ptr->cacheDocument(NULL);

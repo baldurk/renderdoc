@@ -97,7 +97,7 @@ CaptureContext::CaptureContext(PersistantConfig &cfg) : m_Config(cfg)
   m_MainWindow->LoadInitialLayout();
 
   {
-    QDir dir(configFilePath("extensions"));
+    QDir dir(ConfigFilePath("extensions"));
 
     if(!dir.exists())
       dir.mkpath(dir.absolutePath());

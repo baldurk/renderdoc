@@ -869,7 +869,7 @@ DECLARE_STRINGISE_TYPE(WindowingData);
 
 #endif
 
-DOCUMENT(R"(Internal structure used for initialising environment in a replay application.)");
+DOCUMENT(R"(Structure used for initialising environment in a replay application.)");
 struct GlobalEnvironment
 {
   DOCUMENT("");

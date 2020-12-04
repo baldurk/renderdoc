@@ -2319,28 +2319,14 @@ protected:
 
 DECLARE_REFLECTION_STRUCT(ICaptureContext);
 
-DOCUMENT(R"(Attempt to retrieve the capture context for a particular widget.
-
-This will search up the widget heirarchy to find if a capture context is associated with this widget
-or any of its parents. Mostly useful from within widget code where a capture context can't be
-explicitly passed in.
-
-This may return ``None`` if no capture context can be found.
-
-:param QWidget widget: The widget to search from.
-:return: The capture context associated with this widget, if one unambiguously exists.
-:rtype: CaptureContext
-)");
-ICaptureContext *getCaptureContext(const QWidget *widget);
-
 DOCUMENT(R"(Retrieve the absolute path where a given file can be stored with other application
 data.
 
 :param str filename: The base filename.
 :return: The absolute path.
-:rtype: ``str``
+:rtype: str
 )");
-rdcstr configFilePath(const rdcstr &filename);
+rdcstr ConfigFilePath(const rdcstr &filename);
 
 // simple helper for the common case of 'we just need to run this on the replay thread'
 #define INVOKE_MEMFN(function) \

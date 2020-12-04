@@ -4241,7 +4241,8 @@ enum class DrawFlags : uint32_t
 BITMASK_OPERATORS(DrawFlags);
 DECLARE_REFLECTION_ENUM(DrawFlags);
 
-DOCUMENT(R"(A set of flags giving details of the current status of vulkan layer registration.
+DOCUMENT(R"(INTERNAL: A set of flags giving details of the current status of vulkan layer
+registration.
 
 .. data:: NoFlags
 
@@ -4306,7 +4307,7 @@ enum class VulkanLayerFlags : uint32_t
 BITMASK_OPERATORS(VulkanLayerFlags);
 DECLARE_REFLECTION_ENUM(VulkanLayerFlags);
 
-DOCUMENT(R"(A set of flags giving details of the current status of Android tracability.
+DOCUMENT(R"(INTERNAL: A set of flags giving details of the current status of Android tracability.
 
 .. data:: NoFlags
 

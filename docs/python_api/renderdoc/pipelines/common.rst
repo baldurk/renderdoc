@@ -1,68 +1,132 @@
 Common Pipeline State Abstraction
 =================================
 
+.. contents::
+
 .. currentmodule:: renderdoc
 
 .. autoclass:: PipeState
   :members:
 
-Viewport
---------
-
-.. autoclass:: renderdoc.Viewport
-  :members:
-
-Scissor
--------
-
-.. autoclass:: renderdoc.Scissor
-  :members:
-
-BlendEquation
+Vertex Inputs
 -------------
-
-.. autoclass:: renderdoc.BlendEquation
-  :members:
-
-ColorBlend
-----------
-
-.. autoclass:: renderdoc.ColorBlend
-  :members:
-
-StencilFace
------------
-
-.. autoclass:: renderdoc.StencilFace
-  :members:
-
-BoundResource
--------------
-
-.. autoclass:: renderdoc.BoundResource
-  :members:
-
-BoundResourceArray
-------------------
-
-.. autoclass:: renderdoc.BoundResourceArray
-  :members:
-
-BoundVBuffer
-------------
 
 .. autoclass:: renderdoc.BoundVBuffer
   :members:
 
-BoundCBuffer
-------------
+.. autoclass:: renderdoc.VertexInputAttribute
+  :members:
+
+.. autoclass:: renderdoc.Topology
+  :members:
+  
+.. autofunction:: renderdoc.NumVerticesPerPrimitive
+.. autofunction:: renderdoc.VertexOffset
+.. autofunction:: renderdoc.PatchList_Count
+.. autofunction:: renderdoc.PatchList_Topology
+.. autofunction:: renderdoc.SupportsRestart
+.. autofunction:: renderdoc.IsStrip
+
+Shader Resource Bindings
+------------------------
+
+.. autoclass:: renderdoc.BoundResourceArray
+  :members:
+
+.. autoclass:: renderdoc.BoundResource
+  :members:
 
 .. autoclass:: renderdoc.BoundCBuffer
   :members:
 
-VertexInputAttribute
---------------------
+.. autoclass:: renderdoc.BindType
+  :members:
 
-.. autoclass:: renderdoc.VertexInputAttribute
+.. autoclass:: renderdoc.TextureSwizzle
+  :members:
+
+.. autoclass:: renderdoc.TextureSwizzle4
+  :members:
+
+.. autoclass:: renderdoc.D3DBufferViewFlags
+  :members:
+
+Samplers
+--------
+
+.. autoclass:: renderdoc.AddressMode
+  :members:
+
+.. autoclass:: renderdoc.TextureFilter
+  :members:
+
+.. autoclass:: renderdoc.FilterMode
   :members:
   
+.. autoclass:: renderdoc.FilterFunction
+  :members:
+
+.. autoclass:: renderdoc.ChromaSampleLocation
+  :members:
+
+.. autoclass:: renderdoc.YcbcrConversion
+  :members:
+
+.. autoclass:: renderdoc.YcbcrRange
+  :members:
+
+Viewport and Scissor
+--------------------
+
+.. autoclass:: renderdoc.Viewport
+  :members:
+
+.. autoclass:: renderdoc.Scissor
+  :members:
+
+Rasterizer
+----------
+
+.. autoclass:: renderdoc.CullMode
+  :members:
+
+.. autoclass:: renderdoc.FillMode
+  :members:
+
+.. autoclass:: renderdoc.ConservativeRaster
+  :members:
+
+.. autoclass:: renderdoc.LineRaster
+  :members:
+
+
+Stencil
+-------
+
+.. autoclass:: renderdoc.StencilFace
+  :members:
+
+.. autoclass:: renderdoc.StencilOperation
+  :members:
+
+.. autoclass:: renderdoc.CompareFunction
+  :members:
+
+Blending
+--------
+
+.. autoclass:: renderdoc.ColorBlend
+  :members:
+
+.. autoclass:: renderdoc.BlendEquation
+  :members:
+
+.. autoclass:: renderdoc.BlendMultiplier
+  :members:
+
+.. autoclass:: renderdoc.BlendOperation
+  :members:
+
+.. autoclass:: renderdoc.LogicOperation
+  :members:
+

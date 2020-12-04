@@ -264,11 +264,22 @@ TEMPLATE_ARRAY_DECLARE(rdcarray);
   %rename("%s") count;
 }
 
-%inline %{
+  %feature("docstring") R"(Returns a string representation of an object. This is quite similar to
+the built-in repr() function but it iterates over struct members and prints them out, where normally
+repr() would stop and say something like 'Swig Object of type ...'.
 
+:param Any object: The object to dump
+:return: The string representation of the object.
+:rtype: str
+)";
+
+%inline %{
+  
 extern "C" PyObject *RENDERDOC_DumpObject(PyObject *obj);
 
 %}
+
+  %feature("docstring") "";
 
 %extend SDObject {
   %feature("docstring") R"(Interprets the object as an integer and returns its value.

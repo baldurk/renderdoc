@@ -1,13 +1,85 @@
 D3D12 Pipeline State
 ====================
 
+.. contents::
+
 .. currentmodule:: renderdoc
 
 .. autoclass:: D3D12State
   :members:
 
-.. automodule:: renderdoc
-  :noindex:
+Root Signature and Bindings
+---------------------------
+
+.. autoclass:: D3D12RootSignatureRange
   :members:
-  :imported-members:
-  :exclude-members: D3D12State, free_functions__, enum_constants__, name_match__include_only__startswith__D3D12
+  
+.. autoclass:: D3D12ConstantBuffer
+  :members:
+
+.. autoclass:: D3D12Sampler
+  :members:
+
+.. autoclass:: D3D12View
+  :members:
+
+Vertex Input
+------------
+
+.. autoclass:: D3D12InputAssembly
+  :members:
+
+.. autoclass:: D3D12Layout
+  :members:
+
+.. autoclass:: D3D12VertexBuffer
+  :members:
+
+.. autoclass:: D3D12IndexBuffer
+  :members:
+
+Shader
+------
+
+.. autoclass:: D3D12Shader
+  :members:
+
+Stream-out
+----------
+
+.. autoclass:: D3D12StreamOut
+  :members:
+
+.. autoclass:: D3D12StreamOutBind
+  :members:
+
+Rasterizer
+----------
+
+.. autoclass:: D3D12Rasterizer
+  :members:
+
+.. autoclass:: D3D12RasterizerState
+  :members:
+
+Output Merger
+-------------
+
+.. autoclass:: D3D12OM
+  :members:
+
+.. autoclass:: D3D12DepthStencilState
+  :members:
+
+.. autoclass:: D3D12BlendState
+  :members:
+
+Resource States
+---------------
+
+.. autoclass:: D3D12ResourceData
+  :members:
+
+.. autoclass:: D3D12ResourceState
+  :members:
+

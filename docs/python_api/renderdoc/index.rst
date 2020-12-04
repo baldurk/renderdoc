@@ -4,12 +4,28 @@ renderdoc API Reference
 .. toctree::
 	:hidden:
 
-	main_ifaces
-	funcs
-	enums_data
+	capturing
+	replay
+	outputs
+	analysis
+	formats
+	resources
+	shaders
 	pipelines/index
+	structured_data
+	counters
+	frame_stats
+	utils
 
-* :doc:`main_ifaces`
-* :doc:`funcs`
-* :doc:`enums_data`
+* :doc:`capturing`
+* :doc:`replay`
+* :doc:`outputs`
+* :doc:`analysis`
+* :doc:`formats`
+* :doc:`resources`
+* :doc:`shaders`
 * :doc:`pipelines/index`
+* :doc:`structured_data`
+* :doc:`counters`
+* :doc:`frame_stats`
+* :doc:`utils`

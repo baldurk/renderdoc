@@ -40,12 +40,14 @@
 DOCUMENT("");
 typedef uint8_t byte;
 
+#if !defined(SWIG)
 // needs to be declared up here for reference in rdcarray/rdcstr
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_FreeArrayMem(void *mem);
 typedef void(RENDERDOC_CC *pRENDERDOC_FreeArrayMem)(void *mem);
 
 extern "C" RENDERDOC_API void *RENDERDOC_CC RENDERDOC_AllocArrayMem(uint64_t sz);
 typedef void *(RENDERDOC_CC *pRENDERDOC_AllocArrayMem)(uint64_t sz);
+#endif
 
 // declare base types and stringise interface
 #include "rdcarray.h"
@@ -1911,7 +1913,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EndSelfHostCapture(const ch
 // Vulkan layer handling
 //////////////////////////////////////////////////////////////////////////
 
-DOCUMENT("Structure containing all the information about vulkan layer registration");
+DOCUMENT("INTERNAL: Information about vulkan layer registration");
 struct VulkanLayerRegistrationInfo
 {
   DOCUMENT(":class:`VulkanLayerFlags` detailing the current registration.");
@@ -1924,19 +1926,21 @@ struct VulkanLayerRegistrationInfo
   rdcarray<rdcstr> otherJSONs;
 };
 
-DOCUMENT("Internal function for determining vulkan layer registration status.");
+DOCUMENT("INTERNAL: Determine vulkan layer registration status.");
 extern "C" RENDERDOC_API bool RENDERDOC_CC
 RENDERDOC_NeedVulkanLayerRegistration(VulkanLayerRegistrationInfo *info);
 
-DOCUMENT("Internal function for updating vulkan layer registration.");
+DOCUMENT("INTERNAL: Update vulkan layer registration.");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_UpdateVulkanLayerRegistration(bool systemLevel);
 
 //////////////////////////////////////////////////////////////////////////
 // Miscellaneous!
 //////////////////////////////////////////////////////////////////////////
 
-DOCUMENT("Internal function for updating installed version number in windows registry.");
+#if !defined(SWIG)
+DOCUMENT("INTERNAL: Update installed version number in windows registry.");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_UpdateInstalledVersionNumber();
+#endif
 
 DOCUMENT(R"(Initialises RenderDoc for replay. Replay API functions should not be called before this
 has been called. It should be called exactly once, and before shutdown you must call
@@ -1955,16 +1959,18 @@ should only be called at program shutdown. This function must only be called if
 )");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_ShutdownReplay();
 
-DOCUMENT("Internal function for creating a bug report zip.");
+#if !defined(SWIG)
+DOCUMENT("INTERNAL: Create a bug report zip.");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CreateBugReport(const char *logfile,
                                                                      const char *dumpfile,
                                                                      rdcstr &report);
 
-DOCUMENT("Internal function for registering a memory region to be saved with crash dumps.");
+DOCUMENT("INTERNAL: Register a memory region to be saved with crash dumps.");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_RegisterMemoryRegion(void *base, size_t size);
 
-DOCUMENT("Internal function for unregistering a memory region to be saved with crash dumps.");
+DOCUMENT("INTERNAL: Unregister a memory region to be saved with crash dumps.");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_UnregisterMemoryRegion(void *base);
+#endif
 
 DOCUMENT(R"(Sets the location for the diagnostic log output, shared by captured programs and the
 analysis program.
@@ -1981,14 +1987,21 @@ analysis program.
 )");
 extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetLogFile();
 
-DOCUMENT("Internal function for fetching the contents of a log");
+#if !defined(SWIG)
+DOCUMENT("INTERNAL: Atomically fetch the contents of the log");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetLogFileContents(uint64_t offset,
                                                                         rdcstr &logfile);
+#endif
 
-DOCUMENT("Internal function for logging text simply.");
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_LogText(const char *text);
+DOCUMENT(R"(Add a message to RenderDoc's logfile.
 
-DOCUMENT("Internal function for logging messages in detail.");
+:param LogType type: The type of the log message. Error messages will trigger a debugger breakpoint
+  if a debugger is attached, and fatal errors will kill the process after logging.
+:param str project: A short project tag, which should be uppercase and either 3 or 4 characters.
+:param str file: The file where this log message came from.
+:param int line: The line number in :paramref:`file` where this log message came from.
+:param str text: The text of the message.
+)");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_LogMessage(LogType type, const char *project,
                                                                 const char *file, unsigned int line,
                                                                 const char *text);
@@ -2057,19 +2070,30 @@ If no such setting exists, `None` is returned.
 )");
 extern "C" RENDERDOC_API SDObject *RENDERDOC_CC RENDERDOC_SetConfigSetting(const char *name);
 
-DOCUMENT("Internal function for saving config settings.");
+DOCUMENT(R"(Flush the current config settings as they are in memory to the config file on disk.
+
+Without calling this function, settings changes will only be temporary. The settings are **not**
+saved to disk on exit implicitly.
+)");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SaveConfigSettings();
 
-DOCUMENT("Internal function for setting UI theme colors.");
+DOCUMENT(R"(Configure the default colours used for checkerboards, this can broadly speaking help
+match the replay rendering to the overall theme of the replay application.
+
+:param FloatVector darkChecker: The color of dark squares in checkerboard patterns.
+:param FloatVector lightChecker: The color of light squares in checkerboard patterns.
+:param bool darkTheme: ``True`` if the theme is a 'dark' theme, used to pick different contrasting
+  colors. ``False`` if the theme is 'light' and normal colors are used.
+)");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetColors(FloatVector darkChecker,
                                                                FloatVector lightChecker,
                                                                bool darkTheme);
 
-DOCUMENT("Internal function for checking remote Android package for requirements");
+DOCUMENT("INTERNAL: Check remote Android package for requirements");
 extern "C" RENDERDOC_API void RENDERDOC_CC
 RENDERDOC_CheckAndroidPackage(const char *URL, const char *packageAndActivity, AndroidFlags *flags);
 
-DOCUMENT("Internal function that attempts to modify APK contents, adding debuggable flag.");
+DOCUMENT("INTERNAL: Patch an APK to add debuggable flag.");
 extern "C" RENDERDOC_API AndroidFlags RENDERDOC_CC RENDERDOC_MakeDebuggablePackage(
     const char *URL, const char *packageAndActivity, RENDERDOC_ProgressCallback progress);
 
@@ -2168,21 +2192,23 @@ immediate use of it may block.
 extern "C" RENDERDOC_API IDeviceProtocolController *RENDERDOC_CC
 RENDERDOC_GetDeviceProtocolController(const rdcstr &protocol);
 
-DOCUMENT("Internal function that runs unit tests.");
+#if !defined(SWIG)
+DOCUMENT("INTERNAL: Run unit tests.");
 extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunUnitTests(const rdcstr &command,
                                                                  const rdcarray<rdcstr> &args);
 
-DOCUMENT("Internal function that runs functional tests.");
+DOCUMENT("INTERNAL: Run functional tests.");
 extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunFunctionalTests(int pythonMinorVersion,
                                                                        const rdcarray<rdcstr> &args);
+#endif
 
 #if !defined(SWIG)
 #include "version.h"
 
-DOCUMENT("Internal function that begins a profile region.");
+DOCUMENT("INTERNAL: Begin a profile region.");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_BeginProfileRegion(const rdcstr &name);
 
-DOCUMENT("Internal function that ends a profile region.");
+DOCUMENT("INTERNAL: End a profile region.");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EndProfileRegion();
 
 // don't define profile regions in stable builds

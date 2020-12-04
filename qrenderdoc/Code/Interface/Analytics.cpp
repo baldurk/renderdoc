@@ -477,7 +477,7 @@ void Analytics::Load()
   Analytics::db = &actualDB;
 
   // find the filename where the analytics will be saved
-  analyticsSaveLocation = configFilePath(lit("analytics.json"));
+  analyticsSaveLocation = ConfigFilePath(lit("analytics.json"));
 
   QFile f(analyticsSaveLocation);
 

@@ -2929,7 +2929,7 @@ void TextureViewer::OnCaptureLoaded()
     GUIInvoke::call(this, [this]() { OnEventChanged(m_Ctx.CurEvent()); });
   });
 
-  m_Watcher = new QFileSystemWatcher({configFilePath(QString())}, this);
+  m_Watcher = new QFileSystemWatcher({ConfigFilePath(QString())}, this);
 
   QObject::connect(m_Watcher, &QFileSystemWatcher::fileChanged, this,
                    &TextureViewer::customShaderModified);
@@ -4328,7 +4328,7 @@ QList<QDir> TextureViewer::getShaderDirectories() const
 {
   QList<QDir> dirs;
   dirs.reserve(int(m_Ctx.Config().TextureViewer_ShaderDirs.size() + 1u));
-  dirs.append(QDir(configFilePath(QString())));
+  dirs.append(QDir(ConfigFilePath(QString())));
   for(const rdcstr &dir : m_Ctx.Config().TextureViewer_ShaderDirs)
   {
     dirs.append(QDir(dir));
@@ -4429,7 +4429,7 @@ void TextureViewer::on_customCreate_clicked()
     src = tr("Unknown format - no template available");
   }
 
-  QString path = QDir::cleanPath(QDir(configFilePath(QString())).absoluteFilePath(filename));
+  QString path = QDir::cleanPath(QDir(ConfigFilePath(QString())).absoluteFilePath(filename));
   QFile fileHandle(path);
   if(fileHandle.open(QFile::WriteOnly | QIODevice::Truncate | QIODevice::Text))
   {

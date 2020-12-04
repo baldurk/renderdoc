@@ -238,11 +238,6 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetDebugLogFile(const char 
   }
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_LogText(const char *text)
-{
-  rdclog_direct(FILL_AUTO_VALUE, FILL_AUTO_VALUE, LogType::Comment, "EXT", "external", 0, "%s", text);
-}
-
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_LogMessage(LogType type, const char *project,
                                                                 const char *file, unsigned int line,
                                                                 const char *text)

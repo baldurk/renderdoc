@@ -57,7 +57,7 @@ ExtensionManager::ExtensionManager(ICaptureContext &ctx)
 
   QObject::connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
 
-  QString extensionFolder = configFilePath("extensions");
+  QString extensionFolder = ConfigFilePath("extensions");
 
   m_Extensions = m_Ctx.Extensions().GetInstalledExtensions();
 
@@ -125,7 +125,7 @@ void ExtensionManager::on_openLocation_clicked()
 {
   if(m_Extensions.empty())
   {
-    QDesktopServices::openUrl(QString(configFilePath("extensions")));
+    QDesktopServices::openUrl(QString(ConfigFilePath("extensions")));
     return;
   }
 

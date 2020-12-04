@@ -509,7 +509,7 @@ QString MainWindow::GetLayoutPath(int layout)
   if(layout > 0)
     filename = lit("Layout%1.config").arg(layout);
 
-  return configFilePath(filename);
+  return ConfigFilePath(filename);
 }
 
 void MainWindow::on_action_Exit_triggered()

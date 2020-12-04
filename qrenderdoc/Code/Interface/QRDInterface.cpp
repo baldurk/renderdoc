@@ -160,7 +160,7 @@ CaptureSettings::CaptureSettings(const QVariant &v)
     numQueuedFrames = 0;
 }
 
-rdcstr configFilePath(const rdcstr &filename)
+rdcstr ConfigFilePath(const rdcstr &filename)
 {
   QString path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
 
@@ -169,17 +169,4 @@ rdcstr configFilePath(const rdcstr &filename)
     dir.mkdir(lit("."));
 
   return QDir::cleanPath(dir.absoluteFilePath(filename));
-}
-
-ICaptureContext *getCaptureContext(const QWidget *widget)
-{
-  void *ctxptr = NULL;
-
-  while(widget && !ctxptr)
-  {
-    ctxptr = widget->property("ICaptureContext").value<void *>();
-    widget = widget->parentWidget();
-  }
-
-  return (ICaptureContext *)ctxptr;
 }

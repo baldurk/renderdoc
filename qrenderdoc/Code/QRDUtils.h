@@ -172,6 +172,8 @@ struct GPUAddress
   void cacheAddress(const QWidget *widget);
 };
 
+ICaptureContext *getCaptureContext(const QWidget *widget);
+
 // this will check the variant, and if it contains a ResourceId directly or text with ResourceId
 // identifiers then it will be converted into a RichResourceTextPtr or ResourceId in-place. The new
 // QVariant will still convert to QString so it doesn't have to be special-cased. However it must be

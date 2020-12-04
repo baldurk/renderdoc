@@ -43,14 +43,9 @@ CaptureSettings::CaptureSettings()
   RENDERDOC_GetDefaultCaptureOptions(&options);
 }
 
-rdcstr configFilePath(const rdcstr &filename)
+rdcstr ConfigFilePath(const rdcstr &filename)
 {
   return "";
-}
-
-ICaptureContext *getCaptureContext(const QWidget *widget)
-{
-  return NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

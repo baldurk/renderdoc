@@ -1,6 +1,6 @@
 #import <Cocoa/Cocoa.h>
 
-extern "C" void RENDERDOC_LogText(const char *text);
+extern "C" void NSGL_LogText(const char *text);
 
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
@@ -47,7 +47,7 @@ extern "C" void *NSGL_createContext(void *handle, void *sharehandle)
 
   if(pix == nil)
   {
-    RENDERDOC_LogText("Failed to create NSOpenGLPixelFormat");
+    NSGL_LogText("Failed to create NSOpenGLPixelFormat");
     return nil;
   }
 
@@ -56,7 +56,7 @@ extern "C" void *NSGL_createContext(void *handle, void *sharehandle)
 
   if(context == nil)
   {
-    RENDERDOC_LogText("Failed to create NSOpenGLContext");
+    NSGL_LogText("Failed to create NSOpenGLContext");
     return nil;
   }
 

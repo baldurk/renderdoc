@@ -38,6 +38,12 @@ extern "C" void NSGL_update(void *nsctx);
 extern "C" void NSGL_flushBuffer(void *nsctx);
 extern "C" void NSGL_destroyContext(void *nsctx);
 
+// helper for cgl_platform.mm
+extern "C" void NSGL_LogText(const char *text)
+{
+  RDCLOG("CGL: %s", text);
+}
+
 // gl functions (used for quad rendering on legacy contexts)
 extern "C" void glPushMatrix();
 extern "C" void glLoadIdentity();

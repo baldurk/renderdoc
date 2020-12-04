@@ -143,9 +143,10 @@ DECLARE_REFLECTION_STRUCT(SectionProperties);
 
 struct ResourceFormat;
 
-DOCUMENT("Internal function for getting the name for a resource format.");
+#if !defined(SWIG)
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_ResourceFormatName(const ResourceFormat &fmt,
                                                                         rdcstr &name);
+#endif
 
 DOCUMENT("Description of the format of a resource or element.");
 struct ResourceFormat

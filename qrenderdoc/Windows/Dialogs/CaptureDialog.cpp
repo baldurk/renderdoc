@@ -95,7 +95,7 @@ void CaptureDialog::initWarning(RDLabel *warning)
 
 QString CaptureDialog::mostRecentFilename()
 {
-  return configFilePath(lit("most_recent.cap"));
+  return ConfigFilePath(lit("most_recent.cap"));
 }
 
 void CaptureDialog::PopulateMostRecent()

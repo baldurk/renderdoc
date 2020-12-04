@@ -1,13 +1,99 @@
 OpenGL Pipeline State
 =====================
 
+.. contents::
+
 .. currentmodule:: renderdoc
 
 .. autoclass:: GLState
   :members:
 
-.. automodule:: renderdoc
-  :noindex:
+Vertex Input
+------------
+
+.. autoclass:: GLVertexInput
   :members:
-  :imported-members:
-  :exclude-members: GLState, free_functions__, enum_constants__, name_match__include_only__startswith__GL
+
+.. autoclass:: GLVertexAttribute
+  :members:
+
+.. autoclass:: GLVertexBuffer
+  :members:
+
+Shader
+------
+
+.. autoclass:: GLShader
+  :members:
+
+Fixed Vertex Processing
+-----------------------
+
+.. autoclass:: GLFixedVertexProcessing
+  :members:
+
+Shader Bindings
+---------------
+
+.. autoclass:: GLTexture
+  :members:
+
+.. autoclass:: GLSampler
+  :members:
+
+.. autoclass:: GLBuffer
+  :members:
+
+.. autoclass:: GLImageLoadStore
+  :members:
+
+Transform Feedback
+------------------
+
+.. autoclass:: GLFeedback
+  :members:
+
+Rasterizer
+----------
+
+.. autoclass:: GLRasterizer
+  :members:
+
+.. autoclass:: GLRasterizerState
+  :members:
+
+Depth/Stencil State
+-------------------
+
+.. autoclass:: GLDepthState
+  :members:
+
+.. autoclass:: GLStencilState
+  :members:
+
+Framebuffer
+-----------
+
+.. autoclass:: GLFrameBuffer
+  :members:
+
+.. autoclass:: GLFBO
+  :members:
+
+.. autoclass:: GLAttachment
+  :members:
+
+Blending
+--------
+
+.. autoclass:: GLBlendState
+  :members:
+
+Hints
+-----
+
+.. autoclass:: GLHints
+  :members:
+
+.. autoclass:: QualityHint
+  :members:

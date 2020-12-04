@@ -34,6 +34,7 @@
 #include <QStylePainter>
 #include <QToolTip>
 #include <QWheelEvent>
+#include "Code/QRDUtils.h"
 #include "Code/Resources.h"
 
 static int GetDepth(const QAbstractItemModel *model, const QModelIndex &idx)

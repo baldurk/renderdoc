@@ -76,6 +76,16 @@ enum class KnownShaderTool : uint32_t
 
 ITERABLE_OPERATORS(KnownShaderTool);
 
+DOCUMENT(R"(Returns the default executable name with no suffix for a given :class:`KnownShaderTool`.
+
+.. note::
+  The executable name is returned with no suffix, e.g. ``foobar`` which may need a platform specific
+  suffix like ``.exe`` appended.
+
+:param KnownShaderTool tool: The tool to get the executable name for.
+:return: The default executable name for this tool, or an empty string if the tool is unrecognised.
+:rtype: str
+)");
 inline rdcstr ToolExecutable(KnownShaderTool tool)
 {
   if(tool == KnownShaderTool::SPIRV_Cross)
@@ -94,6 +104,14 @@ inline rdcstr ToolExecutable(KnownShaderTool tool)
   return "";
 }
 
+DOCUMENT(R"(Returns the expected default input :class:`ShaderEncoding` that a
+:class:`KnownShaderTool` expects. This may not be accurate and may be configurable depending on the
+tool.
+
+:param KnownShaderTool tool: The tool to get the input encoding for.
+:return: The encoding that this tool expects as an input by default.
+:rtype: ShaderEncoding
+)");
 inline ShaderEncoding ToolInput(KnownShaderTool tool)
 {
   if(tool == KnownShaderTool::SPIRV_Cross || tool == KnownShaderTool::spirv_dis)
@@ -110,6 +128,14 @@ inline ShaderEncoding ToolInput(KnownShaderTool tool)
   return ShaderEncoding::Unknown;
 }
 
+DOCUMENT(R"(Returns the expected default output :class:`ShaderEncoding` that a
+:class:`KnownShaderTool` produces. This may not be accurate and may be configurable depending on the
+tool.
+
+:param KnownShaderTool tool: The tool to get the output encoding for.
+:return: The encoding that this tool produces as an output by default.
+:rtype: ShaderEncoding
+)");
 inline ShaderEncoding ToolOutput(KnownShaderTool tool)
 {
   if(tool == KnownShaderTool::SPIRV_Cross)

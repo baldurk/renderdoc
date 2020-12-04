@@ -35,3 +35,7 @@ Helpers
   :members:
   :exclude-members: enum_constants__, 
 
+.. autoclass:: qrenderdoc.DialogButton
+  :members:
+  :exclude-members: enum_constants__, 
+

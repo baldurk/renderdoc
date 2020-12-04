@@ -10,20 +10,36 @@ Config
 
 .. autoclass:: qrenderdoc.PersistantConfig
   :members:
-  :exclude-members: enum_constants__,properties__
+
+.. autoclass:: qrenderdoc.TimeUnit
+  :members:
+  
+.. autofunction:: qrenderdoc.ConfigFilePath
+.. autofunction:: qrenderdoc.UnitSuffix
+.. autofunction:: qrenderdoc.AddRecentFile
+.. autofunction:: qrenderdoc.RemoveRecentFile
+
+Shader Processing
+-----------------
 
 .. autoclass:: qrenderdoc.ShaderProcessingTool
   :members:
 
+.. autoclass:: qrenderdoc.KnownShaderTool
+  :members:
+
 .. autoclass:: qrenderdoc.ShaderToolOutput
   :members:
+  
+.. autofunction:: qrenderdoc.ToolExecutable
+.. autofunction:: qrenderdoc.ToolInput
+.. autofunction:: qrenderdoc.ToolOutput
+
+Bug Reports
+-----------
 
 .. autoclass:: qrenderdoc.BugReport
   :members:
-
-.. autoclass:: qrenderdoc.TimeUnit
-  :members:
-  :exclude-members: enum_constants__,
 
 Remote Host
 -----------

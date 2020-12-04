@@ -314,7 +314,7 @@ int main(int argc, char *argv[])
         dir.mkpath(configPath);
     }
 
-    QString configFilename = configFilePath(lit("UI.config"));
+    QString configFilename = ConfigFilePath(lit("UI.config"));
 
     if(!config.Load(configFilename))
     {
