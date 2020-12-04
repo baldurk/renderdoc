@@ -57,21 +57,22 @@ public:
 
   virtual rdcstr GetHomeFolder();
 
-  virtual rdcarray<PathEntry> ListFolder(const char *path);
+  virtual rdcarray<PathEntry> ListFolder(const rdcstr &path);
 
-  virtual ExecuteResult ExecuteAndInject(const char *a, const char *w, const char *c,
+  virtual ExecuteResult ExecuteAndInject(const rdcstr &app, const rdcstr &workingDir,
+                                         const rdcstr &cmdline,
                                          const rdcarray<EnvironmentModification> &env,
                                          const CaptureOptions &opts);
 
-  virtual void CopyCaptureFromRemote(const char *remotepath, const char *localpath,
+  virtual void CopyCaptureFromRemote(const rdcstr &remotepath, const rdcstr &localpath,
                                      RENDERDOC_ProgressCallback progress);
 
-  virtual rdcstr CopyCaptureToRemote(const char *filename, RENDERDOC_ProgressCallback progress);
+  virtual rdcstr CopyCaptureToRemote(const rdcstr &filename, RENDERDOC_ProgressCallback progress);
 
-  virtual void TakeOwnershipCapture(const char *filename);
+  virtual void TakeOwnershipCapture(const rdcstr &filename);
 
   virtual rdcpair<ReplayStatus, IReplayController *> OpenCapture(uint32_t proxyid,
-                                                                 const char *filename,
+                                                                 const rdcstr &filename,
                                                                  const ReplayOptions &opts,
                                                                  RENDERDOC_ProgressCallback progress);
 
@@ -83,7 +84,7 @@ public:
 
   virtual int GetSectionCount();
 
-  virtual int FindSectionByName(const char *name);
+  virtual int FindSectionByName(const rdcstr &name);
 
   virtual int FindSectionByType(SectionType sectionType);
 

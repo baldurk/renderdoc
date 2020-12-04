@@ -44,7 +44,7 @@ static void *GetEGLHandle()
     libEGL = libpath + "/libEGL.dll";
   }
 
-  return Process::LoadModule(libEGL.c_str());
+  return Process::LoadModule(libEGL);
 #else
   void *handle = Process::LoadModule("libEGL.so");
 

@@ -151,19 +151,18 @@ void Process::ApplyEnvironmentModification()
   modifications.clear();
 }
 
-const char *Process::GetEnvVariable(const char *name)
+rdcstr Process::GetEnvVariable(const rdcstr &name)
 {
-  DWORD ret = GetEnvironmentVariableA(name, NULL, 0);
-  if(ret == 0 && GetLastError() == ERROR_ENVVAR_NOT_FOUND)
-    return NULL;
+  DWORD len = GetEnvironmentVariableA(name.c_str(), NULL, 0);
+  if(len == 0 && GetLastError() == ERROR_ENVVAR_NOT_FOUND)
+    return rdcstr();
 
-  static char buf[1024] = {};
-  if(ret >= 1024)
-    RDCERR("Static buffer insufficiently sized");
+  rdcstr ret;
+  ret.resize(len + 1);
 
-  RDCEraseEl(buf);
-  GetEnvironmentVariableA(name, buf, RDCMIN((DWORD)1023U, ret));
-  return buf;
+  GetEnvironmentVariableA(name.c_str(), ret.data(), len);
+  ret.trim();
+  return ret;
 }
 
 uint64_t Process::GetMemoryUsage()
@@ -209,6 +208,11 @@ extern "C" __declspec(dllexport) void __cdecl INTERNAL_SetCaptureFile(const char
 {
   if(capfile)
     RenderDoc::Inst().SetCaptureFileTemplate(capfile);
+}
+
+extern "C" __declspec(dllexport) void __cdecl INTERNAL_SetDebugLogFile(const char *logfile)
+{
+  RENDERDOC_SetDebugLogFile(logfile ? logfile : rdcstr());
 }
 
 static EnvironmentModification tempEnvMod;
@@ -428,7 +432,8 @@ void InjectFunctionCall(HANDLE hProcess, uintptr_t renderdoc_remote, const char 
   VirtualFreeEx(hProcess, remoteMem, 0, MEM_RELEASE);
 }
 
-static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, const char *cmdLine,
+static PROCESS_INFORMATION RunProcess(const rdcstr &app, const rdcstr &workingDir,
+                                      const rdcstr &cmdLine,
                                       const rdcarray<EnvironmentModification> &env, bool internal,
                                       HANDLE *phChildStdOutput_Rd, HANDLE *phChildStdError_Rd)
 {
@@ -447,7 +452,7 @@ static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, c
 
   rdcwstr workdir = L"";
 
-  if(workingDir != NULL && workingDir[0] != 0)
+  if(!workingDir.empty())
     workdir = StringFormat::UTF82Wide(workingDir);
   else
     workdir = StringFormat::UTF82Wide(get_dirname(app));
@@ -461,9 +466,9 @@ static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, c
 
   rdcwstr wcmd = L"";
 
-  if(cmdLine != NULL && cmdLine[0] != 0)
+  if(!cmdLine.empty())
   {
-    wcmd = StringFormat::UTF82Wide(rdcstr(cmdLine));
+    wcmd = StringFormat::UTF82Wide(cmdLine);
     len += wcmd.length();
   }
 
@@ -475,7 +480,7 @@ static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, c
   wcscat_s(paramsAlloc, len, wapp.c_str());
   wcscat_s(paramsAlloc, len, L"\"");
 
-  if(cmdLine != NULL && cmdLine[0] != 0)
+  if(!cmdLine.empty())
   {
     wcscat_s(paramsAlloc, len, L" ");
     wcscat_s(paramsAlloc, len, wcmd.c_str());
@@ -511,7 +516,7 @@ static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, c
     si.dwFlags |= STARTF_USESHOWWINDOW;
 
   if(!internal)
-    RDCLOG("Running process %s", app);
+    RDCLOG("Running process %s", app.c_str());
 
   // turn environment string to a UTF-8 map
   std::wstring envString;
@@ -550,7 +555,7 @@ static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, c
   if(!retValue)
   {
     if(!internal)
-      RDCWARN("Process %s could not be loaded.", app);
+      RDCWARN("Process %s could not be loaded.", app.c_str());
     CloseHandle(pi.hProcess);
     CloseHandle(pi.hThread);
     RDCEraseEl(pi);
@@ -560,10 +565,10 @@ static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, c
 }
 
 rdcpair<ReplayStatus, uint32_t> Process::InjectIntoProcess(
-    uint32_t pid, const rdcarray<EnvironmentModification> &env, const char *capturefile,
+    uint32_t pid, const rdcarray<EnvironmentModification> &env, const rdcstr &capturefile,
     const CaptureOptions &opts, bool waitForExit)
 {
-  rdcwstr wcapturefile = capturefile == NULL ? L"" : StringFormat::UTF82Wide(capturefile);
+  rdcwstr wcapturefile = StringFormat::UTF82Wide(capturefile);
 
   HANDLE hProcess =
       OpenProcess(PROCESS_CREATE_THREAD | PROCESS_QUERY_INFORMATION | PROCESS_VM_OPERATION |
@@ -944,13 +949,13 @@ rdcpair<ReplayStatus, uint32_t> Process::InjectIntoProcess(
   {
     // safe to cast away the const as we know these functions don't modify the parameters
 
-    if(capturefile != NULL)
-      InjectFunctionCall(hProcess, loc, "INTERNAL_SetCaptureFile", (void *)capturefile,
-                         strlen(capturefile) + 1);
+    if(!capturefile.empty())
+      InjectFunctionCall(hProcess, loc, "INTERNAL_SetCaptureFile", (void *)capturefile.c_str(),
+                         capturefile.size() + 1);
 
     rdcstr debugLogfile = RDCGETLOGFILE();
 
-    InjectFunctionCall(hProcess, loc, "RENDERDOC_SetDebugLogFile", (void *)debugLogfile.c_str(),
+    InjectFunctionCall(hProcess, loc, "INTERNAL_SetDebugLogFile", (void *)debugLogfile.c_str(),
                        debugLogfile.size() + 1);
 
     InjectFunctionCall(hProcess, loc, "INTERNAL_SetCaptureOptions", (CaptureOptions *)&opts,
@@ -993,7 +998,7 @@ rdcpair<ReplayStatus, uint32_t> Process::InjectIntoProcess(
   return result;
 }
 
-uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const char *cmdLine,
+uint32_t Process::LaunchProcess(const rdcstr &app, const rdcstr &workingDir, const rdcstr &cmdLine,
                                 bool internal, ProcessResult *result)
 {
   HANDLE hChildStdOutput_Rd = NULL, hChildStdError_Rd = NULL;
@@ -1007,8 +1012,8 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
     appPath += ".exe";
 
   PROCESS_INFORMATION pi =
-      RunProcess(appPath.c_str(), workingDir, cmdLine, {}, internal,
-                 result ? &hChildStdOutput_Rd : NULL, result ? &hChildStdError_Rd : NULL);
+      RunProcess(appPath, workingDir, cmdLine, {}, internal, result ? &hChildStdOutput_Rd : NULL,
+                 result ? &hChildStdError_Rd : NULL);
 
   if(pi.dwProcessId == 0)
   {
@@ -1018,7 +1023,7 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
   }
 
   if(!internal)
-    RDCLOG("Launched process '%s' with '%s'", appPath.c_str(), cmdLine);
+    RDCLOG("Launched process '%s' with '%s'", appPath.c_str(), cmdLine.c_str());
 
   ResumeThread(pi.hThread);
 
@@ -1064,18 +1069,18 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
   return pi.dwProcessId;
 }
 
-uint32_t Process::LaunchScript(const char *script, const char *workingDir, const char *argList,
-                               bool internal, ProcessResult *result)
+uint32_t Process::LaunchScript(const rdcstr &script, const rdcstr &workingDir,
+                               const rdcstr &argList, bool internal, ProcessResult *result)
 {
   // Change parameters to invoke command interpreter
-  rdcstr args = "/C " + rdcstr(script) + " " + rdcstr(argList);
+  rdcstr args = "/C " + script + " " + argList;
 
-  return LaunchProcess("cmd.exe", workingDir, args.c_str(), internal, result);
+  return LaunchProcess("cmd.exe", workingDir, args, internal, result);
 }
 
 rdcpair<ReplayStatus, uint32_t> Process::LaunchAndInjectIntoProcess(
-    const char *app, const char *workingDir, const char *cmdLine,
-    const rdcarray<EnvironmentModification> &env, const char *capturefile,
+    const rdcstr &app, const rdcstr &workingDir, const rdcstr &cmdLine,
+    const rdcarray<EnvironmentModification> &env, const rdcstr &capturefile,
     const CaptureOptions &opts, bool waitForExit)
 {
   void *func =
@@ -1383,10 +1388,10 @@ static void GlobalHookThread()
   }
 }
 
-bool Process::StartGlobalHook(const char *pathmatch, const char *capturefile,
+bool Process::StartGlobalHook(const rdcstr &pathmatch, const rdcstr &capturefile,
                               const CaptureOptions &opts)
 {
-  if(pathmatch == NULL)
+  if(pathmatch.empty())
     return false;
 
   rdcstr renderdocPath;
@@ -1466,7 +1471,7 @@ bool Process::StartGlobalHook(const char *pathmatch, const char *capturefile,
 
   rdcstr params = StringFormat::Fmt(
       "\"%s\" globalhook --match \"%s\" --capfile \"%s\" --debuglog \"%s\" --capopts \"%s\"",
-      cmdpathNative.c_str(), pathmatch, capturefile ? capturefile : "", debugLogfile.c_str(),
+      cmdpathNative.c_str(), pathmatch.c_str(), capturefile.c_str(), debugLogfile.c_str(),
       optstr.c_str());
 
   rdcwstr paramsAlloc = StringFormat::UTF82Wide(params);
@@ -1534,7 +1539,7 @@ bool Process::StartGlobalHook(const char *pathmatch, const char *capturefile,
 #if ENABLED(RDOC_X64)
   params = StringFormat::Fmt(
       "\"%s\" globalhook --match \"%s\" --capfile \"%s\" --debuglog \"%s\" --capopts \"%s\"",
-      cmdpathWow32.c_str(), pathmatch, capturefile ? capturefile : "", debugLogfile.c_str(),
+      cmdpathWow32.c_str(), pathmatch.c_str(), capturefile.c_str(), debugLogfile.c_str(),
       optstr.c_str());
 
   paramsAlloc = StringFormat::UTF82Wide(params);
@@ -1618,26 +1623,26 @@ void Process::StopGlobalHook()
   globalHook = NULL;
 }
 
-bool Process::IsModuleLoaded(const char *module)
+bool Process::IsModuleLoaded(const rdcstr &module)
 {
-  return GetModuleHandleA(module) != NULL;
+  return GetModuleHandleA(module.c_str()) != NULL;
 }
 
-void *Process::LoadModule(const char *module)
+void *Process::LoadModule(const rdcstr &module)
 {
-  HMODULE mod = GetModuleHandleA(module);
+  HMODULE mod = GetModuleHandleA(module.c_str());
   if(mod != NULL)
     return mod;
 
-  return LoadLibraryA(module);
+  return LoadLibraryA(module.c_str());
 }
 
-void *Process::GetFunctionAddress(void *module, const char *function)
+void *Process::GetFunctionAddress(void *module, const rdcstr &function)
 {
   if(module == NULL)
     return NULL;
 
-  return (void *)GetProcAddress((HMODULE)module, function);
+  return (void *)GetProcAddress((HMODULE)module, function.c_str());
 }
 
 uint32_t Process::GetCurrentPID()

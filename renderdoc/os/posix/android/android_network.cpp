@@ -49,7 +49,7 @@ uint32_t Socket::GetRemoteIP() const
   return MakeIP(127, 0, 0, 1);
 }
 
-Socket *CreateServerSocket(const char * /* bindaddr */, uint16_t port, int queuesize)
+Socket *CreateServerSocket(const rdcstr &, uint16_t port, int queuesize)
 {
   return CreateAbstractServerSocket(port, queuesize);
 }

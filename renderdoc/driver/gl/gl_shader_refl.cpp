@@ -2313,7 +2313,7 @@ void GetBindpointMapping(GLuint curProg, int shadIdx, const ShaderReflection *re
       }
 
       // handle sampler arrays, use the base name
-      rdcstr name = refl->readOnlyResources[i].name.c_str();
+      rdcstr name = refl->readOnlyResources[i].name;
       if(name.back() == ']')
       {
         do
@@ -2363,7 +2363,7 @@ void GetBindpointMapping(GLuint curProg, int shadIdx, const ShaderReflection *re
       }
 
       // handle sampler arrays, use the base name
-      rdcstr name = refl->readWriteResources[i].name.c_str();
+      rdcstr name = refl->readWriteResources[i].name;
       if(name.back() == ']')
       {
         do

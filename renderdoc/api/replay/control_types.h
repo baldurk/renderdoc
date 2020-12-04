@@ -585,7 +585,7 @@ struct EnvironmentModification
   DOCUMENT("");
   EnvironmentModification() : mod(EnvMod::Set), sep(EnvSep::NoSep), name(""), value("") {}
   EnvironmentModification(const EnvironmentModification &) = default;
-  EnvironmentModification(EnvMod m, EnvSep s, const char *n, const char *v)
+  EnvironmentModification(EnvMod m, EnvSep s, const rdcstr &n, const rdcstr &v)
       : mod(m), sep(s), name(n), value(v)
   {
   }

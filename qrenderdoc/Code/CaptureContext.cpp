@@ -1095,7 +1095,7 @@ void CaptureContext::RecompressCapture()
   {
     // for remote files we open a new short-lived handle on the temporary file
     tempCap = cap = RENDERDOC_OpenCaptureFile();
-    cap->OpenFile(tempFilename.toUtf8().data(), "rdc", NULL);
+    cap->OpenFile(tempFilename, "rdc", NULL);
   }
 
   if(!cap)
@@ -1127,7 +1127,7 @@ void CaptureContext::RecompressCapture()
   float progress = 0.0f;
 
   LambdaThread *th = new LambdaThread([cap, destFilename, &progress]() {
-    cap->Convert(destFilename.toUtf8().data(), "rdc", NULL, [&progress](float p) { progress = p; });
+    cap->Convert(destFilename, "rdc", NULL, [&progress](float p) { progress = p; });
   });
   th->setName(lit("RecompressCapture"));
   th->start();
@@ -1155,7 +1155,7 @@ void CaptureContext::RecompressCapture()
     QFile::rename(destFilename, GetCaptureFilename());
 
     // and re-open
-    cap->OpenFile(GetCaptureFilename().c_str(), "rdc", NULL);
+    cap->OpenFile(GetCaptureFilename(), "rdc", NULL);
   }
   else
   {
@@ -1213,7 +1213,7 @@ bool CaptureContext::SaveCaptureTo(const rdcstr &captureFile)
         if(capFile)
         {
           // this will overwrite
-          success = capFile->CopyFileTo(captureFile.c_str());
+          success = capFile->CopyFileTo(captureFile);
         }
         else
         {
@@ -1341,7 +1341,7 @@ bool CaptureContext::ImportCapture(const CaptureFileFormat &fmt, const rdcstr &i
 
     ICaptureFile *file = RENDERDOC_OpenCaptureFile();
 
-    status = file->OpenFile(importfile.c_str(), ext.toUtf8().data(),
+    status = file->OpenFile(importfile, ext.toUtf8().data(),
                             [&progress](float p) { progress = p * 0.5f; });
 
     if(status != ReplayStatus::Succeeded)
@@ -1351,8 +1351,8 @@ bool CaptureContext::ImportCapture(const CaptureFileFormat &fmt, const rdcstr &i
       return;
     }
 
-    status = file->Convert(rdcfile.c_str(), "rdc", NULL,
-                           [&progress](float p) { progress = 0.5f + p * 0.5f; });
+    status =
+        file->Convert(rdcfile, "rdc", NULL, [&progress](float p) { progress = 0.5f + p * 0.5f; });
     file->Shutdown();
   });
   th->setName(lit("ImportCapture"));
@@ -1404,7 +1404,7 @@ void CaptureContext::ExportCapture(const CaptureFileFormat &fmt, const rdcstr &e
   if(!file)
   {
     local = file = RENDERDOC_OpenCaptureFile();
-    status = file->OpenFile(m_CaptureFile.toUtf8().data(), "rdc", NULL);
+    status = file->OpenFile(m_CaptureFile, "rdc", NULL);
   }
 
   QString filename = QFileInfo(m_CaptureFile).fileName();
@@ -1428,8 +1428,7 @@ void CaptureContext::ExportCapture(const CaptureFileFormat &fmt, const rdcstr &e
   float progress = 0.0f;
 
   LambdaThread *th = new LambdaThread([file, sdfile, ext, exportfile, &progress, &status]() {
-    status = file->Convert(exportfile.c_str(), ext.toUtf8().data(), sdfile,
-                           [&progress](float p) { progress = p; });
+    status = file->Convert(exportfile, ext, sdfile, [&progress](float p) { progress = p; });
   });
   th->setName(lit("ExportCapture"));
   th->start();
@@ -2386,8 +2385,7 @@ void CaptureContext::ApplyShaderEdit(IShaderViewer *viewer, ResourceId id, Shade
     ResourceId from = id;
     ResourceId to;
 
-    rdctie(to, errs) =
-        r->BuildTargetShader(entryFunc.c_str(), shaderEncoding, shaderBytes, flags, stage);
+    rdctie(to, errs) = r->BuildTargetShader(entryFunc, shaderEncoding, shaderBytes, flags, stage);
 
     if(to == ResourceId())
     {

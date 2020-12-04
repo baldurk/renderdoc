@@ -330,9 +330,9 @@ typedef ReplayStatus (*ReplayDriverProvider)(RDCFile *rdc, const ReplayOptions &
 
 typedef void (*StructuredProcessor)(RDCFile *rdc, SDFile &structData);
 
-typedef ReplayStatus (*CaptureImporter)(const char *filename, StreamReader &reader, RDCFile *rdc,
+typedef ReplayStatus (*CaptureImporter)(const rdcstr &filename, StreamReader &reader, RDCFile *rdc,
                                         SDFile &structData, RENDERDOC_ProgressCallback progress);
-typedef ReplayStatus (*CaptureExporter)(const char *filename, const RDCFile &rdc,
+typedef ReplayStatus (*CaptureExporter)(const rdcstr &filename, const RDCFile &rdc,
                                         const SDFile &structData,
                                         RENDERDOC_ProgressCallback progress);
 typedef IDeviceProtocolHandler *(*ProtocolHandler)();
@@ -404,9 +404,9 @@ public:
   }
 
   // set from outside of the device creation interface
-  void SetCaptureFileTemplate(const char *logFile);
+  void SetCaptureFileTemplate(const rdcstr &logFile);
   const char *GetCaptureFileTemplate() const { return m_CaptureFileTemplate.c_str(); }
-  const char *GetCurrentTarget() const { return m_Target.c_str(); }
+  const rdcstr &GetCurrentTarget() const { return m_Target; }
   void Initialise();
   void RemoveHooks();
 
@@ -418,7 +418,7 @@ public:
   void RegisterShutdownFunction(ShutdownFunction func);
   void SetReplayApp(bool replay) { m_Replay = replay; }
   bool IsReplayApp() const { return m_Replay; }
-  void BecomeRemoteServer(const char *listenhost, uint16_t port, RENDERDOC_KillCallback killReplay,
+  void BecomeRemoteServer(const rdcstr &listenhost, uint16_t port, RENDERDOC_KillCallback killReplay,
                           RENDERDOC_PreviewWindowCallback previewWindow);
 
   const SDObject *GetConfigSetting(const rdcstr &name);
@@ -466,8 +466,8 @@ public:
 
   StructuredProcessor GetStructuredProcessor(RDCDriver driver);
 
-  CaptureExporter GetCaptureExporter(const char *filetype);
-  CaptureImporter GetCaptureImporter(const char *filetype);
+  CaptureExporter GetCaptureExporter(const rdcstr &filetype);
+  CaptureImporter GetCaptureImporter(const rdcstr &filetype);
 
   rdcarray<rdcstr> GetSupportedDeviceProtocols();
   IDeviceProtocolHandler *GetDeviceProtocol(const rdcstr &protocol);

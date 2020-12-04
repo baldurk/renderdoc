@@ -70,7 +70,7 @@
       <MinimalRebuild>false</MinimalRebuild>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <DisableSpecificWarnings>4100</DisableSpecificWarnings>
-      <AdditionalOptions>/w44062 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/w44062 /w44840 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

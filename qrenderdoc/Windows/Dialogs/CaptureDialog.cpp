@@ -570,7 +570,7 @@ void CaptureDialog::CheckAndroidSetup(QString &filename)
   LambdaThread *scan = new LambdaThread([this, filename]() {
 
     rdcstr host = m_Ctx.Replay().CurrentRemote().Hostname();
-    RENDERDOC_CheckAndroidPackage(host.c_str(), filename.toUtf8().data(), &m_AndroidFlags);
+    RENDERDOC_CheckAndroidPackage(host, filename, &m_AndroidFlags);
 
     const bool debuggable = bool(m_AndroidFlags & AndroidFlags::Debuggable);
     const bool hasroot = bool(m_AndroidFlags & AndroidFlags::RootAccess);
@@ -636,8 +636,8 @@ Would you like RenderDoc to try patching your package?
 
     // call into APK pull, patch, install routine, then continue
     LambdaThread *patch = new LambdaThread([this, host, exe, &patchSucceeded, &progress]() {
-      AndroidFlags result = RENDERDOC_MakeDebuggablePackage(host.c_str(), exe.toUtf8().data(),
-                                                            [&progress](float p) { progress = p; });
+      AndroidFlags result =
+          RENDERDOC_MakeDebuggablePackage(host, exe, [&progress](float p) { progress = p; });
 
       if(result & AndroidFlags::Debuggable)
       {
@@ -893,8 +893,7 @@ void CaptureDialog::on_toggleGlobal_clicked()
 
     QString capturefile = m_Ctx.TempCaptureFilename(QFileInfo(exe).baseName());
 
-    bool success = RENDERDOC_StartGlobalHook(exe.toUtf8().data(), capturefile.toUtf8().data(),
-                                             Settings().options);
+    bool success = RENDERDOC_StartGlobalHook(exe, capturefile, Settings().options);
 
     if(!success)
     {

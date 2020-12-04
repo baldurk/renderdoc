@@ -538,7 +538,7 @@ or hardware-specific ISA formats.
 :rtype: ``str``
 )");
   virtual rdcstr DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
-                                   const char *target) = 0;
+                                   const rdcstr &target) = 0;
 
   DOCUMENT(R"(Builds a shader suitable for running on the local replay instance as a custom shader.
 
@@ -553,7 +553,7 @@ See :data:`TextureDisplay.customShaderId`.
   :meth:`ResourceId.Null` otherwise, and a ``str`` with any warnings/errors from compilation.
 :rtype: ``tuple`` of :class:`ResourceId` and ``str``.
 )");
-  virtual rdcpair<ResourceId, rdcstr> BuildCustomShader(const char *entry,
+  virtual rdcpair<ResourceId, rdcstr> BuildCustomShader(const rdcstr &entry,
                                                         ShaderEncoding sourceEncoding, bytebuf source,
                                                         const ShaderCompileFlags &compileFlags,
                                                         ShaderStage type) = 0;
@@ -577,7 +577,7 @@ See :meth:`BuildCustomShader`.
   :meth:`ResourceId.Null` otherwise, and a ``str`` with any warnings/errors from compilation.
 :rtype: ``tuple`` of :class:`ResourceId` and ``str``.
 )");
-  virtual rdcpair<ResourceId, rdcstr> BuildTargetShader(const char *entry,
+  virtual rdcpair<ResourceId, rdcstr> BuildTargetShader(const rdcstr &entry,
                                                         ShaderEncoding sourceEncoding, bytebuf source,
                                                         const ShaderCompileFlags &flags,
                                                         ShaderStage type) = 0;
@@ -920,7 +920,7 @@ otherwise.
 :rtype: ``list`` of :class:`ShaderVariable`
 )");
   virtual rdcarray<ShaderVariable> GetCBufferVariableContents(ResourceId pipeline, ResourceId shader,
-                                                              const char *entryPoint,
+                                                              const rdcstr &entryPoint,
                                                               uint32_t cbufslot, ResourceId buffer,
                                                               uint64_t offset, uint64_t length) = 0;
 
@@ -932,7 +932,7 @@ texture to something compatible with the target file format.
 :return: ``True`` if the texture was saved successfully, ``False`` otherwise.
 :rtype: ``bool``
 )");
-  virtual bool SaveTexture(const TextureSave &saveData, const char *path) = 0;
+  virtual bool SaveTexture(const TextureSave &saveData, const rdcstr &path) = 0;
 
   DOCUMENT(R"(Retrieve the generated data from one of the geometry processing shader stages.
 
@@ -992,14 +992,14 @@ struct ITargetControl
 :return: The target name.
 :rtype: ``str``
 )");
-  virtual const char *GetTarget() = 0;
+  virtual rdcstr GetTarget() = 0;
 
   DOCUMENT(R"(Retrieves the API currently in use by the target.
 
 :return: The API name, or empty if no API is initialised yet.
 :rtype: ``str``
 )");
-  virtual const char *GetAPI() = 0;
+  virtual rdcstr GetAPI() = 0;
 
   DOCUMENT(R"(Retrieves the Process ID (PID) of the target on its local system.
 
@@ -1013,7 +1013,7 @@ struct ITargetControl
 :return: The name of the client currently connected to the target.
 :rtype: ``str``
 )");
-  virtual const char *GetBusyClient() = 0;
+  virtual rdcstr GetBusyClient() = 0;
 
   DOCUMENT(R"(Trigger a capture on the target, with the same semantics as if the capture key had
 been pressed - from the next presentation call after this message is processed on the target to the
@@ -1042,7 +1042,7 @@ target control connection.
 :param int captureId: The identifier of the remote capture.
 :param str localpath: The absolute path on the local system where the file should be saved.
 )");
-  virtual void CopyCapture(uint32_t captureId, const char *localpath) = 0;
+  virtual void CopyCapture(uint32_t captureId, const rdcstr &localpath) = 0;
 
   DOCUMENT(R"(Delete a capture from the remote machine.
 
@@ -1106,7 +1106,7 @@ This index should not be cached, as writing sections could re-order the indices.
 :return: The index of the section, or ``-1`` if not found.
 :rtype: ``int``.
 )");
-  virtual int FindSectionByName(const char *name) = 0;
+  virtual int FindSectionByName(const rdcstr &name) = 0;
 
   DOCUMENT(R"(Locate the index of a section by its type. Returns ``-1`` if the section is not found.
 
@@ -1249,7 +1249,7 @@ If an error occurs, a single :class:`PathEntry` will be returned with appropriat
 :return: The contents of the specified folder.
 :rtype: ``list`` of :class:`PathEntry`
 )");
-  virtual rdcarray<PathEntry> ListFolder(const char *path) = 0;
+  virtual rdcarray<PathEntry> ListFolder(const rdcstr &path) = 0;
 
   DOCUMENT(R"(Launch an application and inject into it to allow capturing.
 
@@ -1267,7 +1267,8 @@ This happens on the remote system, so all paths are relative to the remote files
   control if everything succeeded.
 :rtype: ExecuteResult
 )");
-  virtual ExecuteResult ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
+  virtual ExecuteResult ExecuteAndInject(const rdcstr &app, const rdcstr &workingDir,
+                                         const rdcstr &cmdLine,
                                          const rdcarray<EnvironmentModification> &env,
                                          const CaptureOptions &opts) = 0;
 
@@ -1282,7 +1283,7 @@ until the server closes, at which point it will delete any files it owns.
 
 :param str filename: The remote path to take ownership of.
 )");
-  virtual void TakeOwnershipCapture(const char *filename) = 0;
+  virtual void TakeOwnershipCapture(const rdcstr &filename) = 0;
 
   DOCUMENT(R"(Copy a capture file that is stored on the local system to the remote system.
 
@@ -1297,7 +1298,7 @@ the capture must be available on the machine where the replay happens.
 :return: The path on the remote system where the capture was saved temporarily.
 :rtype: ``str``
 )");
-  virtual rdcstr CopyCaptureToRemote(const char *filename, RENDERDOC_ProgressCallback progress) = 0;
+  virtual rdcstr CopyCaptureToRemote(const rdcstr &filename, RENDERDOC_ProgressCallback progress) = 0;
 
   DOCUMENT(R"(Copy a capture file that is stored on the remote system to the local system.
 
@@ -1308,7 +1309,7 @@ This function will block until the copy is fully complete, or an error has occur
 :param ProgressCallback progress: A callback that will be repeatedly called with an updated progress
   value for the copy. Can be ``None`` if no progress is desired.
 )");
-  virtual void CopyCaptureFromRemote(const char *remotepath, const char *localpath,
+  virtual void CopyCaptureFromRemote(const rdcstr &remotepath, const rdcstr &localpath,
                                      RENDERDOC_ProgressCallback progress) = 0;
 
   DOCUMENT(R"(Open a capture file for remote capture and replay. The capture will be opened and
@@ -1334,7 +1335,7 @@ or an error has occurred.
 :rtype: ``tuple`` of :class:`ReplayStatus` and :class:`ReplayController`
 )");
   virtual rdcpair<ReplayStatus, IReplayController *> OpenCapture(
-      uint32_t proxyid, const char *logfile, const ReplayOptions &opts,
+      uint32_t proxyid, const rdcstr &logfile, const ReplayOptions &opts,
       RENDERDOC_ProgressCallback progress) = 0;
 
   DOCUMENT(R"(Close a capture analysis handle previously opened by :meth:`OpenCapture`.
@@ -1374,7 +1375,7 @@ empty or unrecognised.
 :return: The status of the open operation, whether it succeeded or failed (and how it failed).
 :rtype: ReplayStatus
 )");
-  virtual ReplayStatus OpenFile(const char *filename, const char *filetype,
+  virtual ReplayStatus OpenFile(const rdcstr &filename, const rdcstr &filetype,
                                 RENDERDOC_ProgressCallback progress) = 0;
 
   DOCUMENT(R"(Initialises the file handle from a raw memory buffer.
@@ -1390,7 +1391,7 @@ For the :paramref:`OpenBuffer.filetype` parameter, see :meth:`OpenFile`.
 :return: The status of the open operation, whether it succeeded or failed (and how it failed).
 :rtype: ReplayStatus
 )");
-  virtual ReplayStatus OpenBuffer(const bytebuf &buffer, const char *filetype,
+  virtual ReplayStatus OpenBuffer(const bytebuf &buffer, const rdcstr &filetype,
                                   RENDERDOC_ProgressCallback progress) = 0;
 
   DOCUMENT(R"(When a capture file is opened, an exclusive lock is held on the file on disk. This
@@ -1405,7 +1406,7 @@ file.
 :return: ``True`` if the operation succeeded.
 :rtype: ``bool``
 )");
-  virtual bool CopyFileTo(const char *filename) = 0;
+  virtual bool CopyFileTo(const rdcstr &filename) = 0;
 
   DOCUMENT(R"(Converts the currently loaded file to a given format and saves it to disk.
 
@@ -1423,7 +1424,7 @@ representation back to native RDC.
 :return: The status of the conversion operation, whether it succeeded or failed (and how it failed).
 :rtype: ReplayStatus
 )");
-  virtual ReplayStatus Convert(const char *filename, const char *filetype, const SDFile *file,
+  virtual ReplayStatus Convert(const rdcstr &filename, const rdcstr &filetype, const SDFile *file,
                                RENDERDOC_ProgressCallback progress) = 0;
 
   DOCUMENT(R"(Returns the human-readable error string for the last error received.
@@ -1458,7 +1459,7 @@ replay support.
 :return: A string identifying the machine ident used to make the capture.
 :rtype: ``str``
 )");
-  virtual const char *RecordedMachineIdent() = 0;
+  virtual rdcstr RecordedMachineIdent() = 0;
 
   DOCUMENT(R"(Retrieves the timestamp basis that all timestamps in the capture are relative to. May
 be 0 if all timestamps are already absolute.
@@ -1502,7 +1503,7 @@ This function may only be called if the handle is 'empty' - i.e. no file has bee
   microseconds. Can be set to 1.0 to indicate that timestamps and durations are already in
   microseconds.
 )");
-  virtual void SetMetadata(const char *driverName, uint64_t machineIdent, FileType thumbType,
+  virtual void SetMetadata(const rdcstr &driverName, uint64_t machineIdent, FileType thumbType,
                            uint32_t thumbWidth, uint32_t thumbHeight, const bytebuf &thumbData,
                            uint64_t timeBase, double timeFreq) = 0;
 
@@ -1738,7 +1739,7 @@ This function will block until the control connection is ready, or an error occu
 :rtype: TargetControl
 )");
 extern "C" RENDERDOC_API ITargetControl *RENDERDOC_CC RENDERDOC_CreateTargetControl(
-    const char *URL, uint32_t ident, const char *clientName, bool forceConnection);
+    const rdcstr &URL, uint32_t ident, const rdcstr &clientName, bool forceConnection);
 
 DOCUMENT(R"(Repeatedly query to enumerate which targets are active on a given machine and their
 idents.
@@ -1755,7 +1756,7 @@ This function will block for a variable timeout depending on how many targets ar
 :return: The ident of the next active target, or ``0`` if no other targets exist.
 :rtype: ``int``
 )");
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(const char *URL,
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(const rdcstr &URL,
                                                                                 uint32_t nextIdent);
 
 //////////////////////////////////////////////////////////////////////////
@@ -1771,7 +1772,7 @@ DOCUMENT(R"(Create a connection to a remote server running on given hostname.
 :rtype: ``pair`` of ReplayStatus and RemoteServer
 )");
 extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC
-RENDERDOC_CreateRemoteServerConnection(const char *URL, IRemoteServer **rend);
+RENDERDOC_CreateRemoteServerConnection(const rdcstr &URL, IRemoteServer **rend);
 
 DOCUMENT(R"(Check the connection to a remote server running on given hostname.
 
@@ -1784,7 +1785,7 @@ the status can be checked without interfering with making connections.
 :rtype: ReplayStatus
 )");
 extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC
-RENDERDOC_CheckRemoteServerConnection(const char *URL);
+RENDERDOC_CheckRemoteServerConnection(const rdcstr &URL);
 
 DOCUMENT(R"(This launches a remote server which will continually run in a loop to server requests
 from external sources.
@@ -1799,7 +1800,7 @@ This function will block until a remote connection tells the server to shut down
   when the server wants to display some preview of the ongoing replay.
 )");
 extern "C" RENDERDOC_API void RENDERDOC_CC
-RENDERDOC_BecomeRemoteServer(const char *listenhost, RENDERDOC_KillCallback killReplay,
+RENDERDOC_BecomeRemoteServer(const rdcstr &listenhost, RENDERDOC_KillCallback killReplay,
                              RENDERDOC_PreviewWindowCallback previewWindow);
 
 //////////////////////////////////////////////////////////////////////////
@@ -1831,8 +1832,8 @@ This function must be called when the process is running with administrator/supe
   with :func:`StopGlobalHook` before the application is closed.
 :rtype: ``bool``
 )");
-extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_StartGlobalHook(const char *pathmatch,
-                                                                     const char *logfile,
+extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_StartGlobalHook(const rdcstr &pathmatch,
+                                                                     const rdcstr &logfile,
                                                                      const CaptureOptions &opts);
 
 DOCUMENT(R"(Stop the global hook that was activated by :func:`StartGlobalHook`.
@@ -1875,8 +1876,8 @@ DOCUMENT(R"(Launch an application and inject into it to allow capturing.
 :rtype: ExecuteResult
 )");
 extern "C" RENDERDOC_API ExecuteResult RENDERDOC_CC
-RENDERDOC_ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
-                           const rdcarray<EnvironmentModification> &env, const char *capturefile,
+RENDERDOC_ExecuteAndInject(const rdcstr &app, const rdcstr &workingDir, const rdcstr &cmdLine,
+                           const rdcarray<EnvironmentModification> &env, const rdcstr &capturefile,
                            const CaptureOptions &opts, bool waitForExit);
 
 DOCUMENT(R"(Where supported by operating system and permissions, inject into a running process.
@@ -1893,21 +1894,21 @@ DOCUMENT(R"(Where supported by operating system and permissions, inject into a r
 )");
 extern "C" RENDERDOC_API ExecuteResult RENDERDOC_CC
 RENDERDOC_InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModification> &env,
-                            const char *capturefile, const CaptureOptions &opts, bool waitForExit);
+                            const rdcstr &capturefile, const CaptureOptions &opts, bool waitForExit);
 
 DOCUMENT(R"(When debugging RenderDoc it can be useful to capture itself by doing a side-build with a
 temporary name. This function wraps up the use of the in-application API to start a capture.
 
 :param str dllname: The name of the self-hosted capture module.
 )");
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartSelfHostCapture(const char *dllname);
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartSelfHostCapture(const rdcstr &dllname);
 
 DOCUMENT(R"(When debugging RenderDoc it can be useful to capture itself by doing a side-build with a
 temporary name. This function wraps up the use of the in-application API to end a capture.
 
 :param str dllname: The name of the self-hosted capture module.
 )");
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EndSelfHostCapture(const char *dllname);
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EndSelfHostCapture(const rdcstr &dllname);
 
 //////////////////////////////////////////////////////////////////////////
 // Vulkan layer handling
@@ -1961,8 +1962,8 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_ShutdownReplay();
 
 #if !defined(SWIG)
 DOCUMENT("INTERNAL: Create a bug report zip.");
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CreateBugReport(const char *logfile,
-                                                                     const char *dumpfile,
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CreateBugReport(const rdcstr &logfile,
+                                                                     const rdcstr &dumpfile,
                                                                      rdcstr &report);
 
 DOCUMENT("INTERNAL: Register a memory region to be saved with crash dumps.");
@@ -1977,7 +1978,7 @@ analysis program.
 
 :param str filename: The path to the new log file.
 )");
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetDebugLogFile(const char *filename);
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetDebugLogFile(const rdcstr &filename);
 
 DOCUMENT(R"(Gets the location for the diagnostic log output, shared by captured programs and the
 analysis program.
@@ -2002,9 +2003,9 @@ DOCUMENT(R"(Add a message to RenderDoc's logfile.
 :param int line: The line number in :paramref:`file` where this log message came from.
 :param str text: The text of the message.
 )");
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_LogMessage(LogType type, const char *project,
-                                                                const char *file, unsigned int line,
-                                                                const char *text);
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_LogMessage(LogType type, const rdcstr &project,
+                                                                const rdcstr &file, unsigned int line,
+                                                                const rdcstr &text);
 
 DOCUMENT(R"(Retrieves the version string.
 
@@ -2058,7 +2059,7 @@ If no such setting exists, `None` is returned.
 :return: The specified setting.
 :rtype: ``SDObject``
 )");
-extern "C" RENDERDOC_API const SDObject *RENDERDOC_CC RENDERDOC_GetConfigSetting(const char *name);
+extern "C" RENDERDOC_API const SDObject *RENDERDOC_CC RENDERDOC_GetConfigSetting(const rdcstr &name);
 
 DOCUMENT(R"(Return a mutable handle to the :class:`SDObject` corresponding to a given setting's
 value object.
@@ -2068,7 +2069,7 @@ If no such setting exists, `None` is returned.
 :return: The specified setting.
 :rtype: ``SDObject``
 )");
-extern "C" RENDERDOC_API SDObject *RENDERDOC_CC RENDERDOC_SetConfigSetting(const char *name);
+extern "C" RENDERDOC_API SDObject *RENDERDOC_CC RENDERDOC_SetConfigSetting(const rdcstr &name);
 
 DOCUMENT(R"(Flush the current config settings as they are in memory to the config file on disk.
 
@@ -2090,12 +2091,12 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetColors(FloatVector darkC
                                                                bool darkTheme);
 
 DOCUMENT("INTERNAL: Check remote Android package for requirements");
-extern "C" RENDERDOC_API void RENDERDOC_CC
-RENDERDOC_CheckAndroidPackage(const char *URL, const char *packageAndActivity, AndroidFlags *flags);
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CheckAndroidPackage(
+    const rdcstr &URL, const rdcstr &packageAndActivity, AndroidFlags *flags);
 
 DOCUMENT("INTERNAL: Patch an APK to add debuggable flag.");
 extern "C" RENDERDOC_API AndroidFlags RENDERDOC_CC RENDERDOC_MakeDebuggablePackage(
-    const char *URL, const char *packageAndActivity, RENDERDOC_ProgressCallback progress);
+    const rdcstr &URL, const rdcstr &packageAndActivity, RENDERDOC_ProgressCallback progress);
 
 DOCUMENT("An interface for enumerating and controlling remote devices.");
 struct IDeviceProtocolController

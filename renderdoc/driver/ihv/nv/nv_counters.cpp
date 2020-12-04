@@ -200,7 +200,7 @@ bool NVCounters::Init()
 
 #endif
 
-  m_NvPmLib = Process::LoadModule(dllPath.c_str());
+  m_NvPmLib = Process::LoadModule(dllPath);
   if(m_NvPmLib == NULL)
   {
     RDCWARN("NV GPU performance counters could not locate 'NvPmApi.Core.dll'");

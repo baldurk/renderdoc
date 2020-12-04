@@ -144,9 +144,9 @@ public:
   const PipeState &GetPipelineState();
 
   rdcarray<rdcstr> GetDisassemblyTargets(bool withPipeline);
-  rdcstr DisassembleShader(ResourceId pipeline, const ShaderReflection *refl, const char *target);
+  rdcstr DisassembleShader(ResourceId pipeline, const ShaderReflection *refl, const rdcstr &target);
 
-  rdcpair<ResourceId, rdcstr> BuildCustomShader(const char *entry, ShaderEncoding sourceEncoding,
+  rdcpair<ResourceId, rdcstr> BuildCustomShader(const rdcstr &entry, ShaderEncoding sourceEncoding,
                                                 bytebuf source,
                                                 const ShaderCompileFlags &compileFlags,
                                                 ShaderStage type);
@@ -154,7 +154,7 @@ public:
 
   rdcarray<ShaderEncoding> GetCustomShaderEncodings();
   rdcarray<ShaderEncoding> GetTargetShaderEncodings();
-  rdcpair<ResourceId, rdcstr> BuildTargetShader(const char *entry, ShaderEncoding sourceEncoding,
+  rdcpair<ResourceId, rdcstr> BuildTargetShader(const rdcstr &entry, ShaderEncoding sourceEncoding,
                                                 bytebuf source,
                                                 const ShaderCompileFlags &compileFlags,
                                                 ShaderStage type);
@@ -198,10 +198,10 @@ public:
   bytebuf GetBufferData(ResourceId buff, uint64_t offset, uint64_t len);
   bytebuf GetTextureData(ResourceId buff, const Subresource &sub);
 
-  bool SaveTexture(const TextureSave &saveData, const char *path);
+  bool SaveTexture(const TextureSave &saveData, const rdcstr &path);
 
   rdcarray<ShaderVariable> GetCBufferVariableContents(ResourceId pipeline, ResourceId shader,
-                                                      const char *entryPoint, uint32_t cbufslot,
+                                                      const rdcstr &entryPoint, uint32_t cbufslot,
                                                       ResourceId buffer, uint64_t offset,
                                                       uint64_t length);
 

@@ -381,7 +381,7 @@ ReplayStatus InstallRenderDocServer(const rdcstr &deviceID)
 
     rdcstr apkpath = paths[i] + apk + ".apk";
 
-    if(FileIO::exists(apkpath.c_str()))
+    if(FileIO::exists(apkpath))
     {
       apksFolder = paths[i];
       RDCLOG("APKs found: %s", apksFolder.c_str());
@@ -408,7 +408,7 @@ ReplayStatus InstallRenderDocServer(const rdcstr &deviceID)
 
     apk += GetRenderDocPackageForABI(abi) + ".apk";
 
-    if(!FileIO::exists(apk.c_str()))
+    if(!FileIO::exists(apk))
       RDCWARN(
           "%s missing - ensure you build all ABIs your device can support for full compatibility",
           apk.c_str());
@@ -553,7 +553,7 @@ struct AndroidRemoteServer : public RemoteServer
   }
 
   virtual rdcpair<ReplayStatus, IReplayController *> OpenCapture(
-      uint32_t proxyid, const char *filename, const ReplayOptions &opts,
+      uint32_t proxyid, const rdcstr &filename, const ReplayOptions &opts,
       RENDERDOC_ProgressCallback progress) override
   {
     ResetAndroidSettings();
@@ -575,9 +575,9 @@ struct AndroidRemoteServer : public RemoteServer
   }
 
   virtual rdcstr GetHomeFolder() override { return ""; }
-  virtual rdcarray<PathEntry> ListFolder(const char *path) override
+  virtual rdcarray<PathEntry> ListFolder(const rdcstr &path) override
   {
-    if(path[0] == 0 || (path[0] == '/' && path[1] == 0))
+    if(path.empty() || (path[0] == '/' && path.size() == 1))
     {
       SCOPED_TIMER("Fetching android packages and activities");
 
@@ -761,7 +761,8 @@ struct AndroidRemoteServer : public RemoteServer
     }
   }
 
-  virtual ExecuteResult ExecuteAndInject(const char *a, const char *w, const char *c,
+  virtual ExecuteResult ExecuteAndInject(const rdcstr &packageAndActivity, const rdcstr &,
+                                         const rdcstr &intentArgs,
                                          const rdcarray<EnvironmentModification> &env,
                                          const CaptureOptions &opts) override;
 
@@ -1114,14 +1115,12 @@ void AndroidRemoteServer::ShutdownConnection()
   RemoteServer::ShutdownConnection();
 }
 
-ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w, const char *c,
+ExecuteResult AndroidRemoteServer::ExecuteAndInject(const rdcstr &packageAndActivity,
+                                                    const rdcstr &, const rdcstr &intentArgs,
                                                     const rdcarray<EnvironmentModification> &env,
                                                     const CaptureOptions &opts)
 {
   LazilyStartLogcatThread();
-
-  rdcstr packageAndActivity = a && a[0] ? a : "";
-  rdcstr intentArgs = c && c[0] ? c : "";
 
   // we spin up a thread to Ping() every second, since starting a package can block for a long time.
   int32_t done = 0;
@@ -1379,7 +1378,7 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
     {
       // Check if the target app has started yet and we can connect to it.
       ITargetControl *control = RENDERDOC_CreateTargetControl(
-          (AndroidController::m_Inst.GetProtocolName() + "://" + m_deviceID).c_str(), ret.ident,
+          AndroidController::m_Inst.GetProtocolName() + "://" + m_deviceID, ret.ident,
           "testConnection", false);
       if(control)
       {

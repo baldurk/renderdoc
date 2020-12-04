@@ -54,7 +54,7 @@ static HMODULE GetDXC()
     // first try normal plugin search path. This will prioritise any one placed locally with
     // RenderDoc, otherwise it will try just the unadorned dll in case it's in the PATH somewhere.
     {
-      dxilHandle = (HMODULE)Process::LoadModule(LocatePluginFile("d3d12", "dxil.dll").c_str());
+      dxilHandle = (HMODULE)Process::LoadModule(LocatePluginFile("d3d12", "dxil.dll"));
 
       // don't try to load dxcompiler.dll until we've got dxil.dll successfully, or if we're not
       // trying to get dxil. Otherwise we could load dxcompiler (to check for its existence) and
@@ -62,7 +62,7 @@ static HMODULE GetDXC()
       if(dxilHandle || sdkPass == 1)
       {
         HMODULE dxcompiler =
-            (HMODULE)Process::LoadModule(LocatePluginFile("d3d12", "dxcompiler.dll").c_str());
+            (HMODULE)Process::LoadModule(LocatePluginFile("d3d12", "dxcompiler.dll"));
         if(dxcompiler)
         {
           ret = dxcompiler;
@@ -118,7 +118,7 @@ static HMODULE GetDXC()
 
         // sort by name
         rdcarray<PathEntry> entries;
-        FileIO::GetFilesInDirectory(path.c_str(), entries);
+        FileIO::GetFilesInDirectory(path, entries);
         std::sort(entries.begin(), entries.end());
 
         // do a reverse iteration so we get the latest SDK first
@@ -136,16 +136,16 @@ static HMODULE GetDXC()
             rdcstr dxilPath = path + e.filename + "\\x64\\dxil.dll";
             rdcstr dxcompilerPath = path + e.filename + "\\x64\\dxcompiler.dll";
 
-            bool dxil = FileIO::exists(dxilPath.c_str());
-            bool dxcompiler = FileIO::exists(dxcompilerPath.c_str());
+            bool dxil = FileIO::exists(dxilPath);
+            bool dxcompiler = FileIO::exists(dxcompilerPath);
 
             // if we have both, or we're on the second pass (given up on dxil.dll) and have
             // dxcompiler, then load this.
             if((dxil && dxcompiler) || (sdkPass == 1 && dxcompiler))
             {
               if(dxil)
-                dxilHandle = (HMODULE)Process::LoadModule(dxilPath.c_str());
-              ret = (HMODULE)Process::LoadModule(dxcompilerPath.c_str());
+                dxilHandle = (HMODULE)Process::LoadModule(dxilPath);
+              ret = (HMODULE)Process::LoadModule(dxcompilerPath);
             }
 
             if(ret)
@@ -163,16 +163,16 @@ static HMODULE GetDXC()
           rdcstr dxilPath = path + "..\\Redist\\D3D\\x64\\dxil.dll";
           rdcstr dxcompilerPath = path + "..\\Redist\\D3D\\x64\\dxcompiler.dll";
 
-          bool dxil = FileIO::exists(dxilPath.c_str());
-          bool dxcompiler = FileIO::exists(dxcompilerPath.c_str());
+          bool dxil = FileIO::exists(dxilPath);
+          bool dxcompiler = FileIO::exists(dxcompilerPath);
 
           // if we have both, or we're on the second pass (given up on dxil.dll) and have
           // dxcompiler, then load this.
           if((dxil && dxcompiler) || (sdkPass == 1 && dxcompiler))
           {
             if(dxil)
-              dxilHandle = (HMODULE)Process::LoadModule(dxilPath.c_str());
-            ret = (HMODULE)Process::LoadModule(dxcompilerPath.c_str());
+              dxilHandle = (HMODULE)Process::LoadModule(dxilPath);
+            ret = (HMODULE)Process::LoadModule(dxcompilerPath);
           }
 
           if(ret)
@@ -189,16 +189,16 @@ static HMODULE GetDXC()
           rdcstr dxilPath = path + "x64\\dxil.dll";
           rdcstr dxcompilerPath = path + "x64\\dxcompiler.dll";
 
-          bool dxil = FileIO::exists(dxilPath.c_str());
-          bool dxcompiler = FileIO::exists(dxcompilerPath.c_str());
+          bool dxil = FileIO::exists(dxilPath);
+          bool dxcompiler = FileIO::exists(dxcompilerPath);
 
           // if we have both, or we're on the second pass (given up on dxil.dll) and have
           // dxcompiler, then load this.
           if((dxil && dxcompiler) || (sdkPass == 1 && dxcompiler))
           {
             if(dxil)
-              dxilHandle = (HMODULE)Process::LoadModule(dxilPath.c_str());
-            ret = (HMODULE)Process::LoadModule(dxcompilerPath.c_str());
+              dxilHandle = (HMODULE)Process::LoadModule(dxilPath);
+            ret = (HMODULE)Process::LoadModule(dxcompilerPath);
           }
 
           if(ret)

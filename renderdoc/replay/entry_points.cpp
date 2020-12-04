@@ -202,12 +202,12 @@ extern "C" RENDERDOC_API uint64_t RENDERDOC_CC RENDERDOC_GetCurrentProcessMemory
   return Process::GetMemoryUsage();
 }
 
-extern "C" RENDERDOC_API const SDObject *RENDERDOC_CC RENDERDOC_GetConfigSetting(const char *name)
+extern "C" RENDERDOC_API const SDObject *RENDERDOC_CC RENDERDOC_GetConfigSetting(const rdcstr &name)
 {
   return RenderDoc::Inst().GetConfigSetting(name);
 }
 
-extern "C" RENDERDOC_API SDObject *RENDERDOC_CC RENDERDOC_SetConfigSetting(const char *name)
+extern "C" RENDERDOC_API SDObject *RENDERDOC_CC RENDERDOC_SetConfigSetting(const rdcstr &name)
 {
   return RenderDoc::Inst().SetConfigSetting(name);
 }
@@ -226,11 +226,11 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetColors(FloatVector darkC
   RenderDoc::Inst().SetDarkTheme(darkTheme);
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetDebugLogFile(const char *log)
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetDebugLogFile(const rdcstr &log)
 {
-  if(log)
+  if(!log.empty())
   {
-    RDCLOGFILE(log);
+    RDCLOGFILE(log.c_str());
 
     // need to recreate the crash handler to propagate the new log filename.
     if(RenderDoc::Inst().GetCrashHandler() != NULL)
@@ -238,12 +238,12 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetDebugLogFile(const char 
   }
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_LogMessage(LogType type, const char *project,
-                                                                const char *file, unsigned int line,
-                                                                const char *text)
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_LogMessage(LogType type, const rdcstr &project,
+                                                                const rdcstr &file,
+                                                                unsigned int line, const rdcstr &text)
 {
-  rdclog_direct(FILL_AUTO_VALUE, FILL_AUTO_VALUE, type, project ? project : "UNK?",
-                file ? file : "unknown", line, "%s", text);
+  rdclog_direct(FILL_AUTO_VALUE, FILL_AUTO_VALUE, type, project.c_str(), file.c_str(), line, "%s",
+                text.c_str());
 
   // see comment in common.h
   RDCCOMPILE_ASSERT((uint32_t)LogType::Debug == (uint32_t)LogType__Internal::Debug,
@@ -283,12 +283,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetLogFileContents(uint64_t
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_InitialiseReplay(GlobalEnvironment env,
                                                                       const rdcarray<rdcstr> &args)
 {
-  rdcarray<rdcstr> argsVec;
-  argsVec.reserve(args.size());
-  for(const rdcstr &a : args)
-    argsVec.push_back(a.c_str());
-
-  RenderDoc::Inst().InitialiseReplay(env, argsVec);
+  RenderDoc::Inst().InitialiseReplay(env, args);
 
   if(RenderDoc::Inst().GetCrashHandler() == NULL)
     return;
@@ -310,8 +305,8 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_ShutdownReplay()
   RenderDoc::Inst().ShutdownReplay();
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CreateBugReport(const char *logfile,
-                                                                     const char *dumpfile,
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CreateBugReport(const rdcstr &logfile,
+                                                                     const rdcstr &dumpfile,
                                                                      rdcstr &report)
 {
   mz_zip_archive zip;
@@ -323,14 +318,14 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CreateBugReport(const char 
              StringFormat::sntimef(Timing::GetUTCTime(), "/renderdoc_report_%H%M%S.zip");
   }
 
-  FileIO::Delete(report.c_str());
+  FileIO::Delete(report);
 
   mz_zip_writer_init_file(&zip, report.c_str(), 0);
 
-  if(dumpfile && dumpfile[0])
-    mz_zip_writer_add_file(&zip, "minidump.dmp", dumpfile, NULL, 0, MZ_BEST_COMPRESSION);
+  if(!dumpfile.empty())
+    mz_zip_writer_add_file(&zip, "minidump.dmp", dumpfile.c_str(), NULL, 0, MZ_BEST_COMPRESSION);
 
-  if(logfile && logfile[0])
+  if(!logfile.empty())
   {
     rdcstr contents = FileIO::logfile_readall(0, logfile);
     mz_zip_writer_add_mem(&zip, "error.log", contents.data(), contents.length(), MZ_BEST_COMPRESSION);
@@ -357,8 +352,8 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_UnregisterMemoryRegion(void
 }
 
 extern "C" RENDERDOC_API ExecuteResult RENDERDOC_CC
-RENDERDOC_ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
-                           const rdcarray<EnvironmentModification> &env, const char *capturefile,
+RENDERDOC_ExecuteAndInject(const rdcstr &app, const rdcstr &workingDir, const rdcstr &cmdLine,
+                           const rdcarray<EnvironmentModification> &env, const rdcstr &capturefile,
                            const CaptureOptions &opts, bool waitForExit)
 {
   rdcpair<ReplayStatus, uint32_t> status = Process::LaunchAndInjectIntoProcess(
@@ -375,8 +370,8 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetDefaultCaptureOptions(Ca
   *opts = CaptureOptions();
 }
 
-extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_StartGlobalHook(const char *pathmatch,
-                                                                     const char *capturefile,
+extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_StartGlobalHook(const rdcstr &pathmatch,
+                                                                     const rdcstr &capturefile,
                                                                      const CaptureOptions &opts)
 {
   return Process::StartGlobalHook(pathmatch, capturefile, opts);
@@ -399,7 +394,7 @@ extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_CanGlobalHook()
 
 extern "C" RENDERDOC_API ExecuteResult RENDERDOC_CC
 RENDERDOC_InjectIntoProcess(uint32_t pid, const rdcarray<EnvironmentModification> &env,
-                            const char *capturefile, const CaptureOptions &opts, bool waitForExit)
+                            const rdcstr &capturefile, const CaptureOptions &opts, bool waitForExit)
 {
   rdcpair<ReplayStatus, uint32_t> status =
       Process::InjectIntoProcess(pid, env, capturefile, opts, waitForExit != 0);
@@ -429,11 +424,11 @@ extern "C" RENDERDOC_API void *RENDERDOC_CC RENDERDOC_AllocArrayMem(uint64_t sz)
   return ret;
 }
 
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(const char *URL,
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(const rdcstr &URL,
                                                                                 uint32_t nextIdent)
 {
   rdcstr host = "localhost";
-  if(URL != NULL && URL[0] != '\0')
+  if(!URL.empty())
     host = URL;
 
   rdcstr deviceID = host;
@@ -465,7 +460,7 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(
     if(port == 0)
       return 0;
 
-    Network::Socket *sock = Network::CreateClientSocket(host.c_str(), port, 250);
+    Network::Socket *sock = Network::CreateClientSocket(host, port, 250);
 
     if(sock)
     {
@@ -502,12 +497,9 @@ RENDERDOC_GetDeviceProtocolController(const rdcstr &protocol)
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC
-RENDERDOC_BecomeRemoteServer(const char *listenhost, RENDERDOC_KillCallback killReplay,
+RENDERDOC_BecomeRemoteServer(const rdcstr &listenhost, RENDERDOC_KillCallback killReplay,
                              RENDERDOC_PreviewWindowCallback previewWindow)
 {
-  if(listenhost == NULL || listenhost[0] == 0)
-    listenhost = "0.0.0.0";
-
   // ensure a sensible default if no callback is provided, that just never kills
   if(!killReplay)
     killReplay = []() { return false; };
@@ -519,11 +511,11 @@ RENDERDOC_BecomeRemoteServer(const char *listenhost, RENDERDOC_KillCallback kill
       return ret;
     };
 
-  RenderDoc::Inst().BecomeRemoteServer(listenhost, RenderDoc_RemoteServerPort, killReplay,
-                                       previewWindow);
+  RenderDoc::Inst().BecomeRemoteServer(listenhost.empty() ? "0.0.0.0" : listenhost,
+                                       RenderDoc_RemoteServerPort, killReplay, previewWindow);
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartSelfHostCapture(const char *dllname)
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartSelfHostCapture(const rdcstr &dllname)
 {
   if(!Process::IsModuleLoaded(dllname))
     return;
@@ -549,7 +541,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartSelfHostCapture(const 
   rdoc->StartFrameCapture(NULL, NULL);
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EndSelfHostCapture(const char *dllname)
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EndSelfHostCapture(const rdcstr &dllname)
 {
   if(!Process::IsModuleLoaded(dllname))
     return;
@@ -905,7 +897,7 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunFunctionalTests(int pytho
 
   rdcstr moduleFilename = modulePath + "/" + modulename;
 
-  if(!FileIO::exists(moduleFilename.c_str()))
+  if(!FileIO::exists(moduleFilename))
   {
     TestPrintMsg(StringFormat::Fmt("Couldn't locate python module at %s\n", moduleFilename.c_str()));
     return 1;
@@ -917,7 +909,7 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunFunctionalTests(int pytho
   // directly. This is just intended as a useful shortcut for common cases.
   rdcstr scriptPath = libPath + "/../../util/test/run_tests.py";
 
-  if(!FileIO::exists(scriptPath.c_str()))
+  if(!FileIO::exists(scriptPath))
   {
     TestPrintMsg(StringFormat::Fmt("Couldn't locate run_tests.py script at %s\n", scriptPath.c_str()));
     return 1;
@@ -931,7 +923,7 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunFunctionalTests(int pytho
     char *ver = strchr(&py[0], '?');
     *ver = char('0' + pythonMinorVersion);
 
-    handle = Process::LoadModule(py.c_str());
+    handle = Process::LoadModule(py);
     if(handle)
     {
       RDCLOG("Loaded python from %s", py.c_str());

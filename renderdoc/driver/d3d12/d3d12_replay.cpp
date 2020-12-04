@@ -3793,13 +3793,12 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
     d3d12on7 = true;
 
     // if it fails, try in the plugin directory
-    d3d12lib = (HMODULE)Process::LoadModule(LocatePluginFile("d3d12", "d3d12.dll").c_str());
+    d3d12lib = (HMODULE)Process::LoadModule(LocatePluginFile("d3d12", "d3d12.dll"));
 
     // if that succeeded, also load dxilconv7.dll from there
     if(d3d12lib)
     {
-      HMODULE dxilconv =
-          (HMODULE)Process::LoadModule(LocatePluginFile("d3d12", "dxilconv7.dll").c_str());
+      HMODULE dxilconv = (HMODULE)Process::LoadModule(LocatePluginFile("d3d12", "dxilconv7.dll"));
 
       if(!dxilconv)
       {

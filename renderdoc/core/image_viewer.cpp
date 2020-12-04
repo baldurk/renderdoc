@@ -495,7 +495,7 @@ void ImageViewer::RefreshFile()
 
   for(int attempt = 0; attempt < 10 && f == NULL; attempt++)
   {
-    f = FileIO::fopen(m_Filename.c_str(), "rb");
+    f = FileIO::fopen(m_Filename, FileIO::ReadBinary);
     if(f)
       break;
     Threading::Sleep(40);

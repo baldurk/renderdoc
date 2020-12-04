@@ -273,14 +273,14 @@ static bool MergeConfigValues(const rdcstr &prefix, SDObject *dstConfig, const S
 
   // for every child in the destination, see if it has a source node. If not, we're out of date
   for(size_t i = 0; i < dstConfig->NumChildren(); i++)
-    ret |= (srcConfig->FindChild(dstConfig->GetChild(i)->name.c_str()) == NULL);
+    ret |= (srcConfig->FindChild(dstConfig->GetChild(i)->name) == NULL);
 
   // for every child in the source
   for(size_t i = 0; i < srcConfig->NumChildren(); i++)
   {
     // see if it's present in the destination
     const SDObject *srcChild = srcConfig->GetChild(i);
-    SDObject *dstChild = dstConfig->FindChild(srcChild->name.c_str());
+    SDObject *dstChild = dstConfig->FindChild(srcChild->name);
 
     if(dstChild)
     {
@@ -461,7 +461,7 @@ void RenderDoc::ProcessConfig()
 
   SDObject *loadedConfig = NULL;
   {
-    StreamReader reader(FileIO::fopen(confFile.c_str(), "rb"));
+    StreamReader reader(FileIO::fopen(confFile, FileIO::ReadBinary));
 
     loadedConfig = importXMLConfig(reader);
   }
@@ -484,7 +484,7 @@ void RenderDoc::ProcessConfig()
     MergeConfigValues(rdcstr(), loadedConfig, m_Config, true);
 
     {
-      StreamWriter writer(FileIO::fopen((confFile + ".tmp").c_str(), "wb"), Ownership::Stream);
+      StreamWriter writer(FileIO::fopen(confFile + ".tmp", FileIO::WriteBinary), Ownership::Stream);
 
       exportXMLConfig(writer, loadedConfig);
 
@@ -494,7 +494,7 @@ void RenderDoc::ProcessConfig()
 
     // if we successfully wrote the file, move it over the original
     if(success)
-      FileIO::Move((confFile + ".tmp").c_str(), confFile.c_str(), true);
+      FileIO::Move(confFile + ".tmp", confFile, true);
   }
 
   // delete the loaded config if we have it
@@ -510,7 +510,7 @@ void RenderDoc::SaveConfigSettings()
     bool success = false;
 
     {
-      StreamWriter writer(FileIO::fopen((confFile + ".tmp").c_str(), "wb"), Ownership::Stream);
+      StreamWriter writer(FileIO::fopen(confFile + ".tmp", FileIO::WriteBinary), Ownership::Stream);
 
       exportXMLConfig(writer, m_Config);
 
@@ -520,7 +520,7 @@ void RenderDoc::SaveConfigSettings()
 
     // if we successfully wrote the file, move it over the original
     if(success)
-      FileIO::Move((confFile + ".tmp").c_str(), confFile.c_str(), true);
+      FileIO::Move(confFile + ".tmp", confFile, true);
   }
 }
 
@@ -548,7 +548,7 @@ SDObject *RenderDoc::FindConfigSetting(const rdcstr &settingPath)
     rdcstr node = path.substr(0, idx);
     path.erase(0, idx + 1);
 
-    SDObject *child = cur->FindChild(node.c_str());
+    SDObject *child = cur->FindChild(node);
     if(!child)
       return NULL;
 
@@ -556,7 +556,7 @@ SDObject *RenderDoc::FindConfigSetting(const rdcstr &settingPath)
     idx = path.find_first_of("_.");
   }
 
-  SDObject *obj = cur->FindChild(path.c_str());
+  SDObject *obj = cur->FindChild(path);
   if(obj)
     return obj->FindChild("value");
 
@@ -577,7 +577,7 @@ void RenderDoc::RegisterSetting(const rdcstr &settingPath, SDObject *setting)
     rdcstr node = path.substr(0, idx);
     path.erase(0, idx + 1);
 
-    SDObject *child = cur->FindChild(node.c_str());
+    SDObject *child = cur->FindChild(node);
     if(!child)
     {
       child = new SDObject(node, "category"_lit);
@@ -592,7 +592,7 @@ void RenderDoc::RegisterSetting(const rdcstr &settingPath, SDObject *setting)
     idx = path.indexOf('_');
   }
 
-  SDObject *obj = cur->FindChild(path.c_str());
+  SDObject *obj = cur->FindChild(path);
   if(obj != NULL)
     RDCFATAL("Duplicate setting %s", settingPath.c_str());
 

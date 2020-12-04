@@ -63,7 +63,8 @@ struct xml_file_writer : pugi::xml_writer
 {
   StreamWriter stream;
 
-  xml_file_writer(const char *filename) : stream(FileIO::fopen(filename, "wb"), Ownership::Stream)
+  xml_file_writer(const rdcstr &filename)
+      : stream(FileIO::fopen(filename, FileIO::WriteBinary), Ownership::Stream)
   {
   }
 
@@ -274,7 +275,7 @@ static void Obj2XML(pugi::xml_node &parent, SDObject &child)
   }
 }
 
-static ReplayStatus Structured2XML(const char *filename, const RDCFile &file, uint64_t version,
+static ReplayStatus Structured2XML(const rdcstr &filename, const RDCFile &file, uint64_t version,
                                    const StructuredChunkList &chunks,
                                    RENDERDOC_ProgressCallback progress)
 {
@@ -558,14 +559,14 @@ static SDObject *XML2Obj(pugi::xml_node &obj)
   return ret;
 }
 
-static ReplayStatus XML2Structured(const char *xml, const ThumbTypeAndData &thumb,
+static ReplayStatus XML2Structured(const rdcstr &xml, const ThumbTypeAndData &thumb,
                                    const ThumbTypeAndData &extThumb, const bytebuf &logfile,
                                    const StructuredBufferList &buffers, RDCFile *rdc,
                                    uint64_t &version, StructuredChunkList &chunks,
                                    RENDERDOC_ProgressCallback progress)
 {
   pugi::xml_document doc;
-  doc.load_string(xml);
+  doc.load_string(xml.c_str());
 
   pugi::xml_node root = doc.child("rdc");
 
@@ -938,7 +939,7 @@ static bool ZIP2Buffers(const rdcstr &filename, ThumbTypeAndData &thumb, ThumbTy
 {
   rdcstr zipFile = strip_extension(filename);
 
-  if(!FileIO::exists(zipFile.c_str()))
+  if(!FileIO::exists(zipFile))
   {
     RDCERR("Expected to file zip for %s at %s", filename.c_str(), zipFile.c_str());
     return false;
@@ -1012,17 +1013,17 @@ static bool ZIP2Buffers(const rdcstr &filename, ThumbTypeAndData &thumb, ThumbTy
   return true;
 }
 
-ReplayStatus importXMLZ(const char *filename, StreamReader &reader, RDCFile *rdc,
+ReplayStatus importXMLZ(const rdcstr &filename, StreamReader &reader, RDCFile *rdc,
                         SDFile &structData, RENDERDOC_ProgressCallback progress)
 {
   ThumbTypeAndData thumb, extThumb;
   bytebuf logfile;
-  if(filename)
+  if(!filename.empty())
   {
     bool success = ZIP2Buffers(filename, thumb, extThumb, logfile, structData.buffers, progress);
     if(!success)
     {
-      RDCERR("Couldn't load zip to go with %s", filename);
+      RDCERR("Couldn't load zip to go with %s", filename.c_str());
       return ReplayStatus::FileCorrupted;
     }
   }
@@ -1035,7 +1036,7 @@ ReplayStatus importXMLZ(const char *filename, StreamReader &reader, RDCFile *rdc
                         structData.version, structData.chunks, progress);
 }
 
-ReplayStatus exportXMLZ(const char *filename, const RDCFile &rdc, const SDFile &structData,
+ReplayStatus exportXMLZ(const rdcstr &filename, const RDCFile &rdc, const SDFile &structData,
                         RENDERDOC_ProgressCallback progress)
 {
   ReplayStatus ret = Buffers2ZIP(filename, rdc, structData.buffers, progress);
@@ -1046,7 +1047,7 @@ ReplayStatus exportXMLZ(const char *filename, const RDCFile &rdc, const SDFile &
   return Structured2XML(filename, rdc, structData.version, structData.chunks, progress);
 }
 
-ReplayStatus exportXMLOnly(const char *filename, const RDCFile &rdc, const SDFile &structData,
+ReplayStatus exportXMLOnly(const rdcstr &filename, const RDCFile &rdc, const SDFile &structData,
                            RENDERDOC_ProgressCallback progress)
 {
   return Structured2XML(filename, rdc, structData.version, structData.chunks, progress);

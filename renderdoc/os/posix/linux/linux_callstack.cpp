@@ -94,7 +94,7 @@ namespace Callstack
 void Init()
 {
   // look for our own line
-  FILE *f = FileIO::fopen("/proc/self/maps", "r");
+  FILE *f = FileIO::fopen("/proc/self/maps", FileIO::ReadText);
 
   if(f)
   {

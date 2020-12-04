@@ -54,35 +54,35 @@ void RegisterEnvironmentModification(const EnvironmentModification &modif);
 
 void ApplyEnvironmentModification();
 
-const char *GetEnvVariable(const char *name);
+rdcstr GetEnvVariable(const rdcstr &name);
 
 uint64_t GetMemoryUsage();
 
 bool CanGlobalHook();
-bool StartGlobalHook(const char *pathmatch, const char *capturefile, const CaptureOptions &opts);
+bool StartGlobalHook(const rdcstr &pathmatch, const rdcstr &capturefile, const CaptureOptions &opts);
 bool IsGlobalHookActive();
 void StopGlobalHook();
 
 rdcpair<ReplayStatus, uint32_t> InjectIntoProcess(uint32_t pid,
                                                   const rdcarray<EnvironmentModification> &env,
-                                                  const char *capturefile,
+                                                  const rdcstr &capturefile,
                                                   const CaptureOptions &opts, bool waitForExit);
 struct ProcessResult
 {
   rdcstr strStdout, strStderror;
   int retCode;
 };
-uint32_t LaunchProcess(const char *app, const char *workingDir, const char *cmdLine, bool internal,
-                       ProcessResult *result = NULL);
-uint32_t LaunchScript(const char *script, const char *workingDir, const char *args, bool internal,
-                      ProcessResult *result = NULL);
+uint32_t LaunchProcess(const rdcstr &app, const rdcstr &workingDir, const rdcstr &cmdLine,
+                       bool internal, ProcessResult *result = NULL);
+uint32_t LaunchScript(const rdcstr &script, const rdcstr &workingDir, const rdcstr &args,
+                      bool internal, ProcessResult *result = NULL);
 rdcpair<ReplayStatus, uint32_t> LaunchAndInjectIntoProcess(
-    const char *app, const char *workingDir, const char *cmdLine,
-    const rdcarray<EnvironmentModification> &env, const char *capturefile,
+    const rdcstr &app, const rdcstr &workingDir, const rdcstr &cmdLine,
+    const rdcarray<EnvironmentModification> &env, const rdcstr &capturefile,
     const CaptureOptions &opts, bool waitForExit);
-bool IsModuleLoaded(const char *module);
-void *LoadModule(const char *module);
-void *GetFunctionAddress(void *module, const char *function);
+bool IsModuleLoaded(const rdcstr &module);
+void *LoadModule(const rdcstr &module);
+void *GetFunctionAddress(void *module, const rdcstr &function);
 uint32_t GetCurrentPID();
 
 void Shutdown();
@@ -190,8 +190,8 @@ private:
   uint32_t timeoutMS;
 };
 
-Socket *CreateServerSocket(const char *addr, uint16_t port, int queuesize);
-Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS);
+Socket *CreateServerSocket(const rdcstr &addr, uint16_t port, int queuesize);
+Socket *CreateClientSocket(const rdcstr &host, uint16_t port, int timeoutMS);
 
 // ip is packed in HOST byte order
 inline uint32_t GetIPOctet(uint32_t ip, uint32_t octet)
@@ -216,7 +216,7 @@ inline bool MatchIPMask(uint32_t ip, uint32_t range, uint32_t mask)
 
 // parses the null-terminated string at 'str' for CIDR notation IP range
 // aaa.bbb.ccc.ddd/nn
-bool ParseIPRangeCIDR(const char *str, uint32_t &ip, uint32_t &mask);
+bool ParseIPRangeCIDR(const rdcstr &str, uint32_t &ip, uint32_t &mask);
 
 void Init();
 void Shutdown();
@@ -251,7 +251,7 @@ struct AddressDetails
   rdcstr filename;
   uint32_t line;
 
-  rdcstr formattedString(const char *commonPath = NULL);
+  rdcstr formattedString(const rdcstr &commonPath = rdcstr());
 };
 
 class StackResolver
@@ -274,7 +274,7 @@ bool GetLoadedModules(byte *buf, size_t &size);
 
 namespace FileIO
 {
-void GetDefaultFiles(const char *logBaseName, rdcstr &capture_filename, rdcstr &logging_filename,
+void GetDefaultFiles(const rdcstr &logBaseName, rdcstr &capture_filename, rdcstr &logging_filename,
                      rdcstr &target);
 rdcstr GetHomeFolderFilename();
 rdcstr GetAppFolderFilename(const rdcstr &filename);
@@ -293,17 +293,26 @@ void GetLibraryFilename(rdcstr &selfName);
 uint64_t GetModifiedTimestamp(const rdcstr &filename);
 uint64_t GetFileSize(const rdcstr &filename);
 
-bool Copy(const char *from, const char *to, bool allowOverwrite);
-bool Move(const char *from, const char *to, bool allowOverwrite);
-void Delete(const char *path);
-void GetFilesInDirectory(const char *path, rdcarray<PathEntry> &entries);
+bool Copy(const rdcstr &from, const rdcstr &to, bool allowOverwrite);
+bool Move(const rdcstr &from, const rdcstr &to, bool allowOverwrite);
+void Delete(const rdcstr &path);
+void GetFilesInDirectory(const rdcstr &path, rdcarray<PathEntry> &entries);
 
-FILE *fopen(const char *filename, const char *mode);
+enum FileMode
+{
+  ReadText,
+  ReadBinary,
+  WriteText,
+  WriteBinary,
+  UpdateBinary,
+  OverwriteBinary,
+};
+FILE *fopen(const rdcstr &filename, FileMode mode);
 
 size_t fread(void *buf, size_t elementSize, size_t count, FILE *f);
 size_t fwrite(const void *buf, size_t elementSize, size_t count, FILE *f);
 
-bool exists(const char *filename);
+bool exists(const rdcstr &filename);
 
 rdcstr ErrorString();
 
@@ -321,19 +330,19 @@ int fclose(FILE *f);
 // functions for atomically appending to a log that may be in use in multiple
 // processes
 struct LogFileHandle;
-LogFileHandle *logfile_open(const char *filename);
+LogFileHandle *logfile_open(const rdcstr &filename);
 void logfile_append(LogFileHandle *logHandle, const char *msg, size_t length);
-void logfile_close(LogFileHandle *logHandle, const char *deleteFilename);
+void logfile_close(LogFileHandle *logHandle, const rdcstr &deleteFilename);
 
 // read the whole logfile into memory starting at a given offset. This may race with processes
 // writing, but it will read the whole of the file at some point. Useful since normal file reading
 // may fail on the shared logfile
-rdcstr logfile_readall(uint64_t offset, const char *filename);
+rdcstr logfile_readall(uint64_t offset, const rdcstr &filename);
 
 // utility functions
 inline bool WriteAll(const rdcstr &filename, const void *buffer, size_t size)
 {
-  FILE *f = FileIO::fopen(filename.c_str(), "wb");
+  FILE *f = FileIO::fopen(filename, FileIO::WriteBinary);
   if(f == NULL)
     return false;
 
@@ -358,7 +367,7 @@ inline bool WriteAll(const rdcstr &filename, const rdcstr &buffer)
 template <typename T>
 bool ReadAll(const rdcstr &filename, rdcarray<T> &buffer)
 {
-  FILE *f = FileIO::fopen(filename.c_str(), "rb");
+  FILE *f = FileIO::fopen(filename, FileIO::ReadBinary);
   if(f == NULL)
     return false;
 
@@ -377,7 +386,7 @@ bool ReadAll(const rdcstr &filename, rdcarray<T> &buffer)
 
 inline bool ReadAll(const rdcstr &filename, rdcstr &str)
 {
-  FILE *f = FileIO::fopen(filename.c_str(), "rb");
+  FILE *f = FileIO::fopen(filename, FileIO::ReadBinary);
   if(f == NULL)
     return false;
 

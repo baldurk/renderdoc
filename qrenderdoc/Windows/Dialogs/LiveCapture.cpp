@@ -1159,8 +1159,8 @@ void LiveCapture::selfClose()
 
 void LiveCapture::connectionThreadEntry()
 {
-  ITargetControl *conn = RENDERDOC_CreateTargetControl(m_Hostname.toUtf8().data(), m_RemoteIdent,
-                                                       GetSystemUsername().toUtf8().data(), true);
+  ITargetControl *conn =
+      RENDERDOC_CreateTargetControl(m_Hostname, m_RemoteIdent, GetSystemUsername(), true);
   m_Connected.release();
 
   if(!conn || !conn->Connected())
@@ -1181,7 +1181,7 @@ void LiveCapture::connectionThreadEntry()
   }
 
   uint32_t pid = conn->GetPID();
-  QString target = QString::fromUtf8(conn->GetTarget());
+  QString target = conn->GetTarget();
 
   GUIInvoke::call(this, [this, pid, target]() {
     if(!m_Connected.available())
@@ -1214,7 +1214,7 @@ void LiveCapture::connectionThreadEntry()
 
     if(m_CopyCapture.tryAcquire())
     {
-      conn->CopyCapture(m_CopyCaptureID, m_CopyCaptureLocalPath.toUtf8().data());
+      conn->CopyCapture(m_CopyCaptureID, m_CopyCaptureLocalPath);
       m_CopyCaptureLocalPath = QString();
       m_CopyCaptureID = ~0U;
     }
@@ -1305,7 +1305,7 @@ void LiveCapture::connectionThreadEntry()
       NewCaptureData cap = msg.newCapture;
       if(cap.api.isEmpty())
         cap.api = conn->GetAPI();
-      QString name = QString::fromUtf8(conn->GetTarget());
+      QString name = conn->GetTarget();
       GUIInvoke::call(this, [this, name, cap]() { captureAdded(name, cap); });
     }
 

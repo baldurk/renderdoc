@@ -931,10 +931,10 @@ static void EGLHooked(void *handle)
 
 bool ShouldHookEGL()
 {
-  const char *toggle = Process::GetEnvVariable("RENDERDOC_HOOK_EGL");
+  rdcstr toggle = Process::GetEnvVariable("RENDERDOC_HOOK_EGL");
 
   // if the var is set to 0, then don't hook EGL
-  if(toggle && toggle[0] == '0')
+  if(toggle.size() >= 1 && toggle[0] == '0')
   {
     RDCLOG(
         "EGL hooks disabled by RENDERDOC_HOOK_EGL environment variable - "
@@ -957,11 +957,11 @@ bool ShouldHookEGL()
     return true;
   }
 
-  const char *ignore_layers = Process::GetEnvVariable("IGNORE_LAYERS");
+  rdcstr ignore_layers = Process::GetEnvVariable("IGNORE_LAYERS");
 
   // if we set IGNORE_LAYERS externally that means the layers are broken or can't be configured, so
   // hook EGL in spite of the layers being present
-  if(ignore_layers && ignore_layers[0] == '1')
+  if(ignore_layers.size() >= 1 && ignore_layers[0] == '1')
     return true;
 
   const char *eglExts = query_string(EGL_NO_DISPLAY, EGL_EXTENSIONS);

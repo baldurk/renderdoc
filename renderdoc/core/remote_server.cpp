@@ -278,9 +278,9 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
     RDCLOG("Logging remote server work to '%s'", filename.c_str());
 
     // truncate the log
-    debugLog = FileIO::logfile_open(filename.c_str());
-    FileIO::logfile_close(debugLog, filename.c_str());
-    debugLog = FileIO::logfile_open(filename.c_str());
+    debugLog = FileIO::logfile_open(filename);
+    FileIO::logfile_close(debugLog, filename);
+    debugLog = FileIO::logfile_open(filename);
 
     reader.EnableDumping(debugLog);
     writer.EnableDumping(debugLog);
@@ -363,7 +363,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
       reader.EndChunk();
 
       rdcarray<PathEntry> files;
-      FileIO::GetFilesInDirectory(path.c_str(), files);
+      FileIO::GetFilesInDirectory(path, files);
 
       {
         WRITE_DATA_SCOPE();
@@ -386,7 +386,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
         WRITE_DATA_SCOPE();
         SCOPED_SERIALISE_CHUNK(eRemoteServer_CopyCaptureFromRemote);
 
-        StreamReader fileStream(FileIO::fopen(path.c_str(), "rb"));
+        StreamReader fileStream(FileIO::fopen(path, FileIO::ReadBinary));
         ser.SerialiseStream(path, fileStream);
       }
     }
@@ -403,16 +403,16 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
       {
         READ_DATA_SCOPE();
 
-        StreamWriter streamWriter(FileIO::fopen(path.c_str(), "wb"), Ownership::Stream);
+        StreamWriter streamWriter(FileIO::fopen(path, FileIO::WriteBinary), Ownership::Stream);
 
-        ser.SerialiseStream(path.c_str(), streamWriter, NULL);
+        ser.SerialiseStream(path, streamWriter, NULL);
       }
 
       reader.EndChunk();
 
       if(reader.IsErrored())
       {
-        FileIO::Delete(path.c_str());
+        FileIO::Delete(path);
 
         RDCERR("Network error receiving file");
         break;
@@ -486,7 +486,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
       ReplayStatus status = ReplayStatus::InternalError;
 
       rdc = new RDCFile();
-      rdc->Open(path.c_str());
+      rdc->Open(path);
 
       if(rdc->ErrorCode() != ContainerError::NoError)
       {
@@ -710,7 +710,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
 
       reader.EndChunk();
 
-      int index = rdc ? rdc->SectionIndex(name.c_str()) : -1;
+      int index = rdc ? rdc->SectionIndex(name) : -1;
 
       {
         WRITE_DATA_SCOPE();
@@ -859,8 +859,8 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
 
       if(threadData->allowExecution)
       {
-        rdcpair<ReplayStatus, uint32_t> status = Process::LaunchAndInjectIntoProcess(
-            app.c_str(), workingDir.c_str(), cmdLine.c_str(), env, "", opts, false);
+        rdcpair<ReplayStatus, uint32_t> status =
+            Process::LaunchAndInjectIntoProcess(app, workingDir, cmdLine, env, "", opts, false);
 
         ret.status = status.first;
         ret.ident = status.second;
@@ -887,7 +887,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
     }
   }
 
-  FileIO::logfile_close(debugLog, NULL);
+  FileIO::logfile_close(debugLog, rdcstr());
 
   SAFE_DELETE(proxy);
 
@@ -900,7 +900,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
 
   for(size_t i = 0; i < tempFiles.size(); i++)
   {
-    FileIO::Delete(tempFiles[i].c_str());
+    FileIO::Delete(tempFiles[i]);
   }
 
   RDCLOG("Closing active connection from %u.%u.%u.%u.", Network::GetIPOctet(ip, 0),
@@ -911,7 +911,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
   SAFE_DELETE(client);
 }
 
-void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port,
+void RenderDoc::BecomeRemoteServer(const rdcstr &listenhost, uint16_t port,
                                    std::function<bool()> killReplay,
                                    RENDERDOC_PreviewWindowCallback previewWindow)
 {
@@ -923,7 +923,7 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port,
   rdcarray<rdcpair<uint32_t, uint32_t> > listenRanges;
   bool allowExecution = true;
 
-  FILE *f = FileIO::fopen(FileIO::GetAppFolderFilename("remoteserver.conf").c_str(), "r");
+  FILE *f = FileIO::fopen(FileIO::GetAppFolderFilename("remoteserver.conf"), FileIO::ReadText);
 
   rdcstr configFile;
 
@@ -957,7 +957,7 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port,
       uint32_t ip = 0, mask = 0;
 
       // CIDR notation
-      bool found = Network::ParseIPRangeCIDR(line.c_str() + sizeof("whitelist"), ip, mask);
+      bool found = Network::ParseIPRangeCIDR(line.substr(sizeof("whitelist")), ip, mask);
 
       if(found)
       {
@@ -1126,10 +1126,10 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port,
 }
 
 extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC
-RENDERDOC_CreateRemoteServerConnection(const char *URL, IRemoteServer **rend)
+RENDERDOC_CreateRemoteServerConnection(const rdcstr &URL, IRemoteServer **rend)
 {
   rdcstr host = "localhost";
-  if(URL != NULL && URL[0] != '\0')
+  if(!URL.empty())
     host = URL;
 
   rdcstr deviceID = host;
@@ -1148,7 +1148,7 @@ RENDERDOC_CreateRemoteServerConnection(const char *URL, IRemoteServer **rend)
     port = protocol->RemapPort(deviceID, port);
   }
 
-  Network::Socket *sock = Network::CreateClientSocket(host.c_str(), port, 750);
+  Network::Socket *sock = Network::CreateClientSocket(host, port, 750);
 
   if(sock == NULL)
     return ReplayStatus::NetworkIOFailed;
@@ -1210,7 +1210,8 @@ RENDERDOC_CreateRemoteServerConnection(const char *URL, IRemoteServer **rend)
   return ReplayStatus::Succeeded;
 }
 
-extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC RENDERDOC_CheckRemoteServerConnection(const char *URL)
+extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC
+RENDERDOC_CheckRemoteServerConnection(const rdcstr &URL)
 {
   return RENDERDOC_CreateRemoteServerConnection(URL, NULL);
 }
@@ -1236,9 +1237,9 @@ RemoteServer::RemoteServer(Network::Socket *sock, const rdcstr &deviceID)
     RDCLOG("Logging remote server work to '%s'", filename.c_str());
 
     // truncate the log
-    debugLog = FileIO::logfile_open(filename.c_str());
-    FileIO::logfile_close(debugLog, filename.c_str());
-    debugLog = FileIO::logfile_open(filename.c_str());
+    debugLog = FileIO::logfile_open(filename);
+    FileIO::logfile_close(debugLog, filename);
+    debugLog = FileIO::logfile_open(filename);
 
     reader->EnableDumping(debugLog);
     writer->EnableDumping(debugLog);
@@ -1260,7 +1261,7 @@ RemoteServer::RemoteServer(Network::Socket *sock, const rdcstr &deviceID)
 
 RemoteServer::~RemoteServer()
 {
-  FileIO::logfile_close(debugLog, NULL);
+  FileIO::logfile_close(debugLog, rdcstr());
   SAFE_DELETE(writer);
   SAFE_DELETE(reader);
   SAFE_DELETE(m_Socket);
@@ -1400,7 +1401,7 @@ rdcstr RemoteServer::GetHomeFolder()
   return home;
 }
 
-rdcarray<PathEntry> RemoteServer::ListFolder(const char *path)
+rdcarray<PathEntry> RemoteServer::ListFolder(const rdcstr &path)
 {
   {
     WRITE_DATA_SCOPE();
@@ -1433,14 +1434,11 @@ rdcarray<PathEntry> RemoteServer::ListFolder(const char *path)
   return files;
 }
 
-ExecuteResult RemoteServer::ExecuteAndInject(const char *a, const char *w, const char *c,
+ExecuteResult RemoteServer::ExecuteAndInject(const rdcstr &app, const rdcstr &workingDir,
+                                             const rdcstr &cmdline,
                                              const rdcarray<EnvironmentModification> &env,
                                              const CaptureOptions &opts)
 {
-  rdcstr app = a && a[0] ? a : "";
-  rdcstr workingDir = w && w[0] ? w : "";
-  rdcstr cmdline = c && c[0] ? c : "";
-
   {
     WRITE_DATA_SCOPE();
     SCOPED_SERIALISE_CHUNK(eRemoteServer_ExecuteAndInject);
@@ -1472,15 +1470,13 @@ ExecuteResult RemoteServer::ExecuteAndInject(const char *a, const char *w, const
   return ret;
 }
 
-void RemoteServer::CopyCaptureFromRemote(const char *remotepath, const char *localpath,
+void RemoteServer::CopyCaptureFromRemote(const rdcstr &remotepath, const rdcstr &localpath,
                                          RENDERDOC_ProgressCallback progress)
 {
-  rdcstr path = remotepath;
-
   {
     WRITE_DATA_SCOPE();
     SCOPED_SERIALISE_CHUNK(eRemoteServer_CopyCaptureFromRemote);
-    SERIALISE_ELEMENT(path);
+    SERIALISE_ELEMENT(remotepath);
   }
 
   {
@@ -1489,7 +1485,7 @@ void RemoteServer::CopyCaptureFromRemote(const char *remotepath, const char *loc
 
     if(type == eRemoteServer_CopyCaptureFromRemote)
     {
-      StreamWriter streamWriter(FileIO::fopen(localpath, "wb"), Ownership::Stream);
+      StreamWriter streamWriter(FileIO::fopen(localpath, FileIO::WriteBinary), Ownership::Stream);
 
       ser.SerialiseStream(localpath, streamWriter, progress);
 
@@ -1508,13 +1504,13 @@ void RemoteServer::CopyCaptureFromRemote(const char *remotepath, const char *loc
   }
 }
 
-rdcstr RemoteServer::CopyCaptureToRemote(const char *filename, RENDERDOC_ProgressCallback progress)
+rdcstr RemoteServer::CopyCaptureToRemote(const rdcstr &filename, RENDERDOC_ProgressCallback progress)
 {
-  FILE *fileHandle = FileIO::fopen(filename, "rb");
+  FILE *fileHandle = FileIO::fopen(filename, FileIO::ReadBinary);
 
   if(!fileHandle)
   {
-    RDCERR("Can't open file '%s'", filename);
+    RDCERR("Can't open file '%s'", filename.c_str());
     return "";
   }
 
@@ -1548,19 +1544,17 @@ rdcstr RemoteServer::CopyCaptureToRemote(const char *filename, RENDERDOC_Progres
   return path;
 }
 
-void RemoteServer::TakeOwnershipCapture(const char *filename)
+void RemoteServer::TakeOwnershipCapture(const rdcstr &filename)
 {
-  rdcstr path = filename;
-
   {
     WRITE_DATA_SCOPE();
     SCOPED_SERIALISE_CHUNK(eRemoteServer_TakeOwnershipCapture);
-    SERIALISE_ELEMENT(path);
+    SERIALISE_ELEMENT(filename);
   }
 }
 
 rdcpair<ReplayStatus, IReplayController *> RemoteServer::OpenCapture(
-    uint32_t proxyid, const char *filename, const ReplayOptions &opts,
+    uint32_t proxyid, const rdcstr &filename, const ReplayOptions &opts,
     RENDERDOC_ProgressCallback progress)
 {
   rdcpair<ReplayStatus, IReplayController *> ret;
@@ -1772,7 +1766,7 @@ int RemoteServer::GetSectionCount()
   return count;
 }
 
-int RemoteServer::FindSectionByName(const char *name)
+int RemoteServer::FindSectionByName(const rdcstr &name)
 {
   if(!Connected())
     return -1;

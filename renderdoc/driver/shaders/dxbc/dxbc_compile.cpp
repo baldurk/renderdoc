@@ -35,7 +35,7 @@ static HMODULE GetLocalD3DCompiler()
 
   rdcstr dll = get_dirname(dllFile) + "/d3dcompiler_47.dll";
 
-  return LoadLibraryW(StringFormat::UTF82Wide(dll.c_str()).data());
+  return LoadLibraryW(StringFormat::UTF82Wide(dll).data());
 }
 
 HMODULE GetD3DCompiler()

@@ -143,33 +143,35 @@ struct AppVeyorListener : Catch::TestEventListenerBase
   // it should at least by identified as an issue.
   virtual void testRunEnded(Catch::TestRunStats const &testRunStats) override
   {
-    const char *url = Process::GetEnvVariable("APPVEYOR_API_URL");
+    rdcstr url = Process::GetEnvVariable("APPVEYOR_API_URL");
 
-    if(url)
+    if(!url.empty())
     {
-      if(strncmp(url, "http://", 7))
+      if(!url.beginsWith("http://"))
         return;
 
-      url += 7;
+      const char *urlc = url.c_str();
 
-      const char *sep = strchr(url, ':');
+      urlc += 7;
+
+      const char *sep = strchr(urlc, ':');
 
       if(!sep)
         return;
 
-      rdcstr hostname = rdcstr(url, sep - url);
+      rdcstr hostname = rdcstr(urlc, sep - urlc);
 
-      url = sep + 1;
+      urlc = sep + 1;
 
       uint16_t port = 0;
-      while(*url >= '0' && *url <= '9')
+      while(*urlc >= '0' && *urlc <= '9')
       {
         port *= 10;
-        port += int((*url) - '0');
-        url++;
+        port += int((*urlc) - '0');
+        urlc++;
       }
 
-      Network::Socket *sock = Network::CreateClientSocket(hostname.c_str(), port, 10);
+      Network::Socket *sock = Network::CreateClientSocket(hostname, port, 10);
 
       if(sock)
       {

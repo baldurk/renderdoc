@@ -84,7 +84,7 @@ namespace Callstack
 void Init()
 {
   // look for our own line
-  FILE *f = FileIO::fopen("/proc/self/maps", "r");
+  FILE *f = FileIO::fopen("/proc/self/maps", FileIO::ReadText);
 
   if(f)
   {
@@ -119,7 +119,7 @@ bool GetLoadedModules(byte *buf, size_t &size)
 {
   // we just dump the whole file rather than pre-parsing, that way we can improve
   // parsing without needing to recapture
-  FILE *f = FileIO::fopen("/proc/self/maps", "r");
+  FILE *f = FileIO::fopen("/proc/self/maps", FileIO::ReadText);
 
   size = 0;
 
@@ -181,7 +181,7 @@ private:
         uint64_t relative = addr - m_Modules[i].base + m_Modules[i].offset;
         rdcstr cmd = StringFormat::Fmt("addr2line -fCe \"%s\" 0x%llx", m_Modules[i].path, relative);
 
-        FILE *f = ::popen(cmd.c_str(), "r");
+        FILE *f = ::popen(cmd.c_str(), FileIO::ReadText);
 
         char result[2048] = {0};
         fread(result, 1, 2047, f);

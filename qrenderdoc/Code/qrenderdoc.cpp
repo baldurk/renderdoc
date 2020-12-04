@@ -61,7 +61,7 @@ void sharedLogOutput(QtMsgType type, const QMessageLogContext &context, const QS
     case QtFatalMsg: logtype = LogType::Fatal; break;
   }
 
-  RENDERDOC_LogMessage(logtype, "QTRD", context.file, context.line, msg.toUtf8().data());
+  RENDERDOC_LogMessage(logtype, "QTRD", context.file ? context.file : rdcstr(), context.line, msg);
 }
 
 static QString tr(const char *string)
@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
 
     if(errors)
     {
-      RENDERDOC_LogMessage(LogType::Error, "EXTN", __FILE__, __LINE__, errorLog.c_str());
+      RENDERDOC_LogMessage(LogType::Error, "EXTN", __FILE__, __LINE__, errorLog);
       fputs("Found errors in python bindings. Please fix!\n", logOut);
       fputs(errorLog.c_str(), logOut);
       return 1;
@@ -259,7 +259,7 @@ int main(int argc, char *argv[])
     else
     {
       // no port specified, find the first open port.
-      ident = RENDERDOC_EnumerateRemoteTargets(host.toLocal8Bit().data(), ident);
+      ident = RENDERDOC_EnumerateRemoteTargets(host, ident);
       ok = (ident != 0);
     }
 

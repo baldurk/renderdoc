@@ -61,7 +61,7 @@ rdcarray<int> getSockets(pid_t childPid)
   rdcarray<int> sockets;
   rdcstr dirPath = StringFormat::Fmt("/proc/%d/fd", (int)childPid);
   rdcarray<PathEntry> files;
-  FileIO::GetFilesInDirectory(dirPath.c_str(), files);
+  FileIO::GetFilesInDirectory(dirPath, files);
   if(files.empty())
     return sockets;
 
@@ -98,7 +98,7 @@ int GetIdentPort(pid_t childPid)
 
     waitTime *= 2;
 
-    FILE *f = FileIO::fopen(procfile.c_str(), "r");
+    FILE *f = FileIO::fopen(procfile, FileIO::ReadText);
 
     if(f == NULL)
     {
@@ -141,7 +141,7 @@ int GetIdentPort(pid_t childPid)
             (uint32_t)RenderDoc_FirstTargetControlPort, (uint32_t)RenderDoc_LastTargetControlPort,
             procfile.c_str());
 
-    if(!FileIO::exists(procfile.c_str()))
+    if(!FileIO::exists(procfile))
     {
       RDCWARN("Process %u is no longer running - did it exit during initialisation or fail to run?",
               childPid);
@@ -349,7 +349,7 @@ bool StopChildAtMain(pid_t childPid)
 
   rdcstr mapsName = StringFormat::Fmt("/proc/%u/maps", childPid);
 
-  FILE *maps = FileIO::fopen(mapsName.c_str(), "r");
+  FILE *maps = FileIO::fopen(mapsName, FileIO::ReadText);
 
   if(!maps)
   {
@@ -394,7 +394,7 @@ bool StopChildAtMain(pid_t childPid)
 
   FileIO::fclose(maps);
 
-  FILE *elf = FileIO::fopen(exepath.c_str(), "r");
+  FILE *elf = FileIO::fopen(exepath, FileIO::ReadText);
 
   if(!elf)
   {
@@ -621,7 +621,7 @@ bool debuggerPresent = false;
 
 void CacheDebuggerPresent()
 {
-  FILE *f = FileIO::fopen("/proc/self/status", "r");
+  FILE *f = FileIO::fopen("/proc/self/status", FileIO::ReadText);
 
   if(f == NULL)
   {
@@ -656,14 +656,14 @@ bool OSUtility::DebuggerPresent()
   return debuggerPresent;
 }
 
-const char *Process::GetEnvVariable(const char *name)
+rdcstr Process::GetEnvVariable(const rdcstr &name)
 {
-  return getenv(name);
+  return getenv(name.c_str());
 }
 
 uint64_t Process::GetMemoryUsage()
 {
-  FILE *f = FileIO::fopen("/proc/self/statm", "r");
+  FILE *f = FileIO::fopen("/proc/self/statm", FileIO::ReadText);
 
   if(f == NULL)
   {

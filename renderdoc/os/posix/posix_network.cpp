@@ -348,7 +348,7 @@ uint32_t GetIPFromTCPSocket(int socket)
   return ntohl(addr.sin_addr.s_addr);
 }
 
-Socket *CreateTCPServerSocket(const char *bindaddr, uint16_t port, int queuesize)
+Socket *CreateTCPServerSocket(const rdcstr &bindaddr, uint16_t port, int queuesize)
 {
   int s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
@@ -361,7 +361,7 @@ Socket *CreateTCPServerSocket(const char *bindaddr, uint16_t port, int queuesize
   sockaddr_in addr;
   RDCEraseEl(addr);
 
-  hostent *hp = gethostbyname(bindaddr);
+  hostent *hp = gethostbyname(bindaddr.c_str());
 
   addr.sin_family = AF_INET;
   memcpy(&addr.sin_addr, hp->h_addr, hp->h_length);
@@ -370,7 +370,7 @@ Socket *CreateTCPServerSocket(const char *bindaddr, uint16_t port, int queuesize
   int result = bind(s, (sockaddr *)&addr, sizeof(addr));
   if(result == -1)
   {
-    RDCWARN("Failed to bind to %s:%d - %d", bindaddr, port, errno);
+    RDCWARN("Failed to bind to %s:%d - %d", bindaddr.c_str(), port, errno);
     close(s);
     return NULL;
   }
@@ -378,7 +378,7 @@ Socket *CreateTCPServerSocket(const char *bindaddr, uint16_t port, int queuesize
   result = listen(s, queuesize);
   if(result == -1)
   {
-    RDCWARN("Failed to listen on %s:%d - %d", bindaddr, port, errno);
+    RDCWARN("Failed to listen on %s:%d - %d", bindaddr.c_str(), port, errno);
     close(s);
     return NULL;
   }
@@ -438,7 +438,7 @@ Socket *CreateAbstractServerSocket(uint16_t port, int queuesize)
   return new Socket((ptrdiff_t)s);
 }
 
-Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
+Socket *CreateClientSocket(const rdcstr &host, uint16_t port, int timeoutMS)
 {
   addrinfo hints;
   RDCEraseEl(hints);
@@ -447,7 +447,7 @@ Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
   hints.ai_protocol = IPPROTO_TCP;
 
   addrinfo *addrResult = NULL;
-  int res = getaddrinfo(host, ToStr(port).c_str(), &hints, &addrResult);
+  int res = getaddrinfo(host.c_str(), ToStr(port).c_str(), &hints, &addrResult);
   if(res != 0)
   {
     RDCDEBUG("%s", gai_strerror(res));
@@ -514,35 +514,7 @@ Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
 
   freeaddrinfo(addrResult);
 
-  RDCDEBUG("Failed to connect to %s:%d", host, port);
+  RDCDEBUG("Failed to connect to %s:%d", host.c_str(), port);
   return NULL;
-}
-
-bool ParseIPRangeCIDR(const char *str, uint32_t &ip, uint32_t &mask)
-{
-  uint32_t a = 0, b = 0, c = 0, d = 0, num = 0;
-
-  int ret = sscanf(str, "%u.%u.%u.%u/%u", &a, &b, &c, &d, &num);
-
-  if(ret != 5 || a > 255 || b > 255 || c > 255 || d > 255 || num > 32)
-  {
-    ip = 0;
-    mask = 0;
-    return false;
-  }
-
-  ip = MakeIP(a, b, c, d);
-
-  if(num == 0)
-  {
-    mask = 0;
-  }
-  else
-  {
-    num = 32 - num;
-    mask = ((~0U) >> num) << num;
-  }
-
-  return true;
 }
 };

@@ -250,28 +250,28 @@ RDCFile::~RDCFile()
     FileIO::fclose(m_File);
 }
 
-void RDCFile::Open(const char *path)
+void RDCFile::Open(const rdcstr &path)
 {
   // silently fail when opening the empty string, to allow 'releasing' a capture file by opening an
   // empty path.
-  if(path == NULL || path[0] == 0)
+  if(path.empty())
   {
     RETURNERROR(ContainerError::FileNotFound, "Invalid file path specified");
   }
 
-  RDCLOG("Opening RDCFile %s", path);
+  RDCLOG("Opening RDCFile %s", path.c_str());
 
   // ensure section header is compiled correctly
   RDCCOMPILE_ASSERT(offsetof(BinarySectionHeader, name) == sizeof(uint32_t) * 10,
                     "BinarySectionHeader size has changed or contains padding");
 
-  m_File = FileIO::fopen(path, "rb");
+  m_File = FileIO::fopen(path, FileIO::ReadBinary);
   m_Filename = path;
 
   if(!m_File)
   {
     RETURNERROR(ContainerError::FileNotFound, "Can't open capture file '%s' for read - errno %d",
-                path, errno);
+                path.c_str(), errno);
   }
 
   // try to identify if this is an image
@@ -641,7 +641,7 @@ void RDCFile::Init(StreamReader &reader)
   }
 }
 
-bool RDCFile::CopyFileTo(const char *filename)
+bool RDCFile::CopyFileTo(const rdcstr &filename)
 {
   if(!m_File)
     return false;
@@ -651,20 +651,20 @@ bool RDCFile::CopyFileTo(const char *filename)
   FileIO::fclose(m_File);
 
   // try to move to the new location
-  bool success = FileIO::Copy(m_Filename.c_str(), filename, true);
+  bool success = FileIO::Copy(m_Filename, filename, true);
 
   // if it succeeded, update our filename
   if(success)
     m_Filename = filename;
 
   // re-open the file (either the new one, or the old one if it failed) and re-seek
-  m_File = FileIO::fopen(m_Filename.c_str(), "rb");
+  m_File = FileIO::fopen(m_Filename, FileIO::ReadBinary);
   FileIO::fseek64(m_File, prevPos, SEEK_SET);
 
   return success;
 }
 
-void RDCFile::SetData(RDCDriver driver, const char *driverName, uint64_t machineIdent,
+void RDCFile::SetData(RDCDriver driver, const rdcstr &driverName, uint64_t machineIdent,
                       const RDCThumb *thumb, uint64_t timeBase, double timeFreq)
 {
   m_Driver = driver;
@@ -678,9 +678,9 @@ void RDCFile::SetData(RDCDriver driver, const char *driverName, uint64_t machine
   m_TimeFrequency = timeFreq;
 }
 
-void RDCFile::Create(const char *filename)
+void RDCFile::Create(const rdcstr &filename)
 {
-  m_File = FileIO::fopen(filename, "wb");
+  m_File = FileIO::fopen(filename, FileIO::WriteBinary);
   m_Filename = filename;
 
   RDCDEBUG("creating RDC file.");
@@ -688,7 +688,7 @@ void RDCFile::Create(const char *filename)
   if(!m_File)
   {
     RETURNERROR(ContainerError::FileIO, "Can't open capture file '%s' for write, errno %d",
-                filename, errno);
+                filename.c_str(), errno);
   }
 
   RDCDEBUG("Opened capture file for write");
@@ -780,13 +780,13 @@ void RDCFile::Create(const char *filename)
 
   // re-open as read-only now.
   FileIO::fclose(m_File);
-  m_File = FileIO::fopen(filename, "rb");
+  m_File = FileIO::fopen(filename, FileIO::ReadBinary);
   FileIO::fseek64(m_File, 0, SEEK_END);
 
   if(!m_File)
   {
     RETURNERROR(ContainerError::FileIO, "Can't open capture file '%s' as read-only, errno %d",
-                filename, errno);
+                filename.c_str(), errno);
   }
 }
 
@@ -804,7 +804,7 @@ int RDCFile::SectionIndex(SectionType type) const
   return -1;
 }
 
-int RDCFile::SectionIndex(const char *name) const
+int RDCFile::SectionIndex(const rdcstr &name) const
 {
   for(size_t i = 0; i < m_Sections.size(); i++)
     if(m_Sections[i].name == name)
@@ -886,12 +886,12 @@ StreamWriter *RDCFile::WriteSection(const SectionProperties &props)
   {
     uint64_t offs = FileIO::ftell64(m_File);
     FileIO::fclose(m_File);
-    m_File = FileIO::fopen(m_Filename.c_str(), "r+b");
+    m_File = FileIO::fopen(m_Filename, FileIO::UpdateBinary);
 
     if(m_File == NULL)
     {
       RDCERR("Couldn't re-open file as read/write to write section.");
-      m_File = FileIO::fopen(m_Filename.c_str(), "rb");
+      m_File = FileIO::fopen(m_Filename, FileIO::ReadBinary);
       if(m_File)
         FileIO::fseek64(m_File, offs, SEEK_SET);
       return new StreamWriter(StreamWriter::InvalidStream);
@@ -936,7 +936,7 @@ StreamWriter *RDCFile::WriteSection(const SectionProperties &props)
   // fixups. We need to be able to fixup any pre-existing sections that got shifted around.
   StreamCloseCallback modifySectionCallback;
 
-  if(SectionIndex(type) >= 0 || SectionIndex(name.c_str()) >= 0)
+  if(SectionIndex(type) >= 0 || SectionIndex(name) >= 0)
   {
     if(type == SectionType::FrameCapture || name == ToStr(SectionType::FrameCapture))
     {
@@ -976,7 +976,7 @@ StreamWriter *RDCFile::WriteSection(const SectionProperties &props)
 
         // create the file, this will overwrite m_File with the new file and file header using the
         // existing loaded metadata
-        Create(tempFilename.c_str());
+        Create(tempFilename);
 
         // after we've written the frame capture, we need to copy over the other sections into the
         // temporary file and finally move the temporary file over the top of the existing file.
@@ -1026,10 +1026,10 @@ StreamWriter *RDCFile::WriteSection(const SectionProperties &props)
           FileIO::fclose(m_File);
 
           // move the temp file over the original
-          FileIO::Move(tempFilename.c_str(), m_Filename.c_str(), true);
+          FileIO::Move(tempFilename, m_Filename, true);
 
           // re-open the file after it's been overwritten.
-          m_File = FileIO::fopen(m_Filename.c_str(), "r+b");
+          m_File = FileIO::fopen(m_Filename, FileIO::UpdateBinary);
         };
 
         // fall through - we'll write to m_File immediately after the file header
@@ -1049,7 +1049,7 @@ StreamWriter *RDCFile::WriteSection(const SectionProperties &props)
       int index = SectionIndex(type);
 
       if(index < 0)
-        index = SectionIndex(name.c_str());
+        index = SectionIndex(name);
 
       RDCASSERT(index >= 0);
 
@@ -1235,7 +1235,7 @@ StreamWriter *RDCFile::WriteSection(const SectionProperties &props)
     FileIO::fclose(m_File);
 
     // re-open the file and re-seek
-    m_File = FileIO::fopen(m_Filename.c_str(), "rb");
+    m_File = FileIO::fopen(m_Filename, FileIO::ReadBinary);
     FileIO::fseek64(m_File, prevPos, SEEK_SET);
   });
 

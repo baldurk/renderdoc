@@ -865,7 +865,7 @@ void DXBCContainer::TryFetchSeparateDebugInfo(bytebuf &byteCode, const rdcstr &d
         {
           if(i == 0)
           {
-            originalShaderFile = FileIO::fopen(originalPath.c_str(), "rb");
+            originalShaderFile = FileIO::fopen(originalPath, FileIO::ReadBinary);
             foundPath = originalPath;
             continue;
           }
@@ -873,7 +873,7 @@ void DXBCContainer::TryFetchSeparateDebugInfo(bytebuf &byteCode, const rdcstr &d
           {
             const rdcstr &searchPath = searchPaths[i - 1];
             foundPath = searchPath + "/" + originalPath;
-            originalShaderFile = FileIO::fopen(foundPath.c_str(), "rb");
+            originalShaderFile = FileIO::fopen(foundPath, FileIO::ReadBinary);
           }
         }
 

@@ -487,7 +487,7 @@ TEST_CASE("Read/writing large buffers", "[serialiser]")
   {
     WriteSerialiser ser(new StreamWriter(StreamWriter::DefaultScratchSize), Ownership::Stream);
     WriteSerialiser fileser(
-        new StreamWriter(FileIO::fopen(filename.c_str(), "wb"), Ownership::Stream),
+        new StreamWriter(FileIO::fopen(filename, FileIO::WriteBinary), Ownership::Stream),
         Ownership::Stream);
 
     uint32_t dummy1 = 99;
@@ -530,7 +530,7 @@ TEST_CASE("Read/writing large buffers", "[serialiser]")
 
   for(size_t pass = 0; pass < 2; pass++)
   {
-    StreamReader reader(FileIO::fopen(filename.c_str(), "rb"));
+    StreamReader reader(FileIO::fopen(filename, FileIO::ReadBinary));
 
     ReadSerialiser ser(&reader, Ownership::Nothing);
 
@@ -592,7 +592,7 @@ TEST_CASE("Read/writing large buffers", "[serialiser]")
     CHECK(reader.GetOffset() == 80 * 1024 * 1024 + 64 * 4);
   }
 
-  FileIO::Delete(filename.c_str());
+  FileIO::Delete(filename);
 };
 
 TEST_CASE("Read/write chunk metadata", "[serialiser]")

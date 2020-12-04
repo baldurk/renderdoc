@@ -805,14 +805,12 @@ returned.
       return false;
     return true;
   }
-  const char *Type() const { return type.name.c_str(); }
-  const char *Name() const { return name.c_str(); }
-  SDObject *SetTypeName(const char *customTypeName)
+  SDObject *SetTypeName(const rdcstr &customTypeName)
   {
     type.name = customTypeName;
     return this;
   }
-  SDObject *SetCustomString(const char *customString)
+  SDObject *SetCustomString(const rdcstr &customString)
   {
     data.str = customString;
     type.flags = SDTypeFlags::HasCustomString;
@@ -1165,9 +1163,9 @@ inline SDObject *makeSDStruct(const rdcinflexiblestr &name, const rdcinflexibles
   {                                                                                                 \
     SDObject *ptr = makeSDFunc(name, value);                                                        \
     if(customString)                                                                                \
-      ptr->SetCustomString(customString);                                                           \
+      ptr->SetCustomString(rdcstr(customString));                                                   \
     if(customTypeName)                                                                              \
-      ptr->SetTypeName(customTypeName);                                                             \
+      ptr->SetTypeName(rdcstr(customTypeName));                                                     \
     return ptr;                                                                                     \
   }
 

@@ -1517,7 +1517,6 @@ void ShaderViewer::disassemble_typeChanged(int index)
     return;
 
   QString targetStr = m_DisassemblyType->currentText();
-  QByteArray target = targetStr.toUtf8();
 
   for(const ShaderProcessingTool &disasm : m_Ctx.Config().ShaderProcessors)
   {
@@ -1562,11 +1561,11 @@ void ShaderViewer::disassemble_typeChanged(int index)
 
   QPointer<ShaderViewer> me(this);
 
-  m_Ctx.Replay().AsyncInvoke([me, this, target](IReplayController *r) {
+  m_Ctx.Replay().AsyncInvoke([me, this, targetStr](IReplayController *r) {
     if(!me)
       return;
 
-    rdcstr disasm = r->DisassembleShader(m_Pipeline, m_ShaderDetails, target.data());
+    rdcstr disasm = r->DisassembleShader(m_Pipeline, m_ShaderDetails, targetStr);
 
     if(!me)
       return;

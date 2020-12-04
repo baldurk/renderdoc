@@ -71,17 +71,17 @@ public:
   ~RDCFile();
 
   // opens an existing file for read and/or modification. Error if file doesn't exist
-  void Open(const char *filename);
+  void Open(const rdcstr &filename);
   void Open(const bytebuf &buffer);
 
-  bool CopyFileTo(const char *filename);
+  bool CopyFileTo(const rdcstr &filename);
 
   // Sets the parameters of an RDCFile in memory.
-  void SetData(RDCDriver driver, const char *driverName, uint64_t machineIdent,
+  void SetData(RDCDriver driver, const rdcstr &driverName, uint64_t machineIdent,
                const RDCThumb *thumb, uint64_t timeBase, double timeFreq);
 
   // creates a new file with current properties, file will be overwritten if it already exists
-  void Create(const char *filename);
+  void Create(const rdcstr &filename);
 
   ContainerError ErrorCode() const { return m_Error; }
   rdcstr ErrorString() const { return m_ErrorString; }
@@ -92,7 +92,7 @@ public:
   double GetTimestampFrequency() const { return m_TimeFrequency; }
   const RDCThumb &GetThumbnail() const { return m_Thumb; }
   int SectionIndex(SectionType type) const;
-  int SectionIndex(const char *name) const;
+  int SectionIndex(const rdcstr &name) const;
   int NumSections() const { return int(m_Sections.size()); }
   const SectionProperties &GetSectionProperties(int index) const { return m_Sections[index]; }
   StreamReader *ReadSection(int index) const;

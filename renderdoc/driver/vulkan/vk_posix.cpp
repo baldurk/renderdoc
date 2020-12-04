@@ -309,13 +309,13 @@ static rdcstr GetSOFromJSON(const rdcstr &json)
   char *json_string = new char[1024];
   memset(json_string, 0, 1024);
 
-  FILE *f = fopen(json.c_str(), "r");
+  FILE *f = FileIO::fopen(json, FileIO::ReadText);
 
   if(f)
   {
-    fread(json_string, 1, 1024, f);
+    FileIO::fread(json_string, 1, 1024, f);
 
-    fclose(f);
+    FileIO::fclose(f);
   }
 
   rdcstr ret = "";
@@ -601,13 +601,13 @@ void VulkanReplay::InstallVulkanLayer(bool systemLevel)
   {
     MakeParentDirs(jsonPath);
 
-    FILE *f = fopen(jsonPath.c_str(), "w");
+    FILE *f = FileIO::fopen(jsonPath, FileIO::WriteText);
 
     if(f)
     {
       fputs(GenerateJSON(libPath).c_str(), f);
 
-      fclose(f);
+      FileIO::fclose(f);
     }
     else
     {

@@ -162,7 +162,7 @@ rdcarray<rdcstr> ReplayController::GetDisassemblyTargets(bool withPipeline)
 }
 
 rdcstr ReplayController::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
-                                           const char *target)
+                                           const rdcstr &target)
 {
   CHECK_REPLAY_THREAD();
 
@@ -555,7 +555,7 @@ bytebuf ReplayController::GetTextureData(ResourceId tex, const Subresource &sub)
   return ret;
 }
 
-bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path)
+bool ReplayController::SaveTexture(const TextureSave &saveData, const rdcstr &path)
 {
   CHECK_REPLAY_THREAD();
   RENDERDOC_PROFILEFUNCTION();
@@ -1169,12 +1169,12 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
     rowPitch = td.width * 3;
   }
 
-  FILE *f = FileIO::fopen(path, "wb");
+  FILE *f = FileIO::fopen(path, FileIO::WriteBinary);
 
   if(!f)
   {
     success = false;
-    RDCERR("Couldn't write to path %s, error: %s", path, FileIO::ErrorString().c_str());
+    RDCERR("Couldn't write to path %s, error: %s", path.c_str(), FileIO::ErrorString().c_str());
   }
   else
   {
@@ -1656,7 +1656,7 @@ void ReplayController::FreeTrace(ShaderDebugTrace *trace)
 }
 
 rdcarray<ShaderVariable> ReplayController::GetCBufferVariableContents(
-    ResourceId pipeline, ResourceId shader, const char *entryPoint, uint32_t cbufslot,
+    ResourceId pipeline, ResourceId shader, const rdcstr &entryPoint, uint32_t cbufslot,
     ResourceId buffer, uint64_t offset, uint64_t length)
 {
   CHECK_REPLAY_THREAD();
@@ -1703,7 +1703,7 @@ rdcstr ReplayController::CreateRGPProfile(WindowingData window)
 
   rdcstr path = FileIO::GetTempFolderFilename() + "/renderdoc_rgp_capture.rgp";
 
-  FileIO::Delete(path.c_str());
+  FileIO::Delete(path);
 
   ReplayOutput *output = CreateOutput(window, ReplayOutputType::Texture);
 
@@ -1872,7 +1872,7 @@ rdcarray<ShaderEncoding> ReplayController::GetTargetShaderEncodings()
 }
 
 rdcpair<ResourceId, rdcstr> ReplayController::BuildTargetShader(
-    const char *entry, ShaderEncoding sourceEncoding, bytebuf source,
+    const rdcstr &entry, ShaderEncoding sourceEncoding, bytebuf source,
     const ShaderCompileFlags &compileFlags, ShaderStage type)
 {
   CHECK_REPLAY_THREAD();
@@ -1912,7 +1912,7 @@ rdcpair<ResourceId, rdcstr> ReplayController::BuildTargetShader(
 }
 
 rdcpair<ResourceId, rdcstr> ReplayController::BuildCustomShader(
-    const char *entry, ShaderEncoding sourceEncoding, bytebuf source,
+    const rdcstr &entry, ShaderEncoding sourceEncoding, bytebuf source,
     const ShaderCompileFlags &compileFlags, ShaderStage type)
 {
   CHECK_REPLAY_THREAD();

@@ -57,7 +57,6 @@ inline bool DebuggerPresent()
 {
   return ::IsDebuggerPresent() == TRUE;
 }
-void WriteOutput(int channel, const char *str);
 };
 
 namespace Threading

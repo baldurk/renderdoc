@@ -774,8 +774,7 @@ rdcstr GLReplay::DisassembleShader(ResourceId pipeline, const ShaderReflection *
     rdcstr &disasm = shaderDetails.disassembly;
 
     if(disasm.empty())
-      disasm = shaderDetails.spirv.Disassemble(refl->entryPoint.c_str(),
-                                               shaderDetails.spirvInstructionLines);
+      disasm = shaderDetails.spirv.Disassemble(refl->entryPoint, shaderDetails.spirvInstructionLines);
 
     return disasm;
   }

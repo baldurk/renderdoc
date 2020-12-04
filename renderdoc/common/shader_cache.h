@@ -32,12 +32,12 @@
 static const uint32_t ShaderCacheMagic = MAKE_FOURCC('R', 'D', '$', '$');
 
 template <typename ResultType, typename ShaderCallbacks>
-bool LoadShaderCache(const char *filename, const uint32_t magicNumber, const uint32_t versionNumber,
+bool LoadShaderCache(const rdcstr &filename, const uint32_t magicNumber, const uint32_t versionNumber,
                      std::map<uint32_t, ResultType> &resultCache, const ShaderCallbacks &callbacks)
 {
   rdcstr shadercache = FileIO::GetAppFolderFilename(filename);
 
-  StreamReader fileReader(FileIO::fopen(shadercache.c_str(), "rb"));
+  StreamReader fileReader(FileIO::fopen(shadercache, FileIO::ReadBinary));
 
   uint32_t globalMagic = 0, localMagic = 0, version = 0;
   fileReader.Read(globalMagic);
@@ -86,12 +86,12 @@ bool LoadShaderCache(const char *filename, const uint32_t magicNumber, const uin
 }
 
 template <typename ResultType, typename ShaderCallbacks>
-void SaveShaderCache(const char *filename, uint32_t magicNumber, uint32_t versionNumber,
+void SaveShaderCache(const rdcstr &filename, uint32_t magicNumber, uint32_t versionNumber,
                      const std::map<uint32_t, ResultType> &cache, const ShaderCallbacks &callbacks)
 {
   rdcstr shadercache = FileIO::GetAppFolderFilename(filename);
 
-  FILE *f = FileIO::fopen(shadercache.c_str(), "wb");
+  FILE *f = FileIO::fopen(shadercache, FileIO::WriteBinary);
 
   if(!f)
   {

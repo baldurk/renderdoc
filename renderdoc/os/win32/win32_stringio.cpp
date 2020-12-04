@@ -287,7 +287,7 @@ rdcstr GetReplayAppFilename()
   path = get_dirname(path);
   rdcstr exe = path + "/qrenderdoc.exe";
 
-  FILE *f = FileIO::fopen(exe.c_str(), "rb");
+  FILE *f = FileIO::fopen(exe, FileIO::ReadBinary);
   if(f)
   {
     FileIO::fclose(f);
@@ -298,7 +298,7 @@ rdcstr GetReplayAppFilename()
   // so look one up the tree.
   exe = path + "/../qrenderdoc.exe";
 
-  f = FileIO::fopen(exe.c_str(), "rb");
+  f = FileIO::fopen(exe, FileIO::ReadBinary);
   if(f)
   {
     FileIO::fclose(f);
@@ -323,7 +323,7 @@ rdcstr GetReplayAppFilename()
   return "";
 }
 
-void GetDefaultFiles(const char *logBaseName, rdcstr &capture_filename, rdcstr &logging_filename,
+void GetDefaultFiles(const rdcstr &logBaseName, rdcstr &capture_filename, rdcstr &logging_filename,
                      rdcstr &target)
 {
   wchar_t temp_filename[MAX_PATH];
@@ -445,7 +445,7 @@ uint64_t GetFileSize(const rdcstr &filename)
   return 0;
 }
 
-bool Copy(const char *from, const char *to, bool allowOverwrite)
+bool Copy(const rdcstr &from, const rdcstr &to, bool allowOverwrite)
 {
   rdcwstr wfrom = StringFormat::UTF82Wide(from);
   rdcwstr wto = StringFormat::UTF82Wide(to);
@@ -453,7 +453,7 @@ bool Copy(const char *from, const char *to, bool allowOverwrite)
   return ::CopyFileW(wfrom.c_str(), wto.c_str(), allowOverwrite == false) != 0;
 }
 
-bool Move(const char *from, const char *to, bool allowOverwrite)
+bool Move(const rdcstr &from, const rdcstr &to, bool allowOverwrite)
 {
   rdcwstr wfrom = StringFormat::UTF82Wide(from);
   rdcwstr wto = StringFormat::UTF82Wide(to);
@@ -469,17 +469,17 @@ bool Move(const char *from, const char *to, bool allowOverwrite)
   return ::MoveFileW(wfrom.c_str(), wto.c_str()) != 0;
 }
 
-void Delete(const char *path)
+void Delete(const rdcstr &path)
 {
   rdcwstr wpath = StringFormat::UTF82Wide(path);
   ::DeleteFileW(wpath.c_str());
 }
 
-void GetFilesInDirectory(const char *path, rdcarray<PathEntry> &ret)
+void GetFilesInDirectory(const rdcstr &path, rdcarray<PathEntry> &ret)
 {
   ret.clear();
 
-  if(path[0] == '/' && path[1] == 0)
+  if(path.size() == 1 && path[0] == '/')
   {
     DWORD driveMask = GetLogicalDrives();
 
@@ -492,7 +492,7 @@ void GetFilesInDirectory(const char *path, rdcarray<PathEntry> &ret)
         rdcstr fn = "A:/";
         fn[0] = char('A' + i);
 
-        ret.push_back(PathEntry(fn.c_str(), PathProperty::Directory));
+        ret.push_back(PathEntry(fn, PathProperty::Directory));
       }
     }
 
@@ -560,7 +560,7 @@ void GetFilesInDirectory(const char *path, rdcarray<PathEntry> &ret)
         flags |= PathProperty::Executable;
       }
 
-      PathEntry f(StringFormat::Wide2UTF8(findData.cFileName).c_str(), flags);
+      PathEntry f(StringFormat::Wide2UTF8(findData.cFileName), flags);
 
       uint64_t nanosecondsSinceWindowsEpoch = uint64_t(findData.ftLastWriteTime.dwHighDateTime) << 8 |
                                               uint64_t(findData.ftLastWriteTime.dwLowDateTime);
@@ -582,17 +582,20 @@ void GetFilesInDirectory(const char *path, rdcarray<PathEntry> &ret)
   FindClose(find);
 }
 
-FILE *fopen(const char *filename, const char *mode)
+const wchar_t *modeString[] = {
+    L"r", L"rb", L"w", L"wb", L"r+b", L"w+b",
+};
+
+FILE *fopen(const rdcstr &filename, FileMode mode)
 {
   rdcwstr wfn = StringFormat::UTF82Wide(filename);
-  rdcwstr wmode = StringFormat::UTF82Wide(mode);
 
   FILE *ret = NULL;
-  ::_wfopen_s(&ret, wfn.c_str(), wmode.c_str());
+  ::_wfopen_s(&ret, wfn.c_str(), modeString[mode]);
   return ret;
 }
 
-bool exists(const char *filename)
+bool exists(const rdcstr &filename)
 {
   rdcwstr wfn = StringFormat::UTF82Wide(filename);
 
@@ -653,7 +656,7 @@ int fclose(FILE *f)
   return ::fclose(f);
 }
 
-LogFileHandle *logfile_open(const char *filename)
+LogFileHandle *logfile_open(const rdcstr &filename)
 {
   rdcwstr wfn = StringFormat::UTF82Wide(filename);
   return (LogFileHandle *)CreateFileW(wfn.c_str(), FILE_APPEND_DATA,
@@ -692,7 +695,7 @@ static rdcstr logfile_readall_fallback(uint64_t offset, const wchar_t *filename)
   return "";
 }
 
-rdcstr logfile_readall(uint64_t offset, const char *filename)
+rdcstr logfile_readall(uint64_t offset, const rdcstr &filename)
 {
   rdcwstr wfn = StringFormat::UTF82Wide(filename);
   HANDLE h = CreateFileW(wfn.c_str(), FILE_READ_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
@@ -705,7 +708,7 @@ rdcstr logfile_readall(uint64_t offset, const char *filename)
     DWORD err = GetLastError();
 
     if(err == ERROR_FILE_NOT_FOUND)
-      return StringFormat::Fmt("Logfile '%s' doesn't exist", filename);
+      return StringFormat::Fmt("Logfile '%s' doesn't exist", filename.c_str());
 
     ret = logfile_readall_fallback(offset, wfn.c_str());
     ret += StringFormat::Fmt("\n\nCouldn't open logfile, CreateFile() threw %u\n\n", err);
@@ -756,11 +759,11 @@ void logfile_append(LogFileHandle *logHandle, const char *msg, size_t length)
   }
 }
 
-void logfile_close(LogFileHandle *logHandle, const char *deleteFilename)
+void logfile_close(LogFileHandle *logHandle, const rdcstr &deleteFilename)
 {
   CloseHandle((HANDLE)logHandle);
 
-  if(deleteFilename)
+  if(!deleteFilename.empty())
   {
     // we can just try to delete the file. If it's open elsewhere in another process, the delete
     // will fail.

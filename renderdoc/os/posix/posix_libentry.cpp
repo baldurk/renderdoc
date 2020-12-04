@@ -45,10 +45,10 @@ void library_loaded()
   {
     RenderDoc::Inst().Initialise();
 
-    const char *capturefile = Process::GetEnvVariable("RENDERDOC_CAPFILE");
-    const char *opts = Process::GetEnvVariable("RENDERDOC_CAPOPTS");
+    rdcstr capturefile = Process::GetEnvVariable("RENDERDOC_CAPFILE");
+    rdcstr opts = Process::GetEnvVariable("RENDERDOC_CAPOPTS");
 
-    if(opts)
+    if(!opts.empty())
     {
       CaptureOptions optstruct;
       optstruct.DecodeFromString(opts);
@@ -58,7 +58,7 @@ void library_loaded()
       RenderDoc::Inst().SetCaptureOptions(optstruct);
     }
 
-    if(capturefile)
+    if(!capturefile.empty())
     {
       RenderDoc::Inst().SetCaptureFileTemplate(capturefile);
     }

@@ -142,7 +142,7 @@ rdcstr GetReplayAppFilename()
   path = get_dirname(path);
   rdcstr replay = path + "/qrenderdoc";
 
-  FILE *f = FileIO::fopen(replay.c_str(), "r");
+  FILE *f = FileIO::fopen(replay, FileIO::ReadText);
   if(f)
   {
     FileIO::fclose(f);
@@ -162,7 +162,7 @@ rdcstr GetReplayAppFilename()
   // leave the lib/ folder, and go into bin/
   replay += "../bin/qrenderdoc";
 
-  f = FileIO::fopen(replay.c_str(), "r");
+  f = FileIO::fopen(replay, FileIO::ReadText);
   if(f)
   {
     FileIO::fclose(f);
@@ -175,7 +175,7 @@ rdcstr GetReplayAppFilename()
 
   for(size_t i = 0; i < ARRAY_COUNT(guess); i++)
   {
-    f = FileIO::fopen(guess[i], "r");
+    f = FileIO::fopen(guess[i], FileIO::ReadText);
     if(f)
     {
       FileIO::fclose(f);
@@ -187,7 +187,7 @@ rdcstr GetReplayAppFilename()
   return "qrenderdoc";
 }
 
-void GetDefaultFiles(const char *logBaseName, rdcstr &capture_filename, rdcstr &logging_filename,
+void GetDefaultFiles(const rdcstr &logBaseName, rdcstr &capture_filename, rdcstr &logging_filename,
                      rdcstr &target)
 {
   rdcstr path;
@@ -229,7 +229,7 @@ void GetDefaultFiles(const char *logBaseName, rdcstr &capture_filename, rdcstr &
     logging_filename = rdcstr(logfile_override);
   else
     logging_filename = StringFormat::Fmt(
-        "%s/RenderDoc/%s_%04d.%02d.%02d_%02d.%02d.%02d.log", temp_folder, logBaseName,
+        "%s/RenderDoc/%s_%04d.%02d.%02d_%02d.%02d.%02d.log", temp_folder, logBaseName.c_str(),
         1900 + now.tm_year, now.tm_mon + 1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
 }
 
@@ -259,76 +259,76 @@ uint64_t GetFileSize(const rdcstr &filename)
   return 0;
 }
 
-bool Copy(const char *from, const char *to, bool allowOverwrite)
+bool Copy(const rdcstr &from, const rdcstr &to, bool allowOverwrite)
 {
-  if(from[0] == 0 || to[0] == 0)
+  if(from.empty() || to.empty())
     return false;
 
-  FILE *ff = ::fopen(from, "r");
+  FILE *ff = FileIO::fopen(from, ReadText);
 
   if(!ff)
   {
-    RDCERR("Can't open source file for copy '%s'", from);
+    RDCERR("Can't open source file for copy '%s'", from.c_str());
     return false;
   }
 
-  FILE *tf = ::fopen(to, "r");
+  FILE *tf = FileIO::fopen(to, FileIO::ReadText);
 
   if(tf && !allowOverwrite)
   {
-    RDCERR("Destination file for non-overwriting copy '%s' already exists", from);
-    ::fclose(ff);
-    ::fclose(tf);
+    RDCERR("Destination file for non-overwriting copy '%s' already exists", from.c_str());
+    FileIO::fclose(ff);
+    FileIO::fclose(tf);
     return false;
   }
 
   if(tf)
-    ::fclose(tf);
+    FileIO::fclose(tf);
 
-  tf = ::fopen(to, "w");
+  tf = FileIO::fopen(to, WriteText);
 
   if(!tf)
   {
-    ::fclose(ff);
-    RDCERR("Can't open destination file for copy '%s'", to);
+    FileIO::fclose(ff);
+    RDCERR("Can't open destination file for copy '%s'", to.c_str());
     return false;
   }
 
   char buffer[BUFSIZ];
 
-  while(!::feof(ff))
+  while(!FileIO::feof(ff))
   {
-    size_t nread = ::fread(buffer, 1, BUFSIZ, ff);
-    ::fwrite(buffer, 1, nread, tf);
+    size_t nread = FileIO::fread(buffer, 1, BUFSIZ, ff);
+    FileIO::fwrite(buffer, 1, nread, tf);
   }
 
-  ::fclose(ff);
-  ::fclose(tf);
+  FileIO::fclose(ff);
+  FileIO::fclose(tf);
 
   return true;
 }
 
-bool Move(const char *from, const char *to, bool allowOverwrite)
+bool Move(const rdcstr &from, const rdcstr &to, bool allowOverwrite)
 {
-  if(exists(to))
+  if(exists(to.c_str()))
   {
     if(!allowOverwrite)
       return false;
   }
 
-  return ::rename(from, to) == 0;
+  return ::rename(from.c_str(), to.c_str()) == 0;
 }
 
-void Delete(const char *path)
+void Delete(const rdcstr &path)
 {
-  unlink(path);
+  unlink(path.c_str());
 }
 
-void GetFilesInDirectory(const char *path, rdcarray<PathEntry> &ret)
+void GetFilesInDirectory(const rdcstr &path, rdcarray<PathEntry> &ret)
 {
   ret.clear();
 
-  DIR *d = opendir(path);
+  DIR *d = opendir(path.c_str());
 
   if(d == NULL)
   {
@@ -391,9 +391,13 @@ void GetFilesInDirectory(const char *path, rdcarray<PathEntry> &ret)
   closedir(d);
 }
 
-FILE *fopen(const char *filename, const char *mode)
+const char *modeString[] = {
+    "r", "rb", "w", "wb", "r+b", "w+b",
+};
+
+FILE *fopen(const rdcstr &filename, FileMode mode)
 {
-  return ::fopen(filename, mode);
+  return ::fopen(filename.c_str(), modeString[mode]);
 }
 
 rdcstr ErrorString()
@@ -447,10 +451,10 @@ int fclose(FILE *f)
   return ::fclose(f);
 }
 
-bool exists(const char *filename)
+bool exists(const rdcstr &filename)
 {
   struct ::stat st;
-  int res = stat(filename, &st);
+  int res = stat(filename.c_str(), &st);
 
   return (res == 0);
 }
@@ -466,9 +470,9 @@ void ReleaseFDAfterFork()
     close(log);
 }
 
-rdcstr logfile_readall(uint64_t offset, const char *filename)
+rdcstr logfile_readall(uint64_t offset, const rdcstr &filename)
 {
-  FILE *f = FileIO::fopen(filename, "r");
+  FILE *f = FileIO::fopen(filename, FileIO::ReadText);
 
   rdcstr ret;
 
@@ -493,13 +497,14 @@ rdcstr logfile_readall(uint64_t offset, const char *filename)
   return ret;
 }
 
-LogFileHandle *logfile_open(const char *filename)
+LogFileHandle *logfile_open(const rdcstr &filename)
 {
-  int fd = open(filename, O_APPEND | O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+  int fd =
+      open(filename.c_str(), O_APPEND | O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
   if(fd < 0)
   {
-    RDCWARN("Couldn't open logfile '%s': %d", filename, (int)errno);
+    RDCWARN("Couldn't open logfile '%s': %d", filename.c_str(), (int)errno);
     return NULL;
   }
 
@@ -511,7 +516,7 @@ LogFileHandle *logfile_open(const char *filename)
   int err = flock(fd, LOCK_SH | LOCK_NB);
 
   if(err < 0)
-    RDCWARN("Couldn't acquire shared lock to '%s': %d", filename, (int)errno);
+    RDCWARN("Couldn't acquire shared lock to '%s': %d", filename.c_str(), (int)errno);
 
   return (LogFileHandle *)(uintptr_t)fd;
 }
@@ -526,7 +531,7 @@ void logfile_append(LogFileHandle *logHandle, const char *msg, size_t length)
   }
 }
 
-void logfile_close(LogFileHandle *logHandle, const char *deleteFilename)
+void logfile_close(LogFileHandle *logHandle, const rdcstr &deleteFilename)
 {
   if(logHandle)
   {
@@ -535,7 +540,7 @@ void logfile_close(LogFileHandle *logHandle, const char *deleteFilename)
     // release our shared lock
     int err = flock(fd, LOCK_UN | LOCK_NB);
 
-    if(err == 0 && deleteFilename)
+    if(err == 0 && !deleteFilename.empty())
     {
       // now try to acquire an exclusive lock. If this succeeds, no other processes are using the
       // file (since no other shared locks exist), so we can delete it. If it fails, some other
@@ -552,11 +557,11 @@ void logfile_close(LogFileHandle *logHandle, const char *deleteFilename)
 
         // can't really error handle here apart from retrying
         if(err != 0)
-          RDCWARN("Couldn't release exclusive lock to '%s': %d", deleteFilename, (int)errno);
+          RDCWARN("Couldn't release exclusive lock to '%s': %d", deleteFilename.c_str(), (int)errno);
 
         close(fd);
 
-        unlink(deleteFilename);
+        unlink(deleteFilename.c_str());
 
         // return immediately so we don't close again below.
         return;
@@ -564,7 +569,7 @@ void logfile_close(LogFileHandle *logHandle, const char *deleteFilename)
     }
     else if(err)
     {
-      RDCWARN("Couldn't release shared lock to '%s': %d", deleteFilename, (int)errno);
+      RDCWARN("Couldn't release shared lock to '%s': %d", deleteFilename.c_str(), (int)errno);
       // nothing to do, we won't try again, just exit. The log might lie around, but that's
       // relatively harmless.
     }

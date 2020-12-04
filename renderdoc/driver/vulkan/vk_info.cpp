@@ -1296,7 +1296,7 @@ void VulkanCreationInfo::ShaderModuleReflection::Init(VulkanResourceManager *res
 void VulkanCreationInfo::ShaderModuleReflection::PopulateDisassembly(const rdcspv::Reflector &spirv)
 {
   if(disassembly.empty())
-    disassembly = spirv.Disassemble(refl.entryPoint.c_str(), instructionLines);
+    disassembly = spirv.Disassemble(refl.entryPoint, instructionLines);
 }
 
 void VulkanCreationInfo::QueryPool::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,

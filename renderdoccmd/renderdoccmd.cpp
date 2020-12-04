@@ -259,7 +259,7 @@ public:
     bytebuf buf;
 
     ICaptureFile *file = RENDERDOC_OpenCaptureFile();
-    ReplayStatus st = file->OpenFile(infile.c_str(), "rdc", NULL);
+    ReplayStatus st = file->OpenFile(conv(infile), "rdc", NULL);
     if(st == ReplayStatus::Succeeded)
     {
       buf = file->GetThumbnail(type, maxsize).data;
@@ -356,10 +356,8 @@ public:
 
     rdcarray<EnvironmentModification> env;
 
-    ExecuteResult res =
-        RENDERDOC_ExecuteAndInject(executable.c_str(), workingDir.empty() ? "" : workingDir.c_str(),
-                                   cmdLine.empty() ? "" : cmdLine.c_str(), env,
-                                   logFile.empty() ? "" : logFile.c_str(), opts, wait_for_exit);
+    ExecuteResult res = RENDERDOC_ExecuteAndInject(
+        conv(executable), conv(workingDir), conv(cmdLine), env, conv(logFile), opts, wait_for_exit);
 
     if(res.status != ReplayStatus::Succeeded)
     {
@@ -430,8 +428,7 @@ public:
 
     rdcarray<EnvironmentModification> env;
 
-    ExecuteResult res =
-        RENDERDOC_InjectIntoProcess(PID, env, captureFile.c_str(), opts, wait_for_exit);
+    ExecuteResult res = RENDERDOC_InjectIntoProcess(PID, env, conv(captureFile), opts, wait_for_exit);
 
     if(res.status != ReplayStatus::Succeeded)
     {
@@ -507,8 +504,7 @@ public:
     if(DisplayRemoteServerPreview(false, {}).system != WindowingSystem::Unknown)
       previewWindow = &DisplayRemoteServerPreview;
 
-    RENDERDOC_BecomeRemoteServer(host.empty() ? NULL : host.c_str(), []() { return killSignal; },
-                                 previewWindow);
+    RENDERDOC_BecomeRemoteServer(conv(host), []() { return killSignal; }, previewWindow);
 
     std::cerr << std::endl << "Cleaning up from replay hosting." << std::endl;
 
@@ -577,7 +573,7 @@ public:
       std::cout << "Replaying '" << filename << "' on " << remote_host << "." << std::endl;
 
       IRemoteServer *remote = NULL;
-      ReplayStatus status = RENDERDOC_CreateRemoteServerConnection(remote_host.c_str(), &remote);
+      ReplayStatus status = RENDERDOC_CreateRemoteServerConnection(conv(remote_host), &remote);
 
       if(remote == NULL || status != ReplayStatus::Succeeded)
       {
@@ -590,10 +586,10 @@ public:
 
       std::cerr << "Copying capture file to remote server" << std::endl;
 
-      rdcstr remotePath = remote->CopyCaptureToRemote(filename.c_str(), NULL);
+      rdcstr remotePath = remote->CopyCaptureToRemote(conv(filename), NULL);
 
       IReplayController *renderer = NULL;
-      rdctie(status, renderer) = remote->OpenCapture(~0U, remotePath.c_str(), ReplayOptions(), NULL);
+      rdctie(status, renderer) = remote->OpenCapture(~0U, remotePath, ReplayOptions(), NULL);
 
       if(status == ReplayStatus::Succeeded)
       {
@@ -614,7 +610,7 @@ public:
 
       ICaptureFile *file = RENDERDOC_OpenCaptureFile();
 
-      if(file->OpenFile(filename.c_str(), "rdc", NULL) != ReplayStatus::Succeeded)
+      if(file->OpenFile(conv(filename), "rdc", NULL) != ReplayStatus::Succeeded)
       {
         std::cerr << "Couldn't load '" << filename << "'." << std::endl;
         return 1;
@@ -801,7 +797,7 @@ public:
 
     ICaptureFile *file = RENDERDOC_OpenCaptureFile();
 
-    ReplayStatus st = file->OpenFile(infile.c_str(), infmt.c_str(), NULL);
+    ReplayStatus st = file->OpenFile(conv(infile), conv(infmt), NULL);
 
     if(st != ReplayStatus::Succeeded)
     {
@@ -810,7 +806,7 @@ public:
       return 1;
     }
 
-    st = file->Convert(outfile.c_str(), outfmt.c_str(), NULL, NULL);
+    st = file->Convert(conv(outfile), conv(outfmt), NULL, NULL);
 
     if(st != ReplayStatus::Succeeded)
     {
@@ -996,8 +992,7 @@ public:
         return 0;
       }
 
-      env.push_back(
-          EnvironmentModification(type, sep, rest[i * 3 + 1].c_str(), rest[i * 3 + 2].c_str()));
+      env.push_back(EnvironmentModification(type, sep, conv(rest[i * 3 + 1]), conv(rest[i * 3 + 2])));
     }
 
     debuglog = parser.get<std::string>("debuglog");
@@ -1008,9 +1003,9 @@ public:
   }
   virtual int Execute(const CaptureOptions &)
   {
-    RENDERDOC_SetDebugLogFile(debuglog.c_str());
+    RENDERDOC_SetDebugLogFile(conv(debuglog));
 
-    ExecuteResult result = RENDERDOC_InjectIntoProcess(pid, env, capfile.c_str(), cmdopts, false);
+    ExecuteResult result = RENDERDOC_InjectIntoProcess(pid, env, conv(capfile), cmdopts, false);
 
     if(result.status == ReplayStatus::Succeeded)
       return result.ident;
@@ -1107,7 +1102,7 @@ public:
 
     ICaptureFile *capfile = RENDERDOC_OpenCaptureFile();
 
-    ReplayStatus status = capfile->OpenFile(rdc.c_str(), "", NULL);
+    ReplayStatus status = capfile->OpenFile(conv(rdc), "", NULL);
 
     if(status != ReplayStatus::Succeeded)
     {
@@ -1118,7 +1113,7 @@ public:
 
     if(m_Extract)
     {
-      int idx = capfile->FindSectionByName(section.c_str());
+      int idx = capfile->FindSectionByName(conv(section));
 
       if(idx < 0)
       {
@@ -1178,7 +1173,7 @@ public:
     }
     else    // insert/embed
     {
-      int idx = capfile->FindSectionByName(section.c_str());
+      int idx = capfile->FindSectionByName(conv(section));
 
       if(idx >= 0)
       {

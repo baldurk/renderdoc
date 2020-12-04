@@ -715,8 +715,7 @@ void MainWindow::OnInjectTrigger(uint32_t PID, const rdcarray<EnvironmentModific
   LambdaThread *th = new LambdaThread([this, PID, env, name, opts, callback]() {
     QString capturefile = m_Ctx.TempCaptureFilename(name);
 
-    ExecuteResult ret =
-        RENDERDOC_InjectIntoProcess(PID, env, capturefile.toUtf8().data(), opts, false);
+    ExecuteResult ret = RENDERDOC_InjectIntoProcess(PID, env, capturefile, opts, false);
 
     GUIInvoke::call(this, [this, PID, ret, callback]() {
 
@@ -780,7 +779,7 @@ void MainWindow::LoadCapture(const QString &filename, const ReplayOptions &opts,
     {
       ICaptureFile *file = RENDERDOC_OpenCaptureFile();
 
-      ReplayStatus status = file->OpenFile(filename.toUtf8().data(), "rdc", NULL);
+      ReplayStatus status = file->OpenFile(filename, "rdc", NULL);
 
       if(status != ReplayStatus::Succeeded)
       {
@@ -798,7 +797,7 @@ void MainWindow::LoadCapture(const QString &filename, const ReplayOptions &opts,
       }
 
       driver = file->DriverName();
-      machineIdent = QString::fromUtf8(file->RecordedMachineIdent());
+      machineIdent = file->RecordedMachineIdent();
       support = file->LocalReplaySupport();
 
       file->Shutdown();
@@ -3133,6 +3132,6 @@ bool MainWindow::isUnshareableDeviceInUse()
   if(m_Ctx.Replay().CurrentRemote().Protocol()->SupportsMultiplePrograms(host))
     return false;
 
-  uint32_t ident = RENDERDOC_EnumerateRemoteTargets(host.c_str(), 0);
+  uint32_t ident = RENDERDOC_EnumerateRemoteTargets(host, 0);
   return ident != 0;
 }

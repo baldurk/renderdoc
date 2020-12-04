@@ -76,7 +76,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <PrecompiledHeaderFile>precompiled.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>precompiled.h</ForcedIncludeFiles>
-      <AdditionalOptions>/w44062 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/w44062 /w44840 %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>4100</DisableSpecificWarnings>
     </ClCompile>
     <Link>

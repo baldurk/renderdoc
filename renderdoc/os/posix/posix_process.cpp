@@ -415,15 +415,15 @@ static void CleanupStringArray(char **arr)
   delete[] arr_delete;
 }
 
-static rdcarray<rdcstr> ParseCommandLine(const rdcstr &appName, const char *cmdLine)
+static rdcarray<rdcstr> ParseCommandLine(const rdcstr &appName, const rdcstr &cmdLine)
 {
   // argv[0] is the application name, by convention
   rdcarray<rdcstr> argv = {appName};
 
-  const char *c = cmdLine;
+  const char *c = cmdLine.c_str();
 
   // parse command line into argv[], similar to how bash would
-  if(cmdLine)
+  if(!cmdLine.empty())
   {
     rdcstr a;
     bool haveArg = false;
@@ -479,7 +479,7 @@ static rdcarray<rdcstr> ParseCommandLine(const rdcstr &appName, const char *cmdL
           }
           else
           {
-            RDCERR("Malformed command line:\n%s", cmdLine);
+            RDCERR("Malformed command line:\n%s", cmdLine.c_str());
             return {};
           }
         }
@@ -504,7 +504,7 @@ static rdcarray<rdcstr> ParseCommandLine(const rdcstr &appName, const char *cmdL
 
     if(squot || dquot)
     {
-      RDCERR("Malformed command line\n%s", cmdLine);
+      RDCERR("Malformed command line\n%s", cmdLine.c_str());
       return {};
     }
   }
@@ -512,14 +512,14 @@ static rdcarray<rdcstr> ParseCommandLine(const rdcstr &appName, const char *cmdL
   return argv;
 }
 
-static pid_t RunProcess(const char *app, const char *workingDir, const char *cmdLine, char **envp,
+static pid_t RunProcess(rdcstr appName, rdcstr workDir, const rdcstr &cmdLine, char **envp,
                         bool pauseAtMain, int stdoutPipe[2] = NULL, int stderrPipe[2] = NULL)
 {
-  if(!app)
+  if(appName.empty())
     return (pid_t)0;
 
-  rdcstr appName = app;
-  rdcstr workDir = (workingDir && workingDir[0]) ? workingDir : get_dirname(appName);
+  if(workDir.empty())
+    workDir = get_dirname(appName);
 
 // handle funky apple .app folders that aren't actually executables
 #if ENABLED(RDOC_APPLE)
@@ -528,7 +528,7 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
     rdcstr realAppName = appName + "/Contents/MacOS/" + get_basename(appName);
     realAppName.erase(realAppName.size() - 4, ~0U);
 
-    if(FileIO::exists(realAppName.c_str()))
+    if(FileIO::exists(realAppName))
     {
       RDCLOG("Running '%s' the actual executable for '%s'", realAppName.c_str(), appName.c_str());
       appName = realAppName;
@@ -626,17 +626,17 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
 }
 
 rdcpair<ReplayStatus, uint32_t> Process::InjectIntoProcess(
-    uint32_t pid, const rdcarray<EnvironmentModification> &env, const char *logfile,
+    uint32_t pid, const rdcarray<EnvironmentModification> &env, const rdcstr &logfile,
     const CaptureOptions &opts, bool waitForExit)
 {
   RDCUNIMPLEMENTED("Injecting into already running processes on linux");
   return {ReplayStatus::InjectionFailed, 0};
 }
 
-uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const char *cmdLine,
+uint32_t Process::LaunchProcess(const rdcstr &app, const rdcstr &workingDir, const rdcstr &cmdLine,
                                 bool internal, ProcessResult *result)
 {
-  if(app == NULL || app[0] == 0)
+  if(app.empty())
   {
     RDCERR("Invalid empty 'app'");
     return 0;
@@ -703,21 +703,21 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
   return (uint32_t)ret;
 }
 
-uint32_t Process::LaunchScript(const char *script, const char *workingDir, const char *argList,
-                               bool internal, ProcessResult *result)
+uint32_t Process::LaunchScript(const rdcstr &script, const rdcstr &workingDir,
+                               const rdcstr &argList, bool internal, ProcessResult *result)
 {
   // Change parameters to invoke command interpreter
-  rdcstr args = "-lc \"" + rdcstr(script) + " " + rdcstr(argList) + "\"";
+  rdcstr args = "-lc \"" + script + " " + argList + "\"";
 
-  return LaunchProcess("bash", workingDir, args.c_str(), internal, result);
+  return LaunchProcess("bash", workingDir, args, internal, result);
 }
 
 rdcpair<ReplayStatus, uint32_t> Process::LaunchAndInjectIntoProcess(
-    const char *app, const char *workingDir, const char *cmdLine,
-    const rdcarray<EnvironmentModification> &envList, const char *capturefile,
+    const rdcstr &app, const rdcstr &workingDir, const rdcstr &cmdLine,
+    const rdcarray<EnvironmentModification> &envList, const rdcstr &capturefile,
     const CaptureOptions &opts, bool waitForExit)
 {
-  if(app == NULL || app[0] == 0)
+  if(app.empty())
   {
     RDCERR("Invalid empty 'app'");
     return {ReplayStatus::InternalError, 0};
@@ -730,9 +730,6 @@ rdcpair<ReplayStatus, uint32_t> Process::LaunchAndInjectIntoProcess(
 
   for(const EnvironmentModification &e : envList)
     modifications.push_back(e);
-
-  if(capturefile == NULL)
-    capturefile = "";
 
   rdcstr binpath, libpath, ownlibpath;
   {
@@ -763,17 +760,17 @@ rdcpair<ReplayStatus, uint32_t> Process::LaunchAndInjectIntoProcess(
   rdcstr optstr = opts.EncodeAsString();
 
   modifications.push_back(
-      EnvironmentModification(EnvMod::Append, EnvSep::Platform, LIB_PATH_ENV_VAR, binpath.c_str()));
+      EnvironmentModification(EnvMod::Append, EnvSep::Platform, LIB_PATH_ENV_VAR, binpath));
   modifications.push_back(
-      EnvironmentModification(EnvMod::Append, EnvSep::Platform, LIB_PATH_ENV_VAR, libpath.c_str()));
-  modifications.push_back(EnvironmentModification(EnvMod::Append, EnvSep::Platform,
-                                                  LIB_PATH_ENV_VAR, ownlibpath.c_str()));
+      EnvironmentModification(EnvMod::Append, EnvSep::Platform, LIB_PATH_ENV_VAR, libpath));
   modifications.push_back(
-      EnvironmentModification(EnvMod::Append, EnvSep::Platform, PRELOAD_ENV_VAR, libfile.c_str()));
+      EnvironmentModification(EnvMod::Append, EnvSep::Platform, LIB_PATH_ENV_VAR, ownlibpath));
+  modifications.push_back(
+      EnvironmentModification(EnvMod::Append, EnvSep::Platform, PRELOAD_ENV_VAR, libfile));
   modifications.push_back(
       EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "RENDERDOC_CAPFILE", capturefile));
   modifications.push_back(
-      EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "RENDERDOC_CAPOPTS", optstr.c_str()));
+      EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "RENDERDOC_CAPOPTS", optstr));
   modifications.push_back(EnvironmentModification(EnvMod::Set, EnvSep::NoSep,
                                                   "RENDERDOC_DEBUG_LOG_FILE", RDCGETLOGFILE()));
 
@@ -828,7 +825,7 @@ rdcpair<ReplayStatus, uint32_t> Process::LaunchAndInjectIntoProcess(
     i++;
   }
 
-  RDCLOG("Running process %s for injection", app);
+  RDCLOG("Running process %s for injection", app.c_str());
 
   pid_t childPid = RunProcess(app, workingDir, cmdLine, envp, true);
 
@@ -853,7 +850,8 @@ rdcpair<ReplayStatus, uint32_t> Process::LaunchAndInjectIntoProcess(
   return {ret == 0 ? ReplayStatus::InjectionFailed : ReplayStatus::Succeeded, (uint32_t)ret};
 }
 
-bool Process::StartGlobalHook(const char *pathmatch, const char *logfile, const CaptureOptions &opts)
+bool Process::StartGlobalHook(const rdcstr &pathmatch, const rdcstr &logfile,
+                              const CaptureOptions &opts)
 {
   RDCUNIMPLEMENTED("Global hooking of all processes on linux");
   return false;
@@ -873,22 +871,22 @@ void Process::StopGlobalHook()
 {
 }
 
-bool Process::IsModuleLoaded(const char *module)
+bool Process::IsModuleLoaded(const rdcstr &module)
 {
-  return dlopen(module, RTLD_NOW | RTLD_NOLOAD) != NULL;
+  return dlopen(module.c_str(), RTLD_NOW | RTLD_NOLOAD) != NULL;
 }
 
-void *Process::LoadModule(const char *module)
+void *Process::LoadModule(const rdcstr &module)
 {
-  return dlopen(module, RTLD_NOW);
+  return dlopen(module.c_str(), RTLD_NOW);
 }
 
-void *Process::GetFunctionAddress(void *module, const char *function)
+void *Process::GetFunctionAddress(void *module, const rdcstr &function)
 {
   if(module == NULL)
     return NULL;
 
-  return dlsym(module, function);
+  return dlsym(module, function.c_str());
 }
 
 uint32_t Process::GetCurrentPID()

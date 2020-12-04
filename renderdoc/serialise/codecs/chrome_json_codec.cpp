@@ -28,10 +28,10 @@
 #include "common/formatting.h"
 #include "serialise/rdcfile.h"
 
-ReplayStatus exportChrome(const char *filename, const RDCFile &rdc, const SDFile &structData,
+ReplayStatus exportChrome(const rdcstr &filename, const RDCFile &rdc, const SDFile &structData,
                           RENDERDOC_ProgressCallback progress)
 {
-  FILE *f = FileIO::fopen(filename, "w");
+  FILE *f = FileIO::fopen(filename, FileIO::WriteText);
 
   if(!f)
     return ReplayStatus::FileIOFailed;

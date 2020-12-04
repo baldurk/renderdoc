@@ -179,7 +179,7 @@ bool RealignAPK(const rdcstr &apk, rdcstr &alignedAPK, const rdcstr &tmpDir)
   uint32_t timeout = 10000;    // 10 seconds
   while(elapsed < timeout)
   {
-    if(FileIO::exists(alignedAPK.c_str()))
+    if(FileIO::exists(alignedAPK))
     {
       RDCLOG("Aligned APK ready to go, continuing...");
       return true;
@@ -198,13 +198,13 @@ rdcstr GetAndroidDebugKey()
   rdcstr keystore = getToolPath(ToolDir::None, keystoreName, false);
 
   // if we found the keystore, use that.
-  if(FileIO::exists(keystore.c_str()))
+  if(FileIO::exists(keystore))
     return keystore;
 
   // otherwise, generate a temporary one
   rdcstr key = FileIO::GetTempFolderFilename() + keystoreName;
 
-  FileIO::Delete(key.c_str());
+  FileIO::Delete(key);
 
   // locate keytool and use it to generate a keystore
   rdcstr create;
@@ -225,7 +225,7 @@ rdcstr GetAndroidDebugKey()
   Process::ProcessResult verifyResult;
 
   // if the keystore was created, check that the key we expect to be in it is there
-  if(FileIO::exists(key.c_str()))
+  if(FileIO::exists(key))
   {
     rdcstr verify;
     verify += " -list";
@@ -418,7 +418,7 @@ bool PullAPK(const rdcstr &deviceID, const rdcstr &pkgPath, const rdcstr &apk)
   uint32_t timeout = 10000;    // 10 seconds
   while(elapsed < timeout)
   {
-    if(FileIO::exists(apk.c_str()))
+    if(FileIO::exists(apk))
     {
       RDCLOG("Original APK ready to go, continuing...");
       return true;
@@ -496,8 +496,8 @@ bool IsDebuggable(const rdcstr &deviceID, const rdcstr &packageName)
 }
 };
 
-extern "C" RENDERDOC_API void RENDERDOC_CC
-RENDERDOC_CheckAndroidPackage(const char *URL, const char *packageAndActivity, AndroidFlags *flags)
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CheckAndroidPackage(
+    const rdcstr &URL, const rdcstr &packageAndActivity, AndroidFlags *flags)
 {
   IDeviceProtocolHandler *adb = RenderDoc::Inst().GetDeviceProtocol("adb");
 
@@ -512,7 +512,7 @@ RENDERDOC_CheckAndroidPackage(const char *URL, const char *packageAndActivity, A
   }
   else
   {
-    RDCLOG("%s is not debuggable", packageAndActivity);
+    RDCLOG("%s is not debuggable", packageAndActivity.c_str());
   }
 
   if(Android::HasRootAccess(deviceID))
@@ -525,7 +525,7 @@ RENDERDOC_CheckAndroidPackage(const char *URL, const char *packageAndActivity, A
 }
 
 extern "C" RENDERDOC_API AndroidFlags RENDERDOC_CC RENDERDOC_MakeDebuggablePackage(
-    const char *URL, const char *packageAndActivity, RENDERDOC_ProgressCallback progress)
+    const rdcstr &URL, const rdcstr &packageAndActivity, RENDERDOC_ProgressCallback progress)
 {
   rdcstr package = Android::GetPackageName(packageAndActivity);
 

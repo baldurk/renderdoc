@@ -52,7 +52,7 @@ static bool CheckForSupport(ShaderEncoding encoding)
     rdcstr vc = LocatePluginFile(pluginPath, virtualcontext_name);
 
     Process::ProcessResult result = {};
-    Process::LaunchProcess(vc.c_str(), get_dirname(vc).c_str(), "", true, &result);
+    Process::LaunchProcess(vc, get_dirname(vc), "", true, &result);
 
     // running with no parameters produces an error, so if there's no output something went wrong.
     if(result.strStdout.empty())
@@ -67,7 +67,7 @@ static bool CheckForSupport(ShaderEncoding encoding)
     rdcstr amdspv = LocatePluginFile(pluginPath, amdspv_name);
 
     Process::ProcessResult result = {};
-    Process::LaunchProcess(amdspv.c_str(), get_dirname(amdspv).c_str(), "", true, &result);
+    Process::LaunchProcess(amdspv, get_dirname(amdspv), "", true, &result);
 
     // running with no parameters produces help text, so if there's no output something went wrong.
     if(result.strStdout.empty())
@@ -243,7 +243,7 @@ rdcstr DisassembleSPIRV(ShaderStage stage, const bytebuf &shaderBytes, const rdc
   rdcstr amdspv = LocatePluginFile(pluginPath, amdspv_name);
 
   Process::ProcessResult result = {};
-  Process::LaunchProcess(amdspv.c_str(), get_dirname(amdspv).c_str(), cmdLine.c_str(), true, &result);
+  Process::LaunchProcess(amdspv, get_dirname(amdspv), cmdLine, true, &result);
 
   if(result.strStdout.find("SUCCESS") < 0)
   {
@@ -251,9 +251,9 @@ rdcstr DisassembleSPIRV(ShaderStage stage, const bytebuf &shaderBytes, const rdc
   }
 
   // remove artifacts we don't need
-  FileIO::Delete(StringFormat::Fmt("%sin.spv", tempPath.c_str()).c_str());
-  FileIO::Delete(StringFormat::Fmt("%sout.log", tempPath.c_str()).c_str());
-  FileIO::Delete(StringFormat::Fmt("%sout.bin", tempPath.c_str()).c_str());
+  FileIO::Delete(StringFormat::Fmt("%sin.spv", tempPath.c_str()));
+  FileIO::Delete(StringFormat::Fmt("%sout.log", tempPath.c_str()));
+  FileIO::Delete(StringFormat::Fmt("%sout.bin", tempPath.c_str()));
 
   rdcstr ret;
 
@@ -267,7 +267,7 @@ rdcstr DisassembleSPIRV(ShaderStage stage, const bytebuf &shaderBytes, const rdc
 
     rdcstr statsfile = StringFormat::Fmt("%sstats.txt", tempPath.c_str());
 
-    if(FileIO::exists(statsfile.c_str()))
+    if(FileIO::exists(statsfile))
     {
       rdcstr stats;
       FileIO::ReadAll(statsfile, stats);
@@ -276,9 +276,9 @@ rdcstr DisassembleSPIRV(ShaderStage stage, const bytebuf &shaderBytes, const rdc
     }
   }
 
-  FileIO::Delete(StringFormat::Fmt("%sout.il", tempPath.c_str()).c_str());
-  FileIO::Delete(StringFormat::Fmt("%sout.txt", tempPath.c_str()).c_str());
-  FileIO::Delete(StringFormat::Fmt("%sstats.txt", tempPath.c_str()).c_str());
+  FileIO::Delete(StringFormat::Fmt("%sout.il", tempPath.c_str()));
+  FileIO::Delete(StringFormat::Fmt("%sout.txt", tempPath.c_str()));
+  FileIO::Delete(StringFormat::Fmt("%sstats.txt", tempPath.c_str()));
 
   rdcstr header = StringFormat::Fmt("; Disassembly for %s\n\n", target.c_str());
 
@@ -414,17 +414,17 @@ rdcstr DisassembleGLSL(ShaderStage stage, const bytebuf &shaderBytes, const rdcs
   rdcstr vc = LocatePluginFile(pluginPath, virtualcontext_name);
 
   Process::ProcessResult result = {};
-  Process::LaunchProcess(vc.c_str(), get_dirname(vc).c_str(), cmdLine.c_str(), true, &result);
+  Process::LaunchProcess(vc, get_dirname(vc), cmdLine, true, &result);
 
   if(result.retCode != 0 || result.strStdout.find("Error") >= 0 || result.strStdout.empty() ||
-     !FileIO::exists(outPath.c_str()))
+     !FileIO::exists(outPath))
   {
     return "; Failed to Disassemble - check AMD driver is currently running\n\n; " + result.strStdout;
   }
 
   // remove artifacts we don't need
-  FileIO::Delete(inPath.c_str());
-  FileIO::Delete(binPath.c_str());
+  FileIO::Delete(inPath);
+  FileIO::Delete(binPath);
 
   rdcstr ret;
 
@@ -434,7 +434,7 @@ rdcstr DisassembleGLSL(ShaderStage stage, const bytebuf &shaderBytes, const rdcs
     while(ret.back() == '\0')
       ret.pop_back();
 
-    if(FileIO::exists(statsPath.c_str()))
+    if(FileIO::exists(statsPath))
     {
       rdcstr stats;
       FileIO::ReadAll(statsPath, stats);
@@ -442,8 +442,8 @@ rdcstr DisassembleGLSL(ShaderStage stage, const bytebuf &shaderBytes, const rdcs
     }
   }
 
-  FileIO::Delete(outPath.c_str());
-  FileIO::Delete(statsPath.c_str());
+  FileIO::Delete(outPath);
+  FileIO::Delete(statsPath);
 
   rdcstr header = StringFormat::Fmt("; Disassembly for %s\n\n", target.c_str());
 

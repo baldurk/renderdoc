@@ -233,19 +233,19 @@ void RemoteManager::refreshHost(RDTreeWidgetItem *node)
       // just a sanity check to make sure we don't hit some unexpected case and infinite loop
       uint32_t prevIdent = nextIdent;
 
-      nextIdent = RENDERDOC_EnumerateRemoteTargets(host.Hostname().c_str(), nextIdent);
+      nextIdent = RENDERDOC_EnumerateRemoteTargets(host.Hostname(), nextIdent);
 
       if(nextIdent == 0 || prevIdent >= nextIdent)
         break;
 
       ITargetControl *conn =
-          RENDERDOC_CreateTargetControl(host.Hostname().c_str(), nextIdent, username.data(), false);
+          RENDERDOC_CreateTargetControl(host.Hostname(), nextIdent, username.data(), false);
 
       if(conn)
       {
-        QString target = QString::fromUtf8(conn->GetTarget());
-        QString api = QString::fromUtf8(conn->GetAPI());
-        QString busy = QString::fromUtf8(conn->GetBusyClient());
+        QString target = conn->GetTarget();
+        QString api = conn->GetAPI();
+        QString busy = conn->GetBusyClient();
 
         QString running;
 

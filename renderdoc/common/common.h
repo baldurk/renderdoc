@@ -507,9 +507,10 @@ void rdcassert(const char *msg, const char *file, unsigned int line, const char 
 #include "custom_assert.h"
 
 #else
-#define RDCASSERTMSG(cond) \
-  do                       \
-  {                        \
+#define RDCASSERTMSG(...) \
+  do                      \
+  {                       \
+    (void)(__VA_ARGS__);  \
   } while((void)0, 0)
 #endif
 

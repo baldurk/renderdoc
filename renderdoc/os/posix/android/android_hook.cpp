@@ -292,7 +292,7 @@ static int dl_iterate_callback(struct dl_phdr_info *info, size_t size, void *dat
     void **relro_end = NULL;
     bool relro_failed = false;
 
-    FILE *f = FileIO::fopen(info->dlpi_name, "r");
+    FILE *f = FileIO::fopen(info->dlpi_name, FileIO::ReadText);
 
     // read the file on disk to get the .relro section
     if(f)
@@ -735,7 +735,7 @@ void LibraryHooks::EndHookRegistration()
   {
     rdcstr selfLib;
     FileIO::GetLibraryFilename(selfLib);
-    if(FileIO::exists(selfLib.c_str()))
+    if(FileIO::exists(selfLib))
     {
       void *handle = dlopen(selfLib.c_str(), RTLD_NOW | RTLD_NOLOAD | RTLD_LOCAL);
       if(handle)

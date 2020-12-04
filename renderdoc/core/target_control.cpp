@@ -215,7 +215,7 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
       bytebuf buf;
 
       ICaptureFile *file = RENDERDOC_OpenCaptureFile();
-      if(file->OpenFile(captures.back().path.c_str(), "rdc", NULL) == ReplayStatus::Succeeded)
+      if(file->OpenFile(captures.back().path, "rdc", NULL) == ReplayStatus::Succeeded)
       {
         buf = file->GetThumbnail(FileType::JPG, 0).data;
       }
@@ -356,7 +356,7 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
 
           rdcstr filename = caps[id].path;
 
-          StreamReader fileStream(FileIO::fopen(filename.c_str(), "rb"));
+          StreamReader fileStream(FileIO::fopen(filename, FileIO::ReadBinary));
           ser.SerialiseStream(filename, fileStream);
 
           if(fileStream.IsErrored() || ser.IsErrored())
@@ -598,10 +598,10 @@ public:
     delete this;
   }
 
-  const char *GetTarget() { return m_Target.c_str(); }
-  const char *GetAPI() { return m_API.c_str(); }
+  rdcstr GetTarget() { return m_Target; }
+  rdcstr GetAPI() { return m_API; }
   uint32_t GetPID() { return m_PID; }
-  const char *GetBusyClient() { return m_BusyClient.c_str(); }
+  rdcstr GetBusyClient() { return m_BusyClient; }
   void TriggerCapture(uint32_t numFrames)
   {
     WRITE_DATA_SCOPE();
@@ -625,7 +625,7 @@ public:
       SAFE_DELETE(m_Socket);
   }
 
-  void CopyCapture(uint32_t remoteID, const char *localpath)
+  void CopyCapture(uint32_t remoteID, const rdcstr &localpath)
   {
     WRITE_DATA_SCOPE();
     SCOPED_SERIALISE_CHUNK(ePacket_CopyCapture);
@@ -777,7 +777,7 @@ public:
       if(driver != RDCDriver::Unknown)
         msg.newCapture.api = ToStr(driver);
 
-      msg.newCapture.local = FileIO::exists(msg.newCapture.path.c_str());
+      msg.newCapture.local = FileIO::exists(msg.newCapture.path);
 
       RDCLOG("Got a new capture: %d (frame %u) (%u bytes) (time %llu) %d byte thumbnail",
              msg.newCapture.captureId, msg.newCapture.frameNumber, msg.newCapture.byteSize,
@@ -842,9 +842,10 @@ public:
 
       msg.newCapture.path = m_CaptureCopies[msg.newCapture.captureId];
 
-      StreamWriter streamWriter(FileIO::fopen(msg.newCapture.path.c_str(), "wb"), Ownership::Stream);
+      StreamWriter streamWriter(FileIO::fopen(msg.newCapture.path, FileIO::WriteBinary),
+                                Ownership::Stream);
 
-      ser.SerialiseStream(msg.newCapture.path.c_str(), streamWriter, progress);
+      ser.SerialiseStream(msg.newCapture.path, streamWriter, progress);
 
       if(reader.IsErrored())
       {
@@ -890,10 +891,10 @@ private:
 };
 
 extern "C" RENDERDOC_API ITargetControl *RENDERDOC_CC RENDERDOC_CreateTargetControl(
-    const char *URL, uint32_t ident, const char *clientName, bool forceConnection)
+    const rdcstr &URL, uint32_t ident, const rdcstr &clientName, bool forceConnection)
 {
   rdcstr host = "localhost";
-  if(URL != NULL && URL[0] != '\0')
+  if(!URL.empty())
     host = URL;
 
   rdcstr deviceID = host;
@@ -911,7 +912,7 @@ extern "C" RENDERDOC_API ITargetControl *RENDERDOC_CC RENDERDOC_CreateTargetCont
     port = protocol->RemapPort(deviceID, port);
   }
 
-  Network::Socket *sock = Network::CreateClientSocket(host.c_str(), port, 750);
+  Network::Socket *sock = Network::CreateClientSocket(host, port, 750);
 
   if(sock == NULL)
     return NULL;

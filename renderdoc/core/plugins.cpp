@@ -73,7 +73,7 @@ rdcstr LocatePluginFile(const rdcstr &path, const rdcstr &fileName)
   for(uint32_t i = 0; i < paths.size(); i++)
   {
     rdcstr check = paths[i] + "/" + path + "/" + fileName;
-    if(FileIO::exists(check.c_str()))
+    if(FileIO::exists(check))
     {
       ret = check;
       break;

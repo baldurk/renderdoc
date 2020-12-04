@@ -414,9 +414,7 @@ void RenderDoc::Initialise()
   {
     rdcstr capture_filename;
 
-    const char *base = "RenderDoc_app";
-    if(IsReplayApp())
-      base = "RenderDoc";
+    const rdcstr base = IsReplayApp() ? "RenderDoc" : "RenderDoc_app";
 
     FileIO::GetDefaultFiles(base, capture_filename, m_LoggingFilename, m_Target);
 
@@ -500,7 +498,7 @@ RenderDoc::~RenderDoc()
     if(m_Captures[i].retrieved)
     {
       RDCLOG("Removing remotely retrieved capture %s", m_Captures[i].path.c_str());
-      FileIO::Delete(m_Captures[i].path.c_str());
+      FileIO::Delete(m_Captures[i].path);
     }
     else
     {
@@ -1340,11 +1338,8 @@ StructuredProcessor RenderDoc::GetStructuredProcessor(RDCDriver driver)
   return it->second;
 }
 
-CaptureExporter RenderDoc::GetCaptureExporter(const char *filetype)
+CaptureExporter RenderDoc::GetCaptureExporter(const rdcstr &filetype)
 {
-  if(!filetype)
-    return NULL;
-
   auto it = m_Exporters.find(filetype);
 
   if(it == m_Exporters.end())
@@ -1353,11 +1348,8 @@ CaptureExporter RenderDoc::GetCaptureExporter(const char *filetype)
   return it->second;
 }
 
-CaptureImporter RenderDoc::GetCaptureImporter(const char *filetype)
+CaptureImporter RenderDoc::GetCaptureImporter(const rdcstr &filetype)
 {
-  if(!filetype)
-    return NULL;
-
   auto it = m_Importers.find(filetype);
 
   if(it == m_Importers.end())
@@ -1640,9 +1632,9 @@ void RenderDoc::SetCaptureOptions(const CaptureOptions &opts)
   LibraryHooks::OptionsUpdated();
 }
 
-void RenderDoc::SetCaptureFileTemplate(const char *pathtemplate)
+void RenderDoc::SetCaptureFileTemplate(const rdcstr &pathtemplate)
 {
-  if(pathtemplate == NULL || pathtemplate[0] == '\0')
+  if(pathtemplate.empty())
     return;
 
   m_CaptureFileTemplate = pathtemplate;

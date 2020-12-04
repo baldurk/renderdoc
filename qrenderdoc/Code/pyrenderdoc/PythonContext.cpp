@@ -1242,7 +1242,7 @@ PyObject *PythonContext::outstream_write(PyObject *self, PyObject *args)
 
       if(!message.empty())
         RENDERDOC_LogMessage(redirector->isStdError ? LogType::Error : LogType::Comment, "EXTN",
-                             filename.toUtf8().data(), line, message.c_str());
+                             filename, line, message);
     }
   }
 
@@ -1342,7 +1342,7 @@ extern "C" void HandleException(PyObject *global_handle)
       linenum = PyFrame_GetLineNumber(frame);
     }
 
-    RENDERDOC_LogMessage(LogType::Error, "EXTN", filename.toUtf8().data(), linenum, exString.c_str());
+    RENDERDOC_LogMessage(LogType::Error, "EXTN", filename, linenum, exString);
   }
 }
 

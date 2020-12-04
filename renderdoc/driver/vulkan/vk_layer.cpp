@@ -122,7 +122,7 @@ class VulkanHook : LibraryHook
     if(module_name != "RENDERDOC")
     {
       Process::RegisterEnvironmentModification(EnvironmentModification(
-          EnvMod::Set, EnvSep::NoSep, ("ENABLE_VULKAN_" + module_name + "_CAPTURE").c_str(), "1"));
+          EnvMod::Set, EnvSep::NoSep, "ENABLE_VULKAN_" + module_name + "_CAPTURE", "1"));
     }
 #endif
 

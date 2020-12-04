@@ -29,6 +29,38 @@
 
 int utf8printv(char *buf, size_t bufsize, const char *fmt, va_list args);
 
+bool Network::ParseIPRangeCIDR(const rdcstr &str, uint32_t &ip, uint32_t &mask)
+{
+  uint32_t a = 0, b = 0, c = 0, d = 0, num = 0;
+
+#if ENABLED(RDOC_WIN32)
+  int ret = sscanf_s(str.c_str(), "%u.%u.%u.%u/%u", &a, &b, &c, &d, &num);
+#else
+  int ret = sscanf(str.c_str(), "%u.%u.%u.%u/%u", &a, &b, &c, &d, &num);
+#endif
+
+  if(ret != 5 || a > 255 || b > 255 || c > 255 || d > 255 || num > 32)
+  {
+    ip = 0;
+    mask = 0;
+    return false;
+  }
+
+  ip = MakeIP(a, b, c, d);
+
+  if(num == 0)
+  {
+    mask = 0;
+  }
+  else
+  {
+    num = 32 - num;
+    mask = ((~0U) >> num) << num;
+  }
+
+  return true;
+}
+
 namespace StringFormat
 {
 rdcstr Fmt(const char *format, ...)
@@ -53,13 +85,13 @@ rdcstr Fmt(const char *format, ...)
 
 };    // namespace StringFormat
 
-rdcstr Callstack::AddressDetails::formattedString(const char *commonPath)
+rdcstr Callstack::AddressDetails::formattedString(const rdcstr &commonPath)
 {
   const char *f = filename.c_str();
 
-  if(commonPath)
+  if(!commonPath.empty())
   {
-    rdcstr common = strlower(rdcstr(commonPath));
+    rdcstr common = strlower(commonPath);
     rdcstr fn = strlower(filename.substr(0, common.length()));
 
     if(common == fn)
@@ -129,20 +161,16 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
   }
   SECTION("Environment Variables")
   {
-    const char *var = Process::GetEnvVariable("TMP");
+    rdcstr var = Process::GetEnvVariable("TMP");
+    var = Process::GetEnvVariable("TEMP");
+    var = Process::GetEnvVariable("HOME");
 
-    if(!var)
-      var = Process::GetEnvVariable("TEMP");
-
-    if(!var)
-      var = Process::GetEnvVariable("HOME");
-
-    CHECK(var);
-    CHECK(strlen(var) > 1);
+    CHECK(!var.empty());
+    CHECK(var.length() > 1);
 
     var = Process::GetEnvVariable("__renderdoc__unit_test_var");
 
-    CHECK_FALSE(var);
+    CHECK(var.empty());
 
     EnvironmentModification mod;
     mod.name = "__renderdoc__unit_test_var";
@@ -155,15 +183,13 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
 
     var = Process::GetEnvVariable("__renderdoc__unit_test_var");
 
-    CHECK(var);
-    CHECK(var == rdcstr("test_value"));
+    CHECK(var == "test_value");
 
     Process::RegisterEnvironmentModification(mod);
     Process::ApplyEnvironmentModification();
 
     var = Process::GetEnvVariable("__renderdoc__unit_test_var");
 
-    CHECK(var);
     CHECK(var == rdcstr("test_value;test_value"));
 
     mod.sep = EnvSep::Colon;
@@ -173,7 +199,6 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
 
     var = Process::GetEnvVariable("__renderdoc__unit_test_var");
 
-    CHECK(var);
     CHECK(var == rdcstr("test_value;test_value:test_value"));
 
     mod.value = "prepend";
@@ -185,7 +210,6 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
 
     var = Process::GetEnvVariable("__renderdoc__unit_test_var");
 
-    CHECK(var);
     CHECK(var == rdcstr("prepend;test_value;test_value:test_value"));
 
     mod.value = "reset";
@@ -197,7 +221,6 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
 
     var = Process::GetEnvVariable("__renderdoc__unit_test_var");
 
-    CHECK(var);
     CHECK(var == rdcstr("reset"));
   };
 

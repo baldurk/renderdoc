@@ -87,7 +87,6 @@ inline void DebugBreak()
   raise(SIGTRAP);
 }
 bool DebuggerPresent();
-void WriteOutput(int channel, const char *str);
 };
 
 namespace Threading

@@ -43,7 +43,7 @@ bool toolExists(const rdcstr &path)
 {
   if(path.empty())
     return false;
-  return FileIO::exists(path.c_str()) || FileIO::exists((path + ".exe").c_str());
+  return FileIO::exists(path) || FileIO::exists(path + ".exe");
 }
 rdcstr getToolInSDK(ToolDir subdir, const rdcstr &jdkroot, const rdcstr &sdkroot,
                     const rdcstr &toolname)
@@ -90,7 +90,7 @@ rdcstr getToolInSDK(ToolDir subdir, const rdcstr &jdkroot, const rdcstr &sdkroot
         toolpath = sdkroot + "/build-tools/";
 
         rdcarray<PathEntry> paths;
-        FileIO::GetFilesInDirectory(toolpath.c_str(), paths);
+        FileIO::GetFilesInDirectory(toolpath, paths);
 
         if(paths.empty())
           break;
@@ -235,44 +235,37 @@ rdcstr getToolPath(ToolDir subdir, const rdcstr &toolname, bool checkExist)
   }
 
   // now try to find it based on heuristics/environment variables
-  const char *env = Process::GetEnvVariable("JAVA_HOME");
+  jdk = Process::GetEnvVariable("JAVA_HOME");
+  sdk = Process::GetEnvVariable("ANDROID_HOME");
 
-  jdk = env ? env : "";
-
-  env = Process::GetEnvVariable("ANDROID_HOME");
-  sdk = env ? env : "";
-
-  if(sdk.empty() || !FileIO::exists(sdk.c_str()))
+  if(sdk.empty() || !FileIO::exists(sdk))
   {
-    env = Process::GetEnvVariable("ANDROID_SDK_ROOT");
-    sdk = env ? env : "";
+    sdk = Process::GetEnvVariable("ANDROID_SDK_ROOT");
   }
 
-  if(sdk.empty() || !FileIO::exists(sdk.c_str()))
+  if(sdk.empty() || !FileIO::exists(sdk))
   {
-    env = Process::GetEnvVariable("ANDROID_SDK");
-    sdk = env ? env : "";
+    sdk = Process::GetEnvVariable("ANDROID_SDK");
   }
 
-  if(sdk.empty() || !FileIO::exists(sdk.c_str()))
+  if(sdk.empty() || !FileIO::exists(sdk))
   {
-    env = Process::GetEnvVariable("ANDROID_SDK_HOME");
-    sdk = env ? env : "";
+    sdk = Process::GetEnvVariable("ANDROID_SDK_HOME");
   }
 
 #if ENABLED(RDOC_APPLE)
   // on macOS it's common not to have the environment variable globally available, so try the home
   // Library folder first, then the global folder
-  if(sdk.empty() || !FileIO::exists(sdk.c_str()))
+  if(sdk.empty() || !FileIO::exists(sdk))
   {
     rdcstr librarySDK = FileIO::GetHomeFolderFilename() + "/Library/Android/sdk";
-    sdk = FileIO::exists(librarySDK.c_str()) ? librarySDK : "";
+    sdk = FileIO::exists(librarySDK) ? librarySDK : "";
   }
 
-  if(sdk.empty() || !FileIO::exists(sdk.c_str()))
+  if(sdk.empty() || !FileIO::exists(sdk))
   {
     rdcstr librarySDK = "/Library/Android/sdk";
-    sdk = FileIO::exists(librarySDK.c_str()) ? librarySDK : "";
+    sdk = FileIO::exists(librarySDK) ? librarySDK : "";
   }
 #endif
 
@@ -318,7 +311,7 @@ Process::ProcessResult execScript(const rdcstr &script, const rdcstr &args, cons
     RDCLOG("SCRIPT: %s", script.c_str());
 
   Process::ProcessResult result;
-  Process::LaunchScript(script.c_str(), workDir.c_str(), args.c_str(), true, &result);
+  Process::LaunchScript(script, workDir, args, true, &result);
   return result;
 }
 Process::ProcessResult execCommand(const rdcstr &exe, const rdcstr &args, const rdcstr &workDir,
@@ -328,7 +321,7 @@ Process::ProcessResult execCommand(const rdcstr &exe, const rdcstr &args, const 
     RDCLOG("COMMAND: %s '%s'", exe.c_str(), args.c_str());
 
   Process::ProcessResult result;
-  Process::LaunchProcess(exe.c_str(), workDir.c_str(), args.c_str(), true, &result);
+  Process::LaunchProcess(exe, workDir, args, true, &result);
   return result;
 }
 Process::ProcessResult adbExecCommand(const rdcstr &device, const rdcstr &args,
@@ -353,16 +346,16 @@ void initAdb()
 
   RDCLOG("Initialising adb using '%s'", adb.c_str());
 
-  if(adb.empty() || (!FileIO::exists(adb.c_str()) && !FileIO::exists((adb + ".exe").c_str())))
+  if(adb.empty() || (!FileIO::exists(adb) && !FileIO::exists(adb + ".exe")))
   {
-    if(FileIO::FindFileInPath(adb.c_str()) == "")
+    if(FileIO::FindFileInPath(adb) == "")
       RDCWARN(
           "Couldn't locate adb. Ensure adb is in PATH, ANDROID_SDK or ANDROID_HOME is set, or you "
           "configure your SDK location");
   }
 
   Process::ProcessResult res = {};
-  Process::LaunchProcess(adb.c_str(), workdir.c_str(), "start-server", true, &res);
+  Process::LaunchProcess(adb, workdir, "start-server", true, &res);
 
   if(res.strStdout.find("daemon") >= 0 || res.strStderror.find("daemon") >= 0)
   {

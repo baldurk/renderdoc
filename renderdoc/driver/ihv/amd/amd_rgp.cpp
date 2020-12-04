@@ -95,12 +95,12 @@ AMDRGPControl::AMDRGPControl()
 #endif
 
   // first try in the plugin location it will be in distributed builds
-  rdcstr dllPath = LocatePluginFile("amd/rgp", dllName.c_str());
+  rdcstr dllPath = LocatePluginFile("amd/rgp", dllName);
 
-  void *module = Process::LoadModule(dllPath.c_str());
+  void *module = Process::LoadModule(dllPath);
   if(module == NULL)
   {
-    module = Process::LoadModule(dllName.c_str());
+    module = Process::LoadModule(dllName);
   }
 
   if(module == NULL)

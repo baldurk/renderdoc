@@ -126,7 +126,7 @@ static void SetCaptureFileComments(const char *filePath, const char *comments)
   }
 
   RDCFile rdc;
-  rdc.Open(path.c_str());
+  rdc.Open(path);
   if(rdc.ErrorCode() != ContainerError::NoError)
   {
     RDCERR("Error opening '%s' to add capture comments", path.c_str());
@@ -205,7 +205,7 @@ static uint32_t LaunchReplayUI(uint32_t connectTargetControl, const char *cmdlin
     cmd += StringFormat::Fmt(" --targetcontrol localhost:%u",
                              RenderDoc::Inst().GetTargetControlIdent());
 
-  return Process::LaunchProcess(replayapp.c_str(), "", cmd.c_str(), false);
+  return Process::LaunchProcess(replayapp, "", cmd, false);
 }
 
 static void SetActiveWindow(void *device, void *wndHandle)

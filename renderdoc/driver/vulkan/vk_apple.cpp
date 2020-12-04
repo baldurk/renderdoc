@@ -157,7 +157,7 @@ void *LoadVulkanLibrary()
 {
   // first try to load the module globally. If so we assume the user has a global (or at least
   // user-wide) configuration that we should use.
-  void *ret = Process::LoadModule(VulkanLibraryName.c_str());
+  void *ret = Process::LoadModule(VulkanLibraryName);
 
   if(ret)
   {
@@ -166,7 +166,7 @@ void *LoadVulkanLibrary()
   }
 
   // then try the standard SDK install path under /usr/local/lib
-  ret = Process::LoadModule(("/usr/local/lib/" + VulkanLibraryName).c_str());
+  ret = Process::LoadModule("/usr/local/lib/" + VulkanLibraryName);
 
   if(ret)
   {
@@ -183,9 +183,9 @@ void *LoadVulkanLibrary()
          libpath.c_str());
 
   Process::RegisterEnvironmentModification(EnvironmentModification(
-      EnvMod::Set, EnvSep::NoSep, "VK_ICD_FILENAMES", (libpath + "MoltenVK_icd.json").c_str()));
+      EnvMod::Set, EnvSep::NoSep, "VK_ICD_FILENAMES", libpath + "MoltenVK_icd.json"));
 
   Process::ApplyEnvironmentModification();
 
-  return Process::LoadModule((libpath + VulkanLibraryName).c_str());
+  return Process::LoadModule(libpath + VulkanLibraryName));
 }

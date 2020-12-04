@@ -79,7 +79,7 @@ CrashDialog::CrashDialog(PersistantConfig &cfg, QVariantMap crashReportJSON, QWi
 
     ICaptureFile *cap = RENDERDOC_OpenCaptureFile();
 
-    ReplayStatus status = cap->OpenFile(capInfo.absoluteFilePath().toUtf8().data(), "", NULL);
+    ReplayStatus status = cap->OpenFile(capInfo.absoluteFilePath(), "", NULL);
 
     if(status == ReplayStatus::Succeeded)
     {

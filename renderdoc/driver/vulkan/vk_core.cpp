@@ -3092,7 +3092,7 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
     case VulkanChunk::vkDebugMarkerSetObjectNameEXT:
       return Serialise_vkDebugMarkerSetObjectNameEXT(ser, VK_NULL_HANDLE, NULL);
     case VulkanChunk::SetShaderDebugPath:
-      return Serialise_SetShaderDebugPath(ser, VK_NULL_HANDLE, NULL);
+      return Serialise_SetShaderDebugPath(ser, VK_NULL_HANDLE, rdcstr());
 
     case VulkanChunk::vkCreateSwapchainKHR:
       return Serialise_vkCreateSwapchainKHR(ser, VK_NULL_HANDLE, NULL, NULL, NULL);

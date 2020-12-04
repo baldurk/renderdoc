@@ -38,7 +38,7 @@ static void writeToBytebuf(void *context, void *data, int size)
   buf->append((byte *)data, size);
 }
 
-static RDCDriver driverFromName(const char *driverName)
+static RDCDriver driverFromName(const rdcstr &driverName)
 {
   for(int d = (int)RDCDriver::Unknown; d < (int)RDCDriver::MaxBuiltin; d++)
   {
@@ -103,26 +103,26 @@ public:
   CaptureFile();
   virtual ~CaptureFile();
 
-  ReplayStatus OpenFile(const char *filename, const char *filetype,
+  ReplayStatus OpenFile(const rdcstr &filename, const rdcstr &filetype,
                         RENDERDOC_ProgressCallback progress);
-  ReplayStatus OpenBuffer(const bytebuf &buffer, const char *filetype,
+  ReplayStatus OpenBuffer(const bytebuf &buffer, const rdcstr &filetype,
                           RENDERDOC_ProgressCallback progress);
-  bool CopyFileTo(const char *filename);
+  bool CopyFileTo(const rdcstr &filename);
   rdcstr ErrorString() { return m_ErrorString; }
   void Shutdown() { delete this; }
   ReplaySupport LocalReplaySupport() { return m_Support; }
   rdcstr DriverName() { return m_DriverName; }
-  const char *RecordedMachineIdent() { return m_Ident.c_str(); }
+  rdcstr RecordedMachineIdent() { return m_Ident; }
   uint64_t TimestampBase() { return m_RDC ? m_RDC->GetTimestampBase() : 0; }
   double TimestampFrequency() { return m_RDC ? m_RDC->GetTimestampFrequency() : 1.0; }
   rdcpair<ReplayStatus, IReplayController *> OpenCapture(const ReplayOptions &opts,
                                                          RENDERDOC_ProgressCallback progress);
 
-  void SetMetadata(const char *driverName, uint64_t machineIdent, FileType thumbType,
+  void SetMetadata(const rdcstr &driverName, uint64_t machineIdent, FileType thumbType,
                    uint32_t thumbWidth, uint32_t thumbHeight, const bytebuf &thumbData,
                    uint64_t timeBase, double timeFreq);
 
-  ReplayStatus Convert(const char *filename, const char *filetype, const SDFile *file,
+  ReplayStatus Convert(const rdcstr &filename, const rdcstr &filetype, const SDFile *file,
                        RENDERDOC_ProgressCallback progress);
 
   rdcarray<CaptureFileFormat> GetCaptureFileFormats()
@@ -159,7 +159,7 @@ public:
   // ICaptureAccess
 
   int GetSectionCount();
-  int FindSectionByName(const char *name);
+  int FindSectionByName(const rdcstr &name);
   int FindSectionByType(SectionType type);
   SectionProperties GetSectionProperties(int index);
   bytebuf GetSectionContents(int index);
@@ -193,7 +193,7 @@ CaptureFile::~CaptureFile()
   SAFE_DELETE(m_Resolver);
 }
 
-ReplayStatus CaptureFile::OpenFile(const char *filename, const char *filetype,
+ReplayStatus CaptureFile::OpenFile(const rdcstr &filename, const rdcstr &filetype,
                                    RENDERDOC_ProgressCallback progress)
 {
   CaptureImporter importer = RenderDoc::Inst().GetCaptureImporter(filetype);
@@ -203,7 +203,7 @@ ReplayStatus CaptureFile::OpenFile(const char *filename, const char *filetype,
     ReplayStatus ret;
 
     {
-      StreamReader reader(FileIO::fopen(filename, "rb"));
+      StreamReader reader(FileIO::fopen(filename, FileIO::ReadBinary));
       SAFE_DELETE(m_RDC);
       m_RDC = new RDCFile;
       ret = importer(filename, reader, m_RDC, m_StructuredData, progress);
@@ -211,15 +211,15 @@ ReplayStatus CaptureFile::OpenFile(const char *filename, const char *filetype,
 
     if(ret != ReplayStatus::Succeeded)
     {
-      m_ErrorString = StringFormat::Fmt("Importer '%s' failed to import file.", filetype);
+      m_ErrorString = StringFormat::Fmt("Importer '%s' failed to import file.", filetype.c_str());
       SAFE_DELETE(m_RDC);
       return ret;
     }
   }
   else
   {
-    if(filetype != NULL && strcmp(filetype, "") != 0 && strcmp(filetype, "rdc") != 0)
-      RDCWARN("Opening file with unrecognised filetype '%s' - treating as 'rdc'", filetype);
+    if(filetype != "" && filetype != "rdc")
+      RDCWARN("Opening file with unrecognised filetype '%s' - treating as 'rdc'", filetype.c_str());
 
     if(progress)
       progress(0.0f);
@@ -235,7 +235,7 @@ ReplayStatus CaptureFile::OpenFile(const char *filename, const char *filetype,
   return Init();
 }
 
-ReplayStatus CaptureFile::OpenBuffer(const bytebuf &buffer, const char *filetype,
+ReplayStatus CaptureFile::OpenBuffer(const bytebuf &buffer, const rdcstr &filetype,
                                      RENDERDOC_ProgressCallback progress)
 {
   CaptureImporter importer = RenderDoc::Inst().GetCaptureImporter(filetype);
@@ -248,20 +248,20 @@ ReplayStatus CaptureFile::OpenBuffer(const bytebuf &buffer, const char *filetype
       StreamReader reader(buffer);
       SAFE_DELETE(m_RDC);
       m_RDC = new RDCFile;
-      ret = importer(NULL, reader, m_RDC, m_StructuredData, progress);
+      ret = importer(rdcstr(), reader, m_RDC, m_StructuredData, progress);
     }
 
     if(ret != ReplayStatus::Succeeded)
     {
-      m_ErrorString = StringFormat::Fmt("Importer '%s' failed to import file.", filetype);
+      m_ErrorString = StringFormat::Fmt("Importer '%s' failed to import file.", filetype.c_str());
       SAFE_DELETE(m_RDC);
       return ret;
     }
   }
   else
   {
-    if(filetype != NULL && strcmp(filetype, "") != 0 && strcmp(filetype, "rdc") != 0)
-      RDCWARN("Opening file with unrecognised filetype '%s' - treating as 'rdc'", filetype);
+    if(filetype != "" && filetype != "rdc")
+      RDCWARN("Opening file with unrecognised filetype '%s' - treating as 'rdc'", filetype.c_str());
 
     if(progress)
       progress(0.0f);
@@ -277,7 +277,7 @@ ReplayStatus CaptureFile::OpenBuffer(const bytebuf &buffer, const char *filetype
   return Init();
 }
 
-bool CaptureFile::CopyFileTo(const char *filename)
+bool CaptureFile::CopyFileTo(const rdcstr &filename)
 {
   if(m_RDC)
     return m_RDC->CopyFileTo(filename);
@@ -371,7 +371,7 @@ rdcpair<ReplayStatus, IReplayController *> CaptureFile::OpenCapture(const Replay
   return rdcpair<ReplayStatus, IReplayController *>(ret, render);
 }
 
-void CaptureFile::SetMetadata(const char *driverName, uint64_t machineIdent, FileType thumbType,
+void CaptureFile::SetMetadata(const rdcstr &driverName, uint64_t machineIdent, FileType thumbType,
                               uint32_t thumbWidth, uint32_t thumbHeight, const bytebuf &thumbData,
                               uint64_t timeBase, double timeFreq)
 {
@@ -394,7 +394,7 @@ void CaptureFile::SetMetadata(const char *driverName, uint64_t machineIdent, Fil
 
   if(driver == RDCDriver::Unknown)
   {
-    RDCERR("Unrecognised driver name '%s'.", driverName);
+    RDCERR("Unrecognised driver name '%s'.", driverName.c_str());
     return;
   }
 
@@ -402,8 +402,8 @@ void CaptureFile::SetMetadata(const char *driverName, uint64_t machineIdent, Fil
   m_RDC->SetData(driver, driverName, machineIdent, thumb, timeBase, timeFreq);
 }
 
-ReplayStatus CaptureFile::Convert(const char *filename, const char *filetype, const SDFile *file,
-                                  RENDERDOC_ProgressCallback progress)
+ReplayStatus CaptureFile::Convert(const rdcstr &filename, const rdcstr &filetype,
+                                  const SDFile *file, RENDERDOC_ProgressCallback progress)
 {
   if(!m_RDC)
   {
@@ -436,12 +436,12 @@ ReplayStatus CaptureFile::Convert(const char *filename, const char *filetype, co
     }
   }
 
-  if(filetype != NULL && strcmp(filetype, "") != 0 && strcmp(filetype, "rdc") != 0)
-    RDCWARN("Converting file to unrecognised filetype '%s' - treating as 'rdc'", filetype);
+  if(filetype != "" && filetype != "rdc")
+    RDCWARN("Converting file to unrecognised filetype '%s' - treating as 'rdc'", filetype.c_str());
 
   RDCFile output;
 
-  output.SetData(m_RDC->GetDriver(), m_RDC->GetDriverName().c_str(), m_RDC->GetMachineIdent(),
+  output.SetData(m_RDC->GetDriver(), m_RDC->GetDriverName(), m_RDC->GetMachineIdent(),
                  &m_RDC->GetThumbnail(), m_RDC->GetTimestampBase(), m_RDC->GetTimestampFrequency());
 
   output.Create(filename);
@@ -685,7 +685,7 @@ int CaptureFile::GetSectionCount()
   return m_RDC->NumSections();
 }
 
-int CaptureFile::FindSectionByName(const char *name)
+int CaptureFile::FindSectionByName(const rdcstr &name)
 {
   if(!m_RDC)
     return -1;

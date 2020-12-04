@@ -82,7 +82,7 @@ void ReplayManager::DeleteCapture(const rdcstr &capture, bool local)
     if(m_Remote)
     {
       QMutexLocker autolock(&m_RemoteLock);
-      m_Remote->TakeOwnershipCapture(capture.c_str());
+      m_Remote->TakeOwnershipCapture(capture);
     }
   }
 }
@@ -136,9 +136,7 @@ void ReplayManager::ListFolder(const rdcstr &path, bool synchronous, DirectoryBr
 
   if(IsRunning() && m_Thread->isCurrentThread())
   {
-    auto lambda = [cb, path, this](IReplayController *r) {
-      cb(path, m_Remote->ListFolder(path.c_str()));
-    };
+    auto lambda = [cb, path, this](IReplayController *r) { cb(path, m_Remote->ListFolder(path)); };
 
     if(synchronous)
       BlockInvoke(lambda);
@@ -152,7 +150,7 @@ void ReplayManager::ListFolder(const rdcstr &path, bool synchronous, DirectoryBr
   // prevent pings while fetching remote FS data
   {
     QMutexLocker autolock(&m_RemoteLock);
-    contents = m_Remote->ListFolder(path.c_str());
+    contents = m_Remote->ListFolder(path);
   }
 
   cb(path, contents);
@@ -172,8 +170,7 @@ rdcstr ReplayManager::CopyCaptureToRemote(const rdcstr &localpath, QWidget *wind
 
   auto lambda = [this, localpath, &remotepath, &progress, &copied](IReplayController *r) {
     QMutexLocker autolock(&m_RemoteLock);
-    remotepath =
-        m_Remote->CopyCaptureToRemote(localpath.c_str(), [&progress](float p) { progress = p; });
+    remotepath = m_Remote->CopyCaptureToRemote(localpath, [&progress](float p) { progress = p; });
     copied = 1;
   };
 
@@ -207,8 +204,7 @@ void ReplayManager::CopyCaptureFromRemote(const rdcstr &remotepath, const rdcstr
 
   auto lambda = [this, localpath, remotepath, &progress, &copied](IReplayController *r) {
     QMutexLocker autolock(&m_RemoteLock);
-    m_Remote->CopyCaptureFromRemote(remotepath.c_str(), localpath.c_str(),
-                                    [&progress](float p) { progress = p; });
+    m_Remote->CopyCaptureFromRemote(remotepath, localpath, [&progress](float p) { progress = p; });
     copied = 1;
   };
 
@@ -395,7 +391,7 @@ void ReplayManager::ReopenCaptureFile(const QString &path)
 {
   if(!m_CaptureFile)
     m_CaptureFile = RENDERDOC_OpenCaptureFile();
-  m_CaptureFile->OpenFile(path.toUtf8().data(), "rdc", NULL);
+  m_CaptureFile->OpenFile(path, "rdc", NULL);
 }
 
 ExecuteResult ReplayManager::ExecuteAndInject(const rdcstr &exe, const rdcstr &workingDir,
@@ -408,12 +404,11 @@ ExecuteResult ReplayManager::ExecuteAndInject(const rdcstr &exe, const rdcstr &w
   if(m_Remote)
   {
     QMutexLocker autolock(&m_RemoteLock);
-    ret = m_Remote->ExecuteAndInject(exe.c_str(), workingDir.c_str(), cmdLine.c_str(), env, opts);
+    ret = m_Remote->ExecuteAndInject(exe, workingDir, cmdLine, env, opts);
   }
   else
   {
-    ret = RENDERDOC_ExecuteAndInject(exe.c_str(), workingDir.c_str(), cmdLine.c_str(), env,
-                                     capturefile.c_str(), opts, false);
+    ret = RENDERDOC_ExecuteAndInject(exe, workingDir, cmdLine, env, capturefile, opts, false);
   }
 
   return ret;
@@ -443,13 +438,13 @@ void ReplayManager::run(int proxyRenderer, const QString &capturefile, const Rep
   if(m_Remote)
   {
     rdctie(m_CreateStatus, m_Renderer) =
-        m_Remote->OpenCapture(proxyRenderer, capturefile.toUtf8().data(), opts, progress);
+        m_Remote->OpenCapture(proxyRenderer, capturefile, opts, progress);
   }
   else
   {
     m_CaptureFile = RENDERDOC_OpenCaptureFile();
 
-    m_CreateStatus = m_CaptureFile->OpenFile(capturefile.toUtf8().data(), "rdc", NULL);
+    m_CreateStatus = m_CaptureFile->OpenFile(capturefile, "rdc", NULL);
 
     if(m_CreateStatus == ReplayStatus::Succeeded)
       rdctie(m_CreateStatus, m_Renderer) = m_CaptureFile->OpenCapture(opts, progress);

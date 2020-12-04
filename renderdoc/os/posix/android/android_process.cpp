@@ -47,7 +47,7 @@ int GetIdentPort(pid_t childPid)
     // back-off for each retry
     usleep(1000 + 500 * retry);
 
-    FILE *f = FileIO::fopen(procfile.c_str(), "r");
+    FILE *f = FileIO::fopen(procfile, FileIO::ReadText);
 
     if(f == NULL)
     {
@@ -119,7 +119,7 @@ bool debuggerPresent = false;
 
 void CacheDebuggerPresent()
 {
-  FILE *f = FileIO::fopen("/proc/self/status", "r");
+  FILE *f = FileIO::fopen("/proc/self/status", FileIO::ReadText);
   int ret = 0;
 
   if(f == NULL)
@@ -155,27 +155,27 @@ bool OSUtility::DebuggerPresent()
   return debuggerPresent;
 }
 
-const char *Process::GetEnvVariable(const char *name)
+rdcstr Process::GetEnvVariable(const rdcstr &name)
 {
   // we fake environment variables with properties
   Process::ProcessResult result;
   Process::LaunchProcess("getprop", ".",
-                         StringFormat::Fmt("debug.rdoc.%s variable_is_not_set", name).c_str(), true,
+                         StringFormat::Fmt("debug.rdoc.%s variable_is_not_set", name.c_str()), true,
                          &result);
 
-  static rdcstr settingsOutput;
+  rdcstr settingsOutput;
 
   settingsOutput = result.strStdout.trimmed();
 
   if(settingsOutput == "variable_is_not_set")
-    return NULL;
+    return rdcstr();
 
-  return settingsOutput.c_str();
+  return settingsOutput;
 }
 
 uint64_t Process::GetMemoryUsage()
 {
-  FILE *f = FileIO::fopen("/proc/self/statm", "r");
+  FILE *f = FileIO::fopen("/proc/self/statm", FileIO::ReadText);
 
   if(f == NULL)
   {

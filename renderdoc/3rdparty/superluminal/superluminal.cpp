@@ -74,7 +74,7 @@ void Init()
 
           path += "PerformanceAPI.dll";
 
-          module = Process::LoadModule(path.c_str());
+          module = Process::LoadModule(path);
         }
       }
 
