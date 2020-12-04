@@ -309,7 +309,7 @@ void PatchTriangleFanRestartIndexBufer(rdcarray<uint32_t> &patchedIndices, uint3
 
 uint64_t CalcMeshOutputSize(uint64_t curSize, uint64_t requiredOutput);
 
-void StandardFillCBufferVariable(ResourceId shader, const ShaderVariableDescriptor &desc,
+void StandardFillCBufferVariable(ResourceId shader, const ShaderConstantDescriptor &desc,
                                  uint32_t dataOffset, const bytebuf &data, ShaderVariable &outvar,
                                  uint32_t matStride);
 void StandardFillCBufferVariables(ResourceId shader, const rdcarray<ShaderConstant> &invars,

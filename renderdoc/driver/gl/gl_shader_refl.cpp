@@ -1017,8 +1017,8 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
       {
         if((*parentmembers)[i].name == var.name)
         {
-          ShaderVariableDescriptor &oldtype = (*parentmembers)[i].type.descriptor;
-          ShaderVariableDescriptor &newtype = var.type.descriptor;
+          ShaderConstantDescriptor &oldtype = (*parentmembers)[i].type.descriptor;
+          ShaderConstantDescriptor &newtype = var.type.descriptor;
 
           if(oldtype.rows != newtype.rows || oldtype.columns != newtype.columns ||
              oldtype.type != newtype.type || oldtype.elements != newtype.elements)

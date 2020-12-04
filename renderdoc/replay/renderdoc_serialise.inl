@@ -170,7 +170,7 @@ void DoSerialise(SerialiserType &ser, SigParameter &el)
 }
 
 template <typename SerialiserType>
-void DoSerialise(SerialiserType &ser, ShaderVariableDescriptor &el)
+void DoSerialise(SerialiserType &ser, ShaderConstantDescriptor &el)
 {
   SERIALISE_MEMBER(type);
   SERIALISE_MEMBER(rows);
@@ -188,7 +188,7 @@ void DoSerialise(SerialiserType &ser, ShaderVariableDescriptor &el)
 }
 
 template <typename SerialiserType>
-void DoSerialise(SerialiserType &ser, ShaderVariableType &el)
+void DoSerialise(SerialiserType &ser, ShaderConstantType &el)
 {
   SERIALISE_MEMBER(descriptor);
   SERIALISE_MEMBER(members);
@@ -2285,7 +2285,7 @@ INSTANTIATE_SERIALISE_TYPE(ResourceFormat)
 INSTANTIATE_SERIALISE_TYPE(Bindpoint)
 INSTANTIATE_SERIALISE_TYPE(ShaderBindpointMapping)
 INSTANTIATE_SERIALISE_TYPE(SigParameter)
-INSTANTIATE_SERIALISE_TYPE(ShaderVariableType)
+INSTANTIATE_SERIALISE_TYPE(ShaderConstantType)
 INSTANTIATE_SERIALISE_TYPE(ShaderConstant)
 INSTANTIATE_SERIALISE_TYPE(ConstantBlock)
 INSTANTIATE_SERIALISE_TYPE(ShaderSampler)

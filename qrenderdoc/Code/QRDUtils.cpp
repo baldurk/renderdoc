@@ -75,7 +75,7 @@ rdcstr DoStringise(const ResourceId &el)
 }
 
 QMap<QPair<ResourceId, uint32_t>, uint32_t> PointerTypeRegistry::typeMapping;
-rdcarray<ShaderVariableType> PointerTypeRegistry::typeDescriptions;
+rdcarray<ShaderConstantType> PointerTypeRegistry::typeDescriptions;
 
 static const uint32_t TypeIDBit = 0x80000000;
 
@@ -93,7 +93,7 @@ uint32_t PointerTypeRegistry::GetTypeID(ResourceId shader, uint32_t pointerTypeI
   return typeMapping[qMakePair(shader, pointerTypeId)];
 }
 
-uint32_t PointerTypeRegistry::GetTypeID(const ShaderVariableType &structDef)
+uint32_t PointerTypeRegistry::GetTypeID(const ShaderConstantType &structDef)
 {
   // see if the type is already registered, return its existing ID
   for(uint32_t i = 1; i < typeDescriptions.size(); i++)
@@ -111,13 +111,13 @@ uint32_t PointerTypeRegistry::GetTypeID(const ShaderVariableType &structDef)
   return id;
 }
 
-const ShaderVariableType &PointerTypeRegistry::GetTypeDescriptor(uint32_t typeId)
+const ShaderConstantType &PointerTypeRegistry::GetTypeDescriptor(uint32_t typeId)
 {
   return typeDescriptions[typeId & ~TypeIDBit];
 }
 
 void PointerTypeRegistry::CacheSubTypes(const ShaderReflection *reflection,
-                                        ShaderVariableType &structDef)
+                                        ShaderConstantType &structDef)
 {
   if((structDef.descriptor.pointerTypeID & TypeIDBit) == 0)
     structDef.descriptor.pointerTypeID =
@@ -139,7 +139,7 @@ void PointerTypeRegistry::CacheShader(const ShaderReflection *reflection)
 
   for(uint32_t i = 0; i < reflection->pointerTypes.size(); i++)
   {
-    ShaderVariableType typeDesc = reflection->pointerTypes[i];
+    ShaderConstantType typeDesc = reflection->pointerTypes[i];
 
     // first recursively cache all subtypes needed by the root struct types
     CacheSubTypes(reflection, typeDesc);
@@ -789,7 +789,7 @@ bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect
         {
           ICaptureContext &ctx = *(ICaptureContext *)ctxptr;
 
-          const ShaderVariableType &ptrType = PointerTypeRegistry::GetTypeDescriptor(ptr->val);
+          const ShaderConstantType &ptrType = PointerTypeRegistry::GetTypeDescriptor(ptr->val);
 
           QString formatter;
 

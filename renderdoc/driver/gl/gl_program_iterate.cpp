@@ -86,7 +86,7 @@ struct UnrolledSPIRVConstant
   int32_t location = -1;
 };
 
-static GLenum MakeGLType(const ShaderVariableType &type)
+static GLenum MakeGLType(const ShaderConstantType &type)
 {
   if(type.descriptor.type == VarType::Double)
   {

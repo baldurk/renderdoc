@@ -74,7 +74,7 @@ class D3D12_Reflection_Zoo(rdtest.TestCase):
                 'structVarCheck': structVarCheck,
             }
 
-        def buf_struct_check(type: rd.ShaderVariableType):
+        def buf_struct_check(type: rd.ShaderConstantType):
             self.check(type.descriptor.name == 'buf_struct')
             self.check(len(type.members) == 3)
 

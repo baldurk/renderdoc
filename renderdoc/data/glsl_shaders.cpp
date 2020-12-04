@@ -2087,7 +2087,7 @@ void main() {
           // due to a bug in glslang the reflection is broken for these SSBOs. So we can still run
           // this test on GLSL we do a little hack here, which can get removed when we update
           // glslang with the fix
-          const ShaderVariableType *varType = &res.variableType;
+          const ShaderConstantType *varType = &res.variableType;
 
           if(testType == ShaderType::GLSL && res.variableType.members.size() != 2)
           {

@@ -337,7 +337,7 @@ void PatchTriangleFanRestartIndexBufer(rdcarray<uint32_t> &patchedIndices, uint3
   newIndices.swap(patchedIndices);
 }
 
-void StandardFillCBufferVariable(ResourceId shader, const ShaderVariableDescriptor &desc,
+void StandardFillCBufferVariable(ResourceId shader, const ShaderConstantDescriptor &desc,
                                  uint32_t dataOffset, const bytebuf &data, ShaderVariable &outvar,
                                  uint32_t matStride)
 {

@@ -939,21 +939,21 @@ DECLARE_REFLECTION_STRUCT(SigParameter);
 struct ShaderConstant;
 
 DOCUMENT("Describes the storage characteristics for a basic :class:`ShaderConstant` in memory.");
-struct ShaderVariableDescriptor
+struct ShaderConstantDescriptor
 {
   DOCUMENT("");
-  ShaderVariableDescriptor() = default;
-  ShaderVariableDescriptor(const ShaderVariableDescriptor &) = default;
-  ShaderVariableDescriptor &operator=(const ShaderVariableDescriptor &) = default;
+  ShaderConstantDescriptor() = default;
+  ShaderConstantDescriptor(const ShaderConstantDescriptor &) = default;
+  ShaderConstantDescriptor &operator=(const ShaderConstantDescriptor &) = default;
 
-  bool operator==(const ShaderVariableDescriptor &o) const
+  bool operator==(const ShaderConstantDescriptor &o) const
   {
     return type == o.type && rows == o.rows && columns == o.columns &&
            rowMajorStorage == o.rowMajorStorage && elements == o.elements &&
            arrayByteStride == o.arrayByteStride && matrixByteStride == o.matrixByteStride &&
            pointerTypeID == o.pointerTypeID && name == o.name;
   }
-  bool operator<(const ShaderVariableDescriptor &o) const
+  bool operator<(const ShaderConstantDescriptor &o) const
   {
     if(!(type == o.type))
       return type < o.type;
@@ -999,21 +999,21 @@ struct ShaderVariableDescriptor
   bool displayAsRGB = false;
 };
 
-DECLARE_REFLECTION_STRUCT(ShaderVariableDescriptor);
+DECLARE_REFLECTION_STRUCT(ShaderConstantDescriptor);
 
 DOCUMENT("Describes the type and members of a :class:`ShaderConstant`.");
-struct ShaderVariableType
+struct ShaderConstantType
 {
   DOCUMENT("");
-  ShaderVariableType() = default;
-  ShaderVariableType(const ShaderVariableType &) = default;
-  ShaderVariableType &operator=(const ShaderVariableType &) = default;
+  ShaderConstantType() = default;
+  ShaderConstantType(const ShaderConstantType &) = default;
+  ShaderConstantType &operator=(const ShaderConstantType &) = default;
 
-  bool operator==(const ShaderVariableType &o) const
+  bool operator==(const ShaderConstantType &o) const
   {
     return descriptor == o.descriptor && members == o.members;
   }
-  bool operator<(const ShaderVariableType &o) const
+  bool operator<(const ShaderConstantType &o) const
   {
     if(!(descriptor == o.descriptor))
       return descriptor < o.descriptor;
@@ -1023,9 +1023,9 @@ struct ShaderVariableType
   }
   DOCUMENT(R"(The description of this constant.
 
-:type: ShaderVariableDescriptor
+:type: ShaderConstantDescriptor
 )");
-  ShaderVariableDescriptor descriptor;
+  ShaderConstantDescriptor descriptor;
 
   DOCUMENT(R"(Any members that this constant may contain.
 
@@ -1034,7 +1034,7 @@ struct ShaderVariableType
   rdcarray<ShaderConstant> members;
 };
 
-DECLARE_REFLECTION_STRUCT(ShaderVariableType);
+DECLARE_REFLECTION_STRUCT(ShaderConstantType);
 
 DOCUMENT("Contains the detail of a constant within a :class:`ConstantBlock` in memory.");
 struct ShaderConstant
@@ -1069,9 +1069,9 @@ struct ShaderConstant
   uint64_t defaultValue = 0;
   DOCUMENT(R"(The type information for this constant.
 
-:type: ShaderVariableType
+:type: ShaderConstantType
 )");
-  ShaderVariableType type;
+  ShaderConstantType type;
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderConstant);
@@ -1206,9 +1206,9 @@ struct ShaderResource
 
   DOCUMENT(R"(The type of each element of this resource.
 
-:type: ShaderVariableType
+:type: ShaderConstantType
 )");
-  ShaderVariableType variableType;
+  ShaderConstantType variableType;
 
   DOCUMENT(R"(The bindpoint for this block. This is an index in either the
 :data:`ShaderBindpointMapping.readOnlyResources` list or
@@ -1451,9 +1451,9 @@ struct ShaderReflection
 
   DOCUMENT(R"(The list of pointer types referred to in this shader.
 
-:type: List[ShaderVariableType]
+:type: List[ShaderConstantType]
 )");
-  rdcarray<ShaderVariableType> pointerTypes;
+  rdcarray<ShaderConstantType> pointerTypes;
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderReflection);

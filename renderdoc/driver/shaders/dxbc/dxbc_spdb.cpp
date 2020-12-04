@@ -1776,7 +1776,7 @@ void SPDBChunk::GetLocals(const DXBC::DXBCContainer *dxbc, size_t, uintptr_t off
     // check if we already have a mapping for this variable
     for(SourceVariableMapping &a : locals)
     {
-      const ShaderVariableDescriptor &b = it->var;
+      const ShaderConstantDescriptor &b = it->var;
 
       if(a.name == b.name)
       {

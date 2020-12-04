@@ -30,9 +30,9 @@
 
 static ShaderConstant MakeConstantBufferVariable(const DXBC::CBufferVariable &var);
 
-static ShaderVariableType MakeShaderVariableType(DXBC::CBufferVariableType type)
+static ShaderConstantType MakeShaderConstantType(DXBC::CBufferVariableType type)
 {
-  ShaderVariableType ret;
+  ShaderConstantType ret;
 
   ret.descriptor.type = type.descriptor.varType;
   ret.descriptor.rows = (uint8_t)type.descriptor.rows;
@@ -84,7 +84,7 @@ static ShaderConstant MakeConstantBufferVariable(const DXBC::CBufferVariable &va
   ret.name = var.name;
   ret.byteOffset = var.offset;
   ret.defaultValue = 0;
-  ret.type = MakeShaderVariableType(var.type);
+  ret.type = MakeShaderConstantType(var.type);
 
   return ret;
 }
@@ -188,7 +188,7 @@ static void MakeResourceList(bool srv, DXBC::DXBCContainer *dxbc,
       auto it = dxbc->GetReflection()->ResourceBinds.find(r.name);
       if(it != dxbc->GetReflection()->ResourceBinds.end())
       {
-        res.variableType = MakeShaderVariableType(it->second);
+        res.variableType = MakeShaderConstantType(it->second);
       }
       else
       {

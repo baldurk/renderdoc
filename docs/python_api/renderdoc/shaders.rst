@@ -75,10 +75,10 @@ Shader Constants
 .. autoclass:: renderdoc.ShaderConstant
   :members:
 
-.. autoclass:: renderdoc.ShaderVariableType
+.. autoclass:: renderdoc.ShaderConstantType
   :members:
   
-.. autoclass:: renderdoc.ShaderVariableDescriptor
+.. autoclass:: renderdoc.ShaderConstantDescriptor
   :members:
 
 .. autoclass:: renderdoc.VarType

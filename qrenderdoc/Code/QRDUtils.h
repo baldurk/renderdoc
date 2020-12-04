@@ -104,7 +104,7 @@ public:
   static QString DeclarePaddingBytes(uint32_t bytes);
 };
 
-QVariantList GetVariants(ResourceFormat format, const ShaderVariableDescriptor &varDesc,
+QVariantList GetVariants(ResourceFormat format, const ShaderConstantDescriptor &varDesc,
                          const byte *&data, const byte *end);
 ResourceFormat GetInterpretedResourceFormat(const ShaderConstant &elem);
 void SetInterpretedResourceFormat(ShaderConstant &elem, ResourceFormatType interpretType,
@@ -137,23 +137,23 @@ public:
 
   static uint32_t GetTypeID(ResourceId shader, uint32_t pointerTypeId);
   static uint32_t GetTypeID(PointerVal val) { return GetTypeID(val.shader, val.pointerTypeID); }
-  static uint32_t GetTypeID(const ShaderVariableType &structDef);
+  static uint32_t GetTypeID(const ShaderConstantType &structDef);
 
-  static const ShaderVariableType &GetTypeDescriptor(uint32_t typeId);
-  static const ShaderVariableType &GetTypeDescriptor(ResourceId shader, uint32_t pointerTypeId)
+  static const ShaderConstantType &GetTypeDescriptor(uint32_t typeId);
+  static const ShaderConstantType &GetTypeDescriptor(ResourceId shader, uint32_t pointerTypeId)
   {
     return GetTypeDescriptor(GetTypeID(shader, pointerTypeId));
   }
-  static const ShaderVariableType &GetTypeDescriptor(PointerVal val)
+  static const ShaderConstantType &GetTypeDescriptor(PointerVal val)
   {
     return GetTypeDescriptor(GetTypeID(val));
   }
 
 private:
-  static void CacheSubTypes(const ShaderReflection *reflection, ShaderVariableType &structDef);
+  static void CacheSubTypes(const ShaderReflection *reflection, ShaderConstantType &structDef);
 
   static QMap<QPair<ResourceId, uint32_t>, uint32_t> typeMapping;
-  static rdcarray<ShaderVariableType> typeDescriptions;
+  static rdcarray<ShaderConstantType> typeDescriptions;
 };
 
 struct GPUAddress

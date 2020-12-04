@@ -2056,7 +2056,7 @@ void GLReplay::OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool b
 
   for(int32_t i = 0; i < variables.count(); i++)
   {
-    const ShaderVariableDescriptor &desc = variables[i].type.descriptor;
+    const ShaderConstantDescriptor &desc = variables[i].type.descriptor;
 
     // remove implicit '.' for recursing through "structs" if it's actually a multi-dimensional
     // array.

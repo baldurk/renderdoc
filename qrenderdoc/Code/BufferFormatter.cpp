@@ -832,7 +832,7 @@ QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QS
 
     if(members[i].type.descriptor.pointerTypeID != ~0U)
     {
-      const ShaderVariableType &pointeeType =
+      const ShaderConstantType &pointeeType =
           PointerTypeRegistry::GetTypeDescriptor(members[i].type.descriptor.pointerTypeID);
 
       varTypeName = pointeeType.descriptor.name;
@@ -1240,7 +1240,7 @@ inline T readObj(const byte *&data, const byte *end, bool &ok)
   return ret;
 }
 
-QVariantList GetVariants(ResourceFormat format, const ShaderVariableDescriptor &varDesc,
+QVariantList GetVariants(ResourceFormat format, const ShaderConstantDescriptor &varDesc,
                          const byte *&data, const byte *end)
 {
   QVariantList ret;
