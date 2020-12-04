@@ -586,7 +586,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_IOS_SURFACE_CREATE_INFO_MVK:                                  \
   case VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK:                                \
   case VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT:                                \
-  case VK_STRUCTURE_TYPE_PRESENT_FRAME_TOKEN_GGP:                                      \
   case VK_STRUCTURE_TYPE_STREAM_DESCRIPTOR_SURFACE_CREATE_INFO_GGP:                    \
   case VK_STRUCTURE_TYPE_VI_SURFACE_CREATE_INFO_NN:                                    \
   case VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR:                              \
@@ -988,6 +987,16 @@ size_t GetNextPatchSize(const void *pNext)
       case VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_PROPERTIES_ANDROID:
       {
         RDCERR("Support for android external memory buffer extension not compiled in");
+        break;
+      }
+#endif
+
+#if ENABLED(RDOC_GGP)
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_PRESENT_FRAME_TOKEN_GGP, VkPresentFrameTokenGGP);
+#else
+      case VK_STRUCTURE_TYPE_PRESENT_FRAME_TOKEN_GGP:
+      {
+        RDCERR("Support for GGP frame token extension not compiled in");
         break;
       }
 #endif
@@ -1795,6 +1804,16 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
       }
 #endif
 
+#if ENABLED(RDOC_GGP)
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_PRESENT_FRAME_TOKEN_GGP, VkPresentFrameTokenGGP);
+#else
+      case VK_STRUCTURE_TYPE_PRESENT_FRAME_TOKEN_GGP:
+      {
+        RDCERR("Support for GGP frame token extension not compiled in");
+        break;
+      }
+#endif
+
 // NV win32 external memory extensions
 #if ENABLED(RDOC_WIN32)
         // Structs that can be copied into place
@@ -2049,6 +2068,16 @@ void CopyNextChainForPatching(const char *structName, byte *&tempMem, VkBaseInSt
       case VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_PROPERTIES_ANDROID:
       {
         RDCERR("Support for android external memory buffer extension not compiled in");
+        break;
+      }
+#endif
+
+#if ENABLED(RDOC_GGP)
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_PRESENT_FRAME_TOKEN_GGP, VkPresentFrameTokenGGP);
+#else
+      case VK_STRUCTURE_TYPE_PRESENT_FRAME_TOKEN_GGP:
+      {
+        RDCERR("Support for GGP frame token extension not compiled in");
         break;
       }
 #endif

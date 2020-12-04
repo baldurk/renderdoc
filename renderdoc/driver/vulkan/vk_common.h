@@ -1502,6 +1502,13 @@ DECLARE_DESERIALISE_TYPE(VkMemoryGetAndroidHardwareBufferInfoANDROID);
 DECLARE_DESERIALISE_TYPE(VkExternalFormatANDROID);
 #endif
 
+// GGP only structs
+#ifdef VK_USE_PLATFORM_GGP
+DECLARE_REFLECTION_STRUCT(VkPresentFrameTokenGGP);
+
+DECLARE_DESERIALISE_TYPE(VkPresentFrameTokenGGP);
+#endif
+
 // enums
 
 DECLARE_REFLECTION_ENUM(VkAccessFlagBits);

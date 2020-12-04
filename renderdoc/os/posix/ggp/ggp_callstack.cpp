@@ -121,22 +121,29 @@ bool GetLoadedModules(byte *buf, size_t &size)
   // parsing without needing to recapture
   FILE *f = FileIO::fopen("/proc/self/maps", FileIO::ReadText);
 
-  size = 0;
-
-  if(buf)
-    memcpy(buf, "LNUXCALL", 8);
-
-  size += 8;
-
-  byte dummy[512];
-
-  while(!feof(f))
+  if(f == NULL)
   {
-    byte *readbuf = buf ? buf + size : dummy;
-    size += FileIO::fread(readbuf, 1, 512, f);
+    RDCWARN("Opening %s failed", "/proc/self/maps");
   }
+  else
+  {
+    size = 0;
 
-  FileIO::fclose(f);
+    if(buf)
+      memcpy(buf, "LNUXCALL", 8);
+
+    size += 8;
+
+    byte dummy[512];
+
+    while(!feof(f))
+    {
+      byte *readbuf = buf ? buf + size : dummy;
+      size += FileIO::fread(readbuf, 1, 512, f);
+    }
+
+    FileIO::fclose(f);
+  }
 
   return true;
 }
