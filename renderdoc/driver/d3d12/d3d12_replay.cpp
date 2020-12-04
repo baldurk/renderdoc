@@ -712,8 +712,7 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor 
     {
       const D3D12_DEPTH_STENCIL_VIEW_DESC &dsv = desc->GetDSV();
 
-      // we deliberately don't apply the DSV format
-      // fmt = dsv.Format;
+      fmt = dsv.Format;
 
       view.type = MakeTextureDim(dsv.ViewDimension);
 
