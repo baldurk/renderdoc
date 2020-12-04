@@ -142,12 +142,6 @@ class VulkanHook : LibraryHook
   {
     if(RenderDoc::Inst().GetCaptureOptions().apiValidation)
     {
-      Process::RegisterEnvironmentModification(
-          EnvironmentModification(EnvMod::Append, EnvSep::Platform, "VK_INSTANCE_LAYERS",
-                                  "VK_LAYER_LUNARG_standard_validation"));
-      Process::RegisterEnvironmentModification(
-          EnvironmentModification(EnvMod::Append, EnvSep::Platform, "VK_DEVICE_LAYERS",
-                                  "VK_LAYER_LUNARG_standard_validation"));
       Process::RegisterEnvironmentModification(EnvironmentModification(
           EnvMod::Append, EnvSep::Platform, "VK_INSTANCE_LAYERS", "VK_LAYER_KHRONOS_validation"));
       Process::RegisterEnvironmentModification(EnvironmentModification(
