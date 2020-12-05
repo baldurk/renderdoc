@@ -73,10 +73,16 @@ glVertexAttribIFormat) so they will be cast.
 )");
   bool floatCast = false;
 
-  DOCUMENT("The :class:`ResourceFormat` of the vertex attribute.");
+  DOCUMENT(R"(The format describing how the vertex attribute is interpreted.
+
+:type: ResourceFormat
+)");
   ResourceFormat format;
 
-  DOCUMENT("A :class:`PixelValue` containing the generic value of a vertex attribute.");
+  DOCUMENT(R"(The generic value of the vertex attribute if no buffer is bound.
+
+:type: PixelValue
+)");
   PixelValue genericValue;
 
   DOCUMENT("The vertex buffer input slot where the data is sourced from.");
@@ -140,10 +146,16 @@ struct VertexInput
   DOCUMENT("The :class:`ResourceId` of the vertex array object that's bound.");
   ResourceId vertexArrayObject;
 
-  DOCUMENT("A list of :class:`GLVertexAttribute` with the vertex attributes.");
+  DOCUMENT(R"(The vertex attributes.
+
+:type: List[GLVertexAttribute]
+)");
   rdcarray<VertexAttribute> attributes;
 
-  DOCUMENT("A list of :class:`GLVertexBuffer` with the vertex buffers.");
+  DOCUMENT(R"(The vertex buffers.
+
+:type: List[GLVertexBuffer]
+)");
   rdcarray<VertexBuffer> vertexBuffers;
 
   DOCUMENT("The :class:`ResourceId` of the index buffer.");
@@ -174,17 +186,24 @@ struct Shader
   DOCUMENT("The :class:`ResourceId` of the program bound to this stage.");
   ResourceId programResourceId;
 
-  DOCUMENT("A :class:`ShaderReflection` describing the reflection data for this shader.");
+  DOCUMENT(R"(The reflection data for this shader.
+
+:type: ShaderReflection
+)");
   ShaderReflection *reflection = NULL;
-  DOCUMENT(R"(A :class:`ShaderBindpointMapping` to match :data:`reflection` with the bindpoint
-mapping data.
+  DOCUMENT(R"(The bindpoint mapping data to match :data:`reflection`.
+
+:type: ShaderBindpointMapping
 )");
   ShaderBindpointMapping bindpointMapping;
 
   DOCUMENT("A :class:`ShaderStage` identifying which stage this shader is bound to.");
   ShaderStage stage = ShaderStage::Vertex;
 
-  DOCUMENT("A list of integers with the subroutine values.");
+  DOCUMENT(R"(A list of integers with the subroutine values.
+
+:type: List[int]
+)");
   rdcarray<uint32_t> subroutines;
 };
 
@@ -255,7 +274,10 @@ struct Texture
   DOCUMENT("The :class:`TextureType` of the texture.");
   TextureType type = TextureType::Unknown;
 
-  DOCUMENT("A :class:`TextureSwizzle4` indicating the swizzle applied to this texture.");
+  DOCUMENT(R"(The swizzle applied to a texture.
+
+:type: TextureSwizzle4
+)");
   TextureSwizzle4 swizzle;
   DOCUMENT(R"(The channel to read from in a depth-stencil texture.
 
@@ -337,7 +359,10 @@ struct Sampler
   float borderColor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
   DOCUMENT("The :class:`CompareFunction` for comparison samplers.");
   CompareFunction compareFunction = CompareFunction::AlwaysTrue;
-  DOCUMENT("The :class:`TextureFilter` describing the filtering mode.");
+  DOCUMENT(R"(The filtering mode.
+
+:type: TextureFilter
+)");
   TextureFilter filter;
   DOCUMENT("``True`` if seamless cubemap filtering is enabled for this texture.");
   bool seamlessCubeMap = false;
@@ -442,7 +467,10 @@ struct ImageLoadStore
   bool readAllowed = false;
   DOCUMENT("``True`` if storing to the image is allowed.");
   bool writeAllowed = false;
-  DOCUMENT("The :class:`ResourceFormat` that the image is bound as.");
+  DOCUMENT(R"(The format that the image is bound as.
+
+:type: ResourceFormat
+)");
   ResourceFormat imageFormat;
 };
 
@@ -542,13 +570,22 @@ struct Rasterizer
   Rasterizer(const Rasterizer &) = default;
   Rasterizer &operator=(const Rasterizer &) = default;
 
-  DOCUMENT("A list of :class:`Viewport` with the bound viewports.");
+  DOCUMENT(R"(The bound viewports.
+
+:type: List[Viewport]
+)");
   rdcarray<Viewport> viewports;
 
-  DOCUMENT("A list of :class:`Scissor` with the bound scissor regions.");
+  DOCUMENT(R"(The bound scissor regions.
+
+:type: List[Scissor]
+)");
   rdcarray<Scissor> scissors;
 
-  DOCUMENT("A :class:`GLRasterizerState` with the details of the rasterization state.");
+  DOCUMENT(R"(The details of the rasterization state.
+
+:type: GLRasterizerState
+)");
   RasterizerState state;
 };
 
@@ -585,9 +622,16 @@ struct StencilState
   DOCUMENT("``True`` if stencil operations should be performed.");
   bool stencilEnable = false;
 
-  DOCUMENT("A :class:`StencilFace` describing what happens for front-facing polygons.");
+  DOCUMENT(R"(The stencil state for front-facing polygons.
+
+:type: StencilFace
+)");
   StencilFace frontFace;
-  DOCUMENT("A :class:`StencilFace` describing what happens for back-facing polygons.");
+
+  DOCUMENT(R"(The stencil state for back-facing polygons.
+
+:type: StencilFace
+)");
   StencilFace backFace;
 };
 
@@ -624,7 +668,10 @@ struct Attachment
   uint32_t numSlices = 1;
   DOCUMENT("The mip of the texture that's used in the attachment.");
   uint32_t mipLevel = 0;
-  DOCUMENT("A :class:`TextureSwizzle4` indicating the swizzle applied to this texture.");
+  DOCUMENT(R"(The swizzle applied to the texture.
+
+:type: TextureSwizzle4
+)");
   TextureSwizzle4 swizzle;
 };
 
@@ -638,14 +685,26 @@ struct FBO
 
   DOCUMENT("The :class:`ResourceId` of the framebuffer.");
   ResourceId resourceId;
-  DOCUMENT("The list of :class:`GLAttachment` with the framebuffer color attachments.");
+  DOCUMENT(R"(The framebuffer color attachments.
+
+:type: List[GLAttachment]
+)");
   rdcarray<Attachment> colorAttachments;
-  DOCUMENT("The :class:`GLAttachment` with the framebuffer depth attachment.");
+  DOCUMENT(R"(The framebuffer depth attachment.
+
+:type: GLAttachment
+)");
   Attachment depthAttachment;
-  DOCUMENT("The :class:`GLAttachment` with the framebuffer stencil attachment.");
+  DOCUMENT(R"(The framebuffer stencil attachment.
+
+:type: GLAttachment
+)");
   Attachment stencilAttachment;
 
-  DOCUMENT("The list of draw buffer indices into the :data:`colorAttachments` attachment list.");
+  DOCUMENT(R"(The draw buffer indices into the :data:`colorAttachments` attachment list.
+
+:type: List[int]
+)");
   rdcarray<int32_t> drawBuffers;
   DOCUMENT("The read buffer index in the :data:`colorAttachments` attachment list.");
   int32_t readBuffer = 0;
@@ -659,7 +718,10 @@ struct BlendState
   BlendState(const BlendState &) = default;
   BlendState &operator=(const BlendState &) = default;
 
-  DOCUMENT("A list of :class:`ColorBlend` describing the blend operations for each target.");
+  DOCUMENT(R"(The blend operations for each target.
+
+:type: List[ColorBlend]
+)");
   rdcarray<ColorBlend> blends;
 
   DOCUMENT("The constant blend factor to use in blend equations.");
@@ -680,12 +742,21 @@ struct FrameBuffer
   DOCUMENT("``True`` if dithering should be used when writing to color buffers.");
   bool dither = false;
 
-  DOCUMENT("A :class:`GLFBO` with the information about a draw framebuffer.");
+  DOCUMENT(R"(The draw framebuffer.
+
+:type: GLFBO
+)");
   FBO drawFBO;
-  DOCUMENT("A :class:`GLFBO` with the information about a read framebuffer.");
+  DOCUMENT(R"(The read framebuffer.
+
+:type: GLFBO
+)");
   FBO readFBO;
 
-  DOCUMENT("A :class:`GLBlendState` with the details of the blending state.");
+  DOCUMENT(R"(The details of the blending state.
+
+:type: GLBlendState
+)");
   BlendState blendState;
 };
 
@@ -720,60 +791,121 @@ struct State
   State(const State &) = delete;
 #endif
 
-  DOCUMENT("A :class:`GLVertexInput` describing the vertex input stage.");
+  DOCUMENT(R"(The vertex input stage.
+
+:type: GLVertexInput
+)");
   VertexInput vertexInput;
 
-  DOCUMENT("A :class:`GLShader` describing the vertex shader stage.");
+  DOCUMENT(R"(The vertex shader stage.
+
+:type: GLShader
+)")
   Shader vertexShader;
-  DOCUMENT("A :class:`GLShader` describing the tessellation control shader stage.");
+
+  DOCUMENT(R"(The tessellation control shader stage.
+
+      :type: GLShader
+      )");
   Shader tessControlShader;
-  DOCUMENT("A :class:`GLShader` describing the tessellation evaluation shader stage.");
+  DOCUMENT(R"(The tessellation evaluation shader stage.
+
+:type: GLShader
+)");
   Shader tessEvalShader;
-  DOCUMENT("A :class:`GLShader` describing the geometry shader stage.");
+  DOCUMENT(R"(The geometry shader stage.
+   
+:type: GLShader
+)");
   Shader geometryShader;
-  DOCUMENT("A :class:`GLShader` describing the fragment shader stage.");
+  DOCUMENT(R"(The fragment shader stage.
+   
+:type: GLShader
+)");
   Shader fragmentShader;
-  DOCUMENT("A :class:`GLShader` describing the compute shader stage.");
+  DOCUMENT(R"(The compute shader stage.
+   
+:type: GLShader
+)");
   Shader computeShader;
 
   DOCUMENT("The :class:`ResourceId` of the program pipeline (if active).");
   ResourceId pipelineResourceId;
 
-  DOCUMENT(
-      "A :class:`GLFixedVertexProcessing` describing the fixed-function vertex processing stage.");
+  DOCUMENT(R"(The fixed-function vertex processing stage.
+
+:type: GLFixedVertexProcessing
+)");
   FixedVertexProcessing vertexProcessing;
 
-  DOCUMENT("A list of :class:`GLTexture` with the currently bound textures.");
+  DOCUMENT(R"(The currently bound textures.
+
+:type: List[GLTexture]
+)");
   rdcarray<Texture> textures;
-  DOCUMENT("A list of :class:`GLSampler` with the currently bound samplers.");
+  DOCUMENT(R"(The currently bound samplers.
+
+ :type: List[GLSampler]
+)");
   rdcarray<Sampler> samplers;
 
-  DOCUMENT("A list of :class:`GLBuffer` with the currently bound atomic buffers.");
+  DOCUMENT(R"(The currently bound atomic buffers.
+
+:type: List[GLBuffer]
+)");
   rdcarray<Buffer> atomicBuffers;
-  DOCUMENT("A list of :class:`GLBuffer` with the currently bound uniform buffers.");
+  DOCUMENT(R"(The currently bound uniform buffers.
+ 
+:type: List[GLBuffer]
+)");
   rdcarray<Buffer> uniformBuffers;
-  DOCUMENT("A list of :class:`GLBuffer` with the currently bound shader storage buffers.");
+
+  DOCUMENT(R"(The currently bound shader storage buffers.
+
+:type: List[GLBuffer]
+)");
   rdcarray<Buffer> shaderStorageBuffers;
 
-  DOCUMENT("A list of :class:`GLImageLoadStore` with the currently bound load/store images.");
+  DOCUMENT(R"(The currently bound load/store images.
+
+:type: List[GLImageLoadStore]
+)");
   rdcarray<ImageLoadStore> images;
 
-  DOCUMENT("A :class:`GLFeedback` describing the transform feedback stage.");
+  DOCUMENT(R"(The transform feedback stage.
+
+:type: GLFeedback
+)");
   Feedback transformFeedback;
 
-  DOCUMENT("A :class:`GLRasterizer` describing rasterization.");
+  DOCUMENT(R"(The rasterization configuration.
+
+:type: GLRasterizer
+)");
   Rasterizer rasterizer;
 
-  DOCUMENT("A :class:`GLDepthState` describing depth processing.");
+  DOCUMENT(R"(The depth state.
+
+:type: GLDepthState
+)");
   DepthState depthState;
 
-  DOCUMENT("A :class:`GLStencilState` describing stencil processing.");
+  DOCUMENT(R"(The stencil state.
+
+:type: GLStencilState
+)");
   StencilState stencilState;
 
-  DOCUMENT("A :class:`GLFrameBuffer` describing the framebuffer.");
+  DOCUMENT(R"(The bound framebuffer.
+
+:type: GLFrameBuffer
+)");
   FrameBuffer framebuffer;
 
-  DOCUMENT("A :class:`GLHints` describing the hint state.");
+  DOCUMENT(R"(The hint state.
+
+:type: GLHints
+)");
   Hints hints;
 };
 

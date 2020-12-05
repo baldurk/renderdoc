@@ -497,6 +497,8 @@ human-readable name by the application.
   DOCUMENT(R"(The chunk indices in the structured file that initialised this resource.
 
 This will at least contain the first call that created it, but may contain other auxilliary calls.
+
+:type: List[int]
 )");
   rdcarray<uint32_t> initialisationChunks;
 
@@ -506,6 +508,8 @@ Can be empty if there are no derived resources.
 
 This is the inverse of :data:`parentResources` in a potentially many:many relationship, but
 typically it is one parent to many derived.
+
+:type: List[ResourceId]
 )");
   rdcarray<ResourceId> derivedResources;
 
@@ -515,6 +519,8 @@ Can be empty if there are no parent resources.
 
 This is the inverse of :data:`derivedResources` in a potentially many:many relationship, but
 typically it is one parent to many derived.
+
+:type: List[ResourceId]
 )");
   rdcarray<ResourceId> parentResources;
 
@@ -619,7 +625,10 @@ struct TextureDescription
       return byteSize < o.byteSize;
     return false;
   }
-  DOCUMENT("The :class:`ResourceFormat` that describes the format of each pixel in the texture.");
+  DOCUMENT(R"(The format of each pixel in the texture.
+
+:type: ResourceFormat
+)");
   ResourceFormat format;
 
   DOCUMENT("The base dimension of the texture - either 1, 2, or 3.");
@@ -690,7 +699,10 @@ of results part way through the multi draw.
 )");
   uint32_t eventId = 0;
 
-  DOCUMENT("A list of addresses in the CPU callstack where this function was called.");
+  DOCUMENT(R"(The addresses in the CPU callstack where this function was called.
+    
+:type: List[int]
+)");
   rdcarray<uint64_t> callstack;
 
   DOCUMENT("The chunk index for this function call in the structured file.");
@@ -791,6 +803,24 @@ struct ConstantBindStats
   ConstantBindStats() = default;
   ConstantBindStats(const ConstantBindStats &) = default;
   ConstantBindStats &operator=(const ConstantBindStats &) = default;
+  bool operator<(const ConstantBindStats &o) const
+  {
+    if(!(calls == o.calls))
+      return calls < o.calls;
+    if(!(sets == o.sets))
+      return sets < o.sets;
+    if(!(nulls == o.nulls))
+      return nulls < o.nulls;
+    if(!(bindslots == o.bindslots))
+      return bindslots < o.bindslots;
+    return sizes < o.sizes;
+  }
+
+  bool operator==(const ConstantBindStats &o) const
+  {
+    return calls == o.calls && sets == o.sets && nulls == o.nulls && bindslots == o.bindslots &&
+           sizes == o.sizes;
+  }
 
   static const BucketRecordType BucketType = BucketRecordType::Pow2;
   static const size_t BucketCount = 31;
@@ -804,10 +834,16 @@ struct ConstantBindStats
   DOCUMENT("How many objects were unbound.");
   uint32_t nulls;
 
-  DOCUMENT("A list where the Nth element contains the number of calls that bound N buffers.");
+  DOCUMENT(R"(A list where the Nth element contains the number of calls that bound N buffers.
+
+:type: List[int]
+)");
   rdcarray<uint32_t> bindslots;
 
-  DOCUMENT("A :class:`bucketed <BucketType>` list over the sizes of buffers bound.");
+  DOCUMENT(R"(A :class:`bucketed <BucketType>` list over the sizes of buffers bound.
+
+:type: List[int]
+)");
   rdcarray<uint32_t> sizes;
 };
 
@@ -820,6 +856,21 @@ struct SamplerBindStats
   SamplerBindStats() = default;
   SamplerBindStats(const SamplerBindStats &) = default;
   SamplerBindStats &operator=(const SamplerBindStats &) = default;
+  bool operator<(const SamplerBindStats &o) const
+  {
+    if(!(calls == o.calls))
+      return calls < o.calls;
+    if(!(sets == o.sets))
+      return sets < o.sets;
+    if(!(nulls == o.nulls))
+      return nulls < o.nulls;
+    return bindslots < o.bindslots;
+  }
+
+  bool operator==(const SamplerBindStats &o) const
+  {
+    return calls == o.calls && sets == o.sets && nulls == o.nulls && bindslots == o.bindslots;
+  }
 
   DOCUMENT("How many function calls were made.");
   uint32_t calls;
@@ -830,7 +881,10 @@ struct SamplerBindStats
   DOCUMENT("How many objects were unbound.");
   uint32_t nulls;
 
-  DOCUMENT("A list where the Nth element contains the number of calls that bound N samplers.");
+  DOCUMENT(R"(A list where the Nth element contains the number of calls that bound N samplers.
+
+:type: List[int]
+)");
   rdcarray<uint32_t> bindslots;
 };
 
@@ -843,6 +897,24 @@ struct ResourceBindStats
   ResourceBindStats() = default;
   ResourceBindStats(const ResourceBindStats &) = default;
   ResourceBindStats &operator=(const ResourceBindStats &) = default;
+  bool operator<(const ResourceBindStats &o) const
+  {
+    if(!(calls == o.calls))
+      return calls < o.calls;
+    if(!(sets == o.sets))
+      return sets < o.sets;
+    if(!(nulls == o.nulls))
+      return nulls < o.nulls;
+    if(!(types == o.types))
+      return types < o.types;
+    return bindslots < o.bindslots;
+  }
+
+  bool operator==(const ResourceBindStats &o) const
+  {
+    return calls == o.calls && sets == o.sets && nulls == o.nulls && types == o.types &&
+           bindslots == o.bindslots;
+  }
 
   DOCUMENT("How many function calls were made.");
   uint32_t calls;
@@ -856,10 +928,15 @@ struct ResourceBindStats
   DOCUMENT(R"(A list with one element for each type in :class:`TextureType`.
 
 The Nth element contains the number of times a resource of that type was bound.
+
+:type: List[int]
 )");
   rdcarray<uint32_t> types;
 
-  DOCUMENT("A list where the Nth element contains the number of calls that bound N resources.");
+  DOCUMENT(R"(A list where the Nth element contains the number of calls that bound N resources.
+
+:type: List[int]
+)");
   rdcarray<uint32_t> bindslots;
 };
 
@@ -897,10 +974,15 @@ struct ResourceUpdateStats
   DOCUMENT(R"(A list with one element for each type in :class:`TextureType`.
 
 The Nth element contains the number of times a resource of that type was updated.
+
+:type: List[int]
 )");
   rdcarray<uint32_t> types;
 
-  DOCUMENT("A :class:`bucketed <BucketType>` list over the number of bytes in the update.");
+  DOCUMENT(R"(A :class:`bucketed <BucketType>` list over the number of bytes in the update.
+
+:type: List[int]
+)");
   rdcarray<uint32_t> sizes;
 };
 
@@ -938,7 +1020,10 @@ struct DrawcallStats
   DOCUMENT("How many of :data:`calls` were indirect.");
   uint32_t indirect;
 
-  DOCUMENT("A :class:`bucketed <BucketType>` list over the number of instances in the draw.");
+  DOCUMENT(R"(A :class:`bucketed <BucketType>` list over the number of instances in the draw.
+      
+:type: List[int]
+)");
   rdcarray<uint32_t> counts;
 };
 
@@ -998,8 +1083,10 @@ struct VertexBindStats
   DOCUMENT("How many objects were unbound.");
   uint32_t nulls;
 
-  DOCUMENT(
-      "A list where the Nth element contains the number of calls that bound N vertex buffers.");
+  DOCUMENT(R"(A list where the Nth element contains the number of calls that bound N vertex buffers.
+
+:type: List[int]
+)");
   rdcarray<uint32_t> bindslots;
 };
 
@@ -1032,6 +1119,21 @@ struct ShaderChangeStats
   ShaderChangeStats() = default;
   ShaderChangeStats(const ShaderChangeStats &) = default;
   ShaderChangeStats &operator=(const ShaderChangeStats &) = default;
+  bool operator<(const ShaderChangeStats &o) const
+  {
+    if(!(calls == o.calls))
+      return calls < o.calls;
+    if(!(sets == o.sets))
+      return sets < o.sets;
+    if(!(nulls == o.nulls))
+      return nulls < o.nulls;
+    return redundants < o.redundants;
+  }
+
+  bool operator==(const ShaderChangeStats &o) const
+  {
+    return calls == o.calls && sets == o.sets && nulls == o.nulls && redundants == o.redundants;
+  }
 
   DOCUMENT("How many function calls were made.");
   uint32_t calls;
@@ -1114,10 +1216,16 @@ struct RasterizationStats
   DOCUMENT("How many calls made no change due to the existing bind being identical.");
   uint32_t redundants;
 
-  DOCUMENT("A list where the Nth element contains the number of calls that bound N viewports.");
+  DOCUMENT(R"(A list where the Nth element contains the number of calls that bound N viewports.
+    
+:type: List[int]
+)");
   rdcarray<uint32_t> viewports;
 
-  DOCUMENT("A list where the Nth element contains the number of calls that bound N scissor rects.");
+  DOCUMENT(R"(A list where the Nth element contains the number of calls that bound N scissor rects.
+    
+:type: List[int]
+)");
   rdcarray<uint32_t> rects;
 };
 
@@ -1140,7 +1248,10 @@ struct OutputTargetStats
   DOCUMENT("How many objects were unbound.");
   uint32_t nulls;
 
-  DOCUMENT("A list where the Nth element contains the number of calls that bound N targets.");
+  DOCUMENT(R"(A list where the Nth element contains the number of calls that bound N targets.
+
+:type: List[int]
+)");
   rdcarray<uint32_t> bindslots;
 };
 
@@ -1153,54 +1264,102 @@ Currently this information is only available on D3D11 and is fairly API-centric.
 struct FrameStatistics
 {
   DOCUMENT("");
-  FrameStatistics() = default;
+  FrameStatistics()
+  {
+    constants.resize(ENUM_ARRAY_SIZE(ShaderStage));
+    samplers.resize(ENUM_ARRAY_SIZE(ShaderStage));
+    resources.resize(ENUM_ARRAY_SIZE(ShaderStage));
+    shaders.resize(ENUM_ARRAY_SIZE(ShaderStage));
+  }
   FrameStatistics(const FrameStatistics &) = default;
   FrameStatistics &operator=(const FrameStatistics &) = default;
 
   DOCUMENT("``True`` if the statistics in this structure are valid.");
-  bool recorded;
+  bool recorded = false;
 
-  DOCUMENT("A list of constant buffer bind statistics, one per each :class:`stage <ShaderStage>`.");
-  ConstantBindStats constants[ENUM_ARRAY_SIZE(ShaderStage)];
+  DOCUMENT(R"(A list of constant buffer bind statistics, one per each :class:`stage <ShaderStage>`.
+  
+:type: List[ConstantBindStats]
+)");
+  rdcarray<ConstantBindStats> constants;
 
-  DOCUMENT("A list of sampler bind statistics, one per each :class:`stage <ShaderStage>`.");
-  SamplerBindStats samplers[ENUM_ARRAY_SIZE(ShaderStage)];
+  DOCUMENT(R"(A list of sampler bind statistics, one per each :class:`stage <ShaderStage>`.
+  
+:type: List[SamplerBindStats]
+)");
+  rdcarray<SamplerBindStats> samplers;
 
-  DOCUMENT("A list of resource bind statistics, one per each :class:`stage <ShaderStage>`.");
-  ResourceBindStats resources[ENUM_ARRAY_SIZE(ShaderStage)];
+  DOCUMENT(R"(A list of resource bind statistics, one per each :class:`stage <ShaderStage>`.
+  
+:type: List[ResourceBindStats]
+)");
+  rdcarray<ResourceBindStats> resources;
 
-  DOCUMENT("Information about resource contents updates.");
-  ResourceUpdateStats updates;
+  DOCUMENT(R"(Information about resource contents updates.
+  
+:type: ResourceUpdateStats
+)");
+  ResourceUpdateStats updates = {};
 
-  DOCUMENT("Information about drawcalls.");
-  DrawcallStats draws;
+  DOCUMENT(R"(Information about drawcalls.
+  
+:type: DrawcallStats
+)");
+  DrawcallStats draws = {};
 
-  DOCUMENT("Information about compute dispatches.");
-  DispatchStats dispatches;
+  DOCUMENT(R"(Information about compute dispatches.
+  
+:type: DispatchStats
+)");
+  DispatchStats dispatches = {};
 
-  DOCUMENT("Information about index buffer binds.");
-  IndexBindStats indices;
+  DOCUMENT(R"(Information about index buffer binds.
+  
+:type: IndexBindStats
+)");
+  IndexBindStats indices = {};
 
-  DOCUMENT("Information about vertex buffer binds.");
-  VertexBindStats vertices;
+  DOCUMENT(R"(Information about vertex buffer binds.
+  
+:type: VertexBindStats
+)");
+  VertexBindStats vertices = {};
 
-  DOCUMENT("Information about vertex layout binds.");
-  LayoutBindStats layouts;
+  DOCUMENT(R"(Information about vertex layout binds.
+  
+:type: LayoutBindStats
+)");
+  LayoutBindStats layouts = {};
 
-  DOCUMENT("A list of shader bind statistics, one per each :class:`stage <ShaderStage>`.");
-  ShaderChangeStats shaders[ENUM_ARRAY_SIZE(ShaderStage)];
+  DOCUMENT(R"(A list of shader bind statistics, one per each :class:`stage <ShaderStage>`.
+  
+:type: List[ShaderChangeStats]
+)");
+  rdcarray<ShaderChangeStats> shaders;
 
-  DOCUMENT("Information about blend state binds.");
-  BlendStats blends;
+  DOCUMENT(R"(Information about blend state binds.
+  
+:type: BlendStats
+)");
+  BlendStats blends = {};
 
-  DOCUMENT("Information about depth-stencil state binds.");
-  DepthStencilStats depths;
+  DOCUMENT(R"(Information about depth-stencil state binds.
+  
+:type: DepthStencilStats
+)");
+  DepthStencilStats depths = {};
 
-  DOCUMENT("Information about rasterizer state binds.");
-  RasterizationStats rasters;
+  DOCUMENT(R"(Information about rasterizer state binds.
+  
+:type: RasterizationStats
+)");
+  RasterizationStats rasters = {};
 
-  DOCUMENT("Information about output merger and UAV binds.");
-  OutputTargetStats outputs;
+  DOCUMENT(R"(Information about output merger and UAV binds.
+  
+:type: OutputTargetStats
+)");
+  OutputTargetStats outputs = {};
 };
 
 DECLARE_REFLECTION_STRUCT(FrameStatistics);
@@ -1258,10 +1417,16 @@ this counts the frame number when the capture was made.
   DOCUMENT("The time when the capture was created, as a unix timestamp in UTC.");
   uint64_t captureTime;
 
-  DOCUMENT("The :class:`frame statistics <FrameStatistics>`.");
+  DOCUMENT(R"(The frame statistics.
+
+:type: FrameStatistics
+)");
   FrameStatistics stats;
 
-  DOCUMENT("A list of debug messages that are not associated with any particular event.");
+  DOCUMENT(R"(The debug messages that are not associated with any particular event.
+
+:type: List[DebugMessage]
+)");
   rdcarray<DebugMessage> debugMessages;
 
   static const uint32_t NoFrameNumber = ~0U;
@@ -1450,26 +1615,40 @@ Valid values are 1 (depending on API), 2 or 4, or 0 if the drawcall is not an in
 operation.
 )");
   ResourceId copySource;
-  DOCUMENT(R"(The :class:`Subresource` specifying which part in :data:`copySource` is used.)");
+
+  DOCUMENT(R"(Which part of :data:`copySource` is used.
+
+:type: Subresource
+)");
   Subresource copySourceSubresource;
 
   DOCUMENT(R"(The :class:`ResourceId` identifying the destination object in a copy, resolve or blit
 operation.
 )");
   ResourceId copyDestination;
-  DOCUMENT(R"(The :class:`Subresource` specifying which part in :data:`copyDestination` is used.)");
+
+  DOCUMENT(R"(Which part of :data:`copyDestination` is used.
+
+:type: Subresource
+)");
   Subresource copyDestinationSubresource;
 
   DOCUMENT(R"(The parent of this drawcall, or ``None`` if there is no parent for this drawcall.
+
+:type: DrawcallDescription
 )");
   const DrawcallDescription *parent;
 
   DOCUMENT(R"(The previous drawcall in the frame, or ``None`` if this is the first drawcall in the
 frame.
+
+:type: DrawcallDescription
 )");
   const DrawcallDescription *previous;
-  DOCUMENT(
-      "The next drawcall in the frame, or ``None`` if this is the last drawcall in the frame.");
+  DOCUMENT(R"(The next drawcall in the frame, or ``None`` if this is the last drawcall in the frame.
+
+:type: DrawcallDescription
+)");
   const DrawcallDescription *next;
 
   DOCUMENT(R"(A simple list of the :class:`ResourceId` ids for the color outputs, which can be used
@@ -1479,10 +1658,16 @@ for very coarse bucketing of drawcalls into similar passes by their outputs.
   DOCUMENT("The resource used for depth output - see :data:`outputs`.");
   ResourceId depthOut;
 
-  DOCUMENT("A list of the :class:`APIEvent` events that happened since the previous drawcall.");
+  DOCUMENT(R"(The events that happened since the previous drawcall.
+
+:type: List[APIEvent]
+)");
   rdcarray<APIEvent> events;
 
-  DOCUMENT("A list of :class:`DrawcallDescription` child drawcalls.");
+  DOCUMENT(R"(The child drawcalls below this one, if it's a marker region or multidraw type draw.
+
+:type: List[DrawcallDescription]
+)");
   rdcarray<DrawcallDescription> children;
 };
 
@@ -1626,7 +1811,10 @@ struct CounterDescription
   DOCUMENT("The :class:`CounterUnit` for the result value.");
   CounterUnit unit;
 
-  DOCUMENT("The :class:`Uuid` of this counter, which uniquely identifies it.");
+  DOCUMENT(R"(The unique identifier for this counter that will not change across drivers or replays.
+
+:type: Uuid
+)");
   Uuid uuid;
 };
 
@@ -1722,7 +1910,10 @@ struct CounterResult
   GPUCounter counter;
 #endif
 
-  DOCUMENT("The value itself.");
+  DOCUMENT(R"(The value itself.
+
+:type: CounterValue
+)");
   CounterValue value;
 };
 
@@ -1763,7 +1954,10 @@ struct ModificationValue
       return stencil < o.stencil;
     return false;
   }
-  DOCUMENT("The color value.");
+  DOCUMENT(R"(The color value.
+
+:type: PixelValue
+)");
   PixelValue col;
 
   DOCUMENT("The depth output, as a ``float``.");
@@ -1861,15 +2055,23 @@ multiple fragments from a single draw wrote to a pixel.
   DOCUMENT("The primitive that generated this fragment.");
   uint32_t primitiveID;
 
-  DOCUMENT(R"(The :class:`ModificationValue` of the texture before this fragment ran.
+  DOCUMENT(R"(The value of the texture before this fragment ran.
 
 This is valid only for the first fragment if multiple fragments in the same event write to the same
 pixel.
+
+:type: ModificationValue
 )");
   ModificationValue preMod;
-  DOCUMENT("The :class:`ModificationValue` that this fragment wrote from the pixel shader.");
+  DOCUMENT(R"(The value that this fragment wrote from the pixel shader.
+
+:type: ModificationValue
+)");
   ModificationValue shaderOut;
-  DOCUMENT(R"(The :class:`ModificationValue` of the texture after this fragment ran.)");
+  DOCUMENT(R"(The value of the texture after this fragment ran.
+
+:type: ModificationValue
+)");
   ModificationValue postMod;
 
   DOCUMENT("``True`` if the sample mask eliminated this fragment.");

@@ -762,7 +762,7 @@ void DoSerialise(SerialiserType &ser, FrameStatistics &el)
   SERIALISE_MEMBER(rasters);
   SERIALISE_MEMBER(outputs);
 
-  SIZE_CHECK(1432);
+  SIZE_CHECK(424);
 }
 
 template <typename SerialiserType>
@@ -778,7 +778,7 @@ void DoSerialise(SerialiserType &ser, FrameDescription &el)
   SERIALISE_MEMBER(stats);
   SERIALISE_MEMBER(debugMessages);
 
-  SIZE_CHECK(1512);
+  SIZE_CHECK(504);
 }
 
 template <typename SerialiserType>
@@ -787,7 +787,7 @@ void DoSerialise(SerialiserType &ser, FrameRecord &el)
   SERIALISE_MEMBER(frameInfo);
   SERIALISE_MEMBER(drawcallList);
 
-  SIZE_CHECK(1536);
+  SIZE_CHECK(528);
 }
 
 template <typename SerialiserType>

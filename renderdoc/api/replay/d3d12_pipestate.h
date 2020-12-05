@@ -71,7 +71,10 @@ struct Layout
   DOCUMENT("The semantic index for this input.");
   uint32_t semanticIndex = 0;
 
-  DOCUMENT("The :class:`ResourceFormat` describing how the input data is interpreted.");
+  DOCUMENT(R"(The format describing how the input data is interpreted.
+
+:type: ResourceFormat
+)");
   ResourceFormat format;
 
   DOCUMENT("The vertex buffer input slot where the data is sourced from.");
@@ -164,13 +167,22 @@ struct InputAssembly
   InputAssembly(const InputAssembly &) = default;
   InputAssembly &operator=(const InputAssembly &) = default;
 
-  DOCUMENT("A list of :class:`D3D12Layout` describing the input layout elements in this layout.");
+  DOCUMENT(R"(The input layout elements in this layout.
+
+:type: List[D3D12Layout]
+)");
   rdcarray<Layout> layouts;
 
-  DOCUMENT("A list of :class:`D3D12VertexBuffer` with the vertex buffers that are bound.");
+  DOCUMENT(R"(The bound vertex buffers
+
+:type: List[D3D12VertexBuffer]
+)");
   rdcarray<VertexBuffer> vertexBuffers;
 
-  DOCUMENT("The :class:`D3D12IndexBuffer` describing the index buffer.");
+  DOCUMENT(R"(The bound index buffer.
+
+:type: D3D12IndexBuffer
+)");
   IndexBuffer indexBuffer;
 
   DOCUMENT(R"(The index value to use for cutting strips. Either ``0``, ``0xffff`` or ``0xffffffff``.
@@ -248,10 +260,16 @@ struct View
   ResourceId resourceId;
   DOCUMENT("The :class:`TextureType` of the view type.");
   TextureType type;
-  DOCUMENT("The :class:`ResourceFormat` that the view uses.");
+  DOCUMENT(R"(The format cast that the view uses.
+
+:type: ResourceFormat
+)");
   ResourceFormat viewFormat;
 
-  DOCUMENT("A :class:`TextureSwizzle4` indicating the swizzle applied to this texture.");
+  DOCUMENT(R"(The swizzle applied to a texture by the view.
+
+:type: TextureSwizzle4
+)");
   TextureSwizzle4 swizzle;
   DOCUMENT("The :class:`D3DBufferViewFlags` set for the buffer.");
   D3DBufferViewFlags bufferFlags = D3DBufferViewFlags::NoFlags;
@@ -352,7 +370,10 @@ struct Sampler
   float borderColor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
   DOCUMENT("The :class:`CompareFunction` for comparison samplers.");
   CompareFunction compareFunction = CompareFunction::AlwaysTrue;
-  DOCUMENT("The :class:`TextureFilter` describing the filtering mode.");
+  DOCUMENT(R"(The filtering mode.
+
+:type: TextureFilter
+)");
   TextureFilter filter;
   DOCUMENT("The maximum anisotropic filtering level to use.");
   uint32_t maxAnisotropy = 0;
@@ -417,8 +438,10 @@ struct ConstantBuffer
   DOCUMENT("How many bytes are in this constant buffer view.");
   uint32_t byteSize = 0;
 
-  DOCUMENT(R"(If :data:`immediate` is ``True`` and this is a root constant, this contains a list of
-``int`` values with the root values set.
+  DOCUMENT(R"(If :data:`immediate` is ``True`` and this is a root constant, this contains the root
+values set as interpreted as a series of DWORD values.
+
+:type: List[int]
 )");
   rdcarray<uint32_t> rootValues;
 };
@@ -466,11 +489,20 @@ struct RootSignatureRange
   ShaderStageMask visibility = ShaderStageMask::All;
   DOCUMENT("The register space of this element.");
   uint32_t registerSpace;
-  DOCUMENT("List of :class:`ConstantBuffer` containing the constant buffers.");
+  DOCUMENT(R"(The constant buffers in this range.
+
+:type: List[D3D12ConstantBuffer]
+)");
   rdcarray<ConstantBuffer> constantBuffers;
-  DOCUMENT("List of :class:`Sampler` containing the samplers.");
+  DOCUMENT(R"(The samplers in this range.
+
+:type: List[D3D12Sampler]
+)");
   rdcarray<Sampler> samplers;
-  DOCUMENT("List of :class:`View` containing the SRVs or UAVs.");
+  DOCUMENT(R"(The SRVs or UAVs in this range.
+
+:type: List[D3D12View]
+)");
   rdcarray<View> views;
 };
 
@@ -485,10 +517,14 @@ struct Shader
   DOCUMENT("The :class:`ResourceId` of the shader object itself.");
   ResourceId resourceId;
 
-  DOCUMENT("A :class:`ShaderReflection` describing the reflection data for this shader.");
+  DOCUMENT(R"(The reflection data for this shader.
+
+:type: ShaderReflection
+)");
   ShaderReflection *reflection = NULL;
-  DOCUMENT(R"(A :class:`ShaderBindpointMapping` to match :data:`reflection` with the bindpoint
-mapping data.
+  DOCUMENT(R"(The bindpoint mapping data to match :data:`reflection`.
+
+:type: ShaderBindpointMapping
 )");
   ShaderBindpointMapping bindpointMapping;
 
@@ -549,7 +585,10 @@ struct StreamOut
   StreamOut(const StreamOut &) = default;
   StreamOut &operator=(const StreamOut &) = default;
 
-  DOCUMENT("A list of ``D3D12SOBind`` with the bound buffers.");
+  DOCUMENT(R"(The bound stream-out buffer bindings.
+
+:type: List[D3D12StreamOutBind]
+)");
   rdcarray<StreamOutBind> outputs;
 };
 
@@ -604,13 +643,22 @@ struct Rasterizer
   DOCUMENT("The mask determining which samples are written to.");
   uint32_t sampleMask = ~0U;
 
-  DOCUMENT("A list of :class:`Viewport` with the bound viewports.");
+  DOCUMENT(R"(The bound viewports.
+
+:type: List[Viewport]
+)");
   rdcarray<Viewport> viewports;
 
-  DOCUMENT("A list of :class:`Scissor` with the bound scissor regions.");
+  DOCUMENT(R"(The bound scissor regions.
+
+:type: List[Scissor]
+)");
   rdcarray<Scissor> scissors;
 
-  DOCUMENT("A :class:`D3D12RasterizerState` with the details of the rasterization state.");
+  DOCUMENT(R"(The details of the rasterization state.
+
+:type: D3D12RasterizerState
+)");
   RasterizerState state;
 };
 
@@ -633,9 +681,16 @@ struct DepthStencilState
   DOCUMENT("``True`` if stencil operations should be performed.");
   bool stencilEnable = false;
 
-  DOCUMENT("A :class:`StencilFace` describing what happens for front-facing polygons.");
+  DOCUMENT(R"(The stencil state for front-facing polygons.
+
+:type: StencilFace
+)");
   StencilFace frontFace;
-  DOCUMENT("A :class:`StencilFace` describing what happens for back-facing polygons.");
+
+  DOCUMENT(R"(The stencil state for back-facing polygons.
+
+:type: StencilFace
+)");
   StencilFace backFace;
 
   DOCUMENT("The near plane bounding value.");
@@ -660,7 +715,10 @@ struct BlendState
 )");
   bool independentBlend = false;
 
-  DOCUMENT("A list of :class:`ColorBlend` describing the blend operations for each target.");
+  DOCUMENT(R"(The blend operations for each target.
+
+:type: List[ColorBlend]
+)");
   rdcarray<ColorBlend> blends;
 
   DOCUMENT("The constant blend factor to use in blend equations.");
@@ -675,15 +733,28 @@ struct OM
   OM(const OM &) = default;
   OM &operator=(const OM &) = default;
 
-  DOCUMENT("A :class:`D3D12DepthStencilState` with the details of the depth-stencil state.");
+  DOCUMENT(R"(The current depth-stencil state details.
+
+:type: D3D12DepthStencilState
+)");
   DepthStencilState depthStencilState;
-  DOCUMENT("A :class:`D3D12BlendState` with the details of the blend state.");
+
+  DOCUMENT(R"(The current blend state details.
+
+:type: D3D12BlendState
+)");
   BlendState blendState;
 
-  DOCUMENT("A list of :class:`D3D12View` describing the bound render targets.");
+  DOCUMENT(R"(The bound render targets.
+
+:type: List[D3D12View]
+)");
   rdcarray<View> renderTargets;
 
-  DOCUMENT("A :class:`D3D12View` with details of the bound depth-stencil target.");
+  DOCUMENT(R"(The currently bound depth-stencil target.
+
+:type: D3D12View
+)");
   View depthTarget = D3D12Pipe::View(0);
   DOCUMENT("``True`` if depth access to the depth-stencil target is read-only.");
   bool depthReadOnly = false;
@@ -738,7 +809,10 @@ struct ResourceData
   DOCUMENT("The :class:`ResourceId` of the resource.");
   ResourceId resourceId;
 
-  DOCUMENT("A list of :class:`D3D12ResourceState` entries, one for each subresource.");
+  DOCUMENT(R"(The subresource states in this resource.
+
+:type: List[D3D12ResourceState]
+)");
   rdcarray<ResourceState> states;
 };
 
@@ -757,35 +831,71 @@ struct State
   DOCUMENT("The :class:`ResourceId` of the root signature object.");
   ResourceId rootSignatureResourceId;
 
-  DOCUMENT("A list of :class:`RootSignatureRange` entries comprising the root signature.");
+  DOCUMENT(R"(The root signature, as a range per element.
+    
+:type: List[RootSignatureRange]
+)");
   rdcarray<RootSignatureRange> rootElements;
 
-  DOCUMENT("A :class:`D3D12InputAssembly` describing the input assembly pipeline stage.");
+  DOCUMENT(R"(The input assembly pipeline stage.
+
+:type: D3D12InputAssembly
+)");
   InputAssembly inputAssembly;
 
-  DOCUMENT("A :class:`D3D12Shader` describing the vertex shader stage.");
+  DOCUMENT(R"(The vertex shader stage.
+
+:type: D3D12Shader
+)");
   Shader vertexShader;
-  DOCUMENT("A :class:`D3D12Shader` describing the hull shader stage.");
+  DOCUMENT(R"(The hull shader stage.
+
+:type: D3D12Shader
+)");
   Shader hullShader;
-  DOCUMENT("A :class:`D3D12Shader` describing the domain shader stage.");
+  DOCUMENT(R"(The domain shader stage.
+
+:type: D3D12Shader
+)");
   Shader domainShader;
-  DOCUMENT("A :class:`D3D12Shader` describing the geometry shader stage.");
+  DOCUMENT(R"(The geometry shader stage.
+
+:type: D3D12Shader
+)");
   Shader geometryShader;
-  DOCUMENT("A :class:`D3D12Shader` describing the pixel shader stage.");
+  DOCUMENT(R"(The pixel shader stage.
+
+:type: D3D12Shader
+)");
   Shader pixelShader;
-  DOCUMENT("A :class:`D3D12Shader` describing the compute shader stage.");
+  DOCUMENT(R"(The compute shader stage.
+
+:type: D3D12Shader
+)");
   Shader computeShader;
 
-  DOCUMENT("A :class:`D3D12StreamOut` describing the stream-out pipeline stage.");
+  DOCUMENT(R"(The stream-out pipeline stage.
+
+:type: D3D12StreamOut
+)");
   StreamOut streamOut;
 
-  DOCUMENT("A :class:`D3D12Rasterizer` describing the rasterizer pipeline stage.");
+  DOCUMENT(R"(The rasterizer pipeline stage.
+
+:type: D3D12Rasterizer
+)");
   Rasterizer rasterizer;
 
-  DOCUMENT("A :class:`D3D12OM` describing the output merger pipeline stage.");
+  DOCUMENT(R"(The output merger pipeline stage.
+
+:type: D3D12OM
+)");
   OM outputMerger;
 
-  DOCUMENT("A list of :class:`D3D12ResourceData` entries, one for each resource.");
+  DOCUMENT(R"(The resource states for the currently live resources.
+
+:type: List[ResourceData]
+)");
   rdcarray<ResourceData> resourceStates;
 };
 

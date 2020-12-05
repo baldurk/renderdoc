@@ -102,7 +102,10 @@ struct CaptureSettings
 
   VARIANT_CAST(CaptureSettings);
 
-  DOCUMENT("The :class:`~renderdoc.CaptureOptions` with fine-tuned settings for the capture.");
+  DOCUMENT(R"(The settings for the capture.
+  
+:type: renderdoc.CaptureOptions
+)");
   CaptureOptions options;
   DOCUMENT(
       "``True`` if the described capture is an inject-into-process instead of a launched "

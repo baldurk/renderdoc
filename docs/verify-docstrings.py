@@ -7,6 +7,7 @@ import re
 import os
 import glob
 import argparse
+import inspect
 from enum import EnumMeta
 from typing import List
 
@@ -118,6 +119,7 @@ def make_c_type(ret: str, pattern: bool, typelist: List[str]):
 
 RTYPE_PATTERN = re.compile(r":rtype: (.*)")
 PARAM_PATTERN = re.compile(r":param ([^:]*) ([^: ]*):")
+TYPE_PATTERN = re.compile(r":type: (.*)")
 
 count = 0
 
@@ -272,6 +274,12 @@ for mod_name in ['renderdoc', 'qrenderdoc']:
                 
             source = source.group(0)
 
+            instance = None
+            try:
+                instance = obj()
+            except TypeError:
+                pass
+
             for member_name in obj.__dict__.keys():
                 if '__' in member_name or member_name in ['this', 'thisown']:
                     continue
@@ -297,6 +305,43 @@ for mod_name in ['renderdoc', 'qrenderdoc']:
                     check_function(qualname, member_name, member, source, False, used_types)
 
                     check_used_types('{}.{}'.format(qualname, member_name), mod, used_types)
+                elif instance and '__get__' in dir(member):
+                    value = getattr(instance, member_name)
+
+                    type_name = type(value).__name__
+
+                    if type(value).__module__ != mod_name:
+                        type_name = type(value).__module__ + '.' + type_name
+
+                    type_name = re.sub('(.*)rdcarray_of_(.*)', 'List[\\1\\2]', type_name)
+                    type_name = re.sub('(renderdoc\.)?u?int[163264]{2}_t', 'int', type_name)
+                    type_name = re.sub('(renderdoc\.)?rdcstr', 'str', type_name)
+                    type_name = re.sub('Pipe_', '', type_name)
+                    type_name = re.sub('StructuredBufferList', 'List[bytes]', type_name)
+                    type_name = re.sub('StructuredObjectList', 'List[SDObject]', type_name)
+                    type_name = re.sub('StructuredChunkList', 'List[SDChunk]', type_name)
+
+                    # Maybe in future we could enforce :type: on all members? For now we
+                    # only really care about ones we might want to access properties on,
+                    # so not builtin types (lists/tuples excluded) or ResourceId
+                    if type(value).__module__ not in [rd.__name__, qrd.__name__] or type_name == 'ResourceId' and type(value) is not tuple:
+                        continue
+
+                    if args.verbose:
+                        print('Checking struct member {}.{}'.format(qualname, member_name))
+
+                    result = TYPE_PATTERN.search(member.__doc__)
+                    if result is not None:
+                        type_decl = result.group(1)
+                    else:
+                        type_decl = None
+
+                    if type_decl is None:
+                        count += 1
+                        print("Error {:3}: {}.{} is missing :type: declaration, should be {}".format(count, qualname, member_name, type_name))
+                    elif type_decl != type_name:
+                        count += 1
+                        print("Error {:3}: {}.{} has wrong :type: declaration {}, should be {}".format(count, qualname, member_name, type_decl, type_name))
         elif callable(obj):
             used_types = []
 
@@ -305,5 +350,9 @@ for mod_name in ['renderdoc', 'qrenderdoc']:
 
             check_used_types(qualname, mod, used_types)
 
-print("{} mismatches detected".format(count))
-sys.exit(count)
+if count > 0:
+    print("{} problems detected".format(count))
+    sys.exit(count)
+
+print("No problems detected")
+sys.exit(0)

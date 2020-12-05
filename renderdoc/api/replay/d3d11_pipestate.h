@@ -27,6 +27,9 @@
 
 #include "common_pipestate.h"
 
+// NOTE: Remember that python sees namespaces flattened to a prefix - i.e. D3D11Pipe::Layout is
+// renamed to D3D11Layout, so these types must be referenced in the documentation
+
 namespace D3D11Pipe
 {
 DOCUMENT(R"(Describes a single D3D11 input layout element for one vertex input.
@@ -72,7 +75,10 @@ struct Layout
   DOCUMENT("The semantic index for this input.");
   uint32_t semanticIndex = 0;
 
-  DOCUMENT("The :class:`ResourceFormat` describing how the input data is interpreted.");
+  DOCUMENT(R"(The format describing how the input data is interpreted.
+
+:type: ResourceFormat
+)");
   ResourceFormat format;
 
   DOCUMENT("The vertex buffer input slot where the data is sourced from.");
@@ -156,19 +162,31 @@ struct InputAssembly
   InputAssembly(const InputAssembly &) = default;
   InputAssembly &operator=(const InputAssembly &) = default;
 
-  DOCUMENT("A list of :class:`D3D11Layout` describing the input layout elements in this layout.");
+  DOCUMENT(R"(The input layout elements in this layout.
+
+:type: List[D3D11Layout]
+)");
   rdcarray<Layout> layouts;
 
   DOCUMENT("The :class:`ResourceId` of the layout object.");
   ResourceId resourceId;
 
-  DOCUMENT("A :class:`ShaderReflection` describing the bytecode used to create the input layout.");
+  DOCUMENT(R"(The shader reflection for the bytecode used to create the input layout.
+
+:type: ShaderReflection
+)");
   ShaderReflection *bytecode = NULL;
 
-  DOCUMENT("A list of :class:`D3D11VertexBuffer` with the vertex buffers that are bound.");
+  DOCUMENT(R"(The bound vertex buffers
+
+:type: List[D3D11VertexBuffer]
+)");
   rdcarray<VertexBuffer> vertexBuffers;
 
-  DOCUMENT("The :class:`D3D11IndexBuffer` describing the index buffer.");
+  DOCUMENT(R"(The bound index buffer.
+
+:type: D3D11IndexBuffer
+)");
   IndexBuffer indexBuffer;
 };
 
@@ -235,7 +253,10 @@ struct View
   DOCUMENT("The :class:`TextureType` of the view type.");
   TextureType type;
 
-  DOCUMENT("The :class:`ResourceFormat` that the view uses.");
+  DOCUMENT(R"(The format cast that the view uses.
+
+:type: ResourceFormat
+)");
   ResourceFormat viewFormat;
 
   DOCUMENT("``True`` if this view describes a structured buffer.");
@@ -329,7 +350,10 @@ struct Sampler
   float borderColor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
   DOCUMENT("The :class:`CompareFunction` for comparison samplers.");
   CompareFunction compareFunction = CompareFunction::AlwaysTrue;
-  DOCUMENT("The :class:`TextureFilter` describing the filtering mode.");
+  DOCUMENT(R"(The filtering mode.
+
+:type: TextureFilter
+)");
   TextureFilter filter;
   DOCUMENT("The maximum anisotropic filtering level to use.");
   uint32_t maxAnisotropy = 0;
@@ -401,29 +425,49 @@ struct Shader
   DOCUMENT("The :class:`ResourceId` of the shader itself.");
   ResourceId resourceId;
 
-  DOCUMENT("A :class:`ShaderReflection` describing the reflection data for this shader.");
+  DOCUMENT(R"(The reflection data for this shader.
+
+:type: ShaderReflection
+)");
   ShaderReflection *reflection = NULL;
-  DOCUMENT(R"(A :class:`ShaderBindpointMapping` to match :data:`reflection` with the bindpoint
-mapping data.
+  DOCUMENT(R"(The bindpoint mapping data to match :data:`reflection`.
+
+:type: ShaderBindpointMapping
 )");
   ShaderBindpointMapping bindpointMapping;
 
   DOCUMENT("A :class:`ShaderStage` identifying which stage this shader is bound to.");
   ShaderStage stage = ShaderStage::Vertex;
 
-  DOCUMENT("A list of :class:`D3D11View` with the bound SRVs.");
+  DOCUMENT(R"(The bound SRVs.
+
+:type: List[D3D11View]
+)");
   rdcarray<View> srvs;
 
-  DOCUMENT("A list of :class:`D3D11View` with the bound UAVs - only valid for the compute stage.");
+  DOCUMENT(R"(The bound UAVs - only valid for the compute stage, other stages pull the UAVs from
+the :data:`D3D11OutputMerger`.
+
+:type: List[D3D11View]
+)");
   rdcarray<View> uavs;
 
-  DOCUMENT("A list of :class:`D3D11Sampler` with the bound samplers.");
+  DOCUMENT(R"(The bound samplers.
+
+:type: List[D3D11Sampler]
+)");
   rdcarray<Sampler> samplers;
 
-  DOCUMENT("A list of :class:`D3D11ConstantBuffer` with the bound constant buffers.");
+  DOCUMENT(R"(The bound constant buffers.
+
+:type: List[D3D11ConstantBuffer]
+)");
   rdcarray<ConstantBuffer> constantBuffers;
 
-  DOCUMENT("A list of ``str`` with the bound class instance names.");
+  DOCUMENT(R"(The bound class instance names.
+
+:type: List[str]
+)");
   rdcarray<rdcstr> classInstances;
 };
 
@@ -462,7 +506,10 @@ struct StreamOut
   StreamOut(const StreamOut &) = default;
   StreamOut &operator=(const StreamOut &) = default;
 
-  DOCUMENT("A list of ``D3D11StreamOutBind`` with the bound buffers.");
+  DOCUMENT(R"(The bound stream-out buffer bindings.
+
+:type: List[D3D11StreamOutBind]
+)");
   rdcarray<StreamOutBind> outputs;
 };
 
@@ -518,13 +565,22 @@ struct Rasterizer
   Rasterizer(const Rasterizer &) = default;
   Rasterizer &operator=(const Rasterizer &) = default;
 
-  DOCUMENT("A list of :class:`Viewport` with the bound viewports.");
+  DOCUMENT(R"(The bound viewports.
+
+:type: List[Viewport]
+)");
   rdcarray<Viewport> viewports;
 
-  DOCUMENT("A list of :class:`Scissor` with the bound scissor regions.");
+  DOCUMENT(R"(The bound scissor regions.
+
+:type: List[Scissor]
+)");
   rdcarray<Scissor> scissors;
 
-  DOCUMENT("A :class:`D3D11RasterizerState` with the details of the rasterization state.");
+  DOCUMENT(R"(The details of the rasterization state.
+
+:type: D3D11RasterizerState
+)");
   RasterizerState state;
 };
 
@@ -547,9 +603,16 @@ struct DepthStencilState
   DOCUMENT("``True`` if stencil operations should be performed.");
   bool stencilEnable = false;
 
-  DOCUMENT("A :class:`StencilFace` describing what happens for front-facing polygons.");
+  DOCUMENT(R"(The stencil state for front-facing polygons.
+
+:type: StencilFace
+)");
   StencilFace frontFace;
-  DOCUMENT("A :class:`StencilFace` describing what happens for back-facing polygons.");
+
+  DOCUMENT(R"(The stencil state for back-facing polygons.
+
+:type: StencilFace
+)");
   StencilFace backFace;
 };
 
@@ -572,7 +635,10 @@ struct BlendState
 )");
   bool independentBlend = false;
 
-  DOCUMENT("A list of :class:`ColorBlend` describing the blend operations for each target.");
+  DOCUMENT(R"(The blend operations for each target.
+
+:type: List[ColorBlend]
+)");
   rdcarray<ColorBlend> blends;
 
   DOCUMENT("The constant blend factor to use in blend equations.");
@@ -589,20 +655,37 @@ struct OutputMerger
   OutputMerger(const OutputMerger &) = default;
   OutputMerger &operator=(const OutputMerger &) = default;
 
-  DOCUMENT("A :class:`D3D11DepthStencilState` with the details of the depth-stencil state.");
+  DOCUMENT(R"(The current depth-stencil state details.
+
+:type: D3D11DepthStencilState
+)");
   DepthStencilState depthStencilState;
-  DOCUMENT("A :class:`D3D11BlendState` with the details of the blend state.");
+
+  DOCUMENT(R"(The current blend state details.
+
+:type: D3D11BlendState
+)");
   BlendState blendState;
 
-  DOCUMENT("A list of :class:`D3D11View` describing the bound render targets.");
+  DOCUMENT(R"(The bound render targets.
+
+:type: List[D3D11View]
+)");
   rdcarray<View> renderTargets;
 
   DOCUMENT("Which slot in the output targets is the first UAV.");
   uint32_t uavStartSlot = 0;
-  DOCUMENT("A list of :class:`D3D11View` describing the bound UAVs.");
+
+  DOCUMENT(R"(The bound UAVs.
+
+:type: List[D3D11View]
+)");
   rdcarray<View> uavs;
 
-  DOCUMENT("A :class:`D3D11View` with details of the bound depth-stencil target.");
+  DOCUMENT(R"(The currently bound depth-stencil target.
+
+:type: D3D11View
+)");
   View depthTarget;
   DOCUMENT("``True`` if depth access to the depth-stencil target is read-only.");
   bool depthReadOnly = false;
@@ -637,32 +720,65 @@ struct State
   State(const State &) = delete;
 #endif
 
-  DOCUMENT("A :class:`D3D11InputAssembly` describing the input assembly pipeline stage.");
+  DOCUMENT(R"(The input assembly pipeline stage.
+
+:type: D3D11InputAssembly
+)");
   InputAssembly inputAssembly;
 
-  DOCUMENT("A :class:`D3D11Shader` describing the vertex shader stage.");
+  DOCUMENT(R"(The vertex shader stage.
+
+:type: D3D11Shader
+)");
   Shader vertexShader;
-  DOCUMENT("A :class:`D3D11Shader` describing the hull shader stage.");
+  DOCUMENT(R"(The hull shader stage.
+
+:type: D3D11Shader
+)");
   Shader hullShader;
-  DOCUMENT("A :class:`D3D11Shader` describing the domain shader stage.");
+  DOCUMENT(R"(The domain shader stage.
+
+:type: D3D11Shader
+)");
   Shader domainShader;
-  DOCUMENT("A :class:`D3D11Shader` describing the geometry shader stage.");
+  DOCUMENT(R"(The geometry shader stage.
+
+:type: D3D11Shader
+)");
   Shader geometryShader;
-  DOCUMENT("A :class:`D3D11Shader` describing the pixel shader stage.");
+  DOCUMENT(R"(The pixel shader stage.
+
+:type: D3D11Shader
+)");
   Shader pixelShader;
-  DOCUMENT("A :class:`D3D11Shader` describing the compute shader stage.");
+  DOCUMENT(R"(The compute shader stage.
+
+:type: D3D11Shader
+)");
   Shader computeShader;
 
-  DOCUMENT("A :class:`D3D11StreamOut` describing the stream-out pipeline stage.");
+  DOCUMENT(R"(The stream-out pipeline stage.
+
+:type: D3D11StreamOut
+)");
   StreamOut streamOut;
 
-  DOCUMENT("A :class:`D3D11Rasterizer` describing the rasterizer pipeline stage.");
+  DOCUMENT(R"(The rasterizer pipeline stage.
+
+:type: D3D11Rasterizer
+)");
   Rasterizer rasterizer;
 
-  DOCUMENT("A :class:`D3D11OutputMerger` describing the output merger pipeline stage.");
+  DOCUMENT(R"(The output merger pipeline stage.
+
+:type: D3D11OutputMerger
+)");
   OutputMerger outputMerger;
 
-  DOCUMENT("A :class:`D3D11Predication` describing the predicated rendering state.");
+  DOCUMENT(R"(The predicated rendering state.
+
+:type: D3D11Predication
+)");
   Predication predication;
 };
 

@@ -60,12 +60,16 @@ struct MeshFormat
   DOCUMENT("The number of bytes to use from the vertex buffer. Only valid on APIs that allow it.");
   uint64_t vertexByteSize = 0;
 
-  DOCUMENT("The :class:`ResourceFormat` describing this mesh component.");
+  DOCUMENT(R"(The format description of this mesh components elements.
+
+:type: ResourceFormat
+)");
   ResourceFormat format;
 
-  DOCUMENT(
-      "The color to use for rendering the wireframe of this mesh element, as a "
-      ":class:`FloatVector`.");
+  DOCUMENT(R"(The color to use for rendering the wireframe of this mesh element.
+
+:type: FloatVector
+)");
   FloatVector meshColor;
 
   DOCUMENT("The :class:`Topology` that describes the primitives in this mesh.");
@@ -119,7 +123,10 @@ struct MeshDisplay
   DOCUMENT("The :class:`MeshDataStage` where this mesh data comes from.");
   MeshDataStage type = MeshDataStage::Unknown;
 
-  DOCUMENT("The :class:`Camera` to use when rendering all of the meshes.");
+  DOCUMENT(R"(The camera to use when rendering all of the meshes.
+
+:type: Camera
+)");
   ICamera *cam = NULL;
 
   DOCUMENT(
@@ -147,15 +154,26 @@ struct MeshDisplay
 
   DOCUMENT("The index of the vertex to highlight, or :data:`NoHighlight` to select no vertex.");
   uint32_t highlightVert = ~0U;
-  DOCUMENT("The :class:`MeshFormat` of the position data for the mesh.");
+  DOCUMENT(R"(The configuration for the primary mesh's position data.
+
+:type: MeshFormat
+)");
   MeshFormat position;
-  DOCUMENT(
-      "The :class:`MeshFormat` of the secondary data for the mesh, if used for solid shading.");
+  DOCUMENT(R"(The configuration for the primary mesh's secondary data, if used for solid shading.
+
+:type: MeshFormat
+)");
   MeshFormat second;
 
-  DOCUMENT("The minimum co-ordinates in each axis of the mesh bounding box.");
+  DOCUMENT(R"(The minimum co-ordinates in each axis of the mesh bounding box.
+
+:type: FloatVector
+)");
   FloatVector minBounds;
-  DOCUMENT("The maximum co-ordinates in each axis of the mesh bounding box.");
+  DOCUMENT(R"(The maximum co-ordinates in each axis of the mesh bounding box.
+
+:type: FloatVector
+)");
   FloatVector maxBounds;
   DOCUMENT("``True`` if the bounding box around the mesh should be rendered.");
   bool showBBox = false;
@@ -265,6 +283,8 @@ See :meth:`ReplayController.BuildCustomShader` for creating an appropriate custo
 
 If the :data:`Subresource.sample` member is set to :data:`ResolveSamples` then a default resolve
 will be performed that averages all samples.
+
+:type: Subresource
 )");
   Subresource subresource = {0, 0, 0};
 
@@ -284,6 +304,8 @@ the input texture in cases where it isn't easy to directly fetch the input textu
   DOCUMENT(R"(The background color to use behind the texture display.
 
 If set to (0, 0, 0, 0) the global checkerboard colors are used.
+
+:type: FloatVector
 )");
   FloatVector backgroundColor;
 
@@ -428,14 +450,23 @@ written
   int32_t mip = -1;
 
   DOCUMENT(R"(Controls black/white point mapping for output formats that are normal
-:attr:`8-bit SRGB <CompType.UNorm>`, values are
+:attr:`8-bit SRGB <CompType.UNorm>`, values are truncated so that values below the black point
+and above the white point are clamped, and the values in between are evenly distributed.
+
+:type: TextureComponentMapping
 )");
   TextureComponentMapping comp;
 
-  DOCUMENT("Controls mapping for multisampled textures (ignored if texture is not multisampled)");
+  DOCUMENT(R"(Controls mapping for multisampled textures (ignored if texture is not multisampled)
+
+:type: TextureSampleMapping
+)");
   TextureSampleMapping sample;
 
-  DOCUMENT("Controls mapping for arrayed textures (ignored if texture is not arrayed)");
+  DOCUMENT(R"(Controls mapping for arrayed textures (ignored if texture is not arrayed)
+
+:type: TextureSliceMapping
+)");
   TextureSliceMapping slice;
 
   DOCUMENT("Selects a single component out of a texture to save as grayscale, or -1 to save all.");
@@ -451,7 +482,10 @@ It is an :class:`AlphaMapping` that controls what behaviour to use.
 )");
   AlphaMapping alpha = AlphaMapping::Preserve;
 
-  DOCUMENT("The background color if :data:`alpha` is set to :attr:`AlphaMapping.BlendToColor`");
+  DOCUMENT(R"(The background color if :data:`alpha` is set to :attr:`AlphaMapping.BlendToColor`.
+
+:type: FloatVector
+)");
   FloatVector alphaCol;
 
   DOCUMENT("The quality to use when saving to a ``JPG`` file. Valid values are between 1 and 100.");
@@ -558,14 +592,30 @@ struct TargetControlMessage
   DOCUMENT("The :class:`type <TargetControlMessageType>` of message received");
   TargetControlMessageType type = TargetControlMessageType::Unknown;
 
-  DOCUMENT("The :class:`new capture data <NewCaptureData>`.");
+  DOCUMENT(R"(The new capture data.
+
+:type: NewCaptureData
+)");
   NewCaptureData newCapture;
-  DOCUMENT("The :class:`API use data <APIUseData>`.");
+
+  DOCUMENT(R"(The API use data.
+
+:type: APIUseData
+)");
   APIUseData apiUse;
-  DOCUMENT("The :class:`busy signal data <BusyData>`.");
+
+  DOCUMENT(R"(The busy signal data.
+
+:type: BusyData
+)");
   BusyData busy;
-  DOCUMENT("The :class:`new child process data <NewChildData>`.");
+
+  DOCUMENT(R"(The new child process data.
+
+:type: NewChildData
+)");
   NewChildData newChild;
+
   DOCUMENT(R"(The progress of an on-going capture.
 
 When valid, will be in the range of 0.0 to 1.0 (0 - 100%). If not valid when a capture isn't going
@@ -708,7 +758,10 @@ struct GPUDevice
   DOCUMENT("The human-readable name of this GPU.");
   rdcstr name;
 
-  DOCUMENT("The list of APIs that this device supports.");
+  DOCUMENT(R"(The APIs that this device supports.
+
+:type: List[GraphicsAPI]
+)");
   rdcarray<GraphicsAPI> apis;
 };
 

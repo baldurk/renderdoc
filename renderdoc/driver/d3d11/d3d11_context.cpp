@@ -1572,7 +1572,7 @@ void WrappedID3D11DeviceContext::RecordConstantStats(ShaderStage stage, UINT Num
                                                      ID3D11Buffer *const Buffers[])
 {
   FrameStatistics &stats = m_pDevice->GetFrameStats();
-  RDCASSERT(size_t(stage) < ARRAY_COUNT(stats.constants));
+  RDCASSERT(size_t(stage) < stats.constants.size());
   ConstantBindStats &constants = stats.constants[uint32_t(stage)];
   constants.calls += 1;
   RDCASSERT(NumBuffers < constants.bindslots.size());
@@ -1602,7 +1602,7 @@ void WrappedID3D11DeviceContext::RecordResourceStats(ShaderStage stage, UINT Num
                                                      ID3D11ShaderResourceView *const Resources[])
 {
   FrameStatistics &stats = m_pDevice->GetFrameStats();
-  RDCASSERT(size_t(stage) < ARRAY_COUNT(stats.resources));
+  RDCASSERT(size_t(stage) < stats.resources.size());
   ResourceBindStats &resources = stats.resources[(uint32_t)stage];
   resources.calls += 1;
   RDCASSERT(NumResources < resources.bindslots.size());
@@ -1643,7 +1643,7 @@ void WrappedID3D11DeviceContext::RecordSamplerStats(ShaderStage stage, UINT NumS
                                                     ID3D11SamplerState *const Samplers[])
 {
   FrameStatistics &stats = m_pDevice->GetFrameStats();
-  RDCASSERT(size_t(stage) < ARRAY_COUNT(stats.samplers));
+  RDCASSERT(size_t(stage) < stats.samplers.size());
   SamplerBindStats &samplers = stats.samplers[uint32_t(stage)];
   samplers.calls += 1;
   RDCASSERT(NumSamplers < samplers.bindslots.size());
@@ -1729,7 +1729,7 @@ void WrappedID3D11DeviceContext::RecordShaderStats(ShaderStage stage, ID3D11Devi
                                                    ID3D11DeviceChild *Shader)
 {
   FrameStatistics &stats = m_pDevice->GetFrameStats();
-  RDCASSERT(size_t(stage) <= ARRAY_COUNT(stats.shaders));
+  RDCASSERT(size_t(stage) <= stats.shaders.size());
   ShaderChangeStats &shaders = stats.shaders[uint32_t(stage)];
 
   shaders.calls += 1;

@@ -143,7 +143,7 @@ public:
   IDeviceProtocolController *Protocol() const { return m_protocol; }
   DOCUMENT(R"(
 :return: The name to display for this host in the UI, either :meth:`FriendlyName` if it is valid, or
-:meth:`Hostname` if not.
+  :meth:`Hostname` if not.
 :rtype: str
 )");
   rdcstr Name() const

@@ -41,7 +41,8 @@
 //   )"
 // * Use :class:`ClassName` to refer to classes, :data:`ClassName.constant` to refer to constants or
 //   member variables, and :meth:`ClassName.method` to refer to member functions. You can also link
-//   to the external documentation with :ref:`external-ref-name`.
+//   to the external documentation with :ref:`external-ref-name`. Function parameters can be
+//   referenced with :paramref:`parameter`.
 // * For constants like ``None`` or ``True`` use the python term (i.e. ``None`` not ``NULL``) and
 //   surround with double backticks ``.
 // * Likewise use python types to refer to basic types - ``str``, ``int``, ``float``, etc.
@@ -49,6 +50,10 @@
 //   document the values. See the examples in replay_enums.h for the syntax
 // * Take care not to go too far over 100 columns, if you're using raw C++11 string literals then
 //   clang-format won't reformat them into the column limit.
+// * Type annotations should follow python typing rules - e.g. List[int] for rdcarray<uint32_t>.
+//   All parameters and return types should be fully documented, and any 'complex' struct members
+//   i.e. lists, tuples, and other structs, should be given an explicit type in their docstring with
+//   :type:.
 //
 #ifndef DOCUMENT
 #define DOCUMENT(text)

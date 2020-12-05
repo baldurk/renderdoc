@@ -1257,7 +1257,6 @@ bool WrappedID3D11Device::Serialise_CaptureScope(SerialiserType &ser)
     GetReplay()->WriteFrameRecord().frameInfo.frameNumber = frameNumber;
 
     FrameStatistics &stats = GetReplay()->WriteFrameRecord().frameInfo.stats;
-    RDCEraseEl(stats);
 
     // #mivance GL/Vulkan don't set this so don't get stats in window
     stats.recorded = true;

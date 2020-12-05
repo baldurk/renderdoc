@@ -130,9 +130,16 @@ since single descriptors may only be dynamically skipped by control flow.
 )");
   bool dynamicallyUsed = true;
 
-  DOCUMENT("The :class:`ResourceFormat` that the view uses.");
+  DOCUMENT(R"(The format cast that the view uses.
+
+:type: ResourceFormat
+)");
   ResourceFormat viewFormat;
-  DOCUMENT("A :class:`TextureSwizzle4` indicating the swizzle applied to this texture.");
+
+  DOCUMENT(R"(The swizzle applied to a texture by the view.
+
+:type: TextureSwizzle4
+)");
   TextureSwizzle4 swizzle;
 
   DOCUMENT("For textures - the first mip level used in the view.");
@@ -150,7 +157,10 @@ since single descriptors may only be dynamically skipped by control flow.
   DOCUMENT("For buffers - how many bytes are in this buffer view.");
   uint64_t byteSize = 0;
 
-  DOCUMENT("For samplers - the :class:`TextureFilter` describing the filtering mode.");
+  DOCUMENT(R"(The filtering mode.
+
+:type: TextureFilter
+)");
   TextureFilter filter;
   DOCUMENT("For samplers - the :class:`AddressMode` in the U direction.");
   AddressMode addressU = AddressMode::Wrap;
@@ -185,8 +195,9 @@ this sampler.
   YcbcrConversion ycbcrModel;
   DOCUMENT("For ycbcr samplers - the :class:`YcbcrRange` used for conversion.");
   YcbcrRange ycbcrRange;
-  DOCUMENT(R"(For ycbcr samplers - A :class:`TextureSwizzle4` indicating the swizzle applied before
-conversion.
+  DOCUMENT(R"(For ycbcr samplers - The swizzle applied before conversion.
+
+:type: TextureSwizzle4
 )");
   TextureSwizzle4 ycbcrSwizzle;
   DOCUMENT("For ycbcr samplers - the :class:`ChromaSampleLocation` X-axis chroma offset.");
@@ -268,8 +279,10 @@ For more information see :data:`VKBindingElement.dynamicallyUsed`.
   DOCUMENT("The :class:`ShaderStageMask` where this binding is visible.");
   ShaderStageMask stageFlags = ShaderStageMask::Unknown;
 
-  DOCUMENT(R"(A list of :class:`VKBindingElement` with the binding elements.
-If :data:`descriptorCount` is 1 then this isn't an array, and this list has only one element.
+  DOCUMENT(R"(The binding elements.
+If :data:`descriptorCount` is 1 then this list has only one element and the binding is not arrayed.
+
+:type: List[VKBindingElement]
 )");
   rdcarray<BindingElement> binds;
 };
@@ -307,8 +320,10 @@ struct DescriptorSet
   DOCUMENT("Indicates if this is a virtual 'push' descriptor set.");
   bool pushDescriptor = false;
 
-  DOCUMENT(R"(A list of :class:`VKDescriptorBinding` with the bindings within this set.
+  DOCUMENT(R"(The bindings within this set.
 This list is indexed by the binding, so it may be sparse (some entries do not contain any elements).
+
+:type: List[VKDescriptorBinding]
 )");
   rdcarray<DescriptorBinding> bindings;
 };
@@ -328,7 +343,10 @@ struct Pipeline
   DOCUMENT("The flags used to create the pipeline object.");
   uint32_t flags = 0;
 
-  DOCUMENT("A list of :class:`VKDescriptorSet` with the bound descriptor sets.");
+  DOCUMENT(R"(The bound descriptor sets.
+
+:type: List[VKDescriptorSet]
+)");
   rdcarray<DescriptorSet> descriptorSets;
 };
 
@@ -358,7 +376,10 @@ struct InputAssembly
   DOCUMENT("``True`` if primitive restart is enabled for strip primitives.");
   bool primitiveRestartEnable = false;
 
-  DOCUMENT("The :class:`VKIndexBuffer` with the index buffer binding.");
+  DOCUMENT(R"(The index buffer binding.
+
+:type: VKIndexBuffer
+)");
   IndexBuffer indexBuffer;
 };
 
@@ -391,7 +412,10 @@ struct VertexAttribute
   uint32_t location = 0;
   DOCUMENT("The vertex binding where data will be sourced from.");
   uint32_t binding = 0;
-  DOCUMENT("The :class:`ResourceFormat` describing how each input element will be interpreted.");
+  DOCUMENT(R"(The format describing how the input element is interpreted.
+
+:type: ResourceFormat
+)");
   ResourceFormat format;
   DOCUMENT(
       "The byte offset from the start of each vertex data in the :data:`binding` to this "
@@ -479,11 +503,20 @@ struct VertexInput
   VertexInput(const VertexInput &) = default;
   VertexInput &operator=(const VertexInput &) = default;
 
-  DOCUMENT("A list of :class:`VKVertexAttribute` with the vertex attributes.");
+  DOCUMENT(R"(The vertex attributes.
+
+:type: List[VKVertexAttribute]
+)");
   rdcarray<VertexAttribute> attributes;
-  DOCUMENT("A list of :class:`VKVertexBinding` with the vertex bindings.");
+  DOCUMENT(R"(The vertex bindings.
+
+:type: List[VKVertexBinding]
+)");
   rdcarray<VertexBinding> bindings;
-  DOCUMENT("A list of :class:`VKVertexBuffer` with the vertex buffers.");
+  DOCUMENT(R"(The vertex buffers.
+
+:type: List[VKVertexBuffer]
+)");
   rdcarray<VertexBuffer> vertexBuffers;
 };
 
@@ -526,18 +559,24 @@ struct Shader
   DOCUMENT("The name of the entry point in the shader module that is used.");
   rdcstr entryPoint;
 
-  DOCUMENT("A :class:`ShaderReflection` describing the reflection data for this shader.");
+  DOCUMENT(R"(The reflection data for this shader.
+
+:type: ShaderReflection
+)");
   ShaderReflection *reflection = NULL;
-  DOCUMENT(R"(A :class:`ShaderBindpointMapping` to match :data:`reflection` with the bindpoint
-mapping data.
+  DOCUMENT(R"(The bindpoint mapping data to match :data:`reflection`.
+
+:type: ShaderBindpointMapping
 )");
   ShaderBindpointMapping bindpointMapping;
 
   DOCUMENT("A :class:`ShaderStage` identifying which stage this shader is bound to.");
   ShaderStage stage = ShaderStage::Vertex;
 
-  DOCUMENT(
-      "A list of :class:`VKSpecializationConstant` with the provided specialization constants.");
+  DOCUMENT(R"(The provided specialization constants.
+
+:type: List[VKSpecializationConstant]
+)");
   rdcarray<SpecializationConstant> specialization;
 };
 
@@ -615,7 +654,10 @@ struct TransformFeedback
   TransformFeedback(const TransformFeedback &) = default;
   TransformFeedback &operator=(const TransformFeedback &) = default;
 
-  DOCUMENT("The bound transform feedback buffers.");
+  DOCUMENT(R"(The bound transform feedback buffers.
+
+:type: List[VKXFBBuffer]
+)");
   rdcarray<XFBBuffer> buffers;
 };
 
@@ -670,9 +712,15 @@ struct ViewportScissor
       return scissor < o.scissor;
     return false;
   }
-  DOCUMENT("The :class:`Viewport`.");
+  DOCUMENT(R"(The viewport.
+
+:type: Viewport
+)");
   Viewport vp;
-  DOCUMENT("The :class:`Scissor`.");
+  DOCUMENT(R"(The scissor.
+
+:type: Scissor
+)");
   Scissor scissor;
 };
 
@@ -684,10 +732,16 @@ struct ViewState
   ViewState(const ViewState &) = default;
   ViewState &operator=(const ViewState &) = default;
 
-  DOCUMENT("A list of :class:`VKViewportScissor`.");
+  DOCUMENT(R"(The bound viewports and scissors.
+
+:type: List[VKViewportScissor]
+)");
   rdcarray<ViewportScissor> viewportScissors;
 
-  DOCUMENT("A list of :class:`VKRenderArea` defining discard rectangles.");
+  DOCUMENT(R"(The discard rectangles, if enabled.
+
+:type: List[VKRenderArea]
+)");
   rdcarray<RenderArea> discardRectangles;
 
   DOCUMENT(R"(``True`` if a fragment in any one of the discard rectangles fails the discard test,
@@ -774,10 +828,11 @@ struct SampleLocations
   uint32_t gridWidth = 1;
   DOCUMENT("The height in pixels of the region configured.");
   uint32_t gridHeight = 1;
-  DOCUMENT(R"(A list of :class:`FloatVector` giving the custom sample locations. Only x and y are
-valid, z and w are set to 0.0.
+  DOCUMENT(R"(The custom sample locations. Only x and y are valid, z and w are set to 0.0.
 
 If the list is empty then the standard sample pattern is in use.
+
+:type: List[FloatVector]
 )");
   rdcarray<FloatVector> customLocations;
 };
@@ -798,7 +853,10 @@ struct MultiSample
   float minSampleShading = 0.0f;
   DOCUMENT("A mask that generated samples should be masked with using bitwise ``AND``.");
   uint32_t sampleMask = 0;
-  DOCUMENT("The :class:`VKSampleLocations` with any custom sample locations that are configured.");
+  DOCUMENT(R"(The custom sample locations configuration.
+
+:type: VKSampleLocations
+)");
   SampleLocations sampleLocations;
 };
 
@@ -815,7 +873,10 @@ struct ColorBlendState
   DOCUMENT("``True`` if alpha-to-one should be used when blending to an MSAA target.");
   bool alphaToOneEnable = false;
 
-  DOCUMENT("The list of :class:`ColorBlend` with the blending configuration per-attachment.");
+  DOCUMENT(R"(The blend operations for each target.
+
+:type: List[ColorBlend]
+)");
   rdcarray<ColorBlend> blends;
 
   DOCUMENT("The constant blend factor to use in blend equations.");
@@ -842,9 +903,16 @@ struct DepthStencil
   DOCUMENT("``True`` if stencil operations should be performed.");
   bool stencilTestEnable = false;
 
-  DOCUMENT("A :class:`StencilFace` describing what happens for front-facing polygons.");
+  DOCUMENT(R"(The stencil state for front-facing polygons.
+
+:type: StencilFace
+)");
   StencilFace frontFace;
-  DOCUMENT("A :class:`StencilFace` describing what happens for back-facing polygons.");
+
+  DOCUMENT(R"(The stencil state for back-facing polygons.
+
+:type: StencilFace
+)");
   StencilFace backFace;
 
   DOCUMENT("The near plane bounding value.");
@@ -869,11 +937,23 @@ struct RenderPass
 
   // VKTODOMED renderpass and subpass information here
 
-  DOCUMENT("A list of indices into the framebuffer attachments for input attachments.");
+  DOCUMENT(R"(The input attachments for the current subpass, as indices into the framebuffer
+attachments.
+
+:type: List[int]
+)");
   rdcarray<uint32_t> inputAttachments;
-  DOCUMENT("A list of indices into the framebuffer attachments for color attachments.");
+  DOCUMENT(R"(The color attachments for the current subpass, as indices into the framebuffer
+attachments.
+
+:type: List[int]
+)");
   rdcarray<uint32_t> colorAttachments;
-  DOCUMENT("A list of indices into the framebuffer attachments for resolve attachments.");
+  DOCUMENT(R"(The resolve attachments for the current subpass, as indices into the framebuffer
+attachments.
+
+:type: List[int]
+)");
   rdcarray<uint32_t> resolveAttachments;
   DOCUMENT(R"(An index into the framebuffer attachments for the depth-stencil attachment.
 
@@ -891,6 +971,8 @@ If there is no fragment density attachment, this index is ``-1``.
 rendering.
 
 If the list is empty, multiview is disabled and rendering is as normal.
+
+:type: List[int]
 )");
   rdcarray<uint32_t> multiviews;
 };
@@ -934,9 +1016,15 @@ struct Attachment
   DOCUMENT("The :class:`ResourceId` of the underlying image that the view refers to.");
   ResourceId imageResourceId;
 
-  DOCUMENT("The :class:`ResourceFormat` that the view uses.");
+  DOCUMENT(R"(The format cast that the view uses.
+
+:type: ResourceFormat
+)");
   ResourceFormat viewFormat;
-  DOCUMENT("A :class:`TextureSwizzle4` indicating the swizzle applied to this texture.");
+  DOCUMENT(R"(The swizzle applied to the texture by the view.
+
+:type: TextureSwizzle4
+)");
   TextureSwizzle4 swizzle;
   DOCUMENT("The first mip level used in the attachment.");
   uint32_t firstMip = 0;
@@ -959,7 +1047,10 @@ struct Framebuffer
   DOCUMENT("The :class:`ResourceId` of the framebuffer object.");
   ResourceId resourceId;
 
-  DOCUMENT("A list of :class:`VKAttachment` with the attachments of this framebuffer.");
+  DOCUMENT(R"(The attachments of this framebuffer.
+
+:type: List[VKAttachment]
+)");
   rdcarray<Attachment> attachments;
 
   DOCUMENT("The width of this framebuffer in pixels.");
@@ -978,11 +1069,20 @@ struct CurrentPass
   CurrentPass(const CurrentPass &) = default;
   CurrentPass &operator=(const CurrentPass &) = default;
 
-  DOCUMENT("The :class:`VKRenderPass` that is currently active.");
+  DOCUMENT(R"(The renderpass and subpass that is currently active.
+
+:type: VKRenderPass
+)");
   RenderPass renderpass;
-  DOCUMENT("The :class:`VKFramebuffer` that is currently being used.");
+  DOCUMENT(R"(The framebuffer that is currently being used.
+
+:type: VKFramebuffer
+)");
   Framebuffer framebuffer;
-  DOCUMENT("The :class:`VKRenderArea` that is currently being rendered to.");
+  DOCUMENT(R"(The render area that is currently being rendered to.
+
+:type: VKRenderArea
+)");
   RenderArea renderArea;
 };
 
@@ -1043,7 +1143,10 @@ struct ImageData
   DOCUMENT("The :class:`ResourceId` of the image.");
   ResourceId resourceId;
 
-  DOCUMENT("A list of :class:`VKImageLayout` with the set of subresources that make up the image.");
+  DOCUMENT(R"(The subresource regions in this resource.
+
+:type: List[VKImageLayout]
+)");
   rdcarray<ImageLayout> layouts;
 };
 
@@ -1078,57 +1181,120 @@ struct State
   State(const State &) = delete;
 #endif
 
-  DOCUMENT("A :class:`VKPipeline` with the currently bound compute pipeline, if any.");
+  DOCUMENT(R"(The currently bound compute pipeline, if any.
+
+:type: VKPipeline
+)");
   Pipeline compute;
-  DOCUMENT("A :class:`VKPipeline` with the currently bound graphics pipeline, if any.");
+  DOCUMENT(R"(The currently bound graphics pipeline, if any.
+
+:type: VKPipeline
+)");
   Pipeline graphics;
 
-  DOCUMENT("A ``bytes`` containing the raw push constant data.");
+  DOCUMENT(R"(The raw push constant data.
+
+:type: bytes
+)");
   bytebuf pushconsts;
 
-  DOCUMENT("A :class:`VKInputAssembly` describing the input assembly stage.");
+  DOCUMENT(R"(The input assembly stage.
+
+:type: VKInputAssembly
+)");
   InputAssembly inputAssembly;
-  DOCUMENT("A :class:`VKVertexInput` describing the vertex input stage.");
+  DOCUMENT(R"(The vertex input stage.
+
+:type: VKVertexInput
+)");
   VertexInput vertexInput;
 
-  DOCUMENT("A :class:`VKShader` describing the vertex shader stage.");
+  DOCUMENT(R"(The vertex shader stage.
+
+:type: VKShader
+)");
   Shader vertexShader;
-  DOCUMENT("A :class:`VKShader` describing the tessellation control shader stage.");
+  DOCUMENT(R"(The tessellation control shader stage.
+
+:type: VKShader
+)");
   Shader tessControlShader;
-  DOCUMENT("A :class:`VKShader` describing the tessellation evaluation shader stage.");
+  DOCUMENT(R"(The tessellation evaluation shader stage.
+
+:type: VKShader
+)");
   Shader tessEvalShader;
-  DOCUMENT("A :class:`VKShader` describing the geometry shader stage.");
+  DOCUMENT(R"(The geometry shader stage.
+
+:type: VKShader
+)");
   Shader geometryShader;
-  DOCUMENT("A :class:`VKShader` describing the fragment shader stage.");
+  DOCUMENT(R"(The fragment shader stage.
+
+:type: VKShader
+)");
   Shader fragmentShader;
-  DOCUMENT("A :class:`VKShader` describing the compute shader stage.");
+  DOCUMENT(R"(The compute shader stage.
+
+:type: VKShader
+)");
   Shader computeShader;
 
-  DOCUMENT("A :class:`VKTessellation` describing the tessellation stage.");
+  DOCUMENT(R"(The tessellation stage.
+
+:type: VKTessellation
+)");
   Tessellation tessellation;
 
-  DOCUMENT("A :class:`VKTransformFeedback` describing the tessellation stage.");
+  DOCUMENT(R"(The transform feedback stage.
+
+:type: VKTransformFeedback
+)");
   TransformFeedback transformFeedback;
 
-  DOCUMENT("A :class:`VKViewState` describing the viewport setup.");
+  DOCUMENT(R"(The viewport setup.
+
+:type: VKViewState
+)");
   ViewState viewportScissor;
-  DOCUMENT("A :class:`VKRasterizer` describing rasterization.");
+  DOCUMENT(R"(The rasterization configuration.
+
+:type: VKRasterizer
+)");
   Rasterizer rasterizer;
 
-  DOCUMENT("A :class:`VKMultiSample` describing the multisample setup.");
+  DOCUMENT(R"(The multisampling configuration.
+
+:type: VKMultiSample
+)");
   MultiSample multisample;
-  DOCUMENT("A :class:`VKColorBlendState` describing color blending.");
+  DOCUMENT(R"(The color blending configuration.
+
+:type: VKColorBlendState
+)");
   ColorBlendState colorBlend;
-  DOCUMENT("A :class:`VKDepthStencil` describing the depth-stencil stage.");
+  DOCUMENT(R"(The depth-stencil state.
+
+:type: VKDepthStencil
+)");
   DepthStencil depthStencil;
 
-  DOCUMENT("A :class:`VKCurrentPass` describing the current renderpass, subpass and framebuffer.");
+  DOCUMENT(R"(The current renderpass, subpass and framebuffer.
+
+:type: VKCurrentPass
+)");
   CurrentPass currentPass;
 
-  DOCUMENT("A list of :class:`VKImageData` entries, one for each image.");
+  DOCUMENT(R"(The resource states for the currently live resources.
+
+:type: List[VKImageData]
+)");
   rdcarray<ImageData> images;
 
-  DOCUMENT("A :class:`ConditionalRendering` describing the current conditional rendering state.");
+  DOCUMENT(R"(The current conditional rendering state.
+
+:type: VKConditionalRendering
+)");
   ConditionalRendering conditionalRendering;
 };
 

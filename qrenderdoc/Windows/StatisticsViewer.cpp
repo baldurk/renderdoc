@@ -176,7 +176,7 @@ void StatisticsViewer::AppendShaderStatistics()
 {
   const FrameDescription &frameInfo = m_Ctx.FrameInfo();
 
-  const ShaderChangeStats *shaders = frameInfo.stats.shaders;
+  const rdcarray<ShaderChangeStats> &shaders = frameInfo.stats.shaders;
   ShaderChangeStats totalShadersPerStage;
   memset(&totalShadersPerStage, 0, sizeof(totalShadersPerStage));
   for(auto s : indices<ShaderStage>())
@@ -230,7 +230,7 @@ void StatisticsViewer::AppendConstantBindStatistics()
   }
 
   {
-    const ConstantBindStats *constants = frameInfo.stats.constants;
+    const rdcarray<ConstantBindStats> &constants = frameInfo.stats.constants;
     for(auto s : indices<ShaderStage>())
     {
       totalConstantsPerStage[s].calls += constants[s].calls;
@@ -321,7 +321,7 @@ void StatisticsViewer::AppendSamplerBindStatistics()
   }
 
   {
-    const SamplerBindStats *samplers = frameInfo.stats.samplers;
+    const rdcarray<SamplerBindStats> &samplers = frameInfo.stats.samplers;
     for(auto s : indices<ShaderStage>())
     {
       totalSamplersPerStage[s].calls += samplers[s].calls;
@@ -388,7 +388,7 @@ void StatisticsViewer::AppendResourceBindStatistics()
   }
 
   {
-    const ResourceBindStats *resources = frameInfo.stats.resources;
+    const rdcarray<ResourceBindStats> &resources = frameInfo.stats.resources;
     for(auto s : indices<ShaderStage>())
     {
       totalResourcesPerStage[s].calls += resources[s].calls;

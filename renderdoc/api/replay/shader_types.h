@@ -184,42 +184,57 @@ DECLARE_REFLECTION_STRUCT(BindpointIndex);
 DOCUMENT("A C union that holds 16 values, with each different basic variable type.");
 union ShaderValue
 {
-  DOCUMENT("A convenient subset of :data:`fv` as a named 4 component vector.");
+  DOCUMENT(R"(A convenient subset of :data:`fv` as a named 4 component vector.
+
+:type: FloatVecVal
+)");
   FloatVecVal f;
-  DOCUMENT("``float`` values.");
+
+  DOCUMENT("16-tuple of ``float`` values.");
   float fv[16];
 
-  DOCUMENT("A convenient subset of :data:`iv` as a named 4 component vector.");
+  DOCUMENT(R"(A convenient subset of :data:`iv` as a named 4 component vector.
+
+:type: IntVecVal
+)");
   IntVecVal i;
-  DOCUMENT("Signed integer values.");
+
+  DOCUMENT("16-tuple of 32-bit signed integer values.");
   int32_t iv[16];
 
-  DOCUMENT("A convenient subset of :data:`uv` as a named 4 component vector.");
+  DOCUMENT(R"(A convenient subset of :data:`uv` as a named 4 component vector.
+
+:type: UIntVecVal
+)");
   UIntVecVal u;
-  DOCUMENT("Unsigned integer values.");
+
+  DOCUMENT("16-tuple of 32-bit unsigned integer values.");
   uint32_t uv[16];
 
-  DOCUMENT("A convenient subset of :data:`dv` as a named 4 component vector.");
+  DOCUMENT(R"(A convenient subset of :data:`dv` as a named 4 component vector.
+
+:type: DoubleVecVal
+)");
   DoubleVecVal d;
-  DOCUMENT("``double`` values.");
+  DOCUMENT("16-tuple of ``double`` values.");
   double dv[16];
 
-  DOCUMENT("64-bit unsigned integer values.");
+  DOCUMENT("16-tuple of 64-bit unsigned integer values.");
   uint64_t u64v[16];
 
-  DOCUMENT("64-bit signed integer values.");
+  DOCUMENT("16-tuple of 64-bit signed integer values.");
   int64_t s64v[16];
 
-  DOCUMENT("16-bit unsigned integer values.");
+  DOCUMENT("16-tuple of 16-bit unsigned integer values.");
   uint16_t u16v[16];
 
-  DOCUMENT("16-bit signed integer values.");
+  DOCUMENT("16-tuple of 16-bit signed integer values.");
   int16_t s16v[16];
 
-  DOCUMENT("8-bit unsigned integer values.");
+  DOCUMENT("16-tuple of 8-bit unsigned integer values.");
   uint8_t u8v[16];
 
-  DOCUMENT("8-bit signed integer values.");
+  DOCUMENT("16-tuple of 8-bit signed integer values.");
   int8_t s8v[16];
 };
 
@@ -331,10 +346,16 @@ struct ShaderVariable
   DOCUMENT("The :class:`basic type <VarType>` of this variable.");
   VarType type;
 
-  DOCUMENT("The :class:`contents <ShaderValue>` of this variable if it has no members.");
+  DOCUMENT(R"(The contents of this variable if it has no members.
+
+:type: ShaderValue
+)");
   ShaderValue value;
 
-  DOCUMENT("The members of this variable as a list of :class:`ShaderVariable`.");
+  DOCUMENT(R"(The members of this variable.
+
+:type: List[ShaderVariable]
+)");
   rdcarray<ShaderVariable> members;
 
   DOCUMENT(R"(Utility function for setting a pointer value with no type information.
@@ -524,6 +545,8 @@ This will be set to -1 if the variable is not part of either signature.
 ranges could refer to the same variable if a contiguous range is mapped to - the mapping is
 component-by-component to greatly simplify algorithms at the expense of a small amount of storage
 space.
+
+:type: List[DebugVariableReference]
 )");
   rdcarray<DebugVariableReference> variables;
 };
@@ -624,11 +647,15 @@ struct ShaderVariableChange
 
   DOCUMENT(R"(The value of the variable before the change. If this variable is uninitialised that
 means the variable came into existance on this step.
+
+:type: ShaderVariable
 )");
   ShaderVariable before;
 
   DOCUMENT(R"(The value of the variable after the change. If this variable is uninitialised that
 means the variable stopped existing on this step.
+
+:type: ShaderVariable
 )");
   ShaderVariable after;
 };
@@ -677,18 +704,22 @@ will increment linearly after that regardless of loops or branching.
   DOCUMENT("A set of :class:`ShaderEvents` flags that indicate what events happened on this step.");
   ShaderEvents flags = ShaderEvents::NoEvent;
 
-  DOCUMENT(R"(The changes in mutable variables for this shader as a list of
-:class:`ShaderVariableChange`. The change documents the bidirectional change of variables, so that
-a single state can be updated either forwards or backwards using the information.
+  DOCUMENT(R"(The changes in mutable variables for this shader. The change documents the
+bidirectional change of variables, so that a single state can be updated either forwards or
+backwards using the information.
+
+:type: List[ShaderVariableChange]
 )");
   rdcarray<ShaderVariableChange> changes;
 
-  DOCUMENT(R"(An optional list of :class:`SourceVariableMapping` indicating which high-level source
-variables map to which debug variables and including extra type information.
+  DOCUMENT(R"(An optional mapping of which high-level source variables map to which debug variables
+and including extra type information.
 
 This list contains source variable mapping that is only valid at this state - it is not valid at any
 other state where the lifetime of the source variable may have run out, or it may now be stored in
 a different debug variable.
+
+:type: List[SourceVariableMapping]
 )");
   rdcarray<SourceVariableMapping> sourceVars;
 
@@ -732,55 +763,70 @@ struct ShaderDebugTrace
   DOCUMENT("The shader stage being debugged in this trace");
   ShaderStage stage;
 
-  DOCUMENT("The input variables for this shader as a list of :class:`ShaderVariable`.");
+  DOCUMENT(R"(The input variables for this shader.
+
+:type: List[ShaderVariable]
+)");
   rdcarray<ShaderVariable> inputs;
 
-  DOCUMENT(R"(Constant buffer backed variables for this shader as a list of :class:`ShaderVariable`.
+  DOCUMENT(R"(Constant buffer backed variables for this shader.
 
 Each entry in this list corresponds to a constant block with the same index in the
 :data:`ShaderBindpointMapping.constantBlocks` list, which can be used to look up the metadata.
 
 Depending on the underlying shader representation, the constant block may retain any structure or
 it may have been vectorised and flattened.
+
+:type: List[ShaderVariable]
 )");
   rdcarray<ShaderVariable> constantBlocks;
 
-  DOCUMENT(R"(The read-only resource variables for this shader as a list of :class:`ShaderVariable`.
+  DOCUMENT(R"(The read-only resource variables for this shader.
 
 The 'value' of the variable is always a single unsigned integer, which is the bindpoint - an index
 into the :data:`ShaderBindpointMapping.readOnlyResources` list, which can be used to look up the
 other metadata as well as find the binding from the pipeline state.
+
+:type: List[ShaderVariable]
 )");
   rdcarray<ShaderVariable> readOnlyResources;
 
-  DOCUMENT(R"(The read-write resource variables for this shader as a list of :class:`ShaderVariable`.
+  DOCUMENT(R"(The read-write resource variables for this shader.
 
 The 'value' of the variable is always a single unsigned integer, which is the bindpoint - an index
 into the :data:`ShaderBindpointMapping.readWriteResources` list, which can be used to look up the
 other metadata as well as find the binding from the pipeline state.
+
+:type: List[ShaderVariable]
 )");
   rdcarray<ShaderVariable> readWriteResources;
 
-  DOCUMENT(R"(The sampler variables for this shader as a list of :class:`ShaderVariable`.
+  DOCUMENT(R"(The sampler variables for this shader.
 
 The 'value' of the variable is always a single unsigned integer, which is the bindpoint - an index
 into the :data:`ShaderBindpointMapping.samplers` list, which can be used to look up the
 other metadata as well as find the binding from the pipeline state.
+
+:type: List[ShaderVariable]
 )");
   rdcarray<ShaderVariable> samplers;
 
-  DOCUMENT(R"(An optional list of :class:`SourceVariableMapping` indicating which high-level source
-variables map to which debug variables and includes extra type information.
+  DOCUMENT(R"(An optional mapping from high-level source variables to which debug variables and
+includes extra type information.
 
 This list contains source variable mapping that is valid for the lifetime of a debug trace. It may
 be empty if there is no source variable mapping that extends to the life of the debug trace.
+
+:type: List[SourceVariableMapping]
 )");
   rdcarray<SourceVariableMapping> sourceVars;
 
-  DOCUMENT(R"(An opaque handle of :class:`ShaderDebugger` identifying by the undelying debugger,
-which is used to simulate the shader and generate new debug states.
+  DOCUMENT(R"(An opaque handle identifying by the underlying debugger, which is used to simulate the
+shader and generate new debug states.
 
 If this is ``None`` then the trace is invalid.
+
+:type: ShaderDebugger
 )");
   ShaderDebugger *debugger = NULL;
 
@@ -975,10 +1021,16 @@ struct ShaderVariableType
       return members < o.members;
     return false;
   }
-  DOCUMENT("The :class:`ShaderVariableDescriptor` that describes the current constant.");
+  DOCUMENT(R"(The description of this constant.
+
+:type: ShaderVariableDescriptor
+)");
   ShaderVariableDescriptor descriptor;
 
-  DOCUMENT("A list of :class:`ShaderConstant` with any members that this constant may contain.");
+  DOCUMENT(R"(Any members that this constant may contain.
+
+:type: List[ShaderConstant]
+)");
   rdcarray<ShaderConstant> members;
 };
 
@@ -1015,8 +1067,10 @@ struct ShaderConstant
   uint32_t byteOffset = 0;
   DOCUMENT("If this constant is no larger than a 64-bit constant, gives a default value for it.");
   uint64_t defaultValue = 0;
-  DOCUMENT(
-      "A :class:`ShaderVariableType` giving details of the type information for this constant.");
+  DOCUMENT(R"(The type information for this constant.
+
+:type: ShaderVariableType
+)");
   ShaderVariableType type;
 };
 
@@ -1054,7 +1108,10 @@ struct ConstantBlock
   }
   DOCUMENT("The name of this constant block, may be empty on some APIs.");
   rdcstr name;
-  DOCUMENT("The constants contained within this block as a list of :class:`ShaderConstant`.");
+  DOCUMENT(R"(The constants contained within this block.
+
+:type: List[ShaderConstant]
+)");
   rdcarray<ShaderConstant> variables;
   DOCUMENT(R"(The bindpoint for this block. This is an index in the
 :data:`ShaderBindpointMapping.constantBlocks` list.
@@ -1147,7 +1204,10 @@ struct ShaderResource
   DOCUMENT("The name of this resource.");
   rdcstr name;
 
-  DOCUMENT("A :class:`ShaderVariableType` describing type of each element of this resource.");
+  DOCUMENT(R"(The type of each element of this resource.
+
+:type: ShaderVariableType
+)");
   ShaderVariableType variableType;
 
   DOCUMENT(R"(The bindpoint for this block. This is an index in either the
@@ -1226,9 +1286,9 @@ struct ShaderCompileFlags
   ShaderCompileFlags(const ShaderCompileFlags &) = default;
   ShaderCompileFlags &operator=(const ShaderCompileFlags &) = default;
 
-  DOCUMENT(R"(A list of :class:`ShaderCompileFlag`.
+  DOCUMENT(R"(The API or compiler specific flags used to compile this shader originally.
 
-Each entry is an API or compiler specific flag used to compile this shader originally.
+:type: List[ShaderCompileFlag]
 )");
   rdcarray<ShaderCompileFlag> flags;
 };
@@ -1275,12 +1335,17 @@ struct ShaderDebugInfo
   ShaderDebugInfo(const ShaderDebugInfo &) = default;
   ShaderDebugInfo &operator=(const ShaderDebugInfo &) = default;
 
-  DOCUMENT("A :class:`ShaderCompileFlags` containing the flags used to compile this shader.");
+  DOCUMENT(R"(The flags used to compile this shader.
+
+:type: ShaderCompileFlags
+)");
   ShaderCompileFlags compileFlags;
 
-  DOCUMENT(R"(A list of :class:`ShaderSourceFile`, encoded in the form denoted by :data:`encoding`.
+  DOCUMENT(R"(The shader files encoded in the form denoted by :data:`encoding`.
 
 The first entry in the list is always the file where the entry point is.
+
+:type: List[ShaderSourceFile]
 )");
   rdcarray<ShaderSourceFile> files;
 
@@ -1324,8 +1389,10 @@ struct ShaderReflection
       "The :class:`ShaderStage` that this shader corresponds to, if multiple entry points exist.");
   ShaderStage stage;
 
-  DOCUMENT(
-      "A :class:`ShaderDebugInfo` containing any embedded debugging information in this shader.");
+  DOCUMENT(R"(The embedded debugging information.
+
+:type: ShaderDebugInfo
+)");
   ShaderDebugInfo debugInfo;
 
   DOCUMENT("The :class:`ShaderEncoding` of this shader. See :data:`rawBytes`.");
@@ -1339,27 +1406,53 @@ struct ShaderReflection
   DOCUMENT("The 3D dimensions of a compute workgroup, for compute shaders.");
   uint32_t dispatchThreadsDimension[3];
 
-  DOCUMENT("A list of :class:`SigParameter` with the shader's input signature.");
+  DOCUMENT(R"(The input signature.
+
+:type: List[SigParameter]
+)");
   rdcarray<SigParameter> inputSignature;
-  DOCUMENT("A list of :class:`SigParameter` with the shader's output signature.");
+
+  DOCUMENT(R"(The output signature.
+
+:type: List[SigParameter]
+)");
   rdcarray<SigParameter> outputSignature;
 
-  DOCUMENT("A list of :class:`ConstantBlock` with the shader's constant bindings.");
+  DOCUMENT(R"(The constant block bindings.
+
+:type: List[ConstantBlock]
+)");
   rdcarray<ConstantBlock> constantBlocks;
 
-  DOCUMENT("A list of :class:`ShaderSampler` with the shader's samplers.");
+  DOCUMENT(R"(The sampler bindings.
+
+:type: List[ShaderSampler]
+)");
   rdcarray<ShaderSampler> samplers;
 
-  DOCUMENT("A list of :class:`ShaderResource` with the shader's read-only resources.");
+  DOCUMENT(R"(The read-only resource bindings.
+
+:type: List[ShaderResource]
+)");
   rdcarray<ShaderResource> readOnlyResources;
-  DOCUMENT("A list of :class:`ShaderResource` with the shader's read-write resources.");
+
+  DOCUMENT(R"(The read-write resource bindings.
+
+:type: List[ShaderResource]
+)");
   rdcarray<ShaderResource> readWriteResources;
 
   // TODO expand this to encompass shader subroutines.
-  DOCUMENT("A list of strings with the shader's interfaces. Largely an unused API feature.");
+  DOCUMENT(R"(The list of strings with the shader's interfaces. Largely an unused API feature.
+
+:type: List[str]
+)");
   rdcarray<rdcstr> interfaces;
 
-  DOCUMENT("A list of :class:`ShaderVariableType` with the shader's pointer types.");
+  DOCUMENT(R"(The list of pointer types referred to in this shader.
+
+:type: List[ShaderVariableType]
+)");
   rdcarray<ShaderVariableType> pointerTypes;
 };
 
@@ -1466,26 +1559,36 @@ struct ShaderBindpointMapping
 
   DOCUMENT(R"(This maps input attributes as a simple swizzle on the
 :data:`ShaderReflection.inputSignature` indices for APIs where this mapping is mutable at runtime.
+
+:type: List[int]
 )");
-  rdcarray<int> inputAttributes;
+  rdcarray<int32_t> inputAttributes;
 
   DOCUMENT(R"(Provides a list of :class:`Bindpoint` entries for remapping the
 :data:`ShaderReflection.constantBlocks` list.
+
+:type: List[Bindpoint]
 )");
   rdcarray<Bindpoint> constantBlocks;
 
   DOCUMENT(R"(Provides a list of :class:`Bindpoint` entries for remapping the
 :data:`ShaderReflection.samplers` list.
+
+:type: List[Bindpoint]
 )");
   rdcarray<Bindpoint> samplers;
 
   DOCUMENT(R"(Provides a list of :class:`Bindpoint` entries for remapping the
 :data:`ShaderReflection.readOnlyResources` list.
+
+:type: List[Bindpoint]
 )");
   rdcarray<Bindpoint> readOnlyResources;
 
   DOCUMENT(R"(Provides a list of :class:`Bindpoint` entries for remapping the
 :data:`ShaderReflection.readWriteResources` list.
+
+:type: List[Bindpoint]
 )");
   rdcarray<Bindpoint> readWriteResources;
 };
