@@ -942,7 +942,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
     else
       drv.glDisable(eGL_SCISSOR_TEST);
 
-    float backCol[] = {0.0f, 1.0f, 0.0f, 0.0f};
+    float backCol[] = {0.0f, 0.0f, 0.0f, 0.0f};
     drv.glClearBufferfv(eGL_COLOR, 0, backCol);
 
     if(HasExt[ARB_viewport_array])
@@ -1233,7 +1233,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
     else
       drv.glDisable(eGL_SCISSOR_TEST);
 
-    float col[] = {0.0f, 1.0f, 0.0f, 0.0f};
+    float col[] = {0.0f, 0.0f, 0.0f, 0.0f};
     drv.glClearBufferfv(eGL_COLOR, 0, col);
 
     if(HasExt[ARB_viewport_array])

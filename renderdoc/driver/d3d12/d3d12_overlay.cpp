@@ -668,7 +668,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       psoDesc.RasterizerState.MultisampleEnable = FALSE;
       psoDesc.RasterizerState.AntialiasedLineEnable = FALSE;
 
-      float clearColour[] = {0.0f, 1.0f, 0.0f, 0.0f};
+      float clearColour[] = {0.0f, 0.0f, 0.0f, 0.0f};
       list->ClearRenderTargetView(rtv, clearColour, 0, NULL);
 
       list->Close();
@@ -1506,7 +1506,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       psoDesc.RasterizerState.MultisampleEnable = FALSE;
       psoDesc.RasterizerState.AntialiasedLineEnable = FALSE;
 
-      float clearColour[] = {0.0f, 1.0f, 0.0f, 0.0f};
+      float clearColour[] = {0.0f, 0.0f, 0.0f, 0.0f};
       list->ClearRenderTargetView(rtv, clearColour, 0, NULL);
 
       list->Close();

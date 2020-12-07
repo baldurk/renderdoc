@@ -1358,7 +1358,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
   }
   else if(overlay == DebugOverlay::BackfaceCull)
   {
-    float highlightCol[] = {0.0f, 1.0f, 0.0f, 0.0f};
+    float highlightCol[] = {0.0f, 0.0f, 0.0f, 0.0f};
 
     VkImageMemoryBarrier barrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                                     NULL,
@@ -1532,7 +1532,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
   }
   else if(overlay == DebugOverlay::Depth || overlay == DebugOverlay::Stencil)
   {
-    float highlightCol[] = {0.0f, 1.0f, 0.0f, 0.0f};
+    float highlightCol[] = {0.0f, 0.0f, 0.0f, 0.0f};
 
     VkImageMemoryBarrier barrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                                     NULL,

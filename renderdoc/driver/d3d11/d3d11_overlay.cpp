@@ -394,7 +394,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       }
     }
 
-    float clearColour[] = {0.0f, 1.0f, 0.0f, 0.0f};
+    float clearColour[] = {0.0f, 0.0f, 0.0f, 0.0f};
     m_pImmediateContext->ClearRenderTargetView(rtv, clearColour);
 
     float overlayConsts[] = {1.0f, 0.0f, 0.0f, 1.0f};
@@ -1294,7 +1294,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
 
       m_pImmediateContext->OMSetBlendState(NULL, NULL, 0xffffffff);
 
-      float clearColour[] = {0.0f, 1.0f, 0.0f, 0.0f};
+      float clearColour[] = {0.0f, 0.0f, 0.0f, 0.0f};
       m_pImmediateContext->ClearRenderTargetView(rtv, clearColour);
 
       float redConsts[] = {255.0f / 255.0f, 0.0f / 255.0f, 0.0f / 255.0f, 255.0f / 255.0f};
@@ -1411,7 +1411,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
         }
       }
 
-      float clearColour[] = {0.0f, 1.0f, 0.0f, 0.0f};
+      float clearColour[] = {0.0f, 0.0f, 0.0f, 0.0f};
       m_pImmediateContext->ClearRenderTargetView(rtv, clearColour);
 
       float redConsts[] = {1.0f, 0.0f, 0.0f, 1.0f};

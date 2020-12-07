@@ -153,10 +153,10 @@ class Overlay_Test(rdtest.TestCase):
                     self.check_pixel_value(overlay_id, 150, 160, [1.0, 0.0, 0.0, 1.0], eps=eps)
                     self.check_pixel_value(overlay_id, 150, 200, [0.0, 1.0, 0.0, 1.0], eps=eps)
 
-                    self.check_pixel_value(overlay_id, 125, 60, [0.0, 1.0, 0.0, 0.0], eps=eps)
-                    self.check_pixel_value(overlay_id, 125, 250, [0.0, 1.0, 0.0, 0.0], eps=eps)
-                    self.check_pixel_value(overlay_id, 250, 60, [0.0, 1.0, 0.0, 0.0], eps=eps)
-                    self.check_pixel_value(overlay_id, 250, 250, [0.0, 1.0, 0.0, 0.0], eps=eps)
+                    self.check_pixel_value(overlay_id, 125, 60, [0.0, 0.0, 0.0, 0.0], eps=eps)
+                    self.check_pixel_value(overlay_id, 125, 250, [0.0, 0.0, 0.0, 0.0], eps=eps)
+                    self.check_pixel_value(overlay_id, 250, 60, [0.0, 0.0, 0.0, 0.0], eps=eps)
+                    self.check_pixel_value(overlay_id, 250, 250, [0.0, 0.0, 0.0, 0.0], eps=eps)
 
                     self.check_pixel_value(overlay_id, 220, 175, [0.0, 1.0, 0.0, 1.0], eps=eps)
                     self.check_pixel_value(overlay_id, 250, 150, [0.0, 1.0, 0.0, 1.0], eps=eps)
@@ -182,10 +182,10 @@ class Overlay_Test(rdtest.TestCase):
                     self.check_pixel_value(overlay_id, 150, 160, [0.0, 1.0, 0.0, 1.0], eps=eps)
                     self.check_pixel_value(overlay_id, 150, 200, [0.0, 1.0, 0.0, 1.0], eps=eps)
 
-                    self.check_pixel_value(overlay_id, 125, 60, [0.0, 1.0, 0.0, 0.0], eps=eps)
-                    self.check_pixel_value(overlay_id, 125, 250, [0.0, 1.0, 0.0, 0.0], eps=eps)
-                    self.check_pixel_value(overlay_id, 250, 60, [0.0, 1.0, 0.0, 0.0], eps=eps)
-                    self.check_pixel_value(overlay_id, 250, 250, [0.0, 1.0, 0.0, 0.0], eps=eps)
+                    self.check_pixel_value(overlay_id, 125, 60, [0.0, 0.0, 0.0, 0.0], eps=eps)
+                    self.check_pixel_value(overlay_id, 125, 250, [0.0, 0.0, 0.0, 0.0], eps=eps)
+                    self.check_pixel_value(overlay_id, 250, 60, [0.0, 0.0, 0.0, 0.0], eps=eps)
+                    self.check_pixel_value(overlay_id, 250, 250, [0.0, 0.0, 0.0, 0.0], eps=eps)
 
                     self.check_pixel_value(overlay_id, 220, 175, [0.0, 1.0, 0.0, 1.0], eps=eps)
                     self.check_pixel_value(overlay_id, 250, 150, [0.0, 1.0, 0.0, 1.0], eps=eps)
@@ -210,10 +210,10 @@ class Overlay_Test(rdtest.TestCase):
                     self.check_pixel_value(overlay_id, 150, 160, [0.0, 1.0, 0.0, 1.0], eps=eps)
                     self.check_pixel_value(overlay_id, 150, 200, [0.0, 1.0, 0.0, 1.0], eps=eps)
 
-                    self.check_pixel_value(overlay_id, 125, 60, [0.0, 1.0, 0.0, 0.0], eps=eps)
-                    self.check_pixel_value(overlay_id, 125, 250, [0.0, 1.0, 0.0, 0.0], eps=eps)
-                    self.check_pixel_value(overlay_id, 250, 60, [0.0, 1.0, 0.0, 0.0], eps=eps)
-                    self.check_pixel_value(overlay_id, 250, 250, [0.0, 1.0, 0.0, 0.0], eps=eps)
+                    self.check_pixel_value(overlay_id, 125, 60, [0.0, 0.0, 0.0, 0.0], eps=eps)
+                    self.check_pixel_value(overlay_id, 125, 250, [0.0, 0.0, 0.0, 0.0], eps=eps)
+                    self.check_pixel_value(overlay_id, 250, 60, [0.0, 0.0, 0.0, 0.0], eps=eps)
+                    self.check_pixel_value(overlay_id, 250, 250, [0.0, 0.0, 0.0, 0.0], eps=eps)
 
                     self.check_pixel_value(overlay_id, 220, 175, [0.0, 1.0, 0.0, 1.0], eps=eps)
                     self.check_pixel_value(overlay_id, 250, 150, [0.0, 1.0, 0.0, 1.0], eps=eps)
@@ -472,8 +472,8 @@ class Overlay_Test(rdtest.TestCase):
                 self.check_pixel_value(overlay_id, 50, 25, [0.0, 1.0, 0.0, 1.0], eps=eps)
                 self.check_pixel_value(overlay_id, 50, 75, [0.0, 1.0, 0.0, 1.0], eps=eps)
 
-                self.check_pixel_value(overlay_id, 50, 20, [0.0, 1.0, 0.0, 0.0], eps=eps)
-                self.check_pixel_value(overlay_id, 50, 80, [0.0, 1.0, 0.0, 0.0], eps=eps)
+                self.check_pixel_value(overlay_id, 50, 20, [0.0, 0.0, 0.0, 0.0], eps=eps)
+                self.check_pixel_value(overlay_id, 50, 80, [0.0, 0.0, 0.0, 0.0], eps=eps)
             elif overlay == rd.DebugOverlay.ViewportScissor:
                 # Inside viewport and scissor, passing triangle
                 self.check_pixel_value(overlay_id, 50, 50,
@@ -674,14 +674,14 @@ class Overlay_Test(rdtest.TestCase):
                                            sub=sub, eps=eps)
                 elif overlay == rd.DebugOverlay.Depth or overlay == rd.DebugOverlay.Stencil:
                     self.check_pixel_value(overlay_id, 50 >> shift, 36 >> shift, [0.0, 1.0, 0.0, 1.0], sub=sub)
-                    self.check_pixel_value(overlay_id, 30 >> shift, 36 >> shift, [0.0, 1.0, 0.0, 0.0], sub=sub)
+                    self.check_pixel_value(overlay_id, 30 >> shift, 36 >> shift, [0.0, 0.0, 0.0, 0.0], sub=sub)
                     self.check_pixel_value(overlay_id, 70 >> shift, 34 >> shift, [1.0, 0.0, 0.0, 1.0], sub=sub)
-                    self.check_pixel_value(overlay_id, 70 >> shift, 20 >> shift, [0.0, 1.0, 0.0, 0.0], sub=sub)
+                    self.check_pixel_value(overlay_id, 70 >> shift, 20 >> shift, [0.0, 0.0, 0.0, 0.0], sub=sub)
                 elif overlay == rd.DebugOverlay.BackfaceCull:
                     self.check_pixel_value(overlay_id, 50 >> shift, 36 >> shift, [0.0, 1.0, 0.0, 1.0], sub=sub)
-                    self.check_pixel_value(overlay_id, 30 >> shift, 36 >> shift, [0.0, 1.0, 0.0, 0.0], sub=sub)
+                    self.check_pixel_value(overlay_id, 30 >> shift, 36 >> shift, [0.0, 0.0, 0.0, 0.0], sub=sub)
                     self.check_pixel_value(overlay_id, 70 >> shift, 34 >> shift, [1.0, 0.0, 0.0, 1.0], sub=sub)
-                    self.check_pixel_value(overlay_id, 70 >> shift, 20 >> shift, [0.0, 1.0, 0.0, 0.0], sub=sub)
+                    self.check_pixel_value(overlay_id, 70 >> shift, 20 >> shift, [0.0, 0.0, 0.0, 0.0], sub=sub)
                 elif overlay == rd.DebugOverlay.ViewportScissor:
                     self.check_pixel_value(overlay_id, 20 >> shift, 15 >> shift,
                                            [0.2 * 0.4, 0.2 * 0.4, 0.9 * 0.4, 0.4 * 0.4], sub=sub, eps=eps)
