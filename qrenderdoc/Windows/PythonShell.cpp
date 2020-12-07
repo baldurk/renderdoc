@@ -122,11 +122,11 @@ struct MiniQtInvoker : ObjectForwarder<IMiniQtHelper>
   {
     return InvokeRetFunction<QWidget *>(&IMiniQtHelper::GetParent, widget);
   }
-  int GetNumChildren(QWidget *widget)
+  int32_t GetNumChildren(QWidget *widget)
   {
-    return InvokeRetFunction<int>(&IMiniQtHelper::GetNumChildren, widget);
+    return InvokeRetFunction<int32_t>(&IMiniQtHelper::GetNumChildren, widget);
   }
-  QWidget *GetChild(QWidget *parent, int index)
+  QWidget *GetChild(QWidget *parent, int32_t index)
   {
     return InvokeRetFunction<QWidget *>(&IMiniQtHelper::GetChild, parent, index);
   }
@@ -164,7 +164,8 @@ struct MiniQtInvoker : ObjectForwarder<IMiniQtHelper>
   {
     InvokeVoidFunction(&IMiniQtHelper::ClearContainedWidgets, parent);
   }
-  void AddGridWidget(QWidget *parent, int row, int column, QWidget *child, int rowSpan, int columnSpan)
+  void AddGridWidget(QWidget *parent, int32_t row, int32_t column, QWidget *child, int32_t rowSpan,
+                     int32_t columnSpan)
   {
     InvokeVoidFunction(&IMiniQtHelper::AddGridWidget, parent, row, column, child, rowSpan,
                        columnSpan);
@@ -173,7 +174,7 @@ struct MiniQtInvoker : ObjectForwarder<IMiniQtHelper>
   {
     InvokeVoidFunction(&IMiniQtHelper::AddWidget, parent, child);
   }
-  void InsertWidget(QWidget *parent, int index, QWidget *child)
+  void InsertWidget(QWidget *parent, int32_t index, QWidget *child)
   {
     InvokeVoidFunction(&IMiniQtHelper::InsertWidget, parent, index, child);
   }
@@ -189,7 +190,7 @@ struct MiniQtInvoker : ObjectForwarder<IMiniQtHelper>
     return InvokeRetFunction<rdcstr>(&IMiniQtHelper::GetWidgetText, widget);
   }
 
-  void SetWidgetFont(QWidget *widget, const rdcstr &font, int fontSize, bool bold, bool italic)
+  void SetWidgetFont(QWidget *widget, const rdcstr &font, int32_t fontSize, bool bold, bool italic)
   {
     InvokeVoidFunction(&IMiniQtHelper::SetWidgetFont, widget, font, fontSize, bold, italic);
   }
@@ -260,7 +261,7 @@ struct MiniQtInvoker : ObjectForwarder<IMiniQtHelper>
     return InvokeRetFunction<bool>(&IMiniQtHelper::IsWidgetChecked, checkableWidget);
   }
 
-  QWidget *CreateSpinbox(int decimalPlaces, double step)
+  QWidget *CreateSpinbox(int32_t decimalPlaces, double step)
   {
     return InvokeRetFunction<QWidget *>(&IMiniQtHelper::CreateSpinbox, decimalPlaces, step);
   }
@@ -450,7 +451,7 @@ struct CaptureContextInvoker : ObjectForwarder<ICaptureContext>
   {
     return m_Obj.HasResourceCustomName(id);
   }
-  virtual int ResourceNameCacheID() override { return m_Obj.ResourceNameCacheID(); }
+  virtual int32_t ResourceNameCacheID() override { return m_Obj.ResourceNameCacheID(); }
   virtual TextureDescription *GetTexture(ResourceId id) override { return m_Obj.GetTexture(id); }
   virtual const rdcarray<TextureDescription> &GetTextures() override { return m_Obj.GetTextures(); }
   virtual BufferDescription *GetBuffer(ResourceId id) override { return m_Obj.GetBuffer(id); }
@@ -467,7 +468,7 @@ struct CaptureContextInvoker : ObjectForwarder<ICaptureContext>
   virtual const SDFile &GetStructuredFile() override { return m_Obj.GetStructuredFile(); }
   virtual WindowingSystem CurWindowingSystem() override { return m_Obj.CurWindowingSystem(); }
   virtual const rdcarray<DebugMessage> &DebugMessages() override { return m_Obj.DebugMessages(); }
-  virtual int UnreadMessageCount() override { return m_Obj.UnreadMessageCount(); }
+  virtual int32_t UnreadMessageCount() override { return m_Obj.UnreadMessageCount(); }
   virtual void MarkMessagesRead() override { return m_Obj.MarkMessagesRead(); }
   virtual rdcstr GetNotes(const rdcstr &key) override { return m_Obj.GetNotes(key); }
   virtual rdcarray<EventBookmark> GetBookmarks() override { return m_Obj.GetBookmarks(); }
@@ -775,7 +776,7 @@ struct CaptureContextInvoker : ObjectForwarder<ICaptureContext>
                                                          stage, slot, idx);
   }
 
-  virtual IPixelHistoryView *ViewPixelHistory(ResourceId texID, int x, int y,
+  virtual IPixelHistoryView *ViewPixelHistory(ResourceId texID, uint32_t x, uint32_t y,
                                               const TextureDisplay &display) override
   {
     return InvokeRetFunction<IPixelHistoryView *>(&ICaptureContext::ViewPixelHistory, texID, x, y,

@@ -136,7 +136,7 @@ QWidget *MiniQtHelper::GetParent(QWidget *widget)
   return widget->parentWidget();
 }
 
-int MiniQtHelper::GetNumChildren(QWidget *widget)
+int32_t MiniQtHelper::GetNumChildren(QWidget *widget)
 {
   if(!widget)
     return 0;
@@ -148,7 +148,7 @@ int MiniQtHelper::GetNumChildren(QWidget *widget)
   return layout->count();
 }
 
-QWidget *MiniQtHelper::GetChild(QWidget *parent, int index)
+QWidget *MiniQtHelper::GetChild(QWidget *parent, int32_t index)
 {
   if(!parent)
     return NULL;
@@ -249,8 +249,8 @@ void MiniQtHelper::ClearContainedWidgets(QWidget *parent)
   }
 }
 
-void MiniQtHelper::AddGridWidget(QWidget *parent, int row, int column, QWidget *child, int rowSpan,
-                                 int columnSpan)
+void MiniQtHelper::AddGridWidget(QWidget *parent, int32_t row, int32_t column, QWidget *child,
+                                 int32_t rowSpan, int32_t columnSpan)
 {
   if(!parent || !child)
     return;
@@ -282,7 +282,7 @@ void MiniQtHelper::AddWidget(QWidget *parent, QWidget *child)
   box->addWidget(child);
 }
 
-void MiniQtHelper::InsertWidget(QWidget *parent, int index, QWidget *child)
+void MiniQtHelper::InsertWidget(QWidget *parent, int32_t index, QWidget *child)
 {
   if(!parent)
     return;
@@ -384,7 +384,7 @@ rdcstr MiniQtHelper::GetWidgetText(QWidget *widget)
   return widget->windowTitle();
 }
 
-void MiniQtHelper::SetWidgetFont(QWidget *widget, const rdcstr &font, int fontSize, bool bold,
+void MiniQtHelper::SetWidgetFont(QWidget *widget, const rdcstr &font, int32_t fontSize, bool bold,
                                  bool italic)
 {
   if(!widget)
@@ -555,7 +555,7 @@ bool MiniQtHelper::IsWidgetChecked(QWidget *checkableWidget)
   return false;
 }
 
-QWidget *MiniQtHelper::CreateSpinbox(int decimalPlaces, double step)
+QWidget *MiniQtHelper::CreateSpinbox(int32_t decimalPlaces, double step)
 {
   RDDoubleSpinBox *ret = new RDDoubleSpinBox();
   ret->setSingleStep(step);

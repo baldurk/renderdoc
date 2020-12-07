@@ -168,25 +168,25 @@ const VKPipe::Shader &PipeState::GetVulkanStage(ShaderStage stage) const
   return m_Vulkan->computeShader;
 }
 
-Viewport PipeState::GetViewport(int index) const
+Viewport PipeState::GetViewport(uint32_t index) const
 {
   Viewport ret = {};
 
   if(IsCaptureLoaded())
   {
-    if(IsCaptureD3D11() && index < m_D3D11->rasterizer.viewports.count())
+    if(IsCaptureD3D11() && index < m_D3D11->rasterizer.viewports.size())
     {
       return m_D3D11->rasterizer.viewports[index];
     }
-    else if(IsCaptureD3D12() && index < m_D3D12->rasterizer.viewports.count())
+    else if(IsCaptureD3D12() && index < m_D3D12->rasterizer.viewports.size())
     {
       return m_D3D12->rasterizer.viewports[index];
     }
-    else if(IsCaptureGL() && index < m_GL->rasterizer.viewports.count())
+    else if(IsCaptureGL() && index < m_GL->rasterizer.viewports.size())
     {
       return m_GL->rasterizer.viewports[index];
     }
-    else if(IsCaptureVK() && index < m_Vulkan->viewportScissor.viewportScissors.count())
+    else if(IsCaptureVK() && index < m_Vulkan->viewportScissor.viewportScissors.size())
     {
       return m_Vulkan->viewportScissor.viewportScissors[index].vp;
     }
@@ -195,25 +195,25 @@ Viewport PipeState::GetViewport(int index) const
   return ret;
 }
 
-Scissor PipeState::GetScissor(int index) const
+Scissor PipeState::GetScissor(uint32_t index) const
 {
   Scissor ret = {};
 
   if(IsCaptureLoaded())
   {
-    if(IsCaptureD3D11() && index < m_D3D11->rasterizer.viewports.count())
+    if(IsCaptureD3D11() && index < m_D3D11->rasterizer.viewports.size())
     {
       return m_D3D11->rasterizer.scissors[index];
     }
-    else if(IsCaptureD3D12() && index < m_D3D12->rasterizer.viewports.count())
+    else if(IsCaptureD3D12() && index < m_D3D12->rasterizer.viewports.size())
     {
       return m_D3D12->rasterizer.scissors[index];
     }
-    else if(IsCaptureGL() && index < m_GL->rasterizer.viewports.count())
+    else if(IsCaptureGL() && index < m_GL->rasterizer.viewports.size())
     {
       return m_GL->rasterizer.scissors[index];
     }
-    else if(IsCaptureVK() && index < m_Vulkan->viewportScissor.viewportScissors.count())
+    else if(IsCaptureVK() && index < m_Vulkan->viewportScissor.viewportScissors.size())
     {
       return m_Vulkan->viewportScissor.viewportScissors[index].scissor;
     }

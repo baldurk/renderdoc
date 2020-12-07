@@ -37,7 +37,7 @@ public:
 
   QSize minimumSizeHint() const override;
 
-  // IStatisticsViewer
+  // ITimelineBar
   QWidget *Widget() override { return this; }
   void HighlightResourceUsage(ResourceId id) override;
   void HighlightHistory(ResourceId id, const rdcarray<PixelModification> &history) override;

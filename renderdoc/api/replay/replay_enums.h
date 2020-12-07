@@ -1735,6 +1735,7 @@ DOCUMENT(R"(Check if an API is D3D or not
 
 :param GraphicsAPI api: The graphics API in question
 :return: ``True`` if api is a D3D-based API, ``False`` otherwise
+:rtype: bool
 )");
 constexpr inline bool IsD3D(GraphicsAPI api)
 {
@@ -1785,9 +1786,9 @@ DECLARE_REFLECTION_ENUM(ShaderEncoding);
 
 DOCUMENT(R"(Check whether or not this is a human readable text representation.
 
-:param ShaderEncoding e: The encoding to check.
+:param ShaderEncoding encoding: The encoding to check.
 :return: ``True`` if it describes a text representation, ``False`` for a bytecode representation.
-:rtype: ``bool``
+:rtype: bool
 )");
 constexpr inline bool IsTextRepresentation(ShaderEncoding encoding)
 {
@@ -2047,9 +2048,9 @@ DOCUMENT(R"(Return the number of control points in a patch list ``Topology``
 
 ``t`` must be a patch list topology, the return value will be between 1 and 32 inclusive
 
-:param Topology t: The patch list topology
+:param Topology topology: The patch list topology
 :return: The number of control points in the specified topology
-:rtype: ``int``
+:rtype: int
 )");
 constexpr inline uint32_t PatchList_Count(Topology topology)
 {
@@ -2063,9 +2064,9 @@ DOCUMENT(R"(Check whether or not this topology supports primitive restart.
 .. note:: This is almost but not quite the same as being a line/triangle strip - triangle fans
   also support restart. See also :func:`IsStrip`.
 
-:param Topology t: The topology to check.
+:param Topology topology: The topology to check.
 :return: ``True`` if it describes a topology that allows restart, ``False`` for a list.
-:rtype: ``bool``
+:rtype: bool
 )");
 constexpr inline bool SupportsRestart(Topology topology)
 {
@@ -2076,9 +2077,9 @@ constexpr inline bool SupportsRestart(Topology topology)
 
 DOCUMENT(R"(Check whether or not this is a strip-type topology.
 
-:param Topology t: The topology to check.
+:param Topology topology: The topology to check.
 :return: ``True`` if it describes a strip topology, ``False`` for a list.
-:rtype: ``bool``
+:rtype: bool
 )");
 constexpr inline bool IsStrip(Topology topology)
 {
@@ -3297,7 +3298,7 @@ DOCUMENT(R"(Check whether or not this is a Generic counter.
 
 :param GPUCounter c: The counter.
 :return: ``True`` if it is a generic counter, ``False`` if it's not.
-:rtype: ``bool``
+:rtype: bool
 )");
 inline constexpr bool IsGenericCounter(GPUCounter c)
 {
@@ -3308,7 +3309,7 @@ DOCUMENT(R"(Check whether or not this is an AMD private counter.
 
 :param GPUCounter c: The counter.
 :return: ``True`` if it is an AMD private counter, ``False`` if it's not.
-:rtype: ``bool``
+:rtype: bool
 )");
 inline constexpr bool IsAMDCounter(GPUCounter c)
 {
@@ -3319,7 +3320,7 @@ DOCUMENT(R"(Check whether or not this is an Intel private counter.
 
 :param GPUCounter c: The counter.
 :return: ``True`` if it is an Intel private counter, ``False`` if it's not.
-:rtype: ``bool``
+:rtype: bool
 )");
 inline constexpr bool IsIntelCounter(GPUCounter c)
 {
@@ -3330,7 +3331,7 @@ DOCUMENT(R"(Check whether or not this is an Nvidia private counter.
 
 :param GPUCounter c: The counter.
 :return: ``True`` if it is an Nvidia private counter, ``False`` if it's not.
-:rtype: ``bool``
+:rtype: bool
 )");
 inline constexpr bool IsNvidiaCounter(GPUCounter c)
 {
@@ -3341,7 +3342,7 @@ DOCUMENT(R"(Check whether or not this is a KHR counter.
 
 :param GPUCounter c: The counter.
 :return: ``True`` if it is a Vulkan counter reported through the VK_KHR_performance_query extension, ``False`` if it's not.
-:rtype: ``bool``
+:rtype: bool
 )");
 inline constexpr bool IsVulkanExtendedCounter(GPUCounter c)
 {
@@ -3352,7 +3353,7 @@ DOCUMENT(R"(Check whether or not this is an ARM private counter.
 
 :param GPUCounter c: The counter.
 :return: ``True`` if it is an ARM private counter, ``False`` if it's not.
-:rtype: ``bool``
+:rtype: bool
 )");
 inline constexpr bool IsARMCounter(GPUCounter c)
 {

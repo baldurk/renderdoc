@@ -59,34 +59,68 @@ public:
   DOCUMENT(
       "Ping the host to check current status - if the server is running, connection status, etc.");
   void CheckStatus();
-  DOCUMENT(
-      "Runs the command specified in :data:`runCommand`. Returns :class:`ReplayStatus` which "
-      "indicates success or the type of failure.");
+
+  DOCUMENT(R"(Runs the command specified in :data:`runCommand`. Returns
+:class:`~renderdoc.ReplayStatus` which indicates success or the type of failure.
+
+:return: The result from launching the remote server.
+:rtype: renderdoc.ReplayStatus
+)");
   ReplayStatus Launch();
 
-  DOCUMENT("``True`` if a remote server is currently running on this host.");
+  DOCUMENT(R"(
+:return: ``True`` if a remote server is currently running on this host.
+:rtype: bool
+)");
   bool IsServerRunning() const;
-  DOCUMENT("``True`` if an active connection exists to this remote server.");
+
+  DOCUMENT(R"(
+:return: ``True`` if an active connection exists to this remote server.
+:rtype: bool
+)");
   bool IsConnected() const;
-  DOCUMENT("``True`` if someone else is currently connected to this server.");
+
+  DOCUMENT(R"(
+:return: ``True`` if someone else is currently connected to this server.
+:rtype: bool
+)");
   bool IsBusy() const;
-  DOCUMENT("``True`` if there is a code version mismatch with this server.");
+
+  DOCUMENT(R"(
+:return: ``True`` if there is a code version mismatch with this server.
+:rtype: bool
+)");
   bool IsVersionMismatch() const;
 
-  DOCUMENT("The hostname of this host.");
-  const rdcstr &Hostname() const { return m_hostname; }
-  DOCUMENT("The friendly name for this host, if available (if empty, the Hostname is used).");
+  DOCUMENT(R"(
+:return: The hostname of this host.
+:rtype: str
+)");
+  rdcstr Hostname() const { return m_hostname; }
+  DOCUMENT(R"(
+:return: The friendly name for this host, if available (if empty, the Hostname is used).
+:rtype: str
+)");
   rdcstr FriendlyName() const;
-  DOCUMENT("The command to run locally to try to launch the server remotely.");
+
+  DOCUMENT(R"(
+:return: The command to run locally to try to launch the server remotely.
+:rtype: str
+)");
   rdcstr RunCommand() const;
+
   DOCUMENT(R"(Sets the run command. See :meth:`RunCommand`.
 
 :param str cmd: The new command to set.
 )");
   void SetRunCommand(const rdcstr &cmd);
 
-  DOCUMENT("The last folder browsed to on this host, to provide a reasonable default path.");
+  DOCUMENT(R"(
+:return: The last folder browsed to on this host, to provide a reasonable default path.
+:rtype: str
+)");
   rdcstr LastCapturePath() const;
+
   DOCUMENT(R"(Sets the last folder browsed to. See :meth:`LastCapturePath`.
 
 :param str path: The new path to set.
@@ -97,25 +131,35 @@ public:
 
 :return: The status of opening the capture, whether success or failure, and a :class:`RemoteServer`
   instance if it were successful
-:rtype: ``pair`` of ReplayStatus and RemoteServer
+:rtype: Tuple[renderdoc.ReplayStatus, renderdoc.RemoteServer]
 )");
   ReplayStatus Connect(IRemoteServer **server);
 
-  DOCUMENT(
-      "The :class:`DeviceProtocolController` for this host, or ``None`` if no protocol is in use");
+  DOCUMENT(R"(
+:return: The :class:`~renderdoc.DeviceProtocolController` for this host, or ``None`` if no protocol
+  is in use
+:rtype: renderdoc.DeviceProtocolController
+)");
   IDeviceProtocolController *Protocol() const { return m_protocol; }
   DOCUMENT(R"(
-Returns the name to display for this host in the UI, either :meth:`FriendlyName` if it is valid, or
+:return: The name to display for this host in the UI, either :meth:`FriendlyName` if it is valid, or
 :meth:`Hostname` if not.
+:rtype: str
 )");
   rdcstr Name() const
   {
     rdcstr friendlyName = FriendlyName();
     return !friendlyName.isEmpty() ? friendlyName : m_hostname;
   }
-  DOCUMENT("Returns ``True`` if this host represents the special localhost device.");
+
+  DOCUMENT(R"(
+:return: Returns ``True`` if this host represents the special localhost device.
+:rtype: bool
+)");
   bool IsLocalhost() const { return m_hostname == "localhost"; }
-  DOCUMENT("Returns ``True`` if this host represents a valid remote host.");
+  DOCUMENT(R"(Returns ``True`` if this host represents a valid remote host.
+:rtype: bool
+)");
   bool IsValid() const { return m_data && !m_hostname.isEmpty(); }
 private:
   // this is immutable and is used as a key to look up data, it's always valid as RemoteHost objects

@@ -3916,7 +3916,7 @@ void ShaderViewer::SetCurrentStep(uint32_t step)
   updateDebugState();
 }
 
-void ShaderViewer::ToggleBreakpoint(int instruction)
+void ShaderViewer::ToggleBreakpoint(int32_t instruction)
 {
   if(!m_Trace || m_States.empty())
     return;

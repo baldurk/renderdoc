@@ -158,11 +158,11 @@ public:
 
   // ICaptureAccess
 
-  int GetSectionCount();
-  int FindSectionByName(const rdcstr &name);
-  int FindSectionByType(SectionType type);
-  SectionProperties GetSectionProperties(int index);
-  bytebuf GetSectionContents(int index);
+  int32_t GetSectionCount();
+  int32_t FindSectionByName(const rdcstr &name);
+  int32_t FindSectionByType(SectionType type);
+  SectionProperties GetSectionProperties(int32_t index);
+  bytebuf GetSectionContents(int32_t index);
   bool WriteSection(const SectionProperties &props, const bytebuf &contents);
 
   bool HasCallstacks();
@@ -677,7 +677,7 @@ Thumbnail CaptureFile::GetThumbnail(FileType type, uint32_t maxsize)
   return ret;
 }
 
-int CaptureFile::GetSectionCount()
+int32_t CaptureFile::GetSectionCount()
 {
   if(!m_RDC)
     return 0;
@@ -685,7 +685,7 @@ int CaptureFile::GetSectionCount()
   return m_RDC->NumSections();
 }
 
-int CaptureFile::FindSectionByName(const rdcstr &name)
+int32_t CaptureFile::FindSectionByName(const rdcstr &name)
 {
   if(!m_RDC)
     return -1;
@@ -693,7 +693,7 @@ int CaptureFile::FindSectionByName(const rdcstr &name)
   return m_RDC->SectionIndex(name);
 }
 
-int CaptureFile::FindSectionByType(SectionType type)
+int32_t CaptureFile::FindSectionByType(SectionType type)
 {
   if(!m_RDC)
     return -1;
@@ -701,7 +701,7 @@ int CaptureFile::FindSectionByType(SectionType type)
   return m_RDC->SectionIndex(type);
 }
 
-SectionProperties CaptureFile::GetSectionProperties(int index)
+SectionProperties CaptureFile::GetSectionProperties(int32_t index)
 {
   if(!m_RDC || index < 0 || index >= m_RDC->NumSections())
     return SectionProperties();
@@ -709,7 +709,7 @@ SectionProperties CaptureFile::GetSectionProperties(int index)
   return m_RDC->GetSectionProperties(index);
 }
 
-bytebuf CaptureFile::GetSectionContents(int index)
+bytebuf CaptureFile::GetSectionContents(int32_t index)
 {
   bytebuf ret;
 

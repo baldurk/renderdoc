@@ -314,7 +314,7 @@ private:
 
 DECLARE_REFLECTION_STRUCT(SDObjectPODData);
 
-DOCUMENT("A ``list`` of :class:`SDObject` objects");
+DOCUMENT("INTERNAL: An array of SDObject*, mapped to a pure list in python");
 struct StructuredObjectList : public rdcarray<SDObject *>
 {
   StructuredObjectList() : rdcarray<SDObject *>() {}
@@ -500,7 +500,10 @@ struct SDObject
     m_Parent = NULL;
   }
 
-  DOCUMENT("Create a deep copy of this object.");
+  DOCUMENT(R"(
+:return: A new deep copy of this object, which the caller owns.
+:rtype: SDObject
+)");
   SDObject *Duplicate() const
   {
     SDObject *ret = new SDObject();
@@ -535,30 +538,30 @@ recursively through children.
 
 :param SDObject obj: The object to compare against
 :return: A boolean indicating if the object is equal to this one.
-:rtype: ``bool``
+:rtype: bool
 )");
-  bool HasEqualValue(const SDObject *o) const
+  bool HasEqualValue(const SDObject *obj) const
   {
     bool ret = true;
 
-    if(data.str != o->data.str)
+    if(data.str != obj->data.str)
     {
       ret = false;
     }
-    else if(data.basic.u != o->data.basic.u)
+    else if(data.basic.u != obj->data.basic.u)
     {
       ret = false;
     }
-    else if(data.children.size() != o->data.children.size())
+    else if(data.children.size() != obj->data.children.size())
     {
       ret = false;
     }
     else
     {
-      for(size_t c = 0; c < o->data.children.size(); c++)
+      for(size_t c = 0; c < obj->data.children.size(); c++)
       {
         PopulateChild(c);
-        ret &= data.children[c]->HasEqualValue(o->GetChild(c));
+        ret &= data.children[c]->HasEqualValue(obj->GetChild(c));
       }
     }
 
@@ -569,7 +572,7 @@ recursively through children.
   // python.
   DOCUMENT(R"(Add a new child object.
 
-:param SDObject obj: The new child to add
+:param SDObject child: The new child to add
 )");
   inline void DuplicateAndAddChild(const SDObject *child)
   {
@@ -583,7 +586,7 @@ recursively through children.
   DOCUMENT(R"(Find a child object by a given name. If no matching child is found, ``None`` is
 returned.
 
-:param str name: The name to search for.
+:param str childName: The name to search for.
 :return: A reference to the child object if found, or ``None`` if not.
 :rtype: SDObject
 )");
@@ -670,7 +673,7 @@ returned.
   DOCUMENT(R"(Get the number of child objects.
 
 :return: The number of children this object contains.
-:rtype: ``int``
+:rtype: int
 )");
   inline size_t NumChildren() const { return data.children.size(); }
 #if !defined(SWIG)
@@ -821,11 +824,17 @@ returned.
   // these are common to both python and C++
   DOCUMENT(R"(Interprets the object as a ``bool`` and returns its value.
 Invalid if the object is not actually a ``bool``.
+
+:return: The interpreted bool value.
+:rtype: bool
 )");
   inline bool AsBool() const { return data.basic.b; }
   // these are common to both python and C++
   DOCUMENT(R"(Interprets the object as a :class:`ResourceId` and returns its value.
 Invalid if the object is not actually a :class:`ResourceId`.
+
+:return: The interpreted ID.
+:rtype: ResourceId
 )");
   inline ResourceId AsResourceId() const { return data.basic.id; }
 #if defined(RENDERDOC_QT_COMPAT)
@@ -1047,7 +1056,17 @@ inline SDObject *makeSDObject(const rdcinflexiblestr &name, QVariant val)
 }
 #endif
 
-DOCUMENT("Make a structured object out of a signed integer");
+DOCUMENT(R"(Make a structured object as a signed 64-bit integer.
+
+.. note::
+  You should ensure that the value you pass in has already been truncated to the appropriate range
+  for the storage, as the resulting object will be undefined if the value is out of the valid range.
+
+:param str name: The name of the object.
+:param int val: The integer which will be stored in the returned object.
+:return: The new object, owner by the caller.
+:rtype: SDObject
+)");
 inline SDObject *makeSDInt64(const rdcinflexiblestr &name, int64_t val)
 {
   SDObject *ret = new SDObject(name, "int64_t"_lit);
@@ -1057,7 +1076,17 @@ inline SDObject *makeSDInt64(const rdcinflexiblestr &name, int64_t val)
   return ret;
 }
 
-DOCUMENT("Make a structured object out of an unsigned integer");
+DOCUMENT(R"(Make a structured object as an unsigned 64-bit integer.
+
+.. note::
+  You should ensure that the value you pass in has already been truncated to the appropriate range
+  for the storage, as the resulting object will be undefined if the value is out of the valid range.
+
+:param str name: The name of the object.
+:param int val: The integer which will be stored in the returned object.
+:return: The new object, owner by the caller.
+:rtype: SDObject
+)");
 inline SDObject *makeSDUInt64(const rdcinflexiblestr &name, uint64_t val)
 {
   SDObject *ret = new SDObject(name, "uint64_t"_lit);
@@ -1067,7 +1096,17 @@ inline SDObject *makeSDUInt64(const rdcinflexiblestr &name, uint64_t val)
   return ret;
 }
 
-DOCUMENT("Make a structured object out of a integer, stored as signed 32-bits");
+DOCUMENT(R"(Make a structured object as a signed 32-bit integer.
+
+.. note::
+  You should ensure that the value you pass in has already been truncated to the appropriate range
+  for the storage, as the resulting object will be undefined if the value is out of the valid range.
+
+:param str name: The name of the object.
+:param int val: The integer which will be stored in the returned object.
+:return: The new object, owner by the caller.
+:rtype: SDObject
+)");
 inline SDObject *makeSDInt32(const rdcinflexiblestr &name, int32_t val)
 {
   SDObject *ret = new SDObject(name, "int32_t"_lit);
@@ -1077,7 +1116,17 @@ inline SDObject *makeSDInt32(const rdcinflexiblestr &name, int32_t val)
   return ret;
 }
 
-DOCUMENT("Make a structured object out of a integer, stored as unsigned 32-bits");
+DOCUMENT(R"(Make a structured object as an unsigned 32-bit integer.
+
+.. note::
+  You should ensure that the value you pass in has already been truncated to the appropriate range
+  for the storage, as the resulting object will be undefined if the value is out of the valid range.
+
+:param str name: The name of the object.
+:param int val: The integer which will be stored in the returned object.
+:return: The new object, owner by the caller.
+:rtype: SDObject
+)");
 inline SDObject *makeSDUInt32(const rdcinflexiblestr &name, uint32_t val)
 {
   SDObject *ret = new SDObject(name, "uint32_t"_lit);
@@ -1087,7 +1136,17 @@ inline SDObject *makeSDUInt32(const rdcinflexiblestr &name, uint32_t val)
   return ret;
 }
 
-DOCUMENT("Make a structured object out of a floating point value");
+DOCUMENT(R"(Make a structured object as a 32-bit float.
+
+.. note::
+  You should ensure that the value you pass in has already been truncated to the appropriate range
+  for the storage, as the resulting object will be undefined if the value is out of the valid range.
+
+:param str name: The name of the object.
+:param float val: The float which will be stored in the returned object.
+:return: The new object, owner by the caller.
+:rtype: SDObject
+)");
 inline SDObject *makeSDFloat(const rdcinflexiblestr &name, float val)
 {
   SDObject *ret = new SDObject(name, "float"_lit);
@@ -1097,7 +1156,13 @@ inline SDObject *makeSDFloat(const rdcinflexiblestr &name, float val)
   return ret;
 }
 
-DOCUMENT("Make a structured object out of a boolean value");
+DOCUMENT(R"(Make a structured object as a boolean value.
+
+:param str name: The name of the object.
+:param bool val: The bool which will be stored in the returned object.
+:return: The new object, owner by the caller.
+:rtype: SDObject
+)");
 inline SDObject *makeSDBool(const rdcinflexiblestr &name, bool val)
 {
   SDObject *ret = new SDObject(name, "bool"_lit);
@@ -1107,7 +1172,13 @@ inline SDObject *makeSDBool(const rdcinflexiblestr &name, bool val)
   return ret;
 }
 
-DOCUMENT("Make a structured object out of a string");
+DOCUMENT(R"(Make a structured object as a string value.
+
+:param str name: The name of the object.
+:param str val: The string which will be stored in the returned object.
+:return: The new object, owner by the caller.
+:rtype: SDObject
+)");
 inline SDObject *makeSDString(const rdcinflexiblestr &name, const rdcstr &val)
 {
   SDObject *ret = new SDObject(name, "string"_lit);
@@ -1117,7 +1188,13 @@ inline SDObject *makeSDString(const rdcinflexiblestr &name, const rdcstr &val)
   return ret;
 }
 
-DOCUMENT("Make a structured object out of a ResourceId");
+DOCUMENT(R"(Make a structured object as a ResourceId value.
+
+:param str name: The name of the object.
+:param ResourceId val: The ID which will be stored in the returned object.
+:return: The new object, owner by the caller.
+:rtype: SDObject
+)");
 inline SDObject *makeSDResourceId(const rdcinflexiblestr &name, ResourceId val)
 {
   SDObject *ret = new SDObject(name, "ResourceId"_lit);
@@ -1127,7 +1204,17 @@ inline SDObject *makeSDResourceId(const rdcinflexiblestr &name, ResourceId val)
   return ret;
 }
 
-DOCUMENT("Make a structured object out of an enumeration value");
+DOCUMENT(R"(Make a structured object as an enum value.
+
+.. note::
+  The enum will be stored just as an integer value, but the string name of the enumeration value can
+  be set with :meth:`SDObject.SetCustomString` if desired.
+
+:param str name: The name of the object.
+:param int val: The integer value of the enum itself.
+:return: The new object, owner by the caller.
+:rtype: SDObject
+)");
 inline SDObject *makeSDEnum(const rdcinflexiblestr &name, uint32_t val)
 {
   SDObject *ret = new SDObject(name, "enum"_lit);
@@ -1137,7 +1224,14 @@ inline SDObject *makeSDEnum(const rdcinflexiblestr &name, uint32_t val)
   return ret;
 }
 
-DOCUMENT("Make an array-type structured object");
+DOCUMENT(R"(Make a structured object which is an array.
+
+The array will be created empty, and new members can be added using methods on :class:`SDObject`.
+
+:param str name: The name of the object.
+:return: The new object, owner by the caller.
+:rtype: SDObject
+)");
 inline SDObject *makeSDArray(const rdcinflexiblestr &name)
 {
   SDObject *ret = new SDObject(name, "array"_lit);
@@ -1145,7 +1239,15 @@ inline SDObject *makeSDArray(const rdcinflexiblestr &name)
   return ret;
 }
 
-DOCUMENT("Make an struct-type structured object");
+DOCUMENT(R"(Make a structured object which is a struct.
+
+The struct will be created empty, and new members can be added using methods on :class:`SDObject`.
+
+:param str name: The name of the object.
+:param str structtype: The typename of the struct.
+:return: The new object, owner by the caller.
+:rtype: SDObject
+)");
 inline SDObject *makeSDStruct(const rdcinflexiblestr &name, const rdcinflexiblestr &structtype)
 {
   SDObject *ret = new SDObject(name, structtype);
@@ -1218,7 +1320,10 @@ struct SDChunk : public SDObject
   DOCUMENT("The :class:`SDChunkMetaData` with the metadata for this chunk.");
   SDChunkMetaData metadata;
 
-  DOCUMENT("Create a deep copy of this chunk.");
+  DOCUMENT(R"(
+:return: A new deep copy of this chunk, which the caller owns.
+:rtype: SDChunk
+)");
   SDChunk *Duplicate() const
   {
     SDChunk *ret = new SDChunk();
@@ -1246,7 +1351,7 @@ protected:
 
 DECLARE_REFLECTION_STRUCT(SDChunk);
 
-DOCUMENT("A ``list`` of :class:`SDChunk` objects");
+DOCUMENT("INTERNAL: An array of SDChunk*, mapped to a pure list in python");
 struct StructuredChunkList : public rdcarray<SDChunk *>
 {
   StructuredChunkList() : rdcarray<SDChunk *>() {}
@@ -1283,7 +1388,7 @@ DECLARE_REFLECTION_STRUCT(StructuredChunkList);
 
 DECLARE_REFLECTION_STRUCT(bytebuf);
 
-DOCUMENT("A ``list`` of ``bytes`` objects");
+DOCUMENT("INTERNAL: An array of bytebuf*, mapped to a pure list of bytes in python");
 struct StructuredBufferList : public rdcarray<bytebuf *>
 {
   StructuredBufferList() : rdcarray<bytebuf *>() {}
@@ -1362,15 +1467,25 @@ public:
       delete buf;
   }
 
-  DOCUMENT("A ``list`` of :class:`SDChunk` objects with the chunks in order.");
+  DOCUMENT(R"(The chunks in the file in order.
+
+:type: List[SDChunk]
+)");
   StructuredChunkList chunks;
 
-  DOCUMENT("A ``list`` of serialised buffers stored as ``bytes`` objects");
+  DOCUMENT(R"(The buffers in the file, as referenced by the chunks in :data:`chunks`.
+
+:type: List[bytes]
+)");
   StructuredBufferList buffers;
 
   DOCUMENT("The version of this structured stream, typically only used internally.");
   uint64_t version = 0;
 
+  DOCUMENT(R"(Swaps the contents of this file with another.
+
+:param SDFile other: The other file to swap with.
+)");
   inline void Swap(SDFile &other)
   {
     chunks.swap(other.chunks);

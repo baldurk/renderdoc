@@ -268,7 +268,7 @@ TEMPLATE_ARRAY_DECLARE(rdcarray);
 the built-in repr() function but it iterates over struct members and prints them out, where normally
 repr() would stop and say something like 'Swig Object of type ...'.
 
-:param Any object: The object to dump
+:param Any obj: The object to dump
 :return: The string representation of the object.
 :rtype: str
 )";
@@ -284,6 +284,9 @@ extern "C" PyObject *RENDERDOC_DumpObject(PyObject *obj);
 %extend SDObject {
   %feature("docstring") R"(Interprets the object as an integer and returns its value.
 Invalid if the object is not actually an integer.
+
+:return: The interpreted integer.
+:rtype: int
 )";
   PyObject *AsInt()
   {
@@ -295,11 +298,17 @@ Invalid if the object is not actually an integer.
   
   %feature("docstring") R"(Interprets the object as a floating point number and returns its value.
 Invalid if the object is not actually a floating point number.
+
+:return: The interpreted float.
+:rtype: float
 )";
   PyObject *AsFloat() { return ConvertToPy($self->data.basic.d); }
   
   %feature("docstring") R"(Interprets the object as a string and returns its value.
 Invalid if the object is not actually a string.
+
+:return: The interpreted string.
+:rtype: str
 )";
   PyObject *AsString() { return ConvertToPy($self->data.str); }
 }

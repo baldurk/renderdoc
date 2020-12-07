@@ -82,15 +82,15 @@ public:
 
   virtual rdcarray<GPUDevice> GetAvailableGPUs();
 
-  virtual int GetSectionCount();
+  virtual int32_t GetSectionCount();
 
-  virtual int FindSectionByName(const rdcstr &name);
+  virtual int32_t FindSectionByName(const rdcstr &name);
 
-  virtual int FindSectionByType(SectionType sectionType);
+  virtual int32_t FindSectionByType(SectionType sectionType);
 
-  virtual SectionProperties GetSectionProperties(int index);
+  virtual SectionProperties GetSectionProperties(int32_t index);
 
-  virtual bytebuf GetSectionContents(int index);
+  virtual bytebuf GetSectionContents(int32_t index);
 
   virtual bool WriteSection(const SectionProperties &props, const bytebuf &contents);
 

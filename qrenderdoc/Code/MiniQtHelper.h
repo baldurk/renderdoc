@@ -46,8 +46,8 @@ public:
   rdcstr GetWidgetType(QWidget *widget) override;
   QWidget *FindChildByName(QWidget *parent, const rdcstr &name) override;
   QWidget *GetParent(QWidget *widget) override;
-  int GetNumChildren(QWidget *widget) override;
-  QWidget *GetChild(QWidget *parent, int index) override;
+  int32_t GetNumChildren(QWidget *widget) override;
+  QWidget *GetChild(QWidget *parent, int32_t index) override;
   void DestroyWidget(QWidget *widget) override;
 
   // dialogs
@@ -63,17 +63,17 @@ public:
   QWidget *CreateSpacer(bool horizontal) override;
 
   void ClearContainedWidgets(QWidget *parent) override;
-  void AddGridWidget(QWidget *parent, int row, int column, QWidget *child, int rowSpan,
-                     int columnSpan) override;
+  void AddGridWidget(QWidget *parent, int32_t row, int32_t column, QWidget *child, int32_t rowSpan,
+                     int32_t columnSpan) override;
   void AddWidget(QWidget *parent, QWidget *child) override;
-  void InsertWidget(QWidget *parent, int index, QWidget *child) override;
+  void InsertWidget(QWidget *parent, int32_t index, QWidget *child) override;
 
   // widget manipulation
 
   void SetWidgetText(QWidget *widget, const rdcstr &text) override;
   rdcstr GetWidgetText(QWidget *widget) override;
 
-  void SetWidgetFont(QWidget *widget, const rdcstr &font, int fontSize, bool bold,
+  void SetWidgetFont(QWidget *widget, const rdcstr &font, int32_t fontSize, bool bold,
                      bool italic) override;
 
   void SetWidgetEnabled(QWidget *widget, bool enabled) override;
@@ -102,7 +102,7 @@ public:
   void SetWidgetChecked(QWidget *checkableWidget, bool checked) override;
   bool IsWidgetChecked(QWidget *checkableWidget) override;
 
-  QWidget *CreateSpinbox(int decimalPlaces, double step) override;
+  QWidget *CreateSpinbox(int32_t decimalPlaces, double step) override;
 
   void SetSpinboxBounds(QWidget *spinbox, double minVal, double maxVal) override;
   void SetSpinboxValue(QWidget *spinbox, double value) override;

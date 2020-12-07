@@ -186,7 +186,7 @@ struct ResourceFormat
 
   bool operator!=(const ResourceFormat &r) const { return !(*this == r); }
   DOCUMENT(R"(:return: The name of the format.
-:rtype: ``str``
+:rtype: str
 )");
   rdcstr Name() const
   {
@@ -196,7 +196,7 @@ struct ResourceFormat
   }
 
   DOCUMENT(R"(:return: ``True`` if the ``ResourceFormat`` is a 'special' non-regular type.
-:rtype: ``bool``
+:rtype: bool
 )");
   bool Special() const { return type != ResourceFormatType::Regular; }
   DOCUMENT(R"(The :class:`ResourceFormatType` of this format. If the value is not
@@ -212,13 +212,13 @@ struct ResourceFormat
   With BGRA order this means blue is in the first byte/lowest bits, but alpha is still always
   expected in the last byte/uppermost bits.
 
-:rtype: ``bool``
+:rtype: bool
 )");
   bool BGRAOrder() const { return (flags & ResourceFormat_BGRA) != 0; }
   DOCUMENT(R"(Equivalent to checking if :data:`compType` is :data:`CompType.UNormSRGB`
 
 :return: ``True`` if the components are SRGB corrected on read and write.
-:rtype: ``bool``
+:rtype: bool
 )");
   bool SRGBCorrected() const { return compType == CompType::UNormSRGB; }
   DOCUMENT(R"(Get the subsampling rate for a YUV format. Only valid when :data:`type` is
@@ -227,7 +227,7 @@ a YUV format like :attr:`ResourceFormatType.YUV8`.
 For other formats, 0 is returned.
 
 :return: The subsampling rate, e.g. 444 for 4:4:4 or 420 for 4:2:0
-:rtype: ``int``
+:rtype: int
 )");
   uint32_t YUVSubsampling() const
   {
@@ -246,7 +246,7 @@ a YUV format like :attr:`ResourceFormatType.YUV8`.
 For other formats, 1 is returned.
 
 :return: The number of planes
-:rtype: ``int``
+:rtype: int
 )");
   uint32_t YUVPlaneCount() const
   {
@@ -273,7 +273,7 @@ For other formats, 1 is returned.
 
 The value should be e.g. 444 for 4:4:4 or 422 for 4:2:2. Invalid values will result in 0 being set.
 
-:param int subsample: The new subsampling rate.
+:param int subsampling: The new subsampling rate.
 )");
   void SetYUVSubsampling(uint32_t subsampling)
   {
@@ -1772,7 +1772,10 @@ struct ModificationValue
   DOCUMENT("The stencil output, or ``-1`` if not available.");
   int32_t stencil;
 
-  DOCUMENT("Returns whether or not this modification value is valid.");
+  DOCUMENT(R"(
+:return: Returns whether or not this modification value is valid.
+:rtype: bool
+)");
   bool IsValid() const { return col.uintValue[0] != 0xdeadbeef || col.uintValue[1] != 0xdeadf00d; }
   DOCUMENT("Sets this modification value to be invalid.");
   void SetInvalid()
@@ -1893,7 +1896,7 @@ pixel.
   DOCUMENT(R"(Determine if this fragment passed all tests and wrote to the texture.
 
 :return: ``True`` if it passed all tests, ``False`` if it failed any.
-:rtype: ``bool``
+:rtype: bool
 )");
   bool Passed() const
   {

@@ -84,10 +84,10 @@ public:
 
   // IBufferViewer
   QWidget *Widget() override { return this; }
-  void ScrollToRow(int row, MeshDataStage stage = MeshDataStage::VSIn) override;
-  void ScrollToColumn(int column, MeshDataStage stage = MeshDataStage::VSIn) override;
-  void SetCurrentInstance(int instance) override;
-  void SetCurrentView(int view) override;
+  void ScrollToRow(int32_t row, MeshDataStage stage = MeshDataStage::VSIn) override;
+  void ScrollToColumn(int32_t column, MeshDataStage stage = MeshDataStage::VSIn) override;
+  void SetCurrentInstance(int32_t instance) override;
+  void SetCurrentView(int32_t view) override;
 
   // ICaptureViewer
   void OnCaptureLoaded() override;

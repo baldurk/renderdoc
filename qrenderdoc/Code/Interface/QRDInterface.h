@@ -116,9 +116,10 @@ struct CaptureSettings
   rdcstr workingDir;
   DOCUMENT("The command line to pass when running :data:`executable`.");
   rdcstr commandLine;
-  DOCUMENT(
-      "A ``list`` of :class:`~renderdoc.EnvironmentModification` with environment changes to "
-      "apply.");
+  DOCUMENT(R"(The environment changes to apply.
+
+:type: List[renderdoc.EnvironmentModification]
+)");
   rdcarray<EnvironmentModification> environment;
   DOCUMENT("The number of queued frames to capture, or 0 if no frames are queued to be captured.");
   uint32_t numQueuedFrames;
@@ -141,9 +142,13 @@ struct IMainWindow
 {
   typedef std::function<void(QWidget *focusWidget)> ShortcutCallback;
 
-  DOCUMENT(
-      "Retrieves the QWidget for this :class:`MainWindow` if PySide2 is available, or otherwise a "
-      "unique opaque pointer that can be passed to RenderDoc functions expecting a QWidget.");
+  DOCUMENT(R"(Retrieves the PySide2 QWidget for this :class:`MainWindow` if PySide2 is available, or otherwise
+returns a unique opaque pointer that can be passed back to any RenderDoc functions expecting a
+QWidget.
+
+:return: Return the widget handle, either a PySide2 handle or an opaque handle.
+:rtype: QWidget
+)");
   virtual QWidget *Widget() = 0;
 
   DOCUMENT(R"(Register a callback for a particular key shortcut.
@@ -161,6 +166,7 @@ will be invoked, if it exists.
 :param QWidget widget: A handle to the widget to use as the context for this shortcut, or ``None``
   for a global shortcut. Note that if an existing global shortcut exists the new one will not be
   registered.
+:param ShortcutCallback callback: The function to callback when the shortcut is hit.
 )");
   virtual void RegisterShortcut(const rdcstr &shortcut, QWidget *widget,
                                 ShortcutCallback callback) = 0;
@@ -188,9 +194,13 @@ DECLARE_REFLECTION_STRUCT(IMainWindow);
 DOCUMENT("The event browser window.");
 struct IEventBrowser
 {
-  DOCUMENT(
-      "Retrieves the QWidget for this :class:`EventBrowser` if PySide2 is available, or otherwise "
-      "unique opaque pointer that can be passed to RenderDoc functions expecting a QWidget.");
+  DOCUMENT(R"(Retrieves the PySide2 QWidget for this :class:`EventBrowser` if PySide2 is available, or otherwise
+returns a unique opaque pointer that can be passed back to any RenderDoc functions expecting a
+QWidget.
+
+:return: Return the widget handle, either a PySide2 handle or an opaque handle.
+:rtype: QWidget
+)");
   virtual QWidget *Widget() = 0;
 
   DOCUMENT("Updates the duration column if the selected time unit changes.");
@@ -206,9 +216,13 @@ DECLARE_REFLECTION_STRUCT(IEventBrowser);
 DOCUMENT("The API inspector window.");
 struct IAPIInspector
 {
-  DOCUMENT(
-      "Retrieves the QWidget for this :class:`APIInspector` if PySide2 is available, or otherwise "
-      "unique opaque pointer that can be passed to RenderDoc functions expecting a QWidget.");
+  DOCUMENT(R"(Retrieves the PySide2 QWidget for this :class:`APIInspector` if PySide2 is available, or otherwise
+returns a unique opaque pointer that can be passed back to any RenderDoc functions expecting a
+QWidget.
+
+:return: Return the widget handle, either a PySide2 handle or an opaque handle.
+:rtype: QWidget
+)");
   virtual QWidget *Widget() = 0;
 
   DOCUMENT("Refresh the current API view - useful if callstacks are now available.");
@@ -216,7 +230,7 @@ struct IAPIInspector
 
   DOCUMENT(R"(Expand the API view to reveal a given parameter and select it.
 
-:param SDObject param: The parameter to reveal and select.
+:param renderdoc.SDObject param: The parameter to reveal and select.
 )");
   virtual void RevealParameter(SDObject *param) = 0;
 
@@ -318,15 +332,20 @@ enum class PipelineStage : int
 DOCUMENT("The pipeline state viewer window.");
 struct IPipelineStateViewer
 {
-  DOCUMENT(
-      "Retrieves the QWidget for this :class:`PipelineStateViewer` if PySide2 is available, or "
-      "otherwise unique opaque pointer that can be passed to RenderDoc functions expecting a "
-      "QWidget.");
+  DOCUMENT(R"(Retrieves the PySide2 QWidget for this :class:`PipelineStateViewer` if PySide2 is available, or otherwise
+returns a unique opaque pointer that can be passed back to any RenderDoc functions expecting a
+QWidget.
+
+:return: Return the widget handle, either a PySide2 handle or an opaque handle.
+:rtype: QWidget
+)");
   virtual QWidget *Widget() = 0;
 
   DOCUMENT(R"(Prompt the user to save the binary form of the given shader to disk.
 
-:param ~renderdoc.ShaderReflection shader: The shader reflection data to save.
+:param renderdoc.ShaderReflection shader: The shader reflection data to save.
+:return: ``True`` if the shader was saved successfully, ``False`` if an error occurred.
+:rtype: bool
 )");
   virtual bool SaveShaderFile(const ShaderReflection *shader) = 0;
 
@@ -376,19 +395,22 @@ enum class FollowType : int
 DOCUMENT("The texture viewer window.");
 struct ITextureViewer
 {
-  DOCUMENT(
-      "Retrieves the QWidget for this :class:`TextureViewer` if PySide2 is available, or "
-      "otherwise unique opaque pointer that can be passed to RenderDoc functions expecting a "
-      "QWidget.");
+  DOCUMENT(R"(Retrieves the PySide2 QWidget for this :class:`TextureViewer` if PySide2 is available, or otherwise
+returns a unique opaque pointer that can be passed back to any RenderDoc functions expecting a
+QWidget.
+
+:return: Return the widget handle, either a PySide2 handle or an opaque handle.
+:rtype: QWidget
+)");
   virtual QWidget *Widget() = 0;
 
   DOCUMENT(R"(Open a texture view, optionally raising this window to the foreground.
 
-:param ~renderdoc.ResourceId resourceId: The ID of the texture to view.
-:param CompType typeCast: If possible interpret the texture with this type instead of its normal
-  type. If set to :data:`CompType.Typeless` then no cast is applied, otherwise where allowed the
-  texture data will be reinterpreted - e.g. from unsigned integers to floats, or to unsigned
-  normalised values.
+:param renderdoc.ResourceId resourceId: The ID of the texture to view.
+:param renderdoc.CompType typeCast: If possible interpret the texture with this type instead of its
+  normal type. If set to :data:`~renderdoc.CompType.Typeless` then no cast is applied, otherwise
+  where allowed the texture data will be reinterpreted - e.g. from unsigned integers to floats, or
+  to unsigned normalised values.
 :param bool focus: ``True`` if the :class:`TextureViewer` should be raised.
 )");
   virtual void ViewTexture(ResourceId resourceId, CompType typeCast, bool focus) = 0;
@@ -396,7 +418,7 @@ struct ITextureViewer
   DOCUMENT(R"(Select the 'following' view and choose which resource slot to follow.
 
 :param FollowType followType: The type of followed resource.
-:param ShaderStage stage: The shader stage of the shader reflection data to look up.
+:param renderdoc.ShaderStage stage: The shader stage of the shader reflection data to look up.
 :param int index: The index within the given resource list (if applicable) to follow.
 :param int arrayElement: The index within the given resource array (if applicable) to follow.
 )");
@@ -406,21 +428,21 @@ struct ITextureViewer
   DOCUMENT(R"(Return which resource is currently being displayed in the active tab.
 
 :return: The ID of the resource being displayed.
-:rtype: ~renderdoc.ResourceId
+:rtype: renderdoc.ResourceId
 )");
   virtual ResourceId GetCurrentResource() = 0;
 
   DOCUMENT(R"(Return which subresource is currently selected for viewing.
 
 :return: The subresource currently selected.
-:rtype: ~renderdoc.Subresource
+:rtype: renderdoc.Subresource
 )");
   virtual Subresource GetSelectedSubresource() = 0;
 
   DOCUMENT(R"(Select a particular subresource within the currently selected texture. Any out of
 bounds parameters will be clamped to the available subresources.
 
-:param Subresource sub: The subresource to select.
+:param renderdoc.Subresource sub: The subresource to select.
 )");
   virtual void SetSelectedSubresource(Subresource sub) = 0;
 
@@ -429,33 +451,32 @@ bounds parameters will be clamped to the available subresources.
 :param int x: The X co-ordinate.
 :param int y: The Y co-ordinate.
 )");
-  virtual void GotoLocation(int x, int y) = 0;
+  virtual void GotoLocation(uint32_t x, uint32_t y) = 0;
 
   DOCUMENT(R"(Return the currently selected texture overlay.
 
 :return: The currently selected texture overlay.
-:rtype: ~renderdoc.DebugOverlay
+:rtype: renderdoc.DebugOverlay
 )");
   virtual DebugOverlay GetTextureOverlay() = 0;
 
   DOCUMENT(R"(Changes the currently selected overlay the given pixel location in the current texture.
 
-:param ~renderdoc.DebugOverlay overlay: The overlay to enable.
-:param int y: The Y co-ordinate.
+:param renderdoc.DebugOverlay overlay: The overlay to enable.
 )");
   virtual void SetTextureOverlay(DebugOverlay overlay) = 0;
 
   DOCUMENT(R"(Return whether or not the texture viewer is currently auto-fitting the zoom level.
 
 :return: ``True`` if the zoom level is currently auto-fitting.
-:rtype: ``bool``
+:rtype: bool
 )");
   virtual bool IsZoomAutoFit() = 0;
 
   DOCUMENT(R"(Return the current zoom level, whether manually set or auto-calculated.
 
 :return: The current zoom level, with 100% being represented as 1.0.
-:rtype: ``float``
+:rtype: float
 )");
   virtual float GetZoomLevel() = 0;
 
@@ -471,7 +492,7 @@ bounds parameters will be clamped to the available subresources.
   DOCUMENT(R"(Return the current histogram blackpoint to whitepoint range.
 
 :return: The current histogram range.
-:rtype: ``tuple`` of two ``float``
+:rtype: Tuple[float,float]
 )");
   virtual rdcpair<float, float> GetHistogramRange() = 0;
 
@@ -488,7 +509,7 @@ If red is visible ``0x1`` will be set in the returned value, if blue is visible 
 etc.
 
 :return: The current bitmask showing channel visibility.
-:rtype: ``int``
+:rtype: int
 )");
   virtual uint32_t GetChannelVisibilityBits() = 0;
 
@@ -511,38 +532,42 @@ DECLARE_REFLECTION_STRUCT(ITextureViewer);
 DOCUMENT("The buffer viewer window, either a raw buffer or the geometry pipeline.");
 struct IBufferViewer
 {
-  DOCUMENT(
-      "Retrieves the QWidget for this :class:`BufferViewer` if PySide2 is available, or otherwise "
-      "unique opaque pointer that can be passed to RenderDoc functions expecting a QWidget.");
+  DOCUMENT(R"(Retrieves the PySide2 QWidget for this :class:`BufferViewer` if PySide2 is available, or otherwise
+returns a unique opaque pointer that can be passed back to any RenderDoc functions expecting a
+QWidget.
+
+:return: Return the widget handle, either a PySide2 handle or an opaque handle.
+:rtype: QWidget
+)");
   virtual QWidget *Widget() = 0;
 
   DOCUMENT(R"(Scroll to the given row in the given stage's data.
 
 :param int row: the row to scroll to.
-:param ~renderdoc.MeshDataStage stage: The stage of the geometry pipeline to scroll within.
+:param renderdoc.MeshDataStage stage: The stage of the geometry pipeline to scroll within.
 )");
-  virtual void ScrollToRow(int row, MeshDataStage stage = MeshDataStage::VSIn) = 0;
+  virtual void ScrollToRow(int32_t row, MeshDataStage stage = MeshDataStage::VSIn) = 0;
 
   DOCUMENT(R"(Scroll to the given column in the given stage's data.
 
 :param int column: the column to scroll to.
-:param ~renderdoc.MeshDataStage stage: The stage of the geometry pipeline to scroll within.
+:param renderdoc.MeshDataStage stage: The stage of the geometry pipeline to scroll within.
 )");
-  virtual void ScrollToColumn(int column, MeshDataStage stage = MeshDataStage::VSIn) = 0;
+  virtual void ScrollToColumn(int32_t column, MeshDataStage stage = MeshDataStage::VSIn) = 0;
 
   DOCUMENT(R"(For a mesh view, set the current instance. This is ignored when called on a raw buffer
 view.
 
 :param int instance: The instance to select, will be clamped to the range [0, numInstances-1]
 )");
-  virtual void SetCurrentInstance(int instance) = 0;
+  virtual void SetCurrentInstance(int32_t instance) = 0;
 
   DOCUMENT(R"(For a mesh view, set the current multiview view. This is ignored when called on a raw
 buffer view.
 
 :param int view: The view to select, will be clamped to the range [0, numViews-1]
 )");
-  virtual void SetCurrentView(int view) = 0;
+  virtual void SetCurrentView(int32_t view) = 0;
 
 protected:
   IBufferViewer() = default;
@@ -554,28 +579,31 @@ DECLARE_REFLECTION_STRUCT(IBufferViewer);
 DOCUMENT("The Resource inspector window.");
 struct IResourceInspector
 {
-  DOCUMENT(
-      "Retrieves the QWidget for this :class:`ResourceInspector` if PySide2 is available, or "
-      "otherwise "
-      "unique opaque pointer that can be passed to RenderDoc functions expecting a QWidget.");
+  DOCUMENT(R"(Retrieves the PySide2 QWidget for this :class:`ResourceInspector` if PySide2 is available, or otherwise
+returns a unique opaque pointer that can be passed back to any RenderDoc functions expecting a
+QWidget.
+
+:return: Return the widget handle, either a PySide2 handle or an opaque handle.
+:rtype: QWidget
+)");
   virtual QWidget *Widget() = 0;
 
   DOCUMENT(R"(Change the current resource being inspected.
 
-:param ~renderdoc.ResourceId id: The ID of the resource to inspect.
+:param renderdoc.ResourceId id: The ID of the resource to inspect.
 )");
   virtual void Inspect(ResourceId id) = 0;
 
   DOCUMENT(R"(Return which resource is currently being inspected.
 
 :return: The ID of the resource being inspected.
-:rtype: ~renderdoc.ResourceId
+:rtype: renderdoc.ResourceId
 )");
   virtual ResourceId CurrentResource() = 0;
 
   DOCUMENT(R"(Expand the resource initialisation chunks to reveal and select a given parameter.
 
-:param SDObject param: The parameter to reveal and select.
+:param renderdoc.SDObject param: The parameter to reveal and select.
 )");
   virtual void RevealParameter(SDObject *param) = 0;
 
@@ -589,16 +617,19 @@ DECLARE_REFLECTION_STRUCT(IResourceInspector);
 DOCUMENT("The executable capture window.");
 struct ICaptureDialog
 {
-  DOCUMENT(
-      "Retrieves the QWidget for this :class:`CaptureDialog` if PySide2 is available, or "
-      "otherwise unique opaque pointer that can be passed to RenderDoc functions expecting a "
-      "QWidget.");
+  DOCUMENT(R"(Retrieves the PySide2 QWidget for this :class:`CaptureDialog` if PySide2 is available, or otherwise
+returns a unique opaque pointer that can be passed back to any RenderDoc functions expecting a
+QWidget.
+
+:return: Return the widget handle, either a PySide2 handle or an opaque handle.
+:rtype: QWidget
+)");
   virtual QWidget *Widget() = 0;
 
   DOCUMENT(R"(Determines if the window is in inject or launch mode.
 
 :return: ``True`` if the window is set up for injecting.
-:rtype: ``bool``
+:rtype: bool
 )");
   virtual bool IsInjectMode() = 0;
   DOCUMENT(R"(Switches the window to or from inject mode.
@@ -627,7 +658,7 @@ struct ICaptureDialog
 
   DOCUMENT(R"(Sets the list of environment modifications to apply when launching.
 
-:param list modifications: The list of :class:`~renderdoc.EnvironmentModification` to apply.
+:param List[renderdoc.EnvironmentModification] modifications: The list of modifications to apply.
 )");
   virtual void SetEnvironmentModifications(const rdcarray<EnvironmentModification> &modifications) = 0;
 
@@ -675,10 +706,13 @@ DECLARE_REFLECTION_STRUCT(ICaptureDialog);
 DOCUMENT("The debug warnings and errors window.");
 struct IDebugMessageView
 {
-  DOCUMENT(
-      "Retrieves the QWidget for this :class:`DebugMessageView` if PySide2 is available, or "
-      "otherwise unique opaque pointer that can be passed to RenderDoc functions expecting a "
-      "QWidget.");
+  DOCUMENT(R"(Retrieves the PySide2 QWidget for this :class:`DebugMessageView` if PySide2 is available, or otherwise
+returns a unique opaque pointer that can be passed back to any RenderDoc functions expecting a
+QWidget.
+
+:return: Return the widget handle, either a PySide2 handle or an opaque handle.
+:rtype: QWidget
+)");
   virtual QWidget *Widget() = 0;
 
 protected:
@@ -691,10 +725,13 @@ DECLARE_REFLECTION_STRUCT(IDebugMessageView);
 DOCUMENT("The diagnostic log viewing window.");
 struct IDiagnosticLogView
 {
-  DOCUMENT(
-      "Retrieves the QWidget for this :class:`DiagnosticLogView` if PySide2 is available, or "
-      "otherwise unique opaque pointer that can be passed to RenderDoc functions expecting a "
-      "QWidget.");
+  DOCUMENT(R"(Retrieves the PySide2 QWidget for this :class:`DiagnosticLogView` if PySide2 is available, or otherwise
+returns a unique opaque pointer that can be passed back to any RenderDoc functions expecting a
+QWidget.
+
+:return: Return the widget handle, either a PySide2 handle or an opaque handle.
+:rtype: QWidget
+)");
   virtual QWidget *Widget() = 0;
 
 protected:
@@ -707,10 +744,13 @@ DECLARE_REFLECTION_STRUCT(IDiagnosticLogView);
 DOCUMENT("The capture comments window.");
 struct ICommentView
 {
-  DOCUMENT(
-      "Retrieves the QWidget for this :class:`CommentView` if PySide2 is available, or "
-      "otherwise unique opaque pointer that can be passed to RenderDoc functions expecting a "
-      "QWidget.");
+  DOCUMENT(R"(Retrieves the PySide2 QWidget for this :class:`CommentView` if PySide2 is available, or otherwise
+returns a unique opaque pointer that can be passed back to any RenderDoc functions expecting a
+QWidget.
+
+:return: Return the widget handle, either a PySide2 handle or an opaque handle.
+:rtype: QWidget
+)");
   virtual QWidget *Widget() = 0;
 
   DOCUMENT(R"(Sets the current comments text.
@@ -736,10 +776,13 @@ DECLARE_REFLECTION_STRUCT(ICommentView);
 DOCUMENT("The statistics window.");
 struct IStatisticsViewer
 {
-  DOCUMENT(
-      "Retrieves the QWidget for this :class:`StatisticsViewer` if PySide2 is available, or "
-      "otherwise unique opaque pointer that can be passed to RenderDoc functions expecting a "
-      "QWidget.");
+  DOCUMENT(R"(Retrieves the PySide2 QWidget for this :class:`StatisticsViewer` if PySide2 is available, or otherwise
+returns a unique opaque pointer that can be passed back to any RenderDoc functions expecting a
+QWidget.
+
+:return: Return the widget handle, either a PySide2 handle or an opaque handle.
+:rtype: QWidget
+)");
   virtual QWidget *Widget() = 0;
 
 protected:
@@ -750,21 +793,25 @@ protected:
 DOCUMENT("The timeline bar.");
 struct ITimelineBar
 {
-  DOCUMENT(
-      "Retrieves the QWidget for this :class:`TimelineBar` if PySide2 is available, or otherwise "
-      "unique opaque pointer that can be passed to RenderDoc functions expecting a QWidget.");
+  DOCUMENT(R"(Retrieves the PySide2 QWidget for this :class:`TimelineBar` if PySide2 is available, or otherwise
+returns a unique opaque pointer that can be passed back to any RenderDoc functions expecting a
+QWidget.
+
+:return: Return the widget handle, either a PySide2 handle or an opaque handle.
+:rtype: QWidget
+)");
   virtual QWidget *Widget() = 0;
 
   DOCUMENT(R"(Highlights the frame usage of the specified resource.
 
-:param ~renderdoc.ResourceId id: The ID of the resource to highlight.
+:param renderdoc.ResourceId id: The ID of the resource to highlight.
 )");
   virtual void HighlightResourceUsage(ResourceId id) = 0;
 
   DOCUMENT(R"(Highlights the modifications in a frame of a given resource.
 
-:param ~renderdoc.ResourceId id: The ID of the resource that is being modified.
-:param list history: A list of :class:`~renderdoc.PixelModification` events to display.
+:param renderdoc.ResourceId id: The ID of the resource that is being modified.
+:param List[renderdoc.PixelModification] history: A list of pixel events to display.
 )");
   virtual void HighlightHistory(ResourceId id, const rdcarray<PixelModification> &history) = 0;
 
@@ -778,10 +825,13 @@ DECLARE_REFLECTION_STRUCT(IStatisticsViewer);
 DOCUMENT("The performance counter view window.");
 struct IPerformanceCounterViewer
 {
-  DOCUMENT(
-      "Retrieves the QWidget for this :class:`PerformanceCounterViewer` if PySide2 is available, "
-      "or otherwise unique opaque pointer that can be passed to RenderDoc functions expecting a "
-      "QWidget.");
+  DOCUMENT(R"(Retrieves the PySide2 QWidget for this :class:`PerformanceCounterViewer` if PySide2 is available, or otherwise
+returns a unique opaque pointer that can be passed back to any RenderDoc functions expecting a
+QWidget.
+
+:return: Return the widget handle, either a PySide2 handle or an opaque handle.
+:rtype: QWidget
+)");
   virtual QWidget *Widget() = 0;
 
 protected:
@@ -794,9 +844,13 @@ DECLARE_REFLECTION_STRUCT(IPerformanceCounterViewer);
 DOCUMENT("The interactive python shell.");
 struct IPythonShell
 {
-  DOCUMENT(
-      "Retrieves the QWidget for this :class:`PythonShell` if PySide2 is available, or otherwise "
-      "unique opaque pointer that can be passed to RenderDoc functions expecting a QWidget.");
+  DOCUMENT(R"(Retrieves the PySide2 QWidget for this :class:`PythonShell` if PySide2 is available, or otherwise
+returns a unique opaque pointer that can be passed back to any RenderDoc functions expecting a
+QWidget.
+
+:return: Return the widget handle, either a PySide2 handle or an opaque handle.
+:rtype: QWidget
+)");
   virtual QWidget *Widget() = 0;
 
 protected:
@@ -816,10 +870,10 @@ DOCUMENT(R"(A shader window used for viewing, editing, or debugging.
 
   :param CaptureContext context: The current capture context.
   :param ShaderViewer viewer: The open shader viewer.
-  :param ResourceId id: The id of the shader being replaced.
-  :param ShaderStage stage: The shader stage of the shader being replaced.
-  :param ShaderEncoding encoding: The encoding of the files being passed.
-  :param ShaderCompileFlags flags: The flags to use during compilation.
+  :param renderdoc.ResourceId id: The id of the shader being replaced.
+  :param renderdoc.ShaderStage stage: The shader stage of the shader being replaced.
+  :param renderdoc.ShaderEncoding encoding: The encoding of the files being passed.
+  :param renderdoc.ShaderCompileFlags flags: The flags to use during compilation.
   :param str entryFunc: The name of the entry point.
   :param bytes source: The byte buffer containing the source - may just be text depending on the
     encoding.
@@ -832,7 +886,7 @@ DOCUMENT(R"(A shader window used for viewing, editing, or debugging.
 
   :param CaptureContext context: The current capture context.
   :param ShaderViewer viewer: The open shader viewer.
-  :param ResourceId id: The id of the shader being replaced.
+  :param renderdoc.ResourceId id: The id of the shader being replaced.
 )");
 struct IShaderViewer
 {
@@ -841,15 +895,19 @@ struct IShaderViewer
       SaveCallback;
   typedef std::function<void(ICaptureContext *, IShaderViewer *, ResourceId)> CloseCallback;
 
-  DOCUMENT(
-      "Retrieves the QWidget for this :class:`ShaderViewer` if PySide2 is available, or otherwise "
-      "unique opaque pointer that can be passed to RenderDoc functions expecting a QWidget.");
+  DOCUMENT(R"(Retrieves the PySide2 QWidget for this :class:`ShaderViewer` if PySide2 is available, or otherwise
+returns a unique opaque pointer that can be passed back to any RenderDoc functions expecting a
+QWidget.
+
+:return: Return the widget handle, either a PySide2 handle or an opaque handle.
+:rtype: QWidget
+)");
   virtual QWidget *Widget() = 0;
 
   DOCUMENT(R"(Retrieves the current step in the debugging.
 
 :return: The current step.
-:rtype: ``int``
+:rtype: int
 )");
   virtual uint32_t CurrentStep() = 0;
 
@@ -864,7 +922,7 @@ struct IShaderViewer
 :param int instruction: The instruction to toggle breakpoint at. If this is ``-1`` the nearest
   instruction after the current caret position is used.
 )");
-  virtual void ToggleBreakpoint(int instruction = -1) = 0;
+  virtual void ToggleBreakpoint(int32_t instruction = -1) = 0;
 
   DOCUMENT(R"(Show a list of shader compilation errors or warnings.
 
@@ -888,10 +946,13 @@ DECLARE_REFLECTION_STRUCT(IShaderViewer);
 DOCUMENT("A constant buffer preview window.");
 struct IConstantBufferPreviewer
 {
-  DOCUMENT(
-      "Retrieves the QWidget for this :class:`ConstantBufferPreviewer` if PySide2 is available, or "
-      "otherwise unique opaque pointer that can be passed to RenderDoc functions expecting a "
-      "QWidget.");
+  DOCUMENT(R"(Retrieves the PySide2 QWidget for this :class:`ConstantBufferPreviewer` if PySide2 is available, or otherwise
+returns a unique opaque pointer that can be passed back to any RenderDoc functions expecting a
+QWidget.
+
+:return: Return the widget handle, either a PySide2 handle or an opaque handle.
+:rtype: QWidget
+)");
   virtual QWidget *Widget() = 0;
 
 protected:
@@ -904,15 +965,18 @@ DECLARE_REFLECTION_STRUCT(IConstantBufferPreviewer);
 DOCUMENT("A pixel history window.");
 struct IPixelHistoryView
 {
-  DOCUMENT(
-      "Retrieves the QWidget for this :class:`PixelHistoryView` if PySide2 is available, or "
-      "otherwise unique opaque pointer that can be passed to RenderDoc functions expecting a "
-      "QWidget.");
+  DOCUMENT(R"(Retrieves the PySide2 QWidget for this :class:`PixelHistoryView` if PySide2 is available, or otherwise
+returns a unique opaque pointer that can be passed back to any RenderDoc functions expecting a
+QWidget.
+
+:return: Return the widget handle, either a PySide2 handle or an opaque handle.
+:rtype: QWidget
+)");
   virtual QWidget *Widget() = 0;
 
   DOCUMENT(R"(Set the history displayed in this window.
 
-:param list history: A list of :class:`~renderdoc.PixelModification` events to display.
+:param List[renderdoc.PixelModification] history: A list of pixel events to display.
 )");
   virtual void SetHistory(const rdcarray<PixelModification> &history) = 0;
 
@@ -971,7 +1035,7 @@ in UI side structures. This manager controls and serialises access to the underl
 
   Not a member function - the signature for any ``InvokeCallback`` callbacks.
 
-  :param ~renderdoc.ReplayController controller: The controller to access. Must not be cached or
+  :param renderdoc.ReplayController controller: The controller to access. Must not be cached or
     used after the callback returns.
 
 .. function:: DirectoryBrowseCallback(path, entries)
@@ -979,7 +1043,7 @@ in UI side structures. This manager controls and serialises access to the underl
   Not a member function - the signature for any ``DirectoryBrowseCallback`` callbacks.
 
   :param str path: The path that was queried for.
-  :param list entries: The :class:`~renderdoc.PathEntry` entries underneath the path, as relevant.
+  :param List[renderdoc.PathEntry] entries: The entries underneath the path, as relevant.
 )");
 struct IReplayManager
 {
@@ -997,7 +1061,7 @@ struct IReplayManager
 
 :param RemoteHost host: The host to connect to.
 :return: Whether or not the connection was successful.
-:rtype: ~renderdoc.ReplayStatus
+:rtype: renderdoc.ReplayStatus
 )");
   virtual ReplayStatus ConnectToRemoteServer(RemoteHost host) = 0;
 
@@ -1023,7 +1087,7 @@ struct IReplayManager
   DOCUMENT(R"(Retrieves the capture file handle for the currently open file.
 
 :return: The file handle active, or ``None`` if no capture is open.
-:rtype: ~renderdoc.CaptureAccess
+:rtype: renderdoc.CaptureAccess
 )");
   virtual ICaptureAccess *GetCaptureAccess() = 0;
 
@@ -1036,14 +1100,14 @@ This happens either locally, or on the remote server, depending on whether a con
   directory containing the executable is used.
 :param str cmdLine: The command line to use when running the executable, it will be processed in a
   platform specific way to generate arguments.
-:param list env: Any :class:`~renderdoc.EnvironmentModification` that should be made when running
-  the program.
+:param List[renderdoc.EnvironmentModification] env: Any environment changes that should be made when
+  running the program.
 :param str capturefile: The location to save any captures, if running locally.
-:param CaptureOptions opts: The capture options to use when injecting into the program.
-:return: The :class:`ExecuteResult` indicating both the status of the operation (success or failure)
-  and any reason for failure, or else the ident where the new application is listening for target
-  control if everything succeeded.
-:rtype: ExecuteResult
+:param renderdoc.CaptureOptions opts: The capture options to use when injecting into the program.
+:return: The :class:`~renderdoc.ExecuteResult` indicating both the status of the operation (success
+  or failure) and any reason for failure, or else the ident where the new application is listening
+  for target control if everything succeeded.
+:rtype: renderdoc.ExecuteResult
 )");
   virtual ExecuteResult ExecuteAndInject(const rdcstr &exe, const rdcstr &workingDir,
                                          const rdcstr &cmdLine,
@@ -1053,7 +1117,7 @@ This happens either locally, or on the remote server, depending on whether a con
   DOCUMENT(R"(Retrieve a list of drivers that the current remote server supports.
 
 :return: The list of supported replay drivers.
-:rtype: ``list`` of ``str``.
+:rtype: List[str]
 )");
   virtual rdcarray<rdcstr> GetRemoteSupport() = 0;
 
@@ -1064,10 +1128,9 @@ blocking fashion on the current thread.
 
 :param bool synchronous: If a capture is open, then ``True`` will use :meth:`BlockInvoke` to call
   the callback. Otherwise if ``False`` then :meth:`AsyncInvoke` will be used.
-:param method: The function to callback on the replay thread.
-:type method: :func:`DirectoryBrowseCallback`
+:param DirectoryBrowseCallback callback: The function to callback on the replay thread.
 )");
-  virtual void GetHomeFolder(bool synchronous, DirectoryBrowseCallback cb) = 0;
+  virtual void GetHomeFolder(bool synchronous, DirectoryBrowseCallback callback) = 0;
 
   DOCUMENT(R"(Query the remote host for the contents of a path.
 
@@ -1077,16 +1140,16 @@ blocking fashion on the current thread.
 :param str path: The path to query the contents of.
 :param bool synchronous: If a capture is open, then ``True`` will use :meth:`BlockInvoke` to call
   the callback. Otherwise if ``False`` then :meth:`AsyncInvoke` will be used.
-:param DirectoryBrowseCallback method: The function to callback on the replay thread.
+:param DirectoryBrowseCallback callback: The function to callback on the replay thread.
 )");
-  virtual void ListFolder(const rdcstr &path, bool synchronous, DirectoryBrowseCallback cb) = 0;
+  virtual void ListFolder(const rdcstr &path, bool synchronous, DirectoryBrowseCallback callback) = 0;
 
   DOCUMENT(R"(Copy a capture from the local machine to the remote host.
 
 :param str localpath: The path on the local machine to copy from.
 :param QWidget window: A handle to the window to use when showing a progress bar.
 :return: The path on the local machine where the file was saved, or empty if something went wrong.
-:rtype: ``str``
+:rtype: str
 )");
   virtual rdcstr CopyCaptureToRemote(const rdcstr &localpath, QWidget *window) = 0;
 
@@ -1106,7 +1169,7 @@ This can be used to identify if a command is long-running to display a progress 
 
 :return: The time in seconds that the current command has been executing for, or 0.0 if no command
   is executing.
-:rtype: ``float``
+:rtype: float
 )");
   virtual float GetCurrentProcessingTime() = 0;
 
@@ -1345,14 +1408,14 @@ data.
 
 :param str appname: The name of the application to use as part of the template.
 :return: The absolute path.
-:rtype: ``str``
+:rtype: str
 )");
   virtual rdcstr TempCaptureFilename(const rdcstr &appname) = 0;
 
   DOCUMENT(R"(Open a capture file for replay.
 
 :param str captureFile: The actual path to the capture file.
-:param ReplayOptions opts: The options controlling how the capture should be replayed.
+:param renderdoc.ReplayOptions opts: The options controlling how the capture should be replayed.
 :param str origFilename: The original filename, if the capture was copied remotely for replay.
 :param bool temporary: ``True`` if this is a temporary capture which should prompt the user for
   either save or delete on close.
@@ -1371,7 +1434,7 @@ time.
 
 :param str captureFile: The path to save the capture file to.
 :return: ``True`` if the save operation was successful.
-:rtype: ``bool``
+:rtype: bool
 )");
   virtual bool SaveCaptureTo(const rdcstr &captureFile) = 0;
 
@@ -1387,11 +1450,11 @@ This converts the file to a specified temporary .rdc and loads it, closing any e
 
 The capture must be available locally, if it's not this function will fail.
 
-:param CaptureFileFormat fmt: The capture file format to import from.
+:param renderdoc.CaptureFileFormat fmt: The capture file format to import from.
 :param str importfile: The path to import from.
 :param str rdcfile: The temporary path to save the rdc file to.
 :return: ``True`` if the import operation was successful and the capture was loaded.
-:rtype: ``bool``
+:rtype: bool
 )");
   virtual bool ImportCapture(const CaptureFileFormat &fmt, const rdcstr &importfile,
                              const rdcstr &rdcfile) = 0;
@@ -1400,15 +1463,15 @@ The capture must be available locally, if it's not this function will fail.
 
 The capture must be available locally, if it's not this function will fail.
 
-:param CaptureFileFormat fmt: The capture file format to export to.
+:param renderdoc.CaptureFileFormat fmt: The capture file format to export to.
 :param str exportfile: The path to export the capture file to.
 )");
   virtual void ExportCapture(const CaptureFileFormat &fmt, const rdcstr &exportfile) = 0;
 
   DOCUMENT(R"(Move the current replay to a new event in the capture.
 
-:param list exclude: A list of :class:`CaptureViewer` to exclude from being notified of this, to stop
-  infinite recursion.
+:param List[CaptureViewer] exclude: A list of viewers to exclude from being notified of this change,
+  to stop infinite recursion.
 :param int selectedEventId: The selected :data:`eventId <renderdoc.APIEvent.eventId>`. See
   :meth:`CaptureViewer.OnSelectedEventChanged` for more information.
 :param int eventId: The new current :data:`eventId <renderdoc.APIEvent.eventId>`. See
@@ -1425,7 +1488,9 @@ been made.
 
   DOCUMENT(R"(Determine if a resource has been replaced. See :meth:`RegisterReplacement`.
 
-:param ResourceId id: The id of the resource to check.
+:param renderdoc.ResourceId id: The id of the resource to check.
+:return: ``True`` if the resource has been replaced.
+:rtype: bool
 )");
   virtual bool IsResourceReplaced(ResourceId id) = 0;
 
@@ -1434,7 +1499,7 @@ change.
 
 This should be called at the same time as :meth:`ReplayController.ReplaceResource`.
 
-:param ResourceId id: The id of the resource that has been replaced.
+:param renderdoc.ResourceId id: The id of the resource that has been replaced.
 )");
   virtual void RegisterReplacement(ResourceId id) = 0;
 
@@ -1445,7 +1510,7 @@ This should be called at the same time as :meth:`ReplayController.RemoveReplacem
 
 See :meth:`ReplaceResource`.
 
-:param ResourceId id: The id of the original resource that was previously replaced.
+:param renderdoc.ResourceId id: The id of the original resource that was previously replaced.
 )");
   virtual void UnregisterReplacement(ResourceId id) = 0;
 
@@ -1480,14 +1545,14 @@ See :meth:`ReplaceResource`.
   DOCUMENT(R"(Check whether or not a capture is currently loaded.
 
 :return: ``True`` if a capture is loaded.
-:rtype: ``bool``
+:rtype: bool
 )");
   virtual bool IsCaptureLoaded() = 0;
 
   DOCUMENT(R"(Check whether or not the current capture is stored locally, or on a remote host.
 
 :return: ``True`` if a capture is local.
-:rtype: ``bool``
+:rtype: bool
 )");
   virtual bool IsCaptureLocal() = 0;
 
@@ -1497,21 +1562,21 @@ cleaned up on close (with a final prompt to save). Once they are save to disk, t
 temporary and treated like any other capture.
 
 :return: ``True`` if a capture is temporary.
-:rtype: ``bool``
+:rtype: bool
 )");
   virtual bool IsCaptureTemporary() = 0;
 
   DOCUMENT(R"(Check whether or not a capture is currently loading in-progress.
 
 :return: ``True`` if a capture is currently loading.
-:rtype: ``bool``
+:rtype: bool
 )");
   virtual bool IsCaptureLoading() = 0;
 
   DOCUMENT(R"(Retrieve the filename for the currently loaded capture.
 
 :return: The filename of the current capture.
-:rtype: ``str``
+:rtype: str
 )");
   virtual rdcstr GetCaptureFilename() = 0;
 
@@ -1526,14 +1591,14 @@ the UI which aren't reflected in the capture file on disk.
   DOCUMENT(R"(Retrieve the :class:`~renderdoc.FrameDescription` for the currently loaded capture.
 
 :return: The frame information.
-:rtype: ~renderdoc.FrameDescription
+:rtype: renderdoc.FrameDescription
 )");
   virtual const FrameDescription &FrameInfo() = 0;
 
   DOCUMENT(R"(Retrieve the :class:`~renderdoc.APIProperties` for the currently loaded capture.
 
 :return: The API properties.
-:rtype: ~renderdoc.APIProperties
+:rtype: renderdoc.APIProperties
 )");
   virtual const APIProperties &APIProps() = 0;
 
@@ -1542,7 +1607,7 @@ building target shaders for the currently loaded capture. See
 :meth:`~renderdoc.ReplayController.BuildTargetShader`.
 
 :return: The available encodings.
-:rtype: ``list`` of :class:`~renderdoc.ShaderEncoding`
+:rtype: List[renderdoc.ShaderEncoding]
 )");
   virtual rdcarray<ShaderEncoding> TargetShaderEncodings() = 0;
 
@@ -1551,7 +1616,7 @@ building custom shaders for the currently loaded capture. See
 :meth:`~renderdoc.ReplayController.BuildCustomShader`.
 
 :return: The available encodings.
-:rtype: ``list`` of :class:`~renderdoc.ShaderEncoding`
+:rtype: List[renderdoc.ShaderEncoding]
 )");
   virtual rdcarray<ShaderEncoding> CustomShaderEncodings() = 0;
 
@@ -1561,14 +1626,14 @@ In most cases, prefer using :meth:`CurEvent`. See :meth:`CaptureViewer.OnSelecte
 information for how this differs.
 
 :return: The current selected event.
-:rtype: ``int``
+:rtype: int
 )");
   virtual uint32_t CurSelectedEvent() = 0;
 
   DOCUMENT(R"(Retrieve the current :data:`eventId <renderdoc.APIEvent.eventId>`.
 
 :return: The current event.
-:rtype: ``int``
+:rtype: int
 )");
   virtual uint32_t CurEvent() = 0;
 
@@ -1578,50 +1643,50 @@ In most cases, prefer using :meth:`CurDrawcall`. See :meth:`CaptureViewer.OnSele
 more information for how this differs.
 
 :return: The currently selected drawcall.
-:rtype: ~renderdoc.DrawcallDescription
+:rtype: renderdoc.DrawcallDescription
 )");
   virtual const DrawcallDescription *CurSelectedDrawcall() = 0;
 
   DOCUMENT(R"(Retrieve the current drawcall.
 
 :return: The current drawcall, or ``None`` if no drawcall is selected.
-:rtype: ~renderdoc.DrawcallDescription
+:rtype: renderdoc.DrawcallDescription
 )");
   virtual const DrawcallDescription *CurDrawcall() = 0;
 
   DOCUMENT(R"(Retrieve the first drawcall in the capture.
 
 :return: The first drawcall.
-:rtype: ~renderdoc.DrawcallDescription
+:rtype: renderdoc.DrawcallDescription
 )");
   virtual const DrawcallDescription *GetFirstDrawcall() = 0;
 
   DOCUMENT(R"(Retrieve the last drawcall in the capture.
 
 :return: The last drawcall.
-:rtype: ~renderdoc.DrawcallDescription
+:rtype: renderdoc.DrawcallDescription
 )");
   virtual const DrawcallDescription *GetLastDrawcall() = 0;
 
   DOCUMENT(R"(Retrieve the root list of drawcalls in the current capture.
 
 :return: The root drawcalls.
-:rtype: ``list`` of :class:`~renderdoc.DrawcallDescription`
+:rtype: List[renderdoc.DrawcallDescription]
 )");
   virtual const rdcarray<DrawcallDescription> &CurDrawcalls() = 0;
 
   DOCUMENT(R"(Retrieve the information about a particular resource.
 
-:param ~renderdoc.ResourceId id: The ID of the resource to query about.
+:param renderdoc.ResourceId id: The ID of the resource to query about.
 :return: The information about a resource, or ``None`` if the ID does not correspond to a resource.
-:rtype: ~renderdoc.ResourceDescription
+:rtype: renderdoc.ResourceDescription
 )");
   virtual ResourceDescription *GetResource(ResourceId id) = 0;
 
   DOCUMENT(R"(Retrieve the list of resources in the current capture.
 
 :return: The list of resources.
-:rtype: ``list`` of :class:`~renderdoc.ResourceDescription`
+:rtype: List[renderdoc.ResourceDescription]
 )");
   virtual const rdcarray<ResourceDescription> &GetResources() = 0;
 
@@ -1632,16 +1697,18 @@ This will first check to see if a custom name has been set for the resource, and
 in the capture, either a name set via API-specific debug methods, or an auto-generated name based on
 the resource type.
 
+:param renderdoc.ResourceId id: The ID of the resource to query.
 :return: The current name of the resource.
-:rtype: ``str``
+:rtype: str
 )");
   virtual rdcstr GetResourceName(ResourceId id) = 0;
 
   DOCUMENT(R"(Returns the same name as :meth:`GetResourceName` but without any added suffix, e.g. to
 indicate the resource's status such as (Edited).
 
+:param renderdoc.ResourceId id: The ID of the resource to query.
 :return: The unsuffixed resource name.
-:rtype: ``str``
+:rtype: str
 )");
   virtual rdcstr GetResourceNameUnsuffixed(ResourceId id) = 0;
 
@@ -1651,8 +1718,9 @@ during capture time or with :meth:`SetResourceCustomName`.
 If not, the name is just auto-generated based on the ID and resource type, so depending on
 circumstance it may be preferable to omit the name.
 
+:param renderdoc.ResourceId id: The ID of the resource to query.
 :return: Whether the name for the resource has just been auto-generated.
-:rtype: ``bool``
+:rtype: bool
 )");
   virtual bool IsAutogeneratedName(ResourceId id) = 0;
 
@@ -1663,8 +1731,9 @@ generated just from the ID, or if it has been set to some human readable name. T
 only check if a name has been set in the UI itself, a resource could still have a custom name that
 was set programmatically during capture time.
 
+:param renderdoc.ResourceId id: The ID of the resource to query.
 :return: Whether the name for the resource has been customised with :meth:`SetResourceCustomName`.
-:rtype: ``bool``
+:rtype: bool
 )");
   virtual bool HasResourceCustomName(ResourceId id) = 0;
 
@@ -1677,7 +1746,7 @@ To remove a custom name that has been set previously, specify the empty string a
 custom name will be removed, and instead :meth:`GetResourceName` will fall back to returning any
 name fetched from the capture.
 
-:param ~renderdoc.ResourceId id: The ID of the resource to name.
+:param renderdoc.ResourceId id: The ID of the resource to name.
 :param str name: The name to provide, or an empty string to remove any previous custom name.
 )");
   virtual void SetResourceCustomName(ResourceId id, const rdcstr &name) = 0;
@@ -1692,47 +1761,47 @@ The index starts at 1, so initialising an internal cache to 0 will cause the fir
 considered out of date
 
 :return: An incrementing index that can be used as a quick check if any names have changed.
-:rtype: ``int``
+:rtype: int
 )");
-  virtual int ResourceNameCacheID() = 0;
+  virtual int32_t ResourceNameCacheID() = 0;
 
   DOCUMENT(R"(Retrieve the information about a particular texture.
 
-:param ~renderdoc.ResourceId id: The ID of the texture to query about.
+:param renderdoc.ResourceId id: The ID of the texture to query about.
 :return: The information about a texture, or ``None`` if the ID does not correspond to a texture.
-:rtype: ~renderdoc.TextureDescription
+:rtype: renderdoc.TextureDescription
 )");
   virtual TextureDescription *GetTexture(ResourceId id) = 0;
 
   DOCUMENT(R"(Retrieve the list of textures in the current capture.
 
 :return: The list of textures.
-:rtype: ``list`` of :class:`~renderdoc.TextureDescription`
+:rtype: List[renderdoc.TextureDescription]
 )");
   virtual const rdcarray<TextureDescription> &GetTextures() = 0;
 
   DOCUMENT(R"(Retrieve the information about a particular buffer.
 
-:param ~renderdoc.ResourceId id: The ID of the buffer to query about.
+:param renderdoc.ResourceId id: The ID of the buffer to query about.
 :return: The information about a buffer, or ``None`` if the ID does not correspond to a buffer.
-:rtype: ~renderdoc.BufferDescription
+:rtype: renderdoc.BufferDescription
 )");
   virtual BufferDescription *GetBuffer(ResourceId id) = 0;
 
   DOCUMENT(R"(Retrieve the list of buffers in the current capture.
 
 :return: The list of buffers.
-:rtype: ``list`` of :class:`~renderdoc.BufferDescription`
+:rtype: List[renderdoc.BufferDescription]
 )");
   virtual const rdcarray<BufferDescription> &GetBuffers() = 0;
 
   DOCUMENT(R"(Retrieve the information about a drawcall at a given
 :data:`eventId <renderdoc.APIEvent.eventId>`.
 
-:param int id: The :data:`eventId <renderdoc.APIEvent.eventId>` to query for.
+:param int eventId: The :data:`eventId <renderdoc.APIEvent.eventId>` to query for.
 :return: The information about the drawcall, or ``None`` if the
   :data:`eventId <renderdoc.APIEvent.eventId>` doesn't correspond to a drawcall.
-:rtype: ~renderdoc.BufferDescription
+:rtype: renderdoc.DrawcallDescription
 )");
   virtual const DrawcallDescription *GetDrawcall(uint32_t eventId) = 0;
 
@@ -1747,7 +1816,7 @@ again, any previous connection will be closed.
 
 :param str filename: The filename of the extracted temporary RGP capture on disk.
 :return: Whether RGP launched successfully.
-:rtype: ``bool``
+:rtype: bool
 )");
   virtual bool OpenRGPProfile(const rdcstr &filename) = 0;
 
@@ -1770,14 +1839,14 @@ called.
   DOCUMENT(R"(Retrieve the :class:`~renderdoc.SDFile` for the currently open capture.
 
 :return: The structured file.
-:rtype: ~renderdoc.SDFile
+:rtype: renderdoc.SDFile
 )");
   virtual const SDFile &GetStructuredFile() = 0;
 
   DOCUMENT(R"(Retrieve the current windowing system in use.
 
 :return: The active windowing system.
-:rtype: ~renderdoc.WindowingSystem
+:rtype: renderdoc.WindowingSystem
 )");
   virtual WindowingSystem CurWindowingSystem() = 0;
 
@@ -1789,7 +1858,7 @@ called.
 
 :param QWidget window: The window to create windowing data for.
 :return: The windowing data.
-:rtype: ~renderdoc.WindowingData
+:rtype: renderdoc.WindowingData
 )");
   virtual WindowingData CreateWindowingData(QWidget *window) = 0;
 
@@ -1797,23 +1866,23 @@ called.
 as well as messages generated during replay and analysis.
 
 :return: The debug messages generated to date.
-:rtype: ``list`` of :class:`~renderdoc.DebugMessage`
+:rtype: List[renderdoc.DebugMessage]
 )");
   virtual const rdcarray<DebugMessage> &DebugMessages() = 0;
 
   DOCUMENT(R"(Retrieve how many messages in :meth:`DebugMessages` are currently unread.
 
 :return: The number of unread messages.
-:rtype: ``int``
+:rtype: int
 )");
-  virtual int UnreadMessageCount() = 0;
+  virtual int32_t UnreadMessageCount() = 0;
 
   DOCUMENT("Mark all messages as read, resets :meth:`UnreadMessageCount` to 0.");
   virtual void MarkMessagesRead() = 0;
 
   DOCUMENT(R"(Add messages into the list returned by :meth:`DebugMessages`. Initially set to unread.
 
-:param list msgs: A list of :class:`~renderdoc.DebugMessage` to add.
+:param List[renderdoc.DebugMessage] msgs: A list of debug messages to add.
 )");
   virtual void AddMessages(const rdcarray<DebugMessage> &msgs) = 0;
 
@@ -1826,7 +1895,7 @@ Examples of fields are:
 
 :param str key: The name of the notes field to retrieve.
 :return: The contents, or an empty string if the field doesn't exist.
-:rtype: ``str``
+:rtype: str
 )");
   virtual rdcstr GetNotes(const rdcstr &key) = 0;
 
@@ -1846,7 +1915,7 @@ The list of bookmarks is not necessarily sorted by eventId. Thus, bookmark 1 is 
 until it is removed, the indices do not shift as new bookmarks are added or removed.
 
 :return: The currently set bookmarks.
-:rtype: ``list`` of :class:`EventBookmark`
+:rtype: List[EventBookmark]
 )");
   virtual rdcarray<EventBookmark> GetBookmarks() = 0;
 
@@ -1877,7 +1946,7 @@ If no bookmark exists, this function will do nothing.
   DOCUMENT(R"(Retrieve the current singleton :class:`EventBrowser`.
 
 :return: The current window, which is created (but not shown) it there wasn't one open.
-:rtype: ~qrenderdoc.EventBrowser
+:rtype: EventBrowser
 )");
   virtual IEventBrowser *GetEventBrowser() = 0;
 
@@ -1891,7 +1960,7 @@ If no bookmark exists, this function will do nothing.
   DOCUMENT(R"(Retrieve the current singleton :class:`TextureViewer`.
 
 :return: The current window, which is created (but not shown) it there wasn't one open.
-:rtype: ~qrenderdoc.TextureViewer
+:rtype: TextureViewer
 )");
   virtual ITextureViewer *GetTextureViewer() = 0;
 
@@ -1905,7 +1974,7 @@ If no bookmark exists, this function will do nothing.
   DOCUMENT(R"(Retrieve the current singleton :class:`PipelineStateViewer`.
 
 :return: The current window, which is created (but not shown) it there wasn't one open.
-:rtype: ~qrenderdoc.PipelineStateViewer
+:rtype: PipelineStateViewer
 )");
   virtual IPipelineStateViewer *GetPipelineViewer() = 0;
 
@@ -1926,7 +1995,7 @@ If no bookmark exists, this function will do nothing.
   DOCUMENT(R"(Retrieve the current singleton :class:`LogView`.
 
 :return: The current window, which is created (but not shown) it there wasn't one open.
-:rtype: LogView
+:rtype: DiagnosticLogView
 )");
   virtual IDiagnosticLogView *GetDiagnosticLogView() = 0;
 
@@ -1975,98 +2044,98 @@ If no bookmark exists, this function will do nothing.
   DOCUMENT(R"(Check if there is a current :class:`EventBrowser` open.
 
 :return: ``True`` if there is a window open.
-:rtype: ``bool``
+:rtype: bool
 )");
   virtual bool HasEventBrowser() = 0;
 
   DOCUMENT(R"(Check if there is a current :class:`APIInspector` open.
 
 :return: ``True`` if there is a window open.
-:rtype: ``bool``
+:rtype: bool
 )");
   virtual bool HasAPIInspector() = 0;
 
   DOCUMENT(R"(Check if there is a current :class:`TextureViewer` open.
 
 :return: ``True`` if there is a window open.
-:rtype: ``bool``
+:rtype: bool
 )");
   virtual bool HasTextureViewer() = 0;
 
   DOCUMENT(R"(Check if there is a current :class:`PipelineStateViewer` open.
 
 :return: ``True`` if there is a window open.
-:rtype: ``bool``
+:rtype: bool
 )");
   virtual bool HasPipelineViewer() = 0;
 
   DOCUMENT(R"(Check if there is a current mesh previewing :class:`BufferViewer` open.
 
 :return: ``True`` if there is a window open.
-:rtype: ``bool``
+:rtype: bool
 )");
   virtual bool HasMeshPreview() = 0;
 
   DOCUMENT(R"(Check if there is a current :class:`CaptureDialog` open.
 
 :return: ``True`` if there is a window open.
-:rtype: ``bool``
+:rtype: bool
 )");
   virtual bool HasCaptureDialog() = 0;
 
   DOCUMENT(R"(Check if there is a current :class:`DebugMessageView` open.
 
 :return: ``True`` if there is a window open.
-:rtype: ``bool``
+:rtype: bool
 )");
   virtual bool HasDebugMessageView() = 0;
 
   DOCUMENT(R"(Check if there is a current :class:`DiagnosticLogView` open.
 
 :return: ``True`` if there is a window open.
-:rtype: ``bool``
+:rtype: bool
 )");
   virtual bool HasDiagnosticLogView() = 0;
 
   DOCUMENT(R"(Check if there is a current :class:`CommentView` open.
 
 :return: ``True`` if there is a window open.
-:rtype: ``bool``
+:rtype: bool
 )");
   virtual bool HasCommentView() = 0;
 
   DOCUMENT(R"(Check if there is a current :class:`PerformanceCounterViewer` open.
 
 :return: ``True`` if there is a window open.
-:rtype: ``bool``
+:rtype: bool
 )");
   virtual bool HasPerformanceCounterViewer() = 0;
 
   DOCUMENT(R"(Check if there is a current :class:`StatisticsViewer` open.
 
 :return: ``True`` if there is a window open.
-:rtype: ``bool``
+:rtype: bool
 )");
   virtual bool HasStatisticsViewer() = 0;
 
   DOCUMENT(R"(Check if there is a current :class:`TimelineBar` open.
 
 :return: ``True`` if there is a window open.
-:rtype: ``bool``
+:rtype: bool
 )");
   virtual bool HasTimelineBar() = 0;
 
   DOCUMENT(R"(Check if there is a current :class:`PythonShell` open.
 
 :return: ``True`` if there is a window open.
-:rtype: ``bool``
+:rtype: bool
 )");
   virtual bool HasPythonShell() = 0;
 
   DOCUMENT(R"(Check if there is a current :class:`ResourceInspector` open.
 
 :return: ``True`` if there is a window open.
-:rtype: ``bool``
+:rtype: bool
 )");
   virtual bool HasResourceInspector() = 0;
 
@@ -2110,14 +2179,14 @@ place if needed.
 
   DOCUMENT(R"(Show a new :class:`ShaderViewer` window, showing an editable view of a given shader.
 
-:param ~renderdoc.ResourceId id: The shader object, if applicable, that's being edited. If this edit
+:param renderdoc.ResourceId id: The shader object, if applicable, that's being edited. If this edit
   corresponds to no shader object (such as if it's a custom shader) this can be a null ID.
-:param ~renderdoc.ShaderStage stage: The shader stage for this shader.
+:param renderdoc.ShaderStage stage: The shader stage for this shader.
 :param str entryPoint: The entry point to be used when compiling the edited shader.
-:param list files: The files stored in a ``list`` with 2-tuples of ``str``. The first element being
-  the filename and the second being the file contents.
-:param ~renderdoc.ShaderEncoding shaderEncoding: The encoding of the input files.
-:param ~renderdoc.ShaderCompileFlags flags: The flags originally used to compile the shader.
+:param List[Tuple[str,str]] files: The source files, with each tuple being a pair of the filename
+  and the file contents.
+:param renderdoc.ShaderEncoding shaderEncoding: The encoding of the input files.
+:param renderdoc.ShaderCompileFlags flags: The flags originally used to compile the shader.
 :param ShaderViewer.SaveCallback saveCallback: The callback function to call when a save/update is
   triggered.
 :param ShaderViewer.CloseCallback closeCallback: The callback function to call when the shader
@@ -2134,11 +2203,11 @@ place if needed.
   DOCUMENT(R"(Show a new :class:`ShaderViewer` window, showing a read-only view of a debug trace
 through the execution of a given shader.
 
-:param ~renderdoc.ShaderBindpointMapping bind: The bindpoint mapping for the shader to view.
-:param ~renderdoc.ShaderReflection shader: The reflection data for the shader to view.
-:param ~renderdoc.ResourceId pipeline: The pipeline state object, if applicable, that this shader is
+:param renderdoc.ShaderBindpointMapping bind: The bindpoint mapping for the shader to view.
+:param renderdoc.ShaderReflection shader: The reflection data for the shader to view.
+:param renderdoc.ResourceId pipeline: The pipeline state object, if applicable, that this shader is
   bound to.
-:param ~renderdoc.ShaderDebugTrace trace: The execution trace of the debugged shader.
+:param renderdoc.ShaderDebugTrace trace: The execution trace of the debugged shader.
 :param str debugContext: A human-readable context string describing which invocation of this shader
   was debugged. For example 'Pixel 12,34 at eventId 678'.
 :return: The new :class:`ShaderViewer` window opened, but not shown.
@@ -2150,8 +2219,8 @@ through the execution of a given shader.
 
   DOCUMENT(R"(Show a new :class:`ShaderViewer` window, showing a read-only view of a given shader.
 
-:param ~renderdoc.ShaderReflection shader: The reflection data for the shader to view.
-:param ~renderdoc.ResourceId pipeline: The pipeline state object, if applicable, that this shader is
+:param renderdoc.ShaderReflection shader: The reflection data for the shader to view.
+:param renderdoc.ResourceId pipeline: The pipeline state object, if applicable, that this shader is
   bound to.
 :return: The new :class:`ShaderViewer` window opened, but not shown.
 :rtype: ShaderViewer
@@ -2162,7 +2231,7 @@ through the execution of a given shader.
 
 :param int byteOffset: The offset in bytes to the start of the buffer data to show.
 :param int byteSize: The number of bytes in the buffer to show.
-:param ~renderdoc.ResourceId id: The ID of the buffer to fetch data from.
+:param renderdoc.ResourceId id: The ID of the buffer to fetch data from.
 :param str format: Optionally a HLSL/GLSL style formatting string.
 :return: The new :class:`BufferViewer` window opened, but not shown.
 :rtype: BufferViewer
@@ -2173,8 +2242,8 @@ through the execution of a given shader.
   DOCUMENT(R"(Show a new :class:`BufferViewer` window, showing a read-only view of a texture's raw
 bytes.
 
-:param ~renderdoc.ResourceId id: The ID of the texture itself.
-:param Subresource sub: The subresource within this texture to use.
+:param renderdoc.ResourceId id: The ID of the texture itself.
+:param renderdoc.Subresource sub: The subresource within this texture to use.
 :param str format: Optionally a HLSL/GLSL style formatting string.
 :return: The new :class:`BufferViewer` window opened, but not shown.
 :rtype: BufferViewer
@@ -2185,7 +2254,7 @@ bytes.
   DOCUMENT(R"(Show a new :class:`ConstantBufferPreviewer` window, showing a read-only view of a the
 variables in a constant buffer with their values.
 
-:param ~renderdoc.ShaderStage stage: The stage that the constant buffer is bound to.
+:param renderdoc.ShaderStage stage: The stage that the constant buffer is bound to.
 :param int slot: The index in the shader's constant buffer list to look up.
 :param int idx: For APIs that support arrayed resource binds, the index in the constant buffer
   array.
@@ -2198,15 +2267,15 @@ variables in a constant buffer with their values.
   DOCUMENT(R"(Show a new :class:`PixelHistoryView` window, showing the results from a pixel history
 operation.
 
-:param ~renderdoc.ResourceId id: The ID of the texture to show the history of.
-:param int X: The x co-ordinate of the pixel to search for.
-:param int Y: The y co-ordinate of the pixel to search for.
-:param ~renderdoc.TextureDisplay display: The texture display configuration to use when looking up
+:param renderdoc.ResourceId id: The ID of the texture to show the history of.
+:param int x: The x co-ordinate of the pixel to search for.
+:param int y: The y co-ordinate of the pixel to search for.
+:param renderdoc.TextureDisplay display: The texture display configuration to use when looking up
   the history.
 :return: The new :class:`PixelHistoryView` window opened, but not shown.
 :rtype: PixelHistoryView
 )");
-  virtual IPixelHistoryView *ViewPixelHistory(ResourceId texID, int x, int y,
+  virtual IPixelHistoryView *ViewPixelHistory(ResourceId id, uint32_t x, uint32_t y,
                                               const TextureDisplay &display) = 0;
 
   DOCUMENT(R"(Creates and returns a built-in window.
@@ -2216,7 +2285,7 @@ by user code.
 
 :param str objectName: The built-in name of a singleton window.
 :return: The handle to the existing or newly created window of this type.
-:rtype: ``QWidget``
+:rtype: QWidget
 )");
   virtual QWidget *CreateBuiltinWindow(const rdcstr &objectName) = 0;
 
@@ -2238,7 +2307,7 @@ currently docked.
 
   DOCUMENT(R"(Adds a new window within the docking system.
 
-:param QWidget dockWindow: The new window to add.
+:param QWidget newWindow: The new window to add.
 :param DockReference ref: The location to add the new window, possibly relative to ``refWindow``.
 :param QWidget refWindow: The window to refer to if the new window is being added relative, or can
   be ``None`` if the new location is absolute.
@@ -2254,7 +2323,7 @@ The return value will be ``None`` if the capture is not using the D3D11 API.
 You should determine the API of the capture first before fetching it.
 
 :return: The current D3D11 pipeline state.
-:rtype: ~renderdoc.D3D11State
+:rtype: renderdoc.D3D11State
 )");
   virtual const D3D11Pipe::State *CurD3D11PipelineState() = 0;
 
@@ -2264,7 +2333,7 @@ The return value will be ``None`` if the capture is not using the D3D12 API.
 You should determine the API of the capture first before fetching it.
 
 :return: The current D3D12 pipeline state.
-:rtype: ~renderdoc.D3D12State
+:rtype: renderdoc.D3D12State
 )");
   virtual const D3D12Pipe::State *CurD3D12PipelineState() = 0;
 
@@ -2274,7 +2343,7 @@ The return value will be ``None`` if the capture is not using the OpenGL API.
 You should determine the API of the capture first before fetching it.
 
 :return: The current OpenGL pipeline state.
-:rtype: ~renderdoc.GLState
+:rtype: renderdoc.GLState
 )");
   virtual const GLPipe::State *CurGLPipelineState() = 0;
 
@@ -2284,7 +2353,7 @@ The return value will be ``None`` if the capture is not using the Vulkan API.
 You should determine the API of the capture first before fetching it.
 
 :return: The current Vulkan pipeline state.
-:rtype: ~renderdoc.VKState
+:rtype: renderdoc.VKState
 )");
   virtual const VKPipe::State *CurVulkanPipelineState() = 0;
 
@@ -2294,7 +2363,7 @@ This pipeline state will always be valid, and allows queries that will work rega
 capture's API.
 
 :return: The current API-agnostic abstracted pipeline state.
-:rtype: ~renderdoc.PipeState
+:rtype: renderdoc.PipeState
 )");
   virtual const PipeState &CurPipelineState() = 0;
 

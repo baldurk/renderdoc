@@ -104,13 +104,13 @@ inline rdcstr ToolExecutable(KnownShaderTool tool)
   return "";
 }
 
-DOCUMENT(R"(Returns the expected default input :class:`ShaderEncoding` that a
+DOCUMENT(R"(Returns the expected default input :class:`~renderdoc.ShaderEncoding` that a
 :class:`KnownShaderTool` expects. This may not be accurate and may be configurable depending on the
 tool.
 
 :param KnownShaderTool tool: The tool to get the input encoding for.
 :return: The encoding that this tool expects as an input by default.
-:rtype: ShaderEncoding
+:rtype: renderdoc.ShaderEncoding
 )");
 inline ShaderEncoding ToolInput(KnownShaderTool tool)
 {
@@ -128,13 +128,13 @@ inline ShaderEncoding ToolInput(KnownShaderTool tool)
   return ShaderEncoding::Unknown;
 }
 
-DOCUMENT(R"(Returns the expected default output :class:`ShaderEncoding` that a
+DOCUMENT(R"(Returns the expected default output :class:`~renderdoc.ShaderEncoding` that a
 :class:`KnownShaderTool` produces. This may not be accurate and may be configurable depending on the
 tool.
 
 :param KnownShaderTool tool: The tool to get the output encoding for.
 :return: The encoding that this tool produces as an output by default.
-:rtype: ShaderEncoding
+:rtype: renderdoc.ShaderEncoding
 )");
 inline ShaderEncoding ToolOutput(KnownShaderTool tool)
 {
@@ -210,21 +210,21 @@ struct ShaderProcessingTool
   DOCUMENT(R"(Return the default arguments used when invoking this tool
 
 :return: The arguments specified for this tool.
-:rtype: ``str``
+:rtype: str
 )");
   rdcstr DefaultArguments() const;
 
   DOCUMENT(R"(Runs this program to disassemble a given shader reflection.
 
 :param QWidget window: A handle to the window to use when showing a progress bar or error messages.
-:param ~renderdoc.ShaderReflection shader: The shader to disassemble.
+:param renderdoc.ShaderReflection shader: The shader to disassemble.
 :param str args: arguments to pass to the tool. The default arguments can be obtained using
   :meth:`DefaultArguments` which can then be customised as desired. Passing an empty string uses the
   default arguments.
 :return: The result of running the tool.
 :rtype: ShaderToolOutput
 )");
-  ShaderToolOutput DisassembleShader(QWidget *window, const ShaderReflection *reflection,
+  ShaderToolOutput DisassembleShader(QWidget *window, const ShaderReflection *shader,
                                      rdcstr args) const;
 
   DOCUMENT(R"(Runs this program to disassemble a given shader source.
@@ -232,7 +232,7 @@ struct ShaderProcessingTool
 :param QWidget window: A handle to the window to use when showing a progress bar or error messages.
 :param str source: The source code, preprocessed into a single file.
 :param str entryPoint: The name of the entry point in the shader to compile.
-:param ~renderdoc.ShaderStage stage: The pipeline stage that this shader represents.
+:param renderdoc.ShaderStage stage: The pipeline stage that this shader represents.
 :param str args: arguments to pass to the tool. The default arguments can be obtained using
   :meth:`DefaultArguments` which can then be customised as desired. Passing an empty string uses the
   default arguments.
@@ -284,7 +284,7 @@ struct BugReport
   DOCUMENT(R"(Gets the URL for this report.
 
 :return: The URL to the report.
-:rtype: ``str``
+:rtype: str
 )");
   rdcstr URL() const;
 };
@@ -438,8 +438,9 @@ DECLARE_REFLECTION_ENUM(TimeUnit);
 
 DOCUMENT(R"(Gets the suffix for a time unit.
 
+:param TimeUnit unit: The unit to get a suffix for.
 :return: The one or two character suffix.
-:rtype: ``str``
+:rtype: str
 )");
 inline rdcstr UnitSuffix(TimeUnit unit)
 {
@@ -461,7 +462,7 @@ not then it's added to the end
 
 As the name suggests, this is used for tracking a 'recent file' list.
 
-:param list recentList: A ``list`` of ``str`` that is mutated by the function.
+:param List[str] recentList: The list that is mutated by the function.
 :param str file: The file to add to the list.
 )");
 void AddRecentFile(rdcarray<rdcstr> &recentList, const rdcstr &file);
@@ -471,7 +472,7 @@ present then the list is not modified.
 
 As the name suggests, this is used for tracking a 'recent file' list.
 
-:param list recentList: A ``list`` of ``str`` that is mutated by the function.
+:param List[str] recentList: The list that is mutated by the function.
 :param str file: The file to remove from the list.
 )");
 void RemoveRecentFile(rdcarray<rdcstr> &recentList, const rdcstr &file);
@@ -502,7 +503,9 @@ For more information about some of these settings that are user-facing see
 
 .. data:: RecentCaptureFiles
 
-  A ``list`` of ``str`` with the recently opened capture files.
+  The recently opened capture files.
+
+  :type: List[str]
 
 .. data:: LastCapturePath
 
@@ -515,7 +518,9 @@ For more information about some of these settings that are user-facing see
 
 .. data:: RecentCaptureSettings
 
-  A ``list`` of ``str`` with the recently opened capture settings files.
+  The recently opened capture settings files.
+
+  :type: List[str]
 
 .. data:: TemporaryCaptureDirectory
 
@@ -790,13 +795,14 @@ public:
   DOCUMENT(R"(Returns a list of all remote hosts.
 
 :return: The remote host list
-:rtype: ``list`` of ``RemoteHost``
+:rtype: List[RemoteHost]
 )");
   rdcarray<RemoteHost> GetRemoteHosts();
   DOCUMENT(R"(Look up a remote host by hostname.
 
+:param str hostname: The hostname to look up
 :return: The remote host for the given hostname, or an invalid ``RemoteHost`` if no such exists.
-:rtype: ``RemoteHost``
+:rtype: RemoteHost
 )");
   RemoteHost GetRemoteHost(const rdcstr &hostname);
 
@@ -824,7 +830,7 @@ not recommended that you call this function manually.
 
 :param str filename: The filename to load from
 :return: A boolean status if the load was successful.
-:rtype: ``bool``
+:rtype: bool
 )");
   bool Load(const rdcstr &filename);
 
@@ -832,7 +838,7 @@ not recommended that you call this function manually.
 propagated and will not be forgotten in the case of crash or otherwise unexpected exit.
 
 :return: A boolean status if the save was successful.
-:rtype: ``bool``
+:rtype: bool
 )");
   bool Save();
 
@@ -853,10 +859,9 @@ loading. It can explicitly save and close before relaunching.
 Changing the style after the application has started may not properly update everything, so to be
 sure the new style is applied, the application should be restarted.
 
-:param str name: The name of the setting.
 :return: ``True`` if the style was set successfully, ``False`` if there was a problem e.g. the value
   of :data:`UIStyle` was unrecognised or empty.
-:rtype: ``bool``
+:rtype: bool
 )");
   bool SetStyle();
 

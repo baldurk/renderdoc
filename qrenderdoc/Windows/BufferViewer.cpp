@@ -3386,13 +3386,13 @@ void BufferViewer::ScrollToColumn(RDTableView *view, int column)
   view->verticalScrollBar()->setValue(vs);
 }
 
-void BufferViewer::SetCurrentInstance(int instance)
+void BufferViewer::SetCurrentInstance(int32_t instance)
 {
   if(ui->instance->isVisible() && ui->instance->isEnabled())
     ui->instance->setValue(instance);
 }
 
-void BufferViewer::SetCurrentView(int view)
+void BufferViewer::SetCurrentView(int32_t view)
 {
   if(ui->viewIndex->isVisible() && ui->viewIndex->isEnabled())
     ui->viewIndex->setValue(view);
@@ -3440,7 +3440,7 @@ void BufferViewer::ViewTexture(ResourceId id, const Subresource &sub, const rdcs
   processFormat(format);
 }
 
-void BufferViewer::ScrollToRow(int row, MeshDataStage stage)
+void BufferViewer::ScrollToRow(int32_t row, MeshDataStage stage)
 {
   ScrollToRow(tableForStage(stage), row);
 
@@ -3451,7 +3451,7 @@ void BufferViewer::ScrollToRow(int row, MeshDataStage stage)
     ui->rowOffset->setValue(row);
 }
 
-void BufferViewer::ScrollToColumn(int column, MeshDataStage stage)
+void BufferViewer::ScrollToColumn(int32_t column, MeshDataStage stage)
 {
   ScrollToColumn(tableForStage(stage), column);
 

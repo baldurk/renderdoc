@@ -2000,11 +2000,6 @@ void CaptureContext::SetResourceCustomName(ResourceId id, const rdcstr &name)
   RefreshUIStatus({}, true, true);
 }
 
-int CaptureContext::ResourceNameCacheID()
-{
-  return m_CustomNameCachedID;
-}
-
 #if defined(RENDERDOC_PLATFORM_APPLE)
 extern "C" void *makeNSViewMetalCompatible(void *handle);
 #endif
@@ -2459,7 +2454,7 @@ IConstantBufferPreviewer *CaptureContext::ViewConstantBuffer(ShaderStage stage, 
   return new ConstantBufferPreviewer(*this, stage, slot, idx, m_MainWindow);
 }
 
-IPixelHistoryView *CaptureContext::ViewPixelHistory(ResourceId texID, int x, int y,
+IPixelHistoryView *CaptureContext::ViewPixelHistory(ResourceId texID, uint32_t x, uint32_t y,
                                                     const TextureDisplay &display)
 {
   return new PixelHistoryView(*this, texID, QPoint(x, y), display, m_MainWindow);

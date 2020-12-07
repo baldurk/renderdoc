@@ -560,9 +560,10 @@ struct LineColumnInfo
     return false;
   }
 
-  DOCUMENT(R"(:return: ``True`` if this object is equal to the parameter, disregarding
-  :data:`disassemblyLine`.
-:rtype: ``bool``
+  DOCUMENT(R"(
+:param LineColumnInfo o: The object to compare against.
+:return: ``True`` if this object is equal to the parameter, disregarding :data:`disassemblyLine`.
+:rtype: bool
 )");
   bool SourceEqual(const LineColumnInfo &o) const
   {
@@ -691,9 +692,11 @@ a different debug variable.
 )");
   rdcarray<SourceVariableMapping> sourceVars;
 
-  DOCUMENT(R"(A ``list`` of ``str`` with each function call in the current callstack at this line.
+  DOCUMENT(R"(The function names in the current callstack at this line.
 
 The oldest/outer function is first in the list, the newest/inner function is last.
+
+:type: List[str]
 )");
   rdcarray<rdcstr> callstack;
 };
@@ -781,8 +784,10 @@ If this is ``None`` then the trace is invalid.
 )");
   ShaderDebugger *debugger = NULL;
 
-  DOCUMENT(R"(A ``list`` of :class:`LineColumnInfo` detailing which source lines each instruction
-corresponds to
+  DOCUMENT(R"(An array of the same size as the number of instructions in the shader, with a mapping
+to source lines.
+
+:type: List[LineColumnInfo]
 )");
   rdcarray<LineColumnInfo> lineInfo;
 };

@@ -120,7 +120,7 @@ public:
   virtual uint32_t CurrentStep() override;
   virtual void SetCurrentStep(uint32_t step) override;
 
-  virtual void ToggleBreakpoint(int instruction = -1) override;
+  virtual void ToggleBreakpoint(int32_t instruction = -1) override;
 
   virtual void ShowErrors(const rdcstr &errors) override;
 

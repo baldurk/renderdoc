@@ -2143,7 +2143,7 @@ void TextureViewer::SetSelectedSubresource(Subresource sub)
     ui->sliceFace->setCurrentIndex(qMin(sub.slice, tex->arraysize - 1));
 }
 
-void TextureViewer::GotoLocation(int x, int y)
+void TextureViewer::GotoLocation(uint32_t x, uint32_t y)
 {
   if(!m_Ctx.IsCaptureLoaded())
     return;
@@ -2153,8 +2153,8 @@ void TextureViewer::GotoLocation(int x, int y)
   if(tex == NULL)
     return;
 
-  x = qMin(x << m_TexDisplay.subresource.mip, int(tex->width - 1));
-  y = qMin(y << m_TexDisplay.subresource.mip, int(tex->height - 1));
+  x = qMin(x << m_TexDisplay.subresource.mip, uint32_t(tex->width - 1));
+  y = qMin(y << m_TexDisplay.subresource.mip, uint32_t(tex->height - 1));
 
   m_PickedPoint = QPoint(x, y);
 

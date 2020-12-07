@@ -143,7 +143,7 @@ public:
 
   Subresource GetSelectedSubresource() override;
   void SetSelectedSubresource(Subresource sub) override;
-  void GotoLocation(int x, int y) override;
+  void GotoLocation(uint32_t x, uint32_t y) override;
   DebugOverlay GetTextureOverlay() override;
   void SetTextureOverlay(DebugOverlay overlay) override;
 
