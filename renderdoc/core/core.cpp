@@ -297,6 +297,13 @@ void RenderDoc::RecreateCrashHandler()
     RDCWARN("Disabling crash handling server due to detected chrome.");
     return;
   }
+
+  // ditto edge
+  if(exename.find("msedge.exe") && GetModuleHandleA("msedge.dll"))
+  {
+    RDCWARN("Disabling crash handling server due to detected chrome.");
+    return;
+  }
 #endif
 
   m_ExHandler = new CrashHandler(m_ExHandler);
