@@ -54,7 +54,8 @@ class D3D11DebugAPIWrapper : public DXBCDebug::DebugAPIWrapper
 {
 public:
   D3D11DebugAPIWrapper(WrappedID3D11Device *device, const DXBC::DXBCContainer *dxbc,
-                       DXBCDebug::GlobalState &globalState);
+                       DXBCDebug::GlobalState &globalState, uint32_t eid);
+  ~D3D11DebugAPIWrapper();
 
   void SetCurrentInstruction(uint32_t instruction) { m_instruction = instruction; }
   void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d);
@@ -86,13 +87,28 @@ private:
   const DXBC::DXBCContainer *m_dxbc;
   DXBCDebug::GlobalState &m_globalState;
   uint32_t m_instruction;
+  uint32_t m_EventID;
+  bool m_DidReplay = false;
 };
 
 D3D11DebugAPIWrapper::D3D11DebugAPIWrapper(WrappedID3D11Device *device,
                                            const DXBC::DXBCContainer *dxbc,
-                                           DXBCDebug::GlobalState &globalState)
-    : m_pDevice(device), m_dxbc(dxbc), m_globalState(globalState), m_instruction(0)
+                                           DXBCDebug::GlobalState &globalState, uint32_t eid)
+    : m_pDevice(device), m_dxbc(dxbc), m_globalState(globalState), m_instruction(0), m_EventID(eid)
 {
+}
+
+D3D11DebugAPIWrapper::~D3D11DebugAPIWrapper()
+{
+  // if we replayed to before the draw for fetching some UAVs, replay back to after the draw to keep
+  // the state consistent.
+  if(m_DidReplay)
+  {
+    D3D11MarkerRegion region("ResetReplay");
+    // replay the draw to get back to 'normal' state for this event, and mark that we need to
+    // replay back to pristine state next time we need to fetch data.
+    m_pDevice->ReplayLog(0, m_EventID, eReplay_OnlyDraw);
+  }
 }
 
 void D3D11DebugAPIWrapper::AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src,
@@ -178,6 +194,15 @@ bool D3D11DebugAPIWrapper::FetchSRV(const DXBCDebug::BindingSlot &slot)
 
 bool D3D11DebugAPIWrapper::FetchUAV(const DXBCDebug::BindingSlot &slot)
 {
+  // if the UAV might be dirty from side-effects from the draw, replay back to right
+  // before it.
+  if(!m_DidReplay)
+  {
+    D3D11MarkerRegion region("un-dirtying resources");
+    m_pDevice->ReplayLog(0, m_EventID, eReplay_WithoutDraw);
+    m_DidReplay = true;
+  }
+
   RDCASSERT(slot.registerSpace == 0);
   RDCASSERT(slot.shaderRegister < D3D11_1_UAV_SLOT_COUNT);
 
@@ -1802,6 +1827,7 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
   }
 
   InterpretDebugger *interpreter = new InterpretDebugger;
+  interpreter->eventId = eventId;
   ShaderDebugTrace *ret = interpreter->BeginDebug(dxbc, refl, vs->GetMapping(), 0);
   GlobalState &global = interpreter->global;
   ThreadState &state = interpreter->activeLane();
@@ -2714,6 +2740,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
   tracker.State().ApplyState(m_pImmediateContext);
 
   InterpretDebugger *interpreter = new InterpretDebugger;
+  interpreter->eventId = eventId;
   ShaderDebugTrace *ret = interpreter->BeginDebug(dxbc, refl, ps->GetMapping(), destIdx);
   GlobalState &global = interpreter->global;
   ThreadState &state = interpreter->activeLane();
@@ -2868,6 +2895,7 @@ ShaderDebugTrace *D3D11Replay::DebugThread(uint32_t eventId, const uint32_t grou
   D3D11RenderState *rs = m_pImmediateContext->GetCurrentPipelineState();
 
   InterpretDebugger *interpreter = new InterpretDebugger;
+  interpreter->eventId = eventId;
   ShaderDebugTrace *ret = interpreter->BeginDebug(dxbc, refl, cs->GetMapping(), 0);
   GlobalState &global = interpreter->global;
   ThreadState &state = interpreter->activeLane();
@@ -2948,7 +2976,8 @@ rdcarray<ShaderDebugState> D3D11Replay::ContinueDebug(ShaderDebugger *debugger)
   if(!interpreter)
     return NULL;
 
-  D3D11DebugAPIWrapper apiWrapper(m_pDevice, interpreter->dxbc, interpreter->global);
+  D3D11DebugAPIWrapper apiWrapper(m_pDevice, interpreter->dxbc, interpreter->global,
+                                  interpreter->eventId);
 
   D3D11MarkerRegion region("ContinueDebug Simulation Loop");
 

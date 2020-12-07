@@ -37,11 +37,13 @@ RWTexture2D<uint> texout : register(u0);
 [numthreads(1,1,1)]
 void main()
 {
+	texout[uint2(5,5)] = texout[uint2(4,4)] * 10;
 	texout[uint2(3,4)] = texin[uint2(4,3)];
 	texout[uint2(4,4)] = texin[uint2(3,3)];
 	texout[uint2(4,3)] = texin[uint2(3,4)];
 	texout[uint2(3,3)] = texin[uint2(4,4)];
 	texout[uint2(0,0)] = texin[uint2(0,0)] + 3;
+	texout[uint2(6,6)] = texout[uint2(5,5)] * 10;
 }
 
 )EOSHADER";
@@ -61,8 +63,8 @@ void main()
     }
 
     ID3D11Texture2DPtr tex[2] = {
-        MakeTexture(DXGI_FORMAT_R32_UINT, 8, 8).SRV().UAV(),
-        MakeTexture(DXGI_FORMAT_R32_UINT, 8, 8).SRV().UAV(),
+        MakeTexture(DXGI_FORMAT_R32_UINT, 8, 8).SRV().UAV().RTV(),
+        MakeTexture(DXGI_FORMAT_R32_UINT, 8, 8).SRV().UAV().RTV(),
     };
     ID3D11ShaderResourceViewPtr srv[2] = {
         MakeSRV(tex[0]), MakeSRV(tex[1]),
@@ -70,12 +72,18 @@ void main()
     ID3D11UnorderedAccessViewPtr uav[2] = {
         MakeUAV(tex[0]), MakeUAV(tex[1]),
     };
+    ID3D11RenderTargetViewPtr texRTV = MakeRTV(tex[0]);
 
     for(int i = 0; i < 2; i++)
       ctx->UpdateSubresource(tex[i], 0, NULL, data, sizeof(uint32_t) * 8, sizeof(uint32_t) * 8 * 8);
 
     while(Running())
     {
+      ctx->ClearState();
+
+      float black[4] = {};
+      ctx->ClearRenderTargetView(texRTV, black);
+
       float col[] = {0.2f, 0.2f, 0.2f, 1.0f};
       ctx->ClearRenderTargetView(bbRTV, col);
 

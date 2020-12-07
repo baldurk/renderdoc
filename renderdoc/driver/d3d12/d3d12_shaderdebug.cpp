@@ -65,7 +65,8 @@ class D3D12DebugAPIWrapper : public DXBCDebug::DebugAPIWrapper
 {
 public:
   D3D12DebugAPIWrapper(WrappedID3D12Device *device, const DXBC::DXBCContainer *dxbc,
-                       DXBCDebug::GlobalState &globalState);
+                       DXBCDebug::GlobalState &globalState, uint32_t eid);
+  ~D3D12DebugAPIWrapper();
 
   void SetCurrentInstruction(uint32_t instruction) { m_instruction = instruction; }
   void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d);
@@ -97,13 +98,28 @@ private:
   const DXBC::DXBCContainer *m_dxbc;
   DXBCDebug::GlobalState &m_globalState;
   uint32_t m_instruction;
+  uint32_t m_EventID;
+  bool m_DidReplay = false;
 };
 
 D3D12DebugAPIWrapper::D3D12DebugAPIWrapper(WrappedID3D12Device *device,
                                            const DXBC::DXBCContainer *dxbc,
-                                           DXBCDebug::GlobalState &globalState)
-    : m_pDevice(device), m_dxbc(dxbc), m_globalState(globalState), m_instruction(0)
+                                           DXBCDebug::GlobalState &globalState, uint32_t eid)
+    : m_pDevice(device), m_dxbc(dxbc), m_globalState(globalState), m_instruction(0), m_EventID(eid)
 {
+}
+
+D3D12DebugAPIWrapper::~D3D12DebugAPIWrapper()
+{
+  // if we replayed to before the draw for fetching some UAVs, replay back to after the draw to keep
+  // the state consistent.
+  if(m_DidReplay)
+  {
+    D3D12MarkerRegion region(m_pDevice->GetQueue()->GetReal(), "ResetReplay");
+    // replay the draw to get back to 'normal' state for this event, and mark that we need to
+    // replay back to pristine state next time we need to fetch data.
+    m_pDevice->ReplayLog(0, m_EventID, eReplay_OnlyDraw);
+  }
 }
 
 void D3D12DebugAPIWrapper::AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src,
@@ -258,6 +274,15 @@ bool D3D12DebugAPIWrapper::FetchSRV(const DXBCDebug::BindingSlot &slot)
 }
 bool D3D12DebugAPIWrapper::FetchUAV(const DXBCDebug::BindingSlot &slot)
 {
+  // if the UAV might be dirty from side-effects from the draw, replay back to right
+  // before it.
+  if(!m_DidReplay)
+  {
+    D3D12MarkerRegion region(m_pDevice->GetQueue()->GetReal(), "un-dirtying resources");
+    m_pDevice->ReplayLog(0, m_EventID, eReplay_WithoutDraw);
+    m_DidReplay = true;
+  }
+
   const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
   D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
 
@@ -1860,6 +1885,7 @@ ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
   }
 
   InterpretDebugger *interpreter = new InterpretDebugger;
+  interpreter->eventId = eventId;
   ShaderDebugTrace *ret = interpreter->BeginDebug(dxbc, refl, vs->GetMapping(), 0);
   GlobalState &global = interpreter->global;
   ThreadState &state = interpreter->activeLane();
@@ -2801,6 +2827,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
   }
 
   InterpretDebugger *interpreter = new InterpretDebugger;
+  interpreter->eventId = eventId;
   ShaderDebugTrace *ret = interpreter->BeginDebug(dxbc, refl, origPSO->PS()->GetMapping(), destIdx);
   GlobalState &global = interpreter->global;
   ThreadState &state = interpreter->activeLane();
@@ -2960,6 +2987,7 @@ ShaderDebugTrace *D3D12Replay::DebugThread(uint32_t eventId, const uint32_t grou
       m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
 
   InterpretDebugger *interpreter = new InterpretDebugger;
+  interpreter->eventId = eventId;
   ShaderDebugTrace *ret = interpreter->BeginDebug(dxbc, refl, pso->CS()->GetMapping(), 0);
   GlobalState &global = interpreter->global;
   ThreadState &state = interpreter->activeLane();
@@ -3040,7 +3068,8 @@ rdcarray<ShaderDebugState> D3D12Replay::ContinueDebug(ShaderDebugger *debugger)
   if(!interpreter)
     return NULL;
 
-  D3D12DebugAPIWrapper apiWrapper(m_pDevice, interpreter->dxbc, interpreter->global);
+  D3D12DebugAPIWrapper apiWrapper(m_pDevice, interpreter->dxbc, interpreter->global,
+                                  interpreter->eventId);
 
   D3D12MarkerRegion region(m_pDevice->GetQueue()->GetReal(), "ContinueDebug Simulation Loop");
 

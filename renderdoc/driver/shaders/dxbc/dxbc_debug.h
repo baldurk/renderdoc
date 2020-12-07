@@ -334,6 +334,7 @@ struct InterpretDebugger : public ShaderDebugger
                                const ShaderBindpointMapping &mapping, int activeIndex);
 
   GlobalState global;
+  uint32_t eventId;
 
   rdcarray<ThreadState> workgroup;
 
