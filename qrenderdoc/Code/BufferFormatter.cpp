@@ -161,6 +161,17 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
 
       QString varName = structMatch.captured(3);
 
+      QString arrayDim = structMatch.captured(4).trimmed();
+      uint32_t arrayCount = 1;
+      if(!arrayDim.isEmpty())
+      {
+        arrayDim = arrayDim.mid(1, arrayDim.count() - 2);
+        bool ok = false;
+        arrayCount = arrayDim.toUInt(&ok);
+        if(!ok)
+          arrayCount = 1;
+      }
+
       if(isPointer)
       {
         // if not tight packing, align up to pointer size
@@ -173,23 +184,13 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
         el.type.descriptor.type = VarType::ULong;
         el.type.descriptor.displayAsHex = true;
         el.type.descriptor.arrayByteStride = 8;
+        el.type.descriptor.elements = arrayCount;
 
         cur->offset += 8;
         cur->structDef.type.members.push_back(el);
       }
       else
       {
-        QString arrayDim = structMatch.captured(4).trimmed();
-        uint32_t arrayCount = 1;
-        if(!arrayDim.isEmpty())
-        {
-          arrayDim = arrayDim.mid(1, arrayDim.count() - 2);
-          bool ok = false;
-          arrayCount = arrayDim.toUInt(&ok);
-          if(!ok)
-            arrayCount = 1;
-        }
-
         // cbuffer packing rules, structs are always float4 base aligned
         if(!tightPacking)
           cur->offset = (cur->offset + 0xFU) & (~0xFU);
