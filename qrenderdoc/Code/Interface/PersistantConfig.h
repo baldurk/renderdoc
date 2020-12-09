@@ -302,339 +302,341 @@ DECLARE_REFLECTION_STRUCT(BugReport);
 // in the docstring for PersistantConfig as :data: members.
 // Please keep that docstring up to date when you add/remove/change these config settings.
 // Note that only public properties should be documented.
-#define CONFIG_SETTINGS()                                                                  \
-                                                                                           \
-  DOCUMENT(R"(The style to load for the UI. Possible values include 'Native', 'RDLight', 'RDDark'.
-If empty, the closest of RDLight and RDDark will be chosen, based on the overall light-on-dark or
-dark-on-light theme of the application native style.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, QString, rdcstr, UIStyle, "")                                 \
-                                                                                           \
-  DOCUMENT(R"(The path to the last capture to be opened, which is useful as a default location for
-browsing.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, QString, rdcstr, LastCaptureFilePath, "")                     \
-                                                                                           \
-  DOCUMENT(R"(The path to the last file browsed to in any dialog. Used as a default location for all
-file browsers without another explicit default directory (such as opening capture files - see
-:data:`LastCaptureFilePath`).
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, QString, rdcstr, LastFileBrowsePath, "")                      \
-                                                                                           \
-  DOCUMENT(R"(The recently opened capture files.
-
-:type: List[str]
-)");                                                                                       \
-  CONFIG_SETTING(public, QVariantList, rdcarray<rdcstr>, RecentCaptureFiles)               \
-                                                                                           \
-  DOCUMENT(R"(The path containing the last executable that was captured, which is useful as a
-default location for browsing.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, QString, rdcstr, LastCapturePath, "")                         \
-                                                                                           \
-  DOCUMENT(R"(The filename of the last executable that was captured, inside :data:`LastCapturePath`.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, QString, rdcstr, LastCaptureExe, "")                          \
-                                                                                           \
-  DOCUMENT(R"(The recently opened capture settings files.
-
-:type: List[str]
-)");                                                                                       \
-  CONFIG_SETTING(public, QVariantList, rdcarray<rdcstr>, RecentCaptureSettings)            \
-                                                                                           \
-  DOCUMENT(R"(The path to where temporary capture files should be stored until they're saved
-permanently.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, QString, rdcstr, TemporaryCaptureDirectory, "")               \
-                                                                                           \
-  DOCUMENT(R"(The default path to save captures in, when browsing to save a temporary capture
-somewhere.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, QString, rdcstr, DefaultCaptureSaveDirectory, "")             \
-                                                                                           \
-  DOCUMENT(R"(A :class:`ReplayOptions` containing the configured default replay options to use in
-most scenarios when no specific options are given.
-
-:type: renderdoc.ReplayOptions
-)");                                                                                       \
-  CONFIG_SETTING(public, QVariant, ReplayOptions, DefaultReplayOptions)                    \
-                                                                                           \
-  DOCUMENT(R"(``True`` if the :class:`TextureViewer` should reset the visible range when a new
-texture is selected.
-
-Defaults to ``False``.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, bool, bool, TextureViewer_ResetRange, false)                  \
-                                                                                           \
-  DOCUMENT(R"(``True`` if the :class:`TextureViewer` should store most visualisation settings on a
-per-texture basis instead of keeping it persistent across different textures.
-
-Defaults to ``True``.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, bool, bool, TextureViewer_PerTexSettings, true)               \
-                                                                                           \
-  DOCUMENT(R"(``True`` if the :class:`TextureViewer` should treat y-flipping as a per-texture state
-rather than a global toggle.
-
-Does nothing if per-texture settings are disabled in general.
-
-Defaults to ``False``.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, bool, bool, TextureViewer_PerTexYFlip, false)                 \
-                                                                                           \
-  DOCUMENT(R"(List of the directories containing custom shader files for the Texture Viewer.
-
-:type: List[str]
-)");                                                                                       \
-  CONFIG_SETTING(public, QVariantList, rdcarray<rdcstr>, TextureViewer_ShaderDirs)         \
-                                                                                           \
-  DOCUMENT(R"(``True`` if when loading a capture that was originally captured on a remote device but
-uses an API that can be supported locally, should be loaded locally without prompting to switch to
-a remote context.
-
-Defaults to ``False``.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, bool, bool, AlwaysReplayLocally, false)                       \
-                                                                                           \
-  DOCUMENT(R"(The index of the local proxy API to use when using remote context replay. ``-1`` if
-the default proxy should be used.
-
-Defaults to ``-1``.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, int, int, LocalProxyAPI, -1)                                  \
-                                                                                           \
-  DOCUMENT(R"(``True`` if the buffer formatter's help section should be shown.
-
-Defaults to ``True``.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, bool, bool, BufferFormatter_ShowHelp, true)                   \
-                                                                                           \
-  DOCUMENT(R"(The :class:`TimeUnit` to use to display the duration column in the
-:class:`EventBrowser`.
-
-Defaults to microseconds.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, int, TimeUnit, EventBrowser_TimeUnit, TimeUnit::Microseconds) \
-                                                                                           \
-  DOCUMENT(R"(``True`` if fake drawcall marker regions should be added to captures that don't have
-any markers, for easier browsing. The regions are identified by grouping drawcalls that write to
-the same targets together.
-
-Defaults to ``True``.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_AddFake, true)                       \
-                                                                                           \
-  DOCUMENT(R"(``True`` if the :class:`EventBrowser` should hide marker regions that don't contain
-any actual non-marker events.
-
-Defaults to ``False``.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_HideEmpty, false)                    \
-                                                                                           \
-  DOCUMENT(R"(``True`` if the :class:`EventBrowser` should hide marker regions that don't contain
-any events that aren't just drawcalls (this will hide events under "API Events" faux-markers).
-
-Defaults to ``False``.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_HideAPICalls, false)                 \
-                                                                                           \
-  DOCUMENT(R"(``True`` if the :class:`EventBrowser` should apply any colors specified with API
-marker regions.
-
-Defaults to ``True``.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_ApplyColors, true)                   \
-                                                                                           \
-  DOCUMENT(R"(``True`` if when coloring marker regions in the :class:`EventBrowser`, the whole row
-should be colored instead of just a side-bar.
-
-Defaults to ``True``.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_ColorEventRow, true)                 \
-                                                                                           \
-  DOCUMENT(R"(``True`` if when loading a new capture that contains a comments section, the comment
-viewer will be opened and focussed.
-
-Defaults to ``False``.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, bool, bool, Comments_ShowOnLoad, true)                        \
-                                                                                           \
-  DOCUMENT(R"(The minimum number of decimal places to show in formatted floating point values.
-
-.. note::
-
-  The naming of 'MinFigures' is a historical artifact - this controls the number of decimal places
-  only, not the number of significant figures.
-
-Defaults to ``2``.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, int, int, Formatter_MinFigures, 2)                            \
-                                                                                           \
-  DOCUMENT(R"(The maximum number of decimal places to show in formatted floating point values.
-
-.. note::
-
-  The naming of 'MaxFigures' is a historical artifact - this controls the number of decimal places
-  only, not the number of significant figures.
-
-Defaults to ``5``.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, int, int, Formatter_MaxFigures, 5)                            \
-                                                                                           \
-  DOCUMENT(R"(The cut-off on negative exponents of a normalised values to display using scientific
-  notation.
-
-E.g. for a value of 5, anything below 1.0e-5 will be displayed using scientific notation.
-
-Defaults to ``5``.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, int, int, Formatter_NegExp, 5)                                \
-                                                                                           \
-  DOCUMENT(R"(The cut-off on the exponent of a normalised values to display using scientific
-notation.
-
-E.g. for a value of 7, anything above 1.0e+7 will be displayed using scientific notation.
-
-Defaults to ``7``.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, int, int, Formatter_PosExp, 7)                                \
-                                                                                           \
-  DOCUMENT(R"(The global scale to apply to fonts in the application, expressed as a float.
-
-Defaults to ``1.0`` which means 100%.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, float, float, Font_GlobalScale, 1.0f)                         \
-                                                                                           \
-  DOCUMENT(R"(``True`` if a monospaced font should be used in all places where data is displayed,
-even if the data is not tabular such as names.
-
-Defaults to ``False``.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, bool, bool, Font_PreferMonospaced, false)                     \
-                                                                                           \
-  DOCUMENT(R"(A date containing the last time that the user was warned about an Android device being
-older than is generally supported. This prevents the user being spammed if they consistently use
-an old Android device. If it has been more than 3 weeks since the last time an old device was
-seen, we re-warn the user, but if it's less than 3 weeks we silently update this date so
-continuous use doesn't nag.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, QDateTime, rdcdatetime, UnsupportedAndroid_LastUpdate,        \
-                     rdcdatetime(2015, 01, 01))                                            \
-                                                                                           \
-  DOCUMENT(R"(``True`` if when coloring marker regions in the :class:`EventBrowser`, the whole row
-should be colored instead of just a side-bar.
-
-Defaults to ``True``.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, bool, bool, CheckUpdate_AllowChecks, true)                    \
-                                                                                           \
-  DOCUMENT(R"(``True`` if an update to a newer version is currently available.
-
-Defaults to ``False``.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, bool, bool, CheckUpdate_UpdateAvailable, false)               \
-                                                                                           \
-  DOCUMENT(R"(The current version at the time of update checks. Used to determine if a cached
-pending update is no longer valid because we got updated through some other method.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, QString, rdcstr, CheckUpdate_CurrentVersion, "")              \
-                                                                                           \
-  DOCUMENT(R"(Contains the response from the update server from the last update check, with any
-release notes for the new version.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, QString, rdcstr, CheckUpdate_UpdateResponse, "")              \
-                                                                                           \
-  DOCUMENT(R"(A date containing the last time that update checks happened.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, QDateTime, rdcdatetime, CheckUpdate_LastUpdate,               \
-                     rdcdatetime(2012, 06, 27))                                            \
-                                                                                           \
-  DOCUMENT(R"(A date containing the last time that the user was warned about captures being loaded
-in degraded support. This prevents the user being spammed if their hardware is low spec.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, QDateTime, rdcdatetime, DegradedCapture_LastUpdate,           \
-                     rdcdatetime(2015, 01, 01))                                            \
-                                                                                           \
-  DOCUMENT(R"(The path to the executable of the external Radeon GPU Profiler tool.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, QString, rdcstr, ExternalTool_RadeonGPUProfiler, "")          \
-                                                                                           \
-  DOCUMENT(R"(``True`` if the user has seen the first tip, which should always be shown first before
-randomising.
-
-Defaults to ``False``.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, bool, bool, Tips_HasSeenFirst, false)                         \
-                                                                                           \
-  DOCUMENT(R"(``True`` if global hooking is enabled. Since it has potentially problematic
-side-effects and is dangerous, it requires explicit opt-in.
-
-Defaults to ``False``.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, bool, bool, AllowGlobalHook, false)                           \
-                                                                                           \
-  DOCUMENT(R"(A list of :class:`ShaderProcessingTool` detailing shader processing programs. The list
-comes in priority order, with earlier processors preferred over later ones.
-
-:type: List[ShaderProcessingTool]
-)");                                                                                       \
-  CONFIG_SETTING(public, QVariantList, rdcarray<ShaderProcessingTool>, ShaderProcessors)   \
-                                                                                           \
-  DOCUMENT(R"(``True`` if the user has selected to completely opt-out from and disable all analytics
-collection and reporting.
-
-Defaults to ``False``.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, bool, bool, Analytics_TotalOptOut, false)                     \
-                                                                                           \
-  DOCUMENT(R"(``True`` if the user has remained with analytics turned on, but has chosen to manually
-check each report that is sent out.
-
-Defaults to ``False``.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, bool, bool, Analytics_ManualCheck, false)                     \
-                                                                                           \
-  DOCUMENT(R"(``True`` if the user has been prompted to enter their email address on a crash report.
-This really helps find fixes for bugs, so we prompt the user once only if they didn't enter an
-email. Once the prompt has happened, regardless of the answer this is set to true and remains there
-forever.
-
-Defaults to ``False``.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, bool, bool, CrashReport_EmailNagged, false)                   \
-                                                                                           \
-  DOCUMENT(R"(``True`` if the email address entered in the crash reporter should be remembered for
-next time. If no email is entered then nothing happens (any previous saved email is kept).
-
-Defaults to ``True``.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, bool, bool, CrashReport_ShouldRememberEmail, true)            \
-                                                                                           \
-  DOCUMENT(R"(The saved email address for pre-filling out in crash reports.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, QString, rdcstr, CrashReport_EmailAddress, "")                \
-                                                                                           \
-  DOCUMENT(R"(The last opened capture, to send if any crash is encountered. This is different to the
-most recent opened file, because it's set before any processing happens (recent files are only
-added to the list when they successfully open), and it's cleared again when the capture is closed.
-)");                                                                                       \
-  CONFIG_SETTING_VAL(public, QString, rdcstr, CrashReport_LastOpenedCapture, "")           \
-                                                                                           \
-  DOCUMENT(R"(A list of :class:`BugReport` detailing previously submitted bugs that we're watching
-for updates.
-
-:type: List[BugReport]
-)");                                                                                       \
-  CONFIG_SETTING(public, QVariantList, rdcarray<BugReport>, CrashReport_ReportedBugs)      \
-                                                                                           \
-  DOCUMENT(R"(A list of strings with extension packages to always load on startup, without needing
-manual enabling.
-
-:type: List[str]
-)");                                                                                       \
-  CONFIG_SETTING(public, QVariantList, rdcarray<rdcstr>, AlwaysLoad_Extensions)            \
-                                                                                           \
-  DOCUMENT("");                                                                            \
+#define CONFIG_SETTINGS()                                                                          \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "The style to load for the UI. Possible values include 'Native', 'RDLight', 'RDDark'. "      \
+      "If empty, the closest of RDLight and RDDark will be chosen, based on the overall "          \
+      "light-on-dark or dark-on-light theme of the application native style.");                    \
+  CONFIG_SETTING_VAL(public, QString, rdcstr, UIStyle, "")                                         \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "The path to the last capture to be opened, which is useful as a default location for "      \
+      "browsing.");                                                                                \
+  CONFIG_SETTING_VAL(public, QString, rdcstr, LastCaptureFilePath, "")                             \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "The path to the last file browsed to in any dialog. Used as a default location for all "    \
+      "file browsers without another explicit default directory (such as opening capture files - " \
+      "see :data:`LastCaptureFilePath`).");                                                        \
+  CONFIG_SETTING_VAL(public, QString, rdcstr, LastFileBrowsePath, "")                              \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "The recently opened capture files.\n"                                                       \
+      "\n:"                                                                                        \
+      "type: List[str]");                                                                          \
+  CONFIG_SETTING(public, QVariantList, rdcarray<rdcstr>, RecentCaptureFiles)                       \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "The path containing the last executable that was captured, which is useful as a default "   \
+      "location for browsing.");                                                                   \
+  CONFIG_SETTING_VAL(public, QString, rdcstr, LastCapturePath, "")                                 \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "The filename of the last executable that was captured, inside :data:`LastCapturePath`.");   \
+  CONFIG_SETTING_VAL(public, QString, rdcstr, LastCaptureExe, "")                                  \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "The recently opened capture settings files.\n"                                              \
+      "\n:"                                                                                        \
+      "type: List[str]");                                                                          \
+  CONFIG_SETTING(public, QVariantList, rdcarray<rdcstr>, RecentCaptureSettings)                    \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "The path to where temporary capture files should be stored until they're saved "            \
+      "permanently.");                                                                             \
+  CONFIG_SETTING_VAL(public, QString, rdcstr, TemporaryCaptureDirectory, "")                       \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "The default path to save captures in, when browsing to save a temporary capture "           \
+      "somewhere.");                                                                               \
+  CONFIG_SETTING_VAL(public, QString, rdcstr, DefaultCaptureSaveDirectory, "")                     \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "A :class:`ReplayOptions` containing the configured default replay options to use in most "  \
+      "scenarios when no specific options are given.\n"                                            \
+      "\n:"                                                                                        \
+      "type: List[str]");                                                                          \
+  CONFIG_SETTING(public, QVariant, ReplayOptions, DefaultReplayOptions)                            \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "``True`` if the :class:`TextureViewer` should reset the visible range when a new texture "  \
+      "is selected.\n"                                                                             \
+      "\n:"                                                                                        \
+      "Defaults to ``False``.");                                                                   \
+  CONFIG_SETTING_VAL(public, bool, bool, TextureViewer_ResetRange, false)                          \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "``True`` if the :class:`TextureViewer` should store most visualisation settings on a "      \
+      "per-texture basis instead of keeping it persistent across different textures.\n"            \
+      "\n:"                                                                                        \
+      "Defaults to ``True``.");                                                                    \
+  CONFIG_SETTING_VAL(public, bool, bool, TextureViewer_PerTexSettings, true)                       \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "``True`` if the :class:`TextureViewer` should treat y-flipping as a per-texture state "     \
+      "rather than a global toggle.\n"                                                             \
+      "\n"                                                                                         \
+      "Does nothing if per-texture settings are disabled in general.\n"                            \
+      "\n"                                                                                         \
+      "Defaults to ``False``.");                                                                   \
+  CONFIG_SETTING_VAL(public, bool, bool, TextureViewer_PerTexYFlip, false)                         \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "List of the directories containing custom shader files for the Texture Viewer.\n"           \
+      "\n:"                                                                                        \
+      "type: List[str]");                                                                          \
+  CONFIG_SETTING(public, QVariantList, rdcarray<rdcstr>, TextureViewer_ShaderDirs)                 \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "``True`` if when loading a capture that was originally captured on a remote device but "    \
+      "uses an API that can be supported locally, should be loaded locally without prompting to "  \
+      "switch to a remote context.\n"                                                              \
+      "\n"                                                                                         \
+      "Defaults to ``False``.");                                                                   \
+  CONFIG_SETTING_VAL(public, bool, bool, AlwaysReplayLocally, false)                               \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "The index of the local proxy API to use when using remote context replay. ``-1`` if the "   \
+      "default proxy should be used.\n"                                                            \
+      "\n"                                                                                         \
+      "Defaults to ``-1``.");                                                                      \
+  CONFIG_SETTING_VAL(public, int, int, LocalProxyAPI, -1)                                          \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "``True`` if the buffer formatter's help section should be shown.\n"                         \
+      "\n:"                                                                                        \
+      "Defaults to ``True``.");                                                                    \
+  CONFIG_SETTING_VAL(public, bool, bool, BufferFormatter_ShowHelp, true)                           \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "The :class:`TimeUnit` to use to display the duration column in the "                        \
+      ":class:`EventBrowser`.\n"                                                                   \
+      "\n"                                                                                         \
+      "Defaults to microseconds.");                                                                \
+  CONFIG_SETTING_VAL(public, int, TimeUnit, EventBrowser_TimeUnit, TimeUnit::Microseconds)         \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "``True`` if fake drawcall marker regions should be added to captures that don't have any "  \
+      "markers, for easier browsing. The regions are identified by grouping drawcalls that write " \
+      "to the same targets together.\n"                                                            \
+      "\n"                                                                                         \
+      "Defaults to ``True``.");                                                                    \
+  CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_AddFake, true)                               \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "``True`` if the :class:`EventBrowser` should hide marker regions that don't contain any "   \
+      "actual non-marker events.\n"                                                                \
+      "\n"                                                                                         \
+      "Defaults to ``False``.");                                                                   \
+  CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_HideEmpty, false)                            \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "``True`` if the :class:`EventBrowser` should hide marker regions that don't contain any "   \
+      "events that aren't just drawcalls (this will hide events under 'API Events' "               \
+      "faux-markers).\n"                                                                           \
+      "\n"                                                                                         \
+      "Defaults to ``False``.");                                                                   \
+  CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_HideAPICalls, false)                         \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "``True`` if the :class:`EventBrowser` should apply any colors specified with API marker "   \
+      "regions.\n"                                                                                 \
+      "\n"                                                                                         \
+      "Defaults to ``True``.");                                                                    \
+  CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_ApplyColors, true)                           \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "``True`` if when coloring marker regions in the :class:`EventBrowser`, the whole row "      \
+      "should be colored instead of just a side-bar.\n"                                            \
+      "\n"                                                                                         \
+      "Defaults to ``True``.");                                                                    \
+  CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_ColorEventRow, true)                         \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "``True`` if when loading a new capture that contains a comments section, the comment "      \
+      "viewer will be opened and focussed.\n"                                                      \
+      "\n"                                                                                         \
+      "Defaults to ``False``.");                                                                   \
+  CONFIG_SETTING_VAL(public, bool, bool, Comments_ShowOnLoad, true)                                \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "The minimum number of decimal places to show in formatted floating point values.\n"         \
+      "\n"                                                                                         \
+      ".. note::\n"                                                                                \
+      "\n"                                                                                         \
+      "The naming of 'MinFigures' is a historical artifact - this controls the number of decimal " \
+      "places only, not the number of significant figures.\n"                                      \
+      "\n"                                                                                         \
+      "Defaults to ``2``.");                                                                       \
+  CONFIG_SETTING_VAL(public, int, int, Formatter_MinFigures, 2)                                    \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "The maximum number of decimal places to show in formatted floating point values.\n"         \
+      "\n"                                                                                         \
+      ".. note::\n"                                                                                \
+      "\n"                                                                                         \
+      "The naming of 'MaxFigures' is a historical artifact - this controls the number of decimal " \
+      "places only, not the number of significant figures.\n"                                      \
+      "\n"                                                                                         \
+      "Defaults to ``5``.");                                                                       \
+  CONFIG_SETTING_VAL(public, int, int, Formatter_MaxFigures, 5)                                    \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "The cut-off on negative exponents of a normalised values to display using scientific "      \
+      "notation.\n"                                                                                \
+      "\n"                                                                                         \
+      "E.g. for a value of 5, anything below 1.0e-5 will be displayed using scientific "           \
+      "notation.\n"                                                                                \
+      "\n"                                                                                         \
+      "Defaults to ``5``.");                                                                       \
+  CONFIG_SETTING_VAL(public, int, int, Formatter_NegExp, 5)                                        \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "The cut-off on positive exponents of a normalised values to display using scientific "      \
+      "notation.\n"                                                                                \
+      "\n"                                                                                         \
+      "E.g. for a value of 7, anything below 1.0e+7 will be displayed using scientific "           \
+      "notation.\n"                                                                                \
+      "\n"                                                                                         \
+      "Defaults to ``7``.");                                                                       \
+  CONFIG_SETTING_VAL(public, int, int, Formatter_PosExp, 7)                                        \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "The global scale to apply to fonts in the application, expressed as a float.\n"             \
+      "\n"                                                                                         \
+      "Defaults to ``1.0`` which means 100%.");                                                    \
+  CONFIG_SETTING_VAL(public, float, float, Font_GlobalScale, 1.0f)                                 \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "``True`` if a monospaced font should be used in all places where data is displayed, even "  \
+      "if the data is not tabular such as names.\n"                                                \
+      "\n"                                                                                         \
+      "Defaults to ``False``.");                                                                   \
+  CONFIG_SETTING_VAL(public, bool, bool, Font_PreferMonospaced, false)                             \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "A date containing the last time that the user was warned about an Android device being "    \
+      "older than is generally supported. This prevents the user being spammed if they "           \
+      "consistently use an old Android device. If it has been more than 3 weeks since the last "   \
+      "time an old device was seen, we re-warn the user, but if it's less than 3 weeks we "        \
+      "silently update this date so continuous use doesn't nag.");                                 \
+  CONFIG_SETTING_VAL(public, QDateTime, rdcdatetime, UnsupportedAndroid_LastUpdate,                \
+                     rdcdatetime(2015, 01, 01))                                                    \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "``True`` if when coloring marker regions in the :class:`EventBrowser`, the whole row "      \
+      "should be colored instead of just a side-bar.\n"                                            \
+      "\n"                                                                                         \
+      "Defaults to ``True``.");                                                                    \
+  CONFIG_SETTING_VAL(public, bool, bool, CheckUpdate_AllowChecks, true)                            \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "``True`` if an update to a newer version is currently available.\n"                         \
+      "\n"                                                                                         \
+      "Defaults to ``False``.");                                                                   \
+  CONFIG_SETTING_VAL(public, bool, bool, CheckUpdate_UpdateAvailable, false)                       \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "The current version at the time of update checks. Used to determine if a cached pending "   \
+      "update is no longer valid because we got updated through some other method.");              \
+  CONFIG_SETTING_VAL(public, QString, rdcstr, CheckUpdate_CurrentVersion, "")                      \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "Contains the response from the update server from the last update check, with any release " \
+      "notes for the new version.");                                                               \
+  CONFIG_SETTING_VAL(public, QString, rdcstr, CheckUpdate_UpdateResponse, "")                      \
+                                                                                                   \
+  DOCUMENT("A date containing the last time that update checks happened.");                        \
+  CONFIG_SETTING_VAL(public, QDateTime, rdcdatetime, CheckUpdate_LastUpdate,                       \
+                     rdcdatetime(2012, 06, 27))                                                    \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "A date containing the last time that the user was warned about captures being loaded in "   \
+      "degraded support. This prevents the user being spammed if their hardware is low spec.");    \
+  CONFIG_SETTING_VAL(public, QDateTime, rdcdatetime, DegradedCapture_LastUpdate,                   \
+                     rdcdatetime(2015, 01, 01))                                                    \
+                                                                                                   \
+  DOCUMENT("The path to the executable of the external Radeon GPU Profiler tool.");                \
+  CONFIG_SETTING_VAL(public, QString, rdcstr, ExternalTool_RadeonGPUProfiler, "")                  \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "``True`` if the user has seen the first tip, which should always be shown first before "    \
+      "randomising.\n"                                                                             \
+      "\n"                                                                                         \
+      "Defaults to ``False``.");                                                                   \
+  CONFIG_SETTING_VAL(public, bool, bool, Tips_HasSeenFirst, false)                                 \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "``True`` if global hooking is enabled. Since it has potentially problematic side-effects "  \
+      "and is dangerous, it requires explicit opt-in.\n"                                           \
+      "\n"                                                                                         \
+      "Defaults to ``False``.");                                                                   \
+  CONFIG_SETTING_VAL(public, bool, bool, AllowGlobalHook, false)                                   \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "A list of :class:`ShaderProcessingTool` detailing shader processing programs. The list "    \
+      "comes in priority order, with earlier processors preferred over later ones.\n"              \
+      "\n"                                                                                         \
+      ":type: List[ShaderProcessingTool]");                                                        \
+  CONFIG_SETTING(public, QVariantList, rdcarray<ShaderProcessingTool>, ShaderProcessors)           \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "``True`` if the user has selected to completely opt-out from and disable all analytics "    \
+      "collection and reporting.\n"                                                                \
+      "\n"                                                                                         \
+      "Defaults to ``False``.");                                                                   \
+  CONFIG_SETTING_VAL(public, bool, bool, Analytics_TotalOptOut, false)                             \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "``True`` if the user has remained with analytics turned on, but has chosen to manually "    \
+      "check each report that is sent out.\n"                                                      \
+      "collection and reporting.\n"                                                                \
+      "\n"                                                                                         \
+      "Defaults to ``False``.");                                                                   \
+  CONFIG_SETTING_VAL(public, bool, bool, Analytics_ManualCheck, false)                             \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "``True`` if the user has been prompted to enter their email address on a crash report. "    \
+      "This really helps find fixes for bugs, so we prompt the user once only if they didn't "     \
+      "enter an email. Once the prompt has happened, regardless of the answer this is set to "     \
+      "true and remains there forever.\n"                                                          \
+      "\n"                                                                                         \
+      "Defaults to ``False``.");                                                                   \
+  CONFIG_SETTING_VAL(public, bool, bool, CrashReport_EmailNagged, false)                           \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "``True`` if the email address entered in the crash reporter should be remembered for next " \
+      "time. If no email is entered then nothing happens (any previous saved email is kept).\n"    \
+      "\n"                                                                                         \
+      "Defaults to ``True``.");                                                                    \
+  CONFIG_SETTING_VAL(public, bool, bool, CrashReport_ShouldRememberEmail, true)                    \
+                                                                                                   \
+  DOCUMENT("The saved email address for pre-filling out in crash reports.");                       \
+  CONFIG_SETTING_VAL(public, QString, rdcstr, CrashReport_EmailAddress, "")                        \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "The last opened capture, to send if any crash is encountered. This is different to the "    \
+      "most recent opened file, because it's set before any processing happens (recent files are " \
+      "only added to the list when they successfully open), and it's cleared again when the "      \
+      "capture is closed.");                                                                       \
+  CONFIG_SETTING_VAL(public, QString, rdcstr, CrashReport_LastOpenedCapture, "")                   \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "A list of :class:`BugReport` detailing previously submitted bugs that we're watching for "  \
+      "updates.\n"                                                                                 \
+      "\n"                                                                                         \
+      ":type: List[BugReport]");                                                                   \
+  CONFIG_SETTING(public, QVariantList, rdcarray<BugReport>, CrashReport_ReportedBugs)              \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
+      "A list of strings with extension packages to always load on startup, without needing "      \
+      "manual enabling.\n"                                                                         \
+      "\n"                                                                                         \
+      ":type: List[str]");                                                                         \
+  CONFIG_SETTING(public, QVariantList, rdcarray<rdcstr>, AlwaysLoad_Extensions)                    \
+                                                                                                   \
+  DOCUMENT("");                                                                                    \
   CONFIG_SETTING(private, QVariantList, rdcarray<RemoteHost>, RemoteHostList)
 
 DOCUMENT(R"(The unit that GPU durations are displayed in.
