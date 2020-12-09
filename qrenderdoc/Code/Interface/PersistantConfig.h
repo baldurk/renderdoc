@@ -464,9 +464,8 @@ DECLARE_REFLECTION_STRUCT(BugReport);
       "The minimum number of decimal places to show in formatted floating point values.\n"         \
       "\n"                                                                                         \
       ".. note::\n"                                                                                \
-      "\n"                                                                                         \
-      "The naming of 'MinFigures' is a historical artifact - this controls the number of decimal " \
-      "places only, not the number of significant figures.\n"                                      \
+      "  The naming of 'MinFigures' is a historical artifact - this controls the number of "       \
+      "  decimal places only, not the number of significant figures.\n"                            \
       "\n"                                                                                         \
       "Defaults to ``2``.");                                                                       \
   CONFIG_SETTING_VAL(public, int, int, Formatter_MinFigures, 2)                                    \
@@ -475,9 +474,8 @@ DECLARE_REFLECTION_STRUCT(BugReport);
       "The maximum number of decimal places to show in formatted floating point values.\n"         \
       "\n"                                                                                         \
       ".. note::\n"                                                                                \
-      "\n"                                                                                         \
-      "The naming of 'MaxFigures' is a historical artifact - this controls the number of decimal " \
-      "places only, not the number of significant figures.\n"                                      \
+      "  The naming of 'MaxFigures' is a historical artifact - this controls the number of "       \
+      "  decimal places only, not the number of significant figures.\n"                            \
       "\n"                                                                                         \
       "Defaults to ``5``.");                                                                       \
   CONFIG_SETTING_VAL(public, int, int, Formatter_MaxFigures, 5)                                    \
