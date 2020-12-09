@@ -151,7 +151,7 @@ jobs:
       run: |
         cd docs
         make html SPHINXOPTS=-W
-        python3 ./docs/verify-docstrings.py
+        python3 verify-docstrings.py
   linux:
     name: Linux
     needs: [commit-msg, clang-format]

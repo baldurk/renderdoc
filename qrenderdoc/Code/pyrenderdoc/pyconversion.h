@@ -409,8 +409,25 @@ struct TypeConversion<rdcdatetime, false>
 
   static PyObject *ConvertToPy(const rdcdatetime &in)
   {
-    return PyDateTime_FromDateAndTime(in.year, in.month, in.day, in.hour, in.minute, in.second,
-                                      in.microsecond);
+    rdcdatetime tmp = in;
+
+// bounds check
+#define BOUND(prop, min, max) \
+  if(tmp.prop < min)          \
+    tmp.prop = min;           \
+  if(tmp.prop > max)          \
+    tmp.prop = max;
+
+    BOUND(year, 1, 9999);
+    BOUND(month, 1, 12);
+    BOUND(day, 1, 31);
+    BOUND(hour, 0, 23);
+    BOUND(minute, 0, 59);
+    BOUND(second, 0, 59);
+    BOUND(microsecond, 0, 999999);
+
+    return PyDateTime_FromDateAndTime(tmp.year, tmp.month, tmp.day, tmp.hour, tmp.minute,
+                                      tmp.second, tmp.microsecond);
   }
 };
 
