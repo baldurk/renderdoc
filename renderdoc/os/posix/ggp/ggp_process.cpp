@@ -194,7 +194,8 @@ bool OSUtility::DebuggerPresent()
 
 rdcstr Process::GetEnvVariable(const rdcstr &name)
 {
-  return getenv(name.c_str());
+  const char *val = getenv(name.c_str());
+  return val ? val : rdcstr();
 }
 
 uint64_t Process::GetMemoryUsage()

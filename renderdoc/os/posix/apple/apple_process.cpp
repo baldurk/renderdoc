@@ -38,7 +38,7 @@ char **GetCurrentEnvironment()
 
 rdcstr execcmd(const char *cmd)
 {
-  FILE *pipe = popen(cmd, FileIO::ReadText);
+  FILE *pipe = popen(cmd, "r");
 
   if(!pipe)
     return "ERROR";
@@ -183,7 +183,8 @@ bool OSUtility::DebuggerPresent()
 
 rdcstr Process::GetEnvVariable(const rdcstr &name)
 {
-  return getenv(name.c_str());
+  const char *val = getenv(name.c_str());
+  return val ? val : rdcstr();
 }
 
 uint64_t Process::GetMemoryUsage()

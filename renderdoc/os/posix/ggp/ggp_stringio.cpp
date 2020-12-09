@@ -85,7 +85,7 @@ rdcstr GetAppFolderFilename(const rdcstr &filename)
     homedir = getpwuid(getuid())->pw_dir;
   }
 
-  rdcstr ret = rdcstr(homedir) + "/.renderdoc/";
+  rdcstr ret = rdcstr(homedir ? homedir : "") + "/.renderdoc/";
 
   mkdir(ret.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
