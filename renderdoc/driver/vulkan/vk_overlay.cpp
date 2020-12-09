@@ -47,7 +47,18 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
   {
     m_pDriver->SetDrawcallCB(this);
   }
-  ~VulkanQuadOverdrawCallback() { m_pDriver->SetDrawcallCB(NULL); }
+  ~VulkanQuadOverdrawCallback()
+  {
+    m_pDriver->SetDrawcallCB(NULL);
+
+    VkDevice dev = m_pDriver->GetDev();
+
+    for(auto it = m_PipelineCache.begin(); it != m_PipelineCache.end(); ++it)
+    {
+      m_pDriver->vkDestroyPipeline(dev, it->second.pipe, NULL);
+      m_pDriver->vkDestroyPipelineLayout(dev, it->second.pipeLayout, NULL);
+    }
+  }
   void PreDraw(uint32_t eid, VkCommandBuffer cmd)
   {
     if(!m_Events.contains(eid))
@@ -2148,68 +2159,64 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
       m_pDriver->ReplayLog(0, events[0], eReplay_WithoutDraw);
 
-      // declare callback struct here
-      VulkanQuadOverdrawCallback cb(m_pDriver, m_Overlay.m_QuadDescSetLayout,
-                                    m_Overlay.m_QuadDescSet, events);
-
-      m_pDriver->ReplayLog(events.front(), events.back(), eReplay_Full);
-
-      // resolve pass
       {
-        cmd = m_pDriver->GetNextCmd();
+        // declare callback struct here
+        VulkanQuadOverdrawCallback cb(m_pDriver, m_Overlay.m_QuadDescSetLayout,
+                                      m_Overlay.m_QuadDescSet, events);
 
-        vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+        m_pDriver->ReplayLog(events.front(), events.back(), eReplay_Full);
 
-        quadImBarrier.srcAccessMask = quadImBarrier.dstAccessMask;
-        quadImBarrier.oldLayout = quadImBarrier.newLayout;
+        // resolve pass
+        {
+          cmd = m_pDriver->GetNextCmd();
 
-        quadImBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+          vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+          RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-        // wait for writing to finish
-        DoPipelineBarrier(cmd, 1, &quadImBarrier);
+          quadImBarrier.srcAccessMask = quadImBarrier.dstAccessMask;
+          quadImBarrier.oldLayout = quadImBarrier.newLayout;
 
-        VkClearValue clearval = {};
-        VkRenderPassBeginInfo rpbegin = {
-            VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-            NULL,
-            Unwrap(m_Overlay.NoDepthRP),
-            Unwrap(m_Overlay.NoDepthFB),
-            m_pDriver->m_RenderState.renderArea,
-            1,
-            &clearval,
-        };
-        vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
+          quadImBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-        vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            Unwrap(m_Overlay.m_QuadResolvePipeline[SampleIndex(iminfo.samples)]));
-        vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                  Unwrap(m_Overlay.m_QuadResolvePipeLayout), 0, 1,
-                                  UnwrapPtr(m_Overlay.m_QuadDescSet), 0, NULL);
+          // wait for writing to finish
+          DoPipelineBarrier(cmd, 1, &quadImBarrier);
 
-        VkViewport viewport = {
-            0.0f, 0.0f, (float)m_Overlay.ImageDim.width, (float)m_Overlay.ImageDim.height,
-            0.0f, 1.0f};
-        vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
+          VkClearValue clearval = {};
+          VkRenderPassBeginInfo rpbegin = {
+              VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+              NULL,
+              Unwrap(m_Overlay.NoDepthRP),
+              Unwrap(m_Overlay.NoDepthFB),
+              m_pDriver->m_RenderState.renderArea,
+              1,
+              &clearval,
+          };
+          vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
-        vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
-        vt->CmdEndRenderPass(Unwrap(cmd));
+          vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
+                              Unwrap(m_Overlay.m_QuadResolvePipeline[SampleIndex(iminfo.samples)]));
+          vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                    Unwrap(m_Overlay.m_QuadResolvePipeLayout), 0, 1,
+                                    UnwrapPtr(m_Overlay.m_QuadDescSet), 0, NULL);
 
-        vkr = vt->EndCommandBuffer(Unwrap(cmd));
-        RDCASSERTEQUAL(vkr, VK_SUCCESS);
-      }
+          VkViewport viewport = {
+              0.0f, 0.0f, (float)m_Overlay.ImageDim.width, (float)m_Overlay.ImageDim.height,
+              0.0f, 1.0f};
+          vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
 
-      m_pDriver->SubmitCmds();
-      m_pDriver->FlushQ();
+          vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
+          vt->CmdEndRenderPass(Unwrap(cmd));
 
-      m_pDriver->vkDestroyImageView(m_Device, quadImgView, NULL);
-      m_pDriver->vkDestroyImage(m_Device, quadImg, NULL);
-      m_pDriver->vkFreeMemory(m_Device, quadImgMem, NULL);
+          vkr = vt->EndCommandBuffer(Unwrap(cmd));
+          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+        }
 
-      for(auto it = cb.m_PipelineCache.begin(); it != cb.m_PipelineCache.end(); ++it)
-      {
-        m_pDriver->vkDestroyPipeline(m_Device, it->second.pipe, NULL);
-        m_pDriver->vkDestroyPipelineLayout(m_Device, it->second.pipeLayout, NULL);
+        m_pDriver->SubmitCmds();
+        m_pDriver->FlushQ();
+
+        m_pDriver->vkDestroyImageView(m_Device, quadImgView, NULL);
+        m_pDriver->vkDestroyImage(m_Device, quadImg, NULL);
+        m_pDriver->vkFreeMemory(m_Device, quadImgMem, NULL);
       }
 
       // restore back to normal
