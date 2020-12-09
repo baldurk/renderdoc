@@ -187,5 +187,5 @@ void *LoadVulkanLibrary()
 
   Process::ApplyEnvironmentModification();
 
-  return Process::LoadModule(libpath + VulkanLibraryName));
+  return Process::LoadModule(libpath + VulkanLibraryName);
 }
