@@ -913,14 +913,6 @@ TEST_CASE("Test command line parsing", "[osspecific]")
 {
   rdcarray<rdcstr> args;
 
-  SECTION("NULL command line")
-  {
-    args = ParseCommandLine("app", NULL);
-
-    REQUIRE(args.size() == 1);
-    CHECK(args[0] == "app");
-  }
-
   SECTION("empty command line")
   {
     args = ParseCommandLine("app", "");
