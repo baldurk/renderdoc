@@ -1902,7 +1902,8 @@ static void UnrollConstant(rdcstr prefix, uint32_t baseOffset, const ShaderConst
     for(const ShaderConstant &child : constant.type.members)
     {
       UnrollConstant(isArray ? QFormatStr("%1[%2]").arg(baseName).arg(a) : QString(baseName),
-                     baseOffset + constant.byteOffset, child, columns, props);
+                     baseOffset + constant.byteOffset + a * constant.type.descriptor.arrayByteStride,
+                     child, columns, props);
     }
   }
 }
