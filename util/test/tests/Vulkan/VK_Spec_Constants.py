@@ -47,7 +47,7 @@ class VK_Spec_Constants(rdtest.TestCase):
                     expected = [0.0, 0.0, 0.0, 0.0]
                     expected[col] = 1.0
 
-                    val = [i for i in cb_vars[0].members[col].value.fv[0:4]]
+                    val = [i for i in cb_vars[0].members[col].value.f32v[0:4]]
 
                     if not rdtest.value_compare(val, expected):
                         raise rdtest.TestFailureException("Cbuffer[{}] value {} doesn't match expectation {}".format(col, val, expected))
@@ -63,8 +63,8 @@ class VK_Spec_Constants(rdtest.TestCase):
 
             self.check(len(cb_vars) == 1)
 
-            if not rdtest.value_compare(cb_vars[0].value.i.x, num_colors):
-                raise rdtest.TestFailureException("Spec constant is {}, not {}".format(cb_vars[0].value.i.x, num_colors))
+            if not rdtest.value_compare(cb_vars[0].value.s32v[0], num_colors):
+                raise rdtest.TestFailureException("Spec constant is {}, not {}".format(cb_vars[0].value.s32v[0], num_colors))
 
             rdtest.log.success("Draw with {} colors specialisation constant is as expected".format(num_colors))
 

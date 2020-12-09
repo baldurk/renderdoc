@@ -30,9 +30,9 @@ class D3D12_PrimitiveID(rdtest.TestCase):
             # Look up the matching register in the inputs, and see if the expected value matches
             inputs: List[rd.ShaderVariable] = list(trace.inputs)
             primValue = [var for var in inputs if var.name == primInput.variables[0].name][0]
-            if primValue.value.uv[0] not in expected_prim:
+            if primValue.value.u32v[0] not in expected_prim:
                 rdtest.log.error("Expected prim {} at {},{} did not match actual prim {}.".format(
-                    str(expected_prim), x, y, primValue.value.uv[0]))
+                    str(expected_prim), x, y, primValue.value.u32v[0]))
                 return False
 
         # Compare shader debug output against an expected value instead of the RT's output,
@@ -40,9 +40,9 @@ class D3D12_PrimitiveID(rdtest.TestCase):
         if expected_output is not None:
             output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
             debugged = self.evaluate_source_var(output, variables)
-            if debugged.value.fv[0:4] != expected_output:
+            if list(debugged.value.f32v[0:4]) != expected_output:
                 rdtest.log.error("Expected value {} at {},{} did not match actual {}.".format(
-                    expected_output, x, y, debugged.value.fv[0:4]))
+                    expected_output, x, y, debugged.value.f32v[0:4]))
                 return False
 
         self.controller.FreeTrace(trace)

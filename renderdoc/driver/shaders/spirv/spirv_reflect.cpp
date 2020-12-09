@@ -636,11 +636,11 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
     if(entry->executionModes.localSizeId.x != Id())
     {
       reflection.dispatchThreadsDimension[0] =
-          EvaluateConstant(e.executionModes.localSizeId.x, specInfo).value.u.x;
+          EvaluateConstant(e.executionModes.localSizeId.x, specInfo).value.u32v[0];
       reflection.dispatchThreadsDimension[1] =
-          EvaluateConstant(e.executionModes.localSizeId.y, specInfo).value.u.x;
+          EvaluateConstant(e.executionModes.localSizeId.y, specInfo).value.u32v[0];
       reflection.dispatchThreadsDimension[2] =
-          EvaluateConstant(e.executionModes.localSizeId.z, specInfo).value.u.x;
+          EvaluateConstant(e.executionModes.localSizeId.z, specInfo).value.u32v[0];
     }
     else if(e.executionModes.localSize.x > 0)
     {
@@ -660,7 +660,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
         RDCASSERT(c.children.size() == 3);
         for(size_t i = 0; i < c.children.size() && i < 3; i++)
           reflection.dispatchThreadsDimension[i] =
-              EvaluateConstant(c.children[i], specInfo).value.u.x;
+              EvaluateConstant(c.children[i], specInfo).value.u32v[0];
       }
     }
   }
@@ -721,7 +721,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
           // save top-level children referenced in structs
           if(dataTypes[dataTypes[idTypes[access.base]].InnerType()].type == DataType::StructType)
             usedStructChildren[access.base].insert(
-                EvaluateConstant(access.indexes[0], specInfo).value.u.x);
+                EvaluateConstant(access.indexes[0], specInfo).value.u32v[0]);
         }
 
         if(it.opcode() == Op::FunctionCall)
@@ -879,7 +879,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
         isArray = true;
         // runtime arrays have no length
         if(varType->length != Id())
-          arraySize = EvaluateConstant(varType->length, specInfo).value.u.x;
+          arraySize = EvaluateConstant(varType->length, specInfo).value.u32v[0];
         else
           arraySize = ~0U;
         varType = &dataTypes[varType->InnerType()];
@@ -1386,7 +1386,7 @@ void Reflector::MakeConstantBlockVariable(ShaderConstant &outConst,
   if(curType->type == DataType::ArrayType)
   {
     outConst.type.descriptor.elements =
-        curType->length != Id() ? EvaluateConstant(curType->length, specInfo).value.u.x : ~0U;
+        curType->length != Id() ? EvaluateConstant(curType->length, specInfo).value.u32v[0] : ~0U;
 
     if(varDecorations.arrayStride != ~0U)
     {
@@ -1521,7 +1521,7 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
   uint32_t arraySize = 1;
   if(varType->type == DataType::ArrayType)
   {
-    arraySize = EvaluateConstant(varType->length, specInfo).value.u.x;
+    arraySize = EvaluateConstant(varType->length, specInfo).value.u32v[0];
     isArray = true;
     varType = &dataTypes[varType->InnerType()];
 

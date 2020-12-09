@@ -33,78 +33,6 @@
 #include "resourceid.h"
 #include "stringise.h"
 
-DOCUMENT("A ``float`` 4 component vector.")
-struct FloatVecVal
-{
-  DOCUMENT("");
-  FloatVecVal() = default;
-  FloatVecVal(const FloatVecVal &) = default;
-  FloatVecVal &operator=(const FloatVecVal &) = default;
-
-  DOCUMENT("The x component.");
-  float x;
-  DOCUMENT("The y component.");
-  float y;
-  DOCUMENT("The z component.");
-  float z;
-  DOCUMENT("The w component.");
-  float w;
-};
-
-DOCUMENT("A ``double`` 4 component vector.")
-struct DoubleVecVal
-{
-  DOCUMENT("");
-  DoubleVecVal() = default;
-  DoubleVecVal(const DoubleVecVal &) = default;
-  DoubleVecVal &operator=(const DoubleVecVal &) = default;
-
-  DOCUMENT("The x component.");
-  double x;
-  DOCUMENT("The y component.");
-  double y;
-  DOCUMENT("The z component.");
-  double z;
-  DOCUMENT("The w component.");
-  double w;
-};
-
-DOCUMENT("A 32-bit signed ``int`` 4 component vector.")
-struct IntVecVal
-{
-  DOCUMENT("");
-  IntVecVal() = default;
-  IntVecVal(const IntVecVal &) = default;
-  IntVecVal &operator=(const IntVecVal &) = default;
-
-  DOCUMENT("The x component.");
-  int32_t x;
-  DOCUMENT("The y component.");
-  int32_t y;
-  DOCUMENT("The z component.");
-  int32_t z;
-  DOCUMENT("The w component.");
-  int32_t w;
-};
-
-DOCUMENT("A 32-bit unsigned ``int`` 4 component vector.")
-struct UIntVecVal
-{
-  DOCUMENT("");
-  UIntVecVal() = default;
-  UIntVecVal(const UIntVecVal &) = default;
-  UIntVecVal &operator=(const UIntVecVal &) = default;
-
-  DOCUMENT("The x component.");
-  uint32_t x;
-  DOCUMENT("The y component.");
-  uint32_t y;
-  DOCUMENT("The z component.");
-  uint32_t z;
-  DOCUMENT("The w component.");
-  uint32_t w;
-};
-
 DOCUMENT("A 64-bit pointer value with optional type information.")
 struct PointerVal
 {
@@ -184,58 +112,65 @@ DECLARE_REFLECTION_STRUCT(BindpointIndex);
 DOCUMENT("A C union that holds 16 values, with each different basic variable type.");
 union ShaderValue
 {
-  DOCUMENT(R"(A convenient subset of :data:`fv` as a named 4 component vector.
+  DOCUMENT(R"(16-tuple of ``float`` values.
 
-:type: FloatVecVal
+:type: Tuple[float,...]
 )");
-  FloatVecVal f;
+  rdcfixedarray<float, 16> f32v;
 
-  DOCUMENT("16-tuple of ``float`` values.");
-  float fv[16];
+  DOCUMENT(R"(16-tuple of 32-bit signed integer values.
 
-  DOCUMENT(R"(A convenient subset of :data:`iv` as a named 4 component vector.
-
-:type: IntVecVal
+:type: Tuple[int,...]
 )");
-  IntVecVal i;
+  rdcfixedarray<int32_t, 16> s32v;
 
-  DOCUMENT("16-tuple of 32-bit signed integer values.");
-  int32_t iv[16];
+  DOCUMENT(R"(16-tuple of 32-bit unsigned integer values.
 
-  DOCUMENT(R"(A convenient subset of :data:`uv` as a named 4 component vector.
-
-:type: UIntVecVal
+:type: Tuple[int,...]
 )");
-  UIntVecVal u;
+  rdcfixedarray<uint32_t, 16> u32v;
 
-  DOCUMENT("16-tuple of 32-bit unsigned integer values.");
-  uint32_t uv[16];
+  DOCUMENT(R"(16-tuple of ``double`` values.
 
-  DOCUMENT(R"(A convenient subset of :data:`dv` as a named 4 component vector.
-
-:type: DoubleVecVal
+:type: Tuple[float,...]
 )");
-  DoubleVecVal d;
-  DOCUMENT("16-tuple of ``double`` values.");
-  double dv[16];
+  rdcfixedarray<double, 16> f64v;
 
-  DOCUMENT("16-tuple of 64-bit unsigned integer values.");
-  uint64_t u64v[16];
+  DOCUMENT(R"(16-tuple of 64-bit unsigned integer values.
 
-  DOCUMENT("16-tuple of 64-bit signed integer values.");
-  int64_t s64v[16];
+:type: Tuple[int,...]
+)");
+  rdcfixedarray<uint64_t, 16> u64v;
 
-  DOCUMENT("16-tuple of 16-bit unsigned integer values.");
-  uint16_t u16v[16];
+  DOCUMENT(R"(16-tuple of 64-bit signed integer values.
 
-  DOCUMENT("16-tuple of 16-bit signed integer values.");
-  int16_t s16v[16];
+:type: Tuple[int,...]
+)");
+  rdcfixedarray<int64_t, 16> s64v;
 
-  DOCUMENT("16-tuple of 8-bit unsigned integer values.");
-  uint8_t u8v[16];
+  DOCUMENT(R"(16-tuple of 16-bit unsigned integer values.
 
-  DOCUMENT("16-tuple of 8-bit signed integer values.");
-  int8_t s8v[16];
+:type: Tuple[int,...]
+)");
+  rdcfixedarray<uint16_t, 16> u16v;
+
+  DOCUMENT(R"(16-tuple of 16-bit signed integer values.
+
+:type: Tuple[int,...]
+)");
+  rdcfixedarray<int16_t, 16> s16v;
+
+  DOCUMENT(R"(16-tuple of 8-bit unsigned integer values.
+
+:type: Tuple[int,...]
+)");
+  rdcfixedarray<uint8_t, 16> u8v;
+
+  DOCUMENT(R"(16-tuple of 8-bit signed integer values.
+
+:type: Tuple[int,...]
+)");
+  rdcfixedarray<int8_t, 16> s8v;
 };
 
 DOCUMENT(R"(Holds a single named shader variable. It contains either a primitive type (up to a 4x4
@@ -266,10 +201,10 @@ struct ShaderVariable
     displayAsHex = isStruct = rowMajor = false;
     memset(&value, 0, sizeof(value));
     type = VarType::Float;
-    value.f.x = x;
-    value.f.y = y;
-    value.f.z = z;
-    value.f.w = w;
+    value.f32v[0] = x;
+    value.f32v[1] = y;
+    value.f32v[2] = z;
+    value.f32v[3] = w;
   }
   ShaderVariable(const rdcstr &n, int x, int y, int z, int w)
   {
@@ -279,10 +214,10 @@ struct ShaderVariable
     displayAsHex = isStruct = rowMajor = false;
     memset(&value, 0, sizeof(value));
     type = VarType::SInt;
-    value.i.x = x;
-    value.i.y = y;
-    value.i.z = z;
-    value.i.w = w;
+    value.s32v[0] = x;
+    value.s32v[1] = y;
+    value.s32v[2] = z;
+    value.s32v[3] = w;
   }
   ShaderVariable(const rdcstr &n, uint32_t x, uint32_t y, uint32_t z, uint32_t w)
   {
@@ -292,10 +227,10 @@ struct ShaderVariable
     displayAsHex = isStruct = rowMajor = false;
     memset(&value, 0, sizeof(value));
     type = VarType::UInt;
-    value.u.x = x;
-    value.u.y = y;
-    value.u.z = z;
-    value.u.w = w;
+    value.u32v[0] = x;
+    value.u32v[1] = y;
+    value.u32v[2] = z;
+    value.u32v[3] = w;
   }
   bool operator==(const ShaderVariable &o) const
   {
@@ -412,9 +347,9 @@ binding is given by the :data:`type` member.
 )");
   inline void SetBinding(int32_t bindset, int32_t bind, uint32_t arrayIndex)
   {
-    value.iv[0] = bindset;
-    value.iv[1] = bind;
-    value.uv[2] = arrayIndex;
+    value.s32v[0] = bindset;
+    value.s32v[1] = bind;
+    value.u32v[2] = arrayIndex;
   }
 
   DOCUMENT(R"(Utility function for getting the bindpoint referenced by this variable.
@@ -428,7 +363,7 @@ binding is given by the :data:`type` member.
 )");
   inline BindpointIndex GetBinding() const
   {
-    return BindpointIndex(value.iv[0], value.iv[1], value.uv[2]);
+    return BindpointIndex(value.s32v[0], value.s32v[1], value.u32v[2]);
   }
 };
 
@@ -1403,8 +1338,11 @@ struct ShaderReflection
 )");
   bytebuf rawBytes;
 
-  DOCUMENT("The 3D dimensions of a compute workgroup, for compute shaders.");
-  uint32_t dispatchThreadsDimension[3];
+  DOCUMENT(R"(The 3D dimensions of a compute workgroup, for compute shaders.
+
+:type: Tuple[int,int,int]
+)");
+  rdcfixedarray<uint32_t, 3> dispatchThreadsDimension;
 
   DOCUMENT(R"(The input signature.
 

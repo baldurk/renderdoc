@@ -576,7 +576,7 @@ public:
   char &front()
   {
     ensure_mutable();
-    return data()[0];
+    return *data();
   }
   char back() const { return *(end() - 1); }
   char &back()

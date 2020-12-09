@@ -2433,7 +2433,7 @@ bool ShaderViewer::getVar(RDTreeWidgetItem *item, ShaderVariable *var, QString *
           if(mapping.type == VarType::Double || mapping.type == VarType::ULong)
             ret.value.u64v[i] = reg->value.u64v[r.component];
           else
-            ret.value.uv[i] = reg->value.uv[r.component];
+            ret.value.u32v[i] = reg->value.u32v[r.component];
         }
         else
         {
@@ -3314,27 +3314,27 @@ void ShaderViewer::updateWatchVariables()
 
               if(regcast == QLatin1Char('i'))
               {
-                val += Formatter::Format(var.value.iv[elindex]);
+                val += Formatter::Format(var.value.s32v[elindex]);
               }
               else if(regcast == QLatin1Char('f'))
               {
-                val += Formatter::Format(var.value.fv[elindex]);
+                val += Formatter::Format(var.value.f32v[elindex]);
               }
               else if(regcast == QLatin1Char('u'))
               {
-                val += Formatter::Format(var.value.uv[elindex]);
+                val += Formatter::Format(var.value.u32v[elindex]);
               }
               else if(regcast == QLatin1Char('x'))
               {
-                val += Formatter::Format(var.value.uv[elindex], true);
+                val += Formatter::Format(var.value.u32v[elindex], true);
               }
               else if(regcast == QLatin1Char('b'))
               {
-                val += QFormatStr("%1").arg(var.value.uv[elindex], 32, 2, QLatin1Char('0'));
+                val += QFormatStr("%1").arg(var.value.u32v[elindex], 32, 2, QLatin1Char('0'));
               }
               else if(regcast == QLatin1Char('d'))
               {
-                val += Formatter::Format(var.value.dv[elindex]);
+                val += Formatter::Format(var.value.f64v[elindex]);
               }
 
               if(s < swizzle.count() - 1)
@@ -3632,15 +3632,15 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
           }
 
           if(l.type == VarType::UInt)
-            value += Formatter::Format(reg->value.uv[r.component]);
+            value += Formatter::Format(reg->value.u32v[r.component]);
           else if(l.type == VarType::SInt)
-            value += Formatter::Format(reg->value.iv[r.component]);
+            value += Formatter::Format(reg->value.s32v[r.component]);
           else if(l.type == VarType::Bool)
-            value += Formatter::Format(reg->value.uv[r.component] ? true : false);
+            value += Formatter::Format(reg->value.u32v[r.component] ? true : false);
           else if(l.type == VarType::Float)
-            value += Formatter::Format(reg->value.fv[r.component]);
+            value += Formatter::Format(reg->value.f32v[r.component]);
           else if(l.type == VarType::Double)
-            value += Formatter::Format(reg->value.dv[r.component]);
+            value += Formatter::Format(reg->value.f64v[r.component]);
         }
         else
         {
@@ -4608,25 +4608,25 @@ void ShaderViewer::updateVariableTooltip()
           "--------------------------------------------------------\n");
 
   text += QFormatStr("float | %1 %2 %3 %4\n")
-              .arg(Formatter::Format(var.value.fv[0]), 11)
-              .arg(Formatter::Format(var.value.fv[1]), 11)
-              .arg(Formatter::Format(var.value.fv[2]), 11)
-              .arg(Formatter::Format(var.value.fv[3]), 11);
+              .arg(Formatter::Format(var.value.f32v[0]), 11)
+              .arg(Formatter::Format(var.value.f32v[1]), 11)
+              .arg(Formatter::Format(var.value.f32v[2]), 11)
+              .arg(Formatter::Format(var.value.f32v[3]), 11);
   text += QFormatStr("uint  | %1 %2 %3 %4\n")
-              .arg(var.value.uv[0], 11, 10, QLatin1Char(' '))
-              .arg(var.value.uv[1], 11, 10, QLatin1Char(' '))
-              .arg(var.value.uv[2], 11, 10, QLatin1Char(' '))
-              .arg(var.value.uv[3], 11, 10, QLatin1Char(' '));
+              .arg(var.value.u32v[0], 11, 10, QLatin1Char(' '))
+              .arg(var.value.u32v[1], 11, 10, QLatin1Char(' '))
+              .arg(var.value.u32v[2], 11, 10, QLatin1Char(' '))
+              .arg(var.value.u32v[3], 11, 10, QLatin1Char(' '));
   text += QFormatStr("int   | %1 %2 %3 %4\n")
-              .arg(var.value.iv[0], 11, 10, QLatin1Char(' '))
-              .arg(var.value.iv[1], 11, 10, QLatin1Char(' '))
-              .arg(var.value.iv[2], 11, 10, QLatin1Char(' '))
-              .arg(var.value.iv[3], 11, 10, QLatin1Char(' '));
+              .arg(var.value.s32v[0], 11, 10, QLatin1Char(' '))
+              .arg(var.value.s32v[1], 11, 10, QLatin1Char(' '))
+              .arg(var.value.s32v[2], 11, 10, QLatin1Char(' '))
+              .arg(var.value.s32v[3], 11, 10, QLatin1Char(' '));
   text += QFormatStr("hex   |    %1    %2    %3    %4")
-              .arg(Formatter::HexFormat(var.value.uv[0], 4))
-              .arg(Formatter::HexFormat(var.value.uv[1], 4))
-              .arg(Formatter::HexFormat(var.value.uv[2], 4))
-              .arg(Formatter::HexFormat(var.value.uv[3], 4));
+              .arg(Formatter::HexFormat(var.value.u32v[0], 4))
+              .arg(Formatter::HexFormat(var.value.u32v[1], 4))
+              .arg(Formatter::HexFormat(var.value.u32v[2], 4))
+              .arg(Formatter::HexFormat(var.value.u32v[3], 4));
   text += lit("</pre>");
 
   QToolTip::showText(m_TooltipPos, text);

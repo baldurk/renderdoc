@@ -146,9 +146,9 @@ class VK_Indirect(rdtest.TestCase):
 
             self.check(dispatches and len(dispatches.children) == 3)
 
-            self.check(dispatches.children[0].dispatchDimension == [0,0,0])
-            self.check(dispatches.children[1].dispatchDimension == [1,1,1])
-            self.check(dispatches.children[2].dispatchDimension == [3,4,5])
+            self.check(dispatches.children[0].dispatchDimension == (0, 0, 0))
+            self.check(dispatches.children[1].dispatchDimension == (1, 1, 1))
+            self.check(dispatches.children[2].dispatchDimension == (3, 4, 5))
 
             rdtest.log.success("{} Indirect dispatches are the correct dimensions".format(level))
 

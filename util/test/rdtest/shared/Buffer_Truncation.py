@@ -117,8 +117,8 @@ class Buffer_Truncation(rdtest.TestCase):
         outcol: rd.ShaderVariable = variables[1]
 
         self.check(outcol.name == "outcol")
-        if not rdtest.value_compare(outcol.value.fv[0:4], [0.0, 0.0, 0.0, 0.0]):
-            raise rdtest.TestFailureException("expected outcol to be 0s, but got {}".format(outcol.value.fv[0:4]))
+        if not rdtest.value_compare(outcol.value.f32v[0:4], [0.0, 0.0, 0.0, 0.0]):
+            raise rdtest.TestFailureException("expected outcol to be 0s, but got {}".format(outcol.value.f32v[0:4]))
 
         if self.controller.GetAPIProperties().shaderDebugging and pipe.GetShaderReflection(
                 rd.ShaderStage.Pixel).debugInfo.debuggable:
@@ -143,8 +143,8 @@ class Buffer_Truncation(rdtest.TestCase):
                     self.check(debugged_cb.members[0].name == 'padding')
                     self.check(debugged_cb.members[1].name == 'outcol')
 
-                    if not rdtest.value_compare(debugged_cb.members[1].value.fv[0:4], [0.0, 0.0, 0.0, 0.0]):
-                        raise rdtest.TestFailureException("expected outcol to be 0s, but got {}".format(debugged_cb.members[1].value.fv[0:4]))
+                    if not rdtest.value_compare(debugged_cb.members[1].value.f32v[0:4], [0.0, 0.0, 0.0, 0.0]):
+                        raise rdtest.TestFailureException("expected outcol to be 0s, but got {}".format(debugged_cb.members[1].value.f32v[0:4]))
                 # D3D style, one source var for each member mapping to a register
                 elif len(cbuf_sourceVars) == 17:
                     debugged_cb = trace.constantBlocks[0].members[16]
@@ -154,8 +154,8 @@ class Buffer_Truncation(rdtest.TestCase):
 
                     self.check(cbuf_sourceVars[16].variables[0].name == 'cb0[16]')
 
-                    if not rdtest.value_compare(debugged_cb.value.fv[0:4], [0.0, 0.0, 0.0, 0.0]):
-                        raise rdtest.TestFailureException("expected outcol to be 0s, but got {}".format(debugged_cb.members[1].value.fv[0:4]))
+                    if not rdtest.value_compare(debugged_cb.value.f32v[0:4], [0.0, 0.0, 0.0, 0.0]):
+                        raise rdtest.TestFailureException("expected outcol to be 0s, but got {}".format(debugged_cb.members[1].value.f32v[0:4]))
                 else:
                     raise rdtest.TestFailureException("Unexpected number of constant buffer source vars {}".format(len(cbuf_sourceVars)))
 

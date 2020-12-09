@@ -232,8 +232,7 @@ public:
                          .arg(mods.front().eventId)
                          .arg(drawcall->name);
 
-              if(memcmp(mods[0].preMod.col.uintValue, mods[0].postMod.col.uintValue,
-                        sizeof(uint32_t) * 4) == 0)
+              if(mods[0].preMod.col.uintValue == mods[0].postMod.col.uintValue)
               {
                 ret += tr("\nNo change in tex value");
                 uavnowrite = true;
@@ -356,8 +355,7 @@ public:
             passed |= m.Passed();
 
           if(mods[0].directShaderWrite &&
-             memcmp(mods[0].preMod.col.uintValue, mods[0].postMod.col.uintValue,
-                    sizeof(uint32_t) * 4) == 0)
+             mods[0].preMod.col.uintValue == mods[0].postMod.col.uintValue)
             return QBrush(QColor::fromRgb(235, 235, 235));
 
           return passed ? QBrush(QColor::fromRgb(235, 255, 235))

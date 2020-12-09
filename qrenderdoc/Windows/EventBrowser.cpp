@@ -388,10 +388,10 @@ QPair<uint32_t, uint32_t> EventBrowser::AddDrawcalls(RDTreeWidgetItem *parent,
     if(m_Ctx.Config().EventBrowser_ApplyColors)
     {
       // if alpha isn't 0, assume the colour is valid
-      if((d.flags & (DrawFlags::PushMarker | DrawFlags::SetMarker)) && d.markerColor[3] > 0.0f)
+      if((d.flags & (DrawFlags::PushMarker | DrawFlags::SetMarker)) && d.markerColor.w > 0.0f)
       {
         QColor col = QColor::fromRgb(
-            qRgb(d.markerColor[0] * 255.0f, d.markerColor[1] * 255.0f, d.markerColor[2] * 255.0f));
+            qRgb(d.markerColor.x * 255.0f, d.markerColor.y * 255.0f, d.markerColor.z * 255.0f));
 
         child->setTreeColor(col, 3.0f);
 

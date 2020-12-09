@@ -30,6 +30,7 @@
 #include "api/replay/rdcflatmap.h"
 #include "api/replay/rdcpair.h"
 #include "api/replay/rdcstr.h"
+#include "api/replay/resourceid.h"
 #include "common/formatting.h"
 #include "common/globalconfig.h"
 #include "common/timing.h"
@@ -1887,6 +1888,81 @@ TEST_CASE("Test flatmap type", "[basictypes][flatmap]")
 
     it = test.upper_bound(8);
     CHECK(it == test.end());
+  };
+};
+
+union foo
+{
+  rdcfixedarray<float, 16> f32v;
+  rdcfixedarray<uint32_t, 16> u32v;
+  rdcfixedarray<int32_t, 16> s32v;
+};
+
+TEST_CASE("Test rdcfixedarray type", "[basictypes][rdcfixedarray]")
+{
+  SECTION("Basic test")
+  {
+    rdcfixedarray<int32_t, 8> test = {};
+
+    CHECK(test.size() == 8);
+    CHECK(test.byteSize() == 32);
+    CHECK(test.begin() + 8 == test.end());
+    CHECK(test[0] == 0);
+    CHECK(test[2] == 0);
+
+    test = {4, 1, 77, 0, 0, 8, 20, 934};
+
+    CHECK(test.contains(1));
+    CHECK(!test.contains(2));
+    CHECK(test.indexOf(8) == 5);
+    CHECK(test.indexOf(9) == -1);
+
+    CHECK(test[0] == 4);
+    CHECK(test[2] == 77);
+    CHECK(test[4] == 0);
+
+    int sum = 0;
+    for(int x : test)
+      sum += x;
+
+    CHECK(sum == 1044);
+
+    test[4] = 1;
+
+    CHECK(test[0] == 4);
+    CHECK(test[2] == 77);
+    CHECK(test[4] == 1);
+
+    sum = 0;
+    for(int x : test)
+      sum += x;
+
+    CHECK(sum == 1045);
+  };
+
+  SECTION("Test of rdcfixedarray of ResourceId")
+  {
+    rdcfixedarray<ResourceId, 8> resources = {};
+
+    ResourceId r = ResourceIDGen::GetNewUniqueID();
+    resources[2] = r;
+    resources[4] = ResourceIDGen::GetNewUniqueID();
+
+    CHECK(resources[2] != resources[4]);
+    CHECK(resources[2] == r);
+  };
+
+  SECTION("Test of rdcfixedarray in unions")
+  {
+    foo u = {};
+
+    u.f32v[0] = 1.0f;
+
+    CHECK(u.u32v[0] == 0x3f800000);
+
+    u = foo();
+
+    CHECK(u.u32v[0] == 0);
   };
 };
 

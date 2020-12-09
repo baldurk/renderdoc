@@ -47,9 +47,7 @@ struct BindingElement
            addressU == o.addressU && addressV == o.addressV && addressW == o.addressW &&
            mipBias == o.mipBias && maxAnisotropy == o.maxAnisotropy &&
            compareFunction == o.compareFunction && minLOD == o.minLOD && maxLOD == o.maxLOD &&
-           borderColor[0] == o.borderColor[0] && borderColor[1] == o.borderColor[1] &&
-           borderColor[2] == o.borderColor[2] && borderColor[3] == o.borderColor[3] &&
-           unnormalized == o.unnormalized;
+           borderColor == o.borderColor && unnormalized == o.unnormalized;
   }
   bool operator<(const BindingElement &o) const
   {
@@ -99,14 +97,8 @@ struct BindingElement
       return minLOD < o.minLOD;
     if(!(maxLOD == o.maxLOD))
       return maxLOD < o.maxLOD;
-    if(!(borderColor[0] == o.borderColor[0]))
-      return borderColor[0] < o.borderColor[0];
-    if(!(borderColor[1] == o.borderColor[1]))
-      return borderColor[1] < o.borderColor[1];
-    if(!(borderColor[2] == o.borderColor[2]))
-      return borderColor[2] < o.borderColor[2];
-    if(!(borderColor[3] == o.borderColor[3]))
-      return borderColor[3] < o.borderColor[3];
+    if(!(borderColor == o.borderColor))
+      return borderColor < o.borderColor;
     if(!(unnormalized == o.unnormalized))
       return unnormalized < o.unnormalized;
     return false;
@@ -178,8 +170,11 @@ since single descriptors may only be dynamically skipped by control flow.
   float minLOD = 0.0f;
   DOCUMENT("For samplers - the maximum mip level that can be used.");
   float maxLOD = 0.0f;
-  DOCUMENT("For samplers - the RGBA border color.");
-  float borderColor[4];
+  DOCUMENT(R"(For samplers - the RGBA border color.
+
+:type: Tuple[float,float,float,float]
+)");
+  rdcfixedarray<float, 4> borderColor = {0.0f, 0.0f, 0.0f, 0.0f};
   DOCUMENT("For samplers - ``True`` if unnormalized co-ordinates are used in this sampler.");
   bool unnormalized = false;
 
@@ -879,8 +874,11 @@ struct ColorBlendState
 )");
   rdcarray<ColorBlend> blends;
 
-  DOCUMENT("The constant blend factor to use in blend equations.");
-  float blendFactor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+  DOCUMENT(R"(The constant blend factor to use in blend equations.
+
+:type: Tuple[float,float,float,float]
+)");
+  rdcfixedarray<float, 4> blendFactor = {1.0f, 1.0f, 1.0f, 1.0f};
 };
 
 DOCUMENT("Describes the pipeline depth-stencil state.");

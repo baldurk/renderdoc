@@ -373,7 +373,7 @@ void ReplayController::AddFakeMarkers()
     mark.drawcallId = draws[start].drawcallId;
 
     mark.flags = DrawFlags::PushMarker;
-    memcpy(mark.outputs, draws[end].outputs, sizeof(mark.outputs));
+    mark.outputs = draws[end].outputs;
     mark.depthOut = draws[end].depthOut;
 
     mark.name = "Guessed Pass";
@@ -1559,7 +1559,7 @@ PixelValue ReplayController::PickPixel(ResourceId tex, uint32_t x, uint32_t y,
   if(tex == ResourceId())
     return ret;
 
-  m_pDevice->PickPixel(m_pDevice->GetLiveID(tex), x, y, sub, typeCast, ret.floatValue);
+  m_pDevice->PickPixel(m_pDevice->GetLiveID(tex), x, y, sub, typeCast, ret.floatValue.data());
 
   return ret;
 }

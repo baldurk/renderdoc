@@ -369,7 +369,7 @@ void StandardFillCBufferVariable(ResourceId shader, const ShaderConstantDescript
     const byte *srcData = data.data() + dataOffset;
     const size_t avail = data.size() - dataOffset;
 
-    byte *dstData = elemByteSize == 8 ? (byte *)outvar.value.u64v : (byte *)outvar.value.uv;
+    byte *dstData = outvar.value.u8v.data();
     const size_t dstStride = elemByteSize == 8 ? 8 : 4;
 
     // each secondaryDim element (row or column) is stored in a primaryDim-vector.
@@ -401,7 +401,7 @@ void StandardFillCBufferVariable(ResourceId shader, const ShaderConstantDescript
       {
         for(size_t ri = 0; ri < rows; ri++)
           for(size_t ci = 0; ci < cols; ci++)
-            outvar.value.uv[ri * cols + ci] = tmp.value.uv[ci * rows + ri];
+            outvar.value.u32v[ri * cols + ci] = tmp.value.u32v[ci * rows + ri];
       }
     }
 
@@ -412,8 +412,8 @@ void StandardFillCBufferVariable(ResourceId shader, const ShaderConstantDescript
       {
         for(size_t ci = 0; ci < cols; ci++)
         {
-          outvar.value.fv[ri * cols + ci] =
-              ConvertFromHalf((uint16_t)outvar.value.uv[ri * cols + ci]);
+          outvar.value.f32v[ri * cols + ci] =
+              ConvertFromHalf((uint16_t)outvar.value.u32v[ri * cols + ci]);
         }
       }
     }
@@ -426,7 +426,7 @@ void StandardFillCBufferVariable(ResourceId shader, const ShaderConstantDescript
       {
         for(size_t ci = 0; ci < cols; ci++)
         {
-          uint32_t &u = outvar.value.uv[ri * cols + ci];
+          uint32_t &u = outvar.value.u32v[ri * cols + ci];
 
           if(u & testMask)
             u |= extendMask;

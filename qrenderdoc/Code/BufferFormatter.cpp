@@ -1024,7 +1024,7 @@ static void FillShaderVarData(ShaderVariable &var, const ShaderConstant &elem, c
   if(objs.isEmpty())
   {
     var.name = "-";
-    memset(var.value.dv, 0, sizeof(var.value.dv));
+    var.value = ShaderValue();
     return;
   }
 
@@ -1042,21 +1042,21 @@ static void FillShaderVarData(ShaderVariable &var, const ShaderConstant &elem, c
       src++;
 
       if(var.type == VarType::Double)
-        var.value.dv[dst] = o.toDouble();
+        var.value.f64v[dst] = o.toDouble();
       if(var.type == VarType::Float || var.type == VarType::Half)
-        var.value.fv[dst] = o.toFloat();
+        var.value.f32v[dst] = o.toFloat();
       else if(var.type == VarType::ULong)
         var.value.u64v[dst] = o.toULongLong();
       else if(var.type == VarType::SLong)
         var.value.s64v[dst] = o.toLongLong();
       else if(var.type == VarType::Bool)
-        var.value.uv[dst] = o.toBool() ? 1 : 0;
+        var.value.u32v[dst] = o.toBool() ? 1 : 0;
       else if(var.type == VarType::UInt || var.type == VarType::UShort || var.type == VarType::UByte)
-        var.value.uv[dst] = o.toUInt();
+        var.value.u32v[dst] = o.toUInt();
       else if(var.type == VarType::SInt || var.type == VarType::SShort || var.type == VarType::SByte)
-        var.value.iv[dst] = o.toInt();
+        var.value.s32v[dst] = o.toInt();
       else
-        var.value.fv[dst] = o.toFloat();
+        var.value.f32v[dst] = o.toFloat();
     }
   }
 }
@@ -1636,9 +1636,9 @@ QString RowString(const ShaderVariable &v, uint32_t row, VarType type)
     return ToQStr(v.GetPointer());
 
   if(type == VarType::Double)
-    return RowValuesToString((int)v.columns, v.displayAsHex, v.value.dv[row * v.columns + 0],
-                             v.value.dv[row * v.columns + 1], v.value.dv[row * v.columns + 2],
-                             v.value.dv[row * v.columns + 3]);
+    return RowValuesToString((int)v.columns, v.displayAsHex, v.value.f64v[row * v.columns + 0],
+                             v.value.f64v[row * v.columns + 1], v.value.f64v[row * v.columns + 2],
+                             v.value.f64v[row * v.columns + 3]);
   else if(type == VarType::SLong)
     return RowValuesToString((int)v.columns, v.displayAsHex, v.value.s64v[row * v.columns + 0],
                              v.value.s64v[row * v.columns + 1], v.value.s64v[row * v.columns + 2],
@@ -1648,23 +1648,23 @@ QString RowString(const ShaderVariable &v, uint32_t row, VarType type)
                              v.value.u64v[row * v.columns + 1], v.value.u64v[row * v.columns + 2],
                              v.value.u64v[row * v.columns + 3]);
   else if(type == VarType::SInt || type == VarType::SShort || type == VarType::SByte)
-    return RowValuesToString((int)v.columns, v.displayAsHex, v.value.iv[row * v.columns + 0],
-                             v.value.iv[row * v.columns + 1], v.value.iv[row * v.columns + 2],
-                             v.value.iv[row * v.columns + 3]);
+    return RowValuesToString((int)v.columns, v.displayAsHex, v.value.s32v[row * v.columns + 0],
+                             v.value.s32v[row * v.columns + 1], v.value.s32v[row * v.columns + 2],
+                             v.value.s32v[row * v.columns + 3]);
   else if(type == VarType::UInt || type == VarType::UShort || type == VarType::UByte)
-    return RowValuesToString((int)v.columns, v.displayAsHex, v.value.uv[row * v.columns + 0],
-                             v.value.uv[row * v.columns + 1], v.value.uv[row * v.columns + 2],
-                             v.value.uv[row * v.columns + 3]);
+    return RowValuesToString((int)v.columns, v.displayAsHex, v.value.u32v[row * v.columns + 0],
+                             v.value.u32v[row * v.columns + 1], v.value.u32v[row * v.columns + 2],
+                             v.value.u32v[row * v.columns + 3]);
   else if(type == VarType::Bool)
     return RowValuesToString((int)v.columns, v.displayAsHex,
-                             v.value.uv[row * v.columns + 0] ? true : false,
-                             v.value.uv[row * v.columns + 1] ? true : false,
-                             v.value.uv[row * v.columns + 2] ? true : false,
-                             v.value.uv[row * v.columns + 3] ? true : false);
+                             v.value.u32v[row * v.columns + 0] ? true : false,
+                             v.value.u32v[row * v.columns + 1] ? true : false,
+                             v.value.u32v[row * v.columns + 2] ? true : false,
+                             v.value.u32v[row * v.columns + 3] ? true : false);
   else
-    return RowValuesToString((int)v.columns, v.displayAsHex, v.value.fv[row * v.columns + 0],
-                             v.value.fv[row * v.columns + 1], v.value.fv[row * v.columns + 2],
-                             v.value.fv[row * v.columns + 3]);
+    return RowValuesToString((int)v.columns, v.displayAsHex, v.value.f32v[row * v.columns + 0],
+                             v.value.f32v[row * v.columns + 1], v.value.f32v[row * v.columns + 2],
+                             v.value.f32v[row * v.columns + 3]);
 }
 
 QString VarString(const ShaderVariable &v)

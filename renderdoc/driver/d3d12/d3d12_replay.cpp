@@ -1168,7 +1168,7 @@ void D3D12Replay::FillRootElements(const D3D12RenderState::RootSignature &rootSi
               samp.addressV = MakeAddressMode(sampDesc.AddressV);
               samp.addressW = MakeAddressMode(sampDesc.AddressW);
 
-              memcpy(samp.borderColor, sampDesc.BorderColor, sizeof(FLOAT) * 4);
+              samp.borderColor = sampDesc.BorderColor;
 
               samp.compareFunction = MakeCompareFunc(sampDesc.ComparisonFunc);
               samp.filter = MakeFilter(sampDesc.Filter);
@@ -1525,7 +1525,7 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
     if(rs.dsv.GetResResourceId() != ResourceId())
       FillResourceView(state.outputMerger.depthTarget, &rs.dsv);
 
-    memcpy(state.outputMerger.blendState.blendFactor, rs.blendFactor, sizeof(FLOAT) * 4);
+    state.outputMerger.blendState.blendFactor = rs.blendFactor;
 
     {
       D3D12_BLEND_DESC &src = pipe->graphics->BlendState;
@@ -2659,8 +2659,7 @@ rdcarray<uint32_t> D3D12Replay::GetPassEvents(uint32_t eventId)
       break;
 
     // if the outputs changed, we're done
-    if(memcmp(start->outputs, prev->outputs, sizeof(start->outputs)) != 0 ||
-       start->depthOut != prev->depthOut)
+    if(start->outputs != prev->outputs || start->depthOut != prev->depthOut)
       break;
 
     start = prev;

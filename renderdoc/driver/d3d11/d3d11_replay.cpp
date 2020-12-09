@@ -802,7 +802,7 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
           samp.addressV = MakeAddressMode(desc.AddressV);
           samp.addressW = MakeAddressMode(desc.AddressW);
 
-          memcpy(samp.borderColor, desc.BorderColor, sizeof(FLOAT) * 4);
+          samp.borderColor = desc.BorderColor;
 
           samp.compareFunction = MakeCompareFunc(desc.ComparisonFunc);
           samp.filter = MakeFilter(desc.Filter);
@@ -1400,7 +1400,7 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
 
     ret.outputMerger.blendState.sampleMask = rs->OM.SampleMask;
 
-    memcpy(ret.outputMerger.blendState.blendFactor, rs->OM.BlendFactor, sizeof(FLOAT) * 4);
+    ret.outputMerger.blendState.blendFactor = rs->OM.BlendFactor;
 
     if(rs->OM.BlendState)
     {
@@ -1579,8 +1579,7 @@ rdcarray<uint32_t> D3D11Replay::GetPassEvents(uint32_t eventId)
   {
     const DrawcallDescription *prev = start->previous;
 
-    if(memcmp(start->outputs, prev->outputs, sizeof(start->outputs)) != 0 ||
-       start->depthOut != prev->depthOut)
+    if(start->outputs != prev->outputs || start->depthOut != prev->depthOut)
       break;
 
     start = prev;

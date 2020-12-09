@@ -657,24 +657,18 @@ AddressMode MakeAddressMode(VkSamplerAddressMode addr)
   return AddressMode::Wrap;
 }
 
-void MakeBorderColor(VkBorderColor border, FloatVector *BorderColor)
+void MakeBorderColor(VkBorderColor border, rdcfixedarray<float, 4> &BorderColor)
 {
   // we don't distinguish float/int, assume it matches
   switch(border)
   {
     case VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK:
-    case VK_BORDER_COLOR_INT_TRANSPARENT_BLACK:
-      *BorderColor = FloatVector(0.0f, 0.0f, 0.0f, 0.0f);
-      break;
+    case VK_BORDER_COLOR_INT_TRANSPARENT_BLACK: BorderColor = {0.0f, 0.0f, 0.0f, 0.0f}; break;
     case VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK:
-    case VK_BORDER_COLOR_INT_OPAQUE_BLACK:
-      *BorderColor = FloatVector(0.0f, 0.0f, 0.0f, 1.0f);
-      break;
+    case VK_BORDER_COLOR_INT_OPAQUE_BLACK: BorderColor = {0.0f, 0.0f, 0.0f, 1.0f}; break;
     case VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE:
-    case VK_BORDER_COLOR_INT_OPAQUE_WHITE:
-      *BorderColor = FloatVector(1.0f, 1.0f, 1.0f, 1.0f);
-      break;
-    default: memset(BorderColor, 0, sizeof(FloatVector)); break;
+    case VK_BORDER_COLOR_INT_OPAQUE_WHITE: BorderColor = {1.0f, 1.0f, 1.0f, 1.0f}; break;
+    default: BorderColor = {0.0f, 0.0f, 0.0f, 0.0f}; break;
   }
 }
 

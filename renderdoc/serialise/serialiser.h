@@ -765,6 +765,94 @@ public:
     return *this;
   }
 
+  template <class U, size_t N>
+  Serialiser &Serialise(const rdcliteral &name, rdcfixedarray<U, N> &el,
+                        SerialiserFlags flags = SerialiserFlags::NoFlags)
+  {
+    // for consistency with other arrays, even though this is redundant, we serialise out and in the
+    // size
+    uint64_t count = N;
+    {
+      m_InternalElement++;
+      DoSerialise(*this, count);
+      m_InternalElement--;
+
+      if(count != N)
+        RDCWARN("Fixed-size array length %zu serialised with different size %llu", N, count);
+    }
+
+    if(ExportStructure())
+    {
+      if(m_StructureStack.empty())
+      {
+        RDCERR("Serialising object outside of chunk context! Start Chunk before any Serialise!");
+        return *this;
+      }
+
+      SDObject &parent = *m_StructureStack.back();
+
+      SDObject &arr = *parent.AddAndOwnChild(new SDObject(name, TypeName<U>()));
+      m_StructureStack.push_back(&arr);
+
+      arr.type.basetype = SDBasic::Array;
+      arr.type.byteSize = N;
+      arr.type.flags |= SDTypeFlags::FixedArray;
+
+      arr.ReserveChildren(N);
+
+      for(size_t i = 0; i < N; i++)
+      {
+        SDObject &obj = *arr.AddAndOwnChild(new SDObject("$el"_lit, TypeName<U>()));
+        m_StructureStack.push_back(&obj);
+
+        // default to struct. This will be overwritten if appropriate
+        obj.type.basetype = SDBasic::Struct;
+        obj.type.byteSize = sizeof(U);
+        if(std::is_union<U>::value)
+          obj.type.flags |= SDTypeFlags::Union;
+
+        // Check against the serialised count here - on read if we don't have the right size this
+        // means we won't read past the provided data.
+        if(i < count)
+        {
+          SerialiseDispatch<Serialiser, U>::Do(*this, el[i]);
+        }
+        else
+        {
+          // we should have data for these elements, but we don't. Just default initialise
+          el[i] = U();
+        }
+
+        m_StructureStack.pop_back();
+      }
+
+      // if we have more data than the fixed sized array allows, we must simply discard the excess
+      if(count > N)
+      {
+        // prevent any trashing of structured data by these
+        m_InternalElement++;
+        U dummy;
+        SerialiseDispatch<Serialiser, U>::Do(*this, dummy);
+        m_InternalElement--;
+      }
+
+      m_StructureStack.pop_back();
+    }
+    else
+    {
+      for(size_t i = 0; i < N && i < count; i++)
+        SerialiseDispatch<Serialiser, U>::Do(*this, el[i]);
+
+      for(size_t i = N; i < count; i++)
+      {
+        U dummy = U();
+        SerialiseDispatch<Serialiser, U>::Do(*this, dummy);
+      }
+    }
+
+    return *this;
+  }
+
   template <class U, class V>
   Serialiser &Serialise(const rdcliteral &name, rdcpair<U, V> &el,
                         SerialiserFlags flags = SerialiserFlags::NoFlags)

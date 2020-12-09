@@ -68,10 +68,10 @@ class D3D11_CBuffer_Zoo(rdtest.TestCase):
 
             debugged = self.evaluate_source_var(output, variables)
 
-            if not rdtest.util.value_compare(debugged.value.fv[0:4], [536.1, 537.0, 538.0, 539.0]):
+            if not rdtest.util.value_compare(debugged.value.f32v[0:4], [536.1, 537.0, 538.0, 539.0]):
                 raise rdtest.TestFailureException(
                     "Debugged output {} did not match expected {}".format(
-                        debugged.value.fv[0:4], [536.1, 537.0, 538.0, 539.0]))
+                        debugged.value.f32v[0:4], [536.1, 537.0, 538.0, 539.0]))
 
             rdtest.log.success("Debugged output matched as expected")
 

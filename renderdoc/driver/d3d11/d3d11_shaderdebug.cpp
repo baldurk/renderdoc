@@ -530,7 +530,7 @@ ShaderVariable D3D11DebugAPIWrapper::GetSampleInfo(DXBCBytecode::OperandType typ
       ((ID3D11Texture2D *)res)->GetDesc(&desc);
 
       // returns 1 for non-multisampled resources
-      result.value.u.x = RDCMAX(1U, desc.SampleDesc.Count);
+      result.value.u32v[0] = RDCMAX(1U, desc.SampleDesc.Count);
     }
     else
     {
@@ -538,7 +538,7 @@ ShaderVariable D3D11DebugAPIWrapper::GetSampleInfo(DXBCBytecode::OperandType typ
       {
         // special behaviour for non-2D (i.e. by definition non-multisampled) textures when
         // querying the rasterizer, just return 1.
-        result.value.u.x = 1;
+        result.value.u32v[0] = 1;
       }
       else
       {
@@ -547,7 +547,7 @@ ShaderVariable D3D11DebugAPIWrapper::GetSampleInfo(DXBCBytecode::OperandType typ
             StringFormat::Fmt("Shader debugging %d: %s\nResource specified is not a 2D texture",
                               m_instruction, opString));
 
-        result.value.u.x = 0;
+        result.value.u32v[0] = 0;
       }
     }
 
@@ -581,7 +581,7 @@ ShaderVariable D3D11DebugAPIWrapper::GetBufferInfo(DXBCBytecode::OperandType typ
 
       if(uavDesc.ViewDimension == D3D11_UAV_DIMENSION_BUFFER)
       {
-        result.value.u.x = result.value.u.y = result.value.u.z = result.value.u.w =
+        result.value.u32v[0] = result.value.u32v[1] = result.value.u32v[2] = result.value.u32v[3] =
             uavDesc.Buffer.NumElements;
       }
       else
@@ -640,12 +640,12 @@ ShaderVariable D3D11DebugAPIWrapper::GetBufferInfo(DXBCBytecode::OperandType typ
 
       if(srvDesc.ViewDimension == D3D11_SRV_DIMENSION_BUFFER)
       {
-        result.value.u.x = result.value.u.y = result.value.u.z = result.value.u.w =
+        result.value.u32v[0] = result.value.u32v[1] = result.value.u32v[2] = result.value.u32v[3] =
             srvDesc.Buffer.NumElements;
       }
       else if(srvDesc.ViewDimension == D3D11_SRV_DIMENSION_BUFFEREX)
       {
-        result.value.u.x = result.value.u.y = result.value.u.z = result.value.u.w =
+        result.value.u32v[0] = result.value.u32v[1] = result.value.u32v[2] = result.value.u32v[3] =
             srvDesc.BufferEx.NumElements;
       }
       else
@@ -728,10 +728,10 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
         {
           dim = 1;
 
-          result.value.u.x = srvDesc.BufferEx.NumElements;
-          result.value.u.y = 0;
-          result.value.u.z = 0;
-          result.value.u.w = 0;
+          result.value.u32v[0] = srvDesc.BufferEx.NumElements;
+          result.value.u32v[1] = 0;
+          result.value.u32v[2] = 0;
+          result.value.u32v[3] = 0;
           break;
         }
         case D3D11_SRV_DIMENSION_TEXTURE1D:
@@ -748,14 +748,14 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
 
             D3D11_TEXTURE1D_DESC desc;
             tex->GetDesc(&desc);
-            result.value.u.x = RDCMAX(1U, desc.Width >> mipLevel);
-            result.value.u.y = isarray ? srvDesc.Texture1DArray.ArraySize : 0;
-            result.value.u.z = 0;
-            result.value.u.w =
+            result.value.u32v[0] = RDCMAX(1U, desc.Width >> mipLevel);
+            result.value.u32v[1] = isarray ? srvDesc.Texture1DArray.ArraySize : 0;
+            result.value.u32v[2] = 0;
+            result.value.u32v[3] =
                 isarray ? srvDesc.Texture1DArray.MipLevels : srvDesc.Texture1D.MipLevels;
 
-            if(mipLevel >= result.value.u.w)
-              result.value.u.x = result.value.u.y = 0;
+            if(mipLevel >= result.value.u32v[3])
+              result.value.u32v[0] = result.value.u32v[1] = 0;
 
             SAFE_RELEASE(tex);
           }
@@ -775,32 +775,32 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
           {
             D3D11_TEXTURE2D_DESC desc;
             tex->GetDesc(&desc);
-            result.value.u.x = RDCMAX(1U, desc.Width >> mipLevel);
-            result.value.u.y = RDCMAX(1U, desc.Height >> mipLevel);
+            result.value.u32v[0] = RDCMAX(1U, desc.Width >> mipLevel);
+            result.value.u32v[1] = RDCMAX(1U, desc.Height >> mipLevel);
 
             if(srvDesc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURE2D)
             {
-              result.value.u.z = 0;
-              result.value.u.w = srvDesc.Texture2D.MipLevels;
+              result.value.u32v[2] = 0;
+              result.value.u32v[3] = srvDesc.Texture2D.MipLevels;
             }
             else if(srvDesc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURE2DARRAY)
             {
-              result.value.u.z = srvDesc.Texture2DArray.ArraySize;
-              result.value.u.w = srvDesc.Texture2DArray.MipLevels;
+              result.value.u32v[2] = srvDesc.Texture2DArray.ArraySize;
+              result.value.u32v[3] = srvDesc.Texture2DArray.MipLevels;
             }
             else if(srvDesc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURE2DMS)
             {
-              result.value.u.z = 0;
-              result.value.u.w = 1;
+              result.value.u32v[2] = 0;
+              result.value.u32v[3] = 1;
             }
             else if(srvDesc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURE2DMSARRAY)
             {
-              result.value.u.z = srvDesc.Texture2DMSArray.ArraySize;
-              result.value.u.w = 1;
+              result.value.u32v[2] = srvDesc.Texture2DMSArray.ArraySize;
+              result.value.u32v[3] = 1;
             }
 
-            if(mipLevel >= result.value.u.w)
-              result.value.u.x = result.value.u.y = result.value.u.z = 0;
+            if(mipLevel >= result.value.u32v[3])
+              result.value.u32v[0] = result.value.u32v[1] = result.value.u32v[2] = 0;
 
             SAFE_RELEASE(tex);
           }
@@ -817,13 +817,13 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
           {
             D3D11_TEXTURE3D_DESC desc;
             tex->GetDesc(&desc);
-            result.value.u.x = RDCMAX(1U, desc.Width >> mipLevel);
-            result.value.u.y = RDCMAX(1U, desc.Height >> mipLevel);
-            result.value.u.z = RDCMAX(1U, desc.Depth >> mipLevel);
-            result.value.u.w = srvDesc.Texture3D.MipLevels;
+            result.value.u32v[0] = RDCMAX(1U, desc.Width >> mipLevel);
+            result.value.u32v[1] = RDCMAX(1U, desc.Height >> mipLevel);
+            result.value.u32v[2] = RDCMAX(1U, desc.Depth >> mipLevel);
+            result.value.u32v[3] = srvDesc.Texture3D.MipLevels;
 
-            if(mipLevel >= result.value.u.w)
-              result.value.u.x = result.value.u.y = result.value.u.z = 0;
+            if(mipLevel >= result.value.u32v[3])
+              result.value.u32v[0] = result.value.u32v[1] = result.value.u32v[2] = 0;
 
             SAFE_RELEASE(tex);
           }
@@ -843,18 +843,18 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
 
             D3D11_TEXTURE2D_DESC desc;
             tex->GetDesc(&desc);
-            result.value.u.x = RDCMAX(1U, desc.Width >> mipLevel);
-            result.value.u.y = RDCMAX(1U, desc.Height >> mipLevel);
+            result.value.u32v[0] = RDCMAX(1U, desc.Width >> mipLevel);
+            result.value.u32v[1] = RDCMAX(1U, desc.Height >> mipLevel);
 
             // the spec says "If srcResource is a TextureCubeArray, [...]. dest.z is set to an
             // undefined value."
             // but that's stupid, and implementations seem to return the number of cubes
-            result.value.u.z = isarray ? srvDesc.TextureCubeArray.NumCubes : 0;
-            result.value.u.w =
+            result.value.u32v[2] = isarray ? srvDesc.TextureCubeArray.NumCubes : 0;
+            result.value.u32v[3] =
                 isarray ? srvDesc.TextureCubeArray.MipLevels : srvDesc.TextureCube.MipLevels;
 
-            if(mipLevel >= result.value.u.w)
-              result.value.u.x = result.value.u.y = result.value.u.z = 0;
+            if(mipLevel >= result.value.u32v[3])
+              result.value.u32v[0] = result.value.u32v[1] = result.value.u32v[2] = 0;
 
             SAFE_RELEASE(tex);
           }
@@ -910,15 +910,15 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
 
             D3D11_TEXTURE1D_DESC desc;
             tex->GetDesc(&desc);
-            result.value.u.x = RDCMAX(1U, desc.Width >> mipLevel);
-            result.value.u.y = isarray ? uavDesc.Texture1DArray.ArraySize : 0;
-            result.value.u.z = 0;
+            result.value.u32v[0] = RDCMAX(1U, desc.Width >> mipLevel);
+            result.value.u32v[1] = isarray ? uavDesc.Texture1DArray.ArraySize : 0;
+            result.value.u32v[2] = 0;
 
             // spec says "For UAVs (u#), the number of mip levels is always 1."
-            result.value.u.w = 1;
+            result.value.u32v[3] = 1;
 
-            if(mipLevel >= result.value.u.w)
-              result.value.u.x = result.value.u.y = 0;
+            if(mipLevel >= result.value.u32v[3])
+              result.value.u32v[0] = result.value.u32v[1] = 0;
 
             SAFE_RELEASE(tex);
           }
@@ -936,19 +936,19 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
           {
             D3D11_TEXTURE2D_DESC desc;
             tex->GetDesc(&desc);
-            result.value.u.x = RDCMAX(1U, desc.Width >> mipLevel);
-            result.value.u.y = RDCMAX(1U, desc.Height >> mipLevel);
+            result.value.u32v[0] = RDCMAX(1U, desc.Width >> mipLevel);
+            result.value.u32v[1] = RDCMAX(1U, desc.Height >> mipLevel);
 
             if(uavDesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE2D)
-              result.value.u.z = 0;
+              result.value.u32v[2] = 0;
             else if(uavDesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE2DARRAY)
-              result.value.u.z = uavDesc.Texture2DArray.ArraySize;
+              result.value.u32v[2] = uavDesc.Texture2DArray.ArraySize;
 
             // spec says "For UAVs (u#), the number of mip levels is always 1."
-            result.value.u.w = 1;
+            result.value.u32v[3] = 1;
 
-            if(mipLevel >= result.value.u.w)
-              result.value.u.x = result.value.u.y = result.value.u.z = 0;
+            if(mipLevel >= result.value.u32v[3])
+              result.value.u32v[0] = result.value.u32v[1] = result.value.u32v[2] = 0;
 
             SAFE_RELEASE(tex);
           }
@@ -965,15 +965,15 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
           {
             D3D11_TEXTURE3D_DESC desc;
             tex->GetDesc(&desc);
-            result.value.u.x = RDCMAX(1U, desc.Width >> mipLevel);
-            result.value.u.y = RDCMAX(1U, desc.Height >> mipLevel);
-            result.value.u.z = RDCMAX(1U, desc.Depth >> mipLevel);
+            result.value.u32v[0] = RDCMAX(1U, desc.Width >> mipLevel);
+            result.value.u32v[1] = RDCMAX(1U, desc.Height >> mipLevel);
+            result.value.u32v[2] = RDCMAX(1U, desc.Depth >> mipLevel);
 
             // spec says "For UAVs (u#), the number of mip levels is always 1."
-            result.value.u.w = 1;
+            result.value.u32v[3] = 1;
 
-            if(mipLevel >= result.value.u.w)
-              result.value.u.x = result.value.u.y = result.value.u.z = 0;
+            if(mipLevel >= result.value.u32v[3])
+              result.value.u32v[0] = result.value.u32v[1] = result.value.u32v[2] = 0;
 
             SAFE_RELEASE(tex);
           }
@@ -1174,10 +1174,10 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
 
   for(uint32_t i = 0; i < ddxCalc.columns; i++)
   {
-    if(!RDCISFINITE(ddxCalc.value.fv[i]))
+    if(!RDCISFINITE(ddxCalc.value.f32v[i]))
     {
       RDCWARN("NaN or Inf in texlookup");
-      ddxCalc.value.fv[i] = 0.0f;
+      ddxCalc.value.f32v[i] = 0.0f;
 
       m_pDevice->AddDebugMessage(MessageCategory::Shaders, MessageSeverity::High,
                                  MessageSource::RuntimeWarning,
@@ -1185,10 +1185,10 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
                                                    "texture lookup ddx - using 0.0 instead",
                                                    m_instruction, opString));
     }
-    if(!RDCISFINITE(ddyCalc.value.fv[i]))
+    if(!RDCISFINITE(ddyCalc.value.f32v[i]))
     {
       RDCWARN("NaN or Inf in texlookup");
-      ddyCalc.value.fv[i] = 0.0f;
+      ddyCalc.value.f32v[i] = 0.0f;
 
       m_pDevice->AddDebugMessage(MessageCategory::Shaders, MessageSeverity::High,
                                  MessageSource::RuntimeWarning,
@@ -1200,10 +1200,10 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
 
   for(uint32_t i = 0; i < uv.columns; i++)
   {
-    if(texcoordType == 0 && !RDCISFINITE(uv.value.fv[i]))
+    if(texcoordType == 0 && !RDCISFINITE(uv.value.f32v[i]))
     {
       RDCWARN("NaN or Inf in texlookup");
-      uv.value.fv[i] = 0.0f;
+      uv.value.f32v[i] = 0.0f;
 
       m_pDevice->AddDebugMessage(MessageCategory::Shaders, MessageSeverity::High,
                                  MessageSource::RuntimeWarning,
@@ -1218,11 +1218,11 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
   // because of unions in .value we can pass the float versions and printf will interpret it as
   // the right type according to formats
   if(texcoordType == 0)
-    texcoords = StringFormat::Fmt(formats[texdim + texdimOffs - 1][texcoordType], uv.value.f.x,
-                                  uv.value.f.y, uv.value.f.z, uv.value.f.w);
+    texcoords = StringFormat::Fmt(formats[texdim + texdimOffs - 1][texcoordType], uv.value.f32v[0],
+                                  uv.value.f32v[1], uv.value.f32v[2], uv.value.f32v[3]);
   else
-    texcoords = StringFormat::Fmt(formats[texdim + texdimOffs - 1][texcoordType], uv.value.i.x,
-                                  uv.value.i.y, uv.value.i.z, uv.value.i.w);
+    texcoords = StringFormat::Fmt(formats[texdim + texdimOffs - 1][texcoordType], uv.value.s32v[0],
+                                  uv.value.s32v[1], uv.value.s32v[2], uv.value.s32v[3]);
 
   rdcstr offsets = "";
 
@@ -1260,11 +1260,13 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
 
   if(opcode == OPCODE_SAMPLE || opcode == OPCODE_SAMPLE_B || opcode == OPCODE_SAMPLE_D)
   {
-    rdcstr ddx = StringFormat::Fmt(formats[offsetDim + texdimOffs - 1][0], ddxCalc.value.f.x,
-                                   ddxCalc.value.f.y, ddxCalc.value.f.z, ddxCalc.value.f.w);
+    rdcstr ddx =
+        StringFormat::Fmt(formats[offsetDim + texdimOffs - 1][0], ddxCalc.value.f32v[0],
+                          ddxCalc.value.f32v[1], ddxCalc.value.f32v[2], ddxCalc.value.f32v[3]);
 
-    rdcstr ddy = StringFormat::Fmt(formats[offsetDim + texdimOffs - 1][0], ddyCalc.value.f.x,
-                                   ddyCalc.value.f.y, ddyCalc.value.f.z, ddyCalc.value.f.w);
+    rdcstr ddy =
+        StringFormat::Fmt(formats[offsetDim + texdimOffs - 1][0], ddyCalc.value.f32v[0],
+                          ddyCalc.value.f32v[1], ddyCalc.value.f32v[2], ddyCalc.value.f32v[3]);
 
     sampleProgram = StringFormat::Fmt("%s : register(t0);\n%s : register(s0);\n\n",
                                       textureDecl.c_str(), samplerDecl.c_str());
@@ -1294,15 +1296,17 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
     vsProgram =
         "void main(uint id : SV_VertexID, out float4 pos : SV_Position, out " + uvdecl + ") {\n";
 
-    rdcstr uvPlusDDX = StringFormat::Fmt(
-        formats[texdim + texdimOffs - 1][texcoordType], uv.value.f.x + ddyCalc.value.f.x * 2.0f,
-        uv.value.f.y + ddyCalc.value.f.y * 2.0f, uv.value.f.z + ddyCalc.value.f.z * 2.0f,
-        uv.value.f.w + ddyCalc.value.f.w * 2.0f);
+    rdcstr uvPlusDDX = StringFormat::Fmt(formats[texdim + texdimOffs - 1][texcoordType],
+                                         uv.value.f32v[0] + ddyCalc.value.f32v[0] * 2.0f,
+                                         uv.value.f32v[1] + ddyCalc.value.f32v[1] * 2.0f,
+                                         uv.value.f32v[2] + ddyCalc.value.f32v[2] * 2.0f,
+                                         uv.value.f32v[3] + ddyCalc.value.f32v[3] * 2.0f);
 
-    rdcstr uvPlusDDY = StringFormat::Fmt(
-        formats[texdim + texdimOffs - 1][texcoordType], uv.value.f.x + ddxCalc.value.f.x * 2.0f,
-        uv.value.f.y + ddxCalc.value.f.y * 2.0f, uv.value.f.z + ddxCalc.value.f.z * 2.0f,
-        uv.value.f.w + ddxCalc.value.f.w * 2.0f);
+    rdcstr uvPlusDDY = StringFormat::Fmt(formats[texdim + texdimOffs - 1][texcoordType],
+                                         uv.value.f32v[0] + ddxCalc.value.f32v[0] * 2.0f,
+                                         uv.value.f32v[1] + ddxCalc.value.f32v[1] * 2.0f,
+                                         uv.value.f32v[2] + ddxCalc.value.f32v[2] * 2.0f,
+                                         uv.value.f32v[3] + ddxCalc.value.f32v[3] * 2.0f);
 
     vsProgram += "if(id == 0) uv = " + uvPlusDDX + ";\n";
     vsProgram += "if(id == 1) uv = " + texcoords + ";\n";
@@ -1553,7 +1557,7 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
 
   ShaderVariable lookupResult("tex", 0.0f, 0.0f, 0.0f, 0.0f);
 
-  memcpy(lookupResult.value.iv, mapped.pData, sizeof(uint32_t) * 4);
+  memcpy(lookupResult.value.u32v.data(), mapped.pData, sizeof(uint32_t) * 4);
 
   context->Unmap(copyTex, 0);
 
@@ -1614,7 +1618,7 @@ bool D3D11DebugAPIWrapper::CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcod
   cdesc.Usage = D3D11_USAGE_DEFAULT;
 
   D3D11_SUBRESOURCE_DATA operData = {};
-  operData.pSysMem = &input.value.uv[0];
+  operData.pSysMem = &input.value.u32v[0];
   operData.SysMemPitch = sizeof(Vec4f);
   operData.SysMemSlicePitch = sizeof(Vec4f);
 
@@ -1696,8 +1700,8 @@ bool D3D11DebugAPIWrapper::CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcod
   uint32_t *resA = (uint32_t *)mapped.pData;
   uint32_t *resB = resA + 4;
 
-  memcpy(output1.value.uv, resA, sizeof(uint32_t) * 4);
-  memcpy(output2.value.uv, resB, sizeof(uint32_t) * 4);
+  memcpy(output1.value.u32v.data(), resA, sizeof(uint32_t) * 4);
+  memcpy(output2.value.u32v.data(), resB, sizeof(uint32_t) * 4);
 
   context->Unmap(copyBuf, 0);
 
@@ -1906,17 +1910,17 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
       // more data needed than is provided
       if(dxbc->GetReflection()->InputSig[i].compCount > fmt.compCount)
       {
-        state.inputs[i].value.u.w = 1;
+        state.inputs[i].value.u32v[3] = 1;
 
         if(fmt.compType == CompType::Float)
-          state.inputs[i].value.f.w = 1.0f;
+          state.inputs[i].value.f32v[3] = 1.0f;
       }
 
       // interpret resource format types
       if(fmt.Special())
       {
-        Vec3f *v3 = (Vec3f *)state.inputs[i].value.fv;
-        Vec4f *v4 = (Vec4f *)state.inputs[i].value.fv;
+        Vec3f *v3 = (Vec3f *)state.inputs[i].value.f32v.data();
+        Vec4f *v4 = (Vec4f *)state.inputs[i].value.f32v.data();
 
         // only pull in all or nothing from these,
         // if there's only e.g. 3 bytes remaining don't read and unpack some of
@@ -1928,11 +1932,12 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
 
         if(srcData == NULL || packedsize > dataSize)
         {
-          state.inputs[i].value.u.x = state.inputs[i].value.u.y = state.inputs[i].value.u.z = 0;
+          state.inputs[i].value.u32v[0] = state.inputs[i].value.u32v[1] =
+              state.inputs[i].value.u32v[2] = 0;
           if(fmt.compType == CompType::UInt || fmt.compType == CompType::SInt)
-            state.inputs[i].value.u.w = 1;
+            state.inputs[i].value.u32v[3] = 1;
           else
-            state.inputs[i].value.f.w = 1.0f;
+            state.inputs[i].value.f32v[3] = 1.0f;
         }
         else if(fmt.type == ResourceFormatType::R5G5B5A1)
         {
@@ -1958,10 +1963,10 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
 
           if(fmt.compType == CompType::UInt)
           {
-            state.inputs[i].value.u.z = (packed >> 0) & 0x3ff;
-            state.inputs[i].value.u.y = (packed >> 10) & 0x3ff;
-            state.inputs[i].value.u.x = (packed >> 20) & 0x3ff;
-            state.inputs[i].value.u.w = (packed >> 30) & 0x003;
+            state.inputs[i].value.u32v[2] = (packed >> 0) & 0x3ff;
+            state.inputs[i].value.u32v[1] = (packed >> 10) & 0x3ff;
+            state.inputs[i].value.u32v[0] = (packed >> 20) & 0x3ff;
+            state.inputs[i].value.u32v[3] = (packed >> 30) & 0x003;
           }
           else
           {
@@ -1978,11 +1983,12 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
       {
         if(srcData == NULL || size_t(fmt.compByteWidth * fmt.compCount) > dataSize)
         {
-          state.inputs[i].value.u.x = state.inputs[i].value.u.y = state.inputs[i].value.u.z = 0;
+          state.inputs[i].value.u32v[0] = state.inputs[i].value.u32v[1] =
+              state.inputs[i].value.u32v[2] = 0;
           if(fmt.compType == CompType::UInt || fmt.compType == CompType::SInt)
-            state.inputs[i].value.u.w = 1;
+            state.inputs[i].value.u32v[3] = 1;
           else
-            state.inputs[i].value.f.w = 1.0f;
+            state.inputs[i].value.f32v[3] = 1.0f;
         }
         else
         {
@@ -1993,20 +1999,20 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
               byte *src = srcData + c * fmt.compByteWidth;
 
               if(fmt.compType == CompType::UInt)
-                state.inputs[i].value.uv[c] = *src;
+                state.inputs[i].value.u32v[c] = *src;
               else if(fmt.compType == CompType::SInt)
-                state.inputs[i].value.iv[c] = *((int8_t *)src);
+                state.inputs[i].value.s32v[c] = *((int8_t *)src);
               else if(fmt.compType == CompType::UNorm || fmt.compType == CompType::UNormSRGB)
-                state.inputs[i].value.fv[c] = float(*src) / 255.0f;
+                state.inputs[i].value.f32v[c] = float(*src) / 255.0f;
               else if(fmt.compType == CompType::SNorm)
               {
                 signed char *schar = (signed char *)src;
 
                 // -128 is mapped to -1, then -127 to -127 are mapped to -1 to 1
                 if(*schar == -128)
-                  state.inputs[i].value.fv[c] = -1.0f;
+                  state.inputs[i].value.f32v[c] = -1.0f;
                 else
-                  state.inputs[i].value.fv[c] = float(*schar) / 127.0f;
+                  state.inputs[i].value.f32v[c] = float(*schar) / 127.0f;
               }
               else
                 RDCERR("Unexpected component type");
@@ -2016,22 +2022,22 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
               uint16_t *src = (uint16_t *)(srcData + c * fmt.compByteWidth);
 
               if(fmt.compType == CompType::Float)
-                state.inputs[i].value.fv[c] = ConvertFromHalf(*src);
+                state.inputs[i].value.f32v[c] = ConvertFromHalf(*src);
               else if(fmt.compType == CompType::UInt)
-                state.inputs[i].value.uv[c] = *src;
+                state.inputs[i].value.u32v[c] = *src;
               else if(fmt.compType == CompType::SInt)
-                state.inputs[i].value.iv[c] = *((int16_t *)src);
+                state.inputs[i].value.s32v[c] = *((int16_t *)src);
               else if(fmt.compType == CompType::UNorm || fmt.compType == CompType::UNormSRGB)
-                state.inputs[i].value.fv[c] = float(*src) / float(UINT16_MAX);
+                state.inputs[i].value.f32v[c] = float(*src) / float(UINT16_MAX);
               else if(fmt.compType == CompType::SNorm)
               {
                 int16_t *sint = (int16_t *)src;
 
                 // -32768 is mapped to -1, then -32767 to -32767 are mapped to -1 to 1
                 if(*sint == -32768)
-                  state.inputs[i].value.fv[c] = -1.0f;
+                  state.inputs[i].value.f32v[c] = -1.0f;
                 else
-                  state.inputs[i].value.fv[c] = float(*sint) / 32767.0f;
+                  state.inputs[i].value.f32v[c] = float(*sint) / 32767.0f;
               }
               else
                 RDCERR("Unexpected component type");
@@ -2042,7 +2048,7 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
 
               if(fmt.compType == CompType::Float || fmt.compType == CompType::UInt ||
                  fmt.compType == CompType::SInt)
-                memcpy(&state.inputs[i].value.uv[c], src, 4);
+                memcpy(&state.inputs[i].value.u32v[c], src, 4);
               else
                 RDCERR("Unexpected component type");
             }
@@ -2051,7 +2057,7 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
           if(fmt.BGRAOrder())
           {
             RDCASSERT(fmt.compCount == 4);
-            std::swap(state.inputs[i].value.fv[2], state.inputs[i].value.fv[0]);
+            std::swap(state.inputs[i].value.f32v[2], state.inputs[i].value.f32v[0]);
           }
         }
       }
@@ -2066,20 +2072,20 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
       }
 
       if(dxbc->GetReflection()->InputSig[i].varType == VarType::Float)
-        state.inputs[i].value.f.x = state.inputs[i].value.f.y = state.inputs[i].value.f.z =
-            state.inputs[i].value.f.w = (float)sv_vertid;
+        state.inputs[i].value.f32v[0] = state.inputs[i].value.f32v[1] =
+            state.inputs[i].value.f32v[2] = state.inputs[i].value.f32v[3] = (float)sv_vertid;
       else
-        state.inputs[i].value.u.x = state.inputs[i].value.u.y = state.inputs[i].value.u.z =
-            state.inputs[i].value.u.w = sv_vertid;
+        state.inputs[i].value.u32v[0] = state.inputs[i].value.u32v[1] =
+            state.inputs[i].value.u32v[2] = state.inputs[i].value.u32v[3] = sv_vertid;
     }
     else if(dxbc->GetReflection()->InputSig[i].systemValue == ShaderBuiltin::InstanceIndex)
     {
       if(dxbc->GetReflection()->InputSig[i].varType == VarType::Float)
-        state.inputs[i].value.f.x = state.inputs[i].value.f.y = state.inputs[i].value.f.z =
-            state.inputs[i].value.f.w = (float)instid;
+        state.inputs[i].value.f32v[0] = state.inputs[i].value.f32v[1] =
+            state.inputs[i].value.f32v[2] = state.inputs[i].value.f32v[3] = (float)instid;
       else
-        state.inputs[i].value.u.x = state.inputs[i].value.u.y = state.inputs[i].value.u.z =
-            state.inputs[i].value.u.w = instid;
+        state.inputs[i].value.u32v[0] = state.inputs[i].value.u32v[1] =
+            state.inputs[i].value.u32v[2] = state.inputs[i].value.u32v[3] = instid;
     }
     else
     {
@@ -2757,7 +2763,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
     if(!ins.empty() &&
        ins.back().name ==
            dxbc->GetDXBCByteCode()->GetRegisterName(DXBCBytecode::TYPE_INPUT_COVERAGE_MASK, 0))
-      ins.back().value.u.x = hit->coverage;
+      ins.back().value.u32v[0] = hit->coverage;
 
     state.semantics.coverage = hit->coverage;
     state.semantics.primID = hit->primitive;
@@ -2790,23 +2796,23 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
 
         if(initialValues[i].sysattribute == ShaderBuiltin::PrimitiveIndex)
         {
-          invar.value.u.x = hit->primitive;
+          invar.value.u32v[0] = hit->primitive;
         }
         else if(initialValues[i].sysattribute == ShaderBuiltin::MSAASampleIndex)
         {
-          invar.value.u.x = hit->sample;
+          invar.value.u32v[0] = hit->sample;
         }
         else if(initialValues[i].sysattribute == ShaderBuiltin::MSAACoverage)
         {
-          invar.value.u.x = hit->coverage;
+          invar.value.u32v[0] = hit->coverage;
         }
         else if(initialValues[i].sysattribute == ShaderBuiltin::IsFrontFace)
         {
-          invar.value.u.x = hit->isFrontFace ? ~0U : 0;
+          invar.value.u32v[0] = hit->isFrontFace ? ~0U : 0;
         }
         else
         {
-          rawout = &invar.value.iv[initialValues[i].elem];
+          rawout = &invar.value.s32v[initialValues[i].elem];
 
           memcpy(rawout, data, initialValues[i].numwords * 4);
         }
@@ -2834,7 +2840,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
       ShaderVariable var = state.inputs[key.inputRegisterIndex];
 
       // copy over the value into the variable
-      memcpy(var.value.fv, evalSampleCache, var.columns * sizeof(float));
+      memcpy(var.value.f32v.data(), evalSampleCache, var.columns * sizeof(float));
 
       // store in the global cache for each quad. We'll apply derivatives below to adjust for each
       GlobalState::SampleEvalCacheKey k = key;
@@ -2932,27 +2938,27 @@ ShaderDebugTrace *D3D11Replay::DebugThread(uint32_t eventId, const uint32_t grou
       switch(decl.operand.type)
       {
         case TYPE_INPUT_THREAD_GROUP_ID:
-          memcpy(v.value.uv, state.semantics.GroupID, sizeof(uint32_t) * 3);
+          memcpy(v.value.u32v.data(), state.semantics.GroupID, sizeof(uint32_t) * 3);
           v.columns = 3;
           break;
         case TYPE_INPUT_THREAD_ID_IN_GROUP:
-          memcpy(v.value.uv, state.semantics.ThreadID, sizeof(uint32_t) * 3);
+          memcpy(v.value.u32v.data(), state.semantics.ThreadID, sizeof(uint32_t) * 3);
           v.columns = 3;
           break;
         case TYPE_INPUT_THREAD_ID:
-          v.value.u.x =
+          v.value.u32v[0] =
               state.semantics.GroupID[0] * dxbc->GetReflection()->DispatchThreadsDimension[0] +
               state.semantics.ThreadID[0];
-          v.value.u.y =
+          v.value.u32v[1] =
               state.semantics.GroupID[1] * dxbc->GetReflection()->DispatchThreadsDimension[1] +
               state.semantics.ThreadID[1];
-          v.value.u.z =
+          v.value.u32v[2] =
               state.semantics.GroupID[2] * dxbc->GetReflection()->DispatchThreadsDimension[2] +
               state.semantics.ThreadID[2];
           v.columns = 3;
           break;
         case TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED:
-          v.value.u.x =
+          v.value.u32v[0] =
               state.semantics.ThreadID[2] * dxbc->GetReflection()->DispatchThreadsDimension[0] *
                   dxbc->GetReflection()->DispatchThreadsDimension[1] +
               state.semantics.ThreadID[1] * dxbc->GetReflection()->DispatchThreadsDimension[0] +

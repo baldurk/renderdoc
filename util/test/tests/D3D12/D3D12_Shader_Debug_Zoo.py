@@ -41,7 +41,7 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
                 debugged = self.evaluate_source_var(output, variables)
 
                 try:
-                    self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 4 * test, 0, debugged.value.fv[0:4])
+                    self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 4 * test, 0, debugged.value.f32v[0:4])
                 except rdtest.TestFailureException as ex:
                     failed = True
                     rdtest.log.error("Test {} did not match. {}".format(test, str(ex)))
@@ -66,7 +66,7 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
             # Validate that the correct sample index was debugged
             sampRegister = self.find_input_source_var(trace, rd.ShaderBuiltin.MSAASampleIndex)
             sampInput = [var for var in trace.inputs if var.name == sampRegister.variables[0].name][0]
-            if sampInput.value.uv[0] != test:
+            if sampInput.value.u32v[0] != test:
                 rdtest.log.error("Test {} did not pick the correct sample.".format(test))
 
             cycles, variables = self.process_trace(trace)
@@ -77,7 +77,7 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
 
             # Validate the debug output result
             try:
-                self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 4, 4, debugged.value.fv[0:4], sub=rd.Subresource(0, 0, test))
+                self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 4, 4, debugged.value.f32v[0:4], sub=rd.Subresource(0, 0, test))
             except rdtest.TestFailureException as ex:
                 failed = True
                 rdtest.log.error("Test {} did not match. {}".format(test, str(ex)))
@@ -99,10 +99,10 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
 
         debugged = self.evaluate_source_var(output, variables)
 
-        if not rdtest.value_compare(debugged.value.fv[0:4], [0.3, 0.5, 0.8, 1.0]):
+        if not rdtest.value_compare(debugged.value.f32v[0:4], [0.3, 0.5, 0.8, 1.0]):
             failed = True
             rdtest.log.error(
-                "Vertex shader color output did not match expectation ({}). {}".format(str(debugged.value.fv[0:4]),
+                "Vertex shader color output did not match expectation ({}). {}".format(str(debugged.value.f32v[0:4]),
                                                                                        str(ex)))
 
         rdtest.log.success("VertexSample VS was debugged correctly")
@@ -118,7 +118,7 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
 
         # Validate the debug output result
         try:
-            self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 51, 51, debugged.value.fv[0:4])
+            self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 51, 51, debugged.value.f32v[0:4])
         except rdtest.TestFailureException as ex:
             failed = True
             rdtest.log.error("Vertex sample pixel shader output did not match. {}".format(str(ex)))

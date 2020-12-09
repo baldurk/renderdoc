@@ -1123,7 +1123,8 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
 
   if(shadType == eGL_COMPUTE_SHADER)
   {
-    GL.glGetProgramiv(sepProg, eGL_COMPUTE_WORK_GROUP_SIZE, (GLint *)refl.dispatchThreadsDimension);
+    GL.glGetProgramiv(sepProg, eGL_COMPUTE_WORK_GROUP_SIZE,
+                      (GLint *)refl.dispatchThreadsDimension.data());
   }
   else
   {

@@ -315,11 +315,10 @@ struct Sampler
   bool operator==(const Sampler &o) const
   {
     return bind == o.bind && tableIndex == o.tableIndex && addressU == o.addressU &&
-           addressV == o.addressV && addressW == o.addressW && borderColor[0] == o.borderColor[0] &&
-           borderColor[1] == o.borderColor[1] && borderColor[2] == o.borderColor[2] &&
-           borderColor[3] == o.borderColor[3] && compareFunction == o.compareFunction &&
-           filter == o.filter && maxAnisotropy == o.maxAnisotropy && maxLOD == o.maxLOD &&
-           minLOD == o.minLOD && mipLODBias == o.mipLODBias;
+           addressV == o.addressV && addressW == o.addressW && borderColor == o.borderColor &&
+           compareFunction == o.compareFunction && filter == o.filter &&
+           maxAnisotropy == o.maxAnisotropy && maxLOD == o.maxLOD && minLOD == o.minLOD &&
+           mipLODBias == o.mipLODBias;
   }
   bool operator<(const Sampler &o) const
   {
@@ -333,14 +332,8 @@ struct Sampler
       return addressV < o.addressV;
     if(!(addressW == o.addressW))
       return addressW < o.addressW;
-    if(!(borderColor[0] == o.borderColor[0]))
-      return borderColor[0] < o.borderColor[0];
-    if(!(borderColor[1] == o.borderColor[1]))
-      return borderColor[1] < o.borderColor[1];
-    if(!(borderColor[2] == o.borderColor[2]))
-      return borderColor[2] < o.borderColor[2];
-    if(!(borderColor[3] == o.borderColor[3]))
-      return borderColor[3] < o.borderColor[3];
+    if(!(borderColor == o.borderColor))
+      return borderColor < o.borderColor;
     if(!(compareFunction == o.compareFunction))
       return compareFunction < o.compareFunction;
     if(!(filter == o.filter))
@@ -366,8 +359,11 @@ struct Sampler
   AddressMode addressV = AddressMode::Wrap;
   DOCUMENT("The :class:`AddressMode` in the W direction.");
   AddressMode addressW = AddressMode::Wrap;
-  DOCUMENT("The RGBA border color.");
-  float borderColor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+  DOCUMENT(R"(The RGBA border color.
+
+:type: Tuple[float,float,float,float]
+)");
+  rdcfixedarray<float, 4> borderColor = {0.0f, 0.0f, 0.0f, 0.0f};
   DOCUMENT("The :class:`CompareFunction` for comparison samplers.");
   CompareFunction compareFunction = CompareFunction::AlwaysTrue;
   DOCUMENT(R"(The filtering mode.
@@ -721,8 +717,11 @@ struct BlendState
 )");
   rdcarray<ColorBlend> blends;
 
-  DOCUMENT("The constant blend factor to use in blend equations.");
-  float blendFactor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+  DOCUMENT(R"(The constant blend factor to use in blend equations.
+
+:type: Tuple[float,float,float,float]
+)");
+  rdcfixedarray<float, 4> blendFactor = {1.0f, 1.0f, 1.0f, 1.0f};
 };
 
 DOCUMENT("Describes the current state of the output-merger stage of the D3D12 pipeline.");

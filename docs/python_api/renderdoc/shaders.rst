@@ -129,15 +129,3 @@ Shader Variables
 .. autoclass:: renderdoc.PointerVal
   :members:
 
-.. autoclass:: renderdoc.FloatVecVal
-  :members:
-
-.. autoclass:: renderdoc.DoubleVecVal
-  :members:
-
-.. autoclass:: renderdoc.UIntVecVal
-  :members:
-
-.. autoclass:: renderdoc.IntVecVal
-  :members:
-

@@ -406,3 +406,88 @@ void ARRAY_INSTANTIATION_CHECK_NAME(arrayType)(arrayType<nspace::innerType> *)
 %}
 
 %enddef
+
+/////////////////////////////////////////////////////////////////////////
+// Similar to above for handling templated container, but for fixed array
+// it's simpler because we map it to a tuple. Since tuples are immutable
+// we only need conversion in and out
+
+%define TEMPLATE_FIXEDARRAY_DECLARE(typeName)
+
+%typemap(in) const typeName & {
+  static_assert(false, "Error! Should not use this typemap");
+}
+
+%typemap(in) typeName {
+  static_assert(false, "Error! Should not use this typemap");
+}
+
+%typemap(in) typeName * (unsigned char tempmem[16*8]) {
+  using array_type = std::remove_pointer<decltype($1)>::type;
+
+  {
+    tempalloc($1, tempmem);
+
+    int failIdx = 0;
+    int res = TypeConversion<array_type>::ConvertFromPy($input, indirect($1), &failIdx);
+
+    if(!SWIG_IsOK(res))
+    {
+      if(res == SWIG_TypeError)
+      {
+        SWIG_exception_fail(SWIG_ArgError(res), "in method '$symname' argument $argnum of type '$1_basetype'"); 
+      }
+      else
+      {
+        snprintf(convert_error, sizeof(convert_error)-1, "in method '$symname' argument $argnum of type '$1_basetype', decoding element %d", failIdx);
+        SWIG_exception_fail(SWIG_ArgError(res), convert_error);
+      }
+    }
+  }
+}
+
+%typemap(out) typeName {
+  $result = ConvertToPy(indirect($1));
+}
+
+%typemap(out) typeName * {
+  $result = ConvertToPy(indirect($1));
+}
+
+// add a check to make sure that we explicitly instantiate all uses of this template (as a reference
+// type, not as a purely in parameter to a function - those are converted by value to C++ to allow
+// passing pure lists that aren't C++ side at all).
+%header %{
+template<typename innerType, size_t N>
+void ARRAY_INSTANTIATION_CHECK_NAME(typeName)(typeName<innerType, N> *);
+%}
+
+// override these typemaps to instantiate a checking template.
+%typemap(check) typeName * { ARRAY_INSTANTIATION_CHECK_NAME(typeName)($1); }
+%typemap(check) typeName & { ARRAY_INSTANTIATION_CHECK_NAME(typeName)($1); }
+%typemap(check) typeName   { ARRAY_INSTANTIATION_CHECK_NAME(typeName)($1); }
+%typemap(ret) typeName * { ARRAY_INSTANTIATION_CHECK_NAME(typeName)($1); }
+%typemap(ret) typeName & { ARRAY_INSTANTIATION_CHECK_NAME(typeName)($1); }
+%typemap(ret) typeName   { ARRAY_INSTANTIATION_CHECK_NAME(typeName)(&$1); }
+
+%enddef
+
+%define TEMPLATE_FIXEDARRAY_INSTANTIATE(arrayType, innerType, size)
+
+// instantiate template
+%rename(arrayType##_of_##size##_##innerType) arrayType<innerType, size>;
+%template(arrayType##_of_##size##_##innerType) arrayType<innerType, size>;
+
+%header %{
+
+template<>
+void ARRAY_INSTANTIATION_CHECK_NAME(arrayType)(arrayType<innerType, size> *)
+{
+}
+
+%}
+
+%enddef
+
+
+

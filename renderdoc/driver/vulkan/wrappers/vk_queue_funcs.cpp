@@ -1579,10 +1579,10 @@ bool WrappedVulkan::Serialise_vkQueueBeginDebugUtilsLabelEXT(SerialiserType &ser
       draw.name = Label.pLabelName ? Label.pLabelName : "";
       draw.flags |= DrawFlags::PushMarker;
 
-      draw.markerColor[0] = RDCCLAMP(Label.color[0], 0.0f, 1.0f);
-      draw.markerColor[1] = RDCCLAMP(Label.color[1], 0.0f, 1.0f);
-      draw.markerColor[2] = RDCCLAMP(Label.color[2], 0.0f, 1.0f);
-      draw.markerColor[3] = RDCCLAMP(Label.color[3], 0.0f, 1.0f);
+      draw.markerColor.x = RDCCLAMP(Label.color[0], 0.0f, 1.0f);
+      draw.markerColor.y = RDCCLAMP(Label.color[1], 0.0f, 1.0f);
+      draw.markerColor.z = RDCCLAMP(Label.color[2], 0.0f, 1.0f);
+      draw.markerColor.w = RDCCLAMP(Label.color[3], 0.0f, 1.0f);
 
       AddEvent();
       m_RootEventID++;
@@ -1681,10 +1681,10 @@ bool WrappedVulkan::Serialise_vkQueueInsertDebugUtilsLabelEXT(SerialiserType &se
       draw.name = Label.pLabelName ? Label.pLabelName : "";
       draw.flags |= DrawFlags::SetMarker;
 
-      draw.markerColor[0] = RDCCLAMP(Label.color[0], 0.0f, 1.0f);
-      draw.markerColor[1] = RDCCLAMP(Label.color[1], 0.0f, 1.0f);
-      draw.markerColor[2] = RDCCLAMP(Label.color[2], 0.0f, 1.0f);
-      draw.markerColor[3] = RDCCLAMP(Label.color[3], 0.0f, 1.0f);
+      draw.markerColor.x = RDCCLAMP(Label.color[0], 0.0f, 1.0f);
+      draw.markerColor.y = RDCCLAMP(Label.color[1], 0.0f, 1.0f);
+      draw.markerColor.z = RDCCLAMP(Label.color[2], 0.0f, 1.0f);
+      draw.markerColor.w = RDCCLAMP(Label.color[3], 0.0f, 1.0f);
 
       AddEvent();
       AddDrawcall(draw, false);

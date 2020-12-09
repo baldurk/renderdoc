@@ -87,6 +87,8 @@
 %ignore rdcdatetime;
 %ignore rdcstr;
 %ignore rdcinflexiblestr;
+%ignore rdcfixedarray;
+%ignore rdcfixedarray::operator[];
 %ignore rdcliteral;
 %ignore rdcpair;
 %ignore bytebuf;
@@ -198,19 +200,6 @@ SIMPLE_TYPEMAPS(rdcinflexiblestr)
 SIMPLE_TYPEMAPS(rdcdatetime)
 SIMPLE_TYPEMAPS(bytebuf)
 
-FIXED_ARRAY_TYPEMAPS(ResourceId)
-FIXED_ARRAY_TYPEMAPS(double)
-FIXED_ARRAY_TYPEMAPS(float)
-FIXED_ARRAY_TYPEMAPS(bool)
-FIXED_ARRAY_TYPEMAPS(uint64_t)
-FIXED_ARRAY_TYPEMAPS(int64_t)
-FIXED_ARRAY_TYPEMAPS(uint32_t)
-FIXED_ARRAY_TYPEMAPS(int32_t)
-FIXED_ARRAY_TYPEMAPS(uint16_t)
-FIXED_ARRAY_TYPEMAPS(int16_t)
-FIXED_ARRAY_TYPEMAPS(uint8_t)
-FIXED_ARRAY_TYPEMAPS(int8_t)
-
 REFCOUNTED_TYPE(SDChunk);
 REFCOUNTED_TYPE(SDObject);
 
@@ -229,6 +218,7 @@ NON_TEMPLATE_ARRAY_INSTANTIATE(StructuredBufferList)
 // these types are to be treated like python lists/arrays, and will be instantiated after declaration
 // below
 TEMPLATE_ARRAY_DECLARE(rdcarray);
+TEMPLATE_FIXEDARRAY_DECLARE(rdcfixedarray);
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Actually include header files here. Note that swig is configured not to recurse, so we
@@ -318,6 +308,28 @@ EXTEND_ARRAY_CLASS_METHODS(rdcarray)
 EXTEND_ARRAY_CLASS_METHODS(StructuredChunkList)
 EXTEND_ARRAY_CLASS_METHODS(StructuredObjectList)
 EXTEND_ARRAY_CLASS_METHODS(StructuredBufferList)
+
+// If you get an error with add_your_use_of_rdcfixedarray_to_swig_interface missing, add your type here
+// or in qrenderdoc.i, depending on which one is appropriate
+TEMPLATE_FIXEDARRAY_INSTANTIATE(rdcfixedarray, float, 2)
+TEMPLATE_FIXEDARRAY_INSTANTIATE(rdcfixedarray, float, 4)
+TEMPLATE_FIXEDARRAY_INSTANTIATE(rdcfixedarray, uint32_t, 3)
+TEMPLATE_FIXEDARRAY_INSTANTIATE(rdcfixedarray, uint32_t, 4)
+TEMPLATE_FIXEDARRAY_INSTANTIATE(rdcfixedarray, uint64_t, 4)
+TEMPLATE_FIXEDARRAY_INSTANTIATE(rdcfixedarray, int32_t, 4)
+TEMPLATE_FIXEDARRAY_INSTANTIATE(rdcfixedarray, ResourceId, 4)
+TEMPLATE_FIXEDARRAY_INSTANTIATE(rdcfixedarray, ResourceId, 8)
+TEMPLATE_FIXEDARRAY_INSTANTIATE(rdcfixedarray, bool, 8)
+TEMPLATE_FIXEDARRAY_INSTANTIATE(rdcfixedarray, float, 16)
+TEMPLATE_FIXEDARRAY_INSTANTIATE(rdcfixedarray, int32_t, 16)
+TEMPLATE_FIXEDARRAY_INSTANTIATE(rdcfixedarray, uint32_t, 16)
+TEMPLATE_FIXEDARRAY_INSTANTIATE(rdcfixedarray, double, 16)
+TEMPLATE_FIXEDARRAY_INSTANTIATE(rdcfixedarray, uint64_t, 16)
+TEMPLATE_FIXEDARRAY_INSTANTIATE(rdcfixedarray, int64_t, 16)
+TEMPLATE_FIXEDARRAY_INSTANTIATE(rdcfixedarray, uint16_t, 16)
+TEMPLATE_FIXEDARRAY_INSTANTIATE(rdcfixedarray, int16_t, 16)
+TEMPLATE_FIXEDARRAY_INSTANTIATE(rdcfixedarray, uint8_t, 16)
+TEMPLATE_FIXEDARRAY_INSTANTIATE(rdcfixedarray, int8_t, 16)
 
 // list of array types. These are the concrete types used in rdcarray that will be bound
 // If you get an error with add_your_use_of_rdcarray_to_swig_interface missing, add your type here

@@ -88,7 +88,7 @@ enum class StructMemberAnnotation
 template <typename T>
 T getival(const Metadata *m)
 {
-  return T(m->constant->val.uv[0]);
+  return T(m->constant->val.u32v[0]);
 }
 
 void Program::FetchComputeProperties(DXBC::Reflection *reflection)

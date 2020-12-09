@@ -121,8 +121,7 @@ rdcarray<uint32_t> GLReplay::GetPassEvents(uint32_t eventId)
   {
     const DrawcallDescription *prev = start->previous;
 
-    if(memcmp(start->outputs, prev->outputs, sizeof(start->outputs)) != 0 ||
-       start->depthOut != prev->depthOut)
+    if(start->outputs != prev->outputs || start->depthOut != prev->depthOut)
       break;
 
     start = prev;
@@ -855,7 +854,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
 
     RDCEraseEl(pipe.vertexInput.attributes[i].genericValue);
     drv.glGetVertexAttribfv(i, eGL_CURRENT_VERTEX_ATTRIB,
-                            pipe.vertexInput.attributes[i].genericValue.floatValue);
+                            (GLfloat *)pipe.vertexInput.attributes[i].genericValue.floatValue.data());
 
     ResourceFormat fmt;
 
@@ -968,10 +967,8 @@ void GLReplay::SavePipelineState(uint32_t eventId)
 
   pipe.vertexInput.provokingVertexLast = (rs.ProvokingVertex != eGL_FIRST_VERTEX_CONVENTION);
 
-  memcpy(pipe.vertexProcessing.defaultInnerLevel, rs.PatchParams.defaultInnerLevel,
-         sizeof(rs.PatchParams.defaultInnerLevel));
-  memcpy(pipe.vertexProcessing.defaultOuterLevel, rs.PatchParams.defaultOuterLevel,
-         sizeof(rs.PatchParams.defaultOuterLevel));
+  pipe.vertexProcessing.defaultInnerLevel = rs.PatchParams.defaultInnerLevel;
+  pipe.vertexProcessing.defaultOuterLevel = rs.PatchParams.defaultOuterLevel;
 
   pipe.vertexProcessing.discard = rs.Enabled[GLRenderState::eEnabled_RasterizerDiscard];
   pipe.vertexProcessing.clipOriginLowerLeft = (rs.ClipOrigin != eGL_UPPER_LEFT);
@@ -1354,10 +1351,10 @@ void GLReplay::SavePipelineState(uint32_t eventId)
         {
           if(samp != 0)
             drv.glGetSamplerParameterfv(samp, eGL_TEXTURE_BORDER_COLOR,
-                                        &pipe.samplers[unit].borderColor[0]);
+                                        pipe.samplers[unit].borderColor.data());
           else
             drv.glGetTextureParameterfvEXT(tex, target, eGL_TEXTURE_BORDER_COLOR,
-                                           &pipe.samplers[unit].borderColor[0]);
+                                           pipe.samplers[unit].borderColor.data());
 
           GLint v;
           v = 0;
@@ -1963,7 +1960,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
       pipe.framebuffer.drawFBO.readBuffer = -1;
   }
 
-  memcpy(pipe.framebuffer.blendState.blendFactor, rs.BlendColor, sizeof(rs.BlendColor));
+  pipe.framebuffer.blendState.blendFactor = rs.BlendColor;
 
   pipe.framebuffer.framebufferSRGB = rs.Enabled[GLRenderState::eEnabled_FramebufferSRGB];
   pipe.framebuffer.dither = rs.Enabled[GLRenderState::eEnabled_Dither];

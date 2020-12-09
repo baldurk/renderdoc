@@ -1365,7 +1365,7 @@ struct EventBookmark
   DOCUMENT("");
   EventBookmark() = default;
   EventBookmark(uint32_t e) : eventId(e) {}
-  bool operator==(const EventBookmark &o) { return eventId == o.eventId; }
+  bool operator==(const EventBookmark &o) const { return eventId == o.eventId; }
   bool operator!=(const EventBookmark &o) const { return eventId != o.eventId; }
   bool operator<(const EventBookmark &o) const { return eventId < o.eventId; }
 };

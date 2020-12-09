@@ -134,15 +134,15 @@ class Iter_Test(rdtest.TestCase):
 
                 compType = rd.VarTypeCompType(value.type)
                 if compType == rd.CompType.UInt:
-                    debugged = value.value.uv[0:value.columns]
+                    debugged = value.value.u32v[0:value.columns]
                 elif compType == rd.CompType.SInt:
-                    debugged = value.value.iv[0:value.columns]
+                    debugged = value.value.s32v[0:value.columns]
                 else:
-                    debugged = value.value.fv[0:value.columns]
+                    debugged = value.value.f32v[0:value.columns]
 
                 # For now, ignore debugged values that are uninitialised. This is an application bug but it causes false reports of problems
                 for comp in range(4):
-                    if value.value.uv[comp] == 0xcccccccc:
+                    if value.value.u32v[comp] == 0xcccccccc:
                         debugged[comp] = expect[comp]
 
                 # Unfortunately we can't ever trust that we should get back a matching results, because some shaders
@@ -275,7 +275,7 @@ class Iter_Test(rdtest.TestCase):
 
                     # For now, ignore debugged values that are uninitialised. This is an application bug but it causes false reports of problems
                     for idx in range(4):
-                        if debugged.value.uv[idx] == 0xcccccccc:
+                        if debugged.value.u32v[idx] == 0xcccccccc:
                             debuggedValue[idx] = lastmod.shaderOut.col.floatValue[idx]
 
                     # Unfortunately we can't ever trust that we should get back a matching results, because some shaders

@@ -93,14 +93,14 @@ static uint32_t VarByteSize(const ShaderVariable &var)
 static void *VarElemPointer(ShaderVariable &var, uint32_t comp)
 {
   RDCASSERTNOTEQUAL(var.type, VarType::Unknown);
-  byte *ret = (byte *)var.value.u64v;
+  byte *ret = (byte *)var.value.u8v.data();
   return ret + comp * VarTypeByteSize(var.type);
 }
 
 static const void *VarElemPointer(const ShaderVariable &var, uint32_t comp)
 {
   RDCASSERTNOTEQUAL(var.type, VarType::Unknown);
-  const byte *ret = (const byte *)var.value.u64v;
+  const byte *ret = (const byte *)var.value.u8v.data();
   return ret + comp * VarTypeByteSize(var.type);
 }
 
@@ -667,7 +667,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
         else
         {
           // make it obvious when uninitialised outputs are written
-          memset(var.value.u64v, 0xcc, sizeof(var.value.u64v));
+          memset(&var.value, 0xcc, sizeof(var.value));
         }
 
         if(sourceName != rawName)
@@ -815,7 +815,8 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
             // non-matrix case is simple, just read the size of the variable
             if(var.rows == 1)
             {
-              this->apiWrapper->ReadBufferValue(bindpoint, offset, VarByteSize(var), var.value.uv);
+              this->apiWrapper->ReadBufferValue(bindpoint, offset, VarByteSize(var),
+                                                var.value.u8v.data());
             }
             else
             {
@@ -1016,7 +1017,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
         if(!var.members.empty())
           return;
 
-        memset(var.value.u64v, 0xcc, sizeof(var.value.u64v));
+        memset(&var.value, 0xcc, sizeof(var.value));
       };
 
       WalkVariable<ShaderVariable, true>(decorations[v.id], dataTypes[type.InnerType()], ~0U, var,
@@ -1949,7 +1950,7 @@ void Debugger::AllocateVariable(Id id, Id typeId, ShaderVariable &outVar)
       return;
 
     // make it obvious when uninitialised values are used
-    memset(var.value.u64v, 0xcc, sizeof(var.value.u64v));
+    memset(&var.value, 0xcc, sizeof(var.value));
   };
 
   WalkVariable<ShaderVariable, true>(Decorations(), dataTypes[dataTypes[typeId].InnerType()], ~0U,
@@ -2161,10 +2162,10 @@ static void ApplyDerivative(uint32_t activeLaneIndex, uint32_t quadIndex, FloatT
 
 #define ADD_DERIV(src)       \
   for(int i = 0; i < 4; i++) \
-    dst[i] += ((FloatType *)src.value.u64v)[i];
+    dst[i] += comp<FloatType>(src, i);
 #define SUB_DERIV(src)       \
   for(int i = 0; i < 4; i++) \
-    dst[i] -= ((FloatType *)src.value.u64v)[i];
+    dst[i] -= comp<FloatType>(src, i);
 
   switch(activeLaneIndex)
   {
@@ -2280,12 +2281,12 @@ uint32_t Debugger::ApplyDerivatives(uint32_t quadIndex, const Decorations &curDe
         apiWrapper->GetDerivative(builtin, location, component, outVar.type);
 
     if(outVar.type == VarType::Float)
-      ApplyDerivative<float>(activeLaneIndex, quadIndex, outVar.value.fv, derivs);
+      ApplyDerivative<float>(activeLaneIndex, quadIndex, outVar.value.f32v.data(), derivs);
     else if(outVar.type == VarType::Half)
       ApplyDerivative<half_float::half>(activeLaneIndex, quadIndex,
-                                        (half_float::half *)outVar.value.u16v, derivs);
+                                        (half_float::half *)outVar.value.u16v.data(), derivs);
     else if(outVar.type == VarType::Double)
-      ApplyDerivative<double>(activeLaneIndex, quadIndex, outVar.value.dv, derivs);
+      ApplyDerivative<double>(activeLaneIndex, quadIndex, outVar.value.f64v.data(), derivs);
   }
 
   // each row consumes a new location

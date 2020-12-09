@@ -56,13 +56,13 @@ inline half_float::half &comp<half_float::half>(ShaderVariable &var, uint32_t c)
 template <>
 inline float &comp<float>(ShaderVariable &var, uint32_t c)
 {
-  return var.value.fv[c];
+  return var.value.f32v[c];
 }
 
 template <>
 inline double &comp<double>(ShaderVariable &var, uint32_t c)
 {
-  return var.value.dv[c];
+  return var.value.f64v[c];
 }
 
 template <typename T>
@@ -80,13 +80,13 @@ inline half_float::half comp<half_float::half>(const ShaderVariable &var, uint32
 template <>
 inline float comp<float>(const ShaderVariable &var, uint32_t c)
 {
-  return var.value.fv[c];
+  return var.value.f32v[c];
 }
 
 template <>
 inline double comp<double>(const ShaderVariable &var, uint32_t c)
 {
-  return var.value.dv[c];
+  return var.value.f64v[c];
 }
 
 #define INT_COMP(type, member)                                  \
@@ -105,8 +105,8 @@ INT_COMP(uint8_t, u8v);
 INT_COMP(int8_t, s8v);
 INT_COMP(uint16_t, u16v);
 INT_COMP(int16_t, s16v);
-INT_COMP(uint32_t, uv);
-INT_COMP(int32_t, iv);
+INT_COMP(uint32_t, u32v);
+INT_COMP(int32_t, s32v);
 INT_COMP(uint64_t, u64v);
 INT_COMP(int64_t, s64v);
 
@@ -114,11 +114,11 @@ INT_COMP(int64_t, s64v);
 inline float floatComp(const ShaderVariable &var, uint32_t c)
 {
   if(var.type == VarType::Float)
-    return var.value.fv[c];
+    return var.value.f32v[c];
   else if(var.type == VarType::Half)
     return ConvertFromHalf(var.value.u16v[c]);
   else if(var.type == VarType::Double)
-    return (float)var.value.dv[c];
+    return (float)var.value.f64v[c];
   else
     return 0.0f;
 }
@@ -127,7 +127,7 @@ inline uint32_t uintComp(const ShaderVariable &var, uint32_t c)
 {
   uint32_t byteSize = VarTypeByteSize(var.type);
   if(byteSize == 4)
-    return var.value.uv[c];
+    return var.value.u32v[c];
   else if(byteSize == 2)
     return var.value.u16v[c];
   else if(byteSize == 8)
@@ -142,7 +142,7 @@ inline int32_t intComp(const ShaderVariable &var, uint32_t c)
 {
   uint32_t byteSize = VarTypeByteSize(var.type);
   if(byteSize == 4)
-    return var.value.iv[c];
+    return var.value.s32v[c];
   else if(byteSize == 2)
     return var.value.s16v[c];
   else if(byteSize == 8)
@@ -156,18 +156,18 @@ inline int32_t intComp(const ShaderVariable &var, uint32_t c)
 inline void setFloatComp(ShaderVariable &var, uint32_t c, float f)
 {
   if(var.type == VarType::Float)
-    var.value.fv[c] = f;
+    var.value.f32v[c] = f;
   else if(var.type == VarType::Half)
     var.value.u16v[c] = ConvertToHalf(f);
   else if(var.type == VarType::Double)
-    var.value.dv[c] = f;
+    var.value.f64v[c] = f;
 }
 
 inline void setUintComp(ShaderVariable &var, uint32_t c, uint32_t u)
 {
   uint32_t byteSize = VarTypeByteSize(var.type);
   if(byteSize == 4)
-    var.value.uv[c] = u;
+    var.value.u32v[c] = u;
   else if(byteSize == 2)
     var.value.u16v[c] = u & 0xffffu;
   else if(byteSize == 8)
@@ -180,7 +180,7 @@ inline void setIntComp(ShaderVariable &var, uint32_t c, int32_t i)
 {
   uint32_t byteSize = VarTypeByteSize(var.type);
   if(byteSize == 4)
-    var.value.iv[c] = i;
+    var.value.s32v[c] = i;
   else if(byteSize == 2)
     var.value.s16v[c] = (int16_t)i;
   else if(byteSize == 8)
@@ -194,11 +194,11 @@ inline void set0001(ShaderVariable &result)
   RDCEraseEl(result.value);
 
   if(result.type == VarType::Float)
-    result.value.fv[3] = 1.0f;
+    result.value.f32v[3] = 1.0f;
   else if(result.type == VarType::Half)
     result.value.u16v[3] = ConvertToHalf(1.0f);
   else if(result.type == VarType::Double)
-    result.value.dv[3] = 1.0;
+    result.value.f64v[3] = 1.0;
   else
     setUintComp(result, 3, 1);
 }
@@ -212,7 +212,8 @@ inline void copyComp(ShaderVariable &dst, uint32_t dstComp, const ShaderVariable
     type = src.type;
   }
   const uint32_t sz = VarTypeByteSize(type);
-  memcpy(((byte *)dst.value.u64v) + sz * dstComp, ((byte *)src.value.u64v) + sz * srcComp, sz);
+  memcpy(((byte *)dst.value.u8v.data()) + sz * dstComp,
+         ((byte *)src.value.u8v.data()) + sz * srcComp, sz);
 }
 
 #define IMPL_FOR_FLOAT_TYPES_FOR_TYPE(impl, type) \

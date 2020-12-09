@@ -1395,7 +1395,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       m_VulkanPipelineState.colorBlend.blends[i].writeMask = p.attachments[i].channelWriteMask;
     }
 
-    memcpy(m_VulkanPipelineState.colorBlend.blendFactor, state.blendConst, sizeof(float) * 4);
+    m_VulkanPipelineState.colorBlend.blendFactor = state.blendConst;
 
     // Depth Stencil
     m_VulkanPipelineState.depthStencil.depthTestEnable = state.depthTestEnable != VK_FALSE;
@@ -1781,7 +1781,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
                 el.compareFunction = MakeCompareFunc(sampl.compareOp);
                 el.minLOD = sampl.minLod;
                 el.maxLOD = sampl.maxLod;
-                MakeBorderColor(sampl.borderColor, (FloatVector *)el.borderColor);
+                MakeBorderColor(sampl.borderColor, el.borderColor);
                 el.unnormalized = sampl.unnormalizedCoordinates;
 
                 if(sampl.ycbcr != ResourceId())
@@ -1807,7 +1807,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
                   }
                   else
                   {
-                    memcpy(el.borderColor, sampl.customBorderColor.float32, sizeof(Vec4f));
+                    el.borderColor = sampl.customBorderColor.float32;
                   }
                 }
               }

@@ -602,6 +602,80 @@ struct TypeConversion<rdcarray<U>, false>
   static PyObject *ConvertToPy(const rdcarray<U> &in) { return ConvertToPy(in, NULL); }
 };
 
+template <typename U, size_t N>
+struct TypeConversion<rdcfixedarray<U, N>, false>
+{
+  static swig_type_info *GetTypeInfo()
+  {
+    static swig_type_info *cached_type_info = NULL;
+    static rdcstr typeName = "rdcfixedarray < " + TypeName<U>() + "," + ToStr((uint32_t)N) + " > *";
+
+    if(cached_type_info)
+      return cached_type_info;
+
+    cached_type_info = SWIG_TypeQuery(typeName.c_str());
+
+    return cached_type_info;
+  }
+
+  // we add some extra parameters so the typemaps for array can use these to get
+  // nicer failure error messages out with the index that failed
+  static int ConvertFromPy(PyObject *in, rdcfixedarray<U, N> &out, int *failIdx)
+  {
+    if(!PySequence_Check(in))
+      return SWIG_TypeError;
+
+    Py_ssize_t size = PySequence_Size(in);
+
+    if(size != N)
+      return SWIG_TypeError;
+
+    for(size_t i = 0; i < N; i++)
+    {
+      int ret = TypeConversion<U>::ConvertFromPy(PySequence_GetItem(in, i), out[i]);
+
+      if(!SWIG_IsOK(ret))
+      {
+        if(failIdx)
+          *failIdx = (int)i;
+        return ret;
+      }
+    }
+
+    return SWIG_OK;
+  }
+
+  static int ConvertFromPy(PyObject *in, rdcfixedarray<U, N> &out)
+  {
+    return ConvertFromPy(in, out, NULL);
+  }
+
+  static PyObject *ConvertToPy(const rdcfixedarray<U, N> &in, int *failIdx)
+  {
+    PyObject *ret = PyTuple_New(N);
+    if(!ret)
+      return NULL;
+
+    for(size_t i = 0; i < N; i++)
+    {
+      PyObject *obj = TypeConversion<U>::ConvertToPy(in[i]);
+      if(!obj)
+      {
+        if(failIdx)
+          *failIdx = 0;
+        Py_XDECREF(ret);
+        return NULL;
+      }
+
+      PyTuple_SetItem(ret, i, obj);
+    }
+
+    return ret;
+  }
+
+  static PyObject *ConvertToPy(const rdcfixedarray<U, N> &in) { return ConvertToPy(in, NULL); }
+};
+
 // specialisation for string
 template <>
 struct TypeConversion<rdcstr, false>

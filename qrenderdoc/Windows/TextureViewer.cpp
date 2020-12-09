@@ -1668,8 +1668,8 @@ void TextureViewer::UI_UpdateChannels()
     m_TexDisplay.hdrMultiplier = -1.0f;
     if(m_TexDisplay.customShaderId != ResourceId())
     {
-      memset(m_CurPixelValue.floatValue, 0, sizeof(float) * 4);
-      memset(m_CurRealValue.floatValue, 0, sizeof(float) * 4);
+      m_CurPixelValue.floatValue = {0.0f, 0.0f, 0.0f, 0.0f};
+      m_CurRealValue.floatValue = {0.0f, 0.0f, 0.0f, 0.0f};
       UI_UpdateStatusText();
     }
     m_TexDisplay.customShaderId = ResourceId();
@@ -1707,8 +1707,8 @@ void TextureViewer::UI_UpdateChannels()
     m_TexDisplay.hdrMultiplier = -1.0f;
     if(m_TexDisplay.customShaderId != ResourceId())
     {
-      memset(m_CurPixelValue.floatValue, 0, sizeof(float) * 4);
-      memset(m_CurRealValue.floatValue, 0, sizeof(float) * 4);
+      m_CurPixelValue.floatValue = {0.0f, 0.0f, 0.0f, 0.0f};
+      m_CurRealValue.floatValue = {0.0f, 0.0f, 0.0f, 0.0f};
       UI_UpdateStatusText();
     }
     m_TexDisplay.customShaderId = ResourceId();
@@ -1748,8 +1748,8 @@ void TextureViewer::UI_UpdateChannels()
     m_TexDisplay.hdrMultiplier = mul;
     if(m_TexDisplay.customShaderId != ResourceId())
     {
-      memset(m_CurPixelValue.floatValue, 0, sizeof(float) * 4);
-      memset(m_CurRealValue.floatValue, 0, sizeof(float) * 4);
+      m_CurPixelValue.floatValue = {0.0f, 0.0f, 0.0f, 0.0f};
+      m_CurRealValue.floatValue = {0.0f, 0.0f, 0.0f, 0.0f};
       UI_UpdateStatusText();
     }
     m_TexDisplay.customShaderId = ResourceId();
@@ -1787,8 +1787,8 @@ void TextureViewer::UI_UpdateChannels()
     {
       if(m_TexDisplay.customShaderId == ResourceId())
       {
-        memset(m_CurPixelValue.floatValue, 0, sizeof(float) * 4);
-        memset(m_CurRealValue.floatValue, 0, sizeof(float) * 4);
+        m_CurPixelValue.floatValue = {0.0f, 0.0f, 0.0f, 0.0f};
+        m_CurRealValue.floatValue = {0.0f, 0.0f, 0.0f, 0.0f};
         UI_UpdateStatusText();
       }
       m_TexDisplay.customShaderId = m_CustomShaders[shaderName];

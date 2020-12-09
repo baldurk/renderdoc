@@ -215,15 +215,24 @@ struct FixedVertexProcessing
   FixedVertexProcessing(const FixedVertexProcessing &) = default;
   FixedVertexProcessing &operator=(const FixedVertexProcessing &) = default;
 
-  DOCUMENT("A list of ``float`` giving the default inner level of tessellation.");
-  float defaultInnerLevel[2] = {0.0f, 0.0f};
-  DOCUMENT("A list of ``float`` giving the default outer level of tessellation.");
-  float defaultOuterLevel[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+  DOCUMENT(R"(A tuple of ``float`` giving the default inner level of tessellation.
+
+:type: Tuple[float,float]
+)");
+  rdcfixedarray<float, 2> defaultInnerLevel = {0.0f, 0.0f};
+  DOCUMENT(R"(A tuple of ``float`` giving the default outer level of tessellation.
+
+:type: Tuple[float,float,float,float]
+)");
+  rdcfixedarray<float, 4> defaultOuterLevel = {0.0f, 0.0f, 0.0f, 0.0f};
   DOCUMENT("``True`` if primitives should be discarded during rasterization.");
   bool discard = false;
 
-  DOCUMENT("A list of ``bool`` determining which user clipping planes are enabled.");
-  bool clipPlanes[8] = {false, false, false, false, false, false, false, false};
+  DOCUMENT(R"(An 8-tuple of ``bool`` determining which user clipping planes are enabled.
+
+:type: Tuple[bool,...]
+)");
+  rdcfixedarray<bool, 8> clipPlanes = {false, false, false, false, false, false, false, false};
   DOCUMENT(R"(``True`` if the clipping origin should be in the lower left.
 
 ``False`` if it's in the upper left.
@@ -306,12 +315,10 @@ struct Sampler
   bool operator==(const Sampler &o) const
   {
     return resourceId == o.resourceId && addressS == o.addressS && addressT == o.addressT &&
-           addressR == o.addressR && borderColor[0] == o.borderColor[0] &&
-           borderColor[1] == o.borderColor[1] && borderColor[2] == o.borderColor[2] &&
-           borderColor[3] == o.borderColor[3] && compareFunction == o.compareFunction &&
-           filter == o.filter && seamlessCubeMap == o.seamlessCubeMap &&
-           maxAnisotropy == o.maxAnisotropy && maxLOD == o.maxLOD && minLOD == o.minLOD &&
-           mipLODBias == o.mipLODBias;
+           addressR == o.addressR && borderColor == o.borderColor &&
+           compareFunction == o.compareFunction && filter == o.filter &&
+           seamlessCubeMap == o.seamlessCubeMap && maxAnisotropy == o.maxAnisotropy &&
+           maxLOD == o.maxLOD && minLOD == o.minLOD && mipLODBias == o.mipLODBias;
   }
   bool operator<(const Sampler &o) const
   {
@@ -323,14 +330,8 @@ struct Sampler
       return addressT < o.addressT;
     if(!(addressR == o.addressR))
       return addressR < o.addressR;
-    if(!(borderColor[0] == o.borderColor[0]))
-      return borderColor[0] < o.borderColor[0];
-    if(!(borderColor[1] == o.borderColor[1]))
-      return borderColor[1] < o.borderColor[1];
-    if(!(borderColor[2] == o.borderColor[2]))
-      return borderColor[2] < o.borderColor[2];
-    if(!(borderColor[3] == o.borderColor[3]))
-      return borderColor[3] < o.borderColor[3];
+    if(!(borderColor == o.borderColor))
+      return borderColor < o.borderColor;
     if(!(compareFunction == o.compareFunction))
       return compareFunction < o.compareFunction;
     if(!(filter == o.filter))
@@ -355,8 +356,11 @@ struct Sampler
   AddressMode addressT = AddressMode::Wrap;
   DOCUMENT("The :class:`AddressMode` in the R direction.");
   AddressMode addressR = AddressMode::Wrap;
-  DOCUMENT("The RGBA border color.");
-  float borderColor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+  DOCUMENT(R"(The RGBA border color.
+  
+:type: Tuple[float,float,float,float]
+)");
+  rdcfixedarray<float, 4> borderColor = {0.0f, 0.0f, 0.0f, 0.0f};
   DOCUMENT("The :class:`CompareFunction` for comparison samplers.");
   CompareFunction compareFunction = CompareFunction::AlwaysTrue;
   DOCUMENT(R"(The filtering mode.
@@ -484,12 +488,21 @@ struct Feedback
 
   DOCUMENT("The :class:`ResourceId` of the transform feedback binding.");
   ResourceId feedbackResourceId;
-  DOCUMENT("A list of :class:`ResourceId` with the buffer bindings.");
-  ResourceId bufferResourceId[4];
-  DOCUMENT("A list of ``int`` with the buffer byte offsets.");
-  uint64_t byteOffset[4] = {0, 0, 0, 0};
-  DOCUMENT("A list of ``int`` with the buffer byte sizes.");
-  uint64_t byteSize[4] = {0, 0, 0, 0};
+  DOCUMENT(R"(The buffer bindings.
+  
+:type: Tuple[ResourceId,ResourceId,ResourceId,ResourceId]
+)");
+  rdcfixedarray<ResourceId, 4> bufferResourceId;
+  DOCUMENT(R"(The buffer byte offsets.
+  
+:type: Tuple[int,int,int,int]
+)");
+  rdcfixedarray<uint64_t, 4> byteOffset = {0, 0, 0, 0};
+  DOCUMENT(R"(The buffer byte sizes.
+  
+:type: Tuple[int,int,int,int]
+)");
+  rdcfixedarray<uint64_t, 4> byteSize = {0, 0, 0, 0};
   DOCUMENT("``True`` if the transform feedback object is currently active.");
   bool active = false;
   DOCUMENT("``True`` if the transform feedback object is currently paused.");
@@ -724,8 +737,11 @@ struct BlendState
 )");
   rdcarray<ColorBlend> blends;
 
-  DOCUMENT("The constant blend factor to use in blend equations.");
-  float blendFactor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+  DOCUMENT(R"(The constant blend factor to use in blend equations.
+  
+:type: Tuple[float,float,float,float]
+)");
+  rdcfixedarray<float, 4> blendFactor = {1.0f, 1.0f, 1.0f, 1.0f};
 };
 
 DOCUMENT("Describes the current state of the framebuffer stage of the pipeline.");
@@ -805,8 +821,8 @@ struct State
 
   DOCUMENT(R"(The tessellation control shader stage.
 
-      :type: GLShader
-      )");
+:type: GLShader
+)");
   Shader tessControlShader;
   DOCUMENT(R"(The tessellation evaluation shader stage.
 

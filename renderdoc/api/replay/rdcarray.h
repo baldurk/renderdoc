@@ -45,7 +45,7 @@ struct ItemHelper
       new(first + i) T();
   }
 
-  static bool equalRange(T *a, T *b, size_t count)
+  static bool equalRange(const T *a, const T *b, size_t count)
   {
     for(size_t i = 0; i < count; i++)
       if(!(a[i] == b[i]))
@@ -54,7 +54,7 @@ struct ItemHelper
     return true;
   }
 
-  static bool lessthanRange(T *a, T *b, size_t count)
+  static bool lessthanRange(const T *a, const T *b, size_t count)
   {
     for(size_t i = 0; i < count; i++)
       if(a[i] < b[i])
@@ -68,8 +68,11 @@ template <typename T>
 struct ItemHelper<T, true>
 {
   static void initRange(T *first, size_t itemCount) { memset(first, 0, itemCount * sizeof(T)); }
-  static bool equalRange(T *a, T *b, size_t count) { return !memcmp(a, b, count * sizeof(T)); }
-  static bool lessthanRange(T *a, T *b, size_t count)
+  static bool equalRange(const T *a, const T *b, size_t count)
+  {
+    return !memcmp(a, b, count * sizeof(T));
+  }
+  static bool lessthanRange(const T *a, const T *b, size_t count)
   {
     return memcmp(a, b, count * sizeof(T)) < 0;
   }
@@ -813,6 +816,100 @@ public:
     return *this;
   }
 #endif
+};
+
+// fixed size array, wrapped to be more python-friendly (mapped to an N-tuple)
+template <typename T, size_t N>
+struct rdcfixedarray
+{
+public:
+  /////////////////////////////////////////////////////////////////
+  // simple accessors
+  T &operator[](size_t i) { return elems[i]; }
+  const T &operator[](size_t i) const { return elems[i]; }
+  bool operator==(const rdcfixedarray<T, N> &o) const
+  {
+    return ItemHelper<T>::equalRange(elems, o.elems, N);
+  }
+  bool operator!=(const rdcfixedarray<T, N> &o) const { return !(*this == o); }
+  bool operator<(const rdcfixedarray<T, N> &o) const
+  {
+    return ItemHelper<T>::lessthanRange(elems, o.elems, N);
+  }
+  T *data() { return elems; }
+  const T *data() const { return elems; }
+  T *begin() { return elems; }
+  T *end() { return elems + N; }
+  T &front() { return *elems; }
+  T &back() { return *(elems + N - 1); }
+  T &at(size_t idx) { return elems[idx]; }
+  const T *begin() const { return elems; }
+  const T *end() const { return elems + N; }
+  const T &front() const { return *elems; }
+  const T &back() const { return *(elems + N - 1); }
+  const T &at(size_t idx) const { return elems[idx]; }
+  size_t size() const { return N; }
+  size_t byteSize() const { return N * sizeof(T); }
+  int32_t count() const { return (int32_t)N; }
+  // find the first occurrence of an element
+  int32_t indexOf(const T &el, size_t first = 0, size_t last = ~0U) const
+  {
+    for(size_t i = first; i < N && i < last; i++)
+    {
+      if(elems[i] == el)
+        return (int32_t)i;
+    }
+
+    return -1;
+  }
+
+  // return true if an element is found
+  bool contains(const T &el) const { return indexOf(el) != -1; }
+  rdcfixedarray<T, N> &operator=(const std::initializer_list<T> &in)
+  {
+    size_t i = 0;
+    for(const T &t : in)
+    {
+      elems[i] = t;
+      i++;
+
+      if(i >= N)
+        break;
+    }
+
+    return *this;
+  }
+  rdcfixedarray<T, N> &operator=(const T (&in)[N])
+  {
+    for(size_t i = 0; i < N; i++)
+      elems[i] = in[i];
+
+    return *this;
+  }
+  rdcfixedarray() = default;
+  rdcfixedarray(const std::initializer_list<T> &in)
+  {
+    static_assert(std::is_trivial<T>::value,
+                  "rdcfixedarray should only be used with POD types like float or uint32_t.");
+
+    // consume all available in the initializer_list, up to N
+    size_t i = 0;
+    for(const T &t : in)
+    {
+      elems[i] = t;
+      i++;
+
+      if(i >= N)
+        break;
+    }
+
+    // default-initialise any others
+    for(; i < N; i++)
+      elems[i] = T();
+  }
+
+private:
+  T elems[N];
 };
 
 typedef uint8_t byte;

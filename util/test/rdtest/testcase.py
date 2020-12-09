@@ -42,27 +42,27 @@ class ShaderVariableCheck:
     def value(self, value_: list):
         count = len(value_)
         if isinstance(value_[0], float):
-            if self.var.value.fv[0:count] != value_:
+            if list(self.var.value.f32v[0:count]) != list(value_):
                 raise TestFailureException("Float variable {} value mismatch, expected {} but got {}"
-                                           .format(self.var.name, value_, self.var.value.fv[0:count]))
+                                           .format(self.var.name, value_, self.var.value.f32v[0:count]))
         else:
             # hack - check signed and unsigned values
-            if self.var.value.iv[0:count] != value_ and self.var.value.uv[0:count] != value_:
+            if list(self.var.value.s32v[0:count] ) != list(value_) and list(self.var.value.u32v[0:count]) != list(value_):
                 raise TestFailureException("Int variable {} value mismatch, expected {} but got {} / {}"
-                                           .format(self.var.name, value_, self.var.value.iv[0:count],
-                                                   self.var.value.uv[0:count]))
+                                           .format(self.var.name, value_, self.var.value.s32v[0:count],
+                                                   self.var.value.u32v[0:count]))
 
         return self
 
     def longvalue(self, value_: list):
         count = len(value_)
         if isinstance(value_[0], float):
-            if self.var.value.dv[0:count] != value_:
+            if list(self.var.value.f64v[0:count]) != list(value_):
                 raise TestFailureException("Float variable {} value mismatch, expected {} but got {}"
-                                           .format(self.var.name, value_, self.var.value.dv[0:count]))
+                                           .format(self.var.name, value_, self.var.value.f64v[0:count]))
         else:
             # hack - check signed and unsigned values
-            if self.var.value.s64v[0:count] != value_ and self.var.value.u64v[0:count] != value_:
+            if list(self.var.value.s64v[0:count]) != list(value_) and list(self.var.value.u64v[0:count]) != list(value_):
                 raise TestFailureException("Int variable {} value mismatch, expected {} but got {} / {}"
                                            .format(self.var.name, value_, self.var.value.s64v[0:count],
                                                    self.var.value.u64v[0:count]))
@@ -619,12 +619,12 @@ class TestCase:
         debugged.type = sourceVar.type
         debugged.rows = sourceVar.rows
         debugged.columns = sourceVar.columns
-        fv = [0.0] * 16
+        f32v = [0.0] * 16
         for i, debugVarPath in enumerate(sourceVar.variables):
             debugVar = self.get_debug_var(debugVars, debugVarPath.name)
             debugged.rowMajor = debugVar.rowMajor
-            fv[i] = debugVar.value.fv[debugVarPath.component]
-        debugged.value.fv = fv
+            f32v[i] = debugVar.value.f32v[debugVarPath.component]
+        debugged.value.f32v = f32v
         return debugged
 
     def combine_source_vars(self, vars):

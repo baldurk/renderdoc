@@ -421,7 +421,7 @@ def build_finished(app, exception):
             if 'INTERNAL:' not in str(module.__dict__[item].__doc__):
                 items.append('{}.{}'.format(module_name, item))
 
-    items = set(filter(lambda i: re.search('__|SWIG|ResourceId_Null|rdcarray_of|Structured.*List', i) is None, items))
+    items = set(filter(lambda i: re.search('__|SWIG|ResourceId_Null|rdcfixedarray_of|rdcarray_of|Structured.*List', i) is None, items))
 
     # Remove any documented/indexed python objects
     items -= set(app.env.get_domain('py').objects.keys())

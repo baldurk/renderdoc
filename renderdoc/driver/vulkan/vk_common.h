@@ -78,7 +78,7 @@ VkFormat MakeVkFormat(ResourceFormat fmt);
 Topology MakePrimitiveTopology(VkPrimitiveTopology Topo, uint32_t patchControlPoints);
 VkPrimitiveTopology MakeVkPrimitiveTopology(Topology Topo);
 AddressMode MakeAddressMode(VkSamplerAddressMode addr);
-void MakeBorderColor(VkBorderColor border, FloatVector *BorderColor);
+void MakeBorderColor(VkBorderColor border, rdcfixedarray<float, 4> &BorderColor);
 CompareFunction MakeCompareFunc(VkCompareOp func);
 FilterMode MakeFilterMode(VkFilter f);
 TextureFilter MakeFilter(VkFilter minFilter, VkFilter magFilter, VkSamplerMipmapMode mipmapMode,

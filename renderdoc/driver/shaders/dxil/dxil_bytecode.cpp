@@ -278,11 +278,11 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
     Constant v;
     v.type = curType;
     if(curType->bitWidth == 16)
-      v.val.fv[0] = ConvertFromHalf(uint16_t(constant.ops[0] & 0xffff));
+      v.val.f32v[0] = ConvertFromHalf(uint16_t(constant.ops[0] & 0xffff));
     else if(curType->bitWidth == 32)
-      memcpy(&v.val.fv[0], &constant.ops[0], sizeof(float));
+      memcpy(&v.val.f32v[0], &constant.ops[0], sizeof(float));
     else
-      memcpy(&v.val.dv[0], &constant.ops[0], sizeof(double));
+      memcpy(&v.val.f64v[0], &constant.ops[0], sizeof(double));
     addConstant(v);
   }
   else if(IS_KNOWN(constant.id, ConstantsRecord::STRING) ||
@@ -333,7 +333,7 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
       }
       else if(v.type->type == Type::Struct)
       {
-        v.type = v.type->members[v.members[idx].val.uv[0]];
+        v.type = v.type->members[v.members[idx].val.u32v[0]];
       }
       else
       {
@@ -360,7 +360,7 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
         if(member)
         {
           if(v.type->bitWidth <= 32)
-            v.val.uv[m] = member->val.uv[m];
+            v.val.u32v[m] = member->val.u32v[m];
           else
             v.val.u64v[m] = member->val.u64v[m];
         }
@@ -401,7 +401,7 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
       for(size_t m = 0; m < constant.ops.size(); m++)
       {
         if(v.type->bitWidth <= 32)
-          v.val.uv[m] = constant.ops[m] & ((1ULL << v.type->bitWidth) - 1);
+          v.val.u32v[m] = constant.ops[m] & ((1ULL << v.type->bitWidth) - 1);
         else
           v.val.u64v[m] = constant.ops[m];
       }
@@ -413,7 +413,7 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
         Constant el;
         el.type = v.type->inner;
         if(el.type->bitWidth <= 32)
-          el.val.uv[0] = constant.ops[m] & ((1ULL << el.type->bitWidth) - 1);
+          el.val.u32v[0] = constant.ops[m] & ((1ULL << el.type->bitWidth) - 1);
         else
           el.val.u64v[m] = constant.ops[m];
         v.members.push_back(el);
@@ -1639,7 +1639,7 @@ Program::Program(const byte *bytes, size_t length)
                   Symbol s = inst.args[idx];
                   // if it's a struct the index must be constant
                   RDCASSERT(s.type == SymbolType::Constant);
-                  inst.type = inst.type->members[GetFunctionConstant(f, s.idx)->val.uv[0]];
+                  inst.type = inst.type->members[GetFunctionConstant(f, s.idx)->val.u32v[0]];
                 }
                 else
                 {

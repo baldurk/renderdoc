@@ -24,7 +24,7 @@ class D3D12_Resource_Mapping_Zoo(rdtest.TestCase):
         debugged = self.evaluate_source_var(output, variables)
 
         try:
-            self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, x, y, debugged.value.fv[0:4])
+            self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, x, y, debugged.value.f32v[0:4])
         except rdtest.TestFailureException as ex:
             rdtest.log.error("Test {} did not match. {}".format(test_name, str(ex)))
             return False

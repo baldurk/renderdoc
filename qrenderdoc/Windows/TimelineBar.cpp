@@ -1028,10 +1028,10 @@ uint32_t TimelineBar::processDraws(QVector<Marker> &markers, QVector<uint32_t> &
 
       maxEID = qMax(maxEID, m.eidEnd);
 
-      if(d.markerColor[3] > 0.0f)
+      if(d.markerColor.w > 0.0f)
       {
         m.color = QColor::fromRgb(
-            qRgb(d.markerColor[0] * 255.0f, d.markerColor[1] * 255.0f, d.markerColor[2] * 255.0f));
+            qRgb(d.markerColor.x * 255.0f, d.markerColor.y * 255.0f, d.markerColor.z * 255.0f));
       }
       else
       {

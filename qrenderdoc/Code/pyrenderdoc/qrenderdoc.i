@@ -31,6 +31,7 @@
 %import "renderdoc.i"
 
 TEMPLATE_ARRAY_DECLARE(rdcarray);
+TEMPLATE_FIXEDARRAY_DECLARE(rdcfixedarray);
 
 // pass QWidget objects to PySide
 %{

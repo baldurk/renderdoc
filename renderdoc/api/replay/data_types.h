@@ -1522,7 +1522,7 @@ struct DrawcallDescription
     eventId = 0;
     drawcallId = 0;
     flags = DrawFlags::NoFlags;
-    markerColor[0] = markerColor[1] = markerColor[2] = markerColor[3] = 0.0f;
+    markerColor = FloatVector();
     numIndices = 0;
     numInstances = 0;
     indexOffset = 0;
@@ -1565,8 +1565,11 @@ struct DrawcallDescription
   DOCUMENT("A set of :class:`DrawFlags` properties describing what kind of drawcall this is.");
   DrawFlags flags;
 
-  DOCUMENT("A RGBA color specified by a debug marker call.");
-  float markerColor[4];
+  DOCUMENT(R"(A RGBA color specified by a debug marker call.
+
+:type: FloatVector
+)");
+  FloatVector markerColor;
 
   DOCUMENT("The number of indices or vertices as appropriate for the drawcall. 0 if not used.");
   uint32_t numIndices;
@@ -1593,14 +1596,23 @@ struct DrawcallDescription
 )");
   uint32_t drawIndex;
 
-  DOCUMENT("The 3D number of workgroups to dispatch in a dispatch call.");
-  uint32_t dispatchDimension[3];
+  DOCUMENT(R"(The 3D number of workgroups to dispatch in a dispatch call.
 
-  DOCUMENT("The 3D size of each workgroup in threads if the call allows an override, or 0 if not.");
-  uint32_t dispatchThreadsDimension[3];
+:type: Tuple[int,int,int]
+)");
+  rdcfixedarray<uint32_t, 3> dispatchDimension;
 
-  DOCUMENT("The 3D base offset of the workgroup ID if the call allows an override, or 0 if not.");
-  uint32_t dispatchBase[3];
+  DOCUMENT(R"(The 3D size of each workgroup in threads if the call allows an override, or 0 if not.
+
+:type: Tuple[int,int,int]
+)");
+  rdcfixedarray<uint32_t, 3> dispatchThreadsDimension;
+
+  DOCUMENT(R"(The 3D base offset of the workgroup ID if the call allows an override, or 0 if not.
+
+:type: Tuple[int,int,int]
+)");
+  rdcfixedarray<uint32_t, 3> dispatchBase;
 
   DOCUMENT(R"(The width in bytes of each index.
 
@@ -1651,10 +1663,12 @@ frame.
 )");
   const DrawcallDescription *next;
 
-  DOCUMENT(R"(A simple list of the :class:`ResourceId` ids for the color outputs, which can be used
+  DOCUMENT(R"(An 8-tuple of the :class:`ResourceId` ids for the color outputs, which can be used
 for very coarse bucketing of drawcalls into similar passes by their outputs.
+
+:type: Tuple[ResourceId,...]
 )");
-  ResourceId outputs[8];
+  rdcfixedarray<ResourceId, 8> outputs;
   DOCUMENT("The resource used for depth output - see :data:`outputs`.");
   ResourceId depthOut;
 
@@ -1759,15 +1773,14 @@ struct Uuid
   Uuid &operator=(const Uuid &) = default;
 
   DOCUMENT("Compares two ``Uuid`` objects for less-than.");
-  bool operator<(const Uuid &rhs) const
-  {
-    return std::lexicographical_compare(words, words + 4, rhs.words, rhs.words + 4);
-  }
-
+  bool operator<(const Uuid &rhs) const { return words < rhs.words; }
   DOCUMENT("Compares two ``Uuid`` objects for equality.");
-  bool operator==(const Uuid &rhs) const { return ::memcmp(words, rhs.words, sizeof(words)) == 0; }
-  DOCUMENT("The Uuid bytes as an array of four 32-bit integers.")
-  uint32_t words[4];
+  bool operator==(const Uuid &rhs) const { return words == rhs.words; }
+  DOCUMENT(R"(The Uuid bytes as a tuple of four 32-bit integers.
+
+:type: Tuple[int,int,int,int]
+)")
+  rdcfixedarray<uint32_t, 4> words;
 };
 
 DECLARE_REFLECTION_STRUCT(Uuid);
@@ -1922,12 +1935,21 @@ DECLARE_REFLECTION_STRUCT(CounterResult);
 DOCUMENT("The contents of an RGBA pixel.");
 union PixelValue
 {
-  DOCUMENT("The RGBA value interpreted as ``float``.");
-  float floatValue[4];
-  DOCUMENT("The RGBA value interpreted as 32-bit unsigned integer.");
-  uint32_t uintValue[4];
-  DOCUMENT("The RGBA value interpreted as 32-bit signed integer.");
-  int32_t intValue[4];
+  DOCUMENT(R"(The RGBA value interpreted as ``float``.
+
+:type: Tuple[float, float, float, float]
+)");
+  rdcfixedarray<float, 4> floatValue;
+  DOCUMENT(R"(The RGBA value interpreted as 32-bit unsigned integer.
+
+:type: Tuple[int, int, int, int]
+)");
+  rdcfixedarray<uint32_t, 4> uintValue;
+  DOCUMENT(R"(The RGBA value interpreted as 32-bit signed integer.
+
+:type: Tuple[int, int, int, int]
+)");
+  rdcfixedarray<int32_t, 4> intValue;
 };
 
 DECLARE_REFLECTION_STRUCT(PixelValue);

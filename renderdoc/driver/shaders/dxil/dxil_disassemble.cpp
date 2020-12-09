@@ -1211,7 +1211,7 @@ void Program::MakeDisassemblyString()
         {
           if(inst.args[0].type == SymbolType::Constant)
           {
-            uint32_t opcode = GetFunctionConstant(func, inst.args[0].idx)->val.uv[0];
+            uint32_t opcode = GetFunctionConstant(func, inst.args[0].idx)->val.u32v[0];
             if(opcode < ARRAY_COUNT(funcSigs))
             {
               m_Disassembly += "  ; ";
@@ -1225,9 +1225,9 @@ void Program::MakeDisassemblyString()
           if(inst.args[2].type == SymbolType::Constant && inst.args[3].type == SymbolType::Constant)
           {
             ResourceClass resClass =
-                (ResourceClass)GetFunctionConstant(func, inst.args[2].idx)->val.uv[0];
+                (ResourceClass)GetFunctionConstant(func, inst.args[2].idx)->val.u32v[0];
             ResourceKind resKind =
-                (ResourceKind)GetFunctionConstant(func, inst.args[3].idx)->val.uv[0];
+                (ResourceKind)GetFunctionConstant(func, inst.args[3].idx)->val.u32v[0];
 
             m_Disassembly += "  resource: ";
 
@@ -1239,8 +1239,8 @@ void Program::MakeDisassemblyString()
 
             if(props && !props->nullconst)
             {
-              packedProps[0] = props->members[0].val.uv[0];
-              packedProps[1] = props->members[1].val.uv[0];
+              packedProps[0] = props->members[0].val.u32v[0];
+              packedProps[1] = props->members[1].val.u32v[0];
             }
 
             ComponentType compType = ComponentType(packedProps[0] & 0x1f);
@@ -1721,9 +1721,9 @@ rdcstr Constant::toString(bool withType) const
     {
       double orig;
       if(type->bitWidth > 32)
-        orig = val.dv[0];
+        orig = val.f64v[0];
       else
-        orig = val.fv[0];
+        orig = val.f32v[0];
 
       // NaNs/infs are printed as hex to ensure we don't lose bits
       if(RDCISFINITE(orig))
@@ -1745,9 +1745,9 @@ rdcstr Constant::toString(bool withType) const
       if(type->bitWidth > 32)
         ret += StringFormat::Fmt("%lld", val.s64v[0]);
       else if(type->bitWidth == 1)
-        ret += val.uv[0] ? "true" : "false";
+        ret += val.u32v[0] ? "true" : "false";
       else
-        ret += StringFormat::Fmt("%d", val.iv[0]);
+        ret += StringFormat::Fmt("%d", val.s32v[0]);
     }
   }
   else if(type->type == Type::Vector)
@@ -1759,9 +1759,9 @@ rdcstr Constant::toString(bool withType) const
       {
         // TODO need to know how to determine signedness here
         if(type->bitWidth > 32)
-          ret += StringFormat::Fmt("%le", val.dv[i]);
+          ret += StringFormat::Fmt("%le", val.f64v[i]);
         else
-          ret += StringFormat::Fmt("%e", val.fv[i]);
+          ret += StringFormat::Fmt("%e", val.f32v[i]);
       }
       else if(type->scalarType == Type::Int)
       {
@@ -1769,7 +1769,7 @@ rdcstr Constant::toString(bool withType) const
         if(type->bitWidth > 32)
           ret += StringFormat::Fmt("%llu", val.u64v[i]);
         else
-          ret += StringFormat::Fmt("%u", val.uv[i]);
+          ret += StringFormat::Fmt("%u", val.u32v[i]);
       }
     }
     ret += ">";

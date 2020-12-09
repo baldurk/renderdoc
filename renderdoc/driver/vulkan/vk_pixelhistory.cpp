@@ -2425,7 +2425,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
 
         clearAtts[0].aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         clearAtts[0].colorAttachment = colorOutputIndex;
-        memcpy(clearAtts[0].clearValue.color.float32, premod.col.floatValue,
+        memcpy(clearAtts[0].clearValue.color.float32, premod.col.floatValue.data(),
                sizeof(clearAtts[0].clearValue.color));
 
         clearAtts[1].aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -3175,7 +3175,7 @@ void UpdateTestsFailed(const TestsFailedCallback *tfCb, uint32_t eventId, uint32
 void FillInColor(ResourceFormat fmt, const PixelHistoryValue &value, ModificationValue &mod)
 {
   FloatVector v4 = DecodeFormattedComponents(fmt, value.color);
-  memcpy(mod.col.floatValue, &v4, sizeof(v4));
+  memcpy(mod.col.floatValue.data(), &v4, sizeof(v4));
 }
 
 float GetDepthValue(VkFormat depthFormat, const PixelHistoryValue &value)

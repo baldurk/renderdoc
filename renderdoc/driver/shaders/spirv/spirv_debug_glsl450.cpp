@@ -299,7 +299,7 @@ ShaderVariable Determinant(ThreadState &state, uint32_t, const rdcarray<Id> &par
     }
 
     for(uint8_t c = 0; c < m.rows * m.columns; c++)
-      m.value.fv[c] = floatComp(var, c);
+      m.value.f32v[c] = floatComp(var, c);
   }
 
   RDCASSERTEQUAL(m.rows, m.columns);
@@ -307,26 +307,26 @@ ShaderVariable Determinant(ThreadState &state, uint32_t, const rdcarray<Id> &par
   if(m.rows == 4)
   {
     Matrix4f mat;
-    mat.SetFrom(m.value.fv);
-    m.value.fv[0] = mat.Determinant();
+    mat.SetFrom(m.value.f32v.data());
+    m.value.f32v[0] = mat.Determinant();
   }
   else if(m.rows == 3)
   {
     Matrix3f mat;
-    mat.SetFrom(m.value.fv);
-    m.value.fv[0] = mat.Determinant();
+    mat.SetFrom(m.value.f32v.data());
+    m.value.f32v[0] = mat.Determinant();
   }
   else if(m.rows == 2)
   {
     Matrix2f mat;
-    mat.SetFrom(m.value.fv);
-    m.value.fv[0] = mat.Determinant();
+    mat.SetFrom(m.value.f32v.data());
+    m.value.f32v[0] = mat.Determinant();
   }
   m.rows = m.columns = 1;
 
   if(var.type != VarType::Float)
   {
-    float f = m.value.fv[0];
+    float f = m.value.f32v[0];
     setFloatComp(m, 0, f);
   }
 
@@ -350,7 +350,7 @@ ShaderVariable MatrixInverse(ThreadState &state, uint32_t, const rdcarray<Id> &p
     }
 
     for(uint8_t c = 0; c < m.rows * m.columns; c++)
-      m.value.fv[c] = floatComp(var, c);
+      m.value.f32v[c] = floatComp(var, c);
   }
 
   RDCASSERTEQUAL(m.rows, m.columns);
@@ -358,27 +358,27 @@ ShaderVariable MatrixInverse(ThreadState &state, uint32_t, const rdcarray<Id> &p
   if(m.rows == 4)
   {
     Matrix4f mat;
-    mat.SetFrom(m.value.fv);
-    memcpy(m.value.fv, mat.Inverse().Data(), sizeof(mat));
+    mat.SetFrom(m.value.f32v.data());
+    memcpy(m.value.f32v.data(), mat.Inverse().Data(), sizeof(mat));
   }
   else if(m.rows == 3)
   {
     Matrix3f mat;
-    mat.SetFrom(m.value.fv);
-    memcpy(m.value.fv, mat.Inverse().Data(), sizeof(mat));
+    mat.SetFrom(m.value.f32v.data());
+    memcpy(m.value.f32v.data(), mat.Inverse().Data(), sizeof(mat));
   }
   else if(m.rows == 2)
   {
     Matrix2f mat;
-    mat.SetFrom(m.value.fv);
-    memcpy(m.value.fv, mat.Inverse().Data(), sizeof(mat));
+    mat.SetFrom(m.value.f32v.data());
+    memcpy(m.value.f32v.data(), mat.Inverse().Data(), sizeof(mat));
   }
 
   if(var.type != VarType::Float)
   {
     var = m;
     for(uint8_t c = 0; c < m.rows * m.columns; c++)
-      setFloatComp(m, c, var.value.fv[c]);
+      setFloatComp(m, c, var.value.f32v[c]);
   }
 
   return m;
@@ -834,12 +834,12 @@ ShaderVariable PackSnorm4x8(ThreadState &state, uint32_t, const rdcarray<Id> &pa
   uint32_t packed = 0;
 
   // The v operand must be a vector of 4 components whose type is a 32-bit floating-point.
-  packed |= (int32_t(RDCCLAMP(v.value.fv[0], -1.0f, 1.0f) * 127.0f) & 0xff) << 0;
-  packed |= (int32_t(RDCCLAMP(v.value.fv[1], -1.0f, 1.0f) * 127.0f) & 0xff) << 8;
-  packed |= (int32_t(RDCCLAMP(v.value.fv[2], -1.0f, 1.0f) * 127.0f) & 0xff) << 16;
-  packed |= (int32_t(RDCCLAMP(v.value.fv[3], -1.0f, 1.0f) * 127.0f) & 0xff) << 24;
+  packed |= (int32_t(RDCCLAMP(v.value.f32v[0], -1.0f, 1.0f) * 127.0f) & 0xff) << 0;
+  packed |= (int32_t(RDCCLAMP(v.value.f32v[1], -1.0f, 1.0f) * 127.0f) & 0xff) << 8;
+  packed |= (int32_t(RDCCLAMP(v.value.f32v[2], -1.0f, 1.0f) * 127.0f) & 0xff) << 16;
+  packed |= (int32_t(RDCCLAMP(v.value.f32v[3], -1.0f, 1.0f) * 127.0f) & 0xff) << 24;
 
-  v.value.uv[0] = packed;
+  v.value.u32v[0] = packed;
 
   v.type = VarType::UInt;
   v.columns = 1;
@@ -856,12 +856,12 @@ ShaderVariable PackUnorm4x8(ThreadState &state, uint32_t, const rdcarray<Id> &pa
   uint32_t packed = 0;
 
   // The v operand must be a vector of 4 components whose type is a 32-bit floating-point.
-  packed |= (uint32_t(RDCCLAMP(v.value.fv[0], 0.0f, 1.0f) * 255.0f) & 0xff) << 0;
-  packed |= (uint32_t(RDCCLAMP(v.value.fv[1], 0.0f, 1.0f) * 255.0f) & 0xff) << 8;
-  packed |= (uint32_t(RDCCLAMP(v.value.fv[2], 0.0f, 1.0f) * 255.0f) & 0xff) << 16;
-  packed |= (uint32_t(RDCCLAMP(v.value.fv[3], 0.0f, 1.0f) * 255.0f) & 0xff) << 24;
+  packed |= (uint32_t(RDCCLAMP(v.value.f32v[0], 0.0f, 1.0f) * 255.0f) & 0xff) << 0;
+  packed |= (uint32_t(RDCCLAMP(v.value.f32v[1], 0.0f, 1.0f) * 255.0f) & 0xff) << 8;
+  packed |= (uint32_t(RDCCLAMP(v.value.f32v[2], 0.0f, 1.0f) * 255.0f) & 0xff) << 16;
+  packed |= (uint32_t(RDCCLAMP(v.value.f32v[3], 0.0f, 1.0f) * 255.0f) & 0xff) << 24;
 
-  v.value.uv[0] = packed;
+  v.value.u32v[0] = packed;
 
   v.type = VarType::UInt;
   v.columns = 1;
@@ -878,10 +878,10 @@ ShaderVariable PackSnorm2x16(ThreadState &state, uint32_t, const rdcarray<Id> &p
   uint32_t packed = 0;
 
   // The v operand must be a vector of 4 components whose type is a 32-bit floating-point.
-  packed |= (int32_t(RDCCLAMP(v.value.fv[0], -1.0f, 1.0f) * 32767.0f) & 0xffff) << 0;
-  packed |= (int32_t(RDCCLAMP(v.value.fv[1], -1.0f, 1.0f) * 32767.0f) & 0xffff) << 16;
+  packed |= (int32_t(RDCCLAMP(v.value.f32v[0], -1.0f, 1.0f) * 32767.0f) & 0xffff) << 0;
+  packed |= (int32_t(RDCCLAMP(v.value.f32v[1], -1.0f, 1.0f) * 32767.0f) & 0xffff) << 16;
 
-  v.value.uv[0] = packed;
+  v.value.u32v[0] = packed;
 
   v.type = VarType::UInt;
   v.columns = 1;
@@ -898,10 +898,10 @@ ShaderVariable PackUnorm2x16(ThreadState &state, uint32_t, const rdcarray<Id> &p
   uint32_t packed = 0;
 
   // The v operand must be a vector of 4 components whose type is a 32-bit floating-point.
-  packed |= (uint32_t(RDCCLAMP(v.value.fv[0], 0.0f, 1.0f) * 65535.0f) & 0xffff) << 0;
-  packed |= (uint32_t(RDCCLAMP(v.value.fv[1], 0.0f, 1.0f) * 65535.0f) & 0xffff) << 16;
+  packed |= (uint32_t(RDCCLAMP(v.value.f32v[0], 0.0f, 1.0f) * 65535.0f) & 0xffff) << 0;
+  packed |= (uint32_t(RDCCLAMP(v.value.f32v[1], 0.0f, 1.0f) * 65535.0f) & 0xffff) << 16;
 
-  v.value.uv[0] = packed;
+  v.value.u32v[0] = packed;
 
   v.type = VarType::UInt;
   v.columns = 1;
@@ -918,10 +918,10 @@ ShaderVariable PackHalf2x16(ThreadState &state, uint32_t, const rdcarray<Id> &pa
   uint32_t packed = 0;
 
   // The v operand must be a vector of 4 components whose type is a 32-bit floating-point.
-  packed |= ConvertToHalf(v.value.fv[0]) << 0;
-  packed |= ConvertToHalf(v.value.fv[1]) << 16;
+  packed |= ConvertToHalf(v.value.f32v[0]) << 0;
+  packed |= ConvertToHalf(v.value.f32v[1]) << 16;
 
-  v.value.uv[0] = packed;
+  v.value.u32v[0] = packed;
 
   v.type = VarType::UInt;
   v.columns = 1;
@@ -936,7 +936,7 @@ ShaderVariable PackDouble2x32(ThreadState &state, uint32_t, const rdcarray<Id> &
   ShaderVariable v = state.GetSrc(params[0]);
 
   // u64 is aliased with the double, so we just OR together
-  v.value.u64v[0] = uint64_t(v.value.uv[0]) | (uint64_t(v.value.uv[1]) << 32);
+  v.value.u64v[0] = uint64_t(v.value.u32v[0]) | (uint64_t(v.value.u32v[1]) << 32);
 
   v.type = VarType::Double;
   v.columns = 1;
@@ -950,13 +950,13 @@ ShaderVariable UnpackSnorm4x8(ThreadState &state, uint32_t, const rdcarray<Id> &
 
   ShaderVariable v = state.GetSrc(params[0]);
 
-  uint32_t packed = v.value.uv[0];
+  uint32_t packed = v.value.u32v[0];
 
   // The v operand must be a vector of 4 components whose type is a 32-bit floating-point.
-  v.value.fv[0] = RDCCLAMP(float(int8_t((packed >> 0) & 0xff)) / 127.0f, -1.0f, 1.0f);
-  v.value.fv[1] = RDCCLAMP(float(int8_t((packed >> 8) & 0xff)) / 127.0f, -1.0f, 1.0f);
-  v.value.fv[2] = RDCCLAMP(float(int8_t((packed >> 16) & 0xff)) / 127.0f, -1.0f, 1.0f);
-  v.value.fv[3] = RDCCLAMP(float(int8_t((packed >> 24) & 0xff)) / 127.0f, -1.0f, 1.0f);
+  v.value.f32v[0] = RDCCLAMP(float(int8_t((packed >> 0) & 0xff)) / 127.0f, -1.0f, 1.0f);
+  v.value.f32v[1] = RDCCLAMP(float(int8_t((packed >> 8) & 0xff)) / 127.0f, -1.0f, 1.0f);
+  v.value.f32v[2] = RDCCLAMP(float(int8_t((packed >> 16) & 0xff)) / 127.0f, -1.0f, 1.0f);
+  v.value.f32v[3] = RDCCLAMP(float(int8_t((packed >> 24) & 0xff)) / 127.0f, -1.0f, 1.0f);
 
   v.type = VarType::Float;
   v.columns = 4;
@@ -970,12 +970,12 @@ ShaderVariable UnpackUnorm4x8(ThreadState &state, uint32_t, const rdcarray<Id> &
 
   ShaderVariable v = state.GetSrc(params[0]);
 
-  uint32_t packed = v.value.uv[0];
+  uint32_t packed = v.value.u32v[0];
 
-  v.value.fv[0] = float((packed >> 0) & 0xff) / 255.0f;
-  v.value.fv[1] = float((packed >> 8) & 0xff) / 255.0f;
-  v.value.fv[2] = float((packed >> 16) & 0xff) / 255.0f;
-  v.value.fv[3] = float((packed >> 24) & 0xff) / 255.0f;
+  v.value.f32v[0] = float((packed >> 0) & 0xff) / 255.0f;
+  v.value.f32v[1] = float((packed >> 8) & 0xff) / 255.0f;
+  v.value.f32v[2] = float((packed >> 16) & 0xff) / 255.0f;
+  v.value.f32v[3] = float((packed >> 24) & 0xff) / 255.0f;
 
   v.type = VarType::Float;
   v.columns = 4;
@@ -989,10 +989,10 @@ ShaderVariable UnpackSnorm2x16(ThreadState &state, uint32_t, const rdcarray<Id> 
 
   ShaderVariable v = state.GetSrc(params[0]);
 
-  uint32_t packed = v.value.uv[0];
+  uint32_t packed = v.value.u32v[0];
 
-  v.value.fv[0] = RDCCLAMP(float(int16_t((packed >> 0) & 0xffff)) / 32767.0f, -1.0f, 1.0f);
-  v.value.fv[1] = RDCCLAMP(float(int16_t((packed >> 16) & 0xffff)) / 32767.0f, -1.0f, 1.0f);
+  v.value.f32v[0] = RDCCLAMP(float(int16_t((packed >> 0) & 0xffff)) / 32767.0f, -1.0f, 1.0f);
+  v.value.f32v[1] = RDCCLAMP(float(int16_t((packed >> 16) & 0xffff)) / 32767.0f, -1.0f, 1.0f);
 
   v.type = VarType::Float;
   v.columns = 2;
@@ -1006,10 +1006,10 @@ ShaderVariable UnpackUnorm2x16(ThreadState &state, uint32_t, const rdcarray<Id> 
 
   ShaderVariable v = state.GetSrc(params[0]);
 
-  uint32_t packed = v.value.uv[0];
+  uint32_t packed = v.value.u32v[0];
 
-  v.value.fv[0] = float((packed >> 0) & 0xffff) / 65535.0f;
-  v.value.fv[1] = float((packed >> 16) & 0xffff) / 65535.0f;
+  v.value.f32v[0] = float((packed >> 0) & 0xffff) / 65535.0f;
+  v.value.f32v[1] = float((packed >> 16) & 0xffff) / 65535.0f;
 
   v.type = VarType::Float;
   v.columns = 2;
@@ -1023,10 +1023,10 @@ ShaderVariable UnpackHalf2x16(ThreadState &state, uint32_t, const rdcarray<Id> &
 
   ShaderVariable v = state.GetSrc(params[0]);
 
-  uint32_t packed = v.value.uv[0];
+  uint32_t packed = v.value.u32v[0];
 
-  v.value.fv[0] = ConvertFromHalf((packed >> 0) & 0xffff);
-  v.value.fv[1] = ConvertFromHalf((packed >> 16) & 0xffff);
+  v.value.f32v[0] = ConvertFromHalf((packed >> 0) & 0xffff);
+  v.value.f32v[1] = ConvertFromHalf((packed >> 16) & 0xffff);
 
   v.type = VarType::Float;
   v.columns = 2;
@@ -1042,8 +1042,8 @@ ShaderVariable UnpackDouble2x32(ThreadState &state, uint32_t, const rdcarray<Id>
 
   // u64 is aliased with the double, so we just OR together
   uint64_t doubleUint = v.value.u64v[0];
-  v.value.uv[0] = (doubleUint >> 0) & 0xFFFFFFFFU;
-  v.value.uv[1] = (doubleUint >> 32) & 0xFFFFFFFFU;
+  v.value.u32v[0] = (doubleUint >> 0) & 0xFFFFFFFFU;
+  v.value.u32v[1] = (doubleUint >> 32) & 0xFFFFFFFFU;
 
   v.type = VarType::UInt;
   v.columns = 2;
@@ -1130,7 +1130,7 @@ ShaderVariable FindILsb(ThreadState &state, uint32_t, const rdcarray<Id> &params
 
   // This instruction is currently limited to 32-bit width components.
   for(uint8_t c = 0; c < x.columns; c++)
-    x.value.iv[c] = x.value.uv[c] == 0 ? -1 : Bits::CountTrailingZeroes(x.value.uv[c]);
+    x.value.s32v[c] = x.value.u32v[c] == 0 ? -1 : Bits::CountTrailingZeroes(x.value.u32v[c]);
 
   return x;
 }
@@ -1144,12 +1144,12 @@ ShaderVariable FindSMsb(ThreadState &state, uint32_t, const rdcarray<Id> &params
   // This instruction is currently limited to 32-bit width components.
   for(uint8_t c = 0; c < x.columns; c++)
   {
-    if(x.value.iv[c] == 0 || x.value.iv[c] == -1)
-      x.value.iv[c] = -1;
-    else if(x.value.iv[c] >= 0)
-      x.value.uv[c] = 31 - Bits::CountLeadingZeroes(x.value.uv[c]);
+    if(x.value.s32v[c] == 0 || x.value.s32v[c] == -1)
+      x.value.s32v[c] = -1;
+    else if(x.value.s32v[c] >= 0)
+      x.value.u32v[c] = 31 - Bits::CountLeadingZeroes(x.value.u32v[c]);
     else
-      x.value.uv[c] = 31 - Bits::CountLeadingZeroes(~x.value.uv[c]);
+      x.value.u32v[c] = 31 - Bits::CountLeadingZeroes(~x.value.u32v[c]);
   }
 
   return x;
@@ -1164,7 +1164,7 @@ ShaderVariable FindUMsb(ThreadState &state, uint32_t, const rdcarray<Id> &params
   // This instruction is currently limited to 32-bit width components.
   for(uint8_t c = 0; c < x.columns; c++)
   {
-    x.value.iv[c] = x.value.iv[c] == 0 ? -1 : 31 - Bits::CountLeadingZeroes(x.value.uv[c]);
+    x.value.s32v[c] = x.value.s32v[c] == 0 ? -1 : 31 - Bits::CountLeadingZeroes(x.value.u32v[c]);
   }
 
   return x;
@@ -1235,7 +1235,7 @@ ShaderVariable GPUOp(ThreadState &state, uint32_t instruction, const rdcarray<Id
   ShaderVariable ret = paramVars[0];
 
   if(!state.debugger.GetAPIWrapper()->CalculateMathOp(state, (GLSLstd450)instruction, paramVars, ret))
-    memset(ret.value.u64v, 0, sizeof(ret.value.u64v));
+    memset(&ret.value, 0, sizeof(ret.value));
 
   return ret;
 }

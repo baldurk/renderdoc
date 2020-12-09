@@ -163,7 +163,7 @@ class Draw_Zoo(rdtest.TestCase):
                         "Output {} at vert {} (idx {}) instance {} has different size ({} values) to expectation ({} values)"
                             .format(name, vtx, idx, inst, value.columns, len(expect)))
 
-                debugged = value.value.fv[0:value.columns]
+                debugged = value.value.f32v[0:value.columns]
 
                 if not rdtest.value_compare(expect, debugged):
                     raise rdtest.TestFailureException(
