@@ -410,7 +410,11 @@ def build_finished(app, exception):
     from sphinx.errors import SphinxError
 
     # Get list of documented/indexed python objects
-    objs = app.env.get_domain('py').objects
+    pydomain = app.env.get_domain('py')
+    if not hasattr(pydomain, 'objects'):
+        print("WARNING: Sphinx version is too old to check objects validity. Upgrade to at least Sphinx 2.1.0")
+        return
+    objs = pydomain.objects
 
     # Enumerate the namespaced objects in both modules
     items = []
@@ -424,12 +428,14 @@ def build_finished(app, exception):
     items = set(filter(lambda i: re.search('__|SWIG|ResourceId_Null|rdcfixedarray_of|rdcarray_of|Structured.*List', i) is None, items))
 
     # Remove any documented/indexed python objects
-    items -= set(app.env.get_domain('py').objects.keys())
+    items -= set(objs.keys())
 
     # Print an error if any remain
     if len(items) > 0:
         items = sorted(list(items))
         raise SphinxError("These {} global classes/functions are not included in the documentation index:\n* {}".format(len(items), '\n* '.join(items)))
+
+    print("All python objects are linked in the documentation.")
 
 def setup(app):
     app.connect('autodoc-skip-member', maybe_skip_member)
