@@ -403,6 +403,17 @@ def launch_remote_server():
     # Add parameter to run the remote server itself
     args.append('--internal_remote_server')
 
+    # if we're running from renderdoccmd, invoke it properly
+    if 'renderdoccmd' in sys.executable:
+        # run_tests.py
+        # --renderdoc
+        # <renderdoc_path>
+        # --pyrenderdoc
+        # <pyrenderdoc_path>
+        del args[1:6]
+        args.insert(1, 'test')
+        args.insert(2, 'functional')
+
     subprocess.Popen(args)
     return
 
