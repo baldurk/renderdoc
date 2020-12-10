@@ -2763,11 +2763,14 @@ void D3D12Replay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, r
 
   bytebuf rootData;
 
+  ShaderStageMask reflMask = MaskForStage(refl.stage);
+
   for(size_t i = 0; sig && i < sig->sig.Parameters.size(); i++)
   {
     const D3D12RootSignatureParameter &p = sig->sig.Parameters[i];
 
     if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS &&
+       (ToShaderStageMask(p.ShaderVisibility) & reflMask) &&
        p.Constants.RegisterSpace == (UINT)bind.bindset &&
        p.Constants.ShaderRegister == (UINT)bind.bind)
     {
