@@ -24,6 +24,8 @@
 
 #include "gl_test.h"
 
+#if !defined(RELEASE)
+
 RD_TEST(GL_Callstacks, OpenGLGraphicsTest)
 {
   static constexpr const char *Description =
@@ -125,3 +127,5 @@ void main()
 };
 
 REGISTER_TEST();
+
+#endif
