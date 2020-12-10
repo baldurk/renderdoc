@@ -329,7 +329,7 @@ class Texture_Zoo():
             val: rd.PixelValue = self.pick(pipe.GetOutputTargets()[0].resourceId, int(view.x + view.width / 2),
                                            int(view.y + view.height / 2), rd.Subresource(), rd.CompType.Typeless)
 
-            picked = val.floatValue
+            picked = list(val.floatValue)
 
             # A8 picked values come out in alpha, but we want to compare against the single channel
             if tex.format.type == rd.ResourceFormatType.A8:
@@ -457,7 +457,7 @@ class Texture_Zoo():
         elif comp_type == rd.CompType.UInt:
             picked = [float(a) for a in picked_combo.uintValue]
         else:
-            picked = picked_combo.floatValue
+            picked = list(picked_combo.floatValue)
 
         # alpha channel in 10:10:10:2 has extremely low precision, and the ULP requirements mean
         # we basically can't trust anything between 0 and 1 on float formats. Just round in that
