@@ -484,6 +484,7 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   RDCEraseEl(m_D3D12Opts1);
   RDCEraseEl(m_D3D12Opts2);
   RDCEraseEl(m_D3D12Opts3);
+  RDCEraseEl(m_D3D12Opts6);
 
   m_pDevice1 = NULL;
   m_pDevice2 = NULL;
@@ -531,6 +532,9 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
     RDCASSERTEQUAL(hr, S_OK);
     hr = m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS3, &m_D3D12Opts3,
                                         sizeof(m_D3D12Opts3));
+    RDCASSERTEQUAL(hr, S_OK);
+    hr = m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS6, &m_D3D12Opts6,
+                                        sizeof(m_D3D12Opts6));
     RDCASSERTEQUAL(hr, S_OK);
   }
 
