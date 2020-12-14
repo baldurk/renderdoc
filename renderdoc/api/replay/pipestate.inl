@@ -1624,6 +1624,33 @@ rdcarray<ColorBlend> PipeState::GetColorBlends() const
   return {};
 }
 
+rdcpair<StencilFace, StencilFace> PipeState::GetStencilFaces() const
+{
+  if(IsCaptureLoaded())
+  {
+    if(IsCaptureD3D11())
+    {
+      return {m_D3D11->outputMerger.depthStencilState.frontFace,
+              m_D3D11->outputMerger.depthStencilState.backFace};
+    }
+    else if(IsCaptureD3D12())
+    {
+      return {m_D3D12->outputMerger.depthStencilState.frontFace,
+              m_D3D12->outputMerger.depthStencilState.backFace};
+    }
+    else if(IsCaptureGL())
+    {
+      return {m_GL->stencilState.frontFace, m_GL->stencilState.backFace};
+    }
+    else if(IsCaptureVK())
+    {
+      return {m_Vulkan->depthStencil.frontFace, m_Vulkan->depthStencil.backFace};
+    }
+  }
+
+  return {StencilFace(), StencilFace()};
+}
+
 bool PipeState::IsIndependentBlendingEnabled() const
 {
   if(IsCaptureLoaded())
