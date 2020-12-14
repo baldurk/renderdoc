@@ -1293,7 +1293,18 @@ extern "C" PyThreadState *GetExecutingThreadState(PyObject *global_handle)
 
 extern "C" PyObject *GetCurrentGlobalHandle()
 {
-  return current_global_handle;
+  if(current_global_handle)
+    return current_global_handle;
+
+  PyObject *sys = PyImport_ImportModule("sys");
+  if(sys)
+  {
+    PyObject *ret = PyObject_GetAttrString(sys, "stdout");
+    Py_XDECREF(sys);
+    return ret;
+  }
+
+  return NULL;
 }
 
 extern "C" void HandleException(PyObject *global_handle)
