@@ -468,52 +468,78 @@ extern "C" PyObject *RENDERDOC_DumpObject(PyObject *obj)
     return PyObject_Repr(obj);
   }
 
-  PyObject *ret = PyDict_New();
-
-  // otherwise iterate over the dir
-  PyObject *dir = PyObject_Dir(obj);
-
-  Py_ssize_t size = PyList_Size(dir);
-
-  for(Py_ssize_t i = 0; i < size; i++)
+  PyObject *ret;
+  
+  if(PySequence_Check(obj))
   {
-    PyObject *member = PyList_GetItem(dir, i);
+    ret = PyList_New(0);
 
-    PyObject *bytes = PyUnicode_AsUTF8String(member);
+    Py_ssize_t size = PySequence_Size(obj);
 
-    if(!bytes)
-      continue;
-
-    char *buf = NULL;
-    Py_ssize_t size = 0;
-
-    if(PyBytes_AsStringAndSize(bytes, &buf, &size) == 0)
+    for(Py_ssize_t i = 0; i < size; i++)
     {
-      rdcstr name;
-      name.assign(buf, size);
+      PyObject *entry = PySequence_GetItem(obj, i);
 
-      if(name.beginsWith("__") || name == "this" || name == "thisown" || name == "acquire")
+      // don't add callables
+      if(PyCallable_Check(entry) == 0)
       {
-        // skip this member, it's internal
+        PyObject *childDump = RENDERDOC_DumpObject(entry);
+        PyList_Append(ret, childDump);
+        Py_XDECREF(childDump);
       }
-      else
-      {
-        PyObject *child = PyObject_GetAttr(obj, member);
 
-        // don't add callables
-        if(PyCallable_Check(child) == 0)
+      Py_XDECREF(entry);
+    }
+  }
+  else
+  {
+    ret = PyDict_New();
+
+    // otherwise iterate over the dir
+    PyObject *dir = PyObject_Dir(obj);
+
+    Py_ssize_t size = PyList_Size(dir);
+
+    for(Py_ssize_t i = 0; i < size; i++)
+    {
+      PyObject *member = PyList_GetItem(dir, i);
+
+      PyObject *bytes = PyUnicode_AsUTF8String(member);
+
+      if(!bytes)
+        continue;
+
+      char *buf = NULL;
+      Py_ssize_t size = 0;
+
+      if(PyBytes_AsStringAndSize(bytes, &buf, &size) == 0)
+      {
+        rdcstr name;
+        name.assign(buf, size);
+
+        if(name.beginsWith("__") || name == "this" || name == "thisown" || name == "acquire")
         {
-          PyObject *childDump = RENDERDOC_DumpObject(child);
-          PyDict_SetItem(ret, member, childDump);
-          Py_XDECREF(childDump);
+          // skip this member, it's internal
+        }
+        else
+        {
+          PyObject *child = PyObject_GetAttr(obj, member);
+
+          // don't add callables
+          if(PyCallable_Check(child) == 0)
+          {
+            PyObject *childDump = RENDERDOC_DumpObject(child);
+            PyDict_SetItem(ret, member, childDump);
+            Py_XDECREF(childDump);
+          }
         }
       }
+
+      Py_XDECREF(bytes);
     }
 
-    Py_XDECREF(bytes);
+    Py_XDECREF(dir);
   }
-
-  Py_XDECREF(dir);
 
   return ret;
 }

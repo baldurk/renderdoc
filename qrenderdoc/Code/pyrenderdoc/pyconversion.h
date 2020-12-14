@@ -649,7 +649,18 @@ struct TypeConversion<rdcfixedarray<U, N>, false>
 
     for(size_t i = 0; i < N; i++)
     {
-      int ret = TypeConversion<U>::ConvertFromPy(PySequence_GetItem(in, i), out[i]);
+      PyObject *elem = PySequence_GetItem(in, i);
+
+      if(!elem)
+      {
+        if(failIdx)
+          *failIdx = (int)i;
+        return SWIG_TypeError;
+      }
+
+      int ret = TypeConversion<U>::ConvertFromPy(elem, out[i]);
+
+      Py_XDECREF(elem);
 
       if(!SWIG_IsOK(ret))
       {
