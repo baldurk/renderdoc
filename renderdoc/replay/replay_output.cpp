@@ -272,10 +272,6 @@ void ReplayOutput::RefreshOverlay()
     {
       FloatVector f = m_RenderData.texDisplay.backgroundColor;
 
-      f.x = ConvertLinearToSRGB(f.x);
-      f.y = ConvertLinearToSRGB(f.y);
-      f.z = ConvertLinearToSRGB(f.z);
-
       m_OverlayResourceId =
           m_pDevice->RenderOverlay(id, f, m_RenderData.texDisplay.overlay, m_EventID, passEvents);
       m_OverlayDirty = false;
