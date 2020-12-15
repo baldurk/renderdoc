@@ -3670,8 +3670,8 @@ ShaderDebugTrace *GLReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y,
   return new ShaderDebugTrace();
 }
 
-ShaderDebugTrace *GLReplay::DebugThread(uint32_t eventId, const uint32_t groupid[3],
-                                        const uint32_t threadid[3])
+ShaderDebugTrace *GLReplay::DebugThread(uint32_t eventId, const rdcfixedarray<uint32_t, 3> &groupid,
+                                        const rdcfixedarray<uint32_t, 3> &threadid)
 {
   GLNOTIMP("DebugThread");
   return new ShaderDebugTrace();

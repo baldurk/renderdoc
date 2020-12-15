@@ -2588,7 +2588,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType 
 }
 
 bool VulkanReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompType typeCast,
-                                float minval, float maxval, bool channels[4],
+                                float minval, float maxval, const rdcfixedarray<bool, 4> &channels,
                                 rdcarray<uint32_t> &histogram)
 {
   if(minval >= maxval)
@@ -2654,9 +2654,6 @@ bool VulkanReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompTy
     // rescale the range so that stencil seems to fit to 0-1
     minval *= 255.0f;
     maxval *= 255.0f;
-
-    // shuffle the channel selection, since stencil comes back in red
-    std::swap(channels[0], channels[1]);
   }
 
   descSetBinding += textype;
@@ -2781,6 +2778,10 @@ bool VulkanReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompTy
     chans |= 0x4;
   if(channels[3])
     chans |= 0x8;
+
+  // shuffle the channel selection, since stencil comes back in red
+  if(stencil)
+    chans = 0x1;
 
   data->HistogramChannels = chans;
   data->HistogramFlags = 0;

@@ -1580,7 +1580,7 @@ rdcpair<PixelValue, PixelValue> ReplayController::GetMinMax(ResourceId textureId
 
 rdcarray<uint32_t> ReplayController::GetHistogram(ResourceId textureId, const Subresource &sub,
                                                   CompType typeCast, float minval, float maxval,
-                                                  bool channels[4])
+                                                  const rdcfixedarray<bool, 4> &channels)
 {
   CHECK_REPLAY_THREAD();
 
@@ -1620,7 +1620,8 @@ ShaderDebugTrace *ReplayController::DebugPixel(uint32_t x, uint32_t y, uint32_t 
   return ret;
 }
 
-ShaderDebugTrace *ReplayController::DebugThread(const uint32_t groupid[3], const uint32_t threadid[3])
+ShaderDebugTrace *ReplayController::DebugThread(const rdcfixedarray<uint32_t, 3> &groupid,
+                                                const rdcfixedarray<uint32_t, 3> &threadid)
 {
   CHECK_REPLAY_THREAD();
 

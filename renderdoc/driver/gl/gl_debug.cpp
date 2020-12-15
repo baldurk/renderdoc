@@ -1912,8 +1912,9 @@ bool GLReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType type
   return true;
 }
 
-bool GLReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompType typeCast, float minval,
-                            float maxval, bool channels[4], rdcarray<uint32_t> &histogram)
+bool GLReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompType typeCast,
+                            float minval, float maxval, const rdcfixedarray<bool, 4> &channels_,
+                            rdcarray<uint32_t> &histogram)
 {
   if(minval >= maxval || texid == ResourceId())
     return false;
@@ -1923,6 +1924,9 @@ bool GLReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompType t
 
   if(!HasExt[ARB_compute_shader] || !HasExt[ARB_shading_language_420pack])
     return false;
+
+  // take a local copy so we can modify it
+  rdcfixedarray<bool, 4> channels = channels_;
 
   auto &texDetails = m_pDriver->m_Textures[texid];
 

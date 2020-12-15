@@ -1532,28 +1532,25 @@ ShaderDebugTrace *ReplayProxy::DebugPixel(uint32_t eventId, uint32_t x, uint32_t
 template <typename ParamSerialiser, typename ReturnSerialiser>
 ShaderDebugTrace *ReplayProxy::Proxied_DebugThread(ParamSerialiser &paramser,
                                                    ReturnSerialiser &retser, uint32_t eventId,
-                                                   const uint32_t groupid[3],
-                                                   const uint32_t threadid[3])
+                                                   const rdcfixedarray<uint32_t, 3> &groupid,
+                                                   const rdcfixedarray<uint32_t, 3> &threadid)
 {
   const ReplayProxyPacket expectedPacket = eReplayProxy_DebugThread;
   ReplayProxyPacket packet = eReplayProxy_DebugThread;
   ShaderDebugTrace *ret;
 
-  uint32_t GroupID[3] = {groupid[0], groupid[1], groupid[2]};
-  uint32_t ThreadID[3] = {threadid[0], threadid[1], threadid[2]};
-
   {
     BEGIN_PARAMS();
     SERIALISE_ELEMENT(eventId);
-    SERIALISE_ELEMENT(GroupID);
-    SERIALISE_ELEMENT(ThreadID);
+    SERIALISE_ELEMENT(groupid);
+    SERIALISE_ELEMENT(threadid);
     END_PARAMS();
   }
 
   {
     REMOTE_EXECUTION();
     if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
-      ret = m_Remote->DebugThread(eventId, GroupID, ThreadID);
+      ret = m_Remote->DebugThread(eventId, groupid, threadid);
     else
       ret = new ShaderDebugTrace;
   }
@@ -1563,8 +1560,9 @@ ShaderDebugTrace *ReplayProxy::Proxied_DebugThread(ParamSerialiser &paramser,
   return ret;
 }
 
-ShaderDebugTrace *ReplayProxy::DebugThread(uint32_t eventId, const uint32_t groupid[3],
-                                           const uint32_t threadid[3])
+ShaderDebugTrace *ReplayProxy::DebugThread(uint32_t eventId,
+                                           const rdcfixedarray<uint32_t, 3> &groupid,
+                                           const rdcfixedarray<uint32_t, 3> &threadid)
 {
   PROXY_FUNCTION(DebugThread, eventId, groupid, threadid);
 }
@@ -2825,9 +2823,7 @@ bool ReplayProxy::Tick(int type)
     case eReplayProxy_DebugPixel: DebugPixel(0, 0, 0, 0, 0); break;
     case eReplayProxy_DebugThread:
     {
-      uint32_t dummy1[3] = {0};
-      uint32_t dummy2[3] = {0};
-      DebugThread(0, dummy1, dummy2);
+      DebugThread(0, {}, {});
       break;
     }
     case eReplayProxy_ContinueDebug: ContinueDebug(NULL); break;

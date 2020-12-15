@@ -203,8 +203,8 @@ public:
                                         uint32_t idx, uint32_t view) = 0;
   virtual ShaderDebugTrace *DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
                                        uint32_t primitive) = 0;
-  virtual ShaderDebugTrace *DebugThread(uint32_t eventId, const uint32_t groupid[3],
-                                        const uint32_t threadid[3]) = 0;
+  virtual ShaderDebugTrace *DebugThread(uint32_t eventId, const rdcfixedarray<uint32_t, 3> &groupid,
+                                        const rdcfixedarray<uint32_t, 3> &threadid) = 0;
   virtual rdcarray<ShaderDebugState> ContinueDebug(ShaderDebugger *debugger) = 0;
   virtual void FreeDebugger(ShaderDebugger *debugger) = 0;
 
@@ -245,8 +245,9 @@ public:
 
   virtual bool GetMinMax(ResourceId texid, const Subresource &sub, CompType typeCast, float *minval,
                          float *maxval) = 0;
-  virtual bool GetHistogram(ResourceId texid, const Subresource &sub, CompType typeCast, float minval,
-                            float maxval, bool channels[4], rdcarray<uint32_t> &histogram) = 0;
+  virtual bool GetHistogram(ResourceId texid, const Subresource &sub, CompType typeCast,
+                            float minval, float maxval, const rdcfixedarray<bool, 4> &channels,
+                            rdcarray<uint32_t> &histogram) = 0;
   virtual void PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Subresource &sub,
                          CompType typeCast, float pixel[4]) = 0;
 

@@ -2460,7 +2460,7 @@ bool D3D12Replay::GetMinMax(ResourceId texid, const Subresource &sub, CompType t
 }
 
 bool D3D12Replay::GetHistogram(ResourceId texid, const Subresource &sub, CompType typeCast,
-                               float minval, float maxval, bool channels[4],
+                               float minval, float maxval, const rdcfixedarray<bool, 4> &channels,
                                rdcarray<uint32_t> &histogram)
 {
   if(minval >= maxval)

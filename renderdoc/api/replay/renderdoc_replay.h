@@ -819,7 +819,7 @@ bucket when the pixel values are divided between ``minval`` and ``maxval``.
 )");
   virtual rdcarray<uint32_t> GetHistogram(ResourceId textureId, const Subresource &sub,
                                           CompType typeCast, float minval, float maxval,
-                                          bool channels[4]) = 0;
+                                          const rdcfixedarray<bool, 4> &channels) = 0;
 
   DOCUMENT(R"(Retrieve the history of modifications to the selected pixel on the selected texture.
 
@@ -885,7 +885,8 @@ bucket when the pixel values are divided between ``minval`` and ``maxval``.
   :meth:`FreeTrace`.
 :rtype: ShaderDebugTrace
 )");
-  virtual ShaderDebugTrace *DebugThread(const uint32_t groupid[3], const uint32_t threadid[3]) = 0;
+  virtual ShaderDebugTrace *DebugThread(const rdcfixedarray<uint32_t, 3> &groupid,
+                                        const rdcfixedarray<uint32_t, 3> &threadid) = 0;
 
   DOCUMENT(R"(Continue a shader's debugging with a given shader debugger instance. This will run an
 implementation defined number of steps and then return those steps in a list. This may be a fixed

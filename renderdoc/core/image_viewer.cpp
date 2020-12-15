@@ -133,7 +133,8 @@ public:
     return m_Proxy->GetMinMax(m_TextureID, sub, typeCast, minval, maxval);
   }
   bool GetHistogram(ResourceId texid, const Subresource &sub, CompType typeCast, float minval,
-                    float maxval, bool channels[4], rdcarray<uint32_t> &histogram)
+                    float maxval, const rdcfixedarray<bool, 4> &channels,
+                    rdcarray<uint32_t> &histogram)
   {
     return m_Proxy->GetHistogram(m_TextureID, sub, typeCast, minval, maxval, channels, histogram);
   }
@@ -283,8 +284,8 @@ public:
   {
     return new ShaderDebugTrace();
   }
-  ShaderDebugTrace *DebugThread(uint32_t eventId, const uint32_t groupid[3],
-                                const uint32_t threadid[3])
+  ShaderDebugTrace *DebugThread(uint32_t eventId, const rdcfixedarray<uint32_t, 3> &groupid,
+                                const rdcfixedarray<uint32_t, 3> &threadid)
   {
     return new ShaderDebugTrace();
   }

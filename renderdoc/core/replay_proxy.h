@@ -314,7 +314,8 @@ public:
   }
 
   bool GetHistogram(ResourceId texid, const Subresource &sub, CompType typeCast, float minval,
-                    float maxval, bool channels[4], rdcarray<uint32_t> &histogram)
+                    float maxval, const rdcfixedarray<bool, 4> &channels,
+                    rdcarray<uint32_t> &histogram)
   {
     if(m_Proxy)
     {
@@ -528,7 +529,8 @@ public:
   IMPLEMENT_FUNCTION_PROXIED(ShaderDebugTrace *, DebugPixel, uint32_t eventId, uint32_t x,
                              uint32_t y, uint32_t sample, uint32_t primitive);
   IMPLEMENT_FUNCTION_PROXIED(ShaderDebugTrace *, DebugThread, uint32_t eventId,
-                             const uint32_t groupid[3], const uint32_t threadid[3]);
+                             const rdcfixedarray<uint32_t, 3> &groupid,
+                             const rdcfixedarray<uint32_t, 3> &threadid);
   IMPLEMENT_FUNCTION_PROXIED(rdcarray<ShaderDebugState>, ContinueDebug, ShaderDebugger *debugger);
   IMPLEMENT_FUNCTION_PROXIED(void, FreeDebugger, ShaderDebugger *debugger);
 

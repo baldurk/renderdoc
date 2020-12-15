@@ -4576,8 +4576,9 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   return ret;
 }
 
-ShaderDebugTrace *VulkanReplay::DebugThread(uint32_t eventId, const uint32_t groupid[3],
-                                            const uint32_t threadid[3])
+ShaderDebugTrace *VulkanReplay::DebugThread(uint32_t eventId,
+                                            const rdcfixedarray<uint32_t, 3> &groupid,
+                                            const rdcfixedarray<uint32_t, 3> &threadid)
 {
   if(!GetAPIProperties().shaderDebugging)
   {
