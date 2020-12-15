@@ -507,11 +507,14 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
   VkMarkerRegion::Begin(StringFormat::Fmt("RenderOverlay %d", overlay), cmd);
 
-  uint32_t multiviewMask = 0;
+  uint32_t multiviewMask = m_Overlay.MultiViewMask;
+
+  if(m_pDriver->m_RenderState.renderPass != ResourceId())
   {
     const VulkanCreationInfo::RenderPass &rp =
         m_pDriver->m_CreationInfo.m_RenderPass[m_pDriver->m_RenderState.renderPass];
 
+    multiviewMask = 0;
     for(uint32_t v : rp.subpasses[m_pDriver->m_RenderState.subpass].multiviews)
       multiviewMask |= 1U << v;
   }
