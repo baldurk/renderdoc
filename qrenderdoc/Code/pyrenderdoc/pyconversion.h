@@ -557,6 +557,18 @@ struct TypeConversion<rdcarray<U>, false>
   // nicer failure error messages out with the index that failed
   static int ConvertFromPy(PyObject *in, rdcarray<U> &out, int *failIdx)
   {
+    swig_type_info *own_type = GetTypeInfo();
+    if(own_type)
+    {
+      rdcarray<U> *ptr = NULL;
+      int ret = SWIG_ConvertPtr(in, (void **)&ptr, own_type, 0);
+      if(SWIG_IsOK(ret))
+      {
+        out = *ptr;
+        return SWIG_OK;
+      }
+    }
+
     if(!PyList_Check(in))
       return SWIG_TypeError;
 
