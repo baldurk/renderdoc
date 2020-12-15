@@ -181,7 +181,7 @@ private:
         uint64_t relative = addr - m_Modules[i].base + m_Modules[i].offset;
         rdcstr cmd = StringFormat::Fmt("addr2line -fCe \"%s\" 0x%llx", m_Modules[i].path, relative);
 
-        FILE *f = ::popen(cmd.c_str(), FileIO::ReadText);
+        FILE *f = ::popen(cmd.c_str(), "r");
 
         char result[2048] = {0};
         fread(result, 1, 2047, f);
