@@ -201,9 +201,10 @@ void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, 
                            QPalette palette, QStyle::State state, QPoint mousePos,
                            const QVariant &var);
 
-// Gives the width for a size hint for the rich text (since it might be larger than the original
-// text)
+// Gives the width/height for a size hint for the rich text (since it might be larger than the
+// original text)
 int RichResourceTextWidthHint(const QWidget *owner, const QFont &font, const QVariant &var);
+int RichResourceTextHeightHint(const QWidget *owner, const QFont &font, const QVariant &var);
 
 // Handle a mouse event on some rich resource text.
 // Returns true if the event is processed - for mouse move events, this means that the mouse is over
