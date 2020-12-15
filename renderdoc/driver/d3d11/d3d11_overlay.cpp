@@ -475,7 +475,8 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
         return m_Overlay.resourceId;
       }
 
-      rdesc.ScissorEnable = TRUE;
+      if(origdesc.ScissorEnable)
+        rdesc.ScissorEnable = TRUE;
 
       hr = m_pDevice->CreateRasterizerState(&rdesc, &rsScissorOn);
       if(FAILED(hr))
