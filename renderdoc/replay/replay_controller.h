@@ -126,7 +126,6 @@ struct ReplayController : public IReplayController
 {
 public:
   ReplayController();
-  virtual ~ReplayController();
 
   APIProperties GetAPIProperties();
 
@@ -219,6 +218,7 @@ public:
   void Shutdown();
 
 private:
+  virtual ~ReplayController();
   ReplayStatus PostCreateInit(IReplayDriver *device, RDCFile *rdc);
 
   void FetchPipelineState(uint32_t eventId);

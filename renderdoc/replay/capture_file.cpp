@@ -366,7 +366,10 @@ rdcpair<ReplayStatus, IReplayController *> CaptureFile::OpenCapture(const Replay
   RenderDoc::Inst().SetProgressCallback<LoadProgress>(RENDERDOC_ProgressCallback());
 
   if(ret != ReplayStatus::Succeeded)
-    SAFE_DELETE(render);
+  {
+    render->Shutdown();
+    render = NULL;
+  }
 
   return rdcpair<ReplayStatus, IReplayController *>(ret, render);
 }

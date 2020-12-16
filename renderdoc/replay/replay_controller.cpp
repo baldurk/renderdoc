@@ -65,27 +65,6 @@ ReplayController::ReplayController()
 ReplayController::~ReplayController()
 {
   CHECK_REPLAY_THREAD();
-
-  RDCLOG("Shutting down replay renderer");
-
-  for(size_t i = 0; i < m_Outputs.size(); i++)
-    SAFE_DELETE(m_Outputs[i]);
-
-  m_Outputs.clear();
-
-  for(auto it = m_CustomShaders.begin(); it != m_CustomShaders.end(); ++it)
-    m_pDevice->FreeCustomShader(*it);
-
-  m_CustomShaders.clear();
-
-  for(auto it = m_TargetResources.begin(); it != m_TargetResources.end(); ++it)
-    m_pDevice->FreeTargetResource(*it);
-
-  m_TargetResources.clear();
-
-  if(m_pDevice)
-    m_pDevice->Shutdown();
-  m_pDevice = NULL;
 }
 
 void ReplayController::SetFrameEvent(uint32_t eventId, bool force)
@@ -1854,6 +1833,27 @@ void ReplayController::ShutdownOutput(IReplayOutput *output)
 void ReplayController::Shutdown()
 {
   CHECK_REPLAY_THREAD();
+
+  RDCLOG("Shutting down replay renderer");
+
+  for(size_t i = 0; i < m_Outputs.size(); i++)
+    SAFE_DELETE(m_Outputs[i]);
+
+  m_Outputs.clear();
+
+  for(auto it = m_CustomShaders.begin(); it != m_CustomShaders.end(); ++it)
+    m_pDevice->FreeCustomShader(*it);
+
+  m_CustomShaders.clear();
+
+  for(auto it = m_TargetResources.begin(); it != m_TargetResources.end(); ++it)
+    m_pDevice->FreeTargetResource(*it);
+
+  m_TargetResources.clear();
+
+  if(m_pDevice)
+    m_pDevice->Shutdown();
+  m_pDevice = NULL;
 
   delete this;
 }
