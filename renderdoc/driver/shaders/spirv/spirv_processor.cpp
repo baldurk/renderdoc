@@ -389,7 +389,9 @@ void Processor::Parse(const rdcarray<uint32_t> &spirvWords)
   // MemoryModel: REQUIRED (required by spec)
   // EntryPoints: REQUIRED (we assume)
   // ExecutionMode: OPTIONAL
-  // Debug: OPTIONAL
+  // DebugStringSource: OPTIONAL
+  // DebugNames: OPTIONAL
+  // DebugModuleProcessed: OPTIONAL
   // Annotations: OPTIONAL (in theory - would require empty shader)
   // TypesVariables: REQUIRED (must at least have the entry point function type)
   // Functions: REQUIRED (must have the entry point)
@@ -430,10 +432,17 @@ void Processor::Parse(const rdcarray<uint32_t> &spirvWords)
       START_SECTION(Section::ExecutionMode);
     }
     else if(opcode == Op::String || opcode == Op::Source || opcode == Op::SourceContinued ||
-            opcode == Op::SourceExtension || opcode == Op::Name || opcode == Op::MemberName ||
-            opcode == Op::ModuleProcessed)
+            opcode == Op::SourceExtension)
     {
-      START_SECTION(Section::Debug);
+      START_SECTION(Section::DebugStringSource);
+    }
+    else if(opcode == Op::Name || opcode == Op::MemberName)
+    {
+      START_SECTION(Section::DebugNames);
+    }
+    else if(opcode == Op::ModuleProcessed)
+    {
+      START_SECTION(Section::DebugModuleProcessed);
     }
     else if(opcode == Op::Decorate || opcode == Op::MemberDecorate || opcode == Op::GroupDecorate ||
             opcode == Op::GroupMemberDecorate || opcode == Op::DecorationGroup ||

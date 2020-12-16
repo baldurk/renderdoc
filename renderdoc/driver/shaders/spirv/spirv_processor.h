@@ -491,7 +491,9 @@ struct Section
     MemoryModel,
     EntryPoints,
     ExecutionMode,
-    Debug,
+    DebugStringSource,
+    DebugNames,
+    DebugModuleProcessed,
     Annotations,
     TypesVariablesConstants,
     // handy aliases

@@ -2858,8 +2858,8 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
     }
 
     // remove any OpName that refers to deleted IDs - functions or results
-    it = editor.Begin(rdcspv::Section::Debug);
-    end = editor.End(rdcspv::Section::Debug);
+    it = editor.Begin(rdcspv::Section::DebugNames);
+    end = editor.End(rdcspv::Section::DebugNames);
     while(it < end)
     {
       if(it.opcode() == rdcspv::Op::Name)
