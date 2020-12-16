@@ -575,7 +575,7 @@ buffer view.
   DOCUMENT(R"(For a mesh view, set the current preview stage. This is ignored when called on a raw
 buffer view.
 
-:param MeshDataStage stage: The stage to show
+:param renderdoc.MeshDataStage stage: The stage to show
 )");
   virtual void SetPreviewStage(MeshDataStage stage) = 0;
 
