@@ -746,14 +746,18 @@ void main() {
       {0x64, 0x80},
       // ExecutionMode
       {0x80, 0x8c},
-      // Debug
-      {0x8c, 0x118},
+      // DebugStringSource
+      {0x8c, 0xb8},
+      // DebugNames
+      {0xb8, 0x118},
+      // DebugModuleProcessed (contains inserted nop)
+      {0x118, 0x11c},
       // Annotations
-      {0x118, 0x178},
+      {0x11c, 0x17c},
       // TypesVariables
-      {0x178, 0x2a0},
+      {0x17c, 0x2a4},
       // Functions
-      {0x2a0, 0x370},
+      {0x2a4, 0x374},
   };
 
   SECTION("Check that SPIR-V is correct with no changes")
