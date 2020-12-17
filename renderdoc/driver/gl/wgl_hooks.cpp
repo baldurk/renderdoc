@@ -25,6 +25,10 @@
 #include "hooks/hooks.h"
 #include "gl_driver.h"
 #include "wgl_dispatch_table.h"
+#include <chrono>
+
+#define _RESET_CURRENT_CONTEXT_
+#define _DELAY_HOOK_
 
 class WGLHook : LibraryHook
 {
@@ -49,11 +53,13 @@ public:
   // and hooked functions via wglGetProcAddress being NULL and never being called by the app.
   bool haveContextCreation = false;
 
+  bool haveInitedProcAddr = false;
+
   std::set<HGLRC> contexts;
 
   void RefreshWindowParameters(const GLWindowingData &data);
   void ProcessSwapBuffers(GLChunk src, HDC dc);
-  void PopulateFromContext(HDC dc, HGLRC rc);
+  void PopulateFromContext(HDC dc, HGLRC rc, bool tryActive = false);
   GLInitParams GetInitParamsForDC(HDC dc);
 } wglhook;
 
@@ -63,45 +69,57 @@ void DisableWGLHooksForEGL()
   wglhook.eglDisabled = true;
 }
 
-void WGLHook::PopulateFromContext(HDC dc, HGLRC rc)
+
+static HDC s_currentActiveHDC;
+static HGLRC s_currentActiveCtx;
+
+void WGLHook::PopulateFromContext(HDC dc, HGLRC rc, bool tryActive)
 {
   SetDriverForHooks(&driver);
   EnableGLHooks();
 
   // called from wglCreate*Context*, to populate GL functions as soon as possible by making a new
   // context current and fetching our function pointers
+  if(tryActive)
   {
     // get the current DC/context
+
+    // activate the given context
+
     HDC prevDC = WGL.wglGetCurrentDC();
     HGLRC prevContext = WGL.wglGetCurrentContext();
 
-    // activate the given context
-    WGL.wglMakeCurrent(dc, rc);
-
     // fill out all functions that we need to get from wglGetProcAddress
-    if(!WGL.wglCreateContextAttribsARB)
-      WGL.wglCreateContextAttribsARB =
-          (PFN_wglCreateContextAttribsARB)WGL.wglGetProcAddress("wglCreateContextAttribsARB");
+    //if(!haveInitedProcAddr)
+    {
+      WGL.wglMakeCurrent(dc, rc);
+    
+      if(!WGL.wglCreateContextAttribsARB)
+        WGL.wglCreateContextAttribsARB =
+            (PFN_wglCreateContextAttribsARB)WGL.wglGetProcAddress("wglCreateContextAttribsARB");
 
-    if(!WGL.wglGetPixelFormatAttribivARB)
-      WGL.wglGetPixelFormatAttribivARB =
-          (PFN_wglGetPixelFormatAttribivARB)WGL.wglGetProcAddress("wglGetPixelFormatAttribivARB");
+      if(!WGL.wglGetPixelFormatAttribivARB)
+        WGL.wglGetPixelFormatAttribivARB =
+            (PFN_wglGetPixelFormatAttribivARB)WGL.wglGetProcAddress("wglGetPixelFormatAttribivARB");
 
-    if(!WGL.wglGetExtensionsStringEXT)
-      WGL.wglGetExtensionsStringEXT =
-          (PFN_wglGetExtensionsStringEXT)WGL.wglGetProcAddress("wglGetExtensionsStringEXT");
+      if(!WGL.wglGetExtensionsStringEXT)
+        WGL.wglGetExtensionsStringEXT =
+            (PFN_wglGetExtensionsStringEXT)WGL.wglGetProcAddress("wglGetExtensionsStringEXT");
 
-    if(!WGL.wglGetExtensionsStringARB)
-      WGL.wglGetExtensionsStringARB =
-          (PFN_wglGetExtensionsStringARB)WGL.wglGetProcAddress("wglGetExtensionsStringARB");
-
+      if(!WGL.wglGetExtensionsStringARB)
+        WGL.wglGetExtensionsStringARB =
+            (PFN_wglGetExtensionsStringARB)WGL.wglGetProcAddress("wglGetExtensionsStringARB");
+    
     GL.PopulateWithCallback([](const char *funcName) {
       ScopedSuppressHooking suppress;
       return (void *)WGL.wglGetProcAddress(funcName);
     });
 
-    // restore DC/context
+    haveInitedProcAddr = true;
+
+      // restore DC/context
     WGL.wglMakeCurrent(prevDC, prevContext);
+    }
   }
 }
 
@@ -189,11 +207,123 @@ void WGLHook::ProcessSwapBuffers(GLChunk src, HDC dc)
     SetLastError(0);
   }
 }
+static BOOL WINAPI wglMakeCurrent_delay(HDC dc, HGLRC rc) {
+  if(rc && !wglhook.eglDisabled)
+  {
+    WGL.wglMakeCurrent(dc, rc);
+    SCOPED_LOCK(glLock);
 
+    SetDriverForHooks(&wglhook.driver);
+
+    if(rc && wglhook.contexts.find(rc) == wglhook.contexts.end())
+    {
+      wglhook.contexts.insert(rc);
+
+      FetchEnabledExtensions();
+
+      // see gl_emulated.cpp
+      GL.EmulateUnsupportedFunctions();
+      GL.EmulateRequiredExtensions();
+      GL.DriverForEmulation(&wglhook.driver);
+    }
+
+    GLWindowingData data;
+    data.DC = dc;
+    data.wnd = WindowFromDC(dc);
+    data.ctx = rc;
+
+    wglhook.RefreshWindowParameters(data);
+
+    if(wglhook.haveContextCreation)
+      wglhook.driver.ActivateContext(data);
+  }
+  return true;
+}
+
+#ifndef _DELAY_HOOK_
+static BOOL WINAPI wglMakeCurrent_hooked(HDC dc, HGLRC rc)
+{
+  // RDCLOG("$$ hdc addr: %i", (long)(long *)(dc));
+  SCOPED_LOCK(glLock);
+
+  if(rc == nullptr)
+      dc = nullptr;
+  BOOL ret = WGL.wglMakeCurrent(dc, rc);
+  
+  if(ret)
+  {
+    s_currentActiveHDC = dc;
+    s_currentActiveCtx = rc;
+  }
+
+  DWORD err = GetLastError();
+
+  if(ret && !wglhook.eglDisabled)
+  {
+    SCOPED_LOCK(glLock);
+
+    SetDriverForHooks(&wglhook.driver);
+
+    if(rc && wglhook.contexts.find(rc) == wglhook.contexts.end())
+    {
+      wglhook.contexts.insert(rc);
+
+      FetchEnabledExtensions();
+
+      // see gl_emulated.cpp
+      GL.EmulateUnsupportedFunctions();
+      GL.EmulateRequiredExtensions();
+      GL.DriverForEmulation(&wglhook.driver);
+    }
+
+    GLWindowingData data;
+    data.DC = dc;
+    data.wnd = WindowFromDC(dc);
+    data.ctx = rc;
+
+    wglhook.RefreshWindowParameters(data);
+
+    if(wglhook.haveContextCreation)
+      wglhook.driver.ActivateContext(data);
+  }
+
+  SetLastError(err);
+
+  return ret;
+}
+#endif
+
+static void wglCreateContext_delay(HDC dc, HGLRC ret) {
+  wglhook.createRecurse = true;
+    
+   if(dc)
+  {
+    DWORD err = GetLastError();
+
+    wglhook.PopulateFromContext(dc, ret);
+
+    GLWindowingData data;
+    data.DC = dc;
+    data.wnd = WindowFromDC(dc);
+    data.ctx = ret;
+
+    wglhook.driver.CreateContext(data, NULL, wglhook.GetInitParamsForDC(dc), false, true);
+
+    wglhook.haveContextCreation = true;
+
+    SetLastError(err);
+  }
+
+  wglhook.createRecurse = false;
+}
+
+#ifndef _DELAY_HOOK_
 static HGLRC WINAPI wglCreateContext_hooked(HDC dc)
 {
   SCOPED_LOCK(glLock);
-
+  //long *dcPtr = (long*)&dc;
+  //long dcAdd = *dcPtr;
+  RDCLOG("$$ hdc addr: %i", *(long*)&dc);
   if(wglhook.createRecurse || wglhook.eglDisabled)
     return WGL.wglCreateContext(dc);
 
@@ -211,7 +341,8 @@ static HGLRC WINAPI wglCreateContext_hooked(HDC dc)
     data.DC = dc;
     data.wnd = WindowFromDC(dc);
     data.ctx = ret;
-
+    
+    
     wglhook.driver.CreateContext(data, NULL, wglhook.GetInitParamsForDC(dc), false, false);
 
     wglhook.haveContextCreation = true;
@@ -223,7 +354,23 @@ static HGLRC WINAPI wglCreateContext_hooked(HDC dc)
 
   return ret;
 }
+#endif
 
+    
+static BOOL WINAPI wglDeleteContext_delay(HGLRC rc){
+  SCOPED_LOCK(glLock);
+
+  if(wglhook.haveContextCreation && !wglhook.eglDisabled)
+  {
+    SCOPED_LOCK(glLock);
+    wglhook.driver.DeleteContext(rc);
+    wglhook.contexts.erase(rc);
+  }
+
+  SetLastError(0);
+  return true;
+}
+#ifndef _DELAY_HOOK_
 static BOOL WINAPI wglDeleteContext_hooked(HGLRC rc)
 {
   SCOPED_LOCK(glLock);
@@ -239,9 +386,11 @@ static BOOL WINAPI wglDeleteContext_hooked(HGLRC rc)
 
   return WGL.wglDeleteContext(rc);
 }
+#endif
 
 static HGLRC WINAPI wglCreateLayerContext_hooked(HDC dc, int iLayerPlane)
 {
+  //RDCLOG("$$ hdc addr: %i", (long)(long *)(dc));
   SCOPED_LOCK(glLock);
 
   if(wglhook.createRecurse || wglhook.eglDisabled)
@@ -279,6 +428,7 @@ static HGLRC WINAPI wglCreateLayerContext_hooked(HDC dc, int iLayerPlane)
 static HGLRC WINAPI wglCreateContextAttribsARB_hooked(HDC dc, HGLRC hShareContext,
                                                       const int *attribList)
 {
+  //RDCLOG("$$ hdc addr: %i", (long)(long *)(dc));
   SCOPED_LOCK(glLock);
 
   // don't recurse
@@ -384,9 +534,34 @@ static HGLRC WINAPI wglCreateContextAttribsARB_hooked(HDC dc, HGLRC hShareContex
   return ret;
 }
 
-static BOOL WINAPI wglShareLists_hooked(HGLRC oldContext, HGLRC newContext)
+static BOOL WINAPI wglShareLists_delay(HGLRC oldContext, HGLRC newContext) {
+
+  //DWORD err = GetLastError();
+
+  if(!wglhook.eglDisabled)
+  {
+    SCOPED_LOCK(glLock);
+
+    wglhook.driver.ForceSharedObjects(oldContext, newContext);
+  }
+  return true;
+}
+
+#ifndef _DELAY_HOOK_
+static BOOL WINAPI wglShareLists_hooked_old(HGLRC oldContext, HGLRC newContext)
 {
   SCOPED_LOCK(glLock);
+
+  #ifdef _RESET_CURRENT_CONTEXT_
+  auto curCtx = WGL.wglGetCurrentContext();
+  bool eqCurCtx = false;
+  auto hdc = WGL.wglGetCurrentDC();
+  if(curCtx == oldContext || curCtx == newContext)
+  {
+    WGL.wglMakeCurrent(hdc, 0);
+    eqCurCtx = true;
+  }
+  #endif
 
   bool ret = WGL.wglShareLists(oldContext, newContext) == TRUE;
 
@@ -400,51 +575,15 @@ static BOOL WINAPI wglShareLists_hooked(HGLRC oldContext, HGLRC newContext)
   }
 
   SetLastError(err);
-
+#ifdef _RESET_CURRENT_CONTEXT_
+  if(eqCurCtx)
+  {
+    WGL.wglMakeCurrent(hdc, curCtx);
+  }
+  #endif
   return ret ? TRUE : FALSE;
 }
-
-static BOOL WINAPI wglMakeCurrent_hooked(HDC dc, HGLRC rc)
-{
-  SCOPED_LOCK(glLock);
-
-  BOOL ret = WGL.wglMakeCurrent(dc, rc);
-
-  DWORD err = GetLastError();
-
-  if(ret && !wglhook.eglDisabled)
-  {
-    SCOPED_LOCK(glLock);
-
-    SetDriverForHooks(&wglhook.driver);
-
-    if(rc && wglhook.contexts.find(rc) == wglhook.contexts.end())
-    {
-      wglhook.contexts.insert(rc);
-
-      FetchEnabledExtensions();
-
-      // see gl_emulated.cpp
-      GL.EmulateUnsupportedFunctions();
-      GL.EmulateRequiredExtensions();
-      GL.DriverForEmulation(&wglhook.driver);
-    }
-
-    GLWindowingData data;
-    data.DC = dc;
-    data.wnd = WindowFromDC(dc);
-    data.ctx = rc;
-
-    wglhook.RefreshWindowParameters(data);
-
-    if(wglhook.haveContextCreation)
-      wglhook.driver.ActivateContext(data);
-  }
-
-  SetLastError(err);
-
-  return ret;
-}
+#endif
 
 static BOOL WINAPI SwapBuffers_hooked(HDC dc)
 {
@@ -537,6 +676,198 @@ static LONG WINAPI ChangeDisplaySettingsExW_hooked(LPCWSTR devname, DEVMODEW *mo
   return DISP_CHANGE_SUCCESSFUL;
 }
 
+
+typedef enum
+{
+  EwglCreateContext,
+  EwglMakeCurrent,
+  EwglDeleteContext,
+  EwglShareList,
+} DelayCallType;
+
+
+static int startTimeStamp = 0;
+struct DelayHook
+{
+public:
+  short type;
+  HDC dc;
+  HGLRC ctx;
+  HGLRC oldCtx;
+  HGLRC newCtx;
+  int timestamp;
+  bool executable;
+
+  DelayHook() { 
+    timestamp = ++startTimeStamp;
+    type = 0;
+    dc = nullptr;
+    ctx = nullptr;
+    oldCtx = nullptr;
+    newCtx = nullptr;
+    executable = false;
+  }
+
+  operator int() { return timestamp;
+  }
+
+  inline void PreInvoke()
+  {
+    executable = true;
+    switch(type)
+    {
+      case DelayCallType::EwglCreateContext: {
+        wglCreateContext_delay(dc, ctx);
+        break;
+      }
+      case DelayCallType::EwglDeleteContext: {
+        wglDeleteContext_delay(ctx);
+        break;
+      }
+      case DelayCallType::EwglMakeCurrent: {
+        wglMakeCurrent_delay(dc, ctx);
+        break;
+      }
+      case DelayCallType::EwglShareList: {
+        wglShareLists_delay(oldCtx, newCtx);
+        break;
+      }
+
+      default: break;
+    }
+  }
+
+  inline void PostInvoke()
+  {
+    switch(type)
+    {
+      case DelayCallType::EwglCreateContext: {
+        wglCreateContext_delay(dc, ctx);
+        break;
+      }
+      case DelayCallType::EwglDeleteContext: {
+        //wglDeleteContext_delay(ctx);
+        break;
+      }
+      case DelayCallType::EwglMakeCurrent: {
+        wglMakeCurrent_delay(dc, ctx);
+        break;
+      }
+      case DelayCallType::EwglShareList: {
+        wglShareLists_delay(oldCtx, newCtx);
+        break;
+      }
+      default: break;
+    }
+  }
+} ;
+
+// predefine
+typedef BOOL (*wglSharedListFuncPtr)(HGLRC oldContext, HGLRC newContext);
+static std::vector<DelayHook *> *delayHooks = new std::vector<DelayHook *>();
+
+static int nWglShareListsInvokeCount = 0;
+static int nTargetWglShareListsInvokeCount = 1;
+static void Recalculate() {
+  nWglShareListsInvokeCount++;
+  if(nWglShareListsInvokeCount == nTargetWglShareListsInvokeCount)
+  {
+    std::vector<DelayHook> delayHooksStack;
+    for(auto start = delayHooks->begin(), end = delayHooks->end(); start != end; start++)
+    {
+      delayHooksStack.push_back(**start);
+    }
+    std::sort(delayHooksStack.begin(), delayHooksStack.end());
+    auto curDc = WGL.wglGetCurrentDC();
+    auto curCtx = WGL.wglGetCurrentContext();
+    if(curDc == nullptr || curCtx == nullptr)
+    {
+      for(auto start = delayHooks->begin(), end = delayHooks->end(); start != end; start++)
+      {
+        if(curDc == nullptr && (*start)->dc != nullptr)
+        {
+          curDc = (*start)->dc;
+        }
+        if(curCtx == nullptr && (*start)->ctx != nullptr)
+        {
+          curCtx = (*start)->ctx;
+        }
+      }
+    }
+    wglhook.PopulateFromContext(curDc, curCtx, true);
+    for(auto start = delayHooks->begin(), end = delayHooks->end(); start != end; start++)
+    {
+      (*start)->PostInvoke();
+    }
+    delayHooks->clear();
+    nWglShareListsInvokeCount = 0;
+    nTargetWglShareListsInvokeCount = 1;
+  }
+}
+
+static HGLRC WINAPI wglCreateContext_hooked(HDC dc)
+{
+  HGLRC ctx = WGL.wglCreateContext(dc);
+  auto delayHook = new DelayHook();
+  delayHook->type = DelayCallType::EwglCreateContext;
+  delayHook->dc = dc;
+  delayHook->ctx = ctx;
+  delayHooks->push_back(delayHook);
+  //wglCreateContext_delay(dc, ctx);
+  return ctx;
+}
+static BOOL WINAPI wglMakeCurrent_hooked(HDC dc, HGLRC rc)
+{
+  // TODO
+  BOOL suc = WGL.wglMakeCurrent(dc, rc);
+  auto delayHook = new DelayHook();
+  delayHook->type = DelayCallType::EwglMakeCurrent;
+  delayHook->dc = dc;
+  delayHook->ctx = rc;
+  delayHook->executable = suc;
+  delayHooks->push_back(delayHook);
+  Recalculate();
+  return suc;
+}
+static BOOL WINAPI wglDeleteContext_hooked(HGLRC rc)
+{
+  //auto delayHook = new DelayHook();
+  //delayHook->type = DelayCallType::EwglDeleteContext;
+  //delayHook->ctx = rc;
+  //delayHooks->push_back(delayHook);
+  for(auto start = delayHooks->begin(), end = delayHooks->end(); start != end;)
+  {
+    auto delayCall = (*start);
+    if((delayCall->type == DelayCallType::EwglCreateContext ||
+        delayCall->type == DelayCallType::EwglMakeCurrent ||
+        delayCall->type == DelayCallType::EwglShareList)&&
+        delayCall->ctx == rc)
+    {
+      delayHooks->erase(start);
+    }
+    else {
+      ++start;
+    }
+  }
+  // TODO
+  BOOL suc = WGL.wglDeleteContext(rc);
+  return suc;
+}
+static BOOL WINAPI wglShareLists_hooked(HGLRC oldContext, HGLRC newContext)
+{
+  // TODO
+  BOOL suc = WGL.wglShareLists(oldContext, newContext);
+  auto delayHook = new DelayHook();
+  delayHook->type = DelayCallType::EwglShareList;
+  delayHook->oldCtx = oldContext;
+  delayHook->newCtx = newContext;
+  delayHook->executable = suc;
+  delayHooks->push_back(delayHook);
+
+  return suc;
+}
+
+
 static PROC WINAPI wglGetProcAddress_hooked(const char *func)
 {
   if(RenderDoc::Inst().IsReplayApp())
@@ -566,7 +897,7 @@ static PROC WINAPI wglGetProcAddress_hooked(const char *func)
   // otherwise if we plan to return a hook anyway, ensure we don't leak the implementation's
   // LastError code
   SetLastError(0);
-
+  
   if(!strcmp(func, "wglCreateContext"))
     return (PROC)&wglCreateContext_hooked;
   if(!strcmp(func, "wglDeleteContext"))
@@ -583,6 +914,7 @@ static PROC WINAPI wglGetProcAddress_hooked(const char *func)
     return (PROC)&wglSwapLayerBuffers_hooked;
   if(!strcmp(func, "wglSwapMultipleBuffers"))
     return (PROC)&wglSwapMultipleBuffers_hooked;
+  
   if(!strcmp(func, "wglGetProcAddress"))
     return (PROC)&wglGetProcAddress_hooked;
 

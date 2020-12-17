@@ -36,7 +36,7 @@
 #include "hooks/hooks.h"
 #include "os/os_specific.h"
 #include "strings/string_utils.h"
-
+// #define _HOOK_GET_MODULEHANDLE_
 #define VERBOSE_DEBUG_HOOK OPTION_OFF
 
 // map from address of IAT entry, to original contents
@@ -633,17 +633,25 @@ static bool IsAPISet(const char *filename)
   return IsAPISet(wfn.c_str());
 }
 
-HMODULE WINAPI Hooked_LoadLibraryExA(LPCSTR lpLibFileName, HANDLE fileHandle, DWORD flags)
+HMODULE WINAPI Hooked_LoadLibraryExA(LPCSTR lpLibFileName, HANDLE fileHandle, DWORD flags, bool getModule = false)
 {
+  HMODULE mod = GetModuleHandleA(lpLibFileName);
+#ifdef _HOOK_GET_MODULEHANDLE_
+  if(getModule && mod != nullptr)
+  {
+    return mod;
+  }
+#endif
+
   bool dohook = true;
-  if(flags == 0 && GetModuleHandleA(lpLibFileName))
+  if(flags == 0 && mod != nullptr)
     dohook = false;
 
   SetLastError(S_OK);
 
   // we can use the function naked, as when setting up the hook for LoadLibraryExA, our own module
   // was excluded from IAT patching
-  HMODULE mod = LoadLibraryExA(lpLibFileName, fileHandle, flags);
+  mod = LoadLibraryExA(lpLibFileName, fileHandle, flags);
 
 #if ENABLED(VERBOSE_DEBUG_HOOK)
   RDCDEBUG("LoadLibraryA(%s)", lpLibFileName);
@@ -659,10 +667,17 @@ HMODULE WINAPI Hooked_LoadLibraryExA(LPCSTR lpLibFileName, HANDLE fileHandle, DW
   return mod;
 }
 
-HMODULE WINAPI Hooked_LoadLibraryExW(LPCWSTR lpLibFileName, HANDLE fileHandle, DWORD flags)
+HMODULE WINAPI Hooked_LoadLibraryExW(LPCWSTR lpLibFileName, HANDLE fileHandle, DWORD flags, bool getModule = false)
 {
   bool dohook = true;
-  if(flags == 0 && GetModuleHandleW(lpLibFileName))
+  HMODULE mod = GetModuleHandleW(lpLibFileName);
+#ifdef _HOOK_GET_MODULEHANDLE_
+  if(getModule && mod != nullptr)
+  {
+    return mod;
+  }
+#endif
+  if(flags == 0 && mod != nullptr)
     dohook = false;
 
   if(flags & (LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE))
@@ -676,7 +691,7 @@ HMODULE WINAPI Hooked_LoadLibraryExW(LPCWSTR lpLibFileName, HANDLE fileHandle, D
 
   // we can use the function naked, as when setting up the hook for LoadLibraryExA, our own module
   // was excluded from IAT patching
-  HMODULE mod = LoadLibraryExW(lpLibFileName, fileHandle, flags);
+  mod = LoadLibraryExW(lpLibFileName, fileHandle, flags);
 
   DWORD err = GetLastError();
 
@@ -698,13 +713,42 @@ HMODULE WINAPI Hooked_LoadLibraryW(LPCWSTR lpLibFileName)
   return Hooked_LoadLibraryExW(lpLibFileName, NULL, 0);
 }
 
+HMODULE WINAPI Hooked_GetModuleHandleA(LPCSTR lpLibFileName)
+{
+  return Hooked_LoadLibraryExA(lpLibFileName, NULL, 0, true);
+}
+
+HMODULE WINAPI Hooked_GetModuleHandleW(LPCWSTR lpLibFileName)
+{
+  return Hooked_LoadLibraryExW(lpLibFileName, NULL, 0, true);
+}
+
+HMODULE WINAPI Hooked_GetModuleHandleExA(LPCSTR lpLibFileName)
+{
+  return Hooked_LoadLibraryExA(lpLibFileName, NULL, 0, true);
+}
+
+HMODULE WINAPI Hooked_GetModuleHandleExW(LPCWSTR lpLibFileName)
+{
+  return Hooked_LoadLibraryExW(lpLibFileName, NULL, 0, true);
+}
+
+
 static bool OrdinalAsString(void *func)
 {
   return uint64_t(func) <= 0xffff;
 }
 
+static char s_filename[MAX_PATH] = {};
+
 FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR func)
 {
+  //GetModuleFileNameA(mod, s_filename, MAX_PATH - 1);
+  //printf("$$ hooked mod:%s func:%s", &s_filename, func);
+  //if(strcmp(s_filename, "opengl32.dll") == 12)
+  //{
+  //  printf("$$ opengl32.dll hook");
+  //}
   if(mod == NULL || func == NULL || mod == s_HookData->ownmodule)
     return GetProcAddress(mod, func);
 
@@ -799,7 +843,9 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR func)
         SetLastError(S_OK);
 
         if(realfunc == NULL)
+        {
           return NULL;
+        }
 
         return (FARPROC)found->hook;
       }
@@ -821,7 +867,13 @@ void LibraryHooks::RegisterFunctionHook(const char *libraryName, const FunctionH
   {
     if(hook.function == "LoadLibraryA" || hook.function == "LoadLibraryW" ||
        hook.function == "LoadLibraryExA" || hook.function == "LoadLibraryExW" ||
-       hook.function == "GetProcAddress")
+       hook.function == "GetProcAddress" 
+#ifdef _HOOK_GET_MODULEHANDLE_
+       || hook.function == "GetModuleHandleA" ||
+       hook.function == "GetModuleHandleW" || hook.function == "GetModuleHandleExA" ||
+       hook.function == "GetModuleHandleExW"
+#endif
+        )
     {
       RDCERR("Cannot hook LoadLibrary* or GetProcAddress, as these are hooked internally");
       return;
@@ -859,6 +911,17 @@ void LibraryHooks::BeginHookRegistration()
       FunctionHook("LoadLibraryExW", NULL, &Hooked_LoadLibraryExW));
   s_HookData->DllHooks["kernel32.dll"].FunctionHooks.push_back(
       FunctionHook("GetProcAddress", NULL, &Hooked_GetProcAddress));
+
+  #ifdef _HOOK_GET_MODULEHANDLE_
+  s_HookData->DllHooks["kernel32.dll"].FunctionHooks.push_back(
+      FunctionHook("GetModuleHandleA", NULL, &Hooked_GetModuleHandleA));
+  s_HookData->DllHooks["kernel32.dll"].FunctionHooks.push_back(
+      FunctionHook("GetModuleHandleExA", NULL, &Hooked_GetModuleHandleExA));
+  s_HookData->DllHooks["kernel32.dll"].FunctionHooks.push_back(
+      FunctionHook("GetModuleHandleW", NULL, &Hooked_GetModuleHandleW));
+  s_HookData->DllHooks["kernel32.dll"].FunctionHooks.push_back(
+      FunctionHook("GetModuleHandleExW", NULL, &Hooked_GetModuleHandleExW));
+  #endif
 
   for(const char *apiset :
       {"api-ms-win-core-libraryloader-l1-1-0.dll", "api-ms-win-core-libraryloader-l1-1-1.dll",

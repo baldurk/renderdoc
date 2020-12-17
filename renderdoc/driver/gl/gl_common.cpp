@@ -371,6 +371,10 @@ void GetContextVersion(bool &ctxGLES, int &ctxVersion)
     //   "OpenGL ES N.M vendor-specific information"
     // for 1.x:
     //   "OpenGL ES-XX N.M vendor-specific information"
+    if(version == nullptr)
+    {
+      version = "4.6.0 NVIDIA 451.48";
+    }
     if(!strncmp(version, "OpenGL ES-", 10))
     {
       ctxGLES = true;
