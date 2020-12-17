@@ -268,6 +268,8 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
     res->setHeader(header);
 
+    header->setResizeContentsPrecision(20);
+
     res->setColumns({tr("Root Sig El"), tr("Space"), tr("Register"), tr("Resource"), tr("Type"),
                      tr("Width"), tr("Height"), tr("Depth"), tr("Array Size"), tr("Format"),
                      tr("Go")});
@@ -282,6 +284,8 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
   {
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
     uav->setHeader(header);
+
+    header->setResizeContentsPrecision(20);
 
     uav->setColumns({tr("Root Sig El"), tr("Space"), tr("Register"), tr("Resource"), tr("Type"),
                      tr("Width"), tr("Height"), tr("Depth"), tr("Array Size"), tr("Format"),
@@ -298,6 +302,8 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
     samp->setHeader(header);
 
+    header->setResizeContentsPrecision(20);
+
     samp->setColumns({tr("Root Sig El"), tr("Space"), tr("Register"), tr("Addressing"),
                       tr("Filter"), tr("LOD Clamp"), tr("LOD Bias")});
     header->setColumnStretchHints({1, 1, 2, 2, 2, 2, 2});
@@ -310,6 +316,8 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
   {
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
     cbuffer->setHeader(header);
+
+    header->setResizeContentsPrecision(20);
 
     cbuffer->setColumns({tr("Root Sig El"), tr("Space"), tr("Register"), tr("Buffer"),
                          tr("Byte Range"), tr("Size"), tr("Go")});
@@ -1020,12 +1028,39 @@ void D3D12PipelineStateViewer::setShaderState(
     if((rootElements[i].visibility & MaskForStage(stage.stage)) == ShaderStageMask::Unknown)
       continue;
 
+    bool omittingEmpty = false;
+
     switch(rootElements[i].type)
     {
       case BindType::ReadOnlyResource:
       {
         for(size_t j = 0; j < rootElements[i].views.size(); ++j)
         {
+          // for empty views, if the last two views were empty and the next one is empty then just
+          // emit a "..." row for large ranges of empty views
+          if(rootElements[i].views[j].resourceId == ResourceId() && j > 2 &&
+             j + 1 < rootElements[i].views.size() &&
+             rootElements[i].views[j - 2].resourceId == ResourceId() &&
+             rootElements[i].views[j - 1].resourceId == ResourceId() &&
+             rootElements[i].views[j + 1].resourceId == ResourceId())
+          {
+            if(!omittingEmpty)
+            {
+              RDTreeWidgetItem *node = new RDTreeWidgetItem(
+                  {lit("..."), QString(), QString(), QString(), QString(), QString(), QString(),
+                   QString(), QString(), QString(), QString()});
+
+              setEmptyRow(node);
+
+              resources->addTopLevelItem(node);
+            }
+
+            omittingEmpty = true;
+            continue;
+          }
+
+          omittingEmpty = false;
+
           addResourceRow(D3D12ViewTag(D3D12ViewTag::SRV, rootElements[i].registerSpace, (int)i,
                                       rootElements[i].immediate, rootElements[i].views[j]),
                          &stage, resources);
@@ -1036,6 +1071,31 @@ void D3D12PipelineStateViewer::setShaderState(
       {
         for(size_t j = 0; j < rootElements[i].views.size(); ++j)
         {
+          // for empty views, if the last view and next two are also empty then just emit a "..."
+          // row for large ranges of empty views
+          if(rootElements[i].views[j].resourceId == ResourceId() && j > 1 &&
+             j + 2 < rootElements[i].views.size() &&
+             rootElements[i].views[j - 1].resourceId == ResourceId() &&
+             rootElements[i].views[j + 1].resourceId == ResourceId() &&
+             rootElements[i].views[j + 2].resourceId == ResourceId())
+          {
+            if(!omittingEmpty)
+            {
+              RDTreeWidgetItem *node = new RDTreeWidgetItem(
+                  {lit("..."), QString(), QString(), QString(), QString(), QString(), QString(),
+                   QString(), QString(), QString(), QString()});
+
+              setEmptyRow(node);
+
+              resources->addTopLevelItem(node);
+            }
+
+            omittingEmpty = true;
+            continue;
+          }
+
+          omittingEmpty = false;
+
           addResourceRow(D3D12ViewTag(D3D12ViewTag::UAV, rootElements[i].registerSpace, (int)i,
                                       rootElements[i].immediate, rootElements[i].views[j]),
                          &stage, uavs);
