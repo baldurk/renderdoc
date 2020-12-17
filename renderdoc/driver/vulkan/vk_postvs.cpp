@@ -420,8 +420,8 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
   RDCASSERT(entryID);
 
-  for(rdcspv::Iter it = editor.Begin(rdcspv::Section::Debug),
-                   end2 = editor.End(rdcspv::Section::Debug);
+  for(rdcspv::Iter it = editor.Begin(rdcspv::Section::DebugNames),
+                   end2 = editor.End(rdcspv::Section::DebugNames);
       it < end2; ++it)
   {
     if(it.opcode() == rdcspv::Op::Name)

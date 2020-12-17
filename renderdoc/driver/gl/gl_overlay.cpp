@@ -381,6 +381,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
   if(rs.Program.name == 0 && rs.Pipeline.name == 0)
     return ResourceId();
 
+  GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+
   // use our overlay program that we'll fill up with all the right
   // shaders, then replace the fragment shader with our own.
   drv.glBindProgramPipeline(0);

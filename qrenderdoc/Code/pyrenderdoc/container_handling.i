@@ -414,8 +414,28 @@ void ARRAY_INSTANTIATION_CHECK_NAME(arrayType)(arrayType<nspace::innerType> *)
 
 %define TEMPLATE_FIXEDARRAY_DECLARE(typeName)
 
-%typemap(in) const typeName & {
-  static_assert(false, "Error! Should not use this typemap");
+%typemap(in) const typeName & (unsigned char tempmem[16*8]) {
+  using array_type = std::remove_pointer<decltype($1)>::type;
+
+  {
+    tempalloc($1, tempmem);
+
+    int failIdx = 0;
+    int res = TypeConversion<array_type>::ConvertFromPy($input, indirect($1), &failIdx);
+
+    if(!SWIG_IsOK(res))
+    {
+      if(res == SWIG_TypeError)
+      {
+        SWIG_exception_fail(SWIG_ArgError(res), "in method '$symname' argument $argnum of type '$1_basetype'"); 
+      }
+      else
+      {
+        snprintf(convert_error, sizeof(convert_error)-1, "in method '$symname' argument $argnum of type '$1_basetype', decoding element %d", failIdx);
+        SWIG_exception_fail(SWIG_ArgError(res), convert_error);
+      }
+    }
+  }
 }
 
 %typemap(in) typeName {

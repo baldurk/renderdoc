@@ -834,7 +834,7 @@ void TextureViewer::RT_UpdateVisualRange(IReplayController *r)
   if(m_TexDisplay.customShaderId != ResourceId())
     fmt.compCount = 4;
 
-  bool channels[] = {
+  rdcfixedarray<bool, 4> channels = {
       m_TexDisplay.red ? true : false, m_TexDisplay.green && fmt.compCount > 1,
       m_TexDisplay.blue && fmt.compCount > 2, m_TexDisplay.alpha && fmt.compCount > 3,
   };

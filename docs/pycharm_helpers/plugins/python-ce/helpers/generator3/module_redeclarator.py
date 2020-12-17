@@ -227,6 +227,9 @@ class ModuleRedeclarator(object):
     def process_import_type(self, used_imports, p_modname, classname, import_type):
         parent = None
 
+        if import_type == '...':
+            return
+
         if import_type in dir(sys.modules[p_modname]):
             if import_type != classname:
                 parent = '.'

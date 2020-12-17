@@ -196,6 +196,7 @@ struct RichResourceText
 
   // the ideal width for the document
   int idealWidth = 0;
+  int numLines = 1;
 
   // cache the context once we've obtained it.
   ICaptureContext *ctxptr = NULL;
@@ -231,6 +232,8 @@ struct RichResourceText
 
     text.clear();
 
+    numLines = 1;
+
     for(const QVariant &v : fragments)
     {
       if(v.userType() == qMetaTypeId<ResourceId>())
@@ -248,11 +251,23 @@ struct RichResourceText
       }
       else
       {
-        html += lit("<td valign=\"middle\">%1</td>").arg(v.toString().toHtmlEscaped());
+        QString htmlfrag = v.toString().toHtmlEscaped();
+        int newlines = htmlfrag.count(QLatin1Char('\n'));
+        htmlfrag.replace(lit(" "), lit("&nbsp;"));
+        htmlfrag.replace(lit("\n"), lit("</td></tr></table><table><tr><td valign=\"middle\">"));
+
+        html += lit("<td valign=\"middle\">%1</td>").arg(htmlfrag);
         text += v.toString();
 
-        // this only generates one block
+        numLines += newlines;
+
+        // this generates one block at least
         fragmentIndexFromBlockIndex.push_back(i);
+        for(int l = 0; l < newlines; l++)
+        {
+          fragmentIndexFromBlockIndex.push_back(i);
+          fragmentIndexFromBlockIndex.push_back(i);
+        }
       }
 
       i++;
@@ -693,6 +708,24 @@ int RichResourceTextWidthHint(const QWidget *owner, const QFont &font, const QVa
   return linkedText->idealWidth;
 }
 
+int RichResourceTextHeightHint(const QWidget *owner, const QFont &font, const QVariant &var)
+{
+  QFontMetrics metrics(font);
+
+  if(var.userType() == qMetaTypeId<RichResourceTextPtr>())
+  {
+    RichResourceTextPtr linkedText = var.value<RichResourceTextPtr>();
+
+    static const int margin = RichResourceTextMargin;
+
+    linkedText->cacheDocument(owner);
+
+    return linkedText->numLines * (metrics.lineSpacing() + margin * 2);
+  }
+
+  return metrics.height();
+}
+
 bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect rect,
                                 const QFont &font, QMouseEvent *event)
 {
@@ -935,7 +968,9 @@ QSize RichTextViewDelegate::sizeHint(const QStyleOptionViewItem &option, const Q
     QVariant v = index.data();
 
     if(RichResourceTextCheck(v))
-      return QSize(RichResourceTextWidthHint(m_widget, option.font, v), option.fontMetrics.height());
+      return QSize(
+          RichResourceTextWidthHint(m_widget, option.font, v),
+          qMax(RichResourceTextHeightHint(m_widget, option.font, v), option.fontMetrics.height()));
   }
 
   return ForwardingDelegate::sizeHint(option, index);

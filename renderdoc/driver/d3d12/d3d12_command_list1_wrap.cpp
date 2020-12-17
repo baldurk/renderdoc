@@ -356,6 +356,24 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetSamplePositions(
       return false;
     }
 
+    if(m_pDevice->GetOpts2().ProgrammableSamplePositionsTier ==
+       D3D12_PROGRAMMABLE_SAMPLE_POSITIONS_TIER_NOT_SUPPORTED)
+    {
+      if(NumSamplesPerPixel == 0 || NumPixels == 0)
+      {
+        RDCWARN(
+            "View instancing is not supported, but skipping no-op "
+            "SetSamplePositions(NumSamplesPerPixel=%u, NumPixels=%u)",
+            NumSamplesPerPixel, NumPixels);
+        return true;
+      }
+
+      RDCERR(
+          "Can't replay SetSamplePositions with "
+          "D3D12_PROGRAMMABLE_SAMPLE_POSITIONS_TIER_NOT_SUPPORTED");
+      return false;
+    }
+
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
 
     bool stateUpdate = false;
@@ -537,7 +555,13 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetViewInstanceMask(SerialiserT
 
     if(m_pDevice->GetOpts3().ViewInstancingTier == D3D12_VIEW_INSTANCING_TIER_NOT_SUPPORTED)
     {
-      RDCERR("Can't replay SetViewInstanceMask without device support");
+      if(Mask == 0 || Mask == 1)
+      {
+        RDCWARN("View instancing is not supported, but skipping no-op SetViewInstanceMask(%u)", Mask);
+        return true;
+      }
+
+      RDCERR("Can't replay SetViewInstanceMask with D3D12_VIEW_INSTANCING_TIER_NOT_SUPPORTED");
       return false;
     }
 

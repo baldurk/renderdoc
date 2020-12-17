@@ -126,7 +126,6 @@ struct ReplayController : public IReplayController
 {
 public:
   ReplayController();
-  virtual ~ReplayController();
 
   APIProperties GetAPIProperties();
 
@@ -182,12 +181,13 @@ public:
   rdcpair<PixelValue, PixelValue> GetMinMax(ResourceId textureId, const Subresource &sub,
                                             CompType typeCast);
   rdcarray<uint32_t> GetHistogram(ResourceId textureId, const Subresource &sub, CompType typeCast,
-                                  float minval, float maxval, bool channels[4]);
+                                  float minval, float maxval, const rdcfixedarray<bool, 4> &channels);
   rdcarray<PixelModification> PixelHistory(ResourceId target, uint32_t x, uint32_t y,
                                            const Subresource &sub, CompType typeCast);
   ShaderDebugTrace *DebugVertex(uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t view);
   ShaderDebugTrace *DebugPixel(uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive);
-  ShaderDebugTrace *DebugThread(const uint32_t groupid[3], const uint32_t threadid[3]);
+  ShaderDebugTrace *DebugThread(const rdcfixedarray<uint32_t, 3> &groupid,
+                                const rdcfixedarray<uint32_t, 3> &threadid);
   rdcarray<ShaderDebugState> ContinueDebug(ShaderDebugger *debugger);
   void FreeTrace(ShaderDebugTrace *trace);
 
@@ -218,6 +218,7 @@ public:
   void Shutdown();
 
 private:
+  virtual ~ReplayController();
   ReplayStatus PostCreateInit(IReplayDriver *device, RDCFile *rdc);
 
   void FetchPipelineState(uint32_t eventId);

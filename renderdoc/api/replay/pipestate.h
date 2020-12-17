@@ -354,6 +354,13 @@ For some APIs that don't distinguish by entry point, this may be empty.
 )");
   rdcarray<ColorBlend> GetColorBlends() const;
 
+  DOCUMENT(R"(Retrieves the current stencil states.
+
+:return: The currently stencil states. Front facing first, back facing second.
+:rtype: Tuple[StencilFace, StencilFace]
+)");
+  rdcpair<StencilFace, StencilFace> GetStencilFaces() const;
+
   DOCUMENT(R"(Determines whether or not independent blending is enabled.
 
 :return: A boolean indicating if independent blending is enabled.

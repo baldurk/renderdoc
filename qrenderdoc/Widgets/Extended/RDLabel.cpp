@@ -41,9 +41,12 @@ void RDLabel::modifySizeHint(QSize &sz) const
     sz.setWidth(sz.width() - contentsMargins().left() - contentsMargins().right());
 
   if(m_variant.isValid())
+  {
     sz.setWidth(qMax(RichResourceTextWidthHint(this, font(), m_variant) + contentsMargins().left() +
                          contentsMargins().right() + margin() * 2,
                      sz.width()));
+    sz.setHeight(qMax(RichResourceTextHeightHint(this, font(), m_variant), sz.height()));
+  }
 }
 
 QSize RDLabel::sizeHint() const

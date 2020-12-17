@@ -2080,6 +2080,8 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
       captureWriter = new StreamWriter(StreamWriter::InvalidStream);
     }
 
+    uint64_t captureSectionSize = 0;
+
     {
       WriteSerialiser ser(captureWriter, Ownership::Stream);
 
@@ -2149,11 +2151,12 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
       }
 
       UnlockForChunkFlushing();
+
+      captureSectionSize = captureWriter->GetOffset();
     }
 
     RDCLOG("Captured D3D11 frame with %f MB capture section in %f seconds",
-           double(captureWriter->GetOffset()) / (1024.0 * 1024.0),
-           m_CaptureTimer.GetMilliseconds() / 1000.0);
+           double(captureSectionSize) / (1024.0 * 1024.0), m_CaptureTimer.GetMilliseconds() / 1000.0);
 
     RenderDoc::Inst().FinishCaptureWriting(rdc, m_CapturedFrames.back().frameNumber);
 

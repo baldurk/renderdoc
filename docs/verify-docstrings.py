@@ -270,7 +270,7 @@ for mod_name in ['renderdoc', 'qrenderdoc']:
                 namespace = namespace.group(0)
 
             if source is None and namespace is not None:
-                source = re.search('(struct|class|union) I?' + objname + '[^{]*\{.*?^}', headers, re.MULTILINE | re.DOTALL)
+                source = re.search('(struct|class|union) I?' + objname + '[^{]*\{.*?^}', namespace, re.MULTILINE | re.DOTALL)
                 
             source = source.group(0)
 

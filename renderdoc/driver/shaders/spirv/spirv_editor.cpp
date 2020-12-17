@@ -197,7 +197,7 @@ void Editor::SetName(Id id, const rdcstr &name)
   Iter it;
 
   // OpName/OpMemberName must be before OpModuleProcessed.
-  for(it = Begin(Section::Debug); it < End(Section::Debug); ++it)
+  for(it = Begin(Section::DebugNames); it < End(Section::DebugNames); ++it)
   {
     if(it.opcode() == Op::ModuleProcessed)
       break;
@@ -212,18 +212,10 @@ void Editor::SetMemberName(Id id, uint32_t member, const rdcstr &name)
 {
   Operation op = OpMemberName(id, member, name);
 
-  Iter it;
-
-  // OpName/OpMemberName must be before OpModuleProcessed.
-  for(it = Begin(Section::Debug); it < End(Section::Debug); ++it)
-  {
-    if(it.opcode() == Op::ModuleProcessed)
-      break;
-  }
-
-  op.insertInto(m_SPIRV, it.offs());
-  RegisterOp(Iter(m_SPIRV, it.offs()));
-  addWords(it.offs(), op.size());
+  size_t offset = m_Sections[Section::DebugNames].endOffset;
+  op.insertInto(m_SPIRV, offset);
+  RegisterOp(Iter(m_SPIRV, offset));
+  addWords(offset, op.size());
 }
 
 void Editor::AddDecoration(const Operation &op)
@@ -754,14 +746,18 @@ void main() {
       {0x64, 0x80},
       // ExecutionMode
       {0x80, 0x8c},
-      // Debug
-      {0x8c, 0x118},
+      // DebugStringSource
+      {0x8c, 0xb8},
+      // DebugNames
+      {0xb8, 0x118},
+      // DebugModuleProcessed (contains inserted nop)
+      {0x118, 0x11c},
       // Annotations
-      {0x118, 0x178},
+      {0x11c, 0x17c},
       // TypesVariables
-      {0x178, 0x2a0},
+      {0x17c, 0x2a4},
       // Functions
-      {0x2a0, 0x370},
+      {0x2a4, 0x374},
   };
 
   SECTION("Check that SPIR-V is correct with no changes")
@@ -786,9 +782,31 @@ void main() {
     CheckSPIRV(ed, offsets);
   }
 
-  RemoveSection(spirv, offsets, rdcspv::Section::Debug);
+  RemoveSection(spirv, offsets, rdcspv::Section::DebugNames);
 
-  SECTION("Check with debug removed")
+  SECTION("Check with debug names removed")
+  {
+    rdcspv::Editor ed(spirv);
+
+    ed.Prepare();
+
+    CheckSPIRV(ed, offsets);
+  }
+
+  RemoveSection(spirv, offsets, rdcspv::Section::DebugStringSource);
+
+  SECTION("Check with debug strings/sources removed")
+  {
+    rdcspv::Editor ed(spirv);
+
+    ed.Prepare();
+
+    CheckSPIRV(ed, offsets);
+  }
+
+  RemoveSection(spirv, offsets, rdcspv::Section::DebugModuleProcessed);
+
+  SECTION("Check with module processed removed")
   {
     rdcspv::Editor ed(spirv);
 

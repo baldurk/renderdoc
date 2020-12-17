@@ -44,6 +44,27 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetShadingRate(
       return false;
     }
 
+    if(m_pDevice->GetOpts6().VariableShadingRateTier == D3D12_VARIABLE_SHADING_RATE_TIER_NOT_SUPPORTED)
+    {
+      // if the shading rate is 1x1 and the combiners are NULL (implicitly passthrough) or
+      // explicitly passthrough, we can skip this call
+      if(baseShadingRate == D3D12_SHADING_RATE_1X1 &&
+         (combiners == NULL ||
+          (combiners[0] == combiners[1] && combiners[0] == D3D12_SHADING_RATE_COMBINER_PASSTHROUGH)))
+      {
+        RDCWARN(
+            "VRS is not supported, but skipping no-op "
+            "RSSetShadingRate(baseShadingRate=%s, passthrough combiners)",
+            ToStr(baseShadingRate).c_str());
+        return true;
+      }
+
+      RDCERR(
+          "Can't replay WrappedID3D12GraphicsCommandList::RSSetShadingRate with "
+          "D3D12_VARIABLE_SHADING_RATE_TIER_NOT_SUPPORTED");
+      return false;
+    }
+
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
 
     bool stateUpdate = false;
@@ -79,6 +100,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetShadingRate(
       {
         state.shadingRateCombiners[0] = combiners[0];
         state.shadingRateCombiners[1] = combiners[1];
+      }
+      else
+      {
+        state.shadingRateCombiners[0] = D3D12_SHADING_RATE_COMBINER_PASSTHROUGH;
+        state.shadingRateCombiners[1] = D3D12_SHADING_RATE_COMBINER_PASSTHROUGH;
       }
     }
   }
@@ -116,6 +142,21 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetShadingRateImage(Serialise
     if(GetWrapped(pCommandList)->GetReal5() == NULL)
     {
       RDCERR("Can't replay ID3D12GraphicsCommandList5 command");
+      return false;
+    }
+
+    if(m_pDevice->GetOpts6().VariableShadingRateTier == D3D12_VARIABLE_SHADING_RATE_TIER_NOT_SUPPORTED)
+    {
+      // if the shading rate image is NULL, we can skip this call
+      if(shadingRateImage == NULL)
+      {
+        RDCWARN("VRS is not supported, but skipping no-op RSSetShadingRateImage(NULL)");
+        return true;
+      }
+
+      RDCERR(
+          "Can't replay WrappedID3D12GraphicsCommandList::RSSetShadingRate with "
+          "D3D12_VARIABLE_SHADING_RATE_TIER_NOT_SUPPORTED");
       return false;
     }
 

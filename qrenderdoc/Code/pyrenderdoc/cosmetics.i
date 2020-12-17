@@ -48,7 +48,7 @@ static PyObject *resid_str(PyObject *resid)
   id = (unsigned long long *)resptr;
   static_assert(sizeof(unsigned long long) == sizeof(ResourceId), "Wrong size");
 
-  return PyUnicode_FromFormat("<ResourceId %llu>", *id);
+  return PyUnicode_FromFormat("ResourceId::%llu", *id);
 fail:
   return NULL;
 }

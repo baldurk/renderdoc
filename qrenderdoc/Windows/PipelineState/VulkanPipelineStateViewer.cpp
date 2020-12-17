@@ -3996,8 +3996,8 @@ void VulkanPipelineStateViewer::on_debugThread_clicked()
 
   struct threadSelect
   {
-    uint32_t g[3];
-    uint32_t t[3];
+    rdcfixedarray<uint32_t, 3> g;
+    rdcfixedarray<uint32_t, 3> t;
   } thread = {
       // g[]
       {(uint32_t)ui->groupX->value(), (uint32_t)ui->groupY->value(), (uint32_t)ui->groupZ->value()},

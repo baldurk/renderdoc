@@ -65,27 +65,6 @@ ReplayController::ReplayController()
 ReplayController::~ReplayController()
 {
   CHECK_REPLAY_THREAD();
-
-  RDCLOG("Shutting down replay renderer");
-
-  for(size_t i = 0; i < m_Outputs.size(); i++)
-    SAFE_DELETE(m_Outputs[i]);
-
-  m_Outputs.clear();
-
-  for(auto it = m_CustomShaders.begin(); it != m_CustomShaders.end(); ++it)
-    m_pDevice->FreeCustomShader(*it);
-
-  m_CustomShaders.clear();
-
-  for(auto it = m_TargetResources.begin(); it != m_TargetResources.end(); ++it)
-    m_pDevice->FreeTargetResource(*it);
-
-  m_TargetResources.clear();
-
-  if(m_pDevice)
-    m_pDevice->Shutdown();
-  m_pDevice = NULL;
 }
 
 void ReplayController::SetFrameEvent(uint32_t eventId, bool force)
@@ -1580,7 +1559,7 @@ rdcpair<PixelValue, PixelValue> ReplayController::GetMinMax(ResourceId textureId
 
 rdcarray<uint32_t> ReplayController::GetHistogram(ResourceId textureId, const Subresource &sub,
                                                   CompType typeCast, float minval, float maxval,
-                                                  bool channels[4])
+                                                  const rdcfixedarray<bool, 4> &channels)
 {
   CHECK_REPLAY_THREAD();
 
@@ -1620,7 +1599,8 @@ ShaderDebugTrace *ReplayController::DebugPixel(uint32_t x, uint32_t y, uint32_t 
   return ret;
 }
 
-ShaderDebugTrace *ReplayController::DebugThread(const uint32_t groupid[3], const uint32_t threadid[3])
+ShaderDebugTrace *ReplayController::DebugThread(const rdcfixedarray<uint32_t, 3> &groupid,
+                                                const rdcfixedarray<uint32_t, 3> &threadid)
 {
   CHECK_REPLAY_THREAD();
 
@@ -1853,6 +1833,27 @@ void ReplayController::ShutdownOutput(IReplayOutput *output)
 void ReplayController::Shutdown()
 {
   CHECK_REPLAY_THREAD();
+
+  RDCLOG("Shutting down replay renderer");
+
+  for(size_t i = 0; i < m_Outputs.size(); i++)
+    SAFE_DELETE(m_Outputs[i]);
+
+  m_Outputs.clear();
+
+  for(auto it = m_CustomShaders.begin(); it != m_CustomShaders.end(); ++it)
+    m_pDevice->FreeCustomShader(*it);
+
+  m_CustomShaders.clear();
+
+  for(auto it = m_TargetResources.begin(); it != m_TargetResources.end(); ++it)
+    m_pDevice->FreeTargetResource(*it);
+
+  m_TargetResources.clear();
+
+  if(m_pDevice)
+    m_pDevice->Shutdown();
+  m_pDevice = NULL;
 
   delete this;
 }

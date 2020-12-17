@@ -2951,8 +2951,9 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
   return ret;
 }
 
-ShaderDebugTrace *D3D12Replay::DebugThread(uint32_t eventId, const uint32_t groupid[3],
-                                           const uint32_t threadid[3])
+ShaderDebugTrace *D3D12Replay::DebugThread(uint32_t eventId,
+                                           const rdcfixedarray<uint32_t, 3> &groupid,
+                                           const rdcfixedarray<uint32_t, 3> &threadid)
 {
   using namespace DXBCBytecode;
   using namespace DXBCDebug;

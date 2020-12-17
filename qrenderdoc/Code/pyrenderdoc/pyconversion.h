@@ -557,6 +557,18 @@ struct TypeConversion<rdcarray<U>, false>
   // nicer failure error messages out with the index that failed
   static int ConvertFromPy(PyObject *in, rdcarray<U> &out, int *failIdx)
   {
+    swig_type_info *own_type = GetTypeInfo();
+    if(own_type)
+    {
+      rdcarray<U> *ptr = NULL;
+      int ret = SWIG_ConvertPtr(in, (void **)&ptr, own_type, 0);
+      if(SWIG_IsOK(ret))
+      {
+        out = *ptr;
+        return SWIG_OK;
+      }
+    }
+
     if(!PyList_Check(in))
       return SWIG_TypeError;
 
@@ -649,7 +661,18 @@ struct TypeConversion<rdcfixedarray<U, N>, false>
 
     for(size_t i = 0; i < N; i++)
     {
-      int ret = TypeConversion<U>::ConvertFromPy(PySequence_GetItem(in, i), out[i]);
+      PyObject *elem = PySequence_GetItem(in, i);
+
+      if(!elem)
+      {
+        if(failIdx)
+          *failIdx = (int)i;
+        return SWIG_TypeError;
+      }
+
+      int ret = TypeConversion<U>::ConvertFromPy(elem, out[i]);
+
+      Py_XDECREF(elem);
 
       if(!SWIG_IsOK(ret))
       {

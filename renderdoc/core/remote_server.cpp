@@ -1648,7 +1648,7 @@ rdcpair<ReplayStatus, IReplayController *> RemoteServer::OpenCapture(
 
   if(status != ReplayStatus::Succeeded)
   {
-    SAFE_DELETE(rend);
+    rend->Shutdown();
     ret.first = status;
     return ret;
   }

@@ -497,18 +497,6 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
   VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[texid];
 
-  // bail out if the framebuffer dimensions don't match the current framebuffer, or draws will fail.
-  // This is an order-of-operations problem, if the overlay is set when the event is changed it is
-  // refreshed before the UI layer can update the current texture.
-  {
-    const VulkanCreationInfo::Framebuffer &fb =
-        m_pDriver->m_CreationInfo.m_Framebuffer[m_pDriver->m_RenderState.GetFramebuffer()];
-
-    if(fb.width != RDCMAX(1U, iminfo.extent.width >> sub.mip) ||
-       fb.height != RDCMAX(1U, iminfo.extent.height >> sub.mip))
-      return GetResID(m_Overlay.Image);
-  }
-
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
@@ -519,11 +507,14 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
   VkMarkerRegion::Begin(StringFormat::Fmt("RenderOverlay %d", overlay), cmd);
 
-  uint32_t multiviewMask = 0;
+  uint32_t multiviewMask = m_Overlay.MultiViewMask;
+
+  if(m_pDriver->m_RenderState.renderPass != ResourceId())
   {
     const VulkanCreationInfo::RenderPass &rp =
         m_pDriver->m_CreationInfo.m_RenderPass[m_pDriver->m_RenderState.renderPass];
 
+    multiviewMask = 0;
     for(uint32_t v : rp.subpasses[m_pDriver->m_RenderState.subpass].multiviews)
       multiviewMask |= 1U << v;
   }
@@ -710,6 +701,17 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
     // can't create a framebuffer or renderpass for overlay image + depth as that
     // needs to match the depth texture type wherever our draw is.
+  }
+
+  // bail out if the render area is outside our image.
+  // This is an order-of-operations problem, if the overlay is set when the event is changed it is
+  // refreshed before the UI layer can update the current texture.
+  if(m_pDriver->m_RenderState.renderArea.offset.x + m_pDriver->m_RenderState.renderArea.extent.width >
+         (m_Overlay.ImageDim.width >> sub.mip) ||
+     m_pDriver->m_RenderState.renderArea.offset.y + m_pDriver->m_RenderState.renderArea.extent.height >
+         (m_Overlay.ImageDim.height >> sub.mip))
+  {
+    return GetResID(m_Overlay.Image);
   }
 
   {

@@ -3399,6 +3399,19 @@ void BufferViewer::SetCurrentView(int32_t view)
     ui->viewIndex->setValue(view);
 }
 
+void BufferViewer::SetPreviewStage(MeshDataStage stage)
+{
+  if(m_MeshView)
+  {
+    if(stage == MeshDataStage::VSIn)
+      ui->outputTabs->setCurrentIndex(0);
+    else if(stage == MeshDataStage::VSOut)
+      ui->outputTabs->setCurrentIndex(1);
+    else if(stage == MeshDataStage::GSOut)
+      ui->outputTabs->setCurrentIndex(2);
+  }
+}
+
 void BufferViewer::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
                               const rdcstr &format)
 {
