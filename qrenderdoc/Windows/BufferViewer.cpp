@@ -3117,6 +3117,7 @@ void BufferViewer::UI_CalculateMeshFormats()
       m_PostVSPosition = m_PostVS;
       m_PostVSPosition.vertexByteOffset += el.byteOffset;
       m_PostVSPosition.unproject = prop.systemValue == ShaderBuiltin::Position;
+      m_PostVSPosition.format.compCount = el.type.descriptor.columns;
 
       // if geometry/tessellation is enabled, don't unproject VS output data
       if(m_Ctx.CurPipelineState().GetShader(ShaderStage::Tess_Eval) != ResourceId() ||
