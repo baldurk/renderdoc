@@ -930,8 +930,9 @@ void D3D12Replay::FillRootElements(const D3D12RenderState::RootSignature &rootSi
   WrappedID3D12RootSignature *sig =
       m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(rootSig.rootsig);
 
-  rootElements.clear();
   rootElements.reserve(sig->sig.Parameters.size() + sig->sig.StaticSamplers.size());
+
+  size_t ridx = 0;
 
   for(size_t rootEl = 0; rootEl < sig->sig.Parameters.size(); rootEl++)
   {
@@ -939,13 +940,17 @@ void D3D12Replay::FillRootElements(const D3D12RenderState::RootSignature &rootSi
 
     if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
     {
-      rootElements.push_back(D3D12Pipe::RootSignatureRange());
-      D3D12Pipe::RootSignatureRange &element = rootElements.back();
+      rootElements.resize_for_index(ridx);
+      D3D12Pipe::RootSignatureRange &element = rootElements[ridx++];
       element.immediate = true;
       element.rootElement = (uint32_t)rootEl;
       element.type = BindType::ConstantBuffer;
       element.registerSpace = p.Constants.RegisterSpace;
       element.visibility = ToShaderStageMask(p.ShaderVisibility);
+
+      element.samplers.clear();
+      element.constantBuffers.clear();
+      element.views.clear();
 
       element.constantBuffers.push_back(D3D12Pipe::ConstantBuffer(p.Constants.ShaderRegister));
       D3D12Pipe::ConstantBuffer &cb = element.constantBuffers.back();
@@ -964,13 +969,17 @@ void D3D12Replay::FillRootElements(const D3D12RenderState::RootSignature &rootSi
     }
     else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_CBV)
     {
-      rootElements.push_back(D3D12Pipe::RootSignatureRange());
-      D3D12Pipe::RootSignatureRange &element = rootElements.back();
+      rootElements.resize_for_index(ridx);
+      D3D12Pipe::RootSignatureRange &element = rootElements[ridx++];
       element.immediate = true;
       element.rootElement = (uint32_t)rootEl;
       element.type = BindType::ConstantBuffer;
       element.registerSpace = p.Descriptor.RegisterSpace;
       element.visibility = ToShaderStageMask(p.ShaderVisibility);
+
+      element.samplers.clear();
+      element.constantBuffers.clear();
+      element.views.clear();
 
       element.constantBuffers.push_back(D3D12Pipe::ConstantBuffer(p.Descriptor.ShaderRegister));
       D3D12Pipe::ConstantBuffer &cb = element.constantBuffers.back();
@@ -993,13 +1002,17 @@ void D3D12Replay::FillRootElements(const D3D12RenderState::RootSignature &rootSi
     }
     else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_SRV)
     {
-      rootElements.push_back(D3D12Pipe::RootSignatureRange());
-      D3D12Pipe::RootSignatureRange &element = rootElements.back();
+      rootElements.resize_for_index(ridx);
+      D3D12Pipe::RootSignatureRange &element = rootElements[ridx++];
       element.immediate = true;
       element.rootElement = (uint32_t)rootEl;
       element.type = BindType::ReadOnlyResource;
       element.registerSpace = p.Descriptor.RegisterSpace;
       element.visibility = ToShaderStageMask(p.ShaderVisibility);
+
+      element.samplers.clear();
+      element.constantBuffers.clear();
+      element.views.clear();
 
       element.views.push_back(D3D12Pipe::View(p.Descriptor.ShaderRegister));
       D3D12Pipe::View &view = element.views.back();
@@ -1027,13 +1040,17 @@ void D3D12Replay::FillRootElements(const D3D12RenderState::RootSignature &rootSi
     }
     else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_UAV)
     {
-      rootElements.push_back(D3D12Pipe::RootSignatureRange());
-      D3D12Pipe::RootSignatureRange &element = rootElements.back();
+      rootElements.resize_for_index(ridx);
+      D3D12Pipe::RootSignatureRange &element = rootElements[ridx++];
       element.immediate = true;
       element.rootElement = (uint32_t)rootEl;
       element.type = BindType::ReadWriteResource;
       element.registerSpace = p.Descriptor.RegisterSpace;
       element.visibility = ToShaderStageMask(p.ShaderVisibility);
+
+      element.samplers.clear();
+      element.constantBuffers.clear();
+      element.views.clear();
 
       element.views.push_back(D3D12Pipe::View(p.Descriptor.ShaderRegister));
       D3D12Pipe::View &view = element.views.back();
@@ -1080,12 +1097,17 @@ void D3D12Replay::FillRootElements(const D3D12RenderState::RootSignature &rootSi
         // Here we diverge slightly from how root signatures store data. A descriptor table can
         // contain multiple ranges which can each contain different types. D3D12Pipe treats
         // each range as a separate RootElement
-        rootElements.push_back(D3D12Pipe::RootSignatureRange());
-        D3D12Pipe::RootSignatureRange &element = rootElements.back();
+        rootElements.resize_for_index(ridx);
+        D3D12Pipe::RootSignatureRange &element = rootElements[ridx++];
 
+        element.immediate = false;
         element.rootElement = (uint32_t)rootEl;
         element.registerSpace = range.RegisterSpace;
         element.visibility = ToShaderStageMask(p.ShaderVisibility);
+
+        element.samplers.clear();
+        element.constantBuffers.clear();
+        element.views.clear();
 
         UINT shaderReg = range.BaseShaderRegister;
 
@@ -1248,16 +1270,20 @@ void D3D12Replay::FillRootElements(const D3D12RenderState::RootSignature &rootSi
   {
     D3D12_STATIC_SAMPLER_DESC &sampDesc = sig->sig.StaticSamplers[i];
 
-    rootElements.push_back(D3D12Pipe::RootSignatureRange());
-    D3D12Pipe::RootSignatureRange &element = rootElements.back();
+    rootElements.resize_for_index(ridx);
+    D3D12Pipe::RootSignatureRange &element = rootElements[ridx++];
     element.immediate = true;
     element.rootElement = (uint32_t)i;
     element.type = BindType::Sampler;
     element.registerSpace = sampDesc.RegisterSpace;
     element.visibility = ToShaderStageMask(sampDesc.ShaderVisibility);
 
+    element.samplers.clear();
+    element.constantBuffers.clear();
+    element.views.clear();
+
     element.samplers.push_back(D3D12Pipe::Sampler(sampDesc.ShaderRegister));
-    D3D12Pipe::Sampler &samp = element.samplers.back();
+    D3D12Pipe::Sampler &samp = element.samplers[0];
 
     samp.addressU = MakeAddressMode(sampDesc.AddressU);
     samp.addressV = MakeAddressMode(sampDesc.AddressV);
