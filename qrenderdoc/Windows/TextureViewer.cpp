@@ -3006,7 +3006,7 @@ void TextureViewer::Reset()
 
 void TextureViewer::refreshTextureList()
 {
-  refreshTextureList(FilterType::None, QString());
+  on_textureListFilter_currentIndexChanged(ui->textureListFilter->currentIndex());
 }
 
 void addToRoot(RDTreeWidgetItem *root, const TextureDescription &t)
@@ -3108,7 +3108,12 @@ void TextureViewer::OnEventChanged(uint32_t eventId)
   UI_CreateThumbnails();
 
   UI_UpdateTextureDetails();
-  refreshTextureList();
+
+  if(m_ResourceCacheID != m_Ctx.ResourceNameCacheID())
+  {
+    m_ResourceCacheID = m_Ctx.ResourceNameCacheID();
+    refreshTextureList();
+  }
 
   // iterate over locked tabs, and update the name if it's changed
   for(QWidget *w : m_LockedTabs.values())

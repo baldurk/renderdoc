@@ -339,6 +339,7 @@ private:
 
   ResourceId m_LockedId;
   QMap<ResourceId, QWidget *> m_LockedTabs;
+  int m_ResourceCacheID = -1;
 
   TextureGoto *m_Goto;
 
