@@ -310,6 +310,10 @@ DOCUMENT(R"(Specifies a pipeline stage for the :class:`PipelineStateViewer`.
 .. data:: ComputeShader
 
   The compute shader.
+
+.. data:: SampleMask
+
+  The sample mask.
 )");
 enum class PipelineStage : int
 {
@@ -330,6 +334,9 @@ enum class PipelineStage : int
   DepthTest = ColorDepthOutput,
   StencilTest = ColorDepthOutput,
   ComputeShader,
+
+  // these vary by API
+  SampleMask,
 };
 
 DOCUMENT("The pipeline state viewer window.");

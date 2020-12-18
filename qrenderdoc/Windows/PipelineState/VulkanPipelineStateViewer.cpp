@@ -465,7 +465,10 @@ void VulkanPipelineStateViewer::OnEventChanged(uint32_t eventId)
 
 void VulkanPipelineStateViewer::SelectPipelineStage(PipelineStage stage)
 {
-  ui->pipeFlow->setSelectedStage((int)stage);
+  if(stage == PipelineStage::SampleMask)
+    ui->pipeFlow->setSelectedStage((int)PipelineStage::Rasterizer);
+  else
+    ui->pipeFlow->setSelectedStage((int)stage);
 }
 
 void VulkanPipelineStateViewer::on_showUnused_toggled(bool checked)

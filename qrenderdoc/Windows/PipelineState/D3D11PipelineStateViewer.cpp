@@ -469,7 +469,10 @@ void D3D11PipelineStateViewer::OnEventChanged(uint32_t eventId)
 
 void D3D11PipelineStateViewer::SelectPipelineStage(PipelineStage stage)
 {
-  ui->pipeFlow->setSelectedStage((int)stage);
+  if(stage == PipelineStage::SampleMask)
+    ui->pipeFlow->setSelectedStage((int)PipelineStage::ColorDepthOutput);
+  else
+    ui->pipeFlow->setSelectedStage((int)stage);
 }
 
 void D3D11PipelineStateViewer::on_showUnused_toggled(bool checked)
