@@ -1142,10 +1142,11 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
     for(i = 0; i < rs->RS.NumScissors; i++)
       ret.rasterizer.scissors[i] = Scissor(rs->RS.Scissors[i].left, rs->RS.Scissors[i].top,
                                            rs->RS.Scissors[i].right - rs->RS.Scissors[i].left,
-                                           rs->RS.Scissors[i].bottom - rs->RS.Scissors[i].top, true);
+                                           rs->RS.Scissors[i].bottom - rs->RS.Scissors[i].top,
+                                           ret.rasterizer.state.scissorEnable);
 
     for(; i < D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE; i++)
-      ret.rasterizer.scissors[i] = Scissor(0, 0, 0, 0, false);
+      ret.rasterizer.scissors[i] = Scissor(0, 0, 0, 0, ret.rasterizer.state.scissorEnable);
 
     ret.rasterizer.viewports.resize(D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE);
     for(i = 0; i < rs->RS.NumViews; i++)
