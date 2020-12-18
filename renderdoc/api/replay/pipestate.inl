@@ -1605,11 +1605,23 @@ rdcarray<ColorBlend> PipeState::GetColorBlends() const
   {
     if(IsCaptureD3D11())
     {
-      return m_D3D11->outputMerger.blendState.blends;
+      if(m_D3D11->outputMerger.blendState.independentBlend)
+        return m_D3D11->outputMerger.blendState.blends;
+
+      rdcarray<ColorBlend> ret;
+      ret.fill(m_D3D11->outputMerger.blendState.blends.count(),
+               m_D3D11->outputMerger.blendState.blends[0]);
+      return ret;
     }
     else if(IsCaptureD3D12())
     {
-      return m_D3D12->outputMerger.blendState.blends;
+      if(m_D3D12->outputMerger.blendState.independentBlend)
+        return m_D3D12->outputMerger.blendState.blends;
+
+      rdcarray<ColorBlend> ret;
+      ret.fill(m_D3D12->outputMerger.blendState.blends.count(),
+               m_D3D12->outputMerger.blendState.blends[0]);
+      return ret;
     }
     else if(IsCaptureGL())
     {
