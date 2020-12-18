@@ -249,6 +249,14 @@ struct RichResourceText
         fragmentIndexFromBlockIndex.push_back(i);
         fragmentIndexFromBlockIndex.push_back(i);
       }
+      else if(v.type() == QVariant::UInt)
+      {
+        html += lit("<td valign=\"middle\"><font color='#0000FF'><u>EID @%1</u></font></td>")
+                    .arg(v.toUInt());
+        text += lit("EID @%1").arg(v.toUInt());
+
+        fragmentIndexFromBlockIndex.push_back(i);
+      }
       else
       {
         QString htmlfrag = v.toString().toHtmlEscaped();
@@ -424,7 +432,7 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx)
 
   // use regexp to split up into fragments of text and resourceid. The resourceid is then
   // formatted on the fly in RichResourceText::cacheDocument
-  static QRegularExpression resRE(lit("(ResourceId::)([0-9]*)"));
+  static QRegularExpression resRE(lit("(ResourceId::)([0-9]*)|(@)([0-9]+)"));
 
   match = resRE.match(text);
 
@@ -448,17 +456,33 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx)
 
     while(match.hasMatch())
     {
-      qulonglong idnum = match.captured(2).toULongLong();
       ResourceId id;
-      memcpy(&id, &idnum, sizeof(id));
+      uint32_t eid = 0;
+      if(match.captured(1) == lit("ResourceId::"))
+      {
+        qulonglong idnum = match.captured(2).toULongLong();
+        memcpy(&id, &idnum, sizeof(id));
 
-      // push any text that preceeded the ResourceId.
-      if(match.capturedStart(1) > 0)
-        linkedText->fragments.push_back(text.left(match.capturedStart(1)));
+        // push any text that preceeded the ResourceId.
+        if(match.capturedStart(1) > 0)
+          linkedText->fragments.push_back(text.left(match.capturedStart(1)));
 
-      text.remove(0, match.capturedEnd(2));
+        text.remove(0, match.capturedEnd(2));
 
-      linkedText->fragments.push_back(id);
+        linkedText->fragments.push_back(id);
+      }
+      else
+      {
+        eid = match.captured(4).toUInt();
+
+        // push any text that preceeded the EID.
+        if(match.capturedStart(3) > 0)
+          linkedText->fragments.push_back(text.left(match.capturedStart(3)));
+
+        text.remove(0, match.capturedEnd(4));
+
+        linkedText->fragments.push_back(eid);
+      }
 
       match = resRE.match(text);
     }
@@ -884,6 +908,19 @@ bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect
           ctx.GetResourceInspector()->Inspect(res);
 
           ctx.RaiseDockWindow(ctx.GetResourceInspector()->Widget());
+        }
+
+        return true;
+      }
+      else if(v.type() == QVariant::UInt)
+      {
+        uint32_t eid = v.value<uint32_t>();
+
+        if(event->type() == QEvent::MouseButtonRelease && linkedText->ctxptr)
+        {
+          ICaptureContext &ctx = *(ICaptureContext *)linkedText->ctxptr;
+
+          ctx.SetEventID({}, eid, eid, false);
         }
 
         return true;
