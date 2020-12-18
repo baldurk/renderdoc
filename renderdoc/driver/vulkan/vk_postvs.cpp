@@ -225,6 +225,27 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
         if(baseIt && baseIt.opcode() == rdcspv::Op::TypeStruct)
           outputs.insert(ptr.type);
       }
+      else if(ptr.storageClass == rdcspv::StorageClass::Private ||
+              ptr.storageClass == rdcspv::StorageClass::Function)
+      {
+        // with variable pointers, we could have a private/function pointer into one of the pointer
+        // types we've replaced (e.g. Input and Output where one is patched to be private and the
+        // other is replaced since we deduplicate pointer types)
+        //
+        // we don't have to re-order the declaration, since we're iterating the types in order so
+        // the replacement is always earlier than the type it was replacing
+
+        if(typeReplacements.find(ptr.type) != typeReplacements.end())
+        {
+          editor.PreModify(it);
+
+          ptr.type = typeReplacements[ptr.type];
+          it = ptr;
+
+          // if we didn't already have this pointer, process the modified type declaration
+          editor.PostModify(it);
+        }
+      }
 
       if(id)
       {
