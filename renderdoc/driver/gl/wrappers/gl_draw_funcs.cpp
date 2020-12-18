@@ -740,7 +740,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackInstanced(SerialiserType &s
 
   if(IsReplayingAndReading())
   {
-    if(Check_SafeDraw(false))
+    if(instancecount == 0 || Check_SafeDraw(false))
       GL.glDrawTransformFeedbackInstanced(mode, xfb.name, instancecount);
 
     if(IsLoading(m_State))
@@ -884,7 +884,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStreamInstanced(SerialiserT
 
   if(IsReplayingAndReading())
   {
-    if(Check_SafeDraw(false))
+    if(instancecount == 0 || Check_SafeDraw(false))
       GL.glDrawTransformFeedbackStreamInstanced(mode, xfb.name, stream, instancecount);
 
     if(IsLoading(m_State))
@@ -958,7 +958,7 @@ bool WrappedOpenGL::Serialise_glDrawArrays(SerialiserType &ser, GLenum mode, GLi
 
   if(IsReplayingAndReading())
   {
-    if(Check_SafeDraw(false))
+    if(count == 0 || Check_SafeDraw(false))
       GL.glDrawArrays(mode, first, count);
 
     if(IsLoading(m_State))
@@ -1295,7 +1295,7 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstanced(SerialiserType &ser, GLenum 
 
   if(IsReplayingAndReading())
   {
-    if(Check_SafeDraw(false))
+    if(instancecount == 0 || Check_SafeDraw(false))
       GL.glDrawArraysInstanced(mode, first, count, instancecount);
 
     if(IsLoading(m_State))
@@ -1375,7 +1375,7 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstancedBaseInstance(SerialiserType &
 
   if(IsReplayingAndReading())
   {
-    if(Check_SafeDraw(false))
+    if(instancecount == 0 || count == 0 || Check_SafeDraw(false))
       GL.glDrawArraysInstancedBaseInstance(mode, first, count, instancecount, baseinstance);
 
     if(IsLoading(m_State))
@@ -1453,7 +1453,7 @@ bool WrappedOpenGL::Serialise_glDrawElements(SerialiserType &ser, GLenum mode, G
 
   if(IsReplayingAndReading())
   {
-    if(Check_SafeDraw(true))
+    if(count == 0 || Check_SafeDraw(true))
       GL.glDrawElements(mode, count, type, (const void *)indices);
 
     if(IsLoading(m_State))
@@ -1618,7 +1618,7 @@ bool WrappedOpenGL::Serialise_glDrawRangeElements(SerialiserType &ser, GLenum mo
 
   if(IsReplayingAndReading())
   {
-    if(Check_SafeDraw(true))
+    if(count == 0 || Check_SafeDraw(true))
       GL.glDrawRangeElements(mode, start, end, count, type, (const void *)indices);
 
     if(IsLoading(m_State))
@@ -1701,7 +1701,7 @@ bool WrappedOpenGL::Serialise_glDrawRangeElementsBaseVertex(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    if(Check_SafeDraw(true))
+    if(count == 0 || Check_SafeDraw(true))
       GL.glDrawRangeElementsBaseVertex(mode, start, end, count, type, (const void *)indices,
                                        basevertex);
 
@@ -1784,7 +1784,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsBaseVertex(SerialiserType &ser, GLen
 
   if(IsReplayingAndReading())
   {
-    if(Check_SafeDraw(true))
+    if(count == 0 || Check_SafeDraw(true))
       GL.glDrawElementsBaseVertex(mode, count, type, (const void *)indices, basevertex);
 
     if(IsLoading(m_State))
@@ -1864,7 +1864,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstanced(SerialiserType &ser, GLenu
 
   if(IsReplayingAndReading())
   {
-    if(Check_SafeDraw(true))
+    if(instancecount == 0 || count == 0 || Check_SafeDraw(true))
       GL.glDrawElementsInstanced(mode, count, type, (const void *)indices, instancecount);
 
     if(IsLoading(m_State))
@@ -1948,7 +1948,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseInstance(SerialiserType
 
   if(IsReplayingAndReading())
   {
-    if(Check_SafeDraw(true))
+    if(instancecount == 0 || count == 0 || Check_SafeDraw(true))
       GL.glDrawElementsInstancedBaseInstance(mode, count, type, (const void *)indices,
                                              instancecount, baseinstance);
 
@@ -2036,7 +2036,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertex(SerialiserType &
 
   if(IsReplayingAndReading())
   {
-    if(Check_SafeDraw(true))
+    if(instancecount == 0 || count == 0 || Check_SafeDraw(true))
       GL.glDrawElementsInstancedBaseVertex(mode, count, type, (const void *)indices, instancecount,
                                            basevertex);
 
@@ -2123,7 +2123,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertexBaseInstance(
 
   if(IsReplayingAndReading())
   {
-    if(Check_SafeDraw(true))
+    if(instancecount == 0 || count == 0 || Check_SafeDraw(true))
       GL.glDrawElementsInstancedBaseVertexBaseInstance(mode, count, type, (const void *)indices,
                                                        instancecount, basevertex, baseinstance);
 
@@ -2210,7 +2210,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(SerialiserType &ser, GLenum mode
   {
     if(IsLoading(m_State))
     {
-      if(Check_SafeDraw(false))
+      if(drawcount == 0 || count == 0 || Check_SafeDraw(false))
         GL.glMultiDrawArrays(mode, first, count, drawcount);
 
       DrawcallDescription draw;
@@ -2367,7 +2367,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(SerialiserType &ser, GLenum mo
 
     if(IsLoading(m_State))
     {
-      if(Check_SafeDraw(true))
+      if(drawcount == 0 || count == 0 || Check_SafeDraw(true))
         GL.glMultiDrawElements(mode, count, type, inds.data(), drawcount);
 
       uint32_t IdxSize = GetIdxSize(type);
@@ -2437,7 +2437,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(SerialiserType &ser, GLenum mo
         // if we're replaying part-way into a multidraw, we can replay the first part 'easily'
         // by just reducing the Count parameter to however many we want to replay. This only
         // works if we're replaying from the first multidraw to the nth (n less than Count)
-        if(Check_SafeDraw(true))
+        if(drawcount == 0 || count == 0 || Check_SafeDraw(true))
           GL.glMultiDrawElements(mode, count, type, inds.data(),
                                  RDCMIN((uint32_t)drawcount, m_LastEventID - baseEventID));
       }
@@ -2460,7 +2460,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(SerialiserType &ser, GLenum mo
         for(uint32_t d = 0; d < drawidx; d++)
           modcount[d] = 0;
 
-        if(Check_SafeDraw(true))
+        if(count == 0 || Check_SafeDraw(true))
           GL.glMultiDrawElements(mode, count, type, inds.data(), drawidx + 1);
       }
 
@@ -2537,7 +2537,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(SerialiserType &ser,
 
     if(IsLoading(m_State))
     {
-      if(Check_SafeDraw(true))
+      if(drawcount == 0 || count == 0 || Check_SafeDraw(true))
         GL.glMultiDrawElementsBaseVertex(mode, count, type, inds.data(), drawcount, basevertex);
 
       uint32_t IdxSize = GetIdxSize(type);
@@ -2607,7 +2607,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(SerialiserType &ser,
         // if we're replaying part-way into a multidraw, we can replay the first part 'easily'
         // by just reducing the Count parameter to however many we want to replay. This only
         // works if we're replaying from the first multidraw to the nth (n less than Count)
-        if(Check_SafeDraw(true))
+        if(count == 0 || Check_SafeDraw(true))
           GL.glMultiDrawElementsBaseVertex(mode, count, type, inds.data(),
                                            RDCMIN((uint32_t)drawcount, m_LastEventID - baseEventID),
                                            basevertex);
@@ -2631,7 +2631,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(SerialiserType &ser,
         for(uint32_t d = 0; d < drawidx; d++)
           modcount[d] = 0;
 
-        if(Check_SafeDraw(true))
+        if(count == 0 || Check_SafeDraw(true))
           GL.glMultiDrawElementsBaseVertex(mode, count, type, inds.data(), drawidx + 1, basevertex);
       }
 
@@ -2694,7 +2694,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
     {
       CheckReplayFunctionPresent(glMultiDrawArraysIndirect);
 
-      if(Check_SafeDraw(false))
+      if(drawcount == 0 || Check_SafeDraw(false))
         GL.glMultiDrawArraysIndirect(mode, (const void *)offset, drawcount, stride);
 
       DrawcallDescription draw;
@@ -2795,7 +2795,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
         // if we're replaying part-way into a multidraw, we can replay the first part 'easily'
         // by just reducing the Count parameter to however many we want to replay. This only
         // works if we're replaying from the first multidraw to the nth (n less than Count)
-        if(Check_SafeDraw(false))
+        if(drawcount == 0 || Check_SafeDraw(false))
           GL.glMultiDrawArraysIndirect(mode, (const void *)offset,
                                        RDCMIN((uint32_t)drawcount, m_LastEventID - baseEventID),
                                        stride);
@@ -2916,7 +2916,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
       GLRenderState state;
       state.FetchState(this);
 
-      if(Check_SafeDraw(true))
+      if(drawcount == 0 || Check_SafeDraw(true))
         GL.glMultiDrawElementsIndirect(mode, type, (const void *)offset, drawcount, stride);
 
       DrawcallDescription draw;
@@ -3145,7 +3145,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
     {
       CheckReplayFunctionPresent(glMultiDrawArraysIndirectCount);
 
-      if(Check_SafeDraw(false))
+      if(maxdrawcount == 0 || Check_SafeDraw(false))
         GL.glMultiDrawArraysIndirectCount(mode, (const void *)offset, (GLintptr)drawcount,
                                           maxdrawcount, stride);
 
@@ -3247,7 +3247,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
         // if we're replaying part-way into a multidraw, we can replay the first part 'easily'
         // by just reducing the Count parameter to however many we want to replay. This only
         // works if we're replaying from the first multidraw to the nth (n less than Count)
-        if(Check_SafeDraw(false))
+        if(maxdrawcount == 0 || Check_SafeDraw(false))
           GL.glMultiDrawArraysIndirect(mode, (const void *)offset,
                                        RDCMIN((uint32_t)realdrawcount, m_LastEventID - baseEventID),
                                        stride);
@@ -3376,7 +3376,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
     {
       CheckReplayFunctionPresent(glMultiDrawElementsIndirectCount);
 
-      if(Check_SafeDraw(true))
+      if(maxdrawcount == 0 || Check_SafeDraw(true))
         GL.glMultiDrawElementsIndirectCount(mode, type, (const void *)offset, (GLintptr)drawcount,
                                             maxdrawcount, stride);
 
@@ -3482,7 +3482,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
         // if we're replaying part-way into a multidraw, we can replay the first part 'easily'
         // by just reducing the Count parameter to however many we want to replay. This only
         // works if we're replaying from the first multidraw to the nth (n less than Count)
-        if(Check_SafeDraw(true))
+        if(maxdrawcount == 0 || Check_SafeDraw(true))
           GL.glMultiDrawElementsIndirect(
               mode, type, (const void *)offset,
               RDCMIN((uint32_t)realdrawcount, m_LastEventID - baseEventID), stride);
@@ -3533,7 +3533,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
 
           // the offset is 0 because it's referring to our custom buffer, stride is 0 because we
           // tightly pack.
-          if(Check_SafeDraw(true))
+          if(maxdrawcount == 0 || Check_SafeDraw(true))
             GL.glMultiDrawElementsIndirect(mode, type, (const void *)0, drawidx + 1, 0);
 
           GL.glBindBuffer(eGL_DRAW_INDIRECT_BUFFER, prevBuf);
