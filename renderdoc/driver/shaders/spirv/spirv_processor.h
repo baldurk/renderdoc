@@ -418,11 +418,15 @@ struct ExecutionModes
 struct EntryPoint
 {
   EntryPoint() = default;
-  EntryPoint(ExecutionModel e, Id i, rdcstr n) : executionModel(e), id(i), name(n) {}
+  EntryPoint(ExecutionModel e, Id i, rdcstr n, const rdcarray<Id> &ids)
+      : executionModel(e), id(i), name(n), usedIds(ids)
+  {
+  }
   ExecutionModel executionModel;
   Id id;
   rdcstr name;
   ExecutionModes executionModes;
+  rdcarray<Id> usedIds;
 
   bool operator<(const EntryPoint &o) const
   {

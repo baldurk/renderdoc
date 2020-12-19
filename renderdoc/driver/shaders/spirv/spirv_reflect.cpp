@@ -737,6 +737,15 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
     }
   }
 
+  if(m_MajorVersion > 1 || m_MinorVersion >= 4)
+  {
+    // from SPIR-V 1.4 onwards we can trust the entry point interface list to give us all used
+    // global variables. We still use the above heuristic so we can remove unused members of
+    // gl_PerVertex in structs.
+    usedIds.clear();
+    usedIds.insert(entry->usedIds.begin(), entry->usedIds.end());
+  }
+
   // arrays of elements, which can be appended to in any order and then sorted
   rdcarray<SigParameter> inputs;
   rdcarray<SigParameter> outputs;

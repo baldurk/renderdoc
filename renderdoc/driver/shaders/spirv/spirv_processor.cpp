@@ -524,7 +524,8 @@ void Processor::RegisterOp(Iter it)
   else if(opdata.op == Op::EntryPoint)
   {
     OpEntryPoint decoded(it);
-    entries.push_back(EntryPoint(decoded.executionModel, decoded.entryPoint, decoded.name));
+    entries.push_back(
+        EntryPoint(decoded.executionModel, decoded.entryPoint, decoded.name, decoded.iface));
   }
   else if(opdata.op == Op::ExecutionMode)
   {
