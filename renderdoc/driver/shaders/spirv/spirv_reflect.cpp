@@ -622,6 +622,8 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
     }
   }
 
+  bool multiEntryModule = entries.size() > 1;
+
   if(!entry)
   {
     RDCERR("Entry point %s not found in module", entryPoint.c_str());
@@ -633,7 +635,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
   {
     const EntryPoint &e = *entry;
 
-    if(entry->executionModes.localSizeId.x != Id())
+    if(e.executionModes.localSizeId.x != Id())
     {
       reflection.dispatchThreadsDimension[0] =
           EvaluateConstant(e.executionModes.localSizeId.x, specInfo).value.u32v[0];
@@ -794,6 +796,11 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
 
       const bool used = usedIds.find(global.id) != usedIds.end();
 
+      // if there are multiple entry points in this module only include signature parameters that
+      // are explicitly used.
+      if(multiEntryModule && !used)
+        continue;
+
       // we want to skip any members of the builtin interface block that are completely unused and
       // just came along for the ride (usually with gl_Position, but maybe declared and still
       // unused). This is meaningless in SPIR-V and just generates useless noise, but some compilers
@@ -918,7 +925,11 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
       bindmap.arraySize = isArray ? arraySize : 1;
       bindmap.used = usedIds.find(global.id) != usedIds.end();
 
-      if(atomicCounter)
+      if(multiEntryModule && !bindmap.used)
+      {
+        // ignore this variable that's not in the entry point's used interface
+      }
+      else if(atomicCounter)
       {
         // GL style atomic counter variable
         RDCASSERT(sourceAPI == GraphicsAPI::OpenGL);
