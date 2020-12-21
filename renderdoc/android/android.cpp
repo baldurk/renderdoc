@@ -413,7 +413,8 @@ ReplayStatus InstallRenderDocServer(const rdcstr &deviceID)
           "%s missing - ensure you build all ABIs your device can support for full compatibility",
           apk.c_str());
 
-    Process::ProcessResult adbInstall = adbExecCommand(deviceID, "install -r -g \"" + apk + "\"");
+    Process::ProcessResult adbInstall =
+        adbExecCommand(deviceID, "install -r -g --force-queryable \"" + apk + "\"");
 
     RDCLOG("Installed package '%s', checking for success...", apk.c_str());
 
