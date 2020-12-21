@@ -413,8 +413,20 @@ ReplayStatus InstallRenderDocServer(const rdcstr &deviceID)
           "%s missing - ensure you build all ABIs your device can support for full compatibility",
           apk.c_str());
 
-    Process::ProcessResult adbInstall =
-        adbExecCommand(deviceID, "install -r -g --force-queryable \"" + apk + "\"");
+    rdcstr api =
+        Android::adbExecCommand(deviceID, "shell getprop ro.build.version.sdk").strStdout.trimmed();
+
+    int apiVersion = atoi(api.c_str());
+
+    Process::ProcessResult adbInstall;
+    if(apiVersion >= 30)
+    {
+      adbInstall = adbExecCommand(deviceID, "install -r -g --force-queryable \"" + apk + "\"");
+    }
+    else
+    {
+      adbInstall = adbExecCommand(deviceID, "install -r -g \"" + apk + "\"");
+    }
 
     RDCLOG("Installed package '%s', checking for success...", apk.c_str());
 
