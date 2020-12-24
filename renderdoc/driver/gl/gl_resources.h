@@ -29,6 +29,7 @@
 #include "gl_common.h"
 
 size_t GetCompressedByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum internalformat);
+rdcpair<uint32_t, uint32_t> GetCompressedBlockSize(GLenum internalformat);
 size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type);
 GLenum GetBaseFormat(GLenum internalFormat);
 GLenum GetDataType(GLenum internalFormat);
