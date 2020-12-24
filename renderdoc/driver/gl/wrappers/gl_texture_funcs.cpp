@@ -1324,7 +1324,7 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
 
     if(dstrecord)
       GetResourceManager()->MarkResourceFrameReferenced(dstrecord->GetResourceID(),
-                                                        eFrameRef_CompleteWrite);
+                                                        eFrameRef_PartialWrite);
   }
 
   SERIALISE_TIME_CALL(GL.glCopyImageSubData(srcName, srcTarget, srcLevel, srcX, srcY, srcZ, dstName,
@@ -1352,7 +1352,7 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
     GetContextRecord()->AddChunk(scope.Get());
     GetResourceManager()->MarkDirtyResource(dstrecord->GetResourceID());
     GetResourceManager()->MarkResourceFrameReferenced(dstrecord->GetResourceID(),
-                                                      eFrameRef_CompleteWrite);
+                                                      eFrameRef_PartialWrite);
     GetResourceManager()->MarkResourceFrameReferenced(srcrecord->GetResourceID(), eFrameRef_Read);
   }
   else if(IsBackgroundCapturing(m_State))
@@ -1372,22 +1372,69 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
       {
         TextureData &dstData = m_Textures[dstrecord->GetResourceID()];
 
-        if(srcX == 0 || srcY == 0 || srcZ == 0 || dstX == 0 || dstY == 0 || dstZ == 0)
+        GLsizei srcLevelWidth = RDCMAX(1, srcData.width >> srcLevel);
+        GLsizei srcLevelHeight = (srcData.curType != eGL_TEXTURE_1D_ARRAY)
+                                     ? RDCMAX(1, srcData.height >> srcLevel)
+                                     : srcData.height;
+        GLsizei srcLevelDepth = (srcData.curType != eGL_TEXTURE_2D_ARRAY &&
+                                 srcData.curType != eGL_TEXTURE_CUBE_MAP_ARRAY)
+                                    ? RDCMAX(1, srcData.depth >> srcLevel)
+                                    : srcData.depth;
+
+        GLsizei dstLevelWidth = RDCMAX(1, dstData.width >> dstLevel);
+        GLsizei dstLevelHeight = (dstData.curType != eGL_TEXTURE_1D_ARRAY)
+                                     ? RDCMAX(1, dstData.height >> dstLevel)
+                                     : dstData.height;
+        GLsizei dstLevelDepth = (dstData.curType != eGL_TEXTURE_2D_ARRAY &&
+                                 dstData.curType != eGL_TEXTURE_CUBE_MAP_ARRAY)
+                                    ? RDCMAX(1, dstData.depth >> dstLevel)
+                                    : dstData.depth;
+        if(srcX == 0 && srcY == 0 && srcZ == 0 && dstX == 0 && dstY == 0 && dstZ == 0 &&
+           srcLevelWidth == dstLevelWidth && srcLevelHeight == dstLevelHeight &&
+           srcLevelDepth == dstLevelDepth)
         {
-          // we only support whole copies - sub-copies will not work correctly.
-          RDCASSERT(srcWidth == RDCMAX(1, srcData.width >> srcLevel));
-          RDCASSERT(srcHeight == RDCMAX(1, srcData.height >> srcLevel));
-          RDCASSERT(srcDepth == RDCMAX(1, srcData.depth >> srcLevel));
-
-          RDCASSERT(srcWidth == RDCMAX(1, dstData.width >> dstLevel));
-          RDCASSERT(srcHeight == RDCMAX(1, dstData.height >> dstLevel));
-          RDCASSERT(srcDepth == RDCMAX(1, dstData.depth >> dstLevel));
-
           dstData.compressedData[dstLevel] = srcData.compressedData[srcLevel];
         }
         else
         {
-          RDCWARN("glCopyImageSubData doesn't support offsetted copies of compressed data");
+          size_t srcSliceSize =
+              GetCompressedByteSize(srcLevelWidth, srcLevelHeight, 1, srcData.internalFormat);
+          size_t dstSliceSize =
+              GetCompressedByteSize(dstLevelWidth, dstLevelHeight, 1, dstData.internalFormat);
+          rdcpair<uint32_t, uint32_t> srcBlockSize = GetCompressedBlockSize(srcData.internalFormat);
+          rdcpair<uint32_t, uint32_t> dstBlockSize = GetCompressedBlockSize(dstData.internalFormat);
+
+          RDCASSERT(srcWidth % srcBlockSize.first == 0);
+          RDCASSERT(srcWidth % dstBlockSize.first == 0);
+          RDCASSERT(srcHeight % srcBlockSize.second == 0);
+          RDCASSERT(srcHeight % dstBlockSize.second == 0);
+          for(size_t z = 0; z < (size_t)srcDepth; z++)
+          {
+            size_t srcLineSize = GetCompressedByteSize(srcLevelWidth, (GLsizei)srcBlockSize.second,
+                                                       1, srcData.internalFormat);
+            size_t dstLineSize = GetCompressedByteSize(dstLevelWidth, (GLsizei)dstBlockSize.second,
+                                                       1, dstData.internalFormat);
+            size_t srcOffset =
+                srcSliceSize * (srcZ + z) + srcLineSize * (srcY / (GLsizei)srcBlockSize.second);
+            srcOffset +=
+                GetCompressedByteSize(srcX, (GLsizei)srcBlockSize.second, 1, srcData.internalFormat);
+            size_t dstOffset =
+                dstSliceSize * (dstZ + z) + dstLineSize * (dstY / (GLsizei)dstBlockSize.second);
+            dstOffset +=
+                GetCompressedByteSize(dstX, (GLsizei)dstBlockSize.second, 1, dstData.internalFormat);
+            size_t blockSize = GetCompressedByteSize(srcWidth, (GLsizei)dstBlockSize.second, 1,
+                                                     srcData.internalFormat);
+            bytebuf &srcCd = srcData.compressedData[srcLevel];
+            bytebuf &dstCd = dstData.compressedData[dstLevel];
+            for(size_t y = 0; y < (size_t)srcHeight; y += srcBlockSize.second)
+            {
+              if(dstCd.size() < dstOffset + blockSize || srcCd.size() < srcOffset + blockSize)
+                break;
+              memcpy(dstCd.data() + dstOffset, srcCd.data() + srcOffset, blockSize);
+              srcOffset += srcLineSize;
+              dstOffset += dstLineSize;
+            }
+          }
         }
       }
     }
