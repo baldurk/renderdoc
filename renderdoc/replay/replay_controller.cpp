@@ -1064,7 +1064,14 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const rdcstr &pa
   }
 
   // handle formats that don't support alpha
-  if(numComps == 4 && (sd.destType == FileType::BMP || sd.destType == FileType::JPG))
+  if((sd.destType == FileType::BMP || sd.destType == FileType::JPG) &&
+     sd.alpha == AlphaMapping::Preserve)
+  {
+    sd.alpha = AlphaMapping::BlendToColor;
+  }
+
+  // convert alpha if necessary
+  if(numComps == 4 && sd.alpha != AlphaMapping::Preserve)
   {
     byte *nonalpha = new byte[td.width * td.height * 3];
 
