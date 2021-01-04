@@ -2888,17 +2888,15 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       GlobalState::UAVIterator uav = global.uavs.find(slot);
       if(uav == global.uavs.end())
       {
-        if(!apiWrapper->FetchUAV(slot))
-        {
-          RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
-          return;
-        }
+        apiWrapper->FetchUAV(slot);
         uav = global.uavs.find(slot);
       }
 
       MarkResourceAccess(state, TYPE_UNORDERED_ACCESS_VIEW, slot);
 
-      uint32_t count = uav->second.hiddenCounter++;
+      // if it's not a buffer or the buffer is empty this UAV is NULL/invalid, return 0 for the
+      // counter
+      uint32_t count = uav->second.data.empty() ? 0 : uav->second.hiddenCounter++;
       SetDst(state, op.operands[0], op, ShaderVariable("", count, count, count, count));
       break;
     }
@@ -2910,17 +2908,15 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       GlobalState::UAVIterator uav = global.uavs.find(slot);
       if(uav == global.uavs.end())
       {
-        if(!apiWrapper->FetchUAV(slot))
-        {
-          RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
-          return;
-        }
+        apiWrapper->FetchUAV(slot);
         uav = global.uavs.find(slot);
       }
 
       MarkResourceAccess(state, TYPE_UNORDERED_ACCESS_VIEW, slot);
 
-      uint32_t count = --uav->second.hiddenCounter;
+      // if it's not a buffer or the buffer is empty this UAV is NULL/invalid, return 0 for the
+      // counter
+      uint32_t count = uav->second.data.empty() ? 0 : --uav->second.hiddenCounter;
       SetDst(state, op.operands[0], op, ShaderVariable("", count, count, count, count));
       break;
     }
@@ -3039,11 +3035,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
         GlobalState::UAVIterator uav = global.uavs.find(slot);
         if(uav == global.uavs.end())
         {
-          if(!apiWrapper->FetchUAV(slot))
-          {
-            RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
-            return;
-          }
+          apiWrapper->FetchUAV(slot);
           uav = global.uavs.find(slot);
         }
 
@@ -3297,11 +3289,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           GlobalState::SRVIterator srvIter = global.srvs.find(slot);
           if(srvIter == global.srvs.end())
           {
-            if(!apiWrapper->FetchSRV(slot))
-            {
-              RDCERR("Invalid SRV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
-              return;
-            }
+            apiWrapper->FetchSRV(slot);
             srvIter = global.srvs.find(slot);
           }
 
@@ -3317,11 +3305,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           GlobalState::UAVIterator uavIter = global.uavs.find(slot);
           if(uavIter == global.uavs.end())
           {
-            if(!apiWrapper->FetchUAV(slot))
-            {
-              RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
-              return;
-            }
+            apiWrapper->FetchUAV(slot);
             uavIter = global.uavs.find(slot);
           }
 
@@ -3888,12 +3872,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           GlobalState::SRVIterator srv = global.srvs.find(resourceBinding);
           if(srv == global.srvs.end())
           {
-            if(!apiWrapper->FetchSRV(resourceBinding))
-            {
-              RDCERR("Invalid SRV reg=%u, space=%u", resourceBinding.shaderRegister,
-                     resourceBinding.registerSpace);
-              return;
-            }
+            apiWrapper->FetchSRV(resourceBinding);
             srv = global.srvs.find(resourceBinding);
           }
 
@@ -3910,7 +3889,8 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           {
             result = ShaderVariable("", 0.0f, 0.0f, 0.0f, 0.0f);
 
-            if(srcOpers[0].value.u32v[0] < numElems)
+            if(srcOpers[0].value.u32v[0] < numElems &&
+               data + srcOpers[0].value.u32v[0] * fmt.Stride() <= srv->second.data.end())
               result = TypedUAVLoad(fmt, data + srcOpers[0].value.u32v[0] * fmt.Stride());
           }
 
@@ -4382,11 +4362,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       GlobalState::UAVIterator uav = global.uavs.find(slot);
       if(uav == global.uavs.end())
       {
-        if(!apiWrapper->FetchUAV(slot))
-        {
-          RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
-          return;
-        }
+        apiWrapper->FetchUAV(slot);
         uav = global.uavs.find(slot);
       }
 

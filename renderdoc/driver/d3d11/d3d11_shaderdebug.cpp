@@ -60,8 +60,8 @@ public:
   void SetCurrentInstruction(uint32_t instruction) { m_instruction = instruction; }
   void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d);
 
-  bool FetchSRV(const DXBCDebug::BindingSlot &slot);
-  bool FetchUAV(const DXBCDebug::BindingSlot &slot);
+  void FetchSRV(const DXBCDebug::BindingSlot &slot);
+  void FetchUAV(const DXBCDebug::BindingSlot &slot);
 
   bool CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcode, const ShaderVariable &input,
                               ShaderVariable &output1, ShaderVariable &output2);
@@ -117,7 +117,7 @@ void D3D11DebugAPIWrapper::AddDebugMessage(MessageCategory c, MessageSeverity sv
   m_pDevice->AddDebugMessage(c, sv, src, d);
 }
 
-bool D3D11DebugAPIWrapper::FetchSRV(const DXBCDebug::BindingSlot &slot)
+void D3D11DebugAPIWrapper::FetchSRV(const DXBCDebug::BindingSlot &slot)
 {
   RDCASSERT(slot.registerSpace == 0);
   RDCASSERT(slot.shaderRegister < D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT);
@@ -131,19 +131,19 @@ bool D3D11DebugAPIWrapper::FetchSRV(const DXBCDebug::BindingSlot &slot)
   else if(GetShaderType() == DXBC::ShaderType::Compute)
     pSRV = rs->CS.SRVs[slot.shaderRegister];
 
+  DXBCDebug::GlobalState::SRVData &srvData = m_globalState.srvs[slot];
+
   if(!pSRV)
-    return false;
+    return;
 
   ID3D11Resource *res = NULL;
   pSRV->GetResource(&res);
 
   if(!res)
-    return false;
+    return;
 
   D3D11_SHADER_RESOURCE_VIEW_DESC sdesc;
   pSRV->GetDesc(&sdesc);
-
-  DXBCDebug::GlobalState::SRVData &srvData = m_globalState.srvs[slot];
 
   if(sdesc.Format != DXGI_FORMAT_UNKNOWN)
   {
@@ -189,10 +189,9 @@ bool D3D11DebugAPIWrapper::FetchSRV(const DXBCDebug::BindingSlot &slot)
   }
 
   SAFE_RELEASE(res);
-  return true;
 }
 
-bool D3D11DebugAPIWrapper::FetchUAV(const DXBCDebug::BindingSlot &slot)
+void D3D11DebugAPIWrapper::FetchUAV(const DXBCDebug::BindingSlot &slot)
 {
   // if the UAV might be dirty from side-effects from the draw, replay back to right
   // before it.
@@ -214,13 +213,14 @@ bool D3D11DebugAPIWrapper::FetchUAV(const DXBCDebug::BindingSlot &slot)
   else if(GetShaderType() == DXBC::ShaderType::Compute)
     pUAV = rs->CSUAVs[slot.shaderRegister];
 
+  DXBCDebug::GlobalState::UAVData &uavData = m_globalState.uavs[slot];
+
   if(!pUAV)
-    return false;
+    return;
 
   ID3D11Resource *res = NULL;
   pUAV->GetResource(&res);
 
-  DXBCDebug::GlobalState::UAVData &uavData = m_globalState.uavs[slot];
   uavData.hiddenCounter = m_pDevice->GetDebugManager()->GetStructCount(pUAV);
 
   D3D11_UNORDERED_ACCESS_VIEW_DESC udesc;
@@ -417,8 +417,6 @@ bool D3D11DebugAPIWrapper::FetchUAV(const DXBCDebug::BindingSlot &slot)
   }
 
   SAFE_RELEASE(res);
-
-  return true;
 }
 
 ShaderVariable D3D11DebugAPIWrapper::GetSampleInfo(DXBCBytecode::OperandType type,

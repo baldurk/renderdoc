@@ -245,8 +245,8 @@ public:
   // During shader debugging, when a new resource is encountered, this will be called to fetch the
   // data on demand. Return true if the ShaderDebug::GlobalState data for the slot is populated,
   // return false if the resource cannot be found.
-  virtual bool FetchSRV(const BindingSlot &slot) = 0;
-  virtual bool FetchUAV(const BindingSlot &slot) = 0;
+  virtual void FetchSRV(const BindingSlot &slot) = 0;
+  virtual void FetchUAV(const BindingSlot &slot) = 0;
 
   virtual bool CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcode, const ShaderVariable &input,
                                       ShaderVariable &output1, ShaderVariable &output2) = 0;
