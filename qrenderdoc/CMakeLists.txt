@@ -113,9 +113,19 @@ if(APPLE)
 endif()
 
 set( GENERATOR_MAKE "$(MAKE)" )
+set( GENERATOR_MAKE_PARAMS "" )
 if( CMAKE_MAKE_PROGRAM MATCHES "ninja$" )
     message( "Ninja detected. Some projects compiled using add_custom_command like swig and QRenderDoc target will still be using make" )
     set( GENERATOR_MAKE "make" )
+
+    include(ProcessorCount)
+    ProcessorCount(PROC_COUNT)
+    if(NOT PROC_COUNT EQUAL 0)
+        message( "Running make with -j${PROC_COUNT} for parallel build" )
+        set(GENERATOR_MAKE_PARAMS "-j${PROC_COUNT}")
+    else()
+        message(WARNING "!!!! Couldn't determine processor count. Make will be run non-parallel !!!!")
+    endif()
 endif()
 
 # Compile our custom SWIG that will do scoped/strong enum classes
@@ -125,7 +135,7 @@ ExternalProject_Add(custom_swig
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND ./autogen.sh > /dev/null 2>&1
     COMMAND CC=${SWIG_CONFIGURE_CC} CXX=${SWIG_CONFIGURE_CXX} CFLAGS=-fPIC CXXFLAGS=-fPIC ./configure --with-pcre=yes --prefix=${CMAKE_BINARY_DIR} > /dev/null
-    BUILD_COMMAND ${GENERATOR_MAKE} > /dev/null 2>&1
+    BUILD_COMMAND ${GENERATOR_MAKE} ${GENERATOR_MAKE_PARAMS} > /dev/null 2>&1
     INSTALL_COMMAND ${GENERATOR_MAKE} install > /dev/null 2>&1)
 
 find_package(Shiboken2 QUIET)
@@ -289,7 +299,7 @@ if(ENABLE_QRENDERDOC)
 # can do dependency checking and rebuild anything necessary.
 add_custom_command(OUTPUT QRenderDoc
     COMMAND ${QMAKE_QT5_COMMAND} "CMAKE_DIR=${CMAKE_BINARY_DIR}" ${CMAKE_CURRENT_SOURCE_DIR}
-    COMMAND ${GENERATOR_MAKE}
+    COMMAND ${GENERATOR_MAKE} ${GENERATOR_MAKE_PARAMS}
     DEPENDS RenderDoc.icns)
 add_custom_target(build-qrenderdoc ALL DEPENDS QRenderDoc DEPENDS renderdoc DEPENDS swig-bindings)
 
