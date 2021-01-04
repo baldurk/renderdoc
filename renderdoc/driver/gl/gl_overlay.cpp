@@ -999,6 +999,24 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
       {
         ResourceId id = m_pDriver->GetResourceManager()->GetResID(RenderbufferRes(ctx, curDepth));
         fmt = m_pDriver->m_Textures[id].internalFormat;
+
+        GLint depth = 0;
+        GLint stencil = 0;
+        GL.glGetNamedRenderbufferParameterivEXT(curDepth, eGL_RENDERBUFFER_DEPTH_SIZE, &depth);
+        GL.glGetNamedRenderbufferParameterivEXT(curDepth, eGL_RENDERBUFFER_STENCIL_SIZE, &stencil);
+
+        if(depth == 16 && stencil == 0)
+          fmt = eGL_DEPTH_COMPONENT16;
+        else if(depth == 24 && stencil == 0)
+          fmt = eGL_DEPTH_COMPONENT24;
+        else if(depth == 24 && stencil == 8)
+          fmt = eGL_DEPTH24_STENCIL8;
+        else if(depth == 32 && stencil == 0)
+          fmt = eGL_DEPTH_COMPONENT32F;
+        else if(depth == 32 && stencil == 8)
+          fmt = eGL_DEPTH32F_STENCIL8;
+        else if(depth == 0 && stencil == 8)
+          fmt = eGL_STENCIL_INDEX8;
       }
 
       if(copyBindingEnum == eGL_TEXTURE_CUBE_MAP)
@@ -1088,6 +1106,24 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
       {
         ResourceId id = m_pDriver->GetResourceManager()->GetResID(RenderbufferRes(ctx, curDepth));
         fmt = m_pDriver->m_Textures[id].internalFormat;
+
+        GLint depth = 0;
+        GLint stencil = 0;
+        GL.glGetNamedRenderbufferParameterivEXT(curDepth, eGL_RENDERBUFFER_DEPTH_SIZE, &depth);
+        GL.glGetNamedRenderbufferParameterivEXT(curDepth, eGL_RENDERBUFFER_STENCIL_SIZE, &stencil);
+
+        if(depth == 16 && stencil == 0)
+          fmt = eGL_DEPTH_COMPONENT16;
+        else if(depth == 24 && stencil == 0)
+          fmt = eGL_DEPTH_COMPONENT24;
+        else if(depth == 24 && stencil == 8)
+          fmt = eGL_DEPTH24_STENCIL8;
+        else if(depth == 32 && stencil == 0)
+          fmt = eGL_DEPTH_COMPONENT32F;
+        else if(depth == 32 && stencil == 8)
+          fmt = eGL_DEPTH32F_STENCIL8;
+        else if(depth == 0 && stencil == 8)
+          fmt = eGL_STENCIL_INDEX8;
       }
 
       GLuint curTex = 0;
