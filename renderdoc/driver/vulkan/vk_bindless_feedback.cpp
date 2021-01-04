@@ -640,6 +640,10 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   else
     m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(graphicsInfo, state.graphics.pipeline);
 
+  graphicsInfo.renderPass =
+      creationInfo.m_RenderPass[GetResID(graphicsInfo.renderPass)].loadRPs[graphicsInfo.subpass];
+  graphicsInfo.subpass = 0;
+
   if(feedbackStorageSize > m_BindlessFeedback.FeedbackBuffer.sz)
   {
     uint32_t flags = GPUBuffer::eGPUBufferGPULocal | GPUBuffer::eGPUBufferSSBO;
