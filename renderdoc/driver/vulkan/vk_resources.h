@@ -1112,6 +1112,7 @@ struct MemMapState
 {
   VkBuffer wholeMemBuf = VK_NULL_HANDLE;
   VkDeviceSize mapOffset = 0, mapSize = 0;
+  bool dedicated = false;
   bool needRefData = false;
   bool mapFlushed = false;
   bool mapCoherent = false;
@@ -2160,6 +2161,7 @@ public:
   VkDeviceSize memSize;
   VkResourceType resType;
   bool storable = false;
+  bool dedicated = false;
 
   void MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSize offset, VkDeviceSize size,
                                  FrameRefType refType);

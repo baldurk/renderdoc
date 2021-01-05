@@ -3824,8 +3824,12 @@ void VkResourceRecord::MarkImageFrameReferenced(VkResourceRecord *img, const Ima
 {
   ResourceId id = img->GetResourceID();
 
-  // mark backing memory
-  MarkResourceFrameReferenced(img->baseResource, refType);
+  // mark backing memory. For dedicated images we always treat the memory as read only so
+  // we don't try and include its initial contents.
+  if(img->dedicated)
+    MarkResourceFrameReferenced(img->baseResource, eFrameRef_Read);
+  else
+    MarkResourceFrameReferenced(img->baseResource, refType);
 
   if(img->resInfo && img->resInfo->IsSparse())
     cmdInfo->sparse.insert(img->resInfo);
@@ -3849,8 +3853,12 @@ void VkResourceRecord::MarkImageViewFrameReferenced(VkResourceRecord *view, cons
   // mark image view as read
   MarkResourceFrameReferenced(view->GetResourceID(), eFrameRef_Read);
 
-  // mark memory backing image
-  MarkResourceFrameReferenced(mem, refType);
+  // mark memory backing image. For dedicated images we always treat the memory as read only so
+  // we don't try and include its initial contents.
+  if(view->dedicated)
+    MarkResourceFrameReferenced(mem, eFrameRef_Read);
+  else
+    MarkResourceFrameReferenced(mem, refType);
 
   ImageSubresourceRange imgRange;
   imgRange.aspectMask = view->viewRange.aspectMask;

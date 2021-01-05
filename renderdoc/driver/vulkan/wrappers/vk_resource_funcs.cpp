@@ -478,6 +478,12 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
   {
     ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pMemory);
 
+    VkMemoryDedicatedAllocateInfo *dedicated = (VkMemoryDedicatedAllocateInfo *)FindNextStruct(
+        pAllocateInfo, VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO);
+    VkDedicatedAllocationMemoryAllocateInfoNV *dedicatedNV =
+        (VkDedicatedAllocationMemoryAllocateInfoNV *)FindNextStruct(
+            pAllocateInfo, VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_MEMORY_ALLOCATE_INFO_NV);
+
     // create a buffer with the whole memory range bound, for copying to and from
     // conveniently (for initial state data)
     VkBuffer wholeMemBuf = VK_NULL_HANDLE;
@@ -504,20 +510,51 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
         bufInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     }
 
-    ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &bufInfo, NULL, &wholeMemBuf);
-    RDCASSERTEQUAL(ret, VK_SUCCESS);
+    VkDeviceSize memSize = info.allocationSize;
+    ResourceId bufid;
 
-    // we already validated above that the memory size is aligned/etc as necessary so we can
-    // create a buffer of the whole size, but just to keep the validation layers happy let's check
-    // the requirements here again.
-    VkMemoryRequirements mrq = {};
-    ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), wholeMemBuf, &mrq);
+    if(dedicated)
+    {
+      // either set the buffer that's dedicated, or if this is dedicated image memory set NULL
+      wholeMemBuf = dedicated->buffer;
 
-    RDCASSERTEQUAL(mrq.size, info.allocationSize);
+      VkDeviceSize bufSize = m_CreationInfo.m_Buffer[GetResID(dedicated->buffer)].size;
+      if(memSize > bufSize)
+      {
+        RDCDEBUG("Truncating memory size %llu to dedicated buffer size %llu for %s", memSize,
+                 bufSize, ToStr(id).c_str());
+        memSize = bufSize;
+      }
+    }
+    else if(dedicatedNV)
+    {
+      wholeMemBuf = dedicatedNV->buffer;
 
-    ResourceId bufid = GetResourceManager()->WrapResource(Unwrap(device), wholeMemBuf);
+      VkDeviceSize bufSize = m_CreationInfo.m_Buffer[GetResID(dedicatedNV->buffer)].size;
+      if(memSize > bufSize)
+      {
+        RDCDEBUG("Truncating memory size %llu to dedicated buffer size %llu for %s", memSize,
+                 bufSize, ToStr(id).c_str());
+        memSize = bufSize;
+      }
+    }
+    else
+    {
+      ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &bufInfo, NULL, &wholeMemBuf);
+      RDCASSERTEQUAL(ret, VK_SUCCESS);
 
-    ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(wholeMemBuf), Unwrap(*pMemory), 0);
+      // we already validated above that the memory size is aligned/etc as necessary so we can
+      // create a buffer of the whole size, but just to keep the validation layers happy let's check
+      // the requirements here again.
+      VkMemoryRequirements mrq = {};
+      ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), wholeMemBuf, &mrq);
+
+      RDCASSERTEQUAL(mrq.size, info.allocationSize);
+
+      bufid = GetResourceManager()->WrapResource(Unwrap(device), wholeMemBuf);
+
+      ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(wholeMemBuf), Unwrap(*pMemory), 0);
+    }
 
     if(IsCaptureMode(m_State))
     {
@@ -571,13 +608,14 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
 
       record->AddChunk(chunk);
 
-      record->Length = info.allocationSize;
+      record->Length = memSize;
 
       uint32_t memProps =
           m_PhysicalDeviceData.memProps.memoryTypes[info.memoryTypeIndex].propertyFlags;
 
       record->memMapState = new MemMapState();
       record->memMapState->wholeMemBuf = wholeMemBuf;
+      record->memMapState->dedicated = dedicated != NULL || dedicatedNV != NULL;
 
       // if memory is not host visible, so not mappable, don't create map state at all
       if((memProps & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0)
@@ -603,8 +641,11 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
 
       m_CreationInfo.m_Memory[id].Init(GetResourceManager(), m_CreationInfo, &info);
 
-      // register as a live-only resource, so it is cleaned up properly
-      GetResourceManager()->AddLiveResource(bufid, wholeMemBuf);
+      if(dedicated == NULL && dedicatedNV == NULL)
+      {
+        // register as a live-only resource, so it is cleaned up properly
+        GetResourceManager()->AddLiveResource(bufid, wholeMemBuf);
+      }
 
       m_CreationInfo.m_Memory[id].wholeMemBuf = wholeMemBuf;
     }
@@ -651,7 +692,8 @@ void WrappedVulkan::vkFreeMemory(VkDevice device, VkDeviceMemory memory,
         memMapState->refData = NULL;
       }
 
-      // destroy the wholeMemBuf
+      // destroy the wholeMemBuf if it's one we allocated ourselves
+      if(!memMapState->dedicated)
       {
         ObjDisp(device)->DestroyBuffer(Unwrap(device), Unwrap(memMapState->wholeMemBuf), NULL);
         GetResourceManager()->ReleaseWrappedResource(memMapState->wholeMemBuf);
@@ -713,7 +755,8 @@ VkResult WrappedVulkan::vkMapMemory(VkDevice device, VkDeviceMemory mem, VkDevic
       state.refData = NULL;
 
       state.mapOffset = offset;
-      state.mapSize = size == VK_WHOLE_SIZE ? (memrecord->Length - offset) : size;
+      state.mapSize = size == VK_WHOLE_SIZE ? (memrecord->Length - offset)
+                                            : RDCMIN(memrecord->Length - offset, size);
       state.mapFlushed = false;
 
       *ppData = realData + misalignedOffset;
@@ -1287,6 +1330,7 @@ VkResult WrappedVulkan::vkBindBufferMemory(VkDevice device, VkBuffer buffer, VkD
 
     record->AddParent(memrecord);
     record->baseResource = id;
+    record->dedicated = memrecord->memMapState->dedicated;
     record->memOffset = memoryOffset;
 
     memrecord->storable |= record->storable;
@@ -1406,12 +1450,15 @@ VkResult WrappedVulkan::vkBindImageMemory(VkDevice device, VkImage image, VkDevi
     // to memory mid-frame
     record->AddChunk(chunk);
 
-    record->AddParent(GetRecord(mem));
+    VkResourceRecord *memrecord = GetRecord(mem);
+
+    record->AddParent(memrecord);
 
     // images are a base resource but we want to track where their memory comes from.
     // Anything that looks up a baseResource for an image knows not to chase further
     // than the image.
-    record->baseResource = GetResID(mem);
+    record->baseResource = memrecord->GetResourceID();
+    record->dedicated = memrecord->memMapState->dedicated;
   }
   else
   {
@@ -1799,6 +1846,7 @@ VkResult WrappedVulkan::vkCreateBufferView(VkDevice device, const VkBufferViewCr
       // store the base resource
       record->baseResource = bufferRecord->GetResourceID();
       record->baseResourceMem = bufferRecord->baseResource;
+      record->dedicated = bufferRecord->dedicated;
       record->resInfo = bufferRecord->resInfo;
       record->memOffset = bufferRecord->memOffset + pCreateInfo->offset;
       record->memSize = pCreateInfo->range;
@@ -2337,6 +2385,7 @@ VkResult WrappedVulkan::vkCreateImageView(VkDevice device, const VkImageViewCrea
       // to their memory, which we will also need so we store that separately
       record->baseResource = imageRecord->GetResourceID();
       record->baseResourceMem = imageRecord->baseResource;
+      record->dedicated = imageRecord->dedicated;
       record->resInfo = imageRecord->resInfo;
       record->viewRange = pCreateInfo->subresourceRange;
       record->viewRange.setViewType(pCreateInfo->viewType);
@@ -2457,6 +2506,7 @@ VkResult WrappedVulkan::vkBindBufferMemory2(VkDevice device, uint32_t bindInfoCo
 
       bufrecord->AddParent(memrecord);
       bufrecord->baseResource = memrecord->GetResourceID();
+      bufrecord->dedicated = memrecord->memMapState->dedicated;
       bufrecord->memOffset = pBindInfos[i].memoryOffset;
 
       memrecord->storable |= bufrecord->storable;
@@ -2591,6 +2641,7 @@ VkResult WrappedVulkan::vkBindImageMemory2(VkDevice device, uint32_t bindInfoCou
       // Anything that looks up a baseResource for an image knows not to chase further
       // than the image.
       imgrecord->baseResource = memrecord->GetResourceID();
+      imgrecord->dedicated = memrecord->memMapState->dedicated;
     }
   }
   else

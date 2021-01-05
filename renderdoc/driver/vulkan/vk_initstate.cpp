@@ -1810,7 +1810,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
     VkDeviceSize dstBufSize = RDCMIN(initial.mem.size, m_CreationInfo.m_Memory[id].wholeMemBufSize);
     if(dstBuf == VK_NULL_HANDLE)
     {
-      RDCERR("Whole memory buffer not present for %s", ToStr(id).c_str());
+      RDCERR("Whole memory buffer not present for %s", ToStr(orig).c_str());
       return;
     }
 
