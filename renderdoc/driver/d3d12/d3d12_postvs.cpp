@@ -978,6 +978,20 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
           list->DrawInstanced(drawcall->numIndices, inst, drawcall->vertexOffset,
                               drawcall->instanceOffset);
         }
+
+        // Instanced draws with a wild number of instances can hang the GPU, sync after every 1000
+        if((inst % 1000) == 0)
+        {
+          list->Close();
+
+          l = list;
+          m_pDevice->GetQueue()->ExecuteCommandLists(1, &l);
+          m_pDevice->GPUSync();
+
+          GetDebugManager()->ResetDebugAlloc();
+
+          list = GetDebugManager()->ResetDebugList();
+        }
       }
 
       list->Close();
