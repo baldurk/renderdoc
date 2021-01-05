@@ -23,8 +23,12 @@
  ******************************************************************************/
 
 #include "d3d12_command_queue.h"
+#include "core/settings.h"
 #include "d3d12_command_list.h"
 #include "d3d12_resources.h"
+
+RDOC_CONFIG(bool, D3D12_HideCommandBoundaries, false,
+            "Hides the auto-generated submitted command list boundaries.");
 
 template <typename SerialiserType>
 bool WrappedID3D12CommandQueue::Serialise_UpdateTileMappings(
@@ -181,16 +185,19 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
 
         // add a fake marker
         DrawcallDescription draw;
-        draw.name =
-            StringFormat::Fmt("=> %s[%u]: Reset(%s)", basename.c_str(), c, ToStr(cmd).c_str());
-        draw.flags = DrawFlags::PassBoundary | DrawFlags::BeginPass;
-        m_Cmd.AddEvent();
+        if(!D3D12_HideCommandBoundaries())
+        {
+          draw.name =
+              StringFormat::Fmt("=> %s[%u]: Reset(%s)", basename.c_str(), c, ToStr(cmd).c_str());
+          draw.flags = DrawFlags::PassBoundary | DrawFlags::BeginPass;
+          m_Cmd.AddEvent();
 
-        m_Cmd.m_RootEvents.back().chunkIndex = cmdListInfo.beginChunk;
-        m_Cmd.m_Events.back().chunkIndex = cmdListInfo.beginChunk;
+          m_Cmd.m_RootEvents.back().chunkIndex = cmdListInfo.beginChunk;
+          m_Cmd.m_Events.back().chunkIndex = cmdListInfo.beginChunk;
 
-        m_Cmd.AddDrawcall(draw, true);
-        m_Cmd.m_RootEventID++;
+          m_Cmd.AddDrawcall(draw, true);
+          m_Cmd.m_RootEventID++;
+        }
 
         // insert the baked command list in-line into this list of notes, assigning new event and
         // drawIDs
@@ -218,16 +225,19 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
         m_Cmd.m_RootEventID += cmdListInfo.eventCount;
         m_Cmd.m_RootDrawcallID += cmdListInfo.drawCount;
 
-        draw.name =
-            StringFormat::Fmt("=> %s[%u]: Close(%s)", basename.c_str(), c, ToStr(cmd).c_str());
-        draw.flags = DrawFlags::PassBoundary | DrawFlags::EndPass;
-        m_Cmd.AddEvent();
+        if(!D3D12_HideCommandBoundaries())
+        {
+          draw.name =
+              StringFormat::Fmt("=> %s[%u]: Close(%s)", basename.c_str(), c, ToStr(cmd).c_str());
+          draw.flags = DrawFlags::PassBoundary | DrawFlags::EndPass;
+          m_Cmd.AddEvent();
 
-        m_Cmd.m_RootEvents.back().chunkIndex = cmdListInfo.endChunk;
-        m_Cmd.m_Events.back().chunkIndex = cmdListInfo.endChunk;
+          m_Cmd.m_RootEvents.back().chunkIndex = cmdListInfo.endChunk;
+          m_Cmd.m_Events.back().chunkIndex = cmdListInfo.endChunk;
 
-        m_Cmd.AddDrawcall(draw, true);
-        m_Cmd.m_RootEventID++;
+          m_Cmd.AddDrawcall(draw, true);
+          m_Cmd.m_RootEventID++;
+        }
       }
 
       // account for the outer loop thinking we've added one event and incrementing,
@@ -246,9 +256,15 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
       {
         ResourceId cmd = GetResourceManager()->GetOriginalID(GetResID(ppCommandLists[c]));
 
+        m_Cmd.m_RootEventID += m_Cmd.m_BakedCmdListInfo[cmd].eventCount;
+        m_Cmd.m_RootDrawcallID += m_Cmd.m_BakedCmdListInfo[cmd].drawCount;
+
         // 2 extra for the virtual labels around the command list
-        m_Cmd.m_RootEventID += 2 + m_Cmd.m_BakedCmdListInfo[cmd].eventCount;
-        m_Cmd.m_RootDrawcallID += 2 + m_Cmd.m_BakedCmdListInfo[cmd].drawCount;
+        if(!D3D12_HideCommandBoundaries())
+        {
+          m_Cmd.m_RootEventID += 2;
+          m_Cmd.m_RootDrawcallID += 2;
+        }
       }
 
       // same accounting for the outer loop as above
@@ -280,7 +296,10 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
 
           // account for the virtual label at the start of the events here
           // so it matches up to baseEvent
-          eid++;
+          if(!D3D12_HideCommandBoundaries())
+          {
+            eid++;
+          }
 
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
           uint32_t end = eid + m_Cmd.m_BakedCmdListInfo[cmdId].eventCount;
@@ -305,9 +324,14 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
 #endif
           }
 
+          eid += m_Cmd.m_BakedCmdListInfo[cmdId].eventCount;
+
           // 1 extra to account for the virtual end command list label (begin is accounted for
           // above)
-          eid += 1 + m_Cmd.m_BakedCmdListInfo[cmdId].eventCount;
+          if(!D3D12_HideCommandBoundaries())
+          {
+            eid++;
+          }
         }
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)

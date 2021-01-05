@@ -1185,7 +1185,7 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
 
       ObjDisp(commandBuffer)->EndCommandBuffer(Unwrap(commandBuffer));
 
-      if(!m_BakedCmdBufferInfo[BakedCommandBuffer].curEvents.empty())
+      if(HasNonMarkerEvents(BakedCommandBuffer))
       {
         DrawcallDescription draw;
         draw.name = "API Calls";
@@ -5213,7 +5213,7 @@ bool WrappedVulkan::Serialise_vkCmdEndDebugUtilsLabelEXT(SerialiserType &ser,
       if(ObjDisp(commandBuffer)->CmdEndDebugUtilsLabelEXT)
         ObjDisp(commandBuffer)->CmdEndDebugUtilsLabelEXT(Unwrap(commandBuffer));
 
-      if(!m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents.empty())
+      if(HasNonMarkerEvents(m_LastCmdBufferID))
       {
         DrawcallDescription draw;
         draw.name = "API Calls";

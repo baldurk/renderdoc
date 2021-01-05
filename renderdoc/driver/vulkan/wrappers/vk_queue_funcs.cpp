@@ -25,6 +25,10 @@
 #include <algorithm>
 #include "../vk_core.h"
 #include "../vk_debug.h"
+#include "core/settings.h"
+
+RDOC_CONFIG(bool, Vulkan_HideCommandBoundaries, false,
+            "Hides the auto-generated submitted command buffer boundaries.");
 
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkGetDeviceQueue(SerialiserType &ser, VkDevice device,
@@ -273,17 +277,20 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
           rdcstr name = StringFormat::Fmt("=> %s[%u]: vkBeginCommandBuffer(%s)", basename.c_str(),
                                           c, ToStr(cmd).c_str());
 
-          // add a fake marker
           DrawcallDescription draw;
-          draw.name = name;
-          draw.flags |= DrawFlags::PassBoundary | DrawFlags::BeginPass;
-          AddEvent();
+          if(!Vulkan_HideCommandBoundaries())
+          {
+            // add a fake marker
+            draw.name = name;
+            draw.flags |= DrawFlags::PassBoundary | DrawFlags::BeginPass;
+            AddEvent();
 
-          m_RootEvents.back().chunkIndex = cmdBufInfo.beginChunk;
-          m_Events.back().chunkIndex = cmdBufInfo.beginChunk;
+            m_RootEvents.back().chunkIndex = cmdBufInfo.beginChunk;
+            m_Events.back().chunkIndex = cmdBufInfo.beginChunk;
 
-          AddDrawcall(draw, true);
-          m_RootEventID++;
+            AddDrawcall(draw, true);
+            m_RootEventID++;
+          }
 
           // insert the baked command buffer in-line into this list of notes, assigning new event
           // and drawIDs
@@ -316,17 +323,38 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
           m_RootEventID += cmdBufInfo.eventCount;
           m_RootDrawcallID += cmdBufInfo.drawCount;
 
-          name = StringFormat::Fmt("=> %s[%u]: vkEndCommandBuffer(%s)", basename.c_str(), c,
-                                   ToStr(cmd).c_str());
-          draw.name = name;
-          draw.flags = DrawFlags::PassBoundary | DrawFlags::EndPass;
-          AddEvent();
+          if(!Vulkan_HideCommandBoundaries())
+          {
+            // non-marker events would have been gathered into an APICalls draw, but markers can
+            // still
+            // be dangling. Add them here.
+            uint32_t i = 0;
+            for(APIEvent &apievent : cmdBufInfo.curEvents)
+            {
+              apievent.eventId = m_RootEventID - cmdBufInfo.curEvents.count() + i;
+              cmdBufInfo.eventCount++;
 
-          m_RootEvents.back().chunkIndex = cmdBufInfo.endChunk;
-          m_Events.back().chunkIndex = cmdBufInfo.endChunk;
+              m_RootEvents.push_back(apievent);
+              m_Events.resize(apievent.eventId + 1);
+              m_Events[apievent.eventId] = apievent;
 
-          AddDrawcall(draw, true);
-          m_RootEventID++;
+              i++;
+            }
+
+            cmdBufInfo.curEvents.clear();
+
+            name = StringFormat::Fmt("=> %s[%u]: vkEndCommandBuffer(%s)", basename.c_str(), c,
+                                     ToStr(cmd).c_str());
+            draw.name = name;
+            draw.flags = DrawFlags::PassBoundary | DrawFlags::EndPass;
+            AddEvent();
+
+            m_RootEvents.back().chunkIndex = cmdBufInfo.endChunk;
+            m_Events.back().chunkIndex = cmdBufInfo.endChunk;
+
+            AddDrawcall(draw, true);
+            m_RootEventID++;
+          }
         }
 
         // account for the outer loop thinking we've added one event and incrementing,
@@ -346,9 +374,15 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
           ResourceId cmd =
               GetResourceManager()->GetOriginalID(GetResID(submitInfo.pCommandBuffers[c]));
 
+          m_RootEventID += m_BakedCmdBufferInfo[cmd].eventCount;
+          m_RootDrawcallID += m_BakedCmdBufferInfo[cmd].drawCount;
+
           // 2 extra for the virtual labels around the command buffer
-          m_RootEventID += 2 + m_BakedCmdBufferInfo[cmd].eventCount;
-          m_RootDrawcallID += 2 + m_BakedCmdBufferInfo[cmd].drawCount;
+          if(!Vulkan_HideCommandBoundaries())
+          {
+            m_RootEventID += 2;
+            m_RootDrawcallID += 2;
+          }
         }
 
         // same accounting for the outer loop as above
@@ -382,7 +416,10 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
 
             // account for the virtual vkBeginCommandBuffer label at the start of the events here
             // so it matches up to baseEvent
-            eid++;
+            if(!Vulkan_HideCommandBoundaries())
+            {
+              eid++;
+            }
 
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
             uint32_t end = eid + m_BakedCmdBufferInfo[cmdId].eventCount;
@@ -407,9 +444,14 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
 #endif
             }
 
+            eid += m_BakedCmdBufferInfo[cmdId].eventCount;
+
             // 1 extra to account for the virtual end command buffer label (begin is accounted for
             // above)
-            eid += 1 + m_BakedCmdBufferInfo[cmdId].eventCount;
+            if(!Vulkan_HideCommandBoundaries())
+            {
+              eid++;
+            }
           }
 
           VkSubmitInfo rerecordedSubmit = submitInfo;
