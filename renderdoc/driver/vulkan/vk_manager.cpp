@@ -423,7 +423,7 @@ bool VulkanResourceManager::Serialise_DeviceMemoryRefs(SerialiserType &ser,
     {
       ResourceId mem = it_data->memory;
 
-      auto res = m_MemFrameRefs.insert(rdcpair<ResourceId, MemRefs>(mem, MemRefs()));
+      auto res = m_MemFrameRefs.insert(std::pair<ResourceId, MemRefs>(mem, MemRefs()));
       RDCASSERTMSG("MemRefIntervals for each memory resource must be contiguous", res.second);
       Intervals<FrameRefType> &rangeRefs = res.first->second.rangeRefs;
 
@@ -851,7 +851,7 @@ void VulkanResourceManager::MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSi
   SCOPED_LOCK_OPTIONAL(m_Lock, m_Capturing);
 
   FrameRefType maxRef = MarkMemoryReferenced(m_MemFrameRefs, mem, offset, size, refType);
-  if(maxRef == eFrameRef_CompleteWrite)
+  if(IsCompleteWriteFrameRef(maxRef))
   {
     // check and make sure this is really a CompleteWrite
     VkResourceRecord *record = GetResourceRecord(mem);
@@ -881,7 +881,7 @@ void VulkanResourceManager::RemoveDeviceMemory(ResourceId mem)
   m_DeviceMemories.erase(mem);
 }
 
-void VulkanResourceManager::MergeReferencedMemory(rdcflatmap<ResourceId, MemRefs> &memRefs)
+void VulkanResourceManager::MergeReferencedMemory(std::unordered_map<ResourceId, MemRefs> &memRefs)
 {
   SCOPED_LOCK_OPTIONAL(m_Lock, m_Capturing);
 

@@ -1605,62 +1605,60 @@ void WrappedVulkan::vkCmdBeginRenderPass(VkCommandBuffer commandBuffer,
     FramebufferInfo *fbInfo = fb->framebufferInfo;
     RenderPassInfo *rpInfo = rp->renderPassInfo;
 
-    if(fbInfo->imageAttachments[0].barrier.sType && fbInfo->imageAttachments[0].record)
+    bool renderArea_covers_entire_framebuffer =
+        pRenderPassBegin->renderArea.offset.x == 0 && pRenderPassBegin->renderArea.offset.y == 0 &&
+        pRenderPassBegin->renderArea.extent.width >= fbInfo->width &&
+        pRenderPassBegin->renderArea.extent.height >= fbInfo->height;
+
+    const VkRenderPassAttachmentBeginInfo *attachmentsInfo =
+        (const VkRenderPassAttachmentBeginInfo *)FindNextStruct(
+            pRenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO);
+
+    for(size_t i = 0; fbInfo->imageAttachments[i].barrier.sType; i++)
     {
-      bool renderArea_covers_entire_framebuffer =
-          pRenderPassBegin->renderArea.offset.x == 0 && pRenderPassBegin->renderArea.offset.y == 0 &&
-          pRenderPassBegin->renderArea.extent.width >= fbInfo->width &&
-          pRenderPassBegin->renderArea.extent.height >= fbInfo->height;
+      VkResourceRecord *att = fbInfo->imageAttachments[i].record;
 
-      for(size_t i = 0; fbInfo->imageAttachments[i].barrier.sType; i++)
+      if(attachmentsInfo && !att)
+        att = GetRecord(attachmentsInfo->pAttachments[i]);
+
+      if(att == NULL)
+        break;
+
+      bool framebuffer_reference_entire_attachment = fbInfo->AttachmentFullyReferenced(i, rpInfo);
+
+      FrameRefType refType = eFrameRef_ReadBeforeWrite;
+
+      if(renderArea_covers_entire_framebuffer && framebuffer_reference_entire_attachment)
       {
-        VkResourceRecord *att = fbInfo->imageAttachments[i].record;
-        if(att == NULL)
-          break;
-
-        bool framebuffer_reference_entire_attachment = fbInfo->AttachmentFullyReferenced(i, rpInfo);
-
-        FrameRefType refType = eFrameRef_ReadBeforeWrite;
-
-        if(renderArea_covers_entire_framebuffer && framebuffer_reference_entire_attachment)
+        if(rpInfo->loadOpTable[i] != VK_ATTACHMENT_LOAD_OP_LOAD)
         {
-          if(rpInfo->loadOpTable[i] != VK_ATTACHMENT_LOAD_OP_LOAD)
-          {
-            refType = eFrameRef_CompleteWrite;
-          }
+          refType = eFrameRef_CompleteWrite;
         }
-
-        record->MarkImageViewFrameReferenced(att, ImageRange(), refType);
-
-        if(fbInfo->imageAttachments[i].barrier.oldLayout !=
-           fbInfo->imageAttachments[i].barrier.newLayout)
-          barriers.push_back(fbInfo->imageAttachments[i].barrier);
       }
-    }
-    else if(fbInfo->imageAttachments[0].barrier.sType)
-    {
-      // if we have attachments but the framebuffer doesn't have images, then it's imageless. Look
-      // for the image records now
 
-      const VkRenderPassAttachmentBeginInfo *attachmentsInfo =
-          (const VkRenderPassAttachmentBeginInfo *)FindNextStruct(
-              pRenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO);
-
-      for(uint32_t i = 0; i < attachmentsInfo->attachmentCount; i++)
+      // if we're completely writing this resource (i.e. nothing from previous data is visible) and
+      // it's also DONT_CARE storage (so nothing from this render pass will be visible after) then
+      // it's completely written and discarded in one go.
+      if(refType == eFrameRef_CompleteWrite &&
+         rpInfo->storeOpTable[i] == VK_ATTACHMENT_STORE_OP_DONT_CARE)
       {
-        VkResourceRecord *att = GetRecord(attachmentsInfo->pAttachments[i]);
-        record->MarkImageViewFrameReferenced(att, ImageRange(), eFrameRef_ReadBeforeWrite);
+        refType = eFrameRef_CompleteWriteAndDiscard;
+      }
 
-        if(fbInfo->imageAttachments[i].barrier.oldLayout !=
-           fbInfo->imageAttachments[i].barrier.newLayout)
+      record->MarkImageViewFrameReferenced(att, ImageRange(), refType);
+
+      if(fbInfo->imageAttachments[i].barrier.oldLayout !=
+         fbInfo->imageAttachments[i].barrier.newLayout)
+      {
+        VkImageMemoryBarrier barrier = fbInfo->imageAttachments[i].barrier;
+
+        if(attachmentsInfo)
         {
-          VkImageMemoryBarrier barrier = fbInfo->imageAttachments[i].barrier;
-
           barrier.image = GetResourceManager()->GetCurrentHandle<VkImage>(att->baseResource);
           barrier.subresourceRange = att->viewRange;
-
-          barriers.push_back(barrier);
         }
+
+        barriers.push_back(barrier);
       }
     }
 
@@ -2215,63 +2213,60 @@ void WrappedVulkan::vkCmdBeginRenderPass2(VkCommandBuffer commandBuffer,
 
     FramebufferInfo *fbInfo = fb->framebufferInfo;
     RenderPassInfo *rpInfo = rp->renderPassInfo;
+    bool renderArea_covers_entire_framebuffer =
+        pRenderPassBegin->renderArea.offset.x == 0 && pRenderPassBegin->renderArea.offset.y == 0 &&
+        pRenderPassBegin->renderArea.extent.width >= fbInfo->width &&
+        pRenderPassBegin->renderArea.extent.height >= fbInfo->height;
 
-    if(fbInfo->imageAttachments[0].barrier.sType && fbInfo->imageAttachments[0].record)
+    const VkRenderPassAttachmentBeginInfo *attachmentsInfo =
+        (const VkRenderPassAttachmentBeginInfo *)FindNextStruct(
+            pRenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO);
+
+    for(size_t i = 0; fbInfo->imageAttachments[i].barrier.sType; i++)
     {
-      bool renderArea_covers_entire_framebuffer =
-          pRenderPassBegin->renderArea.offset.x == 0 && pRenderPassBegin->renderArea.offset.y == 0 &&
-          pRenderPassBegin->renderArea.extent.width >= fbInfo->width &&
-          pRenderPassBegin->renderArea.extent.height >= fbInfo->height;
+      VkResourceRecord *att = fbInfo->imageAttachments[i].record;
 
-      for(size_t i = 0; fbInfo->imageAttachments[i].barrier.sType; i++)
+      if(attachmentsInfo && !att)
+        att = GetRecord(attachmentsInfo->pAttachments[i]);
+
+      if(att == NULL)
+        break;
+
+      bool framebuffer_reference_entire_attachment = fbInfo->AttachmentFullyReferenced(i, rpInfo);
+
+      FrameRefType refType = eFrameRef_ReadBeforeWrite;
+
+      if(renderArea_covers_entire_framebuffer && framebuffer_reference_entire_attachment)
       {
-        VkResourceRecord *att = fbInfo->imageAttachments[i].record;
-        if(att == NULL)
-          break;
-
-        bool framebuffer_reference_entire_attachment = fbInfo->AttachmentFullyReferenced(i, rpInfo);
-
-        FrameRefType refType = eFrameRef_ReadBeforeWrite;
-
-        if(renderArea_covers_entire_framebuffer && framebuffer_reference_entire_attachment)
+        if(rpInfo->loadOpTable[i] != VK_ATTACHMENT_LOAD_OP_LOAD)
         {
-          if(rpInfo->loadOpTable[i] != VK_ATTACHMENT_LOAD_OP_LOAD)
-          {
-            refType = eFrameRef_CompleteWrite;
-          }
+          refType = eFrameRef_CompleteWrite;
         }
-
-        record->MarkImageViewFrameReferenced(att, ImageRange(), refType);
-
-        if(fbInfo->imageAttachments[i].barrier.oldLayout !=
-           fbInfo->imageAttachments[i].barrier.newLayout)
-          barriers.push_back(fbInfo->imageAttachments[i].barrier);
       }
-    }
-    else
-    {
-      // if we have attachments but the framebuffer doesn't have images, then it's imageless. Look
-      // for the image records now
 
-      const VkRenderPassAttachmentBeginInfo *attachmentsInfo =
-          (const VkRenderPassAttachmentBeginInfo *)FindNextStruct(
-              pRenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO);
-
-      for(uint32_t i = 0; i < attachmentsInfo->attachmentCount; i++)
+      // if we're completely writing this resource (i.e. nothing from previous data is visible) and
+      // it's also DONT_CARE storage (so nothing from this render pass will be visible after) then
+      // it's completely written and discarded in one go.
+      if(refType == eFrameRef_CompleteWrite &&
+         rpInfo->storeOpTable[i] == VK_ATTACHMENT_STORE_OP_DONT_CARE)
       {
-        VkResourceRecord *att = GetRecord(attachmentsInfo->pAttachments[i]);
-        record->MarkImageViewFrameReferenced(att, ImageRange(), eFrameRef_ReadBeforeWrite);
+        refType = eFrameRef_CompleteWriteAndDiscard;
+      }
 
-        if(fbInfo->imageAttachments[i].barrier.oldLayout !=
-           fbInfo->imageAttachments[i].barrier.newLayout)
+      record->MarkImageViewFrameReferenced(att, ImageRange(), refType);
+
+      if(fbInfo->imageAttachments[i].barrier.oldLayout !=
+         fbInfo->imageAttachments[i].barrier.newLayout)
+      {
+        VkImageMemoryBarrier barrier = fbInfo->imageAttachments[i].barrier;
+
+        if(attachmentsInfo)
         {
-          VkImageMemoryBarrier barrier = fbInfo->imageAttachments[i].barrier;
-
           barrier.image = GetResourceManager()->GetCurrentHandle<VkImage>(att->baseResource);
           barrier.subresourceRange = att->viewRange;
-
-          barriers.push_back(barrier);
         }
+
+        barriers.push_back(barrier);
       }
     }
 

@@ -1646,6 +1646,11 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
     FlushQ();
     SubmitAndFlushImageStateBarriers(m_cleanupImageBarriers);
 
+    {
+      SCOPED_LOCK(m_CapDescriptorsLock);
+      m_CapDescriptors.clear();
+    }
+
     RDCDEBUG("Attempting capture");
     m_FrameCaptureRecord->DeleteChunks();
     {
@@ -2101,8 +2106,6 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
   Atomic::Inc32(&m_ReuseEnabled);
 
   GetResourceManager()->ResetLastWriteTimes();
-
-  GetResourceManager()->ResetLastPartialUseTimes();
 
   GetResourceManager()->MarkUnwrittenResources();
 

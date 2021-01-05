@@ -449,7 +449,7 @@ public:
   void AddDeviceMemory(ResourceId mem);
   void RemoveDeviceMemory(ResourceId mem);
 
-  void MergeReferencedMemory(rdcflatmap<ResourceId, MemRefs> &memRefs);
+  void MergeReferencedMemory(std::unordered_map<ResourceId, MemRefs> &memRefs);
   void ClearReferencedMemory();
   MemRefs *FindMemRefs(ResourceId mem);
   ImgRefs *FindImgRefs(ResourceId img);
@@ -484,7 +484,7 @@ private:
   rdcarray<ResourceId> InitialContentResources();
 
   WrappedVulkan *m_Core;
-  rdcflatmap<ResourceId, MemRefs> m_MemFrameRefs;
+  std::unordered_map<ResourceId, MemRefs> m_MemFrameRefs;
   std::set<ResourceId> m_DeviceMemories;
   InitPolicy m_InitPolicy = eInitPolicy_CopyAll;
 };

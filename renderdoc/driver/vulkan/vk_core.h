@@ -326,6 +326,9 @@ private:
 
   std::set<rdcstr> m_StringDB;
 
+  Threading::CriticalSection m_CapDescriptorsLock;
+  std::set<VkDescriptorSet> m_CapDescriptors;
+
   VkResourceRecord *m_FrameCaptureRecord;
   Chunk *m_HeaderChunk;
 

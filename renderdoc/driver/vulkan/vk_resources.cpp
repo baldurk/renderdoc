@@ -69,7 +69,16 @@ bool IsDispatchableRes(WrappedVkRes *ptr)
 
 bool IsPostponableRes(const WrappedVkRes *ptr)
 {
-  return (WrappedVkDeviceMemory::IsAlloc(ptr) || WrappedVkImage::IsAlloc(ptr));
+  // only memory and images are postponed
+  if(WrappedVkDeviceMemory::IsAlloc(ptr) || WrappedVkImage::IsAlloc(ptr))
+  {
+    // and only if they're not storable. If they are storable they may have been written recently in
+    // a descriptor set binding and we didn't track it (since descriptor updates can be too
+    // high-frequency to be worth tracking), so pessimistically we don't postpone.
+    return !((WrappedVkNonDispRes *)ptr)->record->storable;
+  }
+
+  return false;
 }
 
 VkResourceType IdentifyTypeByPtr(WrappedVkRes *ptr)
@@ -3260,11 +3269,16 @@ RenderPassInfo::RenderPassInfo(const VkRenderPassCreateInfo &ci)
   }
 
   loadOpTable = new VkAttachmentLoadOp[arrayCount];
+  storeOpTable = new VkAttachmentStoreOp[arrayCount];
 
   // we only care about which attachment doesn't have LOAD specificed, so we
-  // assume all attachments have VK_ATTACHMENT_LOAD_OP_LOAD until proven otherwise
+  // assume all attachments have VK_ATTACHMENT_LOAD_OP_LOAD until proven otherwise.
+  // similarly for store
   for(uint32_t a = 0; a < arrayCount; ++a)
+  {
     loadOpTable[a] = VK_ATTACHMENT_LOAD_OP_LOAD;
+    storeOpTable[a] = VK_ATTACHMENT_STORE_OP_STORE;
+  }
 
   for(uint32_t s = 0; s < ci.subpassCount; ++s)
   {
@@ -3283,6 +3297,7 @@ RenderPassInfo::RenderPassInfo(const VkRenderPassCreateInfo &ci)
         if(index < ci.attachmentCount)
         {
           loadOpTable[index] = ci.pAttachments[index].loadOp;
+          storeOpTable[index] = ci.pAttachments[index].storeOp;
 
           if(multiviewViewMaskTable)
           {
@@ -3304,6 +3319,7 @@ RenderPassInfo::RenderPassInfo(const VkRenderPassCreateInfo &ci)
         if(index < ci.attachmentCount)
         {
           loadOpTable[index] = ci.pAttachments[index].loadOp;
+          storeOpTable[index] = ci.pAttachments[index].storeOp;
 
           if(multiviewViewMaskTable)
           {
@@ -3320,6 +3336,7 @@ RenderPassInfo::RenderPassInfo(const VkRenderPassCreateInfo &ci)
       if(index < ci.attachmentCount)
       {
         VkAttachmentLoadOp depthStencilLoadOp = ci.pAttachments[index].loadOp;
+        VkAttachmentStoreOp depthStencilStoreOp = ci.pAttachments[index].storeOp;
 
         // make depthstencil VK_ATTACHMENT_LOAD_OP_LOAD if either depth or stencil is
         // VK_ATTACHMENT_LOAD_OP_LOAD
@@ -3328,8 +3345,15 @@ RenderPassInfo::RenderPassInfo(const VkRenderPassCreateInfo &ci)
         {
           depthStencilLoadOp = ci.pAttachments[index].stencilLoadOp;
         }
+        // similarly for store
+        if(depthStencilStoreOp != VK_ATTACHMENT_STORE_OP_STORE &&
+           IsStencilFormat(ci.pAttachments[index].format))
+        {
+          depthStencilStoreOp = ci.pAttachments[index].stencilStoreOp;
+        }
 
         loadOpTable[index] = depthStencilLoadOp;
+        storeOpTable[index] = depthStencilStoreOp;
 
         if(multiviewViewMaskTable)
         {
@@ -3394,11 +3418,16 @@ RenderPassInfo::RenderPassInfo(const VkRenderPassCreateInfo2 &ci)
   }
 
   loadOpTable = new VkAttachmentLoadOp[arrayCount];
+  storeOpTable = new VkAttachmentStoreOp[arrayCount];
 
   // we only care about which attachment doesn't have LOAD specificed, so we
-  // assume all attachments have VK_ATTACHMENT_LOAD_OP_LOAD until proven otherwise
+  // assume all attachments have VK_ATTACHMENT_LOAD_OP_LOAD until proven otherwise.
+  // similarly for store
   for(uint32_t a = 0; a < arrayCount; ++a)
+  {
     loadOpTable[a] = VK_ATTACHMENT_LOAD_OP_LOAD;
+    storeOpTable[a] = VK_ATTACHMENT_STORE_OP_STORE;
+  }
 
   for(uint32_t s = 0; s < ci.subpassCount; ++s)
   {
@@ -3420,6 +3449,7 @@ RenderPassInfo::RenderPassInfo(const VkRenderPassCreateInfo2 &ci)
           RDCASSERT(remappedIndex < arrayCount);
 
           loadOpTable[remappedIndex] = ci.pAttachments[index].loadOp;
+          storeOpTable[remappedIndex] = ci.pAttachments[index].storeOp;
 
           if(multiviewViewMaskTable)
           {
@@ -3444,6 +3474,7 @@ RenderPassInfo::RenderPassInfo(const VkRenderPassCreateInfo2 &ci)
           RDCASSERT(remappedIndex < arrayCount);
 
           loadOpTable[remappedIndex] = ci.pAttachments[index].loadOp;
+          storeOpTable[remappedIndex] = ci.pAttachments[index].storeOp;
 
           if(multiviewViewMaskTable)
           {
@@ -3460,7 +3491,9 @@ RenderPassInfo::RenderPassInfo(const VkRenderPassCreateInfo2 &ci)
       if(index < ci.attachmentCount)
       {
         VkAttachmentLoadOp depthStencilLoadOp = ci.pAttachments[index].loadOp;
+        VkAttachmentStoreOp depthStencilStoreOp = ci.pAttachments[index].storeOp;
         VkAttachmentLoadOp stencilLoadOp = ci.pAttachments[index].stencilLoadOp;
+        VkAttachmentStoreOp stencilStoreOp = ci.pAttachments[index].stencilStoreOp;
 
         uint32_t remappedIndex = indexRemapTable[index];
         RDCASSERT(remappedIndex < arrayCount);
@@ -3476,6 +3509,7 @@ RenderPassInfo::RenderPassInfo(const VkRenderPassCreateInfo2 &ci)
           if(separateStencil)
           {
             loadOpTable[remappedIndex + 1] = stencilLoadOp;
+            storeOpTable[remappedIndex + 1] = stencilStoreOp;
           }
           else
           {
@@ -3485,10 +3519,15 @@ RenderPassInfo::RenderPassInfo(const VkRenderPassCreateInfo2 &ci)
             {
               depthStencilLoadOp = stencilLoadOp;
             }
+            if(depthStencilStoreOp != VK_ATTACHMENT_STORE_OP_STORE)
+            {
+              depthStencilStoreOp = stencilStoreOp;
+            }
           }
         }
 
         loadOpTable[remappedIndex] = depthStencilLoadOp;
+        storeOpTable[remappedIndex] = depthStencilStoreOp;
 
         if(multiviewViewMaskTable)
         {
@@ -3503,6 +3542,7 @@ RenderPassInfo::~RenderPassInfo()
 {
   delete[] imageAttachments;
   delete[] loadOpTable;
+  delete[] storeOpTable;
   delete[] multiviewViewMaskTable;
 }
 
@@ -3782,10 +3822,11 @@ VkResourceRecord::~VkResourceRecord()
 void VkResourceRecord::MarkImageFrameReferenced(VkResourceRecord *img, const ImageRange &range,
                                                 FrameRefType refType)
 {
+  ResourceId id = img->GetResourceID();
+
   // mark backing memory
   MarkResourceFrameReferenced(img->baseResource, refType);
 
-  ResourceId id = img->GetResourceID();
   if(img->resInfo && img->resInfo->IsSparse())
     cmdInfo->sparse.insert(img->resInfo);
 

@@ -985,7 +985,28 @@ struct ResourceInfo
   void Update(uint32_t numBindings, const VkSparseImageMemoryBind *pBindings);
 };
 
-struct MemRefs;
+struct MemRefs
+{
+  Intervals<FrameRefType> rangeRefs;
+  WrappedVkRes *initializedLiveRes;
+  inline MemRefs() : initializedLiveRes(NULL) {}
+  inline MemRefs(VkDeviceSize offset, VkDeviceSize size, FrameRefType refType)
+      : initializedLiveRes(NULL)
+  {
+    size = RDCMIN(size, UINT64_MAX - offset);
+    rangeRefs.update(offset, offset + size, refType, ComposeFrameRefs);
+  }
+  template <typename Compose>
+  FrameRefType Update(VkDeviceSize offset, VkDeviceSize size, FrameRefType refType, Compose comp);
+  inline FrameRefType Update(VkDeviceSize offset, VkDeviceSize size, FrameRefType refType)
+  {
+    return Update(offset, size, refType, ComposeFrameRefs);
+  }
+  template <typename Compose>
+  FrameRefType Merge(MemRefs &other, Compose comp);
+  inline FrameRefType Merge(MemRefs &other) { return Merge(other, ComposeFrameRefs); }
+};
+
 struct ImgRefs;
 struct ImageState;
 
@@ -1040,7 +1061,7 @@ struct CmdBufferRecordingInfo
 
   rdcflatmap<ResourceId, ImageState> imageStates;
 
-  rdcflatmap<ResourceId, MemRefs> memFrameRefs;
+  std::unordered_map<ResourceId, MemRefs> memFrameRefs;
 
   // AdvanceFrame/Present should be called after this buffer is submitted
   bool present;
@@ -1063,23 +1084,18 @@ struct DescriptorSetData
   // descriptor set bindings for this descriptor set. Filled out on
   // create from the layout.
   BindingStorage data;
+};
 
-  // lock protecting bindFrameRefs and bindMemRefs
-  Threading::CriticalSection refLock;
-
-  // contains the framerefs (ref counted) for the bound resources
-  // in the binding slots. Updated when updating descriptor sets
-  // and then applied in a block on descriptor set bind.
-  // the refcount has the high-bit set if this resource has sparse
-  // mapping information
-  static const uint32_t SPARSE_REF_BIT = 0x80000000;
-  rdcflatmap<ResourceId, rdcpair<uint32_t, FrameRefType>> bindFrameRefs;
-  rdcflatmap<ResourceId, MemRefs> bindMemRefs;
+// we used to cache these bindrefs at update time, but unfortunately many applications have
+// extremely high numbers of descriptors and update them almost a 1:1 rate with their use (or
+// sometimes higher). It's not feasible to do any per-descriptor tracking in the background, so we
+// gather the data we need from the descriptor contents at capture time only into this struct.
+struct DescriptorBindRefs
+{
+  std::unordered_map<ResourceId, FrameRefType> bindFrameRefs;
+  std::unordered_map<ResourceId, MemRefs> bindMemRefs;
   rdcflatmap<ResourceId, ImageState> bindImageStates;
-
-  void UpdateBackgroundRefCache(const rdcarray<ResourceId> &ids);
-
-  rdcflatmap<ResourceId, FrameRefType> backgroundFrameRefs;
+  std::unordered_set<VkResourceRecord *> sparseRefs;
 };
 
 struct PipelineLayoutData
@@ -1131,8 +1147,9 @@ struct RenderPassInfo
 
   AttachmentInfo *imageAttachments;
 
-  // table of loadOps for each attachment
+  // table of loadOps/storeOps for each attachment
   VkAttachmentLoadOp *loadOpTable;
+  VkAttachmentStoreOp *storeOpTable;
 
   // table of multiview viewMasks for each attachment
   uint32_t *multiviewViewMaskTable;
@@ -1911,7 +1928,7 @@ FrameRefType ImgRefs::Update(ImageRange range, FrameRefType refType, Compose com
   if(range.levelCount == VK_REMAINING_MIP_LEVELS)
     range.levelCount = imageInfo.levelCount - range.baseMipLevel;
 
-  if(refType == eFrameRef_CompleteWrite &&
+  if(IsCompleteWriteFrameRef(refType) &&
      (range.offset.x != 0 || range.offset.y != 0 || range.extent.width != imageInfo.extent.width ||
       range.extent.height != imageInfo.extent.height))
     // Complete write, but only to part of the image.
@@ -2012,28 +2029,6 @@ FrameRefType ImgRefs::Merge(const ImgRefs &other, Compose comp)
   return maxRefType;
 }
 
-struct MemRefs
-{
-  Intervals<FrameRefType> rangeRefs;
-  WrappedVkRes *initializedLiveRes;
-  inline MemRefs() : initializedLiveRes(NULL) {}
-  inline MemRefs(VkDeviceSize offset, VkDeviceSize size, FrameRefType refType)
-      : initializedLiveRes(NULL)
-  {
-    size = RDCMIN(size, UINT64_MAX - offset);
-    rangeRefs.update(offset, offset + size, refType, ComposeFrameRefs);
-  }
-  template <typename Compose>
-  FrameRefType Update(VkDeviceSize offset, VkDeviceSize size, FrameRefType refType, Compose comp);
-  inline FrameRefType Update(VkDeviceSize offset, VkDeviceSize size, FrameRefType refType)
-  {
-    return Update(offset, size, refType, ComposeFrameRefs);
-  }
-  template <typename Compose>
-  FrameRefType Merge(MemRefs &other, Compose comp);
-  inline FrameRefType Merge(MemRefs &other) { return Merge(other, ComposeFrameRefs); }
-};
-
 template <typename Compose>
 FrameRefType MemRefs::Update(VkDeviceSize offset, VkDeviceSize size, FrameRefType refType,
                              Compose comp)
@@ -2081,7 +2076,7 @@ FrameRefType MarkImageReferenced(rdcflatmap<ResourceId, ImageState> &imageStates
                                  uint32_t queueFamilyIndex, FrameRefType refType);
 
 template <typename Compose>
-FrameRefType MarkMemoryReferenced(rdcflatmap<ResourceId, MemRefs> &memRefs, ResourceId mem,
+FrameRefType MarkMemoryReferenced(std::unordered_map<ResourceId, MemRefs> &memRefs, ResourceId mem,
                                   VkDeviceSize offset, VkDeviceSize size, FrameRefType refType,
                                   Compose comp)
 {
@@ -2099,8 +2094,9 @@ FrameRefType MarkMemoryReferenced(rdcflatmap<ResourceId, MemRefs> &memRefs, Reso
   }
 }
 
-inline FrameRefType MarkMemoryReferenced(rdcflatmap<ResourceId, MemRefs> &memRefs, ResourceId mem,
-                                         VkDeviceSize offset, VkDeviceSize size, FrameRefType refType)
+inline FrameRefType MarkMemoryReferenced(std::unordered_map<ResourceId, MemRefs> &memRefs,
+                                         ResourceId mem, VkDeviceSize offset, VkDeviceSize size,
+                                         FrameRefType refType)
 {
   return MarkMemoryReferenced(memRefs, mem, offset, size, refType, ComposeFrameRefs);
 }
@@ -2143,114 +2139,6 @@ public:
     cmdInfo->memFrameRefs.swap(bakedCommands->cmdInfo->memFrameRefs);
   }
 
-  void AddBindFrameRef(rdcarray<ResourceId> &ids, ResourceId id, FrameRefType ref,
-                       bool hasSparse = false)
-  {
-    if(id == ResourceId())
-    {
-      RDCERR("Unexpected NULL resource ID being added as a bind frame ref");
-      return;
-    }
-    if(!ids.contains(id))
-      ids.push_back(id);
-    rdcpair<uint32_t, FrameRefType> &p = descInfo->bindFrameRefs[id];
-    if((p.first & ~DescriptorSetData::SPARSE_REF_BIT) == 0)
-    {
-      p.second = ref;
-      p.first = 1 | (hasSparse ? DescriptorSetData::SPARSE_REF_BIT : 0);
-    }
-    else
-    {
-      // be conservative - mark refs as read before write if we see a write and a read ref on it
-      p.second = ComposeFrameRefsUnordered(descInfo->bindFrameRefs[id].second, ref);
-      p.first++;
-      p.first |= (hasSparse ? DescriptorSetData::SPARSE_REF_BIT : 0);
-    }
-  }
-
-  void AddImgFrameRef(rdcarray<ResourceId> &ids, VkResourceRecord *view, FrameRefType refType)
-  {
-    if(!ids.contains(view->baseResource))
-      ids.push_back(view->baseResource);
-    AddBindFrameRef(ids, view->GetResourceID(), eFrameRef_Read,
-                    view->resInfo && view->resInfo->IsSparse());
-    if(view->baseResourceMem != ResourceId())
-      AddBindFrameRef(ids, view->baseResourceMem, eFrameRef_Read, false);
-
-    rdcpair<uint32_t, FrameRefType> &p = descInfo->bindFrameRefs[view->baseResource];
-    if((p.first & ~DescriptorSetData::SPARSE_REF_BIT) == 0)
-    {
-      descInfo->bindImageStates.erase(view->baseResource);
-      p.first = 1;
-      p.second = eFrameRef_None;
-    }
-    else
-    {
-      p.first++;
-    }
-
-    ImageRange imgRange = ImageRange((VkImageSubresourceRange)view->viewRange);
-    imgRange.viewType = view->viewRange.viewType();
-
-    FrameRefType maxRef =
-        MarkImageReferenced(descInfo->bindImageStates, view->baseResource, view->resInfo->imageInfo,
-                            ImageSubresourceRange(imgRange), VK_QUEUE_FAMILY_IGNORED, refType);
-
-    p.second = ComposeFrameRefsDisjoint(p.second, maxRef);
-  }
-
-  void AddMemFrameRef(rdcarray<ResourceId> &ids, ResourceId mem, VkDeviceSize offset,
-                      VkDeviceSize size, FrameRefType refType)
-  {
-    if(mem == ResourceId())
-    {
-      RDCERR("Unexpected NULL resource ID being added as a bind frame ref");
-      return;
-    }
-    if(!ids.contains(mem))
-      ids.push_back(mem);
-    rdcpair<uint32_t, FrameRefType> &p = descInfo->bindFrameRefs[mem];
-    if((p.first & ~DescriptorSetData::SPARSE_REF_BIT) == 0)
-    {
-      descInfo->bindMemRefs.erase(mem);
-      p.first = 1;
-      p.second = eFrameRef_None;
-    }
-    else
-    {
-      p.first++;
-    }
-    FrameRefType maxRef = MarkMemoryReferenced(descInfo->bindMemRefs, mem, offset, size, refType,
-                                               ComposeFrameRefsUnordered);
-    p.second = ComposeFrameRefsDisjoint(p.second, maxRef);
-  }
-
-  void RemoveBindFrameRef(rdcarray<ResourceId> &ids, ResourceId id)
-  {
-    // ignore any NULL IDs - probably an object that was
-    // deleted since it was bound.
-    if(id == ResourceId())
-      return;
-
-    auto it = descInfo->bindFrameRefs.find(id);
-
-    // in the case of re-used handles bound to descriptor sets,
-    // it's possible to try and remove a frameref on something we
-    // don't have (which means we'll have a corresponding stale ref)
-    // but this is harmless so we can ignore it.
-    if(it == descInfo->bindFrameRefs.end())
-      return;
-
-    it->second.first--;
-
-    if((it->second.first & ~DescriptorSetData::SPARSE_REF_BIT) == 0)
-    {
-      if(!ids.contains(id))
-        ids.push_back(id);
-      descInfo->bindFrameRefs.erase(it);
-    }
-  }
-
   // we have a lot of 'cold' data in the resource record, as it can be accessed
   // through the wrapped objects without locking any lookup structures.
   // To save on object size, the data is union'd as much as possible where only
@@ -2271,6 +2159,7 @@ public:
   VkDeviceSize memOffset;
   VkDeviceSize memSize;
   VkResourceType resType;
+  bool storable = false;
 
   void MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSize offset, VkDeviceSize size,
                                  FrameRefType refType);

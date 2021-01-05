@@ -873,6 +873,15 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
 
     std::set<ResourceId> refdIDs;
 
+    std::set<VkDescriptorSet> descriptorSets;
+
+    // pull in any copy sources, conservatively
+    if(capframe)
+    {
+      SCOPED_LOCK(m_CapDescriptorsLock);
+      descriptorSets.swap(m_CapDescriptors);
+    }
+
     for(uint32_t s = 0; s < submitCount; s++)
     {
       for(uint32_t i = 0; i < pSubmits[s].commandBufferCount; i++)
@@ -885,33 +894,11 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
 
         if(capframe)
         {
-          // for each bound descriptor set, mark it referenced as well as all resources currently
-          // bound to it
+          // add the bound descriptor sets
           for(auto it = record->bakedCommands->cmdInfo->boundDescSets.begin();
               it != record->bakedCommands->cmdInfo->boundDescSets.end(); ++it)
           {
-            GetResourceManager()->MarkResourceFrameReferenced(GetResID(*it), eFrameRef_Read);
-
-            VkResourceRecord *setrecord = GetRecord(*it);
-
-            SCOPED_LOCK(setrecord->descInfo->refLock);
-
-            for(auto refit = setrecord->descInfo->bindFrameRefs.begin();
-                refit != setrecord->descInfo->bindFrameRefs.end(); ++refit)
-            {
-              refdIDs.insert(refit->first);
-              GetResourceManager()->MarkResourceFrameReferenced(refit->first, refit->second.second);
-
-              if(refit->second.first & DescriptorSetData::SPARSE_REF_BIT)
-              {
-                VkResourceRecord *sparserecord =
-                    GetResourceManager()->GetResourceRecord(refit->first);
-
-                GetResourceManager()->MarkSparseMapReferenced(sparserecord->resInfo);
-              }
-            }
-            UpdateImageStates(setrecord->descInfo->bindImageStates);
-            GetResourceManager()->MergeReferencedMemory(setrecord->descInfo->bindMemRefs);
+            descriptorSets.insert(*it);
           }
 
           for(auto it = record->bakedCommands->cmdInfo->sparse.begin();
@@ -977,17 +964,6 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
         {
           VkResourceRecord *record = GetRecord(pSubmits[s].pCommandBuffers[i]);
 
-          for(auto it = record->bakedCommands->cmdInfo->boundDescSets.begin();
-              it != record->bakedCommands->cmdInfo->boundDescSets.end(); ++it)
-          {
-            VkResourceRecord *setrecord = GetRecord(*it);
-
-            SCOPED_LOCK(setrecord->descInfo->refLock);
-
-            GetResourceManager()->MarkBackgroundFrameReferenced(
-                setrecord->descInfo->backgroundFrameRefs);
-          }
-
           record->bakedCommands->AddResourceReferences(GetResourceManager());
 
           for(VkResourceRecord *sub : record->bakedCommands->cmdInfo->subcmds)
@@ -1004,6 +980,52 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
 
     if(capframe)
     {
+      VulkanResourceManager *rm = GetResourceManager();
+
+      // for each descriptor set, mark it referenced as well as all resources currently bound to it
+      for(auto it = descriptorSets.begin(); it != descriptorSets.end(); ++it)
+      {
+        rm->MarkResourceFrameReferenced(GetResID(*it), eFrameRef_Read);
+
+        VkResourceRecord *setrecord = GetRecord(*it);
+
+        DescriptorBindRefs refs;
+
+        DescSetLayout *layout = setrecord->descInfo->layout;
+
+        for(size_t b = 0, num = layout->bindings.size(); b < num; b++)
+        {
+          const DescSetLayout::Binding &bind = layout->bindings[b];
+
+          // skip empty bindings
+          if(bind.descriptorType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
+            continue;
+
+          uint32_t count = bind.descriptorCount;
+          if(bind.variableSize)
+            count = setrecord->descInfo->data.variableDescriptorCount;
+
+          FrameRefType ref = GetRefType(bind.descriptorType);
+
+          for(uint32_t a = 0; a < count; a++)
+            setrecord->descInfo->data.binds[b][a].AccumulateBindRefs(refs, rm, ref);
+        }
+
+        for(auto refit = refs.bindFrameRefs.begin(); refit != refs.bindFrameRefs.end(); ++refit)
+        {
+          refdIDs.insert(refit->first);
+          GetResourceManager()->MarkResourceFrameReferenced(refit->first, refit->second);
+        }
+
+        for(auto refit = refs.sparseRefs.begin(); refit != refs.sparseRefs.end(); ++refit)
+        {
+          GetResourceManager()->MarkSparseMapReferenced((*refit)->resInfo);
+        }
+
+        UpdateImageStates(refs.bindImageStates);
+        GetResourceManager()->MergeReferencedMemory(refs.bindMemRefs);
+      }
+
       GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);
 
       if(fence != VK_NULL_HANDLE)

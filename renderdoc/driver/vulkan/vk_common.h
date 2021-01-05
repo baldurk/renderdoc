@@ -432,13 +432,11 @@ struct DescriptorSetSlotImageInfo
   VkImageLayout imageLayout;
 };
 
+struct DescriptorBindRefs;
+
 struct DescriptorSetSlot
 {
-  void RemoveBindRefs(rdcarray<ResourceId> &ids, VulkanResourceManager *rm, VkResourceRecord *record);
-  void AddBindRefs(rdcarray<ResourceId> &ids, VulkanResourceManager *rm, VkResourceRecord *record,
-                   FrameRefType ref);
-  void AddBindRefs(rdcarray<ResourceId> &ids, VkResourceRecord *bufView, VkResourceRecord *imgView,
-                   VkResourceRecord *buffer, VkResourceRecord *descSetRecord, FrameRefType ref);
+  void AccumulateBindRefs(DescriptorBindRefs &refs, VulkanResourceManager *rm, FrameRefType ref) const;
 
   // VkDescriptorBufferInfo
   DescriptorSetSlotBufferInfo bufferInfo;

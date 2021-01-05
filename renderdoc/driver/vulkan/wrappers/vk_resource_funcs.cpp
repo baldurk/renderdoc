@@ -1283,9 +1283,13 @@ VkResult WrappedVulkan::vkBindBufferMemory(VkDevice device, VkBuffer buffer, VkD
     // to memory mid-frame
     record->AddChunk(chunk);
 
-    record->AddParent(GetRecord(memory));
+    VkResourceRecord *memrecord = GetRecord(memory);
+
+    record->AddParent(memrecord);
     record->baseResource = id;
     record->memOffset = memoryOffset;
+
+    memrecord->storable |= record->storable;
 
     // if the buffer was force-referenced, do the same with the memory
     if(IsForcedReference(record))
@@ -1611,6 +1615,9 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
       }
 
       record->AddChunk(chunk);
+
+      record->storable = (pCreateInfo->usage & (VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                                                VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT)) != 0;
 
       bool isSparse = (pCreateInfo->flags & (VK_BUFFER_CREATE_SPARSE_BINDING_BIT |
                                              VK_BUFFER_CREATE_SPARSE_RESIDENCY_BIT)) != 0;
@@ -2067,6 +2074,8 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
       ResourceInfo &resInfo = *record->resInfo;
       resInfo.imageInfo = ImageInfo(*pCreateInfo);
 
+      record->storable = (pCreateInfo->usage & VK_IMAGE_USAGE_STORAGE_BIT) != 0;
+
       // pre-populate memory requirements
       ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(*pImage), &resInfo.memreqs);
 
@@ -2449,6 +2458,8 @@ VkResult WrappedVulkan::vkBindBufferMemory2(VkDevice device, uint32_t bindInfoCo
       bufrecord->AddParent(memrecord);
       bufrecord->baseResource = memrecord->GetResourceID();
       bufrecord->memOffset = pBindInfos[i].memoryOffset;
+
+      memrecord->storable |= bufrecord->storable;
 
       // if the buffer was force-referenced, do the same with the memory
       if(IsForcedReference(bufrecord))
