@@ -1624,7 +1624,8 @@ void WrappedVulkan::vkCmdBeginRenderPass(VkCommandBuffer commandBuffer,
       if(att == NULL)
         break;
 
-      bool framebuffer_reference_entire_attachment = fbInfo->AttachmentFullyReferenced(i, rpInfo);
+      bool framebuffer_reference_entire_attachment =
+          fbInfo->AttachmentFullyReferenced(i, att, att->viewRange, rpInfo);
 
       FrameRefType refType = eFrameRef_ReadBeforeWrite;
 
@@ -2232,7 +2233,8 @@ void WrappedVulkan::vkCmdBeginRenderPass2(VkCommandBuffer commandBuffer,
       if(att == NULL)
         break;
 
-      bool framebuffer_reference_entire_attachment = fbInfo->AttachmentFullyReferenced(i, rpInfo);
+      bool framebuffer_reference_entire_attachment =
+          fbInfo->AttachmentFullyReferenced(i, att, att->viewRange, rpInfo);
 
       FrameRefType refType = eFrameRef_ReadBeforeWrite;
 

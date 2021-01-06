@@ -3564,9 +3564,10 @@ FramebufferInfo::~FramebufferInfo()
   delete[] imageAttachments;
 }
 
-bool FramebufferInfo::AttachmentFullyReferenced(size_t attachmentIndex, const RenderPassInfo *rpi)
+bool FramebufferInfo::AttachmentFullyReferenced(size_t attachmentIndex, VkResourceRecord *att,
+                                                VkImageSubresourceRange viewRange,
+                                                const RenderPassInfo *rpi)
 {
-  VkResourceRecord *att = imageAttachments[attachmentIndex].record;
   // if framebuffer doesn't reference the entire image
   if(att->resInfo->imageInfo.extent.width != width || att->resInfo->imageInfo.extent.height != height)
   {
@@ -3586,7 +3587,7 @@ bool FramebufferInfo::AttachmentFullyReferenced(size_t attachmentIndex, const Re
     uint32_t renderpass_viewmask = rpi->multiviewViewMaskTable[attachmentIndex];
     return (int)Bits::CountOnes(renderpass_viewmask) == att->resInfo->imageInfo.layerCount;
   }
-  return imageAttachments[attachmentIndex].barrier.subresourceRange.layerCount == layers;
+  return viewRange.layerCount == layers;
 }
 
 int ImgRefs::GetAspectCount() const

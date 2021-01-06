@@ -1161,7 +1161,8 @@ struct FramebufferInfo
   FramebufferInfo(const VkFramebufferCreateInfo &ci);
   ~FramebufferInfo();
 
-  bool AttachmentFullyReferenced(size_t attachmentIndex, const RenderPassInfo *rpi);
+  bool AttachmentFullyReferenced(size_t attachmentIndex, VkResourceRecord *attachment,
+                                 VkImageSubresourceRange viewRange, const RenderPassInfo *rpi);
 
   AttachmentInfo *imageAttachments;
 
