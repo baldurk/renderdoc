@@ -2579,15 +2579,16 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       uint64_t unclampedLen = m_ByteSize;
       if(unclampedLen == UINT64_MAX)
       {
-        uint64_t bufLen =
+        unclampedLen =
             m_IsBuffer && m_BufferID != ResourceId() ? m_Ctx.GetBuffer(m_BufferID)->length : 0;
-        uint64_t bufOffs = m_ByteOffset;
-
-        if(bufOffs >= bufLen)
-          unclampedLen = 0;
-        else
-          unclampedLen = bufLen - bufOffs;
       }
+
+      uint64_t bufOffs = m_ByteOffset;
+
+      if(bufOffs >= unclampedLen)
+        unclampedLen = 0;
+      else
+        unclampedLen = unclampedLen - bufOffs;
 
       unclampedLen -= m_PagingByteOffset;
 
