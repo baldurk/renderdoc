@@ -683,6 +683,11 @@ private:
   std::map<ResourceId, SubresourceStateVector> m_ResourceStates;
   Threading::CriticalSection m_ResourceStatesLock;
 
+  // used on replay only. Contains the initial resource states before any barriers - this allows us
+  // to reset any resources to their proper initial state if they were created mid-frame, since for
+  // those we won't have recorded their state at the start of the frame capture.
+  std::map<ResourceId, SubresourceStateVector> m_InitialResourceStates;
+
   std::set<ResourceId> m_Cubemaps;
 
   // only valid on replay

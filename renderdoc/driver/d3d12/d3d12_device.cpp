@@ -2100,9 +2100,17 @@ bool WrappedID3D12Device::Serialise_BeginCaptureFrame(SerialiserType &ser)
 {
   rdcarray<D3D12_RESOURCE_BARRIER> barriers;
 
+  if(IsReplayingAndReading() && IsLoading(m_State))
+  {
+    m_InitialResourceStates = m_ResourceStates;
+  }
+
+  std::map<ResourceId, SubresourceStateVector> initialStates;
+
   {
     SCOPED_LOCK(m_ResourceStatesLock);    // not needed on replay, but harmless also
-    GetResourceManager()->SerialiseResourceStates(ser, barriers, m_ResourceStates);
+    GetResourceManager()->SerialiseResourceStates(ser, barriers, m_ResourceStates,
+                                                  m_InitialResourceStates);
   }
 
   SERIALISE_CHECK_READ_ERRORS();

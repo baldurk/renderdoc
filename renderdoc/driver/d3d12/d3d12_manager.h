@@ -652,7 +652,8 @@ public:
 
   template <typename SerialiserType>
   void SerialiseResourceStates(SerialiserType &ser, rdcarray<D3D12_RESOURCE_BARRIER> &barriers,
-                               std::map<ResourceId, SubresourceStateVector> &states);
+                               std::map<ResourceId, SubresourceStateVector> &states,
+                               const std::map<ResourceId, SubresourceStateVector> &initialStates);
 
   template <typename SerialiserType>
   bool Serialise_InitialState(SerialiserType &ser, ResourceId id, D3D12ResourceRecord *record,
