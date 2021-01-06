@@ -1367,6 +1367,9 @@ void CombineUsageEvents(ICaptureContext &ctx, const rdcarray<EventUsage> &usage,
       us = u.usage;
     }
 
+    if(u.usage == us && u.eventId == end)
+      continue;
+
     const DrawcallDescription *draw = ctx.GetDrawcall(u.eventId);
 
     bool distinct = false;
