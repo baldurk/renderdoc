@@ -240,7 +240,7 @@ struct RichResourceText
       {
         QString resname = GetTruncatedResourceName(ctx, v.value<ResourceId>()).toHtmlEscaped();
         html += lit("<td valign=\"middle\"><b>%1</b></td>"
-                    "<td><img width=\"16\" src=':/link%3.png'></td>")
+                    "<td valign=\"middle\"><img width=\"16\" src=':/link%3.png'></td>")
                     .arg(resname)
                     .arg(highdpi ? lit("@2x") : QString());
         text += resname;

@@ -35,7 +35,13 @@ namespace Constants
 static const int MenuBarItemHPadding = 4;
 static const int MenuBarItemVPadding = 2;
 static const int MenuBarItemSpacing = 4;
+static const int ToolButtonIconSpacing = 4;
 };
+
+static QWindow *widgetWindow(const QWidget *widget)
+{
+  return widget ? widget->window()->windowHandle() : NULL;
+}
 
 RDTweakedNativeStyle::RDTweakedNativeStyle(QStyle *parent) : QProxyStyle(parent)
 {
@@ -367,7 +373,7 @@ void RDTweakedNativeStyle::drawControl(ControlElement control, const QStyleOptio
     }
 
     int flags = Qt::AlignCenter | Qt::TextShowMnemonic | Qt::TextDontClip | Qt::TextSingleLine;
-    if(!styleHint(SH_UnderlineShortcut, opt, widget))
+    if(!proxy()->styleHint(SH_UnderlineShortcut, opt, widget))
       flags |= Qt::TextHideMnemonic;
 
     rect.adjust(Constants::MenuBarItemHPadding, Constants::MenuBarItemVPadding,
@@ -375,8 +381,9 @@ void RDTweakedNativeStyle::drawControl(ControlElement control, const QStyleOptio
 
     int iconSize = pixelMetric(QStyle::PM_SmallIconSize, opt, widget);
 
-    QPixmap pix = menuopt->icon.pixmap(
-        iconSize, iconSize, (menuopt->state & State_Enabled) ? QIcon::Normal : QIcon::Disabled);
+    QPixmap pix =
+        menuopt->icon.pixmap(widgetWindow(widget), QSize(iconSize, iconSize),
+                             (menuopt->state & State_Enabled) ? QIcon::Normal : QIcon::Disabled);
 
     if(!pix.isNull())
     {
@@ -390,7 +397,98 @@ void RDTweakedNativeStyle::drawControl(ControlElement control, const QStyleOptio
 
     return;
   }
+  else if(control == QStyle::CE_ToolButtonLabel)
+  {
+    // unfortunately Qt made a 'fix' at some point to some unalterable magic numbers which reduces
+    // the spacing around the icon and ends up being too small at least in cases we care about.
+    // So we instead render the label ourselves
 
+    const QStyleOptionToolButton *toolopt = qstyleoption_cast<const QStyleOptionToolButton *>(opt);
+
+    QRect rect = toolopt->rect;
+
+    // even though our style doesn't shift the button contents, this is the tweaked native style so
+    // we need to check for that
+    if(toolopt->state & (State_Sunken | State_On))
+    {
+      rect.translate(proxy()->pixelMetric(PM_ButtonShiftHorizontal, toolopt, widget),
+                     proxy()->pixelMetric(PM_ButtonShiftVertical, toolopt, widget));
+    }
+
+    int textFlags = Qt::TextShowMnemonic;
+    if(!proxy()->styleHint(SH_UnderlineShortcut, opt, widget))
+      textFlags |= Qt::TextHideMnemonic;
+
+    // fetch the icon if we're not text-only and there's a valid icon
+    QPixmap pixmap;
+    QSize iconSize = toolopt->iconSize;
+    if(!toolopt->icon.isNull() && toolopt->toolButtonStyle != Qt::ToolButtonTextOnly)
+    {
+      QIcon::Mode mode = QIcon::Normal;
+
+      if((toolopt->state & State_Enabled) == 0)
+        mode = QIcon::Disabled;
+      else if((opt->state & (State_AutoRaise | State_MouseOver)) ==
+              (State_AutoRaise | State_MouseOver))
+        mode = QIcon::Active;
+
+      iconSize.setWidth(qMin(toolopt->iconSize.width(), toolopt->rect.width()));
+      iconSize.setHeight(qMin(toolopt->iconSize.height(), toolopt->rect.height()));
+
+      pixmap = toolopt->icon.pixmap(widget->window()->windowHandle(), iconSize, mode,
+                                    toolopt->state & State_On ? QIcon::On : QIcon::Off);
+      double d = widget->devicePixelRatioF();
+      iconSize = pixmap.size();
+      iconSize /= pixmap.devicePixelRatio();
+    }
+
+    // if we're only rendering the icon, render it now centred
+    if(toolopt->toolButtonStyle == Qt::ToolButtonIconOnly)
+    {
+      drawItemPixmap(p, rect, Qt::AlignCenter, pixmap);
+    }
+    else
+    {
+      // otherwise we're expecting to render text, set the font
+      p->setFont(toolopt->font);
+
+      QRect iconRect = rect, textRect = rect;
+
+      if(toolopt->toolButtonStyle == Qt::ToolButtonTextOnly)
+      {
+        textFlags |= Qt::AlignCenter;
+        iconRect = QRect();
+      }
+      else if(toolopt->toolButtonStyle == Qt::ToolButtonTextUnderIcon)
+      {
+        // take spacing above and below for the icon
+        iconRect.setHeight(iconSize.height() + Constants::ToolButtonIconSpacing * 2);
+        // place the text below the icon
+        textRect.setTop(textRect.top() + iconRect.height());
+        // center the text below the icon
+        textFlags |= Qt::AlignCenter;
+      }
+      else
+      {
+        // take spacing left and right for the icon and remove it from the text rect
+        iconRect.setWidth(iconSize.width() + Constants::ToolButtonIconSpacing * 2);
+        textRect.setLeft(textRect.left() + iconRect.width());
+
+        // left align the text horizontally next to the icon, but still vertically center it.
+        textFlags |= Qt::AlignLeft | Qt::AlignVCenter;
+      }
+
+      if(iconRect.isValid())
+        proxy()->drawItemPixmap(p, QStyle::visualRect(opt->direction, rect, iconRect),
+                                Qt::AlignCenter, pixmap);
+
+      proxy()->drawItemText(p, QStyle::visualRect(opt->direction, rect, textRect), textFlags,
+                            toolopt->palette, toolopt->state & State_Enabled, toolopt->text,
+                            QPalette::ButtonText);
+    }
+
+    return;
+  }
 // https://bugreports.qt.io/browse/QTBUG-14949
 // work around itemview rendering bug - the first line in a multi-line text that is elided stops
 // all subsequent text from rendering. Should be fixed in 5.11, but for all other versions we need
@@ -398,7 +496,7 @@ void RDTweakedNativeStyle::drawControl(ControlElement control, const QStyleOptio
 //
 // However in 5.11.1 at least on macOS it still seems to be broken
 #if 1    //(QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
-  if(control == QStyle::CE_ItemViewItem)
+  else if(control == QStyle::CE_ItemViewItem)
   {
     const QStyleOptionViewItem *viewopt = qstyleoption_cast<const QStyleOptionViewItem *>(opt);
 
