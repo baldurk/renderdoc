@@ -1639,6 +1639,9 @@ bool WrappedID3D11Device::Serialise_WrapSwapchainBuffer(SerialiserType &ser, IDX
 IUnknown *WrappedID3D11Device::WrapSwapchainBuffer(IDXGISwapper *swapper, DXGI_FORMAT bufferFormat,
                                                    UINT buffer, IUnknown *realSurface)
 {
+  // need to flush pending dead now so we don't find a 'dead' wrapper below
+  FlushPendingDead();
+
   if(GetResourceManager()->HasWrapper((ID3D11DeviceChild *)realSurface))
   {
     ID3D11Texture2D *tex =
@@ -1705,6 +1708,10 @@ IDXGIResource *WrappedID3D11Device::WrapExternalDXGIResource(IDXGIResource *res)
 {
   ID3D11Resource *d3d11res;
   res->QueryInterface(__uuidof(ID3D11Resource), (void **)&d3d11res);
+
+  // need to flush pending dead now so we don't find a 'dead' wrapper below
+  FlushPendingDead();
+
   if(GetResourceManager()->HasWrapper(d3d11res))
   {
     ID3D11DeviceChild *wrapper = GetResourceManager()->GetWrapper(d3d11res);

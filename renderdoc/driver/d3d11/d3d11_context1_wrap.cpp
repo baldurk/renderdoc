@@ -2116,6 +2116,9 @@ void WrappedID3D11DeviceContext::SwapDeviceContextState(ID3DDeviceContextState *
   {
     WrappedID3DDeviceContextState *wrapped = NULL;
 
+    // need to flush pending dead now so we don't find a 'dead' wrapper below
+    m_pDevice->FlushPendingDead();
+
     if(m_pDevice->GetResourceManager()->HasWrapper(prev))
     {
       wrapped = (WrappedID3DDeviceContextState *)m_pDevice->GetResourceManager()->GetWrapper(prev);
