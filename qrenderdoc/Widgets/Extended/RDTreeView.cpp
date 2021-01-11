@@ -26,11 +26,13 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QContextMenuEvent>
+#include <QHeaderView>
 #include <QLabel>
 #include <QMenu>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QProxyStyle>
+#include <QScrollBar>
 #include <QStylePainter>
 #include <QToolTip>
 #include <QWheelEvent>
@@ -601,4 +603,68 @@ void RDTreeView::drawBranches(QPainter *painter, const QRect &rect, const QModel
 
     style()->drawPrimitive(QStyle::PE_IndicatorBranch, &opt, painter, this);
   }
+}
+
+QModelIndex RDTreeView::moveCursor(CursorAction cursorAction, Qt::KeyboardModifiers modifiers)
+{
+  // Qt's handling for MoveLeft is a little broken when scrollbars are in use, so we customise it
+  // do almost the same thing but with a fix
+  if(cursorAction == QAbstractItemView::MoveLeft)
+  {
+    // The default MoveRight is fine. It does in order:
+    // 1. if the current item is expandable but not expanded, it expands it.
+    // 2. if SH_ItemView_ArrowKeysNavigateIntoChildren is enabled it moves to the first child of the
+    //    current item if there is one.
+    // 3. finally it tries to scroll right, either by selecting the next column or just moving the
+    //    scrollbar.
+    //
+    // That's all good, but MoveLeft is not symmetric. Meaning it will do this:
+    // 1. if the current item is expandable and expanded, collapse it, *but only if the scrollbar is
+    //    all the way to the left*.
+    // 2. if SH_ItemView_ArrowKeysNavigateIntoChildren is enabled it moves to the current item's
+    //    parent.
+    // 3. finally it tries to scroll left if it can't do that.
+    //
+    // The problem here is that because scrolling left is still the last-resort icon, pressing right
+    // to expand an item and then perhaps scrolling right is not "undone" by pressing left, since
+    // we've now scrolled so the collapse doesn't happen and instead we jump to the parent node.
+    //
+    // To fix this, we scroll first, then handle the other two cases
+
+    QModelIndex current = currentIndex();
+
+    if(selectionBehavior() == QAbstractItemView::SelectItems ||
+       selectionBehavior() == QAbstractItemView::SelectColumns)
+    {
+      int col = header()->visualIndex(current.column());
+      // move left one
+      col--;
+
+      // keep moving if the column is hiden
+      while(col >= 0 && isColumnHidden(header()->logicalIndex(col)))
+        col--;
+
+      // if we landed on a valid column (we may have gone negative if we were already on the first
+      // column) return it
+      if(col >= 0)
+      {
+        QModelIndex sel = current.sibling(current.row(), header()->logicalIndex(col));
+        if(sel.isValid())
+          return sel;
+      }
+    }
+
+    // if we didn't scroll left above by selecting an index, and the scrollbar is still not
+    // minimised, scroll it left now.
+    QScrollBar *scroll = horizontalScrollBar();
+    if(scroll->value() > scroll->minimum())
+    {
+      scroll->setValue(scroll->value() - scroll->singleStep());
+      return current;
+    }
+
+    // otherwise we can use the default behaviour
+  }
+
+  return QTreeView::moveCursor(cursorAction, modifiers);
 }

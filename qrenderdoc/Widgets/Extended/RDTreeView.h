@@ -148,6 +148,8 @@ protected:
                const QModelIndex &index) const override;
   void drawBranches(QPainter *painter, const QRect &rect, const QModelIndex &index) const override;
 
+  QModelIndex moveCursor(CursorAction cursorAction, Qt::KeyboardModifiers modifiers) override;
+
   void fillBranchesRect(QPainter *painter, const QRect &rect, const QModelIndex &index) const;
   void enableBranchRectFill(bool fill) { m_fillBranchRect = fill; }
   QModelIndex m_currentHoverIndex;
