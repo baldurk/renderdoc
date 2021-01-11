@@ -416,9 +416,9 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       }
 
       // raytracing
-      case Capability::RayQueryProvisionalKHR:
-      case Capability::RayTraversalPrimitiveCullingProvisionalKHR:
-      case Capability::RayTracingProvisionalKHR:
+      case Capability::RayQueryKHR:
+      case Capability::RayTraversalPrimitiveCullingKHR:
+      case Capability::RayTracingKHR:
       {
         supported = false;
         break;
@@ -476,6 +476,14 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       case Capability::BlockingPipesINTEL:
       case Capability::Max:
       case Capability::Invalid:
+      {
+        supported = false;
+        break;
+      }
+
+      // deprecated provisional raytracing
+      case Capability::RayQueryProvisionalKHR:
+      case Capability::RayTracingProvisionalKHR:
       {
         supported = false;
         break;

@@ -249,6 +249,12 @@ struct VkInstDispatchTable
   // VK_EXT_headless_surface
   PFN_vkCreateHeadlessSurfaceEXT CreateHeadlessSurfaceEXT;
 
+  // VK_NV_acquire_winrt_display
+#ifdef VK_USE_PLATFORM_WIN32_KHR
+  PFN_vkAcquireWinrtDisplayNV AcquireWinrtDisplayNV;
+  PFN_vkGetWinrtDisplayNV GetWinrtDisplayNV;
+#endif // VK_USE_PLATFORM_WIN32_KHR
+
   // VK_EXT_directfb_surface
 #ifdef VK_USE_PLATFORM_DIRECTFB_EXT
   PFN_vkCreateDirectFBSurfaceEXT CreateDirectFBSurfaceEXT;
@@ -492,15 +498,12 @@ struct VkDevDispatchTable
   PFN_vkGetBufferMemoryRequirements2KHR GetBufferMemoryRequirements2KHR;
   PFN_vkGetImageSparseMemoryRequirements2KHR GetImageSparseMemoryRequirements2KHR;
 
-  // VK_KHR_ray_tracing
-#ifdef VK_ENABLE_BETA_EXTENSIONS
+  // VK_KHR_acceleration_structure
   PFN_vkCreateAccelerationStructureKHR CreateAccelerationStructureKHR;
   PFN_vkDestroyAccelerationStructureKHR DestroyAccelerationStructureKHR;
-  PFN_vkGetAccelerationStructureMemoryRequirementsKHR GetAccelerationStructureMemoryRequirementsKHR;
-  PFN_vkBindAccelerationStructureMemoryKHR BindAccelerationStructureMemoryKHR;
-  PFN_vkCmdBuildAccelerationStructureKHR CmdBuildAccelerationStructureKHR;
-  PFN_vkCmdBuildAccelerationStructureIndirectKHR CmdBuildAccelerationStructureIndirectKHR;
-  PFN_vkBuildAccelerationStructureKHR BuildAccelerationStructureKHR;
+  PFN_vkCmdBuildAccelerationStructuresKHR CmdBuildAccelerationStructuresKHR;
+  PFN_vkCmdBuildAccelerationStructuresIndirectKHR CmdBuildAccelerationStructuresIndirectKHR;
+  PFN_vkBuildAccelerationStructuresKHR BuildAccelerationStructuresKHR;
   PFN_vkCopyAccelerationStructureKHR CopyAccelerationStructureKHR;
   PFN_vkCopyAccelerationStructureToMemoryKHR CopyAccelerationStructureToMemoryKHR;
   PFN_vkCopyMemoryToAccelerationStructureKHR CopyMemoryToAccelerationStructureKHR;
@@ -508,15 +511,10 @@ struct VkDevDispatchTable
   PFN_vkCmdCopyAccelerationStructureKHR CmdCopyAccelerationStructureKHR;
   PFN_vkCmdCopyAccelerationStructureToMemoryKHR CmdCopyAccelerationStructureToMemoryKHR;
   PFN_vkCmdCopyMemoryToAccelerationStructureKHR CmdCopyMemoryToAccelerationStructureKHR;
-  PFN_vkCmdTraceRaysKHR CmdTraceRaysKHR;
-  PFN_vkCreateRayTracingPipelinesKHR CreateRayTracingPipelinesKHR;
-  PFN_vkGetRayTracingShaderGroupHandlesKHR GetRayTracingShaderGroupHandlesKHR;
   PFN_vkGetAccelerationStructureDeviceAddressKHR GetAccelerationStructureDeviceAddressKHR;
-  PFN_vkGetRayTracingCaptureReplayShaderGroupHandlesKHR GetRayTracingCaptureReplayShaderGroupHandlesKHR;
   PFN_vkCmdWriteAccelerationStructuresPropertiesKHR CmdWriteAccelerationStructuresPropertiesKHR;
-  PFN_vkCmdTraceRaysIndirectKHR CmdTraceRaysIndirectKHR;
   PFN_vkGetDeviceAccelerationStructureCompatibilityKHR GetDeviceAccelerationStructureCompatibilityKHR;
-#endif // VK_ENABLE_BETA_EXTENSIONS
+  PFN_vkGetAccelerationStructureBuildSizesKHR GetAccelerationStructureBuildSizesKHR;
 
   // VK_KHR_sampler_ycbcr_conversion
   PFN_vkCreateSamplerYcbcrConversionKHR CreateSamplerYcbcrConversionKHR;
@@ -547,13 +545,11 @@ struct VkDevDispatchTable
   PFN_vkGetDeviceMemoryOpaqueCaptureAddressKHR GetDeviceMemoryOpaqueCaptureAddressKHR;
 
   // VK_KHR_deferred_host_operations
-#ifdef VK_ENABLE_BETA_EXTENSIONS
   PFN_vkCreateDeferredOperationKHR CreateDeferredOperationKHR;
   PFN_vkDestroyDeferredOperationKHR DestroyDeferredOperationKHR;
   PFN_vkGetDeferredOperationMaxConcurrencyKHR GetDeferredOperationMaxConcurrencyKHR;
   PFN_vkGetDeferredOperationResultKHR GetDeferredOperationResultKHR;
   PFN_vkDeferredOperationJoinKHR DeferredOperationJoinKHR;
-#endif // VK_ENABLE_BETA_EXTENSIONS
 
   // VK_KHR_pipeline_executable_properties
   PFN_vkGetPipelineExecutablePropertiesKHR GetPipelineExecutablePropertiesKHR;
@@ -567,6 +563,15 @@ struct VkDevDispatchTable
   PFN_vkCmdCopyImageToBuffer2KHR CmdCopyImageToBuffer2KHR;
   PFN_vkCmdBlitImage2KHR CmdBlitImage2KHR;
   PFN_vkCmdResolveImage2KHR CmdResolveImage2KHR;
+
+  // VK_KHR_ray_tracing_pipeline
+  PFN_vkCmdTraceRaysKHR CmdTraceRaysKHR;
+  PFN_vkCreateRayTracingPipelinesKHR CreateRayTracingPipelinesKHR;
+  PFN_vkGetRayTracingShaderGroupHandlesKHR GetRayTracingShaderGroupHandlesKHR;
+  PFN_vkGetRayTracingCaptureReplayShaderGroupHandlesKHR GetRayTracingCaptureReplayShaderGroupHandlesKHR;
+  PFN_vkCmdTraceRaysIndirectKHR CmdTraceRaysIndirectKHR;
+  PFN_vkGetRayTracingShaderGroupStackSizeKHR GetRayTracingShaderGroupStackSizeKHR;
+  PFN_vkCmdSetRayTracingPipelineStackSizeKHR CmdSetRayTracingPipelineStackSizeKHR;
 
   // VK_EXT_debug_marker
   PFN_vkDebugMarkerSetObjectTagEXT DebugMarkerSetObjectTagEXT;
@@ -747,6 +752,9 @@ struct VkDevDispatchTable
   PFN_vkDestroyPrivateDataSlotEXT DestroyPrivateDataSlotEXT;
   PFN_vkSetPrivateDataEXT SetPrivateDataEXT;
   PFN_vkGetPrivateDataEXT GetPrivateDataEXT;
+
+  // VK_NV_fragment_shading_rate_enums
+  PFN_vkCmdSetFragmentShadingRateEnumNV CmdSetFragmentShadingRateEnumNV;
 
   // for consistency with macros, we declare the CreateDevice pointer here
   // even though it won't actually ever get used and is on the instance dispatch chain

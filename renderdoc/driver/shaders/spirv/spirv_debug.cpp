@@ -3681,13 +3681,18 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::RayQueryGetWorldRayOriginKHR:
     case Op::RayQueryGetIntersectionObjectToWorldKHR:
     case Op::RayQueryGetIntersectionWorldToObjectKHR:
-    case Op::TypeRayQueryProvisionalKHR:
+    case Op::TypeRayQueryKHR:
     case Op::RayQueryInitializeKHR:
     case Op::RayQueryTerminateKHR:
     case Op::RayQueryGenerateIntersectionKHR:
     case Op::RayQueryConfirmIntersectionKHR:
     case Op::RayQueryProceedKHR:
     case Op::RayQueryGetIntersectionTypeKHR:
+    case Op::TraceRayKHR:
+    case Op::ExecuteCallableKHR:
+    case Op::ConvertUToAccelerationStructureKHR:
+    case Op::IgnoreIntersectionKHR:
+    case Op::TerminateRayKHR:
     {
       RDCERR("Unsupported extension opcode used %s", ToStr(opdata.op).c_str());
 
