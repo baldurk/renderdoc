@@ -467,7 +467,7 @@
     </widget>
    </item>
    <item>
-    <widget class="RDTreeWidget" name="events">
+    <widget class="RDTreeView" name="events">
      <property name="frameShape">
       <enum>QFrame::Box</enum>
      </property>
@@ -510,9 +510,9 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>RDTreeWidget</class>
+   <class>RDTreeView</class>
    <extends>QTreeView</extends>
-   <header>Widgets/Extended/RDTreeWidget.h</header>
+   <header>Widgets/Extended/RDTreeView.h</header>
   </customwidget>
   <customwidget>
    <class>RDLineEdit</class>

@@ -230,9 +230,6 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
   ui->EventBrowser_ApplyColors->setChecked(m_Ctx.Config().EventBrowser_ApplyColors);
   ui->EventBrowser_ColorEventRow->setChecked(m_Ctx.Config().EventBrowser_ColorEventRow);
 
-  // disable sub-checkbox
-  ui->EventBrowser_ColorEventRow->setEnabled(ui->EventBrowser_ApplyColors->isChecked());
-
   ui->Comments_ShowOnLoad->setChecked(m_Ctx.Config().Comments_ShowOnLoad);
 
   ui->Formatter_MinFigures->setValue(m_Ctx.Config().Formatter_MinFigures);
@@ -1029,6 +1026,9 @@ void SettingsDialog::on_EventBrowser_HideAPICalls_toggled(bool checked)
 void SettingsDialog::on_EventBrowser_ApplyColors_toggled(bool checked)
 {
   m_Ctx.Config().EventBrowser_ApplyColors = ui->EventBrowser_ApplyColors->isChecked();
+
+  // disable sub-checkbox
+  ui->EventBrowser_ColorEventRow->setEnabled(ui->EventBrowser_ApplyColors->isChecked());
 
   m_Ctx.Config().Save();
 }

@@ -35,11 +35,14 @@ class EventBrowser;
 
 class QSpacerItem;
 class QToolButton;
-class RDTreeWidgetItem;
 class QTimer;
 class QTextStream;
 class FlowLayout;
 struct EventItemTag;
+
+class RichTextViewDelegate;
+struct EventItemModel;
+struct EventFilterModel;
 
 class EventBrowser : public QFrame, public IEventBrowser, public ICaptureViewer
 {
@@ -75,7 +78,6 @@ private slots:
   void on_findEvent_returnPressed();
   void on_findEvent_keyPress(QKeyEvent *event);
   void on_findEvent_textEdited(const QString &arg1);
-  void on_events_currentItemChanged(RDTreeWidgetItem *current, RDTreeWidgetItem *previous);
   void on_findNext_clicked();
   void on_findPrev_clicked();
   void on_stepNext_clicked();
@@ -87,51 +89,38 @@ private slots:
   void findHighlight_timeout();
   void events_keyPress(QKeyEvent *event);
   void events_contextMenu(const QPoint &pos);
-
-public slots:
-  void clearBookmarks();
-  bool hasBookmark(uint32_t EID);
-  void toggleBookmark(uint32_t EID);
-  void jumpToBookmark(int idx);
+  void events_currentChanged(const QModelIndex &current, const QModelIndex &previous);
 
 private:
-  bool ShouldHide(const DrawcallDescription &drawcall);
-  QPair<uint32_t, uint32_t> AddDrawcalls(RDTreeWidgetItem *parent,
-                                         const rdcarray<DrawcallDescription> &draws);
-  void SetDrawcallTimes(RDTreeWidgetItem *node, const rdcarray<CounterResult> &results);
+  void ExpandNode(QModelIndex idx);
 
-  void ExpandNode(RDTreeWidgetItem *node);
-
-  bool FindEventNode(RDTreeWidgetItem *&found, RDTreeWidgetItem *parent, uint32_t eventId);
   bool SelectEvent(uint32_t eventId);
+  void SelectEvent(QModelIndex found);
 
-  void ClearFindIcons(RDTreeWidgetItem *parent);
-  void ClearFindIcons();
+  void updateFindResultsAvailable();
 
-  int SetFindIcons(RDTreeWidgetItem *parent, QString filter);
-  int SetFindIcons(QString filter);
-
+  void clearBookmarks();
+  void jumpToBookmark(int idx);
   void repopulateBookmarks();
   void highlightBookmarks();
-  bool hasBookmark(RDTreeWidgetItem *node);
 
-  RDTreeWidgetItem *FindNode(RDTreeWidgetItem *parent, QString filter, uint32_t after);
-  int FindEvent(RDTreeWidgetItem *parent, QString filter, uint32_t after, bool forward);
+  int FindEvent(QModelIndex parent, QString filter, uint32_t after, bool forward);
   int FindEvent(QString filter, uint32_t after, bool forward);
   void Find(bool forward);
 
-  QString GetExportDrawcallString(int indent, bool firstchild, const DrawcallDescription &drawcall);
-  double GetDrawTime(const DrawcallDescription &drawcall);
-  void GetMaxNameLength(int &maxNameLength, int indent, bool firstchild,
-                        const DrawcallDescription &drawcall);
+  QString GetExportString(int indent, bool firstchild, const QModelIndex &idx);
+  void GetMaxNameLength(int &maxNameLength, int indent, bool firstchild, const QModelIndex &idx);
   void ExportDrawcall(QTextStream &writer, int maxNameLength, int indent, bool firstchild,
-                      const DrawcallDescription &drawcall);
+                      const QModelIndex &idx);
 
   QPalette m_redPalette;
 
-  TimeUnit m_TimeUnit = TimeUnit::Count;
+  RichTextViewDelegate *m_delegate = NULL;
 
-  rdcarray<CounterResult> m_Times;
+  EventItemModel *m_Model;
+  EventFilterModel *m_FilterModel;
+
+  TimeUnit m_TimeUnit = TimeUnit::Count;
 
   QTimer *m_FindHighlight;
 
@@ -139,9 +128,7 @@ private:
   QSpacerItem *m_BookmarkSpacer;
   QMap<uint32_t, QToolButton *> m_BookmarkButtons;
 
-  void RefreshIcon(RDTreeWidgetItem *item, EventItemTag tag);
   void RefreshShaderMessages();
-
   Ui::EventBrowser *ui;
   ICaptureContext &m_Ctx;
 };

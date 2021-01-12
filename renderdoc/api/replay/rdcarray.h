@@ -186,6 +186,7 @@ public:
   {
     return usedCount == o.usedCount && ItemHelper<T>::equalRange(elems, o.elems, usedCount);
   }
+  bool operator!=(const rdcarray<T> &o) const { return !(*this == o); }
   bool operator<(const rdcarray<T> &o) const
   {
     if(usedCount != o.usedCount)

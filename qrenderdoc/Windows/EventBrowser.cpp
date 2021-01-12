@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "EventBrowser.h"
+#include <QAbstractItemModel>
 #include <QAbstractSpinBox>
 #include <QComboBox>
 #include <QDialogButtonBox>
@@ -30,6 +31,7 @@
 #include <QLineEdit>
 #include <QMenu>
 #include <QShortcut>
+#include <QSortFilterProxyModel>
 #include <QTextEdit>
 #include <QTimer>
 #include "Code/QRDUtils.h"
@@ -40,21 +42,6 @@
 #include "scintilla/include/qt/ScintillaEdit.h"
 #include "ui_EventBrowser.h"
 
-struct EventItemTag
-{
-  EventItemTag() = default;
-  EventItemTag(uint32_t eventId) : EID(eventId), lastEID(eventId) {}
-  EventItemTag(uint32_t eventId, uint32_t lastEventID) : EID(eventId), lastEID(lastEventID) {}
-  uint32_t EID = 0;
-  uint32_t lastEID = 0;
-  double duration = -1.0;
-  bool current = false;
-  bool find = false;
-  bool bookmark = false;
-};
-
-Q_DECLARE_METATYPE(EventItemTag);
-
 enum
 {
   COL_NAME,
@@ -62,6 +49,616 @@ enum
   COL_DRAW,
   COL_DURATION,
   COL_COUNT,
+};
+
+enum
+{
+  ROLE_SELECTED_EID = Qt::UserRole,
+  ROLE_EFFECTIVE_EID,
+};
+
+static uint32_t GetSelectedEID(QModelIndex idx)
+{
+  return idx.data(ROLE_SELECTED_EID).toUInt();
+}
+
+static uint32_t GetEffectiveEID(QModelIndex idx)
+{
+  return idx.data(ROLE_EFFECTIVE_EID).toUInt();
+}
+
+struct EventItemModel : public QAbstractItemModel
+{
+  EventItemModel(QAbstractItemView *view, ICaptureContext &ctx) : m_View(view), m_Ctx(ctx)
+  {
+    UpdateDurationColumn();
+
+    m_CurrentEID = createIndex(0, 0, TagCaptureStart);
+  }
+
+  void ResetModel()
+  {
+    emit beginResetModel();
+    emit endResetModel();
+
+    m_Nodes.clear();
+
+    if(!m_Ctx.CurDrawcalls().empty())
+      m_Nodes[0] = CreateDrawNode(NULL);
+
+    m_CurrentEID = createIndex(0, 0, TagCaptureStart);
+
+    RefreshCache();
+  }
+
+  void RefreshCache()
+  {
+    if(!m_Ctx.IsCaptureLoaded())
+      return;
+
+    uint32_t eid = m_Ctx.CurSelectedEvent();
+
+    m_MessageCounts[eid] = m_Ctx.CurPipelineState().GetShaderMessages().count();
+
+    if(eid != data(m_CurrentEID, ROLE_SELECTED_EID) || eid == 0)
+    {
+      QModelIndex oldCurrent = m_CurrentEID;
+
+      m_CurrentEID = GetIndexForEID(eid);
+
+      if(eid == 0 && m_Ctx.CurEvent() != 0)
+        m_CurrentEID = createIndex(0, 0, TagRoot);
+
+      RefreshIcon(oldCurrent);
+      RefreshIcon(m_CurrentEID);
+    }
+
+    if(m_Ctx.GetBookmarks() != m_Bookmarks)
+    {
+      rdcarray<QModelIndex> indices;
+      indices.swap(m_BookmarkIndices);
+
+      m_Bookmarks = m_Ctx.GetBookmarks();
+
+      for(const EventBookmark &b : m_Bookmarks)
+        m_BookmarkIndices.push_back(GetIndexForEID(b.eventId));
+
+      for(QModelIndex idx : indices)
+        RefreshIcon(idx);
+      for(QModelIndex idx : m_BookmarkIndices)
+        RefreshIcon(idx);
+    }
+  }
+
+  bool HasTimes() { return !m_Times.empty(); }
+  void SetTimes(const rdcarray<CounterResult> &times)
+  {
+    // set all times for events to -1.0
+    m_Times.fill(m_Nodes[0].effectiveEID + 1, -1.0);
+
+    // fill in the actual times
+    for(const CounterResult &r : times)
+    {
+      if(r.eventId < m_Times.size())
+      {
+        m_Times[r.eventId] = r.value.d;
+      }
+    }
+
+    // iterate nodes in reverse order, because parent nodes will always be before children
+    // so we know we'll have the results
+    QList<uint32_t> nodeEIDs = m_Nodes.keys();
+    for(auto it = nodeEIDs.rbegin(); it != nodeEIDs.rend(); it++)
+      CalculateTotalDuration(m_Nodes[*it]);
+
+    // Qt's item model kind of sucks and doesn't have a good way to say "all data in this column has
+    // changed" let alone "all data has changed". dataChanged() is limited to only a group of model
+    // indices under a single parent. Instead we just force the view itself to refresh here.
+    m_View->viewport()->update();
+  }
+
+  void UpdateDurationColumn()
+  {
+    m_TimeUnit = m_Ctx.Config().EventBrowser_TimeUnit;
+    emit headerDataChanged(Qt::Horizontal, COL_DURATION, COL_DURATION);
+
+    m_View->viewport()->update();
+  }
+
+  void SetFindText(QString text)
+  {
+    if(m_FindString == text)
+      return;
+
+    rdcarray<QModelIndex> oldResults;
+    oldResults.swap(m_FindResults);
+
+    m_FindString = text;
+    m_FindResults.clear();
+
+    if(!m_FindString.isEmpty())
+    {
+      // do a depth-first search to find results
+      AccumulateFindResults(createIndex(0, 0, TagRoot));
+    }
+
+    for(QModelIndex i : oldResults)
+      RefreshIcon(i);
+    for(QModelIndex i : m_FindResults)
+      RefreshIcon(i);
+  }
+
+  QModelIndex Find(bool forward)
+  {
+    if(m_FindResults.empty())
+      return QModelIndex();
+
+    // if we're already on a find result we can just zoom to the next one
+    int idx = m_FindResults.indexOf(m_CurrentEID);
+    if(idx >= 0)
+    {
+      if(forward)
+        idx++;
+      else
+        idx--;
+      if(idx < 0)
+        idx = m_FindResults.count() - 1;
+
+      idx %= m_FindResults.count();
+
+      return m_FindResults[idx];
+    }
+
+    // otherwise we need to do a more expensive search. Get the EID for the current, and find the
+    // next find result after that (wrapping around)
+    uint32_t eid = data(m_CurrentEID, ROLE_EFFECTIVE_EID).toUInt();
+
+    if(forward)
+    {
+      // find the first result >= our selected EID
+      for(int i = 0; i < m_FindResults.count(); i++)
+      {
+        uint32_t findEID = data(m_FindResults[i], ROLE_SELECTED_EID).toUInt();
+        if(findEID >= eid)
+          return m_FindResults[i];
+      }
+
+      // if we didn't find any, we're past all the results - return the first one to wrap
+      return m_FindResults[0];
+    }
+    else
+    {
+      // find the last result <= our selected EID
+      for(int i = m_FindResults.count() - 1; i >= 0; i--)
+      {
+        uint32_t findEID = data(m_FindResults[i], ROLE_SELECTED_EID).toUInt();
+        if(findEID <= eid)
+          return m_FindResults[i];
+      }
+
+      // if we didn't find any, we're before all the results - return the last one to wrap
+      return m_FindResults.back();
+    }
+  }
+
+  int NumFindResults() { return m_FindResults.count(); }
+  QModelIndex GetIndexForEID(uint32_t eid)
+  {
+    if(eid == 0)
+      return createIndex(0, 0, TagCaptureStart);
+
+    const DrawcallDescription *draw = m_Ctx.GetDrawcall(eid);
+    if(draw)
+    {
+      int rowInParent;
+      if(draw->parent)
+      {
+        rowInParent = GetRowIndexForEIDInDraw(draw->parent->children, draw->eventId);
+      }
+      else
+      {
+        // add 1 to account for Capture Start
+        rowInParent = 1 + GetRowIndexForEIDInDraw(m_Ctx.CurDrawcalls(), draw->eventId);
+      }
+
+      return createIndex(rowInParent, 0, (void *)draw);
+    }
+    else
+    {
+      qWarning() << "Couldn't find draw for event" << eid;
+    }
+
+    return QModelIndex();
+  }
+
+  //////////////////////////////////////////////////////////////////////////////////////
+  //
+  // QAbstractItemModel methods
+
+  QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override
+  {
+    if(!m_Ctx.IsCaptureLoaded())
+      return QModelIndex();
+
+    // create fake root if the parent is invalid
+    if(!parent.isValid())
+      return createIndex(0, column, TagRoot);
+
+    // if the parent is the root, return the index for the specified child if it's in bounds
+    if(parent.internalId() == TagRoot)
+    {
+      // first child is the capture start
+      if(row == 0)
+        return createIndex(row, column, TagCaptureStart);
+
+      // the rest are in the root draws list
+      const rdcarray<DrawcallDescription> &draws = m_Ctx.CurDrawcalls();
+
+      if(row > 0 && row <= draws.count())
+        return createIndex(row, column, (void *)&draws[row - 1]);
+    }
+    else if(parent.internalId() == TagCaptureStart)
+    {
+      // no children for this
+      return QModelIndex();
+    }
+    else
+    {
+      const DrawcallDescription *parentDraw = (const DrawcallDescription *)parent.internalPointer();
+
+      // otherwise the parent is a real draw
+      if(row >= 0 && row < parentDraw->children.count())
+        return createIndex(row, column, (void *)&parentDraw->children[row]);
+    }
+
+    return QModelIndex();
+  }
+
+  QModelIndex parent(const QModelIndex &index) const override
+  {
+    if(!m_Ctx.IsCaptureLoaded() || !index.isValid() || index.internalId() == TagRoot)
+      return QModelIndex();
+
+    // Capture Start's parent is the root
+    if(index.internalId() == TagCaptureStart)
+      return createIndex(0, 0, TagRoot);
+
+    // otherwise it's a draw
+    const DrawcallDescription *draw = (const DrawcallDescription *)index.internalPointer();
+
+    // if it has no parent draw, the parent is the root
+    if(draw->parent == NULL)
+      return createIndex(0, 0, TagRoot);
+
+    // Qt needs the row of the child in the parent in the grand-parent, do so with lower_bound
+    const DrawcallDescription *parentDraw = draw->parent;
+
+    int rowInParent;
+    if(parentDraw->parent)
+    {
+      rowInParent = GetRowIndexForEIDInDraw(parentDraw->parent->children, parentDraw->eventId);
+    }
+    else
+    {
+      // add 1 to account for Capture Start
+      rowInParent = 1 + GetRowIndexForEIDInDraw(m_Ctx.CurDrawcalls(), parentDraw->eventId);
+    }
+
+    return createIndex(rowInParent, 0, (void *)parentDraw);
+  }
+
+  int rowCount(const QModelIndex &parent = QModelIndex()) const override
+  {
+    if(!m_Ctx.IsCaptureLoaded())
+      return 0;
+
+    // only one root
+    if(!parent.isValid())
+      return 1;
+
+    // only column 1 has children (Qt convention)
+    if(parent.column() != 0)
+      return 0;
+
+    // +1 for the capture start
+    if(parent.internalId() == TagRoot)
+      return m_Ctx.CurDrawcalls().count() + 1;
+
+    if(parent.internalId() == TagCaptureStart)
+      return 0;
+
+    // otherwise it's a draw
+    const DrawcallDescription *draw = (const DrawcallDescription *)parent.internalPointer();
+
+    return draw->children.count();
+  }
+
+  int columnCount(const QModelIndex &parent = QModelIndex()) const override { return COL_COUNT; }
+  QVariant headerData(int section, Qt::Orientation orientation, int role) const override
+  {
+    if(orientation == Qt::Horizontal && role == Qt::DisplayRole)
+    {
+      switch(section)
+      {
+        case COL_NAME: return tr("Name");
+        case COL_EID: return lit("EID");
+        case COL_DRAW: return lit("Draw #");
+        case COL_DURATION: return tr("Duration (%1)").arg(UnitSuffix(m_TimeUnit));
+        default: break;
+      }
+    }
+
+    return QVariant();
+  }
+
+  QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override
+  {
+    if(!index.isValid())
+      return QVariant();
+
+    if(role == Qt::DecorationRole)
+    {
+      if(index == m_CurrentEID)
+        return Icons::flag_green();
+      else if(m_BookmarkIndices.contains(index))
+        return Icons::asterisk_orange();
+      else if(m_FindResults.contains(index))
+        return Icons::find();
+      return QVariant();
+    }
+
+    if(index.column() == COL_DURATION && role == Qt::TextAlignmentRole)
+      return int(Qt::AlignRight | Qt::AlignVCenter);
+
+    if(index.internalId() == TagRoot)
+    {
+      if(role == Qt::DisplayRole && index.column() == COL_NAME)
+      {
+        uint32_t frameNumber = m_Ctx.FrameInfo().frameNumber;
+        return frameNumber == ~0U ? tr("User-defined Capture") : tr("Frame #%1").arg(frameNumber);
+      }
+
+      if(role == ROLE_SELECTED_EID)
+        return 0;
+
+      if(role == ROLE_EFFECTIVE_EID)
+        return m_Nodes[0].effectiveEID;
+
+      if(index.column() == COL_DURATION && role == Qt::DisplayRole)
+        return FormatDuration(0);
+    }
+    else if(index.internalId() == TagCaptureStart)
+    {
+      if(role == Qt::DisplayRole)
+      {
+        switch(index.column())
+        {
+          case COL_NAME: return tr("Capture Start");
+          case COL_EID: return lit("0");
+          case COL_DRAW: return lit("0");
+          default: break;
+        }
+      }
+
+      if(role == ROLE_SELECTED_EID || role == ROLE_EFFECTIVE_EID)
+        return 0;
+
+      if(index.column() == COL_DURATION && role == Qt::DisplayRole)
+        return FormatDuration(~0U);
+    }
+    else
+    {
+      const DrawcallDescription *draw = (const DrawcallDescription *)index.internalPointer();
+
+      if(role == ROLE_SELECTED_EID)
+        return draw->eventId;
+
+      if(role == ROLE_EFFECTIVE_EID)
+      {
+        auto it = m_Nodes.find(draw->eventId);
+        if(it != m_Nodes.end())
+          return it->effectiveEID;
+        return draw->eventId;
+      }
+
+      if(index.column() == COL_DURATION && role == Qt::DisplayRole)
+      {
+        return FormatDuration(draw->eventId);
+      }
+
+      if(role == Qt::DisplayRole)
+      {
+        switch(index.column())
+        {
+          case COL_NAME:
+          {
+            QString name = draw->name;
+
+            if(m_MessageCounts.contains(draw->eventId))
+            {
+              int count = m_MessageCounts[draw->eventId];
+              if(count > 0)
+                name += lit(" __rd_msgs::%1:%2").arg(draw->eventId).arg(count);
+            }
+
+            QVariant v = QString(name);
+            RichResourceTextInitialise(v, &m_Ctx);
+            return v;
+          }
+          case COL_EID: return draw->eventId;
+          case COL_DRAW: return draw->drawcallId;
+          default: break;
+        }
+      }
+      else if(role == Qt::BackgroundRole || role == Qt::ForegroundRole ||
+              role == RDTreeView::TreeLineColorRole)
+      {
+        if(m_Ctx.Config().EventBrowser_ApplyColors)
+        {
+          if(!m_Ctx.Config().EventBrowser_ColorEventRow && role != RDTreeView::TreeLineColorRole)
+            return QVariant();
+
+          // if alpha isn't 0, assume the colour is valid
+          if((draw->flags & (DrawFlags::PushMarker | DrawFlags::SetMarker)) &&
+             draw->markerColor.w > 0.0f)
+          {
+            QColor col =
+                QColor::fromRgb(qRgb(draw->markerColor.x * 255.0f, draw->markerColor.y * 255.0f,
+                                     draw->markerColor.z * 255.0f));
+
+            if(role == Qt::BackgroundRole || role == RDTreeView::TreeLineColorRole)
+              return QBrush(col);
+            else if(role == Qt::ForegroundRole)
+              return QBrush(contrastingColor(col, m_View->palette().color(QPalette::Text)));
+          }
+        }
+      }
+    }
+
+    return QVariant();
+  }
+
+private:
+  ICaptureContext &m_Ctx;
+
+  QAbstractItemView *m_View;
+
+  static const quintptr TagRoot = 0x0;
+  static const quintptr TagCaptureStart = 0x1;
+
+  rdcarray<double> m_Times;
+  TimeUnit m_TimeUnit = TimeUnit::Count;
+
+  QModelIndex m_CurrentEID;
+  rdcarray<EventBookmark> m_Bookmarks;
+  rdcarray<QModelIndex> m_BookmarkIndices;
+  QString m_FindString;
+  rdcarray<QModelIndex> m_FindResults;
+
+  QMap<uint32_t, int> m_MessageCounts;
+
+  // we don't want to have something for every event/draw, so we cache only for each nested node.
+  // This drastically limits our worst case N - some hierarchies have more nodes than others but
+  // even in hierarchies with lots of nodes the number is small, compared to draws/events which
+  // could be 1000s to 100,000s even.
+  // we cache this with a depth-first search at init time
+  struct DrawTreeNode
+  {
+    const DrawcallDescription *draw;
+    uint32_t effectiveEID;
+  };
+  QMap<uint32_t, DrawTreeNode> m_Nodes;
+
+  void AccumulateFindResults(QModelIndex root)
+  {
+    for(int i = 0, count = rowCount(root); i < count; i++)
+    {
+      QModelIndex idx = index(i, 0, root);
+
+      // check if there's a match first
+      QString name = data(idx).toString();
+
+      if(name.contains(m_FindString, Qt::CaseInsensitive))
+        m_FindResults.push_back(idx);
+
+      // now recurse
+      AccumulateFindResults(idx);
+    }
+  }
+
+  void RefreshIcon(QModelIndex idx)
+  {
+    emit dataChanged(idx.sibling(idx.row(), 0), idx.sibling(idx.row(), COL_COUNT - 1),
+                     {Qt::DecorationRole, Qt::DisplayRole});
+  }
+
+  QVariant FormatDuration(uint32_t eid) const
+  {
+    if(m_Times.empty())
+      return lit("---");
+
+    double secs = eid < m_Times.size() ? m_Times[eid] : -1.0;
+
+    if(secs < 0.0)
+      return QVariant();
+
+    if(m_TimeUnit == TimeUnit::Milliseconds)
+      secs *= 1000.0;
+    else if(m_TimeUnit == TimeUnit::Microseconds)
+      secs *= 1000000.0;
+    else if(m_TimeUnit == TimeUnit::Nanoseconds)
+      secs *= 1000000000.0;
+
+    return Formatter::Format(secs);
+  }
+
+  int GetRowIndexForEIDInDraw(const rdcarray<DrawcallDescription> &draws, uint32_t eid) const
+  {
+    DrawcallDescription search;
+    search.eventId = eid;
+
+    const DrawcallDescription *f =
+        std::lower_bound(draws.begin(), draws.end(), search,
+                         [](const DrawcallDescription &a, const DrawcallDescription &b) {
+                           return a.eventId < b.eventId;
+                         });
+
+    return f - draws.begin();
+  }
+
+  void CalculateTotalDuration(DrawTreeNode &node)
+  {
+    const rdcarray<DrawcallDescription> &drawChildren =
+        node.draw ? node.draw->children : m_Ctx.CurDrawcalls();
+
+    double duration = 0.0;
+
+    for(const DrawcallDescription &d : drawChildren)
+    {
+      // ignore out of bounds EIDs - should not happen
+      if(d.eventId >= m_Times.size())
+        continue;
+
+      // add the time for this event, if it's non-negative. Because we fill out nodes in reverse
+      // order, any children that are nodes themselves should be populated by now
+      duration += qMax(0.0, m_Times[d.eventId]);
+    }
+
+    m_Times[node.draw ? node.draw->eventId : 0] = duration;
+  }
+
+  DrawTreeNode CreateDrawNode(const DrawcallDescription *draw)
+  {
+    const rdcarray<DrawcallDescription> &drawRange = draw ? draw->children : m_Ctx.CurDrawcalls();
+
+    DrawTreeNode ret;
+
+    ret.draw = draw;
+    ret.effectiveEID = drawRange.back().eventId;
+
+    for(int i = 0; i < drawRange.count(); i++)
+    {
+      const DrawcallDescription &d = drawRange[i];
+      if(d.children.empty())
+        continue;
+
+      DrawTreeNode node = CreateDrawNode(&d);
+
+      if(d.eventId == ret.effectiveEID)
+        ret.effectiveEID = node.effectiveEID;
+
+      m_Nodes[d.eventId] = node;
+    }
+
+    return ret;
+  }
+};
+
+struct EventFilterModel : public QSortFilterProxyModel
+{
+  EventFilterModel(ICaptureContext &ctx) : m_Ctx(ctx) {}
+private:
+  ICaptureContext &m_Ctx;
 };
 
 static bool textEditControl(QWidget *sender)
@@ -86,12 +683,18 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
 
   clearBookmarks();
 
+  m_Model = new EventItemModel(ui->events, m_Ctx);
+  m_FilterModel = new EventFilterModel(m_Ctx);
+  m_FilterModel->setSourceModel(m_Model);
+
+  ui->events->setModel(m_FilterModel);
+
+  m_delegate = new RichTextViewDelegate(ui->events);
+  ui->events->setItemDelegate(m_delegate);
+
   ui->jumpToEID->setFont(Formatter::PreferredFont());
   ui->find->setFont(Formatter::PreferredFont());
   ui->events->setFont(Formatter::PreferredFont());
-
-  ui->events->setColumns(
-      {tr("Name"), lit("EID"), lit("Draw #"), lit("Duration - replaced in UpdateDurationColumn")});
 
   ui->events->setHeader(new RDHeaderView(Qt::Horizontal, this));
   ui->events->header()->setStretchLastSection(true);
@@ -102,8 +705,6 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   ui->events->header()->setSectionResizeMode(COL_EID, QHeaderView::Interactive);
   ui->events->header()->setSectionResizeMode(COL_DRAW, QHeaderView::Interactive);
   ui->events->header()->setSectionResizeMode(COL_DURATION, QHeaderView::Interactive);
-
-  ui->events->setColumnAlignment(COL_DURATION, Qt::AlignRight | Qt::AlignCenter);
 
   ui->events->header()->setMinimumSectionSize(40);
 
@@ -136,7 +737,9 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
 
   QObject::connect(ui->closeFind, &QToolButton::clicked, this, &EventBrowser::on_HideFindJump);
   QObject::connect(ui->closeJump, &QToolButton::clicked, this, &EventBrowser::on_HideFindJump);
-  QObject::connect(ui->events, &RDTreeWidget::keyPress, this, &EventBrowser::events_keyPress);
+  QObject::connect(ui->events, &RDTreeView::keyPress, this, &EventBrowser::events_keyPress);
+  QObject::connect(ui->events->selectionModel(), &QItemSelectionModel::currentChanged, this,
+                   &EventBrowser::events_currentChanged);
   ui->jumpStrip->hide();
   ui->findStrip->hide();
   ui->bookmarkStrip->hide();
@@ -184,7 +787,7 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
                                         [this](QWidget *) { on_HideFindJump(); });
 
   ui->events->setContextMenuPolicy(Qt::CustomContextMenu);
-  QObject::connect(ui->events, &RDTreeWidget::customContextMenuRequested, this,
+  QObject::connect(ui->events, &RDTreeView::customContextMenuRequested, this,
                    &EventBrowser::events_contextMenu);
 
   ui->events->header()->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -242,25 +845,14 @@ void EventBrowser::OnCaptureLoaded()
 {
   ui->events->setIgnoreBackgroundColors(!m_Ctx.Config().EventBrowser_ColorEventRow);
 
-  uint32_t frameNumber = m_Ctx.FrameInfo().frameNumber;
+  // older Qt versions lose all the sections when a model resets even if the sections don't change.
+  // Manually save/restore them
+  QVariant p = persistData();
+  m_Model->ResetModel();
+  setPersistData(p);
 
-  QString rootName =
-      frameNumber == ~0U ? tr("User-defined Capture") : tr("Frame #%1").arg(frameNumber);
-
-  RDTreeWidgetItem *frame = new RDTreeWidgetItem({rootName, QString(), QString(), QString()});
-
-  RDTreeWidgetItem *framestart =
-      new RDTreeWidgetItem({tr("Capture Start"), lit("0"), lit("0"), QString()});
-  framestart->setTag(QVariant::fromValue(EventItemTag(0, 0)));
-
-  frame->addChild(framestart);
-
-  QPair<uint32_t, uint32_t> lastEIDDraw = AddDrawcalls(frame, m_Ctx.CurDrawcalls());
-  frame->setTag(QVariant::fromValue(EventItemTag(0, lastEIDDraw.first)));
-
-  ui->events->addTopLevelItem(frame);
-
-  ui->events->expandItem(frame);
+  // expand the root frame node
+  ui->events->expand(ui->events->model()->index(0, 0));
 
   clearBookmarks();
   repopulateBookmarks();
@@ -280,7 +872,11 @@ void EventBrowser::OnCaptureClosed()
 
   on_HideFindJump();
 
-  ui->events->clear();
+  // older Qt versions lose all the sections when a model resets even if the sections don't change.
+  // Manually save/restore them
+  QVariant p = persistData();
+  m_Model->ResetModel();
+  setPersistData(p);
 
   ui->find->setEnabled(false);
   ui->gotoEID->setEnabled(false);
@@ -294,189 +890,10 @@ void EventBrowser::OnCaptureClosed()
 void EventBrowser::OnEventChanged(uint32_t eventId)
 {
   SelectEvent(eventId);
-  RefreshShaderMessages();
   repopulateBookmarks();
   highlightBookmarks();
-}
 
-bool EventBrowser::ShouldHide(const DrawcallDescription &drawcall)
-{
-  if(drawcall.flags & DrawFlags::PushMarker)
-  {
-    if(m_Ctx.Config().EventBrowser_HideEmpty)
-    {
-      if(drawcall.children.isEmpty())
-        return true;
-
-      bool allhidden = true;
-
-      for(const DrawcallDescription &child : drawcall.children)
-      {
-        if(ShouldHide(child))
-          continue;
-
-        allhidden = false;
-        break;
-      }
-
-      if(allhidden)
-        return true;
-    }
-
-    if(m_Ctx.Config().EventBrowser_HideAPICalls)
-    {
-      if(drawcall.children.isEmpty())
-        return false;
-
-      bool onlyapi = true;
-
-      for(const DrawcallDescription &child : drawcall.children)
-      {
-        if(ShouldHide(child))
-          continue;
-
-        if(!(child.flags & DrawFlags::APICalls))
-        {
-          onlyapi = false;
-          break;
-        }
-      }
-
-      if(onlyapi)
-        return true;
-    }
-  }
-
-  return false;
-}
-
-QPair<uint32_t, uint32_t> EventBrowser::AddDrawcalls(RDTreeWidgetItem *parent,
-                                                     const rdcarray<DrawcallDescription> &draws)
-{
-  uint lastEID = 0, lastDraw = 0;
-
-  for(int32_t i = 0; i < draws.count(); i++)
-  {
-    const DrawcallDescription &d = draws[i];
-
-    if(ShouldHide(d))
-      continue;
-
-    QVariant name = QString(d.name);
-
-    RichResourceTextInitialise(name, &m_Ctx);
-
-    RDTreeWidgetItem *child = new RDTreeWidgetItem(
-        {name, QString::number(d.eventId), QString::number(d.drawcallId), lit("---")});
-
-    QPair<uint32_t, uint32_t> last = AddDrawcalls(child, d.children);
-    lastEID = last.first;
-    lastDraw = last.second;
-
-    if(lastEID > d.eventId)
-    {
-      child->setText(COL_EID, QFormatStr("%1-%2").arg(d.eventId).arg(lastEID));
-      child->setText(COL_DRAW, QFormatStr("%1-%2").arg(d.drawcallId).arg(lastDraw));
-    }
-
-    if(lastEID == 0)
-    {
-      lastEID = d.eventId;
-      lastDraw = d.drawcallId;
-
-      if((draws[i].flags & DrawFlags::SetMarker) && i + 1 < draws.count())
-        lastEID = draws[i + 1].eventId;
-    }
-
-    child->setTag(QVariant::fromValue(EventItemTag(draws[i].eventId, lastEID)));
-
-    if(m_Ctx.Config().EventBrowser_ApplyColors)
-    {
-      // if alpha isn't 0, assume the colour is valid
-      if((d.flags & (DrawFlags::PushMarker | DrawFlags::SetMarker)) && d.markerColor.w > 0.0f)
-      {
-        QColor col = QColor::fromRgb(
-            qRgb(d.markerColor.x * 255.0f, d.markerColor.y * 255.0f, d.markerColor.z * 255.0f));
-
-        child->setTreeColor(col);
-
-        if(m_Ctx.Config().EventBrowser_ColorEventRow)
-        {
-          QColor textCol = ui->events->palette().color(QPalette::Text);
-
-          child->setBackgroundColor(col);
-          child->setForegroundColor(contrastingColor(col, textCol));
-        }
-      }
-    }
-
-    parent->addChild(child);
-  }
-
-  return qMakePair(lastEID, lastDraw);
-}
-
-void EventBrowser::SetDrawcallTimes(RDTreeWidgetItem *node, const rdcarray<CounterResult> &results)
-{
-  if(node == NULL)
-    return;
-
-  // parent nodes take the value of the sum of their children
-  double duration = 0.0;
-
-  // look up leaf nodes in the dictionary
-  if(node->childCount() == 0)
-  {
-    uint32_t eid = node->tag().value<EventItemTag>().EID;
-
-    duration = -1.0;
-
-    for(const CounterResult &r : results)
-    {
-      if(r.eventId == eid)
-        duration = r.value.d;
-    }
-
-    double secs = duration;
-
-    if(m_TimeUnit == TimeUnit::Milliseconds)
-      secs *= 1000.0;
-    else if(m_TimeUnit == TimeUnit::Microseconds)
-      secs *= 1000000.0;
-    else if(m_TimeUnit == TimeUnit::Nanoseconds)
-      secs *= 1000000000.0;
-
-    node->setText(COL_DURATION, duration < 0.0f ? QString() : Formatter::Format(secs));
-    EventItemTag tag = node->tag().value<EventItemTag>();
-    tag.duration = duration;
-    node->setTag(QVariant::fromValue(tag));
-
-    return;
-  }
-
-  for(int i = 0; i < node->childCount(); i++)
-  {
-    SetDrawcallTimes(node->child(i), results);
-
-    double nd = node->child(i)->tag().value<EventItemTag>().duration;
-
-    if(nd > 0.0)
-      duration += nd;
-  }
-
-  double secs = duration;
-
-  if(m_TimeUnit == TimeUnit::Milliseconds)
-    secs *= 1000.0;
-  else if(m_TimeUnit == TimeUnit::Microseconds)
-    secs *= 1000000.0;
-  else if(m_TimeUnit == TimeUnit::Nanoseconds)
-    secs *= 1000000000.0;
-
-  node->setText(COL_DURATION, duration < 0.0f ? QString() : Formatter::Format(secs));
-  EventItemTag tag = node->tag().value<EventItemTag>();
-  tag.duration = duration;
-  node->setTag(QVariant::fromValue(tag));
+  m_Model->RefreshCache();
 }
 
 void EventBrowser::on_find_clicked()
@@ -495,10 +912,17 @@ void EventBrowser::on_gotoEID_clicked()
 
 void EventBrowser::on_bookmark_clicked()
 {
-  RDTreeWidgetItem *n = ui->events->currentItem();
+  QModelIndex idx = ui->events->currentIndex();
 
-  if(n)
-    toggleBookmark(n->tag().value<EventItemTag>().lastEID);
+  if(idx.isValid())
+  {
+    EventBookmark mark(GetSelectedEID(idx));
+
+    if(m_Ctx.GetBookmarks().contains(mark))
+      m_Ctx.RemoveBookmark(mark.eventId);
+    else
+      m_Ctx.SetBookmark(mark);
+  }
 }
 
 void EventBrowser::on_timeDraws_clicked()
@@ -508,52 +932,35 @@ void EventBrowser::on_timeDraws_clicked()
   ui->events->header()->showSection(COL_DURATION);
 
   m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
+    m_Model->SetTimes(r->FetchCounters({GPUCounter::EventGPUDuration}));
 
-    m_Times = r->FetchCounters({GPUCounter::EventGPUDuration});
-
-    GUIInvoke::call(this, [this]() {
-      if(ui->events->topLevelItemCount() == 0)
-        return;
-
-      SetDrawcallTimes(ui->events->topLevelItem(0), m_Times);
-      ui->events->update();
-    });
+    GUIInvoke::call(this, [this]() { ui->events->update(); });
   });
 }
 
-void EventBrowser::on_events_currentItemChanged(RDTreeWidgetItem *current, RDTreeWidgetItem *previous)
+void EventBrowser::events_currentChanged(const QModelIndex &current, const QModelIndex &previous)
 {
-  if(previous)
-  {
-    EventItemTag tag = previous->tag().value<EventItemTag>();
-    tag.current = false;
-    previous->setTag(QVariant::fromValue(tag));
-    RefreshIcon(previous, tag);
-  }
-
-  if(!current)
+  if(!current.isValid())
     return;
 
-  EventItemTag tag = current->tag().value<EventItemTag>();
-  tag.current = true;
-  current->setTag(QVariant::fromValue(tag));
-  RefreshIcon(current, tag);
+  uint32_t selectedEID = GetSelectedEID(current);
+  uint32_t effectiveEID = GetEffectiveEID(current);
 
-  m_Ctx.SetEventID({this}, tag.EID, tag.lastEID);
+  m_Ctx.SetEventID({this}, selectedEID, effectiveEID);
 
-  RefreshShaderMessages();
+  m_Model->RefreshCache();
 
-  const DrawcallDescription *draw = m_Ctx.GetDrawcall(tag.lastEID);
+  const DrawcallDescription *draw = m_Ctx.GetDrawcall(effectiveEID);
 
   ui->stepPrev->setEnabled(draw && draw->previous);
   ui->stepNext->setEnabled(draw && draw->next);
 
   // special case for the first draw in the frame
-  if(tag.lastEID == 0)
+  if(effectiveEID == 0)
     ui->stepNext->setEnabled(true);
 
   // special case for the first 'virtual' draw at EID 0
-  if(m_Ctx.GetFirstDrawcall() && tag.lastEID == m_Ctx.GetFirstDrawcall()->eventId)
+  if(m_Ctx.GetFirstDrawcall() && effectiveEID == m_Ctx.GetFirstDrawcall()->eventId)
     ui->stepPrev->setEnabled(true);
 
   highlightBookmarks();
@@ -566,8 +973,9 @@ void EventBrowser::on_HideFindJump()
 
   ui->jumpToEID->setText(QString());
 
-  ClearFindIcons();
-  ui->findEvent->setPalette(palette());
+  ui->findEvent->setText(QString());
+  m_Model->SetFindText(QString());
+  updateFindResultsAvailable();
 }
 
 void EventBrowser::on_jumpToEID_returnPressed()
@@ -582,14 +990,9 @@ void EventBrowser::on_jumpToEID_returnPressed()
 
 void EventBrowser::findHighlight_timeout()
 {
-  ClearFindIcons();
-
-  int results = SetFindIcons(ui->findEvent->text());
-
-  if(results > 0)
-    ui->findEvent->setPalette(palette());
-  else
-    ui->findEvent->setPalette(m_redPalette);
+  m_Model->SetFindText(ui->findEvent->text());
+  SelectEvent(m_FilterModel->mapFromSource(m_Model->Find(true)));
+  updateFindResultsAvailable();
 }
 
 void EventBrowser::on_findEvent_textEdited(const QString &arg1)
@@ -598,8 +1001,8 @@ void EventBrowser::on_findEvent_textEdited(const QString &arg1)
   {
     m_FindHighlight->stop();
 
-    ui->findEvent->setPalette(palette());
-    ClearFindIcons();
+    m_Model->SetFindText(QString());
+    updateFindResultsAvailable();
   }
   else
   {
@@ -613,9 +1016,6 @@ void EventBrowser::on_findEvent_returnPressed()
   if(m_FindHighlight->isActive())
     m_FindHighlight->stop();
 
-  if(!ui->findEvent->text().isEmpty())
-    Find(true);
-
   findHighlight_timeout();
 }
 
@@ -628,9 +1028,8 @@ void EventBrowser::on_findEvent_keyPress(QKeyEvent *event)
       m_FindHighlight->stop();
 
     if(!ui->findEvent->text().isEmpty())
-      Find(event->modifiers() & Qt::ShiftModifier ? false : true);
-
-    findHighlight_timeout();
+      SelectEvent(m_FilterModel->mapFromSource(
+          m_Model->Find(event->modifiers() & Qt::ShiftModifier ? false : true)));
 
     event->accept();
   }
@@ -638,12 +1037,14 @@ void EventBrowser::on_findEvent_keyPress(QKeyEvent *event)
 
 void EventBrowser::on_findNext_clicked()
 {
-  Find(true);
+  SelectEvent(m_FilterModel->mapFromSource(m_Model->Find(true)));
+  updateFindResultsAvailable();
 }
 
 void EventBrowser::on_findPrev_clicked()
 {
-  Find(false);
+  SelectEvent(m_FilterModel->mapFromSource(m_Model->Find(false)));
+  updateFindResultsAvailable();
 }
 
 void EventBrowser::on_stepNext_clicked()
@@ -699,12 +1100,15 @@ void EventBrowser::on_exportDraws_clicked()
 
         int maxNameLength = 0;
 
-        for(const DrawcallDescription &d : m_Ctx.CurDrawcalls())
-          GetMaxNameLength(maxNameLength, 0, false, d);
+        QModelIndex root = ui->events->model()->index(0, COL_NAME);
+
+        // skip child 0, which is the Capture Start entry that we don't want to include
+        for(int i = 1, rowCount = ui->events->model()->rowCount(root); i < rowCount; i++)
+          GetMaxNameLength(maxNameLength, 0, false, ui->events->model()->index(i, COL_NAME, root));
 
         QString line = QFormatStr(" EID  | %1 | Draw #").arg(lit("Event"), -maxNameLength);
 
-        if(!m_Times.empty())
+        if(m_Model->HasTimes())
         {
           line += QFormatStr(" | %1 (%2)").arg(tr("Duration")).arg(ToQStr(m_TimeUnit));
         }
@@ -713,7 +1117,7 @@ void EventBrowser::on_exportDraws_clicked()
 
         line = QFormatStr("--------%1-----------").arg(QString(), maxNameLength, QLatin1Char('-'));
 
-        if(!m_Times.empty())
+        if(m_Model->HasTimes())
         {
           int maxDurationLength = 0;
           maxDurationLength = qMax(maxDurationLength, Formatter::Format(1.0).length());
@@ -725,8 +1129,9 @@ void EventBrowser::on_exportDraws_clicked()
 
         stream << line << "\n";
 
-        for(const DrawcallDescription &d : m_Ctx.CurDrawcalls())
-          ExportDrawcall(stream, maxNameLength, 0, false, d);
+        for(int i = 1, rowCount = ui->events->model()->rowCount(root); i < rowCount; i++)
+          ExportDrawcall(stream, maxNameLength, 0, false,
+                         ui->events->model()->index(i, COL_NAME, root));
       }
       else
       {
@@ -747,87 +1152,58 @@ void EventBrowser::on_exportDraws_clicked()
 
 void EventBrowser::on_colSelect_clicked()
 {
-  UpdateVisibleColumns(tr("Select Event Browser Columns"), COL_COUNT, ui->events->header(),
-                       ui->events->getHeaders());
+  QStringList headers;
+  for(int i = 0; i < ui->events->model()->columnCount(); i++)
+    headers << ui->events->model()->headerData(i, Qt::Horizontal).toString();
+  UpdateVisibleColumns(tr("Select Event Browser Columns"), COL_COUNT, ui->events->header(), headers);
 }
 
-QString EventBrowser::GetExportDrawcallString(int indent, bool firstchild,
-                                              const DrawcallDescription &drawcall)
+QString EventBrowser::GetExportString(int indent, bool firstchild, const QModelIndex &idx)
 {
   QString prefix = QString(indent * 2 - (firstchild ? 1 : 0), QLatin1Char(' '));
   if(firstchild)
     prefix += QLatin1Char('\\');
 
-  return QFormatStr("%1- %2").arg(prefix).arg(drawcall.name);
-}
-
-double EventBrowser::GetDrawTime(const DrawcallDescription &drawcall)
-{
-  if(!drawcall.children.empty())
-  {
-    double total = 0.0;
-
-    for(const DrawcallDescription &d : drawcall.children)
-    {
-      double f = GetDrawTime(d);
-      if(f >= 0)
-        total += f;
-    }
-
-    return total;
-  }
-
-  for(const CounterResult &r : m_Times)
-  {
-    if(r.eventId == drawcall.eventId)
-      return r.value.d;
-  }
-
-  return -1.0;
+  return QFormatStr("%1- %2").arg(prefix).arg(
+      RichResourceTextFormat(m_Ctx, idx.data(Qt::DisplayRole)));
 }
 
 void EventBrowser::GetMaxNameLength(int &maxNameLength, int indent, bool firstchild,
-                                    const DrawcallDescription &drawcall)
+                                    const QModelIndex &idx)
 {
-  QString nameString = GetExportDrawcallString(indent, firstchild, drawcall);
+  QString nameString = GetExportString(indent, firstchild, idx);
 
   maxNameLength = qMax(maxNameLength, nameString.count());
 
   firstchild = true;
 
-  for(const DrawcallDescription &d : drawcall.children)
+  for(int i = 0, rowCount = idx.model()->rowCount(idx); i < rowCount; i++)
   {
-    GetMaxNameLength(maxNameLength, indent + 1, firstchild, d);
+    GetMaxNameLength(maxNameLength, indent + 1, firstchild, idx.child(i, COL_NAME));
     firstchild = false;
   }
 }
 
 void EventBrowser::ExportDrawcall(QTextStream &writer, int maxNameLength, int indent,
-                                  bool firstchild, const DrawcallDescription &drawcall)
+                                  bool firstchild, const QModelIndex &idx)
 {
-  QString eidString = drawcall.children.empty() ? QString::number(drawcall.eventId) : QString();
+  QString nameString = GetExportString(indent, firstchild, idx);
 
-  QString nameString = GetExportDrawcallString(indent, firstchild, drawcall);
+  QModelIndex eidIdx = idx.model()->sibling(idx.row(), COL_EID, idx);
+  QModelIndex drawIdx = idx.model()->sibling(idx.row(), COL_DRAW, idx);
 
   QString line = QFormatStr("%1 | %2 | %3")
-                     .arg(eidString, -5)
+                     .arg(eidIdx.data(Qt::DisplayRole).toString(), -5)
                      .arg(nameString, -maxNameLength)
-                     .arg(drawcall.drawcallId, -6);
+                     .arg(drawIdx.data(Qt::DisplayRole).toString(), -6);
 
-  if(!m_Times.empty())
+  if(m_Model->HasTimes())
   {
-    double f = GetDrawTime(drawcall);
+    QVariant duration = idx.model()->sibling(idx.row(), COL_DURATION, idx).data(Qt::DisplayRole);
 
-    if(f >= 0)
+    if(duration != QVariant())
     {
-      if(m_TimeUnit == TimeUnit::Milliseconds)
-        f *= 1000.0;
-      else if(m_TimeUnit == TimeUnit::Microseconds)
-        f *= 1000000.0;
-      else if(m_TimeUnit == TimeUnit::Nanoseconds)
-        f *= 1000000000.0;
-
-      line += QFormatStr(" | %1").arg(Formatter::Format(f));
+      line += QFormatStr(" | %1").arg(duration.toString());
     }
     else
     {
@@ -839,9 +1215,9 @@ void EventBrowser::ExportDrawcall(QTextStream &writer, int maxNameLength, int in
 
   firstchild = true;
 
-  for(const DrawcallDescription &d : drawcall.children)
+  for(int i = 0, rowCount = idx.model()->rowCount(idx); i < rowCount; i++)
   {
-    ExportDrawcall(writer, maxNameLength, indent + 1, firstchild, d);
+    ExportDrawcall(writer, maxNameLength, indent + 1, firstchild, idx.child(i, COL_NAME));
     firstchild = false;
   }
 }
@@ -869,7 +1245,7 @@ QVariant EventBrowser::persistData()
       ui->events->header()->hideSection(i);
 
     // name is just informative
-    col[lit("name")] = ui->events->headerText(i);
+    col[lit("name")] = ui->events->model()->headerData(i, Qt::Horizontal);
     col[lit("index")] = ui->events->header()->visualIndex(i);
     col[lit("hidden")] = hidden;
     col[lit("size")] = size;
@@ -914,9 +1290,10 @@ void EventBrowser::events_keyPress(QKeyEvent *event)
   if(event->key() == Qt::Key_F3)
   {
     if(event->modifiers() == Qt::ShiftModifier)
-      Find(false);
+      SelectEvent(m_FilterModel->mapFromSource(m_Model->Find(false)));
     else
-      Find(true);
+      SelectEvent(m_FilterModel->mapFromSource(m_Model->Find(true)));
+    updateFindResultsAvailable();
   }
 
   if(event->modifiers() == Qt::ControlModifier)
@@ -946,7 +1323,7 @@ void EventBrowser::events_keyPress(QKeyEvent *event)
 
 void EventBrowser::events_contextMenu(const QPoint &pos)
 {
-  RDTreeWidgetItem *item = ui->events->itemAt(pos);
+  QModelIndex index = ui->events->indexAt(pos);
 
   QMenu contextMenu(this);
 
@@ -967,15 +1344,15 @@ void EventBrowser::events_contextMenu(const QPoint &pos)
   toggleBookmark.setIcon(Icons::asterisk_orange());
   selectCols.setIcon(Icons::timeline_marker());
 
-  expandAll.setEnabled(item && item->childCount() > 0);
-  collapseAll.setEnabled(item && item->childCount() > 0);
+  expandAll.setEnabled(index.isValid() && ui->events->model()->rowCount(index) > 0);
+  collapseAll.setEnabled(expandAll.isEnabled());
   toggleBookmark.setEnabled(m_Ctx.IsCaptureLoaded());
 
   QObject::connect(&expandAll, &QAction::triggered,
-                   [this, item]() { ui->events->expandAllItems(item); });
+                   [this, index]() { ui->events->expandAll(index); });
 
   QObject::connect(&collapseAll, &QAction::triggered,
-                   [this, item]() { ui->events->collapseAllItems(item); });
+                   [this, index]() { ui->events->collapseAll(index); });
 
   QObject::connect(&toggleBookmark, &QAction::triggered, this, &EventBrowser::on_bookmark_clicked);
 
@@ -1034,17 +1411,6 @@ void EventBrowser::repopulateBookmarks()
 
       highlightBookmarks();
 
-      RDTreeWidgetItem *found = NULL;
-      FindEventNode(found, ui->events->topLevelItem(0), EID);
-
-      if(found)
-      {
-        EventItemTag tag = found->tag().value<EventItemTag>();
-        tag.bookmark = true;
-        found->setTag(QVariant::fromValue(tag));
-        RefreshIcon(found, tag);
-      }
-
       m_BookmarkStripLayout->removeItem(m_BookmarkSpacer);
       m_BookmarkStripLayout->addWidget(but);
       m_BookmarkStripLayout->addItem(m_BookmarkSpacer);
@@ -1058,31 +1424,12 @@ void EventBrowser::repopulateBookmarks()
     {
       delete m_BookmarkButtons[EID];
       m_BookmarkButtons.remove(EID);
-
-      RDTreeWidgetItem *found = NULL;
-      FindEventNode(found, ui->events->topLevelItem(0), EID);
-
-      if(found)
-      {
-        EventItemTag tag = found->tag().value<EventItemTag>();
-        tag.bookmark = false;
-        found->setTag(QVariant::fromValue(tag));
-        RefreshIcon(found, tag);
-      }
     }
   }
 
   ui->bookmarkStrip->setVisible(!bookmarks.isEmpty());
-}
 
-void EventBrowser::toggleBookmark(uint32_t EID)
-{
-  EventBookmark mark(EID);
-
-  if(m_Ctx.GetBookmarks().contains(mark))
-    m_Ctx.RemoveBookmark(EID);
-  else
-    m_Ctx.SetBookmark(mark);
+  m_Model->RefreshCache();
 }
 
 void EventBrowser::jumpToBookmark(int idx)
@@ -1106,97 +1453,17 @@ void EventBrowser::highlightBookmarks()
   }
 }
 
-bool EventBrowser::hasBookmark(RDTreeWidgetItem *node)
+void EventBrowser::ExpandNode(QModelIndex idx)
 {
-  if(node)
-    return hasBookmark(node->tag().value<EventItemTag>().EID);
-
-  return false;
-}
-
-bool EventBrowser::hasBookmark(uint32_t EID)
-{
-  return m_Ctx.GetBookmarks().contains(EventBookmark(EID));
-}
-
-void EventBrowser::RefreshIcon(RDTreeWidgetItem *item, EventItemTag tag)
-{
-  if(tag.current)
-    item->setIcon(COL_NAME, Icons::flag_green());
-  else if(tag.bookmark)
-    item->setIcon(COL_NAME, Icons::asterisk_orange());
-  else if(tag.find)
-    item->setIcon(COL_NAME, Icons::find());
-  else
-    item->setIcon(COL_NAME, QIcon());
-}
-
-void EventBrowser::RefreshShaderMessages()
-{
-  uint32_t eventId = m_Ctx.CurEvent();
-
-  RDTreeWidgetItem *item = ui->events->currentItem();
-
-  if(item->tag().value<EventItemTag>().EID != eventId)
-    return;
-
-  const DrawcallDescription *draw = m_Ctx.GetDrawcall(eventId);
-  const rdcarray<ShaderMessage> &msgs = m_Ctx.CurPipelineState().GetShaderMessages();
-
-  if(draw)
+  QModelIndex i = idx;
+  while(idx.isValid())
   {
-    QString name(draw->name);
-
-    if(!msgs.empty())
-      name += lit(" __rd_msgs::%1:%2").arg(draw->eventId).arg(msgs.count());
-
-    QVariant v = name;
-
-    RichResourceTextInitialise(v, &m_Ctx);
-
-    item->setText(0, v);
-  }
-}
-
-bool EventBrowser::FindEventNode(RDTreeWidgetItem *&found, RDTreeWidgetItem *parent, uint32_t eventId)
-{
-  // do a reverse search to find the last match (in case of 'set' markers that
-  // inherit the event of the next real draw).
-  for(int i = parent->childCount() - 1; i >= 0; i--)
-  {
-    RDTreeWidgetItem *n = parent->child(i);
-
-    uint nEID = n->tag().value<EventItemTag>().lastEID;
-    uint fEID = found ? found->tag().value<EventItemTag>().lastEID : 0;
-
-    if(nEID >= eventId && (found == NULL || nEID <= fEID))
-      found = n;
-
-    if(nEID == eventId && n->childCount() == 0)
-      return true;
-
-    if(n->childCount() > 0)
-    {
-      bool exact = FindEventNode(found, n, eventId);
-      if(exact)
-        return true;
-    }
+    ui->events->expand(idx);
+    idx = idx.parent();
   }
 
-  return false;
-}
-
-void EventBrowser::ExpandNode(RDTreeWidgetItem *node)
-{
-  RDTreeWidgetItem *n = node;
-  while(node != NULL)
-  {
-    ui->events->expandItem(node);
-    node = node->parent();
-  }
-
-  if(n)
-    ui->events->scrollToItem(n);
+  if(i.isValid())
+    ui->events->scrollTo(i);
 }
 
 bool EventBrowser::SelectEvent(uint32_t eventId)
@@ -1204,170 +1471,34 @@ bool EventBrowser::SelectEvent(uint32_t eventId)
   if(!m_Ctx.IsCaptureLoaded())
     return false;
 
-  RDTreeWidgetItem *found = NULL;
-  FindEventNode(found, ui->events->topLevelItem(0), eventId);
-  if(found != NULL)
+  QModelIndex found = m_FilterModel->mapFromSource(m_Model->GetIndexForEID(eventId));
+  if(found.isValid())
   {
-    ui->events->setCurrentItem(found);
-    ui->events->setSelectedItem(found);
+    SelectEvent(found);
 
-    ExpandNode(found);
     return true;
   }
 
   return false;
 }
 
-void EventBrowser::ClearFindIcons(RDTreeWidgetItem *parent)
+void EventBrowser::SelectEvent(QModelIndex idx)
 {
-  for(int i = 0; i < parent->childCount(); i++)
-  {
-    RDTreeWidgetItem *n = parent->child(i);
-
-    EventItemTag tag = n->tag().value<EventItemTag>();
-    tag.find = false;
-    n->setTag(QVariant::fromValue(tag));
-    RefreshIcon(n, tag);
-
-    if(n->childCount() > 0)
-      ClearFindIcons(n);
-  }
-}
-
-void EventBrowser::ClearFindIcons()
-{
-  if(m_Ctx.IsCaptureLoaded() && ui->events->topLevelItemCount() > 0)
-    ClearFindIcons(ui->events->topLevelItem(0));
-}
-
-int EventBrowser::SetFindIcons(RDTreeWidgetItem *parent, QString filter)
-{
-  int results = 0;
-
-  for(int i = 0; i < parent->childCount(); i++)
-  {
-    RDTreeWidgetItem *n = parent->child(i);
-
-    if(n->text(COL_NAME).contains(filter, Qt::CaseInsensitive))
-    {
-      EventItemTag tag = n->tag().value<EventItemTag>();
-      tag.find = true;
-      n->setTag(QVariant::fromValue(tag));
-      RefreshIcon(n, tag);
-      results++;
-    }
-
-    if(n->childCount() > 0)
-    {
-      results += SetFindIcons(n, filter);
-    }
-  }
-
-  return results;
-}
-
-int EventBrowser::SetFindIcons(QString filter)
-{
-  if(filter.isEmpty() || !m_Ctx.IsCaptureLoaded())
-    return 0;
-
-  return SetFindIcons(ui->events->topLevelItem(0), filter);
-}
-
-RDTreeWidgetItem *EventBrowser::FindNode(RDTreeWidgetItem *parent, QString filter, uint32_t after)
-{
-  for(int i = 0; i < parent->childCount(); i++)
-  {
-    RDTreeWidgetItem *n = parent->child(i);
-
-    uint eid = n->tag().value<EventItemTag>().lastEID;
-
-    if(eid > after && n->text(COL_NAME).contains(filter, Qt::CaseInsensitive))
-      return n;
-
-    if(n->childCount() > 0)
-    {
-      RDTreeWidgetItem *found = FindNode(n, filter, after);
-
-      if(found != NULL)
-        return found;
-    }
-  }
-
-  return NULL;
-}
-
-int EventBrowser::FindEvent(RDTreeWidgetItem *parent, QString filter, uint32_t after, bool forward)
-{
-  if(parent == NULL)
-    return -1;
-
-  for(int i = forward ? 0 : parent->childCount() - 1; i >= 0 && i < parent->childCount();
-      i += forward ? 1 : -1)
-  {
-    auto n = parent->child(i);
-
-    uint eid = n->tag().value<EventItemTag>().lastEID;
-
-    bool matchesAfter = (forward && eid > after) || (!forward && eid < after);
-
-    if(matchesAfter)
-    {
-      QString name = n->text(COL_NAME);
-      if(name.contains(filter, Qt::CaseInsensitive))
-        return (int)eid;
-    }
-
-    if(n->childCount() > 0)
-    {
-      int found = FindEvent(n, filter, after, forward);
-
-      if(found > 0)
-        return found;
-    }
-  }
-
-  return -1;
-}
-
-int EventBrowser::FindEvent(QString filter, uint32_t after, bool forward)
-{
-  if(!m_Ctx.IsCaptureLoaded())
-    return 0;
-
-  return FindEvent(ui->events->topLevelItem(0), filter, after, forward);
-}
-
-void EventBrowser::Find(bool forward)
-{
-  if(ui->findEvent->text().isEmpty())
+  if(!idx.isValid())
     return;
 
-  uint32_t curEID = m_Ctx.CurSelectedEvent();
+  ui->events->selectionModel()->setCurrentIndex(
+      idx, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
 
-  RDTreeWidgetItem *node = ui->events->selectedItem();
-  if(node)
-    curEID = node->tag().value<EventItemTag>().lastEID;
+  ExpandNode(idx);
+}
 
-  int eid = FindEvent(ui->findEvent->text(), curEID, forward);
-  if(eid >= 0)
-  {
-    SelectEvent((uint32_t)eid);
+void EventBrowser::updateFindResultsAvailable()
+{
+  if(m_Model->NumFindResults() > 0 || ui->findEvent->text().isEmpty())
     ui->findEvent->setPalette(palette());
-  }
-  else    // if(WrapSearch)
-  {
-    eid = FindEvent(ui->findEvent->text(), forward ? 0 : ~0U, forward);
-    if(eid >= 0)
-    {
-      SelectEvent((uint32_t)eid);
-      ui->findEvent->setPalette(palette());
-    }
-    else
-    {
-      ui->findEvent->setPalette(m_redPalette);
-    }
-  }
+  else
+    ui->findEvent->setPalette(m_redPalette);
 }
 
 void EventBrowser::UpdateDurationColumn()
@@ -1377,8 +1508,5 @@ void EventBrowser::UpdateDurationColumn()
 
   m_TimeUnit = m_Ctx.Config().EventBrowser_TimeUnit;
 
-  ui->events->setHeaderText(COL_DURATION, tr("Duration (%1)").arg(UnitSuffix(m_TimeUnit)));
-
-  if(!m_Times.empty())
-    SetDrawcallTimes(ui->events->topLevelItem(0), m_Times);
+  m_Model->UpdateDurationColumn();
 }

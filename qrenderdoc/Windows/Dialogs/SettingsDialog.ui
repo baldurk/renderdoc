@@ -1100,7 +1100,7 @@ After interop is enabled you will need to reload any capture.</string>
 </string>
             </property>
             <property name="text">
-             <string>Apply marker colors (requires file reload)</string>
+             <string>Apply marker colors</string>
             </property>
            </widget>
           </item>
