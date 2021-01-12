@@ -38,8 +38,9 @@ namespace DXBC
 {
 class IDebugInfo;
 struct Reflection;
-IDebugInfo *MakeSDBGChunk(void *data);
-IDebugInfo *MakeSPDBChunk(void *data);
+IDebugInfo *ProcessSDBGChunk(void *data);
+IDebugInfo *ProcessSPDBChunk(void *data);
+IDebugInfo *ProcessPDB(byte *data, uint32_t length);
 bool IsPDBFile(void *data, size_t length);
 void UnwrapEmbeddedPDBData(bytebuf &bytes);
 };

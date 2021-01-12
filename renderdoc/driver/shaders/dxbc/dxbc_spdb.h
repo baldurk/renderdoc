@@ -264,7 +264,7 @@ struct LocalMapping
 class SPDBChunk : public IDebugInfo
 {
 public:
-  SPDBChunk(void *data);
+  SPDBChunk(byte *data, uint32_t length);
   SPDBChunk(const SPDBChunk &) = delete;
   SPDBChunk &operator=(const SPDBChunk &o) = delete;
 

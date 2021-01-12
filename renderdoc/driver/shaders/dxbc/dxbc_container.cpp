@@ -1596,11 +1596,11 @@ DXBCContainer::DXBCContainer(bytebuf &ByteCode, const rdcstr &debugInfoPath, Gra
 
     if(*fourcc == FOURCC_SDBG)
     {
-      m_DebugInfo = MakeSDBGChunk(fourcc);
+      m_DebugInfo = ProcessSDBGChunk(fourcc);
     }
     else if(*fourcc == FOURCC_SPDB)
     {
-      m_DebugInfo = MakeSPDBChunk(fourcc);
+      m_DebugInfo = ProcessSPDBChunk(fourcc);
     }
   }
 
@@ -1612,9 +1612,12 @@ DXBCContainer::DXBCContainer(bytebuf &ByteCode, const rdcstr &debugInfoPath, Gra
 
     if(*fourcc == FOURCC_SPDB)
     {
-      m_DebugInfo = MakeSPDBChunk(fourcc);
+      m_DebugInfo = ProcessSPDBChunk(fourcc);
     }
   }
+
+  if(m_DXBCByteCode && m_DebugInfo == NULL && !m_DebugShaderBlob.empty())
+    m_DebugInfo = ProcessPDB(m_DebugShaderBlob.data(), (uint32_t)m_DebugShaderBlob.size());
 
   if(m_DXILByteCode)
     m_DebugInfo = m_DXILByteCode;

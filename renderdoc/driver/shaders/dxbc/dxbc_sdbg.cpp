@@ -151,7 +151,7 @@ rdcstr SDBGChunk::GetSymbolName(int32_t symbolOffset, int32_t symbolLength)
   return rdcstr(&m_RawData[offset], symbolLength);
 }
 
-IDebugInfo *MakeSDBGChunk(void *data)
+IDebugInfo *ProcessSDBGChunk(void *data)
 {
   return new SDBGChunk(data);
 }
