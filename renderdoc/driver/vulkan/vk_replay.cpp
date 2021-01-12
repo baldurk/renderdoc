@@ -4150,6 +4150,9 @@ ReplayStatus Vulkan_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, 
   Process::RegisterEnvironmentModification(
       EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "NODEVICE_SELECT", "1"));
 
+  Process::RegisterEnvironmentModification(EnvironmentModification(
+      EnvMod::Set, EnvSep::NoSep, "DISABLE_LAYER_AMD_SWITCHABLE_GRAPHICS_1", "1"));
+
   Process::ApplyEnvironmentModification();
 
   void *module = LoadVulkanLibrary();
