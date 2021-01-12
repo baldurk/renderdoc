@@ -804,7 +804,8 @@ void GLReplay::SavePipelineState(uint32_t eventId)
   drv.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&ibuffer);
   pipe.vertexInput.indexBuffer = rm->GetOriginalID(rm->GetResID(BufferRes(ctx, ibuffer)));
 
-  pipe.vertexInput.primitiveRestart = rs.Enabled[GLRenderState::eEnabled_PrimitiveRestart];
+  pipe.vertexInput.primitiveRestart = rs.Enabled[GLRenderState::eEnabled_PrimitiveRestart] ||
+                                      rs.Enabled[GLRenderState::eEnabled_PrimitiveRestartFixedIndex];
   pipe.vertexInput.restartIndex = rs.Enabled[GLRenderState::eEnabled_PrimitiveRestartFixedIndex]
                                       ? ~0U
                                       : rs.PrimitiveRestartIndex;
