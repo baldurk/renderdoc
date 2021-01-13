@@ -728,7 +728,7 @@ void CaptureContext::LoadCapture(const rdcstr &captureFile, const ReplayOptions 
   QElapsedTimer loadTimer;
   loadTimer.start();
 
-  ShowProgressDialog(m_MainWindow, tr("Loading Capture: %1").arg(origFilename),
+  ShowProgressDialog(m_MainWindow, tr("Loading Capture: %1").arg(QFileInfo(origFilename).fileName()),
                      [this]() { return !m_LoadInProgress; },
                      [this]() { return UpdateLoadProgress(); });
 
