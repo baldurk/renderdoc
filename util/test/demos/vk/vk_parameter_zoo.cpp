@@ -225,6 +225,7 @@ void main()
     optDevExts.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
     optDevExts.push_back(VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME);
     optDevExts.push_back(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
+    optDevExts.push_back(VK_KHR_BIND_MEMORY_2_EXTENSION_NAME);
 
     VulkanGraphicsTest::Prepare(argc, argv);
 
@@ -584,10 +585,55 @@ void main()
       vkDestroyPipeline(device, dummy, NULL);
     }
 
-    AllocatedBuffer vb(
-        this, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
-        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+    AllocatedBuffer vb;
+
+    if(std::find(devExts.begin(), devExts.end(), VK_KHR_BIND_MEMORY_2_EXTENSION_NAME) != devExts.end())
+    {
+      // if we have bind memory 2, try to bind two buffers simultaneously in one call and delete the
+      // other buffer. This ensure we don't try to bind an invalid buffer on replay.
+      VkBuffer tmp = VK_NULL_HANDLE;
+      VmaAllocation tmpAlloc = {};
+
+      vkCreateBuffer(device,
+                     vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                                   VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+                     NULL, &vb.buffer);
+      vkCreateBuffer(device,
+                     vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                                   VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+                     NULL, &tmp);
+
+      VmaAllocationCreateInfo allocInfo = {0, VMA_MEMORY_USAGE_CPU_TO_GPU};
+
+      VmaAllocationInfo vbInfo, tmpInfo;
+
+      vmaAllocateMemoryForBuffer(allocator, vb.buffer, &allocInfo, &vb.alloc, &vbInfo);
+      vmaAllocateMemoryForBuffer(allocator, tmp, &allocInfo, &tmpAlloc, &tmpInfo);
+
+      VkBindBufferMemoryInfoKHR binds[2] = {};
+      binds[0].sType = VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_INFO_KHR;
+      binds[0].buffer = vb.buffer;
+      binds[0].memory = vbInfo.deviceMemory;
+      binds[0].memoryOffset = vbInfo.offset;
+      binds[1].sType = VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_INFO_KHR;
+      binds[1].buffer = tmp;
+      binds[1].memory = tmpInfo.deviceMemory;
+      binds[1].memoryOffset = tmpInfo.offset;
+      vkBindBufferMemory2KHR(device, 2, binds);
+
+      vmaFreeMemory(allocator, tmpAlloc);
+      vkDestroyBuffer(device, tmp, NULL);
+
+      vb.allocator = allocator;
+      bufferAllocs[vb.buffer] = vb.alloc;
+    }
+    else
+    {
+      vb = AllocatedBuffer(
+          this, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                              VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+          VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+    }
 
     vb.upload(DefaultTri);
 
