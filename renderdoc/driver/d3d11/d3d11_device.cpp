@@ -1642,55 +1642,56 @@ IUnknown *WrappedID3D11Device::WrapSwapchainBuffer(IDXGISwapper *swapper, DXGI_F
   // need to flush pending dead now so we don't find a 'dead' wrapper below
   FlushPendingDead();
 
+  WrappedID3D11Texture2D1 *pTex = NULL;
+
   if(GetResourceManager()->HasWrapper((ID3D11DeviceChild *)realSurface))
   {
-    ID3D11Texture2D *tex =
-        (ID3D11Texture2D *)GetResourceManager()->GetWrapper((ID3D11DeviceChild *)realSurface);
-    tex->AddRef();
+    pTex =
+        (WrappedID3D11Texture2D1 *)GetResourceManager()->GetWrapper((ID3D11DeviceChild *)realSurface);
+    pTex->AddRef();
 
     realSurface->Release();
-
-    return tex;
   }
-
-  WrappedID3D11Texture2D1 *pTex =
-      new WrappedID3D11Texture2D1((ID3D11Texture2D *)realSurface, this, TEXDISPLAY_UNKNOWN);
-
-  SetDebugName(pTex, "Swap Chain Backbuffer");
-
-  D3D11_TEXTURE2D_DESC desc;
-  pTex->GetDesc(&desc);
-
-  ResourceId id = pTex->GetResourceID();
-
-  // init the text renderer
-  if(m_TextRenderer == NULL)
-    m_TextRenderer = new D3D11TextRenderer(this);
-
-  // there shouldn't be a resource record for this texture as it wasn't created via
-  // CreateTexture2D
-  RDCASSERT(id != ResourceId() && !GetResourceManager()->HasResourceRecord(id));
-
-  if(IsCaptureMode(m_State))
+  else
   {
-    D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
-    record->DataInSerialiser = false;
-    record->Length = 0;
-    record->NumSubResources = 0;
-    record->SubResources = NULL;
+    pTex = new WrappedID3D11Texture2D1((ID3D11Texture2D *)realSurface, this, TEXDISPLAY_UNKNOWN);
 
-    SCOPED_LOCK(m_D3DLock);
+    SetDebugName(pTex, "Swap Chain Backbuffer");
 
-    WriteSerialiser &ser = m_ScratchSerialiser;
+    D3D11_TEXTURE2D_DESC desc;
+    pTex->GetDesc(&desc);
 
-    SCOPED_SERIALISE_CHUNK(D3D11Chunk::CreateSwapBuffer);
+    ResourceId id = pTex->GetResourceID();
 
-    Serialise_WrapSwapchainBuffer(ser, swapper, bufferFormat, buffer, pTex);
+    // init the text renderer
+    if(m_TextRenderer == NULL)
+      m_TextRenderer = new D3D11TextRenderer(this);
 
-    record->AddChunk(scope.Get());
+    // there shouldn't be a resource record for this texture as it wasn't created via
+    // CreateTexture2D
+    RDCASSERT(id != ResourceId() && !GetResourceManager()->HasResourceRecord(id));
+
+    if(IsCaptureMode(m_State))
+    {
+      D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      record->DataInSerialiser = false;
+      record->Length = 0;
+      record->NumSubResources = 0;
+      record->SubResources = NULL;
+
+      SCOPED_LOCK(m_D3DLock);
+
+      WriteSerialiser &ser = m_ScratchSerialiser;
+
+      SCOPED_SERIALISE_CHUNK(D3D11Chunk::CreateSwapBuffer);
+
+      Serialise_WrapSwapchainBuffer(ser, swapper, bufferFormat, buffer, pTex);
+
+      record->AddChunk(scope.Get());
+    }
   }
 
-  if(buffer == 0 && IsCaptureMode(m_State))
+  if(buffer == 0 && IsCaptureMode(m_State) && m_SwapChains[swapper] == NULL)
   {
     ID3D11RenderTargetView *rtv = NULL;
     HRESULT hr = m_pDevice->CreateRenderTargetView(UNWRAP(WrappedID3D11Texture2D1, pTex), NULL, &rtv);
