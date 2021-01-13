@@ -1415,6 +1415,11 @@ void VulkanGraphicsTest::getPhysProperties2(void *nextStruct)
   }
 }
 
+bool VulkanGraphicsTest::hasExt(const char *ext)
+{
+  return std::find(devExts.begin(), devExts.end(), ext) != devExts.end();
+}
+
 template <>
 VkFormat vkh::_FormatFromObj<Vec4f>()
 {

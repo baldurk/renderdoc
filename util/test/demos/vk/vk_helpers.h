@@ -956,6 +956,12 @@ struct WriteDescriptorSet : public VkWriteDescriptorSet
   {
   }
 
+  WriteDescriptorSet &next(const void *next)
+  {
+    this->pNext = next;
+    return *this;
+  }
+
   operator const VkWriteDescriptorSet *() const { return this; }
 };
 

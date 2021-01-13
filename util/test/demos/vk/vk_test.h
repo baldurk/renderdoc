@@ -252,6 +252,8 @@ struct VulkanGraphicsTest : public GraphicsTest
   // optional extensions, will be added to devExts if supported (allows fallback paths)
   std::vector<const char *> optDevExts;
 
+  bool hasExt(const char *ext);
+
   // a custom struct to pass to vkDeviceCreateInfo::pNext
   const void *devInfoNext = NULL;
 
