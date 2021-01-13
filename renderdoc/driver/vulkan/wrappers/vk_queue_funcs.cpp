@@ -1040,7 +1040,8 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
           const DescSetLayout::Binding &bind = layout->bindings[b];
 
           // skip empty bindings
-          if(bind.descriptorType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
+          if(bind.descriptorType == VK_DESCRIPTOR_TYPE_MAX_ENUM ||
+             bind.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
             continue;
 
           uint32_t count = bind.descriptorCount;
