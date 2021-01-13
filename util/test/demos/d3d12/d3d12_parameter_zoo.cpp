@@ -32,9 +32,11 @@ RD_TEST(D3D12_Parameter_Zoo, D3D12GraphicsTest)
 
   std::string pixel = R"EOSHADER(
 
+Texture2D<float> empty : register(t50);
+
 float4 main() : SV_Target0
 {
-	return float4(0, 1, 0, 1);
+	return float4(0, 1, 0, 1) + empty.Load(int3(0,0,0));
 }
 
 )EOSHADER";
@@ -53,7 +55,10 @@ float4 main() : SV_Target0
     ID3D12ResourcePtr vb = MakeBuffer().Data(DefaultTri);
     ID3D12ResourcePtr ib = MakeBuffer().Data(indices);
 
-    ID3D12RootSignaturePtr sig = MakeSig({});
+    ID3D12RootSignaturePtr sig = MakeSig({
+        // table that's larger than the descriptor heap we'll bind
+        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 50, 999, 0),
+    });
 
     ResourceBarrier(vb, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 
@@ -69,6 +74,27 @@ float4 main() : SV_Target0
             constParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 1, 1),
         },
         D3D12_ROOT_SIGNATURE_FLAG_NONE);
+
+    ID3D12DescriptorHeapPtr descHeap;
+
+    {
+      D3D12_DESCRIPTOR_HEAP_DESC desc;
+      desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+      desc.NodeMask = 1;
+      desc.NumDescriptors = 4;
+      desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+      CHECK_HR(dev->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&descHeap));
+    }
+
+    D3D12_GPU_DESCRIPTOR_HANDLE descGPUHandle = descHeap->GetGPUDescriptorHandleForHeapStart();
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+    srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    srvDesc.Texture2D.MipLevels = 1;
+
+    dev->CreateShaderResourceView(NULL, &srvDesc, descHeap->GetCPUDescriptorHandleForHeapStart());
 
     ID3D12PipelineStatePtr pso = psoCreator;
 
@@ -144,6 +170,8 @@ float4 main() : SV_Target0
 
       cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
+      cmd->SetDescriptorHeaps(1, &descHeap.GetInterfacePtr());
+
       IASetVertexBuffer(cmd, vb, sizeof(DefaultA2V), 0);
       D3D12_INDEX_BUFFER_VIEW view;
       view.BufferLocation = ib->GetGPUVirtualAddress();
@@ -152,6 +180,7 @@ float4 main() : SV_Target0
       cmd->IASetIndexBuffer(&view);
       cmd->SetPipelineState(pso);
       cmd->SetGraphicsRootSignature(sig);
+      cmd->SetGraphicsRootDescriptorTable(0, descGPUHandle);
 
       RSSetViewport(cmd, {0.0f, 0.0f, (float)screenWidth, (float)screenHeight, 0.0f, 1.0f});
       RSSetScissorRect(cmd, {0, 0, screenWidth, screenHeight});
@@ -161,7 +190,7 @@ float4 main() : SV_Target0
       D3D12_CPU_DESCRIPTOR_HANDLE rtv4 = MakeRTV(rtvtex).CreateCPU(4);
 
       // write the proper RTV to slot 3
-      MakeRTV(bb).CreateCPU(3);
+      MakeRTV(bb).Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB).CreateCPU(3);
 
       // copy to slot 4
       dev->CopyDescriptorsSimple(1, rtv4, rtv3, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
