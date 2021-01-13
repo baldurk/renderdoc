@@ -135,6 +135,9 @@ void main()
     if(!bufaddrFeatures.bufferDeviceAddress)
       Avail = "Buffer device address feature 'bufferDeviceAddress' not available";
 
+    bufaddrFeatures.bufferDeviceAddressCaptureReplay = 0;
+    bufaddrFeatures.bufferDeviceAddressMultiDevice = 0;
+
     devInfoNext = &bufaddrFeatures;
   }
 

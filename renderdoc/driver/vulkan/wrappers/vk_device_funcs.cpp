@@ -2995,7 +2995,19 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
               (VkPhysicalDeviceBufferDeviceAddressFeaturesEXT *)FindNextStruct(
                   &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_EXT);
 
-          if(!existingKHR && !existingEXT)
+          if(existingKHR)
+          {
+            if(existingKHR->bufferDeviceAddress)
+              existingKHR->bufferDeviceAddressCaptureReplay = VK_TRUE;
+            existingKHR->bufferDeviceAddress = VK_TRUE;
+          }
+          else if(existingEXT)
+          {
+            if(existingEXT->bufferDeviceAddress)
+              existingEXT->bufferDeviceAddressCaptureReplay = VK_TRUE;
+            existingEXT->bufferDeviceAddress = VK_TRUE;
+          }
+          else
           {
             // don't add a new VkPhysicalDeviceVulkan12Features to the pNext chain because if we do
             // we have to remove any components etc. Instead just add the individual
