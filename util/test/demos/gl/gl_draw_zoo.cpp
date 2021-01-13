@@ -396,12 +396,19 @@ void main()
       glEnable(GL_PRIMITIVE_RESTART);
       glPrimitiveRestartIndex(0xffff);
 
+      setMarker("GL_PRIMITIVE_RESTART");
+
       // indexed strip with primitive restart
       glViewport(x, y, w, h);
       glBindVertexBuffer(0, vb, 0, sizeof(DefaultA2V));
       glDrawElementsBaseVertex(GL_TRIANGLE_STRIP, 12, GL_UNSIGNED_SHORT,
                                (void *)(42 * sizeof(uint16_t)), 0);
       x += w;
+
+      glDisable(GL_PRIMITIVE_RESTART);
+      glEnable(GL_PRIMITIVE_RESTART_FIXED_INDEX);
+
+      setMarker("GL_PRIMITIVE_RESTART_FIXED_INDEX");
 
       // indexed strip with primitive restart and vertex offset
       glViewport(x, y, w, h);
@@ -414,7 +421,7 @@ void main()
       x = 0;
       y -= h;
 
-      glDisable(GL_PRIMITIVE_RESTART);
+      glDisable(GL_PRIMITIVE_RESTART_FIXED_INDEX);
 
       glBindVertexArray(instvao);
       glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ib);
