@@ -218,6 +218,10 @@ struct D3D12GraphicsTest : public GraphicsTest
   ID3D12Device2Ptr dev2;
   ID3D12Device3Ptr dev3;
   ID3D12Device4Ptr dev4;
+  ID3D12Device5Ptr dev5;
+  ID3D12Device6Ptr dev6;
+  ID3D12Device7Ptr dev7;
+  ID3D12Device8Ptr dev8;
 
   ID3D12DescriptorHeapPtr m_RTV, m_DSV, m_CBVUAVSRV, m_Clear, m_Sampler;
 

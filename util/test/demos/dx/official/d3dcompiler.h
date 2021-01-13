@@ -13,7 +13,7 @@
 #include "winapifamily.h"
 
 // Current name of the DLL shipped in the same SDK as this header.
-
+#include "d3dcommon.h"
 
 
 #define D3DCOMPILER_DLL_W L"d3dcompiler_47.dll"
@@ -39,7 +39,7 @@ extern "C" {
 
 
 #pragma region Application Family
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP)
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP | WINAPI_PARTITION_GAMES)
 
 //----------------------------------------------------------------------------
 // D3DReadFileToBlob:
@@ -553,7 +553,7 @@ D3DDecompressShaders(_In_reads_bytes_(SrcDataSize) LPCVOID pSrcData,
                      _Out_writes_(uNumShaders) ID3DBlob** ppShaders,
                      _Out_opt_ UINT* pTotalShaders);
 
-#endif /* WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP) */
+#endif /* WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP | WINAPI_PARTITION_GAMES) */
 #pragma endregion
 
 
