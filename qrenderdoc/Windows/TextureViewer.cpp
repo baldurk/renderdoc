@@ -2617,8 +2617,8 @@ void TextureViewer::render_mouseWheel(QWheelEvent *e)
   // scroll in logarithmic scale
   double logScale = logf(m_TexDisplay.scale);
   logScale += e->delta() / 2500.0;
-  UI_SetScale((float)expf(logScale), cursorPos.x() * ui->render->devicePixelRatio(),
-              cursorPos.y() * ui->render->devicePixelRatio());
+  UI_SetScale((float)expf(logScale), cursorPos.x() * ui->render->devicePixelRatioF(),
+              cursorPos.y() * ui->render->devicePixelRatioF());
 
   e->accept();
 }
@@ -2628,9 +2628,9 @@ void TextureViewer::render_mouseMove(QMouseEvent *e)
   if(m_Output == NULL)
     return;
 
-  m_CurHoverPixel.setX(int((float(e->x() * ui->render->devicePixelRatio()) - m_TexDisplay.xOffset) /
+  m_CurHoverPixel.setX(int((float(e->x() * ui->render->devicePixelRatioF()) - m_TexDisplay.xOffset) /
                            m_TexDisplay.scale));
-  m_CurHoverPixel.setY(int((float(e->y() * ui->render->devicePixelRatio()) - m_TexDisplay.yOffset) /
+  m_CurHoverPixel.setY(int((float(e->y() * ui->render->devicePixelRatioF()) - m_TexDisplay.yOffset) /
                            m_TexDisplay.scale));
 
   if(m_TexDisplay.resourceId != ResourceId())
@@ -3313,12 +3313,12 @@ float TextureViewer::GetFitScale()
 
 int TextureViewer::realRenderWidth() const
 {
-  return ui->render->width() * ui->render->devicePixelRatio();
+  return ui->render->width() * ui->render->devicePixelRatioF();
 }
 
 int TextureViewer::realRenderHeight() const
 {
-  return ui->render->height() * ui->render->devicePixelRatio();
+  return ui->render->height() * ui->render->devicePixelRatioF();
 }
 
 void TextureViewer::UI_UpdateFittedScale()
