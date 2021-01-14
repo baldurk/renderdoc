@@ -1649,6 +1649,7 @@ IUnknown *WrappedID3D11Device::WrapSwapchainBuffer(IDXGISwapper *swapper, DXGI_F
     pTex =
         (WrappedID3D11Texture2D1 *)GetResourceManager()->GetWrapper((ID3D11DeviceChild *)realSurface);
     pTex->AddRef();
+    Resurrect(pTex);
 
     realSurface->Release();
   }
@@ -1716,6 +1717,7 @@ IDXGIResource *WrappedID3D11Device::WrapExternalDXGIResource(IDXGIResource *res)
   if(GetResourceManager()->HasWrapper(d3d11res))
   {
     ID3D11DeviceChild *wrapper = GetResourceManager()->GetWrapper(d3d11res);
+    Resurrect(wrapper);
     IDXGIResource *ret = NULL;
     wrapper->QueryInterface(__uuidof(IDXGIResource), (void **)&ret);
     res->Release();
@@ -1739,6 +1741,23 @@ void WrappedID3D11Device::ReportDeath(ID3D11DeviceChild *obj)
   // efficient but it's not the end of the world
   if(m_RefCount == 0 || IsReplayMode(m_State))
     FlushPendingDead();
+}
+
+void WrappedID3D11Device::Resurrect(ID3D11DeviceChild *obj)
+{
+  SCOPED_LOCK(m_D3DLock);
+
+  // if we're about to re-use a wrapper that was previously slated for destruction, normally we try
+  // to just destroy it first. However while in frame capture we don't destroy anything to be safe,
+  // so it could be that something bounces back into life - here we remove it from the dead objects
+  // list.
+  while(true)
+  {
+    int idx = m_DeadObjects.indexOf(obj);
+    if(idx < 0)
+      break;
+    m_DeadObjects.erase(idx);
+  }
 }
 
 void WrappedID3D11Device::FlushPendingDead()

@@ -764,6 +764,7 @@ public:
   ResourceId GetBackbufferResourceID() { return m_BBID; }
   void ReportDeath(ID3D11DeviceChild *obj);
   void FlushPendingDead();
+  void Resurrect(ID3D11DeviceChild *obj);
 
   ////////////////////////////////////////////////////////////////
   // Functions for D3D9 hooks to call into (D3DPERF api)

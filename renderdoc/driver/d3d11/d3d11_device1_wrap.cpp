@@ -140,6 +140,7 @@ HRESULT WrappedID3D11Device::CreateBlendState1(const D3D11_BLEND_DESC1 *pBlendSt
     {
       real->Release();
       *ppBlendState = (ID3D11BlendState1 *)GetResourceManager()->GetWrapper(real);
+      Resurrect(*ppBlendState);
       (*ppBlendState)->AddRef();
       return ret;
     }
@@ -250,6 +251,7 @@ HRESULT WrappedID3D11Device::CreateRasterizerState1(const D3D11_RASTERIZER_DESC1
     {
       real->Release();
       *ppRasterizerState = (ID3D11RasterizerState1 *)GetResourceManager()->GetWrapper(real);
+      Resurrect(*ppRasterizerState);
       (*ppRasterizerState)->AddRef();
       return ret;
     }

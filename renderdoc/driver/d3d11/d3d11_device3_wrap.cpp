@@ -781,6 +781,7 @@ HRESULT WrappedID3D11Device::CreateRasterizerState2(const D3D11_RASTERIZER_DESC2
     {
       real->Release();
       *ppRasterizerState = (ID3D11RasterizerState2 *)GetResourceManager()->GetWrapper(real);
+      Resurrect(*ppRasterizerState);
       (*ppRasterizerState)->AddRef();
       return ret;
     }

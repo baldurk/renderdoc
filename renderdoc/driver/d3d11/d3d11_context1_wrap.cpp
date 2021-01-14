@@ -2124,6 +2124,7 @@ void WrappedID3D11DeviceContext::SwapDeviceContextState(ID3DDeviceContextState *
       wrapped = (WrappedID3DDeviceContextState *)m_pDevice->GetResourceManager()->GetWrapper(prev);
 
       wrapped->AddRef();
+      m_pDevice->Resurrect(wrapped);
     }
     else if(prev)
     {
