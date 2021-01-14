@@ -42,6 +42,8 @@ private:
 
 public:
   RDTreeViewDelegate(RDTreeView *view);
+  void paint(QPainter *painter, const QStyleOptionViewItem &option,
+             const QModelIndex &index) const override;
   QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override;
 };
 
@@ -78,6 +80,8 @@ public:
   explicit RDTreeView(QWidget *parent = 0);
   virtual ~RDTreeView();
 
+  static const int TreeLineColorRole = Qt::UserRole + 1000000;
+
   void showBranches() { m_VisibleBranches = true; }
   void hideBranches() { m_VisibleBranches = false; }
   void showGridLines() { m_VisibleGridLines = true; }
@@ -88,6 +92,8 @@ public:
   void setItemVerticalMargin(int vertical) { m_VertMargin = vertical; }
   int verticalItemMargin() { return m_VertMargin; }
   void setIgnoreIconSize(bool ignore) { m_IgnoreIconSize = ignore; }
+  void setIgnoreBackgroundColors(bool ignore) { m_IgnoreBackgroundColors = ignore; }
+  void setColoredTreeLineWidth(float w) { m_treeColorLineWidth = w; }
   bool ignoreIconSize() { return m_IgnoreIconSize; }
   bool customCopyPasteHandler() { return m_customCopyPaste; }
   void setCustomCopyPasteHandler(bool custom) { m_customCopyPaste = custom; }
@@ -150,8 +156,6 @@ protected:
 
   QModelIndex moveCursor(CursorAction cursorAction, Qt::KeyboardModifiers modifiers) override;
 
-  void fillBranchesRect(QPainter *painter, const QRect &rect, const QModelIndex &index) const;
-  void enableBranchRectFill(bool fill) { m_fillBranchRect = fill; }
   QModelIndex m_currentHoverIndex;
 
 private slots:
@@ -178,5 +182,7 @@ private:
   int m_VertMargin = 6;
   bool m_IgnoreIconSize = false;
 
-  bool m_fillBranchRect = true;
+  bool m_IgnoreBackgroundColors = false;
+
+  float m_treeColorLineWidth = 1.0f;
 };

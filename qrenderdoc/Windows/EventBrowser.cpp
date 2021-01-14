@@ -114,6 +114,8 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   ui->events->setItemVerticalMargin(0);
   ui->events->setIgnoreIconSize(true);
 
+  ui->events->setColoredTreeLineWidth(3.0f);
+
   // set up default section layout. This will be overridden in restoreState()
   ui->events->header()->resizeSection(COL_EID, 80);
   ui->events->header()->resizeSection(COL_DRAW, 60);
@@ -238,6 +240,8 @@ EventBrowser::~EventBrowser()
 
 void EventBrowser::OnCaptureLoaded()
 {
+  ui->events->setIgnoreBackgroundColors(!m_Ctx.Config().EventBrowser_ColorEventRow);
+
   uint32_t frameNumber = m_Ctx.FrameInfo().frameNumber;
 
   QString rootName =
@@ -393,7 +397,7 @@ QPair<uint32_t, uint32_t> EventBrowser::AddDrawcalls(RDTreeWidgetItem *parent,
         QColor col = QColor::fromRgb(
             qRgb(d.markerColor.x * 255.0f, d.markerColor.y * 255.0f, d.markerColor.z * 255.0f));
 
-        child->setTreeColor(col, 3.0f);
+        child->setTreeColor(col);
 
         if(m_Ctx.Config().EventBrowser_ColorEventRow)
         {

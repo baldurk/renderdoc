@@ -78,11 +78,7 @@ public:
     m_italic = italic;
     dataChanged(0, Qt::FontRole);
   }
-  inline void setTreeColor(QColor col, float pixels)
-  {
-    m_treeCol = col;
-    m_treeColWidth = pixels;
-  }
+  inline void setTreeColor(QColor col) { m_treeCol = col; }
   inline void setBackgroundColor(QColor background) { setBackground(QBrush(background)); }
   inline void setForegroundColor(QColor foreground) { setForeground(QBrush(foreground)); }
   inline void setBackground(QBrush background)
@@ -174,7 +170,6 @@ private:
   bool m_bold = false;
   bool m_italic = false;
   QColor m_treeCol;
-  float m_treeColWidth = 0.0f;
   QBrush m_back;
   QBrush m_fore;
   QVariant m_tag;
@@ -282,7 +277,6 @@ private:
   void mouseReleaseEvent(QMouseEvent *e) override;
   void leaveEvent(QEvent *e) override;
   void focusOutEvent(QFocusEvent *event) override;
-  void drawBranches(QPainter *painter, const QRect &rect, const QModelIndex &index) const override;
 
   void selectionChanged(const QItemSelection &selected, const QItemSelection &deselected) override;
   void currentChanged(const QModelIndex &current, const QModelIndex &previous) override;

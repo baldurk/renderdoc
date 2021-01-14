@@ -33,6 +33,7 @@
 #include <QPainter>
 #include <QProxyStyle>
 #include <QScrollBar>
+#include <QStack>
 #include <QStylePainter>
 #include <QToolTip>
 #include <QWheelEvent>
@@ -86,6 +87,12 @@ static bool CompareModelIndex(const QModelIndex &a, const QModelIndex &b)
 
 RDTreeViewDelegate::RDTreeViewDelegate(RDTreeView *view) : ForwardingDelegate(view), m_View(view)
 {
+}
+
+void RDTreeViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
+                               const QModelIndex &index) const
+{
+  return ForwardingDelegate::paint(painter, option, index);
 }
 
 QSize RDTreeViewDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
@@ -538,8 +545,32 @@ void RDTreeView::drawRow(QPainter *painter, const QStyleOptionViewItem &options,
   }
 }
 
-void RDTreeView::fillBranchesRect(QPainter *painter, const QRect &rect, const QModelIndex &index) const
+void RDTreeView::drawBranches(QPainter *painter, const QRect &rect, const QModelIndex &index) const
 {
+  // we do our own custom branch rendering to ensure the backgrounds for the +/- markers are filled
+  // (as otherwise they don't show up well over selection or background fills) as well as to draw
+  // any vertical branch colors.
+
+  // start at the left-most side of the rect
+  QRect branchRect(rect.left(), rect.top(), indentation(), rect.height());
+
+  // first draw the coloured lines - we're only interested in parents for this, so push all the
+  // parents onto a stack
+  QStack<QModelIndex> parents;
+
+  QModelIndex parent = index.parent();
+
+  while(parent.isValid())
+  {
+    parents.push(parent);
+    parent = parent.parent();
+  }
+
+  // fill in the background behind the lines for the whole row, since by default it doesn't show up
+  // behind the tree lines.
+
+  QRect allLinesRect(rect.left(), rect.top(), (parents.count() + 1) * indentation(), rect.height());
+
   QStyleOptionViewItem opt;
   opt.initFrom(this);
   if(selectionModel()->isSelected(index))
@@ -566,12 +597,13 @@ void RDTreeView::fillBranchesRect(QPainter *painter, const QRect &rect, const QM
   opt.rect.setWidth(depth * indentation());
   opt.showDecorationSelected = true;
   style()->drawPrimitive(QStyle::PE_PanelItemViewItem, &opt, painter, this);
-}
 
-void RDTreeView::drawBranches(QPainter *painter, const QRect &rect, const QModelIndex &index) const
-{
-  if(m_fillBranchRect)
-    fillBranchesRect(painter, rect, index);
+  QBrush back = index.data(Qt::BackgroundRole).value<QBrush>();
+
+  if(!selectionModel()->isSelected(index) && back.style() != Qt::NoBrush)
+  {
+    painter->fillRect(allLinesRect, back);
+  }
 
   if(m_VisibleBranches)
   {
@@ -590,19 +622,46 @@ void RDTreeView::drawBranches(QPainter *painter, const QRect &rect, const QModel
     if(model()->rowCount(index) == 0)
       return;
 
-    QStyleOptionViewItem opt = viewOptions();
+    QStyleOptionViewItem branchopt = viewOptions();
 
-    opt.rect = primitive;
+    branchopt.rect = primitive;
 
     // unfortunately QStyle::State_Children doesn't render ONLY the
     // open-toggle-button, but the vertical line upwards to a previous sibling.
     // For consistency, draw one downwards too.
-    opt.state = QStyle::State_Children | QStyle::State_Sibling;
+    branchopt.state = QStyle::State_Children | QStyle::State_Sibling;
     if(isExpanded(index))
-      opt.state |= QStyle::State_Open;
+      branchopt.state |= QStyle::State_Open;
 
-    style()->drawPrimitive(QStyle::PE_IndicatorBranch, &opt, painter, this);
+    style()->drawPrimitive(QStyle::PE_IndicatorBranch, &branchopt, painter, this);
   }
+
+  // we now iterate from the top-most parent down, moving in from the left
+  // we draw this after calling into drawBranches() so we paint on top of the built-in lines
+  QPen oldPen = painter->pen();
+  while(!parents.isEmpty())
+  {
+    parent = parents.pop();
+
+    back = parent.data(RDTreeView::TreeLineColorRole).value<QBrush>();
+
+    if(back.style() != Qt::NoBrush)
+    {
+      // draw a centred pen vertically down the middle of branchRect
+      painter->setPen(QPen(QBrush(back), m_treeColorLineWidth));
+
+      QPoint topCentre = QRect(branchRect).center();
+      QPoint bottomCentre = topCentre;
+
+      topCentre.setY(branchRect.top());
+      bottomCentre.setY(branchRect.bottom());
+
+      painter->drawLine(topCentre, bottomCentre);
+    }
+
+    branchRect.moveLeft(branchRect.left() + indentation());
+  }
+  painter->setPen(oldPen);
 }
 
 QModelIndex RDTreeView::moveCursor(CursorAction cursorAction, Qt::KeyboardModifiers modifiers)

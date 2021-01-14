@@ -31,7 +31,6 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPen>
-#include <QStack>
 #include <QToolTip>
 #include "Code/Interface/QRDInterface.h"
 #include "Code/QRDUtils.h"
@@ -201,8 +200,7 @@ public:
     }
     else if(role == Qt::BackgroundRole)
     {
-      // item's background color takes priority but only if not selected
-      if(item->m_back != QBrush() && !widget->selectionModel()->isSelected(index))
+      if(item->m_back.style() != Qt::NoBrush)
         return item->m_back;
 
       // otherwise if we're hover-highlighting, use the highlight color at 20% opacity
@@ -215,6 +213,11 @@ public:
 
       // otherwise, no special background
       return QVariant();
+    }
+    else if(role == RDTreeView::TreeLineColorRole)
+    {
+      if(item->m_treeCol.isValid())
+        return QBrush(item->m_treeCol);
     }
 
     return item->data(index.column(), role);
@@ -570,9 +573,6 @@ RDTreeWidgetItemIterator &RDTreeWidgetItemIterator::operator++()
 
 RDTreeWidget::RDTreeWidget(QWidget *parent) : RDTreeView(parent)
 {
-  // we'll call this ourselves in drawBranches()
-  RDTreeView::enableBranchRectFill(false);
-
   m_delegate = new RichTextViewDelegate(this);
   RDTreeView::setItemDelegate(m_delegate);
 
@@ -841,74 +841,6 @@ void RDTreeWidget::focusOutEvent(QFocusEvent *event)
     clearSelection();
 
   RDTreeView::focusOutEvent(event);
-}
-
-void RDTreeWidget::drawBranches(QPainter *painter, const QRect &rect, const QModelIndex &index) const
-{
-  // we do our own custom branch rendering to ensure the backgrounds for the +/- markers are
-  // filled
-  // (as otherwise they don't show up well over selection or background fills) as well as to draw
-  // any vertical branch colors.
-
-  // start at the left-most side of the rect
-  QRect branchRect(rect.left(), rect.top(), indentation(), rect.height());
-
-  RDTreeWidgetItem *item = m_model->itemForIndex(index);
-
-  // first draw the coloured lines - we're only interested in parents for this, so push all the
-  // parents onto a stack
-  QStack<RDTreeWidgetItem *> parents;
-
-  RDTreeWidgetItem *parent = item->parent();
-
-  while(parent && parent != m_root)
-  {
-    parents.push(parent);
-    parent = parent->parent();
-  }
-
-  // fill in the background behind the lines for the whole row, since by default it doesn't show
-  // up
-  // behind the tree lines.
-
-  QRect allLinesRect(rect.left(), rect.top(), (parents.count() + 1) * indentation(), rect.height());
-
-  // calling this manually here means it won't be called later in RDTreeView::drawBranches, and
-  // allows us to overwrite it with our background filling if we want to.
-  RDTreeWidget::fillBranchesRect(painter, rect, index);
-
-  if(!selectionModel()->isSelected(index) && item->m_back != QBrush())
-  {
-    painter->fillRect(allLinesRect, item->m_back);
-  }
-
-  RDTreeView::drawBranches(painter, rect, index);
-
-  // we now iterate from the top-most parent down, moving in from the left
-  // we draw this after calling into drawBranches() so we paint on top of the built-in lines
-  QPen oldPen = painter->pen();
-  while(!parents.isEmpty())
-  {
-    parent = parents.pop();
-
-    if(parent->m_treeCol.isValid())
-    {
-      // draw a centred pen vertically down the middle of branchRect
-
-      painter->setPen(QPen(QBrush(parent->m_treeCol), parent->m_treeColWidth));
-
-      QPoint topCentre = QRect(branchRect).center();
-      QPoint bottomCentre = topCentre;
-
-      topCentre.setY(branchRect.top());
-      bottomCentre.setY(branchRect.bottom());
-
-      painter->drawLine(topCentre, bottomCentre);
-    }
-
-    branchRect.moveLeft(branchRect.left() + indentation());
-  }
-  painter->setPen(oldPen);
 }
 
 void RDTreeWidget::selectionChanged(const QItemSelection &selected, const QItemSelection &deselected)
