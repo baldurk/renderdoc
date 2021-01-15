@@ -707,6 +707,9 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view,
     if(shaderInput && !shaderInput->name.empty())
       regname += lit(": ") + shaderInput->name;
 
+    if(bind && bind->arraySize > 1)
+      regname += QFormatStr("[%1]").arg(view.res.bind - bind->bind);
+
     if(view.type == D3D12ViewTag::OMDepth)
       regname = tr("Depth");
 
