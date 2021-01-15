@@ -493,7 +493,7 @@ void MiniQtHelper::SetLabelImage(QWidget *widget, const bytebuf &data, int32_t w
     QPixmap pixmap;
 
     int32_t bpp = alpha ? 4 : 3;
-    if(width > 0 && height > 0 && width * height * bpp == data.size())
+    if(width > 0 && height > 0 && size_t(width * height * bpp) == data.size())
     {
       label->setFixedSize(width, height);
       label->setPixmap(
