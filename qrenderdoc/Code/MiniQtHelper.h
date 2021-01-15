@@ -89,6 +89,8 @@ public:
   QWidget *CreateButton(WidgetCallback pressed) override;
 
   QWidget *CreateLabel() override;
+  void SetLabelImage(QWidget *widget, const bytebuf &data, int32_t width, int32_t height,
+                     bool alpha) override;
 
   QWidget *CreateOutputRenderingWidget() override;
 

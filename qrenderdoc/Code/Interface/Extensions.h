@@ -694,6 +694,22 @@ The widget needs to be added to a parent to become part of a panel or window.
 )");
   virtual QWidget *CreateLabel() = 0;
 
+  DOCUMENT(R"(Set an image for a label widget. If the widget isn't a label, this call has no effect.
+
+The label will be resized to a fixed size to display the image at 100% scale. Any text in the label
+will not be displayed, but passing an empty image will revert the label back to being text-based.
+
+The data must be in RGB(A) format with the first byte of each texel being R.
+
+:param QWidget widget: The widget to set the picture for.
+:param bytes data: The image data itself, tightly packed.
+:param int width: The width of the image in pixels.
+:param int height: The height of the image in pixels.
+:param bool alpha: ``True`` if the image data contains an alpha channel.
+)");
+  virtual void SetLabelImage(QWidget *widget, const bytebuf &data, int32_t width, int32_t height,
+                             bool alpha) = 0;
+
   DOCUMENT(R"(Create a widget suitable for rendering to with a :class:`renderdoc.ReplayOutput`. This
 widget takes care of painting on demand and recreating the internal display widget when necessary,
 however this means you must use :meth:`GetWidgetWindowingData` to retrieve the windowing data for

@@ -312,6 +312,26 @@ void MiniQtHelper::SetWidgetText(QWidget *widget, const rdcstr &text)
       return w->setText(text);                          \
   }
 
+  // setting text on a QLabel removes its pixmap
+  {
+    QLabel *label = qobject_cast<QLabel *>(widget);
+    if(label)
+    {
+      label->setMinimumSize(QSize());
+      label->setMaximumSize(QSize(10000, 10000));
+      label->setPixmap(QPixmap());
+    }
+  }
+  {
+    RDLabel *label = qobject_cast<RDLabel *>(widget);
+    if(label)
+    {
+      label->setMinimumSize(QSize());
+      label->setMaximumSize(QSize(10000, 10000));
+      label->setPixmap(QPixmap());
+    }
+  }
+
   SET_TEXT(RDLabel);
   SET_TEXT(QLabel);
   SET_TEXT(RDLineEdit);
@@ -458,6 +478,36 @@ QWidget *MiniQtHelper::CreateButton(WidgetCallback pressed)
 QWidget *MiniQtHelper::CreateLabel()
 {
   return new RDLabel();
+}
+
+void MiniQtHelper::SetLabelImage(QWidget *widget, const bytebuf &data, int32_t width,
+                                 int32_t height, bool alpha)
+{
+  if(!widget)
+    return;
+
+  RDLabel *label = qobject_cast<RDLabel *>(widget);
+
+  if(label)
+  {
+    QPixmap pixmap;
+
+    int32_t bpp = alpha ? 4 : 3;
+    if(width > 0 && height > 0 && width * height * bpp == data.size())
+    {
+      label->setFixedSize(width, height);
+      label->setPixmap(
+          QPixmap::fromImage(QImage(data.data(), width, height, width * bpp,
+                                    alpha ? QImage::Format_RGBA8888 : QImage::Format_RGB888)
+                                 .copy(0, 0, width, height)));
+    }
+    else
+    {
+      label->setMinimumSize(QSize());
+      label->setMaximumSize(QSize(10000, 10000));
+      label->setPixmap(QPixmap());
+    }
+  }
 }
 
 QWidget *MiniQtHelper::CreateOutputRenderingWidget()
