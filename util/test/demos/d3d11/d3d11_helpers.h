@@ -91,6 +91,8 @@ COM_SMARTPTR(ID3D11DepthStencilView);
 
 COM_SMARTPTR(ID3D11Fence);
 
+COM_SMARTPTR(ID3DDeviceContextState);
+
 COM_SMARTPTR(ID3D11InfoQueue);
 COM_SMARTPTR(ID3DUserDefinedAnnotation);
 

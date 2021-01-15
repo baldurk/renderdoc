@@ -148,6 +148,7 @@
     <ClCompile Include="d3d11\d3d11_mip_gen_rt.cpp" />
     <ClCompile Include="d3d11\d3d11_mip_rtv.cpp" />
     <ClCompile Include="d3d11\d3d11_overdraw_stress.cpp" />
+    <ClCompile Include="d3d11\d3d11_parameter_zoo.cpp" />
     <ClCompile Include="d3d11\d3d11_pixel_history_zoo.cpp" />
     <ClCompile Include="d3d11\d3d11_primitiveid.cpp" />
     <ClCompile Include="d3d11\d3d11_shader_debug_zoo.cpp" />

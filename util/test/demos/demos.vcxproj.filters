@@ -568,6 +568,9 @@
     <ClCompile Include="d3d11\d3d11_amd_shader_extensions.cpp">
       <Filter>D3D11\demos</Filter>
     </ClCompile>
+    <ClCompile Include="d3d11\d3d11_parameter_zoo.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D11">

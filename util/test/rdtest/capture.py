@@ -6,12 +6,6 @@ from . import util
 from .logging import log
 
 
-# Keep running until we get a capture
-def run_until_capture(control):
-    """Exits when the first capture is made"""
-    return len(control.captures()) == 0
-
-
 class TargetControl():
     def __init__(self, ident: int, host="localhost", username="testrunner", force=True, timeout=None, exit_kill=True):
         """
@@ -60,7 +54,7 @@ class TargetControl():
         if self.control is not None:
             self.control.QueueCapture(frame, num)
 
-    def run(self, keep_running=run_until_capture):
+    def run(self, keep_running):
         """
         Runs a loop ticking the target control. The callback is called each time and
         can be used to determine if the loop should keep running. The default callback
@@ -92,12 +86,12 @@ class TargetControl():
             # If we got a new capture, add it to our list
             if msg.type == rd.TargetControlMessageType.NewCapture:
                 self._captures.append(msg.newCapture)
-                break
+                continue
 
             # Similarly for a new child
             if msg.type == rd.TargetControlMessageType.NewChild:
                 self._children.append(msg.newChild)
-                break
+                continue
 
         # Shut down the connection
         self.control.Shutdown()
@@ -180,15 +174,18 @@ def run_and_capture(exe: str, cmdline: str, frame: int, *, frame_count=1, captur
     # Capture frame
     control.queue_capture(frame, frame_count)
 
-    # By default, runs until the first capture is made
-    control.run()
+    # Run until we have all expected captures (probably just 1). If the program
+    # exits or times out we will also stop, of course
+    control.run(keep_running=lambda x: len(x.captures()) < frame_count)
 
     captures = control.captures()
 
     if logfile is not None and os.path.exists(logfile):
         log.inline_file('Process output', logfile, with_stdout=True)
 
-    if len(captures) == 0:
-        raise RuntimeError("No capture made")
+    if len(captures) != frame_count:
+        if len(captures) == 0:
+            raise RuntimeError("No capture made in program")
+        raise RuntimeError("Expected {} captures, but only got {}".format(frame_count, len(captures)))
 
     return captures[0].path
