@@ -1610,8 +1610,8 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
           {
             fmt = GetBaseFormat(TextureState.internalformat);
             type = GetDataType(TextureState.internalformat);
-            size = (uint32_t)GetByteSize(TextureState.width, TextureState.height, copySlices, fmt,
-                                         type);
+            size = (uint32_t)GetByteSize(RDCMAX(1U, TextureState.width),
+                                         RDCMAX(1U, TextureState.height), copySlices, fmt, type);
           }
 
           // on read and write, we allocate a single buffer big enough for all mips and re-use it
