@@ -88,8 +88,8 @@ private:
                       RDTreeWidget *tex, RDTreeWidget *samp, RDTreeWidget *cbuffer,
                       RDTreeWidget *uavs);
 
-  void addResourceRow(const D3D12ViewTag &view, const D3D12Pipe::Shader *stage,
-                      RDTreeWidget *resources);
+  void addResourceRow(const D3D12ViewTag &view, const Bindpoint *bind,
+                      const ShaderResource *shaderInput, RDTreeWidget *resources);
 
   void clearShaderState(RDLabel *shader, RDLabel *rootSig, RDTreeWidget *tex, RDTreeWidget *samp,
                         RDTreeWidget *cbuffer, RDTreeWidget *uavs);
