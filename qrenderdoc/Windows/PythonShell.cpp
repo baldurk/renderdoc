@@ -225,8 +225,7 @@ struct MiniQtInvoker : ObjectForwarder<IMiniQtHelper>
   }
 
   QWidget *CreateLabel() { return InvokeRetFunction<QWidget *>(&IMiniQtHelper::CreateLabel); }
-  void SetLabelImage(QWidget *widget, const bytebuf &data, int32_t width, int32_t height,
-                     bool alpha) override
+  void SetLabelImage(QWidget *widget, const bytebuf &data, int32_t width, int32_t height, bool alpha)
   {
     InvokeVoidFunction(&IMiniQtHelper::SetLabelImage, widget, data, width, height, alpha);
   }
