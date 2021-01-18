@@ -5,7 +5,9 @@ import rdtest
 class D3D11_Swapchain_Zoo(rdtest.TestCase):
     demos_test_name = 'D3D11_Swapchain_Zoo'
     demos_frame_cap = 50
+    # Take 10 captures because we don't know the present order, but only expect 1
     demos_frame_count = 10
+    demos_captures_expected = 1
 
     def check_capture(self):
         draw = self.find_draw("DrawIndexed")

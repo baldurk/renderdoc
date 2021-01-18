@@ -144,7 +144,7 @@ def run_executable(exe: str, cmdline: str,
     return res.ident
 
 
-def run_and_capture(exe: str, cmdline: str, frame: int, *, frame_count=1, capture_name=None, opts=rd.GetDefaultCaptureOptions(),
+def run_and_capture(exe: str, cmdline: str, frame: int, *, frame_count=1, captures_expected=None, capture_name=None, opts=rd.GetDefaultCaptureOptions(),
                     timeout=None, logfile=None):
     """
     Helper function to run an executable with a command line, capture a particular frame, and exit.
@@ -167,6 +167,9 @@ def run_and_capture(exe: str, cmdline: str, frame: int, *, frame_count=1, captur
     if capture_name is None:
         capture_name = 'capture'
 
+    if captures_expected is None:
+        captures_expected = frame_count
+
     control = TargetControl(run_executable(exe, cmdline, cappath=util.get_tmp_path(capture_name), opts=opts), timeout=timeout)
 
     log.print("Queuing capture of frame {}..{} with timeout of {}".format(frame, frame+frame_count, "default" if timeout is None else timeout))
@@ -176,16 +179,17 @@ def run_and_capture(exe: str, cmdline: str, frame: int, *, frame_count=1, captur
 
     # Run until we have all expected captures (probably just 1). If the program
     # exits or times out we will also stop, of course
-    control.run(keep_running=lambda x: len(x.captures()) < frame_count)
+    control.run(keep_running=lambda x: len(x.captures()) < captures_expected)
 
     captures = control.captures()
 
     if logfile is not None and os.path.exists(logfile):
         log.inline_file('Process output', logfile, with_stdout=True)
 
-    if len(captures) != frame_count:
+    if len(captures) != captures_expected:
         if len(captures) == 0:
             raise RuntimeError("No capture made in program")
+
         raise RuntimeError("Expected {} captures, but only got {}".format(frame_count, len(captures)))
 
     return captures[0].path
