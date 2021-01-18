@@ -187,6 +187,8 @@ private:
 
   std::set<void *> m_AcceptedCtx;
 
+  rdcarray<rdcpair<GLResourceRecord *, Chunk *>> m_BufferResizes;
+
 public:
   enum
   {

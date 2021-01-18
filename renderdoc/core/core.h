@@ -124,6 +124,8 @@ enum class CaptureState
   ActiveCapturing,
 };
 
+DECLARE_REFLECTION_ENUM(CaptureState);
+
 constexpr inline bool IsReplayMode(CaptureState state)
 {
   return state == CaptureState::LoadingReplaying || state == CaptureState::ActiveReplaying;

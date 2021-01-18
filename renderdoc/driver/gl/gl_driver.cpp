@@ -2412,6 +2412,13 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
       record->FreeShadowStorage();
     }
 
+    for(const rdcpair<GLResourceRecord *, Chunk *> &r : m_BufferResizes)
+    {
+      r.first->AddChunk(r.second);
+      r.first->SetDataPtr(r.second->GetData());
+    }
+    m_BufferResizes.clear();
+
     // if we changed contexts above, pop back to where we were
     if(pushChildSaved)
     {
@@ -2467,6 +2474,13 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 
       record->FreeShadowStorage();
     }
+
+    for(const rdcpair<GLResourceRecord *, Chunk *> &r : m_BufferResizes)
+    {
+      r.first->AddChunk(r.second);
+      r.first->SetDataPtr(r.second->GetData());
+    }
+    m_BufferResizes.clear();
 
     // if it's a capture triggered from application code, immediately
     // give up as it's not reasonable to expect applications to detect and retry.
@@ -2541,6 +2555,13 @@ bool WrappedOpenGL::DiscardFrameCapture(void *dev, void *wnd)
 
     record->FreeShadowStorage();
   }
+
+  for(const rdcpair<GLResourceRecord *, Chunk *> &r : m_BufferResizes)
+  {
+    r.first->AddChunk(r.second);
+    r.first->SetDataPtr(r.second->GetData());
+  }
+  m_BufferResizes.clear();
 
   m_CapturedFrames.pop_back();
 

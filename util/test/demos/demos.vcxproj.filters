@@ -571,6 +571,9 @@
     <ClCompile Include="d3d11\d3d11_parameter_zoo.cpp">
       <Filter>D3D11\demos</Filter>
     </ClCompile>
+    <ClCompile Include="gl\gl_buffer_resizing.cpp">
+      <Filter>OpenGL\demos</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D11">

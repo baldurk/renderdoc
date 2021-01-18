@@ -150,6 +150,20 @@ INSTANTIATE_SERIALISE_TYPE(ResourceId);
 ReplayStatus IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver);
 
 template <>
+rdcstr DoStringise(const CaptureState &el)
+{
+  BEGIN_ENUM_STRINGISE(CaptureState);
+  {
+    STRINGISE_ENUM_CLASS(LoadingReplaying);
+    STRINGISE_ENUM_CLASS(ActiveReplaying);
+    STRINGISE_ENUM_CLASS(StructuredExport);
+    STRINGISE_ENUM_CLASS(BackgroundCapturing);
+    STRINGISE_ENUM_CLASS(ActiveCapturing);
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
 rdcstr DoStringise(const RDCDriver &el)
 {
   BEGIN_ENUM_STRINGISE(RDCDriver);

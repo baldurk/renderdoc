@@ -679,13 +679,15 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
       return;
     }
 
+    const bool isResizingOrphan =
+        (record->HasDataPtr() || (record->Length > 0 && size != (GLsizeiptr)record->Length));
+
     // if we're recreating the buffer, clear the record and add new chunks. Normally
     // we would just mark this record as dirty and pick it up on the capture frame as initial
     // data, but we don't support (if it's even possible) querying out size etc.
     // we need to add only the chunks required - glGenBuffers, glBindBuffer to current target,
     // and this buffer storage. All other chunks have no effect
-    if(IsBackgroundCapturing(m_State) &&
-       (record->HasDataPtr() || (record->Length > 0 && size != (GLsizeiptr)record->Length)))
+    if(IsBackgroundCapturing(m_State) && isResizingOrphan)
     {
       // we need to maintain chunk ordering, so fetch the first two chunk IDs.
       // We should have at least two by this point - glGenBuffers and whatever gave the record
@@ -753,15 +755,26 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
       GetContextRecord()->AddChunk(chunk);
       GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
                                                         eFrameRef_PartialWrite);
+
+      // if this is a resizing call, we also need to store a copy in the record so future captures
+      // have an accurate creation chunk. However we can't do that yet because this buffer may not
+      // have initial contents. If we store the chunk immediately we'd corrupt data potentially used
+      // earlier in the captured frame from the previous creation chunk :(. So push it into a list
+      // that we'll 'apply' at the end of the frame capture.
+      if(isResizingOrphan)
+        m_BufferResizes.push_back({record, chunk->Duplicate()});
     }
     else
     {
       record->AddChunk(chunk);
       record->SetDataPtr(chunk->GetData());
-      record->Length = (int32_t)size;
-      record->usage = usage;
       record->DataInSerialiser = true;
     }
+
+    // always update length and usage even during capture. If buffers resize mid-capture we'll
+    // record them both into the active frame and the record, but we need an up to date length.
+    record->Length = (int32_t)size;
+    record->usage = usage;
   }
   else
   {
@@ -830,13 +843,15 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
 
     GLuint buffer = record->Resource.name;
 
+    const bool isResizingOrphan =
+        (record->HasDataPtr() || (record->Length > 0 && size != (GLsizeiptr)record->Length));
+
     // if we're recreating the buffer, clear the record and add new chunks. Normally
     // we would just mark this record as dirty and pick it up on the capture frame as initial
     // data, but we don't support (if it's even possible) querying out size etc.
     // we need to add only the chunks required - glGenBuffers, glBindBuffer to current target,
     // and this buffer storage. All other chunks have no effect
-    if(IsBackgroundCapturing(m_State) &&
-       (record->HasDataPtr() || (record->Length > 0 && size != (GLsizeiptr)record->Length)))
+    if(IsBackgroundCapturing(m_State) && isResizingOrphan)
     {
       // we need to maintain chunk ordering, so fetch the first two chunk IDs.
       // We should have at least two by this point - glGenBuffers and whatever gave the record
@@ -904,13 +919,16 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
       GetContextRecord()->AddChunk(chunk);
       GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
                                                         eFrameRef_PartialWrite);
+
+      // if this is a resizing call, also store a copy in the record so future captures have an
+      // accurate creation chunk
+      if(isResizingOrphan)
+        m_BufferResizes.push_back({record, chunk->Duplicate()});
     }
     else
     {
       record->AddChunk(chunk);
       record->SetDataPtr(chunk->GetData());
-      record->Length = size;
-      record->usage = usage;
       record->DataInSerialiser = true;
 
       // if we're active capturing then we need to add a duplicate call in so that the data is
@@ -922,6 +940,9 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
                                                           eFrameRef_PartialWrite);
       }
     }
+
+    record->Length = size;
+    record->usage = usage;
   }
   else
   {

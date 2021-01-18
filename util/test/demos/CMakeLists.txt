@@ -59,6 +59,7 @@ set(OPENGL_SRC
         3rdparty/glad/glad_glx.c
         gl/gl_test.cpp
         gl/gl_test_linux.cpp
+        gl/gl_buffer_resizing.cpp
         gl/gl_buffer_spam.cpp
         gl/gl_buffer_truncation.cpp
         gl/gl_buffer_updates.cpp

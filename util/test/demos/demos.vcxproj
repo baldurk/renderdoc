@@ -217,6 +217,7 @@
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="3rdparty\glad\glad_wgl.c" />
+    <ClCompile Include="gl\gl_buffer_resizing.cpp" />
     <ClCompile Include="gl\gl_buffer_spam.cpp" />
     <ClCompile Include="gl\gl_buffer_truncation.cpp" />
     <ClCompile Include="gl\gl_buffer_updates.cpp" />
