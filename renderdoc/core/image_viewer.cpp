@@ -609,6 +609,12 @@ void ImageViewer::RefreshFile()
     datasize = texDetails.width * texDetails.height * 4 * sizeof(float);
     data = (byte *)malloc(datasize);
 
+    if(!data)
+    {
+      RDCERR("Allocation for %zu bytes failed for EXR data", datasize);
+      return;
+    }
+
     int channels[4] = {-1, -1, -1, -1};
     for(int i = 0; i < exrImage.num_channels; i++)
     {
