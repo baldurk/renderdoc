@@ -55,6 +55,8 @@ class ResourceInspector;
 class ShaderViewer;
 class MiniQtHelper;
 
+class QFileSystemWatcher;
+
 class CaptureContext : public ICaptureContext, IExtensionManager
 {
   Q_DECLARE_TR_FUNCTIONS(CaptureContext);
@@ -404,6 +406,8 @@ private:
   QList<ShaderViewer *> m_ShaderEditors;
 
   MiniQtHelper *m_QtHelper = NULL;
+
+  QFileSystemWatcher *m_Watcher = NULL;
 
   // Windows
   MainWindow *m_MainWindow = NULL;

@@ -28,6 +28,7 @@
 #include <QDirIterator>
 #include <QElapsedTimer>
 #include <QFileInfo>
+#include <QFileSystemWatcher>
 #include <QLabel>
 #include <QMenu>
 #include <QMessageBox>
@@ -732,6 +733,19 @@ void CaptureContext::LoadCapture(const rdcstr &captureFile, const ReplayOptions 
                      [this]() { return !m_LoadInProgress; },
                      [this]() { return UpdateLoadProgress(); });
 
+  if(local)
+  {
+    m_Watcher = new QFileSystemWatcher({captureFile}, GetMainWindow()->Widget());
+
+    QObject::connect(m_Watcher, &QFileSystemWatcher::fileChanged, [this]() {
+      Replay().AsyncInvoke([this](IReplayController *r) {
+        r->FileChanged();
+        r->SetFrameEvent(m_EventID, true);
+        GUIInvoke::call(GetMainWindow()->Widget(), [this]() { RefreshUIStatus({}, true, true); });
+      });
+    });
+  }
+
 #if defined(RELEASE)
   ANALYTIC_ADDAVG(Performance.LoadTime, double(loadTimer.nsecsElapsed() * 1.0e-9));
 #endif
@@ -1273,6 +1287,9 @@ void CaptureContext::CloseCapture()
 {
   if(!m_CaptureLoaded)
     return;
+
+  delete m_Watcher;
+  m_Watcher = NULL;
 
   delete m_RGP;
   m_RGP = NULL;
