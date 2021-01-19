@@ -3826,7 +3826,11 @@ void BufferViewer::camGuess_changed(double value)
 
   // take a guess for the aspect ratio, for if the user hasn't overridden it
   Viewport vp = m_Ctx.CurPipelineState().GetViewport(0);
-  m_Config.aspect = (vp.width > 0.0f && vp.height > 0.0f) ? (vp.width / vp.height) : 1.0f;
+
+  float vpWidth = qAbs(vp.width);
+  float vpHeight = qAbs(vp.height);
+
+  m_Config.aspect = (vpWidth > 0.0f && vpHeight > 0.0f) ? (vpWidth / vpHeight) : 1.0f;
 
   if(ui->aspectGuess->value() > 0.0)
     m_Config.aspect = ui->aspectGuess->value();
