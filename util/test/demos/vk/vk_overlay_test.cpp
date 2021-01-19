@@ -93,8 +93,7 @@ void main()
     if(!Init())
       return 3;
 
-    bool KHR_maintenance1 = std::find(devExts.begin(), devExts.end(),
-                                      VK_KHR_MAINTENANCE1_EXTENSION_NAME) != devExts.end();
+    bool KHR_maintenance1 = hasExt(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
 
     VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo());
 

@@ -57,7 +57,7 @@ void main()
 
   vertOutCol2.xy = pos.xy;
 
-	gl_Position = pos * vec4(1, -1, 1, 1);
+	gl_Position = pos * vec4(1, -1 * offset.w, 1, 1);
 #if defined(USE_POINTS)
   gl_PointSize = 1.0f;
 #endif
@@ -82,9 +82,13 @@ void main()
 
   int main()
   {
+    optDevExts.push_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
+
     // initialise, create window, create context, etc
     if(!Init())
       return 3;
+
+    bool KHR_maintenance1 = hasExt(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
 
     const DefaultA2V test[] = {
         // single color quad
@@ -198,7 +202,7 @@ void main()
 
     Vec4f cbufferdata[] = {
         Vec4f(2.0f / (float)screenWidth, 2.0f / (float)screenHeight, 1.0f, 1.0f),
-        Vec4f(-1.0f, -1.0f, 0.0f, 0.0f),
+        Vec4f(-1.0f, -1.0f, 1.0f, 1.0f),
     };
 
     AllocatedBuffer cb(
@@ -235,9 +239,26 @@ void main()
 
       vkCmdDraw(cmd, 3, 1, 10, 0);
 
-      setMarker(cmd, "Quad");
+      // if we have KHR_maintenance1, invert the viewport for the quad draw
+      if(KHR_maintenance1)
+      {
+        VkViewport v = mainWindow->viewport;
+        v.y += v.height;
+        v.height = -v.height;
+        vkCmdSetViewport(cmd, 0, 1, &v);
+        cbufferdata[1].w = -1.0f;
+        vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                           0, sizeof(cbufferdata), &cbufferdata);
+      }
 
+      setMarker(cmd, "Quad");
       vkCmdDraw(cmd, 6, 2, 0, 0);
+
+      cbufferdata[1].w = 1.0f;
+
+      vkCmdSetViewport(cmd, 0, 1, &mainWindow->viewport);
+      vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                         sizeof(cbufferdata), &cbufferdata);
 
       setMarker(cmd, "Points");
 
