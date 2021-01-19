@@ -127,6 +127,33 @@ void IntelGlCounters::addCounter(const IntelGlQuery &query, GLuint counterId)
   counter.desc.resultType = glToRdcCounterType(counter.dataType);
   counter.desc.unit = CounterUnit::Absolute;
 
+  if(counter.desc.description.contains("Unit: cycles."))
+  {
+    counter.desc.unit = CounterUnit::Cycles;
+  }
+  else if(counter.desc.description.contains("Unit: bytes."))
+  {
+    counter.desc.unit = CounterUnit::Bytes;
+  }
+  else if(counter.desc.description.contains("Unit: percent."))
+  {
+    counter.desc.unit = CounterUnit::Percentage;
+  }
+  else if(counter.desc.description.contains("Unit: Hz."))
+  {
+    counter.desc.unit = CounterUnit::Hertz;
+  }
+  else if(counter.desc.description.contains("Unit: ns."))
+  {
+    counter.desc.unit = CounterUnit::Seconds;
+
+    counter.originalType = counter.desc.resultType;
+    counter.originalByteWidth = counter.desc.resultByteWidth;
+
+    counter.desc.resultType = CompType::Float;
+    counter.desc.resultByteWidth = sizeof(double);
+  }
+
   m_Counters.push_back(counter);
 }
 
@@ -324,6 +351,51 @@ rdcarray<CounterResult> IntelGlCounters::GetCounterData(uint32_t maxSampleIndex,
       }
 
       const IntelGlCounter &counter = m_Counters[idx];
+
+      if(counter.desc.unit == CounterUnit::Seconds)
+      {
+        double nanoseconds = 0.0;
+        if(counter.originalType == CompType::UInt)
+        {
+          if(counter.desc.resultByteWidth == 8)
+          {
+            uint64_t r;
+            CopyData(&r, counter, s, maxSampleIndex);
+            nanoseconds = (double)r;
+          }
+          else
+          {
+            uint32_t r;
+            CopyData(&r, counter, s, maxSampleIndex);
+            nanoseconds = (double)r;
+          }
+        }
+        else if(counter.originalType == CompType::Float)
+        {
+          if(counter.desc.resultByteWidth == 8)
+          {
+            double r;
+            CopyData(&r, counter, s, maxSampleIndex);
+            nanoseconds = r;
+          }
+          else
+          {
+            float r;
+            CopyData(&r, counter, s, maxSampleIndex);
+            nanoseconds = r;
+          }
+        }
+        else
+        {
+          RDCERR("Wrong counter result type: %u", counter.originalType);
+        }
+
+        double seconds = nanoseconds / 1e9f;
+        ret.push_back(CounterResult(eventIDs[s], counter.desc.counter, seconds));
+
+        continue;
+      }
+
       switch(counter.desc.resultType)
       {
         case CompType::Float:

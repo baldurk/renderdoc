@@ -77,6 +77,8 @@ private:
     GLuint offset = 0;
     GLuint type = 0;
     GLuint dataType = 0;
+    CompType originalType = CompType::Typeless;
+    uint32_t originalByteWidth = 0;
   };
   rdcarray<IntelGlCounter> m_Counters;
 
