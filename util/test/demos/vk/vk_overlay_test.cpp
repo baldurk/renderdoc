@@ -300,6 +300,11 @@ void main()
     pipeCreateInfo.depthStencilState.depthCompareOp = VK_COMPARE_OP_ALWAYS;
     VkPipeline whitepipe = createGraphicsPipeline(pipeCreateInfo);
 
+    pipeCreateInfo.rasterizationState.rasterizerDiscardEnable = VK_TRUE;
+    pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    pipeCreateInfo.renderPass = renderPass;
+    VkPipeline discardPipe = createGraphicsPipeline(pipeCreateInfo);
+
     AllocatedImage subimg(
         this,
         vkh::ImageCreateInfo(mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0,
@@ -356,6 +361,19 @@ void main()
       vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
 
       StartUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
+
+      vkCmdBeginRenderPass(cmd,
+                           vkh::RenderPassBeginInfo(
+                               renderPass, fbs[mainWindow->imgIndex], mainWindow->scissor,
+                               {vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f), vkh::ClearValue(1.0f, 0)}),
+                           VK_SUBPASS_CONTENTS_INLINE);
+
+      vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
+      setMarker(cmd, "Discard Test");
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, discardPipe);
+      vkCmdDraw(cmd, 3, 1, 0, 0);
+
+      vkCmdEndRenderPass(cmd);
 
       VkViewport v;
       VkRect2D s;
