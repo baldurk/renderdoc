@@ -116,6 +116,9 @@ class VulkanHook : LibraryHook
     Process::RegisterEnvironmentModification(EnvironmentModification(
         EnvMod::Set, EnvSep::NoSep, "DISABLE_LAYER_AMD_SWITCHABLE_GRAPHICS_1", "1"));
 
+    Process::RegisterEnvironmentModification(EnvironmentModification(
+        EnvMod::Set, EnvSep::NoSep, "VK_LAYER_bandicam_helper_DEBUG_1", "1"));
+
 #if ENABLED(RDOC_WIN32)
     // on windows support self-hosted capture by checking our filename and tweaking the env var we
     // set
