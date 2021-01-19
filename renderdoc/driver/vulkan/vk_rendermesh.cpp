@@ -528,6 +528,7 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
         data->pointSpriteSize = Vec2f(0.0f, 0.0f);
         data->displayFormat = MESHDISPLAY_SOLID;
         data->rawoutput = 0;
+        data->flipY = (cfg.position.flipY == fmt.flipY) ? 0 : 1;
 
         m_MeshRender.UBO.Unmap();
 

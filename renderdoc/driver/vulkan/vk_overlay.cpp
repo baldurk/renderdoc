@@ -2315,7 +2315,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         data->pointSpriteSize = Vec2f(0.0f, 0.0f);
         data->displayFormat = 0;
         data->rawoutput = 1;
-        data->padding = Vec3f();
+        data->flipY = 0;
+        data->padding = Vec2f();
         m_MeshRender.UBO.Unmap();
 
         uint32_t viewOffs = 0;

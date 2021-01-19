@@ -67,6 +67,10 @@ void main(void)
 #ifdef VULKAN
   // GL->VK conventions
   gl_Position.y = -gl_Position.y;
+  if(Mesh.flipY == 1)
+  {
+    gl_Position.y = -gl_Position.y;
+  }
   if(Mesh.rawoutput == 0)
   {
     gl_Position.z = (gl_Position.z + gl_Position.w) / 2.0;
