@@ -26,7 +26,7 @@ class VK_Large_Descriptor_Sets(rdtest.TestCase):
 
         rdtest.log.print("Loaded capture in {:02} seconds, consuming {} bytes of memory".format(duration, memory_increase))
 
-        if memory_increase > 1200*1000*1000:
+        if memory_increase > 2000*1000*1000:
             raise rdtest.TestFailureException("Memory usage is too high".format(duration))
         else:
             rdtest.log.success("Memory usage is OK")
