@@ -147,6 +147,9 @@ bool OpenGLGraphicsTest::Init()
     return false;
   }
 
+  if(GLX_EXT_swap_control)
+    glXSwapIntervalEXT(vsync ? 1 : 0);
+
   PostInit();
 
   return true;

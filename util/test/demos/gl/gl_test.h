@@ -69,6 +69,8 @@ struct OpenGLGraphicsTest : public GraphicsTest
   bool coreProfile = true;
   bool gles = false;
 
+  bool vsync = false;
+
   GLuint swapBlitFBO;
 
   GraphicsWindow *mainWindow = NULL;

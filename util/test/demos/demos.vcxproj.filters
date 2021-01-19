@@ -574,6 +574,18 @@
     <ClCompile Include="gl\gl_buffer_resizing.cpp">
       <Filter>OpenGL\demos</Filter>
     </ClCompile>
+    <ClCompile Include="vk\vk_leak_check.cpp">
+      <Filter>Vulkan\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\gl_leak_check.cpp">
+      <Filter>OpenGL\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d12\d3d12_leak_check.cpp">
+      <Filter>D3D12\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_leak_check.cpp">
+      <Filter>D3D11\demos</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D11">

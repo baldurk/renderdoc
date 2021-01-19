@@ -27,6 +27,7 @@ set(VULKAN_SRC
         vk/vk_khr_buffer_address.cpp
         vk/vk_large_buffer.cpp
         vk/vk_large_descriptor_sets.cpp
+        vk/vk_leak_check.cpp
         vk/vk_line_raster.cpp
         vk/vk_mesh_zoo.cpp
         vk/vk_misaligned_dirty.cpp
@@ -72,6 +73,7 @@ set(OPENGL_SRC
         gl/gl_entry_points.cpp
         gl/gl_large_bcn_arrays.cpp
         gl/gl_large_buffer.cpp
+        gl/gl_leak_check.cpp
         gl/gl_marker_test.cpp
         gl/gl_map_overrun.cpp
         gl/gl_mesh_zoo.cpp

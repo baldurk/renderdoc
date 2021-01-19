@@ -287,6 +287,7 @@ void RegisterTest(TestMetadata test);
 
 std::string GetCWD();
 std::string GetEnvVar(const char *var);
+uint64_t GetMemoryUsage();
 
 #ifndef ARRAY_COUNT
 #define ARRAY_COUNT(arr) (sizeof(arr) / sizeof(arr[0]))

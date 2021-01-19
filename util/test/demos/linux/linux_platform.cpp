@@ -23,7 +23,30 @@
 ******************************************************************************/
 
 #include <stdlib.h>
+#include <unistd.h>
 #include "test_common.h"
+
+uint64_t GetMemoryUsage()
+{
+  FILE *f = fopen("/proc/self/statm", "r");
+
+  if(f == NULL)
+  {
+    RDCWARN("Couldn't open /proc/self/statm");
+    return 0;
+  }
+
+  char line[512] = {};
+  fgets(line, 511, f);
+
+  uint32_t vmPages = 0;
+  int num = sscanf(line, "%u", &vmPages);
+
+  if(num == 1 && vmPages > 0)
+    return vmPages * (uint64_t)sysconf(_SC_PAGESIZE);
+
+  return 0;
+}
 
 std::string GetCWD()
 {

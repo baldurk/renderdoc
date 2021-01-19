@@ -141,6 +141,7 @@
     <ClCompile Include="d3d11\d3d11_feature_level_9.cpp" />
     <ClCompile Include="d3d11\d3d11_helpers.cpp" />
     <ClCompile Include="d3d11\d3d11_large_buffer.cpp" />
+    <ClCompile Include="d3d11\d3d11_leak_check.cpp" />
     <ClCompile Include="d3d11\d3d11_many_rtvs.cpp" />
     <ClCompile Include="d3d11\d3d11_map_overrun.cpp" />
     <ClCompile Include="d3d11\d3d11_mesh_zoo.cpp" />
@@ -183,6 +184,7 @@
     <ClCompile Include="d3d12\d3d12_existing_heap.cpp" />
     <ClCompile Include="d3d12\d3d12_helpers.cpp" />
     <ClCompile Include="d3d12\d3d12_large_buffer.cpp" />
+    <ClCompile Include="d3d12\d3d12_leak_check.cpp" />
     <ClCompile Include="d3d12\d3d12_list_alloc_tests.cpp" />
     <ClCompile Include="d3d12\d3d12_list_types.cpp" />
     <ClCompile Include="d3d12\d3d12_mesh_zoo.cpp" />
@@ -231,6 +233,7 @@
     <ClCompile Include="gl\gl_entry_points.cpp" />
     <ClCompile Include="gl\gl_large_bcn_arrays.cpp" />
     <ClCompile Include="gl\gl_large_buffer.cpp" />
+    <ClCompile Include="gl\gl_leak_check.cpp" />
     <ClCompile Include="gl\gl_map_overrun.cpp" />
     <ClCompile Include="gl\gl_marker_test.cpp" />
     <ClCompile Include="gl\gl_mesh_zoo.cpp" />
@@ -280,6 +283,7 @@
     <ClCompile Include="vk\vk_khr_buffer_address.cpp" />
     <ClCompile Include="vk\vk_large_buffer.cpp" />
     <ClCompile Include="vk\vk_large_descriptor_sets.cpp" />
+    <ClCompile Include="vk\vk_leak_check.cpp" />
     <ClCompile Include="vk\vk_mesh_zoo.cpp" />
     <ClCompile Include="vk\vk_parameter_zoo.cpp" />
     <ClCompile Include="vk\vk_imageless_framebuffer.cpp" />
