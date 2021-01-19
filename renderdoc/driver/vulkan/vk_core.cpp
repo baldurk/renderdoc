@@ -25,6 +25,7 @@
 #include "vk_core.h"
 #include <ctype.h>
 #include <algorithm>
+#include "core/settings.h"
 #include "driver/ihv/amd/amd_rgp.h"
 #include "driver/shaders/spirv/spirv_compile.h"
 #include "jpeg-compressor/jpge.h"
@@ -35,6 +36,8 @@
 #include "vk_replay.h"
 
 #include "stb/stb_image_write.h"
+
+RDOC_EXTERN_CONFIG(bool, Vulkan_Debug_VerboseCommandRecording);
 
 uint64_t VkInitParams::GetSerialiseSize()
 {
@@ -2055,8 +2058,16 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
       // otherwise order must be preserved (vs. queue submits and desc set updates)
       for(size_t i = 0; i < m_CmdBufferRecords.size(); i++)
       {
-        RDCDEBUG("Adding chunks from command buffer %s",
+        if(Vulkan_Debug_VerboseCommandRecording())
+        {
+          RDCLOG("Adding chunks from command buffer %s",
                  ToStr(m_CmdBufferRecords[i]->GetResourceID()).c_str());
+        }
+        else
+        {
+          RDCDEBUG("Adding chunks from command buffer %s",
+                   ToStr(m_CmdBufferRecords[i]->GetResourceID()).c_str());
+        }
 
         size_t prevSize = recordlist.size();
         (void)prevSize;

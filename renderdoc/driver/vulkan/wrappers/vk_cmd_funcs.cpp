@@ -24,6 +24,11 @@
 
 #include "../vk_core.h"
 #include "../vk_debug.h"
+#include "core/settings.h"
+
+RDOC_DEBUG_CONFIG(
+    bool, Vulkan_Debug_VerboseCommandRecording, false,
+    "Add verbose logging around recording and submission of command buffers in vulkan.");
 
 static rdcstr ToHumanStr(const VkAttachmentLoadOp &el)
 {
@@ -544,6 +549,11 @@ VkResult WrappedVulkan::vkCreateCommandPool(VkDevice device,
 VkResult WrappedVulkan::vkResetCommandPool(VkDevice device, VkCommandPool cmdPool,
                                            VkCommandPoolResetFlags flags)
 {
+  if(Vulkan_Debug_VerboseCommandRecording())
+  {
+    RDCLOG("Reset command pool %s", ToStr(GetResID(cmdPool)).c_str());
+  }
+
   if(Atomic::CmpExch32(&m_ReuseEnabled, 1, 1) == 1)
     GetRecord(cmdPool)->cmdPoolInfo->pool.Reset();
 
@@ -671,6 +681,12 @@ VkResult WrappedVulkan::vkAllocateCommandBuffers(VkDevice device,
 
         record->pool = GetRecord(pAllocateInfo->commandPool);
         allocRecord->AddParent(record->pool);
+
+        if(Vulkan_Debug_VerboseCommandRecording())
+        {
+          RDCLOG("Allocate command buffer %s from pool %s", ToStr(record->GetResourceID()).c_str(),
+                 ToStr(record->pool->GetResourceID()).c_str());
+        }
 
         {
           record->pool->LockChunks();
@@ -1033,6 +1049,12 @@ VkResult WrappedVulkan::vkBeginCommandBuffer(VkCommandBuffer commandBuffer,
     record->bakedCommands->cmdInfo->beginCapture = false;
     record->bakedCommands->cmdInfo->endCapture = false;
 
+    if(Vulkan_Debug_VerboseCommandRecording())
+    {
+      RDCLOG("Begin command buffer %s baked to %s", ToStr(record->GetResourceID()).c_str(),
+             ToStr(record->bakedCommands->GetResourceID()).c_str());
+    }
+
     {
       CACHE_THREAD_SERIALISER();
 
@@ -1232,6 +1254,12 @@ VkResult WrappedVulkan::vkEndCommandBuffer(VkCommandBuffer commandBuffer)
     // ensure that we have a matching begin
     RDCASSERT(record->bakedCommands);
 
+    if(Vulkan_Debug_VerboseCommandRecording())
+    {
+      RDCLOG("End command buffer %s baked to %s", ToStr(record->GetResourceID()).c_str(),
+             ToStr(record->bakedCommands->GetResourceID()).c_str());
+    }
+
     {
       CACHE_THREAD_SERIALISER();
       ser.SetDrawChunk();
@@ -1255,6 +1283,13 @@ VkResult WrappedVulkan::vkResetCommandBuffer(VkCommandBuffer commandBuffer,
 
   if(record)
   {
+    if(Vulkan_Debug_VerboseCommandRecording())
+    {
+      RDCLOG(
+          "Reset command buffer %s (baked was %s)", ToStr(record->GetResourceID()).c_str(),
+          ToStr(record->bakedCommands ? record->bakedCommands->GetResourceID() : ResourceId()).c_str());
+    }
+
     // all we need to do is remove the existing baked commands.
     // The application will still need to call begin command buffer itself.
     // this function is essentially a driver hint as it cleans up implicitly

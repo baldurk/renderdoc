@@ -29,6 +29,7 @@
 
 RDOC_CONFIG(bool, Vulkan_HideCommandBoundaries, false,
             "Hides the auto-generated submitted command buffer boundaries.");
+RDOC_EXTERN_CONFIG(bool, Vulkan_Debug_VerboseCommandRecording);
 
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkGetDeviceQueue(SerialiserType &ser, VkDevice device,
@@ -933,6 +934,13 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
         VkResourceRecord *record = GetRecord(pSubmits[s].pCommandBuffers[i]);
 
         UpdateImageStates(record->bakedCommands->cmdInfo->imageStates);
+
+        if(Vulkan_Debug_VerboseCommandRecording())
+        {
+          RDCLOG("vkQueueSubmit() to queue %s, submit %u / cmd %u: %s baked to %s",
+                 ToStr(GetResID(queue)).c_str(), s, i, ToStr(record->GetResourceID()).c_str(),
+                 ToStr(record->bakedCommands->GetResourceID()).c_str());
+        }
 
         if(capframe)
         {
