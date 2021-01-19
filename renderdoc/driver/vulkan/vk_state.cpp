@@ -171,6 +171,9 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
       // state from earlier in the command buffer but there's no pipeline bound yet.
       for(size_t i = 0; i < VkDynamicCount; i++)
         dynamicStates[i] = true;
+
+      if(vk->GetDriverInfo().QualcommLineWidthDynamicStateCrash())
+        dynamicStates[VkDynamicLineWidth] = false;
     }
 
     if(!views.empty() && dynamicStates[VkDynamicViewport])

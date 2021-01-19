@@ -972,9 +972,10 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps)
   }
 #endif
 
-  // not fixed yet
+  // not fixed yet that I know of
   qualcommLeakingUBOOffsets = (m_Vendor == GPUVendor::Qualcomm);
   qualcommDrefNon2DCompileCrash = (m_Vendor == GPUVendor::Qualcomm);
+  qualcommLineWidthCrash = (m_Vendor == GPUVendor::Qualcomm);
 }
 
 FrameRefType GetRefType(VkDescriptorType descType)

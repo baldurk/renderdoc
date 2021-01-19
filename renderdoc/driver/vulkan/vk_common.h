@@ -253,6 +253,12 @@ public:
   // On Qualcomm emitting an image sample operation with DRef and explicit lod will crash on non-2D
   // textures. Since 2D is the common/expected case, we avoid compiling that case entirely.
   bool QualcommDrefNon2DCompileCrash() const { return qualcommDrefNon2DCompileCrash; }
+  // On Qualcomm calling vkCmdSetLineWidth() before binding and dispatching a compute shader will
+  // crash in vkCmdDispatch. This works around the problem by avoiding setting that dynamic state
+  // unless there's a graphics pipeline when doing a partial replay, and it's unlikely the user will
+  // hit the case where it's necessary (doing 'whole pass' partial replay of a subsection of a
+  // command buffer where we need to apply dynamic state from earlier in the command buffer).
+  bool QualcommLineWidthDynamicStateCrash() const { return qualcommLineWidthCrash; }
   // On AMD unfortunately the initial implementation of KHR_buffer_device_address is broken and
   // produces bad results.
   bool AMDBufferDeviceAddressBrokenDriver() const { return amdBDABrokenDriver; }
@@ -267,6 +273,7 @@ private:
   bool amdStorageMSAABrokenDriver = false;
   bool qualcommLeakingUBOOffsets = false;
   bool qualcommDrefNon2DCompileCrash = false;
+  bool qualcommLineWidthCrash = false;
   bool amdBDABrokenDriver = false;
 };
 
