@@ -469,9 +469,10 @@ HRESULT WrappedIDXGISwapChain4::GetBuffer(
     RDCERR("Querying swapchain buffers via D3D10 interface UUIDs is not supported");
     return E_NOINTERFACE;
   }
-  else if(uuid == __uuidof(IDXGISurface))
+  else if(uuid == __uuidof(IDXGISurface) || uuid == __uuidof(IDXGIObject) ||
+          uuid == __uuidof(IUnknown))
   {
-    RDCWARN("Querying swapchain buffer for IDXGISurface. This query is ambiguous.");
+    RDCWARN("Querying swapchain buffer for ambiguous UUID.");
 
     // query as native format so that wrapping works as expected
     uuid = m_pDevice->GetBackbufferUUID();
@@ -484,10 +485,6 @@ HRESULT WrappedIDXGISwapChain4::GetBuffer(
            ToStr(uuid).c_str());
     return E_NOINTERFACE;
   }
-
-  RDCASSERT(uuid == __uuidof(ID3D11Texture2D) || uuid == __uuidof(ID3D11Texture2D1) ||
-            uuid == __uuidof(ID3D11Resource) || uuid == __uuidof(ID3D12Resource) ||
-            uuid == __uuidof(ID3D12Resource1));
 
   HRESULT ret = m_pReal->GetBuffer(Buffer, uuid, ppSurface);
 
@@ -517,6 +514,24 @@ HRESULT WrappedIDXGISwapChain4::GetBuffer(
 
       tex->Release();
       tex = surf;
+    }
+    else if(tex && riid == __uuidof(IDXGIObject))
+    {
+      IDXGIObject *obj = NULL;
+      HRESULT hr = tex->QueryInterface(__uuidof(IDXGIObject), (void **)&obj);
+      RDCASSERTEQUAL(hr, S_OK);
+
+      tex->Release();
+      tex = obj;
+    }
+    else if(tex && riid == __uuidof(IUnknown))
+    {
+      IUnknown *obj = NULL;
+      HRESULT hr = tex->QueryInterface(__uuidof(IUnknown), (void **)&obj);
+      RDCASSERTEQUAL(hr, S_OK);
+
+      tex->Release();
+      tex = obj;
     }
 
     *ppSurface = tex;

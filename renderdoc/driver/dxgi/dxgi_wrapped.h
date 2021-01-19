@@ -72,6 +72,12 @@ public:
       *ppvObject = (IUnknown *)(IDXGIObject *)this;
       return S_OK;
     }
+    else if(riid == __uuidof(IDXGIObject))
+    {
+      AddRef();
+      *ppvObject = (IDXGIObject *)this;
+      return S_OK;
+    }
 
     return WrapQueryInterface(m_pReal, ifaceName, riid, ppvObject);
   }
