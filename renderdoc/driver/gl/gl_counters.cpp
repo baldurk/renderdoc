@@ -566,6 +566,8 @@ rdcarray<CounterResult> GLReplay::FetchCounters(const rdcarray<GPUCounter> &allC
   std::copy_if(allCounters.begin(), allCounters.end(), std::back_inserter(counters),
                [](const GPUCounter &c) { return IsGenericCounter(c); });
 
+  m_pDriver->SetFetchCounters(true);
+
   if(m_pAMDCounters)
   {
     // Filter out the AMD counters
@@ -601,6 +603,8 @@ rdcarray<CounterResult> GLReplay::FetchCounters(const rdcarray<GPUCounter> &allC
     if(!armCounters.empty())
       ret = FetchCountersARM(armCounters);
   }
+
+  m_pDriver->SetFetchCounters(false);
 
   if(counters.empty())
   {
