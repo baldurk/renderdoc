@@ -3094,6 +3094,30 @@ void TextureViewer::OnCaptureClosed()
 
 void TextureViewer::OnEventChanged(uint32_t eventId)
 {
+  bool copy = false, clear = false, compute = false;
+  Following::GetDrawContext(m_Ctx, copy, clear, compute);
+
+  ShaderStage stages[] = {ShaderStage::Vertex, ShaderStage::Hull, ShaderStage::Domain,
+                          ShaderStage::Geometry, ShaderStage::Pixel};
+
+  int count = 5;
+
+  if(compute)
+  {
+    stages[0] = ShaderStage::Compute;
+    count = 1;
+  }
+
+  for(int i = 0; i < count; i++)
+  {
+    ShaderStage stage = stages[i];
+
+    m_ReadWriteResources[(uint32_t)stage] =
+        Following::GetReadWriteResources(m_Ctx, stage, !m_ShowUnused);
+    m_ReadOnlyResources[(uint32_t)stage] =
+        Following::GetReadOnlyResources(m_Ctx, stage, !m_ShowUnused);
+  }
+
   UI_UpdateCachedTexture();
 
   TextureDescription *CurrentTexture = GetCurrentTexture();
@@ -3131,9 +3155,6 @@ void TextureViewer::OnEventChanged(uint32_t eventId)
   ui->outputThumbs->setUpdatesEnabled(false);
   ui->inputThumbs->setUpdatesEnabled(false);
 
-  bool copy = false, clear = false, compute = false;
-  Following::GetDrawContext(m_Ctx, copy, clear, compute);
-
   for(int rt = 0; rt < RTs.count(); rt++)
   {
     ResourcePreview *prev;
@@ -3170,28 +3191,12 @@ void TextureViewer::OnEventChanged(uint32_t eventId)
     InitResourcePreview(prev, Depth, false, follow, QString(), tr("DS"));
   }
 
-  ShaderStage stages[] = {ShaderStage::Vertex, ShaderStage::Hull, ShaderStage::Domain,
-                          ShaderStage::Geometry, ShaderStage::Pixel};
-
-  int count = 5;
-
-  if(compute)
-  {
-    stages[0] = ShaderStage::Compute;
-    count = 1;
-  }
-
   const rdcarray<ShaderResource> empty;
 
   // display resources used for all stages
   for(int i = 0; i < count; i++)
   {
     ShaderStage stage = stages[i];
-
-    m_ReadWriteResources[(uint32_t)stage] =
-        Following::GetReadWriteResources(m_Ctx, stage, !m_ShowUnused);
-    m_ReadOnlyResources[(uint32_t)stage] =
-        Following::GetReadOnlyResources(m_Ctx, stage, !m_ShowUnused);
 
     const ShaderReflection *details = Following::GetReflection(m_Ctx, stage);
     const ShaderBindpointMapping &mapping = Following::GetMapping(m_Ctx, stage);
