@@ -80,6 +80,8 @@ private:
   };
   rdcarray<IntelGlCounter> m_Counters;
 
+  bool m_Paranoid = false;
+
   struct IntelGlQuery
   {
     GLuint queryId = 0;

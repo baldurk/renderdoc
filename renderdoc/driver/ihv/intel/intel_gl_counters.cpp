@@ -52,11 +52,34 @@ rdcarray<GPUCounter> IntelGlCounters::GetPublicCounterIds() const
   for(const IntelGlCounter &c : m_Counters)
     counters.push_back(c.desc.counter);
 
+  if(m_Paranoid)
+    counters.push_back(GPUCounter((int)GPUCounter::FirstIntel + m_Counters.size()));
+
   return counters;
 }
 
 CounterDescription IntelGlCounters::GetCounterDescription(GPUCounter index) const
 {
+  uint32_t idx = GPUCounterToCounterIndex(index);
+  if(idx >= m_Counters.size())
+  {
+    CounterDescription desc;
+
+    desc.counter = index;
+    desc.name = "Counters limited, see description";
+    desc.category = "More counters are available";
+    desc.description =
+        "Not all counters available, run 'sudo sysctl dev.i915.perf_stream_paranoid=0' to enable "
+        "more counters!";
+
+    desc.resultType = CompType::UInt;
+    desc.resultByteWidth = 8;
+    desc.unit = CounterUnit::Absolute;
+    desc.uuid = Uuid(0x8086, 0x1234, 0x5678, 0xABCD);
+
+    return desc;
+  }
+
   return m_Counters[GPUCounterToCounterIndex(index)].desc;
 }
 
@@ -147,6 +170,8 @@ bool IntelGlCounters::Init()
   if(err != eGL_NONE)
     return false;
 
+  m_Paranoid = false;
+
 #if defined(RENDERDOC_PLATFORM_ANDROID) || defined(RENDERDOC_PLATFORM_LINUX)
   rdcstr contents;
   FileIO::ReadAll("/proc/sys/dev/i915/perf_stream_paranoid", contents);
@@ -159,6 +184,7 @@ bool IntelGlCounters::Init()
       RDCWARN(
           "Not all counters available, run "
           "'sudo sysctl dev.i915.perf_stream_paranoid=0' to enable more counters!");
+      m_Paranoid = true;
     }
   }
 #endif
@@ -175,7 +201,10 @@ bool IntelGlCounters::Init()
 
 void IntelGlCounters::EnableCounter(GPUCounter index)
 {
-  const IntelGlCounter &counter = m_Counters[GPUCounterToCounterIndex(index)];
+  uint32_t idx = GPUCounterToCounterIndex(index);
+  if(idx >= m_Counters.size())
+    return;
+  const IntelGlCounter &counter = m_Counters[idx];
 
   for(uint32_t p = 0; p < m_EnabledQueries.size(); p++)
   {
@@ -287,7 +316,14 @@ rdcarray<CounterResult> IntelGlCounters::GetCounterData(uint32_t maxSampleIndex,
   {
     for(const GPUCounter &c : counters)
     {
-      const IntelGlCounter &counter = m_Counters[GPUCounterToCounterIndex(c)];
+      uint32_t idx = GPUCounterToCounterIndex(c);
+      if(idx >= m_Counters.size())
+      {
+        ret.push_back(CounterResult(eventIDs[s], c, uint64_t(0)));
+        continue;
+      }
+
+      const IntelGlCounter &counter = m_Counters[idx];
       switch(counter.desc.resultType)
       {
         case CompType::Float:
