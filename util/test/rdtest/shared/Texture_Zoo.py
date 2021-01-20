@@ -27,8 +27,8 @@ class Texture_Zoo():
         self.textures = {}
         self.filename = ''
         self.textures = {}
-        self.controller: rd.ReplayController
         self.controller = None
+        self.controller: rd.ReplayController
         self.out: rd.ReplayOutput
         self.out = None
         self.pipeType = rd.GraphicsAPI.D3D11
@@ -479,6 +479,7 @@ class Texture_Zoo():
         return picked
 
     def check_capture_with_controller(self, proxy_api: str):
+        self.controller: rd.ReplayController
         any_failed = False
 
         if proxy_api != '':
@@ -488,9 +489,67 @@ class Texture_Zoo():
             rdtest.log.print('Running on direct replay')
             self.proxied = False
 
-        self.out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
+        self.out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100),
+                                                                 rd.ReplayOutputType.Texture)
 
         for d in self.controller.GetDrawcalls():
+
+            if 'slice tests' in d.name:
+                for sub in d.children:
+                    if 'Draw' in sub.name:
+                        self.controller.SetFrameEvent(sub.eventId, True)
+
+                        pipe = self.controller.GetPipelineState()
+
+                        tex_id = pipe.GetReadOnlyResources(rd.ShaderStage.Pixel)[0].resources[0].resourceId
+
+                        for mip in [0, 1]:
+                            for sl in [16, 17, 18]:
+                                expected = [0.0, 0.0, 1.0, 1.0]
+                                if sl == 17:
+                                    expected = [0.0, 1.0, 0.0, 1.0]
+
+                                cur_sub = rd.Subresource(mip, sl)
+                                comp_type = rd.CompType.Typeless
+
+                                # test that pixel picking sees the right things
+                                picked = self.controller.PickPixel(tex_id, 15, 15, cur_sub, comp_type)
+
+                                if not rdtest.value_compare(picked.floatValue, expected):
+                                    raise rdtest.TestFailureException(
+                                        "Expected to pick {} at slice {} mip {}, got {}"
+                                        .format(expected, sl, mip, picked.floatValue))
+
+                                rdtest.log.success('Picked pixel is correct at slice {} mip {}'.format(sl, mip))
+
+                                # Render output texture a three scales - below 100%, 100%, above 100%
+                                tex_display = rd.TextureDisplay()
+                                tex_display.resourceId = tex_id
+                                tex_display.subresource = cur_sub
+                                tex_display.typeCast = comp_type
+
+                                # convert the unorm values to byte values for comparison
+                                expected = [int(a * 255) for a in expected[0:3]]
+
+                                for scale in [0.9, 1.0, 1.1]:
+                                    tex_display.scale = scale
+                                    self.out.SetTextureDisplay(tex_display)
+                                    self.out.Display()
+                                    pixels: bytes = self.out.ReadbackOutputTexture()
+
+                                    actual = [int(a) for a in pixels[0:3]]
+
+                                    if not rdtest.value_compare(actual, expected):
+                                        raise rdtest.TestFailureException(
+                                            "Expected to display {} at slice {} mip {} scale {}%, got {}"
+                                            .format(expected, sl, mip, int(scale * 100), actual))
+
+                                    rdtest.log.success('Displayed pixel is correct at scale {}% in slice {} mip {}'
+                                                       .format(int(scale * 100), sl, mip))
+                    else:
+                        rdtest.log.print('Checking {} for slice display'.format(sub.name))
+
+                continue
 
             # Check each region for the tests within
             if d.flags & rd.DrawFlags.PushMarker:

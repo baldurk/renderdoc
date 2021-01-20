@@ -535,6 +535,22 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
   ubo->RangeMinimum = cfg.rangeMin;
   ubo->InverseRangeSize = 1.0f / (cfg.rangeMax - cfg.rangeMin);
 
+  TextureSamplerMode mode = TextureSamplerMode::Point;
+
+  if(cfg.subresource.mip == 0 && cfg.scale < 1.0f && dsTexMode == eGL_NONE &&
+     resType != RESTYPE_TEXBUFFER && resType != RESTYPE_TEXRECT && !intTexture)
+  {
+    mode = TextureSamplerMode::Linear;
+  }
+  else
+  {
+    if(resType == RESTYPE_TEXRECT || resType == RESTYPE_TEX2DMS ||
+       resType == RESTYPE_TEX2DMSARRAY || resType == RESTYPE_TEXBUFFER)
+      mode = TextureSamplerMode::PointNoMip;
+    else
+      mode = TextureSamplerMode::Point;
+  }
+
   ubo->MipLevel = (int)cfg.subresource.mip;
   if(texDetails.curType != eGL_TEXTURE_3D)
   {
@@ -550,9 +566,17 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
   }
   else
   {
-    uint32_t sliceFace =
-        RDCCLAMP(cfg.subresource.slice, 0U, RDCMAX((uint32_t)texDetails.depth, 1U) - 1);
-    ubo->Slice = (float)sliceFace + 0.001f;
+    float slice =
+        (float)RDCCLAMP(cfg.subresource.slice, 0U, RDCMAX((uint32_t)texDetails.depth, 1U) - 1);
+
+    // when sampling linearly, we need to add half a pixel to ensure we only sample the desired
+    // slice
+    if(mode == TextureSamplerMode::Linear)
+      slice += 0.5f;
+    else
+      slice += 0.001f;
+
+    ubo->Slice = slice;
   }
 
   ubo->OutputDisplayFormat = resType;
@@ -591,22 +615,6 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
   ubo->YUVAChannels = {};
 
   drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
-
-  TextureSamplerMode mode = TextureSamplerMode::Point;
-
-  if(cfg.subresource.mip == 0 && cfg.scale < 1.0f && dsTexMode == eGL_NONE &&
-     resType != RESTYPE_TEXBUFFER && resType != RESTYPE_TEXRECT && !intTexture)
-  {
-    mode = TextureSamplerMode::Linear;
-  }
-  else
-  {
-    if(resType == RESTYPE_TEXRECT || resType == RESTYPE_TEX2DMS ||
-       resType == RESTYPE_TEX2DMSARRAY || resType == RESTYPE_TEXBUFFER)
-      mode = TextureSamplerMode::PointNoMip;
-    else
-      mode = TextureSamplerMode::Point;
-  }
 
   TextureSamplerState prevSampState = SetSamplerParams(target, texname, mode);
 

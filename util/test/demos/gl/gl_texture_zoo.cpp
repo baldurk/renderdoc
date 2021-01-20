@@ -970,6 +970,35 @@ void main()
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, screenWidth, screenHeight);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colattach, 0);
 
+    std::vector<Vec4f> blue;
+    blue.resize(64 * 64 * 64, Vec4f(0.0f, 0.0f, 1.0f, 1.0f));
+
+    std::vector<Vec4f> green;
+    green.resize(64 * 64, Vec4f(0.0f, 1.0f, 0.0f, 1.0f));
+
+    // slice testing textures
+
+    TestCase slice_test_array = {};
+    TestCase slice_test_3d = {};
+    slice_test_array.tex = MakeTexture();
+    slice_test_array.dim = 2;
+    slice_test_array.isArray = true;
+    glBindTexture(GL_TEXTURE_2D_ARRAY, slice_test_array.tex);
+    glTexStorage3D(GL_TEXTURE_2D_ARRAY, 2, GL_RGBA32F, 64, 64, 64);
+    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, 64, 64, 64, GL_RGBA, GL_FLOAT, blue.data());
+    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 1, 0, 0, 0, 32, 32, 32, GL_RGBA, GL_FLOAT, blue.data());
+    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 17, 64, 64, 1, GL_RGBA, GL_FLOAT, green.data());
+    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 1, 0, 0, 17, 32, 32, 1, GL_RGBA, GL_FLOAT, green.data());
+
+    slice_test_3d.tex = MakeTexture();
+    slice_test_3d.dim = 3;
+    glBindTexture(GL_TEXTURE_3D, slice_test_3d.tex);
+    glTexStorage3D(GL_TEXTURE_3D, 2, GL_RGBA32F, 64, 64, 64);
+    glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 0, 64, 64, 64, GL_RGBA, GL_FLOAT, blue.data());
+    glTexSubImage3D(GL_TEXTURE_3D, 1, 0, 0, 0, 32, 32, 32, GL_RGBA, GL_FLOAT, blue.data());
+    glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 17, 64, 64, 1, GL_RGBA, GL_FLOAT, green.data());
+    glTexSubImage3D(GL_TEXTURE_3D, 1, 0, 0, 17, 32, 32, 1, GL_RGBA, GL_FLOAT, green.data());
+
     while(Running())
     {
       glBindFramebuffer(GL_FRAMEBUFFER, fbo);
@@ -981,6 +1010,19 @@ void main()
 
       GLsizei viewX = 0, viewY = screenHeight - 10;
       glEnable(GL_SCISSOR_TEST);
+
+      // dummy draw for each slice test texture
+      pushMarker("slice tests");
+      setMarker("2D array");
+      glBindTextureUnit(0, slice_test_array.tex);
+      glUseProgram(GetProgram(slice_test_array));
+      glDrawArrays(GL_TRIANGLES, 0, 0);
+
+      setMarker("3D");
+      glBindTextureUnit(0, slice_test_3d.tex);
+      glUseProgram(GetProgram(slice_test_3d));
+      glDrawArrays(GL_TRIANGLES, 0, 0);
+      popMarker();
 
       for(size_t i = 0; i < test_textures.size(); i++)
       {

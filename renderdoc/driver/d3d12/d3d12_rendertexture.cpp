@@ -449,14 +449,28 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
 
   pixelData.MipLevel = (float)cfg.subresource.mip;
 
+  DXGI_FORMAT fmt = GetTypedFormat(resourceDesc.Format, cfg.typeCast);
+
   if(resourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
-    pixelData.Slice =
+  {
+    float slice =
         float(RDCCLAMP(cfg.subresource.slice, 0U,
-                       uint32_t((resourceDesc.DepthOrArraySize >> cfg.subresource.mip) - 1)) +
-              0.001f);
+                       uint32_t((resourceDesc.DepthOrArraySize >> cfg.subresource.mip) - 1)));
+
+    // when sampling linearly, we need to add half a pixel to ensure we only sample the desired
+    // slice
+    if(cfg.subresource.mip == 0 && cfg.scale < 1.0f && !IsUIntFormat(fmt) && !IsIntFormat(fmt))
+      slice += 0.5f;
+    else
+      slice += 0.001f;
+
+    pixelData.Slice = slice;
+  }
   else
+  {
     pixelData.Slice = float(
         RDCCLAMP(cfg.subresource.slice, 0U, uint32_t(resourceDesc.DepthOrArraySize - 1)) + 0.001f);
+  }
 
   rdcarray<D3D12_RESOURCE_BARRIER> barriers;
   int resType = 0;
@@ -469,8 +483,6 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
 
   if(cfg.overlay == DebugOverlay::Clipping)
     pixelData.OutputDisplayFormat |= TEXDISPLAY_CLIPPING;
-
-  DXGI_FORMAT fmt = GetTypedFormat(resourceDesc.Format, cfg.typeCast);
 
   if(IsUIntFormat(fmt))
     pixelData.OutputDisplayFormat |= TEXDISPLAY_UINT_TEX;
