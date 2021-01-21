@@ -2490,6 +2490,10 @@ void TextureViewer::InitStageResourcePreviews(ShaderStage stage,
       // show if it's referenced by the shader - regardless of empty or not
       bool show = key.used || copy;
 
+      // omit buffers even if the shader uses them.
+      if(m_Ctx.GetTexture(res.resourceId) == NULL)
+        show = copy;
+
       // it's bound, but not referenced, and we have "show disabled"
       show = show || (m_ShowUnused && res.resourceId != ResourceId());
 
