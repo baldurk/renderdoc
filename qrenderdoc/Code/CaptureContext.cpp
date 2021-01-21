@@ -1591,9 +1591,11 @@ void CaptureContext::RefreshUIStatus(const rdcarray<ICaptureViewer *> &exclude,
       PointerTypeRegistry::CacheShader(refl);
   }
 
-  for(ICaptureViewer *viewer : m_CaptureViewers)
+  rdcarray<ICaptureViewer *> capviewers(m_CaptureViewers);
+
+  for(ICaptureViewer *viewer : capviewers)
   {
-    if(exclude.contains(viewer))
+    if(!viewer || exclude.contains(viewer) || !m_CaptureViewers.contains(viewer))
       continue;
 
     if(updateSelectedEvent)
