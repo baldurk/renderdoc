@@ -3116,10 +3116,19 @@ void TextureViewer::OnEventChanged(uint32_t eventId)
   {
     ShaderStage stage = stages[i];
 
-    m_ReadWriteResources[(uint32_t)stage] =
-        Following::GetReadWriteResources(m_Ctx, stage, !m_ShowUnused);
-    m_ReadOnlyResources[(uint32_t)stage] =
-        Following::GetReadOnlyResources(m_Ctx, stage, !m_ShowUnused);
+    const ShaderBindpointMapping &mapping = Following::GetMapping(m_Ctx, stage);
+
+    if(!mapping.readOnlyResources.empty())
+      m_ReadOnlyResources[(uint32_t)stage] =
+          Following::GetReadOnlyResources(m_Ctx, stage, !m_ShowUnused);
+    else
+      m_ReadOnlyResources[(uint32_t)stage].clear();
+
+    if(!mapping.readWriteResources.empty())
+      m_ReadWriteResources[(uint32_t)stage] =
+          Following::GetReadWriteResources(m_Ctx, stage, !m_ShowUnused);
+    else
+      m_ReadWriteResources[(uint32_t)stage].clear();
   }
 
   UI_UpdateCachedTexture();
