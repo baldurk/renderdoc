@@ -39,11 +39,13 @@ uint64_t GetMemoryUsage()
   char line[512] = {};
   fgets(line, 511, f);
 
-  uint32_t vmPages = 0;
-  int num = sscanf(line, "%u", &vmPages);
+  fclose(f);
 
-  if(num == 1 && vmPages > 0)
-    return vmPages * (uint64_t)sysconf(_SC_PAGESIZE);
+  uint32_t rssPages = 0;
+  int num = sscanf(line, "%*u %u", &rssPages);
+
+  if(num == 1 && rssPages > 0)
+    return rssPages * (uint64_t)sysconf(_SC_PAGESIZE);
 
   return 0;
 }
