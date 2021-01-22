@@ -2194,7 +2194,6 @@ void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
   FrameDescription frame;
   frame.frameNumber = m_AppControlledCapture ? ~0U : m_FrameCounter;
   frame.captureTime = Timing::GetUnixTimestamp();
-  RDCEraseEl(frame.stats);
   m_CapturedFrames.push_back(frame);
 
   GetResourceManager()->ClearReferencedResources();

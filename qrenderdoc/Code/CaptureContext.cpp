@@ -1300,8 +1300,8 @@ void CaptureContext::CloseCapture()
 
   m_CaptureFile = QString();
 
-  memset(&m_APIProps, 0, sizeof(m_APIProps));
-  memset(&m_FrameInfo, 0, sizeof(m_FrameInfo));
+  m_APIProps = APIProperties();
+  m_FrameInfo = FrameDescription();
   m_Buffers.clear();
   m_BufferList.clear();
   m_Textures.clear();

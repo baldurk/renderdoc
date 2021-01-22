@@ -2164,7 +2164,6 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
   FrameDescription frame;
   frame.frameNumber = ~0U;
   frame.captureTime = Timing::GetUnixTimestamp();
-  RDCEraseEl(frame.stats);
   m_CapturedFrames.push_back(frame);
 
   GetDebugMessages();
