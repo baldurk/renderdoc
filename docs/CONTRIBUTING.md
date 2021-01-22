@@ -14,7 +14,7 @@ If you have any queries or concerns in this regard you can get in touch with me 
 
 ## Acceptable use of RenderDoc
 
-RenderDoc is a tool that can be used for debugging your own projects and programs, those to which you have true ownership of. Use and abuse of RenderDoc for illegal or unethical uses including but not limited to capturing commercial products for the purposes of extracting and using copyrighted assets will absolutely not be tolerated. Any questions or issues related to any such use will not be answered and no support will be provided.
+RenderDoc is a tool intended for debugging your own projects and programs, those to which you have true ownership of. Use and abuse of RenderDoc for illegal or unethical uses including but not limited to capturing copyrighted programs that you do not own the rights to will not be tolerated. Any questions or issues related to any such use will not be answered and no support will be provided.
 
 ## Copyright / Contributor License Agreement
 
