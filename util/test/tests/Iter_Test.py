@@ -271,7 +271,7 @@ class Iter_Test(rdtest.TestCase):
 
                     self.controller.FreeTrace(trace)
 
-                    debuggedValue = [debugged.value.f.x, debugged.value.f.y, debugged.value.f.z, debugged.value.f.w]
+                    debuggedValue = list(debugged.value.f32v[0:4])
 
                     # For now, ignore debugged values that are uninitialised. This is an application bug but it causes false reports of problems
                     for idx in range(4):
