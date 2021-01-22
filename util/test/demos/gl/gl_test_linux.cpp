@@ -148,7 +148,10 @@ bool OpenGLGraphicsTest::Init()
   }
 
   if(GLX_EXT_swap_control)
-    glXSwapIntervalEXT(vsync ? 1 : 0);
+  {
+    X11Window *x11win = (X11Window *)mainWindow;
+    glXSwapIntervalEXT(x11win->xlib.display, x11win->xlib.window, vsync ? 1 : 0);
+  }
 
   PostInit();
 

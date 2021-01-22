@@ -32,7 +32,7 @@ uint64_t GetMemoryUsage()
 
   if(f == NULL)
   {
-    RDCWARN("Couldn't open /proc/self/statm");
+    TEST_WARN("Couldn't open /proc/self/statm");
     return 0;
   }
 
