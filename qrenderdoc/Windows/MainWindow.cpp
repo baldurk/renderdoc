@@ -257,9 +257,10 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
 #endif
 
   m_NetWorker = new NetworkWorker;
-  m_NetManagerThread = new LambdaThread([]() {
+  m_NetManagerThread = new LambdaThread([this]() {
     QEventLoop loop;
     loop.exec();
+    delete m_NetWorker;
   });
   m_NetManagerThread->moveObjectToThread(m_NetWorker);
   m_NetManagerThread->start();
