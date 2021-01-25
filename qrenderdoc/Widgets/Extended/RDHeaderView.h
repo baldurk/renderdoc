@@ -27,6 +27,7 @@
 #include <QHeaderView>
 
 class QLabel;
+class QAbstractScrollArea;
 
 class RDHeaderView : public QHeaderView
 {
@@ -62,7 +63,7 @@ public:
 
   void setColumnGroupRole(int role) { m_columnGroupRole = role; }
   int columnGroupRole() const { return m_columnGroupRole; }
-  void setPinnedColumns(int numColumns) { m_pinnedColumns = numColumns; }
+  void setPinnedColumns(int numColumns, QAbstractScrollArea *scroll);
   int pinnedColumns() const { return m_pinnedColumns; }
   void setCustomSizing(bool sizing) { m_customSizing = sizing; }
   bool customSizing() const { return m_customSizing; }

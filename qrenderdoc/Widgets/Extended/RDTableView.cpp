@@ -150,7 +150,7 @@ void RDTableView::setColumnGroupRole(int role)
 void RDTableView::setPinnedColumns(int numColumns)
 {
   m_pinnedColumns = numColumns;
-  m_horizontalHeader->setPinnedColumns(numColumns);
+  m_horizontalHeader->setPinnedColumns(numColumns, this);
 }
 
 void RDTableView::keyPressEvent(QKeyEvent *e)

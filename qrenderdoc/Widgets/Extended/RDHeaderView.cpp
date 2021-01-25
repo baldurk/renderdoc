@@ -23,11 +23,13 @@
  ******************************************************************************/
 
 #include "RDHeaderView.h"
+#include <QAbstractScrollArea>
 #include <QLabel>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPixmap>
 #include <QPointer>
+#include <QScrollBar>
 #include <QTreeView>
 #include "Code/QRDUtils.h"
 
@@ -495,6 +497,13 @@ void RDHeaderView::setColumnStretchHints(const QList<int> &hints)
 
   cacheSectionMinSizes();
   resizeSectionsWithHints();
+}
+
+void RDHeaderView::setPinnedColumns(int numColumns, QAbstractScrollArea *scroll)
+{
+  m_pinnedColumns = numColumns;
+  QObject::connect(scroll->horizontalScrollBar(), &QScrollBar::valueChanged,
+                   [this]() { viewport()->update(); });
 }
 
 void RDHeaderView::setRootIndex(const QModelIndex &index)
