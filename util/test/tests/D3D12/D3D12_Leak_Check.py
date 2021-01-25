@@ -5,7 +5,7 @@ import rdtest
 class D3D12_Leak_Check(rdtest.TestCase):
     demos_test_name = 'D3D12_Leak_Check'
     demos_frame_cap = 50000
-    demos_frame_count = 1
+    demos_frame_count = 10
 
     def check_capture(self):
         memory: int = rd.GetCurrentProcessMemoryUsage()

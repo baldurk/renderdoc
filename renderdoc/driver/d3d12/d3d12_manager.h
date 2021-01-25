@@ -607,6 +607,7 @@ struct D3D12InitialContents
   template <typename Configuration>
   void Free(ResourceManager<Configuration> *rm)
   {
+    SAFE_DELETE_ARRAY(descriptors);
     SAFE_RELEASE(resource);
     FreeAlignedBuffer(srcData);
   }

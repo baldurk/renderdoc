@@ -51,10 +51,21 @@ RD_TEST(D3D12_Leak_Check, D3D12GraphicsTest)
                                    .RTV()
                                    .InitialState(D3D12_RESOURCE_STATE_RENDER_TARGET);
 
+    ID3D12DescriptorHeapPtr descHeap;
+    {
+      D3D12_DESCRIPTOR_HEAP_DESC desc;
+      desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+      desc.NodeMask = 1;
+      desc.NumDescriptors = 1000000;
+      desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+      CHECK_HR(dev->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&descHeap));
+    }
+
     while(Running())
     {
-      // allow a generous 500MB, we're really only after catching big leaks here
-      if(GetMemoryUsage() > 500 * 1000 * 1000)
+      // allow a generous 750MB, we're really only after catching big leaks here and want to be able
+      // to run this test in debug
+      if(GetMemoryUsage() > 750 * 1000 * 1000)
       {
         TEST_ERROR("Memory usage of %llu is too high!", GetMemoryUsage());
         break;
@@ -74,6 +85,8 @@ RD_TEST(D3D12_Leak_Check, D3D12GraphicsTest)
       ClearRenderTargetView(cmd, MakeRTV(rtvtex).CreateCPU(1), {0.2f, 0.2f, 0.2f, 1.0f});
 
       cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+      cmd->SetDescriptorHeaps(1, &descHeap.GetInterfacePtr());
 
       IASetVertexBuffer(cmd, vb, sizeof(DefaultA2V), 0);
       cmd->SetPipelineState(pso);
