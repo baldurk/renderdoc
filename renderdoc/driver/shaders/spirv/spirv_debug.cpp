@@ -43,7 +43,7 @@ static bool ContainsNaNInf(const ShaderVariable &var)
   for(int c = 0; c < count; c++)
   {
 #undef _IMPL
-#define _IMPL(T) RDCISINF(comp<T>(var, c)) || RDCISNAN(comp<T>(var, c))
+#define _IMPL(T) ret |= RDCISINF(comp<T>(var, c)) || RDCISNAN(comp<T>(var, c))
 
     IMPL_FOR_FLOAT_TYPES(_IMPL);
   }
