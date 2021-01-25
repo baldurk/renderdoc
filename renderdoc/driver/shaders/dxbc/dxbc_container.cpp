@@ -1872,7 +1872,8 @@ DXBCContainer::DXBCContainer(bytebuf &ByteCode, const rdcstr &debugInfoPath, Gra
         {
           found = true;
           m_Reflection->UAVs.erase(i);
-          m_DXBCByteCode->SetShaderEXTUAV(api, shaderExtSpace, shaderExtReg);
+          if(m_DXBCByteCode)
+            m_DXBCByteCode->SetShaderEXTUAV(api, shaderExtSpace, shaderExtReg);
           m_ShaderExt = {shaderExtSpace, shaderExtReg};
           break;
         }
