@@ -1520,18 +1520,33 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
 
     bind.arrayIndex = (uint32_t)ptr.value.u64v[ArrayVariableSlot];
 
-    uint32_t matrixStride = (uint32_t)ptr.value.u64v[MajorStrideVariableSlot];
-    bool rowMajor = (matrixStride & 0x80000000U) != 0;
-    matrixStride &= 0xff;
+    uint32_t varMatrixStride = (uint32_t)ptr.value.u64v[MajorStrideVariableSlot];
 
-    auto readCallback = [this, bind, matrixStride, rowMajor](
-        ShaderVariable &var, const Decorations &, const DataType &type, uint64_t offset,
-        const rdcstr &) {
+    Decorations parentDecorations;
+    if((varMatrixStride & 0x80000000U) != 0)
+      parentDecorations.flags = Decorations::RowMajor;
+    else
+      parentDecorations.flags = Decorations::ColMajor;
+
+    varMatrixStride &= 0xff;
+
+    if(varMatrixStride != 0)
+    {
+      parentDecorations.flags =
+          Decorations::Flags(parentDecorations.flags | Decorations::HasMatrixStride);
+      parentDecorations.matrixStride = varMatrixStride;
+    }
+
+    auto readCallback = [this, bind](ShaderVariable &var, const Decorations &dec,
+                                     const DataType &type, uint64_t offset, const rdcstr &) {
 
       // ignore any callbacks we get on the way up for structs/arrays, we don't need it we only read
       // or write at primitive level
       if(!var.members.empty())
         return;
+
+      bool rowMajor = (dec.flags & Decorations::RowMajor) != 0;
+      uint32_t matrixStride = dec.matrixStride;
 
       if(type.type == DataType::MatrixType)
       {
@@ -1588,8 +1603,8 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
       }
     };
 
-    WalkVariable<ShaderVariable, true>(Decorations(), dataTypes[typeId], byteOffset, ret, rdcstr(),
-                                       readCallback);
+    WalkVariable<ShaderVariable, true>(parentDecorations, dataTypes[typeId], byteOffset, ret,
+                                       rdcstr(), readCallback);
 
     ret.name = ptr.name;
     return ret;
