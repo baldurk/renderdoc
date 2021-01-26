@@ -274,6 +274,8 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
         rdcspv::CompilationSettings settings(rdcspv::InputLanguage::OpenGLGLSL,
                                              rdcspv::ShaderStage(ShaderIdx(type)));
 
+        settings.gles = IsGLES;
+
         rdcstr s = rdcspv::Compile(settings, sources, spirvwords);
         if(!spirvwords.empty())
           spirv.Parse(spirvwords);

@@ -82,7 +82,7 @@ rdcstr rdcspv::Compile(const rdcspv::CompilationSettings &settings, const rdcarr
     if(settings.debugInfo)
       flags = EShMessages(flags | EShMsgDebugInfo);
 
-    bool success = shader->parse(GetDefaultResources(), 110, false, flags);
+    bool success = shader->parse(GetDefaultResources(), settings.gles ? 100 : 110, false, flags);
 
     if(!success)
     {
