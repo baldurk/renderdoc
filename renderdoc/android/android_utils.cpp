@@ -412,6 +412,10 @@ struct LogLine
       if(message.back() == '\r')
         message.pop_back();
 
+      // ignore these libc spam messages
+      if(message.contains("Access denied finding property"))
+        return false;
+
       return true;
     }
 
