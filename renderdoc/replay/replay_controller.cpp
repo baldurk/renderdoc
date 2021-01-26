@@ -589,7 +589,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const rdcstr &pa
   // store sample count so we know how many 'slices' is one real slice
   // multisampled textures cannot have mips, subresource layout is same as would be for mips:
   // [slice0 sample0], [slice0 sample1], [slice1 sample0], [slice1 sample1]
-  uint32_t sampleCount = td.msSamp;
+  uint32_t sampleCount = RDCMAX(td.msSamp, 1U);
   bool multisampled = td.msSamp > 1;
 
   if(sd.sample.mapToArray)
