@@ -636,13 +636,17 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
   // get pipeline create info
   if(result.compute)
+  {
     m_pDriver->GetShaderCache()->MakeComputePipelineInfo(computeInfo, state.compute.pipeline);
+  }
   else
+  {
     m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(graphicsInfo, state.graphics.pipeline);
 
-  graphicsInfo.renderPass =
-      creationInfo.m_RenderPass[GetResID(graphicsInfo.renderPass)].loadRPs[graphicsInfo.subpass];
-  graphicsInfo.subpass = 0;
+    graphicsInfo.renderPass =
+        creationInfo.m_RenderPass[GetResID(graphicsInfo.renderPass)].loadRPs[graphicsInfo.subpass];
+    graphicsInfo.subpass = 0;
+  }
 
   if(feedbackStorageSize > m_BindlessFeedback.FeedbackBuffer.sz)
   {
