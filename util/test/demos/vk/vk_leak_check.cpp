@@ -69,8 +69,8 @@ RD_TEST(VK_Leak_Check, VulkanGraphicsTest)
 
     while(Running())
     {
-      // allow a generous 500MB, we're really only after catching big leaks here
-      if(GetMemoryUsage() > 500 * 1000 * 1000)
+      // allow a generous 750MB, we're really only after catching big leaks here
+      if(GetMemoryUsage() > 750 * 1000 * 1000)
       {
         TEST_ERROR("Memory usage of %llu is too high!", GetMemoryUsage());
         break;
