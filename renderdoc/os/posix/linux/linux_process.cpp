@@ -24,7 +24,6 @@
 
 #include <elf.h>
 #include <sys/ptrace.h>
-#include <asm/ptrace.h>
 #include <sys/types.h>
 #include <sys/uio.h>
 #include <sys/user.h>
@@ -38,6 +37,8 @@
 #include "core/core.h"
 #include "core/settings.h"
 #include "os/os_specific.h"
+
+#include <asm/ptrace.h>
 
 RDOC_CONFIG(bool, Linux_PtraceChildProcesses, true,
             "Use ptrace(2) to trace child processes at startup to ensure connection is made as "
