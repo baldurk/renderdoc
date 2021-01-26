@@ -517,26 +517,10 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
     {
       // either set the buffer that's dedicated, or if this is dedicated image memory set NULL
       wholeMemBuf = dedicated->buffer;
-
-      VkDeviceSize bufSize = m_CreationInfo.m_Buffer[GetResID(dedicated->buffer)].size;
-      if(memSize > bufSize)
-      {
-        RDCDEBUG("Truncating memory size %llu to dedicated buffer size %llu for %s", memSize,
-                 bufSize, ToStr(id).c_str());
-        memSize = bufSize;
-      }
     }
     else if(dedicatedNV)
     {
       wholeMemBuf = dedicatedNV->buffer;
-
-      VkDeviceSize bufSize = m_CreationInfo.m_Buffer[GetResID(dedicatedNV->buffer)].size;
-      if(memSize > bufSize)
-      {
-        RDCDEBUG("Truncating memory size %llu to dedicated buffer size %llu for %s", memSize,
-                 bufSize, ToStr(id).c_str());
-        memSize = bufSize;
-      }
     }
     else
     {
@@ -554,6 +538,19 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
       bufid = GetResourceManager()->WrapResource(Unwrap(device), wholeMemBuf);
 
       ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(wholeMemBuf), Unwrap(*pMemory), 0);
+    }
+
+    if((dedicated != NULL || dedicatedNV != NULL) && wholeMemBuf != VK_NULL_HANDLE)
+    {
+      VkDeviceSize bufSize = IsCaptureMode(m_State)
+                                 ? GetRecord(wholeMemBuf)->memSize
+                                 : m_CreationInfo.m_Buffer[GetResID(wholeMemBuf)].size;
+      if(memSize > bufSize)
+      {
+        RDCDEBUG("Truncating memory size %llu to dedicated buffer size %llu for %s", memSize,
+                 bufSize, ToStr(id).c_str());
+        memSize = bufSize;
+      }
     }
 
     if(IsCaptureMode(m_State))
