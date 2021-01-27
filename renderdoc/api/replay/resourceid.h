@@ -60,7 +60,11 @@ struct ResourceId
   ResourceId &operator=(ResourceId &&) = default;
 #endif
 
-  DOCUMENT("A helper function that explicitly creates an empty/invalid/null :class:`ResourceId`.");
+  DOCUMENT(R"(A helper function that explicitly creates an empty/invalid/null :class:`ResourceId`.
+
+:return: an empty/invalid/null :class:`ResourceId`.
+:rtype: ResourceId
+)");
   inline static ResourceId Null() { return ResourceId(); }
   DOCUMENT("Compares two ``ResourceId`` objects for equality.");
   bool operator==(const ResourceId u) const { return id == u.id; }
