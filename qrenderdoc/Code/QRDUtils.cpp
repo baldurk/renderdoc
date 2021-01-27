@@ -401,7 +401,8 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx)
   QString text = var.toString().trimmed();
 
   // do a simple string search first before using regular expressions
-  if(!text.contains(lit("ResourceId::")) && !text.contains(lit("GPUAddress::")))
+  if(!text.contains(lit("ResourceId::")) && !text.contains(lit("GPUAddress::")) &&
+     !text.contains(QLatin1Char('@')))
     return;
 
   // two forms: GPUAddress::012345        - typeless
