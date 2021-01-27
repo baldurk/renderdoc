@@ -324,7 +324,7 @@ void MiniQtHelper::SetWidgetText(QWidget *widget, const rdcstr &text)
     QLabel *label = qobject_cast<QLabel *>(widget);
     if(label)
     {
-      label->setMinimumSize(QSize());
+      label->setMinimumSize(QSize(0, 0));
       label->setMaximumSize(QSize(10000, 10000));
       label->setPixmap(QPixmap());
     }
@@ -333,7 +333,7 @@ void MiniQtHelper::SetWidgetText(QWidget *widget, const rdcstr &text)
     RDLabel *label = qobject_cast<RDLabel *>(widget);
     if(label)
     {
-      label->setMinimumSize(QSize());
+      label->setMinimumSize(QSize(0, 0));
       label->setMaximumSize(QSize(10000, 10000));
       label->setPixmap(QPixmap());
     }
