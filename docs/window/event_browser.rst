@@ -45,7 +45,7 @@ OpenGL can make use of the ``KHR_debug`` extension:
 
   glPopDebugGroupKHR();
 
-Vulkan can use the ``VK_EXT_debug_marker`` extension:
+Vulkan can use the ``VK_EXT_debug_utils`` extension:
 
 .. highlight:: c++
 .. code:: c++
@@ -54,14 +54,14 @@ Vulkan can use the ``VK_EXT_debug_marker`` extension:
 
   VkCommandBuffer cmd = ...;
 
-  VkDebugMarkerMarkerInfoEXT markerInfo = {};
-  markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
-  markerInfo.pMarkerName = "Begin Section";
-  vkCmdDebugMarkerBeginEXT(cmd, &markerInfo);
+  VkDebugUtilsLabelEXT markerInfo = {};
+  markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+  markerInfo.pLabelName = "Begin Section";
+  vkCmdBeginDebugUtilsLabelEXT(cmd, &markerInfo);
 
   // contents of section here
 
-  vkCmdDebugMarkerEndEXT(cmd);
+  vkCmdEndDebugUtilsLabelEXT(cmd);
 
 Selecting available columns
 ---------------------------

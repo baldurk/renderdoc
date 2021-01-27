@@ -45,25 +45,25 @@ In OpenGL this can be done with ``GL_KHR_debug`` - ``glObjectLabel``.
   // apply the name, -1 means NULL terminated
   glObjectLabel(GL_TEXTURE, tex2d, -1, "Example Texture");
 
-In Vulkan you can enable the ``VK_EXT_debug_marker`` extension, which is provided by RenderDoc, and use the ``vkDebugMarkerSetObjectNameEXT`` function.
+In Vulkan you can enable the ``VK_EXT_debug_utils`` extension, which is provided by RenderDoc, and use the ``vkSetDebugUtilsObjectNameEXT`` function.
 
 .. highlight:: c++
 .. code:: c++
 
-  // At creation time, request the VK_EXT_debug_marker extension and
-  // use vkGetInstanceProcAddr to obtain vkDebugMarkerSetObjectNameEXT
+  // At instance creation time, request the VK_EXT_debug_utils extension and
+  // use vkGetInstanceProcAddr to obtain vkSetDebugUtilsObjectNameEXT
 
   // create the image
   VkImage tex2d;
   vkCreateImage(device, &createInfo, NULL, &tex2d);
 
   // set the name
-  VkDebugMarkerObjectNameInfoEXT nameInfo = {};
-  nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_NAME_INFO_EXT;
-  nameInfo.objectType = VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT;
-  nameInfo.object = (uint64_t)tex2d; // this cast may vary by platform/compiler
+  VkDebugUtilsObjectNameInfoEXT nameInfo = {};
+  nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+  nameInfo.objectType = VK_OBJECT_TYPE_IMAGE;
+  nameInfo.objectHandle = (uint64_t)tex2d; // this cast may vary by platform/compiler
   nameInfo.pObjectName = "Off-screen color framebuffer";
-  vkDebugMarkerSetObjectNameEXT(device, &nameInfo);
+  vkSetDebugUtilsObjectNameEXT(device, &nameInfo);
 
 When this texture is bound to the pipeline it will be listed like so:
 
