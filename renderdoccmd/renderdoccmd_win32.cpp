@@ -586,10 +586,8 @@ public:
 
       std::string reportPath = conv(dumpFolder) + "\\" + dumpId + ".zip";
 
-      {
-        rdcstr tmp = conv(reportPath);
-        RENDERDOC_CreateBugReport(conv(conv(wlogpath)), conv(conv(wdump)), tmp);
-      }
+      RENDERDOC_CreateBugReport(rdcstr(conv(wlogpath).c_str()), rdcstr(conv(wdump).c_str()),
+                                rdcstr(reportPath.c_str()));
 
       for(size_t i = 0; i < reportPath.size(); i++)
         if(reportPath[i] == '\\')
