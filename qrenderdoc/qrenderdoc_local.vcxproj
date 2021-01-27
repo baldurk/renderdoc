@@ -1796,6 +1796,26 @@ IF %ERRORLEVEL% NEQ 0 (echo ====================================================
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
     </Content>
+    <Content Include="$(QtBinDir)\libcrypto-1_1.dll" Condition="Exists('$(QtBinDir)\libcrypto-1_1.dll') AND '$(Platform)'=='Win32'">
+      <Link>libcrypto-1_1.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="$(QtBinDir)\libssl-1_1.dll" Condition="Exists('$(QtBinDir)\libssl-1_1.dll') AND '$(Platform)'=='Win32'">
+      <Link>libssl-1_1.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="$(QtBinDir)\libcrypto-1_1-x64.dll" Condition="Exists('$(QtBinDir)\libcrypto-1_1-x64.dll') AND '$(Platform)'=='x64'">
+      <Link>libcrypto-1_1-x64.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="$(QtBinDir)\libssl-1_1-x64.dll" Condition="Exists('$(QtBinDir)\libssl-1_1-x64.dll') AND '$(Platform)'=='x64'">
+      <Link>libssl-1_1-x64.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
     <Content Include="$(QtBinDir)\libeay32.dll" Condition="Exists('$(QtBinDir)\libeay32.dll')">
       <Link>libeay32.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
