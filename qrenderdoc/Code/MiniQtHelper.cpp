@@ -42,6 +42,7 @@
 #include "Widgets/Extended/RDLineEdit.h"
 #include "Widgets/Extended/RDTextEdit.h"
 #include "Widgets/Extended/RDToolButton.h"
+#include "toolwindowmanager/ToolWindowManager.h"
 
 MiniQtHelper::MiniQtHelper(ICaptureContext &ctx) : m_Ctx(ctx)
 {
@@ -96,6 +97,12 @@ QWidget *MiniQtHelper::CreateToplevelWidget(const rdcstr &windowTitle, WidgetCal
                         closed(&m_Ctx, ret, rdcstr());
                       }));
   return ret;
+}
+
+void MiniQtHelper::CloseToplevelWidget(QWidget *widget)
+{
+  if(widget)
+    ToolWindowManager::closeToolWindow(widget);
 }
 
 void MiniQtHelper::SetWidgetName(QWidget *widget, const rdcstr &name)

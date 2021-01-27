@@ -99,6 +99,10 @@ struct MiniQtInvoker : ObjectForwarder<IMiniQtHelper>
   {
     return InvokeRetFunction<QWidget *>(&IMiniQtHelper::CreateToplevelWidget, windowTitle, closed);
   }
+  void CloseToplevelWidget(QWidget *widget)
+  {
+    InvokeVoidFunction(&IMiniQtHelper::CloseToplevelWidget, widget);
+  }
 
   // widget hierarchy
 

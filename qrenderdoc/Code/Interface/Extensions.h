@@ -381,6 +381,15 @@ added in a vertical layout.
 )");
   virtual QWidget *CreateToplevelWidget(const rdcstr &windowTitle, WidgetCallback closed) = 0;
 
+  DOCUMENT(R"(Closes a top-level widget as if the user had clicked to close.
+
+This function is undefined if used on a non top-level widget. It will invoke the closed widget
+callback.
+
+:param QWidget widget: The top-level widget to close.
+)");
+  virtual void CloseToplevelWidget(QWidget *widget) = 0;
+
   // widget hierarchy
 
   DOCUMENT(R"(Set the internal name of a widget. This is not displayed anywhere but can be used by
