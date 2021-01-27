@@ -15,6 +15,7 @@ To install on windows run the appropriate installer for your OS ([64-bit](https:
 * **Contact**: [baldurk@baldurk.org](mailto:baldurk@baldurk.org), [#renderdoc on freenode IRC](https://kiwiirc.com/client/irc.freenode.net/#renderdoc), [Discord server](https://discord.gg/ahq6yRB)
 * **Code of Conduct**: [Contributor Covenant](docs/CODE_OF_CONDUCT.md)
 * **Information for contributors**: [All contribution information](docs/CONTRIBUTING.md), [Compilation instructions](docs/CONTRIBUTING/Compiling.md), [Roadmap](https://github.com/baldurk/renderdoc/wiki/Roadmap)
+* **Community extensions**: [Extensions repository](https://github.com/baldurk/renderdoc-contrib)
 
 Screenshots
 --------------

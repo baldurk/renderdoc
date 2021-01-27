@@ -3,6 +3,8 @@ How do I write a python extension?
 
 RenderDoc supports python extensions using the :doc:`existing python API <../python_api/index>`. These extensions can be configured to be persistent and load whenever the RenderDoc UI does, allowing users to extend the program with custom functionality.
 
+Example extensions can be found at the `community contributed repository <https://github.com/baldurk/renderdoc-contrib>`_.
+
 Creating extensions
 -------------------
 
