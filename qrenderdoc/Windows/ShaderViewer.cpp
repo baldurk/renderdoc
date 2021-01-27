@@ -4095,12 +4095,20 @@ layout(binding = 0, std140) uniform RENDERDOC_Uniforms
 {
     uvec4 TexDim;
     uint SelectedMip;
-    int TextureType;
+    int TextureType; // 1 = 1D, 2 = 2D, 3 = 3D, 4 = 2DMS
     uint SelectedSliceFace;
     int SelectedSample;
     uvec4 YUVDownsampleRate;
     uvec4 YUVAChannels;
 } RENDERDOC;
+
+#define RENDERDOC_TexDim RENDERDOC.TexDim
+#define RENDERDOC_SelectedMip RENDERDOC.SelectedMip
+#define RENDERDOC_TextureType RENDERDOC.TextureType
+#define RENDERDOC_SelectedSliceFace RENDERDOC.SelectedSliceFace
+#define RENDERDOC_SelectedSample RENDERDOC.SelectedSample
+#define RENDERDOC_YUVDownsampleRate RENDERDOC.YUVDownsampleRate
+#define RENDERDOC_YUVAChannels RENDERDOC.YUVAChannels
 
 )");
   }
@@ -4111,7 +4119,7 @@ cbuffer RENDERDOC_Constants : register(b0)
 {
     uint4 RENDERDOC_TexDim;
     uint RENDERDOC_SelectedMip;
-    int RENDERDOC_TextureType;
+    int RENDERDOC_TextureType; // 1 = 1D, 2 = 2D, 3 = 3D, 4 = 2DMS
     uint RENDERDOC_SelectedSliceFace;
     int RENDERDOC_SelectedSample;
     uint4 RENDERDOC_YUVDownsampleRate;
@@ -4285,7 +4293,7 @@ void ShaderViewer::snippet_selectedType()
   {
     text = lit(R"(
 // 1 = 1D, 2 = 2D, 3 = 3D, 4 = Depth, 5 = Depth + Stencil
-// 6 = Depth (MS), 7 = Depth + Stencil (MS)
+// 6 = Depth (MS), 7 = Depth + Stencil (MS), 9 = 2DMS
 uint RENDERDOC_TextureType;
 
 )");
@@ -4295,7 +4303,7 @@ uint RENDERDOC_TextureType;
     text = lit(R"(
 // 1 = 1D, 2 = 2D, 3 = 3D, 4 = Cube
 // 5 = 1DArray, 6 = 2DArray, 7 = CubeArray
-// 8 = Rect, 9 = Buffer, 10 = 2DMS
+// 8 = Rect, 9 = Buffer, 10 = 2DMS, 11 = 2DMSArray
 uniform uint RENDERDOC_TextureType;
 
 )");
@@ -4354,13 +4362,13 @@ Texture3D<float4> texDisplayTex3D : register(t8);
 Texture2DMSArray<float4> texDisplayTex2DMSArray : register(t9);
 Texture2DArray<float4> texDisplayYUVArray : register(t10);
 
-// Unsigned int samplers
+// Unsigned int
 Texture1DArray<uint4> texDisplayUIntTex1DArray : register(t11);
 Texture2DArray<uint4> texDisplayUIntTex2DArray : register(t12);
 Texture3D<uint4> texDisplayUIntTex3D : register(t13);
 Texture2DMSArray<uint4> texDisplayUIntTex2DMSArray : register(t14);
 
-// Int samplers
+// Int
 Texture1DArray<int4> texDisplayIntTex1DArray : register(t16);
 Texture2DArray<int4> texDisplayIntTex2DArray : register(t17);
 Texture3D<int4> texDisplayIntTex3D : register(t18);
@@ -4382,13 +4390,13 @@ Texture2DMSArray<uint2> texDisplayTexStencilMSArray : register(t7);
 Texture2DMSArray<float4> texDisplayTex2DMSArray : register(t9);
 Texture2DArray<float4> texDisplayYUVArray : register(t10);
 
-// Unsigned int samplers
+// Unsigned int
 Texture1DArray<uint4> texDisplayUIntTex1DArray : register(t11);
 Texture2DArray<uint4> texDisplayUIntTex2DArray : register(t12);
 Texture3D<uint4> texDisplayUIntTex3D : register(t13);
 Texture2DMSArray<uint4> texDisplayUIntTex2DMSArray : register(t19);
 
-// Int samplers
+// Int
 Texture1DArray<int4> texDisplayIntTex1DArray : register(t21);
 Texture2DArray<int4> texDisplayIntTex2DArray : register(t22);
 Texture3D<int4> texDisplayIntTex3D : register(t23);
@@ -4439,6 +4447,7 @@ layout (binding = 6) uniform usampler2DArray texUInt2DArray;
 layout (binding = 8) uniform usampler2DRect texUInt2DRect;
 layout (binding = 9) uniform usamplerBuffer texUIntBuffer;
 layout (binding = 10) uniform usampler2DMS texUInt2DMS;
+layout (binding = 11) uniform usampler2DMSArray texUInt2DMSArray;
 
 // Int samplers
 layout (binding = 1) uniform isampler1D texSInt1D;
@@ -4451,6 +4460,7 @@ layout (binding = 6) uniform isampler2DArray texSInt2DArray;
 layout (binding = 8) uniform isampler2DRect texSInt2DRect;
 layout (binding = 9) uniform isamplerBuffer texSIntBuffer;
 layout (binding = 10) uniform isampler2DMS texSInt2DMS;
+layout (binding = 11) uniform isampler2DMSArray texSInt2DMSArray;
 
 // Floating point samplers
 layout (binding = 1) uniform sampler1D tex1D;
@@ -4463,6 +4473,7 @@ layout (binding = 7) uniform samplerCubeArray texCubeArray;
 layout (binding = 8) uniform sampler2DRect tex2DRect;
 layout (binding = 9) uniform samplerBuffer texBuffer;
 layout (binding = 10) uniform sampler2DMS tex2DMS;
+layout (binding = 11) uniform sampler2DMSArray tex2DMSArray;
 // End Textures
 )"));
     }
