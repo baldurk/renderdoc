@@ -970,6 +970,8 @@ DXBC::Reflection *Program::GetReflection()
           var.type.descriptor.varClass = DXBC::CLASS_SCALAR;
           var.type.descriptor.varType = VarType::UInt;
 
+          uint32_t remainingBytes = var.type.descriptor.bytesize * 16;
+
           bind.variables.push_back(var);
 
           // add any remaining bytes if the struct isn't a multiple of float4 size
@@ -977,8 +979,7 @@ DXBC::Reflection *Program::GetReflection()
           var.type.descriptor.bytesize = var.type.descriptor.elements = 1;
           var.type.descriptor.varType = VarType::UByte;
 
-          for(uint32_t remainingBytes = var.type.descriptor.bytesize * 16;
-              remainingBytes < bind.descriptor.byteSize; remainingBytes++)
+          for(; remainingBytes < bind.descriptor.byteSize; remainingBytes++)
           {
             bind.variables.push_back(var);
           }
