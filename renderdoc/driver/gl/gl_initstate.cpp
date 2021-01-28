@@ -1573,6 +1573,14 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
             targets[0] = eGL_TEXTURE_2D_ARRAY;
           }
         }
+        else if(IsStructuredExporting(m_State))
+        {
+          if(TextureState.samples > 1)
+          {
+            copySlices = RDCMAX(1U, TextureState.depth) * TextureState.samples;
+            texDim = 3;
+          }
+        }
         else if(ser.IsWriting())
         {
           // on writing, bind the prepared texture with initial contents to grab
