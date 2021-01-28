@@ -3386,6 +3386,8 @@ ID3D12GraphicsCommandListX *WrappedID3D12Device::GetInitialStateList()
     }
   }
 
+  initStateCurBatch++;
+
   return initStateCurList;
 }
 
