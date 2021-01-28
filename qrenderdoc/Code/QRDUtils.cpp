@@ -476,11 +476,20 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx)
       {
         eid = match.captured(4).toUInt();
 
+        int end = match.capturedEnd(4);
+
+        // skip @2x since it appears in high-DPI icons
+        if(eid == 2 && end < text.length() && text[end] == QLatin1Char('x'))
+        {
+          match = resRE.match(text, end);
+          continue;
+        }
+
         // push any text that preceeded the EID.
         if(match.capturedStart(3) > 0)
           linkedText->fragments.push_back(text.left(match.capturedStart(3)));
 
-        text.remove(0, match.capturedEnd(4));
+        text.remove(0, end);
 
         linkedText->fragments.push_back(eid);
       }
@@ -489,7 +498,14 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx)
     }
 
     if(!text.isEmpty())
+    {
+      // if we didn't get any fragments that means we only encountered false positive matches e.g.
+      // @2x. Return the normal text as non-richresourcetext
+      if(linkedText->fragments.empty())
+        return;
+
       linkedText->fragments.push_back(text);
+    }
 
     linkedText->doc.setHtml(text);
 
