@@ -25,8 +25,8 @@ class D3D11_AMD_Shader_Extensions(rdtest.TestCase):
                                                           rd.CompType.UNorm)
         pixels.append(picked.floatValue[0:4])
 
-        if (not [1.0, 0.0, 0.0, 1.0] in pixels) or (not [1.0, 0.0, 0.0, 1.0] in pixels) or (
-        not [1.0, 0.0, 0.0, 1.0] in pixels):
+        if (not (1.0, 0.0, 0.0, 1.0) in pixels) or (not (1.0, 0.0, 0.0, 1.0) in pixels) or (
+        not (1.0, 0.0, 0.0, 1.0) in pixels):
             raise rdtest.TestFailureException("Expected red, green and blue in picked pixels. Got {}".format(pixels))
 
         rdtest.log.success("Picked barycentric values are as expected")
