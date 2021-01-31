@@ -848,6 +848,10 @@ public:
   int initStateCurBatch;
   ID3D12GraphicsCommandListX *initStateCurList;
 
+  // ExecuteLists may issue this many command lists together. If more than this are
+  // pending at once then they will be split up and issued in multiple calls.
+  static const UINT executeListsMaxSize = 50;
+
   ID3D12GraphicsCommandListX *GetNewList();
   ID3D12GraphicsCommandListX *GetInitialStateList();
   void CloseInitialStateList();

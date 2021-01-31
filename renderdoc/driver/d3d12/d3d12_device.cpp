@@ -3431,7 +3431,11 @@ void WrappedID3D12Device::ExecuteLists(WrappedID3D12CommandQueue *queue, bool In
   if(queue == NULL)
     queue = GetQueue();
 
-  queue->ExecuteCommandListsInternal((UINT)cmds.size(), &cmds[0], InFrameCaptureBoundary, false);
+  for(size_t i = 0; i < cmds.size(); i += executeListsMaxSize)
+  {
+    UINT cmdCount = RDCMIN(executeListsMaxSize, (UINT)(cmds.size() - i));
+    queue->ExecuteCommandListsInternal(cmdCount, &cmds[i], InFrameCaptureBoundary, false);
+  }
 
   m_InternalCmds.submittedcmds.append(m_InternalCmds.pendingcmds);
   m_InternalCmds.pendingcmds.clear();
