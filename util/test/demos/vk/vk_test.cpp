@@ -650,6 +650,8 @@ bool VulkanGraphicsTest::Init()
   allocInfo.device = device;
   allocInfo.frameInUseCount = 4;
   allocInfo.pVulkanFunctions = &funcs;
+  if(hasExt(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME) && vmaDedicated)
+    allocInfo.flags |= VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT;
 
   vmaCreateAllocator(&allocInfo, &allocator);
 
@@ -1417,7 +1419,8 @@ void VulkanGraphicsTest::getPhysProperties2(void *nextStruct)
 
 bool VulkanGraphicsTest::hasExt(const char *ext)
 {
-  return std::find(devExts.begin(), devExts.end(), ext) != devExts.end();
+  return std::find_if(devExts.begin(), devExts.end(),
+                      [ext](const char *a) { return !strcmp(a, ext); }) != devExts.end();
 }
 
 template <>

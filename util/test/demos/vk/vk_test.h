@@ -287,6 +287,7 @@ struct VulkanGraphicsTest : public GraphicsTest
   VulkanWindow *mainWindow = NULL;
 
   // VMA
+  bool vmaDedicated = false;
   VmaAllocator allocator = VK_NULL_HANDLE;
 
 private:

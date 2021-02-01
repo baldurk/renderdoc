@@ -275,6 +275,7 @@
     <ClCompile Include="test_common.cpp" />
     <ClCompile Include="texture_zoo.cpp" />
     <ClCompile Include="vk\vk_custom_border_color.cpp" />
+    <ClCompile Include="vk\vk_dedicated_allocation.cpp" />
     <ClCompile Include="vk\vk_descriptor_reuse.cpp" />
     <ClCompile Include="vk\vk_descriptor_variable_count.cpp" />
     <ClCompile Include="vk\vk_discard_zoo.cpp" />

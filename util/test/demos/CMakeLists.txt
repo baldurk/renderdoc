@@ -11,6 +11,7 @@ set(VULKAN_SRC
         vk/vk_buffer_truncation.cpp
         vk/vk_cbuffer_zoo.cpp
         vk/vk_custom_border_color.cpp
+        vk/vk_dedicated_allocation.cpp
         vk/vk_descriptor_index.cpp
         vk/vk_descriptor_reuse.cpp
         vk/vk_descriptor_variable_count.cpp
