@@ -51,6 +51,16 @@ layout(binding = 0) uniform &texdecl intex;
 
 layout(location = 0, index = 0) out vec4 Color;
 
+vec4 cubeFetch(samplerCube t, int i)
+{
+  return textureLod(t, vec3(1,0,0), 0.0);
+}
+
+vec4 cubeFetch(samplerCubeArray t, int i)
+{
+  return textureLod(t, vec4(1,0,0,0), 0.0);
+}
+
 void main()
 {
 	Color = vec4(texelFetch(intex, &params));
@@ -254,6 +264,7 @@ void main()
     bool isArray;
     bool isMSAA;
     bool isRect;
+    bool isCube;
     bool canRender;
     bool canDepth;
     bool canStencil;
@@ -267,6 +278,8 @@ void main()
 
     if(test.isRect)
       name = "Texture Rect";
+    if(test.isCube)
+      name = "Texture Cube";
 
     if(test.isMSAA)
       name += " MSAA";
@@ -285,6 +298,7 @@ void main()
     key |= test.isMSAA ? 0x80000 : 0;
     key |= test.isArray ? 0x100000 : 0;
     key |= test.isRect ? 0x200000 : 0;
+    key |= test.isCube ? 0x400000 : 0;
 
     GLuint ret = programs[key];
     if(!ret)
@@ -297,6 +311,13 @@ void main()
       if(test.dim < 3 && test.isArray)
         texType += "Array";
 
+      if(test.isCube)
+      {
+        texType = "samplerCube";
+        if(test.isArray)
+          texType += "Array";
+      }
+
       std::string typemod = "";
 
       if(test.fmt.cfg.data == DataType::UInt)
@@ -308,14 +329,27 @@ void main()
 
       uint32_t dim = test.dim + (test.isArray ? 1 : 0);
 
-      if(test.isRect)
+      if(test.isCube)
+      {
+        src.replace(src.find("&params"), 7, "int(0)");
+        src.replace(src.find("texelFetch"), 10, "cubeFetch");
+      }
+      else if(test.isRect)
+      {
         src.replace(src.find("&params"), 7, "ivec2(0)");
+      }
       else if(dim == 1)
+      {
         src.replace(src.find("&params"), 7, "int(0), 0");
+      }
       else if(dim == 2)
+      {
         src.replace(src.find("&params"), 7, "ivec2(0), 0");
+      }
       else if(dim == 3)
+      {
         src.replace(src.find("&params"), 7, "ivec3(0), 0");
+      }
 
       src.replace(src.find("&texdecl"), 8, typemod + texType);
 
@@ -353,7 +387,12 @@ void main()
     // Some GL drivers report that block compressed textures are supported for MSAA and color
     // rendering. Save them from themselves. Similarly they report support for 1D and 3D but then it
     // doesn't work properly
-    if(isCompressed && (test.dim == 1 || test.dim == 3 || test.isRect || test.isMSAA))
+    if(isCompressed && (test.dim == 1 || test.dim == 3 || test.isRect || test.isCube || test.isMSAA))
+      return;
+
+    // don't create integer cubemaps, or non-regular format cubemaps
+    if(test.isCube && (test.fmt.cfg.type != TextureType::Regular ||
+                       test.fmt.cfg.data == DataType::SInt || test.fmt.cfg.data == DataType::UInt))
       return;
 
     // if the format is MSAA check we have our sample count
@@ -395,6 +434,16 @@ void main()
     else if(test.isRect)
     {
       glTexStorage2D(test.target, 1, test.fmt.internalFormat, texWidth, texHeight);
+
+      dimensions.z = 1;
+    }
+    else if(test.isCube)
+    {
+      if(test.isArray)
+        glTexStorage3D(GL_TEXTURE_CUBE_MAP_ARRAY, texMips, test.fmt.internalFormat, texWidth,
+                       texHeight, 12);
+      else
+        glTexStorage2D(GL_TEXTURE_CUBE_MAP, texMips, test.fmt.internalFormat, texWidth, texHeight);
 
       dimensions.z = 1;
     }
@@ -531,6 +580,9 @@ void main()
     GLint slices = test.isArray ? texSlices : 1;
     GLint mips = test.isMSAA || test.isRect ? 1 : texMips;
 
+    if(test.isCube)
+      slices = test.isArray ? 12 : 6;
+
     for(GLint s = 0; s < slices; s++)
     {
       for(GLint m = 0; m < mips; m++)
@@ -593,6 +645,25 @@ void main()
             glTexSubImage2D(test.target, 0, 0, 0, mipWidth, mipHeight, format, type,
                             data.byteData.data());
           }
+          else if(test.isCube)
+          {
+            if(test.isArray)
+            {
+              glTexSubImage3D(test.target, m, 0, 0, s, mipWidth, mipHeight, 1, format, type,
+                              data.byteData.data());
+            }
+            else
+            {
+              GLenum faces[] = {
+                  GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+                  GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+                  GL_TEXTURE_CUBE_MAP_POSITIVE_Z, GL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
+              };
+
+              glTexSubImage2D(faces[s], m, 0, 0, mipWidth, mipHeight, format, type,
+                              data.byteData.data());
+            }
+          }
           else if(test.dim == 2)
           {
             if(test.isArray)
@@ -637,6 +708,12 @@ void main()
     }
 
     test_textures.push_back({f, GL_TEXTURE_RECTANGLE, 2, false, false, true});
+
+    if(!depthMode)
+    {
+      test_textures.push_back({f, GL_TEXTURE_CUBE_MAP, 2, false, false, false, true});
+      test_textures.push_back({f, GL_TEXTURE_CUBE_MAP_ARRAY, 2, true, false, false, true});
+    }
   }
 
   int main()

@@ -381,8 +381,8 @@ class Texture_Zoo():
         # The diagonal inverts the colors
         inverted = (offs_x != y)
 
-        # second slice adds a coarse checkerboard pattern of inversion
-        if tex.arraysize > 1 and sl == 1 and ((int(x / 2) % 2) != (int(y / 2) % 2)):
+        # every other slice adds a coarse checkerboard pattern of inversion
+        if tex.arraysize > 1 and ((sl % 2) == 1) and ((int(x / 2) % 2) != (int(y / 2) % 2)):
             inverted = not inverted
 
         if comp_type == rd.CompType.UInt or comp_type == rd.CompType.SInt:

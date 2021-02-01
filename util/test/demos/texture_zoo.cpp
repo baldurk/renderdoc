@@ -50,7 +50,7 @@ void MakePixel(byte *data, const TexConfig &cfg, uint32_t x, uint32_t y, uint32_
         idx = 3 - idx;
 
       // subsequent slices add a coarse checkerboard pattern of inverted colors
-      if((slice % 3 > 0) && (((x / 2) % 2) != ((y / 2) % 2)))
+      if((slice % 2 > 0) && (((x / 2) % 2) != ((y / 2) % 2)))
         idx = 3 - idx;
 
       float f = vals[idx];
