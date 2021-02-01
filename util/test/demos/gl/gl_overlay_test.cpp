@@ -232,6 +232,12 @@ void main()
 
     glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, subtex, 3, 2);
 
+    // keep a trash buffer bound to pixel pack/unpack
+    GLuint trash = MakeBuffer();
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, trash);
+    glBufferStorage(GL_PIXEL_UNPACK_BUFFER, 1024, 0, 0);
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, trash);
+
     while(Running())
     {
       glBindVertexArray(vao);
