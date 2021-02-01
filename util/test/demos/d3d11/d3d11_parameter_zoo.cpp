@@ -89,6 +89,11 @@ RD_TEST(D3D11_Parameter_Zoo, D3D11GraphicsTest)
       ctx->PSSetShader(ps, NULL, 0);
 
       RSSetViewport({0.0f, 0.0f, (float)screenWidth, (float)screenHeight, 0.0f, 1.0f});
+      RSSetScissor({0, 0, 1, 1});
+
+      D3D11_RASTERIZER_DESC raster = GetRasterState();
+      raster.ScissorEnable = FALSE;
+      SetRasterState(raster);
 
       ctx->OMSetRenderTargets(1, &bbRTV.GetInterfacePtr(), NULL);
 
