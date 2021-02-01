@@ -657,6 +657,19 @@ float4 main(v2f IN) : SV_Target0
     unbounduav2[int2(0, 1)] = 1.234f;
     return unbounduav2[int2(0, 1)].xxxx;
   }
+  if(IN.tri == 78)
+  {
+    // use this to ensure the compiler doesn't know we're using fixed locations
+    uint z = intval - IN.tri - 7;
+    uint z2 = uint(zero);
+
+    // read first. This should be zero
+    float read_val = asfloat(byterwtest.Load(z2+100).x);
+
+    byterwtest.Store(z+100, asuint(1.2345f));
+
+    return read_val;
+  }
 
   return float4(0.4f, 0.4f, 0.4f, 0.4f);
 }
