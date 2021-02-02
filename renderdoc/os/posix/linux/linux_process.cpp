@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include <elf.h>
+#include <stdlib.h>
 #include <sys/ptrace.h>
 #include <sys/types.h>
 #include <sys/uio.h>
@@ -37,6 +38,7 @@
 #include "core/core.h"
 #include "core/settings.h"
 #include "os/os_specific.h"
+#include "strings/string_utils.h"
 
 #include <asm/ptrace.h>
 
@@ -620,6 +622,7 @@ void ResumeProcess(pid_t childPid, uint32_t delaySeconds)
 // call, so instead we just cache it at startup. This fails in the case
 // of attaching to processes
 bool debuggerPresent = false;
+bool debuggerCached = false;
 
 void CacheDebuggerPresent()
 {
@@ -645,7 +648,59 @@ void CacheDebuggerPresent()
     // found TracerPid line
     if(num == 1)
     {
-      debuggerPresent = (tracerpid != 0);
+      // if no tracer is connected then that's fine, we cache no debugger being present. One could
+      // attach later but that's the problem with caching, worst case we lose break-on-error.
+      if(tracerpid == 0)
+      {
+        debuggerPresent = false;
+        debuggerCached = true;
+      }
+      else
+      {
+        // this is REALLY ugly. There's no better way to communicate when we have a real debugger
+        // attached and when it's a parent renderdoc process injecting hooks. So we look up the
+        // parent PID and see if it has any executable pages mapped from our library (a real
+        // debugger could have read-only pages, sadly).
+        rdcstr tracermaps;
+        if(FileIO::ReadAll(StringFormat::Fmt("/proc/%d/maps", tracerpid).c_str(), tracermaps))
+        {
+          // could be slightly more efficient than this, but we don't expect to do this more than a
+          // couple of times on process startup and the file should only be a few kb so clarity wins
+          // out.
+
+          rdcarray<rdcstr> lines;
+          split(tracermaps, lines, '\n');
+
+          // remove any lines that don't reference librenderdoc.so
+          lines.removeIf([](const rdcstr &l) { return !l.contains("/librenderdoc.so"); });
+          merge(lines, tracermaps, '\n');
+
+          if(tracermaps.contains("r-x"))
+          {
+            // if the tracer has librenderdoc.so loaded for execute assume that we're detecting
+            // RenderDoc's ptrace usage. Don't treat it as a debugger but don't cache this result,
+            // we'll check again soon and hopefully get a better result
+            debuggerPresent = false;
+            debuggerCached = false;
+          }
+          else
+          {
+            // tracer is present and doesn't have librenderdoc.so loaded (or only has it loaded
+            // read-only), it must be a real debugger.
+            debuggerPresent = true;
+            debuggerCached = true;
+          }
+        }
+        else
+        {
+          // can't read the tracer maps entry? Maybe a privilege issue, assume this isn't RenderDoc
+          // and cache it as a debugger
+          RDCWARN("Couldn't read /proc/%d/maps entry for tracer, assuming valid debugger", tracerpid);
+          debuggerPresent = true;
+          debuggerCached = true;
+        }
+      }
+
       break;
     }
   }
@@ -655,6 +710,10 @@ void CacheDebuggerPresent()
 
 bool OSUtility::DebuggerPresent()
 {
+  // recache the debugger's presence if it's not cached, e.g. if the previous debugger looked like
+  // it was ourselves doing a ptrace over launch
+  if(!debuggerCached)
+    CacheDebuggerPresent();
   return debuggerPresent;
 }
 
