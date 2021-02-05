@@ -625,10 +625,10 @@ void TimelineBar::paintEvent(QPaintEvent *e)
     qreal realMiddle = currentRect.center().x();
 
     // clamp the position from the left or right side
-    if(currentRect.left() < eidAxisRect.left())
-      currentRect.moveLeft(eidAxisRect.left());
-    else if(currentRect.right() > eidAxisRect.right())
-      currentRect.moveRight(eidAxisRect.right());
+    if(currentRect.left() < m_eidAxisRect.left())
+      currentRect.moveLeft(m_eidAxisRect.left());
+    else if(currentRect.right() > m_eidAxisRect.right())
+      currentRect.moveRight(m_eidAxisRect.right());
 
     // re-add the top margin so the lines match up with the border around the EID axis
     QRectF currentBackRect = currentRect.marginsAdded(QMargins(0, margin, 0, 0));
@@ -647,7 +647,7 @@ void TimelineBar::paintEvent(QPaintEvent *e)
 
     // draw a line from the bottom of the shadow downwards
     QPointF currentTop = currentRect.center();
-    currentTop.setX(int(qBound(eidAxisRect.left(), realMiddle, eidAxisRect.right() - 2.0)) + 0.5);
+    currentTop.setX(int(qBound(m_eidAxisRect.left(), realMiddle, m_eidAxisRect.right() - 2.0)) + 0.5);
     currentTop.setY(currentRect.bottom());
 
     QPointF currentBottom = currentTop;
