@@ -27,6 +27,7 @@
 #include <QPainter>
 #include <QPainterPath>
 #include <QScrollBar>
+#include <QStylePainter>
 #include <QWheelEvent>
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
@@ -457,7 +458,7 @@ void TimelineBar::leaveEvent(QEvent *e)
 
 void TimelineBar::paintEvent(QPaintEvent *e)
 {
-  QPainter p(viewport());
+  QStylePainter p(viewport());
 
   p.setFont(font());
   p.setRenderHint(QPainter::TextAntialiasing);
@@ -468,11 +469,17 @@ void TimelineBar::paintEvent(QPaintEvent *e)
 
     p.fillRect(r, palette().brush(QPalette::Window));
 
-    r = r.marginsRemoved(QMargins(borderWidth + margin, borderWidth + margin, borderWidth + margin,
-                                  borderWidth + margin));
+    QRectF borderRect = r.marginsRemoved(uniformMargins(margin));
+    r = borderRect.marginsRemoved(uniformMargins(borderWidth));
 
     p.fillRect(r, palette().brush(QPalette::Base));
-    p.drawRect(r);
+
+    QStyleOptionFrame frameOpt;
+    frameOpt.initFrom(viewport());
+    frameOpt.rect = borderRect.toRect();
+    frameOpt.frameShape = QFrame::Box;
+    frameOpt.lineWidth = 1;
+    p.drawControl(QStyle::CE_ShapedFrame, frameOpt);
   }
 
   QTextOption to;
@@ -492,15 +499,16 @@ void TimelineBar::paintEvent(QPaintEvent *e)
 
     titleRect.setLeft(titleRect.left() - margin);
     titleRect.setTop(titleRect.top() - margin);
-    p.drawLine(titleRect.bottomLeft(), titleRect.bottomRight());
-    p.drawLine(titleRect.topRight(), titleRect.bottomRight());
+
+    drawLine(p, titleRect.bottomLeft(), titleRect.bottomRight());
+    drawLine(p, titleRect.topRight(), titleRect.bottomRight());
   }
 
   QRectF eidAxisRect = m_eidAxisRect;
 
-  p.drawLine(eidAxisRect.bottomLeft(), eidAxisRect.bottomRight() + QPointF(margin, 0));
+  drawLine(p, eidAxisRect.bottomLeft(), eidAxisRect.bottomRight() + QPointF(margin, 0));
 
-  p.drawLine(m_highlightingRect.topLeft(), m_highlightingRect.topRight());
+  drawLine(p, m_highlightingRect.topLeft(), m_highlightingRect.topRight());
 
   if(m_Draws.isEmpty())
     return;
@@ -553,8 +561,8 @@ void TimelineBar::paintEvent(QPaintEvent *e)
       hoverRect = hoverRect.marginsAdded(QMargins(0, margin, 0, 0));
 
       if(hoverRect.left() >= m_eidAxisRect.left())
-        p.drawLine(hoverRect.topLeft(), hoverRect.bottomLeft());
-      p.drawLine(hoverRect.topRight(), hoverRect.bottomRight());
+        drawLine(p, hoverRect.topLeft(), hoverRect.bottomLeft());
+      drawLine(p, hoverRect.topRight(), hoverRect.bottomRight());
 
       // shrink the rect a bit for clipping against labels below
       hoverRect.setX(qRound(hoverRect.x() + 0.5));
@@ -626,7 +634,8 @@ void TimelineBar::paintEvent(QPaintEvent *e)
     QRectF currentBackRect = currentRect.marginsAdded(QMargins(0, margin, 0, 0));
 
     p.fillRect(currentBackRect, palette().brush(QPalette::Base));
-    p.drawRect(currentBackRect);
+    drawLine(p, currentBackRect.topLeft(), currentBackRect.bottomLeft());
+    drawLine(p, currentBackRect.topRight(), currentBackRect.bottomRight());
 
     // draw the 'current marker' pixmap
     const QPixmap &px = Pixmaps::flag_green(devicePixelRatio());
@@ -644,7 +653,7 @@ void TimelineBar::paintEvent(QPaintEvent *e)
     QPointF currentBottom = currentTop;
     currentBottom.setY(m_markerRect.bottom());
 
-    p.drawLine(currentTop, currentBottom);
+    drawLine(p, currentTop, currentBottom);
   }
 
   to.setAlignment(Qt::AlignLeft | Qt::AlignTop);
@@ -888,6 +897,22 @@ TimelineBar::Marker *TimelineBar::findMarker(QVector<Marker> &markers, QRectF ma
   }
 
   return NULL;
+}
+
+void TimelineBar::drawLine(QStylePainter &p, QPointF start, QPointF end)
+{
+  if(start.x() == end.x() || start.y() == end.y())
+  {
+    QStyleOptionFrame opt;
+    opt.initFrom(viewport());
+    opt.rect = QRectF(start, end).toRect();
+    opt.frameShape = (start.y() == end.y() ? QFrame::HLine : QFrame::VLine);
+    p.drawControl(QStyle::CE_ShapedFrame, opt);
+  }
+  else
+  {
+    p.drawLine(start, end);
+  }
 }
 
 void TimelineBar::paintMarkers(QPainter &p, const QVector<Marker> &markers,
