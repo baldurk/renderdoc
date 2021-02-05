@@ -1630,7 +1630,7 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
     qreal lineWidth = qMax(1, frame->lineWidth);
 
     p->save();
-    p->setPen(QPen(opt->palette.brush(widget->foregroundRole()), lineWidth));
+    p->setPen(QPen(outlineBrush(opt->palette), lineWidth));
 
     qreal adjust = 0.5 * lineWidth;
 
