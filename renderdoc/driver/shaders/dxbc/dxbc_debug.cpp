@@ -3140,7 +3140,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
     case OPCODE_LD_STRUCTURED:
     {
       uint32_t resIndex = 0;
-      uint32_t elemOffset = 0;
+      uint32_t structOffset = 0;
       uint32_t elemIdx = 0;
 
       uint32_t texCoords[3] = {0, 0, 0};
@@ -3198,7 +3198,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           }
         }
 
-        elemOffset = srcOpers[1].value.u32v[0];
+        structOffset = srcOpers[1].value.u32v[0];
         elemIdx = srcOpers[0].value.u32v[0];
       }
       else if(op.operation == OPCODE_LD_UAV_TYPED || op.operation == OPCODE_STORE_UAV_TYPED)
@@ -3253,13 +3253,13 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       bool texData = false;
       uint32_t rowPitch = 0;
       uint32_t depthPitch = 0;
-      uint32_t offset = 0;
+      uint32_t firstElem = 0;
       uint32_t numElems = 0;
       GlobalState::ViewFmt fmt;
 
       if(gsm)
       {
-        offset = 0;
+        firstElem = 0;
         if(resIndex > global.groupshared.size())
         {
           numElems = 0;
@@ -3296,7 +3296,8 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           MarkResourceAccess(state, TYPE_RESOURCE, slot);
 
           data = srvIter->second.data.data();
-          offset = srvIter->second.firstElement;
+          dataSize = srvIter->second.data.size();
+          firstElem = srvIter->second.firstElement;
           numElems = srvIter->second.numElements;
           fmt = srvIter->second.format;
         }
@@ -3316,7 +3317,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           texData = uavIter->second.tex;
           rowPitch = uavIter->second.rowPitch;
           depthPitch = uavIter->second.depthPitch;
-          offset = uavIter->second.firstElement;
+          firstElem = uavIter->second.firstElement;
           numElems = uavIter->second.numElements;
           fmt = uavIter->second.format;
         }
@@ -3329,37 +3330,34 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       // units. Multiply up by stride
       if(op.operation == OPCODE_LD_RAW || op.operation == OPCODE_STORE_RAW)
       {
-        offset *= RDCMIN(4, fmt.byteWidth);
+        firstElem *= RDCMIN(4, fmt.byteWidth);
         numElems *= RDCMIN(4, fmt.byteWidth);
       }
 
       RDCASSERT(data);
 
-      size_t texOffset = 0;
+      size_t dataOffset = 0;
 
       if(texData)
       {
-        texOffset += texCoords[0] * fmt.Stride();
-        texOffset += texCoords[1] * rowPitch;
-        texOffset += texCoords[2] * depthPitch;
+        dataOffset += texCoords[0] * fmt.Stride();
+        dataOffset += texCoords[1] * rowPitch;
+        dataOffset += texCoords[2] * depthPitch;
+      }
+      else
+      {
+        dataOffset += (firstElem + elemIdx) * stride;
+        dataOffset += structOffset;
       }
 
-      if(!data || (!texData && elemIdx >= numElems) || (texData && texOffset >= dataSize))
+      if(!data || (!texData && elemIdx >= numElems) || (texData && dataOffset >= dataSize))
       {
         if(load)
           SetDst(state, op.operands[0], op, ShaderVariable("", 0U, 0U, 0U, 0U));
       }
       else
       {
-        if(gsm || !texData)
-        {
-          data += (offset + elemIdx) * stride;
-          data += elemOffset;
-        }
-        else
-        {
-          data += texOffset;
-        }
+        data += dataOffset;
 
         int maxIndex = fmt.numComps;
 
@@ -3367,7 +3365,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
         if(op.operation == OPCODE_STORE_STRUCTURED || op.operation == OPCODE_LD_STRUCTURED)
         {
           srcIdx = 2;
-          maxIndex = (stride - elemOffset) / sizeof(uint32_t);
+          maxIndex = (stride - structOffset) / sizeof(uint32_t);
           fmt.byteWidth = 4;
           fmt.numComps = 4;
           if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] == 0xff &&
