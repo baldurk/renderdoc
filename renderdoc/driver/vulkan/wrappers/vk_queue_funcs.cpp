@@ -333,7 +333,6 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
             for(APIEvent &apievent : cmdBufInfo.curEvents)
             {
               apievent.eventId = m_RootEventID - cmdBufInfo.curEvents.count() + i;
-              cmdBufInfo.eventCount++;
 
               m_RootEvents.push_back(apievent);
               m_Events.resize(apievent.eventId + 1);
@@ -1658,15 +1657,10 @@ bool WrappedVulkan::Serialise_vkQueueBeginDebugUtilsLabelEXT(SerialiserType &ser
       draw.markerColor.w = RDCCLAMP(Label.color[3], 0.0f, 1.0f);
 
       AddEvent();
-      m_RootEventID++;
       AddDrawcall(draw, false);
 
       // now push the drawcall stack
       GetDrawcallStack().push_back(&GetDrawcallStack().back()->children.back());
-    }
-    else
-    {
-      m_RootEventID++;
     }
   }
 
