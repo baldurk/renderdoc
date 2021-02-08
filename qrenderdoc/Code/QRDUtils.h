@@ -101,6 +101,9 @@ public:
 
   static QString DeclareStruct(const QString &name, const rdcarray<ShaderConstant> &members,
                                uint32_t requiredByteStride);
+
+  static uint32_t GetStructVarSize(const rdcarray<ShaderConstant> &members);
+
   static QString DeclarePaddingBytes(uint32_t bytes);
 };
 

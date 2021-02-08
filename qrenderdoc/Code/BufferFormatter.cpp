@@ -772,10 +772,31 @@ uint32_t BufferFormatter::GetVarSize(const ShaderConstant &var)
       size = var.type.descriptor.matrixByteStride * var.type.descriptor.columns;
   }
 
+  if(!var.type.members.empty())
+    size = GetStructVarSize(var.type.members);
+
   if(var.type.descriptor.elements > 1)
     size *= var.type.descriptor.elements;
 
   return size;
+}
+
+uint32_t BufferFormatter::GetStructVarSize(const rdcarray<ShaderConstant> &members)
+{
+  uint32_t lastMemberStart = 0;
+
+  const ShaderConstant *lastChild = &members.back();
+
+  lastMemberStart += lastChild->byteOffset;
+  while(!lastChild->type.members.isEmpty())
+  {
+    lastMemberStart += (qMax(lastChild->type.descriptor.elements, 1U) - 1) *
+                       lastChild->type.descriptor.arrayByteStride;
+    lastChild = &lastChild->type.members.back();
+    lastMemberStart += lastChild->byteOffset;
+  }
+
+  return lastMemberStart + GetVarSize(*lastChild);
 }
 
 QString BufferFormatter::DeclarePaddingBytes(uint32_t bytes)
@@ -922,20 +943,7 @@ QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QS
 
   if(requiredByteStride > 0)
   {
-    uint32_t lastMemberStart = 0;
-
-    const ShaderConstant *lastChild = &members.back();
-
-    lastMemberStart += lastChild->byteOffset;
-    while(!lastChild->type.members.isEmpty())
-    {
-      lastMemberStart += (qMax(lastChild->type.descriptor.elements, 1U) - 1) *
-                         lastChild->type.descriptor.arrayByteStride;
-      lastChild = &lastChild->type.members.back();
-      lastMemberStart += lastChild->byteOffset;
-    }
-
-    const uint32_t structEnd = lastMemberStart + GetVarSize(*lastChild);
+    const uint32_t structEnd = GetStructVarSize(members);
 
     if(requiredByteStride > structEnd)
       ret += lit("    ") + DeclarePaddingBytes(requiredByteStride - structEnd);
