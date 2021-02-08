@@ -521,7 +521,7 @@ uint64_t WrappedVulkan::GetSize_InitialState(ResourceId id, const VkInitialConte
 {
   if(initial.type == eResDescriptorSet)
   {
-    return 32 + initial.numDescriptors * sizeof(DescriptorSetSlot) + initial.inlineByteSize;
+    return 128 + initial.numDescriptors * sizeof(DescriptorSetSlot) + initial.inlineByteSize;
   }
   else if(initial.type == eResBuffer)
   {
