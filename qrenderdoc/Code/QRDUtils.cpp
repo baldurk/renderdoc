@@ -478,8 +478,8 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx)
 
         int end = match.capturedEnd(4);
 
-        // skip @2x since it appears in high-DPI icons
-        if(eid == 2 && end < text.length() && text[end] == QLatin1Char('x'))
+        // skip @..x since e.g. @2x appears in high-DPI icons and @0x08732 can appear in shader name
+        if(end < text.length() && text[end] == QLatin1Char('x'))
         {
           match = resRE.match(text, end);
           continue;
