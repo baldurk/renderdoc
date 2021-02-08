@@ -3320,6 +3320,9 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           numElems = uavIter->second.numElements;
           fmt = uavIter->second.format;
         }
+
+        if(op.operation == OPCODE_LD_UAV_TYPED || op.operation == OPCODE_STORE_UAV_TYPED)
+          stride = fmt.Stride();
       }
 
       // indexing for raw views is in bytes, but firstElement/numElements is in format-sized
