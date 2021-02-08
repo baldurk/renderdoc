@@ -1525,10 +1525,13 @@ void WrappedID3D11Device::NewSwapchainBuffer(IUnknown *backbuffer)
 {
   WrappedID3D11Texture2D1 *wrapped = (WrappedID3D11Texture2D1 *)backbuffer;
 
-  // add internal reference to keep this texture alive
-  SAFE_INTADDREF(wrapped);
-  // release the external reference
-  wrapped->Release();
+  if(wrapped)
+  {
+    // add internal reference to keep this texture alive
+    SAFE_INTADDREF(wrapped);
+    // release the external reference
+    wrapped->Release();
+  }
 }
 
 void WrappedID3D11Device::ReleaseSwapchainResources(IDXGISwapper *swapper, UINT QueueCount,
