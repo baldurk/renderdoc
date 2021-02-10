@@ -5602,6 +5602,11 @@ void WrappedOpenGL::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
     draw.events = m_CurEvents;
     m_CurEvents.clear();
   }
+  else
+  {
+    draw.events.push_back(m_CurEvents.back());
+    m_CurEvents.pop_back();
+  }
 
   AddUsage(draw);
 

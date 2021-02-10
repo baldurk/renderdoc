@@ -209,6 +209,31 @@ QWidget.
   DOCUMENT("Updates the duration column if the selected time unit changes.");
   virtual void UpdateDurationColumn() = 0;
 
+  DOCUMENT(R"(Uses the existing caching in the event browser to return a :class:`~renderdoc.APIEvent`
+for a specified EID.
+
+If no capture is loaded or the EID doesn't correspond to a known event, an empty struct will be
+returned.
+
+:param int eventId: The EID to look up.
+:return: The event corresponding to the EID, or an empty struct if no such EID exists.
+:rtype: renderdoc.APIEvent
+)");
+  virtual APIEvent GetAPIEventForEID(uint32_t eventId) = 0;
+
+  DOCUMENT(R"(Uses the existing caching in the event browser to return a
+:class:`~renderdoc.DrawcallDescription` for a specified EID. This draw may not be the exact EID
+specified, but it will be the draw that the EID is associated with. I.e. if you specify the EID for
+a state setting event the next draw will be returned.
+
+If no capture is loaded or the EID doesn't correspond to a known event, ``None`` will be returned.
+
+:param int eventId: The EID to look up.
+:return: The drawcall containing the EID, or ``None`` if no such EID exists.
+:rtype: renderdoc.DrawcallDescription
+)");
+  virtual const DrawcallDescription *GetDrawcallForEID(uint32_t eventId) = 0;
+
 protected:
   IEventBrowser() = default;
   ~IEventBrowser() = default;

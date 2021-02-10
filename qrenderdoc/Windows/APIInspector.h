@@ -65,4 +65,5 @@ private:
 
   void addCallstack(rdcarray<rdcstr> calls);
   void fillAPIView();
+  void addEvent(const APIEvent &ev, bool primary);
 };

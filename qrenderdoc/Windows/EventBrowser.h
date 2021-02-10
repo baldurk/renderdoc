@@ -58,6 +58,9 @@ public:
   // IEventBrowser
   QWidget *Widget() override { return this; }
   void UpdateDurationColumn() override;
+  APIEvent GetAPIEventForEID(uint32_t eid) override;
+  const DrawcallDescription *GetDrawcallForEID(uint32_t eid) override;
+
   // ICaptureViewer
   void OnCaptureLoaded() override;
   void OnCaptureClosed() override;

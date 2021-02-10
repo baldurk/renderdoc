@@ -5186,6 +5186,8 @@ bool WrappedID3D11DeviceContext::Serialise_ExecuteCommandList(SerialiserType &se
 
     if(IsLoading(m_State))
     {
+      AddEvent();
+
       DrawcallDescription draw;
       draw.name = StringFormat::Fmt("ExecuteCommandList(List %s)", ToStr(CommandList).c_str());
       draw.flags |= DrawFlags::CmdList;

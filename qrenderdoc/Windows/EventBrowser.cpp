@@ -82,6 +82,9 @@ struct EventItemModel : public QAbstractItemModel
     emit endResetModel();
 
     m_Nodes.clear();
+    m_RowInParentCache.clear();
+    m_EIDNameCache.clear();
+    m_Draws.clear();
 
     if(!m_Ctx.CurDrawcalls().empty())
       m_Nodes[0] = CreateDrawNode(NULL);
@@ -99,6 +102,7 @@ struct EventItemModel : public QAbstractItemModel
     uint32_t eid = m_Ctx.CurSelectedEvent();
 
     m_MessageCounts[eid] = m_Ctx.CurPipelineState().GetShaderMessages().count();
+    m_EIDNameCache.remove(eid);
 
     if(eid != data(m_CurrentEID, ROLE_SELECTED_EID) || eid == 0)
     {
@@ -247,26 +251,77 @@ struct EventItemModel : public QAbstractItemModel
     if(eid == 0)
       return createIndex(0, 0, TagCaptureStart);
 
-    const DrawcallDescription *draw = m_Ctx.GetDrawcall(eid);
+    const DrawcallDescription *draw = m_Draws[eid];
     if(draw)
     {
+      // this function is not called regularly (anywhere to do with painting) but only occasionally
+      // to find an index by EID, so we do an 'expensive' search for the row in the parent. The
+      // cache is LRU and holds a few entries in case the user is jumping back and forth between a
+      // few.
+      for(size_t i = 0; i < m_RowInParentCache.size(); i++)
+      {
+        if(m_RowInParentCache[i].first == eid)
+          return createIndex(m_RowInParentCache[i].second, 0, eid);
+      }
+
+      const int MaxCacheSize = 10;
+
+      // oldest entry is on the back, pop it
+      if(m_RowInParentCache.size() == MaxCacheSize)
+        m_RowInParentCache.pop_back();
+
+      // account for the Capture Start row we'll add at the top level
+      int rowInParent = draw->parent ? 0 : 1;
+
       const rdcarray<DrawcallDescription> &draws =
           draw->parent ? draw->parent->children : m_Ctx.CurDrawcalls();
 
-      int rowInParent = int(draw - draws.begin());
+      for(const DrawcallDescription &d : draws)
+      {
+        // the first draw with an EID greater than the one we're searching for should contain it.
+        if(d.eventId >= eid)
+        {
+          // keep counting until we get to the row within this draw
+          for(size_t i = 0; i < d.events.size(); i++)
+          {
+            if(d.events[i].eventId < eid)
+            {
+              rowInParent++;
+              continue;
+            }
 
-      // add 1 to account for Capture Start
-      if(draw->parent == NULL)
-        rowInParent++;
+            if(d.events[i].eventId != eid)
+              qCritical() << "Couldn't find event" << eid << "within draw" << draw->eventId;
 
-      return createIndex(rowInParent, 0, (void *)draw);
+            // stop, we should be at the event now
+            break;
+          }
+
+          break;
+        }
+
+        rowInParent += d.events.count();
+      }
+
+      // insert the new element on the front of the cache
+      m_RowInParentCache.insert(0, {eid, rowInParent});
+
+      return createIndex(rowInParent, 0, eid);
     }
     else
     {
-      qWarning() << "Couldn't find draw for event" << eid;
+      qCritical() << "Couldn't find draw for event" << eid;
     }
 
     return QModelIndex();
+  }
+
+  const DrawcallDescription *GetDrawcallForEID(uint32_t eid)
+  {
+    if(eid < m_Draws.size())
+      return m_Draws[eid];
+
+    return NULL;
   }
 
   //////////////////////////////////////////////////////////////////////////////////////
@@ -289,11 +344,8 @@ struct EventItemModel : public QAbstractItemModel
       if(row == 0)
         return createIndex(row, column, TagCaptureStart);
 
-      // the rest are in the root draws list
-      const rdcarray<DrawcallDescription> &draws = m_Ctx.CurDrawcalls();
-
-      if(row > 0 && row <= draws.count())
-        return createIndex(row, column, (void *)&draws[row - 1]);
+      // the rest are in the root draw node
+      return GetIndexForDrawChildRow(m_Nodes[0], row, column);
     }
     else if(parent.internalId() == TagCaptureStart)
     {
@@ -302,11 +354,10 @@ struct EventItemModel : public QAbstractItemModel
     }
     else
     {
-      const DrawcallDescription *parentDraw = (const DrawcallDescription *)parent.internalPointer();
-
       // otherwise the parent is a real draw
-      if(row >= 0 && row < parentDraw->children.count())
-        return createIndex(row, column, (void *)&parentDraw->children[row]);
+      auto it = m_Nodes.find(parent.internalId());
+      if(it != m_Nodes.end())
+        return GetIndexForDrawChildRow(*it, row, column);
     }
 
     return QModelIndex();
@@ -322,7 +373,7 @@ struct EventItemModel : public QAbstractItemModel
       return createIndex(0, 0, TagRoot);
 
     // otherwise it's a draw
-    const DrawcallDescription *draw = (const DrawcallDescription *)index.internalPointer();
+    const DrawcallDescription *draw = m_Draws[index.internalId()];
 
     // if it has no parent draw, the parent is the root
     if(draw->parent == NULL)
@@ -346,17 +397,22 @@ struct EventItemModel : public QAbstractItemModel
     if(parent.column() != 0)
       return 0;
 
-    // +1 for the capture start
     if(parent.internalId() == TagRoot)
-      return m_Ctx.CurDrawcalls().count() + 1;
+      return m_Nodes[0].rowCount;
 
     if(parent.internalId() == TagCaptureStart)
       return 0;
 
-    // otherwise it's a draw
-    const DrawcallDescription *draw = (const DrawcallDescription *)parent.internalPointer();
+    // otherwise it's an event
+    uint32_t eid = (uint32_t)parent.internalId();
 
-    return draw->children.count();
+    // if it's a node, return the row count
+    auto it = m_Nodes.find(eid);
+    if(it != m_Nodes.end())
+      return it->rowCount;
+
+    // no other nodes have children
+    return 0;
   }
 
   int columnCount(const QModelIndex &parent = QModelIndex()) const override { return COL_COUNT; }
@@ -434,45 +490,31 @@ struct EventItemModel : public QAbstractItemModel
     }
     else
     {
-      const DrawcallDescription *draw = (const DrawcallDescription *)index.internalPointer();
+      uint32_t eid = index.internalId();
 
       if(role == ROLE_SELECTED_EID)
-        return draw->eventId;
+        return eid;
 
       if(role == ROLE_EFFECTIVE_EID)
       {
-        auto it = m_Nodes.find(draw->eventId);
+        auto it = m_Nodes.find(eid);
         if(it != m_Nodes.end())
           return it->effectiveEID;
-        return draw->eventId;
+        return eid;
       }
 
       if(index.column() == COL_DURATION && role == Qt::DisplayRole)
-      {
-        return FormatDuration(draw->eventId);
-      }
+        return FormatDuration(eid);
 
       if(role == Qt::DisplayRole)
       {
+        const DrawcallDescription *draw = m_Draws[eid];
+
         switch(index.column())
         {
-          case COL_NAME:
-          {
-            QString name = draw->name;
-
-            if(m_MessageCounts.contains(draw->eventId))
-            {
-              int count = m_MessageCounts[draw->eventId];
-              if(count > 0)
-                name += lit(" __rd_msgs::%1:%2").arg(draw->eventId).arg(count);
-            }
-
-            QVariant v = QString(name);
-            RichResourceTextInitialise(v, &m_Ctx);
-            return v;
-          }
-          case COL_EID: return draw->eventId;
-          case COL_DRAW: return draw->drawcallId;
+          case COL_NAME: return GetCachedEIDName(eid);
+          case COL_EID: return eid;
+          case COL_DRAW: return draw->eventId == eid ? QVariant(draw->drawcallId) : QVariant();
           default: break;
         }
       }
@@ -482,6 +524,12 @@ struct EventItemModel : public QAbstractItemModel
         if(m_Ctx.Config().EventBrowser_ApplyColors)
         {
           if(!m_Ctx.Config().EventBrowser_ColorEventRow && role != RDTreeView::TreeLineColorRole)
+            return QVariant();
+
+          const DrawcallDescription *draw = m_Draws[eid];
+
+          // skip events that aren't the actual draw
+          if(draw->eventId != eid)
             return QVariant();
 
           // if alpha isn't 0, assume the colour is valid
@@ -509,8 +557,8 @@ private:
 
   QAbstractItemView *m_View;
 
-  static const quintptr TagRoot = 0x0;
-  static const quintptr TagCaptureStart = 0x1;
+  static const quintptr TagRoot = quintptr(UINTPTR_MAX);
+  static const quintptr TagCaptureStart = quintptr(0);
 
   rdcarray<double> m_Times;
   TimeUnit m_TimeUnit = TimeUnit::Count;
@@ -523,11 +571,18 @@ private:
 
   QMap<uint32_t, int> m_MessageCounts;
 
-  // we don't want to have something for every event/draw, so we cache only for each nested node.
-  // This drastically limits our worst case N - some hierarchies have more nodes than others but
-  // even in hierarchies with lots of nodes the number is small, compared to draws/events which
-  // could be 1000s to 100,000s even.
-  // we cache this with a depth-first search at init time
+  // captures could have a lot of events, 1 million is high but not unreasonable and certainly not
+  // an upper bound. We store only 1 pointer per event which gives us reasonable memory usage (i.e.
+  // 8MB for that 1-million case on 64-bit) and still lets us look up what we need in O(1) and avoid
+  // more expensive lookups when we need the properties for an event.
+  // This gives us a pointer for every event ID pointing to the draw that contains it.
+  rdcarray<const DrawcallDescription *> m_Draws;
+
+  // we can have a bigger structure for every nested node (i.e. draw with children).
+  // This drastically limits how many we need to worry about - some hierarchies have more nodes than
+  // others but even in hierarchies with lots of nodes the number is small, compared to
+  // draws/events.
+  // we cache this with a depth-first search at init time while populating m_Draws
   struct DrawTreeNode
   {
     const DrawcallDescription *draw;
@@ -535,8 +590,27 @@ private:
 
     // cache the index for this node to make parent() significantly faster
     QModelIndex index;
+
+    // this is the number of child events, meaning all the draws and all of their events, but *not*
+    // the events in any of their children.
+    uint32_t rowCount;
+
+    // this is a cache of row index to draw. Rather than being present for every row, this is
+    // spaced out such that there are roughly Row2EIDFactor entries at most. This means that the
+    // O(n) lookup to find the EID for a given row has to process that many times less entries since
+    // it can jump to somewhere nearby.
+    //
+    // The key is the row, the value is the index in the list of children of the draw
+    QMap<int, size_t> row2draw;
+    static const int Row2DrawFactor = 100;
   };
   QMap<uint32_t, DrawTreeNode> m_Nodes;
+
+  // a cache of EID -> row in parent for looking up indices for arbitrary EIDs.
+  rdcarray<rdcpair<uint32_t, int>> m_RowInParentCache;
+
+  // needs to be mutable because we update this inside data()
+  mutable QMap<uint32_t, QVariant> m_EIDNameCache;
 
   void AccumulateFindResults(QModelIndex root)
   {
@@ -607,22 +681,38 @@ private:
     const rdcarray<DrawcallDescription> &drawRange = draw ? draw->children : m_Ctx.CurDrawcalls();
 
     // account for the Capture Start row we'll add at the top level
-    int rowOffset = draw ? 0 : 1;
+    int row = draw ? 0 : 1;
 
     DrawTreeNode ret;
 
     ret.draw = draw;
     ret.effectiveEID = drawRange.back().eventId;
 
+    ret.row2draw[0] = 0;
+
+    uint32_t row2eidStride = (drawRange.count() / DrawTreeNode::Row2DrawFactor) + 1;
+
     for(int i = 0; i < drawRange.count(); i++)
     {
       const DrawcallDescription &d = drawRange[i];
+
+      if((i % row2eidStride) == 0)
+        ret.row2draw[row] = i;
+
+      for(const APIEvent &e : d.events)
+      {
+        m_Draws.resize_for_index(e.eventId);
+        m_Draws[e.eventId] = &d;
+      }
+
+      row += d.events.count();
+
       if(d.children.empty())
         continue;
 
       DrawTreeNode node = CreateDrawNode(&d);
 
-      node.index = createIndex(i + rowOffset, 0, (void *)&d);
+      node.index = createIndex(row - 1, 0, d.eventId);
 
       if(d.eventId == ret.effectiveEID)
         ret.effectiveEID = node.effectiveEID;
@@ -630,7 +720,120 @@ private:
       m_Nodes[d.eventId] = node;
     }
 
+    ret.rowCount = row;
+
     return ret;
+  }
+
+  QModelIndex GetIndexForDrawChildRow(const DrawTreeNode &node, int row, int column) const
+  {
+    // if the row is out of bounds, bail
+    if(row < 0 || (uint32_t)row >= node.rowCount)
+      return QModelIndex();
+
+    // we do the linear 'counting' within the draws list to find the event at the given row. It's
+    // still essentially O(n) however we keep a limited cached of skip entries at each draw node
+    // which helps lower the cost significantly (by a factor of the roughly number of skip entries
+    // we store).
+
+    const rdcarray<DrawcallDescription> &draws =
+        node.draw ? node.draw->children : m_Ctx.CurDrawcalls();
+    int curRow = 0;
+    size_t curDraw = 0;
+
+    // lowerBound doesn't do exactly what we want, we want the first row that is less-equal. So
+    // instead we use upperBound and go back one step if we don't get returned the first entry
+    auto it = node.row2draw.upperBound(row);
+    if(it != node.row2draw.begin())
+      --it;
+
+    // start at the first skip before the desired row
+    curRow = it.key();
+    curDraw = it.value();
+
+    if(curRow > row)
+    {
+      // we should always have a skip, even if it's only the first child
+      qCritical() << "Couldn't find skip for" << row << "in draw node"
+                  << (node.draw ? node.draw->eventId : 0);
+
+      // start at the first child row instead
+      curRow = 0;
+      curDraw = 0;
+    }
+
+    // if this draw doesn't contain the desired row, advance
+    while(curDraw < draws.size() && curRow + draws[curDraw].events.count() <= row)
+    {
+      curRow += draws[curDraw].events.count();
+      curDraw++;
+    }
+
+    // we've iterated all the draws and didn't come up with this row - but we checked above that
+    // we're in bounds of rowCount so something went wrong
+    if(curDraw >= draws.size())
+    {
+      qCritical() << "Couldn't find draw containing row" << row << "in draw node"
+                  << (node.draw ? node.draw->eventId : 0);
+      return QModelIndex();
+    }
+
+    // now curDraw contains the row at the idx'th event
+    int idx = row - curRow;
+
+    if(idx < 0 || idx >= draws[curDraw].events.count())
+    {
+      qCritical() << "Got invalid relative index for row" << row << "in draw node"
+                  << (node.draw ? node.draw->eventId : 0);
+      return QModelIndex();
+    }
+
+    return createIndex(row, column, draws[curDraw].events[idx].eventId);
+  }
+
+  QVariant GetCachedEIDName(uint32_t eid) const
+  {
+    auto it = m_EIDNameCache.find(eid);
+    if(it != m_EIDNameCache.end())
+      return it.value();
+
+    const DrawcallDescription *draw = m_Draws[eid];
+
+    QString name;
+
+    if(draw->eventId == eid)
+    {
+      name = draw->name;
+    }
+    else
+    {
+      for(const APIEvent &e : draw->events)
+      {
+        if(e.eventId == eid)
+        {
+          name = m_Ctx.GetStructuredFile().chunks[e.chunkIndex]->name;
+          break;
+        }
+      }
+
+      if(name.isEmpty())
+        qCritical() << "Couldn't find APIEvent for" << eid;
+    }
+
+    if(m_MessageCounts.contains(eid))
+    {
+      int count = m_MessageCounts[eid];
+      if(count > 0)
+        name += lit(" __rd_msgs::%1:%2").arg(eid).arg(count);
+    }
+
+    QVariant v = name;
+
+    RichResourceTextInitialise(v, &m_Ctx);
+
+    m_EIDNameCache[eid] = v;
+
+    return v;
   }
 };
 
@@ -1489,4 +1692,25 @@ void EventBrowser::UpdateDurationColumn()
   m_TimeUnit = m_Ctx.Config().EventBrowser_TimeUnit;
 
   m_Model->UpdateDurationColumn();
+}
+
+APIEvent EventBrowser::GetAPIEventForEID(uint32_t eid)
+{
+  const DrawcallDescription *draw = GetDrawcallForEID(eid);
+
+  if(draw)
+  {
+    for(const APIEvent &ev : draw->events)
+    {
+      if(ev.eventId == eid)
+        return ev;
+    }
+  }
+
+  return APIEvent();
+}
+
+const DrawcallDescription *EventBrowser::GetDrawcallForEID(uint32_t eid)
+{
+  return m_Model->GetDrawcallForEID(eid);
 }

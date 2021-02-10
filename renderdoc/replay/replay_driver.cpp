@@ -86,6 +86,9 @@ static DrawcallDescription *SetupDrawcallPointers(rdcarray<DrawcallDescription *
   {
     DrawcallDescription *draw = &draws[i];
 
+    RDCASSERTMSG("All draws must have their own event as the final event",
+                 !draw->events.empty() && draw->events.back().eventId == draw->eventId);
+
     draw->parent = parent;
 
     if(!draw->children.empty())

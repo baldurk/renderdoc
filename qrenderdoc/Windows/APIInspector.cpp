@@ -206,42 +206,55 @@ void APIInspector::fillAPIView()
 
   m_Chunks.clear();
 
-  const SDFile &file = m_Ctx.GetStructuredFile();
   const DrawcallDescription *draw = m_Ctx.CurSelectedDrawcall();
 
   if(draw != NULL && !draw->events.isEmpty())
   {
     for(const APIEvent &ev : draw->events)
     {
-      RDTreeWidgetItem *root = new RDTreeWidgetItem({QString::number(ev.eventId), QString()});
-
-      SDChunk *chunk = NULL;
-
-      if(ev.chunkIndex < file.chunks.size())
-      {
-        chunk = file.chunks[ev.chunkIndex];
-
-        m_Chunks.push_back(chunk);
-
-        root->setText(1, chunk->name);
-
-        addStructuredChildren(root, *chunk);
-      }
-      else
-      {
-        root->setText(1, tr("Invalid chunk index %1").arg(ev.chunkIndex));
-      }
-
-      if(ev.eventId == draw->eventId)
-        root->setBold(true);
-
-      root->setTag(QVariant::fromValue((quintptr)(void *)chunk));
-
-      ui->apiEvents->addTopLevelItem(root);
-
-      ui->apiEvents->setSelectedItem(root);
+      addEvent(ev, ev.eventId == draw->eventId);
     }
+  }
+  else
+  {
+    APIEvent ev = m_Ctx.GetEventBrowser()->GetAPIEventForEID(m_Ctx.CurSelectedEvent());
+
+    if(ev.eventId > 0)
+      addEvent(ev, true);
   }
 
   ui->apiEvents->setUpdatesEnabled(true);
+}
+
+void APIInspector::addEvent(const APIEvent &ev, bool primary)
+{
+  const SDFile &file = m_Ctx.GetStructuredFile();
+
+  RDTreeWidgetItem *root = new RDTreeWidgetItem({QString::number(ev.eventId), QString()});
+
+  SDChunk *chunk = NULL;
+
+  if(ev.chunkIndex < file.chunks.size())
+  {
+    chunk = file.chunks[ev.chunkIndex];
+
+    m_Chunks.push_back(chunk);
+
+    root->setText(1, chunk->name);
+
+    addStructuredChildren(root, *chunk);
+  }
+  else
+  {
+    root->setText(1, tr("Invalid chunk index %1").arg(ev.chunkIndex));
+  }
+
+  if(primary)
+    root->setBold(true);
+
+  root->setTag(QVariant::fromValue((quintptr)(void *)chunk));
+
+  ui->apiEvents->addTopLevelItem(root);
+
+  ui->apiEvents->setSelectedItem(root);
 }

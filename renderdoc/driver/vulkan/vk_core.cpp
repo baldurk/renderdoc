@@ -4168,14 +4168,19 @@ void WrappedVulkan::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
       m_RootDrawcallID++;
   }
 
+  rdcarray<APIEvent> &srcEvents = m_LastCmdBufferID != ResourceId()
+                                      ? m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents
+                                      : m_RootEvents;
+
   if(hasEvents)
   {
-    rdcarray<APIEvent> &srcEvents = m_LastCmdBufferID != ResourceId()
-                                        ? m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents
-                                        : m_RootEvents;
-
     draw.events = srcEvents;
     srcEvents.clear();
+  }
+  else
+  {
+    draw.events.push_back(srcEvents.back());
+    srcEvents.pop_back();
   }
 
   // should have at least the root drawcall here, push this drawcall

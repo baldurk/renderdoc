@@ -1887,14 +1887,18 @@ void D3D12CommandData::AddDrawcall(const DrawcallDescription &d, bool hasEvents,
       m_RootDrawcallID++;
   }
 
+  rdcarray<APIEvent> &srcEvents =
+      m_LastCmdListID != ResourceId() ? m_BakedCmdListInfo[m_LastCmdListID].curEvents : m_RootEvents;
+
   if(hasEvents)
   {
-    rdcarray<APIEvent> &srcEvents = m_LastCmdListID != ResourceId()
-                                        ? m_BakedCmdListInfo[m_LastCmdListID].curEvents
-                                        : m_RootEvents;
-
     draw.events = srcEvents;
     srcEvents.clear();
+  }
+  else
+  {
+    draw.events.push_back(srcEvents.back());
+    srcEvents.pop_back();
   }
 
   // should have at least the root drawcall here, push this drawcall
