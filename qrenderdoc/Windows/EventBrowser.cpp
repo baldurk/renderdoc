@@ -250,16 +250,14 @@ struct EventItemModel : public QAbstractItemModel
     const DrawcallDescription *draw = m_Ctx.GetDrawcall(eid);
     if(draw)
     {
-      int rowInParent;
-      if(draw->parent)
-      {
-        rowInParent = GetRowIndexForEIDInDraw(draw->parent->children, draw->eventId);
-      }
-      else
-      {
-        // add 1 to account for Capture Start
-        rowInParent = 1 + GetRowIndexForEIDInDraw(m_Ctx.CurDrawcalls(), draw->eventId);
-      }
+      const rdcarray<DrawcallDescription> &draws =
+          draw->parent ? draw->parent->children : m_Ctx.CurDrawcalls();
+
+      int rowInParent = int(draw - draws.begin());
+
+      // add 1 to account for Capture Start
+      if(draw->parent == NULL)
+        rowInParent++;
 
       return createIndex(rowInParent, 0, (void *)draw);
     }
@@ -330,21 +328,9 @@ struct EventItemModel : public QAbstractItemModel
     if(draw->parent == NULL)
       return createIndex(0, 0, TagRoot);
 
-    // Qt needs the row of the child in the parent in the grand-parent, do so with lower_bound
-    const DrawcallDescription *parentDraw = draw->parent;
-
-    int rowInParent;
-    if(parentDraw->parent)
-    {
-      rowInParent = GetRowIndexForEIDInDraw(parentDraw->parent->children, parentDraw->eventId);
-    }
-    else
-    {
-      // add 1 to account for Capture Start
-      rowInParent = 1 + GetRowIndexForEIDInDraw(m_Ctx.CurDrawcalls(), parentDraw->eventId);
-    }
-
-    return createIndex(rowInParent, 0, (void *)parentDraw);
+    // the parent must be a node since it has at least one child (this draw), so we'll have a cached
+    // index
+    return m_Nodes[draw->parent->eventId].index;
   }
 
   int rowCount(const QModelIndex &parent = QModelIndex()) const override
@@ -546,6 +532,9 @@ private:
   {
     const DrawcallDescription *draw;
     uint32_t effectiveEID;
+
+    // cache the index for this node to make parent() significantly faster
+    QModelIndex index;
   };
   QMap<uint32_t, DrawTreeNode> m_Nodes;
 
@@ -592,20 +581,6 @@ private:
     return Formatter::Format(secs);
   }
 
-  int GetRowIndexForEIDInDraw(const rdcarray<DrawcallDescription> &draws, uint32_t eid) const
-  {
-    DrawcallDescription search;
-    search.eventId = eid;
-
-    const DrawcallDescription *f =
-        std::lower_bound(draws.begin(), draws.end(), search,
-                         [](const DrawcallDescription &a, const DrawcallDescription &b) {
-                           return a.eventId < b.eventId;
-                         });
-
-    return f - draws.begin();
-  }
-
   void CalculateTotalDuration(DrawTreeNode &node)
   {
     const rdcarray<DrawcallDescription> &drawChildren =
@@ -631,6 +606,9 @@ private:
   {
     const rdcarray<DrawcallDescription> &drawRange = draw ? draw->children : m_Ctx.CurDrawcalls();
 
+    // account for the Capture Start row we'll add at the top level
+    int rowOffset = draw ? 0 : 1;
+
     DrawTreeNode ret;
 
     ret.draw = draw;
@@ -643,6 +621,8 @@ private:
         continue;
 
       DrawTreeNode node = CreateDrawNode(&d);
+
+      node.index = createIndex(i + rowOffset, 0, (void *)&d);
 
       if(d.eventId == ret.effectiveEID)
         ret.effectiveEID = node.effectiveEID;
