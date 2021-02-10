@@ -200,7 +200,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetShadingRateImage(Serialise
 void STDMETHODCALLTYPE
 WrappedID3D12GraphicsCommandList::RSSetShadingRateImage(ID3D12Resource *shadingRateImage)
 {
-  SERIALISE_TIME_CALL(m_pList5->RSSetShadingRateImage(shadingRateImage));
+  SERIALISE_TIME_CALL(m_pList5->RSSetShadingRateImage(Unwrap(shadingRateImage)));
 
   if(IsCaptureMode(m_State))
   {
