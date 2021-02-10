@@ -626,6 +626,34 @@ not force any sample count.
   uint32_t forcedSampleCount = 0;
   DOCUMENT("The current :class:`ConservativeRaster` mode.");
   ConservativeRaster conservativeRasterization = ConservativeRaster::Disabled;
+  DOCUMENT(R"(The current base variable shading rate. This will always be 1x1 when variable shading
+is disabled.
+
+:type: Tuple[int,int]
+)");
+  rdcpair<uint32_t, uint32_t> baseShadingRate = {1, 1};
+  DOCUMENT(R"(The shading rate combiners.
+
+The combiners are applied as follows, according to the D3D spec:
+
+  ``intermediateRate = combiner[0] ( baseShadingRate,  shaderExportedShadingRate )``
+  ``finalRate        = combiner[1] ( intermediateRate, imageBasedShadingRate     )``
+
+Where the first input is from :data:`baseShadingRate` and the second is the exported shading rate
+from a vertex or geometry shader, which defaults to 1x1 if not exported.
+
+The intermediate result is then used as the first input to the second combiner, together with the
+shading rate sampled from the shading rate image.
+
+:type: Tuple[ShadingRateCombiner,ShadingRateCombiner]
+)");
+  rdcpair<ShadingRateCombiner, ShadingRateCombiner> shadingRateCombiners = {
+      ShadingRateCombiner::Passthrough, ShadingRateCombiner::Passthrough};
+  DOCUMENT(R"(The image bound as a shading rate image.
+
+:type: ResourceId
+)");
+  ResourceId shadingRateImage;
 };
 
 DOCUMENT("Describes the rasterization state of the D3D12 pipeline.");

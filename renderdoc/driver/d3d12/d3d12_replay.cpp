@@ -1515,6 +1515,41 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
           src.ConservativeRaster == D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON
               ? ConservativeRaster::Overestimate
               : ConservativeRaster::Disabled;
+
+      switch(rs.shadingRate)
+      {
+        default:
+        case D3D12_SHADING_RATE_1X1: dst.baseShadingRate = {1, 1}; break;
+        case D3D12_SHADING_RATE_1X2: dst.baseShadingRate = {1, 2}; break;
+        case D3D12_SHADING_RATE_2X1: dst.baseShadingRate = {2, 1}; break;
+        case D3D12_SHADING_RATE_2X2: dst.baseShadingRate = {2, 2}; break;
+        case D3D12_SHADING_RATE_2X4: dst.baseShadingRate = {2, 4}; break;
+        case D3D12_SHADING_RATE_4X2: dst.baseShadingRate = {4, 2}; break;
+        case D3D12_SHADING_RATE_4X4: dst.baseShadingRate = {4, 4}; break;
+      }
+
+      ShadingRateCombiner combiners[2];
+
+      for(int i = 0; i < 2; i++)
+      {
+        switch(rs.shadingRateCombiners[i])
+        {
+          default:
+          case D3D12_SHADING_RATE_COMBINER_PASSTHROUGH:
+            combiners[i] = ShadingRateCombiner::Passthrough;
+            break;
+          case D3D12_SHADING_RATE_COMBINER_OVERRIDE:
+            combiners[i] = ShadingRateCombiner::Override;
+            break;
+          case D3D12_SHADING_RATE_COMBINER_MIN: combiners[i] = ShadingRateCombiner::Min; break;
+          case D3D12_SHADING_RATE_COMBINER_MAX: combiners[i] = ShadingRateCombiner::Max; break;
+          case D3D12_SHADING_RATE_COMBINER_SUM: combiners[i] = ShadingRateCombiner::Multiply; break;
+        }
+      }
+
+      dst.shadingRateCombiners = {combiners[0], combiners[1]};
+
+      dst.shadingRateImage = rm->GetOriginalID(rs.shadingRateImage);
     }
 
     state.rasterizer.scissors.resize(rs.scissors.size());

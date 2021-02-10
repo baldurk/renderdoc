@@ -1273,6 +1273,21 @@ QString ToQStr(const AddressMode addr, const GraphicsAPI apitype)
   return lit("Unknown");
 }
 
+QString ToQStr(const ShadingRateCombiner addr, const GraphicsAPI apitype)
+{
+  if(IsD3D(apitype))
+  {
+    switch(addr)
+    {
+      case ShadingRateCombiner::Keep: return lit("Passthrough");
+      case ShadingRateCombiner::Replace: return lit("Override");
+      default: break;
+    }
+  }
+
+  return ToQStr(addr);
+}
+
 QString TypeString(const SigParameter &sig)
 {
   QString ret = ToQStr(sig.varType);

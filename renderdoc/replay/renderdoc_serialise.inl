@@ -1439,8 +1439,11 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::RasterizerState &el)
   SERIALISE_MEMBER(antialiasedLines);
   SERIALISE_MEMBER(forcedSampleCount);
   SERIALISE_MEMBER(conservativeRasterization);
+  SERIALISE_MEMBER(baseShadingRate);
+  SERIALISE_MEMBER(shadingRateCombiners);
+  SERIALISE_MEMBER(shadingRateImage);
 
-  SIZE_CHECK(36);
+  SIZE_CHECK(64);
 }
 
 template <typename SerialiserType>
@@ -1451,7 +1454,7 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::Rasterizer &el)
   SERIALISE_MEMBER(scissors);
   SERIALISE_MEMBER(state);
 
-  SIZE_CHECK(96);
+  SIZE_CHECK(120);
 }
 
 template <typename SerialiserType>
@@ -1539,7 +1542,7 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::State &el)
 
   SERIALISE_MEMBER(resourceStates);
 
-  SIZE_CHECK(1408);
+  SIZE_CHECK(1432);
 }
 
 #pragma endregion D3D12 pipeline state

@@ -2709,6 +2709,50 @@ enum class ConservativeRaster : uint32_t
 
 DECLARE_REFLECTION_ENUM(ConservativeRaster);
 
+DOCUMENT(R"(A combiner to apply when determining a pixel shading rate.
+
+.. data:: Keep
+
+  Keep the first input to the combiner.
+
+.. data:: Passthrough
+
+  Keep the first input to the combiner. Alias for :data:`Keep`, for D3D terminology.
+
+.. data:: Replace
+
+  Replace with the second input to the combiner.
+
+.. data:: Override
+
+  Replace with the second input to the combiner. Alias for :data:`Replace`, for D3D terminology.
+
+.. data:: Min
+
+  Use the minimum (finest rate) of the two inputs.
+
+.. data:: Max
+
+  Use the maximum (coarsest rate) of the two inputs.
+
+.. data:: Multiply
+
+  Multiply the two rates together (e.g. 1x1 and 1x2 = 1x2, 2x2 and 2x2 = 4x4). Note that D3D names
+  this 'sum' misleadingly.
+)");
+enum class ShadingRateCombiner : uint32_t
+{
+  Keep,
+  Passthrough = Keep,
+  Replace,
+  Override = Replace,
+  Min,
+  Max,
+  Multiply,
+};
+
+DECLARE_REFLECTION_ENUM(ShadingRateCombiner);
+
 DOCUMENT(R"(The line rasterization mode.
 
 .. data:: Default

@@ -915,6 +915,10 @@ void D3D12PipelineStateViewer::clearState()
   ui->frontCCW->setPixmap(tick);
   ui->conservativeRaster->setPixmap(cross);
 
+  ui->baseShadingRate->setText(lit("1x1"));
+  ui->shadingRateCombiners->setText(lit("Passthrough, Passthrough"));
+  ui->shadingRateImage->setText(ToQStr(ResourceId()));
+
   ui->depthBias->setText(lit("0.0"));
   ui->depthBiasClamp->setText(lit("0.0"));
   ui->slopeScaledBias->setText(lit("0.0"));
@@ -1789,6 +1793,15 @@ void D3D12PipelineStateViewer::setState()
   ui->conservativeRaster->setPixmap(
       state.rasterizer.state.conservativeRasterization != ConservativeRaster::Disabled ? tick
                                                                                        : cross);
+
+  ui->baseShadingRate->setText(QFormatStr("%1x%2")
+                                   .arg(state.rasterizer.state.baseShadingRate.first)
+                                   .arg(state.rasterizer.state.baseShadingRate.second));
+  ui->shadingRateCombiners->setText(
+      QFormatStr("%1, %2")
+          .arg(ToQStr(state.rasterizer.state.shadingRateCombiners.first, GraphicsAPI::D3D12))
+          .arg(ToQStr(state.rasterizer.state.shadingRateCombiners.second, GraphicsAPI::D3D12)));
+  ui->shadingRateImage->setText(ToQStr(state.rasterizer.state.shadingRateImage));
 
   ////////////////////////////////////////////////
   // Output Merger

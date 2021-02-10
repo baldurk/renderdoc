@@ -324,6 +324,20 @@ rdcstr DoStringise(const ConservativeRaster &el)
 }
 
 template <>
+rdcstr DoStringise(const ShadingRateCombiner &el)
+{
+  BEGIN_ENUM_STRINGISE(ShadingRateCombiner)
+  {
+    STRINGISE_ENUM_CLASS(Keep);
+    STRINGISE_ENUM_CLASS(Replace);
+    STRINGISE_ENUM_CLASS(Min);
+    STRINGISE_ENUM_CLASS(Max);
+    STRINGISE_ENUM_CLASS(Multiply);
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
 rdcstr DoStringise(const LineRaster &el)
 {
   BEGIN_ENUM_STRINGISE(LineRaster)

@@ -2201,19 +2201,6 @@
           <property name="spacing">
            <number>0</number>
           </property>
-          <item row="0" column="0">
-           <widget class="QLabel" name="fillModeLabel">
-            <property name="text">
-             <string>Fill Mode:</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-            <property name="wordWrap">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
           <item row="0" column="1">
            <widget class="QLabel" name="fillMode">
             <property name="font">
@@ -2232,28 +2219,15 @@
             </property>
            </widget>
           </item>
-          <item row="0" column="2">
-           <widget class="QLabel" name="cullModeLabel">
-            <property name="text">
-             <string>Cull Mode:</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-            <property name="wordWrap">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="3">
-           <widget class="QLabel" name="cullMode">
+          <item row="1" column="1">
+           <widget class="QLabel" name="depthBias">
             <property name="font">
              <font>
               <pointsize>12</pointsize>
              </font>
             </property>
             <property name="text">
-             <string>None</string>
+             <string>0.00</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -2263,10 +2237,26 @@
             </property>
            </widget>
           </item>
-          <item row="0" column="4">
-           <widget class="QLabel" name="frontCCWLabel">
+          <item row="3" column="2">
+           <spacer name="rastVSpacer">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Preferred</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="0" column="0">
+           <widget class="QLabel" name="fillModeLabel">
             <property name="text">
-             <string>Front CCW:</string>
+             <string>Fill Mode:</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -2276,19 +2266,29 @@
             </property>
            </widget>
           </item>
-          <item row="0" column="5">
-           <widget class="QLabel" name="frontCCW">
+          <item row="1" column="0">
+           <widget class="QLabel" name="depthBiasLabel">
             <property name="text">
-             <string/>
-            </property>
-            <property name="pixmap">
-             <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
+             <string>Depth Bias:</string>
             </property>
             <property name="alignment">
-             <set>Qt::AlignCenter</set>
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
             </property>
-            <property name="margin">
-             <number>4</number>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="4">
+           <widget class="QLabel" name="lineAALabel">
+            <property name="text">
+             <string>Line AA:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -2296,6 +2296,19 @@
            <widget class="QLabel" name="conservativeRasterLabel">
             <property name="text">
              <string>Conservative Raster:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="6">
+           <widget class="QLabel" name="forcedSampleCountLabel">
+            <property name="text">
+             <string>Forced Sample Count:</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -2321,28 +2334,13 @@
             </property>
            </widget>
           </item>
-          <item row="1" column="0">
-           <widget class="QLabel" name="depthBiasLabel">
+          <item row="2" column="3">
+           <widget class="QLabel" name="multisample">
             <property name="text">
-             <string>Depth Bias:</string>
+             <string/>
             </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-            <property name="wordWrap">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="1">
-           <widget class="QLabel" name="depthBias">
-            <property name="font">
-             <font>
-              <pointsize>12</pointsize>
-             </font>
-            </property>
-            <property name="text">
-             <string>0.00</string>
+            <property name="pixmap">
+             <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -2352,28 +2350,13 @@
             </property>
            </widget>
           </item>
-          <item row="1" column="2">
-           <widget class="QLabel" name="depthBiasClampLabel">
+          <item row="0" column="5">
+           <widget class="QLabel" name="frontCCW">
             <property name="text">
-             <string>Depth Bias Clamp:</string>
+             <string/>
             </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-            <property name="wordWrap">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="3">
-           <widget class="QLabel" name="depthBiasClamp">
-            <property name="font">
-             <font>
-              <pointsize>12</pointsize>
-             </font>
-            </property>
-            <property name="text">
-             <string>0.00</string>
+            <property name="pixmap">
+             <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -2383,16 +2366,19 @@
             </property>
            </widget>
           </item>
-          <item row="1" column="4">
-           <widget class="QLabel" name="slopeScaledBiasLabel">
+          <item row="2" column="1">
+           <widget class="QLabel" name="depthClip">
             <property name="text">
-             <string>Slope-Scaled Bias:</string>
+             <string/>
+            </property>
+            <property name="pixmap">
+             <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
             </property>
             <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+             <set>Qt::AlignCenter</set>
             </property>
-            <property name="wordWrap">
-             <bool>true</bool>
+            <property name="margin">
+             <number>4</number>
             </property>
            </widget>
           </item>
@@ -2405,66 +2391,6 @@
             </property>
             <property name="text">
              <string>0.00</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignCenter</set>
-            </property>
-            <property name="margin">
-             <number>4</number>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="6">
-           <widget class="QLabel" name="forcedSampleCountLabel">
-            <property name="text">
-             <string>Forced Sample Count:</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-            <property name="wordWrap">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="7">
-           <widget class="QLabel" name="forcedSampleCount">
-            <property name="font">
-             <font>
-              <pointsize>12</pointsize>
-             </font>
-            </property>
-            <property name="text">
-             <string>0</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignCenter</set>
-            </property>
-            <property name="margin">
-             <number>4</number>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="0">
-           <widget class="QLabel" name="depthClipLabel">
-            <property name="text">
-             <string>Depth Clip:</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-            <property name="wordWrap">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="1">
-           <widget class="QLabel" name="depthClip">
-            <property name="text">
-             <string/>
-            </property>
-            <property name="pixmap">
-             <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -2487,26 +2413,26 @@
             </property>
            </widget>
           </item>
-          <item row="2" column="3">
-           <widget class="QLabel" name="multisample">
-            <property name="text">
-             <string/>
+          <item row="0" column="10">
+           <spacer name="rastHSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
             </property>
-            <property name="pixmap">
-             <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
+            <property name="sizeType">
+             <enum>QSizePolicy::MinimumExpanding</enum>
             </property>
-            <property name="alignment">
-             <set>Qt::AlignCenter</set>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
             </property>
-            <property name="margin">
-             <number>4</number>
-            </property>
-           </widget>
+           </spacer>
           </item>
-          <item row="2" column="4">
-           <widget class="QLabel" name="lineAALabel">
+          <item row="2" column="0">
+           <widget class="QLabel" name="depthClipLabel">
             <property name="text">
-             <string>Line AA:</string>
+             <string>Depth Clip:</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -2516,26 +2442,23 @@
             </property>
            </widget>
           </item>
-          <item row="2" column="5">
-           <widget class="QLabel" name="lineAA">
+          <item row="0" column="4">
+           <widget class="QLabel" name="frontCCWLabel">
             <property name="text">
-             <string/>
-            </property>
-            <property name="pixmap">
-             <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
+             <string>Front CCW:</string>
             </property>
             <property name="alignment">
-             <set>Qt::AlignCenter</set>
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
             </property>
-            <property name="margin">
-             <number>4</number>
+            <property name="wordWrap">
+             <bool>true</bool>
             </property>
            </widget>
           </item>
-          <item row="2" column="6">
-           <widget class="QLabel" name="sampleMaskLabel">
+          <item row="1" column="4">
+           <widget class="QLabel" name="slopeScaledBiasLabel">
             <property name="text">
-             <string>Sample Mask:</string>
+             <string>Slope-Scaled Bias:</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -2563,37 +2486,162 @@
             </property>
            </widget>
           </item>
-          <item row="3" column="2">
-           <spacer name="rastVSpacer">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
+          <item row="0" column="3">
+           <widget class="QLabel" name="cullMode">
+            <property name="font">
+             <font>
+              <pointsize>12</pointsize>
+             </font>
             </property>
-            <property name="sizeType">
-             <enum>QSizePolicy::Preferred</enum>
+            <property name="text">
+             <string>None</string>
             </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>0</width>
-              <height>0</height>
-             </size>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
             </property>
-           </spacer>
+            <property name="margin">
+             <number>4</number>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="3">
+           <widget class="QLabel" name="depthBiasClamp">
+            <property name="font">
+             <font>
+              <pointsize>12</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>0.00</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+            <property name="margin">
+             <number>4</number>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QLabel" name="cullModeLabel">
+            <property name="text">
+             <string>Cull Mode:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="2">
+           <widget class="QLabel" name="depthBiasClampLabel">
+            <property name="text">
+             <string>Depth Bias Clamp:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="6">
+           <widget class="QLabel" name="sampleMaskLabel">
+            <property name="text">
+             <string>Sample Mask:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+           </widget>
           </item>
           <item row="0" column="8">
-           <spacer name="rastHSpacer">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
+           <widget class="QLabel" name="shadingRateLabel">
+            <property name="text">
+             <string>Base Shading Rate:</string>
             </property>
-            <property name="sizeType">
-             <enum>QSizePolicy::MinimumExpanding</enum>
+           </widget>
+          </item>
+          <item row="2" column="5">
+           <widget class="QLabel" name="lineAA">
+            <property name="text">
+             <string/>
             </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>0</width>
-              <height>0</height>
-             </size>
+            <property name="pixmap">
+             <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
             </property>
-           </spacer>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+            <property name="margin">
+             <number>4</number>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="7">
+           <widget class="QLabel" name="forcedSampleCount">
+            <property name="font">
+             <font>
+              <pointsize>12</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>0</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+            <property name="margin">
+             <number>4</number>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="9">
+           <widget class="QLabel" name="baseShadingRate">
+            <property name="font">
+             <font>
+              <pointsize>12</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>1x1</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="8">
+           <widget class="QLabel" name="shadingRateImageLabel">
+            <property name="text">
+             <string>Shading Rate Image:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="9">
+           <widget class="RDLabel" name="shadingRateImage"/>
+          </item>
+          <item row="1" column="8">
+           <widget class="QLabel" name="shadingRateCombinersLabel">
+            <property name="text">
+             <string>Shading Rate Combiners:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="9">
+           <widget class="QLabel" name="shadingRateCombiners">
+            <property name="font">
+             <font>
+              <pointsize>12</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>Keep, Keep</string>
+            </property>
+           </widget>
           </item>
          </layout>
         </widget>

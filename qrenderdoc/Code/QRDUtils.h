@@ -58,14 +58,11 @@ inline QString ToQStr(const T &el)
   return QString(ToStr(el));
 }
 
-// overload for a couple of things that need to know the pipeline type when converting
+// overloads for a couple of things that need to know the pipeline type when converting
 QString ToQStr(const ResourceUsage usage, const GraphicsAPI apitype);
-
-// overload for a couple of things that need to know the pipeline type when converting
 QString ToQStr(const ShaderStage stage, const GraphicsAPI apitype);
-
-// overload for a couple of things that need to know the pipeline type when converting
 QString ToQStr(const AddressMode addr, const GraphicsAPI apitype);
+QString ToQStr(const ShadingRateCombiner addr, const GraphicsAPI apitype);
 
 inline QMetaType::Type GetVariantMetatype(const QVariant &v)
 {
