@@ -4393,8 +4393,6 @@ void WrappedVulkan::AddEvent()
 
   apievent.chunkIndex = uint32_t(m_StructuredFile->chunks.size() - 1);
 
-  apievent.callstack = m_ChunkMetadata.callstack;
-
   for(size_t i = 0; i < m_EventMessages.size(); i++)
     m_EventMessages[i].eventId = apievent.eventId;
 

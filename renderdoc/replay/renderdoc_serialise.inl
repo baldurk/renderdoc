@@ -537,11 +537,10 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, APIEvent &el)
 {
   SERIALISE_MEMBER(eventId);
-  SERIALISE_MEMBER(callstack);
   SERIALISE_MEMBER(chunkIndex);
   SERIALISE_MEMBER(fileOffset);
 
-  SIZE_CHECK(48);
+  SIZE_CHECK(16);
 }
 
 template <typename SerialiserType>

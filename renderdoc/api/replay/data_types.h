@@ -723,12 +723,6 @@ of results part way through the multi draw.
 )");
   uint32_t eventId = 0;
 
-  DOCUMENT(R"(The addresses in the CPU callstack where this function was called.
-    
-:type: List[int]
-)");
-  rdcarray<uint64_t> callstack;
-
   DOCUMENT("The chunk index for this function call in the structured file.");
   uint32_t chunkIndex = 0;
 

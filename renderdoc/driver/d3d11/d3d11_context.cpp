@@ -1173,8 +1173,6 @@ void WrappedID3D11DeviceContext::AddEvent()
 
   apievent.chunkIndex = uint32_t(m_StructuredFile->chunks.size() - 1);
 
-  apievent.callstack = m_ChunkMetadata.callstack;
-
   m_CurEvents.push_back(apievent);
 
   if(IsLoading(m_State))

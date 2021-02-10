@@ -51,7 +51,15 @@ class GL_Callstacks(rdtest.TestCase):
             8002
         ]
 
-        callstack = cap.GetResolve(list(event.callstack))
+        sdfile = self.controller.GetStructuredFile()
+
+        if event.chunkIndex < 0 or event.chunkIndex > len(sdfile.chunks):
+            raise rdtest.TestFailureException("Event {} has invalid chunk index {}"
+                                              .format(event.eventId, event.chunkIndex))
+
+        chunk = sdfile.chunks[event.chunkIndex]
+
+        callstack = cap.GetResolve(list(chunk.metadata.callstack))
 
         if len(callstack) < len(expected_funcs):
             raise rdtest.TestFailureException("Resolved callstack isn't long enough ({} stack frames), expected at least {}".format(len(event.callstack), len(expected_funcs)))

@@ -25,8 +25,6 @@
 #include "APIInspector.h"
 #include "ui_APIInspector.h"
 
-Q_DECLARE_METATYPE(APIEvent);
-
 APIInspector::APIInspector(ICaptureContext &ctx, QWidget *parent)
     : QFrame(parent), ui(new Ui::APIInspector), m_Ctx(ctx)
 {
@@ -159,17 +157,27 @@ void APIInspector::on_apiEvents_itemSelectionChanged()
 {
   RDTreeWidgetItem *node = ui->apiEvents->selectedItem();
 
-  if(!node)
-    return;
+  SDChunk *chunk = NULL;
+  // search up the tree to find the next parent with a chunk tag
+  while(node)
+  {
+    chunk = (SDChunk *)node->tag().value<quintptr>();
 
-  APIEvent ev = node->tag().value<APIEvent>();
+    // if we found one, break
+    if(chunk)
+      break;
 
-  if(!ev.callstack.isEmpty())
+    // move to the parent
+    node = node->parent();
+  }
+
+  if(chunk && !chunk->metadata.callstack.isEmpty())
   {
     if(m_Ctx.Replay().GetCaptureAccess())
     {
-      m_Ctx.Replay().AsyncInvoke([this, ev](IReplayController *) {
-        rdcarray<rdcstr> stack = m_Ctx.Replay().GetCaptureAccess()->GetResolve(ev.callstack);
+      m_Ctx.Replay().AsyncInvoke([this, chunk](IReplayController *) {
+        rdcarray<rdcstr> stack =
+            m_Ctx.Replay().GetCaptureAccess()->GetResolve(chunk->metadata.callstack);
 
         GUIInvoke::call(this, [this, stack]() { addCallstack(stack); });
       });
@@ -207,9 +215,11 @@ void APIInspector::fillAPIView()
     {
       RDTreeWidgetItem *root = new RDTreeWidgetItem({QString::number(ev.eventId), QString()});
 
+      SDChunk *chunk = NULL;
+
       if(ev.chunkIndex < file.chunks.size())
       {
-        SDChunk *chunk = file.chunks[ev.chunkIndex];
+        chunk = file.chunks[ev.chunkIndex];
 
         m_Chunks.push_back(chunk);
 
@@ -225,7 +235,7 @@ void APIInspector::fillAPIView()
       if(ev.eventId == draw->eventId)
         root->setBold(true);
 
-      root->setTag(QVariant::fromValue(ev));
+      root->setTag(QVariant::fromValue((quintptr)(void *)chunk));
 
       ui->apiEvents->addTopLevelItem(root);
 

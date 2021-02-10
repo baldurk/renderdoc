@@ -1612,8 +1612,6 @@ void D3D12CommandData::AddEvent()
 
   apievent.chunkIndex = uint32_t(m_StructuredFile->chunks.size() - 1);
 
-  apievent.callstack = m_ChunkMetadata.callstack;
-
   // if we're using replay-time debug messages, fetch them now since we can do better to correlate
   // to events on replay
   if(m_pDevice->GetReplayOptions().apiValidation)
