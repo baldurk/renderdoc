@@ -99,6 +99,9 @@ Rasterizer
 .. autoclass:: renderdoc.LineRaster
   :members:
 
+.. autoclass:: renderdoc.ShadingRateCombiner
+  :members:
+
 
 Stencil
 -------
