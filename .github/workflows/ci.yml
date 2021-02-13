@@ -108,7 +108,7 @@ jobs:
     - name: Set up Visual Studio tools
       uses: microsoft/setup-msbuild@v1.0.2
     - name: Building solution
-      run: msbuild.exe renderdoc.sln "/p:Configuration=${{ matrix.configuration }}" "/p:Platform=${{ matrix.platform }}" "/p:PlatformToolset=${{ matrix.toolset }}"
+      run: msbuild.exe renderdoc.sln "/m" "/p:Configuration=${{ matrix.configuration }}" "/p:Platform=${{ matrix.platform }}" "/p:PlatformToolset=${{ matrix.toolset }}"
       shell: powershell
     - if: matrix.configuration == 'Development'
       name: Running core unit tests
