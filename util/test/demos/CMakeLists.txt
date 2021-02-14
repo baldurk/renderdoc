@@ -58,9 +58,7 @@ set(VULKAN_SRC
 
 set(OPENGL_SRC
         3rdparty/glad/glad.c
-        3rdparty/glad/glad_glx.c
         gl/gl_test.cpp
-        gl/gl_test_linux.cpp
         gl/gl_buffer_resizing.cpp
         gl/gl_buffer_spam.cpp
         gl/gl_buffer_truncation.cpp
@@ -102,9 +100,7 @@ set(OPENGL_SRC
 
 set(SRC main.cpp
         test_common.cpp
-        texture_zoo.cpp
-        linux/linux_platform.cpp
-        linux/linux_window.cpp)
+        texture_zoo.cpp)
 
 project(demos)
 
@@ -112,7 +108,15 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 endif()
 
-add_executable(demos ${SRC} ${VULKAN_SRC} ${OPENGL_SRC})
+if(NOT APPLE AND UNIX)
+    list(APPEND OPENGL_SRC
+        3rdparty/glad/glad_glx.c
+        gl/gl_test_linux.cpp)
+    list(APPEND SRC 
+        linux/linux_platform.cpp
+        linux/linux_window.cpp)
+    add_executable(demos ${SRC} ${VULKAN_SRC} ${OPENGL_SRC})
+endif()
 
 install(TARGETS demos DESTINATION .)
 
