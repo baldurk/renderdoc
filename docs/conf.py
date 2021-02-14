@@ -412,6 +412,9 @@ def build_finished(app, exception):
     if exception is not None:
         return
 
+    print(rd)
+    print(qrd)
+
     # Get list of documented/indexed python objects
     pydomain = app.env.get_domain('py')
     if not hasattr(pydomain, 'objects'):
