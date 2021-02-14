@@ -242,7 +242,7 @@ struct TestMetadata
 
   bool IsAvailable() const { return test->Avail.empty(); }
   const char *AvailMessage() const { return test->Avail.c_str(); }
-  bool operator<(const TestMetadata &o)
+  bool operator<(const TestMetadata &o) const
   {
     if(API != o.API)
       return API < o.API;
