@@ -8,7 +8,14 @@ A lot of the tests rely on a 'demos' program which contains small self-contained
 
 To build on windows, open `demos.sln` and compile. There are no required external dependencies
 
-To build on linux, compile using cmake with `demos/CMakeLists.txt`. You'll need `libX11`, `libxcb`, and `libX11-xcb`. These are all needed to build RenderDoc with GL support so you likely have them already.
+To build on linux, compile using cmake with `demos/CMakeLists.txt` ie.
+
+```
+cmake -Bbuild -Hdemos
+make -C build
+```
+
+You'll need `libX11`, `libxcb`, and `libX11-xcb`. These are all needed to build RenderDoc with GL support so you likely have them already.
 
 **NOTE:** Currently there is one soft external dependency. If shaderc is not linked into the demos program, it expects to be able to run `glslc` at runtime to compile shaders to SPIR-V. Without this, some tests will be disabled.
 
