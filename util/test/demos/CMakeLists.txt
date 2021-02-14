@@ -107,6 +107,11 @@ set(SRC main.cpp
         linux/linux_window.cpp)
 
 project(demos)
+
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+endif()
+
 add_executable(demos ${SRC} ${VULKAN_SRC} ${OPENGL_SRC})
 
 install(TARGETS demos DESTINATION .)
