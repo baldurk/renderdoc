@@ -409,6 +409,9 @@ def build_finished(app, exception):
     from sphinx.domains.python import PythonDomain
     from sphinx.errors import SphinxError
 
+    if exception is not None:
+        return
+
     # Get list of documented/indexed python objects
     pydomain = app.env.get_domain('py')
     if not hasattr(pydomain, 'objects'):
