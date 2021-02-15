@@ -464,6 +464,9 @@ struct BufferConfiguration
   uint32_t numRows = 0, unclampedNumRows = 0;
   uint32_t pagingOffset = 0;
 
+  bool noVertices = false;
+  bool noInstances = false;
+
   // we can have two index buffers for VSOut data:
   // the original index buffer is used for the displayed value (in displayIndices), and the actual
   // potentially remapped or permuated index buffer used for fetching data (in indices).
@@ -491,6 +494,9 @@ struct BufferConfiguration
     numRows = o.numRows;
     unclampedNumRows = o.unclampedNumRows;
     pagingOffset = o.pagingOffset;
+
+    noVertices = o.noVertices;
+    noInstances = o.noInstances;
 
     displayIndices = o.displayIndices;
     if(displayIndices)
@@ -536,6 +542,9 @@ struct BufferConfiguration
     genericsEnabled.clear();
     numRows = 0;
     unclampedNumRows = 0;
+
+    noVertices = false;
+    noInstances = false;
   }
 
   QString columnName(int col) const
@@ -795,6 +804,15 @@ public:
     int ret = config.numRows;
     if(config.pagingOffset > 0)
       ret++;
+
+    if(ret == 0)
+    {
+      if(config.noVertices)
+        ret++;
+      if(config.noInstances)
+        ret++;
+    }
+
     return ret;
   }
   int columnCount(const QModelIndex &parent = QModelIndex()) const override
@@ -1000,6 +1018,31 @@ public:
 
       if(role == Qt::DisplayRole)
       {
+        if(config.numRows == 0 && (config.noInstances || config.noVertices))
+        {
+          if(col < 2)
+            return lit("---");
+
+          if(col != 2)
+            return QVariant();
+
+          if(config.noVertices && config.noInstances)
+          {
+            if(row == 0)
+              return lit("No Vertices");
+            else
+              return lit("No Instances");
+          }
+          else if(config.noVertices)
+          {
+            return lit("No Vertices");
+          }
+          else if(config.noInstances)
+          {
+            return lit("No Instances");
+          }
+        }
+
         if(config.unclampedNumRows > config.pagingOffset + config.numRows && row >= config.numRows - 2)
         {
           if(meshView)
@@ -1507,6 +1550,9 @@ static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufda
   bufdata->vsinConfig.numRows = 0;
   bufdata->vsinConfig.unclampedNumRows = 0;
 
+  bufdata->vsinConfig.noVertices = false;
+  bufdata->vsinConfig.noInstances = false;
+
   if(draw)
   {
     bufdata->vsinConfig.numRows = draw->numIndices;
@@ -1588,8 +1634,14 @@ static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufda
       bufdata->vsinConfig.numRows = numRowsUpperBound + 100;
     }
 
+    if((draw->flags & DrawFlags::Drawcall) && draw->numIndices == 0)
+      bufdata->vsinConfig.noVertices = true;
+
     if((draw->flags & DrawFlags::Instanced) && draw->numInstances == 0)
+    {
+      bufdata->vsinConfig.noInstances = true;
       bufdata->vsinConfig.numRows = bufdata->vsinConfig.unclampedNumRows = 0;
+    }
   }
 
   bufdata->vsoutConfig.columns.clear();
@@ -2529,7 +2581,7 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
 
   bufdata->vsinConfig.baseVertex = draw ? draw->baseVertex : 0;
 
-  ui->instance->setEnabled(draw && draw->numInstances > 1);
+  ui->instance->setEnabled(draw && (draw->flags & DrawFlags::Instanced));
   if(!ui->instance->isEnabled())
     ui->instance->setValue(0);
 
