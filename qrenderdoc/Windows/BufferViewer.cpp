@@ -1587,6 +1587,9 @@ static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufda
       bufdata->vsinConfig.unclampedNumRows = bufdata->vsinConfig.numRows;
       bufdata->vsinConfig.numRows = numRowsUpperBound + 100;
     }
+
+    if((draw->flags & DrawFlags::Instanced) && draw->numInstances == 0)
+      bufdata->vsinConfig.numRows = bufdata->vsinConfig.unclampedNumRows = 0;
   }
 
   bufdata->vsoutConfig.columns.clear();
@@ -1614,10 +1617,12 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
 
   rdcarray<BoundVBuffer> vbs = ctx.CurPipelineState().GetVBuffers();
 
+  uint32_t numIndices = draw ? draw->numIndices : 0;
+
   bytebuf idata;
   if(ib.resourceId != ResourceId() && draw && (draw->flags & DrawFlags::Indexed))
   {
-    uint64_t readBytes = draw->numIndices * draw->indexByteWidth;
+    uint64_t readBytes = numIndices * draw->indexByteWidth;
     uint32_t offset = draw->indexOffset * draw->indexByteWidth;
 
     if(ib.byteSize > offset)
@@ -1636,7 +1641,7 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
 
   if(draw && draw->indexByteWidth != 0 && !idata.isEmpty())
     data->vsinConfig.indices->storage.resize(
-        sizeof(uint32_t) * qMin(draw->numIndices, ((uint32_t)idata.size() / draw->indexByteWidth)));
+        sizeof(uint32_t) * qMin(numIndices, ((uint32_t)idata.size() / draw->indexByteWidth)));
   else if(draw && (draw->flags & DrawFlags::Indexed))
     data->vsinConfig.indices->storage.resize(sizeof(uint32_t));
 
@@ -1644,7 +1649,7 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
 
   uint32_t maxIndex = 0;
   if(draw)
-    maxIndex = qMax(1U, draw->numIndices) - 1;
+    maxIndex = qMax(1U, numIndices) - 1;
 
   if(draw && !idata.isEmpty())
   {
@@ -1653,7 +1658,7 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
     {
       uint8_t primRestart = data->vsinConfig.primRestart & 0xff;
 
-      for(size_t i = 0; i < idata.size() && (uint32_t)i < draw->numIndices; i++)
+      for(size_t i = 0; i < idata.size() && (uint32_t)i < numIndices; i++)
       {
         indices[i] = (uint32_t)idata[i];
         if(primRestart && indices[i] == primRestart)
@@ -1667,7 +1672,7 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
       uint16_t primRestart = data->vsinConfig.primRestart & 0xffff;
 
       uint16_t *src = (uint16_t *)idata.data();
-      for(size_t i = 0; i < idata.size() / sizeof(uint16_t) && (uint32_t)i < draw->numIndices; i++)
+      for(size_t i = 0; i < idata.size() / sizeof(uint16_t) && (uint32_t)i < numIndices; i++)
       {
         indices[i] = (uint32_t)src[i];
         if(primRestart && indices[i] == primRestart)
@@ -1680,9 +1685,9 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
     {
       uint32_t primRestart = data->vsinConfig.primRestart;
 
-      memcpy(indices, idata.data(), qMin(idata.size(), draw->numIndices * sizeof(uint32_t)));
+      memcpy(indices, idata.data(), qMin(idata.size(), numIndices * sizeof(uint32_t)));
 
-      for(uint32_t i = 0; i < idata.size() / sizeof(uint32_t) && i < draw->numIndices; i++)
+      for(uint32_t i = 0; i < idata.size() / sizeof(uint32_t) && i < numIndices; i++)
       {
         if(primRestart && indices[i] == primRestart)
           continue;
@@ -1777,7 +1782,7 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
 
   if(draw && data->postVS.indexResourceId != ResourceId() && (draw->flags & DrawFlags::Indexed))
     idata = r->GetBufferData(data->postVS.indexResourceId, data->postVS.indexByteOffset,
-                             draw->numIndices * data->postVS.indexByteStride);
+                             numIndices * data->postVS.indexByteStride);
 
   indices = NULL;
   if(data->vsoutConfig.indices)
@@ -1793,23 +1798,23 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
     data->vsoutConfig.indices = new BufferData();
     if(draw && draw->indexByteWidth != 0 && !idata.isEmpty())
     {
-      data->vsoutConfig.indices->storage.resize(sizeof(uint32_t) * draw->numIndices);
+      data->vsoutConfig.indices->storage.resize(sizeof(uint32_t) * numIndices);
       indices = (uint32_t *)data->vsoutConfig.indices->data();
 
       if(draw->indexByteWidth == 1)
       {
-        for(size_t i = 0; i < idata.size() && (uint32_t)i < draw->numIndices; i++)
+        for(size_t i = 0; i < idata.size() && (uint32_t)i < numIndices; i++)
           indices[i] = (uint32_t)idata[i];
       }
       else if(draw->indexByteWidth == 2)
       {
         uint16_t *src = (uint16_t *)idata.data();
-        for(size_t i = 0; i < idata.size() / sizeof(uint16_t) && (uint32_t)i < draw->numIndices; i++)
+        for(size_t i = 0; i < idata.size() / sizeof(uint16_t) && (uint32_t)i < numIndices; i++)
           indices[i] = (uint32_t)src[i];
       }
       else if(draw->indexByteWidth == 4)
       {
-        memcpy(indices, idata.data(), qMin(idata.size(), draw->numIndices * sizeof(uint32_t)));
+        memcpy(indices, idata.data(), qMin(idata.size(), numIndices * sizeof(uint32_t)));
       }
     }
   }
@@ -3035,6 +3040,10 @@ void BufferViewer::UI_CalculateMeshFormats()
         m_VSInPosition.numIndices = vsinConfig.numRows;
       else
         m_VSInPosition.numIndices = draw->numIndices;
+
+      if((draw->flags & DrawFlags::Instanced) && draw->numInstances == 0)
+        m_VSInPosition.numIndices = 0;
+
       m_VSInPosition.topology = draw->topology;
       m_VSInPosition.indexByteStride = draw->indexByteWidth;
       m_VSInPosition.baseVertex = draw->baseVertex;
