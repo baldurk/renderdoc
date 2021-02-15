@@ -2633,28 +2633,38 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
 
       buf->stride = qMax((size_t)1, buf->stride);
 
-      uint64_t unclampedLen = m_ByteSize;
-      if(unclampedLen == UINT64_MAX)
-      {
-        unclampedLen =
-            m_IsBuffer && m_BufferID != ResourceId() ? m_Ctx.GetBuffer(m_BufferID)->length : 0;
-      }
+      // the "permanent" range starts at ByteOffset and goes for m_ByteSize
+      uint64_t rangeStart = m_ByteOffset;
+      uint64_t rangeEnd = m_ByteOffset + m_ByteSize;
 
-      uint64_t bufOffs = m_ByteOffset;
+      // if the byte size is unbounded, the end is unbounded - fix the potential overflow from
+      // adding the offset
+      if(m_ByteSize == UINT64_MAX)
+        rangeEnd = UINT64_MAX;
 
-      if(bufOffs >= unclampedLen)
-        unclampedLen = 0;
-      else
-        unclampedLen = unclampedLen - bufOffs;
+      // get the underlying buffer length
+      uint64_t bufferLength =
+          m_IsBuffer && m_BufferID != ResourceId() ? m_Ctx.GetBuffer(m_BufferID)->length : 0;
 
-      unclampedLen -= m_PagingByteOffset;
+      // clamp the range to the buffer length, which may end up with it being empty
+      rangeEnd = qMin(rangeEnd, bufferLength);
+      rangeStart = qMin(rangeStart, bufferLength);
 
-      uint64_t clampedLen = qMin(unclampedLen, uint64_t(buf->stride * (MaxVisibleRows + 2)));
+      // store the number of rows unclamped without the paging window
+      bufdata->vsinConfig.unclampedNumRows =
+          uint32_t((rangeEnd - rangeStart + buf->stride - 1) / buf->stride);
+
+      // advance the range by the paging offset
+      rangeStart = qMin(rangeEnd, rangeStart + m_PagingByteOffset);
+
+      // calculate the length clamped to the MaxVisibleRows
+      uint64_t clampedLength =
+          qMin(rangeEnd - rangeStart, uint64_t(buf->stride * (MaxVisibleRows + 2)));
 
       if(m_IsBuffer)
       {
-        if(clampedLen > 0)
-          buf->storage = r->GetBufferData(m_BufferID, CurrentByteOffset(), clampedLen);
+        if(clampedLength > 0)
+          buf->storage = r->GetBufferData(m_BufferID, CurrentByteOffset(), clampedLength);
       }
       else
       {
@@ -2665,8 +2675,6 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
 
       bufdata->vsinConfig.pagingOffset = uint32_t(m_PagingByteOffset / buf->stride);
       bufdata->vsinConfig.numRows = uint32_t((bufCount + buf->stride - 1) / buf->stride);
-      bufdata->vsinConfig.unclampedNumRows =
-          uint32_t((unclampedLen + m_PagingByteOffset + buf->stride - 1) / buf->stride);
 
       // ownership passes to model
       bufdata->vsinConfig.buffers.push_back(buf);
