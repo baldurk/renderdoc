@@ -1977,7 +1977,7 @@ void GLPipelineStateViewer::setState()
         }
 
         QString slot = tr("Depth Only");
-        if(i == 1)
+        if(dsIdx == 1)
           slot = tr("Stencil Only");
 
         bool depthstencil = false;
