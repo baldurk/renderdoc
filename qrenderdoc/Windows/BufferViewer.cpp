@@ -2680,11 +2680,11 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       if(!m_MeshView)
         numRows = qMax(numRows, bufdata->vsinConfig.unclampedNumRows);
 
-      ui->rowOffset->setMaximum((int)qMax(0U, numRows - 1));
+      ui->rowOffset->setMaximum((int)qMax(1U, numRows) - 1);
 
-      ScrollToRow(ui->vsinData, qMin(int(bufdata->vsinConfig.numRows - 1), bufdata->vsinVert));
-      ScrollToRow(ui->vsoutData, qMin(int(bufdata->vsoutConfig.numRows - 1), bufdata->vsoutVert));
-      ScrollToRow(ui->gsoutData, qMin(int(bufdata->gsoutConfig.numRows - 1), bufdata->gsoutVert));
+      ScrollToRow(ui->vsinData, qMin(int(bufdata->vsinConfig.numRows) - 1, bufdata->vsinVert));
+      ScrollToRow(ui->vsoutData, qMin(int(bufdata->vsoutConfig.numRows) - 1, bufdata->vsoutVert));
+      ScrollToRow(ui->gsoutData, qMin(int(bufdata->gsoutConfig.numRows) - 1, bufdata->gsoutVert));
 
       ui->vsinData->horizontalScrollBar()->setValue(bufdata->vsinHoriz);
       ui->vsoutData->horizontalScrollBar()->setValue(bufdata->vsoutHoriz);
