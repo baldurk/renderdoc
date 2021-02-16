@@ -71,7 +71,7 @@ DECL_VKFLAG(VkDescriptorSetLayoutCreate);
 DECL_VKFLAG_EMPTY(VkDescriptorUpdateTemplateCreate);
 DECL_VKFLAG_EMPTY(VkDeviceCreate);
 DECL_VKFLAG(VkDeviceQueueCreate);
-DECL_VKFLAG_EMPTY(VkEventCreate);
+DECL_VKFLAG(VkEventCreate);
 DECL_VKFLAG(VkExternalFenceHandleType);
 DECL_VKFLAG(VkExternalFenceFeature);
 DECL_VKFLAG(VkExternalMemoryHandleType);
@@ -1175,20 +1175,6 @@ SERIALISE_VK_HANDLES();
   /* VK_INTEL_shader_integer_functions2 */                                                             \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_INTEGER_FUNCTIONS_2_FEATURES_INTEL)       \
                                                                                                        \
-  /* VK_KHR_fragment_shading_rate */                                                                   \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR)                       \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_FRAGMENT_SHADING_RATE_STATE_CREATE_INFO_KHR)            \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_PROPERTIES_KHR)            \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR)              \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_KHR)                       \
-                                                                                                       \
-  /* VK_KHR_pipeline_library */                                                                        \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_LIBRARY_CREATE_INFO_KHR)                                \
-                                                                                                       \
-  /* VK_KHR_portability_subset */                                                                      \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PORTABILITY_SUBSET_FEATURES_KHR)                 \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PORTABILITY_SUBSET_PROPERTIES_KHR)               \
-                                                                                                       \
   /* VK_KHR_acceleration_structure */                                                                  \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR)                  \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR)                     \
@@ -1206,6 +1192,20 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_PROPERTIES_KHR)           \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR)                 \
                                                                                                        \
+  /* VK_KHR_fragment_shading_rate */                                                                   \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR)                       \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_FRAGMENT_SHADING_RATE_STATE_CREATE_INFO_KHR)            \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_PROPERTIES_KHR)            \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR)              \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_KHR)                       \
+                                                                                                       \
+  /* VK_KHR_pipeline_library */                                                                        \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_LIBRARY_CREATE_INFO_KHR)                                \
+                                                                                                       \
+  /* VK_KHR_portability_subset */                                                                      \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PORTABILITY_SUBSET_FEATURES_KHR)                 \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PORTABILITY_SUBSET_PROPERTIES_KHR)               \
+                                                                                                       \
   /* VK_KHR_ray_tracing_pipeline */                                                                    \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR)                            \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_INTERFACE_CREATE_INFO_KHR)                  \
@@ -1215,6 +1215,22 @@ SERIALISE_VK_HANDLES();
                                                                                                        \
   /* VK_KHR_ray_query */                                                                               \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR)                          \
+                                                                                                       \
+  /* VK_KHR_synchronization2 */                                                                        \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MEMORY_BARRIER_2_KHR)                                            \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2_KHR)                                     \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2_KHR)                                      \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DEPENDENCY_INFO_KHR)                                             \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SUBMIT_INFO_2_KHR)                                               \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR)                                       \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO_KHR)                                  \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR)                  \
+                                                                                                       \
+  /* VK_KHR_workgroup_memory_explicit_layout */                                                        \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_WORKGROUP_MEMORY_EXPLICIT_LAYOUT_FEATURES_KHR)   \
+                                                                                                       \
+  /* VK_KHR_zero_initialize_workgroup_memory */                                                        \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ZERO_INITIALIZE_WORKGROUP_MEMORY_FEATURES_KHR)   \
                                                                                                        \
   /* VK_NV_clip_space_w_scaling */                                                                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_W_SCALING_STATE_CREATE_INFO_NV)                \
@@ -1238,6 +1254,9 @@ SERIALISE_VK_HANDLES();
   /* VK_NV_device_diagnostic_checkpoints */                                                            \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_CHECKPOINT_DATA_NV)                                              \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_QUEUE_FAMILY_CHECKPOINT_PROPERTIES_NV)                           \
+  /* VK_KHR_synchronization2 interactions */                                                           \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_QUEUE_FAMILY_CHECKPOINT_PROPERTIES_2_NV)                         \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_CHECKPOINT_DATA_2_NV)                                            \
                                                                                                        \
   /* VK_NV_device_diagnostics_config */                                                                \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DIAGNOSTICS_CONFIG_FEATURES_NV)                  \

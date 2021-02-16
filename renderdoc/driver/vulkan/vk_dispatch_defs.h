@@ -25,7 +25,7 @@
 /******************************************************************************
  * Generated from Khronos's vk.xml:
  *
- * Copyright (c) 2015-2020 The Khronos Group Inc.
+ * Copyright 2015-2021 The Khronos Group Inc.
  *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  * *
@@ -555,6 +555,16 @@ struct VkDevDispatchTable
   PFN_vkGetPipelineExecutablePropertiesKHR GetPipelineExecutablePropertiesKHR;
   PFN_vkGetPipelineExecutableStatisticsKHR GetPipelineExecutableStatisticsKHR;
   PFN_vkGetPipelineExecutableInternalRepresentationsKHR GetPipelineExecutableInternalRepresentationsKHR;
+
+  // VK_KHR_synchronization2
+  PFN_vkCmdSetEvent2KHR CmdSetEvent2KHR;
+  PFN_vkCmdResetEvent2KHR CmdResetEvent2KHR;
+  PFN_vkCmdWaitEvents2KHR CmdWaitEvents2KHR;
+  PFN_vkCmdPipelineBarrier2KHR CmdPipelineBarrier2KHR;
+  PFN_vkCmdWriteTimestamp2KHR CmdWriteTimestamp2KHR;
+  PFN_vkQueueSubmit2KHR QueueSubmit2KHR;
+  PFN_vkCmdWriteBufferMarker2AMD CmdWriteBufferMarker2AMD;
+  PFN_vkGetQueueCheckpointData2NV GetQueueCheckpointData2NV;
 
   // VK_KHR_copy_commands2
   PFN_vkCmdCopyBuffer2KHR CmdCopyBuffer2KHR;
