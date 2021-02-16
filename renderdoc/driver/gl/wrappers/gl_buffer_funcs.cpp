@@ -1126,7 +1126,7 @@ bool WrappedOpenGL::Serialise_glNamedCopyBufferSubDataEXT(SerialiserType &ser,
       draw.copySource = GetResourceManager()->GetOriginalID(srcid);
       draw.copyDestination = GetResourceManager()->GetOriginalID(dstid);
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       if(srcid == dstid)
       {
@@ -2015,7 +2015,7 @@ bool WrappedOpenGL::Serialise_glInvalidateBufferData(SerialiserType &ser, GLuint
 
       draw.copyDestination = GetResourceManager()->GetOriginalID(id);
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Discard));
     }
@@ -2094,7 +2094,7 @@ bool WrappedOpenGL::Serialise_glInvalidateBufferSubData(SerialiserType &ser, GLu
 
       draw.copyDestination = GetResourceManager()->GetOriginalID(id);
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Discard));
     }

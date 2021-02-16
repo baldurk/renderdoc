@@ -483,7 +483,7 @@ bool WrappedID3D11DeviceContext::Serialise_CopySubresourceRegion1(
         }
       }
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -581,7 +581,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearView(SerialiserType &ser, ID3D11
         draw.copyDestinationSubresource = Subresource(range.GetMinMip(), range.GetMinSlice());
       }
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -1748,7 +1748,7 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardResource(SerialiserType &ser,
       draw.copyDestination = dstOrigID;
       draw.copyDestinationSubresource = Subresource();
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       if(pResource)
         m_ResourceUses[dstLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::Discard));
@@ -1844,7 +1844,7 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView(SerialiserType &ser, ID3D
 
       draw.name = StringFormat::Fmt("DiscardView(%s)", ToStr(draw.copyDestination).c_str());
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -1981,7 +1981,7 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView1(SerialiserType &ser,
 
       draw.name = StringFormat::Fmt("DiscardView1(%s)", ToStr(draw.copyDestination).c_str());
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 

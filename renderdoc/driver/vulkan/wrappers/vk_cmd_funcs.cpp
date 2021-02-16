@@ -1210,17 +1210,6 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
 
       ObjDisp(commandBuffer)->EndCommandBuffer(Unwrap(commandBuffer));
 
-      if(HasNonMarkerEvents(BakedCommandBuffer))
-      {
-        DrawcallDescription draw;
-        draw.name = "API Calls";
-        draw.flags |= DrawFlags::APICalls;
-
-        AddDrawcall(draw, true);
-
-        m_BakedCmdBufferInfo[BakedCommandBuffer].curEventID++;
-      }
-
       {
         if(GetDrawcallStack().size() > 1)
           GetDrawcallStack().pop_back();
@@ -1595,7 +1584,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
           StringFormat::Fmt("vkCmdBeginRenderPass(%s)", MakeRenderPassOpString(false).c_str());
       draw.flags |= DrawFlags::PassBoundary | DrawFlags::BeginPass;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -1771,7 +1760,7 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(SerialiserType &ser, VkCommandBuf
                                     m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass);
       draw.flags |= DrawFlags::PassBoundary | DrawFlags::BeginPass | DrawFlags::EndPass;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -1897,7 +1886,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
       draw.name = StringFormat::Fmt("vkCmdEndRenderPass(%s)", MakeRenderPassOpString(true).c_str());
       draw.flags |= DrawFlags::PassBoundary | DrawFlags::EndPass;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       // track while reading, reset this to empty so AddDrawcall sets no outputs,
       // but only AFTER the above AddDrawcall (we want it grouped together)
@@ -2218,7 +2207,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
           StringFormat::Fmt("vkCmdBeginRenderPass2(%s)", MakeRenderPassOpString(false).c_str());
       draw.flags |= DrawFlags::PassBoundary | DrawFlags::BeginPass;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -2411,7 +2400,7 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass2(SerialiserType &ser, VkCommandBu
                                     m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass);
       draw.flags |= DrawFlags::PassBoundary | DrawFlags::BeginPass | DrawFlags::EndPass;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -2553,7 +2542,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass2(SerialiserType &ser, VkCommand
       draw.name = StringFormat::Fmt("vkCmdEndRenderPass2(%s)", MakeRenderPassOpString(true).c_str());
       draw.flags |= DrawFlags::PassBoundary | DrawFlags::EndPass;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       // track while reading, reset this to empty so AddDrawcall sets no outputs,
       // but only AFTER the above AddDrawcall (we want it grouped together)
@@ -4161,7 +4150,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
       draw.name = StringFormat::Fmt("vkCmdExecuteCommands(%u)", commandBufferCount);
       draw.flags = DrawFlags::CmdList | DrawFlags::PushMarker;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       BakedCmdBufferInfo &parentCmdBufInfo = m_BakedCmdBufferInfo[m_LastCmdBufferID];
 
@@ -4181,12 +4170,13 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
         DrawcallDescription marker;
         marker.name = StringFormat::Fmt("=> vkCmdExecuteCommands()[%u]: vkBeginCommandBuffer(%s)",
                                         c, ToStr(cmd).c_str());
-        marker.flags = DrawFlags::PassBoundary | DrawFlags::BeginPass;
+        marker.flags =
+            DrawFlags::CommandBufferBoundary | DrawFlags::PassBoundary | DrawFlags::BeginPass;
         AddEvent();
 
         parentCmdBufInfo.curEvents.back().chunkIndex = cmdBufInfo.beginChunk;
 
-        AddDrawcall(marker, true);
+        AddDrawcall(marker);
         parentCmdBufInfo.curEventID++;
 
         if(m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass == ResourceId() &&
@@ -4232,19 +4222,33 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
         parentCmdBufInfo.curEventID += cmdBufInfo.eventCount;
         parentCmdBufInfo.drawCount += cmdBufInfo.drawCount;
 
+        // pull in any remaining events on the command buffer that weren't added to a drawcall
+        uint32_t i = 0;
+        for(APIEvent &apievent : cmdBufInfo.curEvents)
+        {
+          apievent.eventId = parentCmdBufInfo.curEventID - cmdBufInfo.curEvents.count() + i;
+
+          parentCmdBufInfo.curEvents.push_back(apievent);
+          i++;
+        }
+
+        cmdBufInfo.curEvents.clear();
+
         marker.name = StringFormat::Fmt("=> vkCmdExecuteCommands()[%u]: vkEndCommandBuffer(%s)", c,
                                         ToStr(cmd).c_str());
-        marker.flags = DrawFlags::PassBoundary | DrawFlags::EndPass;
+        marker.flags =
+            DrawFlags::CommandBufferBoundary | DrawFlags::PassBoundary | DrawFlags::EndPass;
         AddEvent();
-        AddDrawcall(marker, true);
+        AddDrawcall(marker);
         parentCmdBufInfo.curEventID++;
       }
 
       // add an extra pop marker
+      AddEvent();
       draw = DrawcallDescription();
       draw.flags = DrawFlags::PopMarker;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       // don't change curEventID here, as it will be incremented outside in the outer
       // loop for the EXEC_CMDS event. in vkQueueSubmit we need to decrement curEventID
@@ -4501,7 +4505,7 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerBeginEXT(SerialiserType &ser,
       draw.markerColor.w = RDCCLAMP(Marker.color[3], 0.0f, 1.0f);
 
       AddEvent();
-      AddDrawcall(draw, false);
+      AddDrawcall(draw);
     }
   }
 
@@ -4560,23 +4564,14 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerEndEXT(SerialiserType &ser,
       if(ObjDisp(commandBuffer)->CmdDebugMarkerEndEXT)
         ObjDisp(commandBuffer)->CmdDebugMarkerEndEXT(Unwrap(commandBuffer));
 
-      if(HasNonMarkerEvents(m_LastCmdBufferID))
-      {
-        DrawcallDescription draw;
-        draw.name = "API Calls";
-        draw.flags = DrawFlags::APICalls;
-
-        AddDrawcall(draw, true);
-      }
-
       // dummy draw that is consumed when this command buffer
       // is being in-lined into the call stream
       DrawcallDescription draw;
-      draw.name = "Pop()";
+      draw.name = "vkCmdDebugMarkerEndEXT()";
       draw.flags = DrawFlags::PopMarker;
 
       AddEvent();
-      AddDrawcall(draw, false);
+      AddDrawcall(draw);
     }
   }
 
@@ -4642,7 +4637,7 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerInsertEXT(SerialiserType &ser,
       draw.markerColor.w = RDCCLAMP(Marker.color[3], 0.0f, 1.0f);
 
       AddEvent();
-      AddDrawcall(draw, false);
+      AddDrawcall(draw);
     }
   }
 
@@ -5499,7 +5494,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginDebugUtilsLabelEXT(SerialiserType &ser,
       draw.markerColor.w = RDCCLAMP(Label.color[3], 0.0f, 1.0f);
 
       AddEvent();
-      AddDrawcall(draw, false);
+      AddDrawcall(draw);
     }
   }
 
@@ -5558,23 +5553,12 @@ bool WrappedVulkan::Serialise_vkCmdEndDebugUtilsLabelEXT(SerialiserType &ser,
       if(ObjDisp(commandBuffer)->CmdEndDebugUtilsLabelEXT)
         ObjDisp(commandBuffer)->CmdEndDebugUtilsLabelEXT(Unwrap(commandBuffer));
 
-      if(HasNonMarkerEvents(m_LastCmdBufferID))
-      {
-        DrawcallDescription draw;
-        draw.name = "API Calls";
-        draw.flags = DrawFlags::APICalls;
-
-        AddDrawcall(draw, true);
-      }
-
-      // dummy draw that is consumed when this command buffer
-      // is being in-lined into the call stream
       DrawcallDescription draw;
-      draw.name = "Pop()";
+      draw.name = "vkCmdEndDebugUtilsLabelEXT()";
       draw.flags = DrawFlags::PopMarker;
 
       AddEvent();
-      AddDrawcall(draw, false);
+      AddDrawcall(draw);
     }
   }
 
@@ -5640,7 +5624,7 @@ bool WrappedVulkan::Serialise_vkCmdInsertDebugUtilsLabelEXT(SerialiserType &ser,
       draw.markerColor.w = RDCCLAMP(Label.color[3], 0.0f, 1.0f);
 
       AddEvent();
-      AddDrawcall(draw, false);
+      AddDrawcall(draw);
     }
   }
 

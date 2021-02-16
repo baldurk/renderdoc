@@ -3451,7 +3451,7 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
 
         draw.copyDestination = m_LastPresentedImage;
 
-        AddDrawcall(draw, true);
+        AddDrawcall(draw);
       }
 
       return true;
@@ -4015,21 +4015,6 @@ const VkFormatProperties &WrappedVulkan::GetFormatProperties(VkFormat f)
   return m_PhysicalDeviceData.fmtProps[f];
 }
 
-bool WrappedVulkan::HasNonMarkerEvents(ResourceId cmdBuffer)
-{
-  for(const APIEvent &ev : m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents)
-  {
-    VulkanChunk chunk = (VulkanChunk)m_StructuredFile->chunks[ev.chunkIndex]->metadata.chunkID;
-    if(chunk != VulkanChunk::vkCmdDebugMarkerBeginEXT &&
-       chunk != VulkanChunk::vkCmdDebugMarkerEndEXT &&
-       chunk != VulkanChunk::vkCmdBeginDebugUtilsLabelEXT &&
-       chunk != VulkanChunk::vkCmdEndDebugUtilsLabelEXT)
-      return true;
-  }
-
-  return false;
-}
-
 bool WrappedVulkan::InRerecordRange(ResourceId cmdid)
 {
   // if we have an outside command buffer, assume the range is valid and we're replaying all events
@@ -4104,7 +4089,7 @@ ResourceId WrappedVulkan::GetPartialCommandBuffer()
   return m_Partial[Primary].partialParent;
 }
 
-void WrappedVulkan::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
+void WrappedVulkan::AddDrawcall(const DrawcallDescription &d)
 {
   m_AddedDrawcall = true;
 
@@ -4159,7 +4144,8 @@ void WrappedVulkan::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
   }
 
   // markers don't increment drawcall ID
-  DrawFlags MarkerMask = DrawFlags::SetMarker | DrawFlags::PushMarker | DrawFlags::PassBoundary;
+  DrawFlags MarkerMask =
+      DrawFlags::SetMarker | DrawFlags::PushMarker | DrawFlags::PopMarker | DrawFlags::PassBoundary;
   if(!(draw.flags & MarkerMask))
   {
     if(m_LastCmdBufferID != ResourceId())
@@ -4168,20 +4154,8 @@ void WrappedVulkan::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
       m_RootDrawcallID++;
   }
 
-  rdcarray<APIEvent> &srcEvents = m_LastCmdBufferID != ResourceId()
-                                      ? m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents
-                                      : m_RootEvents;
-
-  if(hasEvents)
-  {
-    draw.events = srcEvents;
-    srcEvents.clear();
-  }
-  else
-  {
-    draw.events.push_back(srcEvents.back());
-    srcEvents.pop_back();
-  }
+  draw.events.swap(m_LastCmdBufferID != ResourceId() ? m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents
+                                                     : m_RootEvents);
 
   // should have at least the root drawcall here, push this drawcall
   // onto the back's children list.

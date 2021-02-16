@@ -618,8 +618,6 @@ private:
     uint32_t drawCount;              // similar to above
   };
 
-  bool HasNonMarkerEvents(ResourceId cmdBuffer);
-
   // on replay, the current command buffer for the last chunk we
   // handled.
   ResourceId m_LastCmdBufferID;
@@ -951,7 +949,7 @@ private:
   ReplayStatus ContextReplayLog(CaptureState readType, uint32_t startEventID, uint32_t endEventID,
                                 bool partial);
   bool ContextProcessChunk(ReadSerialiser &ser, VulkanChunk chunk);
-  void AddDrawcall(const DrawcallDescription &d, bool hasEvents);
+  void AddDrawcall(const DrawcallDescription &d);
   void AddEvent();
 
   void AddUsage(VulkanDrawcallTreeNode &drawNode, rdcarray<DebugMessage> &debugMessages);

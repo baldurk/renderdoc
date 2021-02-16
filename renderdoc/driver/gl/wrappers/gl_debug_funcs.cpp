@@ -285,7 +285,7 @@ bool WrappedOpenGL::Serialise_glDebugMessageInsert(SerialiserType &ser, GLenum s
       draw.flags |= DrawFlags::SetMarker;
 
       AddEvent();
-      AddDrawcall(draw, false);
+      AddDrawcall(draw);
     }
   }
 
@@ -386,7 +386,7 @@ bool WrappedOpenGL::Serialise_glInsertEventMarkerEXT(SerialiserType &ser, GLsize
       draw.flags |= DrawFlags::SetMarker;
 
       AddEvent();
-      AddDrawcall(draw, false);
+      AddDrawcall(draw);
     }
   }
 
@@ -457,7 +457,7 @@ bool WrappedOpenGL::Serialise_glPushDebugGroup(SerialiserType &ser, GLenum sourc
       draw.flags |= DrawFlags::PushMarker;
 
       AddEvent();
-      AddDrawcall(draw, false);
+      AddDrawcall(draw);
     }
   }
 
@@ -495,18 +495,20 @@ bool WrappedOpenGL::Serialise_glPopDebugGroup(SerialiserType &ser)
       GLMarkerRegion::End();
     m_ReplayEventCount = RDCMAX(0, m_ReplayEventCount - 1);
 
-    if(IsLoading(m_State) && HasNonDebugMarkers())
+    if(IsLoading(m_State))
     {
       DrawcallDescription draw;
-      draw.name = "API Calls";
-      draw.flags |= DrawFlags::APICalls;
+      draw.name = ToStr(gl_CurChunk) + "()";
+      draw.flags |= DrawFlags::PopMarker;
 
-      AddDrawcall(draw, true);
+      AddEvent();
+      AddDrawcall(draw);
     }
   }
 
   return true;
 }
+
 void WrappedOpenGL::glPopDebugGroup()
 {
   if(GL.glPopDebugGroup)

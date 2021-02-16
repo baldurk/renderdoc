@@ -27,9 +27,6 @@
 #include "d3d12_command_list.h"
 #include "d3d12_resources.h"
 
-RDOC_CONFIG(bool, D3D12_HideCommandBoundaries, false,
-            "Hides the auto-generated submitted command list boundaries.");
-
 template <typename SerialiserType>
 bool WrappedID3D12CommandQueue::Serialise_UpdateTileMappings(
     SerialiserType &ser, ID3D12Resource *pResource, UINT NumResourceRegions,
@@ -539,17 +536,17 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
 
         // add a fake marker
         DrawcallDescription draw;
-        if(!D3D12_HideCommandBoundaries())
         {
           draw.name =
               StringFormat::Fmt("=> %s[%u]: Reset(%s)", basename.c_str(), c, ToStr(cmd).c_str());
-          draw.flags = DrawFlags::PassBoundary | DrawFlags::BeginPass;
+          draw.flags =
+              DrawFlags::CommandBufferBoundary | DrawFlags::PassBoundary | DrawFlags::BeginPass;
           m_Cmd.AddEvent();
 
           m_Cmd.m_RootEvents.back().chunkIndex = cmdListInfo.beginChunk;
           m_Cmd.m_Events.back().chunkIndex = cmdListInfo.beginChunk;
 
-          m_Cmd.AddDrawcall(draw, true);
+          m_Cmd.AddDrawcall(draw);
           m_Cmd.m_RootEventID++;
         }
 
@@ -576,20 +573,30 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
         // only primary command lists can be submitted
         m_Cmd.m_Partial[D3D12CommandData::Primary].cmdListExecs[cmd].push_back(m_Cmd.m_RootEventID);
 
+        for(size_t e = 0; e < cmdListInfo.curEvents.size(); e++)
+        {
+          APIEvent apievent = cmdListInfo.curEvents[e];
+          apievent.eventId += m_Cmd.m_RootEventID;
+
+          m_Cmd.m_RootEvents.push_back(apievent);
+          m_Cmd.m_Events.resize_for_index(apievent.eventId);
+          m_Cmd.m_Events[apievent.eventId] = apievent;
+        }
+
         m_Cmd.m_RootEventID += cmdListInfo.eventCount;
         m_Cmd.m_RootDrawcallID += cmdListInfo.drawCount;
 
-        if(!D3D12_HideCommandBoundaries())
         {
           draw.name =
               StringFormat::Fmt("=> %s[%u]: Close(%s)", basename.c_str(), c, ToStr(cmd).c_str());
-          draw.flags = DrawFlags::PassBoundary | DrawFlags::EndPass;
+          draw.flags =
+              DrawFlags::CommandBufferBoundary | DrawFlags::PassBoundary | DrawFlags::EndPass;
           m_Cmd.AddEvent();
 
           m_Cmd.m_RootEvents.back().chunkIndex = cmdListInfo.endChunk;
           m_Cmd.m_Events.back().chunkIndex = cmdListInfo.endChunk;
 
-          m_Cmd.AddDrawcall(draw, true);
+          m_Cmd.AddDrawcall(draw);
           m_Cmd.m_RootEventID++;
         }
       }
@@ -614,7 +621,6 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
         m_Cmd.m_RootDrawcallID += m_Cmd.m_BakedCmdListInfo[cmd].drawCount;
 
         // 2 extra for the virtual labels around the command list
-        if(!D3D12_HideCommandBoundaries())
         {
           m_Cmd.m_RootEventID += 2;
           m_Cmd.m_RootDrawcallID += 2;
@@ -650,7 +656,6 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
 
           // account for the virtual label at the start of the events here
           // so it matches up to baseEvent
-          if(!D3D12_HideCommandBoundaries())
           {
             eid++;
           }
@@ -682,7 +687,6 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
 
           // 1 extra to account for the virtual end command list label (begin is accounted for
           // above)
-          if(!D3D12_HideCommandBoundaries())
           {
             eid++;
           }
@@ -1041,7 +1045,7 @@ bool WrappedID3D12CommandQueue::Serialise_SetMarker(SerialiserType &ser, UINT Me
       draw.flags |= DrawFlags::SetMarker;
 
       m_Cmd.AddEvent();
-      m_Cmd.AddDrawcall(draw, false);
+      m_Cmd.AddDrawcall(draw);
     }
   }
 
@@ -1090,7 +1094,7 @@ bool WrappedID3D12CommandQueue::Serialise_BeginEvent(SerialiserType &ser, UINT M
       draw.flags |= DrawFlags::PushMarker;
 
       m_Cmd.AddEvent();
-      m_Cmd.AddDrawcall(draw, false);
+      m_Cmd.AddDrawcall(draw);
 
       // now push the drawcall stack
       m_Cmd.GetDrawcallStack().push_back(&m_Cmd.GetDrawcallStack().back()->children.back());

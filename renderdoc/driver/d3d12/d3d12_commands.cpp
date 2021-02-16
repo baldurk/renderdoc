@@ -872,7 +872,7 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
 
         draw.copyDestination = m_Cmd.m_LastPresentedImage;
 
-        m_Cmd.AddDrawcall(draw, true);
+        m_Cmd.AddDrawcall(draw);
       }
 
       ret = true;
@@ -1055,7 +1055,9 @@ ReplayStatus WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_
     }
     else
     {
-      m_Cmd.m_BakedCmdListInfo[m_Cmd.m_LastCmdListID].curEventID++;
+      // these events are completely omitted, so don't increment the curEventID
+      if(context != D3D12Chunk::List_Reset && context != D3D12Chunk::List_Close)
+        m_Cmd.m_BakedCmdListInfo[m_Cmd.m_LastCmdListID].curEventID++;
     }
   }
 
@@ -1595,18 +1597,6 @@ ID3D12GraphicsCommandListX *D3D12CommandData::RerecordCmdList(ResourceId cmdid,
   return it->second;
 }
 
-bool D3D12CommandData::HasNonMarkerEvents(ResourceId cmdBuffer)
-{
-  for(const APIEvent &ev : m_BakedCmdListInfo[cmdBuffer].curEvents)
-  {
-    D3D12Chunk chunk = (D3D12Chunk)m_StructuredFile->chunks[ev.chunkIndex]->metadata.chunkID;
-    if(chunk != D3D12Chunk::PushMarker && chunk != D3D12Chunk::PopMarker)
-      return true;
-  }
-
-  return false;
-}
-
 void D3D12CommandData::AddEvent()
 {
   APIEvent apievent;
@@ -1636,7 +1626,7 @@ void D3D12CommandData::AddEvent()
   else
   {
     m_RootEvents.push_back(apievent);
-    m_Events.resize(apievent.eventId + 1);
+    m_Events.resize_for_index(apievent.eventId);
     m_Events[apievent.eventId] = apievent;
 
     for(auto it = m_EventMessages.begin(); it != m_EventMessages.end(); ++it)
@@ -1846,7 +1836,7 @@ void D3D12CommandData::AddUsage(const D3D12RenderState &state, D3D12DrawcallTree
   }
 }
 
-void D3D12CommandData::AddDrawcall(const DrawcallDescription &d, bool hasEvents, bool addUsage)
+void D3D12CommandData::AddDrawcall(const DrawcallDescription &d)
 {
   m_AddedDrawcall = true;
 
@@ -1878,7 +1868,8 @@ void D3D12CommandData::AddDrawcall(const DrawcallDescription &d, bool hasEvents,
   }
 
   // markers don't increment drawcall ID
-  DrawFlags MarkerMask = DrawFlags::SetMarker | DrawFlags::PushMarker | DrawFlags::PassBoundary;
+  DrawFlags MarkerMask =
+      DrawFlags::SetMarker | DrawFlags::PushMarker | DrawFlags::PopMarker | DrawFlags::PassBoundary;
   if(!(draw.flags & MarkerMask))
   {
     if(m_LastCmdListID != ResourceId())
@@ -1887,19 +1878,8 @@ void D3D12CommandData::AddDrawcall(const DrawcallDescription &d, bool hasEvents,
       m_RootDrawcallID++;
   }
 
-  rdcarray<APIEvent> &srcEvents =
-      m_LastCmdListID != ResourceId() ? m_BakedCmdListInfo[m_LastCmdListID].curEvents : m_RootEvents;
-
-  if(hasEvents)
-  {
-    draw.events = srcEvents;
-    srcEvents.clear();
-  }
-  else
-  {
-    draw.events.push_back(srcEvents.back());
-    srcEvents.pop_back();
-  }
+  draw.events.swap(m_LastCmdListID != ResourceId() ? m_BakedCmdListInfo[m_LastCmdListID].curEvents
+                                                   : m_RootEvents);
 
   // should have at least the root drawcall here, push this drawcall
   // onto the back's children list.
@@ -1909,7 +1889,7 @@ void D3D12CommandData::AddDrawcall(const DrawcallDescription &d, bool hasEvents,
 
     node.resourceUsage.swap(m_BakedCmdListInfo[m_LastCmdListID].resourceUsage);
 
-    if(m_LastCmdListID != ResourceId() && addUsage)
+    if(m_LastCmdListID != ResourceId())
       AddUsage(m_BakedCmdListInfo[m_LastCmdListID].state, node);
 
     for(const DrawcallDescription &child : draw.children)
@@ -1926,16 +1906,6 @@ void D3D12CommandData::InsertDrawsAndRefreshIDs(ResourceId cmd,
   // assign new drawcall IDs
   for(size_t i = 0; i < cmdBufNodes.size(); i++)
   {
-    if(cmdBufNodes[i].draw.flags & DrawFlags::PopMarker)
-    {
-      if(GetDrawcallStack().size() > 1)
-        GetDrawcallStack().pop_back();
-
-      // Skip - pop marker draws aren't processed otherwise, we just apply them to the drawcall
-      // stack.
-      continue;
-    }
-
     D3D12DrawcallTreeNode n = cmdBufNodes[i];
     n.draw.eventId += m_RootEventID;
     n.draw.drawcallId += m_RootDrawcallID;
@@ -1967,5 +1937,9 @@ void D3D12CommandData::InsertDrawsAndRefreshIDs(ResourceId cmd,
     // if this is a push marker too, step down the drawcall stack
     if(cmdBufNodes[i].draw.flags & DrawFlags::PushMarker)
       GetDrawcallStack().push_back(&GetDrawcallStack().back()->children.back());
+
+    // similarly for a pop, but don't pop off the root
+    if((cmdBufNodes[i].draw.flags & DrawFlags::PopMarker) && GetDrawcallStack().size() > 1)
+      GetDrawcallStack().pop_back();
   }
 }

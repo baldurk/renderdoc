@@ -94,7 +94,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_AtomicCopyBufferUINT(
                               ToStr(draw.copySource).c_str());
         draw.flags |= DrawFlags::Copy;
 
-        m_Cmd->AddDrawcall(draw, true);
+        m_Cmd->AddDrawcall(draw);
 
         D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
 
@@ -212,7 +212,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_AtomicCopyBufferUINT64(
                               ToStr(draw.copySource).c_str());
         draw.flags |= DrawFlags::Copy;
 
-        m_Cmd->AddDrawcall(draw, true);
+        m_Cmd->AddDrawcall(draw);
 
         D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
 
@@ -490,7 +490,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresourceRegion(
                               ToStr(draw.copyDestination).c_str(), ToStr(draw.copySource).c_str());
         draw.flags |= DrawFlags::Resolve;
 
-        m_Cmd->AddDrawcall(draw, true);
+        m_Cmd->AddDrawcall(draw);
 
         D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
 

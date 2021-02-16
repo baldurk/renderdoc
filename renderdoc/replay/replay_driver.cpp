@@ -57,8 +57,8 @@ INSTANTIATE_SERIALISE_TYPE(GetTextureDataParams);
 
 static bool PreviousNextExcludedMarker(DrawcallDescription *draw)
 {
-  return bool(draw->flags & (DrawFlags::PushMarker | DrawFlags::SetMarker | DrawFlags::MultiDraw |
-                             DrawFlags::APICalls));
+  return bool(draw->flags & (DrawFlags::PushMarker | DrawFlags::PopMarker | DrawFlags::SetMarker |
+                             DrawFlags::MultiDraw));
 }
 
 CompType BaseRemapType(CompType typeCast)

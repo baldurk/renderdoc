@@ -70,7 +70,7 @@ bool WrappedID3D11DeviceContext::Serialise_SetMarker(SerialiserType &ser, uint32
       draw.markerColor.w = float(alpha) / 255.0f;
 
       AddEvent();
-      AddDrawcall(draw, false);
+      AddDrawcall(draw);
     }
   }
 
@@ -108,7 +108,7 @@ bool WrappedID3D11DeviceContext::Serialise_PushMarker(SerialiserType &ser, uint3
       draw.markerColor.w = float(alpha) / 255.0f;
 
       AddEvent();
-      AddDrawcall(draw, false);
+      AddDrawcall(draw);
     }
   }
 
@@ -123,14 +123,14 @@ bool WrappedID3D11DeviceContext::Serialise_PopMarker(SerialiserType &ser)
     D3D11MarkerRegion::End();
     m_pDevice->ReplayPopEvent();
 
-    if(IsLoading(m_State) && HasNonMarkerEvents())
+    if(IsLoading(m_State))
     {
       DrawcallDescription draw;
-      draw.name = "API Calls";
-      draw.flags |= DrawFlags::APICalls;
+      draw.name = ToStr(D3D11Chunk::PopMarker) + "()";
+      draw.flags |= DrawFlags::PopMarker;
 
       AddEvent();
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -3838,7 +3838,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstanced(
 
       draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indexed;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -3911,7 +3911,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawInstanced(SerialiserType &ser,
 
       draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -3978,7 +3978,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexed(SerialiserType &ser, UINT
 
       draw.flags |= DrawFlags::Drawcall | DrawFlags::Indexed;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -4040,7 +4040,7 @@ bool WrappedID3D11DeviceContext::Serialise_Draw(SerialiserType &ser, UINT Vertex
 
       draw.flags |= DrawFlags::Drawcall;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -4153,7 +4153,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawAuto(SerialiserType &ser)
       draw.instanceOffset = 0;
       draw.numInstances = 1;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -4279,7 +4279,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstancedIndirect(Serialis
       draw.flags |=
           DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indexed | DrawFlags::Indirect;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -4407,7 +4407,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawInstancedIndirect(SerialiserType 
 
       draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indirect;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -4992,7 +4992,7 @@ bool WrappedID3D11DeviceContext::Serialise_Dispatch(SerialiserType &ser, UINT Th
             "Dispatch call has ThreadGroup count Z=0. This will do nothing, "
             "which is unusual for a non-indirect Dispatch. Did you mean Z=1?");
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -5113,7 +5113,7 @@ bool WrappedID3D11DeviceContext::Serialise_DispatchIndirect(SerialiserType &ser,
       draw.name = name;
       draw.flags |= DrawFlags::Dispatch | DrawFlags::Indirect;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -5192,7 +5192,7 @@ bool WrappedID3D11DeviceContext::Serialise_ExecuteCommandList(SerialiserType &se
       draw.name = StringFormat::Fmt("ExecuteCommandList(List %s)", ToStr(CommandList).c_str());
       draw.flags |= DrawFlags::CmdList;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -5327,7 +5327,7 @@ bool WrappedID3D11DeviceContext::Serialise_FinishCommandList(SerialiserType &ser
     draw.name = StringFormat::Fmt("FinishCommandList(List %s)", ToStr(pCommandList).c_str());
     draw.flags |= DrawFlags::CmdList;
 
-    AddDrawcall(draw, true);
+    AddDrawcall(draw);
 
     m_pDevice->AddResource(pCommandList, ResourceType::CommandBuffer, "Command List");
 
@@ -5624,7 +5624,7 @@ bool WrappedID3D11DeviceContext::Serialise_CopySubresourceRegion(
         }
       }
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -5777,7 +5777,7 @@ bool WrappedID3D11DeviceContext::Serialise_CopyResource(SerialiserType &ser,
         }
       }
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -6214,7 +6214,7 @@ bool WrappedID3D11DeviceContext::Serialise_CopyStructureCount(SerialiserType &se
         }
       }
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -6333,7 +6333,7 @@ bool WrappedID3D11DeviceContext::Serialise_ResolveSubresource(SerialiserType &se
         }
       }
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -6412,7 +6412,7 @@ bool WrappedID3D11DeviceContext::Serialise_GenerateMips(SerialiserType &ser,
           ToStr(GetResourceManager()->GetOriginalID(GetIDForDeviceChild(pShaderResourceView))) + ")";
       draw.flags |= DrawFlags::GenMips;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -6573,7 +6573,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearRenderTargetView(
             Subresource(GetMipForRtv(viewDesc), GetSliceForRtv(viewDesc));
       }
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -6655,7 +6655,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewUint(
         draw.copyDestinationSubresource = Subresource();
       }
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -6736,7 +6736,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewFloat(
         draw.copyDestinationSubresource = Subresource();
       }
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -6828,7 +6828,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearDepthStencilView(
             Subresource(GetMipForDsv(viewDesc), GetSliceForDsv(viewDesc));
       }
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 

@@ -2120,7 +2120,7 @@ bool WrappedID3D12Device::Serialise_Present(SerialiserType &ser, ID3D12Resource 
     cmd.m_LastPresentedImage = PresentedBackbuffer;
     draw.copyDestination = PresentedBackbuffer;
 
-    cmd.AddDrawcall(draw, true);
+    cmd.AddDrawcall(draw);
   }
 
   return true;

@@ -188,9 +188,9 @@ rdcstr DoStringise(const D3D11Chunk &el)
                                "ID3D11DeviceContext1::PSSetConstantBuffers1");
     STRINGISE_ENUM_CLASS_NAMED(CSSetConstantBuffers1,
                                "ID3D11DeviceContext1::CSSetConstantBuffers1");
-    STRINGISE_ENUM_CLASS_NAMED(PushMarker, "Push Debug Region");
-    STRINGISE_ENUM_CLASS_NAMED(SetMarker, "Set Marker");
-    STRINGISE_ENUM_CLASS_NAMED(PopMarker, "Pop Debug Region");
+    STRINGISE_ENUM_CLASS_NAMED(PushMarker, "ID3DUserDefinedAnnotation::BeginEvent");
+    STRINGISE_ENUM_CLASS_NAMED(SetMarker, "ID3DUserDefinedAnnotation::SetMarker");
+    STRINGISE_ENUM_CLASS_NAMED(PopMarker, "ID3DUserDefinedAnnotation::EndEvent");
     STRINGISE_ENUM_CLASS_NAMED(SetShaderDebugPath, "Internal: SetShaderDebugPath");
     STRINGISE_ENUM_CLASS_NAMED(DiscardResource, "ID3D11DeviceContext1::DiscardResource");
     STRINGISE_ENUM_CLASS_NAMED(DiscardView, "ID3D11DeviceContext1::DiscardView");

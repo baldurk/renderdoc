@@ -4260,11 +4260,6 @@ DOCUMENT(R"(A set of flags describing the properties of a particular drawcall.
 
   The drawcall ends a debugging marker region.
 
-  .. note::
-
-    Drawcalls with this flag will not be exposed and it is only used internally for tracking
-    markers.
-
 .. data:: Present
 
   The drawcall is a presentation call that hands a swapchain image to the presentation engine.
@@ -4324,11 +4319,9 @@ DOCUMENT(R"(A set of flags describing the properties of a particular drawcall.
 
   The drawcall marks the end of a render pass.
 
-.. data:: APICalls
+.. data:: CommandBufferBoundary
 
-  The drawcall does not contain any work directly, but is a 'virtual' draw inserted to encompass
-  non-draw API calls that happened within a region, so they are included within the region where
-  they occurred and not grouped into the next drawcall outside that region.
+  The drawcall is a virtual marker added to show command buffer boundaries.
 )");
 enum class DrawFlags : uint32_t
 {
@@ -4358,7 +4351,7 @@ enum class DrawFlags : uint32_t
   ClearDepthStencil = 0x200000,
   BeginPass = 0x400000,
   EndPass = 0x800000,
-  APICalls = 0x1000000,
+  CommandBufferBoundary = 0x1000000,
 };
 
 BITMASK_OPERATORS(DrawFlags);

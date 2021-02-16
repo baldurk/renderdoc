@@ -729,7 +729,7 @@ bool WrappedVulkan::Serialise_vkQueuePresentKHR(SerialiserType &ser, VkQueue que
 
     m_LastPresentedImage = draw.copyDestination = PresentedImage;
 
-    AddDrawcall(draw, true);
+    AddDrawcall(draw);
   }
 
   return true;

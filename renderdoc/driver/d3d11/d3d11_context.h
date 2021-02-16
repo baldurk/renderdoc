@@ -188,8 +188,6 @@ private:
   rdcarray<APIEvent> m_CurEvents, m_Events;
   bool m_AddedDrawcall;
 
-  bool HasNonMarkerEvents();
-
   WrappedID3DUserDefinedAnnotation m_UserAnnotation;
   int32_t m_MarkerIndentLevel;
 
@@ -234,7 +232,7 @@ private:
   void AddUsage(const DrawcallDescription &d);
 
   void AddEvent();
-  void AddDrawcall(const DrawcallDescription &d, bool hasEvents);
+  void AddDrawcall(const DrawcallDescription &d);
 
   void RecordIndexBindStats(ID3D11Buffer *Buffer);
   void RecordVertexBindStats(UINT NumBuffers, ID3D11Buffer *const Buffers[]);

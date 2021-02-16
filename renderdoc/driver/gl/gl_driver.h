@@ -284,8 +284,6 @@ private:
     return IsReplayMode(m_State) ? m_ArrayMS : GetCtxData().ArrayMS;
   }
 
-  bool HasNonDebugMarkers();
-
   bool m_ReplayMarkers = true;
 
   uint64_t m_CurChunkOffset;
@@ -341,7 +339,7 @@ private:
                                 bool partial);
   bool ContextProcessChunk(ReadSerialiser &ser, GLChunk chunk);
   void AddUsage(const DrawcallDescription &d);
-  void AddDrawcall(const DrawcallDescription &d, bool hasEvents);
+  void AddDrawcall(const DrawcallDescription &d);
   void AddEvent();
 
   template <typename SerialiserType>

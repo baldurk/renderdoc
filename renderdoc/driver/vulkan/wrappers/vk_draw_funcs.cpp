@@ -247,7 +247,7 @@ bool WrappedVulkan::Serialise_vkCmdDraw(SerialiserType &ser, VkCommandBuffer com
 
         draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced;
 
-        AddDrawcall(draw, true);
+        AddDrawcall(draw);
       }
     }
   }
@@ -347,7 +347,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(SerialiserType &ser, VkCommandBuf
 
         draw.flags |= DrawFlags::Drawcall | DrawFlags::Indexed | DrawFlags::Instanced;
 
-        AddDrawcall(draw, true);
+        AddDrawcall(draw);
       }
     }
   }
@@ -694,7 +694,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
         draw.name = name;
         draw.flags = DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indirect;
 
-        AddDrawcall(draw, true);
+        AddDrawcall(draw);
 
         VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
 
@@ -717,7 +717,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
       }
 
       AddEvent();
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
 
@@ -756,16 +756,17 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
         m_StructuredFile->chunks.push_back(fakeChunk);
 
         AddEvent();
-        AddDrawcall(multi, true);
+        AddDrawcall(multi);
 
         m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
       }
 
       if(count > 0)
       {
-        draw.name = name;
+        AddEvent();
+        draw.name = name + " end";
         draw.flags = DrawFlags::PopMarker;
-        AddDrawcall(draw, false);
+        AddDrawcall(draw);
       }
     }
   }
@@ -1078,7 +1079,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
         draw.flags =
             DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indexed | DrawFlags::Indirect;
 
-        AddDrawcall(draw, true);
+        AddDrawcall(draw);
 
         VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
 
@@ -1102,7 +1103,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
       }
 
       AddEvent();
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
 
@@ -1142,16 +1143,17 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
         m_StructuredFile->chunks.push_back(fakeChunk);
 
         AddEvent();
-        AddDrawcall(multi, true);
+        AddDrawcall(multi);
 
         m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
       }
 
       if(count > 0)
       {
-        draw.name = name;
+        AddEvent();
+        draw.name = name + " end";
         draw.flags = DrawFlags::PopMarker;
-        AddDrawcall(draw, false);
+        AddDrawcall(draw);
       }
     }
   }
@@ -1238,7 +1240,7 @@ bool WrappedVulkan::Serialise_vkCmdDispatch(SerialiserType &ser, VkCommandBuffer
 
         draw.flags |= DrawFlags::Dispatch;
 
-        AddDrawcall(draw, true);
+        AddDrawcall(draw);
       }
     }
   }
@@ -1318,7 +1320,7 @@ bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(SerialiserType &ser,
 
         draw.flags |= DrawFlags::Dispatch | DrawFlags::Indirect;
 
-        AddDrawcall(draw, true);
+        AddDrawcall(draw);
 
         VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
 
@@ -1432,7 +1434,7 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage(SerialiserType &ser, VkCommandBuffe
           draw.copyDestinationSubresource = Subresource(pRegions[0].dstSubresource.mipLevel,
                                                         pRegions[0].dstSubresource.baseArrayLayer);
         }
-        AddDrawcall(draw, true);
+        AddDrawcall(draw);
 
         VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
 
@@ -1581,7 +1583,7 @@ bool WrappedVulkan::Serialise_vkCmdResolveImage(SerialiserType &ser, VkCommandBu
           draw.copyDestinationSubresource = Subresource(pRegions[0].dstSubresource.mipLevel,
                                                         pRegions[0].dstSubresource.baseArrayLayer);
         }
-        AddDrawcall(draw, true);
+        AddDrawcall(draw);
 
         VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
 
@@ -1720,7 +1722,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage(SerialiserType &ser, VkCommandBuffe
                                                         pRegions[0].dstSubresource.baseArrayLayer);
         }
 
-        AddDrawcall(draw, true);
+        AddDrawcall(draw);
 
         VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
 
@@ -1851,7 +1853,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(
           draw.copyDestinationSubresource = Subresource(
               pRegions[0].imageSubresource.mipLevel, pRegions[0].imageSubresource.baseArrayLayer);
 
-        AddDrawcall(draw, true);
+        AddDrawcall(draw);
 
         VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
 
@@ -1964,7 +1966,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer(SerialiserType &ser,
           draw.copySourceSubresource = Subresource(pRegions[0].imageSubresource.mipLevel,
                                                    pRegions[0].imageSubresource.baseArrayLayer);
 
-        AddDrawcall(draw, true);
+        AddDrawcall(draw);
 
         VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
 
@@ -2071,7 +2073,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer(SerialiserType &ser, VkCommandBuff
         draw.copyDestination = dstid;
         draw.copyDestinationSubresource = Subresource();
 
-        AddDrawcall(draw, true);
+        AddDrawcall(draw);
 
         VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
 
@@ -2180,7 +2182,7 @@ bool WrappedVulkan::Serialise_vkCmdFillBuffer(SerialiserType &ser, VkCommandBuff
         draw.copyDestination = id;
         draw.copyDestinationSubresource = Subresource();
 
-        AddDrawcall(draw, true);
+        AddDrawcall(draw);
 
         VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
 
@@ -2286,7 +2288,7 @@ bool WrappedVulkan::Serialise_vkCmdClearColorImage(SerialiserType &ser, VkComman
           draw.copyDestinationSubresource =
               Subresource(pRanges[0].baseMipLevel, pRanges[0].baseArrayLayer);
 
-        AddDrawcall(draw, true);
+        AddDrawcall(draw);
 
         VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
 
@@ -2400,7 +2402,7 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
                                       ToStr(draw.copyDestination).c_str(), DepthStencil.depth,
                                       DepthStencil.stencil);
 
-        AddDrawcall(draw, true);
+        AddDrawcall(draw);
 
         VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
 
@@ -2524,7 +2526,7 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(SerialiserType &ser,
             draw.flags |= DrawFlags::ClearDepthStencil;
         }
 
-        AddDrawcall(draw, true);
+        AddDrawcall(draw);
 
         VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
         const VulkanRenderState &state = m_BakedCmdBufferInfo[m_LastCmdBufferID].state;
@@ -2662,7 +2664,7 @@ bool WrappedVulkan::Serialise_vkCmdDispatchBase(SerialiserType &ser, VkCommandBu
 
         draw.flags |= DrawFlags::Dispatch;
 
-        AddDrawcall(draw, true);
+        AddDrawcall(draw);
       }
     }
   }
@@ -2925,7 +2927,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCount(SerialiserType &ser,
         draw.name = name + "(0)";
 
       AddEvent();
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
 
@@ -2965,14 +2967,15 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCount(SerialiserType &ser,
         m_StructuredFile->chunks.push_back(fakeChunk);
 
         AddEvent();
-        AddDrawcall(multi, true);
+        AddDrawcall(multi);
 
         m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
       }
 
-      draw.name = name;
+      AddEvent();
+      draw.name = name + " end";
       draw.flags = DrawFlags::PopMarker;
-      AddDrawcall(draw, false);
+      AddDrawcall(draw);
     }
   }
 
@@ -3287,7 +3290,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCount(
         draw.name = name + "(0)";
 
       AddEvent();
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
 
@@ -3328,14 +3331,15 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCount(
         m_StructuredFile->chunks.push_back(fakeChunk);
 
         AddEvent();
-        AddDrawcall(multi, true);
+        AddDrawcall(multi);
 
         m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
       }
 
-      draw.name = name;
+      AddEvent();
+      draw.name = name + " end";
       draw.flags = DrawFlags::PopMarker;
-      AddDrawcall(draw, false);
+      AddDrawcall(draw);
     }
   }
 
@@ -3451,7 +3455,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectByteCountEXT(
       draw.numInstances = instanceCount;
       draw.flags = DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indirect;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
 
@@ -3561,7 +3565,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer2KHR(SerialiserType &ser, VkCommand
         draw.copyDestination = dstid;
         draw.copyDestinationSubresource = Subresource();
 
-        AddDrawcall(draw, true);
+        AddDrawcall(draw);
 
         VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
 
@@ -3687,7 +3691,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage2KHR(SerialiserType &ser, VkCommandB
         draw.copyDestination = dstid;
         draw.copyDestinationSubresource = Subresource();
 
-        AddDrawcall(draw, true);
+        AddDrawcall(draw);
 
         VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
 
@@ -3823,7 +3827,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage2KHR(
               Subresource(CopyInfo.pRegions[0].imageSubresource.mipLevel,
                           CopyInfo.pRegions[0].imageSubresource.baseArrayLayer);
 
-        AddDrawcall(draw, true);
+        AddDrawcall(draw);
 
         VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
 
@@ -3956,7 +3960,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer2KHR(
         draw.copyDestination = bufid;
         draw.copyDestinationSubresource = Subresource();
 
-        AddDrawcall(draw, true);
+        AddDrawcall(draw);
 
         VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
 
@@ -4083,7 +4087,7 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage2KHR(SerialiserType &ser, VkCommandB
         draw.copyDestination = dstid;
         draw.copyDestinationSubresource = Subresource();
 
-        AddDrawcall(draw, true);
+        AddDrawcall(draw);
 
         VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
 
@@ -4226,7 +4230,7 @@ bool WrappedVulkan::Serialise_vkCmdResolveImage2KHR(SerialiserType &ser,
         draw.copyDestination = dstid;
         draw.copyDestinationSubresource = Subresource();
 
-        AddDrawcall(draw, true);
+        AddDrawcall(draw);
 
         VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
 

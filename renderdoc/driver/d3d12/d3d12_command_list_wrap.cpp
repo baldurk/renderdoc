@@ -129,17 +129,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Close(SerialiserType &ser)
         GetCrackedList()->Close();
       }
 
-      if(!m_Cmd->m_BakedCmdListInfo[BakedCommandList].curEvents.empty())
-      {
-        DrawcallDescription draw;
-        draw.name = "API Calls";
-        draw.flags |= DrawFlags::APICalls;
-
-        m_Cmd->AddDrawcall(draw, true);
-
-        m_Cmd->m_BakedCmdListInfo[BakedCommandList].curEventID++;
-      }
-
       {
         if(m_Cmd->GetDrawcallStack().size() > 1)
           m_Cmd->GetDrawcallStack().pop_back();
@@ -2983,7 +2972,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetMarker(SerialiserType &ser, 
       draw.flags |= DrawFlags::SetMarker;
 
       m_Cmd->AddEvent();
-      m_Cmd->AddDrawcall(draw, false);
+      m_Cmd->AddDrawcall(draw);
     }
   }
 
@@ -3048,7 +3037,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginEvent(SerialiserType &ser,
       draw.flags |= DrawFlags::PushMarker;
 
       m_Cmd->AddEvent();
-      m_Cmd->AddDrawcall(draw, false);
+      m_Cmd->AddDrawcall(draw);
     }
   }
 
@@ -3099,26 +3088,15 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndEvent(SerialiserType &ser)
     }
     else
     {
-      if(m_Cmd->HasNonMarkerEvents(m_Cmd->m_LastCmdListID))
-      {
-        DrawcallDescription draw;
-        draw.name = "API Calls";
-        draw.flags = DrawFlags::APICalls;
-
-        m_Cmd->AddDrawcall(draw, true);
-      }
-
       D3D12MarkerRegion::End(pCommandList);
       D3D12MarkerRegion::End(GetWrappedCrackedList());
 
-      // dummy draw that is consumed when this command buffer
-      // is being in-lined into the call stream
       DrawcallDescription draw;
-      draw.name = "Pop()";
+      draw.name = ToStr(D3D12Chunk::PopMarker) + "()";
       draw.flags = DrawFlags::PopMarker;
 
       m_Cmd->AddEvent();
-      m_Cmd->AddDrawcall(draw, false);
+      m_Cmd->AddDrawcall(draw);
     }
   }
 
@@ -3206,7 +3184,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawInstanced(SerialiserType &s
 
       draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced;
 
-      m_Cmd->AddDrawcall(draw, true);
+      m_Cmd->AddDrawcall(draw);
     }
   }
 
@@ -3291,7 +3269,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawIndexedInstanced(
 
       draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indexed;
 
-      m_Cmd->AddDrawcall(draw, true);
+      m_Cmd->AddDrawcall(draw);
     }
   }
 
@@ -3370,7 +3348,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Dispatch(SerialiserType &ser, U
 
       draw.flags |= DrawFlags::Dispatch;
 
-      m_Cmd->AddDrawcall(draw, true);
+      m_Cmd->AddDrawcall(draw);
     }
   }
 
@@ -3439,7 +3417,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteBundle(SerialiserType &s
 
       draw.flags |= DrawFlags::CmdList;
 
-      m_Cmd->AddDrawcall(draw, true);
+      m_Cmd->AddDrawcall(draw);
     }
   }
 
@@ -3510,7 +3488,7 @@ void WrappedID3D12GraphicsCommandList::ReserveExecuteIndirect(ID3D12GraphicsComm
         case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW:
           // add dummy event and drawcall
           m_Cmd->AddEvent();
-          m_Cmd->AddDrawcall(DrawcallDescription(), true);
+          m_Cmd->AddDrawcall(DrawcallDescription());
           m_Cmd->GetDrawcallStack().back()->children.back().state =
               new D3D12RenderState(cmdInfo.state);
           cmdInfo.curEventID++;
@@ -3533,9 +3511,9 @@ void WrappedID3D12GraphicsCommandList::ReserveExecuteIndirect(ID3D12GraphicsComm
   if(multidraw)
   {
     DrawcallDescription draw;
-    draw.name = "ExecuteIndirect()";
+    draw.name = "ID3D12GraphicsCommandList::ExecuteIndirect() end";
     draw.flags = DrawFlags::PopMarker;
-    m_Cmd->AddDrawcall(draw, false);
+    m_Cmd->AddDrawcall(draw);
   }
   else
   {
@@ -4351,7 +4329,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
       if(MaxCommandCount > 1 || comSig->sig.numDraws > 1)
         draw.flags |= DrawFlags::PushMarker;
 
-      m_Cmd->AddDrawcall(draw, true);
+      m_Cmd->AddDrawcall(draw);
 
       D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
 
@@ -4533,7 +4511,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearDepthStencilView(
         draw.copyDestination = GetResourceManager()->GetOriginalID(descriptor->GetResResourceId());
         draw.copyDestinationSubresource =
             Subresource(GetMipForDsv(descriptor->GetDSV()), GetSliceForDsv(descriptor->GetDSV()));
-        m_Cmd->AddDrawcall(draw, true);
+        m_Cmd->AddDrawcall(draw);
 
         D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
 
@@ -4626,7 +4604,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
         draw.copyDestination = GetResourceManager()->GetOriginalID(descriptor->GetResResourceId());
         draw.copyDestinationSubresource =
             Subresource(GetMipForRtv(descriptor->GetRTV()), GetSliceForRtv(descriptor->GetRTV()));
-        m_Cmd->AddDrawcall(draw, true);
+        m_Cmd->AddDrawcall(draw);
 
         D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
 
@@ -4724,7 +4702,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewUint(
         draw.copyDestination = GetResourceManager()->GetOriginalID(GetResID(pResource));
         draw.copyDestinationSubresource = Subresource();
 
-        m_Cmd->AddDrawcall(draw, true);
+        m_Cmd->AddDrawcall(draw);
 
         D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
 
@@ -4830,7 +4808,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewFloat(
         draw.copyDestination = GetResourceManager()->GetOriginalID(GetResID(pResource));
         draw.copyDestinationSubresource = Subresource();
 
-        m_Cmd->AddDrawcall(draw, true);
+        m_Cmd->AddDrawcall(draw);
 
         D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
 
@@ -4921,7 +4899,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DiscardResource(SerialiserType 
         draw.copyDestinationSubresource = Subresource();
         draw.name = StringFormat::Fmt("DiscardResource(%s)", ToStr(draw.copyDestination).c_str());
 
-        m_Cmd->AddDrawcall(draw, true);
+        m_Cmd->AddDrawcall(draw);
 
         D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
 
@@ -5004,7 +4982,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyBufferRegion(SerialiserType
                                       ToStr(draw.copySource).c_str());
         draw.flags |= DrawFlags::Copy;
 
-        m_Cmd->AddDrawcall(draw, true);
+        m_Cmd->AddDrawcall(draw);
 
         D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
 
@@ -5117,7 +5095,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyTextureRegion(
               GetSliceForSubresource(unwrappedDst.pResource, unwrappedDst.SubresourceIndex));
         }
 
-        m_Cmd->AddDrawcall(draw, true);
+        m_Cmd->AddDrawcall(draw);
 
         D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
 
@@ -5208,7 +5186,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyResource(SerialiserType &se
                                       ToStr(draw.copySource).c_str());
         draw.flags |= DrawFlags::Copy;
 
-        m_Cmd->AddDrawcall(draw, true);
+        m_Cmd->AddDrawcall(draw);
 
         D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
 
@@ -5304,7 +5282,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresource(
                               ToStr(draw.copySource).c_str());
         draw.flags |= DrawFlags::Resolve;
 
-        m_Cmd->AddDrawcall(draw, true);
+        m_Cmd->AddDrawcall(draw);
 
         D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
 
@@ -5417,7 +5395,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyTiles(
         else
           draw.copyDestinationSubresource = tileSub;
 
-        m_Cmd->AddDrawcall(draw, true);
+        m_Cmd->AddDrawcall(draw);
 
         D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
 

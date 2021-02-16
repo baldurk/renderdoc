@@ -1844,7 +1844,7 @@ bool WrappedOpenGL::Serialise_glInvalidateNamedFramebufferData(SerialiserType &s
         m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Discard));
       }
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -2044,7 +2044,7 @@ bool WrappedOpenGL::Serialise_glInvalidateNamedFramebufferSubData(
         m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Discard));
       }
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -2283,7 +2283,7 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(SerialiserType &ser,
         }
       }
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 

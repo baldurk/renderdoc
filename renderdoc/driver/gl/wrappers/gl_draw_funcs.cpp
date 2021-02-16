@@ -336,7 +336,7 @@ bool WrappedOpenGL::Serialise_glDispatchCompute(SerialiserType &ser, GLuint num_
                         "Dispatch call has num_groups_z=0. This will do nothing, which is unusual "
                         "for a non-indirect Dispatch. Did you mean Z=1?");
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -444,7 +444,7 @@ bool WrappedOpenGL::Serialise_glDispatchComputeGroupSizeARB(SerialiserType &ser,
                         "Dispatch call has group_size_z=0. This will do nothing, which is unusual "
                         "for a non-indirect Dispatch. Did you mean Z=1?");
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -515,7 +515,7 @@ bool WrappedOpenGL::Serialise_glDispatchComputeIndirect(SerialiserType &ser, GLi
       draw.dispatchDimension[1] = groupSizes[1];
       draw.dispatchDimension[2] = groupSizes[2];
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       GLuint buf = 0;
       GL.glGetIntegerv(eGL_DISPATCH_INDIRECT_BUFFER_BINDING, (GLint *)&buf);
@@ -689,7 +689,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedback(SerialiserType &ser, GLenu
 
       m_LastTopology = MakePrimitiveTopology(mode);
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -761,7 +761,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackInstanced(SerialiserType &s
 
       m_LastTopology = MakePrimitiveTopology(mode);
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -832,7 +832,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStream(SerialiserType &ser,
 
       m_LastTopology = MakePrimitiveTopology(mode);
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -907,7 +907,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStreamInstanced(SerialiserT
 
       m_LastTopology = MakePrimitiveTopology(mode);
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -977,7 +977,7 @@ bool WrappedOpenGL::Serialise_glDrawArrays(SerialiserType &ser, GLenum mode, GLi
 
       m_LastTopology = MakePrimitiveTopology(mode);
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -1238,7 +1238,7 @@ bool WrappedOpenGL::Serialise_glDrawArraysIndirect(SerialiserType &ser, GLenum m
 
       m_LastTopology = MakePrimitiveTopology(mode);
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       GLuint buf = 0;
       GL.glGetIntegerv(eGL_DRAW_INDIRECT_BUFFER_BINDING, (GLint *)&buf);
@@ -1314,7 +1314,7 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstanced(SerialiserType &ser, GLenum 
 
       m_LastTopology = MakePrimitiveTopology(mode);
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -1394,7 +1394,7 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstancedBaseInstance(SerialiserType &
 
       m_LastTopology = MakePrimitiveTopology(mode);
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -1475,7 +1475,7 @@ bool WrappedOpenGL::Serialise_glDrawElements(SerialiserType &ser, GLenum mode, G
       m_LastTopology = MakePrimitiveTopology(mode);
       m_LastIndexWidth = IdxSize;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -1558,7 +1558,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsIndirect(SerialiserType &ser, GLenum
       m_LastTopology = MakePrimitiveTopology(mode);
       m_LastIndexWidth = IdxSize;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       GLuint buf = 0;
       GL.glGetIntegerv(eGL_DRAW_INDIRECT_BUFFER_BINDING, (GLint *)&buf);
@@ -1640,7 +1640,7 @@ bool WrappedOpenGL::Serialise_glDrawRangeElements(SerialiserType &ser, GLenum mo
       m_LastTopology = MakePrimitiveTopology(mode);
       m_LastIndexWidth = IdxSize;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -1724,7 +1724,7 @@ bool WrappedOpenGL::Serialise_glDrawRangeElementsBaseVertex(SerialiserType &ser,
       m_LastTopology = MakePrimitiveTopology(mode);
       m_LastIndexWidth = IdxSize;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -1806,7 +1806,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsBaseVertex(SerialiserType &ser, GLen
       m_LastTopology = MakePrimitiveTopology(mode);
       m_LastIndexWidth = IdxSize;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -1886,7 +1886,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstanced(SerialiserType &ser, GLenu
       m_LastTopology = MakePrimitiveTopology(mode);
       m_LastIndexWidth = IdxSize;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -1971,7 +1971,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseInstance(SerialiserType
       m_LastTopology = MakePrimitiveTopology(mode);
       m_LastIndexWidth = IdxSize;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -2059,7 +2059,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertex(SerialiserType &
       m_LastTopology = MakePrimitiveTopology(mode);
       m_LastIndexWidth = IdxSize;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -2146,7 +2146,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertexBaseInstance(
       m_LastTopology = MakePrimitiveTopology(mode);
       m_LastIndexWidth = IdxSize;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -2220,7 +2220,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(SerialiserType &ser, GLenum mode
       m_LastTopology = MakePrimitiveTopology(mode);
 
       AddEvent();
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
 
@@ -2241,7 +2241,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(SerialiserType &ser, GLenum mode
         m_LastTopology = MakePrimitiveTopology(mode);
 
         AddEvent();
-        AddDrawcall(multidraw, true);
+        AddDrawcall(multidraw);
       }
 
       m_DrawcallStack.pop_back();
@@ -2382,7 +2382,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(SerialiserType &ser, GLenum mo
       m_LastTopology = MakePrimitiveTopology(mode);
 
       AddEvent();
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
 
@@ -2406,7 +2406,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(SerialiserType &ser, GLenum mo
         m_LastTopology = MakePrimitiveTopology(mode);
 
         AddEvent();
-        AddDrawcall(multidraw, true);
+        AddDrawcall(multidraw);
       }
 
       m_DrawcallStack.pop_back();
@@ -2551,7 +2551,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(SerialiserType &ser,
       m_LastIndexWidth = IdxSize;
 
       AddEvent();
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
 
@@ -2576,7 +2576,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(SerialiserType &ser,
         m_LastIndexWidth = IdxSize;
 
         AddEvent();
-        AddDrawcall(multidraw, true);
+        AddDrawcall(multidraw);
       }
 
       m_DrawcallStack.pop_back();
@@ -2705,7 +2705,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
       m_LastTopology = MakePrimitiveTopology(mode);
 
       AddEvent();
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
 
@@ -2764,7 +2764,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
         m_StructuredFile->chunks.push_back(fakeChunk);
 
         AddEvent();
-        AddDrawcall(multidraw, true);
+        AddDrawcall(multidraw);
       }
 
       m_DrawcallStack.pop_back();
@@ -2928,7 +2928,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
       m_LastIndexWidth = IdxSize;
 
       AddEvent();
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
 
@@ -2990,7 +2990,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
         m_StructuredFile->chunks.push_back(fakeChunk);
 
         AddEvent();
-        AddDrawcall(multidraw, true);
+        AddDrawcall(multidraw);
       }
 
       m_DrawcallStack.pop_back();
@@ -3157,7 +3157,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
       m_LastTopology = MakePrimitiveTopology(mode);
 
       AddEvent();
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
 
@@ -3216,7 +3216,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
         m_StructuredFile->chunks.push_back(fakeChunk);
 
         AddEvent();
-        AddDrawcall(multidraw, true);
+        AddDrawcall(multidraw);
       }
 
       m_DrawcallStack.pop_back();
@@ -3389,7 +3389,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
       m_LastIndexWidth = IdxSize;
 
       AddEvent();
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
 
@@ -3451,7 +3451,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
         m_StructuredFile->chunks.push_back(fakeChunk);
 
         AddEvent();
-        AddDrawcall(multidraw, true);
+        AddDrawcall(multidraw);
       }
 
       m_DrawcallStack.pop_back();
@@ -3657,7 +3657,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfv(SerialiserType &ser,
         }
       }
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -3808,7 +3808,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferiv(SerialiserType &ser,
         }
       }
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -3932,7 +3932,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferuiv(SerialiserType &ser,
         }
       }
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 
@@ -4055,7 +4055,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfi(SerialiserType &ser, GLu
         }
       }
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       attachment = 0;
       type = eGL_TEXTURE;
@@ -4552,7 +4552,7 @@ bool WrappedOpenGL::Serialise_glClear(SerialiserType &ser, GLbitfield mask)
         draw.copyDestinationSubresource.slice = slice;
       }
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
   return true;
@@ -4685,7 +4685,7 @@ bool WrappedOpenGL::Serialise_glClearTexImage(SerialiserType &ser, GLuint textur
       draw.copyDestination = id;
       draw.copyDestinationSubresource.mip = level;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       m_ResourceUses[liveId].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
     }
@@ -4834,7 +4834,7 @@ bool WrappedOpenGL::Serialise_glClearTexSubImage(SerialiserType &ser, GLuint tex
       draw.copyDestination = id;
       draw.copyDestinationSubresource.mip = level;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       m_ResourceUses[liveId].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
     }
@@ -4880,13 +4880,12 @@ bool WrappedOpenGL::Serialise_glFlush(SerialiserType &ser)
 
     if(IsLoading(m_State))
     {
-      AddEvent();
-
       DrawcallDescription draw;
       draw.name = ToStr(gl_CurChunk) + "()";
       draw.flags |= DrawFlags::PassBoundary | DrawFlags::EndPass;
 
-      AddDrawcall(draw, true);
+      AddEvent();
+      AddDrawcall(draw);
     }
   }
 
@@ -4926,7 +4925,7 @@ bool WrappedOpenGL::Serialise_glFinish(SerialiserType &ser)
       draw.name = ToStr(gl_CurChunk) + "()";
       draw.flags |= DrawFlags::PassBoundary | DrawFlags::EndPass;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
     }
   }
 

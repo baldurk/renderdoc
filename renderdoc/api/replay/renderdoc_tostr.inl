@@ -1175,7 +1175,7 @@ rdcstr DoStringise(const DrawFlags &el)
     STRINGISE_BITFIELD_CLASS_BIT(ClearDepthStencil);
     STRINGISE_BITFIELD_CLASS_BIT(BeginPass);
     STRINGISE_BITFIELD_CLASS_BIT(EndPass);
-    STRINGISE_BITFIELD_CLASS_BIT(APICalls);
+    STRINGISE_BITFIELD_CLASS_BIT(CommandBufferBoundary);
   }
   END_BITFIELD_STRINGISE();
 }

@@ -2675,7 +2675,7 @@ bool WrappedOpenGL::Serialise_Present(SerialiserType &ser)
         StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(), ToStr(draw.copyDestination).c_str());
     draw.flags |= DrawFlags::Present;
 
-    AddDrawcall(draw, true);
+    AddDrawcall(draw);
   }
 
   return true;
@@ -3259,20 +3259,6 @@ void WrappedOpenGL::AddResourceInitChunk(GLResource res)
   }
 }
 
-bool WrappedOpenGL::HasNonDebugMarkers()
-{
-  for(const APIEvent &ev : m_CurEvents)
-  {
-    GLChunk chunk = (GLChunk)m_StructuredFile->chunks[ev.chunkIndex]->metadata.chunkID;
-    if(chunk != GLChunk::glPushGroupMarkerEXT && chunk != GLChunk::glPopGroupMarkerEXT &&
-       chunk != GLChunk::glPushDebugGroupKHR && chunk != GLChunk::glPopDebugGroupKHR &&
-       chunk != GLChunk::glPushDebugGroup && chunk != GLChunk::glPopDebugGroup)
-      return true;
-  }
-
-  return false;
-}
-
 ReplayStatus WrappedOpenGL::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
 {
   int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
@@ -3503,7 +3489,7 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
         draw.copyDestination = GetResourceManager()->GetOriginalID(
             GetResourceManager()->GetResID(TextureRes(GetCtx(), col)));
 
-        AddDrawcall(draw, true);
+        AddDrawcall(draw);
       }
       return true;
     }
@@ -5534,7 +5520,7 @@ void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
   }
 }
 
-void WrappedOpenGL::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
+void WrappedOpenGL::AddDrawcall(const DrawcallDescription &d)
 {
   m_AddedDrawcall = true;
 
@@ -5593,20 +5579,12 @@ void WrappedOpenGL::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
   }
 
   // markers don't increment drawcall ID
-  DrawFlags MarkerMask = DrawFlags::SetMarker | DrawFlags::PushMarker | DrawFlags::MultiDraw;
+  DrawFlags MarkerMask =
+      DrawFlags::SetMarker | DrawFlags::PushMarker | DrawFlags::PopMarker | DrawFlags::MultiDraw;
   if(!(draw.flags & MarkerMask))
     m_CurDrawcallID++;
 
-  if(hasEvents)
-  {
-    draw.events = m_CurEvents;
-    m_CurEvents.clear();
-  }
-  else
-  {
-    draw.events.push_back(m_CurEvents.back());
-    m_CurEvents.pop_back();
-  }
+  draw.events.swap(m_CurEvents);
 
   AddUsage(draw);
 

@@ -366,8 +366,6 @@ struct D3D12CommandData
 
   void GetIndirectBuffer(size_t size, ID3D12Resource **buf, uint64_t *offs);
 
-  bool HasNonMarkerEvents(ResourceId cmdBuffer);
-
   // util function to handle fetching the right eventId, calling any
   // aliases then calling PreDraw/PreDispatch.
   uint32_t HandlePreCallback(ID3D12GraphicsCommandListX *list, bool dispatch = false,
@@ -379,7 +377,7 @@ struct D3D12CommandData
   ID3D12GraphicsCommandListX *RerecordCmdList(ResourceId cmdid,
                                               PartialReplayIndex partialType = ePartialNum);
 
-  void AddDrawcall(const DrawcallDescription &d, bool hasEvents, bool addUsage = true);
+  void AddDrawcall(const DrawcallDescription &d);
   void AddEvent();
   void AddUsage(const D3D12RenderState &state, D3D12DrawcallTreeNode &drawNode);
   void AddUsage(D3D12DrawcallTreeNode &drawNode, ResourceId id, uint32_t EID, ResourceUsage usage);

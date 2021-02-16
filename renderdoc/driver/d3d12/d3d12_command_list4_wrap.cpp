@@ -231,7 +231,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginRenderPass(
       draw.name = "BeginRenderPass()";
       draw.flags |= DrawFlags::BeginPass | DrawFlags::PassBoundary;
 
-      m_Cmd->AddDrawcall(draw, true);
+      m_Cmd->AddDrawcall(draw);
 
       stateUpdate = true;
     }
@@ -381,7 +381,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndRenderPass(SerialiserType &s
       draw.name = "EndRenderPass()";
       draw.flags |= DrawFlags::EndPass | DrawFlags::PassBoundary;
 
-      m_Cmd->AddDrawcall(draw, true);
+      m_Cmd->AddDrawcall(draw);
 
       stateUpdate = true;
     }

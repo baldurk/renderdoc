@@ -822,7 +822,7 @@ bool WrappedOpenGL::Serialise_glGenerateTextureMipmapEXT(SerialiserType &ser, GL
           ToStr(GetResourceManager()->GetOriginalID(GetResourceManager()->GetResID(texture))).c_str());
       draw.flags |= DrawFlags::GenMips;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       m_ResourceUses[GetResourceManager()->GetResID(texture)].push_back(
           EventUsage(m_CurEventID, ResourceUsage::GenMips));
@@ -1029,7 +1029,7 @@ bool WrappedOpenGL::Serialise_glInvalidateTexImage(SerialiserType &ser, GLuint t
 
       draw.copyDestination = GetResourceManager()->GetOriginalID(liveId);
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       m_ResourceUses[GetResourceManager()->GetResID(texture)].push_back(
           EventUsage(m_CurEventID, ResourceUsage::Discard));
@@ -1183,7 +1183,7 @@ bool WrappedOpenGL::Serialise_glInvalidateTexSubImage(SerialiserType &ser, GLuin
 
       draw.copyDestination = GetResourceManager()->GetOriginalID(liveId);
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       m_ResourceUses[GetResourceManager()->GetResID(texture)].push_back(
           EventUsage(m_CurEventID, ResourceUsage::Discard));
@@ -1289,7 +1289,7 @@ bool WrappedOpenGL::Serialise_glCopyImageSubData(SerialiserType &ser, GLuint src
       if(srcTarget != eGL_TEXTURE_3D)
         draw.copySourceSubresource.slice = srcZ;
 
-      AddDrawcall(draw, true);
+      AddDrawcall(draw);
 
       if(srcid == dstid)
       {

@@ -27,8 +27,6 @@
 #include "../vk_debug.h"
 #include "core/settings.h"
 
-RDOC_CONFIG(bool, Vulkan_HideCommandBoundaries, false,
-            "Hides the auto-generated submitted command buffer boundaries.");
 RDOC_EXTERN_CONFIG(bool, Vulkan_Debug_VerboseCommandRecording);
 
 template <typename SerialiserType>
@@ -270,17 +268,17 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo
                                       ToStr(cmd).c_str());
 
       DrawcallDescription draw;
-      if(!Vulkan_HideCommandBoundaries())
       {
         // add a fake marker
         draw.name = name;
-        draw.flags |= DrawFlags::PassBoundary | DrawFlags::BeginPass;
+        draw.flags |=
+            DrawFlags::CommandBufferBoundary | DrawFlags::PassBoundary | DrawFlags::BeginPass;
         AddEvent();
 
         m_RootEvents.back().chunkIndex = cmdBufInfo.beginChunk;
         m_Events.back().chunkIndex = cmdBufInfo.beginChunk;
 
-        AddDrawcall(draw, true);
+        AddDrawcall(draw);
         m_RootEventID++;
       }
 
@@ -315,11 +313,8 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo
       m_RootEventID += cmdBufInfo.eventCount;
       m_RootDrawcallID += cmdBufInfo.drawCount;
 
-      if(!Vulkan_HideCommandBoundaries())
       {
-        // non-marker events would have been gathered into an APICalls draw, but markers can
-        // still
-        // be dangling. Add them here.
+        // pull in any remaining events on the command buffer that weren't added to a drawcall
         uint32_t i = 0;
         for(APIEvent &apievent : cmdBufInfo.curEvents)
         {
@@ -332,18 +327,16 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo
           i++;
         }
 
-        cmdBufInfo.curEvents.clear();
-
         name = StringFormat::Fmt("=> %s[%u]: vkEndCommandBuffer(%s)", basename.c_str(), c,
                                  ToStr(cmd).c_str());
         draw.name = name;
-        draw.flags = DrawFlags::PassBoundary | DrawFlags::EndPass;
+        draw.flags = DrawFlags::CommandBufferBoundary | DrawFlags::PassBoundary | DrawFlags::EndPass;
         AddEvent();
 
         m_RootEvents.back().chunkIndex = cmdBufInfo.endChunk;
         m_Events.back().chunkIndex = cmdBufInfo.endChunk;
 
-        AddDrawcall(draw, true);
+        AddDrawcall(draw);
         m_RootEventID++;
       }
     }
@@ -369,7 +362,6 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo
       m_RootDrawcallID += m_BakedCmdBufferInfo[cmd].drawCount;
 
       // 2 extra for the virtual labels around the command buffer
-      if(!Vulkan_HideCommandBoundaries())
       {
         m_RootEventID += 2;
         m_RootDrawcallID += 2;
@@ -407,10 +399,7 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo
 
         // account for the virtual vkBeginCommandBuffer label at the start of the events here
         // so it matches up to baseEvent
-        if(!Vulkan_HideCommandBoundaries())
-        {
-          eid++;
-        }
+        eid++;
 
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
         uint32_t end = eid + m_BakedCmdBufferInfo[cmdId].eventCount;
@@ -440,10 +429,7 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo
 
         // 1 extra to account for the virtual end command buffer label (begin is accounted for
         // above)
-        if(!Vulkan_HideCommandBoundaries())
-        {
-          eid++;
-        }
+        eid++;
       }
 
       submitInfo.pCommandBufferInfos = rerecordedCmds.data();
@@ -575,17 +561,6 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
   // assign new drawcall IDs
   for(size_t i = 0; i < cmdBufNodes.size(); i++)
   {
-    if(cmdBufNodes[i].draw.flags & DrawFlags::PopMarker)
-    {
-      // RDCASSERT(GetDrawcallStack().size() > 1);
-      if(GetDrawcallStack().size() > 1)
-        GetDrawcallStack().pop_back();
-
-      // Skip - pop marker draws aren't processed otherwise, we just apply them to the drawcall
-      // stack.
-      continue;
-    }
-
     VulkanDrawcallTreeNode n = cmdBufNodes[i];
     n.draw.eventId += m_RootEventID;
     n.draw.drawcallId += m_RootDrawcallID;
@@ -831,6 +806,10 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
     // if this is a push marker too, step down the drawcall stack
     if(cmdBufNodes[i].draw.flags & DrawFlags::PushMarker)
       GetDrawcallStack().push_back(&GetDrawcallStack().back()->children.back());
+
+    // similarly for a pop, but don't pop off the root
+    if((cmdBufNodes[i].draw.flags & DrawFlags::PopMarker) && GetDrawcallStack().size() > 1)
+      GetDrawcallStack().pop_back();
   }
 }
 
@@ -1866,7 +1845,7 @@ bool WrappedVulkan::Serialise_vkQueueBeginDebugUtilsLabelEXT(SerialiserType &ser
       draw.markerColor.w = RDCCLAMP(Label.color[3], 0.0f, 1.0f);
 
       AddEvent();
-      AddDrawcall(draw, false);
+      AddDrawcall(draw);
 
       // now push the drawcall stack
       GetDrawcallStack().push_back(&GetDrawcallStack().back()->children.back());
@@ -1910,6 +1889,13 @@ bool WrappedVulkan::Serialise_vkQueueEndDebugUtilsLabelEXT(SerialiserType &ser, 
 
     if(IsLoading(m_State))
     {
+      DrawcallDescription draw;
+      draw.name = "vkQueueEndDebugUtilsLabelEXT()";
+      draw.flags = DrawFlags::PopMarker;
+
+      AddEvent();
+      AddDrawcall(draw);
+
       if(GetDrawcallStack().size() > 1)
         GetDrawcallStack().pop_back();
     }
@@ -1963,7 +1949,7 @@ bool WrappedVulkan::Serialise_vkQueueInsertDebugUtilsLabelEXT(SerialiserType &se
       draw.markerColor.w = RDCCLAMP(Label.color[3], 0.0f, 1.0f);
 
       AddEvent();
-      AddDrawcall(draw, false);
+      AddDrawcall(draw);
     }
   }
 

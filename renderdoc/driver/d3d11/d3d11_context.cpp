@@ -252,18 +252,6 @@ void WrappedID3D11DeviceContext::GetDevice(ID3D11Device **ppDevice)
   }
 }
 
-bool WrappedID3D11DeviceContext::HasNonMarkerEvents()
-{
-  for(const APIEvent &ev : m_CurEvents)
-  {
-    D3D11Chunk chunk = (D3D11Chunk)m_StructuredFile->chunks[ev.chunkIndex]->metadata.chunkID;
-    if(chunk != D3D11Chunk::PushMarker && chunk != D3D11Chunk::PopMarker)
-      return true;
-  }
-
-  return false;
-}
-
 D3D11ResourceManager *WrappedID3D11DeviceContext::GetResourceManager()
 {
   return m_pDevice->GetResourceManager();
@@ -583,7 +571,7 @@ bool WrappedID3D11DeviceContext::Serialise_Present(SerialiserType &ser, UINT Syn
     draw.name = StringFormat::Fmt("Present(%s)", ToStr(draw.copyDestination).c_str());
     draw.flags |= DrawFlags::Present;
 
-    AddDrawcall(draw, true);
+    AddDrawcall(draw);
   }
 
   return true;
@@ -951,13 +939,15 @@ bool WrappedID3D11DeviceContext::ProcessChunk(ReadSerialiser &ser, D3D11Chunk ch
     {
       if(IsLoading(m_State) && m_LastChunk != D3D11Chunk::SwapchainPresent)
       {
+        AddEvent();
+
         DrawcallDescription draw;
         draw.name = "End of Capture";
         draw.flags |= DrawFlags::Present;
 
         draw.copyDestination = m_pDevice->GetBackbufferResourceID();
 
-        AddDrawcall(draw, true);
+        AddDrawcall(draw);
       }
 
       ret = true;
@@ -1112,7 +1102,7 @@ void WrappedID3D11DeviceContext::AddUsage(const DrawcallDescription &d)
   }
 }
 
-void WrappedID3D11DeviceContext::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
+void WrappedID3D11DeviceContext::AddDrawcall(const DrawcallDescription &d)
 {
   if(m_CurEventID == 0)
     return;
@@ -1141,20 +1131,11 @@ void WrappedID3D11DeviceContext::AddDrawcall(const DrawcallDescription &d, bool 
   }
 
   // markers don't increment drawcall ID
-  DrawFlags MarkerMask = DrawFlags::SetMarker | DrawFlags::PushMarker;
+  DrawFlags MarkerMask = DrawFlags::SetMarker | DrawFlags::PushMarker | DrawFlags::PopMarker;
   if(!(draw.flags & MarkerMask))
     m_CurDrawcallID++;
 
-  if(hasEvents)
-  {
-    draw.events = m_CurEvents;
-    m_CurEvents.clear();
-  }
-  else
-  {
-    draw.events.push_back(m_CurEvents.back());
-    m_CurEvents.pop_back();
-  }
+  draw.events.swap(m_CurEvents);
 
   AddUsage(draw);
 
