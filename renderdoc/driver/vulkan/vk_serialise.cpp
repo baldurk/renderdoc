@@ -1067,6 +1067,10 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_UNIFORM_BUFFER_STANDARD_LAYOUT_FEATURES,              \
                VkPhysicalDeviceUniformBufferStandardLayoutFeatures)                                    \
                                                                                                        \
+  /* VK_KHR_workgroup_memory_explicit_layout */                                                        \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_WORKGROUP_MEMORY_EXPLICIT_LAYOUT_FEATURES_KHR,        \
+               VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR)                               \
+                                                                                                       \
   /* VK_KHR_variable_pointers */                                                                       \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VARIABLE_POINTERS_FEATURES,                           \
                VkPhysicalDeviceVariablePointerFeatures)                                                \
@@ -1229,9 +1233,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR)                                       \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO_KHR)                                  \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR)                  \
-                                                                                                       \
-  /* VK_KHR_workgroup_memory_explicit_layout */                                                        \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_WORKGROUP_MEMORY_EXPLICIT_LAYOUT_FEATURES_KHR)   \
                                                                                                        \
   /* VK_NV_clip_space_w_scaling */                                                                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_W_SCALING_STATE_CREATE_INFO_NV)                \
@@ -3721,6 +3722,26 @@ void DoSerialise(SerialiserType &ser, VkPhysicalDeviceZeroInitializeWorkgroupMem
 
 template <>
 void Deserialise(const VkPhysicalDeviceZeroInitializeWorkgroupMemoryFeaturesKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType ==
+                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_WORKGROUP_MEMORY_EXPLICIT_LAYOUT_FEATURES_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(workgroupMemoryExplicitLayout);
+  SERIALISE_MEMBER(workgroupMemoryExplicitLayoutScalarBlockLayout);
+  SERIALISE_MEMBER(workgroupMemoryExplicitLayout8BitAccess);
+  SERIALISE_MEMBER(workgroupMemoryExplicitLayout16BitAccess);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR &el)
 {
   DeserialiseNext(el.pNext);
 }
@@ -9105,6 +9126,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVulkan11Properties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVulkan12Features);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVulkan12Properties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVulkanMemoryModelFeatures);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceYcbcrImageArraysFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceZeroInitializeWorkgroupMemoryFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineCacheCreateInfo);

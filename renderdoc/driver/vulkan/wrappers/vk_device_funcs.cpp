@@ -2686,6 +2686,17 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         CHECK_PHYS_EXT_FEATURE(shaderZeroInitializeWorkgroupMemory);
       }
       END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(
+          VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR,
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_WORKGROUP_MEMORY_EXPLICIT_LAYOUT_FEATURES_KHR);
+      {
+        CHECK_PHYS_EXT_FEATURE(workgroupMemoryExplicitLayout);
+        CHECK_PHYS_EXT_FEATURE(workgroupMemoryExplicitLayoutScalarBlockLayout);
+        CHECK_PHYS_EXT_FEATURE(workgroupMemoryExplicitLayout8BitAccess);
+        CHECK_PHYS_EXT_FEATURE(workgroupMemoryExplicitLayout16BitAccess);
+      }
+      END_PHYS_EXT_CHECK();
     }
 
     if(availFeatures.depthClamp)
