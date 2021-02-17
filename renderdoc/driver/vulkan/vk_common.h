@@ -1562,11 +1562,11 @@ DECLARE_DESERIALISE_TYPE(VkPresentFrameTokenGGP);
 
 // we add these fake enums so we have a type for type-dispatch in the serialiser. Due to C ABI rules
 // the vulkan API doesn't define native 64-bit enums itself
-enum VkAccessFlagBits2KHR
+enum VkAccessFlagBits2KHR : uint64_t
 {
 };
 
-enum VkPipelineStageFlagBits2KHR
+enum VkPipelineStageFlagBits2KHR : uint64_t
 {
 };
 
