@@ -300,7 +300,7 @@ VkStruct *UnwrapStructAndChain(CaptureState state, byte *&tempMem, const VkStruc
   VkBaseInStructure dummy;
   dummy.pNext = (const VkBaseInStructure *)base;
 
-  UnwrapNextChain(state, TypeName<typename VkStruct>().c_str(), tempMem, &dummy);
+  UnwrapNextChain(state, TypeName<VkStruct>().c_str(), tempMem, &dummy);
 
   return (VkStruct *)dummy.pNext;
 }
