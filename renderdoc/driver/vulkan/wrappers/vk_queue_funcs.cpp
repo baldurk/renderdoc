@@ -202,7 +202,7 @@ void WrappedVulkan::DoSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo)
 
     // we expect the pNext chain to be NULL, as there's nothing we should be replaying that we can
     // represent in this decomposed version
-    RDCASSERTEQUAL((void *)submitInfo.pNext, NULL);
+    RDCASSERTEQUAL((void *)submitInfo.pNext, (void *)NULL);
 
     if(submitInfo.flags & VK_SUBMIT_PROTECTED_BIT_KHR)
     {
