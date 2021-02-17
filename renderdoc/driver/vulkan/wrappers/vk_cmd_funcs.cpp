@@ -789,6 +789,8 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
     m_BakedCmdBufferInfo[m_LastCmdBufferID].beginFlags =
         m_BakedCmdBufferInfo[BakedCommandBuffer].beginFlags = BeginInfo.flags;
     m_BakedCmdBufferInfo[m_LastCmdBufferID].markerCount = 0;
+    m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates.clear();
+    m_BakedCmdBufferInfo[BakedCommandBuffer].imageStates.clear();
 
     VkCommandBufferBeginInfo unwrappedBeginInfo = BeginInfo;
     VkCommandBufferInheritanceInfo unwrappedInheritInfo;
@@ -3641,6 +3643,243 @@ void WrappedVulkan::vkCmdWriteTimestamp(VkCommandBuffer commandBuffer,
 }
 
 template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdPipelineBarrier2KHR(SerialiserType &ser,
+                                                       VkCommandBuffer commandBuffer,
+                                                       const VkDependencyInfoKHR *pDependencyInfo)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT_LOCAL(DependencyInfo, *pDependencyInfo);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  rdcarray<VkImageMemoryBarrier2KHR> imgBarriers;
+  rdcarray<VkBufferMemoryBarrier2KHR> bufBarriers;
+
+  // it's possible for buffer or image to be NULL if it refers to a resource that is otherwise
+  // not in the log (barriers do not mark resources referenced). If the resource in question does
+  // not exist, then it's safe to skip this barrier.
+  //
+  // Since it's a convenient place, we unwrap at the same time.
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    for(uint32_t i = 0; i < DependencyInfo.bufferMemoryBarrierCount; i++)
+    {
+      if(DependencyInfo.pBufferMemoryBarriers[i].buffer != VK_NULL_HANDLE)
+      {
+        bufBarriers.push_back(DependencyInfo.pBufferMemoryBarriers[i]);
+        bufBarriers.back().buffer = Unwrap(bufBarriers.back().buffer);
+
+        RemapQueueFamilyIndices(bufBarriers.back().srcQueueFamilyIndex,
+                                bufBarriers.back().dstQueueFamilyIndex);
+
+        if(IsLoading(m_State))
+        {
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(make_rdcpair(
+              GetResID(DependencyInfo.pBufferMemoryBarriers[i].buffer),
+              EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID, ResourceUsage::Barrier)));
+        }
+      }
+    }
+
+    for(uint32_t i = 0; i < DependencyInfo.imageMemoryBarrierCount; i++)
+    {
+      if(DependencyInfo.pImageMemoryBarriers[i].image != VK_NULL_HANDLE)
+      {
+        imgBarriers.push_back(DependencyInfo.pImageMemoryBarriers[i]);
+        imgBarriers.back().image = Unwrap(imgBarriers.back().image);
+
+        RemapQueueFamilyIndices(imgBarriers.back().srcQueueFamilyIndex,
+                                imgBarriers.back().dstQueueFamilyIndex);
+
+        if(IsLoading(m_State))
+        {
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(make_rdcpair(
+              GetResID(DependencyInfo.pImageMemoryBarriers[i].image),
+              EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID, ResourceUsage::Barrier)));
+        }
+      }
+    }
+
+    VkDependencyInfoKHR UnwrappedDependencyInfo = DependencyInfo;
+
+    UnwrappedDependencyInfo.pBufferMemoryBarriers = bufBarriers.data();
+    UnwrappedDependencyInfo.bufferMemoryBarrierCount = (uint32_t)bufBarriers.size();
+    UnwrappedDependencyInfo.pImageMemoryBarriers = imgBarriers.data();
+    UnwrappedDependencyInfo.imageMemoryBarrierCount = (uint32_t)imgBarriers.size();
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+      else
+        commandBuffer = VK_NULL_HANDLE;
+    }
+    else
+    {
+      for(uint32_t i = 0; i < DependencyInfo.imageMemoryBarrierCount; i++)
+      {
+        const VkImageMemoryBarrier2KHR &b = DependencyInfo.pImageMemoryBarriers[i];
+        if(b.image != VK_NULL_HANDLE && b.oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
+           b.newLayout != VK_IMAGE_LAYOUT_UNDEFINED)
+        {
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(make_rdcpair(
+              GetResID(b.image), EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID,
+                                            ResourceUsage::Discard)));
+        }
+      }
+    }
+
+    if(commandBuffer != VK_NULL_HANDLE)
+    {
+      GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
+                                           FindCommandQueueFamily(m_LastCmdBufferID),
+                                           (uint32_t)imgBarriers.size(), imgBarriers.data());
+
+      // now sanitise layouts before passing to vulkan
+      for(VkImageMemoryBarrier2KHR &barrier : imgBarriers)
+      {
+        if(barrier.oldLayout == barrier.newLayout)
+        {
+          barrier.oldLayout = barrier.newLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+          continue;
+        }
+
+        if(!IsLoading(m_State) && barrier.oldLayout == VK_IMAGE_LAYOUT_PREINITIALIZED)
+        {
+          // This is a transition from PRENITIALIZED, but we've already done this barrier once (when
+          // loading); Since we couldn't transition back to PREINITIALIZED, we instead left the
+          // image in GENERAL.
+          barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+        }
+        else
+        {
+          SanitiseReplayImageLayout(barrier.oldLayout);
+        }
+        SanitiseReplayImageLayout(barrier.newLayout);
+      }
+
+      ObjDisp(commandBuffer)->CmdPipelineBarrier2KHR(Unwrap(commandBuffer), &UnwrappedDependencyInfo);
+
+      if(IsActiveReplaying(m_State) &&
+         m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest)
+      {
+        for(uint32_t i = 0; i < DependencyInfo.imageMemoryBarrierCount; i++)
+        {
+          const VkImageMemoryBarrier2KHR &b = DependencyInfo.pImageMemoryBarriers[i];
+          if(b.image != VK_NULL_HANDLE && b.oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
+             b.newLayout != VK_IMAGE_LAYOUT_UNDEFINED)
+          {
+            GetDebugManager()->FillWithDiscardPattern(
+                commandBuffer, DiscardType::UndefinedTransition, b.image, b.newLayout,
+                b.subresourceRange, {{0, 0}, {65536, 65536}});
+          }
+        }
+      }
+    }
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdPipelineBarrier2KHR(VkCommandBuffer commandBuffer,
+                                             const VkDependencyInfoKHR *pDependencyInfo)
+{
+  SCOPED_DBG_SINK();
+
+  byte *tempMem = GetTempMemory(GetNextPatchSize(pDependencyInfo));
+  VkDependencyInfoKHR *unwrappedInfo = UnwrapStructAndChain(m_State, tempMem, pDependencyInfo);
+
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)->CmdPipelineBarrier2KHR(Unwrap(commandBuffer), unwrappedInfo));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdPipelineBarrier2KHR);
+    Serialise_vkCmdPipelineBarrier2KHR(ser, commandBuffer, pDependencyInfo);
+
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
+
+    if(pDependencyInfo->imageMemoryBarrierCount > 0)
+    {
+      GetResourceManager()->RecordBarriers(
+          record->cmdInfo->imageStates, record->pool->cmdPoolInfo->queueFamilyIndex,
+          pDependencyInfo->imageMemoryBarrierCount, pDependencyInfo->pImageMemoryBarriers);
+    }
+  }
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdWriteTimestamp2KHR(SerialiserType &ser,
+                                                      VkCommandBuffer commandBuffer,
+                                                      VkPipelineStageFlags2KHR stage,
+                                                      VkQueryPool queryPool, uint32_t query)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT_TYPED(VkPipelineStageFlagBits2KHR, stage)
+      .TypedAs("VkPipelineStageFlags2KHR"_lit);
+  SERIALISE_ELEMENT(queryPool);
+  SERIALISE_ELEMENT(query);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+      else
+        commandBuffer = VK_NULL_HANDLE;
+    }
+
+    if(commandBuffer != VK_NULL_HANDLE)
+    {
+      ObjDisp(commandBuffer)
+          ->CmdWriteTimestamp2KHR(Unwrap(commandBuffer), stage, Unwrap(queryPool), query);
+    }
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdWriteTimestamp2KHR(VkCommandBuffer commandBuffer,
+                                            VkPipelineStageFlags2KHR stage, VkQueryPool queryPool,
+                                            uint32_t query)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)
+          ->CmdWriteTimestamp2KHR(Unwrap(commandBuffer), stage, Unwrap(queryPool), query));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdWriteTimestamp2KHR);
+    Serialise_vkCmdWriteTimestamp2KHR(ser, commandBuffer, stage, queryPool, query);
+
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
+
+    record->MarkResourceFrameReferenced(GetResID(queryPool), eFrameRef_Read);
+  }
+}
+
+template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkCmdCopyQueryPoolResults(
     SerialiserType &ser, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t firstQuery,
     uint32_t queryCount, VkBuffer destBuffer, VkDeviceSize destOffset, VkDeviceSize destStride,
@@ -5151,6 +5390,72 @@ void WrappedVulkan::vkCmdWriteBufferMarkerAMD(VkCommandBuffer commandBuffer,
 }
 
 template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdWriteBufferMarker2AMD(SerialiserType &ser,
+                                                         VkCommandBuffer commandBuffer,
+                                                         VkPipelineStageFlags2KHR stage,
+                                                         VkBuffer dstBuffer, VkDeviceSize dstOffset,
+                                                         uint32_t marker)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT_TYPED(VkPipelineStageFlagBits2KHR, stage)
+      .TypedAs("VkPipelineStageFlags2KHR"_lit);
+  SERIALISE_ELEMENT(dstBuffer);
+  SERIALISE_ELEMENT(dstOffset);
+  SERIALISE_ELEMENT(marker);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+      else
+        commandBuffer = VK_NULL_HANDLE;
+    }
+
+    if(commandBuffer != VK_NULL_HANDLE)
+    {
+      ObjDisp(commandBuffer)
+          ->CmdWriteBufferMarker2AMD(Unwrap(commandBuffer), stage, Unwrap(dstBuffer), dstOffset,
+                                     marker);
+    }
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdWriteBufferMarker2AMD(VkCommandBuffer commandBuffer,
+                                               VkPipelineStageFlags2KHR stage, VkBuffer dstBuffer,
+                                               VkDeviceSize dstOffset, uint32_t marker)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                          ->CmdWriteBufferMarker2AMD(Unwrap(commandBuffer), stage,
+                                                     Unwrap(dstBuffer), dstOffset, marker));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdWriteBufferMarker2AMD);
+    Serialise_vkCmdWriteBufferMarker2AMD(ser, commandBuffer, stage, dstBuffer, dstOffset, marker);
+
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
+
+    record->MarkBufferFrameReferenced(GetRecord(dstBuffer), dstOffset, 4, eFrameRef_PartialWrite);
+  }
+}
+
+template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkCmdBeginDebugUtilsLabelEXT(SerialiserType &ser,
                                                            VkCommandBuffer commandBuffer,
                                                            const VkDebugUtilsLabelEXT *pLabelInfo)
@@ -6053,6 +6358,10 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdWriteBufferMarkerAMD, VkCommandBuffer
                                 VkPipelineStageFlagBits pipelineStage, VkBuffer dstBuffer,
                                 VkDeviceSize dstOffset, uint32_t marker);
 
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdWriteBufferMarker2AMD, VkCommandBuffer commandBuffer,
+                                VkPipelineStageFlags2KHR stage, VkBuffer dstBuffer,
+                                VkDeviceSize dstOffset, uint32_t marker);
+
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdBeginDebugUtilsLabelEXT, VkCommandBuffer commandBuffer,
                                 const VkDebugUtilsLabelEXT *pLabelInfo);
 
@@ -6091,3 +6400,10 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdBindVertexBuffers2EXT, VkCommandBuffe
                                 uint32_t firstBinding, uint32_t bindingCount,
                                 const VkBuffer *pBuffers, const VkDeviceSize *pOffsets,
                                 const VkDeviceSize *pSizes, const VkDeviceSize *pStrides);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdPipelineBarrier2KHR, VkCommandBuffer commandBuffer,
+                                const VkDependencyInfoKHR *pDependencyInfo);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdWriteTimestamp2KHR, VkCommandBuffer commandBuffer,
+                                VkPipelineStageFlags2KHR stage, VkQueryPool queryPool,
+                                uint32_t query);

@@ -158,6 +158,9 @@ DECL_VKFLAG_EXT(VkSwapchainCreate, KHR);
 DECL_VKFLAG_EMPTY_EXT(VkValidationCacheCreate, EXT);
 DECL_VKFLAG_EMPTY_EXT(VkPipelineRasterizationDepthClipStateCreate, EXT);
 DECL_VKFLAG_EXT(VkToolPurpose, EXT);
+DECL_VKFLAG_EXT(VkSubmit, KHR);
+DECL_VKFLAG_EXT(VkPipelineStage, 2KHR);
+DECL_VKFLAG_EXT(VkAccess, 2KHR);
 
 // serialise a member as flags - cast to the Bits enum for serialisation so the stringification
 // picks up the bitfield and doesn't treat it as uint32_t. Then we rename the type back to the base
@@ -1053,6 +1056,17 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR, VkPresentInfoKHR)                                   \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_ACQUIRE_NEXT_IMAGE_INFO_KHR, VkAcquireNextImageInfoKHR)               \
                                                                                                        \
+  /* VK_KHR_synchronization2 */                                                                        \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_MEMORY_BARRIER_2_KHR, VkMemoryBarrier2KHR)                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2_KHR, VkBufferMemoryBarrier2KHR)               \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2_KHR, VkImageMemoryBarrier2KHR)                 \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEPENDENCY_INFO_KHR, VkDependencyInfoKHR)                             \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SUBMIT_INFO_2_KHR, VkSubmitInfo2KHR)                                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR, VkSemaphoreSubmitInfoKHR)                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO_KHR, VkCommandBufferSubmitInfoKHR)         \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR,                       \
+               VkPhysicalDeviceSynchronization2FeaturesKHR)                                            \
+                                                                                                       \
   /* VK_KHR_timeline_semaphore */                                                                      \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES,                          \
                VkPhysicalDeviceTimelineSemaphoreFeatures)                                              \
@@ -1223,16 +1237,6 @@ SERIALISE_VK_HANDLES();
                                                                                                        \
   /* VK_KHR_ray_query */                                                                               \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR)                          \
-                                                                                                       \
-  /* VK_KHR_synchronization2 */                                                                        \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MEMORY_BARRIER_2_KHR)                                            \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2_KHR)                                     \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2_KHR)                                      \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DEPENDENCY_INFO_KHR)                                             \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SUBMIT_INFO_2_KHR)                                               \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR)                                       \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO_KHR)                                  \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR)                  \
                                                                                                        \
   /* VK_NV_clip_space_w_scaling */                                                                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_W_SCALING_STATE_CREATE_INFO_NV)                \
@@ -8179,6 +8183,173 @@ void Deserialise(const VkDeviceGroupRenderPassBeginInfo &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkMemoryBarrier2KHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_MEMORY_BARRIER_2_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_VKFLAGS(VkPipelineStageFlags2KHR, srcStageMask);
+  SERIALISE_MEMBER_VKFLAGS(VkAccessFlags2KHR, srcAccessMask);
+  SERIALISE_MEMBER_VKFLAGS(VkPipelineStageFlags2KHR, dstStageMask);
+  SERIALISE_MEMBER_VKFLAGS(VkAccessFlags2KHR, dstAccessMask);
+}
+
+template <>
+void Deserialise(const VkMemoryBarrier2KHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkBufferMemoryBarrier2KHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_VKFLAGS(VkPipelineStageFlags2KHR, srcStageMask);
+  SERIALISE_MEMBER_VKFLAGS(VkAccessFlags2KHR, srcAccessMask);
+  SERIALISE_MEMBER_VKFLAGS(VkPipelineStageFlags2KHR, dstStageMask);
+  SERIALISE_MEMBER_VKFLAGS(VkAccessFlags2KHR, dstAccessMask);
+  // serialise as signed because then QUEUE_FAMILY_IGNORED is -1 and queue
+  // family index won't be legitimately larger than 2 billion
+  SERIALISE_MEMBER_TYPED(int32_t, srcQueueFamilyIndex);
+  SERIALISE_MEMBER_TYPED(int32_t, dstQueueFamilyIndex);
+  SERIALISE_MEMBER(buffer);
+  SERIALISE_MEMBER(offset);
+  SERIALISE_MEMBER(size);
+}
+
+template <>
+void Deserialise(const VkBufferMemoryBarrier2KHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkImageMemoryBarrier2KHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_VKFLAGS(VkPipelineStageFlags2KHR, srcStageMask);
+  SERIALISE_MEMBER_VKFLAGS(VkAccessFlags2KHR, srcAccessMask);
+  SERIALISE_MEMBER_VKFLAGS(VkPipelineStageFlags2KHR, dstStageMask);
+  SERIALISE_MEMBER_VKFLAGS(VkAccessFlags2KHR, dstAccessMask);
+  SERIALISE_MEMBER(oldLayout);
+  SERIALISE_MEMBER(newLayout);
+  // serialise as signed because then QUEUE_FAMILY_IGNORED is -1 and queue
+  // family index won't be legitimately larger than 2 billion
+  SERIALISE_MEMBER_TYPED(int32_t, srcQueueFamilyIndex);
+  SERIALISE_MEMBER_TYPED(int32_t, dstQueueFamilyIndex);
+  SERIALISE_MEMBER(image);
+  SERIALISE_MEMBER(subresourceRange);
+}
+
+template <>
+void Deserialise(const VkImageMemoryBarrier2KHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceSynchronization2FeaturesKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(synchronization2);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceSynchronization2FeaturesKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkSemaphoreSubmitInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(semaphore);
+  SERIALISE_MEMBER(value);
+  SERIALISE_MEMBER_VKFLAGS(VkPipelineStageFlags2KHR, stageMask);
+  SERIALISE_MEMBER(deviceIndex);
+}
+
+template <>
+void Deserialise(const VkSemaphoreSubmitInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkCommandBufferSubmitInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(commandBuffer);
+  SERIALISE_MEMBER(deviceMask);
+}
+
+template <>
+void Deserialise(const VkCommandBufferSubmitInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkSubmitInfo2KHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_SUBMIT_INFO_2_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_VKFLAGS(VkSubmitFlagsKHR, flags);
+  SERIALISE_MEMBER(waitSemaphoreInfoCount);
+  SERIALISE_MEMBER_ARRAY(pWaitSemaphoreInfos, waitSemaphoreInfoCount);
+  SERIALISE_MEMBER(commandBufferInfoCount);
+  SERIALISE_MEMBER_ARRAY(pCommandBufferInfos, commandBufferInfoCount);
+  SERIALISE_MEMBER(signalSemaphoreInfoCount);
+  SERIALISE_MEMBER_ARRAY(pSignalSemaphoreInfos, signalSemaphoreInfoCount);
+}
+
+template <>
+void Deserialise(const VkSubmitInfo2KHR &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pWaitSemaphoreInfos;
+  delete[] el.pCommandBufferInfos;
+  delete[] el.pSignalSemaphoreInfos;
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkDependencyInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_DEPENDENCY_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_VKFLAGS(VkDependencyFlags, dependencyFlags);
+  SERIALISE_MEMBER(memoryBarrierCount);
+  SERIALISE_MEMBER_ARRAY(pMemoryBarriers, memoryBarrierCount);
+  SERIALISE_MEMBER(bufferMemoryBarrierCount);
+  SERIALISE_MEMBER_ARRAY(pBufferMemoryBarriers, bufferMemoryBarrierCount);
+  SERIALISE_MEMBER(imageMemoryBarrierCount);
+  SERIALISE_MEMBER_ARRAY(pImageMemoryBarriers, imageMemoryBarrierCount);
+}
+
+template <>
+void Deserialise(const VkDependencyInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pMemoryBarriers;
+  delete[] el.pBufferMemoryBarriers;
+  delete[] el.pImageMemoryBarriers;
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkHdrMetadataEXT &el)
 {
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_HDR_METADATA_EXT);
@@ -8914,6 +9085,7 @@ INSTANTIATE_SERIALISE_TYPE(VkBufferDeviceAddressCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkBufferDeviceAddressInfo);
 INSTANTIATE_SERIALISE_TYPE(VkBufferImageCopy2KHR);
 INSTANTIATE_SERIALISE_TYPE(VkBufferMemoryBarrier);
+INSTANTIATE_SERIALISE_TYPE(VkBufferMemoryBarrier2KHR);
 INSTANTIATE_SERIALISE_TYPE(VkBufferMemoryRequirementsInfo2);
 INSTANTIATE_SERIALISE_TYPE(VkBufferOpaqueCaptureAddressCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkBufferViewCreateInfo);
@@ -8922,6 +9094,7 @@ INSTANTIATE_SERIALISE_TYPE(VkCommandBufferAllocateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkCommandBufferBeginInfo);
 INSTANTIATE_SERIALISE_TYPE(VkCommandBufferInheritanceConditionalRenderingInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkCommandBufferInheritanceInfo);
+INSTANTIATE_SERIALISE_TYPE(VkCommandBufferSubmitInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkCommandPoolCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkComputePipelineCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkConditionalRenderingBeginInfoEXT);
@@ -8942,6 +9115,7 @@ INSTANTIATE_SERIALISE_TYPE(VkDebugUtilsObjectTagInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkDedicatedAllocationBufferCreateInfoNV);
 INSTANTIATE_SERIALISE_TYPE(VkDedicatedAllocationImageCreateInfoNV);
 INSTANTIATE_SERIALISE_TYPE(VkDedicatedAllocationMemoryAllocateInfoNV);
+INSTANTIATE_SERIALISE_TYPE(VkDependencyInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkDescriptorPoolCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkDescriptorSetAllocateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkDescriptorSetLayoutBindingFlagsCreateInfo)
@@ -9001,6 +9175,7 @@ INSTANTIATE_SERIALISE_TYPE(VkImageCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkImageFormatListCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkImageFormatProperties2);
 INSTANTIATE_SERIALISE_TYPE(VkImageMemoryBarrier);
+INSTANTIATE_SERIALISE_TYPE(VkImageMemoryBarrier2KHR);
 INSTANTIATE_SERIALISE_TYPE(VkImageMemoryRequirementsInfo2);
 INSTANTIATE_SERIALISE_TYPE(VkImagePlaneMemoryRequirementsInfo);
 INSTANTIATE_SERIALISE_TYPE(VkImageResolve2KHR);
@@ -9020,6 +9195,7 @@ INSTANTIATE_SERIALISE_TYPE(VkMappedMemoryRange);
 INSTANTIATE_SERIALISE_TYPE(VkMemoryAllocateFlagsInfo);
 INSTANTIATE_SERIALISE_TYPE(VkMemoryAllocateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkMemoryBarrier);
+INSTANTIATE_SERIALISE_TYPE(VkMemoryBarrier2KHR);
 INSTANTIATE_SERIALISE_TYPE(VkMemoryDedicatedAllocateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkMemoryDedicatedRequirements);
 INSTANTIATE_SERIALISE_TYPE(VkMemoryFdPropertiesKHR);
@@ -9094,8 +9270,8 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSamplerFilterMinmaxProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSamplerYcbcrConversionFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceScalarBlockLayoutFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSeparateDepthStencilLayoutsFeaturesKHR);
-INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderAtomicInt64Features);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderAtomicFloatFeaturesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderAtomicInt64Features);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderClockFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderCorePropertiesAMD);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderDemoteToHelperInvocationFeaturesEXT);
@@ -9110,6 +9286,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSubgroupProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSubgroupSizeControlFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSubgroupSizeControlPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSurfaceInfo2KHR);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSynchronization2FeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceTexelBufferAlignmentFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceTexelBufferAlignmentPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceTimelineSemaphoreFeatures);
@@ -9185,6 +9362,7 @@ INSTANTIATE_SERIALISE_TYPE(VkSamplerYcbcrConversionInfo);
 INSTANTIATE_SERIALISE_TYPE(VkSemaphoreCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkSemaphoreGetFdInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkSemaphoreSignalInfo);
+INSTANTIATE_SERIALISE_TYPE(VkSemaphoreSubmitInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkSemaphoreTypeCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkSemaphoreWaitInfo);
 INSTANTIATE_SERIALISE_TYPE(VkShaderModuleCreateInfo);
@@ -9193,6 +9371,7 @@ INSTANTIATE_SERIALISE_TYPE(VkSharedPresentSurfaceCapabilitiesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkSparseImageFormatProperties2);
 INSTANTIATE_SERIALISE_TYPE(VkSparseImageMemoryRequirements2);
 INSTANTIATE_SERIALISE_TYPE(VkSubmitInfo);
+INSTANTIATE_SERIALISE_TYPE(VkSubmitInfo2KHR);
 INSTANTIATE_SERIALISE_TYPE(VkSubpassBeginInfo);
 INSTANTIATE_SERIALISE_TYPE(VkSubpassDependency2);
 INSTANTIATE_SERIALISE_TYPE(VkSubpassDescription2);

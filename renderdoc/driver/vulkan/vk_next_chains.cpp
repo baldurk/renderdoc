@@ -178,6 +178,7 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   COPY_STRUCT(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO, VkMemoryAllocateFlagsInfo);              \
   COPY_STRUCT(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, VkMemoryAllocateInfo);                         \
   COPY_STRUCT(VK_STRUCTURE_TYPE_MEMORY_BARRIER, VkMemoryBarrier);                                    \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_MEMORY_BARRIER_2_KHR, VkMemoryBarrier2KHR);                          \
   COPY_STRUCT(VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS, VkMemoryDedicatedRequirements);       \
   COPY_STRUCT(VK_STRUCTURE_TYPE_MEMORY_OPAQUE_CAPTURE_ADDRESS_ALLOCATE_INFO,                         \
               VkMemoryOpaqueCaptureAddressAllocateInfo);                                             \
@@ -337,6 +338,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
               VkPhysicalDeviceSubgroupSizeControlFeaturesEXT)                                        \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_SIZE_CONTROL_PROPERTIES_EXT,                \
               VkPhysicalDeviceSubgroupSizeControlPropertiesEXT)                                      \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR,                      \
+              VkPhysicalDeviceSynchronization2FeaturesKHR);                                          \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXEL_BUFFER_ALIGNMENT_FEATURES_EXT,                 \
               VkPhysicalDeviceTexelBufferAlignmentFeaturesEXT);                                      \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXEL_BUFFER_ALIGNMENT_PROPERTIES_EXT,               \
@@ -510,6 +513,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
                 UnwrapInPlace(out->image), UnwrapInPlace(out->memory));                              \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, VkBufferMemoryBarrier,                      \
                 UnwrapInPlace(out->buffer));                                                         \
+  UNWRAP_STRUCT(VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2_KHR, VkBufferMemoryBarrier2KHR,            \
+                UnwrapInPlace(out->buffer));                                                         \
   /* VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_EXT aliased by KHR */                              \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO, VkBufferDeviceAddressInfo,             \
                 UnwrapInPlace(out->buffer));                                                         \
@@ -521,6 +526,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
                 UnwrapInPlace(out->commandPool));                                                    \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO, VkCommandBufferInheritanceInfo,   \
                 UnwrapInPlace(out->renderPass), UnwrapInPlace(out->framebuffer));                    \
+  UNWRAP_STRUCT(VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO_KHR, VkCommandBufferSubmitInfoKHR,      \
+                UnwrapInPlace(out->commandBuffer));                                                  \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_CONDITIONAL_RENDERING_BEGIN_INFO_EXT,                              \
                 VkConditionalRenderingBeginInfoEXT, UnwrapInPlace(out->buffer));                     \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_COPY_DESCRIPTOR_SET, VkCopyDescriptorSet,                          \
@@ -534,6 +541,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_DEVICE_MEMORY_OPAQUE_CAPTURE_ADDRESS_INFO,                         \
                 VkDeviceMemoryOpaqueCaptureAddressInfo, UnwrapInPlace(out->memory));                 \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, VkImageMemoryBarrier,                        \
+                UnwrapInPlace(out->image));                                                          \
+  UNWRAP_STRUCT(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2_KHR, VkImageMemoryBarrier2KHR,              \
                 UnwrapInPlace(out->image));                                                          \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_IMAGE_MEMORY_REQUIREMENTS_INFO_2,                                  \
                 VkImageMemoryRequirementsInfo2, UnwrapInPlace(out->image));                          \
@@ -554,6 +563,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO, VkSamplerYcbcrConversionInfo,       \
                 UnwrapInPlace(out->conversion));                                                     \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO, VkSemaphoreSignalInfo,                      \
+                UnwrapInPlace(out->semaphore));                                                      \
+  UNWRAP_STRUCT(VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR, VkSemaphoreSubmitInfoKHR,               \
                 UnwrapInPlace(out->semaphore));                                                      \
   UNWRAP_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_ACQUIRE_NEXT_IMAGE_INFO_KHR,                          \
                              VkAcquireNextImageInfoKHR, UnwrapInPlace(out->swapchain),               \
@@ -613,6 +624,7 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_ACQUIRE_PROFILING_LOCK_INFO_KHR:                              \
   case VK_STRUCTURE_TYPE_BIND_ACCELERATION_STRUCTURE_MEMORY_INFO_NV:                   \
   case VK_STRUCTURE_TYPE_CHECKPOINT_DATA_NV:                                           \
+  case VK_STRUCTURE_TYPE_CHECKPOINT_DATA_2_NV:                                         \
   case VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_RENDER_PASS_TRANSFORM_INFO_QCOM:   \
   case VK_STRUCTURE_TYPE_COOPERATIVE_MATRIX_PROPERTIES_NV:                             \
   case VK_STRUCTURE_TYPE_COPY_ACCELERATION_STRUCTURE_INFO_KHR:                         \
@@ -712,6 +724,7 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_W_SCALING_STATE_CREATE_INFO_NV:             \
   case VK_STRUCTURE_TYPE_QUERY_POOL_PERFORMANCE_QUERY_CREATE_INFO_INTEL:               \
   case VK_STRUCTURE_TYPE_QUEUE_FAMILY_CHECKPOINT_PROPERTIES_NV:                        \
+  case VK_STRUCTURE_TYPE_QUEUE_FAMILY_CHECKPOINT_PROPERTIES_2_NV:                      \
   case VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR:                         \
   case VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_NV:                          \
   case VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_INTERFACE_CREATE_INFO_KHR:               \
@@ -723,17 +736,7 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT:                 \
   case VK_STRUCTURE_TYPE_SWAPCHAIN_DISPLAY_NATIVE_HDR_CREATE_INFO_AMD:                 \
   case VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR:              \
-  case VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_NV:               \
-  case VK_STRUCTURE_TYPE_MEMORY_BARRIER_2_KHR:                                         \
-  case VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2_KHR:                                  \
-  case VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2_KHR:                                   \
-  case VK_STRUCTURE_TYPE_DEPENDENCY_INFO_KHR:                                          \
-  case VK_STRUCTURE_TYPE_SUBMIT_INFO_2_KHR:                                            \
-  case VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR:                                    \
-  case VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO_KHR:                               \
-  case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR:               \
-  case VK_STRUCTURE_TYPE_QUEUE_FAMILY_CHECKPOINT_PROPERTIES_2_NV:                      \
-  case VK_STRUCTURE_TYPE_CHECKPOINT_DATA_2_NV:
+  case VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_NV:
 
 size_t GetNextPatchSize(const void *pNext)
 {
@@ -835,6 +838,26 @@ size_t GetNextPatchSize(const void *pNext)
         memSize += info->regionCount * sizeof(VkImageCopy2KHR);
         for(uint32_t i = 0; i < info->regionCount; i++)
           memSize += GetNextPatchSize(info->pRegions[i].pNext);
+        break;
+      }
+      case VK_STRUCTURE_TYPE_DEPENDENCY_INFO_KHR:
+      {
+        memSize += sizeof(VkDependencyInfoKHR);
+
+        VkDependencyInfoKHR *info = (VkDependencyInfoKHR *)next;
+
+        memSize += info->memoryBarrierCount * sizeof(VkBufferMemoryBarrier2KHR);
+        for(uint32_t i = 0; i < info->memoryBarrierCount; i++)
+          memSize += GetNextPatchSize(info->pMemoryBarriers[i].pNext);
+
+        memSize += info->bufferMemoryBarrierCount * sizeof(VkBufferMemoryBarrier2KHR);
+        for(uint32_t i = 0; i < info->bufferMemoryBarrierCount; i++)
+          memSize += GetNextPatchSize(info->pBufferMemoryBarriers[i].pNext);
+
+        memSize += info->imageMemoryBarrierCount * sizeof(VkImageMemoryBarrier2KHR);
+        for(uint32_t i = 0; i < info->imageMemoryBarrierCount; i++)
+          memSize += GetNextPatchSize(info->pImageMemoryBarriers[i].pNext);
+
         break;
       }
       case VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO:
@@ -953,6 +976,25 @@ size_t GetNextPatchSize(const void *pNext)
         memSize += info->waitSemaphoreCount * sizeof(VkSemaphore);
         memSize += info->commandBufferCount * sizeof(VkCommandBuffer);
         memSize += info->signalSemaphoreCount * sizeof(VkSemaphore);
+        break;
+      }
+      case VK_STRUCTURE_TYPE_SUBMIT_INFO_2_KHR:
+      {
+        memSize += sizeof(VkSubmitInfo2KHR);
+
+        VkSubmitInfo2KHR *info = (VkSubmitInfo2KHR *)next;
+
+        memSize += info->waitSemaphoreInfoCount * sizeof(VkSemaphoreSubmitInfoKHR);
+        for(uint32_t i = 0; i < info->waitSemaphoreInfoCount; i++)
+          memSize += GetNextPatchSize(info->pWaitSemaphoreInfos[i].pNext);
+
+        memSize += info->commandBufferInfoCount * sizeof(VkCommandBufferSubmitInfoKHR);
+        for(uint32_t i = 0; i < info->commandBufferInfoCount; i++)
+          memSize += GetNextPatchSize(info->pCommandBufferInfos[i].pNext);
+
+        memSize += info->signalSemaphoreInfoCount * sizeof(VkSemaphoreSubmitInfoKHR);
+        for(uint32_t i = 0; i < info->signalSemaphoreInfoCount; i++)
+          memSize += GetNextPatchSize(info->pSignalSemaphoreInfos[i].pNext);
         break;
       }
       case VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET:
@@ -1426,6 +1468,52 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
 
         break;
       }
+      case VK_STRUCTURE_TYPE_DEPENDENCY_INFO_KHR:
+      {
+        const VkDependencyInfoKHR *in = (const VkDependencyInfoKHR *)nextInput;
+        VkDependencyInfoKHR *out = (VkDependencyInfoKHR *)tempMem;
+
+        // append immediately so tempMem is incremented
+        AppendModifiedChainedStruct(tempMem, out, nextChainTail);
+
+        // allocate unwrapped arrays
+        VkMemoryBarrier2KHR *outMemoryBarriers = (VkMemoryBarrier2KHR *)tempMem;
+        tempMem += sizeof(VkMemoryBarrier2KHR) * in->memoryBarrierCount;
+        VkBufferMemoryBarrier2KHR *outBufferBarriers = (VkBufferMemoryBarrier2KHR *)tempMem;
+        tempMem += sizeof(VkBufferMemoryBarrier2KHR) * in->bufferMemoryBarrierCount;
+        VkImageMemoryBarrier2KHR *outImageBarriers = (VkImageMemoryBarrier2KHR *)tempMem;
+        tempMem += sizeof(VkImageMemoryBarrier2KHR) * in->imageMemoryBarrierCount;
+
+        *out = *in;
+        out->pMemoryBarriers = outMemoryBarriers;
+        out->pBufferMemoryBarriers = outBufferBarriers;
+        out->pImageMemoryBarriers = outImageBarriers;
+
+        for(uint32_t i = 0; i < in->memoryBarrierCount; i++)
+        {
+          outMemoryBarriers[i] = in->pMemoryBarriers[i];
+          UnwrapNextChain(state, "VkMemoryBarrier2KHR", tempMem,
+                          (VkBaseInStructure *)&outMemoryBarriers[i]);
+        }
+
+        for(uint32_t i = 0; i < in->bufferMemoryBarrierCount; i++)
+        {
+          outBufferBarriers[i] = in->pBufferMemoryBarriers[i];
+          UnwrapInPlace(outBufferBarriers[i].buffer);
+          UnwrapNextChain(state, "VkBufferMemoryBarrier2KHR", tempMem,
+                          (VkBaseInStructure *)&outBufferBarriers[i]);
+        }
+
+        for(uint32_t i = 0; i < in->imageMemoryBarrierCount; i++)
+        {
+          outImageBarriers[i] = in->pImageMemoryBarriers[i];
+          UnwrapInPlace(outImageBarriers[i].image);
+          UnwrapNextChain(state, "VkImageMemoryBarrier2KHR", tempMem,
+                          (VkBaseInStructure *)&outImageBarriers[i]);
+        }
+
+        break;
+      }
       case VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO:
       {
         const VkDescriptorSetAllocateInfo *in = (const VkDescriptorSetAllocateInfo *)nextInput;
@@ -1730,6 +1818,51 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
 
         break;
       }
+      case VK_STRUCTURE_TYPE_SUBMIT_INFO_2_KHR:
+      {
+        const VkSubmitInfo2KHR *in = (const VkSubmitInfo2KHR *)nextInput;
+        VkSubmitInfo2KHR *out = (VkSubmitInfo2KHR *)tempMem;
+
+        // append immediately so tempMem is incremented
+        AppendModifiedChainedStruct(tempMem, out, nextChainTail);
+
+        // allocate unwrapped arrays
+        VkSemaphoreSubmitInfoKHR *outWaitSemaphores = (VkSemaphoreSubmitInfoKHR *)tempMem;
+        tempMem += sizeof(VkSemaphoreSubmitInfoKHR) * in->waitSemaphoreInfoCount;
+        VkCommandBufferSubmitInfoKHR *outCmdBuffers = (VkCommandBufferSubmitInfoKHR *)tempMem;
+        tempMem += sizeof(VkCommandBufferSubmitInfoKHR) * in->commandBufferInfoCount;
+        VkSemaphoreSubmitInfoKHR *outSignalSemaphores = (VkSemaphoreSubmitInfoKHR *)tempMem;
+        tempMem += sizeof(VkSemaphoreSubmitInfoKHR) * in->signalSemaphoreInfoCount;
+
+        *out = *in;
+        out->pWaitSemaphoreInfos = outWaitSemaphores;
+        out->pCommandBufferInfos = outCmdBuffers;
+        out->pSignalSemaphoreInfos = outSignalSemaphores;
+
+        for(uint32_t i = 0; i < in->waitSemaphoreInfoCount; i++)
+        {
+          outWaitSemaphores[i] = in->pWaitSemaphoreInfos[i];
+          UnwrapInPlace(outWaitSemaphores[i].semaphore);
+          UnwrapNextChain(state, "VkSemaphoreSubmitInfoKHR", tempMem,
+                          (VkBaseInStructure *)&outWaitSemaphores[i]);
+        }
+        for(uint32_t i = 0; i < in->commandBufferInfoCount; i++)
+        {
+          outCmdBuffers[i] = in->pCommandBufferInfos[i];
+          UnwrapInPlace(outCmdBuffers[i].commandBuffer);
+          UnwrapNextChain(state, "VkCommandBufferSubmitInfoKHR", tempMem,
+                          (VkBaseInStructure *)&outCmdBuffers[i]);
+        }
+        for(uint32_t i = 0; i < in->signalSemaphoreInfoCount; i++)
+        {
+          outSignalSemaphores[i] = in->pSignalSemaphoreInfos[i];
+          UnwrapInPlace(outSignalSemaphores[i].semaphore);
+          UnwrapNextChain(state, "VkSemaphoreSubmitInfoKHR", tempMem,
+                          (VkBaseInStructure *)&outSignalSemaphores[i]);
+        }
+
+        break;
+      }
       case VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET:
       {
         const VkWriteDescriptorSet *in = (const VkWriteDescriptorSet *)nextInput;
@@ -2023,6 +2156,9 @@ void CopyNextChainForPatching(const char *structName, byte *&tempMem, VkBaseInSt
       case VK_STRUCTURE_TYPE_COPY_IMAGE_INFO_2_KHR:
         CopyNextChainedStruct(sizeof(VkCopyImageInfo2KHR), tempMem, nextInput, nextChainTail);
         break;
+      case VK_STRUCTURE_TYPE_DEPENDENCY_INFO_KHR:
+        CopyNextChainedStruct(sizeof(VkDependencyInfoKHR), tempMem, nextInput, nextChainTail);
+        break;
       case VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO:
         CopyNextChainedStruct(sizeof(VkDescriptorSetAllocateInfo), tempMem, nextInput, nextChainTail);
         break;
@@ -2062,6 +2198,9 @@ void CopyNextChainForPatching(const char *structName, byte *&tempMem, VkBaseInSt
         break;
       case VK_STRUCTURE_TYPE_SUBMIT_INFO:
         CopyNextChainedStruct(sizeof(VkSubmitInfo), tempMem, nextInput, nextChainTail);
+        break;
+      case VK_STRUCTURE_TYPE_SUBMIT_INFO_2_KHR:
+        CopyNextChainedStruct(sizeof(VkSubmitInfo2KHR), tempMem, nextInput, nextChainTail);
         break;
       case VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET:
         CopyNextChainedStruct(sizeof(VkWriteDescriptorSet), tempMem, nextInput, nextChainTail);

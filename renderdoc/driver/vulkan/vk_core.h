@@ -927,6 +927,10 @@ private:
   bool PatchIndirectDraw(size_t drawIndex, uint32_t paramStride, VkIndirectPatchType type,
                          DrawcallDescription &draw, byte *&argptr, byte *argend);
   void InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo);
+  void CaptureQueueSubmit(VkQueue queue, const rdcarray<VkCommandBuffer> &commandBuffers,
+                          VkFence fence);
+  void ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo);
+  void DoSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo);
 
   rdcarray<VulkanDrawcallTreeNode *> m_DrawcallStack;
 
@@ -2021,6 +2025,10 @@ public:
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdWriteBufferMarkerAMD, VkCommandBuffer commandBuffer,
                                 VkPipelineStageFlagBits pipelineStage, VkBuffer dstBuffer,
                                 VkDeviceSize dstOffset, uint32_t marker);
+  // VK_KHR_synchronization2 interaction
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdWriteBufferMarker2AMD, VkCommandBuffer commandBuffer,
+                                VkPipelineStageFlags2KHR stage, VkBuffer dstBuffer,
+                                VkDeviceSize dstOffset, uint32_t marker);
 
   // VK_EXT_debug_utils
   IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkSetDebugUtilsObjectNameEXT, VkDevice device,
@@ -2405,4 +2413,25 @@ public:
                                 const VkBlitImageInfo2KHR *pBlitImageInfo);
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdResolveImage2KHR, VkCommandBuffer commandBuffer,
                                 const VkResolveImageInfo2KHR *pResolveImageInfo);
+
+  // VK_KHR_synchronization2
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetEvent2KHR, VkCommandBuffer commandBuffer,
+                                VkEvent event, const VkDependencyInfoKHR *pDependencyInfo);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdResetEvent2KHR, VkCommandBuffer commandBuffer,
+                                VkEvent event, VkPipelineStageFlags2KHR stageMask);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdWaitEvents2KHR, VkCommandBuffer commandBuffer,
+                                uint32_t eventCount, const VkEvent *pEvents,
+                                const VkDependencyInfoKHR *pDependencyInfos);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdPipelineBarrier2KHR, VkCommandBuffer commandBuffer,
+                                const VkDependencyInfoKHR *pDependencyInfo);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdWriteTimestamp2KHR, VkCommandBuffer commandBuffer,
+                                VkPipelineStageFlags2KHR stage, VkQueryPool queryPool,
+                                uint32_t query);
+
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkQueueSubmit2KHR, VkQueue queue, uint32_t submitCount,
+                                const VkSubmitInfo2KHR *pSubmits, VkFence fence);
 };

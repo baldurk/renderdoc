@@ -370,11 +370,11 @@ struct FenceCreateInfo : public VkFenceCreateInfo
 
 struct EventCreateInfo : public VkEventCreateInfo
 {
-  EventCreateInfo() : VkEventCreateInfo()
+  EventCreateInfo(VkEventCreateFlags flags = 0) : VkEventCreateInfo()
   {
     sType = VK_STRUCTURE_TYPE_EVENT_CREATE_INFO;
     pNext = NULL;
-    flags = 0;
+    this->flags = flags;
   }
 
   operator const VkEventCreateInfo *() const { return this; }

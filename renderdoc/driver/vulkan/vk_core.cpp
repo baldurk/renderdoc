@@ -1196,6 +1196,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_KHR_SWAPCHAIN_MUTABLE_FORMAT_EXTENSION_NAME, VK_KHR_SWAPCHAIN_MUTABLE_FORMAT_SPEC_VERSION,
     },
     {
+        VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME, VK_KHR_SYNCHRONIZATION_2_SPEC_VERSION,
+    },
+    {
         VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME, VK_KHR_TIMELINE_SEMAPHORE_SPEC_VERSION,
     },
     {
@@ -3277,6 +3280,24 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       return Serialise_vkCmdBlitImage2KHR(ser, VK_NULL_HANDLE, NULL);
     case VulkanChunk::vkCmdResolveImage2KHR:
       return Serialise_vkCmdResolveImage2KHR(ser, VK_NULL_HANDLE, NULL);
+
+    case VulkanChunk::vkCmdSetEvent2KHR:
+      return Serialise_vkCmdSetEvent2KHR(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, NULL);
+    case VulkanChunk::vkCmdResetEvent2KHR:
+      return Serialise_vkCmdResetEvent2KHR(ser, VK_NULL_HANDLE, VK_NULL_HANDLE,
+                                           VK_PIPELINE_STAGE_2_NONE_KHR);
+    case VulkanChunk::vkCmdWaitEvents2KHR:
+      return Serialise_vkCmdWaitEvents2KHR(ser, VK_NULL_HANDLE, 0, NULL, NULL);
+    case VulkanChunk::vkCmdPipelineBarrier2KHR:
+      return Serialise_vkCmdPipelineBarrier2KHR(ser, VK_NULL_HANDLE, NULL);
+    case VulkanChunk::vkCmdWriteTimestamp2KHR:
+      return Serialise_vkCmdWriteTimestamp2KHR(ser, VK_NULL_HANDLE, VK_PIPELINE_STAGE_2_NONE_KHR,
+                                               VK_NULL_HANDLE, 0);
+    case VulkanChunk::vkQueueSubmit2KHR:
+      return Serialise_vkQueueSubmit2KHR(ser, VK_NULL_HANDLE, 1, NULL, VK_NULL_HANDLE);
+    case VulkanChunk::vkCmdWriteBufferMarker2AMD:
+      return Serialise_vkCmdWriteBufferMarker2AMD(ser, VK_NULL_HANDLE, VK_PIPELINE_STAGE_2_NONE_KHR,
+                                                  VK_NULL_HANDLE, 0, 0);
 
     // chunks that are reserved but not yet serialised
     case VulkanChunk::vkResetCommandPool:

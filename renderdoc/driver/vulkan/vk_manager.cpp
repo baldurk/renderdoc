@@ -213,6 +213,11 @@ void VulkanResourceManager::RecordBarriers(rdcarray<rdcpair<ResourceId, ImageReg
   {
     const VkImageMemoryBarrier &t = barriers[ti];
 
+    // ignore barriers that are do-nothing. Best case this doesn't change our tracking at all and
+    // worst case this is a KHR_synchronization2 barrier that should not change the layout.
+    if(t.oldLayout == t.newLayout)
+      continue;
+
     ResourceId id = IsReplayMode(m_State) ? GetNonDispWrapper(t.image)->id : GetResID(t.image);
 
     if(id == ResourceId())
@@ -246,6 +251,30 @@ void VulkanResourceManager::RecordBarriers(rdcarray<rdcpair<ResourceId, ImageReg
   }
 
   TRDBG("Post-record, there are %u states", (uint32_t)states.size());
+}
+
+void VulkanResourceManager::RecordBarriers(rdcflatmap<ResourceId, ImageState> &states,
+                                           uint32_t queueFamilyIndex, uint32_t numBarriers,
+                                           const VkImageMemoryBarrier2KHR *barriers)
+{
+  rdcarray<VkImageMemoryBarrier> downcast;
+  downcast.reserve(numBarriers);
+  VkImageMemoryBarrier b = {};
+  b.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+  for(uint32_t i = 0; i < numBarriers; i++)
+  {
+    // just truncate, the lower bits all match
+    b.srcAccessMask = uint32_t(barriers[i].srcAccessMask);
+    b.dstAccessMask = uint32_t(barriers[i].dstAccessMask);
+    b.oldLayout = barriers[i].oldLayout;
+    b.newLayout = barriers[i].newLayout;
+    b.srcQueueFamilyIndex = barriers[i].srcQueueFamilyIndex;
+    b.dstQueueFamilyIndex = barriers[i].dstQueueFamilyIndex;
+    b.image = barriers[i].image;
+    b.subresourceRange = barriers[i].subresourceRange;
+    downcast.push_back(b);
+  }
+  RecordBarriers(states, queueFamilyIndex, (uint32_t)downcast.size(), downcast.data());
 }
 
 void VulkanResourceManager::MergeBarriers(rdcarray<rdcpair<ResourceId, ImageRegionState>> &dststates,
@@ -791,6 +820,11 @@ void VulkanResourceManager::RecordBarriers(rdcflatmap<ResourceId, ImageState> &s
   for(uint32_t ti = 0; ti < numBarriers; ti++)
   {
     const VkImageMemoryBarrier &t = barriers[ti];
+
+    // ignore barriers that are do-nothing. Best case this doesn't change our tracking at all and
+    // worst case this is a KHR_synchronization2 barrier that should not change the layout.
+    if(t.oldLayout == t.newLayout)
+      continue;
 
     ResourceId id = IsReplayMode(m_State) ? GetNonDispWrapper(t.image)->id : GetResID(t.image);
 

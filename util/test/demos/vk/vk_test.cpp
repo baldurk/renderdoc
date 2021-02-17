@@ -767,7 +767,7 @@ void VulkanGraphicsTest::FinishUsingBackbuffer(VkCommandBuffer cmd, VkAccessFlag
 
 void VulkanGraphicsTest::Submit(int index, int totalSubmits, const std::vector<VkCommandBuffer> &cmds,
                                 const std::vector<VkCommandBuffer> &seccmds, VulkanWindow *window,
-                                VkQueue q)
+                                VkQueue q, bool sync2)
 {
   if(window == NULL)
     window = mainWindow;
@@ -775,7 +775,7 @@ void VulkanGraphicsTest::Submit(int index, int totalSubmits, const std::vector<V
   if(q == VK_NULL_HANDLE)
     q = queue;
 
-  window->Submit(index, totalSubmits, cmds, seccmds, q);
+  window->Submit(index, totalSubmits, cmds, seccmds, q, sync2);
 }
 
 void VulkanGraphicsTest::Present(VulkanWindow *window, VkQueue q)
@@ -1295,37 +1295,75 @@ void VulkanWindow::Acquire()
 }
 
 void VulkanWindow::Submit(int index, int totalSubmits, const std::vector<VkCommandBuffer> &cmds,
-                          const std::vector<VkCommandBuffer> &seccmds, VkQueue q)
+                          const std::vector<VkCommandBuffer> &seccmds, VkQueue q, bool sync2)
 {
-  VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-
-  VkSubmitInfo submit = vkh::SubmitInfo(cmds);
-
-  if(index == 0)
-  {
-    submit.waitSemaphoreCount = 1;
-    submit.pWaitDstStageMask = &waitStage;
-    submit.pWaitSemaphores = &renderStartSemaphore;
-  }
-
-  if(index == totalSubmits - 1)
-  {
-    submit.signalSemaphoreCount = 1;
-    submit.pSignalSemaphores = &renderEndSemaphore;
-  }
-
   VkFence fence;
   CHECK_VKR(vkCreateFence(m_Test->device, vkh::FenceCreateInfo(), NULL, &fence));
 
   fences.insert(fence);
+
+  if(sync2)
+  {
+    VkSubmitInfo2KHR submit = {VK_STRUCTURE_TYPE_SUBMIT_INFO_2_KHR};
+
+    std::vector<VkCommandBufferSubmitInfoKHR> cmdSubmits;
+    for(VkCommandBuffer cmd : cmds)
+      cmdSubmits.push_back({VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO_KHR, NULL, cmd, 0});
+
+    submit.commandBufferInfoCount = (uint32_t)cmdSubmits.size();
+    submit.pCommandBufferInfos = cmdSubmits.data();
+
+    VkSemaphoreSubmitInfoKHR renderStart = {}, renderEnd = {};
+
+    if(index == 0)
+    {
+      renderStart.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR;
+      renderStart.semaphore = renderStartSemaphore;
+      renderStart.stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT_KHR;
+
+      submit.waitSemaphoreInfoCount = 1;
+      submit.pWaitSemaphoreInfos = &renderStart;
+    }
+
+    if(index == totalSubmits - 1)
+    {
+      renderEnd.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR;
+      renderEnd.semaphore = renderEndSemaphore;
+      renderEnd.stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT_KHR;
+
+      submit.signalSemaphoreInfoCount = 1;
+      submit.pSignalSemaphoreInfos = &renderEnd;
+    }
+
+    CHECK_VKR(vkQueueSubmit2KHR(q, 1, &submit, fence));
+  }
+  else
+  {
+    VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+
+    VkSubmitInfo submit = vkh::SubmitInfo(cmds);
+
+    if(index == 0)
+    {
+      submit.waitSemaphoreCount = 1;
+      submit.pWaitDstStageMask = &waitStage;
+      submit.pWaitSemaphores = &renderStartSemaphore;
+    }
+
+    if(index == totalSubmits - 1)
+    {
+      submit.signalSemaphoreCount = 1;
+      submit.pSignalSemaphores = &renderEndSemaphore;
+    }
+
+    CHECK_VKR(vkQueueSubmit(q, 1, &submit, fence));
+  }
 
   for(const VkCommandBuffer &cmd : cmds)
     pendingCommandBuffers[0].push_back(std::make_pair(cmd, fence));
 
   for(const VkCommandBuffer &cmd : seccmds)
     pendingCommandBuffers[1].push_back(std::make_pair(cmd, fence));
-
-  CHECK_VKR(vkQueueSubmit(q, 1, &submit, fence));
 }
 
 void VulkanWindow::Present(VkQueue queue)

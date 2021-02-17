@@ -274,6 +274,13 @@ public:
   void RecordBarriers(rdcflatmap<ResourceId, ImageState> &states, uint32_t queueFamilyIndex,
                       uint32_t numBarriers, const VkImageMemoryBarrier *barriers);
 
+  // we "downcast" to VkImageMemoryBarrier since we don't care about access bits or pipeline stages,
+  // only layouts, and to date the VkImageMemoryBarrier can represent everything in
+  // VkImageMemoryBarrier2KHR. This includes new image layouts added (which should only be used if
+  // the extension is supported).
+  void RecordBarriers(rdcflatmap<ResourceId, ImageState> &states, uint32_t queueFamilyIndex,
+                      uint32_t numBarriers, const VkImageMemoryBarrier2KHR *barriers);
+
   template <typename SerialiserType>
   void SerialiseImageStates(SerialiserType &ser, std::map<ResourceId, LockingImageState> &states);
 
