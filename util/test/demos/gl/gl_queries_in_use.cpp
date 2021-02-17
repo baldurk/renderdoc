@@ -65,7 +65,7 @@ RD_TEST(GL_Queries_In_Use, OpenGLGraphicsTest)
     glAttachShader(program, vs);
     glAttachShader(program, fs);
 
-    GLchar *posOnly = "gl_Position";
+    const GLchar *posOnly = "gl_Position";
     glTransformFeedbackVaryings(program, 1, &posOnly, GL_INTERLEAVED_ATTRIBS);
 
     glLinkProgram(program);
