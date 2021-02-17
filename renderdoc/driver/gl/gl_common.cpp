@@ -2635,6 +2635,7 @@ Topology MakePrimitiveTopology(GLenum Topo)
 #if ENABLED(ENABLE_UNIT_TESTS)
 
 #undef None
+#undef Always
 
 #include "catch/catch.hpp"
 

@@ -3742,6 +3742,7 @@ void GLDispatchTable::DriverForEmulation(WrappedOpenGL *driver)
 #if ENABLED(ENABLE_UNIT_TESTS)
 
 #undef None
+#undef Always
 
 #include "../gl_shader_refl.h"
 #include "catch/catch.hpp"
