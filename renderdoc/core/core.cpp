@@ -1912,6 +1912,7 @@ void RenderDoc::RemoveFrameCapturer(void *dev, void *wnd)
 #if ENABLED(ENABLE_UNIT_TESTS)
 
 #undef None
+#undef Always
 
 #include "catch/catch.hpp"
 

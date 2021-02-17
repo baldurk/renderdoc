@@ -4642,6 +4642,7 @@ void WrappedVulkan::ReplayDraw(VkCommandBuffer cmd, const DrawcallDescription &d
 #if ENABLED(ENABLE_UNIT_TESTS)
 
 #undef None
+#undef Always
 
 #include "catch/catch.hpp"
 
