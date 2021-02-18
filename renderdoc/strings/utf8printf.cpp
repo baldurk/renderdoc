@@ -1840,6 +1840,10 @@ TEST_CASE("utf8printf printing floats", "[utf8printf]")
     CHECK(StringFormat::Fmt("%F", negone / zero) == "-INF");
     CHECK(StringFormat::Fmt("%F", sqrt(negone)) == "NAN");
     CHECK(StringFormat::Fmt("%F", -sqrt(negone)) == "NAN");
+
+    // subnormal value
+    CHECK(StringFormat::Fmt("%.8e", 1.23456789e-310) == "1.23456789e-310");
+    CHECK(StringFormat::Fmt("%.8e", -1.23456789e-310) == "-1.23456789e-310");
   }
 
   SECTION("Basic numbers as %f")
