@@ -199,6 +199,24 @@ TEST_CASE("String hashing", "[string]")
           strhash("test of a long string for strhash"));
   };
 
+  SECTION("hash of NULL or empty string returns the seed")
+  {
+    CHECK(strhash(NULL, 5) == 5);
+    CHECK(strhash(NULL, 50) == 50);
+    CHECK(strhash(NULL, 500) == 500);
+    CHECK(strhash(NULL, 5000) == 5000);
+
+    CHECK(strhash("", 5) == 5);
+    CHECK(strhash("", 50) == 50);
+    CHECK(strhash("", 500) == 500);
+    CHECK(strhash("", 5000) == 5000);
+
+    CHECK(strhash("0", 5) != 5);
+    CHECK(strhash("0", 50) != 50);
+    CHECK(strhash("0", 500) != 500);
+    CHECK(strhash("0", 5000) != 5000);
+  };
+
   SECTION("Different inputs have different hashes")
   {
     CHECK(strhash("foobar") != strhash("blah"));
