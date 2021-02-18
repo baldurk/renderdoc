@@ -2089,16 +2089,6 @@ void main() {
           // glslang with the fix
           const ShaderConstantType *varType = &res.variableType;
 
-          if(testType == ShaderType::GLSL && res.variableType.members.size() != 2)
-          {
-            REQUIRE(varType->members.size() == 1);
-            REQUIRE(varType->members[0].name == "a");
-
-            varType = &res.variableType.members[0].type;
-
-            RDCWARN("Working around glslang reflection bug");
-          }
-
           REQUIRE_ARRAY_SIZE(varType->members.size(), 2);
           {
             CHECK(varType->members[0].name == "a");
