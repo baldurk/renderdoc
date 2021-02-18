@@ -1404,7 +1404,7 @@ public:
       return 0;
     }
 
-    if(m_Info.flags & VulkanLayerFlags::UserRegisterable)
+    if(!(m_Info.flags & VulkanLayerFlags::UserRegisterable))
     {
       if(user)
       {
