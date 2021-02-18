@@ -1779,7 +1779,7 @@ TEST_CASE("Test string type", "[basictypes][string]")
 
   SECTION("Inflexible string tests")
   {
-    rdcinflexiblestr test = "Hello, World";
+    rdcinflexiblestr test = rdcstr("Hello, World");
 
     CHECK(test == "Hello, World");
     CHECK(test == "Hello, World"_lit);
