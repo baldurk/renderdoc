@@ -945,16 +945,19 @@ void EventBrowser::events_contextMenu(const QPoint &pos)
 
   QAction expandAll(tr("&Expand All"), this);
   QAction collapseAll(tr("&Collapse All"), this);
+  QAction toggleBookmark(tr("Toggle &Bookmark"), this);
   QAction selectCols(tr("&Select Columns..."), this);
   QAction rgpSelect(tr("Select &RGP Event"), this);
   rgpSelect.setIcon(Icons::connect());
 
   contextMenu.addAction(&expandAll);
   contextMenu.addAction(&collapseAll);
+  contextMenu.addAction(&toggleBookmark);
   contextMenu.addAction(&selectCols);
 
   expandAll.setIcon(Icons::arrow_out());
   collapseAll.setIcon(Icons::arrow_in());
+  toggleBookmark.setIcon(Icons::asterisk_orange());
   selectCols.setIcon(Icons::timeline_marker());
 
   expandAll.setEnabled(item && item->childCount() > 0);
@@ -965,6 +968,8 @@ void EventBrowser::events_contextMenu(const QPoint &pos)
 
   QObject::connect(&collapseAll, &QAction::triggered,
                    [this, item]() { ui->events->collapseAllItems(item); });
+
+  QObject::connect(&toggleBookmark, &QAction::triggered, this, &EventBrowser::on_bookmark_clicked);
 
   QObject::connect(&selectCols, &QAction::triggered, this, &EventBrowser::on_colSelect_clicked);
 
