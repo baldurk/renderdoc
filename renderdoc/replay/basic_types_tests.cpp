@@ -154,12 +154,6 @@ TEST_CASE("Test array type", "[basictypes]")
     CHECK(test.isEmpty());
     CHECK(test.begin() == test.end());
 
-    sum = 0;
-    for(int x : test)
-      sum += x;
-
-    CHECK(sum == 0);
-
     test = {4, 1, 77, 0, 0, 8, 20, 934};
 
     CHECK(test.size() == 8);
