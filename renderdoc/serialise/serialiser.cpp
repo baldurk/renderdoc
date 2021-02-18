@@ -899,6 +899,12 @@ rdcstr DoStringise(const rdcinflexiblestr &el)
 }
 
 template <>
+rdcstr DoStringise(const rdcliteral &el)
+{
+  return el;
+}
+
+template <>
 rdcstr DoStringise(void *const &el)
 {
   return StringFormat::Fmt("%#p", el);
