@@ -389,6 +389,10 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR APPLE)
         # Only clang has this warning. Fixing it in this file causes a compile error on windows
         set_source_files_properties(os/os_specific.cpp
             PROPERTIES COMPILE_FLAGS "-Wno-unknown-warning-option -Wno-unused-lambda-capture")
+        
+        # We are deliberately testing self-assign here
+        set_source_files_properties(replay/basic_types_tests.cpp
+            PROPERTIES COMPILE_FLAGS "-Wno-unknown-warning-option -Wno-self-assign-overloaded")
     endif()
 endif()
 
