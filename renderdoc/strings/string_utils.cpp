@@ -255,6 +255,23 @@ TEST_CASE("String manipulation", "[string]")
     CHECK(strlower("FOOBAR") == "foobar");
   };
 
+  SECTION("get_lastpathsep")
+  {
+    CHECK(get_lastpathsep("") == -1);
+    CHECK(get_lastpathsep("foo") == -1);
+    CHECK(get_lastpathsep("foobar.blah") == -1);
+    CHECK(get_lastpathsep("/foo") == 0);
+    CHECK(get_lastpathsep("/foobar.blah") == 0);
+    CHECK(get_lastpathsep("foo/bar/blah/") == 12);
+    CHECK(get_lastpathsep("foo\\bar\\blah\\") == 12);
+    CHECK(get_lastpathsep("foo/bar/blah") == 7);
+    CHECK(get_lastpathsep("foo\\bar\\blah") == 7);
+    CHECK(get_lastpathsep("/foo/bar/blah/") == 13);
+    CHECK(get_lastpathsep("\\foo\\bar\\blah\\") == 13);
+    CHECK(get_lastpathsep("/foo/bar/blah") == 8);
+    CHECK(get_lastpathsep("\\foo\\bar\\blah") == 8);
+  };
+
   SECTION("basename")
   {
     CHECK(get_basename("") == "");
