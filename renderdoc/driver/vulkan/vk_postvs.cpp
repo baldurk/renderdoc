@@ -115,6 +115,9 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
     // tbuffer type for this input
     tbufferType tbuffer;
     // gvec4 type for this input, used as result type when fetching from tbuffer
+    rdcspv::Id fetchVec4ID;
+    // the actual gvec4 type for the input, possibly needed to convert to from the above if it's
+    // declared as a 16-bit type since we always fetch 32-bit.
     rdcspv::Id vec4ID;
     // Uniform Pointer ID for this output. Used only for output data, to write to output SSBO
     rdcspv::Id ssboPtrID;
@@ -540,9 +543,30 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
     // doubles are loaded as uvec4 and then packed in pairs, so we need to declare vec4ID as uvec4
     if(refl.inputSignature[i].varType == VarType::Double)
-      io.vec4ID = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<uint32_t>(), 4));
+    {
+      io.fetchVec4ID = io.vec4ID = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<uint32_t>(), 4));
+    }
     else
+    {
       io.vec4ID = editor.DeclareType(rdcspv::Vector(scalarType, 4));
+
+      // if the underlying scalar is actually
+      switch(refl.inputSignature[i].varType)
+      {
+        case VarType::Half:
+          io.fetchVec4ID = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<float>(), 4));
+          break;
+        case VarType::SShort:
+        case VarType::SByte:
+          io.fetchVec4ID = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<int32_t>(), 4));
+          break;
+        case VarType::UShort:
+        case VarType::UByte:
+          io.fetchVec4ID = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<uint32_t>(), 4));
+          break;
+        default: io.fetchVec4ID = io.vec4ID; break;
+      }
+    }
 
     if(refl.inputSignature[i].compCount > 1)
       io.basetypeID =
@@ -1044,7 +1068,19 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
           }
 
           rdcspv::Id result =
-              ops.add(rdcspv::OpImageFetch(ins[i].vec4ID, editor.MakeId(), rawimg, idx));
+              ops.add(rdcspv::OpImageFetch(ins[i].fetchVec4ID, editor.MakeId(), rawimg, idx));
+
+          // we always fetch as float/uint/int, but if the input was declared as a different size
+          // (typically ushort or half) then convert here
+          if(ins[i].fetchVec4ID != ins[i].vec4ID)
+          {
+            if(VarTypeCompType(refl.inputSignature[i].varType) == CompType::Float)
+              result = ops.add(rdcspv::OpFConvert(ins[i].vec4ID, editor.MakeId(), result));
+            else if(VarTypeCompType(refl.inputSignature[i].varType) == CompType::UInt)
+              result = ops.add(rdcspv::OpUConvert(ins[i].vec4ID, editor.MakeId(), result));
+            else
+              result = ops.add(rdcspv::OpSConvert(ins[i].vec4ID, editor.MakeId(), result));
+          }
 
           uint32_t comp = Bits::CountTrailingZeroes(uint32_t(refl.inputSignature[i].regChannelMask));
 
