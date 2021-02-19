@@ -415,9 +415,9 @@ static DXBC::CBufferVariableType MakeCBufferVariableType(const TypeInfo &typeInf
   else if(t->type == Type::Array)
   {
     ret = MakeCBufferVariableType(typeInfo, t->inner);
-    ret.descriptor.elements *= t->elemCount;
+    ret.descriptor.elements *= RDCMAX(1U, t->elemCount);
     // assume normal D3D array packing with each element on float4 boundary
-    ret.descriptor.bytesize += (t->elemCount - 1) * AlignUp16(ret.descriptor.bytesize);
+    ret.descriptor.bytesize += (ret.descriptor.elements - 1) * AlignUp16(ret.descriptor.bytesize);
     return ret;
   }
   else if(t->type == Type::Struct)
