@@ -139,7 +139,7 @@ void NuklearShutdown()
   UnregisterClassW(wc.lpszClassName, wc.hInstance);
 }
 
-#else
+#elif defined(__linux__)
 
 #define NK_XLIB_IMPLEMENTATION
 #include "3rdparty/nuklear/nuklear_xlib.h"
@@ -213,6 +213,10 @@ void NuklearShutdown()
   XDestroyWindow(dpy, win);
   XCloseDisplay(dpy);
 }
+
+#else
+
+#error UNKNOWN PLATFORM
 
 #endif
 
