@@ -26,8 +26,10 @@
 
 #if defined(WIN32)
 #include "win32/win32_platform.h"
-#else
+#elif defined(__linux__)
 #include "linux/linux_platform.h"
+#else
+#error UNKNOWN PLATFORM
 #endif
 
 #include <math.h>
