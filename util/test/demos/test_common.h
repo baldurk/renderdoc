@@ -316,12 +316,15 @@ std::string trim(const std::string &str);
 
 void DebugPrint(const char *fmt, ...);
 
-#define TEST_ASSERT(cond, fmt, ...)                                                               \
-  if(!(cond))                                                                                     \
-  {                                                                                               \
-    DebugPrint("%s:%d Assert Failure '%s': " fmt "\n", __FILE__, __LINE__, #cond, ##__VA_ARGS__); \
-    DEBUG_BREAK();                                                                                \
-  }
+#define TEST_ASSERT(cond, fmt, ...)                                                                 \
+  do                                                                                                \
+  {                                                                                                 \
+    if(!(cond))                                                                                     \
+    {                                                                                               \
+      DebugPrint("%s:%d Assert Failure '%s': " fmt "\n", __FILE__, __LINE__, #cond, ##__VA_ARGS__); \
+      DEBUG_BREAK();                                                                                \
+    }                                                                                               \
+  } while(0)
 
 #define TEST_LOG(fmt, ...)                                                 \
   do                                                                       \
