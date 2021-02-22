@@ -535,9 +535,20 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
 
       RDCASSERTEQUAL(mrq.size, info.allocationSize);
 
-      bufid = GetResourceManager()->WrapResource(Unwrap(device), wholeMemBuf);
+      if((mrq.memoryTypeBits & (1U << info.memoryTypeIndex)) != 0)
+      {
+        bufid = GetResourceManager()->WrapResource(Unwrap(device), wholeMemBuf);
 
-      ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(wholeMemBuf), Unwrap(*pMemory), 0);
+        ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(wholeMemBuf), Unwrap(*pMemory), 0);
+      }
+      else
+      {
+        // can't create a memory-spanning buffer for this allocation. Assume this is a case where
+        // this memory type is only available to images and is not mappable - in which case the
+        // whole memory buffer won't be needed so we can skip this.
+        ObjDisp(device)->DestroyBuffer(Unwrap(device), wholeMemBuf, NULL);
+        wholeMemBuf = VK_NULL_HANDLE;
+      }
     }
 
     if((dedicated != NULL || dedicatedNV != NULL) && wholeMemBuf != VK_NULL_HANDLE)
@@ -626,8 +637,18 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
         // command buffer.
         if(Vulkan_GPUReadbackDeviceLocal() &&
            m_PhysicalDeviceData.props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+        {
           record->memMapState->readbackOnGPU =
               ((memProps & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) != 0);
+
+          // we need a wholeMemBuf to readback on the GPU
+          if(record->memMapState->readbackOnGPU && wholeMemBuf == VK_NULL_HANDLE)
+          {
+            RDCWARN(
+                "Memory allocation would have been readback on GPU, but can't without wholeMemBuf");
+            record->memMapState->readbackOnGPU = false;
+          }
+        }
       }
 
       GetResourceManager()->AddDeviceMemory(id);
@@ -638,7 +659,7 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
 
       m_CreationInfo.m_Memory[id].Init(GetResourceManager(), m_CreationInfo, &info);
 
-      if(dedicated == NULL && dedicatedNV == NULL)
+      if(dedicated == NULL && dedicatedNV == NULL && wholeMemBuf != VK_NULL_HANDLE)
       {
         // register as a live-only resource, so it is cleaned up properly
         GetResourceManager()->AddLiveResource(bufid, wholeMemBuf);

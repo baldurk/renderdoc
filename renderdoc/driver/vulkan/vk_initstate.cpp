@@ -423,13 +423,22 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
   }
   else if(type == eResDeviceMemory)
   {
+    VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
+
+    // if the memory has no wholeMemBuf we cannot fetch its contents. We shouldn't get here with
+    // only images bound to the memory so something has gone wrong
+    if(record->memMapState->wholeMemBuf == VK_NULL_HANDLE)
+    {
+      RDCERR("Trying to fetch device memory initial states without wholeMemBuf");
+      return true;
+    }
+
     VkResult vkr = VK_SUCCESS;
 
     VkDevice d = GetDev();
     // INITSTATEBATCH
     VkCommandBuffer cmd = GetNextCmd();
 
-    VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
     VkDeviceMemory datamem = ToUnwrappedHandle<VkDeviceMemory>(res);
     VkDeviceSize datasize = record->Length;
 

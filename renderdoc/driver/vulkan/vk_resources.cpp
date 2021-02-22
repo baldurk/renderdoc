@@ -3854,12 +3854,9 @@ void VkResourceRecord::MarkImageViewFrameReferenced(VkResourceRecord *view, cons
   // mark image view as read
   MarkResourceFrameReferenced(view->GetResourceID(), eFrameRef_Read);
 
-  // mark memory backing image. For dedicated images we always treat the memory as read only so
-  // we don't try and include its initial contents.
-  if(view->dedicated)
-    MarkResourceFrameReferenced(mem, eFrameRef_Read);
-  else
-    MarkResourceFrameReferenced(mem, refType);
+  // mark memory backing image as read only so we don't try and include its initial contents just
+  // because of an image's writes
+  MarkResourceFrameReferenced(mem, eFrameRef_Read);
 
   ImageSubresourceRange imgRange;
   imgRange.aspectMask = view->viewRange.aspectMask;
