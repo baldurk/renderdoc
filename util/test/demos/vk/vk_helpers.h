@@ -516,6 +516,12 @@ struct ImageCreateInfo : public VkImageCreateInfo
       imageType = VK_IMAGE_TYPE_1D;
   }
 
+  VkImageCreateInfo &next(const void *next)
+  {
+    this->pNext = next;
+    return *this;
+  }
+
   operator const VkImageCreateInfo *() const { return this; }
 };
 

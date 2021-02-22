@@ -1951,6 +1951,53 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
       }
     }
 
+    rdcarray<VkFormat> patchedFormatList;
+
+    // similarly for the image format list for MSAA textures, add the UINT cast format we will need
+    if(CreateInfo.samples != VK_SAMPLE_COUNT_1_BIT)
+    {
+      VkImageFormatListCreateInfo *formatListInfo = (VkImageFormatListCreateInfo *)FindNextStruct(
+          &CreateInfo, VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO);
+
+      if(formatListInfo)
+      {
+        uint32_t bs = GetByteSize(1, 1, 1, CreateInfo.format, 0);
+
+        VkFormat msaaCopyFormat = VK_FORMAT_UNDEFINED;
+        if(bs == 1)
+          msaaCopyFormat = VK_FORMAT_R8_UINT;
+        else if(bs == 2)
+          msaaCopyFormat = VK_FORMAT_R16_UINT;
+        else if(bs == 4)
+          msaaCopyFormat = VK_FORMAT_R32_UINT;
+        else if(bs == 8)
+          msaaCopyFormat = VK_FORMAT_R32G32_UINT;
+        else if(bs == 16)
+          msaaCopyFormat = VK_FORMAT_R32G32B32A32_UINT;
+
+        patchedFormatList.resize(formatListInfo->viewFormatCount + 1);
+
+        const VkFormat *oldFmts = formatListInfo->pViewFormats;
+        VkFormat *newFmts = patchedFormatList.data();
+        formatListInfo->pViewFormats = newFmts;
+
+        bool needAdded = true;
+        uint32_t i = 0;
+        for(; i < formatListInfo->viewFormatCount; i++)
+        {
+          newFmts[i] = oldFmts[i];
+          if(newFmts[i] == msaaCopyFormat)
+            needAdded = false;
+        }
+
+        if(needAdded)
+        {
+          newFmts[i] = msaaCopyFormat;
+          formatListInfo->viewFormatCount++;
+        }
+      }
+    }
+
     VkImageCreateInfo patched = CreateInfo;
 
     byte *tempMem = GetTempMemory(GetNextPatchSize(patched.pNext));
@@ -2066,7 +2113,19 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
   // create non-subsampled image to be able to copy its content
   createInfo_adjusted.flags &= ~VK_IMAGE_CREATE_SUBSAMPLED_BIT_EXT;
 
-  byte *tempMem = GetTempMemory(GetNextPatchSize(createInfo_adjusted.pNext));
+  size_t tempMemSize = GetNextPatchSize(createInfo_adjusted.pNext);
+
+  // reserve space for a patched view format list if necessary
+  if(createInfo_adjusted.samples != VK_SAMPLE_COUNT_1_BIT)
+  {
+    VkImageFormatListCreateInfo *formatListInfo = (VkImageFormatListCreateInfo *)FindNextStruct(
+        &createInfo_adjusted, VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO);
+
+    if(formatListInfo)
+      tempMemSize += sizeof(VkFormat) * (formatListInfo->viewFormatCount + 1);
+  }
+
+  byte *tempMem = GetTempMemory(tempMemSize);
 
   UnwrapNextChain(m_State, "VkImageCreateInfo", tempMem, (VkBaseInStructure *)&createInfo_adjusted);
 
@@ -2088,6 +2147,49 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
     {
       separateStencilUsage->stencilUsage |=
           VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    }
+  }
+
+  // similarly for the image format list for MSAA textures, add the UINT cast format we will need
+  if(createInfo_adjusted.samples != VK_SAMPLE_COUNT_1_BIT)
+  {
+    VkImageFormatListCreateInfo *formatListInfo = (VkImageFormatListCreateInfo *)FindNextStruct(
+        &createInfo_adjusted, VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO);
+
+    if(formatListInfo)
+    {
+      uint32_t bs = GetByteSize(1, 1, 1, createInfo_adjusted.format, 0);
+
+      VkFormat msaaCopyFormat = VK_FORMAT_UNDEFINED;
+      if(bs == 1)
+        msaaCopyFormat = VK_FORMAT_R8_UINT;
+      else if(bs == 2)
+        msaaCopyFormat = VK_FORMAT_R16_UINT;
+      else if(bs == 4)
+        msaaCopyFormat = VK_FORMAT_R32_UINT;
+      else if(bs == 8)
+        msaaCopyFormat = VK_FORMAT_R32G32_UINT;
+      else if(bs == 16)
+        msaaCopyFormat = VK_FORMAT_R32G32B32A32_UINT;
+
+      const VkFormat *oldFmts = formatListInfo->pViewFormats;
+      VkFormat *newFmts = (VkFormat *)tempMem;
+      formatListInfo->pViewFormats = newFmts;
+
+      bool needAdded = true;
+      uint32_t i = 0;
+      for(; i < formatListInfo->viewFormatCount; i++)
+      {
+        newFmts[i] = oldFmts[i];
+        if(newFmts[i] == msaaCopyFormat)
+          needAdded = false;
+      }
+
+      if(needAdded)
+      {
+        newFmts[i] = msaaCopyFormat;
+        formatListInfo->viewFormatCount++;
+      }
     }
   }
 

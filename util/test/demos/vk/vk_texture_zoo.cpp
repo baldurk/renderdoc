@@ -464,11 +464,17 @@ void main()
         viewAspect = VK_IMAGE_ASPECT_DEPTH_BIT;
     }
 
+    VkImageFormatListCreateInfoKHR formatList = {VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO_KHR};
+    formatList.viewFormatCount = 2;
+    VkFormat fmts[] = {test.fmt.texFmt, test.fmt.viewFmt};
+    formatList.pViewFormats = fmts;
+
     test.res = AllocatedImage(
         this,
         vkh::ImageCreateInfo(
             w, h, d, test.fmt.texFmt, usage, test.isMSAA ? 1 : texMips, test.isArray ? texSlices : 1,
-            test.isMSAA ? VkSampleCountFlagBits(texSamples) : VK_SAMPLE_COUNT_1_BIT, flags),
+            test.isMSAA ? VkSampleCountFlagBits(texSamples) : VK_SAMPLE_COUNT_1_BIT, flags)
+            .next(hasExt(VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME) ? &formatList : NULL),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
     test.view = createImageView(vkh::ImageViewCreateInfo(
         test.res.image, test.viewType, test.fmt.viewFmt, {}, vkh::ImageSubresourceRange(viewAspect)));
@@ -619,6 +625,7 @@ void main()
   void Prepare(int argc, char **argv)
   {
     devExts.push_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
+    optDevExts.push_back(VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME);
 
     features.sampleRateShading = true;
 
