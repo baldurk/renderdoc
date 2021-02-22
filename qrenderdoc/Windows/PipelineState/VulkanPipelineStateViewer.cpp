@@ -1561,7 +1561,7 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
       RDTreeWidgetItem *node =
           new RDTreeWidgetItem({QString(), setname, slotname,
                                 arrayLength < 0 ? tr("Array[]") : tr("Array[%1]").arg(arrayLength),
-                                QString(), QString()});
+                                QString(), QString(), QString()});
 
       if(arrayLength < 0)
         arrayLength = 0;
