@@ -4272,7 +4272,11 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, rdcarray<DebugMes
           continue;
         }
 
-        if(layout.bindings[bind].descriptorCount > 1000)
+        uint32_t descriptorCount = layout.bindings[bind].descriptorCount;
+        if(layout.bindings[bind].variableSize)
+          descriptorCount = descset.data.variableDescriptorCount;
+
+        if(descriptorCount > 1000)
         {
           if(!hugeRangeWarned)
             RDCWARN("Skipping large, most likely 'bindless', descriptor range");
@@ -4280,8 +4284,11 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, rdcarray<DebugMes
           continue;
         }
 
-        for(uint32_t a = 0; a < layout.bindings[bind].descriptorCount; a++)
+        for(uint32_t a = 0; a < descriptorCount; a++)
         {
+          if(!descset.data.binds[bind])
+            continue;
+
           DescriptorSetSlot &slot = descset.data.binds[bind][a];
 
           ResourceId id;
