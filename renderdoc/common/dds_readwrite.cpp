@@ -677,7 +677,7 @@ DXGI_FORMAT ResourceFormat2DXGIFormat(ResourceFormat format)
   return DXGI_FORMAT_UNKNOWN;
 }
 
-bool write_dds_to_file(FILE *f, const dds_data &data)
+bool write_dds_to_file(FILE *f, const write_dds_data &data)
 {
   if(!f)
     return false;
@@ -914,7 +914,7 @@ bool write_dds_to_file(FILE *f, const dds_data &data)
         uint32_t numdepths = RDCMAX(1U, data.depth >> mip);
         for(uint32_t d = 0; d < numdepths; d++)
         {
-          byte *bytedata = data.subdata[i];
+          byte *bytedata = data.subresources[d];
 
           uint32_t rowlen = RDCMAX(1U, data.width >> mip);
           uint32_t numRows = RDCMAX(1U, data.height >> mip);
@@ -958,10 +958,10 @@ bool is_dds_file(byte *headerBuffer, size_t size)
   return memcmp(headerBuffer, &dds_fourcc, 4) == 0;
 }
 
-dds_data load_dds_from_file(StreamReader *reader)
+read_dds_data load_dds_from_file(StreamReader *reader)
 {
-  dds_data ret = {};
-  dds_data error = {};
+  read_dds_data ret = {};
+  read_dds_data error = {};
 
   uint64_t fileSize = reader->GetSize();
 
@@ -1195,8 +1195,28 @@ dds_data load_dds_from_file(StreamReader *reader)
     return ret;
   }
 
-  ret.subsizes = new uint32_t[ret.slices * ret.mips];
-  ret.subdata = new byte *[ret.slices * ret.mips];
+  // we reserve space for a full mip-chain (twice the size of the top mip) just to be conservative
+  {
+    uint32_t rowlen = AlignUp(ret.width, subsamplePacking);
+    uint32_t numRows = ret.height;
+    uint32_t pitch = RDCMAX(1U, rowlen * bytesPerPixel);
+
+    // pitch/rows are in blocks, not pixels, for block formats.
+    if(blockFormat)
+    {
+      numRows = RDCMAX(1U, (numRows + 3) / 4);
+
+      uint32_t blockSize =
+          (ret.format.type == ResourceFormatType::BC1 || ret.format.type == ResourceFormatType::BC4)
+              ? 8
+              : 16;
+
+      pitch = RDCMAX(blockSize, (((rowlen + 3) / 4)) * blockSize);
+    }
+
+    ret.buffer.reserve(ret.slices * 2 * ret.depth * numRows * pitch);
+  }
+  ret.subresources.reserve(ret.slices * ret.mips);
 
   int i = 0;
   for(uint32_t slice = 0; slice < ret.slices; slice++)
@@ -1222,9 +1242,14 @@ dds_data load_dds_from_file(StreamReader *reader)
         pitch = RDCMAX(blockSize, (((rowlen + 3) / 4)) * blockSize);
       }
 
-      ret.subsizes[i] = numdepths * numRows * pitch;
+      size_t subOffs = ret.buffer.size();
+      size_t subSize = numdepths * numRows * pitch;
 
-      byte *bytedata = ret.subdata[i] = new byte[ret.subsizes[i]];
+      ret.subresources.push_back({subOffs, subSize});
+
+      ret.buffer.resize(ret.buffer.size() + subSize);
+
+      byte *bytedata = ret.buffer.data() + subOffs;
 
       for(uint32_t d = 0; d < numdepths; d++)
       {

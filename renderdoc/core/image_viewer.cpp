@@ -327,6 +327,7 @@ public:
   void FileChanged() { RefreshFile(); }
 private:
   void RefreshFile();
+  void CreateProxyTexture(TextureDescription &texDetails, read_dds_data &read_data);
 
   APIProperties m_Props;
   FrameRecord m_FrameRecord;
@@ -421,20 +422,14 @@ ReplayStatus IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   {
     FileIO::fseek64(f, 0, SEEK_SET);
     StreamReader reader(f);
-    dds_data read_data = load_dds_from_file(&reader);
+    read_dds_data read_data = load_dds_from_file(&reader);
     f = NULL;
 
-    if(read_data.subdata == NULL)
+    if(read_data.subresources.empty())
     {
       RDCERR("DDS file recognised, but couldn't load");
       return ReplayStatus::ImageUnsupported;
     }
-
-    for(uint32_t i = 0; i < read_data.slices * read_data.mips; i++)
-      delete[] read_data.subdata[i];
-
-    delete[] read_data.subdata;
-    delete[] read_data.subsizes;
   }
   else
   {
@@ -703,7 +698,7 @@ void ImageViewer::RefreshFile()
   m_FrameRecord.frameInfo.persistentSize = 0;
   m_FrameRecord.frameInfo.uncompressedFileSize = datasize;
 
-  dds_data read_data = {0};
+  read_dds_data read_data;
 
   if(dds)
   {
@@ -712,10 +707,8 @@ void ImageViewer::RefreshFile()
     read_data = load_dds_from_file(&reader);
     f = NULL;
 
-    if(read_data.subdata == NULL)
-    {
+    if(read_data.subresources.empty())
       return;
-    }
 
     texDetails.cubemap = read_data.cubemap;
     texDetails.arraysize = read_data.slices;
@@ -750,17 +743,14 @@ void ImageViewer::RefreshFile()
 
     m_FrameRecord.frameInfo.uncompressedFileSize = 0;
     for(uint32_t i = 0; i < texDetails.arraysize * texDetails.mips; i++)
-      m_FrameRecord.frameInfo.uncompressedFileSize += read_data.subsizes[i];
+      m_FrameRecord.frameInfo.uncompressedFileSize += read_data.subresources[i].second;
   }
 
   m_FrameRecord.frameInfo.compressedFileSize = m_FrameRecord.frameInfo.uncompressedFileSize;
 
   // recreate proxy texture if necessary.
-  // we rewrite the texture IDs so that the
-  // outside world doesn't need to know about this
-  // (we only ever have one texture in the image
-  // viewer so we can just set all texture IDs
-  // used to that).
+  // we rewrite the texture IDs so that the outside world doesn't need to know about this (we only
+  // ever have one texture in the image viewer so we can just set all texture IDs used to that).
   if(m_TextureID != ResourceId())
   {
     if(m_TexDetails.width != texDetails.width || m_TexDetails.height != texDetails.height ||
@@ -773,81 +763,7 @@ void ImageViewer::RefreshFile()
   }
 
   if(m_TextureID == ResourceId())
-  {
-    if(m_Proxy->IsTextureSupported(texDetails))
-    {
-      m_TextureID = m_Proxy->CreateProxyTexture(texDetails);
-    }
-    else
-    {
-      if(dds)
-      {
-        // see if we can convert this format on the CPU for proxying
-        bool convertSupported = false;
-        DecodeFormattedComponents(texDetails.format, NULL, &convertSupported);
-
-        if(convertSupported)
-        {
-          uint32_t srcStride = texDetails.format.ElementSize();
-
-          if(texDetails.format.type == ResourceFormatType::D16S8)
-            srcStride = 4;
-          else if(texDetails.format.type == ResourceFormatType::D32S8)
-            srcStride = 8;
-
-          m_RealTexData.resize(texDetails.arraysize * texDetails.mips);
-
-          for(uint32_t i = 0; i < texDetails.arraysize * texDetails.mips; i++)
-          {
-            const uint32_t mip = i % texDetails.mips;
-
-            const uint32_t mipwidth = RDCMAX(1U, texDetails.width >> mip);
-            const uint32_t mipheight = RDCMAX(1U, texDetails.height >> mip);
-            const uint32_t mipdepth = RDCMAX(1U, texDetails.depth >> mip);
-
-            byte *old = read_data.subdata[i];
-            m_RealTexData[i].assign(old, read_data.subsizes[i]);
-
-            read_data.subsizes[i] = sizeof(FloatVector) * mipwidth * mipheight * mipdepth;
-            byte *converted = new byte[read_data.subsizes[i]];
-
-            byte *src = old;
-            FloatVector *dst = (FloatVector *)converted;
-
-            for(uint32_t z = 0; z < mipdepth; z++)
-            {
-              for(uint32_t y = 0; y < mipheight; y++)
-              {
-                for(uint32_t x = 0; x < mipwidth; x++)
-                {
-                  *dst = DecodeFormattedComponents(texDetails.format, src);
-                  dst++;
-                  src += srcStride;
-                }
-              }
-            }
-
-            read_data.subdata[i] = converted;
-            delete[] old;
-          }
-
-          TextureDescription remapped = texDetails;
-          remapped.format = rgba32_float;
-          m_TextureID = m_Proxy->CreateProxyTexture(remapped);
-        }
-        else
-        {
-          RDCLOG("Format %s not supported for local display and can't be converted manually.",
-                 texDetails.format.Name().c_str());
-        }
-      }
-      else
-      {
-        RDCERR("Standard format %s expected to be supported for local display but can't.",
-               texDetails.format.Name().c_str());
-      }
-    }
-  }
+    CreateProxyTexture(texDetails, read_data);
 
   if(m_TextureID == ResourceId())
     RDCERR("Couldn't create proxy texture for image file");
@@ -866,15 +782,133 @@ void ImageViewer::RefreshFile()
     for(uint32_t i = 0; i < texDetails.arraysize * texDetails.mips; i++)
     {
       m_Proxy->SetProxyTextureData(m_TextureID, {i % texDetails.mips, i / texDetails.mips},
-                                   read_data.subdata[i], (size_t)read_data.subsizes[i]);
-
-      delete[] read_data.subdata[i];
+                                   read_data.buffer.data() + read_data.subresources[i].first,
+                                   read_data.subresources[i].second);
     }
-
-    delete[] read_data.subdata;
-    delete[] read_data.subsizes;
   }
 
   if(f != NULL)
     FileIO::fclose(f);
+}
+
+void ImageViewer::CreateProxyTexture(TextureDescription &texDetails, read_dds_data &read_data)
+{
+  if(m_Proxy->IsTextureSupported(texDetails))
+  {
+    m_TextureID = m_Proxy->CreateProxyTexture(texDetails);
+    return;
+  }
+  else
+  {
+    // for block compressed 3D textures these may not be supported, try to remap to a 2D array
+    if(texDetails.format.BlockFormat() && texDetails.type == TextureType::Texture3D)
+    {
+      TextureDescription arrayDetails = texDetails;
+      arrayDetails.arraysize = arrayDetails.depth;
+      arrayDetails.depth = 1;
+      arrayDetails.type = TextureType::Texture2DArray;
+      arrayDetails.dimension = 2;
+
+      if(m_Proxy->IsTextureSupported(arrayDetails))
+      {
+        texDetails = arrayDetails;
+        m_TextureID = m_Proxy->CreateProxyTexture(arrayDetails);
+
+        rdcarray<rdcpair<size_t, size_t>> oldSubs;
+        oldSubs.swap(read_data.subresources);
+
+        // reformat the subresources. The data doesn't change we just add new offsets/sizes
+        for(uint32_t i = 0; i < texDetails.arraysize * texDetails.mips; i++)
+        {
+          const uint32_t mip = i % texDetails.mips;
+          const uint32_t slice = i / texDetails.mips;
+
+          // size of each subresource is 1/Nth for an N-sized array
+          size_t size = oldSubs[mip].second / texDetails.arraysize;
+
+          // and the offset is slice steps further on
+          size_t offset = oldSubs[mip].first + size * slice;
+
+          read_data.subresources.push_back({offset, size});
+        }
+
+        return;
+      }
+    }
+
+    if(read_data.width != 0)
+    {
+      // see if we can convert this format on the CPU for proxying
+      bool convertSupported = false;
+      DecodeFormattedComponents(texDetails.format, NULL, &convertSupported);
+
+      if(convertSupported)
+      {
+        uint32_t srcStride = texDetails.format.ElementSize();
+
+        if(texDetails.format.type == ResourceFormatType::D16S8)
+          srcStride = 4;
+        else if(texDetails.format.type == ResourceFormatType::D32S8)
+          srcStride = 8;
+
+        m_RealTexData.resize(texDetails.arraysize * texDetails.mips);
+
+        bytebuf convertedData;
+
+        for(uint32_t i = 0; i < texDetails.arraysize * texDetails.mips; i++)
+        {
+          const uint32_t mip = i % texDetails.mips;
+
+          const uint32_t mipwidth = RDCMAX(1U, texDetails.width >> mip);
+          const uint32_t mipheight = RDCMAX(1U, texDetails.height >> mip);
+          const uint32_t mipdepth = RDCMAX(1U, texDetails.depth >> mip);
+
+          byte *old = read_data.buffer.data() + read_data.subresources[i].first;
+          m_RealTexData[i].assign(old, read_data.subresources[i].second);
+
+          read_data.subresources[i].first = convertedData.size();
+          read_data.subresources[i].second = sizeof(FloatVector) * mipwidth * mipheight * mipdepth;
+          convertedData.resize(convertedData.size() + read_data.subresources[i].second);
+          byte *converted = convertedData.data() + read_data.subresources[i].first;
+
+          byte *src = old;
+          FloatVector *dst = (FloatVector *)converted;
+
+          for(uint32_t z = 0; z < mipdepth; z++)
+          {
+            for(uint32_t y = 0; y < mipheight; y++)
+            {
+              for(uint32_t x = 0; x < mipwidth; x++)
+              {
+                *dst = DecodeFormattedComponents(texDetails.format, src);
+                dst++;
+                src += srcStride;
+              }
+            }
+          }
+        }
+
+        read_data.buffer.swap(convertedData);
+
+        ResourceFormat rgba32_float;
+        rgba32_float.type = ResourceFormatType::Regular;
+        rgba32_float.compByteWidth = 4;
+        rgba32_float.compCount = 4;
+        rgba32_float.compType = CompType::Float;
+
+        texDetails.format = rgba32_float;
+        m_TextureID = m_Proxy->CreateProxyTexture(texDetails);
+      }
+      else
+      {
+        RDCLOG("Format %s not supported for local display and can't be converted manually.",
+               texDetails.format.Name().c_str());
+      }
+    }
+    else
+    {
+      RDCERR("Standard format %s expected to be supported for local display but can't.",
+             texDetails.format.Name().c_str());
+    }
+  }
 }

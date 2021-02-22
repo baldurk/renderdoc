@@ -301,6 +301,30 @@ Invalid values will result in 1 being set.
       flags |= ResourceFormat_3Planes;
   }
 
+  DOCUMENT(R"(:return: ``True`` if the ``ResourceFormat`` is a block-compressed type.
+:rtype: bool
+)");
+  bool BlockFormat() const
+  {
+    switch(type)
+    {
+      default: break;
+      case ResourceFormatType::BC1:
+      case ResourceFormatType::BC4:
+      case ResourceFormatType::BC2:
+      case ResourceFormatType::BC3:
+      case ResourceFormatType::BC5:
+      case ResourceFormatType::BC6:
+      case ResourceFormatType::BC7:
+      case ResourceFormatType::ETC2:
+      case ResourceFormatType::EAC:
+      case ResourceFormatType::ASTC:
+      case ResourceFormatType::PVRTC: return true;
+    }
+
+    return false;
+  }
+
   DOCUMENT(R"(Return the size of a single element in this format, usually a pixel. For regular sized
 formats this is just :data:`compByteWidth` times :data:`compCount`, for special packed formats it's
 the tightly packed size of a single element, with no padding.

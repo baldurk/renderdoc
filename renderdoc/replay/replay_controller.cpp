@@ -1159,7 +1159,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const rdcstr &pa
   {
     if(sd.destType == FileType::DDS)
     {
-      dds_data ddsData;
+      write_dds_data ddsData;
 
       ResourceFormat saveFmt = td.format;
       // use typeCast to inform typeless saving, otherwise it will get lost
@@ -1172,7 +1172,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const rdcstr &pa
       ddsData.format = saveFmt;
       ddsData.mips = numMips;
       ddsData.slices = numSlices / td.depth;
-      ddsData.subdata = &subdata[0];
+      ddsData.subresources = subdata;
       ddsData.cubemap = td.cubemap && numSlices == 6;
 
       if(singleSlice)
