@@ -774,7 +774,8 @@ bool write_dds_to_file(FILE *f, const write_dds_data &data)
         (data.format.type == ResourceFormatType::BC1 || data.format.type == ResourceFormatType::BC4)
             ? 8
             : 16;
-    header.dwPitchOrLinearSize = RDCMAX(1U, ((header.dwWidth + 3) / 4)) * blockSize;
+    header.dwPitchOrLinearSize =
+        RDCMAX(1U, ((header.dwWidth + 3) / 4)) * blockSize * RDCMAX(1U, data.height / 4);
   }
   else
   {
