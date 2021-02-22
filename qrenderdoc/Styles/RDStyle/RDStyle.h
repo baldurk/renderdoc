@@ -98,7 +98,8 @@ protected:
 
   bool eventFilter(QObject *watched, QEvent *event) override;
 
-  const QBrush &outlineBrush(const QPalette &pal) const;
+  const QBrush &outlineBrush(const QPalette &pal,
+                             QPalette::ColorRole role = QPalette::Foreground) const;
 
   void drawRoundedRectBorder(const QStyleOption *opt, QPainter *p, const QWidget *widget,
                              QPalette::ColorRole fillRole, bool shadow) const;

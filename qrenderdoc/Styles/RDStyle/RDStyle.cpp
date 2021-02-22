@@ -1468,9 +1468,12 @@ void RDStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *opt, Q
   RDTweakedNativeStyle::drawPrimitive(element, opt, p, widget);
 }
 
-const QBrush &RDStyle::outlineBrush(const QPalette &pal) const
+const QBrush &RDStyle::outlineBrush(const QPalette &pal, QPalette::ColorRole role) const
 {
-  return m_Scheme == Light ? pal.brush(QPalette::WindowText) : pal.brush(QPalette::Light);
+  if(role == QPalette::Text || role == QPalette::WindowText)
+    return m_Scheme == Light ? pal.brush(QPalette::WindowText) : pal.brush(QPalette::Light);
+
+  return pal.brush(role);
 }
 
 void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPainter *p,
@@ -1630,7 +1633,8 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
     qreal lineWidth = qMax(1, frame->lineWidth);
 
     p->save();
-    p->setPen(QPen(outlineBrush(opt->palette), lineWidth));
+
+    p->setPen(QPen(outlineBrush(opt->palette, widget->foregroundRole()), lineWidth));
 
     qreal adjust = 0.5 * lineWidth;
 

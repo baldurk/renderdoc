@@ -67,9 +67,6 @@ public:
 
   void setSelected(bool sel);
 
-protected:
-  void changeEvent(QEvent *event) override;
-
 private:
   Ui::ResourcePreview *ui;
 
