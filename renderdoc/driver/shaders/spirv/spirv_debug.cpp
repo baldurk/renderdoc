@@ -3779,7 +3779,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
   }
 
   // skip over any degenerate branches
-  while(true)
+  while(!debugger.HasDebugInfo())
   {
     it = debugger.GetIterForInstruction(nextInstruction);
     if(it.opcode() == Op::Branch)

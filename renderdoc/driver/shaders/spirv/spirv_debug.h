@@ -401,7 +401,7 @@ private:
 
     SparseIdMap<LocalData> locals;
 
-    std::map<rdcstr, int32_t> files;
+    SparseIdMap<int32_t> sources;
 
     std::map<size_t, ScopeData *> lineScope;
     std::map<size_t, LocalMapping> localMappings;

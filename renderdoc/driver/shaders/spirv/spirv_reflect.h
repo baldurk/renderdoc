@@ -125,6 +125,7 @@ private:
   rdcstr cmdline;
   DenseIdMap<rdcstr> strings;
   rdcarray<SourceFile> sources;
+  SparseIdMap<size_t> debugSources;
 
   Id curBlock;
   std::set<Id> loopBlocks;

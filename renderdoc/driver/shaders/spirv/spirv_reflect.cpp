@@ -454,13 +454,18 @@ void Reflector::RegisterOp(Iter it)
     // and potential names of global variables that might be missing.
     if(dbg.set == knownExtSet[ExtSet_ShaderDbg])
     {
-      if(dbg.inst == ShaderDbg::CompilationUnit)
+      if(dbg.inst == ShaderDbg::Source)
       {
-        OpShaderDbg src(GetID(dbg.arg<Id>(2)));
+        debugSources[dbg.result] = sources.size();
         sources.push_back({
-            (SourceLanguage)EvaluateConstant(dbg.arg<Id>(3), {}).value.u32v[0],
-            strings[src.arg<Id>(0)], src.params.size() > 1 ? strings[src.arg<Id>(1)] : rdcstr(),
+            SourceLanguage::Unknown, strings[dbg.arg<Id>(0)],
+            dbg.params.size() > 1 ? strings[dbg.arg<Id>(1)] : rdcstr(),
         });
+      }
+      else if(dbg.inst == ShaderDbg::CompilationUnit)
+      {
+        sources[debugSources[dbg.arg<Id>(2)]].lang =
+            (SourceLanguage)EvaluateConstant(dbg.arg<Id>(3), {}).value.u32v[0];
       }
       else if(dbg.inst == ShaderDbg::GlobalVariable)
       {

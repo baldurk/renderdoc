@@ -24,9 +24,13 @@
 
 #include "spirv_debug.h"
 #include "common/formatting.h"
+#include "core/settings.h"
 #include "spirv_op_helpers.h"
 #include "spirv_reflect.h"
 #include "var_dispatch_helpers.h"
+
+RDOC_CONFIG(bool, Vulkan_Debug_UseDebugColumnInformation, false,
+            "Control whether column information should be read from vulkan debug info.");
 
 // this could be cleaner if ShaderVariable wasn't a very public struct, but it's not worth it so
 // we just reserve value slots that we know won't be used in opaque variables
@@ -2615,15 +2619,16 @@ void Debugger::RegisterOp(Iter it)
       // the types are identical just with different accessors
       OpShaderDbg &dbg = (OpShaderDbg &)extinst;
 
-      if(dbg.inst == ShaderDbg::CompilationUnit)
+      if(dbg.inst == ShaderDbg::Source)
       {
-        OpShaderDbg src(GetID(dbg.arg<Id>(2)));
+        int32_t fileIndex = (int32_t)m_DebugInfo.sources.size();
 
-        int32_t fileIndex = (int32_t)m_DebugInfo.files.size();
-
-        m_DebugInfo.files[strings[src.arg<Id>(0)]] = fileIndex;
-
-        m_DebugInfo.scopes[dbg.result] = {DebugScope::CompilationUnit, NULL, 1, 1, fileIndex, 0};
+        m_DebugInfo.sources[dbg.result] = fileIndex;
+      }
+      else if(dbg.inst == ShaderDbg::CompilationUnit)
+      {
+        m_DebugInfo.scopes[dbg.result] = {DebugScope::CompilationUnit,         NULL, 1, 1,
+                                          m_DebugInfo.sources[dbg.arg<Id>(2)], 0};
       }
       else if(dbg.inst == ShaderDbg::LexicalBlock)
       {
@@ -2705,6 +2710,25 @@ void Debugger::RegisterOp(Iter it)
       {
         // TODO inline information
       }
+      else if(dbg.inst == ShaderDbg::Line)
+      {
+        OpShaderDbg line(it);
+
+        m_CurLineCol.lineStart = EvaluateConstant(dbg.arg<Id>(1), {}).value.u32v[0];
+        m_CurLineCol.lineEnd = EvaluateConstant(dbg.arg<Id>(2), {}).value.u32v[0];
+        if(Vulkan_Debug_UseDebugColumnInformation())
+        {
+          m_CurLineCol.colStart = EvaluateConstant(dbg.arg<Id>(3), {}).value.u32v[0];
+          m_CurLineCol.colEnd = EvaluateConstant(dbg.arg<Id>(4), {}).value.u32v[0];
+        }
+
+        // find file index by filename matching, this would be nice to improve as it's brittle
+        m_CurLineCol.fileIndex = m_DebugInfo.sources[dbg.arg<Id>(0)];
+      }
+      else if(dbg.inst == ShaderDbg::NoLine)
+      {
+        m_CurLineCol = LineColumnInfo();
+      }
     }
   }
   else if(opdata.op == Op::ExtInstImport)
@@ -2732,15 +2756,7 @@ void Debugger::RegisterOp(Iter it)
 
     if(m_DebugInfo.valid)
     {
-      m_CurLineCol.lineStart = line.line;
-      m_CurLineCol.lineEnd = line.line;
-      m_CurLineCol.colStart = line.column;
-      // find file index by filename matching, this would be nice to improve as it's brittle
-      auto file = m_DebugInfo.files.find(strings[line.file]);
-      if(file != m_DebugInfo.files.end())
-        m_CurLineCol.fileIndex = file->second;
-      else
-        m_CurLineCol.fileIndex = -1;
+      // ignore any OpLine when we have proper debug info
     }
     else
     {
@@ -2752,11 +2768,22 @@ void Debugger::RegisterOp(Iter it)
   }
   else if(opdata.op == Op::NoLine)
   {
-    m_CurLineCol = LineColumnInfo();
+    if(!m_DebugInfo.valid)
+      m_CurLineCol = LineColumnInfo();
   }
   else
   {
-    m_LineColInfo[it.offs()] = m_CurLineCol;
+    // for debug info, only apply line info if we're in a scope. Otherwise the line info may not
+    // apply to this instruction. This means OpPhi's will never be line mapped
+    if(m_DebugInfo.valid)
+    {
+      if(m_DebugInfo.curScope)
+        m_LineColInfo[it.offs()] = m_CurLineCol;
+    }
+    else
+    {
+      m_LineColInfo[it.offs()] = m_CurLineCol;
+    }
   }
 
   if(m_DebugInfo.valid)
