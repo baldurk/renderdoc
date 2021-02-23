@@ -890,8 +890,41 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
         // source file, the second time jumps to it.
         if(preferSourceDebug)
         {
-          gotoSourceDebugging();
-          updateDebugState();
+          // if we're not on a source line, move forward to the first source line
+          while(!m_CurInstructionScintilla)
+          {
+            do
+            {
+              applyForwardsChange();
+
+              if(m_Trace->lineInfo[GetCurrentState().nextInstruction].fileIndex >= 0)
+                break;
+
+              if(IsLastState())
+                break;
+
+            } while(true);
+
+            updateDebugState();
+
+            if(IsLastState())
+              break;
+          }
+
+          // if we got to the last state something's wrong - we're preferring source debug but we
+          // didn't ever reach an instruction mapped to source lines? just reverse course and don't
+          // switch to source debugging
+          if(IsLastState())
+          {
+            m_FirstSourceStateIdx = ~0U;
+            runTo({}, false);
+          }
+          else
+          {
+            m_FirstSourceStateIdx = m_CurrentStateIdx;
+            gotoSourceDebugging();
+            updateDebugState();
+          }
         }
 
         m_DeferredInit = false;
@@ -1930,6 +1963,10 @@ bool ShaderViewer::step(bool forward, StepMode mode)
   if((forward && IsLastState()) || (!forward && IsFirstState()))
     return false;
 
+  // also stop if we reach the first real source-mapped instruction, while source debugging
+  if(!forward && isSourceDebugging() && m_CurrentStateIdx == m_FirstSourceStateIdx)
+    return false;
+
   if(isSourceDebugging())
   {
     LineColumnInfo oldLine = m_Trace->lineInfo[GetCurrentState().nextInstruction];
@@ -1951,13 +1988,17 @@ bool ShaderViewer::step(bool forward, StepMode mode)
       if((forward && IsLastState()) || (!forward && IsFirstState()))
         break;
 
+      // also stop if we reach the first real source-mapped instruction, while source debugging
+      if(!forward && isSourceDebugging() && m_CurrentStateIdx == m_FirstSourceStateIdx)
+        break;
+
       // keep going if we're still on the same source line as we started
       LineColumnInfo curLine = m_Trace->lineInfo[GetCurrentState().nextInstruction];
       if(curLine.SourceEqual(oldLine))
         continue;
 
-      // if we're stepping into, break now as soon as we hit a different line
-      if(mode == StepInto)
+      // if we're in an invalid file, skip it as unmapped instructions
+      if(curLine.fileIndex == -1)
         break;
 
       // we're on a different line but that might not be enough for Step Out or Step Over
@@ -2161,6 +2202,9 @@ void ShaderViewer::runTo(QVector<size_t> runToInstruction, bool forward, ShaderE
     else
     {
       if(IsFirstState())
+        break;
+      // also stop if we reach the first real source-mapped instruction, while source debugging
+      if(isSourceDebugging() && m_CurrentStateIdx == m_FirstSourceStateIdx)
         break;
       applyBackwardsChange();
     }
@@ -2987,7 +3031,7 @@ void ShaderViewer::updateDebugState()
 
   if(state.nextInstruction < m_Trace->lineInfo.size())
   {
-    LineColumnInfo &lineInfo = m_Trace->lineInfo[state.nextInstruction];
+    LineColumnInfo lineInfo = m_Trace->lineInfo[state.nextInstruction];
 
     // highlight the current line
     {
@@ -3000,6 +3044,19 @@ void ShaderViewer::updateDebugState()
       m_DisassemblyView->setSelection(pos, pos);
 
       ensureLineScrolled(m_DisassemblyView, lineInfo.disassemblyLine - 1);
+    }
+
+    if(IsLastState() && (lineInfo.fileIndex < 0 || lineInfo.fileIndex >= m_FileScintillas.count()))
+    {
+      // if the last state doesn't have source mapping information, display the line info for the
+      // last state which did.
+      for(int stateLookbackIdx = (int)m_CurrentStateIdx; stateLookbackIdx > 0; stateLookbackIdx--)
+      {
+        lineInfo = m_Trace->lineInfo[m_States[stateLookbackIdx].nextInstruction];
+
+        if(lineInfo.fileIndex >= 0 && lineInfo.fileIndex < m_FileScintillas.count())
+          break;
+      }
     }
 
     if(lineInfo.fileIndex >= 0 && lineInfo.fileIndex < m_FileScintillas.count())

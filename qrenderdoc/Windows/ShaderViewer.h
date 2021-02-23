@@ -266,6 +266,7 @@ private:
   bool m_Saved = false;
 
   ShaderDebugTrace *m_Trace = NULL;
+  size_t m_FirstSourceStateIdx = ~0U;
   rdcarray<ShaderDebugState> m_States;
   size_t m_CurrentStateIdx = 0;
   rdcarray<ShaderVariable> m_Variables;
