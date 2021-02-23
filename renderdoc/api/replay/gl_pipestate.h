@@ -160,6 +160,21 @@ struct VertexInput
 
   DOCUMENT("The :class:`ResourceId` of the index buffer.");
   ResourceId indexBuffer;
+  DOCUMENT(R"(The byte width of the index buffer - typically 1, 2 or 4 bytes. It can be 0 for
+non-indexed draws.
+
+.. note::
+  This does not correspond to a real GL state since the index type is specified per-draw in the call
+  itself. This is an implicit state derived from the last (or current) drawcall at any given event.
+)");
+  uint32_t indexByteStride = 0;
+  DOCUMENT(R"(The byte width of the index buffer - typically 1, 2 or 4 bytes.
+
+.. note::
+  This does not correspond to a real GL state since the topology is specified per-draw in the call
+  itself. This is an implicit state derived from the last (or current) drawcall at any given event.
+)");
+  Topology topology = Topology::Unknown;
   DOCUMENT("``True`` if primitive restart is enabled for strip primitives.");
   bool primitiveRestart = false;
   DOCUMENT("The index value to use to indicate a strip restart.");

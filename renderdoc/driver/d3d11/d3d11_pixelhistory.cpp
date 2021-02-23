@@ -2399,21 +2399,24 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
 
         m_pImmediateContext->Begin(testQueries[0]);
 
+        Topology topo =
+            MakePrimitiveTopology(m_pImmediateContext->GetCurrentPipelineState()->IA.Topo);
+
         // do draw
         if(draw->flags & DrawFlags::Indexed)
         {
           // TODO once pixel history distinguishes between instances, draw only the instance for
           // this fragment
           m_pImmediateContext->DrawIndexedInstanced(
-              RENDERDOC_NumVerticesPerPrimitive(draw->topology), RDCMAX(1U, draw->numInstances),
-              draw->indexOffset + RENDERDOC_VertexOffset(draw->topology, history[h].primitiveID),
+              RENDERDOC_NumVerticesPerPrimitive(topo), RDCMAX(1U, draw->numInstances),
+              draw->indexOffset + RENDERDOC_VertexOffset(topo, history[h].primitiveID),
               draw->baseVertex, draw->instanceOffset);
         }
         else
         {
           m_pImmediateContext->DrawInstanced(
-              RENDERDOC_NumVerticesPerPrimitive(draw->topology), RDCMAX(1U, draw->numInstances),
-              draw->vertexOffset + RENDERDOC_VertexOffset(draw->topology, history[h].primitiveID),
+              RENDERDOC_NumVerticesPerPrimitive(topo), RDCMAX(1U, draw->numInstances),
+              draw->vertexOffset + RENDERDOC_VertexOffset(topo, history[h].primitiveID),
               draw->instanceOffset);
         }
 

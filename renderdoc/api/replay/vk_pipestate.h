@@ -358,6 +358,11 @@ struct IndexBuffer
 
   DOCUMENT("The byte offset from the start of the buffer to the beginning of the index data.");
   uint64_t byteOffset = 0;
+
+  DOCUMENT(R"(The number of bytes for each index in the index buffer. Typically 2 or 4 bytes but
+it can be 0 if no index buffer is bound.
+)");
+  uint32_t byteStride = 0;
 };
 
 DOCUMENT("Describes the vulkan input assembly configuration.");
@@ -376,6 +381,12 @@ struct InputAssembly
 :type: VKIndexBuffer
 )");
   IndexBuffer indexBuffer;
+
+  DOCUMENT(R"(The current primitive topology.
+
+:type: Topology
+)");
+  Topology topology = Topology::Unknown;
 };
 
 DOCUMENT("Describes the configuration of a single vertex attribute.");

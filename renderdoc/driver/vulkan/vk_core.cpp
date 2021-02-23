@@ -4022,19 +4022,8 @@ void WrappedVulkan::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
 
   draw.depthOut = ResourceId();
 
-  draw.indexByteWidth = 0;
-  draw.topology = Topology::Unknown;
-
   if(m_LastCmdBufferID != ResourceId())
   {
-    ResourceId pipe = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphics.pipeline;
-    if(pipe != ResourceId())
-      draw.topology =
-          MakePrimitiveTopology(m_BakedCmdBufferInfo[m_LastCmdBufferID].state.primitiveTopology,
-                                m_CreationInfo.m_Pipeline[pipe].patchControlPoints);
-
-    draw.indexByteWidth = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer.bytewidth;
-
     ResourceId fb = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.GetFramebuffer();
     ResourceId rp = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass;
     uint32_t sp = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass;

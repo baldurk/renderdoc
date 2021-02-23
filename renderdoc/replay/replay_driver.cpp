@@ -181,8 +181,8 @@ void SetupDrawcallPointers(rdcarray<DrawcallDescription *> &drawcallTable,
   }
 }
 
-void PatchLineStripIndexBuffer(const DrawcallDescription *draw, uint8_t *idx8, uint16_t *idx16,
-                               uint32_t *idx32, rdcarray<uint32_t> &patchedIndices)
+void PatchLineStripIndexBuffer(const DrawcallDescription *draw, Topology topology, uint8_t *idx8,
+                               uint16_t *idx16, uint32_t *idx32, rdcarray<uint32_t> &patchedIndices)
 {
   const uint32_t restart = 0xffffffff;
 
@@ -190,7 +190,7 @@ void PatchLineStripIndexBuffer(const DrawcallDescription *draw, uint8_t *idx8, u
   (idx16 ? idx16[index + (offs)] \
          : (idx32 ? idx32[index + (offs)] : (idx8 ? idx8[index + (offs)] : index + (offs))))
 
-  switch(draw->topology)
+  switch(topology)
   {
     case Topology::TriangleList:
     {
@@ -268,7 +268,7 @@ void PatchLineStripIndexBuffer(const DrawcallDescription *draw, uint8_t *idx8, u
       break;
     }
     default:
-      RDCERR("Unsupported topology %s for line-list patching", ToStr(draw->topology).c_str());
+      RDCERR("Unsupported topology %s for line-list patching", ToStr(topology).c_str());
       return;
   }
 

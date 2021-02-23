@@ -1124,14 +1124,6 @@ void WrappedID3D11DeviceContext::AddDrawcall(const DrawcallDescription &d, bool 
   draw.eventId = m_CurEventID;
   draw.drawcallId = m_CurDrawcallID;
 
-  draw.indexByteWidth = 0;
-  if(m_CurrentPipelineState->IA.IndexFormat == DXGI_FORMAT_R16_UINT)
-    draw.indexByteWidth = 2;
-  if(m_CurrentPipelineState->IA.IndexFormat == DXGI_FORMAT_R32_UINT)
-    draw.indexByteWidth = 4;
-
-  draw.topology = MakePrimitiveTopology(m_CurrentPipelineState->IA.Topo);
-
   for(int i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
   {
     draw.outputs[i] = ResourceId();

@@ -2700,6 +2700,9 @@ struct VulkanPixelHistoryDiscardedFragmentsCallback : VulkanPixelHistoryCallback
     for(uint32_t i = 0; i < state.views.size(); i++)
       ScissorToPixel(state.views[i], state.scissors[i]);
     state.graphics.pipeline = GetResID(newPipe);
+    const VulkanCreationInfo::Pipeline &p =
+        m_pDriver->GetDebugManager()->GetPipelineInfo(state.graphics.pipeline);
+    Topology topo = MakePrimitiveTopology(state.primitiveTopology, p.patchControlPoints);
     state.BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
     for(uint32_t i = 0; i < primIds.size(); i++)
     {
@@ -2708,9 +2711,9 @@ struct VulkanPixelHistoryDiscardedFragmentsCallback : VulkanPixelHistoryCallback
       const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eid);
       uint32_t primId = primIds[i];
       DrawcallDescription draw = *drawcall;
-      draw.numIndices = RENDERDOC_NumVerticesPerPrimitive(drawcall->topology);
-      draw.indexOffset += RENDERDOC_VertexOffset(drawcall->topology, primId);
-      draw.vertexOffset += RENDERDOC_VertexOffset(drawcall->topology, primId);
+      draw.numIndices = RENDERDOC_NumVerticesPerPrimitive(topo);
+      draw.indexOffset += RENDERDOC_VertexOffset(topo, primId);
+      draw.vertexOffset += RENDERDOC_VertexOffset(topo, primId);
       // TODO once pixel history distinguishes between instances, draw only the instance for
       // this fragment.
       // TODO replay with a dummy index buffer so that all primitives other than the target one are

@@ -474,24 +474,28 @@ BoundVBuffer PipeState::GetIBuffer() const
     {
       ret.resourceId = m_D3D11->inputAssembly.indexBuffer.resourceId;
       ret.byteOffset = m_D3D11->inputAssembly.indexBuffer.byteOffset;
+      ret.byteStride = m_D3D11->inputAssembly.indexBuffer.byteStride;
       ret.byteSize = ~0ULL;
     }
     else if(IsCaptureD3D12())
     {
       ret.resourceId = m_D3D12->inputAssembly.indexBuffer.resourceId;
       ret.byteOffset = m_D3D12->inputAssembly.indexBuffer.byteOffset;
+      ret.byteStride = m_D3D12->inputAssembly.indexBuffer.byteStride;
       ret.byteSize = m_D3D12->inputAssembly.indexBuffer.byteSize;
     }
     else if(IsCaptureGL())
     {
       ret.resourceId = m_GL->vertexInput.indexBuffer;
       ret.byteOffset = 0;    // GL only has per-draw index offset
+      ret.byteStride = m_GL->vertexInput.indexByteStride;
       ret.byteSize = ~0ULL;
     }
     else if(IsCaptureVK())
     {
       ret.resourceId = m_Vulkan->inputAssembly.indexBuffer.resourceId;
       ret.byteOffset = m_Vulkan->inputAssembly.indexBuffer.byteOffset;
+      ret.byteStride = m_Vulkan->inputAssembly.indexBuffer.byteStride;
       ret.byteSize = ~0ULL;
     }
   }
@@ -600,6 +604,31 @@ rdcarray<BoundVBuffer> PipeState::GetVBuffers() const
   }
 
   return ret;
+}
+
+Topology PipeState::GetPrimitiveTopology() const
+{
+  if(IsCaptureLoaded())
+  {
+    if(IsCaptureD3D11())
+    {
+      return m_D3D11->inputAssembly.topology;
+    }
+    else if(IsCaptureD3D12())
+    {
+      return m_D3D12->inputAssembly.topology;
+    }
+    else if(IsCaptureVK())
+    {
+      return m_Vulkan->inputAssembly.topology;
+    }
+    else if(IsCaptureGL())
+    {
+      return m_GL->vertexInput.topology;
+    }
+  }
+
+  return Topology::Unknown;
 }
 
 rdcarray<VertexInputAttribute> PipeState::GetVertexInputs() const

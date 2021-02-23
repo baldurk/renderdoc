@@ -1559,9 +1559,6 @@ struct DrawcallDescription
     dispatchThreadsDimension[0] = dispatchThreadsDimension[1] = dispatchThreadsDimension[2] = 0;
     dispatchBase[0] = dispatchBase[1] = dispatchBase[2] = 0;
 
-    indexByteWidth = 0;
-    topology = Topology::Unknown;
-
     copySource = ResourceId();
     copyDestination = ResourceId();
 
@@ -1637,15 +1634,6 @@ struct DrawcallDescription
 :type: Tuple[int,int,int]
 )");
   rdcfixedarray<uint32_t, 3> dispatchBase;
-
-  DOCUMENT(R"(The width in bytes of each index.
-
-Valid values are 1 (depending on API), 2 or 4, or 0 if the drawcall is not an indexed draw.
-)");
-  uint32_t indexByteWidth;
-
-  DOCUMENT("The :class:`Topology` used in this drawcall.");
-  Topology topology;
 
   DOCUMENT(R"(The :class:`ResourceId` identifying the source object in a copy, resolve or blit
 operation.

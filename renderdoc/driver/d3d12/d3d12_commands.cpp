@@ -1858,14 +1858,8 @@ void D3D12CommandData::AddDrawcall(const DrawcallDescription &d, bool hasEvents,
 
   draw.depthOut = ResourceId();
 
-  draw.indexByteWidth = 0;
-  draw.topology = Topology::Unknown;
-
   if(m_LastCmdListID != ResourceId())
   {
-    draw.topology = MakePrimitiveTopology(m_BakedCmdListInfo[m_LastCmdListID].state.topo);
-    draw.indexByteWidth = m_BakedCmdListInfo[m_LastCmdListID].state.ibuffer.bytewidth;
-
     rdcarray<ResourceId> rts = m_BakedCmdListInfo[m_LastCmdListID].state.GetRTVIDs();
 
     for(size_t i = 0; i < ARRAY_COUNT(draw.outputs); i++)

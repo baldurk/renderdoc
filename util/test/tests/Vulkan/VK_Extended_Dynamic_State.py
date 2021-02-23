@@ -95,7 +95,7 @@ class VK_Extended_Dynamic_State(rdtest.TestCase):
 
         vkpipe: rd.VKState = self.controller.GetVulkanPipelineState()
 
-        self.check(draw.topology == rd.Topology.TriangleList)
+        self.check(vkpipe.inputAssembly.topology == rd.Topology.TriangleList)
 
         self.check(vkpipe.depthStencil.depthTestEnable == True)
         self.check(vkpipe.depthStencil.depthWriteEnable == True)

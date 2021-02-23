@@ -59,7 +59,7 @@ def fetch_indices(controller: rd.ReplayController, draw: rd.DrawcallDescription,
 
     pipe = controller.GetPipelineState()
     restart_idx = pipe.GetStripRestartIndex() & ((1 << (mesh.indexByteStride*8)) - 1)
-    restart_enabled = pipe.IsStripRestartEnabled() and rd.IsStrip(draw.topology)
+    restart_enabled = pipe.IsStripRestartEnabled() and rd.IsStrip(pipe.GetPrimitiveTopology())
 
     # If we have an index buffer
     if mesh.indexResourceId != rd.ResourceId.Null():

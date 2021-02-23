@@ -410,8 +410,8 @@ void VulkanDebugManager::PatchLineStripIndexBuffer(const DrawcallDescription *dr
   if(draw->flags & DrawFlags::Indexed)
   {
     GetBufferData(rs.ibuffer.buf,
-                  rs.ibuffer.offs + uint64_t(draw->indexOffset) * draw->indexByteWidth,
-                  uint64_t(draw->numIndices) * draw->indexByteWidth, indices);
+                  rs.ibuffer.offs + uint64_t(draw->indexOffset) * rs.ibuffer.bytewidth,
+                  uint64_t(draw->numIndices) * rs.ibuffer.bytewidth, indices);
 
     if(rs.ibuffer.bytewidth == 4)
       idx32 = (uint32_t *)indices.data();
@@ -424,7 +424,8 @@ void VulkanDebugManager::PatchLineStripIndexBuffer(const DrawcallDescription *dr
   // we just patch up to 32-bit since we'll be adding more indices and we might overflow 16-bit.
   rdcarray<uint32_t> patchedIndices;
 
-  ::PatchLineStripIndexBuffer(draw, idx8, idx16, idx32, patchedIndices);
+  ::PatchLineStripIndexBuffer(draw, MakePrimitiveTopology(rs.primitiveTopology, 3), idx8, idx16,
+                              idx32, patchedIndices);
 
   indexBuffer.Create(m_pDriver, m_Device, patchedIndices.size() * sizeof(uint32_t), 1,
                      GPUBuffer::eGPUBufferIBuffer);
@@ -918,11 +919,11 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         {
           rs->polygonMode = VK_POLYGON_MODE_LINE;
         }
-        else if(mainDraw->topology == Topology::TriangleList ||
-                mainDraw->topology == Topology::TriangleStrip ||
-                mainDraw->topology == Topology::TriangleFan ||
-                mainDraw->topology == Topology::TriangleList_Adj ||
-                mainDraw->topology == Topology::TriangleStrip_Adj)
+        else if(prevstate.primitiveTopology == VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST ||
+                prevstate.primitiveTopology == VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP ||
+                prevstate.primitiveTopology == VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN ||
+                prevstate.primitiveTopology == VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY ||
+                prevstate.primitiveTopology == VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY)
         {
           // bad drivers (aka mobile) won't have non-solid fill mode, so we have to fall back to
           // manually patching the index buffer and using a line list. This doesn't work with
@@ -947,7 +948,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         else
         {
           RDCWARN("Unable to draw wireframe overlay for %s topology draw via software patching",
-                  ToStr(mainDraw->topology).c_str());
+                  ToStr(prevstate.primitiveTopology).c_str());
         }
       }
 

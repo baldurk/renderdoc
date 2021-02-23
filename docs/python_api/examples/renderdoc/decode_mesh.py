@@ -88,7 +88,7 @@ def getMeshInputs(controller, draw):
 		meshInput = MeshData()
 		meshInput.indexResourceId = ib.resourceId
 		meshInput.indexByteOffset = ib.byteOffset
-		meshInput.indexByteStride = draw.indexByteWidth
+		meshInput.indexByteStride = ib.byteStride
 		meshInput.baseVertex = draw.baseVertex
 		meshInput.indexOffset = draw.indexOffset
 		meshInput.numIndices = draw.numIndices

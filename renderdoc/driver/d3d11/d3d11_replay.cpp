@@ -740,6 +740,15 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
   ret.inputAssembly.indexBuffer.resourceId =
       rm->GetOriginalID(GetIDForDeviceChild(rs->IA.IndexBuffer));
   ret.inputAssembly.indexBuffer.byteOffset = rs->IA.IndexOffset;
+  switch(rs->IA.IndexFormat)
+  {
+    case DXGI_FORMAT_R32_UINT: ret.inputAssembly.indexBuffer.byteStride = 4; break;
+    case DXGI_FORMAT_R16_UINT: ret.inputAssembly.indexBuffer.byteStride = 2; break;
+    case DXGI_FORMAT_R8_UINT: ret.inputAssembly.indexBuffer.byteStride = 1; break;
+    default: ret.inputAssembly.indexBuffer.byteStride = 0; break;
+  }
+
+  ret.inputAssembly.topology = MakePrimitiveTopology(rs->IA.Topo);
 
   /////////////////////////////////////////////////
   // Shaders

@@ -1329,19 +1329,17 @@ void GLPipelineStateViewer::setState()
   ui->viAttrs->endUpdate();
   ui->viAttrs->verticalScrollBar()->setValue(vs);
 
-  Topology topo = draw ? draw->topology : Topology::Unknown;
-
-  int numCPs = PatchList_Count(topo);
+  int numCPs = PatchList_Count(state.vertexInput.topology);
   if(numCPs > 0)
   {
     ui->topology->setText(tr("PatchList (%1 Control Points)").arg(numCPs));
   }
   else
   {
-    ui->topology->setText(ToQStr(topo));
+    ui->topology->setText(ToQStr(state.vertexInput.topology));
   }
 
-  m_Common.setTopologyDiagram(ui->topologyDiagram, topo);
+  m_Common.setTopologyDiagram(ui->topologyDiagram, state.vertexInput.topology);
 
   bool ibufferUsed = draw && (draw->flags & DrawFlags::Indexed);
 
@@ -1383,25 +1381,26 @@ void GLPipelineStateViewer::setState()
         length = buf->length;
 
       RDTreeWidgetItem *node = new RDTreeWidgetItem({tr("Element"), state.vertexInput.indexBuffer,
-                                                     draw ? draw->indexByteWidth : 0, 0, 0,
+                                                     state.vertexInput.indexByteStride, 0, 0,
                                                      (qulonglong)length, QString()});
 
       QString iformat;
       if(draw)
       {
-        if(draw->indexByteWidth == 1)
+        if(state.vertexInput.indexByteStride == 1)
           iformat = lit("ubyte");
-        else if(draw->indexByteWidth == 2)
+        else if(state.vertexInput.indexByteStride == 2)
           iformat = lit("ushort");
-        else if(draw->indexByteWidth == 4)
+        else if(state.vertexInput.indexByteStride == 4)
           iformat = lit("uint");
 
-        iformat += lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(draw->topology));
+        iformat +=
+            lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(state.vertexInput.topology));
       }
 
-      node->setTag(QVariant::fromValue(GLVBIBTag(state.vertexInput.indexBuffer,
-                                                 draw ? draw->indexOffset * draw->indexByteWidth : 0,
-                                                 iformat)));
+      node->setTag(QVariant::fromValue(
+          GLVBIBTag(state.vertexInput.indexBuffer,
+                    draw ? draw->indexOffset * state.vertexInput.indexByteStride : 0, iformat)));
 
       if(!ibufferUsed)
         setInactiveRow(node);
@@ -1425,19 +1424,20 @@ void GLPipelineStateViewer::setState()
       QString iformat;
       if(draw)
       {
-        if(draw->indexByteWidth == 1)
+        if(state.vertexInput.indexByteStride == 1)
           iformat = lit("ubyte");
-        else if(draw->indexByteWidth == 2)
+        else if(state.vertexInput.indexByteStride == 2)
           iformat = lit("ushort");
-        else if(draw->indexByteWidth == 4)
+        else if(state.vertexInput.indexByteStride == 4)
           iformat = lit("uint");
 
-        iformat += lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(draw->topology));
+        iformat +=
+            lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(state.vertexInput.topology));
       }
 
-      node->setTag(QVariant::fromValue(GLVBIBTag(state.vertexInput.indexBuffer,
-                                                 draw ? draw->indexOffset * draw->indexByteWidth : 0,
-                                                 iformat)));
+      node->setTag(QVariant::fromValue(
+          GLVBIBTag(state.vertexInput.indexBuffer,
+                    draw ? draw->indexOffset * state.vertexInput.indexByteStride : 0, iformat)));
 
       setEmptyRow(node);
       m_EmptyNodes.push_back(node);
@@ -2510,11 +2510,11 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Vert
     QString ifmt = lit("UNKNOWN");
     if(draw)
     {
-      if(draw->indexByteWidth == 1)
+      if(vtx.indexByteStride == 1)
         ifmt = lit("UNSIGNED_BYTE");
-      else if(draw->indexByteWidth == 2)
+      else if(vtx.indexByteStride == 2)
         ifmt = lit("UNSIGNED_SHORT");
-      else if(draw->indexByteWidth == 4)
+      else if(vtx.indexByteStride == 4)
         ifmt = lit("UNSIGNED_INT");
     }
 
@@ -2526,7 +2526,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Vert
   xml.writeEndElement();
 
   m_Common.exportHTMLTable(xml, {tr("Primitive Topology")},
-                           {ToQStr(draw ? draw->topology : Topology::Unknown)});
+                           {ToQStr(draw ? vtx.topology : Topology::Unknown)});
 
   {
     xml.writeStartElement(tr("h3"));

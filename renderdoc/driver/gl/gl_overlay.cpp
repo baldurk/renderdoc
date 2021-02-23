@@ -732,6 +732,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
       drv.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, &idxbuf);
 
       const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
+      const GLDrawParams &drawParams = m_pDriver->GetDrawcallParameters(eventId);
 
       rdcarray<uint32_t> patchedIndices;
 
@@ -739,7 +740,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
       if(idxbuf)
       {
         rdcarray<byte> idxs;
-        uint32_t offset = draw->indexOffset * draw->indexByteWidth;
+        uint32_t offset = draw->indexOffset * drawParams.indexWidth;
         uint32_t length = 1;
         drv.glGetNamedBufferParameterivEXT(idxbuf, eGL_BUFFER_SIZE, (GLint *)&length);
 
@@ -747,13 +748,13 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
         drv.glGetBufferSubData(
             eGL_ELEMENT_ARRAY_BUFFER, offset,
             RDCMIN(GLsizeiptr(length - offset),
-                   GLsizeiptr(draw->numIndices) * GLsizeiptr(draw->indexByteWidth)),
+                   GLsizeiptr(draw->numIndices) * GLsizeiptr(drawParams.indexWidth)),
             &idxs[0]);
 
         // unbind the real index buffer
         drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, 0);
 
-        uint32_t expectedSize = draw->numIndices * draw->indexByteWidth;
+        uint32_t expectedSize = draw->numIndices * drawParams.indexWidth;
 
         if(idxs.size() < expectedSize)
         {
@@ -762,9 +763,10 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
         }
 
         PatchLineStripIndexBuffer(
-            draw, draw->indexByteWidth == 1 ? (uint8_t *)idxs.data() : (uint8_t *)NULL,
-            draw->indexByteWidth == 2 ? (uint16_t *)idxs.data() : (uint16_t *)NULL,
-            draw->indexByteWidth == 4 ? (uint32_t *)idxs.data() : (uint32_t *)NULL, patchedIndices);
+            draw, drawParams.topo,
+            drawParams.indexWidth == 1 ? (uint8_t *)idxs.data() : (uint8_t *)NULL,
+            drawParams.indexWidth == 2 ? (uint16_t *)idxs.data() : (uint16_t *)NULL,
+            drawParams.indexWidth == 4 ? (uint32_t *)idxs.data() : (uint32_t *)NULL, patchedIndices);
       }
       else
       {
@@ -773,7 +775,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
         idxs.resize(draw->numIndices);
         for(uint32_t i = 0; i < draw->numIndices; i++)
           idxs[i] = i;
-        PatchLineStripIndexBuffer(draw, NULL, NULL, idxs.data(), patchedIndices);
+        PatchLineStripIndexBuffer(draw, drawParams.topo, NULL, NULL, idxs.data(), patchedIndices);
       }
 
       GLboolean primRestart = drv.glIsEnabled(eGL_PRIMITIVE_RESTART_FIXED_INDEX);

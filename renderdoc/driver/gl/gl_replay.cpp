@@ -810,6 +810,11 @@ void GLReplay::SavePipelineState(uint32_t eventId)
                                       ? ~0U
                                       : rs.PrimitiveRestartIndex;
 
+  const GLDrawParams &drawParams = m_pDriver->GetDrawcallParameters(eventId);
+
+  pipe.vertexInput.indexByteStride = drawParams.indexWidth;
+  pipe.vertexInput.topology = drawParams.topo;
+
   // Vertex buffers and attributes
   GLint numVBufferBindings = 16;
   drv.glGetIntegerv(eGL_MAX_VERTEX_ATTRIB_BINDINGS, &numVBufferBindings);

@@ -1109,7 +1109,10 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     // Input Assembly
     m_VulkanPipelineState.inputAssembly.indexBuffer.resourceId = rm->GetOriginalID(state.ibuffer.buf);
     m_VulkanPipelineState.inputAssembly.indexBuffer.byteOffset = state.ibuffer.offs;
+    m_VulkanPipelineState.inputAssembly.indexBuffer.byteStride = state.ibuffer.bytewidth;
     m_VulkanPipelineState.inputAssembly.primitiveRestartEnable = p.primitiveRestartEnable;
+    m_VulkanPipelineState.inputAssembly.topology =
+        MakePrimitiveTopology(state.primitiveTopology, p.patchControlPoints);
 
     // Vertex Input
     m_VulkanPipelineState.vertexInput.attributes.resize(p.vertexAttrs.size());

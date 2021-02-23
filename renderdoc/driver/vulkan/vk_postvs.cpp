@@ -1286,7 +1286,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
   // set defaults so that we don't try to fetch this output again if something goes wrong and the
   // same event is selected again
   {
-    m_PostVS.Data[eventId].vsin.topo = MakeVkPrimitiveTopology(drawcall->topology);
+    m_PostVS.Data[eventId].vsin.topo = state.primitiveTopology;
     m_PostVS.Data[eventId].vsout.buf = VK_NULL_HANDLE;
     m_PostVS.Data[eventId].vsout.bufmem = VK_NULL_HANDLE;
     m_PostVS.Data[eventId].vsout.instStride = 0;
@@ -1300,7 +1300,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     m_PostVS.Data[eventId].vsout.idxbuf = VK_NULL_HANDLE;
     m_PostVS.Data[eventId].vsout.idxbufmem = VK_NULL_HANDLE;
 
-    m_PostVS.Data[eventId].vsout.topo = MakeVkPrimitiveTopology(drawcall->topology);
+    m_PostVS.Data[eventId].vsout.topo = state.primitiveTopology;
   }
 
   // no outputs from this shader? unexpected but theoretically possible (dummy VS before
@@ -1428,7 +1428,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
   if(drawcall->flags & DrawFlags::Indexed)
   {
     const bool restart = pipeCreateInfo.pInputAssemblyState->primitiveRestartEnable &&
-                         SupportsRestart(drawcall->topology);
+                         SupportsRestart(MakePrimitiveTopology(state.primitiveTopology, 3));
     bytebuf idxdata;
     rdcarray<uint32_t> indices;
     uint8_t *idx8 = NULL;

@@ -268,12 +268,12 @@ class TestCase:
         else:
             num_indices = min(num_indices, draw.numIndices)
 
-        ioffs = draw.indexOffset * draw.indexByteWidth
+        ioffs = draw.indexOffset * ib.byteStride
 
         mesh = rd.MeshFormat()
         mesh.numIndices = num_indices
         mesh.indexByteOffset = ib.byteOffset + ioffs
-        mesh.indexByteStride = draw.indexByteWidth
+        mesh.indexByteStride = ib.byteStride
         mesh.indexResourceId = ib.resourceId
         mesh.baseVertex = draw.baseVertex
 
@@ -311,12 +311,12 @@ class TestCase:
 
         ib: rd.BoundVBuffer = self.controller.GetPipelineState().GetIBuffer()
 
-        ioffs = draw.indexOffset * draw.indexByteWidth
+        ioffs = draw.indexOffset * ib.byteStride
 
         in_mesh = rd.MeshFormat()
         in_mesh.numIndices = num_indices
         in_mesh.indexByteOffset = ib.byteOffset + ioffs
-        in_mesh.indexByteStride = draw.indexByteWidth
+        in_mesh.indexByteStride = ib.byteStride
         in_mesh.indexResourceId = ib.resourceId
         in_mesh.baseVertex = draw.baseVertex
 

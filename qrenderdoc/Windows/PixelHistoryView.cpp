@@ -798,7 +798,8 @@ void PixelHistoryView::jumpToPrimitive(EventTag tag)
 
   if(draw)
   {
-    uint32_t vertIdx = RENDERDOC_VertexOffset(draw->topology, tag.primitive);
+    uint32_t vertIdx =
+        RENDERDOC_VertexOffset(m_Ctx.CurPipelineState().GetPrimitiveTopology(), tag.primitive);
 
     if(vertIdx != ~0U)
       viewer->ScrollToRow(vertIdx);

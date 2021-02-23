@@ -687,7 +687,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedback(SerialiserType &ser, GLenu
 
       draw.flags |= DrawFlags::Drawcall;
 
-      draw.topology = MakePrimitiveTopology(mode);
+      m_LastTopology = MakePrimitiveTopology(mode);
 
       AddDrawcall(draw, true);
     }
@@ -759,7 +759,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackInstanced(SerialiserType &s
 
       draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced;
 
-      draw.topology = MakePrimitiveTopology(mode);
+      m_LastTopology = MakePrimitiveTopology(mode);
 
       AddDrawcall(draw, true);
     }
@@ -830,7 +830,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStream(SerialiserType &ser,
 
       draw.flags |= DrawFlags::Drawcall;
 
-      draw.topology = MakePrimitiveTopology(mode);
+      m_LastTopology = MakePrimitiveTopology(mode);
 
       AddDrawcall(draw, true);
     }
@@ -905,7 +905,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStreamInstanced(SerialiserT
 
       draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced;
 
-      draw.topology = MakePrimitiveTopology(mode);
+      m_LastTopology = MakePrimitiveTopology(mode);
 
       AddDrawcall(draw, true);
     }
@@ -975,7 +975,7 @@ bool WrappedOpenGL::Serialise_glDrawArrays(SerialiserType &ser, GLenum mode, GLi
 
       draw.flags |= DrawFlags::Drawcall;
 
-      draw.topology = MakePrimitiveTopology(mode);
+      m_LastTopology = MakePrimitiveTopology(mode);
 
       AddDrawcall(draw, true);
     }
@@ -1236,7 +1236,7 @@ bool WrappedOpenGL::Serialise_glDrawArraysIndirect(SerialiserType &ser, GLenum m
 
       draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indirect;
 
-      draw.topology = MakePrimitiveTopology(mode);
+      m_LastTopology = MakePrimitiveTopology(mode);
 
       AddDrawcall(draw, true);
 
@@ -1312,7 +1312,7 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstanced(SerialiserType &ser, GLenum 
 
       draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced;
 
-      draw.topology = MakePrimitiveTopology(mode);
+      m_LastTopology = MakePrimitiveTopology(mode);
 
       AddDrawcall(draw, true);
     }
@@ -1392,7 +1392,7 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstancedBaseInstance(SerialiserType &
 
       draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced;
 
-      draw.topology = MakePrimitiveTopology(mode);
+      m_LastTopology = MakePrimitiveTopology(mode);
 
       AddDrawcall(draw, true);
     }
@@ -1472,8 +1472,8 @@ bool WrappedOpenGL::Serialise_glDrawElements(SerialiserType &ser, GLenum mode, G
 
       draw.flags |= DrawFlags::Drawcall | DrawFlags::Indexed;
 
-      draw.topology = MakePrimitiveTopology(mode);
-      draw.indexByteWidth = IdxSize;
+      m_LastTopology = MakePrimitiveTopology(mode);
+      m_LastIndexWidth = IdxSize;
 
       AddDrawcall(draw, true);
     }
@@ -1555,8 +1555,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsIndirect(SerialiserType &ser, GLenum
       draw.flags |=
           DrawFlags::Drawcall | DrawFlags::Indexed | DrawFlags::Instanced | DrawFlags::Indirect;
 
-      draw.topology = MakePrimitiveTopology(mode);
-      draw.indexByteWidth = IdxSize;
+      m_LastTopology = MakePrimitiveTopology(mode);
+      m_LastIndexWidth = IdxSize;
 
       AddDrawcall(draw, true);
 
@@ -1637,8 +1637,8 @@ bool WrappedOpenGL::Serialise_glDrawRangeElements(SerialiserType &ser, GLenum mo
 
       draw.flags |= DrawFlags::Drawcall | DrawFlags::Indexed;
 
-      draw.topology = MakePrimitiveTopology(mode);
-      draw.indexByteWidth = IdxSize;
+      m_LastTopology = MakePrimitiveTopology(mode);
+      m_LastIndexWidth = IdxSize;
 
       AddDrawcall(draw, true);
     }
@@ -1721,8 +1721,8 @@ bool WrappedOpenGL::Serialise_glDrawRangeElementsBaseVertex(SerialiserType &ser,
 
       draw.flags |= DrawFlags::Drawcall | DrawFlags::Indexed;
 
-      draw.topology = MakePrimitiveTopology(mode);
-      draw.indexByteWidth = IdxSize;
+      m_LastTopology = MakePrimitiveTopology(mode);
+      m_LastIndexWidth = IdxSize;
 
       AddDrawcall(draw, true);
     }
@@ -1803,8 +1803,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsBaseVertex(SerialiserType &ser, GLen
 
       draw.flags |= DrawFlags::Drawcall | DrawFlags::Indexed;
 
-      draw.topology = MakePrimitiveTopology(mode);
-      draw.indexByteWidth = IdxSize;
+      m_LastTopology = MakePrimitiveTopology(mode);
+      m_LastIndexWidth = IdxSize;
 
       AddDrawcall(draw, true);
     }
@@ -1883,8 +1883,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstanced(SerialiserType &ser, GLenu
 
       draw.flags |= DrawFlags::Drawcall | DrawFlags::Indexed | DrawFlags::Instanced;
 
-      draw.topology = MakePrimitiveTopology(mode);
-      draw.indexByteWidth = IdxSize;
+      m_LastTopology = MakePrimitiveTopology(mode);
+      m_LastIndexWidth = IdxSize;
 
       AddDrawcall(draw, true);
     }
@@ -1968,8 +1968,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseInstance(SerialiserType
 
       draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indexed;
 
-      draw.topology = MakePrimitiveTopology(mode);
-      draw.indexByteWidth = IdxSize;
+      m_LastTopology = MakePrimitiveTopology(mode);
+      m_LastIndexWidth = IdxSize;
 
       AddDrawcall(draw, true);
     }
@@ -2056,8 +2056,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertex(SerialiserType &
 
       draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indexed;
 
-      draw.topology = MakePrimitiveTopology(mode);
-      draw.indexByteWidth = IdxSize;
+      m_LastTopology = MakePrimitiveTopology(mode);
+      m_LastIndexWidth = IdxSize;
 
       AddDrawcall(draw, true);
     }
@@ -2143,8 +2143,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertexBaseInstance(
 
       draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indexed;
 
-      draw.topology = MakePrimitiveTopology(mode);
-      draw.indexByteWidth = IdxSize;
+      m_LastTopology = MakePrimitiveTopology(mode);
+      m_LastIndexWidth = IdxSize;
 
       AddDrawcall(draw, true);
     }
@@ -2217,7 +2217,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(SerialiserType &ser, GLenum mode
       draw.name = StringFormat::Fmt("%s(%i)", ToStr(gl_CurChunk).c_str(), drawcount);
       draw.flags |= DrawFlags::MultiDraw;
 
-      draw.topology = MakePrimitiveTopology(mode);
+      m_LastTopology = MakePrimitiveTopology(mode);
 
       AddEvent();
       AddDrawcall(draw, true);
@@ -2238,7 +2238,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(SerialiserType &ser, GLenum mode
 
         multidraw.flags |= DrawFlags::Drawcall;
 
-        multidraw.topology = MakePrimitiveTopology(mode);
+        m_LastTopology = MakePrimitiveTopology(mode);
 
         AddEvent();
         AddDrawcall(multidraw, true);
@@ -2376,10 +2376,10 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(SerialiserType &ser, GLenum mo
       draw.name = StringFormat::Fmt("%s(%i)", ToStr(gl_CurChunk).c_str(), drawcount);
 
       draw.flags |= DrawFlags::MultiDraw;
-      draw.indexByteWidth = IdxSize;
+      m_LastIndexWidth = IdxSize;
       draw.numIndices = 0;
 
-      draw.topology = MakePrimitiveTopology(mode);
+      m_LastTopology = MakePrimitiveTopology(mode);
 
       AddEvent();
       AddDrawcall(draw, true);
@@ -2394,7 +2394,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(SerialiserType &ser, GLenum mo
         multidraw.drawIndex = i;
         multidraw.numIndices = count[i];
         multidraw.indexOffset = (uint32_t)(indices[i] & 0xFFFFFFFF);
-        multidraw.indexByteWidth = IdxSize;
+        m_LastIndexWidth = IdxSize;
 
         multidraw.indexOffset /= IdxSize;
 
@@ -2403,7 +2403,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(SerialiserType &ser, GLenum mo
 
         multidraw.flags |= DrawFlags::Drawcall | DrawFlags::Indexed;
 
-        multidraw.topology = MakePrimitiveTopology(mode);
+        m_LastTopology = MakePrimitiveTopology(mode);
 
         AddEvent();
         AddDrawcall(multidraw, true);
@@ -2547,8 +2547,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(SerialiserType &ser,
 
       draw.flags |= DrawFlags::MultiDraw;
 
-      draw.topology = MakePrimitiveTopology(mode);
-      draw.indexByteWidth = IdxSize;
+      m_LastTopology = MakePrimitiveTopology(mode);
+      m_LastIndexWidth = IdxSize;
 
       AddEvent();
       AddDrawcall(draw, true);
@@ -2572,8 +2572,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(SerialiserType &ser,
 
         multidraw.flags |= DrawFlags::Drawcall | DrawFlags::Indexed;
 
-        multidraw.topology = MakePrimitiveTopology(mode);
-        multidraw.indexByteWidth = IdxSize;
+        m_LastTopology = MakePrimitiveTopology(mode);
+        m_LastIndexWidth = IdxSize;
 
         AddEvent();
         AddDrawcall(multidraw, true);
@@ -2702,7 +2702,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
 
       draw.flags |= DrawFlags::MultiDraw;
 
-      draw.topology = MakePrimitiveTopology(mode);
+      m_LastTopology = MakePrimitiveTopology(mode);
 
       AddEvent();
       AddDrawcall(draw, true);
@@ -2746,7 +2746,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
 
         multidraw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indirect;
 
-        multidraw.topology = MakePrimitiveTopology(mode);
+        m_LastTopology = MakePrimitiveTopology(mode);
 
         // add a fake chunk for this individual indirect draw
         SDChunk *fakeChunk = new SDChunk(multidraw.name);
@@ -2924,8 +2924,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
 
       draw.flags |= DrawFlags::MultiDraw;
 
-      draw.topology = MakePrimitiveTopology(mode);
-      draw.indexByteWidth = IdxSize;
+      m_LastTopology = MakePrimitiveTopology(mode);
+      m_LastIndexWidth = IdxSize;
 
       AddEvent();
       AddDrawcall(draw, true);
@@ -2971,8 +2971,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
         multidraw.flags |=
             DrawFlags::Drawcall | DrawFlags::Indexed | DrawFlags::Instanced | DrawFlags::Indirect;
 
-        multidraw.topology = MakePrimitiveTopology(mode);
-        multidraw.indexByteWidth = IdxSize;
+        m_LastTopology = MakePrimitiveTopology(mode);
+        m_LastIndexWidth = IdxSize;
 
         // add a fake chunk for this individual indirect draw
         SDChunk *fakeChunk = new SDChunk(multidraw.name);
@@ -3154,7 +3154,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
 
       draw.flags |= DrawFlags::MultiDraw;
 
-      draw.topology = MakePrimitiveTopology(mode);
+      m_LastTopology = MakePrimitiveTopology(mode);
 
       AddEvent();
       AddDrawcall(draw, true);
@@ -3198,7 +3198,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
 
         multidraw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indirect;
 
-        multidraw.topology = MakePrimitiveTopology(mode);
+        m_LastTopology = MakePrimitiveTopology(mode);
 
         // add a fake chunk for this individual indirect draw
         SDChunk *fakeChunk = new SDChunk(multidraw.name);
@@ -3385,8 +3385,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
 
       draw.flags |= DrawFlags::MultiDraw;
 
-      draw.topology = MakePrimitiveTopology(mode);
-      draw.indexByteWidth = IdxSize;
+      m_LastTopology = MakePrimitiveTopology(mode);
+      m_LastIndexWidth = IdxSize;
 
       AddEvent();
       AddDrawcall(draw, true);
@@ -3432,8 +3432,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
         multidraw.flags |=
             DrawFlags::Drawcall | DrawFlags::Indexed | DrawFlags::Instanced | DrawFlags::Indirect;
 
-        multidraw.topology = MakePrimitiveTopology(mode);
-        multidraw.indexByteWidth = IdxSize;
+        m_LastTopology = MakePrimitiveTopology(mode);
+        m_LastIndexWidth = IdxSize;
 
         // add a fake chunk for this individual indirect draw
         SDChunk *fakeChunk = new SDChunk(multidraw.name);

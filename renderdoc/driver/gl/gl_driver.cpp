@@ -5542,6 +5542,10 @@ void WrappedOpenGL::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
   draw.eventId = m_CurEventID;
   draw.drawcallId = m_CurDrawcallID;
 
+  m_DrawcallParams.resize_for_index(m_CurEventID);
+  m_DrawcallParams[m_CurEventID].indexWidth = m_LastIndexWidth;
+  m_DrawcallParams[m_CurEventID].topo = m_LastTopology;
+
   GLenum type;
   GLuint curCol[8] = {0};
   GLuint curDepth = 0;
@@ -5645,6 +5649,12 @@ const DrawcallDescription *WrappedOpenGL::GetDrawcall(uint32_t eventId)
     return NULL;
 
   return m_Drawcalls[eventId];
+}
+
+const GLDrawParams &WrappedOpenGL::GetDrawcallParameters(uint32_t eventId)
+{
+  m_DrawcallParams.resize_for_index(eventId);
+  return m_DrawcallParams[eventId];
 }
 
 void WrappedOpenGL::ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType)

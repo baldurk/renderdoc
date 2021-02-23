@@ -1390,6 +1390,9 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
     state.inputAssembly.indexBuffer.resourceId = rm->GetOriginalID(rs.ibuffer.buf);
     state.inputAssembly.indexBuffer.byteOffset = rs.ibuffer.offs;
     state.inputAssembly.indexBuffer.byteSize = rs.ibuffer.size;
+    state.inputAssembly.indexBuffer.byteStride = rs.ibuffer.bytewidth;
+
+    state.inputAssembly.topology = MakePrimitiveTopology(rs.topo);
   }
 
   /////////////////////////////////////////////////

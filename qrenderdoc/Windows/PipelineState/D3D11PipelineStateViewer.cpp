@@ -1356,19 +1356,17 @@ void D3D11PipelineStateViewer::setState()
   ui->iaLayouts->endUpdate();
   ui->iaLayouts->verticalScrollBar()->setValue(vs);
 
-  Topology topo = draw ? draw->topology : Topology::Unknown;
-
-  int numCPs = PatchList_Count(topo);
+  int numCPs = PatchList_Count(state.inputAssembly.topology);
   if(numCPs > 0)
   {
     ui->topology->setText(tr("PatchList (%1 Control Points)").arg(numCPs));
   }
   else
   {
-    ui->topology->setText(ToQStr(topo));
+    ui->topology->setText(ToQStr(state.inputAssembly.topology));
   }
 
-  m_Common.setTopologyDiagram(ui->topologyDiagram, topo);
+  m_Common.setTopologyDiagram(ui->topologyDiagram, state.inputAssembly.topology);
 
   bool ibufferUsed = draw && (draw->flags & DrawFlags::Indexed);
 
@@ -1391,27 +1389,27 @@ void D3D11PipelineStateViewer::setState()
         length = buf->length;
 
       RDTreeWidgetItem *node = new RDTreeWidgetItem(
-          {tr("Index"), state.inputAssembly.indexBuffer.resourceId, draw ? draw->indexByteWidth : 0,
-           state.inputAssembly.indexBuffer.byteOffset, (qulonglong)length, QString()});
+          {tr("Index"), state.inputAssembly.indexBuffer.resourceId,
+           state.inputAssembly.indexBuffer.byteStride, state.inputAssembly.indexBuffer.byteOffset,
+           (qulonglong)length, QString()});
 
       QString iformat;
-      if(draw)
-      {
-        if(draw->indexByteWidth == 1)
-          iformat = lit("ubyte");
-        else if(draw->indexByteWidth == 2)
-          iformat = lit("ushort");
-        else if(draw->indexByteWidth == 4)
-          iformat = lit("uint");
 
-        iformat += lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(draw->topology));
-      }
+      if(state.inputAssembly.indexBuffer.byteStride == 1)
+        iformat = lit("ubyte");
+      else if(state.inputAssembly.indexBuffer.byteStride == 2)
+        iformat = lit("ushort");
+      else if(state.inputAssembly.indexBuffer.byteStride == 4)
+        iformat = lit("uint");
 
-      node->setTag(
-          QVariant::fromValue(D3D11VBIBTag(state.inputAssembly.indexBuffer.resourceId,
-                                           state.inputAssembly.indexBuffer.byteOffset +
-                                               (draw ? draw->indexOffset * draw->indexByteWidth : 0),
-                                           iformat)));
+      iformat +=
+          lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(state.inputAssembly.topology));
+
+      node->setTag(QVariant::fromValue(D3D11VBIBTag(
+          state.inputAssembly.indexBuffer.resourceId,
+          state.inputAssembly.indexBuffer.byteOffset +
+              (draw ? draw->indexOffset * state.inputAssembly.indexBuffer.byteStride : 0),
+          iformat)));
 
       if(!ibufferUsed)
         setInactiveRow(node);
@@ -1433,23 +1431,22 @@ void D3D11PipelineStateViewer::setState()
           {tr("Index"), tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), QString()});
 
       QString iformat;
-      if(draw)
-      {
-        if(draw->indexByteWidth == 1)
-          iformat = lit("ubyte");
-        else if(draw->indexByteWidth == 2)
-          iformat = lit("ushort");
-        else if(draw->indexByteWidth == 4)
-          iformat = lit("uint");
 
-        iformat += lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(draw->topology));
-      }
+      if(state.inputAssembly.indexBuffer.byteStride == 1)
+        iformat = lit("ubyte");
+      else if(state.inputAssembly.indexBuffer.byteStride == 2)
+        iformat = lit("ushort");
+      else if(state.inputAssembly.indexBuffer.byteStride == 4)
+        iformat = lit("uint");
 
-      node->setTag(
-          QVariant::fromValue(D3D11VBIBTag(state.inputAssembly.indexBuffer.resourceId,
-                                           state.inputAssembly.indexBuffer.byteOffset +
-                                               (draw ? draw->indexOffset * draw->indexByteWidth : 0),
-                                           iformat)));
+      iformat +=
+          lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(state.inputAssembly.topology));
+
+      node->setTag(QVariant::fromValue(D3D11VBIBTag(
+          state.inputAssembly.indexBuffer.resourceId,
+          state.inputAssembly.indexBuffer.byteOffset +
+              (draw ? draw->indexOffset * state.inputAssembly.indexBuffer.byteStride : 0),
+          iformat)));
 
       setEmptyRow(node);
       m_EmptyNodes.push_back(node);
@@ -2537,13 +2534,10 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
     }
 
     QString ifmt = lit("UNKNOWN");
-    if(draw)
-    {
-      if(draw->indexByteWidth == 2)
-        ifmt = lit("R16_UINT");
-      if(draw->indexByteWidth == 4)
-        ifmt = lit("R32_UINT");
-    }
+    if(ia.indexBuffer.byteStride == 2)
+      ifmt = lit("R16_UINT");
+    if(ia.indexBuffer.byteStride == 4)
+      ifmt = lit("R32_UINT");
 
     m_Common.exportHTMLTable(xml, {tr("Buffer"), tr("Format"), tr("Offset"), tr("Byte Length")},
                              {name, ifmt, ia.indexBuffer.byteOffset, (qulonglong)length});
@@ -2552,8 +2546,7 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
   xml.writeStartElement(lit("p"));
   xml.writeEndElement();
 
-  m_Common.exportHTMLTable(xml, {tr("Primitive Topology")},
-                           {ToQStr(draw ? draw->topology : Topology::Unknown)});
+  m_Common.exportHTMLTable(xml, {tr("Primitive Topology")}, {ToQStr(ia.topology)});
 }
 
 void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe::Shader &sh)

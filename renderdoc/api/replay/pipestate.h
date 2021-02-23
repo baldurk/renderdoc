@@ -259,9 +259,26 @@ For some APIs that don't distinguish by entry point, this may be empty.
 )");
   ResourceId GetShader(ShaderStage stage) const;
 
+  DOCUMENT(R"(Returns the current primitive topology.
+
+.. note::
+  On OpenGL the primitive topology is not part of any state, but is specified in each drawcall.
+  In this case the current topology is whichever was last specified to a drawcall, as if there was
+  implicit state set by a draw.
+
+:return: The current primitive topology.
+:rtype: Topology
+)");
+  Topology GetPrimitiveTopology() const;
+
   DOCUMENT(R"(Retrieves the current index buffer binding.
 
-:return: A :class:`BoundVBuffer` with the index buffer details. The stride is always 0.
+.. note::
+  On OpenGL the index stride/width is not part of any state, but is specified in each drawcall.
+  In this case the current stride is whichever was last specified to a drawcall, as if there was
+  implicit state set by a draw.
+
+:return: A :class:`BoundVBuffer` with the index buffer details
 :rtype: BoundVBuffer
 )");
   BoundVBuffer GetIBuffer() const;

@@ -157,6 +157,11 @@ struct IndexBuffer
 
   DOCUMENT("The number of bytes available in this index buffer.");
   uint32_t byteSize = 0;
+
+  DOCUMENT(R"(The number of bytes for each index in the index buffer. Typically 2 or 4 bytes but
+it can be 0 if no index buffer is bound.
+)");
+  uint32_t byteStride = 0;
 };
 
 DOCUMENT("Describes the input assembler state in the PSO.");
@@ -189,6 +194,12 @@ struct InputAssembly
 If the value is 0, strip cutting is disabled.
 )");
   uint32_t indexStripCutValue = 0;
+
+  DOCUMENT(R"(The current primitive topology.
+
+:type: Topology
+)");
+  Topology topology = Topology::Unknown;
 };
 
 // immediate indicates either a root parameter (not in a table), or static samplers

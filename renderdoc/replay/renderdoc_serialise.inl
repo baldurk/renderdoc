@@ -568,9 +568,6 @@ void DoSerialise(SerialiserType &ser, DrawcallDescription &el)
   SERIALISE_MEMBER(dispatchThreadsDimension);
   SERIALISE_MEMBER(dispatchBase);
 
-  SERIALISE_MEMBER(indexByteWidth);
-  SERIALISE_MEMBER(topology);
-
   SERIALISE_MEMBER(copySource);
   SERIALISE_MEMBER(copySourceSubresource);
   SERIALISE_MEMBER(copyDestination);
@@ -585,7 +582,7 @@ void DoSerialise(SerialiserType &ser, DrawcallDescription &el)
   SERIALISE_MEMBER(events);
   SERIALISE_MEMBER(children);
 
-  SIZE_CHECK(320);
+  SIZE_CHECK(312);
 }
 
 template <typename SerialiserType>
@@ -1059,6 +1056,7 @@ void DoSerialise(SerialiserType &ser, D3D11Pipe::IndexBuffer &el)
 {
   SERIALISE_MEMBER(resourceId);
   SERIALISE_MEMBER(byteOffset);
+  SERIALISE_MEMBER(byteStride);
 
   SIZE_CHECK(16);
 }
@@ -1072,8 +1070,9 @@ void DoSerialise(SerialiserType &ser, D3D11Pipe::InputAssembly &el)
   SERIALISE_MEMBER_OPT_EMPTY(bytecode);
   SERIALISE_MEMBER(vertexBuffers);
   SERIALISE_MEMBER(indexBuffer);
+  SERIALISE_MEMBER(topology);
 
-  SIZE_CHECK(80);
+  SIZE_CHECK(88);
 }
 
 template <typename SerialiserType>
@@ -1263,7 +1262,7 @@ void DoSerialise(SerialiserType &ser, D3D11Pipe::State &el)
 
   SERIALISE_MEMBER(predication);
 
-  SIZE_CHECK(2080);
+  SIZE_CHECK(2088);
 }
 
 #pragma endregion D3D11 pipeline state
@@ -1301,6 +1300,7 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::IndexBuffer &el)
   SERIALISE_MEMBER(resourceId);
   SERIALISE_MEMBER(byteOffset);
   SERIALISE_MEMBER(byteSize);
+  SERIALISE_MEMBER(byteStride);
 
   SIZE_CHECK(24);
 }
@@ -1313,6 +1313,7 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::InputAssembly &el)
   SERIALISE_MEMBER(indexBuffer);
 
   SERIALISE_MEMBER(indexStripCutValue);
+  SERIALISE_MEMBER(topology);
 
   SIZE_CHECK(80);
 }
@@ -1580,11 +1581,13 @@ void DoSerialise(SerialiserType &ser, GLPipe::VertexInput &el)
   SERIALISE_MEMBER(attributes);
   SERIALISE_MEMBER(vertexBuffers);
   SERIALISE_MEMBER(indexBuffer);
+  SERIALISE_MEMBER(indexByteStride);
+  SERIALISE_MEMBER(topology);
   SERIALISE_MEMBER(primitiveRestart);
   SERIALISE_MEMBER(restartIndex);
   SERIALISE_MEMBER(provokingVertexLast);
 
-  SIZE_CHECK(80);
+  SIZE_CHECK(88);
 }
 
 template <typename SerialiserType>
@@ -1843,7 +1846,7 @@ void DoSerialise(SerialiserType &ser, GLPipe::State &el)
 
   SERIALISE_MEMBER(hints);
 
-  SIZE_CHECK(2016);
+  SIZE_CHECK(2024);
 }
 
 #pragma endregion OpenGL pipeline state
@@ -1938,8 +1941,9 @@ void DoSerialise(SerialiserType &ser, VKPipe::IndexBuffer &el)
 {
   SERIALISE_MEMBER(resourceId);
   SERIALISE_MEMBER(byteOffset);
+  SERIALISE_MEMBER(byteStride);
 
-  SIZE_CHECK(16);
+  SIZE_CHECK(24);
 }
 
 template <typename SerialiserType>
@@ -1947,8 +1951,9 @@ void DoSerialise(SerialiserType &ser, VKPipe::InputAssembly &el)
 {
   SERIALISE_MEMBER(primitiveRestartEnable);
   SERIALISE_MEMBER(indexBuffer);
+  SERIALISE_MEMBER(topology);
 
-  SIZE_CHECK(24);
+  SIZE_CHECK(40);
 }
 
 template <typename SerialiserType>
@@ -2274,7 +2279,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::State &el)
 
   SERIALISE_MEMBER(conditionalRendering);
 
-  SIZE_CHECK(1912);
+  SIZE_CHECK(1928);
 }
 
 #pragma endregion Vulkan pipeline state

@@ -266,6 +266,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   GLuint stageSrcPrograms[4] = {};
 
   const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eventId);
+  const GLDrawParams &drawParams = m_pDriver->GetDrawcallParameters(eventId);
 
   if(drawcall->numIndices == 0 || !(drawcall->flags & DrawFlags::Drawcall) ||
      ((drawcall->flags & DrawFlags::Instanced) && drawcall->numInstances == 0))
@@ -803,8 +804,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       ResourceId idxId = rm->GetResID(BufferRes(drv.GetCtx(), elArrayBuffer));
 
       bytebuf idxdata;
-      GetBufferData(idxId, drawcall->indexOffset * drawcall->indexByteWidth,
-                    drawcall->numIndices * drawcall->indexByteWidth, idxdata);
+      GetBufferData(idxId, drawcall->indexOffset * drawParams.indexWidth,
+                    drawcall->numIndices * drawParams.indexWidth, idxdata);
 
       rdcarray<uint32_t> indices;
 
@@ -814,17 +815,17 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
       // only read as many indices as were available in the buffer
       uint32_t numIndices =
-          RDCMIN(uint32_t(idxdata.size() / drawcall->indexByteWidth), drawcall->numIndices);
+          RDCMIN(uint32_t(idxdata.size() / drawParams.indexWidth), drawcall->numIndices);
 
       // grab all unique vertex indices referenced
       for(uint32_t i = 0; i < numIndices; i++)
       {
         uint32_t i32 = 0;
-        if(drawcall->indexByteWidth == 1)
+        if(drawParams.indexWidth == 1)
           i32 = uint32_t(idx8[i]);
-        else if(drawcall->indexByteWidth == 2)
+        else if(drawParams.indexWidth == 2)
           i32 = uint32_t(idx16[i]);
-        else if(drawcall->indexByteWidth == 4)
+        else if(drawParams.indexWidth == 4)
           i32 = idx32[i];
 
         auto it = std::lower_bound(indices.begin(), indices.end(), i32);
@@ -924,7 +925,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
       uint32_t stripRestartValue32 = 0;
 
-      if(SupportsRestart(drawcall->topology) &&
+      if(SupportsRestart(drawParams.topo) &&
          (rs.Enabled[GLRenderState::eEnabled_PrimitiveRestart] ||
           rs.Enabled[GLRenderState::eEnabled_PrimitiveRestartFixedIndex]))
       {
@@ -935,7 +936,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
       // rebase existing index buffer to point from 0 onwards (which will index into our
       // stream-out'd vertex buffer)
-      if(drawcall->indexByteWidth == 1)
+      if(drawParams.indexWidth == 1)
       {
         uint8_t stripRestartValue = stripRestartValue32 & 0xff;
 
@@ -948,7 +949,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
           idx8[i] = uint8_t(indexRemap[idx8[i]]);
         }
       }
-      else if(drawcall->indexByteWidth == 2)
+      else if(drawParams.indexWidth == 2)
       {
         uint16_t stripRestartValue = stripRestartValue32 & 0xffff;
 
@@ -1116,7 +1117,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     drv.glUnmapNamedBufferEXT(DebugData.feedbackBuffer);
 
     // store everything out to the PostVS data cache
-    m_PostVSData[eventId].vsin.topo = drawcall->topology;
+    m_PostVSData[eventId].vsin.topo = drawParams.topo;
     m_PostVSData[eventId].vsout.buf = vsoutBuffer;
     m_PostVSData[eventId].vsout.vertStride = stride;
     m_PostVSData[eventId].vsout.nearPlane = nearp;
@@ -1131,7 +1132,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
           (stride * primsWritten) / RDCMAX(1U, drawcall->numInstances);
 
     m_PostVSData[eventId].vsout.idxBuf = 0;
-    m_PostVSData[eventId].vsout.idxByteWidth = drawcall->indexByteWidth;
+    m_PostVSData[eventId].vsout.idxByteWidth = drawParams.indexWidth;
     if(m_PostVSData[eventId].vsout.useIndices && idxBuf)
     {
       m_PostVSData[eventId].vsout.idxBuf = idxBuf;
@@ -1139,7 +1140,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
     m_PostVSData[eventId].vsout.hasPosOut = hasPosition;
 
-    m_PostVSData[eventId].vsout.topo = drawcall->topology;
+    m_PostVSData[eventId].vsout.topo = drawParams.topo;
   }
 
   if(tesRefl || gsRefl)
@@ -1430,9 +1431,9 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
         maxOutputSize *= drawcall->numInstances;
 
       uint32_t numInputPrimitives = drawcall->numIndices;
-      GLenum drawtopo = MakeGLPrimitiveTopology(drawcall->topology);
+      GLenum drawtopo = MakeGLPrimitiveTopology(drawParams.topo);
 
-      switch(drawcall->topology)
+      switch(drawParams.topo)
       {
         case Topology::Unknown:
         case Topology::PointList: break;
@@ -1478,7 +1479,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
         case Topology::PatchList_30CPs:
         case Topology::PatchList_31CPs:
         case Topology::PatchList_32CPs:
-          numInputPrimitives /= PatchList_Count(drawcall->topology);
+          numInputPrimitives /= PatchList_Count(drawParams.topo);
           break;
       }
 
@@ -1552,9 +1553,9 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       }
 
       GLenum idxType = eGL_UNSIGNED_BYTE;
-      if(drawcall->indexByteWidth == 2)
+      if(drawParams.indexWidth == 2)
         idxType = eGL_UNSIGNED_SHORT;
-      else if(drawcall->indexByteWidth == 4)
+      else if(drawParams.indexWidth == 4)
         idxType = eGL_UNSIGNED_INT;
 
       // instanced draws must be replayed one at a time so we can record the number of primitives
@@ -1607,7 +1608,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
                 drv.glDrawElementsInstancedBaseVertexBaseInstance(
                     drawtopo, drawcall->numIndices, idxType,
                     (const void *)(uintptr_t(drawcall->indexOffset) *
-                                   uintptr_t(drawcall->indexByteWidth)),
+                                   uintptr_t(drawParams.indexWidth)),
                     inst, drawcall->baseVertex, drawcall->instanceOffset);
               }
               else
@@ -1615,7 +1616,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
                 drv.glDrawElementsInstancedBaseVertex(
                     drawtopo, drawcall->numIndices, idxType,
                     (const void *)(uintptr_t(drawcall->indexOffset) *
-                                   uintptr_t(drawcall->indexByteWidth)),
+                                   uintptr_t(drawParams.indexWidth)),
                     inst, drawcall->baseVertex);
               }
             }
@@ -1649,16 +1650,14 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
             {
               drv.glDrawElementsInstancedBaseVertexBaseInstance(
                   drawtopo, drawcall->numIndices, idxType,
-                  (const void *)(uintptr_t(drawcall->indexOffset) *
-                                 uintptr_t(drawcall->indexByteWidth)),
+                  (const void *)(uintptr_t(drawcall->indexOffset) * uintptr_t(drawParams.indexWidth)),
                   drawcall->numInstances, drawcall->baseVertex, drawcall->instanceOffset);
             }
             else
             {
               drv.glDrawElementsInstancedBaseVertex(
                   drawtopo, drawcall->numIndices, idxType,
-                  (const void *)(uintptr_t(drawcall->indexOffset) *
-                                 uintptr_t(drawcall->indexByteWidth)),
+                  (const void *)(uintptr_t(drawcall->indexOffset) * uintptr_t(drawParams.indexWidth)),
                   drawcall->numInstances, drawcall->baseVertex);
             }
           }
@@ -1680,7 +1679,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
         {
           drv.glDrawElementsBaseVertex(
               drawtopo, drawcall->numIndices, idxType,
-              (const void *)(uintptr_t(drawcall->indexOffset) * uintptr_t(drawcall->indexByteWidth)),
+              (const void *)(uintptr_t(drawcall->indexOffset) * uintptr_t(drawParams.indexWidth)),
               drawcall->baseVertex);
         }
 

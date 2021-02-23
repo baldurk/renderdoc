@@ -96,6 +96,12 @@ struct ContextShareGroup
   }
 };
 
+struct GLDrawParams
+{
+  uint32_t indexWidth = 0;
+  Topology topo = Topology::Unknown;
+};
+
 class WrappedOpenGL : public IFrameCapturer
 {
 private:
@@ -264,6 +270,7 @@ private:
 
   rdcarray<FrameDescription> m_CapturedFrames;
   rdcarray<DrawcallDescription *> m_Drawcalls;
+  rdcarray<GLDrawParams> m_DrawcallParams;
 
   // replay
 
@@ -291,6 +298,9 @@ private:
   ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
 
   DrawcallDescription m_ParentDrawcall;
+
+  Topology m_LastTopology = Topology::Unknown;
+  uint32_t m_LastIndexWidth = 0;
 
   rdcarray<DrawcallDescription *> m_DrawcallStack;
 
@@ -648,6 +658,7 @@ public:
 
   const DrawcallDescription &GetRootDraw() { return m_ParentDrawcall; }
   const DrawcallDescription *GetDrawcall(uint32_t eventId);
+  const GLDrawParams &GetDrawcallParameters(uint32_t eventId);
 
   void SuppressDebugMessages(bool suppress) { m_SuppressDebugMessages = suppress; }
   rdcarray<EventUsage> GetUsage(ResourceId id) { return m_ResourceUses[id]; }
