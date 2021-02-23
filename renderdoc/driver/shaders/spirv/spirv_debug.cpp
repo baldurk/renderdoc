@@ -184,9 +184,14 @@ void ThreadState::EnterFunction(const rdcarray<Id> &arguments)
 
   frame->locals.resize(numVars);
 
-  // don't add source vars for variables, we'll add it on the first store
   ShaderDebugState *state = m_State;
-  m_State = NULL;
+
+  // don't add variables if we don't have debug info, we'll add it on the first store to reduce
+  // noise on unoptimised shaders with lots of variables and no scope information. However if we
+  // have debug info we'll add the variable immediately because the source variable will only be
+  // added at the correct scope and we want to display that before it's stored to.
+  if(!debugger.HasDebugInfo())
+    m_State = NULL;
 
   size_t i = 0;
   // handle any variable declarations

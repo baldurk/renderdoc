@@ -289,6 +289,7 @@ public:
   const DataType &GetTypeForId(Id ssaId);
   const Decorations &GetDecorations(Id typeId);
   bool IsDebugExtInstSet(Id id) const;
+  bool HasDebugInfo() const { return m_DebugInfo.valid; }
   rdcstr GetRawName(Id id) const;
   rdcstr GetHumanName(Id id);
   void AddSourceVars(rdcarray<SourceVariableMapping> &sourceVars, const ShaderVariable &var, Id id);
