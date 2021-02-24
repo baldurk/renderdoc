@@ -1034,6 +1034,7 @@ public:
   rdcinflexiblestr(const rdcliteral &lit)
   {
     pointer = (intptr_t)lit.c_str();
+    is_literal = 0;
     is_literal |= 0x1;
   }
   rdcinflexiblestr &operator=(const rdcliteral &in)
