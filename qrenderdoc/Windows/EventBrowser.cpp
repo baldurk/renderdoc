@@ -55,6 +55,9 @@ enum
 {
   ROLE_SELECTED_EID = Qt::UserRole,
   ROLE_EFFECTIVE_EID,
+  ROLE_GROUPED_DRAWCALL,
+  ROLE_EXACT_DRAWCALL,
+  ROLE_CHUNK,
 };
 
 static uint32_t GetSelectedEID(QModelIndex idx)
@@ -85,6 +88,7 @@ struct EventItemModel : public QAbstractItemModel
     m_RowInParentCache.clear();
     m_EIDNameCache.clear();
     m_Draws.clear();
+    m_Chunks.clear();
 
     if(!m_Ctx.CurDrawcalls().empty())
       m_Nodes[0] = CreateDrawNode(NULL);
@@ -495,6 +499,18 @@ struct EventItemModel : public QAbstractItemModel
       if(role == ROLE_SELECTED_EID)
         return eid;
 
+      if(role == ROLE_GROUPED_DRAWCALL)
+        return QVariant::fromValue(qulonglong(m_Draws[eid]));
+
+      if(role == ROLE_EXACT_DRAWCALL)
+      {
+        const DrawcallDescription *draw = m_Draws[eid];
+        return draw->eventId == eid ? QVariant::fromValue(qulonglong(m_Draws[eid])) : QVariant();
+      }
+
+      if(role == ROLE_CHUNK)
+        return QVariant::fromValue(qulonglong(m_Chunks[eid]));
+
       if(role == ROLE_EFFECTIVE_EID)
       {
         auto it = m_Nodes.find(eid);
@@ -577,6 +593,7 @@ private:
   // more expensive lookups when we need the properties for an event.
   // This gives us a pointer for every event ID pointing to the draw that contains it.
   rdcarray<const DrawcallDescription *> m_Draws;
+  rdcarray<const SDChunk *> m_Chunks;
 
   // we can have a bigger structure for every nested node (i.e. draw with children).
   // This drastically limits how many we need to worry about - some hierarchies have more nodes than
@@ -692,6 +709,8 @@ private:
 
     uint32_t row2eidStride = (drawRange.count() / DrawTreeNode::Row2DrawFactor) + 1;
 
+    const SDFile &sdfile = m_Ctx.GetStructuredFile();
+
     for(int i = 0; i < drawRange.count(); i++)
     {
       const DrawcallDescription &d = drawRange[i];
@@ -702,7 +721,9 @@ private:
       for(const APIEvent &e : d.events)
       {
         m_Draws.resize_for_index(e.eventId);
+        m_Chunks.resize_for_index(e.eventId);
         m_Draws[e.eventId] = &d;
+        m_Chunks[e.eventId] = sdfile.chunks[e.chunkIndex];
       }
 
       row += d.events.count();
