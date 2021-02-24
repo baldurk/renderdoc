@@ -856,11 +856,51 @@ private:
 
     return v;
   }
+
+  friend struct EventFilterModel;
 };
 
 struct EventFilterModel : public QSortFilterProxyModel
 {
   EventFilterModel(ICaptureContext &ctx) : m_Ctx(ctx) {}
+protected:
+  virtual bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const override
+  {
+    // manually implement recursive filtering since older Qt versions don't support it
+    if(filterAcceptsSingleRow(source_row, source_parent))
+      return true;
+
+    QModelIndex idx = sourceModel()->index(source_row, 0, source_parent);
+    for(int i = 0, row_count = sourceModel()->rowCount(idx); i < row_count; i++)
+      if(filterAcceptsRow(i, idx))
+        return true;
+
+    return false;
+  }
+
+  virtual bool filterAcceptsSingleRow(int source_row, const QModelIndex &source_parent) const
+  {
+    // always include capture start and the root
+    if(!source_parent.isValid() ||
+       (source_parent.internalId() == EventItemModel::TagRoot && source_row == 0))
+      return true;
+
+    QModelIndex source_idx = sourceModel()->index(source_row, 0, source_parent);
+
+    const DrawcallDescription *draw =
+        (const DrawcallDescription *)(sourceModel()->data(source_idx, ROLE_EXACT_DRAWCALL).toULongLong());
+    const SDChunk *chunk =
+        (const SDChunk *)(sourceModel()->data(source_idx, ROLE_CHUNK).toULongLong());
+
+    QString name = source_idx.data(Qt::DisplayRole).toString();
+
+    // default filter
+    if(draw && !(draw->flags & DrawFlags::PopMarker))
+      return true;
+
+    return false;
+  }
+
 private:
   ICaptureContext &m_Ctx;
 };
