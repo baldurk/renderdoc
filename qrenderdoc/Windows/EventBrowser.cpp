@@ -863,6 +863,7 @@ private:
 struct EventFilterModel : public QSortFilterProxyModel
 {
   EventFilterModel(ICaptureContext &ctx) : m_Ctx(ctx) {}
+  void ParseExpression(QString expr) { qInfo() << expr; }
 protected:
   virtual bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const override
   {
@@ -979,13 +980,20 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   m_FindHighlight->setSingleShot(true);
   connect(m_FindHighlight, &QTimer::timeout, this, &EventBrowser::findHighlight_timeout);
 
+  m_FilterTimeout = new QTimer(this);
+  m_FilterTimeout->setInterval(1200);
+  m_FilterTimeout->setSingleShot(true);
+  connect(m_FilterTimeout, &QTimer::timeout, this, &EventBrowser::filter_apply);
+
   QObject::connect(ui->closeFind, &QToolButton::clicked, this, &EventBrowser::on_HideFindJump);
   QObject::connect(ui->closeJump, &QToolButton::clicked, this, &EventBrowser::on_HideFindJump);
+  QObject::connect(ui->closeFilter, &QToolButton::clicked, [this]() { ui->filterStrip->hide(); });
   QObject::connect(ui->events, &RDTreeView::keyPress, this, &EventBrowser::events_keyPress);
   QObject::connect(ui->events->selectionModel(), &QItemSelectionModel::currentChanged, this,
                    &EventBrowser::events_currentChanged);
   ui->jumpStrip->hide();
   ui->findStrip->hide();
+  ui->filterStrip->hide();
   ui->bookmarkStrip->hide();
 
   m_BookmarkStripLayout = new FlowLayout(ui->bookmarkStrip, 0, 3, 3);
@@ -1051,6 +1059,7 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   }
 
   OnCaptureClosed();
+  filter_apply();
 
   m_redPalette = palette();
   m_redPalette.setColor(QPalette::Base, Qt::red);
@@ -1102,6 +1111,7 @@ void EventBrowser::OnCaptureLoaded()
   repopulateBookmarks();
 
   ui->find->setEnabled(true);
+  ui->filter->setEnabled(true);
   ui->gotoEID->setEnabled(true);
   ui->timeDraws->setEnabled(true);
   ui->bookmark->setEnabled(true);
@@ -1123,6 +1133,7 @@ void EventBrowser::OnCaptureClosed()
   setPersistData(p);
 
   ui->find->setEnabled(false);
+  ui->filter->setEnabled(false);
   ui->gotoEID->setEnabled(false);
   ui->timeDraws->setEnabled(false);
   ui->bookmark->setEnabled(false);
@@ -1145,6 +1156,12 @@ void EventBrowser::on_find_clicked()
   ui->jumpStrip->hide();
   ui->findStrip->show();
   ui->findEvent->setFocus();
+}
+
+void EventBrowser::on_filter_clicked()
+{
+  ui->filterStrip->show();
+  ui->filterExpression->setFocus();
 }
 
 void EventBrowser::on_gotoEID_clicked()
@@ -1189,6 +1206,9 @@ void EventBrowser::events_currentChanged(const QModelIndex &current, const QMode
 
   uint32_t selectedEID = GetSelectedEID(current);
   uint32_t effectiveEID = GetEffectiveEID(current);
+
+  if(selectedEID == m_Ctx.CurSelectedEvent() && effectiveEID == m_Ctx.CurEvent())
+    return;
 
   m_Ctx.SetEventID({this}, selectedEID, effectiveEID);
 
@@ -1239,6 +1259,19 @@ void EventBrowser::findHighlight_timeout()
   updateFindResultsAvailable();
 }
 
+void EventBrowser::filter_apply()
+{
+  // unselect everything while applying the filter, to avoid updating the source model while the
+  // filter is processing if the current event is no longer selected
+  uint32_t curSelEvent = m_Ctx.CurSelectedEvent();
+  ui->events->clearSelection();
+  ui->events->setCurrentIndex(QModelIndex());
+
+  m_FilterModel->ParseExpression(ui->filterExpression->text());
+
+  ui->events->setCurrentIndex(m_FilterModel->mapFromSource(m_Model->GetIndexForEID(curSelEvent)));
+}
+
 void EventBrowser::on_findEvent_textEdited(const QString &arg1)
 {
   if(arg1.isEmpty())
@@ -1251,6 +1284,29 @@ void EventBrowser::on_findEvent_textEdited(const QString &arg1)
   else
   {
     m_FindHighlight->start();    // restart
+  }
+}
+
+void EventBrowser::on_filterExpression_returnPressed()
+{
+  // stop the timer, we'll manually fire it instantly
+  if(m_FilterTimeout->isActive())
+    m_FilterTimeout->stop();
+
+  filter_apply();
+}
+
+void EventBrowser::on_filterExpression_textEdited(const QString &text)
+{
+  if(text.isEmpty())
+  {
+    m_FilterTimeout->stop();
+
+    filter_apply();
+  }
+  else
+  {
+    m_FilterTimeout->start();    // restart
   }
 }
 
@@ -1550,6 +1606,11 @@ void EventBrowser::events_keyPress(QKeyEvent *event)
     else if(event->key() == Qt::Key_G)
     {
       on_gotoEID_clicked();
+      event->accept();
+    }
+    else if(event->key() == Qt::Key_L)
+    {
+      on_filter_clicked();
       event->accept();
     }
     else if(event->key() == Qt::Key_B)

@@ -57,6 +57,7 @@
   RESOURCE_DEF(del, "del.png")                                          \
   RESOURCE_DEF(disconnect, "disconnect.png")                            \
   RESOURCE_DEF(find, "find.png")                                        \
+  RESOURCE_DEF(filter, "filter.png")                                    \
   RESOURCE_DEF(arrow_out, "arrow_out.png")                              \
   RESOURCE_DEF(flag_green, "flag_green.png")                            \
   RESOURCE_DEF(flip_y, "flip_y.png")                                    \

@@ -73,6 +73,7 @@ public:
 private slots:
   // automatic slots
   void on_find_clicked();
+  void on_filter_clicked();
   void on_gotoEID_clicked();
   void on_timeDraws_clicked();
   void on_bookmark_clicked();
@@ -81,6 +82,8 @@ private slots:
   void on_findEvent_returnPressed();
   void on_findEvent_keyPress(QKeyEvent *event);
   void on_findEvent_textEdited(const QString &arg1);
+  void on_filterExpression_returnPressed();
+  void on_filterExpression_textEdited(const QString &text);
   void on_findNext_clicked();
   void on_findPrev_clicked();
   void on_stepNext_clicked();
@@ -90,6 +93,7 @@ private slots:
 
   // manual slots
   void findHighlight_timeout();
+  void filter_apply();
   void events_keyPress(QKeyEvent *event);
   void events_contextMenu(const QPoint &pos);
   void events_currentChanged(const QModelIndex &current, const QModelIndex &previous);
@@ -125,7 +129,7 @@ private:
 
   TimeUnit m_TimeUnit = TimeUnit::Count;
 
-  QTimer *m_FindHighlight;
+  QTimer *m_FindHighlight, *m_FilterTimeout;
 
   FlowLayout *m_BookmarkStripLayout;
   QSpacerItem *m_BookmarkSpacer;

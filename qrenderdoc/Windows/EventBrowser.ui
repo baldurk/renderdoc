@@ -113,6 +113,20 @@
       </widget>
      </item>
      <item>
+      <widget class="QToolButton" name="filter">
+       <property name="toolTip">
+        <string>Show event filter</string>
+       </property>
+       <property name="icon">
+        <iconset resource="../Resources/resources.qrc">
+         <normaloff>:/filter.png</normaloff>:/filter.png</iconset>
+       </property>
+       <property name="autoRaise">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QToolButton" name="gotoEID">
        <property name="toolTip">
         <string>Jump to an Event by EID</string>
@@ -390,6 +404,76 @@
         <property name="icon">
          <iconset resource="../Resources/resources.qrc">
           <normaloff>:/arrow_right.png</normaloff>:/arrow_right.png</iconset>
+        </property>
+        <property name="autoRaise">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item><item>
+    <widget class="QWidget" name="filterStrip" native="true">
+     <layout class="QHBoxLayout" name="horizontalLayout_7">
+      <property name="spacing">
+       <number>3</number>
+      </property>
+      <property name="leftMargin">
+       <number>6</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>6</number>
+      </property>
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
+      <item>
+       <widget class="QLabel" name="label_6">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="pixmap">
+         <pixmap resource="../Resources/resources.qrc">:/filter.png</pixmap>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_7">
+        <property name="text">
+         <string>Filter</string>
+        </property>
+        <property name="textFormat">
+         <enum>Qt::PlainText</enum>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+        </property>
+        <property name="margin">
+         <number>0</number>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="RDLineEdit" name="filterExpression">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>20</height>
+         </size>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QToolButton" name="closeFilter">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="icon">
+         <iconset resource="../Resources/resources.qrc">
+          <normaloff>:/cross.png</normaloff>:/cross.png</iconset>
         </property>
         <property name="autoRaise">
          <bool>true</bool>
