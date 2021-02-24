@@ -331,8 +331,7 @@ public:
     m_Text = text;
     m_KeyText = m_Text;
     m_KeyText.replace(QLatin1Char('.'), QLatin1Char('_'));
-    emit beginResetModel();
-    emit endResetModel();
+    invalidateFilter();
   }
 
 protected:

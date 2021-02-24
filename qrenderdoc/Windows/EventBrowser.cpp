@@ -860,10 +860,124 @@ private:
   friend struct EventFilterModel;
 };
 
+using EventFilterCallback =
+    std::function<bool(uint32_t, const SDChunk *, const DrawcallDescription *, const rdcstr &)>;
+
+struct EventFilter
+{
+  enum MatchType
+  {
+    MustMatch,
+    Normal,
+    CantMatch
+  };
+
+  EventFilter(EventFilterCallback c) : callback(c), type(Normal) {}
+  EventFilter(EventFilterCallback c, MatchType t) : callback(c), type(t) {}
+  EventFilterCallback callback;
+  MatchType type;
+};
+
+static QMap<QString, DrawFlags> DrawFlagsLookup;
+
+bool EvaluateFilterSet(const rdcarray<EventFilter> &filters, bool all, uint32_t eid,
+                       const SDChunk *chunk, const DrawcallDescription *draw, QString name)
+{
+  if(filters.empty())
+    return true;
+
+  bool accept = false;
+
+  bool anyNormal = false;
+  for(const EventFilter &filter : filters)
+    anyNormal |= (filter.type == EventFilter::Normal);
+
+  // if there aren't any normal filters, they're all CantMatch or MustMatch. In this case we default
+  // to acceptance so that if they all pass then we match. This handles cases like +foo -bar which
+  // would return the default on a string like "foothing" which would return a false match
+  if(!anyNormal)
+    accept = true;
+
+  // if any top-level filter matches, we match
+  for(const EventFilter &filter : filters)
+  {
+    // if we've already accepted and this is a normal filter and we are in non-all mode, it won't
+    // change the result so don't bother running the filter.
+    if(accept && !all && filter.type == EventFilter::Normal)
+      continue;
+
+    bool match = filter.callback(eid, chunk, draw, name);
+
+    // in normal mode, if it matches it should be included (unless a subsequent filter excludes
+    // it)
+    if(filter.type == EventFilter::Normal)
+    {
+      if(match)
+        accept = true;
+
+      // in all mode, if any normal filters fails then we fail the whole thing
+      if(all && !match)
+        return false;
+    }
+    else if(filter.type == EventFilter::CantMatch)
+    {
+      // if we matched a can't match (e.g -foo) then we can't accept this row
+      if(match)
+        return false;
+    }
+    else if(filter.type == EventFilter::MustMatch)
+    {
+      // similarly if we *didn't* match a must match (e.g +foo) then we can't accept this row
+      if(!match)
+        return false;
+    }
+  }
+
+  // if we didn't early out with a can't/must failure, then return the result from whatever normal
+  // matches we got
+  return accept;
+}
+
+static const SDObject *FindChildRecursively(const SDObject *parent, rdcstr name)
+{
+  const SDObject *o = parent->FindChild(name);
+  if(o)
+    return o;
+
+  for(size_t i = 0; i < parent->NumChildren(); i++)
+  {
+    o = FindChildRecursively(parent->GetChild(i), name);
+    if(o)
+      return o;
+  }
+
+  return NULL;
+}
+
 struct EventFilterModel : public QSortFilterProxyModel
 {
-  EventFilterModel(ICaptureContext &ctx) : m_Ctx(ctx) {}
-  void ParseExpression(QString expr) { qInfo() << expr; }
+public:
+  EventFilterModel(ICaptureContext &ctx) : m_Ctx(ctx)
+  {
+    // default filter, include draws that aren't pop markers
+    m_Filters.push_back(
+        EventFilter([](uint32_t, const SDChunk *, const DrawcallDescription *draw, const rdcstr &) {
+          return (draw && !(draw->flags & DrawFlags::PopMarker));
+        }));
+  }
+
+  void ResetCache() { m_VisibleCache.clear(); }
+  QString ParseExpression(QString expr)
+  {
+    m_VisibleCache.clear();
+    m_Filters.clear();
+    QString ret = ParseExpressionToFilters(expr, m_Filters);
+    if(!ret.isEmpty())
+      m_Filters.clear();
+    invalidateFilter();
+    return ret;
+  }
+
 protected:
   virtual bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const override
   {
@@ -888,22 +1002,677 @@ protected:
 
     QModelIndex source_idx = sourceModel()->index(source_row, 0, source_parent);
 
-    const DrawcallDescription *draw =
-        (const DrawcallDescription *)(sourceModel()->data(source_idx, ROLE_EXACT_DRAWCALL).toULongLong());
+    uint32_t eid = sourceModel()->data(source_idx, ROLE_SELECTED_EID).toUInt();
+
+    m_VisibleCache.resize_for_index(eid);
+    if(m_VisibleCache[eid] != 0)
+      return m_VisibleCache[eid] > 0;
+
     const SDChunk *chunk =
         (const SDChunk *)(sourceModel()->data(source_idx, ROLE_CHUNK).toULongLong());
-
+    const DrawcallDescription *draw =
+        (const DrawcallDescription *)(sourceModel()->data(source_idx, ROLE_EXACT_DRAWCALL).toULongLong());
     QString name = source_idx.data(Qt::DisplayRole).toString();
 
-    // default filter
-    if(draw && !(draw->flags & DrawFlags::PopMarker))
-      return true;
-
-    return false;
+    m_VisibleCache[eid] = EvaluateFilterSet(m_Filters, false, eid, chunk, draw, name) ? 1 : -1;
+    return m_VisibleCache[eid] > 0;
   }
 
 private:
   ICaptureContext &m_Ctx;
+
+  // this caches whether a row passes or not, with 0 meaning 'uncached' and 1/-1 being true or
+  // false. This means we can resize it and know that we don't pollute with bad data.
+  // it must be mutable since we update it in a const function filterAcceptsRow.
+  mutable rdcarray<int8_t> m_VisibleCache;
+
+  rdcarray<EventFilter> m_Filters;
+
+  EventFilterCallback MakeLiteralMatcher(QString string)
+  {
+    QString matchString = string.toLower();
+    return [matchString](uint32_t, const SDChunk *, const DrawcallDescription *, const rdcstr &name) {
+      return QString(name).toLower().contains(matchString);
+    };
+  }
+
+  EventFilterCallback MakeFunctionMatcher(QString name, QString parameters, QString &errors)
+  {
+    // builtins
+    if(name == lit("any"))
+    {
+      // $any(...) => returns true if any of the nested subexpressions are true (with exclusions
+      // treated as normal).
+      rdcarray<EventFilter> filters;
+      errors = ParseExpressionToFilters(parameters, filters);
+
+      if(errors.isEmpty())
+      {
+        if(filters.isEmpty())
+        {
+          errors = tr("No filters provided to $any()", "EventFilterModel");
+          return NULL;
+        }
+
+        return [filters](uint32_t eid, const SDChunk *chunk, const DrawcallDescription *draw,
+                         const rdcstr &name) {
+          return EvaluateFilterSet(filters, false, eid, chunk, draw, name);
+        };
+      }
+
+      return NULL;
+    }
+    else if(name == lit("all"))
+    {
+      // $all(...) => returns true only if all the nested subexpressions are true
+      rdcarray<EventFilter> filters;
+      errors = ParseExpressionToFilters(parameters, filters);
+
+      if(errors.isEmpty())
+      {
+        if(filters.isEmpty())
+        {
+          errors = tr("No filters provided to $all()", "EventFilterModel");
+          return NULL;
+        }
+
+        return [filters](uint32_t eid, const SDChunk *chunk, const DrawcallDescription *draw,
+                         const rdcstr &name) {
+          return EvaluateFilterSet(filters, true, eid, chunk, draw, name);
+        };
+      }
+
+      return NULL;
+    }
+    else if(name == lit("param"))
+    {
+      // $param() => check for a named parameter having a particular value
+      int idx = parameters.indexOf(QLatin1Char(':'));
+
+      if(idx < 0)
+      {
+        errors = tr("Parameter to to $param() should be name: value", "EventFilterModel");
+        return NULL;
+      }
+
+      QString paramName = parameters.mid(0, idx).trimmed();
+      QString paramValue = parameters.mid(idx + 1).trimmed();
+
+      ICaptureContext *ctx = &m_Ctx;
+
+      return [paramName, paramValue, ctx](uint32_t, const SDChunk *chunk,
+                                          const DrawcallDescription *, const rdcstr &) {
+        const SDObject *o = FindChildRecursively(chunk, paramName);
+
+        if(!o)
+          return false;
+
+        if(o->IsArray())
+        {
+          for(const SDObject *c : *o)
+          {
+            if(RichResourceTextFormat(*ctx, SDObject2Variant(c)).contains(paramValue, Qt::CaseInsensitive))
+              return true;
+          }
+
+          return false;
+        }
+        else
+        {
+          return RichResourceTextFormat(*ctx, SDObject2Variant(o))
+              .contains(paramValue, Qt::CaseInsensitive);
+        }
+
+      };
+    }
+    else if(name == lit("event"))
+    {
+      // $event(...) => filters on any event property (at the moment only EID)
+      QStringList params = parameters.split(QLatin1Char(' '), QString::SkipEmptyParts);
+
+      static const QStringList operators = {
+          lit("=="), lit("!="), lit("<"), lit(">"), lit("<="), lit(">="),
+      };
+
+      if(params.size() < 1 ||
+         (params[0].toLower() != lit("eid") && params[0].toLower() != lit("eventid")))
+      {
+        errors = tr("Unrecognised $event() property filter expression '%1'", "EventFilterModel")
+                     .arg(parameters);
+        return NULL;
+      }
+
+      if(params.size() != 3 || operators.indexOf(params[1]) < 0)
+      {
+        errors = tr("Invalid $event() %1 filter expression '%2', expected "
+                    "$event(%1 operator value) with operators %3",
+                    "EventFilterModel")
+                     .arg(params[0])
+                     .arg(parameters)
+                     .arg(operators.join(lit(", ")));
+        return NULL;
+      }
+
+      bool ok = false;
+      uint32_t eid = params[2].toUInt(&ok, 0);
+
+      if(!ok)
+      {
+        errors =
+            tr("Invalid $event() %1 filter expression '%2', invalid value %3", "EventFilterModel")
+                .arg(params[0])
+                .arg(parameters)
+                .arg(params[2]);
+        return NULL;
+      }
+
+      switch(operators.indexOf(params[1]))
+      {
+        case 0:
+          return [eid](uint32_t eventId, const SDChunk *, const DrawcallDescription *draw,
+                       const rdcstr &) { return eventId == eid; };
+        case 1:
+          return [eid](uint32_t eventId, const SDChunk *, const DrawcallDescription *draw,
+                       const rdcstr &) { return eventId != eid; };
+        case 2:
+          return [eid](uint32_t eventId, const SDChunk *, const DrawcallDescription *draw,
+                       const rdcstr &) { return eventId < eid; };
+        case 3:
+          return [eid](uint32_t eventId, const SDChunk *, const DrawcallDescription *draw,
+                       const rdcstr &) { return eventId > eid; };
+        case 4:
+          return [eid](uint32_t eventId, const SDChunk *, const DrawcallDescription *draw,
+                       const rdcstr &) { return eventId <= eid; };
+        case 5:
+          return [eid](uint32_t eventId, const SDChunk *, const DrawcallDescription *draw,
+                       const rdcstr &) { return eventId >= eid; };
+        default:
+          errors = tr("Internal error, unexpected operator %1", "EventFilterModel").arg(params[1]);
+          return NULL;
+      }
+    }
+    else if(name == lit("draw"))
+    {
+      // $draw(...) => returns true only for draws, optionally with a particular property filter
+      QStringList params = parameters.split(QLatin1Char(' '), QString::SkipEmptyParts);
+
+      // no parameters, just return if it's a draw
+      if(params.isEmpty())
+        return [](uint32_t, const SDChunk *, const DrawcallDescription *draw, const rdcstr &) {
+          return draw != NULL;
+        };
+
+      // we upcast to int64_t so we can compare both unsigned and signed values without losing any
+      // precision (we don't have any uint64_ts to compare)
+      using PropGetter = int64_t (*)(const DrawcallDescription *);
+
+      struct NamedProp
+      {
+        const char *name;
+        PropGetter getter;
+      };
+
+#define NAMED_PROP(name, access) \
+  name, [](const DrawcallDescription *draw) -> int64_t { return access; }
+
+      static const NamedProp namedProps[] = {
+          NAMED_PROP("eventid", draw->eventId), NAMED_PROP("eid", draw->eventId),
+          NAMED_PROP("parent", draw->parent ? draw->parent->eventId : -12341234),
+          NAMED_PROP("drawcallid", draw->drawcallId), NAMED_PROP("numindices", draw->numIndices),
+          NAMED_PROP("numindexes", draw->numIndices), NAMED_PROP("numvertices", draw->numIndices),
+          NAMED_PROP("numvertexes", draw->numIndices), NAMED_PROP("indexcount", draw->numIndices),
+          NAMED_PROP("vertexcount", draw->numIndices), NAMED_PROP("numinstances", draw->numInstances),
+          NAMED_PROP("instancecount", draw->numInstances),
+          NAMED_PROP("basevertex", draw->baseVertex), NAMED_PROP("indexoffset", draw->indexOffset),
+          NAMED_PROP("vertexoffset", draw->vertexOffset),
+          NAMED_PROP("instanceoffset", draw->instanceOffset),
+          NAMED_PROP("dispatchx", draw->dispatchDimension[0]),
+          NAMED_PROP("dispatchy", draw->dispatchDimension[1]),
+          NAMED_PROP("dispatchz", draw->dispatchDimension[2]),
+          NAMED_PROP("dispatchsize", draw->dispatchDimension[0] * draw->dispatchDimension[1] *
+                                         draw->dispatchDimension[2]),
+      };
+
+      QByteArray prop = params[0].toLower().toLatin1();
+
+      int numericPropIndex = -1;
+      for(size_t i = 0; i < ARRAY_COUNT(namedProps); i++)
+      {
+        if(prop == namedProps[i].name)
+          numericPropIndex = (int)i;
+      }
+
+      // any numeric value that can be compared to a number
+      if(numericPropIndex >= 0)
+      {
+        PropGetter propGetter = namedProps[numericPropIndex].getter;
+
+        static const QStringList operators = {
+            lit("=="), lit("!="), lit("<"), lit(">"), lit("<="), lit(">="),
+        };
+
+        if(params.size() != 3 || operators.indexOf(params[1]) < 0)
+        {
+          errors = tr("Invalid $draw() %1 filter expression '%2', expected "
+                      "$draw(%1 operator value) with operators %3",
+                      "EventFilterModel")
+                       .arg(params[0])
+                       .arg(parameters)
+                       .arg(operators.join(lit(", ")));
+          return NULL;
+        }
+
+        bool ok = false;
+        int64_t value = params[2].toLongLong(&ok, 0);
+
+        if(!ok)
+        {
+          errors =
+              tr("Invalid $draw() %1 filter expression '%2', invalid value %3", "EventFilterModel")
+                  .arg(params[0])
+                  .arg(parameters)
+                  .arg(params[2]);
+          return NULL;
+        }
+
+        switch(operators.indexOf(params[1]))
+        {
+          case 0:
+            return [propGetter, value](uint32_t, const SDChunk *, const DrawcallDescription *draw,
+                                       const rdcstr &) { return draw && propGetter(draw) == value; };
+          case 1:
+            return [propGetter, value](uint32_t, const SDChunk *, const DrawcallDescription *draw,
+                                       const rdcstr &) { return draw && propGetter(draw) != value; };
+          case 2:
+            return [propGetter, value](uint32_t, const SDChunk *, const DrawcallDescription *draw,
+                                       const rdcstr &) { return draw && propGetter(draw) < value; };
+          case 3:
+            return [propGetter, value](uint32_t, const SDChunk *, const DrawcallDescription *draw,
+                                       const rdcstr &) { return draw && propGetter(draw) > value; };
+          case 4:
+            return [propGetter, value](uint32_t, const SDChunk *, const DrawcallDescription *draw,
+                                       const rdcstr &) { return draw && propGetter(draw) <= value; };
+          case 5:
+            return [propGetter, value](uint32_t, const SDChunk *, const DrawcallDescription *draw,
+                                       const rdcstr &) { return draw && propGetter(draw) >= value; };
+          default:
+            errors = tr("Internal error, unexpected operator %1", "EventFilterModel").arg(params[1]);
+            return NULL;
+        }
+      }
+      else if(params[0] == lit("flags"))
+      {
+        if(params.size() < 3 || params[1] != lit("&"))
+        {
+          errors = tr("Invalid $draw() flags filter expression '%1', expected "
+                      "$draw(flags & SomeFlag|OtherFlag)",
+                      "EventFilterModel")
+                       .arg(parameters);
+          return NULL;
+        }
+
+        // there could be whitespace in the flags list so iterate over all remaining parameters (as
+        // split by whitespace)
+        QStringList flagStrings;
+        for(int i = 2; i < params.count(); i++)
+          flagStrings.append(params[i].split(QLatin1Char('|'), QString::KeepEmptyParts));
+
+        // if we have an empty string in the list somewhere that means the | list was broken
+        if(flagStrings.contains(QString()))
+        {
+          errors =
+              tr("Invalid $draw() flags filter expression '%1'", "EventFilterModel").arg(parameters);
+          return NULL;
+        }
+
+        if(DrawFlagsLookup.empty())
+        {
+          for(uint32_t i = 0; i <= 31; i++)
+          {
+            DrawFlags flag = DrawFlags(1U << i);
+
+            // bit of a hack, see if it's a valid flag by stringising and seeing if it contains
+            // DrawFlags(
+            QString str = ToQStr(flag);
+            if(str.contains(lit("DrawFlags(")))
+              continue;
+
+            DrawFlagsLookup[str] = flag;
+          }
+        }
+
+        DrawFlags flags = DrawFlags::NoFlags;
+        for(const QString &flagString : flagStrings)
+        {
+          auto it = DrawFlagsLookup.find(flagString);
+          if(it == DrawFlagsLookup.end())
+          {
+            errors = tr("Unrecognised draw flag '%1' in to $draw(flags) filter", "EventFilterModel")
+                         .arg(flagString);
+            return NULL;
+          }
+
+          flags |= it.value();
+        }
+
+        return [flags](uint32_t, const SDChunk *, const DrawcallDescription *draw, const rdcstr &) {
+          return draw && (draw->flags & flags);
+        };
+      }
+      else
+      {
+        errors = tr("Unrecognised $draw() property filter expression '%1'", "EventFilterModel")
+                     .arg(parameters);
+        return NULL;
+      }
+    }
+
+    errors = tr("Unknown filter function $%1", "EventFilterModel").arg(name);
+    return NULL;
+  }
+
+  QString ParseExpressionToFilters(QString expr, rdcarray<EventFilter> &filters)
+  {
+    // we have a simple grammar, we pick out subexpressions and they're all independent.
+    //
+    // - Individual words are literal subexpressions on their own and end with whitespace.
+    // - A " starts a quoted literal subexpression, which is a literal string and ends on the next
+    //   ". It supports escaping " with \ and otherwise any escaped character is the literal
+    //   character. The quotes must be followed by whitespace or the end of the expression.
+    // - Both literal subexpressions are matched case-insensitively. For case-sensitive matching
+    //   you can use a regexp as a functional expression.
+    // - A $ starts a functional expression, with parameters in brackets. The name starts with a
+    //   letter and contains alphanumeric and . characters. The name is followed by a ( to begin the
+    //   parameters and ends when the matching ) is found. Whitespace between the name and the ( is
+    //   ignored, but any other character is a parse error. The ) must be followed by whitespace or
+    //   the end of the expression or that's a parse error. Note that whitespace is allowed in the
+    //   parameters.
+    //
+    // This means there's a simple state machine we can follow from any point.
+    //
+    // 1) start -> whitespace -> start
+    // 2) start -> " -> quoted_expression -> wait until unescaped " -> start
+    // 3) start -> $ -> function_expression -> parse name > optional whitespace ->
+    //             ( -> wait until matching parenthesis -> ) -> whitespace -> start
+    // 4) start -> anything else -> literal -> wait until whitespace -> start
+    //
+    // We also have two modifiers:
+    //
+    // 5) start -> + -> note that next filter is a MustMatch -> start
+    // 6) start -> - -> note that next filter is a CantMatch -> start
+    //
+    // any non-existant edge is a parse error
+
+    QString errorString;
+
+    enum
+    {
+      Start,
+      QuotedExpr,
+      FunctionExprName,
+      FunctionExprParams,
+      Literal,
+    } state = Start;
+
+    expr = expr.trimmed();
+
+    EventFilter::MatchType matchType = EventFilter::Normal;
+
+    // temporary string we're building up somewhere
+    QString s;
+
+    // parenthesis depth
+    int parenDepth = 0;
+    // parameters (since s holds the function name)
+    QString params;
+
+    int pos = 0;
+    while(pos < expr.length())
+    {
+      if(state == Start)
+      {
+        // 1) skip whitespace while in start
+        if(expr[pos].isSpace())
+        {
+          pos++;
+          continue;
+        }
+
+        // 5) and 6)
+        if(expr[pos] == QLatin1Char('-'))
+        {
+          // stay in the Start state, but store match type
+          matchType = EventFilter::CantMatch;
+          pos++;
+          continue;
+        }
+
+        if(expr[pos] == QLatin1Char('+'))
+        {
+          matchType = EventFilter::MustMatch;
+          pos++;
+          continue;
+        }
+
+        // 3.1) move to function expression if we see a $
+        if(expr[pos] == QLatin1Char('$'))
+        {
+          // we need at minimum 3 more characters for $x()
+          if(pos + 3 >= expr.length())
+            return tr("Parse Error: Invalid function expression %1", "EventFilterModel")
+                .arg(expr.mid(pos));
+
+          // consume the $
+          state = FunctionExprName;
+          pos++;
+
+          continue;
+        }
+
+        // 2.1) move to quoted expression if we see a "
+        if(expr[pos] == QLatin1Char('"'))
+        {
+          state = QuotedExpr;
+          pos++;
+          continue;
+        }
+
+        // 4.1) for anything else begin parsing a literal expression
+        state = Literal;
+        // don't continue here, we need to parse the first character of the literal
+      }
+
+      if(state == QuotedExpr)
+      {
+        // 2.2) handle escaping
+        if(expr[pos] == QLatin1Char('\\'))
+        {
+          if(pos == expr.length() - 1)
+            return tr("Parse Error: Invalid escape sequence in quoted string", "EventFilterModel");
+
+          // append the next character, whatever it is, and skip the escape character
+          s.append(expr[pos + 1]);
+          pos += 2;
+          continue;
+        }
+        else if(expr[pos] == QLatin1Char('"'))
+        {
+          // if we encounter an unescaped quote we're done
+
+          // however we expect the end of the expression or whitespace next
+          if(pos + 1 < expr.length() && !expr[pos + 1].isSpace())
+            return tr("Parse Error: Unexpected character %1 after quoted string",
+                      "EventFilterModel")
+                .arg(expr[pos + 1]);
+
+          filters.push_back(EventFilter(MakeLiteralMatcher(s), matchType));
+
+          s.clear();
+          pos++;
+          state = Start;
+          matchType = EventFilter::Normal;
+
+          continue;
+        }
+        else
+        {
+          // just another character, append and continue
+          s.append(expr[pos]);
+          pos++;
+          continue;
+        }
+      }
+
+      if(state == Literal)
+      {
+        // if we encounter whitespace or the end of the expression, we're done
+        if(expr[pos].isSpace() || pos == expr.length() - 1)
+        {
+          if(!expr[pos].isSpace())
+            s.append(expr[pos]);
+
+          filters.push_back(EventFilter(MakeLiteralMatcher(s), matchType));
+
+          s.clear();
+          pos++;
+          state = Start;
+          matchType = EventFilter::Normal;
+
+          continue;
+        }
+        else
+        {
+          // just another character, append and continue
+          s.append(expr[pos]);
+          pos++;
+          continue;
+        }
+      }
+
+      if(state == FunctionExprName)
+      {
+        // if we encounter a parenthesis check we have a valid filter function name and move to
+        // parsing parameters
+        if(expr[pos] == QLatin1Char('('))
+        {
+          if(s.isEmpty())
+            return tr(
+                "Parse Error: Filter function with no name before arguments. \
+                      If this is not a filter function, surround with quotes.",
+                "EventFilterModel");
+
+          state = FunctionExprParams;
+          parenDepth = 1;
+          pos++;
+          continue;
+        }
+
+        // otherwise we're still parsing the name.
+
+        // name must begin with a letter
+        if(s.isEmpty() && !expr[pos].isLetter())
+        {
+          // scan to the end of what looks like a function name for the error message
+          int end = pos;
+          while(end < expr.length() && (expr[end].isLetterOrNumber() || expr[end] == QLatin1Char('.')))
+            end++;
+
+          return tr("Parse Error: Invalid function name '%1', must begin with a letter. \
+                      If this is not a filter function, surround with quotes.",
+                    "EventFilterModel")
+              .arg(expr.mid(pos, end - pos));
+        }
+
+        // add this character to the name we're building
+        s.append(expr[pos]);
+        pos++;
+        continue;
+      }
+
+      if(state == FunctionExprParams)
+      {
+        if(expr[pos] == QLatin1Char('('))
+        {
+          parenDepth++;
+        }
+        else if(expr[pos] == QLatin1Char(')'))
+        {
+          parenDepth--;
+        }
+
+        if(parenDepth == 0)
+        {
+          // we've finished the filter function
+
+          // however we expect the end of the expression or whitespace next
+          if(pos + 1 < expr.length() && !expr[pos + 1].isSpace())
+            return tr("Parse Error: Unexpected character %1 after filter function",
+                      "EventFilterModel")
+                .arg(expr[pos + 1]);
+
+          QString errors;
+          EventFilterCallback filter = MakeFunctionMatcher(s, params, errors);
+
+          if(!filter)
+          {
+            if(errors.isEmpty())
+              return tr("Unknown filter function '$%1'", "EventFilterModel").arg(s);
+
+            return errors;
+          }
+
+          filters.push_back(EventFilter(filter, matchType));
+
+          s.clear();
+          params.clear();
+
+          // move back to the start state
+          state = Start;
+          matchType = EventFilter::Normal;
+        }
+        else
+        {
+          params.append(expr[pos]);
+        }
+
+        pos++;
+        continue;
+      }
+    }
+
+    // we should be back in the normal state, because all the other states have termination states
+    if(state == Literal)
+    {
+      // shouldn't be possible as the Literal state terminates itself when it sees the end of the
+      // string
+      return tr("Parse Error: Encountered unterminated literal", "EventFilterModel");
+    }
+    else if(state == QuotedExpr)
+    {
+      return tr("Parse Error: Unterminated quoted expression: %1", "EventFilterModel").arg(s);
+    }
+    else if(state == FunctionExprName)
+    {
+      return tr("Parse Error: Encountered end of filter without function parameters: $%1",
+                "EventFilterModel")
+          .arg(s);
+    }
+    else if(state == FunctionExprParams)
+    {
+      return tr("Parse Error: Encountered end of filter in function: $%1(%2", "EventFilterModel")
+          .arg(s)
+          .arg(params);
+    }
+
+    // any - or + should have been consumed by an expression, if we still have it then it was
+    // dangling
+    if(matchType == EventFilter::CantMatch)
+      return tr("Parse Error: Encountered - without expression", "EventFilterModel");
+    if(matchType == EventFilter::MustMatch)
+      return tr("Parse Error: Encountered + without expression", "EventFilterModel");
+
+    return errorString;
+  }
 };
 
 static bool textEditControl(QWidget *sender)
@@ -1098,6 +1867,7 @@ void EventBrowser::OnCaptureLoaded()
 {
   ui->events->setIgnoreBackgroundColors(!m_Ctx.Config().EventBrowser_ColorEventRow);
 
+  m_FilterModel->ResetCache();
   // older Qt versions lose all the sections when a model resets even if the sections don't change.
   // Manually save/restore them
   QVariant p = persistData();
@@ -1126,6 +1896,7 @@ void EventBrowser::OnCaptureClosed()
 
   on_HideFindJump();
 
+  m_FilterModel->ResetCache();
   // older Qt versions lose all the sections when a model resets even if the sections don't change.
   // Manually save/restore them
   QVariant p = persistData();
@@ -1267,9 +2038,12 @@ void EventBrowser::filter_apply()
   ui->events->clearSelection();
   ui->events->setCurrentIndex(QModelIndex());
 
-  m_FilterModel->ParseExpression(ui->filterExpression->text());
+  QString parseError = m_FilterModel->ParseExpression(ui->filterExpression->text());
 
   ui->events->setCurrentIndex(m_FilterModel->mapFromSource(m_Model->GetIndexForEID(curSelEvent)));
+
+  if(!parseError.isEmpty())
+    qInfo() << parseError;
 }
 
 void EventBrowser::on_findEvent_textEdited(const QString &arg1)
