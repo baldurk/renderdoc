@@ -915,7 +915,7 @@ bool write_dds_to_file(FILE *f, const write_dds_data &data)
         uint32_t numdepths = RDCMAX(1U, data.depth >> mip);
         for(uint32_t d = 0; d < numdepths; d++)
         {
-          byte *bytedata = data.subresources[d];
+          byte *bytedata = data.subresources[i];
 
           uint32_t rowlen = RDCMAX(1U, data.width >> mip);
           uint32_t numRows = RDCMAX(1U, data.height >> mip);
