@@ -50,7 +50,15 @@ public:
     DrawcallDescription &d = m_FrameRecord.drawcallList[0];
     d.drawcallId = 1;
     d.eventId = 1;
-    d.name = filename;
+    d.name = get_basename(filename);
+    APIEvent ev;
+    ev.eventId = 1;
+    d.events.push_back(ev);
+
+    SDChunk *chunk = new SDChunk(d.name);
+    chunk->AddAndOwnChild(makeSDString("path"_lit, filename));
+
+    m_File.chunks.push_back(chunk);
 
     RefreshFile();
 
