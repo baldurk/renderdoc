@@ -392,15 +392,18 @@ if(ENABLE_QRENDERDOC OR ENABLE_PYRENDERDOC)
     # Make sure Python 3 is found
     set(Python_ADDITIONAL_VERSIONS 3.9 3.8 3.7 3.6 3.5 3.4)
     if(NOT ${CMAKE_VERSION} VERSION_LESS "3.12")
-        find_package(Python COMPONENTS Interpreter Development)
-        set(PYTHON_EXECUTABLE ${Python_EXECUTABLE})
-        set(PYTHON_LIBRARY ${Python_LIBRARIES})
-        set(PYTHON_INCLUDE_DIR ${Python_INCLUDE_DIRS})
+        find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+        set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE})
+        set(PYTHON_LIBRARY ${Python3_LIBRARIES})
+        set(PYTHON_INCLUDE_DIR ${Python3_INCLUDE_DIRS})
     else()
         find_package(PythonInterp 3 REQUIRED)
         find_package(PythonLibs 3 REQUIRED)
-endif()
-    # we also need python3-config for swig
+    endif()
+
+    # we also need python3-config for swig, but it's only for the examples
+    # so it doesn't matter which one we find as long as we find something!
+    # Importantly it doesn't have to match the version we link against
     if(NOT EXISTS "${PYTHON_EXECUTABLE}-config" AND NOT EXISTS "${PYTHON_EXECUTABLE}.${PYTHON_VERSION_MINOR}-config")
         message(FATAL_ERROR "We require ${PYTHON_EXECUTABLE}-config or ${PYTHON_EXECUTABLE}.${PYTHON_VERSION_MINOR}-config to build swig, please install the python dev package for your system.")
     endif()
