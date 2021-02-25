@@ -201,6 +201,7 @@ struct RichResourceText
 
   // a plain-text version of the document, suitable for e.g. copy-paste
   QString text;
+  int textCacheId = 0;
 
   // the ideal width for the document
   int idealWidth = 0;
@@ -208,6 +209,43 @@ struct RichResourceText
 
   // cache the context once we've obtained it.
   ICaptureContext *ctxptr = NULL;
+
+  void cacheText(const QWidget *widget)
+  {
+    if(!ctxptr)
+      ctxptr = getCaptureContext(widget);
+
+    if(!ctxptr)
+      return;
+
+    ICaptureContext &ctx = *(ICaptureContext *)ctxptr;
+
+    int refCache = ctx.ResourceNameCacheID();
+
+    if(textCacheId == refCache)
+      return;
+
+    textCacheId = refCache;
+
+    text.clear();
+
+    for(const QVariant &v : fragments)
+    {
+      if(v.userType() == qMetaTypeId<ResourceId>())
+      {
+        QString resname = GetTruncatedResourceName(ctx, v.value<ResourceId>());
+        text += resname;
+      }
+      else if(v.type() == QVariant::UInt)
+      {
+        text += lit("EID @%1").arg(v.toUInt());
+      }
+      else
+      {
+        text += v.toString();
+      }
+    }
+  }
 
   void cacheDocument(const QWidget *widget)
   {
@@ -221,10 +259,11 @@ struct RichResourceText
 
     int refCache = ctx.ResourceNameCacheID();
 
-    if(cacheId == refCache)
+    if(cacheId == refCache && textCacheId == refCache)
       return;
 
     cacheId = refCache;
+    textCacheId = refCache;
 
     // use a table to ensure images don't screw up the baseline for text. DON'T JUDGE ME.
     QString html = lit("<table><tr>");
@@ -389,7 +428,7 @@ ICaptureContext *getCaptureContext(const QWidget *widget)
 
 QString ResIdTextToString(RichResourceTextPtr ptr)
 {
-  ptr->cacheDocument(NULL);
+  ptr->cacheText(NULL);
   return ptr->text;
 }
 
