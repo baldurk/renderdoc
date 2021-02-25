@@ -77,6 +77,29 @@ struct EventItemModel : public QAbstractItemModel
     UpdateDurationColumn();
 
     m_CurrentEID = createIndex(0, 0, TagCaptureStart);
+
+    const QColor highlight = view->palette().color(QPalette::Highlight).toHsl();
+
+    // this is a bit arbitrary but most highlight colours are blue, and blue text looks like a link.
+    // Rotate towards red (a 1/3rd turn). If the highlight colour is something different this will
+    // give a similar effect, hopefully.
+    qreal hue = highlight.hueF() + 0.333;
+    if(hue >= 1.0f)
+      hue -= 1.0;
+
+    // saturate the color a bit
+    qreal sat = qMin(1.0, 1.25 * highlight.saturationF());
+
+    // keep the lightness the same
+    qreal light = highlight.lightnessF();
+
+    QColor paramcol;
+    paramcol.setHslF(hue, sat, light);
+
+    m_ParamColCode = QFormatStr("#%1%2%3")
+                         .arg(paramcol.red(), 2, 16, QLatin1Char('0'))
+                         .arg(paramcol.green(), 2, 16, QLatin1Char('0'))
+                         .arg(paramcol.blue(), 2, 16, QLatin1Char('0'));
   }
 
   void ResetModel()
@@ -700,6 +723,7 @@ private:
   rdcarray<QModelIndex> m_FindResults;
 
   int32_t m_RenameCacheID;
+  QString m_ParamColCode;
 
   QMap<uint32_t, int> m_MessageCounts;
 
@@ -943,23 +967,84 @@ private:
 
     QString name;
 
-    if(draw->eventId == eid || draw->IsFakeMarker())
+    // markers always use the draw name no matter what (fake markers must because we don't have a
+    // chunk to use to name them). This doesn't apply to 'marker' regions that are multidraws or
+    // command buffer boundaries.
+    if(draw->eventId == eid)
     {
-      name = draw->name;
+      if(m_UseCustomDrawNames)
+      {
+        name = draw->name;
+      }
+      else
+      {
+        if((draw->flags & (DrawFlags::SetMarker | DrawFlags::PushMarker)) &&
+           !(draw->flags & (DrawFlags::CommandBufferBoundary | DrawFlags::PassBoundary |
+                            DrawFlags::CmdList | DrawFlags::MultiDraw)))
+          name = draw->name;
+      }
     }
-    else
+
+    if(name.isEmpty())
     {
       for(const APIEvent &e : draw->events)
       {
         if(e.eventId == eid)
         {
-          name = m_Ctx.GetStructuredFile().chunks[e.chunkIndex]->name;
+          const SDChunk *chunk = m_Ctx.GetStructuredFile().chunks[e.chunkIndex];
+          name = chunk->name;
+
+          // don't display any "ClassName::" prefix. We keep it for the API inspector which is more
+          // verbose
+          int nsSep = name.indexOf(lit("::"));
+          if(nsSep > 0)
+            name.remove(0, nsSep + 2);
+
+          name += QLatin1Char('(');
+
+          bool onlyImportant(chunk->type.flags & SDTypeFlags::ImportantChildren);
+
+          for(size_t i = 0; i < chunk->NumChildren(); i++)
+          {
+            if(chunk->GetChild(i)->type.flags & SDTypeFlags::Hidden)
+              continue;
+
+            const SDObject *o = chunk->GetChild(i);
+
+            // never display hidden members
+            if(o->type.flags & SDTypeFlags::Hidden)
+              continue;
+
+            if(!onlyImportant || (o->type.flags & SDTypeFlags::Important) || m_ShowAllParameters)
+            {
+              if(name.at(name.size() - 1) != QLatin1Char('('))
+                name += lit(", ");
+
+              if(m_ShowParameterNames)
+              {
+                name += lit("<span style='color: %1'>").arg(m_ParamColCode);
+                name += o->name;
+                name += lit("</span>");
+                name += QLatin1Char('=');
+              }
+
+              name += SDObject2Variant(o, true).toString();
+            }
+          }
+
+          name += QLatin1Char(')');
+
           break;
         }
       }
 
       if(name.isEmpty())
         qCritical() << "Couldn't find APIEvent for" << eid;
+
+      // force html even for events that don't reference resources etc, to get the italics for
+      // parameters
+      if(m_ShowParameterNames)
+        name = lit("<rdhtml>") + name + lit("</rdhtml>");
     }
 
     if(m_MessageCounts.contains(eid))
@@ -1154,6 +1239,18 @@ protected:
         (const DrawcallDescription
              *)(sourceModel()->data(source_idx, ROLE_GROUPED_DRAWCALL).toULongLong());
     QString name = source_idx.data(Qt::DisplayRole).toString();
+
+    int off = name.indexOf(QLatin1Char('<'));
+    while(off >= 0 && off + 4 < name.size())
+    {
+      if(name[off + 1] == QLatin1Char('/') || name.midRef(off, 5) == lit("<span"))
+      {
+        int end = name.indexOf(QLatin1Char('>'), off);
+        name.remove(off, end - off + 1);
+      }
+
+      off = name.indexOf(QLatin1Char('<'), off + 1);
+    }
 
     m_VisibleCache[eid] = EvaluateFilterSet(m_Ctx, m_Filters, false, eid, chunk, draw, name);
     return m_VisibleCache[eid] > 0;
