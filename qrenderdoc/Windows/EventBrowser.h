@@ -75,13 +75,11 @@ public:
 
 private slots:
   // automatic slots
-  void on_find_clicked();
-  void on_filter_clicked();
-  void on_gotoEID_clicked();
+  void on_find_toggled(bool checked);
+  void on_filter_toggled(bool checked);
   void on_timeDraws_clicked();
   void on_bookmark_clicked();
-  void on_HideFindJump();
-  void on_jumpToEID_returnPressed();
+  void on_HideFind();
   void on_findEvent_returnPressed();
   void on_findEvent_keyPress(QKeyEvent *event);
   void on_findEvent_textEdited(const QString &arg1);

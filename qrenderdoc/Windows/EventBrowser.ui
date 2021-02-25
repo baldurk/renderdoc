@@ -107,6 +107,12 @@
         <iconset resource="../Resources/resources.qrc">
          <normaloff>:/find.png</normaloff>:/find.png</iconset>
        </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+       <property name="checked">
+        <bool>false</bool>
+       </property>
        <property name="autoRaise">
         <bool>true</bool>
        </property>
@@ -121,22 +127,11 @@
         <iconset resource="../Resources/resources.qrc">
          <normaloff>:/filter.png</normaloff>:/filter.png</iconset>
        </property>
-       <property name="autoRaise">
+       <property name="checkable">
         <bool>true</bool>
        </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QToolButton" name="gotoEID">
-       <property name="toolTip">
-        <string>Jump to an Event by EID</string>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="icon">
-        <iconset resource="../Resources/resources.qrc">
-         <normaloff>:/flag_green.png</normaloff>:/flag_green.png</iconset>
+       <property name="checked">
+        <bool>false</bool>
        </property>
        <property name="autoRaise">
         <bool>true</bool>
@@ -230,83 +225,6 @@
       </spacer>
      </item>
     </layout>
-   </item>
-   <item>
-    <widget class="QWidget" name="jumpStrip" native="true">
-     <layout class="QHBoxLayout" name="horizontalLayout_3">
-      <property name="spacing">
-       <number>3</number>
-      </property>
-      <property name="leftMargin">
-       <number>6</number>
-      </property>
-      <property name="topMargin">
-       <number>0</number>
-      </property>
-      <property name="rightMargin">
-       <number>6</number>
-      </property>
-      <property name="bottomMargin">
-       <number>0</number>
-      </property>
-      <item>
-       <widget class="QLabel" name="label_3">
-        <property name="text">
-         <string/>
-        </property>
-        <property name="pixmap">
-         <pixmap resource="../Resources/resources.qrc">:/flag_green.png</pixmap>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="label_2">
-        <property name="text">
-         <string>Jump to Event</string>
-        </property>
-        <property name="textFormat">
-         <enum>Qt::PlainText</enum>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-        </property>
-        <property name="margin">
-         <number>0</number>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="RDLineEdit" name="jumpToEID">
-        <property name="minimumSize">
-         <size>
-          <width>0</width>
-          <height>20</height>
-         </size>
-        </property>
-        <property name="placeholderText">
-         <string>Event ID</string>
-        </property>
-        <property name="clearButtonEnabled">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QToolButton" name="closeJump">
-        <property name="text">
-         <string/>
-        </property>
-        <property name="icon">
-         <iconset resource="../Resources/resources.qrc">
-          <normaloff>:/cross.png</normaloff>:/cross.png</iconset>
-        </property>
-        <property name="autoRaise">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
    </item>
    <item>
     <widget class="QWidget" name="findStrip" native="true">

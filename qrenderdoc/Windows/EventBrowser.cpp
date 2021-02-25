@@ -184,14 +184,29 @@ struct EventItemModel : public QAbstractItemModel
     m_FindString = text;
     m_FindResults.clear();
 
+    bool eidSearch = false;
+    // if the user puts in @123
+    if(!text.isEmpty() && text[0] == QLatin1Char('@'))
+    {
+      eidSearch = true;
+      text = text.mid(1);
+    }
+
     bool eidOK = false;
     uint32_t eid = text.toUInt(&eidOK);
 
     // include EID in results first if the text parses as an integer
     if(eidOK && eid > 0 && eid < m_Draws.size())
-      m_FindResults.push_back(GetIndexForEID(eid));
+    {
+      // if the text doesn't exactly match the EID after converting back, don't treat this as an
+      // EID-only search
+      if(text.trimmed() != QString::number(eid))
+        eidSearch = false;
 
-    if(!m_FindString.isEmpty())
+      m_FindResults.push_back(GetIndexForEID(eid));
+    }
+
+    if(!m_FindString.isEmpty() && !eidSearch)
     {
       // do a depth-first search to find results
       AccumulateFindResults(createIndex(0, 0, TagRoot));
@@ -1777,7 +1792,6 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   m_delegate = new RichTextViewDelegate(ui->events);
   ui->events->setItemDelegate(m_delegate);
 
-  ui->jumpToEID->setFont(Formatter::PreferredFont());
   ui->find->setFont(Formatter::PreferredFont());
   ui->events->setFont(Formatter::PreferredFont());
 
@@ -1825,15 +1839,14 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   m_FilterTimeout->setSingleShot(true);
   connect(m_FilterTimeout, &QTimer::timeout, this, &EventBrowser::filter_apply);
 
-  QObject::connect(ui->closeFind, &QToolButton::clicked, this, &EventBrowser::on_HideFindJump);
-  QObject::connect(ui->closeJump, &QToolButton::clicked, this, &EventBrowser::on_HideFindJump);
-  QObject::connect(ui->closeFilter, &QToolButton::clicked, [this]() { ui->filterStrip->hide(); });
+  QObject::connect(ui->closeFind, &QToolButton::clicked, this, &EventBrowser::on_HideFind);
+  QObject::connect(ui->closeFilter, &QToolButton::clicked,
+                   [this]() { ui->filter->setChecked(false); });
   QObject::connect(ui->events, &RDTreeView::keyPress, this, &EventBrowser::events_keyPress);
   QObject::connect(ui->events->selectionModel(), &QItemSelectionModel::currentChanged, this,
                    &EventBrowser::events_currentChanged);
-  ui->jumpStrip->hide();
-  ui->findStrip->hide();
-  ui->filterStrip->hide();
+  on_find_toggled(false);
+  on_filter_toggled(false);
   ui->bookmarkStrip->hide();
 
   m_BookmarkStripLayout = new FlowLayout(ui->bookmarkStrip, 0, 3, 3);
@@ -1874,9 +1887,7 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
       });
 
   ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_Escape).toString(), ui->findStrip,
-                                        [this](QWidget *) { on_HideFindJump(); });
-  ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_Escape).toString(), ui->jumpStrip,
-                                        [this](QWidget *) { on_HideFindJump(); });
+                                        [this](QWidget *) { on_HideFind(); });
 
   ui->events->setContextMenuPolicy(Qt::CustomContextMenu);
   QObject::connect(ui->events, &RDTreeView::customContextMenuRequested, this,
@@ -1934,7 +1945,6 @@ EventBrowser::~EventBrowser()
       QKeySequence(Qt::Key_Right | Qt::ControlModifier).toString(), NULL);
 
   m_Ctx.GetMainWindow()->UnregisterShortcut(QString(), ui->findStrip);
-  m_Ctx.GetMainWindow()->UnregisterShortcut(QString(), ui->jumpStrip);
 
   m_Ctx.BuiltinWindowClosed(this);
   m_Ctx.RemoveCaptureViewer(this);
@@ -1960,7 +1970,6 @@ void EventBrowser::OnCaptureLoaded()
 
   ui->find->setEnabled(true);
   ui->filter->setEnabled(true);
-  ui->gotoEID->setEnabled(true);
   ui->timeDraws->setEnabled(true);
   ui->bookmark->setEnabled(true);
   ui->exportDraws->setEnabled(true);
@@ -1972,7 +1981,7 @@ void EventBrowser::OnCaptureClosed()
 {
   clearBookmarks();
 
-  on_HideFindJump();
+  on_HideFind();
 
   m_FilterModel->ResetCache();
   // older Qt versions lose all the sections when a model resets even if the sections don't change.
@@ -1983,7 +1992,6 @@ void EventBrowser::OnCaptureClosed()
 
   ui->find->setEnabled(false);
   ui->filter->setEnabled(false);
-  ui->gotoEID->setEnabled(false);
   ui->timeDraws->setEnabled(false);
   ui->bookmark->setEnabled(false);
   ui->exportDraws->setEnabled(false);
@@ -2000,24 +2008,18 @@ void EventBrowser::OnEventChanged(uint32_t eventId)
   m_Model->RefreshCache();
 }
 
-void EventBrowser::on_find_clicked()
+void EventBrowser::on_find_toggled(bool checked)
 {
-  ui->jumpStrip->hide();
-  ui->findStrip->show();
-  ui->findEvent->setFocus();
+  ui->findStrip->setVisible(checked);
+  if(checked)
+    ui->findEvent->setFocus();
 }
 
-void EventBrowser::on_filter_clicked()
+void EventBrowser::on_filter_toggled(bool checked)
 {
-  ui->filterStrip->show();
-  ui->filterExpression->setFocus();
-}
-
-void EventBrowser::on_gotoEID_clicked()
-{
-  ui->jumpStrip->show();
-  ui->findStrip->hide();
-  ui->jumpToEID->setFocus();
+  ui->filterStrip->setVisible(checked);
+  if(checked)
+    ui->filterExpression->setFocus();
 }
 
 void EventBrowser::on_bookmark_clicked()
@@ -2079,26 +2081,15 @@ void EventBrowser::events_currentChanged(const QModelIndex &current, const QMode
   highlightBookmarks();
 }
 
-void EventBrowser::on_HideFindJump()
+void EventBrowser::on_HideFind()
 {
-  ui->jumpStrip->hide();
   ui->findStrip->hide();
 
-  ui->jumpToEID->setText(QString());
+  ui->find->setChecked(false);
 
   ui->findEvent->setText(QString());
   m_Model->SetFindText(QString());
   updateFindResultsAvailable();
-}
-
-void EventBrowser::on_jumpToEID_returnPressed()
-{
-  bool ok = false;
-  uint eid = ui->jumpToEID->text().toUInt(&ok);
-  if(ok)
-  {
-    SelectEvent(eid);
-  }
 }
 
 void EventBrowser::findHighlight_timeout()
@@ -2450,19 +2441,15 @@ void EventBrowser::events_keyPress(QKeyEvent *event)
 
   if(event->modifiers() == Qt::ControlModifier)
   {
-    if(event->key() == Qt::Key_F)
+    // support Ctrl-G as a legacy shortcut, from the old 'goto EID' which was separate from find
+    if(event->key() == Qt::Key_F || event->key() == Qt::Key_G)
     {
-      on_find_clicked();
-      event->accept();
-    }
-    else if(event->key() == Qt::Key_G)
-    {
-      on_gotoEID_clicked();
+      on_find_toggled(true);
       event->accept();
     }
     else if(event->key() == Qt::Key_L)
     {
-      on_filter_clicked();
+      on_filter_toggled(true);
       event->accept();
     }
     else if(event->key() == Qt::Key_B)
