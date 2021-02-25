@@ -860,9 +860,6 @@ private:
   friend struct EventFilterModel;
 };
 
-using EventFilterCallback =
-    std::function<bool(uint32_t, const SDChunk *, const DrawcallDescription *, const rdcstr &)>;
-
 struct EventFilter
 {
   enum MatchType
@@ -872,16 +869,17 @@ struct EventFilter
     CantMatch
   };
 
-  EventFilter(EventFilterCallback c) : callback(c), type(Normal) {}
-  EventFilter(EventFilterCallback c, MatchType t) : callback(c), type(t) {}
-  EventFilterCallback callback;
+  EventFilter(IEventBrowser::EventFilterCallback c) : callback(c), type(Normal) {}
+  EventFilter(IEventBrowser::EventFilterCallback c, MatchType t) : callback(c), type(t) {}
+  IEventBrowser::EventFilterCallback callback;
   MatchType type;
 };
 
 static QMap<QString, DrawFlags> DrawFlagsLookup;
 
-bool EvaluateFilterSet(const rdcarray<EventFilter> &filters, bool all, uint32_t eid,
-                       const SDChunk *chunk, const DrawcallDescription *draw, QString name)
+bool EvaluateFilterSet(ICaptureContext &ctx, const rdcarray<EventFilter> &filters, bool all,
+                       uint32_t eid, const SDChunk *chunk, const DrawcallDescription *draw,
+                       QString name)
 {
   if(filters.empty())
     return true;
@@ -906,7 +904,7 @@ bool EvaluateFilterSet(const rdcarray<EventFilter> &filters, bool all, uint32_t 
     if(accept && !all && filter.type == EventFilter::Normal)
       continue;
 
-    bool match = filter.callback(eid, chunk, draw, name);
+    bool match = filter.callback(&ctx, rdcstr(), rdcstr(), eid, chunk, draw, name);
 
     // in normal mode, if it matches it should be included (unless a subsequent filter excludes
     // it)
@@ -957,15 +955,7 @@ static const SDObject *FindChildRecursively(const SDObject *parent, rdcstr name)
 struct EventFilterModel : public QSortFilterProxyModel
 {
 public:
-  EventFilterModel(ICaptureContext &ctx) : m_Ctx(ctx)
-  {
-    // default filter, include draws that aren't pop markers
-    m_Filters.push_back(
-        EventFilter([](uint32_t, const SDChunk *, const DrawcallDescription *draw, const rdcstr &) {
-          return (draw && !(draw->flags & DrawFlags::PopMarker));
-        }));
-  }
-
+  EventFilterModel(ICaptureContext &ctx) : m_Ctx(ctx) {}
   void ResetCache() { m_VisibleCache.clear(); }
   QString ParseExpression(QString expr)
   {
@@ -976,6 +966,27 @@ public:
       m_Filters.clear();
     invalidateFilter();
     return ret;
+  }
+
+  static bool RegisterEventFilterFunction(const rdcstr &name,
+                                          IEventBrowser::EventFilterCallback filter,
+                                          IEventBrowser::FilterParseCallback parser)
+  {
+    if(m_CustomFilters[name].first != NULL)
+    {
+      qCritical() << "Registering filter function" << QString(name)
+                  << "which is already registered.";
+      return false;
+    }
+
+    m_CustomFilters[name] = qMakePair(filter, parser);
+    return true;
+  }
+
+  static bool UnregisterEventFilterFunction(const rdcstr &name)
+  {
+    m_CustomFilters.remove(name);
+    return true;
   }
 
 protected:
@@ -1011,10 +1022,11 @@ protected:
     const SDChunk *chunk =
         (const SDChunk *)(sourceModel()->data(source_idx, ROLE_CHUNK).toULongLong());
     const DrawcallDescription *draw =
-        (const DrawcallDescription *)(sourceModel()->data(source_idx, ROLE_EXACT_DRAWCALL).toULongLong());
+        (const DrawcallDescription
+             *)(sourceModel()->data(source_idx, ROLE_GROUPED_DRAWCALL).toULongLong());
     QString name = source_idx.data(Qt::DisplayRole).toString();
 
-    m_VisibleCache[eid] = EvaluateFilterSet(m_Filters, false, eid, chunk, draw, name) ? 1 : -1;
+    m_VisibleCache[eid] = EvaluateFilterSet(m_Ctx, m_Filters, false, eid, chunk, draw, name);
     return m_VisibleCache[eid] > 0;
   }
 
@@ -1028,15 +1040,17 @@ private:
 
   rdcarray<EventFilter> m_Filters;
 
-  EventFilterCallback MakeLiteralMatcher(QString string)
+  IEventBrowser::EventFilterCallback MakeLiteralMatcher(QString string)
   {
     QString matchString = string.toLower();
-    return [matchString](uint32_t, const SDChunk *, const DrawcallDescription *, const rdcstr &name) {
+    return [matchString](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t,
+                         const SDChunk *, const DrawcallDescription *, const rdcstr &name) {
       return QString(name).toLower().contains(matchString);
     };
   }
 
-  EventFilterCallback MakeFunctionMatcher(QString name, QString parameters, QString &errors)
+  IEventBrowser::EventFilterCallback MakeFunctionMatcher(QString name, QString parameters,
+                                                         QString &errors)
   {
     // builtins
     if(name == lit("any"))
@@ -1054,9 +1068,9 @@ private:
           return NULL;
         }
 
-        return [filters](uint32_t eid, const SDChunk *chunk, const DrawcallDescription *draw,
-                         const rdcstr &name) {
-          return EvaluateFilterSet(filters, false, eid, chunk, draw, name);
+        return [filters](ICaptureContext *ctx, const rdcstr &, const rdcstr &, uint32_t eid,
+                         const SDChunk *chunk, const DrawcallDescription *draw, const rdcstr &name) {
+          return EvaluateFilterSet(*ctx, filters, false, eid, chunk, draw, name);
         };
       }
 
@@ -1076,9 +1090,9 @@ private:
           return NULL;
         }
 
-        return [filters](uint32_t eid, const SDChunk *chunk, const DrawcallDescription *draw,
-                         const rdcstr &name) {
-          return EvaluateFilterSet(filters, true, eid, chunk, draw, name);
+        return [filters](ICaptureContext *ctx, const rdcstr &, const rdcstr &, uint32_t eid,
+                         const SDChunk *chunk, const DrawcallDescription *draw, const rdcstr &name) {
+          return EvaluateFilterSet(*ctx, filters, true, eid, chunk, draw, name);
         };
       }
 
@@ -1098,10 +1112,9 @@ private:
       QString paramName = parameters.mid(0, idx).trimmed();
       QString paramValue = parameters.mid(idx + 1).trimmed();
 
-      ICaptureContext *ctx = &m_Ctx;
-
-      return [paramName, paramValue, ctx](uint32_t, const SDChunk *chunk,
-                                          const DrawcallDescription *, const rdcstr &) {
+      return [paramName, paramValue](ICaptureContext *ctx, const rdcstr &, const rdcstr &, uint32_t,
+                                     const SDChunk *chunk, const DrawcallDescription *,
+                                     const rdcstr &) {
         const SDObject *o = FindChildRecursively(chunk, paramName);
 
         if(!o)
@@ -1169,22 +1182,28 @@ private:
       switch(operators.indexOf(params[1]))
       {
         case 0:
-          return [eid](uint32_t eventId, const SDChunk *, const DrawcallDescription *draw,
+          return [eid](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
+                       const SDChunk *, const DrawcallDescription *draw,
                        const rdcstr &) { return eventId == eid; };
         case 1:
-          return [eid](uint32_t eventId, const SDChunk *, const DrawcallDescription *draw,
+          return [eid](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
+                       const SDChunk *, const DrawcallDescription *draw,
                        const rdcstr &) { return eventId != eid; };
         case 2:
-          return [eid](uint32_t eventId, const SDChunk *, const DrawcallDescription *draw,
+          return [eid](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
+                       const SDChunk *, const DrawcallDescription *draw,
                        const rdcstr &) { return eventId < eid; };
         case 3:
-          return [eid](uint32_t eventId, const SDChunk *, const DrawcallDescription *draw,
+          return [eid](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
+                       const SDChunk *, const DrawcallDescription *draw,
                        const rdcstr &) { return eventId > eid; };
         case 4:
-          return [eid](uint32_t eventId, const SDChunk *, const DrawcallDescription *draw,
+          return [eid](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
+                       const SDChunk *, const DrawcallDescription *draw,
                        const rdcstr &) { return eventId <= eid; };
         case 5:
-          return [eid](uint32_t eventId, const SDChunk *, const DrawcallDescription *draw,
+          return [eid](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
+                       const SDChunk *, const DrawcallDescription *draw,
                        const rdcstr &) { return eventId >= eid; };
         default:
           errors = tr("Internal error, unexpected operator %1", "EventFilterModel").arg(params[1]);
@@ -1198,9 +1217,9 @@ private:
 
       // no parameters, just return if it's a draw
       if(params.isEmpty())
-        return [](uint32_t, const SDChunk *, const DrawcallDescription *draw, const rdcstr &) {
-          return draw != NULL;
-        };
+        return [](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
+                  const SDChunk *, const DrawcallDescription *draw,
+                  const rdcstr &) { return draw->eventId == eventId; };
 
       // we upcast to int64_t so we can compare both unsigned and signed values without losing any
       // precision (we don't have any uint64_ts to compare)
@@ -1278,23 +1297,41 @@ private:
         switch(operators.indexOf(params[1]))
         {
           case 0:
-            return [propGetter, value](uint32_t, const SDChunk *, const DrawcallDescription *draw,
-                                       const rdcstr &) { return draw && propGetter(draw) == value; };
+            return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
+                                       uint32_t eventId, const SDChunk *,
+                                       const DrawcallDescription *draw, const rdcstr &) {
+              return draw->eventId == eventId && propGetter(draw) == value;
+            };
           case 1:
-            return [propGetter, value](uint32_t, const SDChunk *, const DrawcallDescription *draw,
-                                       const rdcstr &) { return draw && propGetter(draw) != value; };
+            return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
+                                       uint32_t eventId, const SDChunk *,
+                                       const DrawcallDescription *draw, const rdcstr &) {
+              return draw->eventId == eventId && propGetter(draw) != value;
+            };
           case 2:
-            return [propGetter, value](uint32_t, const SDChunk *, const DrawcallDescription *draw,
-                                       const rdcstr &) { return draw && propGetter(draw) < value; };
+            return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
+                                       uint32_t eventId, const SDChunk *,
+                                       const DrawcallDescription *draw, const rdcstr &) {
+              return draw->eventId == eventId && propGetter(draw) < value;
+            };
           case 3:
-            return [propGetter, value](uint32_t, const SDChunk *, const DrawcallDescription *draw,
-                                       const rdcstr &) { return draw && propGetter(draw) > value; };
+            return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
+                                       uint32_t eventId, const SDChunk *,
+                                       const DrawcallDescription *draw, const rdcstr &) {
+              return draw->eventId == eventId && propGetter(draw) > value;
+            };
           case 4:
-            return [propGetter, value](uint32_t, const SDChunk *, const DrawcallDescription *draw,
-                                       const rdcstr &) { return draw && propGetter(draw) <= value; };
+            return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
+                                       uint32_t eventId, const SDChunk *,
+                                       const DrawcallDescription *draw, const rdcstr &) {
+              return draw->eventId == eventId && propGetter(draw) <= value;
+            };
           case 5:
-            return [propGetter, value](uint32_t, const SDChunk *, const DrawcallDescription *draw,
-                                       const rdcstr &) { return draw && propGetter(draw) >= value; };
+            return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
+                                       uint32_t eventId, const SDChunk *,
+                                       const DrawcallDescription *draw, const rdcstr &) {
+              return draw->eventId == eventId && propGetter(draw) >= value;
+            };
           default:
             errors = tr("Internal error, unexpected operator %1", "EventFilterModel").arg(params[1]);
             return NULL;
@@ -1355,9 +1392,9 @@ private:
           flags |= it.value();
         }
 
-        return [flags](uint32_t, const SDChunk *, const DrawcallDescription *draw, const rdcstr &) {
-          return draw && (draw->flags & flags);
-        };
+        return [flags](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
+                       const SDChunk *, const DrawcallDescription *draw,
+                       const rdcstr &) { return draw->eventId == eventId && (draw->flags & flags); };
       }
       else
       {
@@ -1365,6 +1402,25 @@ private:
                      .arg(parameters);
         return NULL;
       }
+    }
+
+    if(m_CustomFilters.contains(name))
+    {
+      IEventBrowser::EventFilterCallback innerFilter = m_CustomFilters[name].first;
+      IEventBrowser::FilterParseCallback innerParser = m_CustomFilters[name].second;
+
+      rdcstr n = name;
+      rdcstr p = parameters;
+
+      errors = innerParser(&m_Ctx, n, p);
+      if(!errors.isEmpty())
+        return NULL;
+
+      return [n, p, innerFilter](ICaptureContext *ctx, const rdcstr &, const rdcstr &, uint32_t eid,
+                                 const SDChunk *chunk, const DrawcallDescription *draw,
+                                 const rdcstr &name) {
+        return innerFilter(ctx, n, p, eid, chunk, draw, name);
+      };
     }
 
     errors = tr("Unknown filter function $%1", "EventFilterModel").arg(name);
@@ -1611,7 +1667,7 @@ private:
                 .arg(expr[pos + 1]);
 
           QString errors;
-          EventFilterCallback filter = MakeFunctionMatcher(s, params, errors);
+          IEventBrowser::EventFilterCallback filter = MakeFunctionMatcher(s, params, errors);
 
           if(!filter)
           {
@@ -1673,7 +1729,15 @@ private:
 
     return errorString;
   }
+
+  // static so we don't lose this when the event browser is closed and the model is deleted. We
+  // could store this in the capture context but it makes more sense logically to keep it here.
+  static QMap<QString, QPair<IEventBrowser::EventFilterCallback, IEventBrowser::FilterParseCallback>>
+      m_CustomFilters;
 };
+
+QMap<QString, QPair<IEventBrowser::EventFilterCallback, IEventBrowser::FilterParseCallback>>
+    EventFilterModel::m_CustomFilters;
 
 static bool textEditControl(QWidget *sender)
 {
@@ -1828,6 +1892,13 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   }
 
   OnCaptureClosed();
+
+  // set default filter, include only draws that aren't pop markers
+  ui->filterExpression->setText(lit("$draw() -$draw(flags & PopMarker)"));
+
+  if(m_FilterTimeout->isActive())
+    m_FilterTimeout->stop();
+
   filter_apply();
 
   m_redPalette = palette();
@@ -2609,4 +2680,15 @@ APIEvent EventBrowser::GetAPIEventForEID(uint32_t eid)
 const DrawcallDescription *EventBrowser::GetDrawcallForEID(uint32_t eid)
 {
   return m_Model->GetDrawcallForEID(eid);
+}
+
+bool EventBrowser::RegisterEventFilterFunction(const rdcstr &name, EventFilterCallback filter,
+                                               FilterParseCallback parser)
+{
+  return EventFilterModel::RegisterEventFilterFunction(name, filter, parser);
+}
+
+bool EventBrowser::UnregisterEventFilterFunction(const rdcstr &name)
+{
+  return EventFilterModel::UnregisterEventFilterFunction(name);
 }

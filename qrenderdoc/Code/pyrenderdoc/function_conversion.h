@@ -251,10 +251,13 @@ struct varfunc
 
     PyObject *result = PyObject_Call(func, args, 0);
 
-    if(result == NULL)
-      HandleCallbackFailure(global_handle, exHandle);
-
     Py_DECREF(args);
+
+    if(result == NULL)
+    {
+      HandleCallbackFailure(global_handle, exHandle);
+      return rettype();
+    }
 
     return get_return<rettype>(funcname, result, global_handle, exHandle);
   }

@@ -103,7 +103,7 @@ struct TypeConversion<Opaque *, false>
     if(cached_type_info)
       return cached_type_info;
 
-    rdcstr baseTypeName = TypeName<Opaque>();
+    rdcstr baseTypeName = TypeName<typename std::remove_const<Opaque>::type>();
     baseTypeName += " *";
     cached_type_info = SWIG_TypeQuery(baseTypeName.c_str());
 
@@ -124,7 +124,7 @@ struct TypeConversion<Opaque *, false>
     return res;
   }
 
-  static PyObject *ConvertToPy(const Opaque *&in)
+  static PyObject *ConvertToPy(const Opaque *in)
   {
     swig_type_info *type_info = GetTypeInfo();
     if(type_info == NULL)
@@ -132,8 +132,6 @@ struct TypeConversion<Opaque *, false>
 
     return SWIG_InternalNewPointerObj((void *)in, type_info, 0);
   }
-
-  static PyObject *ConvertToPy(Opaque *in) { return ConvertToPy((const Opaque *&)in); }
 };
 
 // specialisations for basic types

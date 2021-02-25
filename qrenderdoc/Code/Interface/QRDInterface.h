@@ -194,9 +194,49 @@ protected:
 
 DECLARE_REFLECTION_STRUCT(IMainWindow);
 
-DOCUMENT("The event browser window.");
+DOCUMENT(R"(The event browser window.
+
+.. function:: EventFilterCallback(context, filter, params, eventId, chunk, draw, name)
+
+  Not a member function - the signature for any ``EventFilterCallback`` callbacks.
+
+  Called for each event in a capture when performing filtering in the Event Browser. The associated
+  ``FilterParseCallback`` will be called first to parse the parameters, and is available for caching
+  or syntax checking. The same filter name and params string will be passed to this function.
+
+  :param CaptureContext context: The current capture context.
+  :param str filter: The name of the filter function.
+  :param str params: The parameters to the filter function.
+  :param int eventId: The event's :data:`eventId <renderdoc.APIEvent.eventId>`.
+  :param renderdoc.SDChunk chunk: The structured data chunk for this event.
+  :param renderdoc.DrawcallDescription draw: The drawcall that contains this event. If the event is
+    the draw itself then the event ID will be equal.
+  :param str name: The name of the event as shown in the event browser, for string-based filtering.
+  :return: Whether or not this event matches the filter
+  :rtype: bool
+
+.. function:: FilterParseCallback(context, filter, params)
+
+  Not a member function - the signature for any ``FilterParseCallback`` callbacks.
+
+  Called once when the filter changes, to allow parsing any any data caching, as well as reporting
+  of errors in the filter usage.
+
+  :param CaptureContext context: The current capture context.
+  :param str filter: The name of the filter function.
+  :param str params: The parameters to the filter function.
+  :return: An empty string if the parse succeeded, otherwise any error messages to be displayed to
+    the user, such as syntax or other errors.
+  :rtype: str
+)");
 struct IEventBrowser
 {
+  typedef std::function<bool(ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t,
+                             const SDChunk *, const DrawcallDescription *, const rdcstr &)>
+      EventFilterCallback;
+
+  typedef std::function<rdcstr(ICaptureContext *, const rdcstr &, const rdcstr &)> FilterParseCallback;
+
   DOCUMENT(R"(Retrieves the PySide2 QWidget for this :class:`EventBrowser` if PySide2 is available, or otherwise
 returns a unique opaque pointer that can be passed back to any RenderDoc functions expecting a
 QWidget.
@@ -233,6 +273,37 @@ If no capture is loaded or the EID doesn't correspond to a known event, ``None``
 :rtype: renderdoc.DrawcallDescription
 )");
   virtual const DrawcallDescription *GetDrawcallForEID(uint32_t eventId) = 0;
+
+  DOCUMENT(R"(Registers a new event browser filter function.
+
+Filter functions are available as $name() so long as they don't shadow an existing function. The
+filter callback will be called for each event to filter.
+
+The parser callback will be called once when a filter is first specified or the parameters change.
+Note that a filter can be used multiple times in a filter expression! For this reason the parser
+may be called multiple times and the filter callback takes the parameters string. If any expensive
+work is done then the parameters can be used as a cache key to cache any data once per filter
+expression.
+
+:param str name: The name of the filter function.
+:param EventFilterCallback filter: The callback to call for each candidate event to perform
+  filtering.
+:param FilterParseCallback parser: The callback to call when the parsing the parameters and checking
+  for any errors.
+:return: Whether or not the registration was successful.
+:rtype: bool
+)");
+  virtual bool RegisterEventFilterFunction(const rdcstr &name, EventFilterCallback filter,
+                                           FilterParseCallback parser) = 0;
+
+  DOCUMENT(R"(Unregisters an event browser filter function that was previously registered.
+
+:param str name: The name of the filter function.
+
+:return: Whether or not the unregistration was successful.
+:rtype: bool
+)");
+  virtual bool UnregisterEventFilterFunction(const rdcstr &name) = 0;
 
 protected:
   IEventBrowser() = default;
