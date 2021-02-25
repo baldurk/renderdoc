@@ -184,6 +184,13 @@ struct EventItemModel : public QAbstractItemModel
     m_FindString = text;
     m_FindResults.clear();
 
+    bool eidOK = false;
+    uint32_t eid = text.toUInt(&eidOK);
+
+    // include EID in results first if the text parses as an integer
+    if(eidOK && eid > 0 && eid < m_Draws.size())
+      m_FindResults.push_back(GetIndexForEID(eid));
+
     if(!m_FindString.isEmpty())
     {
       // do a depth-first search to find results
