@@ -41,7 +41,7 @@ RD_TEST(GL_Simple_Triangle, OpenGLGraphicsTest)
 
     GLuint vb = MakeBuffer();
     glBindBuffer(GL_ARRAY_BUFFER, vb);
-    glBufferStorage(GL_ARRAY_BUFFER, sizeof(DefaultTri), DefaultTri, 0);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(DefaultTri), DefaultTri, GL_STATIC_DRAW);
 
     ConfigureDefaultVAO();
 
@@ -52,12 +52,21 @@ RD_TEST(GL_Simple_Triangle, OpenGLGraphicsTest)
     glBindTexture(GL_TEXTURE_2D, tex);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, 4, 4);
 
+    float col[] = {0.8f, 0.2f, 0.9f, 1.0f};
+    float textureColourData[4 * 4 * 4];
+    for(auto i = 0; i < 4 * 4; ++i)
+    {
+      for(auto c = 0; c < 4; ++c)
+        textureColourData[i * 4 + c] = col[c];
+    }
+
     while(Running())
     {
       float col[] = {0.2f, 0.2f, 0.2f, 1.0f};
       glClearBufferfv(GL_COLOR, 0, col);
 
-      glClearTexImage(tex, 0, GL_RGBA, GL_FLOAT, col);
+      glBindTexture(GL_TEXTURE_2D, tex);
+      glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 4, 4, GL_RGBA, GL_FLOAT, textureColourData);
 
       glBindVertexArray(vao);
 
