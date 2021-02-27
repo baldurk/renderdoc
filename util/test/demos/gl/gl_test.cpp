@@ -27,7 +27,7 @@
 
 static std::string common = R"EOSHADER(
 
-#version 420 core
+#version 410 core
 
 #define v2f v2f_block \
 {                     \
