@@ -69,6 +69,8 @@ Stackwalk *Create()
 
 bool GetLoadedModules(byte *buf, size_t &size)
 {
+  size = 0;
+
   if(buf)
     memcpy(buf, "APPLCALL", 8);
 
