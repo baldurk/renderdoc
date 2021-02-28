@@ -59,7 +59,7 @@ target_link_libraries(_qrenderdoc PRIVATE renderdoc)
 
 # Don't prefix with lib, python expects a bare .so.
 # Also rename to non-underscore due to this (We couldn't call the
-# python library 'renderdoc' since htat would clash with the
+# python library 'renderdoc' since that would clash with the
 # prefixed target)
 set_target_properties(_renderdoc PROPERTIES PREFIX "")
 set_target_properties(_qrenderdoc PROPERTIES PREFIX "")
