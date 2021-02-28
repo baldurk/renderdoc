@@ -26,13 +26,11 @@ elseif(APPLE)
         PRIVATE -lm
         PRIVATE -ldl)
 
-    if(ENABLE_VULKAN)
-        find_library(COCOA_LIBRARY Cocoa)
-        list(APPEND RDOC_LIBRARIES PRIVATE ${COCOA_LIBRARY})
+    find_library(COCOA_LIBRARY Cocoa)
+    list(APPEND RDOC_LIBRARIES PRIVATE ${COCOA_LIBRARY})
 
-        find_library(QUARTZCORE_LIBRARY QuartzCore)
-        list(APPEND RDOC_LIBRARIES PRIVATE ${QUARTZCORE_LIBRARY})
-    endif()
+    find_library(QUARTZCORE_LIBRARY QuartzCore)
+    list(APPEND RDOC_LIBRARIES PRIVATE ${QUARTZCORE_LIBRARY})
 
     if(ENABLE_GL)
         find_library(OPENGL_LIBRARY OpenGL)
