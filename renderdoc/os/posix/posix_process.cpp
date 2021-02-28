@@ -754,7 +754,7 @@ rdcpair<ReplayStatus, uint32_t> Process::LaunchAndInjectIntoProcess(
 
 // on macOS, the path must be absolute
 #if ENABLED(RDOC_APPLE)
-  libfile = libpath + "/" + libfile;
+  FileIO::GetLibraryFilename(libfile);
 #endif
 
   rdcstr optstr = opts.EncodeAsString();
