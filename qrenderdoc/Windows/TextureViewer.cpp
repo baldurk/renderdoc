@@ -974,7 +974,7 @@ void TextureViewer::UI_UpdateStatusText()
   uint32_t mipWidth = qMax(1U, tex.width >> (int)m_TexDisplay.subresource.mip);
   uint32_t mipHeight = qMax(1U, tex.height >> (int)m_TexDisplay.subresource.mip);
 
-  if(m_Ctx.APIProps().pipelineType == GraphicsAPI::OpenGL)
+  if(ShouldFlipForGL())
     y = (int)(mipHeight - 1) - y;
   if(m_TexDisplay.flipY)
     y = (int)(mipHeight - 1) - y;
@@ -1010,7 +1010,7 @@ void TextureViewer::UI_UpdateStatusText()
   {
     x = m_PickedPoint.x() >> (int)m_TexDisplay.subresource.mip;
     y = m_PickedPoint.y() >> (int)m_TexDisplay.subresource.mip;
-    if(m_Ctx.APIProps().pipelineType == GraphicsAPI::OpenGL)
+    if(ShouldFlipForGL())
       y = (int)(mipHeight - 1) - y;
     if(m_TexDisplay.flipY)
       y = (int)(mipHeight - 1) - y;
@@ -2158,10 +2158,10 @@ void TextureViewer::GotoLocation(uint32_t x, uint32_t y)
 
   m_PickedPoint = QPoint(x, y);
 
-  if(m_Ctx.APIProps().pipelineType == GraphicsAPI::OpenGL)
+  if(ShouldFlipForGL())
     m_PickedPoint.setY((int)(tex->height - 1) - m_PickedPoint.y());
   if(m_TexDisplay.flipY)
-    m_PickedPoint.setY((int)(tex->height - 1) - m_PickedPoint.x());
+    m_PickedPoint.setY((int)(tex->height - 1) - m_PickedPoint.y());
 
   // centre the picked point.
   QPoint scrollPos;
@@ -3831,13 +3831,24 @@ void TextureViewer::ShowGotoPopup()
 
     uint32_t mipHeight = qMax(1U, texptr->height >> (int)m_TexDisplay.subresource.mip);
 
-    if(m_Ctx.APIProps().pipelineType == GraphicsAPI::OpenGL)
+    if(ShouldFlipForGL())
       p.setY((int)(mipHeight - 1) - p.y());
     if(m_TexDisplay.flipY)
       p.setY((int)(mipHeight - 1) - p.y());
 
     m_Goto->show(ui->render, p);
   }
+}
+
+bool TextureViewer::ShouldFlipForGL()
+{
+  if(m_Ctx.APIProps().pipelineType == GraphicsAPI::OpenGL)
+  {
+    // lower left is the default clip origin, which needs the Y flip
+    return m_Ctx.CurGLPipelineState()->vertexProcessing.clipOriginLowerLeft;
+  }
+
+  return false;
 }
 
 void TextureViewer::on_viewTexBuffer_clicked()

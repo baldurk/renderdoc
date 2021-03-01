@@ -307,6 +307,8 @@ private:
 
   void ShowGotoPopup();
 
+  bool ShouldFlipForGL();
+
   void UI_UpdateFittedScale();
   void UI_SetScale(float s);
   void UI_SetScale(float s, int x, int y);
