@@ -753,10 +753,15 @@ void D3D11DebugManager::FillWithDiscardPattern(DiscardType type, ID3D11Resource 
     for(UINT z = 0; z < RDCMAX(1U, desc.Depth >> subresource); z++)
       FillWithDiscardPattern(type, res, z, subresource, pRect, NumRects);
   }
-  else
+  else if(WrappedID3D11Buffer::IsAlloc(res))
   {
     // buffer
     FillWithDiscardPattern(type, res, 0, 0, pRect, NumRects);
+  }
+  else
+  {
+    RDCERR("Unknown resource type being discarded");
+    return;
   }
 }
 
@@ -784,6 +789,11 @@ void D3D11DebugManager::FillWithDiscardPattern(DiscardType type, ID3D11View *vie
   {
     range = ResourceRange((WrappedID3D11DepthStencilView *)view);
   }
+  else
+  {
+    RDCERR("Unknown view type being discarded");
+    return;
+  }
 
   ID3D11Resource *res = range.GetResource();
   UINT numMips = 1;
@@ -809,6 +819,11 @@ void D3D11DebugManager::FillWithDiscardPattern(DiscardType type, ID3D11View *vie
     ((WrappedID3D11Texture3D1 *)res)->GetDesc(&desc);
     numMips = desc.MipLevels;
     tex3D = true;
+  }
+  else
+  {
+    RDCERR("View of unknown resource type being discarded");
+    return;
   }
 
   rdcarray<D3D11_RECT> rects;
