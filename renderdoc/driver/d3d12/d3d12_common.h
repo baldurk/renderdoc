@@ -459,6 +459,8 @@ struct D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC
   // construct from the stream descriptor
   D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(const D3D12_PIPELINE_STATE_STREAM_DESC &stream);
 
+  bool errored = false;
+
   // graphics properties
   ID3D12RootSignature *pRootSignature = NULL;
   D3D12_SHADER_BYTECODE VS = {};

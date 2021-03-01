@@ -1167,6 +1167,26 @@ D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC::D3D12_EXPANDED_PIPELINE_STATE_STREAM_
         ITER_ADV(D3D12_VIEW_INSTANCING_DESC);
         break;
       }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_AS:
+      {
+        if(ptr->data.shader.BytecodeLength > 0)
+        {
+          RDCERR("AS passed to D3D12_PIPELINE_STATE_STREAM_DESC but mesh shaders not supported");
+          errored = true;
+        }
+        ITER_ADV(D3D12_SHADER_BYTECODE);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_MS:
+      {
+        if(ptr->data.shader.BytecodeLength > 0)
+        {
+          RDCERR("MS passed to D3D12_PIPELINE_STATE_STREAM_DESC but mesh shaders not supported");
+          errored = true;
+        }
+        ITER_ADV(D3D12_SHADER_BYTECODE);
+        break;
+      }
       default:
       {
         RDCERR("Unknown subobject type %d", obj->type);

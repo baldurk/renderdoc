@@ -194,6 +194,9 @@ HRESULT WrappedID3D12Device::CreatePipelineState(const D3D12_PIPELINE_STATE_STRE
   D3D12_PACKED_PIPELINE_STATE_STREAM_DESC unwrappedDesc = expandedDesc;
   unwrappedDesc.Unwrap();
 
+  if(expandedDesc.errored)
+    return E_INVALIDARG;
+
   if(ppPipelineState == NULL)
     return m_pDevice3->CreatePipelineState(unwrappedDesc.AsDescStream(), riid, ppPipelineState);
 
