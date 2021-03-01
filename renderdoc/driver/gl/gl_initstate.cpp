@@ -1252,55 +1252,55 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
       // eventually get one to work that's fine.
       m_Driver->SuppressDebugMessages(true);
 
-      rdcarray<const char *> vertexOutputsPtr;
-      vertexOutputsPtr.resize(vertexOutputs.size());
-      for(size_t i = 0; i < vertexOutputs.size(); i++)
-        vertexOutputsPtr[i] = vertexOutputs[i].c_str();
-
-      if(!IsProgramSPIRV)
-        drv.glTransformFeedbackVaryings(initProg, (GLsizei)vertexOutputsPtr.size(),
-                                        &vertexOutputsPtr[0], eGL_INTERLEAVED_ATTRIBS);
-      drv.glLinkProgram(initProg);
-
-      GLint status = 0;
-      drv.glGetProgramiv(initProg, eGL_LINK_STATUS, &status);
-
-      // if it failed to link, first remove the varyings hack above as maybe the driver is barfing
-      // on trying to make some output a varying
-      if(status == 0 && !IsProgramSPIRV)
+      if(numShaders)
       {
-        drv.glTransformFeedbackVaryings(initProg, 0, NULL, eGL_INTERLEAVED_ATTRIBS);
+        rdcarray<const char *> vertexOutputsPtr;
+        vertexOutputsPtr.resize(vertexOutputs.size());
+        for(size_t i = 0; i < vertexOutputs.size(); i++)
+          vertexOutputsPtr[i] = vertexOutputs[i].c_str();
+
+        if(!IsProgramSPIRV)
+          drv.glTransformFeedbackVaryings(initProg, (GLsizei)vertexOutputsPtr.size(),
+                                          &vertexOutputsPtr[0], eGL_INTERLEAVED_ATTRIBS);
         drv.glLinkProgram(initProg);
 
+        GLint status = 0;
         drv.glGetProgramiv(initProg, eGL_LINK_STATUS, &status);
-      }
 
-      // if it failed to link, try again as a separable program.
-      // we can't do this by default because of the silly rules meaning
-      // shaders need fixup to be separable-compatible.
-      if(status == 0)
-      {
-        drv.glProgramParameteri(initProg, eGL_PROGRAM_SEPARABLE, 1);
-        drv.glLinkProgram(initProg);
-
-        drv.glGetProgramiv(initProg, eGL_LINK_STATUS, &status);
-      }
-
-      m_Driver->SuppressDebugMessages(false);
-
-      if(status == 0)
-      {
-        if(numShaders == 0)
+        // if it failed to link, first remove the varyings hack above as maybe the driver is barfing
+        // on trying to make some output a varying
+        if(status == 0 && !IsProgramSPIRV)
         {
-          RDCWARN("No shaders attached to program");
+          drv.glTransformFeedbackVaryings(initProg, 0, NULL, eGL_INTERLEAVED_ATTRIBS);
+          drv.glLinkProgram(initProg);
+
+          drv.glGetProgramiv(initProg, eGL_LINK_STATUS, &status);
         }
-        else
+
+        // if it failed to link, try again as a separable program.
+        // we can't do this by default because of the silly rules meaning
+        // shaders need fixup to be separable-compatible.
+        if(status == 0)
+        {
+          drv.glProgramParameteri(initProg, eGL_PROGRAM_SEPARABLE, 1);
+          drv.glLinkProgram(initProg);
+
+          drv.glGetProgramiv(initProg, eGL_LINK_STATUS, &status);
+        }
+
+        if(status == 0)
         {
           char buffer[1025] = {0};
           drv.glGetProgramInfoLog(initProg, 1024, NULL, buffer);
           RDCERR("Link error: %s", buffer);
         }
       }
+      else
+      {
+        RDCWARN("No shaders attached to program");
+      }
+
+      m_Driver->SuppressDebugMessages(false);
 
       // normally we'd serialise programs and uniforms into the initial state program, but on some
       // drivers uniform locations can change between it and the live program, so we serialise the
