@@ -62,6 +62,8 @@ struct GLPostVSData
     GLuint idxBuf = 0;
     uint32_t idxByteWidth = 0;
 
+    bool flipY = false;
+
     bool hasPosOut = false;
 
     float nearPlane = 0.0f;

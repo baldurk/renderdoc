@@ -739,6 +739,17 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   if(HasExt[ARB_transform_feedback2])
     drv.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, DebugData.feedbackObj);
 
+  bool flipY = false;
+
+  if(HasExt[ARB_clip_control])
+  {
+    GLenum clipOrigin = eGL_LOWER_LEFT;
+    GL.glGetIntegerv(eGL_CLIP_ORIGIN, (GLint *)&clipOrigin);
+
+    if(clipOrigin == eGL_UPPER_LEFT)
+      flipY = true;
+  }
+
   GLuint idxBuf = 0;
 
   if(vsRefl->outputSignature.empty())
@@ -1867,6 +1878,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
       m_PostVSData[eventId].gsout.useIndices = false;
 
+      m_PostVSData[eventId].gsout.flipY = flipY;
+
       m_PostVSData[eventId].gsout.hasPosOut = hasPosition;
 
       m_PostVSData[eventId].gsout.idxBuf = 0;
@@ -1876,6 +1889,10 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
       m_PostVSData[eventId].gsout.instData = instData;
     }
+  }
+  else
+  {
+    m_PostVSData[eventId].vsout.flipY = flipY;
   }
 
   // delete temporary program we made
@@ -1988,6 +2005,8 @@ MeshFormat GLReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint32_
   ret.unproject = s.hasPosOut;
   ret.nearPlane = s.nearPlane;
   ret.farPlane = s.farPlane;
+
+  ret.flipY = s.flipY;
 
   if(instID < s.instData.size())
   {
