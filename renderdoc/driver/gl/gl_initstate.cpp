@@ -414,6 +414,8 @@ void GLResourceManager::ContextPrepare_InitialState(GLResource res)
 
       if(HasExt[ARB_texture_filter_anisotropic])
         GL.glGetSamplerParameterfv(res.name, eGL_TEXTURE_MAX_ANISOTROPY, &data.maxAniso);
+      else
+        data.maxAniso = 1.0f;
 
       // technically border color has been in since GL 1.0, but since this extension was really
       // early and dovetails nicely with OES_texture_border_color which added both border colors and
@@ -716,6 +718,8 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
       if(HasExt[ARB_texture_filter_anisotropic])
         GL.glGetTextureParameterfvEXT(res.name, details.curType, eGL_TEXTURE_MAX_ANISOTROPY,
                                       &state.maxAniso);
+      else
+        state.maxAniso = 1.0f;
 
       // CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
       if(state.wrap[0] == eGL_CLAMP)
@@ -2155,7 +2159,7 @@ void GLResourceManager::Apply_InitialState(GLResource live, const GLInitialConte
           GL.glTextureParameterfvEXT(live.name, details.curType, eGL_TEXTURE_LOD_BIAS,
                                      &state.lodBias);
 
-        if(HasExt[ARB_texture_filter_anisotropic])
+        if(HasExt[ARB_texture_filter_anisotropic] && state.maxAniso >= 1.0f)
           GL.glTextureParameterfvEXT(live.name, details.curType, eGL_TEXTURE_MAX_ANISOTROPY,
                                      &state.maxAniso);
         if(details.curType != eGL_TEXTURE_RECTANGLE)
@@ -2390,7 +2394,7 @@ void GLResourceManager::Apply_InitialState(GLResource live, const GLInitialConte
         GL.glSamplerParameterf(live.name, eGL_TEXTURE_MAX_LOD, data.maxLod);
         if(!IsGLES)
           GL.glSamplerParameterf(live.name, eGL_TEXTURE_LOD_BIAS, data.lodBias);
-        if(HasExt[ARB_texture_filter_anisotropic])
+        if(HasExt[ARB_texture_filter_anisotropic] && data.maxAniso >= 1.0f)
           GL.glSamplerParameterf(live.name, eGL_TEXTURE_MAX_ANISOTROPY, data.maxAniso);
 
         // see fetch in PrepareTextureInitialContents
