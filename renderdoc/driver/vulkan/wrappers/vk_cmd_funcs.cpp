@@ -1479,7 +1479,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
 
           rdcarray<VkClearAttachment> clearatts;
           rdcarray<VkClearRect> clearrects;
-          RDCASSERT(unwrappedInfo.clearValueCount <= (uint32_t)rpinfo.attachments.size(),
+          RDCASSERT(unwrappedInfo.clearValueCount >= (uint32_t)rpinfo.attachments.size(),
                     unwrappedInfo.clearValueCount, rpinfo.attachments.size());
           for(int32_t c = 0; c < rpinfo.subpasses[0].colorAttachments.count() + 1; c++)
           {
