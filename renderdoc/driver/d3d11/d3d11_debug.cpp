@@ -820,6 +820,10 @@ void D3D11DebugManager::FillWithDiscardPattern(DiscardType type, ID3D11View *vie
     numMips = desc.MipLevels;
     tex3D = true;
   }
+  else if(WrappedID3D11Buffer::IsAlloc(res))
+  {
+    // nothing to do, just pass
+  }
   else
   {
     RDCERR("View of unknown resource type being discarded");
