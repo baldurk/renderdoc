@@ -357,6 +357,10 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
   {                                                                       \
     Avail = "Required physical device feature '" #a "' is not supported"; \
     return;                                                               \
+  }                                                                       \
+  if(optFeatures.a && supported.a)                                        \
+  {                                                                       \
+    features.a = VK_TRUE;                                                 \
   }
 
   CHECK_FEATURE(robustBufferAccess);
