@@ -17,6 +17,8 @@ class GL_Entry_Points(rdtest.TestCase):
 
         for test in expected.keys():
             marker: rd.DrawcallDescription = self.find_draw(test)
+            if marker is None:
+                raise rdtest.TestFailureException('Failed to find draw {}'.format(test))
             draw: rd.DrawcallDescription = marker.next
 
             calls = []
