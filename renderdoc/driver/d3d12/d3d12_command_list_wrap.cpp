@@ -3594,9 +3594,14 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
   idx++;
   eid++;
 
-  RDCASSERT(draws[idx].state);
+  D3D12RenderState state;
 
-  D3D12RenderState state = *draws[idx].state;
+  if(count > 0)
+  {
+    RDCASSERT(draws[idx].state);
+
+    state = *draws[idx].state;
+  }
 
   SDChunk *baseChunk = m_Cmd->m_StructuredFile->chunks[draws[idx].draw.events[0].chunkIndex];
 
