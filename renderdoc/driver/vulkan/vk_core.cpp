@@ -1351,6 +1351,8 @@ void WrappedVulkan::FilterToSupportedExtensions(rdcarray<VkExtensionProperties> 
   }
 }
 
+static bool filterWarned = false;
+
 VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev,
                                                         const char *pLayerName,
                                                         uint32_t *pPropertyCount,
@@ -1404,7 +1406,7 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
             // supported, don't remove
             return false;
           }
-          else
+          else if(!filterWarned)
           {
             RDCWARN(
                 "VkPhysicalDeviceFragmentDensityMapFeaturesEXT."
@@ -1433,7 +1435,7 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
             // supported, don't remove
             return false;
           }
-          else
+          else if(!filterWarned)
           {
             RDCWARN(
                 "VkPhysicalDeviceBufferDeviceAddressFeaturesEXT.bufferDeviceAddressCaptureReplay "
@@ -1461,7 +1463,7 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
             // supported, don't remove
             return false;
           }
-          else
+          else if(!filterWarned)
           {
             RDCWARN(
                 "VkPhysicalDeviceBufferDeviceAddressFeaturesKHR.bufferDeviceAddressCaptureReplay "
@@ -1482,6 +1484,8 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
     filtered.append(&renderdocProvidedDeviceExtensions[0],
                     ARRAY_COUNT(renderdocProvidedDeviceExtensions));
   }
+
+  filterWarned = true;
 
   return FillPropertyCountAndList(&filtered[0], (uint32_t)filtered.size(), pPropertyCount,
                                   pProperties);
