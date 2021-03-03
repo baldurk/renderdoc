@@ -139,7 +139,7 @@ jobs:
         sudo apt-get update -qq
         sudo apt-get install -y -qq libx11-dev mesa-common-dev libgl1-mesa-dev qtbase5-dev libxcb-keysyms1-dev
     - name: Install sphinx dependencies
-      run: sudo pip3 install Sphinx==3.4.0
+      run: sudo pip3 install Sphinx
     - name: Build cut-down renderdoc for python modules
       run: |
         mkdir build
