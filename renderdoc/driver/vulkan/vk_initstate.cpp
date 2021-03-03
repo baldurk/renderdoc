@@ -26,6 +26,13 @@
 #include "vk_core.h"
 #include "vk_debug.h"
 
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, MemIDOffset &el)
+{
+  SERIALISE_MEMBER(memory);
+  SERIALISE_MEMBER(memOffs);
+}
+
 // VKTODOLOW there's a lot of duplicated code in this file for creating a buffer to do
 // a memory copy and saving to disk.
 
@@ -72,7 +79,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     // buffers are only dirty if they are sparse
     RDCASSERT(buffer->record->resInfo && buffer->record->resInfo->IsSparse());
 
-    return Prepare_SparseInitialState(buffer);
+    return true;
   }
   else if(type == eResImage)
   {
@@ -84,9 +91,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
     if(resInfo.IsSparse())
     {
-      // if the image is sparse we have to do a different kind of initial state prepare,
-      // to serialise out the page mapping. The fetching of memory is also different
-      return Prepare_SparseInitialState((WrappedVkImage *)res);
+      // if the image is sparse we have to snapshot the page table
     }
 
     LockedImageStateRef state = FindImageState(im->id);
@@ -535,13 +540,10 @@ uint64_t WrappedVulkan::GetSize_InitialState(ResourceId id, const VkInitialConte
   else if(initial.type == eResBuffer)
   {
     // buffers only have initial states when they're sparse
-    return GetSize_SparseInitialState(id, initial);
+    return 0;
   }
   else if(initial.type == eResImage || initial.type == eResDeviceMemory)
   {
-    if(initial.tag == VkInitialContents::Sparse)
-      return GetSize_SparseInitialState(id, initial);
-
     // the size primarily comes from the buffer, the size of which we conveniently have stored.
     return uint64_t(128 + initial.mem.size + WriteSerialiser::GetChunkAlignment());
   }
@@ -897,8 +899,36 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
   }
   else if(type == eResBuffer)
   {
-    // buffers only have initial states when they're sparse
-    return Serialise_SparseBufferInitialState(ser, id, initial);
+    if(ser.IsReading() && ser.VersionLess(0x13))
+    {
+      RDCWARN(
+          "Skipping sparse initial states of buffer from old capture. "
+          "Please re-capture with this version of RenderDoc.");
+
+      // serialise without allocating, this makes for a skip
+      VkSparseMemoryBind *binds = NULL;
+      ser.Serialise("binds"_lit, binds, 0, SerialiserFlags::NoFlags).Hidden();
+      uint32_t numBinds = 0;
+      SERIALISE_ELEMENT(numBinds).Hidden();
+
+      MemIDOffset *memDataOffs = NULL;
+      ser.Serialise("memDataOffs"_lit, memDataOffs, 0, SerialiserFlags::NoFlags).Hidden();
+      uint32_t numUniqueMems = 0;
+      SERIALISE_ELEMENT(numUniqueMems).Hidden();
+
+      VkDeviceSize totalSize = 0;
+      SERIALISE_ELEMENT(totalSize).Hidden();
+
+      uint64_t ContentsSize = 0;
+      SERIALISE_ELEMENT(ContentsSize).Hidden();
+
+      byte *Contents = NULL;
+      ser.Serialise("Contents"_lit, Contents, ContentsSize, SerialiserFlags::NoFlags).Hidden();
+
+      SERIALISE_CHECK_READ_ERRORS();
+
+      return true;
+    }
   }
   else if(type == eResDeviceMemory || type == eResImage)
   {
@@ -906,23 +936,64 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
 
     // if we have a blob of data, this contains sparse mapping so re-direct to the sparse
     // implementation of this function
-    SERIALISE_ELEMENT_LOCAL(IsSparse, initial && initial->tag == VkInitialContents::Sparse);
+    SERIALISE_ELEMENT_LOCAL(IsSparse, false);
 
     if(IsSparse)
     {
-      ret = false;
-
       if(type == eResImage)
       {
-        ret = Serialise_SparseImageInitialState(ser, id, initial);
+        if(ser.IsReading() && ser.VersionLess(0x13))
+        {
+          RDCWARN(
+              "Skipping sparse initial states of buffer from old capture. "
+              "Please re-capture with this version of RenderDoc.");
+
+          // serialise without allocating, this makes for a skip
+          VkSparseMemoryBind *opaque = NULL;
+          ser.Serialise("opaque"_lit, opaque, 0, SerialiserFlags::NoFlags).Hidden();
+          uint32_t opaqueCount = 0;
+          SERIALISE_ELEMENT(opaqueCount).Hidden();
+
+          VkExtent3D imgdim = {};
+          SERIALISE_ELEMENT(imgdim).Hidden();
+
+          VkExtent3D pagedim = {};
+          SERIALISE_ELEMENT(pagedim).Hidden();
+
+          static const uint32_t numLegacyAspects = 4;
+          for(uint32_t a = 0; a < numLegacyAspects; a++)
+          {
+            MemIDOffset *pages = NULL;
+            ser.Serialise("pages"_lit, pages, 0, SerialiserFlags::NoFlags).Hidden();
+          }
+
+          uint32_t pageCount[numLegacyAspects] = {};
+          SERIALISE_ELEMENT(pageCount).Hidden();
+
+          MemIDOffset *memDataOffs = NULL;
+          ser.Serialise("memDataOffs"_lit, memDataOffs, 0, SerialiserFlags::NoFlags).Hidden();
+          uint32_t numUniqueMems = 0;
+          SERIALISE_ELEMENT(numUniqueMems).Hidden();
+
+          VkDeviceSize totalSize = 0;
+          SERIALISE_ELEMENT(totalSize).Hidden();
+
+          uint64_t ContentsSize = 0;
+          SERIALISE_ELEMENT(ContentsSize).Hidden();
+
+          byte *Contents = NULL;
+          ser.Serialise("Contents"_lit, Contents, ContentsSize, SerialiserFlags::NoFlags).Hidden();
+
+          SERIALISE_CHECK_READ_ERRORS();
+
+          return true;
+        }
       }
       else
       {
         RDCERR("Invalid initial state - sparse marker for device memory");
-        ret = false;
+        return false;
       }
-
-      return ret;
     }
 
     VkResult vkr = VK_SUCCESS;
@@ -1352,7 +1423,6 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
   }
   else if(type == eResBuffer)
   {
-    Apply_SparseInitialState((WrappedVkBuffer *)live, initial);
   }
   else if(type == eResImage)
   {
@@ -1411,12 +1481,6 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
           }
         }
       }
-    }
-
-    if(initial.tag == VkInitialContents::Sparse)
-    {
-      Apply_SparseInitialState((WrappedVkImage *)live, initial);
-      return;
     }
 
     // handle any 'created' initial states, without an actual image with contents

@@ -37,43 +37,6 @@ struct MemIDOffset
 
 DECLARE_REFLECTION_STRUCT(MemIDOffset);
 
-struct SparseBufferInitState
-{
-  VkSparseMemoryBind *binds;
-  uint32_t numBinds;
-
-  MemIDOffset *memDataOffs;
-  uint32_t numUniqueMems;
-
-  VkDeviceSize totalSize;
-};
-
-DECLARE_REFLECTION_STRUCT(SparseBufferInitState);
-
-struct SparseImageInitState
-{
-  VkSparseMemoryBind *opaque;
-  uint32_t opaqueCount;
-
-  VkExtent3D imgdim;    // in pages
-  VkExtent3D pagedim;
-
-  // available on capture - filled out in Prepare_SparseInitialState and serialised to disk
-  MemIDOffset *pages[NUM_VK_IMAGE_ASPECTS];
-
-  uint32_t pageCount[NUM_VK_IMAGE_ASPECTS];
-
-  // available on replay - filled out in the read path of Serialise_SparseInitialState
-  VkSparseImageMemoryBind *pageBinds[NUM_VK_IMAGE_ASPECTS];
-
-  MemIDOffset *memDataOffs;
-  uint32_t numUniqueMems;
-
-  VkDeviceSize totalSize;
-};
-
-DECLARE_REFLECTION_STRUCT(SparseImageInitState);
-
 // this struct is copied around and for that reason we explicitly keep it simple and POD. The
 // lifetime of the memory allocated is controlled by the resource manager - when preparing or
 // serialising, we explicitly set the initial contents, then when the whole system is done with them
@@ -85,7 +48,6 @@ struct VkInitialContents
     BufferCopy = 0,
     ClearColorImage = 1,
     ClearDepthStencilImage,
-    Sparse,
     DescriptorSet,
   };
 
@@ -124,25 +86,6 @@ struct VkInitialContents
     rm->ResourceTypeRelease(GetWrapped(img));
 
     // memory is not free'd here
-
-    if(tag == Sparse)
-    {
-      if(type == eResImage)
-      {
-        SAFE_DELETE_ARRAY(sparseImage.opaque);
-        for(uint32_t i = 0; i < NUM_VK_IMAGE_ASPECTS; i++)
-        {
-          SAFE_DELETE_ARRAY(sparseImage.pages[i]);
-          SAFE_DELETE_ARRAY(sparseImage.pageBinds[i]);
-        }
-        SAFE_DELETE_ARRAY(sparseImage.memDataOffs);
-      }
-      else if(type == eResBuffer)
-      {
-        SAFE_DELETE_ARRAY(sparseBuffer.binds);
-        SAFE_DELETE_ARRAY(sparseBuffer.memDataOffs);
-      }
-    }
   }
 
   // for descriptor heaps, when capturing we save the slots, when replaying we store direct writes
@@ -160,13 +103,6 @@ struct VkInitialContents
   VkImage img;
   MemoryAllocation mem;
   Tag tag;
-
-  // sparse resources need extra information. Which one is valid, depends on the value of type above
-  union
-  {
-    SparseBufferInitState sparseBuffer;
-    SparseImageInitState sparseImage;
-  };
 };
 
 struct VulkanResourceManagerConfiguration
