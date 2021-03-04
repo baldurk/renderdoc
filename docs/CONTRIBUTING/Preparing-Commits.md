@@ -20,11 +20,13 @@ Likewise commits for code formatting or compile fixes should be squashed into th
 
 To make things easier for everyone, I've adopted clang-format for keeping code consistently formatted.
 
-| :warning: |                                                                                                                                         | :warning: |
-| --------- | --------------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| :warning: | **Unfortunately clang-format output changes between versions even with the same config.**                                               | :warning: |
-| :warning: | **I have fixed the version used for RenderDoc at [clang-format-3.8](http://releases.llvm.org/download.html#3.8.1).**                    | :warning: |
-| :warning: | **This formatting is enforced by CI checks that run on PRs, so if you aren't running the same version locally it will show up there.**  | :warning: |
+| :warning: |                                                                                                                                           | :warning: |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| :warning: | **Unfortunately clang-format output changes between versions even with the same config.**                                                 | :warning: |
+| :warning: | **I have fixed the version used for RenderDoc at [clang-format-15.0](https://github.com/llvm/llvm-project/releases/tag/llvmorg-15.0.7).** | :warning: |
+| :warning: | **This formatting is enforced by CI checks that run on PRs, so if you aren't running the same version locally it will show up there.**    | :warning: |
+
+This version changed as of 2023-09-02, from clang-format-3.8 to clang-format-15.0. A statically linked binary of clang-format-15.0.7 for x64 windows and linux is committed to the repo under util/clangformat.
 
 If you want to format a single file, run: `clang-format -i file.cpp`. If you want to format any changes you make before you commit them, you'll need python installed and then run: `git clang-format`. To clang-format the whole codebase, you can run the bash script `util/clang_format_all.sh` but be sure to squash any changes into the right commits.
 

@@ -1,5 +1,4 @@
 ---
-Language:        Cpp
 # BasedOnStyle:  Chromium
 AccessModifierOffset: -2
 AlignAfterOpenBracket: Align
@@ -11,7 +10,8 @@ AlignTrailingComments: true
 AllowAllParametersOfDeclarationOnNextLine: false
 AllowShortBlocksOnASingleLine: false
 AllowShortCaseLabelsOnASingleLine: true
-AllowShortFunctionsOnASingleLine: Inline
+AllowShortFunctionsOnASingleLine: InlineOnly
+AllowShortLambdasOnASingleLine: All
 AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
 AlwaysBreakAfterDefinitionReturnType: None
@@ -21,6 +21,7 @@ AlwaysBreakTemplateDeclarations: true
 BinPackArguments: true
 BinPackParameters: true
 BraceWrapping:   
+  AfterCaseLabel:  true
   AfterClass:      true
   AfterControlStatement: true
   AfterEnum:       true
@@ -44,7 +45,9 @@ ContinuationIndentWidth: 4
 Cpp11BracedListStyle: true
 DerivePointerAlignment: false
 DisableFormat:   false
+EmptyLineBeforeAccessModifier: Leave
 ExperimentalAutoDetectBinPacking: false
+FixNamespaceComments: false
 ForEachMacros:   [ foreach, Q_FOREACH, BOOST_FOREACH ]
 IncludeCategories: 
   - Regex:           '<.*\.h>'
@@ -55,6 +58,7 @@ IncludeCategories:
     Priority:        3
   - Regex:           '.*'
     Priority:        4
+IncludeIsMainRegex: ''
 IndentCaseLabels: true
 IndentWidth:     2
 IndentWrappedFunctionNames: false
@@ -63,7 +67,9 @@ MacroBlockBegin: ''
 MacroBlockEnd:   ''
 MaxEmptyLinesToKeep: 1
 NamespaceIndentation: None
+ObjCBinPackProtocolList: Never
 ObjCBlockIndentWidth: 2
+ObjCBreakBeforeNestedBlockParam: true
 ObjCSpaceAfterProperty: false
 ObjCSpaceBeforeProtocolList: false
 PenaltyBreakBeforeFirstCallParameter: 1
@@ -75,18 +81,33 @@ PenaltyReturnTypeOnItsOwnLine: 2000
 PointerAlignment: Right
 ReflowComments:  true
 SortIncludes:    true
+SortUsingDeclarations: false
 SpaceAfterCStyleCast: false
 SpaceBeforeAssignmentOperators: true
 SpaceBeforeParens: Never
 SpaceInEmptyParentheses: false
 SpacesBeforeTrailingComments: 4
-SpacesInAngles:  false
+SpacesInAngles:  Never
 SpacesInContainerLiterals: true
 SpacesInCStyleCastParentheses: false
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
 Standard:        Auto
+StatementMacros:
+  - Q_UNUSED
+  - QT_REQUIRE_VERSION
+  - BEGIN_ENUM_STRINGISE
+  - BEGIN_ENUM_CLASS_STRINGISE
+  - STRINGISE_ENUM
+  - STRINGISE_ENUM_CLASS
+  - STRINGISE_ENUM_NAMED
+  - STRINGISE_ENUM_CLASS_NAMED
+  - STRINGISE_BITFIELD_BIT
 TabWidth:        2
 UseTab:          Never
+---
+Language:        Cpp
+---
+Language:        ObjC
 ...
 

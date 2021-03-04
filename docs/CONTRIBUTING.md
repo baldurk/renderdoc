@@ -41,7 +41,7 @@ Commit messages should have a first line with a **maximum of 72 characters**, th
 
 For more information, check the section about [commit messages](CONTRIBUTING/Preparing-Commits.md#commit-messages).
 
-Code should be formatted using **clang-format 3.8**. The reason we fix a specific version of clang-format is that unfortunately different versions can format code in different ways using the same config file, so this would cause problems with automatic verification of code formatting.
+Code should be formatted using **clang-format 15.0**. The reason we fix a specific version of clang-format is that unfortunately different versions can format code in different ways using the same config file, so this would cause problems with automatic verification of code formatting.
 
 For more information, check the section about [code formatting](CONTRIBUTING/Preparing-Commits.md#code-formatting).
 
