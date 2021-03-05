@@ -1706,6 +1706,11 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
         ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), Unwrap(*pBuffer),
                                                      &record->resInfo->memreqs);
 
+        // initialise the sparse page table
+        if(isSparse)
+          record->resInfo->sparseTable.Initialise(pCreateInfo->size,
+                                                  record->resInfo->memreqs.alignment & 0xFFFFFFFFU);
+
         // for external buffers, try creating a non-external version and take the worst case of
         // memory requirements, in case the non-external one (as we will replay it) needs more
         // memory or a stricter alignment
@@ -1950,7 +1955,10 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
 
     APIProps.YUVTextures |= IsYUVFormat(CreateInfo.format);
 
-    if(CreateInfo.flags & (VK_IMAGE_CREATE_SPARSE_BINDING_BIT | VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT))
+    const bool isSparse = (CreateInfo.flags & (VK_IMAGE_CREATE_SPARSE_BINDING_BIT |
+                                               VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT)) != 0;
+
+    if(isSparse)
     {
       APIProps.SparseResources = true;
     }
@@ -2049,6 +2057,9 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
         state->wrappedHandle = img;
         *state = state->InitialState();
       }
+
+      if(isSparse)
+        state->isMemoryBound = true;
     }
 
     const char *prefix = "Image";
@@ -2222,6 +2233,9 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
   {
     ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pImage);
 
+    const bool isSparse = (pCreateInfo->flags & (VK_IMAGE_CREATE_SPARSE_BINDING_BIT |
+                                                 VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT)) != 0;
+
     if(IsCaptureMode(m_State))
     {
       Chunk *chunk = NULL;
@@ -2246,9 +2260,6 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
 
       // pre-populate memory requirements
       ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(*pImage), &resInfo.memreqs);
-
-      bool isSparse = (pCreateInfo->flags & (VK_IMAGE_CREATE_SPARSE_BINDING_BIT |
-                                             VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT)) != 0;
 
       bool isLinear = (pCreateInfo->tiling == VK_IMAGE_TILING_LINEAR);
 
@@ -2352,45 +2363,61 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
 
       if(isSparse)
       {
+        uint32_t pageByteSize = resInfo.memreqs.alignment & 0xFFFFFFFFu;
+
         if(pCreateInfo->flags & VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT)
         {
           // must record image and page dimension, and create page tables
-          uint32_t numreqs = NUM_VK_IMAGE_ASPECTS;
-          VkSparseImageMemoryRequirements reqs[NUM_VK_IMAGE_ASPECTS];
+          uint32_t numreqs = 8;
+          VkSparseImageMemoryRequirements reqs[8];
           ObjDisp(device)->GetImageSparseMemoryRequirements(Unwrap(device), Unwrap(*pImage),
                                                             &numreqs, reqs);
 
-          RDCASSERT(numreqs > 0);
+          // we only support at most DEPTH, STENCIL, METADATA = 3 aspects
+          RDCASSERT(numreqs > 0 && numreqs <= 3, numreqs);
 
-          resInfo.pagedim = reqs[0].formatProperties.imageGranularity;
-          resInfo.imgdim = pCreateInfo->extent;
-          resInfo.imgdim.width /= resInfo.pagedim.width;
-          resInfo.imgdim.height /= resInfo.pagedim.height;
-          resInfo.imgdim.depth /= resInfo.pagedim.depth;
+          // if we don't have just a single
+          resInfo.altSparseAspects.resize(numreqs - 1);
 
-          uint32_t numpages = resInfo.imgdim.width * resInfo.imgdim.height * resInfo.imgdim.depth;
+          Sparse::Coord dim = {pCreateInfo->extent.width, pCreateInfo->extent.height,
+                               pCreateInfo->extent.depth};
 
-          for(uint32_t i = 0; i < numreqs; i++)
+          for(uint32_t r = 0; r < numreqs; r++)
           {
-            // assume all page sizes are the same for all aspects
-            RDCASSERT(resInfo.pagedim.width == reqs[i].formatProperties.imageGranularity.width &&
-                      resInfo.pagedim.height == reqs[i].formatProperties.imageGranularity.height &&
-                      resInfo.pagedim.depth == reqs[i].formatProperties.imageGranularity.depth);
+            if(r == 0)
+              resInfo.sparseAspect = reqs[r].formatProperties.aspectMask;
+            else
+              resInfo.altSparseAspects[r - 1].aspectMask = reqs[r].formatProperties.aspectMask;
 
-            int a = 0;
-            for(a = 0; a < NUM_VK_IMAGE_ASPECTS; a++)
-            {
-              if(reqs[i].formatProperties.aspectMask & (1 << a))
-                break;
-            }
+            Sparse::PageTable &table =
+                r == 0 ? resInfo.sparseTable : resInfo.altSparseAspects[r - 1].table;
 
-            resInfo.pages[a] = new rdcpair<VkDeviceMemory, VkDeviceSize>[numpages];
+            bool singleMipTail =
+                (reqs[r].formatProperties.flags & VK_SPARSE_IMAGE_FORMAT_SINGLE_MIPTAIL_BIT) != 0;
+
+            const VkExtent3D &gran = reqs[r].formatProperties.imageGranularity;
+            Sparse::Coord pageSize = {gran.width, gran.height, gran.depth};
+
+            table.Initialise(
+                dim, pCreateInfo->mipLevels, pCreateInfo->arrayLayers, pageByteSize, pageSize,
+                // we MIN here so if the driver returns 999 we have a consistent value, so we can
+                // compare against it on replay
+                RDCMIN(reqs[r].imageMipTailFirstLod, pCreateInfo->mipLevels),
+                reqs[r].imageMipTailOffset,
+                // if formatProperties.flags does not contain
+                // VK_SPARSE_IMAGE_FORMAT_SINGLE_MIPTAIL_BIT (otherwise the value is undefined).
+                singleMipTail || pCreateInfo->arrayLayers == 0 ? 0 : reqs[r].imageMipTailStride,
+                // If formatProperties.flags contains VK_SPARSE_IMAGE_FORMAT_SINGLE_MIPTAIL_BIT,
+                // this is the size of the whole mip tail, otherwise this is the size of the mip
+                // tail of a single array layer.
+                singleMipTail ? reqs[r].imageMipTailSize
+                              : reqs[r].imageMipTailSize * pCreateInfo->arrayLayers);
           }
         }
         else
         {
-          // don't have to do anything, image is opaque and must be fully bound, just need
-          // to track the memory bindings.
+          // set page table up as if it were a buffer
+          resInfo.sparseTable.Initialise(resInfo.memreqs.size, pageByteSize);
         }
       }
     }
@@ -2401,7 +2428,12 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
       m_CreationInfo.m_Image[id].Init(GetResourceManager(), m_CreationInfo, pCreateInfo);
     }
 
-    InsertImageState(*pImage, id, ImageInfo(*pCreateInfo), eFrameRef_None);
+    LockedImageStateRef state =
+        InsertImageState(*pImage, id, ImageInfo(*pCreateInfo), eFrameRef_None);
+
+    // sparse resources are always treated as if memory is bound, don't skip anything
+    if(isSparse)
+      state->isMemoryBound = true;
   }
 
   return ret;

@@ -955,33 +955,47 @@ struct SwapchainInfo
   PresentInfo lastPresent;
 };
 
+struct AspectSparseTable
+{
+  VkImageAspectFlags aspectMask;
+  Sparse::PageTable table;
+};
+
+DECLARE_REFLECTION_STRUCT(AspectSparseTable);
+
 // these structs are allocated for images and buffers, then pointed to (non-owning) by views
 struct ResourceInfo
 {
-  ResourceInfo()
+  // commonly we expect only one aspect (COLOR is vastly likely and METADATA is rare) so have one
+  // directly accessible. If we have others (like separate DEPTH and STENCIL, or anything and
+  // METADATA) we put them in the array.
+  Sparse::PageTable sparseTable;
+  rdcarray<AspectSparseTable> altSparseAspects;
+  VkImageAspectFlags sparseAspect;
+
+  Sparse::PageTable &getSparseTableForAspect(VkImageAspectFlags aspects)
   {
-    RDCEraseEl(imgdim);
-    RDCEraseEl(pagedim);
-    RDCEraseEl(pages);
+    // if we only have one table, return it
+    if(altSparseAspects.empty())
+      return sparseTable;
+
+    // or if it matches the main aspect
+    if(aspects == sparseAspect)
+      return sparseTable;
+
+    for(size_t i = 0; i < altSparseAspects.size(); i++)
+      if(altSparseAspects[i].aspectMask == aspects)
+        return altSparseAspects[i].table;
+
+    RDCERR("Unexpected aspect %s for sparse table", ToStr((VkImageAspectFlagBits)aspects).c_str());
+    return sparseTable;
   }
 
-  // for buffers or non-sparse-resident images (bound with opaque mappings)
-  rdcarray<VkSparseMemoryBind> opaquemappings;
-
-  VkMemoryRequirements memreqs;
-
-  // for sparse resident images:
-  // total image size (in pages)
-  VkExtent3D imgdim;
-  // size of a page
-  VkExtent3D pagedim;
-  // pagetable per image aspect (some may be NULL) color, depth, stencil, metadata
-  // in order of width first, then height, then depth
-  rdcpair<VkDeviceMemory, VkDeviceSize> *pages[NUM_VK_IMAGE_ASPECTS];
+  VkMemoryRequirements memreqs = {};
 
   ImageInfo imageInfo;
 
-  bool IsSparse() const { return pages[0] != NULL; }
+  bool IsSparse() const { return sparseTable.getPageByteSize() > 0; }
   void Update(uint32_t numBindings, const VkSparseMemoryBind *pBindings);
   void Update(uint32_t numBindings, const VkSparseImageMemoryBind *pBindings);
 };

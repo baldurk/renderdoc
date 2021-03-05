@@ -589,7 +589,7 @@ void VulkanResourceManager::InsertDeviceMemoryRefs(WriteSerialiser &ser)
   }
 }
 
-void VulkanResourceManager::MarkSparseMapReferenced(ResourceInfo *sparse)
+void VulkanResourceManager::MarkSparseMapReferenced(const ResourceInfo *sparse)
 {
   if(sparse == NULL)
   {
@@ -597,18 +597,37 @@ void VulkanResourceManager::MarkSparseMapReferenced(ResourceInfo *sparse)
     return;
   }
 
-  for(size_t i = 0; i < sparse->opaquemappings.size(); i++)
-    MarkMemoryFrameReferenced(GetResID(sparse->opaquemappings[i].memory),
-                              sparse->opaquemappings[i].memoryOffset,
-                              sparse->opaquemappings[i].size, eFrameRef_Read);
-
-  for(int a = 0; a < NUM_VK_IMAGE_ASPECTS; a++)
+  for(size_t a = 0; a <= sparse->altSparseAspects.size(); a++)
   {
-    VkDeviceSize totalSize =
-        VkDeviceSize(sparse->imgdim.width) * sparse->imgdim.height * sparse->imgdim.depth;
-    for(VkDeviceSize i = 0; sparse->pages[a] && i < totalSize; i++)
-      MarkMemoryFrameReferenced(GetResID(sparse->pages[a][i].first), 0, VK_WHOLE_SIZE,
-                                eFrameRef_Read);
+    const Sparse::PageTable &table = a < sparse->altSparseAspects.size()
+                                         ? sparse->altSparseAspects[a].table
+                                         : sparse->sparseTable;
+
+    uint32_t numSubs = table.getNumSubresources();
+    const Sparse::MipTail &mipTail = table.getMipTail();
+    for(uint32_t s = 0; s < numSubs + mipTail.mappings.size(); s++)
+    {
+      const Sparse::PageRangeMapping &mapping =
+          s < numSubs ? table.getSubresource(s) : table.getMipTail().mappings[s - numSubs];
+
+      if(mapping.hasSingleMapping())
+      {
+        MarkMemoryFrameReferenced(
+            mapping.singleMapping.memory, mapping.singleMapping.offset,
+            mapping.singlePageReused ? table.getPageByteSize() : table.getSubresourceByteSize(s),
+            eFrameRef_Read);
+      }
+      else
+      {
+        // this is a huge perf cliff as we've lost any batching and we perform as badly as if every
+        // page was mapped to a different resource, so we hope applications don't hit this often.
+        for(const Sparse::Page &page : mapping.pages)
+        {
+          MarkMemoryFrameReferenced(page.memory, page.offset, table.getPageByteSize(),
+                                    eFrameRef_Read);
+        }
+      }
+    }
   }
 }
 

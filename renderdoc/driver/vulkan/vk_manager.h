@@ -185,18 +185,18 @@ public:
 
   // handling memory & image layouts
   template <typename SrcBarrierType>
-  void RecordSingleBarrier(rdcarray<rdcpair<ResourceId, ImageRegionState> > &states, ResourceId id,
+  void RecordSingleBarrier(rdcarray<rdcpair<ResourceId, ImageRegionState>> &states, ResourceId id,
                            const SrcBarrierType &t, uint32_t nummips, uint32_t numslices);
 
-  void RecordBarriers(rdcarray<rdcpair<ResourceId, ImageRegionState> > &states,
+  void RecordBarriers(rdcarray<rdcpair<ResourceId, ImageRegionState>> &states,
                       const std::map<ResourceId, ImageLayouts> &layouts, uint32_t numBarriers,
                       const VkImageMemoryBarrier *barriers);
 
-  void MergeBarriers(rdcarray<rdcpair<ResourceId, ImageRegionState> > &dststates,
-                     rdcarray<rdcpair<ResourceId, ImageRegionState> > &srcstates);
+  void MergeBarriers(rdcarray<rdcpair<ResourceId, ImageRegionState>> &dststates,
+                     rdcarray<rdcpair<ResourceId, ImageRegionState>> &srcstates);
 
   void ApplyBarriers(uint32_t queueFamilyIndex,
-                     rdcarray<rdcpair<ResourceId, ImageRegionState> > &states,
+                     rdcarray<rdcpair<ResourceId, ImageRegionState>> &states,
                      std::map<ResourceId, ImageLayouts> &layouts);
 
   void RecordBarriers(rdcflatmap<ResourceId, ImageState> &states, uint32_t queueFamilyIndex,
@@ -374,7 +374,7 @@ public:
   }
 
   // helper for sparse mappings
-  void MarkSparseMapReferenced(ResourceInfo *sparse);
+  void MarkSparseMapReferenced(const ResourceInfo *sparse);
 
   void SetInternalResource(ResourceId id);
 
