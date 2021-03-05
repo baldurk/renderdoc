@@ -1479,8 +1479,6 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
 
           rdcarray<VkClearAttachment> clearatts;
           rdcarray<VkClearRect> clearrects;
-          RDCASSERT(unwrappedInfo.clearValueCount >= (uint32_t)rpinfo.attachments.size(),
-                    unwrappedInfo.clearValueCount, rpinfo.attachments.size());
           for(int32_t c = 0; c < rpinfo.subpasses[0].colorAttachments.count() + 1; c++)
           {
             uint32_t att = ~0U;
@@ -1504,6 +1502,8 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
               clear.colorAttachment = c;
               if(att < unwrappedInfo.clearValueCount)
                 clear.clearValue = unwrappedInfo.pClearValues[att];
+              else
+                RDCWARN("Missing clear value for attachment %u", att);
               clearrects.push_back(rect);
               clearatts.push_back(clear);
             }
