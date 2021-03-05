@@ -29,6 +29,13 @@
 #define CATCH_CONFIG_FORCE_FALLBACK_STRINGIFIER
 #define CATCH_CONFIG_INLINE_DEBUG_BREAK
 
+// define the debugbreak to not be in a lambda, so that we get the right stack frame!
+#define CATCH_BREAK_INTO_DEBUGGER() \
+  if(Catch::isDebuggerActive())     \
+  {                                 \
+    CATCH_TRAP();                   \
+  }
+
 #include "api/replay/rdcstr.h"
 #include "api/replay/stringise.h"
 
