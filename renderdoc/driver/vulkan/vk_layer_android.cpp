@@ -83,6 +83,6 @@ VK_LAYER_EXPORT VkResult VKAPI_CALL vkEnumerateInstanceExtensionProperties(
     const char *pLayerName, uint32_t *pPropertyCount, VkExtensionProperties *pProperties)
 {
   return VK_LAYER_RENDERDOC_CaptureEnumerateInstanceExtensionProperties(
-      VK_NULL_HANDLE, pLayerName, pPropertyCount, pProperties);
+      NULL, pLayerName, pPropertyCount, pProperties);
 }
 }
