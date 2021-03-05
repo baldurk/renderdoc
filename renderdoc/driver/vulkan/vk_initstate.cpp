@@ -26,13 +26,6 @@
 #include "vk_core.h"
 #include "vk_debug.h"
 
-template <typename SerialiserType>
-void DoSerialise(SerialiserType &ser, MemIDOffset &el)
-{
-  SERIALISE_MEMBER(memory);
-  SERIALISE_MEMBER(memOffs);
-}
-
 // VKTODOLOW there's a lot of duplicated code in this file for creating a buffer to do
 // a memory copy and saving to disk.
 
@@ -911,7 +904,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
       uint32_t numBinds = 0;
       SERIALISE_ELEMENT(numBinds).Hidden();
 
-      MemIDOffset *memDataOffs = NULL;
+      Sparse::Page *memDataOffs = NULL;
       ser.Serialise("memDataOffs"_lit, memDataOffs, 0, SerialiserFlags::NoFlags).Hidden();
       uint32_t numUniqueMems = 0;
       SERIALISE_ELEMENT(numUniqueMems).Hidden();
@@ -963,14 +956,14 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
           static const uint32_t numLegacyAspects = 4;
           for(uint32_t a = 0; a < numLegacyAspects; a++)
           {
-            MemIDOffset *pages = NULL;
+            Sparse::Page *pages = NULL;
             ser.Serialise("pages"_lit, pages, 0, SerialiserFlags::NoFlags).Hidden();
           }
 
           uint32_t pageCount[numLegacyAspects] = {};
           SERIALISE_ELEMENT(pageCount).Hidden();
 
-          MemIDOffset *memDataOffs = NULL;
+          Sparse::Page *memDataOffs = NULL;
           ser.Serialise("memDataOffs"_lit, memDataOffs, 0, SerialiserFlags::NoFlags).Hidden();
           uint32_t numUniqueMems = 0;
           SERIALISE_ELEMENT(numUniqueMems).Hidden();

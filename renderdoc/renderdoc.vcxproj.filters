@@ -561,6 +561,9 @@
     <ClInclude Include="3rdparty\superluminal\PerformanceAPI_capi.h">
       <Filter>3rdparty\superluminal</Filter>
     </ClInclude>
+    <ClInclude Include="core\sparse_page_table.h">
+      <Filter>Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -970,6 +973,9 @@
     </ClCompile>
     <ClCompile Include="3rdparty\superluminal\superluminal.cpp">
       <Filter>3rdparty\superluminal</Filter>
+    </ClCompile>
+    <ClCompile Include="core\sparse_page_table.cpp">
+      <Filter>Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

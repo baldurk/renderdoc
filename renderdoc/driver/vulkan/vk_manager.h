@@ -29,14 +29,6 @@
 
 class WrappedVulkan;
 
-struct MemIDOffset
-{
-  ResourceId memory;
-  VkDeviceSize memOffs;
-};
-
-DECLARE_REFLECTION_STRUCT(MemIDOffset);
-
 // this struct is copied around and for that reason we explicitly keep it simple and POD. The
 // lifetime of the memory allocated is controlled by the resource manager - when preparing or
 // serialising, we explicitly set the initial contents, then when the whole system is done with them

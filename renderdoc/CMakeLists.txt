@@ -155,6 +155,8 @@ set(sources
     core/plugins.h
     core/resource_manager.cpp
     core/resource_manager.h
+    core/sparse_page_table.cpp
+    core/sparse_page_table.h
     data/glsl/glsl_ubos.h
     data/glsl/glsl_ubos_cpp.h
     hooks/hooks.cpp

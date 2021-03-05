@@ -28,6 +28,7 @@
 #include "core/bit_flag_iterator.h"
 #include "core/intervals.h"
 #include "core/resource_manager.h"
+#include "core/sparse_page_table.h"
 #include "vk_common.h"
 #include "vk_dispatch_defs.h"
 #include "vk_hookset_defs.h"

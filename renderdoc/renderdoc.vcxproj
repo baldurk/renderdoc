@@ -214,6 +214,7 @@
     <ClInclude Include="core\remote_server.h" />
     <ClInclude Include="core\replay_proxy.h" />
     <ClInclude Include="core\resource_manager.h" />
+    <ClInclude Include="core\sparse_page_table.h" />
     <ClInclude Include="data\embedded_files.h" />
     <ClInclude Include="data\glsl\glsl_ubos.h" />
     <ClInclude Include="data\glsl\glsl_ubos_cpp.h" />
@@ -534,6 +535,7 @@
     <ClCompile Include="core\precompiled.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="core\sparse_page_table.cpp" />
     <ClCompile Include="core\target_control.cpp" />
     <ClCompile Include="core\remote_server.cpp" />
     <ClCompile Include="core\replay_proxy.cpp" />
