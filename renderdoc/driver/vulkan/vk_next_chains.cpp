@@ -474,13 +474,7 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   COPY_STRUCT(VK_STRUCTURE_TYPE_SUBPASS_END_INFO, VkSubpassEndInfo);                                 \
   COPY_STRUCT(VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_EXT, VkSurfaceCapabilities2EXT);              \
   COPY_STRUCT(VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR, VkSurfaceCapabilities2KHR);              \
-  COPY_STRUCT(VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_FULL_SCREEN_EXCLUSIVE_EXT,                      \
-              VkSurfaceCapabilitiesFullScreenExclusiveEXT)                                           \
   COPY_STRUCT(VK_STRUCTURE_TYPE_SURFACE_FORMAT_2_KHR, VkSurfaceFormat2KHR);                          \
-  COPY_STRUCT(VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT,                              \
-              VkSurfaceFullScreenExclusiveInfoEXT)                                                   \
-  COPY_STRUCT(VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT,                        \
-              VkSurfaceFullScreenExclusiveWin32InfoEXT)                                              \
   COPY_STRUCT(VK_STRUCTURE_TYPE_SURFACE_PROTECTED_CAPABILITIES_KHR,                                  \
               VkSurfaceProtectedCapabilitiesKHR);                                                    \
   COPY_STRUCT(VK_STRUCTURE_TYPE_SWAPCHAIN_DISPLAY_NATIVE_HDR_CREATE_INFO_AMD,                        \
@@ -1090,6 +1084,12 @@ size_t GetNextPatchSize(const void *pNext)
                                  VkD3D12FenceSubmitInfoKHR);
         COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_EXPORT_FENCE_WIN32_HANDLE_INFO_KHR,
                                  VkExportFenceWin32HandleInfoKHR);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT,
+                                 VkSurfaceFullScreenExclusiveWin32InfoEXT);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_FULL_SCREEN_EXCLUSIVE_EXT,
+                                 VkSurfaceCapabilitiesFullScreenExclusiveEXT);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT,
+                                 VkSurfaceFullScreenExclusiveInfoEXT);
 
       case VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR:
         memSize += sizeof(VkMemoryGetWin32HandleInfoKHR);
@@ -1129,6 +1129,9 @@ size_t GetNextPatchSize(const void *pNext)
       case VK_STRUCTURE_TYPE_D3D12_FENCE_SUBMIT_INFO_KHR:
       case VK_STRUCTURE_TYPE_SEMAPHORE_GET_WIN32_HANDLE_INFO_KHR:
       case VK_STRUCTURE_TYPE_EXPORT_FENCE_WIN32_HANDLE_INFO_KHR:
+      case VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT:
+      case VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_FULL_SCREEN_EXCLUSIVE_EXT:
+      case VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT:
       case VK_STRUCTURE_TYPE_IMPORT_FENCE_WIN32_HANDLE_INFO_KHR:
       case VK_STRUCTURE_TYPE_FENCE_GET_WIN32_HANDLE_INFO_KHR:
       case VK_STRUCTURE_TYPE_WIN32_KEYED_MUTEX_ACQUIRE_RELEASE_INFO_NV:
@@ -1995,6 +1998,12 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
                                  VkD3D12FenceSubmitInfoKHR);
         COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_EXPORT_FENCE_WIN32_HANDLE_INFO_KHR,
                                  VkExportFenceWin32HandleInfoKHR);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT,
+                                 VkSurfaceFullScreenExclusiveWin32InfoEXT);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_FULL_SCREEN_EXCLUSIVE_EXT,
+                                 VkSurfaceCapabilitiesFullScreenExclusiveEXT);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT,
+                                 VkSurfaceFullScreenExclusiveInfoEXT);
 
         UNWRAP_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR,
                                    VkMemoryGetWin32HandleInfoKHR, UnwrapInPlace(out->memory));
@@ -2055,6 +2064,9 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
       case VK_STRUCTURE_TYPE_D3D12_FENCE_SUBMIT_INFO_KHR:
       case VK_STRUCTURE_TYPE_SEMAPHORE_GET_WIN32_HANDLE_INFO_KHR:
       case VK_STRUCTURE_TYPE_EXPORT_FENCE_WIN32_HANDLE_INFO_KHR:
+      case VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT:
+      case VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_FULL_SCREEN_EXCLUSIVE_EXT:
+      case VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT:
       case VK_STRUCTURE_TYPE_IMPORT_FENCE_WIN32_HANDLE_INFO_KHR:
       case VK_STRUCTURE_TYPE_FENCE_GET_WIN32_HANDLE_INFO_KHR:
       case VK_STRUCTURE_TYPE_WIN32_KEYED_MUTEX_ACQUIRE_RELEASE_INFO_NV:
@@ -2269,6 +2281,12 @@ void CopyNextChainForPatching(const char *structName, byte *&tempMem, VkBaseInSt
                                  VkD3D12FenceSubmitInfoKHR);
         COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_EXPORT_FENCE_WIN32_HANDLE_INFO_KHR,
                                  VkExportFenceWin32HandleInfoKHR);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT,
+                                 VkSurfaceFullScreenExclusiveWin32InfoEXT);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_FULL_SCREEN_EXCLUSIVE_EXT,
+                                 VkSurfaceCapabilitiesFullScreenExclusiveEXT);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT,
+                                 VkSurfaceFullScreenExclusiveInfoEXT);
 
         UNWRAP_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR,
                                    VkMemoryGetWin32HandleInfoKHR, UnwrapInPlace(out->memory));
@@ -2299,6 +2317,9 @@ void CopyNextChainForPatching(const char *structName, byte *&tempMem, VkBaseInSt
       case VK_STRUCTURE_TYPE_D3D12_FENCE_SUBMIT_INFO_KHR:
       case VK_STRUCTURE_TYPE_SEMAPHORE_GET_WIN32_HANDLE_INFO_KHR:
       case VK_STRUCTURE_TYPE_EXPORT_FENCE_WIN32_HANDLE_INFO_KHR:
+      case VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT:
+      case VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_FULL_SCREEN_EXCLUSIVE_EXT:
+      case VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT:
       case VK_STRUCTURE_TYPE_IMPORT_FENCE_WIN32_HANDLE_INFO_KHR:
       case VK_STRUCTURE_TYPE_FENCE_GET_WIN32_HANDLE_INFO_KHR:
       case VK_STRUCTURE_TYPE_WIN32_KEYED_MUTEX_ACQUIRE_RELEASE_INFO_NV:
