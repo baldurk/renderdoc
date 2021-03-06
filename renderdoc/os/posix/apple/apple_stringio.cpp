@@ -91,8 +91,6 @@ void GetExecutableFilename(rdcstr &selfName)
   else
   {
     pathSize++;
-    char *allocPath = new char[pathSize];
-    memset(allocPath, 0, pathSize);
     if(_NSGetExecutablePath(path, &pathSize) == 0)
     {
       selfName = rdcstr(path);
@@ -101,10 +99,8 @@ void GetExecutableFilename(rdcstr &selfName)
     {
       selfName = "/unknown/unknown";
       RDCERR("Can't get executable name");
-      delete[] allocPath;
       return;    // don't try and readlink this
     }
-    delete[] allocPath;
   }
 
   memset(path, 0, sizeof(path));
