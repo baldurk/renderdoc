@@ -198,8 +198,6 @@ struct GLWindowingData
     ctx = NULL;
     wnd = NULL;
     pix = NULL;
-
-    layer = NULL;
   }
 
   union
@@ -210,8 +208,6 @@ struct GLWindowingData
 
   void *wnd;    // during capture, this is the CGL window ID. During replay, it's the NSView
   CGLPixelFormatObj pix;
-
-  void *layer;    // during replay only, this is the CALayer
 };
 
 #define DECL_HOOK_EXPORT(function)                                                                    \
