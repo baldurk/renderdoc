@@ -2642,6 +2642,13 @@ VkResult WrappedVulkan::vkBindBufferMemory2(VkDevice device, uint32_t bindInfoCo
             GetResID(pBindInfos[i].memory), pBindInfos[i].memoryOffset, bufrecord->memSize,
             eFrameRef_ReadBeforeWrite);
       }
+
+      // the memory is immediately dirty because we don't use dirty tracking, it's too expensive to
+      // follow all frame refs in the background and it's pointless because memory almost always
+      // immediately becomes dirty anyway. The one case we might care about non-dirty memory is
+      // memory that has been allocated but not used, but that will be skipped or postponed as
+      // appropriate.
+      GetResourceManager()->MarkDirtyResource(GetResID(pBindInfos[i].memory));
     }
   }
 
