@@ -108,7 +108,18 @@
   RDCEraseEl(xcb);         \
   RDCEraseEl(wayland);
 
-#elif ENABLED(RDOC_APPLE) || ENABLED(RDOC_GGP)
+#elif ENABLED(RDOC_APPLE)
+
+#define WINDOW_HANDLE_DECL \
+  struct                   \
+  {                        \
+    void *view;            \
+    void *layer;           \
+  } cocoa;
+
+#define WINDOW_HANDLE_INIT RDCEraseEl(cocoa);
+
+#elif ENABLED(RDOC_GGP)
 
 #define WINDOW_HANDLE_DECL void *wnd;
 #define WINDOW_HANDLE_INIT wnd = NULL;
