@@ -1,17 +1,13 @@
 #import <Cocoa/Cocoa.h>
 
-extern "C" int getMetalLayerWidth(void *handle)
+void getMetalLayerSize(void *viewHandle, void* layerHandle, int& width, int& height)
 {
-  CALayer *layer = (CALayer *)handle;
+  NSView *view = (NSView *)viewHandle;
+  assert([view isKindOfClass:[NSView class]]);
+  CALayer *layer = (CALayer *)layerHandle;
   assert([layer isKindOfClass:[CALayer class]]);
 
-  return layer.bounds.size.width;
-}
-
-extern "C" int getMetalLayerHeight(void *handle)
-{
-  CALayer *layer = (CALayer *)handle;
-  assert([layer isKindOfClass:[CALayer class]]);
-
-  return layer.bounds.size.height;
+  CGSize viewScale = [view convertSizeToBacking:layer.bounds.size];
+  width = viewScale.width;
+  height = viewScale.height;
 }
