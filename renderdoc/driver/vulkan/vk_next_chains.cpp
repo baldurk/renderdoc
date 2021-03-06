@@ -85,6 +85,7 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
 // define structs that just need to be copied with no unwrapping at all, or only unwrapping some
 // members - easily shared between GetNextPatchSize and UnwrapNextChain
 #define PROCESS_SIMPLE_STRUCTS()                                                                     \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_ACQUIRE_PROFILING_LOCK_INFO_KHR, VkAcquireProfilingLockInfoKHR);     \
   COPY_STRUCT(VK_STRUCTURE_TYPE_APPLICATION_INFO, VkApplicationInfo);                                \
   COPY_STRUCT(VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2, VkAttachmentDescription2);                 \
   COPY_STRUCT(VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_STENCIL_LAYOUT,                               \
@@ -148,6 +149,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
               VkDeviceQueueGlobalPriorityCreateInfoEXT);                                             \
   COPY_STRUCT(VK_STRUCTURE_TYPE_DEVICE_QUEUE_INFO_2, VkDeviceQueueInfo2);                            \
   COPY_STRUCT(VK_STRUCTURE_TYPE_DISPLAY_MODE_PROPERTIES_2_KHR, VkDisplayModeProperties2KHR);         \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_DISPLAY_NATIVE_HDR_SURFACE_CAPABILITIES_AMD,                         \
+              VkDisplayNativeHdrSurfaceCapabilitiesAMD)                                              \
   COPY_STRUCT(VK_STRUCTURE_TYPE_DISPLAY_PLANE_CAPABILITIES_2_KHR, VkDisplayPlaneCapabilities2KHR);   \
   COPY_STRUCT(VK_STRUCTURE_TYPE_DISPLAY_PLANE_INFO_2_KHR, VkDisplayPlaneInfo2KHR);                   \
   COPY_STRUCT(VK_STRUCTURE_TYPE_DISPLAY_PLANE_PROPERTIES_2_KHR, VkDisplayPlaneProperties2KHR);       \
@@ -163,6 +166,7 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
               VkFramebufferAttachmentsCreateInfo)                                                    \
   COPY_STRUCT(VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO, VkFramebufferAttachmentImageInfo) \
   COPY_STRUCT(VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2, VkFormatProperties2);                           \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_HDR_METADATA_EXT, VkHdrMetadataEXT)                                  \
   COPY_STRUCT(VK_STRUCTURE_TYPE_IMAGE_BLIT_2_KHR, VkImageBlit2KHR);                                  \
   COPY_STRUCT(VK_STRUCTURE_TYPE_IMAGE_COPY_2_KHR, VkImageCopy2KHR);                                  \
   COPY_STRUCT(VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, VkImageCreateInfo);                               \
@@ -236,6 +240,9 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2, VkPhysicalDeviceFeatures2);              \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT_CONTROLS_PROPERTIES,                           \
               VkPhysicalDeviceFloatControlsProperties);                                              \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_BARYCENTRIC_FEATURES_NV,             \
+              VkPhysicalDeviceFragmentShaderBarycentricFeaturesNV)                                   \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GROUP_PROPERTIES, VkPhysicalDeviceGroupProperties)   \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_FLOAT16_INT8_FEATURES,                        \
               VkPhysicalDeviceShaderFloat16Int8Features);                                            \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_FEATURES_EXT,                   \
@@ -330,6 +337,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
               VkPhysicalDeviceShaderImageFootprintFeaturesNV);                                       \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SUBGROUP_EXTENDED_TYPES_FEATURES,             \
               VkPhysicalDeviceShaderSubgroupExtendedTypesFeatures)                                   \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_TERMINATE_INVOCATION_FEATURES_KHR,            \
+              VkPhysicalDeviceShaderTerminateInvocationFeaturesKHR)                                  \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SPARSE_IMAGE_FORMAT_INFO_2,                          \
               VkPhysicalDeviceSparseImageFormatInfo2);                                               \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES,                                 \
@@ -465,9 +474,17 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   COPY_STRUCT(VK_STRUCTURE_TYPE_SUBPASS_END_INFO, VkSubpassEndInfo);                                 \
   COPY_STRUCT(VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_EXT, VkSurfaceCapabilities2EXT);              \
   COPY_STRUCT(VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR, VkSurfaceCapabilities2KHR);              \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_FULL_SCREEN_EXCLUSIVE_EXT,                      \
+              VkSurfaceCapabilitiesFullScreenExclusiveEXT)                                           \
   COPY_STRUCT(VK_STRUCTURE_TYPE_SURFACE_FORMAT_2_KHR, VkSurfaceFormat2KHR);                          \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT,                              \
+              VkSurfaceFullScreenExclusiveInfoEXT)                                                   \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT,                        \
+              VkSurfaceFullScreenExclusiveWin32InfoEXT)                                              \
   COPY_STRUCT(VK_STRUCTURE_TYPE_SURFACE_PROTECTED_CAPABILITIES_KHR,                                  \
               VkSurfaceProtectedCapabilitiesKHR);                                                    \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_SWAPCHAIN_DISPLAY_NATIVE_HDR_CREATE_INFO_AMD,                        \
+              VkSwapchainDisplayNativeHdrCreateInfoAMD)                                              \
   COPY_STRUCT(VK_STRUCTURE_TYPE_TEXTURE_LOD_GATHER_FORMAT_PROPERTIES_AMD,                            \
               VkTextureLODGatherFormatPropertiesAMD);                                                \
   COPY_STRUCT(VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO, VkTimelineSemaphoreSubmitInfo);      \
@@ -621,7 +638,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV:                               \
   case VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV:           \
   case VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_VERSION_INFO_KHR:                      \
-  case VK_STRUCTURE_TYPE_ACQUIRE_PROFILING_LOCK_INFO_KHR:                              \
   case VK_STRUCTURE_TYPE_BIND_ACCELERATION_STRUCTURE_MEMORY_INFO_NV:                   \
   case VK_STRUCTURE_TYPE_CHECKPOINT_DATA_NV:                                           \
   case VK_STRUCTURE_TYPE_CHECKPOINT_DATA_2_NV:                                         \
@@ -635,7 +651,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_DEVICE_DIAGNOSTICS_CONFIG_CREATE_INFO_NV:                     \
   case VK_STRUCTURE_TYPE_DEVICE_MEMORY_OVERALLOCATION_CREATE_INFO_AMD:                 \
   case VK_STRUCTURE_TYPE_DEVICE_MEMORY_REPORT_CALLBACK_DATA_EXT:                       \
-  case VK_STRUCTURE_TYPE_DISPLAY_NATIVE_HDR_SURFACE_CAPABILITIES_AMD:                  \
   case VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_LIST_EXT:                      \
   case VK_STRUCTURE_TYPE_FRAMEBUFFER_MIXED_SAMPLES_COMBINATION_NV:                     \
   case VK_STRUCTURE_TYPE_GENERATED_COMMANDS_INFO_NV:                                   \
@@ -645,7 +660,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_GEOMETRY_TRIANGLES_NV:                                        \
   case VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_SHADER_GROUPS_CREATE_INFO_NV:               \
   case VK_STRUCTURE_TYPE_GRAPHICS_SHADER_GROUP_CREATE_INFO_NV:                         \
-  case VK_STRUCTURE_TYPE_HDR_METADATA_EXT:                                             \
   case VK_STRUCTURE_TYPE_HEADLESS_SURFACE_CREATE_INFO_EXT:                             \
   case VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT:           \
   case VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT:               \
@@ -680,13 +694,11 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_MEMORY_HOST_PROPERTIES_EXT:          \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_2_FEATURES_EXT:          \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_2_PROPERTIES_EXT:        \
-  case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_BARYCENTRIC_FEATURES_NV:      \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_ENUMS_FEATURES_NV:      \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_ENUMS_PROPERTIES_NV:    \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR:           \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_KHR:                    \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_PROPERTIES_KHR:         \
-  case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GROUP_PROPERTIES:                             \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_DRM_FORMAT_MODIFIER_INFO_EXT:           \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV:                      \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV:                    \
@@ -703,7 +715,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_INTEGER_FUNCTIONS_2_FEATURES_INTEL:    \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SM_BUILTINS_FEATURES_NV:               \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SM_BUILTINS_PROPERTIES_NV:             \
-  case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_TERMINATE_INVOCATION_FEATURES_KHR:     \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADING_RATE_IMAGE_FEATURES_NV:               \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADING_RATE_IMAGE_PROPERTIES_NV:             \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXTURE_COMPRESSION_ASTC_HDR_FEATURES_EXT:    \
@@ -731,10 +742,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR:                     \
   case VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV:                      \
   case VK_STRUCTURE_TYPE_RENDER_PASS_TRANSFORM_BEGIN_INFO_QCOM:                        \
-  case VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_FULL_SCREEN_EXCLUSIVE_EXT:               \
-  case VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT:                       \
-  case VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT:                 \
-  case VK_STRUCTURE_TYPE_SWAPCHAIN_DISPLAY_NATIVE_HDR_CREATE_INFO_AMD:                 \
   case VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR:              \
   case VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_NV:
 
