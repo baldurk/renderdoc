@@ -30,16 +30,17 @@
 #include "apple_gl_hook_defs.h"
 
 // helpers defined in cgl_platform.mm
-extern "C" int NSGL_getLayerWidth(void *layer);
-extern "C" int NSGL_getLayerHeight(void *layer);
-extern "C" void *NSGL_createContext(void *view, void *shareContext);
-extern "C" void NSGL_makeCurrentContext(void *context);
-extern "C" void NSGL_update(void *context);
-extern "C" void NSGL_flushBuffer(void *context);
-extern "C" void NSGL_destroyContext(void *context);
+void getAppleWindowGetSize(void *view, int &width, int &height);
+void stopTrackingWindowSize(void *view);
+void NSGL_init();
+void *NSGL_createContext(void *view, void *shareContext);
+void NSGL_makeCurrentContext(void *context);
+void NSGL_update(void *context);
+void NSGL_flushBuffer(void *context);
+void NSGL_destroyContext(void *context);
 
 // helper for cgl_platform.mm
-extern "C" void NSGL_LogText(const char *text)
+void NSGL_LogText(const char *text)
 {
   RDCLOG("CGL: %s", text);
 }
@@ -161,15 +162,15 @@ class CGLPlatform : public GLPlatform
   {
     RDCASSERT(context.nsgl_ctx);
     NSGL_destroyContext(context.nsgl_ctx);
+    stopTrackingWindowSize(context.wnd);
   }
   void SwapBuffers(GLWindowingData context) { NSGL_flushBuffer(context.nsgl_ctx); }
   void WindowResized(GLWindowingData context) { NSGL_update(context.nsgl_ctx); }
   void GetOutputWindowDimensions(GLWindowingData context, int32_t &w, int32_t &h)
   {
-    if(context.layer)
+    if(context.wnd)
     {
-      w = NSGL_getLayerWidth(context.layer);
-      h = NSGL_getLayerHeight(context.layer);
+      getAppleWindowGetSize(context.wnd, w, h);
     }
     else
     {
@@ -201,7 +202,6 @@ class CGLPlatform : public GLPlatform
 
       ret.nsgl_ctx = NSGL_createContext(window.macOS.view, share_context.nsgl_ctx);
       ret.wnd = window.macOS.view;
-      ret.layer = window.macOS.layer;
 
       return ret;
     }
@@ -223,6 +223,7 @@ class CGLPlatform : public GLPlatform
   {
     RDCASSERT(api == RDCDriver::OpenGL);
 
+    NSGL_init();
     replayContext.nsgl_ctx = NSGL_createContext(NULL, NULL);
 
     return ReplayStatus::Succeeded;
