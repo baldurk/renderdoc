@@ -577,6 +577,10 @@ void DoSerialise(SerialiserType &ser, Sparse::PageTable &el)
   SERIALISE_MEMBER(m_MipTail);
 }
 
+INSTANTIATE_SERIALISE_TYPE(Sparse::Coord);
+INSTANTIATE_SERIALISE_TYPE(Sparse::Page);
+INSTANTIATE_SERIALISE_TYPE(Sparse::PageRangeMapping);
+INSTANTIATE_SERIALISE_TYPE(Sparse::MipTail);
 INSTANTIATE_SERIALISE_TYPE(Sparse::PageTable);
 
 #if ENABLED(ENABLE_UNIT_TESTS)
