@@ -167,7 +167,7 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
 
     QAction *dim = new QAction(tr("Texture Dimensions Global"), this);
     QAction *mip = new QAction(tr("Selected Mip Global"), this);
-    QAction *slice = new QAction(tr("Seleted Array Slice / Cubemap Face Global"), this);
+    QAction *slice = new QAction(tr("Selected Array Slice / Cubemap Face Global"), this);
     QAction *sample = new QAction(tr("Selected Sample Global"), this);
     QAction *type = new QAction(tr("Texture Type Global"), this);
     QAction *samplers = new QAction(tr("Point && Linear Samplers"), this);
