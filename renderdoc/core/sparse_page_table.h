@@ -152,15 +152,15 @@ public:
   }
 
   // read-only accessors to get current state
-  const uint32_t getNumSubresources() const { return (uint32_t)m_Subresources.size(); }
-  const uint32_t getArraySize() const { return m_ArraySize; }
-  const uint32_t getMipCount() const { return m_MipCount; }
+  uint32_t getNumSubresources() const { return (uint32_t)m_Subresources.size(); }
+  uint32_t getArraySize() const { return m_ArraySize; }
+  uint32_t getMipCount() const { return m_MipCount; }
   const PageRangeMapping &getSubresource(uint32_t subresource) const
   {
     return m_Subresources[subresource];
   }
   const MipTail &getMipTail() const { return m_MipTail; }
-  const uint64_t getSubresourceByteSize(uint32_t subresource) const
+  uint64_t getSubresourceByteSize(uint32_t subresource) const
   {
     const Coord subresourcePageDim = calcSubresourcePageDim(subresource);
 
