@@ -29,6 +29,23 @@
 
 class WrappedVulkan;
 
+struct SparseBinding : public VkBindSparseInfo
+{
+  SparseBinding(WrappedVulkan *vk, VkBuffer unwrappedBuffer,
+                const rdcarray<AspectSparseTable> &tables);
+  SparseBinding(WrappedVulkan *vk, VkImage unwrappedImage, const rdcarray<AspectSparseTable> &tables);
+  SparseBinding(const SparseBinding &) = delete;
+
+  bool invalid = false;
+
+  VkSparseBufferMemoryBindInfo bufBind;
+  VkSparseImageMemoryBindInfo imgBind;
+  VkSparseImageOpaqueMemoryBindInfo imgOpaqueBind;
+
+  rdcarray<VkSparseMemoryBind> opaqueBinds;
+  rdcarray<VkSparseImageMemoryBind> imgBinds;
+};
+
 // this struct is copied around and for that reason we explicitly keep it simple and POD. The
 // lifetime of the memory allocated is controlled by the resource manager - when preparing or
 // serialising, we explicitly set the initial contents, then when the whole system is done with them
@@ -41,6 +58,7 @@ struct VkInitialContents
     ClearColorImage = 1,
     ClearDepthStencilImage,
     DescriptorSet,
+    SparseTableOnly,
   };
 
   VkInitialContents()
@@ -64,6 +82,20 @@ struct VkInitialContents
     mem = m;
   }
 
+  void SnapshotPageTable(const ResourceInfo &resInfo)
+  {
+    SAFE_DELETE(sparseTables);
+
+    sparseTables = new rdcarray<AspectSparseTable>;
+    sparseTables->resize(resInfo.altSparseAspects.size() + 1);
+
+    sparseTables->at(0).aspectMask = resInfo.sparseAspect;
+    sparseTables->at(0).table = resInfo.sparseTable;
+
+    for(size_t a = 0; a < resInfo.altSparseAspects.size(); a++)
+      sparseTables->at(a + 1) = resInfo.altSparseAspects[a];
+  }
+
   template <typename Configuration>
   void Free(ResourceManager<Configuration> *rm)
   {
@@ -77,7 +109,10 @@ struct VkInitialContents
     rm->ResourceTypeRelease(GetWrapped(buf));
     rm->ResourceTypeRelease(GetWrapped(img));
 
-    // memory is not free'd here
+    SAFE_DELETE(sparseTables);
+    SAFE_DELETE(sparseBind);
+
+    // MemoryAllocation is not free'd here
   }
 
   // for descriptor heaps, when capturing we save the slots, when replaying we store direct writes
@@ -95,6 +130,11 @@ struct VkInitialContents
   VkImage img;
   MemoryAllocation mem;
   Tag tag;
+
+  // for sparse resources. The tables pointer is only valid on capture, it is converted to the queue
+  // sparse bind. Similar to the descriptors above
+  rdcarray<AspectSparseTable> *sparseTables;
+  SparseBinding *sparseBind;
 };
 
 struct VulkanResourceManagerConfiguration
@@ -165,10 +205,7 @@ public:
 
   ResourceId GetFirstIDForHandle(uint64_t handle);
 
-  // easy path for getting the unwrapped handle cast to the
-  // write type. Saves a lot of work casting to either WrappedVkNonDispRes
-  // or WrappedVkDispRes depending on the type, then ->real, then casting
-  // when this is all we want to do in most cases
+  // easy path for getting the wrapped handle cast to the correct type
   template <typename realtype>
   realtype GetLiveHandle(ResourceId origid)
   {
