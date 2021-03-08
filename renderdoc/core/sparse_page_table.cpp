@@ -185,8 +185,9 @@ uint64_t PageTable::setMipTailRange(uint64_t resourceByteOffset, ResourceId memo
         m_PageByteSize);
 
     // iterate through each referenced resource page
-    for(size_t page = resourceByteOffset / m_PageByteSize,
-               endPage = (resourceByteOffset + byteSize + m_PageByteSize - 1) / m_PageByteSize;
+    for(size_t
+            page = size_t(resourceByteOffset / m_PageByteSize),
+            endPage = size_t((resourceByteOffset + byteSize + m_PageByteSize - 1) / m_PageByteSize);
         page < mapping.pages.size() && page < endPage; page++)
     {
       mapping.pages[page].memory = memory;
@@ -241,8 +242,9 @@ uint64_t PageTable::setMipTailRange(uint64_t resourceByteOffset, ResourceId memo
 
         // iterate through each referenced page in this subresource's mip tail. Note we only iterate
         // over as many pages as this mapping has, even if the bound region is larger.
-        for(size_t page = resourceByteOffset / m_PageByteSize,
-                   endPage = (resourceByteOffset + byteSize + m_PageByteSize - 1) / m_PageByteSize;
+        for(size_t page = size_t(resourceByteOffset / m_PageByteSize),
+                   endPage =
+                       size_t((resourceByteOffset + byteSize + m_PageByteSize - 1) / m_PageByteSize);
             page < mapping.pages.size() && page < endPage; page++)
         {
           mapping.pages[page].memory = memory;
