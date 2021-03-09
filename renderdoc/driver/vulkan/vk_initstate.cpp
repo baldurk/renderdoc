@@ -1839,7 +1839,11 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
     // we should only get here if we have a sparse page table to apply
     RDCASSERT(initial.tag == VkInitialContents::SparseTableOnly, (uint32_t)initial.tag);
 
-    if(initial.sparseBind)
+    // only apply sparse bindings the first time we apply initial contents, OR if there are sparse
+    // bindings of this resource in the capture. This is a simple optimisation to avoid needing to
+    // re-bind the sparse pages every time if they don't change.
+    if(initial.sparseBind &&
+       (IsLoading(m_State) || m_SparseBindResources.find(id) != m_SparseBindResources.end()))
       ObjDisp(m_Queue)->QueueBindSparse(Unwrap(m_Queue), 1, initial.sparseBind, VK_NULL_HANDLE);
   }
   else if(type == eResImage)
@@ -1869,7 +1873,13 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
     // apply sparse page table mappings and skip memory-bound optimisations
     if(initial.sparseBind)
     {
-      ObjDisp(m_Queue)->QueueBindSparse(Unwrap(m_Queue), 1, initial.sparseBind, VK_NULL_HANDLE);
+      // only apply sparse bindings the first time we apply initial contents, OR if there are sparse
+      // bindings of this resource in the capture. This is a simple optimisation to avoid needing to
+      // re-bind the sparse pages every time if they don't change.
+      if(IsLoading(m_State) || m_SparseBindResources.find(id) != m_SparseBindResources.end())
+        ObjDisp(m_Queue)->QueueBindSparse(Unwrap(m_Queue), 1, initial.sparseBind, VK_NULL_HANDLE);
+
+      // however we don't track the memory bound to it, so always consider it uninitialised.
       initialized = false;
     }
     else if(initialized && boundMemory != ResourceId())

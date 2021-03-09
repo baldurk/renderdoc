@@ -1571,6 +1571,9 @@ bool WrappedVulkan::Serialise_vkQueueBindSparse(SerialiserType &ser, VkQueue que
         }
         else
         {
+          if(IsLoading(m_State))
+            m_SparseBindResources.insert(GetResID(buf[i].buffer));
+
           buf[i].buffer = Unwrap(buf[i].buffer);
 
           VkSparseMemoryBind *binds = (VkSparseMemoryBind *)buf[i].pBinds;
@@ -1590,6 +1593,9 @@ bool WrappedVulkan::Serialise_vkQueueBindSparse(SerialiserType &ser, VkQueue que
         }
         else
         {
+          if(IsLoading(m_State))
+            m_SparseBindResources.insert(GetResID(imopaque[i].image));
+
           imopaque[i].image = Unwrap(imopaque[i].image);
 
           VkSparseMemoryBind *binds = (VkSparseMemoryBind *)imopaque[i].pBinds;
@@ -1608,6 +1614,9 @@ bool WrappedVulkan::Serialise_vkQueueBindSparse(SerialiserType &ser, VkQueue que
         }
         else
         {
+          if(IsLoading(m_State))
+            m_SparseBindResources.insert(GetResID(im[i].image));
+
           im[i].image = Unwrap(im[i].image);
 
           VkSparseImageMemoryBind *binds = (VkSparseImageMemoryBind *)im[i].pBinds;

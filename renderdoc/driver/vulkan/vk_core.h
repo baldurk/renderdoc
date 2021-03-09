@@ -890,17 +890,6 @@ private:
 
   ResourceDescription &GetResourceDesc(ResourceId id);
 
-  bool Prepare_SparseInitialState(WrappedVkBuffer *buf);
-  bool Prepare_SparseInitialState(WrappedVkImage *im);
-  template <typename SerialiserType>
-  bool Serialise_SparseBufferInitialState(SerialiserType &ser, ResourceId id,
-                                          const VkInitialContents *contents);
-  template <typename SerialiserType>
-  bool Serialise_SparseImageInitialState(SerialiserType &ser, ResourceId id,
-                                         const VkInitialContents *contents);
-  bool Apply_SparseInitialState(WrappedVkBuffer *buf, const VkInitialContents &contents);
-  bool Apply_SparseInitialState(WrappedVkImage *im, const VkInitialContents &contents);
-
   void ApplyInitialContents();
 
   rdcarray<APIEvent> m_RootEvents, m_Events;
@@ -913,6 +902,8 @@ private:
   VulkanChunk m_LastChunk;
 
   ResourceId m_LastPresentedImage;
+
+  std::set<ResourceId> m_SparseBindResources;
 
   ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
 
