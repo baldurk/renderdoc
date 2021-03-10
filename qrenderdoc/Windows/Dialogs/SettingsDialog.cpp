@@ -803,6 +803,8 @@ bool SettingsDialog::editTool(int existing, ShaderProcessingTool &tool)
 
     QString message;
 
+    invalid = false;
+
     // ensure we don't have an invalid name
     if(tool.name == "Builtin")
     {
