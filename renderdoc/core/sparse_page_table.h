@@ -70,6 +70,21 @@ struct PageRangeMapping
   // the memory mappings per-page if there are different mappings per-page
   rdcarray<Page> pages;
 
+  Page getPage(uint32_t idx, uint32_t pageSize) const
+  {
+    if(pages.empty())
+    {
+      if(singlePageReused)
+        return singleMapping;
+
+      Page ret = singleMapping;
+      ret.offset += pageSize * idx;
+      return ret;
+    }
+
+    return pages[idx];
+  }
+
   void createPages(uint32_t numPages, uint32_t pageSize);
 };
 
@@ -123,6 +138,7 @@ public:
 
   inline uint32_t getPageByteSize() const { return m_PageByteSize; }
   inline Coord getPageTexelSize() const { return m_PageTexelSize; }
+  inline Coord getResourceSize() const { return m_TextureDim; }
   // useful for D3D where the mip tail is indexed by subresource/array slice even if we treat it all
   // as one
   inline uint64_t getMipTailByteOffsetForSubresource(uint32_t subresource) const
@@ -160,6 +176,12 @@ public:
     return m_Subresources[subresource];
   }
   const MipTail &getMipTail() const { return m_MipTail; }
+  const PageRangeMapping &getMipTailMapping(uint32_t subresource) const
+  {
+    const uint32_t arraySlice = (subresource / m_MipCount) % m_ArraySize;
+    return m_MipTail.mappings[arraySlice];
+  }
+  uint64_t getMipTailSliceSize() const { return m_MipTail.totalPackedByteSize / m_ArraySize; }
   uint64_t getSubresourceByteSize(uint32_t subresource) const
   {
     const Coord subresourcePageDim = calcSubresourcePageDim(subresource);
@@ -200,12 +222,34 @@ public:
   // of the case of mapping a single 'black' page to large areas of the resource, or NULL'ing out
   // mappings
   // as a convenience it returns the co-ordinate and subresource where it finishes, since D3D allows
-  // mismatched boundaries for tile ranges and memory regions
-  rdcpair<uint32_t, Coord> setImageWrappedRange(uint32_t subresource, const Coord &coord,
+  // mismatched boundaries for tile ranges and memory regions. This interacts with the
+  // updateMappings parameter which can skip applying any bindings and only advances the coord
+  // 'cursor'
+  rdcpair<uint32_t, Coord> setImageWrappedRange(uint32_t dstSubresource, const Coord &coord,
                                                 uint64_t byteSize, ResourceId memory,
-                                                uint64_t memoryByteOffset, bool useSinglePage);
+                                                uint64_t memoryByteOffset, bool useSinglePage,
+                                                bool updateMappings = true);
+
+  // copy pages from another page table, in D3D fashion. These take co-ordinates and dimensions in
+  // tiles because copying between textures with different tile shapes seems possible and if we
+  // expect inputs in texels we have to specify which page table's texel dimensions we're using,
+  // which is probably more error prone than breaking the convention of not accepting parameters in
+  // tiles.
+  void copyImageBoxRange(uint32_t dstSubresource, const Coord &coordInTiles,
+                         const Coord &dimInTiles, const PageTable &srcPageTable,
+                         uint32_t srcSubresource, const Coord &srcCoordInTiles);
+
+  void copyImageWrappedRange(uint32_t subresource, const Coord &coordInTiles, uint64_t numTiles,
+                             const PageTable &srcPageTable, uint32_t srcSubresource,
+                             const Coord &srcCoordInTiles);
 
 private:
+  PageRangeMapping &getMipTailMapping(uint32_t subresource)
+  {
+    const uint32_t arraySlice = (subresource / m_MipCount) % m_ArraySize;
+    return m_MipTail.mappings[arraySlice];
+  }
+
   // The image dimensions that we need. We don't care about the format or anything, we just need to
   // know the size in pages and the subresource setup
   Coord m_TextureDim = {};

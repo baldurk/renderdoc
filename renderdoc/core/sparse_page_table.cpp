@@ -28,6 +28,11 @@
 
 namespace Sparse
 {
+static uint32_t calcPageForTileCoord(const Coord &coord, const Coord &subresourcePageDim)
+{
+  return (((coord.z * subresourcePageDim.y) + coord.y) * subresourcePageDim.x) + coord.x;
+}
+
 void PageRangeMapping::createPages(uint32_t numPages, uint32_t pageSize)
 {
   // don't do anything if the pages have already been populated
@@ -62,6 +67,9 @@ void PageTable::Initialise(uint64_t bufferByteSize, uint32_t pageByteSize)
   // set just in case the calling code calls getMipTailByteOffsetForSubresource
   m_ArraySize = 1;
   m_MipCount = 1;
+
+  m_TextureDim = {(uint32_t)bufferByteSize, 1, 1};
+  m_PageTexelSize = {pageByteSize, 1, 1};
 
   // initialise mip tail with buffer properties
   m_MipTail.byteStride = 0;
@@ -308,9 +316,12 @@ void PageTable::setImageBoxRange(uint32_t subresource, const Sparse::Coord &coor
 
   // dimension may be misaligned if it's referring to part of a page on a non-page-aligned texture
   // dimension
-  RDCASSERT((dim.x % m_PageTexelSize.x) == 0 || (coord.x + dim.x == m_TextureDim.x));
-  RDCASSERT((dim.y % m_PageTexelSize.y) == 0 || (coord.y + dim.y == m_TextureDim.y));
-  RDCASSERT((dim.z % m_PageTexelSize.z) == 0 || (coord.z + dim.z == m_TextureDim.z));
+  RDCASSERT((dim.x % m_PageTexelSize.x) == 0 || (coord.x + dim.x == m_TextureDim.x), dim.x, coord.x,
+            m_PageTexelSize.x, m_TextureDim.x);
+  RDCASSERT((dim.y % m_PageTexelSize.y) == 0 || (coord.y + dim.y == m_TextureDim.y), dim.y, coord.y,
+            m_PageTexelSize.y, m_TextureDim.y);
+  RDCASSERT((dim.z % m_PageTexelSize.z) == 0 || (coord.z + dim.z == m_TextureDim.z), dim.z, coord.z,
+            m_PageTexelSize.z, m_TextureDim.z);
 
   // convert coords and dim to pages for ease of calculation
   Sparse::Coord curCoord = coord;
@@ -359,7 +370,7 @@ void PageTable::setImageBoxRange(uint32_t subresource, const Sparse::Coord &coor
         for(uint32_t x = curCoord.x; x < curCoord.x + curDim.x; x++)
         {
           // calculate the page
-          const uint32_t page = (((z * subresourcePageDim.y) + y) * subresourcePageDim.x) + x;
+          const uint32_t page = calcPageForTileCoord({x, y, z}, subresourcePageDim);
 
           sub.pages[page].memory = memory;
           sub.pages[page].offset = memoryByteOffset;
@@ -377,11 +388,17 @@ rdcpair<uint32_t, Coord> PageTable::setImageWrappedRange(uint32_t subresource,
                                                          const Sparse::Coord &coord,
                                                          uint64_t byteSize, ResourceId memory,
                                                          uint64_t memoryByteOffset,
-                                                         bool useSinglePage)
+                                                         bool useSinglePage, bool updateMappings)
 {
+  const bool allBytes = (byteSize == ~0U);
+
+  if(allBytes)
+    byteSize -= byteSize % m_PageByteSize;
+
   RDCASSERT((byteSize % m_PageByteSize) == 0, byteSize, m_PageByteSize);
 
-  RDCASSERT(subresource < m_Subresources.size(), subresource, m_Subresources.size());
+  RDCASSERT(subresource < m_Subresources.size() || isSubresourceInMipTail(subresource), subresource,
+            m_Subresources.size());
 
   Sparse::Coord curCoord = coord;
 
@@ -390,23 +407,29 @@ rdcpair<uint32_t, Coord> PageTable::setImageWrappedRange(uint32_t subresource,
     memoryByteOffset = 0;
 
   // loop while we still have bytes left, to allow wrapping over subresources
-  while(byteSize > 0 && subresource < m_Subresources.size())
+  while(byteSize > 0 && (isSubresourceInMipTail(subresource) || subresource < m_Subresources.size()))
   {
     const Coord subresourcePageDim = calcSubresourcePageDim(subresource);
     const uint32_t numSubresourcePages =
-        subresourcePageDim.x * subresourcePageDim.y * subresourcePageDim.z;
+        isSubresourceInMipTail(subresource)
+            ? uint32_t(m_MipTail.totalPackedByteSize / m_MipTail.mappings.size()) / m_PageByteSize
+            : subresourcePageDim.x * subresourcePageDim.y * subresourcePageDim.z;
 
-    PageRangeMapping &sub = m_Subresources[subresource];
+    PageRangeMapping &sub = isSubresourceInMipTail(subresource) ? getMipTailMapping(subresource)
+                                                                : m_Subresources[subresource];
 
     const uint64_t subresourceByteSize = numSubresourcePages * m_PageByteSize;
 
     // if we're setting the whole subresource, set it to use the optimal single mapping
     if(curCoord.x == 0 && curCoord.y == 0 && curCoord.z == 0 && byteSize >= subresourceByteSize)
     {
-      sub.pages.clear();
-      sub.singleMapping.memory = memory;
-      sub.singleMapping.offset = memoryByteOffset;
-      sub.singlePageReused = useSinglePage;
+      if(updateMappings)
+      {
+        sub.pages.clear();
+        sub.singleMapping.memory = memory;
+        sub.singleMapping.offset = memoryByteOffset;
+        sub.singlePageReused = useSinglePage;
+      }
 
       // if we're not mapping all resource pages to a single memory page, advance the offset
       if(!useSinglePage && memory != ResourceId())
@@ -416,8 +439,18 @@ rdcpair<uint32_t, Coord> PageTable::setImageWrappedRange(uint32_t subresource,
 
       // continue on the next subresource at {0,0,0}. If there are bytes remaining we'll loop and
       // assign them
-      subresource++;
-      curCoord = {0, 0, 0};
+
+      // if we're setting in the miptail right now, continue on at the next mip 0
+      if(isSubresourceInMipTail(subresource))
+      {
+        const uint32_t slice = subresource / m_MipCount;
+        subresource = (slice + 1) * m_MipCount;
+      }
+      else
+      {
+        subresource++;
+        curCoord = {0, 0, 0};
+      }
 
       // since we know we consumed a whole subresource above, if we're done then we can return the
       // correct reference to the next subresource at 0,0,0 here
@@ -428,18 +461,28 @@ rdcpair<uint32_t, Coord> PageTable::setImageWrappedRange(uint32_t subresource,
     {
       // either we're starting at a coord somewhere into the subresource, or we don't cover it all.
       // Split the subresource into pages if needed and update.
-      sub.createPages(numSubresourcePages, m_PageByteSize);
+      if(updateMappings)
+        sub.createPages(numSubresourcePages, m_PageByteSize);
 
       // note that numPages could be more pages than in the subresource! hence below we check both
       // that we haven't exhausted the incoming pages and that we haven't exhausted the pages in the
       // subresource
       const uint32_t numPages = uint32_t(byteSize / m_PageByteSize);
 
-      // convert current co-ord to pages for calculation. We don't have to worry about doing this
-      // repeatedly because if we overlap into another subresource we start at 0,0,0
-      curCoord.x /= m_PageTexelSize.x;
-      curCoord.y /= m_PageTexelSize.y;
-      curCoord.z /= m_PageTexelSize.z;
+      if(isSubresourceInMipTail(subresource))
+      {
+        curCoord.x /= m_PageTexelSize.x;
+        curCoord.y = 0;
+        curCoord.z = 0;
+      }
+      else
+      {
+        // convert current co-ord to pages for calculation. We don't have to worry about doing this
+        // repeatedly because if we overlap into another subresource we start at 0,0,0
+        curCoord.x /= m_PageTexelSize.x;
+        curCoord.y /= m_PageTexelSize.y;
+        curCoord.z /= m_PageTexelSize.z;
+      }
 
       // calculate the starting page
       uint32_t startingPage =
@@ -448,8 +491,11 @@ rdcpair<uint32_t, Coord> PageTable::setImageWrappedRange(uint32_t subresource,
       for(uint32_t page = startingPage;
           page < startingPage + numPages && page < numSubresourcePages; page++)
       {
-        sub.pages[page].memory = memory;
-        sub.pages[page].offset = memoryByteOffset;
+        if(updateMappings)
+        {
+          sub.pages[page].memory = memory;
+          sub.pages[page].offset = memoryByteOffset;
+        }
 
         // if we're not mapping all resource pages to a single memory page, advance the offset
         if(!useSinglePage && memory != ResourceId())
@@ -461,21 +507,38 @@ rdcpair<uint32_t, Coord> PageTable::setImageWrappedRange(uint32_t subresource,
       // ended up
       if(byteSize == 0 && startingPage + numPages < numSubresourcePages)
       {
-        // X we just increment by however many pages, wrapping by the row length in pages
-        curCoord.x = (curCoord.x + numPages) % subresourcePageDim.x;
-        // for Y we increment by however many *rows*, again wrapping
-        curCoord.y = (curCoord.y + numPages / subresourcePageDim.x) % subresourcePageDim.y;
-        // similarly for Z
-        curCoord.z = (curCoord.z + numPages / (subresourcePageDim.x * subresourcePageDim.y)) %
-                     subresourcePageDim.z;
+        if(isSubresourceInMipTail(subresource))
+        {
+          curCoord.x += numPages * m_PageByteSize;
+        }
+        else
+        {
+          // X we just increment by however many pages, wrapping by the row length in pages
+          curCoord.x = (curCoord.x + numPages) % subresourcePageDim.x;
+          // for Y we increment by however many *rows*, again wrapping
+          curCoord.y = (curCoord.y + numPages / subresourcePageDim.x) % subresourcePageDim.y;
+          // similarly for Z
+          curCoord.z = (curCoord.z + numPages / (subresourcePageDim.x * subresourcePageDim.y)) %
+                       subresourcePageDim.z;
+        }
 
         return {subresource, curCoord};
       }
 
       // continue on the next subresource at {0,0,0}. If there are bytes remaining we'll loop and
       // assign them
-      subresource++;
-      curCoord = {0, 0, 0};
+
+      // if we're setting in the miptail right now, continue on at the next mip 0
+      if(isSubresourceInMipTail(subresource))
+      {
+        const uint32_t slice = subresource / m_MipCount;
+        subresource = (slice + 1) * m_MipCount;
+      }
+      else
+      {
+        subresource++;
+        curCoord = {0, 0, 0};
+      }
 
       // if we got here we consumed the whole subresource and ended, so return that
       if(byteSize == 0)
@@ -483,10 +546,278 @@ rdcpair<uint32_t, Coord> PageTable::setImageWrappedRange(uint32_t subresource,
     }
   }
 
-  if(byteSize > 0)
+  if(!allBytes && byteSize > 0)
     RDCERR("Unclaimed bytes being assigned to image after iterating over all subresources");
 
   return {0, {0, 0, 0}};
+}
+
+void PageTable::copyImageBoxRange(uint32_t dstSubresource, const Coord &coordInTiles,
+                                  const Coord &dimInTiles, const PageTable &srcPageTable,
+                                  uint32_t srcSubresource, const Coord &srcCoordInTiles)
+{
+  // this can only be used if pages are the same size, which is always true on D3D
+  RDCASSERT(getPageByteSize() == srcPageTable.getPageByteSize());
+
+  const bool srcMip = srcPageTable.isSubresourceInMipTail(srcSubresource);
+  const bool dstMip = isSubresourceInMipTail(dstSubresource);
+
+  // if we're copying between mip tails and the copy is completely contained in the mip tail on
+  // both sides of the copy
+  if(srcMip && dstMip &&
+     dimInTiles.x <= srcPageTable.getMipTailSliceSize() / srcPageTable.getPageByteSize() &&
+     dimInTiles.x <= getMipTailSliceSize() / getPageByteSize())
+  {
+    const Sparse::PageRangeMapping &srcMapping = srcPageTable.getMipTailMapping(srcSubresource);
+
+    // if the source has a single mapping, copy it and allow setMipTailRange to figure out if this
+    // is a single mapping in the destination or not
+    if(srcMapping.hasSingleMapping())
+    {
+      setMipTailRange(
+          getMipTailByteOffsetForSubresource(dstSubresource) + coordInTiles.x * m_PageByteSize,
+          srcMapping.singleMapping.memory,
+          srcMapping.singleMapping.offset + srcCoordInTiles.x * m_PageByteSize,
+          dimInTiles.x * m_PageByteSize, srcMapping.singlePageReused);
+    }
+    // otherwise we just do a page-by-page copy
+    else
+    {
+      uint32_t dstStartPage = coordInTiles.x;
+      uint32_t srcStartPage = srcCoordInTiles.x;
+      for(uint32_t pageIdx = 0; pageIdx < dimInTiles.x; pageIdx++)
+      {
+        Page srcPageContents = srcMapping.getPage(srcStartPage + pageIdx, m_PageByteSize);
+        setMipTailRange(dstStartPage * m_PageByteSize, srcPageContents.memory,
+                        srcPageContents.offset, m_PageByteSize, false);
+      }
+    }
+
+    return;
+  }
+
+  Sparse::Coord srcSubSize = srcPageTable.calcSubresourcePageDim(srcSubresource);
+  Sparse::Coord dstSubSize = calcSubresourcePageDim(dstSubresource);
+
+  // if the region covers the destination subresource we might be able to take a shortcut
+  if(dstSubSize == dimInTiles)
+  {
+    // if the subresources are identical, just copy no matter what
+    if(srcSubSize == dstSubSize)
+    {
+      m_Subresources[dstSubresource] = srcPageTable.getSubresource(srcSubresource);
+      return;
+    }
+
+    // one more case - if the destination is completely covered by the region and the source is at
+    // least as big AND the source is a single page mapping, we can copy to a single page mapping.
+    // That's because the pages are the same they just wrap differently (e.g. in an original 8x8
+    // source the pages 0..7 form the first row and in the destination 4x4 those same pages are the
+    // first two rows, but that's exactly what this operation wants to do).
+    if(srcSubSize.x >= dimInTiles.x && srcSubSize.y >= dimInTiles.y && srcSubSize.z >= dimInTiles.z &&
+       srcPageTable.getSubresource(srcSubresource).hasSingleMapping())
+    {
+      m_Subresources[dstSubresource] = srcPageTable.getSubresource(srcSubresource);
+      return;
+    }
+  }
+
+  // in all other cases we fall back to a page-by-page copy from source to dest. This case means the
+  // box is a subset of the destination or the source isn't a nice single mapping so we need to copy
+  // pages one by one
+
+  // box regions are by definition constrained within a subresource. We assume it's
+  // constrained within both...
+  RDCASSERT(srcCoordInTiles.x + dimInTiles.x <= srcSubSize.x, srcCoordInTiles.x, dimInTiles.x,
+            srcSubSize.x);
+  RDCASSERT(srcCoordInTiles.y + dimInTiles.y <= srcSubSize.y, srcCoordInTiles.y, dimInTiles.x,
+            srcSubSize.y);
+  RDCASSERT(srcCoordInTiles.z + dimInTiles.z <= srcSubSize.z, srcCoordInTiles.z, dimInTiles.x,
+            srcSubSize.z);
+
+  RDCASSERT(coordInTiles.x + dimInTiles.x <= dstSubSize.x, coordInTiles.x, dimInTiles.x,
+            dstSubSize.x);
+  RDCASSERT(coordInTiles.y + dimInTiles.y <= dstSubSize.y, coordInTiles.y, dimInTiles.y,
+            dstSubSize.y);
+  RDCASSERT(coordInTiles.z + dimInTiles.z <= dstSubSize.z, coordInTiles.z, dimInTiles.z,
+            dstSubSize.z);
+
+  Sparse::PageRangeMapping &dstSub = m_Subresources[dstSubresource];
+  const Sparse::PageRangeMapping &srcSub = srcPageTable.getSubresource(srcSubresource);
+
+  dstSub.createPages(dstSubSize.x * dstSubSize.y * dstSubSize.z, m_PageByteSize);
+
+  for(uint32_t z = 0; z < dimInTiles.z; z++)
+  {
+    for(uint32_t y = 0; y < dimInTiles.y; y++)
+    {
+      for(uint32_t x = 0; x < dimInTiles.x; x++)
+      {
+        const uint32_t dstPage = calcPageForTileCoord(
+            {coordInTiles.x + x, coordInTiles.y + y, coordInTiles.z + z}, dstSubSize);
+        const uint32_t srcPage = calcPageForTileCoord(
+            {srcCoordInTiles.x + x, srcCoordInTiles.y + y, srcCoordInTiles.z + z}, srcSubSize);
+        dstSub.pages[dstPage] = srcSub.getPage(srcPage, m_PageByteSize);
+      }
+    }
+  }
+}
+
+void PageTable::copyImageWrappedRange(uint32_t dstSubresource, const Coord &coordInTiles,
+                                      uint64_t numTiles, const PageTable &srcPageTable,
+                                      uint32_t srcSubresource, const Coord &srcCoordInTiles)
+{
+  // this can only be used if pages are the same size, which is always true on D3D
+  RDCASSERT(getPageByteSize() == srcPageTable.getPageByteSize());
+
+  const bool srcMip = srcPageTable.isSubresourceInMipTail(srcSubresource);
+  const bool dstMip = isSubresourceInMipTail(dstSubresource);
+
+  // if we're copying between mip tails and the copy is completely contained in the mip tail on
+  // both sides of the copy
+  if(srcMip && dstMip &&
+     numTiles <= srcPageTable.getMipTailSliceSize() / srcPageTable.getPageByteSize() &&
+     numTiles <= getMipTailSliceSize() / getPageByteSize())
+  {
+    const Sparse::PageRangeMapping &srcMapping = srcPageTable.getMipTailMapping(srcSubresource);
+
+    // if the source has a single mapping, copy it and allow setMipTailRange to figure out if this
+    // is a single mapping in the destination or not
+    if(srcMapping.hasSingleMapping())
+    {
+      setMipTailRange(
+          getMipTailByteOffsetForSubresource(dstSubresource) + coordInTiles.x * m_PageByteSize,
+          srcMapping.singleMapping.memory,
+          srcMapping.singleMapping.offset + srcCoordInTiles.x * m_PageByteSize,
+          numTiles * m_PageByteSize, srcMapping.singlePageReused);
+    }
+    // otherwise we just do a page-by-page copy
+    else
+    {
+      uint32_t dstStartPage = coordInTiles.x;
+      uint32_t srcStartPage = srcCoordInTiles.x;
+      for(uint32_t pageIdx = 0; pageIdx < numTiles; pageIdx++)
+      {
+        Page srcPageContents = srcMapping.getPage(srcStartPage + pageIdx, m_PageByteSize);
+        setMipTailRange(dstStartPage * m_PageByteSize, srcPageContents.memory,
+                        srcPageContents.offset, m_PageByteSize, false);
+      }
+    }
+
+    return;
+  }
+
+  // in all other cases we fall back to a page-by-page copy from source to dest, overlapping pages
+  // linearly.
+  Sparse::Coord srcSubSize = srcPageTable.calcSubresourcePageDim(srcSubresource);
+  Sparse::Coord dstSubSize = calcSubresourcePageDim(dstSubresource);
+
+  const Sparse::PageRangeMapping *srcMapping = &srcPageTable.getSubresource(srcSubresource);
+  Sparse::PageRangeMapping *dstMapping = &m_Subresources[dstSubresource];
+
+  uint32_t dstPage =
+      calcPageForTileCoord({coordInTiles.x, coordInTiles.y, coordInTiles.z}, dstSubSize);
+  uint32_t srcPage =
+      calcPageForTileCoord({srcCoordInTiles.x, srcCoordInTiles.y, srcCoordInTiles.z}, srcSubSize);
+
+  for(uint64_t i = 0; i < numTiles;)
+  {
+    const uint64_t remainingTiles = numTiles - i;
+
+    const uint32_t dstSubTiles = dstSubSize.x * dstSubSize.y * dstSubSize.z;
+    const uint32_t srcSubTiles = srcSubSize.x * srcSubSize.y * srcSubSize.z;
+
+    // if we currently have enough tiles remaining to update the whole next resource and we're
+    // pointing at 0,0,0 and our source range is a single mapping, copy that single mapping.
+    if(dstPage == 0 && dstSubTiles <= remainingTiles && srcMapping->hasSingleMapping() &&
+       dstSubTiles <= srcSubTiles - srcPage)
+    {
+      // as above, the tiles may wrap differently in the destination mapping but that's how we want
+      // it to be
+      *dstMapping = *srcMapping;
+
+      // increment by how many tiles we consumed
+      srcPage += dstSubTiles;
+      dstPage += dstSubTiles;
+      i += dstSubTiles;
+    }
+    else
+    {
+      // otherwise just copy the current page
+      dstMapping->createPages(dstSubTiles, m_PageByteSize);
+      dstMapping->pages[dstPage] = srcMapping->getPage(srcPage, m_PageByteSize);
+
+      dstPage++;
+      srcPage++;
+      i++;
+    }
+
+    if(i >= numTiles)
+      break;
+
+    // wrap the destination and source to the next page in the next subresource if we've used all
+    // the ones up
+    if(srcPage >= srcSubTiles)
+    {
+      // start at page 0 in the next subresource
+      srcPage = 0;
+
+      // if we were in the mip tail, jump all the way to the next mip0, otherwise we just move to
+      // the next subresource
+      if(isSubresourceInMipTail(srcSubresource))
+      {
+        const uint32_t slice = srcSubresource / srcPageTable.getMipCount();
+        srcSubresource = (slice + 1) * srcPageTable.getMipCount();
+      }
+      else
+      {
+        srcSubresource++;
+      }
+
+      // update subresource properties for the new current subresource
+      srcSubSize = srcPageTable.calcSubresourcePageDim(srcSubresource);
+      srcMapping = &srcPageTable.getSubresource(srcSubresource);
+    }
+
+    if(dstPage >= dstSubTiles)
+    {
+      // start at page 0 in the next subresource
+      dstPage = 0;
+
+      // if we were in the mip tail, jump all the way to the next mip0, otherwise we just move to
+      // the next subresource
+      if(isSubresourceInMipTail(dstSubresource))
+      {
+        const uint32_t slice = dstSubresource / m_MipCount;
+        dstSubresource = (slice + 1) * m_MipCount;
+      }
+      else
+      {
+        dstSubresource++;
+      }
+
+      dstSubSize = calcSubresourcePageDim(dstSubresource);
+      dstMapping = &m_Subresources[dstSubresource];
+    }
+
+    if(srcSubresource >= srcPageTable.getNumSubresources())
+    {
+      RDCERR(
+          "Number of tiles %u in image wrapped range copy exceeded source page table subresource "
+          "count %u",
+          numTiles, srcPageTable.getNumSubresources());
+      return;
+    }
+
+    if(dstSubresource >= getNumSubresources())
+    {
+      RDCERR(
+          "Number of tiles %u in image wrapped range copy exceeded dest page table subresource "
+          "count %u",
+          numTiles, getNumSubresources());
+      return;
+    }
+  }
 }
 
 Coord PageTable::calcSubresourcePageDim(uint32_t subresource) const
@@ -793,13 +1124,13 @@ TEST_CASE("Test sparse page table mapping", "[sparse]")
   SECTION("2D texture")
   {
     // create a 256x256 texture with 32x32 pages, 6 mips (the last two are in the mip tail)
-    pageTable.Initialise({256, 256, 1}, 6, 1, 64, {32, 32, 1}, 4, 0x10000, 0, 64);
+    pageTable.Initialise({256, 256, 1}, 6, 1, 64, {32, 32, 1}, 4, 0x10000, 0, 256);
 
     CHECK(pageTable.getPageByteSize() == 64);
     CHECK(pageTable.getPageTexelSize() == Sparse::Coord({32, 32, 1}));
     CHECK(pageTable.getMipTail().byteOffset == 0x10000);
     CHECK(pageTable.getMipTail().byteStride == 0);
-    CHECK(pageTable.getMipTail().totalPackedByteSize == 64);
+    CHECK(pageTable.getMipTail().totalPackedByteSize == 256);
     CHECK(pageTable.getMipTail().firstMip == 4);
     // only expect one mapping because we specified stride of 0, so packed mip tail
     REQUIRE(pageTable.getMipTail().mappings.size() == 1);
@@ -817,8 +1148,8 @@ TEST_CASE("Test sparse page table mapping", "[sparse]")
     CHECK_FALSE(pageTable.isByteOffsetInResource(0x1000));
     CHECK(pageTable.isByteOffsetInResource(0x10000));
     CHECK(pageTable.isByteOffsetInResource(0x10000 + 32));
-    CHECK(pageTable.isByteOffsetInResource(0x10000 + 63));
-    CHECK_FALSE(pageTable.isByteOffsetInResource(0x10000 + 64));
+    CHECK(pageTable.isByteOffsetInResource(0x10000 + 255));
+    CHECK_FALSE(pageTable.isByteOffsetInResource(0x10000 + 256));
 
     // they should all be a single mapping to NULL
     CHECK(pageTable.getSubresource(0).hasSingleMapping());
@@ -840,9 +1171,9 @@ TEST_CASE("Test sparse page table mapping", "[sparse]")
 
     // this is tested above more robustly as buffers. Here we just check that setting the mip tail
     // offset doesn't break anything
-    nextTailOffset = pageTable.setMipTailRange(0x10000, mip, 128, 64, false);
+    nextTailOffset = pageTable.setMipTailRange(0x10000, mip, 128, 256, false);
 
-    CHECK(nextTailOffset == 0x10000 + 64);
+    CHECK(nextTailOffset == 0x10000 + 256);
 
     CHECK(pageTable.getMipTail().mappings[0].hasSingleMapping());
     CHECK(pageTable.getMipTail().mappings[0].singleMapping == Sparse::Page({mip, 128}));
@@ -887,6 +1218,79 @@ TEST_CASE("Test sparse page table mapping", "[sparse]")
 
       CHECK(nextCoord.first == 4);
       CHECK(nextCoord.second == Sparse::Coord({0, 0, 0}));
+    };
+
+    SECTION("Wrapped bindings into mip tail")
+    {
+      ResourceId whole = ResourceIDGen::GetNewUniqueID();
+      ResourceId sub = ResourceIDGen::GetNewUniqueID();
+
+      rdcpair<uint32_t, Sparse::Coord> nextCoord;
+
+      // set the entire resource to the same page, that's enough tiles for each subresource plus the
+      // mip tail
+      nextCoord = pageTable.setImageWrappedRange(
+          0, {0, 0, 0}, (8 * 8 + 4 * 4 + 2 * 2 + 1 * 1) * 64 + 256, whole, 512, true);
+
+      CHECK(nextCoord.first == 6);
+      CHECK(nextCoord.second == Sparse::Coord({0, 0, 0}));
+
+      for(uint32_t i = 0; i < 4; i++)
+      {
+        CHECK(pageTable.getSubresource(i).hasSingleMapping());
+        CHECK(pageTable.getSubresource(i).singleMapping == Sparse::Page({whole, 512}));
+        CHECK(pageTable.getSubresource(i).singlePageReused);
+      }
+
+      CHECK(pageTable.getMipTail().mappings[0].hasSingleMapping());
+      CHECK(pageTable.getMipTail().mappings[0].singleMapping == Sparse::Page({whole, 512}));
+      CHECK(pageTable.getMipTail().mappings[0].singlePageReused);
+
+      // set it without being the same page, to check offsets
+      nextCoord = pageTable.setImageWrappedRange(
+          0, {0, 0, 0}, (8 * 8 + 4 * 4 + 2 * 2 + 1 * 1) * 64 + 256, whole, 0, false);
+
+      CHECK(nextCoord.first == 6);
+      CHECK(nextCoord.second == Sparse::Coord({0, 0, 0}));
+
+      uint32_t dim = 8, offset = 0;
+      for(uint32_t i = 0; i < 4; i++)
+      {
+        CHECK(pageTable.getSubresource(i).hasSingleMapping());
+        CHECK(pageTable.getSubresource(i).singleMapping == Sparse::Page({whole, offset}));
+        CHECK_FALSE(pageTable.getSubresource(i).singlePageReused);
+
+        offset += (dim * dim) * 64;
+        dim >>= 1;
+      }
+
+      CHECK(pageTable.getMipTail().mappings[0].hasSingleMapping());
+      CHECK(pageTable.getMipTail().mappings[0].singleMapping == Sparse::Page({whole, offset}));
+      CHECK_FALSE(pageTable.getMipTail().mappings[0].singlePageReused);
+
+      // wrap a binding part-way into a mip tail
+      nextCoord = pageTable.setImageWrappedRange(3, {0, 0, 0}, 64 + 128, sub, 0, false);
+
+      // the 'coord' for mip tail is effectively 1D and 1 texel per tile
+      CHECK(nextCoord.first == 4);
+      CHECK(nextCoord.second == Sparse::Coord({128, 0, 0}));
+
+      CHECK(pageTable.getSubresource(3).hasSingleMapping());
+      CHECK(pageTable.getSubresource(3).singleMapping == Sparse::Page({sub, 0}));
+      CHECK_FALSE(pageTable.getSubresource(3).singlePageReused);
+
+      CHECK_FALSE(pageTable.getMipTail().mappings[0].hasSingleMapping());
+      REQUIRE(pageTable.getMipTail().mappings[0].pages.size() == 4);
+
+      // first two pages have been updated
+      CHECK(pageTable.getMipTail().mappings[0].pages[0] == Sparse::Page({sub, 64}));
+      CHECK(pageTable.getMipTail().mappings[0].pages[1] == Sparse::Page({sub, 128}));
+
+      // second two pages still point into whole
+      CHECK(pageTable.getMipTail().mappings[0].pages[2] ==
+            Sparse::Page({whole, (8 * 8 + 4 * 4 + 2 * 2 + 1 * 1) * 64 + 128}));
+      CHECK(pageTable.getMipTail().mappings[0].pages[3] ==
+            Sparse::Page({whole, (8 * 8 + 4 * 4 + 2 * 2 + 1 * 1) * 64 + 192}));
     };
 
     SECTION("Partial-subresource bindings")
@@ -1199,6 +1603,30 @@ TEST_CASE("Test sparse page table mapping", "[sparse]")
     CHECK(pageTable.getMipTail().mappings[0].pages[3] == Sparse::Page({mip, 704}));
     CHECK(pageTable.getMipTail().mappings[0].pages[4] == Sparse::Page({ResourceId(), 0}));
     CHECK(pageTable.getMipTail().mappings[0].pages[5] == Sparse::Page({ResourceId(), 0}));
+  };
+
+  SECTION("2D texture being set with unbounded range")
+  {
+    ResourceId whole = ResourceIDGen::GetNewUniqueID();
+
+    // create a 256x256 texture with 32x32 pages, 6 mips (the last two are in the mip tail)
+    pageTable.Initialise({256, 256, 1}, 6, 1, 64, {32, 32, 1}, 4, 0, 0, 8192);
+
+    pageTable.setImageWrappedRange(0, {0, 0, 0}, ~0U, whole, 0, false);
+
+    CHECK(pageTable.getSubresource(0).hasSingleMapping());
+    CHECK(pageTable.getSubresource(0).singleMapping == Sparse::Page({whole, 0}));
+    CHECK(pageTable.getSubresource(1).hasSingleMapping());
+    CHECK(pageTable.getSubresource(1).singleMapping == Sparse::Page({whole, (8 * 8) * 64}));
+    CHECK(pageTable.getSubresource(2).hasSingleMapping());
+    CHECK(pageTable.getSubresource(2).singleMapping == Sparse::Page({whole, (8 * 8 + 4 * 4) * 64}));
+    CHECK(pageTable.getSubresource(3).hasSingleMapping());
+    CHECK(pageTable.getSubresource(3).singleMapping ==
+          Sparse::Page({whole, (8 * 8 + 4 * 4 + 2 * 2) * 64}));
+
+    CHECK(pageTable.getMipTail().mappings[0].hasSingleMapping());
+    CHECK(pageTable.getMipTail().mappings[0].singleMapping ==
+          Sparse::Page({whole, (8 * 8 + 4 * 4 + 2 * 2 + 1 * 1) * 64}));
   };
 
   SECTION("3D texture tests")
@@ -1830,6 +2258,365 @@ TEST_CASE("Test sparse page table mapping", "[sparse]")
       CHECK(pageTable.getSubresource(0).pages[_idx(1, 7)] == Sparse::Page({mem0, _idx(1, 7) * 64}));
       CHECK(pageTable.getSubresource(0).pages[_idx(2, 7)] == Sparse::Page({mem0, _idx(2, 7) * 64}));
       CHECK(pageTable.getSubresource(0).pages[_idx(3, 7)] == Sparse::Page({mem0, _idx(3, 7) * 64}));
+    };
+  };
+
+  SECTION("page table copy operations")
+  {
+    ResourceId mem0 = ResourceIDGen::GetNewUniqueID();
+    ResourceId mem1 = ResourceIDGen::GetNewUniqueID();
+    ResourceId mem2 = ResourceIDGen::GetNewUniqueID();
+    ResourceId mem3 = ResourceIDGen::GetNewUniqueID();
+    ResourceId mem4 = ResourceIDGen::GetNewUniqueID();
+
+    Sparse::PageTable srcPageTable;
+
+    SECTION("Buffers")
+    {
+      SECTION("Same size")
+      {
+        pageTable.Initialise(320, 64);
+        srcPageTable.Initialise(320, 64);
+
+        srcPageTable.setBufferRange(0, mem0, 0, 320, false);
+
+        pageTable.copyImageBoxRange(0, {0, 0, 0}, {5, 1, 1}, srcPageTable, 0, {0, 0, 0});
+
+        CHECK(srcPageTable.getMipTail().mappings[0].hasSingleMapping());
+        CHECK(pageTable.getMipTail().mappings[0].hasSingleMapping());
+        CHECK(pageTable.getMipTail().mappings[0].singleMapping ==
+              srcPageTable.getMipTail().mappings[0].singleMapping);
+
+        // copying two separate boxes won't coalesce
+        pageTable.copyImageBoxRange(0, {0, 0, 0}, {4, 1, 1}, srcPageTable, 0, {0, 0, 0});
+        pageTable.copyImageBoxRange(0, {4, 0, 0}, {1, 1, 1}, srcPageTable, 0, {4, 0, 0});
+
+        CHECK(srcPageTable.getMipTail().mappings[0].hasSingleMapping());
+        REQUIRE_FALSE(pageTable.getMipTail().mappings[0].hasSingleMapping());
+        CHECK(pageTable.getMipTail().mappings[0].pages[0] == Sparse::Page({mem0, 0 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[1] == Sparse::Page({mem0, 1 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[2] == Sparse::Page({mem0, 2 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[3] == Sparse::Page({mem0, 3 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[4] == Sparse::Page({mem0, 4 * 64}));
+
+        pageTable.copyImageWrappedRange(0, {0, 0, 0}, 5, srcPageTable, 0, {0, 0, 0});
+
+        CHECK(pageTable.getMipTail().mappings[0].hasSingleMapping());
+        CHECK(pageTable.getMipTail().mappings[0].singleMapping ==
+              srcPageTable.getMipTail().mappings[0].singleMapping);
+
+        pageTable.copyImageWrappedRange(0, {0, 0, 0}, 4, srcPageTable, 0, {0, 0, 0});
+        pageTable.copyImageWrappedRange(0, {4, 0, 0}, 1, srcPageTable, 0, {4, 0, 0});
+
+        REQUIRE_FALSE(pageTable.getMipTail().mappings[0].hasSingleMapping());
+        CHECK(pageTable.getMipTail().mappings[0].pages[0] == Sparse::Page({mem0, 0 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[1] == Sparse::Page({mem0, 1 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[2] == Sparse::Page({mem0, 2 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[3] == Sparse::Page({mem0, 3 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[4] == Sparse::Page({mem0, 4 * 64}));
+      };
+
+      SECTION("Source larger")
+      {
+        pageTable.Initialise(320, 64);
+        srcPageTable.Initialise(640, 64);
+
+        srcPageTable.setBufferRange(0, mem0, 0, 640, false);
+
+        pageTable.copyImageBoxRange(0, {0, 0, 0}, {5, 1, 1}, srcPageTable, 0, {0, 0, 0});
+
+        CHECK(srcPageTable.getMipTail().mappings[0].hasSingleMapping());
+        CHECK(pageTable.getMipTail().mappings[0].hasSingleMapping());
+        CHECK(pageTable.getMipTail().mappings[0].singleMapping ==
+              srcPageTable.getMipTail().mappings[0].singleMapping);
+
+        // copying two separate boxes won't coalesce
+        pageTable.copyImageBoxRange(0, {0, 0, 0}, {4, 1, 1}, srcPageTable, 0, {0, 0, 0});
+        pageTable.copyImageBoxRange(0, {4, 0, 0}, {1, 1, 1}, srcPageTable, 0, {4, 0, 0});
+
+        CHECK(srcPageTable.getMipTail().mappings[0].hasSingleMapping());
+        REQUIRE_FALSE(pageTable.getMipTail().mappings[0].hasSingleMapping());
+        CHECK(pageTable.getMipTail().mappings[0].pages[0] == Sparse::Page({mem0, 0 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[1] == Sparse::Page({mem0, 1 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[2] == Sparse::Page({mem0, 2 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[3] == Sparse::Page({mem0, 3 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[4] == Sparse::Page({mem0, 4 * 64}));
+
+        pageTable.copyImageWrappedRange(0, {0, 0, 0}, 5, srcPageTable, 0, {0, 0, 0});
+
+        CHECK(pageTable.getMipTail().mappings[0].hasSingleMapping());
+        CHECK(pageTable.getMipTail().mappings[0].singleMapping ==
+              srcPageTable.getMipTail().mappings[0].singleMapping);
+
+        pageTable.copyImageWrappedRange(0, {0, 0, 0}, 4, srcPageTable, 0, {0, 0, 0});
+        pageTable.copyImageWrappedRange(0, {4, 0, 0}, 1, srcPageTable, 0, {4, 0, 0});
+
+        REQUIRE_FALSE(pageTable.getMipTail().mappings[0].hasSingleMapping());
+        CHECK(pageTable.getMipTail().mappings[0].pages[0] == Sparse::Page({mem0, 0 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[1] == Sparse::Page({mem0, 1 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[2] == Sparse::Page({mem0, 2 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[3] == Sparse::Page({mem0, 3 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[4] == Sparse::Page({mem0, 4 * 64}));
+      };
+
+      SECTION("Destination larger")
+      {
+        pageTable.Initialise(640, 64);
+        srcPageTable.Initialise(320, 64);
+
+        srcPageTable.setBufferRange(0, mem0, 0, 320, false);
+
+        pageTable.copyImageBoxRange(0, {0, 0, 0}, {5, 1, 1}, srcPageTable, 0, {0, 0, 0});
+
+        CHECK(srcPageTable.getMipTail().mappings[0].hasSingleMapping());
+        REQUIRE_FALSE(pageTable.getMipTail().mappings[0].hasSingleMapping());
+        CHECK(pageTable.getMipTail().mappings[0].pages[0] == Sparse::Page({mem0, 0 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[1] == Sparse::Page({mem0, 1 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[2] == Sparse::Page({mem0, 2 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[3] == Sparse::Page({mem0, 3 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[4] == Sparse::Page({mem0, 4 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[5] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[6] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[7] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[8] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[9] == Sparse::Page({ResourceId(), 0}));
+
+        // copying two separate boxes won't coalesce
+        pageTable.copyImageBoxRange(0, {0, 0, 0}, {4, 1, 1}, srcPageTable, 0, {0, 0, 0});
+        pageTable.copyImageBoxRange(0, {4, 0, 0}, {1, 1, 1}, srcPageTable, 0, {4, 0, 0});
+
+        REQUIRE_FALSE(pageTable.getMipTail().mappings[0].hasSingleMapping());
+        CHECK(pageTable.getMipTail().mappings[0].pages[0] == Sparse::Page({mem0, 0 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[1] == Sparse::Page({mem0, 1 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[2] == Sparse::Page({mem0, 2 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[3] == Sparse::Page({mem0, 3 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[4] == Sparse::Page({mem0, 4 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[5] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[6] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[7] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[8] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[9] == Sparse::Page({ResourceId(), 0}));
+
+        pageTable.copyImageWrappedRange(0, {0, 0, 0}, 5, srcPageTable, 0, {0, 0, 0});
+
+        REQUIRE_FALSE(pageTable.getMipTail().mappings[0].hasSingleMapping());
+        CHECK(pageTable.getMipTail().mappings[0].pages[0] == Sparse::Page({mem0, 0 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[1] == Sparse::Page({mem0, 1 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[2] == Sparse::Page({mem0, 2 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[3] == Sparse::Page({mem0, 3 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[4] == Sparse::Page({mem0, 4 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[5] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[6] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[7] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[8] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[9] == Sparse::Page({ResourceId(), 0}));
+
+        pageTable.copyImageWrappedRange(0, {0, 0, 0}, 4, srcPageTable, 0, {0, 0, 0});
+        pageTable.copyImageWrappedRange(0, {4, 0, 0}, 1, srcPageTable, 0, {4, 0, 0});
+
+        REQUIRE_FALSE(pageTable.getMipTail().mappings[0].hasSingleMapping());
+        CHECK(pageTable.getMipTail().mappings[0].pages[0] == Sparse::Page({mem0, 0 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[1] == Sparse::Page({mem0, 1 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[2] == Sparse::Page({mem0, 2 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[3] == Sparse::Page({mem0, 3 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[4] == Sparse::Page({mem0, 4 * 64}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[5] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[6] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[7] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[8] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getMipTail().mappings[0].pages[9] == Sparse::Page({ResourceId(), 0}));
+      };
+    };
+
+    SECTION("2D textures")
+    {
+      pageTable.Initialise({256, 256, 1}, 6, 1, 64, {32, 32, 1}, 4, 0x10000, 0x10000, 256);
+      srcPageTable.Initialise({256, 256, 1}, 6, 1, 64, {32, 32, 1}, 4, 0x10000, 0x10000, 256);
+
+      SECTION("Box copies")
+      {
+        srcPageTable.setImageBoxRange(0, {0, 0, 0}, {256, 256, 1}, mem0, 0, false);
+        srcPageTable.setImageBoxRange(1, {0, 0, 0}, {128, 128, 1}, mem1, 0, false);
+        srcPageTable.setImageBoxRange(2, {0, 0, 0}, {64, 64, 1}, mem2, 0, false);
+
+        pageTable.copyImageBoxRange(0, {0, 0, 0}, {8, 8, 1}, srcPageTable, 0, {0, 0, 0});
+
+        CHECK(pageTable.getSubresource(0).hasSingleMapping());
+        CHECK(pageTable.getSubresource(0).singleMapping == Sparse::Page({mem0, 0}));
+
+        pageTable.copyImageBoxRange(1, {0, 0, 0}, {4, 4, 1}, srcPageTable, 1, {0, 0, 0});
+
+        CHECK(pageTable.getSubresource(1).hasSingleMapping());
+        CHECK(pageTable.getSubresource(1).singleMapping == Sparse::Page({mem1, 0}));
+
+        srcPageTable.setImageBoxRange(0, {0, 0, 0}, {256, 256, 1}, mem3, 0, false);
+
+        pageTable.copyImageBoxRange(0, {0, 0, 0}, {4, 4, 1}, srcPageTable, 0, {0, 0, 0});
+
+        REQUIRE_FALSE(pageTable.getSubresource(0).hasSingleMapping());
+
+#undef _idx
+#define _idx(x, y) (y * 8 + x)
+
+        CHECK(pageTable.getSubresource(0).pages[_idx(0, 0)] == Sparse::Page({mem3, _idx(0, 0) * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(1, 0)] == Sparse::Page({mem3, _idx(1, 0) * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(2, 0)] == Sparse::Page({mem3, _idx(2, 0) * 64}));
+
+        CHECK(pageTable.getSubresource(0).pages[_idx(5, 0)] == Sparse::Page({mem0, _idx(5, 0) * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(6, 0)] == Sparse::Page({mem0, _idx(6, 0) * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(7, 0)] == Sparse::Page({mem0, _idx(7, 0) * 64}));
+
+        CHECK(pageTable.getSubresource(0).pages[_idx(0, 1)] == Sparse::Page({mem3, _idx(0, 1) * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(1, 1)] == Sparse::Page({mem3, _idx(1, 1) * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(2, 1)] == Sparse::Page({mem3, _idx(2, 1) * 64}));
+
+        pageTable.copyImageBoxRange(0, {0, 0, 0}, {4, 4, 1}, srcPageTable, 1, {0, 0, 0});
+
+        REQUIRE_FALSE(pageTable.getSubresource(0).hasSingleMapping());
+        CHECK(pageTable.getSubresource(0).pages[_idx(0, 0)] == Sparse::Page({mem1, 0 * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(1, 0)] == Sparse::Page({mem1, 1 * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(2, 0)] == Sparse::Page({mem1, 2 * 64}));
+
+        CHECK(pageTable.getSubresource(0).pages[_idx(5, 0)] == Sparse::Page({mem0, _idx(5, 0) * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(6, 0)] == Sparse::Page({mem0, _idx(6, 0) * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(7, 0)] == Sparse::Page({mem0, _idx(7, 0) * 64}));
+
+        CHECK(pageTable.getSubresource(0).pages[_idx(0, 1)] == Sparse::Page({mem1, 4 * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(1, 1)] == Sparse::Page({mem1, 5 * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(2, 1)] == Sparse::Page({mem1, 6 * 64}));
+
+        CHECK(pageTable.getSubresource(0).pages[_idx(0, 3)] == Sparse::Page({mem1, 12 * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(1, 3)] == Sparse::Page({mem1, 13 * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(2, 3)] == Sparse::Page({mem1, 14 * 64}));
+
+        CHECK(pageTable.getSubresource(0).pages[_idx(4, 4)] == Sparse::Page({mem0, _idx(4, 4) * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(5, 4)] == Sparse::Page({mem0, _idx(5, 4) * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(6, 4)] == Sparse::Page({mem0, _idx(6, 4) * 64}));
+
+        CHECK(pageTable.getSubresource(0).pages[_idx(4, 5)] == Sparse::Page({mem0, _idx(4, 5) * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(5, 5)] == Sparse::Page({mem0, _idx(5, 5) * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(6, 5)] == Sparse::Page({mem0, _idx(6, 5) * 64}));
+
+        pageTable.copyImageBoxRange(0, {4, 4, 0}, {4, 4, 1}, srcPageTable, 1, {0, 0, 0});
+
+        CHECK(pageTable.getSubresource(0).pages[_idx(0, 0)] == Sparse::Page({mem1, 0 * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(1, 0)] == Sparse::Page({mem1, 1 * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(2, 0)] == Sparse::Page({mem1, 2 * 64}));
+
+        CHECK(pageTable.getSubresource(0).pages[_idx(5, 0)] == Sparse::Page({mem0, _idx(5, 0) * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(6, 0)] == Sparse::Page({mem0, _idx(6, 0) * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(7, 0)] == Sparse::Page({mem0, _idx(7, 0) * 64}));
+
+        CHECK(pageTable.getSubresource(0).pages[_idx(0, 1)] == Sparse::Page({mem1, 4 * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(1, 1)] == Sparse::Page({mem1, 5 * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(2, 1)] == Sparse::Page({mem1, 6 * 64}));
+
+        CHECK(pageTable.getSubresource(0).pages[_idx(0, 3)] == Sparse::Page({mem1, 12 * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(1, 3)] == Sparse::Page({mem1, 13 * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(2, 3)] == Sparse::Page({mem1, 14 * 64}));
+
+        CHECK(pageTable.getSubresource(0).pages[_idx(4, 4)] == Sparse::Page({mem1, 0 * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(5, 4)] == Sparse::Page({mem1, 1 * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(6, 4)] == Sparse::Page({mem1, 2 * 64}));
+
+        CHECK(pageTable.getSubresource(0).pages[_idx(4, 5)] == Sparse::Page({mem1, 4 * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(5, 5)] == Sparse::Page({mem1, 5 * 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(6, 5)] == Sparse::Page({mem1, 6 * 64}));
+      };
+
+      SECTION("Wrapped copies preserving single mapping")
+      {
+        srcPageTable.setImageBoxRange(0, {0, 0, 0}, {256, 256, 1}, mem0, 0, false);
+        srcPageTable.setImageBoxRange(1, {0, 0, 0}, {128, 128, 1}, mem1, 0, false);
+        srcPageTable.setImageBoxRange(2, {0, 0, 0}, {64, 64, 1}, mem2, 0, false);
+
+        pageTable.copyImageWrappedRange(0, {0, 0, 0}, 8 * 8, srcPageTable, 0, {0, 0, 0});
+
+        CHECK(pageTable.getSubresource(0).hasSingleMapping());
+        CHECK(pageTable.getSubresource(0).singleMapping == Sparse::Page({mem0, 0}));
+
+        pageTable.copyImageWrappedRange(1, {0, 0, 0}, 4 * 4, srcPageTable, 1, {0, 0, 0});
+
+        CHECK(pageTable.getSubresource(1).hasSingleMapping());
+        CHECK(pageTable.getSubresource(1).singleMapping == Sparse::Page({mem1, 0}));
+
+        // copying from a larger mip into a smaller one just copies the tiles literally, even if
+        // the tiles don't wrap the same way in each case
+        pageTable.copyImageWrappedRange(1, {0, 0, 0}, 4 * 4, srcPageTable, 0, {0, 0, 0});
+
+        CHECK(pageTable.getSubresource(1).hasSingleMapping());
+        CHECK(pageTable.getSubresource(1).singleMapping == Sparse::Page({mem0, 0}));
+
+        // this copies the top 3 subresources all together
+        pageTable.copyImageWrappedRange(0, {0, 0, 0}, (8 * 8 + 4 * 4 + 2 * 2), srcPageTable, 0,
+                                        {0, 0, 0});
+
+        CHECK(pageTable.getSubresource(0).hasSingleMapping());
+        CHECK(pageTable.getSubresource(0).singleMapping == Sparse::Page({mem0, 0}));
+        CHECK(pageTable.getSubresource(1).hasSingleMapping());
+        CHECK(pageTable.getSubresource(1).singleMapping == Sparse::Page({mem1, 0}));
+        CHECK(pageTable.getSubresource(2).hasSingleMapping());
+        CHECK(pageTable.getSubresource(2).singleMapping == Sparse::Page({mem2, 0}));
+      };
+
+      SECTION("Wrapped copies splitting pages")
+      {
+        srcPageTable.setImageBoxRange(0, {0, 0, 0}, {256, 256, 1}, mem0, 0, false);
+        srcPageTable.setImageBoxRange(1, {0, 0, 0}, {128, 128, 1}, mem1, 0, false);
+        srcPageTable.setImageBoxRange(2, {0, 0, 0}, {64, 64, 1}, mem2, 0, false);
+
+        pageTable.copyImageWrappedRange(0, {5, 0, 0}, 2, srcPageTable, 0, {0, 0, 0});
+
+        CHECK(pageTable.getSubresource(0).pages[_idx(0, 0)] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(1, 0)] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(2, 0)] == Sparse::Page({ResourceId(), 0}));
+
+        CHECK(pageTable.getSubresource(0).pages[_idx(5, 0)] == Sparse::Page({mem0, 0}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(6, 0)] == Sparse::Page({mem0, 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(7, 0)] == Sparse::Page({ResourceId(), 0}));
+
+        CHECK(pageTable.getSubresource(0).pages[_idx(0, 1)] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(1, 1)] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(2, 1)] == Sparse::Page({ResourceId(), 0}));
+
+        CHECK(pageTable.getSubresource(0).pages[_idx(0, 3)] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(1, 3)] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(2, 3)] == Sparse::Page({ResourceId(), 0}));
+
+        CHECK(pageTable.getSubresource(0).pages[_idx(5, 3)] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(6, 3)] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(7, 3)] == Sparse::Page({ResourceId(), 0}));
+
+        CHECK(pageTable.getSubresource(0).pages[_idx(0, 4)] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(1, 4)] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(2, 4)] == Sparse::Page({ResourceId(), 0}));
+
+        pageTable.copyImageWrappedRange(0, {0, 3, 0}, 10, srcPageTable, 1, {0, 0, 0});
+
+        CHECK(pageTable.getSubresource(0).pages[_idx(0, 0)] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(1, 0)] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(2, 0)] == Sparse::Page({ResourceId(), 0}));
+
+        CHECK(pageTable.getSubresource(0).pages[_idx(5, 0)] == Sparse::Page({mem0, 0}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(6, 0)] == Sparse::Page({mem0, 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(7, 0)] == Sparse::Page({ResourceId(), 0}));
+
+        CHECK(pageTable.getSubresource(0).pages[_idx(0, 1)] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(1, 1)] == Sparse::Page({ResourceId(), 0}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(2, 1)] == Sparse::Page({ResourceId(), 0}));
+
+        CHECK(pageTable.getSubresource(0).pages[_idx(0, 3)] == Sparse::Page({mem1, 0}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(1, 3)] == Sparse::Page({mem1, 64}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(2, 3)] == Sparse::Page({mem1, 128}));
+
+        CHECK(pageTable.getSubresource(0).pages[_idx(5, 3)] == Sparse::Page({mem1, 320}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(6, 3)] == Sparse::Page({mem1, 384}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(7, 3)] == Sparse::Page({mem1, 448}));
+
+        CHECK(pageTable.getSubresource(0).pages[_idx(0, 4)] == Sparse::Page({mem1, 512}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(1, 4)] == Sparse::Page({mem1, 576}));
+        CHECK(pageTable.getSubresource(0).pages[_idx(2, 4)] == Sparse::Page({ResourceId(), 0}));
+      };
     };
   };
 };
