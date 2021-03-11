@@ -1005,7 +1005,6 @@ public:
   // replay interface
   bool Prepare_InitialState(WrappedVkRes *res);
   uint64_t GetSize_InitialState(ResourceId id, const VkInitialContents &initial);
-  uint64_t GetSize_SparseInitialState(ResourceId id, const VkInitialContents &initial);
   template <typename SerialiserType>
   bool Serialise_InitialState(SerialiserType &ser, ResourceId id, VkResourceRecord *record,
                               const VkInitialContents *initial);

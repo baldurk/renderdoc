@@ -52,7 +52,7 @@ struct D3D12InitParams
   uint32_t VendorUAVSpace = ~0U;
 
   // check if a frame capture section version is supported
-  static const uint64_t CurrentVersion = 0xA;
+  static const uint64_t CurrentVersion = 0xB;
 
   static bool IsSupportedVersion(uint64_t ver);
 };
@@ -612,6 +612,10 @@ private:
   Threading::CriticalSection m_MapsLock;
   rdcarray<MapState> m_Maps;
 
+  Threading::CriticalSection m_SparseLock;
+  std::unordered_set<ResourceId> m_SparseResources;
+  std::unordered_set<ResourceId> m_SparseHeaps;
+
   Threading::CriticalSection m_WrapDeduplicateLock;
 
   bool ProcessChunk(ReadSerialiser &ser, D3D12Chunk context);
@@ -1048,6 +1052,25 @@ public:
     CheckForDeath();
   }
   void CheckForDeath();
+
+  void GetSparseResources(std::unordered_set<ResourceId> &resources,
+                          std::unordered_set<ResourceId> &heaps)
+  {
+    SCOPED_LOCK(m_SparseLock);
+    resources = m_SparseResources;
+    heaps = m_SparseHeaps;
+  }
+  bool IsSparseResource(ResourceId id)
+  {
+    SCOPED_LOCK_OPTIONAL(m_SparseLock, IsCaptureMode(m_State));
+    return m_SparseResources.find(id) != m_SparseResources.end();
+  }
+
+  void AddSparseHeap(ResourceId heap)
+  {
+    SCOPED_LOCK(m_SparseLock);
+    m_SparseHeaps.insert(heap);
+  }
 
   void ReleaseResource(ID3D12DeviceChild *pResource);
 

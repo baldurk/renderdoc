@@ -156,6 +156,8 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
 
   rdcarray<D3D12ResourceRecord *> m_CmdListRecords;
 
+  std::unordered_set<ResourceId> m_SparseBindResources;
+
   // D3D12 guarantees that queues are thread-safe
   Threading::CriticalSection m_Lock;
 
@@ -195,6 +197,11 @@ public:
   const APIEvent &GetEvent(uint32_t eventId);
   uint32_t GetMaxEID() { return m_Cmd.m_Events.back().eventId; }
   void ClearAfterCapture();
+
+  bool IsSparseUpdatedResource(ResourceId id) const
+  {
+    return m_SparseBindResources.find(id) != m_SparseBindResources.end();
+  }
 
   ReplayStatus ReplayLog(CaptureState readType, uint32_t startEventID, uint32_t endEventID,
                          bool partial);

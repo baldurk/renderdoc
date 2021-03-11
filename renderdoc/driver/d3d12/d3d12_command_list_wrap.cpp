@@ -5351,7 +5351,79 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyTiles(
     const D3D12_TILE_REGION_SIZE *pTileRegionSize, ID3D12Resource *pBuffer,
     UINT64 BufferStartOffsetInBytes, D3D12_TILE_COPY_FLAGS Flags)
 {
-  D3D12NOTIMP("Tiled Resources");
+  ID3D12GraphicsCommandList *pCommandList = this;
+  SERIALISE_ELEMENT(pCommandList);
+  SERIALISE_ELEMENT(pTiledResource);
+  SERIALISE_ELEMENT_LOCAL(TileRegionStartCoordinate, *pTileRegionStartCoordinate);
+  SERIALISE_ELEMENT_LOCAL(TileRegionSize, *pTileRegionSize);
+  SERIALISE_ELEMENT(pBuffer);
+  SERIALISE_ELEMENT(BufferStartOffsetInBytes);
+  SERIALISE_ELEMENT(Flags);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
+      {
+        ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+        Unwrap(list)->CopyTiles(Unwrap(pTiledResource), &TileRegionStartCoordinate, &TileRegionSize,
+                                Unwrap(pBuffer), BufferStartOffsetInBytes, Flags);
+      }
+    }
+    else
+    {
+      Unwrap(pCommandList)
+          ->CopyTiles(Unwrap(pTiledResource), &TileRegionStartCoordinate, &TileRegionSize,
+                      Unwrap(pBuffer), BufferStartOffsetInBytes, Flags);
+      GetCrackedList()->CopyTiles(Unwrap(pTiledResource), &TileRegionStartCoordinate,
+                                  &TileRegionSize, Unwrap(pBuffer), BufferStartOffsetInBytes, Flags);
+
+      {
+        m_Cmd->AddEvent();
+
+        ResourceId liveSrc = GetResID(pBuffer);
+        ResourceId liveDst = GetResID(pTiledResource);
+
+        if(Flags & D3D12_TILE_COPY_FLAG_SWIZZLED_TILED_RESOURCE_TO_LINEAR_BUFFER)
+          std::swap(liveSrc, liveDst);
+
+        ResourceId origSrc = GetResourceManager()->GetOriginalID(liveSrc);
+        ResourceId origDst = GetResourceManager()->GetOriginalID(liveDst);
+
+        DrawcallDescription draw;
+        draw.name = StringFormat::Fmt("CopyTiles(src=%s, dst=%s)", ToStr(origDst).c_str(),
+                                      ToStr(origSrc).c_str());
+        draw.flags |= DrawFlags::Copy;
+
+        draw.copySource = origSrc;
+        draw.copyDestination = origDst;
+
+        Subresource tileSub = Subresource(
+            GetMipForSubresource(pTiledResource, TileRegionStartCoordinate.Subresource),
+            GetSliceForSubresource(pTiledResource, TileRegionStartCoordinate.Subresource));
+
+        if(Flags & D3D12_TILE_COPY_FLAG_SWIZZLED_TILED_RESOURCE_TO_LINEAR_BUFFER)
+          draw.copySourceSubresource = tileSub;
+        else
+          draw.copyDestinationSubresource = tileSub;
+
+        m_Cmd->AddDrawcall(draw, true);
+
+        D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
+
+        drawNode.resourceUsage.push_back(
+            make_rdcpair(liveSrc, EventUsage(drawNode.draw.eventId, ResourceUsage::CopySrc)));
+        drawNode.resourceUsage.push_back(
+            make_rdcpair(liveDst, EventUsage(drawNode.draw.eventId, ResourceUsage::CopyDst)));
+      }
+    }
+  }
+
   return true;
 }
 
@@ -5360,9 +5432,22 @@ void WrappedID3D12GraphicsCommandList::CopyTiles(
     const D3D12_TILE_REGION_SIZE *pTileRegionSize, ID3D12Resource *pBuffer,
     UINT64 BufferStartOffsetInBytes, D3D12_TILE_COPY_FLAGS Flags)
 {
-  D3D12NOTIMP("Tiled Resources");
-  m_pList->CopyTiles(Unwrap(pTiledResource), pTileRegionStartCoordinate, pTileRegionSize,
-                     Unwrap(pBuffer), BufferStartOffsetInBytes, Flags);
+  SERIALISE_TIME_CALL(m_pList->CopyTiles(Unwrap(pTiledResource), pTileRegionStartCoordinate,
+                                         pTileRegionSize, Unwrap(pBuffer), BufferStartOffsetInBytes,
+                                         Flags));
+
+  if(IsCaptureMode(m_State))
+  {
+    CACHE_THREAD_SERIALISER();
+    ser.SetDrawChunk();
+    SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_CopyTiles);
+    Serialise_CopyTiles(ser, pTiledResource, pTileRegionStartCoordinate, pTileRegionSize, pBuffer,
+                        BufferStartOffsetInBytes, Flags);
+
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(pTiledResource), eFrameRef_PartialWrite);
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(pBuffer), eFrameRef_Read);
+  }
 }
 
 #pragma endregion Copies

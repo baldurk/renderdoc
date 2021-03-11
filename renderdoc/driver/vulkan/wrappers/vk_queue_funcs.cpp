@@ -840,7 +840,7 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
   bool capframe = IsActiveCapturing(m_State);
   bool backframe = IsBackgroundCapturing(m_State);
 
-  std::set<ResourceId> refdIDs;
+  std::unordered_set<ResourceId> refdIDs;
 
   std::set<VkDescriptorSet> descriptorSets;
 

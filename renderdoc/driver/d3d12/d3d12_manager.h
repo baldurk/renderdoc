@@ -27,6 +27,7 @@
 #include "common/wrapped_pool.h"
 #include "core/core.h"
 #include "core/resource_manager.h"
+#include "core/sparse_page_table.h"
 #include "driver/d3d12/d3d12_common.h"
 #include "serialise/serialiser.h"
 
@@ -493,6 +494,7 @@ struct D3D12ResourceRecord : public ResourceRecord
         type(Resource_Unknown),
         ContainsExecuteIndirect(false),
         cmdInfo(NULL),
+        sparseTable(NULL),
         m_Maps(NULL),
         m_MapsCount(0),
         bakedCommands(NULL)
@@ -501,6 +503,7 @@ struct D3D12ResourceRecord : public ResourceRecord
   ~D3D12ResourceRecord()
   {
     SAFE_DELETE(cmdInfo);
+    SAFE_DELETE(sparseTable);
     SAFE_DELETE_ARRAY(m_Maps);
   }
   void Bake()
@@ -517,6 +520,7 @@ struct D3D12ResourceRecord : public ResourceRecord
   bool ContainsExecuteIndirect;
   D3D12ResourceRecord *bakedCommands;
   CmdListRecordingInfo *cmdInfo;
+  Sparse::PageTable *sparseTable;
 
   struct MapData
   {
@@ -532,6 +536,29 @@ struct D3D12ResourceRecord : public ResourceRecord
 };
 
 typedef rdcarray<D3D12_RESOURCE_STATES> SubresourceStateVector;
+
+struct SparseBinds
+{
+  SparseBinds(const Sparse::PageTable &table);
+  // tagged constructor meaning 'null binds everywhere'
+  SparseBinds(int);
+
+  void Apply(WrappedID3D12Device *device, ID3D12Resource *resource);
+
+private:
+  bool null = false;
+
+  struct Bind
+  {
+    ResourceId heap;
+    D3D12_TILED_RESOURCE_COORDINATE regionStart;
+    D3D12_TILE_REGION_SIZE regionSize;
+    D3D12_TILE_RANGE_FLAGS rangeFlag;
+    UINT rangeOffset;
+    UINT rangeCount;
+  };
+  rdcarray<Bind> binds;
+};
 
 struct D3D12InitialContents
 {
@@ -551,7 +578,9 @@ struct D3D12InitialContents
         numDescriptors(n),
         resource(NULL),
         srcData(NULL),
-        dataSize(0)
+        dataSize(0),
+        sparseTable(NULL),
+        sparseBinds(NULL)
   {
   }
   D3D12InitialContents(ID3D12DescriptorHeap *r)
@@ -561,7 +590,9 @@ struct D3D12InitialContents
         numDescriptors(0),
         resource(r),
         srcData(NULL),
-        dataSize(0)
+        dataSize(0),
+        sparseTable(NULL),
+        sparseBinds(NULL)
   {
   }
   D3D12InitialContents(ID3D12Resource *r)
@@ -571,7 +602,9 @@ struct D3D12InitialContents
         numDescriptors(0),
         resource(r),
         srcData(NULL),
-        dataSize(0)
+        dataSize(0),
+        sparseTable(NULL),
+        sparseBinds(NULL)
   {
   }
   D3D12InitialContents(byte *data, size_t size)
@@ -581,7 +614,9 @@ struct D3D12InitialContents
         numDescriptors(0),
         resource(NULL),
         srcData(data),
-        dataSize(size)
+        dataSize(size),
+        sparseTable(NULL),
+        sparseBinds(NULL)
   {
   }
   D3D12InitialContents(Tag tg, D3D12ResourceType type)
@@ -591,7 +626,9 @@ struct D3D12InitialContents
         numDescriptors(0),
         resource(NULL),
         srcData(NULL),
-        dataSize(0)
+        dataSize(0),
+        sparseTable(NULL),
+        sparseBinds(NULL)
   {
   }
   D3D12InitialContents()
@@ -601,13 +638,16 @@ struct D3D12InitialContents
         numDescriptors(0),
         resource(NULL),
         srcData(NULL),
-        dataSize(0)
+        dataSize(0),
+        sparseTable(NULL),
+        sparseBinds(NULL)
   {
   }
   template <typename Configuration>
   void Free(ResourceManager<Configuration> *rm)
   {
     SAFE_DELETE_ARRAY(descriptors);
+    SAFE_DELETE(sparseTable);
     SAFE_RELEASE(resource);
     FreeAlignedBuffer(srcData);
   }
@@ -619,6 +659,11 @@ struct D3D12InitialContents
   ID3D12DeviceChild *resource;
   byte *srcData;
   size_t dataSize;
+
+  // only valid on capture - the snapshotted table at prepare time
+  Sparse::PageTable *sparseTable;
+  // only valid on replay, the table above converted into a set of binds
+  SparseBinds *sparseBinds;
 };
 
 struct D3D12ResourceManagerConfiguration

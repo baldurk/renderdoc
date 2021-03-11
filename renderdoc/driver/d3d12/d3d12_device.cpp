@@ -2626,6 +2626,12 @@ void WrappedID3D12Device::ReleaseResource(ID3D12DeviceChild *res)
     m_ResourceStates.erase(id);
   }
 
+  {
+    SCOPED_LOCK(m_SparseLock);
+    m_SparseResources.erase(id);
+    m_SparseHeaps.erase(id);
+  }
+
   D3D12ResourceRecord *record = GetRecord(res);
 
   if(record)

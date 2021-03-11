@@ -1222,8 +1222,10 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
     return;
 
   D3D12_RESOURCE_DESC desc = buffer->GetDesc();
-  D3D12_HEAP_PROPERTIES heapProps;
-  buffer->GetHeapProperties(&heapProps, NULL);
+  D3D12_HEAP_PROPERTIES heapProps = {};
+  // can't call GetHeapProperties on sparse resources
+  if(!m_pDevice->IsSparseResource(GetResID(buffer)))
+    buffer->GetHeapProperties(&heapProps, NULL);
 
   if(offset >= desc.Width)
   {

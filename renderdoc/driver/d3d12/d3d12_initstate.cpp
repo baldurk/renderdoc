@@ -59,10 +59,14 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
     D3D12_RESOURCE_DESC desc = r->GetDesc();
 
+    D3D12InitialContents initContents;
+
     if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
     {
-      D3D12_HEAP_PROPERTIES heapProps;
-      r->GetHeapProperties(&heapProps, NULL);
+      D3D12_HEAP_PROPERTIES heapProps = {};
+
+      if(GetRecord(r)->sparseTable == NULL)
+        r->GetHeapProperties(&heapProps, NULL);
 
       HRESULT hr = S_OK;
 
@@ -167,8 +171,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 #endif
       }
 
-      SetInitialContents(GetResID(r), D3D12InitialContents(copyDst));
-      return true;
+      initContents = D3D12InitialContents(copyDst);
     }
     else
     {
@@ -364,9 +367,16 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
       SAFE_RELEASE(arrayTexture);
       SAFE_DELETE_ARRAY(layouts);
 
-      SetInitialContents(GetResID(r), D3D12InitialContents(copyDst));
-      return true;
+      initContents = D3D12InitialContents(copyDst);
     }
+
+    if(GetRecord(r)->sparseTable)
+    {
+      initContents.sparseTable = new Sparse::PageTable(*GetRecord(r)->sparseTable);
+    }
+
+    SetInitialContents(GetResID(r), initContents);
+    return true;
   }
   else
   {
@@ -394,7 +404,13 @@ uint64_t D3D12ResourceManager::GetSize_InitialState(ResourceId id, const D3D12In
     if(data.tag == D3D12InitialContents::MapDirect)
       return WriteSerialiser::GetChunkAlignment() + 16 + uint64_t(data.dataSize);
 
-    return WriteSerialiser::GetChunkAlignment() + 16 + uint64_t(buf ? buf->GetDesc().Width : 0);
+    uint64_t ret =
+        WriteSerialiser::GetChunkAlignment() + 16 + uint64_t(buf ? buf->GetDesc().Width : 0);
+
+    if(data.sparseTable)
+      ret += 16 + data.sparseTable->GetSerialiseSize();
+
+    return ret;
   }
   else
   {
@@ -402,6 +418,121 @@ uint64_t D3D12ResourceManager::GetSize_InitialState(ResourceId id, const D3D12In
   }
 
   return 16;
+}
+
+SparseBinds::SparseBinds(const Sparse::PageTable &table)
+{
+  const uint32_t pageSize = 64 * 1024;
+
+  // in theory some of these subresources may share a single binding but we don't try to extract
+  // that out again. If we can get one bind per subresource and avoid falling down to per-page
+  // mappings we're happy
+  for(uint32_t sub = 0; sub < RDCMAX(1U, table.getNumSubresources());)
+  {
+    const Sparse::PageRangeMapping &mapping =
+        table.isSubresourceInMipTail(sub) ? table.getMipTailMapping(sub) : table.getSubresource(sub);
+
+    if(mapping.hasSingleMapping())
+    {
+      Bind bind;
+      bind.heap = mapping.singleMapping.memory;
+      bind.rangeOffset = uint32_t(mapping.singleMapping.offset / pageSize);
+      bind.rangeCount = uint32_t(table.isSubresourceInMipTail(sub)
+                                     ? table.getMipTailSliceSize() / pageSize
+                                     : table.getSubresourceByteSize(sub) / pageSize);
+      bind.regionStart = {0, 0, 0, sub};
+      bind.regionSize = {bind.rangeCount, FALSE, bind.rangeCount, 1, 1};
+      bind.rangeFlag = D3D12_TILE_RANGE_FLAG_NONE;
+      if(bind.heap == ResourceId())
+        bind.rangeFlag = D3D12_TILE_RANGE_FLAG_NULL;
+      else if(mapping.singlePageReused)
+        bind.rangeFlag = D3D12_TILE_RANGE_FLAG_REUSE_SINGLE_TILE;
+      binds.push_back(bind);
+    }
+    else
+    {
+      Sparse::Coord texelShape = table.calcSubresourcePageDim(sub);
+
+      // march the pages for this subresource in linear order
+      for(uint32_t page = 0; page < mapping.pages.size(); page++)
+      {
+        Bind bind;
+        bind.heap = mapping.pages[page].memory;
+        bind.rangeOffset = uint32_t(mapping.pages[page].offset / pageSize);
+
+        // do simple coalescing. If the previous bind was in the same heap, one tile back, make it
+        // cover this tile
+        if(page > 0 && binds.back().heap == bind.heap &&
+           binds.back().rangeOffset + binds.back().rangeCount == bind.rangeOffset)
+        {
+          binds.back().regionSize.NumTiles++;
+          binds.back().regionSize.Width++;
+          binds.back().rangeCount++;
+          continue;
+        }
+
+        // otherwise add a new bind
+        if(table.isSubresourceInMipTail(sub))
+        {
+          bind.regionStart = {page, 0, 0, sub};
+        }
+        else
+        {
+          bind.regionStart.Subresource = sub;
+          // set the starting co-ord as appropriate for this page
+          bind.regionStart.X = page % texelShape.x;
+          bind.regionStart.Y = (page / texelShape.x) % texelShape.y;
+          bind.regionStart.Z = page / (texelShape.x * texelShape.y);
+        }
+
+        bind.rangeCount = 1;
+        bind.regionSize = {1, FALSE, 1, 1, 1};
+        bind.rangeFlag = D3D12_TILE_RANGE_FLAG_NONE;
+        if(bind.heap == ResourceId())
+          bind.rangeFlag = D3D12_TILE_RANGE_FLAG_NULL;
+
+        binds.push_back(bind);
+      }
+    }
+
+    if(table.isSubresourceInMipTail(sub))
+    {
+      // move to the next subresource after the miptail, since we handle the miptail all at once
+      sub = ((sub / table.getMipCount()) + 1) * table.getMipCount();
+    }
+    else
+    {
+      sub++;
+    }
+  }
+}
+
+SparseBinds::SparseBinds(int)
+{
+  null = true;
+}
+
+void SparseBinds::Apply(WrappedID3D12Device *device, ID3D12Resource *resource)
+{
+  if(null)
+  {
+    D3D12_TILE_RANGE_FLAGS rangeFlags = D3D12_TILE_RANGE_FLAG_NULL;
+
+    // do a single whole-resource bind of NULL
+    device->GetQueue()->UpdateTileMappings(Unwrap(resource), 1, NULL, NULL, NULL, 1, &rangeFlags,
+                                           NULL, NULL, D3D12_TILE_MAPPING_FLAG_NONE);
+  }
+  else
+  {
+    D3D12ResourceManager *rm = device->GetResourceManager();
+    for(const Bind &bind : binds)
+    {
+      device->GetQueue()->UpdateTileMappings(
+          resource, 1, &bind.regionStart, &bind.regionSize,
+          bind.heap == ResourceId() ? NULL : (ID3D12Heap *)rm->GetLiveResource(bind.heap), 1,
+          &bind.rangeFlag, &bind.rangeOffset, &bind.rangeCount, D3D12_TILE_MAPPING_FLAG_NONE);
+    }
+  }
 }
 
 template <typename SerialiserType>
@@ -494,6 +625,18 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
       liveRes = (ID3D12Resource *)GetLiveResource(id);
     }
 
+    SparseBinds *sparseBinds = NULL;
+
+    if(ser.VersionAtLeast(0xB))
+    {
+      Sparse::PageTable *sparseTable = initial ? initial->sparseTable : NULL;
+
+      SERIALISE_ELEMENT_OPT(sparseTable);
+
+      if(sparseTable)
+        sparseBinds = new SparseBinds(*sparseTable);
+    }
+
     if(ser.IsWriting())
     {
       m_Device->ExecuteLists(NULL, true);
@@ -536,7 +679,8 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
       D3D12_RESOURCE_DESC resDesc = liveRes->GetDesc();
 
       D3D12_HEAP_PROPERTIES heapProps = {};
-      liveRes->GetHeapProperties(&heapProps, NULL);
+      if(!m_Device->IsSparseResource(GetResID(liveRes)))
+        liveRes->GetHeapProperties(&heapProps, NULL);
 
       if(heapProps.Type == D3D12_HEAP_TYPE_UPLOAD)
       {
@@ -624,6 +768,8 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
       initContents.resourceType = Resource_Resource;
       initContents.resource = mappedBuffer;
 
+      initContents.sparseBinds = sparseBinds;
+
       D3D12_RESOURCE_DESC resDesc = liveRes->GetDesc();
 
       // for MSAA textures we upload to an MSAA texture here so we're ready to copy the image in
@@ -639,7 +785,8 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
         else
         {
           D3D12_HEAP_PROPERTIES heapProps = {};
-          liveRes->GetHeapProperties(&heapProps, NULL);
+          if(!m_Device->IsSparseResource(GetResID(liveRes)))
+            liveRes->GetHeapProperties(&heapProps, NULL);
 
           ID3D12GraphicsCommandList *list = Unwrap(m_Device->GetInitialStateList());
 
@@ -806,7 +953,8 @@ void D3D12ResourceManager::Create_InitialState(ResourceId id, ID3D12DeviceChild 
     D3D12_RESOURCE_DESC resDesc = res->GetDesc();
 
     D3D12_HEAP_PROPERTIES heapProps = {};
-    res->GetHeapProperties(&heapProps, NULL);
+    if(!m_Device->IsSparseResource(GetResID(live)))
+      res->GetHeapProperties(&heapProps, NULL);
 
     if(heapProps.Type == D3D12_HEAP_TYPE_UPLOAD)
     {
@@ -855,6 +1003,10 @@ void D3D12ResourceManager::Create_InitialState(ResourceId id, ID3D12DeviceChild 
         D3D12InitialContents initContents(D3D12InitialContents::ForceCopy, type);
         initContents.resourceType = Resource_Resource;
         initContents.resource = copy;
+
+        if(m_Device->IsSparseResource(GetResID(live)))
+          initContents.sparseBinds = new SparseBinds(0);
+
         SetInitialContents(id, initContents);
       }
     }
@@ -896,7 +1048,15 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live,
       }
 
       D3D12_HEAP_PROPERTIES heapProps = {};
-      copyDst->GetHeapProperties(&heapProps, NULL);
+      if(data.sparseBinds)
+      {
+        if(IsLoading(m_State) || m_Device->GetQueue()->IsSparseUpdatedResource(GetResID(live)))
+          data.sparseBinds->Apply(m_Device, (ID3D12Resource *)live);
+      }
+      else
+      {
+        copyDst->GetHeapProperties(&heapProps, NULL);
+      }
 
       // if destination is on the upload heap, it's impossible to copy via the device,
       // so we have to CPU copy. We assume that we detected this case above and never uploaded a

@@ -477,7 +477,7 @@ struct ResourceRecord
     return MarkResourceFrameReferenced(id, refType, ComposeFrameRefs);
   }
   void AddResourceReferences(ResourceRecordHandler *mgr);
-  void AddReferencedIDs(std::set<ResourceId> &ids)
+  void AddReferencedIDs(std::unordered_set<ResourceId> &ids)
   {
     for(auto it = m_FrameRefs.begin(); it != m_FrameRefs.end(); ++it)
       ids.insert(it->first);

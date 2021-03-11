@@ -38,7 +38,33 @@ bool WrappedID3D12CommandQueue::Serialise_UpdateTileMappings(
     const D3D12_TILE_RANGE_FLAGS *pRangeFlags, const UINT *pHeapRangeStartOffsets,
     const UINT *pRangeTileCounts, D3D12_TILE_MAPPING_FLAGS Flags)
 {
-  D3D12NOTIMP("Tiled Resources");
+  ID3D12CommandQueue *pQueue = this;
+  SERIALISE_ELEMENT(pQueue);
+  SERIALISE_ELEMENT(pResource);
+  SERIALISE_ELEMENT(NumResourceRegions);
+  SERIALISE_ELEMENT_ARRAY(pResourceRegionStartCoordinates, NumResourceRegions);
+  SERIALISE_ELEMENT_ARRAY(pResourceRegionSizes, NumResourceRegions);
+  SERIALISE_ELEMENT(pHeap);
+  SERIALISE_ELEMENT(NumRanges);
+  SERIALISE_ELEMENT_ARRAY(pRangeFlags, NumRanges);
+  SERIALISE_ELEMENT_ARRAY(pHeapRangeStartOffsets, NumRanges);
+  SERIALISE_ELEMENT_ARRAY(pRangeTileCounts, NumRanges);
+  SERIALISE_ELEMENT(Flags);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    if(IsLoading(m_State))
+      m_SparseBindResources.insert(GetResID(pResource));
+
+    // don't replay with NO_HAZARD
+    m_pReal->UpdateTileMappings(Unwrap(pResource), NumResourceRegions,
+                                pResourceRegionStartCoordinates, pResourceRegionSizes,
+                                Unwrap(pHeap), NumRanges, pRangeFlags, pHeapRangeStartOffsets,
+                                pRangeTileCounts, Flags & ~D3D12_TILE_MAPPING_FLAG_NO_HAZARD);
+  }
+
   return true;
 }
 
@@ -49,10 +75,257 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::UpdateTileMappings(
     const D3D12_TILE_RANGE_FLAGS *pRangeFlags, const UINT *pHeapRangeStartOffsets,
     const UINT *pRangeTileCounts, D3D12_TILE_MAPPING_FLAGS Flags)
 {
-  D3D12NOTIMP("Tiled Resources");
-  m_pReal->UpdateTileMappings(Unwrap(pResource), NumResourceRegions, pResourceRegionStartCoordinates,
-                              pResourceRegionSizes, Unwrap(pHeap), NumRanges, pRangeFlags,
-                              pHeapRangeStartOffsets, pRangeTileCounts, Flags);
+  SERIALISE_TIME_CALL(m_pReal->UpdateTileMappings(
+      Unwrap(pResource), NumResourceRegions, pResourceRegionStartCoordinates, pResourceRegionSizes,
+      Unwrap(pHeap), NumRanges, pRangeFlags, pHeapRangeStartOffsets, pRangeTileCounts, Flags));
+
+  if(IsActiveCapturing(m_State))
+  {
+    CACHE_THREAD_SERIALISER();
+    ser.SetDrawChunk();
+    SCOPED_SERIALISE_CHUNK(D3D12Chunk::Queue_UpdateTileMappings);
+    Serialise_UpdateTileMappings(ser, pResource, NumResourceRegions, pResourceRegionStartCoordinates,
+                                 pResourceRegionSizes, pHeap, NumRanges, pRangeFlags,
+                                 pHeapRangeStartOffsets, pRangeTileCounts, Flags);
+
+    m_QueueRecord->AddChunk(scope.Get());
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(pResource), eFrameRef_Read);
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(pHeap), eFrameRef_Read);
+  }
+
+  // update our internal page tables
+  if(IsCaptureMode(m_State))
+  {
+    Sparse::PageTable &pageTable = *GetRecord(pResource)->sparseTable;
+    ResourceId memoryId = GetResID(pHeap);
+
+    // register this heap as having been used for sparse binding
+    m_pDevice->AddSparseHeap(GetResID(pHeap));
+
+// define macros to help provide the defaults for NULL arrays
+#define REGION_START(i)                                                 \
+  (pResourceRegionStartCoordinates ? pResourceRegionStartCoordinates[i] \
+                                   : D3D12_TILED_RESOURCE_COORDINATE({0, 0, 0, 0}))
+// The default for size depends on whether a co-ordinate is set (ughhhh). If we do have co-ordinates
+// then the sizes are all 1 tile. If we don't, then the size is the whole resource. Ideally we'd
+// provide the exact number of tiles, but instead we just set ~0U and the sparse table interprets
+// this as 'unbounded tiles'
+#define REGION_SIZE(i)                                                                  \
+  (pResourceRegionSizes                                                                 \
+       ? pResourceRegionSizes[i]                                                        \
+       : (pResourceRegionStartCoordinates ? D3D12_TILE_REGION_SIZE({1, FALSE, 1, 1, 1}) \
+                                          : D3D12_TILE_REGION_SIZE({~0U, FALSE, 1, 1, 1})))
+#define RANGE_FLAGS(i) (pRangeFlags ? pRangeFlags[i] : D3D12_TILE_RANGE_FLAG_NONE)
+// don't think there is any default for this one, but we just return 0 for consistency and safety
+// since the array CAN be NULL when it's ignored
+#define RANGE_OFFSET(i) (pHeapRangeStartOffsets ? pHeapRangeStartOffsets[i] : 0)
+#define RANGE_SIZE(i) (pRangeTileCounts ? pRangeTileCounts[i] : ~0U)
+
+    const UINT pageSize = 64 * 1024;
+    const Sparse::Coord texelShape = pageTable.getPageTexelSize();
+
+    // this persists from loop to loop. The effective offset is rangeBaseOffset +
+    // curRelativeRangeOffset. That allows us to partially use a range in one region then another.
+    // This goes from 0 to whatever rangeSize is
+    UINT curRelativeRangeOffset = 0;
+
+    // iterate region at a time
+    UINT curRange = 0;
+    for(UINT curRegion = 0; curRegion < NumResourceRegions && curRange < NumRanges; curRegion++)
+    {
+      D3D12_TILED_RESOURCE_COORDINATE regionStart = REGION_START(curRegion);
+      D3D12_TILE_REGION_SIZE regionSize = REGION_SIZE(curRegion);
+
+      // sanitise the region size according to the dimensions of the texture
+      // clamp inputs that may be invalid for buffers or 2D to sensible values
+      regionSize.Width = RDCCLAMP(1U, regionSize.Width, pageTable.getResourceSize().x);
+      regionSize.Height =
+          (uint16_t)RDCCLAMP(1U, (uint32_t)regionSize.Height, pageTable.getResourceSize().y);
+      regionSize.Depth =
+          (uint16_t)RDCCLAMP(1U, (uint32_t)regionSize.Depth, pageTable.getResourceSize().z);
+
+      UINT rangeBaseOffset = RANGE_OFFSET(0);
+      UINT rangeSize = RANGE_SIZE(curRange);
+      D3D12_TILE_RANGE_FLAGS rangeFlags = RANGE_FLAGS(curRange);
+
+      // get the memory ID, respecting the NULL flag
+      ResourceId memId = memoryId;
+      if(rangeFlags & D3D12_TILE_RANGE_FLAG_NULL)
+        memId = ResourceId();
+
+      // store if we're skipping for this range
+      bool skip = false;
+      if(rangeFlags & D3D12_TILE_RANGE_FLAG_SKIP)
+        skip = true;
+
+      // take the current range offset (which might be partway into the current range even at
+      // the start of a region). Unless we're re-using a single tile in which case it's always the
+      // start of the region
+      bool singlePage = false;
+      uint32_t memoryOffsetInTiles = rangeBaseOffset + curRelativeRangeOffset;
+      if(rangeFlags & D3D12_TILE_RANGE_FLAG_REUSE_SINGLE_TILE)
+      {
+        memoryOffsetInTiles = RANGE_OFFSET(curRange);
+        singlePage = true;
+      }
+
+      // if the region is a box region, contained within a subresource
+      if(regionSize.UseBox)
+      {
+        // if this region is entirely within the current range, set it as one
+        if(regionSize.NumTiles <= rangeSize)
+        {
+          if(skip)
+          {
+            // do no binding if we're skipping, because this whole range covers the region
+          }
+          else
+          {
+            pageTable.setImageBoxRange(
+                regionStart.Subresource, {regionStart.X * texelShape.x, regionStart.Y * texelShape.y,
+                                          regionStart.Z * texelShape.z},
+                {regionSize.Width * texelShape.x, regionSize.Height * texelShape.y,
+                 regionSize.Depth * texelShape.z},
+                memId, memoryOffsetInTiles * pageSize, singlePage);
+          }
+
+          // consume the number of tiles in the range, which might not be all of them
+          curRelativeRangeOffset += regionSize.NumTiles;
+
+          // however if it is, then move to the next range. We don't need to reset most range
+          // parameters because they'll be refreshed on the next region, however the exception is
+          // the range offset which is persistent region-to-region because we might use only part of
+          // a range on one region.
+          if(curRelativeRangeOffset >= rangeSize)
+          {
+            curRange++;
+
+            curRelativeRangeOffset = 0;
+            if(curRange < NumRanges)
+              rangeBaseOffset = RANGE_OFFSET(curRange);
+          }
+
+          // we're done with this region, we'll loop around now
+        }
+        // if the region isn't contained within a single range, iterate tile-by-tile
+        else
+        {
+          // the region spans multiple ranges. Fall back to tile-by-tile setting
+          for(UINT z = 0; z < regionSize.Depth; z++)
+          {
+            for(UINT y = 0; y < regionSize.Height; y++)
+            {
+              for(UINT x = 0; x < regionSize.Width; x++)
+              {
+                if(skip)
+                {
+                  // do nothing
+                }
+                else
+                {
+                  pageTable.setImageBoxRange(
+                      regionStart.Subresource,
+                      {(regionStart.X + x) * texelShape.x, (regionStart.Y + y) * texelShape.y,
+                       (regionStart.Z + z) * texelShape.z},
+                      texelShape, memId, memoryOffsetInTiles * pageSize, singlePage);
+                }
+
+                // consume one tile, and also advance the memory offset if we're not in single page
+                // mode
+                curRelativeRangeOffset += 1;
+                if(!singlePage)
+                  memoryOffsetInTiles += 1;
+
+                // if we've consumed everything in the current range, move to the next one
+                if(curRelativeRangeOffset >= rangeSize)
+                {
+                  curRange++;
+                  curRelativeRangeOffset = 0;
+
+                  if(curRange < NumRanges)
+                  {
+                    rangeBaseOffset = RANGE_OFFSET(curRange);
+                    rangeFlags = RANGE_FLAGS(curRange);
+                    rangeSize = RANGE_SIZE(curRange);
+
+                    skip = false;
+                    if(rangeFlags & D3D12_TILE_RANGE_FLAG_SKIP)
+                      skip = true;
+
+                    memId = memoryId;
+                    if(rangeFlags & D3D12_TILE_RANGE_FLAG_NULL)
+                      memId = ResourceId();
+
+                    memoryOffsetInTiles = rangeBaseOffset + curRelativeRangeOffset;
+                    singlePage = false;
+                    if(rangeFlags & D3D12_TILE_RANGE_FLAG_REUSE_SINGLE_TILE)
+                      singlePage = true;
+                  }
+                }
+              }
+            }
+          }
+
+          // done with the x,y,z loop. Continue to the next region. We handled any range wrapping in
+          // the innermost loop so we don't have to do anything here
+        }
+      }
+      // the region isn't a box region, so it can wrap
+      else
+      {
+        // set up the starting co-ord. setImageWrappedRange will help us iterate from here
+        rdcpair<uint32_t, Sparse::Coord> curCoord = {
+            regionStart.Subresource,
+            {regionStart.X * texelShape.x, regionStart.Y * texelShape.y,
+             regionStart.Z * texelShape.z}};
+
+        // consume a region at a time setting it. The page table will handle detecting any
+        // whole-subresource sets
+        for(UINT i = 0; i < regionSize.NumTiles;)
+        {
+          // we consume either the rest of the range or the rest of the region, whichever is least
+          UINT tilesToConsume = RDCMIN(regionSize.NumTiles - i, rangeSize - curRelativeRangeOffset);
+
+          RDCASSERT(tilesToConsume > 0);
+
+          curCoord = pageTable.setImageWrappedRange(
+              curCoord.first, curCoord.second, tilesToConsume * pageSize, memId,
+              memoryOffsetInTiles * pageSize, singlePage, !skip);
+
+          // consume the number of tiles from the region and range
+          i += tilesToConsume;
+          curRelativeRangeOffset += tilesToConsume;
+
+          // if we've consumed everything in the current range, move to the next one
+          if(curRelativeRangeOffset >= rangeSize)
+          {
+            curRange++;
+            curRelativeRangeOffset = 0;
+
+            if(curRange < NumRanges)
+            {
+              rangeBaseOffset = RANGE_OFFSET(curRange);
+              rangeFlags = RANGE_FLAGS(curRange);
+              rangeSize = RANGE_SIZE(curRange);
+
+              skip = false;
+              if(rangeFlags & D3D12_TILE_RANGE_FLAG_SKIP)
+                skip = true;
+
+              memId = memoryId;
+              if(rangeFlags & D3D12_TILE_RANGE_FLAG_NULL)
+                memId = ResourceId();
+
+              memoryOffsetInTiles = rangeBaseOffset + curRelativeRangeOffset;
+              singlePage = false;
+              if(rangeFlags & D3D12_TILE_RANGE_FLAG_REUSE_SINGLE_TILE)
+                singlePage = true;
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 template <typename SerialiserType>
@@ -62,7 +335,28 @@ bool WrappedID3D12CommandQueue::Serialise_CopyTileMappings(
     const D3D12_TILED_RESOURCE_COORDINATE *pSrcRegionStartCoordinate,
     const D3D12_TILE_REGION_SIZE *pRegionSize, D3D12_TILE_MAPPING_FLAGS Flags)
 {
-  D3D12NOTIMP("Tiled Resources");
+  ID3D12CommandQueue *pQueue = this;
+  SERIALISE_ELEMENT(pQueue);
+  SERIALISE_ELEMENT(pDstResource);
+  SERIALISE_ELEMENT_LOCAL(DstRegionStartCoordinate, *pDstRegionStartCoordinate);
+  SERIALISE_ELEMENT(pSrcResource);
+  SERIALISE_ELEMENT_LOCAL(SrcRegionStartCoordinate, *pSrcRegionStartCoordinate);
+  SERIALISE_ELEMENT_LOCAL(RegionSize, *pRegionSize);
+  SERIALISE_ELEMENT(Flags);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    if(IsLoading(m_State))
+      m_SparseBindResources.insert(GetResID(pDstResource));
+
+    // don't replay with NO_HAZARD
+    m_pReal->CopyTileMappings(Unwrap(pDstResource), &DstRegionStartCoordinate, Unwrap(pSrcResource),
+                              &SrcRegionStartCoordinate, &RegionSize,
+                              Flags & ~D3D12_TILE_MAPPING_FLAG_NO_HAZARD);
+  }
+
   return true;
 }
 
@@ -71,9 +365,69 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::CopyTileMappings(
     ID3D12Resource *pSrcResource, const D3D12_TILED_RESOURCE_COORDINATE *pSrcRegionStartCoordinate,
     const D3D12_TILE_REGION_SIZE *pRegionSize, D3D12_TILE_MAPPING_FLAGS Flags)
 {
-  D3D12NOTIMP("Tiled Resources");
-  m_pReal->CopyTileMappings(Unwrap(pDstResource), pDstRegionStartCoordinate, Unwrap(pSrcResource),
-                            pSrcRegionStartCoordinate, pRegionSize, Flags);
+  SERIALISE_TIME_CALL(m_pReal->CopyTileMappings(Unwrap(pDstResource), pDstRegionStartCoordinate,
+                                                Unwrap(pSrcResource), pSrcRegionStartCoordinate,
+                                                pRegionSize, Flags));
+
+  if(IsActiveCapturing(m_State))
+  {
+    CACHE_THREAD_SERIALISER();
+    ser.SetDrawChunk();
+    SCOPED_SERIALISE_CHUNK(D3D12Chunk::Queue_CopyTileMappings);
+    Serialise_CopyTileMappings(ser, pDstResource, pDstRegionStartCoordinate, pSrcResource,
+                               pSrcRegionStartCoordinate, pRegionSize, Flags);
+
+    m_QueueRecord->AddChunk(scope.Get());
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDstResource), eFrameRef_Read);
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(pSrcResource), eFrameRef_Read);
+  }
+
+  // update our internal page tables
+  if(IsCaptureMode(m_State))
+  {
+    Sparse::PageTable tmp;
+
+    // if we're moving within a subresource the regions can overlap. Take a temporary copy for the
+    // source
+    if(pSrcResource == pDstResource)
+      tmp = *GetRecord(pSrcResource)->sparseTable;
+
+    const Sparse::PageTable &srcPageTable =
+        (pSrcResource == pDstResource) ? tmp : *GetRecord(pSrcResource)->sparseTable;
+    Sparse::PageTable &dstPageTable = *GetRecord(pDstResource)->sparseTable;
+
+    const UINT srcSub = pSrcRegionStartCoordinate->Subresource;
+    const UINT dstSub = pDstRegionStartCoordinate->Subresource;
+
+    if(pRegionSize->UseBox)
+    {
+      D3D12_TILE_REGION_SIZE size = *pRegionSize;
+
+      if(pRegionSize->Width == 0)
+        return;
+
+      // clamp inputs that may be invalid for buffers or 2D to sensible values
+      size.Width = RDCCLAMP(1U, pRegionSize->Width, dstPageTable.getResourceSize().x);
+      size.Height =
+          (uint16_t)RDCCLAMP(1U, (uint32_t)pRegionSize->Height, dstPageTable.getResourceSize().y);
+      size.Depth =
+          (uint16_t)RDCCLAMP(1U, (uint32_t)pRegionSize->Depth, dstPageTable.getResourceSize().z);
+
+      dstPageTable.copyImageBoxRange(
+          dstSub,
+          {pDstRegionStartCoordinate->X, pDstRegionStartCoordinate->Y, pDstRegionStartCoordinate->Z},
+          {size.Width, size.Height, size.Depth}, srcPageTable, srcSub,
+          {pSrcRegionStartCoordinate->X, pSrcRegionStartCoordinate->Y, pSrcRegionStartCoordinate->Z});
+    }
+    else
+    {
+      dstPageTable.copyImageWrappedRange(
+          dstSub,
+          {pDstRegionStartCoordinate->X, pDstRegionStartCoordinate->Y, pDstRegionStartCoordinate->Z},
+          pRegionSize->NumTiles * 64 * 1024, srcPageTable, srcSub,
+          {pSrcRegionStartCoordinate->X, pSrcRegionStartCoordinate->Y, pSrcRegionStartCoordinate->Z});
+    }
+  }
 }
 
 template <typename SerialiserType>
@@ -387,7 +741,7 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
     m_Lock.Lock();
 
     bool capframe = IsActiveCapturing(m_State);
-    std::set<ResourceId> refdIDs;
+    std::unordered_set<ResourceId> refdIDs;
 
     for(UINT i = 0; i < NumCommandLists; i++)
     {
@@ -531,7 +885,8 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
         byte *ref = res->GetShadow(subres);
         byte *data = res->GetMap(subres);
 
-        // check we actually have map data. It's possible that over the course of the loop iteration
+        // check we actually have map data. It's possible that over the course of the loop
+        // iteration
         // the resource has been unmapped on another thread before we got here.
         if(data)
         {
@@ -569,6 +924,76 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
 
         res->UnlockMaps();
       }
+
+      std::unordered_set<ResourceId> sparsePageHeaps;
+      std::unordered_set<ResourceId> sparseResources;
+
+      // this returns the list of current live sparse resources, and the list of heaps *that have
+      // ever been used for sparse binding*. The latter list may be way too big, in which case we
+      // look at the referenced sparse resources and pull in the heaps they are currently using.
+      // However many applications may use only a few large heaps for sparse binding so if the
+      // list
+      // is small enough then we just use it directly even if technically some heaps may not be
+      // used
+      // by any resources we are referencing.
+      m_pDevice->GetSparseResources(sparseResources, sparsePageHeaps);
+
+      if(sparsePageHeaps.size() > refdIDs.size() || sparsePageHeaps.size() > sparseResources.size())
+      {
+        // intersect sparse resources with ref'd IDs, and pull in the referenced heaps from its
+        // current page table
+        const std::unordered_set<ResourceId> &smaller =
+            sparseResources.size() < refdIDs.size() ? sparseResources : refdIDs;
+        const std::unordered_set<ResourceId> &larger =
+            sparseResources.size() >= refdIDs.size() ? sparseResources : refdIDs;
+        for(const ResourceId id : smaller)
+        {
+          if(larger.find(id) != larger.end())
+          {
+            D3D12ResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
+            RDCASSERT(record->sparseTable);
+
+            const Sparse::PageTable &table = *record->sparseTable;
+
+            for(uint32_t sub = 0; sub < RDCMAX(1U, table.getNumSubresources());)
+            {
+              const Sparse::PageRangeMapping &mapping = table.isSubresourceInMipTail(sub)
+                                                            ? table.getMipTailMapping(sub)
+                                                            : table.getSubresource(sub);
+
+              if(mapping.hasSingleMapping())
+              {
+                if(mapping.singleMapping.memory != ResourceId())
+                  sparsePageHeaps.insert(mapping.singleMapping.memory);
+              }
+              else
+              {
+                // this is a huge perf cliff as we've lost any batching and we perform as badly as
+                // if every page was mapped to a different resource, so we hope applications don't
+                // hit this often.
+                for(const Sparse::Page &page : mapping.pages)
+                {
+                  sparsePageHeaps.insert(page.memory);
+                }
+              }
+
+              if(table.isSubresourceInMipTail(sub))
+              {
+                // move to the next subresource after the miptail, since we handle the miptail all
+                // at once
+                sub = ((sub / table.getMipCount()) + 1) * table.getMipCount();
+              }
+              else
+              {
+                sub++;
+              }
+            }
+          }
+        }
+      }
+
+      for(const ResourceId id : sparsePageHeaps)
+        GetResourceManager()->MarkResourceFrameReferenced(id, eFrameRef_Read);
 
       {
         WriteSerialiser &ser = GetThreadSerialiser();
@@ -858,7 +1283,8 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::Present(
 
   if(m_pPresentHWND != NULL)
   {
-    // don't let the device actually release any refs on the resource, just make it release internal
+    // don't let the device actually release any refs on the resource, just make it release
+    // internal
     // resources
     m_pPresentSource->AddRef();
     m_pDevice->ReleaseSwapchainResources(this, 0, NULL, NULL);

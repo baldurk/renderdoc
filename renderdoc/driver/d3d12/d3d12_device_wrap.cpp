@@ -1817,8 +1817,102 @@ bool WrappedID3D12Device::Serialise_CreateReservedResource(
     SerialiserType &ser, const D3D12_RESOURCE_DESC *pDesc, D3D12_RESOURCE_STATES InitialState,
     const D3D12_CLEAR_VALUE *pOptimizedClearValue, REFIID riid, void **ppvResource)
 {
-  D3D12NOTIMP("Tiled Resources");
-  APIProps.SparseResources = true;
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Named("pDesc"_lit);
+  SERIALISE_ELEMENT(InitialState);
+  SERIALISE_ELEMENT_OPT(pOptimizedClearValue);
+  SERIALISE_ELEMENT_LOCAL(guid, riid).Named("riid"_lit);
+  SERIALISE_ELEMENT_LOCAL(pResource, ((WrappedID3D12Resource *)*ppvResource)->GetResourceID())
+      .TypedAs("ID3D12Resource *"_lit);
+
+  SERIALISE_ELEMENT_LOCAL(gpuAddress,
+                          ((WrappedID3D12Resource *)*ppvResource)->GetGPUVirtualAddressIfBuffer())
+      .Hidden();
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    APIProps.SparseResources = true;
+
+    if(Descriptor.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+    {
+      GPUAddressRange range;
+      range.start = gpuAddress;
+      range.end = gpuAddress + Descriptor.Width;
+      range.id = pResource;
+
+      m_GPUAddresses.AddTo(range);
+    }
+
+    APIProps.YUVTextures |= IsYUVFormat(Descriptor.Format);
+
+    // always allow SRVs on replay so we can inspect resources
+    Descriptor.Flags &= ~D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
+
+    ID3D12Resource *ret = NULL;
+    HRESULT hr = m_pDevice->CreateReservedResource(&Descriptor, InitialState, pOptimizedClearValue,
+                                                   guid, (void **)&ret);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+      return false;
+    }
+    else
+    {
+      SetObjName(ret,
+                 StringFormat::Fmt("Reserved Resource %s %s", ToStr(Descriptor.Dimension).c_str(),
+                                   ToStr(pResource).c_str()));
+
+      ret = new WrappedID3D12Resource(ret, this);
+
+      GetResourceManager()->AddLiveResource(pResource, ret);
+
+      SubresourceStateVector &states = m_ResourceStates[GetResID(ret)];
+      states.fill(GetNumSubresources(m_pDevice, &Descriptor), InitialState);
+    }
+
+    m_SparseResources.insert(GetResID(ret));
+
+    ResourceType type = ResourceType::Texture;
+    const char *prefix = "Texture";
+
+    if(Descriptor.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+    {
+      type = ResourceType::Buffer;
+      prefix = "Buffer";
+    }
+    else if(Descriptor.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE1D)
+    {
+      prefix = Descriptor.DepthOrArraySize > 1 ? "1D TextureArray" : "1D Texture";
+
+      if(Descriptor.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
+        prefix = "1D Render Target";
+      else if(Descriptor.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
+        prefix = "1D Depth Target";
+    }
+    else if(Descriptor.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D)
+    {
+      prefix = Descriptor.DepthOrArraySize > 1 ? "2D TextureArray" : "2D Texture";
+
+      if(Descriptor.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
+        prefix = "2D Render Target";
+      else if(Descriptor.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
+        prefix = "2D Depth Target";
+    }
+    else if(Descriptor.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+    {
+      prefix = "3D Texture";
+
+      if(Descriptor.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
+        prefix = "3D Render Target";
+      else if(Descriptor.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
+        prefix = "3D Depth Target";
+    }
+
+    AddResource(pResource, type, prefix);
+  }
+
   return true;
 }
 
@@ -1827,8 +1921,125 @@ HRESULT WrappedID3D12Device::CreateReservedResource(const D3D12_RESOURCE_DESC *p
                                                     const D3D12_CLEAR_VALUE *pOptimizedClearValue,
                                                     REFIID riid, void **ppvResource)
 {
-  RDCERR("Tiled Resources are not currently implemented on D3D12");
-  return E_NOINTERFACE;
+  if(ppvResource == NULL)
+    return m_pDevice->CreateReservedResource(pDesc, InitialState, pOptimizedClearValue, riid, NULL);
+
+  if(riid != __uuidof(ID3D12Resource) && riid != __uuidof(ID3D12Resource1) &&
+     riid != __uuidof(ID3D12Resource2))
+    return E_NOINTERFACE;
+
+  const D3D12_RESOURCE_DESC *pCreateDesc = pDesc;
+  D3D12_RESOURCE_DESC localDesc;
+
+  if(pDesc && pDesc->Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D && pDesc->SampleDesc.Count > 1)
+  {
+    localDesc = *pDesc;
+    // need to be able to create SRVs of MSAA textures to copy out their contents
+    localDesc.Flags &= ~D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
+    pCreateDesc = &localDesc;
+  }
+
+  ID3D12Resource *real = NULL;
+  HRESULT ret;
+  SERIALISE_TIME_CALL(
+      ret = m_pDevice->CreateReservedResource(pCreateDesc, InitialState, pOptimizedClearValue,
+                                              __uuidof(ID3D12Resource), (void **)&real));
+
+  if(SUCCEEDED(ret))
+  {
+    WrappedID3D12Resource *wrapped = new WrappedID3D12Resource(real, this);
+
+    if(IsCaptureMode(m_State))
+    {
+      CACHE_THREAD_SERIALISER();
+
+      SCOPED_SERIALISE_CHUNK(D3D12Chunk::Device_CreateReservedResource);
+      Serialise_CreateReservedResource(ser, pDesc, InitialState, pOptimizedClearValue, riid,
+                                       (void **)&wrapped);
+
+      D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
+      record->type = Resource_Resource;
+      record->Length = 0;
+      wrapped->SetResourceRecord(record);
+
+      record->m_MapsCount = GetNumSubresources(this, pDesc);
+      record->m_Maps = new D3D12ResourceRecord::MapData[record->m_MapsCount];
+
+      const UINT pageSize = 64 * 1024;
+
+      if(pDesc->Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+      {
+        record->sparseTable = new Sparse::PageTable;
+        record->sparseTable->Initialise(pDesc->Width, pageSize);
+      }
+      else
+      {
+        D3D12_PACKED_MIP_INFO mipTail = {};
+        D3D12_TILE_SHAPE tileShape = {};
+
+        m_pDevice->GetResourceTiling(wrapped->GetReal(), NULL, &mipTail, &tileShape, NULL, 0, NULL);
+
+        UINT texDepth = 1;
+        UINT texSlices = pDesc->DepthOrArraySize;
+        if(pDesc->Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+        {
+          texDepth = pDesc->DepthOrArraySize;
+          texSlices = 1;
+        }
+
+        RDCASSERT(mipTail.NumStandardMips + mipTail.NumPackedMips == pDesc->MipLevels,
+                  mipTail.NumStandardMips, mipTail.NumPackedMips, pDesc->MipLevels);
+        record->sparseTable = new Sparse::PageTable;
+        record->sparseTable->Initialise(
+            {(uint32_t)pDesc->Width, pDesc->Height, texDepth}, pDesc->MipLevels, texSlices,
+            pageSize, {tileShape.WidthInTexels, tileShape.HeightInTexels, tileShape.DepthInTexels},
+            mipTail.NumStandardMips, mipTail.StartTileIndexInOverallResource * pageSize,
+            (mipTail.StartTileIndexInOverallResource + mipTail.NumTilesForPackedMips) * pageSize,
+            mipTail.NumTilesForPackedMips * pageSize * texSlices);
+      }
+
+      {
+        SCOPED_LOCK(m_SparseLock);
+        m_SparseResources.insert(wrapped->GetResourceID());
+      }
+
+      record->AddChunk(scope.Get());
+
+      GetResourceManager()->MarkDirtyResource(wrapped->GetResourceID());
+    }
+    else
+    {
+      GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
+    }
+
+    {
+      SCOPED_LOCK(m_ResourceStatesLock);
+      SubresourceStateVector &states = m_ResourceStates[wrapped->GetResourceID()];
+
+      states.fill(GetNumSubresources(m_pDevice, pDesc), InitialState);
+    }
+
+    if(riid == __uuidof(ID3D12Resource))
+      *ppvResource = (ID3D12Resource *)wrapped;
+    else if(riid == __uuidof(ID3D12Resource1))
+      *ppvResource = (ID3D12Resource1 *)wrapped;
+    else if(riid == __uuidof(ID3D12Resource2))
+      *ppvResource = (ID3D12Resource2 *)wrapped;
+
+    // while actively capturing we keep all buffers around to prevent the address lookup from
+    // losing addresses we might need (or the manageable but annoying problem of an address being
+    // re-used)
+    {
+      SCOPED_READLOCK(m_CapTransitionLock);
+      if(IsActiveCapturing(m_State))
+      {
+        wrapped->AddRef();
+        m_RefBuffers.push_back(wrapped);
+      }
+    }
+  }
+
+  return ret;
 }
 
 template <typename SerialiserType>
@@ -2955,26 +3166,7 @@ HRESULT WrappedID3D12Device::CheckFeatureSupport(D3D12_FEATURE Feature, void *pF
 
     return hr;
   }
-  else if(Feature == D3D12_FEATURE_D3D12_OPTIONS)
-  {
-    HRESULT hr = m_pDevice->CheckFeatureSupport(Feature, pFeatureSupportData, FeatureSupportDataSize);
 
-    if(SUCCEEDED(hr))
-    {
-      D3D12_FEATURE_DATA_D3D12_OPTIONS *opts =
-          (D3D12_FEATURE_DATA_D3D12_OPTIONS *)pFeatureSupportData;
-      if(FeatureSupportDataSize != sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS))
-        return E_INVALIDARG;
-
-      // renderdoc doesn't support tiled resources (calls to CreateReservedResource will fail), so
-      // don't report it as supported
-      opts->TiledResourcesTier = D3D12_TILED_RESOURCES_TIER_NOT_SUPPORTED;
-
-      return S_OK;
-    }
-
-    return hr;
-  }
   return m_pDevice->CheckFeatureSupport(Feature, pFeatureSupportData, FeatureSupportDataSize);
 }
 

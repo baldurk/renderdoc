@@ -223,6 +223,10 @@ bool D3D12InitParams::IsSupportedVersion(uint64_t ver)
   if(ver == 0x9)
     return true;
 
+  // 0xA -> 0xB - Added support for sparse/reserved/tiled resources
+  if(ver == 0x9)
+    return true;
+
   return false;
 }
 
