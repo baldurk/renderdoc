@@ -610,6 +610,9 @@ void VulkanResourceManager::MarkSparseMapReferenced(const ResourceInfo *sparse)
       const Sparse::PageRangeMapping &mapping =
           s < numSubs ? table.getSubresource(s) : table.getMipTail().mappings[s - numSubs];
 
+      if(s < numSubs && table.isSubresourceInMipTail(s))
+        continue;
+
       if(mapping.hasSingleMapping())
       {
         MarkMemoryFrameReferenced(
