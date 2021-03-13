@@ -36,6 +36,7 @@ endif() # if(ENABLE_QRENDERDOC)
 set(QMAKE_CONFIG "debug")
 set(QMAKE_LDFLAGS "")
 set(QMAKE_CXXFLAGS "")
+set(QMAKE_RPATHDIR "")
 set(SWIG_FLAGS "")
 
 if(RELEASE_MODE)
@@ -83,8 +84,9 @@ if(ENABLE_VULKAN)
 endif()
 
 if(APPLE)
+    set(QMAKE_RPATHDIR "@executable_path/../lib ")
     add_custom_command(OUTPUT RenderDoc.icns
-	COMMAND echo Creating OS X Icon
+        COMMAND echo Creating OS X Icon
         COMMAND mkdir -p RenderDoc.iconset
         COMMAND qlmanage -t -s 1024 -o . ${CMAKE_CURRENT_SOURCE_DIR}/Resources/logo.svg
         COMMAND sips -z 16 16     logo.svg.png --out RenderDoc.iconset/icon_16x16.png
@@ -167,6 +169,7 @@ file(WRITE
      "QMAKE_CXXFLAGS+=${warning_flags}\n"
      "QMAKE_CXXFLAGS+=${QMAKE_CXXFLAGS}\n"
      "QMAKE_LFLAGS+=${QMAKE_LDFLAGS}\n"
+     "QMAKE_RPATHDIR+=${QMAKE_RPATHDIR}\n"
      "\n"
      "LIB_SUFFIX=${LIB_SUFFIX}\n"
      "LIB_SUBFOLDER_TRAIL_SLASH=${LIB_SUBFOLDER_TRAIL_SLASH}\n"

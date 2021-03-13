@@ -595,11 +595,11 @@ endif()
 
 # On macOS set the rpath so that linked libraries are relative to the executable, not absolute
 if(APPLE)
-    set_target_properties(renderdoc PROPERTIES MACOSX_RPATH 1)
+    set_target_properties(renderdoc PROPERTIES MACOSX_RPATH TRUE)
+    set_target_properties(renderdoc PROPERTIES SKIP_BUILD_RPATH TRUE)
     set_target_properties(renderdoc PROPERTIES INSTALL_RPATH "@executable_path/../lib")
-    set_target_properties(renderdoc PROPERTIES INSTALL_NAME_DIR "@executable_path/../lib")
-    set_target_properties(renderdoc PROPERTIES BUILD_WITH_INSTALL_RPATH 1)
-    set_target_properties(renderdoc PROPERTIES BUILD_WITH_INSTALL_NAME_DIR 1)
+    set_target_properties(renderdoc PROPERTIES BUILD_WITH_INSTALL_RPATH TRUE)
+    set_target_properties(renderdoc PROPERTIES BUILD_WITH_INSTALL_NAME_DIR TRUE)
 endif()
 
 if(ANDROID)
