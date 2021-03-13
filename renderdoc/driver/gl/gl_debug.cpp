@@ -1740,6 +1740,8 @@ bool GLReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType type
     // need replay context active to do blit (as FBOs aren't shared)
     MakeCurrentReplayContext(&m_ReplayCtx);
 
+    GLMarkerRegion blitRegion("Renderbuffer Blit");
+
     GLuint curDrawFBO = 0;
     GLuint curReadFBO = 0;
     GL.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&curDrawFBO);
@@ -1760,6 +1762,8 @@ bool GLReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType type
   }
 
   MakeCurrentReplayContext(m_DebugCtx);
+
+  GLMarkerRegion region("GetMinMax");
 
   RDCGLenum dsTexMode = eGL_NONE;
   if(IsDepthStencilFormat(texDetails.internalFormat))
@@ -1966,6 +1970,8 @@ bool GLReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompType t
     // need replay context active to do blit (as FBOs aren't shared)
     MakeCurrentReplayContext(&m_ReplayCtx);
 
+    GLMarkerRegion blitRegion("Renderbuffer Blit");
+
     GLuint curDrawFBO = 0;
     GLuint curReadFBO = 0;
     GL.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&curDrawFBO);
@@ -1986,6 +1992,8 @@ bool GLReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompType t
   }
 
   MakeCurrentReplayContext(m_DebugCtx);
+
+  GLMarkerRegion region("GetHistogram");
 
   RDCGLenum dsTexMode = eGL_NONE;
   if(IsDepthStencilFormat(texDetails.internalFormat))

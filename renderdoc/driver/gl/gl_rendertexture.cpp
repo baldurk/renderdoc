@@ -86,6 +86,8 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
     // need replay context active to do blit (as FBOs aren't shared)
     MakeCurrentReplayContext(&m_ReplayCtx);
 
+    GLMarkerRegion blitRegion("Renderbuffer Blit");
+
     GLuint curDrawFBO = 0;
     GLuint curReadFBO = 0;
     drv.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&curDrawFBO);
@@ -110,6 +112,8 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
 
   MakeCurrentReplayContext(m_DebugCtx);
 
+  GLMarkerRegion region("RenderTextureInternal");
+
   uint32_t numMips = m_CachedTextures[cfg.resourceId].mips;
 
   GLuint castTexture = 0;
@@ -124,7 +128,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
     // if the format didn't change we can't re-interpret this format anyway
     if(displayFormat != texDetails.internalFormat)
     {
-      GLMarkerRegion region("Casting texture for view");
+      GLMarkerRegion castRegion("Casting texture for view");
 
       drv.glGenTextures(1, &castTexture);
       drv.glActiveTexture(eGL_TEXTURE0);
