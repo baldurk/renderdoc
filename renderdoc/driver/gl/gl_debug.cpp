@@ -1714,7 +1714,7 @@ bool GLReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType type
   switch(texDetails.curType)
   {
     case eGL_RENDERBUFFER:
-      texSlot = RESTYPE_TEX2D;
+      texSlot = texDetails.samples > 1 ? RESTYPE_TEX2DMS : RESTYPE_TEX2D;
       renderbuffer = true;
       break;
     case eGL_TEXTURE_1D: texSlot = RESTYPE_TEX1D; break;
@@ -1756,7 +1756,7 @@ bool GLReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType type
     GL.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curReadFBO);
 
     texname = texDetails.renderbufferReadTex;
-    target = eGL_TEXTURE_2D;
+    target = texDetails.samples > 1 ? eGL_TEXTURE_2D_MULTISAMPLE : eGL_TEXTURE_2D;
   }
 
   MakeCurrentReplayContext(m_DebugCtx);
@@ -1940,7 +1940,7 @@ bool GLReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompType t
   switch(texDetails.curType)
   {
     case eGL_RENDERBUFFER:
-      texSlot = RESTYPE_TEX2D;
+      texSlot = texDetails.samples > 1 ? RESTYPE_TEX2DMS : RESTYPE_TEX2D;
       renderbuffer = true;
       break;
     case eGL_TEXTURE_1D: texSlot = RESTYPE_TEX1D; break;
@@ -1982,7 +1982,7 @@ bool GLReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompType t
     GL.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curReadFBO);
 
     texname = texDetails.renderbufferReadTex;
-    target = eGL_TEXTURE_2D;
+    target = texDetails.samples > 1 ? eGL_TEXTURE_2D_MULTISAMPLE : eGL_TEXTURE_2D;
   }
 
   MakeCurrentReplayContext(m_DebugCtx);

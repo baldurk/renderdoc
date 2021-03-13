@@ -2723,7 +2723,7 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
 
       // then proceed to read from the texture
       texname = texDetails.renderbufferReadTex;
-      texType = eGL_TEXTURE_2D;
+      texType = texDetails.samples > 1 ? eGL_TEXTURE_2D_MULTISAMPLE : eGL_TEXTURE_2D;
 
       MakeCurrentReplayContext(m_DebugCtx);
     }
