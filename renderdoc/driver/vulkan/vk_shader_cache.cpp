@@ -940,14 +940,14 @@ void VulkanShaderCache::MakeComputePipelineInfo(VkComputePipelineCreateInfo &pip
     {
       entry[s].constantID = pipeInfo.shaders[i].specialization[s].specID;
       entry[s].size = pipeInfo.shaders[i].specialization[s].dataSize;
-      entry[s].offset = dataOffset;
+      entry[s].offset = dataOffset * sizeof(uint64_t);
 
       specdata[dataOffset] = pipeInfo.shaders[i].specialization[s].value;
 
       dataOffset++;
     }
 
-    specInfo.dataSize = specdata.size();
+    specInfo.dataSize = specdata.size() * sizeof(uint64_t);
     specInfo.pData = specdata.data();
   }
 
