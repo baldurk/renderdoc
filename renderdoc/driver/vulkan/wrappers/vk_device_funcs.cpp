@@ -167,6 +167,16 @@ static void StripUnwantedExtensions(rdcarray<rdcstr> &Extensions)
       return true;
     }
 
+    // remove platform-specific external extensions, as we don't replay external objects. We leave
+    // the base extensions since they're widely supported and we don't strip all uses of e.g.
+    // feature structs.
+    if(ext == "VK_KHR_external_fence_fd" || ext == "VK_KHR_external_fence_win32" ||
+       ext == "VK_KHR_external_memory_fd" || ext == "VK_KHR_external_memory_win32" ||
+       ext == "VK_KHR_external_semaphore_fd" || ext == "VK_KHR_external_semaphore_win32")
+    {
+      return true;
+    }
+
     // remove WSI-only extensions
     if(ext == "VK_GOOGLE_display_timing")
       return true;
