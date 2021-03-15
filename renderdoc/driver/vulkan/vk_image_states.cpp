@@ -1270,6 +1270,11 @@ void ImageState::Transition(const ImageState &dstState, VkAccessFlags srcAccessM
     for(auto it = subresourceStates.RangeBegin(dstRng); it != subresourceStates.end(); ++it)
     {
       ImageSubresourceState srcSub;
+
+      // ignore transitions of subresources that were untouched
+      if(it->state() == ImageSubresourceState())
+        continue;
+
       if(!it->state().Update(dstSub, srcSub, info.GetFrameRefCompFunc()))
         // subresource state did not change, so no need for a barrier
         continue;

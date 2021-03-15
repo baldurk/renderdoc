@@ -1434,8 +1434,8 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
                     VK_QUEUE_FAMILY_IGNORED,
                     VK_QUEUE_FAMILY_IGNORED,
                     Unwrap(image),
-                    {FormatImageAspects(imInfo.format), 0, VK_REMAINING_MIP_LEVELS, 0,
-                     VK_REMAINING_ARRAY_LAYERS}};
+                    viewInfo.range,
+                };
 
                 DoPipelineBarrier(commandBuffer, 1, &dstimBarrier);
 
@@ -2014,6 +2014,8 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
         {
           const rdcarray<ResourceId> &attachments = GetCmdRenderState().GetFramebufferAttachments();
 
+          VkRect2D rect = RenderPassBegin.renderArea;
+
           for(size_t i = 0; i < attachments.size(); i++)
           {
             const VulkanCreationInfo::ImageView &viewInfo =
@@ -2040,12 +2042,28 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
                     VK_QUEUE_FAMILY_IGNORED,
                     VK_QUEUE_FAMILY_IGNORED,
                     Unwrap(image),
-                    {FormatImageAspects(imInfo.format), 0, VK_REMAINING_MIP_LEVELS, 0,
-                     VK_REMAINING_ARRAY_LAYERS}};
+                    viewInfo.range,
+                };
 
                 DoPipelineBarrier(commandBuffer, 1, &dstimBarrier);
 
                 initialLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+                // undefined transitions apply to the whole subresource not just the render area.
+                // But we don't want to do an undefined discard pattern that will be completely
+                // overwritten, and it's common for the render area to be the whole subresource. So
+                // check that here now and only do the undefined if we're not about to DONT_CARE
+                // over it or if the render area is a subset
+                if(rpinfo.attachments[i].loadOp != VK_ATTACHMENT_LOAD_OP_DONT_CARE ||
+                   rect.offset.x > 0 || rect.offset.y > 0 ||
+                   rect.extent.width < RDCMAX(1U, imInfo.extent.width >> viewInfo.range.baseMipLevel) ||
+                   rect.extent.height <
+                       RDCMAX(1U, imInfo.extent.height >> viewInfo.range.baseMipLevel))
+                {
+                  GetDebugManager()->FillWithDiscardPattern(
+                      commandBuffer, DiscardType::UndefinedTransition, image, initialLayout,
+                      viewInfo.range, {{0, 0}, {imInfo.extent.width, imInfo.extent.height}});
+                }
               }
 
               GetDebugManager()->FillWithDiscardPattern(commandBuffer, DiscardType::RenderPassLoad,
