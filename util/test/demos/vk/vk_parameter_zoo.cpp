@@ -1236,6 +1236,17 @@ void main()
         Submit(0, 4, {cmd});
       }
 
+      // try writing with an invalid sampler to the immutable, it should be ignored
+      vkh::updateDescriptorSets(
+          device,
+          {
+              vkh::WriteDescriptorSet(
+                  immutdescset, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                  {
+                      vkh::DescriptorImageInfo(validImgView, VK_IMAGE_LAYOUT_GENERAL, invalidSampler),
+                  }),
+          });
+
       // do a bunch of spinning on fences/semaphores that should not be serialised exhaustively
       VkResult status = VK_SUCCESS;
       for(size_t i = 0; i < 1000; i++)

@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "vk_common.h"
+#include "vk_info.h"
 #include "vk_manager.h"
 #include "vk_resources.h"
 
@@ -3250,7 +3251,18 @@ void DoSerialise(SerialiserType &ser, VkWriteDescriptorSet &el)
 
     if(el.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
        el.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+    {
       validity = validity | VkDescriptorImageInfoValidity::Sampler;
+
+      // on writing check if this is an immutable samplers binding. If it is we can't treat the
+      // sampler as valid. On replay we don't have to do this because invalid samplers got
+      // serialised as NULL safely.
+      if(ser.IsWriting() && el.dstSet != VK_NULL_HANDLE)
+      {
+        if(GetRecord(el.dstSet)->descInfo->layout->bindings[el.dstBinding].immutableSampler != NULL)
+          validity = validity & ~VkDescriptorImageInfoValidity::Sampler;
+      }
+    }
 
     if(el.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
        el.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
