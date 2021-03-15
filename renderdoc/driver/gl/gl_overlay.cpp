@@ -268,12 +268,12 @@ RenderOutputSubresource GLReplay::GetRenderOutputSubresource(ResourceId id)
 
     if(res == details.resource)
     {
-      GetFramebufferMipAndLayer(curDrawFBO, att, (GLint *)&ret.mip, (GLint *)&ret.slice);
-
       ret.numSlices = 1;
 
       if(type == eGL_TEXTURE)
       {
+        GetFramebufferMipAndLayer(curDrawFBO, att, (GLint *)&ret.mip, (GLint *)&ret.slice);
+
         // desktop GL allows layered attachments which attach all slices from 0 to N
         if(!IsGLES)
         {
@@ -297,6 +297,11 @@ RenderOutputSubresource GLReplay::GetRenderOutputSubresource(ResourceId id)
               ret.numSlices = numViews;
           }
         }
+      }
+      else
+      {
+        ret.mip = 0;
+        ret.slice = 0;
       }
     }
   }
