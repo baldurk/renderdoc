@@ -152,6 +152,8 @@ private:
   HOOK_NVAPI(NvAPI_D3D12_IsNvShaderExtnOpCodeSupported, 0x3dfacec8);       \
   HOOK_NVAPI(NvAPI_D3D12_SetNvShaderExtnSlotSpace, 0xac2dfeb5);            \
   HOOK_NVAPI(NvAPI_D3D12_SetNvShaderExtnSlotSpaceLocalThread, 0x43d867c0); \
+  HOOK_NVAPI(NvAPI_D3D12_CreateGraphicsPipelineState, 0x2fc28856);         \
+  HOOK_NVAPI(NvAPI_D3D12_CreateComputePipelineState, 0x2762deac);          \
   WHITELIST_NVAPI(NvAPI_Unload, 0xd22bdd7e);                               \
   WHITELIST_NVAPI(NvAPI_GetErrorMessage, 0x6c2d048c);                      \
   WHITELIST_NVAPI(NvAPI_GetInterfaceVersionString, 0x01053fa5);
@@ -173,6 +175,7 @@ private:
     }
     else
     {
+      RDCERR("Didn't pass RenderDoc-wrapped device to nvapi function");
       return NVAPI_INVALID_POINTER;
     }
   }
@@ -201,9 +204,17 @@ private:
 
         return ret;
       }
+      else
+      {
+        RDCERR("Couldn't retrieve ID3D12Device from RenderDoc-wrapped device");
+        return NVAPI_INVALID_POINTER;
+      }
     }
-
-    return NVAPI_INVALID_POINTER;
+    else
+    {
+      RDCERR("Didn't pass RenderDoc-wrapped device to nvapi function");
+      return NVAPI_INVALID_POINTER;
+    }
   }
 
   static NvAPI_Status __cdecl NvAPI_D3D11_SetNvShaderExtnSlot_hook(__in IUnknown *pDev,
@@ -223,6 +234,7 @@ private:
     }
     else
     {
+      RDCERR("Didn't pass RenderDoc-wrapped device to nvapi function");
       return NVAPI_INVALID_POINTER;
     }
   }
@@ -245,6 +257,7 @@ private:
     }
     else
     {
+      RDCERR("Didn't pass RenderDoc-wrapped device to nvapi function");
       return NVAPI_INVALID_POINTER;
     }
   }
@@ -268,6 +281,7 @@ private:
     }
     else
     {
+      RDCERR("Didn't pass RenderDoc-wrapped device to nvapi function");
       return NVAPI_INVALID_POINTER;
     }
   }
@@ -290,6 +304,175 @@ private:
     }
     else
     {
+      RDCERR("Didn't pass RenderDoc-wrapped device to nvapi function");
+      return NVAPI_INVALID_POINTER;
+    }
+  }
+
+  static NvAPI_Status __cdecl NvAPI_D3D12_CreateGraphicsPipelineState_hook(
+      __in ID3D12Device *pDevice, __in const D3D12_GRAPHICS_PIPELINE_STATE_DESC *pPSODesc,
+      NvU32 numExtensions, __in const NVAPI_D3D12_PSO_EXTENSION_DESC **ppExtensions,
+      __out ID3D12PipelineState **ppPSO)
+  {
+    // check that there's only supported extensions first, and extract the info we want.
+    uint32_t reg = 0, space = 0;
+    for(NvU32 i = 0; i < numExtensions; i++)
+    {
+      if(ppExtensions[i]->psoExtension != NV_PSO_SET_SHADER_EXTNENSION_SLOT_AND_SPACE)
+      {
+        RDCWARN("Unsupported D3D12 PSO extension: %d", ppExtensions[i]->psoExtension);
+        return NVAPI_NOT_SUPPORTED;
+      }
+
+      // the versions don't look to be backwards compatible so we have to require an exact version
+      if(ppExtensions[i]->baseVersion != NV_PSO_EXTENSION_DESC_VER)
+      {
+        RDCERR("Unsupported PSO extension version %x, expected %x", ppExtensions[i]->baseVersion,
+               NV_PSO_EXTENSION_DESC_VER);
+        return NVAPI_NOT_SUPPORTED;
+      }
+
+      const NVAPI_D3D12_PSO_SET_SHADER_EXTENSION_SLOT_DESC_V1 *psoExt =
+          (const NVAPI_D3D12_PSO_SET_SHADER_EXTENSION_SLOT_DESC_V1 *)ppExtensions[i];
+
+      if(psoExt->version != NV_SET_SHADER_EXTENSION_SLOT_DESC_VER)
+      {
+        RDCERR("Unsupported set-slot extension version %x, expected %x", psoExt->version,
+               NV_SET_SHADER_EXTENSION_SLOT_DESC_VER);
+        return NVAPI_NOT_SUPPORTED;
+      }
+
+      reg = psoExt->uavSlot;
+      space = psoExt->registerSpace;
+    }
+
+    INVAPID3DDevice *nvapiDev = NULL;
+    HRESULT hr = pDevice->QueryInterface(__uuidof(INVAPID3DDevice), (void **)&nvapiDev);
+    // this will only succeed if it's our own wrapped device. It doesn't change the refcount, this
+    // is a COM-breaking backdoor
+    if(SUCCEEDED(hr))
+    {
+      IUnknown *real = nvapiDev->GetReal();
+
+      ID3D12Device *dev = NULL;
+      hr = real->QueryInterface(__uuidof(ID3D12Device), (void **)&dev);
+
+      if(SUCCEEDED(hr))
+      {
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = *pPSODesc;
+        nvapiDev->UnwrapDesc(&desc);
+
+        ID3D12PipelineState *realPSO = NULL;
+        NvAPI_Status ret = nvhooks.NvAPI_D3D12_CreateGraphicsPipelineState()(
+            dev, &desc, numExtensions, ppExtensions, &realPSO);
+
+        dev->Release();
+
+        if(ret == NVAPI_OK)
+        {
+          *ppPSO = nvapiDev->ProcessCreatedGraphicsPipelineState(pPSODesc, reg, space, realPSO);
+          return NVAPI_OK;
+        }
+        else
+        {
+          SAFE_RELEASE(realPSO);
+        }
+
+        return ret;
+      }
+      else
+      {
+        RDCERR("Couldn't retrieve ID3D12Device from RenderDoc-wrapped device");
+        return NVAPI_INVALID_POINTER;
+      }
+    }
+    else
+    {
+      RDCERR("Didn't pass RenderDoc-wrapped device to nvapi function");
+      return NVAPI_INVALID_POINTER;
+    }
+  }
+
+  static NvAPI_Status __cdecl NvAPI_D3D12_CreateComputePipelineState_hook(
+      __in ID3D12Device *pDevice, __in const D3D12_COMPUTE_PIPELINE_STATE_DESC *pPSODesc,
+      NvU32 numExtensions, __in const NVAPI_D3D12_PSO_EXTENSION_DESC **ppExtensions,
+      __out ID3D12PipelineState **ppPSO)
+  {
+    // check that there's only supported extensions first, and extract the info we want.
+    uint32_t reg = 0, space = 0;
+    for(NvU32 i = 0; i < numExtensions; i++)
+    {
+      if(ppExtensions[i]->psoExtension != NV_PSO_SET_SHADER_EXTNENSION_SLOT_AND_SPACE)
+      {
+        RDCWARN("Unsupported D3D12 PSO extension: %d", ppExtensions[i]->psoExtension);
+        return NVAPI_NOT_SUPPORTED;
+      }
+
+      // the versions don't look to be backwards compatible so we have to require an exact version
+      if(ppExtensions[i]->baseVersion != NV_PSO_EXTENSION_DESC_VER)
+      {
+        RDCERR("Unsupported PSO extension version %x, expected %x", ppExtensions[i]->baseVersion,
+               NV_PSO_EXTENSION_DESC_VER);
+        return NVAPI_NOT_SUPPORTED;
+      }
+
+      const NVAPI_D3D12_PSO_SET_SHADER_EXTENSION_SLOT_DESC_V1 *psoExt =
+          (const NVAPI_D3D12_PSO_SET_SHADER_EXTENSION_SLOT_DESC_V1 *)ppExtensions[i];
+
+      if(psoExt->version != NV_SET_SHADER_EXTENSION_SLOT_DESC_VER)
+      {
+        RDCERR("Unsupported set-slot extension version %x, expected %x", psoExt->version,
+               NV_SET_SHADER_EXTENSION_SLOT_DESC_VER);
+        return NVAPI_NOT_SUPPORTED;
+      }
+
+      reg = psoExt->uavSlot;
+      space = psoExt->registerSpace;
+    }
+
+    INVAPID3DDevice *nvapiDev = NULL;
+    HRESULT hr = pDevice->QueryInterface(__uuidof(INVAPID3DDevice), (void **)&nvapiDev);
+    // this will only succeed if it's our own wrapped device. It doesn't change the refcount, this
+    // is a COM-breaking backdoor
+    if(SUCCEEDED(hr))
+    {
+      IUnknown *real = nvapiDev->GetReal();
+
+      ID3D12Device *dev = NULL;
+      hr = real->QueryInterface(__uuidof(ID3D12Device), (void **)&dev);
+
+      if(SUCCEEDED(hr))
+      {
+        D3D12_COMPUTE_PIPELINE_STATE_DESC desc = *pPSODesc;
+        nvapiDev->UnwrapDesc(&desc);
+
+        ID3D12PipelineState *realPSO = NULL;
+        NvAPI_Status ret = nvhooks.NvAPI_D3D12_CreateComputePipelineState()(
+            dev, &desc, numExtensions, ppExtensions, &realPSO);
+
+        dev->Release();
+
+        if(ret == NVAPI_OK)
+        {
+          *ppPSO = nvapiDev->ProcessCreatedComputePipelineState(pPSODesc, reg, space, realPSO);
+          return NVAPI_OK;
+        }
+        else
+        {
+          SAFE_RELEASE(realPSO);
+        }
+
+        return ret;
+      }
+      else
+      {
+        RDCERR("Couldn't retrieve ID3D12Device from RenderDoc-wrapped device");
+        return NVAPI_INVALID_POINTER;
+      }
+    }
+    else
+    {
+      RDCERR("Didn't pass RenderDoc-wrapped device to nvapi function");
       return NVAPI_INVALID_POINTER;
     }
   }

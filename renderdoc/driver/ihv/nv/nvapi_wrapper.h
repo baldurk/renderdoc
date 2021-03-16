@@ -72,12 +72,26 @@ enum class NvShaderAtomic
   CompareAndSwap = 9,
 };
 
+struct D3D12_GRAPHICS_PIPELINE_STATE_DESC;
+struct D3D12_COMPUTE_PIPELINE_STATE_DESC;
+interface ID3D12PipelineState;
+
 MIDL_INTERFACE("DA122FC2-0F60-4904-AEA4-5ED1D2E1D19F")
 INVAPID3DDevice : public IUnknown
 {
   virtual BOOL STDMETHODCALLTYPE SetReal(IUnknown * device) = 0;
   virtual IUnknown *STDMETHODCALLTYPE GetReal() = 0;
   virtual BOOL STDMETHODCALLTYPE SetShaderExtUAV(DWORD space, DWORD reg, BOOL global) = 0;
+
+  virtual void STDMETHODCALLTYPE UnwrapDesc(D3D12_GRAPHICS_PIPELINE_STATE_DESC * pDesc) = 0;
+  virtual void STDMETHODCALLTYPE UnwrapDesc(D3D12_COMPUTE_PIPELINE_STATE_DESC * pDesc) = 0;
+
+  virtual ID3D12PipelineState *STDMETHODCALLTYPE ProcessCreatedGraphicsPipelineState(
+      const D3D12_GRAPHICS_PIPELINE_STATE_DESC *pDesc, uint32_t reg, uint32_t space,
+      ID3D12PipelineState *realPSO) = 0;
+  virtual ID3D12PipelineState *STDMETHODCALLTYPE ProcessCreatedComputePipelineState(
+      const D3D12_COMPUTE_PIPELINE_STATE_DESC *pDesc, uint32_t reg, uint32_t space,
+      ID3D12PipelineState *realPSO) = 0;
 };
 
 INVAPID3DDevice *InitialiseNVAPIReplay();

@@ -500,6 +500,16 @@ public:
   virtual BOOL STDMETHODCALLTYPE SetReal(IUnknown *);
   virtual IUnknown *STDMETHODCALLTYPE GetReal();
   virtual BOOL STDMETHODCALLTYPE SetShaderExtUAV(DWORD space, DWORD reg, BOOL global);
+
+  virtual void STDMETHODCALLTYPE UnwrapDesc(D3D12_GRAPHICS_PIPELINE_STATE_DESC *pDesc);
+  virtual void STDMETHODCALLTYPE UnwrapDesc(D3D12_COMPUTE_PIPELINE_STATE_DESC *pDesc);
+
+  virtual ID3D12PipelineState *STDMETHODCALLTYPE
+  ProcessCreatedGraphicsPipelineState(const D3D12_GRAPHICS_PIPELINE_STATE_DESC *pDesc, uint32_t reg,
+                                      uint32_t space, ID3D12PipelineState *realPSO);
+  virtual ID3D12PipelineState *STDMETHODCALLTYPE
+  ProcessCreatedComputePipelineState(const D3D12_COMPUTE_PIPELINE_STATE_DESC *pDesc, uint32_t reg,
+                                     uint32_t space, ID3D12PipelineState *realPSO);
 };
 
 struct WrappedAGS12 : public IAGSD3DDevice
@@ -1088,6 +1098,7 @@ public:
   IMPLEMENT_FUNCTION_SERIALISED(void, SetShaderExtUAV, GPUVendor vendor, uint32_t reg,
                                 uint32_t space, bool global);
   void GetShaderExtUAV(uint32_t &reg, uint32_t &space);
+  void SetShaderExt(GPUVendor vendor);
 
   // Protected session
   ID3D12Fence *CreateProtectedSessionFence(ID3D12Fence *real);
@@ -1124,6 +1135,17 @@ public:
   IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateCommandAllocator,
                                        D3D12_COMMAND_LIST_TYPE type, REFIID riid,
                                        void **ppCommandAllocator);
+
+  // these are separated from CreateGraphicsPipelineState and CreateComputePipelineState so that
+  // extension creation functions can pass in their custom-created pipeline state
+  void ProcessCreatedGraphicsPSO(ID3D12PipelineState *real, uint32_t vendorExtReg,
+                                 uint32_t vendorExtSpace,
+                                 const D3D12_GRAPHICS_PIPELINE_STATE_DESC *pDesc, REFIID riid,
+                                 void **ppPipelineState);
+  void ProcessCreatedComputePSO(ID3D12PipelineState *real, uint32_t vendorExtReg,
+                                uint32_t vendorExtSpace,
+                                const D3D12_COMPUTE_PIPELINE_STATE_DESC *pDesc, REFIID riid,
+                                void **ppPipelineState);
 
   IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateGraphicsPipelineState,
                                        const D3D12_GRAPHICS_PIPELINE_STATE_DESC *pDesc, REFIID riid,

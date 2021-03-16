@@ -409,6 +409,38 @@ BOOL STDMETHODCALLTYPE WrappedNVAPI12::SetShaderExtUAV(DWORD space, DWORD reg, B
   return TRUE;
 }
 
+void WrappedNVAPI12::UnwrapDesc(D3D12_GRAPHICS_PIPELINE_STATE_DESC *pDesc)
+{
+  pDesc->pRootSignature = Unwrap(pDesc->pRootSignature);
+}
+
+void WrappedNVAPI12::UnwrapDesc(D3D12_COMPUTE_PIPELINE_STATE_DESC *pDesc)
+{
+  pDesc->pRootSignature = Unwrap(pDesc->pRootSignature);
+}
+
+ID3D12PipelineState *WrappedNVAPI12::ProcessCreatedGraphicsPipelineState(
+    const D3D12_GRAPHICS_PIPELINE_STATE_DESC *pDesc, uint32_t reg, uint32_t space,
+    ID3D12PipelineState *realPSO)
+{
+  ID3D12PipelineState *ret = NULL;
+  m_pDevice.SetShaderExt(GPUVendor::nVidia);
+  m_pDevice.ProcessCreatedGraphicsPSO(realPSO, reg, space, pDesc, __uuidof(ID3D12PipelineState),
+                                      (void **)&ret);
+  return ret;
+}
+
+ID3D12PipelineState *WrappedNVAPI12::ProcessCreatedComputePipelineState(
+    const D3D12_COMPUTE_PIPELINE_STATE_DESC *pDesc, uint32_t reg, uint32_t space,
+    ID3D12PipelineState *realPSO)
+{
+  ID3D12PipelineState *ret = NULL;
+  m_pDevice.SetShaderExt(GPUVendor::nVidia);
+  m_pDevice.ProcessCreatedComputePSO(realPSO, reg, space, pDesc, __uuidof(ID3D12PipelineState),
+                                     (void **)&ret);
+  return ret;
+}
+
 HRESULT STDMETHODCALLTYPE WrappedAGS12::QueryInterface(REFIID riid, void **ppvObject)
 {
   return E_NOINTERFACE;
@@ -3059,6 +3091,12 @@ void WrappedID3D12Device::SetShaderExtUAV(GPUVendor vendor, uint32_t reg, uint32
 
 INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12Device, SetShaderExtUAV, GPUVendor vendor,
                                 uint32_t reg, uint32_t space, bool global);
+
+void WrappedID3D12Device::SetShaderExt(GPUVendor vendor)
+{
+  // just overwrite, we don't expect to switch back and forth on a given device.
+  m_VendorEXT = vendor;
+}
 
 void WrappedID3D12Device::GetShaderExtUAV(uint32_t &reg, uint32_t &space)
 {
