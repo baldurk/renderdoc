@@ -276,6 +276,22 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorSetLayout(
     VkDescriptorSetLayout layout = VK_NULL_HANDLE;
 
     VkDescriptorSetLayoutCreateInfo unwrapped = UnwrapInfo(&CreateInfo);
+
+    // on replay we add compute access to any vertex descriptors, so that we can access them for
+    // mesh output. This is only needed if we are using buffer device address and update-after-bind
+    // descriptors, because non update-after-bind descriptors we can duplicate and patch. However to
+    // keep things simple we just always do this whenever using BDA
+    if(GetExtensions(NULL).ext_KHR_buffer_device_address ||
+       GetExtensions(NULL).ext_EXT_buffer_device_address)
+    {
+      for(uint32_t b = 0; b < unwrapped.bindingCount; b++)
+      {
+        VkDescriptorSetLayoutBinding &bind = (VkDescriptorSetLayoutBinding &)unwrapped.pBindings[b];
+        if(bind.stageFlags & VK_SHADER_STAGE_VERTEX_BIT)
+          bind.stageFlags |= VK_SHADER_STAGE_COMPUTE_BIT;
+      }
+    }
+
     VkResult ret =
         ObjDisp(device)->CreateDescriptorSetLayout(Unwrap(device), &unwrapped, NULL, &layout);
 

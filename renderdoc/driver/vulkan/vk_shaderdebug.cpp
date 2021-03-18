@@ -3334,7 +3334,6 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
 
     // add capabilities
     editor.AddCapability(rdcspv::Capability::PhysicalStorageBufferAddresses);
-    editor.AddCapability(rdcspv::Capability::Int64);
 
     // declare the address constant which we will specialise later. There is a chicken-and-egg where
     // this function determines how big the buffer needs to be so instead of hardcoding the address
@@ -3353,6 +3352,8 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
     }
     else
     {
+      editor.AddCapability(rdcspv::Capability::Int64);
+
       addressConstant =
           editor.AddSpecConstantImmediate<uint64_t>(0ULL, (uint32_t)InputSpecConstant::Address);
     }
