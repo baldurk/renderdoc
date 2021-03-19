@@ -591,6 +591,9 @@ static pid_t RunProcess(rdcstr appName, rdcstr workDir, const rdcstr &cmdLine, c
     }
     else
     {
+      if(pauseAtMain)
+        StopChildAtMain(childPid);
+
       if(!stdoutPipe)
       {
         // remember this PID so we can wait on it later
@@ -608,9 +611,6 @@ static pid_t RunProcess(rdcstr appName, rdcstr workDir, const rdcstr &cmdLine, c
 
         children.append(node);
       }
-
-      if(pauseAtMain)
-        StopChildAtMain(childPid);
     }
   }
 
