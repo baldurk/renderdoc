@@ -466,6 +466,11 @@ void RenderDoc::Initialise()
   RDCWARN("dlsym() hooking enabled!");
 #endif
 
+  if(m_RemoteIdent == 0)
+    RDCWARN("Couldn't open socket for target control");
+  else
+    RDCDEBUG("Listening for target control on %u", m_RemoteIdent);
+
   Keyboard::Init();
 
   m_FrameTimer.InitTimers();
