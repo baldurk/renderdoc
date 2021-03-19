@@ -230,7 +230,7 @@ void OpenGLGraphicsTest::ActivateContext(GraphicsWindow *win, void *ctx)
 
   if(ctx == NULL)
   {
-    glXMakeContextCurrent(x11win->xlib.display, NULL, NULL, NULL);
+    glXMakeContextCurrent(x11win->xlib.display, (GLXDrawable)NULL, (GLXDrawable)NULL, NULL);
     return;
   }
 

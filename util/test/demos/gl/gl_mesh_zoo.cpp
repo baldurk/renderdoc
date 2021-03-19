@@ -323,7 +323,7 @@ void main()
       glBufferSubData(GL_DRAW_INDIRECT_BUFFER, sizeof(cmd), sizeof(cmd), &cmd);
       glBufferSubData(GL_PARAMETER_BUFFER, 0, sizeof(count), &count);
 
-      glMultiDrawElementsIndirectCount(GL_TRIANGLES, GL_UNSIGNED_INT, NULL, NULL, 4,
+      glMultiDrawElementsIndirectCount(GL_TRIANGLES, GL_UNSIGNED_INT, NULL, (GLintptr)0, 4,
                                        sizeof(DrawElementsIndirectCommand));
 
       glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
