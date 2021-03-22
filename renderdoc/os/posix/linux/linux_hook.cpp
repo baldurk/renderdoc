@@ -45,9 +45,15 @@ void *intercept_dlopen(const char *filename, int flag, void *ret);
 void plthook_lib(void *handle);
 
 typedef pid_t (*FORKPROC)();
+typedef int (*EXECLEPROC)(const char *pathname, const char *arg, ...);
+typedef int (*EXECVEPROC)(const char *pathname, char *const argv[], char *const envp[]);
+typedef int (*EXECVPEPROC)(const char *pathname, char *const argv[], char *const envp[]);
 typedef void *(*DLOPENPROC)(const char *, int);
 typedef void *(*DLSYMPROC)(void *, const char *);
 DLOPENPROC realdlopen = NULL;
+EXECLEPROC realexecle = NULL;
+EXECVEPROC realexecve = NULL;
+EXECVPEPROC realexecvpe = NULL;
 FORKPROC realfork = NULL;
 DLSYMPROC realdlsym = NULL;
 
@@ -83,20 +89,135 @@ __attribute__((visibility("default"))) void *dlopen(const char *filename, int fl
 
 int GetIdentPort(pid_t childPid);
 
+void PreForkConfigureHooks();
+void GetUnhookedEnvp(char *const *envp, rdcstr &envpStr, rdcarray<char *> &modifiedEnv);
+void GetHookedEnvp(char *const *envp, rdcstr &envpStr, rdcarray<char *> &modifiedEnv);
+void ResetHookingEnvVars();
 void StopAtMainInChild();
 bool StopChildAtMain(pid_t childPid);
 void ResumeProcess(pid_t childPid, uint32_t delay = 0);
+
+__attribute__((visibility("default"))) int execle(const char *pathname, const char *arg, ...)
+{
+  va_list args;
+  va_start(args, arg);
+
+  rdcarray<char *> argList;
+  argList.push_back((char *)arg);
+
+  while(true)
+  {
+    char *nextArg = va_arg(args, char *);
+    argList.push_back(nextArg);
+
+    // list is terminated with a NULL
+    if(!nextArg)
+      break;
+  }
+
+  char **envp = va_arg(args, char **);
+
+  va_end(args);
+
+  if(!realexecve)
+  {
+    EXECVEPROC passthru = (EXECVEPROC)dlsym(RTLD_NEXT, "execve");
+    return passthru(pathname, argList.data(), envp);
+  }
+
+  rdcarray<char *> modifiedEnv;
+  rdcstr envpStr;
+
+  // if we're not hooking children just call to the real one, but ensure we remove any hooking env
+  // vars that were kept around after initialisation
+  if(!RenderDoc::Inst().GetCaptureOptions().hookIntoChildren)
+  {
+    GetUnhookedEnvp(envp, envpStr, modifiedEnv);
+    return realexecve(pathname, argList.data(), modifiedEnv.data());
+  }
+
+  GetHookedEnvp(envp, envpStr, modifiedEnv);
+  return realexecve(pathname, argList.data(), modifiedEnv.data());
+}
+
+__attribute__((visibility("default"))) int execve(const char *pathname, char *const argv[],
+                                                  char *const envp[])
+{
+  if(!realexecve)
+  {
+    EXECVEPROC passthru = (EXECVEPROC)dlsym(RTLD_NEXT, "execve");
+    return passthru(pathname, argv, envp);
+  }
+
+  rdcarray<char *> modifiedEnv;
+  rdcstr envpStr;
+
+  // if we're not hooking children just call to the real one, but ensure we remove any hooking env
+  // vars that were kept around after initialisation
+  if(!RenderDoc::Inst().GetCaptureOptions().hookIntoChildren)
+  {
+    GetUnhookedEnvp(envp, envpStr, modifiedEnv);
+    return realexecve(pathname, argv, envp);
+  }
+
+  GetHookedEnvp(envp, envpStr, modifiedEnv);
+  return realexecve(pathname, argv, modifiedEnv.data());
+}
+
+__attribute__((visibility("default"))) int execvpe(const char *pathname, char *const argv[],
+                                                   char *const envp[])
+{
+  if(!realexecvpe)
+  {
+    EXECVPEPROC passthru = (EXECVPEPROC)dlsym(RTLD_NEXT, "execvpe");
+    return passthru(pathname, argv, envp);
+  }
+
+  rdcarray<char *> modifiedEnv;
+  rdcstr envpStr;
+
+  // if we're not hooking children just call to the real one, but ensure we remove any hooking env
+  // vars that were kept around after initialisation
+  if(!RenderDoc::Inst().GetCaptureOptions().hookIntoChildren)
+  {
+    GetUnhookedEnvp(envp, envpStr, modifiedEnv);
+    return realexecvpe(pathname, argv, envp);
+  }
+
+  GetHookedEnvp(envp, envpStr, modifiedEnv);
+  return realexecvpe(pathname, argv, modifiedEnv.data());
+}
 
 __attribute__((visibility("default"))) pid_t fork()
 {
   if(!realfork)
   {
     FORKPROC passthru = (FORKPROC)dlsym(RTLD_NEXT, "fork");
-
     return passthru();
   }
 
+  // if we're not hooking children just call to the real one, we don't have to do anything
+  if(!RenderDoc::Inst().GetCaptureOptions().hookIntoChildren)
+  {
+    // this is a nasty hack. We set this env var when we inject into a process, but because we don't
+    // know when vulkan may be initialised we need to leave it on indefinitely. If we're not
+    // injecting into children we need to unset this variable so it doesn't get inherited.
+    //
+    // Note this does nothing if the application is doing fork + execve or other variant that passes
+    // envp because it was probably fetched before the fork - see the exec hooks for where we patch
+    // that part.
+
+    pid_t ret = realfork();
+    if(ret == 0)
+      unsetenv(RENDERDOC_VULKAN_LAYER_VAR);
+
+    return ret;
+  }
+
   // fork in a captured application. Need to get the child ident and register it
+
+  // set up environment variables for hooking now
+  PreForkConfigureHooks();
 
   pid_t ret = realfork();
 
@@ -106,6 +227,9 @@ __attribute__((visibility("default"))) pid_t fork()
   }
   else if(ret > 0)
   {
+    // restore environment variables
+    ResetHookingEnvVars();
+
     bool stopped = StopChildAtMain(ret);
 
     if(stopped)
@@ -309,6 +433,9 @@ void LibraryHooks::BeginHookRegistration()
 {
   realdlopen = (DLOPENPROC)dlsym(RTLD_NEXT, "dlopen");
   realfork = (FORKPROC)dlsym(RTLD_NEXT, "fork");
+  realexecle = (EXECLEPROC)dlsym(RTLD_NEXT, "execle");
+  realexecve = (EXECVEPROC)dlsym(RTLD_NEXT, "execve");
+  realexecvpe = (EXECVPEPROC)dlsym(RTLD_NEXT, "execvpe");
 }
 
 bool LibraryHooks::Detect(const char *identifier)

@@ -26,7 +26,7 @@
 #include "hooks/hooks.h"
 #include "os/os_specific.h"
 
-void dlopen_hook_init();
+void ResetHookingEnvVars();
 
 // DllMain equivalent
 void library_loaded()
@@ -44,6 +44,8 @@ void library_loaded()
   else
   {
     RenderDoc::Inst().Initialise();
+
+    ResetHookingEnvVars();
 
     rdcstr capturefile = Process::GetEnvVariable("RENDERDOC_CAPFILE");
     rdcstr opts = Process::GetEnvVariable("RENDERDOC_CAPOPTS");

@@ -8,6 +8,9 @@
                 dlopen;
                 dlsym;
                 fork;
+                execle;
+                execve;
+                execvpe;
                 _exit;
                 RENDERDOC_*;
                 VK_LAYER_RENDERDOC_*;

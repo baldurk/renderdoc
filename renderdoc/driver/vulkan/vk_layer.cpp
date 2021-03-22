@@ -101,8 +101,8 @@ class VulkanHook : LibraryHook
     // we don't register any library or function hooks because we use the layer system
 
     // we assume the implicit layer is registered - the UI will prompt the user about installing it.
-    Process::RegisterEnvironmentModification(EnvironmentModification(
-        EnvMod::Set, EnvSep::NoSep, "ENABLE_VULKAN_RENDERDOC_CAPTURE", "1"));
+    Process::RegisterEnvironmentModification(
+        EnvironmentModification(EnvMod::Set, EnvSep::NoSep, RENDERDOC_VULKAN_LAYER_VAR, "1"));
 
     // RTSS layer is buggy, disable it to avoid bug reports that are caused by it
     Process::RegisterEnvironmentModification(
@@ -139,8 +139,8 @@ class VulkanHook : LibraryHook
   void RemoveHooks()
   {
     // unset the vulkan layer environment variable
-    Process::RegisterEnvironmentModification(EnvironmentModification(
-        EnvMod::Set, EnvSep::NoSep, "ENABLE_VULKAN_RENDERDOC_CAPTURE", "0"));
+    Process::RegisterEnvironmentModification(
+        EnvironmentModification(EnvMod::Set, EnvSep::NoSep, RENDERDOC_VULKAN_LAYER_VAR, "0"));
     Process::ApplyEnvironmentModification();
   }
 

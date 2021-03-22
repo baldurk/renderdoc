@@ -37,6 +37,7 @@
 #include "api/replay/capture_options.h"
 #include "api/replay/control_types.h"
 #include "common/threading.h"
+#include "core/core.h"
 #include "os/os_specific.h"
 #include "strings/string_utils.h"
 
@@ -262,11 +263,11 @@ static rdcarray<EnvironmentModification> &GetEnvModifications()
   return envCallbacks;
 }
 
-static std::map<rdcstr, rdcstr> EnvStringToEnvMap(const char **envstring)
+static std::map<rdcstr, rdcstr> EnvStringToEnvMap(char *const *envstring)
 {
   std::map<rdcstr, rdcstr> ret;
 
-  const char **e = envstring;
+  char *const *e = envstring;
 
   while(*e)
   {
@@ -341,6 +342,61 @@ void Process::RegisterEnvironmentModification(const EnvironmentModification &mod
   GetEnvModifications().push_back(modif);
 }
 
+void ApplySingleEnvMod(EnvironmentModification &m, rdcstr &value)
+{
+  switch(m.mod)
+  {
+    case EnvMod::Set: value = m.value.c_str(); break;
+    case EnvMod::Append:
+    {
+      if(!value.empty())
+      {
+        if(m.sep == EnvSep::Platform || m.sep == EnvSep::Colon)
+          value += ":";
+        else if(m.sep == EnvSep::SemiColon)
+          value += ";";
+      }
+      value += m.value.c_str();
+      break;
+    }
+    case EnvMod::Prepend:
+    {
+      if(!value.empty())
+      {
+        rdcstr prep = m.value;
+        if(m.sep == EnvSep::Platform || m.sep == EnvSep::Colon)
+          prep += ":";
+        else if(m.sep == EnvSep::SemiColon)
+          prep += ";";
+        value = prep + value;
+      }
+      else
+      {
+        value = m.value.c_str();
+      }
+      break;
+    }
+  }
+}
+
+void ApplyEnvironmentModifications(rdcarray<EnvironmentModification> &modifications)
+{
+  // turn environment string to a UTF-8 map
+  char **currentEnvironment = GetCurrentEnvironment();
+  std::map<rdcstr, rdcstr> currentEnv = EnvStringToEnvMap(currentEnvironment);
+
+  for(size_t i = 0; i < modifications.size(); i++)
+  {
+    EnvironmentModification &m = modifications[i];
+
+    rdcstr value = currentEnv[m.name.c_str()];
+
+    ApplySingleEnvMod(m, value);
+
+    setenv(m.name.c_str(), value.c_str(), true);
+  }
+}
+
 // on linux we apply environment changes before launching the program, as
 // there is no support for injecting/loading renderdoc into a running program
 // in any way, and we also have some environment changes that we *have* to make
@@ -350,53 +406,8 @@ void Process::RegisterEnvironmentModification(const EnvironmentModification &mod
 // in process (e.g. if we notice a setting and want to enable an env var as a result)
 void Process::ApplyEnvironmentModification()
 {
-  // turn environment string to a UTF-8 map
-  char **currentEnvironment = GetCurrentEnvironment();
-  std::map<rdcstr, rdcstr> currentEnv = EnvStringToEnvMap((const char **)currentEnvironment);
   rdcarray<EnvironmentModification> &modifications = GetEnvModifications();
-
-  for(size_t i = 0; i < modifications.size(); i++)
-  {
-    EnvironmentModification &m = modifications[i];
-
-    rdcstr value = currentEnv[m.name.c_str()];
-
-    switch(m.mod)
-    {
-      case EnvMod::Set: value = m.value.c_str(); break;
-      case EnvMod::Append:
-      {
-        if(!value.empty())
-        {
-          if(m.sep == EnvSep::Platform || m.sep == EnvSep::Colon)
-            value += ":";
-          else if(m.sep == EnvSep::SemiColon)
-            value += ";";
-        }
-        value += m.value.c_str();
-        break;
-      }
-      case EnvMod::Prepend:
-      {
-        if(!value.empty())
-        {
-          rdcstr prep = m.value;
-          if(m.sep == EnvSep::Platform || m.sep == EnvSep::Colon)
-            prep += ":";
-          else if(m.sep == EnvSep::SemiColon)
-            prep += ";";
-          value = prep + value;
-        }
-        else
-        {
-          value = m.value.c_str();
-        }
-        break;
-      }
-    }
-
-    setenv(m.name.c_str(), value.c_str(), true);
-  }
+  ApplyEnvironmentModifications(modifications);
 
   // these have been applied to the current process
   modifications.clear();
@@ -712,25 +723,9 @@ uint32_t Process::LaunchScript(const rdcstr &script, const rdcstr &workingDir,
   return LaunchProcess("bash", workingDir, args, internal, result);
 }
 
-rdcpair<ReplayStatus, uint32_t> Process::LaunchAndInjectIntoProcess(
-    const rdcstr &app, const rdcstr &workingDir, const rdcstr &cmdLine,
-    const rdcarray<EnvironmentModification> &envList, const rdcstr &capturefile,
-    const CaptureOptions &opts, bool waitForExit)
+void GetHookingEnvMods(rdcarray<EnvironmentModification> &modifications, const CaptureOptions &opts,
+                       const rdcstr &capturefile)
 {
-  if(app.empty())
-  {
-    RDCERR("Invalid empty 'app'");
-    return {ReplayStatus::InternalError, 0};
-  }
-
-  // turn environment string to a UTF-8 map
-  char **currentEnvironment = GetCurrentEnvironment();
-  std::map<rdcstr, rdcstr> env = EnvStringToEnvMap((const char **)currentEnvironment);
-  rdcarray<EnvironmentModification> modifications = GetEnvModifications();
-
-  for(const EnvironmentModification &e : envList)
-    modifications.push_back(e);
-
   rdcstr binpath, libpath, ownlibpath;
   {
     FileIO::GetExecutableFilename(binpath);
@@ -759,6 +754,12 @@ rdcpair<ReplayStatus, uint32_t> Process::LaunchAndInjectIntoProcess(
 
   rdcstr optstr = opts.EncodeAsString();
 
+  modifications.push_back(EnvironmentModification(EnvMod::Append, EnvSep::Platform,
+                                                  "RENDERDOC_ORIGLIBPATH",
+                                                  Process::GetEnvVariable(LIB_PATH_ENV_VAR)));
+  modifications.push_back(EnvironmentModification(EnvMod::Append, EnvSep::Platform,
+                                                  "RENDERDOC_ORIGPRELOAD",
+                                                  Process::GetEnvVariable(PRELOAD_ENV_VAR)));
   modifications.push_back(
       EnvironmentModification(EnvMod::Append, EnvSep::Platform, LIB_PATH_ENV_VAR, binpath));
   modifications.push_back(
@@ -773,6 +774,121 @@ rdcpair<ReplayStatus, uint32_t> Process::LaunchAndInjectIntoProcess(
       EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "RENDERDOC_CAPOPTS", optstr));
   modifications.push_back(EnvironmentModification(EnvMod::Set, EnvSep::NoSep,
                                                   "RENDERDOC_DEBUG_LOG_FILE", RDCGETLOGFILE()));
+}
+
+void PreForkConfigureHooks()
+{
+  rdcarray<EnvironmentModification> modifications;
+
+  GetHookingEnvMods(modifications, RenderDoc::Inst().GetCaptureOptions(),
+                    RenderDoc::Inst().GetCaptureFileTemplate());
+
+  ApplyEnvironmentModifications(modifications);
+}
+
+void GetUnhookedEnvp(char *const *envp, rdcstr &envpStr, rdcarray<char *> &modifiedEnv)
+{
+  std::map<rdcstr, rdcstr> envmap = EnvStringToEnvMap(envp);
+
+  // this is a nasty hack. We set this env var when we inject into a child, but because we don't
+  // know when vulkan may be initialised we need to leave it on indefinitely. If we're not
+  // injecting into children we need to unset this variable so it doesn't get inherited.
+  envmap.erase(RENDERDOC_VULKAN_LAYER_VAR);
+
+  envpStr.clear();
+
+  // flatten the map to a string
+  for(auto it = envmap.begin(); it != envmap.end(); it++)
+  {
+    envpStr += it->first;
+    envpStr += "=";
+    envpStr += it->second;
+    envpStr.push_back('\0');
+  }
+  envpStr.push_back('\0');
+
+  // create the array desired
+  char *c = envpStr.data();
+  while(*c)
+  {
+    modifiedEnv.push_back(c);
+    c += strlen(c) + 1;
+  }
+  modifiedEnv.push_back(NULL);
+}
+
+void GetHookedEnvp(char *const *envp, rdcstr &envpStr, rdcarray<char *> &modifiedEnv)
+{
+  rdcarray<EnvironmentModification> modifications;
+
+  GetHookingEnvMods(modifications, RenderDoc::Inst().GetCaptureOptions(),
+                    RenderDoc::Inst().GetCaptureFileTemplate());
+
+  std::map<rdcstr, rdcstr> envmap = EnvStringToEnvMap(envp);
+
+  for(EnvironmentModification &mod : modifications)
+  {
+    // update the values for original values we're storing, since they were gotten by querying the
+    // *current* environment not envp here.
+    if(mod.name == "RENDERDOC_ORIGLIBPATH")
+      mod.value = envmap[LIB_PATH_ENV_VAR];
+    else if(mod.name == "RENDERDOC_ORIGPRELOAD")
+      mod.value = envmap[PRELOAD_ENV_VAR];
+
+    // modify the map in-place
+    ApplySingleEnvMod(mod, envmap[mod.name.c_str()]);
+  }
+
+  envpStr.clear();
+
+  // flatten the map to a string
+  for(auto it = envmap.begin(); it != envmap.end(); it++)
+  {
+    envpStr += it->first;
+    envpStr += "=";
+    envpStr += it->second;
+    envpStr.push_back('\0');
+  }
+  envpStr.push_back('\0');
+
+  // create the array desired
+  char *c = envpStr.data();
+  while(*c)
+  {
+    modifiedEnv.push_back(c);
+    c += strlen(c) + 1;
+  }
+  modifiedEnv.push_back(NULL);
+}
+
+void ResetHookingEnvVars()
+{
+  setenv(LIB_PATH_ENV_VAR, Process::GetEnvVariable("RENDERDOC_ORIGLIBPATH").c_str(), true);
+  setenv(PRELOAD_ENV_VAR, Process::GetEnvVariable("RENDERDOC_ORIGPRELOAD").c_str(), true);
+  unsetenv("RENDERDOC_ORIGLIBPATH");
+  unsetenv("RENDERDOC_ORIGPRELOAD");
+}
+
+rdcpair<ReplayStatus, uint32_t> Process::LaunchAndInjectIntoProcess(
+    const rdcstr &app, const rdcstr &workingDir, const rdcstr &cmdLine,
+    const rdcarray<EnvironmentModification> &envList, const rdcstr &capturefile,
+    const CaptureOptions &opts, bool waitForExit)
+{
+  if(app.empty())
+  {
+    RDCERR("Invalid empty 'app'");
+    return {ReplayStatus::InternalError, 0};
+  }
+
+  // turn environment string to a UTF-8 map
+  char **currentEnvironment = GetCurrentEnvironment();
+  std::map<rdcstr, rdcstr> env = EnvStringToEnvMap(currentEnvironment);
+  rdcarray<EnvironmentModification> modifications = GetEnvModifications();
+
+  for(const EnvironmentModification &e : envList)
+    modifications.push_back(e);
+
+  GetHookingEnvMods(modifications, opts, capturefile);
 
   for(size_t i = 0; i < modifications.size(); i++)
   {
