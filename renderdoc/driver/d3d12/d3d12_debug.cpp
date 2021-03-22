@@ -2262,29 +2262,29 @@ void MoveRootSignatureElementsToRegisterSpace(D3D12RootSignature &sig, uint32_t 
           D3D12_DESCRIPTOR_RANGE_TYPE rangeType = sig.Parameters[i].ranges[r].RangeType;
           if(rangeType == D3D12_DESCRIPTOR_RANGE_TYPE_CBV && type == D3D12DescriptorType::CBV)
           {
-            sig.Parameters[i].ranges[r].RegisterSpace = registerSpace;
+            sig.Parameters[i].ranges[r].RegisterSpace += registerSpace;
           }
           else if(rangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV && type == D3D12DescriptorType::SRV)
           {
-            sig.Parameters[i].ranges[r].RegisterSpace = registerSpace;
+            sig.Parameters[i].ranges[r].RegisterSpace += registerSpace;
           }
           else if(rangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV && type == D3D12DescriptorType::UAV)
           {
-            sig.Parameters[i].ranges[r].RegisterSpace = registerSpace;
+            sig.Parameters[i].ranges[r].RegisterSpace += registerSpace;
           }
         }
       }
       else if(rootType == D3D12_ROOT_PARAMETER_TYPE_CBV && type == D3D12DescriptorType::CBV)
       {
-        sig.Parameters[i].Descriptor.RegisterSpace = registerSpace;
+        sig.Parameters[i].Descriptor.RegisterSpace += registerSpace;
       }
       else if(rootType == D3D12_ROOT_PARAMETER_TYPE_SRV && type == D3D12DescriptorType::SRV)
       {
-        sig.Parameters[i].Descriptor.RegisterSpace = registerSpace;
+        sig.Parameters[i].Descriptor.RegisterSpace += registerSpace;
       }
       else if(rootType == D3D12_ROOT_PARAMETER_TYPE_UAV && type == D3D12DescriptorType::UAV)
       {
-        sig.Parameters[i].Descriptor.RegisterSpace = registerSpace;
+        sig.Parameters[i].Descriptor.RegisterSpace += registerSpace;
       }
     }
   }
