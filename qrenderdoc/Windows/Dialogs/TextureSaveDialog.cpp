@@ -65,7 +65,11 @@ TextureSaveDialog::TextureSaveDialog(const TextureDescription &t, bool enableOve
 
   strs.clear();
   for(AlphaMapping i : values<AlphaMapping>())
+  {
+    if(i == AlphaMapping::Preserve)
+      break;
     strs << ToQStr(i);
+  }
 
   ui->alphaMap->addItems(strs);
 
@@ -74,7 +78,10 @@ TextureSaveDialog::TextureSaveDialog(const TextureDescription &t, bool enableOve
 
   ui->jpegCompression->setValue(saveData.jpegQuality);
 
-  ui->alphaMap->setCurrentIndex((int)saveData.alpha);
+  if(saveData.alpha == AlphaMapping::Preserve)
+    ui->alphaMap->setCurrentIndex((int)AlphaMapping::BlendToCheckerboard);
+  else
+    ui->alphaMap->setCurrentIndex((int)saveData.alpha);
 
   ui->blackPoint->setText(Formatter::Format(saveData.comp.blackPoint));
   ui->whitePoint->setText(Formatter::Format(saveData.comp.whitePoint));
