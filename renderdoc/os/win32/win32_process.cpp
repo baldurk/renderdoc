@@ -447,6 +447,8 @@ static PROCESS_INFORMATION RunProcess(const rdcstr &app, const rdcstr &workingDi
   RDCEraseEl(pSec);
   RDCEraseEl(tSec);
 
+  si.cb = sizeof(si);
+
   pSec.nLength = sizeof(pSec);
   tSec.nLength = sizeof(tSec);
 
