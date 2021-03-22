@@ -55,12 +55,16 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
             },
         }
 
+        doubles = self.find_draw('DoublesEnabled') is not None
+
         # Copy the ref values and prepend 'In'
         in_ref = {}
         for idx in ref:
             in_ref[idx] = {}
             for key in ref[idx]:
                 if 'UInt' in key:
+                    continue
+                if not doubles and 'Double' in key:
                     continue
                 in_ref[idx]['In' + key] = ref[idx][key]
 
@@ -71,6 +75,8 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
         for idx in ref:
             out_ref[idx] = {}
             for key in ref[idx]:
+                if not doubles and 'Double' in key:
+                    continue
                 out_ref[idx]['Out' + key] = ref[idx][key]
 
         vsout_ref = copy.deepcopy(out_ref)

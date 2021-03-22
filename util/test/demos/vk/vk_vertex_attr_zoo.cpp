@@ -43,15 +43,15 @@ RD_TEST(VK_Vertex_Attr_Zoo, VulkanGraphicsTest)
   };
 
   std::string vertex = R"EOSHADER(
-#version 450 core
-
 layout(location = 0) in vec4 InSNorm;
 layout(location = 1) in vec4 InUNorm;
 layout(location = 2) in vec4 InUScaled;
 layout(location = 3) in uvec2 InUInt;
 layout(location = 3, component = 2) in uint InUInt1;
 layout(location = 3, component = 3) in uint InUInt2;
+#if DOUBLES
 layout(location = 4) in dvec2 InDouble;
+#endif
 layout(location = 5) in vec2 InArray[2];
 layout(location = 7) in mat2x2 InMatrix;
 
@@ -61,7 +61,9 @@ layout(location = 2) out vec4 OutUScaled;
 layout(location = 3) flat out uvec2 OutUInt;
 layout(location = 3, component = 2) flat out uint OutUInt1;
 layout(location = 3, component = 3) flat out uint OutUInt2;
+#if DOUBLES
 layout(location = 4) out dvec2 OutDouble;
+#endif
 layout(location = 5) out vec2 OutArray[2];
 layout(location = 7) out mat2x2 OutMatrix;
 
@@ -74,7 +76,9 @@ void main()
 
   OutSNorm = InSNorm;
   OutUScaled = InUScaled;
+#if DOUBLES
   OutDouble = InDouble;
+#endif
   OutUInt = InUInt;
   OutUInt1 = InUInt1;
   OutUInt2 = InUInt2;
@@ -86,15 +90,15 @@ void main()
 )EOSHADER";
 
   std::string pixel = R"EOSHADER(
-#version 450 core
-
 layout(location = 0) in vec4 InSNorm;
 layout(location = 1) in vec4 InUNorm;
 layout(location = 2) in vec4 InUScaled;
 layout(location = 3) flat in uvec2 InUInt;
 layout(location = 3, component = 2) flat in uint InUInt1;
 layout(location = 3, component = 3) flat in uint InUInt2;
+#if DOUBLES
 layout(location = 4) flat in dvec2 InDouble;
+#endif
 layout(location = 5) in vec2 InArray[2];
 layout(location = 7) in mat2x2 InMatrix;
 
@@ -122,16 +126,16 @@ void main()
   if(InUInt.x > 65535 || InUInt.y > 65535 || InUInt1.x > 65535 || InUInt2.x > 65535)
     Color = vec4(0.4f, 0, 0, 1);
 
+#if DOUBLES
   // doubles are all in range [-10, 10]
   if(clamp(InDouble, -10.0, 10.0) != InDouble)
     Color = vec4(0.5f, 0, 0, 1);
+#endif
 }
 
 )EOSHADER";
 
   std::string geom = R"EOSHADER(
-#version 450 core
-
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 3) out;
 
@@ -141,7 +145,9 @@ layout(location = 2) in vec4 InUScaled[3];
 layout(location = 3) flat in uvec2 InUInt[3];
 layout(location = 3, component = 2) flat in uint InUInt1[3];
 layout(location = 3, component = 3) flat in uint InUInt2[3];
+#if DOUBLES
 layout(location = 4) in dvec2 InDouble[3];
+#endif
 layout(location = 5) in vec2 InArray[3][2];
 layout(location = 7) in mat2x2 InMatrix[3];
 
@@ -151,7 +157,9 @@ layout(location = 2) out vec4 OutUScaled;
 layout(location = 3) flat out uvec2 OutUInt;
 layout(location = 3, component = 2) flat out uint OutUInt1;
 layout(location = 3, component = 3) flat out uint OutUInt2;
+#if DOUBLES
 layout(location = 4) out dvec2 OutDouble;
+#endif
 layout(location = 5) out vec2 OutArray[2];
 layout(location = 7) out mat2x2 OutMatrix;
 
@@ -163,7 +171,9 @@ void main()
 
     OutSNorm = InSNorm[i];
     OutUScaled = InUScaled[i];
+#if DOUBLES
     OutDouble = InDouble[i];
+#endif
     OutUInt = InUInt[i];
     OutUInt1 = InUInt1[i];
     OutUInt2 = InUInt2[i];
@@ -179,8 +189,6 @@ void main()
 )EOSHADER";
 
   std::string vertex2 = R"EOSHADER(
-#version 450 core
-
 layout(location = 0) out vec4 OutDummy;
 
 struct ArrayWrapper
@@ -231,8 +239,6 @@ void main()
 )EOSHADER";
 
   std::string geom2 = R"EOSHADER(
-#version 450 core
-
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 3) out;
 
@@ -286,9 +292,10 @@ void main()
 
   void Prepare(int argc, char **argv)
   {
-    // we could have fallbacks for these, but they're supported everywhere we run our tests
-    features.shaderFloat64 = VK_TRUE;
     features.geometryShader = VK_TRUE;
+
+    // radv doesn't support doubles :(
+    optFeatures.shaderFloat64 = VK_TRUE;
 
     VulkanGraphicsTest::Prepare(argc, argv);
 
@@ -299,14 +306,6 @@ void main()
       Avail = "Not enough vertex output components to run test";
 
     VkFormatProperties props = {};
-    vkGetPhysicalDeviceFormatProperties(phys, VK_FORMAT_R64G64_SFLOAT, &props);
-
-    if((props.bufferFeatures & VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT) == 0)
-    {
-      Avail = "VK_FORMAT_R64G64_SFLOAT not supported in vertex buffers";
-      return;
-    }
-
     vkGetPhysicalDeviceFormatProperties(phys, VK_FORMAT_R16G16B16A16_USCALED, &props);
 
     if((props.bufferFeatures & VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT) == 0)
@@ -322,6 +321,11 @@ void main()
     if(!Init())
       return 3;
 
+    VkFormatProperties props = {};
+    vkGetPhysicalDeviceFormatProperties(phys, VK_FORMAT_R64G64_SFLOAT, &props);
+
+    const bool doubles = (props.bufferFeatures & VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT) != 0;
+
     VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo());
 
     vkh::GraphicsPipelineCreateInfo pipeCreateInfo;
@@ -336,24 +340,37 @@ void main()
         vkh::vertexAttrFormatted(1, 0, vertin, u16, VK_FORMAT_R16G16B16A16_UNORM),
         vkh::vertexAttrFormatted(2, 0, vertin, u16, VK_FORMAT_R16G16B16A16_USCALED),
         vkh::vertexAttrFormatted(3, 0, vertin, u16, VK_FORMAT_R16G16B16A16_UINT),
-        vkh::vertexAttrFormatted(4, 0, vertin, df, VK_FORMAT_R64G64_SFLOAT),
         vkh::vertexAttrFormatted(5, 0, vertin, arr0, VK_FORMAT_R32G32_SFLOAT),
         vkh::vertexAttrFormatted(6, 0, vertin, arr1, VK_FORMAT_R32G32_SFLOAT),
         vkh::vertexAttrFormatted(7, 0, vertin, mat0, VK_FORMAT_R32G32_SFLOAT),
         vkh::vertexAttrFormatted(8, 0, vertin, mat1, VK_FORMAT_R32G32_SFLOAT),
     };
 
+    std::string common = "#version 450 core\n\n";
+
+    if(doubles)
+    {
+      pipeCreateInfo.vertexInputState.vertexAttributeDescriptions.push_back(
+          vkh::vertexAttrFormatted(4, 0, vertin, df, VK_FORMAT_R64G64_SFLOAT));
+
+      common += "#define DOUBLES 1\n\n";
+    }
+    else
+    {
+      common += "#define DOUBLES 0\n\n";
+    }
+
     pipeCreateInfo.stages = {
-        CompileShaderModule(vertex, ShaderLang::glsl, ShaderStage::vert, "main"),
-        CompileShaderModule(pixel, ShaderLang::glsl, ShaderStage::frag, "main"),
-        CompileShaderModule(geom, ShaderLang::glsl, ShaderStage::geom, "main"),
+        CompileShaderModule(common + vertex, ShaderLang::glsl, ShaderStage::vert, "main"),
+        CompileShaderModule(common + pixel, ShaderLang::glsl, ShaderStage::frag, "main"),
+        CompileShaderModule(common + geom, ShaderLang::glsl, ShaderStage::geom, "main"),
     };
 
     VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
 
     pipeCreateInfo.stages = {
-        CompileShaderModule(vertex2, ShaderLang::glsl, ShaderStage::vert, "main"),
-        CompileShaderModule(geom2, ShaderLang::glsl, ShaderStage::geom, "main"),
+        CompileShaderModule(common + vertex2, ShaderLang::glsl, ShaderStage::vert, "main"),
+        CompileShaderModule(common + geom2, ShaderLang::glsl, ShaderStage::geom, "main"),
     };
 
     pipeCreateInfo.rasterizationState.rasterizerDiscardEnable = VK_TRUE;
@@ -409,6 +426,9 @@ void main()
       vkCmdClearColorImage(cmd, swapimg, VK_IMAGE_LAYOUT_GENERAL,
                            vkh::ClearColorValue(0.2f, 0.2f, 0.2f, 1.0f), 1,
                            vkh::ImageSubresourceRange());
+
+      if(doubles)
+        setMarker(cmd, "DoublesEnabled");
 
       vkCmdBeginRenderPass(
           cmd, vkh::RenderPassBeginInfo(mainWindow->rp, mainWindow->GetFB(), mainWindow->scissor),
