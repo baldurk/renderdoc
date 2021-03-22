@@ -29,6 +29,8 @@
 #include "os/os_specific.h"
 #include "strings/string_utils.h"
 
+#include <string>
+
 typedef int(WSAAPI *PFN_WSASTARTUP)(__in WORD wVersionRequested, __out LPWSADATA lpWSAData);
 typedef int(WSAAPI *PFN_WSACLEANUP)();
 
