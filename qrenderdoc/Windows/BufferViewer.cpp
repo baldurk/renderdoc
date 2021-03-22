@@ -1456,7 +1456,7 @@ static void ConfigureColumnsForShader(ICaptureContext &ctx, const ShaderReflecti
     p.instancerate = 1;
     p.systemValue = sig.systemValue;
     p.format.type = ResourceFormatType::Regular;
-    p.format.compByteWidth = sizeof(float);
+    p.format.compByteWidth = qMax<uint32_t>(sizeof(float), VarTypeByteSize(sig.varType));
     p.format.compCount = sig.compCount;
     p.format.compType = VarTypeCompType(sig.varType);
 
