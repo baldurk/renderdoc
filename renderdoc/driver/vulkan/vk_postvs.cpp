@@ -407,6 +407,19 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
         editor.PostModify(it);
       }
     }
+    else if(it.opcode() == rdcspv::Op::Undef)
+    {
+      rdcspv::OpUndef undef(it);
+
+      auto replIt = typeReplacements.find(undef.resultType);
+      if(replIt != typeReplacements.end())
+      {
+        editor.PreModify(it);
+        undef.resultType = replIt->second;
+        it = undef;
+        editor.PostModify(it);
+      }
+    }
   }
 
   for(rdcspv::Iter it = editor.Begin(rdcspv::Section::Functions); it; ++it)
@@ -416,7 +429,8 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
        it.opcode() == rdcspv::Op::Variable || it.opcode() == rdcspv::Op::AccessChain ||
        it.opcode() == rdcspv::Op::InBoundsAccessChain || it.opcode() == rdcspv::Op::Bitcast ||
        it.opcode() == rdcspv::Op::Undef || it.opcode() == rdcspv::Op::ExtInst ||
-       it.opcode() == rdcspv::Op::FunctionCall || it.opcode() == rdcspv::Op::Phi)
+       it.opcode() == rdcspv::Op::FunctionCall || it.opcode() == rdcspv::Op::Phi ||
+       it.opcode() == rdcspv::Op::Select)
     {
       editor.PreModify(it);
 
