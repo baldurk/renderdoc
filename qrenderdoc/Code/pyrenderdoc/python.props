@@ -42,6 +42,9 @@
 	<PythonOverride Condition="'$(Platform)'=='x64'">$(RENDERDOC_PYTHON_PREFIX64)</PythonOverride>
 </PropertyGroup>
 
+<PropertyGroup><PythonMajorMinorTest>39</PythonMajorMinorTest></PropertyGroup>
+<PropertyGroup Condition="'$(CustomPythonUsed)'=='0' AND Exists('$(PythonOverride)\include\Python.h') AND Exists('$(PythonOverride)\python$(PythonMajorMinorTest).zip') AND (Exists('$(PythonOverride)\python$(PythonMajorMinorTest).lib') OR Exists('$(PythonOverride)\libs\python$(PythonMajorMinorTest).lib'))"><CustomPythonUsed>$(PythonMajorMinorTest)</CustomPythonUsed></PropertyGroup>
+
 <PropertyGroup><PythonMajorMinorTest>38</PythonMajorMinorTest></PropertyGroup>
 <PropertyGroup Condition="'$(CustomPythonUsed)'=='0' AND Exists('$(PythonOverride)\include\Python.h') AND Exists('$(PythonOverride)\python$(PythonMajorMinorTest).zip') AND (Exists('$(PythonOverride)\python$(PythonMajorMinorTest).lib') OR Exists('$(PythonOverride)\libs\python$(PythonMajorMinorTest).lib'))"><CustomPythonUsed>$(PythonMajorMinorTest)</CustomPythonUsed></PropertyGroup>
 
