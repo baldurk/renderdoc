@@ -799,27 +799,33 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
           {
             OpBranch decodedbranch(it);
 
-            ConstIter nextit = it;
-            nextit++;
-            while(nextit.opcode() == Op::Line || nextit.opcode() == Op::NoLine)
-              nextit++;
-
-            // we can now ignore everything between us and the label of this branch, which is almost
-            // always going to be the very next label.
-            //
-            // The reasoning is this:
-            // - assume the next block is not the one we are jumping to
-            // - all blocks inside the loop must only ever branch backwards to the header block
-            // (that's this one) so the block can't be jumped to from within the loop
-            // - it's also illegal to jump into a structured control flow construct from outside, so
-            //   it can't be jumped to from outside the loop
-            // - that means it is completely inaccessible from everywhere, so we can skip it
-
-            while(nextit.opcode() != Op::Label || OpLabel(nextit).result != decodedbranch.targetLabel)
+            // if the first branch after the loopmerge is to the continue target, this is an empty
+            // infinite loop. Don't try and detect the branch, just make an empty loop and exit.
+            if(decodedbranch.targetLabel != decoded.continueTarget)
             {
+              ConstIter nextit = it;
               nextit++;
-              it++;
-              instructionLines[it.offs()] = lineNum;
+              while(nextit.opcode() == Op::Line || nextit.opcode() == Op::NoLine)
+                nextit++;
+
+              // we can now ignore everything between us and the label of this branch, which is
+              // almost always going to be the very next label.
+              //
+              // The reasoning is this:
+              // - assume the next block is not the one we are jumping to
+              // - all blocks inside the loop must only ever branch backwards to the header block
+              //   (that's this one) so the block can't be jumped to from within the loop
+              // - it's also illegal to jump into a structured control flow construct from outside,
+              //   so it can't be jumped to from outside the loop
+              // - that means it is completely inaccessible from everywhere, so we can skip it
+
+              while(nextit.opcode() != Op::Label ||
+                    OpLabel(nextit).result != decodedbranch.targetLabel)
+              {
+                nextit++;
+                it++;
+                instructionLines[it.offs()] = lineNum;
+              }
             }
           }
           else
