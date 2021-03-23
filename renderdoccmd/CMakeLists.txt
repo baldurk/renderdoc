@@ -147,7 +147,7 @@ if(ANDROID)
     set(RT_JAR "$ENV{JAVA_HOME}/jre/lib/rt.jar")
     set(JAVA_BIN "$ENV{JAVA_HOME}/bin")
 
-    set(ANDROID_JAR "${ANDROID_SDK_ROOT_PATH}/platforms/${APK_TARGET_ID}/android.jar")
+    string(REPLACE "\\" "/" ANDROID_JAR "${ANDROID_SDK_ROOT_PATH}/platforms/${APK_TARGET_ID}/android.jar")
     if(CMAKE_HOST_WIN32)
         set(CLASS_PATH "${ANDROID_JAR}\;obj")
     else()
