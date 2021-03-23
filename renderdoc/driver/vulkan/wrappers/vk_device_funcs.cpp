@@ -2356,6 +2356,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       {
         CHECK_PHYS_EXT_FEATURE(vulkanMemoryModel);
         CHECK_PHYS_EXT_FEATURE(vulkanMemoryModelDeviceScope);
+        CHECK_PHYS_EXT_FEATURE(vulkanMemoryModelAvailabilityVisibilityChains);
       }
       END_PHYS_EXT_CHECK();
 
