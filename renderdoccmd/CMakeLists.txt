@@ -66,6 +66,10 @@ target_link_libraries(renderdoccmd ${libraries})
 install (TARGETS renderdoccmd DESTINATION bin)
 
 if(ANDROID)
+    # Android sets this to off becuase Android is always terrible forever.
+    # It breaks finding java in the path, so enable it again
+    set(CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH ON)
+
     #############################
     # We need to check that 'java' in PATH is new enough. Temporarily unset the JAVA_HOME env,
     # then invoke FindJava.cmake which will search just the PATH, then re-set it.
