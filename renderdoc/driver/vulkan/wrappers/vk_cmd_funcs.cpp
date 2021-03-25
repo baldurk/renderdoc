@@ -5049,8 +5049,11 @@ void WrappedVulkan::vkCmdPushDescriptorSetKHR(VkCommandBuffer commandBuffer,
         if(write.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
            write.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
         {
-          VkResourceRecord *bufView = GetRecord(write.pTexelBufferView[d]);
-          record->MarkBufferViewFrameReferenced(bufView, ref);
+          if(write.pTexelBufferView[d] != VK_NULL_HANDLE)
+          {
+            VkResourceRecord *bufView = GetRecord(write.pTexelBufferView[d]);
+            record->MarkBufferViewFrameReferenced(bufView, ref);
+          }
         }
         else if(write.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
                 write.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
@@ -5060,14 +5063,16 @@ void WrappedVulkan::vkCmdPushDescriptorSetKHR(VkCommandBuffer commandBuffer,
         {
           // ignore descriptors not part of the write, by NULL'ing out those members
           // as they might not even point to a valid object
-          if(write.descriptorType != VK_DESCRIPTOR_TYPE_SAMPLER)
+          if(write.descriptorType != VK_DESCRIPTOR_TYPE_SAMPLER &&
+             write.pImageInfo[d].imageView != VK_NULL_HANDLE)
           {
             VkResourceRecord *view = GetRecord(write.pImageInfo[d].imageView);
             record->MarkImageViewFrameReferenced(view, ImageRange(), ref);
           }
 
-          if(write.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
-             write.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+          if((write.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
+              write.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) &&
+             write.pImageInfo[d].sampler != VK_NULL_HANDLE)
             record->MarkResourceFrameReferenced(GetResID(write.pImageInfo[d].sampler),
                                                 eFrameRef_Read);
         }
@@ -5077,9 +5082,12 @@ void WrappedVulkan::vkCmdPushDescriptorSetKHR(VkCommandBuffer commandBuffer,
         }
         else
         {
-          record->MarkBufferFrameReferenced(GetRecord(write.pBufferInfo[d].buffer),
-                                            write.pBufferInfo[d].offset, write.pBufferInfo[d].range,
-                                            ref);
+          if(write.pBufferInfo[d].buffer != VK_NULL_HANDLE)
+          {
+            record->MarkBufferFrameReferenced(GetRecord(write.pBufferInfo[d].buffer),
+                                              write.pBufferInfo[d].offset,
+                                              write.pBufferInfo[d].range, ref);
+          }
         }
       }
     }
@@ -5218,10 +5226,10 @@ void WrappedVulkan::vkCmdPushDescriptorSetWithTemplateKHR(
 
   // since it's relatively expensive to walk the memory, we gather frame references at the same time
   // as unwrapping
-  rdcarray<rdcpair<ResourceId, FrameRefType> > frameRefs;
-  rdcarray<rdcpair<VkImageView, FrameRefType> > imgViewFrameRefs;
-  rdcarray<rdcpair<VkBufferView, FrameRefType> > bufViewFrameRefs;
-  rdcarray<rdcpair<VkDescriptorBufferInfo, FrameRefType> > bufFrameRefs;
+  rdcarray<rdcpair<ResourceId, FrameRefType>> frameRefs;
+  rdcarray<rdcpair<VkImageView, FrameRefType>> imgViewFrameRefs;
+  rdcarray<rdcpair<VkBufferView, FrameRefType>> bufViewFrameRefs;
+  rdcarray<rdcpair<VkDescriptorBufferInfo, FrameRefType>> bufFrameRefs;
 
   {
     DescUpdateTemplate *tempInfo = GetRecord(descriptorUpdateTemplate)->descTemplateInfo;
@@ -5246,9 +5254,12 @@ void WrappedVulkan::vkCmdPushDescriptorSetWithTemplateKHR(
 
           VkBufferView *bufView = (VkBufferView *)dst;
 
-          bufViewFrameRefs.push_back(make_rdcpair(*bufView, ref));
+          if(*bufView != VK_NULL_HANDLE)
+          {
+            bufViewFrameRefs.push_back(make_rdcpair(*bufView, ref));
 
-          *bufView = Unwrap(*bufView);
+            *bufView = Unwrap(*bufView);
+          }
         }
       }
       else if(entry.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
@@ -5270,12 +5281,12 @@ void WrappedVulkan::vkCmdPushDescriptorSetWithTemplateKHR(
 
           VkDescriptorImageInfo *info = (VkDescriptorImageInfo *)dst;
 
-          if(hasSampler)
+          if(hasSampler && info->sampler != VK_NULL_HANDLE)
           {
             frameRefs.push_back(make_rdcpair(GetResID(info->sampler), eFrameRef_Read));
             info->sampler = Unwrap(info->sampler);
           }
-          if(hasImage)
+          if(hasImage && info->imageView != VK_NULL_HANDLE)
           {
             frameRefs.push_back(make_rdcpair(GetResID(info->imageView), eFrameRef_Read));
             if(GetRecord(info->imageView)->baseResource != ResourceId())
@@ -5298,9 +5309,12 @@ void WrappedVulkan::vkCmdPushDescriptorSetWithTemplateKHR(
 
           VkDescriptorBufferInfo *info = (VkDescriptorBufferInfo *)dst;
 
-          bufFrameRefs.push_back(make_rdcpair(*info, ref));
+          if(info->buffer != VK_NULL_HANDLE)
+          {
+            bufFrameRefs.push_back(make_rdcpair(*info, ref));
 
-          info->buffer = Unwrap(info->buffer);
+            info->buffer = Unwrap(info->buffer);
+          }
         }
       }
     }
