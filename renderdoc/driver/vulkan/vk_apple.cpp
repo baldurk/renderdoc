@@ -29,7 +29,7 @@
 #include <dlfcn.h>
 
 // helpers defined in vk_apple.mm
-void getMetalLayerSize(void *viewHandle, void *layerHandle, int &width, int &height);
+void getMetalLayerSize(void *layerHandle, int &width, int &height);
 
 #if defined(VK_USE_PLATFORM_MACOS_MVK)
 
@@ -147,7 +147,7 @@ void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h
     return;
   }
 
-  getMetalLayerSize(outw.cocoa.view, outw.cocoa.layer, w, h);
+  getMetalLayerSize(outw.cocoa.layer, w, h);
 }
 
 static const rdcstr VulkanLibraryName = "libvulkan.1.dylib"_lit;
