@@ -950,8 +950,9 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps)
 
   if(m_Vendor == GPUVendor::AMD)
   {
-    // not yet fully fixed
-    amdBDABrokenDriver = true;
+    // driver 21.3.1 which is vulkan version >= 2.0.179 contains the fix
+    if(physProps.driverVersion < VK_MAKE_VERSION(2, 0, 179))
+      amdBDABrokenDriver = true;
   }
 #endif
 
