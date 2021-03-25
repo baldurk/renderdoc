@@ -77,7 +77,7 @@ static uint64_t GetHandle(WindowingData window)
 #elif ENABLED(RDOC_APPLE)
 
   RDCASSERT(window.system == WindowingSystem::MacOS);
-  return (uint64_t)window.macOS.layer;    // CALayer *
+  return (uint64_t)window.macOS.view;    // NSView *
 
 #else
   RDCFATAL("No windowing data defined for this platform! Must be implemented for replay outputs");
