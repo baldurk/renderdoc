@@ -879,6 +879,10 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunFunctionalTests(int pytho
   // we don't care about pymalloc or not
   rdcstr pythonlibs[] = {"libpython3.?m.so.1.0", "libpython3.?.so.1.0", "libpython3.?m.so",
                          "libpython3.?.so"};
+#elif ENABLED(RDOC_APPLE)
+  const char *moduledir = "";
+  const char *modulename = "renderdoc.so";
+  rdcstr pythonlibs[] = {"libpython3.?.dylib"};
 #else
   const char *moduledir = "";
   const char *modulename = "";
