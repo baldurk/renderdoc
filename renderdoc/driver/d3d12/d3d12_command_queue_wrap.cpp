@@ -144,7 +144,7 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::UpdateTileMappings(
       regionSize.Depth =
           (uint16_t)RDCCLAMP(1U, (uint32_t)regionSize.Depth, pageTable.getResourceSize().z);
 
-      UINT rangeBaseOffset = RANGE_OFFSET(0);
+      UINT rangeBaseOffset = RANGE_OFFSET(curRange);
       UINT rangeSize = RANGE_SIZE(curRange);
       D3D12_TILE_RANGE_FLAGS rangeFlags = RANGE_FLAGS(curRange);
 
