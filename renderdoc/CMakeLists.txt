@@ -288,6 +288,7 @@ elseif(APPLE)
     list(APPEND sources
         data/embedded_files.h
         os/posix/apple/apple_stringio.cpp
+        os/posix/apple/apple_helpers.mm
         os/posix/apple/apple_callstack.cpp
         os/posix/apple/apple_process.cpp
         os/posix/apple/apple_threading.cpp
