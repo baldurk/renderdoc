@@ -85,12 +85,11 @@ if(ANDROID)
     endif()
     message(STATUS "Using Java of version ${Java_VERSION}")
 
-    if(STRIP_ANDROID_LIBRARY AND CMAKE_STRIP AND RELEASE_MODE)
-        message(STATUS "renderdoccmd library will be stripped")
+    if(STRIP_ANDROID_LIBRARY AND ANDROID_STRIP_TOOL AND RELEASE_MODE)
         add_custom_command(TARGET renderdoccmd POST_BUILD
             COMMAND echo Stripping $<TARGET_FILE:renderdoccmd>
             COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:renderdoccmd> $<TARGET_FILE:renderdoccmd>.dbg
-            COMMAND ${CMAKE_STRIP} --strip-unneeded $<TARGET_FILE:renderdoccmd>)
+            COMMAND ${ANDROID_STRIP_TOOL} --strip-unneeded $<TARGET_FILE:renderdoccmd>)
     endif()
 
     set(ANDROID_BUILD_TOOLS_VERSION "" CACHE STRING "Version of Android build-tools to use instead of the default")

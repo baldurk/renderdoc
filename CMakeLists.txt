@@ -313,6 +313,15 @@ if(cmake_build_type_lower STREQUAL "release" OR
     set(RELEASE_MODE 1)
 endif()
 
+if(STRIP_ANDROID_LIBRARY AND BUILD_ANDROID AND RELEASE_MODE)
+    set(ANDROID_STRIP_TOOL "${ANDROID_TOOLCHAIN_ROOT}/bin/llvm-strip${ANDROID_TOOLCHAIN_SUFFIX}")
+    if(NOT EXISTS "${ANDROID_STRIP_TOOL}")
+        set(ANDROID_STRIP_TOOL "${CMAKE_STRIP}")
+    endif()
+
+    message(STATUS "libraries will be stripped with ${ANDROID_STRIP_TOOL}")
+endif()
+
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fno-strict-aliasing")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
