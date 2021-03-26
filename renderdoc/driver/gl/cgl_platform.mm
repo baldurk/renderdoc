@@ -4,28 +4,28 @@ extern "C" void NSGL_LogText(const char *text);
 
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
-extern "C" int NSGL_getLayerWidth(void *handle)
+extern "C" int NSGL_getLayerWidth(void *layer)
 {
-  CALayer *layer = (CALayer *)handle;
-  assert([layer isKindOfClass:[CALayer class]]);
+  CALayer *caLayer = (CALayer *)layer;
+  assert([caLayer isKindOfClass:[CALayer class]]);
 
-  return layer.bounds.size.width;
+  return caLayer.bounds.size.width;
 }
 
-extern "C" int NSGL_getLayerHeight(void *handle)
+extern "C" int NSGL_getLayerHeight(void *layer)
 {
-  CALayer *layer = (CALayer *)handle;
-  assert([layer isKindOfClass:[CALayer class]]);
+  CALayer *caLayer = (CALayer *)layer;
+  assert([caLayer isKindOfClass:[CALayer class]]);
 
-  return layer.bounds.size.height;
+  return caLayer.bounds.size.height;
 }
 
-extern "C" void *NSGL_createContext(void *handle, void *sharehandle)
+extern "C" void *NSGL_createContext(void *view, void *shareContext)
 {
-  NSView *view = (NSView *)handle;
-  assert(view == nil || [view isKindOfClass:[NSView class]]);
+  NSView *nsView = (NSView *)view;
+  assert(nsView == nil || [nsView isKindOfClass:[NSView class]]);
 
-  NSOpenGLContext *share = (NSOpenGLContext *)sharehandle;
+  NSOpenGLContext *share = (NSOpenGLContext *)shareContext;
   assert(share == nil || [share isKindOfClass:[NSOpenGLContext class]]);
 
   NSOpenGLPixelFormatAttribute attr[] = {
@@ -63,46 +63,46 @@ extern "C" void *NSGL_createContext(void *handle, void *sharehandle)
   GLint aboveWindow = 1;
   [context setValues:&aboveWindow forParameter:NSOpenGLCPSurfaceOrder];
 
-  [context setView:view];
+  [context setView:nsView];
   [context update];
 
   return context;
 }
 
-extern "C" void NSGL_makeCurrentContext(void *handle)
+extern "C" void NSGL_makeCurrentContext(void *context)
 {
-  NSOpenGLContext *context = (NSOpenGLContext *)handle;
-  assert([context isKindOfClass:[NSOpenGLContext class]]);
+  NSOpenGLContext *nsglContext = (NSOpenGLContext *)context;
+  assert([nsglContext isKindOfClass:[NSOpenGLContext class]]);
 
-  [context makeCurrentContext];
+  [nsglContext makeCurrentContext];
 }
 
-extern "C" void NSGL_update(void *handle)
+extern "C" void NSGL_update(void *context)
 {
-  NSOpenGLContext *context = (NSOpenGLContext *)handle;
-  assert([context isKindOfClass:[NSOpenGLContext class]]);
+  NSOpenGLContext *nsglContext = (NSOpenGLContext *)context;
+  assert([nsglContext isKindOfClass:[NSOpenGLContext class]]);
 
-  [context update];
+  [nsglContext update];
 }
 
-extern "C" void NSGL_flushBuffer(void *handle)
+extern "C" void NSGL_flushBuffer(void *context)
 {
-  NSOpenGLContext *context = (NSOpenGLContext *)handle;
-  assert([context isKindOfClass:[NSOpenGLContext class]]);
+  NSOpenGLContext *nsglContext = (NSOpenGLContext *)context;
+  assert([nsglContext isKindOfClass:[NSOpenGLContext class]]);
 
-  [context flushBuffer];
+  [nsglContext flushBuffer];
 }
 
-extern "C" void NSGL_destroyContext(void *handle)
+extern "C" void NSGL_destroyContext(void *context)
 {
   @autoreleasepool
   {
-    NSOpenGLContext *context = (NSOpenGLContext *)handle;
-    assert([context isKindOfClass:[NSOpenGLContext class]]);
+    NSOpenGLContext *nsglContext = (NSOpenGLContext *)context;
+    assert([nsglContext isKindOfClass:[NSOpenGLContext class]]);
 
-    [context makeCurrentContext];
-    [context clearDrawable];
-    [context update];
-    [context release];
+    [nsglContext makeCurrentContext];
+    [nsglContext clearDrawable];
+    [nsglContext update];
+    [nsglContext release];
   }
 }
