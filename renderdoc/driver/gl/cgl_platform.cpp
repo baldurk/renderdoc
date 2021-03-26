@@ -32,11 +32,11 @@
 // helpers defined in cgl_platform.mm
 extern "C" int NSGL_getLayerWidth(void *layer);
 extern "C" int NSGL_getLayerHeight(void *layer);
-extern "C" void *NSGL_createContext(void *view, void *shareNSCtx);
-extern "C" void NSGL_makeCurrentContext(void *nsctx);
-extern "C" void NSGL_update(void *nsctx);
-extern "C" void NSGL_flushBuffer(void *nsctx);
-extern "C" void NSGL_destroyContext(void *nsctx);
+extern "C" void *NSGL_createContext(void *view, void *shareContext);
+extern "C" void NSGL_makeCurrentContext(void *context);
+extern "C" void NSGL_update(void *context);
+extern "C" void NSGL_flushBuffer(void *context);
+extern "C" void NSGL_destroyContext(void *context);
 
 // helper for cgl_platform.mm
 extern "C" void NSGL_LogText(const char *text)
@@ -107,7 +107,7 @@ class CGLPlatform : public GLPlatform
   {
     if(RenderDoc::Inst().IsReplayApp())
     {
-      NSGL_makeCurrentContext(data.nsctx);
+      NSGL_makeCurrentContext(data.nsgl_ctx);
       return true;
     }
     else
@@ -130,8 +130,8 @@ class CGLPlatform : public GLPlatform
 
     if(RenderDoc::Inst().IsReplayApp())
     {
-      RDCASSERT(share.nsctx);
-      ret.nsctx = NSGL_createContext(NULL, share.nsctx);
+      RDCASSERT(share.nsgl_ctx);
+      ret.nsgl_ctx = NSGL_createContext(NULL, share.nsgl_ctx);
     }
     else
     {
@@ -149,7 +149,7 @@ class CGLPlatform : public GLPlatform
   {
     if(RenderDoc::Inst().IsReplayApp())
     {
-      NSGL_destroyContext(context.nsctx);
+      NSGL_destroyContext(context.nsgl_ctx);
     }
     else
     {
@@ -159,11 +159,11 @@ class CGLPlatform : public GLPlatform
   }
   void DeleteReplayContext(GLWindowingData context)
   {
-    RDCASSERT(context.nsctx);
-    NSGL_destroyContext(context.nsctx);
+    RDCASSERT(context.nsgl_ctx);
+    NSGL_destroyContext(context.nsgl_ctx);
   }
-  void SwapBuffers(GLWindowingData context) { NSGL_flushBuffer(context.nsctx); }
-  void WindowResized(GLWindowingData context) { NSGL_update(context.nsctx); }
+  void SwapBuffers(GLWindowingData context) { NSGL_flushBuffer(context.nsgl_ctx); }
+  void WindowResized(GLWindowingData context) { NSGL_update(context.nsgl_ctx); }
   void GetOutputWindowDimensions(GLWindowingData context, int32_t &w, int32_t &h)
   {
     if(context.layer)
@@ -199,7 +199,7 @@ class CGLPlatform : public GLPlatform
     {
       RDCASSERT(window.macOS.layer && window.macOS.view);
 
-      ret.nsctx = NSGL_createContext(window.macOS.view, share_context.nsctx);
+      ret.nsgl_ctx = NSGL_createContext(window.macOS.view, share_context.nsgl_ctx);
       ret.wnd = window.macOS.view;
       ret.layer = window.macOS.layer;
 
@@ -207,7 +207,7 @@ class CGLPlatform : public GLPlatform
     }
     else if(window.system == WindowingSystem::Unknown || window.system == WindowingSystem::Headless)
     {
-      ret.nsctx = NSGL_createContext(NULL, share_context.nsctx);
+      ret.nsgl_ctx = NSGL_createContext(NULL, share_context.nsgl_ctx);
 
       return ret;
     }
@@ -223,7 +223,7 @@ class CGLPlatform : public GLPlatform
   {
     RDCASSERT(api == RDCDriver::OpenGL);
 
-    replayContext.nsctx = NSGL_createContext(NULL, NULL);
+    replayContext.nsgl_ctx = NSGL_createContext(NULL, NULL);
 
     return ReplayStatus::Succeeded;
   }

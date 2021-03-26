@@ -205,7 +205,7 @@ struct GLWindowingData
   union
   {
     CGLContextObj ctx;
-    void *nsctx;    // during replay only, this is the NSOpenGLContext
+    void *nsgl_ctx;    // during replay only, this is the NSOpenGLContext
   };
 
   void *wnd;    // during capture, this is the CGL window ID. During replay, it's the NSView
