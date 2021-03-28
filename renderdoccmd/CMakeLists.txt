@@ -9,7 +9,14 @@ else()
 endif()
 
 if(APPLE)
-    list(APPEND sources renderdoccmd_apple.cpp)
+    list(APPEND sources renderdoccmd_apple.cpp apple/cocoa_window.mm)
+
+    find_library(COCOA_LIBRARY Cocoa)
+    list(APPEND libraries PRIVATE ${COCOA_LIBRARY})
+
+    find_library(QUARTZCORE_LIBRARY QuartzCore)
+    list(APPEND libraries PRIVATE ${QUARTZCORE_LIBRARY})
+
 elseif(ANDROID)
     string(REPLACE "\\" "/" GLUE_SOURCE "${ANDROID_NDK_ROOT_PATH}/sources/android/native_app_glue/android_native_app_glue.c")
     list(APPEND sources renderdoccmd_android.cpp "${GLUE_SOURCE}")
