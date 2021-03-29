@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 2.8.12)
 
+if(APPLE)
+  SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for Mac OS X" FORCE)
+endif()
+
 # Configure some stuff that needs to be set really early
 if(BUILD_ANDROID)
     if(NOT DEFINED ENV{JAVA_HOME})
