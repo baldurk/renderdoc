@@ -35,7 +35,6 @@ RenderDoc has support for Vulkan version 1.2, as well as a number of extensions,
 
 * RenderDoc assumes that even if multiple GPUs are present, that only one VkDevice will be created and used.
 * RenderDoc captures will in general not be portable between different systems, only currently supporting capture and replay on the same or similar enough machines.
-* Sparse resources are not supported.
 
 Stadia
 ------
