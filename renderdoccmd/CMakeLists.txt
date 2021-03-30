@@ -16,7 +16,7 @@ elseif(ANDROID)
     include_directories(${ANDROID_NDK_ROOT_PATH}/sources/android/native_app_glue)
     list(APPEND libraries PRIVATE -llog -landroid)
     set(LINKER_FLAGS "-Wl,--no-as-needed")
-    
+
     set_source_files_properties(renderdoccmd.cpp PROPERTIES COMPILE_FLAGS "-fexceptions -frtti")
     set_source_files_properties(renderdoccmd_android.cpp PROPERTIES COMPILE_FLAGS "-fexceptions")
 elseif(ENABLE_GGP)
@@ -103,7 +103,7 @@ if(ANDROID)
         unset(__buildTools)
     endif()
     message(STATUS "Using Android build-tools version ${ANDROID_BUILD_TOOLS_VERSION}")
-    
+
     set(APK_TARGET_ID "" CACHE STRING "The Target ID to build the APK for like 'android-99', use <android list targets> to choose another one.")
     if(APK_TARGET_ID STREQUAL "")
         # This seems different from the platform we're targetting,
@@ -168,6 +168,10 @@ if(ANDROID)
         set(RENDERDOC_ANDROID_PACKAGE_NAME "org.renderdoc.renderdoccmd.arm32")
     elseif(ANDROID_ABI STREQUAL "arm64-v8a")
         set(RENDERDOC_ANDROID_PACKAGE_NAME "org.renderdoc.renderdoccmd.arm64")
+    elseif(ANDROID_ABI STREQUAL "x86")
+        set(RENDERDOC_ANDROID_PACKAGE_NAME "org.renderdoc.renderdoccmd.x86")
+    elseif(ANDROID_ABI STREQUAL "x86_64")
+        set(RENDERDOC_ANDROID_PACKAGE_NAME "org.renderdoc.renderdoccmd.x64")
     else()
         message(FATAL_ERROR "ABI ${ANDROID_ABI} is not supported.")
     endif()
