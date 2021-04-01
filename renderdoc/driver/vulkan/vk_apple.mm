@@ -1,6 +1,6 @@
 #import <Cocoa/Cocoa.h>
 
-void getMetalLayerSize(void* layerHandle, int& width, int& height)
+void getMetalLayerSize(void *layerHandle, int &width, int &height)
 {
   CALayer *layer = (CALayer *)layerHandle;
   assert([layer isKindOfClass:[CALayer class]]);

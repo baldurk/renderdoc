@@ -30,28 +30,29 @@ static id s_eventMonitor;
 
 void apple_InitKeyboard()
 {
-    s_eventMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:
-    (NSEventMaskKeyDown|NSEventMaskKeyUp)
-    handler:^(NSEvent *incomingEvent) {
-        NSEvent *result = incomingEvent;
-        //NSWindow *targetWindowForEvent = [incomingEvent window];
-        //if (targetWindowForEvent == _window) 
-        {
-            unsigned short keyCode = [incomingEvent keyCode];
-            if ([incomingEvent type] == NSEventTypeKeyDown) 
-            {
-                s_keysPressed[keyCode] = true;
-            }
-            if ([incomingEvent type] == NSEventTypeKeyUp) 
-            {
-                s_keysPressed[keyCode] = false;
-            }
-        }
-        return result;
-    }];
+  s_eventMonitor =
+      [NSEvent addLocalMonitorForEventsMatchingMask:(NSEventMaskKeyDown | NSEventMaskKeyUp)
+                                            handler:^(NSEvent *incomingEvent) {
+                                              NSEvent *result = incomingEvent;
+                                              // NSWindow *targetWindowForEvent = [incomingEvent
+                                              // window];
+                                              // if (targetWindowForEvent == _window)
+                                              {
+                                                unsigned short keyCode = [incomingEvent keyCode];
+                                                if([incomingEvent type] == NSEventTypeKeyDown)
+                                                {
+                                                  s_keysPressed[keyCode] = true;
+                                                }
+                                                if([incomingEvent type] == NSEventTypeKeyUp)
+                                                {
+                                                  s_keysPressed[keyCode] = false;
+                                                }
+                                              }
+                                              return result;
+                                            }];
 }
 
 bool apple_IsKeyPressed(int appleKeyCode)
 {
-    return s_keysPressed[appleKeyCode];
+  return s_keysPressed[appleKeyCode];
 }
