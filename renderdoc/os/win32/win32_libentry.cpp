@@ -30,6 +30,7 @@
 #include "core/core.h"
 #include "hooks/hooks.h"
 #include "strings/string_utils.h"
+#include "os/os_specific.h"
 
 static BOOL add_hooks()
 {
@@ -74,9 +75,8 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 {
   if(ul_reason_for_call == DLL_PROCESS_ATTACH)
   {
-    BOOL ret = add_hooks();
+    Threading::CloseThread(Threading::CreateThread([]() { (void)add_hooks(); }));
     SetLastError(0);
-    return ret;
   }
 
   return TRUE;
