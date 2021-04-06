@@ -192,7 +192,7 @@ public:
     // this doesn't catch the case where some intrinsics are used on replay that are newer. We don't
     // store that fine-grained information about which intrinsics are used.
     if(device12)
-      return extensionsSupported11.intrinsics16;
+      return extensionsSupported12.intrinsics16;
     else if(device11)
       return extensionsSupported11.intrinsics16;
     else

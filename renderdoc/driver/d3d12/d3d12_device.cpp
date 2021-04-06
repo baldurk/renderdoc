@@ -1110,6 +1110,12 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
     *ppvObject = (INVAPID3DDevice *)&m_WrappedNVAPI;
     return S_OK;
   }
+  else if(riid == __uuidof(IAGSD3DDevice))
+  {
+    // don't addref, this is an internal interface so we just don't addref at all
+    *ppvObject = (IAGSD3DDevice *)&m_WrappedAGS;
+    return S_OK;
+  }
   else if(riid == __uuidof(ID3D12DebugDevice))
   {
     // we queryinterface for this at startup, so if it's present we can
