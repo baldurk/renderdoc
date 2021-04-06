@@ -317,6 +317,9 @@ private:
           // de-refcount our device.
           returnedParams->pDevice->AddRef();
 
+          if(ppDevice)
+            *ppDevice = returnedParams->pDevice;
+
           return S_OK;
         },
         creationParams->pAdapter, creationParams->FeatureLevel, __uuidof(ID3D12Device),
