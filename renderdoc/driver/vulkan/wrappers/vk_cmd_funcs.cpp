@@ -2879,43 +2879,6 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
             dynConsumed += dynCount;
             RDCASSERT(dynConsumed <= dynamicOffsetCount);
           }
-
-          // if there are dynamic offsets, bake them into the current bindings by alias'ing
-          // the image layout member (which is never used for buffer views).
-          // This lets us look it up easily when we want to show the current pipeline state
-          RDCCOMPILE_ASSERT(sizeof(VkImageLayout) >= sizeof(uint32_t),
-                            "Can't alias image layout for dynamic offset!");
-          if(dynamicOffsetCount > 0)
-          {
-            uint32_t o = 0;
-
-            // spec states that dynamic offsets precisely match all the offsets needed for these
-            // sets, in order of set N before set N+1, binding X before binding X+1 within a set,
-            // and in array element order within a binding
-            for(uint32_t i = 0; i < setCount; i++)
-            {
-              ResourceId descId = GetResID(pDescriptorSets[i]);
-              const DescSetLayout &layoutinfo =
-                  m_CreationInfo.m_DescSetLayout[descSetLayouts[firstSet + i]];
-
-              for(size_t b = 0; b < layoutinfo.bindings.size(); b++)
-              {
-                // not dynamic, doesn't need an offset
-                if(layoutinfo.bindings[b].descriptorType != VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC &&
-                   layoutinfo.bindings[b].descriptorType != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
-                  continue;
-
-                // assign every array element an offset according to array size
-                for(uint32_t a = 0; a < layoutinfo.bindings[b].descriptorCount; a++)
-                {
-                  RDCASSERT(o < dynamicOffsetCount);
-                  uint32_t *alias =
-                      (uint32_t *)&m_DescriptorSetState[descId].data.binds[b][a].imageInfo.imageLayout;
-                  *alias = pDynamicOffsets[o++];
-                }
-              }
-            }
-          }
         }
       }
     }

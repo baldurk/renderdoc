@@ -1597,6 +1597,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       for(size_t i = 0; i < srcs[p]->size(); i++)
       {
         ResourceId src = (*srcs[p])[i].descSet;
+        const uint32_t *srcOffset = (*srcs[p])[i].offsets.begin();
         VKPipe::DescriptorSet &dst = (*dsts[p])[i];
 
         curBind.bindset = (uint32_t)i;
@@ -1623,8 +1624,6 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
           const DescSetLayout::Binding &layoutBind = c.m_DescSetLayout[layoutId].bindings[b];
 
           curBind.bind = (uint32_t)b;
-
-          bool dynamicOffset = false;
 
           uint32_t descriptorCount = layoutBind.descriptorCount;
 
@@ -1660,11 +1659,9 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
               break;
             case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
               dst.bindings[b].type = BindType::ConstantBuffer;
-              dynamicOffset = true;
               break;
             case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
               dst.bindings[b].type = BindType::ReadWriteBuffer;
-              dynamicOffset = true;
               break;
             case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
               dst.bindings[b].type = BindType::InputAttachment;
@@ -1857,21 +1854,6 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
                 dst.bindings[b].binds[a].byteOffset = c.m_BufferView[viewid].offset;
                 dst.bindings[b].binds[a].viewFormat =
                     MakeResourceFormat(c.m_BufferView[viewid].format);
-                if(dynamicOffset)
-                {
-                  union
-                  {
-                    VkImageLayout l;
-                    uint32_t u;
-                  } offs;
-
-                  RDCCOMPILE_ASSERT(sizeof(VkImageLayout) == sizeof(uint32_t),
-                                    "VkImageLayout isn't 32-bit sized");
-
-                  offs.l = info[a].imageInfo.imageLayout;
-
-                  dst.bindings[b].binds[a].byteOffset += offs.u;
-                }
                 dst.bindings[b].binds[a].byteSize = c.m_BufferView[viewid].size;
               }
               else
@@ -1902,20 +1884,11 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
                     rm->GetOriginalID(info[a].bufferInfo.buffer);
 
               dst.bindings[b].binds[a].byteOffset = info[a].bufferInfo.offset;
-              if(dynamicOffset)
+              if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
+                 layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
               {
-                union
-                {
-                  VkImageLayout l;
-                  uint32_t u;
-                } offs;
-
-                RDCCOMPILE_ASSERT(sizeof(VkImageLayout) == sizeof(uint32_t),
-                                  "VkImageLayout isn't 32-bit sized");
-
-                offs.l = info[a].imageInfo.imageLayout;
-
-                dst.bindings[b].binds[a].byteOffset += offs.u;
+                dst.bindings[b].binds[a].byteOffset += *srcOffset;
+                srcOffset++;
               }
 
               dst.bindings[b].binds[a].byteSize = info[a].bufferInfo.range;
