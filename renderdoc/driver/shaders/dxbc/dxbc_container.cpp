@@ -1862,13 +1862,13 @@ DXBCContainer::DXBCContainer(bytebuf &ByteCode, const rdcstr &debugInfoPath, Gra
     if(shaderExtReg != ~0U)
     {
       bool found = false;
-      const bool sm51 = (m_Version.Major == 5 && m_Version.Minor == 1);
+      const bool pre_sm51 = (m_Version.Major * 10 + m_Version.Minor) < 51;
 
       // see if we can find the magic UAV. If so remove it from the reflection
       for(size_t i = 0; i < m_Reflection->UAVs.size(); i++)
       {
         const ShaderInputBind &uav = m_Reflection->UAVs[i];
-        if(uav.reg == shaderExtReg && (!sm51 || shaderExtSpace == ~0U || shaderExtSpace == uav.space))
+        if(uav.reg == shaderExtReg && (pre_sm51 || shaderExtSpace == uav.space))
         {
           found = true;
           m_Reflection->UAVs.erase(i);

@@ -3032,6 +3032,7 @@ bool WrappedID3D12Device::Serialise_SetShaderExtUAV(SerialiserType &ser, GPUVend
     }
     else if(vendor == GPUVendor::AMD)
     {
+      m_GlobalEXTUAVSpace = space;
       // do nothing, it was configured at device create time. This is purely informational
     }
     else
