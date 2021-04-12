@@ -569,7 +569,8 @@ void RDTreeView::drawBranches(QPainter *painter, const QRect &rect, const QModel
   // fill in the background behind the lines for the whole row, since by default it doesn't show up
   // behind the tree lines.
 
-  QRect allLinesRect(rect.left(), rect.top(), (parents.count() + 1) * indentation(), rect.height());
+  QRect allLinesRect(rect.left(), rect.top(),
+                     (parents.count() + (rootIsDecorated() ? 1 : 0)) * indentation(), rect.height());
 
   QStyleOptionViewItem opt;
   opt.initFrom(this);
