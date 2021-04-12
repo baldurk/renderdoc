@@ -2008,12 +2008,12 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
   ui->outputTabs->setCurrentIndex(0);
   m_CurStage = MeshDataStage::VSIn;
 
-  ui->vsinData->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
-  ui->vsoutData->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
-  ui->gsoutData->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+  ui->vsinData->setFont(Formatter::FixedFont());
+  ui->vsoutData->setFont(Formatter::FixedFont());
+  ui->gsoutData->setFont(Formatter::FixedFont());
 
-  ui->minBoundsLabel->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
-  ui->maxBoundsLabel->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+  ui->minBoundsLabel->setFont(Formatter::FixedFont());
+  ui->maxBoundsLabel->setFont(Formatter::FixedFont());
 
   ui->rowOffset->setFont(Formatter::PreferredFont());
   ui->instance->setFont(Formatter::PreferredFont());

@@ -25,6 +25,7 @@
 #include "CommentView.h"
 #include <QFontDatabase>
 #include <QRegularExpression>
+#include "Code/QRDUtils.h"
 #include "Code/ScintillaSyntax.h"
 #include "scintilla/include/SciLexer.h"
 #include "scintilla/include/qt/ScintillaEdit.h"
@@ -39,8 +40,7 @@ CommentView::CommentView(ICaptureContext &ctx, QWidget *parent)
 
   m_commentsEditor = new ScintillaEdit(this);
 
-  m_commentsEditor->styleSetFont(
-      STYLE_DEFAULT, QFontDatabase::systemFont(QFontDatabase::FixedFont).family().toUtf8().data());
+  m_commentsEditor->styleSetFont(STYLE_DEFAULT, Formatter::FixedFont().family().toUtf8().data());
   m_commentsEditor->setTabWidth(4);
 
   m_commentsEditor->setWrapMode(SC_WRAP_WORD);

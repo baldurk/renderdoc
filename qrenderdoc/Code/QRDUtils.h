@@ -256,13 +256,14 @@ struct Formatter
   static QString Format(int32_t i, bool hex = false) { return QString::number(i); }
   static QString Format(int64_t i, bool hex = false) { return QString::number(i); }
   static const QFont &PreferredFont() { return *m_Font; }
+  static const QFont &FixedFont() { return *m_FixedFont; }
   static const QColor DarkCheckerColor() { return m_DarkChecker; }
   static const QColor LightCheckerColor() { return m_LightChecker; }
 private:
   static int m_minFigures, m_maxFigures, m_expNegCutoff, m_expPosCutoff;
   static double m_expNegValue, m_expPosValue;
-  static QFont *m_Font;
-  static float m_FontBaseSize;
+  static QFont *m_Font, *m_FixedFont;
+  static float m_FontBaseSize, m_FixedFontBaseSize;
   static QColor m_DarkChecker, m_LightChecker;
 };
 

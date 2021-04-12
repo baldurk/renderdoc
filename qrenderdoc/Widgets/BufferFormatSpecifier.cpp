@@ -36,7 +36,7 @@ BufferFormatSpecifier::BufferFormatSpecifier(QWidget *parent)
 
   setErrors(QString());
 
-  ui->formatText->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+  ui->formatText->setFont(Formatter::FixedFont());
 }
 
 BufferFormatSpecifier::~BufferFormatSpecifier()

@@ -25,6 +25,7 @@
 #include "ConstantBufferPreviewer.h"
 #include <QFontDatabase>
 #include <QTextStream>
+#include "Code/QRDUtils.h"
 #include "toolwindowmanager/ToolWindowManager.h"
 #include "ui_ConstantBufferPreviewer.h"
 
@@ -56,7 +57,7 @@ ConstantBufferPreviewer::ConstantBufferPreviewer(ICaptureContext &ctx, const Sha
     ui->variables->header()->setSectionResizeMode(2, QHeaderView::Interactive);
   }
 
-  ui->variables->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+  ui->variables->setFont(Formatter::FixedFont());
 
   m_Previews.push_back(this);
   m_Ctx.AddCaptureViewer(this);

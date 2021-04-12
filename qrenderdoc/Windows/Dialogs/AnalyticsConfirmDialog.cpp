@@ -28,6 +28,7 @@
 #include <QPushButton>
 #include <QUrl>
 #include "Code/Interface/QRDInterface.h"
+#include "Code/QRDUtils.h"
 #include "ui_AnalyticsConfirmDialog.h"
 
 AnalyticsConfirmDialog::AnalyticsConfirmDialog(QString report, QWidget *parent)
@@ -37,7 +38,7 @@ AnalyticsConfirmDialog::AnalyticsConfirmDialog(QString report, QWidget *parent)
 
   setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
-  ui->analyticsReport->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+  ui->analyticsReport->setFont(Formatter::FixedFont());
   ui->analyticsReport->setText(report);
 
   QObject::connect(ui->buttonBox->button(QDialogButtonBox::Discard), &QPushButton::clicked, this,

@@ -290,7 +290,7 @@ LogView::LogView(ICaptureContext &ctx, QWidget *parent)
 
   ui->messages->setMouseTracking(true);
 
-  ui->messages->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+  ui->messages->setFont(Formatter::FixedFont());
 
   m_TypeModel = new QStandardItemModel(0, 1, this);
 

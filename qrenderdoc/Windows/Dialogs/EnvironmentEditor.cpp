@@ -88,7 +88,7 @@ EnvironmentEditor::EnvironmentEditor(QWidget *parent)
 
   ui->variables->sortByColumn(0, Qt::DescendingOrder);
 
-  ui->variables->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+  ui->variables->setFont(Formatter::FixedFont());
 }
 
 EnvironmentEditor::~EnvironmentEditor()

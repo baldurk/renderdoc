@@ -245,7 +245,6 @@ void ConfigureSyntax(ScintillaEdit *scintilla, int language)
   }
 
   scintilla->setLexer(language);
-  scintilla->styleSetSize(STYLE_DEFAULT, 10);
 
 #define SC_COL(qcol) SCINTILLA_COLOUR(qcol.red(), qcol.green(), qcol.blue())
 

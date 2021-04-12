@@ -820,7 +820,7 @@ StatisticsViewer::StatisticsViewer(ICaptureContext &ctx, QWidget *parent)
 {
   ui->setupUi(this);
 
-  ui->statistics->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+  ui->statistics->setFont(Formatter::FixedFont());
 
   m_Ctx.AddCaptureViewer(this);
 }

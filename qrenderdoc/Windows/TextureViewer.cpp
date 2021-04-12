@@ -610,11 +610,11 @@ TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
   statusflow->addWidget(ui->hoverText);
   statusflow->addWidget(ui->pickedText);
 
-  ui->texStatusName->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
-  ui->texStatusDim->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
-  ui->texStatusFormat->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
-  ui->hoverText->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
-  ui->pickedText->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+  ui->texStatusName->setFont(Formatter::FixedFont());
+  ui->texStatusDim->setFont(Formatter::FixedFont());
+  ui->texStatusFormat->setFont(Formatter::FixedFont());
+  ui->hoverText->setFont(Formatter::FixedFont());
+  ui->pickedText->setFont(Formatter::FixedFont());
 
   ui->renderLayout->removeItem(ui->statusbar);
   ui->renderLayout->addItem(statusflow);

@@ -27,6 +27,7 @@
 #include <QKeyEvent>
 #include <QMenu>
 #include <QScrollBar>
+#include "Code/QRDUtils.h"
 #include "Code/ScintillaSyntax.h"
 #include "Code/pyrenderdoc/PythonContext.h"
 #include "scintilla/include/SciLexer.h"
@@ -823,17 +824,16 @@ PythonShell::PythonShell(ICaptureContext &ctx, QWidget *parent)
   QObject::connect(ui->lineInput, &RDLineEdit::keyPress, this, &PythonShell::interactive_keypress);
   QObject::connect(ui->helpSearch, &RDLineEdit::keyPress, this, &PythonShell::helpSearch_keypress);
 
-  ui->lineInput->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
-  ui->interactiveOutput->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
-  ui->scriptOutput->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
-  ui->helpText->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+  ui->lineInput->setFont(Formatter::FixedFont());
+  ui->interactiveOutput->setFont(Formatter::FixedFont());
+  ui->scriptOutput->setFont(Formatter::FixedFont());
+  ui->helpText->setFont(Formatter::FixedFont());
 
   ui->lineInput->setAcceptTabCharacters(true);
 
   scriptEditor = new ScintillaEdit(this);
 
-  scriptEditor->styleSetFont(
-      STYLE_DEFAULT, QFontDatabase::systemFont(QFontDatabase::FixedFont).family().toUtf8().data());
+  scriptEditor->styleSetFont(STYLE_DEFAULT, Formatter::FixedFont().family().toUtf8().data());
 
   scriptEditor->setMarginLeft(4.0 * devicePixelRatioF());
   scriptEditor->setMarginWidthN(0, 32.0 * devicePixelRatioF());

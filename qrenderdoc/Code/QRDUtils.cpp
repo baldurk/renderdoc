@@ -2075,8 +2075,10 @@ int Formatter::m_minFigures = 2, Formatter::m_maxFigures = 5, Formatter::m_expNe
 double Formatter::m_expNegValue = 0.00001;       // 10^(-5)
 double Formatter::m_expPosValue = 10000000.0;    // 10^7
 QFont *Formatter::m_Font = NULL;
+QFont *Formatter::m_FixedFont = NULL;
 float Formatter::m_FontBaseSize = 10.0f;    // this should always be overridden below, but just in
                                             // case let's pick a sensible value
+float Formatter::m_FixedFontBaseSize = 10.0f;
 QColor Formatter::m_DarkChecker, Formatter::m_LightChecker;
 
 void Formatter::setParams(const PersistantConfig &config)
@@ -2093,6 +2095,8 @@ void Formatter::setParams(const PersistantConfig &config)
   {
     m_Font = new QFont();
     m_FontBaseSize = QApplication::font().pointSizeF();
+    m_FixedFont = new QFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+    m_FixedFontBaseSize = m_FixedFont->pointSizeF();
   }
 
   *m_Font =
@@ -2102,6 +2106,8 @@ void Formatter::setParams(const PersistantConfig &config)
   QFont f = QApplication::font();
   f.setPointSizeF(m_FontBaseSize * config.Font_GlobalScale);
   QApplication::setFont(f);
+
+  m_FixedFont->setPointSizeF(m_FixedFontBaseSize * config.Font_GlobalScale);
 
   Formatter::setPalette(QApplication::palette());
 }
