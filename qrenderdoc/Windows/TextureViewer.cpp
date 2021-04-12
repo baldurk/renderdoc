@@ -2491,7 +2491,7 @@ void TextureViewer::InitStageResourcePreviews(ShaderStage stage,
       bool show = key.used || copy;
 
       // omit buffers even if the shader uses them.
-      if(m_Ctx.GetTexture(res.resourceId) == NULL)
+      if(res.resourceId != ResourceId() && m_Ctx.GetTexture(res.resourceId) == NULL)
         show = copy;
 
       // it's bound, but not referenced, and we have "show disabled"
