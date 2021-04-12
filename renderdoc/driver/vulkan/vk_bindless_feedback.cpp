@@ -44,7 +44,7 @@ struct feedbackData
   uint32_t numEntries;
 };
 
-void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
+void AnnotateShader(const SPIRVPatchData &patchData, ShaderStage stage, const char *entryName,
                     const std::map<rdcspv::Binding, feedbackData> &offsetMap, uint32_t maxSlot,
                     VkDeviceAddress addr, bool bufferAddressKHR, rdcarray<uint32_t> &modSpirv)
 {
@@ -227,7 +227,7 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
   rdcspv::Id entryID;
   for(const rdcspv::EntryPoint &entry : editor.GetEntries())
   {
-    if(entry.name == entryName)
+    if(entry.name == entryName && MakeShaderStage(entry.executionModel) == stage)
     {
       entryID = entry.id;
       break;
@@ -769,8 +769,8 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
     if(!Vulkan_Debug_FeedbackDumpDirPath().empty())
       FileIO::WriteAll(Vulkan_Debug_FeedbackDumpDirPath() + "/before_" + filename[5], modSpirv);
 
-    AnnotateShader(*pipeInfo.shaders[5].patchData, stage.pName, offsetMap, maxSlot, bufferAddress,
-                   useBufferAddressKHR, modSpirv);
+    AnnotateShader(*pipeInfo.shaders[5].patchData, ShaderStage(StageIndex(stage.stage)),
+                   stage.pName, offsetMap, maxSlot, bufferAddress, useBufferAddressKHR, modSpirv);
 
     if(!Vulkan_Debug_FeedbackDumpDirPath().empty())
       FileIO::WriteAll(Vulkan_Debug_FeedbackDumpDirPath() + "/after_" + filename[5], modSpirv);
@@ -800,8 +800,8 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
       if(!Vulkan_Debug_FeedbackDumpDirPath().empty())
         FileIO::WriteAll(Vulkan_Debug_FeedbackDumpDirPath() + "/before_" + filename[idx], modSpirv);
 
-      AnnotateShader(*pipeInfo.shaders[idx].patchData, stage.pName, offsetMap, maxSlot,
-                     bufferAddress, useBufferAddressKHR, modSpirv);
+      AnnotateShader(*pipeInfo.shaders[idx].patchData, ShaderStage(StageIndex(stage.stage)),
+                     stage.pName, offsetMap, maxSlot, bufferAddress, useBufferAddressKHR, modSpirv);
 
       if(!Vulkan_Debug_FeedbackDumpDirPath().empty())
         FileIO::WriteAll(Vulkan_Debug_FeedbackDumpDirPath() + "/after_" + filename[idx], modSpirv);

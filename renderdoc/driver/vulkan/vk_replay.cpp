@@ -416,14 +416,7 @@ rdcarray<ShaderEntryPoint> VulkanReplay::GetShaderEntryPoints(ResourceId shader)
   if(shad == m_pDriver->m_CreationInfo.m_ShaderModule.end())
     return {};
 
-  rdcarray<rdcstr> entries = shad->second.spirv.EntryPoints();
-
-  rdcarray<ShaderEntryPoint> ret;
-
-  for(const rdcstr &e : entries)
-    ret.push_back({e, shad->second.spirv.StageForEntry(e)});
-
-  return ret;
+  return shad->second.spirv.EntryPoints();
 }
 
 ShaderReflection *VulkanReplay::GetShader(ResourceId pipeline, ResourceId shader,
@@ -4024,11 +4017,11 @@ void VulkanReplay::RefreshDerivedReplacements()
 
           if(rm->HasReplacement(shadOrigId))
           {
-            rdcarray<rdcstr> entries =
+            rdcarray<ShaderEntryPoint> entries =
                 m_pDriver->m_CreationInfo.m_ShaderModule[GetResID(sh.module)].spirv.EntryPoints();
             if(entries.size() > 1)
             {
-              if(entries.contains(sh.pName))
+              if(entries.contains({sh.pName, ShaderStage(StageIndex(sh.stage))}))
               {
                 // nothing to do!
               }
@@ -4037,14 +4030,14 @@ void VulkanReplay::RefreshDerivedReplacements()
                 RDCWARN(
                     "Multiple entry points in edited shader, none matching original, using first "
                     "one '%s'",
-                    entries[0].c_str());
-                entrynames.push_back(entries[0]);
+                    entries[0].name.c_str());
+                entrynames.push_back(entries[0].name);
                 sh.pName = entrynames.back().c_str();
               }
             }
             else
             {
-              entrynames.push_back(entries[0]);
+              entrynames.push_back(entries[0].name);
               sh.pName = entrynames.back().c_str();
             }
           }

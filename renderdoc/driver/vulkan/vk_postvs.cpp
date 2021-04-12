@@ -450,7 +450,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
   for(const rdcspv::EntryPoint &entry : editor.GetEntries())
   {
-    if(entry.name == entryName)
+    if(entry.name == entryName && entry.executionModel == rdcspv::ExecutionModel::Vertex)
       entryID = entry.id;
 
     entries.insert(entry.id);

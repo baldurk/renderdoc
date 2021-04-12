@@ -2922,7 +2922,7 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
   rdcspv::Id entryID;
   for(const rdcspv::EntryPoint &e : editor.GetEntries())
   {
-    if(e.name == shadRefl.entryPoint)
+    if(e.name == shadRefl.entryPoint && e.executionModel == rdcspv::ExecutionModel::Fragment)
     {
       entryID = e.id;
       break;

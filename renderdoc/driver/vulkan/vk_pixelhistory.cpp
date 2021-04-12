@@ -284,7 +284,8 @@ struct PixelHistoryShaderCache
   // Returns a shader that is equivalent to the given shader, but attempts to remove
   // side effects of shader execution for the given entry point (for ex., writes
   // to storage buffers/images).
-  VkShaderModule GetShaderWithoutSideEffects(ResourceId shaderId, const rdcstr &entryPoint)
+  VkShaderModule GetShaderWithoutSideEffects(ResourceId shaderId, const rdcstr &entryPoint,
+                                             ShaderStage stage)
   {
     ShaderKey shaderKey = make_rdcpair(shaderId, entryPoint);
     auto it = m_ShaderReplacements.find(shaderKey);
@@ -292,13 +293,14 @@ struct PixelHistoryShaderCache
     if(it != m_ShaderReplacements.end())
       return it->second;
 
-    VkShaderModule shaderModule = CreateShaderReplacement(shaderId, entryPoint);
+    VkShaderModule shaderModule = CreateShaderReplacement(shaderId, entryPoint, stage);
     m_ShaderReplacements.insert(std::make_pair(shaderKey, shaderModule));
     return shaderModule;
   }
 
 private:
-  VkShaderModule CreateShaderReplacement(ResourceId shaderId, const rdcstr &entryName)
+  VkShaderModule CreateShaderReplacement(ResourceId shaderId, const rdcstr &entryName,
+                                         ShaderStage stage)
   {
     const VulkanCreationInfo::ShaderModule &moduleInfo =
         m_pDriver->GetDebugManager()->GetShaderInfo(shaderId);
@@ -308,7 +310,7 @@ private:
 
     for(const rdcspv::EntryPoint &entry : editor.GetEntries())
     {
-      if(entry.name == entryName)
+      if(entry.name == entryName && MakeShaderStage(entry.executionModel) == stage)
       {
         // In some cases a shader might just be binding a RW resource but not writing to it.
         // If there are no writes (shader was not modified), no need to replace the shader,
@@ -595,8 +597,8 @@ protected:
     for(size_t i = 0; i < numberOfStages; i++)
     {
       if((eventFlags & PipeStageRWEventFlags(StageFromIndex(i))) != EventFlags::NoFlags)
-        replacementShaders[i] =
-            m_ShaderCache->GetShaderWithoutSideEffects(p.shaders[i].module, p.shaders[i].entryPoint);
+        replacementShaders[i] = m_ShaderCache->GetShaderWithoutSideEffects(
+            p.shaders[i].module, p.shaders[i].entryPoint, p.shaders[i].stage);
     }
     for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
     {
@@ -1930,8 +1932,8 @@ private:
       ShaderStage stage = StageFromIndex(i);
       bool rwInStage = (eventShaderFlags & PipeStageRWEventFlags(stage)) != EventFlags::NoFlags;
       if(rwInStage || (stage == ShaderStage::Fragment))
-        replacementShaders[i] =
-            m_ShaderCache->GetShaderWithoutSideEffects(p.shaders[i].module, p.shaders[i].entryPoint);
+        replacementShaders[i] = m_ShaderCache->GetShaderWithoutSideEffects(
+            p.shaders[i].module, p.shaders[i].entryPoint, p.shaders[i].stage);
     }
 
     VulkanRenderState &pipestate = m_pDriver->GetCmdRenderState();
@@ -2506,8 +2508,8 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     for(size_t i = 0; i < numberOfStages; i++)
     {
       if((eventFlags & PipeStageRWEventFlags(StageFromIndex(i))) != EventFlags::NoFlags)
-        replacementShaders[i] =
-            m_ShaderCache->GetShaderWithoutSideEffects(p.shaders[i].module, p.shaders[i].entryPoint);
+        replacementShaders[i] = m_ShaderCache->GetShaderWithoutSideEffects(
+            p.shaders[i].module, p.shaders[i].entryPoint, p.shaders[i].stage);
     }
     for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
     {

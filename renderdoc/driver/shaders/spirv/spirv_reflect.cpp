@@ -67,7 +67,7 @@ void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patch
   rdcspv::Id entryid;
   for(const rdcspv::EntryPoint &entry : editor.GetEntries())
   {
-    if(entry.name == entryName)
+    if(entry.name == entryName && MakeShaderStage(entry.executionModel) == refl.stage)
     {
       entryid = entry.id;
       break;
@@ -582,21 +582,13 @@ void Reflector::PostParse()
   memberNames.clear();
 }
 
-rdcarray<rdcstr> Reflector::EntryPoints() const
+rdcarray<ShaderEntryPoint> Reflector::EntryPoints() const
 {
-  rdcarray<rdcstr> ret;
+  rdcarray<ShaderEntryPoint> ret;
   ret.reserve(entries.size());
   for(const EntryPoint &e : entries)
-    ret.push_back(e.name);
+    ret.push_back({e.name, MakeShaderStage(e.executionModel)});
   return ret;
-}
-
-ShaderStage Reflector::StageForEntry(const rdcstr &entryPoint) const
-{
-  for(const EntryPoint &e : entries)
-    if(entryPoint == e.name)
-      return MakeShaderStage(e.executionModel);
-  return ShaderStage::Count;
 }
 
 void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage stage,
@@ -615,7 +607,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
   const EntryPoint *entry = NULL;
   for(const EntryPoint &e : entries)
   {
-    if(entryPoint == e.name)
+    if(entryPoint == e.name && MakeShaderStage(e.executionModel) == stage)
     {
       entry = &e;
       break;
@@ -626,7 +618,8 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
 
   if(!entry)
   {
-    RDCERR("Entry point %s not found in module", entryPoint.c_str());
+    RDCERR("Entry point %s for stage %s not found in module", entryPoint.c_str(),
+           ToStr(stage).c_str());
     return;
   }
 

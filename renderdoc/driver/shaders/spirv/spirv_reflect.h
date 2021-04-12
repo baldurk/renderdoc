@@ -84,8 +84,7 @@ public:
 
   rdcstr Disassemble(const rdcstr &entryPoint, std::map<size_t, uint32_t> &instructionLines) const;
 
-  rdcarray<rdcstr> EntryPoints() const;
-  ShaderStage StageForEntry(const rdcstr &entryPoint) const;
+  rdcarray<ShaderEntryPoint> EntryPoints() const;
 
   void MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage stage, const rdcstr &entryPoint,
                       const rdcarray<SpecConstant> &specInfo, ShaderReflection &reflection,

@@ -249,6 +249,7 @@ struct VulkanCreationInfo
     {
       Shader() : refl(NULL), mapping(NULL), patchData(NULL) {}
       ResourceId module;
+      ShaderStage stage;
       rdcstr entryPoint;
       ShaderReflection *refl;
       ShaderBindpointMapping *mapping;

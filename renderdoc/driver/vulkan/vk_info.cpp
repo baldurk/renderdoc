@@ -373,6 +373,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
 
     shad.module = shadid;
     shad.entryPoint = pCreateInfo->pStages[i].pName;
+    shad.stage = ShaderStage(stageIndex);
 
     ShaderModuleReflectionKey key(shad.entryPoint, ResourceId());
 
