@@ -1147,6 +1147,9 @@ struct AttachmentInfo
 {
   VkResourceRecord *record;
 
+  VkFormat format;
+  VkSampleCountFlagBits samples;
+
   // the implicit barrier applied from initialLayout to finalLayout across a render pass
   // for render passes this is partial (doesn't contain the image pointer), the image
   // and subresource range are filled in when creating the framebuffer, which is what is

@@ -3251,6 +3251,8 @@ RenderPassInfo::RenderPassInfo(const VkRenderPassCreateInfo &ci)
     imageAttachments[i].barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     imageAttachments[i].barrier.oldLayout = ci.pAttachments[i].initialLayout;
     imageAttachments[i].barrier.newLayout = ci.pAttachments[i].finalLayout;
+    imageAttachments[i].format = ci.pAttachments[i].format;
+    imageAttachments[i].samples = ci.pAttachments[i].samples;
   }
 
   // VK_KHR_multiview
@@ -3383,6 +3385,8 @@ RenderPassInfo::RenderPassInfo(const VkRenderPassCreateInfo2 &ci)
     imageAttachments[a].barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     imageAttachments[a].barrier.oldLayout = ci.pAttachments[i].initialLayout;
     imageAttachments[a].barrier.newLayout = ci.pAttachments[i].finalLayout;
+    imageAttachments[i].format = ci.pAttachments[i].format;
+    imageAttachments[i].samples = ci.pAttachments[i].samples;
 
     indexRemapTable[i] = a;
 

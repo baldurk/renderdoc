@@ -844,6 +844,9 @@ private:
   template <class T>
   T *UnwrapInfos(const T *infos, uint32_t count);
 
+  void PatchAttachment(VkFramebufferAttachmentImageInfo *att, VkFormat imgFormat,
+                       VkSampleCountFlagBits samples);
+
   VkIndirectPatchData FetchIndirectData(VkIndirectPatchType type, VkCommandBuffer commandBuffer,
                                         VkBuffer dataBuffer, VkDeviceSize dataOffset, uint32_t count,
                                         uint32_t stride = 0, VkBuffer counterBuffer = VK_NULL_HANDLE,

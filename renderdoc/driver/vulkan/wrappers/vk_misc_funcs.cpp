@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "../vk_core.h"
+#include "../vk_debug.h"
 
 static void PatchSeparateStencil(VkAttachmentDescription &att, const VkAttachmentReference *ref)
 {
@@ -142,24 +143,6 @@ static void MakeSubpassLoadRP(RPCreateInfo &info, const RPCreateInfo *origInfo, 
     // compile on VkAttachmentReference
     PatchSeparateStencil(att[sub->pDepthStencilAttachment->attachment], sub->pDepthStencilAttachment);
   }
-}
-
-template <>
-VkFramebufferCreateInfo WrappedVulkan::UnwrapInfo(const VkFramebufferCreateInfo *info)
-{
-  VkFramebufferCreateInfo ret = *info;
-
-  if((ret.flags & VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT) == 0)
-  {
-    VkImageView *unwrapped = GetTempArray<VkImageView>(info->attachmentCount);
-    for(uint32_t i = 0; i < info->attachmentCount; i++)
-      unwrapped[i] = Unwrap(info->pAttachments[i]);
-    ret.pAttachments = unwrapped;
-  }
-
-  ret.renderPass = Unwrap(ret.renderPass);
-
-  return ret;
 }
 
 // note, for threading reasons we ensure to release the wrappers before
@@ -653,6 +636,36 @@ VkResult WrappedVulkan::vkCreateSampler(VkDevice device, const VkSamplerCreateIn
   return ret;
 }
 
+void WrappedVulkan::PatchAttachment(VkFramebufferAttachmentImageInfo *att, VkFormat imgFormat,
+                                    VkSampleCountFlagBits samples)
+{
+  // this matches the mutations we do to images, so see vkCreateImage
+  att->usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+  att->usage |= VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+  att->usage &= ~VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
+
+  if(IsYUVFormat(imgFormat))
+    att->flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
+
+  if(samples != VK_SAMPLE_COUNT_1_BIT)
+  {
+    att->usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+    att->flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
+
+    if(!IsDepthOrStencilFormat(imgFormat))
+    {
+      if(GetDebugManager() && GetShaderCache()->IsArray2MSSupported())
+        att->usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+    }
+    else
+    {
+      att->usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    }
+  }
+
+  att->flags &= ~VK_IMAGE_CREATE_SUBSAMPLED_BIT_EXT;
+}
+
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkCreateFramebuffer(SerialiserType &ser, VkDevice device,
                                                   const VkFramebufferCreateInfo *pCreateInfo,
@@ -670,8 +683,25 @@ bool WrappedVulkan::Serialise_vkCreateFramebuffer(SerialiserType &ser, VkDevice 
   {
     VkFramebuffer fb = VK_NULL_HANDLE;
 
-    VkFramebufferCreateInfo unwrapped = UnwrapInfo(&CreateInfo);
-    VkResult ret = ObjDisp(device)->CreateFramebuffer(Unwrap(device), &unwrapped, NULL, &fb);
+    byte *tempMem = GetTempMemory(GetNextPatchSize(&CreateInfo));
+    VkFramebufferCreateInfo *unwrappedInfo = UnwrapStructAndChain(m_State, tempMem, &CreateInfo);
+
+    const VulkanCreationInfo::RenderPass &rpinfo =
+        m_CreationInfo.m_RenderPass[GetResID(CreateInfo.renderPass)];
+
+    VkFramebufferAttachmentsCreateInfo *attachmentsInfo =
+        (VkFramebufferAttachmentsCreateInfo *)FindNextStruct(
+            unwrappedInfo, VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO);
+
+    for(uint32_t a = 0; attachmentsInfo && a < attachmentsInfo->attachmentImageInfoCount; a++)
+    {
+      VkFramebufferAttachmentImageInfo *att =
+          (VkFramebufferAttachmentImageInfo *)&attachmentsInfo->pAttachmentImageInfos[a];
+
+      PatchAttachment(att, rpinfo.attachments[a].format, rpinfo.attachments[a].samples);
+    }
+
+    VkResult ret = ObjDisp(device)->CreateFramebuffer(Unwrap(device), unwrappedInfo, NULL, &fb);
 
     if(ret != VK_SUCCESS)
     {
@@ -701,17 +731,14 @@ bool WrappedVulkan::Serialise_vkCreateFramebuffer(SerialiserType &ser, VkDevice 
         VulkanCreationInfo::Framebuffer fbinfo;
         fbinfo.Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
 
-        const VulkanCreationInfo::RenderPass &rpinfo =
-            m_CreationInfo.m_RenderPass[GetResID(CreateInfo.renderPass)];
-
         fbinfo.loadFBs.resize(rpinfo.loadRPs.size());
 
         // create a render pass for each subpass that maintains attachment layouts
         for(size_t s = 0; s < fbinfo.loadFBs.size(); s++)
         {
-          unwrapped.renderPass = Unwrap(rpinfo.loadRPs[s]);
+          unwrappedInfo->renderPass = Unwrap(rpinfo.loadRPs[s]);
 
-          ret = ObjDisp(device)->CreateFramebuffer(Unwrap(device), &unwrapped, NULL,
+          ret = ObjDisp(device)->CreateFramebuffer(Unwrap(device), unwrappedInfo, NULL,
                                                    &fbinfo.loadFBs[s]);
           RDCASSERTEQUAL(ret, VK_SUCCESS);
 
@@ -761,9 +788,34 @@ VkResult WrappedVulkan::vkCreateFramebuffer(VkDevice device,
                                             const VkAllocationCallbacks *pAllocator,
                                             VkFramebuffer *pFramebuffer)
 {
-  VkFramebufferCreateInfo unwrapped = UnwrapInfo(pCreateInfo);
+  byte *tempMem = GetTempMemory(GetNextPatchSize(pCreateInfo));
+  VkFramebufferCreateInfo *unwrappedInfo = UnwrapStructAndChain(m_State, tempMem, pCreateInfo);
+
+  VkFramebufferAttachmentsCreateInfo *attachmentsInfo =
+      (VkFramebufferAttachmentsCreateInfo *)FindNextStruct(
+          unwrappedInfo, VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO);
+
+  AttachmentInfo *capAtts = NULL;
+  VulkanCreationInfo::RenderPass::Attachment *replayAtts = NULL;
+  if(IsCaptureMode(m_State))
+    capAtts = GetRecord(pCreateInfo->renderPass)->renderPassInfo->imageAttachments;
+  else
+    replayAtts = m_CreationInfo.m_RenderPass[GetResID(pCreateInfo->renderPass)].attachments.data();
+
+  // this matches the mutations we do to images, so see vkCreateImage
+  for(uint32_t a = 0; attachmentsInfo && a < attachmentsInfo->attachmentImageInfoCount; a++)
+  {
+    VkFramebufferAttachmentImageInfo *att =
+        (VkFramebufferAttachmentImageInfo *)&attachmentsInfo->pAttachmentImageInfos[a];
+
+    if(IsCaptureMode(m_State))
+      PatchAttachment(att, capAtts[a].format, capAtts[a].samples);
+    else
+      PatchAttachment(att, replayAtts[a].format, replayAtts[a].samples);
+  }
+
   VkResult ret;
-  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateFramebuffer(Unwrap(device), &unwrapped,
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateFramebuffer(Unwrap(device), unwrappedInfo,
                                                                pAllocator, pFramebuffer));
 
   if(ret == VK_SUCCESS)
@@ -795,6 +847,8 @@ VkResult WrappedVulkan::vkCreateFramebuffer(VkDevice device,
       for(uint32_t i = 0, a = 0; i < pCreateInfo->attachmentCount; i++, a++)
       {
         fbInfo->imageAttachments[a].barrier = rpInfo->imageAttachments[a].barrier;
+        fbInfo->imageAttachments[a].format = rpInfo->imageAttachments[a].format;
+        fbInfo->imageAttachments[a].samples = rpInfo->imageAttachments[a].samples;
 
         if((pCreateInfo->flags & VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT) == 0)
         {
@@ -854,10 +908,10 @@ VkResult WrappedVulkan::vkCreateFramebuffer(VkDevice device,
       // create a render pass for each subpass that maintains attachment layouts
       for(size_t s = 0; s < fbinfo.loadFBs.size(); s++)
       {
-        unwrapped.renderPass = Unwrap(rpinfo.loadRPs[s]);
+        unwrappedInfo->renderPass = Unwrap(rpinfo.loadRPs[s]);
 
-        ret =
-            ObjDisp(device)->CreateFramebuffer(Unwrap(device), &unwrapped, NULL, &fbinfo.loadFBs[s]);
+        ret = ObjDisp(device)->CreateFramebuffer(Unwrap(device), unwrappedInfo, NULL,
+                                                 &fbinfo.loadFBs[s]);
         RDCASSERTEQUAL(ret, VK_SUCCESS);
 
         ResourceId loadFBid = GetResourceManager()->WrapResource(Unwrap(device), fbinfo.loadFBs[s]);

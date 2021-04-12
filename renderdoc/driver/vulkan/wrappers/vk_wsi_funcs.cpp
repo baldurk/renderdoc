@@ -668,6 +668,18 @@ VkResult WrappedVulkan::vkCreateSwapchainKHR(VkDevice device,
 
   // make sure we can readback to get the screenshot, and render to it for the text overlay
   createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+  // if the surface supports them, add usage bits we don't need to look more like normal images
+  // (which is important when patching imageless framebuffer usage)
+  VkSurfaceCapabilitiesKHR surfCap = {};
+  ObjDisp(m_PhysicalDevice)
+      ->GetPhysicalDeviceSurfaceCapabilitiesKHR(Unwrap(m_PhysicalDevice),
+                                                Unwrap(createInfo.surface), &surfCap);
+  if(surfCap.supportedUsageFlags & VK_IMAGE_USAGE_SAMPLED_BIT)
+    createInfo.imageUsage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+  if(surfCap.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
+    createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
   createInfo.surface = Unwrap(createInfo.surface);
   createInfo.oldSwapchain = Unwrap(createInfo.oldSwapchain);
 

@@ -174,6 +174,9 @@ void main()
       Present();
     }
 
+    vkDeviceWaitIdle(device);
+    vkDestroyFramebuffer(device, fb, NULL);
+
     return 0;
   }
 };

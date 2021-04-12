@@ -162,9 +162,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   COPY_STRUCT(VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, VkFenceCreateInfo);                               \
   COPY_STRUCT(VK_STRUCTURE_TYPE_FILTER_CUBIC_IMAGE_VIEW_IMAGE_FORMAT_PROPERTIES_EXT,                 \
               VkFilterCubicImageViewImageFormatPropertiesEXT);                                       \
-  COPY_STRUCT(VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO,                                 \
-              VkFramebufferAttachmentsCreateInfo)                                                    \
-  COPY_STRUCT(VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO, VkFramebufferAttachmentImageInfo) \
   COPY_STRUCT(VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2, VkFormatProperties2);                           \
   COPY_STRUCT(VK_STRUCTURE_TYPE_HDR_METADATA_EXT, VkHdrMetadataEXT)                                  \
   COPY_STRUCT(VK_STRUCTURE_TYPE_IMAGE_BLIT_2_KHR, VkImageBlit2KHR);                                  \
@@ -897,6 +894,32 @@ size_t GetNextPatchSize(const void *pNext)
         memSize += info->attachmentCount * sizeof(VkImageView);
         break;
       }
+      // this struct doesn't really need to be unwrapped but we allocate space for it since it
+      // contains arrays that we will very commonly need to patch, to adjust image info/formats.
+      // this saves us needing to iterate it outside and allocate extra space
+      case VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO:
+      {
+        memSize += sizeof(VkFramebufferAttachmentsCreateInfo);
+
+        VkFramebufferAttachmentsCreateInfo *info = (VkFramebufferAttachmentsCreateInfo *)next;
+        memSize += info->attachmentImageInfoCount * sizeof(VkFramebufferAttachmentImageInfo);
+
+        for(uint32_t i = 0; i < info->attachmentImageInfoCount; i++)
+          memSize += GetNextPatchSize(&info->pAttachmentImageInfos[i]);
+
+        break;
+      }
+      case VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO:
+      {
+        memSize += sizeof(VkFramebufferAttachmentImageInfo);
+
+        // we add space for an extra VkFormat so we can push one onto the list
+        VkFramebufferAttachmentImageInfo *info = (VkFramebufferAttachmentImageInfo *)next;
+        if(info->viewFormatCount > 0)
+          memSize += (info->viewFormatCount + 1) * sizeof(VkFormat);
+
+        break;
+      }
       case VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO:
       {
         memSize += sizeof(VkGraphicsPipelineCreateInfo);
@@ -1624,6 +1647,56 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
 
         break;
       }
+      // this struct doesn't really need to be unwrapped but we allocate space for it since it
+      // contains arrays that we will very commonly need to patch, to adjust image info/formats.
+      // this saves us needing to iterate it outside and allocate extra space
+      case VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO:
+      {
+        const VkFramebufferAttachmentsCreateInfo *in =
+            (const VkFramebufferAttachmentsCreateInfo *)nextInput;
+        VkFramebufferAttachmentsCreateInfo *out = (VkFramebufferAttachmentsCreateInfo *)tempMem;
+
+        // append immediately so tempMem is incremented
+        AppendModifiedChainedStruct(tempMem, out, nextChainTail);
+
+        // allocate unwrapped array
+        VkFramebufferAttachmentImageInfo *outAtts = (VkFramebufferAttachmentImageInfo *)tempMem;
+        tempMem += sizeof(VkFramebufferAttachmentImageInfo) * in->attachmentImageInfoCount;
+
+        *out = *in;
+        out->pAttachmentImageInfos = outAtts;
+        for(uint32_t i = 0; i < in->attachmentImageInfoCount; i++)
+        {
+          outAtts[i] = in->pAttachmentImageInfos[i];
+          UnwrapNextChain(state, "VkFramebufferAttachmentImageInfo", tempMem,
+                          (VkBaseInStructure *)&outAtts[i]);
+        }
+
+        break;
+      }
+      case VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO:
+      {
+        const VkFramebufferAttachmentImageInfo *in =
+            (const VkFramebufferAttachmentImageInfo *)nextInput;
+        VkFramebufferAttachmentImageInfo *out = (VkFramebufferAttachmentImageInfo *)tempMem;
+
+        // append immediately so tempMem is incremented
+        AppendModifiedChainedStruct(tempMem, out, nextChainTail);
+
+        *out = *in;
+
+        // allocate extra array
+        if(in->viewFormatCount > 0)
+        {
+          VkFormat *outFormats = (VkFormat *)tempMem;
+          tempMem += sizeof(VkFormat) * (in->viewFormatCount + 1);
+
+          out->pViewFormats = outFormats;
+          memcpy(outFormats, in->pViewFormats, sizeof(VkFormat) * in->viewFormatCount);
+        }
+
+        break;
+      }
       case VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO:
       {
         const VkGraphicsPipelineCreateInfo *in = (const VkGraphicsPipelineCreateInfo *)nextInput;
@@ -2191,6 +2264,14 @@ void CopyNextChainForPatching(const char *structName, byte *&tempMem, VkBaseInSt
         break;
       case VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO:
         CopyNextChainedStruct(sizeof(VkFramebufferCreateInfo), tempMem, nextInput, nextChainTail);
+        break;
+      case VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO:
+        CopyNextChainedStruct(sizeof(VkFramebufferAttachmentsCreateInfo), tempMem, nextInput,
+                              nextChainTail);
+        break;
+      case VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO:
+        CopyNextChainedStruct(sizeof(VkFramebufferAttachmentImageInfo), tempMem, nextInput,
+                              nextChainTail);
         break;
       case VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO:
         CopyNextChainedStruct(sizeof(VkGraphicsPipelineCreateInfo), tempMem, nextInput,
