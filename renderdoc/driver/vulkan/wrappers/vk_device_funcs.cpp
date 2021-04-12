@@ -3559,6 +3559,15 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
         "shaderStorageImageWriteWithoutFormat = false, multisampled textures will have empty "
         "contents at frame start.");
 
+  // even though we don't actually do any multisampled stores, this is needed to be able to create
+  // MSAA images with STORAGE_BIT usage
+  if(availFeatures.shaderStorageImageMultisample)
+    enabledFeatures.shaderStorageImageMultisample = true;
+  else
+    RDCWARN(
+        "shaderStorageImageMultisample = false, multisampled textures will have empty "
+        "contents at frame start.");
+
   // patch the enabled features
   if(enabledFeatures2)
     enabledFeatures2->features = enabledFeatures;
