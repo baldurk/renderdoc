@@ -601,6 +601,9 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
 
       UINT increment = m_Device->GetDescriptorHandleIncrementSize(desc.Type);
 
+      // only iterate over the 'real' number of descriptors, not the number after we've patched
+      desc.NumDescriptors = heap->GetNumDescriptors();
+
       for(uint32_t i = 0; i < RDCMIN(numElems, desc.NumDescriptors); i++)
       {
         Descriptors[i].Create(desc.Type, m_Device, handle);
@@ -1024,14 +1027,14 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live,
 
   if(type == Resource_DescriptorHeap)
   {
-    ID3D12DescriptorHeap *dstheap = (ID3D12DescriptorHeap *)live;
-    ID3D12DescriptorHeap *srcheap = (ID3D12DescriptorHeap *)data.resource;
+    WrappedID3D12DescriptorHeap *dstheap = (WrappedID3D12DescriptorHeap *)live;
+    WrappedID3D12DescriptorHeap *srcheap = (WrappedID3D12DescriptorHeap *)data.resource;
 
     if(srcheap)
     {
       // copy the whole heap
       m_Device->CopyDescriptorsSimple(
-          srcheap->GetDesc().NumDescriptors, dstheap->GetCPUDescriptorHandleForHeapStart(),
+          srcheap->GetNumDescriptors(), dstheap->GetCPUDescriptorHandleForHeapStart(),
           srcheap->GetCPUDescriptorHandleForHeapStart(), srcheap->GetDesc().Type);
     }
   }
