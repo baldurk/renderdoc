@@ -910,10 +910,15 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
 
       bindmap.bind = GetBinding(decorations[global.id].binding);
 
-      // On GL if we have a location, put that in as the bind. It will be overwritten
-      // dynamically with the actual value.
-      if(sourceAPI == GraphicsAPI::OpenGL && decorations[global.id].location != ~0U)
+      // On GL if we have a location and no binding, put that in as the bind. It will be overwritten
+      // dynamically with the actual value read from glGetUniform. This should only happen for
+      // bare uniforms and not for texture/buffer type uniforms which should have a binding
+      if(sourceAPI == GraphicsAPI::OpenGL &&
+         (decorations[global.id].flags & Decorations::HasLocation | Decorations::HasBinding) ==
+             Decorations::HasLocation)
+      {
         bindmap.bind = -int32_t(decorations[global.id].location);
+      }
 
       bindmap.arraySize = isArray ? arraySize : 1;
       bindmap.used = usedIds.find(global.id) != usedIds.end();
