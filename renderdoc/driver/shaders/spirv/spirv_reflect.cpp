@@ -914,7 +914,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
       // dynamically with the actual value read from glGetUniform. This should only happen for
       // bare uniforms and not for texture/buffer type uniforms which should have a binding
       if(sourceAPI == GraphicsAPI::OpenGL &&
-         (decorations[global.id].flags & Decorations::HasLocation | Decorations::HasBinding) ==
+         (decorations[global.id].flags & (Decorations::HasLocation | Decorations::HasBinding)) ==
              Decorations::HasLocation)
       {
         bindmap.bind = -int32_t(decorations[global.id].location);
