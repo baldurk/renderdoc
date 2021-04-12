@@ -1168,8 +1168,6 @@ ScintillaEdit *ShaderViewer::MakeEditor(const QString &name, const QString &text
 {
   ScintillaEdit *ret = new ScintillaEdit(this);
 
-  SetTextAndUpdateMargin0(ret, text);
-
   ret->setMarginLeft(4.0 * devicePixelRatioF());
   ret->setMarginWidthN(1, 0);
   ret->setMarginWidthN(2, 16.0 * devicePixelRatioF());
@@ -1197,6 +1195,8 @@ ScintillaEdit *ShaderViewer::MakeEditor(const QString &name, const QString &text
 
   ret->colourise(0, -1);
 
+  SetTextAndUpdateMargin0(ret, text);
+
   ret->emptyUndoBuffer();
 
   return ret;
@@ -1206,17 +1206,15 @@ void ShaderViewer::SetTextAndUpdateMargin0(ScintillaEdit *sc, const QString &tex
 {
   sc->setText(text.toUtf8().data());
 
-  sptr_t numlines = sc->lineCount();
+  int numLines = sc->lineCount();
 
-  int margin0width = 30;
-  if(numlines > 1000)
-    margin0width += 6;
-  if(numlines > 10000)
-    margin0width += 6;
+  // don't make the margin too narrow, it looks strange even if there are only 5 lines in a file
+  // we also add on an extra character for padding (with the *10)
+  numLines = qMax(1000, numLines * 10);
 
-  margin0width = int(margin0width * devicePixelRatioF());
+  sptr_t width = sc->textWidth(SC_MARGIN_RTEXT, QString::number(numLines).toUtf8().data());
 
-  sc->setMarginWidthN(0, margin0width);
+  sc->setMarginWidthN(0, int(width * devicePixelRatioF()));
 }
 
 void ShaderViewer::readonly_keyPressed(QKeyEvent *event)
