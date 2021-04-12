@@ -2746,7 +2746,7 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageMultisampleEXT(Serialise
     texDetails.width = width;
     texDetails.height = height;
     texDetails.depth = 1;
-    texDetails.samples = samples;
+    texDetails.samples = RDCMAX(1, samples);
     texDetails.curType = eGL_RENDERBUFFER;
     texDetails.internalFormat = internalformat;
     texDetails.mipsValid = 1;
@@ -2806,11 +2806,31 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageMultisampleEXT(Serialise
       internalformat = MakeGLFormat(resfmt);
     }
 
-    // create read-from texture for displaying this render buffer
-    GL.glGenTextures(1, &texDetails.renderbufferReadTex);
-    GL.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE, texDetails.renderbufferReadTex);
-    GL.glTextureStorage2DMultisampleEXT(texDetails.renderbufferReadTex, eGL_TEXTURE_2D_MULTISAMPLE,
-                                        samples, internalformat, width, height, true);
+    GLenum texEnum;
+
+    if(samples > 1)
+    {
+      texEnum = eGL_TEXTURE_2D_MULTISAMPLE;
+      // create read-from texture for displaying this render buffer
+      GL.glGenTextures(1, &texDetails.renderbufferReadTex);
+      GL.glBindTexture(texEnum, texDetails.renderbufferReadTex);
+      GL.glTextureStorage2DMultisampleEXT(texDetails.renderbufferReadTex, texEnum, samples,
+                                          internalformat, width, height, true);
+    }
+    else
+    {
+      texEnum = eGL_TEXTURE_2D;
+      GL.glGenTextures(1, &texDetails.renderbufferReadTex);
+      GL.glBindTexture(texEnum, texDetails.renderbufferReadTex);
+      GL.glTextureImage2DEXT(texDetails.renderbufferReadTex, texEnum, 0, internalformat, width,
+                             height, 0, GetBaseFormat(internalformat), GetDataType(internalformat),
+                             NULL);
+      GL.glTextureParameteriEXT(texDetails.renderbufferReadTex, texEnum, eGL_TEXTURE_MAX_LEVEL, 0);
+      GL.glTextureParameteriEXT(texDetails.renderbufferReadTex, texEnum, eGL_TEXTURE_MAG_FILTER,
+                                eGL_LINEAR);
+      GL.glTextureParameteriEXT(texDetails.renderbufferReadTex, texEnum, eGL_TEXTURE_MIN_FILTER,
+                                eGL_LINEAR);
+    }
 
     GL.glGenFramebuffers(2, texDetails.renderbufferFBOs);
     GL.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
@@ -2825,8 +2845,8 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageMultisampleEXT(Serialise
       attach = eGL_DEPTH_STENCIL_ATTACHMENT;
     GL.glNamedFramebufferRenderbufferEXT(texDetails.renderbufferFBOs[0], attach, eGL_RENDERBUFFER,
                                          renderbuffer.name);
-    GL.glNamedFramebufferTexture2DEXT(texDetails.renderbufferFBOs[1], attach,
-                                      eGL_TEXTURE_2D_MULTISAMPLE, texDetails.renderbufferReadTex, 0);
+    GL.glNamedFramebufferTexture2DEXT(texDetails.renderbufferFBOs[1], attach, texEnum,
+                                      texDetails.renderbufferReadTex, 0);
 
     AddResourceInitChunk(renderbuffer);
   }
@@ -2941,7 +2961,7 @@ bool WrappedOpenGL::Serialise_glRenderbufferStorageMultisampleEXT(SerialiserType
     texDetails.width = width;
     texDetails.height = height;
     texDetails.depth = 1;
-    texDetails.samples = samples;
+    texDetails.samples = RDCMAX(1, samples);
     texDetails.curType = eGL_RENDERBUFFER;
     texDetails.internalFormat = internalformat;
     texDetails.mipsValid = 1;
@@ -3006,10 +3026,31 @@ bool WrappedOpenGL::Serialise_glRenderbufferStorageMultisampleEXT(SerialiserType
     }
 
     // create read-from texture for displaying this render buffer
-    GL.glGenTextures(1, &texDetails.renderbufferReadTex);
-    GL.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE, texDetails.renderbufferReadTex);
-    GL.glTextureStorage2DMultisampleEXT(texDetails.renderbufferReadTex, eGL_TEXTURE_2D_MULTISAMPLE,
-                                        samples, internalformat, width, height, true);
+    GLenum texEnum;
+
+    if(samples > 1)
+    {
+      texEnum = eGL_TEXTURE_2D_MULTISAMPLE;
+      // create read-from texture for displaying this render buffer
+      GL.glGenTextures(1, &texDetails.renderbufferReadTex);
+      GL.glBindTexture(texEnum, texDetails.renderbufferReadTex);
+      GL.glTextureStorage2DMultisampleEXT(texDetails.renderbufferReadTex, texEnum, samples,
+                                          internalformat, width, height, true);
+    }
+    else
+    {
+      texEnum = eGL_TEXTURE_2D;
+      GL.glGenTextures(1, &texDetails.renderbufferReadTex);
+      GL.glBindTexture(texEnum, texDetails.renderbufferReadTex);
+      GL.glTextureImage2DEXT(texDetails.renderbufferReadTex, texEnum, 0, internalformat, width,
+                             height, 0, GetBaseFormat(internalformat), GetDataType(internalformat),
+                             NULL);
+      GL.glTextureParameteriEXT(texDetails.renderbufferReadTex, texEnum, eGL_TEXTURE_MAX_LEVEL, 0);
+      GL.glTextureParameteriEXT(texDetails.renderbufferReadTex, texEnum, eGL_TEXTURE_MAG_FILTER,
+                                eGL_LINEAR);
+      GL.glTextureParameteriEXT(texDetails.renderbufferReadTex, texEnum, eGL_TEXTURE_MIN_FILTER,
+                                eGL_LINEAR);
+    }
 
     GL.glGenFramebuffers(2, texDetails.renderbufferFBOs);
     GL.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
@@ -3024,8 +3065,8 @@ bool WrappedOpenGL::Serialise_glRenderbufferStorageMultisampleEXT(SerialiserType
       attach = eGL_DEPTH_STENCIL_ATTACHMENT;
     GL.glNamedFramebufferRenderbufferEXT(texDetails.renderbufferFBOs[0], attach, eGL_RENDERBUFFER,
                                          renderbuffer.name);
-    GL.glNamedFramebufferTexture2DEXT(texDetails.renderbufferFBOs[1], attach,
-                                      eGL_TEXTURE_2D_MULTISAMPLE, texDetails.renderbufferReadTex, 0);
+    GL.glNamedFramebufferTexture2DEXT(texDetails.renderbufferFBOs[1], attach, texEnum,
+                                      texDetails.renderbufferReadTex, 0);
 
     AddResourceInitChunk(renderbuffer);
 
