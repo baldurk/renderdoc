@@ -1243,6 +1243,13 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
           binding++;
           curIdx = 0;
 
+          // skip past invalid padding descriptors to get to the next real one
+          while(layoutBinding->descriptorType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
+          {
+            layoutBinding++;
+            binding++;
+          }
+
           ref = GetRefType(layoutBinding->descriptorType);
         }
 
@@ -1648,6 +1655,13 @@ void WrappedVulkan::vkUpdateDescriptorSetWithTemplate(
           layoutBinding++;
           binding++;
           curIdx = 0;
+
+          // skip past invalid padding descriptors to get to the next real one
+          while(layoutBinding->descriptorType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
+          {
+            layoutBinding++;
+            binding++;
+          }
 
           ref = GetRefType(layoutBinding->descriptorType);
         }
