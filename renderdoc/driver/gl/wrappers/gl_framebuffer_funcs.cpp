@@ -2611,6 +2611,9 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageEXT(SerialiserType &ser,
       internalformat = MakeGLFormat(resfmt);
     }
 
+    if(texDetails.renderbufferReadTex)
+      GL.glDeleteTextures(1, &texDetails.renderbufferReadTex);
+
     // create read-from texture for displaying this render buffer
     GL.glGenTextures(1, &texDetails.renderbufferReadTex);
     GL.glBindTexture(eGL_TEXTURE_2D, texDetails.renderbufferReadTex);
@@ -2624,10 +2627,6 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageEXT(SerialiserType &ser,
     GL.glTextureParameteriEXT(texDetails.renderbufferReadTex, eGL_TEXTURE_2D,
                               eGL_TEXTURE_MIN_FILTER, eGL_LINEAR);
 
-    GL.glGenFramebuffers(2, texDetails.renderbufferFBOs);
-    GL.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
-    GL.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[1]);
-
     GLenum attach = eGL_COLOR_ATTACHMENT0;
     if(fmt == eGL_DEPTH_COMPONENT)
       attach = eGL_DEPTH_ATTACHMENT;
@@ -2635,8 +2634,17 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageEXT(SerialiserType &ser,
       attach = eGL_STENCIL_ATTACHMENT;
     if(fmt == eGL_DEPTH_STENCIL)
       attach = eGL_DEPTH_STENCIL_ATTACHMENT;
-    GL.glNamedFramebufferRenderbufferEXT(texDetails.renderbufferFBOs[0], attach, eGL_RENDERBUFFER,
-                                         renderbuffer.name);
+
+    if(texDetails.renderbufferFBOs[0] == 0)
+    {
+      GL.glGenFramebuffers(2, texDetails.renderbufferFBOs);
+      GL.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
+      GL.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[1]);
+
+      GL.glNamedFramebufferRenderbufferEXT(texDetails.renderbufferFBOs[0], attach, eGL_RENDERBUFFER,
+                                           renderbuffer.name);
+    }
+
     GL.glNamedFramebufferTexture2DEXT(texDetails.renderbufferFBOs[1], attach, eGL_TEXTURE_2D,
                                       texDetails.renderbufferReadTex, 0);
 
@@ -2808,6 +2816,9 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageMultisampleEXT(Serialise
 
     GLenum texEnum;
 
+    if(texDetails.renderbufferReadTex)
+      GL.glDeleteTextures(1, &texDetails.renderbufferReadTex);
+
     if(samples > 1)
     {
       texEnum = eGL_TEXTURE_2D_MULTISAMPLE;
@@ -2832,10 +2843,6 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageMultisampleEXT(Serialise
                                 eGL_LINEAR);
     }
 
-    GL.glGenFramebuffers(2, texDetails.renderbufferFBOs);
-    GL.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
-    GL.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[1]);
-
     GLenum attach = eGL_COLOR_ATTACHMENT0;
     if(fmt == eGL_DEPTH_COMPONENT)
       attach = eGL_DEPTH_ATTACHMENT;
@@ -2843,8 +2850,17 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageMultisampleEXT(Serialise
       attach = eGL_STENCIL_ATTACHMENT;
     if(fmt == eGL_DEPTH_STENCIL)
       attach = eGL_DEPTH_STENCIL_ATTACHMENT;
-    GL.glNamedFramebufferRenderbufferEXT(texDetails.renderbufferFBOs[0], attach, eGL_RENDERBUFFER,
-                                         renderbuffer.name);
+
+    if(texDetails.renderbufferFBOs[0] == 0)
+    {
+      GL.glGenFramebuffers(2, texDetails.renderbufferFBOs);
+      GL.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
+      GL.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[1]);
+
+      GL.glNamedFramebufferRenderbufferEXT(texDetails.renderbufferFBOs[0], attach, eGL_RENDERBUFFER,
+                                           renderbuffer.name);
+    }
+
     GL.glNamedFramebufferTexture2DEXT(texDetails.renderbufferFBOs[1], attach, texEnum,
                                       texDetails.renderbufferReadTex, 0);
 
@@ -3028,6 +3044,9 @@ bool WrappedOpenGL::Serialise_glRenderbufferStorageMultisampleEXT(SerialiserType
     // create read-from texture for displaying this render buffer
     GLenum texEnum;
 
+    if(texDetails.renderbufferReadTex)
+      GL.glDeleteTextures(1, &texDetails.renderbufferReadTex);
+
     if(samples > 1)
     {
       texEnum = eGL_TEXTURE_2D_MULTISAMPLE;
@@ -3052,10 +3071,6 @@ bool WrappedOpenGL::Serialise_glRenderbufferStorageMultisampleEXT(SerialiserType
                                 eGL_LINEAR);
     }
 
-    GL.glGenFramebuffers(2, texDetails.renderbufferFBOs);
-    GL.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
-    GL.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[1]);
-
     GLenum attach = eGL_COLOR_ATTACHMENT0;
     if(fmt == eGL_DEPTH_COMPONENT)
       attach = eGL_DEPTH_ATTACHMENT;
@@ -3063,8 +3078,16 @@ bool WrappedOpenGL::Serialise_glRenderbufferStorageMultisampleEXT(SerialiserType
       attach = eGL_STENCIL_ATTACHMENT;
     if(fmt == eGL_DEPTH_STENCIL)
       attach = eGL_DEPTH_STENCIL_ATTACHMENT;
-    GL.glNamedFramebufferRenderbufferEXT(texDetails.renderbufferFBOs[0], attach, eGL_RENDERBUFFER,
-                                         renderbuffer.name);
+
+    if(texDetails.renderbufferFBOs[0] == 0)
+    {
+      GL.glGenFramebuffers(2, texDetails.renderbufferFBOs);
+      GL.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
+      GL.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[1]);
+
+      GL.glNamedFramebufferRenderbufferEXT(texDetails.renderbufferFBOs[0], attach, eGL_RENDERBUFFER,
+                                           renderbuffer.name);
+    }
     GL.glNamedFramebufferTexture2DEXT(texDetails.renderbufferFBOs[1], attach, texEnum,
                                       texDetails.renderbufferReadTex, 0);
 
