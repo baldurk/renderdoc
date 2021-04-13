@@ -407,6 +407,8 @@ uint64_t D3D12ResourceManager::GetSize_InitialState(ResourceId id, const D3D12In
     uint64_t ret =
         WriteSerialiser::GetChunkAlignment() + 16 + uint64_t(buf ? buf->GetDesc().Width : 0);
 
+    ret += 16;
+
     if(data.sparseTable)
       ret += 16 + data.sparseTable->GetSerialiseSize();
 
