@@ -781,13 +781,14 @@ void RDCFile::Create(const rdcstr &filename)
   // re-open as read-only now.
   FileIO::fclose(m_File);
   m_File = FileIO::fopen(filename, FileIO::ReadBinary);
-  FileIO::fseek64(m_File, 0, SEEK_END);
 
   if(!m_File)
   {
     RETURNERROR(ContainerError::FileIO, "Can't open capture file '%s' as read-only, errno %d",
                 filename.c_str(), errno);
   }
+
+  FileIO::fseek64(m_File, 0, SEEK_END);
 }
 
 int RDCFile::SectionIndex(SectionType type) const
