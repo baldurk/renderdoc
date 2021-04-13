@@ -503,8 +503,12 @@ void Serialiser<SerialiserMode::Writing>::EndChunk()
         m_Write->Write(padByte);
       }
 
-      RDCDEBUG("Chunk estimated at %llu bytes, actual length %llu. Added %llu bytes padding.",
-               m_ChunkMetadata.length, writtenLength, numPadBytes);
+      // only log if there's more than 128 bytes of padding
+      if(m_ChunkMetadata.length - writtenLength > 128)
+      {
+        RDCDEBUG("Chunk estimated at %llu bytes, actual length %llu. Added %llu bytes padding.",
+                 m_ChunkMetadata.length, writtenLength, numPadBytes);
+      }
     }
     else if(writtenLength > m_ChunkMetadata.length)
     {
@@ -517,7 +521,7 @@ void Serialiser<SerialiserMode::Writing>::EndChunk()
     }
     else
     {
-      RDCDEBUG("Chunk was exactly the estimate of %llu bytes.", m_ChunkMetadata.length);
+      // RDCDEBUG("Chunk was exactly the estimate of %llu bytes.", m_ChunkMetadata.length);
     }
   }
 
