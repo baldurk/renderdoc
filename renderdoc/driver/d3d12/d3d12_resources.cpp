@@ -347,7 +347,8 @@ rdcarray<ID3D12Resource *> WrappedID3D12Resource::AddRefBuffersBeforeCapture(D3D
 
 WrappedID3D12DescriptorHeap::WrappedID3D12DescriptorHeap(ID3D12DescriptorHeap *real,
                                                          WrappedID3D12Device *device,
-                                                         const D3D12_DESCRIPTOR_HEAP_DESC &desc)
+                                                         const D3D12_DESCRIPTOR_HEAP_DESC &desc,
+                                                         UINT UnpatchedNumDescriptors)
     : WrappedDeviceChild12(real, device)
 {
   realCPUBase = real->GetCPUDescriptorHandleForHeapStart();
@@ -356,12 +357,12 @@ WrappedID3D12DescriptorHeap::WrappedID3D12DescriptorHeap(ID3D12DescriptorHeap *r
   SetResident(true);
 
   increment = device->GetUnwrappedDescriptorIncrement(desc.Type);
-  numDescriptors = desc.NumDescriptors;
+  numDescriptors = UnpatchedNumDescriptors;
 
-  descriptors = new D3D12Descriptor[numDescriptors];
+  descriptors = new D3D12Descriptor[desc.NumDescriptors];
 
-  RDCEraseMem(descriptors, sizeof(D3D12Descriptor) * numDescriptors);
-  for(UINT i = 0; i < numDescriptors; i++)
+  RDCEraseMem(descriptors, sizeof(D3D12Descriptor) * desc.NumDescriptors);
+  for(UINT i = 0; i < desc.NumDescriptors; i++)
     descriptors[i].Setup(this, i);
 }
 

@@ -402,7 +402,7 @@ public:
   };
 
   WrappedID3D12DescriptorHeap(ID3D12DescriptorHeap *real, WrappedID3D12Device *device,
-                              const D3D12_DESCRIPTOR_HEAP_DESC &desc);
+                              const D3D12_DESCRIPTOR_HEAP_DESC &desc, UINT UnpatchedNumDescriptors);
   virtual ~WrappedID3D12DescriptorHeap();
 
   D3D12Descriptor *GetDescriptors() { return descriptors; }

@@ -864,7 +864,7 @@ bool WrappedID3D12Device::Serialise_CreateDescriptorHeap(
     }
     else
     {
-      ret = new WrappedID3D12DescriptorHeap(ret, this, Descriptor);
+      ret = new WrappedID3D12DescriptorHeap(ret, this, PatchedDesc, Descriptor.NumDescriptors);
 
       GetResourceManager()->AddLiveResource(pHeap, ret);
 
@@ -891,8 +891,8 @@ HRESULT WrappedID3D12Device::CreateDescriptorHeap(const D3D12_DESCRIPTOR_HEAP_DE
 
   if(SUCCEEDED(ret))
   {
-    WrappedID3D12DescriptorHeap *wrapped =
-        new WrappedID3D12DescriptorHeap(real, this, *pDescriptorHeapDesc);
+    WrappedID3D12DescriptorHeap *wrapped = new WrappedID3D12DescriptorHeap(
+        real, this, *pDescriptorHeapDesc, pDescriptorHeapDesc->NumDescriptors);
 
     if(IsCaptureMode(m_State))
     {
