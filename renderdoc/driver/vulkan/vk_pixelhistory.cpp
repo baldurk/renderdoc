@@ -805,9 +805,11 @@ protected:
   // substitutes the depth stencil image view. If there is no depth stencil attachment,
   // it will be added. Optionally, also substitutes the original target image view with
   // the newColorAtt.
-  VkFramebuffer CreateFramebuffer(ResourceId rp, VkRenderPass newRp, ResourceId origFb,
+  VkFramebuffer CreateFramebuffer(const VulkanRenderState &pipestate, VkRenderPass newRp,
                                   VkImageView newColorAtt = VK_NULL_HANDLE, uint32_t colorIdx = 0)
   {
+    ResourceId rp = pipestate.renderPass;
+    ResourceId origFb = pipestate.GetFramebuffer();
     const VulkanCreationInfo::RenderPass &rpInfo =
         m_pDriver->GetDebugManager()->GetRenderPassInfo(rp);
     // Currently only single subpass render passes are supported.
@@ -819,7 +821,7 @@ protected:
     for(uint32_t i = 0; i < fbInfo.attachments.size(); i++)
     {
       atts[i] = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImageView>(
-          fbInfo.attachments[i].createdView);
+          pipestate.GetFramebufferAttachments()[i]);
     }
 
     // Either modify the existing color attachment view, or add a new one.
@@ -1274,8 +1276,7 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
     {
       bool multiview = false;
       VkRenderPass newRp = CreateRenderPass(pipestate.renderPass, multiview);
-      VkFramebuffer newFb =
-          CreateFramebuffer(pipestate.renderPass, newRp, pipestate.GetFramebuffer());
+      VkFramebuffer newFb = CreateFramebuffer(pipestate, newRp);
 
       PipelineReplacements replacements = GetPipelineReplacements(
           eid, pipestate.graphics.pipeline, newRp, GetColorAttachmentIndex(prevState));
@@ -1783,6 +1784,13 @@ private:
     }
 
     // Depth and Stencil tests.
+    const VulkanCreationInfo::RenderPass &rpInfo =
+        m_pDriver->GetDebugManager()->GetRenderPassInfo(pipestate.renderPass);
+    // TODO: this should retrieve the correct subpass, once multiple subpasses
+    // are supported.
+    const VulkanCreationInfo::RenderPass::Subpass &sub = rpInfo.subpasses.front();
+
+    if(sub.depthstencilAttachment != -1)
     {
       if(pipestate.depthBoundsTestEnable)
         flags |= TestEnabled_DepthBounds;
@@ -2228,8 +2236,8 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     VkRenderPass newRp = CreateRenderPass(state.renderPass, multiview,
                                           VK_FORMAT_R32G32B32A32_SFLOAT, framebufferIndex);
 
-    VkFramebuffer newFb = CreateFramebuffer(state.renderPass, newRp, state.GetFramebuffer(),
-                                            m_CallbackInfo.subImageView, framebufferIndex);
+    VkFramebuffer newFb =
+        CreateFramebuffer(state, newRp, m_CallbackInfo.subImageView, framebufferIndex);
 
     Pipelines pipes = CreatePerFragmentPipelines(curPipeline, newRp, eid, 0, colorOutputIndex);
 
