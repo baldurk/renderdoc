@@ -1050,13 +1050,13 @@ uint64_t GLResourceManager::GetSize_InitialState(ResourceId resid, const GLIniti
       if(TextureState.type == eGL_TEXTURE_1D_ARRAY)
         h = TextureState.height;
 
-      uint32_t size = 0;
+      uint64_t size = 0;
 
       // calculate the actual byte size of this mip
       if(isCompressed)
-        size = (uint32_t)GetCompressedByteSize(w, h, d, TextureState.internalformat);
+        size = (uint64_t)GetCompressedByteSize(w, h, d, TextureState.internalformat);
       else
-        size = (uint32_t)GetByteSize(w, h, d, fmt, type);
+        size = (uint64_t)GetByteSize(w, h, d, fmt, type);
 
       int targetcount = 1;
 
@@ -1609,20 +1609,20 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
         {
           GLenum fmt = eGL_NONE;
           GLenum type = eGL_NONE;
-          uint32_t size = 0;
+          uint64_t size = 0;
 
           // fetch the maximum possible size that any mip/slice could take, so we can allocate
           // scratch memory.
           if(isCompressed)
           {
-            size = (uint32_t)GetCompressedByteSize(TextureState.width, TextureState.height,
+            size = (uint64_t)GetCompressedByteSize(TextureState.width, TextureState.height,
                                                    TextureState.depth, TextureState.internalformat);
           }
           else
           {
             fmt = GetBaseFormat(TextureState.internalformat);
             type = GetDataType(TextureState.internalformat);
-            size = (uint32_t)GetByteSize(RDCMAX(1U, TextureState.width),
+            size = (uint64_t)GetByteSize(RDCMAX(1U, TextureState.width),
                                          RDCMAX(1U, TextureState.height), copySlices, fmt, type);
           }
 
@@ -1645,9 +1645,9 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
 
             // calculate the actual byte size of this mip
             if(isCompressed)
-              size = (uint32_t)GetCompressedByteSize(w, h, d, TextureState.internalformat);
+              size = (uint64_t)GetCompressedByteSize(w, h, d, TextureState.internalformat);
             else
-              size = (uint32_t)GetByteSize(w, h, d, fmt, type);
+              size = (uint64_t)GetByteSize(w, h, d, fmt, type);
 
             // loop over the number of targets (this will only ever be >1 for cubemaps)
             for(int trg = 0; trg < targetcount; trg++)
@@ -1658,7 +1658,7 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
                 if(isCompressed)
                 {
                   if(IsGLES)
-                    details.GetCompressedImageDataGLES(i, targets[trg], size, scratchBuf);
+                    details.GetCompressedImageDataGLES(i, targets[trg], (size_t)size, scratchBuf);
                   else
                     GL.glGetCompressedTextureImageEXT(tex, targets[trg], i, scratchBuf);
                 }
@@ -1680,10 +1680,10 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
                   if(IsGLES)
                   {
                     size_t startOffs =
-                        IsCubeFace(targets[trg]) ? CubeTargetIndex(targets[trg]) * size : 0;
+                        IsCubeFace(targets[trg]) ? CubeTargetIndex(targets[trg]) * (size_t)size : 0;
 
-                    details.compressedData[i].resize(startOffs + size);
-                    memcpy(details.compressedData[i].data() + startOffs, scratchBuf, size);
+                    details.compressedData[i].resize(startOffs + (size_t)size);
+                    memcpy(details.compressedData[i].data() + startOffs, scratchBuf, (size_t)size);
                   }
 
                   if(texDim == 1)
