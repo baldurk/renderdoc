@@ -1059,6 +1059,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
     m_VulkanPipelineState.compute.pipelineLayoutResourceId = rm->GetOriginalID(p.layout);
 
+    const VulkanCreationInfo::PipelineLayout &pl = c.m_PipelineLayout[p.layout];
+
     m_VulkanPipelineState.compute.flags = p.flags;
 
     VKPipe::Shader &stage = m_VulkanPipelineState.computeShader;
@@ -1074,13 +1076,43 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       if(p.shaders[i].refl)
         stage.reflection = p.shaders[i].refl;
 
-      stage.specialization.resize(p.shaders[i].specialization.size());
-      for(size_t s = 0; s < p.shaders[i].specialization.size(); s++)
+      stage.pushConstantRangeByteOffset = stage.pushConstantRangeByteSize = 0;
+      for(const VkPushConstantRange &pr : pl.pushRanges)
       {
-        const SpecConstant &spec = p.shaders[i].specialization[s];
-        stage.specialization[s].specializationId = spec.specID;
-        stage.specialization[s].data.resize(spec.dataSize);
-        memcpy(stage.specialization[s].data.data(), &spec.value, spec.dataSize);
+        if(pr.stageFlags & VK_SHADER_STAGE_COMPUTE_BIT)
+        {
+          stage.pushConstantRangeByteOffset = pr.offset;
+          stage.pushConstantRangeByteSize = pr.size;
+          break;
+        }
+      }
+
+      stage.specializationData.clear();
+
+      // set up the defaults
+      if(p.shaders[i].mapping && p.shaders[i].refl)
+      {
+        for(size_t cb = 0; cb < p.shaders[i].mapping->constantBlocks.size(); cb++)
+        {
+          if(p.shaders[i].mapping->constantBlocks[cb].bindset == SpecializationConstantBindSet)
+          {
+            for(const ShaderConstant &sc : p.shaders[i].refl->constantBlocks[cb].variables)
+            {
+              stage.specializationData.resize_for_index(sc.byteOffset + sizeof(uint64_t));
+              memcpy(stage.specializationData.data() + sc.byteOffset, &sc.defaultValue,
+                     sizeof(uint64_t));
+            }
+            break;
+          }
+        }
+      }
+
+      // apply any specializations
+      for(const SpecConstant &s : p.shaders[i].specialization)
+      {
+        size_t offs = s.specID * sizeof(uint64_t);
+        stage.specializationData.resize_for_index(offs + sizeof(uint64_t));
+        memcpy(stage.specializationData.data() + offs, &s.value, s.dataSize);
       }
     }
   }
@@ -1096,6 +1128,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     const VulkanCreationInfo::Pipeline &p = c.m_Pipeline[state.graphics.pipeline];
 
     m_VulkanPipelineState.graphics.pipelineLayoutResourceId = rm->GetOriginalID(p.layout);
+
+    const VulkanCreationInfo::PipelineLayout &pl = c.m_PipelineLayout[p.layout];
 
     m_VulkanPipelineState.graphics.flags = p.flags;
 
@@ -1157,13 +1191,43 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       if(p.shaders[i].refl)
         stages[i]->reflection = p.shaders[i].refl;
 
-      stages[i]->specialization.resize(p.shaders[i].specialization.size());
-      for(size_t s = 0; s < p.shaders[i].specialization.size(); s++)
+      stages[i]->pushConstantRangeByteOffset = stages[i]->pushConstantRangeByteSize = 0;
+      for(const VkPushConstantRange &pr : pl.pushRanges)
       {
-        const SpecConstant &spec = p.shaders[i].specialization[s];
-        stages[i]->specialization[s].specializationId = spec.specID;
-        stages[i]->specialization[s].data.resize(spec.dataSize);
-        memcpy(stages[i]->specialization[s].data.data(), &spec.value, spec.dataSize);
+        if(pr.stageFlags & ShaderMaskFromIndex(i))
+        {
+          stages[i]->pushConstantRangeByteOffset = pr.offset;
+          stages[i]->pushConstantRangeByteSize = pr.size;
+          break;
+        }
+      }
+
+      stages[i]->specializationData.clear();
+
+      // set up the defaults
+      if(p.shaders[i].mapping && p.shaders[i].refl)
+      {
+        for(size_t cb = 0; cb < p.shaders[i].mapping->constantBlocks.size(); cb++)
+        {
+          if(p.shaders[i].mapping->constantBlocks[cb].bindset == SpecializationConstantBindSet)
+          {
+            for(const ShaderConstant &sc : p.shaders[i].refl->constantBlocks[cb].variables)
+            {
+              stages[i]->specializationData.resize_for_index(sc.byteOffset + sizeof(uint64_t));
+              memcpy(stages[i]->specializationData.data() + sc.byteOffset, &sc.defaultValue,
+                     sizeof(uint64_t));
+            }
+            break;
+          }
+        }
+      }
+
+      // apply any specializations
+      for(const SpecConstant &s : p.shaders[i].specialization)
+      {
+        size_t offs = s.specID * sizeof(uint64_t);
+        stages[i]->specializationData.resize_for_index(offs + sizeof(uint64_t));
+        memcpy(stages[i]->specializationData.data() + offs, &s.value, s.dataSize);
       }
     }
 
@@ -1600,6 +1664,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
         const uint32_t *srcOffset = (*srcs[p])[i].offsets.begin();
         VKPipe::DescriptorSet &dst = (*dsts[p])[i];
 
+        dst.inlineData = m_pDriver->m_DescriptorSetState[src].data.inlineBytes;
+
         curBind.bindset = (uint32_t)i;
 
         ResourceId layoutId = m_pDriver->m_DescriptorSetState[src].layout;
@@ -1869,7 +1935,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
               dst.bindings[b].binds[a].viewResourceId = ResourceId();
               dst.bindings[b].binds[a].resourceResourceId = ResourceId();
               dst.bindings[b].binds[a].inlineBlock = true;
-              dst.bindings[b].binds[a].byteOffset = 0;
+              dst.bindings[b].binds[a].byteOffset = info[a].inlineOffset;
               dst.bindings[b].binds[a].byteSize = descriptorCount;
             }
             else if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
@@ -2034,7 +2100,7 @@ void VulkanReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, 
 
       if(pipeIt != m_pDriver->m_CreationInfo.m_Pipeline.end())
       {
-        auto specInfo =
+        const rdcarray<SpecConstant> &specInfo =
             pipeIt->second.shaders[it->second.GetReflection(entryPoint, pipeline).stageIndex].specialization;
 
         FillSpecConstantVariables(refl.resourceId, c.variables, outvars, specInfo);

@@ -107,6 +107,7 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventId)
   m_cbuffer = cb.resourceId;
   uint64_t offset = cb.byteOffset;
   uint64_t size = cb.byteSize;
+  bytebuf inlineData = cb.inlineData;
 
   ResourceId prevShader = m_shader;
 
@@ -136,26 +137,24 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventId)
 
   if(!m_formatOverride.type.members.empty())
   {
-    m_Ctx.Replay().AsyncInvoke([this, offset, size, wasEmpty](IReplayController *r) {
-      bytebuf data;
-      if(size > 0)
-        data = r->GetBufferData(m_cbuffer, offset, size);
-      rdcarray<ShaderVariable> vars = applyFormatOverride(data);
-      GUIInvoke::call(this, [this, vars, wasEmpty] {
-        RDTreeViewExpansionState state;
-        ui->variables->saveExpansion(state, 0);
-        setVariables(vars);
-        if(wasEmpty)
-        {
-          // Expand before resizing so that collapsed data will already be visible when expanded
-          ui->variables->expandAll();
-          for(int i = 0; i < 3; i++)
-            ui->variables->resizeColumnToContents(i);
-          ui->variables->collapseAll();
-        }
-        ui->variables->applyExpansion(state, 0);
+    if(!inlineData.empty() && m_cbuffer == ResourceId())
+    {
+      setVariablesPreserveExpansion(applyFormatOverride(inlineData), wasEmpty);
+    }
+    else
+    {
+      m_Ctx.Replay().AsyncInvoke([this, offset, size, wasEmpty](IReplayController *r) {
+        bytebuf data;
+
+        if(size > 0 && m_cbuffer != ResourceId())
+          data = r->GetBufferData(m_cbuffer, offset, size);
+
+        rdcarray<ShaderVariable> vars = applyFormatOverride(data);
+
+        GUIInvoke::call(this,
+                        [this, vars, wasEmpty] { setVariablesPreserveExpansion(vars, wasEmpty); });
       });
-    });
+    }
   }
   else
   {
@@ -325,6 +324,26 @@ void ConstantBufferPreviewer::setVariables(const rdcarray<ShaderVariable> &vars)
   }
 
   ui->variables->endUpdate();
+}
+
+void ConstantBufferPreviewer::setVariablesPreserveExpansion(const rdcarray<ShaderVariable> &vars,
+                                                            bool wasEmpty)
+{
+  RDTreeViewExpansionState state;
+  ui->variables->saveExpansion(state, 0);
+
+  setVariables(vars);
+
+  if(wasEmpty)
+  {
+    // Expand before resizing so that collapsed data will already be visible when expanded
+    ui->variables->expandAll();
+    for(int i = 0; i < 3; i++)
+      ui->variables->resizeColumnToContents(i);
+    ui->variables->collapseAll();
+  }
+
+  ui->variables->applyExpansion(state, 0);
 }
 
 void ConstantBufferPreviewer::updateLabels()

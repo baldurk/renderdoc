@@ -954,6 +954,8 @@ void D3D12Replay::FillRootElements(const D3D12RenderState::RootSignature &rootSi
 
       element.constantBuffers.push_back(D3D12Pipe::ConstantBuffer(p.Constants.ShaderRegister));
       D3D12Pipe::ConstantBuffer &cb = element.constantBuffers.back();
+      cb.resourceId = ResourceId();
+      cb.byteOffset = 0;
       cb.byteSize = uint32_t(sizeof(uint32_t) * p.Constants.Num32BitValues);
 
       if(rootEl < rootSig.sigelems.size())

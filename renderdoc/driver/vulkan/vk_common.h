@@ -102,6 +102,7 @@ void DoPipelineBarrier(VkCommandBuffer cmd, size_t count, const VkMemoryBarrier 
 int SampleCount(VkSampleCountFlagBits countFlag);
 int SampleIndex(VkSampleCountFlagBits countFlag);
 int StageIndex(VkShaderStageFlagBits stageFlag);
+VkShaderStageFlags ShaderMaskFromIndex(size_t index);
 
 struct PackedWindowHandle
 {

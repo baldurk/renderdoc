@@ -144,7 +144,11 @@ since single descriptors may only be dynamically skipped by control flow.
   DOCUMENT("For 3D textures and texture arrays - the number of array slices in the view.");
   uint32_t numSlices = 0;
 
-  DOCUMENT("For buffers - the byte offset where the buffer view starts in the underlying buffer.");
+  DOCUMENT(R"(For buffers - the byte offset where the buffer view starts in the underlying buffer.
+
+For inline block uniforms (see :data:`inlineBlock`) this is the byte offset into the descriptor
+set's inline block data.
+)");
   uint64_t byteOffset = 0;
   DOCUMENT("For buffers - how many bytes are in this buffer view.");
   uint64_t byteSize = 0;
@@ -294,7 +298,8 @@ struct DescriptorSet
   {
     return layoutResourceId == o.layoutResourceId &&
            descriptorSetResourceId == o.descriptorSetResourceId &&
-           pushDescriptor == o.pushDescriptor && bindings == o.bindings;
+           pushDescriptor == o.pushDescriptor && bindings == o.bindings &&
+           inlineData == o.inlineData;
   }
   bool operator<(const DescriptorSet &o) const
   {
@@ -306,6 +311,8 @@ struct DescriptorSet
       return pushDescriptor < o.pushDescriptor;
     if(!(bindings == o.bindings))
       return bindings < o.bindings;
+    if(!(inlineData == o.inlineData))
+      return inlineData < o.inlineData;
     return false;
   }
   DOCUMENT("The :class:`ResourceId` of the descriptor set layout that matches this set.");
@@ -321,6 +328,13 @@ This list is indexed by the binding, so it may be sparse (some entries do not co
 :type: List[VKDescriptorBinding]
 )");
   rdcarray<DescriptorBinding> bindings;
+
+  DOCUMENT(R"(The inline byte data within this descriptor set. Individual bindings will have an
+offset and size into this buffer.
+
+:type: bytes
+)");
+  bytebuf inlineData;
 };
 
 DOCUMENT("Describes the object and descriptor set bindings of a Vulkan pipeline object.");
@@ -526,32 +540,6 @@ struct VertexInput
   rdcarray<VertexBuffer> vertexBuffers;
 };
 
-DOCUMENT("The provided value for a specialization constant.");
-struct SpecializationConstant
-{
-  DOCUMENT("");
-  SpecializationConstant() = default;
-  SpecializationConstant(const SpecializationConstant &) = default;
-  SpecializationConstant &operator=(const SpecializationConstant &) = default;
-
-  bool operator==(const SpecializationConstant &o) const
-  {
-    return specializationId == o.specializationId && data == o.data;
-  }
-  bool operator<(const SpecializationConstant &o) const
-  {
-    if(!(specializationId == o.specializationId))
-      return specializationId < o.specializationId;
-    if(!(data == o.data))
-      return data < o.data;
-    return false;
-  }
-  DOCUMENT("The specialization ID");
-  uint32_t specializationId = 0;
-  DOCUMENT("A ``bytes`` with the contents of the constant.");
-  bytebuf data;
-};
-
 DOCUMENT("Describes a Vulkan shader stage.");
 struct Shader
 {
@@ -579,11 +567,20 @@ struct Shader
   DOCUMENT("A :class:`ShaderStage` identifying which stage this shader is bound to.");
   ShaderStage stage = ShaderStage::Vertex;
 
-  DOCUMENT(R"(The provided specialization constants.
+  DOCUMENT("The byte offset into the push constant data that is visible to this shader.");
+  uint32_t pushConstantRangeByteOffset = 0;
 
-:type: List[VKSpecializationConstant]
+  DOCUMENT("The number of bytes in the push constant data that is visible to this shader.");
+  uint32_t pushConstantRangeByteSize = 0;
+
+  DOCUMENT(R"(The provided specialization constant data. Shader constants store the byte offset into
+this buffer as their byteOffset. This data includes the applied specialization constants over the
+top of the default values, so it is safe to read any constant from here and get the correct current
+value.
+
+:type: bytes
 )");
-  rdcarray<SpecializationConstant> specialization;
+  bytebuf specializationData;
 };
 
 DOCUMENT("Describes the state of the fixed-function tessellator.");
@@ -1319,7 +1316,6 @@ DECLARE_REFLECTION_STRUCT(VKPipe::VertexAttribute);
 DECLARE_REFLECTION_STRUCT(VKPipe::VertexBinding);
 DECLARE_REFLECTION_STRUCT(VKPipe::VertexBuffer);
 DECLARE_REFLECTION_STRUCT(VKPipe::VertexInput);
-DECLARE_REFLECTION_STRUCT(VKPipe::SpecializationConstant);
 DECLARE_REFLECTION_STRUCT(VKPipe::Shader);
 DECLARE_REFLECTION_STRUCT(VKPipe::Tessellation);
 DECLARE_REFLECTION_STRUCT(VKPipe::XFBBuffer);

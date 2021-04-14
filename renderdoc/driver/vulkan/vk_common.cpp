@@ -521,6 +521,25 @@ int StageIndex(VkShaderStageFlagBits stageFlag)
   return 0;
 }
 
+VkShaderStageFlags ShaderMaskFromIndex(size_t index)
+{
+  VkShaderStageFlagBits mask[] = {
+      VK_SHADER_STAGE_VERTEX_BIT,
+      VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
+      VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
+      VK_SHADER_STAGE_GEOMETRY_BIT,
+      VK_SHADER_STAGE_FRAGMENT_BIT,
+      VK_SHADER_STAGE_COMPUTE_BIT,
+  };
+
+  if(index < ARRAY_COUNT(mask))
+    return mask[index];
+
+  RDCERR("Unrecognised shader stage index %d", index);
+
+  return 0;
+}
+
 void DoPipelineBarrier(VkCommandBuffer cmd, size_t count, const VkImageMemoryBarrier *barriers)
 {
   RDCASSERT(cmd != VK_NULL_HANDLE);

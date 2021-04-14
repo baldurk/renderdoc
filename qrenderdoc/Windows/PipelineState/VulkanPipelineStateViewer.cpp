@@ -1626,12 +1626,28 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
       {
         setname = QString();
         slotname = cblock->name;
-        name = tr("Push constants");
+        if(cblock->compileConstants)
+          name = tr("Specialization constants");
+        else if(descriptorBind && descriptorBind->inlineBlock)
+          name = tr("Inline uniforms");
+        else
+          name = tr("Push constants");
+
         vecrange = QString();
         sizestr = tr("%1 Variables").arg(numvars);
 
-        // could maybe get range from ShaderVariable.reg if it's filled out
-        // from SPIR-V side.
+        if(descriptorBind && descriptorBind->inlineBlock)
+        {
+          vecrange = QFormatStr("%1 - %2")
+                         .arg(descriptorBind->byteOffset)
+                         .arg(descriptorBind->byteOffset + descriptorBind->byteSize);
+        }
+        else if(!cblock->compileConstants)
+        {
+          vecrange = QFormatStr("%1 - %2")
+                         .arg(stage.pushConstantRangeByteOffset)
+                         .arg(stage.pushConstantRangeByteOffset + stage.pushConstantRangeByteSize);
+        }
       }
       else
       {
@@ -1850,16 +1866,9 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
       ConstantBlock &cblock = shaderDetails->constantBlocks[cb];
       if(cblock.bufferBacked == false)
       {
-        // could maybe get range from ShaderVariable.reg if it's filled out
-        // from SPIR-V side.
-
-        RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({QString(), QString(), cblock.name, tr("Push constants"), QString(),
-                                  tr("%1 Variables").arg(cblock.variables.count()), QString()});
-
-        node->setTag(QVariant::fromValue(VulkanCBufferTag(cb)));
-
-        ubos->addTopLevelItem(node);
+        addConstantBlockRow(
+            shaderDetails, stage, stage.bindpointMapping.constantBlocks[cblock.bindPoint].bindset,
+            stage.bindpointMapping.constantBlocks[cblock.bindPoint].bind, pipe, ubos);
       }
     }
   }
@@ -3225,18 +3234,42 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
       // push constants
       if(!b.bufferBacked)
       {
+        const VKPipe::BindingElement *descriptorBind = NULL;
+
+        if(bindMap.bindset < pipeline.descriptorSets.count() &&
+           bindMap.bind < pipeline.descriptorSets[bindMap.bindset].bindings.count())
+          descriptorBind = &pipeline.descriptorSets[bindMap.bindset].bindings[bindMap.bind].binds[0];
+
+        QString name;
+        if(b.compileConstants)
+          name = tr("Specialization constants");
+        else if(descriptorBind->inlineBlock)
+          name = tr("Inline uniforms");
+        else
+          name = tr("Push constants");
+
+        qulonglong offset = 0, size = 0;
+
+        if(descriptorBind->inlineBlock)
+        {
+          offset = descriptorBind->byteOffset;
+          size = descriptorBind->byteSize;
+        }
+        else if(!b.compileConstants)
+        {
+          offset = sh.pushConstantRangeByteOffset;
+          size = sh.pushConstantRangeByteSize;
+        }
+
         // could maybe get range/size from ShaderVariable.reg if it's filled out
         // from SPIR-V side.
-        rows.push_back({QString(), b.name, tr("Push constants"), (qulonglong)0, (qulonglong)0,
-                        b.variables.count(), b.byteSize});
+        rows.push_back({QString(), b.name, name, offset, size, b.variables.count(), b.byteSize});
 
         continue;
       }
 
-      const VKPipe::DescriptorSet &set =
-          pipeline.descriptorSets[sh.bindpointMapping.constantBlocks[i].bindset];
-      const VKPipe::DescriptorBinding &bind =
-          set.bindings[sh.bindpointMapping.constantBlocks[i].bind];
+      const VKPipe::DescriptorSet &set = pipeline.descriptorSets[bindMap.bindset];
+      const VKPipe::DescriptorBinding &bind = set.bindings[bindMap.bind];
 
       QString setname = QString::number(bindMap.bindset);
 

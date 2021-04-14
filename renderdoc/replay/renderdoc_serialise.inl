@@ -215,6 +215,7 @@ void DoSerialise(SerialiserType &ser, ConstantBlock &el)
   SERIALISE_MEMBER(bindPoint);
   SERIALISE_MEMBER(byteSize);
   SERIALISE_MEMBER(bufferBacked);
+  SERIALISE_MEMBER(compileConstants);
 
   SIZE_CHECK(64);
 }
@@ -1920,7 +1921,9 @@ void DoSerialise(SerialiserType &ser, VKPipe::DescriptorSet &el)
 
   SERIALISE_MEMBER(bindings);
 
-  SIZE_CHECK(48);
+  SERIALISE_MEMBER(inlineData);
+
+  SIZE_CHECK(72);
 }
 
 template <typename SerialiserType>
@@ -1998,15 +2001,6 @@ void DoSerialise(SerialiserType &ser, VKPipe::VertexInput &el)
 }
 
 template <typename SerialiserType>
-void DoSerialise(SerialiserType &ser, VKPipe::SpecializationConstant &el)
-{
-  SERIALISE_MEMBER(specializationId);
-  SERIALISE_MEMBER(data);
-
-  SIZE_CHECK(32);
-}
-
-template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VKPipe::Shader &el)
 {
   SERIALISE_MEMBER(resourceId);
@@ -2017,9 +2011,11 @@ void DoSerialise(SerialiserType &ser, VKPipe::Shader &el)
   SERIALISE_MEMBER(bindpointMapping);
 
   SERIALISE_MEMBER(stage);
-  SERIALISE_MEMBER(specialization);
+  SERIALISE_MEMBER(pushConstantRangeByteOffset);
+  SERIALISE_MEMBER(pushConstantRangeByteSize);
+  SERIALISE_MEMBER(specializationData);
 
-  SIZE_CHECK(192);
+  SIZE_CHECK(200);
 }
 
 template <typename SerialiserType>
@@ -2278,7 +2274,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::State &el)
 
   SERIALISE_MEMBER(conditionalRendering);
 
-  SIZE_CHECK(1928);
+  SIZE_CHECK(1976);
 }
 
 #pragma endregion Vulkan pipeline state
@@ -2380,7 +2376,6 @@ INSTANTIATE_SERIALISE_TYPE(VKPipe::DescriptorSet)
 INSTANTIATE_SERIALISE_TYPE(VKPipe::Pipeline)
 INSTANTIATE_SERIALISE_TYPE(VKPipe::VertexAttribute)
 INSTANTIATE_SERIALISE_TYPE(VKPipe::VertexInput)
-INSTANTIATE_SERIALISE_TYPE(VKPipe::SpecializationConstant)
 INSTANTIATE_SERIALISE_TYPE(VKPipe::Shader)
 INSTANTIATE_SERIALISE_TYPE(VKPipe::ViewState)
 INSTANTIATE_SERIALISE_TYPE(VKPipe::ColorBlendState)

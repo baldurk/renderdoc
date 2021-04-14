@@ -46,7 +46,7 @@ void FillSpecConstantVariables(ResourceId shader, const rdcarray<ShaderConstant>
   {
     for(size_t v = 0; v < invars.size() && v < outvars.size(); v++)
     {
-      if(specInfo[i].specID == invars[v].byteOffset)
+      if(specInfo[i].specID * sizeof(uint64_t) == invars[v].byteOffset)
       {
         outvars[v].value.u64v[0] = specInfo[i].value;
       }
@@ -1115,7 +1115,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
       ShaderConstant spec;
       MakeConstantBlockVariable(spec, pointerTypes, dataTypes[c.type], name, decorations[c.id],
                                 specInfo);
-      spec.byteOffset = decorations[c.id].specID;
+      spec.byteOffset = decorations[c.id].specID * sizeof(uint64_t);
       spec.defaultValue = c.value.value.u64v[0];
       specblock.variables.push_back(spec);
     }
@@ -1125,6 +1125,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
   {
     specblock.name = "Specialization Constants";
     specblock.bufferBacked = false;
+    specblock.compileConstants = true;
     specblock.byteSize = 0;
 
     Bindpoint bindmap;

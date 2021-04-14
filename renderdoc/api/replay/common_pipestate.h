@@ -409,6 +409,13 @@ struct BoundCBuffer
   uint64_t byteOffset = 0;
   DOCUMENT("The size in bytes for the constant buffer. Access outside this size returns 0.");
   uint64_t byteSize = 0;
+
+  DOCUMENT(R"(The inline byte data for this constant buffer, if this binding is not backed by a
+typical buffer.
+
+:type: bytes
+)");
+  bytebuf inlineData;
 };
 
 DECLARE_REFLECTION_STRUCT(BoundCBuffer);

@@ -84,6 +84,7 @@ private:
 
   void addVariables(RDTreeWidgetItem *root, const rdcarray<ShaderVariable> &vars);
   void setVariables(const rdcarray<ShaderVariable> &vars);
+  void setVariablesPreserveExpansion(const rdcarray<ShaderVariable> &vars, bool wasEmpty);
 
   void updateLabels();
 

@@ -905,9 +905,7 @@ rdcarray<VertexInputAttribute> PipeState::GetVertexInputs() const
 
 BoundCBuffer PipeState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, uint32_t ArrayIdx) const
 {
-  ResourceId buf;
-  uint64_t ByteOffset = 0;
-  uint64_t ByteSize = 0;
+  BoundCBuffer ret;
 
   if(IsCaptureLoaded())
   {
@@ -925,9 +923,9 @@ BoundCBuffer PipeState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, ui
 
         const D3D11Pipe::ConstantBuffer &descriptor = s.constantBuffers[bind.bind];
 
-        buf = descriptor.resourceId;
-        ByteOffset = descriptor.vecOffset * 4 * sizeof(float);
-        ByteSize = descriptor.vecCount * 4 * sizeof(float);
+        ret.resourceId = descriptor.resourceId;
+        ret.byteOffset = descriptor.vecOffset * 4 * sizeof(float);
+        ret.byteSize = descriptor.vecCount * 4 * sizeof(float);
       }
     }
     else if(IsCaptureD3D12())
@@ -956,10 +954,16 @@ BoundCBuffer PipeState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, ui
               const D3D12Pipe::ConstantBuffer &cb = element.constantBuffers[j];
               if(cb.bind == (uint32_t)shaderReg)
               {
-                buf = cb.resourceId;
-                ByteOffset = cb.byteOffset;
-                ByteSize = cb.byteSize;
                 found = true;
+
+                ret.resourceId = cb.resourceId;
+                ret.byteOffset = cb.byteOffset;
+                ret.byteSize = cb.byteSize;
+                if(element.immediate)
+                {
+                  ret.inlineData.resize(cb.rootValues.byteSize());
+                  memcpy(ret.inlineData.data(), cb.rootValues.data(), ret.inlineData.size());
+                }
                 break;
               }
             }
@@ -981,12 +985,12 @@ BoundCBuffer PipeState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, ui
           {
             const GLPipe::Buffer &b = m_GL->uniformBuffers[uboIdx];
 
-            buf = b.resourceId;
-            ByteOffset = b.byteOffset;
-            ByteSize = b.byteSize;
+            ret.resourceId = b.resourceId;
+            ret.byteOffset = b.byteOffset;
+            ret.byteSize = b.byteSize;
 
-            if(ByteSize == 0)
-              ByteSize = ~0ULL;
+            if(ret.byteSize == 0)
+              ret.byteSize = ~0ULL;
           }
         }
       }
@@ -1004,32 +1008,94 @@ BoundCBuffer PipeState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, ui
 
         if(s.reflection->constantBlocks[BufIdx].bufferBacked == false)
         {
-          BoundCBuffer ret;
-          // dummy value, it would be nice to fetch this properly
-          ret.byteSize = 1024;
+          if(s.reflection->constantBlocks[BufIdx].compileConstants)
+          {
+            ret.inlineData = s.specializationData;
+            ret.byteSize = ret.inlineData.size();
+          }
+          else
+          {
+            ret.inlineData.resize((size_t)ret.byteSize);
+
+            const bytebuf *src = NULL;
+
+            // push constants have a magic bindset value higher than any descriptor set
+            if(bind.bindset < pipe.descriptorSets.count())
+            {
+              if(bind.bind >= pipe.descriptorSets[bind.bindset].bindings.count() ||
+                 ArrayIdx >= pipe.descriptorSets[bind.bindset].bindings[bind.bind].binds.size())
+                return BoundCBuffer();
+
+              src = &pipe.descriptorSets[bind.bindset].inlineData;
+
+              const VKPipe::BindingElement &descriptorBind =
+                  pipe.descriptorSets[bind.bindset].bindings[bind.bind].binds[ArrayIdx];
+
+              ret.byteOffset = descriptorBind.byteOffset;
+              ret.byteSize = descriptorBind.byteSize;
+            }
+            else
+            {
+              src = &m_Vulkan->pushconsts;
+
+              switch(stage)
+              {
+                case ShaderStage::Vertex:
+                  ret.byteOffset = m_Vulkan->vertexShader.pushConstantRangeByteOffset;
+                  ret.byteSize = m_Vulkan->vertexShader.pushConstantRangeByteSize;
+                  break;
+                case ShaderStage::Tess_Control:
+                  ret.byteOffset = m_Vulkan->tessControlShader.pushConstantRangeByteOffset;
+                  ret.byteSize = m_Vulkan->tessControlShader.pushConstantRangeByteSize;
+                  break;
+                case ShaderStage::Tess_Eval:
+                  ret.byteOffset = m_Vulkan->tessEvalShader.pushConstantRangeByteOffset;
+                  ret.byteSize = m_Vulkan->tessEvalShader.pushConstantRangeByteSize;
+                  break;
+                case ShaderStage::Geometry:
+                  ret.byteOffset = m_Vulkan->geometryShader.pushConstantRangeByteOffset;
+                  ret.byteSize = m_Vulkan->geometryShader.pushConstantRangeByteSize;
+                  break;
+                case ShaderStage::Fragment:
+                  ret.byteOffset = m_Vulkan->fragmentShader.pushConstantRangeByteOffset;
+                  ret.byteSize = m_Vulkan->fragmentShader.pushConstantRangeByteSize;
+                  break;
+                case ShaderStage::Compute:
+                  ret.byteOffset = m_Vulkan->computeShader.pushConstantRangeByteOffset;
+                  ret.byteSize = m_Vulkan->computeShader.pushConstantRangeByteSize;
+                  break;
+                default: break;
+              }
+            }
+
+            if(ret.byteOffset > src->size())
+              ret.byteSize = 0;
+            else if(ret.byteOffset + ret.byteSize > src->size())
+              ret.byteSize = src->size() - (ret.byteOffset + ret.byteSize);
+
+            // consume the byteoffset here when copying data from the source data
+            ret.inlineData.resize((size_t)ret.byteSize);
+            memcpy(ret.inlineData.data(), src->data() + ret.byteOffset, (size_t)ret.byteSize);
+            ret.byteOffset = 0;
+          }
+
           return ret;
         }
 
         if(bind.bindset >= pipe.descriptorSets.count() ||
            bind.bind >= pipe.descriptorSets[bind.bindset].bindings.count() ||
-           ArrayIdx > pipe.descriptorSets[bind.bindset].bindings[bind.bind].binds.size())
+           ArrayIdx >= pipe.descriptorSets[bind.bindset].bindings[bind.bind].binds.size())
           return BoundCBuffer();
 
         const VKPipe::BindingElement &descriptorBind =
             pipe.descriptorSets[bind.bindset].bindings[bind.bind].binds[ArrayIdx];
 
-        buf = descriptorBind.resourceResourceId;
-        ByteOffset = descriptorBind.byteOffset;
-        ByteSize = descriptorBind.byteSize;
+        ret.resourceId = descriptorBind.resourceResourceId;
+        ret.byteOffset = descriptorBind.byteOffset;
+        ret.byteSize = descriptorBind.byteSize;
       }
     }
   }
-
-  BoundCBuffer ret;
-
-  ret.resourceId = buf;
-  ret.byteOffset = ByteOffset;
-  ret.byteSize = ByteSize;
 
   return ret;
 }
