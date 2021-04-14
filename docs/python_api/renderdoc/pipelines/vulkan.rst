@@ -50,9 +50,6 @@ Shader
 .. autoclass:: VKShader
   :members:
 
-.. autoclass:: VKSpecializationConstant
-  :members:
-
 Tessellation
 ------------
 
