@@ -196,6 +196,8 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
       bool supported =
           RenderDoc::Inst().HasRemoteDriver(driver) || RenderDoc::Inst().HasReplayDriver(driver);
 
+      supported &= RenderDoc::Inst().HasActiveFrameCapturer(driver);
+
       WRITE_DATA_SCOPE();
       {
         SCOPED_SERIALISE_CHUNK(ePacket_APIUse);

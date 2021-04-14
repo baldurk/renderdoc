@@ -1914,6 +1914,19 @@ void RenderDoc::RemoveFrameCapturer(void *dev, void *wnd)
   }
 }
 
+bool RenderDoc::HasActiveFrameCapturer(RDCDriver driver) const
+{
+  for(auto cap = m_WindowFrameCapturers.begin(); cap != m_WindowFrameCapturers.end(); cap++)
+    if(cap->second.FrameCapturer->GetFrameCaptureDriver() == driver)
+      return true;
+
+  for(auto cap = m_DeviceFrameCapturers.begin(); cap != m_DeviceFrameCapturers.end(); cap++)
+    if(cap->second->GetFrameCaptureDriver() == driver)
+      return true;
+
+  return false;
+}
+
 #if ENABLED(ENABLE_UNIT_TESTS)
 
 #undef None

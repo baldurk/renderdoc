@@ -1030,7 +1030,8 @@ void WrappedOpenGL::DeleteContext(void *contextHandle)
 
   RDCLOG("Deleting context %p", contextHandle);
 
-  RenderDoc::Inst().RemoveDeviceFrameCapturer(ctxdata.ctx);
+  if(ctxdata.Modern())
+    RenderDoc::Inst().RemoveDeviceFrameCapturer(ctxdata.ctx);
 
   // delete the context
   GetResourceManager()->DeleteContext(contextHandle);
@@ -1161,7 +1162,8 @@ void WrappedOpenGL::CreateContext(GLWindowingData winData, void *shareContext,
     RDCLOG("Reusing old sharegroup %p", ctxdata.shareGroup);
   }
 
-  RenderDoc::Inst().AddDeviceFrameCapturer(ctxdata.ctx, this);
+  if(ctxdata.Modern())
+    RenderDoc::Inst().AddDeviceFrameCapturer(ctxdata.ctx, this);
 
   // re-configure callstack capture, since WrappedOpenGL constructor may run too early
   uint32_t flags = m_ScratchSerialiser.GetChunkMetadataRecording();

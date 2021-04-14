@@ -525,6 +525,7 @@ public:
 
   void AddFrameCapturer(void *dev, void *wnd, IFrameCapturer *cap);
   void RemoveFrameCapturer(void *dev, void *wnd);
+  bool HasActiveFrameCapturer(RDCDriver driver) const;
 
   // add window-less frame capturers for use via users capturing
   // manually through the renderdoc API with NULL device/window handles
