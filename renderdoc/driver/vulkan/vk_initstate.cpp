@@ -922,8 +922,16 @@ SparseBinding::SparseBinding(WrappedVulkan *vk, VkImage unwrappedImage,
   imgBind.bindCount = (uint32_t)imgBinds.size();
   imgBind.pBinds = imgBinds.data();
 
-  imageOpaqueBindCount = 1;
-  pImageOpaqueBinds = &imgOpaqueBind;
+  if(imgOpaqueBind.bindCount > 0)
+  {
+    imageOpaqueBindCount = 1;
+    pImageOpaqueBinds = &imgOpaqueBind;
+  }
+  else
+  {
+    imageOpaqueBindCount = 0;
+    pImageOpaqueBinds = NULL;
+  }
   imageBindCount = 1;
   pImageBinds = &imgBind;
 }
