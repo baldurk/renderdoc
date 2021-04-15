@@ -1385,7 +1385,14 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
         }
 
         dsv = GetDebugManager()->GetCPUHandle(OVERLAY_DSV);
-        m_pDevice->CreateDepthStencilView(overrideDepth, NULL, dsv);
+
+        D3D12_DEPTH_STENCIL_VIEW_DESC viewDesc = rs.dsv.GetDSV();
+        viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
+        viewDesc.Texture2DArray.ArraySize = 1;
+        viewDesc.Texture2DArray.FirstArraySlice = 0;
+        viewDesc.Texture2DArray.MipSlice = 0;
+
+        m_pDevice->CreateDepthStencilView(overrideDepth, &viewDesc, dsv);
       }
 
       // declare callback struct here
