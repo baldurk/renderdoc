@@ -748,15 +748,6 @@ SparseBinding::SparseBinding(WrappedVulkan *vk, VkImage unwrappedImage,
     const Sparse::MipTail &mipTail = table.getMipTail();
 
     // can't apply if the mip tail is differently shaped/sized
-    if(mipTail.byteOffset != reqs[a].imageMipTailOffset)
-    {
-      RDCERR("Captured mip tail for %s begins at offset %llu, on replay it begins at %llu",
-             ToStr((VkImageAspectFlagBits)tables[a].aspectMask).c_str(), mipTail.byteOffset,
-             reqs[a].imageMipTailOffset);
-      invalid = true;
-      return;
-    }
-
     if(mipTail.firstMip != RDCMIN(table.getMipCount(), reqs[a].imageMipTailFirstLod))
     {
       RDCERR("Captured mip tail for %s begins at mip %u, on replay it begins at %u",
@@ -766,30 +757,43 @@ SparseBinding::SparseBinding(WrappedVulkan *vk, VkImage unwrappedImage,
       return;
     }
 
-    if(reqs[a].formatProperties.flags & VK_SPARSE_IMAGE_FORMAT_SINGLE_MIPTAIL_BIT)
+    // if we have a miptail, check its parameters
+    if(mipTail.firstMip < table.getMipCount())
     {
-      if(mipTail.totalPackedByteSize != reqs[a].imageMipTailSize)
+      if(mipTail.byteOffset != reqs[a].imageMipTailOffset)
       {
-        RDCERR("Captured single mip tail for %s is %llu bytes, on replay it is %llu",
-               ToStr((VkImageAspectFlagBits)tables[a].aspectMask).c_str(),
-               mipTail.totalPackedByteSize, reqs[a].imageMipTailSize);
+        RDCERR("Captured mip tail for %s begins at offset %llu, on replay it begins at %llu",
+               ToStr((VkImageAspectFlagBits)tables[a].aspectMask).c_str(), mipTail.byteOffset,
+               reqs[a].imageMipTailOffset);
         invalid = true;
         return;
       }
-    }
-    else
-    {
-      if(mipTail.totalPackedByteSize / table.getArraySize() != reqs[a].imageMipTailSize ||
-         mipTail.byteStride != reqs[a].imageMipTailStride)
+
+      if(reqs[a].formatProperties.flags & VK_SPARSE_IMAGE_FORMAT_SINGLE_MIPTAIL_BIT)
       {
-        RDCERR(
-            "Captured mip tail per slice for %s is %llu bytes with stride %llu, "
-            "on replay it is %llu bytes with stride %llu",
-            ToStr((VkImageAspectFlagBits)tables[a].aspectMask).c_str(),
-            mipTail.totalPackedByteSize / table.getArraySize(), mipTail.byteStride,
-            reqs[a].imageMipTailSize, reqs[a].imageMipTailStride);
-        invalid = true;
-        return;
+        if(mipTail.totalPackedByteSize != reqs[a].imageMipTailSize)
+        {
+          RDCERR("Captured single mip tail for %s is %llu bytes, on replay it is %llu",
+                 ToStr((VkImageAspectFlagBits)tables[a].aspectMask).c_str(),
+                 mipTail.totalPackedByteSize, reqs[a].imageMipTailSize);
+          invalid = true;
+          return;
+        }
+      }
+      else
+      {
+        if(mipTail.totalPackedByteSize / table.getArraySize() != reqs[a].imageMipTailSize ||
+           mipTail.byteStride != reqs[a].imageMipTailStride)
+        {
+          RDCERR(
+              "Captured mip tail per slice for %s is %llu bytes with stride %llu, "
+              "on replay it is %llu bytes with stride %llu",
+              ToStr((VkImageAspectFlagBits)tables[a].aspectMask).c_str(),
+              mipTail.totalPackedByteSize / table.getArraySize(), mipTail.byteStride,
+              reqs[a].imageMipTailSize, reqs[a].imageMipTailStride);
+          invalid = true;
+          return;
+        }
       }
     }
 
