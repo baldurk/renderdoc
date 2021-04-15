@@ -409,7 +409,7 @@ bool InjectLibraries(const rdcstr &deviceID, Network::Socket *sock)
 
   if(runtimeObject.tag != Tag::Object || runtimeObject.Object == 0)
   {
-    RDCERR("Failed to call getClass!");
+    RDCERR("Failed to call getRuntime!");
     return false;
   }
 
