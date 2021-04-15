@@ -309,8 +309,9 @@ private:
   uint64_t tempMemoryTLSSlot;
   struct TempMem
   {
-    TempMem() : memory(NULL), size(0) {}
+    TempMem() : memory(NULL), cur(NULL), size(0) {}
     byte *memory;
+    byte *cur;
     size_t size;
   };
   Threading::CriticalSection m_ThreadTempMemLock;
@@ -820,6 +821,12 @@ private:
   std::map<uint32_t, EventFlags> m_EventFlags;
 
   bytebuf m_MaskedMapData;
+
+  // on replay we may need to allocate several bits of temporary memory, so the single-region
+  // doesn't work as well. We're not quite as performance-sensitive so we allocate 4MB per thread
+  // and use it in a ring-buffer fashion. This allows multiple allocations to live at once as long
+  // as we don't need it all in one stack.
+  byte *GetRingTempMemory(size_t s);
 
   // returns thread-local temporary memory
   byte *GetTempMemory(size_t s);

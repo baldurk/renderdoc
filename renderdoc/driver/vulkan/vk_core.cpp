@@ -608,8 +608,40 @@ void WrappedVulkan::SetDebugMessageSink(WrappedVulkan::ScopedDebugMessageSink *s
   Threading::SetTLSValue(debugMessageSinkTLSSlot, (void *)sink);
 }
 
+byte *WrappedVulkan::GetRingTempMemory(size_t s)
+{
+  TempMem *mem = (TempMem *)Threading::GetTLSValue(tempMemoryTLSSlot);
+
+  if(!mem || mem->size < s)
+  {
+    if(mem && mem->size < s)
+      RDCWARN("More than %zu bytes needed to unwrap!", mem->size);
+
+    mem = new TempMem();
+    mem->size = AlignUp(s, size_t(4 * 1024 * 1024));
+    mem->memory = mem->cur = new byte[mem->size];
+
+    SCOPED_LOCK(m_ThreadTempMemLock);
+    m_ThreadTempMem.push_back(mem);
+
+    Threading::SetTLSValue(tempMemoryTLSSlot, (void *)mem);
+  }
+
+  // if we'd wrap, go back to the start
+  if(mem->cur + s >= mem->memory + mem->size)
+    mem->cur = mem->memory;
+
+  // save the return value and update the cur pointer
+  byte *ret = mem->cur;
+  mem->cur = AlignUpPtr(mem->cur + s, 16);
+  return ret;
+}
+
 byte *WrappedVulkan::GetTempMemory(size_t s)
 {
+  if(IsReplayMode(m_State))
+    return GetRingTempMemory(s);
+
   TempMem *mem = (TempMem *)Threading::GetTLSValue(tempMemoryTLSSlot);
   if(mem && mem->size >= s)
     return mem->memory;
