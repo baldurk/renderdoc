@@ -300,6 +300,15 @@ struct OpGLSL450 : public OpExtInstGeneric<rdcspv::GLSLstd450>
   }
   OpGLSL450(const ConstIter &it) : OpExtInstGeneric(it) {}
 };
+struct OpShaderDbg : public OpExtInstGeneric<rdcspv::ShaderDbg>
+{
+  OpShaderDbg(IdResultType resultType, IdResult result, Id set, rdcspv::ShaderDbg inst,
+              const rdcarray<IdOrWord> &params)
+      : OpExtInstGeneric(resultType, result, set, inst, params)
+  {
+  }
+  OpShaderDbg(const ConstIter &it) : OpExtInstGeneric(it) {}
+};
 
 };    // namespace rdcspv
 

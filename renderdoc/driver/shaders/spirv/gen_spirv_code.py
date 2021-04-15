@@ -23,6 +23,9 @@ with open(pathname + 'spirv.core.grammar.json', mode='r') as f:
 with open(pathname + 'extinst.glsl.std.450.grammar.json', mode='r') as f:
     glsl450 = json.load(f)
 
+with open(pathname + 'extinst.nonsemantic.shader.debuginfo.100.grammar.json', mode='r') as f:
+    debugInfo = json.load(f)
+
 # open XML registry
 registry = ET.parse(pathname + 'spir-v.xml').getroot()
 
@@ -877,6 +880,9 @@ used_ids = ''
 disassemble = ''
 
 for inst in spirv['instructions']:
+    if inst['class'] == '@exclude':
+        continue
+
     decl += '  {} = {},\n'.format(inst['opname'][2:], inst['opcode'])
 
     if inst['opcode'] in used:
@@ -1280,28 +1286,52 @@ OpDecoder::OpDecoder(const ConstIter &it)
 ##
 ###############################################################################
 
-decl = ''
-stringise = ''
+glsl_decl = ''
+glsl_stringise = ''
 
 for inst in glsl450['instructions']:
-    decl += '  {} = {},\n'.format(inst['opname'], inst['opcode'])
-    stringise += '    STRINGISE_ENUM_CLASS({});\n'.format(inst['opname'])
+    glsl_decl += '  {} = {},\n'.format(inst['opname'], inst['opcode'])
+    glsl_stringise += '    STRINGISE_ENUM_CLASS({});\n'.format(inst['opname'])
+
+debug_decl = ''
+debug_stringise = ''
+
+for inst in debugInfo['instructions']:
+    debug_decl += '  {} = {},\n'.format(inst['opname'][5:], inst['opcode'])
+    debug_stringise += '    STRINGISE_ENUM_CLASS({});\n'.format(inst['opname'][5:])
 
 header.write('''enum class GLSLstd450 : uint32_t
 {{
-{decl}
+{glsl_decl}
   Max,
   Invalid = ~0U,
 }};
 
-'''.format(decl = decl))
+enum class ShaderDbg : uint32_t
+{{
+{debug_decl}
+  Max,
+  Invalid = ~0U,
+}};
+
+'''.format(glsl_decl = glsl_decl, debug_decl = debug_decl))
 
 cpp.write('''template <>
 rdcstr DoStringise(const rdcspv::GLSLstd450 &el)
 {{
   BEGIN_ENUM_STRINGISE(rdcspv::GLSLstd450);
   {{
-{stringise}
+{glsl_stringise}
+  }}
+  END_ENUM_STRINGISE();
+}}
+
+template <>
+rdcstr DoStringise(const rdcspv::ShaderDbg &el)
+{{
+  BEGIN_ENUM_STRINGISE(rdcspv::ShaderDbg);
+  {{
+{debug_stringise}
   }}
   END_ENUM_STRINGISE();
 }}
@@ -1315,7 +1345,7 @@ rdcstr DoStringise(const rdcspv::Generator &el)
   }}
   END_ENUM_STRINGISE();
 }}
-'''.format(stringise = stringise.rstrip(), generator_tostr = generator_tostr.rstrip()))
+'''.format(glsl_stringise = glsl_stringise.rstrip(), debug_stringise = debug_stringise.rstrip(), generator_tostr = generator_tostr.rstrip()))
 
 header.write('''
 }; // namespace rdcspv
