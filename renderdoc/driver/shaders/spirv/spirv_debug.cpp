@@ -2715,12 +2715,12 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       if(texType & DebugAPIWrapper::Subpass_Texture)
       {
         // get current position
-        ShaderVariable curCoord;
+        ShaderVariable curCoord(rdcstr(), 0.0f, 0.0f, 0.0f, 0.0f);
         debugger.GetAPIWrapper()->FillInputValue(curCoord, ShaderBuiltin::Position, 0, 0);
 
         // co-ords are relative to the current position
-        setUintComp(coord, 0, uintComp(coord, 0) + uintComp(curCoord, 0));
-        setUintComp(coord, 1, uintComp(coord, 1) + uintComp(curCoord, 1));
+        setUintComp(coord, 0, uintComp(coord, 0) + (uint32_t)floatComp(curCoord, 0));
+        setUintComp(coord, 1, uintComp(coord, 1) + (uint32_t)floatComp(curCoord, 1));
 
         // do it with samplegather as ImageFetch rather than a Read which caches the whole texture
         // on the CPU for no reason (since we can't write to it)
