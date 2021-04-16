@@ -1533,7 +1533,7 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
   bool containsResource = filledSlot;
 
   // if it's masked out by stage bits, act as if it's not filled, so it's marked in red
-  if(!stageBitsIncluded)
+  if(!stageBitsIncluded && (cblock == NULL || cblock->bufferBacked))
     filledSlot = false;
 
   if(showNode(usedSlot, filledSlot))
