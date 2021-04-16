@@ -453,7 +453,7 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo
       for(size_t i = 0; i < rerecordedCmds.size(); i++)
       {
         DoSubmit(queue, submitInfo);
-        submitInfo.pCommandBuffers++;
+        submitInfo.pCommandBufferInfos++;
 
         FlushQ();
       }
