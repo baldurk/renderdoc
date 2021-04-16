@@ -2662,6 +2662,43 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
   {
     MakeCurrentReplayContext(m_DebugCtx);
 
+    if(texType == eGL_RENDERBUFFER)
+    {
+      // do blit from renderbuffer to texture
+      MakeCurrentReplayContext(&m_ReplayCtx);
+
+      GLuint curDrawFBO = 0;
+      GLuint curReadFBO = 0;
+      drv.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&curDrawFBO);
+      drv.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&curReadFBO);
+
+      drv.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, texDetails.renderbufferFBOs[1]);
+      drv.glBindFramebuffer(eGL_READ_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
+
+      GLenum b = GetBaseFormat(texDetails.internalFormat);
+
+      GLbitfield mask = GL_COLOR_BUFFER_BIT;
+
+      if(b == eGL_DEPTH_COMPONENT)
+        mask = GL_DEPTH_BUFFER_BIT;
+      else if(b == eGL_STENCIL)
+        mask = GL_STENCIL_BUFFER_BIT;
+      else if(b == eGL_DEPTH_STENCIL)
+        mask = GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT;
+
+      SafeBlitFramebuffer(0, 0, texDetails.width, texDetails.height, 0, 0, texDetails.width,
+                          texDetails.height, mask, eGL_NEAREST);
+
+      drv.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, curDrawFBO);
+      drv.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curReadFBO);
+
+      // then proceed to read from the texture
+      texname = texDetails.renderbufferReadTex;
+      texType = texDetails.samples > 1 ? eGL_TEXTURE_2D_MULTISAMPLE : eGL_TEXTURE_2D;
+
+      MakeCurrentReplayContext(m_DebugCtx);
+    }
+
     // copy multisampled texture to an array. This creates tempTex and returns it in that variable,
     // for us to own
     tempTex = 0;
