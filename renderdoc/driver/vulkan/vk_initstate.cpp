@@ -803,6 +803,8 @@ SparseBinding::SparseBinding(WrappedVulkan *vk, VkImage unwrappedImage,
       if(aspect & VK_IMAGE_ASPECT_METADATA_BIT)
         bind.flags = VK_SPARSE_MEMORY_BIND_METADATA_BIT;
 
+      const Sparse::Coord texDim = table.getResourceSize();
+
       for(uint32_t slice = 0; slice < table.getArraySize(); slice++)
       {
         bind.subresource.arrayLayer = slice;
@@ -817,6 +819,10 @@ SparseBinding::SparseBinding(WrappedVulkan *vk, VkImage unwrappedImage,
 
           const Sparse::PageRangeMapping &mapping = table.getSubresource(sub);
 
+          Sparse::Coord mipDim = {
+              RDCMAX(1U, texDim.x >> mip), RDCMAX(1U, texDim.y >> mip), RDCMAX(1U, texDim.z >> mip),
+          };
+
           Sparse::Coord dim = table.calcSubresourcePageDim(sub);
 
           if(mapping.hasSingleMapping())
@@ -825,9 +831,9 @@ SparseBinding::SparseBinding(WrappedVulkan *vk, VkImage unwrappedImage,
             // we
             // have less than a page used on the edges.
             bind.offset = {};
-            bind.extent.width = dim.x * blockSize.x;
-            bind.extent.height = dim.y * blockSize.y;
-            bind.extent.depth = dim.z * blockSize.z;
+            bind.extent.width = mipDim.x;
+            bind.extent.height = mipDim.y;
+            bind.extent.depth = mipDim.z;
 
             bind.memory = Unwrap(vk->GetResourceManager()->GetLiveHandle<VkDeviceMemory>(
                 mapping.singleMapping.memory));
@@ -844,12 +850,26 @@ SparseBinding::SparseBinding(WrappedVulkan *vk, VkImage unwrappedImage,
             for(uint32_t z = 0; z < dim.z; z++)
             {
               bind.offset.z = z * blockSize.z;
+
+              // clamp edge bindings to subresource dimensions
+              if(z == dim.z - 1)
+                bind.extent.depth = RDCMIN(bind.extent.depth, mipDim.z - bind.offset.z);
+
               for(uint32_t y = 0; y < dim.y; y++)
               {
                 bind.offset.y = y * blockSize.y;
+
+                // clamp edge bindings to subresource dimensions
+                if(y == dim.y - 1)
+                  bind.extent.height = RDCMIN(bind.extent.height, mipDim.y - bind.offset.y);
+
                 for(uint32_t x = 0; x < dim.x; x++)
                 {
                   bind.offset.x = x * blockSize.x;
+
+                  // clamp edge bindings to subresource dimensions
+                  if(x == dim.x - 1)
+                    bind.extent.width = RDCMIN(bind.extent.width, mipDim.x - bind.offset.x);
 
                   bind.memory = Unwrap(vk->GetResourceManager()->GetLiveHandle<VkDeviceMemory>(
                       mapping.pages[page].memory));
@@ -859,7 +879,14 @@ SparseBinding::SparseBinding(WrappedVulkan *vk, VkImage unwrappedImage,
 
                   imgBinds.push_back(bind);
                 }
+
+                // reset extent width in case it was clamped in the last iteration of the x loop
+                bind.extent.width = blockSize.x;
               }
+
+              // reset extent height in case it was clamped in the last iteration of the y loop
+
+              bind.extent.height = blockSize.y;
             }
           }
         }
