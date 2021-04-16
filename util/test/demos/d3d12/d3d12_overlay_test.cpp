@@ -115,7 +115,12 @@ float4 main() : SV_Target0
 
     ID3D12ResourcePtr vb = MakeBuffer().Data(VBData);
 
-    ID3D12RootSignaturePtr sig = MakeSig({});
+    ID3D12RootSignaturePtr sig = MakeSig({
+        tableParam(D3D12_SHADER_VISIBILITY_VERTEX, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 0, 5, 0),
+        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 5, 0),
+        tableParam(D3D12_SHADER_VISIBILITY_GEOMETRY, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 2, 0, 5, 0),
+        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 3, 0, 5, 0),
+    });
 
     D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS qualData = {};
     qualData.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
