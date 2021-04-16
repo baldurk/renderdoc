@@ -592,6 +592,9 @@
     <ClCompile Include="vk\vk_sync2.cpp">
       <Filter>Vulkan\demos</Filter>
     </ClCompile>
+    <ClCompile Include="gl\gl_renderbuffer_zoo.cpp">
+      <Filter>OpenGL\demos</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D11">

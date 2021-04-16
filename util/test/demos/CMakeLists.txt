@@ -84,6 +84,7 @@ set(OPENGL_SRC
         gl/gl_parameter_zoo.cpp
         gl/gl_per_type_tex_units.cpp
         gl/gl_queries_in_use.cpp
+        gl/gl_renderbuffer_zoo.cpp
         gl/gl_resource_lifetimes.cpp
         gl/gl_runtime_bind_prog_to_pipe.cpp
         gl/gl_separable_geometry_shader.cpp

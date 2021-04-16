@@ -375,6 +375,8 @@ class TestCase:
             # Reduce epsilon for RGBA8 textures if it's not already reduced
             if tex_details.format.compByteWidth == 1 and eps == util.FLT_EPSILON:
                 eps = (1.0 / 255.0)
+            if tex_details.format.compByteWidth == 2 and eps == util.FLT_EPSILON:
+                eps = (1.0 / 16384.0)
 
         picked: rd.PixelValue = self.controller.PickPixel(tex, x, y, sub, cast)
 
