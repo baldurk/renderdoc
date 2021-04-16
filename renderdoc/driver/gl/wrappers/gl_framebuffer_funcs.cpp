@@ -2754,13 +2754,27 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageMultisampleEXT(Serialise
     texDetails.width = width;
     texDetails.height = height;
     texDetails.depth = 1;
-    texDetails.samples = RDCMAX(1, samples);
     texDetails.curType = eGL_RENDERBUFFER;
     texDetails.internalFormat = internalformat;
     texDetails.mipsValid = 1;
 
     GL.glNamedRenderbufferStorageMultisampleEXT(renderbuffer.name, samples, internalformat, width,
                                                 height);
+
+    if(samples >= 1)
+    {
+      GLint realSamples = 0;
+      GL.glGetNamedRenderbufferParameterivEXT(renderbuffer.name, eGL_RENDERBUFFER_SAMPLES,
+                                              &realSamples);
+
+      if(realSamples > samples)
+      {
+        RDCDEBUG("Renderbuffer requested %d samples, but got %d samples", samples, realSamples);
+        samples = realSamples;
+      }
+    }
+
+    texDetails.samples = RDCMAX(1, samples);
 
     if(internalformat == eGL_DEPTH_COMPONENT || internalformat == eGL_DEPTH_STENCIL ||
        internalformat == eGL_STENCIL || internalformat == eGL_STENCIL_INDEX)
@@ -2977,7 +2991,6 @@ bool WrappedOpenGL::Serialise_glRenderbufferStorageMultisampleEXT(SerialiserType
     texDetails.width = width;
     texDetails.height = height;
     texDetails.depth = 1;
-    texDetails.samples = RDCMAX(1, samples);
     texDetails.curType = eGL_RENDERBUFFER;
     texDetails.internalFormat = internalformat;
     texDetails.mipsValid = 1;
@@ -2988,6 +3001,21 @@ bool WrappedOpenGL::Serialise_glRenderbufferStorageMultisampleEXT(SerialiserType
     GL.glBindRenderbuffer(eGL_RENDERBUFFER, renderbuffer.name);
 
     GL.glRenderbufferStorageMultisampleEXT(eGL_RENDERBUFFER, samples, internalformat, width, height);
+
+    if(samples >= 1)
+    {
+      GLint realSamples = 0;
+      GL.glGetNamedRenderbufferParameterivEXT(renderbuffer.name, eGL_RENDERBUFFER_SAMPLES,
+                                              &realSamples);
+
+      if(realSamples > samples)
+      {
+        RDCDEBUG("Renderbuffer requested %d samples, but got %d samples", samples, realSamples);
+        samples = realSamples;
+      }
+    }
+
+    texDetails.samples = RDCMAX(1, samples);
 
     if(internalformat == eGL_DEPTH_COMPONENT || internalformat == eGL_DEPTH_STENCIL ||
        internalformat == eGL_STENCIL || internalformat == eGL_STENCIL_INDEX)
