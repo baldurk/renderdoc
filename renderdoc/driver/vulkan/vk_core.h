@@ -1852,6 +1852,13 @@ public:
                                                             struct wl_display *display);
 #endif
 
+#if defined(VK_USE_PLATFORM_FUCHSIA)
+  VkResult vkCreateImagePipeSurfaceFUCHSIA(VkInstance instance,
+                                           const VkImagePipeSurfaceCreateInfoFUCHSIA *pCreateInfo,
+                                           const VkAllocationCallbacks *pAllocator,
+                                           VkSurfaceKHR *pSurface);
+#endif
+
   // VK_KHR_display and VK_KHR_display_swapchain. These have no library or include dependencies so
   // wecan just compile them in on all platforms to reduce platform-specific code. They are mostly
   // only actually used though on *nix.

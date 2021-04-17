@@ -181,6 +181,11 @@ struct VkInstDispatchTable
   PFN_vkCreateStreamDescriptorSurfaceGGP CreateStreamDescriptorSurfaceGGP;
 #endif // VK_USE_PLATFORM_GGP
 
+  // VK_FUCHSIA_imagepipe_surface
+#ifdef VK_USE_PLATFORM_FUCHSIA
+  PFN_vkCreateImagePipeSurfaceFUCHSIA CreateImagePipeSurfaceFUCHSIA;
+#endif // VK_USE_PLATFORM_FUCHSIA
+
   // VK_NV_external_memory_capabilities
   PFN_vkGetPhysicalDeviceExternalImageFormatPropertiesNV GetPhysicalDeviceExternalImageFormatPropertiesNV;
 

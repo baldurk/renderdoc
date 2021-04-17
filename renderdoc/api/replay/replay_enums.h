@@ -3875,6 +3875,10 @@ DOCUMENT(R"(Specifies a windowing system to use for creating an output window.
 
   The windowing data refers to a MacOS / OS X NSView & CALayer that is Metal/GL compatible.
   See :func:`CreateMacOSWindowingData`.
+
+.. data:: Fuchsia
+
+  The windowing data refers to a Fuchsia image pipe surface.
 )");
 enum class WindowingSystem : uint32_t
 {
@@ -3887,6 +3891,7 @@ enum class WindowingSystem : uint32_t
   MacOS,
   GGP,
   Wayland,
+  Fuchsia
 };
 
 DECLARE_REFLECTION_ENUM(WindowingSystem);

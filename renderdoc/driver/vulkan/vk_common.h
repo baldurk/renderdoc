@@ -1561,6 +1561,13 @@ DECLARE_REFLECTION_STRUCT(VkPresentFrameTokenGGP);
 DECLARE_DESERIALISE_TYPE(VkPresentFrameTokenGGP);
 #endif
 
+// Fuchsia-only structs
+#ifdef USE_PLATFORM_FUCHSIA
+DECLARE_REFLECTION_STRUCT(VkImagePipeSurfaceCreateInfoFUCHSIA);
+
+DECLARE_DESERIALISE_TYPE(VkImagePipeSurfaceCreateInfoFUCHSIA);
+#endif
+
 // we add these fake enums so we have a type for type-dispatch in the serialiser. Due to C ABI rules
 // the vulkan API doesn't define native 64-bit enums itself
 enum VkAccessFlagBits2KHR : uint64_t

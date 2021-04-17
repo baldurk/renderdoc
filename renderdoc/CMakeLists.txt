@@ -44,6 +44,16 @@ elseif(ENABLE_GGP)
         PRIVATE -lm
         PRIVATE -ldl
         PRIVATE -lrt)
+elseif(ENABLE_FUCHSIA)
+    message("<FUCHSIA> Find packages and set libraries here.")
+    find_package(PkgConfig REQUIRED)
+    find_package(Threads REQUIRED)
+
+    list(APPEND RDOC_LIBRARIES
+        PRIVATE -lm
+        PRIVATE -ldl
+        PRIVATE -lrt)
+    list(APPEND RDOC_INCLUDES "${FUCHSIA_SYSROOT}/include")
 elseif(UNIX)
     find_package(PkgConfig REQUIRED)
     find_package(Threads REQUIRED)

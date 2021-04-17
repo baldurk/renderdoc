@@ -191,6 +191,25 @@
 #define HookInitExtension_PhysDev_GGP()
 #define HookInitExtension_Device_GGP()
 
+#if defined(VK_USE_PLATFORM_FUCHSIA)
+
+#define HookInitExtension_Instance_Fuchsia() \
+  HookInitExtension(VK_GGP_stream_descriptor_surface, CreateStreamDescriptorSurfaceGGP);
+#define HookDefine_Fuchsia()                                                          \
+  HookDefine4(VkResult, vkCreateImagePipeSurfaceFUCHSIA, VkInstance, instance, \
+              const VkImagePipeSurfaceCreateInfoFUCHSIA *, pCreateInfo,        \
+              const VkAllocationCallbacks *, pAllocator, VkSurfaceKHR *, pSurface);
+
+#else    // defined(VK_USE_PLATFORM_FUCHSIA)
+
+#define HookInitExtension_Instance_Fuchsia()
+#define HookDefine_Fuchsia()
+
+#endif    // defined(VK_USE_PLATFORM_FUCHSIA)
+
+#define HookInitExtension_PhysDev_Fuchsia()
+#define HookInitExtension_Device_Fuchsia()
+
 #if defined(VK_USE_PLATFORM_XCB_KHR)
 
 #define HookInitExtension_Instance_XCB()                      \

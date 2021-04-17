@@ -76,6 +76,26 @@ if(BUILD_ANDROID)
     set(ANDROID_ABI "armeabi-v7a" CACHE STRING "The Android ABI to build for")
 endif()
 
+# Configure some stuff that needs to be set really early
+if(BUILD_FUCHSIA)
+    if(NOT DEFINED ENV{FUCHSIA_SDK_PATH})
+        message(FATAL_ERROR "FUCHSIA_SDK_PATH is not set in environment")
+    elseif(DEFINED ENV{FUCHSIA_SDK_PATH} AND NOT EXISTS "$ENV{FUCHSIA_SDK_PATH}")
+        message(FATAL_ERROR "FUCHSIA_SDK_PATH ${FUCHSIA_SDK_PATH} does not exist")
+    else()
+        set(FUCHSIA_SDK_PATH "$ENV{FUCHSIA_SDK_PATH}")
+    endif()
+
+    message(STATUS "Using Fuchsia SDK found in ${FUCHSIA_SDK_PATH}")
+
+    # Default to arm64 if nothing is specified on the command line.
+    # Options are {armeabi-v7a,arm64-v8a}
+    set(FUCHSIA_ABI "arm64-v8a" CACHE STRING "The Fuchsia ABI to build for")
+    set(FUCHSIA_SYSROOT "${FUCHSIA_SDK_PATH}/arch/arm64/sysroot" CACHE STRING "The Fuchsia SDK sysroot")
+    # set(CMAKE_C_COMPILER "/usr/bin/clang")
+    # set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
+endif()
+
 # disallow in-source builds because we have a top-level wrapper Makefile
 if(CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
     message(FATAL_ERROR "In-source builds not allowed")
