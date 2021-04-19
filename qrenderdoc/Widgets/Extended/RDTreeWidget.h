@@ -241,6 +241,8 @@ public:
   void setItemDelegate(QAbstractItemDelegate *delegate);
   QAbstractItemDelegate *itemDelegate() const;
 
+  void copyItem(QPoint pos, RDTreeWidgetItem *item);
+
   void setColumns(const QStringList &columns);
   const QStringList &getHeaders() const { return m_headers; }
   QString headerText(int column) const { return m_headers[column]; }

@@ -261,6 +261,8 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
     ui->iaBuffers->setClearSelectionOnFocusLoss(true);
     ui->iaBuffers->setInstantTooltips(true);
     ui->iaBuffers->setHoverIconColumn(5, action, action_hover);
+
+    m_Common.SetupResourceView(ui->iaBuffers);
   }
 
   for(RDTreeWidget *res : resources)
@@ -278,6 +280,8 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
     res->setHoverIconColumn(10, action, action_hover);
     res->setClearSelectionOnFocusLoss(true);
     res->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(res);
   }
 
   for(RDTreeWidget *uav : uavs)
@@ -295,6 +299,8 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
     uav->setHoverIconColumn(10, action, action_hover);
     uav->setClearSelectionOnFocusLoss(true);
     uav->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(uav);
   }
 
   for(RDTreeWidget *samp : samplers)
@@ -310,6 +316,8 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
 
     samp->setClearSelectionOnFocusLoss(true);
     samp->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(samp);
   }
 
   for(RDTreeWidget *cbuffer : cbuffers)
@@ -326,6 +334,8 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
     cbuffer->setHoverIconColumn(6, action, action_hover);
     cbuffer->setClearSelectionOnFocusLoss(true);
     cbuffer->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(cbuffer);
   }
 
   {
@@ -340,6 +350,8 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
     ui->gsStreamOut->setHoverIconColumn(6, action, action_hover);
     ui->gsStreamOut->setClearSelectionOnFocusLoss(true);
     ui->gsStreamOut->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(ui->gsStreamOut);
   }
 
   {
@@ -379,6 +391,8 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
     ui->targetOutputs->setHoverIconColumn(8, action, action_hover);
     ui->targetOutputs->setClearSelectionOnFocusLoss(true);
     ui->targetOutputs->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(ui->targetOutputs);
   }
 
   {
@@ -507,6 +521,48 @@ void D3D12PipelineStateViewer::SelectPipelineStage(PipelineStage stage)
     ui->pipeFlow->setSelectedStage((int)PipelineStage::ColorDepthOutput);
   else
     ui->pipeFlow->setSelectedStage((int)stage);
+}
+
+ResourceId D3D12PipelineStateViewer::GetResource(RDTreeWidgetItem *item)
+{
+  QVariant tag = item->tag();
+
+  if(tag.canConvert<ResourceId>())
+  {
+    return tag.value<ResourceId>();
+  }
+  else if(tag.canConvert<D3D12ViewTag>())
+  {
+    D3D12ViewTag viewTag = tag.value<D3D12ViewTag>();
+    return viewTag.res.resourceId;
+  }
+  else if(tag.canConvert<D3D12VBIBTag>())
+  {
+    D3D12VBIBTag buf = tag.value<D3D12VBIBTag>();
+    return buf.id;
+  }
+  else if(tag.canConvert<D3D12CBufTag>())
+  {
+    const D3D12Pipe::Shader *stage = stageForSender(item->treeWidget());
+
+    if(stage == NULL)
+      return ResourceId();
+
+    D3D12CBufTag cb = tag.value<D3D12CBufTag>();
+
+    if(cb.idx == ~0U)
+    {
+      // unused cbuffer, open regular buffer viewer
+      const D3D12Pipe::ConstantBuffer &buf =
+          m_Ctx.CurD3D12PipelineState()->rootElements[cb.rootElement].constantBuffers[cb.reg];
+
+      return buf.resourceId;
+    }
+
+    return m_Ctx.CurPipelineState().GetConstantBuffer(stage->stage, cb.idx, cb.arrayIdx).resourceId;
+  }
+
+  return ResourceId();
 }
 
 void D3D12PipelineStateViewer::on_showUnused_toggled(bool checked)

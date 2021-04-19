@@ -259,6 +259,8 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     ui->viBuffers->setHoverIconColumn(7, action, action_hover);
     ui->viBuffers->setClearSelectionOnFocusLoss(true);
     ui->viBuffers->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(ui->viBuffers);
   }
 
   for(RDTreeWidget *res : resources)
@@ -273,6 +275,8 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     res->setHoverIconColumn(7, action, action_hover);
     res->setClearSelectionOnFocusLoss(true);
     res->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(res);
   }
 
   for(RDTreeWidget *ubo : ubos)
@@ -287,6 +291,8 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     ubo->setHoverIconColumn(6, action, action_hover);
     ubo->setClearSelectionOnFocusLoss(true);
     ubo->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(ubo);
   }
 
   {
@@ -302,6 +308,8 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     ui->xfbBuffers->setHoverIconColumn(7, action, action_hover);
     ui->xfbBuffers->setClearSelectionOnFocusLoss(true);
     ui->xfbBuffers->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(ui->xfbBuffers);
   }
 
   {
@@ -360,6 +368,8 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     ui->fbAttach->setHoverIconColumn(8, action, action_hover);
     ui->fbAttach->setClearSelectionOnFocusLoss(true);
     ui->fbAttach->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(ui->fbAttach);
   }
 
   {
@@ -469,6 +479,56 @@ void VulkanPipelineStateViewer::SelectPipelineStage(PipelineStage stage)
     ui->pipeFlow->setSelectedStage((int)PipelineStage::Rasterizer);
   else
     ui->pipeFlow->setSelectedStage((int)stage);
+}
+
+ResourceId VulkanPipelineStateViewer::GetResource(RDTreeWidgetItem *item)
+{
+  QVariant tag = item->tag();
+
+  if(tag.canConvert<ResourceId>())
+  {
+    return tag.value<ResourceId>();
+  }
+  else if(tag.canConvert<VulkanTextureTag>())
+  {
+    VulkanTextureTag texTag = tag.value<VulkanTextureTag>();
+    return texTag.ID;
+  }
+  else if(tag.canConvert<VulkanBufferTag>())
+  {
+    VulkanBufferTag buf = tag.value<VulkanBufferTag>();
+    return buf.ID;
+  }
+  else if(tag.canConvert<VulkanVBIBTag>())
+  {
+    VulkanVBIBTag buf = tag.value<VulkanVBIBTag>();
+    return buf.id;
+  }
+  else if(tag.canConvert<VulkanCBufferTag>())
+  {
+    const VKPipe::Shader *stage = stageForSender(item->treeWidget());
+
+    if(stage == NULL)
+      return ResourceId();
+
+    VulkanCBufferTag cb = tag.value<VulkanCBufferTag>();
+
+    if(cb.slotIdx == ~0U)
+    {
+      // unused cbuffer, open regular buffer viewer
+      const VKPipe::Pipeline &pipe = cb.isGraphics ? m_Ctx.CurVulkanPipelineState()->graphics
+                                                   : m_Ctx.CurVulkanPipelineState()->compute;
+
+      const VKPipe::BindingElement &buf =
+          pipe.descriptorSets[cb.descSet].bindings[cb.descBind].binds[cb.arrayIdx];
+
+      return buf.resourceResourceId;
+    }
+
+    return m_Ctx.CurPipelineState().GetConstantBuffer(stage->stage, cb.slotIdx, cb.arrayIdx).resourceId;
+  }
+
+  return ResourceId();
 }
 
 void VulkanPipelineStateViewer::on_showUnused_toggled(bool checked)

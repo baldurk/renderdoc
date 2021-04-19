@@ -211,6 +211,8 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     ui->viBuffers->setClearSelectionOnFocusLoss(true);
     ui->viBuffers->setInstantTooltips(true);
     ui->viBuffers->setHoverIconColumn(6, action, action_hover);
+
+    m_Common.SetupResourceView(ui->viBuffers);
   }
 
   for(RDTreeWidget *tex : textures)
@@ -225,6 +227,8 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     tex->setHoverIconColumn(8, action, action_hover);
     tex->setClearSelectionOnFocusLoss(true);
     tex->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(tex);
   }
 
   for(RDTreeWidget *samp : samplers)
@@ -238,6 +242,8 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
 
     samp->setClearSelectionOnFocusLoss(true);
     samp->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(samp);
   }
 
   for(RDTreeWidget *ubo : ubos)
@@ -251,6 +257,8 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     ubo->setHoverIconColumn(4, action, action_hover);
     ubo->setClearSelectionOnFocusLoss(true);
     ubo->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(ubo);
   }
 
   for(RDTreeWidget *sub : subroutines)
@@ -265,18 +273,20 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     sub->setInstantTooltips(true);
   }
 
-  for(RDTreeWidget *ubo : readwrites)
+  for(RDTreeWidget *rw : readwrites)
   {
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
-    ubo->setHeader(header);
+    rw->setHeader(header);
 
-    ubo->setColumns({tr("Binding"), tr("Slot"), tr("Resource"), tr("Dimensions"), tr("Format"),
-                     tr("Access"), tr("Go")});
+    rw->setColumns({tr("Binding"), tr("Slot"), tr("Resource"), tr("Dimensions"), tr("Format"),
+                    tr("Access"), tr("Go")});
     header->setColumnStretchHints({1, 1, 2, 3, 3, 1, -1});
 
-    ubo->setHoverIconColumn(6, action, action_hover);
-    ubo->setClearSelectionOnFocusLoss(true);
-    ubo->setInstantTooltips(true);
+    rw->setHoverIconColumn(6, action, action_hover);
+    rw->setClearSelectionOnFocusLoss(true);
+    rw->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(rw);
   }
 
   {
@@ -292,6 +302,8 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     ui->xfbBuffers->setClearSelectionOnFocusLoss(true);
     ui->xfbBuffers->setInstantTooltips(true);
     ui->xfbBuffers->setHoverIconColumn(4, action, action_hover);
+
+    m_Common.SetupResourceView(ui->xfbBuffers);
   }
 
   {
@@ -331,6 +343,8 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     ui->framebuffer->setHoverIconColumn(8, action, action_hover);
     ui->framebuffer->setClearSelectionOnFocusLoss(true);
     ui->framebuffer->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(ui->framebuffer);
   }
 
   {
@@ -456,6 +470,46 @@ void GLPipelineStateViewer::SelectPipelineStage(PipelineStage stage)
     ui->pipeFlow->setSelectedStage((int)PipelineStage::Rasterizer);
   else
     ui->pipeFlow->setSelectedStage((int)stage);
+}
+
+ResourceId GLPipelineStateViewer::GetResource(RDTreeWidgetItem *item)
+{
+  QVariant tag = item->tag();
+
+  const rdcarray<RDTreeWidget *> ubos = {
+      ui->vsUBOs, ui->tcsUBOs, ui->tesUBOs, ui->gsUBOs, ui->fsUBOs, ui->csUBOs,
+  };
+
+  if(tag.canConvert<ResourceId>())
+  {
+    return tag.value<ResourceId>();
+  }
+  else if(tag.canConvert<GLVBIBTag>())
+  {
+    GLVBIBTag buf = tag.value<GLVBIBTag>();
+    return buf.id;
+  }
+  else if(tag.canConvert<GLReadWriteTag>())
+  {
+    GLReadWriteTag rw = tag.value<GLReadWriteTag>();
+    return rw.ID;
+  }
+  else if(ubos.contains(item->treeWidget()))
+  {
+    const GLPipe::Shader *stage = stageForSender(item->treeWidget());
+
+    if(stage == NULL)
+      return ResourceId();
+
+    if(!tag.canConvert<int>())
+      return ResourceId();
+
+    int cb = tag.value<int>();
+
+    return m_Ctx.CurPipelineState().GetConstantBuffer(stage->stage, cb, 0).resourceId;
+  }
+
+  return ResourceId();
 }
 
 void GLPipelineStateViewer::on_showUnused_toggled(bool checked)

@@ -224,6 +224,8 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
     ui->iaBuffers->setClearSelectionOnFocusLoss(true);
     ui->iaBuffers->setInstantTooltips(true);
     ui->iaBuffers->setHoverIconColumn(5, action, action_hover);
+
+    m_Common.SetupResourceView(ui->iaBuffers);
   }
 
   for(RDTreeWidget *tex : resources)
@@ -238,6 +240,8 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
     tex->setHoverIconColumn(8, action, action_hover);
     tex->setClearSelectionOnFocusLoss(true);
     tex->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(tex);
   }
 
   for(RDTreeWidget *samp : samplers)
@@ -251,6 +255,8 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
 
     samp->setClearSelectionOnFocusLoss(true);
     samp->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(samp);
   }
 
   for(RDTreeWidget *cbuffer : cbuffers)
@@ -264,6 +270,8 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
     cbuffer->setHoverIconColumn(4, action, action_hover);
     cbuffer->setClearSelectionOnFocusLoss(true);
     cbuffer->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(cbuffer);
   }
 
   for(RDTreeWidget *cl : classes)
@@ -276,6 +284,8 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
 
     cl->setClearSelectionOnFocusLoss(true);
     cl->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(cl);
   }
 
   {
@@ -290,6 +300,8 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
     ui->gsStreamOut->setHoverIconColumn(4, action, action_hover);
     ui->gsStreamOut->setClearSelectionOnFocusLoss(true);
     ui->gsStreamOut->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(ui->gsStreamOut);
   }
 
   {
@@ -329,6 +341,8 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
     ui->targetOutputs->setHoverIconColumn(8, action, action_hover);
     ui->targetOutputs->setClearSelectionOnFocusLoss(true);
     ui->targetOutputs->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(ui->targetOutputs);
   }
 
   {
@@ -367,6 +381,8 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
     ui->csUAVs->setHoverIconColumn(8, action, action_hover);
     ui->csUAVs->setClearSelectionOnFocusLoss(true);
     ui->csUAVs->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(ui->csUAVs);
   }
 
   // this is often changed just because we're changing some tab in the designer.
@@ -473,6 +489,66 @@ void D3D11PipelineStateViewer::SelectPipelineStage(PipelineStage stage)
     ui->pipeFlow->setSelectedStage((int)PipelineStage::ColorDepthOutput);
   else
     ui->pipeFlow->setSelectedStage((int)stage);
+}
+
+ResourceId D3D11PipelineStateViewer::GetResource(RDTreeWidgetItem *item)
+{
+  QVariant tag = item->tag();
+
+  const rdcarray<RDTreeWidget *> cbuffers = {
+      ui->vsCBuffers, ui->hsCBuffers, ui->dsCBuffers,
+      ui->gsCBuffers, ui->psCBuffers, ui->csCBuffers,
+  };
+
+  if(tag.canConvert<ResourceId>())
+  {
+    return tag.value<ResourceId>();
+  }
+  else if(tag.canConvert<D3D11ViewTag>())
+  {
+    D3D11ViewTag viewTag = tag.value<D3D11ViewTag>();
+    return viewTag.res.resourceResourceId;
+  }
+  else if(tag.canConvert<D3D11VBIBTag>())
+  {
+    D3D11VBIBTag buf = tag.value<D3D11VBIBTag>();
+    return buf.id;
+  }
+  else if(cbuffers.contains(item->treeWidget()))
+  {
+    const D3D11Pipe::Shader *stage = stageForSender(item->treeWidget());
+
+    if(stage == NULL)
+      return ResourceId();
+
+    int cb = tag.value<int>();
+
+    int cbufIdx = -1;
+
+    for(int i = 0; i < stage->bindpointMapping.constantBlocks.count(); i++)
+    {
+      if(stage->bindpointMapping.constantBlocks[i].bind == cb)
+      {
+        cbufIdx = i;
+        break;
+      }
+    }
+
+    if(cbufIdx == -1)
+    {
+      // unused cbuffer, open regular buffer viewer
+      if(cb >= stage->constantBuffers.count())
+        return ResourceId();
+
+      const D3D11Pipe::ConstantBuffer &bind = stage->constantBuffers[cb];
+
+      return bind.resourceId;
+    }
+
+    return m_Ctx.CurPipelineState().GetConstantBuffer(stage->stage, cbufIdx, 0).resourceId;
+  }
+
+  return ResourceId();
 }
 
 void D3D11PipelineStateViewer::on_showUnused_toggled(bool checked)

@@ -133,6 +133,8 @@ public:
   void clearInternalExpansions() { m_Expansions.clear(); }
   virtual void copySelection();
 
+  void copyIndex(QPoint pos, QModelIndex index);
+
   void expandAll(QModelIndex index);
   void collapseAll(QModelIndex index);
   using QTreeView::expandAll;

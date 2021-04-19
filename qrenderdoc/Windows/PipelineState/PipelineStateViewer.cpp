@@ -999,6 +999,100 @@ void PipelineStateViewer::SetupShaderEditButton(QToolButton *button, ResourceId 
   button->setMenu(menu);
 }
 
+void PipelineStateViewer::AddResourceUsageEntry(QMenu &menu, uint32_t start, uint32_t end,
+                                                ResourceUsage usage)
+{
+  QAction *item = NULL;
+
+  if(start == end)
+    item = new QAction(
+        QFormatStr("EID %1: %2").arg(start).arg(ToQStr(usage, m_Ctx.APIProps().pipelineType)), this);
+  else
+    item = new QAction(
+        QFormatStr("EID %1-%2: %3").arg(start).arg(end).arg(ToQStr(usage, m_Ctx.APIProps().pipelineType)),
+        this);
+
+  QObject::connect(item, &QAction::triggered, [this, end]() { m_Ctx.SetEventID({}, end, end); });
+
+  menu.addAction(item);
+}
+
+void PipelineStateViewer::ShowResourceContextMenu(RDTreeWidget *widget, const QPoint &pos,
+                                                  ResourceId id, const rdcarray<EventUsage> &usage)
+{
+  RDTreeWidgetItem *item = widget->itemAt(pos);
+
+  QMenu contextMenu(this);
+
+  QAction copy(tr("&Copy"), this);
+
+  contextMenu.addAction(&copy);
+
+  copy.setIcon(Icons::copy());
+
+  QObject::connect(&copy, &QAction::triggered,
+                   [widget, pos, item]() { widget->copyItem(pos, item); });
+
+  QAction usageTitle(tr("Used:"), this);
+  QAction openResourceInspector(tr("Open in Resource Inspector"), this);
+
+  if(id != ResourceId())
+  {
+    contextMenu.addSeparator();
+    contextMenu.addAction(&openResourceInspector);
+    contextMenu.addAction(&usageTitle);
+
+    QObject::connect(&openResourceInspector, &QAction::triggered, [this, id]() {
+      m_Ctx.ShowResourceInspector();
+
+      m_Ctx.GetResourceInspector()->Inspect(id);
+    });
+
+    CombineUsageEvents(m_Ctx, usage,
+                       [this, &contextMenu](uint32_t start, uint32_t end, ResourceUsage use) {
+                         AddResourceUsageEntry(contextMenu, start, end, use);
+                       });
+  }
+
+  RDDialog::show(&contextMenu, widget->viewport()->mapToGlobal(pos));
+}
+
+void PipelineStateViewer::SetupResourceView(RDTreeWidget *widget)
+{
+  auto handler = [this, widget](const QPoint &pos) {
+    RDTreeWidgetItem *item = widget->itemAt(pos);
+
+    ResourceId id;
+
+    if(m_D3D11)
+      id = m_D3D11->GetResource(item);
+    else if(m_D3D12)
+      id = m_D3D12->GetResource(item);
+    else if(m_GL)
+      id = m_GL->GetResource(item);
+    else if(m_Vulkan)
+      id = m_Vulkan->GetResource(item);
+
+    if(id != ResourceId())
+    {
+      m_Ctx.Replay().AsyncInvoke([this, widget, pos, id](IReplayController *r) {
+        rdcarray<EventUsage> usage = r->GetUsage(id);
+
+        GUIInvoke::call(this, [this, widget, pos, id, usage]() {
+          ShowResourceContextMenu(widget, pos, id, usage);
+        });
+      });
+    }
+    else
+    {
+      ShowResourceContextMenu(widget, pos, id, {});
+    }
+  };
+
+  widget->setContextMenuPolicy(Qt::CustomContextMenu);
+  QObject::connect(widget, &RDTreeWidget::customContextMenuRequested, handler);
+}
+
 QString PipelineStateViewer::GetVBufferFormatString(uint32_t slot)
 {
   rdcarray<BoundVBuffer> vbs = m_Ctx.CurPipelineState().GetVBuffers();

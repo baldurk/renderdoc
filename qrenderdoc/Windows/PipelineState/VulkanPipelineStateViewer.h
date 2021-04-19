@@ -61,6 +61,7 @@ public:
   void OnEventChanged(uint32_t eventId);
 
   void SelectPipelineStage(PipelineStage stage);
+  ResourceId GetResource(RDTreeWidgetItem *item);
 
 private slots:
   // automatic slots

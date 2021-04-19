@@ -270,19 +270,22 @@ void RDTreeView::contextMenuEvent(QContextMenuEvent *event)
 
   QObject::connect(&collapseAllAction, &QAction::triggered, [this, index]() { collapseAll(index); });
 
-  QObject::connect(&copy, &QAction::triggered, [this, index, pos]() {
-    bool clearsel = false;
-    if(selectionModel()->selectedRows().empty())
-    {
-      setSelection(QRect(pos, QSize(1, 1)), selectionCommand(index));
-      clearsel = true;
-    }
-    copySelection();
-    if(clearsel)
-      selectionModel()->clear();
-  });
+  QObject::connect(&copy, &QAction::triggered, [this, index, pos]() { copyIndex(pos, index); });
 
   RDDialog::show(&contextMenu, viewport()->mapToGlobal(pos));
+}
+
+void RDTreeView::copyIndex(QPoint pos, QModelIndex index)
+{
+  bool clearsel = false;
+  if(selectionModel()->selectedRows().empty())
+  {
+    setSelection(QRect(pos, QSize(1, 1)), selectionCommand(index));
+    clearsel = true;
+  }
+  copySelection();
+  if(clearsel)
+    selectionModel()->clear();
 }
 
 void RDTreeView::expandAll(QModelIndex index)

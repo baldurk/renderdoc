@@ -39,6 +39,7 @@ class QToolButton;
 class QMenu;
 class RDLabel;
 class RDTreeWidgetItem;
+class RDTreeWidget;
 
 class D3D11PipelineStateViewer;
 class D3D12PipelineStateViewer;
@@ -76,6 +77,8 @@ public:
                              const ShaderBindpointMapping &bindpointMapping,
                              const ShaderReflection *shaderDetails);
 
+  void SetupResourceView(RDTreeWidget *view);
+
   QString GetVBufferFormatString(uint32_t slot);
 
   void setTopologyDiagram(QLabel *diagram, Topology topo);
@@ -97,6 +100,10 @@ private:
   ICaptureContext &m_Ctx;
 
   QMenu *editMenus[6] = {};
+
+  void AddResourceUsageEntry(QMenu &menu, uint32_t start, uint32_t end, ResourceUsage usage);
+  void ShowResourceContextMenu(RDTreeWidget *widget, const QPoint &pos, ResourceId id,
+                               const rdcarray<EventUsage> &usage);
 
   QString GenerateHLSLStub(const ShaderBindpointMapping &bindpointMapping,
                            const ShaderReflection *shaderDetails, const QString &entryFunc);

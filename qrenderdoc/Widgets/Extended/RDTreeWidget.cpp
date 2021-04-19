@@ -668,6 +668,12 @@ QAbstractItemDelegate *RDTreeWidget::itemDelegate() const
 {
   return m_userDelegate;
 }
+
+void RDTreeWidget::copyItem(QPoint pos, RDTreeWidgetItem *item)
+{
+  copyIndex(pos, m_model->indexForItem(item, 0));
+}
+
 void RDTreeWidget::setColumns(const QStringList &columns)
 {
   m_headers = columns;
