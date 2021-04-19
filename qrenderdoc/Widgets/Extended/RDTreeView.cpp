@@ -261,6 +261,8 @@ void RDTreeView::contextMenuEvent(QContextMenuEvent *event)
   expandAllAction.setIcon(Icons::arrow_out());
   collapseAllAction.setIcon(Icons::arrow_in());
 
+  copy.setIcon(Icons::copy());
+
   expandAllAction.setEnabled(index.isValid() && model()->rowCount(index) > 0);
   collapseAllAction.setEnabled(index.isValid() && model()->rowCount(index) > 0);
 

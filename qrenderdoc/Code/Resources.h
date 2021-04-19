@@ -41,6 +41,7 @@
   RESOURCE_DEF(chart_curve, "chart_curve.png")                          \
   RESOURCE_DEF(cog, "cog.png")                                          \
   RESOURCE_DEF(color_wheel, "color_wheel.png")                          \
+  RESOURCE_DEF(copy, "copy.png")                                        \
   RESOURCE_DEF(connect, "connect.png")                                  \
   RESOURCE_DEF(control_base_blue, "control_base_blue.png")              \
   RESOURCE_DEF(control_cursor_blue, "control_cursor_blue.png")          \
@@ -52,6 +53,7 @@
   RESOURCE_DEF(control_start_blue, "control_start_blue.png")            \
   RESOURCE_DEF(cross, "cross.png")                                      \
   RESOURCE_DEF(checkerboard, "checkerboard.png")                        \
+  RESOURCE_DEF(cut, "cut.png")                                          \
   RESOURCE_DEF(del, "del.png")                                          \
   RESOURCE_DEF(disconnect, "disconnect.png")                            \
   RESOURCE_DEF(find, "find.png")                                        \
@@ -71,6 +73,7 @@
   RESOURCE_DEF(page_white_edit, "page_white_edit.png")                  \
   RESOURCE_DEF(page_white_link, "page_white_link.png")                  \
   RESOURCE_DEF(page_white_stack, "page_white_stack.png")                \
+  RESOURCE_DEF(paste, "paste.png")                                      \
   RESOURCE_DEF(plugin, "plugin.png")                                    \
   RESOURCE_DEF(plugin_add, "plugin_add.png")                            \
   RESOURCE_DEF(save, "save.png")                                        \

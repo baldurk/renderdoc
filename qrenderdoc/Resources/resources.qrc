@@ -43,6 +43,8 @@
         <file>cog@2x.png</file>
         <file>color_wheel.png</file>
         <file>color_wheel@2x.png</file>
+        <file>copy.png</file>
+        <file>copy@2x.png</file>
         <file>connect.png</file>
         <file>connect@2x.png</file>
         <file>control_base_blue.png</file>
@@ -63,6 +65,8 @@
         <file>control_start_blue@2x.png</file>
         <file>cross.png</file>
         <file>cross@2x.png</file>
+        <file>cut.png</file>
+        <file>cut@2x.png</file>
         <file>del.png</file>
         <file>del@2x.png</file>
         <file>disconnect.png</file>
@@ -99,6 +103,8 @@
         <file>page_white_link@2x.png</file>
         <file>page_white_stack.png</file>
         <file>page_white_stack@2x.png</file>
+        <file>paste.png</file>
+        <file>paste@2x.png</file>
         <file>plugin.png</file>
         <file>plugin@2x.png</file>
         <file>plugin_add.png</file>
