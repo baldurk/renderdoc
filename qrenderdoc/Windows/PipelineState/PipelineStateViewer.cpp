@@ -1168,6 +1168,8 @@ void PipelineStateViewer::ShowResourceContextMenu(RDTreeWidget *widget, const QP
   QAction usageTitle(tr("Used:"), this);
   QAction openResourceInspector(tr("Open in Resource Inspector"), this);
 
+  openResourceInspector.setIcon(Icons::link());
+
   if(id != ResourceId())
   {
     contextMenu.addSeparator();
