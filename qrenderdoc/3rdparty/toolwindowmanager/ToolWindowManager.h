@@ -27,6 +27,7 @@
 
 #include <QHash>
 #include <QLabel>
+#include <QPointer>
 #include <QVariant>
 #include <QWidget>
 
@@ -288,8 +289,8 @@ private:
   // list of tool windows that are currently dragged, or empty list if there is no current drag
   QList<QWidget *> m_draggedToolWindows;
   ToolWindowManagerWrapper
-      *m_draggedWrapper;                 // the wrapper if a whole float window is being dragged
-  ToolWindowManagerArea *m_hoverArea;    // the area currently being hovered over in a drag
+      *m_draggedWrapper;    // the wrapper if a whole float window is being dragged
+  QPointer<ToolWindowManagerArea> m_hoverArea;    // the area currently being hovered over in a drag
   // a semi-transparent preview of where the dragged toolwindow(s) will be docked
   QWidget *m_previewOverlay;
   QWidget *m_previewTabOverlay;
