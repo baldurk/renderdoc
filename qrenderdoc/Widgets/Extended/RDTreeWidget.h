@@ -210,7 +210,6 @@ class RDTreeWidget : public RDTreeView
 {
   Q_OBJECT
 
-  Q_PROPERTY(bool instantTooltips READ instantTooltips WRITE setInstantTooltips)
 public:
   explicit RDTreeWidget(QWidget *parent = 0);
   ~RDTreeWidget();
@@ -226,8 +225,6 @@ public:
   void setHoverHandCursor(bool hand) { m_hoverHandCursor = hand; }
   void setHoverClickActivate(bool click) { m_activateOnClick = click; }
   void setClearSelectionOnFocusLoss(bool clear) { m_clearSelectionOnFocusLoss = clear; }
-  bool instantTooltips() { return m_instantTooltips; }
-  void setInstantTooltips(bool instant) { m_instantTooltips = instant; }
   RDTreeWidgetItem *invisibleRootItem() { return m_root; }
   void addTopLevelItem(RDTreeWidgetItem *item) { m_root->addChild(item); }
   RDTreeWidgetItem *topLevelItem(int index) const { return m_root->child(index); }
@@ -314,7 +311,6 @@ private:
 
   QVector<Qt::Alignment> m_alignments;
 
-  bool m_instantTooltips = false;
   int m_hoverColumn = -1;
   QIcon m_normalHoverIcon;
   QIcon m_activeHoverIcon;

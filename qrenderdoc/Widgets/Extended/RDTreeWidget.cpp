@@ -31,7 +31,6 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPen>
-#include <QToolTip>
 #include "Code/Interface/QRDInterface.h"
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
@@ -259,7 +258,7 @@ public:
       item->m_fore = value.value<QBrush>();
       ret = true;
     }
-    else if(role == Qt::ToolTipRole && !widget->m_instantTooltips)
+    else if(role == Qt::ToolTipRole)
     {
       item->m_tooltip = value.toString();
       ret = true;
@@ -359,7 +358,7 @@ QVariant RDTreeWidgetItem::data(int column, int role) const
 
     return QVariant();
   }
-  else if(role == Qt::ToolTipRole && !m_widget->m_instantTooltips)
+  else if(role == Qt::ToolTipRole)
   {
     if(!m_tooltip.isEmpty())
       return m_tooltip;
@@ -784,27 +783,6 @@ void RDTreeWidget::mouseMoveEvent(QMouseEvent *e)
     m_model->itemChanged(oldHover, roles);
   m_model->itemChanged(newHover, roles);
 
-  if(m_instantTooltips)
-  {
-    QToolTip::hideText();
-
-    if(newHover && !newHover->m_tooltip.isEmpty())
-    {
-      // the documentation says:
-      //
-      // "If text is empty the tool tip is hidden. If the text is the same as the currently shown
-      // tooltip, the tip will not move. You can force moving by first hiding the tip with an
-      // empty
-      // text, and then showing the new tip at the new position."
-      //
-      // However the actual implementation has some kind of 'fading' check, so if you hide then
-      // immediately show, it will try to reuse the tooltip and end up not moving it at all if the
-      // text hasn't changed.
-      QToolTip::showText(QCursor::pos(), lit(" "), this);
-      QToolTip::showText(QCursor::pos(), newHover->m_tooltip, this);
-    }
-  }
-
   emit hoverItemChanged(newHover);
 
   emit mouseMove(e);
@@ -831,8 +809,6 @@ void RDTreeWidget::leaveEvent(QEvent *e)
   if(m_currentHoverIndex.isValid())
   {
     RDTreeWidgetItem *item = m_model->itemForIndex(m_currentHoverIndex);
-    if(!item->m_tooltip.isEmpty() && m_instantTooltips)
-      QToolTip::hideText();
     m_model->itemChanged(item, {Qt::DecorationRole, Qt::BackgroundRole, Qt::ForegroundRole});
   }
 

@@ -26,6 +26,7 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QContextMenuEvent>
+#include <QDesktopWidget>
 #include <QHeaderView>
 #include <QLabel>
 #include <QMenu>
@@ -35,7 +36,6 @@
 #include <QScrollBar>
 #include <QStack>
 #include <QStylePainter>
-#include <QToolTip>
 #include <QWheelEvent>
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
@@ -132,6 +132,19 @@ RDTipLabel::RDTipLabel(QWidget *listener) : QLabel(NULL), mouseListener(listener
   setWindowOpacity(opacity / 255.0);
 }
 
+QSize RDTipLabel::getSizeForTip(QString text)
+{
+  setText(text);
+  return sizeHint();
+}
+
+void RDTipLabel::showTip(QPoint pos, QString text)
+{
+  move(pos);
+  setText(text);
+  show();
+}
+
 void RDTipLabel::paintEvent(QPaintEvent *ev)
 {
   QStylePainter p(this);
@@ -187,23 +200,72 @@ RDTreeView::RDTreeView(QWidget *parent) : QTreeView(parent)
   m_delegate = new RDTreeViewDelegate(this);
   QTreeView::setItemDelegate(m_delegate);
 
-  m_ElidedTooltip = new RDTipLabel(viewport());
-  m_ElidedTooltip->hide();
+  m_TooltipLabel = new RDTipLabel(viewport());
+  m_TooltipLabel->hide();
+  m_CurrentTooltipElided = false;
+
+  m_Tooltip = m_TooltipLabel;
 }
 
 RDTreeView::~RDTreeView()
 {
   setModel(NULL);
 
-  delete m_ElidedTooltip;
+  delete m_TooltipLabel;
 }
 
 void RDTreeView::mouseMoveEvent(QMouseEvent *e)
 {
-  if(m_ElidedTooltip->isVisible() && !m_ElidedTooltip->geometry().contains(QCursor::pos()))
-    m_ElidedTooltip->hide();
+  QModelIndex oldHoverIndex = m_currentHoverIndex;
+
+  if(m_CurrentTooltipElided && m_TooltipLabel->isVisible() &&
+     !m_TooltipLabel->geometry().contains(QCursor::pos()))
+    m_Tooltip->hideTip();
 
   m_currentHoverIndex = indexAt(e->pos());
+
+  if(oldHoverIndex != m_currentHoverIndex)
+  {
+    if(m_instantTooltips)
+    {
+      m_Tooltip->hideTip();
+
+      if(m_currentHoverIndex.isValid())
+      {
+        QString tooltip = m_currentHoverIndex.data(Qt::ToolTipRole).toString();
+
+        if(!tooltip.isEmpty())
+        {
+          // We don't use QToolTip since we have a custom tooltip for showing elided results, and we
+          // use that for consistency. This also makes it easier to slot in a custom tooltip widget
+          // externally.
+          QPoint p = QCursor::pos();
+
+          // estimate, as this is not easily queryable
+          const QPoint cursorSize(16, 16);
+          const QRect screenAvailGeom = QApplication::desktop()->availableGeometry(p);
+
+          // start with the tooltip placed bottom-right of the cursor, as the default
+          QRect tooltipRect;
+          tooltipRect.setTopLeft(p + cursorSize);
+          tooltipRect.setSize(m_Tooltip->getSizeForTip(tooltip));
+
+          // clip by the available geometry in x
+          if(tooltipRect.right() > screenAvailGeom.right())
+            tooltipRect.moveRight(screenAvailGeom.right());
+
+          // if we'd go out of bounds in y, place the tooltip above the cursor. Don't just clip like
+          // in x, because that could place the tooltip over the cursor.
+          if(tooltipRect.bottom() > screenAvailGeom.bottom())
+            tooltipRect.moveBottom(p.y() - cursorSize.y());
+
+          m_Tooltip->showTip(tooltipRect.topLeft(), tooltip);
+          m_CurrentTooltipElided = false;
+        }
+      }
+    }
+  }
+
   QTreeView::mouseMoveEvent(e);
 }
 
@@ -215,8 +277,15 @@ void RDTreeView::wheelEvent(QWheelEvent *e)
 
 void RDTreeView::leaveEvent(QEvent *e)
 {
-  if(m_ElidedTooltip->isVisible() && !m_ElidedTooltip->geometry().contains(QCursor::pos()))
-    m_ElidedTooltip->hide();
+  if(m_CurrentTooltipElided)
+  {
+    if(m_TooltipLabel->isVisible() && !m_TooltipLabel->geometry().contains(QCursor::pos()))
+      m_Tooltip->hideTip();
+  }
+  else
+  {
+    m_Tooltip->hideTip();
+  }
 
   m_currentHoverIndex = QModelIndex();
 
@@ -306,40 +375,48 @@ void RDTreeView::collapseAll(QModelIndex index)
 
 bool RDTreeView::viewportEvent(QEvent *event)
 {
-  if(m_TooltipElidedItems && event->type() == QEvent::ToolTip)
+  if(event->type() == QEvent::ToolTip)
   {
-    QHelpEvent *he = (QHelpEvent *)event;
-    QModelIndex index = indexAt(he->pos());
+    // if we're doing instant tooltips this is all handled in the mousemove handler, don't do
+    // anything here
+    if(m_instantTooltips)
+      return true;
 
-    QAbstractItemDelegate *delegate = m_userDelegate;
-
-    if(!delegate)
-      delegate = QTreeView::itemDelegate(index);
-
-    if(delegate)
+    if(m_TooltipElidedItems)
     {
-      QStyleOptionViewItem option;
-      option.initFrom(this);
-      option.rect = visualRect(index);
+      QHelpEvent *he = (QHelpEvent *)event;
+      QModelIndex index = indexAt(he->pos());
 
-      // delegates get first dibs at processing the event
-      bool ret = delegate->helpEvent(he, this, option, index);
+      QAbstractItemDelegate *delegate = m_userDelegate;
 
-      if(ret)
-        return true;
+      if(!delegate)
+        delegate = QTreeView::itemDelegate(index);
 
-      QSize desiredSize = delegate->sizeHint(option, index);
-
-      if(desiredSize.width() > option.rect.width())
+      if(delegate)
       {
-        const QString fullText = index.data(Qt::DisplayRole).toString();
-        if(!fullText.isEmpty())
+        QStyleOptionViewItem option;
+        option.initFrom(this);
+        option.rect = visualRect(index);
+
+        // delegates get first dibs at processing the event
+        bool ret = delegate->helpEvent(he, this, option, index);
+
+        if(ret)
+          return true;
+
+        QSize desiredSize = delegate->sizeHint(option, index);
+
+        if(desiredSize.width() > option.rect.width())
         {
-          // need to use a custom label tooltip since the QToolTip freaks out as we're placing it
-          // underneath the cursor instead of next to it (so that the tooltip lines up over the row)
-          m_ElidedTooltip->move(viewport()->mapToGlobal(option.rect.topLeft()));
-          m_ElidedTooltip->setText(fullText);
-          m_ElidedTooltip->show();
+          const QString fullText = index.data(Qt::DisplayRole).toString();
+          if(!fullText.isEmpty())
+          {
+            // need to use a custom label tooltip since the QToolTip freaks out as we're placing it
+            // underneath the cursor instead of next to it (so that the tooltip lines up over the
+            // row)
+            m_Tooltip->showTip(viewport()->mapToGlobal(option.rect.topLeft()), fullText);
+            m_CurrentTooltipElided = true;
+          }
         }
       }
     }

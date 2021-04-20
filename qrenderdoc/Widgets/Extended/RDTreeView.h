@@ -47,18 +47,28 @@ public:
   QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override;
 };
 
-class RDTipLabel : public QLabel
+struct ITreeViewTipDisplay
+{
+public:
+  virtual void hideTip() = 0;
+  virtual QSize getSizeForTip(QString text) = 0;
+  virtual void showTip(QPoint pos, QString text) = 0;
+};
+
+class RDTipLabel : public QLabel, public ITreeViewTipDisplay
 {
 private:
   Q_OBJECT
 
-  int m_TooltipMargin = 0;
   QWidget *mouseListener;
 
 public:
   explicit RDTipLabel(QWidget *listener = NULL);
 
-  int tipMargin() { return m_TooltipMargin; }
+  void hideTip() { hide(); }
+  QSize getSizeForTip(QString text);
+  void showTip(QPoint pos, QString text);
+
 protected:
   void paintEvent(QPaintEvent *);
   void mousePressEvent(QMouseEvent *);
@@ -76,6 +86,7 @@ class RDTreeView : public QTreeView
   Q_OBJECT
 
   Q_PROPERTY(bool customCopyPasteHandler READ customCopyPasteHandler WRITE setCustomCopyPasteHandler)
+  Q_PROPERTY(bool instantTooltips READ instantTooltips WRITE setInstantTooltips)
 public:
   explicit RDTreeView(QWidget *parent = 0);
   virtual ~RDTreeView();
@@ -97,10 +108,17 @@ public:
   bool ignoreIconSize() { return m_IgnoreIconSize; }
   bool customCopyPasteHandler() { return m_customCopyPaste; }
   void setCustomCopyPasteHandler(bool custom) { m_customCopyPaste = custom; }
+  bool instantTooltips() { return m_instantTooltips; }
+  void setInstantTooltips(bool instant) { m_instantTooltips = instant; }
   QModelIndex currentHoverIndex() const { return m_currentHoverIndex; }
   void setItemDelegate(QAbstractItemDelegate *delegate);
   QAbstractItemDelegate *itemDelegate() const;
 
+  void setCustomTooltip(ITreeViewTipDisplay *tip)
+  {
+    m_Tooltip = tip;
+    m_TooltipElidedItems = false;
+  }
   void setModel(QAbstractItemModel *model) override;
 
   // state is the storage to save the expansion state into
@@ -168,6 +186,7 @@ private:
   bool m_VisibleGridLines = true;
   bool m_TooltipElidedItems = true;
   bool m_customCopyPaste = false;
+  bool m_instantTooltips = false;
 
   QMap<uint, RDTreeViewExpansionState> m_Expansions;
 
@@ -179,7 +198,9 @@ private:
   QAbstractItemDelegate *m_userDelegate = NULL;
   RDTreeViewDelegate *m_delegate;
 
-  RDTipLabel *m_ElidedTooltip;
+  RDTipLabel *m_TooltipLabel;
+  ITreeViewTipDisplay *m_Tooltip;
+  bool m_CurrentTooltipElided = false;
 
   int m_VertMargin = 6;
   bool m_IgnoreIconSize = false;
