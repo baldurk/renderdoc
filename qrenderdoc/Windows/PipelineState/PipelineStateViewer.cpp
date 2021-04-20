@@ -26,6 +26,7 @@
 #include <QMenu>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QStylePainter>
 #include <QSvgRenderer>
 #include <QToolButton>
 #include <QXmlStreamWriter>
@@ -80,10 +81,121 @@ static uint32_t byteSize(const ResourceFormat &fmt)
   return fmt.compByteWidth * fmt.compCount;
 }
 
+RDPreviewTooltip::RDPreviewTooltip(PipelineStateViewer *parent, CustomPaintWidget *thumbnail,
+                                   ICaptureContext &ctx)
+    : QFrame(parent), m_Ctx(ctx)
+{
+  int margin = style()->pixelMetric(QStyle::PM_ToolTipLabelFrameWidth, NULL, this);
+  int opacity = style()->styleHint(QStyle::SH_ToolTipLabel_Opacity, NULL, this);
+
+  pipe = parent;
+
+  setWindowFlags(Qt::ToolTip);
+  setAttribute(Qt::WA_TransparentForMouseEvents);
+  setForegroundRole(QPalette::ToolTipText);
+  setBackgroundRole(QPalette::ToolTipBase);
+  setFrameStyle(QFrame::NoFrame);
+  setWindowOpacity(opacity / 255.0);
+  setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+
+  QHBoxLayout *hbox = new QHBoxLayout;
+  QVBoxLayout *vbox = new QVBoxLayout;
+  label = new QLabel(this);
+
+  label->setMargin(margin + 1);
+  label->setAlignment(Qt::AlignLeft);
+  label->setIndent(1);
+
+  title = new QLabel(this);
+  title->setMargin(margin + 1);
+  title->setAlignment(Qt::AlignLeft);
+  title->setIndent(1);
+
+  setLayout(vbox);
+  vbox->addWidget(title);
+  vbox->addLayout(hbox);
+
+  hbox->addWidget(thumbnail);
+  hbox->addStretch();
+
+  vbox->addWidget(label);
+}
+
+void RDPreviewTooltip::hideTip()
+{
+  hide();
+}
+
+QSize RDPreviewTooltip::configureTip(QWidget *widget, QModelIndex idx, QString text)
+{
+  ResourceId id = pipe->updateThumbnail(widget, idx);
+  if(id != ResourceId())
+  {
+    title->setText(m_Ctx.GetResourceName(id));
+    title->show();
+  }
+  else
+  {
+    title->hide();
+  }
+  label->setText(text);
+  label->setVisible(!text.isEmpty());
+  layout()->update();
+  layout()->activate();
+  return minimumSizeHint();
+}
+
+void RDPreviewTooltip::showTip(QPoint pos)
+{
+  move(pos);
+  resize(minimumSize());
+  show();
+}
+
+bool RDPreviewTooltip::forceTip(QWidget *widget, QModelIndex idx)
+{
+  return pipe->hasThumbnail(widget, idx);
+}
+
+void RDPreviewTooltip::paintEvent(QPaintEvent *ev)
+{
+  QStylePainter p(this);
+  QStyleOptionFrame opt;
+  opt.init(this);
+  p.drawPrimitive(QStyle::PE_PanelTipLabel, opt);
+  p.end();
+
+  QWidget::paintEvent(ev);
+}
+
+void RDPreviewTooltip::resizeEvent(QResizeEvent *e)
+{
+  QStyleHintReturnMask frameMask;
+  QStyleOption option;
+  option.init(this);
+  if(style()->styleHint(QStyle::SH_ToolTip_Mask, &option, this, &frameMask))
+    setMask(frameMask.region);
+
+  QWidget::resizeEvent(e);
+}
+
 PipelineStateViewer::PipelineStateViewer(ICaptureContext &ctx, QWidget *parent)
     : QFrame(parent), ui(new Ui::PipelineStateViewer), m_Ctx(ctx)
 {
   ui->setupUi(this);
+
+  ui->thumbnail->SetContext(m_Ctx);
+  ui->layout->removeWidget(ui->thumbnail);
+
+  m_Tooltip = new RDPreviewTooltip(this, ui->thumbnail, m_Ctx);
+
+  QColor c = palette().color(QPalette::ToolTipBase).toRgb();
+
+  m_TexDisplay.backgroundColor = FloatVector();
+  m_TexDisplay.backgroundColor.w = 1.0f;
+
+  // auto-fit and center scale
+  m_TexDisplay.scale = -1.0f;
 
   m_D3D11 = NULL;
   m_D3D12 = NULL;
@@ -105,6 +217,8 @@ PipelineStateViewer::~PipelineStateViewer()
   m_Ctx.BuiltinWindowClosed(this);
   m_Ctx.RemoveCaptureViewer(this);
 
+  delete m_Tooltip;
+
   delete ui;
 }
 
@@ -121,6 +235,24 @@ void PipelineStateViewer::OnCaptureLoaded()
 
   if(m_Current)
     m_Current->OnCaptureLoaded();
+
+  WindowingData thumbData = ui->thumbnail->GetWidgetWindowingData();
+
+  m_Ctx.Replay().BlockInvoke([thumbData, this](IReplayController *r) {
+    m_Output = r->CreateOutput(thumbData, ReplayOutputType::Texture);
+
+    ui->thumbnail->SetOutput(m_Output);
+
+    RT_UpdateAndDisplay(r);
+  });
+}
+
+void PipelineStateViewer::RT_UpdateAndDisplay(IReplayController *r)
+{
+  if(m_Output != NULL)
+    m_Output->SetTextureDisplay(m_TexDisplay);
+
+  GUIInvoke::call(this, [this]() { ui->thumbnail->update(); });
 }
 
 void PipelineStateViewer::OnCaptureClosed()
@@ -1057,6 +1189,77 @@ void PipelineStateViewer::ShowResourceContextMenu(RDTreeWidget *widget, const QP
   RDDialog::show(&contextMenu, widget->viewport()->mapToGlobal(pos));
 }
 
+ResourceId PipelineStateViewer::updateThumbnail(QWidget *widget, QModelIndex idx)
+{
+  ResourceId id;
+
+  RDTreeWidget *treeWidget = qobject_cast<RDTreeWidget *>(widget);
+  if(treeWidget)
+  {
+    RDTreeWidgetItem *item = treeWidget->itemForIndex(idx);
+
+    if(item)
+    {
+      if(m_D3D11)
+        id = m_D3D11->GetResource(item);
+      else if(m_D3D12)
+        id = m_D3D12->GetResource(item);
+      else if(m_GL)
+        id = m_GL->GetResource(item);
+      else if(m_Vulkan)
+        id = m_Vulkan->GetResource(item);
+    }
+
+    TextureDescription *tex = m_Ctx.GetTexture(id);
+
+    if(tex)
+    {
+      m_TexDisplay.resourceId = id;
+      INVOKE_MEMFN(RT_UpdateAndDisplay);
+
+      float aspect = (float)tex->width / (float)qMax(1U, tex->height);
+
+      // keep height fixed at 100, and make width match the aspect ratio of the texture - up to 21:9
+      // ratio
+      ui->thumbnail->setFixedSize((int)qBound(100.0f, aspect * 100.0f, (21.0f / 9.0f) * 100.0f), 100);
+    }
+    else
+    {
+      ui->thumbnail->setFixedSize(0, 0);
+    }
+  }
+
+  return id;
+}
+
+bool PipelineStateViewer::hasThumbnail(QWidget *widget, QModelIndex idx)
+{
+  RDTreeWidget *treeWidget = qobject_cast<RDTreeWidget *>(widget);
+  if(treeWidget)
+  {
+    ResourceId id;
+
+    RDTreeWidgetItem *item = treeWidget->itemForIndex(idx);
+
+    if(item)
+    {
+      if(m_D3D11)
+        id = m_D3D11->GetResource(item);
+      else if(m_D3D12)
+        id = m_D3D12->GetResource(item);
+      else if(m_GL)
+        id = m_GL->GetResource(item);
+      else if(m_Vulkan)
+        id = m_Vulkan->GetResource(item);
+    }
+
+    if(id != ResourceId() && m_Ctx.GetTexture(id))
+      return true;
+  }
+
+  return false;
+}
+
 void PipelineStateViewer::SetupResourceView(RDTreeWidget *widget)
 {
   auto handler = [this, widget](const QPoint &pos) {
@@ -1091,6 +1294,8 @@ void PipelineStateViewer::SetupResourceView(RDTreeWidget *widget)
 
   widget->setContextMenuPolicy(Qt::CustomContextMenu);
   QObject::connect(widget, &RDTreeWidget::customContextMenuRequested, handler);
+
+  widget->setCustomTooltip(m_Tooltip);
 }
 
 QString PipelineStateViewer::GetVBufferFormatString(uint32_t slot)

@@ -27,6 +27,7 @@
 #include <QFrame>
 #include <QLabel>
 #include "Code/Interface/QRDInterface.h"
+#include "Widgets/Extended/RDTreeView.h"
 
 namespace Ui
 {
@@ -40,11 +41,38 @@ class QMenu;
 class RDLabel;
 class RDTreeWidgetItem;
 class RDTreeWidget;
+class CustomPaintWidget;
 
 class D3D11PipelineStateViewer;
 class D3D12PipelineStateViewer;
 class GLPipelineStateViewer;
 class VulkanPipelineStateViewer;
+
+class PipelineStateViewer;
+
+class RDPreviewTooltip : public QFrame, public ITreeViewTipDisplay
+{
+private:
+  Q_OBJECT
+
+  PipelineStateViewer *pipe = NULL;
+  QLabel *title = NULL;
+  QLabel *label = NULL;
+  ICaptureContext &m_Ctx;
+
+public:
+  explicit RDPreviewTooltip(PipelineStateViewer *parent, CustomPaintWidget *thumbnail,
+                            ICaptureContext &ctx);
+
+  void hideTip();
+  QSize configureTip(QWidget *widget, QModelIndex idx, QString text);
+  void showTip(QPoint pos);
+  bool forceTip(QWidget *widget, QModelIndex idx);
+
+protected:
+  void paintEvent(QPaintEvent *);
+  void resizeEvent(QResizeEvent *);
+};
 
 class PipelineStateViewer : public QFrame, public IPipelineStateViewer, public ICaptureViewer
 {
@@ -84,6 +112,9 @@ public:
   void setTopologyDiagram(QLabel *diagram, Topology topo);
   void setMeshViewPixmap(RDLabel *meshView);
 
+  ResourceId updateThumbnail(QWidget *widget, QModelIndex idx);
+  bool hasThumbnail(QWidget *widget, QModelIndex idx);
+
   QXmlStreamWriter *beginHTMLExport();
   void exportHTMLTable(QXmlStreamWriter &xml, const QStringList &cols,
                        const QList<QVariantList> &rows);
@@ -100,6 +131,13 @@ private:
   ICaptureContext &m_Ctx;
 
   QMenu *editMenus[6] = {};
+
+  RDPreviewTooltip *m_Tooltip = NULL;
+
+  TextureDisplay m_TexDisplay;
+  IReplayOutput *m_Output = NULL;
+
+  void RT_UpdateAndDisplay(IReplayController *r);
 
   void AddResourceUsageEntry(QMenu &menu, uint32_t start, uint32_t end, ResourceUsage usage);
   void ShowResourceContextMenu(RDTreeWidget *widget, const QPoint &pos, ResourceId id,

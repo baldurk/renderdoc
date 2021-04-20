@@ -29,8 +29,25 @@
    <property name="bottomMargin">
     <number>3</number>
    </property>
+   <item>
+    <widget class="CustomPaintWidget" name="thumbnail" native="true">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+    </widget>
+   </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>CustomPaintWidget</class>
+   <extends>QWidget</extends>
+   <header>Widgets/CustomPaintWidget.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

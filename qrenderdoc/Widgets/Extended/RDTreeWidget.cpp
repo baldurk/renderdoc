@@ -668,6 +668,13 @@ QAbstractItemDelegate *RDTreeWidget::itemDelegate() const
   return m_userDelegate;
 }
 
+RDTreeWidgetItem *RDTreeWidget::itemForIndex(QModelIndex idx) const
+{
+  if(idx.model() == m_model)
+    return m_model->itemForIndex(idx);
+  return NULL;
+}
+
 void RDTreeWidget::copyItem(QPoint pos, RDTreeWidgetItem *item)
 {
   copyIndex(pos, m_model->indexForItem(item, 0));

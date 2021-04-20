@@ -51,8 +51,9 @@ struct ITreeViewTipDisplay
 {
 public:
   virtual void hideTip() = 0;
-  virtual QSize getSizeForTip(QString text) = 0;
-  virtual void showTip(QPoint pos, QString text) = 0;
+  virtual QSize configureTip(QWidget *widget, QModelIndex idx, QString text) = 0;
+  virtual void showTip(QPoint pos) = 0;
+  virtual bool forceTip(QWidget *widget, QModelIndex idx) = 0;
 };
 
 class RDTipLabel : public QLabel, public ITreeViewTipDisplay
@@ -66,8 +67,9 @@ public:
   explicit RDTipLabel(QWidget *listener = NULL);
 
   void hideTip() { hide(); }
-  QSize getSizeForTip(QString text);
-  void showTip(QPoint pos, QString text);
+  QSize configureTip(QWidget *widget, QModelIndex idx, QString text);
+  void showTip(QPoint pos);
+  bool forceTip(QWidget *widget, QModelIndex idx);
 
 protected:
   void paintEvent(QPaintEvent *);

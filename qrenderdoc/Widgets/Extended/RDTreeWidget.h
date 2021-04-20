@@ -238,6 +238,8 @@ public:
   void setItemDelegate(QAbstractItemDelegate *delegate);
   QAbstractItemDelegate *itemDelegate() const;
 
+  RDTreeWidgetItem *itemForIndex(QModelIndex idx) const;
+
   void copyItem(QPoint pos, RDTreeWidgetItem *item);
 
   void setColumns(const QStringList &columns);
