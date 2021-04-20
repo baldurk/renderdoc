@@ -1224,10 +1224,11 @@ ResourceId PipelineStateViewer::updateThumbnail(QWidget *widget, QModelIndex idx
       // keep height fixed at 100, and make width match the aspect ratio of the texture - up to 21:9
       // ratio
       ui->thumbnail->setFixedSize((int)qBound(100.0f, aspect * 100.0f, (21.0f / 9.0f) * 100.0f), 100);
+      ui->thumbnail->show();
     }
     else
     {
-      ui->thumbnail->setFixedSize(0, 0);
+      ui->thumbnail->hide();
     }
   }
 
