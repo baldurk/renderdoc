@@ -647,8 +647,7 @@ TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
     header->setColumnStretchHints({1, -1, -1, -1, -1, -1, -1});
   }
 
-  ui->textureList->header()->sortIndicatorChanged(TextureListFilter::Column_TexName,
-                                                  Qt::SortOrder::DescendingOrder);
+  ui->textureList->sortByColumn(TextureListFilter::Column_TexName, Qt::SortOrder::AscendingOrder);
 
   ui->zoomOption->setCurrentText(QString());
   ui->fitToWindow->toggle();
@@ -3067,6 +3066,9 @@ void TextureViewer::refreshTextureList(FilterType filterType, const QString &fil
   }
 
   ui->textureList->setSelectedItem(root);
+
+  ui->textureList->sortByColumn(ui->textureList->header()->sortIndicatorSection(),
+                                ui->textureList->header()->sortIndicatorOrder());
 
   ui->textureList->setUpdatesEnabled(true);
 

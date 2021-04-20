@@ -2113,7 +2113,7 @@ void RDStyle::drawControl(ControlElement control, const QStyleOption *opt, QPain
         arrowRect.setLeft(arrowRect.right() - Constants::SpinButtonDim);
 
         qreal yoffset = 2.5f;
-        if(header->sortIndicator == QStyleOptionHeader::SortDown)
+        if(header->sortIndicator == QStyleOptionHeader::SortUp)
           yoffset = -yoffset;
 
         qreal ycentre = arrowRect.center().y();

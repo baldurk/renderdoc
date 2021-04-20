@@ -310,14 +310,46 @@ void RDTreeWidgetItem::checkForResourceId(int col)
 
 void RDTreeWidgetItem::sort(int column, Qt::SortOrder order)
 {
+  ICaptureContext *ctx = getCaptureContext(m_widget);
+
   std::sort(m_children.begin(), m_children.end(),
-            [column, order](const RDTreeWidgetItem *a, const RDTreeWidgetItem *b) {
+            [ctx, column, order](const RDTreeWidgetItem *a, const RDTreeWidgetItem *b) {
               QVariant va = a->data(column, Qt::DisplayRole);
               QVariant vb = b->data(column, Qt::DisplayRole);
 
+              QString sa, sb;
+
+              if(ctx)
+              {
+                sa = RichResourceTextFormat(*ctx, va);
+                sb = RichResourceTextFormat(*ctx, vb);
+              }
+              else
+              {
+                sa = va.toString();
+                sb = vb.toString();
+              }
+
+              bool da_ok = false, db_ok = false;
+              double da = sa.toDouble(&da_ok);
+              double db = sb.toDouble(&db_ok);
+
+              int comp;
+
+              if(da_ok && db_ok)
+              {
+                if(order == Qt::AscendingOrder)
+                  return da < db;
+                return da > db;
+              }
+              else
+              {
+                comp = QString::compare(sa, sb, Qt::CaseInsensitive);
+              }
+
               if(order == Qt::AscendingOrder)
-                return va < vb;
-              return va > vb;
+                return comp < 0;
+              return comp > 0;
             });
 
   for(RDTreeWidgetItem *child : m_children)
