@@ -48,6 +48,7 @@ enum D3D12ResourceType
   Resource_RootSignature,
   Resource_PipelineLibrary,
   Resource_ProtectedResourceSession,
+  Resource_ShaderCacheSession,
 };
 
 DECLARE_REFLECTION_ENUM(D3D12ResourceType);

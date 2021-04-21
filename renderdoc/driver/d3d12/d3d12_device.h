@@ -71,7 +71,7 @@ class D3D12DebugManager;
 // give every impression of working but do nothing.
 // Just allow the user to call functions so that they don't
 // have to check for E_NOINTERFACE when they expect an infoqueue to be there
-struct DummyID3D12InfoQueue : public ID3D12InfoQueue
+struct DummyID3D12InfoQueue : public ID3D12InfoQueue1
 {
   WrappedID3D12Device *m_pDevice;
 
@@ -164,6 +164,19 @@ struct DummyID3D12InfoQueue : public ID3D12InfoQueue
   virtual BOOL STDMETHODCALLTYPE GetBreakOnID(D3D12_MESSAGE_ID ID) { return FALSE; }
   virtual void STDMETHODCALLTYPE SetMuteDebugOutput(BOOL bMute) {}
   virtual BOOL STDMETHODCALLTYPE GetMuteDebugOutput() { return TRUE; }
+  //////////////////////////////
+  // implement ID3D12InfoQueue1
+  virtual HRESULT STDMETHODCALLTYPE RegisterMessageCallback(
+      _In_ D3D12MessageFunc CallbackFunc, _In_ D3D12_MESSAGE_CALLBACK_FLAGS CallbackFilterFlags,
+      _In_ void *pContext, _Inout_ DWORD *pCallbackCookie)
+  {
+    return S_OK;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE UnregisterMessageCallback(_In_ DWORD CallbackCookie)
+  {
+    return S_OK;
+  }
 };
 
 class WrappedID3D12Device;
@@ -543,7 +556,7 @@ class WrappedID3D12CommandQueue;
   template <typename SerialiserType>                         \
   bool CONCAT(Serialise_, func(SerialiserType &ser, __VA_ARGS__));
 
-class WrappedID3D12Device : public IFrameCapturer, public ID3DDevice, public ID3D12Device8
+class WrappedID3D12Device : public IFrameCapturer, public ID3DDevice, public ID3D12Device9
 {
 private:
   ID3D12Device *m_pDevice;
@@ -555,6 +568,7 @@ private:
   ID3D12Device6 *m_pDevice6;
   ID3D12Device7 *m_pDevice7;
   ID3D12Device8 *m_pDevice8;
+  ID3D12Device9 *m_pDevice9;
   ID3D12DeviceDownlevel *m_pDownlevel;
 
   // list of all queues being captured
@@ -923,7 +937,7 @@ public:
        iid == __uuidof(ID3D12Device2) || iid == __uuidof(ID3D12Device3) ||
        iid == __uuidof(ID3D12Device4) || iid == __uuidof(ID3D12Device5) ||
        iid == __uuidof(ID3D12Device6) || iid == __uuidof(ID3D12Device7) ||
-       iid == __uuidof(ID3D12Device8))
+       iid == __uuidof(ID3D12Device8) || iid == __uuidof(ID3D12Device9))
       return true;
 
     return false;
@@ -948,6 +962,8 @@ public:
       return (ID3D12Device7 *)this;
     else if(iid == __uuidof(ID3D12Device8))
       return (ID3D12Device8 *)this;
+    else if(iid == __uuidof(ID3D12Device9))
+      return (ID3D12Device9 *)this;
 
     RDCERR("Requested unknown device interface %s", ToStr(iid).c_str());
 
@@ -1030,6 +1046,12 @@ public:
     else if(riid == __uuidof(ID3D12Device8))
     {
       *ppvDevice = (ID3D12Device8 *)this;
+      this->AddRef();
+      return S_OK;
+    }
+    else if(riid == __uuidof(ID3D12Device9))
+    {
+      *ppvDevice = (ID3D12Device9 *)this;
       this->AddRef();
       return S_OK;
     }
@@ -1480,4 +1502,17 @@ public:
       _Out_writes_opt_(NumSubresources) D3D12_PLACED_SUBRESOURCE_FOOTPRINT *pLayouts,
       _Out_writes_opt_(NumSubresources) UINT *pNumRows,
       _Out_writes_opt_(NumSubresources) UINT64 *pRowSizeInBytes, _Out_opt_ UINT64 *pTotalBytes);
+
+  //////////////////////////////
+  // implement ID3D12Device9
+  virtual HRESULT STDMETHODCALLTYPE
+  CreateShaderCacheSession(_In_ const D3D12_SHADER_CACHE_SESSION_DESC *pDesc, REFIID riid,
+                           _COM_Outptr_opt_ void **ppvSession);
+
+  virtual HRESULT STDMETHODCALLTYPE ShaderCacheControl(D3D12_SHADER_CACHE_KIND_FLAGS Kinds,
+                                                       D3D12_SHADER_CACHE_CONTROL_FLAGS Control);
+
+  IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateCommandQueue1,
+                                       _In_ const D3D12_COMMAND_QUEUE_DESC *pDesc, REFIID CreatorID,
+                                       REFIID riid, _COM_Outptr_ void **ppCommandQueue);
 };

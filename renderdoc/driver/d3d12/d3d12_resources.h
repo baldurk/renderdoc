@@ -1143,18 +1143,61 @@ public:
   }
 };
 
-#define ALL_D3D12_TYPES                     \
-  D3D12_TYPE_MACRO(ID3D12CommandAllocator); \
-  D3D12_TYPE_MACRO(ID3D12CommandSignature); \
-  D3D12_TYPE_MACRO(ID3D12DescriptorHeap);   \
-  D3D12_TYPE_MACRO(ID3D12Fence);            \
-  D3D12_TYPE_MACRO(ID3D12Heap);             \
-  D3D12_TYPE_MACRO(ID3D12PipelineState);    \
-  D3D12_TYPE_MACRO(ID3D12QueryHeap);        \
-  D3D12_TYPE_MACRO(ID3D12Resource);         \
-  D3D12_TYPE_MACRO(ID3D12RootSignature);    \
-  D3D12_TYPE_MACRO(ID3D12PipelineLibrary);  \
-  D3D12_TYPE_MACRO(ID3D12ProtectedResourceSession);
+class WrappedID3D12ShaderCacheSession : public WrappedDeviceChild12<ID3D12ShaderCacheSession>
+{
+public:
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12ShaderCacheSession);
+
+  enum
+  {
+    TypeEnum = Resource_ShaderCacheSession,
+  };
+
+  WrappedID3D12ShaderCacheSession(ID3D12ShaderCacheSession *real, WrappedID3D12Device *device)
+      : WrappedDeviceChild12(real, device)
+  {
+  }
+  virtual ~WrappedID3D12ShaderCacheSession() { Shutdown(); }
+  //////////////////////////////
+  // implement ID3D12ShaderCacheSession
+  virtual HRESULT STDMETHODCALLTYPE FindValue(
+      /* [annotation][in] */
+      _In_reads_bytes_(KeySize) const void *pKey, UINT KeySize,
+      /* [annotation][out] */
+      _Out_writes_bytes_(*pValueSize) void *pValue, _Inout_ UINT *pValueSize)
+  {
+    return m_pReal->FindValue(pKey, KeySize, pValue, pValueSize);
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE StoreValue(
+      /* [annotation][in] */
+      _In_reads_bytes_(KeySize) const void *pKey, UINT KeySize,
+      /* [annotation][in] */
+      _In_reads_bytes_(ValueSize) const void *pValue, UINT ValueSize)
+  {
+    return m_pReal->StoreValue(pKey, KeySize, pValue, ValueSize);
+  }
+
+  virtual void STDMETHODCALLTYPE SetDeleteOnDestroy(void) { m_pReal->SetDeleteOnDestroy(); }
+  virtual D3D12_SHADER_CACHE_SESSION_DESC STDMETHODCALLTYPE GetDesc(void)
+  {
+    return m_pReal->GetDesc();
+  }
+};
+
+#define ALL_D3D12_TYPES                             \
+  D3D12_TYPE_MACRO(ID3D12CommandAllocator);         \
+  D3D12_TYPE_MACRO(ID3D12CommandSignature);         \
+  D3D12_TYPE_MACRO(ID3D12DescriptorHeap);           \
+  D3D12_TYPE_MACRO(ID3D12Fence);                    \
+  D3D12_TYPE_MACRO(ID3D12Heap);                     \
+  D3D12_TYPE_MACRO(ID3D12PipelineState);            \
+  D3D12_TYPE_MACRO(ID3D12QueryHeap);                \
+  D3D12_TYPE_MACRO(ID3D12Resource);                 \
+  D3D12_TYPE_MACRO(ID3D12RootSignature);            \
+  D3D12_TYPE_MACRO(ID3D12PipelineLibrary);          \
+  D3D12_TYPE_MACRO(ID3D12ProtectedResourceSession); \
+  D3D12_TYPE_MACRO(ID3D12ShaderCacheSession);
 
 // template magic voodoo to unwrap types
 template <typename inner>

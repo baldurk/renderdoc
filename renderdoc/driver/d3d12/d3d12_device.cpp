@@ -94,7 +94,7 @@ HRESULT STDMETHODCALLTYPE DummyID3D12DebugDevice::QueryInterface(REFIID riid, vo
      riid == __uuidof(ID3D12Device2) || riid == __uuidof(ID3D12Device3) ||
      riid == __uuidof(ID3D12Device4) || riid == __uuidof(ID3D12Device5) ||
      riid == __uuidof(ID3D12Device6) || riid == __uuidof(ID3D12Device7) ||
-     riid == __uuidof(ID3D12Device8))
+     riid == __uuidof(ID3D12Device8) || riid == __uuidof(ID3D12Device9))
     return m_pDevice->QueryInterface(riid, ppvObject);
 
   if(riid == __uuidof(IUnknown))
@@ -128,7 +128,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12DebugDevice::QueryInterface(REFIID riid, 
      riid == __uuidof(ID3D12Device2) || riid == __uuidof(ID3D12Device3) ||
      riid == __uuidof(ID3D12Device4) || riid == __uuidof(ID3D12Device5) ||
      riid == __uuidof(ID3D12Device6) || riid == __uuidof(ID3D12Device7) ||
-     riid == __uuidof(ID3D12Device8))
+     riid == __uuidof(ID3D12Device8) || riid == __uuidof(ID3D12Device9))
     return m_pDevice->QueryInterface(riid, ppvObject);
 
   if(riid == __uuidof(IUnknown))
@@ -526,6 +526,7 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   m_pDevice6 = NULL;
   m_pDevice7 = NULL;
   m_pDevice8 = NULL;
+  m_pDevice9 = NULL;
   m_pDownlevel = NULL;
   if(m_pDevice)
   {
@@ -537,6 +538,7 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
     m_pDevice->QueryInterface(__uuidof(ID3D12Device6), (void **)&m_pDevice6);
     m_pDevice->QueryInterface(__uuidof(ID3D12Device7), (void **)&m_pDevice7);
     m_pDevice->QueryInterface(__uuidof(ID3D12Device8), (void **)&m_pDevice8);
+    m_pDevice->QueryInterface(__uuidof(ID3D12Device9), (void **)&m_pDevice9);
     m_pDevice->QueryInterface(__uuidof(ID3D12DeviceRemovedExtendedData), (void **)&m_DRED.m_pReal);
     m_pDevice->QueryInterface(__uuidof(ID3D12DeviceRemovedExtendedData1), (void **)&m_DRED.m_pReal1);
     m_pDevice->QueryInterface(__uuidof(ID3D12DeviceRemovedExtendedDataSettings),
@@ -834,6 +836,7 @@ WrappedID3D12Device::~WrappedID3D12Device()
   SAFE_RELEASE(m_CompatDevice.m_pReal);
   SAFE_RELEASE(m_SharingContract.m_pReal);
   SAFE_RELEASE(m_pDownlevel);
+  SAFE_RELEASE(m_pDevice9);
   SAFE_RELEASE(m_pDevice8);
   SAFE_RELEASE(m_pDevice7);
   SAFE_RELEASE(m_pDevice6);
@@ -1076,6 +1079,19 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
     {
       AddRef();
       *ppvObject = (ID3D12Device8 *)this;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(ID3D12Device9))
+  {
+    if(m_pDevice9)
+    {
+      AddRef();
+      *ppvObject = (ID3D12Device9 *)this;
       return S_OK;
     }
     else
@@ -3584,6 +3600,8 @@ bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
     case D3D12Chunk::Device_CreatePlacedResource1:
       return Serialise_CreatePlacedResource1(ser, NULL, 0, NULL, D3D12_RESOURCE_STATE_COMMON, NULL,
                                              IID(), NULL);
+    case D3D12Chunk::Device_CreateCommandQueue1:
+      return Serialise_CreateCommandQueue1(ser, NULL, IID(), IID(), NULL);
 
     // in order to get a warning if we miss a case, we explicitly handle the list/queue chunks here.
     // If we actually encounter one it's an error (we should hit CaptureBegin first and switch to

@@ -2148,7 +2148,10 @@ HRESULT WrappedID3D12Device::CreateFence(UINT64 InitialValue, D3D12_FENCE_FLAGS 
       GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
     }
 
-    *ppFence = (ID3D12Fence *)wrapped;
+    if(riid == __uuidof(ID3D12Fence))
+      *ppFence = (ID3D12Fence *)wrapped;
+    else if(riid == __uuidof(ID3D12Fence1))
+      *ppFence = (ID3D12Fence1 *)wrapped;
   }
 
   return ret;
