@@ -227,6 +227,10 @@ bool D3D12InitParams::IsSupportedVersion(uint64_t ver)
   if(ver == 0xA)
     return true;
 
+  // 0xB -> 0xC - Serialised D3D12 SDK version
+  if(ver == 0xB)
+    return true;
+
   return false;
 }
 
@@ -260,6 +264,15 @@ void DoSerialise(SerialiserType &ser, D3D12InitParams &el)
     el.VendorExtensions = GPUVendor::Unknown;
     el.VendorUAV = ~0U;
     el.VendorUAVSpace = ~0U;
+  }
+
+  if(ser.VersionAtLeast(0xC))
+  {
+    SERIALISE_MEMBER(SDKVersion);
+  }
+  else
+  {
+    el.SDKVersion = 0;
   }
 }
 

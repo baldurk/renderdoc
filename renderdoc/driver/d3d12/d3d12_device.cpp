@@ -2508,6 +2508,13 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
 
     m_InitParams.usedDXIL = m_UsedDXIL;
 
+    HMODULE D3D12Core = GetModuleHandleA("D3D12Core.dll");
+    if(D3D12Core)
+    {
+      m_InitParams.SDKVersion = *(DWORD *)GetProcAddress(D3D12Core, "D3D12SDKVersion");
+      FreeLibrary(D3D12Core);
+    }
+
     if(m_UsedDXIL)
     {
       RDCLOG("Capture used DXIL");

@@ -51,8 +51,10 @@ struct D3D12InitParams
   uint32_t VendorUAV = ~0U;
   uint32_t VendorUAVSpace = ~0U;
 
+  UINT SDKVersion = 0;
+
   // check if a frame capture section version is supported
-  static const uint64_t CurrentVersion = 0xB;
+  static const uint64_t CurrentVersion = 0xC;
 
   static bool IsSupportedVersion(uint64_t ver);
 };
