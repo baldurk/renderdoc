@@ -155,7 +155,7 @@ public:
     {
       // This preserves everything from min(m_BufferBase, m_BufferHead - 64) -> end of buffer
       // which will still be in place relative to m_BufferHead.
-      // In other words - reservation will keep the aleady-read data that's after the head pointer,
+      // In other words - reservation will keep the already-read data that's after the head pointer,
       // as well as up to 64 bytes *behind* the head if it exists.
       if(numBytes > Available())
       {
