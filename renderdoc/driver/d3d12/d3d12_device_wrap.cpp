@@ -1034,6 +1034,50 @@ HRESULT WrappedID3D12Device::CreateRootSignature(UINT nodeMask, const void *pBlo
 
       wrapped->sig = GetShaderCache()->GetRootSig(pBlobWithRootSignature, blobLengthInBytes);
 
+      bool forceRefAll = false;
+
+      // force ref-all-resources if the heap is directly indexed because we can't track resource
+      // access
+      if(wrapped->sig.Flags & (D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED |
+                               D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED))
+      {
+        forceRefAll = true;
+        RDCDEBUG("Forcing Ref All Resources due to heap-indexing root signature flags");
+      }
+      else
+      {
+        for(const D3D12RootSignatureParameter &param : wrapped->sig.Parameters)
+        {
+          if(param.ParameterType != D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+            continue;
+
+          for(UINT r = 0; r < param.DescriptorTable.NumDescriptorRanges; r++)
+          {
+            const D3D12_DESCRIPTOR_RANGE1 &range = param.DescriptorTable.pDescriptorRanges[r];
+            if(range.NumDescriptors > 100000)
+            {
+              forceRefAll = true;
+              RDCDEBUG(
+                  "Forcing Ref All Resources due to large root signature range of %u descriptors "
+                  "(space=%u, reg=%u, visibility=%s)",
+                  range.NumDescriptors, range.RegisterSpace, range.BaseShaderRegister,
+                  ToStr(param.ShaderVisibility).c_str());
+              break;
+            }
+          }
+
+          if(forceRefAll)
+            break;
+        }
+      }
+
+      if(forceRefAll)
+      {
+        CaptureOptions opts = RenderDoc::Inst().GetCaptureOptions();
+        opts.refAllResources = true;
+        RenderDoc::Inst().SetCaptureOptions(opts);
+      }
+
       record->AddChunk(scope.Get());
     }
     else
