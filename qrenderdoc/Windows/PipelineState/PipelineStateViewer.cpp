@@ -100,16 +100,16 @@ RDPreviewTooltip::RDPreviewTooltip(PipelineStateViewer *parent, CustomPaintWidge
 
   QHBoxLayout *hbox = new QHBoxLayout;
   QVBoxLayout *vbox = new QVBoxLayout;
-  label = new QLabel(this);
+  hbox->setSpacing(0);
+  hbox->setContentsMargins(0, 0, 0, 0);
+  vbox->setSpacing(2);
+  vbox->setContentsMargins(6, 3, 6, 3);
 
-  label->setMargin(margin + 1);
+  label = new QLabel(this);
   label->setAlignment(Qt::AlignLeft);
-  label->setIndent(1);
 
   title = new QLabel(this);
-  title->setMargin(margin + 1);
   title->setAlignment(Qt::AlignLeft);
-  title->setIndent(1);
 
   setLayout(vbox);
   vbox->addWidget(title);
@@ -236,23 +236,32 @@ void PipelineStateViewer::OnCaptureLoaded()
   if(m_Current)
     m_Current->OnCaptureLoaded();
 
-  WindowingData thumbData = ui->thumbnail->GetWidgetWindowingData();
+  if(!m_Ctx.APIProps().remoteReplay)
+  {
+    WindowingData thumbData = ui->thumbnail->GetWidgetWindowingData();
 
-  m_Ctx.Replay().BlockInvoke([thumbData, this](IReplayController *r) {
-    m_Output = r->CreateOutput(thumbData, ReplayOutputType::Texture);
+    m_Ctx.Replay().BlockInvoke([thumbData, this](IReplayController *r) {
+      m_Output = r->CreateOutput(thumbData, ReplayOutputType::Texture);
 
-    ui->thumbnail->SetOutput(m_Output);
+      ui->thumbnail->SetOutput(m_Output);
 
-    RT_UpdateAndDisplay(r);
-  });
+      RT_UpdateAndDisplay(r);
+    });
+  }
+  else
+  {
+    m_Output = NULL;
+  }
 }
 
 void PipelineStateViewer::RT_UpdateAndDisplay(IReplayController *r)
 {
   if(m_Output != NULL)
+  {
     m_Output->SetTextureDisplay(m_TexDisplay);
 
-  GUIInvoke::call(this, [this]() { ui->thumbnail->update(); });
+    GUIInvoke::call(this, [this]() { ui->thumbnail->update(); });
+  }
 }
 
 void PipelineStateViewer::OnCaptureClosed()
@@ -1195,6 +1204,9 @@ ResourceId PipelineStateViewer::updateThumbnail(QWidget *widget, QModelIndex idx
 {
   ResourceId id;
 
+  if(!m_Output)
+    return id;
+
   RDTreeWidget *treeWidget = qobject_cast<RDTreeWidget *>(widget);
   if(treeWidget)
   {
@@ -1237,6 +1249,9 @@ ResourceId PipelineStateViewer::updateThumbnail(QWidget *widget, QModelIndex idx
 
 bool PipelineStateViewer::hasThumbnail(QWidget *widget, QModelIndex idx)
 {
+  if(!m_Output)
+    return false;
+
   RDTreeWidget *treeWidget = qobject_cast<RDTreeWidget *>(widget);
   if(treeWidget)
   {

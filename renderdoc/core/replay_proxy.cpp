@@ -287,7 +287,10 @@ APIProperties ReplayProxy::Proxied_GetAPIProperties(ParamSerialiser &paramser,
   SERIALISE_RETURN(ret);
 
   if(!m_RemoteServer)
+  {
     ret.localRenderer = m_Proxy->GetAPIProperties().localRenderer;
+    ret.remoteReplay = true;
+  }
 
   m_APIProps = ret;
 
