@@ -46,6 +46,9 @@
 RDOC_CONFIG(bool, D3D12_HardwareCounters, true,
             "Enable support for IHV-specific hardware counters on D3D12.");
 
+// this is global so we can free it even after D3D12Replay is destroyed
+static HMODULE D3D12Lib = NULL;
+
 static const char *LiveDriverDisassemblyTarget = "Live driver disassembly";
 
 ID3DDevice *GetD3D12DeviceIfAlloc(IUnknown *dev);
@@ -67,6 +70,10 @@ void D3D12Replay::Shutdown()
   SAFE_DELETE(m_RGP);
 
   m_pDevice->Release();
+
+  // the this pointer is free'd after this point
+
+  FreeLibrary(D3D12Lib);
 }
 
 void D3D12Replay::Initialise(IDXGIFactory1 *factory)
@@ -3853,18 +3860,17 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
   // succeed on subsequent capture loads.
   static bool d3d12on7 = false;
 
-  HMODULE d3d12lib = NULL;
-  d3d12lib = LoadLibraryA("d3d12.dll");
-  if(d3d12lib == NULL)
+  D3D12Lib = LoadLibraryA("d3d12.dll");
+  if(D3D12Lib == NULL)
   {
     // if it fails try to find D3D12On7 DLLs
     d3d12on7 = true;
 
     // if it fails, try in the plugin directory
-    d3d12lib = (HMODULE)Process::LoadModule(LocatePluginFile("d3d12", "d3d12.dll"));
+    D3D12Lib = (HMODULE)Process::LoadModule(LocatePluginFile("d3d12", "d3d12.dll"));
 
     // if that succeeded, also load dxilconv7.dll from there
-    if(d3d12lib)
+    if(D3D12Lib)
     {
       HMODULE dxilconv = (HMODULE)Process::LoadModule(LocatePluginFile("d3d12", "dxilconv7.dll"));
 
@@ -3877,9 +3883,9 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
     else
     {
       // if it failed, try one more time in MS's subfolder convention
-      d3d12lib = LoadLibraryA("12on7/d3d12.dll");
+      D3D12Lib = LoadLibraryA("12on7/d3d12.dll");
 
-      if(d3d12lib)
+      if(D3D12Lib)
       {
         RDCWARN(
             "Loaded d3d12.dll from 12on7 subfolder."
@@ -3897,7 +3903,7 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
   }
 
   PFN_D3D12_CREATE_DEVICE createDevicePtr =
-      (PFN_D3D12_CREATE_DEVICE)GetProcAddress(d3d12lib, "D3D12CreateDevice");
+      (PFN_D3D12_CREATE_DEVICE)GetProcAddress(D3D12Lib, "D3D12CreateDevice");
 
   RealD3D12CreateFunction createDevice = createDevicePtr;
 
@@ -3965,7 +3971,7 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
     using PFN_ENABLE_EXPERIMENTAL = decltype(&D3D12EnableExperimentalFeatures);
 
     PFN_ENABLE_EXPERIMENTAL EnableExperimental =
-        (PFN_ENABLE_EXPERIMENTAL)GetProcAddress(d3d12lib, "D3D12EnableExperimentalFeatures");
+        (PFN_ENABLE_EXPERIMENTAL)GetProcAddress(D3D12Lib, "D3D12EnableExperimentalFeatures");
 
     if(EnableExperimental)
     {
@@ -4057,11 +4063,6 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
            ToStr(initParams.MinimumFeatureLevel).c_str());
 
   bool shouldEnableDebugLayer = opts.apiValidation;
-
-// in development builds, always enable debug layer during replay
-#if ENABLED(RDOC_DEVEL)
-  shouldEnableDebugLayer = true;
-#endif
 
   if(shouldEnableDebugLayer)
   {

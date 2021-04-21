@@ -429,6 +429,7 @@ private:
   D3D12DebugManager *m_DebugManager = NULL;
 
   IDXGIFactory1 *m_pFactory = NULL;
+  HMODULE m_D3D12Lib = NULL;
 
   AMDCounters *m_pAMDCounters = NULL;
   AMDRGPControl *m_RGP = NULL;
