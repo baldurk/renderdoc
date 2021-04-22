@@ -98,6 +98,12 @@ version of RenderDoc that addes a new section type. They should be considered eq
   This section contains any edited shaders.
 
   The name for this section will be "renderdoc/ui/edits".
+
+.. data:: D3D12Core
+
+  This section contains an internal copy of D3D12Core for replaying.
+
+  The name for this section will be "renderdoc/internal/d3d12core".
 )");
 enum class SectionType : uint32_t
 {
@@ -112,6 +118,7 @@ enum class SectionType : uint32_t
   ExtendedThumbnail,
   EmbeddedLogfile,
   EditedShaders,
+  D3D12Core,
   Count,
 };
 

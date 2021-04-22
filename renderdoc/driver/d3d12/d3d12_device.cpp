@@ -2481,6 +2481,12 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
 
   StreamWriter *captureWriter = NULL;
 
+  HMODULE D3D12Core = GetModuleHandleA("D3D12Core.dll");
+  if(D3D12Core)
+  {
+    m_InitParams.SDKVersion = *(DWORD *)GetProcAddress(D3D12Core, "D3D12SDKVersion");
+  }
+
   if(rdc)
   {
     SectionProperties props;
@@ -2507,13 +2513,6 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
     ser.SetUserData(GetResourceManager());
 
     m_InitParams.usedDXIL = m_UsedDXIL;
-
-    HMODULE D3D12Core = GetModuleHandleA("D3D12Core.dll");
-    if(D3D12Core)
-    {
-      m_InitParams.SDKVersion = *(DWORD *)GetProcAddress(D3D12Core, "D3D12SDKVersion");
-      FreeLibrary(D3D12Core);
-    }
 
     if(m_UsedDXIL)
     {
@@ -2597,6 +2596,33 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
 
   RDCLOG("Captured D3D12 frame with %f MB capture section in %f seconds",
          double(captureSectionSize) / (1024.0 * 1024.0), m_CaptureTimer.GetMilliseconds() / 1000.0);
+
+  if(D3D12Core)
+  {
+    if(rdc)
+    {
+      wchar_t core_filename[MAX_PATH + 1] = {};
+      GetModuleFileNameW(D3D12Core, core_filename, MAX_PATH);
+
+      bytebuf core_file;
+      FileIO::ReadAll(StringFormat::Wide2UTF8(core_filename), core_file);
+
+      SectionProperties props;
+
+      props.flags = SectionFlags::ZstdCompressed;
+      props.version = 1;
+      props.type = SectionType::D3D12Core;
+
+      captureWriter = rdc->WriteSection(props);
+
+      captureWriter->Write(core_file.data(), core_file.size());
+
+      captureWriter->Finish();
+      SAFE_DELETE(captureWriter);
+    }
+
+    FreeLibrary(D3D12Core);
+  }
 
   RenderDoc::Inst().FinishCaptureWriting(rdc, m_CapturedFrames.back().frameNumber);
 
