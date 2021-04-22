@@ -74,6 +74,7 @@ void D3D12Replay::Shutdown()
   // the this pointer is free'd after this point
 
   FreeLibrary(D3D12Lib);
+  D3D12_CleanupReplaySDK();
 }
 
 void D3D12Replay::Initialise(IDXGIFactory1 *factory)
@@ -3921,6 +3922,7 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
   }
 
   D3D12InitParams initParams;
+  bytebuf D3D12Core;
 
   uint64_t ver = D3D12InitParams::CurrentVersion;
 
@@ -3968,6 +3970,28 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
              ToStr(GPUVendorFromPCIVendor(initParams.AdapterDesc.VendorId)).c_str(),
              initParams.AdapterDesc.Description);
 
+    sectionIdx = rdc->SectionIndex(SectionType::D3D12Core);
+
+    if(sectionIdx >= 0)
+    {
+      SectionProperties props = rdc->GetSectionProperties(sectionIdx);
+      reader = rdc->ReadSection(sectionIdx);
+
+      D3D12Core.resize(props.uncompressedSize);
+      reader->Read(D3D12Core.data(), props.uncompressedSize);
+
+      RDCASSERT(reader->AtEnd());
+      delete reader;
+    }
+  }
+
+  if(initParams.MinimumFeatureLevel < D3D_FEATURE_LEVEL_11_0)
+    initParams.MinimumFeatureLevel = D3D_FEATURE_LEVEL_11_0;
+
+  D3D12_PrepareReplaySDKVersion(initParams.SDKVersion, D3D12Core, D3D12Lib);
+
+  if(rdc)
+  {
     using PFN_ENABLE_EXPERIMENTAL = decltype(&D3D12EnableExperimentalFeatures);
 
     PFN_ENABLE_EXPERIMENTAL EnableExperimental =
@@ -3986,9 +4010,6 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
       RDCLOG("Couldn't get D3D12EnableExperimentalFeatures");
     }
   }
-
-  if(initParams.MinimumFeatureLevel < D3D_FEATURE_LEVEL_11_0)
-    initParams.MinimumFeatureLevel = D3D_FEATURE_LEVEL_11_0;
 
   const bool isProxy = (rdc == NULL);
 
