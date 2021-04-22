@@ -3977,7 +3977,7 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
       SectionProperties props = rdc->GetSectionProperties(sectionIdx);
       reader = rdc->ReadSection(sectionIdx);
 
-      D3D12Core.resize(props.uncompressedSize);
+      D3D12Core.resize((size_t)props.uncompressedSize);
       reader->Read(D3D12Core.data(), props.uncompressedSize);
 
       RDCASSERT(reader->AtEnd());
