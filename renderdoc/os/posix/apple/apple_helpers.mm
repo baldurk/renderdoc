@@ -22,6 +22,8 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "api/replay/rdcstr.h"
+
 #import <Cocoa/Cocoa.h>
 
 #define MAX_COUNT_KEYS (65536)
@@ -55,4 +57,14 @@ void apple_InitKeyboard()
 bool apple_IsKeyPressed(int appleKeyCode)
 {
   return s_keysPressed[appleKeyCode];
+}
+
+rdcstr apple_GetExecutablePathFromAppBundle(const char *appBundlePath)
+{
+  NSString *path = [NSString stringWithCString:appBundlePath encoding:NSUTF8StringEncoding];
+  NSBundle *nsBundle = [NSBundle bundleWithPath:path];
+  NSString *executablePath = nsBundle.executablePath;
+
+  rdcstr result([executablePath cStringUsingEncoding:NSUTF8StringEncoding]);
+  return result;
 }
