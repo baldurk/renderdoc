@@ -308,6 +308,9 @@ FloatVector DecodeFormattedComponents(const ResourceFormat &fmt, const byte *dat
 {
   FloatVector ret(0.0f, 0.0f, 0.0f, 1.0f);
 
+  if(fmt.compType == CompType::UInt || fmt.compType == CompType::SInt || fmt.compCount == 4)
+    ret.w = 0.0f;
+
   const uint64_t dummy = 0;
   if(!data)
     data = (const byte *)&dummy;

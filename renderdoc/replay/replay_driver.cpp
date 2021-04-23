@@ -587,6 +587,10 @@ FloatVector HighlightCache::InterpretVertex(const byte *data, uint32_t vert, con
 {
   FloatVector ret(0.0f, 0.0f, 0.0f, 1.0f);
 
+  if(cfg.position.format.compType == CompType::UInt ||
+     cfg.position.format.compType == CompType::SInt || cfg.position.format.compCount == 4)
+    ret.w = 0.0f;
+
   if(useidx && idxData)
   {
     if(vert >= (uint32_t)indices.size())
@@ -623,6 +627,10 @@ FloatVector HighlightCache::InterpretVertex(const byte *data, uint32_t vert,
   if(data + fmt.ElementSize() > end)
   {
     valid = false;
+
+    if(fmt.compType == CompType::UInt || fmt.compType == CompType::SInt || fmt.compCount == 4)
+      return FloatVector(0.0f, 0.0f, 0.0f, 0.0f);
+
     return FloatVector(0.0f, 0.0f, 0.0f, 1.0f);
   }
 

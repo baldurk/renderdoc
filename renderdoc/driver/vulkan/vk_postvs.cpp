@@ -2079,29 +2079,48 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
         vkr = m_pDriver->vkBindBufferMemory(dev, vbuffers[attr].buf, vbuffers[attr].mem, 0);
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-        byte *compactedData = NULL;
-        vkr = m_pDriver->vkMapMemory(m_Device, vbuffers[attr].mem, 0, VK_WHOLE_SIZE, 0,
-                                     (void **)&compactedData);
+        byte *dst = NULL;
+        vkr =
+            m_pDriver->vkMapMemory(m_Device, vbuffers[attr].mem, 0, VK_WHOLE_SIZE, 0, (void **)&dst);
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-        if(compactedData && origVBEnd)
+        const byte *dstBase = dst;
+        (void)dstBase;
+
+        const byte *dstEnd = dst + bufInfo.size;
+
+        if(dst)
         {
+          FloatVector defaultValue(0.0f, 0.0f, 0.0f, 1.0f);
+          if(fmt.compType == CompType::UInt || fmt.compType == CompType::SInt || fmt.compCount == 4)
+            defaultValue.w = 0.0f;
+
           const byte *src = origVBBegin;
-          byte *dst = compactedData;
-          const byte *dstEnd = dst + bufInfo.size;
 
           // fast memcpy compaction case for regular 32-bit types. Any type like R32G32B32 or so on
           // can be memcpy'd into place and read, since we discard any unused components and there's
           // no re-interpretation needed.
           if(fmt.type == ResourceFormatType::Regular && fmt.compByteWidth == 4)
           {
+            size_t expandedComponentBytes = sizeof(FloatVector) - origElemSize;
+
             while(src < origVBEnd && dst < dstEnd)
             {
+              if(expandedComponentBytes > 0)
+                memcpy(dst + origElemSize, ((byte *)&defaultValue) + origElemSize,
+                       expandedComponentBytes);
               memcpy(dst, src, origElemSize);
 
               // advance by the *destination* element size of 16 bytes
               dst += elemSize;
               src += stride;
+            }
+
+            // fill the rest with default values
+            while(dst < dstEnd)
+            {
+              memcpy(dst, &defaultValue, sizeof(FloatVector));
+              dst += elemSize;
             }
           }
           else
@@ -2202,6 +2221,13 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
                 memcpy(dst, &vec, sizeof(FloatVector));
                 dst += sizeof(FloatVector);
                 src += stride;
+              }
+
+              // fill the rest with default values
+              while(dst < dstEnd)
+              {
+                memcpy(dst, &defaultValue, sizeof(FloatVector));
+                dst += elemSize;
               }
             }
           }
