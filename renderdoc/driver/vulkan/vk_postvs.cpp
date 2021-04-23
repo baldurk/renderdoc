@@ -1495,6 +1495,17 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
         m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorStorageBuffers - 2;
   }
 
+  for(size_t i = 0; i < refl->inputSignature.size(); i++)
+  {
+    if(refl->inputSignature[i].regIndex >= MeshOutputBufferArraySize)
+    {
+      RDCERR("Input %s refers to attribute %u which is out of our array size %u",
+             refl->inputSignature[i].varName, refl->inputSignature[i].regIndex,
+             MeshOutputBufferArraySize);
+      return;
+    }
+  }
+
   VkGraphicsPipelineCreateInfo pipeCreateInfo;
 
   // get pipeline create info
