@@ -535,7 +535,11 @@ void WrappedID3D12CommandQueue::ClearAfterCapture()
   for(size_t i = 0; i < m_CmdListRecords.size(); i++)
     m_CmdListRecords[i]->Delete(GetResourceManager());
 
+  for(size_t i = 0; i < m_CmdListAllocators.size(); i++)
+    m_CmdListAllocators[i]->Delete(GetResourceManager());
+
   m_CmdListRecords.clear();
+  m_CmdListAllocators.clear();
 
   m_QueueRecord->DeleteChunks();
 }

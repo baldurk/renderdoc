@@ -420,7 +420,10 @@ struct D3D12ResourceRecord;
 
 struct CmdListRecordingInfo
 {
-  ChunkAllocator *alloc;
+  ChunkPagePool *allocPool = NULL;
+  ChunkAllocator *alloc = NULL;
+
+  D3D12ResourceRecord *allocRecord = NULL;
 
   rdcarray<D3D12_RESOURCE_BARRIER> barriers;
 
@@ -503,6 +506,11 @@ struct D3D12ResourceRecord : public ResourceRecord
   }
   ~D3D12ResourceRecord()
   {
+    if(type == Resource_CommandAllocator)
+    {
+      SAFE_DELETE(cmdInfo->alloc);
+      SAFE_DELETE(cmdInfo->allocPool);
+    }
     SAFE_DELETE(cmdInfo);
     SAFE_DELETE(sparseTable);
     SAFE_DELETE_ARRAY(m_Maps);
@@ -515,6 +523,8 @@ struct D3D12ResourceRecord : public ResourceRecord
     cmdInfo->dirtied.swap(bakedCommands->cmdInfo->dirtied);
     cmdInfo->boundDescs.swap(bakedCommands->cmdInfo->boundDescs);
     cmdInfo->bundles.swap(bakedCommands->cmdInfo->bundles);
+    bakedCommands->cmdInfo->alloc = cmdInfo->alloc;
+    bakedCommands->cmdInfo->allocRecord = cmdInfo->allocRecord;
   }
 
   D3D12ResourceType type;

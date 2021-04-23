@@ -438,7 +438,8 @@ HRESULT WrappedID3D12GraphicsCommandList::ResetInternal(ID3D12CommandAllocator *
     m_ListRecord->bakedCommands->InternalResource = true;
     m_ListRecord->bakedCommands->cmdInfo = new CmdListRecordingInfo();
 
-    m_ListRecord->cmdInfo->alloc = &((WrappedID3D12CommandAllocator *)pAllocator)->alloc;
+    m_ListRecord->cmdInfo->alloc = ((WrappedID3D12CommandAllocator *)pAllocator)->alloc;
+    m_ListRecord->cmdInfo->allocRecord = GetRecord(pAllocator);
 
     {
       CACHE_THREAD_SERIALISER();

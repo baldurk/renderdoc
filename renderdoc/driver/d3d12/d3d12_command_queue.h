@@ -155,6 +155,7 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
   WrappedID3D12CompatibilityQueue m_WrappedCompat;
 
   rdcarray<D3D12ResourceRecord *> m_CmdListRecords;
+  rdcarray<D3D12ResourceRecord *> m_CmdListAllocators;
 
   std::unordered_set<ResourceId> m_SparseBindResources;
 

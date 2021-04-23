@@ -231,6 +231,11 @@ HRESULT WrappedID3D12Device::CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE type
       record->Length = 0;
       wrapped->SetResourceRecord(record);
 
+      record->cmdInfo = new CmdListRecordingInfo;
+
+      record->cmdInfo->allocPool = new ChunkPagePool(32 * 1024);
+      record->cmdInfo->alloc = new ChunkAllocator(*record->cmdInfo->allocPool);
+
       record->AddChunk(scope.Get());
     }
     else

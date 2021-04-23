@@ -850,6 +850,9 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
             m_CmdListRecords.push_back(record->bakedCommands->cmdInfo->bundles[sub]->bakedCommands);
         }
 
+        m_CmdListAllocators.push_back(record->bakedCommands->cmdInfo->allocRecord);
+        record->bakedCommands->cmdInfo->allocRecord->AddRef();
+
         record->bakedCommands->AddRef();
       }
 
