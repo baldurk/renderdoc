@@ -122,6 +122,7 @@ void VulkanDebugManager::CopyTex2DMSToArray(VkImage destArray, VkImage srcMS, Vk
     uint32_t batchIndex = slice % batchSize;
 
     viewInfo.subresourceRange.baseArrayLayer = slice;
+    viewInfo.subresourceRange.layerCount = 1;
 
     vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &destView);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
