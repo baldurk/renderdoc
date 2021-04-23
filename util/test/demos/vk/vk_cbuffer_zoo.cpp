@@ -716,11 +716,15 @@ float4 main() : SV_Target0
     inlinedata.inline_d.b = 120.0f;
 
     AllocatedBuffer inlinecb(
-        this, vkh::BufferCreateInfo(sizeof(data), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
-                                                      VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this, vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
+                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
-    inlinecb.upload(&inlinedata, sizeof(inlinedata));
+    {
+      byte *ptr = inlinecb.map();
+      memcpy(ptr + bindOffset * sizeof(Vec4f), &inlinedata, sizeof(inlinedata));
+      inlinecb.unmap();
+    }
 
     VkDescriptorSet descset = allocateDescriptorSet(setlayout);
 
@@ -751,7 +755,7 @@ float4 main() : SV_Target0
           device, {
                       vkh::WriteDescriptorSet(
                           descset, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                          {vkh::DescriptorBufferInfo(cb.buffer, bindOffset * sizeof(Vec4f))}),
+                          {vkh::DescriptorBufferInfo(inlinecb.buffer, bindOffset * sizeof(Vec4f))}),
                   });
     }
 
