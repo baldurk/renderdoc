@@ -41,6 +41,9 @@
 #include "os/os_specific.h"
 #include "strings/string_utils.h"
 
+// defined in apple_helpers.mm
+extern rdcstr apple_GetExecutablePathFromAppBundle(const char *appBundlePath);
+
 // defined in foo/foo_process.cpp
 char **GetCurrentEnvironment();
 int GetIdentPort(pid_t childPid);
@@ -536,8 +539,7 @@ static pid_t RunProcess(rdcstr appName, rdcstr workDir, const rdcstr &cmdLine, c
 #if ENABLED(RDOC_APPLE)
   if(appName.size() > 5 && appName.endsWith(".app"))
   {
-    rdcstr realAppName = appName + "/Contents/MacOS/" + get_basename(appName);
-    realAppName.erase(realAppName.size() - 4, ~0U);
+    rdcstr realAppName = apple_GetExecutablePathFromAppBundle(appName.c_str());
 
     if(FileIO::exists(realAppName))
     {
