@@ -2065,11 +2065,6 @@ WindowingData CaptureContext::CreateWindowingData(QWidget *window)
 
   return CreateMacOSWindowingData(view, layer);
 
-#elif defined(RENDERDOC_PLATFORM_APPLE)
-
-  WindowingData ret = {WindowingSystem::Unknown};
-  return ret;
-
 #elif defined(RENDERDOC_PLATFORM_GGP)
 
   WindowingData ret = {WindowingSystem::GGP};
