@@ -924,7 +924,7 @@ bool write_dds_to_file(FILE *f, const write_dds_data &data)
           // pitch/rows are in blocks, not pixels, for block formats.
           if(blockFormat)
           {
-            numRows = RDCMAX(1U, numRows / 4);
+            numRows = RDCMAX(1U, (numRows + 3) / 4);
 
             uint32_t blockSize = (data.format.type == ResourceFormatType::BC1 ||
                                   data.format.type == ResourceFormatType::BC4)
