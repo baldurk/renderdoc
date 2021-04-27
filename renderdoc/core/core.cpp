@@ -433,7 +433,7 @@ void RenderDoc::Initialise()
     FileIO::GetDefaultFiles(base, capture_filename, m_LoggingFilename, m_Target);
 
     if(m_CaptureFileTemplate.empty())
-      SetCaptureFileTemplate(capture_filename.c_str());
+      SetCaptureFileTemplate(capture_filename);
 
     RDCLOGFILE(m_LoggingFilename.c_str());
   }

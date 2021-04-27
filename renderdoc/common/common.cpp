@@ -273,7 +273,7 @@ void rdclog_filename(const char *filename)
   {
     logfileHandle = FileIO::logfile_open(*logfile);
 
-    if(logfileHandle && previous.c_str())
+    if(logfileHandle && !previous.empty())
     {
       rdcstr previousContents;
       FileIO::ReadAll(previous, previousContents);
