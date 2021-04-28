@@ -2360,6 +2360,14 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
         barrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
         DoPipelineBarrier(cmd, 1, &barrier);
 
+        barrier.image = Unwrap(colourCopyParams.srcImage);
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        barrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS;
+        barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        barrier.newLayout = colourCopyParams.srcImageLayout;
+        DoPipelineBarrier(cmd, 1, &barrier);
+
         m_pDriver->GetCmdRenderState().graphics.pipeline = GetResID(pipesIter[i]);
 
         m_pDriver->GetCmdRenderState().BeginRenderPassAndApplyState(
