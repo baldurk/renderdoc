@@ -1558,19 +1558,30 @@ private:
     if(IsDepthOrStencilFormat(m_CallbackInfo.targetImageFormat))
       return;
 
-    const DrawcallDescription *draw = m_pDriver->GetDrawcall(eid);
-    if(draw && draw->depthOut != ResourceId())
+    const VulkanRenderState &state = m_pDriver->GetCmdRenderState();
+
+    if(state.renderPass != ResourceId())
     {
-      ResourceId resId = m_pDriver->GetResourceManager()->GetLiveID(draw->depthOut);
-      VkImage depthImage = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(resId);
-      const VulkanCreationInfo::Image &imginfo = m_pDriver->GetDebugManager()->GetImageInfo(resId);
-      CopyPixelParams depthCopyParams = targetCopyParams;
-      depthCopyParams.srcImage = depthImage;
-      depthCopyParams.srcImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-      depthCopyParams.srcImageFormat = imginfo.format;
-      depthCopyParams.multisampled = (imginfo.samples != VK_SAMPLE_COUNT_1_BIT);
-      CopyImagePixel(cmd, depthCopyParams, offset + offsetof(struct PixelHistoryValue, depth));
-      m_DepthFormats.insert(std::make_pair(eid, imginfo.format));
+      const VulkanCreationInfo::RenderPass &rpInfo =
+          m_pDriver->GetDebugManager()->GetRenderPassInfo(state.renderPass);
+      const rdcarray<ResourceId> &atts = state.GetFramebufferAttachments();
+
+      int32_t att = rpInfo.subpasses[state.subpass].depthstencilAttachment;
+
+      if(att >= 0)
+      {
+        ResourceId resId = m_pDriver->GetDebugManager()->GetImageViewInfo(atts[att]).image;
+        VkImage depthImage = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(resId);
+
+        const VulkanCreationInfo::Image &imginfo = m_pDriver->GetDebugManager()->GetImageInfo(resId);
+        CopyPixelParams depthCopyParams = targetCopyParams;
+        depthCopyParams.srcImage = depthImage;
+        depthCopyParams.srcImageLayout = rpInfo.subpasses[state.subpass].depthLayout;
+        depthCopyParams.srcImageFormat = imginfo.format;
+        depthCopyParams.multisampled = (imginfo.samples != VK_SAMPLE_COUNT_1_BIT);
+        CopyImagePixel(cmd, depthCopyParams, offset + offsetof(struct PixelHistoryValue, depth));
+        m_DepthFormats.insert(std::make_pair(eid, imginfo.format));
+      }
     }
   }
 
@@ -2382,10 +2393,10 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
 
     VkImage depthImage = VK_NULL_HANDLE;
     VkFormat depthFormat = VK_FORMAT_UNDEFINED;
-    const DrawcallDescription *draw = m_pDriver->GetDrawcall(eid);
-    if(draw && draw->depthOut != ResourceId())
+    int32_t depthAtt = rpInfo.subpasses[prevState.subpass].depthstencilAttachment;
+    if(depthAtt >= 0)
     {
-      ResourceId resId = m_pDriver->GetResourceManager()->GetLiveID(draw->depthOut);
+      ResourceId resId = m_pDriver->GetDebugManager()->GetImageViewInfo(atts[depthAtt]).image;
       depthImage = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(resId);
       const VulkanCreationInfo::Image &imginfo = m_pDriver->GetDebugManager()->GetImageInfo(resId);
       depthFormat = imginfo.format;
