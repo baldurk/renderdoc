@@ -1,9 +1,15 @@
+/*-------------------------------------------------------------------------------------
+ *
+ * Copyright (c) Microsoft Corporation
+ * Licensed under the MIT license
+ *
+ *-------------------------------------------------------------------------------------*/
 
 
 /* this ALWAYS GENERATED file contains the definitions for the interfaces */
 
 
- /* File created by MIDL compiler version 8.01.0622 */
+ /* File created by MIDL compiler version 8.01.0625 */
 /* @@MIDL_FILE_HEADING(  ) */
 
 
@@ -37,6 +43,14 @@
 #pragma once
 #endif
 
+#ifndef DECLSPEC_XFGVIRT
+#if _CONTROL_FLOW_GUARD_XFG
+#define DECLSPEC_XFGVIRT(base, func) __declspec(xfg_virtual(base, func))
+#else
+#define DECLSPEC_XFGVIRT(base, func)
+#endif
+#endif
+
 /* Forward Declarations */ 
 
 #ifndef __ID3D10Blob_FWD_DEFINED__
@@ -54,8 +68,8 @@ typedef interface ID3DDestructionNotifier ID3DDestructionNotifier;
 
 
 /* header files for imported files */
-#include "oaidl.h"
-#include "ocidl.h"
+#include "OAIdl.h"
+#include "OCIdl.h"
 
 #ifdef __cplusplus
 extern "C"{
@@ -88,7 +102,8 @@ enum D3D_FEATURE_LEVEL
         D3D_FEATURE_LEVEL_11_0	= 0xb000,
         D3D_FEATURE_LEVEL_11_1	= 0xb100,
         D3D_FEATURE_LEVEL_12_0	= 0xc000,
-        D3D_FEATURE_LEVEL_12_1	= 0xc100
+        D3D_FEATURE_LEVEL_12_1	= 0xc100,
+        D3D_FEATURE_LEVEL_12_2	= 0xc200
     } 	D3D_FEATURE_LEVEL;
 
 #define D3D_FL9_1_REQ_TEXTURE1D_U_DIMENSION          2048
@@ -342,6 +357,35 @@ enum D3D_SRV_DIMENSION
         D3D11_SRV_DIMENSION_BUFFEREX	= D3D_SRV_DIMENSION_BUFFEREX
     } 	D3D_SRV_DIMENSION;
 
+#define D3D_SHADER_FEATURE_DOUBLES                                                        0x00001
+#define D3D_SHADER_FEATURE_COMPUTE_SHADERS_PLUS_RAW_AND_STRUCTURED_BUFFERS_VIA_SHADER_4_X 0x00002
+#define D3D_SHADER_FEATURE_UAVS_AT_EVERY_STAGE                                            0x00004
+#define D3D_SHADER_FEATURE_64_UAVS                                                        0x00008
+#define D3D_SHADER_FEATURE_MINIMUM_PRECISION                                              0x00010
+#define D3D_SHADER_FEATURE_11_1_DOUBLE_EXTENSIONS                                         0x00020
+#define D3D_SHADER_FEATURE_11_1_SHADER_EXTENSIONS                                         0x00040
+#define D3D_SHADER_FEATURE_LEVEL_9_COMPARISON_FILTERING                                   0x00080
+#define D3D_SHADER_FEATURE_TILED_RESOURCES                                                0x00100
+#define D3D_SHADER_FEATURE_STENCIL_REF                                                    0x00200
+#define D3D_SHADER_FEATURE_INNER_COVERAGE                                                 0x00400
+#define D3D_SHADER_FEATURE_TYPED_UAV_LOAD_ADDITIONAL_FORMATS                              0x00800
+#define D3D_SHADER_FEATURE_ROVS                                                           0x01000
+#define D3D_SHADER_FEATURE_VIEWPORT_AND_RT_ARRAY_INDEX_FROM_ANY_SHADER_FEEDING_RASTERIZER 0x02000
+#define D3D_SHADER_FEATURE_WAVE_OPS                                                       0x04000
+#define D3D_SHADER_FEATURE_INT64_OPS                                                      0x08000
+#define D3D_SHADER_FEATURE_VIEW_ID                                                        0x10000
+#define D3D_SHADER_FEATURE_BARYCENTRICS                                                   0x20000
+#define D3D_SHADER_FEATURE_NATIVE_16BIT_OPS                                               0x40000
+#define D3D_SHADER_FEATURE_SHADING_RATE                                                   0x80000
+#define D3D_SHADER_FEATURE_RAYTRACING_TIER_1_1                                            0x100000
+#define D3D_SHADER_FEATURE_SAMPLER_FEEDBACK                                               0x200000
+#define D3D_SHADER_FEATURE_ATOMIC_INT64_ON_TYPED_RESOURCE                                 0x400000
+#define D3D_SHADER_FEATURE_ATOMIC_INT64_ON_GROUP_SHARED                                   0x800000
+#define D3D_SHADER_FEATURE_DERIVATIVES_IN_MESH_AND_AMPLIFICATION_SHADERS                  0x1000000
+#define D3D_SHADER_FEATURE_RESOURCE_DESCRIPTOR_HEAP_INDEXING                              0x2000000
+#define D3D_SHADER_FEATURE_SAMPLER_DESCRIPTOR_HEAP_INDEXING                               0x4000000
+#define D3D_SHADER_FEATURE_WAVE_MMA                                                       0x8000000
+#define D3D_SHADER_FEATURE_ATOMIC_INT64_ON_DESCRIPTOR_HEAP_RESOURCE                       0x10000000
 typedef struct _D3D_SHADER_MACRO
     {
     LPCSTR Name;
@@ -384,21 +428,26 @@ EXTERN_C const IID IID_ID3D10Blob;
     {
         BEGIN_INTERFACE
         
+        DECLSPEC_XFGVIRT(IUnknown, QueryInterface)
         HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
             ID3D10Blob * This,
             /* [in] */ REFIID riid,
             /* [annotation][iid_is][out] */ 
             _COM_Outptr_  void **ppvObject);
         
+        DECLSPEC_XFGVIRT(IUnknown, AddRef)
         ULONG ( STDMETHODCALLTYPE *AddRef )( 
             ID3D10Blob * This);
         
+        DECLSPEC_XFGVIRT(IUnknown, Release)
         ULONG ( STDMETHODCALLTYPE *Release )( 
             ID3D10Blob * This);
         
+        DECLSPEC_XFGVIRT(ID3D10Blob, GetBufferPointer)
         LPVOID ( STDMETHODCALLTYPE *GetBufferPointer )( 
             ID3D10Blob * This);
         
+        DECLSPEC_XFGVIRT(ID3D10Blob, GetBufferSize)
         SIZE_T ( STDMETHODCALLTYPE *GetBufferSize )( 
             ID3D10Blob * This);
         
@@ -494,18 +543,22 @@ EXTERN_C const IID IID_ID3DDestructionNotifier;
     {
         BEGIN_INTERFACE
         
+        DECLSPEC_XFGVIRT(IUnknown, QueryInterface)
         HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
             ID3DDestructionNotifier * This,
             /* [in] */ REFIID riid,
             /* [annotation][iid_is][out] */ 
             _COM_Outptr_  void **ppvObject);
         
+        DECLSPEC_XFGVIRT(IUnknown, AddRef)
         ULONG ( STDMETHODCALLTYPE *AddRef )( 
             ID3DDestructionNotifier * This);
         
+        DECLSPEC_XFGVIRT(IUnknown, Release)
         ULONG ( STDMETHODCALLTYPE *Release )( 
             ID3DDestructionNotifier * This);
         
+        DECLSPEC_XFGVIRT(ID3DDestructionNotifier, RegisterDestructionCallback)
         HRESULT ( STDMETHODCALLTYPE *RegisterDestructionCallback )( 
             ID3DDestructionNotifier * This,
             /* [annotation] */ 
@@ -515,6 +568,7 @@ EXTERN_C const IID IID_ID3DDestructionNotifier;
             /* [annotation] */ 
             _Out_  UINT *pCallbackID);
         
+        DECLSPEC_XFGVIRT(ID3DDestructionNotifier, UnregisterDestructionCallback)
         HRESULT ( STDMETHODCALLTYPE *UnregisterDestructionCallback )( 
             ID3DDestructionNotifier * This,
             /* [annotation] */ 
@@ -985,6 +1039,7 @@ enum _D3D_PARAMETER_FLAGS
 DEFINE_GUID(WKPDID_D3DDebugObjectName,0x429b8c22,0x9188,0x4b0c,0x87,0x42,0xac,0xb0,0xbf,0x85,0xc2,0x00);
 DEFINE_GUID(WKPDID_D3DDebugObjectNameW,0x4cca5fd8,0x921f,0x42c8,0x85,0x66,0x70,0xca,0xf2,0xa9,0xb7,0x41);
 DEFINE_GUID(WKPDID_CommentStringW,0xd0149dc0,0x90e8,0x4ec8,0x81, 0x44, 0xe9, 0x00, 0xad, 0x26, 0x6b, 0xb2);
+DEFINE_GUID(WKPDID_D3D12UniqueObjectId, 0x1b39de15, 0xec04, 0x4bae, 0xba, 0x4d, 0x8c, 0xef, 0x79, 0xfc, 0x04, 0xc1);
 #define D3D_SET_OBJECT_NAME_N_A(pObject, Chars, pName) (pObject)->SetPrivateData(WKPDID_D3DDebugObjectName, Chars, pName)
 #define D3D_SET_OBJECT_NAME_A(pObject, pName) D3D_SET_OBJECT_NAME_N_A(pObject, lstrlenA(pName), pName)
 #define D3D_SET_OBJECT_NAME_N_W(pObject, Chars, pName) (pObject)->SetPrivateData(WKPDID_D3DDebugObjectNameW, Chars*2, pName)
