@@ -1271,8 +1271,9 @@ void ImageState::Transition(const ImageState &dstState, VkAccessFlags srcAccessM
     {
       ImageSubresourceState srcSub;
 
-      // ignore transitions of subresources that were untouched
-      if(it->state() == ImageSubresourceState())
+      // ignore transitions of subresources that were untouched if this isn't the *canonical* image
+      // state, but just an overlay tracking changes within a command buffer
+      if(it->state() == ImageSubresourceState() && m_Overlay)
         continue;
 
       if(!it->state().Update(dstSub, srcSub, info.GetFrameRefCompFunc()))

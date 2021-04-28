@@ -1164,6 +1164,7 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
           {
             ResourceId id = it->first;
             ImageState &endState = it->second;
+            endState.SetOverlay();
             LockedConstImageStateRef current = FindConstImageState(id);
             if(!current)
             {

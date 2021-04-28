@@ -1700,6 +1700,7 @@ struct ImageState
   rdcarray<VkImageMemoryBarrier> oldQueueFamilyTransfers;
   rdcarray<VkImageMemoryBarrier> newQueueFamilyTransfers;
   bool isMemoryBound = false;
+  bool m_Overlay = false;
   ResourceId boundMemory = ResourceId();
   VkDeviceSize boundMemoryOffset = 0ull;
   VkDeviceSize boundMemorySize = 0ull;
@@ -1712,6 +1713,7 @@ struct ImageState
       : wrappedHandle(wrappedHandle), subresourceStates(imageInfo, refType), maxRefType(refType)
   {
   }
+  void SetOverlay() { m_Overlay = true; }
   ImageState InitialState() const;
   void InitialState(ImageState &result) const;
   ImageState CommandBufferInitialState() const;
