@@ -104,7 +104,21 @@ HMODULE Hooked_D3D12LoadLibrary(const rdcstr &filename, HANDLE h, DWORD flags)
   // if we detect the intercepted call to D3D12Core.dll and we have a redirect path, load that
   // redirect path instead
   if(strlower(filename).contains("d3d12core.dll") && !D3D12Core_Override_Path.empty())
-    return LoadLibraryExW(StringFormat::UTF82Wide(D3D12Core_Override_Path).c_str(), NULL, flags);
+  {
+    HMODULE ret =
+        LoadLibraryExW(StringFormat::UTF82Wide(D3D12Core_Override_Path).c_str(), NULL, flags);
+
+    if(ret)
+    {
+      Win32_ManualHookModule("d3d12core.dll", ret);
+    }
+    else
+    {
+      RDCERR("Error loading D3D12Core.dll from %s", D3D12Core_Override_Path.c_str());
+    }
+
+    return ret;
+  }
 
   return NULL;
 }
@@ -207,6 +221,8 @@ void D3D12_PrepareReplaySDKVersion(UINT SDKVersion, bytebuf d3d12core_file, HMOD
 
   if(!hooks_applied)
   {
+    hooks_applied = true;
+
     Win32_RegisterManualModuleHooking();
 
     D3D12GetInterface_hook.Register("d3d12core.dll", "D3D12GetInterface", Hooked_D3D12GetInterface);

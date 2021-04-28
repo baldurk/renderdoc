@@ -999,6 +999,12 @@ void Win32_ManualHookModule(rdcstr modName, HMODULE module)
 
   s_HookData->DllHooks[modName].module = module;
 
+  for(FunctionHook &hook : s_HookData->DllHooks[modName].FunctionHooks)
+  {
+    if(hook.orig)
+      *hook.orig = GetProcAddress(module, hook.function.c_str());
+  }
+
   s_HookData->ApplyHooks(modName.c_str(), module);
 }
 
