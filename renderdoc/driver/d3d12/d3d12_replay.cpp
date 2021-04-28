@@ -3922,7 +3922,7 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
   }
 
   D3D12InitParams initParams;
-  bytebuf D3D12Core;
+  bytebuf D3D12Core, D3D12SDKLayers;
 
   uint64_t ver = D3D12InitParams::CurrentVersion;
 
@@ -3980,6 +3980,26 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
       D3D12Core.resize((size_t)props.uncompressedSize);
       reader->Read(D3D12Core.data(), props.uncompressedSize);
 
+      RDCLOG("Got D3D12Core.dll of size %llu (decompressed from %llu)", props.uncompressedSize,
+             props.compressedSize);
+
+      RDCASSERT(reader->AtEnd());
+      delete reader;
+    }
+
+    sectionIdx = rdc->SectionIndex(SectionType::D3D12SDKLayers);
+
+    if(sectionIdx >= 0)
+    {
+      SectionProperties props = rdc->GetSectionProperties(sectionIdx);
+      reader = rdc->ReadSection(sectionIdx);
+
+      D3D12SDKLayers.resize((size_t)props.uncompressedSize);
+      reader->Read(D3D12SDKLayers.data(), props.uncompressedSize);
+
+      RDCLOG("Got D3D12SDKLayers.dll of size %llu (decompressed from %llu)", props.uncompressedSize,
+             props.compressedSize);
+
       RDCASSERT(reader->AtEnd());
       delete reader;
     }
@@ -3988,7 +4008,7 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
   if(initParams.MinimumFeatureLevel < D3D_FEATURE_LEVEL_11_0)
     initParams.MinimumFeatureLevel = D3D_FEATURE_LEVEL_11_0;
 
-  D3D12_PrepareReplaySDKVersion(initParams.SDKVersion, D3D12Core, D3D12Lib);
+  D3D12_PrepareReplaySDKVersion(initParams.SDKVersion, D3D12Core, D3D12SDKLayers, D3D12Lib);
 
   if(rdc)
   {
@@ -4084,6 +4104,14 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
            ToStr(initParams.MinimumFeatureLevel).c_str());
 
   bool shouldEnableDebugLayer = opts.apiValidation;
+
+  if(shouldEnableDebugLayer && !D3D12Core.empty() && D3D12SDKLayers.empty())
+  {
+    RDCWARN(
+        "Not enabling D3D debug layers because we captured a D3D12Core.dll but not a matching "
+        "D3D12SDKLayers.dll, so this may crash");
+    shouldEnableDebugLayer = false;
+  }
 
   if(shouldEnableDebugLayer)
   {

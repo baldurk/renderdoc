@@ -2601,24 +2601,52 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
   {
     if(rdc)
     {
-      wchar_t core_filename[MAX_PATH + 1] = {};
-      GetModuleFileNameW(D3D12Core, core_filename, MAX_PATH);
+      wchar_t wide_core_filename[MAX_PATH + 1] = {};
+      GetModuleFileNameW(D3D12Core, wide_core_filename, MAX_PATH);
 
-      bytebuf core_file;
-      FileIO::ReadAll(StringFormat::Wide2UTF8(core_filename), core_file);
+      rdcstr core_filename = StringFormat::Wide2UTF8(wide_core_filename);
 
-      SectionProperties props;
+      bytebuf buf;
+      FileIO::ReadAll(core_filename, buf);
 
-      props.flags = SectionFlags::ZstdCompressed;
-      props.version = 1;
-      props.type = SectionType::D3D12Core;
+      {
+        SectionProperties props;
 
-      captureWriter = rdc->WriteSection(props);
+        props.flags = SectionFlags::ZstdCompressed;
+        props.version = 1;
+        props.type = SectionType::D3D12Core;
 
-      captureWriter->Write(core_file.data(), core_file.size());
+        captureWriter = rdc->WriteSection(props);
 
-      captureWriter->Finish();
-      SAFE_DELETE(captureWriter);
+        captureWriter->Write(buf.data(), buf.size());
+
+        captureWriter->Finish();
+        SAFE_DELETE(captureWriter);
+      }
+
+      buf.clear();
+
+      // try to grab the SDK layers which will be needed for debug on replay
+
+      rdcstr sdklayers_filename = get_dirname(core_filename) + "/d3d12sdklayers.dll";
+
+      FileIO::ReadAll(sdklayers_filename, buf);
+
+      if(!buf.empty())
+      {
+        SectionProperties props;
+
+        props.flags = SectionFlags::ZstdCompressed;
+        props.version = 1;
+        props.type = SectionType::D3D12SDKLayers;
+
+        captureWriter = rdc->WriteSection(props);
+
+        captureWriter->Write(buf.data(), buf.size());
+
+        captureWriter->Finish();
+        SAFE_DELETE(captureWriter);
+      }
     }
 
     FreeLibrary(D3D12Core);

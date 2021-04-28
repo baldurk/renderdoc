@@ -104,6 +104,12 @@ version of RenderDoc that addes a new section type. They should be considered eq
   This section contains an internal copy of D3D12Core for replaying.
 
   The name for this section will be "renderdoc/internal/d3d12core".
+
+.. data:: D3D12SDKLayers
+
+  This section contains an internal copy of D3D12SDKLayers for replaying.
+
+  The name for this section will be "renderdoc/internal/d3d12sdklayers".
 )");
 enum class SectionType : uint32_t
 {
@@ -119,6 +125,7 @@ enum class SectionType : uint32_t
   EmbeddedLogfile,
   EditedShaders,
   D3D12Core,
+  D3D12SDKLayers,
   Count,
 };
 

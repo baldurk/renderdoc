@@ -27,7 +27,7 @@
 #include "strings/string_utils.h"
 #include "d3d12_common.h"
 
-RDOC_CONFIG(rdcstr, D3D12_D3D12CorePath, "",
+RDOC_CONFIG(rdcstr, D3D12_D3D12CoreDirPath, "",
             "The location of the D3D12Core library. This path should be the directory that "
             "contains the D3D12Core.dll that you want to use.");
 
@@ -97,36 +97,43 @@ struct WrappedCoreModule : public ID3D12CoreModule
 };
 
 using PFN_D3D12_GET_INTERFACE = decltype(&D3D12GetInterface);
-HookedFunction<PFN_D3D12_GET_INTERFACE> D3D12GetInterface_hook;
+HookedFunction<PFN_D3D12_GET_INTERFACE> D3D12GetInterface_Core_hook;
+HookedFunction<PFN_D3D12_GET_INTERFACE> D3D12GetInterface_SDKLayers_hook;
 
 HMODULE Hooked_D3D12LoadLibrary(const rdcstr &filename, HANDLE h, DWORD flags)
 {
-  // if we detect the intercepted call to D3D12Core.dll and we have a redirect path, load that
-  // redirect path instead
-  if(strlower(filename).contains("d3d12core.dll") && !D3D12Core_Override_Path.empty())
+  if(!D3D12Core_Override_Path.empty())
   {
-    HMODULE ret =
-        LoadLibraryExW(StringFormat::UTF82Wide(D3D12Core_Override_Path).c_str(), NULL, flags);
-
-    if(ret)
+    // if we detect the intercepted call to a D3D12 dll and we have a redirect path, load that
+    // redirect path instead
+    for(const rdcstr &dll : {"d3d12core.dll", "d3d12sdklayers.dll"})
     {
-      Win32_ManualHookModule("d3d12core.dll", ret);
-    }
-    else
-    {
-      RDCERR("Error loading D3D12Core.dll from %s", D3D12Core_Override_Path.c_str());
-    }
+      if(strlower(filename).contains(dll))
+      {
+        HMODULE ret = LoadLibraryExW(
+            StringFormat::UTF82Wide(D3D12Core_Override_Path + "/" + dll).c_str(), NULL, flags);
 
-    return ret;
+        if(ret)
+        {
+          Win32_ManualHookModule(dll, ret);
+        }
+        else
+        {
+          RDCERR("Error loading %s from %s", dll.c_str(), D3D12Core_Override_Path.c_str());
+        }
+
+        return ret;
+      }
+    }
   }
 
   return NULL;
 }
 
-HRESULT WINAPI Hooked_D3D12GetInterface(_In_ REFCLSID rclsid, _In_ REFIID riid,
-                                        _COM_Outptr_opt_ void **ppvDebug)
+HRESULT WINAPI Hooked_Core_D3D12GetInterface(_In_ REFCLSID rclsid, _In_ REFIID riid,
+                                             _COM_Outptr_opt_ void **ppvDebug)
 {
-  HRESULT ret = D3D12GetInterface_hook()(rclsid, riid, ppvDebug);
+  HRESULT ret = D3D12GetInterface_Core_hook()(rclsid, riid, ppvDebug);
 
   // intercept the interface with our own wrapper to ensure version checking is silenced
   if(SUCCEEDED(ret) && riid == __uuidof(ID3D12CoreModule))
@@ -135,7 +142,20 @@ HRESULT WINAPI Hooked_D3D12GetInterface(_In_ REFCLSID rclsid, _In_ REFIID riid,
   return ret;
 }
 
-void D3D12_PrepareReplaySDKVersion(UINT SDKVersion, bytebuf d3d12core_file, HMODULE d3d12lib)
+HRESULT WINAPI Hooked_SDKLayers_D3D12GetInterface(_In_ REFCLSID rclsid, _In_ REFIID riid,
+                                                  _COM_Outptr_opt_ void **ppvDebug)
+{
+  HRESULT ret = D3D12GetInterface_SDKLayers_hook()(rclsid, riid, ppvDebug);
+
+  // intercept the interface with our own wrapper to ensure version checking is silenced
+  if(SUCCEEDED(ret) && riid == __uuidof(ID3D12CoreModule))
+    *ppvDebug = (ID3D12CoreModule *)(new WrappedCoreModule((ID3D12CoreModule *)*ppvDebug));
+
+  return ret;
+}
+
+void D3D12_PrepareReplaySDKVersion(UINT SDKVersion, bytebuf d3d12core_file,
+                                   bytebuf d3d12sdklayers_file, HMODULE d3d12lib)
 {
   // D3D12Core shouldn't be loaded at this point, but it might be due to bugs. If it is, we can't do
   // anything to change it anymore so we have to just handle what we have
@@ -225,7 +245,10 @@ void D3D12_PrepareReplaySDKVersion(UINT SDKVersion, bytebuf d3d12core_file, HMOD
 
     Win32_RegisterManualModuleHooking();
 
-    D3D12GetInterface_hook.Register("d3d12core.dll", "D3D12GetInterface", Hooked_D3D12GetInterface);
+    D3D12GetInterface_Core_hook.Register("d3d12core.dll", "D3D12GetInterface",
+                                         Hooked_Core_D3D12GetInterface);
+    D3D12GetInterface_SDKLayers_hook.Register("d3d12sdklayers.dll", "D3D12GetInterface",
+                                              Hooked_SDKLayers_D3D12GetInterface);
 
     Win32_InterceptLibraryLoads(Hooked_D3D12LoadLibrary);
   }
@@ -235,7 +258,7 @@ void D3D12_PrepareReplaySDKVersion(UINT SDKVersion, bytebuf d3d12core_file, HMOD
   Win32_ManualHookModule("d3d12.dll", d3d12lib);
 
   // *always* use the user's path if it exists
-  D3D12Core_Override_Path = D3D12_D3D12CorePath();
+  D3D12Core_Override_Path = D3D12_D3D12CoreDirPath();
 
   if(D3D12Core_Override_Path.empty() || !FileIO::exists(D3D12Core_Override_Path.c_str()))
   {
@@ -265,8 +288,20 @@ void D3D12_PrepareReplaySDKVersion(UINT SDKVersion, bytebuf d3d12core_file, HMOD
         FileIO::fwrite(d3d12core_file.data(), 1, d3d12core_file.size(), f);
         FileIO::fclose(f);
 
-        D3D12Core_Override_Path = filename;
-        D3D12Core_Temp_Path = filename;
+        D3D12Core_Override_Path = get_dirname(filename);
+        D3D12Core_Temp_Path = get_dirname(filename);
+
+        filename = get_dirname(filename) + "/d3d12sdklayers.dll";
+
+        f = FileIO::fopen(filename.c_str(), FileIO::WriteBinary);
+
+        // if we can write to this file, we have exclusive use of it so let's write it and use it
+        if(f)
+        {
+          FileIO::fwrite(d3d12sdklayers_file.data(), 1, d3d12sdklayers_file.size(), f);
+          FileIO::fclose(f);
+        }
+
         break;
       }
     }
@@ -282,6 +317,7 @@ void D3D12_CleanupReplaySDK()
 {
   if(!D3D12Core_Temp_Path.empty() && FileIO::exists(D3D12Core_Temp_Path.c_str()))
   {
-    FileIO::Delete(D3D12Core_Temp_Path.c_str());
+    FileIO::Delete((D3D12Core_Temp_Path + "/d3d12core.dll").c_str());
+    FileIO::Delete((D3D12Core_Temp_Path + "/d3d12sdklayers.dll").c_str());
   }
 }

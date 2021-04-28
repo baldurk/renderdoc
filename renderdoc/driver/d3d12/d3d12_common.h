@@ -59,7 +59,8 @@ struct D3D12MarkerRegion
 bool EnableD3D12DebugLayer(PFN_D3D12_GET_DEBUG_INTERFACE getDebugInterface = NULL);
 HRESULT EnumAdapterByLuid(IDXGIFactory1 *factory, LUID luid, IDXGIAdapter **pAdapter);
 
-void D3D12_PrepareReplaySDKVersion(UINT SDKVersion, bytebuf d3d12core, HMODULE d3d12lib);
+void D3D12_PrepareReplaySDKVersion(UINT SDKVersion, bytebuf d3d12core, bytebuf d3d12sdklayers,
+                                   HMODULE d3d12lib);
 void D3D12_CleanupReplaySDK();
 
 inline void SetObjName(ID3D12Object *obj, const rdcstr &utf8name)
