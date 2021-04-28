@@ -1827,8 +1827,19 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
     data->vsinConfig.buffers.push_back(buf);
   }
 
-  data->vsoutConfig.numRows = data->postVS.numIndices;
-  data->vsoutConfig.unclampedNumRows = 0;
+  if(data->postVS.numIndices <= data->vsinConfig.numRows)
+  {
+    data->vsoutConfig.numRows = data->postVS.numIndices;
+    data->vsoutConfig.unclampedNumRows = 0;
+  }
+  else
+  {
+    // the vertex shader can't run any expansion, so apply the same clamping to it as we applied to
+    // the inputs. This protects against draws with an invalid number of vertices.
+    data->vsoutConfig.numRows = data->vsinConfig.numRows;
+    data->vsoutConfig.unclampedNumRows = data->vsinConfig.unclampedNumRows;
+  }
+
   data->vsoutConfig.baseVertex = data->postVS.baseVertex;
   data->vsoutConfig.displayBaseVertex = data->vsinConfig.baseVertex;
 
