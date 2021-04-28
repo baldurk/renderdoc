@@ -1804,7 +1804,7 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
           m_DiscardLayout,
           m_pDriver->GetShaderCache()->GetBuiltinModule(BuiltinShader::BlitVS),
           m_pDriver->GetShaderCache()->GetBuiltinModule(BuiltinShader::DiscardFS),
-          {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR},
+          {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_STENCIL_REFERENCE},
           imInfo.samples,
           false,    // sampleRateShading
           true,     // depthEnable
