@@ -1059,7 +1059,7 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
                           "Taking slow path to mask tiled memory writes");
         }
         directStream = false;
-        m_MaskedMapData.resize((size_t)MemRange.size);
+        m_MaskedMapData.resize((size_t)m_CreationInfo.m_Memory[GetResID(MemRange.memory)].allocSize);
         break;
       }
 
