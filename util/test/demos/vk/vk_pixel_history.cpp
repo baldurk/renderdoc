@@ -496,7 +496,8 @@ void main()
 
     VkImageView msdepthview = createImageView(vkh::ImageViewCreateInfo(
         msimgdepth.image, VK_IMAGE_VIEW_TYPE_2D, depthStencilFormat, {},
-        vkh::ImageSubresourceRange(VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 2, 1)));
+        vkh::ImageSubresourceRange(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 2,
+                                   1)));
 
     VkFramebuffer submsfb = createFramebuffer(vkh::FramebufferCreateInfo(
         submsrp, {submsview, msdepthview},
