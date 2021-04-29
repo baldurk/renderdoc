@@ -47,6 +47,16 @@ HMODULE dxcompiler = NULL;
 IDXGIFactory1Ptr factory;
 std::vector<IDXGIAdapterPtr> adapters;
 bool d3d12on7 = false;
+
+pD3DCompile dyn_D3DCompile = NULL;
+pD3DStripShader dyn_D3DStripShader = NULL;
+pD3DSetBlobPart dyn_D3DSetBlobPart = NULL;
+pD3DCreateBlob dyn_CreateBlob = NULL;
+
+PFN_D3D12_CREATE_DEVICE dyn_D3D12CreateDevice = NULL;
+
+PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE dyn_serializeRootSig;
+PFN_D3D12_SERIALIZE_ROOT_SIGNATURE dyn_serializeRootSigOld;
 };    // namespace
 
 void D3D12GraphicsTest::Prepare(int argc, char **argv)
@@ -119,6 +129,24 @@ void D3D12GraphicsTest::Prepare(int argc, char **argv)
         }
       }
     }
+
+    if(d3dcompiler)
+    {
+      dyn_D3DCompile = (pD3DCompile)GetProcAddress(d3dcompiler, "D3DCompile");
+      dyn_D3DStripShader = (pD3DStripShader)GetProcAddress(d3dcompiler, "D3DStripShader");
+      dyn_D3DSetBlobPart = (pD3DSetBlobPart)GetProcAddress(d3dcompiler, "D3DSetBlobPart");
+      dyn_CreateBlob = (pD3DCreateBlob)GetProcAddress(d3dcompiler, "D3DCreateBlob");
+    }
+
+    if(d3d12)
+    {
+      dyn_D3D12CreateDevice = (PFN_D3D12_CREATE_DEVICE)GetProcAddress(d3d12, "D3D12CreateDevice");
+
+      dyn_serializeRootSig = (PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE)GetProcAddress(
+          d3d12, "D3D12SerializeVersionedRootSignature");
+      dyn_serializeRootSigOld =
+          (PFN_D3D12_SERIALIZE_ROOT_SIGNATURE)GetProcAddress(d3d12, "D3D12SerializeRootSignature");
+    }
   }
 
   if(!d3d12)
@@ -129,6 +157,11 @@ void D3D12GraphicsTest::Prepare(int argc, char **argv)
     Avail = "d3dcompiler_XX.dll is not available";
   else if(!factory)
     Avail = "Couldn't create DXGI factory";
+  else if(!dyn_D3D12CreateDevice || !dyn_D3DCompile || !dyn_D3DStripShader || !dyn_D3DSetBlobPart ||
+          !dyn_CreateBlob)
+    Avail = "Missing required entry point";
+  else if(!dyn_serializeRootSig && !dyn_serializeRootSigOld)
+    Avail = "Missing required root signature serialize entry point";
 
   m_12On7 = d3d12on7;
 
@@ -143,6 +176,20 @@ void D3D12GraphicsTest::Prepare(int argc, char **argv)
   }
 
   m_Factory = factory;
+
+  ID3D12DevicePtr tmpdev = CreateDevice(adapters, minFeatureLevel);
+
+  if(tmpdev)
+  {
+    tmpdev->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &opts, sizeof(opts));
+    tmpdev->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS1, &opts1, sizeof(opts1));
+    tmpdev->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS2, &opts2, sizeof(opts2));
+    tmpdev->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS3, &opts3, sizeof(opts3));
+    tmpdev->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS4, &opts4, sizeof(opts4));
+    tmpdev->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &opts5, sizeof(opts5));
+    tmpdev->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS6, &opts6, sizeof(opts6));
+    tmpdev->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, &opts7, sizeof(opts7));
+  }
 }
 
 bool D3D12GraphicsTest::Init()
@@ -151,30 +198,9 @@ bool D3D12GraphicsTest::Init()
   if(!GraphicsTest::Init())
     return false;
 
-  // we can assume d3d12, dxgi and d3dcompiler are valid since we shouldn't be running the test if
-  // Prepare() failed
-
-  dyn_D3D12CreateDevice = (PFN_D3D12_CREATE_DEVICE)GetProcAddress(d3d12, "D3D12CreateDevice");
-
-  dyn_D3DCompile = (pD3DCompile)GetProcAddress(d3dcompiler, "D3DCompile");
-  dyn_D3DStripShader = (pD3DStripShader)GetProcAddress(d3dcompiler, "D3DStripShader");
-  dyn_D3DSetBlobPart = (pD3DSetBlobPart)GetProcAddress(d3dcompiler, "D3DSetBlobPart");
-  dyn_CreateBlob = (pD3DCreateBlob)GetProcAddress(d3dcompiler, "D3DCreateBlob");
-
-  dyn_serializeRootSig = (PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE)GetProcAddress(
-      d3d12, "D3D12SerializeVersionedRootSignature");
-  dyn_serializeRootSigOld =
-      (PFN_D3D12_SERIALIZE_ROOT_SIGNATURE)GetProcAddress(d3d12, "D3D12SerializeRootSignature");
-
   if(dyn_serializeRootSig == NULL)
   {
     TEST_WARN("Can't get D3D12SerializeVersionedRootSignature - old version of windows?");
-
-    if(dyn_serializeRootSigOld == NULL)
-    {
-      TEST_ERROR("Can't get D3D12SerializeRootSignature!");
-      return false;
-    }
   }
 
   if(debugDevice)
@@ -204,7 +230,7 @@ bool D3D12GraphicsTest::Init()
     }
   }
 
-  dev = CreateDevice(adapters, D3D_FEATURE_LEVEL_11_0);
+  dev = CreateDevice(adapters, minFeatureLevel);
   if(!dev)
     return false;
 

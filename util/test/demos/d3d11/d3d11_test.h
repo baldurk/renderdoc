@@ -177,8 +177,8 @@ struct D3D11GraphicsTest : public GraphicsTest
   ID3D11VertexShaderPtr swapBlitVS;
   ID3D11PixelShaderPtr swapBlitPS;
 
-  D3D11_FEATURE_DATA_D3D11_OPTIONS opts;
-  D3D11_FEATURE_DATA_D3D11_OPTIONS1 opts1;
+  D3D11_FEATURE_DATA_D3D11_OPTIONS opts = {};
+  D3D11_FEATURE_DATA_D3D11_OPTIONS1 opts1 = {};
 
   ID3D11DepthStencilStatePtr depthState;
   ID3D11RasterizerStatePtr rastState;

@@ -98,39 +98,33 @@ void D3D11GraphicsTest::Prepare(int argc, char **argv)
       if(SUCCEEDED(hr))
         adapters = FindD3DAdapters(factory, argc, argv, warp);
     }
+  }
 
-    if(!d3d11)
-      Avail = "d3d11.dll is not available";
-    else if(!dxgi)
-      Avail = "dxgi.dll is not available";
-    else if(!d3dcompiler)
-      Avail = "d3dcompiler_XX.dll is not available";
-    else if(!factory)
-      Avail = "Couldn't create DXGI factory";
-    else if(!dyn_D3D11CreateDevice || !dyn_D3D11CreateDeviceAndSwapChain || !dyn_D3DCompile ||
-            !dyn_D3DStripShader || !dyn_D3DSetBlobPart)
-      Avail = "Missing required entry point";
+  if(!d3d11)
+    Avail = "d3d11.dll is not available";
+  else if(!dxgi)
+    Avail = "dxgi.dll is not available";
+  else if(!d3dcompiler)
+    Avail = "d3dcompiler_XX.dll is not available";
+  else if(!factory)
+    Avail = "Couldn't create DXGI factory";
+  else if(!dyn_D3D11CreateDevice || !dyn_D3D11CreateDeviceAndSwapChain || !dyn_D3DCompile ||
+          !dyn_D3DStripShader || !dyn_D3DSetBlobPart)
+    Avail = "Missing required entry point";
 
-    if(dyn_D3D11CreateDevice)
+  if(dyn_D3D11CreateDevice)
+  {
+    D3D_FEATURE_LEVEL features[] = {D3D_FEATURE_LEVEL_11_0};
+    HRESULT hr = CreateDevice(NULL, NULL, features, 0);
+
+    if(SUCCEEDED(hr))
     {
-      D3D_FEATURE_LEVEL features[] = {D3D_FEATURE_LEVEL_11_0};
-      hr = CreateDevice(NULL, NULL, features, 0);
-
-      if(SUCCEEDED(hr))
-      {
-        dev->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS, &opts, sizeof(opts));
-
-        ID3D11Device1Ptr tempDev1;
-
-        tempDev1 = dev;
-        memset(&opts1, 0, sizeof(opts1));
-        if(tempDev1)
-          tempDev1->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS1, &opts1, sizeof(opts1));
-      }
-
-      // This device was only used  to get feature support. Set it back to NULL
-      dev = NULL;
+      dev->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS, &opts, sizeof(opts));
+      dev->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS1, &opts1, sizeof(opts1));
     }
+
+    // This device was only used  to get feature support. Set it back to NULL
+    dev = NULL;
   }
 }
 

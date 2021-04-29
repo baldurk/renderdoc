@@ -185,16 +185,6 @@ struct D3D12GraphicsTest : public GraphicsTest
   DXGI_FORMAT backbufferFmt = DXGI_FORMAT_R8G8B8A8_UNORM;
   int backbufferCount = 2;
 
-  pD3DCompile dyn_D3DCompile = NULL;
-  pD3DStripShader dyn_D3DStripShader = NULL;
-  pD3DSetBlobPart dyn_D3DSetBlobPart = NULL;
-  pD3DCreateBlob dyn_CreateBlob = NULL;
-
-  PFN_D3D12_CREATE_DEVICE dyn_D3D12CreateDevice = NULL;
-
-  PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE dyn_serializeRootSig;
-  PFN_D3D12_SERIALIZE_ROOT_SIGNATURE dyn_serializeRootSigOld;
-
   GraphicsWindow *mainWindow = NULL;
 
   DXGI_ADAPTER_DESC adapterDesc = {};
@@ -206,6 +196,8 @@ struct D3D12GraphicsTest : public GraphicsTest
 
   ID3D12RootSignaturePtr swapBlitSig;
   ID3D12PipelineStatePtr swapBlitPso;
+
+  D3D_FEATURE_LEVEL minFeatureLevel = D3D_FEATURE_LEVEL_11_0;
 
   bool gpuva = false, m_12On7 = false, m_DXILSupport = false;
   IDXGIFactory1Ptr m_Factory;
@@ -229,6 +221,15 @@ struct D3D12GraphicsTest : public GraphicsTest
   ID3D12GraphicsCommandListPtr m_DebugList;
 
   ID3D12CommandQueuePtr queue;
+
+  D3D12_FEATURE_DATA_D3D12_OPTIONS opts = {};
+  D3D12_FEATURE_DATA_D3D12_OPTIONS1 opts1 = {};
+  D3D12_FEATURE_DATA_D3D12_OPTIONS2 opts2 = {};
+  D3D12_FEATURE_DATA_D3D12_OPTIONS3 opts3 = {};
+  D3D12_FEATURE_DATA_D3D12_OPTIONS4 opts4 = {};
+  D3D12_FEATURE_DATA_D3D12_OPTIONS5 opts5 = {};
+  D3D12_FEATURE_DATA_D3D12_OPTIONS6 opts6 = {};
+  D3D12_FEATURE_DATA_D3D12_OPTIONS7 opts7 = {};
 
   ID3D12FencePtr m_GPUSyncFence;
   HANDLE m_GPUSyncHandle = NULL;

@@ -34,7 +34,7 @@ RD_TEST(D3D12_Swapchain_Zoo, D3D12GraphicsTest)
     D3D12GraphicsTest::Prepare(argc, argv);
 
     if(m_12On7)
-      Avail = "True swapchains not supportedd on D3D12On7";
+      Avail = "True swapchains not supported on D3D12On7";
   }
 
   int main()
