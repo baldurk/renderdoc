@@ -2648,8 +2648,6 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
         SAFE_DELETE(captureWriter);
       }
     }
-
-    FreeLibrary(D3D12Core);
   }
 
   RenderDoc::Inst().FinishCaptureWriting(rdc, m_CapturedFrames.back().frameNumber);
