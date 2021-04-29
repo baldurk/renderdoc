@@ -54,6 +54,8 @@ COM_SMARTPTR(ID3D12GraphicsCommandList1);
 COM_SMARTPTR(ID3D12GraphicsCommandList2);
 COM_SMARTPTR(ID3D12GraphicsCommandList3);
 COM_SMARTPTR(ID3D12GraphicsCommandList4);
+COM_SMARTPTR(ID3D12GraphicsCommandList5);
+COM_SMARTPTR(ID3D12GraphicsCommandList6);
 
 COM_SMARTPTR(ID3D12CommandSignature);
 
