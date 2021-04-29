@@ -202,7 +202,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="renderdoc.json" />
-    <None Include="vk_apple.mm" />
+    <None Include="vk_apple_helpers.mm" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\shaders\spirv\renderdoc_spirv.vcxproj">
