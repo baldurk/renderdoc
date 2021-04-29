@@ -1693,7 +1693,8 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
 
   if(draw && ib.byteStride != 0 && !idata.isEmpty())
     data->vsinConfig.indices->storage.resize(
-        sizeof(uint32_t) * qMin(numIndices, ((uint32_t)idata.size() / ib.byteStride)));
+        sizeof(uint32_t) *
+        qMin(numIndices, (((uint32_t)idata.size() + ib.byteStride - 1) / ib.byteStride)));
   else if(draw && (draw->flags & DrawFlags::Indexed))
     data->vsinConfig.indices->storage.resize(sizeof(uint32_t));
 
