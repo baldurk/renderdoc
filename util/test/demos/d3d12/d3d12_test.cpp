@@ -376,7 +376,7 @@ bool D3D12GraphicsTest::Init()
 
     desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     CHECK_HR(dev->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&m_Clear));
-    m_CBVUAVSRV->SetName(L"UAV clear heap");
+    m_Clear->SetName(L"UAV clear heap");
   }
 
   {

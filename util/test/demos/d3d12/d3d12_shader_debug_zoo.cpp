@@ -165,6 +165,9 @@ Texture2D<float> unboundsrv2 : register(t101);
 RWBuffer<float> unbounduav1 : register(u4);
 RWTexture2D<float> unbounduav2 : register(u5);
 
+RWBuffer<float> narrowtypeduav : register(u6);
+Buffer<float> narrowtypedsrv : register(t102);
+
 SamplerState linearclamp : register(s0);
 
 float4 main(v2f IN) : SV_Target0
@@ -681,6 +684,16 @@ float4 main(v2f IN) : SV_Target0
     unbounduav2[int2(0, 1)] = 1.234f;
     return unbounduav2[int2(0, 1)].xxxx;
   }
+  if(IN.tri == 74)
+  {
+    return float4(narrowtypedsrv[1], narrowtypedsrv[2], narrowtypedsrv[3], narrowtypedsrv[4]);
+  }
+  if(IN.tri == 75)
+  {
+    narrowtypeduav[13] = 555.0f;
+    narrowtypeduav[14] = 888.0f;
+    return float4(narrowtypeduav[11], narrowtypeduav[12], narrowtypeduav[13], narrowtypeduav[14]);
+  }
 
   return float4(0.4f, 0.4f, 0.4f, 0.4f);
 }
@@ -760,7 +773,7 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
             tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 5, 0),
             tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1, 2, 5),
             tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 100, 5, 20),
-            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 4, 2, 24),
+            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 4, 3, 30),
         },
         D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, 1, &staticSamp);
 
@@ -837,6 +850,14 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
         MakeUAV(rawBuf2).Format(DXGI_FORMAT_R32_TYPELESS).ByteAddressed().FirstElement(4).NumElements(12);
     D3D12_CPU_DESCRIPTOR_HANDLE uav1cpu = uavView1.CreateClearCPU(5);
     D3D12_GPU_DESCRIPTOR_HANDLE uav1gpu = uavView1.CreateGPU(5);
+
+    uint16_t narrowdata[32];
+    for(size_t i = 0; i < ARRAY_COUNT(narrowdata); i++)
+      narrowdata[i] = MakeHalf(float(i));
+
+    ID3D12ResourcePtr narrowtypedbuf = MakeBuffer().UAV().Data(narrowdata);
+    MakeSRV(narrowtypedbuf).Format(DXGI_FORMAT_R16_FLOAT).CreateGPU(22);
+    MakeUAV(narrowtypedbuf).Format(DXGI_FORMAT_R16_FLOAT).CreateGPU(32);
 
     float structdata[220];
     for(int i = 0; i < 220; i++)
@@ -936,7 +957,7 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
       uavdesc.Buffer.NumElements = 10;
 
       cpu = m_CBVUAVSRV->GetCPUDescriptorHandleForHeapStart();
-      cpu.ptr += inc * 24;
+      cpu.ptr += inc * 30;
       dev->CreateUnorderedAccessView(NULL, NULL, &uavdesc, cpu);
     }
 
@@ -946,7 +967,7 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
       uavdesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
 
       cpu = m_CBVUAVSRV->GetCPUDescriptorHandleForHeapStart();
-      cpu.ptr += inc * 25;
+      cpu.ptr += inc * 31;
       dev->CreateUnorderedAccessView(NULL, NULL, &uavdesc, cpu);
     }
 
