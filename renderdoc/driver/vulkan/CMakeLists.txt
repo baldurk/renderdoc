@@ -88,7 +88,7 @@ if(ANDROID)
     list(APPEND sources vk_posix.cpp vk_android.cpp vk_layer_android.cpp)
     list(APPEND definitions PRIVATE -DVK_USE_PLATFORM_ANDROID_KHR)
 elseif(APPLE)
-    list(APPEND sources vk_posix.cpp vk_apple.cpp vk_apple.mm)
+    list(APPEND sources vk_posix.cpp vk_apple.cpp vk_apple_helpers.mm)
 
     add_definitions(-DVK_USE_PLATFORM_MACOS_MVK -DVK_USE_PLATFORM_METAL_EXT)
 elseif(ENABLE_GGP)

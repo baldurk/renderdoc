@@ -28,7 +28,7 @@
 
 #include <dlfcn.h>
 
-// helpers defined in vk_apple.mm
+// helpers defined in vk_apple_helpers.mm
 void getMetalLayerSize(void *layerHandle, int &width, int &height);
 
 #if defined(VK_USE_PLATFORM_MACOS_MVK)
