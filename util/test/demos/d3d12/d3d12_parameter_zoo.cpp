@@ -147,6 +147,9 @@ float4 main() : SV_Target0
                                    .RTV()
                                    .InitialState(D3D12_RESOURCE_STATE_RENDER_TARGET);
 
+    ID3D12CommandSignaturePtr cmdsig = MakeCommandSig(NULL, {vbArg(0), drawArg()});
+    ID3D12ResourcePtr argBuf = MakeBuffer().Upload().Size(1024);
+
     while(Running())
     {
       ID3D12GraphicsCommandListPtr cmd = GetCommandBuffer();
@@ -205,6 +208,10 @@ float4 main() : SV_Target0
       setMarker(cmd, "Color Draw");
 
       cmd->DrawIndexedInstanced(3, 1, 0, 0, 0);
+
+      setMarker(cmd, "Empty indirect execute");
+
+      cmd->ExecuteIndirect(cmdsig, 0, argBuf, 0, NULL, 0);
 
       FinishUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
