@@ -822,7 +822,9 @@ void ToolWindowManager::startDrag(const QList<QWidget *> &toolWindows,
   }
 
   m_draggedWrapper = wrapper;
-  m_draggedToolWindows = toolWindows;
+  m_draggedToolWindows.clear();
+  for(QWidget *w : toolWindows)
+    m_draggedToolWindows.push_back(w);
   qApp->installEventFilter(this);
 }
 
@@ -1194,8 +1196,9 @@ void ToolWindowManager::updateDragPosition()
   {
     bool allowFloat = m_allowFloatingWindow;
 
-    for(QWidget *w : m_draggedToolWindows)
-      allowFloat &= !(toolWindowProperties(w) & DisallowFloatWindow);
+    for(QPointer<QWidget> w : m_draggedToolWindows)
+      if(w)
+        allowFloat &= !(toolWindowProperties(w) & DisallowFloatWindow);
 
     // no hotspot highlighted, draw geometry for a float window if previewing a tear-off, or draw
     // nothing if we're dragging a float window as it moves itself.
@@ -1207,9 +1210,9 @@ void ToolWindowManager::updateDragPosition()
     else
     {
       QRect r;
-      for(QWidget *w : m_draggedToolWindows)
+      for(QPointer<QWidget> w : m_draggedToolWindows)
       {
-        if(w->isVisible())
+        if(w && w->isVisible())
           r = r.united(w->rect());
       }
       m_previewOverlay->setGeometry(pos.x(), pos.y(), r.width(), r.height());
@@ -1249,8 +1252,21 @@ void ToolWindowManager::finishDrag()
   qApp->removeEventFilter(this);
 
   // move these locally to prevent re-entrancy
-  QList<QWidget *> draggedToolWindows = m_draggedToolWindows;
+  QList<QWidget *> draggedToolWindows;
   ToolWindowManagerWrapper *draggedWrapper = m_draggedWrapper;
+
+  for(QPointer<QWidget> w : m_draggedToolWindows)
+    if(w)
+      draggedToolWindows.push_back(w);
+
+  if(m_draggedToolWindows.size() != draggedToolWindows.size())
+  {
+    qWarning("Some dragged windows were all deleted before finishDrag: %d -> %d",
+             (int)m_draggedToolWindows.size(), (int)draggedToolWindows.size());
+
+    if(draggedToolWindows.empty())
+      return;
+  }
 
   m_draggedToolWindows.clear();
   m_draggedWrapper = NULL;
