@@ -298,11 +298,16 @@ ShaderBuiltin GetSystemValue(SVSemantic systemValue)
     case SVNAME_FINAL_TRI_INSIDE_TESSFACTOR: return ShaderBuiltin::InsideTessFactor;
     case SVNAME_FINAL_LINE_DETAIL_TESSFACTOR: return ShaderBuiltin::OuterTessFactor;
     case SVNAME_FINAL_LINE_DENSITY_TESSFACTOR: return ShaderBuiltin::InsideTessFactor;
+    case SVNAME_BARYCENTRICS: return ShaderBuiltin::Barycentrics;
+    case SVNAME_SHADINGRATE: return ShaderBuiltin::PackedFragRate;
+    case SVNAME_CULLPRIMITIVE: return ShaderBuiltin::CullPrimitive;
     case SVNAME_TARGET: return ShaderBuiltin::ColorOutput;
     case SVNAME_DEPTH: return ShaderBuiltin::DepthOutput;
     case SVNAME_COVERAGE: return ShaderBuiltin::MSAACoverage;
     case SVNAME_DEPTH_GREATER_EQUAL: return ShaderBuiltin::DepthOutputGreaterEqual;
     case SVNAME_DEPTH_LESS_EQUAL: return ShaderBuiltin::DepthOutputLessEqual;
+    case SVNAME_STENCIL_REF: return ShaderBuiltin::StencilReference;
+    case SVNAME_INNER_COVERAGE: return ShaderBuiltin::IsFullyCovered;
   }
 
   return ShaderBuiltin::Undefined;
@@ -1546,6 +1551,16 @@ DXBCContainer::DXBCContainer(bytebuf &ByteCode, const rdcstr &debugInfoPath, Gra
             desc.systemValue = ShaderBuiltin::DepthOutputGreaterEqual;
           if(!_stricmp(desc.semanticName.c_str(), "SV_DepthLessEqual"))
             desc.systemValue = ShaderBuiltin::DepthOutputLessEqual;
+          if(!_stricmp(desc.semanticName.c_str(), "SV_Barycentrics"))
+            desc.systemValue = ShaderBuiltin::Barycentrics;
+          if(!_stricmp(desc.semanticName.c_str(), "SV_ShadingRate"))
+            desc.systemValue = ShaderBuiltin::PackedFragRate;
+          if(!_stricmp(desc.semanticName.c_str(), "SV_CullPrimitive"))
+            desc.systemValue = ShaderBuiltin::CullPrimitive;
+          if(!_stricmp(desc.semanticName.c_str(), "SV_StencilRef"))
+            desc.systemValue = ShaderBuiltin::StencilReference;
+          if(!_stricmp(desc.semanticName.c_str(), "SV_InnerCoverage"))
+            desc.systemValue = ShaderBuiltin::IsFullyCovered;
         }
 
         RDCASSERT(desc.systemValue != ShaderBuiltin::Undefined || desc.regIndex >= 0);

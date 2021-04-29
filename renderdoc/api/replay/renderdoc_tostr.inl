@@ -674,6 +674,9 @@ rdcstr DoStringise(const ShaderBuiltin &el)
     STRINGISE_ENUM_CLASS_NAMED(IsFullyCovered, "Is Fully Covered");
     STRINGISE_ENUM_CLASS_NAMED(FragAreaSize, "Fragment Area Size");
     STRINGISE_ENUM_CLASS_NAMED(FragInvocationCount, "Fragment Invocation Count");
+    STRINGISE_ENUM_CLASS_NAMED(PackedFragRate, "Packed Fragment Rate");
+    STRINGISE_ENUM_CLASS_NAMED(Barycentrics, "Barycentrics");
+    STRINGISE_ENUM_CLASS_NAMED(CullPrimitive, "Cull Primitive Output");
   }
   END_ENUM_STRINGISE();
 }

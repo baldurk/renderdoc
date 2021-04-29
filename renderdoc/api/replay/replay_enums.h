@@ -1076,6 +1076,21 @@ to apply to multiple related things - see :data:`ClipDistance`, :data:`CullDista
 .. data:: FragInvocationCount
 
   Gives the maximum number of invocations for the fragment being covered.
+
+.. data:: PackedFragRate
+
+  Contains the packed shading rate, with an API specific packing of X and Y. For example:
+
+  1x being 0, 2x being 1, 4x being 2. Then the lower two bits being the Y rate and the next 2 bits
+  being the X rate.
+
+.. data:: Barycentrics
+
+  Contains the barycentric co-ordinates.
+
+.. data:: CullPrimitive
+
+  An output to indicate whether or not a primitive should be culled.
 )");
 enum class ShaderBuiltin : uint32_t
 {
@@ -1129,6 +1144,9 @@ enum class ShaderBuiltin : uint32_t
   IsFullyCovered,
   FragAreaSize,
   FragInvocationCount,
+  PackedFragRate,
+  Barycentrics,
+  CullPrimitive,
   Count,
 };
 

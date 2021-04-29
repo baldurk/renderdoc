@@ -1350,9 +1350,12 @@ QString D3DSemanticString(const SigParameter &sig)
       lit("Unsupported (SubgroupLessEqualMask)"),
       lit("Unsupported (SubgroupLessMask)"),
       lit("Unsupported (DeviceIndex)"),
-      lit("Unsupported (IsFullyCovered)"),
+      lit("SV_InnerCoverage"),
       lit("Unsupported (FragAreaSize)"),
       lit("Unsupported (FragInvocationCount)"),
+      lit("SV_ShadingRate"),
+      lit("SV_Barycentrics"),
+      lit("SV_CullPrimitive"),
   };
 
   static_assert(arraydim<ShaderBuiltin>() == ARRAY_COUNT(sysValues),
