@@ -29,7 +29,7 @@
 
 #include "apple_gl_hook_defs.h"
 
-// helpers defined in cgl_platform.mm
+// helpers defined in cgl_platform_helpers.mm
 void Apple_getWindowSize(void *view, int &width, int &height);
 void Apple_stopTrackingWindowSize(void *view);
 void NSGL_init();

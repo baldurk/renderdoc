@@ -262,7 +262,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="cgl_platform.mm">
+    <None Include="cgl_platform_helpers.mm">
       <Filter>Platform Interfaces\Apple</Filter>
     </None>
   </ItemGroup>
