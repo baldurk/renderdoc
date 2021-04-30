@@ -97,6 +97,89 @@ float4 main() : SV_Target0
     dev->CreateShaderResourceView(NULL, &srvDesc, descHeap->GetCPUDescriptorHandleForHeapStart());
 
     ID3D12PipelineStatePtr pso = psoCreator;
+    ID3D12PipelineStatePtr pso2;
+
+    if(dev2)
+    {
+      struct StreamStructBase
+      {
+        D3D12_PIPELINE_STATE_SUBOBJECT_TYPE rootsig_type =
+            D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE;
+        UINT padding0;
+        ID3D12RootSignature *pRootSignature;
+
+        D3D12_PIPELINE_STATE_SUBOBJECT_TYPE vs_type = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS;
+        UINT padding1;
+        D3D12_SHADER_BYTECODE vs = {};
+        D3D12_PIPELINE_STATE_SUBOBJECT_TYPE ps_type = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PS;
+        UINT padding2;
+        D3D12_SHADER_BYTECODE ps = {};
+
+        D3D12_PIPELINE_STATE_SUBOBJECT_TYPE input_type =
+            D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_INPUT_LAYOUT;
+        D3D12_INPUT_LAYOUT_DESC InputLayout;
+        D3D12_PIPELINE_STATE_SUBOBJECT_TYPE mask_type =
+            D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_SAMPLE_MASK;
+        UINT SampleMask;
+        D3D12_PIPELINE_STATE_SUBOBJECT_TYPE dsv_type =
+            D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL_FORMAT;
+        DXGI_FORMAT DSVFormat;
+        D3D12_PIPELINE_STATE_SUBOBJECT_TYPE blend_type = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_BLEND;
+        D3D12_BLEND_DESC BlendState;
+        UINT padding3;
+        D3D12_PIPELINE_STATE_SUBOBJECT_TYPE rast_type =
+            D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RASTERIZER;
+        D3D12_RASTERIZER_DESC RasterizerState;
+        D3D12_PIPELINE_STATE_SUBOBJECT_TYPE depth_type =
+            D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL;
+        D3D12_DEPTH_STENCIL_DESC DepthStencilState;
+        D3D12_PIPELINE_STATE_SUBOBJECT_TYPE prim_type =
+            D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PRIMITIVE_TOPOLOGY;
+        D3D12_PRIMITIVE_TOPOLOGY_TYPE PrimitiveTopologyType;
+        D3D12_PIPELINE_STATE_SUBOBJECT_TYPE rtv_type =
+            D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RENDER_TARGET_FORMATS;
+        D3D12_RT_FORMAT_ARRAY RTVFormats;
+      };
+
+      struct StreamStructMesh : StreamStructBase
+      {
+        D3D12_PIPELINE_STATE_SUBOBJECT_TYPE as_type = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_AS;
+        UINT padding3;
+        D3D12_SHADER_BYTECODE as = {};
+        D3D12_PIPELINE_STATE_SUBOBJECT_TYPE ms_type = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_MS;
+        UINT padding4;
+        D3D12_SHADER_BYTECODE ms = {};
+      } streamStruct;
+
+      streamStruct.InputLayout = psoCreator.GraphicsDesc.InputLayout;
+      streamStruct.pRootSignature = psoCreator.GraphicsDesc.pRootSignature;
+      streamStruct.vs = psoCreator.GraphicsDesc.VS;
+      streamStruct.ps = psoCreator.GraphicsDesc.PS;
+      streamStruct.SampleMask = psoCreator.GraphicsDesc.SampleMask;
+      streamStruct.DSVFormat = psoCreator.GraphicsDesc.DSVFormat;
+      streamStruct.BlendState = psoCreator.GraphicsDesc.BlendState;
+      streamStruct.RasterizerState = psoCreator.GraphicsDesc.RasterizerState;
+      streamStruct.DepthStencilState = psoCreator.GraphicsDesc.DepthStencilState;
+      streamStruct.PrimitiveTopologyType = psoCreator.GraphicsDesc.PrimitiveTopologyType;
+      memcpy(&streamStruct.RTVFormats.RTFormats, &psoCreator.GraphicsDesc.RTVFormats,
+             sizeof(D3D12_RT_FORMAT_ARRAY));
+      streamStruct.RTVFormats.NumRenderTargets = 1;
+
+      D3D12_PIPELINE_STATE_STREAM_DESC streamDesc = {};
+      streamDesc.pPipelineStateSubobjectStream = &streamStruct;
+      streamDesc.SizeInBytes = sizeof(StreamStructMesh);
+
+      // if the device understands the options7 query we assume it can handle mesh shader structs?
+      HRESULT hr = dev2->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, &opts7, sizeof(opts7));
+      if(hr != S_OK)
+      {
+        streamDesc.SizeInBytes = sizeof(StreamStructBase);
+      }
+
+      hr = dev2->CreatePipelineState(&streamDesc, __uuidof(ID3D12PipelineState), (void **)&pso2);
+
+      TEST_ASSERT(hr == S_OK, "Pipe created");
+    }
 
     // if D3D12.4 (??) is available, use different interfaces
     if(dev4)
@@ -181,6 +264,8 @@ float4 main() : SV_Target0
       view.Format = DXGI_FORMAT_R32_UINT;
       view.SizeInBytes = 1024;
       cmd->IASetIndexBuffer(&view);
+      if(pso2)
+        cmd->SetPipelineState(pso2);
       cmd->SetPipelineState(pso);
       cmd->SetGraphicsRootSignature(sig);
       cmd->SetGraphicsRootDescriptorTable(0, descGPUHandle);
