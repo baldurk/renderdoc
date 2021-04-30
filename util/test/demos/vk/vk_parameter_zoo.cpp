@@ -604,6 +604,7 @@ void main()
                      NULL, &tmp);
 
       VmaAllocationCreateInfo allocInfo = {0, VMA_MEMORY_USAGE_CPU_TO_GPU};
+      allocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 
       VmaAllocationInfo vbInfo, tmpInfo;
 
