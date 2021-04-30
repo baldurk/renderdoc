@@ -32,8 +32,7 @@
 void VulkanDebugManager::CopyTex2DMSToArray(VkImage destArray, VkImage srcMS, VkExtent3D extent,
                                             uint32_t layers, uint32_t samples, VkFormat fmt)
 {
-  if(!m_pDriver->GetDeviceEnabledFeatures().shaderStorageImageWriteWithoutFormat ||
-     !m_pDriver->GetDeviceEnabledFeatures().shaderStorageImageMultisample)
+  if(!m_pDriver->GetDeviceEnabledFeatures().shaderStorageImageWriteWithoutFormat)
     return;
 
   if(m_MS2ArrayPipe == VK_NULL_HANDLE)
