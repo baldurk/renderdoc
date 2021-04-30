@@ -315,6 +315,34 @@ float4 main() : SV_Target0
 
       Submit({cmd});
 
+      {
+        ID3D12CommandAllocatorPtr tempAlloc;
+        CHECK_HR(dev->CreateCommandAllocator(
+            D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator), (void **)&tempAlloc));
+
+        ID3D12GraphicsCommandListPtr tempCmd = NULL;
+        CHECK_HR(dev->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, tempAlloc, NULL,
+                                        __uuidof(ID3D12GraphicsCommandList), (void **)&tempCmd));
+
+        // record a lot of commands just to ensure that if they get corrupted we'll notice
+        for(int i = 0; i < 1000; i++)
+        {
+          tempCmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+          tempCmd->SetDescriptorHeaps(1, &descHeap.GetInterfacePtr());
+          tempCmd->SetPipelineState(pso);
+          tempCmd->SetGraphicsRootSignature(sig);
+          tempCmd->SetGraphicsRootDescriptorTable(0, descGPUHandle);
+        }
+
+        tempCmd->Close();
+
+        ID3D12CommandList *list = tempCmd.GetInterfacePtr();
+
+        queue->ExecuteCommandLists(1, &list);
+
+        GPUSync();
+      }
+
       Present();
     }
 
