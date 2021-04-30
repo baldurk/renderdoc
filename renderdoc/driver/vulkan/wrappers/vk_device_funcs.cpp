@@ -353,6 +353,18 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
   featuresEXT.disabledValidationFeatureCount = ARRAY_COUNT(disableFeatures);
   featuresEXT.pDisabledValidationFeatures = disableFeatures;
 
+// enable this to get GPU-based validation, where available, whenever we enable API validation
+#if 0
+  if(m_ReplayOptions.apiValidation)
+  {
+    VkValidationFeatureEnableEXT enableFeatures[] = {
+        VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
+        VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT};
+    featuresEXT.enabledValidationFeatureCount = ARRAY_COUNT(enableFeatures);
+    featuresEXT.pEnabledValidationFeatures = enableFeatures;
+  }
+#endif
+
   VkValidationFlagsEXT flagsEXT = {VK_STRUCTURE_TYPE_VALIDATION_FLAGS_EXT};
   VkValidationCheckEXT disableChecks[] = {VK_VALIDATION_CHECK_SHADERS_EXT};
   flagsEXT.disabledValidationCheckCount = ARRAY_COUNT(disableChecks);

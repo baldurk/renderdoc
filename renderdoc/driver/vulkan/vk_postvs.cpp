@@ -65,8 +65,8 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
                                        const SPIRVPatchData &patchData, const char *entryName,
                                        StorageMode storageMode, rdcarray<uint32_t> instDivisor,
                                        const DrawcallDescription *draw, uint32_t numVerts,
-                                       uint32_t numViews, rdcarray<uint32_t> &modSpirv,
-                                       uint32_t &bufStride)
+                                       uint32_t numViews, uint32_t baseSpecConstant,
+                                       rdcarray<uint32_t> &modSpirv, uint32_t &bufStride)
 {
   rdcspv::Editor editor(modSpirv);
 
@@ -700,8 +700,10 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
 
         if(storageMode == KHR_bda)
         {
-          rdcspv::Id addressConstantLSB = editor.AddSpecConstantImmediate<uint32_t>(0U, i * 2 + 0);
-          rdcspv::Id addressConstantMSB = editor.AddSpecConstantImmediate<uint32_t>(0U, i * 2 + 1);
+          rdcspv::Id addressConstantLSB =
+              editor.AddSpecConstantImmediate<uint32_t>(0U, baseSpecConstant + i * 2 + 0);
+          rdcspv::Id addressConstantMSB =
+              editor.AddSpecConstantImmediate<uint32_t>(0U, baseSpecConstant + i * 2 + 1);
 
           rdcspv::Id uint2 = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<uint32_t>(), 2));
 
@@ -710,7 +712,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
         }
         else
         {
-          *dstId = editor.AddSpecConstantImmediate<uint64_t>(0ULL, i * 2);
+          *dstId = editor.AddSpecConstantImmediate<uint64_t>(0ULL, baseSpecConstant + i * 2);
         }
 
         if(i == MeshOutputBufferArraySize)
@@ -1902,6 +1904,31 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     m_pDriver->vkUnmapMemory(m_Device, rebasedIdxBufMem);
   }
 
+  uint32_t baseSpecConstant = 0;
+
+  bytebuf specData;
+  rdcarray<VkSpecializationMapEntry> specEntries;
+
+  // copy over specialization info
+  for(uint32_t s = 0; s < pipeCreateInfo.stageCount; s++)
+  {
+    if(pipeCreateInfo.pStages[s].stage == VK_SHADER_STAGE_VERTEX_BIT)
+    {
+      if(pipeCreateInfo.pStages[s].pSpecializationInfo)
+      {
+        specData.assign((const byte *)pipeCreateInfo.pStages[s].pSpecializationInfo->pData,
+                        pipeCreateInfo.pStages[s].pSpecializationInfo->dataSize);
+        specEntries.assign(pipeCreateInfo.pStages[s].pSpecializationInfo->pMapEntries,
+                           pipeCreateInfo.pStages[s].pSpecializationInfo->mapEntryCount);
+      }
+      break;
+    }
+  }
+
+  // don't overlap with existing pipeline constants
+  for(const VkSpecializationMapEntry &specConst : specEntries)
+    baseSpecConstant = RDCMAX(baseSpecConstant, specConst.constantID + 1);
+
   uint32_t bufStride = 0;
   rdcarray<uint32_t> modSpirv = moduleInfo.spirv.GetSPIRV();
 
@@ -2285,7 +2312,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
 
   ConvertToMeshOutputCompute(*refl, *pipeInfo.shaders[0].patchData,
                              pipeInfo.shaders[0].entryPoint.c_str(), storageMode, attrInstDivisor,
-                             drawcall, numVerts, numViews, modSpirv, bufStride);
+                             drawcall, numVerts, numViews, baseSpecConstant, modSpirv, bufStride);
 
   if(!Vulkan_Debug_PostVSDumpDirPath().empty())
     FileIO::WriteAll(Vulkan_Debug_PostVSDumpDirPath() + "/debug_postvs_comp.spv", modSpirv);
@@ -2382,25 +2409,6 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
   compPipeInfo.stage.pName = PatchedMeshOutputEntryPoint;
   compPipeInfo.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
 
-  bytebuf specData;
-  rdcarray<VkSpecializationMapEntry> specEntries;
-
-  // copy over specialization info
-  for(uint32_t s = 0; s < pipeCreateInfo.stageCount; s++)
-  {
-    if(pipeCreateInfo.pStages[s].stage == VK_SHADER_STAGE_VERTEX_BIT)
-    {
-      if(pipeCreateInfo.pStages[s].pSpecializationInfo)
-      {
-        specData.assign((const byte *)pipeCreateInfo.pStages[s].pSpecializationInfo->pData,
-                        pipeCreateInfo.pStages[s].pSpecializationInfo->dataSize);
-        specEntries.assign(pipeCreateInfo.pStages[s].pSpecializationInfo->pMapEntries,
-                           pipeCreateInfo.pStages[s].pSpecializationInfo->mapEntryCount);
-      }
-      break;
-    }
-  }
-
   // append our own if we're using BDA
   if(storageMode != Binding)
   {
@@ -2436,7 +2444,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
 
       VkSpecializationMapEntry entry;
       entry.offset = baseOffset + i * sizeof(uint64_t);
-      entry.constantID = i * 2 + 0;
+      entry.constantID = baseSpecConstant + i * 2 + 0;
 
       // for EXT we have one 64-bit spec constant per address, for KHR we have a uvec2 - two
       // constants
