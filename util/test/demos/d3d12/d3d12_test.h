@@ -49,9 +49,14 @@ struct D3D12GraphicsTest : public GraphicsTest
 
   void Prepare(int argc, char **argv);
   bool Init();
+
+  void PostDeviceCreate();
+
   void Shutdown();
   GraphicsWindow *MakeWindow(int width, int height, const char *title);
 
+  DXGI_SWAP_CHAIN_DESC1 MakeSwapchainDesc();
+  std::vector<IDXGIAdapterPtr> GetAdapters();
   HRESULT EnumAdapterByLuid(LUID luid, IDXGIAdapterPtr &pAdapter);
   ID3D12DevicePtr CreateDevice(const std::vector<IDXGIAdapterPtr> &adaptersToTry,
                                D3D_FEATURE_LEVEL features);
@@ -72,7 +77,8 @@ struct D3D12GraphicsTest : public GraphicsTest
     BufUAVType = 0xf00,
   };
 
-  ID3DBlobPtr Compile(std::string src, std::string entry, std::string profile);
+  ID3DBlobPtr Compile(std::string src, std::string entry, std::string profile,
+                      bool skipoptimise = true);
   void WriteBlob(std::string name, ID3DBlobPtr blob, bool compress);
 
   void SetBlobPath(std::string name, ID3DBlobPtr &blob);

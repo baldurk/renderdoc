@@ -252,11 +252,7 @@ bool D3D12GraphicsTest::Init()
     }
   }
 
-  {
-    D3D12_COMMAND_QUEUE_DESC desc = {};
-    desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-    dev->CreateCommandQueue(&desc, __uuidof(ID3D12CommandQueue), (void **)&queue);
-  }
+  PostDeviceCreate();
 
   if(!headless)
   {
@@ -264,20 +260,7 @@ bool D3D12GraphicsTest::Init()
 
     mainWindow = win;
 
-    DXGI_SWAP_CHAIN_DESC1 swapDesc = {};
-
-    swapDesc.BufferCount = backbufferCount;
-    swapDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
-    swapDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
-    swapDesc.Flags = 0;
-    swapDesc.Format = backbufferFmt;
-    swapDesc.Width = screenWidth;
-    swapDesc.Height = screenHeight;
-    swapDesc.SampleDesc.Count = 1;
-    swapDesc.SampleDesc.Quality = 0;
-    swapDesc.Scaling = DXGI_SCALING_STRETCH;
-    swapDesc.Stereo = FALSE;
-    swapDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+    DXGI_SWAP_CHAIN_DESC1 swapDesc = MakeSwapchainDesc();
 
     if(!d3d12on7)
     {
@@ -320,6 +303,17 @@ bool D3D12GraphicsTest::Init()
                                             D3D12_RESOURCE_STATE_PRESENT, NULL,
                                             __uuidof(ID3D12Resource), (void **)&bbTex[1]));
     }
+  }
+
+  return true;
+}
+
+void D3D12GraphicsTest::PostDeviceCreate()
+{
+  {
+    D3D12_COMMAND_QUEUE_DESC desc = {};
+    desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+    dev->CreateCommandQueue(&desc, __uuidof(ID3D12CommandQueue), (void **)&queue);
   }
 
   dev->CreateFence(0, D3D12_FENCE_FLAG_SHARED, __uuidof(ID3D12Fence), (void **)&m_GPUSyncFence);
@@ -418,14 +412,14 @@ bool D3D12GraphicsTest::Init()
   {
     std::string blitPixel = R"EOSHADER(
 
-Texture2D<float4> tex : register(t0);
+	Texture2D<float4> tex : register(t0);
 
-float4 main(float4 pos : SV_Position) : SV_Target0
-{
-	return tex.Load(int3(pos.xy, 0));
-}
+	float4 main(float4 pos : SV_Position) : SV_Target0
+	{
+		return tex.Load(int3(pos.xy, 0));
+	}
 
-)EOSHADER";
+	)EOSHADER";
 
     ID3DBlobPtr vsblob = Compile(D3DFullscreenQuadVertex, "main", "vs_4_0");
     ID3DBlobPtr psblob = Compile(blitPixel, "main", "ps_4_0");
@@ -461,8 +455,6 @@ float4 main(float4 pos : SV_Position) : SV_Target0
 
     infoqueue->AddStorageFilterEntries(&filter);
   }
-
-  return true;
 }
 
 HRESULT D3D12GraphicsTest::EnumAdapterByLuid(LUID luid, IDXGIAdapterPtr &pAdapter)
@@ -493,6 +485,31 @@ HRESULT D3D12GraphicsTest::EnumAdapterByLuid(LUID luid, IDXGIAdapterPtr &pAdapte
   }
 
   return E_FAIL;
+}
+
+std::vector<IDXGIAdapterPtr> D3D12GraphicsTest::GetAdapters()
+{
+  return adapters;
+}
+
+DXGI_SWAP_CHAIN_DESC1 D3D12GraphicsTest::MakeSwapchainDesc()
+{
+  DXGI_SWAP_CHAIN_DESC1 swapDesc = {};
+
+  swapDesc.BufferCount = backbufferCount;
+  swapDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
+  swapDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
+  swapDesc.Flags = 0;
+  swapDesc.Format = backbufferFmt;
+  swapDesc.Width = screenWidth;
+  swapDesc.Height = screenHeight;
+  swapDesc.SampleDesc.Count = 1;
+  swapDesc.SampleDesc.Quality = 0;
+  swapDesc.Scaling = DXGI_SCALING_STRETCH;
+  swapDesc.Stereo = FALSE;
+  swapDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+
+  return swapDesc;
 }
 
 ID3D12DevicePtr D3D12GraphicsTest::CreateDevice(const std::vector<IDXGIAdapterPtr> &adaptersToTry,
@@ -1000,7 +1017,8 @@ COM_SMARTPTR(IDxcBlobEncoding);
 COM_SMARTPTR(IDxcOperationResult);
 COM_SMARTPTR(IDxcBlob);
 
-ID3DBlobPtr D3D12GraphicsTest::Compile(std::string src, std::string entry, std::string profile)
+ID3DBlobPtr D3D12GraphicsTest::Compile(std::string src, std::string entry, std::string profile,
+                                       bool skipoptimise)
 {
   ID3DBlobPtr blob = NULL;
 
@@ -1046,7 +1064,8 @@ ID3DBlobPtr D3D12GraphicsTest::Compile(std::string src, std::string entry, std::
 
     argStorage.push_back(L"-WX");
     argStorage.push_back(L"-O0");
-    argStorage.push_back(L"-Od");
+    if(skipoptimise)
+      argStorage.push_back(L"-Od");
     argStorage.push_back(L"-Zi");
     argStorage.push_back(L"-Qembed_debug");
 
@@ -1110,11 +1129,16 @@ ID3DBlobPtr D3D12GraphicsTest::Compile(std::string src, std::string entry, std::
   {
     ID3DBlobPtr error = NULL;
 
-    HRESULT hr = dyn_D3DCompile(
-        src.c_str(), src.length(), "", NULL, NULL, entry.c_str(), profile.c_str(),
-        D3DCOMPILE_WARNINGS_ARE_ERRORS | D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION |
-            D3DCOMPILE_OPTIMIZATION_LEVEL0 | D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES,
-        0, &blob, &error);
+    UINT flags = D3DCOMPILE_WARNINGS_ARE_ERRORS | D3DCOMPILE_DEBUG |
+                 D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES;
+
+    if(skipoptimise)
+      flags |= D3DCOMPILE_SKIP_OPTIMIZATION | D3DCOMPILE_OPTIMIZATION_LEVEL0;
+    else
+      flags |= D3DCOMPILE_OPTIMIZATION_LEVEL0;
+
+    HRESULT hr = dyn_D3DCompile(src.c_str(), src.length(), "", NULL, NULL, entry.c_str(),
+                                profile.c_str(), flags, 0, &blob, &error);
 
     if(FAILED(hr))
     {

@@ -29,7 +29,7 @@
 
 RD_TEST(D3D11_AMD_Shader_Extensions, D3D11GraphicsTest)
 {
-  static constexpr const char *Description = "Tests using AMD shader extensions.";
+  static constexpr const char *Description = "Tests using AMD shader extensions on D3D11.";
 
   AGS_INITIALIZE dyn_agsInitialize = NULL;
   AGS_DEINITIALIZE dyn_agsDeInitialize = NULL;
