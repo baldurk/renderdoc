@@ -107,8 +107,12 @@ layout(binding = 0, std430) buffer outbuftype {
 
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
+layout(constant_id = 1) const int spec_canary = 0;
+
 void main()
 {
+  if(spec_canary != 1337) return;
+
   outbuf[push.bufidx].outrefs[0].binding = 0;
   outbuf[push.bufidx].outrefs[0].idx = push.idx1;
   outbuf[push.bufidx].outrefs[1].binding = 2;
@@ -189,8 +193,12 @@ void add_parameterless()
   Color += 0.1f * texture(tex1[)EOSHADER" STRINGIZE(INDEX3) R"EOSHADER(], vertIn.uv.xy);
 }
 
+layout(constant_id = 2) const int spec_canary = 0;
+
 void main()
 {
+  if(spec_canary != 1338) { Color = vec4(1.0, 0.0, 0.0, 1.0); return; }
+
   if(vertIn.uv.y < 0.2f)
   {
     // nonuniform dynamic index
@@ -334,10 +342,27 @@ void main()
         CompileShaderModule(common + pixel, ShaderLang::glsl, ShaderStage::frag, "main"),
     };
 
+    VkPipelineShaderStageCreateInfo compshad =
+        CompileShaderModule(comp, ShaderLang::glsl, ShaderStage::comp, "main");
+
+    VkSpecializationMapEntry specmap[2] = {
+        {1, 0 * sizeof(uint32_t), sizeof(uint32_t)}, {2, 1 * sizeof(uint32_t), sizeof(uint32_t)},
+    };
+
+    uint32_t specvals[2] = {1337, 1338};
+
+    VkSpecializationInfo spec = {};
+    spec.mapEntryCount = ARRAY_COUNT(specmap);
+    spec.pMapEntries = specmap;
+    spec.dataSize = sizeof(specvals);
+    spec.pData = specvals;
+
+    pipeCreateInfo.stages[1].pSpecializationInfo = &spec;
+    compshad.pSpecializationInfo = &spec;
+
     VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
 
-    VkPipeline comppipe = createComputePipeline(vkh::ComputePipelineCreateInfo(
-        layout, CompileShaderModule(comp, ShaderLang::glsl, ShaderStage::comp, "main")));
+    VkPipeline comppipe = createComputePipeline(vkh::ComputePipelineCreateInfo(layout, compshad));
 
     float left = float(NONUNIFORMIDX - 1.0f);
     float middle = float(NONUNIFORMIDX);

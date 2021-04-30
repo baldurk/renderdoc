@@ -46,8 +46,12 @@ void main()
 
 layout(location = 0, index = 0) out vec4 Color;
 
+layout(constant_id = 1) const int spec_canary = 0;
+
 void main()
 {
+  if(spec_canary != 1337) { Color = vec4(0.2, 0.0, 0.2, 1.0); return; }
+
 #if 1
 	Color = vec4(0.0, 1.0, 0.0, 1.0);
 #else
@@ -104,11 +108,26 @@ void main()
         CompileShaderModule(pixel, ShaderLang::glsl, ShaderStage::frag, "main"),
     };
 
+    VkSpecializationMapEntry specmap[1] = {
+        {1, 0 * sizeof(uint32_t), sizeof(uint32_t)},
+    };
+
+    uint32_t specvals[1] = {1337};
+
+    VkSpecializationInfo spec = {};
+    spec.mapEntryCount = ARRAY_COUNT(specmap);
+    spec.pMapEntries = specmap;
+    spec.dataSize = sizeof(specvals);
+    spec.pData = specvals;
+
+    pipeCreateInfo.stages[1].pSpecializationInfo = &spec;
+
     VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
 
     // use the same source but make a distinct shader module so we can edit it separately
     pipeCreateInfo.stages[1] =
         CompileShaderModule(pixel, ShaderLang::glsl, ShaderStage::frag, "main");
+    pipeCreateInfo.stages[1].pSpecializationInfo = &spec;
 
     VkPipeline pipe2 = createGraphicsPipeline(pipeCreateInfo);
 

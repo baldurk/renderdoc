@@ -43,8 +43,21 @@ layout(push_constant, std140) uniform pushbuf
 layout(location = 0) out vec2 vertOutCol2;
 layout(location = 1) out vec4 vertOutcol;
 
+layout(constant_id = 1) const int spec_canary = 0;
+
 void main()
 {
+  if(spec_canary != 1337)
+  {
+    gl_Position = vec4(-1, -1, -1, 1);
+    vertOutcol = vec4(0, 0, 0, 0);
+    vertOutCol2 = vec2(0, 0);
+#if defined(USE_POINTS)
+    gl_PointSize = 0.0f;
+#endif
+    return;
+  }
+
 	vec4 pos = vec4(Position.xy * scale.xy + offset.xy, Position.z, 1.0f);
 	vertOutcol = Color;
 
@@ -179,10 +192,25 @@ void main()
     pipeCreateInfo.depthStencilState.stencilTestEnable = VK_FALSE;
     pipeCreateInfo.depthStencilState.back = pipeCreateInfo.depthStencilState.front;
 
+    VkSpecializationMapEntry specmap[1] = {
+        {1, 0 * sizeof(uint32_t), sizeof(uint32_t)},
+    };
+
+    uint32_t specvals[1] = {1337};
+
+    VkSpecializationInfo spec = {};
+    spec.mapEntryCount = ARRAY_COUNT(specmap);
+    spec.pMapEntries = specmap;
+    spec.dataSize = sizeof(specvals);
+    spec.pData = specvals;
+
+    pipeCreateInfo.stages[0].pSpecializationInfo = &spec;
+
     VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
 
     pipeCreateInfo.stages[0] = CompileShaderModule(vertex, ShaderLang::glsl, ShaderStage::vert,
                                                    "main", {std::make_pair("USE_POINTS", "1")}),
+    pipeCreateInfo.stages[0].pSpecializationInfo = &spec;
     pipeCreateInfo.inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
 
     VkPipeline pointspipe = createGraphicsPipeline(pipeCreateInfo);

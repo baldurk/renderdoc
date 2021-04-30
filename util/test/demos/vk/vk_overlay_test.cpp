@@ -50,8 +50,18 @@ layout(location = 2) in vec2 UV;
 
 layout(location = 0) out v2f vertOut;
 
+layout(constant_id = 1) const int spec_canary = 0;
+
 void main()
 {
+  if(spec_canary != 1337)
+  {
+    gl_Position = vertOut.pos = vec4(-1, -1, -1, 1);
+    vertOut.col = vec4(0, 0, 0, 0);
+    vertOut.uv = vec4(0, 0, 0, 0);
+    return;
+  }
+
 	vertOut.pos = vec4(Position.xyz, 1);
 	gl_Position = vertOut.pos;
 	vertOut.col = Color;
@@ -66,8 +76,12 @@ layout(location = 0) in v2f vertIn;
 
 layout(location = 0, index = 0) out vec4 Color;
 
+layout(constant_id = 2) const int spec_canary = 0;
+
 void main()
 {
+  if(spec_canary != 1338) { Color = vec4(1.0, 0.0, 0.0, 1.0); return; }
+
 	Color = vertIn.col;
 }
 
@@ -78,8 +92,12 @@ void main()
 
 layout(location = 0, index = 0) out vec4 Color;
 
+layout(constant_id = 2) const int spec_canary = 0;
+
 void main()
 {
+  if(spec_canary != 1338) { Color = vec4(1.0, 0.0, 0.0, 1.0); return; }
+
 	Color = vec4(1,1,1,1);
 }
 
@@ -240,6 +258,21 @@ void main()
         CompileShaderModule(common + pixel, ShaderLang::glsl, ShaderStage::frag, "main"),
     };
 
+    VkSpecializationMapEntry specmap[2] = {
+        {1, 0 * sizeof(uint32_t), sizeof(uint32_t)}, {2, 1 * sizeof(uint32_t), sizeof(uint32_t)},
+    };
+
+    uint32_t specvals[2] = {1337, 1338};
+
+    VkSpecializationInfo spec = {};
+    spec.mapEntryCount = ARRAY_COUNT(specmap);
+    spec.pMapEntries = specmap;
+    spec.dataSize = sizeof(specvals);
+    spec.pData = specvals;
+
+    pipeCreateInfo.stages[0].pSpecializationInfo = &spec;
+    pipeCreateInfo.stages[1].pSpecializationInfo = &spec;
+
     pipeCreateInfo.rasterizationState.depthClampEnable = VK_FALSE;
     pipeCreateInfo.rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
 
@@ -293,6 +326,7 @@ void main()
 
     pipeCreateInfo.stages[1] =
         CompileShaderModule(whitepixel, ShaderLang::glsl, ShaderStage::frag, "main");
+    pipeCreateInfo.stages[1].pSpecializationInfo = &spec;
     pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
     pipeCreateInfo.renderPass = subrp;
     pipeCreateInfo.depthStencilState.stencilTestEnable = VK_FALSE;
