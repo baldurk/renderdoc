@@ -31,7 +31,9 @@ RD_TEST(VK_Overlay_Test, VulkanGraphicsTest)
 
   std::string common = R"EOSHADER(
 
-#version 420 core
+#version 450 core
+
+#extension GL_EXT_samplerless_texture_functions : require
 
 struct v2f
 {
@@ -78,9 +80,16 @@ layout(location = 0, index = 0) out vec4 Color;
 
 layout(constant_id = 2) const int spec_canary = 0;
 
+layout(binding = 0) uniform texture2D tex[64];
+
 void main()
 {
   if(spec_canary != 1338) { Color = vec4(1.0, 0.0, 0.0, 1.0); return; }
+
+  if(vertIn.uv.z > 100.0f)
+  {
+    Color += texelFetch(tex[uint(vertIn.uv.z) % 50], ivec2(vertIn.uv.xy * vec2(4,4)), 0) * 0.001f;
+  }
 
 	Color = vertIn.col;
 }
@@ -113,7 +122,13 @@ void main()
 
     bool KHR_maintenance1 = hasExt(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
 
-    VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo());
+    VkDescriptorSetLayout setlayout = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
+        {
+            0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 64, VK_SHADER_STAGE_FRAGMENT_BIT,
+        },
+    }));
+
+    VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo({setlayout}));
 
     // note that the Y position values are inverted for vulkan 1.0 viewport convention, relative to
     // all other APIs
@@ -385,7 +400,28 @@ void main()
         msaaRP, {msaaRTV, msaaDSV},
         {mainWindow->scissor.extent.width, mainWindow->scissor.extent.height}));
 
-    (void)msaaFB;
+    AllocatedImage img(this, vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                                  VK_IMAGE_USAGE_SAMPLED_BIT),
+                       VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+
+    setName(img.image, "Colour Tex");
+
+    VkImageView dummyView = createImageView(
+        vkh::ImageViewCreateInfo(img.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R32G32B32A32_SFLOAT));
+
+    VkDescriptorSet descset = allocateDescriptorSet(setlayout);
+
+    std::vector<VkWriteDescriptorSet> writes;
+    for(int i = 0; i < 64; i++)
+    {
+      writes.push_back(
+          vkh::WriteDescriptorSet(descset, 0, i, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                                  {
+                                      vkh::DescriptorImageInfo(dummyView, VK_IMAGE_LAYOUT_GENERAL),
+                                  }));
+    }
+
+    vkh::updateDescriptorSets(device, writes);
 
     while(Running())
     {
@@ -394,6 +430,11 @@ void main()
       vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
 
       StartUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
+
+      vkh::cmdPipelineBarrier(cmd, {
+                                       vkh::ImageMemoryBarrier(0, 0, VK_IMAGE_LAYOUT_UNDEFINED,
+                                                               VK_IMAGE_LAYOUT_GENERAL, img.image),
+                                   });
 
       vkCmdBeginRenderPass(cmd,
                            vkh::RenderPassBeginInfo(
@@ -404,6 +445,7 @@ void main()
       vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
       setMarker(cmd, "Discard Test");
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, discardPipe);
+      vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, {descset}, {});
       vkCmdDraw(cmd, 3, 1, 0, 0);
 
       vkCmdEndRenderPass(cmd);
@@ -438,6 +480,8 @@ void main()
             VK_SUBPASS_CONTENTS_INLINE);
 
         // draw the setup triangles
+
+        setMarker(cmd, "Setup");
 
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, depthWritePipe[is_msaa ? 1 : 0]);
         vkCmdDraw(cmd, 3, 1, 0, 0);

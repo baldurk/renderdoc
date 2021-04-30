@@ -7,17 +7,46 @@ class VK_Overlay_Test(rdtest.Overlay_Test):
     internal = False
 
     def check_capture(self):
-        super(VK_Overlay_Test, self).check_capture()
+        # Check clear-before-draw when first selecting a draw, to ensure that bindless feedback doesn't interfere
+        out = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
 
-        out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100),
-                                                            rd.ReplayOutputType.Texture)
+        setup_marker = self.find_draw("Setup")
+        self.controller.SetFrameEvent(setup_marker.next.eventId, True)
+
+        pipe = self.controller.GetPipelineState()
+
+        tex = rd.TextureDisplay()
+        tex.resourceId = pipe.GetOutputTargets()[0].resourceId
+
+        tex.overlay = rd.DebugOverlay.ClearBeforeDraw
+        out.SetTextureDisplay(tex)
+
+        out.Display()
+
+        # Select the next setup draw
+        self.controller.SetFrameEvent(setup_marker.next.eventId, True)
+
+        # Select the real draw for the first time
+        self.controller.SetFrameEvent(self.find_draw("Normal Test").next.eventId, True)
+
+        self.check_pixel_value(tex.resourceId, 180, 150, [0.0, 0.0, 0.0, 0.0])
+        self.check_pixel_value(tex.resourceId, 50, 50, [0.0, 0.0, 0.0, 0.0])
+        self.check_pixel_value(tex.resourceId, 200, 64, [1.0, 1.0, 0.0, 1.0])
+
+        # Clear the overlay to reset to a sensible state
+        tex.overlay = rd.DebugOverlay.NoOverlay
+        out.SetTextureDisplay(tex)
+
+        out.Display()
+
+        super(VK_Overlay_Test, self).check_capture()
 
         # Don't check any pixel values, but ensure all overlays at least work with rasterizer discard and no
         # viewport/scissor bound
-        sub_marker: rd.DrawcallDescription = self.find_draw("Discard Test")
+        sub_marker = self.find_draw("Discard Test")
         self.controller.SetFrameEvent(sub_marker.next.eventId, True)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         tex = rd.TextureDisplay()
         tex.resourceId = pipe.GetOutputTargets()[0].resourceId
