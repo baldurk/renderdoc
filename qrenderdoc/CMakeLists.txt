@@ -37,7 +37,6 @@ set(QMAKE_CONFIG "debug")
 set(QMAKE_LDFLAGS "")
 set(QMAKE_CXXFLAGS "")
 set(QMAKE_RPATHDIR "")
-set(QMAKE_OSX_DEPLOYMENT_TARGET "")
 set(SWIG_FLAGS "")
 
 if(RELEASE_MODE)
@@ -85,7 +84,6 @@ if(ENABLE_VULKAN)
 endif()
 
 if(APPLE)
-    set(QMAKE_OSX_DEPLOYMENT_TARGET ${CMAKE_OSX_DEPLOYMENT_TARGET})
     set(QMAKE_RPATHDIR "@executable_path/../lib ")
     add_custom_command(OUTPUT RenderDoc.icns
         COMMAND echo Creating OS X Icon
@@ -172,7 +170,6 @@ file(WRITE
      "QMAKE_CXXFLAGS+=${QMAKE_CXXFLAGS}\n"
      "QMAKE_LFLAGS+=${QMAKE_LDFLAGS}\n"
      "QMAKE_RPATHDIR+=${QMAKE_RPATHDIR}\n"
-     "QMAKE_MACOSX_DEPLOYMENT_TARGET=${QMAKE_OSX_DEPLOYMENT_TARGET}\n"
      "\n"
      "LIB_SUFFIX=${LIB_SUFFIX}\n"
      "LIB_SUBFOLDER_TRAIL_SLASH=${LIB_SUBFOLDER_TRAIL_SLASH}\n"
@@ -187,6 +184,12 @@ file(WRITE
      "RENDERDOC_VERSION=${RENDERDOC_VERSION}\n"
      "\n"
      "OSX_ICONFILE=${CMAKE_CURRENT_BINARY_DIR}/RenderDoc.icns\n")
+
+if(APPLE)
+    file(APPEND
+        ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
+        "QMAKE_MACOSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}\n")
+endif()
 
 # Ignore warnings - qmake has no way to do this per-file, so we must do it globally
 if(CMAKE_COMPILER_IS_GNUCXX)
