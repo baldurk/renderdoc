@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 2.8.12)
 if(APPLE)
   SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for Mac OS X" FORCE)
   SET(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum SDK for Mac OS X" FORCE)
+  SET(CMAKE_XCODE_GENERATE_SCHEME ON)
 endif()
 
 # Configure some stuff that needs to be set really early
@@ -325,6 +326,14 @@ if(cmake_build_type_lower STREQUAL "release" OR
     add_definitions(-D_RELEASE)
     message(STATUS "Building RenderDoc in Release mode: ${CMAKE_BUILD_TYPE}")
     set(RELEASE_MODE 1)
+endif()
+
+if(APPLE)
+    if (RELEASE_MODE)
+        set(CMAKE_CONFIGURATION_TYPES "Release")
+    else()
+        set(CMAKE_CONFIGURATION_TYPES "Debug")
+    endif()
 endif()
 
 if(STRIP_ANDROID_LIBRARY AND BUILD_ANDROID AND RELEASE_MODE)
