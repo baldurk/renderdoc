@@ -123,8 +123,8 @@ endif()
 
 set( GENERATOR_MAKE "$(MAKE)" )
 set( GENERATOR_MAKE_PARAMS "" )
-if( CMAKE_MAKE_PROGRAM MATCHES "ninja$" )
-    message( "Ninja detected. Some projects compiled using add_custom_command like swig and QRenderDoc target will still be using make" )
+if( NOT CMAKE_MAKE_PROGRAM MATCHES "make$" )
+    message( "Non make generator detected. Some projects compiled using add_custom_command like swig and QRenderDoc target will still be using make" )
     set( GENERATOR_MAKE "make" )
 
     include(ProcessorCount)
