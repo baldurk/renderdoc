@@ -135,13 +135,21 @@ if( NOT CMAKE_MAKE_PROGRAM MATCHES "make$" )
     endif()
 endif()
 
+if(APPLE AND CMAKE_GENERATOR STREQUAL "Xcode")
+    if("${SHELL_CAPTURED_PATH}" STREQUAL "")
+        set(SHELL_CAPTURED_PATH $ENV{PATH} CACHE STRING "Shell PATH" FORCE)
+    endif()
+    message(STATUS "Using custom path for targets custom_swig and QRenderDoc")
+    set(SET_SYSTEM_PATH_COMMAND ${CMAKE_COMMAND} -E env PATH=${SHELL_CAPTURED_PATH})
+endif()
+
 # Compile our custom SWIG that will do scoped/strong enum classes
 ExternalProject_Add(custom_swig
     # using an URL to a zip directly so we don't clone the history etc
     URL ${RENDERDOC_SWIG_PACKAGE}
     BUILD_IN_SOURCE 1
-    CONFIGURE_COMMAND ./autogen.sh > /dev/null 2>&1
-    COMMAND CC=${SWIG_CONFIGURE_CC} CXX=${SWIG_CONFIGURE_CXX} CFLAGS=-fPIC CXXFLAGS=-fPIC ./configure --with-pcre=yes --prefix=${CMAKE_BINARY_DIR} > /dev/null
+    CONFIGURE_COMMAND ${SET_SYSTEM_PATH_COMMAND} ./autogen.sh > /dev/null 2>&1
+    COMMAND CC=${SWIG_CONFIGURE_CC} CXX=${SWIG_CONFIGURE_CXX} CFLAGS=-fPIC CXXFLAGS=-fPIC ${SET_SYSTEM_PATH_COMMAND} ./configure --with-pcre=yes --prefix=${CMAKE_BINARY_DIR} > /dev/null
     BUILD_COMMAND ${GENERATOR_MAKE} ${GENERATOR_MAKE_PARAMS} > /dev/null 2>&1
     INSTALL_COMMAND ${GENERATOR_MAKE} install > /dev/null 2>&1)
 
@@ -312,7 +320,7 @@ if(ENABLE_QRENDERDOC)
 # which causes CMake to rerun this target every time so that Qt
 # can do dependency checking and rebuild anything necessary.
 add_custom_command(OUTPUT QRenderDoc
-    COMMAND ${QMAKE_QT5_COMMAND} "CMAKE_DIR=${CMAKE_BINARY_DIR}" ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMAND ${SET_SYSTEM_PATH_COMMAND} ${QMAKE_QT5_COMMAND} "CMAKE_DIR=${CMAKE_BINARY_DIR}" ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND ${GENERATOR_MAKE} ${GENERATOR_MAKE_PARAMS}
     DEPENDS RenderDoc.icns)
 add_custom_target(build-qrenderdoc ALL DEPENDS QRenderDoc DEPENDS renderdoc DEPENDS swig-bindings)
