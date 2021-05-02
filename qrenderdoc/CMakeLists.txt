@@ -84,7 +84,7 @@ if(ENABLE_VULKAN)
 endif()
 
 if(APPLE)
-    set(QMAKE_RPATHDIR "@executable_path/../lib ")
+    set(QMAKE_RPATHDIR "@executable_path/../lib")
     add_custom_command(OUTPUT RenderDoc.icns
         COMMAND echo Creating OS X Icon
         COMMAND mkdir -p RenderDoc.iconset
