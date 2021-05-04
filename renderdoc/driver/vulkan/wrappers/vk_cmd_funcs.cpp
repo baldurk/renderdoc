@@ -3493,8 +3493,10 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
           const VkImageMemoryBarrier &b = pImageMemoryBarriers[i];
           if(b.image != VK_NULL_HANDLE && b.oldLayout == VK_IMAGE_LAYOUT_UNDEFINED)
           {
+            VkImageLayout newLayout = b.newLayout;
+            SanitiseNewImageLayout(newLayout);
             GetDebugManager()->FillWithDiscardPattern(
-                commandBuffer, DiscardType::UndefinedTransition, b.image, b.newLayout,
+                commandBuffer, DiscardType::UndefinedTransition, b.image, newLayout,
                 b.subresourceRange, {{0, 0}, {65536, 65536}});
           }
         }
