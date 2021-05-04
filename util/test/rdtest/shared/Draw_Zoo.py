@@ -1,8 +1,5 @@
 import renderdoc as rd
 import rdtest
-from typing import List, Tuple
-import time
-import os
 
 # Not a real test, re-used by API-specific tests
 class Draw_Zoo(rdtest.TestCase):

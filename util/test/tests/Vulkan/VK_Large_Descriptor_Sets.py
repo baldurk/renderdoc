@@ -1,6 +1,6 @@
 import renderdoc as rd
 import os
-import time
+import datetime
 import rdtest
 
 
@@ -15,24 +15,24 @@ class VK_Large_Descriptor_Sets(rdtest.TestCase):
         rdtest.log.print("Loading capture")
 
         memory_before: int = rd.GetCurrentProcessMemoryUsage()
-        start_time = time.time()
+        start_time = self.get_time()
 
         self.controller = rdtest.open_capture(self.capture_filename, opts=self.get_replay_options())
 
-        duration = time.time() - start_time
+        duration = self.get_time() - start_time
         memory_after: int = rd.GetCurrentProcessMemoryUsage()
 
         memory_increase = memory_after - memory_before
 
-        rdtest.log.print("Loaded capture in {:02} seconds, consuming {} bytes of memory".format(duration, memory_increase))
+        rdtest.log.print("Loaded capture in {} seconds, consuming {} bytes of memory".format(duration, memory_increase))
 
         if memory_increase > 2000*1000*1000:
-            raise rdtest.TestFailureException("Memory usage is too high".format(duration))
+            raise rdtest.TestFailureException("Memory increase {} is too high".format(memory_increase))
         else:
             rdtest.log.success("Memory usage is OK")
 
         if rd.IsReleaseBuild():
-            if duration >= 2.5:
+            if duration.total_seconds() >= 2.5:
                 raise rdtest.TestFailureException("Time to load is too high")
             rdtest.log.success("Time to load is OK")
         else:

@@ -1,5 +1,6 @@
 import os
 import signal
+import datetime
 import time
 import renderdoc as rd
 from . import util
@@ -69,12 +70,12 @@ class TargetControl():
         if self.control is None:
             return
 
-        start_time = time.time()
+        start_time = datetime.datetime.now(datetime.timezone.utc)
 
         while keep_running(self):
             msg: rd.TargetControlMessage = self.control.ReceiveMessage(None)
 
-            if time.time() - start_time > self._timeout:
+            if (datetime.datetime.now(datetime.timezone.utc) - start_time).total_seconds() > self._timeout:
                 log.error("Timed out")
                 break
 

@@ -2,7 +2,7 @@ import os
 import traceback
 import copy
 import re
-import time
+import datetime
 import renderdoc as rd
 from . import util
 from . import analyse
@@ -155,6 +155,9 @@ class TestCase:
         self.capture_filename = ""
         self.controller: rd.ReplayController = None
         self._variables = []
+
+    def get_time(self):
+        return datetime.datetime.now(datetime.timezone.utc)
 
     def get_ref_path(self, name: str, extra: bool = False):
         if extra:
@@ -454,12 +457,10 @@ class TestCase:
             self.controller.Shutdown()
 
     def invoketest(self, debugMode):
-        start_time = time.time()
+        start_time = self.get_time()
         self.run()
-        duration = time.time() - start_time
-        minutes = int(duration / 60) % 60
-        seconds = round(duration % 60)
-        log.print("Test ran in {:02}:{:02}".format(minutes, seconds))
+        duration = self.get_time() - start_time
+        log.print("Test ran in {}".format(duration))
         self.debugMode = debugMode
 
     def get_first_draw(self):

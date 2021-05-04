@@ -7,6 +7,7 @@ import platform
 import subprocess
 import threading
 import queue
+import datetime
 import time
 import renderdoc as rd
 from . import util
@@ -189,7 +190,7 @@ def fetch_tests():
 
 
 def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests: bool, debugger: bool):
-    start_time = time.time()
+    start_time = datetime.datetime.now(datetime.timezone.utc)
 
     rd.InitialiseReplay(rd.GlobalEnvironment(), [])
 
@@ -360,20 +361,16 @@ def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests
 
         log.end_test(name)
 
-    duration = time.time() - start_time
+    duration = datetime.datetime.now(datetime.timezone.utc) - start_time
 
     if len(failedcases) > 0:
         logfile = rd.GetLogFile()
         if os.path.exists(logfile):
             log.inline_file('RenderDoc log', logfile)
 
-    hours = int(duration / 3600)
-    minutes = int(duration / 60) % 60
-    seconds = round(duration % 60)
-
-    log.comment("total={} fail={} skip={} time={}".format(len(testcases), len(failedcases), len(skippedcases), duration))
-    log.header("Tests complete summary: {} passed out of {} run from {} total in {}:{:02}:{:02}"
-               .format(len(runcases)-len(failedcases), len(runcases), len(testcases), hours, minutes, seconds))
+    log.comment("total={} fail={} skip={} time={}".format(len(testcases), len(failedcases), len(skippedcases), int(duration.total_seconds())))
+    log.header("Tests complete summary: {} passed out of {} run from {} total in {}"
+               .format(len(runcases)-len(failedcases), len(runcases), len(testcases), duration))
     if len(failedcases) > 0:
         log.print("Failed tests:")
     for testclass in failedcases:
