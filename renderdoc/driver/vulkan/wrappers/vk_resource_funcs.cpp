@@ -1103,6 +1103,9 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
         // *sooner*.
         size_t size = size_t(RDCMIN(it->finish(), finish) - offs);
 
+        // cap the size by the mapped memory region
+        size = RDCMIN(MemRange.size, size);
+
         memcpy(MappedData + offs, m_MaskedMapData.data() + offs, size);
       }
 
