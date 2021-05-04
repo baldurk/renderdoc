@@ -75,12 +75,19 @@ enum NVENCSTATUS
   NV_ENC_ERR_INVALID_PTR = 6,
 };
 
-enum NV_ENC_INPUT_RESOURCE_TYPE
+enum NV_ENC_INPUT_RESOURCE_TYPE : uint32_t
 {
   NV_ENC_INPUT_RESOURCE_TYPE_DIRECTX = 0x0,
   NV_ENC_INPUT_RESOURCE_TYPE_CUDADEVICEPTR = 0x1,
   NV_ENC_INPUT_RESOURCE_TYPE_CUDAARRAY = 0x2,
   NV_ENC_INPUT_RESOURCE_TYPE_OPENGL_TEX = 0x3
+};
+
+enum NV_ENC_DEVICE_TYPE : uint32_t
+{
+  NV_ENC_DEVICE_TYPE_DIRECTX = 0x0,
+  NV_ENC_DEVICE_TYPE_CUDA = 0x1,
+  NV_ENC_DEVICE_TYPE_OPENGL = 0x2,
 };
 
 struct NV_ENC_REGISTER_RESOURCE
@@ -94,16 +101,33 @@ struct NV_ENC_REGISTER_RESOURCE
   // we don't need it
 };
 
-typedef NVENCSTATUS(NVENCAPI *PNVENCREGISTERRESOURCE)(void *, NV_ENC_REGISTER_RESOURCE *params);
+struct NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS
+{
+  uint32_t version;
+  NV_ENC_DEVICE_TYPE deviceType;
+  void *device;
+
+  // there is more data here but we don't allocate this structure only patch the above pointer, so
+  // we don't need it
+};
+
+typedef NVENCSTATUS(NVENCAPI *PNVENCREGISTERRESOURCE)(void *encoder,
+                                                      NV_ENC_REGISTER_RESOURCE *params);
+typedef NVENCSTATUS(NVENCAPI *PNVENCOPENENCODESESSION)(void *device, uint32_t devType,
+                                                       void **encoder);
+typedef NVENCSTATUS(NVENCAPI *PNVENCOPENENCODESESSIONEX)(NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS *params,
+                                                         void **encoder);
 
 struct NV_ENCODE_API_FUNCTION_LIST
 {
   uint32_t version;
   uint32_t reserved;
-  void *otherFunctions[30];    // other functions in the dispatch table
+  PNVENCOPENENCODESESSION nvEncOpenEncodeSession;
+  void *otherFunctions[28];    // other functions in the dispatch table
+  PNVENCOPENENCODESESSIONEX nvEncOpenEncodeSessionEx;
   PNVENCREGISTERRESOURCE nvEncRegisterResource;
 
-  // there is more data here but we don't allocate this structure only patch the above pointer, so
+  // there is more data here but we don't allocate this structure only patch the above pointers, so
   // we don't need it
 };
 
@@ -600,7 +624,63 @@ private:
     }
   }
 
+  PNVENCOPENENCODESESSION real_nvEncOpenEncodeSession = NULL;
+  PNVENCOPENENCODESESSIONEX real_nvEncOpenEncodeSessionEx = NULL;
   PNVENCREGISTERRESOURCE real_nvEncRegisterResource = NULL;
+
+  static NVENCSTATUS NVENCAPI NvEncodeAPIOpenEncodeSession_hook(void *device, uint32_t devType,
+                                                                void **encoder)
+  {
+    if(!nvhooks.real_nvEncOpenEncodeSession)
+    {
+      RDCERR("nvEncOpenEncodeSession called without hooking NvEncodeAPICreateInstance!");
+      return NV_ENC_ERR_INVALID_PTR;
+    }
+
+    INVAPID3DDevice *nvapiDev = NULL;
+    HRESULT hr = ((IUnknown *)device)->QueryInterface(__uuidof(INVAPID3DDevice), (void **)&nvapiDev);
+
+    if(FAILED(hr))
+    {
+      RDCERR("nvEncOpenEncodeSession called with invalid non-wrapped device!");
+      return NV_ENC_ERR_INVALID_PTR;
+    }
+
+    return nvhooks.real_nvEncOpenEncodeSession(nvapiDev->GetReal(), devType, encoder);
+  }
+
+  static NVENCSTATUS NVENCAPI
+  NvEncodeAPIOpenEncodeSessionEx_hook(NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS *params, void **encoder)
+  {
+    if(!nvhooks.real_nvEncOpenEncodeSessionEx)
+    {
+      RDCERR("nvEncOpenEncodeSessionEx called without hooking NvEncodeAPICreateInstance!");
+      return NV_ENC_ERR_INVALID_PTR;
+    }
+
+    // attempt to unwrap the handle in place
+    void *origDevice = params->device;
+
+    INVAPID3DDevice *nvapiDev = NULL;
+    HRESULT hr =
+        ((IUnknown *)origDevice)->QueryInterface(__uuidof(INVAPID3DDevice), (void **)&nvapiDev);
+
+    if(FAILED(hr))
+    {
+      RDCERR("nvEncOpenEncodeSessionEx called with invalid non-wrapped device!");
+      return NV_ENC_ERR_INVALID_PTR;
+    }
+
+    params->device = nvapiDev->GetReal();
+
+    // call out to the actual function
+    NVENCSTATUS ret = nvhooks.real_nvEncOpenEncodeSessionEx(params, encoder);
+
+    // restore the handle to the original value
+    params->device = origDevice;
+
+    return ret;
+  }
 
   static NVENCSTATUS NVENCAPI NvEncodeAPIRegisterResource_hook(void *encoder,
                                                                NV_ENC_REGISTER_RESOURCE *params)
@@ -641,17 +721,29 @@ private:
     {
       // this is an encoded struct version, 7 is a magic value, 8.1 is the major.minor of nvcodec
       // and 2 is the struct version
-      const uint32_t expectedVersion = 7 << 28 | 8 << 1 | 1 << 24 | 2 << 16;
-      if(functions->version != expectedVersion)
-        RDCWARN("Call to NvEncodeAPICreateInstance with version %x, expected %x",
-                functions->version, expectedVersion);
+      const uint32_t expectedVersion8_1 = 7 << 28 | 8 << 0 | 1 << 24 | 2 << 16;
+      const uint32_t expectedVersion11_0 = 7 << 28 | 11 << 0 | 0 << 24 | 2 << 16;
+      if(functions->version != expectedVersion8_1 && functions->version != expectedVersion11_0)
+        RDCWARN("Call to NvEncodeAPICreateInstance with untested version %x", functions->version);
 
       // we don't handle multiple different pointers coming back, but that seems unlikely.
       RDCASSERT(nvhooks.real_nvEncRegisterResource == NULL ||
                 nvhooks.real_nvEncRegisterResource == functions->nvEncRegisterResource);
       nvhooks.real_nvEncRegisterResource = functions->nvEncRegisterResource;
 
+      // we don't handle multiple different pointers coming back, but that seems unlikely.
+      RDCASSERT(nvhooks.real_nvEncOpenEncodeSession == NULL ||
+                nvhooks.real_nvEncOpenEncodeSession == functions->nvEncOpenEncodeSession);
+      nvhooks.real_nvEncOpenEncodeSession = functions->nvEncOpenEncodeSession;
+
+      // we don't handle multiple different pointers coming back, but that seems unlikely.
+      RDCASSERT(nvhooks.real_nvEncOpenEncodeSessionEx == NULL ||
+                nvhooks.real_nvEncOpenEncodeSessionEx == functions->nvEncOpenEncodeSessionEx);
+      nvhooks.real_nvEncOpenEncodeSessionEx = functions->nvEncOpenEncodeSessionEx;
+
       functions->nvEncRegisterResource = &NvEncodeAPIRegisterResource_hook;
+      functions->nvEncOpenEncodeSession = &NvEncodeAPIOpenEncodeSession_hook;
+      functions->nvEncOpenEncodeSessionEx = &NvEncodeAPIOpenEncodeSessionEx_hook;
     }
 
     return ret;
