@@ -1038,10 +1038,14 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
     if(ret != VK_SUCCESS)
       RDCERR("Error mapping memory on replay: %s", ToStr(ret).c_str());
 
-    const Intervals<VulkanCreationInfo::Memory::MemoryBinding> &bindings =
-        m_CreationInfo.m_Memory[GetResID(MemRange.memory)].bindings;
+    const VulkanCreationInfo::Memory &memInfo = m_CreationInfo.m_Memory[GetResID(MemRange.memory)];
+    const Intervals<VulkanCreationInfo::Memory::MemoryBinding> &bindings = memInfo.bindings;
 
-    uint64_t finish = MemRange.offset + MemRange.size;
+    memRangeSize = MemRange.size;
+    if(memRangeSize == VK_WHOLE_SIZE)
+      memRangeSize = memInfo.allocSize - MemRange.offset;
+
+    uint64_t finish = MemRange.offset + memRangeSize;
 
     auto it = bindings.find(MemRange.offset);
 
@@ -1059,7 +1063,7 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
                           "Taking slow path to mask tiled memory writes");
         }
         directStream = false;
-        m_MaskedMapData.resize((size_t)m_CreationInfo.m_Memory[GetResID(MemRange.memory)].allocSize);
+        m_MaskedMapData.resize((size_t)memRangeSize);
         break;
       }
 
@@ -1077,34 +1081,34 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
   {
     // serialise into temp storage
     byte *tmp = m_MaskedMapData.data();
-    ser.Serialise("MapData"_lit, tmp, MemRange.size, SerialiserFlags::NoFlags);
+    ser.Serialise("MapData"_lit, tmp, memRangeSize, SerialiserFlags::NoFlags);
 
     const Intervals<VulkanCreationInfo::Memory::MemoryBinding> &bindings =
         m_CreationInfo.m_Memory[GetResID(MemRange.memory)].bindings;
 
-    uint64_t finish = MemRange.offset + MemRange.size;
+    uint64_t mappedRegionStart = MemRange.offset;
+    uint64_t mappedRegionFinish = MemRange.offset + memRangeSize;
 
-    auto it = bindings.find(MemRange.offset);
+    auto it = bindings.find(mappedRegionStart);
 
     // iterate the bindings that this map region overlaps, and only memcpy the bits that we overlap
     // which are linear
-    while(it != bindings.end() && it->start() < finish)
+    while(it != bindings.end() && it->start() < mappedRegionFinish)
     {
       if(it->value() != VulkanCreationInfo::Memory::Tiled)
       {
         // start at the map offset or the region offset, whichever is *later*. E.g. if the region is
         // larger than the map we only start where the map started, and vice-versa if the map
         // started earlier than the region.
-        // We also rebase it so that it's relative to the map, so it's the byte offset for the
-        // memcpy
-        size_t offs = size_t(RDCMAX(it->start(), MemRange.offset) - MemRange.offset);
+        uint64_t start = RDCMAX(it->start(), mappedRegionStart);
 
-        // similarly, only copy up to the end of the region or the end ofthe map whichever is
-        // *sooner*.
-        size_t size = size_t(RDCMIN(it->finish(), finish) - offs);
+        // similarly, finish at the end of the region or the end of the map whichever is *sooner*.
+        uint64_t finish = RDCMIN(it->finish(), mappedRegionFinish);
 
-        // cap the size by the mapped memory region
-        size = RDCMIN((size_t)MemRange.size, size);
+        // Transform now to be relative to the start of the map. Note that since we max'd with
+        // the map start/finish above this won't underflow
+        size_t offs = size_t(start - mappedRegionStart);
+        size_t size = size_t(finish - start);
 
         memcpy(MappedData + offs, m_MaskedMapData.data() + offs, size);
       }
