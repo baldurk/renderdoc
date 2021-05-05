@@ -1544,18 +1544,27 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
           uint32_t inst = it.word(4);
 
           const bool IsGLSL450 = (setname == "GLSL.std.450");
+          const bool IsDebugPrintf = (setname == "NonSemantic.DebugPrintf");
           // GLSL.std.450 all parameters are Ids
           const bool idParams = IsGLSL450 || setname.beginsWith("NonSemantic.");
 
           if(IsGLSL450)
             ret += StringFormat::Fmt("%s::%s(", setname.c_str(), ToStr(GLSLstd450(inst)).c_str());
+          else if(IsDebugPrintf)
+            ret += "DebugPrintf(";
           else
             ret += StringFormat::Fmt("%s::[%u](", setname.c_str(), inst);
 
           for(size_t i = 5; i < it.size(); i++)
           {
+            if(i == 5 && IsDebugPrintf)
+              ret += "\"";
+
             // TODO could generate this from the instruction set grammar.
             ret += idParams ? idName(Id::fromWord(it.word(i))) : ToStr(it.word(i));
+
+            if(i == 5 && IsDebugPrintf)
+              ret += "\"";
 
             if(i + 1 < it.size())
               ret += ", ";
