@@ -210,6 +210,22 @@ public:
     return ret;
   }
 
+  template <typename T>
+  Id AddConstantDeferred(T t)
+  {
+    Id typeId = DeclareType(scalar<T>());
+    Id retId = MakeId();
+    rdcarray<uint32_t> words = {typeId.value(), retId.value()};
+
+    words.resize(words.size() + (sizeof(T) + 3) / 4);
+
+    memcpy(&words[2], &t, sizeof(T));
+
+    m_DeferredConstants.add(Operation(Op::Constant, words));
+
+    return retId;
+  }
+
 private:
   using Processor::Parse;
   inline void addWords(size_t offs, size_t num) { addWords(offs, (int32_t)num); }
@@ -245,6 +261,8 @@ private:
 
   template <typename SPIRVType>
   const std::map<SPIRVType, Id> &GetTable() const;
+
+  OperationList m_DeferredConstants;
 
   rdcarray<uint32_t> &m_ExternalSPIRV;
 };

@@ -143,6 +143,10 @@ void Editor::CreateEmpty(uint32_t major, uint32_t minor)
 
 Editor::~Editor()
 {
+  for(const Operation &op : m_DeferredConstants)
+    AddConstant(op);
+  m_DeferredConstants.clear();
+
   m_ExternalSPIRV.clear();
   m_ExternalSPIRV.reserve(m_SPIRV.size());
 
