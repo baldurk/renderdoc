@@ -1623,6 +1623,10 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
         &state.graphics.descSets, &state.compute.descSets,
     };
 
+    const DynamicShaderFeedback &usage = m_BindlessFeedback.Usage[eventId];
+
+    m_VulkanPipelineState.shaderMessages = usage.messages;
+
     for(size_t p = 0; p < ARRAY_COUNT(srcs); p++)
     {
       bool hasUsedBinds = false;
@@ -1630,7 +1634,6 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       size_t usedBindsSize = 0;
 
       {
-        const DynamicUsedBinds &usage = m_BindlessFeedback.Usage[eventId];
         bool curCompute = (p == 1);
         if(usage.valid && usage.compute == curCompute)
         {

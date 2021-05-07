@@ -1297,6 +1297,12 @@ struct State
 )");
   rdcarray<ImageData> images;
 
+  DOCUMENT(R"(The shader messages retrieved for this draw.
+
+:type: List[ShaderMessage]
+)");
+  rdcarray<ShaderMessage> shaderMessages;
+
   DOCUMENT(R"(The current conditional rendering state.
 
 :type: VKConditionalRendering

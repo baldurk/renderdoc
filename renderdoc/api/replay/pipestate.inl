@@ -1758,6 +1758,21 @@ rdcpair<StencilFace, StencilFace> PipeState::GetStencilFaces() const
   return {StencilFace(), StencilFace()};
 }
 
+const rdcarray<ShaderMessage> &PipeState::GetShaderMessages() const
+{
+  if(IsCaptureLoaded())
+  {
+    if(IsCaptureVK())
+    {
+      return m_Vulkan->shaderMessages;
+    }
+  }
+
+  static rdcarray<ShaderMessage> empty;
+
+  return empty;
+}
+
 bool PipeState::IsIndependentBlendingEnabled() const
 {
   if(IsCaptureLoaded())

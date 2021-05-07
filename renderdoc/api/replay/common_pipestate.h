@@ -487,3 +487,178 @@ from the vertex buffer before advancing to the next value.
 };
 
 DECLARE_REFLECTION_STRUCT(VertexInputAttribute);
+
+DOCUMENT("A compute shader message's location.");
+struct ShaderComputeMessageLocation
+{
+  DOCUMENT("");
+  ShaderComputeMessageLocation() = default;
+  ShaderComputeMessageLocation(const ShaderComputeMessageLocation &) = default;
+  ShaderComputeMessageLocation &operator=(const ShaderComputeMessageLocation &) = default;
+
+  bool operator==(const ShaderComputeMessageLocation &o) const
+  {
+    return workgroup == o.workgroup && thread == o.thread;
+  }
+  bool operator<(const ShaderComputeMessageLocation &o) const
+  {
+    if(!(workgroup == o.workgroup))
+      return workgroup < o.workgroup;
+    if(!(thread == o.thread))
+      return thread < o.thread;
+    return false;
+  }
+
+  DOCUMENT(R"(The workgroup index within the dispatch.
+
+:type: Tuple[int,int,int]
+)");
+  rdcfixedarray<uint32_t, 3> workgroup;
+
+  DOCUMENT(R"(The thread index within the workgroup.
+
+:type: Tuple[int,int,int]
+)");
+  rdcfixedarray<uint32_t, 3> thread;
+};
+
+DECLARE_REFLECTION_STRUCT(ShaderComputeMessageLocation);
+
+DOCUMENT("A vertex shader message's location.");
+struct ShaderVertexMessageLocation
+{
+  DOCUMENT(R"(The vertex or index for this vertex.
+
+:type: int
+)");
+  uint32_t vertexIndex;
+
+  DOCUMENT(R"(The instance for this vertex.
+
+:type: int
+)");
+  uint32_t instance;
+
+  DOCUMENT(R"(The multiview view for this vertex, or ``0`` if multiview is disabled.
+
+:type: int
+)");
+  uint32_t view;
+};
+
+DECLARE_REFLECTION_STRUCT(ShaderVertexMessageLocation);
+
+DOCUMENT(R"(A pixel shader message's location.
+
+.. data:: NoLocation
+
+  No frame number is available.
+)");
+struct ShaderPixelMessageLocation
+{
+  DOCUMENT(R"(The x co-ordinate of the pixel.
+
+:type: int
+)");
+  uint32_t x;
+
+  DOCUMENT(R"(The y co-ordinate of the pixel.
+
+:type: int
+)");
+  uint32_t y;
+
+  DOCUMENT(R"(The sample, or :data:`NoLocation` if sample shading is disabled.
+
+:type: int
+)");
+  uint32_t sample;
+
+  DOCUMENT(R"(The generating primitive, or :data:`NoLocation` if the primitive ID is unavailable.
+
+:type: int
+)");
+  uint32_t primitive;
+
+  static const uint32_t NoLocation = ~0U;
+};
+
+DECLARE_REFLECTION_STRUCT(ShaderPixelMessageLocation);
+
+DOCUMENT("A shader message's location.");
+union ShaderMessageLocation
+{
+  DOCUMENT(R"(The location if the shader is a compute shader.
+
+:type: ShaderComputeMessageLocation
+)");
+  ShaderComputeMessageLocation compute;
+
+  DOCUMENT(R"(The location if the shader is a vertex shader.
+
+:type: ShaderVertexMessageLocation
+)");
+  ShaderVertexMessageLocation vertex;
+
+  DOCUMENT(R"(The location if the shader is a pixel shader.
+
+:type: ShaderPixelMessageLocation
+)");
+  ShaderPixelMessageLocation pixel;
+};
+
+DECLARE_REFLECTION_STRUCT(ShaderMessageLocation);
+
+DOCUMENT("A shader printed message.");
+struct ShaderMessage
+{
+  DOCUMENT("");
+  ShaderMessage() = default;
+  ShaderMessage(const ShaderMessage &) = default;
+  ShaderMessage &operator=(const ShaderMessage &) = default;
+
+  bool operator==(const ShaderMessage &o) const
+  {
+    return stage == o.stage && disassemblyLine == o.disassemblyLine &&
+           location.compute == o.location.compute && message == o.message;
+  }
+  bool operator<(const ShaderMessage &o) const
+  {
+    if(!(stage == o.stage))
+      return stage < o.stage;
+    if(!(disassemblyLine == o.disassemblyLine))
+      return disassemblyLine < o.disassemblyLine;
+    if(!(location.compute == o.location.compute))
+      return location.compute < o.location.compute;
+    if(!(message == o.message))
+      return message < o.message;
+    return false;
+  }
+
+  DOCUMENT(R"(The shader stage this message comes from.
+
+:type: ShaderStage
+)");
+  ShaderStage stage;
+
+  DOCUMENT(R"(The line (starting from 1) of the disassembly where this message came from, or -1 if
+it is not associated with any line.
+
+:type: int
+)");
+  int32_t disassemblyLine;
+
+  DOCUMENT(R"(The location (thread/invocation) of the shader that this message comes from.
+
+:type: ShaderMessageLocation
+)");
+  ShaderMessageLocation location;
+
+  DOCUMENT(R"(The formatted message.
+
+:type: str
+)");
+  rdcstr message;
+};
+
+DECLARE_REFLECTION_STRUCT(ShaderMessage);

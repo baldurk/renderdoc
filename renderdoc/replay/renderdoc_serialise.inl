@@ -1023,6 +1023,54 @@ void DoSerialise(SerialiserType &ser, StencilFace &el)
   SIZE_CHECK(28);
 }
 
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, ShaderComputeMessageLocation &el)
+{
+  SERIALISE_MEMBER(workgroup);
+  SERIALISE_MEMBER(thread);
+
+  SIZE_CHECK(24);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, ShaderVertexMessageLocation &el)
+{
+  SERIALISE_MEMBER(vertexIndex);
+  SERIALISE_MEMBER(instance);
+  SERIALISE_MEMBER(view);
+
+  SIZE_CHECK(12);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, ShaderPixelMessageLocation &el)
+{
+  SERIALISE_MEMBER(x);
+  SERIALISE_MEMBER(y);
+  SERIALISE_MEMBER(sample);
+  SERIALISE_MEMBER(primitive);
+
+  SIZE_CHECK(16);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, ShaderMessageLocation &el)
+{
+  SERIALISE_MEMBER(compute);
+
+  SIZE_CHECK(24);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, ShaderMessage &el)
+{
+  SERIALISE_MEMBER(stage);
+  SERIALISE_MEMBER(location);
+  SERIALISE_MEMBER(message);
+
+  SIZE_CHECK(52);
+}
+
 #pragma endregion
 
 #pragma region D3D11 pipeline state
@@ -2274,7 +2322,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::State &el)
 
   SERIALISE_MEMBER(conditionalRendering);
 
-  SIZE_CHECK(1976);
+  SIZE_CHECK(2000);
 }
 
 #pragma endregion Vulkan pipeline state

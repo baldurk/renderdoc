@@ -2363,6 +2363,15 @@ void Debugger::RegisterOp(Iter it)
         idDeathOffset[id] = RDCMAX(it.offs() + 1, idDeathOffset[id]);
       }
     }
+    else if(extSets[extinst.set] == "NonSemantic.DebugPrintf")
+    {
+      // all parameters to NonSemantic.DebugPrintf are Ids, extend idDeathOffset appropriately
+      for(const uint32_t param : extinst.params)
+      {
+        Id id = Id::fromWord(param);
+        idDeathOffset[id] = RDCMAX(it.offs() + 1, idDeathOffset[id]);
+      }
+    }
   }
 
   if(opdata.op == Op::Source)

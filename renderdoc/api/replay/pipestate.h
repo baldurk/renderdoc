@@ -385,6 +385,13 @@ For some APIs that don't distinguish by entry point, this may be empty.
 )");
   bool IsIndependentBlendingEnabled() const;
 
+  DOCUMENT(R"(Retrieves the shader messages obtained for the current draw.
+
+:return: The shader messages obtained for the current draw.
+:rtype: List[ShaderMessage]
+)");
+  const rdcarray<ShaderMessage> &GetShaderMessages() const;
+
 private:
   const D3D11Pipe::State *m_D3D11 = NULL;
   const D3D12Pipe::State *m_D3D12 = NULL;
