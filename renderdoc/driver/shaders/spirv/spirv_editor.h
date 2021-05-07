@@ -92,6 +92,7 @@ public:
   }
 
   StorageClass StorageBufferClass() { return m_StorageBufferClass; }
+  bool EntryPointAllGlobals() { return m_MajorVersion > 1 || m_MinorVersion >= 4; }
   void DecorateStorageBufferStruct(Id id);
   void SetName(Id id, const rdcstr &name);
   void SetMemberName(Id id, uint32_t member, const rdcstr &name);
