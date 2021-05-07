@@ -1186,6 +1186,10 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
     patchData.outTopo = e.executionModes.outTopo;
   }
 
+  for(auto it = extSets.begin(); it != extSets.end(); it++)
+    if(it->second == "NonSemantic.DebugPrintf")
+      patchData.usesPrintf = true;
+
   // sort system value semantics to the start of the list
   struct sig_param_sort
   {

@@ -65,6 +65,8 @@ struct SPIRVPatchData
 
   // the output topology for tessellation and geometry shaders
   Topology outTopo = Topology::Unknown;
+
+  bool usesPrintf = false;
 };
 
 namespace rdcspv
