@@ -97,6 +97,7 @@ public:
   void SetMemberName(Id id, uint32_t member, const rdcstr &name);
   void AddDecoration(const Operation &op);
   void AddCapability(Capability cap);
+  bool HasCapability(Capability cap);
   void AddExtension(const rdcstr &extension);
   void AddExecutionMode(const Operation &mode);
   Id HasExtInst(const char *setname);
