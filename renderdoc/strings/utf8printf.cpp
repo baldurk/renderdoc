@@ -24,6 +24,7 @@
 
 #include <wchar.h>
 #include "common/common.h"
+#include "common/formatting.h"
 #include "os/os_specific.h"
 
 // grisu2 double-to-string function, returns number of digits written to digits array
@@ -1407,7 +1408,60 @@ void formatargument(char type, void *rawarg, FormatterParams formatter, char *&o
   }
 }
 
-int utf8printv(char *buf, size_t bufsize, const char *fmt, va_list args)
+struct va_arg_getter
+{
+  va_list list;
+  va_arg_getter(va_list l) { va_copy(list, l); }
+  template <typename T>
+  inline T get_next()
+  {
+    return va_arg(list, T);
+  }
+};
+
+struct custom_arg_getter
+{
+  StringFormat::Args &formatter;
+  custom_arg_getter(StringFormat::Args &f) : formatter(f) {}
+  template <typename T>
+  inline T get_next();
+};
+
+template <>
+inline int custom_arg_getter::get_next<int>()
+{
+  return formatter.get_int();
+}
+template <>
+inline unsigned int custom_arg_getter::get_next<unsigned int>()
+{
+  return formatter.get_uint();
+}
+template <>
+inline double custom_arg_getter::get_next<double>()
+{
+  return formatter.get_double();
+}
+template <>
+inline void *custom_arg_getter::get_next<void *>()
+{
+  return formatter.get_ptr();
+}
+template <>
+inline uint64_t custom_arg_getter::get_next<uint64_t>()
+{
+  return formatter.get_uint64();
+}
+#if ENABLED(RDOC_SIZET_SEP_TYPE)
+template <>
+inline size_t custom_arg_getter::get_next<size_t>()
+{
+  return formatter.get_size();
+}
+#endif
+
+template <typename arg_getter>
+int utf8print_template(char *buf, size_t bufsize, const char *fmt, arg_getter args)
 {
   // format, buffer and string arguments are assumed to be UTF-8 (except wide strings).
   // note that since the format specifiers are entirely ascii, we can byte-copy safely and handle
@@ -1600,18 +1654,18 @@ int utf8printv(char *buf, size_t bufsize, const char *fmt, va_list args)
     if(type == 'c')
     {
       int *i = (int *)arg;
-      *i = va_arg(args, int);
+      *i = args.template get_next<int>();
     }
     else if(type == 's' || type == 'p')
     {
       void **p = (void **)arg;
-      *p = va_arg(args, void *);
+      *p = args.template get_next<void *>();
     }
     else if(type == 'e' || type == 'E' || type == 'f' || type == 'F' || type == 'g' ||
             type == 'G' || type == 'a' || type == 'A')
     {
       double *i = (double *)arg;
-      *i = va_arg(args, double);
+      *i = args.template get_next<double>();
     }
     else if(type == 'b' || type == 'B' || type == 'o' || type == 'x' || type == 'X' ||
             type == 'd' || type == 'i' || type == 'u')
@@ -1619,17 +1673,17 @@ int utf8printv(char *buf, size_t bufsize, const char *fmt, va_list args)
       if(formatter.Length == LongLong)
       {
         uint64_t *ull = (uint64_t *)arg;
-        *ull = va_arg(args, uint64_t);
+        *ull = args.template get_next<uint64_t>();
       }
       else if(formatter.Length == SizeT)
       {
         size_t *s = (size_t *)arg;
-        *s = va_arg(args, size_t);
+        *s = args.template get_next<size_t>();
       }
       else
       {
         unsigned int *u = (unsigned int *)arg;
-        *u = va_arg(args, unsigned int);
+        *u = args.template get_next<unsigned int>();
       }
     }
     else
@@ -1688,16 +1742,29 @@ int utf8printv(char *buf, size_t bufsize, const char *fmt, va_list args)
   return int(actualsize);
 }
 
-int utf8printf(char *str, size_t bufSize, const char *fmt, ...)
+int utf8printv(char *buf, size_t bufSize, const char *fmt, va_list args)
+{
+  va_arg_getter getter(args);
+  return utf8print_template(buf, bufSize, fmt, getter);
+}
+
+int utf8printf(char *buf, size_t bufSize, const char *fmt, ...)
 {
   va_list args;
   va_start(args, fmt);
 
-  int ret = utf8printv(str, bufSize, fmt, args);
+  va_arg_getter getter(args);
+  int ret = utf8print_template(buf, bufSize, fmt, getter);
 
   va_end(args);
 
   return ret;
+}
+
+int utf8printf_custom(char *buf, size_t bufSize, const char *fmt, StringFormat::Args &args)
+{
+  custom_arg_getter getter(args);
+  return utf8print_template(buf, bufSize, fmt, getter);
 }
 
 #if ENABLED(ENABLE_UNIT_TESTS)

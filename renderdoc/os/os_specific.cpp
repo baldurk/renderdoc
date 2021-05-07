@@ -25,9 +25,11 @@
 
 #include "os/os_specific.h"
 #include "api/replay/control_types.h"
+#include "common/formatting.h"
 #include "strings/string_utils.h"
 
 int utf8printv(char *buf, size_t bufsize, const char *fmt, va_list args);
+int utf8printf_custom(char *buf, size_t bufSize, const char *fmt, StringFormat::Args &args);
 
 bool Network::ParseIPRangeCIDR(const rdcstr &str, uint32_t &ip, uint32_t &mask)
 {
@@ -79,6 +81,19 @@ rdcstr Fmt(const char *format, ...)
 
   va_end(args);
   va_end(args2);
+
+  return ret;
+}
+
+rdcstr FmtArgs(const char *format, Args &args)
+{
+  int size = ::utf8printf_custom(NULL, 0, format, args);
+
+  args.reset();
+
+  rdcstr ret;
+  ret.resize(size);
+  ::utf8printf_custom(ret.data(), size + 1, format, args);
 
   return ret;
 }
