@@ -626,6 +626,16 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   if(offsetMap.empty())
     return;
 
+  if(!result.compute)
+  {
+    // if we don't have any stores supported at all, we can't do feedback on the graphics pipeline
+    if(!m_pDriver->GetDeviceEnabledFeatures().vertexPipelineStoresAndAtomics &&
+       !m_pDriver->GetDeviceEnabledFeatures().fragmentStoresAndAtomics)
+    {
+      return;
+    }
+  }
+
   // we go through the driver for all these creations since they need to be properly
   // registered in order to be put in the partial replay state
   VkResult vkr = VK_SUCCESS;
@@ -789,6 +799,17 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
     {
       VkPipelineShaderStageCreateInfo &stage =
           (VkPipelineShaderStageCreateInfo &)graphicsInfo.pStages[i];
+
+      if(stage.stage & VK_SHADER_STAGE_FRAGMENT_BIT)
+      {
+        if(!m_pDriver->GetDeviceEnabledFeatures().fragmentStoresAndAtomics)
+          continue;
+      }
+      else
+      {
+        if(!m_pDriver->GetDeviceEnabledFeatures().vertexPipelineStoresAndAtomics)
+          continue;
+      }
 
       int idx = StageIndex(stage.stage);
 

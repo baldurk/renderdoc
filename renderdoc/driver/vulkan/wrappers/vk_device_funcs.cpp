@@ -2821,9 +2821,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     if(availFeatures.shaderInt64)
       enabledFeatures.shaderInt64 = true;
     else
-      RDCWARN(
-          "shaderInt64 = false, feedback from bindless shader access will use less reliable "
-          "fallback.");
+      RDCWARN("shaderInt64 = false, feedback from shaders will use less reliable fallback.");
 
     if(availFeatures.shaderStorageImageWriteWithoutFormat)
       enabledFeatures.shaderStorageImageWriteWithoutFormat = true;
@@ -2847,7 +2845,16 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     if(availFeatures.fragmentStoresAndAtomics)
       enabledFeatures.fragmentStoresAndAtomics = true;
     else
-      RDCWARN("fragmentStoresAndAtomics = false, quad overdraw overlay will not be available");
+      RDCWARN(
+          "fragmentStoresAndAtomics = false, quad overdraw overlay will not be available and "
+          "feedback from shaders will not be fetched for fragment stage");
+
+    if(availFeatures.vertexPipelineStoresAndAtomics)
+      enabledFeatures.vertexPipelineStoresAndAtomics = true;
+    else
+      RDCWARN(
+          "vertexPipelineStoresAndAtomics = false, feedback from shaders will not be fetched for "
+          "vertex stages");
 
     if(availFeatures.sampleRateShading)
       enabledFeatures.sampleRateShading = true;
