@@ -190,12 +190,12 @@ file(WRITE
      "LIBS+=${PYTHON_LINK}\n"
      "\n"
      "RENDERDOC_VERSION=${RENDERDOC_VERSION}\n"
-     "\n"
-     "OSX_ICONFILE=${CMAKE_CURRENT_BINARY_DIR}/RenderDoc.icns\n")
+     "\n")
 
 if(APPLE)
     file(APPEND
         ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
+        "OSX_ICONFILE=${CMAKE_CURRENT_BINARY_DIR}/RenderDoc.icns\n"
         "QMAKE_MACOSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}\n")
 endif()
 
