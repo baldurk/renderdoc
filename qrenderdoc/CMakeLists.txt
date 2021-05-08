@@ -328,6 +328,9 @@ add_custom_target(build-qrenderdoc ALL DEPENDS QRenderDoc DEPENDS renderdoc DEPE
 if(APPLE)
     set_target_properties(build-qrenderdoc PROPERTIES XCODE_SCHEME_DEBUG_DOCUMENT_VERSIONING OFF)
     set_target_properties(build-qrenderdoc PROPERTIES XCODE_SCHEME_EXECUTABLE ${CMAKE_BINARY_DIR}/bin/qrenderdoc.app)
+
+    file(GLOB_RECURSE QRD_CODE_FILES Code/*.[h|c|m]* Styles/*.[h|c|m]* Widgets/*.[h|c|m]* Windows/*.[h|c|m]*)
+    target_sources(build-qrenderdoc PRIVATE ${QRD_CODE_FILES})
 endif()
 
 install (PROGRAMS ${CMAKE_BINARY_DIR}/bin/qrenderdoc DESTINATION bin)
