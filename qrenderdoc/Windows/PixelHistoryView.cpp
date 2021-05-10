@@ -27,6 +27,7 @@
 #include <math.h>
 #include <QAction>
 #include <QMenu>
+#include "Code/Resources.h"
 #include "toolwindowmanager/ToolWindowManager.h"
 #include "ui_PixelHistoryView.h"
 
@@ -838,6 +839,8 @@ void PixelHistoryView::on_events_customContextMenuRequested(const QPoint &pos)
 
   QAction jumpAction(tr("&Go to primitive %1 at Event %2").arg(tag.primitive).arg(tag.eventId), this);
 
+  jumpAction.setIcon(Icons::find());
+
   QString debugText;
 
   if(tag.primitive == ~0U)
@@ -857,6 +860,8 @@ void PixelHistoryView::on_events_customContextMenuRequested(const QPoint &pos)
   }
 
   QAction debugAction(debugText, this);
+
+  debugAction.setIcon(Icons::wrench());
 
   contextMenu.addAction(&debugAction);
 

@@ -1846,6 +1846,42 @@
     <Image Include="Resources\arrow_refresh.png">
       <Filter>Resources\Files</Filter>
     </Image>
+    <Image Include="Resources\copy.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\copy%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\cut.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\cut%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\paste.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\paste%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\plugin.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\plugin%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\text_add.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\text_add%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\pixel_history.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\pixel_history%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="python36.natvis" />

@@ -74,9 +74,11 @@
   RESOURCE_DEF(page_white_link, "page_white_link.png")                  \
   RESOURCE_DEF(page_white_stack, "page_white_stack.png")                \
   RESOURCE_DEF(paste, "paste.png")                                      \
+  RESOURCE_DEF(pixel_history, "pixel_history.png")                      \
   RESOURCE_DEF(plugin, "plugin.png")                                    \
   RESOURCE_DEF(plugin_add, "plugin_add.png")                            \
   RESOURCE_DEF(save, "save.png")                                        \
+  RESOURCE_DEF(text_add, "text_add.png")                                \
   RESOURCE_DEF(tick, "tick.png")                                        \
   RESOURCE_DEF(time, "time.png")                                        \
   RESOURCE_DEF(timeline_marker, "timeline_marker.png")                  \

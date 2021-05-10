@@ -105,12 +105,16 @@
         <file>page_white_stack@2x.png</file>
         <file>paste.png</file>
         <file>paste@2x.png</file>
+        <file>pixel_history.png</file>
+        <file>pixel_history@2x.png</file>
         <file>plugin.png</file>
         <file>plugin@2x.png</file>
         <file>plugin_add.png</file>
         <file>plugin_add@2x.png</file>
         <file>save.png</file>
         <file>save@2x.png</file>
+        <file>text_add.png</file>
+        <file>text_add@2x.png</file>
         <file>tick.png</file>
         <file>tick@2x.png</file>
         <file>time.png</file>
