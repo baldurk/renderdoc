@@ -3704,7 +3704,10 @@ void TextureViewer::on_backcolorPick_clicked()
   QColor col = QColorDialog::getColor(Qt::black, this, tr("Choose background colour"));
 
   if(!col.isValid())
+  {
+    ui->backcolorPick->setChecked(!ui->checkerBack->isChecked());
     return;
+  }
 
   col = col.toRgb();
   m_TexDisplay.backgroundColor = FloatVector(col.redF(), col.greenF(), col.blueF(), 1.0f);
