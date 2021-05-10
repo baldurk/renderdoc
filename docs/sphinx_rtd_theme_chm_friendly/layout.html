@@ -118,6 +118,7 @@
   {% block extrabody %} {% endblock %}
   <div class="wy-grid-for-nav">
     {# SIDE NAV, TOGGLES ON MOBILE #}
+    {%- if not embedded %}
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" {% if theme_style_nav_header_background %} style="background: {{theme_style_nav_header_background}}" {% endif %}>
@@ -178,16 +179,19 @@
         {% endblock %}
       </div>
     </nav>
+    {%- endif %}
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
 
       {# MOBILE NAV, TRIGGLES SIDE NAV ON TOGGLE #}
+      {% if not embedded %}
       <nav class="wy-nav-top" aria-label="top navigation">
         {% block mobile_nav %}
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="{{ pathto(master_doc) }}">{{ project }}</a>
         {% endblock %}
       </nav>
+      {% endif %}
 
 
       <div class="wy-nav-content">
@@ -197,7 +201,10 @@
         {% else %}
         <div class="rst-content">
         {% endif %}
+          {# Don't show breadcrumbs on embedded #}
+          {% if not embedded %}
           {% include "breadcrumbs.html" %}
+          {% endif %}
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
           {%- block document %}
            <div itemprop="articleBody">
