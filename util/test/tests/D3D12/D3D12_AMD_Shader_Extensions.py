@@ -72,6 +72,13 @@ class D3D12_AMD_Shader_Extensions(rdtest.TestCase):
 
             # We always check the CS pipe to ensure the reflection is OK
             cs_pipe = self.get_resource_by_name("cspipe" + pass_type)
+
+            if cs_pipe is None:
+                # everything but DXIL we must get, DXIL we may not be able to compile
+                if pass_type != "SM60":
+                    raise rdtest.TestFailureException("Didn't find compute pipeline for {}".format(pass_type))
+                continue
+
             pipe = cs_pipe.resourceId
             cs = rd.ResourceId()
 

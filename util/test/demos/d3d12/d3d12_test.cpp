@@ -1063,9 +1063,16 @@ ID3DBlobPtr D3D12GraphicsTest::Compile(std::string src, std::string entry, std::
     std::vector<std::wstring> argStorage;
 
     argStorage.push_back(L"-WX");
-    argStorage.push_back(L"-O0");
     if(skipoptimise)
+    {
+      argStorage.push_back(L"-O0");
       argStorage.push_back(L"-Od");
+    }
+    else
+    {
+      argStorage.push_back(L"-Ges");
+      argStorage.push_back(L"-O1");
+    }
     argStorage.push_back(L"-Zi");
     argStorage.push_back(L"-Qembed_debug");
 
@@ -1135,7 +1142,7 @@ ID3DBlobPtr D3D12GraphicsTest::Compile(std::string src, std::string entry, std::
     if(skipoptimise)
       flags |= D3DCOMPILE_SKIP_OPTIMIZATION | D3DCOMPILE_OPTIMIZATION_LEVEL0;
     else
-      flags |= D3DCOMPILE_OPTIMIZATION_LEVEL0;
+      flags |= D3DCOMPILE_ENABLE_STRICTNESS | D3DCOMPILE_OPTIMIZATION_LEVEL0;
 
     HRESULT hr = dyn_D3DCompile(src.c_str(), src.length(), "", NULL, NULL, entry.c_str(),
                                 profile.c_str(), flags, 0, &blob, &error);

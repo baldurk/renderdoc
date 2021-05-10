@@ -321,25 +321,18 @@ void main(uint3 threadID : SV_DispatchThreadID)
     {
       vsblob[i] = Compile(D3DDefaultVertex, "main", "vs" + profilesuffix[i]);
 
-      // disable DXIL for now as it seems to crash
-      // if(i == 2 && !m_DXILSupport)
-      if(i == 2)
-      {
-        psblob[i] = Compile(BasicPixel, "main", "ps" + profilesuffix[i], false);
-        csblob[i] = Compile(BasicCompute, "main", "cs" + profilesuffix[i], false);
-      }
-      else
-      {
-        valid[i] = true;
+      // if we don't have DXIL support we can't compile anything, even a dummy shader
+      if(i == 2 && !m_DXILSupport)
+        continue;
 
-        std::string defines = "#define AMD_EXT_SHADER_INTRINSIC_UAV_OVERRIDE u7\n\n";
+      valid[i] = true;
 
-        // can't skip optimising and still have the extensions work, sadly
-        psblob[i] =
-            Compile(defines + ags_header + BaryCentricPixel, "main", "ps" + profilesuffix[i], false);
-        csblob[i] =
-            Compile(defines + ags_header + MaxCompute, "main", "cs" + profilesuffix[i], false);
-      }
+      std::string defines = "#define AMD_EXT_SHADER_INTRINSIC_UAV_OVERRIDE u7\n\n";
+
+      // can't skip optimising and still have the extensions work, sadly
+      psblob[i] =
+          Compile(defines + ags_header + BaryCentricPixel, "main", "ps" + profilesuffix[i], false);
+      csblob[i] = Compile(defines + ags_header + MaxCompute, "main", "cs" + profilesuffix[i], false);
 
       pso[i] = MakePSO().RootSig(sig).InputLayout().VS(vsblob[i]).PS(psblob[i]);
       cso[i] = MakePSO().RootSig(sig).CS(csblob[i]);
@@ -400,9 +393,6 @@ void main(uint3 threadID : SV_DispatchThreadID)
 
       ClearRenderTargetView(cmd, rtv, {0.2f, 0.2f, 0.2f, 1.0f});
 
-      UINT zero[4] = {};
-      cmd->ClearUnorderedAccessViewUint(uav1gpu, uav1cpu, outBuf, zero, 0, NULL);
-
       // force inclusion of all pipelines
       for(int i = 0; i < ARRAY_COUNT(pso); i++)
       {
@@ -431,6 +421,9 @@ void main(uint3 threadID : SV_DispatchThreadID)
 
         pushMarker(cmd, passname[i]);
 
+        UINT zero[4] = {};
+        cmd->ClearUnorderedAccessViewUint(uav1gpu, uav1cpu, outBuf, zero, 0, NULL);
+
         OMSetRenderTargets(cmd, {rtv}, {});
 
         IASetVertexBuffer(cmd, vb, sizeof(DefaultA2V), 0);
@@ -439,7 +432,7 @@ void main(uint3 threadID : SV_DispatchThreadID)
 
         RSSetScissorRect(cmd, {0, 0, screenWidth, screenHeight});
 
-        RSSetViewport(cmd, {x * float(i % 2), i * float(i / 2), x, y, 0.0f, 1.0f});
+        RSSetViewport(cmd, {x * float(i % 2), y * float(i / 2), x, y, 0.0f, 1.0f});
 
         setMarker(cmd, passname[i] + " Draw");
         cmd->SetPipelineState(pso[i]);
