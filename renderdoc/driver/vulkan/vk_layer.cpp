@@ -108,6 +108,14 @@ class VulkanHook : LibraryHook
     Process::RegisterEnvironmentModification(
         EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "DISABLE_RTSS_LAYER", "1"));
 
+    // OBS's layer causes crashes, disable it too.
+    Process::RegisterEnvironmentModification(
+        EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "DISABLE_VULKAN_OBS_CAPTURE", "1"));
+
+    // OverWolf is some shitty software that forked OBS and changed the layer value
+    Process::RegisterEnvironmentModification(
+        EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "DISABLE_VULKAN_OW_OBS_CAPTURE", "1"));
+
     // mesa device select layer crashes when it calls GPDP2 inside vkCreateInstance, which fails on
     // the current loader.
     Process::RegisterEnvironmentModification(
