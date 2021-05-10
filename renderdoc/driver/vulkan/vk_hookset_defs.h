@@ -195,7 +195,7 @@
 
 #define HookInitExtension_Instance_Fuchsia() \
   HookInitExtension(VK_GGP_stream_descriptor_surface, CreateStreamDescriptorSurfaceGGP);
-#define HookDefine_Fuchsia()                                                          \
+#define HookDefine_Fuchsia()                                                   \
   HookDefine4(VkResult, vkCreateImagePipeSurfaceFUCHSIA, VkInstance, instance, \
               const VkImagePipeSurfaceCreateInfoFUCHSIA *, pCreateInfo,        \
               const VkAllocationCallbacks *, pAllocator, VkSurfaceKHR *, pSurface);

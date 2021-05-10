@@ -292,13 +292,15 @@ SERIALISE_VK_HANDLES();
 
 #ifdef VK_USE_PLATFORM_FUCHSIA
 
-#define HANDLE_PNEXT_OS_FUCHSIA() \
-   PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMPORT_MEMORY_ZIRCON_HANDLE_INFO_FUCHSIA, VkImportMemoryZirconHandleInfoFUCHSIA)
+#define HANDLE_PNEXT_OS_FUCHSIA()                                          \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMPORT_MEMORY_ZIRCON_HANDLE_INFO_FUCHSIA, \
+               VkImportMemoryZirconHandleInfoFUCHSIA)
 // TODO(rosasco): add remaining Fuchsia structure types
 
 #else
 
-#define HANDLE_PNEXT_OS_FUCHSIA() PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMPORT_MEMORY_ZIRCON_HANDLE_INFO_FUCHSIA)
+#define HANDLE_PNEXT_OS_FUCHSIA() \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMPORT_MEMORY_ZIRCON_HANDLE_INFO_FUCHSIA)
 
 #endif
 
@@ -9523,7 +9525,8 @@ void Deserialise(const VkPresentFrameTokenGGP &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkImportMemoryZirconHandleInfoFUCHSIA &el)
 {
-  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_IMPORT_MEMORY_ZIRCON_HANDLE_INFO_FUCHSIA);
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_IMPORT_MEMORY_ZIRCON_HANDLE_INFO_FUCHSIA);
   SerialiseNext(ser, el.sType, el.pNext);
 }
 

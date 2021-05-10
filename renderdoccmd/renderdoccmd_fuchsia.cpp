@@ -22,10 +22,10 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "renderdoccmd.h"
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>
+#include "renderdoccmd.h"
 
 /// #include <ggp_c/ggp.h>
 #include <replay/renderdoc_replay.h>
