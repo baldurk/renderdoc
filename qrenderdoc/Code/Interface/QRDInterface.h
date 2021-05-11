@@ -992,7 +992,7 @@ QWidget.
   DOCUMENT(R"(Return the shader messages displayed in this viewer.
 
 :return: The shader messages.
-:rtype List[renderdoc.ShaderMessage]
+:rtype: List[renderdoc.ShaderMessage]
 )");
   virtual rdcarray<ShaderMessage> GetShaderMessages() = 0;
 
@@ -1000,7 +1000,7 @@ QWidget.
 since the messages were fetched.
 
 :return: ``True`` if the viewer is out of date.
-:rtype bool
+:rtype: bool
 )");
   virtual bool IsOutOfDate() = 0;
 
