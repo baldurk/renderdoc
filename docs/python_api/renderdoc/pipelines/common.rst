@@ -133,3 +133,23 @@ Blending
 .. autoclass:: renderdoc.LogicOperation
   :members:
 
+Shader Messages
+---------------
+
+.. autoclass:: renderdoc.ShaderMessage
+  :members:
+
+.. autoclass:: renderdoc.ShaderMessageLocation
+  :members:
+
+.. autoclass:: renderdoc.ShaderVertexMessageLocation
+  :members:
+
+.. autoclass:: renderdoc.ShaderPixelMessageLocation
+  :members:
+
+.. autoclass:: renderdoc.ShaderComputeMessageLocation
+  :members:
+
+
+* qrenderdoc.ShaderMessageViewer
