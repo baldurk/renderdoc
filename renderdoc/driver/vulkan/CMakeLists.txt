@@ -100,7 +100,20 @@ elseif(ENABLE_GGP)
 
     set(json_in ${CMAKE_CURRENT_SOURCE_DIR}/renderdoc.json)
     set(json_out ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/renderdoc_capture.json)
-    
+
+    configure_file(${json_in} ${json_out})
+
+    install (FILES ${json_out} DESTINATION ${VULKAN_LAYER_FOLDER})
+elseif(FUCHSIA)
+    list(APPEND sources vk_posix.cpp vk_fuchsia.cpp)
+    add_definitions(-DVK_USE_PLATFORM_FUCHSIA)
+
+    set(VULKAN_LAYER_MODULE_PATH "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}/${LIB_SUBFOLDER_TRAIL_SLASH}librenderdoc.so")
+    set(VULKAN_ENABLE_VAR "ENABLE_VULKAN_RENDERDOC_CAPTURE")
+
+    set(json_in ${CMAKE_CURRENT_SOURCE_DIR}/renderdoc.json)
+    set(json_out ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/renderdoc_capture.json)
+
     configure_file(${json_in} ${json_out})
 
     install (FILES ${json_out} DESTINATION ${VULKAN_LAYER_FOLDER})

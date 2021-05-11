@@ -605,7 +605,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_DIRECTFB_SURFACE_CREATE_INFO_EXT:                             \
   case VK_STRUCTURE_TYPE_DISPLAY_MODE_CREATE_INFO_KHR:                                 \
   case VK_STRUCTURE_TYPE_DISPLAY_SURFACE_CREATE_INFO_KHR:                              \
-  case VK_STRUCTURE_TYPE_IMAGEPIPE_SURFACE_CREATE_INFO_FUCHSIA:                        \
   case VK_STRUCTURE_TYPE_IOS_SURFACE_CREATE_INFO_MVK:                                  \
   case VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK:                                \
   case VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT:                                \
@@ -1085,6 +1084,105 @@ size_t GetNextPatchSize(const void *pNext)
       case VK_STRUCTURE_TYPE_PRESENT_FRAME_TOKEN_GGP:
       {
         RDCERR("Support for GGP frame token extension not compiled in");
+        break;
+      }
+#endif
+
+#if ENABLED(RDOC_FUCHSIA)
+        // Image pipe
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_IMAGEPIPE_SURFACE_CREATE_INFO_FUCHSIA,
+                                 VkImagePipeSurfaceCreateInfoFUCHSIA);
+
+        // Buffer collection
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_BUFFER_COLLECTION_CREATE_INFO_FUCHSIA,
+                                 VkBufferCollectionCreateInfoFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_IMPORT_MEMORY_BUFFER_COLLECTION_FUCHSIA,
+                                 VkImportMemoryBufferCollectionFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_BUFFER_COLLECTION_IMAGE_CREATE_INFO_FUCHSIA,
+                                 VkBufferCollectionImageCreateInfoFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_BUFFER_COLLECTION_PROPERTIES_FUCHSIA,
+                                 VkBufferCollectionPropertiesFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_BUFFER_CONSTRAINTS_INFO_FUCHSIA,
+                                 VkBufferConstraintsInfoFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_BUFFER_COLLECTION_BUFFER_CREATE_INFO_FUCHSIA,
+                                 VkBufferCollectionBufferCreateInfoFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_IMAGE_CONSTRAINTS_INFO_FUCHSIA,
+                                 VkImageConstraintsInfoFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_IMAGE_FORMAT_CONSTRAINTS_INFO_FUCHSIA,
+                                 VkImageFormatConstraintsInfoFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_BUFFER_COLLECTION_PROPERTIES2_FUCHSIA,
+                                 vkGetBufferCollectionProperties2FUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_SYSMEM_COLOR_SPACE_FUCHSIA,
+                                 VkSysmemColorSpaceFUCHSIA);
+
+        // Memory control
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_CONTROL_PROPERTIES_FUCHSIA,
+                                 VkPhysicalDeviceMemoryControlPropertiesFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_MEMORY_RANGE_FUCHSIA, VkMemoryRangeFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_MEMORY_OP_RESULT_FUCHSIA, VkMemoryOpResultFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_CONTROL_OPS_MEMORY_ALLOCATE_INFO_FUCHSIA,
+                                 VkControlOpsMemoryAllocateInfoFUCHSIA);
+        // External memory
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_IMPORT_MEMORY_ZIRCON_HANDLE_INFO_FUCHSIA,
+                                 VkImportMemoryZirconHandleInfoFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_MEMORY_ZIRCON_HANDLE_PROPERTIES_FUCHSIA,
+                                 VkMemoryZirconHandlePropertiesFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_MEMORY_GET_ZIRCON_HANDLE_INFO_FUCHSIA,
+                                 VkMemoryGetZirconHandleInfoFUCHSIA);
+
+        // External semaphore
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_ZIRCON_HANDLE_INFO_FUCHSIA,
+                                 VkImportSemaphoreZirconHandleInfoFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_SEMAPHORE_GET_ZIRCON_HANDLE_INFO_FUCHSIA,
+                                 VkSemaphoreGetZirconHandleInfoFUCHSIA);
+#else
+      // Image pipe
+      case VK_STRUCTURE_TYPE_IMAGEPIPE_SURFACE_CREATE_INFO_FUCHSIA:
+      {
+        RDCERR("Support for Fuchsia imagepipe surface extension not compiled in");
+        break;
+      }
+
+      // Buffer collection
+      case VK_STRUCTURE_TYPE_BUFFER_COLLECTION_CREATE_INFO_FUCHSIA:
+      case VK_STRUCTURE_TYPE_IMPORT_MEMORY_BUFFER_COLLECTION_FUCHSIA:
+      case VK_STRUCTURE_TYPE_BUFFER_COLLECTION_IMAGE_CREATE_INFO_FUCHSIA:
+      case VK_STRUCTURE_TYPE_BUFFER_COLLECTION_PROPERTIES_FUCHSIA:
+      case VK_STRUCTURE_TYPE_BUFFER_CONSTRAINTS_INFO_FUCHSIA:
+      case VK_STRUCTURE_TYPE_BUFFER_COLLECTION_BUFFER_CREATE_INFO_FUCHSIA:
+      case VK_STRUCTURE_TYPE_IMAGE_CONSTRAINTS_INFO_FUCHSIA:
+      case VK_STRUCTURE_TYPE_IMAGE_FORMAT_CONSTRAINTS_INFO_FUCHSIA:
+      case VK_STRUCTURE_TYPE_BUFFER_COLLECTION_PROPERTIES2_FUCHSIA:
+      case VK_STRUCTURE_TYPE_SYSMEM_COLOR_SPACE_FUCHSIA:
+      {
+        RDCERR("Support for Fuchsia buffer collection extension not compiled in");
+        break;
+      }
+
+      // Memory control
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_CONTROL_PROPERTIES_FUCHSIA:
+      case VK_STRUCTURE_TYPE_MEMORY_RANGE_FUCHSIA:
+      case VK_STRUCTURE_TYPE_MEMORY_OP_RESULT_FUCHSIA:
+      case VK_STRUCTURE_TYPE_CONTROL_OPS_MEMORY_ALLOCATE_INFO_FUCHSIA:
+      {
+        RDCERR("Support for Fuchsia memory control extension not compiled in");
+        break;
+      }
+
+      // External memory
+      case VK_STRUCTURE_TYPE_IMPORT_MEMORY_ZIRCON_HANDLE_INFO_FUCHSIA:
+      case VK_STRUCTURE_TYPE_MEMORY_ZIRCON_HANDLE_PROPERTIES_FUCHSIA:
+      case VK_STRUCTURE_TYPE_MEMORY_GET_ZIRCON_HANDLE_INFO_FUCHSIA:
+      {
+        RDCERR("Support for Fuchsia external memory extension not compiled in");
+        break;
+      }
+
+      // External semaphore
+      case VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_ZIRCON_HANDLE_INFO_FUCHSIA:
+      case VK_STRUCTURE_TYPE_SEMAPHORE_GET_ZIRCON_HANDLE_INFO_FUCHSIA:
+      {
+        RDCERR("Support for Fuchsia external semaphore extension not compiled in");
         break;
       }
 #endif
@@ -2052,6 +2150,105 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
       }
 #endif
 
+#if ENABLED(RDOC_FUCHSIA)
+        // Image pipe
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_IMAGEPIPE_SURFACE_CREATE_INFO_FUCHSIA,
+                                 VkImagePipeSurfaceCreateInfoFUCHSIA);
+
+        // Buffer collection
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_BUFFER_COLLECTION_CREATE_INFO_FUCHSIA,
+                                 VkBufferCollectionCreateInfoFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_IMPORT_MEMORY_BUFFER_COLLECTION_FUCHSIA,
+                                 VkImportMemoryBufferCollectionFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_BUFFER_COLLECTION_IMAGE_CREATE_INFO_FUCHSIA,
+                                 VkBufferCollectionImageCreateInfoFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_BUFFER_COLLECTION_PROPERTIES_FUCHSIA,
+                                 VkBufferCollectionPropertiesFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_BUFFER_CONSTRAINTS_INFO_FUCHSIA,
+                                 VkBufferConstraintsInfoFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_BUFFER_COLLECTION_BUFFER_CREATE_INFO_FUCHSIA,
+                                 VkBufferCollectionBufferCreateInfoFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_IMAGE_CONSTRAINTS_INFO_FUCHSIA,
+                                 VkImageConstraintsInfoFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_IMAGE_FORMAT_CONSTRAINTS_INFO_FUCHSIA,
+                                 VkImageFormatConstraintsInfoFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_BUFFER_COLLECTION_PROPERTIES2_FUCHSIA,
+                                 vkGetBufferCollectionProperties2FUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_SYSMEM_COLOR_SPACE_FUCHSIA,
+                                 VkSysmemColorSpaceFUCHSIA);
+
+        // Memory control
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_CONTROL_PROPERTIES_FUCHSIA,
+                                 VkPhysicalDeviceMemoryControlPropertiesFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_MEMORY_RANGE_FUCHSIA, VkMemoryRangeFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_MEMORY_OP_RESULT_FUCHSIA, VkMemoryOpResultFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_CONTROL_OPS_MEMORY_ALLOCATE_INFO_FUCHSIA,
+                                 VkControlOpsMemoryAllocateInfoFUCHSIA);
+        // External memory
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_IMPORT_MEMORY_ZIRCON_HANDLE_INFO_FUCHSIA,
+                                 VkImportMemoryZirconHandleInfoFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_MEMORY_ZIRCON_HANDLE_PROPERTIES_FUCHSIA,
+                                 VkMemoryZirconHandlePropertiesFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_MEMORY_GET_ZIRCON_HANDLE_INFO_FUCHSIA,
+                                 VkMemoryGetZirconHandleInfoFUCHSIA);
+
+        // External semaphore
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_ZIRCON_HANDLE_INFO_FUCHSIA,
+                                 VkImportSemaphoreZirconHandleInfoFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_SEMAPHORE_GET_ZIRCON_HANDLE_INFO_FUCHSIA,
+                                 VkSemaphoreGetZirconHandleInfoFUCHSIA);
+#else
+      // Image pipe surface
+      case VK_STRUCTURE_TYPE_IMAGEPIPE_SURFACE_CREATE_INFO_FUCHSIA:
+      {
+        RDCERR("Support for VK_FUCHSIA_imagepipe_surface extension not compiled in");
+        break;
+      }
+
+      // Buffer collection
+      case VK_STRUCTURE_TYPE_BUFFER_COLLECTION_CREATE_INFO_FUCHSIA:
+      case VK_STRUCTURE_TYPE_IMPORT_MEMORY_BUFFER_COLLECTION_FUCHSIA:
+      case VK_STRUCTURE_TYPE_BUFFER_COLLECTION_IMAGE_CREATE_INFO_FUCHSIA:
+      case VK_STRUCTURE_TYPE_BUFFER_COLLECTION_PROPERTIES_FUCHSIA:
+      case VK_STRUCTURE_TYPE_BUFFER_CONSTRAINTS_INFO_FUCHSIA:
+      case VK_STRUCTURE_TYPE_BUFFER_COLLECTION_BUFFER_CREATE_INFO_FUCHSIA:
+      case VK_STRUCTURE_TYPE_IMAGE_CONSTRAINTS_INFO_FUCHSIA:
+      case VK_STRUCTURE_TYPE_IMAGE_FORMAT_CONSTRAINTS_INFO_FUCHSIA:
+      case VK_STRUCTURE_TYPE_BUFFER_COLLECTION_PROPERTIES2_FUCHSIA:
+      case VK_STRUCTURE_TYPE_SYSMEM_COLOR_SPACE_FUCHSIA:
+      {
+        RDCERR("Support for VK_FUCHSIA_buffer_collection extension not compiled in");
+        break;
+      }
+
+      // Memory control
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_CONTROL_PROPERTIES_FUCHSIA:
+      case VK_STRUCTURE_TYPE_MEMORY_RANGE_FUCHSIA:
+      case VK_STRUCTURE_TYPE_MEMORY_OP_RESULT_FUCHSIA:
+      case VK_STRUCTURE_TYPE_CONTROL_OPS_MEMORY_ALLOCATE_INFO_FUCHSIA:
+      {
+        RDCERR("Support for VK_FUCHSIA_memory_control extension not compiled in");
+        break;
+      }
+
+      // External memory
+      case VK_STRUCTURE_TYPE_IMPORT_MEMORY_ZIRCON_HANDLE_INFO_FUCHSIA:
+      case VK_STRUCTURE_TYPE_MEMORY_ZIRCON_HANDLE_PROPERTIES_FUCHSIA:
+      case VK_STRUCTURE_TYPE_MEMORY_GET_ZIRCON_HANDLE_INFO_FUCHSIA:
+      {
+        RDCERR("Support for VK_FUCHSIA_external_memory extension not compiled in");
+        break;
+      }
+
+      // External semaphore
+      case VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_ZIRCON_HANDLE_INFO_FUCHSIA:
+      case VK_STRUCTURE_TYPE_SEMAPHORE_GET_ZIRCON_HANDLE_INFO_FUCHSIA:
+      {
+        RDCERR("Support for VK_FUCHSIA_external_semaphore extension not compiled in");
+        break;
+      }
+#endif
+
 // NV win32 external memory extensions
 #if ENABLED(RDOC_WIN32)
         // Structs that can be copied into place
@@ -2339,6 +2536,105 @@ void CopyNextChainForPatching(const char *structName, byte *&tempMem, VkBaseInSt
       case VK_STRUCTURE_TYPE_PRESENT_FRAME_TOKEN_GGP:
       {
         RDCERR("Support for GGP frame token extension not compiled in");
+        break;
+      }
+#endif
+
+#if ENABLED(RDOC_FUCHSIA)
+        // Image pipe
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_IMAGEPIPE_SURFACE_CREATE_INFO_FUCHSIA,
+                                 VkImagePipeSurfaceCreateInfoFUCHSIA);
+
+        // Buffer collection
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_BUFFER_COLLECTION_CREATE_INFO_FUCHSIA,
+                                 VkBufferCollectionCreateInfoFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_IMPORT_MEMORY_BUFFER_COLLECTION_FUCHSIA,
+                                 VkImportMemoryBufferCollectionFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_BUFFER_COLLECTION_IMAGE_CREATE_INFO_FUCHSIA,
+                                 VkBufferCollectionImageCreateInfoFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_BUFFER_COLLECTION_PROPERTIES_FUCHSIA,
+                                 VkBufferCollectionPropertiesFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_BUFFER_CONSTRAINTS_INFO_FUCHSIA,
+                                 VkBufferConstraintsInfoFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_BUFFER_COLLECTION_BUFFER_CREATE_INFO_FUCHSIA,
+                                 VkBufferCollectionBufferCreateInfoFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_IMAGE_CONSTRAINTS_INFO_FUCHSIA,
+                                 VkImageConstraintsInfoFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_IMAGE_FORMAT_CONSTRAINTS_INFO_FUCHSIA,
+                                 VkImageFormatConstraintsInfoFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_BUFFER_COLLECTION_PROPERTIES2_FUCHSIA,
+                                 vkGetBufferCollectionProperties2FUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_SYSMEM_COLOR_SPACE_FUCHSIA,
+                                 VkSysmemColorSpaceFUCHSIA);
+
+        // Memory control
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_CONTROL_PROPERTIES_FUCHSIA,
+                                 VkPhysicalDeviceMemoryControlPropertiesFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_MEMORY_RANGE_FUCHSIA, VkMemoryRangeFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_MEMORY_OP_RESULT_FUCHSIA, VkMemoryOpResultFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_CONTROL_OPS_MEMORY_ALLOCATE_INFO_FUCHSIA,
+                                 VkControlOpsMemoryAllocateInfoFUCHSIA);
+        // External memory
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_IMPORT_MEMORY_ZIRCON_HANDLE_INFO_FUCHSIA,
+                                 VkImportMemoryZirconHandleInfoFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_MEMORY_ZIRCON_HANDLE_PROPERTIES_FUCHSIA,
+                                 VkMemoryZirconHandlePropertiesFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_MEMORY_GET_ZIRCON_HANDLE_INFO_FUCHSIA,
+                                 VkMemoryGetZirconHandleInfoFUCHSIA);
+
+        // External semaphore
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_ZIRCON_HANDLE_INFO_FUCHSIA,
+                                 VkImportSemaphoreZirconHandleInfoFUCHSIA);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_SEMAPHORE_GET_ZIRCON_HANDLE_INFO_FUCHSIA,
+                                 VkSemaphoreGetZirconHandleInfoFUCHSIA);
+#else
+      // Image pipe surface
+      case VK_STRUCTURE_TYPE_IMAGEPIPE_SURFACE_CREATE_INFO_FUCHSIA:
+      {
+        RDCERR("Support for VK_FUCHSIA_imagepipe_surface extension not compiled in");
+        break;
+      }
+
+      // Buffer collection
+      case VK_STRUCTURE_TYPE_BUFFER_COLLECTION_CREATE_INFO_FUCHSIA:
+      case VK_STRUCTURE_TYPE_IMPORT_MEMORY_BUFFER_COLLECTION_FUCHSIA:
+      case VK_STRUCTURE_TYPE_BUFFER_COLLECTION_IMAGE_CREATE_INFO_FUCHSIA:
+      case VK_STRUCTURE_TYPE_BUFFER_COLLECTION_PROPERTIES_FUCHSIA:
+      case VK_STRUCTURE_TYPE_BUFFER_CONSTRAINTS_INFO_FUCHSIA:
+      case VK_STRUCTURE_TYPE_BUFFER_COLLECTION_BUFFER_CREATE_INFO_FUCHSIA:
+      case VK_STRUCTURE_TYPE_IMAGE_CONSTRAINTS_INFO_FUCHSIA:
+      case VK_STRUCTURE_TYPE_IMAGE_FORMAT_CONSTRAINTS_INFO_FUCHSIA:
+      case VK_STRUCTURE_TYPE_BUFFER_COLLECTION_PROPERTIES2_FUCHSIA:
+      case VK_STRUCTURE_TYPE_SYSMEM_COLOR_SPACE_FUCHSIA:
+      {
+        RDCERR("Support for VK_FUCHSIA_buffer_collection extension not compiled in");
+        break;
+      }
+
+      // Memory control
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_CONTROL_PROPERTIES_FUCHSIA:
+      case VK_STRUCTURE_TYPE_MEMORY_RANGE_FUCHSIA:
+      case VK_STRUCTURE_TYPE_MEMORY_OP_RESULT_FUCHSIA:
+      case VK_STRUCTURE_TYPE_CONTROL_OPS_MEMORY_ALLOCATE_INFO_FUCHSIA:
+      {
+        RDCERR("Support for VK_FUCHSIA_memory_control extension not compiled in");
+        break;
+      }
+
+      // External memory
+      case VK_STRUCTURE_TYPE_IMPORT_MEMORY_ZIRCON_HANDLE_INFO_FUCHSIA:
+      case VK_STRUCTURE_TYPE_MEMORY_ZIRCON_HANDLE_PROPERTIES_FUCHSIA:
+      case VK_STRUCTURE_TYPE_MEMORY_GET_ZIRCON_HANDLE_INFO_FUCHSIA:
+      {
+        RDCERR("Support for VK_FUCHSIA_external_memory extension not compiled in");
+        break;
+      }
+
+      // External semaphore
+      case VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_ZIRCON_HANDLE_INFO_FUCHSIA:
+      case VK_STRUCTURE_TYPE_SEMAPHORE_GET_ZIRCON_HANDLE_INFO_FUCHSIA:
+      {
+        RDCERR("Support for VK_FUCHSIA_external_semaphore extension not compiled in");
         break;
       }
 #endif

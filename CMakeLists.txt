@@ -76,6 +76,39 @@ if(BUILD_ANDROID)
     set(ANDROID_ABI "armeabi-v7a" CACHE STRING "The Android ABI to build for")
 endif()
 
+# Configure some stuff that needs to be set really early
+if(BUILD_FUCHSIA)
+    set(CMAKE_SYSTEM_PROCESSOR x86)
+    if(NOT DEFINED ENV{FUCHSIA_CMAKE_SDK})
+        message(FATAL_ERROR "FUCHSIA_CMAKE_SDK is not set in environment")
+    elseif(DEFINED ENV{FUCHSIA_CMAKE_SDK} AND NOT EXISTS "$ENV{FUCHSIA_CMAKE_SDK}")
+        message(FATAL_ERROR "FUCHSIA_CMAKE_SDK ${FUCHSIA_CMAKE_SDK} does not exist")
+    else()
+        set(FUCHSIA_CMAKE_SDK "$ENV{FUCHSIA_CMAKE_SDK}")
+    endif()
+
+    set(fuchsia_target "aarch64-fuchsia")
+    set(fuchsia_sdk_arch "arm64")
+
+    set(fuchsia_clang_bin_dir "${FUCHSIA_CMAKE_SDK}/clang/bin")
+
+    set(CMAKE_C_COMPILER "${fuchsia_clang_bin_dir}/clang")
+    set(CMAKE_CXX_COMPILER "${fuchsia_clang_bin_dir}/clang++")
+    set(CMAKE_C_COMPILER_TARGET ${fuchsia_target})
+    set(CMAKE_CXX_COMPILER_TARGET ${fuchsia_target})
+
+    set(CMAKE_VERBOSE_MAKEFILE ON)
+    set(FUCHSIA_SDK_DIR "${FUCHSIA_CMAKE_SDK}/sdk")
+    set(CMAKE_SYSROOT ${FUCHSIA_SDK_DIR}/arch/${fuchsia_sdk_arch}/sysroot)
+
+    # TODO(rosasco): set this correctly
+    # include(${CMAKE_CURRENT_SOURCE_DIR}/../sdk/sdk.cmake)
+    option(ENABLE_XLIB "Enable xlib windowing support" OFF)
+    option(ENABLE_XCB "Enable xcb windowing support" OFF)
+
+    message(STATUS "Using Fuchsia CMake SDK found in ${FUCHSIA_CMAKE_SDK}")
+endif()
+
 # disallow in-source builds because we have a top-level wrapper Makefile
 if(CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
     message(FATAL_ERROR "In-source builds not allowed")
@@ -381,6 +414,8 @@ elseif(APPLE)
 elseif(ENABLE_GGP)
     add_definitions(-DRENDERDOC_PLATFORM_GGP)
     add_definitions(-DRENDERDOC_WINDOWING_GGP)
+elseif(FUCHSIA)
+    add_definitions(-DRENDERDOC_PLATFORM_FUCHSIA)
 elseif(UNIX)
     add_definitions(-DRENDERDOC_PLATFORM_LINUX)
 
@@ -450,7 +485,7 @@ if(ENABLE_VULKAN)
     message(STATUS "  - Vulkan")
 endif()
 
-if(UNIX AND NOT ANDROID AND NOT APPLE AND NOT ENABLE_GGP)
+if(UNIX AND NOT ANDROID AND NOT APPLE AND NOT ENABLE_GGP AND NOT FUCHSIA)
     message(STATUS "Enabled Window System Support:")
 
     if(ENABLE_XLIB)

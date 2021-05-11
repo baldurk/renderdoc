@@ -54,6 +54,11 @@ inline std::ostream &operator<<(std::ostream &os, rdcstr const &str)
   return os << std::string(str.begin(), str.end());
 }
 
+// Avoid modifying 3rdParty/catch/official/catch.hpp for Fuchsia for now.
+#if defined(__Fuchsia__)
+#define CATCH_PLATFORM_LINUX
+#endif
+
 #include "official/catch.hpp"
 
 namespace Catch
