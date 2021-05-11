@@ -282,7 +282,7 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
       bool done = false;
       ShaderDebugTrace *trace = NULL;
 
-      m_Ctx.Replay().AsyncInvoke([this, &trace, &done, msg](IReplayController *r) {
+      m_Ctx.Replay().AsyncInvoke([&trace, &done, msg](IReplayController *r) {
         if(msg.stage == ShaderStage::Compute)
           trace = r->DebugThread(msg.location.compute.workgroup, msg.location.compute.thread);
         else if(msg.stage == ShaderStage::Vertex)
