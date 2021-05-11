@@ -25,6 +25,7 @@
 #pragma once
 
 #include <QFrame>
+#include <QStyledItemDelegate>
 #include "Code/Interface/QRDInterface.h"
 
 namespace Ui
