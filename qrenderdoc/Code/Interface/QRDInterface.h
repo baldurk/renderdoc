@@ -985,7 +985,7 @@ QWidget.
   DOCUMENT(R"(Return the EID that this viewer is displaying messages from.
 
 :return: The EID.
-:rtype int
+:rtype: int
 )");
   virtual uint32_t GetEvent() = 0;
 
