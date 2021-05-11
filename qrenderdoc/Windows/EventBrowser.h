@@ -140,6 +140,7 @@ private:
   QMap<uint32_t, QToolButton *> m_BookmarkButtons;
 
   void RefreshIcon(RDTreeWidgetItem *item, EventItemTag tag);
+  void RefreshShaderMessages();
 
   Ui::EventBrowser *ui;
   ICaptureContext &m_Ctx;

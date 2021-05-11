@@ -181,6 +181,14 @@ QString GetTruncatedResourceName(ICaptureContext &ctx, ResourceId id)
   return name;
 }
 
+struct ShaderMessageLink
+{
+  uint32_t eid;
+  uint32_t numMessages;
+};
+
+Q_DECLARE_METATYPE(ShaderMessageLink);
+
 // this is an opaque struct that contains the data to render, hit-test, etc for some text that
 // contains links to resources. It will update and cache the names of the resources.
 struct RichResourceText
@@ -246,6 +254,22 @@ struct RichResourceText
         text += resname;
 
         // these generate two blocks (one for each cell)
+        fragmentIndexFromBlockIndex.push_back(i);
+        fragmentIndexFromBlockIndex.push_back(i);
+      }
+      else if(v.userType() == qMetaTypeId<ShaderMessageLink>())
+      {
+        ShaderMessageLink link = v.value<ShaderMessageLink>();
+
+        QString msgstr =
+            QApplication::translate("qrenderdoc", "%n msg(s)", "Shader messages", link.numMessages);
+
+        html += lit("<td valign=\"middle\"><img width=\"16\" src=':/text_add%3.png'></td>"
+                    "<td valign=\"middle\">%1</td>")
+                    .arg(msgstr)
+                    .arg(highdpi ? lit("@2x") : QString());
+        text += msgstr;
+
         fragmentIndexFromBlockIndex.push_back(i);
         fragmentIndexFromBlockIndex.push_back(i);
       }
@@ -402,7 +426,7 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx)
 
   // do a simple string search first before using regular expressions
   if(!text.contains(lit("ResourceId::")) && !text.contains(lit("GPUAddress::")) &&
-     !text.contains(QLatin1Char('@')))
+     !text.contains(lit("__rd_msgs::")) && !text.contains(QLatin1Char('@')))
     return;
 
   // two forms: GPUAddress::012345        - typeless
@@ -433,7 +457,8 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx)
 
   // use regexp to split up into fragments of text and resourceid. The resourceid is then
   // formatted on the fly in RichResourceText::cacheDocument
-  static QRegularExpression resRE(lit("(ResourceId::)([0-9]*)|(@)([0-9]+)"));
+  static QRegularExpression resRE(
+      lit("(ResourceId::)([0-9]+)|(@)([0-9]+)|(__rd_msgs::)([0-9]+):([0-9]+)"));
 
   match = resRE.match(text);
 
@@ -471,6 +496,20 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx)
         text.remove(0, match.capturedEnd(2));
 
         linkedText->fragments.push_back(id);
+      }
+      else if(match.captured(5) == lit("__rd_msgs::"))
+      {
+        ShaderMessageLink link;
+        link.eid = match.captured(6).toUInt();
+        link.numMessages = match.captured(7).toUInt();
+
+        // push any text that preceeded the msgs link.
+        if(match.capturedStart(5) > 0)
+          linkedText->fragments.push_back(text.left(match.capturedStart(5)));
+
+        text.remove(0, match.capturedEnd(7));
+
+        linkedText->fragments.push_back(QVariant::fromValue(link));
       }
       else
       {
@@ -670,7 +709,8 @@ void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, 
       if(frag >= 0)
       {
         QVariant v = linkedText->fragments[frag];
-        if(v.userType() == qMetaTypeId<ResourceId>() && v.value<ResourceId>() != ResourceId())
+        if((v.userType() == qMetaTypeId<ResourceId>() && v.value<ResourceId>() != ResourceId()) ||
+           v.userType() == qMetaTypeId<ShaderMessageLink>())
         {
           layout->blockBoundingRect(block);
           QRectF blockrect = layout->blockBoundingRect(block);
@@ -925,6 +965,23 @@ bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect
           ctx.GetResourceInspector()->Inspect(res);
 
           ctx.RaiseDockWindow(ctx.GetResourceInspector()->Widget());
+        }
+
+        return true;
+      }
+      else if(v.userType() == qMetaTypeId<ShaderMessageLink>())
+      {
+        ShaderMessageLink link = v.value<ShaderMessageLink>();
+
+        if(event->type() == QEvent::MouseButtonRelease && linkedText->ctxptr)
+        {
+          ICaptureContext &ctx = *(ICaptureContext *)linkedText->ctxptr;
+
+          ctx.SetEventID({}, link.eid, link.eid, false);
+
+          IShaderMessageViewer *shad = ctx.ViewShaderMessages(ShaderStageMask::All);
+
+          ctx.AddDockWindow(shad->Widget(), DockReference::MainToolArea, NULL);
         }
 
         return true;

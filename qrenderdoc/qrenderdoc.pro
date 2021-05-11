@@ -188,6 +188,8 @@ SOURCES += Code/qrenderdoc.cpp \
     Windows/MainWindow.cpp \
     Windows/EventBrowser.cpp \
     Windows/TextureViewer.cpp \
+    Windows/ShaderViewer.cpp \
+    Windows/ShaderMessageViewer.cpp \
     Widgets/Extended/RDLineEdit.cpp \
     Widgets/Extended/RDTextEdit.cpp \
     Widgets/Extended/RDLabel.cpp \
@@ -269,6 +271,8 @@ HEADERS += Code/CaptureContext.h \
     Windows/MainWindow.h \
     Windows/EventBrowser.h \
     Windows/TextureViewer.h \
+    Windows/ShaderViewer.h \
+    Windows/ShaderMessageViewer.h \
     Widgets/Extended/RDLineEdit.h \
     Widgets/Extended/RDTextEdit.h \
     Widgets/Extended/RDLabel.h \
@@ -347,6 +351,7 @@ FORMS    += Windows/Dialogs/AboutDialog.ui \
     Widgets/BufferFormatSpecifier.ui \
     Windows/BufferViewer.ui \
     Windows/ShaderViewer.ui \
+    Windows/ShaderMessageViewer.ui \
     Windows/DebugMessageView.ui \
     Windows/LogView.ui \
     Windows/CommentView.ui \
@@ -400,12 +405,10 @@ SOURCES += $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/*.cxx \
     $$_PRO_FILE_PWD_/3rdparty/scintilla/lexers/*.cxx \
     $$_PRO_FILE_PWD_/3rdparty/scintilla/src/*.cxx \
     $$_PRO_FILE_PWD_/3rdparty/scintilla/qt/ScintillaEdit/*.cpp \
-    $$_PRO_FILE_PWD_/3rdparty/scintilla/qt/ScintillaEditBase/*.cpp \
-    Windows/ShaderViewer.cpp
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/qt/ScintillaEditBase/*.cpp
 
 HEADERS += $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/*.h \
     $$_PRO_FILE_PWD_/3rdparty/scintilla/src/*.h \
     $$_PRO_FILE_PWD_/3rdparty/scintilla/qt/ScintillaEdit/*.h \
-    $$_PRO_FILE_PWD_/3rdparty/scintilla/qt/ScintillaEditBase/*.h \
-    Windows/ShaderViewer.h
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/qt/ScintillaEditBase/*.h
 

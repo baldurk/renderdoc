@@ -120,7 +120,9 @@ public:
   virtual uint32_t CurrentStep() override;
   virtual void SetCurrentStep(uint32_t step) override;
 
-  virtual void ToggleBreakpoint(int32_t instruction = -1) override;
+  virtual void ToggleBreakpointOnInstruction(int32_t instruction = -1) override;
+  virtual void ToggleBreakpointOnDisassemblyLine(int32_t disassemblyLine) override;
+  virtual void RunForward() override;
 
   virtual void ShowErrors(const rdcstr &errors) override;
 
@@ -271,6 +273,11 @@ private:
   rdcarray<ShaderDebugState> m_States;
   size_t m_CurrentStateIdx = 0;
   rdcarray<ShaderVariable> m_Variables;
+
+  // true when debugging while we're populating the initial trace. Lets us queue up commands and
+  // process them once we've initialised properly
+  bool m_DeferredInit = false;
+  rdcarray<std::function<void(ShaderViewer *)>> m_DeferredCommands;
 
   QSemaphore m_BackgroundRunning;
 

@@ -680,7 +680,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     m_Ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_F5 | Qt::ShiftModifier).toString(),
                                             this, [this](QWidget *) { runBack(); });
     m_Ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_F9).toString(), this,
-                                            [this](QWidget *) { ToggleBreakpoint(); });
+                                            [this](QWidget *) { ToggleBreakpointOnInstruction(); });
 
     // event filter to pick up tooltip events
     ui->constants->installEventFilter(this);
@@ -693,6 +693,8 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     m_BackgroundRunning.release();
 
     QPointer<ShaderViewer> me(this);
+
+    m_DeferredInit = true;
 
     m_Ctx.Replay().AsyncInvoke([this, me](IReplayController *r) {
       if(!me)
@@ -754,6 +756,11 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
           gotoSourceDebugging();
           updateDebugState();
         }
+
+        m_DeferredInit = false;
+        for(std::function<void(ShaderViewer *)> &f : m_DeferredCommands)
+          f(this);
+        m_DeferredCommands.clear();
       });
     });
 
@@ -1288,7 +1295,7 @@ void ShaderViewer::debug_contextMenu(const QPoint &pos)
 
   QObject::connect(&addBreakpoint, &QAction::triggered, [this, scintillaPos] {
     m_DisassemblyView->setSelection(scintillaPos, scintillaPos);
-    ToggleBreakpoint();
+    ToggleBreakpointOnInstruction();
   });
   QObject::connect(&runCursor, &QAction::triggered, [this, scintillaPos] {
     m_DisassemblyView->setSelection(scintillaPos, scintillaPos);
@@ -3914,8 +3921,15 @@ void ShaderViewer::SetCurrentStep(uint32_t step)
   updateDebugState();
 }
 
-void ShaderViewer::ToggleBreakpoint(int32_t instruction)
+void ShaderViewer::ToggleBreakpointOnInstruction(int32_t instruction)
 {
+  if(m_DeferredInit)
+  {
+    m_DeferredCommands.push_back(
+        [instruction](ShaderViewer *v) { v->ToggleBreakpointOnInstruction(instruction); });
+    return;
+  }
+
   if(!m_Trace || m_States.empty())
     return;
 
@@ -3944,7 +3958,7 @@ void ShaderViewer::ToggleBreakpoint(int32_t instruction)
         if(fileMap.contains(i))
         {
           for(size_t inst : fileMap[i])
-            ToggleBreakpoint((int)inst);
+            ToggleBreakpointOnInstruction((int)inst);
 
           return;
         }
@@ -4021,6 +4035,23 @@ void ShaderViewer::ToggleBreakpoint(int32_t instruction)
       m_Breakpoints.push_back(instruction);
     }
   }
+}
+
+void ShaderViewer::ToggleBreakpointOnDisassemblyLine(int32_t disassemblyLine)
+{
+  // instructionForDisassemblyLine expects scintilla 0-based line numbers
+  ToggleBreakpointOnInstruction(instructionForDisassemblyLine(disassemblyLine - 1));
+}
+
+void ShaderViewer::RunForward()
+{
+  if(m_DeferredInit)
+  {
+    m_DeferredCommands.push_back([](ShaderViewer *v) { v->RunForward(); });
+    return;
+  }
+
+  run();
 }
 
 void ShaderViewer::ShowErrors(const rdcstr &errors)

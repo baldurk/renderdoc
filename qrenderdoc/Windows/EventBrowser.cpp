@@ -294,6 +294,7 @@ void EventBrowser::OnCaptureClosed()
 void EventBrowser::OnEventChanged(uint32_t eventId)
 {
   SelectEvent(eventId);
+  RefreshShaderMessages();
   repopulateBookmarks();
   highlightBookmarks();
 }
@@ -539,6 +540,8 @@ void EventBrowser::on_events_currentItemChanged(RDTreeWidgetItem *current, RDTre
   RefreshIcon(current, tag);
 
   m_Ctx.SetEventID({this}, tag.EID, tag.lastEID);
+
+  RefreshShaderMessages();
 
   const DrawcallDescription *draw = m_Ctx.GetDrawcall(tag.lastEID);
 
@@ -1125,6 +1128,33 @@ void EventBrowser::RefreshIcon(RDTreeWidgetItem *item, EventItemTag tag)
     item->setIcon(COL_NAME, Icons::find());
   else
     item->setIcon(COL_NAME, QIcon());
+}
+
+void EventBrowser::RefreshShaderMessages()
+{
+  uint32_t eventId = m_Ctx.CurEvent();
+
+  RDTreeWidgetItem *item = ui->events->currentItem();
+
+  if(item->tag().value<EventItemTag>().EID != eventId)
+    return;
+
+  const DrawcallDescription *draw = m_Ctx.GetDrawcall(eventId);
+  const rdcarray<ShaderMessage> &msgs = m_Ctx.CurPipelineState().GetShaderMessages();
+
+  if(draw)
+  {
+    QString name(draw->name);
+
+    if(!msgs.empty())
+      name += lit(" __rd_msgs::%1:%2").arg(draw->eventId).arg(msgs.count());
+
+    QVariant v = name;
+
+    RichResourceTextInitialise(v, &m_Ctx);
+
+    item->setText(0, v);
+  }
 }
 
 bool EventBrowser::FindEventNode(RDTreeWidgetItem *&found, RDTreeWidgetItem *parent, uint32_t eventId)

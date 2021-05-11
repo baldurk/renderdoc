@@ -939,7 +939,17 @@ QWidget.
 :param int instruction: The instruction to toggle breakpoint at. If this is ``-1`` the nearest
   instruction after the current caret position is used.
 )");
-  virtual void ToggleBreakpoint(int32_t instruction = -1) = 0;
+  virtual void ToggleBreakpointOnInstruction(int32_t instruction = -1) = 0;
+
+  DOCUMENT(R"(Toggles a breakpoint at a given disassembly line (starting from 1).
+
+:param int disassemblyLine: The line of the disassembly to toggle a breakpoint on.
+)");
+  virtual void ToggleBreakpointOnDisassemblyLine(int32_t disassemblyLine) = 0;
+
+  DOCUMENT(R"(Runs execution forward to the next breakpoint, or the end of the trace.
+)");
+  virtual void RunForward() = 0;
 
   DOCUMENT(R"(Show a list of shader compilation errors or warnings.
 
@@ -959,6 +969,47 @@ protected:
 };
 
 DECLARE_REFLECTION_STRUCT(IShaderViewer);
+
+DOCUMENT("A shader message list window.");
+struct IShaderMessageViewer
+{
+  DOCUMENT(R"(Retrieves the PySide2 QWidget for this :class:`ShaderMessageViewer` if PySide2 is available, or otherwise
+returns a unique opaque pointer that can be passed back to any RenderDoc functions expecting a
+QWidget.
+
+:return: Return the widget handle, either a PySide2 handle or an opaque handle.
+:rtype: QWidget
+)");
+  virtual QWidget *Widget() = 0;
+
+  DOCUMENT(R"(Return the EID that this viewer is displaying messages from.
+
+:return: The EID.
+:rtype int
+)");
+  virtual uint32_t GetEvent() = 0;
+
+  DOCUMENT(R"(Return the shader messages displayed in this viewer.
+
+:return: The shader messages.
+:rtype List[renderdoc.ShaderMessage]
+)");
+  virtual rdcarray<ShaderMessage> GetShaderMessages() = 0;
+
+  DOCUMENT(R"(Returns whether or not this viewer is out of date - if the shaders have been edited
+since the messages were fetched.
+
+:return: ``True`` if the viewer is out of date.
+:rtype bool
+)");
+  virtual bool IsOutOfDate() = 0;
+
+protected:
+  IShaderMessageViewer() = default;
+  ~IShaderMessageViewer() = default;
+};
+
+DECLARE_REFLECTION_STRUCT(IShaderMessageViewer);
 
 DOCUMENT("A constant buffer preview window.");
 struct IConstantBufferPreviewer
@@ -1511,14 +1562,24 @@ been made.
 )");
   virtual bool IsResourceReplaced(ResourceId id) = 0;
 
+  DOCUMENT(R"(Return the id of a replacement for the given resource. See
+:meth:`RegisterReplacement` and :meth:`IsResourceReplaced`.
+
+:param renderdoc.ResourceId id: The id of the resource to check.
+:return: The replacement id, or a null id if the resource hasn't been replaced
+:rtype: renderdoc.ResourceId
+)");
+  virtual ResourceId GetResourceReplacement(ResourceId id) = 0;
+
   DOCUMENT(R"(Register that a resource has replaced, so that the UI can be updated to reflect the
 change.
 
 This should be called at the same time as :meth:`ReplayController.ReplaceResource`.
 
-:param renderdoc.ResourceId id: The id of the resource that has been replaced.
+:param renderdoc.ResourceId from: The id of the resource being replaced.
+:param renderdoc.ResourceId to: The id of the resource replacing it.
 )");
-  virtual void RegisterReplacement(ResourceId id) = 0;
+  virtual void RegisterReplacement(ResourceId from, ResourceId to) = 0;
 
   DOCUMENT(R"(Register that a replacement has been removed, so that the UI can be updated to reflect
 the change.
@@ -2243,6 +2304,14 @@ through the execution of a given shader.
 :rtype: ShaderViewer
 )");
   virtual IShaderViewer *ViewShader(const ShaderReflection *shader, ResourceId pipeline) = 0;
+
+  DOCUMENT(R"(Show a new :class:`ShaderMessageViewer` window, showing the current event's messages.
+
+:param renderdoc.ShaderStageMask stages: The initial stages being viewed.
+:return: The new :class:`ShaderMessageViewer` window opened, but not shown.
+:rtype: ShaderMessageViewer
+)");
+  virtual IShaderMessageViewer *ViewShaderMessages(ShaderStageMask stages) = 0;
 
   DOCUMENT(R"(Show a new :class:`BufferViewer` window, showing a read-only view of buffer data.
 

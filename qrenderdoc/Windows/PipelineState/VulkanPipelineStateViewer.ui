@@ -595,6 +595,26 @@
            </widget>
           </item>
           <item>
+           <widget class="QToolButton" name="vsShaderMessagesButton">
+            <property name="toolTip">
+             <string>View Shader Messages</string>
+            </property>
+            <property name="text">
+             <string>Messages</string>
+            </property>
+            <property name="icon">
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/text_add.png</normaloff>:/text_add.png</iconset>
+            </property>
+            <property name="toolButtonStyle">
+             <enum>Qt::ToolButtonTextBesideIcon</enum>
+            </property>
+            <property name="autoRaise">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
            <spacer name="vsShaderSpacer">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
@@ -871,6 +891,26 @@
             <property name="icon">
              <iconset resource="../../Resources/resources.qrc">
               <normaloff>:/save.png</normaloff>:/save.png</iconset>
+            </property>
+            <property name="toolButtonStyle">
+             <enum>Qt::ToolButtonTextBesideIcon</enum>
+            </property>
+            <property name="autoRaise">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QToolButton" name="tcsShaderMessagesButton">
+            <property name="toolTip">
+             <string>View Shader Messages</string>
+            </property>
+            <property name="text">
+             <string>Messages</string>
+            </property>
+            <property name="icon">
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/text_add.png</normaloff>:/text_add.png</iconset>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -1167,6 +1207,26 @@
            </widget>
           </item>
           <item>
+           <widget class="QToolButton" name="tesShaderMessagesButton">
+            <property name="toolTip">
+             <string>View Shader Messages</string>
+            </property>
+            <property name="text">
+             <string>Messages</string>
+            </property>
+            <property name="icon">
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/text_add.png</normaloff>:/text_add.png</iconset>
+            </property>
+            <property name="toolButtonStyle">
+             <enum>Qt::ToolButtonTextBesideIcon</enum>
+            </property>
+            <property name="autoRaise">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
            <spacer name="tesShaderSpacer">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
@@ -1443,6 +1503,26 @@
             <property name="icon">
              <iconset resource="../../Resources/resources.qrc">
               <normaloff>:/save.png</normaloff>:/save.png</iconset>
+            </property>
+            <property name="toolButtonStyle">
+             <enum>Qt::ToolButtonTextBesideIcon</enum>
+            </property>
+            <property name="autoRaise">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QToolButton" name="gsShaderMessagesButton">
+            <property name="toolTip">
+             <string>View Shader Messages</string>
+            </property>
+            <property name="text">
+             <string>Messages</string>
+            </property>
+            <property name="icon">
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/text_add.png</normaloff>:/text_add.png</iconset>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -2800,6 +2880,26 @@
            </widget>
           </item>
           <item>
+           <widget class="QToolButton" name="fsShaderMessagesButton">
+            <property name="toolTip">
+             <string>View Shader Messages</string>
+            </property>
+            <property name="text">
+             <string>Messages</string>
+            </property>
+            <property name="icon">
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/text_add.png</normaloff>:/text_add.png</iconset>
+            </property>
+            <property name="toolButtonStyle">
+             <enum>Qt::ToolButtonTextBesideIcon</enum>
+            </property>
+            <property name="autoRaise">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
            <spacer name="fsShaderSpacer">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
@@ -3633,6 +3733,26 @@
                 <iconset resource="../../Resources/resources.qrc">
                  <normaloff>:/save.png</normaloff>:/save.png
                 </iconset>
+               </property>
+               <property name="toolButtonStyle">
+                <enum>Qt::ToolButtonTextBesideIcon</enum>
+               </property>
+               <property name="autoRaise">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QToolButton" name="csShaderMessagesButton">
+               <property name="toolTip">
+                <string>View Shader Messages</string>
+               </property>
+               <property name="text">
+                <string>Messages</string>
+               </property>
+               <property name="icon">
+                <iconset resource="../../Resources/resources.qrc">
+                 <normaloff>:/text_add.png</normaloff>:/text_add.png</iconset>
                </property>
                <property name="toolButtonStyle">
                 <enum>Qt::ToolButtonTextBesideIcon</enum>

@@ -54,6 +54,7 @@
 #include "Windows/PixelHistoryView.h"
 #include "Windows/PythonShell.h"
 #include "Windows/ResourceInspector.h"
+#include "Windows/ShaderMessageViewer.h"
 #include "Windows/ShaderViewer.h"
 #include "Windows/StatisticsViewer.h"
 #include "Windows/TextureViewer.h"
@@ -1560,10 +1561,18 @@ bool CaptureContext::IsResourceReplaced(ResourceId id)
   return m_ReplacedResources.contains(id);
 }
 
-void CaptureContext::RegisterReplacement(ResourceId id)
+ResourceId CaptureContext::GetResourceReplacement(ResourceId id)
 {
-  if(!m_ReplacedResources.contains(id))
-    m_ReplacedResources.push_back(id);
+  auto it = m_ReplacedResources.find(id);
+  if(it != m_ReplacedResources.end())
+    return it.value();
+
+  return ResourceId();
+}
+
+void CaptureContext::RegisterReplacement(ResourceId from, ResourceId to)
+{
+  m_ReplacedResources[from] = to;
 
   CacheResources();
 
@@ -1572,7 +1581,7 @@ void CaptureContext::RegisterReplacement(ResourceId id)
 
 void CaptureContext::UnregisterReplacement(ResourceId id)
 {
-  m_ReplacedResources.removeOne(id);
+  m_ReplacedResources.remove(id);
 
   CacheResources();
 
@@ -2414,7 +2423,8 @@ void CaptureContext::ApplyShaderEdit(IShaderViewer *viewer, ResourceId id, Shade
     {
       r->ReplaceResource(from, to);
 
-      GUIInvoke::call(GetMainWindow()->Widget(), [this, from]() { RegisterReplacement(from); });
+      GUIInvoke::call(GetMainWindow()->Widget(),
+                      [this, from, to]() { RegisterReplacement(from, to); });
     }
     if(ptr)
       GUIInvoke::call(ptr, [viewer, errs]() { viewer->ShowErrors(errs); });
@@ -2443,6 +2453,11 @@ IShaderViewer *CaptureContext::DebugShader(const ShaderBindpointMapping *bind,
 IShaderViewer *CaptureContext::ViewShader(const ShaderReflection *shader, ResourceId pipeline)
 {
   return ShaderViewer::ViewShader(*this, shader, pipeline, m_MainWindow->Widget());
+}
+
+IShaderMessageViewer *CaptureContext::ViewShaderMessages(ShaderStageMask stages)
+{
+  return new ShaderMessageViewer(*this, stages, m_MainWindow);
 }
 
 IBufferViewer *CaptureContext::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,

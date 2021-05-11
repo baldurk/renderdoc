@@ -744,6 +744,12 @@
     <ClCompile Include="Code\MiniQtHelper.cpp">
       <Filter>Code</Filter>
     </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_ShaderMessageViewer.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\ShaderMessageViewer.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -1108,6 +1114,9 @@
     </ClInclude>
     <ClInclude Include="Code\MiniQtHelper.h">
       <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_ShaderMessageViewer.h">
+      <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1510,6 +1519,12 @@
     </CustomBuild>
     <CustomBuild Include="Widgets\Extended\RDMenu.h">
       <Filter>Widgets\Extended</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\ShaderMessageViewer.h">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\ShaderMessageViewer.ui">
+      <Filter>Windows</Filter>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>

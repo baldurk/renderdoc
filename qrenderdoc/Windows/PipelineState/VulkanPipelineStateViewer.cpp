@@ -144,6 +144,11 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
       ui->gsShaderSaveButton, ui->fsShaderSaveButton,  ui->csShaderSaveButton,
   };
 
+  QToolButton *messageButtons[] = {
+      ui->vsShaderMessagesButton, ui->tcsShaderMessagesButton, ui->tesShaderMessagesButton,
+      ui->gsShaderMessagesButton, ui->fsShaderMessagesButton,  ui->csShaderMessagesButton,
+  };
+
   QToolButton *viewPredicateBufferButtons[] = {
       ui->predicateBufferViewButton, ui->csPredicateBufferViewButton,
   };
@@ -190,6 +195,10 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
 
   for(QToolButton *b : saveButtons)
     QObject::connect(b, &QToolButton::clicked, this, &VulkanPipelineStateViewer::shaderSave_clicked);
+
+  for(QToolButton *b : messageButtons)
+    QObject::connect(b, &QToolButton::clicked, this,
+                     &VulkanPipelineStateViewer::shaderMessages_clicked);
 
   for(QToolButton *b : viewPredicateBufferButtons)
     QObject::connect(b, &QToolButton::clicked, this,
@@ -809,6 +818,14 @@ void VulkanPipelineStateViewer::clearState()
 
   for(QToolButton *b : shaderButtons)
     b->setEnabled(false);
+
+  QToolButton *messageButtons[] = {
+      ui->vsShaderMessagesButton, ui->tcsShaderMessagesButton, ui->tesShaderMessagesButton,
+      ui->gsShaderMessagesButton, ui->fsShaderMessagesButton,  ui->csShaderMessagesButton,
+  };
+
+  for(QToolButton *b : messageButtons)
+    b->setVisible(false);
 
   const QPixmap &tick = Pixmaps::tick(this);
   const QPixmap &cross = Pixmaps::cross(this);
@@ -2263,6 +2280,22 @@ void VulkanPipelineStateViewer::setState()
                                    stage->reflection);
   }
 
+  QToolButton *messageButtons[] = {
+      ui->vsShaderMessagesButton, ui->tcsShaderMessagesButton, ui->tesShaderMessagesButton,
+      ui->gsShaderMessagesButton, ui->fsShaderMessagesButton,  ui->csShaderMessagesButton,
+  };
+
+  int numMessages[6] = {};
+
+  for(const ShaderMessage &msg : state.shaderMessages)
+    numMessages[(uint32_t)msg.stage]++;
+
+  for(uint32_t i = 0; i < ARRAY_COUNT(numMessages); i++)
+  {
+    messageButtons[i]->setVisible(numMessages[i] > 0);
+    messageButtons[i]->setText(tr("%n Message(s)", "", numMessages[i]));
+  }
+
   bool xfbSet = false;
   vs = ui->xfbBuffers->verticalScrollBar()->value();
   ui->xfbBuffers->beginUpdate();
@@ -3119,6 +3152,18 @@ void VulkanPipelineStateViewer::shaderSave_clicked()
     return;
 
   m_Common.SaveShaderFile(shaderDetails);
+}
+
+void VulkanPipelineStateViewer::shaderMessages_clicked()
+{
+  const VKPipe::Shader *stage = stageForSender(qobject_cast<QWidget *>(QObject::sender()));
+
+  if(stage == NULL)
+    return;
+
+  IShaderMessageViewer *shad = m_Ctx.ViewShaderMessages(MaskForStage(stage->stage));
+
+  m_Ctx.AddDockWindow(shad->Widget(), DockReference::AddTo, this);
 }
 
 void VulkanPipelineStateViewer::predicateBufferView_clicked()

@@ -77,8 +77,8 @@ private slots:
 
   // manual slots
   void shaderView_clicked();
-
   void shaderSave_clicked();
+  void shaderMessages_clicked();
   void predicateBufferView_clicked();
   void resource_itemActivated(RDTreeWidgetItem *item, int column);
   void resource_hoverItemChanged(RDTreeWidgetItem *hover);

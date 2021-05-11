@@ -542,9 +542,13 @@ struct CaptureContextInvoker : ObjectForwarder<ICaptureContext>
   {
     return InvokeRetFunction<bool>(&ICaptureContext::IsResourceReplaced, id);
   }
-  virtual void RegisterReplacement(ResourceId id) override
+  virtual ResourceId GetResourceReplacement(ResourceId id) override
   {
-    InvokeVoidFunction(&ICaptureContext::RegisterReplacement, id);
+    return InvokeRetFunction<ResourceId>(&ICaptureContext::GetResourceReplacement, id);
+  }
+  virtual void RegisterReplacement(ResourceId from, ResourceId to) override
+  {
+    InvokeVoidFunction(&ICaptureContext::RegisterReplacement, from, to);
   }
   virtual void UnregisterReplacement(ResourceId id) override
   {
@@ -763,6 +767,11 @@ struct CaptureContextInvoker : ObjectForwarder<ICaptureContext>
   virtual IShaderViewer *ViewShader(const ShaderReflection *shader, ResourceId pipeline) override
   {
     return InvokeRetFunction<IShaderViewer *>(&ICaptureContext::ViewShader, shader, pipeline);
+  }
+
+  virtual IShaderMessageViewer *ViewShaderMessages(ShaderStageMask stages) override
+  {
+    return InvokeRetFunction<IShaderMessageViewer *>(&ICaptureContext::ViewShaderMessages, stages);
   }
 
   virtual IBufferViewer *ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,

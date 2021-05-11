@@ -673,6 +673,7 @@
     </ClCompile>
     <ClCompile Include="$(IntDir)generated\moc_SettingsDialog.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_ShaderViewer.cpp" />
+    <ClCompile Include="$(IntDir)generated\moc_ShaderMessageViewer.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_PythonShell.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_PixelHistoryView.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_StatisticsViewer.cpp" />
@@ -777,6 +778,7 @@
     <ClCompile Include="Windows\PipelineState\PipelineStateViewer.cpp" />
     <ClCompile Include="Windows\PipelineState\VulkanPipelineStateViewer.cpp" />
     <ClCompile Include="Windows\ShaderViewer.cpp" />
+    <ClCompile Include="Windows\ShaderMessageViewer.cpp" />
     <ClCompile Include="Windows\PythonShell.cpp" />
     <ClCompile Include="Windows\PixelHistoryView.cpp" />
     <ClCompile Include="Windows\PerformanceCounterViewer.cpp" />
@@ -972,6 +974,7 @@
     <ClInclude Include="$(IntDir)generated\ui_ResourcePreview.h" />
     <ClInclude Include="$(IntDir)generated\ui_SettingsDialog.h" />
     <ClInclude Include="$(IntDir)generated\ui_ShaderViewer.h" />
+    <ClInclude Include="$(IntDir)generated\ui_ShaderMessageViewer.h" />
     <ClInclude Include="$(IntDir)generated\ui_PythonShell.h" />
     <ClInclude Include="$(IntDir)generated\ui_PixelHistoryView.h" />
     <ClInclude Include="$(IntDir)generated\ui_PerformanceCounterViewer.h" />
@@ -1358,6 +1361,12 @@
       <Message>MOC %(Filename).h</Message>
       <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
     </CustomBuild>
+    <CustomBuild Include="Windows\ShaderMessageViewer.h">
+      <AdditionalInputs>%(Fullpath);$(QtBinDir)\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>"$(QtBinDir)\moc.exe" -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I"$(ProjectDir)." -I"$(SolutionDir)\renderdoc\api\replay" -I"$(QtIncludeDir)" -I"$(QtIncludeDir)\QtWidgets" -I"$(QtIncludeDir)\QtGui" -I"$(QtIncludeDir)\QtCore" "%(Fullpath)" -o "$(IntDir)generated\moc_%(Filename).cpp"</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
     <CustomBuild Include="Windows\PythonShell.h">
       <AdditionalInputs>%(Fullpath);$(QtBinDir)\moc.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>"$(QtBinDir)\moc.exe" -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I"$(ProjectDir)." -I"$(SolutionDir)\renderdoc\api\replay" -I"$(QtIncludeDir)" -I"$(QtIncludeDir)\QtWidgets" -I"$(QtIncludeDir)\QtGui" -I"$(QtIncludeDir)\QtCore" "%(Fullpath)" -o "$(IntDir)generated\moc_%(Filename).cpp"</Command>
@@ -1638,6 +1647,12 @@
       <Outputs>$(IntDir)generated\ui_%(Filename).h</Outputs>
     </CustomBuild>
     <CustomBuild Include="Windows\ShaderViewer.ui">
+      <AdditionalInputs>%(Fullpath);$(QtBinDir)\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>"$(QtBinDir)\uic.exe" "%(Fullpath)" -o "$(IntDir)generated\ui_%(Filename).h"</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>$(IntDir)generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\ShaderMessageViewer.ui">
       <AdditionalInputs>%(Fullpath);$(QtBinDir)\uic.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>"$(QtBinDir)\uic.exe" "%(Fullpath)" -o "$(IntDir)generated\ui_%(Filename).h"</Command>
       <Message>UIC %(Filename).ui</Message>

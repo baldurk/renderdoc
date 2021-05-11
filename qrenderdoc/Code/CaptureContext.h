@@ -121,7 +121,8 @@ public:
   void SetRemoteHost(int hostIndex);
   void RefreshStatus() override { SetEventID({}, m_SelectedEventID, m_EventID, true); }
   bool IsResourceReplaced(ResourceId id) override;
-  void RegisterReplacement(ResourceId id) override;
+  ResourceId GetResourceReplacement(ResourceId id) override;
+  void RegisterReplacement(ResourceId from, ResourceId to) override;
   void UnregisterReplacement(ResourceId id) override;
   void RefreshUIStatus(const rdcarray<ICaptureViewer *> &exclude, bool updateSelectedEvent,
                        bool updateEvent);
@@ -259,6 +260,8 @@ public:
 
   IShaderViewer *ViewShader(const ShaderReflection *shader, ResourceId pipeline) override;
 
+  IShaderMessageViewer *ViewShaderMessages(ShaderStageMask stages) override;
+
   IBufferViewer *ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
                             const rdcstr &format = "") override;
   IBufferViewer *ViewTextureAsBuffer(ResourceId id, const Subresource &sub,
@@ -381,7 +384,7 @@ private:
   QMap<ResourceId, QString> m_CustomNames;
   int m_CustomNameCachedID = 1;
 
-  QVector<ResourceId> m_ReplacedResources;
+  QMap<ResourceId, ResourceId> m_ReplacedResources;
 
   const SDFile *m_StructuredFile = NULL;
   SDFile m_DummySDFile;
