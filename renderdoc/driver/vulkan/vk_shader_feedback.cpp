@@ -124,7 +124,7 @@ public:
     return ret;
   }
 
-  size_t get_size() override { return sizeof(size_t) == 8 ? get_uint64() : get_uint(); }
+  size_t get_size() override { return sizeof(size_t) == 8 ? (size_t)get_uint64() : get_uint(); }
 private:
   const uint32_t *m_Cur;
   const uint32_t *m_Start;
