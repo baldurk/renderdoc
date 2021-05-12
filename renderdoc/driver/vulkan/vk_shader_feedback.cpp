@@ -1730,7 +1730,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
   uint32_t *printfBuf = (uint32_t *)data.data();
   uint32_t *printfBufEnd = (uint32_t *)(data.data() + Vulkan_Debug_PrintfBufferSize());
-  if(*printfBuf > 0)
+  if(usesPrintf && *printfBuf > 0)
   {
     uint32_t wordsNeeded = *printfBuf;
 
