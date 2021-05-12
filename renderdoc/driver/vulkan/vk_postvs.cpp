@@ -3378,17 +3378,27 @@ struct VulkanInitPostVSCallback : public VulkanDrawcallCallback
 
 void VulkanReplay::InitPostVSBuffers(const rdcarray<uint32_t> &events)
 {
+  size_t first = 0;
+
+  for(; first < events.size(); first++)
+  {
+    const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(events[first]);
+    if(drawcall->flags & DrawFlags::PassBoundary)
+      continue;
+    break;
+  }
+
   // first we must replay up to the first event without replaying it. This ensures any
   // non-command buffer calls like memory unmaps etc all happen correctly before this
   // command buffer
-  m_pDriver->ReplayLog(0, events.front(), eReplay_WithoutDraw);
+  m_pDriver->ReplayLog(0, events[first], eReplay_WithoutDraw);
 
   VulkanInitPostVSCallback cb(m_pDriver, events);
 
   // now we replay the events, which are guaranteed (because we generated them in
   // GetPassEvents above) to come from the same command buffer, so the event IDs are
   // still locally continuous, even if we jump into replaying.
-  m_pDriver->ReplayLog(events.front(), events.back(), eReplay_Full);
+  m_pDriver->ReplayLog(events[first], events.back(), eReplay_Full);
 }
 
 MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint32_t viewID,
