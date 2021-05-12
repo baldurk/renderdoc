@@ -1811,7 +1811,8 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
             // for non-indexed draws get back to 0-based index
             msg.location.vertex.vertexIndex -= drawcall->vertexOffset;
           }
-          msg.location.vertex.instance = location[1];
+          // go back to a 0-based instance index
+          msg.location.vertex.instance = location[1] - drawcall->instanceOffset;
           msg.location.vertex.view = location[2];
         }
         else
