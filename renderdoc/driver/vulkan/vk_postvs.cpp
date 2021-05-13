@@ -316,6 +316,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
         rdcspv::Operation op = rdcspv::Operation::copy(it);
         editor.Remove(it);
         editor.AddVariable(op);
+        // don't need to add this to the globals because if it needed to be in there it already was
 
         // don't do any of the rest of the processing
         continue;
@@ -366,6 +367,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
         editor.Remove(it);
         // add it anew
         editor.AddVariable(op);
+        // don't need to add this to the globals because if it needed to be in there it already was
       }
     }
     else if(it.opcode() == rdcspv::Op::TypeFunction)
@@ -463,6 +465,25 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
   }
 
   RDCASSERT(entryID);
+
+  // tracks all the global variables we use, for compliance with SPIR-V 1.4.
+  rdcarray<rdcspv::Id> globals;
+
+  // we remove all entry points, we'll create one of our own.
+  for(rdcspv::Iter it = editor.Begin(rdcspv::Section::EntryPoints),
+                   end = editor.End(rdcspv::Section::EntryPoints);
+      it < end; ++it)
+  {
+    rdcspv::OpEntryPoint entry(it);
+
+    // when we find the entry point we're patching, grab it's interface for the set of globals. We
+    // will be patching and Input/Output variables to private, but from SPIR-V 1.4 the interface
+    // needs to include privates as well.
+    if(entry.entryPoint == entryID)
+      globals = entry.iface;
+
+    editor.Remove(it);
+  }
 
   for(rdcspv::Iter it = editor.Begin(rdcspv::Section::DebugNames),
                    end2 = editor.End(rdcspv::Section::DebugNames);
@@ -648,6 +669,8 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
       editor.AddDecoration(rdcspv::OpDecorate(
           vbuffersVariable, rdcspv::DecorationParam<rdcspv::Decoration::Binding>(2)));
 
+      globals.push_back(vbuffersVariable);
+
       editor.SetName(vbuffersVariable, "__rd_vbuffers");
 
       if(draw->flags & DrawFlags::Indexed)
@@ -660,6 +683,8 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
             ibufferVariable, rdcspv::DecorationParam<rdcspv::Decoration::DescriptorSet>(0)));
         editor.AddDecoration(rdcspv::OpDecorate(
             ibufferVariable, rdcspv::DecorationParam<rdcspv::Decoration::Binding>(1)));
+
+        globals.push_back(ibufferVariable);
 
         editor.SetName(ibufferVariable, "__rd_ibuffer");
       }
@@ -806,6 +831,8 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
           editor.AddVariable(rdcspv::OpVariable(outputStructPtrType, editor.MakeId(), bufferClass));
       editor.SetName(outBufferVarID, "outputData");
 
+      globals.push_back(outBufferVarID);
+
       editor.DecorateStorageBufferStruct(outputStructID);
 
       // set binding
@@ -829,6 +856,8 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
       invocationId,
       rdcspv::DecorationParam<rdcspv::Decoration::BuiltIn>(rdcspv::BuiltIn::GlobalInvocationId)));
 
+  globals.push_back(invocationId);
+
   editor.SetName(invocationId, "rdoc_invocation");
 
   // make a new entry point that will call the old function, then when it returns extract & write
@@ -838,37 +867,17 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
   // name :(.
   // editor.SetName(wrapperEntry, "RenderDoc_MeshFetch_Wrapper_Entrypoint");
 
-  // we remove all entry points and just create one of our own.
-  rdcspv::Iter it = editor.Begin(rdcspv::Section::EntryPoints);
+  // if we're not using all globals, this is only Input variables so only our invocation Id
+  if(!editor.EntryPointAllGlobals())
+    globals = {invocationId};
 
-  {
-    // there should already have been at least one entry point
-    RDCASSERT(it.opcode() == rdcspv::Op::EntryPoint);
-
-    rdcspv::OpEntryPoint entry(it);
-    // and it should have been at least one interface ID, since a vertex shader must at least write
-    // position. We only need one, so there should be plenty space.
-    RDCASSERT(entry.iface.size() >= 1);
-
-    editor.PreModify(it);
-
-    entry.executionModel = rdcspv::ExecutionModel::GLCompute;
-    entry.entryPoint = wrapperEntry;
-    entry.name = PatchedMeshOutputEntryPoint;
-    entry.iface = {invocationId};
-
-    it = entry;
-
-    editor.PostModify(it);
-
-    ++it;
-  }
-
-  for(rdcspv::Iter end = editor.End(rdcspv::Section::EntryPoints); it < end; ++it)
-    editor.Remove(it);
+  // insert the new patched entry point with the globals
+  editor.AddOperation(editor.Begin(rdcspv::Section::EntryPoints),
+                      rdcspv::OpEntryPoint(rdcspv::ExecutionModel::GLCompute, wrapperEntry,
+                                           PatchedMeshOutputEntryPoint, globals));
 
   // Strip away any execution modes from the original shaders
-  for(it = editor.Begin(rdcspv::Section::ExecutionMode);
+  for(rdcspv::Iter it = editor.Begin(rdcspv::Section::ExecutionMode);
       it < editor.End(rdcspv::Section::ExecutionMode); ++it)
   {
     if(it.opcode() == rdcspv::Op::ExecutionMode)

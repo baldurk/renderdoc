@@ -3031,24 +3031,6 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
     editor.AddCapability(rdcspv::Capability::SampleRateShading);
   }
 
-  // add our inputs to the entry point's ID list. Since we're expanding the list we have to copy,
-  // erase, and insert. Modifying in-place doesn't support expanding
-  if(!addedInputs.empty())
-  {
-    rdcspv::Iter it = editor.GetEntry(entryID);
-
-    // this copies into the helper struct
-    rdcspv::OpEntryPoint entry(it);
-
-    // add our IDs
-    entry.iface.append(addedInputs);
-
-    // erase the old one
-    editor.Remove(it);
-
-    editor.AddOperation(it, entry);
-  }
-
   rdcspv::Id PSInput;
 
   enum Variant
@@ -3257,6 +3239,8 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
       PSHitRTArray,
   });
 
+  rdcspv::Id ssboVar;
+
   {
     editor.SetName(bufBase, "__rd_HitStorage");
 
@@ -3274,7 +3258,6 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
   }
 
   rdcspv::Id bufptrtype;
-  rdcspv::Id ssboVar;
   rdcspv::Id addressConstant;
 
   if(storageMode == Binding)
@@ -3362,6 +3345,27 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
 
     // struct is block decorated
     editor.AddDecoration(rdcspv::OpDecorate(bufBase, rdcspv::Decoration::Block));
+  }
+
+  if(editor.EntryPointAllGlobals())
+    addedInputs.push_back(ssboVar);
+
+  // add our inputs to the entry point's ID list. Since we're expanding the list we have to copy,
+  // erase, and insert. Modifying in-place doesn't support expanding
+  if(!addedInputs.empty())
+  {
+    rdcspv::Iter it = editor.GetEntry(entryID);
+
+    // this copies into the helper struct
+    rdcspv::OpEntryPoint entry(it);
+
+    // add our IDs
+    entry.iface.append(addedInputs);
+
+    // erase the old one
+    editor.Remove(it);
+
+    editor.AddOperation(it, entry);
   }
 
   rdcspv::Id float4InPtr =

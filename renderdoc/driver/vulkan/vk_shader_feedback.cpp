@@ -355,6 +355,8 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
     editor.AddCapability(rdcspv::Capability::Geometry);
   }
 
+  rdcarray<rdcspv::Id> newGlobals;
+
   if(useBufferAddress)
   {
     // add the extension
@@ -421,6 +423,9 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
     editor.AddDecoration(
         rdcspv::OpDecorate(ssboVar, rdcspv::DecorationParam<rdcspv::Decoration::Binding>(0)));
 
+    if(editor.EntryPointAllGlobals())
+      newGlobals.push_back(ssboVar);
+
     editor.SetName(ssboVar, "__rd_feedbackBuffer");
 
     editor.DecorateStorageBufferStruct(uint32StructID);
@@ -465,8 +470,6 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
       break;
     }
   }
-
-  rdcarray<rdcspv::Id> newGlobals;
 
   rdcspv::Id uvec2Type = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<uint32_t>(), 2));
   rdcspv::Id uvec3Type = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<uint32_t>(), 3));
@@ -541,7 +544,8 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
         editor.AddDecoration(rdcspv::OpDecorate(
             rdocGlobalVar, rdcspv::DecorationParam<rdcspv::Decoration::BuiltIn>(spvBuiltin)));
 
-        newGlobals.push_back(rdocGlobalVar);
+        if(editor.EntryPointAllGlobals())
+          newGlobals.push_back(rdocGlobalVar);
 
         editor.SetName(rdocGlobalVar, name);
 
