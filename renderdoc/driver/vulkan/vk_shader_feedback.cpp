@@ -510,10 +510,20 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
       {
         if(refl.inputSignature[i].systemValue == builtin)
         {
+          rdcspv::Id loadType = varType;
+          if(refl.inputSignature[i].varType == VarType::SInt)
+          {
+            if(refl.inputSignature[i].compCount == 1)
+              loadType = editor.DeclareType(rdcspv::scalar<int32_t>());
+            else
+              loadType = editor.DeclareType(
+                  rdcspv::Vector(rdcspv::scalar<int32_t>(), refl.inputSignature[i].compCount));
+          }
+
           if(patchData.inputs[i].accessChain.empty())
           {
             ret =
-                locationGather.add(rdcspv::OpLoad(varType, editor.MakeId(), patchData.inputs[i].ID));
+                locationGather.add(rdcspv::OpLoad(loadType, editor.MakeId(), patchData.inputs[i].ID));
           }
           else
           {
@@ -532,8 +542,11 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
                 rdcspv::OpAccessChain(ptrType, editor.MakeId(), patchData.inputs[i].ID, chain));
 
             ret =
-                locationGather.add(rdcspv::OpLoad(varType, editor.MakeId(), patchData.inputs[i].ID));
+                locationGather.add(rdcspv::OpLoad(loadType, editor.MakeId(), patchData.inputs[i].ID));
           }
+
+          if(loadType != varType)
+            ret = locationGather.add(rdcspv::OpBitcast(varType, editor.MakeId(), ret));
         }
       }
 
