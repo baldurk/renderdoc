@@ -61,7 +61,9 @@ public:
   bool matchWord();
   bool regexp();
 
+  void setFindText(QString text);
   QString findText();
+  void setReplaceText(QString text);
   QString replaceText();
 
 public slots:

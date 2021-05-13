@@ -1230,6 +1230,11 @@ void ShaderViewer::readonly_keyPressed(QKeyEvent *event)
   {
     m_FindReplace->setReplaceMode(false);
     on_findReplace_clicked();
+
+    ScintillaEdit *edit = qobject_cast<ScintillaEdit *>(QObject::sender());
+
+    if(edit)
+      m_FindReplace->setFindText(QString::fromUtf8(edit->getSelText()));
   }
 
   if(event->key() == Qt::Key_F3)

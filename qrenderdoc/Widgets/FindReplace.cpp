@@ -96,9 +96,19 @@ bool FindReplace::regexp()
   return ui->regexp->isChecked();
 }
 
+void FindReplace::setFindText(QString text)
+{
+  ui->findText->setCurrentText(text);
+}
+
 QString FindReplace::findText()
 {
   return ui->findText->currentText();
+}
+
+void FindReplace::setReplaceText(QString text)
+{
+  ui->replaceText->setCurrentText(text);
 }
 
 QString FindReplace::replaceText()
