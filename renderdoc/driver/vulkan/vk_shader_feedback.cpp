@@ -794,6 +794,10 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
       }
     }
 
+    // skip past any local variables
+    while(it.opcode() == rdcspv::Op::Variable)
+      ++it;
+
     for(const rdcspv::Operation &op : locationGather)
     {
       editor.AddOperation(it, op);
