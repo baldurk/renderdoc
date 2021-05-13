@@ -204,16 +204,120 @@ inline void set0001(ShaderVariable &result)
 }
 
 inline void copyComp(ShaderVariable &dst, uint32_t dstComp, const ShaderVariable &src,
-                     uint32_t srcComp, VarType type = VarType::Unknown)
+                     uint32_t srcComp)
 {
-  if(type == VarType::Unknown)
+  // fast path for same-sized inputs, which is common (e.g. float declared variables with float
+  // inputs)
+  if(dst.type == src.type)
   {
-    RDCASSERTEQUAL(dst.type, src.type);
-    type = src.type;
+    const uint32_t sz = VarTypeByteSize(src.type);
+    memcpy(((byte *)dst.value.u8v.data()) + sz * dstComp,
+           ((byte *)src.value.u8v.data()) + sz * srcComp, sz);
+    return;
   }
-  const uint32_t sz = VarTypeByteSize(type);
-  memcpy(((byte *)dst.value.u8v.data()) + sz * dstComp,
-         ((byte *)src.value.u8v.data()) + sz * srcComp, sz);
+  else
+  {
+    // otherwise we convert the component here
+    const uint32_t srcSz = VarTypeByteSize(src.type);
+    const uint32_t dstSz = VarTypeByteSize(dst.type);
+
+    if(srcSz <= 4 && dstSz <= 4)
+    {
+      // if the types are no more than 4-byte, we can use the helpers above without truncation
+      if(VarTypeCompType(src.type) == CompType::Float)
+        setFloatComp(dst, dstComp, floatComp(src, srcComp));
+      else if(VarTypeCompType(src.type) == CompType::SInt)
+        setIntComp(dst, dstComp, intComp(src, srcComp));
+      else
+        setUintComp(dst, dstComp, uintComp(src, srcComp));
+    }
+    else
+    {
+      // if there's a 64-bit type somewhere we need to go through double/int64
+      double d = 0.0;
+      uint64_t u = 0;
+      int64_t i = 0;
+
+      switch(src.type)
+      {
+        case VarType::Float:
+        case VarType::Half:
+        {
+          d = floatComp(src, srcComp);
+          break;
+        }
+        case VarType::Double:
+        {
+          d = src.value.f64v[srcComp];
+          break;
+        }
+        case VarType::SInt:
+        case VarType::SShort:
+        case VarType::SByte:
+        {
+          i = intComp(src, srcComp);
+          break;
+        }
+        case VarType::SLong:
+        {
+          i = src.value.s64v[srcComp];
+          break;
+        }
+        case VarType::ULong:
+        {
+          u = src.value.u64v[srcComp];
+          break;
+        }
+        default:
+        {
+          // all other case are uints or invalid types
+          u = uintComp(src, srcComp);
+          break;
+        }
+      }
+
+      // valid SPIR-V should match the base type in any case where we're copying components,
+      // conversions between are done separately. So we just assume that d/u/i was filled above and
+      // read from it to the output
+      switch(src.type)
+      {
+        case VarType::Float:
+        case VarType::Half:
+        {
+          setFloatComp(dst, dstComp, float(d));
+          break;
+        }
+        case VarType::Double:
+        {
+          dst.value.f64v[dstComp] = d;
+          break;
+        }
+        case VarType::SInt:
+        case VarType::SShort:
+        case VarType::SByte:
+        {
+          setIntComp(dst, dstComp, int32_t(i));
+          break;
+        }
+        case VarType::SLong:
+        {
+          dst.value.s64v[dstComp] = i;
+          break;
+        }
+        case VarType::ULong:
+        {
+          dst.value.u64v[dstComp] = u;
+          break;
+        }
+        default:
+        {
+          // all other case are uints or invalid types
+          setUintComp(dst, dstComp, uint32_t(u));
+          break;
+        }
+      }
+    }
+  }
 }
 
 #define IMPL_FOR_FLOAT_TYPES_FOR_TYPE(impl, type) \
