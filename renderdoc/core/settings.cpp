@@ -345,7 +345,7 @@ static bool MergeConfigValues(const rdcstr &prefix, SDObject *dstConfig, const S
       ret |= true;
 
       // if we're copying nodes, do that now
-      dstConfig->DuplicateAndAddChild(srcChild->Duplicate());
+      dstConfig->DuplicateAndAddChild(srcChild);
     }
   }
 
