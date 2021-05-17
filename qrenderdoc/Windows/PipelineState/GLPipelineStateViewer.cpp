@@ -58,14 +58,14 @@ struct GLReadWriteTag
     bindPoint = 0;
     offset = size = 0;
   }
-  GLReadWriteTag(uint32_t b, ResourceId id, uint64_t offs, uint64_t sz)
+  GLReadWriteTag(int32_t b, ResourceId id, uint64_t offs, uint64_t sz)
   {
     bindPoint = b;
     ID = id;
     offset = offs;
     size = sz;
   }
-  uint32_t bindPoint;
+  int32_t bindPoint;
   ResourceId ID;
   uint64_t offset;
   uint64_t size;
@@ -1103,10 +1103,24 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, RDLabel 
   vs = readwrites->verticalScrollBar()->value();
   readwrites->beginUpdate();
   readwrites->clear();
-  for(int i = 0; shaderDetails && i < shaderDetails->readWriteResources.count(); i++)
+
+  rdcarray<ShaderResource> rw;
+  if(shaderDetails)
+    rw = shaderDetails->readWriteResources;
+
+  // on GL read-write resources come from multiple namespaces so it's valid to have binding X for
+  // several. This makes it hard to do as we do above, iterate over every bind from 0 to max and
+  // find any matching shader bind. Instead we just sort by the bindpoint which we know internally
+  // in GL we normalised/sorted. The order of multiple elements on bindpoint 0 is undefined.
+  std::sort(rw.begin(), rw.end(), [](const ShaderResource &a, const ShaderResource &b) {
+    return a.bindPoint < b.bindPoint;
+  });
+
+  for(int i = 0; i < rw.count(); i++)
   {
-    const ShaderResource &res = shaderDetails->readWriteResources[i];
-    int bindPoint = stage.bindpointMapping.readWriteResources[res.bindPoint].bind;
+    const ShaderResource &res = rw[i];
+    const Bindpoint &bind = stage.bindpointMapping.readWriteResources[res.bindPoint];
+    int bindPoint = bind.bind;
 
     GLReadWriteType readWriteType = GetGLReadWriteType(res);
 
@@ -1135,7 +1149,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, RDLabel 
     }
 
     bool filledSlot = id != ResourceId();
-    bool usedSlot = stage.bindpointMapping.readWriteResources[i].used;
+    bool usedSlot = bind.used;
 
     if(showNode(usedSlot, filledSlot))
     {
@@ -1204,7 +1218,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, RDLabel 
         else
           dimensions = tr("%1 bytes").arg(length);
 
-        tag = QVariant::fromValue(GLReadWriteTag(i, id, offset, length));
+        tag = QVariant::fromValue(GLReadWriteTag(res.bindPoint, id, offset, length));
       }
 
       if(!filledSlot)
@@ -2276,9 +2290,21 @@ void GLPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, int c
   {
     GLReadWriteTag buf = tag.value<GLReadWriteTag>();
 
-    const ShaderResource &shaderRes = stage->reflection->readWriteResources[buf.bindPoint];
+    const ShaderResource *shaderRes = NULL;
 
-    QString format = BufferFormatter::GetBufferFormatString(shaderRes, ResourceFormat(), buf.offset);
+    for(const ShaderResource &res : stage->reflection->readWriteResources)
+    {
+      if(res.bindPoint == buf.bindPoint)
+      {
+        shaderRes = &res;
+        break;
+      }
+    }
+
+    if(!shaderRes)
+      return;
+
+    QString format = BufferFormatter::GetBufferFormatString(*shaderRes, ResourceFormat(), buf.offset);
 
     if(buf.ID != ResourceId())
     {
