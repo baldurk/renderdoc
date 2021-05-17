@@ -963,6 +963,14 @@ QWidget.
 )");
   virtual void AddWatch(const rdcstr &expression) = 0;
 
+  DOCUMENT(R"(Return the current text of source files within the viewer. Primarily useful for
+returning any edits applied when editing a shader.
+
+:return: The current file contents as a list of (filename, contents) pairs.
+:rtype: List[Tuple[str,str]]
+)");
+  virtual rdcstrpairs GetCurrentFileContents() = 0;
+
 protected:
   IShaderViewer() = default;
   ~IShaderViewer() = default;

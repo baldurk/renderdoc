@@ -4528,16 +4528,24 @@ void TextureViewer::on_customEdit_clicked()
       // Save Callback
       [thisPointer, key, filename, path](ICaptureContext *ctx, IShaderViewer *viewer, ResourceId,
                                          ShaderStage, ShaderEncoding, ShaderCompileFlags, rdcstr,
-                                         bytebuf bytes) {
+                                         bytebuf) {
         {
           // don't trigger a full refresh
           if(thisPointer)
             thisPointer->m_CustomShaderWriteTime = thisPointer->m_CustomShaderTimer.elapsed();
 
+          rdcstrpairs files = viewer->GetCurrentFileContents();
+
+          if(files.size() != 1)
+            qCritical() << "Unexpected number of files in custom shader viewer" << files.count();
+
+          if(files.empty())
+            return;
+
           QFile fileHandle(path);
           if(fileHandle.open(QFile::WriteOnly | QIODevice::Truncate | QIODevice::Text))
           {
-            fileHandle.write(QByteArray(bytes));
+            fileHandle.write(files[0].second.c_str(), files[0].second.size());
             fileHandle.close();
 
             // watcher doesn't trigger on internal modifications

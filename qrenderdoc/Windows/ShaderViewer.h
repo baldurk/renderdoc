@@ -128,6 +128,8 @@ public:
 
   virtual void AddWatch(const rdcstr &variable) override;
 
+  virtual rdcstrpairs GetCurrentFileContents() override;
+
   // ICaptureViewer
   void OnCaptureLoaded() override;
   void OnCaptureClosed() override;

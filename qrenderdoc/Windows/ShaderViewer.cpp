@@ -4086,6 +4086,22 @@ void ShaderViewer::AddWatch(const rdcstr &variable)
   ui->watch->QWidget::setFocus();
 }
 
+rdcstrpairs ShaderViewer::GetCurrentFileContents()
+{
+  rdcstrpairs files;
+  for(ScintillaEdit *s : m_Scintillas)
+  {
+    // don't include the disassembly view
+    if(m_DisassemblyView == s)
+      continue;
+
+    QWidget *w = (QWidget *)s;
+    files.push_back(
+        {w->property("filename").toString(), QString::fromUtf8(s->getText(s->textLength() + 1))});
+  }
+  return files;
+}
+
 int ShaderViewer::snippetPos()
 {
   ShaderEncoding encoding = currentEncoding();
