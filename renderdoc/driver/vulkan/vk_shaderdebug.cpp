@@ -4564,6 +4564,11 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
       var.columns = param.compCount & 0xff;
       var.type = param.varType;
 
+      deriv.ddxcoarse = var;
+      deriv.ddycoarse = var;
+      deriv.ddxfine = var;
+      deriv.ddyfine = var;
+
       const uint32_t comp = Bits::CountTrailingZeroes(uint32_t(param.regChannelMask));
       const uint32_t elemSize = VarTypeByteSize(param.varType);
 
