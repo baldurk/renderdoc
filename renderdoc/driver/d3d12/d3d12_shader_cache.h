@@ -39,9 +39,9 @@ public:
   ~D3D12ShaderCache();
 
   rdcstr GetShaderBlob(const char *source, const char *entry, uint32_t compileFlags,
-                       const char *profile, ID3DBlob **srcblob);
+                       const rdcarray<rdcstr> &includeDirs, const char *profile, ID3DBlob **srcblob);
   rdcstr GetShaderBlob(const char *source, const char *entry, const ShaderCompileFlags &compileFlags,
-                       const char *profile, ID3DBlob **srcblob);
+                       const rdcarray<rdcstr> &includeDirs, const char *profile, ID3DBlob **srcblob);
 
   D3D12RootSignature GetRootSig(const void *data, size_t dataSize);
   ID3DBlob *MakeRootSig(const rdcarray<D3D12_ROOT_PARAMETER1> &params,

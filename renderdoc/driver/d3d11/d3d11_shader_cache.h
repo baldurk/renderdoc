@@ -38,7 +38,7 @@ public:
   ~D3D11ShaderCache();
 
   rdcstr GetShaderBlob(const char *source, const char *entry, const uint32_t compileFlags,
-                       const char *profile, ID3DBlob **srcblob);
+                       const rdcarray<rdcstr> &includeDirs, const char *profile, ID3DBlob **srcblob);
   ID3D11VertexShader *MakeVShader(const char *source, const char *entry, const char *profile,
                                   int numInputDescs = 0, D3D11_INPUT_ELEMENT_DESC *inputs = NULL,
                                   ID3D11InputLayout **ret = NULL, rdcarray<byte> *blob = NULL);

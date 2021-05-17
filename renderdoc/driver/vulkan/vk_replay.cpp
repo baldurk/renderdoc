@@ -3823,6 +3823,10 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
   }
 }
 
+void VulkanReplay::SetCustomShaderIncludes(const rdcarray<rdcstr> &directories)
+{
+}
+
 void VulkanReplay::BuildCustomShader(ShaderEncoding sourceEncoding, const bytebuf &source,
                                      const rdcstr &entry, const ShaderCompileFlags &compileFlags,
                                      ShaderStage type, ResourceId &id, rdcstr &errors)

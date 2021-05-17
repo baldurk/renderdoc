@@ -25,6 +25,7 @@
 #pragma once
 
 #include "api/replay/data_types.h"
+#include "api/replay/rdcflatmap.h"
 #include "api/replay/replay_enums.h"
 #include "api/replay/stringise.h"
 #include "driver/dx/official/d3dcommon.h"
@@ -76,6 +77,33 @@ rdcstr GetDriverVersion(DXGI_ADAPTER_DESC &desc);
 void ChooseBestMatchingAdapter(GraphicsAPI api, IDXGIFactory *factory,
                                const DXGI_ADAPTER_DESC &AdapterDesc, const ReplayOptions &opts,
                                bool *useWarp, IDXGIAdapter **adapter);
+
+struct EmbeddedD3DIncluder : public ID3DInclude
+{
+private:
+  rdcarray<rdcpair<rdcstr, rdcstr>> m_FixedFiles;
+  rdcarray<rdcstr> m_IncludeDirs;
+
+  rdcarray<rdcstr *> m_FileStrings;
+  // use flatmap here to avoid pulling in the <map> header in such a high-profile place
+  rdcflatmap<const void *, rdcstr> m_StringPaths;
+
+public:
+  EmbeddedD3DIncluder(const rdcarray<rdcstr> &includeDirs,
+                      const rdcarray<rdcpair<rdcstr, rdcstr>> &fixed_files)
+      : m_IncludeDirs(includeDirs), m_FixedFiles(fixed_files)
+  {
+  }
+  ~EmbeddedD3DIncluder()
+  {
+    for(rdcstr *s : m_FileStrings)
+      delete s;
+  }
+  virtual HRESULT STDMETHODCALLTYPE Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName,
+                                         LPCVOID pParentData, LPCVOID *ppData, UINT *pBytes) override;
+  // we just 'leak' all handles we don't track open/close at fine-grained detail.
+  virtual HRESULT STDMETHODCALLTYPE Close(LPCVOID pData) override { return S_OK; }
+};
 
 DECLARE_REFLECTION_STRUCT(DXGI_SAMPLE_DESC);
 DECLARE_REFLECTION_STRUCT(DXGI_ADAPTER_DESC);

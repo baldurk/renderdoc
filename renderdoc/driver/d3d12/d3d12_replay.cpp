@@ -2878,7 +2878,8 @@ rdcarray<DebugMessage> D3D12Replay::GetDebugMessages()
 
 void D3D12Replay::BuildShader(ShaderEncoding sourceEncoding, const bytebuf &source,
                               const rdcstr &entry, const ShaderCompileFlags &compileFlags,
-                              ShaderStage type, ResourceId &id, rdcstr &errors)
+                              const rdcarray<rdcstr> &includeDirs, ShaderStage type, ResourceId &id,
+                              rdcstr &errors)
 {
   bytebuf compiledDXBC;
 
@@ -2911,13 +2912,13 @@ void D3D12Replay::BuildShader(ShaderEncoding sourceEncoding, const bytebuf &sour
 
     ID3DBlob *blob = NULL;
     errors = m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), entry.c_str(), compileFlags,
-                                                        profile.c_str(), &blob);
+                                                        includeDirs, profile.c_str(), &blob);
 
     if(m_D3D12On7 && blob == NULL && errors.contains("unrecognized compiler target"))
     {
       profile.back() = '0';
       errors = m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), entry.c_str(), compileFlags,
-                                                          profile.c_str(), &blob);
+                                                          includeDirs, profile.c_str(), &blob);
     }
 
     if(blob == NULL)
@@ -2952,7 +2953,7 @@ void D3D12Replay::BuildTargetShader(ShaderEncoding sourceEncoding, const bytebuf
   ShaderCompileFlags debugCompileFlags = DXBC::EncodeFlags(
       DXBC::DecodeFlags(compileFlags) | D3DCOMPILE_DEBUG, DXBC::GetProfile(compileFlags));
 
-  BuildShader(sourceEncoding, source, entry, debugCompileFlags, type, id, errors);
+  BuildShader(sourceEncoding, source, entry, debugCompileFlags, {}, type, id, errors);
 }
 
 void D3D12Replay::ReplaceResource(ResourceId from, ResourceId to)
@@ -3711,11 +3712,16 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
   SAFE_RELEASE(tmpTexture);
 }
 
+void D3D12Replay::SetCustomShaderIncludes(const rdcarray<rdcstr> &directories)
+{
+  m_CustomShaderIncludes = directories;
+}
+
 void D3D12Replay::BuildCustomShader(ShaderEncoding sourceEncoding, const bytebuf &source,
                                     const rdcstr &entry, const ShaderCompileFlags &compileFlags,
                                     ShaderStage type, ResourceId &id, rdcstr &errors)
 {
-  BuildShader(sourceEncoding, source, entry, compileFlags, type, id, errors);
+  BuildShader(sourceEncoding, source, entry, compileFlags, m_CustomShaderIncludes, type, id, errors);
 }
 
 ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid,

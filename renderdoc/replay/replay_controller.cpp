@@ -1912,6 +1912,13 @@ rdcpair<ResourceId, rdcstr> ReplayController::BuildTargetShader(
   return rdcpair<ResourceId, rdcstr>(id, errs);
 }
 
+void ReplayController::SetCustomShaderIncludes(const rdcarray<rdcstr> &directories)
+{
+  CHECK_REPLAY_THREAD();
+
+  m_pDevice->SetCustomShaderIncludes(directories);
+}
+
 rdcpair<ResourceId, rdcstr> ReplayController::BuildCustomShader(
     const rdcstr &entry, ShaderEncoding sourceEncoding, bytebuf source,
     const ShaderCompileFlags &compileFlags, ShaderStage type)

@@ -247,6 +247,7 @@ public:
   ResourceId RenderOverlay(ResourceId texid, FloatVector clearCol, DebugOverlay overlay,
                            uint32_t eventId, const rdcarray<uint32_t> &passEvents);
 
+  void SetCustomShaderIncludes(const rdcarray<rdcstr> &directories);
   void BuildCustomShader(ShaderEncoding sourceEncoding, const bytebuf &source, const rdcstr &entry,
                          const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId &id,
                          rdcstr &errors);
@@ -263,8 +264,8 @@ private:
   D3D11DebugManager *GetDebugManager();
   // shared by BuildCustomShader and BuildTargetShader
   void BuildShader(ShaderEncoding sourceEncoding, const bytebuf &source, const rdcstr &entry,
-                   const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId &id,
-                   rdcstr &errors);
+                   const ShaderCompileFlags &compileFlags, const rdcarray<rdcstr> &includeDirs,
+                   ShaderStage type, ResourceId &id, rdcstr &errors);
 
   void ClearPostVSCache();
 
@@ -331,6 +332,8 @@ private:
 
   WrappedID3D11Device *m_pDevice = NULL;
   WrappedID3D11DeviceContext *m_pImmediateContext = NULL;
+
+  rdcarray<rdcstr> m_CustomShaderIncludes;
 
   // used to track the real state so we can preserve it even across work done to the output windows
   struct RealState

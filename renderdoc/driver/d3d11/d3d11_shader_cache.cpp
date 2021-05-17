@@ -25,6 +25,7 @@
 #include "d3d11_shader_cache.h"
 #include "common/shader_cache.h"
 #include "driver/dx/official/d3dcompiler.h"
+#include "driver/dxgi/dxgi_common.h"
 #include "driver/shaders/dxbc/dxbc_container.h"
 #include "strings/string_utils.h"
 #include "d3d11_device.h"
@@ -80,33 +81,6 @@ struct D3DBlobShaderCallbacks
   pD3DCreateBlob m_BlobCreate = NULL;
 } D3D11ShaderCacheCallbacks;
 
-struct EmbeddedD3D11Includer : public ID3DInclude
-{
-  rdcstr texsample = GetEmbeddedResource(hlsl_texsample_h);
-  rdcstr cbuffers = GetEmbeddedResource(hlsl_cbuffers_h);
-
-  virtual HRESULT STDMETHODCALLTYPE Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName,
-                                         LPCVOID pParentData, LPCVOID *ppData, UINT *pBytes) override
-  {
-    rdcstr *str;
-
-    if(!strcmp(pFileName, "hlsl_texsample.h"))
-      str = &texsample;
-    else if(!strcmp(pFileName, "hlsl_cbuffers.h"))
-      str = &cbuffers;
-    else
-      return E_FAIL;
-
-    if(ppData)
-      *ppData = str->c_str();
-    if(pBytes)
-      *pBytes = (uint32_t)str->size();
-
-    return S_OK;
-  }
-  virtual HRESULT STDMETHODCALLTYPE Close(LPCVOID pData) override { return S_OK; }
-};
-
 D3D11ShaderCache::D3D11ShaderCache(WrappedID3D11Device *wrapper)
 {
   m_pDevice = wrapper;
@@ -133,16 +107,23 @@ D3D11ShaderCache::~D3D11ShaderCache()
 }
 
 rdcstr D3D11ShaderCache::GetShaderBlob(const char *source, const char *entry,
-                                       const uint32_t compileFlags, const char *profile,
+                                       const uint32_t compileFlags,
+                                       const rdcarray<rdcstr> &includeDirs, const char *profile,
                                        ID3DBlob **srcblob)
 {
-  EmbeddedD3D11Includer includer;
+  rdcstr cbuffers = GetEmbeddedResource(hlsl_cbuffers_h);
+  rdcstr texsample = GetEmbeddedResource(hlsl_texsample_h);
+
+  EmbeddedD3DIncluder includer(includeDirs,
+                               {
+                                   {"hlsl_texsample.h", texsample}, {"hlsl_cbuffers.h", cbuffers},
+                               });
 
   uint32_t hash = strhash(source);
   hash = strhash(entry, hash);
   hash = strhash(profile, hash);
-  hash = strhash(includer.cbuffers.c_str(), hash);
-  hash = strhash(includer.texsample.c_str(), hash);
+  hash = strhash(cbuffers.c_str(), hash);
+  hash = strhash(texsample.c_str(), hash);
   hash ^= compileFlags;
 
   if(m_ShaderCache.find(hash) != m_ShaderCache.end())
@@ -217,7 +198,7 @@ ID3D11VertexShader *D3D11ShaderCache::MakeVShader(const char *source, const char
 {
   ID3DBlob *byteBlob = NULL;
 
-  if(GetShaderBlob(source, entry, D3DCOMPILE_WARNINGS_ARE_ERRORS, profile, &byteBlob) != "")
+  if(GetShaderBlob(source, entry, D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, profile, &byteBlob) != "")
   {
     RDCERR("Couldn't get shader blob for %s", entry);
     return NULL;
@@ -265,7 +246,7 @@ ID3D11GeometryShader *D3D11ShaderCache::MakeGShader(const char *source, const ch
 {
   ID3DBlob *byteBlob = NULL;
 
-  if(GetShaderBlob(source, entry, D3DCOMPILE_WARNINGS_ARE_ERRORS, profile, &byteBlob) != "")
+  if(GetShaderBlob(source, entry, D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, profile, &byteBlob) != "")
   {
     return NULL;
   }
@@ -293,7 +274,7 @@ ID3D11PixelShader *D3D11ShaderCache::MakePShader(const char *source, const char 
 {
   ID3DBlob *byteBlob = NULL;
 
-  if(GetShaderBlob(source, entry, D3DCOMPILE_WARNINGS_ARE_ERRORS, profile, &byteBlob) != "")
+  if(GetShaderBlob(source, entry, D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, profile, &byteBlob) != "")
   {
     return NULL;
   }
@@ -321,7 +302,7 @@ ID3D11ComputeShader *D3D11ShaderCache::MakeCShader(const char *source, const cha
 {
   ID3DBlob *byteBlob = NULL;
 
-  if(GetShaderBlob(source, entry, D3DCOMPILE_WARNINGS_ARE_ERRORS, profile, &byteBlob) != "")
+  if(GetShaderBlob(source, entry, D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, profile, &byteBlob) != "")
   {
     return NULL;
   }

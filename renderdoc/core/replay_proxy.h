@@ -405,6 +405,11 @@ public:
     return ~0U;
   }
 
+  void SetCustomShaderIncludes(const rdcarray<rdcstr> &directories)
+  {
+    if(m_Proxy)
+      m_Proxy->SetCustomShaderIncludes(directories);
+  }
   void BuildCustomShader(ShaderEncoding sourceEncoding, const bytebuf &source, const rdcstr &entry,
                          const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId &id,
                          rdcstr &errors)

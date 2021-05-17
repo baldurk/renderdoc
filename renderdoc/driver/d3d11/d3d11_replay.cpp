@@ -2545,7 +2545,8 @@ D3D11DebugManager *D3D11Replay::GetDebugManager()
 
 void D3D11Replay::BuildShader(ShaderEncoding sourceEncoding, const bytebuf &source,
                               const rdcstr &entry, const ShaderCompileFlags &compileFlags,
-                              ShaderStage type, ResourceId &id, rdcstr &errors)
+                              const rdcarray<rdcstr> &includeDirs, ShaderStage type, ResourceId &id,
+                              rdcstr &errors)
 {
   bytebuf compiledDXBC;
 
@@ -2580,7 +2581,7 @@ void D3D11Replay::BuildShader(ShaderEncoding sourceEncoding, const bytebuf &sour
     ID3DBlob *blob = NULL;
 
     errors = m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), entry.c_str(), flags,
-                                                        profile.c_str(), &blob);
+                                                        includeDirs, profile.c_str(), &blob);
 
     if(blob == NULL)
     {
@@ -2708,14 +2709,19 @@ void D3D11Replay::BuildTargetShader(ShaderEncoding sourceEncoding, const bytebuf
   ShaderCompileFlags debugCompileFlags = DXBC::EncodeFlags(
       DXBC::DecodeFlags(compileFlags) | D3DCOMPILE_DEBUG, DXBC::GetProfile(compileFlags));
 
-  BuildShader(sourceEncoding, source, entry, debugCompileFlags, type, id, errors);
+  BuildShader(sourceEncoding, source, entry, debugCompileFlags, {}, type, id, errors);
+}
+
+void D3D11Replay::SetCustomShaderIncludes(const rdcarray<rdcstr> &directories)
+{
+  m_CustomShaderIncludes = directories;
 }
 
 void D3D11Replay::BuildCustomShader(ShaderEncoding sourceEncoding, const bytebuf &source,
                                     const rdcstr &entry, const ShaderCompileFlags &compileFlags,
                                     ShaderStage type, ResourceId &id, rdcstr &errors)
 {
-  BuildTargetShader(sourceEncoding, source, entry, compileFlags, type, id, errors);
+  BuildShader(sourceEncoding, source, entry, compileFlags, m_CustomShaderIncludes, type, id, errors);
 }
 
 bool D3D11Replay::RenderTexture(TextureDisplay cfg)

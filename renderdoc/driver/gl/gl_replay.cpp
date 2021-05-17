@@ -2990,6 +2990,10 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     drv.glDeleteTextures(1, &tempTex);
 }
 
+void GLReplay::SetCustomShaderIncludes(const rdcarray<rdcstr> &directories)
+{
+}
+
 void GLReplay::BuildCustomShader(ShaderEncoding sourceEncoding, const bytebuf &source,
                                  const rdcstr &entry, const ShaderCompileFlags &compileFlags,
                                  ShaderStage type, ResourceId &id, rdcstr &errors)

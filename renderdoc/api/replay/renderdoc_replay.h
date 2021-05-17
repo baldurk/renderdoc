@@ -552,7 +552,20 @@ or hardware-specific ISA formats.
   virtual rdcstr DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
                                    const rdcstr &target) = 0;
 
+  DOCUMENT(R"(Sets a list of directories to search for include files when compiling custom shaders
+with the internal shader compiler.
+
+.. note::
+  This is currently only supported for D3D11 and D3D12. For Vulkan includes can be supported via
+  configuring an external compiler to SPIR-V which is ingested.
+
+:param List[str] directories: The absolute paths of the directories.
+)");
+  virtual void SetCustomShaderIncludes(const rdcarray<rdcstr> &directories) = 0;
+
   DOCUMENT(R"(Builds a shader suitable for running on the local replay instance as a custom shader.
+
+System-level include directories can be set up via SetCustomShaderIncludes.
 
 See :data:`TextureDisplay.customShaderId`.
 

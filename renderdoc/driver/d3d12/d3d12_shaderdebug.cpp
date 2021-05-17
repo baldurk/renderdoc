@@ -1561,13 +1561,13 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
   ID3DBlob *vsBlob = NULL;
   ID3DBlob *psBlob = NULL;
   UINT flags = D3DCOMPILE_DEBUG | D3DCOMPILE_WARNINGS_ARE_ERRORS;
-  if(m_pDevice->GetShaderCache()->GetShaderBlob(vsProgram.c_str(), "main", flags, "vs_5_1",
+  if(m_pDevice->GetShaderCache()->GetShaderBlob(vsProgram.c_str(), "main", flags, {}, "vs_5_1",
                                                 &vsBlob) != "")
   {
     RDCERR("Failed to create shader to extract inputs");
     return false;
   }
-  if(m_pDevice->GetShaderCache()->GetShaderBlob(psProgram.c_str(), "main", flags, "ps_5_1",
+  if(m_pDevice->GetShaderCache()->GetShaderBlob(psProgram.c_str(), "main", flags, {}, "ps_5_1",
                                                 &psBlob) != "")
   {
     RDCERR("Failed to create shader to extract inputs");
@@ -2521,7 +2521,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
   // Create pixel shader to get initial values from previous stage output
   ID3DBlob *psBlob = NULL;
   UINT flags = D3DCOMPILE_DEBUG | D3DCOMPILE_WARNINGS_ARE_ERRORS;
-  if(m_pDevice->GetShaderCache()->GetShaderBlob(extractHlsl.c_str(), "ExtractInputsPS", flags,
+  if(m_pDevice->GetShaderCache()->GetShaderBlob(extractHlsl.c_str(), "ExtractInputsPS", flags, {},
                                                 "ps_5_0", &psBlob) != "")
   {
     RDCERR("Failed to create shader to extract inputs");

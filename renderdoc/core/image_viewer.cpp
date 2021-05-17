@@ -169,6 +169,10 @@ public:
   {
     return m_Proxy->GetCustomShaderEncodings();
   }
+  void SetCustomShaderIncludes(const rdcarray<rdcstr> &directories)
+  {
+    m_Proxy->SetCustomShaderIncludes(directories);
+  }
   void BuildCustomShader(ShaderEncoding sourceEncoding, const bytebuf &source, const rdcstr &entry,
                          const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId &id,
                          rdcstr &errors)

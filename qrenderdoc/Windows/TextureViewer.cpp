@@ -4326,11 +4326,21 @@ void TextureViewer::reloadCustomShaders(const QString &filter)
 
         fileHandle.close();
 
+        rdcarray<rdcstr> dirs;
+
+        for(QDir d : getShaderDirectories())
+        {
+          if(d.exists())
+            dirs.push_back(d.absolutePath());
+        }
+
         m_CustomShaders[key] = ResourceId();
         m_CustomShadersBusy.push_back(key);
         m_Ctx.Replay().AsyncInvoke(
-            [this, fn, key, shaderBytes, encoding, errors](IReplayController *r) {
+            [this, fn, dirs, key, shaderBytes, encoding, errors](IReplayController *r) {
               rdcstr buildErrors;
+
+              r->SetCustomShaderIncludes(dirs);
 
               ResourceId id;
               rdctie(id, buildErrors) = r->BuildCustomShader(

@@ -202,6 +202,7 @@ public:
   ResourceId RenderOverlay(ResourceId texid, FloatVector clearCol, DebugOverlay overlay,
                            uint32_t eventId, const rdcarray<uint32_t> &passEvents);
 
+  void SetCustomShaderIncludes(const rdcarray<rdcstr> &directories);
   void BuildCustomShader(ShaderEncoding sourceEncoding, const bytebuf &source, const rdcstr &entry,
                          const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId &id,
                          rdcstr &errors);
@@ -225,8 +226,8 @@ private:
   void RefreshDerivedReplacements();
 
   void BuildShader(ShaderEncoding sourceEncoding, const bytebuf &source, const rdcstr &entry,
-                   const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId &id,
-                   rdcstr &errors);
+                   const ShaderCompileFlags &compileFlags, const rdcarray<rdcstr> &includeDirs,
+                   ShaderStage type, ResourceId &id, rdcstr &errors);
 
   bool RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, TextureDisplay cfg,
                              TexDisplayFlags flags);
@@ -437,6 +438,8 @@ private:
   DriverInformation m_DriverInfo;
 
   D3D12AMDDrawCallback *m_pAMDDrawCallback = NULL;
+
+  rdcarray<rdcstr> m_CustomShaderIncludes;
 
   void FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex, rdcarray<uint32_t> *eventIDs);
 
