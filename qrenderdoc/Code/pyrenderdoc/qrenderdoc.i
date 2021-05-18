@@ -9,9 +9,16 @@
 #define DOCUMENT4(text1, text2, text3, text4) %feature("docstring") text1 text2 text3 text4
 
 %begin %{
-  #undef slots
+#undef slots
 
-  #define SWIG_GENERATED
+#ifndef SWIG_GENERATED
+#define SWIG_GENERATED
+#endif
+
+// we want visual assist to ignore this file, because it's a *lot* of generated code and has no
+// useful results. This macro does nothing on normal builds, but is defined to _asm { in va_stdafx.h
+#define VA_IGNORE_REST_OF_FILE
+VA_IGNORE_REST_OF_FILE
 %}
 
 %{
