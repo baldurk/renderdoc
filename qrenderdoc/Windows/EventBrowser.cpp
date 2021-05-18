@@ -307,6 +307,14 @@ struct EventItemModel : public QAbstractItemModel
         // the first draw with an EID greater than the one we're searching for should contain it.
         if(d.eventId >= eid)
         {
+          // except if the draw is a fake marker. In this case its own event ID is invalid, so we
+          // check the range of its children (knowing it only has one layer of children)
+          if(d.IsFakeMarker() && d.children[0].eventId < eid)
+          {
+            rowInParent++;
+            continue;
+          }
+
           // keep counting until we get to the row within this draw
           for(size_t i = 0; i < d.events.size(); i++)
           {
@@ -745,7 +753,8 @@ private:
         m_Draws.resize_for_index(e.eventId);
         m_Chunks.resize_for_index(e.eventId);
         m_Draws[e.eventId] = &d;
-        m_Chunks[e.eventId] = sdfile.chunks[e.chunkIndex];
+        if(e.chunkIndex != APIEvent::NoChunk && e.chunkIndex < sdfile.chunks.size())
+          m_Chunks[e.eventId] = sdfile.chunks[e.chunkIndex];
       }
 
       row += d.events.count();
@@ -844,7 +853,7 @@ private:
 
     QString name;
 
-    if(draw->eventId == eid)
+    if(draw->eventId == eid || draw->IsFakeMarker())
     {
       name = draw->name;
     }
@@ -2066,6 +2075,9 @@ void EventBrowser::events_currentChanged(const QModelIndex &current, const QMode
   m_Model->RefreshCache();
 
   const DrawcallDescription *draw = m_Ctx.GetDrawcall(effectiveEID);
+
+  if(draw && draw->IsFakeMarker())
+    draw = &draw->children.back();
 
   ui->stepPrev->setEnabled(draw && draw->previous);
   ui->stepNext->setEnabled(draw && draw->next);

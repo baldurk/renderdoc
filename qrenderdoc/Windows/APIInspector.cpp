@@ -210,9 +210,19 @@ void APIInspector::fillAPIView()
 
   if(draw != NULL && !draw->events.isEmpty())
   {
-    for(const APIEvent &ev : draw->events)
+    if(draw->IsFakeMarker())
     {
-      addEvent(ev, ev.eventId == draw->eventId);
+      RDTreeWidgetItem *root = new RDTreeWidgetItem({lit("---"), QString(draw->name)});
+      root->setBold(true);
+      ui->apiEvents->addTopLevelItem(root);
+      ui->apiEvents->setSelectedItem(root);
+    }
+    else
+    {
+      for(const APIEvent &ev : draw->events)
+      {
+        addEvent(ev, ev.eventId == draw->eventId);
+      }
     }
   }
   else
@@ -228,6 +238,9 @@ void APIInspector::fillAPIView()
 
 void APIInspector::addEvent(const APIEvent &ev, bool primary)
 {
+  if(ev.chunkIndex == APIEvent::NoChunk)
+    return;
+
   const SDFile &file = m_Ctx.GetStructuredFile();
 
   RDTreeWidgetItem *root = new RDTreeWidgetItem({QString::number(ev.eventId), QString()});

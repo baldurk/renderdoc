@@ -701,7 +701,12 @@ struct TextureDescription
 
 DECLARE_REFLECTION_STRUCT(TextureDescription);
 
-DOCUMENT("An individual API-level event, generally corresponds one-to-one with an API call.");
+DOCUMENT(R"(An individual API-level event, generally corresponds one-to-one with an API call.
+
+.. data:: NoChunk
+
+  No chunk is available.
+)");
 struct APIEvent
 {
   DOCUMENT("");
@@ -727,7 +732,11 @@ of results part way through the multi draw.
 )");
   uint32_t eventId = 0;
 
-  DOCUMENT("The chunk index for this function call in the structured file.");
+  DOCUMENT(R"(The chunk index for this function call in the structured file.
+
+If no chunk index is available this will be set to :data:`NoChunk`. This will only happen for fake
+markers added to the capture after load.
+)");
   uint32_t chunkIndex = 0;
 
   DOCUMENT(R"(A byte offset in the data stream where this event happens.
@@ -736,6 +745,8 @@ of results part way through the multi draw.
   the start of the file on disk.
 )");
   uint64_t fileOffset = 0;
+
+  static const uint32_t NoChunk = ~0U;
 };
 
 DECLARE_REFLECTION_STRUCT(APIEvent);
@@ -1534,45 +1545,31 @@ DOCUMENT("Describes the properties of a drawcall, dispatch, debug marker, or sim
 struct DrawcallDescription
 {
   DOCUMENT("");
-  DrawcallDescription() { Reset(); }
+  DrawcallDescription() = default;
   DrawcallDescription(const DrawcallDescription &) = default;
   DrawcallDescription &operator=(const DrawcallDescription &) = default;
 
-  DOCUMENT("Resets the drawcall back to a default/empty state.");
-  void Reset()
+  DOCUMENT(R"(Returns whether or not this drawcall corresponds to a fake marker added by
+:meth:`ReplayController.AddFakeMarkers`.
+
+Such draws may break expectations of event IDs and drawcall IDs, so it is recommended to avoid
+processing them wherever possible.
+
+:return: Returns whether or not this drawcall is a fake marker.
+:rtype: bool
+)");
+  bool IsFakeMarker() const
   {
-    eventId = 0;
-    drawcallId = 0;
-    flags = DrawFlags::NoFlags;
-    markerColor = FloatVector();
-    numIndices = 0;
-    numInstances = 0;
-    indexOffset = 0;
-    baseVertex = 0;
-    vertexOffset = 0;
-    instanceOffset = 0;
-    drawIndex = 0;
-
-    dispatchDimension[0] = dispatchDimension[1] = dispatchDimension[2] = 0;
-    dispatchThreadsDimension[0] = dispatchThreadsDimension[1] = dispatchThreadsDimension[2] = 0;
-    dispatchBase[0] = dispatchBase[1] = dispatchBase[2] = 0;
-
-    copySource = ResourceId();
-    copyDestination = ResourceId();
-
-    parent = previous = next = NULL;
-
-    for(int i = 0; i < 8; i++)
-      outputs[i] = ResourceId();
-    depthOut = ResourceId();
+    return events.size() == 1 && events[0].chunkIndex == APIEvent::NoChunk;
   }
+
   DOCUMENT("");
   bool operator==(const DrawcallDescription &o) const { return eventId == o.eventId; }
   bool operator<(const DrawcallDescription &o) const { return eventId < o.eventId; }
   DOCUMENT("The :data:`eventId <APIEvent.eventId>` that actually produced the drawcall.");
-  uint32_t eventId;
+  uint32_t eventId = 0;
   DOCUMENT("A 1-based index of this drawcall relative to other drawcalls.");
-  uint32_t drawcallId;
+  uint32_t drawcallId = 0;
 
   DOCUMENT(R"(The name of this drawcall. Typically a summarised/concise list of parameters.
 
@@ -1582,7 +1579,7 @@ struct DrawcallDescription
   rdcstr name;
 
   DOCUMENT("A set of :class:`DrawFlags` properties describing what kind of drawcall this is.");
-  DrawFlags flags;
+  DrawFlags flags = DrawFlags::NoFlags;
 
   DOCUMENT(R"(A RGBA color specified by a debug marker call.
 
@@ -1591,47 +1588,47 @@ struct DrawcallDescription
   FloatVector markerColor;
 
   DOCUMENT("The number of indices or vertices as appropriate for the drawcall. 0 if not used.");
-  uint32_t numIndices;
+  uint32_t numIndices = 0;
 
   DOCUMENT("The number of instances for the drawcall. 0 if not used.");
-  uint32_t numInstances;
+  uint32_t numInstances = 0;
 
   DOCUMENT("For indexed drawcalls, the offset added to each index after fetching.");
-  int32_t baseVertex;
+  int32_t baseVertex = 0;
 
   DOCUMENT("For indexed drawcalls, the first index to fetch from the index buffer.");
-  uint32_t indexOffset;
+  uint32_t indexOffset = 0;
 
   DOCUMENT("For non-indexed drawcalls, the offset applied before looking up each vertex input.");
-  uint32_t vertexOffset;
+  uint32_t vertexOffset = 0;
 
   DOCUMENT(
       "For instanced drawcalls, the offset applied before looking up instanced vertex inputs.");
-  uint32_t instanceOffset;
+  uint32_t instanceOffset = 0;
 
   DOCUMENT(R"(The index of this draw in an call with multiple draws, e.g. an indirect draw.
 
 0 if not part of a multi-draw.
 )");
-  uint32_t drawIndex;
+  uint32_t drawIndex = 0;
 
   DOCUMENT(R"(The 3D number of workgroups to dispatch in a dispatch call.
 
 :type: Tuple[int,int,int]
 )");
-  rdcfixedarray<uint32_t, 3> dispatchDimension;
+  rdcfixedarray<uint32_t, 3> dispatchDimension = {0, 0, 0};
 
   DOCUMENT(R"(The 3D size of each workgroup in threads if the call allows an override, or 0 if not.
 
 :type: Tuple[int,int,int]
 )");
-  rdcfixedarray<uint32_t, 3> dispatchThreadsDimension;
+  rdcfixedarray<uint32_t, 3> dispatchThreadsDimension = {0, 0, 0};
 
   DOCUMENT(R"(The 3D base offset of the workgroup ID if the call allows an override, or 0 if not.
 
 :type: Tuple[int,int,int]
 )");
-  rdcfixedarray<uint32_t, 3> dispatchBase;
+  rdcfixedarray<uint32_t, 3> dispatchBase = {0, 0, 0};
 
   DOCUMENT(R"(The :class:`ResourceId` identifying the source object in a copy, resolve or blit
 operation.
@@ -1659,19 +1656,19 @@ operation.
 
 :type: DrawcallDescription
 )");
-  const DrawcallDescription *parent;
+  const DrawcallDescription *parent = NULL;
 
   DOCUMENT(R"(The previous drawcall in the frame, or ``None`` if this is the first drawcall in the
 frame.
 
 :type: DrawcallDescription
 )");
-  const DrawcallDescription *previous;
+  const DrawcallDescription *previous = NULL;
   DOCUMENT(R"(The next drawcall in the frame, or ``None`` if this is the last drawcall in the frame.
 
 :type: DrawcallDescription
 )");
-  const DrawcallDescription *next;
+  const DrawcallDescription *next = NULL;
 
   DOCUMENT(R"(An 8-tuple of the :class:`ResourceId` ids for the color outputs, which can be used
 for very coarse bucketing of drawcalls into similar passes by their outputs.

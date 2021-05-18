@@ -94,7 +94,8 @@ static DrawcallDescription *SetupDrawcallPointers(rdcarray<DrawcallDescription *
     if(!draw->children.empty())
     {
       {
-        RDCASSERT(drawcallTable.empty() || draw->eventId > drawcallTable.back()->eventId);
+        RDCASSERT(drawcallTable.empty() || draw->eventId > drawcallTable.back()->eventId ||
+                  drawcallTable.back()->IsFakeMarker());
         drawcallTable.resize(RDCMAX(drawcallTable.size(), size_t(draw->eventId) + 1));
         drawcallTable[draw->eventId] = draw;
       }
@@ -107,10 +108,9 @@ static DrawcallDescription *SetupDrawcallPointers(rdcarray<DrawcallDescription *
       // Some markers like Present should have previous/next, but API Calls we also skip
 
       {
-        // we also allow equal EIDs for fake markers that don't have their own EIDs
+        // we also allow non-contiguous EIDs for fake markers that have high EIDs
         RDCASSERT(drawcallTable.empty() || draw->eventId > drawcallTable.back()->eventId ||
-                  (draw->eventId == drawcallTable.back()->eventId &&
-                   (drawcallTable.back()->flags & DrawFlags::PushMarker)));
+                  drawcallTable.back()->IsFakeMarker());
         drawcallTable.resize(RDCMAX(drawcallTable.size(), size_t(draw->eventId) + 1));
         drawcallTable[draw->eventId] = draw;
       }
@@ -122,10 +122,9 @@ static DrawcallDescription *SetupDrawcallPointers(rdcarray<DrawcallDescription *
       draw->previous = previous;
 
       {
-        // we also allow equal EIDs for fake markers that don't have their own EIDs
+        // we also allow non-contiguous EIDs for fake markers that have high EIDs
         RDCASSERT(drawcallTable.empty() || draw->eventId > drawcallTable.back()->eventId ||
-                  (draw->eventId == drawcallTable.back()->eventId &&
-                   (drawcallTable.back()->flags & DrawFlags::PushMarker)));
+                  drawcallTable.back()->IsFakeMarker());
         drawcallTable.resize(RDCMAX(drawcallTable.size(), size_t(draw->eventId) + 1));
         drawcallTable[draw->eventId] = draw;
       }

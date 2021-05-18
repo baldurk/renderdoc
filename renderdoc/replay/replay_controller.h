@@ -242,6 +242,8 @@ private:
 
   uint32_t m_EventID;
 
+  std::map<uint32_t, uint32_t> m_EventRemap;
+
   const D3D11Pipe::State *m_D3D11PipelineState;
   const D3D12Pipe::State *m_D3D12PipelineState;
   const GLPipe::State *m_GLPipelineState;

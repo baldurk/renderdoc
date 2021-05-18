@@ -72,6 +72,11 @@ void ReplayController::SetFrameEvent(uint32_t eventId, bool force)
   CHECK_REPLAY_THREAD();
   RENDERDOC_PROFILEFUNCTION();
 
+  // use remapped event if there's a match
+  auto it = m_EventRemap.find(eventId);
+  if(it != m_EventRemap.end())
+    eventId = it->second;
+
   if(eventId != m_EventID || force)
   {
     m_EventID = eventId;
@@ -288,6 +293,9 @@ void ReplayController::AddFakeMarkers()
   if(ContainsMarker(draws))
     return;
 
+  uint32_t newEventId = draws.back().events.back().eventId + 1;
+  uint32_t newDrawcallId = draws.back().drawcallId + 1;
+
   rdcarray<DrawcallDescription> ret;
 
   int depthpassID = 1;
@@ -348,14 +356,12 @@ void ReplayController::AddFakeMarkers()
 
     DrawcallDescription mark;
 
-    mark.eventId = draws[start].eventId;
-    mark.drawcallId = draws[start].drawcallId;
+    mark.eventId = newEventId++;
+    mark.drawcallId = newDrawcallId++;
 
     mark.flags = DrawFlags::PushMarker;
     mark.outputs = draws[end].outputs;
     mark.depthOut = draws[end].depthOut;
-
-    mark.name = "Guessed Pass";
 
     minOutCount = RDCMAX(1, minOutCount);
 
@@ -377,6 +383,16 @@ void ReplayController::AddFakeMarkers()
 
     for(int j = start; j <= end; j++)
       mark.children[j - start] = draws[j];
+
+    APIEvent ev;
+    ev.eventId = mark.eventId;
+    ev.fileOffset = mark.children[0].events.back().fileOffset;
+    ev.chunkIndex = APIEvent::NoChunk;
+    mark.events.push_back(ev);
+
+    // when this event is selected, instead select the first the event before the first child's
+    // first event. This is effectively what would be the case if there was a real marker here.
+    m_EventRemap[mark.eventId] = mark.children[0].events[0].eventId - 1;
 
     ret.push_back(mark);
 

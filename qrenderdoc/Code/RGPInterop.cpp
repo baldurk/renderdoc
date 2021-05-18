@@ -256,7 +256,8 @@ void RGPInterop::CreateMapping(const rdcarray<DrawcallDescription> &drawcalls)
   {
     for(const APIEvent &ev : draw.events)
     {
-      if(ev.chunkIndex == 0 || ev.chunkIndex >= file.chunks.size())
+      if(ev.chunkIndex == 0 || ev.chunkIndex == APIEvent::NoChunk ||
+         ev.chunkIndex >= file.chunks.size())
         continue;
 
       const SDChunk *chunk = file.chunks[ev.chunkIndex];
