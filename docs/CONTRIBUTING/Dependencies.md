@@ -93,7 +93,7 @@ sudo apt-get install libx11-dev libx11-xcb-dev mesa-common-dev libgl1-mesa-dev l
 
 ## Mac
 
-Mac requires a recent version of CMake, and the same Qt version as the other platforms (at least 5.6.2). If you're using [homebrew](http://brew.sh) then this will do the trick:
+Mac requires a recent version of CMake, [Java](https://www.java.com/en/) runtime, and the same Qt version as the other platforms (at least 5.6.2). If you're using [homebrew](http://brew.sh) then this will do the trick:
 
 ```
 brew install cmake qt5
