@@ -165,6 +165,39 @@ struct EventItemModel : public QAbstractItemModel
     m_View->viewport()->update();
   }
 
+  void SetShowParameterNames(bool show)
+  {
+    if(m_ShowParameterNames != show)
+    {
+      m_ShowParameterNames = show;
+
+      m_EIDNameCache.clear();
+      m_View->viewport()->update();
+    }
+  }
+
+  void SetShowAllParameters(bool show)
+  {
+    if(m_ShowAllParameters != show)
+    {
+      m_ShowAllParameters = show;
+
+      m_EIDNameCache.clear();
+      m_View->viewport()->update();
+    }
+  }
+
+  void SetUseCustomDrawNames(bool use)
+  {
+    if(m_UseCustomDrawNames != use)
+    {
+      m_UseCustomDrawNames = use;
+
+      m_EIDNameCache.clear();
+      m_View->viewport()->update();
+    }
+  }
+
   void UpdateDurationColumn()
   {
     m_TimeUnit = m_Ctx.Config().EventBrowser_TimeUnit;
@@ -653,6 +686,10 @@ private:
   };
   QMap<uint32_t, DrawTreeNode> m_Nodes;
 
+  bool m_ShowParameterNames = false;
+  bool m_ShowAllParameters = false;
+  bool m_UseCustomDrawNames = true;
+
   // a cache of EID -> row in parent for looking up indices for arbitrary EIDs.
   rdcarray<rdcpair<uint32_t, int>> m_RowInParentCache;
 
@@ -999,6 +1036,7 @@ public:
     return ret;
   }
 
+  void SetEmptyRegionsVisible(bool visible) { m_EmptyRegionsVisible = visible; }
   static bool RegisterEventFilterFunction(const rdcstr &name,
                                           IEventBrowser::EventFilterCallback filter,
                                           IEventBrowser::FilterParseCallback parser)
@@ -1044,6 +1082,13 @@ protected:
 
     QModelIndex source_idx = sourceModel()->index(source_row, 0, source_parent);
 
+    // since we have recursive filtering enabled (so a child keeps its parent visible, to allow
+    // filtering for specific things and not hiding the hierarchy along the way that doesn't
+    // match), we can implement hiding of empty regions by simply forcing anything with children
+    // to not match. That way it will only be included if at least one child matches
+    if(!m_EmptyRegionsVisible && sourceModel()->rowCount(source_idx) > 0)
+      return false;
+
     uint32_t eid = sourceModel()->data(source_idx, ROLE_SELECTED_EID).toUInt();
 
     m_VisibleCache.resize_for_index(eid);
@@ -1069,6 +1114,7 @@ private:
   // it must be mutable since we update it in a const function filterAcceptsRow.
   mutable rdcarray<int8_t> m_VisibleCache;
 
+  bool m_EmptyRegionsVisible = true;
   rdcarray<EventFilter> m_Filters;
 
   IEventBrowser::EventFilterCallback MakeLiteralMatcher(QString string)
@@ -2697,4 +2743,35 @@ bool EventBrowser::RegisterEventFilterFunction(const rdcstr &name, EventFilterCa
 bool EventBrowser::UnregisterEventFilterFunction(const rdcstr &name)
 {
   return EventFilterModel::UnregisterEventFilterFunction(name);
+}
+
+void EventBrowser::SetCurrentFilterText(const rdcstr &text)
+{
+  ui->filterExpression->setText(text);
+  filter_apply();
+}
+
+rdcstr EventBrowser::GetCurrentFilterText()
+{
+  return ui->filterExpression->text();
+}
+
+void EventBrowser::SetShowParameterNames(bool show)
+{
+  m_Model->SetShowParameterNames(show);
+}
+
+void EventBrowser::SetShowAllParameters(bool show)
+{
+  m_Model->SetShowAllParameters(show);
+}
+
+void EventBrowser::SetUseCustomDrawNames(bool use)
+{
+  m_Model->SetUseCustomDrawNames(use);
+}
+
+void EventBrowser::SetEmptyRegionsVisible(bool show)
+{
+  m_FilterModel->SetEmptyRegionsVisible(show);
 }

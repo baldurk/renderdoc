@@ -64,6 +64,13 @@ public:
                                    FilterParseCallback parser) override;
   bool UnregisterEventFilterFunction(const rdcstr &name) override;
 
+  void SetCurrentFilterText(const rdcstr &text) override;
+  rdcstr GetCurrentFilterText() override;
+  void SetUseCustomDrawNames(bool use) override;
+  void SetShowParameterNames(bool show) override;
+  void SetShowAllParameters(bool show) override;
+  void SetEmptyRegionsVisible(bool show) override;
+
   // ICaptureViewer
   void OnCaptureLoaded() override;
   void OnCaptureClosed() override;

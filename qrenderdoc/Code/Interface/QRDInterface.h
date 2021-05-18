@@ -305,6 +305,56 @@ expression.
 )");
   virtual bool UnregisterEventFilterFunction(const rdcstr &name) = 0;
 
+  DOCUMENT(R"(Sets the current filter text. This will not modify any saved filter but will modify
+the scratch filter. The filter is applied immediately.
+
+:param str text: The filter text.
+)");
+  virtual void SetCurrentFilterText(const rdcstr &text) = 0;
+
+  DOCUMENT(R"(Returns the current filter text, whether temporary or a saved filter.
+
+:return: The current filter text.
+:rtype: str
+)");
+  virtual rdcstr GetCurrentFilterText() = 0;
+
+  DOCUMENT(R"(Sets whether or not custom drawcall names are used. Certain drawcalls such as indirect
+draws it is useful to show a custom drawcall name which contains the actual indirect parameters
+instead of the 'raw' parameters.
+
+:param bool use: Whether or not custom drawcall names will be used.
+)");
+  virtual void SetUseCustomDrawNames(bool use) = 0;
+
+  DOCUMENT(R"(Sets whether or not parameter names are shown in the events. If disabled, only the
+value is shown and the parameter is implicit.
+
+.. note::
+  If custom draw names are used this will not have an effect for any such draws. See
+  :meth:`SetUseCustomDrawNames`.
+
+:param bool show: Whether or not parameter names will be shown.
+)");
+  virtual void SetShowParameterNames(bool show) = 0;
+
+  DOCUMENT(R"(Sets whether or not all parameters are shown in the events. By default only
+the most significant parameters are shown.
+
+.. note::
+  If custom draw names are used this will not have an effect for any such draws. See
+  :meth:`SetUseCustomDrawNames`.
+
+:param bool show: Whether or not parameter names will be shown.
+)");
+  virtual void SetShowAllParameters(bool show) = 0;
+
+  DOCUMENT(R"(Sets whether or not marker regions which have no draws .
+
+:param bool show: Whether or not empty regions after filtering will be shown.
+)");
+  virtual void SetEmptyRegionsVisible(bool show) = 0;
+
 protected:
   IEventBrowser() = default;
   ~IEventBrowser() = default;
