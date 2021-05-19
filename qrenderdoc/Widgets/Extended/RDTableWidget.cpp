@@ -101,6 +101,9 @@ void RDTableWidget::copySelection()
 {
   QList<QTableWidgetItem *> items = selectedItems();
 
+  if(items.empty())
+    return;
+
   std::sort(items.begin(), items.end(), [this](QTableWidgetItem *a, QTableWidgetItem *b) {
     if(row(a) != row(b))
       return row(a) < row(b);
