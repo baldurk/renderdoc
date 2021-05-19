@@ -33,7 +33,7 @@ class RDTreeView;
 
 typedef QSet<uint> RDTreeViewExpansionState;
 
-class RDTreeViewDelegate : public ForwardingDelegate
+class RDTreeViewDelegate : public RichTextViewDelegate
 {
 private:
   Q_OBJECT

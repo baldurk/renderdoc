@@ -604,9 +604,6 @@ RDTreeWidgetItemIterator &RDTreeWidgetItemIterator::operator++()
 
 RDTreeWidget::RDTreeWidget(QWidget *parent) : RDTreeView(parent)
 {
-  m_delegate = new RichTextViewDelegate(this);
-  RDTreeView::setItemDelegate(m_delegate);
-
   header()->setSectionsMovable(false);
 
   m_root = new RDTreeWidgetItem;
@@ -687,17 +684,6 @@ void RDTreeWidget::setColumnAlignment(int column, Qt::Alignment align)
     m_alignments.resize(column + 1);
 
   m_alignments[column] = align;
-}
-
-void RDTreeWidget::setItemDelegate(QAbstractItemDelegate *delegate)
-{
-  m_userDelegate = delegate;
-  m_delegate->setForwardDelegate(m_userDelegate);
-}
-
-QAbstractItemDelegate *RDTreeWidget::itemDelegate() const
-{
-  return m_userDelegate;
 }
 
 RDTreeWidgetItem *RDTreeWidget::itemForIndex(QModelIndex idx) const
@@ -794,6 +780,7 @@ void RDTreeWidget::clear()
 void RDTreeWidget::mouseMoveEvent(QMouseEvent *e)
 {
   RDTreeWidgetItem *oldHover = m_model->itemForIndex(m_currentHoverIndex);
+  QModelIndex oldHoverIndex = m_currentHoverIndex;
 
   RDTreeView::mouseMoveEvent(e);
 
@@ -803,12 +790,8 @@ void RDTreeWidget::mouseMoveEvent(QMouseEvent *e)
   {
     setCursor(QCursor(Qt::PointingHandCursor));
   }
-  else if(m_delegate->linkHover(e, font(), m_currentHoverIndex))
-  {
-    m_model->itemChanged(m_model->itemForIndex(m_currentHoverIndex), {Qt::DecorationRole});
-    setCursor(QCursor(Qt::PointingHandCursor));
-  }
-  else
+  else if(oldHoverIndex.column() == m_hoverColumn &&
+          m_currentHoverIndex.column() != m_hoverColumn && m_hoverHandCursor)
   {
     unsetCursor();
   }

@@ -85,19 +85,19 @@ static bool CompareModelIndex(const QModelIndex &a, const QModelIndex &b)
   return CompareModelIndex(ap, bp);
 }
 
-RDTreeViewDelegate::RDTreeViewDelegate(RDTreeView *view) : ForwardingDelegate(view), m_View(view)
+RDTreeViewDelegate::RDTreeViewDelegate(RDTreeView *view) : RichTextViewDelegate(view), m_View(view)
 {
 }
 
 void RDTreeViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
                                const QModelIndex &index) const
 {
-  return ForwardingDelegate::paint(painter, option, index);
+  return RichTextViewDelegate::paint(painter, option, index);
 }
 
 QSize RDTreeViewDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
-  QSize ret = ForwardingDelegate::sizeHint(option, index);
+  QSize ret = RichTextViewDelegate::sizeHint(option, index);
 
   if(m_View->ignoreIconSize())
     ret.setHeight(qMax(option.decorationSize.height() + 2, ret.height()));
@@ -227,6 +227,20 @@ void RDTreeView::mouseMoveEvent(QMouseEvent *e)
     m_Tooltip->hideTip();
 
   m_currentHoverIndex = indexAt(e->pos());
+
+  if(m_delegate->linkHover(e, font(), m_currentHoverIndex))
+  {
+    if(cursor().shape() != Qt::PointingHandCursor)
+    {
+      viewport()->update(visualRect(m_currentHoverIndex));
+      setCursor(QCursor(Qt::PointingHandCursor));
+    }
+  }
+  else if(cursor().shape() == Qt::PointingHandCursor)
+  {
+    viewport()->update(visualRect(m_currentHoverIndex));
+    unsetCursor();
+  }
 
   if(oldHoverIndex != m_currentHoverIndex)
   {
