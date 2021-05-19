@@ -505,12 +505,10 @@ void RDTreeView::columnsAboutToBeMoved(const QModelIndex &sourceParent, int sour
   m_currentHoverIndex = QModelIndex();
 }
 
-void RDTreeView::saveExpansion(RDTreeViewExpansionState &state, const ExpansionKeyGen &keygen)
+void RDTreeView::updateExpansion(RDTreeViewExpansionState &state, const ExpansionKeyGen &keygen)
 {
-  state.clear();
-
   for(int i = 0; i < model()->rowCount(); i++)
-    saveExpansionFromRow(state, model()->index(i, 0), 0, keygen);
+    updateExpansionFromRow(state, model()->index(i, 0), 0, keygen);
 }
 
 void RDTreeView::applyExpansion(const RDTreeViewExpansionState &state, const ExpansionKeyGen &keygen)
@@ -587,10 +585,15 @@ void RDTreeView::copySelection()
   clipboard->setText(clipData.trimmed());
 }
 
-void RDTreeView::saveExpansionFromRow(RDTreeViewExpansionState &state, QModelIndex idx, uint seed,
-                                      const ExpansionKeyGen &keygen)
+void RDTreeView::updateExpansionFromRow(RDTreeViewExpansionState &state, QModelIndex idx, uint seed,
+                                        const ExpansionKeyGen &keygen)
 {
   if(!idx.isValid())
+    return;
+
+  int rowcount = model()->rowCount(idx);
+
+  if(rowcount == 0)
     return;
 
   uint key = keygen(idx, seed);
@@ -601,8 +604,12 @@ void RDTreeView::saveExpansionFromRow(RDTreeViewExpansionState &state, QModelInd
     // only recurse to children if this one is expanded - forget expansion state under collapsed
     // branches. Technically we're losing information here but it allows us to skip a full expensive
     // search
-    for(int i = 0; i < model()->rowCount(idx); i++)
-      saveExpansionFromRow(state, model()->index(i, 0, idx), seed, keygen);
+    for(int i = 0; i < rowcount; i++)
+      updateExpansionFromRow(state, model()->index(i, 0, idx), seed, keygen);
+  }
+  else
+  {
+    state.remove(key);
   }
 }
 

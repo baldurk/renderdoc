@@ -123,13 +123,31 @@ public:
   }
   void setModel(QAbstractItemModel *model) override;
 
-  // state is the storage to save the expansion state into
+  // state is the storage to save the expansion state into. The state will be preserved but any rows
+  // which are not processed (either because they don't currently exist in the model or because they
+  // are below a currently collapsed node) will be preserved. Nodes which are known and collapsed
+  // will be removed from the set. This can be useful for preserving expansion across filtering that
+  // may temporarily remove nodes.
   // keygen is a function that will take the index of a row and a previous hash, and return the hash
   //   for that row.
-  void saveExpansion(RDTreeViewExpansionState &state, const ExpansionKeyGen &keygen);
+  void updateExpansion(RDTreeViewExpansionState &state, const ExpansionKeyGen &keygen);
+
+  // similar to updateExpansion but always starts from a clean slate so no previous data is
+  // preserved
+  void saveExpansion(RDTreeViewExpansionState &state, const ExpansionKeyGen &keygen)
+  {
+    state.clear();
+    updateExpansion(state, keygen);
+  }
   void applyExpansion(const RDTreeViewExpansionState &state, const ExpansionKeyGen &keygen);
 
   // convenience overloads for the simple case of using a single column's data as hash
+  void updateExpansion(RDTreeViewExpansionState &state, int keyColumn, int keyRole = Qt::DisplayRole)
+  {
+    updateExpansion(state, [keyColumn, keyRole](QModelIndex idx, uint seed) {
+      return qHash(idx.sibling(idx.row(), keyColumn).data(keyRole).toString(), seed);
+    });
+  }
   void saveExpansion(RDTreeViewExpansionState &state, int keyColumn, int keyRole = Qt::DisplayRole)
   {
     saveExpansion(state, [keyColumn, keyRole](QModelIndex idx, uint seed) {
@@ -198,8 +216,8 @@ private:
 
   QMap<uint, RDTreeViewExpansionState> m_Expansions;
 
-  void saveExpansionFromRow(RDTreeViewExpansionState &state, QModelIndex idx, uint seed,
-                            const ExpansionKeyGen &keygen);
+  void updateExpansionFromRow(RDTreeViewExpansionState &state, QModelIndex idx, uint seed,
+                              const ExpansionKeyGen &keygen);
   void applyExpansionToRow(const RDTreeViewExpansionState &state, QModelIndex idx, uint seed,
                            const ExpansionKeyGen &keygen);
 
