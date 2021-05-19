@@ -3528,7 +3528,8 @@ ResourceId D3D11Replay::CreateProxyTexture(const TextureDescription &templateTex
     RDCERR("Invalid texture dimension: %d", templateTex.dimension);
   }
 
-  m_ProxyResources.push_back(resource);
+  if(resource)
+    m_ProxyResources.push_back(resource);
 
   m_ProxyResourceOrigInfo[ret] = templateTex;
 
