@@ -388,7 +388,7 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
   if(type != Resource_Buffer)
   {
     SERIALISE_ELEMENT(type);
-    SERIALISE_ELEMENT(id).TypedAs("ID3D11DeviceChild *"_lit);
+    SERIALISE_ELEMENT(id).TypedAs("ID3D11DeviceChild *"_lit).Important();
   }
 
   if(IsReplayingAndReading())
@@ -442,7 +442,7 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
       }
     }
 
-    SERIALISE_ELEMENT(InitialHiddenCount);
+    SERIALISE_ELEMENT(InitialHiddenCount).Important();
 
     SERIALISE_CHECK_READ_ERRORS();
 
@@ -512,7 +512,7 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
     }
 
     uint32_t NumSubresources = desc.MipLevels * desc.ArraySize;
-    SERIALISE_ELEMENT(NumSubresources);
+    SERIALISE_ELEMENT(NumSubresources).Important();
 
     D3D11_SUBRESOURCE_DATA *subData = NULL;
 
@@ -635,11 +635,11 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
       if(multisampled)
         NumSubresources *= desc.SampleDesc.Count;
 
-      SERIALISE_ELEMENT(NumSubresources);
+      SERIALISE_ELEMENT(NumSubresources).Important();
     }
     else
     {
-      SERIALISE_ELEMENT(NumSubresources);
+      SERIALISE_ELEMENT(NumSubresources).Important();
 
       if(multisampled)
         NumSubresources *= desc.SampleDesc.Count;
@@ -834,7 +834,7 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
     }
 
     uint32_t NumSubresources = desc.MipLevels;
-    SERIALISE_ELEMENT(NumSubresources);
+    SERIALISE_ELEMENT(NumSubresources).Important();
 
     D3D11_SUBRESOURCE_DATA *subData = NULL;
 

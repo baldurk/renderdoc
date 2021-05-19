@@ -77,7 +77,7 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(
     SerialiserType &ser, ID3D11Resource *pDstResource, UINT DstSubresource, const D3D11_BOX *pDstBox,
     const void *pSrcData, UINT SrcRowPitch, UINT SrcDepthPitch, UINT CopyFlags)
 {
-  SERIALISE_ELEMENT(pDstResource);
+  SERIALISE_ELEMENT(pDstResource).Important();
   SERIALISE_ELEMENT(DstSubresource);
   SERIALISE_ELEMENT_OPT(pDstBox);
   SERIALISE_ELEMENT(SrcRowPitch);
@@ -188,7 +188,7 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(
       }
     }
 
-    SERIALISE_ELEMENT_ARRAY(pSrcData, SourceDataLength);
+    SERIALISE_ELEMENT_ARRAY(pSrcData, SourceDataLength).Important();
     SERIALISE_ELEMENT(SourceDataLength);
 
     SERIALISE_CHECK_READ_ERRORS();
@@ -409,12 +409,12 @@ bool WrappedID3D11DeviceContext::Serialise_CopySubresourceRegion1(
     UINT DstZ, ID3D11Resource *pSrcResource, UINT SrcSubresource, const D3D11_BOX *pSrcBox,
     UINT CopyFlags)
 {
-  SERIALISE_ELEMENT(pDstResource);
+  SERIALISE_ELEMENT(pDstResource).Important();
   SERIALISE_ELEMENT(DstSubresource);
   SERIALISE_ELEMENT(DstX);
   SERIALISE_ELEMENT(DstY);
   SERIALISE_ELEMENT(DstZ);
-  SERIALISE_ELEMENT(pSrcResource);
+  SERIALISE_ELEMENT(pSrcResource).Important();
   SERIALISE_ELEMENT(SrcSubresource);
   SERIALISE_ELEMENT_OPT(pSrcBox);
   SERIALISE_ELEMENT_TYPED(D3D11_COPY_FLAGS, CopyFlags);
@@ -455,7 +455,6 @@ bool WrappedID3D11DeviceContext::Serialise_CopySubresourceRegion1(
       AddEvent();
 
       DrawcallDescription draw;
-      draw.name = "CopySubresourceRegion1(" + ToStr(dstOrigID) + ", " + ToStr(srcOrigID) + ")";
       draw.flags |= DrawFlags::Copy;
 
       if(pDstResource && pSrcResource)
@@ -538,7 +537,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearView(SerialiserType &ser, ID3D11
                                                      const D3D11_RECT *pRect, UINT NumRects)
 {
   SERIALISE_ELEMENT(pView);
-  SERIALISE_ELEMENT_ARRAY(ColorRGBA, 4);
+  SERIALISE_ELEMENT_ARRAY(ColorRGBA, 4).Important();
   SERIALISE_ELEMENT_ARRAY(pRect, NumRects);
   SERIALISE_ELEMENT(NumRects);
 
@@ -564,8 +563,6 @@ bool WrappedID3D11DeviceContext::Serialise_ClearView(SerialiserType &ser, ID3D11
 
       DrawcallDescription draw;
 
-      draw.name = StringFormat::Fmt("ClearView(%f, %f, %f, %f, %u rects)", ColorRGBA[0],
-                                    ColorRGBA[1], ColorRGBA[2], ColorRGBA[3], NumRects);
       draw.flags |= DrawFlags::Clear;
 
       ResourceId resid = GetViewResourceResID(pView);
@@ -671,9 +668,9 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetConstantBuffers1(
     SerialiserType &ser, UINT StartSlot, UINT NumBuffers, ID3D11Buffer *const *ppConstantBuffers,
     const UINT *pFirstConstant, const UINT *pNumConstants)
 {
-  SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(StartSlot).Important();
   SERIALISE_ELEMENT(NumBuffers);
-  SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
+  SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers).Important();
   SERIALISE_ELEMENT_ARRAY(pFirstConstant, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pNumConstants, NumBuffers);
 
@@ -802,9 +799,9 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetConstantBuffers1(
     SerialiserType &ser, UINT StartSlot, UINT NumBuffers, ID3D11Buffer *const *ppConstantBuffers,
     const UINT *pFirstConstant, const UINT *pNumConstants)
 {
-  SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(StartSlot).Important();
   SERIALISE_ELEMENT(NumBuffers);
-  SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
+  SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers).Important();
   SERIALISE_ELEMENT_ARRAY(pFirstConstant, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pNumConstants, NumBuffers);
 
@@ -933,9 +930,9 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetConstantBuffers1(
     SerialiserType &ser, UINT StartSlot, UINT NumBuffers, ID3D11Buffer *const *ppConstantBuffers,
     const UINT *pFirstConstant, const UINT *pNumConstants)
 {
-  SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(StartSlot).Important();
   SERIALISE_ELEMENT(NumBuffers);
-  SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
+  SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers).Important();
   SERIALISE_ELEMENT_ARRAY(pFirstConstant, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pNumConstants, NumBuffers);
 
@@ -1064,9 +1061,9 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetConstantBuffers1(
     SerialiserType &ser, UINT StartSlot, UINT NumBuffers, ID3D11Buffer *const *ppConstantBuffers,
     const UINT *pFirstConstant, const UINT *pNumConstants)
 {
-  SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(StartSlot).Important();
   SERIALISE_ELEMENT(NumBuffers);
-  SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
+  SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers).Important();
   SERIALISE_ELEMENT_ARRAY(pFirstConstant, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pNumConstants, NumBuffers);
 
@@ -1195,9 +1192,9 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetConstantBuffers1(
     SerialiserType &ser, UINT StartSlot, UINT NumBuffers, ID3D11Buffer *const *ppConstantBuffers,
     const UINT *pFirstConstant, const UINT *pNumConstants)
 {
-  SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(StartSlot).Important();
   SERIALISE_ELEMENT(NumBuffers);
-  SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
+  SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers).Important();
   SERIALISE_ELEMENT_ARRAY(pFirstConstant, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pNumConstants, NumBuffers);
 
@@ -1326,9 +1323,9 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetConstantBuffers1(
     SerialiserType &ser, UINT StartSlot, UINT NumBuffers, ID3D11Buffer *const *ppConstantBuffers,
     const UINT *pFirstConstant, const UINT *pNumConstants)
 {
-  SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(StartSlot).Important();
   SERIALISE_ELEMENT(NumBuffers);
-  SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
+  SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers).Important();
   SERIALISE_ELEMENT_ARRAY(pFirstConstant, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pNumConstants, NumBuffers);
 
@@ -1714,7 +1711,7 @@ template <typename SerialiserType>
 bool WrappedID3D11DeviceContext::Serialise_DiscardResource(SerialiserType &ser,
                                                            ID3D11Resource *pResource)
 {
-  SERIALISE_ELEMENT(pResource);
+  SERIALISE_ELEMENT(pResource).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -1802,7 +1799,7 @@ void WrappedID3D11DeviceContext::DiscardResource(ID3D11Resource *pResource)
 template <typename SerialiserType>
 bool WrappedID3D11DeviceContext::Serialise_DiscardView(SerialiserType &ser, ID3D11View *pResourceView)
 {
-  SERIALISE_ELEMENT(pResourceView);
+  SERIALISE_ELEMENT(pResourceView).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -1934,7 +1931,7 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView1(SerialiserType &ser,
                                                         ID3D11View *pResourceView,
                                                         const D3D11_RECT *pRect, UINT NumRects)
 {
-  SERIALISE_ELEMENT(pResourceView);
+  SERIALISE_ELEMENT(pResourceView).Important();
   SERIALISE_ELEMENT_ARRAY(pRect, NumRects);
   SERIALISE_ELEMENT(NumRects);
 

@@ -670,7 +670,10 @@ bool WrappedID3D11DeviceContext::IsFL11_1()
 
 bool WrappedID3D11DeviceContext::ProcessChunk(ReadSerialiser &ser, D3D11Chunk chunk)
 {
-  SERIALISE_ELEMENT(m_CurContextId).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
+  SERIALISE_ELEMENT(m_CurContextId)
+      .Named("Context"_lit)
+      .TypedAs("ID3D11DeviceContext *"_lit)
+      .Unimportant();
 
   SERIALISE_CHECK_READ_ERRORS();
 

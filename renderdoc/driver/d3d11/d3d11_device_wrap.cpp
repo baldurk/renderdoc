@@ -33,7 +33,7 @@ bool WrappedID3D11Device::Serialise_CreateBuffer(SerialiserType &ser, const D3D1
                                                  const D3D11_SUBRESOURCE_DATA *pInitialData,
                                                  ID3D11Buffer **ppBuffer)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Named("pDesc"_lit);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Named("pDesc"_lit).Important();
   // unused, just for the sake of the user
   SERIALISE_ELEMENT_OPT(pInitialData);
   SERIALISE_ELEMENT_LOCAL(pBuffer, GetIDForDeviceChild(*ppBuffer)).TypedAs("ID3D11Buffer *"_lit);
@@ -368,7 +368,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture1D(SerialiserType &ser,
                                                     const D3D11_SUBRESOURCE_DATA *pInitialData,
                                                     ID3D11Texture1D **ppTexture1D)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Important();
 
   // unused, just for the sake of the user
   {
@@ -502,7 +502,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture2D(SerialiserType &ser,
                                                     const D3D11_SUBRESOURCE_DATA *pInitialData,
                                                     ID3D11Texture2D **ppTexture2D)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Important();
 
   // unused, just for the sake of the user
   {
@@ -638,7 +638,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture3D(SerialiserType &ser,
                                                     const D3D11_SUBRESOURCE_DATA *pInitialData,
                                                     ID3D11Texture3D **ppTexture3D)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Important();
 
   // unused, just for the sake of the user
   {
@@ -772,8 +772,8 @@ bool WrappedID3D11Device::Serialise_CreateShaderResourceView(
     SerialiserType &ser, ID3D11Resource *pResource, const D3D11_SHADER_RESOURCE_VIEW_DESC *pDesc,
     ID3D11ShaderResourceView **ppSRView)
 {
-  SERIALISE_ELEMENT(pResource);
-  SERIALISE_ELEMENT_OPT(pDesc);
+  SERIALISE_ELEMENT(pResource).Important();
+  SERIALISE_ELEMENT_OPT(pDesc).Important();
   SERIALISE_ELEMENT_LOCAL(pView, GetIDForDeviceChild(*ppSRView))
       .TypedAs("ID3D11ShaderResourceView *"_lit);
 
@@ -903,8 +903,8 @@ bool WrappedID3D11Device::Serialise_CreateUnorderedAccessView(
     SerialiserType &ser, ID3D11Resource *pResource, const D3D11_UNORDERED_ACCESS_VIEW_DESC *pDesc,
     ID3D11UnorderedAccessView **ppUAView)
 {
-  SERIALISE_ELEMENT(pResource);
-  SERIALISE_ELEMENT_OPT(pDesc);
+  SERIALISE_ELEMENT(pResource).Important();
+  SERIALISE_ELEMENT_OPT(pDesc).Important();
   SERIALISE_ELEMENT_LOCAL(pView, GetIDForDeviceChild(*ppUAView))
       .TypedAs("ID3D11UnorderedAccessView *"_lit);
 
@@ -1048,8 +1048,8 @@ bool WrappedID3D11Device::Serialise_CreateRenderTargetView(SerialiserType &ser,
                                                            const D3D11_RENDER_TARGET_VIEW_DESC *pDesc,
                                                            ID3D11RenderTargetView **ppRTView)
 {
-  SERIALISE_ELEMENT(pResource);
-  SERIALISE_ELEMENT_OPT(pDesc);
+  SERIALISE_ELEMENT(pResource).Important();
+  SERIALISE_ELEMENT_OPT(pDesc).Important();
   SERIALISE_ELEMENT_LOCAL(pView, GetIDForDeviceChild(*ppRTView))
       .TypedAs("ID3D11RenderTargetView *"_lit);
 
@@ -1173,8 +1173,8 @@ bool WrappedID3D11Device::Serialise_CreateDepthStencilView(
     SerialiserType &ser, ID3D11Resource *pResource, const D3D11_DEPTH_STENCIL_VIEW_DESC *pDesc,
     ID3D11DepthStencilView **ppDepthStencilView)
 {
-  SERIALISE_ELEMENT(pResource);
-  SERIALISE_ELEMENT_OPT(pDesc);
+  SERIALISE_ELEMENT(pResource).Important();
+  SERIALISE_ELEMENT_OPT(pDesc).Important();
   SERIALISE_ELEMENT_LOCAL(pView, GetIDForDeviceChild(*ppDepthStencilView))
       .TypedAs("ID3D11DepthStencilView *"_lit);
 
@@ -1269,7 +1269,7 @@ bool WrappedID3D11Device::Serialise_CreateInputLayout(
     const void *pShaderBytecodeWithInputSignature, SIZE_T BytecodeLength_,
     ID3D11InputLayout **ppInputLayout)
 {
-  SERIALISE_ELEMENT_ARRAY(pInputElementDescs, NumElements);
+  SERIALISE_ELEMENT_ARRAY(pInputElementDescs, NumElements).Important();
   SERIALISE_ELEMENT(NumElements);
   SERIALISE_ELEMENT_ARRAY(pShaderBytecodeWithInputSignature, BytecodeLength_);
   SERIALISE_ELEMENT_LOCAL(BytecodeLength, uint64_t(BytecodeLength_));
@@ -1372,7 +1372,7 @@ bool WrappedID3D11Device::Serialise_CreateVertexShader(SerialiserType &ser,
                                                        ID3D11ClassLinkage *pClassLinkage,
                                                        ID3D11VertexShader **ppVertexShader)
 {
-  SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength_);
+  SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength_).Important();
   SERIALISE_ELEMENT_LOCAL(BytecodeLength, uint64_t(BytecodeLength_));
   SERIALISE_ELEMENT(pClassLinkage);
   SERIALISE_ELEMENT_LOCAL(pShader, GetIDForDeviceChild(*ppVertexShader))
@@ -1502,7 +1502,7 @@ bool WrappedID3D11Device::Serialise_CreateGeometryShader(SerialiserType &ser,
                                                          ID3D11ClassLinkage *pClassLinkage,
                                                          ID3D11GeometryShader **ppGeometryShader)
 {
-  SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength_);
+  SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength_).Important();
   SERIALISE_ELEMENT_LOCAL(BytecodeLength, uint64_t(BytecodeLength_));
   SERIALISE_ELEMENT(pClassLinkage);
   SERIALISE_ELEMENT_LOCAL(pShader, GetIDForDeviceChild(*ppGeometryShader))
@@ -1635,9 +1635,9 @@ bool WrappedID3D11Device::Serialise_CreateGeometryShaderWithStreamOutput(
     UINT NumStrides, UINT RasterizedStream, ID3D11ClassLinkage *pClassLinkage,
     ID3D11GeometryShader **ppGeometryShader)
 {
-  SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength_);
+  SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength_).Important();
   SERIALISE_ELEMENT_LOCAL(BytecodeLength, uint64_t(BytecodeLength_));
-  SERIALISE_ELEMENT_ARRAY(pSODeclaration, NumEntries);
+  SERIALISE_ELEMENT_ARRAY(pSODeclaration, NumEntries).Important();
   SERIALISE_ELEMENT(NumEntries);
   SERIALISE_ELEMENT_ARRAY(pBufferStrides, NumStrides);
   SERIALISE_ELEMENT(NumStrides);
@@ -1778,7 +1778,7 @@ bool WrappedID3D11Device::Serialise_CreatePixelShader(SerialiserType &ser,
                                                       ID3D11ClassLinkage *pClassLinkage,
                                                       ID3D11PixelShader **ppPixelShader)
 {
-  SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength_);
+  SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength_).Important();
   SERIALISE_ELEMENT_LOCAL(BytecodeLength, uint64_t(BytecodeLength_));
   SERIALISE_ELEMENT(pClassLinkage);
   SERIALISE_ELEMENT_LOCAL(pShader, GetIDForDeviceChild(*ppPixelShader))
@@ -1907,7 +1907,7 @@ bool WrappedID3D11Device::Serialise_CreateHullShader(SerialiserType &ser, const 
                                                      ID3D11ClassLinkage *pClassLinkage,
                                                      ID3D11HullShader **ppHullShader)
 {
-  SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength_);
+  SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength_).Important();
   SERIALISE_ELEMENT_LOCAL(BytecodeLength, uint64_t(BytecodeLength_));
   SERIALISE_ELEMENT(pClassLinkage);
   SERIALISE_ELEMENT_LOCAL(pShader, GetIDForDeviceChild(*ppHullShader))
@@ -2037,7 +2037,7 @@ bool WrappedID3D11Device::Serialise_CreateDomainShader(SerialiserType &ser,
                                                        ID3D11ClassLinkage *pClassLinkage,
                                                        ID3D11DomainShader **ppDomainShader)
 {
-  SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength_);
+  SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength_).Important();
   SERIALISE_ELEMENT_LOCAL(BytecodeLength, uint64_t(BytecodeLength_));
   SERIALISE_ELEMENT(pClassLinkage);
   SERIALISE_ELEMENT_LOCAL(pShader, GetIDForDeviceChild(*ppDomainShader))
@@ -2169,7 +2169,7 @@ bool WrappedID3D11Device::Serialise_CreateComputeShader(SerialiserType &ser,
                                                         ID3D11ClassLinkage *pClassLinkage,
                                                         ID3D11ComputeShader **ppComputeShader)
 {
-  SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength_);
+  SERIALISE_ELEMENT_ARRAY(pShaderBytecode, BytecodeLength_).Important();
   SERIALISE_ELEMENT_LOCAL(BytecodeLength, uint64_t(BytecodeLength_));
   SERIALISE_ELEMENT(pClassLinkage);
   SERIALISE_ELEMENT_LOCAL(pShader, GetIDForDeviceChild(*ppComputeShader))
@@ -2304,12 +2304,12 @@ bool WrappedID3D11Device::Serialise_CreateClassInstance(SerialiserType &ser, LPC
                                                         ID3D11ClassLinkage *pClassLinkage,
                                                         ID3D11ClassInstance **ppInstance)
 {
-  SERIALISE_ELEMENT(pClassTypeName);
+  SERIALISE_ELEMENT(pClassTypeName).Important();
   SERIALISE_ELEMENT(ConstantBufferOffset);
   SERIALISE_ELEMENT(ConstantVectorOffset);
   SERIALISE_ELEMENT(TextureOffset);
   SERIALISE_ELEMENT(SamplerOffset);
-  SERIALISE_ELEMENT(pClassLinkage);
+  SERIALISE_ELEMENT(pClassLinkage).Important();
   SERIALISE_ELEMENT_LOCAL(pInstance, GetIDForDeviceChild(*ppInstance))
       .TypedAs("ID3D11ClassInstance *"_lit);
 
@@ -2381,9 +2381,9 @@ bool WrappedID3D11Device::Serialise_GetClassInstance(SerialiserType &ser, LPCSTR
                                                      ID3D11ClassLinkage *pClassLinkage,
                                                      ID3D11ClassInstance **ppInstance)
 {
-  SERIALISE_ELEMENT(pClassInstanceName);
+  SERIALISE_ELEMENT(pClassInstanceName).Important();
   SERIALISE_ELEMENT(InstanceIndex);
-  SERIALISE_ELEMENT(pClassLinkage);
+  SERIALISE_ELEMENT(pClassLinkage).Important();
   SERIALISE_ELEMENT_LOCAL(pInstance, GetIDForDeviceChild(*ppInstance))
       .TypedAs("ID3D11ClassInstance *"_lit);
 
@@ -2453,7 +2453,8 @@ bool WrappedID3D11Device::Serialise_CreateClassLinkage(SerialiserType &ser,
                                                        ID3D11ClassLinkage **ppLinkage)
 {
   SERIALISE_ELEMENT_LOCAL(pLinkage, GetIDForDeviceChild(*ppLinkage))
-      .TypedAs("ID3D11ClassLinkage *"_lit);
+      .TypedAs("ID3D11ClassLinkage *"_lit)
+      .Unimportant();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2517,7 +2518,7 @@ bool WrappedID3D11Device::Serialise_CreateBlendState(SerialiserType &ser,
                                                      const D3D11_BLEND_DESC *pBlendStateDesc,
                                                      ID3D11BlendState **ppBlendState)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pBlendStateDesc);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pBlendStateDesc).Important();
   SERIALISE_ELEMENT_LOCAL(pState, GetIDForDeviceChild(*ppBlendState))
       .TypedAs("ID3D11BlendState *"_lit);
 
@@ -2627,7 +2628,7 @@ bool WrappedID3D11Device::Serialise_CreateDepthStencilState(
     SerialiserType &ser, const D3D11_DEPTH_STENCIL_DESC *pDepthStencilDesc,
     ID3D11DepthStencilState **ppDepthStencilState)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDepthStencilDesc);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDepthStencilDesc).Important();
   SERIALISE_ELEMENT_LOCAL(pState, GetIDForDeviceChild(*ppDepthStencilState))
       .TypedAs("ID3D11DepthStencilState *"_lit);
 
@@ -2735,7 +2736,7 @@ bool WrappedID3D11Device::Serialise_CreateRasterizerState(SerialiserType &ser,
                                                           const D3D11_RASTERIZER_DESC *pRasterizerDesc,
                                                           ID3D11RasterizerState **ppRasterizerState)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pRasterizerDesc);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pRasterizerDesc).Important();
   SERIALISE_ELEMENT_LOCAL(pState, GetIDForDeviceChild(*ppRasterizerState))
       .TypedAs("ID3D11RasterizerState *"_lit);
 
@@ -2843,7 +2844,7 @@ bool WrappedID3D11Device::Serialise_CreateSamplerState(SerialiserType &ser,
                                                        const D3D11_SAMPLER_DESC *pSamplerDesc,
                                                        ID3D11SamplerState **ppSamplerState)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pSamplerDesc);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pSamplerDesc).Important();
   SERIALISE_ELEMENT_LOCAL(pState, GetIDForDeviceChild(*ppSamplerState))
       .TypedAs("ID3D11SamplerState *"_lit);
 
@@ -2951,7 +2952,7 @@ bool WrappedID3D11Device::Serialise_CreateQuery(SerialiserType &ser,
                                                 const D3D11_QUERY_DESC *pQueryDesc,
                                                 ID3D11Query **ppQuery)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pQueryDesc);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pQueryDesc).Important();
   SERIALISE_ELEMENT_LOCAL(pQuery, GetIDForDeviceChild(*ppQuery)).TypedAs("ID3D11Query *"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -3026,7 +3027,7 @@ bool WrappedID3D11Device::Serialise_CreatePredicate(SerialiserType &ser,
                                                     const D3D11_QUERY_DESC *pPredicateDesc,
                                                     ID3D11Predicate **ppPredicate)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pPredicateDesc);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pPredicateDesc).Important();
   SERIALISE_ELEMENT_LOCAL(pPredicate, GetIDForDeviceChild(*ppPredicate))
       .TypedAs("ID3D11Predicate *"_lit);
 
@@ -3113,7 +3114,7 @@ bool WrappedID3D11Device::Serialise_CreateCounter(SerialiserType &ser,
                                                   const D3D11_COUNTER_DESC *pCounterDesc,
                                                   ID3D11Counter **ppCounter)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pCounterDesc);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pCounterDesc).Important();
   SERIALISE_ELEMENT_LOCAL(pCounter, GetIDForDeviceChild(*ppCounter)).TypedAs("ID3D11Counter *"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -3198,7 +3199,8 @@ bool WrappedID3D11Device::Serialise_CreateDeferredContext(SerialiserType &ser,
   SERIALISE_ELEMENT(ContextFlags);
   SERIALISE_ELEMENT_LOCAL(pDeferredContext,
                           ((WrappedID3D11DeviceContext *)*ppDeferredContext)->GetResourceID())
-      .TypedAs("ID3D11DeviceContext *"_lit);
+      .TypedAs("ID3D11DeviceContext *"_lit)
+      .Unimportant();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -3276,7 +3278,7 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HAND
 {
   ID3D11DeviceChild *res = ser.IsWriting() ? (ID3D11DeviceChild *)*ppResource : NULL;
 
-  SERIALISE_ELEMENT_LOCAL(Type, IdentifyTypeByPtr(res));
+  SERIALISE_ELEMENT_LOCAL(Type, IdentifyTypeByPtr(res)).Important();
   SERIALISE_ELEMENT_LOCAL(pResource, GetIDForDeviceChild(res)).TypedAs("ID3D11DeviceChild *"_lit);
 
   if(Type == Resource_Buffer)
@@ -3862,7 +3864,7 @@ void WrappedID3D11Device::GetImmediateContext(ID3D11DeviceContext **ppImmediateC
 template <typename SerialiserType>
 bool WrappedID3D11Device::Serialise_SetExceptionMode(SerialiserType &ser, UINT RaiseFlags)
 {
-  SERIALISE_ELEMENT(RaiseFlags);
+  SERIALISE_ELEMENT(RaiseFlags).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 

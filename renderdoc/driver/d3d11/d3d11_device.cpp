@@ -2677,8 +2677,8 @@ template <typename SerialiserType>
 bool WrappedID3D11Device::Serialise_SetShaderDebugPath(SerialiserType &ser,
                                                        ID3D11DeviceChild *pResource, const char *Path)
 {
-  SERIALISE_ELEMENT(pResource);
-  SERIALISE_ELEMENT(Path);
+  SERIALISE_ELEMENT(pResource).Important();
+  SERIALISE_ELEMENT(Path).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
