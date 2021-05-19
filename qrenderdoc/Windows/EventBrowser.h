@@ -26,6 +26,7 @@
 
 #include <QFrame>
 #include <QIcon>
+#include <QSet>
 #include "Code/Interface/QRDInterface.h"
 
 namespace Ui
@@ -39,6 +40,8 @@ class QTimer;
 class QTextStream;
 class FlowLayout;
 struct EventItemTag;
+
+typedef QSet<uint> RDTreeViewExpansionState;
 
 class RichTextViewDelegate;
 struct EventItemModel;
@@ -136,6 +139,8 @@ private:
   EventFilterModel *m_FilterModel;
 
   TimeUnit m_TimeUnit = TimeUnit::Count;
+
+  RDTreeViewExpansionState m_EventsExpansion;
 
   QTimer *m_FindHighlight, *m_FilterTimeout;
 

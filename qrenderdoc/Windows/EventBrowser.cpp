@@ -2166,7 +2166,16 @@ void EventBrowser::filter_apply()
   ui->events->clearSelection();
   ui->events->setCurrentIndex(QModelIndex());
 
+  ExpansionKeyGen keygen = [](QModelIndex idx, uint) { return idx.data(ROLE_SELECTED_EID).toUInt(); };
+
+  // update the expansion with the current state. Any rows that were hidden won't have their
+  // collapsed/expanded state lost by this. We use the EID as a key because it will be the same even
+  // if the model index changes (e.g. if some events are shown or hidden)
+  ui->events->updateExpansion(m_EventsExpansion, keygen);
+
   QString parseError = m_FilterModel->ParseExpression(ui->filterExpression->text());
+
+  ui->events->applyExpansion(m_EventsExpansion, keygen);
 
   ui->events->setCurrentIndex(m_FilterModel->mapFromSource(m_Model->GetIndexForEID(curSelEvent)));
 
