@@ -68,7 +68,10 @@ static HMODULE GetDXC()
         rdcstr path = StringFormat::Wide2UTF8(dxilPath);
         HMODULE dxcompiler = (HMODULE)Process::LoadModule(get_dirname(path) + "/dxcompiler.dll");
         if(dxcompiler)
-          return dxcompiler;
+        {
+          ret = dxcompiler;
+          return ret;
+        }
       }
 
       // don't try to load dxcompiler.dll until we've got dxil.dll successfully, or if we're not
@@ -79,7 +82,10 @@ static HMODULE GetDXC()
         HMODULE dxcompiler =
             (HMODULE)Process::LoadModule(LocatePluginFile("d3d12", "dxcompiler.dll"));
         if(dxcompiler)
-          return dxcompiler;
+        {
+          ret = dxcompiler;
+          return ret;
+        }
       }
 
       // if we didn't find dxcompiler but did find dxil, somehow, then unload it
