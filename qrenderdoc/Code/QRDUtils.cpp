@@ -796,9 +796,18 @@ void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, 
 
   QAbstractTextDocumentLayout::PaintContext docCtx;
   docCtx.palette = palette;
-  docCtx.palette.setColor(QPalette::Text, foreBrush.color());
 
   docCtx.clip = QRectF(0, 0, rect.width() - 1, rect.height());
+
+  if(state & QStyle::State_Selected)
+  {
+    QAbstractTextDocumentLayout::Selection sel;
+    sel.format.setForeground(foreBrush.color());
+    sel.cursor = QTextCursor(&linkedText->doc);
+    sel.cursor.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
+    sel.cursor.movePosition(QTextCursor::End, QTextCursor::KeepAnchor);
+    docCtx.selections.push_back(sel);
+  }
 
   painter->setClipRect(docCtx.clip);
 
