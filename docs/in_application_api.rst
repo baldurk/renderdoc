@@ -13,8 +13,6 @@ The recommended way to access the RenderDoc API is to passively check if the mod
 
 To do this you'll use your platforms dynamic library functions to see if the library is open already - e.g. ``GetModuleHandle`` on Windows, or ``dlopen`` with the ``RTLD_NOW | RTLD_NOLOAD`` flags if available on \*nix systems. On most platforms you can just search for the module name - ``renderdoc.dll`` on Windows, or ``librenderdoc.so`` on Linux, or ``libVkLayer_GLES_RenderDoc.so`` on Android should be sufficient here, so you don't need to know the path to where RenderDoc is running from. This will vary by platform however so consult your platform's OS documentation. Then you can use ``GetProcAddress`` or ``dlsym`` to fetch the ``RENDERDOC_GetAPI`` function using the typedef above.
 
-This is not supported on Linux or Android due to the differing methods of hooking and only Windows supporting injection at runtime.
-
 .. cpp:function:: int RENDERDOC_GetAPI(RENDERDOC_Version version, void **outAPIPointers)
 
 
