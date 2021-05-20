@@ -207,6 +207,8 @@ struct RichResourceText
   int idealWidth = 0;
   int numLines = 1;
 
+  bool forcehtml = false;
+
   // cache the context once we've obtained it.
   ICaptureContext *ctxptr = NULL;
 
@@ -325,9 +327,15 @@ struct RichResourceText
       }
       else
       {
-        QString htmlfrag = v.toString().toHtmlEscaped();
+        QString htmlfrag = v.toString();
+
+        if(!forcehtml)
+        {
+          htmlfrag = htmlfrag.toHtmlEscaped();
+          htmlfrag.replace(lit(" "), lit("&nbsp;"));
+        }
+
         int newlines = htmlfrag.count(QLatin1Char('\n'));
-        htmlfrag.replace(lit(" "), lit("&nbsp;"));
         htmlfrag.replace(
             lit("\n"),
             lit("</td></tr></table><table><tr><td valign=\"middle\" style=\"line-height: 14px\">"));
@@ -507,7 +515,8 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx, bool parseU
 
   // do a simple string search first before using regular expressions
   if(!text.contains(lit("ResourceId::")) && !text.contains(lit("GPUAddress::")) &&
-     !text.contains(lit("__rd_msgs::")) && !text.contains(QLatin1Char('@')) && !parseURLs)
+     !text.contains(lit("__rd_msgs::")) && !text.contains(QLatin1Char('@')) && !parseURLs &&
+     !(text.startsWith(lit("<rdhtml>")) && text.endsWith(lit("</rdhtml>"))))
     return;
 
   // two forms: GPUAddress::012345        - typeless
@@ -536,6 +545,12 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx, bool parseU
     return;
   }
 
+  const bool forcehtml = text.startsWith(lit("<rdhtml>")) && text.endsWith(lit("</rdhtml>"));
+  if(forcehtml)
+  {
+    text = text.mid(8, text.length() - 17);
+  }
+
   // use regexp to split up into fragments of text and resourceid. The resourceid is then
   // formatted on the fly in RichResourceText::cacheDocument
   static QRegularExpression resRE(
@@ -546,6 +561,7 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx, bool parseU
   RichResourceTextPtr linkedText(new RichResourceText);
 
   linkedText->ctxptr = ctx;
+  linkedText->forcehtml = forcehtml;
 
   if(match.hasMatch())
   {
@@ -629,14 +645,18 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx, bool parseU
     if(!text.isEmpty())
     {
       // if we didn't get any fragments that means we only encountered false positive matches e.g.
-      // @2x. Return the normal text as non-richresourcetext
-      if(linkedText->fragments.empty())
+      // @2x. Return the normal text as non-richresourcetext unless we're forcing it
+      if(linkedText->fragments.empty() && !forcehtml)
         return;
 
       HandleURLFragment(linkedText, text, parseURLs);
     }
 
-    linkedText->doc.setHtml(text);
+    var = QVariant::fromValue(linkedText);
+  }
+  else if(forcehtml)
+  {
+    linkedText->fragments.push_back(text);
 
     var = QVariant::fromValue(linkedText);
     return;
