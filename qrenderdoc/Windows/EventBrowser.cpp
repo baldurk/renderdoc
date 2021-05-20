@@ -439,6 +439,9 @@ struct EventItemModel : public QAbstractItemModel
     if(index.internalId() == TagCaptureStart)
       return createIndex(0, 0, TagRoot);
 
+    if(index.internalId() >= m_Draws.size())
+      return QModelIndex();
+
     // otherwise it's a draw
     const DrawcallDescription *draw = m_Draws[index.internalId()];
 
@@ -558,6 +561,9 @@ struct EventItemModel : public QAbstractItemModel
     else
     {
       uint32_t eid = index.internalId();
+
+      if(eid >= m_Draws.size())
+        return QVariant();
 
       if(role == ROLE_SELECTED_EID)
         return eid;
