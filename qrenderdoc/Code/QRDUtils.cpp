@@ -286,8 +286,9 @@ struct RichResourceText
       if(v.userType() == qMetaTypeId<ResourceId>())
       {
         QString resname = GetTruncatedResourceName(ctx, v.value<ResourceId>()).toHtmlEscaped();
-        html += lit("<td valign=\"middle\"><b>%1</b></td>"
-                    "<td valign=\"middle\"><img width=\"16\" src=':/link%3.png'></td>")
+        html += lit("<td valign=\"middle\" style=\"line-height: 14px\"><b>%1</b></td>"
+                    "<td valign=\"middle\" style=\"line-height: 14px\">"
+                    "<img width=\"16\" src=':/link%3.png'></td>")
                     .arg(resname)
                     .arg(highdpi ? lit("@2x") : QString());
         text += resname;
@@ -303,8 +304,9 @@ struct RichResourceText
         QString msgstr =
             QApplication::translate("qrenderdoc", "%n msg(s)", "Shader messages", link.numMessages);
 
-        html += lit("<td valign=\"middle\"><img width=\"16\" src=':/text_add%3.png'></td>"
-                    "<td valign=\"middle\">%1</td>")
+        html += lit("<td valign=\"middle\" style=\"line-height: 14px\">"
+                    "<img width=\"16\" src=':/text_add%3.png'></td>"
+                    "<td valign=\"middle\" style=\"line-height: 14px\">%1</td>")
                     .arg(msgstr)
                     .arg(highdpi ? lit("@2x") : QString());
         text += msgstr;
@@ -314,7 +316,8 @@ struct RichResourceText
       }
       else if(v.type() == QVariant::UInt)
       {
-        html += lit("<td valign=\"middle\"><font color='#0000FF'><u>EID @%1</u></font></td>")
+        html += lit("<td valign=\"middle\" style=\"line-height: 14px\">"
+                    "<font color='#0000FF'><u>EID @%1</u></font></td>")
                     .arg(v.toUInt());
         text += lit("EID @%1").arg(v.toUInt());
 
@@ -325,10 +328,12 @@ struct RichResourceText
         QString htmlfrag = v.toString().toHtmlEscaped();
         int newlines = htmlfrag.count(QLatin1Char('\n'));
         htmlfrag.replace(lit(" "), lit("&nbsp;"));
-        htmlfrag.replace(lit("\n"), lit("</td></tr></table><table><tr><td valign=\"middle\">"));
+        htmlfrag.replace(
+            lit("\n"),
+            lit("</td></tr></table><table><tr><td valign=\"middle\" style=\"line-height: 14px\">"));
 
-        html += lit("<td valign=\"middle\">%1</td>").arg(htmlfrag);
         text += v.toString();
+        html += lit("<td valign=\"middle\" style=\"line-height: 14px\">%1</td>").arg(htmlfrag);
 
         numLines += newlines;
 
