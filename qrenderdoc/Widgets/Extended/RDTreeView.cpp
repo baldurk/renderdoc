@@ -446,8 +446,18 @@ void RDTreeView::setModel(QAbstractItemModel *model)
   QAbstractItemModel *old = this->model();
 
   if(old)
+  {
     QObject::disconnect(old, &QAbstractItemModel::modelAboutToBeReset, this,
                         &RDTreeView::modelAboutToBeReset);
+    QObject::disconnect(old, &QAbstractItemModel::rowsAboutToBeRemoved, this,
+                        &RDTreeView::rowsAboutToBeRemoved);
+    QObject::disconnect(old, &QAbstractItemModel::columnsAboutToBeRemoved, this,
+                        &RDTreeView::columnsAboutToBeRemoved);
+    QObject::disconnect(old, &QAbstractItemModel::rowsAboutToBeMoved, this,
+                        &RDTreeView::rowsAboutToBeMoved);
+    QObject::disconnect(old, &QAbstractItemModel::columnsAboutToBeMoved, this,
+                        &RDTreeView::columnsAboutToBeMoved);
+  }
 
   QTreeView::setModel(model);
 
@@ -455,10 +465,41 @@ void RDTreeView::setModel(QAbstractItemModel *model)
   {
     QObject::connect(model, &QAbstractItemModel::modelAboutToBeReset, this,
                      &RDTreeView::modelAboutToBeReset);
+    QObject::connect(model, &QAbstractItemModel::rowsAboutToBeRemoved, this,
+                     &RDTreeView::rowsAboutToBeRemoved);
+    QObject::connect(model, &QAbstractItemModel::columnsAboutToBeRemoved, this,
+                     &RDTreeView::columnsAboutToBeRemoved);
+    QObject::connect(model, &QAbstractItemModel::rowsAboutToBeMoved, this,
+                     &RDTreeView::rowsAboutToBeMoved);
+    QObject::connect(model, &QAbstractItemModel::columnsAboutToBeMoved, this,
+                     &RDTreeView::columnsAboutToBeMoved);
   }
 }
 
 void RDTreeView::modelAboutToBeReset()
+{
+  m_currentHoverIndex = QModelIndex();
+}
+
+void RDTreeView::rowsAboutToBeRemoved(const QModelIndex &parent, int first, int last)
+{
+  m_currentHoverIndex = QModelIndex();
+}
+
+void RDTreeView::columnsAboutToBeRemoved(const QModelIndex &parent, int first, int last)
+{
+  m_currentHoverIndex = QModelIndex();
+}
+
+void RDTreeView::rowsAboutToBeMoved(const QModelIndex &sourceParent, int sourceStart, int sourceEnd,
+                                    const QModelIndex &destinationParent, int destinationRow)
+{
+  m_currentHoverIndex = QModelIndex();
+}
+
+void RDTreeView::columnsAboutToBeMoved(const QModelIndex &sourceParent, int sourceStart,
+                                       int sourceEnd, const QModelIndex &destinationParent,
+                                       int destinationColumn)
 {
   m_currentHoverIndex = QModelIndex();
 }

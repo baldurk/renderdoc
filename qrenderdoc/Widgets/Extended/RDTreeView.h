@@ -182,6 +182,12 @@ protected:
 
 private slots:
   void modelAboutToBeReset();
+  void rowsAboutToBeRemoved(const QModelIndex &parent, int first, int last);
+  void columnsAboutToBeRemoved(const QModelIndex &parent, int first, int last);
+  void rowsAboutToBeMoved(const QModelIndex &sourceParent, int sourceStart, int sourceEnd,
+                          const QModelIndex &destinationParent, int destinationRow);
+  void columnsAboutToBeMoved(const QModelIndex &sourceParent, int sourceStart, int sourceEnd,
+                             const QModelIndex &destinationParent, int destinationColumn);
 
 private:
   bool m_VisibleBranches = true;
