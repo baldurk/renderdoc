@@ -592,8 +592,46 @@ struct EventItemModel : public QAbstractItemModel
         switch(index.column())
         {
           case COL_NAME: return GetCachedEIDName(eid);
-          case COL_EID: return eid;
-          case COL_DRAW: return draw->eventId == eid ? QVariant(draw->drawcallId) : QVariant();
+          case COL_EID:
+          case COL_DRAW:
+            if(draw->eventId == eid && !draw->children.empty())
+            {
+              uint32_t effectiveEID = eid;
+              auto it = m_Nodes.find(eid);
+              if(it != m_Nodes.end())
+                effectiveEID = it->effectiveEID;
+
+              if(draw->IsFakeMarker())
+                eid = draw->children[0].events[0].eventId;
+
+              if(index.column() == COL_EID)
+              {
+                return eid == effectiveEID
+                           ? QVariant(eid)
+                           : QVariant(QFormatStr("%1-%2").arg(eid).arg(effectiveEID));
+              }
+              else
+              {
+                uint32_t drawId = draw->drawcallId;
+                uint32_t endDrawId = m_Draws[effectiveEID]->drawcallId;
+
+                if(draw->IsFakeMarker())
+                  drawId = draw->children[0].drawcallId;
+
+                return drawId == endDrawId
+                           ? QVariant()
+                           : QVariant(QFormatStr("%1-%2").arg(drawId).arg(endDrawId));
+              }
+            }
+
+            if(index.column() == COL_EID)
+              return eid;
+            else
+              return draw->eventId == eid &&
+                             !(draw->flags &
+                               (DrawFlags::SetMarker | DrawFlags::PushMarker | DrawFlags::PopMarker))
+                         ? QVariant(draw->drawcallId)
+                         : QVariant();
           default: break;
         }
       }
