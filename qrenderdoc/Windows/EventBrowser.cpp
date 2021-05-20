@@ -2159,7 +2159,7 @@ void EventBrowser::events_currentChanged(const QModelIndex &current, const QMode
 
   m_Model->RefreshCache();
 
-  const DrawcallDescription *draw = m_Ctx.GetDrawcall(effectiveEID);
+  const DrawcallDescription *draw = m_Ctx.GetDrawcall(selectedEID);
 
   if(draw && draw->IsFakeMarker())
     draw = &draw->children.back();
@@ -2168,11 +2168,11 @@ void EventBrowser::events_currentChanged(const QModelIndex &current, const QMode
   ui->stepNext->setEnabled(draw && draw->next);
 
   // special case for the first draw in the frame
-  if(effectiveEID == 0)
+  if(selectedEID == 0)
     ui->stepNext->setEnabled(true);
 
   // special case for the first 'virtual' draw at EID 0
-  if(m_Ctx.GetFirstDrawcall() && effectiveEID == m_Ctx.GetFirstDrawcall()->eventId)
+  if(m_Ctx.GetFirstDrawcall() && selectedEID == m_Ctx.GetFirstDrawcall()->eventId)
     ui->stepPrev->setEnabled(true);
 
   highlightBookmarks();
@@ -2303,12 +2303,23 @@ void EventBrowser::on_stepNext_clicked()
 
   const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
-  if(draw && draw->next)
-    SelectEvent(draw->next->eventId);
+  if(draw)
+    draw = draw->next;
 
   // special case for the first 'virtual' draw at EID 0
   if(m_Ctx.CurEvent() == 0)
-    SelectEvent(m_Ctx.GetFirstDrawcall()->eventId);
+    draw = m_Ctx.GetFirstDrawcall();
+
+  while(draw)
+  {
+    // try to select the next event. If successful, stop
+    if(SelectEvent(draw->eventId))
+      return;
+
+    // if it failed, possibly the next draw is filtered out. Step along the list until we find one
+    // which isn't
+    draw = draw->next;
+  }
 }
 
 void EventBrowser::on_stepPrev_clicked()
@@ -2318,12 +2329,22 @@ void EventBrowser::on_stepPrev_clicked()
 
   const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
-  if(draw && draw->previous)
-    SelectEvent(draw->previous->eventId);
+  if(draw)
+    draw = draw->previous;
+
+  while(draw)
+  {
+    // try to select the previous event. If successful, stop
+    if(SelectEvent(draw->eventId))
+      return;
+
+    // if it failed, possibly the previous draw is filtered out. Step along the list until we find
+    // one which isn't
+    draw = draw->previous;
+  }
 
   // special case for the first 'virtual' draw at EID 0
-  if(m_Ctx.CurEvent() == m_Ctx.GetFirstDrawcall()->eventId)
-    SelectEvent(0);
+  SelectEvent(0);
 }
 
 void EventBrowser::on_exportDraws_clicked()
