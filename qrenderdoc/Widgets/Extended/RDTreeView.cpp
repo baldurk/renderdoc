@@ -99,8 +99,12 @@ QSize RDTreeViewDelegate::sizeHint(const QStyleOptionViewItem &option, const QMo
 {
   QSize ret = RichTextViewDelegate::sizeHint(option, index);
 
+  int minHeight = option.fontMetrics.height();
+  if(!m_View->ignoreIconSize())
+    minHeight = qMax(option.decorationSize.height(), minHeight);
+
   if(m_View->ignoreIconSize())
-    ret.setHeight(qMax(option.decorationSize.height() + 2, ret.height()));
+    ret.setHeight(qMax(qMax(option.decorationSize.height(), minHeight) + 2, ret.height()));
 
   // expand a pixel for the grid lines
   if(m_View->visibleGridLines())
@@ -108,9 +112,6 @@ QSize RDTreeViewDelegate::sizeHint(const QStyleOptionViewItem &option, const QMo
 
   // ensure we have at least the margin on top of font size. If the style applied more, don't add to
   // it.
-  int minHeight = option.fontMetrics.height();
-  if(!m_View->ignoreIconSize())
-    minHeight = qMax(option.decorationSize.height(), minHeight);
   ret.setHeight(qMax(ret.height(), minHeight + m_View->verticalItemMargin()));
 
   return ret;
