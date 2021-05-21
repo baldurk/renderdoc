@@ -2101,7 +2101,8 @@ void EventBrowser::OnCaptureClosed()
 
 void EventBrowser::OnEventChanged(uint32_t eventId)
 {
-  SelectEvent(eventId);
+  if(!SelectEvent(eventId))
+    ui->events->setCurrentIndex(QModelIndex());
   repopulateBookmarks();
   highlightBookmarks();
 
@@ -2680,7 +2681,8 @@ void EventBrowser::repopulateBookmarks()
       but->setProperty("eid", EID);
       QObject::connect(but, &QToolButton::clicked, [this, but, EID]() {
         but->setChecked(true);
-        SelectEvent(EID);
+        if(!SelectEvent(EID))
+          ui->events->setCurrentIndex(QModelIndex());
         highlightBookmarks();
       });
 
@@ -2716,7 +2718,8 @@ void EventBrowser::jumpToBookmark(int idx)
     return;
 
   // don't exclude ourselves, so we're updated as normal
-  SelectEvent(bookmarks[idx].eventId);
+  if(!SelectEvent(bookmarks[idx].eventId))
+    ui->events->setCurrentIndex(QModelIndex());
 }
 
 void EventBrowser::highlightBookmarks()
