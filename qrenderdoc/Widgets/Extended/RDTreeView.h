@@ -214,6 +214,9 @@ private:
   bool m_customCopyPaste = false;
   bool m_instantTooltips = false;
 
+  void expandAllInternal(QModelIndex index);
+  void collapseAllInternal(QModelIndex index);
+
   QMap<uint, RDTreeViewExpansionState> m_Expansions;
 
   void updateExpansionFromRow(RDTreeViewExpansionState &state, QModelIndex idx, uint seed,

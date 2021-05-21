@@ -376,20 +376,44 @@ void RDTreeView::copyIndex(QPoint pos, QModelIndex index)
     selectionModel()->clear();
 }
 
-void RDTreeView::expandAll(QModelIndex index)
+void RDTreeView::expandAllInternal(QModelIndex index)
 {
+  int rows = model()->rowCount(index);
+
+  if(rows == 0)
+    return;
+
   expand(index);
 
-  for(int r = 0, rows = model()->rowCount(index); r < rows; r++)
+  for(int r = 0; r < rows; r++)
     expandAll(model()->index(r, 0, index));
+}
+
+void RDTreeView::collapseAllInternal(QModelIndex index)
+{
+  int rows = model()->rowCount(index);
+
+  if(rows == 0)
+    return;
+
+  collapse(index);
+
+  for(int r = 0; r < rows; r++)
+    collapseAll(model()->index(r, 0, index));
+}
+
+void RDTreeView::expandAll(QModelIndex index)
+{
+  setUpdatesEnabled(false);
+  expandAllInternal(index);
+  setUpdatesEnabled(true);
 }
 
 void RDTreeView::collapseAll(QModelIndex index)
 {
-  collapse(index);
-
-  for(int r = 0, rows = model()->rowCount(index); r < rows; r++)
-    collapseAll(model()->index(r, 0, index));
+  setUpdatesEnabled(false);
+  collapseAllInternal(index);
+  setUpdatesEnabled(true);
 }
 
 bool RDTreeView::viewportEvent(QEvent *event)
