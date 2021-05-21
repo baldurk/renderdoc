@@ -136,6 +136,13 @@ struct EventItemModel : public QAbstractItemModel
       for(QModelIndex idx : m_BookmarkIndices)
         RefreshIcon(idx);
     }
+
+    if(m_Ctx.ResourceNameCacheID() != m_RenameCacheID)
+    {
+      m_View->viewport()->update();
+    }
+
+    m_RenameCacheID = m_Ctx.ResourceNameCacheID();
   }
 
   bool HasTimes() { return !m_Times.empty(); }
@@ -691,6 +698,8 @@ private:
   rdcarray<QModelIndex> m_BookmarkIndices;
   QString m_FindString;
   rdcarray<QModelIndex> m_FindResults;
+
+  int32_t m_RenameCacheID;
 
   QMap<uint32_t, int> m_MessageCounts;
 
