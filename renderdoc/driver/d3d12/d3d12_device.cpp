@@ -1457,7 +1457,7 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(SerialiserType &ser, IDX
 
   SERIALISE_ELEMENT(Buffer);
   SERIALISE_ELEMENT_LOCAL(SwapbufferID, GetResID(pRes)).TypedAs("ID3D12Resource *"_lit);
-  SERIALISE_ELEMENT_LOCAL(BackbufferDescriptor, pRes->GetDesc());
+  SERIALISE_ELEMENT_LOCAL(BackbufferDescriptor, pRes->GetDesc()).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1687,7 +1687,7 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
                                                  UINT Subresource, byte *MappedData,
                                                  D3D12_RANGE range)
 {
-  SERIALISE_ELEMENT(Resource);
+  SERIALISE_ELEMENT(Resource).Important();
   SERIALISE_ELEMENT(Subresource);
 
   // tracks if we've already uploaded the data to a persistent buffer and don't need to re-serialise
@@ -1720,7 +1720,7 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
     flags = SerialiserFlags::NoFlags;
   }
 
-  ser.Serialise("MappedData"_lit, MappedData, range.End - range.Begin, flags);
+  ser.Serialise("MappedData"_lit, MappedData, range.End - range.Begin, flags).Important();
 
   SERIALISE_ELEMENT(range);
 
@@ -1826,7 +1826,7 @@ bool WrappedID3D12Device::Serialise_WriteToSubresource(SerialiserType &ser, ID3D
                                                        const void *pSrcData, UINT SrcRowPitch,
                                                        UINT SrcDepthPitch)
 {
-  SERIALISE_ELEMENT(Resource);
+  SERIALISE_ELEMENT(Resource).Important();
   SERIALISE_ELEMENT(Subresource);
   SERIALISE_ELEMENT_OPT(pDstBox);
 
@@ -1879,7 +1879,7 @@ bool WrappedID3D12Device::Serialise_WriteToSubresource(SerialiserType &ser, ID3D
     }
   }
 
-  SERIALISE_ELEMENT_ARRAY(pSrcData, dataSize);
+  SERIALISE_ELEMENT_ARRAY(pSrcData, dataSize).Important();
   SERIALISE_ELEMENT(dataSize).Hidden();
 
   SERIALISE_ELEMENT(SrcRowPitch);
@@ -2098,7 +2098,8 @@ bool WrappedID3D12Device::Serialise_Present(SerialiserType &ser, ID3D12Resource 
                                             UINT SyncInterval, UINT Flags)
 {
   SERIALISE_ELEMENT_LOCAL(PresentedBackbuffer, GetResID(PresentedImage))
-      .TypedAs("ID3D12Resource *"_lit);
+      .TypedAs("ID3D12Resource *"_lit)
+      .Important();
 
   // we don't do anything with these parameters, they're just here to store
   // them for user benefits

@@ -82,7 +82,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Close(SerialiserType &ser)
       BakedCommandList = record->bakedCommands->GetResourceID();
   }
 
-  SERIALISE_ELEMENT_LOCAL(CommandList, GetResourceID()).TypedAs("ID3D12GraphicsCommandList *"_lit);
+  SERIALISE_ELEMENT_LOCAL(CommandList, GetResourceID())
+      .TypedAs("ID3D12GraphicsCommandList *"_lit)
+      .Important();
   SERIALISE_ELEMENT(BakedCommandList).TypedAs("ID3D12GraphicsCommandList *"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -195,9 +197,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
   }
 
   SERIALISE_ELEMENT(BakedCommandList).TypedAs("ID3D12GraphicsCommandList *"_lit);
-  SERIALISE_ELEMENT_LOCAL(CommandList, GetResourceID()).TypedAs("ID3D12GraphicsCommandList *"_lit);
+  SERIALISE_ELEMENT_LOCAL(CommandList, GetResourceID())
+      .TypedAs("ID3D12GraphicsCommandList *"_lit)
+      .Important();
   SERIALISE_ELEMENT(pAllocator);
-  SERIALISE_ELEMENT(pInitialState);
+  SERIALISE_ELEMENT(pInitialState).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -463,7 +467,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResourceBarrier(
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(NumBarriers);
-  SERIALISE_ELEMENT_ARRAY(pBarriers, NumBarriers);
+  SERIALISE_ELEMENT_ARRAY(pBarriers, NumBarriers).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -614,7 +618,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearState(SerialiserType &ser,
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(pPipelineState);
+  SERIALISE_ELEMENT(pPipelineState).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -680,7 +684,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetPrimitiveTopology(
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(PrimitiveTopology);
+  SERIALISE_ELEMENT(PrimitiveTopology).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -744,7 +748,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetViewports(SerialiserType &
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(NumViewports);
-  SERIALISE_ELEMENT_ARRAY(pViewports, NumViewports);
+  SERIALISE_ELEMENT_ARRAY(pViewports, NumViewports).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -812,7 +816,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetScissorRects(SerialiserTyp
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(NumRects);
-  SERIALISE_ELEMENT_ARRAY(pRects, NumRects);
+  SERIALISE_ELEMENT_ARRAY(pRects, NumRects).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -878,7 +882,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetBlendFactor(SerialiserType
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT_ARRAY(BlendFactor, 4);
+  SERIALISE_ELEMENT_ARRAY(BlendFactor, 4).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -936,7 +940,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetStencilRef(SerialiserType 
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(StencilRef);
+  SERIALISE_ELEMENT(StencilRef).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -995,7 +999,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetDescriptorHeaps(
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(NumDescriptorHeaps);
-  SERIALISE_ELEMENT_ARRAY(ppDescriptorHeaps, NumDescriptorHeaps);
+  SERIALISE_ELEMENT_ARRAY(ppDescriptorHeaps, NumDescriptorHeaps).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1075,7 +1079,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetIndexBuffer(SerialiserType
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT_OPT(pView);
+  SERIALISE_ELEMENT_OPT(pView).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1154,9 +1158,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetVertexBuffers(
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(StartSlot).Important();
   SERIALISE_ELEMENT(NumViews);
-  SERIALISE_ELEMENT_ARRAY(pViews, NumViews);
+  SERIALISE_ELEMENT_ARRAY(pViews, NumViews).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1234,9 +1238,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SOSetTargets(
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(StartSlot).Important();
   SERIALISE_ELEMENT(NumViews);
-  SERIALISE_ELEMENT_ARRAY(pViews, NumViews);
+  SERIALISE_ELEMENT_ARRAY(pViews, NumViews).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1316,7 +1320,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetPipelineState(SerialiserType
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(pPipelineState);
+  SERIALISE_ELEMENT(pPipelineState).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1403,10 +1407,13 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(
 
     // read and serialise the D3D12Descriptor contents directly, as the call has semantics of
     // consuming the descriptor immediately
-    SERIALISE_ELEMENT(RTVs).Named("pRenderTargetDescriptors"_lit);
+    SERIALISE_ELEMENT(RTVs).Named("pRenderTargetDescriptors"_lit).Important();
   }
   else
   {
+    // in this case just make the number of descriptors important
+    ser.Important();
+
     // this path is only used during reading, since during writing we're implicitly on the newest
     // version above. We start with numHandles initialised to 0, as the array count is not used on
     // reading (it's filled in), then we calculate it below after having serialised
@@ -1590,7 +1597,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootSignature(
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(pRootSignature);
+  SERIALISE_ELEMENT(pRootSignature).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1666,8 +1673,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootDescriptorTable(
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(RootParameterIndex);
-  SERIALISE_ELEMENT(BaseDescriptor);
+  SERIALISE_ELEMENT(RootParameterIndex).Important();
+  SERIALISE_ELEMENT(BaseDescriptor).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1773,8 +1780,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRoot32BitConstant(
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(RootParameterIndex);
-  SERIALISE_ELEMENT(SrcData);
+  SERIALISE_ELEMENT(RootParameterIndex).Important();
+  SERIALISE_ELEMENT(SrcData).Important();
   SERIALISE_ELEMENT(DestOffsetIn32BitValues);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -1845,10 +1852,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRoot32BitConstants(
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(RootParameterIndex);
+  SERIALISE_ELEMENT(RootParameterIndex).Important();
   SERIALISE_ELEMENT(Num32BitValuesToSet);
   const UINT *pSrcData = (const UINT *)pSrcVoidData;
-  SERIALISE_ELEMENT_ARRAY(pSrcData, Num32BitValuesToSet);
+  SERIALISE_ELEMENT_ARRAY(pSrcData, Num32BitValuesToSet).Important();
   SERIALISE_ELEMENT(DestOffsetIn32BitValues);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -1923,8 +1930,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootConstantBufferVie
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(RootParameterIndex);
-  SERIALISE_ELEMENT_TYPED(D3D12BufferLocation, BufferLocation);
+  SERIALISE_ELEMENT(RootParameterIndex).Important();
+  SERIALISE_ELEMENT_TYPED(D3D12BufferLocation, BufferLocation).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2003,8 +2010,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootShaderResourceVie
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(RootParameterIndex);
-  SERIALISE_ELEMENT_TYPED(D3D12BufferLocation, BufferLocation);
+  SERIALISE_ELEMENT(RootParameterIndex).Important();
+  SERIALISE_ELEMENT_TYPED(D3D12BufferLocation, BufferLocation).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2083,8 +2090,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootUnorderedAccessVi
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(RootParameterIndex);
-  SERIALISE_ELEMENT_TYPED(D3D12BufferLocation, BufferLocation);
+  SERIALISE_ELEMENT(RootParameterIndex).Important();
+  SERIALISE_ELEMENT_TYPED(D3D12BufferLocation, BufferLocation).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2167,7 +2174,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootSignature(
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(pRootSignature);
+  SERIALISE_ELEMENT(pRootSignature).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2243,8 +2250,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootDescriptorTable(
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(RootParameterIndex);
-  SERIALISE_ELEMENT(BaseDescriptor);
+  SERIALISE_ELEMENT(RootParameterIndex).Important();
+  SERIALISE_ELEMENT(BaseDescriptor).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2350,8 +2357,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRoot32BitConstant(
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(RootParameterIndex);
-  SERIALISE_ELEMENT(SrcData);
+  SERIALISE_ELEMENT(RootParameterIndex).Important();
+  SERIALISE_ELEMENT(SrcData).Important();
   SERIALISE_ELEMENT(DestOffsetIn32BitValues);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -2422,10 +2429,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRoot32BitConstants(
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(RootParameterIndex);
+  SERIALISE_ELEMENT(RootParameterIndex).Important();
   SERIALISE_ELEMENT(Num32BitValuesToSet);
   const UINT *pSrcData = (const UINT *)pSrcVoidData;
-  SERIALISE_ELEMENT_ARRAY(pSrcData, Num32BitValuesToSet);
+  SERIALISE_ELEMENT_ARRAY(pSrcData, Num32BitValuesToSet).Important();
   SERIALISE_ELEMENT(DestOffsetIn32BitValues);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -2500,8 +2507,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootConstantBufferVi
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(RootParameterIndex);
-  SERIALISE_ELEMENT_TYPED(D3D12BufferLocation, BufferLocation);
+  SERIALISE_ELEMENT(RootParameterIndex).Important();
+  SERIALISE_ELEMENT_TYPED(D3D12BufferLocation, BufferLocation).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2580,8 +2587,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootShaderResourceVi
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(RootParameterIndex);
-  SERIALISE_ELEMENT_TYPED(D3D12BufferLocation, BufferLocation);
+  SERIALISE_ELEMENT(RootParameterIndex).Important();
+  SERIALISE_ELEMENT_TYPED(D3D12BufferLocation, BufferLocation).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2660,8 +2667,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootUnorderedAccessV
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(RootParameterIndex);
-  SERIALISE_ELEMENT_TYPED(D3D12BufferLocation, BufferLocation);
+  SERIALISE_ELEMENT(RootParameterIndex).Important();
+  SERIALISE_ELEMENT_TYPED(D3D12BufferLocation, BufferLocation).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2745,9 +2752,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginQuery(SerialiserType &ser,
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(pQueryHeap);
-  SERIALISE_ELEMENT(Type);
-  SERIALISE_ELEMENT(Index);
+  SERIALISE_ELEMENT(pQueryHeap).Important();
+  SERIALISE_ELEMENT(Type).Important();
+  SERIALISE_ELEMENT(Index).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2793,9 +2800,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndQuery(SerialiserType &ser,
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(pQueryHeap);
-  SERIALISE_ELEMENT(Type);
-  SERIALISE_ELEMENT(Index);
+  SERIALISE_ELEMENT(pQueryHeap).Important();
+  SERIALISE_ELEMENT(Type).Important();
+  SERIALISE_ELEMENT(Index).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2842,11 +2849,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveQueryData(
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(pQueryHeap);
-  SERIALISE_ELEMENT(Type);
+  SERIALISE_ELEMENT(pQueryHeap).Important();
+  SERIALISE_ELEMENT(Type).Important();
   SERIALISE_ELEMENT(StartIndex);
   SERIALISE_ELEMENT(NumQueries);
-  SERIALISE_ELEMENT(pDestinationBuffer);
+  SERIALISE_ELEMENT(pDestinationBuffer).Important();
   SERIALISE_ELEMENT(AlignedDestinationBufferOffset);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -2901,9 +2908,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetPredication(SerialiserType &
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(pBuffer);
+  SERIALISE_ELEMENT(pBuffer).Important();
   SERIALISE_ELEMENT(AlignedBufferOffset);
-  SERIALISE_ELEMENT(Operation);
+  SERIALISE_ELEMENT(Operation).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2945,7 +2952,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetMarker(SerialiserType &ser, 
 
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(MarkerText);
+  SERIALISE_ELEMENT(MarkerText).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -3008,7 +3015,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginEvent(SerialiserType &ser,
 
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(MarkerText);
+  SERIALISE_ELEMENT(MarkerText).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -3066,7 +3073,7 @@ template <typename SerialiserType>
 bool WrappedID3D12GraphicsCommandList::Serialise_EndEvent(SerialiserType &ser)
 {
   ID3D12GraphicsCommandList *pCommandList = this;
-  SERIALISE_ELEMENT(pCommandList);
+  SERIALISE_ELEMENT(pCommandList).Unimportant();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -3092,7 +3099,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndEvent(SerialiserType &ser)
       D3D12MarkerRegion::End(GetWrappedCrackedList());
 
       DrawcallDescription draw;
-      draw.name = ToStr(D3D12Chunk::PopMarker) + "()";
       draw.flags = DrawFlags::PopMarker;
 
       m_Cmd->AddEvent();
@@ -3134,8 +3140,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawInstanced(SerialiserType &s
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(VertexCountPerInstance);
-  SERIALISE_ELEMENT(InstanceCount);
+  SERIALISE_ELEMENT(VertexCountPerInstance).Important();
+  SERIALISE_ELEMENT(InstanceCount).Important();
   SERIALISE_ELEMENT(StartVertexLocation);
   SERIALISE_ELEMENT(StartInstanceLocation);
 
@@ -3175,7 +3181,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawInstanced(SerialiserType &s
       m_Cmd->AddEvent();
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("DrawInstanced(%u, %u)", VertexCountPerInstance, InstanceCount);
       draw.numIndices = VertexCountPerInstance;
       draw.numInstances = InstanceCount;
       draw.indexOffset = 0;
@@ -3217,8 +3222,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawIndexedInstanced(
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(IndexCountPerInstance);
-  SERIALISE_ELEMENT(InstanceCount);
+  SERIALISE_ELEMENT(IndexCountPerInstance).Important();
+  SERIALISE_ELEMENT(InstanceCount).Important();
   SERIALISE_ELEMENT(StartIndexLocation);
   SERIALISE_ELEMENT(BaseVertexLocation);
   SERIALISE_ELEMENT(StartInstanceLocation);
@@ -3259,8 +3264,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawIndexedInstanced(
       m_Cmd->AddEvent();
 
       DrawcallDescription draw;
-      draw.name =
-          StringFormat::Fmt("DrawIndexedInstanced(%u, %u)", IndexCountPerInstance, InstanceCount);
       draw.numIndices = IndexCountPerInstance;
       draw.numInstances = InstanceCount;
       draw.indexOffset = StartIndexLocation;
@@ -3305,9 +3308,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Dispatch(SerialiserType &ser, U
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(ThreadGroupCountX);
-  SERIALISE_ELEMENT(ThreadGroupCountY);
-  SERIALISE_ELEMENT(ThreadGroupCountZ);
+  SERIALISE_ELEMENT(ThreadGroupCountX).Important();
+  SERIALISE_ELEMENT(ThreadGroupCountY).Important();
+  SERIALISE_ELEMENT(ThreadGroupCountZ).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -3340,8 +3343,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Dispatch(SerialiserType &ser, U
       m_Cmd->AddEvent();
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("Dispatch(%u, %u, %u)", ThreadGroupCountX, ThreadGroupCountY,
-                                    ThreadGroupCountZ);
       draw.dispatchDimension[0] = ThreadGroupCountX;
       draw.dispatchDimension[1] = ThreadGroupCountY;
       draw.dispatchDimension[2] = ThreadGroupCountZ;
@@ -3377,7 +3378,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteBundle(SerialiserType &s
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(pBundle);
+  SERIALISE_ELEMENT(pBundle).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -3412,9 +3413,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteBundle(SerialiserType &s
       m_Cmd->AddEvent();
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt(
-          "ExecuteBundle(%s)", ToStr(GetResourceManager()->GetOriginalID(GetResID(pBundle))).c_str());
-
       draw.flags |= DrawFlags::CmdList;
 
       m_Cmd->AddDrawcall(draw);
@@ -3510,8 +3508,9 @@ void WrappedID3D12GraphicsCommandList::ReserveExecuteIndirect(ID3D12GraphicsComm
 
   if(multidraw)
   {
+    m_Cmd->AddEvent();
     DrawcallDescription draw;
-    draw.name = "ID3D12GraphicsCommandList::ExecuteIndirect() end";
+    draw.name = "ID3D12GraphicsCommandList::ExecuteIndirect()";
     draw.flags = DrawFlags::PopMarker;
     m_Cmd->AddDrawcall(draw);
   }
@@ -3646,7 +3645,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
 
             fakeChunk->name = curDraw.name;
 
-            structuriser.Serialise("ArgumentData"_lit, *args);
+            structuriser.Serialise("ArgumentData"_lit, *args).Important();
 
             // if this is the first draw of the indirect, we could have picked up previous
             // non-indirect events in this drawcall, so the EID will be higher than we expect. Just
@@ -3679,7 +3678,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
 
             fakeChunk->name = curDraw.name;
 
-            structuriser.Serialise("ArgumentData"_lit, *args);
+            structuriser.Serialise("ArgumentData"_lit, *args).Important();
 
             // if this is the first draw of the indirect, we could have picked up previous
             // non-indirect events in this drawcall, so the EID will be higher than we expect. Just
@@ -3709,7 +3708,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
 
             fakeChunk->name = curDraw.name;
 
-            structuriser.Serialise("ArgumentData"_lit, *args);
+            structuriser.Serialise("ArgumentData"_lit, *args).Important();
 
             // if this is the first draw of the indirect, we could have picked up previous
             // non-indirect events in this drawcall, so the EID will be higher than we expect. Just
@@ -3730,9 +3729,9 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
             uint32_t *data32 = (uint32_t *)data;
             data += argSize;
 
-            fakeChunk->name = StringFormat::Fmt("[%u] arg%u: IndirectSetRoot32BitConstants()", i, a);
+            fakeChunk->name = StringFormat::Fmt("[%u] arg%u: IndirectSetRoot32BitConstants", i, a);
 
-            structuriser.Serialise("Values"_lit, data32, arg.Constant.Num32BitValuesToSet);
+            structuriser.Serialise("Values"_lit, data32, arg.Constant.Num32BitValuesToSet).Important();
 
             if(arg.Constant.RootParameterIndex < state.graphics.sigelems.size())
               state.graphics.sigelems[arg.Constant.RootParameterIndex].constants.assign(
@@ -3769,9 +3768,9 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
             state.vbuffers[arg.VertexBuffer.Slot].size = vb->SizeInBytes;
             state.vbuffers[arg.VertexBuffer.Slot].stride = vb->StrideInBytes;
 
-            fakeChunk->name = StringFormat::Fmt("[%u] arg%u: IndirectIASetVertexBuffer()", i, a);
+            fakeChunk->name = StringFormat::Fmt("[%u] arg%u: IndirectIASetVertexBuffer", i, a);
 
-            structuriser.Serialise("ArgumentData"_lit, *vb);
+            structuriser.Serialise("ArgumentData"_lit, *vb).Important();
 
             // advance only the EID, since we're still in the same draw
             eid++;
@@ -3797,9 +3796,9 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
             state.ibuffer.size = ib->SizeInBytes;
             state.ibuffer.bytewidth = ib->Format == DXGI_FORMAT_R32_UINT ? 4 : 2;
 
-            fakeChunk->name = StringFormat::Fmt("[%u] arg%u: IndirectIASetIndexBuffer()", i, a);
+            fakeChunk->name = StringFormat::Fmt("[%u] arg%u: IndirectIASetIndexBuffer", i, a);
 
-            structuriser.Serialise("ArgumentData"_lit, *ib);
+            structuriser.Serialise("ArgumentData"_lit, *ib).Important();
 
             // advance only the EID, since we're still in the same draw
             eid++;
@@ -3845,11 +3844,11 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
               viewTypeStr = "UnorderedAccess";
 
             fakeChunk->name =
-                StringFormat::Fmt("[%u] arg%u: IndirectSetRoot%sView()", i, a, viewTypeStr);
+                StringFormat::Fmt("[%u] arg%u: IndirectSetRoot%sView", i, a, viewTypeStr);
 
             D3D12BufferLocation buf = *addr;
 
-            structuriser.Serialise("ArgumentData"_lit, buf);
+            structuriser.Serialise("ArgumentData"_lit, buf).Important();
 
             // advance only the EID, since we're still in the same draw
             eid++;
@@ -4293,9 +4292,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(pCommandSignature);
-  SERIALISE_ELEMENT(MaxCommandCount);
-  SERIALISE_ELEMENT(pArgumentBuffer);
+  SERIALISE_ELEMENT(pCommandSignature).Important();
+  SERIALISE_ELEMENT(MaxCommandCount).Important();
+  SERIALISE_ELEMENT(pArgumentBuffer).Important();
   SERIALISE_ELEMENT(ArgumentBufferOffset);
   SERIALISE_ELEMENT(pCountBuffer);
   SERIALISE_ELEMENT(CountBufferOffset);
@@ -4472,8 +4471,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearDepthStencilView(
     SERIALISE_ELEMENT(DepthStencilView);
   }
   SERIALISE_ELEMENT(ClearFlags);
-  SERIALISE_ELEMENT(Depth);
-  SERIALISE_ELEMENT(Stencil);
+  SERIALISE_ELEMENT(Depth).Important();
+  SERIALISE_ELEMENT(Stencil).Important();
   SERIALISE_ELEMENT(NumRects);
   SERIALISE_ELEMENT_ARRAY(pRects, NumRects);
 
@@ -4506,7 +4505,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearDepthStencilView(
         D3D12Descriptor *descriptor = GetWrapped(DepthStencilView);
 
         DrawcallDescription draw;
-        draw.name = StringFormat::Fmt("ClearDepthStencilView(%f, %hhu)", Depth, Stencil);
         draw.flags |= DrawFlags::Clear | DrawFlags::ClearDepthStencil;
         draw.copyDestination = GetResourceManager()->GetOriginalID(descriptor->GetResResourceId());
         draw.copyDestinationSubresource =
@@ -4569,7 +4567,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
   {
     SERIALISE_ELEMENT(RenderTargetView);
   }
-  SERIALISE_ELEMENT_ARRAY(ColorRGBA, 4);
+  SERIALISE_ELEMENT_ARRAY(ColorRGBA, 4).Important();
   SERIALISE_ELEMENT(NumRects);
   SERIALISE_ELEMENT_ARRAY(pRects, NumRects);
 
@@ -4598,8 +4596,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
         D3D12Descriptor *descriptor = GetWrapped(RenderTargetView);
 
         DrawcallDescription draw;
-        draw.name = StringFormat::Fmt("ClearRenderTargetView(%f, %f, %f, %f)", ColorRGBA[0],
-                                      ColorRGBA[1], ColorRGBA[2], ColorRGBA[3]);
         draw.flags |= DrawFlags::Clear | DrawFlags::ClearColor;
         draw.copyDestination = GetResourceManager()->GetOriginalID(descriptor->GetResResourceId());
         draw.copyDestinationSubresource =
@@ -4664,7 +4660,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewUint(
     SERIALISE_ELEMENT(ViewCPUHandle);
   }
   SERIALISE_ELEMENT(pResource);
-  SERIALISE_ELEMENT_ARRAY(Values, 4);
+  SERIALISE_ELEMENT_ARRAY(Values, 4).Important();
   SERIALISE_ELEMENT(NumRects);
   SERIALISE_ELEMENT_ARRAY(pRects, NumRects);
 
@@ -4696,8 +4692,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewUint(
         m_Cmd->AddEvent();
 
         DrawcallDescription draw;
-        draw.name = StringFormat::Fmt("ClearUnorderedAccessViewUint(%u, %u, %u, %u)", Values[0],
-                                      Values[1], Values[2], Values[3]);
         draw.flags |= DrawFlags::Clear;
         draw.copyDestination = GetResourceManager()->GetOriginalID(GetResID(pResource));
         draw.copyDestinationSubresource = Subresource();
@@ -4770,7 +4764,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewFloat(
     SERIALISE_ELEMENT(ViewCPUHandle);
   }
   SERIALISE_ELEMENT(pResource);
-  SERIALISE_ELEMENT_ARRAY(Values, 4);
+  SERIALISE_ELEMENT_ARRAY(Values, 4).Important();
   SERIALISE_ELEMENT(NumRects);
   SERIALISE_ELEMENT_ARRAY(pRects, NumRects);
 
@@ -4802,8 +4796,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewFloat(
         m_Cmd->AddEvent();
 
         DrawcallDescription draw;
-        draw.name = StringFormat::Fmt("ClearUnorderedAccessViewFloat(%f, %f, %f, %f)", Values[0],
-                                      Values[1], Values[2], Values[3]);
         draw.flags |= DrawFlags::Clear;
         draw.copyDestination = GetResourceManager()->GetOriginalID(GetResID(pResource));
         draw.copyDestinationSubresource = Subresource();
@@ -4860,7 +4852,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DiscardResource(SerialiserType 
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(pResource);
+  SERIALISE_ELEMENT(pResource).Important();
   SERIALISE_ELEMENT_OPT(pRegion);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -4897,7 +4889,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DiscardResource(SerialiserType 
         draw.flags |= DrawFlags::Clear;
         draw.copyDestination = GetResourceManager()->GetOriginalID(GetResID(pResource));
         draw.copyDestinationSubresource = Subresource();
-        draw.name = StringFormat::Fmt("DiscardResource(%s)", ToStr(draw.copyDestination).c_str());
 
         m_Cmd->AddDrawcall(draw);
 
@@ -4941,9 +4932,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyBufferRegion(SerialiserType
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(pDstBuffer);
+  SERIALISE_ELEMENT(pDstBuffer).Important();
   SERIALISE_ELEMENT(DstOffset);
-  SERIALISE_ELEMENT(pSrcBuffer);
+  SERIALISE_ELEMENT(pSrcBuffer).Important();
   SERIALISE_ELEMENT(SrcOffset);
   SERIALISE_ELEMENT(NumBytes);
 
@@ -4978,8 +4969,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyBufferRegion(SerialiserType
         draw.copyDestination = GetResourceManager()->GetOriginalID(GetResID(pDstBuffer));
         draw.copyDestinationSubresource = Subresource();
 
-        draw.name = StringFormat::Fmt("CopyBufferRegion(%s, %s)", ToStr(draw.copyDestination).c_str(),
-                                      ToStr(draw.copySource).c_str());
         draw.flags |= DrawFlags::Copy;
 
         m_Cmd->AddDrawcall(draw);
@@ -5032,11 +5021,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyTextureRegion(
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT_LOCAL(dst, *pDst);
+  SERIALISE_ELEMENT_LOCAL(dst, *pDst).Important();
   SERIALISE_ELEMENT(DstX);
   SERIALISE_ELEMENT(DstY);
   SERIALISE_ELEMENT(DstZ);
-  SERIALISE_ELEMENT_LOCAL(src, *pSrc);
+  SERIALISE_ELEMENT_LOCAL(src, *pSrc).Important();
   SERIALISE_ELEMENT_OPT(pSrcBox);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -5073,8 +5062,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyTextureRegion(
         ResourceId origDst = GetResourceManager()->GetOriginalID(liveDst);
 
         DrawcallDescription draw;
-        draw.name = StringFormat::Fmt("CopyTextureRegion(%s, %s)", ToStr(origDst).c_str(),
-                                      ToStr(origSrc).c_str());
         draw.flags |= DrawFlags::Copy;
 
         draw.copySource = origSrc;
@@ -5151,8 +5138,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyResource(SerialiserType &se
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(pDstResource);
-  SERIALISE_ELEMENT(pSrcResource);
+  SERIALISE_ELEMENT(pDstResource).Important();
+  SERIALISE_ELEMENT(pSrcResource).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -5182,8 +5169,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyResource(SerialiserType &se
         draw.copyDestination = GetResourceManager()->GetOriginalID(GetResID(pDstResource));
         draw.copyDestinationSubresource = Subresource();
 
-        draw.name = StringFormat::Fmt("CopyResource(%s, %s)", ToStr(draw.copyDestination).c_str(),
-                                      ToStr(draw.copySource).c_str());
         draw.flags |= DrawFlags::Copy;
 
         m_Cmd->AddDrawcall(draw);
@@ -5234,9 +5219,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresource(
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(pDstResource);
+  SERIALISE_ELEMENT(pDstResource).Important();
   SERIALISE_ELEMENT(DstSubresource);
-  SERIALISE_ELEMENT(pSrcResource);
+  SERIALISE_ELEMENT(pSrcResource).Important();
   SERIALISE_ELEMENT(SrcSubresource);
   SERIALISE_ELEMENT(Format);
 
@@ -5277,9 +5262,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresource(
             Subresource(GetMipForSubresource(pDstResource, DstSubresource),
                         GetSliceForSubresource(pDstResource, DstSubresource));
 
-        draw.name =
-            StringFormat::Fmt("ResolveSubresource(%s, %s)", ToStr(draw.copyDestination).c_str(),
-                              ToStr(draw.copySource).c_str());
         draw.flags |= DrawFlags::Resolve;
 
         m_Cmd->AddDrawcall(draw);
@@ -5336,10 +5318,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyTiles(
 {
   ID3D12GraphicsCommandList *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(pTiledResource);
+  SERIALISE_ELEMENT(pTiledResource).Important();
   SERIALISE_ELEMENT_LOCAL(TileRegionStartCoordinate, *pTileRegionStartCoordinate);
   SERIALISE_ELEMENT_LOCAL(TileRegionSize, *pTileRegionSize);
-  SERIALISE_ELEMENT(pBuffer);
+  SERIALISE_ELEMENT(pBuffer).Important();
   SERIALISE_ELEMENT(BufferStartOffsetInBytes);
   SERIALISE_ELEMENT(Flags);
 
@@ -5379,8 +5361,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyTiles(
         ResourceId origDst = GetResourceManager()->GetOriginalID(liveDst);
 
         DrawcallDescription draw;
-        draw.name = StringFormat::Fmt("CopyTiles(src=%s, dst=%s)", ToStr(origDst).c_str(),
-                                      ToStr(origSrc).c_str());
         draw.flags |= DrawFlags::Copy;
 
         draw.copySource = origSrc;

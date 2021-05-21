@@ -521,8 +521,8 @@ void SparseBinds::Apply(WrappedID3D12Device *device, ID3D12Resource *resource)
     D3D12_TILE_RANGE_FLAGS rangeFlags = D3D12_TILE_RANGE_FLAG_NULL;
 
     // do a single whole-resource bind of NULL
-    device->GetQueue()->UpdateTileMappings(Unwrap(resource), 1, NULL, NULL, NULL, 1, &rangeFlags,
-                                           NULL, NULL, D3D12_TILE_MAPPING_FLAG_NONE);
+    device->GetQueue()->UpdateTileMappings(resource, 1, NULL, NULL, NULL, 1, &rangeFlags, NULL,
+                                           NULL, D3D12_TILE_MAPPING_FLAG_NONE);
   }
   else
   {
@@ -546,7 +546,7 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
 
   bool ret = true;
 
-  SERIALISE_ELEMENT(id).TypedAs("ID3D12DeviceChild *"_lit);
+  SERIALISE_ELEMENT(id).TypedAs("ID3D12DeviceChild *"_lit).Important();
   SERIALISE_ELEMENT_LOCAL(type, record->type);
 
   if(IsReplayingAndReading())
@@ -565,7 +565,7 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
       ser.SetLazyThreshold(1000);
 
     SERIALISE_ELEMENT_ARRAY(Descriptors, numElems);
-    SERIALISE_ELEMENT(numElems);
+    SERIALISE_ELEMENT(numElems).Named("NumDescriptors"_lit).Important();
 
     ser.SetLazyThreshold(0);
 
@@ -758,7 +758,8 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
 
     // not using SERIALISE_ELEMENT_ARRAY so we can deliberately avoid allocation - we serialise
     // directly into upload memory
-    ser.Serialise("ResourceContents"_lit, ResourceContents, ContentsLength, SerialiserFlags::NoFlags);
+    ser.Serialise("ResourceContents"_lit, ResourceContents, ContentsLength, SerialiserFlags::NoFlags)
+        .Important();
 
     if(mappedBuffer)
       mappedBuffer->Unmap(0, NULL);

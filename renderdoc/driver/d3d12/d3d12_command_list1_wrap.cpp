@@ -33,9 +33,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_AtomicCopyBufferUINT(
 {
   ID3D12GraphicsCommandList1 *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(pDstBuffer);
+  SERIALISE_ELEMENT(pDstBuffer).Important();
   SERIALISE_ELEMENT(DstOffset);
-  SERIALISE_ELEMENT(pSrcBuffer);
+  SERIALISE_ELEMENT(pSrcBuffer).Important();
   SERIALISE_ELEMENT(SrcOffset);
   SERIALISE_ELEMENT(Dependencies);
   SERIALISE_ELEMENT_ARRAY(ppDependentResources, Dependencies);
@@ -151,9 +151,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_AtomicCopyBufferUINT64(
 {
   ID3D12GraphicsCommandList1 *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(pDstBuffer);
+  SERIALISE_ELEMENT(pDstBuffer).Important();
   SERIALISE_ELEMENT(DstOffset);
-  SERIALISE_ELEMENT(pSrcBuffer);
+  SERIALISE_ELEMENT(pSrcBuffer).Important();
   SERIALISE_ELEMENT(SrcOffset);
   SERIALISE_ELEMENT(Dependencies);
   SERIALISE_ELEMENT_ARRAY(ppDependentResources, Dependencies);
@@ -267,8 +267,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetDepthBounds(SerialiserType
 {
   ID3D12GraphicsCommandList1 *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(Min);
-  SERIALISE_ELEMENT(Max);
+  SERIALISE_ELEMENT(Min).Important();
+  SERIALISE_ELEMENT(Max).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -342,7 +342,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetSamplePositions(
 {
   ID3D12GraphicsCommandList1 *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(NumSamplesPerPixel);
+  SERIALISE_ELEMENT(NumSamplesPerPixel).Important();
   SERIALISE_ELEMENT(NumPixels);
   SERIALISE_ELEMENT_ARRAY(pSamplePositions, NumSamplesPerPixel * NumPixels);
 
@@ -436,11 +436,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresourceRegion(
 {
   ID3D12GraphicsCommandList1 *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(pDstResource);
+  SERIALISE_ELEMENT(pDstResource).Important();
   SERIALISE_ELEMENT(DstSubresource);
   SERIALISE_ELEMENT(DstX);
   SERIALISE_ELEMENT(DstY);
-  SERIALISE_ELEMENT(pSrcResource);
+  SERIALISE_ELEMENT(pSrcResource).Important();
   SERIALISE_ELEMENT(SrcSubresource);
   SERIALISE_ELEMENT_OPT(pSrcRect);
   SERIALISE_ELEMENT(Format);
@@ -541,7 +541,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetViewInstanceMask(SerialiserT
 {
   ID3D12GraphicsCommandList1 *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(Mask);
+  SERIALISE_ELEMENT(Mask).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 

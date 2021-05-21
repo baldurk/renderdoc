@@ -31,8 +31,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetShadingRate(
 {
   ID3D12GraphicsCommandList5 *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(baseShadingRate);
-  SERIALISE_ELEMENT_ARRAY(combiners, 2);
+  SERIALISE_ELEMENT(baseShadingRate).Important();
+  SERIALISE_ELEMENT_ARRAY(combiners, 2).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -133,7 +133,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetShadingRateImage(Serialise
 {
   ID3D12GraphicsCommandList5 *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(shadingRateImage);
+  SERIALISE_ELEMENT(shadingRateImage).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 

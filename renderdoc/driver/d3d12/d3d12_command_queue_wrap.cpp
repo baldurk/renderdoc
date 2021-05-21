@@ -37,11 +37,11 @@ bool WrappedID3D12CommandQueue::Serialise_UpdateTileMappings(
 {
   ID3D12CommandQueue *pQueue = this;
   SERIALISE_ELEMENT(pQueue);
-  SERIALISE_ELEMENT(pResource);
+  SERIALISE_ELEMENT(pResource).Important();
   SERIALISE_ELEMENT(NumResourceRegions);
   SERIALISE_ELEMENT_ARRAY(pResourceRegionStartCoordinates, NumResourceRegions);
   SERIALISE_ELEMENT_ARRAY(pResourceRegionSizes, NumResourceRegions);
-  SERIALISE_ELEMENT(pHeap);
+  SERIALISE_ELEMENT(pHeap).Important();
   SERIALISE_ELEMENT(NumRanges);
   SERIALISE_ELEMENT_ARRAY(pRangeFlags, NumRanges);
   SERIALISE_ELEMENT_ARRAY(pHeapRangeStartOffsets, NumRanges);
@@ -334,9 +334,9 @@ bool WrappedID3D12CommandQueue::Serialise_CopyTileMappings(
 {
   ID3D12CommandQueue *pQueue = this;
   SERIALISE_ELEMENT(pQueue);
-  SERIALISE_ELEMENT(pDstResource);
+  SERIALISE_ELEMENT(pDstResource).Important();
   SERIALISE_ELEMENT_LOCAL(DstRegionStartCoordinate, *pDstRegionStartCoordinate);
-  SERIALISE_ELEMENT(pSrcResource);
+  SERIALISE_ELEMENT(pSrcResource).Important();
   SERIALISE_ELEMENT_LOCAL(SrcRegionStartCoordinate, *pSrcRegionStartCoordinate);
   SERIALISE_ELEMENT_LOCAL(RegionSize, *pRegionSize);
   SERIALISE_ELEMENT(Flags);
@@ -434,7 +434,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
 {
   ID3D12CommandQueue *pQueue = this;
   SERIALISE_ELEMENT(pQueue);
-  SERIALISE_ELEMENT(NumCommandLists);
+  SERIALISE_ELEMENT(NumCommandLists).Important();
   SERIALISE_ELEMENT_ARRAY(ppCommandLists, NumCommandLists);
 
   {
@@ -1079,7 +1079,7 @@ bool WrappedID3D12CommandQueue::Serialise_BeginEvent(SerialiserType &ser, UINT M
 
   ID3D12CommandQueue *pQueue = this;
   SERIALISE_ELEMENT(pQueue);
-  SERIALISE_ELEMENT(MarkerText);
+  SERIALISE_ELEMENT(MarkerText).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1134,11 +1134,14 @@ bool WrappedID3D12CommandQueue::Serialise_EndEvent(SerialiserType &ser)
 
     if(IsLoading(m_State))
     {
+      DrawcallDescription draw;
+      draw.flags |= DrawFlags::PopMarker;
+
+      m_Cmd.AddEvent();
+      m_Cmd.AddDrawcall(draw);
+
       if(m_Cmd.GetDrawcallStack().size() > 1)
         m_Cmd.GetDrawcallStack().pop_back();
-
-      // Skip - pop marker draws aren't processed otherwise, we just apply them to the drawcall
-      // stack.
     }
   }
 
@@ -1166,8 +1169,8 @@ bool WrappedID3D12CommandQueue::Serialise_Signal(SerialiserType &ser, ID3D12Fenc
 {
   ID3D12CommandQueue *pQueue = this;
   SERIALISE_ELEMENT(pQueue);
-  SERIALISE_ELEMENT(pFence);
-  SERIALISE_ELEMENT(Value);
+  SERIALISE_ELEMENT(pFence).Important();
+  SERIALISE_ELEMENT(Value).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1205,8 +1208,8 @@ bool WrappedID3D12CommandQueue::Serialise_Wait(SerialiserType &ser, ID3D12Fence 
 {
   ID3D12CommandQueue *pQueue = this;
   SERIALISE_ELEMENT(pQueue);
-  SERIALISE_ELEMENT(pFence);
-  SERIALISE_ELEMENT(Value);
+  SERIALISE_ELEMENT(pFence).Important();
+  SERIALISE_ELEMENT(Value).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
