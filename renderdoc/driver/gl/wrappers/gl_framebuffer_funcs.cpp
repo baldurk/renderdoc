@@ -1680,9 +1680,9 @@ bool WrappedOpenGL::Serialise_glFramebufferDrawBuffersEXT(SerialiserType &ser,
                                                           GLuint framebufferHandle, GLsizei n,
                                                           const GLenum *bufs)
 {
-  SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
+  SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle)).Important();
   SERIALISE_ELEMENT(n);
-  SERIALISE_ELEMENT_ARRAY(bufs, n);
+  SERIALISE_ELEMENT_ARRAY(bufs, n).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1775,7 +1775,7 @@ bool WrappedOpenGL::Serialise_glInvalidateNamedFramebufferData(SerialiserType &s
                                                                GLsizei numAttachments,
                                                                const GLenum *attachments)
 {
-  SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
+  SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle)).Important();
   SERIALISE_ELEMENT(numAttachments);
   SERIALISE_ELEMENT_ARRAY(attachments, numAttachments);
 
@@ -1817,8 +1817,6 @@ bool WrappedOpenGL::Serialise_glInvalidateNamedFramebufferData(SerialiserType &s
       ResourceId fbid = GetResourceManager()->GetResID(framebuffer);
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(),
-                                    ToStr(GetResourceManager()->GetOriginalID(fbid)).c_str());
       draw.flags |= DrawFlags::Clear;
 
       for(GLsizei i = 0; i < numAttachments; i++)
@@ -1970,7 +1968,7 @@ bool WrappedOpenGL::Serialise_glInvalidateNamedFramebufferSubData(
     SerialiserType &ser, GLuint framebufferHandle, GLsizei numAttachments,
     const GLenum *attachments, GLint x, GLint y, GLsizei width, GLsizei height)
 {
-  SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
+  SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle)).Important();
   SERIALISE_ELEMENT(numAttachments);
   SERIALISE_ELEMENT_ARRAY(attachments, numAttachments);
   SERIALISE_ELEMENT(x);
@@ -2017,8 +2015,6 @@ bool WrappedOpenGL::Serialise_glInvalidateNamedFramebufferSubData(
       ResourceId fbid = GetResourceManager()->GetResID(framebuffer);
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(),
-                                    ToStr(GetResourceManager()->GetOriginalID(fbid)).c_str());
       draw.flags |= DrawFlags::Clear;
 
       for(GLsizei i = 0; i < numAttachments; i++)
@@ -2136,8 +2132,10 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(SerialiserType &ser,
                                                      GLint dstX0, GLint dstY0, GLint dstX1,
                                                      GLint dstY1, GLbitfield mask, GLenum filter)
 {
-  SERIALISE_ELEMENT_LOCAL(readFramebuffer, FramebufferRes(GetCtx(), readFramebufferHandle));
-  SERIALISE_ELEMENT_LOCAL(drawFramebuffer, FramebufferRes(GetCtx(), drawFramebufferHandle));
+  SERIALISE_ELEMENT_LOCAL(readFramebuffer, FramebufferRes(GetCtx(), readFramebufferHandle))
+      .Important();
+  SERIALISE_ELEMENT_LOCAL(drawFramebuffer, FramebufferRes(GetCtx(), drawFramebufferHandle))
+      .Important();
   SERIALISE_ELEMENT(srcX0);
   SERIALISE_ELEMENT(srcY0);
   SERIALISE_ELEMENT(srcX1);
@@ -2172,9 +2170,6 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(SerialiserType &ser,
       ResourceId drawId = GetResourceManager()->GetResID(drawFramebuffer);
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%s, %s)", ToStr(gl_CurChunk).c_str(),
-                                    ToStr(GetResourceManager()->GetOriginalID(readId)).c_str(),
-                                    ToStr(GetResourceManager()->GetOriginalID(drawId)).c_str());
       draw.flags |= DrawFlags::Resolve;
 
       GLint numCols = 8;

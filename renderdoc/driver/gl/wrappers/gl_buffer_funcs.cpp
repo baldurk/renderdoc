@@ -957,11 +957,11 @@ bool WrappedOpenGL::Serialise_glNamedBufferSubDataEXT(SerialiserType &ser, GLuin
                                                       GLintptr offsetPtr, GLsizeiptr size,
                                                       const void *data)
 {
-  SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle));
+  SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle)).Important();
   SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr);
 
   SERIALISE_ELEMENT_LOCAL(bytesize, (uint64_t)size);
-  SERIALISE_ELEMENT_ARRAY(data, bytesize);
+  SERIALISE_ELEMENT_ARRAY(data, bytesize).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1097,8 +1097,8 @@ bool WrappedOpenGL::Serialise_glNamedCopyBufferSubDataEXT(SerialiserType &ser,
                                                           GLintptr readOffsetPtr,
                                                           GLintptr writeOffsetPtr, GLsizeiptr sizePtr)
 {
-  SERIALISE_ELEMENT_LOCAL(readBuffer, BufferRes(GetCtx(), readBufferHandle));
-  SERIALISE_ELEMENT_LOCAL(writeBuffer, BufferRes(GetCtx(), writeBufferHandle));
+  SERIALISE_ELEMENT_LOCAL(readBuffer, BufferRes(GetCtx(), readBufferHandle)).Important();
+  SERIALISE_ELEMENT_LOCAL(writeBuffer, BufferRes(GetCtx(), writeBufferHandle)).Important();
   SERIALISE_ELEMENT_LOCAL(readOffset, (uint64_t)readOffsetPtr);
   SERIALISE_ELEMENT_LOCAL(writeOffset, (uint64_t)writeOffsetPtr);
   SERIALISE_ELEMENT_LOCAL(size, (uint64_t)sizePtr);
@@ -1118,9 +1118,6 @@ bool WrappedOpenGL::Serialise_glNamedCopyBufferSubDataEXT(SerialiserType &ser,
       ResourceId dstid = GetResourceManager()->GetResID(writeBuffer);
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%s, %s)", ToStr(gl_CurChunk).c_str(),
-                                    ToStr(GetResourceManager()->GetOriginalID(srcid)).c_str(),
-                                    ToStr(GetResourceManager()->GetOriginalID(dstid)).c_str());
       draw.flags |= DrawFlags::Copy;
 
       draw.copySource = GetResourceManager()->GetOriginalID(srcid);
@@ -1431,9 +1428,9 @@ bool WrappedOpenGL::Serialise_glBindBufferRange(SerialiserType &ser, GLenum targ
                                                 GLuint bufferHandle, GLintptr offsetPtr,
                                                 GLsizeiptr sizePtr)
 {
-  SERIALISE_ELEMENT(target);
-  SERIALISE_ELEMENT(index);
-  SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle));
+  SERIALISE_ELEMENT(target).Important();
+  SERIALISE_ELEMENT(index).Important();
+  SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle)).Important();
   SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr);
   SERIALISE_ELEMENT_LOCAL(size, (uint64_t)sizePtr);
 
@@ -1574,8 +1571,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glBindBuffersBase(SerialiserType &ser, GLenum target, GLuint first,
                                                 GLsizei count, const GLuint *bufferHandles)
 {
-  SERIALISE_ELEMENT(target);
-  SERIALISE_ELEMENT(first);
+  SERIALISE_ELEMENT(target).Important();
+  SERIALISE_ELEMENT(first).Important();
   SERIALISE_ELEMENT(count);
 
   // can't serialise arrays of GL handles since they're not wrapped or typed :(.
@@ -1588,7 +1585,7 @@ bool WrappedOpenGL::Serialise_glBindBuffersBase(SerialiserType &ser, GLenum targ
       buffers.push_back(BufferRes(GetCtx(), bufferHandles ? bufferHandles[i] : 0));
   }
 
-  SERIALISE_ELEMENT(buffers);
+  SERIALISE_ELEMENT(buffers).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1782,10 +1779,10 @@ bool WrappedOpenGL::Serialise_glBindBuffersRange(SerialiserType &ser, GLenum tar
       sizes.push_back((uint64_t)sizePtrs[i]);
   }
 
-  SERIALISE_ELEMENT(target);
-  SERIALISE_ELEMENT(first);
+  SERIALISE_ELEMENT(target).Important();
+  SERIALISE_ELEMENT(first).Important();
   SERIALISE_ELEMENT(count);
-  SERIALISE_ELEMENT(buffers);
+  SERIALISE_ELEMENT(buffers).Important();
   SERIALISE_ELEMENT(offsets);
   SERIALISE_ELEMENT(sizes);
 
@@ -2009,8 +2006,6 @@ bool WrappedOpenGL::Serialise_glInvalidateBufferData(SerialiserType &ser, GLuint
       AddEvent();
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(),
-                                    ToStr(GetResourceManager()->GetOriginalID(id)).c_str());
       draw.flags |= DrawFlags::Clear;
 
       draw.copyDestination = GetResourceManager()->GetOriginalID(id);
@@ -2055,7 +2050,7 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glInvalidateBufferSubData(SerialiserType &ser, GLuint bufferHandle,
                                                         GLintptr offsetPtr, GLsizeiptr lengthPtr)
 {
-  SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle));
+  SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle)).Important();
   SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr);
   SERIALISE_ELEMENT_LOCAL(length, (uint64_t)lengthPtr);
 
@@ -2088,8 +2083,6 @@ bool WrappedOpenGL::Serialise_glInvalidateBufferSubData(SerialiserType &ser, GLu
       AddEvent();
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(),
-                                    ToStr(GetResourceManager()->GetOriginalID(id)).c_str());
       draw.flags |= DrawFlags::Clear;
 
       draw.copyDestination = GetResourceManager()->GetOriginalID(id);
@@ -4786,9 +4779,9 @@ bool WrappedOpenGL::Serialise_glVertexArrayBindVertexBufferEXT(SerialiserType &s
                                                                GLuint bufferHandle,
                                                                GLintptr offsetPtr, GLsizei stride)
 {
-  SERIALISE_ELEMENT_LOCAL(vaobj, VertexArrayRes(GetCtx(), vaobjHandle));
-  SERIALISE_ELEMENT(bindingindex);
-  SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle));
+  SERIALISE_ELEMENT_LOCAL(vaobj, VertexArrayRes(GetCtx(), vaobjHandle)).Important();
+  SERIALISE_ELEMENT(bindingindex).Important();
+  SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle)).Important();
   SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr);
   SERIALISE_ELEMENT(stride);
 
@@ -4910,10 +4903,10 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexBuffers(SerialiserType &ser, GL
       offsets.push_back((uint64_t)offsetPtrs[i]);
   }
 
-  SERIALISE_ELEMENT_LOCAL(vaobj, VertexArrayRes(GetCtx(), vaobjHandle));
-  SERIALISE_ELEMENT(first);
+  SERIALISE_ELEMENT_LOCAL(vaobj, VertexArrayRes(GetCtx(), vaobjHandle)).Important();
+  SERIALISE_ELEMENT(first).Important();
   SERIALISE_ELEMENT(count);
-  SERIALISE_ELEMENT(buffers);
+  SERIALISE_ELEMENT(buffers).Important();
   SERIALISE_ELEMENT(offsets);
   SERIALISE_ELEMENT_ARRAY(strides, count);
 

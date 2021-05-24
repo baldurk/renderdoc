@@ -364,7 +364,7 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glShaderSource(SerialiserType &ser, GLuint shaderHandle, GLsizei count,
                                              const GLchar *const *source, const GLint *length)
 {
-  SERIALISE_ELEMENT_LOCAL(shader, ShaderRes(GetCtx(), shaderHandle));
+  SERIALISE_ELEMENT_LOCAL(shader, ShaderRes(GetCtx(), shaderHandle)).Important();
 
   // serialisation can't handle the length parameter neatly, so we compromise by serialising via a
   // vector
@@ -380,7 +380,7 @@ bool WrappedOpenGL::Serialise_glShaderSource(SerialiserType &ser, GLuint shaderH
     }
   }
 
-  SERIALISE_ELEMENT(count);
+  SERIALISE_ELEMENT(count).Important();
   SERIALISE_ELEMENT(sources);
   SERIALISE_ELEMENT_ARRAY(length, count);
 

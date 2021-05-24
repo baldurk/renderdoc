@@ -1112,7 +1112,7 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
   if(initial)
     initContents = *initial;
 
-  SERIALISE_ELEMENT(id).TypedAs("GLResource"_lit);
+  SERIALISE_ELEMENT(id).TypedAs("GLResource"_lit).Important();
   SERIALISE_ELEMENT_LOCAL(Type, initial->type);
 
   if(IsReplayingAndReading())
@@ -1156,7 +1156,8 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
 
     // not using SERIALISE_ELEMENT_ARRAY so we can deliberately avoid allocation - we serialise
     // directly into upload memory
-    ser.Serialise("BufferContents"_lit, BufferContents, BufferContentsSize, SerialiserFlags::NoFlags);
+    ser.Serialise("BufferContents"_lit, BufferContents, BufferContentsSize, SerialiserFlags::NoFlags)
+        .Important();
 
     if(mappedBuffer.name)
       GL.glUnmapNamedBufferEXT(mappedBuffer.name);
@@ -1670,7 +1671,8 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
               }
 
               // serialise without allocating memory as we already have our scratch buf sized.
-              ser.Serialise("SubresourceContents"_lit, scratchBuf, size, SerialiserFlags::NoFlags);
+              ser.Serialise("SubresourceContents"_lit, scratchBuf, size, SerialiserFlags::NoFlags)
+                  .Important();
 
               // on replay, restore the data into the initial contents texture
               if(IsReplayingAndReading() && !ser.IsErrored())

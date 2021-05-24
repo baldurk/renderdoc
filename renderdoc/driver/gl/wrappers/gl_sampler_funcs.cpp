@@ -193,9 +193,9 @@ bool WrappedOpenGL::Serialise_glBindSamplers(SerialiserType &ser, GLuint first, 
       samplers.push_back(SamplerRes(GetCtx(), samplerHandles ? samplerHandles[i] : 0));
   }
 
-  SERIALISE_ELEMENT(first);
+  SERIALISE_ELEMENT(first).Important();
   SERIALISE_ELEMENT(count);
-  SERIALISE_ELEMENT(samplers);
+  SERIALISE_ELEMENT(samplers).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 

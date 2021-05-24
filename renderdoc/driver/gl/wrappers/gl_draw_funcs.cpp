@@ -312,8 +312,6 @@ bool WrappedOpenGL::Serialise_glDispatchCompute(SerialiserType &ser, GLuint num_
       AddEvent();
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%u, %u, %u)", ToStr(gl_CurChunk).c_str(), num_groups_x,
-                                    num_groups_y, num_groups_z);
       draw.flags |= DrawFlags::Dispatch;
 
       draw.dispatchDimension[0] = num_groups_x;
@@ -377,9 +375,9 @@ bool WrappedOpenGL::Serialise_glDispatchComputeGroupSizeARB(SerialiserType &ser,
                                                             GLuint num_groups_z, GLuint group_size_x,
                                                             GLuint group_size_y, GLuint group_size_z)
 {
-  SERIALISE_ELEMENT(num_groups_x);
-  SERIALISE_ELEMENT(num_groups_y);
-  SERIALISE_ELEMENT(num_groups_z);
+  SERIALISE_ELEMENT(num_groups_x).Important();
+  SERIALISE_ELEMENT(num_groups_y).Important();
+  SERIALISE_ELEMENT(num_groups_z).Important();
   SERIALISE_ELEMENT(group_size_x);
   SERIALISE_ELEMENT(group_size_y);
   SERIALISE_ELEMENT(group_size_z);
@@ -400,9 +398,6 @@ bool WrappedOpenGL::Serialise_glDispatchComputeGroupSizeARB(SerialiserType &ser,
       AddEvent();
 
       DrawcallDescription draw;
-      draw.name =
-          StringFormat::Fmt("%s(%u, %u, %u,  %u, %u, %u)", ToStr(gl_CurChunk).c_str(), num_groups_x,
-                            num_groups_y, num_groups_z, group_size_x, group_size_y, group_size_z);
       draw.flags |= DrawFlags::Dispatch;
 
       draw.dispatchDimension[0] = num_groups_x;
@@ -486,7 +481,7 @@ void WrappedOpenGL::glDispatchComputeGroupSizeARB(GLuint num_groups_x, GLuint nu
 template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glDispatchComputeIndirect(SerialiserType &ser, GLintptr indirect)
 {
-  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect);
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -660,7 +655,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedback(SerialiserType &ser, GLenu
                                                       GLuint xfbHandle)
 {
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
-  SERIALISE_ELEMENT_LOCAL(xfb, FeedbackRes(GetCtx(), xfbHandle));
+  SERIALISE_ELEMENT_LOCAL(xfb, FeedbackRes(GetCtx(), xfbHandle)).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -731,8 +726,8 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackInstanced(SerialiserType &s
                                                                GLsizei instancecount)
 {
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
-  SERIALISE_ELEMENT_LOCAL(xfb, FeedbackRes(GetCtx(), xfbHandle));
-  SERIALISE_ELEMENT(instancecount);
+  SERIALISE_ELEMENT_LOCAL(xfb, FeedbackRes(GetCtx(), xfbHandle)).Important();
+  SERIALISE_ELEMENT(instancecount).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -750,7 +745,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackInstanced(SerialiserType &s
       GLNOTIMP("Not fetching feedback object count for glDrawTransformFeedbackInstanced() display");
 
       DrawcallDescription draw;
-      draw.name = ToStr(gl_CurChunk) + "(<?>)";
+      draw.name = StringFormat::Fmt("%s(<?, %u>)", ToStr(gl_CurChunk).c_str(), instancecount);
       draw.numIndices = 1;
       draw.numInstances = 1;
       draw.indexOffset = 0;
@@ -802,8 +797,8 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStream(SerialiserType &ser,
                                                             GLuint xfbHandle, GLuint stream)
 {
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
-  SERIALISE_ELEMENT_LOCAL(xfb, FeedbackRes(GetCtx(), xfbHandle));
-  SERIALISE_ELEMENT(stream);
+  SERIALISE_ELEMENT_LOCAL(xfb, FeedbackRes(GetCtx(), xfbHandle)).Important();
+  SERIALISE_ELEMENT(stream).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -874,9 +869,9 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStreamInstanced(SerialiserT
                                                                      GLsizei instancecount)
 {
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
-  SERIALISE_ELEMENT_LOCAL(xfb, FeedbackRes(GetCtx(), xfbHandle));
-  SERIALISE_ELEMENT(stream);
-  SERIALISE_ELEMENT(instancecount);
+  SERIALISE_ELEMENT_LOCAL(xfb, FeedbackRes(GetCtx(), xfbHandle)).Important();
+  SERIALISE_ELEMENT(stream).Important();
+  SERIALISE_ELEMENT(instancecount).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -896,7 +891,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStreamInstanced(SerialiserT
           "display");
 
       DrawcallDescription draw;
-      draw.name = ToStr(gl_CurChunk) + "(<?>)";
+      draw.name = StringFormat::Fmt("%s(<?, %u>)", ToStr(gl_CurChunk).c_str(), instancecount);
       draw.numIndices = 1;
       draw.numInstances = 1;
       draw.indexOffset = 0;
@@ -950,7 +945,7 @@ bool WrappedOpenGL::Serialise_glDrawArrays(SerialiserType &ser, GLenum mode, GLi
 {
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT(first);
-  SERIALISE_ELEMENT(count);
+  SERIALISE_ELEMENT(count).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -966,7 +961,6 @@ bool WrappedOpenGL::Serialise_glDrawArrays(SerialiserType &ser, GLenum mode, GLi
       AddEvent();
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%u)", ToStr(gl_CurChunk).c_str(), count);
       draw.numIndices = count;
       draw.numInstances = 1;
       draw.indexOffset = 0;
@@ -1206,7 +1200,7 @@ bool WrappedOpenGL::Serialise_glDrawArraysIndirect(SerialiserType &ser, GLenum m
                                                    const void *indirect)
 {
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
-  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect);
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -1227,7 +1221,7 @@ bool WrappedOpenGL::Serialise_glDrawArraysIndirect(SerialiserType &ser, GLenum m
       AddEvent();
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%u, %u)", ToStr(gl_CurChunk).c_str(), params.count,
+      draw.name = StringFormat::Fmt("%s(<%u, %u>)", ToStr(gl_CurChunk).c_str(), params.count,
                                     params.instanceCount);
       draw.numIndices = params.count;
       draw.numInstances = params.instanceCount;
@@ -1286,8 +1280,8 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstanced(SerialiserType &ser, GLenum 
 {
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT(first);
-  SERIALISE_ELEMENT(count);
-  SERIALISE_ELEMENT(instancecount);
+  SERIALISE_ELEMENT(count).Important();
+  SERIALISE_ELEMENT(instancecount).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -1303,7 +1297,6 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstanced(SerialiserType &ser, GLenum 
       AddEvent();
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%u, %u)", ToStr(gl_CurChunk).c_str(), count, instancecount);
       draw.numIndices = count;
       draw.numInstances = instancecount;
       draw.indexOffset = 0;
@@ -1365,8 +1358,8 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstancedBaseInstance(SerialiserType &
 {
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT(first);
-  SERIALISE_ELEMENT(count);
-  SERIALISE_ELEMENT(instancecount);
+  SERIALISE_ELEMENT(count).Important();
+  SERIALISE_ELEMENT(instancecount).Important();
   SERIALISE_ELEMENT(baseinstance);
 
   Serialise_DebugMessages(ser);
@@ -1383,7 +1376,6 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstancedBaseInstance(SerialiserType &
       AddEvent();
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%u, %u)", ToStr(gl_CurChunk).c_str(), count, instancecount);
       draw.numIndices = count;
       draw.numInstances = instancecount;
       draw.indexOffset = 0;
@@ -1443,7 +1435,7 @@ bool WrappedOpenGL::Serialise_glDrawElements(SerialiserType &ser, GLenum mode, G
                                              GLenum type, const void *indicesPtr)
 {
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
-  SERIALISE_ELEMENT(count);
+  SERIALISE_ELEMENT(count).Important();
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT_LOCAL(indices, (uint64_t)indicesPtr);
 
@@ -1463,7 +1455,6 @@ bool WrappedOpenGL::Serialise_glDrawElements(SerialiserType &ser, GLenum mode, G
       uint32_t IdxSize = GetIdxSize(type);
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%u)", ToStr(gl_CurChunk).c_str(), count);
       draw.numIndices = count;
       draw.numInstances = 1;
       draw.indexOffset = uint32_t(indices) / IdxSize;
@@ -1521,7 +1512,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsIndirect(SerialiserType &ser, GLenum
 {
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT(type);
-  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect);
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -1608,7 +1599,7 @@ bool WrappedOpenGL::Serialise_glDrawRangeElements(SerialiserType &ser, GLenum mo
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT(start);
   SERIALISE_ELEMENT(end);
-  SERIALISE_ELEMENT(count);
+  SERIALISE_ELEMENT(count).Important();
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT_LOCAL(indices, (uint64_t)indicesPtr);
 
@@ -1628,7 +1619,6 @@ bool WrappedOpenGL::Serialise_glDrawRangeElements(SerialiserType &ser, GLenum mo
       uint32_t IdxSize = GetIdxSize(type);
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%u)", ToStr(gl_CurChunk).c_str(), count);
       draw.numIndices = count;
       draw.numInstances = 1;
       draw.indexOffset = uint32_t(indices) / IdxSize;
@@ -1690,7 +1680,7 @@ bool WrappedOpenGL::Serialise_glDrawRangeElementsBaseVertex(SerialiserType &ser,
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT(start);
   SERIALISE_ELEMENT(end);
-  SERIALISE_ELEMENT(count);
+  SERIALISE_ELEMENT(count).Important();
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT_LOCAL(indices, (uint64_t)indicesPtr);
   SERIALISE_ELEMENT(basevertex);
@@ -1712,7 +1702,6 @@ bool WrappedOpenGL::Serialise_glDrawRangeElementsBaseVertex(SerialiserType &ser,
       uint32_t IdxSize = GetIdxSize(type);
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%u)", ToStr(gl_CurChunk).c_str(), count);
       draw.numIndices = count;
       draw.numInstances = 1;
       draw.indexOffset = uint32_t(indices) / IdxSize;
@@ -1773,7 +1762,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsBaseVertex(SerialiserType &ser, GLen
                                                        const void *indicesPtr, GLint basevertex)
 {
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
-  SERIALISE_ELEMENT(count);
+  SERIALISE_ELEMENT(count).Important();
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT_LOCAL(indices, (uint64_t)indicesPtr);
   SERIALISE_ELEMENT(basevertex);
@@ -1794,7 +1783,6 @@ bool WrappedOpenGL::Serialise_glDrawElementsBaseVertex(SerialiserType &ser, GLen
       uint32_t IdxSize = GetIdxSize(type);
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%u)", ToStr(gl_CurChunk).c_str(), count);
       draw.numIndices = count;
       draw.numInstances = 1;
       draw.indexOffset = uint32_t(indices) / IdxSize;
@@ -1853,10 +1841,10 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstanced(SerialiserType &ser, GLenu
                                                       const void *indicesPtr, GLsizei instancecount)
 {
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
-  SERIALISE_ELEMENT(count);
+  SERIALISE_ELEMENT(count).Important();
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT_LOCAL(indices, (uint64_t)indicesPtr);
-  SERIALISE_ELEMENT(instancecount);
+  SERIALISE_ELEMENT(instancecount).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -1874,7 +1862,6 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstanced(SerialiserType &ser, GLenu
       uint32_t IdxSize = GetIdxSize(type);
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%u, %u)", ToStr(gl_CurChunk).c_str(), count, instancecount);
       draw.numIndices = count;
       draw.numInstances = instancecount;
       draw.indexOffset = uint32_t(indices) / IdxSize;
@@ -1936,10 +1923,10 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseInstance(SerialiserType
                                                                   GLuint baseinstance)
 {
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
-  SERIALISE_ELEMENT(count);
+  SERIALISE_ELEMENT(count).Important();
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT_LOCAL(indices, (uint64_t)indicesPtr);
-  SERIALISE_ELEMENT(instancecount);
+  SERIALISE_ELEMENT(instancecount).Important();
   SERIALISE_ELEMENT(baseinstance);
 
   Serialise_DebugMessages(ser);
@@ -1959,7 +1946,6 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseInstance(SerialiserType
       uint32_t IdxSize = GetIdxSize(type);
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%u, %u)", ToStr(gl_CurChunk).c_str(), count, instancecount);
       draw.numIndices = count;
       draw.numInstances = instancecount;
       draw.indexOffset = uint32_t(indices) / IdxSize;
@@ -2024,10 +2010,10 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertex(SerialiserType &
                                                                 GLint basevertex)
 {
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
-  SERIALISE_ELEMENT(count);
+  SERIALISE_ELEMENT(count).Important();
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT_LOCAL(indices, (uint64_t)indicesPtr);
-  SERIALISE_ELEMENT(instancecount);
+  SERIALISE_ELEMENT(instancecount).Important();
   SERIALISE_ELEMENT(basevertex);
 
   Serialise_DebugMessages(ser);
@@ -2047,7 +2033,6 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertex(SerialiserType &
       uint32_t IdxSize = GetIdxSize(type);
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%u, %u)", ToStr(gl_CurChunk).c_str(), count, instancecount);
       draw.numIndices = count;
       draw.numInstances = instancecount;
       draw.indexOffset = uint32_t(indices) / IdxSize;
@@ -2110,10 +2095,10 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertexBaseInstance(
     GLsizei instancecount, GLint basevertex, GLuint baseinstance)
 {
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
-  SERIALISE_ELEMENT(count);
+  SERIALISE_ELEMENT(count).Important();
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT_LOCAL(indices, (uint64_t)indicesPtr);
-  SERIALISE_ELEMENT(instancecount);
+  SERIALISE_ELEMENT(instancecount).Important();
   SERIALISE_ELEMENT(basevertex);
   SERIALISE_ELEMENT(baseinstance);
 
@@ -2134,7 +2119,6 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertexBaseInstance(
       uint32_t IdxSize = GetIdxSize(type);
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%u, %u)", ToStr(gl_CurChunk).c_str(), count, instancecount);
       draw.numIndices = count;
       draw.numInstances = instancecount;
       draw.indexOffset = uint32_t(indices) / IdxSize;
@@ -2199,7 +2183,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(SerialiserType &ser, GLenum mode
 {
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT_ARRAY(first, drawcount);
-  SERIALISE_ELEMENT_ARRAY(count, drawcount);
+  SERIALISE_ELEMENT_ARRAY(count, drawcount).Important();
   SERIALISE_ELEMENT(drawcount);
 
   Serialise_DebugMessages(ser);
@@ -2349,7 +2333,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(SerialiserType &ser, GLenum mo
   }
 
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
-  SERIALISE_ELEMENT_ARRAY(count, drawcount);
+  SERIALISE_ELEMENT_ARRAY(count, drawcount).Important();
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT(indices);
   SERIALISE_ELEMENT(drawcount);
@@ -2518,7 +2502,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(SerialiserType &ser,
   }
 
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
-  SERIALISE_ELEMENT_ARRAY(count, drawcount);
+  SERIALISE_ELEMENT_ARRAY(count, drawcount).Important();
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT(indices);
   SERIALISE_ELEMENT(drawcount);
@@ -2680,8 +2664,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
                                                         GLsizei stride)
 {
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
-  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect);
-  SERIALISE_ELEMENT(drawcount);
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect).Important();
+  SERIALISE_ELEMENT(drawcount).Important();
   SERIALISE_ELEMENT(stride);
 
   Serialise_DebugMessages(ser);
@@ -2698,7 +2682,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
         GL.glMultiDrawArraysIndirect(mode, (const void *)offset, drawcount, stride);
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%i)", ToStr(gl_CurChunk).c_str(), drawcount);
+      draw.name = StringFormat::Fmt("%s(<%i>)", ToStr(gl_CurChunk).c_str(), drawcount);
 
       draw.flags |= DrawFlags::MultiDraw;
 
@@ -2897,8 +2881,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
 {
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT(type);
-  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect);
-  SERIALISE_ELEMENT(drawcount);
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect).Important();
+  SERIALISE_ELEMENT(drawcount).Important();
   SERIALISE_ELEMENT(stride);
 
   Serialise_DebugMessages(ser);
@@ -2920,7 +2904,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
         GL.glMultiDrawElementsIndirect(mode, type, (const void *)offset, drawcount, stride);
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%i)", ToStr(gl_CurChunk).c_str(), drawcount);
+      draw.name = StringFormat::Fmt("%s(<%i>)", ToStr(gl_CurChunk).c_str(), drawcount);
 
       draw.flags |= DrawFlags::MultiDraw;
 
@@ -3123,9 +3107,9 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
                                                              GLsizei maxdrawcount, GLsizei stride)
 {
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
-  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect);
-  SERIALISE_ELEMENT_LOCAL(drawcount, (uint64_t)drawcountPtr);
-  SERIALISE_ELEMENT(maxdrawcount);
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect).Important();
+  SERIALISE_ELEMENT_LOCAL(drawcount, (uint64_t)drawcountPtr).Important();
+  SERIALISE_ELEMENT(maxdrawcount).Important();
   SERIALISE_ELEMENT(stride);
 
   Serialise_DebugMessages(ser);
@@ -3352,9 +3336,9 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
 {
   SERIALISE_ELEMENT_TYPED(GLdrawmode, mode);
   SERIALISE_ELEMENT(type);
-  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect);
-  SERIALISE_ELEMENT_LOCAL(drawcount, (uint64_t)drawcountPtr);
-  SERIALISE_ELEMENT(maxdrawcount);
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)indirect).Important();
+  SERIALISE_ELEMENT_LOCAL(drawcount, (uint64_t)drawcountPtr).Important();
+  SERIALISE_ELEMENT(maxdrawcount).Important();
   SERIALISE_ELEMENT(stride);
 
   Serialise_DebugMessages(ser);
@@ -3587,8 +3571,8 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfv(SerialiserType &ser,
 {
   SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
   SERIALISE_ELEMENT(buffer);
-  SERIALISE_ELEMENT(drawbuffer);
-  SERIALISE_ELEMENT_ARRAY(value, buffer == eGL_DEPTH ? 1 : 4);
+  SERIALISE_ELEMENT(drawbuffer).Important();
+  SERIALISE_ELEMENT_ARRAY(value, buffer == eGL_DEPTH ? 1 : 4).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -3609,18 +3593,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfv(SerialiserType &ser,
     {
       AddEvent();
 
-      rdcstr name;
-
-      if(buffer == eGL_DEPTH)
-        name = StringFormat::Fmt("%s(%s, %i, %f)", ToStr(gl_CurChunk).c_str(),
-                                 ToStr(buffer).c_str(), drawbuffer, value[0]);
-      else
-        name = StringFormat::Fmt("%s(%s, %i, %f, %f, %f, %f)", ToStr(gl_CurChunk).c_str(),
-                                 ToStr(buffer).c_str(), drawbuffer, value[0], value[1], value[2],
-                                 value[3]);
-
       DrawcallDescription draw;
-      draw.name = name;
       draw.flags |= DrawFlags::Clear;
       if(buffer == eGL_COLOR)
         draw.flags |= DrawFlags::ClearColor;
@@ -3738,8 +3711,8 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferiv(SerialiserType &ser,
 {
   SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
   SERIALISE_ELEMENT(buffer);
-  SERIALISE_ELEMENT(drawbuffer);
-  SERIALISE_ELEMENT_ARRAY(value, buffer == eGL_STENCIL ? 1 : 4);
+  SERIALISE_ELEMENT(drawbuffer).Important();
+  SERIALISE_ELEMENT_ARRAY(value, buffer == eGL_STENCIL ? 1 : 4).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -3760,18 +3733,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferiv(SerialiserType &ser,
     {
       AddEvent();
 
-      rdcstr name;
-
-      if(buffer == eGL_STENCIL)
-        name = StringFormat::Fmt("%s(%s, %i, %i)", ToStr(gl_CurChunk).c_str(),
-                                 ToStr(buffer).c_str(), drawbuffer, value[0]);
-      else
-        name = StringFormat::Fmt("%s(%s, %i, %i, %i, %i, %i)", ToStr(gl_CurChunk).c_str(),
-                                 ToStr(buffer).c_str(), drawbuffer, value[0], value[1], value[2],
-                                 value[3]);
-
       DrawcallDescription draw;
-      draw.name = name;
       draw.flags |= DrawFlags::Clear;
       if(buffer == eGL_COLOR)
         draw.flags |= DrawFlags::ClearColor;
@@ -3874,8 +3836,8 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferuiv(SerialiserType &ser,
 {
   SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
   SERIALISE_ELEMENT(buffer);
-  SERIALISE_ELEMENT(drawbuffer);
-  SERIALISE_ELEMENT_ARRAY(value, 4);
+  SERIALISE_ELEMENT(drawbuffer).Important();
+  SERIALISE_ELEMENT_ARRAY(value, 4).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -3897,10 +3859,6 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferuiv(SerialiserType &ser,
       AddEvent();
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%s, %i, %u, %u, %u, %u)", ToStr(gl_CurChunk).c_str(),
-                                    ToStr(buffer).c_str(), drawbuffer, value[0], value[1], value[2],
-                                    value[3]);
-
       draw.flags |= DrawFlags::Clear | DrawFlags::ClearColor;
 
       GLuint attachment = 0;
@@ -3998,9 +3956,9 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfi(SerialiserType &ser, GLu
 {
   SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
   SERIALISE_ELEMENT(buffer);
-  SERIALISE_ELEMENT(drawbuffer);
-  SERIALISE_ELEMENT(depth);
-  SERIALISE_ELEMENT(stencil);
+  SERIALISE_ELEMENT(drawbuffer).Important();
+  SERIALISE_ELEMENT(depth).Important();
+  SERIALISE_ELEMENT(stencil).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -4022,7 +3980,6 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfi(SerialiserType &ser, GLu
       AddEvent();
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%f, %i)", ToStr(gl_CurChunk).c_str(), depth, stencil);
       draw.flags |= DrawFlags::Clear | DrawFlags::ClearDepthStencil;
 
       GLuint attachment = 0;
@@ -4138,10 +4095,10 @@ bool WrappedOpenGL::Serialise_glClearNamedBufferDataEXT(SerialiserType &ser, GLu
                                                         GLenum internalformat, GLenum format,
                                                         GLenum type, const void *dataPtr)
 {
-  SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle));
+  SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle)).Important();
   SERIALISE_ELEMENT(internalformat);
-  SERIALISE_ELEMENT(format);
-  SERIALISE_ELEMENT(type);
+  SERIALISE_ELEMENT(format).Important();
+  SERIALISE_ELEMENT(type).Important();
 
   uint64_t data[4] = {0};
 
@@ -4289,12 +4246,12 @@ bool WrappedOpenGL::Serialise_glClearNamedBufferSubDataEXT(SerialiserType &ser, 
                                                            GLsizeiptr sizePtr, GLenum format,
                                                            GLenum type, const void *dataPtr)
 {
-  SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle));
+  SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle)).Important();
   SERIALISE_ELEMENT(internalformat);
   SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr);
   SERIALISE_ELEMENT_LOCAL(size, (uint64_t)sizePtr);
-  SERIALISE_ELEMENT(format);
-  SERIALISE_ELEMENT(type);
+  SERIALISE_ELEMENT(format).Important();
+  SERIALISE_ELEMENT(type).Important();
 
   uint64_t data[4] = {0};
 
@@ -4584,10 +4541,10 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glClearTexImage(SerialiserType &ser, GLuint textureHandle, GLint level,
                                               GLenum format, GLenum type, const void *dataPtr)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
   SERIALISE_ELEMENT(level);
-  SERIALISE_ELEMENT(format);
-  SERIALISE_ELEMENT(type);
+  SERIALISE_ELEMENT(format).Important();
+  SERIALISE_ELEMENT(type).Important();
 
   uint64_t data[4] = {0};
 
@@ -4675,7 +4632,6 @@ bool WrappedOpenGL::Serialise_glClearTexImage(SerialiserType &ser, GLuint textur
       ResourceId id = GetResourceManager()->GetOriginalID(liveId);
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(), ToStr(id).c_str());
       draw.flags |= DrawFlags::Clear;
       if(format == eGL_DEPTH_STENCIL || format == eGL_DEPTH_COMPONENT || format == eGL_STENCIL_INDEX)
         draw.flags |= DrawFlags::ClearDepthStencil;
@@ -4726,7 +4682,7 @@ bool WrappedOpenGL::Serialise_glClearTexSubImage(SerialiserType &ser, GLuint tex
                                                  GLsizei depth, GLenum format, GLenum type,
                                                  const void *dataPtr)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
   SERIALISE_ELEMENT(level);
   SERIALISE_ELEMENT(xoffset);
   SERIALISE_ELEMENT(yoffset);
@@ -4734,8 +4690,8 @@ bool WrappedOpenGL::Serialise_glClearTexSubImage(SerialiserType &ser, GLuint tex
   SERIALISE_ELEMENT(width);
   SERIALISE_ELEMENT(height);
   SERIALISE_ELEMENT(depth);
-  SERIALISE_ELEMENT(format);
-  SERIALISE_ELEMENT(type);
+  SERIALISE_ELEMENT(format).Important();
+  SERIALISE_ELEMENT(type).Important();
 
   uint64_t data[4] = {0};
 
@@ -4824,7 +4780,6 @@ bool WrappedOpenGL::Serialise_glClearTexSubImage(SerialiserType &ser, GLuint tex
       ResourceId id = GetResourceManager()->GetOriginalID(liveId);
 
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(), ToStr(id).c_str());
       draw.flags |= DrawFlags::Clear;
       if(format == eGL_DEPTH_STENCIL || format == eGL_DEPTH_COMPONENT || format == eGL_STENCIL_INDEX)
         draw.flags |= DrawFlags::ClearDepthStencil;
@@ -4881,7 +4836,6 @@ bool WrappedOpenGL::Serialise_glFlush(SerialiserType &ser)
     if(IsLoading(m_State))
     {
       DrawcallDescription draw;
-      draw.name = ToStr(gl_CurChunk) + "()";
       draw.flags |= DrawFlags::PassBoundary | DrawFlags::EndPass;
 
       AddEvent();
@@ -4922,7 +4876,6 @@ bool WrappedOpenGL::Serialise_glFinish(SerialiserType &ser)
       AddEvent();
 
       DrawcallDescription draw;
-      draw.name = ToStr(gl_CurChunk) + "()";
       draw.flags |= DrawFlags::PassBoundary | DrawFlags::EndPass;
 
       AddDrawcall(draw);
