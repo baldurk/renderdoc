@@ -184,7 +184,7 @@ Since this is a global system hook it must be used carefully and only when neces
             </property>
            </widget>
           </item>
-          <item row="14" column="0">
+          <item row="15" column="0">
            <widget class="QLabel" name="label_10">
             <property name="toolTip">
              <string>If a capture is marked as being created on a significantly different system (different OS or platform)
@@ -252,7 +252,7 @@ e.g. a value of 2 means 0 will display as 0.00, 0.5 as 0.50</string>
             </property>
            </widget>
           </item>
-          <item row="13" column="1">
+          <item row="14" column="1">
            <widget class="QCheckBox" name="CheckUpdate_AllowChecks">
             <property name="toolTip">
              <string>Allows RenderDoc to phone home to https://renderdoc.org to anonymously check for new versions.</string>
@@ -294,7 +294,7 @@ Defaults to %TEMP%.</string>
             </property>
            </widget>
           </item>
-          <item row="14" column="1">
+          <item row="15" column="1">
            <widget class="QCheckBox" name="AlwaysReplayLocally">
             <property name="toolTip">
              <string>If a capture is marked as being created on a significantly different system (different OS or platform)
@@ -338,7 +338,7 @@ E.g. a value of 3 means 0.005 / 10 = 5E-4</string>
             </property>
            </widget>
           </item>
-          <item row="13" column="0">
+          <item row="14" column="0">
            <widget class="QLabel" name="label_8">
             <property name="toolTip">
              <string>Allows RenderDoc to phone home to https://renderdoc.org to anonymously check for new versions.</string>
@@ -357,6 +357,34 @@ into all new processes created - then inject into the target (matching) executab
 Useful for capturing programs indirectly that can't easily be launched directly by RenderDoc
 
 Since this is a global system hook it must be used carefully and only when necessary!</string>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="13" column="0">
+           <widget class="QLabel" name="injectProcLabel">
+            <property name="toolTip">
+             <string>Enables the ability to inject into processes on windows.
+
+Injecting into processes can be unreliable and should only be used as a last resort when no other
+methods succeed, it should not be used as a primary method of launching applications. Instead the
+program should be launched through RenderDoc via the Launch Process panel.</string>
+            </property>
+            <property name="text">
+             <string>Enable process injection (restart required)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="13" column="1">
+           <widget class="QCheckBox" name="AllowProcessInject">
+            <property name="toolTip">
+             <string>Enables the ability to inject into processes on windows.
+
+Injecting into processes can be unreliable and should only be used as a last resort when no other
+methods succeed, it should not be used as a primary method of launching applications. Instead the
+program should be launched through RenderDoc via the Launch Process panel.</string>
             </property>
             <property name="text">
              <string/>

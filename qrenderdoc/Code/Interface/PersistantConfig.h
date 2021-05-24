@@ -573,6 +573,14 @@ DECLARE_REFLECTION_STRUCT(BugReport);
   CONFIG_SETTING_VAL(public, bool, bool, AllowGlobalHook, false)                                   \
                                                                                                    \
   DOCUMENT(                                                                                        \
+      "``True`` if process injection is enabled. Since it can often break and is almost always "   \
+      "not want users want to do. New users can get confused by it being there and go to it "      \
+      "first.\n"                                                                                   \
+      "\n"                                                                                         \
+      "Defaults to ``False``.");                                                                   \
+  CONFIG_SETTING_VAL(public, bool, bool, AllowProcessInject, false)                                \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
       "A list of :class:`ShaderProcessingTool` detailing shader processing programs. The list "    \
       "comes in priority order, with earlier processors preferred over later ones.\n"              \
       "\n"                                                                                         \

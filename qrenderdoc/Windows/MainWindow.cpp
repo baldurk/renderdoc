@@ -115,7 +115,11 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
 
   setProperty("ICaptureContext", QVariant::fromValue((void *)&ctx));
 
-#if !defined(Q_OS_WIN32)
+#if defined(Q_OS_WIN32)
+  // remove inject menu item when it's not enabled in the settings
+  if(!ctx.Config().AllowProcessInject)
+    ui->menu_File->removeAction(ui->action_Inject_into_Process);
+#else
   // process injection is not supported on non-Windows, so remove the menu item rather than disable
   // it without a clear way to communicate that it is never supported
   ui->menu_File->removeAction(ui->action_Inject_into_Process);
