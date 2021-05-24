@@ -30,9 +30,9 @@ bool WrappedVulkan::Serialise_vkCmdSetViewport(SerialiserType &ser, VkCommandBuf
                                                const VkViewport *pViewports)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(firstViewport);
+  SERIALISE_ELEMENT(firstViewport).Important();
   SERIALISE_ELEMENT(viewportCount);
-  SERIALISE_ELEMENT_ARRAY(pViewports, viewportCount);
+  SERIALISE_ELEMENT_ARRAY(pViewports, viewportCount).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -101,7 +101,7 @@ bool WrappedVulkan::Serialise_vkCmdSetViewportWithCountEXT(SerialiserType &ser,
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(viewportCount);
-  SERIALISE_ELEMENT_ARRAY(pViewports, viewportCount);
+  SERIALISE_ELEMENT_ARRAY(pViewports, viewportCount).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -163,9 +163,9 @@ bool WrappedVulkan::Serialise_vkCmdSetScissor(SerialiserType &ser, VkCommandBuff
                                               const VkRect2D *pScissors)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(firstScissor);
+  SERIALISE_ELEMENT(firstScissor).Important();
   SERIALISE_ELEMENT(scissorCount);
-  SERIALISE_ELEMENT_ARRAY(pScissors, scissorCount);
+  SERIALISE_ELEMENT_ARRAY(pScissors, scissorCount).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -293,7 +293,7 @@ bool WrappedVulkan::Serialise_vkCmdSetLineWidth(SerialiserType &ser, VkCommandBu
                                                 float lineWidth)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(lineWidth);
+  SERIALISE_ELEMENT(lineWidth).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -351,9 +351,9 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthBias(SerialiserType &ser, VkCommandBu
                                                 float slopeScaledDepthBias)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(depthBias);
-  SERIALISE_ELEMENT(depthBiasClamp);
-  SERIALISE_ELEMENT(slopeScaledDepthBias);
+  SERIALISE_ELEMENT(depthBias).Important();
+  SERIALISE_ELEMENT(depthBiasClamp).Important();
+  SERIALISE_ELEMENT(slopeScaledDepthBias).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -418,7 +418,7 @@ bool WrappedVulkan::Serialise_vkCmdSetBlendConstants(SerialiserType &ser,
                                                      const float *blendConst)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT_ARRAY(blendConst, 4);
+  SERIALISE_ELEMENT_ARRAY(blendConst, 4).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -476,8 +476,8 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthBounds(SerialiserType &ser, VkCommand
                                                   float minDepthBounds, float maxDepthBounds)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(minDepthBounds);
-  SERIALISE_ELEMENT(maxDepthBounds);
+  SERIALISE_ELEMENT(minDepthBounds).Important();
+  SERIALISE_ELEMENT(maxDepthBounds).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -540,8 +540,10 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilCompareMask(SerialiserType &ser,
                                                          uint32_t compareMask)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT_TYPED(VkStencilFaceFlagBits, faceMask).TypedAs("VkStencilFaceFlags"_lit);
-  SERIALISE_ELEMENT(compareMask);
+  SERIALISE_ELEMENT_TYPED(VkStencilFaceFlagBits, faceMask)
+      .TypedAs("VkStencilFaceFlags"_lit)
+      .Important();
+  SERIALISE_ELEMENT(compareMask).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -606,8 +608,10 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilWriteMask(SerialiserType &ser,
                                                        uint32_t writeMask)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT_TYPED(VkStencilFaceFlagBits, faceMask).TypedAs("VkStencilFaceFlags"_lit);
-  SERIALISE_ELEMENT(writeMask);
+  SERIALISE_ELEMENT_TYPED(VkStencilFaceFlagBits, faceMask)
+      .TypedAs("VkStencilFaceFlags"_lit)
+      .Important();
+  SERIALISE_ELEMENT(writeMask).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -672,8 +676,10 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilReference(SerialiserType &ser,
                                                        uint32_t reference)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT_TYPED(VkStencilFaceFlagBits, faceMask).TypedAs("VkStencilFaceFlags"_lit);
-  SERIALISE_ELEMENT(reference);
+  SERIALISE_ELEMENT_TYPED(VkStencilFaceFlagBits, faceMask)
+      .TypedAs("VkStencilFaceFlags"_lit)
+      .Important();
+  SERIALISE_ELEMENT(reference).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -737,7 +743,9 @@ bool WrappedVulkan::Serialise_vkCmdSetSampleLocationsEXT(
     const VkSampleLocationsInfoEXT *pSampleLocationsInfo)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT_LOCAL(sampleInfo, *pSampleLocationsInfo).Named("pSampleLocationsInfo"_lit);
+  SERIALISE_ELEMENT_LOCAL(sampleInfo, *pSampleLocationsInfo)
+      .Named("pSampleLocationsInfo"_lit)
+      .Important();
 
   Serialise_DebugMessages(ser);
 
@@ -803,9 +811,9 @@ bool WrappedVulkan::Serialise_vkCmdSetDiscardRectangleEXT(SerialiserType &ser,
                                                           const VkRect2D *pDiscardRectangles)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(firstDiscardRectangle);
+  SERIALISE_ELEMENT(firstDiscardRectangle).Important();
   SERIALISE_ELEMENT(discardRectangleCount);
-  SERIALISE_ELEMENT_ARRAY(pDiscardRectangles, discardRectangleCount);
+  SERIALISE_ELEMENT_ARRAY(pDiscardRectangles, discardRectangleCount).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -877,8 +885,8 @@ bool WrappedVulkan::Serialise_vkCmdSetLineStippleEXT(SerialiserType &ser,
                                                      uint16_t lineStipplePattern)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(lineStippleFactor);
-  SERIALISE_ELEMENT(lineStipplePattern);
+  SERIALISE_ELEMENT(lineStippleFactor).Important();
+  SERIALISE_ELEMENT(lineStipplePattern).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -941,7 +949,7 @@ bool WrappedVulkan::Serialise_vkCmdSetCullModeEXT(SerialiserType &ser, VkCommand
                                                   VkCullModeFlags cullMode)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT_TYPED(VkCullModeFlagBits, cullMode);
+  SERIALISE_ELEMENT_TYPED(VkCullModeFlagBits, cullMode).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -999,7 +1007,7 @@ bool WrappedVulkan::Serialise_vkCmdSetFrontFaceEXT(SerialiserType &ser, VkComman
                                                    VkFrontFace frontFace)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(frontFace);
+  SERIALISE_ELEMENT(frontFace).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -1058,7 +1066,7 @@ bool WrappedVulkan::Serialise_vkCmdSetPrimitiveTopologyEXT(SerialiserType &ser,
                                                            VkPrimitiveTopology primitiveTopology)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(primitiveTopology);
+  SERIALISE_ELEMENT(primitiveTopology).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -1123,7 +1131,7 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthTestEnableEXT(SerialiserType &ser,
                                                          VkBool32 depthTestEnable)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(depthTestEnable);
+  SERIALISE_ELEMENT(depthTestEnable).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -1183,7 +1191,7 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthWriteEnableEXT(SerialiserType &ser,
                                                           VkBool32 depthWriteEnable)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(depthWriteEnable);
+  SERIALISE_ELEMENT(depthWriteEnable).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -1244,7 +1252,7 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthCompareOpEXT(SerialiserType &ser,
                                                         VkCompareOp depthCompareOp)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(depthCompareOp);
+  SERIALISE_ELEMENT(depthCompareOp).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -1305,7 +1313,7 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthBoundsTestEnableEXT(SerialiserType &s
                                                                VkBool32 depthBoundsTestEnable)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(depthBoundsTestEnable);
+  SERIALISE_ELEMENT(depthBoundsTestEnable).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -1367,7 +1375,7 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilTestEnableEXT(SerialiserType &ser,
                                                            VkBool32 stencilTestEnable)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(stencilTestEnable);
+  SERIALISE_ELEMENT(stencilTestEnable).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -1429,11 +1437,11 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilOpEXT(SerialiserType &ser, VkComman
                                                    VkCompareOp compareOp)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT_TYPED(VkStencilFaceFlagBits, faceMask);
+  SERIALISE_ELEMENT_TYPED(VkStencilFaceFlagBits, faceMask).Important();
   SERIALISE_ELEMENT(failOp);
   SERIALISE_ELEMENT(passOp);
   SERIALISE_ELEMENT(depthFailOp);
-  SERIALISE_ELEMENT(compareOp);
+  SERIALISE_ELEMENT(compareOp).Important();
 
   Serialise_DebugMessages(ser);
 

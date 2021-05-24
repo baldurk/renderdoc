@@ -188,8 +188,8 @@ bool WrappedVulkan::Serialise_vkCmdDraw(SerialiserType &ser, VkCommandBuffer com
                                         uint32_t firstVertex, uint32_t firstInstance)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(vertexCount);
-  SERIALISE_ELEMENT(instanceCount);
+  SERIALISE_ELEMENT(vertexCount).Important();
+  SERIALISE_ELEMENT(instanceCount).Important();
   SERIALISE_ELEMENT(firstVertex);
   SERIALISE_ELEMENT(firstInstance);
 
@@ -238,7 +238,6 @@ bool WrappedVulkan::Serialise_vkCmdDraw(SerialiserType &ser, VkCommandBuffer com
         AddEvent();
 
         DrawcallDescription draw;
-        draw.name = StringFormat::Fmt("vkCmdDraw(%u, %u)", vertexCount, instanceCount);
         draw.numIndices = vertexCount;
         draw.numInstances = instanceCount;
         draw.indexOffset = 0;
@@ -285,8 +284,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(SerialiserType &ser, VkCommandBuf
                                                uint32_t firstInstance)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(indexCount);
-  SERIALISE_ELEMENT(instanceCount);
+  SERIALISE_ELEMENT(indexCount).Important();
+  SERIALISE_ELEMENT(instanceCount).Important();
   SERIALISE_ELEMENT(firstIndex);
   SERIALISE_ELEMENT(vertexOffset);
   SERIALISE_ELEMENT(firstInstance);
@@ -338,7 +337,6 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(SerialiserType &ser, VkCommandBuf
         AddEvent();
 
         DrawcallDescription draw;
-        draw.name = StringFormat::Fmt("vkCmdDrawIndexed(%u, %u)", indexCount, instanceCount);
         draw.numIndices = indexCount;
         draw.numInstances = instanceCount;
         draw.indexOffset = firstIndex;
@@ -386,9 +384,9 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
                                                 uint32_t count, uint32_t stride)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(buffer);
+  SERIALISE_ELEMENT(buffer).Important();
   SERIALISE_ELEMENT(offset);
-  SERIALISE_ELEMENT(count);
+  SERIALISE_ELEMENT(count).Important();
   SERIALISE_ELEMENT(stride);
 
   Serialise_DebugMessages(ser);
@@ -682,7 +680,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
           structuriser.Serialise("buffer"_lit, bufid);
           structuriser.Serialise("offset"_lit, offset);
           structuriser.Serialise("stride"_lit, stride);
-          structuriser.Serialise("command"_lit, VkDrawIndirectCommand());
+          structuriser.Serialise("command"_lit, VkDrawIndirectCommand()).Important();
         }
 
         m_StructuredFile->chunks.insert(m_StructuredFile->chunks.size() - 1, fakeChunk);
@@ -750,7 +748,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
           structuriser.Serialise("buffer"_lit, bufid);
           structuriser.Serialise("offset"_lit, offset);
           structuriser.Serialise("stride"_lit, stride);
-          structuriser.Serialise("command"_lit, VkDrawIndirectCommand());
+          structuriser.Serialise("command"_lit, VkDrawIndirectCommand()).Important();
         }
 
         m_StructuredFile->chunks.push_back(fakeChunk);
@@ -811,9 +809,9 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
                                                        uint32_t count, uint32_t stride)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(buffer);
+  SERIALISE_ELEMENT(buffer).Important();
   SERIALISE_ELEMENT(offset);
-  SERIALISE_ELEMENT(count);
+  SERIALISE_ELEMENT(count).Important();
   SERIALISE_ELEMENT(stride);
 
   Serialise_DebugMessages(ser);
@@ -1066,7 +1064,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
           structuriser.Serialise("buffer"_lit, bufid);
           structuriser.Serialise("offset"_lit, offset);
           structuriser.Serialise("stride"_lit, stride);
-          structuriser.Serialise("command"_lit, VkDrawIndexedIndirectCommand());
+          structuriser.Serialise("command"_lit, VkDrawIndexedIndirectCommand()).Important();
         }
 
         m_StructuredFile->chunks.insert(m_StructuredFile->chunks.size() - 1, fakeChunk);
@@ -1137,7 +1135,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
           structuriser.Serialise("buffer"_lit, bufid);
           structuriser.Serialise("offset"_lit, offset);
           structuriser.Serialise("stride"_lit, stride);
-          structuriser.Serialise("command"_lit, VkDrawIndexedIndirectCommand());
+          structuriser.Serialise("command"_lit, VkDrawIndexedIndirectCommand()).Important();
         }
 
         m_StructuredFile->chunks.push_back(fakeChunk);
@@ -1196,9 +1194,9 @@ bool WrappedVulkan::Serialise_vkCmdDispatch(SerialiserType &ser, VkCommandBuffer
                                             uint32_t x, uint32_t y, uint32_t z)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(x);
-  SERIALISE_ELEMENT(y);
-  SERIALISE_ELEMENT(z);
+  SERIALISE_ELEMENT(x).Important();
+  SERIALISE_ELEMENT(y).Important();
+  SERIALISE_ELEMENT(z).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -1233,7 +1231,6 @@ bool WrappedVulkan::Serialise_vkCmdDispatch(SerialiserType &ser, VkCommandBuffer
         AddEvent();
 
         DrawcallDescription draw;
-        draw.name = StringFormat::Fmt("vkCmdDispatch(%u, %u, %u)", x, y, z);
         draw.dispatchDimension[0] = x;
         draw.dispatchDimension[1] = y;
         draw.dispatchDimension[2] = z;
@@ -1274,7 +1271,7 @@ bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(SerialiserType &ser,
                                                     VkDeviceSize offset)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(buffer);
+  SERIALISE_ELEMENT(buffer).Important();
   SERIALISE_ELEMENT(offset);
 
   Serialise_DebugMessages(ser);
@@ -1368,9 +1365,9 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage(SerialiserType &ser, VkCommandBuffe
                                              VkFilter filter)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(srcImage);
+  SERIALISE_ELEMENT(srcImage).Important();
   SERIALISE_ELEMENT(srcImageLayout);
-  SERIALISE_ELEMENT(destImage);
+  SERIALISE_ELEMENT(destImage).Important();
   SERIALISE_ELEMENT(destImageLayout);
   SERIALISE_ELEMENT(regionCount);
   SERIALISE_ELEMENT_ARRAY(pRegions, regionCount);
@@ -1419,8 +1416,6 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage(SerialiserType &ser, VkCommandBuffe
         ResourceId dstid = GetResourceManager()->GetOriginalID(GetResID(destImage));
 
         DrawcallDescription draw;
-        draw.name =
-            StringFormat::Fmt("vkCmdBlitImage(%s, %s)", ToStr(srcid).c_str(), ToStr(dstid).c_str());
         draw.flags |= DrawFlags::Resolve;
 
         draw.copySource = srcid;
@@ -1518,9 +1513,9 @@ bool WrappedVulkan::Serialise_vkCmdResolveImage(SerialiserType &ser, VkCommandBu
                                                 uint32_t regionCount, const VkImageResolve *pRegions)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(srcImage);
+  SERIALISE_ELEMENT(srcImage).Important();
   SERIALISE_ELEMENT(srcImageLayout);
-  SERIALISE_ELEMENT(destImage);
+  SERIALISE_ELEMENT(destImage).Important();
   SERIALISE_ELEMENT(destImageLayout);
   SERIALISE_ELEMENT(regionCount);
   SERIALISE_ELEMENT_ARRAY(pRegions, regionCount);
@@ -1568,8 +1563,6 @@ bool WrappedVulkan::Serialise_vkCmdResolveImage(SerialiserType &ser, VkCommandBu
         ResourceId dstid = GetResourceManager()->GetOriginalID(GetResID(destImage));
 
         DrawcallDescription draw;
-        draw.name = StringFormat::Fmt("vkCmdResolveImage(%s, %s)", ToStr(srcid).c_str(),
-                                      ToStr(dstid).c_str());
         draw.flags |= DrawFlags::Resolve;
 
         draw.copySource = srcid;
@@ -1656,9 +1649,9 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage(SerialiserType &ser, VkCommandBuffe
                                              uint32_t regionCount, const VkImageCopy *pRegions)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(srcImage);
+  SERIALISE_ELEMENT(srcImage).Important();
   SERIALISE_ELEMENT(srcImageLayout);
-  SERIALISE_ELEMENT(destImage);
+  SERIALISE_ELEMENT(destImage).Important();
   SERIALISE_ELEMENT(destImageLayout);
   SERIALISE_ELEMENT(regionCount);
   SERIALISE_ELEMENT_ARRAY(pRegions, regionCount);
@@ -1706,8 +1699,6 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage(SerialiserType &ser, VkCommandBuffe
         ResourceId dstid = GetResourceManager()->GetOriginalID(GetResID(destImage));
 
         DrawcallDescription draw;
-        draw.name =
-            StringFormat::Fmt("vkCmdCopyImage(%s, %s)", ToStr(srcid).c_str(), ToStr(dstid).c_str());
         draw.flags |= DrawFlags::Copy;
 
         draw.copySource = srcid;
@@ -1792,8 +1783,8 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(
     VkImageLayout destImageLayout, uint32_t regionCount, const VkBufferImageCopy *pRegions)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(srcBuffer);
-  SERIALISE_ELEMENT(destImage);
+  SERIALISE_ELEMENT(srcBuffer).Important();
+  SERIALISE_ELEMENT(destImage).Important();
   SERIALISE_ELEMENT(destImageLayout);
   SERIALISE_ELEMENT(regionCount);
   SERIALISE_ELEMENT_ARRAY(pRegions, regionCount);
@@ -1841,8 +1832,6 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(
         ResourceId imgid = GetResourceManager()->GetOriginalID(GetResID(destImage));
 
         DrawcallDescription draw;
-        draw.name = StringFormat::Fmt("vkCmdCopyBufferToImage(%s, %s)", ToStr(bufid).c_str(),
-                                      ToStr(imgid).c_str());
         draw.flags |= DrawFlags::Copy;
 
         draw.copySource = bufid;
@@ -1905,9 +1894,9 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer(SerialiserType &ser,
                                                      const VkBufferImageCopy *pRegions)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(srcImage);
+  SERIALISE_ELEMENT(srcImage).Important();
   SERIALISE_ELEMENT(srcImageLayout);
-  SERIALISE_ELEMENT(destBuffer);
+  SERIALISE_ELEMENT(destBuffer).Important();
   SERIALISE_ELEMENT(regionCount);
   SERIALISE_ELEMENT_ARRAY(pRegions, regionCount);
 
@@ -1954,8 +1943,6 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer(SerialiserType &ser,
         ResourceId bufid = GetResourceManager()->GetOriginalID(GetResID(destBuffer));
 
         DrawcallDescription draw;
-        draw.name = StringFormat::Fmt("vkCmdCopyImageToBuffer(%s, %s)", ToStr(imgid).c_str(),
-                                      ToStr(bufid).c_str());
         draw.flags |= DrawFlags::Copy;
 
         draw.copySource = imgid;
@@ -2016,8 +2003,8 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer(SerialiserType &ser, VkCommandBuff
                                               uint32_t regionCount, const VkBufferCopy *pRegions)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(srcBuffer);
-  SERIALISE_ELEMENT(destBuffer);
+  SERIALISE_ELEMENT(srcBuffer).Important();
+  SERIALISE_ELEMENT(destBuffer).Important();
   SERIALISE_ELEMENT(regionCount);
   SERIALISE_ELEMENT_ARRAY(pRegions, regionCount);
 
@@ -2064,8 +2051,6 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer(SerialiserType &ser, VkCommandBuff
         ResourceId dstid = GetResourceManager()->GetOriginalID(GetResID(destBuffer));
 
         DrawcallDescription draw;
-        draw.name =
-            StringFormat::Fmt("vkCmdCopyBuffer(%s, %s)", ToStr(srcid).c_str(), ToStr(dstid).c_str());
         draw.flags |= DrawFlags::Copy;
 
         draw.copySource = srcid;
@@ -2133,10 +2118,10 @@ bool WrappedVulkan::Serialise_vkCmdFillBuffer(SerialiserType &ser, VkCommandBuff
                                               VkDeviceSize fillSize, uint32_t data)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(destBuffer);
+  SERIALISE_ELEMENT(destBuffer).Important();
   SERIALISE_ELEMENT(destOffset);
   SERIALISE_ELEMENT(fillSize);
-  SERIALISE_ELEMENT(data);
+  SERIALISE_ELEMENT(data).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -2177,7 +2162,6 @@ bool WrappedVulkan::Serialise_vkCmdFillBuffer(SerialiserType &ser, VkCommandBuff
         ResourceId id = GetResourceManager()->GetOriginalID(GetResID(destBuffer));
 
         DrawcallDescription draw;
-        draw.name = StringFormat::Fmt("vkCmdFillBuffer(%s, %u)", ToStr(id).c_str(), data);
         draw.flags = DrawFlags::Clear;
         draw.copyDestination = id;
         draw.copyDestinationSubresource = Subresource();
@@ -2228,9 +2212,9 @@ bool WrappedVulkan::Serialise_vkCmdClearColorImage(SerialiserType &ser, VkComman
                                                    const VkImageSubresourceRange *pRanges)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(image);
+  SERIALISE_ELEMENT(image).Important();
   SERIALISE_ELEMENT(imageLayout);
-  SERIALISE_ELEMENT_LOCAL(Color, *pColor);
+  SERIALISE_ELEMENT_LOCAL(Color, *pColor).Important();
   SERIALISE_ELEMENT(rangeCount);
   SERIALISE_ELEMENT_ARRAY(pRanges, rangeCount);
 
@@ -2280,9 +2264,6 @@ bool WrappedVulkan::Serialise_vkCmdClearColorImage(SerialiserType &ser, VkComman
         DrawcallDescription draw;
         draw.flags |= DrawFlags::Clear | DrawFlags::ClearColor;
         draw.copyDestination = GetResourceManager()->GetOriginalID(GetResID(image));
-        draw.name = StringFormat::Fmt("vkCmdClearColorImage(%s, %f, %f, %f, %f)",
-                                      ToStr(draw.copyDestination).c_str(), Color.float32[0],
-                                      Color.float32[1], Color.float32[2], Color.float32[3]);
         draw.copyDestinationSubresource = Subresource();
         if(rangeCount > 0)
           draw.copyDestinationSubresource =
@@ -2342,9 +2323,9 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
     const VkImageSubresourceRange *pRanges)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(image);
+  SERIALISE_ELEMENT(image).Important();
   SERIALISE_ELEMENT(imageLayout);
-  SERIALISE_ELEMENT_LOCAL(DepthStencil, *pDepthStencil);
+  SERIALISE_ELEMENT_LOCAL(DepthStencil, *pDepthStencil).Important();
   SERIALISE_ELEMENT(rangeCount);
   SERIALISE_ELEMENT_ARRAY(pRanges, rangeCount);
 
@@ -2398,9 +2379,6 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
         if(rangeCount > 0)
           draw.copyDestinationSubresource =
               Subresource(pRanges[0].baseMipLevel, pRanges[0].baseArrayLayer);
-        draw.name = StringFormat::Fmt("vkCmdClearDepthStencilImage(%s, %f, %u)",
-                                      ToStr(draw.copyDestination).c_str(), DepthStencil.depth,
-                                      DepthStencil.stencil);
 
         AddDrawcall(draw);
 
@@ -2462,7 +2440,7 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(SerialiserType &ser,
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(attachmentCount);
-  SERIALISE_ELEMENT_ARRAY(pAttachments, attachmentCount);
+  SERIALISE_ELEMENT_ARRAY(pAttachments, attachmentCount).Important();
   SERIALISE_ELEMENT(rectCount);
   SERIALISE_ELEMENT_ARRAY(pRects, rectCount);
 
@@ -2506,17 +2484,7 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(SerialiserType &ser,
       {
         AddEvent();
 
-        rdcstr name = "vkCmdClearAttachments(";
-        for(uint32_t a = 0; a < attachmentCount; a++)
-        {
-          name += ToStr(pAttachments[a].colorAttachment);
-          if(a + 1 < attachmentCount)
-            name += ", ";
-        }
-        name += ")";
-
         DrawcallDescription draw;
-        draw.name = name;
         draw.flags |= DrawFlags::Clear;
         for(uint32_t a = 0; a < attachmentCount; a++)
         {
@@ -2610,9 +2578,9 @@ bool WrappedVulkan::Serialise_vkCmdDispatchBase(SerialiserType &ser, VkCommandBu
   SERIALISE_ELEMENT(baseGroupX);
   SERIALISE_ELEMENT(baseGroupY);
   SERIALISE_ELEMENT(baseGroupZ);
-  SERIALISE_ELEMENT(groupCountX);
-  SERIALISE_ELEMENT(groupCountY);
-  SERIALISE_ELEMENT(groupCountZ);
+  SERIALISE_ELEMENT(groupCountX).Important();
+  SERIALISE_ELEMENT(groupCountY).Important();
+  SERIALISE_ELEMENT(groupCountZ).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -2653,8 +2621,6 @@ bool WrappedVulkan::Serialise_vkCmdDispatchBase(SerialiserType &ser, VkCommandBu
         AddEvent();
 
         DrawcallDescription draw;
-        draw.name = StringFormat::Fmt("vkCmdDispatchBase(%u, %u, %u)", groupCountX, groupCountY,
-                                      groupCountZ);
         draw.dispatchDimension[0] = groupCountX;
         draw.dispatchDimension[1] = groupCountY;
         draw.dispatchDimension[2] = groupCountZ;
@@ -2705,11 +2671,11 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCount(SerialiserType &ser,
                                                      uint32_t maxDrawCount, uint32_t stride)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(buffer);
+  SERIALISE_ELEMENT(buffer).Important();
   SERIALISE_ELEMENT(offset);
-  SERIALISE_ELEMENT(countBuffer);
+  SERIALISE_ELEMENT(countBuffer).Important();
   SERIALISE_ELEMENT(countBufferOffset);
-  SERIALISE_ELEMENT(maxDrawCount);
+  SERIALISE_ELEMENT(maxDrawCount).Important();
   SERIALISE_ELEMENT(stride);
 
   Serialise_DebugMessages(ser);
@@ -2961,7 +2927,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCount(SerialiserType &ser,
           structuriser.Serialise("buffer"_lit, bufid);
           structuriser.Serialise("offset"_lit, offset);
           structuriser.Serialise("stride"_lit, stride);
-          structuriser.Serialise("command"_lit, VkDrawIndirectCommand());
+          structuriser.Serialise("command"_lit, VkDrawIndirectCommand()).Important();
         }
 
         m_StructuredFile->chunks.push_back(fakeChunk);
@@ -3020,11 +2986,11 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCount(
     VkBuffer countBuffer, VkDeviceSize countBufferOffset, uint32_t maxDrawCount, uint32_t stride)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(buffer);
+  SERIALISE_ELEMENT(buffer).Important();
   SERIALISE_ELEMENT(offset);
-  SERIALISE_ELEMENT(countBuffer);
+  SERIALISE_ELEMENT(countBuffer).Important();
   SERIALISE_ELEMENT(countBufferOffset);
-  SERIALISE_ELEMENT(maxDrawCount);
+  SERIALISE_ELEMENT(maxDrawCount).Important();
   SERIALISE_ELEMENT(stride);
 
   Serialise_DebugMessages(ser);
@@ -3325,7 +3291,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCount(
           structuriser.Serialise("buffer"_lit, bufid);
           structuriser.Serialise("offset"_lit, offset);
           structuriser.Serialise("stride"_lit, stride);
-          structuriser.Serialise("command"_lit, VkDrawIndexedIndirectCommand());
+          structuriser.Serialise("command"_lit, VkDrawIndexedIndirectCommand()).Important();
         }
 
         m_StructuredFile->chunks.push_back(fakeChunk);
@@ -3385,9 +3351,9 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectByteCountEXT(
     uint32_t counterOffset, uint32_t vertexStride)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(instanceCount);
+  SERIALISE_ELEMENT(instanceCount).Important();
   SERIALISE_ELEMENT(firstInstance);
-  SERIALISE_ELEMENT(counterBuffer);
+  SERIALISE_ELEMENT(counterBuffer).Important();
   SERIALISE_ELEMENT(counterBufferOffset);
   SERIALISE_ELEMENT(counterOffset);
   SERIALISE_ELEMENT(vertexStride);
@@ -3509,7 +3475,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer2KHR(SerialiserType &ser, VkCommand
                                                   const VkCopyBufferInfo2KHR *pCopyBufferInfo)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT_LOCAL(CopyInfo, *pCopyBufferInfo);
+  SERIALISE_ELEMENT_LOCAL(CopyInfo, *pCopyBufferInfo).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -3556,8 +3522,6 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer2KHR(SerialiserType &ser, VkCommand
         ResourceId dstid = GetResourceManager()->GetOriginalID(GetResID(CopyInfo.dstBuffer));
 
         DrawcallDescription draw;
-        draw.name = StringFormat::Fmt("vkCmdCopyBuffer2KHR(%s, %s)", ToStr(srcid).c_str(),
-                                      ToStr(dstid).c_str());
         draw.flags |= DrawFlags::Copy;
 
         draw.copySource = srcid;
@@ -3635,7 +3599,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage2KHR(SerialiserType &ser, VkCommandB
                                                  const VkCopyImageInfo2KHR *pCopyImageInfo)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT_LOCAL(CopyInfo, *pCopyImageInfo);
+  SERIALISE_ELEMENT_LOCAL(CopyInfo, *pCopyImageInfo).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -3682,8 +3646,6 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage2KHR(SerialiserType &ser, VkCommandB
         ResourceId dstid = GetResourceManager()->GetOriginalID(GetResID(CopyInfo.dstImage));
 
         DrawcallDescription draw;
-        draw.name = StringFormat::Fmt("vkCmdCopyImage2KHR(%s, %s)", ToStr(srcid).c_str(),
-                                      ToStr(dstid).c_str());
         draw.flags |= DrawFlags::Copy;
 
         draw.copySource = srcid;
@@ -3814,8 +3776,6 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage2KHR(
         ResourceId imgid = GetResourceManager()->GetOriginalID(GetResID(CopyInfo.dstImage));
 
         DrawcallDescription draw;
-        draw.name = StringFormat::Fmt("vkCmdCopyBufferToImage2KHR(%s, %s)", ToStr(bufid).c_str(),
-                                      ToStr(imgid).c_str());
         draw.flags |= DrawFlags::Copy;
 
         draw.copySource = bufid;
@@ -3899,7 +3859,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer2KHR(
     const VkCopyImageToBufferInfo2KHR *pCopyImageToBufferInfo)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT_LOCAL(CopyInfo, *pCopyImageToBufferInfo);
+  SERIALISE_ELEMENT_LOCAL(CopyInfo, *pCopyImageToBufferInfo).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -3947,8 +3907,6 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer2KHR(
         ResourceId bufid = GetResourceManager()->GetOriginalID(GetResID(CopyInfo.dstBuffer));
 
         DrawcallDescription draw;
-        draw.name = StringFormat::Fmt("vkCmdCopyImageToBuffer2KHR(%s, %s)", ToStr(imgid).c_str(),
-                                      ToStr(bufid).c_str());
         draw.flags |= DrawFlags::Copy;
 
         draw.copySource = imgid;
@@ -4031,7 +3989,7 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage2KHR(SerialiserType &ser, VkCommandB
                                                  const VkBlitImageInfo2KHR *pBlitImageInfo)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT_LOCAL(BlitInfo, *pBlitImageInfo);
+  SERIALISE_ELEMENT_LOCAL(BlitInfo, *pBlitImageInfo).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -4078,8 +4036,6 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage2KHR(SerialiserType &ser, VkCommandB
         ResourceId dstid = GetResourceManager()->GetOriginalID(GetResID(BlitInfo.dstImage));
 
         DrawcallDescription draw;
-        draw.name = StringFormat::Fmt("vkCmdBlitImage2KHR(%s, %s)", ToStr(srcid).c_str(),
-                                      ToStr(dstid).c_str());
         draw.flags |= DrawFlags::Resolve;
 
         draw.copySource = srcid;
@@ -4174,7 +4130,7 @@ bool WrappedVulkan::Serialise_vkCmdResolveImage2KHR(SerialiserType &ser,
                                                     const VkResolveImageInfo2KHR *pResolveImageInfo)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT_LOCAL(ResolveInfo, *pResolveImageInfo);
+  SERIALISE_ELEMENT_LOCAL(ResolveInfo, *pResolveImageInfo).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -4221,8 +4177,6 @@ bool WrappedVulkan::Serialise_vkCmdResolveImage2KHR(SerialiserType &ser,
         ResourceId dstid = GetResourceManager()->GetOriginalID(GetResID(ResolveInfo.dstImage));
 
         DrawcallDescription draw;
-        draw.name = StringFormat::Fmt("vkCmdResolveImage2KHR(%s, %s)", ToStr(srcid).c_str(),
-                                      ToStr(dstid).c_str());
         draw.flags |= DrawFlags::Resolve;
 
         draw.copySource = srcid;

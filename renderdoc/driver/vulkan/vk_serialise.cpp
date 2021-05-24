@@ -1350,7 +1350,7 @@ template <typename SerialiserType>
 static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const void *&pNext)
 {
   // this is the parent sType, serialised here for convenience
-  ser.Serialise("sType"_lit, sType);
+  ser.Serialise("sType"_lit, sType).Unimportant();
 
   if(ser.IsReading() && !ser.IsStructurising())
   {
@@ -1872,7 +1872,7 @@ void DoSerialise(SerialiserType &ser, VkDeviceCreateInfo &el)
   SERIALISE_MEMBER(enabledLayerCount);
   SERIALISE_MEMBER_ARRAY(ppEnabledLayerNames, enabledLayerCount);
   SERIALISE_MEMBER(enabledExtensionCount);
-  SERIALISE_MEMBER_ARRAY(ppEnabledExtensionNames, enabledExtensionCount);
+  SERIALISE_MEMBER_ARRAY(ppEnabledExtensionNames, enabledExtensionCount).Important();
   SERIALISE_MEMBER_OPT(pEnabledFeatures);
 }
 
@@ -1895,7 +1895,7 @@ void DoSerialise(SerialiserType &ser, VkBufferCreateInfo &el)
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER_VKFLAGS(VkBufferCreateFlags, flags);
-  SERIALISE_MEMBER(size);
+  SERIALISE_MEMBER(size).Important();
   SERIALISE_MEMBER_VKFLAGS(VkBufferUsageFlags, usage);
   SERIALISE_MEMBER(sharingMode);
 
@@ -1927,8 +1927,8 @@ void DoSerialise(SerialiserType &ser, VkBufferViewCreateInfo &el)
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER_VKFLAGS(VkBufferViewCreateFlags, flags);
-  SERIALISE_MEMBER(buffer);
-  SERIALISE_MEMBER(format);
+  SERIALISE_MEMBER(buffer).Important();
+  SERIALISE_MEMBER(format).Important();
   SERIALISE_MEMBER(offset);
   SERIALISE_MEMBER(range);
 }
@@ -1947,8 +1947,8 @@ void DoSerialise(SerialiserType &ser, VkImageCreateInfo &el)
 
   SERIALISE_MEMBER_VKFLAGS(VkImageCreateFlags, flags);
   SERIALISE_MEMBER(imageType);
-  SERIALISE_MEMBER(format);
-  SERIALISE_MEMBER(extent);
+  SERIALISE_MEMBER(format).Important();
+  SERIALISE_MEMBER(extent).Important();
   SERIALISE_MEMBER(mipLevels);
   SERIALISE_MEMBER(arrayLayers);
   SERIALISE_MEMBER(samples);
@@ -1994,9 +1994,9 @@ void DoSerialise(SerialiserType &ser, VkImageViewCreateInfo &el)
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER_VKFLAGS(VkImageViewCreateFlags, flags);
-  SERIALISE_MEMBER(image);
+  SERIALISE_MEMBER(image).Important();
   SERIALISE_MEMBER(viewType);
-  SERIALISE_MEMBER(format);
+  SERIALISE_MEMBER(format).Important();
   SERIALISE_MEMBER(components);
   SERIALISE_MEMBER(subresourceRange);
 }
@@ -2129,7 +2129,7 @@ void DoSerialise(SerialiserType &ser, VkSubmitInfo &el)
       .TypedAs("VkPipelineStageFlags"_lit);
 
   SERIALISE_MEMBER(commandBufferCount);
-  SERIALISE_MEMBER_ARRAY(pCommandBuffers, commandBufferCount);
+  SERIALISE_MEMBER_ARRAY(pCommandBuffers, commandBufferCount).Important();
   SERIALISE_MEMBER(signalSemaphoreCount);
   SERIALISE_MEMBER_ARRAY(pSignalSemaphores, signalSemaphoreCount);
 }
@@ -2151,14 +2151,16 @@ void DoSerialise(SerialiserType &ser, VkFramebufferCreateInfo &el)
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER_VKFLAGS(VkFramebufferCreateFlags, flags);
-  SERIALISE_MEMBER(renderPass);
+  SERIALISE_MEMBER(renderPass).Important();
   SERIALISE_MEMBER(attachmentCount);
   if((el.flags & VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT) == 0)
   {
-    SERIALISE_MEMBER_ARRAY(pAttachments, attachmentCount);
+    SERIALISE_MEMBER_ARRAY(pAttachments, attachmentCount).Important();
   }
   else
   {
+    // for imageless, mark the attachment count as important
+    ser.Important();
     SERIALISE_MEMBER_ARRAY_EMPTY(pAttachments);
   }
   SERIALISE_MEMBER(width);
@@ -2177,7 +2179,7 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkAttachmentDescription &el)
 {
   SERIALISE_MEMBER_VKFLAGS(VkAttachmentDescriptionFlags, flags);
-  SERIALISE_MEMBER(format);
+  SERIALISE_MEMBER(format).Important();
   SERIALISE_MEMBER(samples);
   SERIALISE_MEMBER(loadOp);
   SERIALISE_MEMBER(storeOp);
@@ -2197,10 +2199,10 @@ void DoSerialise(SerialiserType &ser, VkSubpassDescription &el)
   SERIALISE_MEMBER_ARRAY(pInputAttachments, inputAttachmentCount);
 
   SERIALISE_MEMBER(colorAttachmentCount);
-  SERIALISE_MEMBER_ARRAY(pColorAttachments, colorAttachmentCount);
+  SERIALISE_MEMBER_ARRAY(pColorAttachments, colorAttachmentCount).Important();
   SERIALISE_MEMBER_ARRAY(pResolveAttachments, colorAttachmentCount);
 
-  SERIALISE_MEMBER_OPT(pDepthStencilAttachment);
+  SERIALISE_MEMBER_OPT(pDepthStencilAttachment).Important();
 
   SERIALISE_MEMBER(preserveAttachmentCount);
   SERIALISE_MEMBER_ARRAY(pPreserveAttachments, preserveAttachmentCount);
@@ -2231,7 +2233,7 @@ void DoSerialise(SerialiserType &ser, VkSubpassDependency &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkAttachmentReference &el)
 {
-  SERIALISE_MEMBER(attachment);
+  SERIALISE_MEMBER(attachment).Important();
   SERIALISE_MEMBER(layout);
 }
 
@@ -2243,9 +2245,9 @@ void DoSerialise(SerialiserType &ser, VkRenderPassCreateInfo &el)
 
   SERIALISE_MEMBER_VKFLAGS(VkRenderPassCreateFlags, flags);
   SERIALISE_MEMBER(attachmentCount);
-  SERIALISE_MEMBER_ARRAY(pAttachments, attachmentCount);
+  SERIALISE_MEMBER_ARRAY(pAttachments, attachmentCount).Important();
   SERIALISE_MEMBER(subpassCount);
-  SERIALISE_MEMBER_ARRAY(pSubpasses, subpassCount);
+  SERIALISE_MEMBER_ARRAY(pSubpasses, subpassCount).Important();
   SERIALISE_MEMBER(dependencyCount);
   SERIALISE_MEMBER_ARRAY(pDependencies, dependencyCount);
 }
@@ -2267,8 +2269,8 @@ void DoSerialise(SerialiserType &ser, VkRenderPassBeginInfo &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER(renderPass);
-  SERIALISE_MEMBER(framebuffer);
+  SERIALISE_MEMBER(renderPass).Important();
+  SERIALISE_MEMBER(framebuffer).Important();
   SERIALISE_MEMBER(renderArea);
   SERIALISE_MEMBER(clearValueCount);
   SERIALISE_MEMBER_ARRAY(pClearValues, clearValueCount);
@@ -2507,7 +2509,7 @@ void DoSerialise(SerialiserType &ser, VkCommandPoolCreateInfo &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER_VKFLAGS(VkCommandPoolCreateFlags, flags);
+  SERIALISE_MEMBER_VKFLAGS(VkCommandPoolCreateFlags, flags).Important();
   SERIALISE_MEMBER(queueFamilyIndex);
 }
 
@@ -2523,8 +2525,8 @@ void DoSerialise(SerialiserType &ser, VkCommandBufferAllocateInfo &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER(commandPool);
-  SERIALISE_MEMBER(level);
+  SERIALISE_MEMBER(commandPool).Important();
+  SERIALISE_MEMBER(level).Important();
   SERIALISE_MEMBER(commandBufferCount);
 }
 
@@ -2540,9 +2542,9 @@ void DoSerialise(SerialiserType &ser, VkCommandBufferInheritanceInfo &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER(renderPass);
-  SERIALISE_MEMBER(subpass);
-  SERIALISE_MEMBER(framebuffer);
+  SERIALISE_MEMBER(renderPass).Important();
+  SERIALISE_MEMBER(subpass).Important();
+  SERIALISE_MEMBER(framebuffer).Important();
   SERIALISE_MEMBER(occlusionQueryEnable);
   SERIALISE_MEMBER_VKFLAGS(VkQueryControlFlags, queryFlags);
   SERIALISE_MEMBER_VKFLAGS(VkQueryPipelineStatisticFlags, pipelineStatistics);
@@ -2561,7 +2563,7 @@ void DoSerialise(SerialiserType &ser, VkCommandBufferBeginInfo &el)
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER_VKFLAGS(VkCommandBufferUsageFlags, flags);
-  SERIALISE_MEMBER_OPT(pInheritanceInfo);
+  SERIALISE_MEMBER_OPT(pInheritanceInfo).Important();
 }
 
 template <>
@@ -2592,8 +2594,8 @@ void DoSerialise(SerialiserType &ser, VkQueryPoolCreateInfo &el)
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER_VKFLAGS(VkQueryPoolCreateFlags, flags);
-  SERIALISE_MEMBER(queryType);
-  SERIALISE_MEMBER(queryCount);
+  SERIALISE_MEMBER(queryType).Important();
+  SERIALISE_MEMBER(queryCount).Important();
   SERIALISE_MEMBER_VKFLAGS(VkQueryPipelineStatisticFlags, pipelineStatistics);
 }
 
@@ -2609,7 +2611,7 @@ void DoSerialise(SerialiserType &ser, VkSemaphoreCreateInfo &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER_VKFLAGS(VkSemaphoreCreateFlags, flags);
+  SERIALISE_MEMBER_VKFLAGS(VkSemaphoreCreateFlags, flags).Important();
 }
 
 template <>
@@ -2624,7 +2626,7 @@ void DoSerialise(SerialiserType &ser, VkEventCreateInfo &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_EVENT_CREATE_INFO);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER_VKFLAGS(VkEventCreateFlags, flags);
+  SERIALISE_MEMBER_VKFLAGS(VkEventCreateFlags, flags).Important();
 }
 
 template <>
@@ -2639,7 +2641,7 @@ void DoSerialise(SerialiserType &ser, VkFenceCreateInfo &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_FENCE_CREATE_INFO);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER_VKFLAGS(VkFenceCreateFlags, flags);
+  SERIALISE_MEMBER_VKFLAGS(VkFenceCreateFlags, flags).Important();
 }
 
 template <>
@@ -2655,8 +2657,8 @@ void DoSerialise(SerialiserType &ser, VkSamplerCreateInfo &el)
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER_VKFLAGS(VkSamplerCreateFlags, flags);
-  SERIALISE_MEMBER(magFilter);
-  SERIALISE_MEMBER(minFilter);
+  SERIALISE_MEMBER(magFilter).Important();
+  SERIALISE_MEMBER(minFilter).Important();
   SERIALISE_MEMBER(mipmapMode);
   SERIALISE_MEMBER(addressModeU);
   SERIALISE_MEMBER(addressModeV);
@@ -2686,8 +2688,8 @@ void DoSerialise(SerialiserType &ser, VkPipelineShaderStageCreateInfo &el)
 
   SERIALISE_MEMBER_VKFLAGS(VkPipelineShaderStageCreateFlags, flags);
   SERIALISE_MEMBER(stage);
-  SERIALISE_MEMBER(module);
-  SERIALISE_MEMBER(pName);
+  SERIALISE_MEMBER(module).Important();
+  SERIALISE_MEMBER(pName).Important();
   SERIALISE_MEMBER_OPT(pSpecializationInfo);
 }
 
@@ -2759,7 +2761,7 @@ void DoSerialise(SerialiserType &ser, VkPipelineCacheCreateInfo &el)
       el.initialDataSize = (size_t)initialDataSize;
   }
 
-  SERIALISE_MEMBER_ARRAY(pInitialData, initialDataSize);
+  SERIALISE_MEMBER_ARRAY(pInitialData, initialDataSize).Important();
 }
 
 template <>
@@ -2777,8 +2779,8 @@ void DoSerialise(SerialiserType &ser, VkPipelineLayoutCreateInfo &el)
 
   SERIALISE_MEMBER_VKFLAGS(VkPipelineLayoutCreateFlags, flags);
   SERIALISE_MEMBER(setLayoutCount);
-  SERIALISE_MEMBER_ARRAY(pSetLayouts, setLayoutCount);
-  SERIALISE_MEMBER(pushConstantRangeCount);
+  SERIALISE_MEMBER_ARRAY(pSetLayouts, setLayoutCount).Important();
+  SERIALISE_MEMBER(pushConstantRangeCount).Important();
   SERIALISE_MEMBER_ARRAY(pPushConstantRanges, pushConstantRangeCount);
 }
 
@@ -2809,7 +2811,7 @@ void DoSerialise(SerialiserType &ser, VkShaderModuleCreateInfo &el)
   // serialise as void* so it goes through as a buffer, not an actual array of integers.
   {
     const void *pCode = el.pCode;
-    ser.Serialise("pCode"_lit, pCode, el.codeSize, SerialiserFlags::AllocateMemory);
+    ser.Serialise("pCode"_lit, pCode, el.codeSize, SerialiserFlags::AllocateMemory).Important();
     if(ser.IsReading())
       el.pCode = (uint32_t *)pCode;
   }
@@ -2855,8 +2857,8 @@ void DoSerialise(SerialiserType &ser, VkMemoryAllocateInfo &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER(allocationSize);
-  SERIALISE_MEMBER(memoryTypeIndex);
+  SERIALISE_MEMBER(allocationSize).Important();
+  SERIALISE_MEMBER(memoryTypeIndex).Important();
 }
 
 template <>
@@ -2897,7 +2899,7 @@ void DoSerialise(SerialiserType &ser, VkBufferMemoryBarrier &el)
   // family index won't be legitimately larger than 2 billion
   SERIALISE_MEMBER_TYPED(int32_t, srcQueueFamilyIndex);
   SERIALISE_MEMBER_TYPED(int32_t, dstQueueFamilyIndex);
-  SERIALISE_MEMBER(buffer);
+  SERIALISE_MEMBER(buffer).Important();
   SERIALISE_MEMBER(offset);
   SERIALISE_MEMBER(size);
 }
@@ -2926,7 +2928,7 @@ void DoSerialise(SerialiserType &ser, VkImageMemoryBarrier &el)
   // family index won't be legitimately larger than 2 billion
   SERIALISE_MEMBER_TYPED(int32_t, srcQueueFamilyIndex);
   SERIALISE_MEMBER_TYPED(int32_t, dstQueueFamilyIndex);
-  SERIALISE_MEMBER(image);
+  SERIALISE_MEMBER(image).Important();
   SERIALISE_MEMBER(subresourceRange);
 }
 
@@ -2944,7 +2946,7 @@ void DoSerialise(SerialiserType &ser, VkGraphicsPipelineCreateInfo &el)
 
   SERIALISE_MEMBER_VKFLAGS(VkPipelineCreateFlags, flags);
   SERIALISE_MEMBER(stageCount);
-  SERIALISE_MEMBER_ARRAY(pStages, stageCount);
+  SERIALISE_MEMBER_ARRAY(pStages, stageCount).Important();
 
   bool hasTess = false;
   for(uint32_t i = 0; i < el.stageCount; i++)
@@ -3113,7 +3115,7 @@ void DoSerialise(SerialiserType &ser, VkComputePipelineCreateInfo &el)
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER_VKFLAGS(VkPipelineCreateFlags, flags);
-  SERIALISE_MEMBER(stage);
+  SERIALISE_MEMBER(stage).Important();
   SERIALISE_MEMBER(layout);
 
   if(el.flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
@@ -3150,9 +3152,9 @@ void DoSerialise(SerialiserType &ser, VkDescriptorPoolCreateInfo &el)
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER_VKFLAGS(VkDescriptorPoolCreateFlags, flags);
-  SERIALISE_MEMBER(maxSets);
+  SERIALISE_MEMBER(maxSets).Important();
   SERIALISE_MEMBER(poolSizeCount);
-  SERIALISE_MEMBER_ARRAY(pPoolSizes, poolSizeCount);
+  SERIALISE_MEMBER_ARRAY(pPoolSizes, poolSizeCount).Important();
 }
 
 template <>
@@ -3168,9 +3170,9 @@ void DoSerialise(SerialiserType &ser, VkDescriptorSetAllocateInfo &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER(descriptorPool);
+  SERIALISE_MEMBER(descriptorPool).Important();
   SERIALISE_MEMBER(descriptorSetCount);
-  SERIALISE_MEMBER_ARRAY(pSetLayouts, descriptorSetCount);
+  SERIALISE_MEMBER_ARRAY(pSetLayouts, descriptorSetCount).Important();
 }
 
 template <>
@@ -3235,11 +3237,11 @@ void DoSerialise(SerialiserType &ser, VkWriteDescriptorSet &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER(dstSet);
-  SERIALISE_MEMBER(dstBinding);
+  SERIALISE_MEMBER(dstSet).Important();
+  SERIALISE_MEMBER(dstBinding).Important();
   SERIALISE_MEMBER(dstArrayElement);
   SERIALISE_MEMBER(descriptorCount);
-  SERIALISE_MEMBER(descriptorType);
+  SERIALISE_MEMBER(descriptorType).Important();
 
   // only serialise the array type used, the others are ignored
   if(el.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
@@ -3328,11 +3330,11 @@ void DoSerialise(SerialiserType &ser, VkCopyDescriptorSet &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_COPY_DESCRIPTOR_SET);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER(srcSet);
-  SERIALISE_MEMBER(srcBinding);
+  SERIALISE_MEMBER(srcSet).Important();
+  SERIALISE_MEMBER(srcBinding).Important();
   SERIALISE_MEMBER(srcArrayElement);
-  SERIALISE_MEMBER(dstSet);
-  SERIALISE_MEMBER(dstBinding);
+  SERIALISE_MEMBER(dstSet).Important();
+  SERIALISE_MEMBER(dstBinding).Important();
   SERIALISE_MEMBER(dstArrayElement);
   SERIALISE_MEMBER(descriptorCount);
 }
@@ -3383,7 +3385,7 @@ void DoSerialise(SerialiserType &ser, VkDescriptorSetLayoutCreateInfo &el)
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER_VKFLAGS(VkDescriptorSetLayoutCreateFlags, flags);
-  SERIALISE_MEMBER(bindingCount);
+  SERIALISE_MEMBER(bindingCount).Important();
   SERIALISE_MEMBER_ARRAY(pBindings, bindingCount);
 }
 
@@ -3412,7 +3414,7 @@ void DoSerialise(SerialiserType &ser, VkMappedMemoryRange &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER(memory);
+  SERIALISE_MEMBER(memory).Important();
   SERIALISE_MEMBER(offset);
   SERIALISE_MEMBER(size);
 }
@@ -3474,7 +3476,7 @@ void DoSerialise(SerialiserType &ser, VkImageResolve &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkClearColorValue &el)
 {
-  SERIALISE_MEMBER(float32);
+  SERIALISE_MEMBER(float32).Important();
   SERIALISE_MEMBER(int32);
   SERIALISE_MEMBER(uint32);
 }
@@ -3505,7 +3507,7 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkClearAttachment &el)
 {
   SERIALISE_MEMBER_VKFLAGS(VkImageAspectFlags, aspectMask);
-  SERIALISE_MEMBER(colorAttachment);
+  SERIALISE_MEMBER(colorAttachment).Important();
   SERIALISE_MEMBER(clearValue);
 }
 
@@ -3549,10 +3551,10 @@ void DoSerialise(SerialiserType &ser, VkExtent3D &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkViewport &el)
 {
-  SERIALISE_MEMBER(x);
-  SERIALISE_MEMBER(y);
-  SERIALISE_MEMBER(width);
-  SERIALISE_MEMBER(height);
+  SERIALISE_MEMBER(x).Important();
+  SERIALISE_MEMBER(y).Important();
+  SERIALISE_MEMBER(width).Important();
+  SERIALISE_MEMBER(height).Important();
   SERIALISE_MEMBER(minDepth);
   SERIALISE_MEMBER(maxDepth);
 }
@@ -3583,8 +3585,8 @@ void DoSerialise(SerialiserType &ser, VkSwapchainCreateInfoKHR &el)
   // don't need the surface
   SERIALISE_MEMBER_EMPTY(surface);
 
-  SERIALISE_MEMBER(minImageCount);
-  SERIALISE_MEMBER(imageFormat);
+  SERIALISE_MEMBER(minImageCount).Important();
+  SERIALISE_MEMBER(imageFormat).Important();
   SERIALISE_MEMBER(imageColorSpace);
   SERIALISE_MEMBER(imageExtent);
   SERIALISE_MEMBER(imageArrayLayers);
@@ -3647,7 +3649,7 @@ void DoSerialise(SerialiserType &ser, VkPresentInfoKHR &el)
 
   SERIALISE_MEMBER(swapchainCount);
   SERIALISE_MEMBER_ARRAY_EMPTY(pSwapchains);
-  SERIALISE_MEMBER_ARRAY(pImageIndices, swapchainCount);
+  SERIALISE_MEMBER_ARRAY(pImageIndices, swapchainCount).Important();
   SERIALISE_MEMBER_ARRAY(pResults, swapchainCount);
 }
 
@@ -4051,8 +4053,8 @@ void DoSerialise(SerialiserType &ser, VkSemaphoreWaitInfo &el)
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER(semaphoreCount);
-  SERIALISE_MEMBER_ARRAY(pSemaphores, semaphoreCount);
-  SERIALISE_MEMBER_ARRAY(pValues, semaphoreCount);
+  SERIALISE_MEMBER_ARRAY(pSemaphores, semaphoreCount).Important();
+  SERIALISE_MEMBER_ARRAY(pValues, semaphoreCount).Important();
 }
 
 template <>
@@ -4069,8 +4071,8 @@ void DoSerialise(SerialiserType &ser, VkSemaphoreSignalInfo &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER(semaphore);
-  SERIALISE_MEMBER(value);
+  SERIALISE_MEMBER(semaphore).Important();
+  SERIALISE_MEMBER(value).Important();
 }
 
 template <>
@@ -4085,7 +4087,7 @@ void DoSerialise(SerialiserType &ser, VkDebugMarkerMarkerInfoEXT &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER(pMarkerName);
+  SERIALISE_MEMBER(pMarkerName).Important();
   SERIALISE_MEMBER(color);
 }
 
@@ -4123,7 +4125,7 @@ void DoSerialise(SerialiserType &ser, VkDebugUtilsLabelEXT &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER(pLabelName);
+  SERIALISE_MEMBER(pLabelName).Important();
   SERIALISE_MEMBER(color);
 }
 
@@ -4387,9 +4389,9 @@ void DoSerialise(SerialiserType &ser, VkDescriptorUpdateTemplateCreateInfo &el)
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER_VKFLAGS(VkDescriptorUpdateTemplateCreateFlags, flags);
-  SERIALISE_MEMBER(descriptorUpdateEntryCount);
+  SERIALISE_MEMBER(descriptorUpdateEntryCount).Important();
   SERIALISE_MEMBER_ARRAY(pDescriptorUpdateEntries, descriptorUpdateEntryCount);
-  SERIALISE_MEMBER(templateType);
+  SERIALISE_MEMBER(templateType).Important();
 
   if(el.templateType == VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_DESCRIPTOR_SET)
   {
@@ -4427,8 +4429,8 @@ void DoSerialise(SerialiserType &ser, VkBindBufferMemoryInfo &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_INFO);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER(buffer);
-  SERIALISE_MEMBER(memory);
+  SERIALISE_MEMBER(buffer).Important();
+  SERIALISE_MEMBER(memory).Important();
   SERIALISE_MEMBER(memoryOffset);
 }
 
@@ -4444,8 +4446,8 @@ void DoSerialise(SerialiserType &ser, VkBindImageMemoryInfo &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_INFO);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER(image);
-  SERIALISE_MEMBER(memory);
+  SERIALISE_MEMBER(image).Important();
+  SERIALISE_MEMBER(memory).Important();
   SERIALISE_MEMBER(memoryOffset);
 }
 
@@ -4788,8 +4790,8 @@ void DoSerialise(SerialiserType &ser, VkSamplerYcbcrConversionCreateInfo &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_CREATE_INFO);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER(format);
-  SERIALISE_MEMBER(ycbcrModel);
+  SERIALISE_MEMBER(format).Important();
+  SERIALISE_MEMBER(ycbcrModel).Important();
   SERIALISE_MEMBER(ycbcrRange);
   SERIALISE_MEMBER(components);
   SERIALISE_MEMBER(xChromaOffset);
@@ -4891,7 +4893,7 @@ void DoSerialise(SerialiserType &ser, VkSampleLocationsInfoEXT &el)
   SERIALISE_MEMBER(sampleLocationsPerPixel);
   SERIALISE_MEMBER(sampleLocationGridSize);
   SERIALISE_MEMBER(sampleLocationsCount);
-  SERIALISE_MEMBER_ARRAY(pSampleLocations, sampleLocationsCount);
+  SERIALISE_MEMBER_ARRAY(pSampleLocations, sampleLocationsCount).Important();
 }
 
 template <>
@@ -6166,8 +6168,8 @@ void DoSerialise(SerialiserType &ser, VkCopyBufferInfo2KHR &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_COPY_BUFFER_INFO_2_KHR);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER(srcBuffer);
-  SERIALISE_MEMBER(dstBuffer);
+  SERIALISE_MEMBER(srcBuffer).Important();
+  SERIALISE_MEMBER(dstBuffer).Important();
   SERIALISE_MEMBER(regionCount);
   SERIALISE_MEMBER_ARRAY(pRegions, regionCount);
 }
@@ -6204,9 +6206,9 @@ void DoSerialise(SerialiserType &ser, VkCopyImageInfo2KHR &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_COPY_IMAGE_INFO_2_KHR);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER(srcImage);
+  SERIALISE_MEMBER(srcImage).Important();
   SERIALISE_MEMBER(srcImageLayout);
-  SERIALISE_MEMBER(dstImage);
+  SERIALISE_MEMBER(dstImage).Important();
   SERIALISE_MEMBER(dstImageLayout);
   SERIALISE_MEMBER(regionCount);
   SERIALISE_MEMBER_ARRAY(pRegions, regionCount);
@@ -6245,8 +6247,8 @@ void DoSerialise(SerialiserType &ser, VkCopyBufferToImageInfo2KHR &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_COPY_BUFFER_TO_IMAGE_INFO_2_KHR);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER(srcBuffer);
-  SERIALISE_MEMBER(dstImage);
+  SERIALISE_MEMBER(srcBuffer).Important();
+  SERIALISE_MEMBER(dstImage).Important();
   SERIALISE_MEMBER(dstImageLayout);
   SERIALISE_MEMBER(regionCount);
   SERIALISE_MEMBER_ARRAY(pRegions, regionCount);
@@ -6303,9 +6305,9 @@ void DoSerialise(SerialiserType &ser, VkBlitImageInfo2KHR &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2_KHR);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER(srcImage);
+  SERIALISE_MEMBER(srcImage).Important();
   SERIALISE_MEMBER(srcImageLayout);
-  SERIALISE_MEMBER(dstImage);
+  SERIALISE_MEMBER(dstImage).Important();
   SERIALISE_MEMBER(dstImageLayout);
   SERIALISE_MEMBER(regionCount);
   SERIALISE_MEMBER_ARRAY(pRegions, regionCount);
@@ -6344,9 +6346,9 @@ void DoSerialise(SerialiserType &ser, VkResolveImageInfo2KHR &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_RESOLVE_IMAGE_INFO_2_KHR);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER(srcImage);
+  SERIALISE_MEMBER(srcImage).Important();
   SERIALISE_MEMBER(srcImageLayout);
-  SERIALISE_MEMBER(dstImage);
+  SERIALISE_MEMBER(dstImage).Important();
   SERIALISE_MEMBER(dstImageLayout);
   SERIALISE_MEMBER(regionCount);
   SERIALISE_MEMBER_ARRAY(pRegions, regionCount);
@@ -6388,7 +6390,7 @@ void DoSerialise(SerialiserType &ser, VkAttachmentReference2 &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER(attachment);
+  SERIALISE_MEMBER(attachment).Important();
   SERIALISE_MEMBER(layout);
   SERIALISE_MEMBER_VKFLAGS(VkImageAspectFlags, aspectMask);
 }
@@ -6413,10 +6415,10 @@ void DoSerialise(SerialiserType &ser, VkSubpassDescription2 &el)
   SERIALISE_MEMBER_ARRAY(pInputAttachments, inputAttachmentCount);
 
   SERIALISE_MEMBER(colorAttachmentCount);
-  SERIALISE_MEMBER_ARRAY(pColorAttachments, colorAttachmentCount);
+  SERIALISE_MEMBER_ARRAY(pColorAttachments, colorAttachmentCount).Important();
   SERIALISE_MEMBER_ARRAY(pResolveAttachments, colorAttachmentCount);
 
-  SERIALISE_MEMBER_OPT(pDepthStencilAttachment);
+  SERIALISE_MEMBER_OPT(pDepthStencilAttachment).Important();
 
   SERIALISE_MEMBER(preserveAttachmentCount);
   SERIALISE_MEMBER_ARRAY(pPreserveAttachments, preserveAttachmentCount);
@@ -6477,9 +6479,9 @@ void DoSerialise(SerialiserType &ser, VkRenderPassCreateInfo2 &el)
 
   SERIALISE_MEMBER_VKFLAGS(VkRenderPassCreateFlags, flags);
   SERIALISE_MEMBER(attachmentCount);
-  SERIALISE_MEMBER_ARRAY(pAttachments, attachmentCount);
+  SERIALISE_MEMBER_ARRAY(pAttachments, attachmentCount).Important();
   SERIALISE_MEMBER(subpassCount);
-  SERIALISE_MEMBER_ARRAY(pSubpasses, subpassCount);
+  SERIALISE_MEMBER_ARRAY(pSubpasses, subpassCount).Important();
   SERIALISE_MEMBER(dependencyCount);
   SERIALISE_MEMBER_ARRAY(pDependencies, dependencyCount);
   SERIALISE_MEMBER(correlatedViewMaskCount);
@@ -6545,8 +6547,8 @@ void DoSerialise(SerialiserType &ser, VkDispatchIndirectCommand &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkDrawIndirectCommand &el)
 {
-  SERIALISE_MEMBER(vertexCount);
-  SERIALISE_MEMBER(instanceCount);
+  SERIALISE_MEMBER(vertexCount).Important();
+  SERIALISE_MEMBER(instanceCount).Important();
   SERIALISE_MEMBER(firstVertex);
   SERIALISE_MEMBER(firstInstance);
 }
@@ -6554,8 +6556,8 @@ void DoSerialise(SerialiserType &ser, VkDrawIndirectCommand &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkDrawIndexedIndirectCommand &el)
 {
-  SERIALISE_MEMBER(indexCount);
-  SERIALISE_MEMBER(instanceCount);
+  SERIALISE_MEMBER(indexCount).Important();
+  SERIALISE_MEMBER(instanceCount).Important();
   SERIALISE_MEMBER(firstIndex);
   SERIALISE_MEMBER(vertexOffset);
   SERIALISE_MEMBER(firstInstance);
@@ -6568,8 +6570,8 @@ void DoSerialise(SerialiserType &ser, VkDeviceQueueInfo2 &el)
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER_VKFLAGS(VkDeviceQueueCreateFlags, flags);
-  SERIALISE_MEMBER(queueFamilyIndex);
-  SERIALISE_MEMBER(queueIndex);
+  SERIALISE_MEMBER(queueFamilyIndex).Important();
+  SERIALISE_MEMBER(queueIndex).Important();
 }
 
 template <>
@@ -8227,7 +8229,7 @@ void DoSerialise(SerialiserType &ser, VkBufferMemoryBarrier2KHR &el)
   // family index won't be legitimately larger than 2 billion
   SERIALISE_MEMBER_TYPED(int32_t, srcQueueFamilyIndex);
   SERIALISE_MEMBER_TYPED(int32_t, dstQueueFamilyIndex);
-  SERIALISE_MEMBER(buffer);
+  SERIALISE_MEMBER(buffer).Important();
   SERIALISE_MEMBER(offset);
   SERIALISE_MEMBER(size);
 }
@@ -8254,7 +8256,7 @@ void DoSerialise(SerialiserType &ser, VkImageMemoryBarrier2KHR &el)
   // family index won't be legitimately larger than 2 billion
   SERIALISE_MEMBER_TYPED(int32_t, srcQueueFamilyIndex);
   SERIALISE_MEMBER_TYPED(int32_t, dstQueueFamilyIndex);
-  SERIALISE_MEMBER(image);
+  SERIALISE_MEMBER(image).Important();
   SERIALISE_MEMBER(subresourceRange);
 }
 
@@ -8304,7 +8306,7 @@ void DoSerialise(SerialiserType &ser, VkCommandBufferSubmitInfoKHR &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO_KHR);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER(commandBuffer);
+  SERIALISE_MEMBER(commandBuffer).Important();
   SERIALISE_MEMBER(deviceMask);
 }
 
@@ -8324,7 +8326,7 @@ void DoSerialise(SerialiserType &ser, VkSubmitInfo2KHR &el)
   SERIALISE_MEMBER(waitSemaphoreInfoCount);
   SERIALISE_MEMBER_ARRAY(pWaitSemaphoreInfos, waitSemaphoreInfoCount);
   SERIALISE_MEMBER(commandBufferInfoCount);
-  SERIALISE_MEMBER_ARRAY(pCommandBufferInfos, commandBufferInfoCount);
+  SERIALISE_MEMBER_ARRAY(pCommandBufferInfos, commandBufferInfoCount).Important();
   SERIALISE_MEMBER(signalSemaphoreInfoCount);
   SERIALISE_MEMBER_ARRAY(pSignalSemaphoreInfos, signalSemaphoreInfoCount);
 }
@@ -8344,13 +8346,22 @@ void DoSerialise(SerialiserType &ser, VkDependencyInfoKHR &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_DEPENDENCY_INFO_KHR);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER_VKFLAGS(VkDependencyFlags, dependencyFlags);
+  // mark this as unimportant so even if somehow there are no barriers at all, we won't in-line all
+  // the struct overhead
+  SERIALISE_MEMBER_VKFLAGS(VkDependencyFlags, dependencyFlags).Unimportant();
   SERIALISE_MEMBER(memoryBarrierCount);
+  // memory barriers don't have anything important, just list the number of global memory barriers
+  if(el.memoryBarrierCount > 0)
+    ser.Important();
   SERIALISE_MEMBER_ARRAY(pMemoryBarriers, memoryBarrierCount);
   SERIALISE_MEMBER(bufferMemoryBarrierCount);
   SERIALISE_MEMBER_ARRAY(pBufferMemoryBarriers, bufferMemoryBarrierCount);
+  if(el.bufferMemoryBarrierCount > 0)
+    ser.Important();
   SERIALISE_MEMBER(imageMemoryBarrierCount);
   SERIALISE_MEMBER_ARRAY(pImageMemoryBarriers, imageMemoryBarrierCount);
+  if(el.imageMemoryBarrierCount > 0)
+    ser.Important();
 }
 
 template <>
@@ -8866,7 +8877,7 @@ void DoSerialise(SerialiserType &ser, VkConditionalRenderingBeginInfoEXT &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_CONDITIONAL_RENDERING_BEGIN_INFO_EXT);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  SERIALISE_MEMBER(buffer);
+  SERIALISE_MEMBER(buffer).Important();
   SERIALISE_MEMBER(offset);
   SERIALISE_MEMBER_VKFLAGS(VkConditionalRenderingFlagsEXT, flags);
 }

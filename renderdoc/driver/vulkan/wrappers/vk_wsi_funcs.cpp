@@ -220,8 +220,8 @@ bool WrappedVulkan::Serialise_vkGetSwapchainImagesKHR(SerialiserType &ser, VkDev
                                                       VkImage *pSwapchainImages)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(Swapchain, GetResID(swapchain)).TypedAs("VkSwapchainKHR"_lit);
-  SERIALISE_ELEMENT_LOCAL(SwapchainImageIndex, *pCount);
+  SERIALISE_ELEMENT_LOCAL(Swapchain, GetResID(swapchain)).TypedAs("VkSwapchainKHR"_lit).Important();
+  SERIALISE_ELEMENT_LOCAL(SwapchainImageIndex, *pCount).Important();
   SERIALISE_ELEMENT_LOCAL(SwapchainImage, GetResID(*pSwapchainImages)).TypedAs("VkImage"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -329,7 +329,7 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(SerialiserType &ser, VkDevice
                                                    VkSwapchainKHR *pSwapChain)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo).Important();
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(SwapChain, GetResID(*pSwapChain)).TypedAs("VkSwapchainKHR"_lit);
 
@@ -697,7 +697,7 @@ bool WrappedVulkan::Serialise_vkQueuePresentKHR(SerialiserType &ser, VkQueue que
                                                 const VkPresentInfoKHR *pPresentInfo)
 {
   SERIALISE_ELEMENT(queue);
-  SERIALISE_ELEMENT_LOCAL(PresentInfo, *pPresentInfo);
+  SERIALISE_ELEMENT_LOCAL(PresentInfo, *pPresentInfo).Important();
 
   ResourceId PresentedImage;
 

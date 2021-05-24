@@ -164,9 +164,9 @@ rdcstr DoStringise(const VulkanChunk &el)
     STRINGISE_ENUM_CLASS(vkCmdEndConditionalRenderingEXT)
     STRINGISE_ENUM_CLASS(vkCmdSetSampleLocationsEXT)
     STRINGISE_ENUM_CLASS(vkCmdSetDiscardRectangleEXT)
-    STRINGISE_ENUM_CLASS_NAMED(DeviceMemoryRefs, "Internal: Device Memory References")
+    STRINGISE_ENUM_CLASS_NAMED(DeviceMemoryRefs, "Internal::Device Memory References")
     STRINGISE_ENUM_CLASS(vkResetQueryPool);
-    STRINGISE_ENUM_CLASS_NAMED(ImageRefs, "Image References")
+    STRINGISE_ENUM_CLASS_NAMED(ImageRefs, "Internal::Image References")
     STRINGISE_ENUM_CLASS(vkCmdSetLineStippleEXT);
     STRINGISE_ENUM_CLASS(vkGetSemaphoreCounterValue);
     STRINGISE_ENUM_CLASS(vkWaitSemaphores);
@@ -184,7 +184,7 @@ rdcstr DoStringise(const VulkanChunk &el)
     STRINGISE_ENUM_CLASS(vkCmdSetDepthBoundsTestEnableEXT);
     STRINGISE_ENUM_CLASS(vkCmdSetStencilTestEnableEXT);
     STRINGISE_ENUM_CLASS(vkCmdSetStencilOpEXT);
-    STRINGISE_ENUM_CLASS_NAMED(CoherentMapWrite, "Internal: Coherent Mapped Memory Write")
+    STRINGISE_ENUM_CLASS_NAMED(CoherentMapWrite, "Internal::Coherent Mapped Memory Write")
     STRINGISE_ENUM_CLASS(vkCmdCopyBuffer2KHR);
     STRINGISE_ENUM_CLASS(vkCmdCopyImage2KHR);
     STRINGISE_ENUM_CLASS(vkCmdCopyBufferToImage2KHR);

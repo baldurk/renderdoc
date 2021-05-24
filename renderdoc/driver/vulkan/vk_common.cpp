@@ -869,7 +869,7 @@ void DoSerialise(SerialiserType &ser, VkInitParams &el)
   SERIALISE_MEMBER(EngineVersion);
   SERIALISE_MEMBER(APIVersion).TypedAs("uint32_t"_lit);
   SERIALISE_MEMBER(Layers);
-  SERIALISE_MEMBER(Extensions);
+  SERIALISE_MEMBER(Extensions).Important();
   SERIALISE_MEMBER(InstanceID).TypedAs("VkInstance"_lit);
 }
 

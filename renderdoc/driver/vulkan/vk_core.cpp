@@ -623,6 +623,9 @@ uint32_t WrappedVulkan::HandlePreCallback(VkCommandBuffer commandBuffer, DrawFla
 
 rdcstr WrappedVulkan::GetChunkName(uint32_t idx)
 {
+  if((SystemChunk)idx == SystemChunk::DriverInit)
+    return "vkCreateInstance"_lit;
+
   if((SystemChunk)idx < SystemChunk::FirstDriverChunk)
     return ToStr((SystemChunk)idx);
 

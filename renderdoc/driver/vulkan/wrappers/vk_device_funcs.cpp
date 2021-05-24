@@ -998,7 +998,8 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
   SERIALISE_ELEMENT(instance);
   SERIALISE_ELEMENT_LOCAL(PhysicalDeviceIndex, *pPhysicalDeviceCount);
   SERIALISE_ELEMENT_LOCAL(PhysicalDevice, GetResID(*pPhysicalDevices))
-      .TypedAs("VkPhysicalDevice"_lit);
+      .TypedAs("VkPhysicalDevice"_lit)
+      .Important();
 
   uint32_t legacyUnused_memIdxMap[VK_MAX_MEMORY_TYPES] = {0};
   // not used at the moment but useful for reference and might be used
@@ -1564,8 +1565,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
                                              const VkAllocationCallbacks *pAllocator,
                                              VkDevice *pDevice)
 {
-  SERIALISE_ELEMENT(physicalDevice);
-  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT(physicalDevice).Important();
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo).Important();
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(Device, GetResID(*pDevice)).TypedAs("VkDevice"_lit);
 
@@ -3938,7 +3939,7 @@ void WrappedVulkan::vkDestroyDevice(VkDevice device, const VkAllocationCallbacks
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkDeviceWaitIdle(SerialiserType &ser, VkDevice device)
 {
-  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT(device).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 

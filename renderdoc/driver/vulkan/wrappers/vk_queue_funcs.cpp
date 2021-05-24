@@ -35,8 +35,8 @@ bool WrappedVulkan::Serialise_vkGetDeviceQueue(SerialiserType &ser, VkDevice dev
                                                VkQueue *pQueue)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT(queueFamilyIndex);
-  SERIALISE_ELEMENT(queueIndex);
+  SERIALISE_ELEMENT(queueFamilyIndex).Important();
+  SERIALISE_ELEMENT(queueIndex).Important();
   SERIALISE_ELEMENT_LOCAL(Queue, GetResID(*pQueue)).TypedAs("VkQueue"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -242,7 +242,7 @@ void WrappedVulkan::DoSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo)
   }
 }
 
-void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo)
+void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo, rdcstr basename)
 {
   if(IsLoading(m_State))
   {
@@ -252,8 +252,6 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo
 
     // we're adding multiple events, need to increment ourselves
     m_RootEventID++;
-
-    rdcstr basename = StringFormat::Fmt("vkQueueSubmit(%u)", submitInfo.commandBufferInfoCount);
 
     for(uint32_t c = 0; c < submitInfo.commandBufferInfoCount; c++)
     {
@@ -1148,7 +1146,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
 {
   SERIALISE_ELEMENT(queue);
   SERIALISE_ELEMENT(submitCount);
-  SERIALISE_ELEMENT_ARRAY(pSubmits, submitCount);
+  SERIALISE_ELEMENT_ARRAY(pSubmits, submitCount).Important();
   SERIALISE_ELEMENT(fence);
 
   Serialise_DebugMessages(ser);
@@ -1228,7 +1226,9 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
       // deliberately don't replay
       // VkPerformanceQuerySubmitInfoKHR we don't replay since we don't replay perf counter work
 
-      ReplayQueueSubmit(queue, submitInfo);
+      rdcstr basename = StringFormat::Fmt("vkQueueSubmit(%u)", submitInfo.commandBufferInfoCount);
+
+      ReplayQueueSubmit(queue, submitInfo, basename);
     }
   }
 
@@ -1349,7 +1349,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit2KHR(SerialiserType &ser, VkQueue que
 {
   SERIALISE_ELEMENT(queue);
   SERIALISE_ELEMENT(submitCount);
-  SERIALISE_ELEMENT_ARRAY(pSubmits, submitCount);
+  SERIALISE_ELEMENT_ARRAY(pSubmits, submitCount).Important();
   SERIALISE_ELEMENT(fence);
 
   Serialise_DebugMessages(ser);
@@ -1390,7 +1390,12 @@ bool WrappedVulkan::Serialise_vkQueueSubmit2KHR(SerialiserType &ser, VkQueue que
     }
 
     for(uint32_t sub = 0; sub < submitCount; sub++)
-      ReplayQueueSubmit(queue, pSubmits[sub]);
+    {
+      rdcstr basename =
+          StringFormat::Fmt("vkQueueSubmit2KHR(%u)", pSubmits[sub].commandBufferInfoCount);
+
+      ReplayQueueSubmit(queue, pSubmits[sub], basename);
+    }
   }
 
   return true;
@@ -1510,7 +1515,7 @@ bool WrappedVulkan::Serialise_vkQueueBindSparse(SerialiserType &ser, VkQueue que
 {
   SERIALISE_ELEMENT(queue);
   SERIALISE_ELEMENT(bindInfoCount);
-  SERIALISE_ELEMENT_ARRAY(pBindInfo, bindInfoCount);
+  SERIALISE_ELEMENT_ARRAY(pBindInfo, bindInfoCount).Important();
   SERIALISE_ELEMENT(fence);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -1788,7 +1793,7 @@ VkResult WrappedVulkan::vkQueueBindSparse(VkQueue queue, uint32_t bindInfoCount,
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkQueueWaitIdle(SerialiserType &ser, VkQueue queue)
 {
-  SERIALISE_ELEMENT(queue);
+  SERIALISE_ELEMENT(queue).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1824,7 +1829,7 @@ bool WrappedVulkan::Serialise_vkQueueBeginDebugUtilsLabelEXT(SerialiserType &ser
                                                              const VkDebugUtilsLabelEXT *pLabelInfo)
 {
   SERIALISE_ELEMENT(queue);
-  SERIALISE_ELEMENT_LOCAL(Label, *pLabelInfo);
+  SERIALISE_ELEMENT_LOCAL(Label, *pLabelInfo).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1878,7 +1883,7 @@ void WrappedVulkan::vkQueueBeginDebugUtilsLabelEXT(VkQueue queue,
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkQueueEndDebugUtilsLabelEXT(SerialiserType &ser, VkQueue queue)
 {
-  SERIALISE_ELEMENT(queue);
+  SERIALISE_ELEMENT(queue).Unimportant();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1928,7 +1933,7 @@ bool WrappedVulkan::Serialise_vkQueueInsertDebugUtilsLabelEXT(SerialiserType &se
                                                               const VkDebugUtilsLabelEXT *pLabelInfo)
 {
   SERIALISE_ELEMENT(queue);
-  SERIALISE_ELEMENT_LOCAL(Label, *pLabelInfo);
+  SERIALISE_ELEMENT_LOCAL(Label, *pLabelInfo).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1983,7 +1988,7 @@ bool WrappedVulkan::Serialise_vkGetDeviceQueue2(SerialiserType &ser, VkDevice de
                                                 const VkDeviceQueueInfo2 *pQueueInfo, VkQueue *pQueue)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(QueueInfo, *pQueueInfo);
+  SERIALISE_ELEMENT_LOCAL(QueueInfo, *pQueueInfo).Important();
   SERIALISE_ELEMENT_LOCAL(Queue, GetResID(*pQueue)).TypedAs("VkQueue"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();

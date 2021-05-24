@@ -932,7 +932,7 @@ private:
   void InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo);
   void CaptureQueueSubmit(VkQueue queue, const rdcarray<VkCommandBuffer> &commandBuffers,
                           VkFence fence);
-  void ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo);
+  void ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo, rdcstr basename);
   void DoSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo);
 
   rdcarray<VulkanDrawcallTreeNode *> m_DrawcallStack;

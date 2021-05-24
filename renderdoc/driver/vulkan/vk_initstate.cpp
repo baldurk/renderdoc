@@ -970,7 +970,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
   bool ret = true;
 
   SERIALISE_ELEMENT_LOCAL(type, initial->type);
-  SERIALISE_ELEMENT(id).TypedAs(NameOfType(type));
+  SERIALISE_ELEMENT(id).TypedAs(NameOfType(type)).Important();
 
   if(IsReplayingAndReading())
   {
@@ -998,7 +998,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
     }
 
     SERIALISE_ELEMENT_ARRAY(Bindings, NumBindings);
-    SERIALISE_ELEMENT(NumBindings);
+    SERIALISE_ELEMENT(NumBindings).Important();
 
     ser.SetLazyThreshold(0);
 
@@ -1499,7 +1499,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
 
     // not using SERIALISE_ELEMENT_ARRAY so we can deliberately avoid allocation - we serialise
     // directly into upload memory
-    ser.Serialise("Contents"_lit, Contents, ContentsSize, SerialiserFlags::NoFlags);
+    ser.Serialise("Contents"_lit, Contents, ContentsSize, SerialiserFlags::NoFlags).Important();
 
     // unmap the resource we mapped before - we need to do this on read and on write.
     if(!IsStructuredExporting(m_State) && mappedMem.mem != VK_NULL_HANDLE)
