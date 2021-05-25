@@ -32,6 +32,7 @@
 #include <QMenu>
 #include <QShortcut>
 #include <QSortFilterProxyModel>
+#include <QStylePainter>
 #include <QTextEdit>
 #include <QTimer>
 #include "Code/QRDUtils.h"
@@ -1158,17 +1159,31 @@ static const SDObject *FindChildRecursively(const SDObject *parent, rdcstr name)
   return NULL;
 }
 
+struct ParseError
+{
+  int position = -1;
+  int length = 0;
+  QString errorText;
+
+  operator bool() const { return length > 0; }
+  ParseError &setText(QString text)
+  {
+    errorText = text;
+    return *this;
+  }
+};
+
 struct EventFilterModel : public QSortFilterProxyModel
 {
 public:
   EventFilterModel(ICaptureContext &ctx) : m_Ctx(ctx) {}
   void ResetCache() { m_VisibleCache.clear(); }
-  QString ParseExpression(QString expr)
+  ParseError ParseExpression(QString expr)
   {
     m_VisibleCache.clear();
     m_Filters.clear();
-    QString ret = ParseExpressionToFilters(expr, m_Filters);
-    if(!ret.isEmpty())
+    ParseError ret = ParseExpressionToFilters(expr, m_Filters);
+    if(ret)
       m_Filters.clear();
     invalidateFilter();
     return ret;
@@ -1276,8 +1291,40 @@ private:
     };
   }
 
+  struct Token
+  {
+    int position;
+    int length;
+    QString text;
+  };
+
+  QList<Token> tokenise(QString parameters)
+  {
+    QList<Token> ret;
+
+    int p = 0;
+    while(p < parameters.size())
+    {
+      if(parameters[p].isSpace())
+      {
+        p++;
+        continue;
+      }
+
+      Token t;
+      t.position = p;
+      while(p < parameters.size() && !parameters[p].isSpace())
+        p++;
+      t.length = p - t.position;
+      t.text = parameters.mid(t.position, t.length);
+      ret.push_back(t);
+    }
+
+    return ret;
+  }
+
   IEventBrowser::EventFilterCallback MakeFunctionMatcher(QString name, QString parameters,
-                                                         QString &errors)
+                                                         ParseError &errors)
   {
     // builtins
     if(name == lit("any"))
@@ -1287,11 +1334,11 @@ private:
       rdcarray<EventFilter> filters;
       errors = ParseExpressionToFilters(parameters, filters);
 
-      if(errors.isEmpty())
+      if(!errors)
       {
         if(filters.isEmpty())
         {
-          errors = tr("No filters provided to $any()", "EventFilterModel");
+          errors.setText(tr("No filters provided to $any()", "EventFilterModel"));
           return NULL;
         }
 
@@ -1309,11 +1356,11 @@ private:
       rdcarray<EventFilter> filters;
       errors = ParseExpressionToFilters(parameters, filters);
 
-      if(errors.isEmpty())
+      if(!errors)
       {
         if(filters.isEmpty())
         {
-          errors = tr("No filters provided to $all()", "EventFilterModel");
+          errors.setText(tr("No filters provided to $all()", "EventFilterModel"));
           return NULL;
         }
 
@@ -1332,12 +1379,18 @@ private:
 
       if(idx < 0)
       {
-        errors = tr("Parameter to to $param() should be name: value", "EventFilterModel");
+        errors.setText(tr("Parameter to to $param() should be name: value", "EventFilterModel"));
         return NULL;
       }
 
       QString paramName = parameters.mid(0, idx).trimmed();
       QString paramValue = parameters.mid(idx + 1).trimmed();
+
+      if(paramValue.isEmpty())
+      {
+        errors.setText(tr("Parameter to to $param() should be name: value", "EventFilterModel"));
+        return NULL;
+      }
 
       return [paramName, paramValue](ICaptureContext *ctx, const rdcstr &, const rdcstr &, uint32_t,
                                      const SDChunk *chunk, const DrawcallDescription *,
@@ -1369,45 +1422,51 @@ private:
     else if(name == lit("event"))
     {
       // $event(...) => filters on any event property (at the moment only EID)
-      QStringList params = parameters.split(QLatin1Char(' '), QString::SkipEmptyParts);
+      QList<Token> tokens = tokenise(parameters);
 
       static const QStringList operators = {
           lit("=="), lit("!="), lit("<"), lit(">"), lit("<="), lit(">="),
       };
 
-      if(params.size() < 1 ||
-         (params[0].toLower() != lit("eid") && params[0].toLower() != lit("eventid")))
+      if(tokens.size() < 1)
       {
-        errors = tr("Unrecognised $event() property filter expression '%1'", "EventFilterModel")
-                     .arg(parameters);
+        errors.setText(tr("Filter parameters required", "EventFilterModel"));
         return NULL;
       }
 
-      if(params.size() != 3 || operators.indexOf(params[1]) < 0)
+      if(tokens[0].text.toLower() != lit("eid") && tokens[0].text.toLower() != lit("eventid"))
       {
-        errors = tr("Invalid $event() %1 filter expression '%2', expected "
-                    "$event(%1 operator value) with operators %3",
-                    "EventFilterModel")
-                     .arg(params[0])
-                     .arg(parameters)
-                     .arg(operators.join(lit(", ")));
+        errors.position = tokens[0].position;
+        errors.length = tokens[0].length;
+        errors.setText(tr("Unrecognised event property", "EventFilterModel"));
+        return NULL;
+      }
+
+      int operatorIdx = operators.indexOf(tokens[1].text);
+
+      if(tokens[1].text == lit("="))
+        operatorIdx = 0;
+
+      if(tokens.size() != 3 || operatorIdx < 0 || operatorIdx >= operators.size())
+      {
+        errors.setText(tr("Invalid expression, expected single comparison with operators: %3",
+                          "EventFilterModel")
+                           .arg(operators.join(lit(", "))));
         return NULL;
       }
 
       bool ok = false;
-      uint32_t eid = params[2].toUInt(&ok, 0);
+      uint32_t eid = tokens[2].text.toUInt(&ok, 0);
 
       if(!ok)
       {
-        errors =
-            tr("Invalid $event() %1 filter expression '%2', invalid value %3", "EventFilterModel")
-                .arg(params[0])
-                .arg(parameters)
-                .arg(params[2]);
+        errors.position = tokens[2].position;
+        errors.length = tokens[2].length;
+        errors.setText(tr("Invalid value, expected integer", "EventFilterModel"));
         return NULL;
       }
 
-      switch(operators.indexOf(params[1]))
+      switch(operatorIdx)
       {
         case 0:
           return [eid](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
@@ -1433,18 +1492,16 @@ private:
           return [eid](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
                        const SDChunk *, const DrawcallDescription *draw,
                        const rdcstr &) { return eventId >= eid; };
-        default:
-          errors = tr("Internal error, unexpected operator %1", "EventFilterModel").arg(params[1]);
-          return NULL;
+        default: errors.setText(tr("Internal error", "EventFilterModel")); return NULL;
       }
     }
     else if(name == lit("draw"))
     {
       // $draw(...) => returns true only for draws, optionally with a particular property filter
-      QStringList params = parameters.split(QLatin1Char(' '), QString::SkipEmptyParts);
+      QList<Token> tokens = tokenise(parameters);
 
       // no parameters, just return if it's a draw
-      if(params.isEmpty())
+      if(tokens.isEmpty())
         return [](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
                   const SDChunk *, const DrawcallDescription *draw,
                   const rdcstr &) { return draw->eventId == eventId; };
@@ -1480,7 +1537,7 @@ private:
                                          draw->dispatchDimension[2]),
       };
 
-      QByteArray prop = params[0].toLower().toLatin1();
+      QByteArray prop = tokens[0].text.toLower().toLatin1();
 
       int numericPropIndex = -1;
       for(size_t i = 0; i < ARRAY_COUNT(namedProps); i++)
@@ -1498,31 +1555,31 @@ private:
             lit("=="), lit("!="), lit("<"), lit(">"), lit("<="), lit(">="),
         };
 
-        if(params.size() != 3 || operators.indexOf(params[1]) < 0)
+        int operatorIdx = operators.indexOf(tokens[1].text);
+
+        if(tokens[1].text == lit("="))
+          operatorIdx = 0;
+
+        if(tokens.size() != 3 || operatorIdx < 0 || operatorIdx >= operators.size())
         {
-          errors = tr("Invalid $draw() %1 filter expression '%2', expected "
-                      "$draw(%1 operator value) with operators %3",
-                      "EventFilterModel")
-                       .arg(params[0])
-                       .arg(parameters)
-                       .arg(operators.join(lit(", ")));
+          errors.setText(tr("Invalid expression, expected single comparison with operators: %3",
+                            "EventFilterModel")
+                             .arg(operators.join(lit(", "))));
           return NULL;
         }
 
         bool ok = false;
-        int64_t value = params[2].toLongLong(&ok, 0);
+        int64_t value = tokens[2].text.toLongLong(&ok, 0);
 
         if(!ok)
         {
-          errors =
-              tr("Invalid $draw() %1 filter expression '%2', invalid value %3", "EventFilterModel")
-                  .arg(params[0])
-                  .arg(parameters)
-                  .arg(params[2]);
+          errors.position = tokens[2].position;
+          errors.length = tokens[2].length;
+          errors.setText(tr("Invalid value, expected integer", "EventFilterModel"));
           return NULL;
         }
 
-        switch(operators.indexOf(params[1]))
+        switch(operatorIdx)
         {
           case 0:
             return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
@@ -1560,33 +1617,31 @@ private:
                                        const DrawcallDescription *draw, const rdcstr &) {
               return draw->eventId == eventId && propGetter(draw) >= value;
             };
-          default:
-            errors = tr("Internal error, unexpected operator %1", "EventFilterModel").arg(params[1]);
-            return NULL;
+          default: errors.setText(tr("Internal error", "EventFilterModel")); return NULL;
         }
       }
-      else if(params[0] == lit("flags"))
+      else if(tokens[0].text == lit("flags"))
       {
-        if(params.size() < 3 || params[1] != lit("&"))
+        if(tokens.size() < 3 || tokens[1].text != lit("&"))
         {
-          errors = tr("Invalid $draw() flags filter expression '%1', expected "
-                      "$draw(flags & SomeFlag|OtherFlag)",
-                      "EventFilterModel")
-                       .arg(parameters);
+          errors.position = tokens[0].position;
+          errors.length = (tokens[1].position + tokens[1].length) - errors.position + 1;
+          errors.setText(tr("Expected $draw(flags & ...)", "EventFilterModel"));
           return NULL;
         }
 
         // there could be whitespace in the flags list so iterate over all remaining parameters (as
         // split by whitespace)
         QStringList flagStrings;
-        for(int i = 2; i < params.count(); i++)
-          flagStrings.append(params[i].split(QLatin1Char('|'), QString::KeepEmptyParts));
+        for(int i = 2; i < tokens.count(); i++)
+          flagStrings.append(tokens[i].text.split(QLatin1Char('|'), QString::KeepEmptyParts));
 
         // if we have an empty string in the list somewhere that means the | list was broken
         if(flagStrings.contains(QString()))
         {
-          errors =
-              tr("Invalid $draw() flags filter expression '%1'", "EventFilterModel").arg(parameters);
+          errors.position = tokens[2].position;
+          errors.length = (tokens.back().position + tokens.back().length) - errors.position + 1;
+          errors.setText(tr("Invalid draw flags expression", "EventFilterModel"));
           return NULL;
         }
 
@@ -1612,8 +1667,9 @@ private:
           auto it = DrawFlagsLookup.find(flagString);
           if(it == DrawFlagsLookup.end())
           {
-            errors = tr("Unrecognised draw flag '%1' in to $draw(flags) filter", "EventFilterModel")
-                         .arg(flagString);
+            errors.position = tokens[2].position;
+            errors.length = (tokens.back().position + tokens.back().length) - errors.position + 1;
+            errors.setText(tr("Unrecognised draw flag '%1'", "EventFilterModel").arg(flagString));
             return NULL;
           }
 
@@ -1626,8 +1682,7 @@ private:
       }
       else
       {
-        errors = tr("Unrecognised $draw() property filter expression '%1'", "EventFilterModel")
-                     .arg(parameters);
+        errors.setText(tr("Unrecognised property expression", "EventFilterModel"));
         return NULL;
       }
     }
@@ -1640,9 +1695,12 @@ private:
       rdcstr n = name;
       rdcstr p = parameters;
 
-      errors = innerParser(&m_Ctx, n, p);
-      if(!errors.isEmpty())
+      QString errString = innerParser(&m_Ctx, n, p);
+      if(!errString.isEmpty())
+      {
+        errors.setText(errString);
         return NULL;
+      }
 
       return [n, p, innerFilter](ICaptureContext *ctx, const rdcstr &, const rdcstr &, uint32_t eid,
                                  const SDChunk *chunk, const DrawcallDescription *draw,
@@ -1651,11 +1709,11 @@ private:
       };
     }
 
-    errors = tr("Unknown filter function $%1", "EventFilterModel").arg(name);
+    errors.setText(tr("Unknown filter function", "EventFilterModel").arg(name));
     return NULL;
   }
 
-  QString ParseExpressionToFilters(QString expr, rdcarray<EventFilter> &filters)
+  ParseError ParseExpressionToFilters(QString expr, rdcarray<EventFilter> &filters)
   {
     // we have a simple grammar, we pick out subexpressions and they're all independent.
     //
@@ -1687,7 +1745,7 @@ private:
     //
     // any non-existant edge is a parse error
 
-    QString errorString;
+    ParseError errors;
 
     enum
     {
@@ -1707,12 +1765,16 @@ private:
 
     // parenthesis depth
     int parenDepth = 0;
+    // start of the current set of parameters
+    int paramStartPos = 0;
     // parameters (since s holds the function name)
     QString params;
 
     int pos = 0;
     while(pos < expr.length())
     {
+      errors.length = qMax(0, pos - errors.position + 1);
+
       if(state == Start)
       {
         // 1) skip whitespace while in start
@@ -1725,6 +1787,8 @@ private:
         // 5) and 6)
         if(expr[pos] == QLatin1Char('-'))
         {
+          errors.position = pos;
+
           // stay in the Start state, but store match type
           matchType = EventFilter::CantMatch;
           pos++;
@@ -1733,6 +1797,8 @@ private:
 
         if(expr[pos] == QLatin1Char('+'))
         {
+          errors.position = pos;
+
           matchType = EventFilter::MustMatch;
           pos++;
           continue;
@@ -1741,10 +1807,17 @@ private:
         // 3.1) move to function expression if we see a $
         if(expr[pos] == QLatin1Char('$'))
         {
+          errors.position = pos;
+
           // we need at minimum 3 more characters for $x()
           if(pos + 3 >= expr.length())
-            return tr("Parse Error: Invalid function expression %1", "EventFilterModel")
-                .arg(expr.mid(pos));
+          {
+            errors.length = expr.length() - errors.position;
+            return errors.setText(
+                tr("Invalid function expression\n"
+                   "If this is not a filter function, surround with quotes.",
+                   "EventFilterModel"));
+          }
 
           // consume the $
           state = FunctionExprName;
@@ -1756,10 +1829,14 @@ private:
         // 2.1) move to quoted expression if we see a "
         if(expr[pos] == QLatin1Char('"'))
         {
+          errors.position = pos;
+
           state = QuotedExpr;
           pos++;
           continue;
         }
+
+        errors.position = pos;
 
         // 4.1) for anything else begin parsing a literal expression
         state = Literal;
@@ -1772,7 +1849,11 @@ private:
         if(expr[pos] == QLatin1Char('\\'))
         {
           if(pos == expr.length() - 1)
-            return tr("Parse Error: Invalid escape sequence in quoted string", "EventFilterModel");
+          {
+            errors.length = expr.length() - errors.position;
+            return errors.setText(
+                tr("Invalid escape sequence in quoted string", "EventFilterModel"));
+          }
 
           // append the next character, whatever it is, and skip the escape character
           s.append(expr[pos + 1]);
@@ -1785,9 +1866,11 @@ private:
 
           // however we expect the end of the expression or whitespace next
           if(pos + 1 < expr.length() && !expr[pos + 1].isSpace())
-            return tr("Parse Error: Unexpected character %1 after quoted string",
-                      "EventFilterModel")
-                .arg(expr[pos + 1]);
+          {
+            errors.length = (pos + 1) - errors.position + 1;
+            return errors.setText(
+                tr("Unexpected character after quoted string", "EventFilterModel"));
+          }
 
           filters.push_back(EventFilter(MakeLiteralMatcher(s), matchType));
 
@@ -1795,6 +1878,8 @@ private:
           pos++;
           state = Start;
           matchType = EventFilter::Normal;
+
+          errors.position = pos;
 
           continue;
         }
@@ -1822,6 +1907,8 @@ private:
           state = Start;
           matchType = EventFilter::Normal;
 
+          errors.position = pos;
+
           continue;
         }
         else
@@ -1839,15 +1926,19 @@ private:
         // parsing parameters
         if(expr[pos] == QLatin1Char('('))
         {
-          if(s.isEmpty())
-            return tr(
-                "Parse Error: Filter function with no name before arguments. \
-                      If this is not a filter function, surround with quotes.",
-                "EventFilterModel");
-
           state = FunctionExprParams;
           parenDepth = 1;
           pos++;
+          paramStartPos = pos;
+
+          errors.length = pos - errors.position + 1;
+
+          if(s.isEmpty())
+            return errors.setText(
+                tr("Filter function with no name before arguments.\n"
+                   "If this is not a filter function, surround with quotes.",
+                   "EventFilterModel"));
+
           continue;
         }
 
@@ -1861,10 +1952,12 @@ private:
           while(end < expr.length() && (expr[end].isLetterOrNumber() || expr[end] == QLatin1Char('.')))
             end++;
 
-          return tr("Parse Error: Invalid function name '%1', must begin with a letter. \
-                      If this is not a filter function, surround with quotes.",
-                    "EventFilterModel")
-              .arg(expr.mid(pos, end - pos));
+          errors.length = end - errors.position + 1;
+
+          return errors.setText(
+              tr("Invalid filter function name, must begin with a letter.\n"
+                 "If this is not a filter function, surround with quotes.",
+                 "EventFilterModel"));
         }
 
         // add this character to the name we're building
@@ -1890,19 +1983,32 @@ private:
 
           // however we expect the end of the expression or whitespace next
           if(pos + 1 < expr.length() && !expr[pos + 1].isSpace())
-            return tr("Parse Error: Unexpected character %1 after filter function",
-                      "EventFilterModel")
-                .arg(expr[pos + 1]);
+          {
+            errors.length = (pos + 1) - errors.position + 1;
+            return errors.setText(
+                tr("Unexpected character after filter function", "EventFilterModel"));
+          }
 
-          QString errors;
-          IEventBrowser::EventFilterCallback filter = MakeFunctionMatcher(s, params, errors);
+          // reset errors, we'll fix up the location afterwards depending on what's returned
+          ParseError subErrors;
+          IEventBrowser::EventFilterCallback filter = MakeFunctionMatcher(s, params, subErrors);
 
           if(!filter)
           {
-            if(errors.isEmpty())
-              return tr("Unknown filter function '$%1'", "EventFilterModel").arg(s);
+            // if the errors returned some sub-range for the errors, the position will be
+            // relative to the params string so rebase it.
+            if(subErrors.position > 0)
+            {
+              subErrors.position += paramStartPos;
+            }
+            else
+            {
+              // otherwise use the whole parent range which includes the function name
+              subErrors.position = errors.position;
+              subErrors.length = errors.length;
+            }
 
-            return errors;
+            return subErrors;
           }
 
           filters.push_back(EventFilter(filter, matchType));
@@ -1924,38 +2030,39 @@ private:
       }
     }
 
+    errors.length = expr.length() - errors.position;
+
     // we should be back in the normal state, because all the other states have termination states
     if(state == Literal)
     {
       // shouldn't be possible as the Literal state terminates itself when it sees the end of the
       // string
-      return tr("Parse Error: Encountered unterminated literal", "EventFilterModel");
+      return errors.setText(tr("Encountered unterminated literal", "EventFilterModel"));
     }
     else if(state == QuotedExpr)
     {
-      return tr("Parse Error: Unterminated quoted expression: %1", "EventFilterModel").arg(s);
+      return errors.setText(tr("Unterminated quoted expression", "EventFilterModel"));
     }
     else if(state == FunctionExprName)
     {
-      return tr("Parse Error: Encountered end of filter without function parameters: $%1",
-                "EventFilterModel")
-          .arg(s);
+      return errors.setText(tr("Filter function has no parameters", "EventFilterModel"));
     }
     else if(state == FunctionExprParams)
     {
-      return tr("Parse Error: Encountered end of filter in function: $%1(%2", "EventFilterModel")
-          .arg(s)
-          .arg(params);
+      return errors.setText(tr("Filter function parameters incomplete", "EventFilterModel"));
     }
 
     // any - or + should have been consumed by an expression, if we still have it then it was
     // dangling
     if(matchType == EventFilter::CantMatch)
-      return tr("Parse Error: Encountered - without expression", "EventFilterModel");
+      return errors.setText(tr("- expects an expression to exclude", "EventFilterModel"));
     if(matchType == EventFilter::MustMatch)
-      return tr("Parse Error: Encountered + without expression", "EventFilterModel");
+      return errors.setText(tr("+ expects an expression to require", "EventFilterModel"));
 
-    return errorString;
+    // if we got here, we succeeded. Stop tracking errors
+    errors = ParseError();
+
+    return errors;
   }
 
   // static so we don't lose this when the event browser is closed and the model is deleted. We
@@ -1982,10 +2089,53 @@ static bool textEditControl(QWidget *sender)
   return false;
 }
 
+ParseErrorTipLabel::ParseErrorTipLabel(QWidget *widget) : QLabel(NULL), m_Widget(widget)
+{
+  int margin = style()->pixelMetric(QStyle::PM_ToolTipLabelFrameWidth, NULL, this);
+  int opacity = style()->styleHint(QStyle::SH_ToolTipLabel_Opacity, NULL, this);
+
+  setWindowFlags(Qt::ToolTip);
+  setAttribute(Qt::WA_TransparentForMouseEvents);
+  setForegroundRole(QPalette::ToolTipText);
+  setBackgroundRole(QPalette::ToolTipBase);
+  setMargin(margin + 1);
+  setFrameStyle(QFrame::NoFrame);
+  setAlignment(Qt::AlignLeft);
+  setIndent(1);
+  setWindowOpacity(opacity / 255.0);
+}
+
+void ParseErrorTipLabel::paintEvent(QPaintEvent *ev)
+{
+  QStylePainter p(this);
+  QStyleOptionFrame opt;
+  opt.init(this);
+  p.drawPrimitive(QStyle::PE_PanelTipLabel, opt);
+  p.end();
+
+  if(!m_Widget->hasFocus())
+    GUIInvoke::call(this, [this]() { hide(); });
+
+  QLabel::paintEvent(ev);
+}
+
+void ParseErrorTipLabel::resizeEvent(QResizeEvent *e)
+{
+  QStyleHintReturnMask frameMask;
+  QStyleOption option;
+  option.init(this);
+  if(style()->styleHint(QStyle::SH_ToolTip_Mask, &option, this, &frameMask))
+    setMask(frameMask.region);
+
+  QLabel::resizeEvent(e);
+}
+
 EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
     : QFrame(parent), ui(new Ui::EventBrowser), m_Ctx(ctx)
 {
   ui->setupUi(this);
+
+  m_ParseError = new ParseErrorTipLabel(ui->filterExpression);
 
   clearBookmarks();
 
@@ -2120,6 +2270,9 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   // set default filter, include only draws that aren't pop markers
   ui->filterExpression->setText(lit("$draw() -$draw(flags & PopMarker)"));
 
+  ui->filterExpression->setSingleLine();
+  ui->filterExpression->setHoverTrack();
+
   if(m_FilterTimeout->isActive())
     m_FilterTimeout->stop();
 
@@ -2133,6 +2286,8 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
 
 EventBrowser::~EventBrowser()
 {
+  delete m_ParseError;
+
   // unregister any shortcuts we registered
   Qt::Key keys[] = {
       Qt::Key_1, Qt::Key_2, Qt::Key_3, Qt::Key_4, Qt::Key_5,
@@ -2324,14 +2479,55 @@ void EventBrowser::filter_apply()
   // if the model index changes (e.g. if some events are shown or hidden)
   ui->events->updateExpansion(m_EventsExpansion, keygen);
 
-  QString parseError = m_FilterModel->ParseExpression(ui->filterExpression->text());
+  ParseError parseError = m_FilterModel->ParseExpression(ui->filterExpression->toPlainText());
+
+  QList<QTextEdit::ExtraSelection> sels;
+
+  m_ParseError->setText(parseError.errorText);
+  m_ParseError->hide();
+
+  if(parseError)
+  {
+    QTextEdit::ExtraSelection sel;
+
+    QTextCursor cursor = ui->filterExpression->textCursor();
+
+    cursor = ui->filterExpression->textCursor();
+    sel.cursor = cursor;
+    sel.cursor.movePosition(QTextCursor::StartOfLine);
+    sel.cursor.setPosition(parseError.position, QTextCursor::MoveAnchor);
+
+    m_ParseErrorPos = ui->filterExpression->cursorRect(sel.cursor).bottomLeft();
+
+    sel.cursor.setPosition(parseError.position + parseError.length, QTextCursor::KeepAnchor);
+    sel.format.setUnderlineStyle(QTextCharFormat::SingleUnderline);
+    sel.format.setUnderlineColor(QColor(Qt::red));
+    sels.push_back(sel);
+
+    QPoint pos = ui->filterExpression->viewport()->mapToGlobal(m_ParseErrorPos);
+    pos.setY(pos.y() + 4);
+
+    if(ui->filterExpression->viewport()->rect().contains(
+           ui->filterExpression->viewport()->mapFromGlobal(QCursor::pos())))
+    {
+      m_ParseError->move(pos);
+      m_ParseError->show();
+    }
+    else
+    {
+      m_ParseError->hide();
+    }
+  }
+  else
+  {
+    m_ParseError->hide();
+  }
+
+  ui->filterExpression->setExtraSelections(sels);
 
   ui->events->applyExpansion(m_EventsExpansion, keygen);
 
   ui->events->setCurrentIndex(m_FilterModel->mapFromSource(m_Model->GetIndexForEID(curSelEvent)));
-
-  if(!parseError.isEmpty())
-    qInfo() << parseError;
 }
 
 void EventBrowser::on_findEvent_textEdited(const QString &arg1)
@@ -2349,27 +2545,54 @@ void EventBrowser::on_findEvent_textEdited(const QString &arg1)
   }
 }
 
-void EventBrowser::on_filterExpression_returnPressed()
+void EventBrowser::on_filterExpression_keyPress(QKeyEvent *e)
 {
-  // stop the timer, we'll manually fire it instantly
-  if(m_FilterTimeout->isActive())
-    m_FilterTimeout->stop();
-
-  filter_apply();
-}
-
-void EventBrowser::on_filterExpression_textEdited(const QString &text)
-{
-  if(text.isEmpty())
+  if(e->key() == Qt::Key_Return || e->key() == Qt::Key_Enter)
   {
-    m_FilterTimeout->stop();
+    // stop the timer, we'll manually fire it instantly
+    if(m_FilterTimeout->isActive())
+      m_FilterTimeout->stop();
 
     filter_apply();
   }
-  else
+}
+
+void EventBrowser::on_filterExpression_textChanged()
+{
+  m_FilterTimeout->start();    // restart
+
+  m_ParseError->setText(QString());
+  m_ParseError->hide();
+  ui->filterExpression->setExtraSelections({});
+}
+
+void EventBrowser::on_filterExpression_mouseMoved(QMouseEvent *event)
+{
+  if(!m_ParseError->text().isEmpty())
   {
-    m_FilterTimeout->start();    // restart
+    QPoint pos = ui->filterExpression->viewport()->mapToGlobal(m_ParseErrorPos);
+    pos.setY(pos.y() + 4);
+
+    m_ParseError->move(pos);
+    m_ParseError->show();
   }
+}
+
+void EventBrowser::on_filterExpression_hoverEnter()
+{
+  if(!m_ParseError->text().isEmpty())
+  {
+    QPoint pos = ui->filterExpression->viewport()->mapToGlobal(m_ParseErrorPos);
+    pos.setY(pos.y() + 4);
+
+    m_ParseError->move(pos);
+    m_ParseError->show();
+  }
+}
+
+void EventBrowser::on_filterExpression_hoverLeave()
+{
+  m_ParseError->hide();
 }
 
 void EventBrowser::on_findEvent_returnPressed()
@@ -2931,13 +3154,13 @@ bool EventBrowser::UnregisterEventFilterFunction(const rdcstr &name)
 
 void EventBrowser::SetCurrentFilterText(const rdcstr &text)
 {
-  ui->filterExpression->setText(text);
+  ui->filterExpression->setPlainText(text);
   filter_apply();
 }
 
 rdcstr EventBrowser::GetCurrentFilterText()
 {
-  return ui->filterExpression->text();
+  return ui->filterExpression->toPlainText();
 }
 
 void EventBrowser::SetShowParameterNames(bool show)

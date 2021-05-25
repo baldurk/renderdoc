@@ -25,6 +25,7 @@
 #include "RDTextEdit.h"
 #include <QKeyEvent>
 #include <QScrollBar>
+#include "Code/QRDUtils.h"
 
 RDTextEdit::RDTextEdit(QWidget *parent) : QTextEdit(parent)
 {
@@ -32,6 +33,52 @@ RDTextEdit::RDTextEdit(QWidget *parent) : QTextEdit(parent)
 
 RDTextEdit::~RDTextEdit()
 {
+}
+
+void RDTextEdit::setSingleLine()
+{
+  if(m_singleLine)
+    return;
+
+  m_singleLine = true;
+
+  setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+  setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+  setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+  setLineWrapMode(QTextEdit::NoWrap);
+
+  document()->setDocumentMargin(0);
+
+  QFontMetrics fm(font());
+  const int iconSize = style()->pixelMetric(QStyle::PM_SmallIconSize, 0, this);
+
+  int height = qMax(fm.height() + 2, iconSize);
+
+  QStyleOptionFrame opt;
+  initStyleOption(&opt);
+  QSize sz = style()->sizeFromContents(QStyle::CT_LineEdit, &opt, QSize(100, height), this);
+
+  setFixedHeight(sz.height());
+
+  QObject::connect(this, &QTextEdit::textChanged, [this]() {
+    if(m_singleLine)
+    {
+      QString text = toPlainText();
+
+      if(text.contains(QLatin1Char('\r')) || text.contains(QLatin1Char('\n')))
+      {
+        text.replace(lit("\r\n"), lit(" "));
+        text.replace(QLatin1Char('\r'), lit(" "));
+        text.replace(QLatin1Char('\n'), lit(" "));
+        setPlainText(text);
+      }
+    }
+  });
+}
+
+void RDTextEdit::setHoverTrack()
+{
+  setAttribute(Qt::WA_Hover);
 }
 
 void RDTextEdit::focusInEvent(QFocusEvent *e)
@@ -48,6 +95,16 @@ void RDTextEdit::focusOutEvent(QFocusEvent *e)
 
 void RDTextEdit::keyPressEvent(QKeyEvent *e)
 {
+  if(m_singleLine)
+  {
+    if(e->key() == Qt::Key_Return || e->key() == Qt::Key_Enter)
+    {
+      emit(keyPress(e));
+      e->accept();
+      return;
+    }
+  }
+
   // add ctrl-end and ctrl-home shortcuts, which aren't implemented for read-only edits
   if(e->key() == Qt::Key_End && (e->modifiers() & Qt::ControlModifier))
   {
@@ -62,4 +119,23 @@ void RDTextEdit::keyPressEvent(QKeyEvent *e)
     QTextEdit::keyPressEvent(e);
   }
   emit(keyPress(e));
+}
+
+void RDTextEdit::mouseMoveEvent(QMouseEvent *e)
+{
+  emit(mouseMoved(e));
+  QTextEdit::mouseMoveEvent(e);
+}
+
+bool RDTextEdit::event(QEvent *e)
+{
+  if(e->type() == QEvent::HoverEnter)
+  {
+    emit(hoverEnter());
+  }
+  else if(e->type() == QEvent::HoverLeave)
+  {
+    emit(hoverLeave());
+  }
+  return QTextEdit::event(e);
 }

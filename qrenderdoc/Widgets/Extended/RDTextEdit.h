@@ -29,13 +29,21 @@ class RDTextEdit : public QTextEdit
 {
 private:
   Q_OBJECT
+
+  bool m_singleLine = false;
+
 public:
   explicit RDTextEdit(QWidget *parent = 0);
   ~RDTextEdit();
 
+  void setSingleLine();
+  void setHoverTrack();
 signals:
   void enter();
   void leave();
+  void hoverEnter();
+  void hoverLeave();
+  void mouseMoved(QMouseEvent *event);
   void keyPress(QKeyEvent *e);
 
 public slots:
@@ -44,4 +52,6 @@ protected:
   void focusInEvent(QFocusEvent *e);
   void focusOutEvent(QFocusEvent *e);
   void keyPressEvent(QKeyEvent *e);
+  void mouseMoveEvent(QMouseEvent *event);
+  bool event(QEvent *e);
 };

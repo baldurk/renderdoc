@@ -26,6 +26,7 @@
 
 #include <QFrame>
 #include <QIcon>
+#include <QLabel>
 #include <QSet>
 #include "Code/Interface/QRDInterface.h"
 
@@ -46,6 +47,22 @@ typedef QSet<uint> RDTreeViewExpansionState;
 class RichTextViewDelegate;
 struct EventItemModel;
 struct EventFilterModel;
+
+class ParseErrorTipLabel : public QLabel
+{
+private:
+  Q_OBJECT
+
+  QPoint m_Pos;
+  QWidget *m_Widget;
+
+public:
+  explicit ParseErrorTipLabel(QWidget *widget);
+
+protected:
+  void paintEvent(QPaintEvent *);
+  void resizeEvent(QResizeEvent *);
+};
 
 class EventBrowser : public QFrame, public IEventBrowser, public ICaptureViewer
 {
@@ -93,8 +110,11 @@ private slots:
   void on_findEvent_returnPressed();
   void on_findEvent_keyPress(QKeyEvent *event);
   void on_findEvent_textEdited(const QString &arg1);
-  void on_filterExpression_returnPressed();
-  void on_filterExpression_textEdited(const QString &text);
+  void on_filterExpression_keyPress(QKeyEvent *event);
+  void on_filterExpression_textChanged();
+  void on_filterExpression_mouseMoved(QMouseEvent *event);
+  void on_filterExpression_hoverEnter();
+  void on_filterExpression_hoverLeave();
   void on_findNext_clicked();
   void on_findPrev_clicked();
   void on_stepNext_clicked();
@@ -143,6 +163,9 @@ private:
   RDTreeViewExpansionState m_EventsExpansion;
 
   QTimer *m_FindHighlight, *m_FilterTimeout;
+
+  ParseErrorTipLabel *m_ParseError;
+  QPoint m_ParseErrorPos;
 
   FlowLayout *m_BookmarkStripLayout;
   QSpacerItem *m_BookmarkSpacer;
