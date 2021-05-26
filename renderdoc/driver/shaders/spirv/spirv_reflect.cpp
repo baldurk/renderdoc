@@ -771,10 +771,6 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
       // try to use the instance/variable name
       rdcstr name = strings[global.id];
 
-      // for structs, use the type name
-      if(name.empty() && baseType.type == DataType::StructType)
-        name = baseType.name;
-
       // otherwise fall back to naming after the builtin or location
       if(name.empty())
       {
@@ -848,7 +844,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
             if(!baseType.children[i].name.empty())
               childname += "." + baseType.children[i].name;
             else
-              childname += StringFormat::Fmt(".child%zu", i);
+              childname += StringFormat::Fmt("._child%zu", i);
 
             SPIRVInterfaceAccess patch;
             patch.accessChain = {i};
@@ -1588,7 +1584,7 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
         if(!varType->children[c].name.empty())
           childName += "." + varType->children[c].name;
         else
-          childName += StringFormat::Fmt(".child%zu", c);
+          childName += StringFormat::Fmt("._child%zu", c);
 
         AddSignatureParameter(isInput, stage, globalID, varType->id, regIndex, patch, childName,
                               dataTypes[varType->children[c].type],
