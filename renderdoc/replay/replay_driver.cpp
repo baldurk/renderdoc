@@ -1284,13 +1284,19 @@ bytebuf GetDiscardPattern(DiscardType type, const ResourceFormat &fmt, uint32_t 
     ret.resize(rowPitch * DiscardPatternHeight);
     uint32_t *out = (uint32_t *)ret.data();
 
+    uint32_t minVal = 0;
+    uint32_t maxVal = 0xffffffff;
+
+    if(fmt.compType == CompType::UInt)
+      maxVal = (127u << 0) | (127u << 10) | (127u << 20) | (3u << 30);
+
     for(int yi = 0; yi < (int)DiscardPatternHeight; yi++)
     {
       int y = invert ? DiscardPatternHeight - 1 - yi : yi;
       for(int x = 0; x < (int)DiscardPatternWidth; x++)
       {
         char c = pattern.c_str()[y * DiscardPatternWidth + x];
-        *(out++) = (c == '#') ? 0xffffffff : 0x00000000;
+        *(out++) = (c == '#') ? maxVal : minVal;
       }
       out += (rowPitch - tightPitch);
     }

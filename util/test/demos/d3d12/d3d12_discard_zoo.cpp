@@ -436,6 +436,18 @@ float4 main(v2f IN) : SV_Target0
                                   .RTV()
                                   .InitialState(D3D12_RESOURCE_STATE_RENDER_TARGET));
       DiscardResource(cmd, tex);
+      TEX_TEST(L"DiscardAll", MakeTexture(DXGI_FORMAT_R16G16B16A16_UINT, 300, 300)
+                                  .Multisampled(4)
+                                  .Array(5)
+                                  .RTV()
+                                  .InitialState(D3D12_RESOURCE_STATE_RENDER_TARGET));
+      DiscardResource(cmd, tex);
+      TEX_TEST(L"DiscardAll", MakeTexture(DXGI_FORMAT_R16G16B16A16_SINT, 300, 300)
+                                  .Multisampled(4)
+                                  .Array(5)
+                                  .RTV()
+                                  .InitialState(D3D12_RESOURCE_STATE_RENDER_TARGET));
+      DiscardResource(cmd, tex);
 
       // test depth textures
       TEX_TEST(L"DiscardAll", MakeTexture(DXGI_FORMAT_D32_FLOAT, 300, 300)

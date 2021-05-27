@@ -198,6 +198,12 @@ RD_TEST(D3D11_Discard_Zoo, D3D11GraphicsTest)
       TEX_TEST("DiscardAll",
                MakeTexture(DXGI_FORMAT_R16G16B16A16_FLOAT, 300, 300).Multisampled(4).Array(5).RTV());
       ctx1->DiscardResource(tex);
+      TEX_TEST("DiscardAll",
+               MakeTexture(DXGI_FORMAT_R16G16B16A16_UINT, 300, 300).Multisampled(4).Array(5).RTV());
+      ctx1->DiscardResource(tex);
+      TEX_TEST("DiscardAll",
+               MakeTexture(DXGI_FORMAT_R16G16B16A16_SINT, 300, 300).Multisampled(4).Array(5).RTV());
+      ctx1->DiscardResource(tex);
 
       // test depth textures
       TEX_TEST("DiscardAll", MakeTexture(DXGI_FORMAT_D32_FLOAT, 300, 300).DSV());

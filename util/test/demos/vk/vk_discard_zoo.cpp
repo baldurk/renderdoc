@@ -417,6 +417,10 @@ RD_TEST(VK_Discard_Zoo, VulkanGraphicsTest)
       DiscardImage(cmd, tex);
       TEX_TEST("DiscardAll", MakeTex2DMS(VK_FORMAT_R16G16B16A16_SFLOAT, 300, 300, 4, 5));
       DiscardImage(cmd, tex);
+      TEX_TEST("DiscardAll", MakeTex2DMS(VK_FORMAT_R16G16B16A16_UINT, 300, 300, 4, 5));
+      DiscardImage(cmd, tex);
+      TEX_TEST("DiscardAll", MakeTex2DMS(VK_FORMAT_R16G16B16A16_SINT, 300, 300, 4, 5));
+      DiscardImage(cmd, tex);
 
       // test depth textures
       if(d32)

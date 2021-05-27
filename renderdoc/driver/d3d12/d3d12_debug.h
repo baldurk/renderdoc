@@ -230,7 +230,8 @@ private:
   ID3D12Fence *m_DebugFence = NULL;
 
   // Discard pattern rendering
-  ID3DBlob *m_DiscardPS = NULL;
+  ID3DBlob *m_DiscardFloatPS = NULL;
+  ID3DBlob *m_DiscardIntPS = NULL;
   ID3D12Resource *m_DiscardConstants = NULL;
   ID3D12RootSignature *m_DiscardRootSig = NULL;
 

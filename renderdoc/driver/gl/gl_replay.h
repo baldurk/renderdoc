@@ -396,7 +396,7 @@ private:
     GLuint quadoverdrawFragShaderSPIRV;
     GLuint quadoverdrawResolveProg;
 
-    GLuint discardProg[4];
+    GLuint discardProg[3][4];
     GLuint discardPatternBuffer;
 
     ResourceId overlayTexId;

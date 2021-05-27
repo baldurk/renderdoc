@@ -720,7 +720,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
 
     ResourceFormat fmt;
     fmt.type = ResourceFormatType::Regular;
-    fmt.compType = CompType::Float;
     fmt.compByteWidth = 4;
     fmt.compCount = 1;
 
@@ -728,7 +727,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
     {
       CREATE_OBJECT(m_DiscardSet[i], m_DiscardPool, m_DiscardSetLayout);
 
+      fmt.compType = CompType::Float;
       bytebuf pattern = GetDiscardPattern(DiscardType(i), fmt);
+      fmt.compType = CompType::UInt;
+      pattern.append(GetDiscardPattern(DiscardType(i), fmt));
 
       m_DiscardCB[i].Create(m_pDriver, m_Device, pattern.size(), 1, 0);
 
@@ -1760,6 +1762,13 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
     // create and cache a pipeline and RP that writes to this format and sample count
     if(passdata.pso == VK_NULL_HANDLE)
     {
+      BuiltinShaderBaseType baseType = BuiltinShaderBaseType::Float;
+
+      if(IsSIntFormat(imInfo.format))
+        baseType = BuiltinShaderBaseType::SInt;
+      else if(IsUIntFormat(imInfo.format))
+        baseType = BuiltinShaderBaseType::UInt;
+
       VkAttachmentReference attRef = {
           0, depth ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
                    : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -1803,7 +1812,7 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
           passdata.rp,
           m_DiscardLayout,
           m_pDriver->GetShaderCache()->GetBuiltinModule(BuiltinShader::BlitVS),
-          m_pDriver->GetShaderCache()->GetBuiltinModule(BuiltinShader::DiscardFS),
+          m_pDriver->GetShaderCache()->GetBuiltinModule(BuiltinShader::DiscardFS, baseType),
           {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_STENCIL_REFERENCE},
           imInfo.samples,
           false,    // sampleRateShading

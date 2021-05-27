@@ -100,6 +100,18 @@ RD_TEST(GL_Discard_Zoo, OpenGLGraphicsTest)
       for(GLint m = 0; m < mips; m++)
         glClearTexImage(t, m, GL_STENCIL_INDEX, GL_UNSIGNED_INT, &stencil);
     }
+    else if(fmt == GL_RGBA16UI)
+    {
+      uint16_t green[] = {0, 127, 0, 1};
+      for(GLint m = 0; m < mips; m++)
+        glClearTexImage(t, m, GL_RGBA_INTEGER, GL_UNSIGNED_SHORT, &green);
+    }
+    else if(fmt == GL_RGBA16I)
+    {
+      uint16_t green[] = {0, 127, 0, 1};
+      for(GLint m = 0; m < mips; m++)
+        glClearTexImage(t, m, GL_RGBA_INTEGER, GL_SHORT, &green);
+    }
     else
     {
       Vec4f green(0.0f, 1.0f, 0.0f, 1.0f);
@@ -327,6 +339,10 @@ RD_TEST(GL_Discard_Zoo, OpenGLGraphicsTest)
       TEX_TEST("DiscardAll", MakeTex2DMS(GL_RGBA16F, 300, 300, 4));
       Invalidate(tex);
       TEX_TEST("DiscardAll", MakeTex2DMS(GL_RGBA16F, 300, 300, 4, 5));
+      Invalidate(tex);
+      TEX_TEST("DiscardAll", MakeTex2DMS(GL_RGBA16UI, 300, 300, 4, 5));
+      Invalidate(tex);
+      TEX_TEST("DiscardAll", MakeTex2DMS(GL_RGBA16I, 300, 300, 4, 5));
       Invalidate(tex);
 
       // test depth textures

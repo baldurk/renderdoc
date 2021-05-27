@@ -119,7 +119,8 @@ static const BuiltinShaderConfig builtinShaders[] = {
     BuiltinShaderConfig(BuiltinShader::ShaderDebugSampleVS,
                         EmbeddedResource(glsl_shaderdebug_sample_vert), rdcspv::ShaderStage::Vertex),
     BuiltinShaderConfig(BuiltinShader::DiscardFS, EmbeddedResource(glsl_discard_frag),
-                        rdcspv::ShaderStage::Fragment),
+                        rdcspv::ShaderStage::Fragment, FeatureCheck::NoCheck,
+                        BuiltinShaderFlags::BaseTypeParameterised),
     BuiltinShaderConfig(
         BuiltinShader::HistogramCS, EmbeddedResource(glsl_histogram_comp),
         rdcspv::ShaderStage::Compute, FeatureCheck::NoCheck,

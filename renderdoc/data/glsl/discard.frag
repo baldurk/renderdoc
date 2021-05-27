@@ -31,7 +31,8 @@
 
 layout(set = 0, binding = 0, std140) uniform DiscardUBOData
 {
-  vec4 pattern[(PATTERN_WIDTH * PATTERN_HEIGHT) / 4];
+  vec4 floatpattern[(PATTERN_WIDTH * PATTERN_HEIGHT) / 4];
+  uvec4 intpattern[(PATTERN_WIDTH * PATTERN_HEIGHT) / 4];
 }
 Pattern;
 
@@ -63,7 +64,8 @@ in vec2 uv;
 
 uniform DiscardUBOData
 {
-  vec4 pattern[(PATTERN_WIDTH * PATTERN_HEIGHT) / 4];
+  vec4 floatpattern[(PATTERN_WIDTH * PATTERN_HEIGHT) / 4];
+  uvec4 intpattern[(PATTERN_WIDTH * PATTERN_HEIGHT) / 4];
 }
 Pattern;
 
@@ -71,14 +73,34 @@ uniform uint flags;
 
 #endif
 
-FRAG_OUT(0) out vec4 col0;
-FRAG_OUT(1) out vec4 col1;
-FRAG_OUT(2) out vec4 col2;
-FRAG_OUT(3) out vec4 col3;
-FRAG_OUT(4) out vec4 col4;
-FRAG_OUT(5) out vec4 col5;
-FRAG_OUT(6) out vec4 col6;
-FRAG_OUT(7) out vec4 col7;
+#if defined(SHADER_BASETYPE) && SHADER_BASETYPE == 1
+
+#define srcpattern intpattern
+#define patternType uvec4
+#define valType uint
+
+#elif defined(SHADER_BASETYPE) && SHADER_BASETYPE == 2
+
+#define srcpattern intpattern
+#define patternType ivec4
+#define valType int
+
+#else
+
+#define srcpattern floatpattern
+#define patternType vec4
+#define valType float
+
+#endif
+
+FRAG_OUT(0) out patternType col0;
+FRAG_OUT(1) out patternType col1;
+FRAG_OUT(2) out patternType col2;
+FRAG_OUT(3) out patternType col3;
+FRAG_OUT(4) out patternType col4;
+FRAG_OUT(5) out patternType col5;
+FRAG_OUT(6) out patternType col6;
+FRAG_OUT(7) out patternType col7;
 
 void main()
 {
@@ -91,18 +113,18 @@ void main()
 
   int idx = ((y * 64) + x);
 
-  float val = Pattern.pattern[idx / 4][idx % 4];
+  valType val = valType(Pattern.srcpattern[idx / 4][idx % 4]);
 
   uint stencilPass = (flags & 0xfu);
 
-  if(stencilPass == 1u && val >= 0.5f)
+  if(stencilPass == 1u && float(val) >= 0.5f)
     discard;
-  else if(stencilPass == 2u && val < 0.5f)
+  else if(stencilPass == 2u && float(val) < 0.5f)
     discard;
 
-  gl_FragDepth = clamp(val, 0.0, 1.0);
+  gl_FragDepth = clamp(float(val), 0.0f, 1.0f);
 
-  vec4 vecval = vec4(val, val, val, val);
+  patternType vecval = patternType(val, val, val, val);
 
   col0 = col1 = col2 = col3 = col4 = col5 = col6 = col7 = vecval;
 }

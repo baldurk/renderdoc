@@ -232,7 +232,8 @@ private:
   std::map<DiscardPatternKey, ID3D11Resource *> m_DiscardPatterns;
   bytebuf m_DiscardBytes;
   ID3D11VertexShader *m_DiscardVS = NULL;
-  ID3D11PixelShader *m_DiscardPS = NULL;
+  ID3D11PixelShader *m_DiscardFloatPS = NULL;
+  ID3D11PixelShader *m_DiscardIntPS = NULL;
   ID3D11DepthStencilState *m_DiscardDepthState = NULL;
   ID3D11RasterizerState *m_DiscardRasterState = NULL;
 };

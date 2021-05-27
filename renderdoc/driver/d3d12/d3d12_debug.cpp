@@ -284,8 +284,10 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
     shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_FullscreenVS",
                                D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "vs_5_0", &m_FullscreenVS);
-    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DiscardPS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
-                               {}, "ps_5_0", &m_DiscardPS);
+    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DiscardFloatPS",
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &m_DiscardFloatPS);
+    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DiscardIntPS",
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &m_DiscardIntPS);
   }
 
   {
@@ -387,6 +389,9 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     fmt.compByteWidth = 4;
     fmt.compCount = 1;
     bytebuf pattern = GetDiscardPattern(DiscardType::DiscardCall, fmt);
+    fmt.compType = CompType::UInt;
+    pattern.append(GetDiscardPattern(DiscardType::DiscardCall, fmt));
+
     m_DiscardConstants = MakeCBuffer(pattern.size());
     FillBuffer(m_DiscardConstants, 0, pattern.data(), pattern.size());
 
@@ -450,7 +455,8 @@ D3D12DebugManager::~D3D12DebugManager()
 
   SAFE_RELEASE(m_DiscardConstants);
   SAFE_RELEASE(m_DiscardRootSig);
-  SAFE_RELEASE(m_DiscardPS);
+  SAFE_RELEASE(m_DiscardFloatPS);
+  SAFE_RELEASE(m_DiscardIntPS);
 
   SAFE_RELEASE(m_DebugAlloc);
   SAFE_RELEASE(m_DebugList);
@@ -777,7 +783,7 @@ void D3D12DebugManager::FillWithDiscardPattern(ID3D12GraphicsCommandListX *cmd,
     if(depth)
       fmt = GetDepthTypedFormat(fmt);
     else
-      fmt = GetFloatTypedFormat(fmt);
+      fmt = GetTypedFormat(fmt, CompType::Float);
 
     rdcpair<DXGI_FORMAT, UINT> key = {fmt, desc.SampleDesc.Count};
     rdcpair<DXGI_FORMAT, UINT> stencilKey = {DXGI_FORMAT_UNKNOWN, desc.SampleDesc.Count};
@@ -796,6 +802,8 @@ void D3D12DebugManager::FillWithDiscardPattern(ID3D12GraphicsCommandListX *cmd,
       stencilpipe = m_DiscardPipes[stencilKey];
     }
 
+    bool intFormat = !depth && (IsIntFormat(fmt) || IsUIntFormat(fmt));
+
     if(pipe == NULL)
     {
       D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeDesc = {};
@@ -803,8 +811,10 @@ void D3D12DebugManager::FillWithDiscardPattern(ID3D12GraphicsCommandListX *cmd,
       pipeDesc.pRootSignature = m_DiscardRootSig;
       pipeDesc.VS.BytecodeLength = m_FullscreenVS->GetBufferSize();
       pipeDesc.VS.pShaderBytecode = m_FullscreenVS->GetBufferPointer();
-      pipeDesc.PS.BytecodeLength = m_DiscardPS->GetBufferSize();
-      pipeDesc.PS.pShaderBytecode = m_DiscardPS->GetBufferPointer();
+      pipeDesc.PS.BytecodeLength =
+          intFormat ? m_DiscardIntPS->GetBufferSize() : m_DiscardFloatPS->GetBufferSize();
+      pipeDesc.PS.pShaderBytecode =
+          intFormat ? m_DiscardIntPS->GetBufferPointer() : m_DiscardFloatPS->GetBufferPointer();
       pipeDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
       pipeDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
       pipeDesc.SampleMask = 0xFFFFFFFF;
