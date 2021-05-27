@@ -155,11 +155,11 @@ void CustomPaintWidget::changeEvent(QEvent *event)
 
 void CustomPaintWidget::renderInternal(QPaintEvent *e)
 {
-  if(m_Ctx && m_Output)
+  if(m_Ctx && m_Output && m_Ctx->IsCaptureLoaded())
   {
     QPointer<CustomPaintWidget> me(this);
     m_Ctx->Replay().AsyncInvoke(m_Tag, [me](IReplayController *r) {
-      if(me && me->m_Output)
+      if(me && me->m_Output && me->m_Ctx->IsCaptureLoaded())
         me->m_Output->Display();
     });
   }
