@@ -1390,15 +1390,17 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
       return;
     }
 
-    m_pDriver->GetCmdRenderState().EndRenderPass(cmd);
+    if(m_pDriver->GetCmdRenderState().renderPass != ResourceId())
+      m_pDriver->GetCmdRenderState().EndRenderPass(cmd);
 
     // Copy
     size_t storeOffset = m_EventIndices.size() * sizeof(EventInfo);
     CopyPixel(eventId, cmd, storeOffset);
     m_EventIndices.insert(std::make_pair(eventId, m_EventIndices.size()));
 
-    m_pDriver->GetCmdRenderState().BeginRenderPassAndApplyState(m_pDriver, cmd,
-                                                                VulkanRenderState::BindNone);
+    if(m_pDriver->GetCmdRenderState().renderPass != ResourceId())
+      m_pDriver->GetCmdRenderState().BeginRenderPassAndApplyState(m_pDriver, cmd,
+                                                                  VulkanRenderState::BindNone);
   }
 
   void PostCmdExecute(uint32_t baseEid, uint32_t secondaryFirst, uint32_t secondaryLast,
@@ -1429,7 +1431,9 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
       return;
     }
 
-    m_pDriver->GetCmdRenderState().EndRenderPass(cmd);
+    if(m_pDriver->GetCmdRenderState().renderPass != ResourceId())
+      m_pDriver->GetCmdRenderState().EndRenderPass(cmd);
+
     size_t storeOffset = 0;
     auto it = m_EventIndices.find(eventId);
     if(it != m_EventIndices.end())
@@ -1442,8 +1446,10 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
       m_EventIndices.insert(std::make_pair(eventId, m_EventIndices.size()));
     }
     CopyPixel(eventId, cmd, storeOffset + offsetof(struct EventInfo, postmod));
-    m_pDriver->GetCmdRenderState().BeginRenderPassAndApplyState(m_pDriver, cmd,
-                                                                VulkanRenderState::BindNone);
+
+    if(m_pDriver->GetCmdRenderState().renderPass != ResourceId())
+      m_pDriver->GetCmdRenderState().BeginRenderPassAndApplyState(m_pDriver, cmd,
+                                                                  VulkanRenderState::BindNone);
   }
 
   void PreDispatch(uint32_t eid, VkCommandBuffer cmd)
