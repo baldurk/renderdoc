@@ -248,7 +248,7 @@ rdcarray<uint32_t> VulkanReplay::GetPassEvents(uint32_t eventId)
   // store all the draw eventIDs up to the one specified at the start
   while(start)
   {
-    if(start == draw)
+    if(start->eventId >= draw->eventId)
       break;
 
     // include pass boundaries, these will be filtered out later
