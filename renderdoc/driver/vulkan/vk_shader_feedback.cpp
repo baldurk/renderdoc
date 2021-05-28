@@ -557,8 +557,7 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
         editor.AddDecoration(rdcspv::OpDecorate(
             rdocGlobalVar, rdcspv::DecorationParam<rdcspv::Decoration::BuiltIn>(spvBuiltin)));
 
-        if(editor.EntryPointAllGlobals())
-          newGlobals.push_back(rdocGlobalVar);
+        newGlobals.push_back(rdocGlobalVar);
 
         editor.SetName(rdocGlobalVar, name);
 
