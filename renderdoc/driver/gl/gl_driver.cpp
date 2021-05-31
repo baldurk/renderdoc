@@ -1162,7 +1162,7 @@ void WrappedOpenGL::CreateContext(GLWindowingData winData, void *shareContext,
     RDCLOG("Reusing old sharegroup %p", ctxdata.shareGroup);
   }
 
-  if(ctxdata.Modern())
+  if(attribsCreate)
     RenderDoc::Inst().AddDeviceFrameCapturer(ctxdata.ctx, this);
 
   // re-configure callstack capture, since WrappedOpenGL constructor may run too early
