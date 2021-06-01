@@ -1175,10 +1175,42 @@ struct ParseError
   }
 };
 
+struct CustomFilterCallbacks
+{
+  IEventBrowser::EventFilterCallback filter;
+  IEventBrowser::FilterParseCallback parser;
+};
+
+struct BuiltinFilterCallbacks
+{
+  std::function<IEventBrowser::EventFilterCallback(QString, QString, ParseError &)> makeFilter;
+};
+
 struct EventFilterModel : public QSortFilterProxyModel
 {
 public:
-  EventFilterModel(ICaptureContext &ctx) : m_Ctx(ctx) {}
+  EventFilterModel(ICaptureContext &ctx) : m_Ctx(ctx)
+  {
+    if(m_BuiltinFilters.empty())
+    {
+#ifndef STRINGIZE
+#define STRINGIZE2(a) #a
+#define STRINGIZE(a) STRINGIZE2(a)
+#endif
+
+#define MAKE_BUILTIN_FILTER(filter_name)                             \
+  m_BuiltinFilters[lit(STRINGIZE(filter_name))].makeFilter = [this]( \
+      QString name, QString parameters, ParseError &errors) {        \
+    return filterFunction_##filter_name(name, parameters, errors);   \
+  };
+
+      MAKE_BUILTIN_FILTER(any);
+      MAKE_BUILTIN_FILTER(all);
+      MAKE_BUILTIN_FILTER(param);
+      MAKE_BUILTIN_FILTER(event);
+      MAKE_BUILTIN_FILTER(draw);
+    }
+  }
   void ResetCache() { m_VisibleCache.clear(); }
   ParseError ParseExpression(QString expr)
   {
@@ -1191,20 +1223,28 @@ public:
     return ret;
   }
 
+  QStringList GetBuiltinFunctions() { return m_BuiltinFilters.keys(); }
   QStringList GetCustomFunctions() { return m_CustomFilters.keys(); }
   void SetEmptyRegionsVisible(bool visible) { m_EmptyRegionsVisible = visible; }
   static bool RegisterEventFilterFunction(const rdcstr &name,
                                           IEventBrowser::EventFilterCallback filter,
                                           IEventBrowser::FilterParseCallback parser)
   {
-    if(m_CustomFilters[name].first != NULL)
+    if(m_BuiltinFilters.contains(name))
+    {
+      qCritical() << "Registering filter function" << QString(name)
+                  << "which is a builtin function.";
+      return false;
+    }
+
+    if(m_CustomFilters[name].filter != NULL)
     {
       qCritical() << "Registering filter function" << QString(name)
                   << "which is already registered.";
       return false;
     }
 
-    m_CustomFilters[name] = qMakePair(filter, parser);
+    m_CustomFilters[name] = {filter, parser};
     return true;
   }
 
@@ -1326,124 +1366,243 @@ private:
     return ret;
   }
 
-  IEventBrowser::EventFilterCallback MakeFunctionMatcher(QString name, QString parameters,
-                                                         ParseError &errors)
+  IEventBrowser::EventFilterCallback filterFunction_any(QString name, QString parameters,
+                                                        ParseError &errors)
   {
-    // builtins
-    if(name == lit("any"))
+    // $any(...) => returns true if any of the nested subexpressions are true (with exclusions
+    // treated as normal).
+    rdcarray<EventFilter> filters;
+    errors = ParseExpressionToFilters(parameters, filters);
+
+    if(!errors)
     {
-      // $any(...) => returns true if any of the nested subexpressions are true (with exclusions
-      // treated as normal).
-      rdcarray<EventFilter> filters;
-      errors = ParseExpressionToFilters(parameters, filters);
-
-      if(!errors)
+      if(filters.isEmpty())
       {
-        if(filters.isEmpty())
-        {
-          errors.setText(tr("No filters provided to $any()", "EventFilterModel"));
-          return NULL;
-        }
-
-        return [filters](ICaptureContext *ctx, const rdcstr &, const rdcstr &, uint32_t eid,
-                         const SDChunk *chunk, const DrawcallDescription *draw, const rdcstr &name) {
-          return EvaluateFilterSet(*ctx, filters, false, eid, chunk, draw, name);
-        };
-      }
-
-      return NULL;
-    }
-    else if(name == lit("all"))
-    {
-      // $all(...) => returns true only if all the nested subexpressions are true
-      rdcarray<EventFilter> filters;
-      errors = ParseExpressionToFilters(parameters, filters);
-
-      if(!errors)
-      {
-        if(filters.isEmpty())
-        {
-          errors.setText(tr("No filters provided to $all()", "EventFilterModel"));
-          return NULL;
-        }
-
-        return [filters](ICaptureContext *ctx, const rdcstr &, const rdcstr &, uint32_t eid,
-                         const SDChunk *chunk, const DrawcallDescription *draw, const rdcstr &name) {
-          return EvaluateFilterSet(*ctx, filters, true, eid, chunk, draw, name);
-        };
-      }
-
-      return NULL;
-    }
-    else if(name == lit("param"))
-    {
-      // $param() => check for a named parameter having a particular value
-      int idx = parameters.indexOf(QLatin1Char(':'));
-
-      if(idx < 0)
-      {
-        errors.setText(tr("Parameter to to $param() should be name: value", "EventFilterModel"));
+        errors.setText(tr("No filters provided to $any()", "EventFilterModel"));
         return NULL;
       }
 
-      QString paramName = parameters.mid(0, idx).trimmed();
-      QString paramValue = parameters.mid(idx + 1).trimmed();
-
-      if(paramValue.isEmpty())
-      {
-        errors.setText(tr("Parameter to to $param() should be name: value", "EventFilterModel"));
-        return NULL;
-      }
-
-      return [paramName, paramValue](ICaptureContext *ctx, const rdcstr &, const rdcstr &, uint32_t,
-                                     const SDChunk *chunk, const DrawcallDescription *,
-                                     const rdcstr &) {
-        const SDObject *o = FindChildRecursively(chunk, paramName);
-
-        if(!o)
-          return false;
-
-        if(o->IsArray())
-        {
-          for(const SDObject *c : *o)
-          {
-            if(RichResourceTextFormat(*ctx, SDObject2Variant(c, false))
-                   .contains(paramValue, Qt::CaseInsensitive))
-              return true;
-          }
-
-          return false;
-        }
-        else
-        {
-          return RichResourceTextFormat(*ctx, SDObject2Variant(o, false))
-              .contains(paramValue, Qt::CaseInsensitive);
-        }
-
+      return [filters](ICaptureContext *ctx, const rdcstr &, const rdcstr &, uint32_t eid,
+                       const SDChunk *chunk, const DrawcallDescription *draw, const rdcstr &name) {
+        return EvaluateFilterSet(*ctx, filters, false, eid, chunk, draw, name);
       };
     }
-    else if(name == lit("event"))
+
+    return NULL;
+  }
+
+  IEventBrowser::EventFilterCallback filterFunction_all(QString name, QString parameters,
+                                                        ParseError &errors)
+  {
+    // $all(...) => returns true only if all the nested subexpressions are true
+    rdcarray<EventFilter> filters;
+    errors = ParseExpressionToFilters(parameters, filters);
+
+    if(!errors)
     {
-      // $event(...) => filters on any event property (at the moment only EID)
-      QList<Token> tokens = tokenise(parameters);
+      if(filters.isEmpty())
+      {
+        errors.setText(tr("No filters provided to $all()", "EventFilterModel"));
+        return NULL;
+      }
+
+      return [filters](ICaptureContext *ctx, const rdcstr &, const rdcstr &, uint32_t eid,
+                       const SDChunk *chunk, const DrawcallDescription *draw, const rdcstr &name) {
+        return EvaluateFilterSet(*ctx, filters, true, eid, chunk, draw, name);
+      };
+    }
+
+    return NULL;
+  }
+
+  IEventBrowser::EventFilterCallback filterFunction_param(QString name, QString parameters,
+                                                          ParseError &errors)
+  {
+    // $param() => check for a named parameter having a particular value
+    int idx = parameters.indexOf(QLatin1Char(':'));
+
+    if(idx < 0)
+    {
+      errors.setText(tr("Parameter to to $param() should be name: value", "EventFilterModel"));
+      return NULL;
+    }
+
+    QString paramName = parameters.mid(0, idx).trimmed();
+    QString paramValue = parameters.mid(idx + 1).trimmed();
+
+    if(paramValue.isEmpty())
+    {
+      errors.setText(tr("Parameter to to $param() should be name: value", "EventFilterModel"));
+      return NULL;
+    }
+
+    return
+        [paramName, paramValue](ICaptureContext *ctx, const rdcstr &, const rdcstr &, uint32_t,
+                                const SDChunk *chunk, const DrawcallDescription *, const rdcstr &) {
+          const SDObject *o = FindChildRecursively(chunk, paramName);
+
+          if(!o)
+            return false;
+
+          if(o->IsArray())
+          {
+            for(const SDObject *c : *o)
+            {
+              if(RichResourceTextFormat(*ctx, SDObject2Variant(c, false))
+                     .contains(paramValue, Qt::CaseInsensitive))
+                return true;
+            }
+
+            return false;
+          }
+          else
+          {
+            return RichResourceTextFormat(*ctx, SDObject2Variant(o, false))
+                .contains(paramValue, Qt::CaseInsensitive);
+          }
+
+        };
+  }
+
+  IEventBrowser::EventFilterCallback filterFunction_event(QString name, QString parameters,
+                                                          ParseError &errors)
+  {
+    // $event(...) => filters on any event property (at the moment only EID)
+    QList<Token> tokens = tokenise(parameters);
+
+    static const QStringList operators = {
+        lit("=="), lit("!="), lit("<"), lit(">"), lit("<="), lit(">="),
+    };
+
+    if(tokens.size() < 1)
+    {
+      errors.setText(tr("Filter parameters required", "EventFilterModel"));
+      return NULL;
+    }
+
+    if(tokens[0].text.toLower() != lit("eid") && tokens[0].text.toLower() != lit("eventid"))
+    {
+      errors.position = tokens[0].position;
+      errors.length = tokens[0].length;
+      errors.setText(tr("Unrecognised event property", "EventFilterModel"));
+      return NULL;
+    }
+
+    int operatorIdx = operators.indexOf(tokens[1].text);
+
+    if(tokens[1].text == lit("="))
+      operatorIdx = 0;
+
+    if(tokens.size() != 3 || operatorIdx < 0 || operatorIdx >= operators.size())
+    {
+      errors.setText(tr("Invalid expression, expected single comparison with operators: %3",
+                        "EventFilterModel")
+                         .arg(operators.join(lit(", "))));
+      return NULL;
+    }
+
+    bool ok = false;
+    uint32_t eid = tokens[2].text.toUInt(&ok, 0);
+
+    if(!ok)
+    {
+      errors.position = tokens[2].position;
+      errors.length = tokens[2].length;
+      errors.setText(tr("Invalid value, expected integer", "EventFilterModel"));
+      return NULL;
+    }
+
+    switch(operatorIdx)
+    {
+      case 0:
+        return [eid](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
+                     const SDChunk *, const DrawcallDescription *draw,
+                     const rdcstr &) { return eventId == eid; };
+      case 1:
+        return [eid](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
+                     const SDChunk *, const DrawcallDescription *draw,
+                     const rdcstr &) { return eventId != eid; };
+      case 2:
+        return [eid](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
+                     const SDChunk *, const DrawcallDescription *draw,
+                     const rdcstr &) { return eventId < eid; };
+      case 3:
+        return [eid](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
+                     const SDChunk *, const DrawcallDescription *draw,
+                     const rdcstr &) { return eventId > eid; };
+      case 4:
+        return [eid](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
+                     const SDChunk *, const DrawcallDescription *draw,
+                     const rdcstr &) { return eventId <= eid; };
+      case 5:
+        return [eid](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
+                     const SDChunk *, const DrawcallDescription *draw,
+                     const rdcstr &) { return eventId >= eid; };
+      default: errors.setText(tr("Internal error", "EventFilterModel")); return NULL;
+    }
+  }
+
+  IEventBrowser::EventFilterCallback filterFunction_draw(QString name, QString parameters,
+                                                         ParseError &errors)
+  {
+    // $draw(...) => returns true only for draws, optionally with a particular property filter
+    QList<Token> tokens = tokenise(parameters);
+
+    // no parameters, just return if it's a draw
+    if(tokens.isEmpty())
+      return
+          [](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId, const SDChunk *,
+             const DrawcallDescription *draw, const rdcstr &) { return draw->eventId == eventId; };
+
+    // we upcast to int64_t so we can compare both unsigned and signed values without losing any
+    // precision (we don't have any uint64_ts to compare)
+    using PropGetter = int64_t (*)(const DrawcallDescription *);
+
+    struct NamedProp
+    {
+      const char *name;
+      PropGetter getter;
+    };
+
+#define NAMED_PROP(name, access)                                            \
+  {                                                                         \
+    name, [](const DrawcallDescription *draw) -> int64_t { return access; } \
+  }
+
+    static const NamedProp namedProps[] = {
+        NAMED_PROP("eventid", draw->eventId), NAMED_PROP("eid", draw->eventId),
+        NAMED_PROP("parent", draw->parent ? draw->parent->eventId : -12341234),
+        NAMED_PROP("drawcallid", draw->drawcallId), NAMED_PROP("numindices", draw->numIndices),
+        NAMED_PROP("numindexes", draw->numIndices), NAMED_PROP("numvertices", draw->numIndices),
+        NAMED_PROP("numvertexes", draw->numIndices), NAMED_PROP("indexcount", draw->numIndices),
+        NAMED_PROP("vertexcount", draw->numIndices), NAMED_PROP("numinstances", draw->numInstances),
+        NAMED_PROP("instancecount", draw->numInstances), NAMED_PROP("basevertex", draw->baseVertex),
+        NAMED_PROP("indexoffset", draw->indexOffset), NAMED_PROP("vertexoffset", draw->vertexOffset),
+        NAMED_PROP("instanceoffset", draw->instanceOffset),
+        NAMED_PROP("dispatchx", draw->dispatchDimension[0]),
+        NAMED_PROP("dispatchy", draw->dispatchDimension[1]),
+        NAMED_PROP("dispatchz", draw->dispatchDimension[2]),
+        NAMED_PROP("dispatchsize", draw->dispatchDimension[0] * draw->dispatchDimension[1] *
+                                       draw->dispatchDimension[2]),
+    };
+
+    QByteArray prop = tokens[0].text.toLower().toLatin1();
+
+    int numericPropIndex = -1;
+    for(size_t i = 0; i < ARRAY_COUNT(namedProps); i++)
+    {
+      if(prop == namedProps[i].name)
+        numericPropIndex = (int)i;
+    }
+
+    // any numeric value that can be compared to a number
+    if(numericPropIndex >= 0)
+    {
+      PropGetter propGetter = namedProps[numericPropIndex].getter;
 
       static const QStringList operators = {
           lit("=="), lit("!="), lit("<"), lit(">"), lit("<="), lit(">="),
       };
-
-      if(tokens.size() < 1)
-      {
-        errors.setText(tr("Filter parameters required", "EventFilterModel"));
-        return NULL;
-      }
-
-      if(tokens[0].text.toLower() != lit("eid") && tokens[0].text.toLower() != lit("eventid"))
-      {
-        errors.position = tokens[0].position;
-        errors.length = tokens[0].length;
-        errors.setText(tr("Unrecognised event property", "EventFilterModel"));
-        return NULL;
-      }
 
       int operatorIdx = operators.indexOf(tokens[1].text);
 
@@ -1459,7 +1618,7 @@ private:
       }
 
       bool ok = false;
-      uint32_t eid = tokens[2].text.toUInt(&ok, 0);
+      int64_t value = tokens[2].text.toLongLong(&ok, 0);
 
       if(!ok)
       {
@@ -1472,228 +1631,123 @@ private:
       switch(operatorIdx)
       {
         case 0:
-          return [eid](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
-                       const SDChunk *, const DrawcallDescription *draw,
-                       const rdcstr &) { return eventId == eid; };
+          return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
+                                     uint32_t eventId, const SDChunk *,
+                                     const DrawcallDescription *draw, const rdcstr &) {
+            return draw->eventId == eventId && propGetter(draw) == value;
+          };
         case 1:
-          return [eid](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
-                       const SDChunk *, const DrawcallDescription *draw,
-                       const rdcstr &) { return eventId != eid; };
+          return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
+                                     uint32_t eventId, const SDChunk *,
+                                     const DrawcallDescription *draw, const rdcstr &) {
+            return draw->eventId == eventId && propGetter(draw) != value;
+          };
         case 2:
-          return [eid](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
-                       const SDChunk *, const DrawcallDescription *draw,
-                       const rdcstr &) { return eventId < eid; };
+          return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
+                                     uint32_t eventId, const SDChunk *,
+                                     const DrawcallDescription *draw, const rdcstr &) {
+            return draw->eventId == eventId && propGetter(draw) < value;
+          };
         case 3:
-          return [eid](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
-                       const SDChunk *, const DrawcallDescription *draw,
-                       const rdcstr &) { return eventId > eid; };
+          return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
+                                     uint32_t eventId, const SDChunk *,
+                                     const DrawcallDescription *draw, const rdcstr &) {
+            return draw->eventId == eventId && propGetter(draw) > value;
+          };
         case 4:
-          return [eid](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
-                       const SDChunk *, const DrawcallDescription *draw,
-                       const rdcstr &) { return eventId <= eid; };
+          return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
+                                     uint32_t eventId, const SDChunk *,
+                                     const DrawcallDescription *draw, const rdcstr &) {
+            return draw->eventId == eventId && propGetter(draw) <= value;
+          };
         case 5:
-          return [eid](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
-                       const SDChunk *, const DrawcallDescription *draw,
-                       const rdcstr &) { return eventId >= eid; };
+          return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
+                                     uint32_t eventId, const SDChunk *,
+                                     const DrawcallDescription *draw, const rdcstr &) {
+            return draw->eventId == eventId && propGetter(draw) >= value;
+          };
         default: errors.setText(tr("Internal error", "EventFilterModel")); return NULL;
       }
     }
-    else if(name == lit("draw"))
+    else if(tokens[0].text == lit("flags"))
     {
-      // $draw(...) => returns true only for draws, optionally with a particular property filter
-      QList<Token> tokens = tokenise(parameters);
-
-      // no parameters, just return if it's a draw
-      if(tokens.isEmpty())
-        return [](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
-                  const SDChunk *, const DrawcallDescription *draw,
-                  const rdcstr &) { return draw->eventId == eventId; };
-
-      // we upcast to int64_t so we can compare both unsigned and signed values without losing any
-      // precision (we don't have any uint64_ts to compare)
-      using PropGetter = int64_t (*)(const DrawcallDescription *);
-
-      struct NamedProp
+      if(tokens.size() < 3 || tokens[1].text != lit("&"))
       {
-        const char *name;
-        PropGetter getter;
-      };
-
-#define NAMED_PROP(name, access) \
-  name, [](const DrawcallDescription *draw) -> int64_t { return access; }
-
-      static const NamedProp namedProps[] = {
-          NAMED_PROP("eventid", draw->eventId), NAMED_PROP("eid", draw->eventId),
-          NAMED_PROP("parent", draw->parent ? draw->parent->eventId : -12341234),
-          NAMED_PROP("drawcallid", draw->drawcallId), NAMED_PROP("numindices", draw->numIndices),
-          NAMED_PROP("numindexes", draw->numIndices), NAMED_PROP("numvertices", draw->numIndices),
-          NAMED_PROP("numvertexes", draw->numIndices), NAMED_PROP("indexcount", draw->numIndices),
-          NAMED_PROP("vertexcount", draw->numIndices), NAMED_PROP("numinstances", draw->numInstances),
-          NAMED_PROP("instancecount", draw->numInstances),
-          NAMED_PROP("basevertex", draw->baseVertex), NAMED_PROP("indexoffset", draw->indexOffset),
-          NAMED_PROP("vertexoffset", draw->vertexOffset),
-          NAMED_PROP("instanceoffset", draw->instanceOffset),
-          NAMED_PROP("dispatchx", draw->dispatchDimension[0]),
-          NAMED_PROP("dispatchy", draw->dispatchDimension[1]),
-          NAMED_PROP("dispatchz", draw->dispatchDimension[2]),
-          NAMED_PROP("dispatchsize", draw->dispatchDimension[0] * draw->dispatchDimension[1] *
-                                         draw->dispatchDimension[2]),
-      };
-
-      QByteArray prop = tokens[0].text.toLower().toLatin1();
-
-      int numericPropIndex = -1;
-      for(size_t i = 0; i < ARRAY_COUNT(namedProps); i++)
-      {
-        if(prop == namedProps[i].name)
-          numericPropIndex = (int)i;
+        errors.position = tokens[0].position;
+        errors.length = (tokens[1].position + tokens[1].length) - errors.position + 1;
+        errors.setText(tr("Expected $draw(flags & ...)", "EventFilterModel"));
+        return NULL;
       }
 
-      // any numeric value that can be compared to a number
-      if(numericPropIndex >= 0)
+      // there could be whitespace in the flags list so iterate over all remaining parameters (as
+      // split by whitespace)
+      QStringList flagStrings;
+      for(int i = 2; i < tokens.count(); i++)
+        flagStrings.append(tokens[i].text.split(QLatin1Char('|'), QString::KeepEmptyParts));
+
+      // if we have an empty string in the list somewhere that means the | list was broken
+      if(flagStrings.contains(QString()))
       {
-        PropGetter propGetter = namedProps[numericPropIndex].getter;
+        errors.position = tokens[2].position;
+        errors.length = (tokens.back().position + tokens.back().length) - errors.position + 1;
+        errors.setText(tr("Invalid draw flags expression", "EventFilterModel"));
+        return NULL;
+      }
 
-        static const QStringList operators = {
-            lit("=="), lit("!="), lit("<"), lit(">"), lit("<="), lit(">="),
-        };
-
-        int operatorIdx = operators.indexOf(tokens[1].text);
-
-        if(tokens[1].text == lit("="))
-          operatorIdx = 0;
-
-        if(tokens.size() != 3 || operatorIdx < 0 || operatorIdx >= operators.size())
+      if(DrawFlagsLookup.empty())
+      {
+        for(uint32_t i = 0; i <= 31; i++)
         {
-          errors.setText(tr("Invalid expression, expected single comparison with operators: %3",
-                            "EventFilterModel")
-                             .arg(operators.join(lit(", "))));
-          return NULL;
-        }
+          DrawFlags flag = DrawFlags(1U << i);
 
-        bool ok = false;
-        int64_t value = tokens[2].text.toLongLong(&ok, 0);
+          // bit of a hack, see if it's a valid flag by stringising and seeing if it contains
+          // DrawFlags(
+          QString str = ToQStr(flag);
+          if(str.contains(lit("DrawFlags(")))
+            continue;
 
-        if(!ok)
-        {
-          errors.position = tokens[2].position;
-          errors.length = tokens[2].length;
-          errors.setText(tr("Invalid value, expected integer", "EventFilterModel"));
-          return NULL;
-        }
-
-        switch(operatorIdx)
-        {
-          case 0:
-            return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
-                                       uint32_t eventId, const SDChunk *,
-                                       const DrawcallDescription *draw, const rdcstr &) {
-              return draw->eventId == eventId && propGetter(draw) == value;
-            };
-          case 1:
-            return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
-                                       uint32_t eventId, const SDChunk *,
-                                       const DrawcallDescription *draw, const rdcstr &) {
-              return draw->eventId == eventId && propGetter(draw) != value;
-            };
-          case 2:
-            return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
-                                       uint32_t eventId, const SDChunk *,
-                                       const DrawcallDescription *draw, const rdcstr &) {
-              return draw->eventId == eventId && propGetter(draw) < value;
-            };
-          case 3:
-            return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
-                                       uint32_t eventId, const SDChunk *,
-                                       const DrawcallDescription *draw, const rdcstr &) {
-              return draw->eventId == eventId && propGetter(draw) > value;
-            };
-          case 4:
-            return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
-                                       uint32_t eventId, const SDChunk *,
-                                       const DrawcallDescription *draw, const rdcstr &) {
-              return draw->eventId == eventId && propGetter(draw) <= value;
-            };
-          case 5:
-            return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
-                                       uint32_t eventId, const SDChunk *,
-                                       const DrawcallDescription *draw, const rdcstr &) {
-              return draw->eventId == eventId && propGetter(draw) >= value;
-            };
-          default: errors.setText(tr("Internal error", "EventFilterModel")); return NULL;
+          DrawFlagsLookup[str] = flag;
         }
       }
-      else if(tokens[0].text == lit("flags"))
+
+      DrawFlags flags = DrawFlags::NoFlags;
+      for(const QString &flagString : flagStrings)
       {
-        if(tokens.size() < 3 || tokens[1].text != lit("&"))
-        {
-          errors.position = tokens[0].position;
-          errors.length = (tokens[1].position + tokens[1].length) - errors.position + 1;
-          errors.setText(tr("Expected $draw(flags & ...)", "EventFilterModel"));
-          return NULL;
-        }
-
-        // there could be whitespace in the flags list so iterate over all remaining parameters (as
-        // split by whitespace)
-        QStringList flagStrings;
-        for(int i = 2; i < tokens.count(); i++)
-          flagStrings.append(tokens[i].text.split(QLatin1Char('|'), QString::KeepEmptyParts));
-
-        // if we have an empty string in the list somewhere that means the | list was broken
-        if(flagStrings.contains(QString()))
+        auto it = DrawFlagsLookup.find(flagString);
+        if(it == DrawFlagsLookup.end())
         {
           errors.position = tokens[2].position;
           errors.length = (tokens.back().position + tokens.back().length) - errors.position + 1;
-          errors.setText(tr("Invalid draw flags expression", "EventFilterModel"));
+          errors.setText(tr("Unrecognised draw flag '%1'", "EventFilterModel").arg(flagString));
           return NULL;
         }
 
-        if(DrawFlagsLookup.empty())
-        {
-          for(uint32_t i = 0; i <= 31; i++)
-          {
-            DrawFlags flag = DrawFlags(1U << i);
-
-            // bit of a hack, see if it's a valid flag by stringising and seeing if it contains
-            // DrawFlags(
-            QString str = ToQStr(flag);
-            if(str.contains(lit("DrawFlags(")))
-              continue;
-
-            DrawFlagsLookup[str] = flag;
-          }
-        }
-
-        DrawFlags flags = DrawFlags::NoFlags;
-        for(const QString &flagString : flagStrings)
-        {
-          auto it = DrawFlagsLookup.find(flagString);
-          if(it == DrawFlagsLookup.end())
-          {
-            errors.position = tokens[2].position;
-            errors.length = (tokens.back().position + tokens.back().length) - errors.position + 1;
-            errors.setText(tr("Unrecognised draw flag '%1'", "EventFilterModel").arg(flagString));
-            return NULL;
-          }
-
-          flags |= it.value();
-        }
-
-        return [flags](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
-                       const SDChunk *, const DrawcallDescription *draw,
-                       const rdcstr &) { return draw->eventId == eventId && (draw->flags & flags); };
+        flags |= it.value();
       }
-      else
-      {
-        errors.setText(tr("Unrecognised property expression", "EventFilterModel"));
-        return NULL;
-      }
+
+      return [flags](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
+                     const SDChunk *, const DrawcallDescription *draw,
+                     const rdcstr &) { return draw->eventId == eventId && (draw->flags & flags); };
+    }
+    else
+    {
+      errors.setText(tr("Unrecognised property expression", "EventFilterModel"));
+      return NULL;
+    }
+  }
+
+  IEventBrowser::EventFilterCallback MakeFunctionMatcher(QString name, QString parameters,
+                                                         ParseError &errors)
+  {
+    if(m_BuiltinFilters.contains(name))
+    {
+      return m_BuiltinFilters[name].makeFilter(name, parameters, errors);
     }
 
     if(m_CustomFilters.contains(name))
     {
-      IEventBrowser::EventFilterCallback innerFilter = m_CustomFilters[name].first;
-      IEventBrowser::FilterParseCallback innerParser = m_CustomFilters[name].second;
+      IEventBrowser::EventFilterCallback innerFilter = m_CustomFilters[name].filter;
+      IEventBrowser::FilterParseCallback innerParser = m_CustomFilters[name].parser;
 
       rdcstr n = name;
       rdcstr p = parameters;
@@ -2070,12 +2124,12 @@ private:
 
   // static so we don't lose this when the event browser is closed and the model is deleted. We
   // could store this in the capture context but it makes more sense logically to keep it here.
-  static QMap<QString, QPair<IEventBrowser::EventFilterCallback, IEventBrowser::FilterParseCallback>>
-      m_CustomFilters;
+  static QMap<QString, CustomFilterCallbacks> m_CustomFilters;
+  static QMap<QString, BuiltinFilterCallbacks> m_BuiltinFilters;
 };
 
-QMap<QString, QPair<IEventBrowser::EventFilterCallback, IEventBrowser::FilterParseCallback>>
-    EventFilterModel::m_CustomFilters;
+QMap<QString, CustomFilterCallbacks> EventFilterModel::m_CustomFilters;
+QMap<QString, BuiltinFilterCallbacks> EventFilterModel::m_BuiltinFilters;
 
 static bool textEditControl(QWidget *sender)
 {
@@ -2292,8 +2346,10 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
     // if the prefix starts with a $, set completion for all the
     if(prefix.startsWith(QLatin1Char('$')))
     {
-      QStringList completions = {lit("$any"), lit("$all"), lit("$draw"), lit("$param"),
-                                 lit("$event")};
+      QStringList completions;
+
+      for(const QString &s : m_FilterModel->GetBuiltinFunctions())
+        completions.append(QLatin1Char('$') + s);
 
       for(const QString &s : m_FilterModel->GetCustomFunctions())
         completions.append(QLatin1Char('$') + s);
