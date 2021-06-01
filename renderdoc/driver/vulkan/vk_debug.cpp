@@ -22,12 +22,14 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#define AMD_GPUPERFAPI_SKIP_VULKAN_INCLUDE 1
+
 #include "vk_debug.h"
 #include <float.h>
 #include "core/settings.h"
 #include "data/glsl_shaders.h"
 #include "driver/ihv/amd/amd_counters.h"
-#include "driver/ihv/amd/official/GPUPerfAPI/Include/GPUPerfAPI-VK.h"
+#include "driver/ihv/amd/official/GPUPerfAPI/Include/gpu_perf_api_vk.h"
 #include "driver/shaders/spirv/spirv_compile.h"
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
@@ -2836,8 +2838,8 @@ void VulkanReplay::CreateResources()
 
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 1.0f);
 
-  GPA_vkContextOpenInfo context = {Unwrap(m_pDriver->GetInstance()),
-                                   Unwrap(m_pDriver->GetPhysDev()), Unwrap(m_pDriver->GetDev())};
+  GpaVkContextOpenInfo context = {Unwrap(m_pDriver->GetInstance()), Unwrap(m_pDriver->GetPhysDev()),
+                                  Unwrap(m_pDriver->GetDev())};
 
   if(!m_pDriver->GetReplay()->IsRemoteProxy() && Vulkan_HardwareCounters())
   {
