@@ -484,6 +484,7 @@ void RDTreeView::modelAboutToBeReset()
 void RDTreeView::rowsAboutToBeRemoved(const QModelIndex &parent, int first, int last)
 {
   m_currentHoverIndex = QModelIndex();
+  QTreeView::rowsAboutToBeRemoved(parent, first, last);
 }
 
 void RDTreeView::columnsAboutToBeRemoved(const QModelIndex &parent, int first, int last)

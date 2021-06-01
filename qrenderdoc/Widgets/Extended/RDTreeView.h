@@ -182,7 +182,7 @@ protected:
 
 private slots:
   void modelAboutToBeReset();
-  void rowsAboutToBeRemoved(const QModelIndex &parent, int first, int last);
+  void rowsAboutToBeRemoved(const QModelIndex &parent, int first, int last) override;
   void columnsAboutToBeRemoved(const QModelIndex &parent, int first, int last);
   void rowsAboutToBeMoved(const QModelIndex &sourceParent, int sourceStart, int sourceEnd,
                           const QModelIndex &destinationParent, int destinationRow);
