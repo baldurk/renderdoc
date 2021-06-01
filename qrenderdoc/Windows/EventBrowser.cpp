@@ -30,8 +30,10 @@
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QMenu>
+#include <QScrollBar>
 #include <QShortcut>
 #include <QSortFilterProxyModel>
+#include <QStringListModel>
 #include <QStylePainter>
 #include <QTextEdit>
 #include <QTimer>
@@ -1189,6 +1191,7 @@ public:
     return ret;
   }
 
+  QStringList GetCustomFunctions() { return m_CustomFilters.keys(); }
   void SetEmptyRegionsVisible(bool visible) { m_EmptyRegionsVisible = visible; }
   static bool RegisterEventFilterFunction(const rdcstr &name,
                                           IEventBrowser::EventFilterCallback filter,
@@ -2267,11 +2270,46 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
 
   OnCaptureClosed();
 
+  ui->filterExpression->setSingleLine();
+  ui->filterExpression->setHoverTrack();
+  ui->filterExpression->enableCompletion();
+
   // set default filter, include only draws that aren't pop markers
   ui->filterExpression->setText(lit("$draw() -$draw(flags & PopMarker)"));
 
-  ui->filterExpression->setSingleLine();
-  ui->filterExpression->setHoverTrack();
+  QObject::connect(ui->filterExpression, &RDTextEdit::completionBegin, [this](QString prefix) {
+    if(m_FilterTimeout->isActive())
+      m_FilterTimeout->stop();
+
+    QString context = ui->filterExpression->toPlainText();
+    int pos = ui->filterExpression->textCursor().position();
+    context.remove(pos, context.length() - pos);
+
+    pos = context.lastIndexOf(QLatin1Char('$'));
+    if(pos > 0)
+      context.remove(0, pos);
+
+    // if the prefix starts with a $, set completion for all the
+    if(prefix.startsWith(QLatin1Char('$')))
+    {
+      QStringList completions = {lit("$any"), lit("$all"), lit("$draw"), lit("$param"),
+                                 lit("$event")};
+
+      for(const QString &s : m_FilterModel->GetCustomFunctions())
+        completions.append(QLatin1Char('$') + s);
+
+      ui->filterExpression->setCompletionStrings(completions);
+    }
+    else
+    {
+      ui->filterExpression->setCompletionStrings({});
+    }
+  });
+
+  ui->filterExpression->setCompletionWordCharacters(lit("_$"));
+
+  QObject::connect(ui->filterExpression, &RDTextEdit::completionEnd, this,
+                   &EventBrowser::on_filterExpression_textChanged);
 
   if(m_FilterTimeout->isActive())
     m_FilterTimeout->stop();
@@ -2330,7 +2368,6 @@ void EventBrowser::OnCaptureLoaded()
   repopulateBookmarks();
 
   ui->find->setEnabled(true);
-  ui->filter->setEnabled(true);
   ui->timeDraws->setEnabled(true);
   ui->bookmark->setEnabled(true);
   ui->exportDraws->setEnabled(true);
@@ -2352,7 +2389,6 @@ void EventBrowser::OnCaptureClosed()
   setPersistData(p);
 
   ui->find->setEnabled(false);
-  ui->filter->setEnabled(false);
   ui->timeDraws->setEnabled(false);
   ui->bookmark->setEnabled(false);
   ui->exportDraws->setEnabled(false);
@@ -2466,6 +2502,9 @@ void EventBrowser::findHighlight_timeout()
 
 void EventBrowser::filter_apply()
 {
+  if(ui->filterExpression->completionInProgress())
+    return;
+
   // unselect everything while applying the filter, to avoid updating the source model while the
   // filter is processing if the current event is no longer selected
   uint32_t curSelEvent = m_Ctx.CurSelectedEvent();
@@ -2555,11 +2594,43 @@ void EventBrowser::on_filterExpression_keyPress(QKeyEvent *e)
 
     filter_apply();
   }
+
+  if(e->key() == Qt::Key_Dollar)
+  {
+    // force autocompletion for filter functions, as long as we're not inside a quoted string
+
+    QString str = ui->filterExpression->toPlainText();
+
+    bool inQuote = false;
+    for(int i = 0; i < str.length(); i++)
+    {
+      if(!inQuote && str[i] == QLatin1Char('"'))
+      {
+        inQuote = true;
+      }
+      else if(inQuote)
+      {
+        if(str[i] == QLatin1Char('\\'))
+        {
+          // skip over the next character
+          i++;
+        }
+        else if(str[i] == QLatin1Char('"'))
+        {
+          inQuote = false;
+        }
+      }
+    }
+
+    if(!inQuote)
+      ui->filterExpression->triggerCompletion();
+  }
 }
 
 void EventBrowser::on_filterExpression_textChanged()
 {
-  m_FilterTimeout->start();    // restart
+  if(!ui->filterExpression->completionInProgress())
+    m_FilterTimeout->start();
 
   m_ParseError->setText(QString());
   m_ParseError->hide();

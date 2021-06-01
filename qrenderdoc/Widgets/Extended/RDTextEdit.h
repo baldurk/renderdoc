@@ -23,7 +23,11 @@
  ******************************************************************************/
 
 #pragma once
+#include <QStringList>
 #include <QTextEdit>
+
+class QCompleter;
+class QStringListModel;
 
 class RDTextEdit : public QTextEdit
 {
@@ -31,6 +35,9 @@ private:
   Q_OBJECT
 
   bool m_singleLine = false;
+  QCompleter *m_Completer = NULL;
+  QStringListModel *m_CompletionModel = NULL;
+  QString m_WordCharacters;
 
 public:
   explicit RDTextEdit(QWidget *parent = 0);
@@ -38,6 +45,14 @@ public:
 
   void setSingleLine();
   void setHoverTrack();
+  void enableCompletion();
+
+  QCompleter *completer() { return m_Completer; }
+  void setCompletionWordCharacters(QString chars);
+  void setCompletionStrings(QStringList list);
+  bool completionInProgress();
+  void triggerCompletion();
+
 signals:
   void enter();
   void leave();
@@ -45,6 +60,8 @@ signals:
   void hoverLeave();
   void mouseMoved(QMouseEvent *event);
   void keyPress(QKeyEvent *e);
+  void completionBegin(QString prefix);
+  void completionEnd();
 
 public slots:
 
@@ -54,4 +71,5 @@ protected:
   void keyPressEvent(QKeyEvent *e);
   void mouseMoveEvent(QMouseEvent *event);
   bool event(QEvent *e);
+  bool eventFilter(QObject *watched, QEvent *event);
 };
