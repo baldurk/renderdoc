@@ -8,60 +8,9 @@ Annotating your frame
 
 The Event Browser becomes most useful when the application has user-defined annotations of sections and subsections of the frames, to allow for a more logical and ordered browsing of the frame.
 
-Doing this is API and platform specific. Example code for D3D11 is included below, using the ``D3DPERF`` library that is exported by ``d3d9.dll``, which can still be used in D3D11:
+Doing this is API and platform specific. More information on how to do it can be found in :doc:`../how/how_annotate_capture`.
 
-.. highlight:: c++
-.. code:: c++
-
-  D3DPERF_BeginEvent(0xffffffff, L"Start of example");
-
-  D3DPERF_BeginEvent(0xff00ff00, L"Sub section");
-  // events inside the subsection
-  D3DPERF_EndEvent();
-
-  // events outside the subsection
-  D3DPERF_EndEvent();
-
-  // the newer ID3DUserDefinedAnnotation API is also supported
-  ID3DUserDefinedAnnotation *annot;
-  immediateContext->QueryInterface(__uuidof(ID3DUserDefinedAnnotation), (void **)&annot);
-
-  annot->BeginEvent(L"Sub section 2")
-
-  annot->EndEvent();
-
-This will generate a section of the frame with a subsection that includes some events, and then some further events that are siblings of the subsection.
-
-OpenGL can make use of the ``KHR_debug`` extension:
-
-.. highlight:: c++
-.. code:: c++
-
-  // omitted code to initialise the extension
-
-  glPushDebugGroupKHR(GL_DEBUG_SOURCE_APPLICATION, 0, -1, "Begin Section");
-
-  // contents of section here
-
-  glPopDebugGroupKHR();
-
-Vulkan can use the ``VK_EXT_debug_utils`` extension:
-
-.. highlight:: c++
-.. code:: c++
-
-  // omitted code to initialise the extension
-
-  VkCommandBuffer cmd = ...;
-
-  VkDebugUtilsLabelEXT markerInfo = {};
-  markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
-  markerInfo.pLabelName = "Begin Section";
-  vkCmdBeginDebugUtilsLabelEXT(cmd, &markerInfo);
-
-  // contents of section here
-
-  vkCmdEndDebugUtilsLabelEXT(cmd);
+The colours of any marker regions provided by these API functions will be used to markup the row for the region as well as showing a bar along the left side of the tree showing which regions an event is in.
 
 Selecting available columns
 ---------------------------
@@ -98,7 +47,7 @@ The event browser is the primary way to browse through the frame. Events are lis
 
 The currently selected event is highlighted and indicated with a green flag |flag_green|. This is the event that RenderDoc is inspecting and is reflected in all the other windows of the UI.
 
-.. figure:: ../imgs/QuickStart/QuickStart4.png
+.. figure:: ../imgs/Screenshots/EventBrowserRegions.png
 
 	Current Event: The Event browser showing several sections and the current event.
 
@@ -163,3 +112,8 @@ When you hit enter to jump to an EID, the toolbar closes and if you wish to jump
 .. figure:: ../imgs/Screenshots/JumpEID.png
 
 	Jumping around: The jump-to-EID toolbar prompting for an event.
+
+See Also
+--------
+
+* :doc:`../how/how_annotate_capture`

@@ -41,12 +41,12 @@
 </OBJECT>
 	<UL>
 		<LI> <OBJECT type="text/sitemap">
-			<param name="Keyword" value="Annotating textures">
-			<param name="Local" value="how/how_view_texture.html#annotating-resources-with-names">
+			<param name="Keyword" value="Naming resources">
+			<param name="Local" value="how/how_annotate_capture.html#application-provided-object-names">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
-			<param name="Keyword" value="Creating Event Hierarchy">
-			<param name="Local" value="window/event_browser.html#annotating-your-frame">
+			<param name="Keyword" value="Event marker annotations">
+			<param name="Local" value="how/how_annotate_capture.html#application-provided-marker-regions">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
 			<param name="Keyword" value="Integrating RenderDoc functionality">
