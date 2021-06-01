@@ -95,44 +95,41 @@
     <ClInclude Include="official\DXExt\AmdExtD3DCommandListMarkerApi.h">
       <Filter>official\DXExt</Filter>
     </ClInclude>
-    <ClInclude Include="official\GPUPerfAPI\Include\GPACounterGenerator.h">
-      <Filter>official\GPUPerfAPI</Filter>
-    </ClInclude>
-    <ClInclude Include="official\GPUPerfAPI\Include\GPAFunctions.h">
-      <Filter>official\GPUPerfAPI</Filter>
-    </ClInclude>
-    <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPI.h">
-      <Filter>official\GPUPerfAPI</Filter>
-    </ClInclude>
-    <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPICounters.h">
-      <Filter>official\GPUPerfAPI</Filter>
-    </ClInclude>
-    <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPIFunctionTypes.h">
-      <Filter>official\GPUPerfAPI</Filter>
-    </ClInclude>
-    <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPITypes.h">
-      <Filter>official\GPUPerfAPI</Filter>
-    </ClInclude>
-    <ClInclude Include="official\GPUPerfAPI\Include\GPUPerfAPI-VK.h">
-      <Filter>official\GPUPerfAPI</Filter>
-    </ClInclude>
-    <ClInclude Include="official\GPUPerfAPI\Include\IGPACounterAccessor.h">
-      <Filter>official\GPUPerfAPI</Filter>
-    </ClInclude>
-    <ClInclude Include="official\GPUPerfAPI\Include\IGPACounterScheduler.h">
-      <Filter>official\GPUPerfAPI</Filter>
-    </ClInclude>
     <ClInclude Include="official\RGA\Common\AsicReg\devices.h">
       <Filter>official\RGA\Common</Filter>
     </ClInclude>
     <ClInclude Include="amd_rgp.h">
       <Filter>RGP</Filter>
     </ClInclude>
+    <ClInclude Include="official\GPUPerfAPI\Include\gpu_perf_api.h">
+      <Filter>official\GPUPerfAPI</Filter>
+    </ClInclude>
+    <ClInclude Include="official\GPUPerfAPI\Include\gpu_perf_api_counters.h">
+      <Filter>official\GPUPerfAPI</Filter>
+    </ClInclude>
+    <ClInclude Include="official\GPUPerfAPI\Include\gpu_perf_api_function_types.h">
+      <Filter>official\GPUPerfAPI</Filter>
+    </ClInclude>
+    <ClInclude Include="official\GPUPerfAPI\Include\gpu_perf_api_functions.h">
+      <Filter>official\GPUPerfAPI</Filter>
+    </ClInclude>
+    <ClInclude Include="official\GPUPerfAPI\Include\gpu_perf_api_interface_loader.h">
+      <Filter>official\GPUPerfAPI</Filter>
+    </ClInclude>
+    <ClInclude Include="official\GPUPerfAPI\Include\gpu_perf_api_stub.h">
+      <Filter>official\GPUPerfAPI</Filter>
+    </ClInclude>
+    <ClInclude Include="official\GPUPerfAPI\Include\gpu_perf_api_types.h">
+      <Filter>official\GPUPerfAPI</Filter>
+    </ClInclude>
     <ClInclude Include="official\ags\amd_ags.h">
       <Filter>official\ags</Filter>
     </ClInclude>
     <ClInclude Include="ags_wrapper.h">
       <Filter>ags</Filter>
+    </ClInclude>
+    <ClInclude Include="official\GPUPerfAPI\Include\gpu_perf_api_vk.h">
+      <Filter>official\GPUPerfAPI</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

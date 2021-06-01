@@ -22,6 +22,8 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#define AMD_GPUPERFAPI_SKIP_VULKAN_INCLUDE 1
+
 #include <algorithm>
 #include <iterator>
 #include "vk_core.h"
@@ -29,7 +31,7 @@
 #include "vk_resources.h"
 
 #include "driver/ihv/amd/amd_counters.h"
-#include "driver/ihv/amd/official/GPUPerfAPI/Include/GPUPerfAPI-VK.h"
+#include "driver/ihv/amd/official/GPUPerfAPI/Include/gpu_perf_api_vk.h"
 #include "strings/string_utils.h"
 
 static uint32_t FromKHRCounter(GPUCounter counterID)
@@ -440,8 +442,8 @@ void VulkanReplay::FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex,
 
 rdcarray<CounterResult> VulkanReplay::FetchCountersAMD(const rdcarray<GPUCounter> &counters)
 {
-  GPA_vkContextOpenInfo context = {Unwrap(m_pDriver->GetInstance()),
-                                   Unwrap(m_pDriver->GetPhysDev()), Unwrap(m_pDriver->GetDev())};
+  GpaVkContextOpenInfo context = {Unwrap(m_pDriver->GetInstance()), Unwrap(m_pDriver->GetPhysDev()),
+                                  Unwrap(m_pDriver->GetDev())};
 
   if(!m_pAMDCounters->BeginMeasurementMode(AMDCounters::ApiType::Vk, (void *)&context))
   {

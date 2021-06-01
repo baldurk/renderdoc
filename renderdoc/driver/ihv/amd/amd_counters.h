@@ -29,7 +29,7 @@
 #include "api/replay/rdcarray.h"
 #include "api/replay/replay_enums.h"
 #include "driver/vulkan/official/vulkan.h"
-#include "official/GPUPerfAPI/Include/GPUPerfAPI.h"
+#include "official/GPUPerfAPI/Include/gpu_perf_api.h"
 
 inline constexpr GPUCounter MakeAMDCounter(int index)
 {
@@ -85,20 +85,20 @@ public:
 private:
   bool IsSessionReady(uint32_t sessionIndex);
 
-  GPAFunctionTable *m_pGPUPerfAPI;
-  GPA_ContextId m_gpaContextId;
+  GpaFunctionTable *m_pGPUPerfAPI;
+  GpaContextId m_gpaContextId;
 
   union GPACmdListInfo
   {
-    GPA_CommandListId m_gpaCommandListId;
-    std::map<void *, GPA_CommandListId> *m_pCommandListMap;
+    GpaCommandListId m_gpaCommandListId;
+    std::map<void *, GpaCommandListId> *m_pCommandListMap;
 
     GPACmdListInfo() : m_pCommandListMap(NULL) {}
     ~GPACmdListInfo() {}
   };
 
   GPACmdListInfo m_gpaCmdListInfo;
-  rdcarray<GPA_SessionId> m_gpaSessionInfo;
+  rdcarray<GpaSessionId> m_gpaSessionInfo;
 
   ApiType m_apiType;
   uint32_t m_gpaSessionCounter;
