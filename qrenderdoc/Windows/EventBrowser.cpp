@@ -1077,16 +1077,16 @@ private:
   friend struct EventFilterModel;
 };
 
+enum class MatchType
+{
+  MustMatch,
+  Normal,
+  CantMatch
+};
+
 struct EventFilter
 {
-  enum MatchType
-  {
-    MustMatch,
-    Normal,
-    CantMatch
-  };
-
-  EventFilter(IEventBrowser::EventFilterCallback c) : callback(c), type(Normal) {}
+  EventFilter(IEventBrowser::EventFilterCallback c) : callback(c), type(MatchType::Normal) {}
   EventFilter(IEventBrowser::EventFilterCallback c, MatchType t) : callback(c), type(t) {}
   IEventBrowser::EventFilterCallback callback;
   MatchType type;
@@ -1128,7 +1128,7 @@ bool EvaluateFilterSet(ICaptureContext &ctx, const rdcarray<EventFilter> &filter
 
   bool anyNormal = false;
   for(const EventFilter &filter : filters)
-    anyNormal |= (filter.type == EventFilter::Normal);
+    anyNormal |= (filter.type == MatchType::Normal);
 
   // if there aren't any normal filters, they're all CantMatch or MustMatch. In this case we default
   // to acceptance so that if they all pass then we match. This handles cases like +foo -bar which
@@ -1141,14 +1141,14 @@ bool EvaluateFilterSet(ICaptureContext &ctx, const rdcarray<EventFilter> &filter
   {
     // if we've already accepted and this is a normal filter and we are in non-all mode, it won't
     // change the result so don't bother running the filter.
-    if(accept && !all && filter.type == EventFilter::Normal)
+    if(accept && !all && filter.type == MatchType::Normal)
       continue;
 
     bool match = filter.callback(&ctx, rdcstr(), rdcstr(), eid, chunk, draw, name);
 
     // in normal mode, if it matches it should be included (unless a subsequent filter excludes
     // it)
-    if(filter.type == EventFilter::Normal)
+    if(filter.type == MatchType::Normal)
     {
       if(match)
         accept = true;
@@ -1157,13 +1157,13 @@ bool EvaluateFilterSet(ICaptureContext &ctx, const rdcarray<EventFilter> &filter
       if(all && !match)
         return false;
     }
-    else if(filter.type == EventFilter::CantMatch)
+    else if(filter.type == MatchType::CantMatch)
     {
       // if we matched a can't match (e.g -foo) then we can't accept this row
       if(match)
         return false;
     }
-    else if(filter.type == EventFilter::MustMatch)
+    else if(filter.type == MatchType::MustMatch)
     {
       // similarly if we *didn't* match a must match (e.g +foo) then we can't accept this row
       if(!match)
@@ -1192,17 +1192,39 @@ static const SDObject *FindChildRecursively(const SDObject *parent, rdcstr name)
   return NULL;
 }
 
-struct ParseError
+struct FilterExpression
+{
+  MatchType matchType;
+
+  bool function;
+  QString name;
+
+  int position = -1;
+  int length = 0;
+
+  QVector<FilterExpression> exprs;
+};
+
+struct ParseTrace
 {
   int position = -1;
   int length = 0;
   QString errorText;
 
-  operator bool() const { return length > 0; }
-  ParseError &setText(QString text)
+  QVector<FilterExpression> exprs;
+
+  operator bool() const = delete;
+  bool hasErrors() const { return length > 0; }
+  ParseTrace &setError(QString text)
   {
     errorText = text;
     return *this;
+  }
+  void clearErrors()
+  {
+    errorText.clear();
+    position = -1;
+    length = 0;
   }
 };
 
@@ -1215,7 +1237,7 @@ struct CustomFilterCallbacks
 
 struct BuiltinFilterCallbacks
 {
-  std::function<IEventBrowser::EventFilterCallback(QString, QString, ParseError &)> makeFilter;
+  std::function<IEventBrowser::EventFilterCallback(QString, QString, ParseTrace &)> makeFilter;
   IEventBrowser::AutoCompleteCallback completer;
 };
 
@@ -1235,8 +1257,8 @@ public:
 
 #define MAKE_BUILTIN_FILTER(filter_name)                             \
   m_BuiltinFilters[lit(STRINGIZE(filter_name))].makeFilter = [this]( \
-      QString name, QString parameters, ParseError &errors) {        \
-    return filterFunction_##filter_name(name, parameters, errors);   \
+      QString name, QString parameters, ParseTrace &trace) {         \
+    return filterFunction_##filter_name(name, parameters, trace);    \
   };
 
       MAKE_BUILTIN_FILTER(any);
@@ -1261,12 +1283,12 @@ public:
     }
   }
   void ResetCache() { m_VisibleCache.clear(); }
-  ParseError ParseExpression(QString expr)
+  ParseTrace ParseExpression(QString expr)
   {
     m_VisibleCache.clear();
     m_Filters.clear();
-    ParseError ret = ParseExpressionToFilters(expr, m_Filters);
-    if(ret)
+    ParseTrace ret = ParseExpressionToFilters(expr, m_Filters);
+    if(ret.hasErrors())
       m_Filters.clear();
     invalidateFilter();
     return ret;
@@ -1439,18 +1461,18 @@ private:
   }
 
   IEventBrowser::EventFilterCallback filterFunction_any(QString name, QString parameters,
-                                                        ParseError &errors)
+                                                        ParseTrace &trace)
   {
     // $any(...) => returns true if any of the nested subexpressions are true (with exclusions
     // treated as normal).
     rdcarray<EventFilter> filters;
-    errors = ParseExpressionToFilters(parameters, filters);
+    trace = ParseExpressionToFilters(parameters, filters);
 
-    if(!errors)
+    if(!trace.hasErrors())
     {
       if(filters.isEmpty())
       {
-        errors.setText(tr("No filters provided to $any()", "EventFilterModel"));
+        trace.setError(tr("No filters provided to $any()", "EventFilterModel"));
         return NULL;
       }
 
@@ -1464,17 +1486,17 @@ private:
   }
 
   IEventBrowser::EventFilterCallback filterFunction_all(QString name, QString parameters,
-                                                        ParseError &errors)
+                                                        ParseTrace &trace)
   {
     // $all(...) => returns true only if all the nested subexpressions are true
     rdcarray<EventFilter> filters;
-    errors = ParseExpressionToFilters(parameters, filters);
+    trace = ParseExpressionToFilters(parameters, filters);
 
-    if(!errors)
+    if(!trace.hasErrors())
     {
       if(filters.isEmpty())
       {
-        errors.setText(tr("No filters provided to $all()", "EventFilterModel"));
+        trace.setError(tr("No filters provided to $all()", "EventFilterModel"));
         return NULL;
       }
 
@@ -1488,14 +1510,14 @@ private:
   }
 
   IEventBrowser::EventFilterCallback filterFunction_param(QString name, QString parameters,
-                                                          ParseError &errors)
+                                                          ParseTrace &trace)
   {
     // $param() => check for a named parameter having a particular value
     int idx = parameters.indexOf(QLatin1Char(':'));
 
     if(idx < 0)
     {
-      errors.setText(tr("Parameter to to $param() should be name: value", "EventFilterModel"));
+      trace.setError(tr("Parameter to to $param() should be name: value", "EventFilterModel"));
       return NULL;
     }
 
@@ -1504,7 +1526,7 @@ private:
 
     if(paramValue.isEmpty())
     {
-      errors.setText(tr("Parameter to to $param() should be name: value", "EventFilterModel"));
+      trace.setError(tr("Parameter to to $param() should be name: value", "EventFilterModel"));
       return NULL;
     }
 
@@ -1546,7 +1568,7 @@ private:
   }
 
   IEventBrowser::EventFilterCallback filterFunction_event(QString name, QString parameters,
-                                                          ParseError &errors)
+                                                          ParseTrace &trace)
   {
     // $event(...) => filters on any event property (at the moment only EID)
     QList<Token> tokens = tokenise(parameters);
@@ -1557,15 +1579,15 @@ private:
 
     if(tokens.size() < 1)
     {
-      errors.setText(tr("Filter parameters required", "EventFilterModel"));
+      trace.setError(tr("Filter parameters required", "EventFilterModel"));
       return NULL;
     }
 
     if(tokens[0].text.toLower() != lit("eid") && tokens[0].text.toLower() != lit("eventid"))
     {
-      errors.position = tokens[0].position;
-      errors.length = tokens[0].length;
-      errors.setText(tr("Unrecognised event property", "EventFilterModel"));
+      trace.position = tokens[0].position;
+      trace.length = tokens[0].length;
+      trace.setError(tr("Unrecognised event property", "EventFilterModel"));
       return NULL;
     }
 
@@ -1576,7 +1598,7 @@ private:
 
     if(tokens.size() != 3 || operatorIdx < 0 || operatorIdx >= operators.size())
     {
-      errors.setText(tr("Invalid expression, expected single comparison with operators: %3",
+      trace.setError(tr("Invalid expression, expected single comparison with operators: %3",
                         "EventFilterModel")
                          .arg(operators.join(lit(", "))));
       return NULL;
@@ -1587,9 +1609,9 @@ private:
 
     if(!ok)
     {
-      errors.position = tokens[2].position;
-      errors.length = tokens[2].length;
-      errors.setText(tr("Invalid value, expected integer", "EventFilterModel"));
+      trace.position = tokens[2].position;
+      trace.length = tokens[2].length;
+      trace.setError(tr("Invalid value, expected integer", "EventFilterModel"));
       return NULL;
     }
 
@@ -1619,7 +1641,7 @@ private:
         return [eid](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
                      const SDChunk *, const DrawcallDescription *draw,
                      const rdcstr &) { return eventId >= eid; };
-      default: errors.setText(tr("Internal error", "EventFilterModel")); return NULL;
+      default: trace.setError(tr("Internal error", "EventFilterModel")); return NULL;
     }
   }
 
@@ -1652,7 +1674,7 @@ private:
   }
 
   IEventBrowser::EventFilterCallback filterFunction_draw(QString name, QString parameters,
-                                                         ParseError &errors)
+                                                         ParseTrace &trace)
   {
     // $draw(...) => returns true only for draws, optionally with a particular property filter
     QList<Token> tokens = tokenise(parameters);
@@ -1721,7 +1743,7 @@ private:
 
       if(tokens.size() != 3 || operatorIdx < 0 || operatorIdx >= operators.size())
       {
-        errors.setText(tr("Invalid expression, expected single comparison with operators: %3",
+        trace.setError(tr("Invalid expression, expected single comparison with operators: %3",
                           "EventFilterModel")
                            .arg(operators.join(lit(", "))));
         return NULL;
@@ -1732,9 +1754,9 @@ private:
 
       if(!ok)
       {
-        errors.position = tokens[2].position;
-        errors.length = tokens[2].length;
-        errors.setText(tr("Invalid value, expected integer", "EventFilterModel"));
+        trace.position = tokens[2].position;
+        trace.length = tokens[2].length;
+        trace.setError(tr("Invalid value, expected integer", "EventFilterModel"));
         return NULL;
       }
 
@@ -1776,7 +1798,7 @@ private:
                                      const DrawcallDescription *draw, const rdcstr &) {
             return draw->eventId == eventId && propGetter(draw) >= value;
           };
-        default: errors.setText(tr("Internal error", "EventFilterModel")); return NULL;
+        default: trace.setError(tr("Internal error", "EventFilterModel")); return NULL;
       }
     }
     else if(tokens[0].text.toLower() == lit("duration"))
@@ -1790,7 +1812,7 @@ private:
 
       if(tokens.size() != 3 || operatorIdx < 0 || operatorIdx >= operators.size())
       {
-        errors.setText(tr("Invalid expression, expected single comparison with operators: %3",
+        trace.setError(tr("Invalid expression, expected single comparison with operators: %3",
                           "EventFilterModel")
                            .arg(operators.join(lit(", "))));
         return NULL;
@@ -1820,9 +1842,9 @@ private:
       }
       else
       {
-        errors.position = tokens[2].position;
-        errors.length = tokens[2].length;
-        errors.setText(
+        trace.position = tokens[2].position;
+        trace.length = tokens[2].length;
+        trace.setError(
             tr("Duration must be suffixed with one of s, ms, us, or ns", "EventFilterModel"));
         return NULL;
       }
@@ -1841,9 +1863,9 @@ private:
 
       if(!ok)
       {
-        errors.position = tokens[2].position;
-        errors.length = tokens[2].length;
-        errors.setText(tr("Invalid value, expected duration suffixed with one of s, ms, us, or ns",
+        trace.position = tokens[2].position;
+        trace.length = tokens[2].length;
+        trace.setError(tr("Invalid value, expected duration suffixed with one of s, ms, us, or ns",
                           "EventFilterModel"));
         return NULL;
       }
@@ -1880,16 +1902,16 @@ private:
                 double dur = m_Model->GetSecondsDurationForEID(eventId);
                 return dur >= 0.0 && int64_t(dur * 1000000000.0) >= nanoValue;
               };
-        default: errors.setText(tr("Internal error", "EventFilterModel")); return NULL;
+        default: trace.setError(tr("Internal error", "EventFilterModel")); return NULL;
       }
     }
     else if(tokens[0].text.toLower() == lit("flags"))
     {
       if(tokens.size() < 3 || (tokens[1].text != lit("&") && tokens[1].text != lit("=")))
       {
-        errors.position = tokens[0].position;
-        errors.length = (tokens[1].position + tokens[1].length) - errors.position + 1;
-        errors.setText(tr("Expected $draw(flags & ...)", "EventFilterModel"));
+        trace.position = tokens[0].position;
+        trace.length = (tokens[1].position + tokens[1].length) - trace.position + 1;
+        trace.setError(tr("Expected $draw(flags & ...)", "EventFilterModel"));
         return NULL;
       }
 
@@ -1902,37 +1924,23 @@ private:
       // if we have an empty string in the list somewhere that means the | list was broken
       if(flagStrings.contains(QString()))
       {
-        errors.position = tokens[2].position;
-        errors.length = (tokens.back().position + tokens.back().length) - errors.position + 1;
-        errors.setText(tr("Invalid draw flags expression", "EventFilterModel"));
+        trace.position = tokens[2].position;
+        trace.length = (tokens.back().position + tokens.back().length) - trace.position + 1;
+        trace.setError(tr("Invalid draw flags expression", "EventFilterModel"));
         return NULL;
       }
 
-      if(DrawFlagsLookup.empty())
-      {
-        for(uint32_t i = 0; i <= 31; i++)
-        {
-          DrawFlags flag = DrawFlags(1U << i);
-
-          // bit of a hack, see if it's a valid flag by stringising and seeing if it contains
-          // DrawFlags(
-          QString str = ToQStr(flag);
-          if(str.contains(lit("DrawFlags(")))
-            continue;
-
-          DrawFlagsLookup[str] = flag;
-        }
-      }
+      CacheDrawFlagsLookup();
 
       DrawFlags flags = DrawFlags::NoFlags;
       for(const QString &flagString : flagStrings)
       {
-        auto it = DrawFlagsLookup.find(flagString);
+        auto it = DrawFlagsLookup.find(flagString.toLower());
         if(it == DrawFlagsLookup.end())
         {
-          errors.position = tokens[2].position;
-          errors.length = (tokens.back().position + tokens.back().length) - errors.position + 1;
-          errors.setText(tr("Unrecognised draw flag '%1'", "EventFilterModel").arg(flagString));
+          trace.position = tokens[2].position;
+          trace.length = (tokens.back().position + tokens.back().length) - trace.position + 1;
+          trace.setError(tr("Unrecognised draw flag '%1'", "EventFilterModel").arg(flagString));
           return NULL;
         }
 
@@ -1945,7 +1953,7 @@ private:
     }
     else
     {
-      errors.setText(tr("Unrecognised property expression", "EventFilterModel"));
+      trace.setError(tr("Unrecognised property expression", "EventFilterModel"));
       return NULL;
     }
   }
@@ -1962,7 +1970,7 @@ private:
   }
 
   IEventBrowser::EventFilterCallback filterFunction_dispatch(QString name, QString parameters,
-                                                             ParseError &errors)
+                                                             ParseTrace &trace)
   {
     // $dispatch(...) => returns true only for dispatches, optionally with a particular property
     // filter
@@ -2025,7 +2033,7 @@ private:
 
       if(tokens.size() != 3 || operatorIdx < 0 || operatorIdx >= operators.size())
       {
-        errors.setText(tr("Invalid expression, expected single comparison with operators: %3",
+        trace.setError(tr("Invalid expression, expected single comparison with operators: %3",
                           "EventFilterModel")
                            .arg(operators.join(lit(", "))));
         return NULL;
@@ -2036,9 +2044,9 @@ private:
 
       if(!ok)
       {
-        errors.position = tokens[2].position;
-        errors.length = tokens[2].length;
-        errors.setText(tr("Invalid value, expected integer", "EventFilterModel"));
+        trace.position = tokens[2].position;
+        trace.length = tokens[2].length;
+        trace.setError(tr("Invalid value, expected integer", "EventFilterModel"));
         return NULL;
       }
 
@@ -2086,7 +2094,7 @@ private:
             return draw->eventId == eventId && (draw->flags & DrawFlags::Dispatch) &&
                    propGetter(draw) >= value;
           };
-        default: errors.setText(tr("Internal error", "EventFilterModel")); return NULL;
+        default: trace.setError(tr("Internal error", "EventFilterModel")); return NULL;
       }
     }
     else if(tokens[0].text.toLower() == lit("duration"))
@@ -2100,7 +2108,7 @@ private:
 
       if(tokens.size() != 3 || operatorIdx < 0 || operatorIdx >= operators.size())
       {
-        errors.setText(tr("Invalid expression, expected single comparison with operators: %3",
+        trace.setError(tr("Invalid expression, expected single comparison with operators: %3",
                           "EventFilterModel")
                            .arg(operators.join(lit(", "))));
         return NULL;
@@ -2130,9 +2138,9 @@ private:
       }
       else
       {
-        errors.position = tokens[2].position;
-        errors.length = tokens[2].length;
-        errors.setText(
+        trace.position = tokens[2].position;
+        trace.length = tokens[2].length;
+        trace.setError(
             tr("Duration must be suffixed with one of s, ms, us, or ns", "EventFilterModel"));
         return NULL;
       }
@@ -2151,9 +2159,9 @@ private:
 
       if(!ok)
       {
-        errors.position = tokens[2].position;
-        errors.length = tokens[2].length;
-        errors.setText(tr("Invalid value, expected duration suffixed with one of s, ms, us, or ns",
+        trace.position = tokens[2].position;
+        trace.length = tokens[2].length;
+        trace.setError(tr("Invalid value, expected duration suffixed with one of s, ms, us, or ns",
                           "EventFilterModel"));
         return NULL;
       }
@@ -2194,22 +2202,22 @@ private:
                 return draw->eventId == eventId && (draw->flags & DrawFlags::Dispatch) &&
                        dur >= 0.0 && int64_t(dur * 1000000000.0) >= nanoValue;
               };
-        default: errors.setText(tr("Internal error", "EventFilterModel")); return NULL;
+        default: trace.setError(tr("Internal error", "EventFilterModel")); return NULL;
       }
     }
     else
     {
-      errors.setText(tr("Unrecognised property expression", "EventFilterModel"));
+      trace.setError(tr("Unrecognised property expression", "EventFilterModel"));
       return NULL;
     }
   }
 
   IEventBrowser::EventFilterCallback MakeFunctionMatcher(QString name, QString parameters,
-                                                         ParseError &errors)
+                                                         ParseTrace &trace)
   {
     if(m_BuiltinFilters.contains(name))
     {
-      return m_BuiltinFilters[name].makeFilter(name, parameters, errors);
+      return m_BuiltinFilters[name].makeFilter(name, parameters, trace);
     }
 
     if(m_CustomFilters.contains(name))
@@ -2220,10 +2228,14 @@ private:
       rdcstr n = name;
       rdcstr p = parameters;
 
-      QString errString = innerParser(&m_Ctx, n, p);
+      QString errString;
+
+      if(innerParser)
+        errString = innerParser(&m_Ctx, n, p);
+
       if(!errString.isEmpty())
       {
-        errors.setText(errString);
+        trace.setError(errString);
         return NULL;
       }
 
@@ -2234,11 +2246,11 @@ private:
       };
     }
 
-    errors.setText(tr("Unknown filter function", "EventFilterModel").arg(name));
+    trace.setError(tr("Unknown filter function", "EventFilterModel").arg(name));
     return NULL;
   }
 
-  ParseError ParseExpressionToFilters(QString expr, rdcarray<EventFilter> &filters)
+  ParseTrace ParseExpressionToFilters(QString expr, rdcarray<EventFilter> &filters)
   {
     // we have a simple grammar, we pick out subexpressions and they're all independent.
     //
@@ -2270,7 +2282,7 @@ private:
     //
     // any non-existant edge is a parse error
 
-    ParseError errors;
+    ParseTrace trace;
 
     enum
     {
@@ -2283,7 +2295,7 @@ private:
 
     expr = expr.trimmed();
 
-    EventFilter::MatchType matchType = EventFilter::Normal;
+    MatchType matchType = MatchType::Normal;
 
     // temporary string we're building up somewhere
     QString s;
@@ -2298,7 +2310,7 @@ private:
     int pos = 0;
     while(pos < expr.length())
     {
-      errors.length = qMax(0, pos - errors.position + 1);
+      trace.length = qMax(0, pos - trace.position + 1);
 
       if(state == Start)
       {
@@ -2312,19 +2324,19 @@ private:
         // 5) and 6)
         if(expr[pos] == QLatin1Char('-'))
         {
-          errors.position = pos;
+          trace.position = pos;
 
           // stay in the Start state, but store match type
-          matchType = EventFilter::CantMatch;
+          matchType = MatchType::CantMatch;
           pos++;
           continue;
         }
 
         if(expr[pos] == QLatin1Char('+'))
         {
-          errors.position = pos;
+          trace.position = pos;
 
-          matchType = EventFilter::MustMatch;
+          matchType = MatchType::MustMatch;
           pos++;
           continue;
         }
@@ -2332,13 +2344,16 @@ private:
         // 3.1) move to function expression if we see a $
         if(expr[pos] == QLatin1Char('$'))
         {
-          errors.position = pos;
+          // only update the position if the match type is normal. If it's mustmatch/cantmatch
+          // include everything from the preceeding - or +
+          if(matchType == MatchType::Normal)
+            trace.position = pos;
 
           // we need at minimum 3 more characters for $x()
           if(pos + 3 >= expr.length())
           {
-            errors.length = expr.length() - errors.position;
-            return errors.setText(
+            trace.length = expr.length() - trace.position;
+            return trace.setError(
                 tr("Invalid function expression\n"
                    "If this is not a filter function, surround with quotes.",
                    "EventFilterModel"));
@@ -2354,14 +2369,20 @@ private:
         // 2.1) move to quoted expression if we see a "
         if(expr[pos] == QLatin1Char('"'))
         {
-          errors.position = pos;
+          // only update the position if the match type is normal. If it's mustmatch/cantmatch
+          // include everything from the preceeding - or +
+          if(matchType == MatchType::Normal)
+            trace.position = pos;
 
           state = QuotedExpr;
           pos++;
           continue;
         }
 
-        errors.position = pos;
+        // only update the position if the match type is normal. If it's mustmatch/cantmatch
+        // include everything from the preceeding - or +
+        if(matchType == MatchType::Normal)
+          trace.position = pos;
 
         // 4.1) for anything else begin parsing a literal expression
         state = Literal;
@@ -2375,8 +2396,8 @@ private:
         {
           if(pos == expr.length() - 1)
           {
-            errors.length = expr.length() - errors.position;
-            return errors.setText(
+            trace.length = expr.length() - trace.position;
+            return trace.setError(
                 tr("Invalid escape sequence in quoted string", "EventFilterModel"));
           }
 
@@ -2392,19 +2413,29 @@ private:
           // however we expect the end of the expression or whitespace next
           if(pos + 1 < expr.length() && !expr[pos + 1].isSpace())
           {
-            errors.length = (pos + 1) - errors.position + 1;
-            return errors.setText(
+            trace.length = (pos + 1) - trace.position + 1;
+            return trace.setError(
                 tr("Unexpected character after quoted string", "EventFilterModel"));
           }
 
           filters.push_back(EventFilter(MakeLiteralMatcher(s), matchType));
 
+          FilterExpression subexpr;
+
+          subexpr.matchType = matchType;
+          subexpr.function = false;
+          subexpr.name = s;
+          subexpr.position = trace.position;
+          subexpr.length = trace.length;
+
+          trace.exprs.push_back(subexpr);
+
           s.clear();
           pos++;
           state = Start;
-          matchType = EventFilter::Normal;
+          matchType = MatchType::Normal;
 
-          errors.position = pos;
+          trace.position = pos;
 
           continue;
         }
@@ -2422,17 +2453,29 @@ private:
         // if we encounter whitespace or the end of the expression, we're done
         if(expr[pos].isSpace() || pos == expr.length() - 1)
         {
-          if(!expr[pos].isSpace())
+          if(expr[pos].isSpace())
+            trace.length--;
+          else
             s.append(expr[pos]);
 
           filters.push_back(EventFilter(MakeLiteralMatcher(s), matchType));
 
+          FilterExpression subexpr;
+
+          subexpr.matchType = matchType;
+          subexpr.function = false;
+          subexpr.name = s;
+          subexpr.position = trace.position;
+          subexpr.length = trace.length;
+
+          trace.exprs.push_back(subexpr);
+
           s.clear();
           pos++;
           state = Start;
-          matchType = EventFilter::Normal;
+          matchType = MatchType::Normal;
 
-          errors.position = pos;
+          trace.position = pos;
 
           continue;
         }
@@ -2456,10 +2499,10 @@ private:
           pos++;
           paramStartPos = pos;
 
-          errors.length = pos - errors.position + 1;
+          trace.length = pos - trace.position + 1;
 
           if(s.isEmpty())
-            return errors.setText(
+            return trace.setError(
                 tr("Filter function with no name before arguments.\n"
                    "If this is not a filter function, surround with quotes.",
                    "EventFilterModel"));
@@ -2477,9 +2520,9 @@ private:
           while(end < expr.length() && (expr[end].isLetterOrNumber() || expr[end] == QLatin1Char('.')))
             end++;
 
-          errors.length = end - errors.position + 1;
+          trace.length = end - trace.position + 1;
 
-          return errors.setText(
+          return trace.setError(
               tr("Invalid filter function name, must begin with a letter.\n"
                  "If this is not a filter function, surround with quotes.",
                  "EventFilterModel"));
@@ -2509,32 +2552,49 @@ private:
           // however we expect the end of the expression or whitespace next
           if(pos + 1 < expr.length() && !expr[pos + 1].isSpace())
           {
-            errors.length = (pos + 1) - errors.position + 1;
-            return errors.setText(
+            trace.length = (pos + 1) - trace.position + 1;
+            return trace.setError(
                 tr("Unexpected character after filter function", "EventFilterModel"));
           }
 
           // reset errors, we'll fix up the location afterwards depending on what's returned
-          ParseError subErrors;
-          IEventBrowser::EventFilterCallback filter = MakeFunctionMatcher(s, params, subErrors);
+          ParseTrace subTrace;
+          IEventBrowser::EventFilterCallback filter = MakeFunctionMatcher(s, params, subTrace);
 
           if(!filter)
           {
             // if the errors returned some sub-range for the errors, the position will be
             // relative to the params string so rebase it.
-            if(subErrors.position > 0)
+            if(subTrace.position > 0)
             {
-              subErrors.position += paramStartPos;
+              subTrace.position += paramStartPos;
             }
             else
             {
               // otherwise use the whole parent range which includes the function name
-              subErrors.position = errors.position;
-              subErrors.length = errors.length;
+              subTrace.position = trace.position;
+              subTrace.length = trace.length;
             }
 
-            return subErrors;
+            return subTrace;
           }
+
+          FilterExpression subexpr;
+
+          subexpr.matchType = matchType;
+          subexpr.function = true;
+          subexpr.name = s;
+
+          subexpr.position = trace.position;
+          subexpr.length = trace.length;
+          subexpr.exprs = subTrace.exprs;
+
+          for(FilterExpression &f : subexpr.exprs)
+          {
+            f.position += paramStartPos;
+          }
+
+          trace.exprs.push_back(subexpr);
 
           filters.push_back(EventFilter(filter, matchType));
 
@@ -2543,7 +2603,7 @@ private:
 
           // move back to the start state
           state = Start;
-          matchType = EventFilter::Normal;
+          matchType = MatchType::Normal;
         }
         else
         {
@@ -2555,39 +2615,39 @@ private:
       }
     }
 
-    errors.length = expr.length() - errors.position;
+    trace.length = expr.length() - trace.position;
 
     // we should be back in the normal state, because all the other states have termination states
     if(state == Literal)
     {
       // shouldn't be possible as the Literal state terminates itself when it sees the end of the
       // string
-      return errors.setText(tr("Encountered unterminated literal", "EventFilterModel"));
+      return trace.setError(tr("Encountered unterminated literal", "EventFilterModel"));
     }
     else if(state == QuotedExpr)
     {
-      return errors.setText(tr("Unterminated quoted expression", "EventFilterModel"));
+      return trace.setError(tr("Unterminated quoted expression", "EventFilterModel"));
     }
     else if(state == FunctionExprName)
     {
-      return errors.setText(tr("Filter function has no parameters", "EventFilterModel"));
+      return trace.setError(tr("Filter function has no parameters", "EventFilterModel"));
     }
     else if(state == FunctionExprParams)
     {
-      return errors.setText(tr("Filter function parameters incomplete", "EventFilterModel"));
+      return trace.setError(tr("Filter function parameters incomplete", "EventFilterModel"));
     }
 
     // any - or + should have been consumed by an expression, if we still have it then it was
     // dangling
-    if(matchType == EventFilter::CantMatch)
-      return errors.setText(tr("- expects an expression to exclude", "EventFilterModel"));
-    if(matchType == EventFilter::MustMatch)
-      return errors.setText(tr("+ expects an expression to require", "EventFilterModel"));
+    if(matchType == MatchType::CantMatch)
+      return trace.setError(tr("- expects an expression to exclude", "EventFilterModel"));
+    if(matchType == MatchType::MustMatch)
+      return trace.setError(tr("+ expects an expression to require", "EventFilterModel"));
 
     // if we got here, we succeeded. Stop tracking errors
-    errors = ParseError();
+    trace.clearErrors();
 
-    return errors;
+    return trace;
   }
 
   // static so we don't lose this when the event browser is closed and the model is deleted. We
@@ -2612,6 +2672,28 @@ static bool textEditControl(QWidget *sender)
     return true;
 
   return false;
+}
+
+void AddFilterSelections(QTextCursor cursor, int &idx, QColor backCol,
+                         const QVector<FilterExpression> &exprs,
+                         QList<QTextEdit::ExtraSelection> &sels)
+{
+  QTextEdit::ExtraSelection sel;
+
+  sel.cursor = cursor;
+
+  for(const FilterExpression &f : exprs)
+  {
+    QColor col = QColor::fromHslF(float(idx++ % 6) / 6.0f, 1.0f,
+                                  qBound(0.05, 0.5 + 0.5 * backCol.lightnessF(), 0.95));
+
+    sel.cursor.setPosition(f.position, QTextCursor::MoveAnchor);
+    sel.cursor.setPosition(f.position + f.length, QTextCursor::KeepAnchor);
+    sel.format.setBackground(QBrush(col));
+    sels.push_back(sel);
+
+    AddFilterSelections(cursor, idx, backCol, f.exprs, sels);
+  }
 }
 
 ParseErrorTipLabel::ParseErrorTipLabel(QWidget *widget) : QLabel(NULL), m_Widget(widget)
@@ -3050,27 +3132,27 @@ void EventBrowser::filter_apply()
   // if the model index changes (e.g. if some events are shown or hidden)
   ui->events->updateExpansion(m_EventsExpansion, keygen);
 
-  ParseError parseError = m_FilterModel->ParseExpression(ui->filterExpression->toPlainText());
+  QString expression = ui->filterExpression->toPlainText();
+
+  ParseTrace parseTrace = m_FilterModel->ParseExpression(expression);
 
   QList<QTextEdit::ExtraSelection> sels;
 
-  m_ParseError->setText(parseError.errorText);
+  m_ParseError->setText(parseTrace.errorText);
   m_ParseError->hide();
 
-  if(parseError)
+  if(parseTrace.hasErrors())
   {
     QTextEdit::ExtraSelection sel;
 
-    QTextCursor cursor = ui->filterExpression->textCursor();
+    sel.cursor = ui->filterExpression->textCursor();
 
-    cursor = ui->filterExpression->textCursor();
-    sel.cursor = cursor;
     sel.cursor.movePosition(QTextCursor::StartOfLine);
-    sel.cursor.setPosition(parseError.position, QTextCursor::MoveAnchor);
+    sel.cursor.setPosition(parseTrace.position, QTextCursor::MoveAnchor);
 
     m_ParseErrorPos = ui->filterExpression->cursorRect(sel.cursor).bottomLeft();
 
-    sel.cursor.setPosition(parseError.position + parseError.length, QTextCursor::KeepAnchor);
+    sel.cursor.setPosition(parseTrace.position + parseTrace.length, QTextCursor::KeepAnchor);
     sel.format.setUnderlineStyle(QTextCharFormat::SingleUnderline);
     sel.format.setUnderlineColor(QColor(Qt::red));
     sels.push_back(sel);
@@ -3091,6 +3173,10 @@ void EventBrowser::filter_apply()
   }
   else
   {
+    int idx = 0;
+    AddFilterSelections(ui->filterExpression->textCursor(), idx, palette().color(QPalette::Base),
+                        parseTrace.exprs, sels);
+
     m_ParseError->hide();
   }
 
