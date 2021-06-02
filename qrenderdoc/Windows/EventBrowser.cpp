@@ -338,6 +338,14 @@ struct EventItemModel : public QAbstractItemModel
   }
 
   int NumFindResults() { return m_FindResults.count(); }
+  double GetSecondsDurationForEID(uint32_t eid)
+  {
+    if(eid < m_Times.size())
+      return m_Times[eid];
+
+    return -1.0;
+  }
+
   QModelIndex GetIndexForEID(uint32_t eid)
   {
     if(eid == 0)
@@ -1189,8 +1197,10 @@ struct BuiltinFilterCallbacks
 struct EventFilterModel : public QSortFilterProxyModel
 {
 public:
-  EventFilterModel(ICaptureContext &ctx) : m_Ctx(ctx)
+  EventFilterModel(EventItemModel *model, ICaptureContext &ctx) : m_Model(model), m_Ctx(ctx)
   {
+    setSourceModel(m_Model);
+
     if(m_BuiltinFilters.empty())
     {
 #ifndef STRINGIZE
@@ -1321,6 +1331,8 @@ private:
   // false. This means we can resize it and know that we don't pollute with bad data.
   // it must be mutable since we update it in a const function filterAcceptsRow.
   mutable rdcarray<int8_t> m_VisibleCache;
+
+  EventItemModel *m_Model = NULL;
 
   bool m_EmptyRegionsVisible = true;
   rdcarray<EventFilter> m_Filters;
@@ -1604,9 +1616,9 @@ private:
           lit("=="), lit("!="), lit("<"), lit(">"), lit("<="), lit(">="),
       };
 
-      int operatorIdx = operators.indexOf(tokens[1].text);
+      int operatorIdx = tokens.size() > 1 ? operators.indexOf(tokens[1].text) : -1;
 
-      if(tokens[1].text == lit("="))
+      if(tokens.size() > 1 && tokens[1].text == lit("="))
         operatorIdx = 0;
 
       if(tokens.size() != 3 || operatorIdx < 0 || operatorIdx >= operators.size())
@@ -1669,7 +1681,111 @@ private:
         default: errors.setText(tr("Internal error", "EventFilterModel")); return NULL;
       }
     }
-    else if(tokens[0].text == lit("flags"))
+    else if(tokens[0].text.toLower() == lit("duration"))
+    {
+      // deliberately don't allow equality/inequality
+      static const QStringList operators = {
+          lit("<"), lit(">"), lit("<="), lit(">="),
+      };
+
+      int operatorIdx = tokens.size() > 1 ? operators.indexOf(tokens[1].text) : -1;
+
+      if(tokens.size() != 3 || operatorIdx < 0 || operatorIdx >= operators.size())
+      {
+        errors.setText(tr("Invalid expression, expected single comparison with operators: %3",
+                          "EventFilterModel")
+                           .arg(operators.join(lit(", "))));
+        return NULL;
+      }
+
+      // multiplier to change the read value into nanoseconds
+      double mult = 1.0;
+      if(tokens[2].text.endsWith(lit("ms")))
+      {
+        mult = 1000000.0;
+        tokens[2].text.resize(tokens[2].text.size() - 2);
+      }
+      else if(tokens[2].text.endsWith(lit("us")))
+      {
+        mult = 1000.0;
+        tokens[2].text.resize(tokens[2].text.size() - 2);
+      }
+      else if(tokens[2].text.endsWith(lit("ns")))
+      {
+        mult = 1.0;
+        tokens[2].text.resize(tokens[2].text.size() - 2);
+      }
+      else if(tokens[2].text.endsWith(lit("s")))
+      {
+        mult = 1000000000.0;
+        tokens[2].text.resize(tokens[2].text.size() - 1);
+      }
+      else
+      {
+        errors.position = tokens[2].position;
+        errors.length = tokens[2].length;
+        errors.setText(
+            tr("Duration must be suffixed with one of s, ms, us, or ns", "EventFilterModel"));
+        return NULL;
+      }
+
+      bool ok = false;
+      double value = tokens[2].text.toDouble(&ok);
+
+      // if it doesn't read as a double, try as an integer
+      if(!ok)
+      {
+        int64_t valInt = tokens[2].text.toLongLong(&ok);
+
+        if(ok)
+          value = double(valInt);
+      }
+
+      if(!ok)
+      {
+        errors.position = tokens[2].position;
+        errors.length = tokens[2].length;
+        errors.setText(tr("Invalid value, expected duration suffixed with one of s, ms, us, or ns",
+                          "EventFilterModel"));
+        return NULL;
+      }
+
+      int64_t nanoValue = int64_t(value * mult);
+
+      switch(operatorIdx)
+      {
+        case 0:
+          return
+              [this, nanoValue](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
+                                const SDChunk *, const DrawcallDescription *draw, const rdcstr &) {
+                double dur = m_Model->GetSecondsDurationForEID(eventId);
+                return dur >= 0.0 && int64_t(dur * 1000000000.0) < nanoValue;
+              };
+        case 1:
+          return
+              [this, nanoValue](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
+                                const SDChunk *, const DrawcallDescription *draw, const rdcstr &) {
+                double dur = m_Model->GetSecondsDurationForEID(eventId);
+                return dur >= 0.0 && int64_t(dur * 1000000000.0) > nanoValue;
+              };
+        case 2:
+          return
+              [this, nanoValue](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
+                                const SDChunk *, const DrawcallDescription *draw, const rdcstr &) {
+                double dur = m_Model->GetSecondsDurationForEID(eventId);
+                return dur >= 0.0 && int64_t(dur * 1000000000.0) <= nanoValue;
+              };
+        case 3:
+          return
+              [this, nanoValue](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
+                                const SDChunk *, const DrawcallDescription *draw, const rdcstr &) {
+                double dur = m_Model->GetSecondsDurationForEID(eventId);
+                return dur >= 0.0 && int64_t(dur * 1000000000.0) >= nanoValue;
+              };
+        default: errors.setText(tr("Internal error", "EventFilterModel")); return NULL;
+      }
+    }
+    else if(tokens[0].text.toLower() == lit("flags"))
     {
       if(tokens.size() < 3 || tokens[1].text != lit("&"))
       {
@@ -2197,8 +2313,7 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   clearBookmarks();
 
   m_Model = new EventItemModel(ui->events, m_Ctx);
-  m_FilterModel = new EventFilterModel(m_Ctx);
-  m_FilterModel->setSourceModel(m_Model);
+  m_FilterModel = new EventFilterModel(m_Model, m_Ctx);
 
   ui->events->setModel(m_FilterModel);
 
