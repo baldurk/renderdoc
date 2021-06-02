@@ -2801,9 +2801,6 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   m_FilterTimeout->setSingleShot(true);
   connect(m_FilterTimeout, &QTimer::timeout, this, &EventBrowser::filter_apply);
 
-  QObject::connect(ui->closeFind, &QToolButton::clicked, this, &EventBrowser::on_HideFind);
-  QObject::connect(ui->closeFilter, &QToolButton::clicked,
-                   [this]() { ui->filter->setChecked(false); });
   QObject::connect(ui->events, &RDTreeView::keyPress, this, &EventBrowser::events_keyPress);
   QObject::connect(ui->events->selectionModel(), &QItemSelectionModel::currentChanged, this,
                    &EventBrowser::events_currentChanged);

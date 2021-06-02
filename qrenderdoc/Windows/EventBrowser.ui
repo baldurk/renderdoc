@@ -287,20 +287,6 @@
        </widget>
       </item>
       <item>
-       <widget class="QToolButton" name="closeFind">
-        <property name="text">
-         <string/>
-        </property>
-        <property name="icon">
-         <iconset resource="../Resources/resources.qrc">
-          <normaloff>:/cross.png</normaloff>:/cross.png</iconset>
-        </property>
-        <property name="autoRaise">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
        <widget class="QToolButton" name="findPrev">
         <property name="text">
          <string/>
@@ -381,20 +367,6 @@
           <width>0</width>
           <height>20</height>
          </size>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QToolButton" name="closeFilter">
-        <property name="text">
-         <string/>
-        </property>
-        <property name="icon">
-         <iconset resource="../Resources/resources.qrc">
-          <normaloff>:/cross.png</normaloff>:/cross.png</iconset>
-        </property>
-        <property name="autoRaise">
-         <bool>true</bool>
         </property>
        </widget>
       </item>
