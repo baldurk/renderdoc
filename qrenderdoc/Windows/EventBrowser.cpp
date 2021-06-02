@@ -30,6 +30,8 @@
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QMenu>
+#include <QRegularExpression>
+#include <QRegularExpressionMatch>
 #include <QScrollBar>
 #include <QShortcut>
 #include <QSortFilterProxyModel>
@@ -1263,6 +1265,7 @@ public:
 
       MAKE_BUILTIN_FILTER(any);
       MAKE_BUILTIN_FILTER(all);
+      MAKE_BUILTIN_FILTER(regex);
       MAKE_BUILTIN_FILTER(param);
       MAKE_BUILTIN_FILTER(event);
       MAKE_BUILTIN_FILTER(draw);
@@ -1507,6 +1510,73 @@ private:
     }
 
     return NULL;
+  }
+
+  IEventBrowser::EventFilterCallback filterFunction_regex(QString name, QString parameters,
+                                                          ParseTrace &trace)
+  {
+    parameters = parameters.trimmed();
+
+    if(parameters.size() < 2 || parameters[0] != QLatin1Char('/'))
+    {
+      trace.setError(tr("Parameter to to regex() should be /regex/", "EventFilterModel"));
+      return NULL;
+    }
+
+    int end = 0;
+
+    for(int i = 1; i < parameters.size(); i++)
+    {
+      if(parameters[i] == QLatin1Char('\\'))
+      {
+        i++;
+        continue;
+      }
+
+      if(parameters[i] == QLatin1Char('/'))
+      {
+        end = i;
+        break;
+      }
+    }
+
+    if(end == 0)
+    {
+      trace.setError(tr("Unterminated regex", "EventFilterModel"));
+      return NULL;
+    }
+
+    QString opts = parameters.right(parameters.size() - end - 1);
+
+    QRegularExpression::PatternOptions reOpts = QRegularExpression::NoPatternOption;
+
+    for(QChar c : opts)
+    {
+      switch(c.toLatin1())
+      {
+        case 'i': reOpts |= QRegularExpression::CaseInsensitiveOption; break;
+        case 's': reOpts |= QRegularExpression::DotMatchesEverythingOption; break;
+        case 'x': reOpts |= QRegularExpression::ExtendedPatternSyntaxOption; break;
+        case 'u': reOpts |= QRegularExpression::UseUnicodePropertiesOption; break;
+        default:
+          trace.setError(tr("Unexpected option '%1' after regex", "EventFilterModel").arg(c));
+          return NULL;
+      }
+    }
+
+    QRegularExpression regex(parameters.mid(1, end - 1));
+
+    if(!regex.isValid())
+    {
+      trace.setError(tr("Invalid regex", "EventFilterModel"));
+      return NULL;
+    }
+
+    return [regex](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t, const SDChunk *,
+                   const DrawcallDescription *, const rdcstr &name) {
+      QRegularExpressionMatch match = regex.match(QString(name));
+      return match.isValid() && match.hasMatch();
+    };
   }
 
   IEventBrowser::EventFilterCallback filterFunction_param(QString name, QString parameters,
