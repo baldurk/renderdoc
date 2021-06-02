@@ -232,7 +232,6 @@ void RDTextEdit::keyPressEvent(QKeyEvent *e)
   {
     QTextEdit::keyPressEvent(e);
   }
-  emit(keyPress(e));
 
   // stop completing if the character just entered is not a word-compatible character
   if(completionInProgress() && e->text().length() > 0)
@@ -240,10 +239,19 @@ void RDTextEdit::keyPressEvent(QKeyEvent *e)
     QChar c = e->text()[0];
     if(c.isPrint() && !e->text()[0].isLetterOrNumber() && !m_WordCharacters.contains(e->text()[0]))
     {
-      m_Completer->popup()->hide();
-      emit(completionEnd());
+      if(c.isSpace() && m_Completer->completionPrefix().trimmed() == QString())
+      {
+        // don't do anything if we have no prefix so far and the user enters whitespace
+      }
+      else
+      {
+        m_Completer->popup()->hide();
+        emit(completionEnd());
+      }
     }
   }
+
+  emit(keyPress(e));
 
   // update the completion if it's in progress, or we have our shortcut (and there's no selected
   // text)

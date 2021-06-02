@@ -228,6 +228,26 @@ DOCUMENT(R"(The event browser window.
   :return: An empty string if the parse succeeded, otherwise any error messages to be displayed to
     the user, such as syntax or other errors.
   :rtype: str
+
+.. function:: AutoCompleteCallback(context, filter, params)
+
+  Not a member function - the signature for any ``AutoCompleteCallback`` callbacks.
+
+  Called when autocompletion is triggered inside a filter. The params passed are any previous
+  text inside the filter's parameter list up to where the cursor is. The callback should return a
+  list of identifiers used for auto-completion.
+
+  The list does not have to be pre-filtered for matches to the :paramref:`params`, that is provided
+  to allow different autocompletion at different stages (e.g. if there are no parameters, you can
+  autocomplete a property, if a property is already present you can autocomplete valid values for
+  it)
+
+  :param CaptureContext context: The current capture context.
+  :param str filter: The name of the filter function.
+  :param str params: The previous parameter text to the filter function.
+  :return: A list of strings giving identifiers to autocomplete, or an empty list of there are no
+    such identifiers to prompt.
+  :rtype: List[str]
 )");
 struct IEventBrowser
 {
@@ -236,6 +256,9 @@ struct IEventBrowser
       EventFilterCallback;
 
   typedef std::function<rdcstr(ICaptureContext *, const rdcstr &, const rdcstr &)> FilterParseCallback;
+
+  typedef std::function<rdcarray<rdcstr>(ICaptureContext *, const rdcstr &, const rdcstr &)>
+      AutoCompleteCallback;
 
   DOCUMENT(R"(Retrieves the PySide2 QWidget for this :class:`EventBrowser` if PySide2 is available, or otherwise
 returns a unique opaque pointer that can be passed back to any RenderDoc functions expecting a
@@ -289,12 +312,15 @@ expression.
 :param EventFilterCallback filter: The callback to call for each candidate event to perform
   filtering.
 :param FilterParseCallback parser: The callback to call when the parsing the parameters and checking
-  for any errors.
+  for any errors. This can be ``None`` if no pre-parsing is required.
+:param AutoCompleteCallback completer: The callback to call when trying to provide autocomplete
+  suggestions. This can be ``None`` if no completion is desired/applicable.
 :return: Whether or not the registration was successful.
 :rtype: bool
 )");
   virtual bool RegisterEventFilterFunction(const rdcstr &name, EventFilterCallback filter,
-                                           FilterParseCallback parser) = 0;
+                                           FilterParseCallback parser,
+                                           AutoCompleteCallback completer) = 0;
 
   DOCUMENT(R"(Unregisters an event browser filter function that was previously registered.
 

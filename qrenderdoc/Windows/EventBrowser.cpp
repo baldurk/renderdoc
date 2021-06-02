@@ -1093,6 +1093,29 @@ struct EventFilter
 };
 
 static QMap<QString, DrawFlags> DrawFlagsLookup;
+static QStringList DrawFlagsList;
+
+void CacheDrawFlagsLookup()
+{
+  if(DrawFlagsLookup.empty())
+  {
+    for(uint32_t i = 0; i <= 31; i++)
+    {
+      DrawFlags flag = DrawFlags(1U << i);
+
+      // bit of a hack, see if it's a valid flag by stringising and seeing if it contains
+      // DrawFlags(
+      QString str = ToQStr(flag);
+      if(str.contains(lit("DrawFlags(")))
+        continue;
+
+      DrawFlagsList.push_back(str);
+      DrawFlagsLookup[str.toLower()] = flag;
+    }
+
+    DrawFlagsList.sort();
+  }
+}
 
 bool EvaluateFilterSet(ICaptureContext &ctx, const rdcarray<EventFilter> &filters, bool all,
                        uint32_t eid, const SDChunk *chunk, const DrawcallDescription *draw,
@@ -1187,11 +1210,13 @@ struct CustomFilterCallbacks
 {
   IEventBrowser::EventFilterCallback filter;
   IEventBrowser::FilterParseCallback parser;
+  IEventBrowser::AutoCompleteCallback completer;
 };
 
 struct BuiltinFilterCallbacks
 {
   std::function<IEventBrowser::EventFilterCallback(QString, QString, ParseError &)> makeFilter;
+  IEventBrowser::AutoCompleteCallback completer;
 };
 
 struct EventFilterModel : public QSortFilterProxyModel
@@ -1220,6 +1245,19 @@ public:
       MAKE_BUILTIN_FILTER(event);
       MAKE_BUILTIN_FILTER(draw);
       MAKE_BUILTIN_FILTER(dispatch);
+
+      m_BuiltinFilters[lit("event")].completer = [this](ICaptureContext *ctx, QString name,
+                                                        QString parameters) {
+        return filterCompleter_event(ctx, name, parameters);
+      };
+      m_BuiltinFilters[lit("draw")].completer = [this](ICaptureContext *ctx, QString name,
+                                                       QString parameters) {
+        return filterCompleter_draw(ctx, name, parameters);
+      };
+      m_BuiltinFilters[lit("dispatch")].completer = [this](ICaptureContext *ctx, QString name,
+                                                           QString parameters) {
+        return filterCompleter_dispatch(ctx, name, parameters);
+      };
     }
   }
   void ResetCache() { m_VisibleCache.clear(); }
@@ -1234,12 +1272,33 @@ public:
     return ret;
   }
 
+  QStringList GetCompletions(QString filter, QString params)
+  {
+    IEventBrowser::AutoCompleteCallback cb;
+
+    if(m_BuiltinFilters.contains(filter))
+      cb = m_BuiltinFilters[filter].completer;
+    else if(m_CustomFilters.contains(filter))
+      cb = m_CustomFilters[filter].completer;
+
+    rdcarray<rdcstr> ret;
+
+    if(cb)
+      ret = m_BuiltinFilters[filter].completer(&m_Ctx, filter, params);
+
+    QStringList qret;
+    for(const rdcstr &s : ret)
+      qret << s;
+    return qret;
+  }
+
   QStringList GetBuiltinFunctions() { return m_BuiltinFilters.keys(); }
   QStringList GetCustomFunctions() { return m_CustomFilters.keys(); }
   void SetEmptyRegionsVisible(bool visible) { m_EmptyRegionsVisible = visible; }
   static bool RegisterEventFilterFunction(const rdcstr &name,
                                           IEventBrowser::EventFilterCallback filter,
-                                          IEventBrowser::FilterParseCallback parser)
+                                          IEventBrowser::FilterParseCallback parser,
+                                          IEventBrowser::AutoCompleteCallback completer)
   {
     if(m_BuiltinFilters.contains(name))
     {
@@ -1255,7 +1314,7 @@ public:
       return false;
     }
 
-    m_CustomFilters[name] = {filter, parser};
+    m_CustomFilters[name] = {filter, parser, completer};
     return true;
   }
 
@@ -1477,6 +1536,15 @@ private:
         };
   }
 
+  rdcarray<rdcstr> filterCompleter_event(ICaptureContext *ctx, const rdcstr &name,
+                                         const rdcstr &params)
+  {
+    if(params.find_first_of(" \t") == -1)
+      return {"EID"};
+
+    return {};
+  }
+
   IEventBrowser::EventFilterCallback filterFunction_event(QString name, QString parameters,
                                                           ParseError &errors)
   {
@@ -1555,6 +1623,34 @@ private:
     }
   }
 
+  rdcarray<rdcstr> filterCompleter_draw(ICaptureContext *ctx, const rdcstr &name, const rdcstr &params)
+  {
+    if(params.find_first_of(" \t") == -1)
+      return {
+          "EID", "parent", "drawcallId", "numIndices",
+          // most aliases we don't autocomplete but this one we leave
+          "numVertices", "numInstances", "baseVertex", "indexOffset", "vertexOffset",
+          "instanceOffset", "dispatchX", "dispatchY", "dispatchZ", "dispatchSize", "duration",
+          "flags",
+      };
+
+    QList<Token> tokens = tokenise(params);
+
+    if(tokens[0].text == lit("flags") && tokens.size() >= 2)
+    {
+      CacheDrawFlagsLookup();
+
+      rdcarray<rdcstr> flags;
+
+      for(QString s : DrawFlagsList)
+        flags.push_back(s);
+
+      return flags;
+    }
+
+    return {};
+  }
+
   IEventBrowser::EventFilterCallback filterFunction_draw(QString name, QString parameters,
                                                          ParseError &errors)
   {
@@ -1585,10 +1681,11 @@ private:
     static const NamedProp namedProps[] = {
         NAMED_PROP("eventid", draw->eventId), NAMED_PROP("eid", draw->eventId),
         NAMED_PROP("parent", draw->parent ? draw->parent->eventId : -12341234),
-        NAMED_PROP("drawcallid", draw->drawcallId), NAMED_PROP("numindices", draw->numIndices),
-        NAMED_PROP("numindexes", draw->numIndices), NAMED_PROP("numvertices", draw->numIndices),
-        NAMED_PROP("numvertexes", draw->numIndices), NAMED_PROP("indexcount", draw->numIndices),
-        NAMED_PROP("vertexcount", draw->numIndices), NAMED_PROP("numinstances", draw->numInstances),
+        NAMED_PROP("drawcallid", draw->drawcallId), NAMED_PROP("drawid", draw->drawcallId),
+        NAMED_PROP("numindices", draw->numIndices), NAMED_PROP("numindexes", draw->numIndices),
+        NAMED_PROP("numvertices", draw->numIndices), NAMED_PROP("numvertexes", draw->numIndices),
+        NAMED_PROP("indexcount", draw->numIndices), NAMED_PROP("vertexcount", draw->numIndices),
+        NAMED_PROP("numinstances", draw->numInstances),
         NAMED_PROP("instancecount", draw->numInstances), NAMED_PROP("basevertex", draw->baseVertex),
         NAMED_PROP("indexoffset", draw->indexOffset), NAMED_PROP("vertexoffset", draw->vertexOffset),
         NAMED_PROP("instanceoffset", draw->instanceOffset),
@@ -1788,7 +1885,7 @@ private:
     }
     else if(tokens[0].text.toLower() == lit("flags"))
     {
-      if(tokens.size() < 3 || tokens[1].text != lit("&"))
+      if(tokens.size() < 3 || (tokens[1].text != lit("&") && tokens[1].text != lit("=")))
       {
         errors.position = tokens[0].position;
         errors.length = (tokens[1].position + tokens[1].length) - errors.position + 1;
@@ -1853,6 +1950,17 @@ private:
     }
   }
 
+  rdcarray<rdcstr> filterCompleter_dispatch(ICaptureContext *ctx, const rdcstr &name,
+                                            const rdcstr &params)
+  {
+    if(params.find_first_of(" \t") == -1)
+      return {
+          "EID", "eventId", "parent", "drawcallId", "drawId", "x", "y", "z", "size", "duration",
+      };
+
+    return {};
+  }
+
   IEventBrowser::EventFilterCallback filterFunction_dispatch(QString name, QString parameters,
                                                              ParseError &errors)
   {
@@ -1878,6 +1986,9 @@ private:
     };
 
     static const NamedProp namedProps[] = {
+        NAMED_PROP("eventid", draw->eventId), NAMED_PROP("eid", draw->eventId),
+        NAMED_PROP("parent", draw->parent ? draw->parent->eventId : -12341234),
+        NAMED_PROP("drawcallid", draw->drawcallId), NAMED_PROP("drawid", draw->drawcallId),
         NAMED_PROP("dispatchx", draw->dispatchDimension[0]),
         NAMED_PROP("dispatchy", draw->dispatchDimension[1]),
         NAMED_PROP("dispatchz", draw->dispatchDimension[2]),
@@ -2712,6 +2823,15 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
 
       ui->filterExpression->setCompletionStrings(completions);
     }
+    else if(context.startsWith(QLatin1Char('$')) && context.contains(QLatin1Char('(')))
+    {
+      pos = context.indexOf(QLatin1Char('('));
+
+      QString filter = context.mid(1, pos - 1);
+      context.remove(0, pos + 1);
+
+      ui->filterExpression->setCompletionStrings(m_FilterModel->GetCompletions(filter, context));
+    }
     else
     {
       ui->filterExpression->setCompletionStrings({});
@@ -3007,7 +3127,8 @@ void EventBrowser::on_filterExpression_keyPress(QKeyEvent *e)
     filter_apply();
   }
 
-  if(e->key() == Qt::Key_Dollar)
+  if(e->key() == Qt::Key_Dollar || e->key() == Qt::Key_Ampersand || e->key() == Qt::Key_Equal ||
+     e->key() == Qt::Key_Bar || e->key() == Qt::Key_ParenLeft)
   {
     // force autocompletion for filter functions, as long as we're not inside a quoted string
 
@@ -3625,9 +3746,10 @@ const DrawcallDescription *EventBrowser::GetDrawcallForEID(uint32_t eid)
 }
 
 bool EventBrowser::RegisterEventFilterFunction(const rdcstr &name, EventFilterCallback filter,
-                                               FilterParseCallback parser)
+                                               FilterParseCallback parser,
+                                               AutoCompleteCallback completer)
 {
-  return EventFilterModel::RegisterEventFilterFunction(name, filter, parser);
+  return EventFilterModel::RegisterEventFilterFunction(name, filter, parser, completer);
 }
 
 bool EventBrowser::UnregisterEventFilterFunction(const rdcstr &name)

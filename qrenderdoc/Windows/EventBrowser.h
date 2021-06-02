@@ -81,7 +81,8 @@ public:
   APIEvent GetAPIEventForEID(uint32_t eid) override;
   const DrawcallDescription *GetDrawcallForEID(uint32_t eid) override;
   bool RegisterEventFilterFunction(const rdcstr &name, EventFilterCallback filter,
-                                   FilterParseCallback parser) override;
+                                   FilterParseCallback parser,
+                                   AutoCompleteCallback completer) override;
   bool UnregisterEventFilterFunction(const rdcstr &name) override;
 
   void SetCurrentFilterText(const rdcstr &text) override;
