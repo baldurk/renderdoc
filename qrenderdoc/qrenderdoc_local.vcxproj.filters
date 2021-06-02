@@ -1897,6 +1897,12 @@
     <Image Include="Resources\pixel_history%402x.png">
       <Filter>Resources\Files</Filter>
     </Image>
+    <Image Include="Resources\filter_reapply.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\filter_reapply%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="python36.natvis" />

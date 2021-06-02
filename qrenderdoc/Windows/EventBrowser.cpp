@@ -41,8 +41,11 @@
 #include <QTimer>
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
+#include "Widgets/CollapseGroupBox.h"
 #include "Widgets/Extended/RDHeaderView.h"
+#include "Widgets/Extended/RDLabel.h"
 #include "Widgets/Extended/RDListWidget.h"
+#include "Widgets/Extended/RDTreeWidget.h"
 #include "flowlayout/FlowLayout.h"
 #include "scintilla/include/qt/ScintillaEdit.h"
 #include "ui_EventBrowser.h"
@@ -200,6 +203,7 @@ struct EventItemModel : public QAbstractItemModel
     m_View->viewport()->update();
   }
 
+  bool ShowParameterNames() { return m_ShowParameterNames; }
   void SetShowParameterNames(bool show)
   {
     if(m_ShowParameterNames != show)
@@ -211,6 +215,7 @@ struct EventItemModel : public QAbstractItemModel
     }
   }
 
+  bool ShowAllParameters() { return m_ShowAllParameters; }
   void SetShowAllParameters(bool show)
   {
     if(m_ShowAllParameters != show)
@@ -222,6 +227,7 @@ struct EventItemModel : public QAbstractItemModel
     }
   }
 
+  bool UseCustomDrawNames() { return m_UseCustomDrawNames; }
   void SetUseCustomDrawNames(bool use)
   {
     if(m_UseCustomDrawNames != use)
@@ -1079,13 +1085,6 @@ private:
   friend struct EventFilterModel;
 };
 
-enum class MatchType
-{
-  MustMatch,
-  Normal,
-  CantMatch
-};
-
 struct EventFilter
 {
   EventFilter(IEventBrowser::EventFilterCallback c) : callback(c), type(MatchType::Normal) {}
@@ -1194,19 +1193,6 @@ static const SDObject *FindChildRecursively(const SDObject *parent, rdcstr name)
   return NULL;
 }
 
-struct FilterExpression
-{
-  MatchType matchType;
-
-  bool function;
-  QString name;
-
-  int position = -1;
-  int length = 0;
-
-  QVector<FilterExpression> exprs;
-};
-
 struct ParseTrace
 {
   int position = -1;
@@ -1232,6 +1218,7 @@ struct ParseTrace
 
 struct CustomFilterCallbacks
 {
+  QString description;
   IEventBrowser::EventFilterCallback filter;
   IEventBrowser::FilterParseCallback parser;
   IEventBrowser::AutoCompleteCallback completer;
@@ -1239,6 +1226,7 @@ struct CustomFilterCallbacks
 
 struct BuiltinFilterCallbacks
 {
+  QString description;
   std::function<IEventBrowser::EventFilterCallback(QString, QString, ParseTrace &)> makeFilter;
   IEventBrowser::AutoCompleteCallback completer;
 };
@@ -1261,7 +1249,9 @@ public:
   m_BuiltinFilters[lit(STRINGIZE(filter_name))].makeFilter = [this]( \
       QString name, QString parameters, ParseTrace &trace) {         \
     return filterFunction_##filter_name(name, parameters, trace);    \
-  };
+  };                                                                 \
+  m_BuiltinFilters[lit(STRINGIZE(filter_name))].description =        \
+      filterDescription_##filter_name().trimmed();
 
       MAKE_BUILTIN_FILTER(any);
       MAKE_BUILTIN_FILTER(all);
@@ -1286,15 +1276,23 @@ public:
     }
   }
   void ResetCache() { m_VisibleCache.clear(); }
-  ParseTrace ParseExpression(QString expr)
+  ParseTrace ParseExpressionToFilters(QString expr, rdcarray<EventFilter> &filters) const;
+
+  void SetFilters(const rdcarray<EventFilter> &filters)
   {
     m_VisibleCache.clear();
-    m_Filters.clear();
-    ParseTrace ret = ParseExpressionToFilters(expr, m_Filters);
-    if(ret.hasErrors())
-      m_Filters.clear();
+    m_Filters = filters;
     invalidateFilter();
-    return ret;
+  }
+
+  QString GetDescription(QString filter)
+  {
+    if(m_BuiltinFilters.contains(filter))
+      return m_BuiltinFilters[filter].description;
+    else if(m_CustomFilters.contains(filter))
+      return m_CustomFilters[filter].description;
+
+    return tr("Unknown filter $%1()", "EventFilterModel").arg(filter);
   }
 
   QStringList GetCompletions(QString filter, QString params)
@@ -1317,10 +1315,16 @@ public:
     return qret;
   }
 
-  QStringList GetBuiltinFunctions() { return m_BuiltinFilters.keys(); }
-  QStringList GetCustomFunctions() { return m_CustomFilters.keys(); }
+  QStringList GetFunctions()
+  {
+    QStringList ret = m_BuiltinFilters.keys();
+    ret << m_CustomFilters.keys();
+    ret.sort();
+    return ret;
+  }
+
   void SetEmptyRegionsVisible(bool visible) { m_EmptyRegionsVisible = visible; }
-  static bool RegisterEventFilterFunction(const rdcstr &name,
+  static bool RegisterEventFilterFunction(const rdcstr &name, const rdcstr &description,
                                           IEventBrowser::EventFilterCallback filter,
                                           IEventBrowser::FilterParseCallback parser,
                                           IEventBrowser::AutoCompleteCallback completer)
@@ -1339,7 +1343,7 @@ public:
       return false;
     }
 
-    m_CustomFilters[name] = {filter, parser, completer};
+    m_CustomFilters[name] = {description, filter, parser, completer};
     return true;
   }
 
@@ -1422,7 +1426,7 @@ private:
   bool m_EmptyRegionsVisible = true;
   rdcarray<EventFilter> m_Filters;
 
-  IEventBrowser::EventFilterCallback MakeLiteralMatcher(QString string)
+  IEventBrowser::EventFilterCallback MakeLiteralMatcher(QString string) const
   {
     QString matchString = string.toLower();
     return [matchString](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t,
@@ -1438,7 +1442,7 @@ private:
     QString text;
   };
 
-  QList<Token> tokenise(QString parameters)
+  static QList<Token> tokenise(QString parameters)
   {
     QList<Token> ret;
 
@@ -1461,6 +1465,19 @@ private:
     }
 
     return ret;
+  }
+
+  QString filterDescription_any() const
+  {
+    return tr(R"EOD(
+$any(...) - passes if any of its terms passes
+
+This filter can be used to nest terms, by saying "if any of these terms passes,
+the overall filter will pass".
+
+See also: $all()
+)EOD",
+              "EventFilterModel");
   }
 
   IEventBrowser::EventFilterCallback filterFunction_any(QString name, QString parameters,
@@ -1488,6 +1505,19 @@ private:
     return NULL;
   }
 
+  QString filterDescription_all() const
+  {
+    return tr(R"EOD(
+$all(...) - passes if all of its terms passes
+
+This filter can be used to nest terms, by saying "if all of these terms passes,
+the overall filter will pass".
+
+See also: $any()
+)EOD",
+              "EventFilterModel");
+  }
+
   IEventBrowser::EventFilterCallback filterFunction_all(QString name, QString parameters,
                                                         ParseTrace &trace)
   {
@@ -1510,6 +1540,20 @@ private:
     }
 
     return NULL;
+  }
+
+  QString filterDescription_regex() const
+  {
+    return tr(R"EOD(
+$regex(/my regex.*match/i) - passes if the specified regex matches the event name.
+
+This filter can be used to do regex matching against events. The regex itself must be surrounded
+with //s. The syntax is perl-like and supports perl compatible options after the trailing /:
+   /i - Case insensitive match
+   /x - Extended syntax. See regex documentation for more information
+   /u - Use unicode properties. Character classes like \w and \d match more than just ASCII
+)EOD",
+              "EventFilterModel");
   }
 
   IEventBrowser::EventFilterCallback filterFunction_regex(QString name, QString parameters,
@@ -1555,7 +1599,6 @@ private:
       switch(c.toLatin1())
       {
         case 'i': reOpts |= QRegularExpression::CaseInsensitiveOption; break;
-        case 's': reOpts |= QRegularExpression::DotMatchesEverythingOption; break;
         case 'x': reOpts |= QRegularExpression::ExtendedPatternSyntaxOption; break;
         case 'u': reOpts |= QRegularExpression::UseUnicodePropertiesOption; break;
         default:
@@ -1577,6 +1620,18 @@ private:
       QRegularExpressionMatch match = regex.match(QString(name));
       return match.isValid() && match.hasMatch();
     };
+  }
+
+  QString filterDescription_param() const
+  {
+    return tr(R"EOD(
+$param(name: value) - passes if a given parameter matches a value.
+
+This filter searches through the parameters to each API call to find a matching name. The name is
+specified case-sensitive and can be at any nesting level. The value is searched for as a
+case-insensitive substring.
+)EOD",
+              "EventFilterModel");
   }
 
   IEventBrowser::EventFilterCallback filterFunction_param(QString name, QString parameters,
@@ -1626,6 +1681,21 @@ private:
           }
 
         };
+  }
+
+  QString filterDescription_event() const
+  {
+    return tr(R"EOD(
+$event(condition) - passes if an event property matches a condition.
+
+This filter queries given properties of an event to match simple conditions. A condition must be
+specified, and only one condition can be queried in each $event().
+
+Available numeric properties. Compare with $event(prop > 100) or $event(prop <= 200)
+
+   EID: The event's EID.
+)EOD",
+              "EventFilterModel");
   }
 
   rdcarray<rdcstr> filterCompleter_event(ICaptureContext *ctx, const rdcstr &name,
@@ -1715,11 +1785,44 @@ private:
     }
   }
 
+  QString filterDescription_draw() const
+  {
+    return tr(R"EOD(
+$draw() - passes if an event is a drawcall.
+$draw(condition) - passes if an event is a drawcall and matches a condition.
+
+This filter applies to draw-type events.
+
+If no condition is specified then the event is just included if it's a draw. Otherwise the event is
+included if it's a draw AND if the condition is true.
+
+Available numeric properties. Compare with $draw(prop > 100) or $draw(prop <= 200)
+
+   EID:            The draw's EID.
+   parent:         The parent draw in the hierarchy's EID.
+   drawId:         The draw ID, starting from 1 and numbering each draw.
+   numIndices:     The number of vertices or indices in a draw.
+   baseVertex:     The base vertex value for an indexed draw.
+   indexOffset:    The index offset for an indexed draw.
+   vertexOffset:   The vertex offset for a non-indexed draw.
+   instanceOffset: The instance offset for an instanced draw.
+   dispatchX:      The number of groups in the X dimension of a dispatch.
+   dispatchY:      The number of groups in the Y dimension of a dispatch.
+   dispatchZ:      The number of groups in the Z dimension of a dispatch.
+   dispatchSize:   The total number of groups (X * Y * Z) of a dispatch.
+   duration:       The listed duration of a drawcall (only available if durations have been fetched).
+
+Also available is the 'flags' property. Drawcalls have different flags and properties and these
+can be queried with a filter such as $draw(flags & Clear|ClearDepthStencil)
+)EOD",
+              "EventFilterModel");
+  }
+
   rdcarray<rdcstr> filterCompleter_draw(ICaptureContext *ctx, const rdcstr &name, const rdcstr &params)
   {
     if(params.find_first_of(" \t") == -1)
       return {
-          "EID", "parent", "drawcallId", "numIndices",
+          "EID", "parent", "drawId", "numIndices",
           // most aliases we don't autocomplete but this one we leave
           "numVertices", "numInstances", "baseVertex", "indexOffset", "vertexOffset",
           "instanceOffset", "dispatchX", "dispatchY", "dispatchZ", "dispatchSize", "duration",
@@ -2038,12 +2141,37 @@ private:
     }
   }
 
+  QString filterDescription_dispatch() const
+  {
+    return tr(R"EOD(
+$dispatch() - passes if an event is a dispatch.
+$dispatch(condition) - passes if an event is a dispatch and matches a condition.
+
+This filter applies to compute dispatches.
+
+If no condition is specified then the event is just included if it's a dispatch. Otherwise the event is
+included if it's a dispatch AND if the condition is true.
+
+Available numeric properties. Compare with $dispatch(prop > 100) or $dispatch(prop <= 200)
+
+   EID:      The draw's EID.
+   parent:   The parent draw in the hierarchy's EID.
+   drawId:   The draw ID, starting from 1 and numbering each draw.
+   x:        The number of groups in the X dimension of a dispatch.
+   y:        The number of groups in the Y dimension of a dispatch.
+   z:        The number of groups in the Z dimension of a dispatch.
+   size:     The total number of groups (X * Y * Z) of a dispatch.
+   duration: The listed duration of a drawcall (only available if durations have been fetched).
+)EOD",
+              "EventFilterModel");
+  }
+
   rdcarray<rdcstr> filterCompleter_dispatch(ICaptureContext *ctx, const rdcstr &name,
                                             const rdcstr &params)
   {
     if(params.find_first_of(" \t") == -1)
       return {
-          "EID", "eventId", "parent", "drawcallId", "drawId", "x", "y", "z", "size", "duration",
+          "EID", "parent", "drawcallId", "drawId", "x", "y", "z", "size", "duration",
       };
 
     return {};
@@ -2293,7 +2421,7 @@ private:
   }
 
   IEventBrowser::EventFilterCallback MakeFunctionMatcher(QString name, QString parameters,
-                                                         ParseTrace &trace)
+                                                         ParseTrace &trace) const
   {
     if(m_BuiltinFilters.contains(name))
     {
@@ -2330,411 +2458,410 @@ private:
     return NULL;
   }
 
-  ParseTrace ParseExpressionToFilters(QString expr, rdcarray<EventFilter> &filters)
-  {
-    // we have a simple grammar, we pick out subexpressions and they're all independent.
-    //
-    // - Individual words are literal subexpressions on their own and end with whitespace.
-    // - A " starts a quoted literal subexpression, which is a literal string and ends on the next
-    //   ". It supports escaping " with \ and otherwise any escaped character is the literal
-    //   character. The quotes must be followed by whitespace or the end of the expression.
-    // - Both literal subexpressions are matched case-insensitively. For case-sensitive matching
-    //   you can use a regexp as a functional expression.
-    // - A $ starts a functional expression, with parameters in brackets. The name starts with a
-    //   letter and contains alphanumeric and . characters. The name is followed by a ( to begin the
-    //   parameters and ends when the matching ) is found. Whitespace between the name and the ( is
-    //   ignored, but any other character is a parse error. The ) must be followed by whitespace or
-    //   the end of the expression or that's a parse error. Note that whitespace is allowed in the
-    //   parameters.
-    //
-    // This means there's a simple state machine we can follow from any point.
-    //
-    // 1) start -> whitespace -> start
-    // 2) start -> " -> quoted_expression -> wait until unescaped " -> start
-    // 3) start -> $ -> function_expression -> parse name > optional whitespace ->
-    //             ( -> wait until matching parenthesis -> ) -> whitespace -> start
-    // 4) start -> anything else -> literal -> wait until whitespace -> start
-    //
-    // We also have two modifiers:
-    //
-    // 5) start -> + -> note that next filter is a MustMatch -> start
-    // 6) start -> - -> note that next filter is a CantMatch -> start
-    //
-    // any non-existant edge is a parse error
-
-    ParseTrace trace;
-
-    enum
-    {
-      Start,
-      QuotedExpr,
-      FunctionExprName,
-      FunctionExprParams,
-      Literal,
-    } state = Start;
-
-    expr = expr.trimmed();
-
-    MatchType matchType = MatchType::Normal;
-
-    // temporary string we're building up somewhere
-    QString s;
-
-    // parenthesis depth
-    int parenDepth = 0;
-    // start of the current set of parameters
-    int paramStartPos = 0;
-    // parameters (since s holds the function name)
-    QString params;
-
-    int pos = 0;
-    while(pos < expr.length())
-    {
-      trace.length = qMax(0, pos - trace.position + 1);
-
-      if(state == Start)
-      {
-        // 1) skip whitespace while in start
-        if(expr[pos].isSpace())
-        {
-          pos++;
-          continue;
-        }
-
-        // 5) and 6)
-        if(expr[pos] == QLatin1Char('-'))
-        {
-          trace.position = pos;
-
-          // stay in the Start state, but store match type
-          matchType = MatchType::CantMatch;
-          pos++;
-          continue;
-        }
-
-        if(expr[pos] == QLatin1Char('+'))
-        {
-          trace.position = pos;
-
-          matchType = MatchType::MustMatch;
-          pos++;
-          continue;
-        }
-
-        // 3.1) move to function expression if we see a $
-        if(expr[pos] == QLatin1Char('$'))
-        {
-          // only update the position if the match type is normal. If it's mustmatch/cantmatch
-          // include everything from the preceeding - or +
-          if(matchType == MatchType::Normal)
-            trace.position = pos;
-
-          // we need at minimum 3 more characters for $x()
-          if(pos + 3 >= expr.length())
-          {
-            trace.length = expr.length() - trace.position;
-            return trace.setError(
-                tr("Invalid function expression\n"
-                   "If this is not a filter function, surround with quotes.",
-                   "EventFilterModel"));
-          }
-
-          // consume the $
-          state = FunctionExprName;
-          pos++;
-
-          continue;
-        }
-
-        // 2.1) move to quoted expression if we see a "
-        if(expr[pos] == QLatin1Char('"'))
-        {
-          // only update the position if the match type is normal. If it's mustmatch/cantmatch
-          // include everything from the preceeding - or +
-          if(matchType == MatchType::Normal)
-            trace.position = pos;
-
-          state = QuotedExpr;
-          pos++;
-          continue;
-        }
-
-        // only update the position if the match type is normal. If it's mustmatch/cantmatch
-        // include everything from the preceeding - or +
-        if(matchType == MatchType::Normal)
-          trace.position = pos;
-
-        // 4.1) for anything else begin parsing a literal expression
-        state = Literal;
-        // don't continue here, we need to parse the first character of the literal
-      }
-
-      if(state == QuotedExpr)
-      {
-        // 2.2) handle escaping
-        if(expr[pos] == QLatin1Char('\\'))
-        {
-          if(pos == expr.length() - 1)
-          {
-            trace.length = expr.length() - trace.position;
-            return trace.setError(
-                tr("Invalid escape sequence in quoted string", "EventFilterModel"));
-          }
-
-          // append the next character, whatever it is, and skip the escape character
-          s.append(expr[pos + 1]);
-          pos += 2;
-          continue;
-        }
-        else if(expr[pos] == QLatin1Char('"'))
-        {
-          // if we encounter an unescaped quote we're done
-
-          // however we expect the end of the expression or whitespace next
-          if(pos + 1 < expr.length() && !expr[pos + 1].isSpace())
-          {
-            trace.length = (pos + 1) - trace.position + 1;
-            return trace.setError(
-                tr("Unexpected character after quoted string", "EventFilterModel"));
-          }
-
-          filters.push_back(EventFilter(MakeLiteralMatcher(s), matchType));
-
-          FilterExpression subexpr;
-
-          subexpr.matchType = matchType;
-          subexpr.function = false;
-          subexpr.name = s;
-          subexpr.position = trace.position;
-          subexpr.length = trace.length;
-
-          trace.exprs.push_back(subexpr);
-
-          s.clear();
-          pos++;
-          state = Start;
-          matchType = MatchType::Normal;
-
-          trace.position = pos;
-
-          continue;
-        }
-        else
-        {
-          // just another character, append and continue
-          s.append(expr[pos]);
-          pos++;
-          continue;
-        }
-      }
-
-      if(state == Literal)
-      {
-        // if we encounter whitespace or the end of the expression, we're done
-        if(expr[pos].isSpace() || pos == expr.length() - 1)
-        {
-          if(expr[pos].isSpace())
-            trace.length--;
-          else
-            s.append(expr[pos]);
-
-          filters.push_back(EventFilter(MakeLiteralMatcher(s), matchType));
-
-          FilterExpression subexpr;
-
-          subexpr.matchType = matchType;
-          subexpr.function = false;
-          subexpr.name = s;
-          subexpr.position = trace.position;
-          subexpr.length = trace.length;
-
-          trace.exprs.push_back(subexpr);
-
-          s.clear();
-          pos++;
-          state = Start;
-          matchType = MatchType::Normal;
-
-          trace.position = pos;
-
-          continue;
-        }
-        else
-        {
-          // just another character, append and continue
-          s.append(expr[pos]);
-          pos++;
-          continue;
-        }
-      }
-
-      if(state == FunctionExprName)
-      {
-        // if we encounter a parenthesis check we have a valid filter function name and move to
-        // parsing parameters
-        if(expr[pos] == QLatin1Char('('))
-        {
-          state = FunctionExprParams;
-          parenDepth = 1;
-          pos++;
-          paramStartPos = pos;
-
-          trace.length = pos - trace.position + 1;
-
-          if(s.isEmpty())
-            return trace.setError(
-                tr("Filter function with no name before arguments.\n"
-                   "If this is not a filter function, surround with quotes.",
-                   "EventFilterModel"));
-
-          continue;
-        }
-
-        // otherwise we're still parsing the name.
-
-        // name must begin with a letter
-        if(s.isEmpty() && !expr[pos].isLetter())
-        {
-          // scan to the end of what looks like a function name for the error message
-          int end = pos;
-          while(end < expr.length() && (expr[end].isLetterOrNumber() || expr[end] == QLatin1Char('.')))
-            end++;
-
-          trace.length = end - trace.position + 1;
-
-          return trace.setError(
-              tr("Invalid filter function name, must begin with a letter.\n"
-                 "If this is not a filter function, surround with quotes.",
-                 "EventFilterModel"));
-        }
-
-        // add this character to the name we're building
-        s.append(expr[pos]);
-        pos++;
-        continue;
-      }
-
-      if(state == FunctionExprParams)
-      {
-        if(expr[pos] == QLatin1Char('('))
-        {
-          parenDepth++;
-        }
-        else if(expr[pos] == QLatin1Char(')'))
-        {
-          parenDepth--;
-        }
-
-        if(parenDepth == 0)
-        {
-          // we've finished the filter function
-
-          // however we expect the end of the expression or whitespace next
-          if(pos + 1 < expr.length() && !expr[pos + 1].isSpace())
-          {
-            trace.length = (pos + 1) - trace.position + 1;
-            return trace.setError(
-                tr("Unexpected character after filter function", "EventFilterModel"));
-          }
-
-          // reset errors, we'll fix up the location afterwards depending on what's returned
-          ParseTrace subTrace;
-          IEventBrowser::EventFilterCallback filter = MakeFunctionMatcher(s, params, subTrace);
-
-          if(!filter)
-          {
-            // if the errors returned some sub-range for the errors, the position will be
-            // relative to the params string so rebase it.
-            if(subTrace.position > 0)
-            {
-              subTrace.position += paramStartPos;
-            }
-            else
-            {
-              // otherwise use the whole parent range which includes the function name
-              subTrace.position = trace.position;
-              subTrace.length = trace.length;
-            }
-
-            return subTrace;
-          }
-
-          FilterExpression subexpr;
-
-          subexpr.matchType = matchType;
-          subexpr.function = true;
-          subexpr.name = s;
-
-          subexpr.position = trace.position;
-          subexpr.length = trace.length;
-          subexpr.exprs = subTrace.exprs;
-
-          for(FilterExpression &f : subexpr.exprs)
-          {
-            f.position += paramStartPos;
-          }
-
-          trace.exprs.push_back(subexpr);
-
-          filters.push_back(EventFilter(filter, matchType));
-
-          s.clear();
-          params.clear();
-
-          // move back to the start state
-          state = Start;
-          matchType = MatchType::Normal;
-        }
-        else
-        {
-          params.append(expr[pos]);
-        }
-
-        pos++;
-        continue;
-      }
-    }
-
-    trace.length = expr.length() - trace.position;
-
-    // we should be back in the normal state, because all the other states have termination states
-    if(state == Literal)
-    {
-      // shouldn't be possible as the Literal state terminates itself when it sees the end of the
-      // string
-      return trace.setError(tr("Encountered unterminated literal", "EventFilterModel"));
-    }
-    else if(state == QuotedExpr)
-    {
-      return trace.setError(tr("Unterminated quoted expression", "EventFilterModel"));
-    }
-    else if(state == FunctionExprName)
-    {
-      return trace.setError(tr("Filter function has no parameters", "EventFilterModel"));
-    }
-    else if(state == FunctionExprParams)
-    {
-      return trace.setError(tr("Filter function parameters incomplete", "EventFilterModel"));
-    }
-
-    // any - or + should have been consumed by an expression, if we still have it then it was
-    // dangling
-    if(matchType == MatchType::CantMatch)
-      return trace.setError(tr("- expects an expression to exclude", "EventFilterModel"));
-    if(matchType == MatchType::MustMatch)
-      return trace.setError(tr("+ expects an expression to require", "EventFilterModel"));
-
-    // if we got here, we succeeded. Stop tracking errors
-    trace.clearErrors();
-
-    return trace;
-  }
-
   // static so we don't lose this when the event browser is closed and the model is deleted. We
   // could store this in the capture context but it makes more sense logically to keep it here.
   static QMap<QString, CustomFilterCallbacks> m_CustomFilters;
   static QMap<QString, BuiltinFilterCallbacks> m_BuiltinFilters;
 };
+
+ParseTrace EventFilterModel::ParseExpressionToFilters(QString expr, rdcarray<EventFilter> &filters) const
+{
+  // we have a simple grammar, we pick out subexpressions and they're all independent.
+  //
+  // - Individual words are literal subexpressions on their own and end with whitespace.
+  // - A " starts a quoted literal subexpression, which is a literal string and ends on the next
+  //   ". It supports escaping " with \ and otherwise any escaped character is the literal
+  //   character. The quotes must be followed by whitespace or the end of the expression.
+  // - Both literal subexpressions are matched case-insensitively. For case-sensitive matching
+  //   you can use a regexp as a functional expression.
+  // - A $ starts a functional expression, with parameters in brackets. The name starts with a
+  //   letter and contains alphanumeric and . characters. The name is followed by a ( to begin the
+  //   parameters and ends when the matching ) is found. Whitespace between the name and the ( is
+  //   ignored, but any other character is a parse error. The ) must be followed by whitespace or
+  //   the end of the expression or that's a parse error. Note that whitespace is allowed in the
+  //   parameters.
+  //
+  // This means there's a simple state machine we can follow from any point.
+  //
+  // 1) start -> whitespace -> start
+  // 2) start -> " -> quoted_expression -> wait until unescaped " -> start
+  // 3) start -> $ -> function_expression -> parse name > optional whitespace ->
+  //             ( -> wait until matching parenthesis -> ) -> whitespace -> start
+  // 4) start -> anything else -> literal -> wait until whitespace -> start
+  //
+  // We also have two modifiers:
+  //
+  // 5) start -> + -> note that next filter is a MustMatch -> start
+  // 6) start -> - -> note that next filter is a CantMatch -> start
+  //
+  // any non-existant edge is a parse error
+
+  ParseTrace trace;
+
+  enum
+  {
+    Start,
+    QuotedExpr,
+    FunctionExprName,
+    FunctionExprParams,
+    Literal,
+  } state = Start;
+
+  expr = expr.trimmed();
+
+  MatchType matchType = MatchType::Normal;
+
+  // temporary string we're building up somewhere
+  QString s;
+
+  // parenthesis depth
+  int parenDepth = 0;
+  // start of the current set of parameters
+  int paramStartPos = 0;
+  // parameters (since s holds the function name)
+  QString params;
+
+  int pos = 0;
+  while(pos < expr.length())
+  {
+    trace.length = qMax(0, pos - trace.position + 1);
+
+    if(state == Start)
+    {
+      // 1) skip whitespace while in start
+      if(expr[pos].isSpace())
+      {
+        pos++;
+        continue;
+      }
+
+      // 5) and 6)
+      if(expr[pos] == QLatin1Char('-'))
+      {
+        trace.position = pos;
+
+        // stay in the Start state, but store match type
+        matchType = MatchType::CantMatch;
+        pos++;
+        continue;
+      }
+
+      if(expr[pos] == QLatin1Char('+'))
+      {
+        trace.position = pos;
+
+        matchType = MatchType::MustMatch;
+        pos++;
+        continue;
+      }
+
+      // 3.1) move to function expression if we see a $
+      if(expr[pos] == QLatin1Char('$'))
+      {
+        // only update the position if the match type is normal. If it's mustmatch/cantmatch
+        // include everything from the preceeding - or +
+        if(matchType == MatchType::Normal)
+          trace.position = pos;
+
+        // we need at minimum 3 more characters for $x()
+        if(pos + 3 >= expr.length())
+        {
+          trace.length = expr.length() - trace.position;
+          return trace.setError(
+              tr("Invalid function expression\n"
+                 "If this is not a filter function, surround with quotes.",
+                 "EventFilterModel"));
+        }
+
+        // consume the $
+        state = FunctionExprName;
+        pos++;
+
+        continue;
+      }
+
+      // 2.1) move to quoted expression if we see a "
+      if(expr[pos] == QLatin1Char('"'))
+      {
+        // only update the position if the match type is normal. If it's mustmatch/cantmatch
+        // include everything from the preceeding - or +
+        if(matchType == MatchType::Normal)
+          trace.position = pos;
+
+        state = QuotedExpr;
+        pos++;
+        continue;
+      }
+
+      // only update the position if the match type is normal. If it's mustmatch/cantmatch
+      // include everything from the preceeding - or +
+      if(matchType == MatchType::Normal)
+        trace.position = pos;
+
+      // 4.1) for anything else begin parsing a literal expression
+      state = Literal;
+      // don't continue here, we need to parse the first character of the literal
+    }
+
+    if(state == QuotedExpr)
+    {
+      // 2.2) handle escaping
+      if(expr[pos] == QLatin1Char('\\'))
+      {
+        if(pos == expr.length() - 1)
+        {
+          trace.length = expr.length() - trace.position;
+          return trace.setError(tr("Invalid escape sequence in quoted string", "EventFilterModel"));
+        }
+
+        // append the next character, whatever it is, and skip the escape character
+        s.append(expr[pos + 1]);
+        pos += 2;
+        continue;
+      }
+      else if(expr[pos] == QLatin1Char('"'))
+      {
+        // if we encounter an unescaped quote we're done
+
+        // however we expect the end of the expression or whitespace next
+        if(pos + 1 < expr.length() && !expr[pos + 1].isSpace())
+        {
+          trace.length = (pos + 1) - trace.position + 1;
+          return trace.setError(tr("Unexpected character after quoted string", "EventFilterModel"));
+        }
+
+        filters.push_back(EventFilter(MakeLiteralMatcher(s), matchType));
+
+        FilterExpression subexpr;
+
+        subexpr.matchType = matchType;
+        subexpr.function = false;
+        subexpr.name = s;
+        subexpr.position = trace.position;
+        subexpr.length = trace.length;
+
+        trace.exprs.push_back(subexpr);
+
+        s.clear();
+        pos++;
+        state = Start;
+        matchType = MatchType::Normal;
+
+        trace.position = pos;
+
+        continue;
+      }
+      else
+      {
+        // just another character, append and continue
+        s.append(expr[pos]);
+        pos++;
+        continue;
+      }
+    }
+
+    if(state == Literal)
+    {
+      // if we encounter whitespace or the end of the expression, we're done
+      if(expr[pos].isSpace() || pos == expr.length() - 1)
+      {
+        if(expr[pos].isSpace())
+          trace.length--;
+        else
+          s.append(expr[pos]);
+
+        filters.push_back(EventFilter(MakeLiteralMatcher(s), matchType));
+
+        FilterExpression subexpr;
+
+        subexpr.matchType = matchType;
+        subexpr.function = false;
+        subexpr.name = s;
+        subexpr.position = trace.position;
+        subexpr.length = trace.length;
+
+        trace.exprs.push_back(subexpr);
+
+        s.clear();
+        pos++;
+        state = Start;
+        matchType = MatchType::Normal;
+
+        trace.position = pos;
+
+        continue;
+      }
+      else
+      {
+        // just another character, append and continue
+        s.append(expr[pos]);
+        pos++;
+        continue;
+      }
+    }
+
+    if(state == FunctionExprName)
+    {
+      // if we encounter a parenthesis check we have a valid filter function name and move to
+      // parsing parameters
+      if(expr[pos] == QLatin1Char('('))
+      {
+        state = FunctionExprParams;
+        parenDepth = 1;
+        pos++;
+        paramStartPos = pos;
+
+        trace.length = pos - trace.position + 1;
+
+        if(s.isEmpty())
+          return trace.setError(
+              tr("Filter function with no name before arguments.\n"
+                 "If this is not a filter function, surround with quotes.",
+                 "EventFilterModel"));
+
+        continue;
+      }
+
+      // otherwise we're still parsing the name.
+
+      // name must begin with a letter
+      if(s.isEmpty() && !expr[pos].isLetter())
+      {
+        // scan to the end of what looks like a function name for the error message
+        int end = pos;
+        while(end < expr.length() && (expr[end].isLetterOrNumber() || expr[end] == QLatin1Char('.')))
+          end++;
+
+        trace.length = end - trace.position + 1;
+
+        return trace.setError(
+            tr("Invalid filter function name, must begin with a letter.\n"
+               "If this is not a filter function, surround with quotes.",
+               "EventFilterModel"));
+      }
+
+      // add this character to the name we're building
+      s.append(expr[pos]);
+      pos++;
+      continue;
+    }
+
+    if(state == FunctionExprParams)
+    {
+      if(expr[pos] == QLatin1Char('('))
+      {
+        parenDepth++;
+      }
+      else if(expr[pos] == QLatin1Char(')'))
+      {
+        parenDepth--;
+      }
+
+      if(parenDepth == 0)
+      {
+        // we've finished the filter function
+
+        // however we expect the end of the expression or whitespace next
+        if(pos + 1 < expr.length() && !expr[pos + 1].isSpace())
+        {
+          trace.length = (pos + 1) - trace.position + 1;
+          return trace.setError(
+              tr("Unexpected character after filter function", "EventFilterModel"));
+        }
+
+        // reset errors, we'll fix up the location afterwards depending on what's returned
+        ParseTrace subTrace;
+        IEventBrowser::EventFilterCallback filter = MakeFunctionMatcher(s, params, subTrace);
+
+        if(!filter)
+        {
+          // if the errors returned some sub-range for the errors, the position will be
+          // relative to the params string so rebase it.
+          if(subTrace.position > 0)
+          {
+            subTrace.position += paramStartPos;
+          }
+          else
+          {
+            // otherwise use the whole parent range which includes the function name
+            subTrace.position = trace.position;
+            subTrace.length = trace.length;
+          }
+
+          return subTrace;
+        }
+
+        FilterExpression subexpr;
+
+        subexpr.matchType = matchType;
+        subexpr.function = true;
+        subexpr.name = s;
+        subexpr.params = params;
+
+        subexpr.position = trace.position;
+        subexpr.length = trace.length;
+        subexpr.exprs = subTrace.exprs;
+
+        for(FilterExpression &f : subexpr.exprs)
+        {
+          f.position += paramStartPos;
+        }
+
+        trace.exprs.push_back(subexpr);
+
+        filters.push_back(EventFilter(filter, matchType));
+
+        s.clear();
+        params.clear();
+
+        // move back to the start state
+        state = Start;
+        matchType = MatchType::Normal;
+      }
+      else
+      {
+        params.append(expr[pos]);
+      }
+
+      pos++;
+      continue;
+    }
+  }
+
+  trace.length = expr.length() - trace.position;
+
+  // we should be back in the normal state, because all the other states have termination states
+  if(state == Literal)
+  {
+    // shouldn't be possible as the Literal state terminates itself when it sees the end of the
+    // string
+    return trace.setError(tr("Encountered unterminated literal", "EventFilterModel"));
+  }
+  else if(state == QuotedExpr)
+  {
+    return trace.setError(tr("Unterminated quoted expression", "EventFilterModel"));
+  }
+  else if(state == FunctionExprName)
+  {
+    return trace.setError(tr("Filter function has no parameters", "EventFilterModel"));
+  }
+  else if(state == FunctionExprParams)
+  {
+    return trace.setError(tr("Filter function parameters incomplete", "EventFilterModel"));
+  }
+
+  // any - or + should have been consumed by an expression, if we still have it then it was
+  // dangling
+  if(matchType == MatchType::CantMatch)
+    return trace.setError(tr("- expects an expression to exclude", "EventFilterModel"));
+  if(matchType == MatchType::MustMatch)
+    return trace.setError(tr("+ expects an expression to require", "EventFilterModel"));
+
+  // if we got here, we succeeded. Stop tracking errors
+  trace.clearErrors();
+
+  return trace;
+}
 
 QMap<QString, CustomFilterCallbacks> EventFilterModel::m_CustomFilters;
 QMap<QString, BuiltinFilterCallbacks> EventFilterModel::m_BuiltinFilters;
@@ -2755,17 +2882,18 @@ static bool textEditControl(QWidget *sender)
 }
 
 void AddFilterSelections(QTextCursor cursor, int &idx, QColor backCol,
-                         const QVector<FilterExpression> &exprs,
-                         QList<QTextEdit::ExtraSelection> &sels)
+                         QVector<FilterExpression> &exprs, QList<QTextEdit::ExtraSelection> &sels)
 {
   QTextEdit::ExtraSelection sel;
 
   sel.cursor = cursor;
 
-  for(const FilterExpression &f : exprs)
+  for(FilterExpression &f : exprs)
   {
     QColor col = QColor::fromHslF(float(idx++ % 6) / 6.0f, 1.0f,
                                   qBound(0.05, 0.5 + 0.5 * backCol.lightnessF(), 0.95));
+
+    f.col = col;
 
     sel.cursor.setPosition(f.position, QTextCursor::MoveAnchor);
     sel.cursor.setPosition(f.position + f.length, QTextCursor::KeepAnchor);
@@ -2823,6 +2951,7 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   ui->setupUi(this);
 
   m_ParseError = new ParseErrorTipLabel(ui->filterExpression);
+  m_ParseTrace = new ParseTrace;
 
   clearBookmarks();
 
@@ -2953,49 +3082,18 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   ui->filterExpression->setSingleLine();
   ui->filterExpression->setHoverTrack();
   ui->filterExpression->enableCompletion();
+  ui->filterExpression->setAcceptRichText(false);
 
   // set default filter, include only draws that aren't pop markers
   ui->filterExpression->setText(lit("$draw()"));
 
-  QObject::connect(ui->filterExpression, &RDTextEdit::completionBegin, [this](QString prefix) {
-    if(m_FilterTimeout->isActive())
-      m_FilterTimeout->stop();
+  QObject::connect(ui->filterSettings, &QToolButton::clicked, this,
+                   &EventBrowser::filterSettings_clicked);
 
-    QString context = ui->filterExpression->toPlainText();
-    int pos = ui->filterExpression->textCursor().position();
-    context.remove(pos, context.length() - pos);
-
-    pos = context.lastIndexOf(QLatin1Char('$'));
-    if(pos > 0)
-      context.remove(0, pos);
-
-    // if the prefix starts with a $, set completion for all the
-    if(prefix.startsWith(QLatin1Char('$')))
-    {
-      QStringList completions;
-
-      for(const QString &s : m_FilterModel->GetBuiltinFunctions())
-        completions.append(QLatin1Char('$') + s);
-
-      for(const QString &s : m_FilterModel->GetCustomFunctions())
-        completions.append(QLatin1Char('$') + s);
-
-      ui->filterExpression->setCompletionStrings(completions);
-    }
-    else if(context.startsWith(QLatin1Char('$')) && context.contains(QLatin1Char('(')))
-    {
-      pos = context.indexOf(QLatin1Char('('));
-
-      QString filter = context.mid(1, pos - 1);
-      context.remove(0, pos + 1);
-
-      ui->filterExpression->setCompletionStrings(m_FilterModel->GetCompletions(filter, context));
-    }
-    else
-    {
-      ui->filterExpression->setCompletionStrings({});
-    }
-  });
+  QObject::connect(ui->filterExpression, &RDTextEdit::keyPress, this,
+                   &EventBrowser::filter_forceCompletion_keyPress);
+  QObject::connect(ui->filterExpression, &RDTextEdit::completionBegin, this,
+                   &EventBrowser::filter_CompletionBegin);
 
   ui->filterExpression->setCompletionWordCharacters(lit("_$"));
 
@@ -3004,6 +3102,8 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
 
   if(m_FilterTimeout->isActive())
     m_FilterTimeout->stop();
+
+  CreateFilterDialog();
 
   filter_apply();
 
@@ -3016,6 +3116,7 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
 EventBrowser::~EventBrowser()
 {
   delete m_ParseError;
+  delete m_ParseTrace;
 
   // unregister any shortcuts we registered
   Qt::Key keys[] = {
@@ -3191,10 +3292,382 @@ void EventBrowser::findHighlight_timeout()
   updateFindResultsAvailable();
 }
 
+void EventBrowser::CreateFilterDialog()
+{
+  // we create this dialog manually since it's relatively simple, and it needs fairly tight
+  // integration with the main window
+  m_FilterSettings.Dialog = new QDialog(this);
+
+  QDialogButtonBox *buttons = new QDialogButtonBox(this);
+  RDLabel *explainTitle = new RDLabel(this);
+  RDLabel *listLabel = new RDLabel(this);
+  RDLabel *filterLabel = new RDLabel(this);
+  CollapseGroupBox *settingsGroup = new CollapseGroupBox(this);
+  QToolButton *recentFilters = new QToolButton(this);
+  QToolButton *saveFilter = new QToolButton(this);
+
+  QVBoxLayout *settingsLayout = new QVBoxLayout(this);
+  m_FilterSettings.ShowParams = new QCheckBox(this);
+  m_FilterSettings.ShowAll = new QCheckBox(this);
+  m_FilterSettings.UseCustom = new QCheckBox(this);
+
+  m_FilterSettings.Notes = new RDLabel(this);
+  m_FilterSettings.FuncDocs = new RDTextEdit(this);
+  m_FilterSettings.Filter = new RDTextEdit(this);
+  m_FilterSettings.FuncList = new QListWidget(this);
+  m_FilterSettings.Explanation = new RDTreeWidget(this);
+
+  m_FilterSettings.Dialog->setWindowTitle(lit("Event Filter Configuration"));
+  m_FilterSettings.Dialog->setWindowFlags(m_FilterSettings.Dialog->windowFlags() &
+                                          ~Qt::WindowContextHelpButtonHint);
+  m_FilterSettings.Dialog->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+  m_FilterSettings.Dialog->setMinimumSize(QSize(600, 600));
+
+  settingsGroup->setTitle(tr("General settings"));
+  {
+    m_FilterSettings.ShowParams->setText(tr("Show parameter names and values"));
+    m_FilterSettings.ShowParams->setToolTip(
+        tr("Show parameter names in event names well as the values."));
+    m_FilterSettings.ShowParams->setCheckable(true);
+
+    QObject::connect(m_FilterSettings.ShowParams, &QCheckBox::toggled,
+                     [this](bool on) { m_Model->SetShowParameterNames(on); });
+
+    m_FilterSettings.ShowAll->setText(tr("Show all parameters"));
+    m_FilterSettings.ShowAll->setToolTip(
+        tr("Show all parameters in each event, instead of only the most relevant."));
+    m_FilterSettings.ShowAll->setCheckable(true);
+
+    QObject::connect(m_FilterSettings.ShowAll, &QCheckBox::toggled,
+                     [this](bool on) { m_Model->SetShowAllParameters(on); });
+
+    m_FilterSettings.UseCustom->setText(tr("Show custom draw names"));
+    m_FilterSettings.UseCustom->setToolTip(
+        tr("Show custom draw names for e.g. indirect draws where the values are not as directly "
+           "useful."));
+    m_FilterSettings.UseCustom->setCheckable(true);
+
+    QObject::connect(m_FilterSettings.UseCustom, &QCheckBox::toggled,
+                     [this](bool on) { m_Model->SetUseCustomDrawNames(on); });
+
+    settingsLayout->addWidget(m_FilterSettings.ShowParams);
+    settingsLayout->addWidget(m_FilterSettings.ShowAll);
+    settingsLayout->addWidget(m_FilterSettings.UseCustom);
+  }
+  settingsGroup->setLayout(settingsLayout);
+
+  buttons->addButton(QDialogButtonBox::Ok);
+  QObject::connect(buttons, &QDialogButtonBox::accepted, m_FilterSettings.Dialog, &QDialog::accept);
+
+  filterLabel->setText(tr("Current filter:"));
+
+  m_FilterSettings.Filter->setReadOnly(false);
+  m_FilterSettings.Filter->enableCompletion();
+  m_FilterSettings.Filter->setAcceptRichText(false);
+  m_FilterSettings.Filter->setSingleLine();
+
+  QObject::connect(m_FilterSettings.Filter, &RDTextEdit::keyPress, this,
+                   &EventBrowser::filter_forceCompletion_keyPress);
+  QObject::connect(m_FilterSettings.Filter, &RDTextEdit::completionBegin, this,
+                   &EventBrowser::filter_CompletionBegin);
+
+  m_FilterSettings.Filter->setCompletionWordCharacters(lit("_$"));
+
+  QObject::connect(m_FilterSettings.Filter, &RDTextEdit::completionEnd, m_FilterSettings.Filter,
+                   &RDTextEdit::textChanged);
+
+  recentFilters->setAutoRaise(true);
+  recentFilters->setIcon(Icons::filter_reapply());
+  recentFilters->setToolTip(tr("Load saved filters"));
+  saveFilter->setAutoRaise(true);
+  saveFilter->setIcon(Icons::save());
+  saveFilter->setText(tr("Save"));
+  saveFilter->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+  saveFilter->setToolTip(tr("Save current filter"));
+
+  explainTitle->setText(lit("Show an event if:"));
+
+  m_FilterSettings.Notes->setWordWrap(true);
+
+  listLabel->setText(tr("Available functions"));
+
+  m_FilterSettings.FuncList->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+  m_FilterSettings.FuncList->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
+
+  m_FilterSettings.Explanation->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+  m_FilterSettings.Explanation->setColumns({lit("explanation")});
+  m_FilterSettings.Explanation->setHeaderHidden(true);
+  m_FilterSettings.Explanation->setClearSelectionOnFocusLoss(true);
+
+  // set up the same timeout system for filter changes
+  m_FilterSettings.Timeout = new QTimer();
+  m_FilterSettings.Timeout->setInterval(1200);
+  m_FilterSettings.Timeout->setSingleShot(true);
+
+  m_FilterSettings.FuncDocs->setReadOnly(true);
+  m_FilterSettings.FuncDocs->setAcceptRichText(false);
+
+  QObject::connect(m_FilterSettings.FuncList, &QListWidget::currentItemChanged,
+                   [this](QListWidgetItem *current, QListWidgetItem *) {
+                     if(current)
+                     {
+                       QString f = current->text();
+                       f = f.mid(1, f.size() - 3);
+                       m_FilterSettings.FuncDocs->setText(m_FilterModel->GetDescription(f));
+                     }
+                     else
+                     {
+                       m_FilterSettings.FuncDocs->setText(QString());
+                     }
+                   });
+
+  // if the filter is changed, clear any current notes/explanation and start the usual timeout
+  QObject::connect(m_FilterSettings.Filter, &RDTextEdit::textChanged, [this]() {
+    m_FilterSettings.Filter->setExtraSelections({});
+    m_FilterSettings.Explanation->clear();
+    m_FilterSettings.Notes->clear();
+
+    m_FilterSettings.Timeout->start();
+  });
+
+  // if return/enter is hit, immediately fire the timeout
+  QObject::connect(m_FilterSettings.Filter, &RDTextEdit::keyPress, [this](QKeyEvent *e) {
+    if(e->key() == Qt::Key_Return || e->key() == Qt::Key_Enter)
+    {
+      // stop the timer, we'll manually fire it instantly
+      m_FilterSettings.Timeout->stop();
+      m_FilterSettings.Timeout->timeout({});
+    }
+  });
+
+  QObject::connect(m_FilterSettings.Explanation, &RDTreeWidget::currentItemChanged, this,
+                   &EventBrowser::explanation_currentItemChanged);
+
+  QObject::connect(m_FilterSettings.Timeout, &QTimer::timeout, this,
+                   &EventBrowser::settings_filterApply);
+
+  QVBoxLayout *layout = new QVBoxLayout();
+
+  QHBoxLayout *filterLayout = new QHBoxLayout(this);
+  {
+    filterLayout->addWidget(filterLabel);
+    filterLayout->addWidget(m_FilterSettings.Filter);
+    filterLayout->addWidget(recentFilters);
+    filterLayout->addWidget(saveFilter);
+
+    layout->addLayout(filterLayout);
+  }
+
+  layout->addWidget(m_FilterSettings.Notes);
+  layout->addWidget(explainTitle);
+  layout->addWidget(m_FilterSettings.Explanation);
+
+  layout->addWidget(settingsGroup);
+
+  QHBoxLayout *funcsLayout = new QHBoxLayout(this);
+
+  {
+    layout->addWidget(listLabel);
+    funcsLayout->addWidget(m_FilterSettings.FuncList);
+    funcsLayout->addWidget(m_FilterSettings.FuncDocs);
+    layout->addLayout(funcsLayout);
+  }
+
+  layout->addWidget(buttons);
+
+  m_FilterSettings.Dialog->setLayout(layout);
+}
+
+void EventBrowser::explanation_currentItemChanged(RDTreeWidgetItem *current, RDTreeWidgetItem *prev)
+{
+  // when an item is selected, its tag should have a QSize containing the expression range which
+  // we underline
+
+  QString funcName;
+
+  if(current->dataCount() >= 1)
+    funcName = current->text(1);
+
+  QStringList funcs = m_FilterModel->GetFunctions();
+
+  int idx = funcs.indexOf(funcName);
+  if(idx >= 0)
+    m_FilterSettings.FuncList->setCurrentItem(m_FilterSettings.FuncList->item(idx));
+
+  QList<QTextEdit::ExtraSelection> sels = m_FilterSettings.Filter->extraSelections();
+
+  // remove any previously underlined phrases
+  for(auto it = sels.begin(); it != sels.end();)
+  {
+    if(it->format.underlineStyle() == QTextCharFormat::SingleUnderline)
+    {
+      it = sels.erase(it);
+      continue;
+    }
+
+    it++;
+  }
+
+  QSize range = current->tag().toSize();
+
+  int pos = range.width();
+  int len = range.height();
+
+  if(pos >= 0 && len > 0)
+  {
+    QTextEdit::ExtraSelection sel;
+
+    sel.cursor = m_FilterSettings.Filter->textCursor();
+    sel.cursor.setPosition(pos, QTextCursor::MoveAnchor);
+
+    sel.cursor.setPosition(pos + len, QTextCursor::KeepAnchor);
+    sel.format.setUnderlineStyle(QTextCharFormat::SingleUnderline);
+
+    sels.push_back(sel);
+  }
+
+  m_FilterSettings.Filter->setExtraSelections(sels);
+}
+
+void EventBrowser::settings_filterApply()
+{
+  if(m_FilterSettings.Timeout->isActive())
+    m_FilterSettings.Timeout->stop();
+
+  ParseTrace trace;
+  rdcarray<EventFilter> filters;
+  trace = m_FilterModel->ParseExpressionToFilters(m_FilterSettings.Filter->toPlainText(), filters);
+
+  QList<QTextEdit::ExtraSelection> sels;
+
+  QPalette pal = m_FilterSettings.Filter->palette();
+
+  if(trace.hasErrors())
+  {
+    pal.setColor(QPalette::WindowText, QColor(170, 0, 0));
+    m_FilterSettings.Notes->setPalette(pal);
+    m_FilterSettings.Explanation->clear();
+
+    m_FilterSettings.Notes->setText(trace.errorText.trimmed());
+
+    QTextEdit::ExtraSelection sel;
+
+    sel.cursor = m_FilterSettings.Filter->textCursor();
+    sel.cursor.setPosition(trace.position, QTextCursor::MoveAnchor);
+
+    sel.cursor.setPosition(trace.position + trace.length, QTextCursor::KeepAnchor);
+    sel.format.setUnderlineStyle(QTextCharFormat::SingleUnderline);
+    sel.format.setUnderlineColor(QColor(Qt::red));
+    sels.push_back(sel);
+  }
+  else
+  {
+    m_FilterSettings.Notes->setPalette(pal);
+
+    int idx = 0;
+    QString notesText;
+
+    AddFilterSelections(m_FilterSettings.Filter->textCursor(), idx,
+                        m_FilterSettings.Filter->palette().color(QPalette::Base), trace.exprs, sels);
+    AddFilterExplanations(QString(), m_FilterSettings.Explanation->invisibleRootItem(), trace.exprs,
+                          notesText);
+
+    if(trace.exprs.isEmpty())
+    {
+      m_FilterSettings.Explanation->addTopLevelItem(
+          new RDTreeWidgetItem({tr("No filters - all events shown"), QString()}));
+    }
+
+    m_FilterSettings.Notes->setText(QFormatStr("<html>%1</html>").arg(notesText.trimmed()));
+
+    ui->filterExpression->setPlainText(m_FilterSettings.Filter->toPlainText());
+    m_FilterTimeout->stop();
+    filter_apply();
+  }
+
+  m_FilterSettings.Filter->setExtraSelections(sels);
+  m_FilterSettings.Explanation->expandAllItems(m_FilterSettings.Explanation->invisibleRootItem());
+}
+
+void EventBrowser::filterSettings_clicked()
+{
+  // resolve any current pending filter timeout first
+  filter_apply();
+
+  // update the global parameter checkboxes
+  m_FilterSettings.ShowParams->setChecked(m_Model->ShowParameterNames());
+  m_FilterSettings.ShowAll->setChecked(m_Model->ShowAllParameters());
+  m_FilterSettings.UseCustom->setChecked(m_Model->UseCustomDrawNames());
+
+  // fill out the list of filter functions with the current list
+  m_FilterSettings.FuncList->clear();
+  for(QString f : m_FilterModel->GetFunctions())
+    m_FilterSettings.FuncList->addItem(QFormatStr("$%1()").arg(f));
+
+  m_FilterSettings.Filter->setText(ui->filterExpression->toPlainText());
+  // immediately process and apply the filter
+  settings_filterApply();
+
+  // show the dialog now
+  RDDialog::show(m_FilterSettings.Dialog);
+
+  // if the filter changed and hasn't been applied, update it immediately
+  QString filterExpr = m_FilterSettings.Filter->toPlainText();
+  if(filterExpr != ui->filterExpression->toPlainText())
+  {
+    ui->filterExpression->setPlainText(filterExpr);
+    filter_apply();
+  }
+}
+
+void EventBrowser::filter_CompletionBegin(QString prefix)
+{
+  if(m_FilterTimeout->isActive())
+    m_FilterTimeout->stop();
+
+  RDTextEdit *sender = qobject_cast<RDTextEdit *>(QObject::sender());
+
+  QString context = sender->toPlainText();
+  int pos = sender->textCursor().position();
+  context.remove(pos, context.length() - pos);
+
+  pos = context.lastIndexOf(QLatin1Char('$'));
+  if(pos > 0)
+    context.remove(0, pos);
+
+  // if the prefix starts with a $, set completion for all the
+  if(prefix.startsWith(QLatin1Char('$')))
+  {
+    QStringList completions;
+
+    for(const QString &s : m_FilterModel->GetFunctions())
+      completions.append(QLatin1Char('$') + s);
+
+    sender->setCompletionStrings(completions);
+  }
+  else if(context.startsWith(QLatin1Char('$')) && context.contains(QLatin1Char('(')) &&
+          !context.contains(QLatin1Char(')')))
+  {
+    pos = context.indexOf(QLatin1Char('('));
+
+    QString filter = context.mid(1, pos - 1);
+    context.remove(0, pos + 1);
+
+    sender->setCompletionStrings(m_FilterModel->GetCompletions(filter, context));
+  }
+  else
+  {
+    sender->setCompletionStrings({});
+  }
+}
+
 void EventBrowser::filter_apply()
 {
   if(ui->filterExpression->completionInProgress())
     return;
+
+  if(m_FilterTimeout->isActive())
+    m_FilterTimeout->stop();
 
   // unselect everything while applying the filter, to avoid updating the source model while the
   // filter is processing if the current event is no longer selected
@@ -3211,25 +3684,35 @@ void EventBrowser::filter_apply()
 
   QString expression = ui->filterExpression->toPlainText();
 
-  ParseTrace parseTrace = m_FilterModel->ParseExpression(expression);
+  rdcarray<EventFilter> filters;
+  *m_ParseTrace = m_FilterModel->ParseExpressionToFilters(expression, filters);
+
+  if(m_ParseTrace->hasErrors())
+    filters.clear();
+
+  m_FilterModel->SetFilters(filters);
 
   QList<QTextEdit::ExtraSelection> sels;
 
-  m_ParseError->setText(parseTrace.errorText);
+  if(m_ParseTrace->errorText.isEmpty())
+    m_ParseError->setText(QString());
+  else
+    m_ParseError->setText(m_ParseTrace->errorText +
+                          tr("\n\nOpen filter settings window for syntax help & explanation"));
   m_ParseError->hide();
 
-  if(parseTrace.hasErrors())
+  if(m_ParseTrace->hasErrors())
   {
     QTextEdit::ExtraSelection sel;
 
-    sel.cursor = ui->filterExpression->textCursor();
+    m_ParseTrace->exprs.clear();
 
-    sel.cursor.movePosition(QTextCursor::StartOfLine);
-    sel.cursor.setPosition(parseTrace.position, QTextCursor::MoveAnchor);
+    sel.cursor = ui->filterExpression->textCursor();
+    sel.cursor.setPosition(m_ParseTrace->position, QTextCursor::MoveAnchor);
 
     m_ParseErrorPos = ui->filterExpression->cursorRect(sel.cursor).bottomLeft();
 
-    sel.cursor.setPosition(parseTrace.position + parseTrace.length, QTextCursor::KeepAnchor);
+    sel.cursor.setPosition(m_ParseTrace->position + m_ParseTrace->length, QTextCursor::KeepAnchor);
     sel.format.setUnderlineStyle(QTextCharFormat::SingleUnderline);
     sel.format.setUnderlineColor(QColor(Qt::red));
     sels.push_back(sel);
@@ -3250,10 +3733,6 @@ void EventBrowser::filter_apply()
   }
   else
   {
-    int idx = 0;
-    AddFilterSelections(ui->filterExpression->textCursor(), idx, palette().color(QPalette::Base),
-                        parseTrace.exprs, sels);
-
     m_ParseError->hide();
   }
 
@@ -3262,6 +3741,110 @@ void EventBrowser::filter_apply()
   ui->events->applyExpansion(m_EventsExpansion, keygen);
 
   ui->events->setCurrentIndex(m_FilterModel->mapFromSource(m_Model->GetIndexForEID(curSelEvent)));
+}
+
+void EventBrowser::AddFilterExplanations(QString parentFunc, RDTreeWidgetItem *root,
+                                         QVector<FilterExpression> exprs, QString &notes)
+{
+  bool any = false, all = false;
+  if(parentFunc == lit("any") || parentFunc == QString())
+    any = true;
+  else if(parentFunc == lit("all"))
+    all = true;
+
+  // sort by match type
+  std::sort(exprs.begin(), exprs.end(), [](const FilterExpression &a, const FilterExpression &b) {
+    return a.matchType < b.matchType;
+  });
+
+  bool hasMust = false;
+  for(const FilterExpression &f : exprs)
+    hasMust |= (f.matchType == MatchType::MustMatch);
+
+  if(hasMust)
+  {
+    FilterExpression must;
+
+    QString ignored;
+    for(const FilterExpression &f : exprs)
+    {
+      if(f.matchType == MatchType::MustMatch)
+      {
+        must = f;
+      }
+      else if(f.matchType == MatchType::Normal)
+      {
+        if(!ignored.isEmpty())
+          ignored += lit(", ");
+        ignored += f.printName();
+      }
+    }
+
+    if(!ignored.isEmpty())
+    {
+      notes +=
+          tr("NOTE: The terms %1 are ignored because must-match terms like <span>+%2</span> take "
+             "precedence.\n"
+             "There is no sorting amongst matches based on optional keywords, so consider making "
+             "them <span>+required</span> to require all of them, or nesting in "
+             "<span>+$any()</span> to require at least one of them.\n")
+              .arg(ignored)
+              .arg(must.printName());
+    }
+  }
+
+  bool first = true;
+  for(const FilterExpression &f : exprs)
+  {
+    QString explanation;
+
+    if(f.matchType == MatchType::MustMatch)
+    {
+      explanation = tr("Must be that: ");
+    }
+    else if(f.matchType == MatchType::CantMatch)
+    {
+      explanation = tr("Can't be that: ");
+    }
+    else
+    {
+      // omit any normal matches if we have a must, they are pointless and we warn the user in the
+      // notes
+      if(hasMust)
+        continue;
+
+      if(!first)
+        explanation = any ? tr("Or: ") : tr("And: ");
+
+      first = false;
+    }
+
+    if(!f.function)
+    {
+      explanation += tr("Name matches '%1'").arg(f.name);
+    }
+    else if(f.name == lit("all"))
+    {
+      explanation += tr("All of...");
+    }
+    else if(f.name == lit("any"))
+    {
+      explanation += tr("Any of...");
+    }
+    else
+    {
+      explanation += tr("Function %1 passes").arg(f.printName());
+    }
+
+    RDTreeWidgetItem *item = new RDTreeWidgetItem({explanation, f.name});
+    item->setBackgroundColor(f.col);
+
+    item->setTag(QSize(f.position, f.length));
+
+    root->addChild(item);
+
+    AddFilterExplanations(f.name, item, f.exprs, notes);
+  }
 }
 
 void EventBrowser::on_findEvent_textEdited(const QString &arg1)
@@ -3289,13 +3872,18 @@ void EventBrowser::on_filterExpression_keyPress(QKeyEvent *e)
 
     filter_apply();
   }
+}
 
+void EventBrowser::filter_forceCompletion_keyPress(QKeyEvent *e)
+{
   if(e->key() == Qt::Key_Dollar || e->key() == Qt::Key_Ampersand || e->key() == Qt::Key_Equal ||
      e->key() == Qt::Key_Bar || e->key() == Qt::Key_ParenLeft)
   {
     // force autocompletion for filter functions, as long as we're not inside a quoted string
 
-    QString str = ui->filterExpression->toPlainText();
+    RDTextEdit *sender = qobject_cast<RDTextEdit *>(QObject::sender());
+
+    QString str = sender->toPlainText();
 
     bool inQuote = false;
     for(int i = 0; i < str.length(); i++)
@@ -3319,7 +3907,7 @@ void EventBrowser::on_filterExpression_keyPress(QKeyEvent *e)
     }
 
     if(!inQuote)
-      ui->filterExpression->triggerCompletion();
+      sender->triggerCompletion();
   }
 }
 
@@ -3908,11 +4496,11 @@ const DrawcallDescription *EventBrowser::GetDrawcallForEID(uint32_t eid)
   return m_Model->GetDrawcallForEID(eid);
 }
 
-bool EventBrowser::RegisterEventFilterFunction(const rdcstr &name, EventFilterCallback filter,
-                                               FilterParseCallback parser,
+bool EventBrowser::RegisterEventFilterFunction(const rdcstr &name, const rdcstr &description,
+                                               EventFilterCallback filter, FilterParseCallback parser,
                                                AutoCompleteCallback completer)
 {
-  return EventFilterModel::RegisterEventFilterFunction(name, filter, parser, completer);
+  return EventFilterModel::RegisterEventFilterFunction(name, description, filter, parser, completer);
 }
 
 bool EventBrowser::UnregisterEventFilterFunction(const rdcstr &name)

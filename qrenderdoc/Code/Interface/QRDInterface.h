@@ -309,6 +309,9 @@ work is done then the parameters can be used as a cache key to cache any data on
 expression.
 
 :param str name: The name of the filter function.
+:param str description: The description of the filter function. This should explain the available
+  parameters (if applicable) and what the filter does. It will be used for documenting to users
+  what each filter means.
 :param EventFilterCallback filter: The callback to call for each candidate event to perform
   filtering.
 :param FilterParseCallback parser: The callback to call when the parsing the parameters and checking
@@ -318,8 +321,8 @@ expression.
 :return: Whether or not the registration was successful.
 :rtype: bool
 )");
-  virtual bool RegisterEventFilterFunction(const rdcstr &name, EventFilterCallback filter,
-                                           FilterParseCallback parser,
+  virtual bool RegisterEventFilterFunction(const rdcstr &name, const rdcstr &description,
+                                           EventFilterCallback filter, FilterParseCallback parser,
                                            AutoCompleteCallback completer) = 0;
 
   DOCUMENT(R"(Unregisters an event browser filter function that was previously registered.

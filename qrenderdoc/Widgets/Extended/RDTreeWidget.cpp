@@ -625,7 +625,9 @@ RDTreeWidget::RDTreeWidget(QWidget *parent) : RDTreeView(parent)
 
 RDTreeWidget::~RDTreeWidget()
 {
+  blockSignals(true);
   RDTreeView::setModel(NULL);
+  blockSignals(false);
 
   delete m_root;
   delete m_model;
@@ -842,7 +844,10 @@ void RDTreeWidget::leaveEvent(QEvent *e)
 void RDTreeWidget::focusOutEvent(QFocusEvent *event)
 {
   if(m_clearSelectionOnFocusLoss)
+  {
+    setCurrentItem(NULL);
     clearSelection();
+  }
 
   RDTreeView::focusOutEvent(event);
 }

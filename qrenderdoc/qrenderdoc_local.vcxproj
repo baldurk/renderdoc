@@ -1955,6 +1955,8 @@ IF %ERRORLEVEL% NEQ 0 (echo ====================================================
     <Image Include="Resources\del.png" />
     <Image Include="Resources\disconnect%402x.png" />
     <Image Include="Resources\disconnect.png" />
+    <Image Include="Resources\filter_reapply%402x.png" />
+    <Image Include="Resources\filter_reapply.png" />
     <Image Include="Resources\find%402x.png" />
     <Image Include="Resources\find.png" />
     <Image Include="Resources\flag_green%402x.png" />

@@ -41,12 +41,50 @@ class QTimer;
 class QTextStream;
 class FlowLayout;
 struct EventItemTag;
+class RDLabel;
+class RDTreeWidget;
+class RDTreeWidgetItem;
+class RDTextEdit;
+class QListWidget;
+class QCheckBox;
 
 typedef QSet<uint> RDTreeViewExpansionState;
 
 class RichTextViewDelegate;
 struct EventItemModel;
 struct EventFilterModel;
+
+struct ParseTrace;
+
+enum class MatchType
+{
+  MustMatch,
+  Normal,
+  CantMatch
+};
+
+struct FilterExpression
+{
+  MatchType matchType;
+
+  bool function;
+  QString name;
+  QString params;
+
+  QString printName() const
+  {
+    if(function)
+      return QFormatStr("$%1(%2)").arg(name).arg(params);
+    return name;
+  }
+
+  int position = -1;
+  int length = 0;
+
+  QColor col;
+
+  QVector<FilterExpression> exprs;
+};
 
 class ParseErrorTipLabel : public QLabel
 {
@@ -80,8 +118,8 @@ public:
   void UpdateDurationColumn() override;
   APIEvent GetAPIEventForEID(uint32_t eid) override;
   const DrawcallDescription *GetDrawcallForEID(uint32_t eid) override;
-  bool RegisterEventFilterFunction(const rdcstr &name, EventFilterCallback filter,
-                                   FilterParseCallback parser,
+  bool RegisterEventFilterFunction(const rdcstr &name, const rdcstr &description,
+                                   EventFilterCallback filter, FilterParseCallback parser,
                                    AutoCompleteCallback completer) override;
   bool UnregisterEventFilterFunction(const rdcstr &name) override;
 
@@ -125,6 +163,11 @@ private slots:
 
   // manual slots
   void findHighlight_timeout();
+  void explanation_currentItemChanged(RDTreeWidgetItem *current, RDTreeWidgetItem *prev);
+  void settings_filterApply();
+  void filterSettings_clicked();
+  void filter_forceCompletion_keyPress(QKeyEvent *e);
+  void filter_CompletionBegin(QString prefix);
   void filter_apply();
   void events_keyPress(QKeyEvent *event);
   void events_contextMenu(const QPoint &pos);
@@ -147,6 +190,11 @@ private:
   int FindEvent(QString filter, uint32_t after, bool forward);
   void Find(bool forward);
 
+  void CreateFilterDialog();
+
+  void AddFilterExplanations(QString parentFunc, RDTreeWidgetItem *root,
+                             QVector<FilterExpression> exprs, QString &notes);
+
   QString GetExportString(int indent, bool firstchild, const QModelIndex &idx);
   void GetMaxNameLength(int &maxNameLength, int indent, bool firstchild, const QModelIndex &idx);
   void ExportDrawcall(QTextStream &writer, int maxNameLength, int indent, bool firstchild,
@@ -165,12 +213,29 @@ private:
 
   QTimer *m_FindHighlight, *m_FilterTimeout;
 
+  ParseTrace *m_ParseTrace;
   ParseErrorTipLabel *m_ParseError;
   QPoint m_ParseErrorPos;
 
   FlowLayout *m_BookmarkStripLayout;
   QSpacerItem *m_BookmarkSpacer;
   QMap<uint32_t, QToolButton *> m_BookmarkButtons;
+
+  struct
+  {
+    QDialog *Dialog;
+    RDLabel *Notes;
+    QListWidget *FuncList;
+    RDTextEdit *FuncDocs;
+    RDTextEdit *Filter;
+    RDTreeWidget *Explanation;
+
+    QCheckBox *ShowParams;
+    QCheckBox *ShowAll;
+    QCheckBox *UseCustom;
+
+    QTimer *Timeout;
+  } m_FilterSettings;
 
   void RefreshShaderMessages();
   Ui::EventBrowser *ui;
