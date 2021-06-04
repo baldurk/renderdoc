@@ -1747,13 +1747,17 @@ private:
                                                          ParseTrace &trace)
   {
     // $draw(...) => returns true only for draws, optionally with a particular property filter
+    // PopMarker draws are draws so they can contain the other non-draw events that might trail
+    // in a group, but we don't count them as real draws for any of this filtering except for flags
+    // filtering, where they can be manually included
     QList<Token> tokens = tokenise(parameters);
 
     // no parameters, just return if it's a draw
     if(tokens.isEmpty())
-      return
-          [](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId, const SDChunk *,
-             const DrawcallDescription *draw, const rdcstr &) { return draw->eventId == eventId; };
+      return [](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
+                const SDChunk *, const DrawcallDescription *draw, const rdcstr &) {
+        return draw->eventId == eventId && !(draw->flags & DrawFlags::PopMarker);
+      };
 
     // we upcast to int64_t so we can compare both unsigned and signed values without losing any
     // precision (we don't have any uint64_ts to compare)
@@ -1836,37 +1840,43 @@ private:
           return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
                                      uint32_t eventId, const SDChunk *,
                                      const DrawcallDescription *draw, const rdcstr &) {
-            return draw->eventId == eventId && propGetter(draw) == value;
+            return draw->eventId == eventId && !(draw->flags & DrawFlags::PopMarker) &&
+                   propGetter(draw) == value;
           };
         case 1:
           return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
                                      uint32_t eventId, const SDChunk *,
                                      const DrawcallDescription *draw, const rdcstr &) {
-            return draw->eventId == eventId && propGetter(draw) != value;
+            return draw->eventId == eventId && !(draw->flags & DrawFlags::PopMarker) &&
+                   propGetter(draw) != value;
           };
         case 2:
           return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
                                      uint32_t eventId, const SDChunk *,
                                      const DrawcallDescription *draw, const rdcstr &) {
-            return draw->eventId == eventId && propGetter(draw) < value;
+            return draw->eventId == eventId && !(draw->flags & DrawFlags::PopMarker) &&
+                   propGetter(draw) < value;
           };
         case 3:
           return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
                                      uint32_t eventId, const SDChunk *,
                                      const DrawcallDescription *draw, const rdcstr &) {
-            return draw->eventId == eventId && propGetter(draw) > value;
+            return draw->eventId == eventId && !(draw->flags & DrawFlags::PopMarker) &&
+                   propGetter(draw) > value;
           };
         case 4:
           return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
                                      uint32_t eventId, const SDChunk *,
                                      const DrawcallDescription *draw, const rdcstr &) {
-            return draw->eventId == eventId && propGetter(draw) <= value;
+            return draw->eventId == eventId && !(draw->flags & DrawFlags::PopMarker) &&
+                   propGetter(draw) <= value;
           };
         case 5:
           return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
                                      uint32_t eventId, const SDChunk *,
                                      const DrawcallDescription *draw, const rdcstr &) {
-            return draw->eventId == eventId && propGetter(draw) >= value;
+            return draw->eventId == eventId && !(draw->flags & DrawFlags::PopMarker) &&
+                   propGetter(draw) >= value;
           };
         default: trace.setError(tr("Internal error", "EventFilterModel")); return NULL;
       }
@@ -2945,7 +2955,7 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   ui->filterExpression->enableCompletion();
 
   // set default filter, include only draws that aren't pop markers
-  ui->filterExpression->setText(lit("$draw() -$draw(flags & PopMarker)"));
+  ui->filterExpression->setText(lit("$draw()"));
 
   QObject::connect(ui->filterExpression, &RDTextEdit::completionBegin, [this](QString prefix) {
     if(m_FilterTimeout->isActive())
