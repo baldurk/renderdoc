@@ -425,21 +425,6 @@ DECLARE_REFLECTION_STRUCT(BugReport);
   CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_AddFake, true)                               \
                                                                                                    \
   DOCUMENT(                                                                                        \
-      "``True`` if the :class:`EventBrowser` should hide marker regions that don't contain any "   \
-      "actual non-marker events.\n"                                                                \
-      "\n"                                                                                         \
-      "Defaults to ``False``.");                                                                   \
-  CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_HideEmpty, false)                            \
-                                                                                                   \
-  DOCUMENT(                                                                                        \
-      "``True`` if the :class:`EventBrowser` should hide marker regions that don't contain any "   \
-      "events that aren't just drawcalls (this will hide events under 'API Events' "               \
-      "faux-markers).\n"                                                                           \
-      "\n"                                                                                         \
-      "Defaults to ``False``.");                                                                   \
-  CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_HideAPICalls, false)                         \
-                                                                                                   \
-  DOCUMENT(                                                                                        \
       "``True`` if the :class:`EventBrowser` should apply any colors specified with API marker "   \
       "regions.\n"                                                                                 \
       "\n"                                                                                         \
