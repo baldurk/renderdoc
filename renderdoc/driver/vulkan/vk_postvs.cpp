@@ -2023,6 +2023,10 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
         {
           origVBBegin = origVBs[vb].data() + attrDesc.offset;
           origVBEnd = origVBs[vb].data() + origVBs[vb].size();
+
+          if(origVBs[vb].empty())
+            origVBBegin = origVBEnd = NULL;
+
           stride = vbDesc.stride;
           if(vbDesc.inputRate == VK_VERTEX_INPUT_RATE_INSTANCE)
             instDivisor = pipeInfo.vertexBindings[vbDesc.binding].instanceDivisor;
@@ -2034,9 +2038,6 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
 
       if(attrDesc.binding < state.vbuffers.size())
         stride = (size_t)state.vbuffers[attrDesc.binding].stride;
-
-      if(origVBBegin == NULL)
-        continue;
 
       // in some limited cases, provided we added the UNIFORM_TEXEL_BUFFER usage bit, we could use
       // the original buffers here as-is and read out of them. However it is likely that the offset
@@ -2517,6 +2518,11 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
       modifiedstate.compute.descSets[i].pipeLayout = GetResID(pipeLayout);
       modifiedstate.compute.descSets[i].descSet = GetResID(descSets[i]);
     }
+  }
+  else
+  {
+    for(size_t i = 0; i < modifiedstate.compute.descSets.size(); i++)
+      modifiedstate.compute.descSets[i].pipeLayout = GetResID(pipeLayout);
   }
 
   {
