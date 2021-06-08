@@ -1492,7 +1492,8 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
   }
 
   if(Vulkan_Debug_DisableBufferDeviceAddress() ||
-     m_pDriver->GetDriverInfo().AMDBufferDeviceAddressBrokenDriver())
+     m_pDriver->GetDriverInfo().AMDBufferDeviceAddressBrokenDriver() ||
+     m_pDriver->GetDriverInfo().QualcommLineBufferDeviceAddressBrokenDriver())
     storageMode = Binding;
 
   if(m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorStorageBuffers - 2 <

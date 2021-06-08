@@ -931,7 +931,10 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps)
     // and disabling texelFetch works as a workaround.
 
     if(Major() < 372 || (Major() == 372 && Minor() < 54))
+    {
+      RDCLOG("Enabling NV texel fetch workaround - update to a newer driver for fix");
       texelFetchBrokenDriver = true;
+    }
   }
 
 // only check this on windows. This is a bit of a hack, as really we want to check if we're
@@ -945,40 +948,45 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps)
     // 0.9.0 as the version.
 
     if(Major() < 1)
+    {
+      RDCLOG("Enabling AMD texel fetch workaround - update to a newer driver for fix");
       texelFetchBrokenDriver = true;
+    }
 
     // driver 18.5.2 which is vulkan version >= 2.0.33 contains the fix
     if(physProps.driverVersion < VK_MAKE_VERSION(2, 0, 33))
+    {
+      RDCLOG(
+          "Enabling AMD image memory requirements workaround - update to a newer driver for fix");
       unreliableImgMemReqs = true;
-  }
-#endif
+    }
 
-  if(texelFetchBrokenDriver)
-  {
-    RDCWARN("Detected an older driver, enabling workaround. Try updating to the latest drivers.");
-  }
-
-// same as above, only affects the AMD official driver
-#if ENABLED(RDOC_WIN32)
-  if(m_Vendor == GPUVendor::AMD)
-  {
     // driver 18.5.2 which is vulkan version >= 2.0.33 contains the fix
     if(physProps.driverVersion < VK_MAKE_VERSION(2, 0, 33))
+    {
+      RDCLOG("Enabling AMD image MSAA storage workaround - update to a newer driver for fix");
       amdStorageMSAABrokenDriver = true;
-  }
+    }
 
-  if(m_Vendor == GPUVendor::AMD)
-  {
     // driver 21.3.1 which is vulkan version >= 2.0.179 contains the fix
     if(physProps.driverVersion < VK_MAKE_VERSION(2, 0, 179))
+    {
+      RDCLOG("Disabling buffer_device_address on AMD - update to a newer driver for fix");
       amdBDABrokenDriver = true;
+    }
   }
 #endif
 
-  // not fixed yet that I know of
-  qualcommLeakingUBOOffsets = (m_Vendor == GPUVendor::Qualcomm);
-  qualcommDrefNon2DCompileCrash = (m_Vendor == GPUVendor::Qualcomm);
-  qualcommLineWidthCrash = (m_Vendor == GPUVendor::Qualcomm);
+  if(m_Vendor == GPUVendor::Qualcomm)
+  {
+    RDCLOG("Enabling Qualcomm driver workarounds");
+
+    // not fixed yet that I know of, or unknown driver with fixes
+    qualcommLeakingUBOOffsets = true;
+    qualcommDrefNon2DCompileCrash = true;
+    qualcommLineWidthCrash = true;
+    qualcommBDABrokenDriver = true;
+  }
 }
 
 FrameRefType GetRefType(VkDescriptorType descType)

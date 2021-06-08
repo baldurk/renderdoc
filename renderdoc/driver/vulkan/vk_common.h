@@ -257,6 +257,8 @@ public:
   // hit the case where it's necessary (doing 'whole pass' partial replay of a subsection of a
   // command buffer where we need to apply dynamic state from earlier in the command buffer).
   bool QualcommLineWidthDynamicStateCrash() const { return qualcommLineWidthCrash; }
+  // Qualcomm's driver seems to crash when using buffer_device_address.
+  bool QualcommLineBufferDeviceAddressBrokenDriver() const { return qualcommBDABrokenDriver; }
   // On AMD unfortunately the initial implementation of KHR_buffer_device_address is broken and
   // produces bad results.
   bool AMDBufferDeviceAddressBrokenDriver() const { return amdBDABrokenDriver; }
@@ -273,6 +275,7 @@ private:
   bool qualcommDrefNon2DCompileCrash = false;
   bool qualcommLineWidthCrash = false;
   bool amdBDABrokenDriver = false;
+  bool qualcommBDABrokenDriver = false;
 };
 
 enum
