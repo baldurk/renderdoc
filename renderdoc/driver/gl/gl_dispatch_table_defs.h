@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2021 Baldur Karlsson
+ * Copyright (c) 2018-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -138,8 +138,8 @@
   FUNC(glTexBufferRange, glTexBufferRangeEXT); \
   FUNC(glTexBufferRange, glTexBufferRangeOES); \
   FUNC(glTextureView, glTextureView); \
-  FUNC(glTextureView, glTextureViewEXT); \
   FUNC(glTextureView, glTextureViewOES); \
+  FUNC(glTextureView, glTextureViewEXT); \
   FUNC(glTexParameterIiv, glTexParameterIiv); \
   FUNC(glTexParameterIiv, glTexParameterIivEXT); \
   FUNC(glTexParameterIiv, glTexParameterIivOES); \
@@ -1399,8 +1399,8 @@
   AliasWrapper5(void, glTexBufferRangeEXT, glTexBufferRange, GLenum, target, GLenum, internalformat, GLuint, buffer, GLintptr, offset, GLsizeiptr, size); \
   AliasWrapper5(void, glTexBufferRangeOES, glTexBufferRange, GLenum, target, GLenum, internalformat, GLuint, buffer, GLintptr, offset, GLsizeiptr, size); \
   FuncWrapper8(void, glTextureView, GLuint, texture, GLenum, target, GLuint, origtexture, GLenum, internalformat, GLuint, minlevel, GLuint, numlevels, GLuint, minlayer, GLuint, numlayers); \
-  AliasWrapper8(void, glTextureViewEXT, glTextureView, GLuint, texture, GLenum, target, GLuint, origtexture, GLenum, internalformat, GLuint, minlevel, GLuint, numlevels, GLuint, minlayer, GLuint, numlayers); \
   AliasWrapper8(void, glTextureViewOES, glTextureView, GLuint, texture, GLenum, target, GLuint, origtexture, GLenum, internalformat, GLuint, minlevel, GLuint, numlevels, GLuint, minlayer, GLuint, numlayers); \
+  AliasWrapper8(void, glTextureViewEXT, glTextureView, GLuint, texture, GLenum, target, GLuint, origtexture, GLenum, internalformat, GLuint, minlevel, GLuint, numlevels, GLuint, minlayer, GLuint, numlayers); \
   FuncWrapper3(void, glTexParameterIiv, GLenum, target, GLenum, pname, const GLint *, params); \
   AliasWrapper3(void, glTexParameterIivEXT, glTexParameterIiv, GLenum, target, GLenum, pname, const GLint *, params); \
   AliasWrapper3(void, glTexParameterIivOES, glTexParameterIiv, GLenum, target, GLenum, pname, const GLint *, params); \
@@ -6378,7 +6378,7 @@
   UnsupportedWrapper6(void, glWriteMaskEXT, GLuint, res, GLuint, in, GLenum, outX, GLenum, outY, GLenum, outZ, GLenum, outW); \
 
 
-		
+        
 // the _renderdoc_hooked variants are to make sure we always have a function symbol exported that we
 // can return from GetProcAddress. On posix systems if another library (or the application itself)
 // creates a symbol called 'glEnable' we'll return the address of that, and break badly. Instead we
