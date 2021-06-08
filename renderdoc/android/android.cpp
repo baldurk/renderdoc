@@ -1045,9 +1045,11 @@ struct AndroidController : public IDeviceProtocolHandler
 
       rdcstr package = GetRenderDocPackageForABI(abis.back());
 
+      rdcstr folderName = Android::GetFolderName(deviceID);
+
       // push settings file into our folder
       Android::adbExecCommand(deviceID, "push \"" + FileIO::GetAppFolderFilename("renderdoc.conf") +
-                                            "\" /sdcard/Android/data/" + package +
+                                            "\" /sdcard/Android/" + folderName + package +
                                             "/files/renderdoc.conf");
 
       // launch the last ABI, as the 64-bit version where possible, or 32-bit version where not.
