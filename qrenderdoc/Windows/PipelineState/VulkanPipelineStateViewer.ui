@@ -701,6 +701,9 @@
                 <property name="rootIsDecorated">
                  <bool>true</bool>
                 </property>
+                <property name="uniformRowHeights">
+                 <bool>true</bool>
+                </property>
                 <property name="allColumnsShowFocus">
                  <bool>true</bool>
                 </property>
@@ -751,6 +754,9 @@
                  <bool>false</bool>
                 </property>
                 <property name="rootIsDecorated">
+                 <bool>true</bool>
+                </property>
+                <property name="uniformRowHeights">
                  <bool>true</bool>
                 </property>
                 <property name="allColumnsShowFocus">
@@ -1007,6 +1013,9 @@
                 <property name="rootIsDecorated">
                  <bool>true</bool>
                 </property>
+                <property name="uniformRowHeights">
+                 <bool>true</bool>
+                </property>
                 <property name="allColumnsShowFocus">
                  <bool>true</bool>
                 </property>
@@ -1057,6 +1066,9 @@
                  <bool>false</bool>
                 </property>
                 <property name="rootIsDecorated">
+                 <bool>true</bool>
+                </property>
+                <property name="uniformRowHeights">
                  <bool>true</bool>
                 </property>
                 <property name="allColumnsShowFocus">
@@ -1313,6 +1325,9 @@
                 <property name="rootIsDecorated">
                  <bool>true</bool>
                 </property>
+                <property name="uniformRowHeights">
+                 <bool>true</bool>
+                </property>
                 <property name="allColumnsShowFocus">
                  <bool>true</bool>
                 </property>
@@ -1363,6 +1378,9 @@
                  <bool>false</bool>
                 </property>
                 <property name="rootIsDecorated">
+                 <bool>true</bool>
+                </property>
+                <property name="uniformRowHeights">
                  <bool>true</bool>
                 </property>
                 <property name="allColumnsShowFocus">
@@ -1619,6 +1637,9 @@
                 <property name="rootIsDecorated">
                  <bool>true</bool>
                 </property>
+                <property name="uniformRowHeights">
+                 <bool>true</bool>
+                </property>
                 <property name="allColumnsShowFocus">
                  <bool>true</bool>
                 </property>
@@ -1669,6 +1690,9 @@
                  <bool>false</bool>
                 </property>
                 <property name="rootIsDecorated">
+                 <bool>true</bool>
+                </property>
+                <property name="uniformRowHeights">
                  <bool>true</bool>
                 </property>
                 <property name="allColumnsShowFocus">
@@ -2986,6 +3010,9 @@
                 <property name="rootIsDecorated">
                  <bool>true</bool>
                 </property>
+                <property name="uniformRowHeights">
+                 <bool>true</bool>
+                </property>
                 <property name="allColumnsShowFocus">
                  <bool>true</bool>
                 </property>
@@ -3036,6 +3063,9 @@
                  <bool>false</bool>
                 </property>
                 <property name="rootIsDecorated">
+                 <bool>true</bool>
+                </property>
+                <property name="uniformRowHeights">
                  <bool>true</bool>
                 </property>
                 <property name="allColumnsShowFocus">
@@ -4001,6 +4031,9 @@
                 <property name="rootIsDecorated">
                  <bool>true</bool>
                 </property>
+                <property name="uniformRowHeights">
+                 <bool>true</bool>
+                </property>
                 <property name="allColumnsShowFocus">
                  <bool>true</bool>
                 </property>
@@ -4051,6 +4084,9 @@
                  <bool>false</bool>
                 </property>
                 <property name="rootIsDecorated">
+                 <bool>true</bool>
+                </property>
+                <property name="uniformRowHeights">
                  <bool>true</bool>
                 </property>
                 <property name="allColumnsShowFocus">
