@@ -1367,7 +1367,7 @@ DOCUMENT(R"(The format of an image file
 
   An EXR file
 
-.. data:: RAW
+.. data:: Raw
 
   Raw data, just the bytes of the image tightly packed with no metadata or compression/encoding
 )");
@@ -2521,6 +2521,11 @@ Note that a resource may be used for more than one thing in one event, see :clas
 .. data:: Barrier
 
   The resource is being specified in a barrier, as defined in Vulkan or Direct3D 12.
+
+.. data:: CPUWrite
+
+  The resource is written from the CPU, either directly as mapped memory or indirectly via a
+  synchronous update.
 )");
 enum class ResourceUsage : uint32_t
 {
@@ -3326,6 +3331,22 @@ enumerated with IDs in the appropriate ranges.
 .. data:: LastNvidia
 
   The nVidia-specific counter IDs end with this value.
+
+.. data:: FirstVulkanExtended
+
+  The Vulkan extended counter IDs start from this value.
+
+.. data:: LastVulkanExtended
+
+  The Vulkan extended counter IDs end with this value.
+
+.. data:: FirstARM
+
+  The ARM-specific counter IDs start from this value.
+
+.. data:: LastARM
+
+  The ARM-specific counter IDs end with this value.
 )");
 enum class GPUCounter : uint32_t
 {
@@ -3461,6 +3482,18 @@ DOCUMENT(R"(The unit that GPU counter data is returned in.
 .. data:: Cycles
 
   The value is a duration in clock cycles.
+
+.. data:: Hertz
+
+  The value is a value in Hertz (cycles per second).
+
+.. data:: Volt
+
+  The value is a value in Volts.
+
+.. data:: Celsius
+
+  The value is a value in Celsius.
 )");
 enum class CounterUnit : uint32_t
 {
@@ -3599,6 +3632,11 @@ a remote server.
   The API failed to replay the capture, with some runtime error that couldn't be determined until
   the replay began.
 
+.. data:: JDWPFailure
+
+  Use of JDWP to launch and inject into the application failed, this most often indicates that some
+  other JDWP-using program such as Android Studio is interfering.
+
 .. data:: AndroidGrantPermissionsFailed
 
   Failed to grant runtime permissions when installing Android remote server.
@@ -3687,6 +3725,10 @@ DOCUMENT(R"(The type of message received from or sent to an application target c
 .. data:: CaptureProgress
 
   Progress update on an on-going frame capture.
+
+.. data:: CapturableWindowCount
+
+  The number of capturable windows has changed.
 )");
 enum class TargetControlMessageType : uint32_t
 {
@@ -3863,10 +3905,6 @@ DOCUMENT(R"(Specifies a windowing system to use for creating an output window.
 
   The windowing data refers to an XCB window. See :func:`CreateXCBWindowingData`.
 
-.. data:: Wayland
-
-  The windowing data refers to an Wayland window. See :func:`CreateWaylandWindowingData`.
-
 .. data:: Android
 
   The windowing data refers to an Android window. See :func:`CreateAndroidWindowingData`.
@@ -3875,6 +3913,14 @@ DOCUMENT(R"(Specifies a windowing system to use for creating an output window.
 
   The windowing data refers to a MacOS / OS X NSView & CALayer that is Metal/GL compatible.
   See :func:`CreateMacOSWindowingData`.
+
+.. data:: GGP
+
+  The windowing data refers to an GGP surface. See :func:`CreateGgpWindowingData`.
+
+.. data:: Wayland
+
+  The windowing data refers to an Wayland window. See :func:`CreateWaylandWindowingData`.
 )");
 enum class WindowingSystem : uint32_t
 {
@@ -4244,7 +4290,7 @@ DOCUMENT(R"(A set of flags describing the properties of a particular drawcall.
   The drawcall marks the beginning or end of a render pass. See :data:`BeginPass` and
   :data:`EndPass`.
 
-.. data:: UseIBuffer
+.. data:: Indexed
 
   The drawcall uses an index buffer.
 

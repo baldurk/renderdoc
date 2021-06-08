@@ -33,6 +33,10 @@ typedef rdcarray<rdcpair<rdcstr, QVariant> > ExtensionCallbackData;
 
 DOCUMENT(R"(Specifies the base menu to add a menu item into.
 
+.. data:: Unknown
+
+  Unknown/invalid window.
+
 .. data:: File
 
   The menu item will be in a section between Open/Save/Close captures and Import/Export.
@@ -67,6 +71,10 @@ DECLARE_REFLECTION_ENUM(WindowMenu);
 
 DOCUMENT(R"(Specifies the panel to add a menu item into.
 
+.. data:: Unknown
+
+  Unknown/invalid panel.
+
 .. data:: EventBrowser
 
   The :class:`EventBrowser`.
@@ -95,6 +103,10 @@ enum class PanelMenu
 DECLARE_REFLECTION_ENUM(PanelMenu);
 
 DOCUMENT(R"(Specifies the panel to add a menu item into.
+
+.. data:: Unknown
+
+  Unknown/invalid context menu.
 
 .. data:: EventBrowser_Event
 

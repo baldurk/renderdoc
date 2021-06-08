@@ -29,8 +29,9 @@
 // macros around newly added classes/members.
 // For enums, verify that all constants are documented in the parent docstring
 // Generally we ensure naming is roughly OK:
-// * types, member functions, and enum values must match the regexp /[A-Z][a-zA-Z0-9]+/
+// * types, member functions must match the regexp /[A-Z][a-zA-Z0-9]+/
 //   ie. we don't use underscore_seperated_words or mixedCase / camelCase.
+// * Enum values are similar that they must start with a capital, but we allow underscores.
 // * data members should be mixedCase / camelCase. So matching /[a-z][a-zA-Z0-9]+/
 // This isn't quite python standards but it fits best with the C++ code and the important
 // thing is that it's self-consistent.
@@ -92,7 +93,7 @@ inline bool checkname(rdcstr &log, const char *baseType, rdcstr name, NameType n
   else
     badfirstChar = name[0] < 'A' || name[0] > 'Z';
 
-  if(badfirstChar || name.contains('_'))
+  if(badfirstChar || (nameType != NameType::EnumValue && name.contains('_')))
   {
     const char *nameTypeStr = "";
 
@@ -148,9 +149,13 @@ inline bool check_interface(rdcstr &log, swig_type_info **swig_types, size_t num
       errors_found = true;
     }
 
-    errors_found |= checkname(log, "renderdoc", typeobj->tp_name, NameType::Type);
+    rdcstr typeName = typeobj->tp_name;
+    errors_found |= checkname(log, "renderdoc", typeName, NameType::Type);
 
     PyObject *dict = typeobj->tp_dict;
+
+    if(!dict && typeobj->tp_base)
+      dict = typeobj->tp_base->tp_dict;
 
     // check the object's dict to see if this is an enum (or struct with constants).
     // We require ALL constants be documented in a docstring with data:: directives
@@ -184,6 +189,11 @@ inline bool check_interface(rdcstr &log, swig_type_info **swig_types, size_t num
               log += convert_error;
               errors_found = true;
             }
+            else if(str[0] == '_')
+            {
+              // ignore leading underscores. We assume that we don't do this ourselves so this lets
+              // us skip any internals we might get from looking at an Enum or IntFlag dict
+            }
             else
             {
               rdcstr name(str, len);
@@ -199,7 +209,21 @@ inline bool check_interface(rdcstr &log, swig_type_info **swig_types, size_t num
 
               // if it's a callable it's a method, ignore it
               if(!PyCallable_Check(value) && !PyType_IsSubtype(value->ob_type, &PyStaticMethod_Type))
-                errors_found |= checkname(log, typeobj->tp_name, name, nameType);
+              {
+                // some hardcoded exclusions that we allow to break the naming scheme
+                if(typeName == "KnownShaderTool")
+                {
+                  // these tools refer to executables so it would be strange to capitalise them.
+                }
+                else if(typeName == "GPUVendor" && name == "nVidia")
+                {
+                  // nVidia's capitalisation is more consistent this way than Nvidia
+                }
+                else
+                {
+                  errors_found |= checkname(log, typeobj->tp_name, name, nameType);
+                }
+              }
             }
 
             Py_DecRef(bytes);
