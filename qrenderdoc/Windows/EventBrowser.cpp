@@ -3816,6 +3816,7 @@ void EventBrowser::settings_filterApply()
 
     AddFilterSelections(m_FilterSettings.Filter->textCursor(), idx,
                         m_FilterSettings.Filter->palette().color(QPalette::Base), trace.exprs, sels);
+    m_FilterSettings.Explanation->clear();
     AddFilterExplanations(QString(), m_FilterSettings.Explanation->invisibleRootItem(), trace.exprs,
                           notesText);
 
