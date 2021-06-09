@@ -1680,7 +1680,8 @@ with //s. The syntax is perl-like and supports perl compatible options after the
   QString filterDescription_param() const
   {
     return tr(R"EOD(
-$param(name: value) - passes if a given parameter matches a value.
+$param(name: value)
+$param(name = value) - passes if a given parameter matches a value.
 
 This filter searches through the parameters to each API call to find a matching name. The name is
 specified case-sensitive and can be at any nesting level. The value is searched for as a
@@ -1696,8 +1697,12 @@ case-insensitive substring.
     int idx = parameters.indexOf(QLatin1Char(':'));
 
     if(idx < 0)
+      idx = parameters.indexOf(QLatin1Char('='));
+
+    if(idx < 0)
     {
-      trace.setError(tr("Parameter to to $param() should be name: value", "EventFilterModel"));
+      trace.setError(
+          tr("Parameter to to $param() should be name: value or name = value", "EventFilterModel"));
       return NULL;
     }
 
@@ -1706,7 +1711,8 @@ case-insensitive substring.
 
     if(paramValue.isEmpty())
     {
-      trace.setError(tr("Parameter to to $param() should be name: value", "EventFilterModel"));
+      trace.setError(
+          tr("Parameter to to $param() should be name: value or name = value", "EventFilterModel"));
       return NULL;
     }
 
