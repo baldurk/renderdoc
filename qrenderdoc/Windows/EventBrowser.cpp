@@ -1501,6 +1501,8 @@ private:
   {
     QList<Token> ret;
 
+    const QString operatorChars = lit("<>=:&");
+
     int p = 0;
     while(p < parameters.size())
     {
@@ -1512,7 +1514,11 @@ private:
 
       Token t;
       t.position = p;
-      while(p < parameters.size() && !parameters[p].isSpace())
+
+      bool tokenIsOperator = operatorChars.contains(parameters[p]);
+
+      while(p < parameters.size() && !parameters[p].isSpace() &&
+            operatorChars.contains(parameters[p]) == tokenIsOperator)
         p++;
       t.length = p - t.position;
       t.text = parameters.mid(t.position, t.length);
@@ -1762,7 +1768,9 @@ Available numeric properties. Compare with $event(prop > 100) or $event(prop <= 
   rdcarray<rdcstr> filterCompleter_event(ICaptureContext *ctx, const rdcstr &name,
                                          const rdcstr &params)
   {
-    if(params.find_first_of(" \t") == -1)
+    QList<Token> tokens = tokenise(params);
+
+    if(tokens.size() <= 1)
       return {"EID"};
 
     return {};
@@ -1881,7 +1889,9 @@ can be queried with a filter such as $draw(flags & Clear|ClearDepthStencil)
 
   rdcarray<rdcstr> filterCompleter_draw(ICaptureContext *ctx, const rdcstr &name, const rdcstr &params)
   {
-    if(params.find_first_of(" \t") == -1)
+    QList<Token> tokens = tokenise(params);
+
+    if(tokens.size() <= 1)
       return {
           "EID", "parent", "drawId", "numIndices",
           // most aliases we don't autocomplete but this one we leave
@@ -1889,8 +1899,6 @@ can be queried with a filter such as $draw(flags & Clear|ClearDepthStencil)
           "instanceOffset", "dispatchX", "dispatchY", "dispatchZ", "dispatchSize", "duration",
           "flags",
       };
-
-    QList<Token> tokens = tokenise(params);
 
     if(tokens[0].text == lit("flags") && tokens.size() >= 2)
     {
@@ -2230,7 +2238,9 @@ Available numeric properties. Compare with $dispatch(prop > 100) or $dispatch(pr
   rdcarray<rdcstr> filterCompleter_dispatch(ICaptureContext *ctx, const rdcstr &name,
                                             const rdcstr &params)
   {
-    if(params.find_first_of(" \t") == -1)
+    QList<Token> tokens = tokenise(params);
+
+    if(tokens.size() <= 1)
       return {
           "EID", "parent", "drawcallId", "drawId", "x", "y", "z", "size", "duration",
       };
