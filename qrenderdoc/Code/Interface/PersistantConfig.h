@@ -702,6 +702,19 @@ void RemoveRecentFile(rdcarray<rdcstr> &recentList, const rdcstr &file);
 
 struct LegacyData;
 
+#if !defined(SWIG)
+class QVariant;
+
+// not exposed to swig - allow windows to have completely custom persistent storage that aren't
+// "settings".
+struct CustomPersistentStorage
+{
+  CustomPersistentStorage(rdcstr name);
+  virtual void save(QVariant &v) const = 0;
+  virtual void load(const QVariant &v) = 0;
+};
+#endif
+
 DOCUMENT(R"(A persistant config file that is automatically loaded and saved, which contains any
 settings and information that needs to be preserved from one run to the next.
 

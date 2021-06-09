@@ -26,10 +26,12 @@
 #include <QAbstractItemModel>
 #include <QAbstractSpinBox>
 #include <QComboBox>
+#include <QCompleter>
 #include <QDialogButtonBox>
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QMenu>
+#include <QPushButton>
 #include <QRegularExpression>
 #include <QRegularExpressionMatch>
 #include <QScrollBar>
@@ -49,6 +51,59 @@
 #include "flowlayout/FlowLayout.h"
 #include "scintilla/include/qt/ScintillaEdit.h"
 #include "ui_EventBrowser.h"
+
+struct EventBrowserPersistentStorage : public CustomPersistentStorage
+{
+  EventBrowserPersistentStorage() : CustomPersistentStorage(rdcstr()) {}
+  EventBrowserPersistentStorage(rdcstr name) : CustomPersistentStorage(name) {}
+  void save(QVariant &v) const
+  {
+    QVariantMap settings;
+
+    settings[lit("current")] = CurrentFilter;
+
+    QVariantList filters;
+    for(const QPair<QString, QString> &f : SavedFilters)
+      filters << QVariant(QVariantList({f.first, f.second}));
+
+    settings[lit("filters")] = filters;
+
+    v = settings;
+  }
+
+  void load(const QVariant &v)
+  {
+    QVariantMap settings = v.toMap();
+
+    QVariant current = settings[lit("current")];
+    if(current.isValid() && current.type() == QVariant::String)
+      CurrentFilter = current.toString();
+
+    QVariant saved = settings[lit("filters")];
+    if(saved.isValid() && saved.type() == QVariant::List)
+    {
+      QVariantList filters = saved.toList();
+      for(QVariant filter : filters)
+      {
+        QVariantList filterPair = filter.toList();
+        if(filterPair.count() == 2 && filterPair[0].type() == QVariant::String &&
+           filterPair[1].type() == QVariant::String)
+        {
+          QString name = filterPair[0].toString();
+          QString expr = filterPair[1].toString();
+
+          if(!name.isEmpty())
+            SavedFilters.push_back({name, expr});
+        }
+      }
+    }
+  }
+
+  QString CurrentFilter = lit("$draw()");
+  QList<QPair<QString, QString>> SavedFilters;
+};
+
+static EventBrowserPersistentStorage persistantStorage("EventBrowser");
 
 enum
 {
@@ -3084,8 +3139,34 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   ui->filterExpression->enableCompletion();
   ui->filterExpression->setAcceptRichText(false);
 
-  // set default filter, include only draws that aren't pop markers
-  ui->filterExpression->setText(lit("$draw()"));
+  ui->filterExpression->setText(persistantStorage.CurrentFilter);
+
+  m_SavedCompleter = new QCompleter(this);
+  m_SavedCompleter->setWidget(ui->filterExpression);
+  m_SavedCompleter->setCompletionMode(QCompleter::UnfilteredPopupCompletion);
+  m_SavedCompleter->setWrapAround(false);
+  m_SavedCompletionModel = new QStringListModel(this);
+  m_SavedCompleter->setModel(m_SavedCompletionModel);
+  m_SavedCompleter->setCompletionRole(Qt::DisplayRole);
+
+  QObject::connect(m_SavedCompleter, OverloadedSlot<const QModelIndex &>::of(&QCompleter::activated),
+                   [this](const QModelIndex &idx) {
+                     int i = idx.row();
+                     if(i >= 0 && i < persistantStorage.SavedFilters.count())
+                     {
+                       m_CurrentFilterText->setPlainText(persistantStorage.SavedFilters[i].second);
+
+                       QTextCursor c = m_CurrentFilterText->textCursor();
+                       c.movePosition(QTextCursor::EndOfLine);
+                       m_CurrentFilterText->setTextCursor(c);
+                     }
+                   });
+
+  QObject::connect(ui->filterExpression, &RDTextEdit::keyPress, this,
+                   &EventBrowser::savedFilter_keyPress);
+
+  QObject::connect(ui->recentFilters, &QToolButton::clicked,
+                   [this]() { ShowSavedFilterCompleter(ui->filterExpression); });
 
   QObject::connect(ui->filterSettings, &QToolButton::clicked, this,
                    &EventBrowser::filterSettings_clicked);
@@ -3317,7 +3398,7 @@ void EventBrowser::CreateFilterDialog()
   m_FilterSettings.FuncList = new QListWidget(this);
   m_FilterSettings.Explanation = new RDTreeWidget(this);
 
-  m_FilterSettings.Dialog->setWindowTitle(lit("Event Filter Configuration"));
+  m_FilterSettings.Dialog->setWindowTitle(tr("Event Filter Configuration"));
   m_FilterSettings.Dialog->setWindowFlags(m_FilterSettings.Dialog->windowFlags() &
                                           ~Qt::WindowContextHelpButtonHint);
   m_FilterSettings.Dialog->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
@@ -3375,6 +3456,151 @@ void EventBrowser::CreateFilterDialog()
 
   QObject::connect(m_FilterSettings.Filter, &RDTextEdit::completionEnd, m_FilterSettings.Filter,
                    &RDTextEdit::textChanged);
+
+  QObject::connect(m_FilterSettings.Filter, &RDTextEdit::keyPress, this,
+                   &EventBrowser::savedFilter_keyPress);
+
+  QObject::connect(recentFilters, &QToolButton::clicked,
+                   [this]() { ShowSavedFilterCompleter(m_FilterSettings.Filter); });
+
+  QObject::connect(saveFilter, &QToolButton::clicked, [this]() {
+    QDialog *dialog = new QDialog(this);
+
+    dialog->setWindowTitle(tr("Save filters"));
+    dialog->setWindowFlags(dialog->windowFlags() & ~Qt::WindowContextHelpButtonHint);
+    dialog->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+
+    RDLineEdit saveName;
+    saveName.setPlaceholderText(tr("Name of filter"));
+
+    RDListWidget filters;
+    for(const QPair<QString, QString> &f : persistantStorage.SavedFilters)
+      filters.addItem(f.first);
+
+    QPushButton saveButton;
+    saveButton.setText(tr("Save"));
+    saveButton.setIcon(Icons::save());
+    QPushButton deleteButton;
+    deleteButton.setText(tr("Delete"));
+
+    QDialogButtonBox saveDialogButtons;
+    saveDialogButtons.addButton(QDialogButtonBox::Ok);
+    QObject::connect(&saveDialogButtons, &QDialogButtonBox::accepted, dialog, &QDialog::accept);
+
+    QGridLayout grid;
+    grid.addWidget(&saveName, 0, 0, 1, 1);
+    grid.addWidget(&saveButton, 0, 1, 1, 1);
+    grid.addWidget(&filters, 1, 0, 1, 1);
+    grid.addWidget(&deleteButton, 1, 1, 1, 1, Qt::AlignHCenter | Qt::AlignTop);
+    grid.addWidget(&saveDialogButtons, 2, 0, 1, 2);
+
+    dialog->setLayout(&grid);
+
+    auto enterCallback = [this, &saveButton, &deleteButton](QKeyEvent *e) {
+      if(e->key() == Qt::Key_Return || e->key() == Qt::Key_Enter)
+      {
+        saveButton.click();
+        e->accept();
+      }
+
+      if(e->key() == Qt::Key_Backspace || e->key() == Qt::Key_Delete)
+      {
+        deleteButton.click();
+        e->accept();
+      }
+    };
+
+    QObject::connect(&saveName, &RDLineEdit::keyPress, enterCallback);
+    QObject::connect(&filters, &RDListWidget::keyPress, enterCallback);
+    QObject::connect(&filters, &RDListWidget::itemActivated,
+                     [&saveButton](QListWidgetItem *) { saveButton.click(); });
+
+    QObject::connect(&saveName, &RDLineEdit::textChanged, [this, &saveName, &filters]() {
+      for(int i = 0; i < persistantStorage.SavedFilters.count(); i++)
+      {
+        if(saveName.text().trimmed().toLower() == persistantStorage.SavedFilters[i].first.toLower())
+        {
+          if(filters.currentRow() != i)
+            filters.setCurrentRow(i);
+          return;
+        }
+      }
+
+      filters.setCurrentItem(NULL);
+    });
+
+    QObject::connect(&filters, &QListWidget::currentRowChanged, [this, &saveName](int row) {
+      if(row >= 0 && row < persistantStorage.SavedFilters.count())
+        saveName.setText(persistantStorage.SavedFilters[row].first);
+    });
+
+    QObject::connect(&saveButton, &QPushButton::clicked, [this, dialog, &saveName, &filters]() {
+      QString n = saveName.text().trimmed();
+      QString f = m_FilterSettings.Filter->toPlainText();
+
+      for(int i = 0; i < persistantStorage.SavedFilters.count(); i++)
+      {
+        if(n.toLower() == persistantStorage.SavedFilters[i].first.toLower())
+        {
+          if(persistantStorage.SavedFilters[i].second.trimmed() == f.trimmed())
+          {
+            dialog->accept();
+            return;
+          }
+
+          QMessageBox::StandardButton res = RDDialog::question(
+              dialog, tr("Delete filter?"),
+              tr("Are you sure you want to overwrite the %1 filter? From:\n\n%2\n\nTo:\n\n%3")
+                  .arg(persistantStorage.SavedFilters[i].first)
+                  .arg(persistantStorage.SavedFilters[i].second)
+                  .arg(f),
+              QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+
+          if(res != QMessageBox::Yes)
+            return;
+
+          delete filters.takeItem(i);
+          persistantStorage.SavedFilters.erase(persistantStorage.SavedFilters.begin() + i);
+          break;
+        }
+      }
+
+      persistantStorage.SavedFilters.insert(0, {n, f});
+
+      dialog->accept();
+    });
+
+    QObject::connect(&deleteButton, &QPushButton::clicked, [this, dialog, &filters]() {
+      QListWidgetItem *item = filters.currentItem();
+      if(!item)
+        return;
+
+      for(int i = 0; i < persistantStorage.SavedFilters.count(); i++)
+      {
+        if(item->text().trimmed().toLower() == persistantStorage.SavedFilters[i].first.toLower())
+        {
+          QMessageBox::StandardButton res =
+              RDDialog::question(dialog, tr("Delete filter?"),
+                                 tr("Are you sure you want to delete the %1 filter?\n\n%2")
+                                     .arg(persistantStorage.SavedFilters[i].first)
+                                     .arg(persistantStorage.SavedFilters[i].second),
+                                 QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+
+          if(res == QMessageBox::Yes)
+          {
+            delete filters.takeItem(i);
+            persistantStorage.SavedFilters.erase(persistantStorage.SavedFilters.begin() + i);
+          }
+
+          return;
+        }
+      }
+    });
+
+    RDDialog::show(dialog);
+
+    dialog->deleteLater();
+  });
 
   recentFilters->setAutoRaise(true);
   recentFilters->setIcon(Icons::filter_reapply());
@@ -3437,6 +3663,11 @@ void EventBrowser::CreateFilterDialog()
       // stop the timer, we'll manually fire it instantly
       m_FilterSettings.Timeout->stop();
       m_FilterSettings.Timeout->timeout({});
+    }
+
+    if(e->key() == Qt::Key_Down)
+    {
+      ShowSavedFilterCompleter(m_FilterSettings.Filter);
     }
   });
 
@@ -3683,6 +3914,7 @@ void EventBrowser::filter_apply()
   ui->events->updateExpansion(m_EventsExpansion, keygen);
 
   QString expression = ui->filterExpression->toPlainText();
+  persistantStorage.CurrentFilter = expression;
 
   rdcarray<EventFilter> filters;
   *m_ParseTrace = m_FilterModel->ParseExpressionToFilters(expression, filters);
@@ -3872,6 +4104,11 @@ void EventBrowser::on_filterExpression_keyPress(QKeyEvent *e)
 
     filter_apply();
   }
+
+  if(e->key() == Qt::Key_Down)
+  {
+    ShowSavedFilterCompleter(ui->filterExpression);
+  }
 }
 
 void EventBrowser::filter_forceCompletion_keyPress(QKeyEvent *e)
@@ -3909,6 +4146,48 @@ void EventBrowser::filter_forceCompletion_keyPress(QKeyEvent *e)
     if(!inQuote)
       sender->triggerCompletion();
   }
+}
+
+void EventBrowser::ShowSavedFilterCompleter(RDTextEdit *filter)
+{
+  QStringList strs;
+
+  for(QPair<QString, QString> &f : persistantStorage.SavedFilters)
+    strs << f.first + lit(": ") + f.second;
+
+  m_SavedCompletionModel->setStringList(strs);
+
+  m_SavedCompleter->setWidget(filter);
+
+  QRect r = filter->rect();
+  m_SavedCompleter->complete(r);
+
+  m_CurrentFilterText = filter;
+}
+
+void EventBrowser::savedFilter_keyPress(QKeyEvent *e)
+{
+  if(!m_SavedCompleter->popup()->isVisible())
+    return;
+
+  switch(e->key())
+  {
+    // if a completion is in progress ignore any events the completer will process
+    case Qt::Key_Return:
+    case Qt::Key_Enter:
+      m_SavedCompleter->activated(m_SavedCompleter->popup()->selectionModel()->currentIndex());
+      m_SavedCompleter->popup()->hide();
+      return;
+    // allow key scrolling
+    case Qt::Key_Up:
+    case Qt::Key_Down:
+    case Qt::Key_PageUp:
+    case Qt::Key_PageDown: return;
+    default: break;
+  }
+
+  // all other keys close the popup
+  m_SavedCompleter->popup()->hide();
 }
 
 void EventBrowser::on_filterExpression_textChanged()

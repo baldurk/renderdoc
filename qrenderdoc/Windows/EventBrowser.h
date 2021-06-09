@@ -47,6 +47,8 @@ class RDTreeWidgetItem;
 class RDTextEdit;
 class QListWidget;
 class QCheckBox;
+class QCompleter;
+class QStringListModel;
 
 typedef QSet<uint> RDTreeViewExpansionState;
 
@@ -167,6 +169,7 @@ private slots:
   void settings_filterApply();
   void filterSettings_clicked();
   void filter_forceCompletion_keyPress(QKeyEvent *e);
+  void savedFilter_keyPress(QKeyEvent *e);
   void filter_CompletionBegin(QString prefix);
   void filter_apply();
   void events_keyPress(QKeyEvent *event);
@@ -190,6 +193,7 @@ private:
   int FindEvent(QString filter, uint32_t after, bool forward);
   void Find(bool forward);
 
+  void ShowSavedFilterCompleter(RDTextEdit *filter);
   void CreateFilterDialog();
 
   void AddFilterExplanations(QString parentFunc, RDTreeWidgetItem *root,
@@ -236,6 +240,10 @@ private:
 
     QTimer *Timeout;
   } m_FilterSettings;
+
+  QCompleter *m_SavedCompleter;
+  QStringListModel *m_SavedCompletionModel;
+  RDTextEdit *m_CurrentFilterText;
 
   void RefreshShaderMessages();
   Ui::EventBrowser *ui;
