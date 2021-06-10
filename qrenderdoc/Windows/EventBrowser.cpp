@@ -3404,7 +3404,7 @@ void EventBrowser::CreateFilterDialog()
   QToolButton *recentFilters = new QToolButton(this);
   QToolButton *saveFilter = new QToolButton(this);
 
-  QVBoxLayout *settingsLayout = new QVBoxLayout(this);
+  QVBoxLayout *settingsLayout = new QVBoxLayout();
   m_FilterSettings.ShowParams = new QCheckBox(this);
   m_FilterSettings.ShowAll = new QCheckBox(this);
   m_FilterSettings.UseCustom = new QCheckBox(this);
@@ -3655,7 +3655,44 @@ void EventBrowser::CreateFilterDialog()
                      if(current)
                      {
                        QString f = current->text();
-                       if(f == lit("Literal"))
+                       if(m_FilterSettings.FuncList->row(current) == 0)
+                       {
+                         m_FilterSettings.FuncDocs->setText(tr(R"EOD(
+General filter help
+
+Filters are made of a series of matching terms. E.g. a filter such as:
+
+  Draw Clear Copy
+
+would match each string against event names, and include any event that matches
+any of the above.
+
+You can also exclude matches with - such as:
+
+  Draw Clear Copy -Depth
+
+which will match as in the first example, except exclude any events that match
+'Depth'.
+
+You can also require matches, which overrides any optional matches:
+
+  +Draw +Indexed -Instanced
+
+which will match only events which match Draw and match Indexed but don't match
+Instanced. In this case adding a term with no + or - prefix will be ignored,
+since an event will be excluded if it doesn't match all the +required terms
+anyway.
+
+Finally you can use filter functions for more advanced matching than just
+strings. These are documented on the left here, but for example
+
+  $draw(numIndices > 1000) Indexed
+
+will include any drawcall that matches 'Indexed' as a plain string match, and
+also renders more than 1000 indices.
+)EOD").trimmed());
+                       }
+                       else if(f == lit("Literal String"))
                        {
                          m_FilterSettings.FuncDocs->setText(tr(R"EOD(
 "Literal string"
@@ -3711,7 +3748,7 @@ For searching arbitrary parameters consider using the $param() function.
 
   QVBoxLayout *layout = new QVBoxLayout();
 
-  QHBoxLayout *filterLayout = new QHBoxLayout(this);
+  QHBoxLayout *filterLayout = new QHBoxLayout();
   {
     filterLayout->addWidget(filterLabel);
     filterLayout->addWidget(m_FilterSettings.Filter);
@@ -3727,7 +3764,7 @@ For searching arbitrary parameters consider using the $param() function.
 
   layout->addWidget(settingsGroup);
 
-  QHBoxLayout *funcsLayout = new QHBoxLayout(this);
+  QHBoxLayout *funcsLayout = new QHBoxLayout();
 
   {
     layout->addWidget(listLabel);
@@ -3752,7 +3789,8 @@ void EventBrowser::explanation_currentItemChanged(RDTreeWidgetItem *current, RDT
     funcName = current->text(1);
 
   QStringList funcs = m_FilterModel->GetFunctions();
-  funcs.insert(0, lit("Literal"));
+  funcs.insert(0, tr("General Help"));
+  funcs.insert(1, tr("Literal String"));
 
   int idx = funcs.indexOf(funcName);
   if(idx >= 0)
@@ -3866,9 +3904,12 @@ void EventBrowser::filterSettings_clicked()
 
   // fill out the list of filter functions with the current list
   m_FilterSettings.FuncList->clear();
-  m_FilterSettings.FuncList->addItem(lit("Literal"));
+  m_FilterSettings.FuncList->addItem(tr("General Help"));
+  m_FilterSettings.FuncList->addItem(tr("Literal String"));
   for(QString f : m_FilterModel->GetFunctions())
     m_FilterSettings.FuncList->addItem(QFormatStr("$%1()").arg(f));
+
+  m_FilterSettings.FuncList->setCurrentRow(0);
 
   m_FilterSettings.Filter->setText(ui->filterExpression->toPlainText());
   // immediately process and apply the filter
@@ -4104,7 +4145,7 @@ void EventBrowser::AddFilterExplanations(QString parentFunc, RDTreeWidgetItem *r
     }
 
     RDTreeWidgetItem *item =
-        new RDTreeWidgetItem({explanation, f.function ? f.name : lit("Literal")});
+        new RDTreeWidgetItem({explanation, f.function ? f.name : tr("Literal String")});
     item->setBackgroundColor(f.col);
 
     item->setTag(QSize(f.position, f.length));
