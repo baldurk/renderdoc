@@ -58,6 +58,8 @@ struct EventFilterModel;
 
 struct ParseTrace;
 
+class MarkerBreadcrumbs;
+
 enum class MatchType
 {
   MustMatch,
@@ -120,6 +122,7 @@ public:
   void UpdateDurationColumn() override;
   APIEvent GetAPIEventForEID(uint32_t eid) override;
   const DrawcallDescription *GetDrawcallForEID(uint32_t eid) override;
+  bool IsAPIEventVisible(uint32_t eid) override;
   bool RegisterEventFilterFunction(const rdcstr &name, const rdcstr &description,
                                    EventFilterCallback filter, FilterParseCallback parser,
                                    AutoCompleteCallback completer) override;
@@ -224,6 +227,8 @@ private:
   FlowLayout *m_BookmarkStripLayout;
   QSpacerItem *m_BookmarkSpacer;
   QMap<uint32_t, QToolButton *> m_BookmarkButtons;
+
+  MarkerBreadcrumbs *m_Breadcrumbs;
 
   struct
   {

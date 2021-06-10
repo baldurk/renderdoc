@@ -297,6 +297,17 @@ If no capture is loaded or the EID doesn't correspond to a known event, ``None``
 )");
   virtual const DrawcallDescription *GetDrawcallForEID(uint32_t eventId) = 0;
 
+  DOCUMENT(R"(Determines if a given EID is visible with the current filters applied to the event
+browser.
+
+If no capture is loaded or the EID doesn't correspond to a known event, ``False`` will be returned.
+
+:param int eventId: The EID to look up.
+:return: Whether or not the event is currently visible (passing the filters).
+:rtype: bool
+)");
+  virtual bool IsAPIEventVisible(uint32_t eventId) = 0;
+
   DOCUMENT(R"(Registers a new event browser filter function.
 
 Filter functions are available as $name() so long as they don't shadow an existing function. The

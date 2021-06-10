@@ -750,6 +750,12 @@
     <ClCompile Include="Windows\ShaderMessageViewer.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_MarkerBreadcrumbs.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\MarkerBreadcrumbs.cpp">
+      <Filter>Widgets</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -1525,6 +1531,9 @@
     </CustomBuild>
     <CustomBuild Include="Windows\ShaderMessageViewer.ui">
       <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\MarkerBreadcrumbs.h">
+      <Filter>Widgets</Filter>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>

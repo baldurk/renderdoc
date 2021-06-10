@@ -411,6 +411,10 @@
     </widget>
    </item>
    <item>
+    <widget class="QWidget" name="breadcrumbStrip" native="true">
+    </widget>
+   </item>
+   <item>
     <widget class="QWidget" name="bookmarkStrip" native="true">
      <widget class="QWidget" name="bookmarkStripHeader" native="true">
       <property name="geometry">

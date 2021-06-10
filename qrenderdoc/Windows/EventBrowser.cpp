@@ -48,6 +48,7 @@
 #include "Widgets/Extended/RDLabel.h"
 #include "Widgets/Extended/RDListWidget.h"
 #include "Widgets/Extended/RDTreeWidget.h"
+#include "Widgets/MarkerBreadcrumbs.h"
 #include "flowlayout/FlowLayout.h"
 #include "scintilla/include/qt/ScintillaEdit.h"
 #include "ui_EventBrowser.h"
@@ -446,10 +447,16 @@ struct EventItemModel : public QAbstractItemModel
         {
           // except if the draw is a fake marker. In this case its own event ID is invalid, so we
           // check the range of its children (knowing it only has one layer of children)
-          if(d.IsFakeMarker() && d.children[0].eventId < eid)
+          if(d.IsFakeMarker())
           {
-            rowInParent++;
-            continue;
+            if(d.eventId == eid)
+              break;
+
+            if(d.children[0].eventId < eid)
+            {
+              rowInParent++;
+              continue;
+            }
           }
 
           // keep counting until we get to the row within this draw
@@ -3096,6 +3103,18 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   m_BookmarkStripLayout->addWidget(ui->bookmarkStripHeader);
   m_BookmarkStripLayout->addItem(m_BookmarkSpacer);
 
+  {
+    QHBoxLayout *box = new QHBoxLayout(ui->breadcrumbStrip);
+    box->setContentsMargins(QMargins(0, 0, 0, 0));
+    box->setMargin(0);
+    box->setSpacing(0);
+    m_Breadcrumbs = new MarkerBreadcrumbs(m_Ctx, this);
+    box->addWidget(m_Breadcrumbs);
+    ui->breadcrumbStrip->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Minimum);
+
+    m_Breadcrumbs->hide();
+  }
+
   Qt::Key keys[] = {
       Qt::Key_1, Qt::Key_2, Qt::Key_3, Qt::Key_4, Qt::Key_5,
       Qt::Key_6, Qt::Key_7, Qt::Key_8, Qt::Key_9, Qt::Key_0,
@@ -3203,8 +3222,6 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
 
   CreateFilterDialog();
 
-  filter_apply();
-
   m_redPalette = palette();
   m_redPalette.setColor(QPalette::Base, Qt::red);
 
@@ -3254,8 +3271,15 @@ void EventBrowser::OnCaptureLoaded()
   // expand the root frame node
   ui->events->expand(ui->events->model()->index(0, 0));
 
+  filter_apply();
+
+  ui->events->scrollTo(ui->events->model()->index(0, 0));
+
   clearBookmarks();
   repopulateBookmarks();
+
+  m_Breadcrumbs->show();
+  m_Breadcrumbs->ForceRefresh();
 
   ui->find->setEnabled(true);
   ui->timeDraws->setEnabled(true);
@@ -3270,6 +3294,8 @@ void EventBrowser::OnCaptureClosed()
   clearBookmarks();
 
   on_HideFind();
+
+  m_Breadcrumbs->hide();
 
   m_FilterModel->ResetCache();
   // older Qt versions lose all the sections when a model resets even if the sections don't change.
@@ -3294,6 +3320,7 @@ void EventBrowser::OnEventChanged(uint32_t eventId)
   highlightBookmarks();
 
   m_Model->RefreshCache();
+  m_Breadcrumbs->OnEventChanged(eventId);
 }
 
 void EventBrowser::on_find_toggled(bool checked)
@@ -3352,6 +3379,7 @@ void EventBrowser::events_currentChanged(const QModelIndex &current, const QMode
   m_Ctx.SetEventID({this}, selectedEID, effectiveEID);
 
   m_Model->RefreshCache();
+  m_Breadcrumbs->OnEventChanged(effectiveEID);
 
   const DrawcallDescription *draw = m_Ctx.GetDrawcall(selectedEID);
 
@@ -3975,6 +4003,8 @@ void EventBrowser::filter_apply()
 
   if(m_FilterTimeout->isActive())
     m_FilterTimeout->stop();
+
+  m_Breadcrumbs->ForceRefresh();
 
   // unselect everything while applying the filter, to avoid updating the source model while the
   // filter is processing if the current event is no longer selected
@@ -4853,6 +4883,11 @@ APIEvent EventBrowser::GetAPIEventForEID(uint32_t eid)
 const DrawcallDescription *EventBrowser::GetDrawcallForEID(uint32_t eid)
 {
   return m_Model->GetDrawcallForEID(eid);
+}
+
+bool EventBrowser::IsAPIEventVisible(uint32_t eid)
+{
+  return m_FilterModel->mapFromSource(m_Model->GetIndexForEID(eid)).isValid();
 }
 
 bool EventBrowser::RegisterEventFilterFunction(const rdcstr &name, const rdcstr &description,
