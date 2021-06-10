@@ -1534,7 +1534,7 @@ private:
 $any(...) - passes if any of its terms passes
 
 This filter can be used to nest terms, by saying "if any of these terms passes,
-the overall filter will pass".
+the overall filter will pass". A term can be a literal value or another function.
 
 See also: $all()
 )EOD",
@@ -1572,7 +1572,7 @@ See also: $all()
 $all(...) - passes if all of its terms passes
 
 This filter can be used to nest terms, by saying "if all of these terms passes,
-the overall filter will pass".
+the overall filter will pass". A term can be a literal value or another function.
 
 See also: $any()
 )EOD",
@@ -1608,11 +1608,12 @@ See also: $any()
     return tr(R"EOD(
 $regex(/my regex.*match/i) - passes if the specified regex matches the event name.
 
-This filter can be used to do regex matching against events. The regex itself must be surrounded
-with //s. The syntax is perl-like and supports perl compatible options after the trailing /:
+This filter can be used to do regex matching against events. The regex itself must
+be surrounded with //s. The syntax is perl-like and supports perl compatible options
+after the trailing /:
    /i - Case insensitive match
    /x - Extended syntax. See regex documentation for more information
-   /u - Use unicode properties. Character classes like \w and \d match more than just ASCII
+   /u - Use unicode properties. Character classes like \w and \d match more than ASCII
 )EOD",
               "EventFilterModel");
   }
@@ -1689,9 +1690,9 @@ with //s. The syntax is perl-like and supports perl compatible options after the
 $param(name: value)
 $param(name = value) - passes if a given parameter matches a value.
 
-This filter searches through the parameters to each API call to find a matching name. The name is
-specified case-sensitive and can be at any nesting level. The value is searched for as a
-case-insensitive substring.
+This filter searches through the parameters to each API call to find a matching name.
+The name is specified case-sensitive and can be at any nesting level. The value is
+searched for as a case-insensitive substring.
 )EOD",
               "EventFilterModel");
   }
@@ -1755,8 +1756,8 @@ case-insensitive substring.
     return tr(R"EOD(
 $event(condition) - passes if an event property matches a condition.
 
-This filter queries given properties of an event to match simple conditions. A condition must be
-specified, and only one condition can be queried in each $event().
+This filter queries given properties of an event to match simple conditions. A
+condition must be specified, and only one condition can be queried in each $event().
 
 Available numeric properties. Compare with $event(prop > 100) or $event(prop <= 200)
 
@@ -1862,8 +1863,8 @@ $draw(condition) - passes if an event is a drawcall and matches a condition.
 
 This filter applies to draw-type events.
 
-If no condition is specified then the event is just included if it's a draw. Otherwise the event is
-included if it's a draw AND if the condition is true.
+If no condition is specified then the event is just included if it's a draw.
+Otherwise the event is included if it's a draw AND if the condition is true.
 
 Available numeric properties. Compare with $draw(prop > 100) or $draw(prop <= 200)
 
@@ -1879,10 +1880,10 @@ Available numeric properties. Compare with $draw(prop > 100) or $draw(prop <= 20
    dispatchY:      The number of groups in the Y dimension of a dispatch.
    dispatchZ:      The number of groups in the Z dimension of a dispatch.
    dispatchSize:   The total number of groups (X * Y * Z) of a dispatch.
-   duration:       The listed duration of a drawcall (only available if durations have been fetched).
+   duration:       The listed duration of a drawcall (only available with durations).
 
-Also available is the 'flags' property. Drawcalls have different flags and properties and these
-can be queried with a filter such as $draw(flags & Clear|ClearDepthStencil)
+Also available is the 'flags' property. Drawcalls have different flags and properties
+and these can be queried with a filter such as $draw(flags & Clear|ClearDepthStencil)
 )EOD",
               "EventFilterModel");
   }
@@ -2218,8 +2219,8 @@ $dispatch(condition) - passes if an event is a dispatch and matches a condition.
 
 This filter applies to compute dispatches.
 
-If no condition is specified then the event is just included if it's a dispatch. Otherwise the event is
-included if it's a dispatch AND if the condition is true.
+If no condition is specified then the event is just included if it's a dispatch.
+Otherwise the event is included if it's a dispatch AND if the condition is true.
 
 Available numeric properties. Compare with $dispatch(prop > 100) or $dispatch(prop <= 200)
 
@@ -2230,7 +2231,7 @@ Available numeric properties. Compare with $dispatch(prop > 100) or $dispatch(pr
    y:        The number of groups in the Y dimension of a dispatch.
    z:        The number of groups in the Z dimension of a dispatch.
    size:     The total number of groups (X * Y * Z) of a dispatch.
-   duration: The listed duration of a drawcall (only available if durations have been fetched).
+   duration: The listed duration of a drawcall (only available with durations).
 )EOD",
               "EventFilterModel");
   }
@@ -3654,8 +3655,23 @@ void EventBrowser::CreateFilterDialog()
                      if(current)
                      {
                        QString f = current->text();
-                       f = f.mid(1, f.size() - 3);
-                       m_FilterSettings.FuncDocs->setText(m_FilterModel->GetDescription(f));
+                       if(f == lit("Literal"))
+                       {
+                         m_FilterSettings.FuncDocs->setText(tr(R"EOD(
+"Literal string"
+literal_string       - passes if the event's name contains a literal string
+
+Any literal string, optionally included in quotes to include special characters
+or whitespace, will be case-insensitively matched against the event name. Note that
+this doesn't include all parameters, only those that appear in the name summary.
+For searching arbitrary parameters consider using the $param() function.
+)EOD").trimmed());
+                       }
+                       else
+                       {
+                         f = f.mid(1, f.size() - 3);
+                         m_FilterSettings.FuncDocs->setText(m_FilterModel->GetDescription(f));
+                       }
                      }
                      else
                      {
@@ -3736,6 +3752,7 @@ void EventBrowser::explanation_currentItemChanged(RDTreeWidgetItem *current, RDT
     funcName = current->text(1);
 
   QStringList funcs = m_FilterModel->GetFunctions();
+  funcs.insert(0, lit("Literal"));
 
   int idx = funcs.indexOf(funcName);
   if(idx >= 0)
@@ -3849,6 +3866,7 @@ void EventBrowser::filterSettings_clicked()
 
   // fill out the list of filter functions with the current list
   m_FilterSettings.FuncList->clear();
+  m_FilterSettings.FuncList->addItem(lit("Literal"));
   for(QString f : m_FilterModel->GetFunctions())
     m_FilterSettings.FuncList->addItem(QFormatStr("$%1()").arg(f));
 
@@ -4085,7 +4103,8 @@ void EventBrowser::AddFilterExplanations(QString parentFunc, RDTreeWidgetItem *r
       explanation += tr("Function %1 passes").arg(f.printName());
     }
 
-    RDTreeWidgetItem *item = new RDTreeWidgetItem({explanation, f.name});
+    RDTreeWidgetItem *item =
+        new RDTreeWidgetItem({explanation, f.function ? f.name : lit("Literal")});
     item->setBackgroundColor(f.col);
 
     item->setTag(QSize(f.position, f.length));
