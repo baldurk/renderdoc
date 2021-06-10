@@ -1189,19 +1189,24 @@ bool EvaluateFilterSet(ICaptureContext &ctx, const rdcarray<EventFilter> &filter
 
   bool accept = false;
 
-  bool anyNormal = false;
+  bool anyMust = false;
   for(const EventFilter &filter : filters)
-    anyNormal |= (filter.type == MatchType::Normal);
+    anyMust |= (filter.type == MatchType::MustMatch);
 
-  // if there aren't any normal filters, they're all CantMatch or MustMatch. In this case we default
+  // if there are MustMatch filters we ignore normals for the sake of matching. We also default
   // to acceptance so that if they all pass then we match. This handles cases like +foo -bar which
-  // would return the default on a string like "foothing" which would return a false match
-  if(!anyNormal)
+  // would return the default on a string like "foothing" which would return a false match if we
+  // didn't do this
+  if(anyMust)
     accept = true;
 
   // if any top-level filter matches, we match
   for(const EventFilter &filter : filters)
   {
+    // ignore normal filters when we have must matches. Only consider must/can't
+    if(anyMust && filter.type == MatchType::Normal)
+      continue;
+
     // if we've already accepted and this is a normal filter and we are in non-all mode, it won't
     // change the result so don't bother running the filter.
     if(accept && !all && filter.type == MatchType::Normal)
