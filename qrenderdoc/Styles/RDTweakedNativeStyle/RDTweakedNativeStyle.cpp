@@ -482,9 +482,28 @@ void RDTweakedNativeStyle::drawControl(ControlElement control, const QStyleOptio
         proxy()->drawItemPixmap(p, QStyle::visualRect(opt->direction, rect, iconRect),
                                 Qt::AlignCenter, pixmap);
 
-      proxy()->drawItemText(p, QStyle::visualRect(opt->direction, rect, textRect), textFlags,
-                            toolopt->palette, toolopt->state & State_Enabled, toolopt->text,
-                            QPalette::ButtonText);
+      // elide text from the right if there's not enough space
+      QFontMetrics metrics(toolopt->font);
+
+      int space = metrics.horizontalAdvance(QLatin1Char(' '));
+      textRect = QStyle::visualRect(opt->direction, rect, textRect);
+
+      if(toolopt->toolButtonStyle == Qt::ToolButtonTextOnly)
+      {
+        textRect.adjust(3 + space, 0, -3 - space, 0);
+      }
+
+      const QString elidedText = metrics.elidedText(toolopt->text, Qt::ElideRight, textRect.width());
+
+      // if we elided, align left now
+      if(elidedText.length() < toolopt->text.length())
+      {
+        textFlags &= ~Qt::AlignCenter;
+        textFlags |= Qt::AlignLeft | Qt::AlignVCenter;
+      }
+
+      proxy()->drawItemText(p, textRect, textFlags, toolopt->palette,
+                            toolopt->state & State_Enabled, elidedText, QPalette::ButtonText);
     }
 
     return;
