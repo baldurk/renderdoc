@@ -1319,14 +1319,16 @@ public:
       MAKE_BUILTIN_FILTER(all);
       MAKE_BUILTIN_FILTER(regex);
       MAKE_BUILTIN_FILTER(param);
-      MAKE_BUILTIN_FILTER(event);
+      // MAKE_BUILTIN_FILTER(event);
       MAKE_BUILTIN_FILTER(draw);
       MAKE_BUILTIN_FILTER(dispatch);
 
+      /*
       m_BuiltinFilters[lit("event")].completer = [this](ICaptureContext *ctx, QString name,
                                                         QString parameters) {
         return filterCompleter_event(ctx, name, parameters);
       };
+      */
       m_BuiltinFilters[lit("draw")].completer = [this](ICaptureContext *ctx, QString name,
                                                        QString parameters) {
         return filterCompleter_draw(ctx, name, parameters);
