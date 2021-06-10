@@ -53,22 +53,27 @@ rdcstr DoStringise(const ReplayStatus &el)
     STRINGISE_ENUM_CLASS_NAMED(InternalError, "Internal error");
     STRINGISE_ENUM_CLASS_NAMED(FileNotFound, "File not found");
     STRINGISE_ENUM_CLASS_NAMED(InjectionFailed, "RenderDoc injection failed");
-    STRINGISE_ENUM_CLASS_NAMED(IncompatibleProcess, "Process is incompatible");
+    STRINGISE_ENUM_CLASS_NAMED(IncompatibleProcess,
+                               "Process is incompatible with this build of RenderDoc");
     STRINGISE_ENUM_CLASS_NAMED(NetworkIOFailed, "Network I/O operation failed");
     STRINGISE_ENUM_CLASS_NAMED(NetworkRemoteBusy, "Remote side of network connection is busy");
     STRINGISE_ENUM_CLASS_NAMED(NetworkVersionMismatch, "Version mismatch between network clients");
     STRINGISE_ENUM_CLASS_NAMED(FileIOFailed, "File I/O failed");
-    STRINGISE_ENUM_CLASS_NAMED(FileIncompatibleVersion, "File of incompatible version");
-    STRINGISE_ENUM_CLASS_NAMED(FileCorrupted, "File corrupted");
+    STRINGISE_ENUM_CLASS_NAMED(
+        FileIncompatibleVersion,
+        "Capture file incompatible due to being made on an different major version of RenderDoc");
+    STRINGISE_ENUM_CLASS_NAMED(FileCorrupted, "File is corrupted");
     STRINGISE_ENUM_CLASS_NAMED(ImageUnsupported,
                                "The image file is recognised but the format is unsupported");
-    STRINGISE_ENUM_CLASS_NAMED(APIUnsupported, "API is unsupported");
-    STRINGISE_ENUM_CLASS_NAMED(APIInitFailed, "API initialisation failed");
-    STRINGISE_ENUM_CLASS_NAMED(APIIncompatibleVersion,
-                               "Captured API data has an incompatible version");
+    STRINGISE_ENUM_CLASS_NAMED(APIUnsupported, "API used in this capture is unsupported");
+    STRINGISE_ENUM_CLASS_NAMED(APIInitFailed,
+                               "API initialisation failed while loading the capture");
+    STRINGISE_ENUM_CLASS_NAMED(
+        APIIncompatibleVersion,
+        "Captured API data was made on a newer incompatible version of RenderDoc");
     STRINGISE_ENUM_CLASS_NAMED(
         APIHardwareUnsupported,
-        "Current hardware unsupported or incompatible with captured hardware");
+        "Current replaying hardware unsupported or incompatible with captured hardware");
     STRINGISE_ENUM_CLASS_NAMED(APIDataCorrupted,
                                "Replaying the capture encountered invalid/corrupted data");
     STRINGISE_ENUM_CLASS_NAMED(APIReplayFailed, "Replaying the capture failed at the API level");
