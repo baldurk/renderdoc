@@ -4572,6 +4572,7 @@ QVariant EventBrowser::persistData()
   ui->events->header()->setStretchLastSection(true);
 
   state[lit("columns")] = columns;
+  state[lit("filterVisible")] = ui->filter->isChecked();
 
   return state;
 }
@@ -4597,6 +4598,8 @@ void EventBrowser::setPersistData(const QVariant &persistData)
     else
       ui->events->header()->showSection(i);
   }
+
+  ui->filter->setChecked(state[lit("filterVisible")].toBool());
 }
 
 void EventBrowser::events_keyPress(QKeyEvent *event)
