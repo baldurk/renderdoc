@@ -1740,6 +1740,9 @@ searched for as a case-insensitive substring.
     return
         [paramName, paramValue](ICaptureContext *ctx, const rdcstr &, const rdcstr &, uint32_t,
                                 const SDChunk *chunk, const DrawcallDescription *, const rdcstr &) {
+          if(!chunk)
+            return false;
+
           const SDObject *o = FindChildRecursively(chunk, paramName);
 
           if(!o)
