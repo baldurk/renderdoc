@@ -1331,8 +1331,6 @@ public:
   m_BuiltinFilters[lit(STRINGIZE(filter_name))].description =        \
       filterDescription_##filter_name().trimmed();
 
-      MAKE_BUILTIN_FILTER(any);
-      MAKE_BUILTIN_FILTER(all);
       MAKE_BUILTIN_FILTER(regex);
       MAKE_BUILTIN_FILTER(param);
       // MAKE_BUILTIN_FILTER(event);
@@ -1557,81 +1555,6 @@ private:
     }
 
     return ret;
-  }
-
-  QString filterDescription_any() const
-  {
-    return tr(R"EOD(
-$any(...) - passes if any of its terms passes
-
-This filter can be used to nest terms, by saying "if any of these terms passes,
-the overall filter will pass". A term can be a literal value or another function.
-
-See also: $all()
-)EOD",
-              "EventFilterModel");
-  }
-
-  IEventBrowser::EventFilterCallback filterFunction_any(QString name, QString parameters,
-                                                        ParseTrace &trace)
-  {
-    // $any(...) => returns true if any of the nested subexpressions are true (with exclusions
-    // treated as normal).
-    rdcarray<EventFilter> filters;
-    trace = ParseExpressionToFilters(parameters, filters);
-
-    if(!trace.hasErrors())
-    {
-      if(filters.isEmpty())
-      {
-        trace.setError(tr("No filters provided to $any()", "EventFilterModel"));
-        return NULL;
-      }
-
-      return [filters](ICaptureContext *ctx, const rdcstr &, const rdcstr &, uint32_t eid,
-                       const SDChunk *chunk, const DrawcallDescription *draw, const rdcstr &name) {
-        return EvaluateFilterSet(*ctx, filters, false, eid, chunk, draw, name);
-      };
-    }
-
-    return NULL;
-  }
-
-  QString filterDescription_all() const
-  {
-    return tr(R"EOD(
-$all(...) - passes if all of its terms passes
-
-This filter can be used to nest terms, by saying "if all of these terms passes,
-the overall filter will pass". A term can be a literal value or another function.
-
-See also: $any()
-)EOD",
-              "EventFilterModel");
-  }
-
-  IEventBrowser::EventFilterCallback filterFunction_all(QString name, QString parameters,
-                                                        ParseTrace &trace)
-  {
-    // $all(...) => returns true only if all the nested subexpressions are true
-    rdcarray<EventFilter> filters;
-    trace = ParseExpressionToFilters(parameters, filters);
-
-    if(!trace.hasErrors())
-    {
-      if(filters.isEmpty())
-      {
-        trace.setError(tr("No filters provided to $all()", "EventFilterModel"));
-        return NULL;
-      }
-
-      return [filters](ICaptureContext *ctx, const rdcstr &, const rdcstr &, uint32_t eid,
-                       const SDChunk *chunk, const DrawcallDescription *draw, const rdcstr &name) {
-        return EvaluateFilterSet(*ctx, filters, true, eid, chunk, draw, name);
-      };
-    }
-
-    return NULL;
   }
 
   QString filterDescription_regex() const
@@ -2621,6 +2544,8 @@ ParseTrace EventFilterModel::ParseExpressionToFilters(QString expr, rdcarray<Eve
   //   ignored, but any other character is a parse error. The ) must be followed by whitespace or
   //   the end of the expression or that's a parse error. Note that whitespace is allowed in the
   //   parameters.
+  // - We allow nesting with simple () brackets. Unquoted literals cannot contain a ( to avoid
+  //   parsing ambiguity between e.g. Foo(Bar Blah) and Foo (Bar Blah).
   //
   // This means there's a simple state machine we can follow from any point.
   //
@@ -2628,12 +2553,13 @@ ParseTrace EventFilterModel::ParseExpressionToFilters(QString expr, rdcarray<Eve
   // 2) start -> " -> quoted_expression -> wait until unescaped " -> start
   // 3) start -> $ -> function_expression -> parse name > optional whitespace ->
   //             ( -> wait until matching parenthesis -> ) -> whitespace -> start
-  // 4) start -> anything else -> literal -> wait until whitespace -> start
+  // 4) start -> ( -> nested_expression -> wait until matching unquoted ) -> start
+  // 5) start -> anything else -> literal -> wait until whitespace -> start
   //
   // We also have two modifiers:
   //
-  // 5) start -> + -> note that next filter is a MustMatch -> start
-  // 6) start -> - -> note that next filter is a CantMatch -> start
+  // 6) start -> + -> note that next filter is a MustMatch -> start
+  // 7) start -> - -> note that next filter is a CantMatch -> start
   //
   // any non-existant edge is a parse error
 
@@ -2646,6 +2572,7 @@ ParseTrace EventFilterModel::ParseExpressionToFilters(QString expr, rdcarray<Eve
     FunctionExprName,
     FunctionExprParams,
     Literal,
+    Nested,
   } state = Start;
 
   expr = expr.trimmed();
@@ -2661,6 +2588,9 @@ ParseTrace EventFilterModel::ParseExpressionToFilters(QString expr, rdcarray<Eve
   int paramStartPos = 0;
   // parameters (since s holds the function name)
   QString params;
+  // if we're parsing a nested expression and we go inside a quoted string (so parentheses should be
+  // ignored)
+  bool nestQuote = false;
 
   int pos = 0;
   while(pos < expr.length())
@@ -2676,7 +2606,7 @@ ParseTrace EventFilterModel::ParseExpressionToFilters(QString expr, rdcarray<Eve
         continue;
       }
 
-      // 5) and 6)
+      // 6) and 7)
       if(expr[pos] == QLatin1Char('-'))
       {
         trace.position = pos;
@@ -2734,14 +2664,159 @@ ParseTrace EventFilterModel::ParseExpressionToFilters(QString expr, rdcarray<Eve
         continue;
       }
 
+      // 4.1) move to nested expression if we see a (
+      if(expr[pos] == QLatin1Char('('))
+      {
+        // only update the position if the match type is normal. If it's mustmatch/cantmatch
+        // include everything from the preceeding - or +
+        if(matchType == MatchType::Normal)
+          trace.position = pos;
+
+        state = Nested;
+        parenDepth = 1;
+        nestQuote = false;
+        pos++;
+        paramStartPos = pos;
+        continue;
+      }
+
+      // don't allow a literal to start with )
+      if(expr[pos] == QLatin1Char(')'))
+      {
+        trace.length = expr.length() - trace.position;
+        return trace.setError(
+            tr("Invalid function expression\n"
+               "Unexpected close parenthesis, if this should be a literal match surround it in "
+               "quotes.",
+               "EventFilterModel"));
+      }
+
       // only update the position if the match type is normal. If it's mustmatch/cantmatch
       // include everything from the preceeding - or +
       if(matchType == MatchType::Normal)
         trace.position = pos;
 
-      // 4.1) for anything else begin parsing a literal expression
+      // 5.1) for anything else begin parsing a literal expression
       state = Literal;
       // don't continue here, we need to parse the first character of the literal
+    }
+
+    if(state == Nested)
+    {
+      // 4.2) handle quoted strings and escaping
+      if(nestQuote && expr[pos] == QLatin1Char('\\'))
+      {
+        if(pos == expr.length() - 1)
+        {
+          trace.length = expr.length() - trace.position;
+          return trace.setError(tr("Invalid escape sequence in quoted string", "EventFilterModel"));
+        }
+
+        // append the escape character. We won't process the " below and nestQuote will be
+        // true still, so we'll then also append whatever character is quoted
+        params.append(expr[pos]);
+        pos++;
+      }
+      else if(expr[pos] == QLatin1Char('"'))
+      {
+        // start or stop quoting
+        nestQuote = !nestQuote;
+      }
+
+      if(!nestQuote)
+      {
+        if(expr[pos] == QLatin1Char('('))
+        {
+          parenDepth++;
+        }
+        else if(expr[pos] == QLatin1Char(')'))
+        {
+          parenDepth--;
+        }
+
+        if(parenDepth == 0)
+        {
+          // we've finished the nested expression
+
+          // however we expect the end of the expression or whitespace next
+          if(pos + 1 < expr.length() && !expr[pos + 1].isSpace())
+          {
+            trace.length = (pos + 1) - trace.position + 1;
+            return trace.setError(
+                tr("Unexpected character after nested expression", "EventFilterModel"));
+          }
+
+          // reset errors, we'll fix up the location afterwards depending on what's returned
+          rdcarray<EventFilter> subFilters;
+          ParseTrace subTrace = ParseExpressionToFilters(params, subFilters);
+
+          if(subTrace.hasErrors())
+          {
+            // if the errors returned some sub-range for the errors, the position will be
+            // relative to the params string so rebase it.
+            if(subTrace.position > 0)
+            {
+              subTrace.position += paramStartPos;
+            }
+            else
+            {
+              // otherwise use the whole parent range which includes the function name
+              subTrace.position = trace.position;
+              subTrace.length = trace.length;
+            }
+
+            return subTrace;
+          }
+          else if(subFilters.empty())
+          {
+            trace.length = pos - trace.position + 1;
+            return trace.setError(tr("Unexpected empty nested expression", "EventFilterModel"));
+          }
+
+          FilterExpression subexpr;
+
+          subexpr.matchType = matchType;
+          subexpr.function = true;
+          subexpr.name = lit("$any$");
+          subexpr.params = params;
+
+          subexpr.position = trace.position;
+          subexpr.length = trace.length;
+          subexpr.exprs = subTrace.exprs;
+
+          for(FilterExpression &f : subexpr.exprs)
+          {
+            f.position += paramStartPos;
+          }
+
+          trace.exprs.push_back(subexpr);
+
+          auto filter = [subFilters](ICaptureContext *ctx, const rdcstr &, const rdcstr &,
+                                     uint32_t eid, const SDChunk *chunk,
+                                     const DrawcallDescription *draw, const rdcstr &name) {
+            return EvaluateFilterSet(*ctx, subFilters, false, eid, chunk, draw, name);
+          };
+
+          filters.push_back(EventFilter(filter, matchType));
+
+          s.clear();
+          params.clear();
+          nestQuote = false;
+
+          // move back to the start state
+          state = Start;
+          matchType = MatchType::Normal;
+
+          // skip the )
+          pos++;
+          continue;
+        }
+      }
+
+      params.append(expr[pos]);
+
+      pos++;
+      continue;
     }
 
     if(state == QuotedExpr)
@@ -2803,6 +2878,18 @@ ParseTrace EventFilterModel::ParseExpressionToFilters(QString expr, rdcarray<Eve
 
     if(state == Literal)
     {
+      // illegal character in unquoted literal
+      if(expr[pos] == QLatin1Char('(') || expr[pos] == QLatin1Char(')') ||
+         expr[pos] == QLatin1Char('$'))
+      {
+        trace.length = (pos + 1) - trace.position + 1;
+        return trace.setError(
+            tr("Unexpected character '%1' in unquoted literal, surround in \"quotes\" to allow "
+               "special characters",
+               "EventFilterModel")
+                .arg(expr[pos]));
+      }
+
       // if we encounter whitespace or the end of the expression, we're done
       if(expr[pos].isSpace() || pos == expr.length() - 1)
       {
@@ -2970,6 +3057,12 @@ ParseTrace EventFilterModel::ParseExpressionToFilters(QString expr, rdcarray<Eve
   }
 
   trace.length = expr.length() - trace.position;
+
+  // we shouldn't be in any parentheses
+  if(parenDepth > 0)
+  {
+    return trace.setError(tr("Encountered unterminated parenthesis", "EventFilterModel"));
+  }
 
   // we should be back in the normal state, because all the other states have termination states
   if(state == Literal)
@@ -3750,12 +3843,13 @@ void EventBrowser::CreateFilterDialog()
                          m_FilterSettings.FuncDocs->setText(tr(R"EOD(
 General filter help
 
-Filters are made of a series of matching terms. E.g. a filter such as:
+Filters loosely follow a general search-term syntax, by default matching an event
+if any of the terms matches. E.g. a filter such as:
 
   Draw Clear Copy
 
 would match each string against event names, and include any event that matches
-any of the above.
+"Draw" OR "Clear" OR "Copy".
 
 You can also exclude matches with - such as:
 
@@ -3768,18 +3862,25 @@ You can also require matches, which overrides any optional matches:
 
   +Draw +Indexed -Instanced
 
-which will match only events which match Draw and match Indexed but don't match
-Instanced. In this case adding a term with no + or - prefix will be ignored,
+which will match only events which match "Draw" and match "Indexed" but don't match
+"Instanced". In this case adding a term with no + or - prefix will be ignored,
 since an event will be excluded if it doesn't match all the +required terms
 anyway.
+
+More complex expressions can be built with nesting:
+
++Draw +(Indexed Instanced) -Indirect
+
+Would match only events matching "Draw" which also match at least one of "Indexed"
+or "Instanced" but not "Indirect".
 
 Finally you can use filter functions for more advanced matching than just
 strings. These are documented on the left here, but for example
 
   $draw(numIndices > 1000) Indexed
 
-will include any drawcall that matches 'Indexed' as a plain string match, and
-also renders more than 1000 indices.
+will include any drawcall that matches "Indexed" as a plain string match, OR
+renders more than 1000 indices.
 )EOD").trimmed());
                        }
                        else if(f == lit("Literal String"))
@@ -3962,8 +4063,7 @@ void EventBrowser::settings_filterApply()
     AddFilterSelections(m_FilterSettings.Filter->textCursor(), idx,
                         m_FilterSettings.Filter->palette().color(QPalette::Base), trace.exprs, sels);
     m_FilterSettings.Explanation->clear();
-    AddFilterExplanations(QString(), m_FilterSettings.Explanation->invisibleRootItem(), trace.exprs,
-                          notesText);
+    AddFilterExplanations(m_FilterSettings.Explanation->invisibleRootItem(), trace.exprs, notesText);
 
     if(trace.exprs.isEmpty())
     {
@@ -4143,15 +4243,9 @@ void EventBrowser::filter_apply()
   ui->events->setCurrentIndex(m_FilterModel->mapFromSource(m_Model->GetIndexForEID(curSelEvent)));
 }
 
-void EventBrowser::AddFilterExplanations(QString parentFunc, RDTreeWidgetItem *root,
-                                         QVector<FilterExpression> exprs, QString &notes)
+void EventBrowser::AddFilterExplanations(RDTreeWidgetItem *root, QVector<FilterExpression> exprs,
+                                         QString &notes)
 {
-  bool any = false, all = false;
-  if(parentFunc == lit("any") || parentFunc == QString())
-    any = true;
-  else if(parentFunc == lit("all"))
-    all = true;
-
   // sort by match type
   std::sort(exprs.begin(), exprs.end(), [](const FilterExpression &a, const FilterExpression &b) {
     return a.matchType < b.matchType;
@@ -4187,7 +4281,7 @@ void EventBrowser::AddFilterExplanations(QString parentFunc, RDTreeWidgetItem *r
              "precedence.\n"
              "There is no sorting amongst matches based on optional keywords, so consider making "
              "them <span>+required</span> to require all of them, or nesting in "
-             "<span>+$any()</span> to require at least one of them.\n")
+             "<span>+( .. )</span> to require at least one of them.\n")
               .arg(ignored)
               .arg(must.printName());
     }
@@ -4214,7 +4308,7 @@ void EventBrowser::AddFilterExplanations(QString parentFunc, RDTreeWidgetItem *r
         continue;
 
       if(!first)
-        explanation = any ? tr("Or: ") : tr("And: ");
+        explanation = tr("Or: ");
 
       first = false;
     }
@@ -4223,11 +4317,7 @@ void EventBrowser::AddFilterExplanations(QString parentFunc, RDTreeWidgetItem *r
     {
       explanation += tr("Name matches '%1'").arg(f.name);
     }
-    else if(f.name == lit("all"))
-    {
-      explanation += tr("All of...");
-    }
-    else if(f.name == lit("any"))
+    else if(f.name == lit("$any$"))
     {
       explanation += tr("Any of...");
     }
@@ -4244,7 +4334,7 @@ void EventBrowser::AddFilterExplanations(QString parentFunc, RDTreeWidgetItem *r
 
     root->addChild(item);
 
-    AddFilterExplanations(f.name, item, f.exprs, notes);
+    AddFilterExplanations(item, f.exprs, notes);
   }
 }
 

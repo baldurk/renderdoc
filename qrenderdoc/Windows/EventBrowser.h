@@ -77,6 +77,8 @@ struct FilterExpression
 
   QString printName() const
   {
+    if(name == lit("$any$"))
+      return lit("(...)");
     if(function)
       return QFormatStr("$%1(%2)").arg(name).arg(params);
     return name;
@@ -199,8 +201,7 @@ private:
   void ShowSavedFilterCompleter(RDTextEdit *filter);
   void CreateFilterDialog();
 
-  void AddFilterExplanations(QString parentFunc, RDTreeWidgetItem *root,
-                             QVector<FilterExpression> exprs, QString &notes);
+  void AddFilterExplanations(RDTreeWidgetItem *root, QVector<FilterExpression> exprs, QString &notes);
 
   QString GetExportString(int indent, bool firstchild, const QModelIndex &idx);
   void GetMaxNameLength(int &maxNameLength, int indent, bool firstchild, const QModelIndex &idx);
