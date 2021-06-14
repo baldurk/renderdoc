@@ -405,6 +405,11 @@ void RDTweakedNativeStyle::drawControl(ControlElement control, const QStyleOptio
 
     const QStyleOptionToolButton *toolopt = qstyleoption_cast<const QStyleOptionToolButton *>(opt);
 
+    if((toolopt->features & QStyleOptionToolButton::Arrow) && toolopt->arrowType != Qt::NoArrow)
+    {
+      return QProxyStyle::drawControl(control, opt, p, widget);
+    }
+
     QRect rect = toolopt->rect;
 
     // even though our style doesn't shift the button contents, this is the tweaked native style so

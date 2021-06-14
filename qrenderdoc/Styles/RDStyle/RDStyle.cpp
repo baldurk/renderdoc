@@ -504,8 +504,13 @@ QRect RDStyle::subControlRect(ComplexControl cc, const QStyleOptionComplex *opt,
     if(sc == QStyle::SC_ComboBoxFrame || sc == QStyle::SC_ComboBoxListBoxPopup)
       return rect;
 
-    rect.adjust(Constants::ComboMargin, Constants::ComboMargin, -Constants::ComboMargin,
-                -Constants::ComboMargin);
+    const QStyleOptionComboBox *combo = qstyleoption_cast<const QStyleOptionComboBox *>(opt);
+
+    if(combo->subControls & QStyle::SC_ComboBoxFrame)
+    {
+      rect.adjust(Constants::ComboMargin, Constants::ComboMargin, -Constants::ComboMargin,
+                  -Constants::ComboMargin);
+    }
 
     if(sc == QStyle::SC_ComboBoxEditField)
       return rect.adjusted(0, 0, -Constants::ComboArrowDim, 0);
@@ -1138,9 +1143,17 @@ void RDStyle::drawComplexControl(ComplexControl control, const QStyleOptionCompl
   }
   else if(control == QStyle::CC_ComboBox)
   {
-    drawRoundedRectBorder(opt, p, widget, QPalette::Base, false);
+    const QStyleOptionComboBox *combo = qstyleoption_cast<const QStyleOptionComboBox *>(opt);
+
+    if(combo->subControls & QStyle::SC_ComboBoxFrame)
+    {
+      drawRoundedRectBorder(opt, p, widget, QPalette::Base, false);
+    }
 
     QRectF rect = proxy()->subControlRect(control, opt, QStyle::SC_ComboBoxArrow, widget);
+
+    if(!(combo->subControls & QStyle::SC_ComboBoxFrame))
+      p->fillRect(rect, opt->palette.brush(QPalette::Base));
 
     p->save();
     p->setRenderHint(QPainter::Antialiasing);

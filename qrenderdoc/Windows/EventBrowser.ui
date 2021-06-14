@@ -351,23 +351,6 @@
        </widget>
       </item>
       <item>
-       <widget class="QToolButton" name="recentFilters">
-        <property name="toolTip">
-         <string>Saved filters</string>
-        </property>
-        <property name="text">
-         <string/>
-        </property>
-        <property name="icon">
-         <iconset resource="../Resources/resources.qrc">
-          <normaloff>:/filter_reapply.png</normaloff>:/filter_reapply.png</iconset>
-        </property>
-        <property name="autoRaise">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
        <widget class="QToolButton" name="filterSettings">
         <property name="toolTip">
          <string>Configuration and help for filter expressions</string>

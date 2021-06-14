@@ -26,6 +26,7 @@
 #include <QAbstractItemView>
 #include <QCompleter>
 #include <QKeyEvent>
+#include <QPainter>
 #include <QScrollBar>
 #include <QStringListModel>
 #include "Code/QRDUtils.h"
@@ -78,6 +79,28 @@ void RDTextEdit::setSingleLine()
       }
     }
   });
+}
+
+void RDTextEdit::setDropDown()
+{
+  if(m_Drop)
+    return;
+
+  m_Drop = new RDTextEditDropDownButton(this);
+  m_Drop->setToolButtonStyle(Qt::ToolButtonIconOnly);
+  m_Drop->setArrowType(Qt::DownArrow);
+  QObject::connect(m_Drop, &QToolButton::clicked, [this]() { emit(dropDownClicked()); });
+
+  QStyleOptionComboBox opt;
+  opt.rect = rect();
+  QRect r = style()->subControlRect(QStyle::CC_ComboBox, &opt, QStyle::SC_ComboBoxArrow, this);
+
+  setViewportMargins(0, 0, r.width(), 0);
+  setMinimumHeight(r.height() + 2);
+
+  m_Drop->setFixedSize(r.size());
+
+  updateDropButtonGeometry();
 }
 
 void RDTextEdit::setHoverTrack()
@@ -348,6 +371,24 @@ void RDTextEdit::mouseMoveEvent(QMouseEvent *e)
   QTextEdit::mouseMoveEvent(e);
 }
 
+void RDTextEdit::resizeEvent(QResizeEvent *e)
+{
+  updateDropButtonGeometry();
+
+  QTextEdit::resizeEvent(e);
+}
+
+void RDTextEdit::updateDropButtonGeometry()
+{
+  if(m_Drop)
+  {
+    QRect r = contentsRect();
+    r.setLeft(r.right() - m_Drop->rect().width() + 1);
+    r.setSize(m_Drop->size());
+    m_Drop->setGeometry(r);
+  }
+}
+
 bool RDTextEdit::event(QEvent *e)
 {
   if(e->type() == QEvent::HoverEnter)
@@ -359,4 +400,35 @@ bool RDTextEdit::event(QEvent *e)
     emit(hoverLeave());
   }
   return QTextEdit::event(e);
+}
+
+RDTextEditDropDownButton::RDTextEditDropDownButton(QWidget *parent) : QToolButton(parent)
+{
+}
+
+RDTextEditDropDownButton::~RDTextEditDropDownButton()
+{
+}
+
+void RDTextEditDropDownButton::paintEvent(QPaintEvent *e)
+{
+  QPainter p(this);
+
+  QStyleOptionToolButton butt;
+
+  initStyleOption(&butt);
+
+  QStyleOptionComboBox opt;
+
+  opt.direction = butt.direction;
+  opt.rect = butt.rect;
+  opt.fontMetrics = butt.fontMetrics;
+  opt.palette = butt.palette;
+  opt.state = butt.state;
+  opt.subControls = QStyle::SC_ComboBoxArrow;
+  opt.activeSubControls = QStyle::SC_ComboBoxArrow;
+  opt.editable = true;
+  opt.frame = false;
+
+  style()->drawComplexControl(QStyle::CC_ComboBox, &opt, &p, this);
 }

@@ -23,11 +23,27 @@
  ******************************************************************************/
 
 #pragma once
+
 #include <QStringList>
 #include <QTextEdit>
+#include <QToolButton>
 
 class QCompleter;
 class QStringListModel;
+class QToolButton;
+
+class RDTextEditDropDownButton : public QToolButton
+{
+private:
+  Q_OBJECT
+
+public:
+  explicit RDTextEditDropDownButton(QWidget *parent = 0);
+  ~RDTextEditDropDownButton();
+
+protected:
+  void paintEvent(QPaintEvent *) override;
+};
 
 class RDTextEdit : public QTextEdit
 {
@@ -39,11 +55,14 @@ private:
   QStringListModel *m_CompletionModel = NULL;
   QString m_WordCharacters;
 
+  QToolButton *m_Drop = NULL;
+
 public:
   explicit RDTextEdit(QWidget *parent = 0);
   ~RDTextEdit();
 
   void setSingleLine();
+  void setDropDown();
   void setHoverTrack();
   void enableCompletion();
 
@@ -58,6 +77,7 @@ signals:
   void leave();
   void hoverEnter();
   void hoverLeave();
+  void dropDownClicked();
   void mouseMoved(QMouseEvent *event);
   void keyPress(QKeyEvent *e);
   void completionBegin(QString prefix);
@@ -70,6 +90,10 @@ protected:
   void focusOutEvent(QFocusEvent *e);
   void keyPressEvent(QKeyEvent *e);
   void mouseMoveEvent(QMouseEvent *event);
+  void resizeEvent(QResizeEvent *e);
+
+  void updateDropButtonGeometry();
+
   bool event(QEvent *e);
   bool eventFilter(QObject *watched, QEvent *event);
 };

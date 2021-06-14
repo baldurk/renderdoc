@@ -3337,6 +3337,7 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   OnCaptureClosed();
 
   ui->filterExpression->setSingleLine();
+  ui->filterExpression->setDropDown();
   ui->filterExpression->setHoverTrack();
   ui->filterExpression->enableCompletion();
   ui->filterExpression->setAcceptRichText(false);
@@ -3367,7 +3368,7 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   QObject::connect(ui->filterExpression, &RDTextEdit::keyPress, this,
                    &EventBrowser::savedFilter_keyPress);
 
-  QObject::connect(ui->recentFilters, &QToolButton::clicked,
+  QObject::connect(ui->filterExpression, &RDTextEdit::dropDownClicked,
                    [this]() { ShowSavedFilterCompleter(ui->filterExpression); });
 
   QObject::connect(ui->filterSettings, &QToolButton::clicked, this,
@@ -3588,7 +3589,6 @@ void EventBrowser::CreateFilterDialog()
   RDLabel *listLabel = new RDLabel(this);
   RDLabel *filterLabel = new RDLabel(this);
   CollapseGroupBox *settingsGroup = new CollapseGroupBox(this);
-  QToolButton *recentFilters = new QToolButton(this);
   QToolButton *saveFilter = new QToolButton(this);
 
   QVBoxLayout *settingsLayout = new QVBoxLayout();
@@ -3650,6 +3650,7 @@ void EventBrowser::CreateFilterDialog()
   m_FilterSettings.Filter->enableCompletion();
   m_FilterSettings.Filter->setAcceptRichText(false);
   m_FilterSettings.Filter->setSingleLine();
+  m_FilterSettings.Filter->setDropDown();
 
   QObject::connect(m_FilterSettings.Filter, &RDTextEdit::keyPress, this,
                    &EventBrowser::filter_forceCompletion_keyPress);
@@ -3664,7 +3665,7 @@ void EventBrowser::CreateFilterDialog()
   QObject::connect(m_FilterSettings.Filter, &RDTextEdit::keyPress, this,
                    &EventBrowser::savedFilter_keyPress);
 
-  QObject::connect(recentFilters, &QToolButton::clicked,
+  QObject::connect(m_FilterSettings.Filter, &RDTextEdit::dropDownClicked,
                    [this]() { ShowSavedFilterCompleter(m_FilterSettings.Filter); });
 
   QObject::connect(saveFilter, &QToolButton::clicked, [this]() {
@@ -3806,9 +3807,6 @@ void EventBrowser::CreateFilterDialog()
     dialog->deleteLater();
   });
 
-  recentFilters->setAutoRaise(true);
-  recentFilters->setIcon(Icons::filter_reapply());
-  recentFilters->setToolTip(tr("Load saved filters"));
   saveFilter->setAutoRaise(true);
   saveFilter->setIcon(Icons::save());
   saveFilter->setText(tr("Save"));
@@ -3947,7 +3945,6 @@ For searching arbitrary parameters consider using the $param() function.
   {
     filterLayout->addWidget(filterLabel);
     filterLayout->addWidget(m_FilterSettings.Filter);
-    filterLayout->addWidget(recentFilters);
     filterLayout->addWidget(saveFilter);
 
     layout->addLayout(filterLayout);
