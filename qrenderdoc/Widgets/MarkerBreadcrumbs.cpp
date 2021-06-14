@@ -26,6 +26,7 @@
 #include <QAction>
 #include <QMenu>
 #include "Code/QRDUtils.h"
+#include "Code/Resources.h"
 #include "Widgets/Extended/RDLabel.h"
 #include "Widgets/Extended/RDToolButton.h"
 
@@ -116,7 +117,7 @@ void BreadcrumbsLayout::setGeometry(const QRect &rect)
 
       QRect itemRect(p, s);
 
-      if(itemRect.width() < 40 ||
+      if((itemRect.width() < 40 && itemRect.width() < sz.width()) ||
          (itemRect.width() < sz.width() / 2 && itemRect.width() < itemRect.height() * 3))
       {
         item->setGeometry(QRect(0, 0, 0, 0));
@@ -317,7 +318,12 @@ void MarkerBreadcrumbs::elidedItemsClicked()
 void MarkerBreadcrumbs::AddPathButton(const DrawcallDescription *draw)
 {
   RDToolButton *b = new RDToolButton();
-  b->setText(draw ? QString(draw->name) : lit("Capture"));
+  b->setText(draw ? QString(draw->name) : QString());
+  if(!draw)
+  {
+    b->setIcon(Icons::house());
+    b->setToolButtonStyle(Qt::ToolButtonIconOnly);
+  }
   b->setToolTip(b->text());
 
   bool hasChildMarkers = false;
