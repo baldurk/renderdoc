@@ -119,26 +119,6 @@
       </widget>
      </item>
      <item>
-      <widget class="QToolButton" name="filter">
-       <property name="toolTip">
-        <string>Show event filter</string>
-       </property>
-       <property name="icon">
-        <iconset resource="../Resources/resources.qrc">
-         <normaloff>:/filter.png</normaloff>:/filter.png</iconset>
-       </property>
-       <property name="checkable">
-        <bool>true</bool>
-       </property>
-       <property name="checked">
-        <bool>false</bool>
-       </property>
-       <property name="autoRaise">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
       <widget class="QToolButton" name="timeDraws">
        <property name="toolTip">
         <string>Time durations for the drawcalls</string>

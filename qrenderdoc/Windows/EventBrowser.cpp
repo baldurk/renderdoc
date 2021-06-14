@@ -3248,7 +3248,6 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   QObject::connect(ui->events->selectionModel(), &QItemSelectionModel::currentChanged, this,
                    &EventBrowser::events_currentChanged);
   on_find_toggled(false);
-  on_filter_toggled(false);
   ui->bookmarkStrip->hide();
 
   m_BookmarkStripLayout = new FlowLayout(ui->bookmarkStrip, 0, 3, 3);
@@ -3483,13 +3482,6 @@ void EventBrowser::on_find_toggled(bool checked)
   ui->findStrip->setVisible(checked);
   if(checked)
     ui->findEvent->setFocus();
-}
-
-void EventBrowser::on_filter_toggled(bool checked)
-{
-  ui->filterStrip->setVisible(checked);
-  if(checked)
-    ui->filterExpression->setFocus();
 }
 
 void EventBrowser::on_bookmark_clicked()
@@ -4754,7 +4746,6 @@ QVariant EventBrowser::persistData()
   ui->events->header()->setStretchLastSection(true);
 
   state[lit("columns")] = columns;
-  state[lit("filterVisible")] = ui->filter->isChecked();
 
   return state;
 }
@@ -4780,8 +4771,6 @@ void EventBrowser::setPersistData(const QVariant &persistData)
     else
       ui->events->header()->showSection(i);
   }
-
-  ui->filter->setChecked(state[lit("filterVisible")].toBool());
 }
 
 void EventBrowser::events_keyPress(QKeyEvent *event)
@@ -4804,11 +4793,6 @@ void EventBrowser::events_keyPress(QKeyEvent *event)
     if(event->key() == Qt::Key_F || event->key() == Qt::Key_G)
     {
       on_find_toggled(true);
-      event->accept();
-    }
-    else if(event->key() == Qt::Key_L)
-    {
-      on_filter_toggled(true);
       event->accept();
     }
     else if(event->key() == Qt::Key_B)
