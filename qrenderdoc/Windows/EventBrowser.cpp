@@ -3591,6 +3591,8 @@ void EventBrowser::CreateFilterDialog()
   CollapseGroupBox *settingsGroup = new CollapseGroupBox(this);
   QToolButton *saveFilter = new QToolButton(this);
 
+  QMenu *importExportMenu = new QMenu(this);
+
   QVBoxLayout *settingsLayout = new QVBoxLayout();
   m_FilterSettings.ShowParams = new QCheckBox(this);
   m_FilterSettings.ShowAll = new QCheckBox(this);
@@ -3812,6 +3814,95 @@ void EventBrowser::CreateFilterDialog()
   saveFilter->setText(tr("Save"));
   saveFilter->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
   saveFilter->setToolTip(tr("Save current filter"));
+  saveFilter->setPopupMode(QToolButton::MenuButtonPopup);
+
+  QAction *importAction = new QAction(this);
+  importAction->setText(tr("Import filter set"));
+
+  QObject::connect(importAction, &QAction::triggered, [this]() {
+    QString filename = RDDialog::getOpenFileName(this, tr("Import filter set"), QString(),
+                                                 tr("JSON Files (*.json)"));
+
+    if(!filename.isEmpty())
+    {
+      QFile f(filename);
+      if(f.open(QIODevice::ReadOnly | QIODevice::Text))
+      {
+        QVariantMap filters;
+        bool success = LoadFromJSON(filters, f, "rdocFilterSet", 1);
+
+        EventBrowserPersistentStorage storedFilters;
+        storedFilters.load(filters);
+
+        success &= !storedFilters.SavedFilters.isEmpty();
+        if(success)
+        {
+          QString prompt =
+              tr("Are you sure you want to overwrite the current set of filters with these?\n\n");
+
+          for(int i = 0; i < storedFilters.SavedFilters.count(); i++)
+            prompt += QFormatStr("%1: %2\n")
+                          .arg(storedFilters.SavedFilters[i].first)
+                          .arg(storedFilters.SavedFilters[i].second);
+
+          QMessageBox::StandardButton res =
+              RDDialog::question(this, tr("Confirm importing filter set"), prompt,
+                                 QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+
+          if(res == QMessageBox::Yes)
+          {
+            persistantStorage.SavedFilters = storedFilters.SavedFilters;
+          }
+        }
+        else
+        {
+          RDDialog::critical(this, tr("Error importing filter set"),
+                             tr("Couldn't parse filter set %1.").arg(filename));
+        }
+      }
+      else
+      {
+        RDDialog::critical(this, tr("Error importing filter set"),
+                           tr("Couldn't open path %1.").arg(filename));
+      }
+    }
+  });
+
+  QAction *exportAction = new QAction(this);
+  exportAction->setText(tr("Export filter set"));
+
+  QObject::connect(exportAction, &QAction::triggered, [this]() {
+    QString filename = RDDialog::getSaveFileName(this, tr("Export filter set"), QString(),
+                                                 tr("JSON Files (*.json)"));
+
+    if(!filename.isEmpty())
+    {
+      QFile f(filename);
+      if(f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
+      {
+        QVariant v;
+        persistantStorage.save(v);
+
+        QVariantMap filters = v.toMap();
+        SaveToJSON(filters, f, "rdocFilterSet", 1);
+      }
+      else
+      {
+        RDDialog::critical(this, tr("Error exporting filter set"),
+                           tr("Couldn't open path %1.").arg(filename));
+      }
+    }
+  });
+
+  importExportMenu->addAction(importAction);
+  importExportMenu->addAction(exportAction);
+
+  // disable export if there are no filters to export
+  QObject::connect(importExportMenu, &QMenu::aboutToShow, [exportAction]() {
+    exportAction->setEnabled(!persistantStorage.SavedFilters.isEmpty());
+  });
+
+  saveFilter->setMenu(importExportMenu);
 
   explainTitle->setText(lit("Show an event if:"));
 
