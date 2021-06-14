@@ -78,7 +78,13 @@ struct EventBrowserPersistentStorage : public CustomPersistentStorage
 
     QVariant current = settings[lit("current")];
     if(current.isValid() && current.type() == QVariant::String)
+    {
       CurrentFilter = current.toString();
+    }
+    else
+    {
+      CurrentFilter = lit("$draw()");
+    }
 
     QVariant saved = settings[lit("filters")];
     if(saved.isValid() && saved.type() == QVariant::List)
@@ -98,9 +104,15 @@ struct EventBrowserPersistentStorage : public CustomPersistentStorage
         }
       }
     }
+    else
+    {
+      SavedFilters.push_back(qMakePair(lit("Default"), lit("$draw()")));
+      SavedFilters.push_back(qMakePair(lit("Draws and Barriers"), lit("$draw() Barrier")));
+      SavedFilters.push_back(qMakePair(lit("Hide Copies & Clears"), lit("$draw() -Copy -Clear")));
+    }
   }
 
-  QString CurrentFilter = lit("$draw()");
+  QString CurrentFilter;
   QList<QPair<QString, QString>> SavedFilters;
 };
 
