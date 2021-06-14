@@ -502,6 +502,17 @@ struct EventItemModel : public QAbstractItemModel
     return NULL;
   }
 
+  rdcarray<rdcstr> GetMarkerList() const
+  {
+    rdcarray<rdcstr> ret;
+
+    for(auto it = m_Nodes.begin(); it != m_Nodes.end(); ++it)
+      if(it.value().draw && (it.value().draw->flags & DrawFlags::PushMarker))
+        ret.push_back(it.value().draw->name);
+
+    return ret;
+  }
+
   //////////////////////////////////////////////////////////////////////////////////////
   //
   // QAbstractItemModel methods
@@ -1327,6 +1338,8 @@ public:
       // MAKE_BUILTIN_FILTER(event);
       MAKE_BUILTIN_FILTER(draw);
       MAKE_BUILTIN_FILTER(dispatch);
+      MAKE_BUILTIN_FILTER(childOf);
+      MAKE_BUILTIN_FILTER(parent);
 
       /*
       m_BuiltinFilters[lit("event")].completer = [this](ICaptureContext *ctx, QString name,
@@ -1342,6 +1355,10 @@ public:
                                                            QString parameters) {
         return filterCompleter_dispatch(ctx, name, parameters);
       };
+      m_BuiltinFilters[lit("childOf")].completer = m_BuiltinFilters[lit("parent")].completer =
+          [this](ICaptureContext *ctx, QString name, QString parameters) {
+            return m_Model->GetMarkerList();
+          };
     }
   }
   void ResetCache() { m_VisibleCache.clear(); }
@@ -1886,7 +1903,6 @@ Otherwise the event is included if it's a draw AND if the condition is true.
 Available numeric properties. Compare with $draw(prop > 100) or $draw(prop <= 200)
 
    EID:            The draw's EID.
-   parent:         The parent draw in the hierarchy's EID.
    drawId:         The draw ID, starting from 1 and numbering each draw.
    numIndices:     The number of vertices or indices in a draw.
    baseVertex:     The base vertex value for an indexed draw.
@@ -1911,7 +1927,7 @@ and these can be queried with a filter such as $draw(flags & Clear|ClearDepthSte
 
     if(tokens.size() <= 1)
       return {
-          "EID", "parent", "drawId", "numIndices",
+          "EID", "drawId", "numIndices",
           // most aliases we don't autocomplete but this one we leave
           "numVertices", "numInstances", "baseVertex", "indexOffset", "vertexOffset",
           "instanceOffset", "dispatchX", "dispatchY", "dispatchZ", "dispatchSize", "duration",
@@ -1966,7 +1982,6 @@ and these can be queried with a filter such as $draw(flags & Clear|ClearDepthSte
 
     static const NamedProp namedProps[] = {
         NAMED_PROP("eventid", draw->eventId), NAMED_PROP("eid", draw->eventId),
-        NAMED_PROP("parent", draw->parent ? draw->parent->eventId : -12341234),
         NAMED_PROP("drawcallid", draw->drawcallId), NAMED_PROP("drawid", draw->drawcallId),
         NAMED_PROP("numindices", draw->numIndices), NAMED_PROP("numindexes", draw->numIndices),
         NAMED_PROP("numvertices", draw->numIndices), NAMED_PROP("numvertexes", draw->numIndices),
@@ -2242,7 +2257,6 @@ Otherwise the event is included if it's a dispatch AND if the condition is true.
 Available numeric properties. Compare with $dispatch(prop > 100) or $dispatch(prop <= 200)
 
    EID:      The draw's EID.
-   parent:   The parent draw in the hierarchy's EID.
    drawId:   The draw ID, starting from 1 and numbering each draw.
    x:        The number of groups in the X dimension of a dispatch.
    y:        The number of groups in the Y dimension of a dispatch.
@@ -2260,7 +2274,7 @@ Available numeric properties. Compare with $dispatch(prop > 100) or $dispatch(pr
 
     if(tokens.size() <= 1)
       return {
-          "EID", "parent", "drawcallId", "drawId", "x", "y", "z", "size", "duration",
+          "EID", "drawcallId", "drawId", "x", "y", "z", "size", "duration",
       };
 
     return {};
@@ -2292,7 +2306,6 @@ Available numeric properties. Compare with $dispatch(prop > 100) or $dispatch(pr
 
     static const NamedProp namedProps[] = {
         NAMED_PROP("eventid", draw->eventId), NAMED_PROP("eid", draw->eventId),
-        NAMED_PROP("parent", draw->parent ? draw->parent->eventId : -12341234),
         NAMED_PROP("drawcallid", draw->drawcallId), NAMED_PROP("drawid", draw->drawcallId),
         NAMED_PROP("dispatchx", draw->dispatchDimension[0]),
         NAMED_PROP("dispatchy", draw->dispatchDimension[1]),
@@ -2507,6 +2520,45 @@ Available numeric properties. Compare with $dispatch(prop > 100) or $dispatch(pr
       trace.setError(tr("Unrecognised property expression", "EventFilterModel"));
       return NULL;
     }
+  }
+
+  QString filterDescription_parent() const
+  {
+    return tr(R"EOD(
+$parent(marker)
+$childOf(marker) - passes if an event is contained somewhere under a marker of the given name
+
+Both aliases of this filter function in the same way. Any event that is a child of the given markers
+will pass the filter. This applies not just to immediate children but any grandchildren or further
+nested.
+)EOD",
+              "EventFilterModel");
+  }
+
+  IEventBrowser::EventFilterCallback filterFunction_parent(QString name, QString parameters,
+                                                           ParseTrace &trace)
+  {
+    QString markerName = parameters.trimmed();
+
+    return [markerName](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
+                        const SDChunk *, const DrawcallDescription *draw, const rdcstr &) {
+      while(draw->parent)
+      {
+        if(QString(draw->parent->name).contains(markerName, Qt::CaseInsensitive))
+          return true;
+
+        draw = draw->parent;
+      }
+
+      return false;
+    };
+  }
+
+  QString filterDescription_childOf() const { return filterDescription_parent(); }
+  IEventBrowser::EventFilterCallback filterFunction_childOf(QString name, QString parameters,
+                                                            ParseTrace &trace)
+  {
+    return filterFunction_parent(name, parameters, trace);
   }
 
   IEventBrowser::EventFilterCallback MakeFunctionMatcher(QString name, QString parameters,
