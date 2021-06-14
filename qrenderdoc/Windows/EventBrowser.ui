@@ -373,7 +373,7 @@
          <string>Configuration and help for filter expressions</string>
         </property>
         <property name="text">
-         <string>Settings</string>
+         <string>Settings &amp;&amp; Help</string>
         </property>
         <property name="icon">
          <iconset resource="../Resources/resources.qrc">
