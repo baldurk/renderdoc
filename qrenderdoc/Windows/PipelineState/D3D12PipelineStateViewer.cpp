@@ -552,11 +552,21 @@ ResourceId D3D12PipelineStateViewer::GetResource(RDTreeWidgetItem *item)
 
     if(cb.idx == ~0U)
     {
-      // unused cbuffer, open regular buffer viewer
-      const D3D12Pipe::ConstantBuffer &buf =
-          m_Ctx.CurD3D12PipelineState()->rootElements[cb.rootElement].constantBuffers[cb.reg];
+      if(cb.rootElement < m_Ctx.CurD3D12PipelineState()->rootElements.size())
+      {
+        const D3D12Pipe::RootSignatureRange &range =
+            m_Ctx.CurD3D12PipelineState()->rootElements[cb.rootElement];
 
-      return buf.resourceId;
+        if(cb.reg < range.constantBuffers.size())
+        {
+          // unused cbuffer, open regular buffer viewer
+          const D3D12Pipe::ConstantBuffer &buf = range.constantBuffers[cb.reg];
+
+          return buf.resourceId;
+        }
+      }
+
+      return ResourceId();
     }
 
     return m_Ctx.CurPipelineState().GetConstantBuffer(stage->stage, cb.idx, cb.arrayIdx).resourceId;
