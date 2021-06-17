@@ -1802,11 +1802,7 @@ ReplayOutput *ReplayController::CreateOutput(WindowingData window, ReplayOutputT
 
   m_Outputs.push_back(out);
 
-  m_pDevice->ReplayLog(m_EventID, eReplay_WithoutDraw);
-
   out->SetFrameEvent(m_EventID);
-
-  m_pDevice->ReplayLog(m_EventID, eReplay_OnlyDraw);
 
   return out;
 }
