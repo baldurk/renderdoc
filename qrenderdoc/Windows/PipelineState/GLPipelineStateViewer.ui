@@ -2981,7 +2981,7 @@
           <item row="1" column="4">
            <widget class="QLabel" name="offsetClampLabel">
             <property name="text">
-             <string>Offset Clamp (EXT):</string>
+             <string>Offset Clamp:</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
