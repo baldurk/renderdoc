@@ -1715,15 +1715,23 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
 
         if(descriptorBind && descriptorBind->inlineBlock)
         {
-          vecrange = QFormatStr("%1 - %2")
+          vecrange = QFormatStr("%1 - %2 bytes")
                          .arg(descriptorBind->byteOffset)
                          .arg(descriptorBind->byteOffset + descriptorBind->byteSize);
         }
         else if(!cblock->compileConstants)
         {
-          vecrange = QFormatStr("%1 - %2")
+          vecrange = QFormatStr("%1 - %2 bytes")
                          .arg(stage.pushConstantRangeByteOffset)
                          .arg(stage.pushConstantRangeByteOffset + stage.pushConstantRangeByteSize);
+
+          if(stage.pushConstantRangeByteOffset + stage.pushConstantRangeByteSize >
+             m_Ctx.CurVulkanPipelineState()->pushconsts.size())
+          {
+            filledSlot = false;
+            vecrange +=
+                tr(", only %1 bytes pushed").arg(m_Ctx.CurVulkanPipelineState()->pushconsts.size());
+          }
         }
       }
       else

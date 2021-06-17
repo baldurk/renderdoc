@@ -1071,7 +1071,7 @@ BoundCBuffer PipeState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, ui
             if(ret.byteOffset > src->size())
               ret.byteSize = 0;
             else if(ret.byteOffset + ret.byteSize > src->size())
-              ret.byteSize = src->size() - (ret.byteOffset + ret.byteSize);
+              ret.byteSize = src->size() - ret.byteOffset;
 
             // consume the byteoffset here when copying data from the source data
             ret.inlineData.resize((size_t)ret.byteSize);
