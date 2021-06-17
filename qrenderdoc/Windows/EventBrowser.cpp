@@ -1572,14 +1572,24 @@ private:
   QString filterDescription_regex() const
   {
     return tr(R"EOD(
-$regex(/my regex.*match/i) - passes if the specified regex matches the event name.
+<h3>$regex</h3>
 
+<br />
+<table>
+<tr><td><code>$regex(/my regex.*match/i)</code></td>- passes if the specified regex matches the event name.</td></tr>
+</table>
+
+<p>
 This filter can be used to do regex matching against events. The regex itself must
 be surrounded with //s. The syntax is perl-like and supports perl compatible options
 after the trailing /:
-   /i - Case insensitive match
-   /x - Extended syntax. See regex documentation for more information
-   /u - Use unicode properties. Character classes like \w and \d match more than ASCII
+</p>
+
+<table>
+<tr><td>/i</td><td>- Case insensitive match</td>
+<tr><td>/x</td><td>- Extended syntax. See regex documentation for more information</td>
+<tr><td>/u</td><td>- Use unicode properties. Character classes like \w and \d match more than ASCII</td>
+</table>
 )EOD",
               "EventFilterModel");
   }
@@ -1653,12 +1663,19 @@ after the trailing /:
   QString filterDescription_param() const
   {
     return tr(R"EOD(
-$param(name: value)
-$param(name = value) - passes if a given parameter matches a value.
+<h3>$param</h3>
 
+<br />
+<table>
+<tr><td><code>$param(name: value)</code><br />
+<code>$param(name = value)</code></td><td> - passes if a given parameter matches a value.</td></tr>
+</table>
+
+<p>
 This filter searches through the parameters to each API call to find a matching name.
 The name is specified case-sensitive and can be at any nesting level. The value is
 searched for as a case-insensitive substring.
+</p>
 )EOD",
               "EventFilterModel");
   }
@@ -1723,14 +1740,25 @@ searched for as a case-insensitive substring.
   QString filterDescription_event() const
   {
     return tr(R"EOD(
-$event(condition) - passes if an event property matches a condition.
+<h3>$event</h3>
 
+<br />
+<table>
+<tr><td><code>$event(condition)</code></td>- passes if an event property matches a condition.</td></tr>
+</table>
+
+<p>
 This filter queries given properties of an event to match simple conditions. A
-condition must be specified, and only one condition can be queried in each $event().
+condition must be specified, and only one condition can be queried in each <code>$event()</code>.
+</p>
 
-Available numeric properties. Compare with $event(prop > 100) or $event(prop <= 200)
+<p>
+Available numeric properties. Compare with <code>$event(prop > 100)</code> or <code>$event(prop <= 200)</code>.
+</p>
 
-   EID: The event's EID.
+<table>
+<tr><td>EID:</td> <td>The event's EID.</td></tr>
+</table>
 )EOD",
               "EventFilterModel");
   }
@@ -1827,31 +1855,68 @@ Available numeric properties. Compare with $event(prop > 100) or $event(prop <= 
   QString filterDescription_draw() const
   {
     return tr(R"EOD(
-$draw() - passes if an event is a drawcall.
-$draw(condition) - passes if an event is a drawcall and matches a condition.
+<h3>$draw</h3>
 
-This filter applies to draw-type events.
+<br />
+<table>
+<tr><td>$draw()</td><td>- passes if an event is a drawcall.</td></tr>
+<tr><td>$draw(condition)</td><td>- passes if an event is a drawcall and matches a condition.</td></tr>
+</table>
 
-If no condition is specified then the event is just included if it's a draw.
+<p>
+If no condition is specified then the event is just included if it's a draw-type event - meaning any
+event such as drawcalls, dispatches, copies, clears and others that do work and modify resources.<br />
 Otherwise the event is included if it's a draw AND if the condition is true.
+</p>
 
-Available numeric properties. Compare with $draw(prop > 100) or $draw(prop <= 200)
+<p>Available numeric properties. Compare with <code>$draw(prop > 100)</code> or <code>$draw(prop <= 200)</code></p>
 
-   EID:            The draw's EID.
-   drawId:         The draw ID, starting from 1 and numbering each draw.
-   numIndices:     The number of vertices or indices in a draw.
-   baseVertex:     The base vertex value for an indexed draw.
-   indexOffset:    The index offset for an indexed draw.
-   vertexOffset:   The vertex offset for a non-indexed draw.
-   instanceOffset: The instance offset for an instanced draw.
-   dispatchX:      The number of groups in the X dimension of a dispatch.
-   dispatchY:      The number of groups in the Y dimension of a dispatch.
-   dispatchZ:      The number of groups in the Z dimension of a dispatch.
-   dispatchSize:   The total number of groups (X * Y * Z) of a dispatch.
-   duration:       The listed duration of a drawcall (only available with durations).
+<table>
+<tr><td>EID:</td> <td>The draw's EID.</td></tr>
+<tr><td>drawId:</td> <td>The draw ID, starting from 1 and numbering each draw.</td></tr>
+<tr><td>numIndices:</td> <td>The number of vertices or indices in a draw.</td></tr>
+<tr><td>baseVertex:</td> <td>The base vertex value for an indexed draw.</td></tr>
+<tr><td>indexOffset:</td> <td>The index offset for an indexed draw.</td></tr>
+<tr><td>vertexOffset:</td> <td>The vertex offset for a non-indexed draw.</td></tr>
+<tr><td>instanceOffset:</td> <td>The instance offset for an instanced draw.</td></tr>
+<tr><td>dispatchX:</td> <td>The number of groups in the X dimension of a dispatch.</td></tr>
+<tr><td>dispatchY:</td> <td>The number of groups in the Y dimension of a dispatch.</td></tr>
+<tr><td>dispatchZ:</td> <td>The number of groups in the Z dimension of a dispatch.</td></tr>
+<tr><td>dispatchSize:</td> <td>The total number of groups (X * Y * Z) of a dispatch.</td></tr>
+<tr><td>duration:</td> <td>The listed duration of a drawcall (only available with durations).</td></tr>
+</table>
 
-Also available is the 'flags' property. Drawcalls have different flags and properties
-and these can be queried with a filter such as $draw(flags & Clear|ClearDepthStencil)
+<p>
+Also available is the <code>flags</code> property. Drawcalls have different flags and properties
+and these can be queried with a filter such as <code>$draw(flags & Clear|ClearDepthStencil)</code>
+</p>
+
+<p>The flags available are:</p>
+
+<table>
+<tr><td>Clear:</td> <td>This is a clear call, clearing all or a subset of a resource.</td></tr>
+<tr><td>Drawcall:</td> <td>This is a graphics pipeline drawcall, rasterizing polygons.</td></tr>
+<tr><td>Dispatch:</td> <td>This is a compute dispatch.</td></tr>
+<tr><td>CmdList:</td> <td>This is part of the book-keeping for a command list, secondary command buffer or bundle.</td></tr>
+<tr><td>SetMarker:</td> <td>This is an individual string debug marker, with no children.</td></tr>
+<tr><td>PushMarker:</td> <td>This is a push of a debug marker region, with some child drawcalls</td></tr>
+<tr><td>PopMarker:</td> <td>This is the pop of a debug marker region.</td></tr>
+<tr><td>Present:</td> <td>This is a graphics present to a window.</td></tr>
+<tr><td>MultiDraw:</td> <td>This is part of a multi-draw drawcall.</td></tr>
+<tr><td>Copy:</td> <td>This is a copy call, copying between one resource and another.</td></tr>
+<tr><td>Resolve:</td> <td>This is a resolve or non-identical blit, as opposed to a copy.</td></tr>
+<tr><td>GenMips:</td> <td>This call is generating mip-maps for a texture</td></tr>
+<tr><td>PassBoundary:</td> <td>This is the boundary of a 'pass' explicitly denoted by the API.</td></tr>
+<tr><td>Indexed:</td> <td>For graphics pipeline drawcalls, the call uses an index buffer.</td></tr>
+<tr><td>Instanced:</td> <td>For graphics pipeline drawcalls, the call uses instancing.</td></tr>
+<tr><td>Auto:</td> <td>For graphics pipeline drawcalls, it's automatic based on stream-out.</td></tr>
+<tr><td>Indirect:</td> <td>This is an indirect call, sourcing parameters from the GPU.</td></tr>
+<tr><td>ClearColor:</td> <td>For clear calls, color values are cleared.</td></tr>
+<tr><td>ClearDepthStencil:</td> <td>For clear calls, depth/stencil values are cleared.</td></tr>
+<tr><td>BeginPass:</td> <td>For pass boundaries, this begins a pass. A boundary could begin and end.</td></tr>
+<tr><td>EndPass:</td> <td>For pass boundaries, this ends a pass. A boundary could begin and end.</td></tr>
+<tr><td>CommandBufferBoundary:</td> <td>This denotes the boundary of an entire command buffer.</td></tr>
+</table>
 )EOD",
               "EventFilterModel");
   }
@@ -2181,23 +2246,31 @@ and these can be queried with a filter such as $draw(flags & Clear|ClearDepthSte
   QString filterDescription_dispatch() const
   {
     return tr(R"EOD(
-$dispatch() - passes if an event is a dispatch.
-$dispatch(condition) - passes if an event is a dispatch and matches a condition.
+<h3>$dispatch</h3>
 
-This filter applies to compute dispatches.
+<br />
+<table>
+<tr><td>$dispatch()</td><td>- passes if an event is a dispatch.</td></tr>
+<tr><td>$dispatch(condition)</td><td>- passes if an event is a dispatch and matches a condition.</td></tr>
+</table>
 
-If no condition is specified then the event is just included if it's a dispatch.
+<p>
+If no condition is specified then the event is just included if it's a dispatch.<br />
 Otherwise the event is included if it's a dispatch AND if the condition is true.
+</p>
 
-Available numeric properties. Compare with $dispatch(prop > 100) or $dispatch(prop <= 200)
+<p>Available numeric properties. Compare with <code>$dispatch(prop > 100)</code> or
+<code>$dispatch(prop <= 200)</code></p>
 
-   EID:      The draw's EID.
-   drawId:   The draw ID, starting from 1 and numbering each draw.
-   x:        The number of groups in the X dimension of a dispatch.
-   y:        The number of groups in the Y dimension of a dispatch.
-   z:        The number of groups in the Z dimension of a dispatch.
-   size:     The total number of groups (X * Y * Z) of a dispatch.
-   duration: The listed duration of a drawcall (only available with durations).
+<table>
+<tr><td>EID:</td> <td>The dispatch's EID.</td></tr>
+<tr><td>drawId:</td> <td>The dispatch's draw ID, starting from 1 and numbering each draw-type event.</td></tr>
+<tr><td>x:</td> <td>The number of groups in the X dimension of the dispatch.</td></tr>
+<tr><td>y:</td> <td>The number of groups in the Y dimension of the dispatch.</td></tr>
+<tr><td>z:</td> <td>The number of groups in the Z dimension of the dispatch.</td></tr>
+<tr><td>size:</td> <td>The total number of groups (X * Y * Z) of the dispatch.</td></tr>
+<tr><td>duration:</td> <td>The listed duration of the dispatch (only available with durations).</td></tr>
+</table>
 )EOD",
               "EventFilterModel");
   }
@@ -2460,12 +2533,20 @@ Available numeric properties. Compare with $dispatch(prop > 100) or $dispatch(pr
   QString filterDescription_parent() const
   {
     return tr(R"EOD(
-$parent(marker)
-$childOf(marker) - passes if an event is contained somewhere under a marker of the given name
+<h3>$parent</h3>
 
+<br />
+<table>
+<tr><td>$parent(marker)<br />
+$childOf(marker)</td>
+<td>- passes if an event is contained somewhere under a marker of the given name.</td></tr>
+</table>
+
+<p>
 Both aliases of this filter function in the same way. Any event that is a child of the given markers
 will pass the filter. This applies not just to immediate children but any grandchildren or further
-nested.
+nesting level.
+</p>
 )EOD",
               "EventFilterModel");
   }
@@ -3933,65 +4014,93 @@ void EventBrowser::CreateFilterDialog()
                        QString f = current->text();
                        if(m_FilterSettings.FuncList->row(current) == 0)
                        {
-                         m_FilterSettings.FuncDocs->setText(tr(R"EOD(
-General filter help
+                         m_FilterSettings.FuncDocs->setHtml(tr(R"EOD(
+<h3>General filter help</h3>
 
+<p>
 Filters loosely follow a general search-term syntax, by default matching an event
 if any of the terms matches. E.g. a filter such as:
+<p>
 
-  Draw Clear Copy
+<pre>  Draw Clear Copy</pre>
 
+<p>
 would match each string against event names, and include any event that matches
-"Draw" OR "Clear" OR "Copy".
+<code>Draw</code> OR <code>Clear</code> OR <code>Copy</code>.
+</p>
 
+<p>
 You can also exclude matches with - such as:
+</p>
 
-  Draw Clear Copy -Depth
+<pre>  Draw Clear Copy -Depth</pre>
 
+<p>
 which will match as in the first example, except exclude any events that match
-'Depth'.
+<code>Depth<code>.
+</p>
 
+<p>
 You can also require matches, which overrides any optional matches:
+</p>
 
-  +Draw +Indexed -Instanced
+<pre>  +Draw +Indexed -Instanced</pre>
 
-which will match only events which match "Draw" and match "Indexed" but don't match
-"Instanced". In this case adding a term with no + or - prefix will be ignored,
+<p>
+which will match only events which match <code>Draw<code> and match <code>Indexed<code> but don't match
+<code>Instanced<code>. In this case adding a term with no + or - prefix will be ignored,
 since an event will be excluded if it doesn't match all the +required terms
 anyway.
+</p>
 
+<p>
 More complex expressions can be built with nesting:
+</p>
 
-+Draw +(Indexed Instanced) -Indirect
+<pre>  +Draw +(Indexed Instanced) -Indirect</pre>
 
-Would match only events matching "Draw" which also match at least one of "Indexed"
-or "Instanced" but not "Indirect".
+<p>
+Would match only events matching <code>Draw<code> which also match at least one of <code>Indexed<code>
+or <code>Instanced<code> but not <code>Indirect<code>.
+</p>
 
+<p>
 Finally you can use filter functions for more advanced matching than just
 strings. These are documented on the left here, but for example
+</p>
 
-  $draw(numIndices > 1000) Indexed
+<pre>  $draw(numIndices > 1000) Indexed</pre>
 
+<p>
 will include any drawcall that matches "Indexed" as a plain string match, OR
 renders more than 1000 indices.
+</p>
 )EOD").trimmed());
                        }
                        else if(f == lit("Literal String"))
                        {
-                         m_FilterSettings.FuncDocs->setText(tr(R"EOD(
-"Literal string"
-literal_string       - passes if the event's name contains a literal string
+                         m_FilterSettings.FuncDocs->setHtml(tr(R"EOD(
+<h3>Literal String</h3>
 
+<br />
+<table>
+<tr><td>"Literal string"<br />
+literal_string</td>
+<td>- passes if the event's name contains a literal substring anywhere in its name</td></tr>
+</table>
+
+<p>
 Any literal string, optionally included in quotes to include special characters
 or whitespace, will be case-insensitively matched against the event name. Note that
 this doesn't include all parameters, only those that appear in the name summary.
-For searching arbitrary parameters consider using the $param() function.
+For searching arbitrary parameters consider using the <code>$param()</code> function.
+</p>
 )EOD").trimmed());
                        }
                        else
                        {
                          f = f.mid(1, f.size() - 3);
-                         m_FilterSettings.FuncDocs->setText(m_FilterModel->GetDescription(f));
+                         m_FilterSettings.FuncDocs->setHtml(m_FilterModel->GetDescription(f));
                        }
                      }
                      else
