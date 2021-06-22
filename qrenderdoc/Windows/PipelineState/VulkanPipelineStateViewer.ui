@@ -3455,7 +3455,7 @@
                 </property>
                </widget>
               </item>
-              <item row="1" column="0">
+              <item row="3" column="0">
                <widget class="QLabel" name="depthBoundsLabel">
                 <property name="text">
                  <string>Bounds:</string>
@@ -3465,7 +3465,7 @@
                 </property>
                </widget>
               </item>
-              <item row="1" column="1">
+              <item row="3" column="1">
                <widget class="QLabel" name="depthBounds">
                 <property name="font">
                  <font>
@@ -3501,6 +3501,11 @@
                 <property name="text">
                  <string/>
                 </property>
+                <property name="font">
+                 <font>
+                  <pointsize>12</pointsize>
+                 </font>
+                </property>
                 <property name="pixmap">
                  <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
                 </property>
@@ -3512,7 +3517,7 @@
                 </property>
                </widget>
               </item>
-              <item row="3" column="0">
+              <item row="1" column="0">
                <widget class="QLabel" name="depthFuncLabel">
                 <property name="text">
                  <string>Func:</string>
@@ -3522,7 +3527,7 @@
                 </property>
                </widget>
               </item>
-              <item row="3" column="1">
+              <item row="1" column="1">
                <widget class="QLabel" name="depthFunc">
                 <property name="font">
                  <font>

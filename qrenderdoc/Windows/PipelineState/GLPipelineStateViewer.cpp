@@ -2158,9 +2158,20 @@ void GLPipelineStateViewer::setState()
                                .arg(state.framebuffer.blendState.blendFactor[2], 0, 'f', 2)
                                .arg(state.framebuffer.blendState.blendFactor[3], 0, 'f', 2));
 
-  ui->depthEnabled->setPixmap(state.depthState.depthEnable ? tick : cross);
-  ui->depthFunc->setText(ToQStr(state.depthState.depthFunction));
-  ui->depthWrite->setPixmap(state.depthState.depthWrites ? tick : cross);
+  if(state.depthState.depthEnable)
+  {
+    ui->depthEnabled->setPixmap(tick);
+    ui->depthFunc->setText(ToQStr(state.depthState.depthFunction));
+    ui->depthWrite->setPixmap(state.depthState.depthWrites ? tick : cross);
+    ui->depthWrite->setText(QString());
+  }
+  else
+  {
+    ui->depthEnabled->setPixmap(cross);
+    ui->depthFunc->setText(tr("Disabled"));
+    ui->depthWrite->setPixmap(QPixmap());
+    ui->depthWrite->setText(tr("Disabled"));
+  }
 
   if(state.depthState.depthBounds)
   {

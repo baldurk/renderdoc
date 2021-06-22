@@ -1900,9 +1900,20 @@ void D3D11PipelineStateViewer::setState()
 
   ui->depthState->setText(ToQStr(state.outputMerger.depthStencilState.resourceId));
 
-  ui->depthEnabled->setPixmap(state.outputMerger.depthStencilState.depthEnable ? tick : cross);
-  ui->depthFunc->setText(ToQStr(state.outputMerger.depthStencilState.depthFunction));
-  ui->depthWrite->setPixmap(state.outputMerger.depthStencilState.depthWrites ? tick : cross);
+  if(state.outputMerger.depthStencilState.depthEnable)
+  {
+    ui->depthEnabled->setPixmap(tick);
+    ui->depthFunc->setText(ToQStr(state.outputMerger.depthStencilState.depthFunction));
+    ui->depthWrite->setPixmap(state.outputMerger.depthStencilState.depthWrites ? tick : cross);
+    ui->depthWrite->setText(QString());
+  }
+  else
+  {
+    ui->depthEnabled->setPixmap(cross);
+    ui->depthFunc->setText(tr("Disabled"));
+    ui->depthWrite->setPixmap(QPixmap());
+    ui->depthWrite->setText(tr("Disabled"));
+  }
 
   ui->stencilEnabled->setPixmap(state.outputMerger.depthStencilState.stencilEnable ? tick : cross);
   m_Common.SetStencilLabelValue(
