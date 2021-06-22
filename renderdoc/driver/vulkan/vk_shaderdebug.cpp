@@ -4079,7 +4079,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   }
 
   if(Vulkan_Debug_DisableBufferDeviceAddress() ||
-     m_pDriver->GetDriverInfo().AMDBufferDeviceAddressBrokenDriver())
+     m_pDriver->GetDriverInfo().BufferDeviceAddressBrokenDriver())
     storageMode = Binding;
 
   rdcarray<uint32_t> fragspv = shader.spirv.GetSPIRV();

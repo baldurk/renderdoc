@@ -3375,7 +3375,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         ->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), &m_PhysicalDeviceData.availFeatures);
     m_PhysicalDeviceData.enabledFeatures = enabledFeatures;
 
-    m_PhysicalDeviceData.driverInfo = VkDriverInfo(m_PhysicalDeviceData.props);
+    m_PhysicalDeviceData.driverInfo = VkDriverInfo(m_PhysicalDeviceData.props, true);
 
     m_Replay->SetDriverInformation(m_PhysicalDeviceData.props);
 
@@ -3819,7 +3819,7 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
         ->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), &m_PhysicalDeviceData.availFeatures);
     m_PhysicalDeviceData.enabledFeatures = enabledFeatures;
 
-    m_PhysicalDeviceData.driverInfo = VkDriverInfo(m_PhysicalDeviceData.props);
+    m_PhysicalDeviceData.driverInfo = VkDriverInfo(m_PhysicalDeviceData.props, true);
 
     ChooseMemoryIndices();
 

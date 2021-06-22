@@ -875,7 +875,7 @@ void DoSerialise(SerialiserType &ser, VkInitParams &el)
 
 INSTANTIATE_SERIALISE_TYPE(VkInitParams);
 
-VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps)
+VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps, bool active)
 {
   m_Vendor = GPUVendorFromPCIVendor(physProps.vendorID);
 
@@ -932,7 +932,8 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps)
 
     if(Major() < 372 || (Major() == 372 && Minor() < 54))
     {
-      RDCLOG("Enabling NV texel fetch workaround - update to a newer driver for fix");
+      if(active)
+        RDCLOG("Enabling NV texel fetch workaround - update to a newer driver for fix");
       texelFetchBrokenDriver = true;
     }
   }
@@ -949,43 +950,66 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps)
 
     if(Major() < 1)
     {
-      RDCLOG("Enabling AMD texel fetch workaround - update to a newer driver for fix");
+      if(active)
+        RDCLOG("Enabling AMD texel fetch workaround - update to a newer driver for fix");
       texelFetchBrokenDriver = true;
     }
 
     // driver 18.5.2 which is vulkan version >= 2.0.33 contains the fix
     if(physProps.driverVersion < VK_MAKE_VERSION(2, 0, 33))
     {
-      RDCLOG(
-          "Enabling AMD image memory requirements workaround - update to a newer driver for fix");
-      unreliableImgMemReqs = true;
+      if(active)
+        RDCLOG(
+            "Enabling AMD image memory requirements workaround - update to a newer driver for fix");
+      amdUnreliableImgMemReqs = true;
     }
 
     // driver 18.5.2 which is vulkan version >= 2.0.33 contains the fix
     if(physProps.driverVersion < VK_MAKE_VERSION(2, 0, 33))
     {
-      RDCLOG("Enabling AMD image MSAA storage workaround - update to a newer driver for fix");
+      if(active)
+        RDCLOG("Enabling AMD image MSAA storage workaround - update to a newer driver for fix");
       amdStorageMSAABrokenDriver = true;
     }
 
     // driver 21.3.1 which is vulkan version >= 2.0.179 contains the fix
     if(physProps.driverVersion < VK_MAKE_VERSION(2, 0, 179))
     {
-      RDCLOG("Disabling buffer_device_address on AMD - update to a newer driver for fix");
-      amdBDABrokenDriver = true;
+      if(active)
+        RDCLOG("Disabling buffer_device_address on AMD - update to a newer driver for fix");
+      bdaBrokenDriver = true;
+    }
+  }
+#endif
+
+// Intel windows workarounds
+#if ENABLED(RDOC_WIN32)
+  if(m_Vendor == GPUVendor::Intel)
+  {
+    // buffer device address doesn't work well on older drivers, even using it internally we get
+    // VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS thrown when creating multiple buffers, even though we
+    // don't provide opaque capture addresses at all...
+    // seems fixed in 100.9466. Intel's driver versioning is inconsistent and some drivers don't
+    // follow this scheme, but they also seem old?
+    if(m_Major <= 100 && m_Minor < 9466)
+    {
+      if(active)
+        RDCLOG("Disabling buffer_device_address on Intel - update to a newer driver for fix");
+      bdaBrokenDriver = true;
     }
   }
 #endif
 
   if(m_Vendor == GPUVendor::Qualcomm)
   {
-    RDCLOG("Enabling Qualcomm driver workarounds");
+    if(active)
+      RDCLOG("Enabling Qualcomm driver workarounds");
 
     // not fixed yet that I know of, or unknown driver with fixes
     qualcommLeakingUBOOffsets = true;
     qualcommDrefNon2DCompileCrash = true;
     qualcommLineWidthCrash = true;
-    qualcommBDABrokenDriver = true;
+    bdaBrokenDriver = true;
   }
 }
 

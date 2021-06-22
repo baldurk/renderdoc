@@ -227,18 +227,20 @@ public:
   uint32_t Major() { return m_Major; }
   uint32_t Minor() { return m_Minor; }
   uint32_t Patch() { return m_Patch; }
-  VkDriverInfo(const VkPhysicalDeviceProperties &physProps);
+  VkDriverInfo(const VkPhysicalDeviceProperties &physProps, bool active = false);
 
   // checks for when we're running on metal and some non-queryable things aren't supported
   bool RunningOnMetal() const { return metalBackend; }
   // A workaround for a couple of bugs, removing texelFetch use from shaders.
   // It means broken functionality but at least no instant crashes
   bool TexelFetchBrokenDriver() const { return texelFetchBrokenDriver; }
+  // Many drivers have issues with KHR_buffer_device_address :(
+  bool BufferDeviceAddressBrokenDriver() const { return bdaBrokenDriver; }
   // Older AMD driver versions could sometimes cause image memory requirements to vary randomly
   // between identical images. This means the memory required at capture could be less than at
   // replay. To counteract this, on drivers with this issue we pad out the memory requirements
   // enough to account for the change
-  bool UnreliableImageMemoryRequirements() const { return unreliableImgMemReqs; }
+  bool AMDUnreliableImageMemoryRequirements() const { return amdUnreliableImgMemReqs; }
   // another workaround, on some AMD driver versions creating an MSAA image with STORAGE_BIT
   // causes graphical corruption trying to sample from it. We workaround it by preventing the
   // MSAA <-> Array pipelines from creating, which removes the STORAGE_BIT and skips the copies.
@@ -257,11 +259,6 @@ public:
   // hit the case where it's necessary (doing 'whole pass' partial replay of a subsection of a
   // command buffer where we need to apply dynamic state from earlier in the command buffer).
   bool QualcommLineWidthDynamicStateCrash() const { return qualcommLineWidthCrash; }
-  // Qualcomm's driver seems to crash when using buffer_device_address.
-  bool QualcommLineBufferDeviceAddressBrokenDriver() const { return qualcommBDABrokenDriver; }
-  // On AMD unfortunately the initial implementation of KHR_buffer_device_address is broken and
-  // produces bad results.
-  bool AMDBufferDeviceAddressBrokenDriver() const { return amdBDABrokenDriver; }
 private:
   GPUVendor m_Vendor;
 
@@ -269,13 +266,12 @@ private:
 
   bool metalBackend = false;
   bool texelFetchBrokenDriver = false;
-  bool unreliableImgMemReqs = false;
+  bool bdaBrokenDriver = false;
+  bool amdUnreliableImgMemReqs = false;
   bool amdStorageMSAABrokenDriver = false;
   bool qualcommLeakingUBOOffsets = false;
   bool qualcommDrefNon2DCompileCrash = false;
   bool qualcommLineWidthCrash = false;
-  bool amdBDABrokenDriver = false;
-  bool qualcommBDABrokenDriver = false;
 };
 
 enum

@@ -1312,7 +1312,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
                           m_pDriver->GetDeviceEnabledFeatures().shaderInt64;
 
   if(Vulkan_Debug_DisableBufferDeviceAddress() ||
-     m_pDriver->GetDriverInfo().AMDBufferDeviceAddressBrokenDriver())
+     m_pDriver->GetDriverInfo().BufferDeviceAddressBrokenDriver())
     useBufferAddress = false;
 
   bool useBufferAddressKHR = m_pDriver->GetExtensions(NULL).ext_KHR_buffer_device_address;
