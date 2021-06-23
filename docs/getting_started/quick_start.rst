@@ -89,7 +89,7 @@ More details can be found on the :doc:`../window/event_browser` page.
 
 .. |timeline_marker| image:: ../imgs/icons/timeline_marker.png
 
-The Event Browser is the primary method of stepping through the frame and browsing the events that occurred within. The first column EID (Event ID) indicates which event or API call this was in the frame, chronologically. Events which are listed here are generally output/draw type events, including Clears. Copy and Map type calls are not included and are available in the API Calls view (see below).
+The Event Browser is the primary method of stepping through the frame and browsing the events that occurred within. The first column EID (Event ID) indicates which event or API call this was in the frame, chronologically. Events which are listed here are known as actions. Actions are draws and dispatches but also events that modify resources like clears and copies. State setting and other CPU-update calls like Maps are not included and are available in the API Calls view (see below).
 
 The columns can be customised and reordered, the |timeline_marker| select columns button (or right-click) will allow you to choose which columns are displayed.
 
@@ -136,11 +136,11 @@ More details can be found on the :doc:`../window/timeline_bar` page.
 
 The timeline bar is essentially an alternate view of the frame, with the horizontal axis being time in the frame. The horizontal axis is scaled evenly by API calls, such that every API call has the same width at any given zoom level.
 
-The frame marker hierarchy is top-down in this case, and can be expanded or collapsed by clicking on each section. In this image, "Render Scene" and "Toon shading draw" are both expanded, but the other sections remain collapsed. Each drawcall is rendered as a blue pip underneath the section of the hierarchy that it is a child of. The current drawcall (if visible) is rendered as a green circle.
+The frame marker hierarchy is top-down in this case, and can be expanded or collapsed by clicking on each section. In this image, "Render Scene" and "Toon shading draw" are both expanded, but the other sections remain collapsed. Each action is rendered as a blue pip underneath the section of the hierarchy that it is a child of. The current action (if visible) is rendered as a green circle.
 
-There is a vertical line around the current drawcall, as well as a |flag_green| above, and a gray outline around the event where the mouse is hovering.
+There is a vertical line around the current action, as well as a |flag_green| above, and a gray outline around the event where the mouse is hovering.
 
-When the currently selected texture is used in the frame, each drawcall that references it draws a marker below the bar. The different colours of marker indicate whether the drawcall at that point is writing to the texture, reading, both reading & writing simultaneously, etc. If the markers are too close together they will space themselves to be readable and will not necessarily line up to a particular drawcall unless you zoom in.
+When the currently selected texture is used in the frame, each action that references it draws a marker below the bar. The different colours of marker indicate whether the action at that point is writing to the texture, reading, both reading & writing simultaneously, etc. If the markers are too close together they will space themselves to be readable and will not necessarily line up to a particular action unless you zoom in.
 
 This can be a very useful tool to trace data through a frame, as well as highlighting potential redundancy or errors if a target is being written to where it should not.
 

@@ -20,18 +20,18 @@ class Mesh_Zoo():
 
         rdtest.png_save(rdtest.get_tmp_path('output.png'), self.rows, dim, False)
 
-    def find_draw(self, name):
-        draw = None
+    def find_action(self, name):
+        action = None
 
-        for d in self.controller.GetDrawcalls():
+        for d in self.controller.GetRootActions():
             if name in d.name:
-                draw = d
+                action = d
                 break
 
-        if draw is None:
-            raise rdtest.TestFailureException("Couldn't find '{}' draw".format(name))
+        if action is None:
+            raise rdtest.TestFailureException("Couldn't find '{}' action".format(name))
 
-        return draw
+        return action
 
     # To avoid needing to do image comparisons, we instead do quad region probes to see which colours are present. That
     # way we can programmatically check that the wireframe we expect to be there, is there
@@ -69,7 +69,7 @@ class Mesh_Zoo():
     def check_capture(self, capture_filename: str, controller: rd.ReplayController):
         self.controller = controller
 
-        self.controller.SetFrameEvent(self.find_draw("Quad").next.eventId, False)
+        self.controller.SetFrameEvent(self.find_action("Quad").next.eventId, False)
 
         self.out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(200, 200),
                                                             rd.ReplayOutputType.Mesh)
@@ -277,7 +277,7 @@ class Mesh_Zoo():
         self.check_region((125, 85, 135, 85), lambda x: x != [])
         self.check_region((105, 110, 105, 120), lambda x: x != [])
 
-        # But now an extra previous draw
+        # But now an extra previous action
         self.check_region((30, 105, 40, 105), lambda x: x != [])
         self.check_region((50, 80, 50, 90), lambda x: x != [])
         self.check_region((45, 130, 55, 130), lambda x: x != [])
@@ -348,7 +348,7 @@ class Mesh_Zoo():
 
         rdtest.log.success("Both instance picking is as expected")
 
-        self.controller.SetFrameEvent(self.find_draw("Points").next.eventId, False)
+        self.controller.SetFrameEvent(self.find_action("Points").next.eventId, False)
 
         # Only one instance, just check we can see the points
         self.cfg.curInstance = 0
@@ -369,7 +369,7 @@ class Mesh_Zoo():
 
         rdtest.log.success("Point picking is as expected")
 
-        self.controller.SetFrameEvent(self.find_draw("Stride 0").next.eventId, False)
+        self.controller.SetFrameEvent(self.find_action("Stride 0").next.eventId, False)
 
         self.cfg.position = self.controller.GetPostVSData(0, 0, self.cfg.type)
         self.cfg.position.nearPlane = 1.0

@@ -1,7 +1,7 @@
 Event Browser
 =============
 
-The Event Browser is the primary method of browsing the frame and selecting different drawcalls. It displays the user-annotated hierarchical display of sections.
+The Event Browser is the primary method of browsing the frame and selecting different actions. It displays the user-annotated hierarchical display of sections.
 
 Annotating your frame
 ---------------------
@@ -23,16 +23,16 @@ To select which columns should be visible, right click the header or click the |
 
 .. note::
 
-	Note that when timing drawcalls the duration column will automatically be added to display the data.
+	Note that when timing actions the duration column will automatically be added to display the data.
 
-Timing drawcalls
-----------------
+Timing actions
+--------------
 
 .. |time| image:: ../imgs/icons/time.png
 
-To time the GPU duration of each drawcall, click the timer button |time|.
+To time the GPU duration of each action, click the timer button |time|.
 
-This will automatically run a process to get the time of each drawcall and display it in the duration column, which will be added if necessary.
+This will automatically run a process to get the time of each action and display it in the duration column, which will be added if necessary.
 
 You can configure which time unit is used for the duration column on the fly in the :doc:`settings_window`.
 
@@ -51,7 +51,7 @@ The currently selected event is highlighted and indicated with a green flag |fla
 
 	Current Event: The Event browser showing several sections and the current event.
 
-The EID column indicates the event ID of the drawcall listed. Event IDs are assigned starting from 1 and increase every time an API call is made - for this reason drawcall EIDs are not necessarily contiguous.
+The EID column indicates the event ID of the action listed. Event IDs are assigned starting from 1 and increase every time an API call is made - for this reason action EIDs are not necessarily contiguous.
 
 Simply clicking on a different event will select it as current, and selecting a parent node with some child events will act as if the final child is selected - in other words selecting a node with several children will show the results of all children having happened.
 
@@ -85,7 +85,7 @@ There are two other controls available in the Event Browser to aid in navigating
 
 .. |find| image:: ../imgs/icons/find.png
 
-Pressing :kbd:`Ctrl-F` will open the find-event toolbar |find|. This toolbar allows you to type in a partial text filter that will be matched against both labels and drawcall events. The find will be executed when you press enter, although you can then adjust the text and re-search if you wish.
+Pressing :kbd:`Ctrl-F` will open the find-event toolbar |find|. This toolbar allows you to type in a partial text filter that will be matched against both labels and action events. The find will be executed when you press enter, although you can then adjust the text and re-search if you wish.
 
 If the event found lies inside an unexpanded section, the sections will be expanded until the matching event is visible.
 
@@ -105,7 +105,7 @@ You can also jump up and down between find results with the previous |arrow_left
 
 	Highlighted Results: The results of a find are highlighted with an icon.
 
-Pressing :kbd:`Ctrl-G` will open the jump to EID toolbar. This allows you to type in an EID and jump straight there, expanding nodes as necessary. If the EID typed doesn't exist in the list of drawcalls, the closest matching EID will be jumped to.
+Pressing :kbd:`Ctrl-G` will open the jump to EID toolbar. This allows you to type in an EID and jump straight there, expanding nodes as necessary. If the EID typed doesn't exist in the list of actions, the closest matching EID will be jumped to.
 
 When you hit enter to jump to an EID, the toolbar closes and if you wish to jump again you must press :kbd:`Ctrl-G` again
 

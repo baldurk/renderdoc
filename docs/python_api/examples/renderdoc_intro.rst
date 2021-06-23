@@ -99,7 +99,7 @@ This function call will open the capture and begin to replay it, and initialise 
         raise RuntimeError("Couldn't initialise replay: " + str(status))
 
     # Now we can use the controller!
-    print("%d top-level drawcalls" % len(controller.GetDrawcalls()))
+    print("%d top-level actions" % len(controller.GetRootActions()))
 
 Once we're done with the interfaces, we should call the ``Shutdown`` function on each, this allows the C++ interface to release the resources allocated.
 

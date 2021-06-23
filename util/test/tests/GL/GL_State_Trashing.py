@@ -6,17 +6,17 @@ class GL_State_Trashing(rdtest.TestCase):
     demos_test_name = 'GL_State_Trashing'
 
     def check_capture(self):
-        last_draw: rd.DrawcallDescription = self.get_last_draw()
+        last_action: rd.ActionDescription = self.get_last_action()
 
-        self.controller.SetFrameEvent(last_draw.eventId, True)
+        self.controller.SetFrameEvent(last_action.eventId, True)
 
-        self.check_triangle(out=last_draw.copyDestination)
+        self.check_triangle(out=last_action.copyDestination)
 
-        draw = self.find_draw("Draw")
+        action = self.find_action("Draw")
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
-        postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, draw.numIndices)
+        postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
 
         postvs_ref = {
             0: {

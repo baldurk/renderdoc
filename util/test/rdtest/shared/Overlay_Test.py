@@ -17,9 +17,9 @@ class Overlay_Test(rdtest.TestCase):
 
         for is_msaa in [False, True]:
             if is_msaa:
-                test_marker: rd.DrawcallDescription = self.find_draw("MSAA Test")
+                test_marker: rd.ActionDescription = self.find_action("MSAA Test")
             else:
-                test_marker: rd.DrawcallDescription = self.find_draw("Normal Test")
+                test_marker: rd.ActionDescription = self.find_action("Normal Test")
 
             self.controller.SetFrameEvent(test_marker.next.eventId, True)
 
@@ -69,7 +69,7 @@ class Overlay_Test(rdtest.TestCase):
                 if overlay == rd.DebugOverlay.ClearBeforeDraw or overlay == rd.DebugOverlay.ClearBeforePass:
                     continue
 
-                rdtest.log.print("Checking overlay {} in {} main draw".format("MSAA" if is_msaa else "normal", str(overlay)))
+                rdtest.log.print("Checking overlay {} in {} main action".format("MSAA" if is_msaa else "normal", str(overlay)))
 
                 tex.overlay = overlay
                 out.SetTextureDisplay(tex)
@@ -251,10 +251,10 @@ class Overlay_Test(rdtest.TestCase):
                     self.check_pixel_value(overlay_id, 40, 0, [1.0, 1.0, 1.0, 1.0], eps=eps)
                     self.check_pixel_value(overlay_id, 60, 0, [0.0, 0.0, 0.0, 1.0], eps=eps)
                     self.check_pixel_value(overlay_id, 60, 0, [0.0, 0.0, 0.0, 1.0], eps=eps)
-                elif overlay == rd.DebugOverlay.QuadOverdrawDraw:
+                elif overlay == rd.DebugOverlay.QuadOveractionDraw:
                     # This would require extreme command buffer patching to de-MSAA the framebuffer and renderpass
                     if api == rd.GraphicsAPI.Vulkan and is_msaa:
-                        rdtest.log.print("Quad overdraw not currently supported on MSAA on Vulkan")
+                        rdtest.log.print("Quad overaction not currently supported on MSAA on Vulkan")
                         continue
 
                     self.check_pixel_value(overlay_id, 150, 90, [1.0, 1.0, 1.0, 1.0], eps=eps)
@@ -282,23 +282,23 @@ class Overlay_Test(rdtest.TestCase):
                     self.check_pixel_value(overlay_id, 200, 65, [1.0, 1.0, 1.0, 1.0], eps=eps)
                     self.check_pixel_value(overlay_id, 200, 79, [1.0, 1.0, 1.0, 1.0], eps=eps)
                     self.check_pixel_value(overlay_id, 200, 93, [1.0, 1.0, 1.0, 1.0], eps=eps)
-                elif overlay == rd.DebugOverlay.QuadOverdrawPass:
+                elif overlay == rd.DebugOverlay.QuadOveractionPass:
                     # This would require extreme command buffer patching to de-MSAA the framebuffer and renderpass
                     if api == rd.GraphicsAPI.Vulkan and is_msaa:
-                        rdtest.log.print("Quad overdraw not currently supported on MSAA on Vulkan")
+                        rdtest.log.print("Quad overaction not currently supported on MSAA on Vulkan")
                         continue
 
                     self.check_pixel_value(overlay_id, 150, 90, [1.0, 1.0, 1.0, 1.0], eps=eps)
 
                     # Do an extra tap here where we overlap with the extreme-background largest triangle, to show that
-                    # overdraw
+                    # overaction
                     self.check_pixel_value(overlay_id, 150, 100, [2.0, 2.0, 2.0, 2.0], eps=eps)
 
                     self.check_pixel_value(overlay_id, 150, 130, [1.0, 1.0, 1.0, 1.0], eps=eps)
                     self.check_pixel_value(overlay_id, 150, 160, [1.0, 1.0, 1.0, 1.0], eps=eps)
                     self.check_pixel_value(overlay_id, 150, 200, [2.0, 2.0, 2.0, 2.0], eps=eps)
 
-                    # Two of these have overdraw from the pass due to the large background triangle
+                    # Two of these have overaction from the pass due to the large background triangle
                     self.check_pixel_value(overlay_id, 125, 60, [0.0, 0.0, 0.0, 0.0], eps=eps)
                     self.check_pixel_value(overlay_id, 125, 250, [1.0, 1.0, 1.0, 1.0], eps=eps)
                     self.check_pixel_value(overlay_id, 250, 60, [0.0, 0.0, 0.0, 0.0], eps=eps)
@@ -388,7 +388,7 @@ class Overlay_Test(rdtest.TestCase):
                 rdtest.log.success("All normal overlays are as expected")
 
         # Check the viewport overlay especially
-        view_marker: rd.DrawcallDescription = self.find_draw("Viewport Test")
+        view_marker: rd.ActionDescription = self.find_action("Viewport Test")
 
         self.controller.SetFrameEvent(view_marker.next.eventId, True)
 
@@ -408,7 +408,7 @@ class Overlay_Test(rdtest.TestCase):
             if overlay == rd.DebugOverlay.ClearBeforeDraw or overlay == rd.DebugOverlay.ClearBeforePass:
                 continue
 
-            rdtest.log.print("Checking overlay {} in viewport draw".format(str(overlay)))
+            rdtest.log.print("Checking overlay {} in viewport action".format(str(overlay)))
 
             tex.resourceId = col_tex
             tex.overlay = overlay
@@ -427,7 +427,7 @@ class Overlay_Test(rdtest.TestCase):
             self.controller.SaveTexture(save_data, rdtest.get_tmp_path('overlay.png'))
 
             if overlay == rd.DebugOverlay.Drawcall:
-                # The drawcall overlay will show up outside the scissor region
+                # The action overlay will show up outside the scissor region
                 self.check_pixel_value(overlay_id, 50, 85, [0.8, 0.1, 0.8, 1.0], eps=eps)
                 self.check_pixel_value(overlay_id, 50, 50, [0.8, 0.1, 0.8, 1.0], eps=eps)
                 self.check_pixel_value(overlay_id, 50, 10, [0.8, 0.1, 0.8, 1.0], eps=eps)
@@ -479,10 +479,10 @@ class Overlay_Test(rdtest.TestCase):
                 # Inside viewport and outside scissor
                 self.check_pixel_value(overlay_id, 50, 80,
                                        [1.0 * 0.6 + 0.2 * 0.4, 0.2 * 0.4, 0.9 * 0.4, 1.0 * 0.6 + 0.4 * 0.4], eps=eps)
-            elif overlay == rd.DebugOverlay.QuadOverdrawDraw:
+            elif overlay == rd.DebugOverlay.QuadOveractionDraw:
                 self.check_pixel_value(overlay_id, 50, 50, [1.0, 1.0, 1.0, 1.0], eps=eps)
                 self.check_pixel_value(overlay_id, 50, 15, [0.0, 0.0, 0.0, 0.0], eps=eps)
-            elif overlay == rd.DebugOverlay.QuadOverdrawPass:
+            elif overlay == rd.DebugOverlay.QuadOveractionPass:
                 self.check_pixel_value(overlay_id, 50, 50, [1.0, 1.0, 1.0, 1.0], eps=eps)
                 self.check_pixel_value(overlay_id, 50, 15, [0.0, 0.0, 0.0, 0.0], eps=eps)
 
@@ -506,7 +506,7 @@ class Overlay_Test(rdtest.TestCase):
 
         rdtest.log.success("Overlays are as expected around viewport/scissor behaviour")
 
-        test_marker: rd.DrawcallDescription = self.find_draw("Normal Test")
+        test_marker: rd.ActionDescription = self.find_action("Normal Test")
 
         # Now check clear-before-X by hand, for colour and for depth
         self.controller.SetFrameEvent(test_marker.next.eventId, True)
@@ -569,7 +569,7 @@ class Overlay_Test(rdtest.TestCase):
 
         rdtest.log.success("Clear before pass colour and depth values as expected")
 
-        # Check clear before draw
+        # Check clear before action
         tex.resourceId = col_tex
         tex.overlay = rd.DebugOverlay.ClearBeforeDraw
         out.SetTextureDisplay(tex)
@@ -604,13 +604,13 @@ class Overlay_Test(rdtest.TestCase):
         self.check_pixel_value(depth_tex, 250, 250, [1.0, 0.0/255.0, 0.0, 1.0], eps=eps)
         self.check_pixel_value(depth_tex, 50, 50, [1.0, 0.0/255.0, 0.0, 1.0], eps=eps)
 
-        rdtest.log.success("Clear before draw colour and depth values as expected")
+        rdtest.log.success("Clear before action colour and depth values as expected")
 
-        rdtest.log.success("All overlays as expected for main draw")
+        rdtest.log.success("All overlays as expected for main action")
 
         # Now test overlays on a render-to-slice/mip case
         for mip in [2, 3]:
-            sub_marker: rd.DrawcallDescription = self.find_draw("Subresources mip {}".format(mip))
+            sub_marker: rd.ActionDescription = self.find_action("Subresources mip {}".format(mip))
 
             self.controller.SetFrameEvent(sub_marker.next.eventId, True)
 
@@ -705,7 +705,7 @@ class Overlay_Test(rdtest.TestCase):
                         self.check_pixel_value(overlay_id, 0, 0, [1.0, 1.0, 1.0, 1.0], sub=sub)
                         self.check_pixel_value(overlay_id, 20, 0, [0.0, 0.0, 0.0, 1.0], sub=sub)
                         self.check_pixel_value(overlay_id, 40, 0, [1.0, 1.0, 1.0, 1.0], sub=sub)
-                elif overlay == rd.DebugOverlay.QuadOverdrawDraw or overlay == rd.DebugOverlay.QuadOverdrawPass:
+                elif overlay == rd.DebugOverlay.QuadOveractionDraw or overlay == rd.DebugOverlay.QuadOveractionPass:
                     self.check_pixel_value(overlay_id, 50 >> shift, 36 >> shift, [1.0, 1.0, 1.0, 1.0], sub=sub)
                     self.check_pixel_value(overlay_id, 30 >> shift, 36 >> shift, [0.0, 0.0, 0.0, 0.0], sub=sub)
                     self.check_pixel_value(overlay_id, 70 >> shift, 20 >> shift, [0.0, 0.0, 0.0, 0.0], sub=sub)

@@ -136,7 +136,7 @@ private:
   }
 
   // checks if the given object has tons of updates. If so it's probably
-  // in the vein of "one global object, updated per-draw as necessary", or it's just
+  // in the vein of "one global object, updated per-action as necessary", or it's just
   // really high traffic, in which case we just want to save the state of it at frame
   // start, then track changes while frame capturing
   bool RecordUpdateCheck(GLResourceRecord *record);
@@ -269,13 +269,13 @@ private:
   }
 
   rdcarray<FrameDescription> m_CapturedFrames;
-  rdcarray<DrawcallDescription *> m_Drawcalls;
+  rdcarray<ActionDescription *> m_Actions;
   rdcarray<GLDrawParams> m_DrawcallParams;
 
   // replay
 
   rdcarray<APIEvent> m_CurEvents, m_Events;
-  bool m_AddedDrawcall;
+  bool m_AddedAction;
 
   ArrayMSPrograms m_ArrayMS;
 
@@ -288,19 +288,19 @@ private:
 
   uint64_t m_CurChunkOffset;
   SDChunkMetaData m_ChunkMetadata;
-  uint32_t m_CurEventID, m_CurDrawcallID;
+  uint32_t m_CurEventID, m_CurActionID;
   uint32_t m_FirstEventID;
   uint32_t m_LastEventID;
   GLChunk m_LastChunk;
 
   ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
 
-  DrawcallDescription m_ParentDrawcall;
+  ActionDescription m_ParentAction;
 
   Topology m_LastTopology = Topology::Unknown;
   uint32_t m_LastIndexWidth = 0;
 
-  rdcarray<DrawcallDescription *> m_DrawcallStack;
+  rdcarray<ActionDescription *> m_ActionStack;
 
   std::map<ResourceId, rdcarray<EventUsage>> m_ResourceUses;
 
@@ -338,8 +338,8 @@ private:
   ReplayStatus ContextReplayLog(CaptureState readType, uint32_t startEventID, uint32_t endEventID,
                                 bool partial);
   bool ContextProcessChunk(ReadSerialiser &ser, GLChunk chunk);
-  void AddUsage(const DrawcallDescription &d);
-  void AddDrawcall(const DrawcallDescription &d);
+  void AddUsage(const ActionDescription &a);
+  void AddAction(const ActionDescription &a);
   void AddEvent();
 
   template <typename SerialiserType>
@@ -654,9 +654,9 @@ public:
   GLuint GetCurrentDefaultFBO() { return m_CurrentDefaultFBO; }
   const APIEvent &GetEvent(uint32_t eventId);
 
-  const DrawcallDescription &GetRootDraw() { return m_ParentDrawcall; }
-  const DrawcallDescription *GetDrawcall(uint32_t eventId);
-  const GLDrawParams &GetDrawcallParameters(uint32_t eventId);
+  const ActionDescription &GetRootAction() { return m_ParentAction; }
+  const ActionDescription *GetAction(uint32_t eventId);
+  const GLDrawParams &GetDrawParameters(uint32_t eventId);
 
   void SuppressDebugMessages(bool suppress) { m_SuppressDebugMessages = suppress; }
   rdcarray<EventUsage> GetUsage(ResourceId id) { return m_ResourceUses[id]; }

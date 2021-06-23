@@ -40,7 +40,7 @@
 
 #include "data/hlsl/hlsl_cbuffers.h"
 
-struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
+struct D3D12QuadOverdrawCallback : public D3D12ActionCallback
 {
   D3D12QuadOverdrawCallback(WrappedID3D12Device *dev, D3D12_SHADER_BYTECODE quadWrite,
                             D3D12_SHADER_BYTECODE quadWriteDXIL, const rdcarray<uint32_t> &events,
@@ -55,12 +55,9 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
         m_DSV(dsv),
         m_UAV(uav)
   {
-    m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = this;
+    m_pDevice->GetQueue()->GetCommandData()->m_ActionCallback = this;
   }
-  ~D3D12QuadOverdrawCallback()
-  {
-    m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = NULL;
-  }
+  ~D3D12QuadOverdrawCallback() { m_pDevice->GetQueue()->GetCommandData()->m_ActionCallback = NULL; }
   void PreDraw(uint32_t eid, ID3D12GraphicsCommandListX *cmd)
   {
     if(!m_Events.contains(eid))
@@ -170,7 +167,7 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
       m_PipelineCache[rs.pipe] = cache;
     }
 
-    // modify state for first draw call
+    // modify state for first action call
     rs.pipe = GetResID(cache.pipe);
     rs.graphics.rootsig = GetResID(cache.sig);
 
@@ -226,7 +223,7 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
       cmd->ResourceBarrier(1, &b);
     }
 
-    // restore the render state and go ahead with the real draw
+    // restore the render state and go ahead with the real action
     m_pDevice->GetQueue()->GetCommandData()->GetCurRenderState() = m_PrevState;
 
     RDCASSERT(cmd);
@@ -1079,10 +1076,10 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
 
       while(!events.empty())
       {
-        const DrawcallDescription *draw = m_pDevice->GetDrawcall(events[0]);
+        const ActionDescription *action = m_pDevice->GetAction(events[0]);
 
         // remove any non-drawcalls, like the pass boundary.
-        if(!(draw->flags & DrawFlags::Drawcall))
+        if(!(action->flags & ActionFlags::Drawcall))
           events.erase(0);
         else
           break;
@@ -1187,9 +1184,9 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
 
         rs.ApplyState(m_pDevice, list);
 
-        const DrawcallDescription *draw = m_pDevice->GetDrawcall(events[i]);
+        const ActionDescription *action = m_pDevice->GetAction(events[i]);
 
-        for(uint32_t inst = 0; draw && inst < RDCMAX(1U, draw->numInstances); inst++)
+        for(uint32_t inst = 0; action && inst < RDCMAX(1U, action->numInstances); inst++)
         {
           MeshFormat fmt = GetPostVSBuffers(events[i], inst, 0, MeshDataStage::GSOut);
           if(fmt.vertexResourceId == ResourceId())

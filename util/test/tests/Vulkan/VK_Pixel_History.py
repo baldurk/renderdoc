@@ -43,7 +43,7 @@ class VK_Pixel_History(rdtest.TestCase):
         self.multisampled_image_test()
 
     def primary_test(self):
-        test_marker: rd.DrawcallDescription = self.find_draw("Test Begin")
+        test_marker: rd.ActionDescription = self.find_action("Test Begin")
         self.controller.SetFrameEvent(test_marker.next.eventId, True)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
@@ -59,20 +59,20 @@ class VK_Pixel_History(rdtest.TestCase):
         if tex_details.mips > 1:
             sub.mip = rt.firstMip
 
-        begin_renderpass_eid = self.find_draw("Begin RenderPass").next.eventId
-        depth_write_eid = self.find_draw("Depth Write").next.eventId
-        stencil_write_eid = self.find_draw("Stencil Write").next.eventId
-        unbound_fs_eid = self.find_draw("Unbound Fragment Shader").next.eventId
-        background_eid = self.find_draw("Background").next.eventId
-        cull_eid = self.find_draw("Cull Front").next.eventId
-        test_eid = self.find_draw("Test Begin").next.eventId
-        fixed_scissor_fail_eid = self.find_draw("Fixed Scissor Fail").next.eventId
-        fixed_scissor_pass_eid = self.find_draw("Fixed Scissor Pass").next.eventId
-        dynamic_stencil_ref_eid = self.find_draw("Dynamic Stencil Ref").next.eventId
-        dynamic_stencil_mask_eid = self.find_draw("Dynamic Stencil Mask").next.eventId
-        depth_test_eid = self.find_draw("Depth Test").next.eventId
-        depth_bounds_prep_eid = self.find_draw("Depth Bounds Prep").next.eventId
-        depth_bounds_clip_eid = self.find_draw("Depth Bounds Clip").next.eventId
+        begin_renderpass_eid = self.find_action("Begin RenderPass").next.eventId
+        depth_write_eid = self.find_action("Depth Write").next.eventId
+        stencil_write_eid = self.find_action("Stencil Write").next.eventId
+        unbound_fs_eid = self.find_action("Unbound Fragment Shader").next.eventId
+        background_eid = self.find_action("Background").next.eventId
+        cull_eid = self.find_action("Cull Front").next.eventId
+        test_eid = self.find_action("Test Begin").next.eventId
+        fixed_scissor_fail_eid = self.find_action("Fixed Scissor Fail").next.eventId
+        fixed_scissor_pass_eid = self.find_action("Fixed Scissor Pass").next.eventId
+        dynamic_stencil_ref_eid = self.find_action("Dynamic Stencil Ref").next.eventId
+        dynamic_stencil_mask_eid = self.find_action("Dynamic Stencil Mask").next.eventId
+        depth_test_eid = self.find_action("Depth Test").next.eventId
+        depth_bounds_prep_eid = self.find_action("Depth Bounds Prep").next.eventId
+        depth_bounds_clip_eid = self.find_action("Depth Bounds Clip").next.eventId
 
         # For pixel 190, 149 inside the red triangle
         x, y = 190, 149
@@ -224,9 +224,9 @@ class VK_Pixel_History(rdtest.TestCase):
         self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
 
     def multisampled_image_test(self):
-        test_marker: rd.DrawcallDescription = self.find_draw("Multisampled: test")
-        draw_eid = test_marker.next.eventId
-        self.controller.SetFrameEvent(draw_eid, True)
+        test_marker: rd.ActionDescription = self.find_action("Multisampled: test")
+        action_eid = test_marker.next.eventId
+        self.controller.SetFrameEvent(action_eid, True)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
         rt: rd.BoundResource = pipe.GetOutputTargets()[0]
@@ -240,7 +240,7 @@ class VK_Pixel_History(rdtest.TestCase):
         if tex_details.arraysize > 1:
             sub.slice = rt.firstSlice
 
-        beg_renderpass_eid = self.find_draw("Multisampled: begin renderpass").next.eventId
+        beg_renderpass_eid = self.find_action("Multisampled: begin renderpass").next.eventId
 
         x, y = 140, 130
         sub.sample = 1
@@ -249,9 +249,9 @@ class VK_Pixel_History(rdtest.TestCase):
 
         events = [
             [[event_id, beg_renderpass_eid], [passed, True], [post_mod_depth, 0.0]],
-            [[event_id, draw_eid], [passed, True], [primitive_id, 0], [pre_mod_depth, 0.0], [shader_out_depth, 0.9],
+            [[event_id, action_eid], [passed, True], [primitive_id, 0], [pre_mod_depth, 0.0], [shader_out_depth, 0.9],
              [post_mod_depth, 0.9]],
-            [[event_id, draw_eid], [passed, True], [primitive_id, 1], [shader_out_depth, 0.95], [post_mod_depth, 0.95]],
+            [[event_id, action_eid], [passed, True], [primitive_id, 1], [shader_out_depth, 0.95], [post_mod_depth, 0.95]],
         ]
 
         if not self.is_depth:
@@ -271,9 +271,9 @@ class VK_Pixel_History(rdtest.TestCase):
         modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
         events = [
             [[event_id, beg_renderpass_eid], [passed, True], [post_mod_depth, 0.0]],
-            [[event_id, draw_eid], [passed, True], [primitive_id, 0], [pre_mod_depth, 0.0], [shader_out_depth, 0.9],
+            [[event_id, action_eid], [passed, True], [primitive_id, 0], [pre_mod_depth, 0.0], [shader_out_depth, 0.9],
              [post_mod_depth, 0.9]],
-            [[event_id, draw_eid], [passed, True], [primitive_id, 1], [shader_out_depth, 0.95], [post_mod_depth, 0.95]],
+            [[event_id, action_eid], [passed, True], [primitive_id, 1], [shader_out_depth, 0.95], [post_mod_depth, 0.95]],
         ]
 
         if not self.is_depth:
@@ -291,7 +291,7 @@ class VK_Pixel_History(rdtest.TestCase):
             self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
 
     def secondary_cmd_test(self):
-        secondary_marker: rd.DrawcallDescription = self.find_draw("Secondary: red and blue")
+        secondary_marker: rd.ActionDescription = self.find_action("Secondary: red and blue")
         self.controller.SetFrameEvent(secondary_marker.next.eventId, True)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
@@ -304,10 +304,10 @@ class VK_Pixel_History(rdtest.TestCase):
         if tex_details.mips > 1:
             sub.mip = rt.firstMip
 
-        sec_beg_renderpass_eid = self.find_draw("Begin RenderPass Secondary").next.eventId
-        background_eid = self.find_draw("Secondary: background").next.eventId
-        culled_eid = self.find_draw("Secondary: culled").next.eventId
-        sec_red_and_blue = self.find_draw("Secondary: red and blue").next.eventId
+        sec_beg_renderpass_eid = self.find_action("Begin RenderPass Secondary").next.eventId
+        background_eid = self.find_action("Secondary: background").next.eventId
+        culled_eid = self.find_action("Secondary: culled").next.eventId
+        sec_red_and_blue = self.find_action("Secondary: red and blue").next.eventId
 
         # Test culling
         x, y = 70, 40
@@ -347,7 +347,7 @@ class VK_Pixel_History(rdtest.TestCase):
         self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
 
     def depth_target_test(self):
-        test_marker: rd.DrawcallDescription = self.find_draw("Test Begin")
+        test_marker: rd.ActionDescription = self.find_action("Test Begin")
         self.controller.SetFrameEvent(test_marker.next.eventId, True)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
@@ -363,9 +363,9 @@ class VK_Pixel_History(rdtest.TestCase):
         if tex_details.mips > 1:
             sub.mip = rt.firstMip
 
-        begin_renderpass_eid = self.find_draw("Begin RenderPass").next.eventId
-        background_eid = self.find_draw("Background").next.eventId
-        test_eid = self.find_draw("Test Begin").next.eventId
+        begin_renderpass_eid = self.find_action("Begin RenderPass").next.eventId
+        background_eid = self.find_action("Background").next.eventId
+        test_eid = self.find_action("Test Begin").next.eventId
 
         x, y = 200, 190
         rdtest.log.print("Testing pixel {}, {}".format(x, y))

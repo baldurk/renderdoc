@@ -7,21 +7,21 @@ class D3D11_AMD_Shader_Extensions(rdtest.TestCase):
     demos_test_name = 'D3D11_AMD_Shader_Extensions'
 
     def check_capture(self):
-        draw = self.get_last_draw()
+        action = self.get_last_action()
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         # Should have barycentrics showing the closest vertex for each pixel in the triangle
         # Without relying on barycentric order, ensure that the three pixels are red, green, and blue
         pixels = []
 
-        picked: rd.PixelValue = self.controller.PickPixel(draw.copyDestination, 125, 215, rd.Subresource(),
+        picked: rd.PixelValue = self.controller.PickPixel(action.copyDestination, 125, 215, rd.Subresource(),
                                                           rd.CompType.UNorm)
         pixels.append(picked.floatValue[0:4])
-        picked: rd.PixelValue = self.controller.PickPixel(draw.copyDestination, 200, 85, rd.Subresource(),
+        picked: rd.PixelValue = self.controller.PickPixel(action.copyDestination, 200, 85, rd.Subresource(),
                                                           rd.CompType.UNorm)
         pixels.append(picked.floatValue[0:4])
-        picked: rd.PixelValue = self.controller.PickPixel(draw.copyDestination, 285, 215, rd.Subresource(),
+        picked: rd.PixelValue = self.controller.PickPixel(action.copyDestination, 285, 215, rd.Subresource(),
                                                           rd.CompType.UNorm)
         pixels.append(picked.floatValue[0:4])
 
@@ -31,9 +31,9 @@ class D3D11_AMD_Shader_Extensions(rdtest.TestCase):
 
         rdtest.log.success("Picked barycentric values are as expected")
 
-        # find the cpuMax and gpuMax draws
-        cpuMax = self.find_draw("cpuMax")
-        gpuMax = self.find_draw("gpuMax")
+        # find the cpuMax and gpuMax actions
+        cpuMax = self.find_action("cpuMax")
+        gpuMax = self.find_action("gpuMax")
 
         # The values should be identical
         cpuMax = int(cpuMax.name[8:])
@@ -75,7 +75,7 @@ class D3D11_AMD_Shader_Extensions(rdtest.TestCase):
         rdtest.log.success("compute shader disassembly is as expected")
 
         if refl.debugInfo.debuggable:
-            self.controller.SetFrameEvent(self.find_draw("Dispatch").eventId, False)
+            self.controller.SetFrameEvent(self.find_action("Dispatch").eventId, False)
 
             trace: rd.ShaderDebugTrace = self.controller.DebugThread((0, 0, 0), (0, 0, 0))
 

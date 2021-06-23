@@ -357,13 +357,13 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginRenderPass(
 
       m_Cmd->AddEvent();
 
-      DrawcallDescription draw;
-      draw.name = StringFormat::Fmt(
+      ActionDescription action;
+      action.name = StringFormat::Fmt(
           "BeginRenderPass(%s)",
           MakeRenderPassOpString(false, NumRenderTargets, pRenderTargets, pDepthStencil, Flags).c_str());
-      draw.flags |= DrawFlags::BeginPass | DrawFlags::PassBoundary;
+      action.flags |= ActionFlags::BeginPass | ActionFlags::PassBoundary;
 
-      m_Cmd->AddDrawcall(draw);
+      m_Cmd->AddAction(action);
 
       stateUpdate = true;
     }
@@ -511,15 +511,15 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndRenderPass(SerialiserType &s
 
       D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
 
-      DrawcallDescription draw;
-      draw.name = StringFormat::Fmt(
+      ActionDescription action;
+      action.name = StringFormat::Fmt(
           "EndRenderPass(%s)",
           MakeRenderPassOpString(true, (UINT)state.rpRTs.size(), state.rpRTs.data(),
                                  state.rpDSV.cpuDescriptor.ptr ? &state.rpDSV : NULL, state.rpFlags)
               .c_str());
-      draw.flags |= DrawFlags::EndPass | DrawFlags::PassBoundary;
+      action.flags |= ActionFlags::EndPass | ActionFlags::PassBoundary;
 
-      m_Cmd->AddDrawcall(draw);
+      m_Cmd->AddAction(action);
 
       stateUpdate = true;
     }

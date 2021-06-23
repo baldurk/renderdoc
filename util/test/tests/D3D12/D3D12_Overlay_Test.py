@@ -12,7 +12,7 @@ class D3D12_Overlay_Test(rdtest.Overlay_Test):
         out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
 
         # Don't check any pixel values, but ensure all overlays at least work with no viewport/scissor bound
-        sub_marker: rd.DrawcallDescription = self.find_draw("NoView draw")
+        sub_marker: rd.ActionDescription = self.find_action("NoView action")
         self.controller.SetFrameEvent(sub_marker.next.eventId, True)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()

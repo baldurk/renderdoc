@@ -66,7 +66,7 @@
      <item>
       <widget class="QToolButton" name="stepPrev">
        <property name="toolTip">
-        <string>Go to Previous Drawcall</string>
+        <string>Go to Previous Action</string>
        </property>
        <property name="icon">
         <iconset resource="../Resources/resources.qrc">
@@ -80,7 +80,7 @@
      <item>
       <widget class="QToolButton" name="stepNext">
        <property name="toolTip">
-        <string>Go to Next Drawcall</string>
+        <string>Go to Next Action</string>
        </property>
        <property name="icon">
         <iconset resource="../Resources/resources.qrc">
@@ -119,9 +119,9 @@
       </widget>
      </item>
      <item>
-      <widget class="QToolButton" name="timeDraws">
+      <widget class="QToolButton" name="timeActions">
        <property name="toolTip">
-        <string>Time durations for the drawcalls</string>
+        <string>Time durations for the actions</string>
        </property>
        <property name="text">
         <string/>
@@ -167,9 +167,9 @@
       </widget>
      </item>
      <item>
-      <widget class="QToolButton" name="exportDraws">
+      <widget class="QToolButton" name="exportActions">
        <property name="toolTip">
-        <string>Export the list of drawcalls to disk</string>
+        <string>Export the list of events to disk</string>
        </property>
        <property name="icon">
         <iconset resource="../Resources/resources.qrc">

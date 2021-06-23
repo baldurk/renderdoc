@@ -122,7 +122,7 @@ private:
   void InitializeRGP();
   void ConnectionEstablished();
 
-  void CreateMapping(const rdcarray<DrawcallDescription> &drawcalls);
+  void CreateMapping(const rdcarray<ActionDescription> &actions);
   void CreateMapping(uint32_t version);
 
   void EventSelected(RGPInteropEvent event);

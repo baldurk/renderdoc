@@ -298,7 +298,7 @@ private:
 
       // this FBO is the same as the above, but on the replay context,
       // for any cases where we need to use the replay context (like
-      // re-rendering a draw).
+      // re-rendering an action).
       GLuint replayFBO = 0;
 
       // read FBO for blit to window
@@ -435,7 +435,7 @@ private:
 
   void CheckGLSLVersion(const char *sl, int &glslVersion);
 
-  void FillTimers(GLCounterContext &ctx, const DrawcallDescription &drawnode,
+  void FillTimers(GLCounterContext &ctx, const ActionDescription &actionnode,
                   const rdcarray<GPUCounter> &counters);
 
   void InitOutputWindow(OutputWindow &outwin);
@@ -475,7 +475,7 @@ private:
   AMDCounters *m_pAMDCounters = NULL;
 
   void FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex, rdcarray<uint32_t> *eventIDs,
-                     const DrawcallDescription &drawnode);
+                     const ActionDescription &actionnode);
 
   rdcarray<CounterResult> FetchCountersAMD(const rdcarray<GPUCounter> &counters);
 
@@ -483,7 +483,7 @@ private:
   IntelGlCounters *m_pIntelCounters = NULL;
 
   void FillTimersIntel(uint32_t *eventStartID, uint32_t *sampleIndex, rdcarray<uint32_t> *eventIDs,
-                       const DrawcallDescription &drawnode);
+                       const ActionDescription &actionnode);
 
   rdcarray<CounterResult> FetchCountersIntel(const rdcarray<GPUCounter> &counters);
 
@@ -491,7 +491,7 @@ private:
   ARMCounters *m_pARMCounters = NULL;
 
   void FillTimersARM(uint32_t *eventStartID, uint32_t *sampleIndex, rdcarray<uint32_t> *eventIDs,
-                     const DrawcallDescription &drawnode);
+                     const ActionDescription &actionnode);
 
   rdcarray<CounterResult> FetchCountersARM(const rdcarray<GPUCounter> &counters);
 };

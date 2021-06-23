@@ -153,7 +153,7 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
   ui->pixel->setText(ToQStr(ShaderStage::Pixel, m_API));
 
   m_EID = m_Ctx.CurEvent();
-  m_Drawcall = m_Ctx.GetDrawcall(m_EID);
+  m_Action = m_Ctx.GetAction(m_EID);
 
   const PipeState &pipe = m_Ctx.CurPipelineState();
 
@@ -187,7 +187,7 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
 
   m_debugDelegate = new ButtonDelegate(Icons::wrench(), this);
 
-  if(m_Drawcall && (m_Drawcall->flags & DrawFlags::Dispatch))
+  if(m_Action && (m_Action->flags & ActionFlags::Dispatch))
   {
     ui->stageFilters->hide();
 
@@ -418,7 +418,7 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
 
   ui->label->setText(tr("Shader messages from @%1 - %2")
                          .arg(m_EID)
-                         .arg(m_Drawcall ? m_Drawcall->name : rdcstr("Unknown draw")));
+                         .arg(m_Action ? m_Action->name : rdcstr("Unknown action")));
 
   setWindowTitle(tr("Shader messages at @%1").arg(m_EID));
 
@@ -516,7 +516,7 @@ void ShaderMessageViewer::refreshMessages()
 {
   ShaderStageMask mask = ShaderStageMask::Compute;
 
-  if(!m_Drawcall || !(m_Drawcall->flags & DrawFlags::Dispatch))
+  if(!m_Action || !(m_Action->flags & ActionFlags::Dispatch))
   {
     mask = ShaderStageMask::Unknown;
 
@@ -565,12 +565,12 @@ void ShaderMessageViewer::refreshMessages()
       }
 
       // only show the instance if the draw is actually instanced
-      if(m_Drawcall && (m_Drawcall->flags & DrawFlags::Instanced) && m_Drawcall->numInstances > 1)
+      if(m_Action && (m_Action->flags & ActionFlags::Instanced) && m_Action->numInstances > 1)
       {
         location += lit("Inst %1, ").arg(msg.location.vertex.instance);
       }
 
-      if(m_Drawcall && (m_Drawcall->flags & DrawFlags::Indexed))
+      if(m_Action && (m_Action->flags & ActionFlags::Indexed))
       {
         location += lit("Idx %1").arg(msg.location.vertex.vertexIndex);
       }

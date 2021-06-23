@@ -7,19 +7,9 @@ class GL_Resource_Lifetimes(rdtest.TestCase):
     demos_frame_cap = 200
 
     def check_capture(self):
-        draw: rd.DrawcallDescription = self.find_draw("glDraw")
+        action: rd.ActionDescription = self.find_action("glDraw")
 
-        self.controller.SetFrameEvent(draw.eventId, True)
-
-        mapping: rd.ShaderBindpointMapping = self.controller.GetPipelineState().GetBindpointMapping(rd.ShaderStage.Vertex)
-        self.check(mapping.readWriteResources[0].bind == 3)
-
-        mapping: rd.ShaderBindpointMapping = self.controller.GetPipelineState().GetBindpointMapping(rd.ShaderStage.Pixel)
-        self.check(mapping.readWriteResources[0].bind == 3)
-
-        draw: rd.DrawcallDescription = self.find_draw("glDraw", draw.eventId+1)
-
-        self.controller.SetFrameEvent(draw.eventId, True)
+        self.controller.SetFrameEvent(action.eventId, True)
 
         mapping: rd.ShaderBindpointMapping = self.controller.GetPipelineState().GetBindpointMapping(rd.ShaderStage.Vertex)
         self.check(mapping.readWriteResources[0].bind == 3)
@@ -27,11 +17,21 @@ class GL_Resource_Lifetimes(rdtest.TestCase):
         mapping: rd.ShaderBindpointMapping = self.controller.GetPipelineState().GetBindpointMapping(rd.ShaderStage.Pixel)
         self.check(mapping.readWriteResources[0].bind == 3)
 
-        last_draw: rd.DrawcallDescription = self.get_last_draw()
+        action: rd.ActionDescription = self.find_action("glDraw", action.eventId+1)
 
-        self.controller.SetFrameEvent(last_draw.eventId, True)
+        self.controller.SetFrameEvent(action.eventId, True)
 
-        tex = last_draw.copyDestination
+        mapping: rd.ShaderBindpointMapping = self.controller.GetPipelineState().GetBindpointMapping(rd.ShaderStage.Vertex)
+        self.check(mapping.readWriteResources[0].bind == 3)
+
+        mapping: rd.ShaderBindpointMapping = self.controller.GetPipelineState().GetBindpointMapping(rd.ShaderStage.Pixel)
+        self.check(mapping.readWriteResources[0].bind == 3)
+
+        last_action: rd.ActionDescription = self.get_last_action()
+
+        self.controller.SetFrameEvent(last_action.eventId, True)
+
+        tex = last_action.copyDestination
 
         # green background around first triangle, blue around second
         self.check_pixel_value(tex, 10, 10, [0.0, 1.0, 0.0, 1.0])

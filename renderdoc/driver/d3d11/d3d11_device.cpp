@@ -1420,7 +1420,7 @@ ReplayStatus WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc, bool store
 
   if(!IsStructuredExporting(m_State))
   {
-    SetupDrawcallPointers(m_Drawcalls, GetReplay()->WriteFrameRecord().drawcallList);
+    SetupActionPointers(m_Actions, GetReplay()->WriteFrameRecord().actionList);
 
     // propagate any UAV names onto counter buffers
     rdcarray<BufferDescription> counterBuffers;
@@ -2886,12 +2886,12 @@ WrappedID3D11DeviceContext *WrappedID3D11Device::GetDeferredContext(size_t idx)
   return *it;
 }
 
-const DrawcallDescription *WrappedID3D11Device::GetDrawcall(uint32_t eventId)
+const ActionDescription *WrappedID3D11Device::GetAction(uint32_t eventId)
 {
-  if(eventId >= m_Drawcalls.size())
+  if(eventId >= m_Actions.size())
     return NULL;
 
-  return m_Drawcalls[eventId];
+  return m_Actions[eventId];
 }
 
 ResourceDescription &WrappedID3D11Device::GetResourceDesc(ResourceId id)

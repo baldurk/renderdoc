@@ -1602,27 +1602,27 @@ void CombineUsageEvents(ICaptureContext &ctx, const rdcarray<EventUsage> &usage,
     if(u.usage == us && u.eventId == end)
       continue;
 
-    const DrawcallDescription *draw = ctx.GetDrawcall(u.eventId);
+    const ActionDescription *action = ctx.GetAction(u.eventId);
 
     bool distinct = false;
 
     // if the usage is different from the last, add a new entry,
-    // or if the previous draw link is broken.
-    if(u.usage != us || draw == NULL || draw->previous == 0)
+    // or if the previous action link is broken.
+    if(u.usage != us || action == NULL || action->previous == 0)
     {
       distinct = true;
     }
     else
     {
-      // otherwise search back through real draws, to see if the
+      // otherwise search back through real actions, to see if the
       // last event was where we were - otherwise it's a new
-      // distinct set of drawcalls and should have a separate
+      // distinct set of actions and should have a separate
       // entry in the context menu
-      const DrawcallDescription *prev = draw->previous;
+      const ActionDescription *prev = action->previous;
 
       while(prev != NULL && prev->eventId > end)
       {
-        if(!(prev->flags & (DrawFlags::Dispatch | DrawFlags::Drawcall | DrawFlags::CmdList)))
+        if(!(prev->flags & (ActionFlags::Dispatch | ActionFlags::Drawcall | ActionFlags::CmdList)))
         {
           prev = prev->previous;
         }

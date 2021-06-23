@@ -107,15 +107,16 @@ typedef enum RENDERDOC_CaptureOption {
   // 0 - no callstacks are captured
   eRENDERDOC_Option_CaptureCallstacks = 3,
 
-  // When capturing CPU callstacks, only capture them from drawcalls.
+  // When capturing CPU callstacks, only capture them from actions.
   // This option does nothing without the above option being enabled
   //
   // Default - disabled
   //
-  // 1 - Only captures callstacks for drawcall type API events.
+  // 1 - Only captures callstacks for actions.
   //     Ignored if CaptureCallstacks is disabled
   // 0 - Callstacks, if enabled, are captured for every event.
   eRENDERDOC_Option_CaptureCallstacksOnlyDraws = 4,
+  eRENDERDOC_Option_CaptureCallstacksOnlyActions = 4,
 
   // Specify a delay in seconds to wait for a debugger to attach, after
   // creating or injecting into a process, before continuing to allow it to run.
@@ -548,6 +549,7 @@ typedef enum RENDERDOC_Version {
   eRENDERDOC_API_Version_1_3_0 = 10300,    // RENDERDOC_API_1_3_0 = 1 03 00
   eRENDERDOC_API_Version_1_4_0 = 10400,    // RENDERDOC_API_1_4_0 = 1 04 00
   eRENDERDOC_API_Version_1_4_1 = 10401,    // RENDERDOC_API_1_4_1 = 1 04 01
+  eRENDERDOC_API_Version_1_4_2 = 10402,    // RENDERDOC_API_1_4_2 = 1 04 02
 } RENDERDOC_Version;
 
 // API version changelog:
@@ -574,6 +576,7 @@ typedef enum RENDERDOC_Version {
 // 1.4.0 - Added feature: DiscardFrameCapture() to discard a frame capture in progress and stop
 //         capturing without saving anything to disk.
 // 1.4.1 - Refactor: Renamed Shutdown to RemoveHooks to better clarify what is happening
+// 1.4.2 - Refactor: Renamed 'draws' to 'actions' in callstack capture option.
 
 typedef struct RENDERDOC_API_1_4_1
 {
@@ -647,17 +650,18 @@ typedef struct RENDERDOC_API_1_4_1
 
   // new function in 1.4.0
   pRENDERDOC_DiscardFrameCapture DiscardFrameCapture;
-} RENDERDOC_API_1_4_1;
+} RENDERDOC_API_1_4_2;
 
-typedef RENDERDOC_API_1_4_1 RENDERDOC_API_1_0_0;
-typedef RENDERDOC_API_1_4_1 RENDERDOC_API_1_0_1;
-typedef RENDERDOC_API_1_4_1 RENDERDOC_API_1_0_2;
-typedef RENDERDOC_API_1_4_1 RENDERDOC_API_1_1_0;
-typedef RENDERDOC_API_1_4_1 RENDERDOC_API_1_1_1;
-typedef RENDERDOC_API_1_4_1 RENDERDOC_API_1_1_2;
-typedef RENDERDOC_API_1_4_1 RENDERDOC_API_1_2_0;
-typedef RENDERDOC_API_1_4_1 RENDERDOC_API_1_3_0;
-typedef RENDERDOC_API_1_4_1 RENDERDOC_API_1_4_0;
+typedef RENDERDOC_API_1_4_2 RENDERDOC_API_1_0_0;
+typedef RENDERDOC_API_1_4_2 RENDERDOC_API_1_0_1;
+typedef RENDERDOC_API_1_4_2 RENDERDOC_API_1_0_2;
+typedef RENDERDOC_API_1_4_2 RENDERDOC_API_1_1_0;
+typedef RENDERDOC_API_1_4_2 RENDERDOC_API_1_1_1;
+typedef RENDERDOC_API_1_4_2 RENDERDOC_API_1_1_2;
+typedef RENDERDOC_API_1_4_2 RENDERDOC_API_1_2_0;
+typedef RENDERDOC_API_1_4_2 RENDERDOC_API_1_3_0;
+typedef RENDERDOC_API_1_4_2 RENDERDOC_API_1_4_0;
+typedef RENDERDOC_API_1_4_2 RENDERDOC_API_1_4_0;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 // RenderDoc API entry point

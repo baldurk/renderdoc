@@ -9,13 +9,13 @@ class GL_Draw_Zoo(rdtest.Draw_Zoo):
     def check_capture(self):
         rdtest.Draw_Zoo.check_capture(self)
 
-        draw = self.find_draw("GL_PRIMITIVE_RESTART")
+        action = self.find_action("GL_PRIMITIVE_RESTART")
 
-        self.check(draw is not None)
+        self.check(action is not None)
 
-        draw = draw.next
+        action = action.next
 
-        self.controller.SetFrameEvent(draw.eventId, True)
+        self.controller.SetFrameEvent(action.eventId, True)
 
         pipe = self.controller.GetPipelineState()
 
@@ -25,13 +25,13 @@ class GL_Draw_Zoo(rdtest.Draw_Zoo):
         self.check(pipe.IsStripRestartEnabled())
         self.check((pipe.GetStripRestartIndex() & ((1 << (ib.byteStride*8)) - 1)) == 0xffff)
 
-        draw = self.find_draw("GL_PRIMITIVE_RESTART_FIXED_INDEX")
+        action = self.find_action("GL_PRIMITIVE_RESTART_FIXED_INDEX")
 
-        self.check(draw is not None)
+        self.check(action is not None)
 
-        draw = draw.next
+        action = action.next
 
-        self.controller.SetFrameEvent(draw.eventId, True)
+        self.controller.SetFrameEvent(action.eventId, True)
 
         pipe = self.controller.GetPipelineState()
 

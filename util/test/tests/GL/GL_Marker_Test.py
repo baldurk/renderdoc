@@ -6,9 +6,9 @@ class GL_Marker_Test(rdtest.TestCase):
     demos_test_name = 'GL_Marker_Test'
 
     def check_capture(self):
-        draws = self.controller.GetDrawcalls()
+        actions = self.controller.GetRootActions()
 
-        d = draws[1]
+        d = actions[1]
 
         names = [
             'EXT marker 1',

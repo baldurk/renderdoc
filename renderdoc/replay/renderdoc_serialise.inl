@@ -104,7 +104,7 @@ void DoSerialise(SerialiserType &ser, CaptureOptions &el)
   SERIALISE_MEMBER(allowFullscreen);
   SERIALISE_MEMBER(apiValidation);
   SERIALISE_MEMBER(captureCallstacks);
-  SERIALISE_MEMBER(captureCallstacksOnlyDraws);
+  SERIALISE_MEMBER(captureCallstacksOnlyActions);
   SERIALISE_MEMBER(delayForDebugger);
   SERIALISE_MEMBER(verifyBufferAccess);
   SERIALISE_MEMBER(hookIntoChildren);
@@ -545,10 +545,10 @@ void DoSerialise(SerialiserType &ser, APIEvent &el)
 }
 
 template <typename SerialiserType>
-void DoSerialise(SerialiserType &ser, DrawcallDescription &el)
+void DoSerialise(SerialiserType &ser, ActionDescription &el)
 {
   SERIALISE_MEMBER(eventId);
-  SERIALISE_MEMBER(drawcallId);
+  SERIALISE_MEMBER(actionId);
 
   SERIALISE_MEMBER(name);
 
@@ -782,7 +782,7 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, FrameRecord &el)
 {
   SERIALISE_MEMBER(frameInfo);
-  SERIALISE_MEMBER(drawcallList);
+  SERIALISE_MEMBER(actionList);
 
   SIZE_CHECK(528);
 }
@@ -2356,7 +2356,7 @@ INSTANTIATE_SERIALISE_TYPE(APIProperties)
 INSTANTIATE_SERIALISE_TYPE(DriverInformation)
 INSTANTIATE_SERIALISE_TYPE(DebugMessage)
 INSTANTIATE_SERIALISE_TYPE(APIEvent)
-INSTANTIATE_SERIALISE_TYPE(DrawcallDescription)
+INSTANTIATE_SERIALISE_TYPE(ActionDescription)
 INSTANTIATE_SERIALISE_TYPE(ConstantBindStats)
 INSTANTIATE_SERIALISE_TYPE(SamplerBindStats)
 INSTANTIATE_SERIALISE_TYPE(ResourceBindStats)

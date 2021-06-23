@@ -6,27 +6,27 @@ class VK_Parameter_Zoo(rdtest.TestCase):
     demos_test_name = 'VK_Parameter_Zoo'
 
     def check_capture(self):
-        draw = self.find_draw("Color Draw")
+        action = self.find_action("Color Draw")
 
-        self.check(draw is not None)
+        self.check(action is not None)
 
-        draw = draw.next
+        action = action.next
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
         self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [0.0, 1.0, 0.0, 1.0])
 
         # Readback reported extension support
-        descriptor_update_template = self.find_draw("KHR_descriptor_update_template") is not None
-        push_descriptor = self.find_draw("KHR_push_descriptor") is not None
+        descriptor_update_template = self.find_action("KHR_descriptor_update_template") is not None
+        push_descriptor = self.find_action("KHR_push_descriptor") is not None
 
-        # Find the draw that contains resource references
-        draw = self.find_draw("References")
-        self.check(draw is not None)
-        draw = draw.next
-        self.controller.SetFrameEvent(draw.eventId, False)
+        # Find the action that contains resource references
+        action = self.find_action("References")
+        self.check(action is not None)
+        action = action.next
+        self.controller.SetFrameEvent(action.eventId, False)
 
         vkpipe: rd.VKState = self.controller.GetVulkanPipelineState()
 
@@ -81,12 +81,12 @@ class VK_Parameter_Zoo(rdtest.TestCase):
 
             setidx = setidx + 1
 
-        # Since we can only have one push descriptor set we have a second draw for push AND template updates
+        # Since we can only have one push descriptor set we have a second action for push AND template updates
         if descriptor_update_template and push_descriptor:
-            draw = self.find_draw("PushTemplReferences")
-            self.check(draw is not None)
-            draw = draw.next
-            self.controller.SetFrameEvent(draw.eventId, False)
+            action = self.find_action("PushTemplReferences")
+            self.check(action is not None)
+            action = action.next
+            self.controller.SetFrameEvent(action.eventId, False)
 
             vkpipe: rd.VKState = self.controller.GetVulkanPipelineState()
 
@@ -116,20 +116,20 @@ class VK_Parameter_Zoo(rdtest.TestCase):
 
         rdtest.log.success("All resources were found as expected")
 
-        draw = self.find_draw("Tools available")
+        action = self.find_action("Tools available")
 
-        self.check(len(draw.children) > 1)
-        self.check(any([d.name == 'RenderDoc' for d in draw.children]))
+        self.check(len(action.children) > 1)
+        self.check(any([d.name == 'RenderDoc' for d in action.children]))
 
         rdtest.log.success("RenderDoc tool was listed as available")
 
-        draw = self.find_draw("ASM Draw")
+        action = self.find_action("ASM Draw")
 
-        self.check(draw is not None)
+        self.check(action is not None)
 
-        draw = draw.next
+        action = action.next
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         vkpipe: rd.VKState = self.controller.GetVulkanPipelineState()
 
@@ -148,7 +148,7 @@ class VK_Parameter_Zoo(rdtest.TestCase):
 
         self.check(len(vkpipe.viewportScissor.viewportScissors) == 0)
 
-        postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, draw.numIndices)
+        postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
 
         postvs_ref = {
             0: {
@@ -177,13 +177,13 @@ class VK_Parameter_Zoo(rdtest.TestCase):
 
         rdtest.log.success("ASM Draw is as expected")
 
-        draw = self.find_draw("Immutable Draw")
+        action = self.find_action("Immutable Draw")
 
-        self.check(draw is not None)
+        self.check(action is not None)
 
-        draw = draw.next
+        action = action.next
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         vkpipe: rd.VKState = self.controller.GetVulkanPipelineState()
 
@@ -191,11 +191,11 @@ class VK_Parameter_Zoo(rdtest.TestCase):
 
         if desc_set.bindings[0].binds[0].filter.minify != rd.FilterMode.Linear:
             raise rdtest.TestFailureException(
-                "Expected linear sampler at binding slot 0 in immutable draw")
+                "Expected linear sampler at binding slot 0 in immutable action")
 
         if self.get_resource(desc_set.bindings[0].binds[0].samplerResourceId).name != "validSampler":
             raise rdtest.TestFailureException(
-                "Expected validSampler to be at binding slot 0 in immutable draw")
+                "Expected validSampler to be at binding slot 0 in immutable action")
 
         # Check for resource leaks
         if len(self.controller.GetStructuredFile().chunks) > 500:

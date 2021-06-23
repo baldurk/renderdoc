@@ -24,7 +24,7 @@ def biggestDraw(prevBiggest, d):
 def sampleCode(controller):
 	# Find the biggest drawcall in the whole capture
 	draw = None
-	for d in controller.GetDrawcalls():
+	for d in controller.GetRootActions():
 		draw = biggestDraw(draw, d)
 
 	# Move to that draw

@@ -164,7 +164,7 @@ public:
 
   FrameDescription GetFrameInfo();
   const SDFile &GetStructuredFile();
-  const rdcarray<DrawcallDescription> &GetDrawcalls();
+  const rdcarray<ActionDescription> &GetRootActions();
   void AddFakeMarkers();
   rdcarray<CounterResult> FetchCounters(const rdcarray<GPUCounter> &counters);
   rdcarray<GPUCounter> EnumerateCounters();
@@ -224,13 +224,13 @@ private:
 
   void FetchPipelineState(uint32_t eventId);
 
-  DrawcallDescription *GetDrawcallByEID(uint32_t eventId);
-  bool ContainsMarker(const rdcarray<DrawcallDescription> &draws);
-  bool PassEquivalent(const DrawcallDescription &a, const DrawcallDescription &b);
+  ActionDescription *GetActionByEID(uint32_t eventId);
+  bool ContainsMarker(const rdcarray<ActionDescription> &actions);
+  bool PassEquivalent(const ActionDescription &a, const ActionDescription &b);
 
   IReplayDriver *GetDevice() { return m_pDevice; }
   FrameRecord m_FrameRecord;
-  rdcarray<DrawcallDescription *> m_Drawcalls;
+  rdcarray<ActionDescription *> m_Actions;
 
   uint64_t m_ThreadID;
 

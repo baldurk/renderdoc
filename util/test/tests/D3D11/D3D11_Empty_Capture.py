@@ -7,8 +7,8 @@ class D3D11_Empty_Capture(rdtest.TestCase):
     demos_frame_cap = 100
 
     def check_capture(self):
-        draws = self.controller.GetDrawcalls()
+        actions = self.controller.GetRootActions()
 
-        self.check(len(draws) == 1)
-        self.check('End' in draws[0].name)
-        self.check(draws[0].eventId == 1)
+        self.check(len(actions) == 1)
+        self.check('End' in actions[0].name)
+        self.check(actions[0].eventId == 1)

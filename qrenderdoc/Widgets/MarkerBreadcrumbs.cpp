@@ -232,9 +232,9 @@ MarkerBreadcrumbs::~MarkerBreadcrumbs()
 
 void MarkerBreadcrumbs::OnEventChanged(uint32_t eventId)
 {
-  const DrawcallDescription *parent = m_Ctx.GetEventBrowser()->GetDrawcallForEID(m_Ctx.CurEvent());
+  const ActionDescription *parent = m_Ctx.GetEventBrowser()->GetActionForEID(m_Ctx.CurEvent());
 
-  if(parent != NULL && !(parent->flags & DrawFlags::PushMarker))
+  if(parent != NULL && !(parent->flags & ActionFlags::PushMarker))
     parent = parent->parent;
 
   if(m_CurParent == parent && m_Layout->count() != 0)
@@ -243,7 +243,7 @@ void MarkerBreadcrumbs::OnEventChanged(uint32_t eventId)
   m_CurParent = parent;
   m_Layout->clear();
 
-  QVector<const DrawcallDescription *> path;
+  QVector<const ActionDescription *> path;
 
   while(parent)
   {
@@ -268,27 +268,27 @@ void MarkerBreadcrumbs::ForceRefresh()
   OnEventChanged(m_Ctx.CurEvent());
 }
 
-void MarkerBreadcrumbs::ConfigurePathMenu(QMenu *menu, const DrawcallDescription *draw)
+void MarkerBreadcrumbs::ConfigurePathMenu(QMenu *menu, const ActionDescription *action)
 {
-  const rdcarray<DrawcallDescription> &draws = draw ? draw->children : m_Ctx.CurDrawcalls();
+  const rdcarray<ActionDescription> &actions = action ? action->children : m_Ctx.CurRootActions();
 
   menu->clear();
-  for(const DrawcallDescription &child : draws)
+  for(const ActionDescription &child : actions)
   {
-    if((child.flags & DrawFlags::PushMarker) &&
+    if((child.flags & ActionFlags::PushMarker) &&
        m_Ctx.GetEventBrowser()->IsAPIEventVisible(child.eventId))
     {
-      QAction *action = new QAction(child.name, menu);
+      QAction *menuAction = new QAction(child.name, menu);
 
       uint32_t eid = child.eventId;
 
       if(child.IsFakeMarker())
         eid = child.children[0].eventId;
 
-      QObject::connect(action, &QAction::triggered,
+      QObject::connect(menuAction, &QAction::triggered,
                        [this, eid]() { m_Ctx.SetEventID({}, eid, eid); });
 
-      menu->addAction(action);
+      menu->addAction(menuAction);
     }
   }
 }
@@ -315,11 +315,11 @@ void MarkerBreadcrumbs::elidedItemsClicked()
   m_ElidedMenu->show();
 }
 
-void MarkerBreadcrumbs::AddPathButton(const DrawcallDescription *draw)
+void MarkerBreadcrumbs::AddPathButton(const ActionDescription *action)
 {
   RDToolButton *b = new RDToolButton();
-  b->setText(draw ? QString(draw->name) : QString());
-  if(!draw)
+  b->setText(action ? QString(action->name) : QString());
+  if(!action)
   {
     b->setIcon(Icons::house());
     b->setToolButtonStyle(Qt::ToolButtonIconOnly);
@@ -328,9 +328,9 @@ void MarkerBreadcrumbs::AddPathButton(const DrawcallDescription *draw)
 
   bool hasChildMarkers = false;
 
-  for(const DrawcallDescription &child : draw ? draw->children : m_Ctx.CurDrawcalls())
+  for(const ActionDescription &child : action ? action->children : m_Ctx.CurRootActions())
   {
-    if((child.flags & DrawFlags::PushMarker) &&
+    if((child.flags & ActionFlags::PushMarker) &&
        m_Ctx.GetEventBrowser()->IsAPIEventVisible(child.eventId))
     {
       hasChildMarkers = true;
@@ -346,13 +346,13 @@ void MarkerBreadcrumbs::AddPathButton(const DrawcallDescription *draw)
     b->setMenu(menu);
 
     QObject::connect(menu, &QMenu::aboutToShow,
-                     [this, menu, draw]() { ConfigurePathMenu(menu, draw); });
+                     [this, menu, action]() { ConfigurePathMenu(menu, action); });
   }
 
-  uint32_t eid = draw ? draw->eventId : 0;
+  uint32_t eid = action ? action->eventId : 0;
 
-  if(draw && draw->IsFakeMarker())
-    eid = draw->children[0].eventId;
+  if(action && action->IsFakeMarker())
+    eid = action->children[0].eventId;
 
   b->setAutoRaise(true);
   QObject::connect(b, &RDToolButton::clicked, [this, eid]() { m_Ctx.SetEventID({}, eid, eid); });

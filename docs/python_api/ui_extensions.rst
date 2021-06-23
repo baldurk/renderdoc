@@ -45,7 +45,7 @@ Now we have a new menu item which when clicked produces a popup message dialog!
 
     Python extension generating a message box
 
-This is a good proof of concept, but really we want something more directly usable. Instead of showing a message box, let's show a window which reacts to the selected drawcall by showing a series of breadcrumbs for marker labels.
+This is a good proof of concept, but really we want something more directly usable. Instead of showing a message box, let's show a window which reacts to the selected action by showing a series of breadcrumbs for marker labels.
 
 Adding a window and capture viewer
 ----------------------------------
@@ -110,16 +110,16 @@ And finally we can fill in the event functions to set the breadcrumbs. We use ``
         pass
 
     def OnEventChanged(self, event):
-        draw = self.ctx.GetDrawcall(event)
+        action = self.ctx.GetAction(event)
 
         breadcrumbs = ''
 
-        if draw is not None:
-            breadcrumbs = '@{}: {}'.format(draw.eventId, draw.name)
+        if action is not None:
+            breadcrumbs = '@{}: {}'.format(action.eventId, action.name)
 
-            while draw.parent is not None:
-                draw = draw.parent
-                breadcrumbs = '@{}: {}'.format(draw.eventId, draw.name) + '\n' + breadcrumbs
+            while action.parent is not None:
+                action = action.parent
+                breadcrumbs = '@{}: {}'.format(action.eventId, action.name) + '\n' + breadcrumbs
 
         self.mqt.SetWidgetText(self.breadcrumbs, "Breadcrumbs:\n{}".format(breadcrumbs))
 
@@ -176,12 +176,12 @@ With that we now have a new little breadcrumbs window that docks itself above ou
 
 .. figure:: ../imgs/python_ext/Step2.png
 
-    Python extension showing the current draw's breadcrumbs
+    Python extension showing the current action's breadcrumbs
 
 Calling onto replay thread
 --------------------------
 
-So far this has worked well, but we're only using information available on the UI thread. A good amount of useful information is cached on the UI thread including the current pipeline state and drawcalls, but for some work we might want to call into the underlying analysis functions. When we do this we must do it on the replay thread to avoid blocking the UI if the analysis work takes a long time.
+So far this has worked well, but we're only using information available on the UI thread. A good amount of useful information is cached on the UI thread including the current pipeline state and actions, but for some work we might want to call into the underlying analysis functions. When we do this we must do it on the replay thread to avoid blocking the UI if the analysis work takes a long time.
 
 This can get quite complex so we will do something very simple, in the message box callback that we created earlier instead of displaying the message box immediately we will first figure out the minimum and maximum values for the current depth output or first colour output and display that.
 

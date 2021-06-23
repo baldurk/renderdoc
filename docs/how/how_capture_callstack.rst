@@ -14,7 +14,7 @@ It can be useful when tracking down problems to have an idea of where each API c
 
 .. note::
 
-	Callstack gathering has a reasonable overhead during capture and can slow things down as well as cause more memory overhead. This can be mitigated with the 'only drawcall callstacks' option that only lists callstacks for each drawcall event.
+	Callstack gathering has a reasonable overhead during capture and can slow things down as well as cause more memory overhead. This can be mitigated with the 'only action callstacks' option that only lists callstacks for each action.
 
 Launching Capture
 -----------------
@@ -25,7 +25,7 @@ When launching a capture (as in :doc:`how_capture_frame`) you should enable :gui
 
 	Collect Callstacks: Option enabled on the capture dialog.
 
-If you wish to save some time & overhead you can then enable :guilabel:`Only drawcall stacks`. This will only collect callstacks when a drawcall-type API call is made. This can be a good-enough trade off that still gets you the information you need, at a lower cost. After this point you can run the program and capture as usual.
+If you wish to save some time & overhead you can then enable :guilabel:`Only action stacks`. This will only collect callstacks when an action call is made. This can be a good-enough trade off that still gets you the information you need, at a lower cost. After this point you can run the program and capture as usual.
 
 Replaying the capture
 ---------------------
@@ -48,4 +48,4 @@ By default a symbol server will be used, as well as a few default locations such
 
 If a PDB cannot be located then you have the option of permanently ignoring that PDB. This can be useful for third party libraries for which no PDB will ever be available. If you don't ignore the PDB you will be prompted to locate it the next time you open a capture that references it.
 
-Once the symbols have been successfully resolved the callstack section of the API inspector will contain any callstack that was collected for the given drawcall or API call. You can select and copy any levels and paste them elsewhere if you wish.
+Once the symbols have been successfully resolved the callstack section of the API inspector will contain any callstack that was collected for the given action or API call. You can select and copy any levels and paste them elsewhere if you wish.

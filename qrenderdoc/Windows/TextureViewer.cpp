@@ -110,13 +110,13 @@ bool Following::operator==(const Following &o)
   return Type == o.Type && Stage == o.Stage && index == o.index && arrayEl == o.arrayEl;
 }
 
-void Following::GetDrawContext(ICaptureContext &ctx, bool &copy, bool &clear, bool &compute)
+void Following::GetActionContext(ICaptureContext &ctx, bool &copy, bool &clear, bool &compute)
 {
-  const DrawcallDescription *curDraw = ctx.CurDrawcall();
-  copy = curDraw != NULL &&
-         (curDraw->flags & (DrawFlags::Copy | DrawFlags::Resolve | DrawFlags::Present));
-  clear = curDraw != NULL && (curDraw->flags & DrawFlags::Clear);
-  compute = curDraw != NULL && (curDraw->flags & DrawFlags::Dispatch) &&
+  const ActionDescription *curAction = ctx.CurAction();
+  copy = curAction != NULL &&
+         (curAction->flags & (ActionFlags::Copy | ActionFlags::Resolve | ActionFlags::Present));
+  clear = curAction != NULL && (curAction->flags & ActionFlags::Clear);
+  compute = curAction != NULL && (curAction->flags & ActionFlags::Dispatch) &&
             ctx.CurPipelineState().GetShader(ShaderStage::Compute) != ResourceId();
 }
 
@@ -201,13 +201,13 @@ BoundResource Following::GetBoundResource(ICaptureContext &ctx, int arrayIdx)
 
 rdcarray<BoundResource> Following::GetOutputTargets(ICaptureContext &ctx)
 {
-  const DrawcallDescription *curDraw = ctx.CurDrawcall();
+  const ActionDescription *curAction = ctx.CurAction();
   bool copy = false, clear = false, compute = false;
-  GetDrawContext(ctx, copy, clear, compute);
+  GetActionContext(ctx, copy, clear, compute);
 
   if(copy || clear)
   {
-    return {BoundResource(curDraw->copyDestination, curDraw->copyDestinationSubresource)};
+    return {BoundResource(curAction->copyDestination, curAction->copyDestinationSubresource)};
   }
   else if(compute)
   {
@@ -217,10 +217,10 @@ rdcarray<BoundResource> Following::GetOutputTargets(ICaptureContext &ctx)
   {
     rdcarray<BoundResource> ret = ctx.CurPipelineState().GetOutputTargets();
 
-    if(ret.isEmpty() && curDraw != NULL && (curDraw->flags & DrawFlags::Present))
+    if(ret.isEmpty() && curAction != NULL && (curAction->flags & ActionFlags::Present))
     {
-      if(curDraw->copyDestination != ResourceId())
-        return {BoundResource(curDraw->copyDestination, curDraw->copyDestinationSubresource)};
+      if(curAction->copyDestination != ResourceId())
+        return {BoundResource(curAction->copyDestination, curAction->copyDestinationSubresource)};
 
       for(const TextureDescription &tex : ctx.GetTextures())
       {
@@ -236,7 +236,7 @@ rdcarray<BoundResource> Following::GetOutputTargets(ICaptureContext &ctx)
 BoundResource Following::GetDepthTarget(ICaptureContext &ctx)
 {
   bool copy = false, clear = false, compute = false;
-  GetDrawContext(ctx, copy, clear, compute);
+  GetActionContext(ctx, copy, clear, compute);
 
   if(copy || clear || compute)
     return BoundResource(ResourceId());
@@ -248,7 +248,7 @@ rdcarray<BoundResourceArray> Following::GetReadWriteResources(ICaptureContext &c
                                                               ShaderStage stage, bool onlyUsed)
 {
   bool copy = false, clear = false, compute = false;
-  GetDrawContext(ctx, copy, clear, compute);
+  GetActionContext(ctx, copy, clear, compute);
 
   if(copy || clear)
   {
@@ -271,9 +271,9 @@ rdcarray<BoundResourceArray> Following::GetReadWriteResources(ICaptureContext &c
 rdcarray<BoundResourceArray> Following::GetReadOnlyResources(ICaptureContext &ctx,
                                                              ShaderStage stage, bool onlyUsed)
 {
-  const DrawcallDescription *curDraw = ctx.CurDrawcall();
+  const ActionDescription *curAction = ctx.CurAction();
   bool copy = false, clear = false, compute = false;
-  GetDrawContext(ctx, copy, clear, compute);
+  GetActionContext(ctx, copy, clear, compute);
 
   if(copy || clear)
   {
@@ -282,7 +282,7 @@ rdcarray<BoundResourceArray> Following::GetReadOnlyResources(ICaptureContext &ct
     // only return copy source for one stage
     if(copy && stage == ShaderStage::Pixel)
       ret.push_back(BoundResourceArray(
-          Bindpoint(0, 0), {BoundResource(curDraw->copySource, curDraw->copySourceSubresource)}));
+          Bindpoint(0, 0), {BoundResource(curAction->copySource, curAction->copySourceSubresource)}));
 
     return ret;
   }
@@ -303,7 +303,7 @@ rdcarray<BoundResourceArray> Following::GetReadOnlyResources(ICaptureContext &ct
 const ShaderReflection *Following::GetReflection(ICaptureContext &ctx, ShaderStage stage)
 {
   bool copy = false, clear = false, compute = false;
-  GetDrawContext(ctx, copy, clear, compute);
+  GetActionContext(ctx, copy, clear, compute);
 
   if(copy || clear)
     return NULL;
@@ -321,7 +321,7 @@ const ShaderReflection *Following::GetReflection(ICaptureContext &ctx)
 const ShaderBindpointMapping &Following::GetMapping(ICaptureContext &ctx, ShaderStage stage)
 {
   bool copy = false, clear = false, compute = false;
-  GetDrawContext(ctx, copy, clear, compute);
+  GetActionContext(ctx, copy, clear, compute);
 
   if(copy || clear)
   {
@@ -393,7 +393,7 @@ void TextureViewer::UI_UpdateCachedTexture()
       const ShaderReflection *shaderDetails =
           m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Pixel);
 
-      if(!m_Ctx.CurDrawcall() || !(m_Ctx.CurDrawcall()->flags & DrawFlags::Drawcall))
+      if(!m_Ctx.CurAction() || !(m_Ctx.CurAction()->flags & ActionFlags::Drawcall))
       {
         ui->debugPixelContext->setEnabled(false);
         ui->debugPixelContext->setToolTip(tr("No draw call selected"));
@@ -1242,7 +1242,7 @@ void TextureViewer::UI_UpdateTextureDetails()
   ui->texStatusFormat->setText(status);
 }
 
-void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
+void TextureViewer::UI_OnTextureSelectionChanged(bool newAction)
 {
   TextureDescription *texptr = GetCurrentTexture();
 
@@ -1423,8 +1423,8 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
   {
     int highestMip = -1;
 
-    // only switch to the selected mip for outputs, and when changing drawcall
-    if(!currentTextureIsLocked() && m_Following.Type != FollowType::ReadOnly && (newdraw || newtex))
+    // only switch to the selected mip for outputs, and when changing action
+    if(!currentTextureIsLocked() && m_Following.Type != FollowType::ReadOnly && (newAction || newtex))
       highestMip = m_Following.GetHighestMip(m_Ctx);
 
     // assuming we get a valid mip for the highest mip, only switch to it
@@ -1447,8 +1447,8 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
 
   {
     int firstArraySlice = -1;
-    // only switch to the selected mip for outputs, and when changing drawcall
-    if(!currentTextureIsLocked() && m_Following.Type != FollowType::ReadOnly && (newdraw || newtex))
+    // only switch to the selected mip for outputs, and when changing action
+    if(!currentTextureIsLocked() && m_Following.Type != FollowType::ReadOnly && (newAction || newtex))
       firstArraySlice = m_Following.GetFirstArraySlice(m_Ctx);
 
     // see above with highestMip and prevHighestMip for the logic behind this
@@ -3101,7 +3101,7 @@ void TextureViewer::OnCaptureClosed()
 void TextureViewer::OnEventChanged(uint32_t eventId)
 {
   bool copy = false, clear = false, compute = false;
-  Following::GetDrawContext(m_Ctx, copy, clear, compute);
+  Following::GetActionContext(m_Ctx, copy, clear, compute);
 
   ShaderStage stages[] = {ShaderStage::Vertex, ShaderStage::Hull, ShaderStage::Domain,
                           ShaderStage::Geometry, ShaderStage::Pixel};

@@ -123,7 +123,7 @@ public:
   QWidget *Widget() override { return this; }
   void UpdateDurationColumn() override;
   APIEvent GetAPIEventForEID(uint32_t eid) override;
-  const DrawcallDescription *GetDrawcallForEID(uint32_t eid) override;
+  const ActionDescription *GetActionForEID(uint32_t eid) override;
   bool IsAPIEventVisible(uint32_t eid) override;
   bool RegisterEventFilterFunction(const rdcstr &name, const rdcstr &description,
                                    EventFilterCallback filter, FilterParseCallback parser,
@@ -132,7 +132,7 @@ public:
 
   void SetCurrentFilterText(const rdcstr &text) override;
   rdcstr GetCurrentFilterText() override;
-  void SetUseCustomDrawNames(bool use) override;
+  void SetUseCustomActionNames(bool use) override;
   void SetShowParameterNames(bool show) override;
   void SetShowAllParameters(bool show) override;
   void SetEmptyRegionsVisible(bool show) override;
@@ -149,7 +149,7 @@ public:
 private slots:
   // automatic slots
   void on_find_toggled(bool checked);
-  void on_timeDraws_clicked();
+  void on_timeActions_clicked();
   void on_bookmark_clicked();
   void on_HideFind();
   void on_findEvent_returnPressed();
@@ -164,7 +164,7 @@ private slots:
   void on_findPrev_clicked();
   void on_stepNext_clicked();
   void on_stepPrev_clicked();
-  void on_exportDraws_clicked();
+  void on_exportActions_clicked();
   void on_colSelect_clicked();
 
   // manual slots
@@ -204,8 +204,8 @@ private:
 
   QString GetExportString(int indent, bool firstchild, const QModelIndex &idx);
   void GetMaxNameLength(int &maxNameLength, int indent, bool firstchild, const QModelIndex &idx);
-  void ExportDrawcall(QTextStream &writer, int maxNameLength, int indent, bool firstchild,
-                      const QModelIndex &idx);
+  void ExportAction(QTextStream &writer, int maxNameLength, int indent, bool firstchild,
+                    const QModelIndex &idx);
 
   QPalette m_redPalette;
 

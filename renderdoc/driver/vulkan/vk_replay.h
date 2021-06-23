@@ -150,7 +150,7 @@ class WrappedVulkan;
 class VulkanDebugManager;
 class VulkanResourceManager;
 struct VulkanStatePipeline;
-struct VulkanAMDDrawCallback;
+struct VulkanAMDActionCallback;
 
 struct VulkanPostVSData
 {
@@ -782,7 +782,7 @@ private:
   AMDCounters *m_pAMDCounters = NULL;
   AMDRGPControl *m_RGP = NULL;
 
-  VulkanAMDDrawCallback *m_pAMDDrawCallback = NULL;
+  VulkanAMDActionCallback *m_pAMDActionCallback = NULL;
 
   rdcarray<CounterResult> FetchCountersKHR(const rdcarray<GPUCounter> &counters);
 

@@ -6,9 +6,9 @@ class VK_Robustness2(rdtest.TestCase):
     demos_test_name = 'VK_Robustness2'
 
     def check_capture(self):
-        draw: rd.DrawcallDescription = self.find_draw('vkCmdDraw')
+        action: rd.ActionDescription = self.find_action('vkCmdDraw')
 
-        self.controller.SetFrameEvent(draw.eventId, True)
+        self.controller.SetFrameEvent(action.eventId, True)
 
         self.check_triangle()
 
@@ -38,11 +38,11 @@ class VK_Robustness2(rdtest.TestCase):
             },
         }
 
-        self.check_mesh_data(vsin_ref, self.get_vsin(draw))
+        self.check_mesh_data(vsin_ref, self.get_vsin(action))
 
         rdtest.log.success('Mesh input data is correct, including unbound VB')
 
-        postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, draw.numIndices)
+        postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
 
         postvs_ref = {
             0: {
@@ -91,9 +91,9 @@ class VK_Robustness2(rdtest.TestCase):
                 var_check.check('data').type(rd.VarType.Float).rows(1).cols(4).value([0.0, 0.0, 0.0, 0.0])
             else:
                 val = [0, 0, 0, 0]
-                if self.find_draw('robustBufferAccess2') is not None:
+                if self.find_action('robustBufferAccess2') is not None:
                     val[2] = 1000000
-                if self.find_draw('robustImageAccess2') is not None:
+                if self.find_action('robustImageAccess2') is not None:
                     val[0] = val[1] = 1000000
                 var_check.check('coord').type(rd.VarType.SInt).rows(1).cols(4).value(val)
 

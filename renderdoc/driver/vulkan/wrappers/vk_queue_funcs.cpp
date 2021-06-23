@@ -265,29 +265,29 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo
       rdcstr name = StringFormat::Fmt("=> %s[%u]: vkBeginCommandBuffer(%s)", basename.c_str(), c,
                                       ToStr(cmd).c_str());
 
-      DrawcallDescription draw;
+      ActionDescription action;
       {
         // add a fake marker
-        draw.name = name;
-        draw.flags |=
-            DrawFlags::CommandBufferBoundary | DrawFlags::PassBoundary | DrawFlags::BeginPass;
+        action.name = name;
+        action.flags |=
+            ActionFlags::CommandBufferBoundary | ActionFlags::PassBoundary | ActionFlags::BeginPass;
         AddEvent();
 
         m_RootEvents.back().chunkIndex = cmdBufInfo.beginChunk;
         m_Events.back().chunkIndex = cmdBufInfo.beginChunk;
 
-        AddDrawcall(draw);
+        AddAction(action);
         m_RootEventID++;
       }
 
       // insert the baked command buffer in-line into this list of notes, assigning new event
       // and drawIDs
-      InsertDrawsAndRefreshIDs(cmdBufInfo);
+      InsertActionsAndRefreshIDs(cmdBufInfo);
 
-      for(size_t e = 0; e < cmdBufInfo.draw->executedCmds.size(); e++)
+      for(size_t e = 0; e < cmdBufInfo.action->executedCmds.size(); e++)
       {
         rdcarray<Submission> &submits =
-            m_Partial[Secondary].cmdBufferSubmits[cmdBufInfo.draw->executedCmds[e]];
+            m_Partial[Secondary].cmdBufferSubmits[cmdBufInfo.action->executedCmds[e]];
 
         for(size_t s = 0; s < submits.size(); s++)
         {
@@ -309,10 +309,10 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo
       m_Partial[Primary].cmdBufferSubmits[cmd].push_back(Submission(m_RootEventID));
 
       m_RootEventID += cmdBufInfo.eventCount;
-      m_RootDrawcallID += cmdBufInfo.drawCount;
+      m_RootActionID += cmdBufInfo.actionCount;
 
       {
-        // pull in any remaining events on the command buffer that weren't added to a drawcall
+        // pull in any remaining events on the command buffer that weren't added to an action
         uint32_t i = 0;
         for(APIEvent &apievent : cmdBufInfo.curEvents)
         {
@@ -327,14 +327,15 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo
 
         name = StringFormat::Fmt("=> %s[%u]: vkEndCommandBuffer(%s)", basename.c_str(), c,
                                  ToStr(cmd).c_str());
-        draw.name = name;
-        draw.flags = DrawFlags::CommandBufferBoundary | DrawFlags::PassBoundary | DrawFlags::EndPass;
+        action.name = name;
+        action.flags =
+            ActionFlags::CommandBufferBoundary | ActionFlags::PassBoundary | ActionFlags::EndPass;
         AddEvent();
 
         m_RootEvents.back().chunkIndex = cmdBufInfo.endChunk;
         m_Events.back().chunkIndex = cmdBufInfo.endChunk;
 
-        AddDrawcall(draw);
+        AddAction(action);
         m_RootEventID++;
       }
     }
@@ -357,12 +358,12 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo
           GetResID(submitInfo.pCommandBufferInfos[c].commandBuffer));
 
       m_RootEventID += m_BakedCmdBufferInfo[cmd].eventCount;
-      m_RootDrawcallID += m_BakedCmdBufferInfo[cmd].drawCount;
+      m_RootActionID += m_BakedCmdBufferInfo[cmd].actionCount;
 
       // 2 extra for the virtual labels around the command buffer
       {
         m_RootEventID += 2;
-        m_RootDrawcallID += 2;
+        m_RootActionID += 2;
       }
     }
 
@@ -455,12 +456,12 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo
 }
 
 bool WrappedVulkan::PatchIndirectDraw(size_t drawIndex, uint32_t paramStride,
-                                      VkIndirectPatchType type, DrawcallDescription &draw,
+                                      VkIndirectPatchType type, ActionDescription &action,
                                       byte *&argptr, byte *argend)
 {
   bool valid = false;
 
-  draw.drawIndex = (uint32_t)drawIndex;
+  action.drawIndex = (uint32_t)drawIndex;
 
   if(type == VkIndirectPatchType::DrawIndirect || type == VkIndirectPatchType::DrawIndirectCount)
   {
@@ -468,10 +469,10 @@ bool WrappedVulkan::PatchIndirectDraw(size_t drawIndex, uint32_t paramStride,
     {
       VkDrawIndirectCommand *arg = (VkDrawIndirectCommand *)argptr;
 
-      draw.numIndices = arg->vertexCount;
-      draw.numInstances = arg->instanceCount;
-      draw.vertexOffset = arg->firstVertex;
-      draw.instanceOffset = arg->firstInstance;
+      action.numIndices = arg->vertexCount;
+      action.numInstances = arg->instanceCount;
+      action.vertexOffset = arg->firstVertex;
+      action.instanceOffset = arg->firstInstance;
 
       valid = true;
     }
@@ -482,7 +483,7 @@ bool WrappedVulkan::PatchIndirectDraw(size_t drawIndex, uint32_t paramStride,
     {
       uint32_t *arg = (uint32_t *)argptr;
 
-      draw.numIndices = *arg;
+      action.numIndices = *arg;
 
       valid = true;
     }
@@ -494,26 +495,26 @@ bool WrappedVulkan::PatchIndirectDraw(size_t drawIndex, uint32_t paramStride,
     {
       VkDrawIndexedIndirectCommand *arg = (VkDrawIndexedIndirectCommand *)argptr;
 
-      draw.numIndices = arg->indexCount;
-      draw.numInstances = arg->instanceCount;
-      draw.baseVertex = arg->vertexOffset;
-      draw.indexOffset = arg->firstIndex;
-      draw.instanceOffset = arg->firstInstance;
+      action.numIndices = arg->indexCount;
+      action.numInstances = arg->instanceCount;
+      action.baseVertex = arg->vertexOffset;
+      action.indexOffset = arg->firstIndex;
+      action.instanceOffset = arg->firstInstance;
 
       valid = true;
     }
   }
   else
   {
-    RDCERR("Unexpected indirect draw type");
+    RDCERR("Unexpected indirect action type");
   }
 
-  if(valid && !draw.events.empty())
+  if(valid && !action.events.empty())
   {
-    SDChunk *chunk = m_StructuredFile->chunks[draw.events.back().chunkIndex];
+    SDChunk *chunk = m_StructuredFile->chunks[action.events.back().chunkIndex];
 
     if(chunk->metadata.chunkID != (uint32_t)VulkanChunk::vkCmdIndirectSubCommand)
-      chunk = m_StructuredFile->chunks[draw.events.back().chunkIndex - 1];
+      chunk = m_StructuredFile->chunks[action.events.back().chunkIndex - 1];
 
     SDObject *drawIdx = chunk->FindChild("drawIndex");
 
@@ -527,41 +528,41 @@ bool WrappedVulkan::PatchIndirectDraw(size_t drawIndex, uint32_t paramStride,
 
     SDObject *command = chunk->FindChild("command");
 
-    // single draw indirect draws don't have a command child since it can't be added without
+    // single action indirect draws don't have a command child since it can't be added without
     // breaking serialising the chunk.
     if(command)
     {
       // patch up structured data contents
       if(SDObject *sub = command->FindChild("vertexCount"))
-        sub->data.basic.u = draw.numIndices;
+        sub->data.basic.u = action.numIndices;
       if(SDObject *sub = command->FindChild("indexCount"))
-        sub->data.basic.u = draw.numIndices;
+        sub->data.basic.u = action.numIndices;
       if(SDObject *sub = command->FindChild("instanceCount"))
-        sub->data.basic.u = draw.numInstances;
+        sub->data.basic.u = action.numInstances;
       if(SDObject *sub = command->FindChild("firstVertex"))
-        sub->data.basic.u = draw.vertexOffset;
+        sub->data.basic.u = action.vertexOffset;
       if(SDObject *sub = command->FindChild("vertexOffset"))
-        sub->data.basic.u = draw.baseVertex;
+        sub->data.basic.u = action.baseVertex;
       if(SDObject *sub = command->FindChild("firstIndex"))
-        sub->data.basic.u = draw.indexOffset;
+        sub->data.basic.u = action.indexOffset;
       if(SDObject *sub = command->FindChild("firstInstance"))
-        sub->data.basic.u = draw.instanceOffset;
+        sub->data.basic.u = action.instanceOffset;
     }
   }
 
   return valid;
 }
 
-void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
+void WrappedVulkan::InsertActionsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
 {
-  rdcarray<VulkanDrawcallTreeNode> &cmdBufNodes = cmdBufInfo.draw->children;
+  rdcarray<VulkanActionTreeNode> &cmdBufNodes = cmdBufInfo.action->children;
 
-  // assign new drawcall IDs
+  // assign new action IDs
   for(size_t i = 0; i < cmdBufNodes.size(); i++)
   {
-    VulkanDrawcallTreeNode n = cmdBufNodes[i];
-    n.draw.eventId += m_RootEventID;
-    n.draw.drawcallId += m_RootDrawcallID;
+    VulkanActionTreeNode n = cmdBufNodes[i];
+    n.action.eventId += m_RootEventID;
+    n.action.actionId += m_RootActionID;
 
     if(n.indirectPatch.type == VkIndirectPatchType::DispatchIndirect)
     {
@@ -576,11 +577,11 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
         args = &unknown;
       }
 
-      n.draw.name =
+      n.action.name =
           StringFormat::Fmt("vkCmdDispatchIndirect(<%u, %u, %u>)", args->x, args->y, args->z);
-      n.draw.dispatchDimension[0] = args->x;
-      n.draw.dispatchDimension[1] = args->y;
-      n.draw.dispatchDimension[2] = args->z;
+      n.action.dispatchDimension[0] = args->x;
+      n.action.dispatchDimension[1] = args->y;
+      n.action.dispatchDimension[2] = args->z;
     }
     else if(n.indirectPatch.type == VkIndirectPatchType::DrawIndirectByteCount ||
             n.indirectPatch.type == VkIndirectPatchType::DrawIndirect ||
@@ -606,7 +607,7 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
         }
         else
         {
-          RDCERR("Couldn't get indirect draw count");
+          RDCERR("Couldn't get indirect action count");
         }
 
         if(indirectCount > n.indirectPatch.count)
@@ -618,20 +619,21 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
         // this can be negative if indirectCount is 0
         int32_t eidShift = indirectCount - 1;
 
-        // we reserved one event and drawcall for the indirect count based draw.
+        // we reserved one event and action for the indirect count based action.
         // if we ended up with a different number eidShift will be non-zero, so we need to adjust
-        // all subsequent EIDs and draw IDs and either remove the subdraw we allocated (if no draws
+        // all subsequent EIDs and action IDs and either remove the subdraw we allocated (if no
+        // draws
         // happened) or clone the subdraw to create more that we can then patch.
         if(eidShift != 0)
         {
           // i is the pushmarker, so i + 1 is the sub draws, and i + 2 is the pop marker.
-          // adjust all EIDs and draw IDs after that point
+          // adjust all EIDs and action IDs after that point
           for(size_t j = i + 2; j < cmdBufNodes.size(); j++)
           {
-            cmdBufNodes[j].draw.eventId += eidShift;
-            cmdBufNodes[j].draw.drawcallId += eidShift;
+            cmdBufNodes[j].action.eventId += eidShift;
+            cmdBufNodes[j].action.actionId += eidShift;
 
-            for(APIEvent &ev : cmdBufNodes[j].draw.events)
+            for(APIEvent &ev : cmdBufNodes[j].action.events)
               ev.eventId += eidShift;
 
             for(rdcpair<ResourceId, EventUsage> &use : cmdBufNodes[j].resourceUsage)
@@ -640,12 +642,12 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
 
           for(size_t j = 0; j < cmdBufInfo.debugMessages.size(); j++)
           {
-            if(cmdBufInfo.debugMessages[j].eventId >= cmdBufNodes[i].draw.eventId + 2)
+            if(cmdBufInfo.debugMessages[j].eventId >= cmdBufNodes[i].action.eventId + 2)
               cmdBufInfo.debugMessages[j].eventId += eidShift;
           }
 
           cmdBufInfo.eventCount += eidShift;
-          cmdBufInfo.drawCount += eidShift;
+          cmdBufInfo.actionCount += eidShift;
 
           // we also need to patch the original secondary command buffer here, if the indirect call
           // was on a secondary, so that vkCmdExecuteCommands knows accurately how many events are
@@ -653,23 +655,23 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
           if(n.indirectPatch.commandBuffer != ResourceId())
           {
             m_BakedCmdBufferInfo[n.indirectPatch.commandBuffer].eventCount += eidShift;
-            m_BakedCmdBufferInfo[n.indirectPatch.commandBuffer].drawCount += eidShift;
+            m_BakedCmdBufferInfo[n.indirectPatch.commandBuffer].actionCount += eidShift;
           }
 
-          for(size_t e = 0; e < cmdBufInfo.draw->executedCmds.size(); e++)
+          for(size_t e = 0; e < cmdBufInfo.action->executedCmds.size(); e++)
           {
             rdcarray<Submission> &submits =
-                m_Partial[Secondary].cmdBufferSubmits[cmdBufInfo.draw->executedCmds[e]];
+                m_Partial[Secondary].cmdBufferSubmits[cmdBufInfo.action->executedCmds[e]];
 
             for(size_t s = 0; s < submits.size(); s++)
             {
-              if(submits[s].baseEvent >= cmdBufNodes[i].draw.eventId + 2)
+              if(submits[s].baseEvent >= cmdBufNodes[i].action.eventId + 2)
                 submits[s].baseEvent += eidShift;
             }
           }
 
-          RDCASSERT(cmdBufNodes[i + 1].draw.events.size() == 1);
-          uint32_t chunkIndex = cmdBufNodes[i + 1].draw.events[0].chunkIndex;
+          RDCASSERT(cmdBufNodes[i + 1].action.events.size() == 1);
+          uint32_t chunkIndex = cmdBufNodes[i + 1].action.events[0].chunkIndex;
 
           // everything afterwards is adjusted. Now see if we need to remove the subdraw or clone it
           if(indirectCount == 0)
@@ -688,7 +690,7 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
               m_StructuredFile->chunks.push_back(chunk->Duplicate());
 
             // now copy the subdraw so we're not inserting into the array from itself
-            VulkanDrawcallTreeNode node = cmdBufNodes[i + 1];
+            VulkanActionTreeNode node = cmdBufNodes[i + 1];
 
             cmdBufNodes.resize(cmdBufNodes.size() + eidShift);
             for(size_t e = cmdBufNodes.size() - 1; e > i + 1 + eidShift; e--)
@@ -697,10 +699,10 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
             // then insert enough duplicates
             for(int32_t e = 0; e < eidShift; e++)
             {
-              node.draw.eventId++;
-              node.draw.drawcallId++;
+              node.action.eventId++;
+              node.action.actionId++;
 
-              for(APIEvent &ev : node.draw.events)
+              for(APIEvent &ev : node.action.events)
               {
                 ev.eventId++;
                 ev.chunkIndex = baseAddedChunk + e;
@@ -716,30 +718,30 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
       }
 
       // indirect count versions always have a multidraw marker regions, but static count of 1 would
-      // be in-lined as a single draw, so we patch in-place
+      // be in-lined as a single action, so we patch in-place
       if(!hasCount && indirectCount == 1)
       {
         bool valid =
-            PatchIndirectDraw(0, n.indirectPatch.stride, n.indirectPatch.type, n.draw, ptr, end);
+            PatchIndirectDraw(0, n.indirectPatch.stride, n.indirectPatch.type, n.action, ptr, end);
 
         if(n.indirectPatch.type == VkIndirectPatchType::DrawIndirectByteCount)
         {
-          if(n.draw.numIndices > n.indirectPatch.vertexoffset)
-            n.draw.numIndices -= n.indirectPatch.vertexoffset;
+          if(n.action.numIndices > n.indirectPatch.vertexoffset)
+            n.action.numIndices -= n.indirectPatch.vertexoffset;
           else
-            n.draw.numIndices = 0;
+            n.action.numIndices = 0;
 
-          n.draw.numIndices /= n.indirectPatch.stride;
+          n.action.numIndices /= n.indirectPatch.stride;
         }
 
-        // if the actual draw count was greater than 1, display this as an indirect count
+        // if the actual action count was greater than 1, display this as an indirect count
         const char *countString = (n.indirectPatch.count > 1 ? "<1>" : "1");
 
         if(valid)
-          n.draw.name = StringFormat::Fmt("%s(%s) => <%u, %u>", n.draw.name.c_str(), countString,
-                                          n.draw.numIndices, n.draw.numInstances);
+          n.action.name = StringFormat::Fmt("%s(%s) => <%u, %u>", n.action.name.c_str(),
+                                            countString, n.action.numIndices, n.action.numInstances);
         else
-          n.draw.name = StringFormat::Fmt("%s(%s) => <?, ?>", n.draw.name.c_str(), countString);
+          n.action.name = StringFormat::Fmt("%s(%s) => <?, ?>", n.action.name.c_str(), countString);
       }
       else
       {
@@ -747,25 +749,25 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
         RDCASSERT(i + indirectCount < cmdBufNodes.size(), i, indirectCount, n.indirectPatch.count,
                   cmdBufNodes.size());
 
-        // patch the count onto the root drawcall name. The root is otherwise un-suffixed to allow
+        // patch the count onto the root action name. The root is otherwise un-suffixed to allow
         // for collapsing non-multidraws and making everything generally simpler
         if(hasCount)
-          n.draw.name = StringFormat::Fmt("%s(<%u>)", n.draw.name.c_str(), indirectCount);
+          n.action.name = StringFormat::Fmt("%s(<%u>)", n.action.name.c_str(), indirectCount);
         else
-          n.draw.name = StringFormat::Fmt("%s(%u)", n.draw.name.c_str(), n.indirectPatch.count);
+          n.action.name = StringFormat::Fmt("%s(%u)", n.action.name.c_str(), n.indirectPatch.count);
 
         for(size_t j = 0; j < (size_t)indirectCount && i + j + 1 < cmdBufNodes.size(); j++)
         {
-          VulkanDrawcallTreeNode &n2 = cmdBufNodes[i + j + 1];
+          VulkanActionTreeNode &n2 = cmdBufNodes[i + j + 1];
 
-          bool valid =
-              PatchIndirectDraw(j, n.indirectPatch.stride, n.indirectPatch.type, n2.draw, ptr, end);
+          bool valid = PatchIndirectDraw(j, n.indirectPatch.stride, n.indirectPatch.type, n2.action,
+                                         ptr, end);
 
           if(valid)
-            n2.draw.name = StringFormat::Fmt("%s[%zu](<%u, %u>)", n2.draw.name.c_str(), j,
-                                             n2.draw.numIndices, n2.draw.numInstances);
+            n2.action.name = StringFormat::Fmt("%s[%zu](<%u, %u>)", n2.action.name.c_str(), j,
+                                               n2.action.numIndices, n2.action.numInstances);
           else
-            n2.draw.name = StringFormat::Fmt("%s[%zu](<?, ?>)", n2.draw.name.c_str(), j);
+            n2.action.name = StringFormat::Fmt("%s[%zu](<?, ?>)", n2.action.name.c_str(), j);
 
           if(ptr)
             ptr += n.indirectPatch.stride;
@@ -773,20 +775,20 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
       }
     }
 
-    for(APIEvent &ev : n.draw.events)
+    for(APIEvent &ev : n.action.events)
     {
       ev.eventId += m_RootEventID;
       m_Events.resize(ev.eventId + 1);
       m_Events[ev.eventId] = ev;
     }
 
-    if(!n.draw.events.empty())
+    if(!n.action.events.empty())
     {
-      DrawcallUse use(n.draw.events.back().fileOffset, n.draw.eventId);
+      ActionUse use(n.action.events.back().fileOffset, n.action.eventId);
 
       // insert in sorted location
-      auto drawit = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
-      m_DrawcallUses.insert(drawit - m_DrawcallUses.begin(), use);
+      auto drawit = std::lower_bound(m_ActionUses.begin(), m_ActionUses.end(), use);
+      m_ActionUses.insert(drawit - m_ActionUses.begin(), use);
     }
 
     RDCASSERT(n.children.empty());
@@ -799,15 +801,15 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
       m_EventFlags[u.eventId] |= PipeRWUsageEventFlags(u.usage);
     }
 
-    GetDrawcallStack().back()->children.push_back(n);
+    GetActionStack().back()->children.push_back(n);
 
-    // if this is a push marker too, step down the drawcall stack
-    if(cmdBufNodes[i].draw.flags & DrawFlags::PushMarker)
-      GetDrawcallStack().push_back(&GetDrawcallStack().back()->children.back());
+    // if this is a push marker too, step down the action stack
+    if(cmdBufNodes[i].action.flags & ActionFlags::PushMarker)
+      GetActionStack().push_back(&GetActionStack().back()->children.back());
 
     // similarly for a pop, but don't pop off the root
-    if((cmdBufNodes[i].draw.flags & DrawFlags::PopMarker) && GetDrawcallStack().size() > 1)
-      GetDrawcallStack().pop_back();
+    if((cmdBufNodes[i].action.flags & ActionFlags::PopMarker) && GetActionStack().size() > 1)
+      GetActionStack().pop_back();
   }
 }
 
@@ -1176,14 +1178,14 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
     if(doWait)
       ObjDisp(queue)->QueueWaitIdle(Unwrap(queue));
 
-    // add a drawcall use for this submission, to tally up with any debug messages that come from it
+    // add an action use for this submission, to tally up with any debug messages that come from it
     if(IsLoading(m_State))
     {
-      DrawcallUse use(m_CurChunkOffset, m_RootEventID);
+      ActionUse use(m_CurChunkOffset, m_RootEventID);
 
       // insert in sorted location
-      auto drawit = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
-      m_DrawcallUses.insert(drawit - m_DrawcallUses.begin(), use);
+      auto drawit = std::lower_bound(m_ActionUses.begin(), m_ActionUses.end(), use);
+      m_ActionUses.insert(drawit - m_ActionUses.begin(), use);
     }
 
     rdcarray<VkCommandBufferSubmitInfoKHR> cmds;
@@ -1308,7 +1310,7 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
       {
         CACHE_THREAD_SERIALISER();
 
-        ser.SetDrawChunk();
+        ser.SetActionChunk();
         SCOPED_SERIALISE_CHUNK(VulkanChunk::vkQueueSubmit);
         Serialise_vkQueueSubmit(ser, queue, submitCount, pSubmits, fence);
 
@@ -1379,14 +1381,14 @@ bool WrappedVulkan::Serialise_vkQueueSubmit2KHR(SerialiserType &ser, VkQueue que
     if(doWait)
       ObjDisp(queue)->QueueWaitIdle(Unwrap(queue));
 
-    // add a drawcall use for this submission, to tally up with any debug messages that come from it
+    // add an action use for this submission, to tally up with any debug messages that come from it
     if(IsLoading(m_State))
     {
-      DrawcallUse use(m_CurChunkOffset, m_RootEventID);
+      ActionUse use(m_CurChunkOffset, m_RootEventID);
 
       // insert in sorted location
-      auto drawit = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
-      m_DrawcallUses.insert(drawit - m_DrawcallUses.begin(), use);
+      auto drawit = std::lower_bound(m_ActionUses.begin(), m_ActionUses.end(), use);
+      m_ActionUses.insert(drawit - m_ActionUses.begin(), use);
     }
 
     for(uint32_t sub = 0; sub < submitCount; sub++)
@@ -1474,7 +1476,7 @@ VkResult WrappedVulkan::vkQueueSubmit2KHR(VkQueue queue, uint32_t submitCount,
       {
         CACHE_THREAD_SERIALISER();
 
-        ser.SetDrawChunk();
+        ser.SetActionChunk();
         SCOPED_SERIALISE_CHUNK(VulkanChunk::vkQueueSubmit2KHR);
         Serialise_vkQueueSubmit2KHR(ser, queue, submitCount, pSubmits, fence);
 
@@ -1741,7 +1743,7 @@ VkResult WrappedVulkan::vkQueueBindSparse(VkQueue queue, uint32_t bindInfoCount,
 
     {
       SCOPED_SERIALISE_CHUNK(VulkanChunk::vkQueueBindSparse);
-      ser.SetDrawChunk();
+      ser.SetActionChunk();
       Serialise_vkQueueBindSparse(ser, queue, bindInfoCount, pBindInfo, fence);
 
       m_FrameCaptureRecord->AddChunk(scope.Get());
@@ -1840,20 +1842,20 @@ bool WrappedVulkan::Serialise_vkQueueBeginDebugUtilsLabelEXT(SerialiserType &ser
 
     if(IsLoading(m_State))
     {
-      DrawcallDescription draw;
-      draw.name = Label.pLabelName ? Label.pLabelName : "";
-      draw.flags |= DrawFlags::PushMarker;
+      ActionDescription action;
+      action.name = Label.pLabelName ? Label.pLabelName : "";
+      action.flags |= ActionFlags::PushMarker;
 
-      draw.markerColor.x = RDCCLAMP(Label.color[0], 0.0f, 1.0f);
-      draw.markerColor.y = RDCCLAMP(Label.color[1], 0.0f, 1.0f);
-      draw.markerColor.z = RDCCLAMP(Label.color[2], 0.0f, 1.0f);
-      draw.markerColor.w = RDCCLAMP(Label.color[3], 0.0f, 1.0f);
+      action.markerColor.x = RDCCLAMP(Label.color[0], 0.0f, 1.0f);
+      action.markerColor.y = RDCCLAMP(Label.color[1], 0.0f, 1.0f);
+      action.markerColor.z = RDCCLAMP(Label.color[2], 0.0f, 1.0f);
+      action.markerColor.w = RDCCLAMP(Label.color[3], 0.0f, 1.0f);
 
       AddEvent();
-      AddDrawcall(draw);
+      AddAction(action);
 
-      // now push the drawcall stack
-      GetDrawcallStack().push_back(&GetDrawcallStack().back()->children.back());
+      // now push the action stack
+      GetActionStack().push_back(&GetActionStack().back()->children.back());
     }
   }
 
@@ -1871,7 +1873,7 @@ void WrappedVulkan::vkQueueBeginDebugUtilsLabelEXT(VkQueue queue,
   if(IsActiveCapturing(m_State))
   {
     CACHE_THREAD_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkQueueBeginDebugUtilsLabelEXT);
     Serialise_vkQueueBeginDebugUtilsLabelEXT(ser, queue, pLabelInfo);
 
@@ -1894,15 +1896,15 @@ bool WrappedVulkan::Serialise_vkQueueEndDebugUtilsLabelEXT(SerialiserType &ser, 
 
     if(IsLoading(m_State))
     {
-      DrawcallDescription draw;
-      draw.name = "vkQueueEndDebugUtilsLabelEXT()";
-      draw.flags = DrawFlags::PopMarker;
+      ActionDescription action;
+      action.name = "vkQueueEndDebugUtilsLabelEXT()";
+      action.flags = ActionFlags::PopMarker;
 
       AddEvent();
-      AddDrawcall(draw);
+      AddAction(action);
 
-      if(GetDrawcallStack().size() > 1)
-        GetDrawcallStack().pop_back();
+      if(GetActionStack().size() > 1)
+        GetActionStack().pop_back();
     }
   }
 
@@ -1919,7 +1921,7 @@ void WrappedVulkan::vkQueueEndDebugUtilsLabelEXT(VkQueue queue)
   if(IsActiveCapturing(m_State))
   {
     CACHE_THREAD_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkQueueEndDebugUtilsLabelEXT);
     Serialise_vkQueueEndDebugUtilsLabelEXT(ser, queue);
 
@@ -1944,17 +1946,17 @@ bool WrappedVulkan::Serialise_vkQueueInsertDebugUtilsLabelEXT(SerialiserType &se
 
     if(IsLoading(m_State))
     {
-      DrawcallDescription draw;
-      draw.name = Label.pLabelName ? Label.pLabelName : "";
-      draw.flags |= DrawFlags::SetMarker;
+      ActionDescription action;
+      action.name = Label.pLabelName ? Label.pLabelName : "";
+      action.flags |= ActionFlags::SetMarker;
 
-      draw.markerColor.x = RDCCLAMP(Label.color[0], 0.0f, 1.0f);
-      draw.markerColor.y = RDCCLAMP(Label.color[1], 0.0f, 1.0f);
-      draw.markerColor.z = RDCCLAMP(Label.color[2], 0.0f, 1.0f);
-      draw.markerColor.w = RDCCLAMP(Label.color[3], 0.0f, 1.0f);
+      action.markerColor.x = RDCCLAMP(Label.color[0], 0.0f, 1.0f);
+      action.markerColor.y = RDCCLAMP(Label.color[1], 0.0f, 1.0f);
+      action.markerColor.z = RDCCLAMP(Label.color[2], 0.0f, 1.0f);
+      action.markerColor.w = RDCCLAMP(Label.color[3], 0.0f, 1.0f);
 
       AddEvent();
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -1974,7 +1976,7 @@ void WrappedVulkan::vkQueueInsertDebugUtilsLabelEXT(VkQueue queue,
   if(IsActiveCapturing(m_State))
   {
     CACHE_THREAD_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkQueueInsertDebugUtilsLabelEXT);
     Serialise_vkQueueInsertDebugUtilsLabelEXT(ser, queue, pLabelInfo);
 

@@ -722,14 +722,14 @@ bool WrappedVulkan::Serialise_vkQueuePresentKHR(SerialiserType &ser, VkQueue que
   {
     AddEvent();
 
-    DrawcallDescription draw;
+    ActionDescription action;
 
-    draw.name = StringFormat::Fmt("vkQueuePresentKHR(%s)", ToStr(PresentedImage).c_str());
-    draw.flags |= DrawFlags::Present;
+    action.name = StringFormat::Fmt("vkQueuePresentKHR(%s)", ToStr(PresentedImage).c_str());
+    action.flags |= ActionFlags::Present;
 
-    m_LastPresentedImage = draw.copyDestination = PresentedImage;
+    m_LastPresentedImage = action.copyDestination = PresentedImage;
 
-    AddDrawcall(draw);
+    AddAction(action);
   }
 
   return true;

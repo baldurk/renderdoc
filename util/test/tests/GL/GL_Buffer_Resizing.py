@@ -34,23 +34,23 @@ class GL_Buffer_Resizing(rdtest.TestCase):
             },
         }
 
-        draw = self.get_first_draw()
+        action = self.get_first_action()
 
         idx = 0
 
         while True:
-            draw: rd.DrawcallDescription = self.find_draw('glDraw', draw.eventId+1)
+            action: rd.ActionDescription = self.find_action('glDraw', action.eventId+1)
 
-            if draw is None:
+            if action is None:
                 break
 
-            self.controller.SetFrameEvent(draw.eventId, True)
+            self.controller.SetFrameEvent(action.eventId, True)
 
-            self.check_triangle(out=draw.outputs[0])
+            self.check_triangle(out=action.outputs[0])
 
-            postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, draw.numIndices)
+            postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
 
             self.check_mesh_data(postvs_ref, postvs_data)
 
             idx = idx + 1
-            rdtest.log.success('Draw {} at {} is correct'.format(idx, draw.eventId))
+            rdtest.log.success('Draw {} at {} is correct'.format(idx, action.eventId))

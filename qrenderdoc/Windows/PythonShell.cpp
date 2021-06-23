@@ -431,19 +431,16 @@ struct CaptureContextInvoker : ObjectForwarder<ICaptureContext>
   }
   virtual uint32_t CurSelectedEvent() override { return m_Obj.CurSelectedEvent(); }
   virtual uint32_t CurEvent() override { return m_Obj.CurEvent(); }
-  virtual const DrawcallDescription *CurSelectedDrawcall() override
+  virtual const ActionDescription *CurSelectedAction() override
   {
-    return m_Obj.CurSelectedDrawcall();
+    return m_Obj.CurSelectedAction();
   }
-  virtual const DrawcallDescription *CurDrawcall() override { return m_Obj.CurDrawcall(); }
-  virtual const DrawcallDescription *GetFirstDrawcall() override
+  virtual const ActionDescription *CurAction() override { return m_Obj.CurAction(); }
+  virtual const ActionDescription *GetFirstAction() override { return m_Obj.GetFirstAction(); }
+  virtual const ActionDescription *GetLastAction() override { return m_Obj.GetLastAction(); }
+  virtual const rdcarray<ActionDescription> &CurRootActions() override
   {
-    return m_Obj.GetFirstDrawcall();
-  }
-  virtual const DrawcallDescription *GetLastDrawcall() override { return m_Obj.GetLastDrawcall(); }
-  virtual const rdcarray<DrawcallDescription> &CurDrawcalls() override
-  {
-    return m_Obj.CurDrawcalls();
+    return m_Obj.CurRootActions();
   }
   virtual ResourceDescription *GetResource(ResourceId id) override { return m_Obj.GetResource(id); }
   virtual const rdcarray<ResourceDescription> &GetResources() override
@@ -465,9 +462,9 @@ struct CaptureContextInvoker : ObjectForwarder<ICaptureContext>
   virtual const rdcarray<TextureDescription> &GetTextures() override { return m_Obj.GetTextures(); }
   virtual BufferDescription *GetBuffer(ResourceId id) override { return m_Obj.GetBuffer(id); }
   virtual const rdcarray<BufferDescription> &GetBuffers() override { return m_Obj.GetBuffers(); }
-  virtual const DrawcallDescription *GetDrawcall(uint32_t eventId) override
+  virtual const ActionDescription *GetAction(uint32_t eventId) override
   {
-    return m_Obj.GetDrawcall(eventId);
+    return m_Obj.GetAction(eventId);
   }
   virtual bool OpenRGPProfile(const rdcstr &filename) override
   {

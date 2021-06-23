@@ -39,17 +39,17 @@
 #define VULKAN 1
 #include "data/glsl/glsl_ubos_cpp.h"
 
-struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
+struct VulkanQuadOverdrawCallback : public VulkanActionCallback
 {
   VulkanQuadOverdrawCallback(WrappedVulkan *vk, VkDescriptorSetLayout descSetLayout,
                              VkDescriptorSet descSet, const rdcarray<uint32_t> &events)
       : m_pDriver(vk), m_DescSetLayout(descSetLayout), m_DescSet(descSet), m_Events(events)
   {
-    m_pDriver->SetDrawcallCB(this);
+    m_pDriver->SetActionCB(this);
   }
   ~VulkanQuadOverdrawCallback()
   {
-    m_pDriver->SetDrawcallCB(NULL);
+    m_pDriver->SetActionCB(NULL);
 
     VkDevice dev = m_pDriver->GetDev();
 
@@ -258,9 +258,9 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
   bool PostDispatch(uint32_t eid, VkCommandBuffer cmd) { return false; }
   void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) {}
   // Ditto copy/etc
-  void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) {}
-  bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) { return false; }
-  void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) {}
+  void PreMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) {}
+  bool PostMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) { return false; }
+  void PostRemisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) {}
   void PreEndCommandBuffer(VkCommandBuffer cmd) {}
   void AliasEvent(uint32_t primary, uint32_t alias)
   {
@@ -396,7 +396,7 @@ void VulkanDebugManager::PatchFixedColShader(VkShaderModule &mod, float col[4])
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 }
 
-void VulkanDebugManager::PatchLineStripIndexBuffer(const DrawcallDescription *draw,
+void VulkanDebugManager::PatchLineStripIndexBuffer(const ActionDescription *action,
                                                    GPUBuffer &indexBuffer, uint32_t &indexCount)
 {
   VulkanRenderState &rs = m_pDriver->m_RenderState;
@@ -407,11 +407,11 @@ void VulkanDebugManager::PatchLineStripIndexBuffer(const DrawcallDescription *dr
   uint16_t *idx16 = NULL;
   uint32_t *idx32 = NULL;
 
-  if(draw->flags & DrawFlags::Indexed)
+  if(action->flags & ActionFlags::Indexed)
   {
     GetBufferData(rs.ibuffer.buf,
-                  rs.ibuffer.offs + uint64_t(draw->indexOffset) * rs.ibuffer.bytewidth,
-                  uint64_t(draw->numIndices) * rs.ibuffer.bytewidth, indices);
+                  rs.ibuffer.offs + uint64_t(action->indexOffset) * rs.ibuffer.bytewidth,
+                  uint64_t(action->numIndices) * rs.ibuffer.bytewidth, indices);
 
     if(rs.ibuffer.bytewidth == 4)
       idx32 = (uint32_t *)indices.data();
@@ -424,7 +424,7 @@ void VulkanDebugManager::PatchLineStripIndexBuffer(const DrawcallDescription *dr
   // we just patch up to 32-bit since we'll be adding more indices and we might overflow 16-bit.
   rdcarray<uint32_t> patchedIndices;
 
-  ::PatchLineStripIndexBuffer(draw, MakePrimitiveTopology(rs.primitiveTopology, 3), idx8, idx16,
+  ::PatchLineStripIndexBuffer(action, MakePrimitiveTopology(rs.primitiveTopology, 3), idx8, idx16,
                               idx32, patchedIndices);
 
   indexBuffer.Create(m_pDriver, m_Device, patchedIndices.size() * sizeof(uint32_t), 1,
@@ -746,16 +746,16 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
     DoPipelineBarrier(cmd, 1, &barrier);
   }
 
-  const DrawcallDescription *mainDraw = m_pDriver->GetDrawcall(eventId);
+  const ActionDescription *mainDraw = m_pDriver->GetAction(eventId);
 
   const VulkanCreationInfo::Pipeline &pipeInfo =
       m_pDriver->m_CreationInfo.m_Pipeline[m_pDriver->m_RenderState.graphics.pipeline];
 
   // Secondary commands can't have render passes
-  if((mainDraw && !(mainDraw->flags & DrawFlags::Drawcall)) ||
+  if((mainDraw && !(mainDraw->flags & ActionFlags::Drawcall)) ||
      !m_pDriver->m_Partial[WrappedVulkan::Primary].renderPassActive)
   {
-    // don't do anything, no drawcall capable of making overlays selected
+    // don't do anything, no action capable of making overlays selected
     float black[] = {0.0f, 0.0f, 0.0f, 0.0f};
 
     VkImageMemoryBarrier barrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -1058,11 +1058,11 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         // do single draw
         m_pDriver->m_RenderState.BeginRenderPassAndApplyState(m_pDriver, cmd,
                                                               VulkanRenderState::BindGraphics);
-        DrawcallDescription draw = *mainDraw;
-        draw.numIndices = patchedIndexCount;
-        draw.baseVertex = 0;
-        draw.indexOffset = 0;
-        m_pDriver->ReplayDraw(cmd, draw);
+        ActionDescription action = *mainDraw;
+        action.numIndices = patchedIndexCount;
+        action.baseVertex = 0;
+        action.indexOffset = 0;
+        m_pDriver->ReplayDraw(cmd, action);
         m_pDriver->m_RenderState.EndRenderPass(cmd);
 
         vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
@@ -1910,8 +1910,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       // in the loop below
       if(overlay == DebugOverlay::ClearBeforePass)
       {
-        const DrawcallDescription *draw = m_pDriver->GetDrawcall(events[0]);
-        if(draw && draw->flags & DrawFlags::BeginPass)
+        const ActionDescription *action = m_pDriver->GetAction(events[0]);
+        if(action && action->flags & ActionFlags::BeginPass)
         {
           if(events.size() == 1)
           {
@@ -2045,13 +2045,13 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
       events.push_back(eventId);
 
-      // if we're rendering the whole pass, and the first draw is a BeginRenderPass, don't include
+      // if we're rendering the whole pass, and the first action is a BeginRenderPass, don't include
       // it in the list. We want to start by replaying into the renderpass so that we have the
       // correct state being applied.
       if(overlay == DebugOverlay::QuadOverdrawPass)
       {
-        const DrawcallDescription *draw = m_pDriver->GetDrawcall(events[0]);
-        if(draw->flags & DrawFlags::BeginPass)
+        const ActionDescription *action = m_pDriver->GetAction(events[0]);
+        if(action->flags & ActionFlags::BeginPass)
           events.erase(0);
       }
 
@@ -2299,10 +2299,10 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
         while(!events.empty())
         {
-          const DrawcallDescription *draw = m_pDriver->GetDrawcall(events[0]);
+          const ActionDescription *action = m_pDriver->GetAction(events[0]);
 
           // remove any non-drawcalls, like the pass boundary.
-          if(!draw || !(draw->flags & DrawFlags::Drawcall))
+          if(!action || !(action->flags & ActionFlags::Drawcall))
             events.erase(0);
           else
             break;
@@ -2572,9 +2572,9 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
           };
           vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
-          const DrawcallDescription *draw = m_pDriver->GetDrawcall(events[i]);
+          const ActionDescription *action = m_pDriver->GetAction(events[i]);
 
-          for(uint32_t inst = 0; draw && inst < RDCMAX(1U, draw->numInstances); inst++)
+          for(uint32_t inst = 0; action && inst < RDCMAX(1U, action->numInstances); inst++)
           {
             MeshFormat fmt = GetPostVSBuffers(events[i], inst, 0, MeshDataStage::GSOut);
             if(fmt.vertexResourceId == ResourceId())

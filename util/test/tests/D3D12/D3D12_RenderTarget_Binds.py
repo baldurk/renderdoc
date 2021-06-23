@@ -7,21 +7,21 @@ class D3D12_RenderTarget_Binds(rdtest.TestCase):
 
     def check_capture(self):
         # find the clear
-        draw = self.find_draw("ClearRenderTargetView")
+        action = self.find_action("ClearRenderTargetView")
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        self.check_pixel_value(draw.copyDestination, 0.5, 0.5, [1.0, 0.0, 1.0, 1.0])
+        self.check_pixel_value(action.copyDestination, 0.5, 0.5, [1.0, 0.0, 1.0, 1.0])
 
-        self.check('Swapchain' in self.get_resource(draw.copyDestination).name)
+        self.check('Swapchain' in self.get_resource(action.copyDestination).name)
 
         rdtest.log.success("Picked value for clear is as expected")
 
-        draw = draw.next
+        action = action.next
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
@@ -33,11 +33,11 @@ class D3D12_RenderTarget_Binds(rdtest.TestCase):
         self.check(self.get_resource(rtvs[0].resourceId).name == 'TextureA')
         self.check(self.get_resource(rtvs[1].resourceId).name == 'TextureB')
 
-        rdtest.log.success("RTVs at first draw are as expected")
+        rdtest.log.success("RTVs at first action are as expected")
 
-        draw = draw.next
+        action = action.next
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
@@ -49,11 +49,11 @@ class D3D12_RenderTarget_Binds(rdtest.TestCase):
         self.check(self.get_resource(rtvs[0].resourceId).name == 'TextureC')
         self.check(self.get_resource(rtvs[1].resourceId).name == 'TextureD')
 
-        rdtest.log.success("RTVs at second draw are as expected")
+        rdtest.log.success("RTVs at second action are as expected")
 
-        draw = draw.next
+        action = action.next
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
@@ -65,11 +65,11 @@ class D3D12_RenderTarget_Binds(rdtest.TestCase):
         self.check(self.get_resource(rtvs[0].resourceId).name == 'TextureE')
         self.check(self.get_resource(rtvs[1].resourceId).name == 'TextureF')
 
-        rdtest.log.success("RTVs at third draw are as expected")
+        rdtest.log.success("RTVs at third action are as expected")
 
-        draw = draw.next
+        action = action.next
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
@@ -81,4 +81,4 @@ class D3D12_RenderTarget_Binds(rdtest.TestCase):
         self.check(self.get_resource(rtvs[0].resourceId).name == 'TextureG')
         self.check(self.get_resource(rtvs[1].resourceId).name == 'TextureH')
 
-        rdtest.log.success("RTVs at fourth draw are as expected")
+        rdtest.log.success("RTVs at fourth action are as expected")

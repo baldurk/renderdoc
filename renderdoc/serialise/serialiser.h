@@ -154,7 +154,7 @@ public:
   void SetStreamingMode(bool stream) { m_DataStreaming = stream; }
   SDFile &GetStructuredFile() { return *m_StructuredFile; }
   void WriteStructuredFile(const SDFile &file, RENDERDOC_ProgressCallback progress);
-  void SetDrawChunk() { m_DrawChunk = true; }
+  void SetActionChunk() { m_ActionChunk = true; }
   // the struct argument allows nested structs to pass a bit of data so a child struct can have
   // context from a parent struct if needed to serialise properly. Rarely used, primarily to be able
   // to flag if some context-sensitive members might be invalid
@@ -1487,7 +1487,7 @@ private:
 
   // See SetStreamingMode
   bool m_DataStreaming = false;
-  bool m_DrawChunk = false;
+  bool m_ActionChunk = false;
   bool m_Structuriser = false;
 
   uint64_t m_LastChunkOffset = 0;

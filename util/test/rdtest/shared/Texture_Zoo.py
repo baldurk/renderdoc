@@ -492,7 +492,7 @@ class Texture_Zoo():
         self.out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100),
                                                                  rd.ReplayOutputType.Texture)
 
-        for d in self.controller.GetDrawcalls():
+        for d in self.controller.GetRootActions():
 
             if 'slice tests' in d.name:
                 for sub in d.children:
@@ -552,21 +552,21 @@ class Texture_Zoo():
                 continue
 
             # Check each region for the tests within
-            if d.flags & rd.DrawFlags.PushMarker:
+            if d.flags & rd.ActionFlags.PushMarker:
                 name = ''
                 tests_run = 0
 
                 failed = False
 
-                # Iterate over drawcalls in this region
+                # Iterate over actions in this region
                 for sub in d.children:
-                    sub: rd.DrawcallDescription
+                    sub: rd.ActionDescription
 
-                    if sub.flags & rd.DrawFlags.SetMarker:
+                    if sub.flags & rd.ActionFlags.SetMarker:
                         name = sub.name
 
-                    # Check this draw
-                    if sub.flags & rd.DrawFlags.Drawcall:
+                    # Check this action
+                    if sub.flags & rd.ActionFlags.Drawcall:
                         tests_run = tests_run + 1
                         try:
                             # Set this event as current
@@ -690,7 +690,7 @@ class Texture_Zoo():
 
             [a, b] = file.name.replace('.dds', ' (DDS)').replace('.png', ' (PNG)').split('@')
 
-            self.controller.SetFrameEvent(self.controller.GetDrawcalls()[0].eventId, True)
+            self.controller.SetFrameEvent(self.controller.GetRootActions()[0].eventId, True)
 
             try:
                 self.opengl_mode = False

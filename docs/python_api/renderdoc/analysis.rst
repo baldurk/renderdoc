@@ -5,16 +5,16 @@ Replay Analysis
 
 .. currentmodule:: renderdoc
 
-Frame and Drawcalls
--------------------
+Frame and Actions
+-----------------
 
 .. autoclass:: FrameDescription
   :members:
 
-.. autoclass:: DrawcallDescription
+.. autoclass:: ActionDescription
   :members:
 
-.. autoclass:: DrawFlags
+.. autoclass:: ActionFlags
   :members:
 
 .. autoclass:: APIEvent

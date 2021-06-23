@@ -627,8 +627,8 @@ FrameRecord ReplayProxy::Proxied_GetFrameRecord(ParamSerialiser &paramser, Retur
 
   if(paramser.IsWriting())
   {
-    // re-configure the drawcall pointers, since they will be invalid
-    SetupDrawcallPointers(m_Drawcalls, ret.drawcallList);
+    // re-configure the action pointers, since they will be invalid
+    SetupActionPointers(m_Actions, ret.actionList);
   }
 
   return ret;
@@ -2443,20 +2443,20 @@ void ReplayProxy::EnsureBufCached(ResourceId bufid)
   }
 }
 
-const DrawcallDescription *ReplayProxy::FindDraw(const rdcarray<DrawcallDescription> &drawcallList,
+const ActionDescription *ReplayProxy::FindAction(const rdcarray<ActionDescription> &actionList,
                                                  uint32_t eventId)
 {
-  for(const DrawcallDescription &d : drawcallList)
+  for(const ActionDescription &a : actionList)
   {
-    if(!d.children.empty())
+    if(!a.children.empty())
     {
-      const DrawcallDescription *draw = FindDraw(d.children, eventId);
-      if(draw != NULL)
-        return draw;
+      const ActionDescription *action = FindAction(a.children, eventId);
+      if(action != NULL)
+        return action;
     }
 
-    if(d.eventId == eventId)
-      return &d;
+    if(a.eventId == eventId)
+      return &a;
   }
 
   return NULL;
@@ -2485,7 +2485,7 @@ void ReplayProxy::InitPreviewWindow()
       }
     }
 
-    if(m_FrameRecord.drawcallList.empty())
+    if(m_FrameRecord.actionList.empty())
       m_FrameRecord = m_Replay->GetFrameRecord();
   }
 }
@@ -2518,7 +2518,7 @@ void ReplayProxy::RefreshPreviewWindow()
     m_Replay->RenderCheckerboard(RenderDoc::Inst().DarkCheckerboardColor(),
                                  RenderDoc::Inst().LightCheckerboardColor());
 
-    const DrawcallDescription *curDraw = FindDraw(m_FrameRecord.drawcallList, m_EventID);
+    const ActionDescription *curDraw = FindAction(m_FrameRecord.actionList, m_EventID);
 
     if(curDraw)
     {

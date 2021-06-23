@@ -31,7 +31,7 @@
 #include "d3d12_state.h"
 
 class AMDCounters;
-struct D3D12AMDDrawCallback;
+struct D3D12AMDActionCallback;
 class WrappedID3D12Device;
 
 class D3D12DebugManager;
@@ -437,7 +437,7 @@ private:
 
   DriverInformation m_DriverInfo;
 
-  D3D12AMDDrawCallback *m_pAMDDrawCallback = NULL;
+  D3D12AMDActionCallback *m_pAMDActionCallback = NULL;
 
   rdcarray<rdcstr> m_CustomShaderIncludes;
 

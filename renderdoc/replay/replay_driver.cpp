@@ -55,10 +55,10 @@ void DoSerialise(SerialiserType &ser, GetTextureDataParams &el)
 
 INSTANTIATE_SERIALISE_TYPE(GetTextureDataParams);
 
-static bool PreviousNextExcludedMarker(DrawcallDescription *draw)
+static bool PreviousNextExcludedMarker(ActionDescription *action)
 {
-  return bool(draw->flags & (DrawFlags::PushMarker | DrawFlags::PopMarker | DrawFlags::SetMarker |
-                             DrawFlags::MultiDraw));
+  return bool(action->flags & (ActionFlags::PushMarker | ActionFlags::PopMarker |
+                               ActionFlags::SetMarker | ActionFlags::MultiAction));
 }
 
 CompType BaseRemapType(CompType typeCast)
@@ -75,115 +75,116 @@ CompType BaseRemapType(CompType typeCast)
   }
 }
 
-static DrawcallDescription *SetupDrawcallPointers(rdcarray<DrawcallDescription *> &drawcallTable,
-                                                  rdcarray<DrawcallDescription> &draws,
-                                                  DrawcallDescription *parent,
-                                                  DrawcallDescription *&previous)
+static ActionDescription *SetupActionPointers(rdcarray<ActionDescription *> &actionTable,
+                                              rdcarray<ActionDescription> &actions,
+                                              ActionDescription *parent, ActionDescription *&previous)
 {
-  DrawcallDescription *ret = NULL;
+  ActionDescription *ret = NULL;
 
-  for(size_t i = 0; i < draws.size(); i++)
+  for(size_t i = 0; i < actions.size(); i++)
   {
-    DrawcallDescription *draw = &draws[i];
+    ActionDescription *action = &actions[i];
 
-    RDCASSERTMSG("All draws must have their own event as the final event",
-                 !draw->events.empty() && draw->events.back().eventId == draw->eventId);
+    RDCASSERTMSG("All actions must have their own event as the final event",
+                 !action->events.empty() && action->events.back().eventId == action->eventId);
 
-    draw->parent = parent;
+    action->parent = parent;
 
-    if(!draw->children.empty())
+    if(!action->children.empty())
     {
       {
-        RDCASSERT(drawcallTable.empty() || draw->eventId > drawcallTable.back()->eventId ||
-                  drawcallTable.back()->IsFakeMarker());
-        drawcallTable.resize(RDCMAX(drawcallTable.size(), size_t(draw->eventId) + 1));
-        drawcallTable[draw->eventId] = draw;
+        RDCASSERT(actionTable.empty() || action->eventId > actionTable.back()->eventId ||
+                  actionTable.back()->IsFakeMarker());
+        actionTable.resize(RDCMAX(actionTable.size(), size_t(action->eventId) + 1));
+        actionTable[action->eventId] = action;
       }
 
-      ret = SetupDrawcallPointers(drawcallTable, draw->children, draw, previous);
+      ret = SetupActionPointers(actionTable, action->children, action, previous);
     }
-    else if(PreviousNextExcludedMarker(draw))
+    else if(PreviousNextExcludedMarker(action))
     {
       // don't want to set up previous/next links for markers, but still add them to the table
       // Some markers like Present should have previous/next, but API Calls we also skip
 
       {
         // we also allow non-contiguous EIDs for fake markers that have high EIDs
-        RDCASSERT(drawcallTable.empty() || draw->eventId > drawcallTable.back()->eventId ||
-                  drawcallTable.back()->IsFakeMarker());
-        drawcallTable.resize(RDCMAX(drawcallTable.size(), size_t(draw->eventId) + 1));
-        drawcallTable[draw->eventId] = draw;
+        RDCASSERT(actionTable.empty() || action->eventId > actionTable.back()->eventId ||
+                  actionTable.back()->IsFakeMarker());
+        actionTable.resize(RDCMAX(actionTable.size(), size_t(action->eventId) + 1));
+        actionTable[action->eventId] = action;
       }
     }
     else
     {
       if(previous)
-        previous->next = draw;
-      draw->previous = previous;
+        previous->next = action;
+      action->previous = previous;
 
       {
         // we also allow non-contiguous EIDs for fake markers that have high EIDs
-        RDCASSERT(drawcallTable.empty() || draw->eventId > drawcallTable.back()->eventId ||
-                  drawcallTable.back()->IsFakeMarker());
-        drawcallTable.resize(RDCMAX(drawcallTable.size(), size_t(draw->eventId) + 1));
-        drawcallTable[draw->eventId] = draw;
+        RDCASSERT(actionTable.empty() || action->eventId > actionTable.back()->eventId ||
+                  actionTable.back()->IsFakeMarker());
+        actionTable.resize(RDCMAX(actionTable.size(), size_t(action->eventId) + 1));
+        actionTable[action->eventId] = action;
       }
 
-      ret = previous = draw;
+      ret = previous = action;
     }
   }
 
   return ret;
 }
 
-void SetupDrawcallPointers(rdcarray<DrawcallDescription *> &drawcallTable,
-                           rdcarray<DrawcallDescription> &draws)
+void SetupActionPointers(rdcarray<ActionDescription *> &actionTable,
+                         rdcarray<ActionDescription> &actions)
 {
-  DrawcallDescription *previous = NULL;
-  SetupDrawcallPointers(drawcallTable, draws, NULL, previous);
+  ActionDescription *previous = NULL;
+  SetupActionPointers(actionTable, actions, NULL, previous);
 
   // markers don't enter the previous/next chain, but we still want pointers for them that point to
-  // the next or previous actual draw (skipping any markers). This means that draw->next->previous
-  // != draw sometimes, but it's more useful than draw->next being NULL in the middle of the list.
+  // the next or previous actual action (skipping any markers). This means that
+  // action->next->previous
+  // != action sometimes, but it's more useful than action->next being NULL in the middle of the
+  // list.
   // This enables searching for a marker string and then being able to navigate from there and
   // joining the 'real' linked list after one step.
 
   previous = NULL;
-  rdcarray<DrawcallDescription *> markers;
+  rdcarray<ActionDescription *> markers;
 
-  for(DrawcallDescription *draw : drawcallTable)
+  for(ActionDescription *action : actionTable)
   {
-    if(!draw)
+    if(!action)
       continue;
 
-    bool marker = PreviousNextExcludedMarker(draw);
+    bool marker = PreviousNextExcludedMarker(action);
 
     if(marker)
     {
-      // point the previous pointer to the last non-marker draw we got. If we haven't hit one yet
+      // point the previous pointer to the last non-marker action we got. If we haven't hit one yet
       // because this is near the start, this will just be NULL.
-      draw->previous = previous;
+      action->previous = previous;
 
       // because there can be multiple markers consecutively we want to point all of their nexts to
-      // the next draw we encounter. Accumulate this list, though in most cases it will only be 1
+      // the next action we encounter. Accumulate this list, though in most cases it will only be 1
       // long as it's uncommon to have multiple markers one after the other
-      markers.push_back(draw);
+      markers.push_back(action);
     }
     else
     {
       // the next markers we encounter should point their previous to this.
-      previous = draw;
+      previous = action;
 
       // all previous markers point to this one
-      for(DrawcallDescription *m : markers)
-        m->next = draw;
+      for(ActionDescription *m : markers)
+        m->next = action;
 
       markers.clear();
     }
   }
 }
 
-void PatchLineStripIndexBuffer(const DrawcallDescription *draw, Topology topology, uint8_t *idx8,
+void PatchLineStripIndexBuffer(const ActionDescription *action, Topology topology, uint8_t *idx8,
                                uint16_t *idx16, uint32_t *idx32, rdcarray<uint32_t> &patchedIndices)
 {
   const uint32_t restart = 0xffffffff;
@@ -196,7 +197,7 @@ void PatchLineStripIndexBuffer(const DrawcallDescription *draw, Topology topolog
   {
     case Topology::TriangleList:
     {
-      for(uint32_t index = 0; index + 3 <= draw->numIndices; index += 3)
+      for(uint32_t index = 0; index + 3 <= action->numIndices; index += 3)
       {
         patchedIndices.push_back(IDX_VALUE(0));
         patchedIndices.push_back(IDX_VALUE(1));
@@ -213,7 +214,7 @@ void PatchLineStripIndexBuffer(const DrawcallDescription *draw, Topology topolog
       // would need some more complex handling (you could two pairs of triangles in a single strip
       // by changing the winding, but then you'd need to restart and jump back, and handle a
       // trailing single triangle, etc).
-      for(uint32_t index = 0; index + 3 <= draw->numIndices; index++)
+      for(uint32_t index = 0; index + 3 <= action->numIndices; index++)
       {
         patchedIndices.push_back(IDX_VALUE(0));
         patchedIndices.push_back(IDX_VALUE(1));
@@ -233,7 +234,7 @@ void PatchLineStripIndexBuffer(const DrawcallDescription *draw, Topology topolog
       // triangle then a base -> 2 for the last one. However I would be amazed if this code ever
       // runs except in an artificial test, so let's go with the simple and easy to understand
       // solution.
-      for(; index + 2 <= draw->numIndices; index++)
+      for(; index + 2 <= action->numIndices; index++)
       {
         patchedIndices.push_back(base);
         patchedIndices.push_back(IDX_VALUE(0));
@@ -246,7 +247,7 @@ void PatchLineStripIndexBuffer(const DrawcallDescription *draw, Topology topolog
     case Topology::TriangleList_Adj:
     {
       // skip the adjacency values
-      for(uint32_t index = 0; index + 6 <= draw->numIndices; index += 6)
+      for(uint32_t index = 0; index + 6 <= action->numIndices; index += 6)
       {
         patchedIndices.push_back(IDX_VALUE(0));
         patchedIndices.push_back(IDX_VALUE(2));
@@ -259,7 +260,7 @@ void PatchLineStripIndexBuffer(const DrawcallDescription *draw, Topology topolog
     case Topology::TriangleStrip_Adj:
     {
       // skip the adjacency values
-      for(uint32_t index = 0; index + 6 <= draw->numIndices; index += 2)
+      for(uint32_t index = 0; index + 6 <= action->numIndices; index += 2)
       {
         patchedIndices.push_back(IDX_VALUE(0));
         patchedIndices.push_back(IDX_VALUE(2));

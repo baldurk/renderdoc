@@ -1320,12 +1320,12 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   const VulkanRenderState &state = m_pDriver->m_RenderState;
   VulkanCreationInfo &creationInfo = m_pDriver->m_CreationInfo;
 
-  const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eventId);
+  const ActionDescription *action = m_pDriver->GetAction(eventId);
 
-  if(drawcall == NULL || !(drawcall->flags & (DrawFlags::Dispatch | DrawFlags::Drawcall)))
+  if(action == NULL || !(action->flags & (ActionFlags::Dispatch | ActionFlags::Drawcall)))
     return;
 
-  result.compute = bool(drawcall->flags & DrawFlags::Dispatch);
+  result.compute = bool(action->flags & ActionFlags::Dispatch);
 
   const VulkanStatePipeline &pipe = result.compute ? state.compute : state.graphics;
 
@@ -1664,7 +1664,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   if(!useBufferAddress)
   {
     // replace descriptor set IDs with our temporary sets. The offsets we keep the same. If the
-    // original draw had no sets, we ensure there's room (with no offsets needed)
+    // original action had no sets, we ensure there's room (with no offsets needed)
 
     if(modifiedpipe.descSets.empty())
       modifiedpipe.descSets.resize(1);
@@ -1708,14 +1708,14 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
     {
       modifiedstate.BindPipeline(m_pDriver, cmd, VulkanRenderState::BindCompute, true);
 
-      ObjDisp(cmd)->CmdDispatch(Unwrap(cmd), drawcall->dispatchDimension[0],
-                                drawcall->dispatchDimension[1], drawcall->dispatchDimension[2]);
+      ObjDisp(cmd)->CmdDispatch(Unwrap(cmd), action->dispatchDimension[0],
+                                action->dispatchDimension[1], action->dispatchDimension[2]);
     }
     else
     {
       modifiedstate.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics);
 
-      m_pDriver->ReplayDraw(cmd, *drawcall);
+      m_pDriver->ReplayDraw(cmd, *action);
 
       modifiedstate.EndRenderPass(cmd);
     }
@@ -1829,13 +1829,13 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
         else if(stage == ShaderStage::Vertex)
         {
           msg.location.vertex.vertexIndex = location[0];
-          if(!(drawcall->flags & DrawFlags::Indexed))
+          if(!(action->flags & ActionFlags::Indexed))
           {
             // for non-indexed draws get back to 0-based index
-            msg.location.vertex.vertexIndex -= drawcall->vertexOffset;
+            msg.location.vertex.vertexIndex -= action->vertexOffset;
           }
           // go back to a 0-based instance index
-          msg.location.vertex.instance = location[1] - drawcall->instanceOffset;
+          msg.location.vertex.instance = location[1] - action->instanceOffset;
           msg.location.vertex.view = location[2];
         }
         else

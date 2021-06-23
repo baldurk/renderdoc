@@ -188,9 +188,9 @@ rdcstr DoStringise(const ReplayLogType &el)
 {
   BEGIN_ENUM_STRINGISE(ReplayLogType);
   {
-    STRINGISE_ENUM_NAMED(eReplay_Full, "Full replay including draw");
-    STRINGISE_ENUM_NAMED(eReplay_WithoutDraw, "Replay without draw");
-    STRINGISE_ENUM_NAMED(eReplay_OnlyDraw, "Replay only draw");
+    STRINGISE_ENUM_NAMED(eReplay_Full, "Full replay including action");
+    STRINGISE_ENUM_NAMED(eReplay_WithoutDraw, "Replay without action");
+    STRINGISE_ENUM_NAMED(eReplay_OnlyDraw, "Replay only action");
   }
   END_ENUM_STRINGISE();
 }

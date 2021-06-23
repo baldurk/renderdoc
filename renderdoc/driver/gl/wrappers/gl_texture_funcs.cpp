@@ -816,10 +816,10 @@ bool WrappedOpenGL::Serialise_glGenerateTextureMipmapEXT(SerialiserType &ser, GL
           CalcNumMips(m_Textures[liveId].width, m_Textures[liveId].height, m_Textures[liveId].depth);
       m_Textures[liveId].mipsValid = (1 << mips) - 1;
 
-      DrawcallDescription draw;
-      draw.flags |= DrawFlags::GenMips;
+      ActionDescription action;
+      action.flags |= ActionFlags::GenMips;
 
-      AddDrawcall(draw);
+      AddAction(action);
 
       m_ResourceUses[GetResourceManager()->GetResID(texture)].push_back(
           EventUsage(m_CurEventID, ResourceUsage::GenMips));
@@ -846,7 +846,7 @@ void WrappedOpenGL::Common_glGenerateTextureMipmapEXT(GLResourceRecord *record, 
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glGenerateTextureMipmapEXT(ser, record->Resource.name, target);
 
@@ -1019,12 +1019,12 @@ bool WrappedOpenGL::Serialise_glInvalidateTexImage(SerialiserType &ser, GLuint t
     {
       AddEvent();
 
-      DrawcallDescription draw;
-      draw.flags |= DrawFlags::Clear;
+      ActionDescription action;
+      action.flags |= ActionFlags::Clear;
 
-      draw.copyDestination = GetResourceManager()->GetOriginalID(liveId);
+      action.copyDestination = GetResourceManager()->GetOriginalID(liveId);
 
-      AddDrawcall(draw);
+      AddAction(action);
 
       m_ResourceUses[GetResourceManager()->GetResID(texture)].push_back(
           EventUsage(m_CurEventID, ResourceUsage::Discard));
@@ -1049,7 +1049,7 @@ void WrappedOpenGL::glInvalidateTexImage(GLuint texture, GLint level)
     if(IsActiveCapturing(m_State))
     {
       USE_SCRATCH_SERIALISER();
-      ser.SetDrawChunk();
+      ser.SetActionChunk();
       SCOPED_SERIALISE_CHUNK(gl_CurChunk);
       Serialise_glInvalidateTexImage(ser, texture, level);
 
@@ -1171,12 +1171,12 @@ bool WrappedOpenGL::Serialise_glInvalidateTexSubImage(SerialiserType &ser, GLuin
     {
       AddEvent();
 
-      DrawcallDescription draw;
-      draw.flags |= DrawFlags::Clear;
+      ActionDescription action;
+      action.flags |= ActionFlags::Clear;
 
-      draw.copyDestination = GetResourceManager()->GetOriginalID(liveId);
+      action.copyDestination = GetResourceManager()->GetOriginalID(liveId);
 
-      AddDrawcall(draw);
+      AddAction(action);
 
       m_ResourceUses[GetResourceManager()->GetResID(texture)].push_back(
           EventUsage(m_CurEventID, ResourceUsage::Discard));
@@ -1204,7 +1204,7 @@ void WrappedOpenGL::glInvalidateTexSubImage(GLuint texture, GLint level, GLint x
     if(IsActiveCapturing(m_State))
     {
       USE_SCRATCH_SERIALISER();
-      ser.SetDrawChunk();
+      ser.SetActionChunk();
       SCOPED_SERIALISE_CHUNK(gl_CurChunk);
       Serialise_glInvalidateTexSubImage(ser, texture, level, xoffset, yoffset, zoffset, width,
                                         height, depth);
@@ -1267,21 +1267,21 @@ bool WrappedOpenGL::Serialise_glCopyImageSubData(SerialiserType &ser, GLuint src
       ResourceId srcid = GetResourceManager()->GetResID(srcName);
       ResourceId dstid = GetResourceManager()->GetResID(dstName);
 
-      DrawcallDescription draw;
-      draw.flags |= DrawFlags::Copy;
+      ActionDescription action;
+      action.flags |= ActionFlags::Copy;
 
-      draw.copySource = GetResourceManager()->GetOriginalID(srcid);
-      draw.copyDestination = GetResourceManager()->GetOriginalID(dstid);
+      action.copySource = GetResourceManager()->GetOriginalID(srcid);
+      action.copyDestination = GetResourceManager()->GetOriginalID(dstid);
 
-      draw.copyDestinationSubresource.mip = dstLevel;
+      action.copyDestinationSubresource.mip = dstLevel;
       if(dstTarget != eGL_TEXTURE_3D)
-        draw.copyDestinationSubresource.slice = dstZ;
+        action.copyDestinationSubresource.slice = dstZ;
 
-      draw.copySourceSubresource.mip = srcLevel;
+      action.copySourceSubresource.mip = srcLevel;
       if(srcTarget != eGL_TEXTURE_3D)
-        draw.copySourceSubresource.slice = srcZ;
+        action.copySourceSubresource.slice = srcZ;
 
-      AddDrawcall(draw);
+      AddAction(action);
 
       if(srcid == dstid)
       {
@@ -1335,7 +1335,7 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
       return;
 
     USE_SCRATCH_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glCopyImageSubData(ser, srcName, srcTarget, srcLevel, srcX, srcY, srcZ, dstName,
                                  dstTarget, dstLevel, dstX, dstY, dstZ, srcWidth, srcHeight,

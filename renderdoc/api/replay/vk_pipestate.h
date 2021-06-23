@@ -1297,7 +1297,7 @@ struct State
 )");
   rdcarray<ImageData> images;
 
-  DOCUMENT(R"(The shader messages retrieved for this draw.
+  DOCUMENT(R"(The shader messages retrieved for this action.
 
 :type: List[ShaderMessage]
 )");

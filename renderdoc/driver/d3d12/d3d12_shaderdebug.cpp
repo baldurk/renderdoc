@@ -111,12 +111,13 @@ D3D12DebugAPIWrapper::D3D12DebugAPIWrapper(WrappedID3D12Device *device,
 
 D3D12DebugAPIWrapper::~D3D12DebugAPIWrapper()
 {
-  // if we replayed to before the draw for fetching some UAVs, replay back to after the draw to keep
+  // if we replayed to before the action for fetching some UAVs, replay back to after the action to
+  // keep
   // the state consistent.
   if(m_DidReplay)
   {
     D3D12MarkerRegion region(m_pDevice->GetQueue()->GetReal(), "ResetReplay");
-    // replay the draw to get back to 'normal' state for this event, and mark that we need to
+    // replay the action to get back to 'normal' state for this event, and mark that we need to
     // replay back to pristine state next time we need to fetch data.
     m_pDevice->ReplayLog(0, m_EventID, eReplay_OnlyDraw);
   }
@@ -287,7 +288,7 @@ void D3D12DebugAPIWrapper::FetchSRV(const DXBCDebug::BindingSlot &slot)
 
 void D3D12DebugAPIWrapper::FetchUAV(const DXBCDebug::BindingSlot &slot)
 {
-  // if the UAV might be dirty from side-effects from the draw, replay back to right
+  // if the UAV might be dirty from side-effects from the action, replay back to right
   // before it.
   if(!m_DidReplay)
   {
@@ -1622,7 +1623,7 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
   rs.pipe = GetResID(samplePso);
   rs.rts.clear();
   // Set viewport/scissor unconditionally - we need to set this all the time for sampling for a
-  // compute shader, but also a graphics draw might exclude pixel (0, 0) from its view or scissor
+  // compute shader, but also a graphics action might exclude pixel (0, 0) from its view or scissor
   rs.views.clear();
   rs.views.push_back({0, 0, 1, 1, 0, 1});
   rs.scissors.clear();
@@ -1847,7 +1848,7 @@ ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
   WrappedID3D12PipelineState *pso =
       m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
 
-  const DrawcallDescription *draw = m_pDevice->GetDrawcall(eventId);
+  const ActionDescription *action = m_pDevice->GetAction(eventId);
 
   rdcarray<D3D12_INPUT_ELEMENT_DESC> inputlayout;
   uint32_t numElements = pso->graphics->InputLayout.NumElements;
@@ -1864,7 +1865,7 @@ ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
   for(size_t i = 0; i < inputlayout.size(); i++)
   {
     if(inputlayout[i].InputSlotClass == D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA &&
-       inputlayout[i].InstanceDataStepRate < draw->numInstances)
+       inputlayout[i].InstanceDataStepRate < action->numInstances)
       MaxStepRate = RDCMAX(inputlayout[i].InstanceDataStepRate, MaxStepRate);
 
     UINT slot =
@@ -1898,20 +1899,20 @@ ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
       const D3D12RenderState::VertBuffer &vb = rs.vbuffers[i];
       ID3D12Resource *buffer = m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(vb.buf);
 
-      if(vb.stride * (draw->vertexOffset + idx) < vb.size)
-        GetDebugManager()->GetBufferData(buffer, vb.offs + vb.stride * (draw->vertexOffset + idx),
+      if(vb.stride * (action->vertexOffset + idx) < vb.size)
+        GetDebugManager()->GetBufferData(buffer, vb.offs + vb.stride * (action->vertexOffset + idx),
                                          vb.stride, vertData[i]);
 
       for(UINT isr = 1; isr <= MaxStepRate; isr++)
       {
-        if((draw->instanceOffset + (instid / isr)) < vb.size)
+        if((action->instanceOffset + (instid / isr)) < vb.size)
           GetDebugManager()->GetBufferData(
-              buffer, vb.offs + vb.stride * (draw->instanceOffset + (instid / isr)), vb.stride,
+              buffer, vb.offs + vb.stride * (action->instanceOffset + (instid / isr)), vb.stride,
               instData[i * MaxStepRate + isr - 1]);
       }
 
-      if(vb.stride * draw->instanceOffset < vb.size)
-        GetDebugManager()->GetBufferData(buffer, vb.offs + vb.stride * draw->instanceOffset,
+      if(vb.stride * action->instanceOffset < vb.size)
+        GetDebugManager()->GetBufferData(buffer, vb.offs + vb.stride * action->instanceOffset,
                                          vb.stride, staticData[i]);
     }
   }
@@ -1973,7 +1974,7 @@ ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
       }
       else
       {
-        if(el->InstanceDataStepRate == 0 || el->InstanceDataStepRate >= draw->numInstances)
+        if(el->InstanceDataStepRate == 0 || el->InstanceDataStepRate >= action->numInstances)
         {
           if(staticData[el->InputSlot].size() >= el->AlignedByteOffset)
           {
@@ -2145,8 +2146,8 @@ ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
     {
       uint32_t sv_vertid = vertid;
 
-      if(draw->flags & DrawFlags::Indexed)
-        sv_vertid = idx - draw->baseVertex;
+      if(action->flags & ActionFlags::Indexed)
+        sv_vertid = idx - action->baseVertex;
 
       if(dxbc->GetReflection()->InputSig[i].varType == VarType::Float)
         state.inputs[i].value.f32v[0] = state.inputs[i].value.f32v[1] =

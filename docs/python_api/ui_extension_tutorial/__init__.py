@@ -56,16 +56,16 @@ class Window(qrd.CaptureViewer):
         pass
 
     def OnEventChanged(self, event):
-        draw = self.ctx.GetDrawcall(event)
+        action = self.ctx.GetAction(event)
 
         breadcrumbs = ''
 
-        if draw is not None:
-            breadcrumbs = '@{}: {}'.format(draw.eventId, draw.name)
+        if action is not None:
+            breadcrumbs = '@{}: {}'.format(action.eventId, action.name)
 
-            while draw.parent is not None:
-                draw = draw.parent
-                breadcrumbs = '@{}: {}'.format(draw.eventId, draw.name) + '\n' + breadcrumbs
+            while action.parent is not None:
+                action = action.parent
+                breadcrumbs = '@{}: {}'.format(action.eventId, action.name) + '\n' + breadcrumbs
 
         self.mqt.SetWidgetText(self.breadcrumbs, "Breadcrumbs:\n{}".format(breadcrumbs))
 

@@ -86,7 +86,7 @@ private:
 
   GraphicsAPI m_API;
   uint32_t m_EID;
-  const DrawcallDescription *m_Drawcall;
+  const ActionDescription *m_Action;
   rdcarray<ShaderMessage> m_Messages;
 
   ResourceId m_OrigShaders[6];

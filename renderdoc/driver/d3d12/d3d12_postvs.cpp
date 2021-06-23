@@ -194,9 +194,9 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
   D3D_PRIMITIVE_TOPOLOGY topo = rs.topo;
 
-  const DrawcallDescription *drawcall = m_pDevice->GetDrawcall(eventId);
+  const ActionDescription *action = m_pDevice->GetAction(eventId);
 
-  if(drawcall->numIndices == 0 || drawcall->numInstances == 0)
+  if(action->numIndices == 0 || action->numInstances == 0)
     return;
 
   DXBC::DXBCContainer *dxbcVS = vs->GetDXBC();
@@ -348,7 +348,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
     bool recreate = false;
     // we add 64 to account for the stream-out data counter
-    uint64_t outputSize = uint64_t(drawcall->numIndices) * drawcall->numInstances * stride + 64;
+    uint64_t outputSize = uint64_t(action->numIndices) * action->numInstances * stride + 64;
 
     if(m_SOBufferSize < outputSize)
     {
@@ -361,7 +361,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
     ID3D12GraphicsCommandListX *list = NULL;
 
-    if(!(drawcall->flags & DrawFlags::Indexed))
+    if(!(action->flags & ActionFlags::Indexed))
     {
       if(recreate)
       {
@@ -394,15 +394,15 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
       list->SOSetTargets(0, 1, &view);
 
       list->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-      list->DrawInstanced(drawcall->numIndices, drawcall->numInstances, drawcall->vertexOffset,
-                          drawcall->instanceOffset);
+      list->DrawInstanced(action->numIndices, action->numInstances, action->vertexOffset,
+                          action->instanceOffset);
     }
     else    // drawcall is indexed
     {
       bytebuf idxdata;
       if(rs.ibuffer.buf != ResourceId() && rs.ibuffer.size > 0)
-        GetBufferData(rs.ibuffer.buf, rs.ibuffer.offs + drawcall->indexOffset * rs.ibuffer.bytewidth,
-                      RDCMIN(drawcall->numIndices * rs.ibuffer.bytewidth, rs.ibuffer.size), idxdata);
+        GetBufferData(rs.ibuffer.buf, rs.ibuffer.offs + action->indexOffset * rs.ibuffer.bytewidth,
+                      RDCMIN(action->numIndices * rs.ibuffer.bytewidth, rs.ibuffer.size), idxdata);
 
       rdcarray<uint32_t> indices;
 
@@ -411,7 +411,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
       // only read as many indices as were available in the buffer
       uint32_t numIndices =
-          RDCMIN(uint32_t(idxdata.size() / RDCMAX(1, rs.ibuffer.bytewidth)), drawcall->numIndices);
+          RDCMIN(uint32_t(idxdata.size() / RDCMAX(1, rs.ibuffer.bytewidth)), action->numIndices);
 
       // grab all unique vertex indices referenced
       for(uint32_t i = 0; i < numIndices; i++)
@@ -428,7 +428,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
       // if we read out of bounds, we'll also have a 0 index being referenced
       // (as 0 is read). Don't insert 0 if we already have 0 though
-      if(numIndices < drawcall->numIndices && (indices.empty() || indices[0] != 0))
+      if(numIndices < action->numIndices && (indices.empty() || indices[0] != 0))
         indices.insert(0, 0);
 
       // An index buffer could be something like: 500, 501, 502, 501, 503, 502
@@ -504,8 +504,8 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
       list->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 
-      list->DrawIndexedInstanced((UINT)indices.size(), drawcall->numInstances, 0,
-                                 drawcall->baseVertex, drawcall->instanceOffset);
+      list->DrawIndexedInstanced((UINT)indices.size(), action->numInstances, 0, action->baseVertex,
+                                 action->instanceOffset);
 
       uint32_t stripCutValue = 0;
       if(psoDesc.IBStripCutValue == D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFF)
@@ -724,13 +724,13 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     m_PostVSData[eventId].vsout.nearPlane = nearp;
     m_PostVSData[eventId].vsout.farPlane = farp;
 
-    m_PostVSData[eventId].vsout.useIndices = bool(drawcall->flags & DrawFlags::Indexed);
-    m_PostVSData[eventId].vsout.numVerts = drawcall->numIndices;
+    m_PostVSData[eventId].vsout.useIndices = bool(action->flags & ActionFlags::Indexed);
+    m_PostVSData[eventId].vsout.numVerts = action->numIndices;
 
     m_PostVSData[eventId].vsout.instStride = 0;
-    if(drawcall->flags & DrawFlags::Instanced)
+    if(action->flags & ActionFlags::Instanced)
       m_PostVSData[eventId].vsout.instStride =
-          uint32_t(numBytesWritten / RDCMAX(1U, drawcall->numInstances));
+          uint32_t(numBytesWritten / RDCMAX(1U, action->numInstances));
 
     m_PostVSData[eventId].vsout.idxBuf = NULL;
     if(m_PostVSData[eventId].vsout.useIndices && idxBuf)
@@ -840,8 +840,8 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     view.BufferLocation = m_SOBuffer->GetGPUVirtualAddress() + 64;
     view.SizeInBytes = m_SOBufferSize - 64;
     // draws with multiple instances must be replayed one at a time so we can record the number of
-    // primitives from each drawcall, as due to expansion this can vary per-instance.
-    if(drawcall->numInstances > 1)
+    // primitives from each action, as due to expansion this can vary per-instance.
+    if(action->numInstances > 1)
     {
       list = GetDebugManager()->ResetDebugList();
 
@@ -865,16 +865,15 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
       list->BeginQuery(m_SOQueryHeap, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM0, 0);
 
       // because the result is expanded we don't have to remap index buffers or anything
-      if(drawcall->flags & DrawFlags::Indexed)
+      if(action->flags & ActionFlags::Indexed)
       {
-        list->DrawIndexedInstanced(drawcall->numIndices, drawcall->numInstances,
-                                   drawcall->indexOffset, drawcall->baseVertex,
-                                   drawcall->instanceOffset);
+        list->DrawIndexedInstanced(action->numIndices, action->numInstances, action->indexOffset,
+                                   action->baseVertex, action->instanceOffset);
       }
       else
       {
-        list->DrawInstanced(drawcall->numIndices, drawcall->numInstances, drawcall->vertexOffset,
-                            drawcall->instanceOffset);
+        list->DrawInstanced(action->numIndices, action->numInstances, action->vertexOffset,
+                            action->instanceOffset);
       }
 
       list->EndQuery(m_SOQueryHeap, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM0, 0);
@@ -952,7 +951,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
       }
 
       // reserve space for enough 'buffer filled size' locations
-      UINT64 SizeCounterBytes = AlignUp(uint64_t(drawcall->numInstances * sizeof(UINT64)), 64ULL);
+      UINT64 SizeCounterBytes = AlignUp(uint64_t(action->numInstances * sizeof(UINT64)), 64ULL);
       view.BufferLocation = m_SOBuffer->GetGPUVirtualAddress() + SizeCounterBytes;
       view.SizeInBytes = m_SOBufferSize - SizeCounterBytes;
 
@@ -960,23 +959,22 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
       // there's no way to replay only a single instance. We have to replay 1, 2, 3, ... N instances
       // and count the total number of verts each time, then we can see from the difference how much
       // each instance wrote.
-      for(uint32_t inst = 1; inst <= drawcall->numInstances; inst++)
+      for(uint32_t inst = 1; inst <= action->numInstances; inst++)
       {
-        if(drawcall->flags & DrawFlags::Indexed)
+        if(action->flags & ActionFlags::Indexed)
         {
           view.BufferFilledSizeLocation =
               m_SOBuffer->GetGPUVirtualAddress() + (inst - 1) * sizeof(UINT64);
           list->SOSetTargets(0, 1, &view);
-          list->DrawIndexedInstanced(drawcall->numIndices, inst, drawcall->indexOffset,
-                                     drawcall->baseVertex, drawcall->instanceOffset);
+          list->DrawIndexedInstanced(action->numIndices, inst, action->indexOffset,
+                                     action->baseVertex, action->instanceOffset);
         }
         else
         {
           view.BufferFilledSizeLocation =
               m_SOBuffer->GetGPUVirtualAddress() + (inst - 1) * sizeof(UINT64);
           list->SOSetTargets(0, 1, &view);
-          list->DrawInstanced(drawcall->numIndices, inst, drawcall->vertexOffset,
-                              drawcall->instanceOffset);
+          list->DrawInstanced(action->numIndices, inst, action->vertexOffset, action->instanceOffset);
         }
 
         // Instanced draws with a wild number of instances can hang the GPU, sync after every 1000
@@ -1030,16 +1028,15 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
         list->BeginQuery(m_SOQueryHeap, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM0, 0);
 
         // because the result is expanded we don't have to remap index buffers or anything
-        if(drawcall->flags & DrawFlags::Indexed)
+        if(action->flags & ActionFlags::Indexed)
         {
-          list->DrawIndexedInstanced(drawcall->numIndices, drawcall->numInstances,
-                                     drawcall->indexOffset, drawcall->baseVertex,
-                                     drawcall->instanceOffset);
+          list->DrawIndexedInstanced(action->numIndices, action->numInstances, action->indexOffset,
+                                     action->baseVertex, action->instanceOffset);
         }
         else
         {
-          list->DrawInstanced(drawcall->numIndices, drawcall->numInstances, drawcall->vertexOffset,
-                              drawcall->instanceOffset);
+          list->DrawInstanced(action->numIndices, action->numInstances, action->vertexOffset,
+                              action->instanceOffset);
         }
 
         list->EndQuery(m_SOQueryHeap, D3D12_QUERY_TYPE_SO_STATISTICS_STREAM0, 0);
@@ -1137,11 +1134,11 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
     uint64_t numBytesWritten = 0;
     rdcarray<D3D12PostVSData::InstData> instData;
-    if(drawcall->numInstances > 1)
+    if(action->numInstances > 1)
     {
       uint64_t prevByteCount = 0;
 
-      for(uint32_t inst = 0; inst < drawcall->numInstances; inst++)
+      for(uint32_t inst = 0; inst < action->numInstances; inst++)
       {
         uint64_t byteCount = counters[inst];
 
@@ -1268,9 +1265,9 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
     m_PostVSData[eventId].gsout.buf = gsoutBuffer;
     m_PostVSData[eventId].gsout.instStride = 0;
-    if(drawcall->flags & DrawFlags::Instanced)
+    if(action->flags & ActionFlags::Instanced)
       m_PostVSData[eventId].gsout.instStride =
-          uint32_t(numBytesWritten / RDCMAX(1U, drawcall->numInstances));
+          uint32_t(numBytesWritten / RDCMAX(1U, action->numInstances));
     m_PostVSData[eventId].gsout.vertStride = stride;
     m_PostVSData[eventId].gsout.nearPlane = nearp;
     m_PostVSData[eventId].gsout.farPlane = farp;
@@ -1294,8 +1291,8 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
     m_PostVSData[eventId].gsout.numVerts = (uint32_t)numVerts;
 
-    if(drawcall->flags & DrawFlags::Instanced)
-      m_PostVSData[eventId].gsout.numVerts /= RDCMAX(1U, drawcall->numInstances);
+    if(action->flags & ActionFlags::Instanced)
+      m_PostVSData[eventId].gsout.numVerts /= RDCMAX(1U, action->numInstances);
 
     m_PostVSData[eventId].gsout.instData = instData;
   }
@@ -1303,15 +1300,15 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
   SAFE_RELEASE(soSig);
 }
 
-struct D3D12InitPostVSCallback : public D3D12DrawcallCallback
+struct D3D12InitPostVSCallback : public D3D12ActionCallback
 {
   D3D12InitPostVSCallback(WrappedID3D12Device *dev, D3D12Replay *replay,
                           const rdcarray<uint32_t> &events)
       : m_pDevice(dev), m_Replay(replay), m_Events(events)
   {
-    m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = this;
+    m_pDevice->GetQueue()->GetCommandData()->m_ActionCallback = this;
   }
-  ~D3D12InitPostVSCallback() { m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = NULL; }
+  ~D3D12InitPostVSCallback() { m_pDevice->GetQueue()->GetCommandData()->m_ActionCallback = NULL; }
   void PreDraw(uint32_t eid, ID3D12GraphicsCommandListX *cmd) override
   {
     if(m_Events.contains(eid))

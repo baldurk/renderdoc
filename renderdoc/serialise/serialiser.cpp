@@ -365,8 +365,8 @@ uint32_t Serialiser<SerialiserMode::Writing>::BeginChunk(uint32_t chunkID, uint6
         {
           bool collect = RenderDoc::Inst().GetCaptureOptions().captureCallstacks;
 
-          if(RenderDoc::Inst().GetCaptureOptions().captureCallstacksOnlyDraws)
-            collect = collect && m_DrawChunk;
+          if(RenderDoc::Inst().GetCaptureOptions().captureCallstacksOnlyActions)
+            collect = collect && m_ActionChunk;
 
           if(collect)
           {
@@ -461,7 +461,7 @@ uint32_t Serialiser<SerialiserMode::Writing>::BeginChunk(uint32_t chunkID, uint6
 template <>
 void Serialiser<SerialiserMode::Writing>::EndChunk()
 {
-  m_DrawChunk = false;
+  m_ActionChunk = false;
 
   if(m_DataStreaming)
   {

@@ -1147,9 +1147,9 @@ rdcstr DoStringise(const BufferCategory &el)
 }
 
 template <>
-rdcstr DoStringise(const DrawFlags &el)
+rdcstr DoStringise(const ActionFlags &el)
 {
-  BEGIN_BITFIELD_STRINGISE(DrawFlags);
+  BEGIN_BITFIELD_STRINGISE(ActionFlags);
   {
     STRINGISE_BITFIELD_CLASS_VALUE_NAMED(NoFlags, "None");
 
@@ -1161,7 +1161,7 @@ rdcstr DoStringise(const DrawFlags &el)
     STRINGISE_BITFIELD_CLASS_BIT(PushMarker);
     STRINGISE_BITFIELD_CLASS_BIT(PopMarker);
     STRINGISE_BITFIELD_CLASS_BIT(Present);
-    STRINGISE_BITFIELD_CLASS_BIT(MultiDraw);
+    STRINGISE_BITFIELD_CLASS_BIT(MultiAction);
     STRINGISE_BITFIELD_CLASS_BIT(Copy);
     STRINGISE_BITFIELD_CLASS_BIT(Resolve);
     STRINGISE_BITFIELD_CLASS_BIT(GenMips);

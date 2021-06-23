@@ -334,7 +334,7 @@ public:
     if(!m_ResourcesDirty)
     {
       VkMarkerRegion region("ResetReplay");
-      // replay the draw to get back to 'normal' state for this event, and mark that we need to
+      // replay the action to get back to 'normal' state for this event, and mark that we need to
       // replay back to pristine state next time we need to fetch data.
       m_pDriver->ReplayLog(0, m_EventID, eReplay_OnlyDraw);
     }
@@ -1581,7 +1581,7 @@ private:
             GetDescriptor<VkDescriptorBufferInfo>("accessing buffer value", bind, valid);
         if(valid)
         {
-          // if the resources might be dirty from side-effects from the draw, replay back to right
+          // if the resources might be dirty from side-effects from the action, replay back to right
           // before it.
           if(m_ResourcesDirty)
           {
@@ -1613,7 +1613,7 @@ private:
           GetDescriptor<VkDescriptorImageInfo>("performing image load/store", bind, valid);
       if(valid)
       {
-        // if the resources might be dirty from side-effects from the draw, replay back to right
+        // if the resources might be dirty from side-effects from the action, replay back to right
         // before it.
         if(m_ResourcesDirty)
         {
@@ -3709,22 +3709,22 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
   if(Vulkan_Debug_ShaderDebugLogging())
     RDCLOG("%s", regionName.c_str());
 
-  const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
+  const ActionDescription *action = m_pDriver->GetAction(eventId);
 
-  if(!(draw->flags & DrawFlags::Drawcall))
+  if(!(action->flags & ActionFlags::Drawcall))
   {
     RDCLOG("No drawcall selected");
     return new ShaderDebugTrace();
   }
 
   uint32_t vertOffset = 0, instOffset = 0;
-  if(!(draw->flags & DrawFlags::Indexed))
-    vertOffset = draw->vertexOffset;
+  if(!(action->flags & ActionFlags::Indexed))
+    vertOffset = action->vertexOffset;
 
-  if(draw->flags & DrawFlags::Instanced)
-    instOffset = draw->instanceOffset;
+  if(action->flags & ActionFlags::Instanced)
+    instOffset = action->instanceOffset;
 
-  // get ourselves in pristine state before this draw (without any side effects it may have had)
+  // get ourselves in pristine state before this action (without any side effects it may have had)
   m_pDriver->ReplayLog(0, eventId, eReplay_WithoutDraw);
 
   const VulkanCreationInfo::Pipeline &pipe = c.m_Pipeline[state.graphics.pipeline];
@@ -3754,13 +3754,14 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
     view = 0;
 
   std::map<ShaderBuiltin, ShaderVariable> &builtins = apiWrapper->builtin_inputs;
-  builtins[ShaderBuiltin::BaseInstance] = ShaderVariable(rdcstr(), draw->instanceOffset, 0U, 0U, 0U);
+  builtins[ShaderBuiltin::BaseInstance] =
+      ShaderVariable(rdcstr(), action->instanceOffset, 0U, 0U, 0U);
   builtins[ShaderBuiltin::BaseVertex] = ShaderVariable(
-      rdcstr(), (draw->flags & DrawFlags::Indexed) ? draw->baseVertex : draw->vertexOffset, 0U, 0U,
-      0U);
+      rdcstr(), (action->flags & ActionFlags::Indexed) ? action->baseVertex : action->vertexOffset,
+      0U, 0U, 0U);
   builtins[ShaderBuiltin::DeviceIndex] = ShaderVariable(rdcstr(), 0U, 0U, 0U, 0U);
-  builtins[ShaderBuiltin::DrawIndex] = ShaderVariable(rdcstr(), draw->drawIndex, 0U, 0U, 0U);
-  if(draw->flags & DrawFlags::Indexed)
+  builtins[ShaderBuiltin::DrawIndex] = ShaderVariable(rdcstr(), action->drawIndex, 0U, 0U, 0U);
+  if(action->flags & ActionFlags::Indexed)
     builtins[ShaderBuiltin::VertexIndex] = ShaderVariable(rdcstr(), idx, 0U, 0U, 0U);
   else
     builtins[ShaderBuiltin::VertexIndex] = ShaderVariable(rdcstr(), vertid + vertOffset, 0U, 0U, 0U);
@@ -3956,9 +3957,9 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   if(Vulkan_Debug_ShaderDebugLogging())
     RDCLOG("%s", regionName.c_str());
 
-  const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
+  const ActionDescription *action = m_pDriver->GetAction(eventId);
 
-  if(!(draw->flags & DrawFlags::Drawcall))
+  if(!(action->flags & ActionFlags::Drawcall))
   {
     RDCLOG("No drawcall selected");
     return new ShaderDebugTrace();
@@ -3972,7 +3973,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     return new ShaderDebugTrace();
   }
 
-  // get ourselves in pristine state before this draw (without any side effects it may have had)
+  // get ourselves in pristine state before this action (without any side effects it may have had)
   m_pDriver->ReplayLog(0, eventId, eReplay_WithoutDraw);
 
   VulkanCreationInfo::ShaderModule &shader = c.m_ShaderModule[pipe.shaders[4].module];
@@ -3995,7 +3996,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
   std::map<ShaderBuiltin, ShaderVariable> &builtins = apiWrapper->builtin_inputs;
   builtins[ShaderBuiltin::DeviceIndex] = ShaderVariable(rdcstr(), 0U, 0U, 0U, 0U);
-  builtins[ShaderBuiltin::DrawIndex] = ShaderVariable(rdcstr(), draw->drawIndex, 0U, 0U, 0U);
+  builtins[ShaderBuiltin::DrawIndex] = ShaderVariable(rdcstr(), action->drawIndex, 0U, 0U, 0U);
   builtins[ShaderBuiltin::Position] =
       ShaderVariable(rdcstr(), float(x) + 0.5f, float(y) + 0.5f, 0.0f, 0.0f);
 
@@ -4385,7 +4386,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
     modifiedstate.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics);
 
-    m_pDriver->ReplayDraw(cmd, *draw);
+    m_pDriver->ReplayDraw(cmd, *action);
 
     modifiedstate.EndRenderPass(cmd);
 
@@ -4641,9 +4642,9 @@ ShaderDebugTrace *VulkanReplay::DebugThread(uint32_t eventId,
   if(Vulkan_Debug_ShaderDebugLogging())
     RDCLOG("%s", regionName.c_str());
 
-  const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
+  const ActionDescription *action = m_pDriver->GetAction(eventId);
 
-  if(!(draw->flags & DrawFlags::Dispatch))
+  if(!(action->flags & ActionFlags::Dispatch))
   {
     RDCLOG("No dispatch selected");
     return new ShaderDebugTrace();
@@ -4678,8 +4679,8 @@ ShaderDebugTrace *VulkanReplay::DebugThread(uint32_t eventId,
 
   std::map<ShaderBuiltin, ShaderVariable> &builtins = apiWrapper->builtin_inputs;
   builtins[ShaderBuiltin::DispatchSize] =
-      ShaderVariable(rdcstr(), draw->dispatchDimension[0], draw->dispatchDimension[1],
-                     draw->dispatchDimension[2], 0U);
+      ShaderVariable(rdcstr(), action->dispatchDimension[0], action->dispatchDimension[1],
+                     action->dispatchDimension[2], 0U);
   builtins[ShaderBuiltin::DispatchThreadIndex] = ShaderVariable(
       rdcstr(), groupid[0] * threadDim[0] + threadid[0], groupid[1] * threadDim[1] + threadid[1],
       groupid[2] * threadDim[2] + threadid[2], 0U);

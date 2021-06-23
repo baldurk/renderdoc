@@ -6,20 +6,20 @@ class GL_VAO_0(rdtest.TestCase):
     demos_test_name = 'GL_VAO_0'
 
     def check_capture(self):
-        draw = self.find_draw("Draw")
+        action = self.find_action("Draw")
 
-        # There are 4 draws with variations on client-memory VBs or IBs
+        # There are 4 actions with variations on client-memory VBs or IBs
         for i in range(0, 4):
-            self.check(draw is not None)
+            self.check(action is not None)
 
-            self.controller.SetFrameEvent(draw.eventId, False)
+            self.controller.SetFrameEvent(action.eventId, False)
 
             pipe: rd.PipeState = self.controller.GetPipelineState()
             vp: rd.Viewport = pipe.GetViewport(0)
 
             self.check_triangle(vp=(vp.x, vp.y, vp.width, vp.height))
 
-            postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, draw.numIndices)
+            postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
 
             postvs_ref = {
                 0: {
@@ -50,17 +50,17 @@ class GL_VAO_0(rdtest.TestCase):
 
             self.check_mesh_data(postvs_ref, postvs_data)
 
-            draw = draw.next
+            action = action.next
 
-        draw = self.find_draw("Instanced")
+        action = self.find_action("Instanced")
 
-        self.check(draw is not None)
+        self.check(action is not None)
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         # Each instance should have color output of 0.5 * instance in blue
-        for i in range(0, draw.numInstances):
-            postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, draw.numIndices, i)
+        for i in range(0, action.numInstances):
+            postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices, i)
 
             postvs_ref = {
                 0: {

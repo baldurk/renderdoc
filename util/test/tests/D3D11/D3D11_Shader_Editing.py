@@ -8,14 +8,14 @@ class D3D11_Shader_Editing(rdtest.TestCase):
     demos_test_name = 'D3D11_Shader_Editing'
 
     def check_capture(self):
-        eid = self.find_draw("Draw 1").next.eventId
+        eid = self.find_action("Draw 1").next.eventId
         self.controller.SetFrameEvent(eid, False)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
         psrefl1: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Pixel)
 
-        eid = self.find_draw("Draw 2").next.eventId
+        eid = self.find_action("Draw 2").next.eventId
         self.controller.SetFrameEvent(eid, False)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()

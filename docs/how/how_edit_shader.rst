@@ -22,7 +22,7 @@ RenderDoc allows you to edit a shader used in the capture and make changes to it
 
 To launch the shader editor, go to the pipeline stage you wish to change in the :doc:`../window/pipeline_state` windows, and click on the edit button |page_white_edit| next to the shader. If there are multiple edit options, a drop-down menu will be available - see below for more information about shader processing tools.
 
-Any changes to the shader will affect any drawcall using this shader, not just the currently-selected drawcall. The changes will persist until the edit window is closed.
+Any changes to the shader will affect any action using this shader, not just the currently-selected action. The changes will persist until the edit window is closed.
 
 Shader processing tools
 -----------------------

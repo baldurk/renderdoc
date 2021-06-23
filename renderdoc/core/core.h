@@ -85,7 +85,7 @@ enum class CaptureState
 {
   // This is the state while the initial load of a capture is happening and the replay is
   // initialising available resources. This is where any heavy one-off analysis can happen like
-  // noting down the details of a drawcall, tracking statistics about resource use and drawcall
+  // noting down the details of a action, tracking statistics about resource use and action
   // types, and creating resources that will be needed later in ActiveReplaying.
   //
   // After leaving this state, the capture enters ActiveReplaying and remains there until the

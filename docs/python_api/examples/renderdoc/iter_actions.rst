@@ -1,24 +1,24 @@
-Iterate drawcall tree
-=====================
+Iterate Action tree
+===================
 
-In this example we will show how to iterate over drawcalls.
+In this example we will show how to iterate over actions.
 
-The drawcalls returned from :py:meth:`~renderdoc.ReplayController.GetDrawcalls` are draws or marker regions at the root level - with no parent marker region. There are multiple ways to iterate through the list of draws.
+The actions returned from :py:meth:`~renderdoc.ReplayController.GetRootActions` are actions or marker regions at the root level - with no parent marker region. There are multiple ways to iterate through the list of actions.
 
-The first way illustrated in this sample is to walk the tree using :py:attr:`~renderdoc.DrawcallDescription.children`, which contains the list of child draws at any point in the tree. There is also :py:attr:`~renderdoc.DrawcallDescription.parent` which points to the parent drawcall.
+The first way illustrated in this sample is to walk the tree using :py:attr:`~renderdoc.ActionDescription.children`, which contains the list of child actions at any point in the tree. There is also :py:attr:`~renderdoc.ActionDescription.parent` which points to the parent action.
 
-The second is to use :py:attr:`~renderdoc.DrawcallDescription.previous` and :py:attr:`~renderdoc.DrawcallDescription.next`, which point to the previous and next draw respectively in a linear fashion, regardless of nesting depth.
+The second is to use :py:attr:`~renderdoc.ActionDescription.previous` and :py:attr:`~renderdoc.ActionDescription.next`, which point to the previous and next action respectively in a linear fashion, regardless of nesting depth.
 
-In the example we use this iteration to determine the number of passes, using the drawcall flags to denote the start of each pass by a starting clear call.
+In the example we use this iteration to determine the number of passes, using the action flags to denote the start of each pass by a starting clear call.
 
 Example Source
 --------------
 
 .. only:: html and not htmlhelp
 
-    :download:`Download the example script <iter_draws.py>`.
+    :download:`Download the example script <iter_actions.py>`.
 
-.. literalinclude:: iter_draws.py
+.. literalinclude:: iter_actions.py
 
 Sample output:
 
@@ -95,11 +95,11 @@ Sample output:
             652: API Calls
     655: End of Frame
     Pass #0 starts with 2: ClearRenderTargetView(0.000000, 0.000000, 0.000000, 1.000000)
-    Pass #0 contained 24 draws
+    Pass #0 contained 24 actions
     Pass #1 starts with 319: ClearDepthStencilView(D=1.000000, S=00)
-    Pass #1 contained 24 draws
+    Pass #1 contained 24 actions
     Pass #2 starts with 558: ClearRenderTargetView(0.000000, 0.000000, 0.000000, 1.000000)
-    Pass #2 contained 3 draws
+    Pass #2 contained 3 actions
     Pass #3 starts with 617: ClearRenderTargetView(0.000000, 0.000000, 0.000000, 1.000000)
-    Pass #3 contained 4 draws
+    Pass #3 contained 4 actions
 

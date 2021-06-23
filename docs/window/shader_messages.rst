@@ -1,9 +1,9 @@
 Shader Messages
 ===============
 
-The Shader Messages window shows messages obtained from shader prints in a given drawcall.
+The Shader Messages window shows messages obtained from shader prints in a given action.
 
-When selecting a draw you have the option to open the list of messages, which can be viewed in this window and filtered/processed.
+When selecting an action you have the option to open the list of messages, which can be viewed in this window and filtered/processed.
 
 .. note::
 
@@ -19,7 +19,7 @@ For Vulkan the SPIR-V extension ``NonSemantic.DebugPrintf`` is used to list prin
 Fetching shader messages
 ------------------------
 
-Shader messages are not fetched for the whole capture at once, they are fetched on a per-draw basis when that drawcall is selected. If any messages appear they will be shown in the event browser next to the draw, with a link that opens the shader message viewer for those messages. The messages can also be found linked from the pipeline state under each shader stage, which will pre-filter for only messages from that stage.
+Shader messages are not fetched for the whole capture at once, they are fetched on a per-action basis when that action is selected. If any messages appear they will be shown in the event browser next to the action, with a link that opens the shader message viewer for those messages. The messages can also be found linked from the pipeline state under each shader stage, which will pre-filter for only messages from that stage.
 
 Shader Messages
 ---------------
@@ -44,6 +44,6 @@ Double clicking on any row will take you to the corresponding event ID in the ev
 Shader Edits
 ------------
 
-Since prints come from shaders, the expectation is that they are fixed for a given drawcall and so they are cached and not re-fetched each time the drawcall is selected.
+Since prints come from shaders, the expectation is that they are fixed for a given action and so they are cached and not re-fetched each time the action is selected.
 
-However this doesn't hold if the shader is edited, since the print could change or the control flow and inputs could change. When this happens any previous shader messages windows will show up as 'stale' until the drawcall is selected where they will refresh themselves with the latest messages. If the drawcall is already selected then the messages will update immediately.
+However this doesn't hold if the shader is edited, since the print could change or the control flow and inputs could change. When this happens any previous shader messages windows will show up as 'stale' until the action is selected where they will refresh themselves with the latest messages. If the action is already selected then the messages will update immediately.

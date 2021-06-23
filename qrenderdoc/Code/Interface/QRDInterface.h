@@ -196,7 +196,7 @@ DECLARE_REFLECTION_STRUCT(IMainWindow);
 
 DOCUMENT(R"(The event browser window.
 
-.. function:: EventFilterCallback(context, filter, params, eventId, chunk, draw, name)
+.. function:: EventFilterCallback(context, filter, params, eventId, chunk, action, name)
 
   Not a member function - the signature for any ``EventFilterCallback`` callbacks.
 
@@ -209,8 +209,8 @@ DOCUMENT(R"(The event browser window.
   :param str params: The parameters to the filter function.
   :param int eventId: The event's :data:`eventId <renderdoc.APIEvent.eventId>`.
   :param renderdoc.SDChunk chunk: The structured data chunk for this event.
-  :param renderdoc.DrawcallDescription draw: The drawcall that contains this event. If the event is
-    the draw itself then the event ID will be equal.
+  :param renderdoc.ActionDescription action: The action that contains this event. If the event is
+    the action itself then the event ID will be equal.
   :param str name: The name of the event as shown in the event browser, for string-based filtering.
   :return: Whether or not this event matches the filter
   :rtype: bool
@@ -252,7 +252,7 @@ DOCUMENT(R"(The event browser window.
 struct IEventBrowser
 {
   typedef std::function<bool(ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t,
-                             const SDChunk *, const DrawcallDescription *, const rdcstr &)>
+                             const SDChunk *, const ActionDescription *, const rdcstr &)>
       EventFilterCallback;
 
   typedef std::function<rdcstr(ICaptureContext *, const rdcstr &, const rdcstr &)> FilterParseCallback;
@@ -285,17 +285,17 @@ returned.
   virtual APIEvent GetAPIEventForEID(uint32_t eventId) = 0;
 
   DOCUMENT(R"(Uses the existing caching in the event browser to return a
-:class:`~renderdoc.DrawcallDescription` for a specified EID. This draw may not be the exact EID
-specified, but it will be the draw that the EID is associated with. I.e. if you specify the EID for
-a state setting event the next draw will be returned.
+:class:`~renderdoc.ActionDescription` for a specified EID. This action may not be the exact EID
+specified, but it will be the action that the EID is associated with. I.e. if you specify the EID for
+a state setting event the next action will be returned.
 
 If no capture is loaded or the EID doesn't correspond to a known event, ``None`` will be returned.
 
 :param int eventId: The EID to look up.
-:return: The drawcall containing the EID, or ``None`` if no such EID exists.
-:rtype: renderdoc.DrawcallDescription
+:return: The action containing the EID, or ``None`` if no such EID exists.
+:rtype: renderdoc.ActionDescription
 )");
-  virtual const DrawcallDescription *GetDrawcallForEID(uint32_t eventId) = 0;
+  virtual const ActionDescription *GetActionForEID(uint32_t eventId) = 0;
 
   DOCUMENT(R"(Determines if a given EID is visible with the current filters applied to the event
 browser.
@@ -359,20 +359,20 @@ the scratch filter. The filter is applied immediately.
 )");
   virtual rdcstr GetCurrentFilterText() = 0;
 
-  DOCUMENT(R"(Sets whether or not custom drawcall names are used. Certain drawcalls such as indirect
-draws it is useful to show a custom drawcall name which contains the actual indirect parameters
+  DOCUMENT(R"(Sets whether or not custom action names are used. Certain actions such as indirect
+actions it is useful to show a custom action name which contains the actual indirect parameters
 instead of the 'raw' parameters.
 
-:param bool use: Whether or not custom drawcall names will be used.
+:param bool use: Whether or not custom action names will be used.
 )");
-  virtual void SetUseCustomDrawNames(bool use) = 0;
+  virtual void SetUseCustomActionNames(bool use) = 0;
 
   DOCUMENT(R"(Sets whether or not parameter names are shown in the events. If disabled, only the
 value is shown and the parameter is implicit.
 
 .. note::
-  If custom draw names are used this will not have an effect for any such draws. See
-  :meth:`SetUseCustomDrawNames`.
+  If custom action names are used this will not have an effect for any such actions. See
+  :meth:`SetUseCustomActionNames`.
 
 :param bool show: Whether or not parameter names will be shown.
 )");
@@ -382,14 +382,14 @@ value is shown and the parameter is implicit.
 the most significant parameters are shown.
 
 .. note::
-  If custom draw names are used this will not have an effect for any such draws. See
-  :meth:`SetUseCustomDrawNames`.
+  If custom action names are used this will not have an effect for any such actions. See
+  :meth:`SetUseCustomActionNames`.
 
 :param bool show: Whether or not parameter names will be shown.
 )");
   virtual void SetShowAllParameters(bool show) = 0;
 
-  DOCUMENT(R"(Sets whether or not marker regions which have no draws .
+  DOCUMENT(R"(Sets whether or not marker regions which have no visible actions.
 
 :param bool show: Whether or not empty regions after filtering will be shown.
 )");
@@ -1909,43 +1909,43 @@ information for how this differs.
 )");
   virtual uint32_t CurEvent() = 0;
 
-  DOCUMENT(R"(Retrieve the currently selected drawcall.
+  DOCUMENT(R"(Retrieve the currently selected action.
 
-In most cases, prefer using :meth:`CurDrawcall`. See :meth:`CaptureViewer.OnSelectedEventChanged` for
+In most cases, prefer using :meth:`CurAction`. See :meth:`CaptureViewer.OnSelectedEventChanged` for
 more information for how this differs.
 
-:return: The currently selected drawcall.
-:rtype: renderdoc.DrawcallDescription
+:return: The currently selected action.
+:rtype: renderdoc.ActionDescription
 )");
-  virtual const DrawcallDescription *CurSelectedDrawcall() = 0;
+  virtual const ActionDescription *CurSelectedAction() = 0;
 
-  DOCUMENT(R"(Retrieve the current drawcall.
+  DOCUMENT(R"(Retrieve the current action.
 
-:return: The current drawcall, or ``None`` if no drawcall is selected.
-:rtype: renderdoc.DrawcallDescription
+:return: The current action, or ``None`` if no action is selected.
+:rtype: renderdoc.ActionDescription
 )");
-  virtual const DrawcallDescription *CurDrawcall() = 0;
+  virtual const ActionDescription *CurAction() = 0;
 
-  DOCUMENT(R"(Retrieve the first drawcall in the capture.
+  DOCUMENT(R"(Retrieve the first action in the capture.
 
-:return: The first drawcall.
-:rtype: renderdoc.DrawcallDescription
+:return: The first action.
+:rtype: renderdoc.ActionDescription
 )");
-  virtual const DrawcallDescription *GetFirstDrawcall() = 0;
+  virtual const ActionDescription *GetFirstAction() = 0;
 
-  DOCUMENT(R"(Retrieve the last drawcall in the capture.
+  DOCUMENT(R"(Retrieve the last action in the capture.
 
-:return: The last drawcall.
-:rtype: renderdoc.DrawcallDescription
+:return: The last action.
+:rtype: renderdoc.ActionDescription
 )");
-  virtual const DrawcallDescription *GetLastDrawcall() = 0;
+  virtual const ActionDescription *GetLastAction() = 0;
 
-  DOCUMENT(R"(Retrieve the root list of drawcalls in the current capture.
+  DOCUMENT(R"(Retrieve the root list of actions in the current capture.
 
-:return: The root drawcalls.
-:rtype: List[renderdoc.DrawcallDescription]
+:return: The root actions.
+:rtype: List[renderdoc.ActionDescription]
 )");
-  virtual const rdcarray<DrawcallDescription> &CurDrawcalls() = 0;
+  virtual const rdcarray<ActionDescription> &CurRootActions() = 0;
 
   DOCUMENT(R"(Retrieve the information about a particular resource.
 
@@ -2067,15 +2067,15 @@ considered out of date
 )");
   virtual const rdcarray<BufferDescription> &GetBuffers() = 0;
 
-  DOCUMENT(R"(Retrieve the information about a drawcall at a given
+  DOCUMENT(R"(Retrieve the information about an action at a given
 :data:`eventId <renderdoc.APIEvent.eventId>`.
 
 :param int eventId: The :data:`eventId <renderdoc.APIEvent.eventId>` to query for.
-:return: The information about the drawcall, or ``None`` if the
-  :data:`eventId <renderdoc.APIEvent.eventId>` doesn't correspond to a drawcall.
-:rtype: renderdoc.DrawcallDescription
+:return: The information about the action, or ``None`` if the
+  :data:`eventId <renderdoc.APIEvent.eventId>` doesn't correspond to an action.
+:rtype: renderdoc.ActionDescription
 )");
-  virtual const DrawcallDescription *GetDrawcall(uint32_t eventId) = 0;
+  virtual const ActionDescription *GetAction(uint32_t eventId) = 0;
 
   DOCUMENT(R"(Sets the path to the RGP profile to use with :meth:`GetRGPInterop`, launches RGP and
 opens an interop connection. This function will block (with a progress dialog) until either an

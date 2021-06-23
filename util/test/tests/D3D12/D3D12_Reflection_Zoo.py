@@ -6,17 +6,17 @@ class D3D12_Reflection_Zoo(rdtest.TestCase):
     demos_test_name = 'D3D12_Reflection_Zoo'
 
     def check_capture(self):
-        draw = self.find_draw("DXBC")
+        action = self.find_action("DXBC")
 
-        self.check(draw is not None)
+        self.check(action is not None)
 
-        self.controller.SetFrameEvent(draw.next.eventId, False)
+        self.controller.SetFrameEvent(action.next.eventId, False)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
         stage = rd.ShaderStage.Pixel
 
-        # Verify that the DXBC draw is first
+        # Verify that the DXBC action is first
         disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), pipe.GetShaderReflection(stage),
                                                    '')
 
@@ -24,16 +24,16 @@ class D3D12_Reflection_Zoo(rdtest.TestCase):
 
         self.check_event()
 
-        rdtest.log.success("DXBC draw is as expected")
+        rdtest.log.success("DXBC action is as expected")
 
-        # Move to the DXIL draw
-        draw = self.find_draw("DXIL")
+        # Move to the DXIL action
+        action = self.find_action("DXIL")
 
-        if draw is None:
-            rdtest.log.print("No DXIL draw to test")
+        if action is None:
+            rdtest.log.print("No DXIL action to test")
             return
 
-        self.controller.SetFrameEvent(draw.next.eventId, False)
+        self.controller.SetFrameEvent(action.next.eventId, False)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
@@ -44,7 +44,7 @@ class D3D12_Reflection_Zoo(rdtest.TestCase):
 
         self.check_event()
 
-        rdtest.log.success("DXIL draw is as expected")
+        rdtest.log.success("DXIL action is as expected")
 
     def check_event(self):
         pipe: rd.PipeState = self.controller.GetPipelineState()

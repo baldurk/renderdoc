@@ -277,13 +277,13 @@ private:
   rdcarray<CounterResult> FetchCountersNV(const rdcarray<GPUCounter> &counters);
   rdcarray<CounterResult> FetchCountersIntel(const rdcarray<GPUCounter> &counters);
 
-  void FillTimers(D3D11CounterContext &ctx, const DrawcallDescription &drawnode);
+  void FillTimers(D3D11CounterContext &ctx, const ActionDescription &actionnode);
   void FillTimersAMD(uint32_t &eventStartID, uint32_t &sampleIndex, rdcarray<uint32_t> &eventIDs,
-                     const DrawcallDescription &drawnode);
+                     const ActionDescription &actionnode);
   void FillTimersNV(uint32_t &eventStartID, uint32_t &sampleIndex, rdcarray<uint32_t> &eventIDs,
-                    const DrawcallDescription &drawnode);
+                    const ActionDescription &actionnode);
   void FillTimersIntel(uint32_t &eventStartID, uint32_t &sampleIndex, rdcarray<uint32_t> &eventIDs,
-                       const DrawcallDescription &drawnode);
+                       const ActionDescription &actionnode);
 
   void SerializeImmediateContext();
 

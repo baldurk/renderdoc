@@ -10,7 +10,7 @@ At the top of the Pipeline Viewer is the pipeline flowchart - this shows the hig
 
 Each block is a separate page which contains the relevant state and contents for that piece of the graphics pipeline, with specific details varying by API and the type of data to be displayed.
 
-The currently selected block is outlined with red, and the page in view reflects the contents of that section of the pipeline. Light gray parts of the pipeline are those which are currently active and participating in this drawcall. Dark gray parts of the pipeline are not enabled and can be considered pass-through/do-nothing.
+The currently selected block is outlined with red, and the page in view reflects the contents of that section of the pipeline. Light gray parts of the pipeline are those which are currently active and participating in this action. Dark gray parts of the pipeline are not enabled and can be considered pass-through/do-nothing.
 
 .. figure:: ../imgs/Screenshots/PipelineBar.png
 
@@ -23,7 +23,7 @@ The currently selected block is outlined with red, and the page in view reflects
 Pipeline Section Display
 ------------------------
 
-The pipeline state viewer always displays the state of the pipeline *after* the execution of the drawcall, as with the other viewers in RenderDoc.
+The pipeline state viewer always displays the state of the pipeline *after* the execution of the action, as with the other viewers in RenderDoc.
 
 Any resources that are bound to the pipeline can be opened in more detailed viewers, such as vertex buffers, constant buffers and textures. More details of this process can be found in the page :doc:`../how/how_object_details`.
 

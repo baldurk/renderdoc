@@ -7,11 +7,11 @@ class GL_DX_Interop(rdtest.TestCase):
     demos_frame_cap = 4
 
     def check_capture(self):
-        last_draw: rd.DrawcallDescription = self.get_last_draw()
+        last_action: rd.ActionDescription = self.get_last_action()
 
-        self.controller.SetFrameEvent(last_draw.eventId, True)
+        self.controller.SetFrameEvent(last_action.eventId, True)
 
-        out = last_draw.copyDestination
+        out = last_action.copyDestination
 
         # There should be N+1 rings of green/red with the base colour in the middle
         x,y = 1.0, 1.0

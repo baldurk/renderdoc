@@ -29,7 +29,7 @@ When clicking :guilabel:`Sample Counters` in the counter selection dialog above,
 
 	Performance Counter Viewer: Viewing the results of the counters.
 
-By default the table is sorted by EID, but each column is sortable individually so that you can easily identify the drawcall with the highest or lowest value for any given counter.
+By default the table is sorted by EID, but each column is sortable individually so that you can easily identify the action with the highest or lowest value for any given counter.
 
 .. |save| image:: ../imgs/icons/save.png
 

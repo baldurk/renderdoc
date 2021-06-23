@@ -250,18 +250,18 @@ GLenum glCounters[] = {
     eGL_COMPUTE_SHADER_INVOCATIONS_ARB             // GPUCounter::CSInvocations
 };
 
-void GLReplay::FillTimers(GLCounterContext &ctx, const DrawcallDescription &drawnode,
+void GLReplay::FillTimers(GLCounterContext &ctx, const ActionDescription &actionnode,
                           const rdcarray<GPUCounter> &counters)
 {
-  if(drawnode.children.empty())
+  if(actionnode.children.empty())
     return;
 
-  for(size_t i = 0; i < drawnode.children.size(); i++)
+  for(size_t i = 0; i < actionnode.children.size(); i++)
   {
-    const DrawcallDescription &d = drawnode.children[i];
-    FillTimers(ctx, drawnode.children[i], counters);
+    const ActionDescription &a = actionnode.children[i];
+    FillTimers(ctx, actionnode.children[i], counters);
 
-    if(d.events.empty())
+    if(a.events.empty())
       continue;
 
     GPUQueries *queries = NULL;
@@ -270,7 +270,7 @@ void GLReplay::FillTimers(GLCounterContext &ctx, const DrawcallDescription &draw
       ctx.queries.push_back(GPUQueries());
 
       queries = &ctx.queries.back();
-      queries->eventId = d.eventId;
+      queries->eventId = a.eventId;
       for(auto q : indices<GPUCounter>())
         queries->obj[q] = 0;
 
@@ -282,7 +282,7 @@ void GLReplay::FillTimers(GLCounterContext &ctx, const DrawcallDescription &draw
       }
     }
 
-    m_pDriver->ReplayLog(ctx.eventStart, d.eventId, eReplay_WithoutDraw);
+    m_pDriver->ReplayLog(ctx.eventStart, a.eventId, eReplay_WithoutDraw);
 
     ClearGLErrors();
 
@@ -300,42 +300,42 @@ void GLReplay::FillTimers(GLCounterContext &ctx, const DrawcallDescription &draw
       }
     }
 
-    m_pDriver->ReplayLog(ctx.eventStart, d.eventId, eReplay_OnlyDraw);
+    m_pDriver->ReplayLog(ctx.eventStart, a.eventId, eReplay_OnlyDraw);
 
     for(auto q : indices<GPUCounter>())
       if(queries->obj[q])
         m_pDriver->glEndQuery(glCounters[q]);
 
-    ctx.eventStart = d.eventId + 1;
+    ctx.eventStart = a.eventId + 1;
   }
 }
 
 void GLReplay::FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex,
-                             rdcarray<uint32_t> *eventIDs, const DrawcallDescription &drawnode)
+                             rdcarray<uint32_t> *eventIDs, const ActionDescription &actionnode)
 {
-  if(drawnode.children.empty())
+  if(actionnode.children.empty())
     return;
 
-  for(size_t i = 0; i < drawnode.children.size(); i++)
+  for(size_t i = 0; i < actionnode.children.size(); i++)
   {
-    const DrawcallDescription &d = drawnode.children[i];
+    const ActionDescription &a = actionnode.children[i];
 
-    FillTimersAMD(eventStartID, sampleIndex, eventIDs, drawnode.children[i]);
+    FillTimersAMD(eventStartID, sampleIndex, eventIDs, actionnode.children[i]);
 
-    if(d.events.empty())
+    if(a.events.empty())
       continue;
 
-    eventIDs->push_back(d.eventId);
+    eventIDs->push_back(a.eventId);
 
-    m_pDriver->ReplayLog(*eventStartID, d.eventId, eReplay_WithoutDraw);
+    m_pDriver->ReplayLog(*eventStartID, a.eventId, eReplay_WithoutDraw);
 
     m_pAMDCounters->BeginSample(*sampleIndex);
 
-    m_pDriver->ReplayLog(*eventStartID, d.eventId, eReplay_OnlyDraw);
+    m_pDriver->ReplayLog(*eventStartID, a.eventId, eReplay_OnlyDraw);
 
     m_pAMDCounters->EndSample();
 
-    *eventStartID = d.eventId + 1;
+    *eventStartID = a.eventId + 1;
     ++*sampleIndex;
   }
 }
@@ -379,7 +379,7 @@ rdcarray<CounterResult> GLReplay::FetchCountersAMD(const rdcarray<GPUCounter> &c
 
     eventIDs.clear();
 
-    FillTimersAMD(&eventStartID, &sampleIndex, &eventIDs, m_pDriver->GetRootDraw());
+    FillTimersAMD(&eventStartID, &sampleIndex, &eventIDs, m_pDriver->GetRootAction());
     m_pAMDCounters->EndCommandList();
     m_pAMDCounters->EndPass();
   }
@@ -397,31 +397,31 @@ rdcarray<CounterResult> GLReplay::FetchCountersAMD(const rdcarray<GPUCounter> &c
 }
 
 void GLReplay::FillTimersIntel(uint32_t *eventStartID, uint32_t *sampleIndex,
-                               rdcarray<uint32_t> *eventIDs, const DrawcallDescription &drawnode)
+                               rdcarray<uint32_t> *eventIDs, const ActionDescription &actionnode)
 {
-  if(drawnode.children.empty())
+  if(actionnode.children.empty())
     return;
 
-  for(size_t i = 0; i < drawnode.children.size(); i++)
+  for(size_t i = 0; i < actionnode.children.size(); i++)
   {
-    const DrawcallDescription &d = drawnode.children[i];
+    const ActionDescription &a = actionnode.children[i];
 
-    FillTimersIntel(eventStartID, sampleIndex, eventIDs, drawnode.children[i]);
+    FillTimersIntel(eventStartID, sampleIndex, eventIDs, actionnode.children[i]);
 
-    if(d.events.empty())
+    if(a.events.empty())
       continue;
 
-    eventIDs->push_back(d.eventId);
+    eventIDs->push_back(a.eventId);
 
-    m_pDriver->ReplayLog(*eventStartID, d.eventId, eReplay_WithoutDraw);
+    m_pDriver->ReplayLog(*eventStartID, a.eventId, eReplay_WithoutDraw);
 
     m_pIntelCounters->BeginSample(*sampleIndex);
 
-    m_pDriver->ReplayLog(*eventStartID, d.eventId, eReplay_OnlyDraw);
+    m_pDriver->ReplayLog(*eventStartID, a.eventId, eReplay_OnlyDraw);
 
     m_pIntelCounters->EndSample();
 
-    *eventStartID = d.eventId + 1;
+    *eventStartID = a.eventId + 1;
     ++*sampleIndex;
   }
 }
@@ -459,7 +459,7 @@ rdcarray<CounterResult> GLReplay::FetchCountersIntel(const rdcarray<GPUCounter> 
 
     eventIDs.clear();
 
-    FillTimersIntel(&eventStartID, &sampleIndex, &eventIDs, m_pDriver->GetRootDraw());
+    FillTimersIntel(&eventStartID, &sampleIndex, &eventIDs, m_pDriver->GetRootAction());
     m_pIntelCounters->EndPass();
   }
 
@@ -473,27 +473,27 @@ rdcarray<CounterResult> GLReplay::FetchCountersIntel(const rdcarray<GPUCounter> 
 }
 
 void GLReplay::FillTimersARM(uint32_t *eventStartID, uint32_t *sampleIndex,
-                             rdcarray<uint32_t> *eventIDs, const DrawcallDescription &drawnode)
+                             rdcarray<uint32_t> *eventIDs, const ActionDescription &actionnode)
 {
-  if(drawnode.children.empty())
+  if(actionnode.children.empty())
     return;
 
-  for(size_t i = 0; i < drawnode.children.size(); i++)
+  for(size_t i = 0; i < actionnode.children.size(); i++)
   {
-    const DrawcallDescription &d = drawnode.children[i];
+    const ActionDescription &a = actionnode.children[i];
 
-    FillTimersARM(eventStartID, sampleIndex, eventIDs, drawnode.children[i]);
+    FillTimersARM(eventStartID, sampleIndex, eventIDs, actionnode.children[i]);
 
-    if(d.events.empty())
+    if(a.events.empty())
       continue;
 
-    eventIDs->push_back(d.eventId);
+    eventIDs->push_back(a.eventId);
 
-    m_pDriver->ReplayLog(*eventStartID, d.eventId, eReplay_WithoutDraw);
+    m_pDriver->ReplayLog(*eventStartID, a.eventId, eReplay_WithoutDraw);
 
-    m_pARMCounters->BeginSample(d.eventId);
+    m_pARMCounters->BeginSample(a.eventId);
 
-    m_pDriver->ReplayLog(*eventStartID, d.eventId, eReplay_OnlyDraw);
+    m_pDriver->ReplayLog(*eventStartID, a.eventId, eReplay_OnlyDraw);
 
     // wait for the GPU to process all commands
     GLsync sync = GL.glFenceSync(eGL_SYNC_GPU_COMMANDS_COMPLETE, 0);
@@ -503,7 +503,7 @@ void GLReplay::FillTimersARM(uint32_t *eventStartID, uint32_t *sampleIndex,
 
     GL.glDeleteSync(sync);
 
-    *eventStartID = d.eventId + 1;
+    *eventStartID = a.eventId + 1;
     ++*sampleIndex;
   }
 }
@@ -539,7 +539,7 @@ rdcarray<CounterResult> GLReplay::FetchCountersARM(const rdcarray<GPUCounter> &c
 
     eventIDs.clear();
 
-    FillTimersARM(&eventStartID, &sampleIndex, &eventIDs, m_pDriver->GetRootDraw());
+    FillTimersARM(&eventStartID, &sampleIndex, &eventIDs, m_pDriver->GetRootAction());
 
     m_pARMCounters->EndPass();
   }
@@ -617,7 +617,7 @@ rdcarray<CounterResult> GLReplay::FetchCounters(const rdcarray<GPUCounter> &allC
   m_pDriver->ReplayMarkers(false);
 
   m_pDriver->SetFetchCounters(true);
-  FillTimers(ctx, m_pDriver->GetRootDraw(), counters);
+  FillTimers(ctx, m_pDriver->GetRootAction(), counters);
   m_pDriver->SetFetchCounters(false);
 
   m_pDriver->ReplayMarkers(true);

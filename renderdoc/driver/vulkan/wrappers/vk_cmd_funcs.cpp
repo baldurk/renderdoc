@@ -985,16 +985,16 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
             m_CreationInfo.m_Names[m_LastCmdBufferID];
 
       {
-        VulkanDrawcallTreeNode *draw = new VulkanDrawcallTreeNode;
-        m_BakedCmdBufferInfo[BakedCommandBuffer].draw = draw;
+        VulkanActionTreeNode *action = new VulkanActionTreeNode;
+        m_BakedCmdBufferInfo[BakedCommandBuffer].action = action;
 
-        // On queue submit we increment all child events/drawcalls by
+        // On queue submit we increment all child events/actions by
         // m_RootEventID and insert them into the tree.
         m_BakedCmdBufferInfo[BakedCommandBuffer].curEventID = 0;
         m_BakedCmdBufferInfo[BakedCommandBuffer].eventCount = 0;
-        m_BakedCmdBufferInfo[BakedCommandBuffer].drawCount = 0;
+        m_BakedCmdBufferInfo[BakedCommandBuffer].actionCount = 0;
 
-        m_BakedCmdBufferInfo[BakedCommandBuffer].drawStack.push_back(draw);
+        m_BakedCmdBufferInfo[BakedCommandBuffer].actionStack.push_back(action);
 
         m_BakedCmdBufferInfo[BakedCommandBuffer].beginChunk =
             uint32_t(m_StructuredFile->chunks.size() - 1);
@@ -1195,8 +1195,8 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
           for(int i = 0; i < m_BakedCmdBufferInfo[BakedCommandBuffer].markerCount; i++)
             ObjDisp(commandBuffer)->CmdDebugMarkerEndEXT(Unwrap(commandBuffer));
 
-        if(m_DrawcallCallback)
-          m_DrawcallCallback->PreEndCommandBuffer(commandBuffer);
+        if(m_ActionCallback)
+          m_ActionCallback->PreEndCommandBuffer(commandBuffer);
 
         ObjDisp(commandBuffer)->EndCommandBuffer(Unwrap(commandBuffer));
 
@@ -1215,8 +1215,8 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
       ObjDisp(commandBuffer)->EndCommandBuffer(Unwrap(commandBuffer));
 
       {
-        if(GetDrawcallStack().size() > 1)
-          GetDrawcallStack().pop_back();
+        if(GetActionStack().size() > 1)
+          GetActionStack().pop_back();
       }
 
       {
@@ -1229,7 +1229,7 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
 
         m_BakedCmdBufferInfo[CommandBuffer].curEventID = 0;
         m_BakedCmdBufferInfo[CommandBuffer].eventCount = 0;
-        m_BakedCmdBufferInfo[CommandBuffer].drawCount = 0;
+        m_BakedCmdBufferInfo[CommandBuffer].actionCount = 0;
       }
     }
   }
@@ -1258,7 +1258,7 @@ VkResult WrappedVulkan::vkEndCommandBuffer(VkCommandBuffer commandBuffer)
 
     {
       CACHE_THREAD_SERIALISER();
-      ser.SetDrawChunk();
+      ser.SetActionChunk();
       SCOPED_SERIALISE_CHUNK(VulkanChunk::vkEndCommandBuffer);
       Serialise_vkEndCommandBuffer(ser, commandBuffer);
 
@@ -1461,7 +1461,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
           }
         }
 
-        DrawFlags drawFlags = DrawFlags::PassBoundary | DrawFlags::BeginPass;
+        ActionFlags drawFlags = ActionFlags::PassBoundary | ActionFlags::BeginPass;
         uint32_t eventId = HandlePreCallback(commandBuffer, drawFlags);
 
         ObjDisp(commandBuffer)->CmdBeginRenderPass(Unwrap(commandBuffer), &unwrappedInfo, contents);
@@ -1510,10 +1510,10 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
                                       clearrects.data());
         }
 
-        if(eventId && m_DrawcallCallback->PostMisc(eventId, drawFlags, commandBuffer))
+        if(eventId && m_ActionCallback->PostMisc(eventId, drawFlags, commandBuffer))
         {
           // Do not call vkCmdBeginRenderPass again.
-          m_DrawcallCallback->PostRemisc(eventId, drawFlags, commandBuffer);
+          m_ActionCallback->PostRemisc(eventId, drawFlags, commandBuffer);
         }
 
         GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
@@ -1528,7 +1528,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
     {
       ObjDisp(commandBuffer)->CmdBeginRenderPass(Unwrap(commandBuffer), &unwrappedInfo, contents);
 
-      // track while reading, for fetching the right set of outputs in AddDrawcall
+      // track while reading, for fetching the right set of outputs in AddAction
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass = 0;
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass = GetResID(RenderPassBegin.renderPass);
 
@@ -1583,12 +1583,12 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
                                            (uint32_t)imgBarriers.size(), imgBarriers.data());
 
       AddEvent();
-      DrawcallDescription draw;
-      draw.name =
+      ActionDescription action;
+      action.name =
           StringFormat::Fmt("vkCmdBeginRenderPass(%s)", MakeRenderPassOpString(false).c_str());
-      draw.flags |= DrawFlags::PassBoundary | DrawFlags::BeginPass;
+      action.flags |= ActionFlags::PassBoundary | ActionFlags::BeginPass;
 
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -1617,7 +1617,7 @@ void WrappedVulkan::vkCmdBeginRenderPass(VkCommandBuffer commandBuffer,
     VkResourceRecord *record = GetRecord(commandBuffer);
 
     CACHE_THREAD_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdBeginRenderPass);
     Serialise_vkCmdBeginRenderPass(ser, commandBuffer, pRenderPassBegin, contents);
 
@@ -1725,15 +1725,16 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(SerialiserType &ser, VkCommandBuf
           GetCmdRenderState().subpass++;
         }
 
-        DrawFlags drawFlags = DrawFlags::PassBoundary | DrawFlags::BeginPass | DrawFlags::EndPass;
+        ActionFlags drawFlags =
+            ActionFlags::PassBoundary | ActionFlags::BeginPass | ActionFlags::EndPass;
         uint32_t eventId = HandlePreCallback(commandBuffer, drawFlags);
 
         ObjDisp(commandBuffer)->CmdNextSubpass(Unwrap(commandBuffer), contents);
 
-        if(eventId && m_DrawcallCallback->PostMisc(eventId, drawFlags, commandBuffer))
+        if(eventId && m_ActionCallback->PostMisc(eventId, drawFlags, commandBuffer))
         {
           // Do not call vkCmdNextSubpass again.
-          m_DrawcallCallback->PostRemisc(eventId, drawFlags, commandBuffer);
+          m_ActionCallback->PostRemisc(eventId, drawFlags, commandBuffer);
         }
 
         rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
@@ -1749,7 +1750,7 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(SerialiserType &ser, VkCommandBuf
 
       AddImplicitResolveResourceUsage();
 
-      // track while reading, for fetching the right set of outputs in AddDrawcall
+      // track while reading, for fetching the right set of outputs in AddAction
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass++;
 
       rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
@@ -1759,12 +1760,12 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(SerialiserType &ser, VkCommandBuf
                                            (uint32_t)imgBarriers.size(), imgBarriers.data());
 
       AddEvent();
-      DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("vkCmdNextSubpass() => %u",
-                                    m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass);
-      draw.flags |= DrawFlags::PassBoundary | DrawFlags::BeginPass | DrawFlags::EndPass;
+      ActionDescription action;
+      action.name = StringFormat::Fmt("vkCmdNextSubpass() => %u",
+                                      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass);
+      action.flags |= ActionFlags::PassBoundary | ActionFlags::BeginPass | ActionFlags::EndPass;
 
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -1782,7 +1783,7 @@ void WrappedVulkan::vkCmdNextSubpass(VkCommandBuffer commandBuffer, VkSubpassCon
     VkResourceRecord *record = GetRecord(commandBuffer);
 
     CACHE_THREAD_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdNextSubpass);
     Serialise_vkCmdNextSubpass(ser, commandBuffer, contents);
 
@@ -1832,15 +1833,15 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
           renderstate.subpassContents = VK_SUBPASS_CONTENTS_MAX_ENUM;
         }
 
-        DrawFlags drawFlags = DrawFlags::PassBoundary | DrawFlags::EndPass;
+        ActionFlags drawFlags = ActionFlags::PassBoundary | ActionFlags::EndPass;
         uint32_t eventId = HandlePreCallback(commandBuffer, drawFlags);
 
         ObjDisp(commandBuffer)->CmdEndRenderPass(Unwrap(commandBuffer));
 
-        if(eventId && m_DrawcallCallback->PostMisc(eventId, drawFlags, commandBuffer))
+        if(eventId && m_ActionCallback->PostMisc(eventId, drawFlags, commandBuffer))
         {
           // Do not call vkCmdEndRenderPass again.
-          m_DrawcallCallback->PostRemisc(eventId, drawFlags, commandBuffer);
+          m_ActionCallback->PostRemisc(eventId, drawFlags, commandBuffer);
         }
 
         if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest)
@@ -1886,14 +1887,14 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
       AddImplicitResolveResourceUsage(~0U);
 
       AddEvent();
-      DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("vkCmdEndRenderPass(%s)", MakeRenderPassOpString(true).c_str());
-      draw.flags |= DrawFlags::PassBoundary | DrawFlags::EndPass;
+      ActionDescription action;
+      action.name = StringFormat::Fmt("vkCmdEndRenderPass(%s)", MakeRenderPassOpString(true).c_str());
+      action.flags |= ActionFlags::PassBoundary | ActionFlags::EndPass;
 
-      AddDrawcall(draw);
+      AddAction(action);
 
-      // track while reading, reset this to empty so AddDrawcall sets no outputs,
-      // but only AFTER the above AddDrawcall (we want it grouped together)
+      // track while reading, reset this to empty so AddAction sets no outputs,
+      // but only AFTER the above AddAction (we want it grouped together)
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass = ResourceId();
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.SetFramebuffer(ResourceId(),
                                                                    rdcarray<ResourceId>());
@@ -1914,7 +1915,7 @@ void WrappedVulkan::vkCmdEndRenderPass(VkCommandBuffer commandBuffer)
     VkResourceRecord *record = GetRecord(commandBuffer);
 
     CACHE_THREAD_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdEndRenderPass);
     Serialise_vkCmdEndRenderPass(ser, commandBuffer);
 
@@ -2082,7 +2083,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
           DoPipelineBarrier(commandBuffer, imgBarriers.size(), imgBarriers.data());
         }
 
-        DrawFlags drawFlags = DrawFlags::PassBoundary | DrawFlags::BeginPass;
+        ActionFlags drawFlags = ActionFlags::PassBoundary | ActionFlags::BeginPass;
         uint32_t eventId = HandlePreCallback(commandBuffer, drawFlags);
 
         ObjDisp(commandBuffer)
@@ -2132,10 +2133,10 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
                                       clearrects.data());
         }
 
-        if(eventId && m_DrawcallCallback->PostMisc(eventId, drawFlags, commandBuffer))
+        if(eventId && m_ActionCallback->PostMisc(eventId, drawFlags, commandBuffer))
         {
           // Do not call vkCmdBeginRenderPass2 again.
-          m_DrawcallCallback->PostRemisc(eventId, drawFlags, commandBuffer);
+          m_ActionCallback->PostRemisc(eventId, drawFlags, commandBuffer);
         }
 
         GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
@@ -2151,7 +2152,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
       ObjDisp(commandBuffer)
           ->CmdBeginRenderPass2(Unwrap(commandBuffer), &unwrappedInfo, &unwrappedBeginInfo);
 
-      // track while reading, for fetching the right set of outputs in AddDrawcall
+      // track while reading, for fetching the right set of outputs in AddAction
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass = 0;
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass = GetResID(RenderPassBegin.renderPass);
 
@@ -2206,12 +2207,12 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
                                            (uint32_t)imgBarriers.size(), imgBarriers.data());
 
       AddEvent();
-      DrawcallDescription draw;
-      draw.name =
+      ActionDescription action;
+      action.name =
           StringFormat::Fmt("vkCmdBeginRenderPass2(%s)", MakeRenderPassOpString(false).c_str());
-      draw.flags |= DrawFlags::PassBoundary | DrawFlags::BeginPass;
+      action.flags |= ActionFlags::PassBoundary | ActionFlags::BeginPass;
 
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -2245,7 +2246,7 @@ void WrappedVulkan::vkCmdBeginRenderPass2(VkCommandBuffer commandBuffer,
     VkResourceRecord *record = GetRecord(commandBuffer);
 
     CACHE_THREAD_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdBeginRenderPass2);
     Serialise_vkCmdBeginRenderPass2(ser, commandBuffer, pRenderPassBegin, pSubpassBeginInfo);
 
@@ -2363,16 +2364,17 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass2(SerialiserType &ser, VkCommandBu
           GetCmdRenderState().subpass++;
         }
 
-        DrawFlags drawFlags = DrawFlags::PassBoundary | DrawFlags::BeginPass | DrawFlags::EndPass;
+        ActionFlags drawFlags =
+            ActionFlags::PassBoundary | ActionFlags::BeginPass | ActionFlags::EndPass;
         uint32_t eventId = HandlePreCallback(commandBuffer, drawFlags);
 
         ObjDisp(commandBuffer)
             ->CmdNextSubpass2(Unwrap(commandBuffer), &unwrappedBeginInfo, &unwrappedEndInfo);
 
-        if(eventId && m_DrawcallCallback->PostMisc(eventId, drawFlags, commandBuffer))
+        if(eventId && m_ActionCallback->PostMisc(eventId, drawFlags, commandBuffer))
         {
           // Do not call vkCmdNextSubpass2 again.
-          m_DrawcallCallback->PostRemisc(eventId, drawFlags, commandBuffer);
+          m_ActionCallback->PostRemisc(eventId, drawFlags, commandBuffer);
         }
 
         rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
@@ -2389,7 +2391,7 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass2(SerialiserType &ser, VkCommandBu
 
       AddImplicitResolveResourceUsage();
 
-      // track while reading, for fetching the right set of outputs in AddDrawcall
+      // track while reading, for fetching the right set of outputs in AddAction
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass++;
 
       rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
@@ -2399,12 +2401,12 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass2(SerialiserType &ser, VkCommandBu
                                            (uint32_t)imgBarriers.size(), imgBarriers.data());
 
       AddEvent();
-      DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("vkCmdNextSubpass2() => %u",
-                                    m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass);
-      draw.flags |= DrawFlags::PassBoundary | DrawFlags::BeginPass | DrawFlags::EndPass;
+      ActionDescription action;
+      action.name = StringFormat::Fmt("vkCmdNextSubpass2() => %u",
+                                      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass);
+      action.flags |= ActionFlags::PassBoundary | ActionFlags::BeginPass | ActionFlags::EndPass;
 
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -2435,7 +2437,7 @@ void WrappedVulkan::vkCmdNextSubpass2(VkCommandBuffer commandBuffer,
     VkResourceRecord *record = GetRecord(commandBuffer);
 
     CACHE_THREAD_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdNextSubpass2);
     Serialise_vkCmdNextSubpass2(ser, commandBuffer, pSubpassBeginInfo, pSubpassEndInfo);
 
@@ -2493,14 +2495,14 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass2(SerialiserType &ser, VkCommand
           renderstate.subpassContents = VK_SUBPASS_CONTENTS_MAX_ENUM;
         }
 
-        DrawFlags drawFlags = DrawFlags::PassBoundary | DrawFlags::EndPass;
+        ActionFlags drawFlags = ActionFlags::PassBoundary | ActionFlags::EndPass;
         uint32_t eventId = HandlePreCallback(commandBuffer, drawFlags);
         ObjDisp(commandBuffer)->CmdEndRenderPass2(Unwrap(commandBuffer), &unwrappedEndInfo);
 
-        if(eventId && m_DrawcallCallback->PostMisc(eventId, drawFlags, commandBuffer))
+        if(eventId && m_ActionCallback->PostMisc(eventId, drawFlags, commandBuffer))
         {
           // Do not call vkCmdEndRenderPass2 again.
-          m_DrawcallCallback->PostRemisc(eventId, drawFlags, commandBuffer);
+          m_ActionCallback->PostRemisc(eventId, drawFlags, commandBuffer);
         }
 
         if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest)
@@ -2542,14 +2544,15 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass2(SerialiserType &ser, VkCommand
                                            (uint32_t)imgBarriers.size(), imgBarriers.data());
 
       AddEvent();
-      DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("vkCmdEndRenderPass2(%s)", MakeRenderPassOpString(true).c_str());
-      draw.flags |= DrawFlags::PassBoundary | DrawFlags::EndPass;
+      ActionDescription action;
+      action.name =
+          StringFormat::Fmt("vkCmdEndRenderPass2(%s)", MakeRenderPassOpString(true).c_str());
+      action.flags |= ActionFlags::PassBoundary | ActionFlags::EndPass;
 
-      AddDrawcall(draw);
+      AddAction(action);
 
-      // track while reading, reset this to empty so AddDrawcall sets no outputs,
-      // but only AFTER the above AddDrawcall (we want it grouped together)
+      // track while reading, reset this to empty so AddAction sets no outputs,
+      // but only AFTER the above AddAction (we want it grouped together)
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass = ResourceId();
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.SetFramebuffer(ResourceId(),
                                                                    rdcarray<ResourceId>());
@@ -2578,7 +2581,7 @@ void WrappedVulkan::vkCmdEndRenderPass2(VkCommandBuffer commandBuffer,
     VkResourceRecord *record = GetRecord(commandBuffer);
 
     CACHE_THREAD_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdEndRenderPass2);
     Serialise_vkCmdEndRenderPass2(ser, commandBuffer, pSubpassEndInfo);
 
@@ -2766,7 +2769,7 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
     {
       ResourceId liveid = GetResID(pipeline);
 
-      // track while reading, as we need to bind current topology & index byte width in AddDrawcall
+      // track while reading, as we need to bind current topology & index byte width in AddAction
       if(pipelineBindPoint == VK_PIPELINE_BIND_POINT_COMPUTE)
       {
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.compute.pipeline = liveid;
@@ -3177,7 +3180,7 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(SerialiserType &ser,
     }
     else
     {
-      // track while reading, as we need to bind current topology & index byte width in AddDrawcall
+      // track while reading, as we need to bind current topology & index byte width in AddAction
       if(indexType == VK_INDEX_TYPE_UINT32)
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer.bytewidth = 4;
       else if(indexType == VK_INDEX_TYPE_UINT8_EXT)
@@ -4158,11 +4161,11 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
 
       AddEvent();
 
-      DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("vkCmdExecuteCommands(%u)", commandBufferCount);
-      draw.flags = DrawFlags::CmdList | DrawFlags::PushMarker;
+      ActionDescription action;
+      action.name = StringFormat::Fmt("vkCmdExecuteCommands(%u)", commandBufferCount);
+      action.flags = ActionFlags::CmdList | ActionFlags::PushMarker;
 
-      AddDrawcall(draw);
+      AddAction(action);
 
       BakedCmdBufferInfo &parentCmdBufInfo = m_BakedCmdBufferInfo[m_LastCmdBufferID];
 
@@ -4179,16 +4182,16 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
         BakedCmdBufferInfo &cmdBufInfo = m_BakedCmdBufferInfo[cmd];
 
         // add a fake marker
-        DrawcallDescription marker;
+        ActionDescription marker;
         marker.name = StringFormat::Fmt("=> vkCmdExecuteCommands()[%u]: vkBeginCommandBuffer(%s)",
                                         c, ToStr(cmd).c_str());
         marker.flags =
-            DrawFlags::CommandBufferBoundary | DrawFlags::PassBoundary | DrawFlags::BeginPass;
+            ActionFlags::CommandBufferBoundary | ActionFlags::PassBoundary | ActionFlags::BeginPass;
         AddEvent();
 
         parentCmdBufInfo.curEvents.back().chunkIndex = cmdBufInfo.beginChunk;
 
-        AddDrawcall(marker);
+        AddAction(marker);
         parentCmdBufInfo.curEventID++;
 
         if(m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass == ResourceId() &&
@@ -4201,20 +4204,20 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
 
         // insert the baked command buffer in-line into this list of notes, assigning new event and
         // drawIDs
-        parentCmdBufInfo.draw->InsertAndUpdateIDs(*cmdBufInfo.draw, parentCmdBufInfo.curEventID,
-                                                  parentCmdBufInfo.drawCount);
+        parentCmdBufInfo.action->InsertAndUpdateIDs(*cmdBufInfo.action, parentCmdBufInfo.curEventID,
+                                                    parentCmdBufInfo.actionCount);
 
         if(framebufferUsage)
         {
-          size_t total = parentCmdBufInfo.draw->children.size();
-          size_t numChildren = cmdBufInfo.draw->children.size();
+          size_t total = parentCmdBufInfo.action->children.size();
+          size_t numChildren = cmdBufInfo.action->children.size();
 
           // iterate through the newly added draws, and recursively add usage to them using our
           // primary command buffer's state
           for(size_t i = 0; i < numChildren; i++)
           {
             AddFramebufferUsageAllChildren(
-                parentCmdBufInfo.draw->children[total - numChildren + i],
+                parentCmdBufInfo.action->children[total - numChildren + i],
                 parentCmdBufInfo.state.renderPass, parentCmdBufInfo.state.GetFramebuffer(),
                 parentCmdBufInfo.state.subpass, parentCmdBufInfo.state.GetFramebufferAttachments());
           }
@@ -4229,12 +4232,12 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
         // only primary command buffers can be submitted
         m_Partial[Secondary].cmdBufferSubmits[cmd].push_back(parentCmdBufInfo.curEventID);
 
-        parentCmdBufInfo.draw->executedCmds.push_back(cmd);
+        parentCmdBufInfo.action->executedCmds.push_back(cmd);
 
         parentCmdBufInfo.curEventID += cmdBufInfo.eventCount;
-        parentCmdBufInfo.drawCount += cmdBufInfo.drawCount;
+        parentCmdBufInfo.actionCount += cmdBufInfo.actionCount;
 
-        // pull in any remaining events on the command buffer that weren't added to a drawcall
+        // pull in any remaining events on the command buffer that weren't added to an action
         uint32_t i = 0;
         for(APIEvent &apievent : cmdBufInfo.curEvents)
         {
@@ -4249,18 +4252,18 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
         marker.name = StringFormat::Fmt("=> vkCmdExecuteCommands()[%u]: vkEndCommandBuffer(%s)", c,
                                         ToStr(cmd).c_str());
         marker.flags =
-            DrawFlags::CommandBufferBoundary | DrawFlags::PassBoundary | DrawFlags::EndPass;
+            ActionFlags::CommandBufferBoundary | ActionFlags::PassBoundary | ActionFlags::EndPass;
         AddEvent();
-        AddDrawcall(marker);
+        AddAction(marker);
         parentCmdBufInfo.curEventID++;
       }
 
       // add an extra pop marker
       AddEvent();
-      draw = DrawcallDescription();
-      draw.flags = DrawFlags::PopMarker;
+      action = ActionDescription();
+      action.flags = ActionFlags::PopMarker;
 
-      AddDrawcall(draw);
+      AddAction(action);
 
       // don't change curEventID here, as it will be incremented outside in the outer
       // loop for the EXEC_CMDS event. in vkQueueSubmit we need to decrement curEventID
@@ -4391,11 +4394,11 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
 
           if(!rerecordedCmds.empty())
           {
-            if(m_DrawcallCallback && m_DrawcallCallback->SplitSecondary())
+            if(m_ActionCallback && m_ActionCallback->SplitSecondary())
             {
-              DrawcallUse use(m_CurChunkOffset, 0);
-              auto it = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
-              if(it != m_DrawcallUses.end())
+              ActionUse use(m_CurChunkOffset, 0);
+              auto it = std::lower_bound(m_ActionUses.begin(), m_ActionUses.end(), use);
+              if(it != m_ActionUses.end())
               {
                 uint32_t eventId = it->eventId + 2;
 
@@ -4403,16 +4406,16 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
                 {
                   ResourceId cmd = GetResourceManager()->GetOriginalID(GetResID(pCommandBuffers[i]));
                   BakedCmdBufferInfo &info = m_BakedCmdBufferInfo[cmd];
-                  if(info.draw && info.draw->children.size() > 0)
+                  if(info.action && info.action->children.size() > 0)
                   {
-                    uint32_t firstEventId = eventId + info.draw->children.front().draw.eventId;
-                    uint32_t lastEventId = eventId + info.draw->children.back().draw.eventId;
-                    m_DrawcallCallback->PreCmdExecute(eventId, firstEventId, lastEventId,
-                                                      commandBuffer);
+                    uint32_t firstEventId = eventId + info.action->children.front().action.eventId;
+                    uint32_t lastEventId = eventId + info.action->children.back().action.eventId;
+                    m_ActionCallback->PreCmdExecute(eventId, firstEventId, lastEventId,
+                                                    commandBuffer);
                     ObjDisp(commandBuffer)
                         ->CmdExecuteCommands(Unwrap(commandBuffer), 1, &rerecordedCmds[i]);
-                    m_DrawcallCallback->PostCmdExecute(eventId, firstEventId, lastEventId,
-                                                       commandBuffer);
+                    m_ActionCallback->PostCmdExecute(eventId, firstEventId, lastEventId,
+                                                     commandBuffer);
                   }
                   else
                   {
@@ -4453,7 +4456,7 @@ void WrappedVulkan::vkCmdExecuteCommands(VkCommandBuffer commandBuffer, uint32_t
     VkResourceRecord *record = GetRecord(commandBuffer);
 
     CACHE_THREAD_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdExecuteCommands);
     Serialise_vkCmdExecuteCommands(ser, commandBuffer, commandBufferCount, pCommandBuffers);
 
@@ -4507,17 +4510,17 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerBeginEXT(SerialiserType &ser,
       if(ObjDisp(commandBuffer)->CmdDebugMarkerBeginEXT)
         ObjDisp(commandBuffer)->CmdDebugMarkerBeginEXT(Unwrap(commandBuffer), &Marker);
 
-      DrawcallDescription draw;
-      draw.name = Marker.pMarkerName ? Marker.pMarkerName : "";
-      draw.flags |= DrawFlags::PushMarker;
+      ActionDescription action;
+      action.name = Marker.pMarkerName ? Marker.pMarkerName : "";
+      action.flags |= ActionFlags::PushMarker;
 
-      draw.markerColor.x = RDCCLAMP(Marker.color[0], 0.0f, 1.0f);
-      draw.markerColor.y = RDCCLAMP(Marker.color[1], 0.0f, 1.0f);
-      draw.markerColor.z = RDCCLAMP(Marker.color[2], 0.0f, 1.0f);
-      draw.markerColor.w = RDCCLAMP(Marker.color[3], 0.0f, 1.0f);
+      action.markerColor.x = RDCCLAMP(Marker.color[0], 0.0f, 1.0f);
+      action.markerColor.y = RDCCLAMP(Marker.color[1], 0.0f, 1.0f);
+      action.markerColor.z = RDCCLAMP(Marker.color[2], 0.0f, 1.0f);
+      action.markerColor.w = RDCCLAMP(Marker.color[3], 0.0f, 1.0f);
 
       AddEvent();
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -4538,7 +4541,7 @@ void WrappedVulkan::vkCmdDebugMarkerBeginEXT(VkCommandBuffer commandBuffer,
     VkResourceRecord *record = GetRecord(commandBuffer);
 
     CACHE_THREAD_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdDebugMarkerBeginEXT);
     Serialise_vkCmdDebugMarkerBeginEXT(ser, commandBuffer, pMarker);
 
@@ -4576,14 +4579,14 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerEndEXT(SerialiserType &ser,
       if(ObjDisp(commandBuffer)->CmdDebugMarkerEndEXT)
         ObjDisp(commandBuffer)->CmdDebugMarkerEndEXT(Unwrap(commandBuffer));
 
-      // dummy draw that is consumed when this command buffer
+      // dummy action that is consumed when this command buffer
       // is being in-lined into the call stream
-      DrawcallDescription draw;
-      draw.name = "vkCmdDebugMarkerEndEXT()";
-      draw.flags = DrawFlags::PopMarker;
+      ActionDescription action;
+      action.name = "vkCmdDebugMarkerEndEXT()";
+      action.flags = ActionFlags::PopMarker;
 
       AddEvent();
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -4602,7 +4605,7 @@ void WrappedVulkan::vkCmdDebugMarkerEndEXT(VkCommandBuffer commandBuffer)
     VkResourceRecord *record = GetRecord(commandBuffer);
 
     CACHE_THREAD_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdDebugMarkerEndEXT);
     Serialise_vkCmdDebugMarkerEndEXT(ser, commandBuffer);
 
@@ -4639,17 +4642,17 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerInsertEXT(SerialiserType &ser,
       if(ObjDisp(commandBuffer)->CmdDebugMarkerInsertEXT)
         ObjDisp(commandBuffer)->CmdDebugMarkerInsertEXT(Unwrap(commandBuffer), &Marker);
 
-      DrawcallDescription draw;
-      draw.name = Marker.pMarkerName ? Marker.pMarkerName : "";
-      draw.flags |= DrawFlags::SetMarker;
+      ActionDescription action;
+      action.name = Marker.pMarkerName ? Marker.pMarkerName : "";
+      action.flags |= ActionFlags::SetMarker;
 
-      draw.markerColor.x = RDCCLAMP(Marker.color[0], 0.0f, 1.0f);
-      draw.markerColor.y = RDCCLAMP(Marker.color[1], 0.0f, 1.0f);
-      draw.markerColor.z = RDCCLAMP(Marker.color[2], 0.0f, 1.0f);
-      draw.markerColor.w = RDCCLAMP(Marker.color[3], 0.0f, 1.0f);
+      action.markerColor.x = RDCCLAMP(Marker.color[0], 0.0f, 1.0f);
+      action.markerColor.y = RDCCLAMP(Marker.color[1], 0.0f, 1.0f);
+      action.markerColor.z = RDCCLAMP(Marker.color[2], 0.0f, 1.0f);
+      action.markerColor.w = RDCCLAMP(Marker.color[3], 0.0f, 1.0f);
 
       AddEvent();
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -4672,7 +4675,7 @@ void WrappedVulkan::vkCmdDebugMarkerInsertEXT(VkCommandBuffer commandBuffer,
     VkResourceRecord *record = GetRecord(commandBuffer);
 
     CACHE_THREAD_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdDebugMarkerInsertEXT);
     Serialise_vkCmdDebugMarkerInsertEXT(ser, commandBuffer, pMarker);
 
@@ -5496,17 +5499,17 @@ bool WrappedVulkan::Serialise_vkCmdBeginDebugUtilsLabelEXT(SerialiserType &ser,
       if(ObjDisp(commandBuffer)->CmdBeginDebugUtilsLabelEXT)
         ObjDisp(commandBuffer)->CmdBeginDebugUtilsLabelEXT(Unwrap(commandBuffer), &Label);
 
-      DrawcallDescription draw;
-      draw.name = Label.pLabelName ? Label.pLabelName : "";
-      draw.flags |= DrawFlags::PushMarker;
+      ActionDescription action;
+      action.name = Label.pLabelName ? Label.pLabelName : "";
+      action.flags |= ActionFlags::PushMarker;
 
-      draw.markerColor.x = RDCCLAMP(Label.color[0], 0.0f, 1.0f);
-      draw.markerColor.y = RDCCLAMP(Label.color[1], 0.0f, 1.0f);
-      draw.markerColor.z = RDCCLAMP(Label.color[2], 0.0f, 1.0f);
-      draw.markerColor.w = RDCCLAMP(Label.color[3], 0.0f, 1.0f);
+      action.markerColor.x = RDCCLAMP(Label.color[0], 0.0f, 1.0f);
+      action.markerColor.y = RDCCLAMP(Label.color[1], 0.0f, 1.0f);
+      action.markerColor.z = RDCCLAMP(Label.color[2], 0.0f, 1.0f);
+      action.markerColor.w = RDCCLAMP(Label.color[3], 0.0f, 1.0f);
 
       AddEvent();
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -5527,7 +5530,7 @@ void WrappedVulkan::vkCmdBeginDebugUtilsLabelEXT(VkCommandBuffer commandBuffer,
     VkResourceRecord *record = GetRecord(commandBuffer);
 
     CACHE_THREAD_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdBeginDebugUtilsLabelEXT);
     Serialise_vkCmdBeginDebugUtilsLabelEXT(ser, commandBuffer, pLabelInfo);
 
@@ -5565,12 +5568,12 @@ bool WrappedVulkan::Serialise_vkCmdEndDebugUtilsLabelEXT(SerialiserType &ser,
       if(ObjDisp(commandBuffer)->CmdEndDebugUtilsLabelEXT)
         ObjDisp(commandBuffer)->CmdEndDebugUtilsLabelEXT(Unwrap(commandBuffer));
 
-      DrawcallDescription draw;
-      draw.name = "vkCmdEndDebugUtilsLabelEXT()";
-      draw.flags = DrawFlags::PopMarker;
+      ActionDescription action;
+      action.name = "vkCmdEndDebugUtilsLabelEXT()";
+      action.flags = ActionFlags::PopMarker;
 
       AddEvent();
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -5589,7 +5592,7 @@ void WrappedVulkan::vkCmdEndDebugUtilsLabelEXT(VkCommandBuffer commandBuffer)
     VkResourceRecord *record = GetRecord(commandBuffer);
 
     CACHE_THREAD_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdEndDebugUtilsLabelEXT);
     Serialise_vkCmdEndDebugUtilsLabelEXT(ser, commandBuffer);
 
@@ -5626,17 +5629,17 @@ bool WrappedVulkan::Serialise_vkCmdInsertDebugUtilsLabelEXT(SerialiserType &ser,
       if(ObjDisp(commandBuffer)->CmdInsertDebugUtilsLabelEXT)
         ObjDisp(commandBuffer)->CmdInsertDebugUtilsLabelEXT(Unwrap(commandBuffer), &Label);
 
-      DrawcallDescription draw;
-      draw.name = Label.pLabelName ? Label.pLabelName : "";
-      draw.flags |= DrawFlags::SetMarker;
+      ActionDescription action;
+      action.name = Label.pLabelName ? Label.pLabelName : "";
+      action.flags |= ActionFlags::SetMarker;
 
-      draw.markerColor.x = RDCCLAMP(Label.color[0], 0.0f, 1.0f);
-      draw.markerColor.y = RDCCLAMP(Label.color[1], 0.0f, 1.0f);
-      draw.markerColor.z = RDCCLAMP(Label.color[2], 0.0f, 1.0f);
-      draw.markerColor.w = RDCCLAMP(Label.color[3], 0.0f, 1.0f);
+      action.markerColor.x = RDCCLAMP(Label.color[0], 0.0f, 1.0f);
+      action.markerColor.y = RDCCLAMP(Label.color[1], 0.0f, 1.0f);
+      action.markerColor.z = RDCCLAMP(Label.color[2], 0.0f, 1.0f);
+      action.markerColor.w = RDCCLAMP(Label.color[3], 0.0f, 1.0f);
 
       AddEvent();
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -5659,7 +5662,7 @@ void WrappedVulkan::vkCmdInsertDebugUtilsLabelEXT(VkCommandBuffer commandBuffer,
     VkResourceRecord *record = GetRecord(commandBuffer);
 
     CACHE_THREAD_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdInsertDebugUtilsLabelEXT);
     Serialise_vkCmdInsertDebugUtilsLabelEXT(ser, commandBuffer, pLabelInfo);
 
@@ -5869,7 +5872,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginTransformFeedbackEXT(
                                          UnwrapArray(pCounterBuffers, bufferCount),
                                          pCounterBufferOffsets);
 
-      // track while reading, for fetching the right set of outputs in AddDrawcall
+      // track while reading, for fetching the right set of outputs in AddAction
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.firstxfbcounter = firstBuffer;
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.xfbcounters.resize(bufferCount);
     }
@@ -5895,7 +5898,7 @@ void WrappedVulkan::vkCmdBeginTransformFeedbackEXT(VkCommandBuffer commandBuffer
     VkResourceRecord *record = GetRecord(commandBuffer);
 
     CACHE_THREAD_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdBeginTransformFeedbackEXT);
     Serialise_vkCmdBeginTransformFeedbackEXT(ser, commandBuffer, firstBuffer, bufferCount,
                                              pCounterBuffers, pCounterBufferOffsets);
@@ -5957,7 +5960,7 @@ bool WrappedVulkan::Serialise_vkCmdEndTransformFeedbackEXT(
                                        UnwrapArray(pCounterBuffers, bufferCount),
                                        pCounterBufferOffsets);
 
-      // track while reading, for fetching the right set of outputs in AddDrawcall
+      // track while reading, for fetching the right set of outputs in AddAction
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.firstxfbcounter = 0;
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.xfbcounters.clear();
     }
@@ -5983,7 +5986,7 @@ void WrappedVulkan::vkCmdEndTransformFeedbackEXT(VkCommandBuffer commandBuffer,
     VkResourceRecord *record = GetRecord(commandBuffer);
 
     CACHE_THREAD_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdEndTransformFeedbackEXT);
     Serialise_vkCmdEndTransformFeedbackEXT(ser, commandBuffer, firstBuffer, bufferCount,
                                            pCounterBuffers, pCounterBufferOffsets);

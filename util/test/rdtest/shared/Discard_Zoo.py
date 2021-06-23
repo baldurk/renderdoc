@@ -185,11 +185,11 @@ class Discard_Zoo(rdtest.TestCase):
         rdtest.log.success('{} is OK {} discarding'.format(name, "after" if discarded else "before"))
 
     def check_textures(self):
-        draw = self.find_draw("TestStart")
+        action = self.find_action("TestStart")
 
-        self.check(draw is not None)
+        self.check(action is not None)
 
-        self.controller.SetFrameEvent(draw.eventId, True)
+        self.controller.SetFrameEvent(action.eventId, True)
 
         for tex in self.controller.GetTextures():
             tex: rd.TextureDescription
@@ -198,11 +198,11 @@ class Discard_Zoo(rdtest.TestCase):
             if "Discard" in res.name:
                 self.check_texture(tex.resourceId, False)
 
-        draw = self.find_draw("TestEnd")
+        action = self.find_action("TestEnd")
 
-        self.check(draw is not None)
+        self.check(action is not None)
 
-        self.controller.SetFrameEvent(draw.eventId, True)
+        self.controller.SetFrameEvent(action.eventId, True)
 
         for tex in self.controller.GetTextures():
             tex: rd.TextureDescription

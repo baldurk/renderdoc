@@ -83,7 +83,7 @@ struct EventBrowserPersistentStorage : public CustomPersistentStorage
     }
     else
     {
-      CurrentFilter = lit("$draw()");
+      CurrentFilter = lit("$action()");
     }
 
     QVariant saved = settings[lit("filters")];
@@ -106,9 +106,9 @@ struct EventBrowserPersistentStorage : public CustomPersistentStorage
     }
     else
     {
-      SavedFilters.push_back(qMakePair(lit("Default"), lit("$draw()")));
-      SavedFilters.push_back(qMakePair(lit("Draws and Barriers"), lit("$draw() Barrier")));
-      SavedFilters.push_back(qMakePair(lit("Hide Copies & Clears"), lit("$draw() -Copy -Clear")));
+      SavedFilters.push_back(qMakePair(lit("Default"), lit("$action()")));
+      SavedFilters.push_back(qMakePair(lit("Actions and Barriers"), lit("$action() Barrier")));
+      SavedFilters.push_back(qMakePair(lit("Hide Copies & Clears"), lit("$action() -Copy -Clear")));
     }
   }
 
@@ -122,7 +122,7 @@ enum
 {
   COL_NAME,
   COL_EID,
-  COL_DRAW,
+  COL_ACTION,
   COL_DURATION,
   COL_COUNT,
 };
@@ -131,8 +131,8 @@ enum
 {
   ROLE_SELECTED_EID = Qt::UserRole,
   ROLE_EFFECTIVE_EID,
-  ROLE_GROUPED_DRAWCALL,
-  ROLE_EXACT_DRAWCALL,
+  ROLE_GROUPED_ACTION,
+  ROLE_EXACT_ACTION,
   ROLE_CHUNK,
 };
 
@@ -186,11 +186,11 @@ struct EventItemModel : public QAbstractItemModel
     m_Nodes.clear();
     m_RowInParentCache.clear();
     m_EIDNameCache.clear();
-    m_Draws.clear();
+    m_Actions.clear();
     m_Chunks.clear();
 
-    if(!m_Ctx.CurDrawcalls().empty())
-      m_Nodes[0] = CreateDrawNode(NULL);
+    if(!m_Ctx.CurRootActions().empty())
+      m_Nodes[0] = CreateActionNode(NULL);
 
     m_CurrentEID = createIndex(0, 0, TagCaptureStart);
 
@@ -295,12 +295,12 @@ struct EventItemModel : public QAbstractItemModel
     }
   }
 
-  bool UseCustomDrawNames() { return m_UseCustomDrawNames; }
-  void SetUseCustomDrawNames(bool use)
+  bool UseCustomActionNames() { return m_UseCustomActionNames; }
+  void SetUseCustomActionNames(bool use)
   {
-    if(m_UseCustomDrawNames != use)
+    if(m_UseCustomActionNames != use)
     {
-      m_UseCustomDrawNames = use;
+      m_UseCustomActionNames = use;
 
       m_EIDNameCache.clear();
       m_View->viewport()->update();
@@ -338,7 +338,7 @@ struct EventItemModel : public QAbstractItemModel
     uint32_t eid = text.toUInt(&eidOK);
 
     // include EID in results first if the text parses as an integer
-    if(eidOK && eid > 0 && eid < m_Draws.size())
+    if(eidOK && eid > 0 && eid < m_Actions.size())
     {
       // if the text doesn't exactly match the EID after converting back, don't treat this as an
       // EID-only search
@@ -427,8 +427,8 @@ struct EventItemModel : public QAbstractItemModel
     if(eid == 0)
       return createIndex(0, 0, TagCaptureStart);
 
-    const DrawcallDescription *draw = m_Draws[eid];
-    if(draw)
+    const ActionDescription *action = m_Actions[eid];
+    if(action)
     {
       // this function is not called regularly (anywhere to do with painting) but only occasionally
       // to find an index by EID, so we do an 'expensive' search for the row in the parent. The
@@ -447,41 +447,41 @@ struct EventItemModel : public QAbstractItemModel
         m_RowInParentCache.pop_back();
 
       // account for the Capture Start row we'll add at the top level
-      int rowInParent = draw->parent ? 0 : 1;
+      int rowInParent = action->parent ? 0 : 1;
 
-      const rdcarray<DrawcallDescription> &draws =
-          draw->parent ? draw->parent->children : m_Ctx.CurDrawcalls();
+      const rdcarray<ActionDescription> &actions =
+          action->parent ? action->parent->children : m_Ctx.CurRootActions();
 
-      for(const DrawcallDescription &d : draws)
+      for(const ActionDescription &a : actions)
       {
-        // the first draw with an EID greater than the one we're searching for should contain it.
-        if(d.eventId >= eid)
+        // the first action with an EID greater than the one we're searching for should contain it.
+        if(a.eventId >= eid)
         {
-          // except if the draw is a fake marker. In this case its own event ID is invalid, so we
+          // except if the action is a fake marker. In this case its own event ID is invalid, so we
           // check the range of its children (knowing it only has one layer of children)
-          if(d.IsFakeMarker())
+          if(a.IsFakeMarker())
           {
-            if(d.eventId == eid)
+            if(a.eventId == eid)
               break;
 
-            if(d.children[0].eventId < eid)
+            if(a.children[0].eventId < eid)
             {
               rowInParent++;
               continue;
             }
           }
 
-          // keep counting until we get to the row within this draw
-          for(size_t i = 0; i < d.events.size(); i++)
+          // keep counting until we get to the row within this action
+          for(size_t i = 0; i < a.events.size(); i++)
           {
-            if(d.events[i].eventId < eid)
+            if(a.events[i].eventId < eid)
             {
               rowInParent++;
               continue;
             }
 
-            if(d.events[i].eventId != eid)
-              qCritical() << "Couldn't find event" << eid << "within draw" << draw->eventId;
+            if(a.events[i].eventId != eid)
+              qCritical() << "Couldn't find event" << eid << "within action" << action->eventId;
 
             // stop, we should be at the event now
             break;
@@ -490,7 +490,7 @@ struct EventItemModel : public QAbstractItemModel
           break;
         }
 
-        rowInParent += d.events.count();
+        rowInParent += a.events.count();
       }
 
       // insert the new element on the front of the cache
@@ -500,16 +500,16 @@ struct EventItemModel : public QAbstractItemModel
     }
     else
     {
-      qCritical() << "Couldn't find draw for event" << eid;
+      qCritical() << "Couldn't find action for event" << eid;
     }
 
     return QModelIndex();
   }
 
-  const DrawcallDescription *GetDrawcallForEID(uint32_t eid)
+  const ActionDescription *GetActionForEID(uint32_t eid)
   {
-    if(eid < m_Draws.size())
-      return m_Draws[eid];
+    if(eid < m_Actions.size())
+      return m_Actions[eid];
 
     return NULL;
   }
@@ -519,8 +519,8 @@ struct EventItemModel : public QAbstractItemModel
     rdcarray<rdcstr> ret;
 
     for(auto it = m_Nodes.begin(); it != m_Nodes.end(); ++it)
-      if(it.value().draw && (it.value().draw->flags & DrawFlags::PushMarker))
-        ret.push_back(it.value().draw->name);
+      if(it.value().action && (it.value().action->flags & ActionFlags::PushMarker))
+        ret.push_back(it.value().action->name);
 
     return ret;
   }
@@ -545,8 +545,8 @@ struct EventItemModel : public QAbstractItemModel
       if(row == 0)
         return createIndex(row, column, TagCaptureStart);
 
-      // the rest are in the root draw node
-      return GetIndexForDrawChildRow(m_Nodes[0], row, column);
+      // the rest are in the root action node
+      return GetIndexForActionChildRow(m_Nodes[0], row, column);
     }
     else if(parent.internalId() == TagCaptureStart)
     {
@@ -555,10 +555,10 @@ struct EventItemModel : public QAbstractItemModel
     }
     else
     {
-      // otherwise the parent is a real draw
+      // otherwise the parent is a real action
       auto it = m_Nodes.find(parent.internalId());
       if(it != m_Nodes.end())
-        return GetIndexForDrawChildRow(*it, row, column);
+        return GetIndexForActionChildRow(*it, row, column);
     }
 
     return QModelIndex();
@@ -573,19 +573,20 @@ struct EventItemModel : public QAbstractItemModel
     if(index.internalId() == TagCaptureStart)
       return createIndex(0, 0, TagRoot);
 
-    if(index.internalId() >= m_Draws.size())
+    if(index.internalId() >= m_Actions.size())
       return QModelIndex();
 
-    // otherwise it's a draw
-    const DrawcallDescription *draw = m_Draws[index.internalId()];
+    // otherwise it's an action
+    const ActionDescription *action = m_Actions[index.internalId()];
 
-    // if it has no parent draw, the parent is the root
-    if(draw->parent == NULL)
+    // if it has no parent action, the parent is the root
+    if(action->parent == NULL)
       return createIndex(0, 0, TagRoot);
 
-    // the parent must be a node since it has at least one child (this draw), so we'll have a cached
+    // the parent must be a node since it has at least one child (this action), so we'll have a
+    // cached
     // index
-    return m_Nodes[draw->parent->eventId].index;
+    return m_Nodes[action->parent->eventId].index;
   }
 
   int rowCount(const QModelIndex &parent = QModelIndex()) const override
@@ -628,7 +629,7 @@ struct EventItemModel : public QAbstractItemModel
       {
         case COL_NAME: return tr("Name");
         case COL_EID: return lit("EID");
-        case COL_DRAW: return lit("Draw #");
+        case COL_ACTION: return lit("Action #");
         case COL_DURATION: return tr("Duration (%1)").arg(UnitSuffix(m_TimeUnit));
         default: break;
       }
@@ -681,7 +682,7 @@ struct EventItemModel : public QAbstractItemModel
         {
           case COL_NAME: return tr("Capture Start");
           case COL_EID: return lit("0");
-          case COL_DRAW: return lit("0");
+          case COL_ACTION: return lit("0");
           default: break;
         }
       }
@@ -696,19 +697,19 @@ struct EventItemModel : public QAbstractItemModel
     {
       uint32_t eid = index.internalId();
 
-      if(eid >= m_Draws.size())
+      if(eid >= m_Actions.size())
         return QVariant();
 
       if(role == ROLE_SELECTED_EID)
         return eid;
 
-      if(role == ROLE_GROUPED_DRAWCALL)
-        return QVariant::fromValue(qulonglong(m_Draws[eid]));
+      if(role == ROLE_GROUPED_ACTION)
+        return QVariant::fromValue(qulonglong(m_Actions[eid]));
 
-      if(role == ROLE_EXACT_DRAWCALL)
+      if(role == ROLE_EXACT_ACTION)
       {
-        const DrawcallDescription *draw = m_Draws[eid];
-        return draw->eventId == eid ? QVariant::fromValue(qulonglong(m_Draws[eid])) : QVariant();
+        const ActionDescription *action = m_Actions[eid];
+        return action->eventId == eid ? QVariant::fromValue(qulonglong(m_Actions[eid])) : QVariant();
       }
 
       if(role == ROLE_CHUNK)
@@ -727,22 +728,22 @@ struct EventItemModel : public QAbstractItemModel
 
       if(role == Qt::DisplayRole)
       {
-        const DrawcallDescription *draw = m_Draws[eid];
+        const ActionDescription *action = m_Actions[eid];
 
         switch(index.column())
         {
           case COL_NAME: return GetCachedEIDName(eid);
           case COL_EID:
-          case COL_DRAW:
-            if(draw->eventId == eid && !draw->children.empty())
+          case COL_ACTION:
+            if(action->eventId == eid && !action->children.empty())
             {
               uint32_t effectiveEID = eid;
               auto it = m_Nodes.find(eid);
               if(it != m_Nodes.end())
                 effectiveEID = it->effectiveEID;
 
-              if(draw->IsFakeMarker())
-                eid = draw->children[0].events[0].eventId;
+              if(action->IsFakeMarker())
+                eid = action->children[0].events[0].eventId;
 
               if(index.column() == COL_EID)
               {
@@ -752,25 +753,25 @@ struct EventItemModel : public QAbstractItemModel
               }
               else
               {
-                uint32_t drawId = draw->drawcallId;
-                uint32_t endDrawId = m_Draws[effectiveEID]->drawcallId;
+                uint32_t actionId = action->actionId;
+                uint32_t endActionId = m_Actions[effectiveEID]->actionId;
 
-                if(draw->IsFakeMarker())
-                  drawId = draw->children[0].drawcallId;
+                if(action->IsFakeMarker())
+                  actionId = action->children[0].actionId;
 
-                return drawId == endDrawId
+                return actionId == endActionId
                            ? QVariant()
-                           : QVariant(QFormatStr("%1-%2").arg(drawId).arg(endDrawId));
+                           : QVariant(QFormatStr("%1-%2").arg(actionId).arg(endActionId));
               }
             }
 
             if(index.column() == COL_EID)
               return eid;
             else
-              return draw->eventId == eid &&
-                             !(draw->flags &
-                               (DrawFlags::SetMarker | DrawFlags::PushMarker | DrawFlags::PopMarker))
-                         ? QVariant(draw->drawcallId)
+              return action->eventId == eid &&
+                             !(action->flags & (ActionFlags::SetMarker | ActionFlags::PushMarker |
+                                                ActionFlags::PopMarker))
+                         ? QVariant(action->actionId)
                          : QVariant();
           default: break;
         }
@@ -783,19 +784,19 @@ struct EventItemModel : public QAbstractItemModel
           if(!m_Ctx.Config().EventBrowser_ColorEventRow && role != RDTreeView::TreeLineColorRole)
             return QVariant();
 
-          const DrawcallDescription *draw = m_Draws[eid];
+          const ActionDescription *action = m_Actions[eid];
 
-          // skip events that aren't the actual draw
-          if(draw->eventId != eid)
+          // skip events that aren't the actual action
+          if(action->eventId != eid)
             return QVariant();
 
           // if alpha isn't 0, assume the colour is valid
-          if((draw->flags & (DrawFlags::PushMarker | DrawFlags::SetMarker)) &&
-             draw->markerColor.w > 0.0f)
+          if((action->flags & (ActionFlags::PushMarker | ActionFlags::SetMarker)) &&
+             action->markerColor.w > 0.0f)
           {
             QColor col =
-                QColor::fromRgb(qRgb(draw->markerColor.x * 255.0f, draw->markerColor.y * 255.0f,
-                                     draw->markerColor.z * 255.0f));
+                QColor::fromRgb(qRgb(action->markerColor.x * 255.0f, action->markerColor.y * 255.0f,
+                                     action->markerColor.z * 255.0f));
 
             if(role == Qt::BackgroundRole || role == RDTreeView::TreeLineColorRole)
               return QBrush(col);
@@ -835,41 +836,41 @@ private:
   // an upper bound. We store only 1 pointer per event which gives us reasonable memory usage (i.e.
   // 8MB for that 1-million case on 64-bit) and still lets us look up what we need in O(1) and avoid
   // more expensive lookups when we need the properties for an event.
-  // This gives us a pointer for every event ID pointing to the draw that contains it.
-  rdcarray<const DrawcallDescription *> m_Draws;
+  // This gives us a pointer for every event ID pointing to the action that contains it.
+  rdcarray<const ActionDescription *> m_Actions;
   rdcarray<const SDChunk *> m_Chunks;
 
-  // we can have a bigger structure for every nested node (i.e. draw with children).
+  // we can have a bigger structure for every nested node (i.e. action with children).
   // This drastically limits how many we need to worry about - some hierarchies have more nodes than
   // others but even in hierarchies with lots of nodes the number is small, compared to
-  // draws/events.
-  // we cache this with a depth-first search at init time while populating m_Draws
-  struct DrawTreeNode
+  // actions/events.
+  // we cache this with a depth-first search at init time while populating m_Actions
+  struct ActionTreeNode
   {
-    const DrawcallDescription *draw;
+    const ActionDescription *action;
     uint32_t effectiveEID;
 
     // cache the index for this node to make parent() significantly faster
     QModelIndex index;
 
-    // this is the number of child events, meaning all the draws and all of their events, but *not*
+    // this is the number of child events, meaning all the action and all of their events, but *not*
     // the events in any of their children.
     uint32_t rowCount;
 
-    // this is a cache of row index to draw. Rather than being present for every row, this is
+    // this is a cache of row index to action. Rather than being present for every row, this is
     // spaced out such that there are roughly Row2EIDFactor entries at most. This means that the
     // O(n) lookup to find the EID for a given row has to process that many times less entries since
     // it can jump to somewhere nearby.
     //
-    // The key is the row, the value is the index in the list of children of the draw
-    QMap<int, size_t> row2draw;
-    static const int Row2DrawFactor = 100;
+    // The key is the row, the value is the index in the list of children of the action
+    QMap<int, size_t> row2action;
+    static const int Row2ActionFactor = 100;
   };
-  QMap<uint32_t, DrawTreeNode> m_Nodes;
+  QMap<uint32_t, ActionTreeNode> m_Nodes;
 
   bool m_ShowParameterNames = false;
   bool m_ShowAllParameters = false;
-  bool m_UseCustomDrawNames = true;
+  bool m_UseCustomActionNames = true;
 
   // a cache of EID -> row in parent for looking up indices for arbitrary EIDs.
   rdcarray<rdcpair<uint32_t, int>> m_RowInParentCache;
@@ -920,74 +921,75 @@ private:
     return Formatter::Format(secs);
   }
 
-  void CalculateTotalDuration(DrawTreeNode &node)
+  void CalculateTotalDuration(ActionTreeNode &node)
   {
-    const rdcarray<DrawcallDescription> &drawChildren =
-        node.draw ? node.draw->children : m_Ctx.CurDrawcalls();
+    const rdcarray<ActionDescription> &actionChildren =
+        node.action ? node.action->children : m_Ctx.CurRootActions();
 
     double duration = 0.0;
 
-    for(const DrawcallDescription &d : drawChildren)
+    for(const ActionDescription &a : actionChildren)
     {
       // ignore out of bounds EIDs - should not happen
-      if(d.eventId >= m_Times.size())
+      if(a.eventId >= m_Times.size())
         continue;
 
       // add the time for this event, if it's non-negative. Because we fill out nodes in reverse
       // order, any children that are nodes themselves should be populated by now
-      duration += qMax(0.0, m_Times[d.eventId]);
+      duration += qMax(0.0, m_Times[a.eventId]);
     }
 
-    m_Times[node.draw ? node.draw->eventId : 0] = duration;
+    m_Times[node.action ? node.action->eventId : 0] = duration;
   }
 
-  DrawTreeNode CreateDrawNode(const DrawcallDescription *draw)
+  ActionTreeNode CreateActionNode(const ActionDescription *action)
   {
-    const rdcarray<DrawcallDescription> &drawRange = draw ? draw->children : m_Ctx.CurDrawcalls();
+    const rdcarray<ActionDescription> &actionRange =
+        action ? action->children : m_Ctx.CurRootActions();
 
     // account for the Capture Start row we'll add at the top level
-    int row = draw ? 0 : 1;
+    int row = action ? 0 : 1;
 
-    DrawTreeNode ret;
+    ActionTreeNode ret;
 
-    ret.draw = draw;
-    ret.effectiveEID = drawRange.back().eventId;
+    ret.action = action;
+    ret.effectiveEID = actionRange.back().eventId;
 
-    ret.row2draw[0] = 0;
+    ret.row2action[0] = 0;
 
-    uint32_t row2eidStride = (drawRange.count() / DrawTreeNode::Row2DrawFactor) + 1;
+    uint32_t row2eidStride = (actionRange.count() / ActionTreeNode::Row2ActionFactor) + 1;
 
     const SDFile &sdfile = m_Ctx.GetStructuredFile();
 
-    for(int i = 0; i < drawRange.count(); i++)
+    for(int i = 0; i < actionRange.count(); i++)
     {
-      const DrawcallDescription &d = drawRange[i];
+      const ActionDescription &a = actionRange[i];
 
       if((i % row2eidStride) == 0)
-        ret.row2draw[row] = i;
+        ret.row2action[row] = i;
 
-      for(const APIEvent &e : d.events)
+      for(const APIEvent &e : a.events)
       {
-        m_Draws.resize_for_index(e.eventId);
+        m_Actions.resize_for_index(e.eventId);
         m_Chunks.resize_for_index(e.eventId);
-        m_Draws[e.eventId] = &d;
+        m_Actions[e.eventId] = &a;
         if(e.chunkIndex != APIEvent::NoChunk && e.chunkIndex < sdfile.chunks.size())
           m_Chunks[e.eventId] = sdfile.chunks[e.chunkIndex];
       }
 
-      row += d.events.count();
+      row += a.events.count();
 
-      if(d.children.empty())
+      if(a.children.empty())
         continue;
 
-      DrawTreeNode node = CreateDrawNode(&d);
+      ActionTreeNode node = CreateActionNode(&a);
 
-      node.index = createIndex(row - 1, 0, d.eventId);
+      node.index = createIndex(row - 1, 0, a.eventId);
 
-      if(d.eventId == ret.effectiveEID)
+      if(a.eventId == ret.effectiveEID)
         ret.effectiveEID = node.effectiveEID;
 
-      m_Nodes[d.eventId] = node;
+      m_Nodes[a.eventId] = node;
     }
 
     ret.rowCount = row;
@@ -995,70 +997,70 @@ private:
     return ret;
   }
 
-  QModelIndex GetIndexForDrawChildRow(const DrawTreeNode &node, int row, int column) const
+  QModelIndex GetIndexForActionChildRow(const ActionTreeNode &node, int row, int column) const
   {
     // if the row is out of bounds, bail
     if(row < 0 || (uint32_t)row >= node.rowCount)
       return QModelIndex();
 
-    // we do the linear 'counting' within the draws list to find the event at the given row. It's
-    // still essentially O(n) however we keep a limited cached of skip entries at each draw node
+    // we do the linear 'counting' within the actions list to find the event at the given row. It's
+    // still essentially O(n) however we keep a limited cached of skip entries at each action node
     // which helps lower the cost significantly (by a factor of the roughly number of skip entries
     // we store).
 
-    const rdcarray<DrawcallDescription> &draws =
-        node.draw ? node.draw->children : m_Ctx.CurDrawcalls();
+    const rdcarray<ActionDescription> &actions =
+        node.action ? node.action->children : m_Ctx.CurRootActions();
     int curRow = 0;
-    size_t curDraw = 0;
+    size_t curAction = 0;
 
     // lowerBound doesn't do exactly what we want, we want the first row that is less-equal. So
     // instead we use upperBound and go back one step if we don't get returned the first entry
-    auto it = node.row2draw.upperBound(row);
-    if(it != node.row2draw.begin())
+    auto it = node.row2action.upperBound(row);
+    if(it != node.row2action.begin())
       --it;
 
     // start at the first skip before the desired row
     curRow = it.key();
-    curDraw = it.value();
+    curAction = it.value();
 
     if(curRow > row)
     {
       // we should always have a skip, even if it's only the first child
-      qCritical() << "Couldn't find skip for" << row << "in draw node"
-                  << (node.draw ? node.draw->eventId : 0);
+      qCritical() << "Couldn't find skip for" << row << "in action node"
+                  << (node.action ? node.action->eventId : 0);
 
       // start at the first child row instead
       curRow = 0;
-      curDraw = 0;
+      curAction = 0;
     }
 
-    // if this draw doesn't contain the desired row, advance
-    while(curDraw < draws.size() && curRow + draws[curDraw].events.count() <= row)
+    // if this action doesn't contain the desired row, advance
+    while(curAction < actions.size() && curRow + actions[curAction].events.count() <= row)
     {
-      curRow += draws[curDraw].events.count();
-      curDraw++;
+      curRow += actions[curAction].events.count();
+      curAction++;
     }
 
-    // we've iterated all the draws and didn't come up with this row - but we checked above that
+    // we've iterated all the actions and didn't come up with this row - but we checked above that
     // we're in bounds of rowCount so something went wrong
-    if(curDraw >= draws.size())
+    if(curAction >= actions.size())
     {
-      qCritical() << "Couldn't find draw containing row" << row << "in draw node"
-                  << (node.draw ? node.draw->eventId : 0);
+      qCritical() << "Couldn't find action containing row" << row << "in action node"
+                  << (node.action ? node.action->eventId : 0);
       return QModelIndex();
     }
 
-    // now curDraw contains the row at the idx'th event
+    // now curAction contains the row at the idx'th event
     int idx = row - curRow;
 
-    if(idx < 0 || idx >= draws[curDraw].events.count())
+    if(idx < 0 || idx >= actions[curAction].events.count())
     {
-      qCritical() << "Got invalid relative index for row" << row << "in draw node"
-                  << (node.draw ? node.draw->eventId : 0);
+      qCritical() << "Got invalid relative index for row" << row << "in action node"
+                  << (node.action ? node.action->eventId : 0);
       return QModelIndex();
     }
 
-    return createIndex(row, column, draws[curDraw].events[idx].eventId);
+    return createIndex(row, column, actions[curAction].events[idx].eventId);
   }
 
   QVariant GetCachedEIDName(uint32_t eid) const
@@ -1067,31 +1069,31 @@ private:
     if(it != m_EIDNameCache.end())
       return it.value();
 
-    const DrawcallDescription *draw = m_Draws[eid];
+    const ActionDescription *action = m_Actions[eid];
 
     QString name;
 
-    // markers always use the draw name no matter what (fake markers must because we don't have a
-    // chunk to use to name them). This doesn't apply to 'marker' regions that are multidraws or
+    // markers always use the action name no matter what (fake markers must because we don't have a
+    // chunk to use to name them). This doesn't apply to 'marker' regions that are multiactions or
     // command buffer boundaries.
-    if(draw->eventId == eid)
+    if(action->eventId == eid)
     {
-      if(m_UseCustomDrawNames)
+      if(m_UseCustomActionNames)
       {
-        name = draw->name;
+        name = action->name;
       }
       else
       {
-        if((draw->flags & (DrawFlags::SetMarker | DrawFlags::PushMarker)) &&
-           !(draw->flags & (DrawFlags::CommandBufferBoundary | DrawFlags::PassBoundary |
-                            DrawFlags::CmdList | DrawFlags::MultiDraw)))
-          name = draw->name;
+        if((action->flags & (ActionFlags::SetMarker | ActionFlags::PushMarker)) &&
+           !(action->flags & (ActionFlags::CommandBufferBoundary | ActionFlags::PassBoundary |
+                              ActionFlags::CmdList | ActionFlags::MultiAction)))
+          name = action->name;
       }
     }
 
     if(name.isEmpty())
     {
-      for(const APIEvent &e : draw->events)
+      for(const APIEvent &e : action->events)
       {
         if(e.eventId == eid)
         {
@@ -1178,33 +1180,33 @@ struct EventFilter
   MatchType type;
 };
 
-static QMap<QString, DrawFlags> DrawFlagsLookup;
-static QStringList DrawFlagsList;
+static QMap<QString, ActionFlags> ActionFlagsLookup;
+static QStringList ActionFlagsList;
 
-void CacheDrawFlagsLookup()
+void CacheActionFlagsLookup()
 {
-  if(DrawFlagsLookup.empty())
+  if(ActionFlagsLookup.empty())
   {
     for(uint32_t i = 0; i <= 31; i++)
     {
-      DrawFlags flag = DrawFlags(1U << i);
+      ActionFlags flag = ActionFlags(1U << i);
 
       // bit of a hack, see if it's a valid flag by stringising and seeing if it contains
-      // DrawFlags(
+      // ActionFlags(
       QString str = ToQStr(flag);
-      if(str.contains(lit("DrawFlags(")))
+      if(str.contains(lit("ActionFlags(")))
         continue;
 
-      DrawFlagsList.push_back(str);
-      DrawFlagsLookup[str.toLower()] = flag;
+      ActionFlagsList.push_back(str);
+      ActionFlagsLookup[str.toLower()] = flag;
     }
 
-    DrawFlagsList.sort();
+    ActionFlagsList.sort();
   }
 }
 
 bool EvaluateFilterSet(ICaptureContext &ctx, const rdcarray<EventFilter> &filters, bool all,
-                       uint32_t eid, const SDChunk *chunk, const DrawcallDescription *draw,
+                       uint32_t eid, const SDChunk *chunk, const ActionDescription *action,
                        QString name)
 {
   if(filters.empty())
@@ -1235,7 +1237,7 @@ bool EvaluateFilterSet(ICaptureContext &ctx, const rdcarray<EventFilter> &filter
     if(accept && !all && filter.type == MatchType::Normal)
       continue;
 
-    bool match = filter.callback(&ctx, rdcstr(), rdcstr(), eid, chunk, draw, name);
+    bool match = filter.callback(&ctx, rdcstr(), rdcstr(), eid, chunk, action, name);
 
     // in normal mode, if it matches it should be included (unless a subsequent filter excludes
     // it)
@@ -1346,7 +1348,7 @@ public:
       MAKE_BUILTIN_FILTER(regex);
       MAKE_BUILTIN_FILTER(param);
       // MAKE_BUILTIN_FILTER(event);
-      MAKE_BUILTIN_FILTER(draw);
+      MAKE_BUILTIN_FILTER(action);
       MAKE_BUILTIN_FILTER(dispatch);
       MAKE_BUILTIN_FILTER(childOf);
       MAKE_BUILTIN_FILTER(parent);
@@ -1357,9 +1359,9 @@ public:
         return filterCompleter_event(ctx, name, parameters);
       };
       */
-      m_BuiltinFilters[lit("draw")].completer = [this](ICaptureContext *ctx, QString name,
-                                                       QString parameters) {
-        return filterCompleter_draw(ctx, name, parameters);
+      m_BuiltinFilters[lit("action")].completer = [this](ICaptureContext *ctx, QString name,
+                                                         QString parameters) {
+        return filterCompleter_action(ctx, name, parameters);
       };
       m_BuiltinFilters[lit("dispatch")].completer = [this](ICaptureContext *ctx, QString name,
                                                            QString parameters) {
@@ -1488,9 +1490,8 @@ protected:
 
     const SDChunk *chunk =
         (const SDChunk *)(sourceModel()->data(source_idx, ROLE_CHUNK).toULongLong());
-    const DrawcallDescription *draw =
-        (const DrawcallDescription
-             *)(sourceModel()->data(source_idx, ROLE_GROUPED_DRAWCALL).toULongLong());
+    const ActionDescription *action =
+        (const ActionDescription *)(sourceModel()->data(source_idx, ROLE_GROUPED_ACTION).toULongLong());
     QString name = source_idx.data(Qt::DisplayRole).toString();
 
     int off = name.indexOf(QLatin1Char('<'));
@@ -1505,7 +1506,7 @@ protected:
       off = name.indexOf(QLatin1Char('<'), off + 1);
     }
 
-    m_VisibleCache[eid] = EvaluateFilterSet(m_Ctx, m_Filters, false, eid, chunk, draw, name);
+    m_VisibleCache[eid] = EvaluateFilterSet(m_Ctx, m_Filters, false, eid, chunk, action, name);
     return m_VisibleCache[eid] > 0;
   }
 
@@ -1526,7 +1527,7 @@ private:
   {
     QString matchString = string.toLower();
     return [matchString](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t,
-                         const SDChunk *, const DrawcallDescription *, const rdcstr &name) {
+                         const SDChunk *, const ActionDescription *, const rdcstr &name) {
       return QString(name).toLower().contains(matchString);
     };
   }
@@ -1654,7 +1655,7 @@ after the trailing /:
     }
 
     return [regex](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t, const SDChunk *,
-                   const DrawcallDescription *, const rdcstr &name) {
+                   const ActionDescription *, const rdcstr &name) {
       QRegularExpressionMatch match = regex.match(QString(name));
       return match.isValid() && match.hasMatch();
     };
@@ -1706,35 +1707,34 @@ searched for as a case-insensitive substring.
       return NULL;
     }
 
-    return
-        [paramName, paramValue](ICaptureContext *ctx, const rdcstr &, const rdcstr &, uint32_t,
-                                const SDChunk *chunk, const DrawcallDescription *, const rdcstr &) {
-          if(!chunk)
-            return false;
+    return [paramName, paramValue](ICaptureContext *ctx, const rdcstr &, const rdcstr &, uint32_t,
+                                   const SDChunk *chunk, const ActionDescription *, const rdcstr &) {
+      if(!chunk)
+        return false;
 
-          const SDObject *o = FindChildRecursively(chunk, paramName);
+      const SDObject *o = FindChildRecursively(chunk, paramName);
 
-          if(!o)
-            return false;
+      if(!o)
+        return false;
 
-          if(o->IsArray())
-          {
-            for(const SDObject *c : *o)
-            {
-              if(RichResourceTextFormat(*ctx, SDObject2Variant(c, false))
-                     .contains(paramValue, Qt::CaseInsensitive))
-                return true;
-            }
+      if(o->IsArray())
+      {
+        for(const SDObject *c : *o)
+        {
+          if(RichResourceTextFormat(*ctx, SDObject2Variant(c, false))
+                 .contains(paramValue, Qt::CaseInsensitive))
+            return true;
+        }
 
-            return false;
-          }
-          else
-          {
-            return RichResourceTextFormat(*ctx, SDObject2Variant(o, false))
-                .contains(paramValue, Qt::CaseInsensitive);
-          }
+        return false;
+      }
+      else
+      {
+        return RichResourceTextFormat(*ctx, SDObject2Variant(o, false))
+            .contains(paramValue, Qt::CaseInsensitive);
+      }
 
-        };
+    };
   }
 
   QString filterDescription_event() const
@@ -1826,83 +1826,83 @@ Available numeric properties. Compare with <code>$event(prop > 100)</code> or <c
     {
       case 0:
         return [eid](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
-                     const SDChunk *, const DrawcallDescription *draw,
+                     const SDChunk *, const ActionDescription *action,
                      const rdcstr &) { return eventId == eid; };
       case 1:
         return [eid](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
-                     const SDChunk *, const DrawcallDescription *draw,
+                     const SDChunk *, const ActionDescription *action,
                      const rdcstr &) { return eventId != eid; };
       case 2:
         return [eid](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
-                     const SDChunk *, const DrawcallDescription *draw,
+                     const SDChunk *, const ActionDescription *action,
                      const rdcstr &) { return eventId < eid; };
       case 3:
         return [eid](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
-                     const SDChunk *, const DrawcallDescription *draw,
+                     const SDChunk *, const ActionDescription *action,
                      const rdcstr &) { return eventId > eid; };
       case 4:
         return [eid](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
-                     const SDChunk *, const DrawcallDescription *draw,
+                     const SDChunk *, const ActionDescription *action,
                      const rdcstr &) { return eventId <= eid; };
       case 5:
         return [eid](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
-                     const SDChunk *, const DrawcallDescription *draw,
+                     const SDChunk *, const ActionDescription *action,
                      const rdcstr &) { return eventId >= eid; };
       default: trace.setError(tr("Internal error", "EventFilterModel")); return NULL;
     }
   }
 
-  QString filterDescription_draw() const
+  QString filterDescription_action() const
   {
     return tr(R"EOD(
-<h3>$draw</h3>
+<h3>$action</h3>
 
 <br />
 <table>
-<tr><td>$draw()</td><td>- passes if an event is a drawcall.</td></tr>
-<tr><td>$draw(condition)</td><td>- passes if an event is a drawcall and matches a condition.</td></tr>
+<tr><td>$action()</td><td>- passes if an event is an action.</td></tr>
+<tr><td>$action(condition)</td><td>- passes if an event is an action and matches a condition.</td></tr>
 </table>
 
 <p>
-If no condition is specified then the event is just included if it's a draw-type event - meaning any
-event such as drawcalls, dispatches, copies, clears and others that do work and modify resources.<br />
-Otherwise the event is included if it's a draw AND if the condition is true.
+If no condition is specified then the event is just included if it's an action - meaning any event
+such as draws, dispatches, copies, clears and others that do work and modify resources.<br />
+Otherwise the event is included if it's an action AND if the condition is true.
 </p>
 
-<p>Available numeric properties. Compare with <code>$draw(prop > 100)</code> or <code>$draw(prop <= 200)</code></p>
+<p>Available numeric properties. Compare with <code>$action(prop > 100)</code> or <code>$action(prop <= 200)</code></p>
 
 <table>
-<tr><td>EID:</td> <td>The draw's EID.</td></tr>
-<tr><td>drawId:</td> <td>The draw ID, starting from 1 and numbering each draw.</td></tr>
-<tr><td>numIndices:</td> <td>The number of vertices or indices in a draw.</td></tr>
-<tr><td>baseVertex:</td> <td>The base vertex value for an indexed draw.</td></tr>
-<tr><td>indexOffset:</td> <td>The index offset for an indexed draw.</td></tr>
-<tr><td>vertexOffset:</td> <td>The vertex offset for a non-indexed draw.</td></tr>
-<tr><td>instanceOffset:</td> <td>The instance offset for an instanced draw.</td></tr>
+<tr><td>EID:</td> <td>The action's EID.</td></tr>
+<tr><td>actionId:</td> <td>The action ID, starting from 1 and numbering each action.</td></tr>
+<tr><td>numIndices:</td> <td>The number of vertices or indices in an action.</td></tr>
+<tr><td>baseVertex:</td> <td>The base vertex value for an indexed action.</td></tr>
+<tr><td>indexOffset:</td> <td>The index offset for an indexed action.</td></tr>
+<tr><td>vertexOffset:</td> <td>The vertex offset for a non-indexed action.</td></tr>
+<tr><td>instanceOffset:</td> <td>The instance offset for an instanced action.</td></tr>
 <tr><td>dispatchX:</td> <td>The number of groups in the X dimension of a dispatch.</td></tr>
 <tr><td>dispatchY:</td> <td>The number of groups in the Y dimension of a dispatch.</td></tr>
 <tr><td>dispatchZ:</td> <td>The number of groups in the Z dimension of a dispatch.</td></tr>
 <tr><td>dispatchSize:</td> <td>The total number of groups (X * Y * Z) of a dispatch.</td></tr>
-<tr><td>duration:</td> <td>The listed duration of a drawcall (only available with durations).</td></tr>
+<tr><td>duration:</td> <td>The listed duration of an action (only available with durations).</td></tr>
 </table>
 
 <p>
-Also available is the <code>flags</code> property. Drawcalls have different flags and properties
-and these can be queried with a filter such as <code>$draw(flags & Clear|ClearDepthStencil)</code>
+Also available is the <code>flags</code> property. Actions have different flags and properties
+and these can be queried with a filter such as <code>$action(flags & Clear|ClearDepthStencil)</code>
 </p>
 
 <p>The flags available are:</p>
 
 <table>
 <tr><td>Clear:</td> <td>This is a clear call, clearing all or a subset of a resource.</td></tr>
-<tr><td>Drawcall:</td> <td>This is a graphics pipeline drawcall, rasterizing polygons.</td></tr>
+<tr><td>Drawcall:</td> <td>This is a graphics pipeline action, rasterizing polygons.</td></tr>
 <tr><td>Dispatch:</td> <td>This is a compute dispatch.</td></tr>
 <tr><td>CmdList:</td> <td>This is part of the book-keeping for a command list, secondary command buffer or bundle.</td></tr>
 <tr><td>SetMarker:</td> <td>This is an individual string debug marker, with no children.</td></tr>
-<tr><td>PushMarker:</td> <td>This is a push of a debug marker region, with some child drawcalls</td></tr>
+<tr><td>PushMarker:</td> <td>This is a push of a debug marker region, with some child actions</td></tr>
 <tr><td>PopMarker:</td> <td>This is the pop of a debug marker region.</td></tr>
 <tr><td>Present:</td> <td>This is a graphics present to a window.</td></tr>
-<tr><td>MultiDraw:</td> <td>This is part of a multi-draw drawcall.</td></tr>
+<tr><td>MultiAction:</td> <td>This is part of a multi-action, like a MultiDraw or ExecuteIndirect.</td></tr>
 <tr><td>Copy:</td> <td>This is a copy call, copying between one resource and another.</td></tr>
 <tr><td>Resolve:</td> <td>This is a resolve or non-identical blit, as opposed to a copy.</td></tr>
 <tr><td>GenMips:</td> <td>This call is generating mip-maps for a texture</td></tr>
@@ -1921,13 +1921,14 @@ and these can be queried with a filter such as <code>$draw(flags & Clear|ClearDe
               "EventFilterModel");
   }
 
-  rdcarray<rdcstr> filterCompleter_draw(ICaptureContext *ctx, const rdcstr &name, const rdcstr &params)
+  rdcarray<rdcstr> filterCompleter_action(ICaptureContext *ctx, const rdcstr &name,
+                                          const rdcstr &params)
   {
     QList<Token> tokens = tokenise(params);
 
     if(tokens.size() <= 1)
       return {
-          "EID", "drawId", "numIndices",
+          "EID", "actionId", "numIndices",
           // most aliases we don't autocomplete but this one we leave
           "numVertices", "numInstances", "baseVertex", "indexOffset", "vertexOffset",
           "instanceOffset", "dispatchX", "dispatchY", "dispatchZ", "dispatchSize", "duration",
@@ -1936,11 +1937,11 @@ and these can be queried with a filter such as <code>$draw(flags & Clear|ClearDe
 
     if(tokens[0].text == lit("flags") && tokens.size() >= 2)
     {
-      CacheDrawFlagsLookup();
+      CacheActionFlagsLookup();
 
       rdcarray<rdcstr> flags;
 
-      for(QString s : DrawFlagsList)
+      for(QString s : ActionFlagsList)
         flags.push_back(s);
 
       return flags;
@@ -1949,25 +1950,26 @@ and these can be queried with a filter such as <code>$draw(flags & Clear|ClearDe
     return {};
   }
 
-  IEventBrowser::EventFilterCallback filterFunction_draw(QString name, QString parameters,
-                                                         ParseTrace &trace)
+  IEventBrowser::EventFilterCallback filterFunction_action(QString name, QString parameters,
+                                                           ParseTrace &trace)
   {
-    // $draw(...) => returns true only for draws, optionally with a particular property filter
-    // PopMarker draws are draws so they can contain the other non-draw events that might trail
-    // in a group, but we don't count them as real draws for any of this filtering except for flags
-    // filtering, where they can be manually included
+    // action(...) => returns true only for actions, optionally with a particular property filter
+    // PopMarker actions are actions so they can contain the other non-action events that might
+    // trail in a group, but we don't count them as real actions for any of this filtering except
+    // for
+    // flags filtering, where they can be manually included
     QList<Token> tokens = tokenise(parameters);
 
-    // no parameters, just return if it's a draw
+    // no parameters, just return if it's an action
     if(tokens.isEmpty())
       return [](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
-                const SDChunk *, const DrawcallDescription *draw, const rdcstr &) {
-        return draw->eventId == eventId && !(draw->flags & DrawFlags::PopMarker);
+                const SDChunk *, const ActionDescription *action, const rdcstr &) {
+        return action->eventId == eventId && !(action->flags & ActionFlags::PopMarker);
       };
 
     // we upcast to int64_t so we can compare both unsigned and signed values without losing any
     // precision (we don't have any uint64_ts to compare)
-    using PropGetter = int64_t (*)(const DrawcallDescription *);
+    using PropGetter = int64_t (*)(const ActionDescription *);
 
     struct NamedProp
     {
@@ -1977,24 +1979,25 @@ and these can be queried with a filter such as <code>$draw(flags & Clear|ClearDe
 
 #define NAMED_PROP(name, access)                                            \
   {                                                                         \
-    name, [](const DrawcallDescription *draw) -> int64_t { return access; } \
+    name, [](const ActionDescription *action) -> int64_t { return access; } \
   }
 
     static const NamedProp namedProps[] = {
-        NAMED_PROP("eventid", draw->eventId), NAMED_PROP("eid", draw->eventId),
-        NAMED_PROP("drawcallid", draw->drawcallId), NAMED_PROP("drawid", draw->drawcallId),
-        NAMED_PROP("numindices", draw->numIndices), NAMED_PROP("numindexes", draw->numIndices),
-        NAMED_PROP("numvertices", draw->numIndices), NAMED_PROP("numvertexes", draw->numIndices),
-        NAMED_PROP("indexcount", draw->numIndices), NAMED_PROP("vertexcount", draw->numIndices),
-        NAMED_PROP("numinstances", draw->numInstances),
-        NAMED_PROP("instancecount", draw->numInstances), NAMED_PROP("basevertex", draw->baseVertex),
-        NAMED_PROP("indexoffset", draw->indexOffset), NAMED_PROP("vertexoffset", draw->vertexOffset),
-        NAMED_PROP("instanceoffset", draw->instanceOffset),
-        NAMED_PROP("dispatchx", draw->dispatchDimension[0]),
-        NAMED_PROP("dispatchy", draw->dispatchDimension[1]),
-        NAMED_PROP("dispatchz", draw->dispatchDimension[2]),
-        NAMED_PROP("dispatchsize", draw->dispatchDimension[0] * draw->dispatchDimension[1] *
-                                       draw->dispatchDimension[2]),
+        NAMED_PROP("eventid", action->eventId), NAMED_PROP("eid", action->eventId),
+        NAMED_PROP("actionid", action->actionId), NAMED_PROP("numindices", action->numIndices),
+        NAMED_PROP("numindexes", action->numIndices), NAMED_PROP("numvertices", action->numIndices),
+        NAMED_PROP("numvertexes", action->numIndices), NAMED_PROP("indexcount", action->numIndices),
+        NAMED_PROP("vertexcount", action->numIndices),
+        NAMED_PROP("numinstances", action->numInstances),
+        NAMED_PROP("instancecount", action->numInstances),
+        NAMED_PROP("basevertex", action->baseVertex), NAMED_PROP("indexoffset", action->indexOffset),
+        NAMED_PROP("vertexoffset", action->vertexOffset),
+        NAMED_PROP("instanceoffset", action->instanceOffset),
+        NAMED_PROP("dispatchx", action->dispatchDimension[0]),
+        NAMED_PROP("dispatchy", action->dispatchDimension[1]),
+        NAMED_PROP("dispatchz", action->dispatchDimension[2]),
+        NAMED_PROP("dispatchsize", action->dispatchDimension[0] * action->dispatchDimension[1] *
+                                       action->dispatchDimension[2]),
     };
 
     QByteArray prop = tokens[0].text.toLower().toLatin1();
@@ -2044,44 +2047,44 @@ and these can be queried with a filter such as <code>$draw(flags & Clear|ClearDe
         case 0:
           return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
                                      uint32_t eventId, const SDChunk *,
-                                     const DrawcallDescription *draw, const rdcstr &) {
-            return draw->eventId == eventId && !(draw->flags & DrawFlags::PopMarker) &&
-                   propGetter(draw) == value;
+                                     const ActionDescription *action, const rdcstr &) {
+            return action->eventId == eventId && !(action->flags & ActionFlags::PopMarker) &&
+                   propGetter(action) == value;
           };
         case 1:
           return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
                                      uint32_t eventId, const SDChunk *,
-                                     const DrawcallDescription *draw, const rdcstr &) {
-            return draw->eventId == eventId && !(draw->flags & DrawFlags::PopMarker) &&
-                   propGetter(draw) != value;
+                                     const ActionDescription *action, const rdcstr &) {
+            return action->eventId == eventId && !(action->flags & ActionFlags::PopMarker) &&
+                   propGetter(action) != value;
           };
         case 2:
           return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
                                      uint32_t eventId, const SDChunk *,
-                                     const DrawcallDescription *draw, const rdcstr &) {
-            return draw->eventId == eventId && !(draw->flags & DrawFlags::PopMarker) &&
-                   propGetter(draw) < value;
+                                     const ActionDescription *action, const rdcstr &) {
+            return action->eventId == eventId && !(action->flags & ActionFlags::PopMarker) &&
+                   propGetter(action) < value;
           };
         case 3:
           return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
                                      uint32_t eventId, const SDChunk *,
-                                     const DrawcallDescription *draw, const rdcstr &) {
-            return draw->eventId == eventId && !(draw->flags & DrawFlags::PopMarker) &&
-                   propGetter(draw) > value;
+                                     const ActionDescription *action, const rdcstr &) {
+            return action->eventId == eventId && !(action->flags & ActionFlags::PopMarker) &&
+                   propGetter(action) > value;
           };
         case 4:
           return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
                                      uint32_t eventId, const SDChunk *,
-                                     const DrawcallDescription *draw, const rdcstr &) {
-            return draw->eventId == eventId && !(draw->flags & DrawFlags::PopMarker) &&
-                   propGetter(draw) <= value;
+                                     const ActionDescription *action, const rdcstr &) {
+            return action->eventId == eventId && !(action->flags & ActionFlags::PopMarker) &&
+                   propGetter(action) <= value;
           };
         case 5:
           return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
                                      uint32_t eventId, const SDChunk *,
-                                     const DrawcallDescription *draw, const rdcstr &) {
-            return draw->eventId == eventId && !(draw->flags & DrawFlags::PopMarker) &&
-                   propGetter(draw) >= value;
+                                     const ActionDescription *action, const rdcstr &) {
+            return action->eventId == eventId && !(action->flags & ActionFlags::PopMarker) &&
+                   propGetter(action) >= value;
           };
         default: trace.setError(tr("Internal error", "EventFilterModel")); return NULL;
       }
@@ -2162,28 +2165,28 @@ and these can be queried with a filter such as <code>$draw(flags & Clear|ClearDe
         case 0:
           return
               [this, nanoValue](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
-                                const SDChunk *, const DrawcallDescription *draw, const rdcstr &) {
+                                const SDChunk *, const ActionDescription *, const rdcstr &) {
                 double dur = m_Model->GetSecondsDurationForEID(eventId);
                 return dur >= 0.0 && int64_t(dur * 1000000000.0) < nanoValue;
               };
         case 1:
           return
               [this, nanoValue](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
-                                const SDChunk *, const DrawcallDescription *draw, const rdcstr &) {
+                                const SDChunk *, const ActionDescription *, const rdcstr &) {
                 double dur = m_Model->GetSecondsDurationForEID(eventId);
                 return dur >= 0.0 && int64_t(dur * 1000000000.0) > nanoValue;
               };
         case 2:
           return
               [this, nanoValue](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
-                                const SDChunk *, const DrawcallDescription *draw, const rdcstr &) {
+                                const SDChunk *, const ActionDescription *, const rdcstr &) {
                 double dur = m_Model->GetSecondsDurationForEID(eventId);
                 return dur >= 0.0 && int64_t(dur * 1000000000.0) <= nanoValue;
               };
         case 3:
           return
               [this, nanoValue](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
-                                const SDChunk *, const DrawcallDescription *draw, const rdcstr &) {
+                                const SDChunk *, const ActionDescription *, const rdcstr &) {
                 double dur = m_Model->GetSecondsDurationForEID(eventId);
                 return dur >= 0.0 && int64_t(dur * 1000000000.0) >= nanoValue;
               };
@@ -2196,7 +2199,7 @@ and these can be queried with a filter such as <code>$draw(flags & Clear|ClearDe
       {
         trace.position = tokens[0].position;
         trace.length = (tokens[1].position + tokens[1].length) - trace.position + 1;
-        trace.setError(tr("Expected $draw(flags & ...)", "EventFilterModel"));
+        trace.setError(tr("Expected $action(flags & ...)", "EventFilterModel"));
         return NULL;
       }
 
@@ -2211,21 +2214,21 @@ and these can be queried with a filter such as <code>$draw(flags & Clear|ClearDe
       {
         trace.position = tokens[2].position;
         trace.length = (tokens.back().position + tokens.back().length) - trace.position + 1;
-        trace.setError(tr("Invalid draw flags expression", "EventFilterModel"));
+        trace.setError(tr("Invalid action flags expression", "EventFilterModel"));
         return NULL;
       }
 
-      CacheDrawFlagsLookup();
+      CacheActionFlagsLookup();
 
-      DrawFlags flags = DrawFlags::NoFlags;
+      ActionFlags flags = ActionFlags::NoFlags;
       for(const QString &flagString : flagStrings)
       {
-        auto it = DrawFlagsLookup.find(flagString.toLower());
-        if(it == DrawFlagsLookup.end())
+        auto it = ActionFlagsLookup.find(flagString.toLower());
+        if(it == ActionFlagsLookup.end())
         {
           trace.position = tokens[2].position;
           trace.length = (tokens.back().position + tokens.back().length) - trace.position + 1;
-          trace.setError(tr("Unrecognised draw flag '%1'", "EventFilterModel").arg(flagString));
+          trace.setError(tr("Unrecognised action flag '%1'", "EventFilterModel").arg(flagString));
           return NULL;
         }
 
@@ -2233,8 +2236,9 @@ and these can be queried with a filter such as <code>$draw(flags & Clear|ClearDe
       }
 
       return [flags](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
-                     const SDChunk *, const DrawcallDescription *draw,
-                     const rdcstr &) { return draw->eventId == eventId && (draw->flags & flags); };
+                     const SDChunk *, const ActionDescription *action, const rdcstr &) {
+        return action->eventId == eventId && (action->flags & flags);
+      };
     }
     else
     {
@@ -2264,7 +2268,7 @@ Otherwise the event is included if it's a dispatch AND if the condition is true.
 
 <table>
 <tr><td>EID:</td> <td>The dispatch's EID.</td></tr>
-<tr><td>drawId:</td> <td>The dispatch's draw ID, starting from 1 and numbering each draw-type event.</td></tr>
+<tr><td>actionId:</td> <td>The dispatch's action ID, starting from 1 and numbering each action.</td></tr>
 <tr><td>x:</td> <td>The number of groups in the X dimension of the dispatch.</td></tr>
 <tr><td>y:</td> <td>The number of groups in the Y dimension of the dispatch.</td></tr>
 <tr><td>z:</td> <td>The number of groups in the Z dimension of the dispatch.</td></tr>
@@ -2282,7 +2286,7 @@ Otherwise the event is included if it's a dispatch AND if the condition is true.
 
     if(tokens.size() <= 1)
       return {
-          "EID", "drawcallId", "drawId", "x", "y", "z", "size", "duration",
+          "EID", "actionId", "x", "y", "z", "size", "duration",
       };
 
     return {};
@@ -2295,16 +2299,16 @@ Otherwise the event is included if it's a dispatch AND if the condition is true.
     // filter
     QList<Token> tokens = tokenise(parameters);
 
-    // no parameters, just return if it's a draw
+    // no parameters, just return if it's a dispatch
     if(tokens.isEmpty())
       return [](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
-                const SDChunk *, const DrawcallDescription *draw, const rdcstr &) {
-        return draw->eventId == eventId && (draw->flags & DrawFlags::Dispatch);
+                const SDChunk *, const ActionDescription *action, const rdcstr &) {
+        return action->eventId == eventId && (action->flags & ActionFlags::Dispatch);
       };
 
     // we upcast to int64_t so we can compare both unsigned and signed values without losing any
     // precision (we don't have any uint64_ts to compare)
-    using PropGetter = int64_t (*)(const DrawcallDescription *);
+    using PropGetter = int64_t (*)(const ActionDescription *);
 
     struct NamedProp
     {
@@ -2313,17 +2317,17 @@ Otherwise the event is included if it's a dispatch AND if the condition is true.
     };
 
     static const NamedProp namedProps[] = {
-        NAMED_PROP("eventid", draw->eventId), NAMED_PROP("eid", draw->eventId),
-        NAMED_PROP("drawcallid", draw->drawcallId), NAMED_PROP("drawid", draw->drawcallId),
-        NAMED_PROP("dispatchx", draw->dispatchDimension[0]),
-        NAMED_PROP("dispatchy", draw->dispatchDimension[1]),
-        NAMED_PROP("dispatchz", draw->dispatchDimension[2]),
-        NAMED_PROP("x", draw->dispatchDimension[0]), NAMED_PROP("y", draw->dispatchDimension[1]),
-        NAMED_PROP("z", draw->dispatchDimension[2]),
-        NAMED_PROP("dispatchsize", draw->dispatchDimension[0] * draw->dispatchDimension[1] *
-                                       draw->dispatchDimension[2]),
-        NAMED_PROP("size", draw->dispatchDimension[0] * draw->dispatchDimension[1] *
-                               draw->dispatchDimension[2]),
+        NAMED_PROP("eventid", action->eventId), NAMED_PROP("eid", action->eventId),
+        NAMED_PROP("actionid", action->actionId),
+        NAMED_PROP("dispatchx", action->dispatchDimension[0]),
+        NAMED_PROP("dispatchy", action->dispatchDimension[1]),
+        NAMED_PROP("dispatchz", action->dispatchDimension[2]),
+        NAMED_PROP("x", action->dispatchDimension[0]),
+        NAMED_PROP("y", action->dispatchDimension[1]), NAMED_PROP("z", action->dispatchDimension[2]),
+        NAMED_PROP("dispatchsize", action->dispatchDimension[0] * action->dispatchDimension[1] *
+                                       action->dispatchDimension[2]),
+        NAMED_PROP("size", action->dispatchDimension[0] * action->dispatchDimension[1] *
+                               action->dispatchDimension[2]),
     };
 
     QByteArray prop = tokens[0].text.toLower().toLatin1();
@@ -2373,44 +2377,44 @@ Otherwise the event is included if it's a dispatch AND if the condition is true.
         case 0:
           return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
                                      uint32_t eventId, const SDChunk *,
-                                     const DrawcallDescription *draw, const rdcstr &) {
-            return draw->eventId == eventId && (draw->flags & DrawFlags::Dispatch) &&
-                   propGetter(draw) == value;
+                                     const ActionDescription *action, const rdcstr &) {
+            return action->eventId == eventId && (action->flags & ActionFlags::Dispatch) &&
+                   propGetter(action) == value;
           };
         case 1:
           return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
                                      uint32_t eventId, const SDChunk *,
-                                     const DrawcallDescription *draw, const rdcstr &) {
-            return draw->eventId == eventId && (draw->flags & DrawFlags::Dispatch) &&
-                   propGetter(draw) != value;
+                                     const ActionDescription *action, const rdcstr &) {
+            return action->eventId == eventId && (action->flags & ActionFlags::Dispatch) &&
+                   propGetter(action) != value;
           };
         case 2:
           return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
                                      uint32_t eventId, const SDChunk *,
-                                     const DrawcallDescription *draw, const rdcstr &) {
-            return draw->eventId == eventId && (draw->flags & DrawFlags::Dispatch) &&
-                   propGetter(draw) < value;
+                                     const ActionDescription *action, const rdcstr &) {
+            return action->eventId == eventId && (action->flags & ActionFlags::Dispatch) &&
+                   propGetter(action) < value;
           };
         case 3:
           return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
                                      uint32_t eventId, const SDChunk *,
-                                     const DrawcallDescription *draw, const rdcstr &) {
-            return draw->eventId == eventId && (draw->flags & DrawFlags::Dispatch) &&
-                   propGetter(draw) > value;
+                                     const ActionDescription *action, const rdcstr &) {
+            return action->eventId == eventId && (action->flags & ActionFlags::Dispatch) &&
+                   propGetter(action) > value;
           };
         case 4:
           return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
                                      uint32_t eventId, const SDChunk *,
-                                     const DrawcallDescription *draw, const rdcstr &) {
-            return draw->eventId == eventId && (draw->flags & DrawFlags::Dispatch) &&
-                   propGetter(draw) <= value;
+                                     const ActionDescription *action, const rdcstr &) {
+            return action->eventId == eventId && (action->flags & ActionFlags::Dispatch) &&
+                   propGetter(action) <= value;
           };
         case 5:
           return [propGetter, value](ICaptureContext *, const rdcstr &, const rdcstr &,
                                      uint32_t eventId, const SDChunk *,
-                                     const DrawcallDescription *draw, const rdcstr &) {
-            return draw->eventId == eventId && (draw->flags & DrawFlags::Dispatch) &&
-                   propGetter(draw) >= value;
+                                     const ActionDescription *action, const rdcstr &) {
+            return action->eventId == eventId && (action->flags & ActionFlags::Dispatch) &&
+                   propGetter(action) >= value;
           };
         default: trace.setError(tr("Internal error", "EventFilterModel")); return NULL;
       }
@@ -2491,33 +2495,33 @@ Otherwise the event is included if it's a dispatch AND if the condition is true.
         case 0:
           return
               [this, nanoValue](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
-                                const SDChunk *, const DrawcallDescription *draw, const rdcstr &) {
+                                const SDChunk *, const ActionDescription *action, const rdcstr &) {
                 double dur = m_Model->GetSecondsDurationForEID(eventId);
-                return draw->eventId == eventId && (draw->flags & DrawFlags::Dispatch) &&
+                return action->eventId == eventId && (action->flags & ActionFlags::Dispatch) &&
                        dur >= 0.0 && int64_t(dur * 1000000000.0) < nanoValue;
               };
         case 1:
           return
               [this, nanoValue](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
-                                const SDChunk *, const DrawcallDescription *draw, const rdcstr &) {
+                                const SDChunk *, const ActionDescription *action, const rdcstr &) {
                 double dur = m_Model->GetSecondsDurationForEID(eventId);
-                return draw->eventId == eventId && (draw->flags & DrawFlags::Dispatch) &&
+                return action->eventId == eventId && (action->flags & ActionFlags::Dispatch) &&
                        dur >= 0.0 && int64_t(dur * 1000000000.0) > nanoValue;
               };
         case 2:
           return
               [this, nanoValue](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
-                                const SDChunk *, const DrawcallDescription *draw, const rdcstr &) {
+                                const SDChunk *, const ActionDescription *action, const rdcstr &) {
                 double dur = m_Model->GetSecondsDurationForEID(eventId);
-                return draw->eventId == eventId && (draw->flags & DrawFlags::Dispatch) &&
+                return action->eventId == eventId && (action->flags & ActionFlags::Dispatch) &&
                        dur >= 0.0 && int64_t(dur * 1000000000.0) <= nanoValue;
               };
         case 3:
           return
               [this, nanoValue](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
-                                const SDChunk *, const DrawcallDescription *draw, const rdcstr &) {
+                                const SDChunk *, const ActionDescription *action, const rdcstr &) {
                 double dur = m_Model->GetSecondsDurationForEID(eventId);
-                return draw->eventId == eventId && (draw->flags & DrawFlags::Dispatch) &&
+                return action->eventId == eventId && (action->flags & ActionFlags::Dispatch) &&
                        dur >= 0.0 && int64_t(dur * 1000000000.0) >= nanoValue;
               };
         default: trace.setError(tr("Internal error", "EventFilterModel")); return NULL;
@@ -2557,13 +2561,13 @@ nesting level.
     QString markerName = parameters.trimmed();
 
     return [markerName](ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t eventId,
-                        const SDChunk *, const DrawcallDescription *draw, const rdcstr &) {
-      while(draw->parent)
+                        const SDChunk *, const ActionDescription *action, const rdcstr &) {
+      while(action->parent)
       {
-        if(QString(draw->parent->name).contains(markerName, Qt::CaseInsensitive))
+        if(QString(action->parent->name).contains(markerName, Qt::CaseInsensitive))
           return true;
 
-        draw = draw->parent;
+        action = action->parent;
       }
 
       return false;
@@ -2605,9 +2609,9 @@ nesting level.
       }
 
       return [n, p, innerFilter](ICaptureContext *ctx, const rdcstr &, const rdcstr &, uint32_t eid,
-                                 const SDChunk *chunk, const DrawcallDescription *draw,
+                                 const SDChunk *chunk, const ActionDescription *action,
                                  const rdcstr &name) {
-        return innerFilter(ctx, n, p, eid, chunk, draw, name);
+        return innerFilter(ctx, n, p, eid, chunk, action, name);
       };
     }
 
@@ -2886,8 +2890,8 @@ ParseTrace EventFilterModel::ParseExpressionToFilters(QString expr, rdcarray<Eve
 
           auto filter = [subFilters](ICaptureContext *ctx, const rdcstr &, const rdcstr &,
                                      uint32_t eid, const SDChunk *chunk,
-                                     const DrawcallDescription *draw, const rdcstr &name) {
-            return EvaluateFilterSet(*ctx, subFilters, false, eid, chunk, draw, name);
+                                     const ActionDescription *action, const rdcstr &name) {
+            return EvaluateFilterSet(*ctx, subFilters, false, eid, chunk, action, name);
           };
 
           filters.push_back(EventFilter(filter, matchType));
@@ -3300,7 +3304,7 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   // we set up the name column as column 0 so that it gets the tree controls.
   ui->events->header()->setSectionResizeMode(COL_NAME, QHeaderView::Interactive);
   ui->events->header()->setSectionResizeMode(COL_EID, QHeaderView::Interactive);
-  ui->events->header()->setSectionResizeMode(COL_DRAW, QHeaderView::Interactive);
+  ui->events->header()->setSectionResizeMode(COL_ACTION, QHeaderView::Interactive);
   ui->events->header()->setSectionResizeMode(COL_DURATION, QHeaderView::Interactive);
 
   ui->events->header()->setMinimumSectionSize(40);
@@ -3316,11 +3320,11 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
 
   // set up default section layout. This will be overridden in restoreState()
   ui->events->header()->resizeSection(COL_EID, 80);
-  ui->events->header()->resizeSection(COL_DRAW, 60);
+  ui->events->header()->resizeSection(COL_ACTION, 60);
   ui->events->header()->resizeSection(COL_NAME, 200);
   ui->events->header()->resizeSection(COL_DURATION, 80);
 
-  ui->events->header()->hideSection(COL_DRAW);
+  ui->events->header()->hideSection(COL_ACTION);
   ui->events->header()->hideSection(COL_DURATION);
 
   ui->events->header()->moveSection(COL_NAME, 2);
@@ -3530,9 +3534,9 @@ void EventBrowser::OnCaptureLoaded()
   m_Breadcrumbs->ForceRefresh();
 
   ui->find->setEnabled(true);
-  ui->timeDraws->setEnabled(true);
+  ui->timeActions->setEnabled(true);
   ui->bookmark->setEnabled(true);
-  ui->exportDraws->setEnabled(true);
+  ui->exportActions->setEnabled(true);
   ui->stepPrev->setEnabled(true);
   ui->stepNext->setEnabled(true);
 }
@@ -3553,9 +3557,9 @@ void EventBrowser::OnCaptureClosed()
   setPersistData(p);
 
   ui->find->setEnabled(false);
-  ui->timeDraws->setEnabled(false);
+  ui->timeActions->setEnabled(false);
   ui->bookmark->setEnabled(false);
-  ui->exportDraws->setEnabled(false);
+  ui->exportActions->setEnabled(false);
   ui->stepPrev->setEnabled(false);
   ui->stepNext->setEnabled(false);
 }
@@ -3593,7 +3597,7 @@ void EventBrowser::on_bookmark_clicked()
   }
 }
 
-void EventBrowser::on_timeDraws_clicked()
+void EventBrowser::on_timeActions_clicked()
 {
   ANALYTIC_SET(UIFeatures.DrawcallTimes, true);
 
@@ -3622,20 +3626,20 @@ void EventBrowser::events_currentChanged(const QModelIndex &current, const QMode
   m_Model->RefreshCache();
   m_Breadcrumbs->OnEventChanged(effectiveEID);
 
-  const DrawcallDescription *draw = m_Ctx.GetDrawcall(selectedEID);
+  const ActionDescription *action = m_Ctx.GetAction(selectedEID);
 
-  if(draw && draw->IsFakeMarker())
-    draw = &draw->children.back();
+  if(action && action->IsFakeMarker())
+    action = &action->children.back();
 
-  ui->stepPrev->setEnabled(draw && draw->previous);
-  ui->stepNext->setEnabled(draw && draw->next);
+  ui->stepPrev->setEnabled(action && action->previous);
+  ui->stepNext->setEnabled(action && action->next);
 
-  // special case for the first draw in the frame
+  // special case for the first action in the frame
   if(selectedEID == 0)
     ui->stepNext->setEnabled(true);
 
-  // special case for the first 'virtual' draw at EID 0
-  if(m_Ctx.GetFirstDrawcall() && selectedEID == m_Ctx.GetFirstDrawcall()->eventId)
+  // special case for the first 'virtual' action at EID 0
+  if(m_Ctx.GetFirstAction() && selectedEID == m_Ctx.GetFirstAction()->eventId)
     ui->stepPrev->setEnabled(true);
 
   highlightBookmarks();
@@ -3709,14 +3713,14 @@ void EventBrowser::CreateFilterDialog()
     QObject::connect(m_FilterSettings.ShowAll, &QCheckBox::toggled,
                      [this](bool on) { m_Model->SetShowAllParameters(on); });
 
-    m_FilterSettings.UseCustom->setText(tr("Show custom draw names"));
+    m_FilterSettings.UseCustom->setText(tr("Show custom action names"));
     m_FilterSettings.UseCustom->setToolTip(
-        tr("Show custom draw names for e.g. indirect draws where the values are not as directly "
-           "useful."));
+        tr("Show custom action names for e.g. indirect draws where the explicit parameters are not "
+           "as directly useful."));
     m_FilterSettings.UseCustom->setCheckable(true);
 
     QObject::connect(m_FilterSettings.UseCustom, &QCheckBox::toggled,
-                     [this](bool on) { m_Model->SetUseCustomDrawNames(on); });
+                     [this](bool on) { m_Model->SetUseCustomActionNames(on); });
 
     settingsLayout->addWidget(m_FilterSettings.ShowParams);
     settingsLayout->addWidget(m_FilterSettings.ShowAll);
@@ -4069,11 +4073,11 @@ Finally you can use filter functions for more advanced matching than just
 strings. These are documented on the left here, but for example
 </p>
 
-<pre>  $draw(numIndices > 1000) Indexed</pre>
+<pre>  $action(numIndices > 1000) Indexed</pre>
 
 <p>
-will include any drawcall that matches "Indexed" as a plain string match, OR
-renders more than 1000 indices.
+will include any action that matches "Indexed" as a plain string match, OR
+is an action which renders more than 1000 indices.
 </p>
 )EOD").trimmed());
                        }
@@ -4291,7 +4295,7 @@ void EventBrowser::filterSettings_clicked()
   // update the global parameter checkboxes
   m_FilterSettings.ShowParams->setChecked(m_Model->ShowParameterNames());
   m_FilterSettings.ShowAll->setChecked(m_Model->ShowAllParameters());
-  m_FilterSettings.UseCustom->setChecked(m_Model->UseCustomDrawNames());
+  m_FilterSettings.UseCustom->setChecked(m_Model->UseCustomActionNames());
 
   // fill out the list of filter functions with the current list
   m_FilterSettings.FuncList->clear();
@@ -4731,24 +4735,24 @@ void EventBrowser::on_stepNext_clicked()
   if(!m_Ctx.IsCaptureLoaded() || !ui->stepNext->isEnabled())
     return;
 
-  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+  const ActionDescription *action = m_Ctx.CurAction();
 
-  if(draw)
-    draw = draw->next;
+  if(action)
+    action = action->next;
 
-  // special case for the first 'virtual' draw at EID 0
+  // special case for the first 'virtual' action at EID 0
   if(m_Ctx.CurEvent() == 0)
-    draw = m_Ctx.GetFirstDrawcall();
+    action = m_Ctx.GetFirstAction();
 
-  while(draw)
+  while(action)
   {
     // try to select the next event. If successful, stop
-    if(SelectEvent(draw->eventId))
+    if(SelectEvent(action->eventId))
       return;
 
-    // if it failed, possibly the next draw is filtered out. Step along the list until we find one
+    // if it failed, possibly the next action is filtered out. Step along the list until we find one
     // which isn't
-    draw = draw->next;
+    action = action->next;
   }
 }
 
@@ -4757,27 +4761,27 @@ void EventBrowser::on_stepPrev_clicked()
   if(!m_Ctx.IsCaptureLoaded() || !ui->stepPrev->isEnabled())
     return;
 
-  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+  const ActionDescription *action = m_Ctx.CurAction();
 
-  if(draw)
-    draw = draw->previous;
+  if(action)
+    action = action->previous;
 
-  while(draw)
+  while(action)
   {
     // try to select the previous event. If successful, stop
-    if(SelectEvent(draw->eventId))
+    if(SelectEvent(action->eventId))
       return;
 
-    // if it failed, possibly the previous draw is filtered out. Step along the list until we find
+    // if it failed, possibly the previous action is filtered out. Step along the list until we find
     // one which isn't
-    draw = draw->previous;
+    action = action->previous;
   }
 
-  // special case for the first 'virtual' draw at EID 0
+  // special case for the first 'virtual' action at EID 0
   SelectEvent(0);
 }
 
-void EventBrowser::on_exportDraws_clicked()
+void EventBrowser::on_exportActions_clicked()
 {
   QString filename =
       RDDialog::getSaveFileName(this, tr("Save Event List"), QString(), tr("Text files (*.txt)"));
@@ -4806,7 +4810,7 @@ void EventBrowser::on_exportDraws_clicked()
         for(int i = 1, rowCount = ui->events->model()->rowCount(root); i < rowCount; i++)
           GetMaxNameLength(maxNameLength, 0, false, ui->events->model()->index(i, COL_NAME, root));
 
-        QString line = QFormatStr(" EID  | %1 | Draw #").arg(lit("Event"), -maxNameLength);
+        QString line = QFormatStr(" EID  | %1 | Action #").arg(lit("Event"), -maxNameLength);
 
         if(m_Model->HasTimes())
         {
@@ -4830,8 +4834,8 @@ void EventBrowser::on_exportDraws_clicked()
         stream << line << "\n";
 
         for(int i = 1, rowCount = ui->events->model()->rowCount(root); i < rowCount; i++)
-          ExportDrawcall(stream, maxNameLength, 0, false,
-                         ui->events->model()->index(i, COL_NAME, root));
+          ExportAction(stream, maxNameLength, 0, false,
+                       ui->events->model()->index(i, COL_NAME, root));
       }
       else
       {
@@ -4884,18 +4888,18 @@ void EventBrowser::GetMaxNameLength(int &maxNameLength, int indent, bool firstch
   }
 }
 
-void EventBrowser::ExportDrawcall(QTextStream &writer, int maxNameLength, int indent,
-                                  bool firstchild, const QModelIndex &idx)
+void EventBrowser::ExportAction(QTextStream &writer, int maxNameLength, int indent, bool firstchild,
+                                const QModelIndex &idx)
 {
   QString nameString = GetExportString(indent, firstchild, idx);
 
   QModelIndex eidIdx = idx.model()->sibling(idx.row(), COL_EID, idx);
-  QModelIndex drawIdx = idx.model()->sibling(idx.row(), COL_DRAW, idx);
+  QModelIndex actionIdx = idx.model()->sibling(idx.row(), COL_ACTION, idx);
 
   QString line = QFormatStr("%1 | %2 | %3")
                      .arg(eidIdx.data(Qt::DisplayRole).toString(), -5)
                      .arg(nameString, -maxNameLength)
-                     .arg(drawIdx.data(Qt::DisplayRole).toString(), -6);
+                     .arg(actionIdx.data(Qt::DisplayRole).toString(), -6);
 
   if(m_Model->HasTimes())
   {
@@ -4917,7 +4921,7 @@ void EventBrowser::ExportDrawcall(QTextStream &writer, int maxNameLength, int in
 
   for(int i = 0, rowCount = idx.model()->rowCount(idx); i < rowCount; i++)
   {
-    ExportDrawcall(writer, maxNameLength, indent + 1, firstchild, idx.child(i, COL_NAME));
+    ExportAction(writer, maxNameLength, indent + 1, firstchild, idx.child(i, COL_NAME));
     firstchild = false;
   }
 }
@@ -5011,7 +5015,7 @@ void EventBrowser::events_keyPress(QKeyEvent *event)
     }
     else if(event->key() == Qt::Key_T)
     {
-      on_timeDraws_clicked();
+      on_timeActions_clicked();
       event->accept();
     }
   }
@@ -5211,11 +5215,11 @@ void EventBrowser::UpdateDurationColumn()
 
 APIEvent EventBrowser::GetAPIEventForEID(uint32_t eid)
 {
-  const DrawcallDescription *draw = GetDrawcallForEID(eid);
+  const ActionDescription *action = GetActionForEID(eid);
 
-  if(draw)
+  if(action)
   {
-    for(const APIEvent &ev : draw->events)
+    for(const APIEvent &ev : action->events)
     {
       if(ev.eventId == eid)
         return ev;
@@ -5225,9 +5229,9 @@ APIEvent EventBrowser::GetAPIEventForEID(uint32_t eid)
   return APIEvent();
 }
 
-const DrawcallDescription *EventBrowser::GetDrawcallForEID(uint32_t eid)
+const ActionDescription *EventBrowser::GetActionForEID(uint32_t eid)
 {
-  return m_Model->GetDrawcallForEID(eid);
+  return m_Model->GetActionForEID(eid);
 }
 
 bool EventBrowser::IsAPIEventVisible(uint32_t eid)
@@ -5268,9 +5272,9 @@ void EventBrowser::SetShowAllParameters(bool show)
   m_Model->SetShowAllParameters(show);
 }
 
-void EventBrowser::SetUseCustomDrawNames(bool use)
+void EventBrowser::SetUseCustomActionNames(bool use)
 {
-  m_Model->SetUseCustomDrawNames(use);
+  m_Model->SetUseCustomActionNames(use);
 }
 
 void EventBrowser::SetEmptyRegionsVisible(bool show)

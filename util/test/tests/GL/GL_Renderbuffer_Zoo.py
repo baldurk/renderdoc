@@ -6,10 +6,10 @@ class GL_Renderbuffer_Zoo(rdtest.TestCase):
     demos_test_name = 'GL_Renderbuffer_Zoo'
 
     def check_capture(self):
-        draw: rd.DrawcallDescription = self.find_draw('glDraw')
+        action: rd.ActionDescription = self.find_action('glDraw')
 
-        while draw is not None:
-            self.controller.SetFrameEvent(draw.eventId, True)
+        while action is not None:
+            self.controller.SetFrameEvent(action.eventId, True)
 
             self.check_triangle(fore=[0.2, 0.75, 0.2, 1.0])
 
@@ -36,7 +36,7 @@ class GL_Renderbuffer_Zoo(rdtest.TestCase):
                 raise rdtest.TestFailureException(
                     "Green histogram didn't return expected values, values should have landed in first or last bucket")
 
-            rdtest.log.success('Color Renderbuffer at draw {} is working as expected'.format(draw.eventId))
+            rdtest.log.success('Color Renderbuffer at action {} is working as expected'.format(action.eventId))
 
             if depth.resourceId != rd.ResourceId():
                 val = self.controller.PickPixel(depth.resourceId, int(0.5 * vp.width), int(0.5 * vp.height),
@@ -62,7 +62,7 @@ class GL_Renderbuffer_Zoo(rdtest.TestCase):
                     raise rdtest.TestFailureException(
                         "Depth histogram didn't return expected values, values should have landed in first or last bucket")
 
-                rdtest.log.success('Depth Renderbuffer at draw {} is working as expected'.format(draw.eventId))
+                rdtest.log.success('Depth Renderbuffer at action {} is working as expected'.format(action.eventId))
 
             tex_details = self.get_texture(id)
 
@@ -93,6 +93,6 @@ class GL_Renderbuffer_Zoo(rdtest.TestCase):
 
                             raise rdtest.TestFailureException("Two MSAA samples returned the same data", img_path0, img_path1)
 
-            draw: rd.DrawcallDescription = self.find_draw('glDraw', draw.eventId+1)
+            action: rd.ActionDescription = self.find_action('glDraw', action.eventId+1)
 
         rdtest.log.success('All renderbuffers checked and rendered correctly')

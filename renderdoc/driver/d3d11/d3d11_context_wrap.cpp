@@ -55,22 +55,22 @@ bool WrappedID3D11DeviceContext::Serialise_SetMarker(SerialiserType &ser, uint32
 
     if(IsLoading(m_State))
     {
-      DrawcallDescription draw;
-      draw.name = MarkerName;
-      draw.flags |= DrawFlags::SetMarker;
+      ActionDescription action;
+      action.name = MarkerName;
+      action.flags |= ActionFlags::SetMarker;
 
       byte alpha = (Color >> 24) & 0xff;
       byte red = (Color >> 16) & 0xff;
       byte green = (Color >> 8) & 0xff;
       byte blue = (Color >> 0) & 0xff;
 
-      draw.markerColor.x = float(red) / 255.0f;
-      draw.markerColor.y = float(green) / 255.0f;
-      draw.markerColor.z = float(blue) / 255.0f;
-      draw.markerColor.w = float(alpha) / 255.0f;
+      action.markerColor.x = float(red) / 255.0f;
+      action.markerColor.y = float(green) / 255.0f;
+      action.markerColor.z = float(blue) / 255.0f;
+      action.markerColor.w = float(alpha) / 255.0f;
 
       AddEvent();
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -93,22 +93,22 @@ bool WrappedID3D11DeviceContext::Serialise_PushMarker(SerialiserType &ser, uint3
 
     if(IsLoading(m_State))
     {
-      DrawcallDescription draw;
-      draw.name = MarkerName;
-      draw.flags |= DrawFlags::PushMarker;
+      ActionDescription action;
+      action.name = MarkerName;
+      action.flags |= ActionFlags::PushMarker;
 
       byte alpha = (Color >> 24) & 0xff;
       byte red = (Color >> 16) & 0xff;
       byte green = (Color >> 8) & 0xff;
       byte blue = (Color >> 0) & 0xff;
 
-      draw.markerColor.x = float(red) / 255.0f;
-      draw.markerColor.y = float(green) / 255.0f;
-      draw.markerColor.z = float(blue) / 255.0f;
-      draw.markerColor.w = float(alpha) / 255.0f;
+      action.markerColor.x = float(red) / 255.0f;
+      action.markerColor.y = float(green) / 255.0f;
+      action.markerColor.z = float(blue) / 255.0f;
+      action.markerColor.w = float(alpha) / 255.0f;
 
       AddEvent();
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -125,11 +125,11 @@ bool WrappedID3D11DeviceContext::Serialise_PopMarker(SerialiserType &ser)
 
     if(IsLoading(m_State))
     {
-      DrawcallDescription draw;
-      draw.flags |= DrawFlags::PopMarker;
+      ActionDescription action;
+      action.flags |= ActionFlags::PopMarker;
 
       AddEvent();
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -143,7 +143,7 @@ void WrappedID3D11DeviceContext::SetMarker(uint32_t Color, const wchar_t *Marker
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    GET_SERIALISER.SetDrawChunk();
+    GET_SERIALISER.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::SetMarker);
     SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
     Serialise_SetMarker(GET_SERIALISER, Color, MarkerName);
@@ -159,7 +159,7 @@ int WrappedID3D11DeviceContext::PushMarker(uint32_t Color, const wchar_t *Marker
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    GET_SERIALISER.SetDrawChunk();
+    GET_SERIALISER.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::PushMarker);
     SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
     Serialise_PushMarker(GET_SERIALISER, Color, MarkerName);
@@ -177,7 +177,7 @@ int WrappedID3D11DeviceContext::PopMarker()
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    GET_SERIALISER.SetDrawChunk();
+    GET_SERIALISER.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::PopMarker);
     SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
     Serialise_PopMarker(GET_SERIALISER);
@@ -3826,16 +3826,16 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstanced(
 
       AddEvent();
 
-      DrawcallDescription draw;
-      draw.numIndices = IndexCountPerInstance;
-      draw.numInstances = InstanceCount;
-      draw.indexOffset = StartIndexLocation;
-      draw.baseVertex = BaseVertexLocation;
-      draw.instanceOffset = StartInstanceLocation;
+      ActionDescription action;
+      action.numIndices = IndexCountPerInstance;
+      action.numInstances = InstanceCount;
+      action.indexOffset = StartIndexLocation;
+      action.baseVertex = BaseVertexLocation;
+      action.instanceOffset = StartInstanceLocation;
 
-      draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indexed;
+      action.flags |= ActionFlags::Drawcall | ActionFlags::Instanced | ActionFlags::Indexed;
 
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -3861,7 +3861,7 @@ void WrappedID3D11DeviceContext::DrawIndexedInstanced(UINT IndexCountPerInstance
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    GET_SERIALISER.SetDrawChunk();
+    GET_SERIALISER.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::DrawIndexedInstanced);
     SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
     Serialise_DrawIndexedInstanced(GET_SERIALISER, IndexCountPerInstance, InstanceCount,
@@ -3899,15 +3899,15 @@ bool WrappedID3D11DeviceContext::Serialise_DrawInstanced(SerialiserType &ser,
 
       AddEvent();
 
-      DrawcallDescription draw;
-      draw.numIndices = VertexCountPerInstance;
-      draw.numInstances = InstanceCount;
-      draw.vertexOffset = StartVertexLocation;
-      draw.instanceOffset = StartInstanceLocation;
+      ActionDescription action;
+      action.numIndices = VertexCountPerInstance;
+      action.numInstances = InstanceCount;
+      action.vertexOffset = StartVertexLocation;
+      action.instanceOffset = StartInstanceLocation;
 
-      draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced;
+      action.flags |= ActionFlags::Drawcall | ActionFlags::Instanced;
 
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -3931,7 +3931,7 @@ void WrappedID3D11DeviceContext::DrawInstanced(UINT VertexCountPerInstance, UINT
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    GET_SERIALISER.SetDrawChunk();
+    GET_SERIALISER.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::DrawInstanced);
     SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
     Serialise_DrawInstanced(GET_SERIALISER, VertexCountPerInstance, InstanceCount,
@@ -3966,14 +3966,14 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexed(SerialiserType &ser, UINT
 
       AddEvent();
 
-      DrawcallDescription draw;
-      draw.numIndices = IndexCount;
-      draw.baseVertex = BaseVertexLocation;
-      draw.indexOffset = StartIndexLocation;
+      ActionDescription action;
+      action.numIndices = IndexCount;
+      action.baseVertex = BaseVertexLocation;
+      action.indexOffset = StartIndexLocation;
 
-      draw.flags |= DrawFlags::Drawcall | DrawFlags::Indexed;
+      action.flags |= ActionFlags::Drawcall | ActionFlags::Indexed;
 
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -3996,7 +3996,7 @@ void WrappedID3D11DeviceContext::DrawIndexed(UINT IndexCount, UINT StartIndexLoc
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    GET_SERIALISER.SetDrawChunk();
+    GET_SERIALISER.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::DrawIndexed);
     SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
     Serialise_DrawIndexed(GET_SERIALISER, IndexCount, StartIndexLocation, BaseVertexLocation);
@@ -4028,13 +4028,13 @@ bool WrappedID3D11DeviceContext::Serialise_Draw(SerialiserType &ser, UINT Vertex
 
       AddEvent();
 
-      DrawcallDescription draw;
-      draw.numIndices = VertexCount;
-      draw.vertexOffset = StartVertexLocation;
+      ActionDescription action;
+      action.numIndices = VertexCount;
+      action.vertexOffset = StartVertexLocation;
 
-      draw.flags |= DrawFlags::Drawcall;
+      action.flags |= ActionFlags::Drawcall;
 
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -4056,7 +4056,7 @@ void WrappedID3D11DeviceContext::Draw(UINT VertexCount, UINT StartVertexLocation
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    GET_SERIALISER.SetDrawChunk();
+    GET_SERIALISER.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::Draw);
     SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
     Serialise_Draw(GET_SERIALISER, VertexCount, StartVertexLocation);
@@ -4138,16 +4138,16 @@ bool WrappedID3D11DeviceContext::Serialise_DrawAuto(SerialiserType &ser)
 
       AddEvent();
 
-      DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("DrawAuto(<%u>)", numVerts);
-      draw.flags |= DrawFlags::Drawcall | DrawFlags::Auto;
-      draw.numIndices = (uint32_t)numVerts;
-      draw.vertexOffset = 0;
-      draw.indexOffset = 0;
-      draw.instanceOffset = 0;
-      draw.numInstances = 1;
+      ActionDescription action;
+      action.name = StringFormat::Fmt("DrawAuto(<%u>)", numVerts);
+      action.flags |= ActionFlags::Drawcall | ActionFlags::Auto;
+      action.numIndices = (uint32_t)numVerts;
+      action.vertexOffset = 0;
+      action.indexOffset = 0;
+      action.instanceOffset = 0;
+      action.numInstances = 1;
 
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -4169,7 +4169,7 @@ void WrappedID3D11DeviceContext::DrawAuto()
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    GET_SERIALISER.SetDrawChunk();
+    GET_SERIALISER.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::DrawAuto);
     SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
     Serialise_DrawAuto(GET_SERIALISER);
@@ -4204,7 +4204,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstancedIndirect(Serialis
     {
       AddEvent();
 
-      DrawcallDescription draw;
+      ActionDescription action;
 
       rdcstr name;
 
@@ -4227,16 +4227,16 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstancedIndirect(Serialis
         {
           DrawArgs *args = (DrawArgs *)&argarray[0];
 
-          draw.numIndices = args->IndexCountPerInstance;
-          draw.numInstances = args->InstanceCount;
-          draw.indexOffset = args->StartIndexLocation;
-          draw.baseVertex = args->BaseVertexLocation;
-          draw.instanceOffset = args->StartInstanceLocation;
+          action.numIndices = args->IndexCountPerInstance;
+          action.numInstances = args->InstanceCount;
+          action.indexOffset = args->StartIndexLocation;
+          action.baseVertex = args->BaseVertexLocation;
+          action.instanceOffset = args->StartInstanceLocation;
 
-          RecordDrawStats(true, true, draw.numInstances);
+          RecordDrawStats(true, true, action.numInstances);
 
-          name = StringFormat::Fmt("DrawIndexedInstancedIndirect(<%u, %u>)", draw.numIndices,
-                                   draw.numInstances);
+          name = StringFormat::Fmt("DrawIndexedInstancedIndirect(<%u, %u>)", action.numIndices,
+                                   action.numInstances);
         }
         else
         {
@@ -4268,12 +4268,12 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstancedIndirect(Serialis
             EventUsage(m_CurEventID, ResourceUsage::Indirect));
       }
 
-      draw.name = name;
+      action.name = name;
 
-      draw.flags |=
-          DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indexed | DrawFlags::Indirect;
+      action.flags |= ActionFlags::Drawcall | ActionFlags::Instanced | ActionFlags::Indexed |
+                      ActionFlags::Indirect;
 
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -4297,7 +4297,7 @@ void WrappedID3D11DeviceContext::DrawIndexedInstancedIndirect(ID3D11Buffer *pBuf
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    GET_SERIALISER.SetDrawChunk();
+    GET_SERIALISER.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::DrawIndexedInstancedIndirect);
     SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
     Serialise_DrawIndexedInstancedIndirect(GET_SERIALISER, pBufferForArgs, AlignedByteOffsetForArgs);
@@ -4335,7 +4335,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawInstancedIndirect(SerialiserType 
     {
       AddEvent();
 
-      DrawcallDescription draw;
+      ActionDescription action;
 
       rdcstr name;
 
@@ -4357,15 +4357,15 @@ bool WrappedID3D11DeviceContext::Serialise_DrawInstancedIndirect(SerialiserType 
         {
           DrawArgs *args = (DrawArgs *)&argarray[0];
 
-          draw.numIndices = args->VertexCountPerInstance;
-          draw.numInstances = args->InstanceCount;
-          draw.vertexOffset = args->StartVertexLocation;
-          draw.instanceOffset = args->StartInstanceLocation;
+          action.numIndices = args->VertexCountPerInstance;
+          action.numInstances = args->InstanceCount;
+          action.vertexOffset = args->StartVertexLocation;
+          action.instanceOffset = args->StartInstanceLocation;
 
-          RecordDrawStats(true, true, draw.numInstances);
+          RecordDrawStats(true, true, action.numInstances);
 
-          name = StringFormat::Fmt("DrawInstancedIndirect(<%u, %u>)", draw.numIndices,
-                                   draw.numInstances);
+          name = StringFormat::Fmt("DrawInstancedIndirect(<%u, %u>)", action.numIndices,
+                                   action.numInstances);
         }
         else
         {
@@ -4397,11 +4397,11 @@ bool WrappedID3D11DeviceContext::Serialise_DrawInstancedIndirect(SerialiserType 
             EventUsage(m_CurEventID, ResourceUsage::Indirect));
       }
 
-      draw.name = name;
+      action.name = name;
 
-      draw.flags |= DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indirect;
+      action.flags |= ActionFlags::Drawcall | ActionFlags::Instanced | ActionFlags::Indirect;
 
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -4425,7 +4425,7 @@ void WrappedID3D11DeviceContext::DrawInstancedIndirect(ID3D11Buffer *pBufferForA
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    GET_SERIALISER.SetDrawChunk();
+    GET_SERIALISER.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::DrawInstancedIndirect);
     SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
     Serialise_DrawInstancedIndirect(GET_SERIALISER, pBufferForArgs, AlignedByteOffsetForArgs);
@@ -4961,12 +4961,12 @@ bool WrappedID3D11DeviceContext::Serialise_Dispatch(SerialiserType &ser, UINT Th
 
       AddEvent();
 
-      DrawcallDescription draw;
-      draw.flags |= DrawFlags::Dispatch;
+      ActionDescription action;
+      action.flags |= ActionFlags::Dispatch;
 
-      draw.dispatchDimension[0] = ThreadGroupCountX;
-      draw.dispatchDimension[1] = ThreadGroupCountY;
-      draw.dispatchDimension[2] = ThreadGroupCountZ;
+      action.dispatchDimension[0] = ThreadGroupCountX;
+      action.dispatchDimension[1] = ThreadGroupCountY;
+      action.dispatchDimension[2] = ThreadGroupCountZ;
 
       if(ThreadGroupCountX == 0)
         m_pDevice->AddDebugMessage(
@@ -4984,7 +4984,7 @@ bool WrappedID3D11DeviceContext::Serialise_Dispatch(SerialiserType &ser, UINT Th
             "Dispatch call has ThreadGroup count Z=0. This will do nothing, "
             "which is unusual for a non-indirect Dispatch. Did you mean Z=1?");
 
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -5008,7 +5008,7 @@ void WrappedID3D11DeviceContext::Dispatch(UINT ThreadGroupCountX, UINT ThreadGro
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    GET_SERIALISER.SetDrawChunk();
+    GET_SERIALISER.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::Dispatch);
     SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
     Serialise_Dispatch(GET_SERIALISER, ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
@@ -5045,7 +5045,7 @@ bool WrappedID3D11DeviceContext::Serialise_DispatchIndirect(SerialiserType &ser,
 
       AddEvent();
 
-      DrawcallDescription draw;
+      ActionDescription action;
 
       rdcstr name;
       if(pBufferForArgs)
@@ -5065,9 +5065,9 @@ bool WrappedID3D11DeviceContext::Serialise_DispatchIndirect(SerialiserType &ser,
         {
           DispatchArgs *args = (DispatchArgs *)&argarray[0];
 
-          draw.dispatchDimension[0] = args->ThreadGroupCountX;
-          draw.dispatchDimension[1] = args->ThreadGroupCountY;
-          draw.dispatchDimension[2] = args->ThreadGroupCountZ;
+          action.dispatchDimension[0] = args->ThreadGroupCountX;
+          action.dispatchDimension[1] = args->ThreadGroupCountY;
+          action.dispatchDimension[2] = args->ThreadGroupCountZ;
 
           name = StringFormat::Fmt("DispatchIndirect(<%u, %u, %u>)", args->ThreadGroupCountX,
                                    args->ThreadGroupCountY, args->ThreadGroupCountZ);
@@ -5102,10 +5102,10 @@ bool WrappedID3D11DeviceContext::Serialise_DispatchIndirect(SerialiserType &ser,
             EventUsage(m_CurEventID, ResourceUsage::Indirect));
       }
 
-      draw.name = name;
-      draw.flags |= DrawFlags::Dispatch | DrawFlags::Indirect;
+      action.name = name;
+      action.flags |= ActionFlags::Dispatch | ActionFlags::Indirect;
 
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -5129,7 +5129,7 @@ void WrappedID3D11DeviceContext::DispatchIndirect(ID3D11Buffer *pBufferForArgs,
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    GET_SERIALISER.SetDrawChunk();
+    GET_SERIALISER.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::DispatchIndirect);
     SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
     Serialise_DispatchIndirect(GET_SERIALISER, pBufferForArgs, AlignedByteOffsetForArgs);
@@ -5181,10 +5181,10 @@ bool WrappedID3D11DeviceContext::Serialise_ExecuteCommandList(SerialiserType &se
     {
       AddEvent();
 
-      DrawcallDescription draw;
-      draw.flags |= DrawFlags::CmdList;
+      ActionDescription action;
+      action.flags |= ActionFlags::CmdList;
 
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -5244,7 +5244,7 @@ void WrappedID3D11DeviceContext::ExecuteCommandList(ID3D11CommandList *pCommandL
   {
     {
       USE_SCRATCH_SERIALISER();
-      GET_SERIALISER.SetDrawChunk();
+      GET_SERIALISER.SetActionChunk();
       SCOPED_SERIALISE_CHUNK(D3D11Chunk::ExecuteCommandList);
       SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
       Serialise_ExecuteCommandList(GET_SERIALISER, pCommandList, RestoreContextState);
@@ -5317,10 +5317,10 @@ bool WrappedID3D11DeviceContext::Serialise_FinishCommandList(SerialiserType &ser
   {
     AddEvent();
 
-    DrawcallDescription draw;
-    draw.flags |= DrawFlags::CmdList;
+    ActionDescription action;
+    action.flags |= ActionFlags::CmdList;
 
-    AddDrawcall(draw);
+    AddAction(action);
 
     m_pDevice->AddResource(pCommandList, ResourceType::CommandBuffer, "Command List");
 
@@ -5413,7 +5413,7 @@ HRESULT WrappedID3D11DeviceContext::FinishCommandList(BOOL RestoreDeferredContex
         // serialise the finish marker
         {
           USE_SCRATCH_SERIALISER();
-          GET_SERIALISER.SetDrawChunk();
+          GET_SERIALISER.SetActionChunk();
           SCOPED_SERIALISE_CHUNK(D3D11Chunk::FinishCommandList);
           SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
           Serialise_FinishCommandList(GET_SERIALISER, RestoreDeferredContextState, &w);
@@ -5588,18 +5588,18 @@ bool WrappedID3D11DeviceContext::Serialise_CopySubresourceRegion(
 
       AddEvent();
 
-      DrawcallDescription draw;
-      draw.flags |= DrawFlags::Copy;
+      ActionDescription action;
+      action.flags |= ActionFlags::Copy;
 
       if(pDstResource && pSrcResource)
       {
-        draw.copySource = srcOrigID;
-        draw.copySourceSubresource =
+        action.copySource = srcOrigID;
+        action.copySourceSubresource =
             Subresource(GetMipForSubresource(pSrcResource, SrcSubresource),
                         GetSliceForSubresource(pSrcResource, SrcSubresource));
 
-        draw.copyDestination = dstOrigID;
-        draw.copyDestinationSubresource =
+        action.copyDestination = dstOrigID;
+        action.copyDestinationSubresource =
             Subresource(GetMipForSubresource(pDstResource, DstSubresource),
                         GetSliceForSubresource(pDstResource, DstSubresource));
 
@@ -5617,7 +5617,7 @@ bool WrappedID3D11DeviceContext::Serialise_CopySubresourceRegion(
         }
       }
 
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -5642,7 +5642,7 @@ void WrappedID3D11DeviceContext::CopySubresourceRegion(ID3D11Resource *pDstResou
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    GET_SERIALISER.SetDrawChunk();
+    GET_SERIALISER.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::CopySubresourceRegion);
     SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
     Serialise_CopySubresourceRegion(GET_SERIALISER, pDstResource, DstSubresource, DstX, DstY, DstZ,
@@ -5745,15 +5745,15 @@ bool WrappedID3D11DeviceContext::Serialise_CopyResource(SerialiserType &ser,
 
       AddEvent();
 
-      DrawcallDescription draw;
-      draw.flags |= DrawFlags::Copy;
+      ActionDescription action;
+      action.flags |= ActionFlags::Copy;
 
       if(pDstResource && pSrcResource)
       {
-        draw.copySource = srcOrigID;
-        draw.copySourceSubresource = Subresource();
-        draw.copyDestination = dstOrigID;
-        draw.copyDestinationSubresource = Subresource();
+        action.copySource = srcOrigID;
+        action.copySourceSubresource = Subresource();
+        action.copyDestination = dstOrigID;
+        action.copyDestinationSubresource = Subresource();
 
         if(m_CurEventID)
         {
@@ -5769,7 +5769,7 @@ bool WrappedID3D11DeviceContext::Serialise_CopyResource(SerialiserType &ser,
         }
       }
 
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -5791,7 +5791,7 @@ void WrappedID3D11DeviceContext::CopyResource(ID3D11Resource *pDstResource,
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    GET_SERIALISER.SetDrawChunk();
+    GET_SERIALISER.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::CopyResource);
     SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
     Serialise_CopyResource(GET_SERIALISER, pDstResource, pSrcResource);
@@ -6185,12 +6185,12 @@ bool WrappedID3D11DeviceContext::Serialise_CopyStructureCount(SerialiserType &se
 
       AddEvent();
 
-      DrawcallDescription draw;
-      draw.flags |= DrawFlags::Copy;
-      draw.copySource = srcOrigID;
-      draw.copySourceSubresource = Subresource();
-      draw.copyDestination = dstOrigID;
-      draw.copyDestinationSubresource = Subresource();
+      ActionDescription action;
+      action.flags |= ActionFlags::Copy;
+      action.copySource = srcOrigID;
+      action.copySourceSubresource = Subresource();
+      action.copyDestination = dstOrigID;
+      action.copyDestinationSubresource = Subresource();
 
       if(m_CurEventID)
       {
@@ -6205,7 +6205,7 @@ bool WrappedID3D11DeviceContext::Serialise_CopyStructureCount(SerialiserType &se
         }
       }
 
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -6229,7 +6229,7 @@ void WrappedID3D11DeviceContext::CopyStructureCount(ID3D11Buffer *pDstBuffer,
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    GET_SERIALISER.SetDrawChunk();
+    GET_SERIALISER.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::CopyStructureCount);
     SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
     Serialise_CopyStructureCount(GET_SERIALISER, pDstBuffer, DstAlignedByteOffset, pSrcView);
@@ -6295,17 +6295,17 @@ bool WrappedID3D11DeviceContext::Serialise_ResolveSubresource(SerialiserType &se
 
       AddEvent();
 
-      DrawcallDescription draw;
-      draw.flags |= DrawFlags::Resolve;
+      ActionDescription action;
+      action.flags |= ActionFlags::Resolve;
 
       if(pDstResource && pSrcResource)
       {
-        draw.copySource = srcOrigID;
-        draw.copySourceSubresource =
+        action.copySource = srcOrigID;
+        action.copySourceSubresource =
             Subresource(GetMipForSubresource(pSrcResource, SrcSubresource),
                         GetSliceForSubresource(pSrcResource, SrcSubresource));
-        draw.copyDestination = dstOrigID;
-        draw.copyDestinationSubresource =
+        action.copyDestination = dstOrigID;
+        action.copyDestinationSubresource =
             Subresource(GetMipForSubresource(pDstResource, DstSubresource),
                         GetSliceForSubresource(pDstResource, DstSubresource));
 
@@ -6323,7 +6323,7 @@ bool WrappedID3D11DeviceContext::Serialise_ResolveSubresource(SerialiserType &se
         }
       }
 
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -6347,7 +6347,7 @@ void WrappedID3D11DeviceContext::ResolveSubresource(ID3D11Resource *pDstResource
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    GET_SERIALISER.SetDrawChunk();
+    GET_SERIALISER.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::ResolveSubresource);
     SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
     Serialise_ResolveSubresource(GET_SERIALISER, pDstResource, DstSubresource, pSrcResource,
@@ -6396,13 +6396,13 @@ bool WrappedID3D11DeviceContext::Serialise_GenerateMips(SerialiserType &ser,
 
       AddEvent();
 
-      DrawcallDescription draw;
-      draw.name =
+      ActionDescription action;
+      action.name =
           "GenerateMips(" +
           ToStr(GetResourceManager()->GetOriginalID(GetIDForDeviceChild(pShaderResourceView))) + ")";
-      draw.flags |= DrawFlags::GenMips;
+      action.flags |= ActionFlags::GenMips;
 
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -6426,7 +6426,7 @@ void WrappedID3D11DeviceContext::GenerateMips(ID3D11ShaderResourceView *pShaderR
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    GET_SERIALISER.SetDrawChunk();
+    GET_SERIALISER.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::GenerateMips);
     SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
     Serialise_GenerateMips(GET_SERIALISER, pShaderResourceView);
@@ -6492,7 +6492,7 @@ void WrappedID3D11DeviceContext::ClearState()
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    GET_SERIALISER.SetDrawChunk();
+    GET_SERIALISER.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::ClearState);
     SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
     Serialise_ClearState(GET_SERIALISER);
@@ -6546,22 +6546,22 @@ bool WrappedID3D11DeviceContext::Serialise_ClearRenderTargetView(
 
       WrappedID3D11RenderTargetView1 *view = (WrappedID3D11RenderTargetView1 *)pRenderTargetView;
 
-      DrawcallDescription draw;
-      draw.flags |= DrawFlags::Clear | DrawFlags::ClearColor;
+      ActionDescription action;
+      action.flags |= ActionFlags::Clear | ActionFlags::ClearColor;
 
       if(view)
       {
         m_ResourceUses[view->GetResourceResID()].push_back(
             EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
-        draw.copyDestination =
+        action.copyDestination =
             m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
         D3D11_RENDER_TARGET_VIEW_DESC viewDesc;
         view->GetDesc(&viewDesc);
-        draw.copyDestinationSubresource =
+        action.copyDestinationSubresource =
             Subresource(GetMipForRtv(viewDesc), GetSliceForRtv(viewDesc));
       }
 
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -6586,7 +6586,7 @@ void WrappedID3D11DeviceContext::ClearRenderTargetView(ID3D11RenderTargetView *p
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    GET_SERIALISER.SetDrawChunk();
+    GET_SERIALISER.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::ClearRenderTargetView);
     SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
     Serialise_ClearRenderTargetView(GET_SERIALISER, pRenderTargetView, ColorRGBA);
@@ -6629,19 +6629,19 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewUint(
       WrappedID3D11UnorderedAccessView1 *view =
           (WrappedID3D11UnorderedAccessView1 *)pUnorderedAccessView;
 
-      DrawcallDescription draw;
-      draw.flags |= DrawFlags::Clear;
+      ActionDescription action;
+      action.flags |= ActionFlags::Clear;
 
       if(view)
       {
         m_ResourceUses[view->GetResourceResID()].push_back(
             EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
-        draw.copyDestination =
+        action.copyDestination =
             m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
-        draw.copyDestinationSubresource = Subresource();
+        action.copyDestinationSubresource = Subresource();
       }
 
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -6661,7 +6661,7 @@ void WrappedID3D11DeviceContext::ClearUnorderedAccessViewUint(
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    GET_SERIALISER.SetDrawChunk();
+    GET_SERIALISER.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::ClearUnorderedAccessViewUint);
     SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
     Serialise_ClearUnorderedAccessViewUint(GET_SERIALISER, pUnorderedAccessView, Values);
@@ -6708,19 +6708,19 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewFloat(
       WrappedID3D11UnorderedAccessView1 *view =
           (WrappedID3D11UnorderedAccessView1 *)pUnorderedAccessView;
 
-      DrawcallDescription draw;
-      draw.flags |= DrawFlags::Clear;
+      ActionDescription action;
+      action.flags |= ActionFlags::Clear;
 
       if(view)
       {
         m_ResourceUses[view->GetResourceResID()].push_back(
             EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
-        draw.copyDestination =
+        action.copyDestination =
             m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
-        draw.copyDestinationSubresource = Subresource();
+        action.copyDestinationSubresource = Subresource();
       }
 
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -6740,7 +6740,7 @@ void WrappedID3D11DeviceContext::ClearUnorderedAccessViewFloat(
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    GET_SERIALISER.SetDrawChunk();
+    GET_SERIALISER.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::ClearUnorderedAccessViewFloat);
     SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
     Serialise_ClearUnorderedAccessViewFloat(GET_SERIALISER, pUnorderedAccessView, Values);
@@ -6793,22 +6793,22 @@ bool WrappedID3D11DeviceContext::Serialise_ClearDepthStencilView(
 
       WrappedID3D11DepthStencilView *view = (WrappedID3D11DepthStencilView *)pDepthStencilView;
 
-      DrawcallDescription draw;
-      draw.flags |= DrawFlags::Clear | DrawFlags::ClearDepthStencil;
+      ActionDescription action;
+      action.flags |= ActionFlags::Clear | ActionFlags::ClearDepthStencil;
 
       if(view)
       {
         m_ResourceUses[view->GetResourceResID()].push_back(
             EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
-        draw.copyDestination =
+        action.copyDestination =
             m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
         D3D11_DEPTH_STENCIL_VIEW_DESC viewDesc;
         view->GetDesc(&viewDesc);
-        draw.copyDestinationSubresource =
+        action.copyDestinationSubresource =
             Subresource(GetMipForDsv(viewDesc), GetSliceForDsv(viewDesc));
       }
 
-      AddDrawcall(draw);
+      AddAction(action);
     }
   }
 
@@ -6833,7 +6833,7 @@ void WrappedID3D11DeviceContext::ClearDepthStencilView(ID3D11DepthStencilView *p
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    GET_SERIALISER.SetDrawChunk();
+    GET_SERIALISER.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::ClearDepthStencilView);
     SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
     Serialise_ClearDepthStencilView(GET_SERIALISER, pDepthStencilView, ClearFlags, Depth, Stencil);

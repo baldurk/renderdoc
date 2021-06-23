@@ -7,10 +7,10 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
     demos_test_name = 'D3D11_Shader_Debug_Zoo'
 
     def check_capture(self):
-        # Jump to the draw
-        draw = self.find_draw("Draw")
+        # Jump to the action
+        action = self.find_action("Draw")
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
@@ -18,7 +18,7 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
 
         # Loop over every test
         rdtest.log.begin_section("General tests")
-        for test in range(draw.numInstances):
+        for test in range(action.numInstances):
             # Debug the shader
             trace: rd.ShaderDebugTrace = self.controller.DebugPixel(4 * test, 0, rd.ReplayController.NoPreference,
                                                                     rd.ReplayController.NoPreference)
@@ -42,8 +42,8 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
         rdtest.log.end_section("General tests")
 
         rdtest.log.begin_section("MSAA tests")
-        draw = draw.next
-        self.controller.SetFrameEvent(draw.eventId, False)
+        action = action.next
+        self.controller.SetFrameEvent(action.eventId, False)
         pipe: rd.PipeState = self.controller.GetPipelineState()
         for test in range(4):
             # Debug the shader

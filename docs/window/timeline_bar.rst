@@ -21,7 +21,7 @@ Timeline Display
 
 By default the timeline bar views the whole frame, but with the mouse wheel you can zoom in and out. When zoomed in, you can scroll through the frame with the horizontal scroll bar.
 
-Underneath expanded sections, a blue pip is rendered for each drawcall-type event. The currently selected event is shown as a green pip, as well as there being a light gray vertical line to indicate the current position, such that this is visible even when the relevant section is not expanded.
+Underneath expanded sections, a blue pip is rendered for each action. The currently selected event is shown as a green pip, as well as there being a light gray vertical line to indicate the current position, such that this is visible even when the relevant section is not expanded.
 
 Clicking on any section will toggle it between expanded and unexpanded, and any sections underneath a section which is collapsed will remain in their previous state but will not be visible.
 

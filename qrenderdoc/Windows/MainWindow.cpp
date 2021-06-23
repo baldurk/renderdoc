@@ -2589,11 +2589,11 @@ void MainWindow::on_action_Start_Replay_Loop_triggered()
 
   const TextureDescription *displayTex = NULL;
 
-  const DrawcallDescription *lastDraw = m_Ctx.GetLastDrawcall();
+  const ActionDescription *lastAction = m_Ctx.GetLastAction();
 
-  displayTex = m_Ctx.GetTexture(lastDraw->copyDestination);
+  displayTex = m_Ctx.GetTexture(lastAction->copyDestination);
   if(!displayTex)
-    displayTex = m_Ctx.GetTexture(lastDraw->outputs[0]);
+    displayTex = m_Ctx.GetTexture(lastAction->outputs[0]);
 
   if(!displayTex)
   {

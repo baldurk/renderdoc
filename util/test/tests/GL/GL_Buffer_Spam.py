@@ -9,9 +9,9 @@ class GL_Buffer_Spam(rdtest.TestCase):
         # Check that export works
         self.check_export(self.capture_filename)
 
-        draw = self.find_draw("Draw")
+        action = self.find_action("Draw")
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         # Check that we get green in the centre of the screen, indicating that the
         # triangle's buffer serialised with the right data and rendered

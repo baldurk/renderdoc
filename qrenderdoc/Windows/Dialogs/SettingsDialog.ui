@@ -1036,7 +1036,7 @@ After interop is enabled you will need to reload any capture.</string>
              <string>The time unit to use when displaying the duration column in the event browser</string>
             </property>
             <property name="text">
-             <string>Time unit used for drawcall durations</string>
+             <string>Time unit used for action durations</string>
             </property>
            </widget>
           </item>

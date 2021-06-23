@@ -24,9 +24,9 @@ Current Common Feature set
 * Timeline bar of the scene hierarchy.
 
     * Displays scene left-to-right in time, event hierarchy top-to-bottom.
-    * *Not* scaled based on time of each drawcall
-    * Individual draw events are shown as dots when the tree is full expanded.
-    * The currently selected resource in the texture viewer is highlighted below individual drawcalls visible that use it - e.g. orange for 'used for read', pale blue for 'used for write'
+    * *Not* scaled based on time of each action
+    * Individual actions are shown as dots when the tree is full expanded.
+    * The currently selected resource in the texture viewer is highlighted below individual actions visible that use it - e.g. orange for 'used for read', pale blue for 'used for write'
 
 * Flexible resource inspector.
 
@@ -36,7 +36,7 @@ Current Common Feature set
     * The API calls used to create the object before its use in the frame are displayed.
     * Any object can be renamed, and its name automatically updates everywhere in the UI.
 
-* For each drawcall, a list of all API calls (state/resource setting) is available, with each call optionally having a complete callstack to locate where it came from in-app.
+* For each action, a list of all API calls (state/resource setting) is available, with each call optionally having a complete callstack to locate where it came from in-app.
 * Mesh buffer inspection and visualisation before/after vertex shader and at the end of the geometry pipeline (after GS or DS, whichever is later). All views have arcball and flycam controls, Projected data is not limited to the 2D viewport, RenderDoc attempts to unproject to allow viewing in world-space.
 * More advanced mesh visualisation such as viewing other components as position (e.g. to render a mesh in UV space), and visual mesh picking from both input and output panes.
 * 'Raw' buffer inspection for buffers. Custom format can be set with HLSL-lite or GLSL-lite syntax.
@@ -56,7 +56,7 @@ Current Common Feature set
 * Custom visualisation shader support - e.g. decode custom packed formats or gbuffers.
 * Hot shader editing and replacement.
 * Auto-range fitting to min/max values in texture data, and histogram display.
-* Simple per-drawcall timings and tabular view of GPU counter data.
+* Simple per-action timings and tabular view of GPU counter data.
 * Python scripting console with full documented API, giving complete access to RenderDoc internals, core data structures, and the Qt UI itself.
 * Import and Export of captures
 

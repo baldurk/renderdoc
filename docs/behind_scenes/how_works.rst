@@ -29,9 +29,9 @@ The replay process is ostensibly simple, but as with the capturing the devil is 
 
 When replaying, the initial section of the capture (up to the beginning of the frame) is read and executed verbatim. Each resource created is mapped to the live version and vice versa so later parts of the capture can obtain the replayed representation of the original resource.
 
-RenderDoc then does an initial pass over the captured frame. This allows us to build up a list of all the 'drawcall' events, analyse dependencies and check which resources are used at each drawcall for read, write, and so on. An internal tree is built up similar to what you see in the Event Browser & API Inspector, as well as a linked list with the linear sequence of drawcalls, since both representations are useful for iterating over the frame.
+RenderDoc then does an initial pass over the captured frame. This allows us to build up a list of all the actions, analyse dependencies and check which resources are used at each action for read, write, and so on. An internal tree is built up similar to what you see in the Event Browser & API Inspector, as well as a linked list with the linear sequence of actions, since both representations are useful for iterating over the frame.
 
-After this point most work is done in response to user actions. The basic building block is replaying a partial frame. Most analysis tools are built out of either replaying up to the current event, replaying up to the event - not including the current drawcall - and replaying *only* the current drawcall.
+After this point most work is done in response to user actions. The basic building block is replaying a partial frame. Most analysis tools are built out of either replaying up to the current event, replaying up to the event - not including the current action - and replaying *only* the current action.
 
 Care is taken to minimise this as much as possible as this tends to be the slowest operation given the overheads of serialisation and decoding the command stream.
 
@@ -39,8 +39,8 @@ When replaying from the beginning of a frame (and not a partial subset of the fr
 
 For example, let's assume the user has the 'depth test' overlay enabled, and selects a new event. This is the order of events that occur for the Texture Viewer - other viewers follow similar patterns, with a certain degree of sharing to reduce redundant replays:
 
-#. The capture is replayed up to, but not including, the selected drawcall. After doing this the current pipeline state and contents of all resources exactly match the state at the point of this drawcall.
-#. We then save a copy of the pristine depth buffer, save the current pipeline state, and set the reversed depth test. Replacing the pixel shader with one that just writes red, we repeat the drawcall to draw all the areas that fail the depth test.
+#. The capture is replayed up to, but not including, the selected action. After doing this the current pipeline state and contents of all resources exactly match the state at the point of this action.
+#. We then save a copy of the pristine depth buffer, save the current pipeline state, and set the reversed depth test. Replacing the pixel shader with one that just writes red, we repeat the action to draw all the areas that fail the depth test.
 #. Restoring the depth buffer and repeating this with a pixel shader which writes green, we fill in the overlay. Both of these renders happen to an off-screen buffer.
-#. After restoring the pipeline state we finally replay the original drawcall to get the final image.
+#. After restoring the pipeline state we finally replay the original action to get the final image.
 #. When we want to re-paint the viewed texture (either regular painting, or if the user changed a visualisation option which is just a constant buffer value) we bind the current render target as a resource and render it to the texture viewer control, then render the overlay texture on top of that.

@@ -68,8 +68,8 @@ out = controller.CreateOutput(windata, rd.ReplayOutputType.Texture)
 # Fetch the list of textures
 textures = controller.GetTextures()
 
-# Fetch the list of drawcalls
-draws = controller.GetDrawcalls()
+# Fetch the list of actions
+actions = controller.GetRootActions()
 
 # Function to look up the texture descriptor for a given resourceId
 def getTexture(texid):
@@ -85,23 +85,23 @@ def paint():
 	out.Display()
 	window.after(33, paint)
 
-# Start on the first drawcall
-curdraw = draws[0]
+# Start on the first action
+curact = actions[0]
 
 loopcount = 0
 
-# The advance function will be called every 50ms, to move to the next draw
+# The advance function will be called every 50ms, to move to the next action
 def advance():
-	global out, window, curdraw, draws, loopcount
+	global out, window, curact, actions, loopcount
 
-	# Move to the current drawcall
-	controller.SetFrameEvent(curdraw.eventId, False)
+	# Move to the current action
+	controller.SetFrameEvent(curact.eventId, False)
 
 	# Initialise a default TextureDisplay object
 	disp = rd.TextureDisplay()
 
 	# Set the first colour output as the texture to display
-	disp.resourceId = curdraw.outputs[0]
+	disp.resourceId = curact.outputs[0]
 
 	if disp.resourceId != rd.ResourceId.Null():
 		# Get the details of this texture
@@ -117,13 +117,13 @@ def advance():
 		# Update the texture display
 		out.SetTextureDisplay(disp)
 
-	# Set the next drawcall
-	curdraw = curdraw.next
+	# Set the next action
+	curact = curact.next
 
-	# If we have no next draw, start again from the first
-	if curdraw is None:
+	# If we have no next action, start again from the first
+	if curact is None:
 		loopcount = loopcount + 1
-		curdraw = draws[0]
+		curact = actions[0]
 
 	# after 3 loops, quit
 	if loopcount == 3:

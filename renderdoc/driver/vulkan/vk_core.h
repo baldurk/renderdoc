@@ -117,12 +117,12 @@ struct VkIndirectPatchData
   ResourceId commandBuffer;
 };
 
-struct VulkanDrawcallTreeNode
+struct VulkanActionTreeNode
 {
-  VulkanDrawcallTreeNode() {}
-  explicit VulkanDrawcallTreeNode(const DrawcallDescription &d) : draw(d) {}
-  DrawcallDescription draw;
-  rdcarray<VulkanDrawcallTreeNode> children;
+  VulkanActionTreeNode() {}
+  explicit VulkanActionTreeNode(const ActionDescription &a) : action(a) {}
+  ActionDescription action;
+  rdcarray<VulkanActionTreeNode> children;
 
   VkIndirectPatchData indirectPatch;
 
@@ -130,14 +130,13 @@ struct VulkanDrawcallTreeNode
 
   rdcarray<ResourceId> executedCmds;
 
-  VulkanDrawcallTreeNode &operator=(const DrawcallDescription &d)
+  VulkanActionTreeNode &operator=(const ActionDescription &a)
   {
-    *this = VulkanDrawcallTreeNode(d);
+    *this = VulkanActionTreeNode(a);
     return *this;
   }
 
-  void InsertAndUpdateIDs(const VulkanDrawcallTreeNode &child, uint32_t baseEventID,
-                          uint32_t baseDrawID)
+  void InsertAndUpdateIDs(const VulkanActionTreeNode &child, uint32_t baseEventID, uint32_t baseDrawID)
   {
     resourceUsage.reserve(child.resourceUsage.size());
     for(size_t i = 0; i < child.resourceUsage.size(); i++)
@@ -156,10 +155,10 @@ struct VulkanDrawcallTreeNode
 
   void UpdateIDs(uint32_t baseEventID, uint32_t baseDrawID)
   {
-    draw.eventId += baseEventID;
-    draw.drawcallId += baseDrawID;
+    action.eventId += baseEventID;
+    action.actionId += baseDrawID;
 
-    for(APIEvent &ev : draw.events)
+    for(APIEvent &ev : action.events)
       ev.eventId += baseEventID;
 
     for(size_t i = 0; i < resourceUsage.size(); i++)
@@ -169,16 +168,16 @@ struct VulkanDrawcallTreeNode
       children[i].UpdateIDs(baseEventID, baseDrawID);
   }
 
-  rdcarray<DrawcallDescription> Bake()
+  rdcarray<ActionDescription> Bake()
   {
-    rdcarray<DrawcallDescription> ret;
+    rdcarray<ActionDescription> ret;
     if(children.empty())
       return ret;
 
     ret.resize(children.size());
     for(size_t i = 0; i < children.size(); i++)
     {
-      ret[i] = children[i].draw;
+      ret[i] = children[i].action;
       ret[i].children = children[i].Bake();
     }
 
@@ -197,7 +196,7 @@ struct VulkanDrawcallTreeNode
 // must be at the start of any function that serialises
 #define CACHE_THREAD_SERIALISER() WriteSerialiser &ser = GetThreadSerialiser();
 
-struct VulkanDrawcallCallback
+struct VulkanActionCallback
 {
   // the three callbacks are used to allow the callback implementor to either
   // do a modified draw before or after the real thing.
@@ -224,9 +223,9 @@ struct VulkanDrawcallCallback
   virtual void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) = 0;
 
   // finally, these are for copy/blit/resolve/clear/etc
-  virtual void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) = 0;
-  virtual bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) = 0;
-  virtual void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) = 0;
+  virtual void PreMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) = 0;
+  virtual bool PostMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) = 0;
+  virtual void PostRemisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) = 0;
 
   // called immediately before the command buffer is ended
   virtual void PreEndCommandBuffer(VkCommandBuffer cmd) = 0;
@@ -246,7 +245,7 @@ struct VulkanDrawcallCallback
   virtual void PreCmdExecute(uint32_t baseEid, uint32_t secondaryFirst, uint32_t secondaryLast,
                              VkCommandBuffer cmd) = 0;
 
-  // called after vkCmdExecuteCommands with a range for the draw inside the
+  // called after vkCmdExecuteCommands with a range for the action inside the
   // seocndary command buffer.
   virtual void PostCmdExecute(uint32_t baseEid, uint32_t secondaryFirst, uint32_t secondaryLast,
                               VkCommandBuffer cmd) = 0;
@@ -349,7 +348,7 @@ private:
 
   Threading::RWLock m_CapTransitionLock;
 
-  VulkanDrawcallCallback *m_DrawcallCallback;
+  VulkanActionCallback *m_ActionCallback;
   void *m_SubmitChain;
 
   uint64_t m_TimeBase = 0;
@@ -369,15 +368,15 @@ private:
 
   // util function to handle fetching the right eventId, calling any
   // aliases then calling PreDraw/PreDispatch.
-  uint32_t HandlePreCallback(VkCommandBuffer commandBuffer, DrawFlags type = DrawFlags::Drawcall,
-                             uint32_t multiDrawOffset = 0);
+  uint32_t HandlePreCallback(VkCommandBuffer commandBuffer,
+                             ActionFlags type = ActionFlags::Drawcall, uint32_t multiDrawOffset = 0);
 
   rdcarray<WindowingSystem> m_SupportedWindowSystems;
 
   uint32_t m_FrameCounter = 0;
 
   rdcarray<FrameDescription> m_CapturedFrames;
-  rdcarray<DrawcallDescription *> m_Drawcalls;
+  rdcarray<ActionDescription *> m_Actions;
 
   struct PhysicalDeviceData
   {
@@ -577,20 +576,20 @@ private:
   struct BakedCmdBufferInfo
   {
     BakedCmdBufferInfo()
-        : draw(NULL),
+        : action(NULL),
           eventCount(0),
           curEventID(0),
-          drawCount(0),
+          actionCount(0),
           level(VK_COMMAND_BUFFER_LEVEL_PRIMARY),
           beginFlags(0),
           markerCount(0)
 
     {
     }
-    ~BakedCmdBufferInfo() { SAFE_DELETE(draw); }
+    ~BakedCmdBufferInfo() { SAFE_DELETE(action); }
     rdcarray<APIEvent> curEvents;
     rdcarray<DebugMessage> debugMessages;
-    rdcarray<VulkanDrawcallTreeNode *> drawStack;
+    rdcarray<VulkanActionTreeNode *> actionStack;
 
     rdcarray<VkIndirectRecordData> indirectCopies;
 
@@ -612,10 +611,10 @@ private:
 
     ResourceId pushDescriptorID[2][64];
 
-    VulkanDrawcallTreeNode *draw;    // the root draw to copy from when submitting
+    VulkanActionTreeNode *action;    // the root action to copy from when submitting
     uint32_t eventCount;             // how many events are in this cmd buffer, for quick skipping
     uint32_t curEventID;             // current event ID while reading or executing
-    uint32_t drawCount;              // similar to above
+    uint32_t actionCount;            // similar to above
   };
 
   // on replay, the current command buffer for the last chunk we
@@ -623,23 +622,23 @@ private:
   ResourceId m_LastCmdBufferID;
 
   // this is a list of uint64_t file offset -> uint32_t EIDs of where each
-  // drawcall is used. E.g. the drawcall at offset 873954 is EID 50. If a
+  // action is used. E.g. the action at offset 873954 is EID 50. If a
   // command buffer is submitted more than once, there may be more than
-  // one entry here - the drawcall will be aliased among several EIDs, with
+  // one entry here - the action will be aliased among several EIDs, with
   // the first one being the 'primary'
-  struct DrawcallUse
+  struct ActionUse
   {
-    DrawcallUse(uint64_t offs, uint32_t eid) : fileOffset(offs), eventId(eid) {}
+    ActionUse(uint64_t offs, uint32_t eid) : fileOffset(offs), eventId(eid) {}
     uint64_t fileOffset;
     uint32_t eventId;
-    bool operator<(const DrawcallUse &o) const
+    bool operator<(const ActionUse &o) const
     {
       if(fileOffset != o.fileOffset)
         return fileOffset < o.fileOffset;
       return eventId < o.eventId;
     }
   };
-  rdcarray<DrawcallUse> m_DrawcallUses;
+  rdcarray<ActionUse> m_ActionUses;
 
   enum PartialReplayIndex
   {
@@ -695,7 +694,7 @@ private:
     bool renderPassActive;
   } m_Partial[ePartialNum];
 
-  // if we're replaying just a single draw or a particular command
+  // if we're replaying just a single action or a particular command
   // buffer subsection of command events, we don't go through the
   // whole original command buffers to set up the partial replay,
   // so we just set this command buffer
@@ -814,7 +813,7 @@ private:
 
   // current descriptor set contents
   std::map<ResourceId, DescriptorSetInfo> m_DescriptorSetState;
-  // data for a baked command buffer - its drawcalls and events, ready to submit
+  // data for a baked command buffer - its actions and events, ready to submit
   std::map<ResourceId, BakedCmdBufferInfo> m_BakedCmdBufferInfo;
   // immutable creation data
   VulkanCreationInfo m_CreationInfo;
@@ -905,11 +904,11 @@ private:
   void ApplyInitialContents();
 
   rdcarray<APIEvent> m_RootEvents, m_Events;
-  bool m_AddedDrawcall;
+  bool m_AddedAction;
 
   uint64_t m_CurChunkOffset;
   SDChunkMetaData m_ChunkMetadata;
-  uint32_t m_RootEventID, m_RootDrawcallID;
+  uint32_t m_RootEventID, m_RootActionID;
   uint32_t m_FirstEventID, m_LastEventID;
   VulkanChunk m_LastChunk;
 
@@ -919,7 +918,7 @@ private:
 
   ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
 
-  VulkanDrawcallTreeNode m_ParentDrawcall;
+  VulkanActionTreeNode m_ParentAction;
 
   bool m_LayersEnabled[VkCheckLayer_Max] = {};
 
@@ -928,35 +927,35 @@ private:
                              const std::set<rdcstr> &supportedExtensions);
 
   bool PatchIndirectDraw(size_t drawIndex, uint32_t paramStride, VkIndirectPatchType type,
-                         DrawcallDescription &draw, byte *&argptr, byte *argend);
-  void InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo);
+                         ActionDescription &action, byte *&argptr, byte *argend);
+  void InsertActionsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo);
   void CaptureQueueSubmit(VkQueue queue, const rdcarray<VkCommandBuffer> &commandBuffers,
                           VkFence fence);
   void ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo, rdcstr basename);
   void DoSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo);
 
-  rdcarray<VulkanDrawcallTreeNode *> m_DrawcallStack;
+  rdcarray<VulkanActionTreeNode *> m_ActionStack;
 
-  rdcarray<VulkanDrawcallTreeNode *> &GetDrawcallStack()
+  rdcarray<VulkanActionTreeNode *> &GetActionStack()
   {
     if(m_LastCmdBufferID != ResourceId())
-      return m_BakedCmdBufferInfo[m_LastCmdBufferID].drawStack;
+      return m_BakedCmdBufferInfo[m_LastCmdBufferID].actionStack;
 
-    return m_DrawcallStack;
+    return m_ActionStack;
   }
 
   bool ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk);
   ReplayStatus ContextReplayLog(CaptureState readType, uint32_t startEventID, uint32_t endEventID,
                                 bool partial);
   bool ContextProcessChunk(ReadSerialiser &ser, VulkanChunk chunk);
-  void AddDrawcall(const DrawcallDescription &d);
+  void AddAction(const ActionDescription &a);
   void AddEvent();
 
-  void AddUsage(VulkanDrawcallTreeNode &drawNode, rdcarray<DebugMessage> &debugMessages);
-  void AddFramebufferUsage(VulkanDrawcallTreeNode &drawNode, ResourceId renderPass,
+  void AddUsage(VulkanActionTreeNode &actionNode, rdcarray<DebugMessage> &debugMessages);
+  void AddFramebufferUsage(VulkanActionTreeNode &actionNode, ResourceId renderPass,
                            ResourceId framebuffer, uint32_t subpass,
                            const rdcarray<ResourceId> &fbattachments);
-  void AddFramebufferUsageAllChildren(VulkanDrawcallTreeNode &drawNode, ResourceId renderPass,
+  void AddFramebufferUsageAllChildren(VulkanActionTreeNode &actionNode, ResourceId renderPass,
                                       ResourceId framebuffer, uint32_t subpass,
                                       const rdcarray<ResourceId> &fbattachments);
 
@@ -1038,13 +1037,13 @@ public:
   }
   void Shutdown();
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
-  void ReplayDraw(VkCommandBuffer cmd, const DrawcallDescription &drawcall);
+  void ReplayDraw(VkCommandBuffer cmd, const ActionDescription &action);
   ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
 
   SDFile &GetStructuredFile() { return *m_StructuredFile; }
   const APIEvent &GetEvent(uint32_t eventId);
   uint32_t GetMaxEID() { return m_Events.back().eventId; }
-  const DrawcallDescription *GetDrawcall(uint32_t eventId);
+  const ActionDescription *GetAction(uint32_t eventId);
 
   ResourceId GetDescLayoutForDescSet(ResourceId descSet)
   {
@@ -1107,7 +1106,7 @@ public:
   bool NULLDescriptorsAllowed() const { return m_NULLDescriptorsAllowed; }
   bool ExtendedDynamicState() const { return m_ExtendedDynState; }
   VulkanRenderState &GetRenderState() { return m_RenderState; }
-  void SetDrawcallCB(VulkanDrawcallCallback *cb) { m_DrawcallCallback = cb; }
+  void SetActionCB(VulkanActionCallback *cb) { m_ActionCallback = cb; }
   void SetSubmitChain(void *submitChain) { m_SubmitChain = submitChain; }
   static bool IsSupportedExtension(const char *extName);
   static void FilterToSupportedExtensions(rdcarray<VkExtensionProperties> &exts,

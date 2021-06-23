@@ -188,18 +188,18 @@ CounterDescription D3D12Replay::DescribeCounter(GPUCounter counterID)
   return desc;
 }
 
-struct D3D12AMDDrawCallback : public D3D12DrawcallCallback
+struct D3D12AMDActionCallback : public D3D12ActionCallback
 {
-  D3D12AMDDrawCallback(WrappedID3D12Device *dev, D3D12Replay *rp, uint32_t &sampleIndex,
-                       rdcarray<uint32_t> &eventIDs)
+  D3D12AMDActionCallback(WrappedID3D12Device *dev, D3D12Replay *rp, uint32_t &sampleIndex,
+                         rdcarray<uint32_t> &eventIDs)
       : m_pDevice(dev), m_pReplay(rp), m_pSampleId(&sampleIndex), m_pEventIds(&eventIDs)
   {
-    m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = this;
+    m_pDevice->GetQueue()->GetCommandData()->m_ActionCallback = this;
   }
 
-  virtual ~D3D12AMDDrawCallback()
+  virtual ~D3D12AMDActionCallback()
   {
-    m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = NULL;
+    m_pDevice->GetQueue()->GetCommandData()->m_ActionCallback = NULL;
   }
 
   void PreDraw(uint32_t eid, ID3D12GraphicsCommandListX *cmd) override
@@ -276,7 +276,7 @@ void D3D12Replay::FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex,
 {
   uint32_t maxEID = m_pDevice->GetQueue()->GetMaxEID();
 
-  m_pAMDDrawCallback = new D3D12AMDDrawCallback(m_pDevice, this, *sampleIndex, *eventIDs);
+  m_pAMDActionCallback = new D3D12AMDActionCallback(m_pDevice, this, *sampleIndex, *eventIDs);
 
   // replay the events to perform all the queries
   m_pDevice->ReplayLog(*eventStartID, maxEID, eReplay_Full);
@@ -331,13 +331,13 @@ rdcarray<CounterResult> D3D12Replay::FetchCountersAMD(const rdcarray<GPUCounter>
   rdcarray<CounterResult> ret =
       m_pAMDCounters->GetCounterData(sessionID, sampleIndex, eventIDs, counters);
 
-  for(size_t i = 0; i < m_pAMDDrawCallback->m_AliasEvents.size(); i++)
+  for(size_t i = 0; i < m_pAMDActionCallback->m_AliasEvents.size(); i++)
   {
     for(size_t c = 0; c < counters.size(); c++)
     {
       CounterResult search;
       search.counter = counters[c];
-      search.eventId = m_pAMDDrawCallback->m_AliasEvents[i].first;
+      search.eventId = m_pAMDActionCallback->m_AliasEvents[i].first;
 
       // find the result we're aliasing
       int32_t idx = ret.indexOf(search);
@@ -345,7 +345,7 @@ rdcarray<CounterResult> D3D12Replay::FetchCountersAMD(const rdcarray<GPUCounter>
       {
         // duplicate the result and append
         CounterResult aliased = ret[idx];
-        aliased.eventId = m_pAMDDrawCallback->m_AliasEvents[i].second;
+        aliased.eventId = m_pAMDActionCallback->m_AliasEvents[i].second;
         ret.push_back(aliased);
       }
       else
@@ -356,14 +356,14 @@ rdcarray<CounterResult> D3D12Replay::FetchCountersAMD(const rdcarray<GPUCounter>
     }
   }
 
-  SAFE_DELETE(m_pAMDDrawCallback);
+  SAFE_DELETE(m_pAMDActionCallback);
 
   m_pAMDCounters->EndMeasurementMode();
 
   return ret;
 }
 
-struct D3D12GPUTimerCallback : public D3D12DrawcallCallback
+struct D3D12GPUTimerCallback : public D3D12ActionCallback
 {
   D3D12GPUTimerCallback(WrappedID3D12Device *dev, D3D12Replay *rp, ID3D12QueryHeap *tqh,
                         ID3D12QueryHeap *psqh, ID3D12QueryHeap *oqh)
@@ -375,9 +375,9 @@ struct D3D12GPUTimerCallback : public D3D12DrawcallCallback
         m_NumStatsQueries(0),
         m_NumTimestampQueries(0)
   {
-    m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = this;
+    m_pDevice->GetQueue()->GetCommandData()->m_ActionCallback = this;
   }
-  ~D3D12GPUTimerCallback() { m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = NULL; }
+  ~D3D12GPUTimerCallback() { m_pDevice->GetQueue()->GetCommandData()->m_ActionCallback = NULL; }
   void PreDraw(uint32_t eid, ID3D12GraphicsCommandListX *cmd) override
   {
     if(cmd->GetType() == D3D12_COMMAND_LIST_TYPE_DIRECT)

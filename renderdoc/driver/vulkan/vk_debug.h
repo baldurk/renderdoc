@@ -90,7 +90,7 @@ public:
 
   void PatchOutputLocation(VkShaderModule &mod, BuiltinShader shaderType, uint32_t framebufferIndex);
   void PatchFixedColShader(VkShaderModule &mod, float col[4]);
-  void PatchLineStripIndexBuffer(const DrawcallDescription *draw, GPUBuffer &indexBuffer,
+  void PatchLineStripIndexBuffer(const ActionDescription *action, GPUBuffer &indexBuffer,
                                  uint32_t &indexCount);
 
   bool PixelHistorySetupResources(PixelHistoryResources &resources, VkImage targetImage,

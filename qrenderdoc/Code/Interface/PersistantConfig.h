@@ -417,8 +417,8 @@ DECLARE_REFLECTION_STRUCT(BugReport);
   CONFIG_SETTING_VAL(public, int, TimeUnit, EventBrowser_TimeUnit, TimeUnit::Microseconds)         \
                                                                                                    \
   DOCUMENT(                                                                                        \
-      "``True`` if fake drawcall marker regions should be added to captures that don't have any "  \
-      "markers, for easier browsing. The regions are identified by grouping drawcalls that write " \
+      "``True`` if fake action marker regions should be added to captures that don't have any "    \
+      "markers, for easier browsing. The regions are identified by grouping actions that write "   \
       "to the same targets together.\n"                                                            \
       "\n"                                                                                         \
       "Defaults to ``True``.");                                                                    \

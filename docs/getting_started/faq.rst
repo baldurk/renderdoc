@@ -255,3 +255,13 @@ By default RenderDoc will try to use the closest matching GPU to the one used on
 If a compatible GPU cannot be found - e.g. if the capture was made on an Intel GPU then the default - then the system default will be used.
 
 This selection process can be overridden using :ref:`the GPU selection replay option <gpu-selection-override>` on a per-capture or global basis.
+
+.. _what-is-an-action:
+.. _what-is-a-drawcall:
+
+What is an Action?
+------------------
+
+RenderDoc uses 'action' as an umbrella term to cover events like draws, dispatches, copies, clears, resolves, and other calls that cause the GPU to do work or can affect memory and resources like textures and buffers. This is sometimes referred to as a drawcall, but the term action is used to be less ambiguous compared to actual rasterization drawing.
+
+This means that when browsing in the event browser by default only actions will be shown, meaning you can only see the list of actions and user-defined markers.

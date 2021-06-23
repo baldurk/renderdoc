@@ -7,11 +7,11 @@ class D3D12_Resource_Lifetimes(rdtest.TestCase):
     demos_frame_cap = 200
 
     def check_capture(self):
-        last_draw: rd.DrawcallDescription = self.get_last_draw()
+        last_action: rd.ActionDescription = self.get_last_action()
 
-        self.controller.SetFrameEvent(last_draw.eventId, True)
+        self.controller.SetFrameEvent(last_action.eventId, True)
 
-        tex = last_draw.copyDestination
+        tex = last_action.copyDestination
 
         # green background around first triangle, blue around second
         self.check_pixel_value(tex, 10, 10, [0.0, 1.0, 0.0, 1.0])

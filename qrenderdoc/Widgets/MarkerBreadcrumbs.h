@@ -31,7 +31,7 @@ struct ICaptureContext;
 class RDToolButton;
 class RDLabel;
 
-struct DrawcallDescription;
+struct ActionDescription;
 
 class QMenu;
 
@@ -76,14 +76,14 @@ private slots:
   void elidedItemsClicked();
 
 private:
-  void AddPathButton(const DrawcallDescription *);
-  void ConfigurePathMenu(QMenu *, const DrawcallDescription *);
+  void AddPathButton(const ActionDescription *);
+  void ConfigurePathMenu(QMenu *, const ActionDescription *);
 
   ICaptureContext &m_Ctx;
 
-  QVector<const DrawcallDescription *> m_Path;
+  QVector<const ActionDescription *> m_Path;
 
-  const DrawcallDescription *m_CurParent = NULL;
+  const ActionDescription *m_CurParent = NULL;
 
   BreadcrumbsLayout *m_Layout;
   RDToolButton *m_ElidedItems;

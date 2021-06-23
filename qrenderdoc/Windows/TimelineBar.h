@@ -69,12 +69,12 @@ private:
     bool expanded = false;
 
     QVector<Marker> children;
-    QVector<uint32_t> draws;
+    QVector<uint32_t> actions;
   };
 
   QVector<Marker> m_RootMarkers;
-  QVector<uint32_t> m_RootDraws;
-  QVector<uint32_t> m_Draws;
+  QVector<uint32_t> m_RootActions;
+  QVector<uint32_t> m_Actions;
 
   ResourceId m_ID;
   QString m_HistoryTarget;
@@ -109,10 +109,10 @@ private:
 
   uint32_t eventAt(qreal x);
   qreal offsetOf(uint32_t eid);
-  uint32_t processDraws(QVector<Marker> &markers, QVector<uint32_t> &draws,
-                        const rdcarray<DrawcallDescription> &curDraws);
+  uint32_t processActions(QVector<Marker> &markers, QVector<uint32_t> &actions,
+                          const rdcarray<ActionDescription> &curActions);
   void drawLine(QStylePainter &p, QPointF start, QPointF end);
-  void paintMarkers(QPainter &p, const QVector<Marker> &markers, const QVector<uint32_t> &draws,
+  void paintMarkers(QPainter &p, const QVector<Marker> &markers, const QVector<uint32_t> &actions,
                     QRectF markerRect);
   Marker *findMarker(QVector<Marker> &markers, QRectF markerRect, QPointF pos);
 };

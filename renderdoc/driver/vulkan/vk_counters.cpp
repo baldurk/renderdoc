@@ -330,16 +330,16 @@ CounterDescription VulkanReplay::DescribeCounter(GPUCounter counterID)
   return desc;
 }
 
-struct VulkanAMDDrawCallback : public VulkanDrawcallCallback
+struct VulkanAMDActionCallback : public VulkanActionCallback
 {
-  VulkanAMDDrawCallback(WrappedVulkan *dev, VulkanReplay *rp, uint32_t &sampleIndex,
-                        rdcarray<uint32_t> &eventIDs)
+  VulkanAMDActionCallback(WrappedVulkan *dev, VulkanReplay *rp, uint32_t &sampleIndex,
+                          rdcarray<uint32_t> &eventIDs)
       : m_pDriver(dev), m_pReplay(rp), m_pSampleId(&sampleIndex), m_pEventIds(&eventIDs)
   {
-    m_pDriver->SetDrawcallCB(this);
+    m_pDriver->SetActionCB(this);
   }
 
-  virtual ~VulkanAMDDrawCallback() { m_pDriver->SetDrawcallCB(NULL); }
+  virtual ~VulkanAMDActionCallback() { m_pDriver->SetActionCB(NULL); }
   void PreDraw(uint32_t eid, VkCommandBuffer cmd) override
   {
     m_pEventIds->push_back(eid);
@@ -384,21 +384,21 @@ struct VulkanAMDDrawCallback : public VulkanDrawcallCallback
   void PreDispatch(uint32_t eid, VkCommandBuffer cmd) override { PreDraw(eid, cmd); }
   bool PostDispatch(uint32_t eid, VkCommandBuffer cmd) override { return PostDraw(eid, cmd); }
   void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) override { PostRedraw(eid, cmd); }
-  void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override
+  void PreMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
   {
-    if(flags & DrawFlags::PassBoundary)
+    if(flags & ActionFlags::PassBoundary)
       return;
     PreDraw(eid, cmd);
   }
-  bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override
+  bool PostMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
   {
-    if(flags & DrawFlags::PassBoundary)
+    if(flags & ActionFlags::PassBoundary)
       return false;
     return PostDraw(eid, cmd);
   }
-  void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override
+  void PostRemisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
   {
-    if(flags & DrawFlags::PassBoundary)
+    if(flags & ActionFlags::PassBoundary)
       return;
     PostRedraw(eid, cmd);
   }
@@ -434,7 +434,7 @@ void VulkanReplay::FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex,
 {
   uint32_t maxEID = m_pDriver->GetMaxEID();
 
-  m_pAMDDrawCallback = new VulkanAMDDrawCallback(m_pDriver, this, *sampleIndex, *eventIDs);
+  m_pAMDActionCallback = new VulkanAMDActionCallback(m_pDriver, this, *sampleIndex, *eventIDs);
 
   // replay the events to perform all the queries
   m_pDriver->ReplayLog(*eventStartID, maxEID, eReplay_Full);
@@ -490,13 +490,13 @@ rdcarray<CounterResult> VulkanReplay::FetchCountersAMD(const rdcarray<GPUCounter
   rdcarray<CounterResult> ret =
       m_pAMDCounters->GetCounterData(sessionID, sampleIndex, eventIDs, counters);
 
-  for(size_t i = 0; i < m_pAMDDrawCallback->m_AliasEvents.size(); i++)
+  for(size_t i = 0; i < m_pAMDActionCallback->m_AliasEvents.size(); i++)
   {
     for(size_t c = 0; c < counters.size(); c++)
     {
       CounterResult search;
       search.counter = counters[c];
-      search.eventId = m_pAMDDrawCallback->m_AliasEvents[i].first;
+      search.eventId = m_pAMDActionCallback->m_AliasEvents[i].first;
 
       // find the result we're aliasing
       int32_t idx = ret.indexOf(search);
@@ -504,7 +504,7 @@ rdcarray<CounterResult> VulkanReplay::FetchCountersAMD(const rdcarray<GPUCounter
       {
         // duplicate the result and append
         CounterResult aliased = ret[idx];
-        aliased.eventId = m_pAMDDrawCallback->m_AliasEvents[i].second;
+        aliased.eventId = m_pAMDActionCallback->m_AliasEvents[i].second;
         ret.push_back(aliased);
       }
       else
@@ -515,7 +515,7 @@ rdcarray<CounterResult> VulkanReplay::FetchCountersAMD(const rdcarray<GPUCounter
     }
   }
 
-  SAFE_DELETE(m_pAMDDrawCallback);
+  SAFE_DELETE(m_pAMDActionCallback);
 
   // sort so that the alias results appear in the right places
   std::sort(ret.begin(), ret.end());
@@ -525,14 +525,14 @@ rdcarray<CounterResult> VulkanReplay::FetchCountersAMD(const rdcarray<GPUCounter
   return ret;
 }
 
-struct VulkanKHRCallback : public VulkanDrawcallCallback
+struct VulkanKHRCallback : public VulkanActionCallback
 {
   VulkanKHRCallback(WrappedVulkan *vk, VulkanReplay *rp, VkQueryPool qp)
       : m_pDriver(vk), m_pReplay(rp), m_QueryPool(qp)
   {
-    m_pDriver->SetDrawcallCB(this);
+    m_pDriver->SetActionCB(this);
   }
-  ~VulkanKHRCallback() { m_pDriver->SetDrawcallCB(NULL); }
+  ~VulkanKHRCallback() { m_pDriver->SetActionCB(NULL); }
   void PreDraw(uint32_t eid, VkCommandBuffer cmd) override
   {
     ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), m_QueryPool, (uint32_t)m_Results.size(), 0);
@@ -550,12 +550,12 @@ struct VulkanKHRCallback : public VulkanDrawcallCallback
   void PreDispatch(uint32_t eid, VkCommandBuffer cmd) override { PreDraw(eid, cmd); }
   bool PostDispatch(uint32_t eid, VkCommandBuffer cmd) override { return PostDraw(eid, cmd); }
   void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) override { PostRedraw(eid, cmd); }
-  void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override { PreDraw(eid, cmd); }
-  bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override
+  void PreMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override { PreDraw(eid, cmd); }
+  bool PostMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
   {
     return PostDraw(eid, cmd);
   }
-  void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override
+  void PostRemisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
   {
     PostRedraw(eid, cmd);
   }
@@ -711,7 +711,7 @@ rdcarray<CounterResult> VulkanReplay::FetchCountersKHR(const rdcarray<GPUCounter
   return ret;
 }
 
-struct VulkanGPUTimerCallback : public VulkanDrawcallCallback
+struct VulkanGPUTimerCallback : public VulkanActionCallback
 {
   VulkanGPUTimerCallback(WrappedVulkan *vk, VulkanReplay *rp, VkQueryPool tsqp, VkQueryPool occqp,
                          VkQueryPool psqp)
@@ -721,9 +721,9 @@ struct VulkanGPUTimerCallback : public VulkanDrawcallCallback
         m_OcclusionQueryPool(occqp),
         m_PipeStatsQueryPool(psqp)
   {
-    m_pDriver->SetDrawcallCB(this);
+    m_pDriver->SetActionCB(this);
   }
-  ~VulkanGPUTimerCallback() { m_pDriver->SetDrawcallCB(NULL); }
+  ~VulkanGPUTimerCallback() { m_pDriver->SetActionCB(NULL); }
   void PreDraw(uint32_t eid, VkCommandBuffer cmd) override
   {
     if(m_OcclusionQueryPool != VK_NULL_HANDLE)
@@ -752,21 +752,21 @@ struct VulkanGPUTimerCallback : public VulkanDrawcallCallback
   void PreDispatch(uint32_t eid, VkCommandBuffer cmd) override { PreDraw(eid, cmd); }
   bool PostDispatch(uint32_t eid, VkCommandBuffer cmd) override { return PostDraw(eid, cmd); }
   void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) override { PostRedraw(eid, cmd); }
-  void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override
+  void PreMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
   {
-    if(flags & DrawFlags::PassBoundary)
+    if(flags & ActionFlags::PassBoundary)
       return;
     PreDraw(eid, cmd);
   }
-  bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override
+  bool PostMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
   {
-    if(flags & DrawFlags::PassBoundary)
+    if(flags & ActionFlags::PassBoundary)
       return false;
     return PostDraw(eid, cmd);
   }
-  void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override
+  void PostRemisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) override
   {
-    if(flags & DrawFlags::PassBoundary)
+    if(flags & ActionFlags::PassBoundary)
       return;
     PostRedraw(eid, cmd);
   }

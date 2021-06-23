@@ -623,23 +623,23 @@ void StatisticsViewer::AppendDetailedInformation()
   AppendOutputStatistics();
 }
 
-void StatisticsViewer::CountContributingEvents(const DrawcallDescription &draw, uint32_t &drawCount,
+void StatisticsViewer::CountContributingEvents(const ActionDescription &action, uint32_t &drawCount,
                                                uint32_t &dispatchCount, uint32_t &diagnosticCount)
 {
-  const DrawFlags diagnosticMask =
-      DrawFlags::SetMarker | DrawFlags::PushMarker | DrawFlags::PopMarker;
-  DrawFlags diagnosticMasked = draw.flags & diagnosticMask;
+  const ActionFlags diagnosticMask =
+      ActionFlags::SetMarker | ActionFlags::PushMarker | ActionFlags::PopMarker;
+  ActionFlags diagnosticMasked = action.flags & diagnosticMask;
 
-  if(diagnosticMasked != DrawFlags::NoFlags)
+  if(diagnosticMasked != ActionFlags::NoFlags)
     diagnosticCount += 1;
 
-  if(draw.flags & DrawFlags::Drawcall)
+  if(action.flags & ActionFlags::Drawcall)
     drawCount += 1;
 
-  if(draw.flags & DrawFlags::Dispatch)
+  if(action.flags & ActionFlags::Dispatch)
     dispatchCount += 1;
 
-  for(const DrawcallDescription &c : draw.children)
+  for(const ActionDescription &c : action.children)
     CountContributingEvents(c, drawCount, dispatchCount, diagnosticCount);
 }
 
@@ -685,16 +685,16 @@ void StatisticsViewer::AppendAPICallSummary()
 
 void StatisticsViewer::GenerateReport()
 {
-  const rdcarray<DrawcallDescription> &curDraws = m_Ctx.CurDrawcalls();
+  const rdcarray<ActionDescription> &curActions = m_Ctx.CurRootActions();
 
   uint32_t drawCount = 0;
   uint32_t dispatchCount = 0;
   uint32_t diagnosticCount = 0;
-  for(const DrawcallDescription &d : curDraws)
-    CountContributingEvents(d, drawCount, dispatchCount, diagnosticCount);
+  for(const ActionDescription &action : curActions)
+    CountContributingEvents(action, drawCount, dispatchCount, diagnosticCount);
 
   uint32_t numAPIcalls =
-      m_Ctx.GetLastDrawcall()->eventId - (drawCount + dispatchCount + diagnosticCount);
+      m_Ctx.GetLastAction()->eventId - (drawCount + dispatchCount + diagnosticCount);
 
   int numTextures = m_Ctx.GetTextures().count();
   int numBuffers = m_Ctx.GetBuffers().count();

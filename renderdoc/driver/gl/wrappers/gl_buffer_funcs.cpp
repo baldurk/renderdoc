@@ -1117,13 +1117,13 @@ bool WrappedOpenGL::Serialise_glNamedCopyBufferSubDataEXT(SerialiserType &ser,
       ResourceId srcid = GetResourceManager()->GetResID(readBuffer);
       ResourceId dstid = GetResourceManager()->GetResID(writeBuffer);
 
-      DrawcallDescription draw;
-      draw.flags |= DrawFlags::Copy;
+      ActionDescription action;
+      action.flags |= ActionFlags::Copy;
 
-      draw.copySource = GetResourceManager()->GetOriginalID(srcid);
-      draw.copyDestination = GetResourceManager()->GetOriginalID(dstid);
+      action.copySource = GetResourceManager()->GetOriginalID(srcid);
+      action.copyDestination = GetResourceManager()->GetOriginalID(dstid);
 
-      AddDrawcall(draw);
+      AddAction(action);
 
       if(srcid == dstid)
       {
@@ -2005,12 +2005,12 @@ bool WrappedOpenGL::Serialise_glInvalidateBufferData(SerialiserType &ser, GLuint
     {
       AddEvent();
 
-      DrawcallDescription draw;
-      draw.flags |= DrawFlags::Clear;
+      ActionDescription action;
+      action.flags |= ActionFlags::Clear;
 
-      draw.copyDestination = GetResourceManager()->GetOriginalID(id);
+      action.copyDestination = GetResourceManager()->GetOriginalID(id);
 
-      AddDrawcall(draw);
+      AddAction(action);
 
       m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Discard));
     }
@@ -2082,12 +2082,12 @@ bool WrappedOpenGL::Serialise_glInvalidateBufferSubData(SerialiserType &ser, GLu
     {
       AddEvent();
 
-      DrawcallDescription draw;
-      draw.flags |= DrawFlags::Clear;
+      ActionDescription action;
+      action.flags |= ActionFlags::Clear;
 
-      draw.copyDestination = GetResourceManager()->GetOriginalID(id);
+      action.copyDestination = GetResourceManager()->GetOriginalID(id);
 
-      AddDrawcall(draw);
+      AddAction(action);
 
       m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Discard));
     }
@@ -2221,7 +2221,7 @@ void WrappedOpenGL::glInvalidateBufferSubData(GLuint buffer, GLintptr offset, GL
  * segment of the buffer.
  *
  * The reason for finding the actual difference segment is that many maps will be of a large region
- * or even the whole buffer, but only update a small section, perhaps once per drawcall. So
+ * or even the whole buffer, but only update a small section, perhaps once per action. So
  * serialising the entirety of a large buffer many many times can rapidly inflate the size of the
  * log. The savings from this can be many GBs as if a 4MB buffer is updated 1000 times, each time
  * only updating 1KB, this is a difference between 1MB and 4000MB in written data, most of which is
@@ -2283,8 +2283,8 @@ void WrappedOpenGL::glInvalidateBufferSubData(GLuint buffer, GLintptr offset, GL
  *
  * When frame capturing, we insert an implicit call to PersistentMapMemoryBarrier() over all
  * coherent maps whenever any GL function is called that could conceivably read from buffer memory.
- * This is at the very least all draw calls but also any texture calls that could read from a PBO or
- * other calls. When PersistentMapMemoryBarrier() is called we check to see what has changed and
+ * This is at the very least all action calls but also any texture calls that could read from a PBO
+ * or other calls. When PersistentMapMemoryBarrier() is called we check to see what has changed and
  * serialise it - similar in principle to an implicit call to glFlushMappedBufferRange() over the
  * whole buffer.
  *

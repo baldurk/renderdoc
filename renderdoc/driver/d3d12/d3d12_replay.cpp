@@ -2711,23 +2711,23 @@ rdcarray<uint32_t> D3D12Replay::GetPassEvents(uint32_t eventId)
 {
   rdcarray<uint32_t> passEvents;
 
-  const DrawcallDescription *draw = m_pDevice->GetDrawcall(eventId);
+  const ActionDescription *action = m_pDevice->GetAction(eventId);
 
-  if(!draw)
+  if(!action)
     return passEvents;
 
   // for D3D12 a pass == everything writing to the same RTs in a command list.
-  const DrawcallDescription *start = draw;
+  const ActionDescription *start = action;
   while(start)
   {
     // if we've come to the beginning of a list, break out of the loop, we've
     // found the start.
-    if(start->flags & DrawFlags::BeginPass)
+    if(start->flags & ActionFlags::BeginPass)
       break;
 
     // if we come to the END of a list, since we were iterating backwards that
     // means we started outside of a list, so return empty set.
-    if(start->flags & DrawFlags::EndPass)
+    if(start->flags & ActionFlags::EndPass)
       return passEvents;
 
     // if we've come to the start of the log we were outside of a list
@@ -2736,10 +2736,10 @@ rdcarray<uint32_t> D3D12Replay::GetPassEvents(uint32_t eventId)
       return passEvents;
 
     // step back
-    const DrawcallDescription *prev = start->previous;
+    const ActionDescription *prev = start->previous;
 
     // if the previous is a clear, we're done
-    if(prev->flags & DrawFlags::Clear)
+    if(prev->flags & ActionFlags::Clear)
       break;
 
     // if the outputs changed, we're done
@@ -2749,17 +2749,17 @@ rdcarray<uint32_t> D3D12Replay::GetPassEvents(uint32_t eventId)
     start = prev;
   }
 
-  // store all the draw eventIDs up to the one specified at the start
+  // store all the action eventIDs up to the one specified at the start
   while(start)
   {
-    if(start->eventId >= draw->eventId)
+    if(start->eventId >= action->eventId)
       break;
 
     // include pass boundaries, these will be filtered out later
-    // so we don't actually do anything (init postvs/draw overlay)
+    // so we don't actually do anything (init postvs/action overlay)
     // but it's useful to have the first part of the pass as part
     // of the list
-    if(start->flags & (DrawFlags::Drawcall | DrawFlags::PassBoundary))
+    if(start->flags & (ActionFlags::Drawcall | ActionFlags::PassBoundary))
       passEvents.push_back(start->eventId);
 
     start = start->next;

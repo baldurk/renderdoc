@@ -243,7 +243,7 @@ Event Browser options
 
   | :guilabel:`Time unit used for event browser timings` Default: ``Microseconds``
 
-This option allows you to select the unit that will be shown in the duration column in the event browser when you time individual drawcalls.
+This option allows you to select the unit that will be shown in the duration column in the event browser when you time individual actions.
 
 Seconds through to nanoseconds are supported.
 
@@ -251,9 +251,9 @@ Seconds through to nanoseconds are supported.
 
   | :guilabel:`Add fake markers if none present` Default: ``Enable``
 
-If a capture is found to contain no markers whatsoever, RenderDoc will generate some default markers based on grouping drawcalls by the different output targets that they are drawing to. Roughly forming 'passes' of different types.
+If a capture is found to contain no markers whatsoever, RenderDoc will generate some default markers based on grouping actions by the different output targets that they are drawing to. Roughly forming 'passes' of different types.
 
-You can disable this option here if you want to view a pure list of drawcalls with no annotations.
+You can disable this option here if you want to view a pure list of actions with no annotations.
 
 This option only applies itself the next time you load a capture.
 

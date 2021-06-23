@@ -53,7 +53,7 @@ There are several thumbnail strip panels available, by default they are docked i
 
 These strips display thumbnails of the resources bound to their respective parts of the pipeline, to give some context and allow quick preview without having to switch the main display between these textures.
 
-The texture that the following tab is currently displaying is highlighted in red, and each thumbnail shows both the slot number and the name of the texture bound at that point. To follow a given slot simply left click on it. If the currently followed texture slot is empty (i.e. it was following a texture and then that slot became unbound in a different drawcall) it will show up simply named "Unbound" and with no name or slot number.
+The texture that the following tab is currently displaying is highlighted in red, and each thumbnail shows both the slot number and the name of the texture bound at that point. To follow a given slot simply left click on it. If the currently followed texture slot is empty (i.e. it was following a texture and then that slot became unbound in a different action) it will show up simply named "Unbound" and with no name or slot number.
 
 Each thumbnail has a context menu available via right click. This menu allows you to open a locked tab (:doc:`../how/how_view_texture`), jump to the :doc:`resource inspector <../window/resource_inspector>`, as well as containing a list of all the uses of this texture - as read-only resource and writable output. This is similar to the resource display strip on the :doc:`timeline_bar`. Clicking on any of these entries will jump to the first of the events in the event range listed.
 
@@ -76,7 +76,7 @@ You can adjust the selected pixel with the arrow keys on your keyboard after pic
 
   Pixel context: Pixel context displaying the surrounds of the picked pixel.
 
-From here, once you have selected a pixel, you can also launch the :doc:`pixel debugger <../how/how_debug_shader>` if you have the drawcall that you want to debug selected. You can also launch the :ref:`pixel-history` view which shows all modifications that have happened to the texture since the start of the frame to the currently selected event.
+From here, once you have selected a pixel, you can also launch the :doc:`pixel debugger <../how/how_debug_shader>` if you have the draw that you want to debug selected. You can also launch the :ref:`pixel-history` view which shows all modifications that have happened to the texture since the start of the frame to the currently selected event.
 
 Visible Range Control
 ---------------------
@@ -315,6 +315,8 @@ Render Overlay
   | |OverlaySelect|
 
 This is a powerful tool for quickly diagnosing issues and can be very useful for locating what you're looking for. Several overlays are available that can be rendered over any texture, although most of them are only meaningful for currently bound render targets.
+
+These overlays are only relevant when the currently selected action is a rasterization draw, for other actions the overlays will be empty.
 
 * ``Highlight Drawcall`` will do show the area covered by the drawcall. It darkens everything except the current drawcall which is highlighted in a flat color. This makes whatever is being drawn stand out and can be useful for seeing where the current object is on screen, especially if rapidly browsing through the frame.
 

@@ -100,12 +100,13 @@ D3D11DebugAPIWrapper::D3D11DebugAPIWrapper(WrappedID3D11Device *device,
 
 D3D11DebugAPIWrapper::~D3D11DebugAPIWrapper()
 {
-  // if we replayed to before the draw for fetching some UAVs, replay back to after the draw to keep
+  // if we replayed to before the action for fetching some UAVs, replay back to after the action to
+  // keep
   // the state consistent.
   if(m_DidReplay)
   {
     D3D11MarkerRegion region("ResetReplay");
-    // replay the draw to get back to 'normal' state for this event, and mark that we need to
+    // replay the action to get back to 'normal' state for this event, and mark that we need to
     // replay back to pristine state next time we need to fetch data.
     m_pDevice->ReplayLog(0, m_EventID, eReplay_OnlyDraw);
   }
@@ -193,7 +194,7 @@ void D3D11DebugAPIWrapper::FetchSRV(const DXBCDebug::BindingSlot &slot)
 
 void D3D11DebugAPIWrapper::FetchUAV(const DXBCDebug::BindingSlot &slot)
 {
-  // if the UAV might be dirty from side-effects from the draw, replay back to right
+  // if the UAV might be dirty from side-effects from the action, replay back to right
   // before it.
   if(!m_DidReplay)
   {
@@ -1744,7 +1745,7 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
   D3D11MarkerRegion region(
       StringFormat::Fmt("DebugVertex @ %u of (%u,%u,%u)", eventId, vertid, instid, idx));
 
-  const DrawcallDescription *draw = m_pDevice->GetDrawcall(eventId);
+  const ActionDescription *action = m_pDevice->GetAction(eventId);
 
   D3D11RenderStateTracker tracker(m_pImmediateContext);
 
@@ -1779,7 +1780,7 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
   for(size_t i = 0; i < inputlayout.size(); i++)
   {
     if(inputlayout[i].InputSlotClass == D3D11_INPUT_PER_INSTANCE_DATA &&
-       inputlayout[i].InstanceDataStepRate < draw->numInstances)
+       inputlayout[i].InstanceDataStepRate < action->numInstances)
       MaxStepRate = RDCMAX(inputlayout[i].InstanceDataStepRate, MaxStepRate);
 
     UINT slot =
@@ -1811,20 +1812,20 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
     if(rs->IA.VBs[i])
     {
       GetDebugManager()->GetBufferData(
-          rs->IA.VBs[i], rs->IA.Offsets[i] + rs->IA.Strides[i] * (draw->vertexOffset + idx),
+          rs->IA.VBs[i], rs->IA.Offsets[i] + rs->IA.Strides[i] * (action->vertexOffset + idx),
           rs->IA.Strides[i], vertData[i]);
 
       for(UINT isr = 1; isr <= MaxStepRate; isr++)
       {
         GetDebugManager()->GetBufferData(
             rs->IA.VBs[i],
-            rs->IA.Offsets[i] + rs->IA.Strides[i] * (draw->instanceOffset + (instid / isr)),
+            rs->IA.Offsets[i] + rs->IA.Strides[i] * (action->instanceOffset + (instid / isr)),
             rs->IA.Strides[i], instData[i * MaxStepRate + isr - 1]);
       }
 
-      GetDebugManager()->GetBufferData(rs->IA.VBs[i],
-                                       rs->IA.Offsets[i] + rs->IA.Strides[i] * draw->instanceOffset,
-                                       rs->IA.Strides[i], staticData[i]);
+      GetDebugManager()->GetBufferData(
+          rs->IA.VBs[i], rs->IA.Offsets[i] + rs->IA.Strides[i] * action->instanceOffset,
+          rs->IA.Strides[i], staticData[i]);
     }
   }
 
@@ -1884,7 +1885,7 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
       }
       else
       {
-        if(el->InstanceDataStepRate == 0 || el->InstanceDataStepRate >= draw->numInstances)
+        if(el->InstanceDataStepRate == 0 || el->InstanceDataStepRate >= action->numInstances)
         {
           if(staticData[el->InputSlot].size() >= el->AlignedByteOffset)
           {
@@ -2064,9 +2065,9 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
     {
       uint32_t sv_vertid = vertid;
 
-      if(draw->flags & DrawFlags::Indexed)
+      if(action->flags & ActionFlags::Indexed)
       {
-        sv_vertid = idx - draw->baseVertex;
+        sv_vertid = idx - action->baseVertex;
       }
 
       if(dxbc->GetReflection()->InputSig[i].varType == VarType::Float)

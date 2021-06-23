@@ -2784,7 +2784,8 @@ void ResortBindings(ShaderReflection *refl, ShaderBindpointMapping *mapping)
   // at runtime, and in practice everyone either uses the layout qualifiers in shaders to fix the
   // bindings are shader compile time anyway (hah), or they reflect the samplers and set them one
   // time, then leave them fixed. In the worst case, if an application does actually remap the
-  // uniforms from draw to draw, they will end up seeing the bindings re-order themselves in the UI.
+  // uniforms from action to action, they will end up seeing the bindings re-order themselves in the
+  // UI.
   // This might be confusing, but it's a) technically what the application is actually doing, from a
   // certain perspective, and b) limited to a very small niche of people that are doing something
   // kind of ridiculous.

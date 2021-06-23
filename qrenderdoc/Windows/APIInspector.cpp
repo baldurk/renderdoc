@@ -206,22 +206,22 @@ void APIInspector::fillAPIView()
 
   m_Chunks.clear();
 
-  const DrawcallDescription *draw = m_Ctx.CurSelectedDrawcall();
+  const ActionDescription *action = m_Ctx.CurSelectedAction();
 
-  if(draw != NULL && !draw->events.isEmpty())
+  if(action != NULL && !action->events.isEmpty())
   {
-    if(draw->IsFakeMarker())
+    if(action->IsFakeMarker())
     {
-      RDTreeWidgetItem *root = new RDTreeWidgetItem({lit("---"), QString(draw->name)});
+      RDTreeWidgetItem *root = new RDTreeWidgetItem({lit("---"), QString(action->name)});
       root->setBold(true);
       ui->apiEvents->addTopLevelItem(root);
       ui->apiEvents->setSelectedItem(root);
     }
     else
     {
-      for(const APIEvent &ev : draw->events)
+      for(const APIEvent &ev : action->events)
       {
-        addEvent(ev, ev.eventId == draw->eventId);
+        addEvent(ev, ev.eventId == action->eventId);
       }
     }
   }

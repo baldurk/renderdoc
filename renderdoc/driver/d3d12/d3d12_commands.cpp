@@ -571,7 +571,7 @@ const APIEvent &WrappedID3D12CommandQueue::GetEvent(uint32_t eventId)
 
 bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chunk)
 {
-  m_Cmd.m_AddedDrawcall = false;
+  m_Cmd.m_AddedAction = false;
 
   bool ret = false;
 
@@ -866,13 +866,13 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
       {
         m_Cmd.AddEvent();
 
-        DrawcallDescription draw;
-        draw.name = "End of Capture";
-        draw.flags |= DrawFlags::Present;
+        ActionDescription action;
+        action.name = "End of Capture";
+        action.flags |= ActionFlags::Present;
 
-        draw.copyDestination = m_Cmd.m_LastPresentedImage;
+        action.copyDestination = m_Cmd.m_LastPresentedImage;
 
-        m_Cmd.AddDrawcall(draw);
+        m_Cmd.AddAction(action);
       }
 
       ret = true;
@@ -892,16 +892,16 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
     }
     else if(chunk == D3D12Chunk::Queue_EndEvent)
     {
-      // also ignore, this just pops the drawcall stack
+      // also ignore, this just pops the action stack
     }
     else
     {
-      if(!m_Cmd.m_AddedDrawcall)
+      if(!m_Cmd.m_AddedAction)
         m_Cmd.AddEvent();
     }
   }
 
-  m_Cmd.m_AddedDrawcall = false;
+  m_Cmd.m_AddedAction = false;
 
   return ret;
 }
@@ -973,10 +973,10 @@ ReplayStatus WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_
     {
       ser.GetReader()->SetOffset(ev.fileOffset);
 
-      D3D12CommandData::DrawcallUse use(ev.fileOffset, 0);
-      auto it = std::lower_bound(m_Cmd.m_DrawcallUses.begin(), m_Cmd.m_DrawcallUses.end(), use);
+      D3D12CommandData::ActionUse use(ev.fileOffset, 0);
+      auto it = std::lower_bound(m_Cmd.m_ActionUses.begin(), m_Cmd.m_ActionUses.end(), use);
 
-      if(it != m_Cmd.m_DrawcallUses.end())
+      if(it != m_Cmd.m_ActionUses.end())
       {
         BakedCmdListInfo &cmdInfo = m_Cmd.m_BakedCmdListInfo[it->cmdList];
         cmdInfo.curEventID = it->relativeEID;
@@ -989,7 +989,7 @@ ReplayStatus WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_
   else
   {
     m_Cmd.m_RootEventID = 1;
-    m_Cmd.m_RootDrawcallID = 1;
+    m_Cmd.m_RootActionID = 1;
     m_Cmd.m_FirstEventID = 0;
     m_Cmd.m_LastEventID = ~0U;
   }
@@ -1379,35 +1379,35 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12GraphicsCommandList::QueryInterface(REFII
   return m_RefCounter.QueryInterface("ID3D12GraphicsCommandList", riid, ppvObject);
 }
 
-void BakedCmdListInfo::ShiftForRemoved(uint32_t shiftDrawID, uint32_t shiftEID, size_t idx)
+void BakedCmdListInfo::ShiftForRemoved(uint32_t shiftActionID, uint32_t shiftEID, size_t idx)
 {
-  rdcarray<D3D12DrawcallTreeNode> &draws = draw->children;
+  rdcarray<D3D12ActionTreeNode> &actions = action->children;
 
-  drawCount -= shiftDrawID;
+  actionCount -= shiftActionID;
   eventCount -= shiftEID;
 
-  if(idx < draws.size())
+  if(idx < actions.size())
   {
-    for(size_t i = idx; i < draws.size(); i++)
+    for(size_t i = idx; i < actions.size(); i++)
     {
       // should have no children as we don't push in for markers since they
       // can cross command list boundaries.
-      RDCASSERT(draws[i].children.empty());
+      RDCASSERT(actions[i].children.empty());
 
-      draws[i].draw.eventId -= shiftEID;
-      draws[i].draw.drawcallId -= shiftDrawID;
+      actions[i].action.eventId -= shiftEID;
+      actions[i].action.actionId -= shiftActionID;
 
-      for(APIEvent &ev : draws[i].draw.events)
+      for(APIEvent &ev : actions[i].action.events)
         ev.eventId -= shiftEID;
     }
 
-    uint32_t lastEID = draws[idx].draw.eventId;
+    uint32_t lastEID = actions[idx].action.eventId;
 
-    // shift any resource usage for drawcalls after the removed section
-    for(size_t i = 0; i < draw->resourceUsage.size(); i++)
+    // shift any resource usage for actions after the removed section
+    for(size_t i = 0; i < action->resourceUsage.size(); i++)
     {
-      if(draw->resourceUsage[i].second.eventId >= lastEID)
-        draw->resourceUsage[i].second.eventId -= shiftEID;
+      if(action->resourceUsage[i].second.eventId >= lastEID)
+        action->resourceUsage[i].second.eventId -= shiftEID;
     }
 
     // patch any subsequent executes
@@ -1431,7 +1431,7 @@ D3D12CommandData::D3D12CommandData()
   m_IndirectOffset = 0;
 
   m_RootEventID = 1;
-  m_RootDrawcallID = 1;
+  m_RootActionID = 1;
   m_FirstEventID = 0;
   m_LastEventID = ~0U;
 
@@ -1439,11 +1439,11 @@ D3D12CommandData::D3D12CommandData()
 
   m_pDevice = NULL;
 
-  m_DrawcallCallback = NULL;
+  m_ActionCallback = NULL;
 
-  m_AddedDrawcall = false;
+  m_AddedAction = false;
 
-  m_RootDrawcallStack.push_back(&m_ParentDrawcall);
+  m_RootActionStack.push_back(&m_ParentAction);
 }
 
 void D3D12CommandData::GetIndirectBuffer(size_t size, ID3D12Resource **buf, uint64_t *offs)
@@ -1497,16 +1497,16 @@ void D3D12CommandData::GetIndirectBuffer(size_t size, ID3D12Resource **buf, uint
 uint32_t D3D12CommandData::HandlePreCallback(ID3D12GraphicsCommandListX *list, bool dispatch,
                                              uint32_t multiDrawOffset)
 {
-  if(!m_DrawcallCallback)
+  if(!m_ActionCallback)
     return 0;
 
-  // look up the EID this drawcall came from
-  DrawcallUse use(m_CurChunkOffset, 0);
-  auto it = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
+  // look up the EID this action came from
+  ActionUse use(m_CurChunkOffset, 0);
+  auto it = std::lower_bound(m_ActionUses.begin(), m_ActionUses.end(), use);
 
-  if(it == m_DrawcallUses.end())
+  if(it == m_ActionUses.end())
   {
-    RDCERR("Couldn't find drawcall use entry for %llu", m_CurChunkOffset);
+    RDCERR("Couldn't find action use entry for %llu", m_CurChunkOffset);
     return 0;
   }
 
@@ -1514,15 +1514,15 @@ uint32_t D3D12CommandData::HandlePreCallback(ID3D12GraphicsCommandListX *list, b
 
   RDCASSERT(eventId != 0);
 
-  // handle all aliases of this drawcall as long as it's not a multidraw
-  const DrawcallDescription *draw = m_pDevice->GetDrawcall(eventId);
+  // handle all aliases of this action as long as it's not a multidraw
+  const ActionDescription *action = m_pDevice->GetAction(eventId);
 
-  if(draw == NULL || !(draw->flags & DrawFlags::MultiDraw))
+  if(action == NULL || !(action->flags & ActionFlags::MultiAction))
   {
     ++it;
-    while(it != m_DrawcallUses.end() && it->fileOffset == m_CurChunkOffset)
+    while(it != m_ActionUses.end() && it->fileOffset == m_CurChunkOffset)
     {
-      m_DrawcallCallback->AliasEvent(eventId, it->eventId);
+      m_ActionCallback->AliasEvent(eventId, it->eventId);
       ++it;
     }
   }
@@ -1530,9 +1530,9 @@ uint32_t D3D12CommandData::HandlePreCallback(ID3D12GraphicsCommandListX *list, b
   eventId += multiDrawOffset;
 
   if(dispatch)
-    m_DrawcallCallback->PreDispatch(eventId, list);
+    m_ActionCallback->PreDispatch(eventId, list);
   else
-    m_DrawcallCallback->PreDraw(eventId, list);
+    m_ActionCallback->PreDraw(eventId, list);
 
   return eventId;
 }
@@ -1636,13 +1636,13 @@ void D3D12CommandData::AddEvent()
   m_EventMessages.clear();
 }
 
-void D3D12CommandData::AddUsage(D3D12DrawcallTreeNode &drawNode, ResourceId id, uint32_t EID,
+void D3D12CommandData::AddUsage(D3D12ActionTreeNode &actionNode, ResourceId id, uint32_t EID,
                                 ResourceUsage usage)
 {
   if(id == ResourceId())
     return;
 
-  drawNode.resourceUsage.push_back(make_rdcpair(id, EventUsage(EID, usage)));
+  actionNode.resourceUsage.push_back(make_rdcpair(id, EventUsage(EID, usage)));
 }
 
 void D3D12CommandData::AddUsage(ResourceId id, ResourceUsage usage)
@@ -1650,21 +1650,21 @@ void D3D12CommandData::AddUsage(ResourceId id, ResourceUsage usage)
   m_ResourceUses[id].push_back(EventUsage(m_RootEventID, usage));
 }
 
-void D3D12CommandData::AddUsage(const D3D12RenderState &state, D3D12DrawcallTreeNode &drawNode)
+void D3D12CommandData::AddUsage(const D3D12RenderState &state, D3D12ActionTreeNode &actionNode)
 {
-  DrawcallDescription &d = drawNode.draw;
+  ActionDescription &a = actionNode.action;
 
-  uint32_t e = d.eventId;
+  uint32_t e = a.eventId;
 
-  DrawFlags DrawMask = DrawFlags::Drawcall | DrawFlags::Dispatch;
-  if(!(d.flags & DrawMask))
+  ActionFlags DrawMask = ActionFlags::Drawcall | ActionFlags::Dispatch;
+  if(!(a.flags & DrawMask))
     return;
 
   static bool hugeRangeWarned = false;
 
   const D3D12RenderState::RootSignature *rootdata = NULL;
 
-  if((d.flags & DrawFlags::Dispatch) && state.compute.rootsig != ResourceId())
+  if((a.flags & ActionFlags::Dispatch) && state.compute.rootsig != ResourceId())
   {
     rootdata = &state.compute;
   }
@@ -1672,24 +1672,24 @@ void D3D12CommandData::AddUsage(const D3D12RenderState &state, D3D12DrawcallTree
   {
     rootdata = &state.graphics;
 
-    if(d.flags & DrawFlags::Indexed && state.ibuffer.buf != ResourceId())
-      drawNode.resourceUsage.push_back(
+    if(a.flags & ActionFlags::Indexed && state.ibuffer.buf != ResourceId())
+      actionNode.resourceUsage.push_back(
           make_rdcpair(state.ibuffer.buf, EventUsage(e, ResourceUsage::IndexBuffer)));
 
     for(size_t i = 0; i < state.vbuffers.size(); i++)
     {
       if(state.vbuffers[i].buf != ResourceId())
-        drawNode.resourceUsage.push_back(
+        actionNode.resourceUsage.push_back(
             make_rdcpair(state.vbuffers[i].buf, EventUsage(e, ResourceUsage::VertexBuffer)));
     }
 
     for(size_t i = 0; i < state.streamouts.size(); i++)
     {
       if(state.streamouts[i].buf != ResourceId())
-        drawNode.resourceUsage.push_back(
+        actionNode.resourceUsage.push_back(
             make_rdcpair(state.streamouts[i].buf, EventUsage(e, ResourceUsage::StreamOut)));
       if(state.streamouts[i].countbuf != ResourceId())
-        drawNode.resourceUsage.push_back(
+        actionNode.resourceUsage.push_back(
             make_rdcpair(state.streamouts[i].countbuf, EventUsage(e, ResourceUsage::StreamOut)));
     }
 
@@ -1698,13 +1698,13 @@ void D3D12CommandData::AddUsage(const D3D12RenderState &state, D3D12DrawcallTree
     for(size_t i = 0; i < rts.size(); i++)
     {
       if(rts[i] != ResourceId())
-        drawNode.resourceUsage.push_back(
+        actionNode.resourceUsage.push_back(
             make_rdcpair(rts[i], EventUsage(e, ResourceUsage::ColorTarget)));
     }
 
     ResourceId id = state.GetDSVID();
     if(id != ResourceId())
-      drawNode.resourceUsage.push_back(
+      actionNode.resourceUsage.push_back(
           make_rdcpair(id, EventUsage(e, ResourceUsage::DepthStencilTarget)));
   }
 
@@ -1743,15 +1743,15 @@ void D3D12CommandData::AddUsage(const D3D12RenderState &state, D3D12DrawcallTree
 
       if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_CBV && el.type == eRootCBV)
       {
-        AddUsage(drawNode, el.id, e, cb);
+        AddUsage(actionNode, el.id, e, cb);
       }
       else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_SRV && el.type == eRootSRV)
       {
-        AddUsage(drawNode, el.id, e, ro);
+        AddUsage(actionNode, el.id, e, ro);
       }
       else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_UAV && el.type == eRootUAV)
       {
-        AddUsage(drawNode, el.id, e, rw);
+        AddUsage(actionNode, el.id, e, rw);
       }
       else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE && el.type == eRootTable)
       {
@@ -1803,7 +1803,7 @@ void D3D12CommandData::AddUsage(const D3D12RenderState &state, D3D12DrawcallTree
                 ResourceId id =
                     WrappedID3D12Resource::GetResIDFromAddr(desc->GetCBV().BufferLocation);
 
-                AddUsage(drawNode, id, e, cb);
+                AddUsage(actionNode, id, e, cb);
 
                 desc++;
               }
@@ -1824,7 +1824,7 @@ void D3D12CommandData::AddUsage(const D3D12RenderState &state, D3D12DrawcallTree
             {
               for(UINT i = 0; i < num; i++)
               {
-                AddUsage(drawNode, desc->GetResResourceId(), e, usage);
+                AddUsage(actionNode, desc->GetResResourceId(), e, usage);
 
                 desc++;
               }
@@ -1836,92 +1836,92 @@ void D3D12CommandData::AddUsage(const D3D12RenderState &state, D3D12DrawcallTree
   }
 }
 
-void D3D12CommandData::AddDrawcall(const DrawcallDescription &d)
+void D3D12CommandData::AddAction(const ActionDescription &a)
 {
-  m_AddedDrawcall = true;
+  m_AddedAction = true;
 
-  DrawcallDescription draw = d;
-  draw.eventId = m_LastCmdListID != ResourceId() ? m_BakedCmdListInfo[m_LastCmdListID].curEventID
-                                                 : m_RootEventID;
-  draw.drawcallId = m_LastCmdListID != ResourceId() ? m_BakedCmdListInfo[m_LastCmdListID].drawCount
-                                                    : m_RootDrawcallID;
+  ActionDescription action = a;
+  action.eventId = m_LastCmdListID != ResourceId() ? m_BakedCmdListInfo[m_LastCmdListID].curEventID
+                                                   : m_RootEventID;
+  action.actionId = m_LastCmdListID != ResourceId() ? m_BakedCmdListInfo[m_LastCmdListID].actionCount
+                                                    : m_RootActionID;
 
   for(int i = 0; i < 8; i++)
-    draw.outputs[i] = ResourceId();
+    action.outputs[i] = ResourceId();
 
-  draw.depthOut = ResourceId();
+  action.depthOut = ResourceId();
 
   if(m_LastCmdListID != ResourceId())
   {
     rdcarray<ResourceId> rts = m_BakedCmdListInfo[m_LastCmdListID].state.GetRTVIDs();
 
-    for(size_t i = 0; i < ARRAY_COUNT(draw.outputs); i++)
+    for(size_t i = 0; i < ARRAY_COUNT(action.outputs); i++)
     {
       if(i < rts.size())
-        draw.outputs[i] = m_pDevice->GetResourceManager()->GetOriginalID(rts[i]);
+        action.outputs[i] = m_pDevice->GetResourceManager()->GetOriginalID(rts[i]);
       else
-        draw.outputs[i] = ResourceId();
+        action.outputs[i] = ResourceId();
     }
 
-    draw.depthOut = m_pDevice->GetResourceManager()->GetOriginalID(
+    action.depthOut = m_pDevice->GetResourceManager()->GetOriginalID(
         m_BakedCmdListInfo[m_LastCmdListID].state.GetDSVID());
   }
 
-  // markers don't increment drawcall ID
-  DrawFlags MarkerMask =
-      DrawFlags::SetMarker | DrawFlags::PushMarker | DrawFlags::PopMarker | DrawFlags::PassBoundary;
-  if(!(draw.flags & MarkerMask))
+  // markers don't increment action ID
+  ActionFlags MarkerMask = ActionFlags::SetMarker | ActionFlags::PushMarker |
+                           ActionFlags::PopMarker | ActionFlags::PassBoundary;
+  if(!(action.flags & MarkerMask))
   {
     if(m_LastCmdListID != ResourceId())
-      m_BakedCmdListInfo[m_LastCmdListID].drawCount++;
+      m_BakedCmdListInfo[m_LastCmdListID].actionCount++;
     else
-      m_RootDrawcallID++;
+      m_RootActionID++;
   }
 
-  draw.events.swap(m_LastCmdListID != ResourceId() ? m_BakedCmdListInfo[m_LastCmdListID].curEvents
-                                                   : m_RootEvents);
+  action.events.swap(m_LastCmdListID != ResourceId() ? m_BakedCmdListInfo[m_LastCmdListID].curEvents
+                                                     : m_RootEvents);
 
-  // should have at least the root drawcall here, push this drawcall
+  // should have at least the root action here, push this action
   // onto the back's children list.
-  if(!GetDrawcallStack().empty())
+  if(!GetActionStack().empty())
   {
-    D3D12DrawcallTreeNode node(draw);
+    D3D12ActionTreeNode node(action);
 
     node.resourceUsage.swap(m_BakedCmdListInfo[m_LastCmdListID].resourceUsage);
 
     if(m_LastCmdListID != ResourceId())
       AddUsage(m_BakedCmdListInfo[m_LastCmdListID].state, node);
 
-    for(const DrawcallDescription &child : draw.children)
-      node.children.push_back(D3D12DrawcallTreeNode(child));
-    GetDrawcallStack().back()->children.push_back(node);
+    for(const ActionDescription &child : action.children)
+      node.children.push_back(D3D12ActionTreeNode(child));
+    GetActionStack().back()->children.push_back(node);
   }
   else
-    RDCERR("Somehow lost drawcall stack!");
+    RDCERR("Somehow lost action stack!");
 }
 
-void D3D12CommandData::InsertDrawsAndRefreshIDs(ResourceId cmd,
-                                                rdcarray<D3D12DrawcallTreeNode> &cmdBufNodes)
+void D3D12CommandData::InsertActionsAndRefreshIDs(ResourceId cmd,
+                                                  rdcarray<D3D12ActionTreeNode> &cmdBufNodes)
 {
-  // assign new drawcall IDs
+  // assign new action IDs
   for(size_t i = 0; i < cmdBufNodes.size(); i++)
   {
-    D3D12DrawcallTreeNode n = cmdBufNodes[i];
-    n.draw.eventId += m_RootEventID;
-    n.draw.drawcallId += m_RootDrawcallID;
+    D3D12ActionTreeNode n = cmdBufNodes[i];
+    n.action.eventId += m_RootEventID;
+    n.action.actionId += m_RootActionID;
 
-    for(APIEvent &ev : n.draw.events)
+    for(APIEvent &ev : n.action.events)
     {
       ev.eventId += m_RootEventID;
       m_Events.resize(ev.eventId + 1);
       m_Events[ev.eventId] = ev;
     }
 
-    DrawcallUse use(m_Events.back().fileOffset, n.draw.eventId, cmd, cmdBufNodes[i].draw.eventId);
+    ActionUse use(m_Events.back().fileOffset, n.action.eventId, cmd, cmdBufNodes[i].action.eventId);
 
     // insert in sorted location
-    auto drawit = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
-    m_DrawcallUses.insert(drawit - m_DrawcallUses.begin(), use);
+    auto drawit = std::lower_bound(m_ActionUses.begin(), m_ActionUses.end(), use);
+    m_ActionUses.insert(drawit - m_ActionUses.begin(), use);
 
     RDCASSERT(n.children.empty());
 
@@ -1932,14 +1932,14 @@ void D3D12CommandData::InsertDrawsAndRefreshIDs(ResourceId cmd,
       m_ResourceUses[it->first].push_back(u);
     }
 
-    GetDrawcallStack().back()->children.push_back(n);
+    GetActionStack().back()->children.push_back(n);
 
-    // if this is a push marker too, step down the drawcall stack
-    if(cmdBufNodes[i].draw.flags & DrawFlags::PushMarker)
-      GetDrawcallStack().push_back(&GetDrawcallStack().back()->children.back());
+    // if this is a push marker too, step down the action stack
+    if(cmdBufNodes[i].action.flags & ActionFlags::PushMarker)
+      GetActionStack().push_back(&GetActionStack().back()->children.back());
 
     // similarly for a pop, but don't pop off the root
-    if((cmdBufNodes[i].draw.flags & DrawFlags::PopMarker) && GetDrawcallStack().size() > 1)
-      GetDrawcallStack().pop_back();
+    if((cmdBufNodes[i].action.flags & ActionFlags::PopMarker) && GetActionStack().size() > 1)
+      GetActionStack().pop_back();
   }
 }

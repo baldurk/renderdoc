@@ -212,28 +212,28 @@ rdcarray<uint32_t> VulkanReplay::GetPassEvents(uint32_t eventId)
 {
   rdcarray<uint32_t> passEvents;
 
-  const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
+  const ActionDescription *action = m_pDriver->GetAction(eventId);
 
-  if(!draw)
+  if(!action)
     return passEvents;
 
   // for vulkan a pass == a renderpass, if we're not inside a
   // renderpass then there are no pass events.
-  const DrawcallDescription *start = draw;
+  const ActionDescription *start = action;
   while(start)
   {
     // if we've come to the beginning of a pass, break out of the loop, we've
     // found the start.
     // Note that vkCmdNextSubPass has both Begin and End flags set, so it will
-    // break out here before we hit the terminating case looking for DrawFlags::EndPass
-    if(start->flags & DrawFlags::BeginPass)
+    // break out here before we hit the terminating case looking for ActionFlags::EndPass
+    if(start->flags & ActionFlags::BeginPass)
       break;
 
     // if we come to the END of a pass, since we were iterating backwards that
     // means we started outside of a pass, so return empty set.
     // Note that vkCmdNextSubPass has both Begin and End flags set, so it will
     // break out above before we hit this terminating case
-    if(start->flags & DrawFlags::EndPass)
+    if(start->flags & ActionFlags::EndPass)
       return passEvents;
 
     // if we've come to the start of the log we were outside of a render pass
@@ -245,17 +245,17 @@ rdcarray<uint32_t> VulkanReplay::GetPassEvents(uint32_t eventId)
     start = start->previous;
   }
 
-  // store all the draw eventIDs up to the one specified at the start
+  // store all the action eventIDs up to the one specified at the start
   while(start)
   {
-    if(start->eventId >= draw->eventId)
+    if(start->eventId >= action->eventId)
       break;
 
     // include pass boundaries, these will be filtered out later
-    // so we don't actually do anything (init postvs/draw overlay)
+    // so we don't actually do anything (init postvs/action overlay)
     // but it's useful to have the first part of the pass as part
     // of the list
-    if(start->flags & (DrawFlags::Drawcall | DrawFlags::PassBoundary))
+    if(start->flags & (ActionFlags::Drawcall | ActionFlags::PassBoundary))
       passEvents.push_back(start->eventId);
 
     start = start->next;
@@ -1642,10 +1642,10 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
           usedBindsSize = usage.used.size();
         }
 
-        const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eventId);
-        if(drawcall)
+        const ActionDescription *action = m_pDriver->GetAction(eventId);
+        if(action)
         {
-          bool isDispatch = bool(drawcall->flags & DrawFlags::Dispatch);
+          bool isDispatch = bool(action->flags & ActionFlags::Dispatch);
 
           // ifor compute stage on draws, and non-compute stages on dispatches, pretend all
           // resources are dynamically unused, to prevent the lack of data from causing large arrays

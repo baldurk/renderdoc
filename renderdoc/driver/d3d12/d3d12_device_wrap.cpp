@@ -2323,10 +2323,10 @@ bool WrappedID3D12Device::Serialise_CreateCommandSignature(SerialiserType &ser,
       wrapped->sig.arguments.assign(Descriptor.pArgumentDescs, Descriptor.NumArgumentDescs);
 
       wrapped->sig.graphics = true;
-      wrapped->sig.numDraws = 0;
+      wrapped->sig.numActions = 0;
 
       // From MSDN, command signatures are either graphics or compute so just search for dispatches:
-      // "A given command signature is either a draw or a compute command signature. If a command
+      // "A given command signature is either an action or a compute command signature. If a command
       // signature contains a drawing operation, then it is a graphics command signature. Otherwise,
       // the command signature must contain a dispatch operation, and it is a compute command
       // signature."
@@ -2338,7 +2338,7 @@ bool WrappedID3D12Device::Serialise_CreateCommandSignature(SerialiserType &ser,
         if(Descriptor.pArgumentDescs[i].Type == D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH ||
            Descriptor.pArgumentDescs[i].Type == D3D12_INDIRECT_ARGUMENT_TYPE_DRAW ||
            Descriptor.pArgumentDescs[i].Type == D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED)
-          wrapped->sig.numDraws++;
+          wrapped->sig.numActions++;
       }
 
       ret = wrapped;

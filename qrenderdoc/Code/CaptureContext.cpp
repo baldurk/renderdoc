@@ -83,7 +83,7 @@ CaptureContext::CaptureContext(PersistantConfig &cfg) : m_Config(cfg)
   m_CurVulkanPipelineState = NULL;
   m_CurPipelineState = &m_DummyPipelineState;
 
-  m_Drawcalls = &m_EmptyDraws;
+  m_Actions = &m_EmptyActions;
 
   m_StructuredFile = &m_DummySDFile;
 
@@ -782,10 +782,10 @@ void CaptureContext::LoadCapture(const rdcstr &captureFile, const ReplayOptions 
     rdcarray<ICaptureViewer *> viewers(m_CaptureViewers);
 
     // make sure we're on a consistent event before invoking viewer forms
-    if(m_LastDrawcall)
-      SetEventID(viewers, m_LastDrawcall->eventId, m_LastDrawcall->eventId, true);
-    else if(!m_Drawcalls->empty())
-      SetEventID(viewers, m_Drawcalls->back().eventId, m_Drawcalls->back().eventId, true);
+    if(m_LastAction)
+      SetEventID(viewers, m_LastAction->eventId, m_LastAction->eventId, true);
+    else if(!m_Actions->empty())
+      SetEventID(viewers, m_Actions->back().eventId, m_Actions->back().eventId, true);
 
     GUIInvoke::blockcall(m_MainWindow, [&viewers]() {
       // notify all the registers viewers that a capture has been loaded
@@ -857,9 +857,9 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const Repla
 
   m_EventID = 0;
 
-  m_FirstDrawcall = m_LastDrawcall = NULL;
+  m_FirstAction = m_LastAction = NULL;
 
-  // fetch initial data like drawcalls, textures and buffers
+  // fetch initial data like actions, textures and buffers
   m_Replay.BlockInvoke([this](IReplayController *r) {
     if(Config().EventBrowser_AddFake)
       r->AddFakeMarkers();
@@ -873,15 +873,15 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const Repla
 
     m_PostloadProgress = 0.2f;
 
-    m_Drawcalls = &r->GetDrawcalls();
+    m_Actions = &r->GetRootActions();
 
-    m_FirstDrawcall = &m_Drawcalls->at(0);
-    while(!m_FirstDrawcall->children.empty())
-      m_FirstDrawcall = &m_FirstDrawcall->children[0];
+    m_FirstAction = &m_Actions->at(0);
+    while(!m_FirstAction->children.empty())
+      m_FirstAction = &m_FirstAction->children[0];
 
-    m_LastDrawcall = &m_Drawcalls->back();
-    while(!m_LastDrawcall->children.empty())
-      m_LastDrawcall = &m_LastDrawcall->children.back();
+    m_LastAction = &m_Actions->back();
+    while(!m_LastAction->children.empty())
+      m_LastAction = &m_LastAction->children.back();
 
     m_PostloadProgress = 0.4f;
 
@@ -1316,8 +1316,8 @@ void CaptureContext::CloseCapture()
   m_Bookmarks.clear();
   m_Notes.clear();
 
-  m_Drawcalls = &m_EmptyDraws;
-  m_FirstDrawcall = m_LastDrawcall = NULL;
+  m_Actions = &m_EmptyActions;
+  m_FirstAction = m_LastAction = NULL;
 
   m_CurD3D11PipelineState = NULL;
   m_CurD3D12PipelineState = NULL;
@@ -1487,7 +1487,7 @@ void CaptureContext::SetEventID(const rdcarray<ICaptureViewer *> &exclude, uint3
   if(!IsCaptureLoaded())
     return;
 
-  if(eventId > m_LastDrawcall->eventId)
+  if(eventId > m_LastAction->eventId)
   {
     qCritical() << "Invalid EID being selected " << eventId;
     return;
