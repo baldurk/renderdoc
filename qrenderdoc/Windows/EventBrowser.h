@@ -124,6 +124,7 @@ public:
   void UpdateDurationColumn() override;
   APIEvent GetAPIEventForEID(uint32_t eid) override;
   const ActionDescription *GetActionForEID(uint32_t eid) override;
+  rdcstr GetEventName(uint32_t eventId) override;
   bool IsAPIEventVisible(uint32_t eid) override;
   bool RegisterEventFilterFunction(const rdcstr &name, const rdcstr &description,
                                    EventFilterCallback filter, FilterParseCallback parser,

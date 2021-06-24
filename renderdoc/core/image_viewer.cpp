@@ -50,12 +50,12 @@ public:
     ActionDescription &action = m_FrameRecord.actionList[0];
     action.actionId = 1;
     action.eventId = 1;
-    action.name = get_basename(filename);
+    action.customName = get_basename(filename);
     APIEvent ev;
     ev.eventId = 1;
     action.events.push_back(ev);
 
-    SDChunk *chunk = new SDChunk(action.name);
+    SDChunk *chunk = new SDChunk(action.customName);
     chunk->AddAndOwnChild(makeSDString("path"_lit, filename));
 
     m_File.chunks.push_back(chunk);

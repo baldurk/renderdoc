@@ -209,7 +209,7 @@ public:
 
             if(!actionstack.isEmpty())
             {
-              ret += lit("> ") + actionstack.back()->name;
+              ret += lit("> ") + actionstack.back()->customName;
 
               if(actionstack.count() > 3)
                 ret += lit(" ...");
@@ -217,9 +217,9 @@ public:
               ret += lit("\n");
 
               if(actionstack.count() > 2)
-                ret += lit("> ") + actionstack[1]->name + lit("\n");
+                ret += lit("> ") + actionstack[1]->customName + lit("\n");
               if(actionstack.count() > 1)
-                ret += lit("> ") + actionstack[0]->name + lit("\n");
+                ret += lit("> ") + actionstack[0]->customName + lit("\n");
 
               ret += lit("\n");
             }
@@ -231,7 +231,7 @@ public:
             {
               ret += tr("EID %1\n%2\nBound as UAV or copy - potential modification")
                          .arg(mods.front().eventId)
-                         .arg(action->name);
+                         .arg(m_Ctx.GetEventBrowser()->GetEventName(action->eventId));
 
               if(mods[0].preMod.col.uintValue == mods[0].postMod.col.uintValue)
               {
@@ -249,7 +249,7 @@ public:
 
               ret += tr("EID %1\n%2%3\n%4 Fragments touching pixel\n")
                          .arg(mods.front().eventId)
-                         .arg(action->name)
+                         .arg(m_Ctx.GetEventBrowser()->GetEventName(action->eventId))
                          .arg(failure)
                          .arg(mods.count());
             }

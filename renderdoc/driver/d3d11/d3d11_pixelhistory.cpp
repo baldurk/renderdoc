@@ -2003,8 +2003,7 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
     if(action->flags & ActionFlags::Clear)
       continue;
 
-    D3D11MarkerRegion historyData(StringFormat::Fmt("Fetching history data for %u: %s",
-                                                    action->eventId, action->name.c_str()));
+    D3D11MarkerRegion historyData(StringFormat::Fmt("Fetching history data for %u", action->eventId));
 
     if(prev != history[h].eventId)
     {

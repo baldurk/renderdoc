@@ -30,6 +30,7 @@
 #include "replay_enums.h"
 #include "resourceid.h"
 #include "stringise.h"
+#include "structured_data.h"
 
 DOCUMENT("A floating point four-component vector");
 struct FloatVector
@@ -1569,6 +1570,35 @@ processing them wherever possible.
     return events.size() == 1 && events[0].chunkIndex == APIEvent::NoChunk;
   }
 
+  DOCUMENT(R"(Returns the name for this action, either from its custom name (see :data:`customName`)
+or from the matching chunk in the structured data passed in.
+
+:param SDFile structuredFile: The structured data file for the capture this action is from.
+:return: Returns the best available name for this action.
+:rtype: str
+)");
+  rdcstr GetName(const SDFile &structuredFile) const
+  {
+    if(!customName.empty())
+      return customName;
+
+    // if we have events, the last one is the one for this action. Return the corresponding chunk
+    // name
+    if(events.size() >= 1)
+    {
+      const uint32_t chunkIndex = events.back().chunkIndex;
+
+      if(chunkIndex < structuredFile.chunks.size())
+      {
+        rdcstr ret = structuredFile.chunks[chunkIndex]->name;
+        ret += "()";
+        return ret;
+      }
+    }
+
+    return rdcstr();
+  }
+
   DOCUMENT("");
   bool operator==(const ActionDescription &o) const { return eventId == o.eventId; }
   bool operator<(const ActionDescription &o) const { return eventId < o.eventId; }
@@ -1577,14 +1607,16 @@ processing them wherever possible.
   DOCUMENT("A 1-based index of this action relative to other actions.");
   uint32_t actionId = 0;
 
-  DOCUMENT(R"(The name of this action. Typically a summarised/concise list of parameters.
+  DOCUMENT(R"(The custom name of this action.
 
-.. note:: For markers this will be a user-provided string. In most other cases this name will be
-  empty, and the name can be generated using structured data. Some actions will have a custom
-  name generated for e.g. reading back and directly displaying indirect parameters or render pass
-  parameters.
+For markers this will be a user-provided string. In most other cases this will be empty, and the
+name can be generated using structured data. The last listed event in :data:`events` will correspond
+to the event for the overall action, and its chunk will contain a name and any parameters.
+
+Some actions will have a custom name generated for e.g. reading back and directly displaying
+indirect parameters or render pass parameters.
 )");
-  rdcstr name;
+  rdcstr customName;
 
   DOCUMENT("A set of :class:`ActionFlags` properties describing what kind of action this is.");
   ActionFlags flags = ActionFlags::NoFlags;

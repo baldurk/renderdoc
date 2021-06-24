@@ -297,6 +297,18 @@ If no capture is loaded or the EID doesn't correspond to a known event, ``None``
 )");
   virtual const ActionDescription *GetActionForEID(uint32_t eventId) = 0;
 
+  DOCUMENT(R"(Returns the formatted name of an event according to the current settings, whether
+that be a custom name or an auto-generated name with/without parameter names.
+
+If no capture is loaded or the EID doesn't correspond to a known event, an empty string will be
+returned.
+
+:param int eventId: The EID to look up.
+:return: The formatted name of the specified event, or ``None`` if no such EID exists.
+:rtype: str
+)");
+  virtual rdcstr GetEventName(uint32_t eventId) = 0;
+
   DOCUMENT(R"(Determines if a given EID is visible with the current filters applied to the event
 browser.
 

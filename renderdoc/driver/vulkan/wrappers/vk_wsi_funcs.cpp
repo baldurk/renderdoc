@@ -724,7 +724,7 @@ bool WrappedVulkan::Serialise_vkQueuePresentKHR(SerialiserType &ser, VkQueue que
 
     ActionDescription action;
 
-    action.name = StringFormat::Fmt("vkQueuePresentKHR(%s)", ToStr(PresentedImage).c_str());
+    action.customName = StringFormat::Fmt("vkQueuePresentKHR(%s)", ToStr(PresentedImage).c_str());
     action.flags |= ActionFlags::Present;
 
     m_LastPresentedImage = action.copyDestination = PresentedImage;

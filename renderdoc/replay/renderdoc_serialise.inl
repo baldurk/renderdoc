@@ -550,7 +550,7 @@ void DoSerialise(SerialiserType &ser, ActionDescription &el)
   SERIALISE_MEMBER(eventId);
   SERIALISE_MEMBER(actionId);
 
-  SERIALISE_MEMBER(name);
+  SERIALISE_MEMBER(customName);
 
   SERIALISE_MEMBER(flags);
 

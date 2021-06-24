@@ -1584,7 +1584,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
 
       AddEvent();
       ActionDescription action;
-      action.name =
+      action.customName =
           StringFormat::Fmt("vkCmdBeginRenderPass(%s)", MakeRenderPassOpString(false).c_str());
       action.flags |= ActionFlags::PassBoundary | ActionFlags::BeginPass;
 
@@ -1761,8 +1761,8 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(SerialiserType &ser, VkCommandBuf
 
       AddEvent();
       ActionDescription action;
-      action.name = StringFormat::Fmt("vkCmdNextSubpass() => %u",
-                                      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass);
+      action.customName = StringFormat::Fmt("vkCmdNextSubpass() => %u",
+                                            m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass);
       action.flags |= ActionFlags::PassBoundary | ActionFlags::BeginPass | ActionFlags::EndPass;
 
       AddAction(action);
@@ -1888,7 +1888,8 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
 
       AddEvent();
       ActionDescription action;
-      action.name = StringFormat::Fmt("vkCmdEndRenderPass(%s)", MakeRenderPassOpString(true).c_str());
+      action.customName =
+          StringFormat::Fmt("vkCmdEndRenderPass(%s)", MakeRenderPassOpString(true).c_str());
       action.flags |= ActionFlags::PassBoundary | ActionFlags::EndPass;
 
       AddAction(action);
@@ -2208,7 +2209,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
 
       AddEvent();
       ActionDescription action;
-      action.name =
+      action.customName =
           StringFormat::Fmt("vkCmdBeginRenderPass2(%s)", MakeRenderPassOpString(false).c_str());
       action.flags |= ActionFlags::PassBoundary | ActionFlags::BeginPass;
 
@@ -2402,8 +2403,8 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass2(SerialiserType &ser, VkCommandBu
 
       AddEvent();
       ActionDescription action;
-      action.name = StringFormat::Fmt("vkCmdNextSubpass2() => %u",
-                                      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass);
+      action.customName = StringFormat::Fmt("vkCmdNextSubpass2() => %u",
+                                            m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass);
       action.flags |= ActionFlags::PassBoundary | ActionFlags::BeginPass | ActionFlags::EndPass;
 
       AddAction(action);
@@ -2545,7 +2546,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass2(SerialiserType &ser, VkCommand
 
       AddEvent();
       ActionDescription action;
-      action.name =
+      action.customName =
           StringFormat::Fmt("vkCmdEndRenderPass2(%s)", MakeRenderPassOpString(true).c_str());
       action.flags |= ActionFlags::PassBoundary | ActionFlags::EndPass;
 
@@ -4162,7 +4163,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
       AddEvent();
 
       ActionDescription action;
-      action.name = StringFormat::Fmt("vkCmdExecuteCommands(%u)", commandBufferCount);
+      action.customName = StringFormat::Fmt("vkCmdExecuteCommands(%u)", commandBufferCount);
       action.flags = ActionFlags::CmdList | ActionFlags::PushMarker;
 
       AddAction(action);
@@ -4183,8 +4184,8 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
 
         // add a fake marker
         ActionDescription marker;
-        marker.name = StringFormat::Fmt("=> vkCmdExecuteCommands()[%u]: vkBeginCommandBuffer(%s)",
-                                        c, ToStr(cmd).c_str());
+        marker.customName = StringFormat::Fmt(
+            "=> vkCmdExecuteCommands()[%u]: vkBeginCommandBuffer(%s)", c, ToStr(cmd).c_str());
         marker.flags =
             ActionFlags::CommandBufferBoundary | ActionFlags::PassBoundary | ActionFlags::BeginPass;
         AddEvent();
@@ -4249,8 +4250,8 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
 
         cmdBufInfo.curEvents.clear();
 
-        marker.name = StringFormat::Fmt("=> vkCmdExecuteCommands()[%u]: vkEndCommandBuffer(%s)", c,
-                                        ToStr(cmd).c_str());
+        marker.customName = StringFormat::Fmt(
+            "=> vkCmdExecuteCommands()[%u]: vkEndCommandBuffer(%s)", c, ToStr(cmd).c_str());
         marker.flags =
             ActionFlags::CommandBufferBoundary | ActionFlags::PassBoundary | ActionFlags::EndPass;
         AddEvent();
@@ -4511,7 +4512,7 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerBeginEXT(SerialiserType &ser,
         ObjDisp(commandBuffer)->CmdDebugMarkerBeginEXT(Unwrap(commandBuffer), &Marker);
 
       ActionDescription action;
-      action.name = Marker.pMarkerName ? Marker.pMarkerName : "";
+      action.customName = Marker.pMarkerName ? Marker.pMarkerName : "";
       action.flags |= ActionFlags::PushMarker;
 
       action.markerColor.x = RDCCLAMP(Marker.color[0], 0.0f, 1.0f);
@@ -4582,7 +4583,6 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerEndEXT(SerialiserType &ser,
       // dummy action that is consumed when this command buffer
       // is being in-lined into the call stream
       ActionDescription action;
-      action.name = "vkCmdDebugMarkerEndEXT()";
       action.flags = ActionFlags::PopMarker;
 
       AddEvent();
@@ -4643,7 +4643,7 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerInsertEXT(SerialiserType &ser,
         ObjDisp(commandBuffer)->CmdDebugMarkerInsertEXT(Unwrap(commandBuffer), &Marker);
 
       ActionDescription action;
-      action.name = Marker.pMarkerName ? Marker.pMarkerName : "";
+      action.customName = Marker.pMarkerName ? Marker.pMarkerName : "";
       action.flags |= ActionFlags::SetMarker;
 
       action.markerColor.x = RDCCLAMP(Marker.color[0], 0.0f, 1.0f);
@@ -5500,7 +5500,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginDebugUtilsLabelEXT(SerialiserType &ser,
         ObjDisp(commandBuffer)->CmdBeginDebugUtilsLabelEXT(Unwrap(commandBuffer), &Label);
 
       ActionDescription action;
-      action.name = Label.pLabelName ? Label.pLabelName : "";
+      action.customName = Label.pLabelName ? Label.pLabelName : "";
       action.flags |= ActionFlags::PushMarker;
 
       action.markerColor.x = RDCCLAMP(Label.color[0], 0.0f, 1.0f);
@@ -5569,7 +5569,6 @@ bool WrappedVulkan::Serialise_vkCmdEndDebugUtilsLabelEXT(SerialiserType &ser,
         ObjDisp(commandBuffer)->CmdEndDebugUtilsLabelEXT(Unwrap(commandBuffer));
 
       ActionDescription action;
-      action.name = "vkCmdEndDebugUtilsLabelEXT()";
       action.flags = ActionFlags::PopMarker;
 
       AddEvent();
@@ -5630,7 +5629,7 @@ bool WrappedVulkan::Serialise_vkCmdInsertDebugUtilsLabelEXT(SerialiserType &ser,
         ObjDisp(commandBuffer)->CmdInsertDebugUtilsLabelEXT(Unwrap(commandBuffer), &Label);
 
       ActionDescription action;
-      action.name = Label.pLabelName ? Label.pLabelName : "";
+      action.customName = Label.pLabelName ? Label.pLabelName : "";
       action.flags |= ActionFlags::SetMarker;
 
       action.markerColor.x = RDCCLAMP(Label.color[0], 0.0f, 1.0f);

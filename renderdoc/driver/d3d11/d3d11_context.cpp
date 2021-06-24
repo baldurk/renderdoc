@@ -568,7 +568,7 @@ bool WrappedID3D11DeviceContext::Serialise_Present(SerialiserType &ser, UINT Syn
 
     action.copyDestination = m_pDevice->GetBackbufferResourceID();
 
-    action.name = StringFormat::Fmt("Present(%s)", ToStr(action.copyDestination).c_str());
+    action.customName = StringFormat::Fmt("Present(%s)", ToStr(action.copyDestination).c_str());
     action.flags |= ActionFlags::Present;
 
     AddAction(action);
@@ -945,7 +945,7 @@ bool WrappedID3D11DeviceContext::ProcessChunk(ReadSerialiser &ser, D3D11Chunk ch
         AddEvent();
 
         ActionDescription action;
-        action.name = "End of Capture";
+        action.customName = "End of Capture";
         action.flags |= ActionFlags::Present;
 
         action.copyDestination = m_pDevice->GetBackbufferResourceID();

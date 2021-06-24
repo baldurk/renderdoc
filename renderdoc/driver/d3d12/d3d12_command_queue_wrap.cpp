@@ -537,7 +537,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
         // add a fake marker
         ActionDescription action;
         {
-          action.name =
+          action.customName =
               StringFormat::Fmt("=> %s[%u]: Reset(%s)", basename.c_str(), c, ToStr(cmd).c_str());
           action.flags = ActionFlags::CommandBufferBoundary | ActionFlags::PassBoundary |
                          ActionFlags::BeginPass;
@@ -587,7 +587,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
         m_Cmd.m_RootActionID += cmdListInfo.actionCount;
 
         {
-          action.name =
+          action.customName =
               StringFormat::Fmt("=> %s[%u]: Close(%s)", basename.c_str(), c, ToStr(cmd).c_str());
           action.flags =
               ActionFlags::CommandBufferBoundary | ActionFlags::PassBoundary | ActionFlags::EndPass;
@@ -1041,7 +1041,7 @@ bool WrappedID3D12CommandQueue::Serialise_SetMarker(SerialiserType &ser, UINT Me
     if(IsLoading(m_State))
     {
       ActionDescription action;
-      action.name = MarkerText;
+      action.customName = MarkerText;
       action.flags |= ActionFlags::SetMarker;
 
       m_Cmd.AddEvent();
@@ -1090,7 +1090,7 @@ bool WrappedID3D12CommandQueue::Serialise_BeginEvent(SerialiserType &ser, UINT M
     if(IsLoading(m_State))
     {
       ActionDescription action;
-      action.name = MarkerText;
+      action.customName = MarkerText;
       action.flags |= ActionFlags::PushMarker;
 
       m_Cmd.AddEvent();

@@ -62,7 +62,7 @@ def sampleCode(controller):
 			val = r.value.u64
 
 		if val == 0:
-			print("EID %d '%s' had no samples pass depth/stencil test!" % (r.eventId, draw.name))
+			print("EID %d '%s' had no samples pass depth/stencil test!" % (r.eventId, draw.GetName(controller.GetStructuredFile())))
 
 def loadCapture(filename):
 	# Open a capture file handle

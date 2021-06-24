@@ -56,7 +56,7 @@ bool WrappedID3D11DeviceContext::Serialise_SetMarker(SerialiserType &ser, uint32
     if(IsLoading(m_State))
     {
       ActionDescription action;
-      action.name = MarkerName;
+      action.customName = MarkerName;
       action.flags |= ActionFlags::SetMarker;
 
       byte alpha = (Color >> 24) & 0xff;
@@ -94,7 +94,7 @@ bool WrappedID3D11DeviceContext::Serialise_PushMarker(SerialiserType &ser, uint3
     if(IsLoading(m_State))
     {
       ActionDescription action;
-      action.name = MarkerName;
+      action.customName = MarkerName;
       action.flags |= ActionFlags::PushMarker;
 
       byte alpha = (Color >> 24) & 0xff;
@@ -4139,7 +4139,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawAuto(SerialiserType &ser)
       AddEvent();
 
       ActionDescription action;
-      action.name = StringFormat::Fmt("DrawAuto(<%u>)", numVerts);
+      action.customName = StringFormat::Fmt("DrawAuto(<%u>)", numVerts);
       action.flags |= ActionFlags::Drawcall | ActionFlags::Auto;
       action.numIndices = (uint32_t)numVerts;
       action.vertexOffset = 0;
@@ -4268,7 +4268,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstancedIndirect(Serialis
             EventUsage(m_CurEventID, ResourceUsage::Indirect));
       }
 
-      action.name = name;
+      action.customName = name;
 
       action.flags |= ActionFlags::Drawcall | ActionFlags::Instanced | ActionFlags::Indexed |
                       ActionFlags::Indirect;
@@ -4397,7 +4397,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawInstancedIndirect(SerialiserType 
             EventUsage(m_CurEventID, ResourceUsage::Indirect));
       }
 
-      action.name = name;
+      action.customName = name;
 
       action.flags |= ActionFlags::Drawcall | ActionFlags::Instanced | ActionFlags::Indirect;
 
@@ -5102,7 +5102,7 @@ bool WrappedID3D11DeviceContext::Serialise_DispatchIndirect(SerialiserType &ser,
             EventUsage(m_CurEventID, ResourceUsage::Indirect));
       }
 
-      action.name = name;
+      action.customName = name;
       action.flags |= ActionFlags::Dispatch | ActionFlags::Indirect;
 
       AddAction(action);
@@ -6397,9 +6397,6 @@ bool WrappedID3D11DeviceContext::Serialise_GenerateMips(SerialiserType &ser,
       AddEvent();
 
       ActionDescription action;
-      action.name =
-          "GenerateMips(" +
-          ToStr(GetResourceManager()->GetOriginalID(GetIDForDeviceChild(pShaderResourceView))) + ")";
       action.flags |= ActionFlags::GenMips;
 
       AddAction(action);

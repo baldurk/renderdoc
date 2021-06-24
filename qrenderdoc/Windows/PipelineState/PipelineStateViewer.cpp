@@ -501,11 +501,12 @@ div.stage table tr td { border-right: 1px solid #AAAAAA; background-color: #EEEE
 
             for(const ActionDescription *d : actionstack)
             {
-              context += QFormatStr(" > %1").arg(d->name);
+              context += QFormatStr(" > %1").arg(d->customName);
             }
 
             if(action)
-              context += QFormatStr(" => %1").arg(action->name);
+              context +=
+                  QFormatStr(" => %1").arg(m_Ctx.GetEventBrowser()->GetEventName(action->eventId));
             else
               context += tr(" => Capture Start");
 

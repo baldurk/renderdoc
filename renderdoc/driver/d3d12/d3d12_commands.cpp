@@ -867,7 +867,7 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
         m_Cmd.AddEvent();
 
         ActionDescription action;
-        action.name = "End of Capture";
+        action.customName = "End of Capture";
         action.flags |= ActionFlags::Present;
 
         action.copyDestination = m_Cmd.m_LastPresentedImage;

@@ -281,7 +281,7 @@ bool WrappedOpenGL::Serialise_glDebugMessageInsert(SerialiserType &ser, GLenum s
     if(IsLoading(m_State))
     {
       ActionDescription action;
-      action.name = name;
+      action.customName = name;
       action.flags |= ActionFlags::SetMarker;
 
       AddEvent();
@@ -382,7 +382,7 @@ bool WrappedOpenGL::Serialise_glInsertEventMarkerEXT(SerialiserType &ser, GLsize
     if(IsLoading(m_State))
     {
       ActionDescription action;
-      action.name = marker;
+      action.customName = marker;
       action.flags |= ActionFlags::SetMarker;
 
       AddEvent();
@@ -453,7 +453,7 @@ bool WrappedOpenGL::Serialise_glPushDebugGroup(SerialiserType &ser, GLenum sourc
     if(IsLoading(m_State))
     {
       ActionDescription action;
-      action.name = message;
+      action.customName = message;
       action.flags |= ActionFlags::PushMarker;
 
       AddEvent();
@@ -498,7 +498,6 @@ bool WrappedOpenGL::Serialise_glPopDebugGroup(SerialiserType &ser)
     if(IsLoading(m_State))
     {
       ActionDescription action;
-      action.name = ToStr(gl_CurChunk) + "()";
       action.flags |= ActionFlags::PopMarker;
 
       AddEvent();

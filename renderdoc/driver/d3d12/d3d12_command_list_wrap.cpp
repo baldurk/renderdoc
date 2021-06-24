@@ -2975,7 +2975,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetMarker(SerialiserType &ser, 
       D3D12MarkerRegion::Set(GetWrappedCrackedList(), MarkerText);
 
       ActionDescription action;
-      action.name = MarkerText;
+      action.customName = MarkerText;
       action.flags |= ActionFlags::SetMarker;
 
       m_Cmd->AddEvent();
@@ -3040,7 +3040,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginEvent(SerialiserType &ser,
       D3D12MarkerRegion::Begin(GetWrappedCrackedList(), MarkerText);
 
       ActionDescription action;
-      action.name = MarkerText;
+      action.customName = MarkerText;
       action.flags |= ActionFlags::PushMarker;
 
       m_Cmd->AddEvent();
@@ -3509,7 +3509,6 @@ void WrappedID3D12GraphicsCommandList::ReserveExecuteIndirect(ID3D12GraphicsComm
   {
     m_Cmd->AddEvent();
     ActionDescription action;
-    action.name = "ID3D12GraphicsCommandList::ExecuteIndirect()";
     action.flags = ActionFlags::PopMarker;
     m_Cmd->AddAction(action);
   }
@@ -3563,7 +3562,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
   RDCASSERTMSG("Couldn't find base event action!", idx < actions.size(), idx, actions.size());
 
   // patch the name for the base action
-  actions[idx].action.name =
+  actions[idx].action.customName =
       StringFormat::Fmt("ExecuteIndirect(maxCount %u, count <%u>)", exec.maxCount, count);
   // if there's only one command running, remove its pushmarker flag
   if(!multiaction)
@@ -3576,14 +3575,15 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
 
   D3D12RenderState state;
 
+  SDChunk *baseChunk = NULL;
+
   if(count > 0)
   {
     RDCASSERT(actions[idx].state);
 
     state = *actions[idx].state;
+    baseChunk = m_Cmd->m_StructuredFile->chunks[actions[idx].action.events[0].chunkIndex];
   }
-
-  SDChunk *baseChunk = m_Cmd->m_StructuredFile->chunks[actions[idx].action.events[0].chunkIndex];
 
   for(uint32_t i = 0; i < count; i++)
   {
@@ -3640,10 +3640,10 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
             curAction.vertexOffset = args->StartVertexLocation;
             curAction.instanceOffset = args->StartInstanceLocation;
             curAction.flags |= ActionFlags::Drawcall | ActionFlags::Instanced | ActionFlags::Indirect;
-            curAction.name = StringFormat::Fmt("[%u] arg%u: IndirectDraw(<%u, %u>)", i, a,
-                                               curAction.numIndices, curAction.numInstances);
+            curAction.customName = StringFormat::Fmt("[%u] arg%u: IndirectDraw(<%u, %u>)", i, a,
+                                                     curAction.numIndices, curAction.numInstances);
 
-            fakeChunk->name = curAction.name;
+            fakeChunk->name = curAction.customName;
 
             structuriser.Serialise("ArgumentData"_lit, *args).Important();
 
@@ -3673,10 +3673,10 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
             curAction.instanceOffset = args->StartInstanceLocation;
             curAction.flags |= ActionFlags::Drawcall | ActionFlags::Instanced |
                                ActionFlags::Indexed | ActionFlags::Indirect;
-            curAction.name = StringFormat::Fmt("[%u] arg%u: IndirectDrawIndexed(<%u, %u>)", i, a,
-                                               curAction.numIndices, curAction.numInstances);
+            curAction.customName = StringFormat::Fmt("[%u] arg%u: IndirectDrawIndexed(<%u, %u>)", i,
+                                                     a, curAction.numIndices, curAction.numInstances);
 
-            fakeChunk->name = curAction.name;
+            fakeChunk->name = curAction.customName;
 
             structuriser.Serialise("ArgumentData"_lit, *args).Important();
 
@@ -3702,11 +3702,11 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
             curAction.dispatchDimension[1] = args->ThreadGroupCountY;
             curAction.dispatchDimension[2] = args->ThreadGroupCountZ;
             curAction.flags |= ActionFlags::Dispatch | ActionFlags::Indirect;
-            curAction.name = StringFormat::Fmt(
+            curAction.customName = StringFormat::Fmt(
                 "[%u] arg%u: IndirectDispatch(<%u, %u, %u>)", i, a, curAction.dispatchDimension[0],
                 curAction.dispatchDimension[1], curAction.dispatchDimension[2]);
 
-            fakeChunk->name = curAction.name;
+            fakeChunk->name = curAction.customName;
 
             structuriser.Serialise("ArgumentData"_lit, *args).Important();
 
@@ -4321,7 +4321,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
       m_Cmd->AddEvent();
 
       ActionDescription action;
-      action.name = "ExecuteIndirect";
+      action.customName = "ExecuteIndirect";
 
       action.flags |= ActionFlags::MultiAction;
 

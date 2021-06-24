@@ -368,16 +368,16 @@ void ReplayController::AddFakeMarkers()
     const char *targets = actions[end].depthOut == ResourceId() ? "Targets" : "Targets + Depth";
 
     if(copyOnly)
-      mark.name = StringFormat::Fmt("Copy/Clear Pass #%d", copypassID++);
+      mark.customName = StringFormat::Fmt("Copy/Clear Pass #%d", copypassID++);
     else if(actions[refaction].flags & ActionFlags::Dispatch)
-      mark.name = StringFormat::Fmt("Compute Pass #%d", computepassID++);
+      mark.customName = StringFormat::Fmt("Compute Pass #%d", computepassID++);
     else if(maxOutCount == 0)
-      mark.name = StringFormat::Fmt("Depth-only Pass #%d", depthpassID++);
+      mark.customName = StringFormat::Fmt("Depth-only Pass #%d", depthpassID++);
     else if(minOutCount == maxOutCount)
-      mark.name = StringFormat::Fmt("Colour Pass #%d (%d %s)", passID++, minOutCount, targets);
+      mark.customName = StringFormat::Fmt("Colour Pass #%d (%d %s)", passID++, minOutCount, targets);
     else
-      mark.name = StringFormat::Fmt("Colour Pass #%d (%d-%d %s)", passID++, minOutCount,
-                                    maxOutCount, targets);
+      mark.customName = StringFormat::Fmt("Colour Pass #%d (%d-%d %s)", passID++, minOutCount,
+                                          maxOutCount, targets);
 
     mark.children.resize(end - start + 1);
 

@@ -215,9 +215,11 @@ void RGPInterop::EventSelected(RGPInteropEvent event)
 
   const ActionDescription *action = m_Ctx.GetAction(eventId);
 
-  if(action && QString(action->name) != event.eventname)
+  const SDFile &file = m_Ctx.GetStructuredFile();
+
+  if(action && QString(file.chunks[action->events.back().chunkIndex]->name) != event.eventname)
     qWarning() << "Action name mismatch. Expected " << event.eventname << " but got "
-               << QString(action->name);
+               << QString(file.chunks[action->events.back().chunkIndex]->name);
 
   m_Ctx.SetEventID({}, eventId, eventId);
 
@@ -265,10 +267,7 @@ void RGPInterop::CreateMapping(const rdcarray<ActionDescription> &actions)
       if(m_EventNames.contains(chunk->name, Qt::CaseSensitive))
       {
         m_Event2RGP[ev.eventId].interoplinearid = (uint32_t)m_RGP2Event.size();
-        if(ev.eventId == action.eventId)
-          m_Event2RGP[ev.eventId].eventname = action.name;
-        else
-          m_Event2RGP[ev.eventId].eventname = chunk->name;
+        m_Event2RGP[ev.eventId].eventname = chunk->name;
 
         m_RGP2Event.push_back(ev.eventId);
       }

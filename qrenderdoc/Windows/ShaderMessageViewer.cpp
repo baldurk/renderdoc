@@ -418,7 +418,8 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
 
   ui->label->setText(tr("Shader messages from @%1 - %2")
                          .arg(m_EID)
-                         .arg(m_Action ? m_Action->name : rdcstr("Unknown action")));
+                         .arg(m_Action ? m_Ctx.GetEventBrowser()->GetEventName(m_Action->eventId)
+                                       : rdcstr("Unknown action")));
 
   setWindowTitle(tr("Shader messages at @%1").arg(m_EID));
 

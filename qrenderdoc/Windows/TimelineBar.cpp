@@ -1048,7 +1048,7 @@ uint32_t TimelineBar::processActions(QVector<Marker> &markers, QVector<uint32_t>
       markers.push_back(Marker());
       Marker &m = markers.back();
 
-      m.name = a.name;
+      m.name = a.customName;
       m.eidStart = a.eventId;
       m.eidEnd = processActions(m.children, m.actions, a.children);
 

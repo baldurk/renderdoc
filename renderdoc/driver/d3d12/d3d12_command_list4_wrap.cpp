@@ -358,7 +358,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginRenderPass(
       m_Cmd->AddEvent();
 
       ActionDescription action;
-      action.name = StringFormat::Fmt(
+      action.customName = StringFormat::Fmt(
           "BeginRenderPass(%s)",
           MakeRenderPassOpString(false, NumRenderTargets, pRenderTargets, pDepthStencil, Flags).c_str());
       action.flags |= ActionFlags::BeginPass | ActionFlags::PassBoundary;
@@ -512,7 +512,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndRenderPass(SerialiserType &s
       D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
 
       ActionDescription action;
-      action.name = StringFormat::Fmt(
+      action.customName = StringFormat::Fmt(
           "EndRenderPass(%s)",
           MakeRenderPassOpString(true, (UINT)state.rpRTs.size(), state.rpRTs.data(),
                                  state.rpDSV.cpuDescriptor.ptr ? &state.rpDSV : NULL, state.rpFlags)

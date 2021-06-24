@@ -2671,8 +2671,8 @@ bool WrappedOpenGL::Serialise_Present(SerialiserType &ser)
     action.copyDestination = GetResourceManager()->GetOriginalID(
         GetResourceManager()->GetResID(TextureRes(GetCtx(), col)));
 
-    action.name = StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(),
-                                    ToStr(action.copyDestination).c_str());
+    action.customName = StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(),
+                                          ToStr(action.copyDestination).c_str());
     action.flags |= ActionFlags::Present;
 
     AddAction(action);
@@ -3478,7 +3478,7 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
         AddEvent();
 
         ActionDescription action;
-        action.name = "End of Capture";
+        action.customName = "End of Capture";
         action.flags |= ActionFlags::Present;
 
         GLuint col = 0;

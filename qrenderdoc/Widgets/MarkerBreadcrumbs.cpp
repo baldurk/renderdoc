@@ -278,7 +278,7 @@ void MarkerBreadcrumbs::ConfigurePathMenu(QMenu *menu, const ActionDescription *
     if((child.flags & ActionFlags::PushMarker) &&
        m_Ctx.GetEventBrowser()->IsAPIEventVisible(child.eventId))
     {
-      QAction *menuAction = new QAction(child.name, menu);
+      QAction *menuAction = new QAction(child.customName, menu);
 
       uint32_t eid = child.eventId;
 
@@ -318,7 +318,7 @@ void MarkerBreadcrumbs::elidedItemsClicked()
 void MarkerBreadcrumbs::AddPathButton(const ActionDescription *action)
 {
   RDToolButton *b = new RDToolButton();
-  b->setText(action ? QString(action->name) : QString());
+  b->setText(action ? QString(action->customName) : QString());
   if(!action)
   {
     b->setIcon(Icons::house());

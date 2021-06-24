@@ -1740,7 +1740,6 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardResource(SerialiserType &ser,
 
       ActionDescription action;
 
-      action.name = StringFormat::Fmt("DiscardResource(%s)", ToStr(dstOrigID).c_str());
       action.flags |= ActionFlags::Clear;
       action.copyDestination = dstOrigID;
       action.copyDestinationSubresource = Subresource();
@@ -1838,8 +1837,6 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView(SerialiserType &ser, ID3D
         m_ResourceUses[resid].push_back(
             EventUsage(m_CurEventID, ResourceUsage::Discard, GetIDForDeviceChild(pResourceView)));
       }
-
-      action.name = StringFormat::Fmt("DiscardView(%s)", ToStr(action.copyDestination).c_str());
 
       AddAction(action);
     }
@@ -1975,8 +1972,6 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView1(SerialiserType &ser,
         m_ResourceUses[resid].push_back(
             EventUsage(m_CurEventID, ResourceUsage::Discard, GetIDForDeviceChild(pResourceView)));
       }
-
-      action.name = StringFormat::Fmt("DiscardView1(%s)", ToStr(action.copyDestination).c_str());
 
       AddAction(action);
     }

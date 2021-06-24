@@ -690,7 +690,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
 
         AddEvent();
 
-        action.name = name;
+        action.customName = name;
         action.flags = ActionFlags::Drawcall | ActionFlags::Instanced | ActionFlags::Indirect;
 
         AddAction(action);
@@ -706,13 +706,13 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
       }
 
       ActionDescription action;
-      action.name = name;
+      action.customName = name;
       action.flags = ActionFlags::MultiAction | ActionFlags::PushMarker;
 
       if(count == 0)
       {
         action.flags = ActionFlags::Drawcall | ActionFlags::Instanced | ActionFlags::Indirect;
-        action.name += "(0)";
+        action.customName += "(0)";
       }
 
       AddEvent();
@@ -732,7 +732,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
       {
         ActionDescription multi;
 
-        multi.name = name;
+        multi.customName = name;
 
         multi.flags |= ActionFlags::Drawcall | ActionFlags::Instanced | ActionFlags::Indirect;
 
@@ -763,7 +763,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
       if(count > 0)
       {
         AddEvent();
-        action.name = name + " end";
+        action.customName = name + " end";
         action.flags = ActionFlags::PopMarker;
         AddAction(action);
       }
@@ -1075,7 +1075,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
 
         AddEvent();
 
-        action.name = name;
+        action.customName = name;
         action.flags = ActionFlags::Drawcall | ActionFlags::Instanced | ActionFlags::Indexed |
                        ActionFlags::Indirect;
 
@@ -1092,12 +1092,12 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
       }
 
       ActionDescription action;
-      action.name = name;
+      action.customName = name;
       action.flags = ActionFlags::MultiAction | ActionFlags::PushMarker;
 
       if(count == 0)
       {
-        action.name += "(0)";
+        action.customName += "(0)";
         action.flags = ActionFlags::Drawcall | ActionFlags::Instanced | ActionFlags::Indexed |
                        ActionFlags::Indirect;
       }
@@ -1119,7 +1119,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
       {
         ActionDescription multi;
 
-        multi.name = name;
+        multi.customName = name;
 
         multi.flags |= ActionFlags::Drawcall | ActionFlags::Instanced | ActionFlags::Indexed |
                        ActionFlags::Indirect;
@@ -1151,7 +1151,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
       if(count > 0)
       {
         AddEvent();
-        action.name = name + " end";
+        action.customName = name + " end";
         action.flags = ActionFlags::PopMarker;
         AddAction(action);
       }
@@ -1312,7 +1312,7 @@ bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(SerialiserType &ser,
         AddEvent();
 
         ActionDescription action;
-        action.name = "vkCmdDispatchIndirect(<?, ?, ?>)";
+        action.customName = "vkCmdDispatchIndirect(<?, ?, ?>)";
         action.dispatchDimension[0] = 0;
         action.dispatchDimension[1] = 0;
         action.dispatchDimension[2] = 0;
@@ -2890,11 +2890,11 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCount(SerialiserType &ser,
       SDChunk *baseChunk = m_StructuredFile->chunks.back();
 
       ActionDescription action;
-      action.name = name;
+      action.customName = name;
       action.flags = ActionFlags::MultiAction | ActionFlags::PushMarker;
 
       if(maxDrawCount == 0)
-        action.name = name + "(0)";
+        action.customName = name + "(0)";
 
       AddEvent();
       AddAction(action);
@@ -2914,7 +2914,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCount(SerialiserType &ser,
       {
         ActionDescription multi;
 
-        multi.name = name;
+        multi.customName = name;
 
         multi.flags |= ActionFlags::Drawcall | ActionFlags::Instanced | ActionFlags::Indirect;
 
@@ -2943,7 +2943,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCount(SerialiserType &ser,
       }
 
       AddEvent();
-      action.name = name + " end";
+      action.customName = name + " end";
       action.flags = ActionFlags::PopMarker;
       AddAction(action);
     }
@@ -3253,11 +3253,11 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCount(
       SDChunk *baseChunk = m_StructuredFile->chunks.back();
 
       ActionDescription action;
-      action.name = name;
+      action.customName = name;
       action.flags = ActionFlags::MultiAction | ActionFlags::PushMarker;
 
       if(maxDrawCount == 0)
-        action.name = name + "(0)";
+        action.customName = name + "(0)";
 
       AddEvent();
       AddAction(action);
@@ -3277,7 +3277,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCount(
       {
         ActionDescription multi;
 
-        multi.name = name;
+        multi.customName = name;
 
         multi.flags |= ActionFlags::Drawcall | ActionFlags::Instanced | ActionFlags::Indexed |
                        ActionFlags::Indirect;
@@ -3307,7 +3307,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCount(
       }
 
       AddEvent();
-      action.name = name + " end";
+      action.customName = name + " end";
       action.flags = ActionFlags::PopMarker;
       AddAction(action);
     }
@@ -3406,8 +3406,6 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectByteCountEXT(
                                         Unwrap(counterBuffer), counterBufferOffset, counterOffset,
                                         vertexStride);
 
-      rdcstr name = "vkCmdDrawIndirectByteCountEXT";
-
       if(!IsDrawInRenderPass())
       {
         AddDebugMessage(MessageCategory::Execution, MessageSeverity::High,
@@ -3420,7 +3418,6 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectByteCountEXT(
 
       AddEvent();
 
-      action.name = name;
       action.instanceOffset = firstInstance;
       action.numInstances = instanceCount;
       action.flags = ActionFlags::Drawcall | ActionFlags::Instanced | ActionFlags::Indirect;

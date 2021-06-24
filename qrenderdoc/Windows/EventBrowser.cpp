@@ -514,13 +514,22 @@ struct EventItemModel : public QAbstractItemModel
     return NULL;
   }
 
+  rdcstr GetEventName(uint32_t eid)
+  {
+    if(eid < m_Actions.size())
+      return RichResourceTextFormat(m_Ctx, GetCachedEIDName(eid));
+
+    return rdcstr();
+  }
+
   rdcarray<rdcstr> GetMarkerList() const
   {
     rdcarray<rdcstr> ret;
 
     for(auto it = m_Nodes.begin(); it != m_Nodes.end(); ++it)
-      if(it.value().action && (it.value().action->flags & ActionFlags::PushMarker))
-        ret.push_back(it.value().action->name);
+      if(it.value().action && (it.value().action->flags & ActionFlags::PushMarker) &&
+         !it.value().action->customName.isEmpty())
+        ret.push_back(it.value().action->customName);
 
     return ret;
   }
@@ -1080,14 +1089,14 @@ private:
     {
       if(m_UseCustomActionNames)
       {
-        name = action->name;
+        name = action->customName;
       }
       else
       {
         if((action->flags & (ActionFlags::SetMarker | ActionFlags::PushMarker)) &&
            !(action->flags & (ActionFlags::CommandBufferBoundary | ActionFlags::PassBoundary |
                               ActionFlags::CmdList | ActionFlags::MultiAction)))
-          name = action->name;
+          name = action->customName;
       }
     }
 
@@ -2564,7 +2573,7 @@ nesting level.
                         const SDChunk *, const ActionDescription *action, const rdcstr &) {
       while(action->parent)
       {
-        if(QString(action->parent->name).contains(markerName, Qt::CaseInsensitive))
+        if(QString(action->parent->customName).contains(markerName, Qt::CaseInsensitive))
           return true;
 
         action = action->parent;
@@ -5232,6 +5241,11 @@ APIEvent EventBrowser::GetAPIEventForEID(uint32_t eid)
 const ActionDescription *EventBrowser::GetActionForEID(uint32_t eid)
 {
   return m_Model->GetActionForEID(eid);
+}
+
+rdcstr EventBrowser::GetEventName(uint32_t eid)
+{
+  return m_Model->GetEventName(eid);
 }
 
 bool EventBrowser::IsAPIEventVisible(uint32_t eid)

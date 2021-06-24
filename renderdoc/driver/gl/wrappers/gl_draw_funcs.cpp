@@ -502,8 +502,8 @@ bool WrappedOpenGL::Serialise_glDispatchComputeIndirect(SerialiserType &ser, GLi
       AddEvent();
 
       ActionDescription action;
-      action.name = StringFormat::Fmt("%s(<%u, %u, %u>)", ToStr(gl_CurChunk).c_str(), groupSizes[0],
-                                      groupSizes[1], groupSizes[2]);
+      action.customName = StringFormat::Fmt("%s(<%u, %u, %u>)", ToStr(gl_CurChunk).c_str(),
+                                            groupSizes[0], groupSizes[1], groupSizes[2]);
       action.flags |= ActionFlags::Dispatch | ActionFlags::Indirect;
 
       action.dispatchDimension[0] = groupSizes[0];
@@ -673,7 +673,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedback(SerialiserType &ser, GLenu
       GLNOTIMP("Not fetching feedback object count for glDrawTransformFeedback() display");
 
       ActionDescription action;
-      action.name = ToStr(gl_CurChunk) + "(<?>)";
+      action.customName = ToStr(gl_CurChunk) + "(<?>)";
       action.numIndices = 1;
       action.numInstances = 1;
       action.indexOffset = 0;
@@ -745,7 +745,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackInstanced(SerialiserType &s
       GLNOTIMP("Not fetching feedback object count for glDrawTransformFeedbackInstanced() display");
 
       ActionDescription action;
-      action.name = StringFormat::Fmt("%s(<?, %u>)", ToStr(gl_CurChunk).c_str(), instancecount);
+      action.customName = StringFormat::Fmt("%s(<?, %u>)", ToStr(gl_CurChunk).c_str(), instancecount);
       action.numIndices = 1;
       action.numInstances = 1;
       action.indexOffset = 0;
@@ -816,7 +816,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStream(SerialiserType &ser,
       GLNOTIMP("Not fetching feedback object count for glDrawTransformFeedbackStream() display");
 
       ActionDescription action;
-      action.name = ToStr(gl_CurChunk) + "(<?>)";
+      action.customName = ToStr(gl_CurChunk) + "(<?>)";
       action.numIndices = 1;
       action.numInstances = 1;
       action.indexOffset = 0;
@@ -891,7 +891,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStreamInstanced(SerialiserT
           "display");
 
       ActionDescription action;
-      action.name = StringFormat::Fmt("%s(<?, %u>)", ToStr(gl_CurChunk).c_str(), instancecount);
+      action.customName = StringFormat::Fmt("%s(<?, %u>)", ToStr(gl_CurChunk).c_str(), instancecount);
       action.numIndices = 1;
       action.numInstances = 1;
       action.indexOffset = 0;
@@ -1221,8 +1221,8 @@ bool WrappedOpenGL::Serialise_glDrawArraysIndirect(SerialiserType &ser, GLenum m
       AddEvent();
 
       ActionDescription action;
-      action.name = StringFormat::Fmt("%s(<%u, %u>)", ToStr(gl_CurChunk).c_str(), params.count,
-                                      params.instanceCount);
+      action.customName = StringFormat::Fmt("%s(<%u, %u>)", ToStr(gl_CurChunk).c_str(),
+                                            params.count, params.instanceCount);
       action.numIndices = params.count;
       action.numInstances = params.instanceCount;
       action.vertexOffset = params.first;
@@ -1535,8 +1535,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsIndirect(SerialiserType &ser, GLenum
       uint32_t IdxSize = GetIdxSize(type);
 
       ActionDescription action;
-      action.name = StringFormat::Fmt("%s(<%u, %u>)", ToStr(gl_CurChunk).c_str(), params.count,
-                                      params.instanceCount);
+      action.customName = StringFormat::Fmt("%s(<%u, %u>)", ToStr(gl_CurChunk).c_str(),
+                                            params.count, params.instanceCount);
       action.numIndices = params.count;
       action.numInstances = params.instanceCount;
       action.indexOffset = params.firstIndex;
@@ -2198,7 +2198,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(SerialiserType &ser, GLenum mode
         GL.glMultiDrawArrays(mode, first, count, drawcount);
 
       ActionDescription action;
-      action.name = StringFormat::Fmt("%s(%i)", ToStr(gl_CurChunk).c_str(), drawcount);
+      action.customName = StringFormat::Fmt("%s(%i)", ToStr(gl_CurChunk).c_str(), drawcount);
       action.flags |= ActionFlags::MultiAction;
 
       m_LastTopology = MakePrimitiveTopology(mode);
@@ -2217,7 +2217,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(SerialiserType &ser, GLenum mode
         multidraw.numIndices = count[i];
         multidraw.vertexOffset = first[i];
 
-        multidraw.name =
+        multidraw.customName =
             StringFormat::Fmt("%s[%i](%u)", ToStr(gl_CurChunk).c_str(), i, multidraw.numIndices);
 
         multidraw.flags |= ActionFlags::Drawcall;
@@ -2357,7 +2357,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(SerialiserType &ser, GLenum mo
       uint32_t IdxSize = GetIdxSize(type);
 
       ActionDescription action;
-      action.name = StringFormat::Fmt("%s(%i)", ToStr(gl_CurChunk).c_str(), drawcount);
+      action.customName = StringFormat::Fmt("%s(%i)", ToStr(gl_CurChunk).c_str(), drawcount);
 
       action.flags |= ActionFlags::MultiAction;
       m_LastIndexWidth = IdxSize;
@@ -2382,7 +2382,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(SerialiserType &ser, GLenum mo
 
         multidraw.indexOffset /= IdxSize;
 
-        multidraw.name =
+        multidraw.customName =
             StringFormat::Fmt("%s[%i](%u)", ToStr(gl_CurChunk).c_str(), i, multidraw.numIndices);
 
         multidraw.flags |= ActionFlags::Drawcall | ActionFlags::Indexed;
@@ -2527,7 +2527,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(SerialiserType &ser,
       uint32_t IdxSize = GetIdxSize(type);
 
       ActionDescription action;
-      action.name = StringFormat::Fmt("%s(%i)", ToStr(gl_CurChunk).c_str(), drawcount);
+      action.customName = StringFormat::Fmt("%s(%i)", ToStr(gl_CurChunk).c_str(), drawcount);
 
       action.flags |= ActionFlags::MultiAction;
 
@@ -2551,7 +2551,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(SerialiserType &ser,
 
         multidraw.indexOffset /= IdxSize;
 
-        multidraw.name =
+        multidraw.customName =
             StringFormat::Fmt("%s[%i](%u)", ToStr(gl_CurChunk).c_str(), i, multidraw.numIndices);
 
         multidraw.flags |= ActionFlags::Drawcall | ActionFlags::Indexed;
@@ -2682,7 +2682,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
         GL.glMultiDrawArraysIndirect(mode, (const void *)offset, drawcount, stride);
 
       ActionDescription action;
-      action.name = StringFormat::Fmt("%s(<%i>)", ToStr(gl_CurChunk).c_str(), drawcount);
+      action.customName = StringFormat::Fmt("%s(<%i>)", ToStr(gl_CurChunk).c_str(), drawcount);
 
       action.flags |= ActionFlags::MultiAction;
 
@@ -2725,15 +2725,15 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
         multidraw.vertexOffset = params.first;
         multidraw.instanceOffset = params.baseInstance;
 
-        multidraw.name = StringFormat::Fmt("%s[%i](<%u, %u>)", ToStr(gl_CurChunk).c_str(), i,
-                                           multidraw.numIndices, multidraw.numInstances);
+        multidraw.customName = StringFormat::Fmt("%s[%i](<%u, %u>)", ToStr(gl_CurChunk).c_str(), i,
+                                                 multidraw.numIndices, multidraw.numInstances);
 
         multidraw.flags |= ActionFlags::Drawcall | ActionFlags::Instanced | ActionFlags::Indirect;
 
         m_LastTopology = MakePrimitiveTopology(mode);
 
         // add a fake chunk for this individual indirect draw
-        SDChunk *fakeChunk = new SDChunk(multidraw.name);
+        SDChunk *fakeChunk = new SDChunk(multidraw.customName);
         fakeChunk->metadata = baseChunk->metadata;
         fakeChunk->metadata.chunkID = (uint32_t)GLChunk::glIndirectSubCommand;
 
@@ -2904,7 +2904,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
         GL.glMultiDrawElementsIndirect(mode, type, (const void *)offset, drawcount, stride);
 
       ActionDescription action;
-      action.name = StringFormat::Fmt("%s(<%i>)", ToStr(gl_CurChunk).c_str(), drawcount);
+      action.customName = StringFormat::Fmt("%s(<%i>)", ToStr(gl_CurChunk).c_str(), drawcount);
 
       action.flags |= ActionFlags::MultiAction;
 
@@ -2949,8 +2949,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
         multidraw.baseVertex = params.baseVertex;
         multidraw.instanceOffset = params.baseInstance;
 
-        multidraw.name = StringFormat::Fmt("%s[%i](<%u, %u>)", ToStr(gl_CurChunk).c_str(), i,
-                                           multidraw.numIndices, multidraw.numInstances);
+        multidraw.customName = StringFormat::Fmt("%s[%i](<%u, %u>)", ToStr(gl_CurChunk).c_str(), i,
+                                                 multidraw.numIndices, multidraw.numInstances);
 
         multidraw.flags |= ActionFlags::Drawcall | ActionFlags::Indexed | ActionFlags::Instanced |
                            ActionFlags::Indirect;
@@ -2959,7 +2959,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
         m_LastIndexWidth = IdxSize;
 
         // add a fake chunk for this individual indirect draw
-        SDChunk *fakeChunk = new SDChunk(multidraw.name);
+        SDChunk *fakeChunk = new SDChunk(multidraw.customName);
         fakeChunk->metadata = baseChunk->metadata;
         fakeChunk->metadata.chunkID = (uint32_t)GLChunk::glIndirectSubCommand;
 
@@ -3134,7 +3134,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
                                           maxdrawcount, stride);
 
       ActionDescription action;
-      action.name = StringFormat::Fmt("%s(<%i>)", ToStr(gl_CurChunk).c_str(), realdrawcount);
+      action.customName = StringFormat::Fmt("%s(<%i>)", ToStr(gl_CurChunk).c_str(), realdrawcount);
 
       action.flags |= ActionFlags::MultiAction;
 
@@ -3177,15 +3177,15 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
         multidraw.vertexOffset = params.first;
         multidraw.instanceOffset = params.baseInstance;
 
-        multidraw.name = StringFormat::Fmt("%s[%i](<%u, %u>)", ToStr(gl_CurChunk).c_str(), i,
-                                           multidraw.numIndices, multidraw.numInstances);
+        multidraw.customName = StringFormat::Fmt("%s[%i](<%u, %u>)", ToStr(gl_CurChunk).c_str(), i,
+                                                 multidraw.numIndices, multidraw.numInstances);
 
         multidraw.flags |= ActionFlags::Drawcall | ActionFlags::Instanced | ActionFlags::Indirect;
 
         m_LastTopology = MakePrimitiveTopology(mode);
 
         // add a fake chunk for this individual indirect draw
-        SDChunk *fakeChunk = new SDChunk(multidraw.name);
+        SDChunk *fakeChunk = new SDChunk(multidraw.customName);
         fakeChunk->metadata = baseChunk->metadata;
         fakeChunk->metadata.chunkID = (uint32_t)GLChunk::glIndirectSubCommand;
 
@@ -3365,7 +3365,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
                                             maxdrawcount, stride);
 
       ActionDescription action;
-      action.name = StringFormat::Fmt("%s(<%i>)", ToStr(gl_CurChunk).c_str(), realdrawcount);
+      action.customName = StringFormat::Fmt("%s(<%i>)", ToStr(gl_CurChunk).c_str(), realdrawcount);
 
       action.flags |= ActionFlags::MultiAction;
 
@@ -3410,8 +3410,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
         multidraw.baseVertex = params.baseVertex;
         multidraw.instanceOffset = params.baseInstance;
 
-        multidraw.name = StringFormat::Fmt("%s[%i](<%u, %u>)", ToStr(gl_CurChunk).c_str(), i,
-                                           multidraw.numIndices, multidraw.numInstances);
+        multidraw.customName = StringFormat::Fmt("%s[%i](<%u, %u>)", ToStr(gl_CurChunk).c_str(), i,
+                                                 multidraw.numIndices, multidraw.numInstances);
 
         multidraw.flags |= ActionFlags::Drawcall | ActionFlags::Indexed | ActionFlags::Instanced |
                            ActionFlags::Indirect;
@@ -3420,7 +3420,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
         m_LastIndexWidth = IdxSize;
 
         // add a fake chunk for this individual indirect draw
-        SDChunk *fakeChunk = new SDChunk(multidraw.name);
+        SDChunk *fakeChunk = new SDChunk(multidraw.customName);
         fakeChunk->metadata = baseChunk->metadata;
         fakeChunk->metadata.chunkID = (uint32_t)GLChunk::glIndirectSubCommand;
 
@@ -4445,7 +4445,7 @@ bool WrappedOpenGL::Serialise_glClear(SerialiserType &ser, GLbitfield mask)
       name += ")";
 
       ActionDescription action;
-      action.name = name;
+      action.customName = name;
       action.flags |= ActionFlags::Clear;
       if(mask & GL_COLOR_BUFFER_BIT)
         action.flags |= ActionFlags::ClearColor;

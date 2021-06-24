@@ -212,7 +212,7 @@ void APIInspector::fillAPIView()
   {
     if(action->IsFakeMarker())
     {
-      RDTreeWidgetItem *root = new RDTreeWidgetItem({lit("---"), QString(action->name)});
+      RDTreeWidgetItem *root = new RDTreeWidgetItem({lit("---"), QString(action->customName)});
       root->setBold(true);
       ui->apiEvents->addTopLevelItem(root);
       ui->apiEvents->setSelectedItem(root);

@@ -10,7 +10,7 @@ rd = renderdoc
 # Define a recursive function for iterating over actions
 def iterAction(d, indent = ''):
 	# Print this action
-	print('%s%d: %s' % (indent, d.eventId, d.name))
+	print('%s%d: %s' % (indent, d.eventId, d.GetName(controller.GetStructuredFile())))
 
 	# Iterate over the action's children
 	for d in d.children:
@@ -35,7 +35,7 @@ def sampleCode(controller):
 	# starting clear calls that may be batched together
 	inpass = False
 
-	print("Pass #0 starts with %d: %s" % (action.eventId, action.name))
+	print("Pass #0 starts with %d: %s" % (action.eventId, action.GetName(controller.GetStructuredFile())))
 
 	while action != None:
 		# When we encounter a clear
@@ -43,7 +43,7 @@ def sampleCode(controller):
 			if inpass:
 				print("Pass #%d contained %d actions" % (passnum, passcontents))
 				passnum += 1
-				print("Pass #%d starts with %d: %s" % (passnum, action.eventId, action.name))
+				print("Pass #%d starts with %d: %s" % (passnum, action.eventId, action.GetName(controller.GetStructuredFile())))
 				passcontents = 0
 				inpass = False
 		else:

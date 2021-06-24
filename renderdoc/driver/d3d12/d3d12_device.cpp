@@ -2115,7 +2115,7 @@ bool WrappedID3D12Device::Serialise_Present(SerialiserType &ser, ID3D12Resource 
 
     ActionDescription action;
 
-    action.name = StringFormat::Fmt("Present(%s)", ToStr(PresentedBackbuffer).c_str());
+    action.customName = StringFormat::Fmt("Present(%s)", ToStr(PresentedBackbuffer).c_str());
     action.flags |= ActionFlags::Present;
 
     cmd.m_LastPresentedImage = PresentedBackbuffer;

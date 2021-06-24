@@ -89,9 +89,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_AtomicCopyBufferUINT(
         action.copySource = GetResourceManager()->GetOriginalID(GetResID(pSrcBuffer));
         action.copyDestination = GetResourceManager()->GetOriginalID(GetResID(pDstBuffer));
 
-        action.name =
-            StringFormat::Fmt("AtomicCopyBufferUINT(%s, %s)", ToStr(action.copyDestination).c_str(),
-                              ToStr(action.copySource).c_str());
         action.flags |= ActionFlags::Copy;
 
         m_Cmd->AddAction(action);
@@ -207,9 +204,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_AtomicCopyBufferUINT64(
         action.copySource = GetResourceManager()->GetOriginalID(GetResID(pSrcBuffer));
         action.copyDestination = GetResourceManager()->GetOriginalID(GetResID(pDstBuffer));
 
-        action.name = StringFormat::Fmt("AtomicCopyBufferUINT64(%s, %s)",
-                                        ToStr(action.copyDestination).c_str(),
-                                        ToStr(action.copySource).c_str());
         action.flags |= ActionFlags::Copy;
 
         m_Cmd->AddAction(action);
@@ -485,9 +479,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresourceRegion(
         action.copySource = GetResourceManager()->GetOriginalID(GetResID(pSrcResource));
         action.copyDestination = GetResourceManager()->GetOriginalID(GetResID(pDstResource));
 
-        action.name = StringFormat::Fmt("ResolveSubresourceRegion(%s, %s)",
-                                        ToStr(action.copyDestination).c_str(),
-                                        ToStr(action.copySource).c_str());
         action.flags |= ActionFlags::Resolve;
 
         m_Cmd->AddAction(action);

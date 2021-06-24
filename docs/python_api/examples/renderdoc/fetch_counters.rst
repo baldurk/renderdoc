@@ -54,7 +54,7 @@ Once we have the list of :py:class:`~renderdoc.CounterResult` from sampling the 
 			val = r.value.u64
 
 		if val == 0:
-			print("EID %d '%s' had no samples pass depth/stencil test!" % (r.eventId, draw.name))
+			print("EID %d '%s' had no samples pass depth/stencil test!" % (r.eventId, draw.GetName(controller.GetStructuredFile())))
 
 Example Source
 --------------
@@ -109,11 +109,11 @@ Sample output:
     Counter 13 (CS Invocations):
         Number of times a compute shader was invoked.
         Returns 8 byte CompType.UInt, representing CounterUnit.Absolute
-    EID 69 'DrawIndexed(5580)' had no samples pass depth/stencil test!
-    EID 82 'DrawIndexed(5580)' had no samples pass depth/stencil test!
-    EID 95 'DrawIndexed(5580)' had no samples pass depth/stencil test!
-    EID 108 'DrawIndexed(5580)' had no samples pass depth/stencil test!
-    EID 199 'DrawIndexed(5220)' had no samples pass depth/stencil test!
-    EID 212 'DrawIndexed(5220)' had no samples pass depth/stencil test!
-    EID 225 'DrawIndexed(5220)' had no samples pass depth/stencil test!
-    EID 238 'DrawIndexed(5220)' had no samples pass depth/stencil test!
+    EID 69 'DrawIndexed()' had no samples pass depth/stencil test!
+    EID 82 'DrawIndexed()' had no samples pass depth/stencil test!
+    EID 95 'DrawIndexed()' had no samples pass depth/stencil test!
+    EID 108 'DrawIndexed()' had no samples pass depth/stencil test!
+    EID 199 'DrawIndexed()' had no samples pass depth/stencil test!
+    EID 212 'DrawIndexed()' had no samples pass depth/stencil test!
+    EID 225 'DrawIndexed()' had no samples pass depth/stencil test!
+    EID 238 'DrawIndexed()' had no samples pass depth/stencil test!

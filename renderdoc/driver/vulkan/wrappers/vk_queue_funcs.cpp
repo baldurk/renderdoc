@@ -268,7 +268,7 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo
       ActionDescription action;
       {
         // add a fake marker
-        action.name = name;
+        action.customName = name;
         action.flags |=
             ActionFlags::CommandBufferBoundary | ActionFlags::PassBoundary | ActionFlags::BeginPass;
         AddEvent();
@@ -327,7 +327,7 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo
 
         name = StringFormat::Fmt("=> %s[%u]: vkEndCommandBuffer(%s)", basename.c_str(), c,
                                  ToStr(cmd).c_str());
-        action.name = name;
+        action.customName = name;
         action.flags =
             ActionFlags::CommandBufferBoundary | ActionFlags::PassBoundary | ActionFlags::EndPass;
         AddEvent();
@@ -577,7 +577,7 @@ void WrappedVulkan::InsertActionsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
         args = &unknown;
       }
 
-      n.action.name =
+      n.action.customName =
           StringFormat::Fmt("vkCmdDispatchIndirect(<%u, %u, %u>)", args->x, args->y, args->z);
       n.action.dispatchDimension[0] = args->x;
       n.action.dispatchDimension[1] = args->y;
@@ -721,6 +721,8 @@ void WrappedVulkan::InsertActionsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
       // be in-lined as a single action, so we patch in-place
       if(!hasCount && indirectCount == 1)
       {
+        rdcstr name = GetStructuredFile().chunks[n.action.events.back().chunkIndex]->name;
+
         bool valid =
             PatchIndirectDraw(0, n.indirectPatch.stride, n.indirectPatch.type, n.action, ptr, end);
 
@@ -738,10 +740,10 @@ void WrappedVulkan::InsertActionsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
         const char *countString = (n.indirectPatch.count > 1 ? "<1>" : "1");
 
         if(valid)
-          n.action.name = StringFormat::Fmt("%s(%s) => <%u, %u>", n.action.name.c_str(),
-                                            countString, n.action.numIndices, n.action.numInstances);
+          n.action.customName = StringFormat::Fmt("%s(%s) => <%u, %u>", name.c_str(), countString,
+                                                  n.action.numIndices, n.action.numInstances);
         else
-          n.action.name = StringFormat::Fmt("%s(%s) => <?, ?>", n.action.name.c_str(), countString);
+          n.action.customName = StringFormat::Fmt("%s(%s) => <?, ?>", name.c_str(), countString);
       }
       else
       {
@@ -749,12 +751,14 @@ void WrappedVulkan::InsertActionsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
         RDCASSERT(i + indirectCount < cmdBufNodes.size(), i, indirectCount, n.indirectPatch.count,
                   cmdBufNodes.size());
 
+        rdcstr name = GetStructuredFile().chunks[n.action.events.back().chunkIndex]->name;
+
         // patch the count onto the root action name. The root is otherwise un-suffixed to allow
         // for collapsing non-multidraws and making everything generally simpler
         if(hasCount)
-          n.action.name = StringFormat::Fmt("%s(<%u>)", n.action.name.c_str(), indirectCount);
+          n.action.customName = StringFormat::Fmt("%s(<%u>)", name.c_str(), indirectCount);
         else
-          n.action.name = StringFormat::Fmt("%s(%u)", n.action.name.c_str(), n.indirectPatch.count);
+          n.action.customName = StringFormat::Fmt("%s(%u)", name.c_str(), n.indirectPatch.count);
 
         for(size_t j = 0; j < (size_t)indirectCount && i + j + 1 < cmdBufNodes.size(); j++)
         {
@@ -763,11 +767,13 @@ void WrappedVulkan::InsertActionsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
           bool valid = PatchIndirectDraw(j, n.indirectPatch.stride, n.indirectPatch.type, n2.action,
                                          ptr, end);
 
+          name = GetStructuredFile().chunks[n2.action.events.back().chunkIndex]->name;
+
           if(valid)
-            n2.action.name = StringFormat::Fmt("%s[%zu](<%u, %u>)", n2.action.name.c_str(), j,
-                                               n2.action.numIndices, n2.action.numInstances);
+            n2.action.customName = StringFormat::Fmt("%s[%zu](<%u, %u>)", name.c_str(), j,
+                                                     n2.action.numIndices, n2.action.numInstances);
           else
-            n2.action.name = StringFormat::Fmt("%s[%zu](<?, ?>)", n2.action.name.c_str(), j);
+            n2.action.customName = StringFormat::Fmt("%s[%zu](<?, ?>)", name.c_str(), j);
 
           if(ptr)
             ptr += n.indirectPatch.stride;
@@ -1843,7 +1849,7 @@ bool WrappedVulkan::Serialise_vkQueueBeginDebugUtilsLabelEXT(SerialiserType &ser
     if(IsLoading(m_State))
     {
       ActionDescription action;
-      action.name = Label.pLabelName ? Label.pLabelName : "";
+      action.customName = Label.pLabelName ? Label.pLabelName : "";
       action.flags |= ActionFlags::PushMarker;
 
       action.markerColor.x = RDCCLAMP(Label.color[0], 0.0f, 1.0f);
@@ -1897,7 +1903,6 @@ bool WrappedVulkan::Serialise_vkQueueEndDebugUtilsLabelEXT(SerialiserType &ser, 
     if(IsLoading(m_State))
     {
       ActionDescription action;
-      action.name = "vkQueueEndDebugUtilsLabelEXT()";
       action.flags = ActionFlags::PopMarker;
 
       AddEvent();
@@ -1947,7 +1952,7 @@ bool WrappedVulkan::Serialise_vkQueueInsertDebugUtilsLabelEXT(SerialiserType &se
     if(IsLoading(m_State))
     {
       ActionDescription action;
-      action.name = Label.pLabelName ? Label.pLabelName : "";
+      action.customName = Label.pLabelName ? Label.pLabelName : "";
       action.flags |= ActionFlags::SetMarker;
 
       action.markerColor.x = RDCCLAMP(Label.color[0], 0.0f, 1.0f);

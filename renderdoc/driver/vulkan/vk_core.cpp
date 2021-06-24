@@ -3449,7 +3449,7 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
         AddEvent();
 
         ActionDescription action;
-        action.name = "End of Capture";
+        action.customName = "End of Capture";
         action.flags |= ActionFlags::Present;
 
         action.copyDestination = m_LastPresentedImage;
