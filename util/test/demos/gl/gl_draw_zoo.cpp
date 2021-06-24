@@ -306,12 +306,24 @@ void main()
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, screenWidth, screenHeight);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colattach, 0);
 
+    // Depth texture
+    GLuint depthattach = MakeTexture();
+
+    glBindTexture(GL_TEXTURE_2D, depthattach);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH24_STENCIL8, screenWidth, screenHeight);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, depthattach,
+                           0);
+    glClearDepth(0.0f);
+
     while(Running())
     {
       glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
       float col[] = {0.2f, 0.2f, 0.2f, 1.0f};
       glClearBufferfv(GL_COLOR, 0, col);
+
+      setMarker("GL_ClearDepth");
+      glClear(GL_DEPTH_BUFFER_BIT);
 
       glBindFramebuffer(GL_FRAMEBUFFER, fbo);
       glBindVertexBuffer(0, vb, 0, sizeof(DefaultA2V));
