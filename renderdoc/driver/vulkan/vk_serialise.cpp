@@ -1482,7 +1482,8 @@ static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, void *&pN
 {
   const void *tmpNext = pNext;
   SerialiseNext(ser, sType, tmpNext);
-  pNext = (void *)tmpNext;
+  if(ser.IsReading())
+    pNext = (void *)tmpNext;
 }
 
 static inline void DeserialiseNext(const void *pNext)
