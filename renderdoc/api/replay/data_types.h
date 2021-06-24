@@ -199,10 +199,6 @@ struct ResourceFormat
 :rtype: bool
 )");
   bool Special() const { return type != ResourceFormatType::Regular; }
-  DOCUMENT(R"(The :class:`ResourceFormatType` of this format. If the value is not
-:attr:`ResourceFormatType.Regular` then it's a non-uniform layout like block-compressed.
-)");
-
   DOCUMENT(R"(:return: ``True`` if the components are to be read in ``BGRA`` order.
 
 .. note::
@@ -389,9 +385,17 @@ texel.
     return 0;
   }
 
+  DOCUMENT(R"(The :class:`ResourceFormatType` of this format. If the value is not
+:attr:`ResourceFormatType.Regular` then it's a non-uniform layout like block-compressed.
+
+:type: ResourceFormatType
+)");
   ResourceFormatType type;
 
-  DOCUMENT("The :class:`type <CompType>` of each component.");
+  DOCUMENT(R"(The :class:`type <CompType>` of each component.
+
+:type: CompType
+)");
   CompType compType;
   DOCUMENT("The number of components in each element.");
   uint8_t compCount;
