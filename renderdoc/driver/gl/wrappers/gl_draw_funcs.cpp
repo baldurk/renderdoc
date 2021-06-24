@@ -4538,21 +4538,21 @@ bool WrappedOpenGL::Serialise_glClear(SerialiserType &ser, GLbitfield mask)
             dstId = res_id;
           }
         }
-
-        draw.copyDestination = GetResourceManager()->GetOriginalID(dstId);
-
-        if(m_Textures[dstId].curType != eGL_RENDERBUFFER)
-        {
-          GLuint curDrawFBO = 0;
-          GL.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&curDrawFBO);
-          GLint mip = 0, slice = 0;
-          GetFramebufferMipAndLayer(curDrawFBO, eGL_COLOR_ATTACHMENT0, &mip, &slice);
-          draw.copyDestinationSubresource.mip = mip;
-          draw.copyDestinationSubresource.slice = slice;
-
-          AddDrawcall(draw, true);
-        }
       }
+
+      draw.copyDestination = GetResourceManager()->GetOriginalID(dstId);
+
+      if(m_Textures[dstId].curType != eGL_RENDERBUFFER)
+      {
+        GLuint curDrawFBO = 0;
+        GL.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&curDrawFBO);
+        GLint mip = 0, slice = 0;
+        GetFramebufferMipAndLayer(curDrawFBO, eGL_COLOR_ATTACHMENT0, &mip, &slice);
+        draw.copyDestinationSubresource.mip = mip;
+        draw.copyDestinationSubresource.slice = slice;
+      }
+
+      AddDrawcall(draw, true);
     }
   }
   return true;
