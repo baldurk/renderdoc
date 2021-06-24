@@ -119,7 +119,7 @@ class VK_Parameter_Zoo(rdtest.TestCase):
         action = self.find_action("Tools available")
 
         self.check(len(action.children) > 1)
-        self.check(any([d.name == 'RenderDoc' for d in action.children]))
+        self.check(any([d.customName == 'RenderDoc' for d in action.children]))
 
         rdtest.log.success("RenderDoc tool was listed as available")
 

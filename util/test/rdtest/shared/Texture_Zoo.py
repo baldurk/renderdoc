@@ -496,7 +496,7 @@ class Texture_Zoo():
 
             if 'slice tests' in d.name:
                 for sub in d.children:
-                    if 'Draw' in sub.name:
+                    if sub.flags & rd.ActionFlags.Drawcall:
                         self.controller.SetFrameEvent(sub.eventId, True)
 
                         pipe = self.controller.GetPipelineState()
@@ -546,8 +546,8 @@ class Texture_Zoo():
 
                                     rdtest.log.success('Displayed pixel is correct at scale {}% in slice {} mip {}'
                                                        .format(int(scale * 100), sl, mip))
-                    else:
-                        rdtest.log.print('Checking {} for slice display'.format(sub.name))
+                    elif sub.flags & rd.ActionFlags.SetMarker:
+                        rdtest.log.print('Checking {} for slice display'.format(sub.customName))
 
                 continue
 
@@ -563,7 +563,7 @@ class Texture_Zoo():
                     sub: rd.ActionDescription
 
                     if sub.flags & rd.ActionFlags.SetMarker:
-                        name = sub.name
+                        name = sub.customName
 
                     # Check this action
                     if sub.flags & rd.ActionFlags.Drawcall:
@@ -572,15 +572,15 @@ class Texture_Zoo():
                             # Set this event as current
                             self.controller.SetFrameEvent(sub.eventId, True)
 
-                            self.filename = (d.name + '@' + name).replace('->', '_')
+                            self.filename = (d.customName + '@' + name).replace('->', '_')
 
-                            self.check_test(d.name, name, Texture_Zoo.TEST_CAPTURE)
+                            self.check_test(d.customName, name, Texture_Zoo.TEST_CAPTURE)
                         except rdtest.TestFailureException as ex:
                             failed = any_failed = True
                             rdtest.log.error(str(ex))
 
                 if not failed:
-                    rdtest.log.success("All {} texture tests for {} are OK".format(tests_run, d.name))
+                    rdtest.log.success("All {} texture tests for {} are OK".format(tests_run, d.customName))
 
         self.out.Shutdown()
         self.out = None

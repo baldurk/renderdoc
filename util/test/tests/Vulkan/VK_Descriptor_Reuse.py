@@ -14,7 +14,7 @@ class VK_Descriptor_Reuse(rdtest.TestCase):
 
         action: rd.ActionDescription = self.find_action('Duration')
 
-        min_duration = float(action.name.split(' = ')[1])
+        min_duration = float(action.customName.split(' = ')[1])
 
         if rd.IsReleaseBuild():
             if min_duration >= 15.0:

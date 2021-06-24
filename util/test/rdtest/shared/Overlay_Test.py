@@ -251,10 +251,10 @@ class Overlay_Test(rdtest.TestCase):
                     self.check_pixel_value(overlay_id, 40, 0, [1.0, 1.0, 1.0, 1.0], eps=eps)
                     self.check_pixel_value(overlay_id, 60, 0, [0.0, 0.0, 0.0, 1.0], eps=eps)
                     self.check_pixel_value(overlay_id, 60, 0, [0.0, 0.0, 0.0, 1.0], eps=eps)
-                elif overlay == rd.DebugOverlay.QuadOveractionDraw:
+                elif overlay == rd.DebugOverlay.QuadOverdrawDraw:
                     # This would require extreme command buffer patching to de-MSAA the framebuffer and renderpass
                     if api == rd.GraphicsAPI.Vulkan and is_msaa:
-                        rdtest.log.print("Quad overaction not currently supported on MSAA on Vulkan")
+                        rdtest.log.print("Quad overdrawnot currently supported on MSAA on Vulkan")
                         continue
 
                     self.check_pixel_value(overlay_id, 150, 90, [1.0, 1.0, 1.0, 1.0], eps=eps)
@@ -282,23 +282,23 @@ class Overlay_Test(rdtest.TestCase):
                     self.check_pixel_value(overlay_id, 200, 65, [1.0, 1.0, 1.0, 1.0], eps=eps)
                     self.check_pixel_value(overlay_id, 200, 79, [1.0, 1.0, 1.0, 1.0], eps=eps)
                     self.check_pixel_value(overlay_id, 200, 93, [1.0, 1.0, 1.0, 1.0], eps=eps)
-                elif overlay == rd.DebugOverlay.QuadOveractionPass:
+                elif overlay == rd.DebugOverlay.QuadOverdrawPass:
                     # This would require extreme command buffer patching to de-MSAA the framebuffer and renderpass
                     if api == rd.GraphicsAPI.Vulkan and is_msaa:
-                        rdtest.log.print("Quad overaction not currently supported on MSAA on Vulkan")
+                        rdtest.log.print("Quad overdraw not currently supported on MSAA on Vulkan")
                         continue
 
                     self.check_pixel_value(overlay_id, 150, 90, [1.0, 1.0, 1.0, 1.0], eps=eps)
 
                     # Do an extra tap here where we overlap with the extreme-background largest triangle, to show that
-                    # overaction
+                    # overdraw
                     self.check_pixel_value(overlay_id, 150, 100, [2.0, 2.0, 2.0, 2.0], eps=eps)
 
                     self.check_pixel_value(overlay_id, 150, 130, [1.0, 1.0, 1.0, 1.0], eps=eps)
                     self.check_pixel_value(overlay_id, 150, 160, [1.0, 1.0, 1.0, 1.0], eps=eps)
                     self.check_pixel_value(overlay_id, 150, 200, [2.0, 2.0, 2.0, 2.0], eps=eps)
 
-                    # Two of these have overaction from the pass due to the large background triangle
+                    # Two of these have overdraw from the pass due to the large background triangle
                     self.check_pixel_value(overlay_id, 125, 60, [0.0, 0.0, 0.0, 0.0], eps=eps)
                     self.check_pixel_value(overlay_id, 125, 250, [1.0, 1.0, 1.0, 1.0], eps=eps)
                     self.check_pixel_value(overlay_id, 250, 60, [0.0, 0.0, 0.0, 0.0], eps=eps)
@@ -479,10 +479,10 @@ class Overlay_Test(rdtest.TestCase):
                 # Inside viewport and outside scissor
                 self.check_pixel_value(overlay_id, 50, 80,
                                        [1.0 * 0.6 + 0.2 * 0.4, 0.2 * 0.4, 0.9 * 0.4, 1.0 * 0.6 + 0.4 * 0.4], eps=eps)
-            elif overlay == rd.DebugOverlay.QuadOveractionDraw:
+            elif overlay == rd.DebugOverlay.QuadOverdrawDraw:
                 self.check_pixel_value(overlay_id, 50, 50, [1.0, 1.0, 1.0, 1.0], eps=eps)
                 self.check_pixel_value(overlay_id, 50, 15, [0.0, 0.0, 0.0, 0.0], eps=eps)
-            elif overlay == rd.DebugOverlay.QuadOveractionPass:
+            elif overlay == rd.DebugOverlay.QuadOverdrawPass:
                 self.check_pixel_value(overlay_id, 50, 50, [1.0, 1.0, 1.0, 1.0], eps=eps)
                 self.check_pixel_value(overlay_id, 50, 15, [0.0, 0.0, 0.0, 0.0], eps=eps)
 
@@ -705,7 +705,7 @@ class Overlay_Test(rdtest.TestCase):
                         self.check_pixel_value(overlay_id, 0, 0, [1.0, 1.0, 1.0, 1.0], sub=sub)
                         self.check_pixel_value(overlay_id, 20, 0, [0.0, 0.0, 0.0, 1.0], sub=sub)
                         self.check_pixel_value(overlay_id, 40, 0, [1.0, 1.0, 1.0, 1.0], sub=sub)
-                elif overlay == rd.DebugOverlay.QuadOveractionDraw or overlay == rd.DebugOverlay.QuadOveractionPass:
+                elif overlay == rd.DebugOverlay.QuadOverdrawDraw or overlay == rd.DebugOverlay.QuadOverdrawPass:
                     self.check_pixel_value(overlay_id, 50 >> shift, 36 >> shift, [1.0, 1.0, 1.0, 1.0], sub=sub)
                     self.check_pixel_value(overlay_id, 30 >> shift, 36 >> shift, [0.0, 0.0, 0.0, 0.0], sub=sub)
                     self.check_pixel_value(overlay_id, 70 >> shift, 20 >> shift, [0.0, 0.0, 0.0, 0.0], sub=sub)

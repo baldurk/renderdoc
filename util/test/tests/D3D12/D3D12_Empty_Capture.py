@@ -10,5 +10,5 @@ class D3D12_Empty_Capture(rdtest.TestCase):
         actions = self.controller.GetRootActions()
 
         self.check(len(actions) == 1)
-        self.check('End' in actions[0].name)
+        self.check('End' in actions[0].customName)
         self.check(actions[0].eventId == 1)

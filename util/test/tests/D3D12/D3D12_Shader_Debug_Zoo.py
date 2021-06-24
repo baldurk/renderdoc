@@ -25,7 +25,7 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
             pipe: rd.PipeState = self.controller.GetPipelineState()
 
             if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
-                rdtest.log.print("Skipping undebuggable shader at {}.".format(action.name))
+                rdtest.log.print("Skipping undebuggable shader at {}.".format(action.eventId))
                 return
 
             # Loop over every test

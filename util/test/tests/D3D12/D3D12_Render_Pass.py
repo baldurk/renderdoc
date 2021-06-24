@@ -9,13 +9,13 @@ class D3D12_Render_Pass(rdtest.TestCase):
         rp1 = self.find_action("RP 1")
         rp2 = self.find_action("RP 2")
 
-        action = next(d for d in rp1.children if 'Draw' in d.name)
+        action = next(d for d in rp1.children if d.flags & rd.ActionFlags.Drawcall)
 
         self.controller.SetFrameEvent(action.eventId, False)
 
         self.check_triangle(back=[0.0, 0.0, 1.0, 1.0])
 
-        action = next(d for d in rp2.children if 'Draw' in d.name)
+        action = next(d for d in rp2.children if d.flags & rd.ActionFlags.Drawcall)
 
         self.controller.SetFrameEvent(action.eventId, False)
 

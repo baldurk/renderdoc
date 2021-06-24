@@ -154,6 +154,7 @@ class TestCase:
     def __init__(self):
         self.capture_filename = ""
         self.controller: rd.ReplayController = None
+        self.sdfile: rd.SDFile = None
         self._variables = []
 
     def get_time(self):
@@ -223,11 +224,17 @@ class TestCase:
         raise NotImplementedError("If run() is not implemented in a test, then"
                                   "get_capture() and check_capture() must be.")
 
+    def action_name(self, action: rd.ActionDescription):
+        if len(action.customName) > 0:
+            return action.customName
+
+        return self.sdfile.chunks[action.events[-1].chunkIndex].name
+
     def _find_action(self, name: str, start_event: int, action_list):
         action: rd.ActionDescription
         for action in action_list:
             # If this action matches, return it
-            if action.eventId >= start_event and (name == '' or name in action.name):
+            if action.eventId >= start_event and (name == '' or name in self.action_name(action)):
                 return action
 
             # Recurse to children - depth-first search
@@ -448,6 +455,7 @@ class TestCase:
         log.print("Loading capture")
 
         self.controller = analyse.open_capture(self.capture_filename, opts=self.get_replay_options())
+        self.sdfile = self.controller.GetStructuredFile()
 
         log.print("Checking capture")
 

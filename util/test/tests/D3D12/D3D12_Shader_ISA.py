@@ -11,7 +11,7 @@ class D3D12_Shader_ISA(rdtest.TestCase):
 
         self.check(action is not None)
 
-        is_amd = 'AMD' in action.name
+        is_amd = 'AMD' in action.customName
 
         self.controller.SetFrameEvent(action.next.eventId, False)
 

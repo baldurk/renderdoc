@@ -3,6 +3,10 @@ import struct
 import renderdoc as rd
 
 
+def real_action_children(action):
+    return [c for c in action.children if not c.flags & rd.ActionFlags.PopMarker]
+
+
 class VK_Indirect(rdtest.TestCase):
     demos_test_name = 'VK_Indirect'
 
@@ -144,7 +148,7 @@ class VK_Indirect(rdtest.TestCase):
 
             rdtest.log.success("Selected all {} actions".format(level))
 
-            self.check(dispatches and len(dispatches.children) == 3)
+            self.check(dispatches and len(real_action_children(dispatches)) == 3)
 
             self.check(dispatches.children[0].dispatchDimension == (0, 0, 0))
             self.check(dispatches.children[1].dispatchDimension == (1, 1, 1))
@@ -174,12 +178,12 @@ class VK_Indirect(rdtest.TestCase):
 
             rdtest.log.success("Dispatched buffer contents are as expected for {}".format(level))
 
-            empties = self.find_action("{}: Empty actions".format(level))
+            empties = self.find_action("{}: Empty draws".format(level))
 
-            self.check(empties and len(empties.children) == 2)
+            self.check(empties and len(real_action_children(empties)) == 2)
 
             action: rd.ActionDescription
-            for action in empties.children:
+            for action in real_action_children(empties):
                 self.check(action.numIndices == 0)
                 self.check(action.numInstances == 0)
 
@@ -194,13 +198,13 @@ class VK_Indirect(rdtest.TestCase):
 
             rdtest.log.success("{} empty actions are empty".format(level))
 
-            indirects = self.find_action("{}: Indirect actions".format(level))
+            indirects = self.find_action("{}: Indirect draws".format(level))
 
-            self.check('vkCmdDrawIndirect' in indirects.children[0].name)
-            self.check('vkCmdDrawIndexedIndirect' in indirects.children[1].name)
-            self.check(len(indirects.children[1].children) == 2)
+            self.check('vkCmdDrawIndirect' in indirects.children[0].customName)
+            self.check('vkCmdDrawIndexedIndirect' in indirects.children[1].customName)
+            self.check(len(real_action_children(indirects.children[1])) == 2)
 
-            rdtest.log.success("Correct number of {} indirect actions".format(level))
+            rdtest.log.success("Correct number of {} indirect draws".format(level))
 
             # vkCmdDrawIndirect(...)
             action = indirects.children[0]
@@ -225,7 +229,7 @@ class VK_Indirect(rdtest.TestCase):
 
             self.check_overlay([(60, 40)])
 
-            rdtest.log.success("{} {} is as expected".format(level, action.name))
+            rdtest.log.success("{} {} is as expected".format(level, action.customName))
 
             self.check(rd.ResourceUsage.Indirect in buffer_usage[indirects.children[1].eventId])
 
@@ -252,7 +256,7 @@ class VK_Indirect(rdtest.TestCase):
 
             self.check_overlay([(100, 40)])
 
-            rdtest.log.success("{} {} is as expected".format(level, action.name))
+            rdtest.log.success("{} {} is as expected".format(level, action.customName))
 
             # vkCmdDrawIndexedIndirect[1](...)
             action = indirects.children[1].children[1]
@@ -279,18 +283,18 @@ class VK_Indirect(rdtest.TestCase):
 
             self.check_overlay([(140, 40), (200, 40)])
 
-            rdtest.log.success("{} {} is as expected".format(level, action.name))
+            rdtest.log.success("{} {} is as expected".format(level, action.customName))
 
             if indirect_count_root is not None:
-                self.check(indirect_count_root.children[0].name == '{}: Empty count actions'.format(level))
-                self.check(indirect_count_root.children[1].name == '{}: Indirect count actions'.format(level))
+                self.check(indirect_count_root.children[0].customName == '{}: Empty count draws'.format(level))
+                self.check(indirect_count_root.children[1].customName == '{}: Indirect count draws'.format(level))
 
                 empties = indirect_count_root.children[0]
 
-                self.check(empties and len(empties.children) == 3)
+                self.check(empties and len(real_action_children(empties)) == 3)
 
                 action: rd.ActionDescription
-                for action in empties.children:
+                for action in real_action_children(empties.children):
                     self.check(action.numIndices == 0)
                     self.check(action.numInstances == 0)
 
@@ -307,7 +311,7 @@ class VK_Indirect(rdtest.TestCase):
 
                 self.check(rd.ResourceUsage.Indirect in buffer_usage[action_indirect.eventId])
 
-                self.check(action_indirect and len(action_indirect.children) == 1)
+                self.check(action_indirect and len(real_action_children(action_indirect)) == 1)
 
                 # vkCmdDrawIndirectCountKHR[0]
                 action = action_indirect.children[0]
@@ -333,12 +337,12 @@ class VK_Indirect(rdtest.TestCase):
 
                 self.check_overlay([(60, 190)])
 
-                rdtest.log.success("{} {} is as expected".format(level, action.name))
+                rdtest.log.success("{} {} is as expected".format(level, action.customName))
 
                 # vkCmdDrawIndexedIndirectCountKHR
                 action_indirect = indirect_count_root.children[1].children[1]
 
-                self.check(action_indirect and len(action_indirect.children) == 3)
+                self.check(action_indirect and len(real_action_children(action_indirect)) == 3)
 
                 # vkCmdDrawIndirectCountKHR[0]
                 action = action_indirect.children[0]
@@ -363,7 +367,7 @@ class VK_Indirect(rdtest.TestCase):
 
                 self.check_overlay([(100, 190)])
 
-                rdtest.log.success("{} {} is as expected".format(level, action.name))
+                rdtest.log.success("{} {} is as expected".format(level, action.customName))
 
                 # vkCmdDrawIndirectCountKHR[1]
                 action = action_indirect.children[1]
@@ -378,7 +382,7 @@ class VK_Indirect(rdtest.TestCase):
 
                 self.check_overlay([])
 
-                rdtest.log.success("{} {} is as expected".format(level, action.name))
+                rdtest.log.success("{} {} is as expected".format(level, action.customName))
 
                 # vkCmdDrawIndirectCountKHR[2]
                 action = action_indirect.children[2]
@@ -407,9 +411,9 @@ class VK_Indirect(rdtest.TestCase):
 
                 self.check_overlay([(140, 190), (200, 190)])
 
-                rdtest.log.success("{} {} is as expected".format(level, action.name))
+                rdtest.log.success("{} {} is as expected".format(level, action.customName))
 
-                # Now check that the actions post-count are correctly highlighted
+                # Now check that the draws post-count are correctly highlighted
                 self.controller.SetFrameEvent(self.find_action("{}: Post-count 1".format(level)).children[0].eventId, False)
                 self.check_overlay([(340, 40)])
                 self.controller.SetFrameEvent(self.find_action("{}: Post-count 2".format(level)).children[0].eventId, False)

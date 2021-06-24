@@ -24,7 +24,7 @@ class Mesh_Zoo():
         action = None
 
         for d in self.controller.GetRootActions():
-            if name in d.name:
+            if name in d.customName:
                 action = d
                 break
 

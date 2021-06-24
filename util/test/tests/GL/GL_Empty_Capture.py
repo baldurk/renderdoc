@@ -10,6 +10,6 @@ class GL_Empty_Capture(rdtest.TestCase):
         actions = self.controller.GetRootActions()
 
         self.check(len(actions) == 1)
-        self.check('End' in actions[0].name)
+        self.check('End' in actions[0].customName)
         # EID 1 is the implicit context activation
         self.check(actions[0].eventId == 2)

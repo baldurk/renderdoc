@@ -48,7 +48,7 @@ class Iter_Test(rdtest.TestCase):
         texsave.mip = depth.firstMip
         self.save_texture(texsave)
 
-        rdtest.log.success('Successfully saved images at {}: {}'.format(action.eventId, action.name))
+        rdtest.log.success('Successfully saved images at {}'.format(action.eventId))
 
     def vert_debug(self, action: rd.ActionDescription):
         pipe: rd.PipeState = self.controller.GetPipelineState()
@@ -56,11 +56,11 @@ class Iter_Test(rdtest.TestCase):
         refl: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
 
         if pipe.GetShader(rd.ShaderStage.Vertex) == rd.ResourceId.Null():
-            rdtest.log.print("No vertex shader bound at {}: {}".format(action.eventId, action.name))
+            rdtest.log.print("No vertex shader bound at {}".format(action.eventId))
             return
 
         if not (action.flags & rd.ActionFlags.Drawcall):
-            rdtest.log.print("{}: {} is not a debuggable action".format(action.eventId, action.name))
+            rdtest.log.print("{} is not a debuggable action".format(action.eventId))
             return
 
         vtx = int(random.random()*action.numIndices)
@@ -166,15 +166,15 @@ class Iter_Test(rdtest.TestCase):
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
         if pipe.GetShader(rd.ShaderStage.Pixel) == rd.ResourceId.Null():
-            rdtest.log.print("No pixel shader bound at {}: {}".format(action.eventId, action.name))
+            rdtest.log.print("No pixel shader bound at {}".format(action.eventId))
             return
 
         if len(pipe.GetOutputTargets()) == 0 and pipe.GetDepthTarget().resourceId == rd.ResourceId.Null():
-            rdtest.log.print("No render targets bound at {}: {}".format(action.eventId, action.name))
+            rdtest.log.print("No render targets bound at {}".format(action.eventId))
             return
 
         if not (action.flags & rd.ActionFlags.Drawcall):
-            rdtest.log.print("{}: {} is not a debuggable action".format(action.eventId, action.name))
+            rdtest.log.print("{} is not a debuggable action".format(action.eventId))
             return
 
         viewport = pipe.GetViewport(0)
@@ -213,7 +213,7 @@ class Iter_Test(rdtest.TestCase):
             if action is None or not (action.flags & rd.ActionFlags.Drawcall):
                 continue
 
-            rdtest.log.print("  hit %d at %d is %s (%s)" % (i, mod.eventId, action.name, str(action.flags)))
+            rdtest.log.print("  hit %d at %d (%s)" % (i, mod.eventId, str(action.flags)))
 
             lastmod = history[i]
 
@@ -322,7 +322,7 @@ class Iter_Test(rdtest.TestCase):
         last_action = self.get_last_action()
 
         while action:
-            rdtest.log.print("{}/{} - {}".format(action.eventId, last_action.eventId, action.name))
+            rdtest.log.print("{}/{}".format(action.eventId, last_action.eventId))
 
             self.controller.SetFrameEvent(action.eventId, False)
 

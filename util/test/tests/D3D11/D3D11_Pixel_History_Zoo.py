@@ -12,16 +12,16 @@ class D3D11_Pixel_History_Zoo(rdtest.TestCase):
 
         for d in self.controller.GetRootActions():
             # Only process test actions
-            if not d.name.startswith('Test'):
+            if not d.customName.startswith('Test'):
                 continue
 
             # Go to the last child action
             self.controller.SetFrameEvent(d.children[-1].eventId, True)
 
-            if any(['UInt tex' in d.name for d in d.children]):
+            if any(['UInt tex' in d.customName for d in d.children]):
                 value_selector = lambda x: x.uintValue
                 shader_out = (0, 1, 1234, 5)
-            elif any(['SInt tex' in d.name for d in d.children]):
+            elif any(['SInt tex' in d.customName for d in d.children]):
                 value_selector = lambda x: x.intValue
                 shader_out = (0, 1, -1234, 5)
             else:

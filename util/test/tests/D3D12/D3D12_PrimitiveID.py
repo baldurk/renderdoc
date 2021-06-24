@@ -11,7 +11,7 @@ class D3D12_PrimitiveID(rdtest.TestCase):
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
         if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
-            rdtest.log.print("Skipping undebuggable shader at {}.".format(action.name))
+            rdtest.log.print("Skipping undebuggable shader at {}.".format(action.eventId))
             return
 
         trace: rd.ShaderDebugTrace = self.controller.DebugPixel(x, y, rd.ReplayController.NoPreference, prim)
