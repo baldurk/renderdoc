@@ -23,6 +23,10 @@ elseif(ANDROID)
     include_directories(${ANDROID_NDK_ROOT_PATH}/sources/android/native_app_glue)
     list(APPEND libraries PRIVATE -llog -landroid)
     set(LINKER_FLAGS "-Wl,--no-as-needed")
+    
+    if(ENABLE_ASAN)
+        set(LINKER_FLAGS "${LINKER_FLAGS} -fsanitize=address")
+    endif()
 
     set_source_files_properties(renderdoccmd.cpp PROPERTIES COMPILE_FLAGS "-fexceptions -frtti")
     set_source_files_properties(renderdoccmd_android.cpp PROPERTIES COMPILE_FLAGS "-fexceptions")

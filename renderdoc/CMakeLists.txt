@@ -605,7 +605,11 @@ if(APPLE)
 endif()
 
 if(ANDROID)
-    set_target_properties(renderdoc PROPERTIES LINK_FLAGS "-Wl,--undefined,force_include_libentry -Wl,--build-id")
+    set(RDOC_LINK_FLAGS "-Wl,--undefined,force_include_libentry -Wl,--build-id")
+    if(ENABLE_ASAN)
+        set(RDOC_LINK_FLAGS "${RDOC_LINK_FLAGS} -fsanitize=address")
+    endif()
+    set_target_properties(renderdoc PROPERTIES LINK_FLAGS "${RDOC_LINK_FLAGS}")
     # rename output library
     set_target_properties(renderdoc PROPERTIES OUTPUT_NAME "VkLayer_GLES_RenderDoc")
 
