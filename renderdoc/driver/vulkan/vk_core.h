@@ -534,6 +534,10 @@ private:
     // -> FlushQ() ----back to freesems-------^
   } m_InternalCmds;
 
+  static const int initialStateMaxBatch = 100;
+  int initStateCurBatch = 0;
+  VkCommandBuffer initStateCurCmd = VK_NULL_HANDLE;
+
   // Internal lumped/pooled memory allocations
 
   // Each memory scope gets a separate vector of allocation objects. The vector contains the list of
@@ -1087,6 +1091,8 @@ public:
     return m_PhysicalDevice;
   }
   VkCommandBuffer GetNextCmd();
+  VkCommandBuffer GetInitStateCmd();
+  void CloseInitStateCmd();
   void RemovePendingCommandBuffer(VkCommandBuffer cmd);
   void AddPendingCommandBuffer(VkCommandBuffer cmd);
   void AddFreeCommandBuffer(VkCommandBuffer cmd);

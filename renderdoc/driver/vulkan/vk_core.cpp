@@ -202,6 +202,49 @@ WrappedVulkan::~WrappedVulkan()
   delete m_Replay;
 }
 
+VkCommandBuffer WrappedVulkan::GetInitStateCmd()
+{
+  if(initStateCurBatch >= initialStateMaxBatch)
+  {
+    CloseInitStateCmd();
+  }
+
+  if(initStateCurCmd == VK_NULL_HANDLE)
+  {
+    initStateCurCmd = GetNextCmd();
+
+    VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
+                                          VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+    VkResult vkr = ObjDisp(initStateCurCmd)->BeginCommandBuffer(Unwrap(initStateCurCmd), &beginInfo);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    if(IsReplayMode(m_State))
+    {
+      VkMarkerRegion::Begin("!!!!RenderDoc Internal: ApplyInitialContents batched list",
+                            initStateCurCmd);
+    }
+  }
+
+  initStateCurBatch++;
+
+  return initStateCurCmd;
+}
+
+void WrappedVulkan::CloseInitStateCmd()
+{
+  if(initStateCurCmd == VK_NULL_HANDLE)
+    return;
+
+  VkMarkerRegion::End(initStateCurCmd);
+
+  VkResult vkr = ObjDisp(initStateCurCmd)->EndCommandBuffer(Unwrap(initStateCurCmd));
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  initStateCurCmd = VK_NULL_HANDLE;
+  initStateCurBatch = 0;
+}
+
 VkCommandBuffer WrappedVulkan::GetNextCmd()
 {
   VkCommandBuffer ret;
@@ -224,12 +267,11 @@ VkCommandBuffer WrappedVulkan::GetNextCmd()
     };
     VkResult vkr = ObjDisp(m_Device)->AllocateCommandBuffers(Unwrap(m_Device), &cmdInfo, &ret);
 
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
     if(m_SetDeviceLoaderData)
       m_SetDeviceLoaderData(m_Device, ret);
     else
       SetDispatchTableOverMagicNumber(m_Device, ret);
-
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     GetResourceManager()->WrapResource(Unwrap(m_Device), ret);
   }
@@ -2768,6 +2810,9 @@ void WrappedVulkan::ApplyInitialContents()
   RENDERDOC_PROFILEFUNCTION();
   VkMarkerRegion region("ApplyInitialContents");
 
+  initStateCurBatch = 0;
+  initStateCurCmd = VK_NULL_HANDLE;
+
   // check that we have all external queues necessary
   for(size_t i = 0; i < m_ExternalQueues.size(); i++)
   {
@@ -2815,6 +2860,15 @@ void WrappedVulkan::ApplyInitialContents()
 
   // actually apply the initial contents here
   GetResourceManager()->ApplyInitialContents();
+
+  // close the final command buffer
+  if(initStateCurCmd != VK_NULL_HANDLE)
+  {
+    CloseInitStateCmd();
+  }
+
+  initStateCurBatch = 0;
+  initStateCurCmd = VK_NULL_HANDLE;
 
   for(auto it = m_ImageStates.begin(); it != m_ImageStates.end(); ++it)
   {
@@ -3358,6 +3412,15 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
     else if(system == SystemChunk::InitialContentsList)
     {
       GetResourceManager()->CreateInitialContents(ser);
+
+      if(initStateCurCmd != VK_NULL_HANDLE)
+      {
+        CloseInitStateCmd();
+        SubmitAndFlushImageStateBarriers(m_setupImageBarriers);
+        SubmitCmds();
+        FlushQ();
+        SubmitAndFlushImageStateBarriers(m_cleanupImageBarriers);
+      }
 
       SERIALISE_CHECK_READ_ERRORS();
     }
