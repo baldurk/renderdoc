@@ -375,6 +375,10 @@ private:
   friend void DoSerialise(SerialiserType &ser, SDObjectData &el);
   template <class SerialiserType>
   friend void DoSerialise(SerialiserType &ser, SDObject *el);
+  template <class SerialiserType>
+  friend void DoSerialise(SerialiserType &ser, SDObject &el);
+  template <class SerialiserType>
+  friend void DoSerialise(SerialiserType &ser, SDChunk &el);
 
   DOCUMENT("A list of :class:`SDObject` containing the children of this :class:`SDObject`.");
   mutable StructuredObjectList children;
@@ -932,6 +936,8 @@ private:
   friend void DoSerialise(SerialiserType &ser, SDObject &el);
   template <class SerialiserType>
   friend void DoSerialise(SerialiserType &ser, SDChunk &el);
+  template <class SerialiserType>
+  friend void DoSerialise(SerialiserType &ser, SDObject &el, StructuredObjectList &children);
 
   void DeleteLazyGenerator() const
   {
