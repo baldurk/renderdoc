@@ -1576,7 +1576,7 @@ bytebuf GetDiscardPattern(DiscardType type, const ResourceFormat &fmt, uint32_t 
     {
       byte *rowout = out;
 
-      for(uint32_t i = 0; i < DiscardPatternWidth * DiscardPatternHeight; i++)
+      for(uint32_t i = 0; i < DiscardPatternWidth; i++)
       {
         memset(rowout, val, 16);
         rowout += 16;
