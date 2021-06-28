@@ -3221,7 +3221,7 @@ static bool textEditControl(QWidget *sender)
   return false;
 }
 
-void AddFilterSelections(QTextCursor cursor, int &idx, QColor backCol,
+void AddFilterSelections(QTextCursor cursor, int &idx, QColor backCol, QColor foreCol,
                          QVector<FilterExpression> &exprs, QList<QTextEdit::ExtraSelection> &sels)
 {
   QTextEdit::ExtraSelection sel;
@@ -3231,16 +3231,17 @@ void AddFilterSelections(QTextCursor cursor, int &idx, QColor backCol,
   for(FilterExpression &f : exprs)
   {
     QColor col = QColor::fromHslF(float(idx++ % 6) / 6.0f, 1.0f,
-                                  qBound(0.05, 0.5 + 0.5 * backCol.lightnessF(), 0.95));
+                                  qBound(0.05, 0.2 * 0.5 + 0.8 * backCol.lightnessF(), 0.95));
 
     f.col = col;
 
     sel.cursor.setPosition(f.position, QTextCursor::MoveAnchor);
     sel.cursor.setPosition(f.position + f.length, QTextCursor::KeepAnchor);
     sel.format.setBackground(QBrush(col));
+    sel.format.setForeground(QBrush(contrastingColor(col, foreCol)));
     sels.push_back(sel);
 
-    AddFilterSelections(cursor, idx, backCol, f.exprs, sels);
+    AddFilterSelections(cursor, idx, backCol, foreCol, f.exprs, sels);
   }
 }
 
@@ -4275,7 +4276,8 @@ void EventBrowser::settings_filterApply()
     QString notesText;
 
     AddFilterSelections(m_FilterSettings.Filter->textCursor(), idx,
-                        m_FilterSettings.Filter->palette().color(QPalette::Base), trace.exprs, sels);
+                        m_FilterSettings.Filter->palette().color(QPalette::Base),
+                        m_FilterSettings.Filter->palette().color(QPalette::Text), trace.exprs, sels);
     m_FilterSettings.Explanation->clear();
     AddFilterExplanations(m_FilterSettings.Explanation->invisibleRootItem(), trace.exprs, notesText);
 
