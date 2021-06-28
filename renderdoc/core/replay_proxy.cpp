@@ -1209,7 +1209,8 @@ rdcstr ReplayProxy::Proxied_DisassembleShader(ParamSerialiser &paramser, ReturnS
 
   if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
   {
-    refl = m_Remote->GetShader(pipeline, m_Remote->GetLiveID(Shader), EntryPoint);
+    refl =
+        m_Remote->GetShader(m_Remote->GetLiveID(pipeline), m_Remote->GetLiveID(Shader), EntryPoint);
     ret = m_Remote->DisassembleShader(pipeline, refl, target);
   }
 
