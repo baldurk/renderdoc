@@ -3228,9 +3228,17 @@ void AddFilterSelections(QTextCursor cursor, int &idx, QColor backCol, QColor fo
 
   sel.cursor = cursor;
 
+  bool hasMust = false;
+  for(const FilterExpression &f : exprs)
+    hasMust |= (f.matchType == MatchType::MustMatch);
+
   for(FilterExpression &f : exprs)
   {
-    QColor col = QColor::fromHslF(float(idx++ % 6) / 6.0f, 1.0f,
+    bool ignored = false;
+    if(hasMust && f.matchType == MatchType::Normal)
+      ignored = true;
+
+    QColor col = QColor::fromHslF(float(idx++ % 6) / 6.0f, ignored ? 0.0f : 1.0f,
                                   qBound(0.05, 0.2 * 0.5 + 0.8 * backCol.lightnessF(), 0.95));
 
     f.col = col;
@@ -3239,9 +3247,12 @@ void AddFilterSelections(QTextCursor cursor, int &idx, QColor backCol, QColor fo
     sel.cursor.setPosition(f.position + f.length, QTextCursor::KeepAnchor);
     sel.format.setBackground(QBrush(col));
     sel.format.setForeground(QBrush(contrastingColor(col, foreCol)));
+    sel.format.setFontStrikeOut(ignored);
+
     sels.push_back(sel);
 
-    AddFilterSelections(cursor, idx, backCol, foreCol, f.exprs, sels);
+    if(!ignored)
+      AddFilterSelections(cursor, idx, backCol, foreCol, f.exprs, sels);
   }
 }
 
