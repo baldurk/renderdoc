@@ -3238,8 +3238,15 @@ void AddFilterSelections(QTextCursor cursor, int &idx, QColor backCol, QColor fo
     if(hasMust && f.matchType == MatchType::Normal)
       ignored = true;
 
-    QColor col = QColor::fromHslF(float(idx++ % 6) / 6.0f, ignored ? 0.0f : 1.0f,
+    // we use 6 colours around the wheel to get reasonable distinction. Note that this is not
+    // critical information and selecting each entry will underline it in the phrase, since we want
+    // to be colour blind friendly where possible.
+    // we avoid the 60 degrees near red (which is at 0) to avoid confusion with errors.
+    QColor col = QColor::fromHslF((float(idx) / 6.0f) * (300.0f / 360.0f) + (0.5f / 6.0f),
+                                  ignored ? 0.0f : 1.0f,
                                   qBound(0.05, 0.2 * 0.5 + 0.8 * backCol.lightnessF(), 0.95));
+
+    idx = (idx + 1) % 6;
 
     f.col = col;
 
