@@ -1309,7 +1309,8 @@ void CaptureContext::CloseCapture()
   m_TextureList.clear();
   m_Resources.clear();
   m_ResourceList.clear();
-  m_ReplacedResources.clear();
+  m_OrigToReplacedResources.clear();
+  m_ReplacedToOrigResources.clear();
 
   m_CustomNames.clear();
   m_Bookmarks.clear();
@@ -1558,13 +1559,13 @@ void CaptureContext::SetRemoteHost(int hostIdx)
 
 bool CaptureContext::IsResourceReplaced(ResourceId id)
 {
-  return m_ReplacedResources.contains(id);
+  return m_OrigToReplacedResources.contains(id);
 }
 
 ResourceId CaptureContext::GetResourceReplacement(ResourceId id)
 {
-  auto it = m_ReplacedResources.find(id);
-  if(it != m_ReplacedResources.end())
+  auto it = m_OrigToReplacedResources.find(id);
+  if(it != m_OrigToReplacedResources.end())
     return it.value();
 
   return ResourceId();
@@ -1572,7 +1573,8 @@ ResourceId CaptureContext::GetResourceReplacement(ResourceId id)
 
 void CaptureContext::RegisterReplacement(ResourceId from, ResourceId to)
 {
-  m_ReplacedResources[from] = to;
+  m_OrigToReplacedResources[from] = to;
+  m_ReplacedToOrigResources[to] = from;
 
   CacheResources();
 
@@ -1581,7 +1583,12 @@ void CaptureContext::RegisterReplacement(ResourceId from, ResourceId to)
 
 void CaptureContext::UnregisterReplacement(ResourceId id)
 {
-  m_ReplacedResources.remove(id);
+  auto it = m_OrigToReplacedResources.find(id);
+  if(it != m_OrigToReplacedResources.end())
+  {
+    m_ReplacedToOrigResources.remove(it.value());
+    m_OrigToReplacedResources.remove(it.key());
+  }
 
   CacheResources();
 
@@ -1962,6 +1969,9 @@ rdcstr CaptureContext::GetResourceNameUnsuffixed(ResourceId id)
   if(id == ResourceId())
     return tr("No Resource");
 
+  if(m_ReplacedToOrigResources.contains(id))
+    return GetResourceName(m_ReplacedToOrigResources[id]);
+
   ResourceDescription *desc = GetResource(id);
 
   if(desc)
@@ -1984,7 +1994,7 @@ rdcstr CaptureContext::GetResourceName(ResourceId id)
 {
   rdcstr ret = GetResourceNameUnsuffixed(id);
 
-  if(m_ReplacedResources.contains(id))
+  if(m_OrigToReplacedResources.contains(id))
     ret += tr(" (Edited)");
 
   return ret;

@@ -384,7 +384,10 @@ private:
   QMap<ResourceId, QString> m_CustomNames;
   int m_CustomNameCachedID = 1;
 
-  QMap<ResourceId, ResourceId> m_ReplacedResources;
+  // map orig replaced -> edited replacement ID
+  QMap<ResourceId, ResourceId> m_OrigToReplacedResources;
+  // reverse map, edited ID -> orig
+  QMap<ResourceId, ResourceId> m_ReplacedToOrigResources;
 
   const SDFile *m_StructuredFile = NULL;
   SDFile m_DummySDFile;

@@ -477,10 +477,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
   if(m_ShaderDetails && !m_ShaderDetails->debugInfo.files.isEmpty())
   {
-    if(m_Trace)
-      setWindowTitle(QFormatStr("Debug %1() - %2").arg(m_ShaderDetails->entryPoint).arg(debugContext));
-    else
-      setWindowTitle(m_ShaderDetails->entryPoint);
+    updateWindowTitle();
 
     // add all the files, skipping any that have empty contents. We push a NULL in that case so the
     // indices still match up with what the debug info expects. Debug info *shouldn't* point us at
@@ -950,13 +947,13 @@ void ShaderViewer::updateWindowTitle()
 {
   if(m_ShaderDetails)
   {
-    QString shaderName = m_Ctx.GetResourceName(m_ShaderDetails->resourceId);
+    QString shaderName = m_Ctx.GetResourceNameUnsuffixed(m_ShaderDetails->resourceId);
 
     // On D3D12, get the shader name from the pipeline rather than the shader itself
     // for the benefit of D3D12 which doesn't have separate shader objects
     if(m_Ctx.CurPipelineState().IsCaptureD3D12())
       shaderName = QFormatStr("%1 %2")
-                       .arg(m_Ctx.GetResourceName(m_Pipeline))
+                       .arg(m_Ctx.GetResourceNameUnsuffixed(m_Pipeline))
                        .arg(m_Ctx.CurPipelineState().Abbrev(m_ShaderDetails->stage));
 
     if(m_Trace)
