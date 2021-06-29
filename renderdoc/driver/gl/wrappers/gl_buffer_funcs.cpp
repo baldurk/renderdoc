@@ -2625,7 +2625,10 @@ bool WrappedOpenGL::Serialise_glUnmapNamedBufferEXT(SerialiserType &ser, GLuint 
        // range.
        record->Map.offset == 0 && length == record->Length &&
        // similarly for invalidate maps, we want to update the whole buffer
-       !record->Map.invalidate)
+       !record->Map.invalidate &&
+       // also not for persistent maps. If these are being unmapped, we save the whole buffer
+       // contents - we check for differences in the case where a persistent map is held open.
+       !record->Map.persistent)
     {
       size_t s = (size_t)diffStart;
       size_t e = (size_t)diffEnd;
@@ -2724,14 +2727,30 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
       }
       case GLResourceRecord::Mapped_Direct:
       {
-        // if it was writeable, this is a problem while capturing a frame
-        if(IsActiveCapturing(m_State) && (record->Map.access & GL_MAP_WRITE_BIT))
+        // if this was a persistent map we either got unlucky and captured right during a frame that
+        // unmapped a long-term persistent map, in which case failing the capture isn't a big deal,
+        // or the application is doing something very strange and repeatedly mapping and unmapping
+        // persistently at high enough frequency that all/most frames have such an unmap. In that
+        // case we have to ensure we handle this otherwise it won't be captureable.
+        if(IsActiveCapturing(m_State))
         {
-          RDCERR(
-              "Failed to cap frame - we saw an Unmap() that we didn't capture the corresponding "
-              "Map() for");
-          m_SuccessfulCapture = false;
-          m_FailureReason = CaptureFailed_UncappedUnmap;
+          if(record->Map.persistent)
+          {
+            // serialise the write to the buffer
+            USE_SCRATCH_SERIALISER();
+            SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+            Serialise_glUnmapNamedBufferEXT(ser, buffer);
+            GetContextRecord()->AddChunk(scope.Get());
+          }
+          // if it was writeable, this is a problem while capturing a frame
+          else if(record->Map.access & GL_MAP_WRITE_BIT)
+          {
+            RDCERR(
+                "Failed to cap frame - we saw an Unmap() that we didn't capture the corresponding "
+                "Map() for");
+            m_SuccessfulCapture = false;
+            m_FailureReason = CaptureFailed_UncappedUnmap;
+          }
         }
         // need to do the real unmap
         ret = GL.glUnmapNamedBufferEXT(buffer);
