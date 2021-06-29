@@ -5091,8 +5091,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyTextureRegion(
         ResourceId origDst = GetResourceManager()->GetOriginalID(liveDst);
 
         DrawcallDescription draw;
-        draw.name = StringFormat::Fmt("CopyTextureRegion(%s, %s)", ToStr(origSrc).c_str(),
-                                      ToStr(origDst).c_str());
+        draw.name = StringFormat::Fmt("CopyTextureRegion(%s, %s)", ToStr(origDst).c_str(),
+                                      ToStr(origSrc).c_str());
         draw.flags |= DrawFlags::Copy;
 
         draw.copySource = origSrc;
