@@ -92,7 +92,7 @@ RenderDoc is licensed under the MIT license and the source is available on `GitH
 What are the requirements for RenderDoc?
 ----------------------------------------
 
-Currently RenderDoc expects Feature Level 11.0 hardware and above for D3D11. Lower levels will capture successfully, but on replay RenderDoc will fall back to WARP software emulation which will run quite slowly.
+Currently RenderDoc expects Feature Level 11.0 hardware and above for D3D11 and D3D12. Lower levels will capture successfully, but on replay RenderDoc will fall back to WARP software emulation which will run quite slowly.
 
 For OpenGL RenderDoc will only capture core profile applications, in general, and expects at minimum to be able to create a core 3.2 context which includes a few key extensions. For more details see :doc:`../behind_scenes/opengl_support`.
 
@@ -171,9 +171,9 @@ Note this is only supported on D3D11 and OpenGL currently, since Vulkan and D3D1
 RenderDoc is complaining about my OpenGL app in the overlay - what gives?
 -------------------------------------------------------------------------
 
-The first thing to remember is that **RenderDoc only supports Core 3.2 and above OpenGL**. If your app is using features from before 3.2 it almost certainly won't work as most functionality is not supported. A couple of things like not creating a VAO (which is required in core profile) and using luminance textures (which don't exist in core profile) are allowed, but none of the fixed function pipeline will work, etc etc.
+The first thing to remember is that **RenderDoc only supports Core Profile 3.2 and above OpenGL**. If your app is using deprecated compatibility profile features from before 3.2 it almost certainly won't work as most functionality is not supported. A couple of things like not creating a VAO (which is required in core profile) and using luminance textures (which don't exist in core profile) are allowed, but none of the fixed function pipeline will work, etc.
 
-If your app is not using the ``CreateContextAttribs`` API then RenderDoc will completely refuse to capture, and will display overlay text to this effect using the simplest fixed-function pipeline code, so it will run on any OpenGL app, even on a 1.4 context or similar.
+If your app is not using the ``CreateContextAttribs`` API then RenderDoc will assume your program uses legacy functionality and it will completely refuse to capture. The overlay will display text to this effect using the simplest fixed-function pipeline code, so it will run on any OpenGL app, even on a 1.4 context or similar.
 
 If your app did use the ``CreateContextAttribs`` API, RenderDoc will allow you to capture, but compatibility profiles will have a warning displayed in the overlay - this is because you could easily use old functionality which is still available in the context.
 
@@ -182,9 +182,9 @@ Can I tell via the graphics APIs if RenderDoc is present at runtime?
 
 Yes indeed. Some APIs offer ways to do this already - ``D3DPERF_GetStatus()``, ``ID3DUserDefinedAnnotation::GetStatus()`` and ``ID3D11DeviceContext2::IsAnnotationEnabled()``.
 
-In addition to those:
+In addition to those the simplest way is to see if the RenderDoc module is loaded, using ``GetModuleHandleA("renderdoc.dll") != NULL`` or ``dlopen("librenderdoc.so, RTLD_NOW | RTLD_NOLOAD) != NULL``. There are also API specific ways to query:
 
-Querying an ``ID3D11Device`` for UUID ``{A7AA6116-9C8D-4BBA-9083-B4D816B71B78}`` will return an ``IUnknown*`` and ``S_OK`` when RenderDoc is present.
+Querying an ``ID3D11Device`` or ``ID3D12Device`` for UUID ``{A7AA6116-9C8D-4BBA-9083-B4D816B71B78}`` will return an ``IUnknown*`` and ``S_OK`` when RenderDoc is present.
 
 `GL_EXT_debug_tool <https://renderdoc.org/debug_tool.txt>`_ is implemented on RenderDoc, which is an extension I've proposed for this purpose (identifying when and which tool is injected in your program). It allows you to query for the presence name and type of a debug tool that's currently hooked. At the time of writing only RenderDoc implements this as I've only just proposed the extension publicly, but in future you can use the queries described in that spec.
 
@@ -198,6 +198,8 @@ Querying an ``ID3D11Device`` for UUID ``{A7AA6116-9C8D-4BBA-9083-B4D816B71B78}``
         #define GL_DEBUG_TOOL_EXT                 0x6789
         #define GL_DEBUG_TOOL_NAME_EXT            0x678A
         #define GL_DEBUG_TOOL_PURPOSE_EXT         0x678B
+
+On Vulkan `VK_EXT_tooling_info` will return an entry for RenderDoc. This extension will always be available when running under RenderDoc.
 
 .. _unstripped-shader-info:
 

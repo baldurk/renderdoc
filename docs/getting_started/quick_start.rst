@@ -93,7 +93,7 @@ The Event Browser is the primary method of stepping through the frame and browsi
 
 The columns can be customised and reordered, the |timeline_marker| select columns button (or right-click) will allow you to choose which columns are displayed.
 
-Standard performance markers are available and create the hierarchy/labels as you would expect. These can be expanded or collapsed and keyboard browsing is available through normal controls - left and right go higher or lower in the hierarchy, and up and down goes up and down through siblings.
+Standard performance markers are available and create the hierarchy/labels as you would expect. These can be expanded or collapsed and keyboard browsing is available through normal controls - left and right go higher or lower in the hierarchy, and up and down goes up and down through siblings. For more information on these markers, see :doc:`../how/how_annotate_capture`.
 
 .. |flag_green| image:: ../imgs/icons/flag_green.png
 .. |find| image:: ../imgs/icons/find.png
@@ -122,7 +122,6 @@ More details can be found on the :doc:`../window/api_inspector` page.
 The API Calls window updates as a new event is selected. It shows the individual API calls and their parameters between the previous and current event. The bottom entry in this list always corresponds to the event that is currently selected, and each row can be expanded to show the parameters that were passed to that API call.
 
 At the bottom of the window is an optional expandable section which shows the callstack (if available and recorded) from the application code into the API function.
-
 
 In order to view these callstacks you must first resolve the symbols recorded with the capture. To do this click on :guilabel:`Resolve Symbols` under the :guilabel:`Tools` menu. More details on this process can be found in the guide: :doc:`../how/how_capture_callstack`.
 

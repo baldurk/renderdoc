@@ -13,7 +13,7 @@ Current Common Feature set
 * Trimming capture - capture file only contains data necessary for replaying the frame in question, not all textures & buffers ever created in the lifetime of the app.
 * Optional network support. The main way RenderDoc is used is capture & replay on the same machine, but you can also attach over the network, and replay on a remote host.
 * Multiple frame capture with ability to open side-by-side to compare.
-* Event browsing, with standard perfmarker style tree.
+* Event browsing, with API standard tree of markers.
 * Full graphics pipeline state display.
 
     * Resources bound to the pipeline are trimmed to what is actually in use, e.g. if a shader only references a texture in the first binding slot, textures in other binding slots will not be displayed by default.
@@ -26,7 +26,7 @@ Current Common Feature set
     * Displays scene left-to-right in time, event hierarchy top-to-bottom.
     * *Not* scaled based on time of each drawcall
     * Individual draw events are shown as dots when the tree is full expanded.
-    * The currently selected resource in the texture viewer is highlighted below individual drawcalls visible that use it - e.g. red for 'used for read', green for 'used for write'
+    * The currently selected resource in the texture viewer is highlighted below individual drawcalls visible that use it - e.g. orange for 'used for read', pale blue for 'used for write'
 
 * Flexible resource inspector.
 
@@ -80,8 +80,8 @@ D3D12
 -----
 
 * Support for D3D12 up to D3D12.3, Windows 10 only.
-* Debug marker uses the PIXSetMarker macros that go through SetMarker/BeginEvent/EndEvent on the command list
-* Vertex, Pixel and Compute shader debugging.
+* Debug marker uses the SetMarker/BeginEvent/EndEvent functions on the command list or queue.
+* Vertex, Pixel and Compute shader debugging for DXBC/fxc shaders.
 
 Vulkan
 ------
@@ -89,14 +89,14 @@ Vulkan
 * Support for Vulkan 1.2 on Windows, Linux, Android, and Stadia.
 * Event markers and object naming both come from ``VK_EXT_debug_utils`` or deprecated ``VK_EXT_debug_marker``.
 
+Captures have a very limited amount of portability between machines. Many hardware-specific feature uses are baked into captures, and portability depends on how similar the capture and replay hardware are, whether these feature uses can map the same in both cases. Captures are however completely portable between different OSes with sufficiently comparable hardware.
+
 OpenGL & OpenGL ES
 ------------------
 
 * Support for OpenGL Core profile 3.2 - 4.6 on Windows and Linux.
 * Support for OpenGL ES 2.0 - 3.2 on Linux, Windows, and Android.
 * Tree hierarchy of events defined by any of the standard or vendor-specific extensions, and ``KHR_debug`` object labels used for object naming.
-
-Captures have a very limited amount of portability between machines. Many hardware-specific feature uses are baked into captures, and portability depends on how similar the capture and replay hardware are, whether these feature uses can map the same in both cases. Captures are however completely portable between different OSes with sufficiently comparable hardware.
 
 See Also
 --------
