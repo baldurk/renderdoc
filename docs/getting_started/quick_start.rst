@@ -89,7 +89,9 @@ More details can be found on the :doc:`../window/event_browser` page.
 
 .. |timeline_marker| image:: ../imgs/icons/timeline_marker.png
 
-The Event Browser is the primary method of stepping through the frame and browsing the events that occurred within. The first column EID (Event ID) indicates which event or API call this was in the frame, chronologically. Events which are listed here are known as actions. Actions are draws and dispatches but also events that modify resources like clears and copies. State setting and other CPU-update calls like Maps are not included and are available in the API Calls view (see below).
+The Event Browser is the primary method of stepping through the frame and browsing the events that occurred within. The first column EID (Event ID) indicates which event or API call this was in the frame, chronologically. 
+
+By default the events which are listed here are those known as actions. Draws and dispatches are examples of actions, but also events that modify resources like clears and copies. State setting and other CPU-update calls like Maps are not included and are available in the API Calls view (see below). You can use the filter field to include or exclude events as you wish, for more information see :doc:`../how/how_filter_events`.
 
 The columns can be customised and reordered, the |timeline_marker| select columns button (or right-click) will allow you to choose which columns are displayed.
 
@@ -101,7 +103,7 @@ Standard performance markers are available and create the hierarchy/labels as yo
 
 The 'current' event - i.e. the event at which we are inspecting the graphics state - is highlighted with a green Flag |flag_green| and the row is highlighted. As any row is selected it immediately becomes the new current event.
 
-While the Event Browser is selected, you can press the shortcut keys :kbd:`CTRL-F` or :kbd:`CTRL-G` to find |find| or jump to a given EID |flag_green| respectively.
+While the Event Browser is selected, you can press the shortcut keys :kbd:`CTRL-F` to find |find| a given event or action. You can enter a number to jump to that given EID.
 
 
 The |asterisk_orange| bookmark button will allow you to bookmark an event, the shortcut key is :kbd:`CTRL-B`.
@@ -119,7 +121,7 @@ API Inspector
 
 More details can be found on the :doc:`../window/api_inspector` page.
 
-The API Calls window updates as a new event is selected. It shows the individual API calls and their parameters between the previous and current event. The bottom entry in this list always corresponds to the event that is currently selected, and each row can be expanded to show the parameters that were passed to that API call.
+The API Calls window updates as a new event is selected. It shows the individual API calls and their parameters. If an action is selected, the list shows all API calls between the previous action and this action and the last entry in this list always corresponds to the action itself. Each row can be expanded to show the parameters that were passed to that API call.
 
 At the bottom of the window is an optional expandable section which shows the callstack (if available and recorded) from the application code into the API function.
 
