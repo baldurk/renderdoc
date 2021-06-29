@@ -413,7 +413,44 @@ void RegisterMetatypeConversions()
   QMetaType::registerConverter<GPUAddressPtr, QString>(&GPUAddressToString);
 }
 
-void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx)
+bool HandleURLFragment(RichResourceTextPtr linkedText, QString text, bool parseURLs)
+{
+  bool hasURL = false;
+  if(parseURLs)
+  {
+    static QRegularExpression urlRE(lit(
+        R"(https?://([a-zA-Z0-9]+\.)?[-a-zA-Z0-9@:%._+~#=]{2,256}.([a-z]{2,8})+/[-a-zA-Z0-9@:%_+.~#?&/=]*)"));
+
+    QRegularExpressionMatch urlMatch = urlRE.match(text);
+
+    while(urlMatch.hasMatch())
+    {
+      QUrl url = urlMatch.captured(0);
+
+      int end = urlMatch.capturedEnd();
+
+      // push any text that preceeded the url.
+      if(urlMatch.capturedStart(0) > 0)
+        linkedText->fragments.push_back(text.left(urlMatch.capturedStart(0)));
+
+      text.remove(0, end);
+
+      linkedText->fragments.push_back(url);
+
+      urlMatch = urlRE.match(text);
+
+      hasURL = true;
+    }
+  }
+
+  if(!text.isEmpty())
+  {
+    linkedText->fragments.push_back(text);
+  }
+  return hasURL;
+}
+
+void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx, bool parseURLs)
 {
   // we only upconvert from strings, any other type with a string representation is not expected to
   // contain ResourceIds. In particular if the variant is already a ResourceId we can return.
@@ -426,7 +463,7 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx)
 
   // do a simple string search first before using regular expressions
   if(!text.contains(lit("ResourceId::")) && !text.contains(lit("GPUAddress::")) &&
-     !text.contains(lit("__rd_msgs::")) && !text.contains(QLatin1Char('@')))
+     !text.contains(lit("__rd_msgs::")) && !text.contains(QLatin1Char('@')) && !parseURLs)
     return;
 
   // two forms: GPUAddress::012345        - typeless
@@ -462,6 +499,10 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx)
 
   match = resRE.match(text);
 
+  RichResourceTextPtr linkedText(new RichResourceText);
+
+  linkedText->ctxptr = ctx;
+
   if(match.hasMatch())
   {
     // if the match is the whole string, this is just a plain ResourceId on its own, so make that
@@ -476,10 +517,6 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx)
       return;
     }
 
-    RichResourceTextPtr linkedText(new RichResourceText);
-
-    linkedText->ctxptr = ctx;
-
     while(match.hasMatch())
     {
       ResourceId id;
@@ -491,7 +528,7 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx)
 
         // push any text that preceeded the ResourceId.
         if(match.capturedStart(1) > 0)
-          linkedText->fragments.push_back(text.left(match.capturedStart(1)));
+          HandleURLFragment(linkedText, text.left(match.capturedStart(1)), parseURLs);
 
         text.remove(0, match.capturedEnd(2));
 
@@ -505,7 +542,7 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx)
 
         // push any text that preceeded the msgs link.
         if(match.capturedStart(5) > 0)
-          linkedText->fragments.push_back(text.left(match.capturedStart(5)));
+          HandleURLFragment(linkedText, text.left(match.capturedStart(5)), parseURLs);
 
         text.remove(0, match.capturedEnd(7));
 
@@ -526,7 +563,7 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx)
 
         // push any text that preceeded the EID.
         if(match.capturedStart(3) > 0)
-          linkedText->fragments.push_back(text.left(match.capturedStart(3)));
+          HandleURLFragment(linkedText, text.left(match.capturedStart(3)), parseURLs);
 
         text.remove(0, end);
 
@@ -543,11 +580,18 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx)
       if(linkedText->fragments.empty())
         return;
 
-      linkedText->fragments.push_back(text);
+      HandleURLFragment(linkedText, text, parseURLs);
     }
 
     linkedText->doc.setHtml(text);
 
+    var = QVariant::fromValue(linkedText);
+    return;
+  }
+
+  // if our text doesn't match any of the previous pattern, we still want to linkify URLs
+  if(HandleURLFragment(linkedText, text, parseURLs))
+  {
     var = QVariant::fromValue(linkedText);
   }
 }
@@ -556,7 +600,7 @@ bool RichResourceTextCheck(const QVariant &var)
 {
   return var.userType() == qMetaTypeId<RichResourceTextPtr>() ||
          var.userType() == qMetaTypeId<GPUAddressPtr>() ||
-         var.userType() == qMetaTypeId<ResourceId>();
+         var.userType() == qMetaTypeId<ResourceId>() || var.userType() == qMetaTypeId<QUrl>();
 }
 
 // I'm not sure if this should come from the style or not - the QTextDocument handles this in
@@ -710,7 +754,7 @@ void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, 
       {
         QVariant v = linkedText->fragments[frag];
         if((v.userType() == qMetaTypeId<ResourceId>() && v.value<ResourceId>() != ResourceId()) ||
-           v.userType() == qMetaTypeId<ShaderMessageLink>())
+           v.userType() == qMetaTypeId<ShaderMessageLink>() || v.userType() == qMetaTypeId<QUrl>())
         {
           layout->blockBoundingRect(block);
           QRectF blockrect = layout->blockBoundingRect(block);
@@ -725,7 +769,10 @@ void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, 
             blockrect = blockrect.united(layout->blockBoundingRect(block.next()));
           }
 
-          blockrect.translate(0.0, -2.0);
+          if(v.userType() != qMetaTypeId<QUrl>())
+          {
+            blockrect.translate(0.0, -2.0);
+          }
 
           blockrect.setRight(qMin(blockrect.right(), (qreal)rect.width()));
 
@@ -995,6 +1042,17 @@ bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect
           ICaptureContext &ctx = *(ICaptureContext *)linkedText->ctxptr;
 
           ctx.SetEventID({}, eid, eid, false);
+        }
+
+        return true;
+      }
+      else if(v.type() == qMetaTypeId<QUrl>())
+      {
+        QUrl url = v.value<QUrl>();
+
+        if(event->type() == QEvent::MouseButtonRelease)
+        {
+          QDesktopServices::openUrl(url);
         }
 
         return true;
