@@ -1424,7 +1424,7 @@ void ShaderViewer::accessedResources_contextMenu(const QPoint &pos)
 
     QObject::connect(&gotoInstr, &QAction::triggered, [this, tag] {
       bool forward = (tag.step >= m_CurrentStateIdx);
-      runTo({tag.step}, forward);
+      runTo({m_States[tag.step].nextInstruction}, forward);
     });
 
     RDDialog::show(&contextMenu, w->viewport()->mapToGlobal(pos));
