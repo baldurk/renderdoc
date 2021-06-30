@@ -969,6 +969,7 @@ void EventBrowser::events_contextMenu(const QPoint &pos)
 
   expandAll.setEnabled(item && item->childCount() > 0);
   collapseAll.setEnabled(item && item->childCount() > 0);
+  toggleBookmark.setEnabled(m_Ctx.IsCaptureLoaded());
 
   QObject::connect(&expandAll, &QAction::triggered,
                    [this, item]() { ui->events->expandAllItems(item); });
