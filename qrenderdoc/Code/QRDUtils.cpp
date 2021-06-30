@@ -561,6 +561,15 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx, bool parseU
           continue;
         }
 
+        int start = match.capturedStart(3);
+
+        // skip matches with an identifier character before the @, like foo@4
+        if(start > 0 && (text[start - 1].isLetterOrNumber() || text[start - 1] == QLatin1Char('_')))
+        {
+          match = resRE.match(text, end);
+          continue;
+        }
+
         // push any text that preceeded the EID.
         if(match.capturedStart(3) > 0)
           HandleURLFragment(linkedText, text.left(match.capturedStart(3)), parseURLs);
