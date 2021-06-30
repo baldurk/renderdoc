@@ -227,7 +227,7 @@ enum InitPolicy
 // Return the initialization/reset requirements for a FrameRefType
 inline InitReqType InitReq(FrameRefType refType, InitPolicy policy, bool initialized)
 {
-  if(eFrameRef_Minimum > refType || refType > eFrameRef_Maximum)
+  if(refType > eFrameRef_Maximum)
     return eInitReq_Copy;
 #define COPY_ONCE (initialized ? eInitReq_None : eInitReq_Copy)
 #define CLEAR_ONCE (initialized ? eInitReq_None : eInitReq_Clear)

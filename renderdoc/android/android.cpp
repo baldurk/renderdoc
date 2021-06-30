@@ -34,12 +34,13 @@
 #include "replay/replay_driver.h"
 #include "strings/string_utils.h"
 #include "android_utils.h"
+#include "hajack/hajack.h"
 
 RDOC_CONFIG(uint32_t, Android_MaxConnectTimeout, 30,
             "Maximum time in seconds to try connecting to the target app before giving up. "
             "Useful primarily for apps that take a very long time to start up.");
 
-RDOC_CONFIG(bool, Android_Debug_ProcessLaunch, false,
+RDOC_CONFIG(bool, Android_Debug_ProcessLaunch, true,
             "Output verbose debug logging messages when launching android apps.");
 
 namespace Android
@@ -185,7 +186,7 @@ int GetCurrentPID(const rdcstr &deviceID, const rdcstr &processName)
   for(int i = 0; i < 5; i++)
   {
     Process::ProcessResult pidOutput =
-        adbExecCommand(deviceID, StringFormat::Fmt("shell ps -A | grep %s", processName.c_str()));
+        adbExecCommand(deviceID, StringFormat::Fmt("shell \"ps -A | grep %s\"", processName.c_str()));
 
     rdcstr &output = pidOutput.strStdout;
 
@@ -202,7 +203,7 @@ int GetCurrentPID(const rdcstr &deviceID, const rdcstr &processName)
     if(output.empty() || output.find(processName) == -1 || space == -1)
     {
       pidOutput =
-          adbExecCommand(deviceID, StringFormat::Fmt("shell ps | grep %s", processName.c_str()));
+          adbExecCommand(deviceID, StringFormat::Fmt("shell \"ps | grep %s\"", processName.c_str()));
 
       output.trim();
       space = output.find_first_of("\t ");
@@ -309,6 +310,14 @@ bool CheckAndroidServerVersion(const rdcstr &deviceID, ABI abi)
       rdcstr(STRINGIZE(RENDERDOC_VERSION_MAJOR)) + rdcstr(STRINGIZE(RENDERDOC_VERSION_MINOR));
   rdcstr hostVersionName = GitVersionHash;
 
+  if (Hajack::GetInst().IsHajack()) {
+    if ((versionName == "") || (versionCode == "")) {
+      return false;
+    }
+    RDCLOG("Installed server version (%s:%s) (%s:%s) maybe not compatible at hajack state", hostVersionCode.c_str(),
+           versionCode.c_str(), hostVersionName.c_str(), versionName.c_str());
+    return true;
+  }
   // False positives will hurt us, so check for explicit matches
   if((hostVersionCode == versionCode) && (hostVersionName == versionName))
   {
@@ -371,6 +380,11 @@ ReplayStatus InstallRenderDocServer(const rdcstr &deviceID)
   paths.push_back(libDir + "/../../../../../build-android/bin/");                 // macOS build
   paths.push_back(libDir + "/../../../../../build-android-" + suff + "/bin/");    // macOS ABI build
 
+  Hajack::GetInst().UnInject(deviceID, abis);
+  Hajack::GetInst().Init();
+  if (Hajack::GetInst().IsHajack()) {
+    Hajack::GetInst().InitApks(libDir + "/plugins/android/", suff);
+  }
   // use the first ABI for searching
   rdcstr apk = GetRenderDocPackageForABI(abis[0]);
   rdcstr apksFolder;
@@ -416,6 +430,14 @@ ReplayStatus InstallRenderDocServer(const rdcstr &deviceID)
     rdcstr api =
         Android::adbExecCommand(deviceID, "shell getprop ro.build.version.sdk").strStdout.trimmed();
 
+    if (Hajack::GetInst().IsHajack()) {
+      // check install app
+      if (CheckAndroidServerVersion(deviceID, abi)) {
+        RDCLOG("Installed package '%s', checking for success, not install again...", apk.c_str());
+        continue;
+      }
+      RDCLOG("---- do install");
+    }
     int apiVersion = atoi(api.c_str());
 
     Process::ProcessResult adbInstall;
@@ -454,6 +476,13 @@ ReplayStatus InstallRenderDocServer(const rdcstr &deviceID)
         status = ReplayStatus::AndroidAPKVerifyFailed;
       }
     }
+  }
+  if (Hajack::GetInst().IsHajack()) {
+    if (!Hajack::GetInst().CheckInstallPakcages(deviceID, abis)) {
+      RDCERR("check install packages for abis is fail");
+      return ReplayStatus::AndroidAPKInstallFailed;
+    }
+    return status;
   }
 
   // Ensure installation succeeded. We should have as many lines as abis we installed
@@ -998,6 +1027,12 @@ struct AndroidController : public IDeviceProtocolHandler
                                   "shell pm list packages " RENDERDOC_ANDROID_PACKAGE_BASE)
               .strStdout.trimmed();
 
+      if (Hajack::GetInst().IsHajack()) {
+        RDCLOG("do hajack get install pakcages");
+        packagesOutput = Hajack::GetInst().GetInstallPakcages(deviceID);
+      }
+      RDCLOG("install pakcages %s", packagesOutput.c_str());
+
       rdcarray<rdcstr> packages;
       split(packagesOutput, packages, '\n');
 
@@ -1046,10 +1081,30 @@ struct AndroidController : public IDeviceProtocolHandler
       rdcstr package = GetRenderDocPackageForABI(abis.back());
 
       // push settings file into our folder
+      if (Hajack::GetInst().IsSelfCompiledApk()) {
+        Hajack::GetInst().PushRenderDocConf(deviceID);
+      } else {
       Android::adbExecCommand(deviceID, "push \"" + FileIO::GetAppFolderFilename("renderdoc.conf") +
                                             "\" /sdcard/Android/data/" + package +
                                             "/files/renderdoc.conf");
-
+      }
+      if (Hajack::GetInst().IsInject()) {
+        RDCLOG("---- start inject renderdoc so to zygote");
+        if (!Hajack::GetInst().Injecter(deviceID, abis)) {
+          RDCERR("inject renderdoc so to zygote fail");
+          status = ReplayStatus::InjectionFailed;
+          return;
+        }
+        rdcstr main_activity = package + "/" + RENDERDOC_ANDROID_PACKAGE_BASE "." + GetPlainABIName(abis.back()) + ".Loader";
+        Android::adbExecCommand(deviceID, "shell am start -n " + main_activity + " -e renderdoccmd remoteserver");
+        return;
+      }
+      if(Hajack::GetInst().IsHajack() && Hajack::GetInst().IsChangePackage(abis.back())) {
+        RDCLOG("---- change start ManiActivity Package");
+        rdcstr main_activity =package + "/" + RENDERDOC_ANDROID_PACKAGE_BASE "." + GetPlainABIName(abis.back()) + ".Loader";
+        Android::adbExecCommand(deviceID, "shell am start -n " + main_activity + " -e renderdoccmd remoteserver");
+        return;
+      }
       // launch the last ABI, as the 64-bit version where possible, or 32-bit version where not.
       // Captures are portable across bitness and in some cases a 64-bit capture can't replay on a
       // 32-bit remote server.
@@ -1217,7 +1272,8 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const rdcstr &packageAndActi
       Android::adbExecCommand(
           m_deviceID, "shell settings put global gpu_debug_layers " RENDERDOC_VULKAN_LAYER_NAME);
       Android::adbExecCommand(
-          m_deviceID, "shell settings put global gpu_debug_layers_gles " RENDERDOC_ANDROID_LIBRARY);
+          m_deviceID, "shell settings put global gpu_debug_layers_gles " +
+                                              Hajack::GetInst().GetRenderDoc(abi));
 
       // don't ignore the layers by default, only if we encounter an error
       Android::adbExecCommand(m_deviceID, "shell setprop debug.rdoc.IGNORE_LAYERS 0");
@@ -1246,7 +1302,7 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const rdcstr &packageAndActi
          !checkString.contains("gpu_debug_app=" + packageName) ||
          !checkString.contains("gpu_debug_layer_app=" + layerPackage) ||
          !checkString.contains("gpu_debug_layers=" RENDERDOC_VULKAN_LAYER_NAME) ||
-         !checkString.contains("gpu_debug_layers_gles=" RENDERDOC_ANDROID_LIBRARY))
+         !checkString.contains("gpu_debug_layers_gles=" + Hajack::GetInst().GetRenderDoc(abi)))
       {
         RDCERR(
             "Couldn't verify that debug settings are set:\n%s"
@@ -1292,14 +1348,17 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const rdcstr &packageAndActi
                                               opts.EncodeAsString().c_str()));
 
     // try to push our settings file into the appdata folder
+    if (Hajack::GetInst().IsSelfCompiledApk()) {
+      Hajack::GetInst().PushRenderDocConf(m_deviceID);
+    } else {
     Android::adbExecCommand(m_deviceID, "push \"" + FileIO::GetAppFolderFilename("renderdoc.conf") +
                                             "\" /sdcard/Android/" + folderName + processName +
                                             "/files/renderdoc.conf");
-
+    }
     rdcstr installedPath = Android::GetPathForPackage(m_deviceID, packageName);
-
+    auto abi = Hajack::GetInst().GetPackageABI(m_deviceID, packageName);
     rdcstr RDCLib = Android::adbExecCommand(m_deviceID, "shell ls " + installedPath +
-                                                            "/lib/*/" RENDERDOC_ANDROID_LIBRARY)
+                                                            "/lib/*/" + Hajack::GetInst().GetRenderDoc(abi))
                         .strStdout.trimmed();
 
     if(Android_Debug_ProcessLaunch())
@@ -1313,19 +1372,33 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const rdcstr &packageAndActi
 
     // some versions of adb/android also don't print any error message at all! Look to see if the
     // wildcard glob is still present.
-    if(RDCLib.find("/lib/*/" RENDERDOC_ANDROID_LIBRARY) >= 0)
+    if(RDCLib.find("/lib/*/" + Hajack::GetInst().GetRenderDoc(abi)) >= 0)
       RDCLib.clear();
 
     if(RDCLib.empty())
     {
-      RDCLOG("No library found in %s/lib/*/" RENDERDOC_ANDROID_LIBRARY
+      RDCLOG("No library found in %s/lib/*/%s"
              " for %s - assuming injection is required.",
-             installedPath.c_str(), packageName.c_str());
+             Hajack::GetInst().GetRenderDoc(abi).c_str(), installedPath.c_str(), packageName.c_str());
+      hookWithJDWP = true;
     }
     else
     {
       hookWithJDWP = false;
       RDCLOG("Library found, no injection required: %s", RDCLib.c_str());
+    }
+    if (Hajack::GetInst().IsInject()) {
+      RDCLOG("renderdoc so is inject to zygote");
+      hookWithJDWP = false;
+    }
+    if (Hajack::GetInst().IsDepend()) {
+      RDCLOG("renderdoc so is denpend to package");
+      hookWithJDWP = false;
+      if (!Hajack::GetInst().SetPackageDepends(m_deviceID, installedPath)) {
+        RDCERR("set %s depends fail", installedPath.c_str());
+        ret.status = ReplayStatus::InjectionFailed;
+        return;
+      }
     }
 
     int pid = 0;
@@ -1404,7 +1477,7 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const rdcstr &packageAndActi
       // exited
       // without ever opening a connection.
       int curpid = Android::GetCurrentPID(m_deviceID, processName);
-
+      RDCLOG("renderdoc devicesID:%s pname:%s pid:%d", m_deviceID.c_str(), processName.c_str(), curpid);
       if(curpid == 0)
       {
         RDCERR("APK has crashed or never opened target control connection before closing.");

@@ -154,7 +154,7 @@ FrameRefType ComposeFrameRefsDisjoint(FrameRefType x, FrameRefType y)
 
 FrameRefType ComposeFrameRefsFirstKnown(FrameRefType first, FrameRefType second)
 {
-  if(eFrameRef_Minimum <= first && first <= eFrameRef_Maximum)
+  if(first <= eFrameRef_Maximum)
     return first;
   else
     return second;

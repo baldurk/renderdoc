@@ -28,6 +28,7 @@
 #include "strings/string_utils.h"
 #include "android.h"
 #include "android_utils.h"
+#include "hajack/hajack.h"
 
 namespace JDWP
 {
@@ -417,11 +418,11 @@ bool InjectLibraries(const rdcstr &deviceID, Network::Socket *sock)
   // responsible for injecting its hooks into GLES on its own. See android_hook.cpp for more
   // information on the implementation
   value ret = conn.InvokeInstance(thread, runtime, load, runtimeObject.Object,
-                                  {conn.NewString(thread, libPath + "/" RENDERDOC_ANDROID_LIBRARY)});
+                                  {conn.NewString(thread, libPath + "/" + Hajack::GetInst().GetRenderDoc(abi))});
 
   if(ret.tag != Tag::Void)
   {
-    RDCERR("Failed to call load(%s/%s)!", libPath.c_str(), RENDERDOC_ANDROID_LIBRARY);
+    RDCERR("Failed to call load(%s/%s)!", libPath.c_str(), Hajack::GetInst().GetRenderDoc(abi).c_str());
     return false;
   }
 

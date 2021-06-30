@@ -307,8 +307,8 @@ rdcstr getToolPath(ToolDir subdir, const rdcstr &toolname, bool checkExist)
 Process::ProcessResult execScript(const rdcstr &script, const rdcstr &args, const rdcstr &workDir,
                                   bool silent)
 {
-  if(!silent)
-    RDCLOG("SCRIPT: %s", script.c_str());
+  //if(!silent)
+    RDCLOG("SCRIPT: %s '%s'", script.c_str(), args.c_str());
 
   Process::ProcessResult result;
   Process::LaunchScript(script, workDir, args, true, &result);

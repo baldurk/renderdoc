@@ -31,6 +31,7 @@
 #include "common/common.h"
 #include "common/formatting.h"
 #include "os/os_specific.h"
+#include "hajack/hajack.h"
 
 #define LOGCAT_TAG "renderdoc"
 
@@ -129,7 +130,7 @@ void GetLibraryFilename(rdcstr &selfName)
 
     ::fclose(f);
 
-    char *c = strstr(map_string, "/" RENDERDOC_ANDROID_LIBRARY);
+    char *c = strstr(map_string, ("/" + Hajack::GetInst().GetAndroidRenderDoc()).c_str());
 
     if(c)
     {
@@ -197,8 +198,8 @@ void GetLibraryFilename(rdcstr &selfName)
 
   if(librenderdoc_path.empty())
   {
-    RDCWARN("Couldn't get " RENDERDOC_ANDROID_LIBRARY
-            " path from /proc/self/maps, falling back to dladdr");
+    RDCWARN("Couldn't get %s"
+            " path from /proc/self/maps, falling back to dladdr", Hajack::GetInst().GetAndroidRenderDoc().c_str());
 
     Dl_info info;
     if(dladdr(&LibraryLocator, &info))

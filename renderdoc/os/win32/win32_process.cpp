@@ -1075,7 +1075,7 @@ uint32_t Process::LaunchScript(const rdcstr &script, const rdcstr &workingDir,
                                const rdcstr &argList, bool internal, ProcessResult *result)
 {
   // Change parameters to invoke command interpreter
-  rdcstr args = "/C " + script + " " + argList;
+  rdcstr args = "/Q /C \" " + script + " " + argList + " \"";
 
   return LaunchProcess("cmd.exe", workingDir, args, internal, result);
 }

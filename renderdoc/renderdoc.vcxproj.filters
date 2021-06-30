@@ -148,6 +148,9 @@
     <Filter Include="3rdparty\half">
       <UniqueIdentifier>{1b49d2aa-1cfb-4f0a-8fcf-1065af55ea2b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="hajack">
+      <UniqueIdentifier>{4ee5cb75-e072-4b44-ae04-ad3cc88f1c84}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maths\camera.h">
@@ -564,6 +567,12 @@
     <ClInclude Include="core\sparse_page_table.h">
       <Filter>Core</Filter>
     </ClInclude>
+    <ClInclude Include="hajack\hajack.h">
+      <Filter>hajack</Filter>
+    </ClInclude>
+    <ClInclude Include="hajack\utils.h">
+      <Filter>hajack</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -976,6 +985,15 @@
     </ClCompile>
     <ClCompile Include="core\sparse_page_table.cpp">
       <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="hajack\hajack.cpp">
+      <Filter>hajack</Filter>
+    </ClCompile>
+    <ClCompile Include="hajack\jsoncpp\jsoncpp.cpp">
+      <Filter>hajack</Filter>
+    </ClCompile>
+    <ClCompile Include="hajack\utils.cpp">
+      <Filter>hajack</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

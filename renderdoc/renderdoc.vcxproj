@@ -225,6 +225,8 @@
     <ClInclude Include="data\glsl_shaders.h" />
     <ClInclude Include="data\hlsl\hlsl_cbuffers.h" />
     <ClInclude Include="data\resource.h" />
+    <ClInclude Include="hajack\hajack.h" />
+    <ClInclude Include="hajack\utils.h" />
     <ClInclude Include="hooks\hooks.h" />
     <ClInclude Include="maths\camera.h" />
     <ClInclude Include="maths\formatpacking.h" />
@@ -541,6 +543,9 @@
     <ClCompile Include="core\replay_proxy.cpp" />
     <ClCompile Include="core\resource_manager.cpp" />
     <ClCompile Include="data\glsl_shaders.cpp" />
+    <ClCompile Include="hajack\hajack.cpp" />
+    <ClCompile Include="hajack\jsoncpp\jsoncpp.cpp" />
+    <ClCompile Include="hajack\utils.cpp" />
     <ClCompile Include="hooks\hooks.cpp" />
     <ClCompile Include="maths\camera.cpp" />
     <ClCompile Include="maths\formatpacking.cpp" />

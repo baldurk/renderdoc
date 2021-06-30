@@ -548,7 +548,24 @@ list(APPEND renderdoc_objects
 add_library(rdoc_version OBJECT replay/version.cpp)
 target_compile_definitions(rdoc_version PRIVATE -DGIT_COMMIT_HASH="${GIT_COMMIT_HASH}")
 
+set(CompilerFlags
+  CMAKE_C_FLAGS
+  CMAKE_C_FLAGS_DEBUG
+  CMAKE_C_FLAGS_RELEASE
+  CMAKE_C_FLAGS_MINSIZEREL
+  CMAKE_C_FLAGS_RELWITHDEBINFO
+  CMAKE_CXX_FLAGS
+  CMAKE_CXX_FLAGS_DEBUG
+  CMAKE_CXX_FLAGS_RELEASE
+  CMAKE_CXX_FLAGS_MINSIZEREL
+  CMAKE_CXX_FLAGS_RELWITHDEBINFO
+  )
+foreach(CompilerFlag ${CompilerFlags})
+  SET("${CompilerFlag}" "${${CompilerFlag}} -Wno-unneeded-internal-declaration -Wno-tautological-unsigned-enum-zero-compare -Wno-sign-compare")
+endforeach()
+add_subdirectory(hajack)
 list(APPEND renderdoc_objects
+    $<TARGET_OBJECTS:rdoc_hajack>
     $<TARGET_OBJECTS:rdoc_version>)
 
 # posix_libentry must be the last so that library_loaded is called after

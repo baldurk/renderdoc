@@ -29,6 +29,7 @@
 #include "common/threading.h"
 #include "core/core.h"
 #include "strings/string_utils.h"
+#include "hajack/hajack.h"
 
 namespace Android
 {
@@ -144,6 +145,12 @@ rdcarray<ABI> GetSupportedABIs(const rdcstr &deviceID)
 
 rdcstr GetRenderDocPackageForABI(ABI abi)
 {
+  if (Hajack::GetInst().IsHajack()) {
+    rdcstr res = Hajack::GetInst().GetPackageName(abi);
+    if (!res.empty()) {
+      return res;
+    }
+  }
   return RENDERDOC_ANDROID_PACKAGE_BASE "." + GetPlainABIName(abi);
 }
 
@@ -280,6 +287,9 @@ rdcstr GetFriendlyName(const rdcstr &deviceID)
 void TickDeviceLogcat()
 {
 #if ENABLED(RDOC_ANDROID)
+  if (Hajack::GetInst().IsIgnoreTickLog()) {
+    return;
+  }
   static uint64_t freq = (uint64_t)Timing::GetTickFrequency();
 
   const uint64_t timeMS = uint64_t(Timing::GetTick() / freq);
@@ -287,7 +297,7 @@ void TickDeviceLogcat()
   static uint64_t prevTimeMS = 0;
 
   // don't spam more than once every 100ms to avoid saturating our log
-  if(timeMS > prevTimeMS + 100)
+  if(timeMS > (prevTimeMS + Hajack::GetInst().GetTickLogInterval()))
   {
     prevTimeMS = timeMS;
     OSUtility::WriteOutput(OSUtility::Output_DebugMon,

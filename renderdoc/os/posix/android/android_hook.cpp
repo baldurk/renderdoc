@@ -26,6 +26,7 @@
 #include "common/threading.h"
 #include "hooks/hooks.h"
 #include "plthook/plthook.h"
+#include "hajack/hajack.h"
 
 #include <android/dlext.h>
 #include <dlfcn.h>
@@ -40,7 +41,7 @@
 #include <set>
 
 // uncomment the following to print (very verbose) debugging prints for the android PLT hooking
-//#define HOOK_DEBUG_PRINT(...) RDCLOG(__VA_ARGS__)
+#define HOOK_DEBUG_PRINT(...) RDCLOG(__VA_ARGS__)
 
 #if !defined(HOOK_DEBUG_PRINT)
 #define HOOK_DEBUG_PRINT(...) \
@@ -222,10 +223,10 @@ void *intercept_dlopen(const char *filename, int flag)
     // We need to intercept requests for our own library, because the android loader makes the
     // completely ridiculous decision to load multiple copies of the same library into a process if
     // it's dlopen'd with different paths. This obviously breaks with our hook install.
-    if(strstr(filename, RENDERDOC_ANDROID_LIBRARY) || GetHookInfo().IsLibHook(rdcstr(filename)))
+    if(strstr(filename, Hajack::GetInst().GetAndroidRenderDoc().c_str()) || GetHookInfo().IsLibHook(rdcstr(filename)))
     {
       HOOK_DEBUG_PRINT("Intercepting dlopen for %s", filename);
-      return dlopen(RENDERDOC_ANDROID_LIBRARY, flag);
+      return dlopen(Hajack::GetInst().GetAndroidRenderDoc().c_str(), flag);
     }
   }
 
@@ -527,7 +528,7 @@ static void InstallHooksCommon()
   suppressTLS = Threading::AllocateTLSSlot();
 
   // blacklist hooking certain system libraries or ourselves
-  GetHookInfo().SetHooked(RENDERDOC_ANDROID_LIBRARY);
+  GetHookInfo().SetHooked(Hajack::GetInst().GetAndroidRenderDoc().c_str());
   GetHookInfo().SetHooked("libc.so");
   GetHookInfo().SetHooked("libvndksupport.so");
 

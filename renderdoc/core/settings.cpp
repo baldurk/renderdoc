@@ -27,6 +27,7 @@
 #include "common/formatting.h"
 #include "serialise/streamio.h"
 #include "core.h"
+#include "hajack/hajack.h"
 
 #include "3rdparty/pugixml/pugixml.hpp"
 
@@ -456,6 +457,9 @@ CONFIG_SUPPORT_TYPE(rdcarray<rdcstr>)
 void RenderDoc::ProcessConfig()
 {
   rdcstr confFile = FileIO::GetAppFolderFilename("renderdoc.conf");
+  if (Hajack::GetInst().IsSelfCompiledApk()) {
+    confFile = Hajack::GetInst().GetRenderDocConf();
+  }
 
   RDCLOG("Loading config from %s", confFile.c_str());
 
@@ -506,6 +510,9 @@ void RenderDoc::SaveConfigSettings()
   if(IsReplayApp())
   {
     rdcstr confFile = FileIO::GetAppFolderFilename("renderdoc.conf");
+    if (Hajack::GetInst().IsSelfCompiledApk()) {
+      confFile = Hajack::GetInst().GetRenderDocConf();
+    }
 
     bool success = false;
 

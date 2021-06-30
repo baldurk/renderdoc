@@ -24,6 +24,7 @@
  ******************************************************************************/
 
 #pragma once
+#include "hajack/utils.h"
 
 /////////////////////////////////////////////////
 // Option macros
@@ -152,17 +153,24 @@
 
 /////////////////////////////////////////////////
 // Global constants
-enum
-{
-  RenderDoc_FirstTargetControlPort = 38920,
-  RenderDoc_LastTargetControlPort = RenderDoc_FirstTargetControlPort + 7,
-  RenderDoc_RemoteServerPort = 39920,
+#define RenderDoc_FirstTargetControlPort     GetHajackFirstTargetControlPort()
+#define RenderDoc_LastTargetControlPort      GetHajackLastTargetControlPort()
+#define RenderDoc_RemoteServerPort           GetHajackRemoteServerPort()
+#define RenderDoc_ForwardPortBase            GetHajackForwardPortBase()
+#define RenderDoc_ForwardTargetControlOffset GetHajackForwardTargetControlOffset()
+#define RenderDoc_ForwardRemoteServerOffset  GetHajackForwardRemoteServerOffset()
+#define RenderDoc_ForwardPortStride          GetHajackForwardPortStride()
+// enum
+// {
+  // RenderDoc_FirstTargetControlPort = 38920,
+  // RenderDoc_LastTargetControlPort = RenderDoc_FirstTargetControlPort + 7,
+  // RenderDoc_RemoteServerPort = 39920,
 
-  RenderDoc_ForwardPortBase = 38950,
-  RenderDoc_ForwardTargetControlOffset = 0,
-  RenderDoc_ForwardRemoteServerOffset = 9,
-  RenderDoc_ForwardPortStride = 10,
-};
+  // RenderDoc_ForwardPortBase = 38950,
+  // RenderDoc_ForwardTargetControlOffset = 0,
+  // RenderDoc_ForwardRemoteServerOffset = 9,
+  // RenderDoc_ForwardPortStride = 10,
+// };
 
 #define RENDERDOC_VULKAN_LAYER_NAME "VK_LAYER_RENDERDOC_Capture"
 #define RENDERDOC_VULKAN_LAYER_VAR "ENABLE_VULKAN_RENDERDOC_CAPTURE"
