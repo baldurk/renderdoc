@@ -272,6 +272,8 @@ bool WrappedID3D12Device::Serialise_CreateCommandList(SerialiserType &ser, UINT 
 
   if(IsReplayingAndReading())
   {
+    nodeMask = 0;
+
     ID3D12GraphicsCommandList *list = NULL;
     HRESULT hr = CreateCommandList(nodeMask, type, pCommandAllocator, pInitialState,
                                    __uuidof(ID3D12GraphicsCommandList), (void **)&list);
@@ -944,6 +946,8 @@ bool WrappedID3D12Device::Serialise_CreateRootSignature(SerialiserType &ser, UIN
 
   if(IsReplayingAndReading())
   {
+    nodeMask = 0;
+
     ID3D12RootSignature *ret = NULL;
     HRESULT hr = m_pDevice->CreateRootSignature(nodeMask, pBlobWithRootSignature,
                                                 (SIZE_T)blobLengthInBytes, guid, (void **)&ret);

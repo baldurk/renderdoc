@@ -474,6 +474,9 @@ void DoSerialise(SerialiserType &ser, D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC 
   SERIALISE_MEMBER(Flags);
   SERIALISE_MEMBER(ViewInstancing);
   SERIALISE_MEMBER(CS);
+
+  if(ser.IsReading())
+    el.NodeMask = 0;
 }
 
 template <>
@@ -537,6 +540,9 @@ void DoSerialise(SerialiserType &ser, D3D12_COMMAND_QUEUE_DESC &el)
   SERIALISE_MEMBER(Priority);
   SERIALISE_MEMBER(Flags);
   SERIALISE_MEMBER(NodeMask);
+
+  if(ser.IsReading())
+    el.NodeMask = 0;
 }
 
 template <class SerialiserType>
@@ -703,6 +709,9 @@ void DoSerialise(SerialiserType &ser, D3D12_COMMAND_SIGNATURE_DESC &el)
   SERIALISE_MEMBER(NumArgumentDescs);
   SERIALISE_MEMBER_ARRAY(pArgumentDescs, NumArgumentDescs);
   SERIALISE_MEMBER(NodeMask);
+
+  if(ser.IsReading())
+    el.NodeMask = 0;
 }
 
 template <>
@@ -747,6 +756,9 @@ void DoSerialise(SerialiserType &ser, D3D12_GRAPHICS_PIPELINE_STATE_DESC &el)
   SERIALISE_MEMBER(NodeMask);
   SERIALISE_MEMBER(CachedPSO);
   SERIALISE_MEMBER(Flags);
+
+  if(ser.IsReading())
+    el.NodeMask = 0;
 }
 
 template <>
@@ -770,6 +782,9 @@ void DoSerialise(SerialiserType &ser, D3D12_COMPUTE_PIPELINE_STATE_DESC &el)
   SERIALISE_MEMBER(NodeMask);
   SERIALISE_MEMBER(CachedPSO);
   SERIALISE_MEMBER(Flags);
+
+  if(ser.IsReading())
+    el.NodeMask = 0;
 }
 
 template <>
@@ -1177,6 +1192,9 @@ void DoSerialise(SerialiserType &ser, D3D12_HEAP_PROPERTIES &el)
   SERIALISE_MEMBER(MemoryPoolPreference);
   SERIALISE_MEMBER(CreationNodeMask);
   SERIALISE_MEMBER(VisibleNodeMask);
+
+  if(ser.IsReading())
+    el.CreationNodeMask = el.VisibleNodeMask = 0;
 }
 
 template <class SerialiserType>
@@ -1195,6 +1213,9 @@ void DoSerialise(SerialiserType &ser, D3D12_DESCRIPTOR_HEAP_DESC &el)
   SERIALISE_MEMBER(NumDescriptors);
   SERIALISE_MEMBER(Flags);
   SERIALISE_MEMBER(NodeMask);
+
+  if(ser.IsReading())
+    el.NodeMask = 0;
 }
 
 template <class SerialiserType>
@@ -1203,6 +1224,9 @@ void DoSerialise(SerialiserType &ser, D3D12_QUERY_HEAP_DESC &el)
   SERIALISE_MEMBER(Type);
   SERIALISE_MEMBER(Count);
   SERIALISE_MEMBER(NodeMask);
+
+  if(ser.IsReading())
+    el.NodeMask = 0;
 }
 
 template <class SerialiserType>

@@ -50,6 +50,8 @@ bool WrappedID3D12Device::Serialise_CreateCommandList1(SerialiserType &ser, UINT
 
   if(IsReplayingAndReading())
   {
+    nodeMask = 0;
+
     ID3D12GraphicsCommandList *list = NULL;
     HRESULT hr = E_NOINTERFACE;
     if(m_pDevice4)

@@ -214,6 +214,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
+    nodeMask = 0;
+
     m_Cmd->m_LastCmdListID = BakedCommandList;
 
     if(IsActiveReplaying(m_State))
@@ -4400,6 +4402,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
       {
         D3D12_COMMAND_LIST_TYPE type = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].type;
         UINT nodeMask = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].nodeMask;
+
+        nodeMask = 0;
 
         ResourceId allocid = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].allocator;
         ID3D12CommandAllocator *allocator = m_Cmd->m_CrackedAllocators[allocid];
