@@ -3816,7 +3816,7 @@ void EventBrowser::CreateFilterDialog()
 
     dialog->setLayout(&grid);
 
-    auto enterCallback = [this, &saveButton, &deleteButton](QKeyEvent *e) {
+    auto enterCallback = [&saveButton, &deleteButton](QKeyEvent *e) {
       if(e->key() == Qt::Key_Return || e->key() == Qt::Key_Enter)
       {
         saveButton.click();
@@ -3835,7 +3835,7 @@ void EventBrowser::CreateFilterDialog()
     QObject::connect(&filters, &RDListWidget::itemActivated,
                      [&saveButton](QListWidgetItem *) { saveButton.click(); });
 
-    QObject::connect(&saveName, &RDLineEdit::textChanged, [this, &saveName, &filters]() {
+    QObject::connect(&saveName, &RDLineEdit::textChanged, [&saveName, &filters]() {
       for(int i = 0; i < persistantStorage.SavedFilters.count(); i++)
       {
         if(saveName.text().trimmed().toLower() == persistantStorage.SavedFilters[i].first.toLower())
@@ -3849,7 +3849,7 @@ void EventBrowser::CreateFilterDialog()
       filters.setCurrentItem(NULL);
     });
 
-    QObject::connect(&filters, &QListWidget::currentRowChanged, [this, &saveName](int row) {
+    QObject::connect(&filters, &QListWidget::currentRowChanged, [&saveName](int row) {
       if(row >= 0 && row < persistantStorage.SavedFilters.count())
         saveName.setText(persistantStorage.SavedFilters[row].first);
     });
@@ -3890,7 +3890,7 @@ void EventBrowser::CreateFilterDialog()
       dialog->accept();
     });
 
-    QObject::connect(&deleteButton, &QPushButton::clicked, [this, dialog, &filters]() {
+    QObject::connect(&deleteButton, &QPushButton::clicked, [dialog, &filters]() {
       QListWidgetItem *item = filters.currentItem();
       if(!item)
         return;
