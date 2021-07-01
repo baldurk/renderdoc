@@ -490,7 +490,7 @@ void RDTweakedNativeStyle::drawControl(ControlElement control, const QStyleOptio
       // elide text from the right if there's not enough space
       QFontMetrics metrics(toolopt->font);
 
-      int space = metrics.horizontalAdvance(QLatin1Char(' '));
+      int space = metrics.width(QLatin1Char(' '));
       textRect = QStyle::visualRect(opt->direction, rect, textRect);
 
       if(toolopt->toolButtonStyle == Qt::ToolButtonTextOnly)
