@@ -3372,7 +3372,7 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   QObject::connect(ui->events, &RDTreeView::keyPress, this, &EventBrowser::events_keyPress);
   QObject::connect(ui->events->selectionModel(), &QItemSelectionModel::currentChanged, this,
                    &EventBrowser::events_currentChanged);
-  on_find_toggled(false);
+  ui->find->setChecked(false);
   ui->bookmarkStrip->hide();
 
   m_BookmarkStripLayout = new FlowLayout(ui->bookmarkStrip, 0, 3, 3);
@@ -5034,7 +5034,7 @@ void EventBrowser::events_keyPress(QKeyEvent *event)
     // support Ctrl-G as a legacy shortcut, from the old 'goto EID' which was separate from find
     if(event->key() == Qt::Key_F || event->key() == Qt::Key_G)
     {
-      on_find_toggled(true);
+      ui->find->setChecked(true);
       event->accept();
     }
     else if(event->key() == Qt::Key_B)
