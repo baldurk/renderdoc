@@ -4079,8 +4079,8 @@ You can also require matches, which overrides any optional matches:
 <pre>  +Draw +Indexed -Instanced</pre>
 
 <p>
-which will match only events which match <code>Draw<code> and match <code>Indexed<code> but don't match
-<code>Instanced<code>. In this case adding a term with no + or - prefix will be ignored,
+which will match only events which match <code>Draw</code> and match <code>Indexed</code> but don't
+match <code>Instanced</code>. In this case adding a term with no + or - prefix will be ignored,
 since an event will be excluded if it doesn't match all the +required terms
 anyway.
 </p>
@@ -4092,8 +4092,8 @@ More complex expressions can be built with nesting:
 <pre>  +Draw +(Indexed Instanced) -Indirect</pre>
 
 <p>
-Would match only events matching <code>Draw<code> which also match at least one of <code>Indexed<code>
-or <code>Instanced<code> but not <code>Indirect<code>.
+Would match only events matching <code>Draw</code> which also match at least one of
+<code>Indexed</code> or <code>Instanced</code> but not <code>Indirect</code>.
 </p>
 
 <p>
