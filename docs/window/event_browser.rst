@@ -28,7 +28,7 @@ Event display
 
 Events displayed in the Event Browser are typically derived from the parameters to the API call itself. A small number of events will have custom generated names - these are typically for example indirect draws where it is more useful to see the used GPU draw parameters instead of the raw CPU side buffer, or for renderpasses where the load and store ops can be displayed.
 
-There are controls to tweak these names available under the :menu:`Settings & Help` window when configuring the filter.
+There are controls to tweak these names available under the :guilabel:`Settings & Help` window when configuring the filter.
 
 To show these options by way of example, take this default display of a section of a captured frame:
 
