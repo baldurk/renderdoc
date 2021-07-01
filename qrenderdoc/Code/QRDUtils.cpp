@@ -1055,7 +1055,7 @@ bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect
 
         return true;
       }
-      else if(v.type() == qMetaTypeId<QUrl>())
+      else if(v.type() == QVariant::Url)
       {
         QUrl url = v.value<QUrl>();
 
