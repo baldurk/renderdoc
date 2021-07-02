@@ -552,8 +552,8 @@ void main()
       v = mainWindow->viewport;
       v.width /= 8.0f;
       v.height /= 8.0f;
-      v.width = floor(v.width);
-      v.height = floor(v.height);
+      v.width = floorf(v.width);
+      v.height = floorf(v.height);
       v.x += 2.0f;
       v.y += 2.0f;
       v.width -= 4.0f;

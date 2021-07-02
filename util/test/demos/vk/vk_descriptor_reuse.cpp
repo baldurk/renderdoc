@@ -364,8 +364,8 @@ void main()
         vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
 
         VkRect2D s = {{0, 0},
-                      {uint32_t(screenWidth / (int)sqrt(descriptorCount)),
-                       uint32_t(screenHeight / (int)sqrt(descriptorCount))}};
+                      {uint32_t(screenWidth / (int)sqrtf((float)descriptorCount)),
+                       uint32_t(screenHeight / (int)sqrtf((float)descriptorCount))}};
         VkViewport v = {0, 0, (float)s.extent.width, (float)s.extent.height, 0, 1};
 
         size_t randSeed = curFrame * threadIndex + threadIndex;
