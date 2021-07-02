@@ -1528,7 +1528,10 @@ void main()
     vkDestroyImageView(device, view3, NULL);
 
     if(KHR_descriptor_update_template && KHR_push_descriptor)
+    {
       vkDestroyDescriptorUpdateTemplateKHR(device, pushtempl, NULL);
+      vkDestroyDescriptorUpdateTemplateKHR(device, refpushtempl, NULL);
+    }
 
     if(KHR_descriptor_update_template)
       vkDestroyDescriptorUpdateTemplateKHR(device, reftempl, NULL);
