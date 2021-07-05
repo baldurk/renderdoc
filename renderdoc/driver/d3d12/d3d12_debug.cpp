@@ -393,6 +393,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     pattern.append(GetDiscardPattern(DiscardType::DiscardCall, fmt));
 
     m_DiscardConstants = MakeCBuffer(pattern.size());
+    m_pDevice->InternalRef();
     FillBuffer(m_DiscardConstants, 0, pattern.data(), pattern.size());
 
     ID3DBlob *root = shaderCache->MakeRootSig({
@@ -404,6 +405,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
     hr = m_pDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
                                         __uuidof(ID3D12RootSignature), (void **)&m_DiscardRootSig);
+    m_pDevice->InternalRef();
 
     SAFE_RELEASE(root);
   }
