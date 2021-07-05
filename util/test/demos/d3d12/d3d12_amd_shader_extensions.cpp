@@ -207,7 +207,6 @@ void main(uint3 threadID : SV_DispatchThreadID)
       devCreate.iid = __uuidof(ID3D12Device);
       devCreate.pAdapter = a.GetInterfacePtr();
 
-      extCreate.uavSlot = 7;
       extCreate.pAppName = L"RenderDoc demos";
       extCreate.pEngineName = L"RenderDoc demos";
 
@@ -301,21 +300,23 @@ void main(uint3 threadID : SV_DispatchThreadID)
     }
 
     ID3D12RootSignaturePtr sig = MakeSig({
-        tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 0, 8, 0),
+        tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 0, 3, 0),
+        tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV,
+                   AGS_DX12_SHADER_INSTRINSICS_SPACE_ID, 0, 1, 3),
     });
 
     std::string ags_header = ags_shader_intrinsics_dx12_hlsl();
 
-    const std::string profilesuffix[3] = {"_5_0", "_5_1", "_6_0"};
-    const std::wstring namesuffix[3] = {L"SM50", L"SM51", L"SM60"};
+    const std::string profilesuffix[2] = {"_5_1", "_6_0"};
+    const std::wstring namesuffix[2] = {L"SM51", L"SM60"};
 
-    ID3DBlobPtr vsblob[3];
-    ID3DBlobPtr psblob[3];
-    ID3DBlobPtr csblob[3];
+    ID3DBlobPtr vsblob[2];
+    ID3DBlobPtr psblob[2];
+    ID3DBlobPtr csblob[2];
 
-    bool valid[3] = {};
-    ID3D12PipelineStatePtr pso[3];
-    ID3D12PipelineStatePtr cso[3];
+    bool valid[2] = {};
+    ID3D12PipelineStatePtr pso[2];
+    ID3D12PipelineStatePtr cso[2];
 
     for(int i = 0; i < ARRAY_COUNT(profilesuffix); i++)
     {
@@ -327,12 +328,9 @@ void main(uint3 threadID : SV_DispatchThreadID)
 
       valid[i] = true;
 
-      std::string defines = "#define AMD_EXT_SHADER_INTRINSIC_UAV_OVERRIDE u7\n\n";
-
       // can't skip optimising and still have the extensions work, sadly
-      psblob[i] =
-          Compile(defines + ags_header + BaryCentricPixel, "main", "ps" + profilesuffix[i], false);
-      csblob[i] = Compile(defines + ags_header + MaxCompute, "main", "cs" + profilesuffix[i], false);
+      psblob[i] = Compile(ags_header + BaryCentricPixel, "main", "ps" + profilesuffix[i], false);
+      csblob[i] = Compile(ags_header + MaxCompute, "main", "cs" + profilesuffix[i], false);
 
       pso[i] = MakePSO().RootSig(sig).InputLayout().VS(vsblob[i]).PS(psblob[i]);
       cso[i] = MakePSO().RootSig(sig).CS(csblob[i]);

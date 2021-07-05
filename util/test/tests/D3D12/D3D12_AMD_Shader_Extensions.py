@@ -7,7 +7,7 @@ class D3D12_AMD_Shader_Extensions(rdtest.TestCase):
     demos_test_name = 'D3D12_AMD_Shader_Extensions'
 
     def check_capture(self):
-        for pass_type in ["SM50", "SM51", "SM60"]:
+        for pass_type in ["SM51", "SM60"]:
             action = self.find_action(pass_type + " Draw")
 
             if action is not None:
