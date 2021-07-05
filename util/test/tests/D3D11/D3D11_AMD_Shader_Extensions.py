@@ -36,8 +36,8 @@ class D3D11_AMD_Shader_Extensions(rdtest.TestCase):
         gpuMax = self.find_action("gpuMax")
 
         # The values should be identical
-        cpuMax = int(cpuMax.name[8:])
-        gpuMax = int(gpuMax.name[8:])
+        cpuMax = int(cpuMax.customName[8:])
+        gpuMax = int(gpuMax.customName[8:])
 
         if cpuMax != gpuMax or cpuMax == 0:
             raise rdtest.TestFailureException(

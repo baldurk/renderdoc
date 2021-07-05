@@ -299,14 +299,14 @@ class Iter_Test(rdtest.TestCase):
     def iter_test(self):
         # Handy tweaks when running locally to disable certain things
 
-        action_chance = 0.1     # Chance of doing anything at all
+        test_chance = 0.1       # Chance of doing anything at all
         do_image_save = 0.25    # Chance of saving images of the outputs
         do_vert_debug = 1.0     # Chance of debugging a vertex (if valid)
         do_pixel_debug = 1.0    # Chance of doing pixel history at the current event and debugging a pixel (if valid)
 
         self.props: rd.APIProperties = self.controller.GetAPIProperties()
 
-        actions = {
+        event_tests = {
             'Image Save': {'chance': do_image_save, 'func': self.image_save},
             'Vertex Debug': {'chance': do_vert_debug, 'func': self.vert_debug},
             'Pixel History & Debug': {'chance': do_pixel_debug, 'func': self.pixel_debug},
@@ -315,8 +315,8 @@ class Iter_Test(rdtest.TestCase):
         # To choose an action, if we're going to do one, we take random in range(0, choice_max) then check each action
         # type in turn to see which part of the range we landed in
         choice_max = 0
-        for action in actions:
-            choice_max += actions[action]['chance']
+        for event_test in event_tests:
+            choice_max += event_tests[event_test]['chance']
 
         action = self.get_first_action()
         last_action = self.get_last_action()
@@ -329,14 +329,14 @@ class Iter_Test(rdtest.TestCase):
             rdtest.log.print("Set event")
 
             # If we should take an action at this event
-            if random.random() < action_chance:
+            if random.random() < test_chance:
                 c = random.random() * choice_max
 
-                for action in actions:
-                    chance = actions[action]['chance']
+                for event_test in event_tests:
+                    chance = event_tests[event_test]['chance']
                     if c < chance:
-                        rdtest.log.print("Performing action '{}'".format(action))
-                        actions[action]['func'](action)
+                        rdtest.log.print("Performing test '{}' on event {}".format(event_test, action.eventId))
+                        event_tests[event_test]['func'](action)
                         break
                     else:
                         c -= chance

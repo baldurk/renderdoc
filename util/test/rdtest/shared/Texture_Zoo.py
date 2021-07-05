@@ -493,8 +493,7 @@ class Texture_Zoo():
                                                                  rd.ReplayOutputType.Texture)
 
         for d in self.controller.GetRootActions():
-
-            if 'slice tests' in d.name:
+            if 'slice tests' in d.customName:
                 for sub in d.children:
                     if sub.flags & rd.ActionFlags.Drawcall:
                         self.controller.SetFrameEvent(sub.eventId, True)

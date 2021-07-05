@@ -40,10 +40,10 @@ class GL_Draw_Zoo(rdtest.Draw_Zoo):
         self.check(pipe.IsStripRestartEnabled())
         self.check((pipe.GetStripRestartIndex() & ((1 << (ib.byteStride*8)) - 1)) == 0xffff)
         
-        draw = self.find_draw("GL_ClearDepth")
-        self.check(draw is not None)
+        action = self.find_action("GL_ClearDepth")
+        self.check(action is not None)
         
-        draw = draw.next
+        action = action.next
         
-        self.check(draw.flags & (rd.DrawFlags.Clear|rd.DrawFlags.ClearDepthStencil) == (rd.DrawFlags.Clear|rd.DrawFlags.ClearDepthStencil))
+        self.check(action.flags & (rd.ActionFlags.Clear|rd.ActionFlags.ClearDepthStencil) == (rd.ActionFlags.Clear|rd.ActionFlags.ClearDepthStencil))
         
