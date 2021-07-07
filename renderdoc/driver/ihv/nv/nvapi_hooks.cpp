@@ -637,6 +637,13 @@ private:
       return NV_ENC_ERR_INVALID_PTR;
     }
 
+    if(devType != NV_ENC_DEVICE_TYPE_DIRECTX)
+    {
+      RDCWARN("Unsupported device type %d in encode session, passing through but this may break!",
+              devType);
+      return nvhooks.real_nvEncOpenEncodeSession(device, devType, encoder);
+    }
+
     INVAPID3DDevice *nvapiDev = NULL;
     HRESULT hr = ((IUnknown *)device)->QueryInterface(__uuidof(INVAPID3DDevice), (void **)&nvapiDev);
 
@@ -656,6 +663,13 @@ private:
     {
       RDCERR("nvEncOpenEncodeSessionEx called without hooking NvEncodeAPICreateInstance!");
       return NV_ENC_ERR_INVALID_PTR;
+    }
+
+    if(params->deviceType != NV_ENC_DEVICE_TYPE_DIRECTX)
+    {
+      RDCWARN("Unsupported device type %d in encode session, passing through but this may break!",
+              params->deviceType);
+      return nvhooks.real_nvEncOpenEncodeSessionEx(params, encoder);
     }
 
     // attempt to unwrap the handle in place
