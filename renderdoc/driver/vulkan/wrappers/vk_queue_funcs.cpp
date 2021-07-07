@@ -1128,12 +1128,12 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
                    ToStr(record->GetResourceID()).c_str(), (uint64_t)diffStart, (uint64_t)diffEnd);
             VkMappedMemoryRange range = {
                 VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
-                &internalMemoryFlushMarker,
+                NULL,
                 (VkDeviceMemory)(uint64_t)record->Resource,
                 state.mapOffset + diffStart,
                 diffEnd - diffStart,
             };
-            vkFlushMappedMemoryRanges(dev, 1, &range);
+            InternalFlushMemoryRange(dev, range, true, capframe);
           }
         }
         else

@@ -715,10 +715,6 @@ private:
   // All IDs are original IDs, not live.
   VulkanRenderState m_RenderState;
 
-  // an internal structure used to differentiate forced vkFlushMappedMemoryRanges due to coherent
-  // map writes from real calls to vkFlushMappedMemoryRanges
-  VkBaseInStructure internalMemoryFlushMarker = {};
-
   bool InRerecordRange(ResourceId cmdid);
   bool HasRerecordCmdBuf(ResourceId cmdid);
   bool ShouldUpdateRenderState(ResourceId cmdid, bool forcePrimary = false);
@@ -932,6 +928,9 @@ private:
   void CaptureQueueSubmit(VkQueue queue, const rdcarray<VkCommandBuffer> &commandBuffers,
                           VkFence fence);
   void ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo, rdcstr basename);
+  void InternalFlushMemoryRange(VkDevice device, const VkMappedMemoryRange &memRange,
+                                bool internalFlush, bool capframe);
+
   void DoSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo);
 
   rdcarray<VulkanActionTreeNode *> m_ActionStack;

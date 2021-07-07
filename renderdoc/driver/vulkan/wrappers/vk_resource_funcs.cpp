@@ -1152,6 +1152,57 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
   return true;
 }
 
+void WrappedVulkan::InternalFlushMemoryRange(VkDevice device, const VkMappedMemoryRange &memRange,
+                                             bool internalFlush, bool capframe)
+{
+  ResourceId memid = GetResID(memRange.memory);
+  VkResourceRecord *record = GetRecord(memRange.memory);
+
+  MemMapState *state = record->memMapState;
+
+  if(!internalFlush)
+    state->mapFlushed = true;
+
+  if(state->mappedPtr == NULL)
+  {
+    RDCERR("Flushing memory %s that isn't currently mapped", ToStr(memid).c_str());
+    return;
+  }
+
+  if(capframe)
+  {
+    SCOPED_LOCK_OPTIONAL(state->mrLock, !internalFlush);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(internalFlush ? VulkanChunk::CoherentMapWrite
+                                         : VulkanChunk::vkFlushMappedMemoryRanges);
+    Serialise_vkFlushMappedMemoryRanges(ser, device, 1, &memRange);
+
+    m_FrameCaptureRecord->AddChunk(scope.Get());
+  }
+
+  if(capframe)
+  {
+    VkDeviceSize offs = memRange.offset;
+    VkDeviceSize size = memRange.size;
+
+    // map VK_WHOLE_SIZE into a specific size
+    if(size == VK_WHOLE_SIZE)
+      size = state->mapOffset + state->mapSize - offs;
+
+    GetResourceManager()->MarkMemoryFrameReferenced(memid, offs, size, eFrameRef_CompleteWrite);
+  }
+  else
+  {
+    FrameRefType refType = eFrameRef_PartialWrite;
+    if(memRange.offset == 0 && memRange.size >= record->Length)
+      refType = eFrameRef_CompleteWrite;
+
+    GetResourceManager()->MarkResourceFrameReferenced(memid, refType);
+  }
+}
+
 VkResult WrappedVulkan::vkFlushMappedMemoryRanges(VkDevice device, uint32_t memRangeCount,
                                                   const VkMappedMemoryRange *pMemRanges)
 {
@@ -1163,28 +1214,13 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(VkDevice device, uint32_t memR
   }
 
   VkResult ret;
-  bool internalFlush = false;
-
-  // don't call the driver for a fake coherent map flush
-  if(memRangeCount == 1 && pMemRanges->pNext == &internalMemoryFlushMarker)
-  {
-    ret = VK_SUCCESS;
-    internalFlush = true;
-
-    // for simplicity we set the pNext to NULL after we've seen our internal marker. We can safely
-    // modify this because it's a temporary variable in the calling stackframe
-    VkMappedMemoryRange *range = (VkMappedMemoryRange *)pMemRanges;
-    range->pNext = NULL;
-  }
-  else
-  {
-    SERIALISE_TIME_CALL(
-        ret = ObjDisp(device)->FlushMappedMemoryRanges(Unwrap(device), memRangeCount, unwrapped));
-  }
+  SERIALISE_TIME_CALL(
+      ret = ObjDisp(device)->FlushMappedMemoryRanges(Unwrap(device), memRangeCount, unwrapped));
 
   if(IsCaptureMode(m_State))
   {
     bool capframe = false;
+
     {
       SCOPED_READLOCK(m_CapTransitionLock);
       capframe = IsActiveCapturing(m_State);
@@ -1192,52 +1228,7 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(VkDevice device, uint32_t memR
 
     for(uint32_t i = 0; i < memRangeCount; i++)
     {
-      ResourceId memid = GetResID(pMemRanges[i].memory);
-      VkResourceRecord *record = GetRecord(pMemRanges[i].memory);
-
-      MemMapState *state = record->memMapState;
-
-      if(!internalFlush)
-        state->mapFlushed = true;
-
-      if(state->mappedPtr == NULL)
-      {
-        RDCERR("Flushing memory %s that isn't currently mapped", ToStr(memid).c_str());
-        continue;
-      }
-
-      if(capframe)
-      {
-        SCOPED_LOCK_OPTIONAL(state->mrLock, !internalFlush);
-
-        CACHE_THREAD_SERIALISER();
-
-        SCOPED_SERIALISE_CHUNK(internalFlush ? VulkanChunk::CoherentMapWrite
-                                             : VulkanChunk::vkFlushMappedMemoryRanges);
-        Serialise_vkFlushMappedMemoryRanges(ser, device, 1, pMemRanges + i);
-
-        m_FrameCaptureRecord->AddChunk(scope.Get());
-      }
-
-      if(capframe)
-      {
-        VkDeviceSize offs = pMemRanges[i].offset;
-        VkDeviceSize size = pMemRanges[i].size;
-
-        // map VK_WHOLE_SIZE into a specific size
-        if(size == VK_WHOLE_SIZE)
-          size = state->mapOffset + state->mapSize - offs;
-
-        GetResourceManager()->MarkMemoryFrameReferenced(memid, offs, size, eFrameRef_CompleteWrite);
-      }
-      else
-      {
-        FrameRefType refType = eFrameRef_PartialWrite;
-        if(pMemRanges[i].offset == 0 && pMemRanges[i].size >= record->Length)
-          refType = eFrameRef_CompleteWrite;
-
-        GetResourceManager()->MarkResourceFrameReferenced(memid, refType);
-      }
+      InternalFlushMemoryRange(device, pMemRanges[i], false, capframe);
     }
   }
 
