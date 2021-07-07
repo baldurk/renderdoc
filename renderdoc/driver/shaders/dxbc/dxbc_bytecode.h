@@ -1109,9 +1109,8 @@ public:
 
   static bool UsesExtensionUAV(uint32_t slot, uint32_t space, const byte *bytes, size_t length);
 
-private:
-  void FetchTypeVersion();
-  void DisassembleHexDump();
+protected:
+  void DecodeProgram();
 
   void PostprocessVendorExtensions();
 
@@ -1123,7 +1122,7 @@ private:
   DXBC::ShaderType m_Type = DXBC::ShaderType::Max;
   uint32_t m_Major = 0, m_Minor = 0;
 
-  rdcarray<uint32_t> m_HexDump;
+  rdcarray<uint32_t> m_ProgramWords;
 
   rdcarray<uint32_t> m_Immediate;
 
@@ -1151,8 +1150,8 @@ private:
 
   // these functions modify tokenStream pointer to point after the item
   // ExtractOperation/ExtractDecl returns false if not an operation (ie. it's a declaration)
-  bool ExtractOperation(uint32_t *&tokenStream, Operation &op, bool friendlyName);
-  bool ExtractDecl(uint32_t *&tokenStream, Declaration &decl, bool friendlyName);
-  bool ExtractOperand(uint32_t *&tokenStream, ToString flags, Operand &oper);
+  bool DecodeOperation(uint32_t *&tokenStream, Operation &op, bool friendlyName);
+  bool DecodeDecl(uint32_t *&tokenStream, Declaration &decl, bool friendlyName);
+  bool DecodeOperand(uint32_t *&tokenStream, ToString flags, Operand &oper);
 };
 };
