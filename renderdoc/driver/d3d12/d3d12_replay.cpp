@@ -4026,27 +4026,6 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
 
   D3D12_PrepareReplaySDKVersion(initParams.SDKVersion, D3D12Core, D3D12SDKLayers, D3D12Lib);
 
-  if(rdc)
-  {
-    using PFN_ENABLE_EXPERIMENTAL = decltype(&D3D12EnableExperimentalFeatures);
-
-    PFN_ENABLE_EXPERIMENTAL EnableExperimental =
-        (PFN_ENABLE_EXPERIMENTAL)GetProcAddress(D3D12Lib, "D3D12EnableExperimentalFeatures");
-
-    if(EnableExperimental)
-    {
-      HRESULT hr = EnableExperimental(1, &D3D12ExperimentalShaderModels, NULL, NULL);
-      if(SUCCEEDED(hr))
-        RDCLOG("Enabled experimental shaders");
-      else
-        RDCLOG("Couldn't enable experimental shaders");
-    }
-    else
-    {
-      RDCLOG("Couldn't get D3D12EnableExperimentalFeatures");
-    }
-  }
-
   const bool isProxy = (rdc == NULL);
 
   AMDRGPControl *rgp = NULL;

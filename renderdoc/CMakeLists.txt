@@ -214,6 +214,8 @@ set(sources
     3rdparty/pugixml/pugiconfig.hpp
     3rdparty/lz4/lz4.c
     3rdparty/lz4/lz4.h
+    3rdparty/md5/md5.c
+    3rdparty/md5/md5.h
     3rdparty/miniz/miniz.c
     3rdparty/miniz/miniz.h
     3rdparty/superluminal/superluminal.cpp

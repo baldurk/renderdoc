@@ -120,6 +120,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="3rdparty\fmt\format.cc" />
+    <ClCompile Include="3rdparty\md5\md5.c" />
     <ClCompile Include="d3d11\d3d11_1_many_uavs.cpp" />
     <ClCompile Include="d3d11\d3d11_amd_shader_extensions.cpp" />
     <ClCompile Include="d3d11\d3d11_array_interpolator.cpp" />
@@ -340,6 +341,7 @@
     <ClInclude Include="3rdparty\fmt\format-inl.h" />
     <ClInclude Include="3rdparty\fmt\format.h" />
     <ClInclude Include="3rdparty\glad\khrplatform.h" />
+    <ClInclude Include="3rdparty\md5\md5.h" />
     <ClInclude Include="3rdparty\VulkanMemoryAllocator\vk_mem_alloc.h" />
     <ClInclude Include="d3d11\d3d11_helpers.h" />
     <ClInclude Include="d3d11\d3d11_test.h" />

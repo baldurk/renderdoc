@@ -424,6 +424,10 @@ rdcstr D3D12ShaderCache::GetShaderBlob(const char *source, const char *entry,
         D3D12ShaderCacheCallbacks.Create((uint32_t)code->GetBufferSize(), code->GetBufferPointer(),
                                          &byteBlob);
 
+        if(!DXBC::DXBCContainer::IsHashedContainer(byteBlob->GetBufferPointer(),
+                                                   byteBlob->GetBufferSize()))
+          DXBC::DXBCContainer::HashContainer(byteBlob->GetBufferPointer(), byteBlob->GetBufferSize());
+
         SAFE_RELEASE(code);
       }
       else

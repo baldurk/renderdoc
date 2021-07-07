@@ -601,6 +601,9 @@
     <ClCompile Include="d3d12\d3d12_amd_shader_extensions.cpp">
       <Filter>D3D12\demos</Filter>
     </ClCompile>
+    <ClCompile Include="3rdparty\md5\md5.c">
+      <Filter>3rdparty\md5</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D11">
@@ -668,6 +671,9 @@
     </Filter>
     <Filter Include="3rdparty\ags">
       <UniqueIdentifier>{329344bd-312a-4cd6-b618-aadeb4eb13cb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\md5">
+      <UniqueIdentifier>{25327220-a428-4ea2-8894-300df4a61a33}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -858,6 +864,9 @@
     </ClInclude>
     <ClInclude Include="3rdparty\ags\amd_ags.h">
       <Filter>3rdparty\ags</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\md5\md5.h">
+      <Filter>3rdparty\md5</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
