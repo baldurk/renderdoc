@@ -4022,13 +4022,20 @@ void BufferViewer::exportData(const BufferExport &params)
     return;
 
   QString filter;
+  QString title;
   if(params.format == BufferExport::CSV)
+  {
     filter = tr("CSV Files (*.csv)");
+    title = tr("Export buffer to CSV");
+  }
   else if(params.format == BufferExport::RawBytes)
+  {
     filter = tr("Binary Files (*.bin)");
+    title = tr("Export buffer to bytes");
+  }
 
-  QString filename = RDDialog::getSaveFileName(this, tr("Export buffer to bytes"), QString(),
-                                               tr("%1;;All files (*)").arg(filter));
+  QString filename =
+      RDDialog::getSaveFileName(this, title, QString(), tr("%1;;All files (*)").arg(filter));
 
   if(filename.isEmpty())
     return;
