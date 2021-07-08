@@ -728,13 +728,16 @@ void Program::DecodeProgram()
 
   RDCASSERT(m_Declarations.size() <= numDecls);
 
-  Operation implicitRet;
-  implicitRet.length = 1;
-  implicitRet.offset = (end - begin) * sizeof(uint32_t);
-  implicitRet.operation = OPCODE_RET;
-  implicitRet.str = "ret";
+  if(m_Instructions.empty() || m_Instructions.back().operation != OPCODE_RET)
+  {
+    Operation implicitRet;
+    implicitRet.length = 1;
+    implicitRet.offset = (end - begin) * sizeof(uint32_t);
+    implicitRet.operation = OPCODE_RET;
+    implicitRet.str = "ret";
 
-  m_Instructions.push_back(implicitRet);
+    m_Instructions.push_back(implicitRet);
+  }
 
   if(DXBC_Disassembly_ProcessVendorShaderExts() && m_ShaderExt.second != ~0U)
     PostprocessVendorExtensions();
