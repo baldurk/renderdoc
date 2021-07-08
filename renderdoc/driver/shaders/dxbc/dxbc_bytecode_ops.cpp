@@ -1083,16 +1083,24 @@ bool Program::DecodeOperand(uint32_t *&tokenStream, ToString flags, Operand &ret
   if(retOper.type == TYPE_RESOURCE || retOper.type == TYPE_SAMPLER ||
      retOper.type == TYPE_UNORDERED_ACCESS_VIEW || retOper.type == TYPE_CONSTANT_BUFFER)
   {
-    // try and find a declaration with a matching ID
-    RDCASSERT(retOper.indices.size() > 0 && retOper.indices[0].absolute);
-    for(size_t i = 0; i < m_Declarations.size(); i++)
+    // shader linkage can access cbuffers with a relative first index
+    if(retOper.indices[0].relative)
     {
-      // does the ID match, if so, it's our declaration
-      if(m_Declarations[i].operand.type == retOper.type &&
-         m_Declarations[i].operand.indices[0] == retOper.indices[0])
+      // ignore, we can't find the declaration
+    }
+    else
+    {
+      // try and find a declaration with a matching ID
+      RDCASSERT(retOper.indices.size() > 0);
+      for(size_t i = 0; i < m_Declarations.size(); i++)
       {
-        retOper.declaration = &m_Declarations[i];
-        break;
+        // does the ID match, if so, it's our declaration
+        if(m_Declarations[i].operand.type == retOper.type &&
+           m_Declarations[i].operand.indices[0] == retOper.indices[0])
+        {
+          retOper.declaration = &m_Declarations[i];
+          break;
+        }
       }
     }
   }
