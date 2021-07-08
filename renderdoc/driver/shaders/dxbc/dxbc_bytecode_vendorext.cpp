@@ -178,7 +178,7 @@ static MaskedElement<uint8_t, 0x00018000> VtxParamComponent;
 static MaskedElement<uint32_t, 0x00001F00> VtxParamParameter;
 static MaskedElement<uint32_t, 0x00006000> VtxParamVertex;
 
-static MaskedElement<uint32_t, 0x0000FF00> WaveOp;
+static MaskedElement<uint8_t, 0x0000FF00> WaveOp;
 static MaskedElement<uint32_t, 0x00FF0000> WaveOpFlags;
 
 static MaskedElement<AMDAtomic, 0x0000FF00> AtomicOp;
@@ -428,7 +428,7 @@ void Program::PostprocessVendorExtensions()
             op.operation = OPCODE_AMD_READFIRSTLANE;
             op.operands.resize(2);
             op.operands[0] = dstOperand;
-            op.operands[1].name = "src";
+            op.operands[1].name = "src"_lit;
             op.operands[1] = srcParam[0];
             break;
           }
@@ -437,10 +437,10 @@ void Program::PostprocessVendorExtensions()
             op.operation = OPCODE_AMD_READLANE;
             op.operands.resize(3);
             op.operands[0] = dstOperand;
-            op.operands[1].name = "src";
+            op.operands[1].name = "src"_lit;
             op.operands[1] = srcParam[0];
             // lane is encoded in instruction data
-            op.operands[2].name = "lane";
+            op.operands[2].name = "lane"_lit;
             op.operands[2].type = TYPE_IMMEDIATE32;
             op.operands[2].numComponents = NUMCOMPS_1;
             op.operands[2].values[0] = AMDInstruction::Data.Get(instruction);
@@ -457,7 +457,7 @@ void Program::PostprocessVendorExtensions()
             op.operation = OPCODE_AMD_SWIZZLE;
             op.operands.resize(2);
             op.operands[0] = dstOperand;
-            op.operands[1].name = "src";
+            op.operands[1].name = "src"_lit;
             op.operands[1] = srcParam[0];
             break;
           }
@@ -475,7 +475,7 @@ void Program::PostprocessVendorExtensions()
               op.operands[0] = dstParam[0];
               op.operands[1] = dstOperand;
               op.operands[2] = srcParam[0];
-              op.operands[2].name = "predicate";
+              op.operands[2].name = "predicate"_lit;
             }
             break;
           }
@@ -533,9 +533,9 @@ void Program::PostprocessVendorExtensions()
                 // all modes except pull model have two outputs
                 op.operation = OPCODE_AMD_BARYCOORD;
                 op.operands.resize(2);
-                op.operands[0].name = "i";
+                op.operands[0].name = "i"_lit;
                 op.operands[0] = dstParam[0];
-                op.operands[0].name = "j";
+                op.operands[0].name = "j"_lit;
                 op.operands[1] = dstOperand;
               }
               else
@@ -548,11 +548,11 @@ void Program::PostprocessVendorExtensions()
               // all modes except pull model have two outputs
               op.operation = OPCODE_AMD_BARYCOORD;
               op.operands.resize(3);
-              op.operands[0].name = "invW";
+              op.operands[0].name = "invW"_lit;
               op.operands[0] = dstParam[0];
-              op.operands[1].name = "invI";
+              op.operands[1].name = "invI"_lit;
               op.operands[1] = dstParam[1];
-              op.operands[2].name = "invJ";
+              op.operands[2].name = "invJ"_lit;
               op.operands[2] = dstOperand;
             }
             break;
@@ -563,13 +563,13 @@ void Program::PostprocessVendorExtensions()
             op.operands.resize(3);
             op.operands[0] = dstOperand;
             // vertexIndex is encoded in instruction data
-            op.operands[1].name = "vertexIndex";
+            op.operands[1].name = "vertexIndex"_lit;
             op.operands[1].type = TYPE_IMMEDIATE32;
             op.operands[1].numComponents = NUMCOMPS_1;
             op.operands[1].values[0] = AMDInstruction::VtxParamVertex.Get(instruction);
 
             // decode and pretty-ify the parameter index and component
-            op.operands[2].name = "parameter";
+            op.operands[2].name = "parameter"_lit;
             op.operands[2].type = TYPE_INPUT;
             op.operands[2].numComponents = NUMCOMPS_1;
             op.operands[2].indices.resize(1);
@@ -615,11 +615,11 @@ void Program::PostprocessVendorExtensions()
               op.operands.resize(4);
               op.operands[0] = dstOperand;
               op.operands[1] = srcParam[0];
-              op.operands[1].name = "gpuVaLoBits";
+              op.operands[1].name = "gpuVaLoBits"_lit;
               op.operands[2] = srcParam[1];
-              op.operands[2].name = "gpuVaHiBits";
+              op.operands[2].name = "gpuVaHiBits"_lit;
               op.operands[3] = srcParam[2];
-              op.operands[3].name = "offset";
+              op.operands[3].name = "offset"_lit;
             }
             break;
           }
@@ -681,7 +681,7 @@ void Program::PostprocessVendorExtensions()
                 op.operands.push_back(srcParam[0]);
                 op.operands.back().setComps(srcParam[0].comps[0], srcParam[1].comps[0],
                                             srcParam[2].comps[0], 0xff);
-                op.operands.back().name = "address";
+                op.operands.back().name = "address"_lit;
 
                 // store in texelOffset whether the parameter is combined (1) or split (2)
                 op.texelOffset[0] = 1;
@@ -689,13 +689,13 @@ void Program::PostprocessVendorExtensions()
               else
               {
                 op.operands.push_back(srcParam[0]);
-                op.operands.back().name = "address.x";
+                op.operands.back().name = "address.x"_lit;
                 op.operands.back().setComps(srcParam[0].comps[0], 0xff, 0xff, 0xff);
                 op.operands.push_back(srcParam[1]);
-                op.operands.back().name = "address.y";
+                op.operands.back().name = "address.y"_lit;
                 op.operands.back().setComps(srcParam[1].comps[0], 0xff, 0xff, 0xff);
                 op.operands.push_back(srcParam[2]);
-                op.operands.back().name = "address.z";
+                op.operands.back().name = "address.z"_lit;
                 op.operands.back().setComps(srcParam[2].comps[0], 0xff, 0xff, 0xff);
 
                 // store in texelOffset whether the parameter is combined (1) or split (2)
@@ -710,7 +710,7 @@ void Program::PostprocessVendorExtensions()
                   op.operands.push_back(srcParam[5]);
                   op.operands.back().setComps(srcParam[5].comps[0], srcParam[6].comps[0], 0xff, 0xff);
                   op.operands.back().values[1] = srcParam[6].values[0];
-                  op.operands.back().name = "compare_value";
+                  op.operands.back().name = "compare_value"_lit;
 
                   // store in texelOffset whether the parameter is combined (1) or split (2)
                   op.texelOffset[1] = 1;
@@ -718,10 +718,10 @@ void Program::PostprocessVendorExtensions()
                 else
                 {
                   op.operands.push_back(srcParam[5].swizzle(0));
-                  op.operands.back().name = "compare_value.x";
+                  op.operands.back().name = "compare_value.x"_lit;
                   op.operands.back().setComps(srcParam[5].comps[0], 0xff, 0xff, 0xff);
                   op.operands.push_back(srcParam[6].swizzle(0));
-                  op.operands.back().name = "compare_value.y";
+                  op.operands.back().name = "compare_value.y"_lit;
                   op.operands.back().setComps(srcParam[6].comps[0], 0xff, 0xff, 0xff);
 
                   // store in texelOffset whether the parameter is combined (1) or split (2)
@@ -735,7 +735,7 @@ void Program::PostprocessVendorExtensions()
                 op.operands.push_back(srcParam[3]);
                 op.operands.back().setComps(srcParam[3].comps[0], srcParam[4].comps[0], 0xff, 0xff);
                 op.operands.back().values[1] = srcParam[4].values[0];
-                op.operands.back().name = "value";
+                op.operands.back().name = "value"_lit;
 
                 // store in texelOffset whether the parameter is combined (1) or split (2)
                 op.texelOffset[2] = 1;
@@ -743,10 +743,10 @@ void Program::PostprocessVendorExtensions()
               else
               {
                 op.operands.push_back(srcParam[3].swizzle(0));
-                op.operands.back().name = "value.x";
+                op.operands.back().name = "value.x"_lit;
                 op.operands.back().setComps(srcParam[3].comps[0], 0xff, 0xff, 0xff);
                 op.operands.push_back(srcParam[4].swizzle(0));
-                op.operands.back().name = "value.y";
+                op.operands.back().name = "value.y"_lit;
                 op.operands.back().setComps(srcParam[4].comps[0], 0xff, 0xff, 0xff);
 
                 // store in texelOffset whether the parameter is combined (1) or split (2)
@@ -858,8 +858,10 @@ void Program::PostprocessVendorExtensions()
 
       // remove this operation, but keep the old operation so we can undo this if things go
       // wrong
-      curOp.syncFlags = curOp.operation;
+      curOp.stride = curOp.operation;
       curOp.operation = OPCODE_VENDOR_REMOVED;
+      RDCCOMPILE_ASSERT(sizeof(curOp.stride) >= sizeof(curOp.operation),
+                        "Hackily assuming stride is big enough to hold an operation");
     }
     else if(curOp.operation == OPCODE_IMM_ATOMIC_ALLOC &&
             curOp.operands[1].indices[0].index == magicID)
@@ -916,16 +918,16 @@ void Program::PostprocessVendorExtensions()
                 op.operands.resize(4);
                 op.operands[0] = curOp.operands[0];
 
-                op.operands[1].name = "value";
+                op.operands[1].name = "value"_lit;
                 op.operands[1] = srcParam[0].swizzle(0);
                 if(nvopcode == NvShaderOpcode::Shuffle)
-                  op.operands[2].name = "srcLane";
+                  op.operands[2].name = "srcLane"_lit;
                 else if(nvopcode == NvShaderOpcode::ShuffleXor)
-                  op.operands[2].name = "laneMask";
+                  op.operands[2].name = "laneMask"_lit;
                 else
-                  op.operands[2].name = "delta";
+                  op.operands[2].name = "delta"_lit;
                 op.operands[2] = srcParam[0].swizzle(1);
-                op.operands[3].name = "width";
+                op.operands[3].name = "width"_lit;
                 op.operands[3] = srcParam[0].swizzle(3);
                 break;
               }
@@ -943,7 +945,7 @@ void Program::PostprocessVendorExtensions()
                 op.operands.resize(2);
                 op.operands[0] = curOp.operands[0];
                 op.operands[1] = srcParam[0];
-                op.operands[1].name = "predicate";
+                op.operands[1].name = "predicate"_lit;
                 break;
               }
               case NvShaderOpcode::GetLaneId:
@@ -998,7 +1000,7 @@ void Program::PostprocessVendorExtensions()
                    dstParam[1].indices == curOp.operands[0].indices)
                 {
                   op.operands.push_back(curOp.operands[0]);
-                  op.operands.back().name = "result";
+                  op.operands.back().name = "result"_lit;
 
                   // fixup the comps according to the shuffle
                   op.operands.back().setComps(
@@ -1013,12 +1015,12 @@ void Program::PostprocessVendorExtensions()
                 {
                   // these are in reverse order because we read them as numOutputs was decrementing
                   op.operands.push_back(dstParam[1]);
-                  op.operands.back().name = "result.x";
+                  op.operands.back().name = "result.x"_lit;
                   op.operands.push_back(dstParam[0]);
-                  op.operands.back().name = "result.y";
+                  op.operands.back().name = "result.y"_lit;
                   // z is last
                   op.operands.push_back(curOp.operands[0]);
-                  op.operands.back().name = "result.z";
+                  op.operands.back().name = "result.z"_lit;
                 }
 
                 break;
@@ -1047,7 +1049,7 @@ void Program::PostprocessVendorExtensions()
                    dstParam[2].indices == curOp.operands[0].indices)
                 {
                   op.operands.push_back(curOp.operands[0]);
-                  op.operands.back().name = "result";
+                  op.operands.back().name = "result"_lit;
 
                   // fixup the comps according to the shuffle
                   op.operands.back().setComps(
@@ -1064,56 +1066,56 @@ void Program::PostprocessVendorExtensions()
                 {
                   // these are in reverse order because we read them as numOutputs was decrementing
                   op.operands.push_back(dstParam[2]);
-                  op.operands.back().name = "result.x";
+                  op.operands.back().name = "result.x"_lit;
                   op.operands.push_back(dstParam[1]);
-                  op.operands.back().name = "result.y";
+                  op.operands.back().name = "result.y"_lit;
                   op.operands.push_back(dstParam[0]);
-                  op.operands.back().name = "result.z";
+                  op.operands.back().name = "result.z"_lit;
                   // w is last
                   op.operands.push_back(curOp.operands[0]);
-                  op.operands.back().name = "result.w";
+                  op.operands.back().name = "result.w"_lit;
                 }
 
                 // peel out the source parameters
                 op.operands.push_back(srcParam[3].swizzle(0));
-                op.operands.back().name = "texSpace";
+                op.operands.back().name = "texSpace"_lit;
                 op.operands.push_back(srcParam[0].swizzle(0));
-                op.operands.back().name = "texIndex";
+                op.operands.back().name = "texIndex"_lit;
                 op.operands.push_back(srcParam[3].swizzle(1));
-                op.operands.back().name = "smpSpace";
+                op.operands.back().name = "smpSpace"_lit;
                 op.operands.push_back(srcParam[0].swizzle(1));
-                op.operands.back().name = "smpIndex";
+                op.operands.back().name = "smpIndex"_lit;
                 op.operands.push_back(srcParam[3].swizzle(2));
-                op.operands.back().name = "texType";
+                op.operands.back().name = "texType"_lit;
                 op.operands.push_back(srcParam[1]);
                 op.operands.back().comps[3] = 0xff;    // location is a float3
                 op.operands.back().values[3] = 0;
-                op.operands.back().name = "location";
+                op.operands.back().name = "location"_lit;
                 op.operands.push_back(srcParam[3].swizzle(3));
-                op.operands.back().name = "coarse";
+                op.operands.back().name = "coarse"_lit;
                 op.operands.push_back(srcParam[1].swizzle(3));
-                op.operands.back().name = "gran";
+                op.operands.back().name = "gran"_lit;
 
                 if(nvopcode == NvShaderOpcode::FootprintBias)
                 {
                   op.operands.push_back(srcParam[2].swizzle(0));
-                  op.operands.back().name = "bias";
+                  op.operands.back().name = "bias"_lit;
                 }
                 else if(nvopcode == NvShaderOpcode::FootprintLevel)
                 {
                   op.operands.push_back(srcParam[2].swizzle(0));
-                  op.operands.back().name = "lodLevel";
+                  op.operands.back().name = "lodLevel"_lit;
                 }
                 else if(nvopcode == NvShaderOpcode::FootprintGrad)
                 {
                   op.operands.push_back(srcParam[2]);
-                  op.operands.back().name = "ddx";
+                  op.operands.back().name = "ddx"_lit;
                   op.operands.push_back(srcParam[5]);
-                  op.operands.back().name = "ddy";
+                  op.operands.back().name = "ddy"_lit;
                 }
 
                 op.operands.push_back(srcParam[4]);
-                op.operands.back().name = "offset";
+                op.operands.back().name = "offset"_lit;
 
                 break;
               }
@@ -1125,16 +1127,16 @@ void Program::PostprocessVendorExtensions()
                 op.operands[0] = curOp.operands[0];
                 // second output is the laneValid we stored previously
                 op.operands[1] = dstParam[0];
-                op.operands[1].name = "out laneValid";
+                op.operands[1].name = "out laneValid"_lit;
 
                 // we expect the params are packed into srcParam[0]
 
                 op.operands[2] = srcParam[0].swizzle(0);
-                op.operands[2].name = "value";
+                op.operands[2].name = "value"_lit;
                 op.operands[3] = srcParam[0].swizzle(1);
-                op.operands[3].name = "srcLane";
+                op.operands[3].name = "srcLane"_lit;
                 op.operands[4] = srcParam[0].swizzle(2);
-                op.operands[4].name = "width";
+                op.operands[4].name = "width"_lit;
                 break;
               }
               case NvShaderOpcode::VPRSEvalAttribAtSample:
@@ -1164,7 +1166,7 @@ void Program::PostprocessVendorExtensions()
                 if(allSameReg)
                 {
                   op.operands.push_back(curOp.operands[0]);
-                  op.operands.back().name = "result";
+                  op.operands.back().name = "result"_lit;
 
                   for(int o = 0; o < 4; o++)
                   {
@@ -1184,28 +1186,26 @@ void Program::PostprocessVendorExtensions()
                     // these are in reverse order because we read them as numOutputs was
                     // decrementing
                     op.operands.push_back(dstParam[numOutputs - 2 - o]);
-                    op.operands.back().name = "result.";
-                    op.operands.back().name += swz[o];
+                    op.operands.back().name = rdcstr("result.") + swz[o];
                   }
                   op.operands.push_back(curOp.operands[0]);
-                  op.operands.back().name = "result.";
-                  op.operands.back().name += swz[numOutputs - 1];
+                  op.operands.back().name = rdcstr("result.") + swz[numOutputs - 1];
                 }
 
                 op.operands.push_back(srcParam[0]);
-                op.operands.back().name = "attrib";
+                op.operands.back().name = "attrib"_lit;
 
                 if(nvopcode == NvShaderOpcode::VPRSEvalAttribAtSample)
                 {
                   op.operands.push_back(srcParam[1]);
-                  op.operands.back().name = "sampleIndex";
+                  op.operands.back().name = "sampleIndex"_lit;
                   op.operands.push_back(srcParam[2]);
-                  op.operands.back().name = "pixelOffset";
+                  op.operands.back().name = "pixelOffset"_lit;
                 }
                 else if(nvopcode == NvShaderOpcode::VPRSEvalAttribSnapped)
                 {
                   op.operands.push_back(srcParam[1]);
-                  op.operands.back().name = "offset";
+                  op.operands.back().name = "offset"_lit;
                 }
 
                 break;
@@ -1266,7 +1266,7 @@ void Program::PostprocessVendorExtensions()
 
       // remove this operation, but keep the old operation so we can undo this if things go
       // wrong
-      curOp.syncFlags = curOp.operation;
+      curOp.stride = curOp.operation;
       curOp.operation = OPCODE_VENDOR_REMOVED;
     }
     else if(curOp.operation == OPCODE_STORE_STRUCTURED &&
@@ -1346,9 +1346,9 @@ void Program::PostprocessVendorExtensions()
                 atomicop = (NvShaderAtomic)srcParam[2].values[0];
 
                 op.operands.push_back(srcParam[0]);
-                op.operands.back().name = "address";
+                op.operands.back().name = "address"_lit;
                 op.operands.push_back(srcParam[1]);
-                op.operands.back().name = "value";
+                op.operands.back().name = "value"_lit;
 
                 break;
               }
@@ -1368,9 +1368,9 @@ void Program::PostprocessVendorExtensions()
                 atomicop = (NvShaderAtomic)srcParam[2].values[0];
 
                 op.operands.push_back(srcParam[0].swizzle(0));
-                op.operands.back().name = "byteAddress";
+                op.operands.back().name = "byteAddress"_lit;
                 op.operands.push_back(srcParam[1].swizzle(0));
-                op.operands.back().name = "value";
+                op.operands.back().name = "value"_lit;
 
                 break;
               }
@@ -1400,7 +1400,7 @@ void Program::PostprocessVendorExtensions()
 
                 op.operands.push_back(srcParam[0]);
                 op.operands.back().numComponents = NUMCOMPS_1;
-                op.operands.back().name = "address";
+                op.operands.back().name = "address"_lit;
 
                 // store in texelOffset whether the parameter is combined (1) or split (2).
                 // on nv we assume the parameters are always combined
@@ -1414,12 +1414,12 @@ void Program::PostprocessVendorExtensions()
                   op.operands.back().numComponents = NUMCOMPS_4;
                   op.operands.back().setComps(srcParam[1].comps[0], srcParam[1].comps[1], 0xff, 0xff);
                   op.operands.back().values[1] = srcParam[1].values[1];
-                  op.operands.back().name = "compareValue";
+                  op.operands.back().name = "compareValue"_lit;
                   op.operands.push_back(srcParam[1]);
                   op.operands.back().numComponents = NUMCOMPS_4;
                   op.operands.back().setComps(srcParam[1].comps[2], srcParam[1].comps[3], 0xff, 0xff);
                   op.operands.back().values[1] = srcParam[1].values[3];
-                  op.operands.back().name = "value";
+                  op.operands.back().name = "value"_lit;
                 }
                 else
                 {
@@ -1427,7 +1427,7 @@ void Program::PostprocessVendorExtensions()
                   op.operands.back().numComponents = NUMCOMPS_4;
                   op.operands.back().setComps(srcParam[1].comps[0], srcParam[1].comps[1], 0xff, 0xff);
                   op.operands.back().values[1] = srcParam[1].values[1];
-                  op.operands.back().name = "value";
+                  op.operands.back().name = "value"_lit;
                 }
 
                 break;
@@ -1449,7 +1449,7 @@ void Program::PostprocessVendorExtensions()
             }
 
             op.offset = curOp.offset;
-            op.preciseValues = (uint32_t)atomicop;
+            op.preciseValues = (uint8_t)atomicop;
             op.str = ToStr(op.operation);
 
             switch(atomicop)
@@ -1612,7 +1612,7 @@ void Program::PostprocessVendorExtensions()
 
       // remove this operation, but keep the old operation so we can undo this if things go
       // wrong
-      curOp.syncFlags = curOp.operation;
+      curOp.stride = curOp.operation;
       curOp.operation = OPCODE_VENDOR_REMOVED;
     }
     else if(curOp.operation == OPCODE_LD_STRUCTURED && curOp.operands[3].indices[0].index == magicID)
@@ -1676,11 +1676,11 @@ void Program::PostprocessVendorExtensions()
                 // remove the old one, we've replaced it
                 m_Instructions[j].operation = OPCODE_VENDOR_REMOVED;
                 // if we break and try to revert this one, keep it removed
-                m_Instructions[j].syncFlags = OPCODE_VENDOR_REMOVED;
+                m_Instructions[j].stride = OPCODE_VENDOR_REMOVED;
                 // also remove the current one! but back up the original in case something
                 // goes
                 // wrong
-                curOp.syncFlags = curOp.operation;
+                curOp.stride = curOp.operation;
                 curOp.operation = OPCODE_VENDOR_REMOVED;
                 break;
               }
@@ -1714,7 +1714,7 @@ void Program::PostprocessVendorExtensions()
 
         // remove this operation, but keep the old operation so we can undo this if things go
         // wrong
-        curOp.syncFlags = curOp.operation;
+        curOp.stride = curOp.operation;
         curOp.operation = OPCODE_VENDOR_REMOVED;
       }
     }
@@ -1729,7 +1729,7 @@ void Program::PostprocessVendorExtensions()
 
         // remove this operation, but keep the old operation so we can undo this if things go
         // wrong
-        curOp.syncFlags = curOp.operation;
+        curOp.stride = curOp.operation;
         curOp.operation = OPCODE_VENDOR_REMOVED;
       }
     }
@@ -1743,7 +1743,7 @@ void Program::PostprocessVendorExtensions()
     for(size_t i = 0; i < m_Instructions.size(); i++)
     {
       if(m_Instructions[i].operation == OPCODE_VENDOR_REMOVED)
-        m_Instructions[i].operation = (OpcodeType)m_Instructions[i].syncFlags;
+        m_Instructions[i].operation = (OpcodeType)m_Instructions[i].stride;
       else if(m_Instructions[i].operation >= OPCODE_VENDOR_FIRST)
         m_Instructions[i].operation = OPCODE_VENDOR_REMOVED;
     }

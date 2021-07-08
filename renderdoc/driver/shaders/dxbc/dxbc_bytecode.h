@@ -390,7 +390,7 @@ enum CustomDataClass
   NUM_CUSTOMDATA_CLASSES,
 };
 
-enum ResinfoRetType
+enum ResinfoRetType : uint8_t
 {
   RETTYPE_FLOAT = 0,
   RETTYPE_RCPFLOAT,
@@ -409,7 +409,7 @@ enum ExtendedOpcodeType
   NUM_EXTENDED_TYPES,
 };
 
-enum NumOperandComponents
+enum NumOperandComponents : uint8_t
 {
   NUMCOMPS_0 = 0,
   NUMCOMPS_1,
@@ -426,7 +426,7 @@ enum SelectionMode
   SELECTION_SELECT_1,
 };
 
-enum OperandType
+enum OperandType : uint8_t
 {
   TYPE_TEMP = 0,
   TYPE_INPUT,
@@ -499,7 +499,7 @@ enum ExtendedOperandType
   NUM_EXTENDED_OPERAND_TYPES,
 };
 
-enum OperandModifier
+enum OperandModifier : uint8_t
 {
   OPERAND_MODIFIER_NONE = 0,
   OPERAND_MODIFIER_NEG,
@@ -509,7 +509,7 @@ enum OperandModifier
   NUM_MODIFIERS,
 };
 
-enum MinimumPrecision
+enum MinimumPrecision : uint8_t
 {
   PRECISION_DEFAULT,
   PRECISION_FLOAT16,
@@ -659,7 +659,7 @@ enum SemanticName
   NUM_SEMANTICS,
 };
 
-enum ResourceDimension
+enum ResourceDimension : uint8_t
 {
   RESOURCE_DIMENSION_UNKNOWN = 0,
   RESOURCE_DIMENSION_BUFFER,
@@ -678,7 +678,7 @@ enum ResourceDimension
   NUM_DIMENSIONS,
 };
 
-enum VendorAtomicOp
+enum VendorAtomicOp : uint8_t
 {
   ATOMIC_OP_NONE = 0,
   ATOMIC_OP_AND,
@@ -744,9 +744,8 @@ struct Operand
     numComponents = MAX_COMPONENTS;
     comps[0] = comps[1] = comps[2] = comps[3] = 0xff;
     values[0] = values[1] = values[2] = values[3] = 0;
-    modifier = OPERAND_MODIFIER_NONE;
+    flags = FLAG_NONE;
     precision = PRECISION_DEFAULT;
-    funcNum = 0;
     declaration = NULL;
   }
 
@@ -762,11 +761,21 @@ struct Operand
 
   // operands can be given names to make the assembly easier to read.
   // mostly used on vendor extensions where the syntax is non-standard/undocumented
-  rdcstr name;
+  rdcinflexiblestr name;
   // temp register, constant buffer, input, output, other more specialised types
   OperandType type;
   // scalar, 4-vector or N-vector (currently unused)
   NumOperandComponents numComponents;
+
+  enum Flags : uint8_t
+  {
+    FLAG_NONE = 0x00,
+    // these correspond to the bits in OperandModifier
+    FLAG_NEG = 0x01,
+    FLAG_ABS = 0x02,
+  } flags;
+
+  MinimumPrecision precision;
 
   uint8_t comps[4];    // the components. each is 0,1,2,3 for x,y,z,w or 0xff if unused.
                        // e.g. .x    = {  0, -1, -1, -1 }
@@ -825,12 +834,6 @@ struct Operand
   Declaration *declaration;
 
   uint32_t values[4];    // if this operand is immediate, the values are here
-
-  OperandModifier modifier;    // modifier, neg, abs(), -abs() etc. Could potentially be multiple
-                               // modifiers in future
-  MinimumPrecision precision;
-
-  uint32_t funcNum;    // interface this operand refers to
 };
 
 struct RegIndex
@@ -858,7 +861,7 @@ struct RegIndex
     return false;
   }
 
-  rdcstr str;
+  rdcstr toString(const DXBC::Reflection *reflection, ToString flags) const;
 
   ///////////////////////////////////////
 
@@ -874,163 +877,160 @@ struct RegIndex
 
 struct Declaration
 {
-  Declaration()
-  {
-    offset = 0;
-    length = 0;
-    instruction = 0;
-    declaration = NUM_REAL_OPCODES;
-    refactoringAllowed = doublePrecisionFloats = forceEarlyDepthStencil =
-        enableRawAndStructuredBuffers = skipOptimisation = enableMinPrecision =
-            enableD3D11_1DoubleExtensions = enableD3D11_1ShaderExtensions =
-                enableD3D12AllResourcesBound = false;
-    stride = 0;
-    hasCounter = false;
-    rov = false;
-    numTemps = 0;
-    tempReg = 0;
-    tempComponentCount = 0;
-    count = 0;
-    groupSize[0] = groupSize[1] = groupSize[2] = 0;
-    space = 0;
-    resType[0] = resType[1] = resType[2] = resType[3] = DXBC::NUM_RETURN_TYPES;
-    dim = RESOURCE_DIMENSION_UNKNOWN;
-    sampleCount = 0;
-    float4size = 0;
-    interpolation = INTERPOLATION_UNDEFINED;
-    systemValue = DXBC::SVNAME_UNDEFINED;
-    maxOut = 0;
-    samplerMode = NUM_SAMPLERS;
-    domain = DOMAIN_UNDEFINED;
-    controlPointCount = 0;
-    partition = PARTITIONING_UNDEFINED;
-    outPrim = OUTPUT_PRIMITIVE_UNDEFINED;
-    inPrim = PRIMITIVE_UNDEFINED;
-    outTopology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
-    instanceCount = 0;
-    indexRange = 0;
-    maxTessFactor = 0.0f;
-    globallyCoherant = false;
-    functionBody = 0;
-    functionTable = 0;
-    interfaceID = 0;
-    numInterfaces = 0;
-    numTypes = 0;
-  }
-
   rdcstr str;
+  // many decls use an operand to declare things
+  Operand operand;
+  // function table for interface operations
+  rdcarray<uint32_t> functionTableContents;
 
-  ///////////////////////////////////////
+  OpcodeType declaration = NUM_REAL_OPCODES;
+  // all the resource/cbuffer declarations can have a space in SM5.1, extract it here
+  uint32_t space = 0;
 
-  uint64_t offset;
-  uint32_t length;
+  // opcode specific data in anonymous union
+  union
+  {
+    // OPCODE_DCL_GLOBAL_FLAGS
+    struct
+    {
+      bool refactoringAllowed;
+      bool doublePrecisionFloats;
+      bool forceEarlyDepthStencil;
+      bool enableRawAndStructuredBuffers;
+      bool skipOptimisation;
+      bool enableMinPrecision;
+      bool enableD3D11_1DoubleExtensions;
+      bool enableD3D11_1ShaderExtensions;
+      bool enableD3D12AllResourcesBound;
+    } global_flags;
 
-  size_t instruction;    // happens before this instruction. Usually 0 as all decls are up front,
-                         // but can be non-zero for e.g. HS control point and join phase
-  OpcodeType declaration;
+    // OPCODE_DCL_RESOURCE
+    struct
+    {
+      DXBC::ResourceRetType resType[4];
+      ResourceDimension dim;
+      uint32_t sampleCount;
+    } resource;
 
-  Operand operand;    // many decls use an operand to declare things
+    // OPCODE_DCL_RESOURCE_STRUCTURED
+    // OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED
+    struct
+    {
+      uint32_t stride;
+      bool hasCounter;
+      bool globallyCoherant;
+      bool rov;
+    } structured;
 
-  rdcarray<uint32_t> immediateData;    // raw data (like default value of operand) for immediate
-                                       // constant buffer decl
+    // OPCODE_DCL_RESOURCE_RAW
+    // OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW
+    struct
+    {
+      ResourceDimension dim;
+      bool globallyCoherant;
+      bool rov;
+      DXBC::ResourceRetType resType[4];
+    } raw;
 
-  // opcode specific data
+    // OPCODE_DCL_UNORDERED_ACCESS_VIEW_TYPED
+    struct
+    {
+      ResourceDimension dim;
+      bool globallyCoherant;
+      bool rov;
+      DXBC::ResourceRetType resType[4];
+    } uav_typed;
 
-  // OPCODE_DCL_GLOBAL_FLAGS
-  bool refactoringAllowed;
-  bool doublePrecisionFloats;
-  bool forceEarlyDepthStencil;
-  bool enableRawAndStructuredBuffers;
-  bool skipOptimisation;
-  bool enableMinPrecision;
-  bool enableD3D11_1DoubleExtensions;
-  bool enableD3D11_1ShaderExtensions;
-  bool enableD3D12AllResourcesBound;
+    // OPCODE_DCL_TEMPS
+    uint32_t numTemps;
 
-  // OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED
-  uint32_t stride;
-  bool hasCounter;
-  bool rov;
+    // OPCODE_DCL_INDEXABLE_TEMP
+    struct
+    {
+      uint32_t numTemps;
+      uint32_t tempReg;
+      uint32_t tempComponentCount;
+    } indexable_temp;
 
-  // OPCODE_DCL_TEMPS, OPCODE_DCL_INDEXABLE_TEMP
-  uint32_t numTemps;
+    // OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_RAW
+    uint32_t tgsmCount;
 
-  // OPCODE_DCL_INDEXABLE_TEMP
-  uint32_t tempReg;
-  uint32_t tempComponentCount;
+    // OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED
+    struct
+    {
+      uint32_t count;
+      uint32_t stride;
+    } tsgm_structured;
 
-  // OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED
-  uint32_t count;
+    // OPCODE_DCL_THREAD_GROUP
+    uint32_t groupSize[3];
 
-  // OPCODE_DCL_THREAD_GROUP
-  uint32_t groupSize[3];
+    // OPCODE_DCL_CONSTANT_BUFFER
+    uint32_t cbufferVectorSize;
 
-  // OPCODE_DCL_RESOURCE
-  uint32_t space;
-  DXBC::ResourceRetType resType[4];
-  ResourceDimension dim;
-  uint32_t sampleCount;
+    // OPCODE_DCL_INPUT_PS
+    InterpolationMode inputInterpolation;
 
-  // OPCODE_DCL_CONSTANT_BUFFER
-  uint32_t float4size;
+    // OPCODE_DCL_INPUT_SIV
+    // OPCODE_DCL_INPUT_SGV
+    // OPCODE_DCL_INPUT_PS_SIV
+    // OPCODE_DCL_INPUT_PS_SGV
+    // OPCODE_DCL_OUTPUT_SIV
+    // OPCODE_DCL_OUTPUT_SGV
+    DXBC::SVSemantic systemValue;
 
-  // OPCODE_DCL_INPUT_PS
-  InterpolationMode interpolation;
+    // OPCODE_DCL_MAX_OUTPUT_VERTEX_COUNT
+    uint32_t maxVertexOutCount;
 
-  // OPCODE_DCL_INPUT_SIV
-  DXBC::SVSemantic systemValue;
+    // OPCODE_DCL_SAMPLER
+    SamplerMode samplerMode;
 
-  // OPCODE_DCL_MAX_OUTPUT_VERTEX_COUNT
-  uint32_t maxOut;
+    // OPCODE_DCL_TESS_DOMAIN
+    TessellatorDomain tessDomain;
 
-  // OPCODE_DCL_SAMPLER
-  SamplerMode samplerMode;
+    // OPCODE_DCL_INPUT_CONTROL_POINT_COUNT
+    uint32_t controlPointCount;
 
-  // OPCODE_DCL_TESS_DOMAIN
-  TessellatorDomain domain;
+    // OPCODE_DCL_TESS_PARTITIONING
+    TessellatorPartitioning tessPartition;
 
-  // OPCODE_DCL_INPUT_CONTROL_POINT_COUNT
-  uint32_t controlPointCount;
+    // OPCODE_DCL_TESS_OUTPUT_PRIMITIVE
+    TessellatorOutputPrimitive tessOutputPrimitive;
 
-  // OPCODE_DCL_TESS_PARTITIONING
-  TessellatorPartitioning partition;
+    // OPCODE_DCL_GS_INPUT_PRIMITIVE
+    PrimitiveType geomInputPrimitive;
 
-  // OPCODE_DCL_TESS_OUTPUT_PRIMITIVE
-  TessellatorOutputPrimitive outPrim;
+    // OPCODE_DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY
+    D3D_PRIMITIVE_TOPOLOGY geomOutputTopology;
 
-  // OPCODE_DCL_GS_INPUT_PRIMITIVE
-  PrimitiveType inPrim;
+    // OPCODE_DCL_HS_FORK_PHASE_INSTANCE_COUNT
+    // OPCODE_DCL_HS_JOIN_PHASE_INSTANCE_COUNT
+    // OPCODE_DCL_GS_INSTANCE_COUNT
+    uint32_t instanceCount;
 
-  // OPCODE_DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY
-  D3D_PRIMITIVE_TOPOLOGY outTopology;
+    // OPCODE_DCL_INDEX_RANGE
+    uint32_t indexRange;
 
-  // OPCODE_DCL_HS_FORK_PHASE_INSTANCE_COUNT
-  // OPCODE_DCL_HS_JOIN_PHASE_INSTANCE_COUNT
-  // OPCODE_DCL_GS_INSTANCE_COUNT
-  uint32_t instanceCount;
+    // OPCODE_DCL_HS_MAX_TESSFACTOR
+    float maxTessFactor;
 
-  // OPCODE_DCL_INDEX_RANGE
-  uint32_t indexRange;
+    // OPCODE_DCL_FUNCTION_BODY
+    uint32_t functionBody;
 
-  // OPCODE_DCL_HS_MAX_TESSFACTOR
-  float maxTessFactor;
+    // OPCODE_DCL_FUNCTION_TABLE
+    uint32_t functionTable;
 
-  // OPCODE_DCL_UNORDERED_ACCESS_VIEW_TYPED
-  bool globallyCoherant;
+    // OPCODE_CUSTOMDATA
+    uint32_t customDataIndex;
 
-  // OPCODE_DCL_FUNCTION_BODY
-  uint32_t functionBody;
-
-  // OPCODE_DCL_FUNCTION_TABLE
-  uint32_t functionTable;
-
-  // OPCODE_CUSTOMDATA
-  uint32_t customDataIndex;
-
-  // OPCODE_DCL_INTERFACE
-  uint32_t interfaceID;
-  uint32_t numInterfaces;
-  uint32_t numTypes;
+    // OPCODE_DCL_INTERFACE
+    struct
+    {
+      uint32_t interfaceID;
+      uint32_t numInterfaces;
+      uint32_t numTypes;
+    } iface;
+  };
 };
 
 struct Operation
@@ -1039,11 +1039,9 @@ struct Operation
   {
     offset = 0;
     line = 0;
-    length = 0;
     stride = 0;
     operation = NUM_REAL_OPCODES;
-    nonzero = false;
-    saturate = false;
+    flags = FLAG_NONE;
     preciseValues = 0;
     resinfoRetType = NUM_RETTYPES;
     syncFlags = 0;
@@ -1054,28 +1052,41 @@ struct Operation
 
   rdcstr str;
 
+  // for if, etc. If it checks for zero or nonzero
+  bool nonzero() const { return (flags & FLAG_NONZERO) != 0; }
+  // should the result be saturated.
+  bool saturate() const { return (flags & FLAG_SATURATE) != 0; }
   ///////////////////////////////////////
 
   uintptr_t offset;
   uint32_t line;
-  uint32_t length;
 
   OpcodeType operation;
-  bool nonzero;                     // for if, etc. If it checks for zero or nonzero
-  bool saturate;                    // should the result be saturated.
-  uint32_t preciseValues;           // for multiple output operand operations
-  ResinfoRetType resinfoRetType;    // return type of resinfo
-  uint32_t syncFlags;               // sync flags (for compute shader sync operations)
-
-  int texelOffset[3];                  // U,V,W texel offset
-  ResourceDimension resDim;            // resource dimension (tex2d etc)
-  DXBC::ResourceRetType resType[4];    // return type (e.g. for a sample operation)
 
   union
   {
     uint32_t stride;
     uint32_t customDataIndex;
   };
+
+  uint8_t preciseValues;    // for multiple output operand operations
+
+  union
+  {
+    ResinfoRetType resinfoRetType;    // return type of resinfo
+    uint8_t syncFlags;                // sync flags (for compute shader sync operations)
+  };
+
+  int8_t texelOffset[3] = {0};         // U,V,W texel offset
+  ResourceDimension resDim;            // resource dimension (tex2d etc)
+  DXBC::ResourceRetType resType[4];    // return type (e.g. for a sample operation)
+
+  enum Flags : uint8_t
+  {
+    FLAG_NONE = 0x0,
+    FLAG_NONZERO = 0x01,
+    FLAG_SATURATE = 0x02,
+  } flags;
 
   rdcarray<Operand> operands;
 };
@@ -1161,6 +1172,10 @@ protected:
   // declarations of inputs, outputs, constant buffers, temp registers etc.
   rdcarray<Declaration> m_Declarations;
   rdcarray<Operation> m_Instructions;
+
+  // declarations later in shaders - only used for different phases in hull shaders where
+  // declarations can happen after some instructions
+  rdcarray<rdcarray<Declaration>> m_LateDeclarations;
 
   // these functions modify tokenStream pointer to point after the item
   // ExtractOperation/ExtractDecl returns false if not an operation (ie. it's a declaration)

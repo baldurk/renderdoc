@@ -97,7 +97,7 @@ bool Program::UsesExtensionUAV(uint32_t slot, uint32_t space, const byte *bytes,
     // nvidia is a structured buffer with counter
     // AMD is a RW byte address buffer
     if((op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED &&
-        Opcode::HasOrderPreservingCounter.Get(OpcodeToken0)) ||
+        Decl::HasOrderPreservingCounter.Get(OpcodeToken0)) ||
        op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW)
     {
       uint32_t *tokenStream = cur;
@@ -235,9 +235,9 @@ DXBC::Reflection *Program::GuessReflection()
         desc.space = dcl.space;
         desc.reg = idx;
         desc.bindCount = 1;
-        desc.retType = dcl.resType[0];
+        desc.retType = dcl.resource.resType[0];
 
-        switch(dcl.dim)
+        switch(dcl.resource.dim)
         {
           case RESOURCE_DIMENSION_BUFFER: desc.dimension = DXBC::ShaderInputBind::DIM_BUFFER; break;
           case RESOURCE_DIMENSION_TEXTURE1D:
@@ -330,7 +330,7 @@ DXBC::Reflection *Program::GuessReflection()
         desc.bindCount = 1;
         desc.retType = DXBC::RETURN_TYPE_MIXED;
         desc.dimension = DXBC::ShaderInputBind::DIM_BUFFER;
-        desc.numComps = dcl.stride;
+        desc.numComps = dcl.structured.stride;
 
         HandleResourceArrayIndices(dcl.operand.indices, desc);
 
@@ -353,14 +353,14 @@ DXBC::Reflection *Program::GuessReflection()
             DXBC::ShaderInputBind::TYPE_UAV_RWSTRUCTURED;    // doesn't seem to be anything that
                                                              // determines append vs consume vs
                                                              // rwstructured
-        if(dcl.hasCounter)
+        if(dcl.structured.hasCounter)
           desc.type = DXBC::ShaderInputBind::TYPE_UAV_RWSTRUCTURED_WITH_COUNTER;
         desc.space = dcl.space;
         desc.reg = idx;
         desc.bindCount = 1;
         desc.retType = DXBC::RETURN_TYPE_MIXED;
         desc.dimension = DXBC::ShaderInputBind::DIM_BUFFER;
-        desc.numComps = dcl.stride;
+        desc.numComps = dcl.structured.stride;
 
         HandleResourceArrayIndices(dcl.operand.indices, desc);
 
@@ -383,9 +383,9 @@ DXBC::Reflection *Program::GuessReflection()
         desc.space = dcl.space;
         desc.reg = idx;
         desc.bindCount = 1;
-        desc.retType = dcl.resType[0];
+        desc.retType = dcl.uav_typed.resType[0];
 
-        switch(dcl.dim)
+        switch(dcl.uav_typed.dim)
         {
           case RESOURCE_DIMENSION_BUFFER: desc.dimension = DXBC::ShaderInputBind::DIM_BUFFER; break;
           case RESOURCE_DIMENSION_TEXTURE1D:
@@ -440,7 +440,8 @@ DXBC::Reflection *Program::GuessReflection()
         bool isShaderModel51 = IsShaderModel51();
         uint32_t idx = (uint32_t)dcl.operand.indices[0].index;
         uint32_t reg = isShaderModel51 ? (uint32_t)dcl.operand.indices[1].index : idx;
-        uint32_t numVecs = isShaderModel51 ? dcl.float4size : (uint32_t)dcl.operand.indices[1].index;
+        uint32_t numVecs =
+            isShaderModel51 ? dcl.cbufferVectorSize : (uint32_t)dcl.operand.indices[1].index;
 
         desc.name = StringFormat::Fmt("cbuffer%u", idx);
         desc.type = DXBC::ShaderInputBind::TYPE_CBUFFER;
@@ -560,10 +561,10 @@ D3D_PRIMITIVE_TOPOLOGY Program::GetOutputTopology()
   for(const DXBCBytecode::Declaration &decl : m_Declarations)
   {
     if(decl.declaration == DXBCBytecode::OPCODE_DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY)
-      return decl.outTopology;
+      return decl.geomOutputTopology;
     if(decl.declaration == DXBCBytecode::OPCODE_DCL_TESS_DOMAIN)
     {
-      if(decl.domain == DXBCBytecode::DOMAIN_ISOLINE)
+      if(decl.tessDomain == DXBCBytecode::DOMAIN_ISOLINE)
         return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
       else
         return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;

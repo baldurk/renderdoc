@@ -116,7 +116,7 @@ static MaskedElement<bool, 0x80000000> Extended;
 static MaskedElement<CustomDataClass, 0xFFFFF800> CustomClass;
 
 // opcode specific
-static MaskedElement<uint32_t, 0x00780000> PreciseValues;
+static MaskedElement<uint8_t, 0x00780000> PreciseValues;
 
 // several
 static MaskedElement<bool, 0x00002000> Saturate;
@@ -126,16 +126,12 @@ static MaskedElement<bool, 0x00040000> TestNonZero;
 static MaskedElement<ResinfoRetType, 0x00001800> ResinfoReturn;
 
 // OPCODE_SYNC
-static MaskedElement<uint32_t, 0x00007800> SyncFlags;
+static MaskedElement<uint8_t, 0x00007800> SyncFlags;
 // relative to above uint32! ie. post shift.
 static MaskedElement<bool, 0x00000001> Sync_Threads;
 static MaskedElement<bool, 0x00000002> Sync_TGSM;
 static MaskedElement<bool, 0x00000004> Sync_UAV_Group;
 static MaskedElement<bool, 0x00000008> Sync_UAV_Global;
-
-// OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED
-// OPCODE_DCL_RESOURCE_STRUCTURED
-static MaskedElement<bool, 0x00800000> HasOrderPreservingCounter;
 };    // Opcode
 
 // Declarations are Opcode tokens, but with their own particular definitions
@@ -194,6 +190,10 @@ static MaskedElement<TessellatorOutputPrimitive, 0x00003800> OutputPrimitive;
 static MaskedElement<bool, 0x00010000> GloballyCoherent;
 static MaskedElement<bool, 0x00020000> RasterizerOrderedAccess;
 
+// OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED
+// OPCODE_DCL_RESOURCE_STRUCTURED
+static MaskedElement<bool, 0x00800000> HasOrderPreservingCounter;
+
 // OPCODE_DCL_INTERFACE
 static MaskedElement<uint32_t, 0x0000FFFF> TableLength;
 static MaskedElement<uint32_t, 0xFFFF0000> NumInterfaces;
@@ -205,9 +205,9 @@ static MaskedElement<bool, 0x80000000> Extended;
 static MaskedElement<ExtendedOpcodeType, 0x0000003F> Type;
 
 // OPCODE_EX_SAMPLE_CONTROLS
-static MaskedElement<int, 0x00001E00> TexelOffsetU;
-static MaskedElement<int, 0x0001E000> TexelOffsetV;
-static MaskedElement<int, 0x001E0000> TexelOffsetW;
+static MaskedElement<int8_t, 0x00001E00> TexelOffsetU;
+static MaskedElement<int8_t, 0x0001E000> TexelOffsetV;
+static MaskedElement<int8_t, 0x001E0000> TexelOffsetW;
 
 // OPCODE_EX_RESOURCE_DIM
 static MaskedElement<ResourceDimension, 0x000007C0> ResourceDim;

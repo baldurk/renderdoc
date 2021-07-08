@@ -77,9 +77,10 @@ public:
                              DXBCDebug::SampleGatherResourceData resourceData,
                              DXBCDebug::SampleGatherSamplerData samplerData, ShaderVariable uv,
                              ShaderVariable ddxCalc, ShaderVariable ddyCalc,
-                             const int texelOffsets[3], int multisampleIndex, float lodOrCompareValue,
-                             const uint8_t swizzle[4], DXBCDebug::GatherChannel gatherChannel,
-                             const char *opString, ShaderVariable &output);
+                             const int8_t texelOffsets[3], int multisampleIndex,
+                             float lodOrCompareValue, const uint8_t swizzle[4],
+                             DXBCDebug::GatherChannel gatherChannel, const char *opString,
+                             ShaderVariable &output);
 
 private:
   DXBC::ShaderType GetShaderType() { return m_dxbc ? m_dxbc->m_Type : DXBC::ShaderType::Pixel; }
@@ -991,7 +992,7 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
 bool D3D11DebugAPIWrapper::CalculateSampleGather(
     DXBCBytecode::OpcodeType opcode, DXBCDebug::SampleGatherResourceData resourceData,
     DXBCDebug::SampleGatherSamplerData samplerData, ShaderVariable uv, ShaderVariable ddxCalc,
-    ShaderVariable ddyCalc, const int texelOffsets[3], int multisampleIndex,
+    ShaderVariable ddyCalc, const int8_t texelOffsets[3], int multisampleIndex,
     float lodOrCompareValue, const uint8_t swizzle[4], DXBCDebug::GatherChannel gatherChannel,
     const char *opString, ShaderVariable &output)
 {

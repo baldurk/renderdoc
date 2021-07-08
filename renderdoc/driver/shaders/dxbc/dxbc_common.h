@@ -26,6 +26,7 @@
 
 #include <map>
 #include "api/replay/rdcarray.h"
+#include "api/replay/rdcpair.h"
 #include "api/replay/rdcstr.h"
 #include "api/replay/shader_types.h"
 
@@ -80,7 +81,7 @@ enum class ShaderType
 //
 // essentially all information comes from the wine project.
 /////////////////////////////////////////////////////////////////////////
-enum ResourceRetType
+enum ResourceRetType : uint8_t
 {
   RETURN_TYPE_UNKNOWN = 0,
   RETURN_TYPE_UNORM = 1,

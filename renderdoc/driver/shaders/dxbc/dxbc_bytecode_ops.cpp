@@ -84,7 +84,7 @@ bool Operand::operator==(const Operand &o) const
     return false;
   if(memcmp(comps, o.comps, 4) != 0)
     return false;
-  if(modifier != o.modifier)
+  if((flags & (FLAG_ABS | FLAG_NEG)) != (o.flags & (FLAG_ABS | FLAG_NEG)))
     return false;
 
   if(indices.size() != o.indices.size())
@@ -115,13 +115,13 @@ bool Operand::sameResource(const Operand &o) const
   return indices[0] == o.indices[0];
 }
 
-rdcstr Operand::toString(const DXBC::Reflection *reflection, ToString flags) const
+rdcstr Operand::toString(const DXBC::Reflection *reflection, ToString toStrFlags) const
 {
   rdcstr str, regstr;
 
-  const bool decl = flags & ToString::IsDecl;
-  const bool swizzle = flags & ToString::ShowSwizzle;
-  const bool friendly = flags & ToString::FriendlyNameRegisters;
+  const bool decl = toStrFlags & ToString::IsDecl;
+  const bool swizzle = toStrFlags & ToString::ShowSwizzle;
+  const bool friendly = toStrFlags & ToString::FriendlyNameRegisters;
 
   char swiz[6] = {0, 0, 0, 0, 0, 0};
 
@@ -144,7 +144,8 @@ rdcstr Operand::toString(const DXBC::Reflection *reflection, ToString flags) con
   {
     RDCASSERT(indices.size() == 2);
 
-    str = StringFormat::Fmt("fp%s[%s][%u]", indices[0].str.c_str(), indices[1].str.c_str(), funcNum);
+    str = StringFormat::Fmt("fp%s[%s][%u]", indices[0].toString(reflection, toStrFlags).c_str(),
+                            indices[1].toString(reflection, toStrFlags).c_str(), values[0]);
   }
   else if(type == TYPE_RESOURCE || type == TYPE_SAMPLER || type == TYPE_UNORDERED_ACCESS_VIEW)
   {
@@ -158,7 +159,7 @@ rdcstr Operand::toString(const DXBC::Reflection *reflection, ToString flags) con
       if(type == TYPE_UNORDERED_ACCESS_VIEW)
         str = "u";
 
-      str += indices[0].str;
+      str += indices[0].toString(reflection, toStrFlags);
 
       if(friendly && reflection && indices[0].absolute)
       {
@@ -207,15 +208,18 @@ rdcstr Operand::toString(const DXBC::Reflection *reflection, ToString flags) con
       RDCASSERT(indices[1].absolute && indices[2].absolute);
       if(indices[1].index == indices[2].index)
       {
-        str += indices[0].str;
+        str += indices[0].toString(reflection, toStrFlags);
       }
       else
       {
         if(indices[2].index == 0xffffffff)
-          str += StringFormat::Fmt("%s[%s:unbound]", indices[0].str.c_str(), indices[1].str.c_str());
+          str += StringFormat::Fmt("%s[%s:unbound]",
+                                   indices[0].toString(reflection, toStrFlags).c_str(),
+                                   indices[1].toString(reflection, toStrFlags).c_str());
         else
-          str += StringFormat::Fmt("%s[%s:%s]", indices[0].str.c_str(), indices[1].str.c_str(),
-                                   indices[2].str.c_str());
+          str += StringFormat::Fmt("%s[%s:%s]", indices[0].toString(reflection, toStrFlags).c_str(),
+                                   indices[1].toString(reflection, toStrFlags).c_str(),
+                                   indices[2].toString(reflection, toStrFlags).c_str());
       }
     }
     else if(indices.size() == 2)
@@ -236,14 +240,16 @@ rdcstr Operand::toString(const DXBC::Reflection *reflection, ToString flags) con
         RDCASSERT(indices[1].absolute && indices[1].index == declaration->operand.indices[1].index);
 
         // just include ID
-        str += indices[0].str;
+        str += indices[0].toString(reflection, toStrFlags);
       }
       else
       {
         if(indices[1].relative)
-          str += StringFormat::Fmt("%s%s", indices[0].str.c_str(), indices[1].str.c_str());
+          str += StringFormat::Fmt("%s%s", indices[0].toString(reflection, toStrFlags).c_str(),
+                                   indices[1].toString(reflection, toStrFlags).c_str());
         else
-          str += StringFormat::Fmt("%s[%s]", indices[0].str.c_str(), indices[1].str.c_str());
+          str += StringFormat::Fmt("%s[%s]", indices[0].toString(reflection, toStrFlags).c_str(),
+                                   indices[1].toString(reflection, toStrFlags).c_str());
       }
     }
     else
@@ -268,23 +274,25 @@ rdcstr Operand::toString(const DXBC::Reflection *reflection, ToString flags) con
 
           // just include ID and vector index
           if(indices[2].relative)
-            str += StringFormat::Fmt("%s%s", indices[0].str.c_str(), indices[2].str.c_str());
+            str += StringFormat::Fmt("%s%s", indices[0].toString(reflection, toStrFlags).c_str(),
+                                     indices[2].toString(reflection, toStrFlags).c_str());
           else
-            str += StringFormat::Fmt("%s[%s]", indices[0].str.c_str(), indices[2].str.c_str());
+            str += StringFormat::Fmt("%s[%s]", indices[0].toString(reflection, toStrFlags).c_str(),
+                                     indices[2].toString(reflection, toStrFlags).c_str());
         }
         else
         {
-          str += indices[0].str;
+          str += indices[0].toString(reflection, toStrFlags);
 
           if(indices[1].relative)
-            str += indices[1].str;
+            str += indices[1].toString(reflection, toStrFlags);
           else
-            str += "[" + indices[1].str + "]";
+            str += "[" + indices[1].toString(reflection, toStrFlags) + "]";
 
           if(indices[2].relative)
-            str += indices[1].str;
+            str += indices[1].toString(reflection, toStrFlags);
           else
-            str += "[" + indices[2].str + "]";
+            str += "[" + indices[2].toString(reflection, toStrFlags) + "]";
         }
       }
       else
@@ -299,16 +307,18 @@ rdcstr Operand::toString(const DXBC::Reflection *reflection, ToString flags) con
         RDCASSERT(indices[1].absolute && indices[2].absolute);
         if(indices[1].index == indices[2].index)
         {
-          str += indices[0].str;
+          str += indices[0].toString(reflection, toStrFlags);
         }
         else
         {
           if(indices[2].index == 0xffffffff)
-            str +=
-                StringFormat::Fmt("%s[%s:unbound]", indices[0].str.c_str(), indices[1].str.c_str());
+            str += StringFormat::Fmt("%s[%s:unbound]",
+                                     indices[0].toString(reflection, toStrFlags).c_str(),
+                                     indices[1].toString(reflection, toStrFlags).c_str());
           else
-            str += StringFormat::Fmt("%s[%s:%s]", indices[0].str.c_str(), indices[1].str.c_str(),
-                                     indices[2].str.c_str());
+            str += StringFormat::Fmt("%s[%s:%s]", indices[0].toString(reflection, toStrFlags).c_str(),
+                                     indices[1].toString(reflection, toStrFlags).c_str(),
+                                     indices[2].toString(reflection, toStrFlags).c_str());
         }
       }
     }
@@ -317,9 +327,11 @@ rdcstr Operand::toString(const DXBC::Reflection *reflection, ToString flags) con
       str = "cb";
 
       if(indices[1].relative)
-        str += StringFormat::Fmt("%s%s", indices[0].str.c_str(), indices[1].str.c_str());
+        str += StringFormat::Fmt("%s%s", indices[0].toString(reflection, toStrFlags).c_str(),
+                                 indices[1].toString(reflection, toStrFlags).c_str());
       else
-        str += StringFormat::Fmt("%s[%s]", indices[0].str.c_str(), indices[1].str.c_str());
+        str += StringFormat::Fmt("%s[%s]", indices[0].toString(reflection, toStrFlags).c_str(),
+                                 indices[1].toString(reflection, toStrFlags).c_str());
 
       if(friendly && reflection && indices[0].absolute)
       {
@@ -431,7 +443,7 @@ rdcstr Operand::toString(const DXBC::Reflection *reflection, ToString flags) con
 
     RDCASSERTEQUAL(indices.size(), 1);
 
-    str += indices[0].str;
+    str += indices[0].toString(reflection, toStrFlags);
   }
   else if(type == TYPE_IMMEDIATE_CONSTANT_BUFFER || type == TYPE_INDEXABLE_TEMP ||
           type == TYPE_INPUT || type == TYPE_INPUT_CONTROL_POINT ||
@@ -455,7 +467,7 @@ rdcstr Operand::toString(const DXBC::Reflection *reflection, ToString flags) con
 
     if(indices.size() == 1 && type != TYPE_IMMEDIATE_CONSTANT_BUFFER)
     {
-      str += indices[0].str;
+      str += indices[0].toString(reflection, toStrFlags);
     }
     else
     {
@@ -463,14 +475,14 @@ rdcstr Operand::toString(const DXBC::Reflection *reflection, ToString flags) con
       {
         if(i == 0 && type == TYPE_INDEXABLE_TEMP)
         {
-          str += indices[i].str;
+          str += indices[i].toString(reflection, toStrFlags);
           continue;
         }
 
         if(indices[i].relative)
-          str += indices[i].str;
+          str += indices[i].toString(reflection, toStrFlags);
         else
-          str += "[" + indices[i].str + "]";
+          str += "[" + indices[i].toString(reflection, toStrFlags) + "]";
       }
     }
   }
@@ -546,20 +558,35 @@ rdcstr Operand::toString(const DXBC::Reflection *reflection, ToString flags) con
     str += "}";
   }
 
-  if(modifier == OPERAND_MODIFIER_NEG)
-    str = "-" + str;
-  if(modifier == OPERAND_MODIFIER_ABS)
+  if(flags & FLAG_ABS)
     str = "abs(" + str + ")";
-  if(modifier == OPERAND_MODIFIER_ABSNEG)
-    str = "-abs(" + str + ")";
+  if(flags & FLAG_NEG)
+    str = "-" + str;
 
   if(decl && !regstr.empty())
     str += StringFormat::Fmt(" (%s)", regstr.c_str());
 
   if(!name.empty())
-    str = name + "=" + str;
+  {
+    rdcstr n = name;
+    str = n + "=" + str;
+  }
 
   return str;
+}
+
+rdcstr RegIndex::toString(const DXBC::Reflection *reflection, ToString toStrFlags) const
+{
+  if(relative)
+  {
+    return StringFormat::Fmt(
+        "[%s + %llu]", operand.toString(reflection, toStrFlags | ToString::ShowSwizzle).c_str(),
+        index);
+  }
+  else
+  {
+    return ToStr(index);
+  }
 }
 
 void Program::FetchComputeProperties(DXBC::Reflection *reflection)
@@ -705,8 +732,6 @@ void Program::DecodeProgram()
 
     uintptr_t offset = cur - begin;
 
-    decl.instruction = m_Instructions.size();
-    decl.offset = offset * sizeof(uint32_t);
     op.offset = offset * sizeof(uint32_t);
 
     if(!DecodeOperation(cur, op, friendly))
@@ -717,12 +742,21 @@ void Program::DecodeProgram()
       }
       else
       {
-        m_Declarations.push_back(decl);
+        // once we have a set of late declarations, push it into the most recent one. Otherwise
+        if(m_LateDeclarations.empty())
+          m_Declarations.push_back(decl);
+        else
+          m_LateDeclarations.back().push_back(decl);
       }
     }
     else
     {
       m_Instructions.push_back(op);
+
+      // each HS phase, start a new set of late declarations
+      if(op.operation == OPCODE_HS_CONTROL_POINT_PHASE || op.operation == OPCODE_HS_FORK_PHASE ||
+         op.operation == OPCODE_HS_JOIN_PHASE)
+        m_LateDeclarations.push_back({});
     }
   }
 
@@ -743,7 +777,6 @@ void Program::DecodeProgram()
   if(lastRealOp != OPCODE_RET)
   {
     Operation implicitRet;
-    implicitRet.length = 1;
     implicitRet.offset = (end - begin) * sizeof(uint32_t);
     implicitRet.operation = OPCODE_RET;
     implicitRet.str = "ret";
@@ -784,8 +817,6 @@ void Program::MakeDisassemblyString()
 
   int indent = 0;
 
-  size_t d = 0;
-
   LineColumnInfo prevLineInfo;
   rdcarray<rdcstr> prevCallstack;
 
@@ -802,32 +833,23 @@ void Program::MakeDisassemblyString()
       split(m_DebugInfo->Files[i].second, fileLines[i], '\n');
   }
 
+  for(size_t d = 0; d < m_Declarations.size(); d++)
+  {
+    m_Disassembly += StringFormat::Fmt("% 4s  %s\n", "", m_Declarations[d].str.c_str());
+    linenum++;
+
+    int32_t nl = m_Declarations[d].str.indexOf('\n');
+    while(nl >= 0)
+    {
+      linenum++;
+      nl = m_Declarations[d].str.indexOf('\n', nl + 1);
+    }
+  }
+
+  size_t lt = 0;
+
   for(size_t i = 0; i < m_Instructions.size(); i++)
   {
-    for(; d < m_Declarations.size(); d++)
-    {
-      if(m_Declarations[d].instruction > i)
-      {
-        if(i == 0)
-        {
-          m_Disassembly += "\n";
-          linenum++;
-        }
-
-        break;
-      }
-
-      m_Disassembly += StringFormat::Fmt("% 4s  %s\n", "", m_Declarations[d].str.c_str());
-      linenum++;
-
-      int32_t nl = m_Declarations[d].str.indexOf('\n');
-      while(nl >= 0)
-      {
-        linenum++;
-        nl = m_Declarations[d].str.indexOf('\n', nl + 1);
-      }
-    }
-
     if(m_Instructions[i].operation == OPCODE_CUSTOMDATA ||
        m_Instructions[i].operation == OPCODE_OPAQUE_CUSTOMDATA)
     {
@@ -939,7 +961,29 @@ void Program::MakeDisassemblyString()
     if(m_Instructions[i].operation != OPCODE_HS_CONTROL_POINT_PHASE &&
        m_Instructions[i].operation != OPCODE_HS_FORK_PHASE &&
        m_Instructions[i].operation != OPCODE_HS_JOIN_PHASE)
+    {
       debugInst++;
+    }
+    else
+    {
+      if(lt < m_LateDeclarations.size())
+      {
+        for(size_t d = 0; d < m_LateDeclarations[lt].size(); d++)
+        {
+          m_Disassembly += StringFormat::Fmt("% 4s  %s\n", "", m_LateDeclarations[lt][d].str.c_str());
+          linenum++;
+
+          int32_t nl = m_LateDeclarations[lt][d].str.indexOf('\n');
+          while(nl >= 0)
+          {
+            linenum++;
+            nl = m_LateDeclarations[lt][d].str.indexOf('\n', nl + 1);
+          }
+        }
+
+        lt++;
+      }
+    }
   }
 }
 
@@ -996,7 +1040,7 @@ bool Program::DecodeOperand(uint32_t *&tokenStream, ToString flags, Operand &ret
 
     if(type == EXTENDED_OPERAND_MODIFIER)
     {
-      retOper.modifier = ExtendedOperand::Modifier.Get(OperandTokenN);
+      retOper.flags = Operand::Flags(retOper.flags | ExtendedOperand::Modifier.Get(OperandTokenN));
       retOper.precision = ExtendedOperand::MinPrecision.Get(OperandTokenN);
     }
     else
@@ -1066,18 +1110,6 @@ bool Program::DecodeOperand(uint32_t *&tokenStream, ToString flags, Operand &ret
     }
 
     RDCASSERT(retOper.indices[idx].relative || retOper.indices[idx].absolute);
-
-    if(retOper.indices[idx].relative)
-    {
-      retOper.indices[idx].str = StringFormat::Fmt(
-          "[%s + %llu]",
-          retOper.indices[idx].operand.toString(m_Reflection, flags | ToString::ShowSwizzle).c_str(),
-          retOper.indices[idx].index);
-    }
-    else
-    {
-      retOper.indices[idx].str = ToStr(retOper.indices[idx].index);
-    }
   }
 
   if(retOper.type == TYPE_RESOURCE || retOper.type == TYPE_SAMPLER ||
@@ -1190,7 +1222,7 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
     return true;
   }
 
-  retDecl.length = Opcode::Length.Get(OpcodeToken0);
+  uint32_t declLength = Opcode::Length.Get(OpcodeToken0);
 
   tokenStream++;
 
@@ -1198,75 +1230,79 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
 
   if(op == OPCODE_DCL_GLOBAL_FLAGS)
   {
-    retDecl.refactoringAllowed = Decl::RefactoringAllowed.Get(OpcodeToken0);
-    retDecl.doublePrecisionFloats = Decl::DoubleFloatOps.Get(OpcodeToken0);
-    retDecl.forceEarlyDepthStencil = Decl::ForceEarlyDepthStencil.Get(OpcodeToken0);
-    retDecl.enableRawAndStructuredBuffers = Decl::EnableRawStructuredBufs.Get(OpcodeToken0);
-    retDecl.skipOptimisation = Decl::SkipOptimisation.Get(OpcodeToken0);
-    retDecl.enableMinPrecision = Decl::EnableMinPrecision.Get(OpcodeToken0);
-    retDecl.enableD3D11_1DoubleExtensions = Decl::EnableD3D11_1DoubleExtensions.Get(OpcodeToken0);
-    retDecl.enableD3D11_1ShaderExtensions = Decl::EnableD3D11_1ShaderExtensions.Get(OpcodeToken0);
-    retDecl.enableD3D12AllResourcesBound = Decl::EnableD3D12AllResourcesBound.Get(OpcodeToken0);
+    retDecl.global_flags.refactoringAllowed = Decl::RefactoringAllowed.Get(OpcodeToken0);
+    retDecl.global_flags.doublePrecisionFloats = Decl::DoubleFloatOps.Get(OpcodeToken0);
+    retDecl.global_flags.forceEarlyDepthStencil = Decl::ForceEarlyDepthStencil.Get(OpcodeToken0);
+    retDecl.global_flags.enableRawAndStructuredBuffers =
+        Decl::EnableRawStructuredBufs.Get(OpcodeToken0);
+    retDecl.global_flags.skipOptimisation = Decl::SkipOptimisation.Get(OpcodeToken0);
+    retDecl.global_flags.enableMinPrecision = Decl::EnableMinPrecision.Get(OpcodeToken0);
+    retDecl.global_flags.enableD3D11_1DoubleExtensions =
+        Decl::EnableD3D11_1DoubleExtensions.Get(OpcodeToken0);
+    retDecl.global_flags.enableD3D11_1ShaderExtensions =
+        Decl::EnableD3D11_1ShaderExtensions.Get(OpcodeToken0);
+    retDecl.global_flags.enableD3D12AllResourcesBound =
+        Decl::EnableD3D12AllResourcesBound.Get(OpcodeToken0);
 
     retDecl.str += " ";
 
     bool added = false;
 
-    if(retDecl.refactoringAllowed)
+    if(retDecl.global_flags.refactoringAllowed)
     {
       retDecl.str += "refactoringAllowed";
       added = true;
     }
-    if(retDecl.doublePrecisionFloats)
+    if(retDecl.global_flags.doublePrecisionFloats)
     {
       if(added)
         retDecl.str += ", ";
       retDecl.str += "doublePrecisionFloats";
       added = true;
     }
-    if(retDecl.forceEarlyDepthStencil)
+    if(retDecl.global_flags.forceEarlyDepthStencil)
     {
       if(added)
         retDecl.str += ", ";
       retDecl.str += "forceEarlyDepthStencil";
       added = true;
     }
-    if(retDecl.enableRawAndStructuredBuffers)
+    if(retDecl.global_flags.enableRawAndStructuredBuffers)
     {
       if(added)
         retDecl.str += ", ";
       retDecl.str += "enableRawAndStructuredBuffers";
       added = true;
     }
-    if(retDecl.skipOptimisation)
+    if(retDecl.global_flags.skipOptimisation)
     {
       if(added)
         retDecl.str += ", ";
       retDecl.str += "skipOptimisation";
       added = true;
     }
-    if(retDecl.enableMinPrecision)
+    if(retDecl.global_flags.enableMinPrecision)
     {
       if(added)
         retDecl.str += ", ";
       retDecl.str += "enableMinPrecision";
       added = true;
     }
-    if(retDecl.enableD3D11_1DoubleExtensions)
+    if(retDecl.global_flags.enableD3D11_1DoubleExtensions)
     {
       if(added)
         retDecl.str += ", ";
       retDecl.str += "doubleExtensions";
       added = true;
     }
-    if(retDecl.enableD3D11_1ShaderExtensions)
+    if(retDecl.global_flags.enableD3D11_1ShaderExtensions)
     {
       if(added)
         retDecl.str += ", ";
       retDecl.str += "shaderExtensions";
       added = true;
     }
-    if(retDecl.enableD3D12AllResourcesBound)
+    if(retDecl.global_flags.enableD3D12AllResourcesBound)
     {
       if(added)
         retDecl.str += ", ";
@@ -1287,10 +1323,10 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
     {
       // Store the size provided. If there's no reflection data, this will be
       // necessary to guess the buffer size properly
-      retDecl.float4size = tokenStream[0];
+      retDecl.cbufferVectorSize = tokenStream[0];
       tokenStream++;
 
-      retDecl.str += StringFormat::Fmt("[%u]", retDecl.float4size);
+      retDecl.str += StringFormat::Fmt("[%u]", retDecl.cbufferVectorSize);
     }
 
     retDecl.str += ", ";
@@ -1343,23 +1379,24 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
   }
   else if(op == OPCODE_DCL_INDEXABLE_TEMP)
   {
-    retDecl.tempReg = tokenStream[0];
+    retDecl.indexable_temp.tempReg = tokenStream[0];
     tokenStream++;
 
-    retDecl.numTemps = tokenStream[0];
+    retDecl.indexable_temp.numTemps = tokenStream[0];
     tokenStream++;
 
-    retDecl.tempComponentCount = tokenStream[0];
+    retDecl.indexable_temp.tempComponentCount = tokenStream[0];
     tokenStream++;
 
     // I don't think the compiler will ever declare a non-compact list of indexable temps, but just
     // to be sure our indexing works let's be safe.
-    if(retDecl.tempReg >= m_IndexTempSizes.size())
-      m_IndexTempSizes.resize(retDecl.tempReg + 1);
-    m_IndexTempSizes[retDecl.tempReg] = retDecl.numTemps;
+    if(retDecl.indexable_temp.tempReg >= m_IndexTempSizes.size())
+      m_IndexTempSizes.resize(retDecl.indexable_temp.tempReg + 1);
+    m_IndexTempSizes[retDecl.indexable_temp.tempReg] = retDecl.indexable_temp.numTemps;
 
-    retDecl.str += StringFormat::Fmt(" x%u[%u], %u", retDecl.tempReg, retDecl.numTemps,
-                                     retDecl.tempComponentCount);
+    retDecl.str += StringFormat::Fmt(" x%u[%u], %u", retDecl.indexable_temp.tempReg,
+                                     retDecl.indexable_temp.numTemps,
+                                     retDecl.indexable_temp.tempComponentCount);
   }
   else if(op == OPCODE_DCL_OUTPUT)
   {
@@ -1374,11 +1411,11 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
   {
     retDecl.str += " ";
 
-    retDecl.maxOut = tokenStream[0];
+    retDecl.maxVertexOutCount = tokenStream[0];
 
     tokenStream++;
 
-    retDecl.str += StringFormat::Fmt(" %u", retDecl.maxOut);
+    retDecl.str += StringFormat::Fmt(" %u", retDecl.maxVertexOutCount);
   }
   else if(op == OPCODE_DCL_INPUT_SIV || op == OPCODE_DCL_INPUT_SGV ||
           op == OPCODE_DCL_INPUT_PS_SIV || op == OPCODE_DCL_INPUT_PS_SGV ||
@@ -1439,13 +1476,13 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
   }
   else if(op == OPCODE_DCL_RESOURCE)
   {
-    retDecl.dim = Decl::ResourceDim.Get(OpcodeToken0);
+    retDecl.resource.dim = Decl::ResourceDim.Get(OpcodeToken0);
 
-    retDecl.sampleCount = 0;
-    if(retDecl.dim == RESOURCE_DIMENSION_TEXTURE2DMS ||
-       retDecl.dim == RESOURCE_DIMENSION_TEXTURE2DMSARRAY)
+    retDecl.resource.sampleCount = 0;
+    if(retDecl.resource.dim == RESOURCE_DIMENSION_TEXTURE2DMS ||
+       retDecl.resource.dim == RESOURCE_DIMENSION_TEXTURE2DMSARRAY)
     {
-      retDecl.sampleCount = Decl::SampleCount.Get(OpcodeToken0);
+      retDecl.resource.sampleCount = Decl::SampleCount.Get(OpcodeToken0);
     }
 
     bool ret = DecodeOperand(tokenStream, flags, retDecl.operand);
@@ -1454,29 +1491,29 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
     uint32_t ResourceReturnTypeToken = tokenStream[0];
     tokenStream++;
 
-    retDecl.resType[0] = Decl::ReturnTypeX.Get(ResourceReturnTypeToken);
-    retDecl.resType[1] = Decl::ReturnTypeY.Get(ResourceReturnTypeToken);
-    retDecl.resType[2] = Decl::ReturnTypeZ.Get(ResourceReturnTypeToken);
-    retDecl.resType[3] = Decl::ReturnTypeW.Get(ResourceReturnTypeToken);
+    retDecl.resource.resType[0] = Decl::ReturnTypeX.Get(ResourceReturnTypeToken);
+    retDecl.resource.resType[1] = Decl::ReturnTypeY.Get(ResourceReturnTypeToken);
+    retDecl.resource.resType[2] = Decl::ReturnTypeZ.Get(ResourceReturnTypeToken);
+    retDecl.resource.resType[3] = Decl::ReturnTypeW.Get(ResourceReturnTypeToken);
 
     retDecl.str += "_";
-    retDecl.str += ToStr(retDecl.dim);
-    if(retDecl.sampleCount > 0)
+    retDecl.str += ToStr(retDecl.resource.dim);
+    if(retDecl.resource.sampleCount > 0)
     {
       retDecl.str += "(";
-      retDecl.str += ToStr(retDecl.sampleCount);
+      retDecl.str += ToStr(retDecl.resource.sampleCount);
       retDecl.str += ")";
     }
     retDecl.str += " ";
 
     retDecl.str += "(";
-    retDecl.str += ToStr(retDecl.resType[0]);
+    retDecl.str += ToStr(retDecl.resource.resType[0]);
     retDecl.str += ",";
-    retDecl.str += ToStr(retDecl.resType[1]);
+    retDecl.str += ToStr(retDecl.resource.resType[1]);
     retDecl.str += ",";
-    retDecl.str += ToStr(retDecl.resType[2]);
+    retDecl.str += ToStr(retDecl.resource.resType[2]);
     retDecl.str += ",";
-    retDecl.str += ToStr(retDecl.resType[3]);
+    retDecl.str += ToStr(retDecl.resource.resType[3]);
     retDecl.str += ")";
 
     retDecl.str += " " + retDecl.operand.toString(m_Reflection, flags);
@@ -1498,13 +1535,13 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
   }
   else if(op == OPCODE_DCL_INPUT_PS)
   {
-    retDecl.interpolation = Decl::InterpolationMode.Get(OpcodeToken0);
+    retDecl.inputInterpolation = Decl::InterpolationMode.Get(OpcodeToken0);
 
     bool ret = DecodeOperand(tokenStream, flags, retDecl.operand);
     RDCASSERT(ret);
 
     retDecl.str += " ";
-    retDecl.str += ToStr(retDecl.interpolation);
+    retDecl.str += ToStr(retDecl.inputInterpolation);
 
     retDecl.str += " ";
     retDecl.str += retDecl.operand.toString(m_Reflection, flags | ToString::ShowSwizzle);
@@ -1543,11 +1580,11 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
     bool ret = DecodeOperand(tokenStream, flags, retDecl.operand);
     RDCASSERT(ret);
 
-    retDecl.count = tokenStream[0];
+    retDecl.tgsmCount = tokenStream[0];
     tokenStream++;
 
     retDecl.str += retDecl.operand.toString(m_Reflection, flags);
-    retDecl.str += StringFormat::Fmt(", %u", retDecl.count);
+    retDecl.str += StringFormat::Fmt(", %u", retDecl.tgsmCount);
   }
   else if(op == OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED)
   {
@@ -1556,14 +1593,15 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
     bool ret = DecodeOperand(tokenStream, flags, retDecl.operand);
     RDCASSERT(ret);
 
-    retDecl.stride = tokenStream[0];
+    retDecl.tsgm_structured.stride = tokenStream[0];
     tokenStream++;
 
-    retDecl.count = tokenStream[0];
+    retDecl.tsgm_structured.count = tokenStream[0];
     tokenStream++;
 
     retDecl.str += retDecl.operand.toString(m_Reflection, flags);
-    retDecl.str += StringFormat::Fmt(", %u, %u", retDecl.stride, retDecl.count);
+    retDecl.str +=
+        StringFormat::Fmt(", %u, %u", retDecl.tsgm_structured.stride, retDecl.tsgm_structured.count);
   }
   else if(op == OPCODE_DCL_INPUT_CONTROL_POINT_COUNT || op == OPCODE_DCL_OUTPUT_CONTROL_POINT_COUNT)
   {
@@ -1573,106 +1611,107 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
   }
   else if(op == OPCODE_DCL_TESS_DOMAIN)
   {
-    retDecl.domain = Decl::TessDomain.Get(OpcodeToken0);
+    retDecl.tessDomain = Decl::TessDomain.Get(OpcodeToken0);
 
     retDecl.str += " ";
-    if(retDecl.domain == DOMAIN_ISOLINE)
+    if(retDecl.tessDomain == DOMAIN_ISOLINE)
       retDecl.str += "domain_isoline";
-    else if(retDecl.domain == DOMAIN_TRI)
+    else if(retDecl.tessDomain == DOMAIN_TRI)
       retDecl.str += "domain_tri";
-    else if(retDecl.domain == DOMAIN_QUAD)
+    else if(retDecl.tessDomain == DOMAIN_QUAD)
       retDecl.str += "domain_quad";
     else
       RDCERR("Unexpected Tessellation domain");
   }
   else if(op == OPCODE_DCL_TESS_PARTITIONING)
   {
-    retDecl.partition = Decl::TessPartitioning.Get(OpcodeToken0);
+    retDecl.tessPartition = Decl::TessPartitioning.Get(OpcodeToken0);
 
     retDecl.str += " ";
-    if(retDecl.partition == PARTITIONING_INTEGER)
+    if(retDecl.tessPartition == PARTITIONING_INTEGER)
       retDecl.str += "partitioning_integer";
-    else if(retDecl.partition == PARTITIONING_POW2)
+    else if(retDecl.tessPartition == PARTITIONING_POW2)
       retDecl.str += "partitioning_pow2";
-    else if(retDecl.partition == PARTITIONING_FRACTIONAL_ODD)
+    else if(retDecl.tessPartition == PARTITIONING_FRACTIONAL_ODD)
       retDecl.str += "partitioning_fractional_odd";
-    else if(retDecl.partition == PARTITIONING_FRACTIONAL_EVEN)
+    else if(retDecl.tessPartition == PARTITIONING_FRACTIONAL_EVEN)
       retDecl.str += "partitioning_fractional_even";
     else
       RDCERR("Unexpected Partitioning");
   }
   else if(op == OPCODE_DCL_GS_INPUT_PRIMITIVE)
   {
-    retDecl.inPrim = Decl::InputPrimitive.Get(OpcodeToken0);
+    retDecl.geomInputPrimitive = Decl::InputPrimitive.Get(OpcodeToken0);
 
     retDecl.str += " ";
-    if(retDecl.inPrim == PRIMITIVE_POINT)
+    if(retDecl.geomInputPrimitive == PRIMITIVE_POINT)
       retDecl.str += "point";
-    else if(retDecl.inPrim == PRIMITIVE_LINE)
+    else if(retDecl.geomInputPrimitive == PRIMITIVE_LINE)
       retDecl.str += "line";
-    else if(retDecl.inPrim == PRIMITIVE_TRIANGLE)
+    else if(retDecl.geomInputPrimitive == PRIMITIVE_TRIANGLE)
       retDecl.str += "triangle";
-    else if(retDecl.inPrim == PRIMITIVE_LINE_ADJ)
+    else if(retDecl.geomInputPrimitive == PRIMITIVE_LINE_ADJ)
       retDecl.str += "line_adj";
-    else if(retDecl.inPrim == PRIMITIVE_TRIANGLE_ADJ)
+    else if(retDecl.geomInputPrimitive == PRIMITIVE_TRIANGLE_ADJ)
       retDecl.str += "triangle_adj";
-    else if(retDecl.inPrim >= PRIMITIVE_1_CONTROL_POINT_PATCH &&
-            retDecl.inPrim <= PRIMITIVE_32_CONTROL_POINT_PATCH)
+    else if(retDecl.geomInputPrimitive >= PRIMITIVE_1_CONTROL_POINT_PATCH &&
+            retDecl.geomInputPrimitive <= PRIMITIVE_32_CONTROL_POINT_PATCH)
     {
-      retDecl.str += StringFormat::Fmt("control_point_patch_%u",
-                                       1 + int(retDecl.inPrim - PRIMITIVE_1_CONTROL_POINT_PATCH));
+      retDecl.str +=
+          StringFormat::Fmt("control_point_patch_%u",
+                            1 + int(retDecl.geomInputPrimitive - PRIMITIVE_1_CONTROL_POINT_PATCH));
     }
     else
       RDCERR("Unexpected primitive type");
   }
   else if(op == OPCODE_DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY)
   {
-    retDecl.outTopology = Decl::OutputPrimitiveTopology.Get(OpcodeToken0);
+    retDecl.geomOutputTopology = Decl::OutputPrimitiveTopology.Get(OpcodeToken0);
 
     retDecl.str += " ";
-    if(retDecl.outTopology == D3D_PRIMITIVE_TOPOLOGY_POINTLIST)
+    if(retDecl.geomOutputTopology == D3D_PRIMITIVE_TOPOLOGY_POINTLIST)
       retDecl.str += "point";
-    else if(retDecl.outTopology == D3D_PRIMITIVE_TOPOLOGY_LINELIST)
+    else if(retDecl.geomOutputTopology == D3D_PRIMITIVE_TOPOLOGY_LINELIST)
       retDecl.str += "linelist";
-    else if(retDecl.outTopology == D3D_PRIMITIVE_TOPOLOGY_LINESTRIP)
+    else if(retDecl.geomOutputTopology == D3D_PRIMITIVE_TOPOLOGY_LINESTRIP)
       retDecl.str += "linestrip";
-    else if(retDecl.outTopology == D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST)
+    else if(retDecl.geomOutputTopology == D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST)
       retDecl.str += "trianglelist";
-    else if(retDecl.outTopology == D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP)
+    else if(retDecl.geomOutputTopology == D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP)
       retDecl.str += "trianglestrip";
-    else if(retDecl.outTopology == D3D_PRIMITIVE_TOPOLOGY_LINELIST_ADJ)
+    else if(retDecl.geomOutputTopology == D3D_PRIMITIVE_TOPOLOGY_LINELIST_ADJ)
       retDecl.str += "linelist_adj";
-    else if(retDecl.outTopology == D3D_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ)
+    else if(retDecl.geomOutputTopology == D3D_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ)
       retDecl.str += "linestrip_adj";
-    else if(retDecl.outTopology == D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ)
+    else if(retDecl.geomOutputTopology == D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ)
       retDecl.str += "trianglelist_adj";
-    else if(retDecl.outTopology == D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ)
+    else if(retDecl.geomOutputTopology == D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ)
       retDecl.str += "trianglestrip_adj";
     else
       RDCERR("Unexpected primitive topology");
   }
   else if(op == OPCODE_DCL_TESS_OUTPUT_PRIMITIVE)
   {
-    retDecl.outPrim = Decl::OutputPrimitive.Get(OpcodeToken0);
+    retDecl.tessOutputPrimitive = Decl::OutputPrimitive.Get(OpcodeToken0);
 
     retDecl.str += " ";
-    if(retDecl.outPrim == OUTPUT_PRIMITIVE_POINT)
+    if(retDecl.tessOutputPrimitive == OUTPUT_PRIMITIVE_POINT)
       retDecl.str += "output_point";
-    else if(retDecl.outPrim == OUTPUT_PRIMITIVE_LINE)
+    else if(retDecl.tessOutputPrimitive == OUTPUT_PRIMITIVE_LINE)
       retDecl.str += "output_line";
-    else if(retDecl.outPrim == OUTPUT_PRIMITIVE_TRIANGLE_CW)
+    else if(retDecl.tessOutputPrimitive == OUTPUT_PRIMITIVE_TRIANGLE_CW)
       retDecl.str += "output_triangle_cw";
-    else if(retDecl.outPrim == OUTPUT_PRIMITIVE_TRIANGLE_CCW)
+    else if(retDecl.tessOutputPrimitive == OUTPUT_PRIMITIVE_TRIANGLE_CCW)
       retDecl.str += "output_triangle_ccw";
     else
       RDCERR("Unexpected output primitive");
   }
   else if(op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW || op == OPCODE_DCL_RESOURCE_RAW)
   {
-    retDecl.rov = (op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW) &&
-                  Decl::RasterizerOrderedAccess.Get(OpcodeToken0);
+    retDecl.raw.rov = (op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW) &&
+                      Decl::RasterizerOrderedAccess.Get(OpcodeToken0);
 
-    retDecl.globallyCoherant =
+    retDecl.raw.globallyCoherant =
         (op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW) & Decl::GloballyCoherent.Get(OpcodeToken0);
 
     retDecl.str += " ";
@@ -1682,10 +1721,10 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
 
     retDecl.str += retDecl.operand.toString(m_Reflection, flags);
 
-    if(retDecl.globallyCoherant)
+    if(retDecl.raw.globallyCoherant)
       retDecl.str += ", globallyCoherant";
 
-    if(retDecl.rov)
+    if(retDecl.raw.rov)
       retDecl.str += ", rasterizerOrderedAccess";
 
     retDecl.space = 0;
@@ -1705,33 +1744,33 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
   }
   else if(op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED || op == OPCODE_DCL_RESOURCE_STRUCTURED)
   {
-    retDecl.hasCounter = (op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED) &&
-                         Opcode::HasOrderPreservingCounter.Get(OpcodeToken0);
+    retDecl.structured.hasCounter = (op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED) &&
+                                    Decl::HasOrderPreservingCounter.Get(OpcodeToken0);
 
-    retDecl.rov = (op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED) &&
-                  Decl::RasterizerOrderedAccess.Get(OpcodeToken0);
+    retDecl.structured.rov = (op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED) &&
+                             Decl::RasterizerOrderedAccess.Get(OpcodeToken0);
 
-    retDecl.globallyCoherant = (op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED) &
-                               Decl::GloballyCoherent.Get(OpcodeToken0);
+    retDecl.structured.globallyCoherant = (op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED) &
+                                          Decl::GloballyCoherent.Get(OpcodeToken0);
 
     retDecl.str += " ";
 
     bool ret = DecodeOperand(tokenStream, flags, retDecl.operand);
     RDCASSERT(ret);
 
-    retDecl.stride = tokenStream[0];
+    retDecl.structured.stride = tokenStream[0];
     tokenStream++;
 
     retDecl.str += retDecl.operand.toString(m_Reflection, flags);
-    retDecl.str += StringFormat::Fmt(", %u", retDecl.stride);
+    retDecl.str += StringFormat::Fmt(", %u", retDecl.structured.stride);
 
-    if(retDecl.hasCounter)
+    if(retDecl.structured.hasCounter)
       retDecl.str += ", hasOrderPreservingCounter";
 
-    if(retDecl.globallyCoherant)
+    if(retDecl.structured.globallyCoherant)
       retDecl.str += ", globallyCoherant";
 
-    if(retDecl.rov)
+    if(retDecl.structured.rov)
       retDecl.str += ", rasterizerOrderedAccess";
 
     retDecl.space = 0;
@@ -1751,16 +1790,16 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
   }
   else if(op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_TYPED)
   {
-    retDecl.dim = Decl::ResourceDim.Get(OpcodeToken0);
+    retDecl.uav_typed.dim = Decl::ResourceDim.Get(OpcodeToken0);
 
-    retDecl.globallyCoherant = Decl::GloballyCoherent.Get(OpcodeToken0);
+    retDecl.uav_typed.globallyCoherant = Decl::GloballyCoherent.Get(OpcodeToken0);
 
-    retDecl.rov = Decl::RasterizerOrderedAccess.Get(OpcodeToken0);
+    retDecl.uav_typed.rov = Decl::RasterizerOrderedAccess.Get(OpcodeToken0);
 
     retDecl.str += "_";
-    retDecl.str += ToStr(retDecl.dim);
+    retDecl.str += ToStr(retDecl.uav_typed.dim);
 
-    if(retDecl.globallyCoherant)
+    if(retDecl.uav_typed.globallyCoherant)
       retDecl.str += "_glc";
 
     bool ret = DecodeOperand(tokenStream, flags, retDecl.operand);
@@ -1769,28 +1808,28 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
     uint32_t ResourceReturnTypeToken = tokenStream[0];
     tokenStream++;
 
-    retDecl.resType[0] = Decl::ReturnTypeX.Get(ResourceReturnTypeToken);
-    retDecl.resType[1] = Decl::ReturnTypeY.Get(ResourceReturnTypeToken);
-    retDecl.resType[2] = Decl::ReturnTypeZ.Get(ResourceReturnTypeToken);
-    retDecl.resType[3] = Decl::ReturnTypeW.Get(ResourceReturnTypeToken);
+    retDecl.uav_typed.resType[0] = Decl::ReturnTypeX.Get(ResourceReturnTypeToken);
+    retDecl.uav_typed.resType[1] = Decl::ReturnTypeY.Get(ResourceReturnTypeToken);
+    retDecl.uav_typed.resType[2] = Decl::ReturnTypeZ.Get(ResourceReturnTypeToken);
+    retDecl.uav_typed.resType[3] = Decl::ReturnTypeW.Get(ResourceReturnTypeToken);
 
     retDecl.str += " ";
 
     retDecl.str += "(";
-    retDecl.str += ToStr(retDecl.resType[0]);
+    retDecl.str += ToStr(retDecl.uav_typed.resType[0]);
     retDecl.str += ",";
-    retDecl.str += ToStr(retDecl.resType[1]);
+    retDecl.str += ToStr(retDecl.uav_typed.resType[1]);
     retDecl.str += ",";
-    retDecl.str += ToStr(retDecl.resType[2]);
+    retDecl.str += ToStr(retDecl.uav_typed.resType[2]);
     retDecl.str += ",";
-    retDecl.str += ToStr(retDecl.resType[3]);
+    retDecl.str += ToStr(retDecl.uav_typed.resType[3]);
     retDecl.str += ")";
 
     retDecl.str += " ";
 
     retDecl.str += retDecl.operand.toString(m_Reflection, flags);
 
-    if(retDecl.rov)
+    if(retDecl.uav_typed.rov)
       retDecl.str += ", rasterizerOrderedAccess";
 
     retDecl.space = 0;
@@ -1850,7 +1889,7 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
       if(i + 1 < TableLength)
         retDecl.str += ", ";
 
-      retDecl.immediateData.push_back(tokenStream[0]);
+      retDecl.functionTableContents.push_back(tokenStream[0]);
       tokenStream++;
     }
 
@@ -1858,20 +1897,20 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
   }
   else if(op == OPCODE_DCL_INTERFACE)
   {
-    retDecl.interfaceID = tokenStream[0];
+    retDecl.iface.interfaceID = tokenStream[0];
     tokenStream++;
 
-    retDecl.numTypes = tokenStream[0];
+    retDecl.iface.numTypes = tokenStream[0];
     tokenStream++;
 
     uint32_t CountToken = tokenStream[0];
     tokenStream++;
 
-    retDecl.numInterfaces = Decl::NumInterfaces.Get(CountToken);
+    retDecl.iface.numInterfaces = Decl::NumInterfaces.Get(CountToken);
     uint32_t TableLength = Decl::TableLength.Get(CountToken);
 
-    retDecl.str += StringFormat::Fmt(" fp%u[%u][%u]", retDecl.interfaceID, retDecl.numInterfaces,
-                                     retDecl.numTypes);
+    retDecl.str += StringFormat::Fmt(" fp%u[%u][%u]", retDecl.iface.interfaceID,
+                                     retDecl.iface.numInterfaces, retDecl.iface.numTypes);
 
     retDecl.str += " = {";
 
@@ -1882,7 +1921,7 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
       if(i + 1 < TableLength)
         retDecl.str += ", ";
 
-      retDecl.immediateData.push_back(tokenStream[0]);
+      retDecl.functionTableContents.push_back(tokenStream[0]);
       tokenStream++;
     }
 
@@ -1911,7 +1950,7 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
   }
 
   // make sure we consumed all uint32s
-  RDCASSERT((uint32_t)(tokenStream - begin) == retDecl.length);
+  RDCASSERT((uint32_t)(tokenStream - begin) == declLength);
 
   return true;
 }
@@ -1930,14 +1969,21 @@ bool Program::DecodeOperation(uint32_t *&tokenStream, Operation &retOp, bool fri
   if(IsDeclaration(op) && op != OPCODE_CUSTOMDATA)
     return false;
 
+  uint32_t opLength = Opcode::Length.Get(OpcodeToken0);
+
   // possibly only set these when applicable
   retOp.operation = op;
-  retOp.length = Opcode::Length.Get(OpcodeToken0);
-  retOp.nonzero = Opcode::TestNonZero.Get(OpcodeToken0) == 1;
-  retOp.saturate = Opcode::Saturate.Get(OpcodeToken0) == 1;
+  if(Opcode::TestNonZero.Get(OpcodeToken0))
+    retOp.flags = Operation::Flags(retOp.flags | Operation::FLAG_NONZERO);
+  if(Opcode::Saturate.Get(OpcodeToken0))
+    retOp.flags = Operation::Flags(retOp.flags | Operation::FLAG_SATURATE);
   retOp.preciseValues = Opcode::PreciseValues.Get(OpcodeToken0);
-  retOp.resinfoRetType = Opcode::ResinfoReturn.Get(OpcodeToken0);
-  retOp.syncFlags = Opcode::SyncFlags.Get(OpcodeToken0);
+
+  if(op == OPCODE_RESINFO)
+    retOp.resinfoRetType = Opcode::ResinfoReturn.Get(OpcodeToken0);
+
+  if(op == OPCODE_SYNC)
+    retOp.syncFlags = Opcode::SyncFlags.Get(OpcodeToken0);
 
   bool extended = Opcode::Extended.Get(OpcodeToken0) == 1;
 
@@ -2150,16 +2196,16 @@ bool Program::DecodeOperation(uint32_t *&tokenStream, Operation &retOp, bool fri
 
   if(op == OPCODE_INTERFACE_CALL)
   {
-    retOp.operands[0].funcNum = func;
+    retOp.operands[0].values[0] = func;
   }
 
   if(op == OPCODE_IF || op == OPCODE_BREAKC || op == OPCODE_CALLC || op == OPCODE_CONTINUEC ||
      op == OPCODE_RETC || op == OPCODE_DISCARD)
-    retOp.str += retOp.nonzero ? "_nz" : "_z";
+    retOp.str += retOp.nonzero() ? "_nz" : "_z";
 
   if(op != OPCODE_SYNC)
   {
-    retOp.str += retOp.saturate ? "_sat" : "";
+    retOp.str += retOp.saturate() ? "_sat" : "";
   }
 
   if(retOp.preciseValues)
@@ -2187,21 +2233,21 @@ bool Program::DecodeOperation(uint32_t *&tokenStream, Operation &retOp, bool fri
   }
 
 #if ENABLED(RDOC_DEVEL)
-  if((uint32_t)(tokenStream - begin) > retOp.length)
+  if((uint32_t)(tokenStream - begin) > opLength)
   {
     RDCERR("Consumed too many tokens for %d!", retOp.operation);
 
     // try to recover by rewinding the stream, this instruction will be garbage but at least the
     // next ones will be correct
-    uint32_t overread = (uint32_t)(tokenStream - begin) - retOp.length;
+    uint32_t overread = (uint32_t)(tokenStream - begin) - opLength;
     tokenStream -= overread;
   }
-  else if((uint32_t)(tokenStream - begin) < retOp.length)
+  else if((uint32_t)(tokenStream - begin) < opLength)
   {
     // sometimes this just happens, which is why we only print this in non-release so we can
     // inspect it. There's probably not much we can do though, it's just magic.
     RDCWARN("Consumed too few tokens for %d!", retOp.operation);
-    uint32_t missing = retOp.length - (uint32_t)(tokenStream - begin);
+    uint32_t missing = opLength - (uint32_t)(tokenStream - begin);
     for(uint32_t i = 0; i < missing; i++)
     {
       RDCLOG("missing token %d: 0x%08x", i, tokenStream[0]);
@@ -2210,12 +2256,12 @@ bool Program::DecodeOperation(uint32_t *&tokenStream, Operation &retOp, bool fri
   }
 
   // make sure we consumed all uint32s
-  RDCASSERT((uint32_t)(tokenStream - begin) == retOp.length);
+  RDCASSERT((uint32_t)(tokenStream - begin) == opLength);
 #else
   // there's no good documentation for this, we're freewheeling blind in a nightmarish hellscape.
   // Instead of assuming we can predictably decode the whole of every opcode, just advance by the
   // defined length.
-  tokenStream = begin + retOp.length;
+  tokenStream = begin + opLength;
 #endif
 
   return true;
