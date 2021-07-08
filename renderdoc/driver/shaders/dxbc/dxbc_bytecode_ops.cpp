@@ -728,7 +728,19 @@ void Program::DecodeProgram()
 
   RDCASSERT(m_Declarations.size() <= numDecls);
 
-  if(m_Instructions.empty() || m_Instructions.back().operation != OPCODE_RET)
+  OpcodeType lastRealOp = NUM_REAL_OPCODES;
+
+  for(size_t i = 0; i < m_Instructions.size(); i++)
+  {
+    OpcodeType o = m_Instructions[m_Instructions.size() - i - 1].operation;
+    if(o == OPCODE_CUSTOMDATA || o == OPCODE_OPAQUE_CUSTOMDATA)
+      continue;
+
+    lastRealOp = o;
+    break;
+  }
+
+  if(lastRealOp != OPCODE_RET)
   {
     Operation implicitRet;
     implicitRet.length = 1;
@@ -814,6 +826,12 @@ void Program::MakeDisassemblyString()
         linenum++;
         nl = m_Declarations[d].str.indexOf('\n', nl + 1);
       }
+    }
+
+    if(m_Instructions[i].operation == OPCODE_CUSTOMDATA ||
+       m_Instructions[i].operation == OPCODE_OPAQUE_CUSTOMDATA)
+    {
+      continue;
     }
 
     if(m_Instructions[i].operation == OPCODE_ENDIF || m_Instructions[i].operation == OPCODE_ENDLOOP)
@@ -1099,6 +1117,8 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
   if(!IsDeclaration(op))
     return false;
 
+  retDecl.declaration = op;
+
   if(op == OPCODE_CUSTOMDATA)
   {
     CustomDataClass customClass = Opcode::CustomClass.Get(OpcodeToken0);
@@ -1108,21 +1128,16 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
     uint32_t customDataLength = tokenStream[0];
     tokenStream++;
 
+    uint32_t dataLength = customDataLength - 2;
+
     RDCASSERT(customDataLength >= 2);
 
     switch(customClass)
     {
-      case CUSTOMDATA_SHADER_MESSAGE:
-      {
-        // handle as opcode
-        tokenStream = begin;
-        return false;
-      }
       case CUSTOMDATA_DCL_IMMEDIATE_CONSTANT_BUFFER:
       {
+        retDecl.declaration = OPCODE_DCL_IMMEDIATE_CONSTANT_BUFFER;
         retDecl.str = "dcl_immediateConstantBuffer {";
-
-        uint32_t dataLength = customDataLength - 2;
 
         RDCASSERT(dataLength % 4 == 0);
 
@@ -1148,34 +1163,25 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
 
         break;
       }
-
       default:
       {
-        RDCWARN("Unsupported custom data class %d!", customClass);
+        // add this as an opaque declaration
+        retDecl.declaration = OPCODE_OPAQUE_CUSTOMDATA;
 
-        uint32_t dataLength = customDataLength - 2;
-        RDCLOG("Data length seems to be %d uint32s", dataLength);
+        retDecl.customDataIndex = (uint32_t)m_CustomDatas.size();
 
-#if 0
-        for(uint32_t i = 0; i < dataLength; i++)
-        {
-          char *str = (char *)tokenStream;
-          RDCDEBUG("uint32 %d: 0x%08x   %c %c %c %c", i, tokenStream[0], str[0], str[1], str[2],
-                   str[3]);
-          tokenStream++;
-        }
-#else
+        m_CustomDatas.push_back(make_rdcpair(customClass, rdcarray<uint32_t>()));
+        m_CustomDatas.back().second.assign(tokenStream, dataLength);
+
+        // unsupported custom data should be treated in operation as it's first
+        RDCWARN("Unsupported custom data class %d treated as declaration", customClass);
         tokenStream += dataLength;
-#endif
-
-        break;
       }
     }
 
     return true;
   }
 
-  retDecl.declaration = op;
   retDecl.length = Opcode::Length.Get(OpcodeToken0);
 
   tokenStream++;
@@ -1936,13 +1942,21 @@ bool Program::DecodeOperation(uint32_t *&tokenStream, Operation &retOp, bool fri
     uint32_t customDataLength = tokenStream[0];
     tokenStream++;
 
+    uint32_t dataLength = customDataLength - 2;
+
     RDCASSERT(customDataLength >= 2);
 
     switch(customClass)
     {
       case CUSTOMDATA_SHADER_MESSAGE:
       {
-        uint32_t *end = tokenStream + customDataLength - 2;
+        uint32_t *end = tokenStream + dataLength;
+
+        retOp.operation = OPCODE_SHADER_MESSAGE;
+        retOp.customDataIndex = (uint32_t)m_CustomDatas.size();
+
+        m_CustomDatas.push_back(make_rdcpair(customClass, rdcarray<uint32_t>()));
+        m_CustomDatas.back().second.assign(tokenStream, dataLength);
 
         // uint32_t infoQueueMsgId = tokenStream[0];
         uint32_t messageFormat = tokenStream[1];    // enum. 0 == text only, 1 == printf
@@ -1982,12 +1996,35 @@ bool Program::DecodeOperation(uint32_t *&tokenStream, Operation &retOp, bool fri
 
         break;
       }
-
-      default:
+      case CUSTOMDATA_DCL_IMMEDIATE_CONSTANT_BUFFER:
       {
         // handle as declaration
         tokenStream = begin;
         return false;
+      }
+      default:
+      {
+        // if we haven't seen any instructions yet, handle as declaration
+        if(m_Instructions.empty())
+        {
+          tokenStream = begin;
+          return false;
+        }
+
+        RDCWARN("Unsupported custom data class %d!", customClass);
+
+        RDCLOG("Data length seems to be %d uint32s", dataLength);
+
+        retOp.operation = OPCODE_OPAQUE_CUSTOMDATA;
+
+        retOp.customDataIndex = (uint32_t)m_CustomDatas.size();
+
+        m_CustomDatas.push_back(make_rdcpair(customClass, rdcarray<uint32_t>()));
+        m_CustomDatas.back().second.assign(tokenStream, dataLength);
+
+        tokenStream += dataLength;
+
+        return true;
       }
     }
 

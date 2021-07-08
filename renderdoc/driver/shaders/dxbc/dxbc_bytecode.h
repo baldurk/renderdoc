@@ -369,6 +369,10 @@ enum OpcodeType
   OPCODE_NV_SHUFFLE_GENERIC,
   OPCODE_NV_VPRS_EVAL_ATTRIB_SAMPLE,
   OPCODE_NV_VPRS_EVAL_ATTRIB_SNAPPED,
+
+  OPCODE_DCL_IMMEDIATE_CONSTANT_BUFFER,
+  OPCODE_OPAQUE_CUSTOMDATA,
+  OPCODE_SHADER_MESSAGE,
 };
 
 size_t NumOperands(OpcodeType op);
@@ -1020,6 +1024,9 @@ struct Declaration
   // OPCODE_DCL_FUNCTION_TABLE
   uint32_t functionTable;
 
+  // OPCODE_CUSTOMDATA
+  uint32_t customDataIndex;
+
   // OPCODE_DCL_INTERFACE
   uint32_t interfaceID;
   uint32_t numInterfaces;
@@ -1063,7 +1070,12 @@ struct Operation
   int texelOffset[3];                  // U,V,W texel offset
   ResourceDimension resDim;            // resource dimension (tex2d etc)
   DXBC::ResourceRetType resType[4];    // return type (e.g. for a sample operation)
-  uint32_t stride;
+
+  union
+  {
+    uint32_t stride;
+    uint32_t customDataIndex;
+  };
 
   rdcarray<Operand> operands;
 };
@@ -1125,6 +1137,8 @@ protected:
   rdcarray<uint32_t> m_ProgramWords;
 
   rdcarray<uint32_t> m_Immediate;
+
+  rdcarray<rdcpair<CustomDataClass, rdcarray<uint32_t>>> m_CustomDatas;
 
   uint32_t m_NumTemps = 0;
   rdcarray<uint32_t> m_IndexTempSizes;

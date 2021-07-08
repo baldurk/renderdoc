@@ -82,6 +82,9 @@ VarType OperationType(const DXBCBytecode::OpcodeType &op)
     case OPCODE_DISCARD:
     case OPCODE_NOP:
     case OPCODE_CUSTOMDATA:
+    case OPCODE_OPAQUE_CUSTOMDATA:
+    case OPCODE_SHADER_MESSAGE:
+    case OPCODE_DCL_IMMEDIATE_CONSTANT_BUFFER:
     case OPCODE_SYNC:
     case OPCODE_STORE_UAV_TYPED:
     case OPCODE_STORE_RAW:
@@ -352,6 +355,9 @@ bool OperationFlushing(const DXBCBytecode::OpcodeType &op)
     case OPCODE_DISCARD:
     case OPCODE_NOP:
     case OPCODE_CUSTOMDATA:
+    case OPCODE_OPAQUE_CUSTOMDATA:
+    case OPCODE_SHADER_MESSAGE:
+    case OPCODE_DCL_IMMEDIATE_CONSTANT_BUFFER:
     case OPCODE_SYNC:
     case OPCODE_STORE_UAV_TYPED:
     case OPCODE_STORE_RAW:
@@ -2603,6 +2609,9 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
 
     case OPCODE_NOP:
     case OPCODE_CUSTOMDATA:
+    case OPCODE_OPAQUE_CUSTOMDATA:
+    case OPCODE_SHADER_MESSAGE:
+    case OPCODE_DCL_IMMEDIATE_CONSTANT_BUFFER: break;
     case OPCODE_SYNC:    // might never need to implement this. Who knows!
       break;
     case OPCODE_DMOV:
