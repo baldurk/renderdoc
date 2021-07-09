@@ -791,6 +791,45 @@ void Program::DecodeProgram()
     PostprocessVendorExtensions();
 }
 
+rdcarray<uint32_t> Program::EncodeProgram()
+{
+  rdcarray<uint32_t> tokenStream;
+
+  tokenStream.push_back(0U);
+  tokenStream.push_back(0U);
+
+  VersionToken::ProgramType.Set(tokenStream[0], m_Type);
+  VersionToken::MajorVersion.Set(tokenStream[0], m_Major);
+  VersionToken::MinorVersion.Set(tokenStream[0], m_Minor);
+
+  for(size_t d = 0; d < m_Declarations.size(); d++)
+    EncodeDecl(tokenStream, m_Declarations[d]);
+
+  size_t lt = 0;
+
+  for(size_t i = 0; i < m_Instructions.size(); i++)
+  {
+    EncodeOperation(tokenStream, m_Instructions[i]);
+
+    if(m_Instructions[i].operation == OPCODE_HS_CONTROL_POINT_PHASE ||
+       m_Instructions[i].operation == OPCODE_HS_FORK_PHASE ||
+       m_Instructions[i].operation == OPCODE_HS_JOIN_PHASE)
+    {
+      if(lt < m_LateDeclarations.size())
+      {
+        for(size_t d = 0; d < m_LateDeclarations[lt].size(); d++)
+          EncodeDecl(tokenStream, m_LateDeclarations[lt][d]);
+
+        lt++;
+      }
+    }
+  }
+
+  LengthToken::Length.Set(tokenStream[1], (uint32_t)tokenStream.size());
+
+  return tokenStream;
+}
+
 void Program::MakeDisassemblyString()
 {
   DecodeProgram();
@@ -990,8 +1029,151 @@ void Program::MakeDisassemblyString()
   }
 }
 
+void Program::EncodeOperand(rdcarray<uint32_t> &tokenStream, const Operand &oper)
+{
+  uint32_t OperandToken0 = 0;
+
+  Oper::Type.Set(OperandToken0, oper.type);
+  Oper::NumComponents.Set(OperandToken0, oper.numComponents);
+
+  if(oper.flags & Operand::FLAG_SELECTED)
+  {
+    Oper::SelectionMode.Set(OperandToken0, SELECTION_SELECT_1);
+
+    Oper::ComponentSel1.Set(OperandToken0, oper.comps[0]);
+  }
+  else if(oper.flags & Operand::FLAG_MASKED)
+  {
+    Oper::SelectionMode.Set(OperandToken0, SELECTION_MASK);
+
+    for(int i = 0; i < 4; i++)
+    {
+      if(oper.comps[i] == 0)
+        Oper::ComponentMaskX.Set(OperandToken0, true);
+      if(oper.comps[i] == 1)
+        Oper::ComponentMaskY.Set(OperandToken0, true);
+      if(oper.comps[i] == 2)
+        Oper::ComponentMaskZ.Set(OperandToken0, true);
+      if(oper.comps[i] == 3)
+        Oper::ComponentMaskW.Set(OperandToken0, true);
+    }
+  }
+  else
+  {
+    Oper::SelectionMode.Set(OperandToken0, SELECTION_SWIZZLE);
+
+    Oper::ComponentSwizzleX.Set(OperandToken0, oper.comps[0]);
+    Oper::ComponentSwizzleY.Set(OperandToken0, oper.comps[1]);
+    Oper::ComponentSwizzleZ.Set(OperandToken0, oper.comps[2]);
+    Oper::ComponentSwizzleW.Set(OperandToken0, oper.comps[3]);
+  }
+
+  Oper::IndexDimension.Set(OperandToken0, (uint32_t)oper.indices.size());
+
+  OperandIndexType rep[3] = {};
+
+  for(int i = 0; i < oper.indices.size(); i++)
+  {
+    OperandIndexType indextype = INDEX_IMMEDIATE32;
+
+    if(oper.indices[i].relative)
+    {
+      if(oper.indices[i].absolute)
+        indextype = INDEX_IMMEDIATE32_PLUS_RELATIVE;
+      else
+        indextype = INDEX_RELATIVE;
+    }
+
+    // technically this means immediate64 with indices that can be truncated changes, but we don't
+    // expect fxc to emit that (I've never seen it emit immediate64).
+    // immediate64 types come after coresponding immediate32 types
+    RDCCOMPILE_ASSERT(INDEX_IMMEDIATE32 + 1 == INDEX_IMMEDIATE64, "enums aren't in order expected");
+    RDCCOMPILE_ASSERT(INDEX_IMMEDIATE32_PLUS_RELATIVE + 1 == INDEX_IMMEDIATE64_PLUS_RELATIVE,
+                      "enums aren't in order expected");
+
+    if((oper.indices[i].index & 0xFFFFFFFFULL) != oper.indices[i].index)
+      indextype = OperandIndexType(indextype + 1);
+
+    rep[i] = indextype;
+
+    if(i == 0)
+      Oper::Index0.Set(OperandToken0, indextype);
+    if(i == 1)
+      Oper::Index1.Set(OperandToken0, indextype);
+    if(i == 2)
+      Oper::Index2.Set(OperandToken0, indextype);
+  }
+
+  bool extended = false;
+  if(oper.flags & Operand::FLAG_EXTENDED)
+  {
+    Oper::Extended.Set(OperandToken0, true);
+    extended = true;
+  }
+
+  tokenStream.push_back(OperandToken0);
+
+  if(extended)
+  {
+    uint32_t ExtendedToken = 0;
+    ExtendedOperand::Type.Set(ExtendedToken, EXTENDED_OPERAND_MODIFIER);
+
+    if((oper.flags & (Operand::FLAG_ABS | Operand::FLAG_NEG)) != 0)
+      ExtendedOperand::Modifier.Set(
+          ExtendedToken, OperandModifier(oper.flags & (Operand::FLAG_ABS | Operand::FLAG_NEG)));
+    if(oper.precision != PRECISION_DEFAULT)
+      ExtendedOperand::MinPrecision.Set(ExtendedToken, oper.precision);
+    if(oper.flags & Operand::FLAG_NONUNIFORM)
+      ExtendedOperand::NonUniform.Set(ExtendedToken, true);
+
+    tokenStream.push_back(ExtendedToken);
+  }
+
+  // immediates now have 1 or 4 values
+  if(oper.type == TYPE_IMMEDIATE32 || oper.type == TYPE_IMMEDIATE64)
+  {
+    RDCASSERT(oper.indices.empty());
+
+    uint32_t numComps = 1;
+
+    if(oper.numComponents == NUMCOMPS_1)
+      numComps = 1;
+    else if(oper.numComponents == NUMCOMPS_4)
+      numComps = 4;
+    else
+      RDCERR("N-wide vectors not supported.");
+
+    tokenStream.append(oper.values, numComps);
+  }
+
+  // now encode the indices
+  for(size_t idx = 0; idx < oper.indices.size(); idx++)
+  {
+    // if there's an immediate, push it first
+    if(rep[idx] == INDEX_IMMEDIATE32_PLUS_RELATIVE || rep[idx] == INDEX_IMMEDIATE32)
+    {
+      tokenStream.push_back(oper.indices[idx].index & 0xFFFFFFFFU);
+    }
+    else if(rep[idx] == INDEX_IMMEDIATE64_PLUS_RELATIVE || rep[idx] == INDEX_IMMEDIATE64)
+    {
+      // for 64-bit values, push the high value first
+      tokenStream.push_back(oper.indices[idx].index >> 32U);
+      tokenStream.push_back(oper.indices[idx].index & 0xFFFFFFFFU);
+    }
+
+    // if there's a relative component, push another operand here
+    if(rep[idx] == INDEX_IMMEDIATE64_PLUS_RELATIVE || rep[idx] == INDEX_IMMEDIATE32_PLUS_RELATIVE ||
+       rep[idx] == INDEX_RELATIVE)
+    {
+      EncodeOperand(tokenStream, oper.indices[idx].operand);
+    }
+  }
+}
+
 bool Program::DecodeOperand(uint32_t *&tokenStream, ToString flags, Operand &retOper)
 {
+  RDCCOMPILE_ASSERT(sizeof(Operand) <= 64, "Operand shouldn't increase in size");
+
   uint32_t OperandToken0 = tokenStream[0];
 
   retOper.type = Oper::Type.Get(OperandToken0);
@@ -1001,6 +1183,8 @@ bool Program::DecodeOperand(uint32_t *&tokenStream, ToString flags, Operand &ret
 
   if(selMode == SELECTION_MASK)
   {
+    retOper.flags = Operand::FLAG_MASKED;
+
     int i = 0;
 
     if(Oper::ComponentMaskX.Get(OperandToken0))
@@ -1014,6 +1198,8 @@ bool Program::DecodeOperand(uint32_t *&tokenStream, ToString flags, Operand &ret
   }
   else if(selMode == SELECTION_SWIZZLE)
   {
+    retOper.flags = Operand::FLAG_SWIZZLED;
+
     retOper.comps[0] = Oper::ComponentSwizzleX.Get(OperandToken0);
     retOper.comps[1] = Oper::ComponentSwizzleY.Get(OperandToken0);
     retOper.comps[2] = Oper::ComponentSwizzleZ.Get(OperandToken0);
@@ -1021,6 +1207,8 @@ bool Program::DecodeOperand(uint32_t *&tokenStream, ToString flags, Operand &ret
   }
   else if(selMode == SELECTION_SELECT_1)
   {
+    retOper.flags = Operand::FLAG_SELECTED;
+
     retOper.comps[0] = Oper::ComponentSel1.Get(OperandToken0);
   }
 
@@ -1040,6 +1228,8 @@ bool Program::DecodeOperand(uint32_t *&tokenStream, ToString flags, Operand &ret
     uint32_t OperandTokenN = tokenStream[0];
 
     ExtendedOperandType type = ExtendedOperand::Type.Get(OperandTokenN);
+
+    retOper.flags = Operand::Flags(retOper.flags | Operand::FLAG_EXTENDED);
 
     if(type == EXTENDED_OPERAND_MODIFIER)
     {
@@ -1143,6 +1333,366 @@ bool Program::DecodeOperand(uint32_t *&tokenStream, ToString flags, Operand &ret
   }
 
   return true;
+}
+
+void Program::EncodeDecl(rdcarray<uint32_t> &tokenStream, const Declaration &decl)
+{
+  rdcarray<uint32_t> declStream;
+
+  declStream.reserve(16);
+
+  uint32_t OpcodeToken0 = 0;
+
+  const bool sm51 = (m_Major == 0x5 && m_Minor == 0x1);
+
+  Opcode::Type.Set(OpcodeToken0, decl.declaration);
+
+  OpcodeType op = decl.declaration;
+
+  if(op == OPCODE_DCL_IMMEDIATE_CONSTANT_BUFFER)
+  {
+    OpcodeToken0 = 0;
+    Opcode::Type.Set(OpcodeToken0, OPCODE_CUSTOMDATA);
+    Opcode::CustomClass.Set(OpcodeToken0, CUSTOMDATA_DCL_IMMEDIATE_CONSTANT_BUFFER);
+
+    declStream.push_back(OpcodeToken0);
+
+    // push overall length, including OpcodeToken0 and this length
+    declStream.push_back((uint32_t)m_Immediate.size() + 2);
+
+    declStream.append(m_Immediate);
+
+    // append immediately and return, so we don't do any length fixup
+    tokenStream.append(declStream);
+
+    return;
+  }
+  else if(op == OPCODE_OPAQUE_CUSTOMDATA)
+  {
+    OpcodeToken0 = 0;
+    Opcode::Type.Set(OpcodeToken0, OPCODE_CUSTOMDATA);
+    Opcode::CustomClass.Set(OpcodeToken0, m_CustomDatas[decl.customDataIndex].first);
+
+    declStream.push_back(OpcodeToken0);
+
+    const rdcarray<uint32_t> &customData = m_CustomDatas[decl.customDataIndex].second;
+
+    // push overall length, including OpcodeToken0 and this length
+    declStream.push_back((uint32_t)customData.size() + 2);
+
+    declStream.append(customData);
+
+    // append immediately and return, so we don't do any length fixup
+    tokenStream.append(declStream);
+
+    return;
+  }
+  else if(op == OPCODE_CUSTOMDATA)
+  {
+    RDCERR("Unexpected raw customdata declaration");
+    return;
+  }
+  else if(op == OPCODE_DCL_GLOBAL_FLAGS)
+  {
+    Decl::RefactoringAllowed.Set(OpcodeToken0, decl.global_flags.refactoringAllowed);
+    Decl::DoubleFloatOps.Set(OpcodeToken0, decl.global_flags.doublePrecisionFloats);
+    Decl::ForceEarlyDepthStencil.Set(OpcodeToken0, decl.global_flags.forceEarlyDepthStencil);
+    Decl::EnableRawStructuredBufs.Set(OpcodeToken0, decl.global_flags.enableRawAndStructuredBuffers);
+    Decl::SkipOptimisation.Set(OpcodeToken0, decl.global_flags.skipOptimisation);
+    Decl::EnableMinPrecision.Set(OpcodeToken0, decl.global_flags.enableMinPrecision);
+    Decl::EnableD3D11_1DoubleExtensions.Set(OpcodeToken0,
+                                            decl.global_flags.enableD3D11_1DoubleExtensions);
+    Decl::EnableD3D11_1ShaderExtensions.Set(OpcodeToken0,
+                                            decl.global_flags.enableD3D11_1ShaderExtensions);
+    Decl::EnableD3D12AllResourcesBound.Set(OpcodeToken0,
+                                           decl.global_flags.enableD3D12AllResourcesBound);
+
+    declStream.push_back(OpcodeToken0);
+  }
+  else if(op == OPCODE_DCL_CONSTANT_BUFFER)
+  {
+    Decl::AccessPattern.Set(OpcodeToken0, decl.cbuffer.accessPattern);
+
+    declStream.push_back(OpcodeToken0);
+
+    EncodeOperand(declStream, decl.operand);
+
+    if(sm51)
+    {
+      declStream.push_back(decl.cbuffer.vectorSize);
+      declStream.push_back(decl.space);
+    }
+  }
+  else if(op == OPCODE_DCL_INPUT)
+  {
+    declStream.push_back(OpcodeToken0);
+
+    EncodeOperand(declStream, decl.operand);
+  }
+  else if(op == OPCODE_DCL_TEMPS)
+  {
+    declStream.push_back(OpcodeToken0);
+    declStream.push_back(decl.numTemps);
+  }
+  else if(op == OPCODE_DCL_INDEXABLE_TEMP)
+  {
+    declStream.push_back(OpcodeToken0);
+    declStream.push_back(decl.indexable_temp.tempReg);
+    declStream.push_back(decl.indexable_temp.numTemps);
+    declStream.push_back(decl.indexable_temp.tempComponentCount);
+  }
+  else if(op == OPCODE_DCL_OUTPUT)
+  {
+    declStream.push_back(OpcodeToken0);
+
+    EncodeOperand(declStream, decl.operand);
+  }
+  else if(op == OPCODE_DCL_MAX_OUTPUT_VERTEX_COUNT)
+  {
+    declStream.push_back(OpcodeToken0);
+    declStream.push_back(decl.maxVertexOutCount);
+  }
+  else if(op == OPCODE_DCL_INPUT_SIV || op == OPCODE_DCL_INPUT_SGV || op == OPCODE_DCL_OUTPUT_SIV ||
+          op == OPCODE_DCL_OUTPUT_SGV)
+  {
+    declStream.push_back(OpcodeToken0);
+
+    EncodeOperand(declStream, decl.operand);
+
+    declStream.push_back((uint32_t)decl.inputOutput.systemValue);
+  }
+  else if(op == OPCODE_DCL_INPUT_PS || op == OPCODE_DCL_INPUT_PS_SIV || op == OPCODE_DCL_INPUT_PS_SGV)
+  {
+    // the (minimal) spec says this is 0 for SGV, but it's not and fxc displays the interp mode
+    Decl::InterpolationMode.Set(OpcodeToken0, decl.inputOutput.inputInterpolation);
+
+    declStream.push_back(OpcodeToken0);
+
+    EncodeOperand(declStream, decl.operand);
+
+    if(op == OPCODE_DCL_INPUT_PS_SIV || op == OPCODE_DCL_INPUT_PS_SGV)
+      declStream.push_back((uint32_t)decl.inputOutput.systemValue);
+  }
+  else if(op == OPCODE_DCL_STREAM)
+  {
+    declStream.push_back(OpcodeToken0);
+
+    EncodeOperand(declStream, decl.operand);
+  }
+  else if(op == OPCODE_DCL_SAMPLER)
+  {
+    Decl::SamplerMode.Set(OpcodeToken0, decl.samplerMode);
+
+    declStream.push_back(OpcodeToken0);
+
+    EncodeOperand(declStream, decl.operand);
+
+    if(sm51)
+      declStream.push_back(decl.space);
+  }
+  else if(op == OPCODE_DCL_RESOURCE)
+  {
+    Decl::ResourceDim.Set(OpcodeToken0, decl.resource.dim);
+
+    if(decl.resource.dim == RESOURCE_DIMENSION_TEXTURE2DMS ||
+       decl.resource.dim == RESOURCE_DIMENSION_TEXTURE2DMSARRAY)
+    {
+      Decl::SampleCount.Set(OpcodeToken0, decl.resource.sampleCount);
+    }
+
+    declStream.push_back(OpcodeToken0);
+
+    EncodeOperand(declStream, decl.operand);
+
+    uint32_t ResourceReturnTypeToken = 0;
+
+    Decl::ReturnTypeX.Set(ResourceReturnTypeToken, decl.resource.resType[0]);
+    Decl::ReturnTypeY.Set(ResourceReturnTypeToken, decl.resource.resType[1]);
+    Decl::ReturnTypeZ.Set(ResourceReturnTypeToken, decl.resource.resType[2]);
+    Decl::ReturnTypeW.Set(ResourceReturnTypeToken, decl.resource.resType[3]);
+
+    declStream.push_back(ResourceReturnTypeToken);
+
+    if(sm51)
+      declStream.push_back(decl.space);
+  }
+  else if(op == OPCODE_DCL_INDEX_RANGE)
+  {
+    declStream.push_back(OpcodeToken0);
+
+    EncodeOperand(declStream, decl.operand);
+
+    declStream.push_back(decl.indexRange);
+  }
+  else if(op == OPCODE_DCL_THREAD_GROUP)
+  {
+    declStream.push_back(OpcodeToken0);
+
+    declStream.push_back(decl.groupSize[0]);
+    declStream.push_back(decl.groupSize[1]);
+    declStream.push_back(decl.groupSize[2]);
+  }
+  else if(op == OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_RAW)
+  {
+    declStream.push_back(OpcodeToken0);
+
+    EncodeOperand(declStream, decl.operand);
+
+    declStream.push_back(decl.tgsmCount);
+  }
+  else if(op == OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED)
+  {
+    declStream.push_back(OpcodeToken0);
+
+    EncodeOperand(declStream, decl.operand);
+
+    declStream.push_back(decl.tsgm_structured.stride);
+    declStream.push_back(decl.tsgm_structured.count);
+  }
+  else if(op == OPCODE_DCL_INPUT_CONTROL_POINT_COUNT || op == OPCODE_DCL_OUTPUT_CONTROL_POINT_COUNT)
+  {
+    Decl::ControlPointCount.Set(OpcodeToken0, decl.controlPointCount);
+
+    declStream.push_back(OpcodeToken0);
+  }
+  else if(op == OPCODE_DCL_TESS_DOMAIN)
+  {
+    Decl::TessDomain.Set(OpcodeToken0, decl.tessDomain);
+
+    declStream.push_back(OpcodeToken0);
+  }
+  else if(op == OPCODE_DCL_TESS_PARTITIONING)
+  {
+    Decl::TessPartitioning.Set(OpcodeToken0, decl.tessPartition);
+
+    declStream.push_back(OpcodeToken0);
+  }
+  else if(op == OPCODE_DCL_GS_INPUT_PRIMITIVE)
+  {
+    Decl::InputPrimitive.Set(OpcodeToken0, decl.geomInputPrimitive);
+
+    declStream.push_back(OpcodeToken0);
+  }
+  else if(op == OPCODE_DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY)
+  {
+    Decl::OutputPrimitiveTopology.Set(OpcodeToken0, decl.geomOutputTopology);
+
+    declStream.push_back(OpcodeToken0);
+  }
+  else if(op == OPCODE_DCL_TESS_OUTPUT_PRIMITIVE)
+  {
+    Decl::OutputPrimitive.Set(OpcodeToken0, decl.tessOutputPrimitive);
+
+    declStream.push_back(OpcodeToken0);
+  }
+  else if(op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW || op == OPCODE_DCL_RESOURCE_RAW)
+  {
+    if(op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW)
+    {
+      Decl::RasterizerOrderedAccess.Set(OpcodeToken0, decl.raw.rov);
+      Decl::GloballyCoherent.Set(OpcodeToken0, decl.raw.globallyCoherant);
+    }
+
+    declStream.push_back(OpcodeToken0);
+
+    EncodeOperand(declStream, decl.operand);
+
+    if(sm51)
+      declStream.push_back(decl.space);
+  }
+  else if(op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED || op == OPCODE_DCL_RESOURCE_STRUCTURED)
+  {
+    if(op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED)
+    {
+      Decl::HasOrderPreservingCounter.Set(OpcodeToken0, decl.structured.hasCounter);
+      Decl::RasterizerOrderedAccess.Set(OpcodeToken0, decl.structured.rov);
+      Decl::GloballyCoherent.Set(OpcodeToken0, decl.structured.globallyCoherant);
+    }
+
+    declStream.push_back(OpcodeToken0);
+
+    EncodeOperand(declStream, decl.operand);
+
+    declStream.push_back(decl.structured.stride);
+
+    if(sm51)
+      declStream.push_back(decl.space);
+  }
+  else if(op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_TYPED)
+  {
+    Decl::ResourceDim.Set(OpcodeToken0, decl.uav_typed.dim);
+    Decl::GloballyCoherent.Set(OpcodeToken0, decl.uav_typed.globallyCoherant);
+    Decl::RasterizerOrderedAccess.Set(OpcodeToken0, decl.uav_typed.rov);
+
+    declStream.push_back(OpcodeToken0);
+
+    EncodeOperand(declStream, decl.operand);
+
+    uint32_t ResourceReturnTypeToken = 0;
+
+    Decl::ReturnTypeX.Set(ResourceReturnTypeToken, decl.uav_typed.resType[0]);
+    Decl::ReturnTypeY.Set(ResourceReturnTypeToken, decl.uav_typed.resType[1]);
+    Decl::ReturnTypeZ.Set(ResourceReturnTypeToken, decl.uav_typed.resType[2]);
+    Decl::ReturnTypeW.Set(ResourceReturnTypeToken, decl.uav_typed.resType[3]);
+
+    declStream.push_back(ResourceReturnTypeToken);
+
+    if(sm51)
+      declStream.push_back(decl.space);
+  }
+  else if(op == OPCODE_DCL_HS_FORK_PHASE_INSTANCE_COUNT ||
+          op == OPCODE_DCL_HS_JOIN_PHASE_INSTANCE_COUNT || op == OPCODE_DCL_GS_INSTANCE_COUNT)
+  {
+    declStream.push_back(OpcodeToken0);
+    declStream.push_back(decl.instanceCount);
+  }
+  else if(op == OPCODE_DCL_HS_MAX_TESSFACTOR)
+  {
+    declStream.push_back(OpcodeToken0);
+
+    uint32_t token;
+    memcpy(&token, &decl.maxTessFactor, sizeof(token));
+    declStream.push_back(token);
+  }
+  else if(op == OPCODE_DCL_FUNCTION_BODY)
+  {
+    declStream.push_back(OpcodeToken0);
+    declStream.push_back(decl.functionBody);
+  }
+  else if(op == OPCODE_DCL_FUNCTION_TABLE)
+  {
+    declStream.push_back(OpcodeToken0);
+    declStream.push_back(decl.functionTable);
+
+    declStream.push_back((uint32_t)decl.functionTableContents.size());
+
+    declStream.append(decl.functionTableContents);
+  }
+  else if(op == OPCODE_DCL_INTERFACE)
+  {
+    declStream.push_back(OpcodeToken0);
+    declStream.push_back(decl.iface.interfaceID);
+    declStream.push_back(decl.iface.numTypes);
+
+    uint32_t CountToken = 0;
+    Decl::NumInterfaces.Set(CountToken, decl.iface.numInterfaces);
+    Decl::TableLength.Set(CountToken, (uint32_t)decl.functionTableContents.size());
+    declStream.push_back(CountToken);
+
+    declStream.append(decl.functionTableContents);
+  }
+  else if(op == OPCODE_HS_DECLS)
+  {
+    declStream.push_back(OpcodeToken0);
+  }
+  else
+  {
+    RDCERR("Unexpected opcode decl %d", op);
+  }
+
+  // fixup the declaration now and append
+  Opcode::Length.Set(declStream[0], (uint32_t)declStream.size());
+  tokenStream.append(declStream);
 }
 
 bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool friendlyName)
@@ -1317,7 +1867,7 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
   }
   else if(op == OPCODE_DCL_CONSTANT_BUFFER)
   {
-    CBufferAccessPattern accessPattern = Decl::AccessPattern.Get(OpcodeToken0);
+    retDecl.cbuffer.accessPattern = Decl::AccessPattern.Get(OpcodeToken0);
 
     bool ret = DecodeOperand(tokenStream, flags, retDecl.operand);
     RDCASSERT(ret);
@@ -1328,17 +1878,17 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
     {
       // Store the size provided. If there's no reflection data, this will be
       // necessary to guess the buffer size properly
-      retDecl.cbufferVectorSize = tokenStream[0];
+      retDecl.cbuffer.vectorSize = tokenStream[0];
       tokenStream++;
 
-      retDecl.str += StringFormat::Fmt("[%u]", retDecl.cbufferVectorSize);
+      retDecl.str += StringFormat::Fmt("[%u]", retDecl.cbuffer.vectorSize);
     }
 
     retDecl.str += ", ";
 
-    if(accessPattern == ACCESS_IMMEDIATE_INDEXED)
+    if(retDecl.cbuffer.accessPattern == ACCESS_IMMEDIATE_INDEXED)
       retDecl.str += "immediateIndexed";
-    else if(accessPattern == ACCESS_DYNAMIC_INDEXED)
+    else if(retDecl.cbuffer.accessPattern == ACCESS_DYNAMIC_INDEXED)
       retDecl.str += "dynamicIndexed";
     else
       RDCERR("Unexpected cbuffer access pattern");
@@ -1422,21 +1972,46 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
 
     retDecl.str += StringFormat::Fmt(" %u", retDecl.maxVertexOutCount);
   }
-  else if(op == OPCODE_DCL_INPUT_SIV || op == OPCODE_DCL_INPUT_SGV ||
-          op == OPCODE_DCL_INPUT_PS_SIV || op == OPCODE_DCL_INPUT_PS_SGV ||
-          op == OPCODE_DCL_OUTPUT_SIV || op == OPCODE_DCL_OUTPUT_SGV)
+  else if(op == OPCODE_DCL_INPUT_SIV || op == OPCODE_DCL_INPUT_SGV || op == OPCODE_DCL_OUTPUT_SIV ||
+          op == OPCODE_DCL_OUTPUT_SGV)
   {
     bool ret = DecodeOperand(tokenStream, flags, retDecl.operand);
     RDCASSERT(ret);
 
-    retDecl.systemValue = (DXBC::SVSemantic)tokenStream[0];
+    retDecl.inputOutput.systemValue = (DXBC::SVSemantic)tokenStream[0];
     tokenStream++;
 
     retDecl.str += " ";
     retDecl.str += retDecl.operand.toString(m_Reflection, flags | ToString::ShowSwizzle);
 
     retDecl.str += ", ";
-    retDecl.str += ToStr(retDecl.systemValue);
+    retDecl.str += ToStr(retDecl.inputOutput.systemValue);
+  }
+  else if(op == OPCODE_DCL_INPUT_PS || op == OPCODE_DCL_INPUT_PS_SIV || op == OPCODE_DCL_INPUT_PS_SGV)
+  {
+    // the (minimal) spec says this is 0 for SGV, but it's not and fxc displays the interp mode
+    retDecl.inputOutput.inputInterpolation = Decl::InterpolationMode.Get(OpcodeToken0);
+
+    bool ret = DecodeOperand(tokenStream, flags, retDecl.operand);
+    RDCASSERT(ret);
+
+    if(op == OPCODE_DCL_INPUT_PS_SIV || op == OPCODE_DCL_INPUT_PS_SGV)
+    {
+      retDecl.inputOutput.systemValue = (DXBC::SVSemantic)tokenStream[0];
+      tokenStream++;
+    }
+
+    retDecl.str += " ";
+    retDecl.str += ToStr(retDecl.inputOutput.inputInterpolation);
+
+    retDecl.str += " ";
+    retDecl.str += retDecl.operand.toString(m_Reflection, flags | ToString::ShowSwizzle);
+
+    if(op == OPCODE_DCL_INPUT_PS_SIV || op == OPCODE_DCL_INPUT_PS_SGV)
+    {
+      retDecl.str += ", ";
+      retDecl.str += ToStr(retDecl.inputOutput.systemValue);
+    }
   }
   else if(op == OPCODE_DCL_STREAM)
   {
@@ -1541,19 +2116,6 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
         retDecl.str += StringFormat::Fmt(",regs=%u:%u", retDecl.operand.indices[1].index,
                                          retDecl.operand.indices[2].index);
     }
-  }
-  else if(op == OPCODE_DCL_INPUT_PS)
-  {
-    retDecl.inputInterpolation = Decl::InterpolationMode.Get(OpcodeToken0);
-
-    bool ret = DecodeOperand(tokenStream, flags, retDecl.operand);
-    RDCASSERT(ret);
-
-    retDecl.str += " ";
-    retDecl.str += ToStr(retDecl.inputInterpolation);
-
-    retDecl.str += " ";
-    retDecl.str += retDecl.operand.toString(m_Reflection, flags | ToString::ShowSwizzle);
   }
   else if(op == OPCODE_DCL_INDEX_RANGE)
   {
@@ -1970,6 +2532,114 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
   return true;
 }
 
+void Program::EncodeOperation(rdcarray<uint32_t> &tokenStream, const Operation &op)
+{
+  rdcarray<uint32_t> opStream;
+
+  opStream.reserve(16);
+
+  uint32_t OpcodeToken0 = 0;
+
+  const bool sm51 = (m_Major == 0x5 && m_Minor == 0x1);
+
+  Opcode::Type.Set(OpcodeToken0, op.operation);
+
+  Opcode::TestNonZero.Set(OpcodeToken0, op.nonzero());
+  Opcode::Saturate.Set(OpcodeToken0, op.saturate());
+  Opcode::PreciseValues.Set(OpcodeToken0, op.preciseValues);
+
+  if(op.operation == OPCODE_RESINFO)
+    Opcode::ResinfoReturn.Set(OpcodeToken0, op.resinfoRetType);
+
+  if(op.operation == OPCODE_SYNC)
+    Opcode::SyncFlags.Set(OpcodeToken0, op.syncFlags);
+
+  if(op.operation == OPCODE_SHADER_MESSAGE || op.operation == OPCODE_OPAQUE_CUSTOMDATA)
+  {
+    OpcodeToken0 = 0;
+    Opcode::Type.Set(OpcodeToken0, OPCODE_CUSTOMDATA);
+    Opcode::CustomClass.Set(OpcodeToken0, m_CustomDatas[op.customDataIndex].first);
+
+    opStream.push_back(OpcodeToken0);
+
+    const rdcarray<uint32_t> &customData = m_CustomDatas[op.customDataIndex].second;
+
+    // push overall length, including OpcodeToken0 and this length
+    opStream.push_back((uint32_t)customData.size() + 2);
+
+    opStream.append(customData);
+
+    // append immediately and return, so we don't do any length fixup
+    tokenStream.append(opStream);
+
+    return;
+  }
+  else if(op.operation == OPCODE_CUSTOMDATA)
+  {
+    RDCERR("Unexpected raw customdata operation");
+    return;
+  }
+
+  opStream.push_back(OpcodeToken0);
+
+  if(op.flags & Operation::FLAG_TEXEL_OFFSETS)
+  {
+    ExtendedOpcode::Extended.Set(opStream.back(), true);
+
+    uint32_t OpcodeTokenN = 0;
+    ExtendedOpcode::Type.Set(OpcodeTokenN, EXTENDED_OPCODE_SAMPLE_CONTROLS);
+
+    ExtendedOpcode::TexelOffsetU.Set(OpcodeTokenN, op.texelOffset[0]);
+    ExtendedOpcode::TexelOffsetV.Set(OpcodeTokenN, op.texelOffset[1]);
+    ExtendedOpcode::TexelOffsetW.Set(OpcodeTokenN, op.texelOffset[2]);
+
+    opStream.push_back(OpcodeTokenN);
+  }
+
+  if(op.flags & Operation::FLAG_RESOURCE_DIMS)
+  {
+    ExtendedOpcode::Extended.Set(opStream.back(), true);
+
+    uint32_t OpcodeTokenN = 0;
+    ExtendedOpcode::Type.Set(OpcodeTokenN, EXTENDED_OPCODE_RESOURCE_DIM);
+
+    ExtendedOpcode::ResourceDim.Set(OpcodeTokenN, op.resDim);
+
+    if(op.resDim == RESOURCE_DIMENSION_STRUCTURED_BUFFER)
+      ExtendedOpcode::BufferStride.Set(OpcodeTokenN, op.stride);
+
+    opStream.push_back(OpcodeTokenN);
+  }
+
+  if(op.flags & Operation::FLAG_RET_TYPE)
+  {
+    ExtendedOpcode::Extended.Set(opStream.back(), true);
+
+    uint32_t OpcodeTokenN = 0;
+    ExtendedOpcode::Type.Set(OpcodeTokenN, EXTENDED_OPCODE_RESOURCE_RETURN_TYPE);
+
+    ExtendedOpcode::ReturnTypeX.Set(OpcodeTokenN, op.resType[0]);
+    ExtendedOpcode::ReturnTypeY.Set(OpcodeTokenN, op.resType[1]);
+    ExtendedOpcode::ReturnTypeZ.Set(OpcodeTokenN, op.resType[2]);
+    ExtendedOpcode::ReturnTypeW.Set(OpcodeTokenN, op.resType[3]);
+
+    opStream.push_back(OpcodeTokenN);
+  }
+
+  if(op.operation == OPCODE_INTERFACE_CALL)
+    opStream.push_back(op.operands[0].values[0]);
+
+  for(size_t i = 0; i < op.operands.size(); i++)
+    EncodeOperand(opStream, op.operands[i]);
+
+  if(op.flags & Operation::FLAG_TRAILING_ZERO_TOKEN)
+    opStream.push_back(0x0);
+
+  // fixup the declaration now and append
+  Opcode::Length.Set(opStream[0], (uint32_t)opStream.size());
+  tokenStream.append(opStream);
+}
+
 bool Program::DecodeOperation(uint32_t *&tokenStream, Operation &retOp, bool friendlyName)
 {
   uint32_t *begin = tokenStream;
@@ -2112,6 +2782,8 @@ bool Program::DecodeOperation(uint32_t *&tokenStream, Operation &retOp, bool fri
 
     if(type == EXTENDED_OPCODE_SAMPLE_CONTROLS)
     {
+      retOp.flags = Operation::Flags(retOp.flags | Operation::FLAG_TEXEL_OFFSETS);
+
       retOp.texelOffset[0] = ExtendedOpcode::TexelOffsetU.Get(OpcodeTokenN);
       retOp.texelOffset[1] = ExtendedOpcode::TexelOffsetV.Get(OpcodeTokenN);
       retOp.texelOffset[2] = ExtendedOpcode::TexelOffsetW.Get(OpcodeTokenN);
@@ -2129,6 +2801,8 @@ bool Program::DecodeOperation(uint32_t *&tokenStream, Operation &retOp, bool fri
     }
     else if(type == EXTENDED_OPCODE_RESOURCE_DIM)
     {
+      retOp.flags = Operation::Flags(retOp.flags | Operation::FLAG_RESOURCE_DIMS);
+
       retOp.resDim = ExtendedOpcode::ResourceDim.Get(OpcodeTokenN);
 
       if(retOp.resDim == RESOURCE_DIMENSION_STRUCTURED_BUFFER)
@@ -2147,6 +2821,8 @@ bool Program::DecodeOperation(uint32_t *&tokenStream, Operation &retOp, bool fri
     }
     else if(type == EXTENDED_OPCODE_RESOURCE_RETURN_TYPE)
     {
+      retOp.flags = Operation::Flags(retOp.flags | Operation::FLAG_RET_TYPE);
+
       retOp.resType[0] = ExtendedOpcode::ReturnTypeX.Get(OpcodeTokenN);
       retOp.resType[1] = ExtendedOpcode::ReturnTypeY.Get(OpcodeTokenN);
       retOp.resType[2] = ExtendedOpcode::ReturnTypeZ.Get(OpcodeTokenN);
@@ -2247,22 +2923,33 @@ bool Program::DecodeOperation(uint32_t *&tokenStream, Operation &retOp, bool fri
     retOp.str += retOp.operands[i].toString(m_Reflection, flags | ToString::ShowSwizzle);
   }
 
+  uint32_t consumedTokens = (uint32_t)(tokenStream - begin);
+
+  if(consumedTokens + 1 == opLength && begin[consumedTokens] == 0x0)
+  {
+    retOp.flags = Operation::Flags(retOp.flags | Operation::FLAG_TRAILING_ZERO_TOKEN);
+    RDCDEBUG("Consuming extra unused 0 dword");
+
+    tokenStream++;
+    consumedTokens++;
+  }
+
 #if ENABLED(RDOC_DEVEL)
-  if((uint32_t)(tokenStream - begin) > opLength)
+  if(consumedTokens > opLength)
   {
     RDCERR("Consumed too many tokens for %d!", retOp.operation);
 
     // try to recover by rewinding the stream, this instruction will be garbage but at least the
     // next ones will be correct
-    uint32_t overread = (uint32_t)(tokenStream - begin) - opLength;
+    uint32_t overread = consumedTokens - opLength;
     tokenStream -= overread;
   }
-  else if((uint32_t)(tokenStream - begin) < opLength)
+  else if(consumedTokens < opLength)
   {
     // sometimes this just happens, which is why we only print this in non-release so we can
     // inspect it. There's probably not much we can do though, it's just magic.
     RDCWARN("Consumed too few tokens for %d!", retOp.operation);
-    uint32_t missing = opLength - (uint32_t)(tokenStream - begin);
+    uint32_t missing = opLength - consumedTokens;
     for(uint32_t i = 0; i < missing; i++)
     {
       RDCLOG("missing token %d: 0x%08x", i, tokenStream[0]);

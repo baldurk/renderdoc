@@ -4856,7 +4856,7 @@ DXBCBytecode::InterpolationMode GetInterpolationModeForInputParam(const SigParam
         if(decl.declaration == DXBCBytecode::OPCODE_DCL_INPUT_PS &&
            decl.operand.indices[0].absolute && decl.operand.indices[0].index == sig.regIndex)
         {
-          interpolation = decl.inputInterpolation;
+          interpolation = decl.inputOutput.inputInterpolation;
           break;
         }
       }

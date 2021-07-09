@@ -165,6 +165,7 @@ static MaskedElement<DXBC::ResourceRetType, 0x00000F00> ReturnTypeZ;
 static MaskedElement<DXBC::ResourceRetType, 0x0000F000> ReturnTypeW;
 
 // OPCODE_DCL_INPUT_PS
+// OPCODE_DCL_INPUT_PS_SIV
 static MaskedElement<InterpolationMode, 0x00007800> InterpolationMode;
 
 // OPCODE_DCL_INPUT_CONTROL_POINT_COUNT

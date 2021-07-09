@@ -775,6 +775,17 @@ struct Operand
     FLAG_ABS = 0x02,
 
     FLAG_NONUNIFORM = 0x04,
+
+    // these are only used to ensure we can output using the same register swizzling as fxc, since
+    // fxc unpredictably uses masks and swizzles for .xyzw
+    FLAG_SELECTED = 0x08,
+    FLAG_SWIZZLED = 0x10,
+    FLAG_MASKED = 0x20,
+
+    // for some reason fxc sometimes emits extended operands with... nothing. No modifier or
+    // precision. To try and round-trip cleanly we store the extended flag here instead of only
+    // emitting an extended operand when we see a modifier or precision
+    FLAG_EXTENDED = 0x40,
   } flags;
 
   MinimumPrecision precision;
@@ -818,6 +829,15 @@ struct Operand
 
   void setComps(uint8_t x, uint8_t y, uint8_t z, uint8_t w)
   {
+    flags = Flags(flags & ~(FLAG_SWIZZLED | FLAG_MASKED | FLAG_SELECTED));
+
+    if(y == 0xff && z == 0xff && w == 0xff)
+      flags = Flags(flags | FLAG_SELECTED);
+    else if(x == 0xff || y == 0xff || z == 0xff || w == 0xff)
+      flags = Flags(flags | FLAG_MASKED);
+    else
+      flags = Flags(flags | FLAG_SWIZZLED);
+
     comps[0] = x;
     comps[1] = y;
     comps[2] = z;
@@ -968,18 +988,23 @@ struct Declaration
     uint32_t groupSize[3];
 
     // OPCODE_DCL_CONSTANT_BUFFER
-    uint32_t cbufferVectorSize;
+    struct
+    {
+      CBufferAccessPattern accessPattern;
+      uint32_t vectorSize;
+    } cbuffer;
 
     // OPCODE_DCL_INPUT_PS
-    InterpolationMode inputInterpolation;
-
+    // OPCODE_DCL_INPUT_PS_SIV
     // OPCODE_DCL_INPUT_SIV
     // OPCODE_DCL_INPUT_SGV
-    // OPCODE_DCL_INPUT_PS_SIV
     // OPCODE_DCL_INPUT_PS_SGV
-    // OPCODE_DCL_OUTPUT_SIV
-    // OPCODE_DCL_OUTPUT_SGV
-    DXBC::SVSemantic systemValue;
+    struct
+    {
+      // only used for PS inputs
+      InterpolationMode inputInterpolation;
+      DXBC::SVSemantic systemValue;
+    } inputOutput;
 
     // OPCODE_DCL_MAX_OUTPUT_VERTEX_COUNT
     uint32_t maxVertexOutCount;
@@ -1088,6 +1113,13 @@ struct Operation
     FLAG_NONE = 0x0,
     FLAG_NONZERO = 0x01,
     FLAG_SATURATE = 0x02,
+    FLAG_TEXEL_OFFSETS = 0x04,
+    FLAG_RESOURCE_DIMS = 0x08,
+    FLAG_RET_TYPE = 0x10,
+
+    // sometimes fxc emits a 0 dword after the operand. For bitwise-compatibility we store a flag
+    // here for that case to emit it again
+    FLAG_TRAILING_ZERO_TOKEN = 0x20,
   } flags;
 
   rdcarray<Operand> operands;
@@ -1097,6 +1129,9 @@ class Program
 {
 public:
   Program(const byte *bytes, size_t length);
+  Program(const Program &o) = delete;
+  Program(Program &&o) = delete;
+  Program &operator=(const Program &o) = delete;
 
   void SetShaderEXTUAV(GraphicsAPI api, uint32_t space, uint32_t reg)
   {
@@ -1107,6 +1142,8 @@ public:
   DXBC::Reflection *GuessReflection();
 
   rdcstr GetDebugStatus();
+
+  rdcarray<uint32_t> EncodeProgram();
 
   void SetReflection(const DXBC::Reflection *refl) { m_Reflection = refl; }
   void SetDebugInfo(const DXBC::IDebugInfo *debug) { m_DebugInfo = debug; }
@@ -1184,5 +1221,9 @@ protected:
   bool DecodeOperation(uint32_t *&tokenStream, Operation &op, bool friendlyName);
   bool DecodeDecl(uint32_t *&tokenStream, Declaration &decl, bool friendlyName);
   bool DecodeOperand(uint32_t *&tokenStream, ToString flags, Operand &oper);
+
+  void EncodeOperand(rdcarray<uint32_t> &tokenStream, const Operand &oper);
+  void EncodeDecl(rdcarray<uint32_t> &tokenStream, const Declaration &decl);
+  void EncodeOperation(rdcarray<uint32_t> &tokenStream, const Operation &op);
 };
 };

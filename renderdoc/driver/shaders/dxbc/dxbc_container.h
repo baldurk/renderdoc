@@ -146,6 +146,10 @@ public:
   DXBCContainer(bytebuf &ByteCode, const rdcstr &debugInfoPath, GraphicsAPI api,
                 uint32_t shaderExtReg, uint32_t shaderExtSpace);
   ~DXBCContainer();
+  DXBCContainer(const DXBCContainer &o) = delete;
+  DXBCContainer(DXBCContainer &&o) = delete;
+  DXBCContainer &operator=(const DXBCContainer &o) = delete;
+
   DXBC::ShaderType m_Type = DXBC::ShaderType::Max;
   struct
   {
@@ -161,6 +165,8 @@ public:
   const rdcstr &GetDisassembly();
   void FillTraceLineInfo(ShaderDebugTrace &trace) const;
   void FillStateInstructionInfo(ShaderDebugState &state) const;
+
+  static void ReplaceProgram(bytebuf &ByteCode, DXBCBytecode::Program *program);
 
   const DXBCBytecode::Program *GetDXBCByteCode() const { return m_DXBCByteCode; }
   DXBCBytecode::Program *GetDXBCByteCode() { return m_DXBCByteCode; }
@@ -178,9 +184,6 @@ public:
   static rdcstr GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLength);
 
 private:
-  DXBCContainer(const DXBCContainer &o);
-  DXBCContainer &operator=(const DXBCContainer &o);
-
   void TryFetchSeparateDebugInfo(bytebuf &byteCode, const rdcstr &debugInfoPath);
 
   bytebuf m_DebugShaderBlob;

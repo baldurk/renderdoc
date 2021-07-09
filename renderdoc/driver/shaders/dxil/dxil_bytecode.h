@@ -497,8 +497,9 @@ class Program : public DXBC::IDebugInfo
 {
 public:
   Program(const byte *bytes, size_t length);
-  Program(const Program &o) = default;
-  Program &operator=(const Program &o) = default;
+  Program(const Program &o) = delete;
+  Program(Program &&o) = delete;
+  Program &operator=(const Program &o) = delete;
   virtual ~Program() {}
   static bool Valid(const byte *bytes, size_t length);
 

@@ -441,7 +441,7 @@ DXBC::Reflection *Program::GuessReflection()
         uint32_t idx = (uint32_t)dcl.operand.indices[0].index;
         uint32_t reg = isShaderModel51 ? (uint32_t)dcl.operand.indices[1].index : idx;
         uint32_t numVecs =
-            isShaderModel51 ? dcl.cbufferVectorSize : (uint32_t)dcl.operand.indices[1].index;
+            isShaderModel51 ? dcl.cbuffer.vectorSize : (uint32_t)dcl.operand.indices[1].index;
 
         desc.name = StringFormat::Fmt("cbuffer%u", idx);
         desc.type = DXBC::ShaderInputBind::TYPE_CBUFFER;
