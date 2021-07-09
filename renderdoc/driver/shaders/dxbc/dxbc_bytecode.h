@@ -773,6 +773,8 @@ struct Operand
     // these correspond to the bits in OperandModifier
     FLAG_NEG = 0x01,
     FLAG_ABS = 0x02,
+
+    FLAG_NONUNIFORM = 0x04,
   } flags;
 
   MinimumPrecision precision;

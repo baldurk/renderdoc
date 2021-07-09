@@ -566,6 +566,9 @@ rdcstr Operand::toString(const DXBC::Reflection *reflection, ToString toStrFlags
   if(decl && !regstr.empty())
     str += StringFormat::Fmt(" (%s)", regstr.c_str());
 
+  if(flags & FLAG_NONUNIFORM)
+    str += " { nonuniform }";
+
   if(!name.empty())
   {
     rdcstr n = name;
@@ -1042,6 +1045,8 @@ bool Program::DecodeOperand(uint32_t *&tokenStream, ToString flags, Operand &ret
     {
       retOper.flags = Operand::Flags(retOper.flags | ExtendedOperand::Modifier.Get(OperandTokenN));
       retOper.precision = ExtendedOperand::MinPrecision.Get(OperandTokenN);
+      if(ExtendedOperand::NonUniform.Get(OperandTokenN))
+        retOper.flags = Operand::Flags(retOper.flags | Operand::FLAG_NONUNIFORM);
     }
     else
     {
@@ -1349,7 +1354,7 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
       if(retDecl.operand.indices[1].index == retDecl.operand.indices[2].index)
         retDecl.str += StringFormat::Fmt(",reg=%u", retDecl.operand.indices[1].index);
       else if(retDecl.operand.indices[2].index == 0xffffffff)
-        retDecl.str += StringFormat::Fmt(",regs=%u:unbound", retDecl.operand.indices[1].index);
+        retDecl.str += StringFormat::Fmt(",regs=%u:unbounded", retDecl.operand.indices[1].index);
       else
         retDecl.str += StringFormat::Fmt(",regs=%u:%u", retDecl.operand.indices[1].index,
                                          retDecl.operand.indices[2].index);
@@ -1469,6 +1474,8 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
 
       if(retDecl.operand.indices[1].index == retDecl.operand.indices[2].index)
         retDecl.str += StringFormat::Fmt(",reg=%u", retDecl.operand.indices[1].index);
+      else if(retDecl.operand.indices[2].index == 0xffffffff)
+        retDecl.str += StringFormat::Fmt(",regs=%u:unbounded", retDecl.operand.indices[1].index);
       else
         retDecl.str += StringFormat::Fmt(",regs=%u:%u", retDecl.operand.indices[1].index,
                                          retDecl.operand.indices[2].index);
@@ -1528,6 +1535,8 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
 
       if(retDecl.operand.indices[1].index == retDecl.operand.indices[2].index)
         retDecl.str += StringFormat::Fmt(",reg=%u", retDecl.operand.indices[1].index);
+      else if(retDecl.operand.indices[2].index == 0xffffffff)
+        retDecl.str += StringFormat::Fmt(",regs=%u:unbounded", retDecl.operand.indices[1].index);
       else
         retDecl.str += StringFormat::Fmt(",regs=%u:%u", retDecl.operand.indices[1].index,
                                          retDecl.operand.indices[2].index);
@@ -1737,6 +1746,8 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
 
       if(retDecl.operand.indices[1].index == retDecl.operand.indices[2].index)
         retDecl.str += StringFormat::Fmt(",reg=%u", retDecl.operand.indices[1].index);
+      else if(retDecl.operand.indices[2].index == 0xffffffff)
+        retDecl.str += StringFormat::Fmt(",regs=%u:unbounded", retDecl.operand.indices[1].index);
       else
         retDecl.str += StringFormat::Fmt(",regs=%u:%u", retDecl.operand.indices[1].index,
                                          retDecl.operand.indices[2].index);
@@ -1783,6 +1794,8 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
 
       if(retDecl.operand.indices[1].index == retDecl.operand.indices[2].index)
         retDecl.str += StringFormat::Fmt(",reg=%u", retDecl.operand.indices[1].index);
+      else if(retDecl.operand.indices[2].index == 0xffffffff)
+        retDecl.str += StringFormat::Fmt(",regs=%u:unbounded", retDecl.operand.indices[1].index);
       else
         retDecl.str += StringFormat::Fmt(",regs=%u:%u", retDecl.operand.indices[1].index,
                                          retDecl.operand.indices[2].index);
@@ -1842,6 +1855,8 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
 
       if(retDecl.operand.indices[1].index == retDecl.operand.indices[2].index)
         retDecl.str += StringFormat::Fmt(",reg=%u", retDecl.operand.indices[1].index);
+      else if(retDecl.operand.indices[2].index == 0xffffffff)
+        retDecl.str += StringFormat::Fmt(",regs=%u:unbounded", retDecl.operand.indices[1].index);
       else
         retDecl.str += StringFormat::Fmt(",regs=%u:%u", retDecl.operand.indices[1].index,
                                          retDecl.operand.indices[2].index);
