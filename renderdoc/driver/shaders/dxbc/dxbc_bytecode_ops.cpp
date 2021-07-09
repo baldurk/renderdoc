@@ -2131,7 +2131,7 @@ bool Program::DecodeOperation(uint32_t *&tokenStream, Operation &retOp, bool fri
     {
       retOp.resDim = ExtendedOpcode::ResourceDim.Get(OpcodeTokenN);
 
-      if(op == OPCODE_LD_STRUCTURED)
+      if(retOp.resDim == RESOURCE_DIMENSION_STRUCTURED_BUFFER)
       {
         retOp.stride = ExtendedOpcode::BufferStride.Get(OpcodeTokenN);
 
