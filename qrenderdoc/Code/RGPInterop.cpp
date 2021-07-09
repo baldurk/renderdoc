@@ -267,7 +267,25 @@ void RGPInterop::CreateMapping(const rdcarray<ActionDescription> &actions)
       if(m_EventNames.contains(chunk->name, Qt::CaseSensitive))
       {
         m_Event2RGP[ev.eventId].interoplinearid = (uint32_t)m_RGP2Event.size();
-        m_Event2RGP[ev.eventId].eventname = chunk->name;
+        rdcstr n = chunk->name;
+        if(n.contains(':'))
+          n.erase(0, n.find_last_of(":") + 1);
+        n += "(";
+        bool first = true;
+        for(size_t i = 0; i < chunk->NumChildren(); i++)
+        {
+          const SDObject *o = chunk->GetChild(i);
+          if(o->type.flags & SDTypeFlags::Important)
+          {
+            if(first)
+              n += ", ";
+            first = false;
+            n += ToStr(o->AsUInt32());
+          }
+        }
+        n += ")";
+
+        m_Event2RGP[ev.eventId].eventname = n;
 
         m_RGP2Event.push_back(ev.eventId);
       }
