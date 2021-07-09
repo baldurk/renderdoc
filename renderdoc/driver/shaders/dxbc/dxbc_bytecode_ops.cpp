@@ -1072,7 +1072,7 @@ void Program::EncodeOperand(rdcarray<uint32_t> &tokenStream, const Operand &oper
 
   OperandIndexType rep[3] = {};
 
-  for(int i = 0; i < oper.indices.size(); i++)
+  for(size_t i = 0; i < oper.indices.size(); i++)
   {
     OperandIndexType indextype = INDEX_IMMEDIATE32;
 
