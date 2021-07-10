@@ -362,7 +362,7 @@ void main()
   bool QueryFormatBool(GLenum target, GLenum format, GLenum pname)
   {
     GLint param = 0;
-    glGetInternalformativ(target, format, pname, sizeof(param), &param);
+    glGetInternalformativ(target, format, pname, 1, &param);
     return param != 0;
   }
 
@@ -373,11 +373,10 @@ void main()
     test.canStencil = QueryFormatBool(test.target, test.fmt.internalFormat, GL_STENCIL_RENDERABLE);
 
     GLint numSamples = 0;
-    glGetInternalformativ(test.target, test.fmt.internalFormat, GL_NUM_SAMPLE_COUNTS,
-                          sizeof(numSamples), &numSamples);
+    glGetInternalformativ(test.target, test.fmt.internalFormat, GL_NUM_SAMPLE_COUNTS, 1, &numSamples);
 
     GLint samples[8];
-    glGetInternalformativ(test.target, test.fmt.internalFormat, GL_SAMPLES, sizeof(samples), samples);
+    glGetInternalformativ(test.target, test.fmt.internalFormat, GL_SAMPLES, 1, samples);
 
     Vec4i dimensions(texWidth, texHeight, texDepth);
 

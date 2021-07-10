@@ -2106,9 +2106,9 @@ ResourceFormat MakeResourceFormat(GLenum target, GLenum fmt)
   GLenum *edata = (GLenum *)data;
 
   GLint iscol = 0, isdepth = 0, isstencil = 0;
-  GL.glGetInternalformativ(target, fmt, eGL_COLOR_COMPONENTS, sizeof(GLint), &iscol);
-  GL.glGetInternalformativ(target, fmt, eGL_DEPTH_COMPONENTS, sizeof(GLint), &isdepth);
-  GL.glGetInternalformativ(target, fmt, eGL_STENCIL_COMPONENTS, sizeof(GLint), &isstencil);
+  GL.glGetInternalformativ(target, fmt, eGL_COLOR_COMPONENTS, 1, &iscol);
+  GL.glGetInternalformativ(target, fmt, eGL_DEPTH_COMPONENTS, 1, &isdepth);
+  GL.glGetInternalformativ(target, fmt, eGL_STENCIL_COMPONENTS, 1, &isstencil);
 
   if(iscol == GL_TRUE)
   {
@@ -2117,10 +2117,10 @@ ResourceFormat MakeResourceFormat(GLenum target, GLenum fmt)
 
     // colour format
 
-    GL.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_RED_SIZE, sizeof(GLint), &data[0]);
-    GL.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_GREEN_SIZE, sizeof(GLint), &data[1]);
-    GL.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_BLUE_SIZE, sizeof(GLint), &data[2]);
-    GL.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_ALPHA_SIZE, sizeof(GLint), &data[3]);
+    GL.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_RED_SIZE, 1, &data[0]);
+    GL.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_GREEN_SIZE, 1, &data[1]);
+    GL.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_BLUE_SIZE, 1, &data[2]);
+    GL.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_ALPHA_SIZE, 1, &data[3]);
 
     ret.compCount = 0;
     for(int i = 0; i < 4; i++)
@@ -2147,10 +2147,10 @@ ResourceFormat MakeResourceFormat(GLenum target, GLenum fmt)
       RDCERR("Unexpected/unhandled non-uniform format: '%s'", ToStr(fmt).c_str());
     }
 
-    GL.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_RED_TYPE, sizeof(GLint), &data[0]);
-    GL.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_GREEN_TYPE, sizeof(GLint), &data[1]);
-    GL.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_BLUE_TYPE, sizeof(GLint), &data[2]);
-    GL.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_ALPHA_TYPE, sizeof(GLint), &data[3]);
+    GL.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_RED_TYPE, 1, &data[0]);
+    GL.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_GREEN_TYPE, 1, &data[1]);
+    GL.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_BLUE_TYPE, 1, &data[2]);
+    GL.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_ALPHA_TYPE, 1, &data[3]);
 
     for(int i = ret.compCount; i < 4; i++)
       data[i] = data[0];
@@ -2174,7 +2174,7 @@ ResourceFormat MakeResourceFormat(GLenum target, GLenum fmt)
       RDCERR("Unexpected/unhandled non-uniform format: '%s'", ToStr(fmt).c_str());
     }
 
-    GL.glGetInternalformativ(target, fmt, eGL_COLOR_ENCODING, sizeof(GLint), &data[0]);
+    GL.glGetInternalformativ(target, fmt, eGL_COLOR_ENCODING, 1, &data[0]);
     if(edata[0] == eGL_SRGB || fmt == eGL_SR8_EXT || fmt == eGL_SRG8_EXT)
       ret.compType = CompType::UNormSRGB;
   }
