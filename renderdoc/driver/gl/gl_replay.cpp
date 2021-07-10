@@ -3626,8 +3626,8 @@ bool GLReplay::IsTextureSupported(const TextureDescription &tex)
   }
 
   GLint supported = 0, fragment = 0;
-  m_pDriver->glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_SUPPORTED, 4, &supported);
-  m_pDriver->glGetInternalformativ(target, fmt, eGL_FRAGMENT_TEXTURE, 4, &fragment);
+  m_pDriver->glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_SUPPORTED, 1, &supported);
+  m_pDriver->glGetInternalformativ(target, fmt, eGL_FRAGMENT_TEXTURE, 1, &fragment);
 
   // check the texture is supported
   if(supported == 0 || fragment == 0)
@@ -3638,8 +3638,8 @@ bool GLReplay::IsTextureSupported(const TextureDescription &tex)
   if(tex.msSamp > 1 && !IsDepthStencilFormat(fmt))
   {
     GLenum viewClass = eGL_NONE;
-    m_pDriver->glGetInternalformativ(eGL_TEXTURE_2D_ARRAY, fmt, eGL_VIEW_COMPATIBILITY_CLASS,
-                                     sizeof(GLenum), (GLint *)&viewClass);
+    m_pDriver->glGetInternalformativ(eGL_TEXTURE_2D_ARRAY, fmt, eGL_VIEW_COMPATIBILITY_CLASS, 1,
+                                     (GLint *)&viewClass);
 
     if(viewClass == eGL_NONE)
       return false;

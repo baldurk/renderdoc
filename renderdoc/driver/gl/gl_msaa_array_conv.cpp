@@ -190,8 +190,8 @@ void WrappedOpenGL::CopyTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint wi
   rs.FetchState(this);
 
   GLenum viewClass;
-  GL.glGetInternalformativ(eGL_TEXTURE_2D_ARRAY, intFormat, eGL_VIEW_COMPATIBILITY_CLASS,
-                           sizeof(GLenum), (GLint *)&viewClass);
+  GL.glGetInternalformativ(eGL_TEXTURE_2D_ARRAY, intFormat, eGL_VIEW_COMPATIBILITY_CLASS, 1,
+                           (GLint *)&viewClass);
 
   GLenum fmt = eGL_R32UI;
   if(viewClass == eGL_VIEW_CLASS_8_BITS)
@@ -396,8 +396,8 @@ void WrappedOpenGL::CopyArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint wid
   rs.FetchState(this);
 
   GLenum viewClass;
-  drv.glGetInternalformativ(eGL_TEXTURE_2D_ARRAY, intFormat, eGL_VIEW_COMPATIBILITY_CLASS,
-                            sizeof(GLenum), (GLint *)&viewClass);
+  drv.glGetInternalformativ(eGL_TEXTURE_2D_ARRAY, intFormat, eGL_VIEW_COMPATIBILITY_CLASS, 1,
+                            (GLint *)&viewClass);
 
   GLenum fmt = eGL_R32UI;
   if(viewClass == eGL_VIEW_CLASS_8_BITS)
