@@ -277,7 +277,7 @@ void RGPInterop::CreateMapping(const rdcarray<ActionDescription> &actions)
           const SDObject *o = chunk->GetChild(i);
           if(o->type.flags & SDTypeFlags::Important)
           {
-            if(first)
+            if(!first)
               n += ", ";
             first = false;
             n += ToStr(o->AsUInt32());
