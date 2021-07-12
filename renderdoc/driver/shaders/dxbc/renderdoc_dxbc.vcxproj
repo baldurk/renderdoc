@@ -102,6 +102,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="dxbc_bytecode.cpp" />
+    <ClCompile Include="dxbc_bytecode_editor.cpp" />
     <ClCompile Include="dxbc_bytecode_vendorext.cpp" />
     <ClCompile Include="dxbc_compile.cpp" />
     <ClCompile Include="dxbc_debug.cpp" />
@@ -117,6 +118,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dxbc_bytecode.h" />
+    <ClInclude Include="dxbc_bytecode_editor.h" />
     <ClInclude Include="dxbc_bytecode_ops.h" />
     <ClInclude Include="dxbc_common.h" />
     <ClInclude Include="dxbc_compile.h" />

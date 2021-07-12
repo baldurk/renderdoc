@@ -1196,9 +1196,8 @@ public:
   void FetchComputeProperties(DXBC::Reflection *reflection);
   DXBC::Reflection *GuessReflection();
 
+  const rdcarray<uint32_t> &GetTokens() const { return m_ProgramWords; }
   rdcstr GetDebugStatus();
-
-  rdcarray<uint32_t> EncodeProgram();
 
   void SetReflection(const DXBC::Reflection *refl) { m_Reflection = refl; }
   void SetDebugInfo(const DXBC::IDebugInfo *debug) { m_DebugInfo = debug; }
@@ -1227,7 +1226,11 @@ public:
   static bool UsesExtensionUAV(uint32_t slot, uint32_t space, const byte *bytes, size_t length);
 
 protected:
+  friend class Program;
+
+  Program(const rdcarray<uint32_t> &words);
   void DecodeProgram();
+  rdcarray<uint32_t> EncodeProgram();
 
   void PostprocessVendorExtensions();
 

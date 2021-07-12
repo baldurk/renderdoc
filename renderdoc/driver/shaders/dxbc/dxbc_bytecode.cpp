@@ -26,7 +26,6 @@
 #include "common/formatting.h"
 #include "os/os_specific.h"
 #include "dxbc_bytecode_ops.h"
-#include "dxbc_container.h"
 
 static ShaderVariable makeReg(rdcstr name)
 {
@@ -42,6 +41,21 @@ Program::Program(const byte *bytes, size_t length)
   RDCASSERT((length % 4) == 0);
   m_ProgramWords.resize(length / 4);
   memcpy(m_ProgramWords.data(), bytes, length);
+
+  if(m_ProgramWords.empty())
+    return;
+
+  uint32_t *begin = &m_ProgramWords.front();
+  uint32_t *cur = begin;
+
+  m_Type = VersionToken::ProgramType.Get(cur[0]);
+  m_Major = VersionToken::MajorVersion.Get(cur[0]);
+  m_Minor = VersionToken::MinorVersion.Get(cur[0]);
+}
+
+Program::Program(const rdcarray<uint32_t> &words)
+{
+  m_ProgramWords = words;
 
   if(m_ProgramWords.empty())
     return;
