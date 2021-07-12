@@ -310,6 +310,8 @@ struct CBufferVariableType
   rdcarray<CBufferVariable> members;
 };
 
+rdcstr TypeName(CBufferVariableType::Descriptor desc);
+
 struct CBufferVariable
 {
   rdcstr name;

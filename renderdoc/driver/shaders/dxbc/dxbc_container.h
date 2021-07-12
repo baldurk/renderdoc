@@ -130,8 +130,6 @@ enum class GlobalShaderFlags : int64_t
 
 BITMASK_OPERATORS(GlobalShaderFlags);
 
-rdcstr TypeName(CBufferVariableType::Descriptor desc);
-
 struct RDEFHeader;
 
 uint32_t DecodeFlags(const ShaderCompileFlags &compileFlags);
