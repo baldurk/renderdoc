@@ -163,7 +163,7 @@ public:
   void FillTraceLineInfo(ShaderDebugTrace &trace) const;
   void FillStateInstructionInfo(ShaderDebugState &state) const;
 
-  static void ReplaceProgram(bytebuf &ByteCode, DXBCBytecode::Program *program);
+  static void ReplaceDXBCBytecode(bytebuf &ByteCode, const rdcarray<uint32_t> &replacement);
 
   const DXBCBytecode::Program *GetDXBCByteCode() const { return m_DXBCByteCode; }
   DXBCBytecode::Program *GetDXBCByteCode() { return m_DXBCByteCode; }

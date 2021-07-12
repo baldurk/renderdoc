@@ -652,7 +652,7 @@ void DXBCContainer::FillStateInstructionInfo(ShaderDebugState &state) const
   }
 }
 
-void DXBCContainer::ReplaceProgram(bytebuf &ByteCode, DXBCBytecode::Program *program)
+void DXBCContainer::ReplaceDXBCBytecode(bytebuf &ByteCode, const rdcarray<uint32_t> &replacement)
 {
   FileHeader *header = (FileHeader *)ByteCode.data();
 
@@ -664,8 +664,6 @@ void DXBCContainer::ReplaceProgram(bytebuf &ByteCode, DXBCBytecode::Program *pro
 
   uint32_t *chunkOffsets =
       (uint32_t *)(ByteCode.data() + sizeof(FileHeader));    // right after the header
-
-  rdcarray<uint32_t> replacement = program->EncodeProgram();
 
   for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
   {
@@ -710,6 +708,8 @@ void DXBCContainer::ReplaceProgram(bytebuf &ByteCode, DXBCBytecode::Program *pro
       break;
     }
   }
+
+  HashContainer(ByteCode.data(), ByteCode.size());
 }
 
 void DXBCContainer::GetHash(uint32_t hash[4], const void *ByteCode, size_t BytecodeLength)
