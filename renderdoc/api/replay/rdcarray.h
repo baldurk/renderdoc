@@ -888,6 +888,11 @@ public:
     return *this;
   }
   rdcfixedarray() = default;
+  rdcfixedarray(const T (&in)[N])
+  {
+    for(size_t i = 0; i < N; i++)
+      elems[i] = in[i];
+  }
   rdcfixedarray(const std::initializer_list<T> &in)
   {
     static_assert(std::is_trivial<T>::value,
