@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "api/replay/rdcstr.h"
+#include "common/common.h"
 
 #import <Cocoa/Cocoa.h>
 
@@ -62,8 +63,20 @@ bool apple_IsKeyPressed(int appleKeyCode)
 rdcstr apple_GetExecutablePathFromAppBundle(const char *appBundlePath)
 {
   NSString *path = [NSString stringWithCString:appBundlePath encoding:NSUTF8StringEncoding];
+
   NSBundle *nsBundle = [NSBundle bundleWithPath:path];
+  if(!nsBundle)
+  {
+    RDCERR("Failed to open application '%s' as an NSBundle", appBundlePath);
+    return rdcstr();
+  }
+
   NSString *executablePath = nsBundle.executablePath;
+  if(!executablePath)
+  {
+    RDCERR("Failed to get executable path from application '%s'", appBundlePath);
+    return rdcstr();
+  }
 
   rdcstr result([executablePath cStringUsingEncoding:NSUTF8StringEncoding]);
   return result;
