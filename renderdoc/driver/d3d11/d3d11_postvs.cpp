@@ -290,7 +290,7 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
     }
 
     HRESULT hr = m_pDevice->CreateGeometryShaderWithStreamOutput(
-        (void *)&dxbcVS->m_ShaderBlob[0], dxbcVS->m_ShaderBlob.size(), &sodecls[0],
+        (void *)dxbcVS->GetShaderBlob().data(), dxbcVS->GetShaderBlob().size(), &sodecls[0],
         (UINT)sodecls.size(), &stride, 1, D3D11_SO_NO_RASTERIZED_STREAM, NULL, &streamoutGS);
 
     if(FAILED(hr))
@@ -688,7 +688,7 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
     streamoutGS = NULL;
 
     HRESULT hr = m_pDevice->CreateGeometryShaderWithStreamOutput(
-        (void *)&lastShader->m_ShaderBlob[0], lastShader->m_ShaderBlob.size(), &sodecls[0],
+        (void *)lastShader->GetShaderBlob().data(), lastShader->GetShaderBlob().size(), &sodecls[0],
         (UINT)sodecls.size(), &stride, 1, D3D11_SO_NO_RASTERIZED_STREAM, NULL, &streamoutGS);
 
     if(FAILED(hr))

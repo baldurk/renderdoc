@@ -143,7 +143,7 @@ ShaderCompileFlags EncodeFlags(const uint32_t flags, const rdcstr &profile);
 class DXBCContainer
 {
 public:
-  DXBCContainer(bytebuf &ByteCode, const rdcstr &debugInfoPath, GraphicsAPI api,
+  DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPath, GraphicsAPI api,
                 uint32_t shaderExtReg, uint32_t shaderExtSpace);
   ~DXBCContainer();
   DXBCContainer(const DXBCContainer &o) = delete;
@@ -156,8 +156,7 @@ public:
     uint32_t Major = 0, Minor = 0;
   } m_Version;
 
-  bytebuf m_ShaderBlob;
-
+  const bytebuf &GetShaderBlob() const { return m_ShaderBlob; }
   const IDebugInfo *GetDebugInfo() const { return m_DebugInfo; }
   const Reflection *GetReflection() const { return m_Reflection; }
   D3D_PRIMITIVE_TOPOLOGY GetOutputTopology();
@@ -187,6 +186,7 @@ private:
   void TryFetchSeparateDebugInfo(bytebuf &byteCode, const rdcstr &debugInfoPath);
 
   bytebuf m_DebugShaderBlob;
+  bytebuf m_ShaderBlob;
 
   rdcstr m_Disassembly;
 

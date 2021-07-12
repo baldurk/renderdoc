@@ -1145,14 +1145,14 @@ void DXBCContainer::TryFetchSeparateDebugInfo(bytebuf &byteCode, const rdcstr &d
   }
 }
 
-DXBCContainer::DXBCContainer(bytebuf &ByteCode, const rdcstr &debugInfoPath, GraphicsAPI api,
+DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPath, GraphicsAPI api,
                              uint32_t shaderExtReg, uint32_t shaderExtSpace)
 {
   RDCEraseEl(m_ShaderStats);
 
-  TryFetchSeparateDebugInfo(ByteCode, debugInfoPath);
-
   m_ShaderBlob = ByteCode;
+
+  TryFetchSeparateDebugInfo(m_ShaderBlob, debugInfoPath);
 
   // just for convenience
   char *data = (char *)m_ShaderBlob.data();
@@ -1164,7 +1164,7 @@ DXBCContainer::DXBCContainer(bytebuf &ByteCode, const rdcstr &debugInfoPath, Gra
   if(header->fourcc != FOURCC_DXBC)
     return;
 
-  if(header->fileLength != (uint32_t)ByteCode.size())
+  if(header->fileLength != (uint32_t)m_ShaderBlob.size())
     return;
 
   if(debugHeader && debugHeader->fourcc != FOURCC_DXBC)
@@ -1370,7 +1370,7 @@ DXBCContainer::DXBCContainer(bytebuf &ByteCode, const rdcstr &debugInfoPath, Gra
             RDEFCBufferVariable *var =
                 (RDEFCBufferVariable *)(chunkContents + cbuf->variables.offset + varStride);
 
-            if(var->nameOffset > ByteCode.size())
+            if(var->nameOffset > m_ShaderBlob.size())
             {
               varStride += extraData;
             }
@@ -1382,7 +1382,7 @@ DXBCContainer::DXBCContainer(bytebuf &ByteCode, const rdcstr &debugInfoPath, Gra
           RDEFCBufferVariable *var =
               (RDEFCBufferVariable *)(chunkContents + cbuf->variables.offset + vi * varStride);
 
-          RDCASSERT(var->nameOffset < ByteCode.size());
+          RDCASSERT(var->nameOffset < m_ShaderBlob.size());
 
           CBufferVariable v;
 
