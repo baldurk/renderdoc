@@ -540,6 +540,11 @@ static pid_t RunProcess(rdcstr appName, rdcstr workDir, const rdcstr &cmdLine, c
   if(appName.size() > 5 && appName.endsWith(".app"))
   {
     rdcstr realAppName = apple_GetExecutablePathFromAppBundle(appName.c_str());
+    if(realAppName.empty())
+    {
+      RDCERR("Invalid application path '%s'", appName.c_str());
+      return (pid_t)0;
+    }
 
     if(FileIO::exists(realAppName))
     {
