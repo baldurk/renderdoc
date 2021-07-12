@@ -798,39 +798,94 @@ struct Operand
                        //		.xyzw = {  0,  1,  2,  3 }
                        //		.wzyx = {  3,  2,  1,  0 }
 
-  Operand swizzle(uint8_t c)
+  Operand &swizzle(uint8_t c)
   {
-    Operand ret = *this;
-    ret.numComponents = NUMCOMPS_1;
-    ret.comps[0] = comps[c];
-    ret.comps[1] = 0xff;
-    ret.comps[2] = 0xff;
-    ret.comps[3] = 0xff;
-    ret.values[0] = values[c];
-    ret.values[1] = 0;
-    ret.values[2] = 0;
-    ret.values[3] = 0;
-    return ret;
+    // you'd think this would use NUMCOMPS_1 but fxc doesn't like that. Those only
+    // seem to be used for declarations or other special situations, so we keep to NUMCOMPS_4
+    flags = Flags(flags & ~(FLAG_SWIZZLED | FLAG_MASKED | FLAG_SELECTED));
+    flags = Flags(flags | FLAG_SELECTED);
+    numComponents = NUMCOMPS_4;
+
+    comps[0] = c;
+    comps[1] = 0xff;
+    comps[2] = 0xff;
+    comps[3] = 0xff;
+
+    return *this;
   }
 
-  Operand swizzle(uint8_t x, uint8_t y, uint8_t z, uint8_t w)
+  Operand &swizzle(uint8_t x, uint8_t y, uint8_t z, uint8_t w)
   {
-    Operand ret = *this;
-    ret.comps[0] = comps[x];
-    ret.comps[1] = comps[y];
-    ret.comps[2] = z < 4 ? comps[z] : 0xff;
-    ret.comps[3] = w < 4 ? comps[w] : 0xff;
-    ret.values[0] = values[x];
-    ret.values[1] = values[y];
-    ret.values[2] = z < 4 ? values[z] : 0;
-    ret.values[3] = w < 4 ? values[w] : 0;
-    return ret;
+    numComponents = NUMCOMPS_4;
+    flags = Flags(flags & ~(FLAG_SWIZZLED | FLAG_MASKED | FLAG_SELECTED));
+
+    if(x == 0xff || y == 0xff || z == 0xff || w == 0xff)
+      flags = Flags(flags | FLAG_MASKED);
+    else
+      flags = Flags(flags | FLAG_SWIZZLED);
+
+    comps[0] = x;
+    comps[1] = y;
+    comps[2] = z;
+    comps[3] = w;
+
+    return *this;
+  }
+
+  Operand &reswizzle(uint8_t c)
+  {
+    // you'd think this would use NUMCOMPS_1 but fxc doesn't like that. Those only
+    // seem to be used for declarations or other special situations, so we keep to NUMCOMPS_4
+    flags = Flags(flags & ~(FLAG_SWIZZLED | FLAG_MASKED | FLAG_SELECTED));
+    flags = Flags(flags | FLAG_SELECTED);
+    numComponents = NUMCOMPS_4;
+
+    comps[0] = comps[c];
+    comps[1] = 0xff;
+    comps[2] = 0xff;
+    comps[3] = 0xff;
+
+    values[0] = values[c];
+    values[1] = 0;
+    values[2] = 0;
+    values[3] = 0;
+
+    return *this;
+  }
+
+  Operand &reswizzle(uint8_t x, uint8_t y, uint8_t z, uint8_t w)
+  {
+    rdcfixedarray<uint32_t, 4> oldVals = values;
+    rdcfixedarray<uint8_t, 4> oldComps = comps;
+
+    numComponents = NUMCOMPS_4;
+    flags = Flags(flags & ~(FLAG_SWIZZLED | FLAG_MASKED | FLAG_SELECTED));
+
+    if(x == 0xff || y == 0xff || z == 0xff || w == 0xff)
+      flags = Flags(flags | FLAG_MASKED);
+    else
+      flags = Flags(flags | FLAG_SWIZZLED);
+
+    comps[0] = oldComps[x];
+    comps[1] = y < 4 ? oldComps[y] : 0xff;
+    comps[2] = z < 4 ? oldComps[z] : 0xff;
+    comps[3] = w < 4 ? oldComps[w] : 0xff;
+
+    values[0] = oldVals[x];
+    values[1] = z < 4 ? oldVals[y] : 0;
+    values[2] = z < 4 ? oldVals[z] : 0;
+    values[3] = w < 4 ? oldVals[w] : 0;
+
+    return *this;
   }
 
   void setComps(uint8_t x, uint8_t y, uint8_t z, uint8_t w)
   {
     flags = Flags(flags & ~(FLAG_SWIZZLED | FLAG_MASKED | FLAG_SELECTED));
 
+    // you'd think this would use NUMCOMPS_1 but fxc doesn't like that. Those only
+    // seem to be used for declarations or other special situations, so we keep to NUMCOMPS_4
+    numComponents = NUMCOMPS_4;
     if(y == 0xff && z == 0xff && w == 0xff)
       flags = Flags(flags | FLAG_SELECTED);
     else if(x == 0xff || y == 0xff || z == 0xff || w == 0xff)

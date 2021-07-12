@@ -717,10 +717,10 @@ void Program::PostprocessVendorExtensions()
                 }
                 else
                 {
-                  op.operands.push_back(srcParam[5].swizzle(0));
+                  op.operands.push_back(srcParam[5].reswizzle(0));
                   op.operands.back().name = "compare_value.x"_lit;
                   op.operands.back().setComps(srcParam[5].comps[0], 0xff, 0xff, 0xff);
-                  op.operands.push_back(srcParam[6].swizzle(0));
+                  op.operands.push_back(srcParam[6].reswizzle(0));
                   op.operands.back().name = "compare_value.y"_lit;
                   op.operands.back().setComps(srcParam[6].comps[0], 0xff, 0xff, 0xff);
 
@@ -742,10 +742,10 @@ void Program::PostprocessVendorExtensions()
               }
               else
               {
-                op.operands.push_back(srcParam[3].swizzle(0));
+                op.operands.push_back(srcParam[3].reswizzle(0));
                 op.operands.back().name = "value.x"_lit;
                 op.operands.back().setComps(srcParam[3].comps[0], 0xff, 0xff, 0xff);
-                op.operands.push_back(srcParam[4].swizzle(0));
+                op.operands.push_back(srcParam[4].reswizzle(0));
                 op.operands.back().name = "value.y"_lit;
                 op.operands.back().setComps(srcParam[4].comps[0], 0xff, 0xff, 0xff);
 
@@ -919,16 +919,16 @@ void Program::PostprocessVendorExtensions()
                 op.operands[0] = curOp.operands[0];
 
                 op.operands[1].name = "value"_lit;
-                op.operands[1] = srcParam[0].swizzle(0);
+                op.operands[1] = srcParam[0].reswizzle(0);
                 if(nvopcode == NvShaderOpcode::Shuffle)
                   op.operands[2].name = "srcLane"_lit;
                 else if(nvopcode == NvShaderOpcode::ShuffleXor)
                   op.operands[2].name = "laneMask"_lit;
                 else
                   op.operands[2].name = "delta"_lit;
-                op.operands[2] = srcParam[0].swizzle(1);
+                op.operands[2] = srcParam[0].reswizzle(1);
                 op.operands[3].name = "width"_lit;
-                op.operands[3] = srcParam[0].swizzle(3);
+                op.operands[3] = srcParam[0].reswizzle(3);
                 break;
               }
               case NvShaderOpcode::VoteAll:
@@ -1077,33 +1077,33 @@ void Program::PostprocessVendorExtensions()
                 }
 
                 // peel out the source parameters
-                op.operands.push_back(srcParam[3].swizzle(0));
+                op.operands.push_back(srcParam[3].reswizzle(0));
                 op.operands.back().name = "texSpace"_lit;
-                op.operands.push_back(srcParam[0].swizzle(0));
+                op.operands.push_back(srcParam[0].reswizzle(0));
                 op.operands.back().name = "texIndex"_lit;
-                op.operands.push_back(srcParam[3].swizzle(1));
+                op.operands.push_back(srcParam[3].reswizzle(1));
                 op.operands.back().name = "smpSpace"_lit;
-                op.operands.push_back(srcParam[0].swizzle(1));
+                op.operands.push_back(srcParam[0].reswizzle(1));
                 op.operands.back().name = "smpIndex"_lit;
-                op.operands.push_back(srcParam[3].swizzle(2));
+                op.operands.push_back(srcParam[3].reswizzle(2));
                 op.operands.back().name = "texType"_lit;
                 op.operands.push_back(srcParam[1]);
                 op.operands.back().comps[3] = 0xff;    // location is a float3
                 op.operands.back().values[3] = 0;
                 op.operands.back().name = "location"_lit;
-                op.operands.push_back(srcParam[3].swizzle(3));
+                op.operands.push_back(srcParam[3].reswizzle(3));
                 op.operands.back().name = "coarse"_lit;
-                op.operands.push_back(srcParam[1].swizzle(3));
+                op.operands.push_back(srcParam[1].reswizzle(3));
                 op.operands.back().name = "gran"_lit;
 
                 if(nvopcode == NvShaderOpcode::FootprintBias)
                 {
-                  op.operands.push_back(srcParam[2].swizzle(0));
+                  op.operands.push_back(srcParam[2].reswizzle(0));
                   op.operands.back().name = "bias"_lit;
                 }
                 else if(nvopcode == NvShaderOpcode::FootprintLevel)
                 {
-                  op.operands.push_back(srcParam[2].swizzle(0));
+                  op.operands.push_back(srcParam[2].reswizzle(0));
                   op.operands.back().name = "lodLevel"_lit;
                 }
                 else if(nvopcode == NvShaderOpcode::FootprintGrad)
@@ -1131,11 +1131,11 @@ void Program::PostprocessVendorExtensions()
 
                 // we expect the params are packed into srcParam[0]
 
-                op.operands[2] = srcParam[0].swizzle(0);
+                op.operands[2] = srcParam[0].reswizzle(0);
                 op.operands[2].name = "value"_lit;
-                op.operands[3] = srcParam[0].swizzle(1);
+                op.operands[3] = srcParam[0].reswizzle(1);
                 op.operands[3].name = "srcLane"_lit;
-                op.operands[4] = srcParam[0].swizzle(2);
+                op.operands[4] = srcParam[0].reswizzle(2);
                 op.operands[4].name = "width"_lit;
                 break;
               }
@@ -1367,9 +1367,9 @@ void Program::PostprocessVendorExtensions()
 
                 atomicop = (NvShaderAtomic)srcParam[2].values[0];
 
-                op.operands.push_back(srcParam[0].swizzle(0));
+                op.operands.push_back(srcParam[0].reswizzle(0));
                 op.operands.back().name = "byteAddress"_lit;
-                op.operands.push_back(srcParam[1].swizzle(0));
+                op.operands.push_back(srcParam[1].reswizzle(0));
                 op.operands.back().name = "value"_lit;
 
                 break;
