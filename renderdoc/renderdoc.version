@@ -8,7 +8,12 @@
                 dlopen;
                 dlsym;
                 fork;
+                execl;
+                execlp;
                 execle;
+                execlpe;
+                execv;
+                execvp;
                 execve;
                 execvpe;
                 _exit;
