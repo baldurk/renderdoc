@@ -3657,7 +3657,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
         result = swizzled;
         result.type = VarType::Float;
       }
-      else if(op.resinfoRetType == RETTYPE_FLOAT)
+      else if(op.infoRetType == RETTYPE_FLOAT)
       {
         result.value.f32v[0] = (float)swizzled.value.u32v[0];
         result.value.f32v[1] = (float)swizzled.value.u32v[1];
@@ -3784,7 +3784,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
         }
 
         // apply ret type
-        if(op.resinfoRetType == RETTYPE_FLOAT)
+        if(op.infoRetType == RETTYPE_FLOAT)
         {
           result.value.f32v[0] = (float)swizzled.value.u32v[0];
           result.value.f32v[1] = (float)swizzled.value.u32v[1];
@@ -3792,7 +3792,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           result.value.f32v[3] = (float)swizzled.value.u32v[3];
           result.type = VarType::Float;
         }
-        else if(op.resinfoRetType == RETTYPE_RCPFLOAT)
+        else if(op.infoRetType == RETTYPE_RCPFLOAT)
         {
           // only width/height/depth values we set are reciprocated, other values
           // are just left as is
@@ -3814,7 +3814,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           result.value.f32v[3] = (float)swizzled.value.u32v[3];
           result.type = VarType::Float;
         }
-        else if(op.resinfoRetType == RETTYPE_UINT)
+        else if(op.infoRetType == RETTYPE_UINT)
         {
           result = swizzled;
           result.type = VarType::UInt;

@@ -1125,7 +1125,7 @@ struct Operation
     operation = NUM_REAL_OPCODES;
     flags = FLAG_NONE;
     preciseValues = 0;
-    resinfoRetType = NUM_RETTYPES;
+    infoRetType = NUM_RETTYPES;
     syncFlags = 0;
     texelOffset[0] = texelOffset[1] = texelOffset[2] = 0;
     resDim = RESOURCE_DIMENSION_UNKNOWN;
@@ -1155,8 +1155,8 @@ struct Operation
 
   union
   {
-    ResinfoRetType resinfoRetType;    // return type of resinfo
-    uint8_t syncFlags;                // sync flags (for compute shader sync operations)
+    ResinfoRetType infoRetType;    // return type of resinfo
+    uint8_t syncFlags;             // sync flags (for compute shader sync operations)
   };
 
   int8_t texelOffset[3] = {0};         // U,V,W texel offset

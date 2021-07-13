@@ -2549,7 +2549,7 @@ void Program::EncodeOperation(rdcarray<uint32_t> &tokenStream, const Operation &
   Opcode::PreciseValues.Set(OpcodeToken0, op.preciseValues);
 
   if(op.operation == OPCODE_RESINFO)
-    Opcode::ResinfoReturn.Set(OpcodeToken0, op.resinfoRetType);
+    Opcode::ResinfoReturn.Set(OpcodeToken0, op.infoRetType);
 
   if(op.operation == OPCODE_SYNC)
     Opcode::SyncFlags.Set(OpcodeToken0, op.syncFlags);
@@ -2664,8 +2664,8 @@ bool Program::DecodeOperation(uint32_t *&tokenStream, Operation &retOp, bool fri
     retOp.flags = Operation::Flags(retOp.flags | Operation::FLAG_SATURATE);
   retOp.preciseValues = Opcode::PreciseValues.Get(OpcodeToken0);
 
-  if(op == OPCODE_RESINFO)
-    retOp.resinfoRetType = Opcode::ResinfoReturn.Get(OpcodeToken0);
+  if(op == OPCODE_RESINFO || op == OPCODE_SAMPLE_INFO)
+    retOp.infoRetType = Opcode::ResinfoReturn.Get(OpcodeToken0);
 
   if(op == OPCODE_SYNC)
     retOp.syncFlags = Opcode::SyncFlags.Get(OpcodeToken0);
@@ -2847,7 +2847,7 @@ bool Program::DecodeOperation(uint32_t *&tokenStream, Operation &retOp, bool fri
   if(op == OPCODE_RESINFO)
   {
     retOp.str += "_";
-    retOp.str += ToStr(retOp.resinfoRetType);
+    retOp.str += ToStr(retOp.infoRetType);
   }
 
   if(op == OPCODE_SYNC)
