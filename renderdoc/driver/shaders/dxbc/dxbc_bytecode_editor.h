@@ -128,13 +128,13 @@ Operation oper(OpcodeType o, const rdcarray<Operand> &operands);
 
 struct ResourceDecl
 {
-  TextureType type;
-  CompType compType;
-  uint32_t sampleCount;
+  TextureType type = TextureType::Buffer;
+  CompType compType = CompType::Float;
+  uint32_t sampleCount = 0;
 
   bool structured = false;
-  uint32_t stride;
-  bool hasCounter, globallyCoherant, rov;
+  uint32_t stride = 0;
+  bool hasCounter = false, globallyCoherant = false, rov = false;
 
   bool raw = false;
 };

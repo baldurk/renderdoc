@@ -732,7 +732,7 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view, const Bi
   bool uav = view.type == D3D12ViewTag::UAV;
 
   bool filledSlot = (r.resourceId != ResourceId());
-  bool usedSlot = (bind && bind->used);
+  bool usedSlot = (bind && bind->used && r.dynamicallyUsed);
 
   // if a target is set to RTVs or DSV, it is implicitly used
   if(filledSlot)
@@ -872,19 +872,16 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view, const Bi
 
 bool D3D12PipelineStateViewer::showNode(bool usedSlot, bool filledSlot)
 {
-  const bool showUnused = ui->showUnused->isChecked();
-  const bool showEmpty = ui->showEmpty->isChecked();
-
   // show if it's referenced by the shader - regardless of empty or not
   if(usedSlot)
     return true;
 
   // it's not referenced, but if it's bound and we have "show unused" then show it
-  if(showUnused && filledSlot)
+  if(m_ShowUnused && filledSlot)
     return true;
 
   // it's empty, and we have "show empty"
-  if(showEmpty && !filledSlot)
+  if(m_ShowEmpty && !filledSlot)
     return true;
 
   return false;
@@ -1104,7 +1101,16 @@ void D3D12PipelineStateViewer::setShaderState(
 
         const rdcarray<D3D12Pipe::View> &views = rootElements[i].views;
 
-        for(size_t j = 0; j < views.size();)
+        size_t firstView = rootElements[i].firstUsedIndex;
+        size_t lastView = qMin(views.size() - 1, size_t(rootElements[i].lastUsedIndex));
+
+        if(m_ShowUnused)
+        {
+          firstView = 0;
+          lastView = views.size() - 1;
+        }
+
+        for(size_t j = firstView; j <= lastView;)
         {
           int shaderReg = (int)views[j].bind;
 
@@ -1137,22 +1143,37 @@ void D3D12PipelineStateViewer::setShaderState(
             }
           }
 
-          uint32_t arraySize = bind ? qMax(1U, bind->arraySize) : 0;
+          bool usedSlot = (bind && bind->used);
+
+          uint32_t arraySize = bind ? qMax(1U, bind->arraySize) : 1;
+
+          // if this bind isn't used, skip
+          if(!showNode(usedSlot, true))
+          {
+            omittingEmpty = false;
+            j += arraySize;
+            continue;
+          }
 
           if(arraySize > 1)
           {
             // if this is an array bind, iterate over it trying to elide large empty ranges
-            for(uint32_t k = 0; k < arraySize && j < views.size(); k++)
+            for(uint32_t k = 0; k < arraySize && j <= lastView; k++)
             {
               if(
                   // if current element is empty
                   views[j].resourceId == ResourceId() &&
+                  // and will be shown
+                  showNode(usedSlot && views[j].dynamicallyUsed, false) &&
                   // and we have two behind us and one ahead
-                  j >= 2 && j + 1 < views.size() &&
-                  // last two are empty
+                  j >= 2 && j + 1 <= lastView &&
+                  // last two are empty and were be shown
                   views[j - 2].resourceId == ResourceId() && views[j - 1].resourceId == ResourceId() &&
-                  // next one is empty
-                  views[j + 1].resourceId == ResourceId())
+                  showNode(usedSlot && views[j - 2].dynamicallyUsed, false) &&
+                  showNode(usedSlot && views[j - 1].dynamicallyUsed, false) &&
+                  // next one is empty and will be shown
+                  views[j + 1].resourceId == ResourceId() &&
+                  showNode(usedSlot && views[j + 1].dynamicallyUsed, false))
               {
                 // if we haven't started omitting empty rows, add an empty row
                 if(!omittingEmpty)
@@ -1443,6 +1464,10 @@ void D3D12PipelineStateViewer::setState()
     return;
   }
 
+  // cache latest state of these checkboxes
+  m_ShowUnused = ui->showUnused->isChecked();
+  m_ShowEmpty = ui->showEmpty->isChecked();
+
   const D3D12Pipe::State &state = *m_Ctx.CurD3D12PipelineState();
   const ActionDescription *action = m_Ctx.CurAction();
 
@@ -1542,7 +1567,7 @@ void D3D12PipelineStateViewer::setState()
 
   if(state.inputAssembly.indexBuffer.resourceId != ResourceId())
   {
-    if(ibufferUsed || ui->showUnused->isChecked())
+    if(ibufferUsed || m_ShowUnused)
     {
       uint64_t length = state.inputAssembly.indexBuffer.byteSize;
 
@@ -1599,7 +1624,7 @@ void D3D12PipelineStateViewer::setState()
   }
   else
   {
-    if(ibufferUsed || ui->showEmpty->isChecked())
+    if(ibufferUsed || m_ShowEmpty)
     {
       RDTreeWidgetItem *node = new RDTreeWidgetItem(
           {tr("Index"), tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), QString()});

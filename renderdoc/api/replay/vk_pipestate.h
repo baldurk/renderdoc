@@ -231,6 +231,7 @@ struct DescriptorBinding
   bool operator==(const DescriptorBinding &o) const
   {
     return descriptorCount == o.descriptorCount && dynamicallyUsedCount == o.dynamicallyUsedCount &&
+           firstUsedIndex == o.firstUsedIndex && lastUsedIndex == o.lastUsedIndex &&
            type == o.type && stageFlags == o.stageFlags && binds == o.binds;
   }
   bool operator<(const DescriptorBinding &o) const
@@ -239,6 +240,10 @@ struct DescriptorBinding
       return descriptorCount < o.descriptorCount;
     if(!(dynamicallyUsedCount == o.dynamicallyUsedCount))
       return dynamicallyUsedCount < o.dynamicallyUsedCount;
+    if(!(firstUsedIndex == o.firstUsedIndex))
+      return firstUsedIndex < o.firstUsedIndex;
+    if(!(lastUsedIndex == o.lastUsedIndex))
+      return lastUsedIndex < o.lastUsedIndex;
     if(!(type == o.type))
       return type < o.type;
     if(!(stageFlags == o.stageFlags))

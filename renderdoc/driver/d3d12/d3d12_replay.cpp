@@ -168,6 +168,7 @@ void D3D12Replay::CreateResources()
 void D3D12Replay::DestroyResources()
 {
   ClearPostVSCache();
+  ClearFeedbackCache();
 
   m_General.Release();
   m_TexRender.Release();
@@ -175,6 +176,8 @@ void D3D12Replay::DestroyResources()
   m_VertexPick.Release();
   m_PixelPick.Release();
   m_Histogram.Release();
+
+  SAFE_RELEASE(m_BindlessFeedback.FeedbackBuffer);
 
   SAFE_RELEASE(m_SOBuffer);
   SAFE_RELEASE(m_SOStagingBuffer);
@@ -926,7 +929,7 @@ ShaderStageMask ToShaderStageMask(D3D12_SHADER_VISIBILITY vis)
   }
 }
 
-void D3D12Replay::FillRootElements(const D3D12RenderState::RootSignature &rootSig,
+void D3D12Replay::FillRootElements(uint32_t eventId, const D3D12RenderState::RootSignature &rootSig,
                                    const ShaderBindpointMapping *mappings[(uint32_t)ShaderStage::Count],
                                    rdcarray<D3D12Pipe::RootSignatureRange> &rootElements)
 {
@@ -934,6 +937,12 @@ void D3D12Replay::FillRootElements(const D3D12RenderState::RootSignature &rootSi
     return;
 
   D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
+
+  const D3D12DynamicShaderFeedback &usage = m_BindlessFeedback.Usage[eventId];
+
+  const D3D12FeedbackBindIdentifier *curUsage = usage.used.begin();
+  const D3D12FeedbackBindIdentifier *lastUsage = usage.used.end();
+  D3D12FeedbackBindIdentifier curIdentifier;
 
   WrappedID3D12RootSignature *sig =
       m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(rootSig.rootsig);
@@ -944,6 +953,8 @@ void D3D12Replay::FillRootElements(const D3D12RenderState::RootSignature &rootSi
 
   for(size_t rootEl = 0; rootEl < sig->sig.Parameters.size(); rootEl++)
   {
+    curIdentifier.rootEl = rootEl;
+
     const D3D12RootSignatureParameter &p = sig->sig.Parameters[rootEl];
 
     if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
@@ -1027,6 +1038,8 @@ void D3D12Replay::FillRootElements(const D3D12RenderState::RootSignature &rootSi
       element.views.push_back(D3D12Pipe::View(p.Descriptor.ShaderRegister));
       D3D12Pipe::View &view = element.views.back();
 
+      view.dynamicallyUsed = true;
+
       if(rootEl < rootSig.sigelems.size())
       {
         const D3D12RenderState::SignatureElement &e = rootSig.sigelems[rootEl];
@@ -1064,6 +1077,8 @@ void D3D12Replay::FillRootElements(const D3D12RenderState::RootSignature &rootSi
 
       element.views.push_back(D3D12Pipe::View(p.Descriptor.ShaderRegister));
       D3D12Pipe::View &view = element.views.back();
+
+      view.dynamicallyUsed = true;
 
       if(rootEl < rootSig.sigelems.size())
       {
@@ -1103,6 +1118,8 @@ void D3D12Replay::FillRootElements(const D3D12RenderState::RootSignature &rootSi
       for(size_t r = 0; r < p.ranges.size(); r++)
       {
         const D3D12_DESCRIPTOR_RANGE1 &range = p.ranges[r];
+
+        curIdentifier.rangeIndex = r;
 
         // Here we diverge slightly from how root signatures store data. A descriptor table can
         // contain multiple ranges which can each contain different types. D3D12Pipe treats
@@ -1146,10 +1163,13 @@ void D3D12Replay::FillRootElements(const D3D12RenderState::RootSignature &rootSi
             // Find shader binds that map any or all of this range to see if we can trim it
             for(ShaderStage stage = ShaderStage::Vertex; stage < ShaderStage::Count; ++stage)
             {
+              const ShaderBindpointMapping *mapping = mappings[(uint32_t)stage];
               if((element.visibility & MaskForStage(stage)) != ShaderStageMask::Unknown)
               {
                 // This range is visible to this shader stage, check its mappings
-                const rdcarray<Bindpoint> &bps = mappings[(uint32_t)stage]->readOnlyResources;
+                const rdcarray<Bindpoint> &bps = range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV
+                                                     ? mapping->readWriteResources
+                                                     : mapping->readOnlyResources;
                 for(size_t b = 0; b < bps.size(); ++b)
                 {
                   if(bps[b].bindset == (int32_t)element.registerSpace &&
@@ -1237,9 +1257,16 @@ void D3D12Replay::FillRootElements(const D3D12RenderState::RootSignature &rootSi
             }
           }
         }
-        else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV)
+        else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV ||
+                range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
         {
-          element.type = BindType::ReadOnlyResource;
+          if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV)
+            element.type = BindType::ReadOnlyResource;
+          else
+            element.type = BindType::ReadWriteResource;
+
+          if(usage.valid)
+            element.dynamicallyUsedCount = 0;
 
           for(UINT i = 0; i < num; i++, shaderReg++)
           {
@@ -1247,22 +1274,59 @@ void D3D12Replay::FillRootElements(const D3D12RenderState::RootSignature &rootSi
             D3D12Pipe::View &view = element.views.back();
             view.tableIndex = offset + i;
 
-            if(desc)
+            if(usage.valid)
             {
-              FillResourceView(view, desc);
-              desc++;
-            }
-          }
-        }
-        else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
-        {
-          element.type = BindType::ReadWriteResource;
+              curIdentifier.descIndex = i;
 
-          for(UINT i = 0; i < num; i++, shaderReg++)
-          {
-            element.views.push_back(D3D12Pipe::View(shaderReg));
-            D3D12Pipe::View &view = element.views.back();
-            view.tableIndex = offset + i;
+              // if the usage data is valid we expect entries for all descriptors that are used.
+              // Note that because of the messed up root signature/binding split, some of these
+              // entries will just be statically inserted and not actually from dynamic feedback
+              //
+              // usage data is only valid when at least one array exists to have feedback
+              if(curUsage >= lastUsage)
+              {
+                // if we exhausted the list, all other elements are unused
+                view.dynamicallyUsed = false;
+              }
+              else
+              {
+                // we never saw the current value of curUsage (which is odd, we should have
+                // when iterating over all descriptors. This could only happen if there's some
+                // layout mismatch or a feedback bug that lead to an invalid entry in the list).
+                // Keep advancing until we get to one that is >= our current bind
+                while(*curUsage < curIdentifier && curUsage < lastUsage)
+                {
+                  curUsage++;
+                }
+
+                // the next used bind is equal to this one. Mark it as dynamically used, and consume
+                if(curUsage < lastUsage && *curUsage == curIdentifier)
+                {
+                  view.dynamicallyUsed = true;
+                  curUsage++;
+                }
+                // the next used bind is after the current one, this is not used.
+                else if(curUsage < lastUsage && curIdentifier < *curUsage)
+                {
+                  view.dynamicallyUsed = false;
+                }
+              }
+            }
+            else
+            {
+              view.dynamicallyUsed = true;
+            }
+
+            if(view.dynamicallyUsed)
+            {
+              element.dynamicallyUsedCount++;
+              // we iterate in forward order, so we can unconditinoally set the last bind to the
+              // current one, and only set the first bind if we haven't encountered one before
+              element.lastUsedIndex = i;
+
+              if(element.firstUsedIndex < 0)
+                element.firstUsedIndex = i;
+            }
 
             if(desc)
             {
@@ -1339,6 +1403,13 @@ void D3D12Replay::FillRootElements(const D3D12RenderState::RootSignature &rootSi
 void D3D12Replay::SavePipelineState(uint32_t eventId)
 {
   const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
+
+  D3D12MarkerRegion::Begin(m_pDevice->GetQueue(),
+                           StringFormat::Fmt("FetchShaderFeedback for %u", eventId));
+
+  FetchShaderFeedback(eventId);
+
+  D3D12MarkerRegion::End(m_pDevice->GetQueue());
 
   D3D12Pipe::State &state = m_PipelineState;
 
@@ -1464,12 +1535,12 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
 
     if(pipe && pipe->IsCompute())
     {
-      FillRootElements(rs.compute, mappings, state.rootElements);
+      FillRootElements(eventId, rs.compute, mappings, state.rootElements);
       state.rootSignatureResourceId = rm->GetOriginalID(rs.compute.rootsig);
     }
     else if(pipe)
     {
-      FillRootElements(rs.graphics, mappings, state.rootElements);
+      FillRootElements(eventId, rs.graphics, mappings, state.rootElements);
       state.rootSignatureResourceId = rm->GetOriginalID(rs.graphics.rootsig);
     }
   }
@@ -2991,6 +3062,7 @@ void D3D12Replay::ReplaceResource(ResourceId from, ResourceId to)
   RefreshDerivedReplacements();
 
   ClearPostVSCache();
+  ClearFeedbackCache();
 }
 
 void D3D12Replay::RemoveReplacement(ResourceId id)
@@ -3002,6 +3074,7 @@ void D3D12Replay::RemoveReplacement(ResourceId id)
     RefreshDerivedReplacements();
 
     ClearPostVSCache();
+    ClearFeedbackCache();
   }
 }
 

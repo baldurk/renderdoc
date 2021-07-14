@@ -1272,6 +1272,8 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage, 
 
         rdcarray<BoundResource> &val = ret.back().resources;
 
+        ret.back().dynamicallyUsedCount = 0;
+
         for(size_t i = 0; i < m_D3D12->rootElements.size(); ++i)
         {
           const D3D12Pipe::RootSignatureRange &element = m_D3D12->rootElements[i];
@@ -1281,7 +1283,19 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage, 
           if(element.type == BindType::ReadOnlyResource &&
              element.registerSpace == (uint32_t)bind.bindset)
           {
-            for(size_t j = 0; j < element.views.size(); ++j)
+            size_t firstIdx = 0;
+            size_t count = element.views.size();
+
+            if(onlyUsed && val.empty())
+            {
+              firstIdx = (uint32_t)element.firstUsedIndex;
+              count = std::min(count - firstIdx,
+                               size_t(element.lastUsedIndex - element.firstUsedIndex + 1));
+
+              ret.back().firstIndex = (int32_t)firstIdx;
+            }
+
+            for(size_t j = firstIdx; j < count; ++j)
             {
               const D3D12Pipe::View &view = element.views[j];
               if(view.bind >= start && view.bind < end)
@@ -1289,9 +1303,13 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage, 
                 val.push_back(BoundResource());
                 BoundResource &b = val.back();
                 b.resourceId = view.resourceId;
+                b.dynamicallyUsed = view.dynamicallyUsed;
                 b.firstMip = (int)view.firstMip;
                 b.firstSlice = (int)view.firstSlice;
                 b.typeCast = view.viewFormat.compType;
+
+                if(view.dynamicallyUsed)
+                  ret.back().dynamicallyUsedCount++;
               }
             }
           }
@@ -1352,7 +1370,8 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage, 
             if(onlyUsed)
             {
               firstIdx = (uint32_t)bind.firstUsedIndex;
-              count = std::min(count, uint32_t(bind.lastUsedIndex - bind.firstUsedIndex + 1));
+              count =
+                  std::min(count - firstIdx, uint32_t(bind.lastUsedIndex - bind.firstUsedIndex + 1));
             }
 
             rdcarray<BoundResource> &val = ret.back().resources;
@@ -1454,6 +1473,8 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage,
 
         rdcarray<BoundResource> &val = ret.back().resources;
 
+        ret.back().dynamicallyUsedCount = 0;
+
         for(size_t i = 0; i < m_D3D12->rootElements.size(); ++i)
         {
           const D3D12Pipe::RootSignatureRange &element = m_D3D12->rootElements[i];
@@ -1463,7 +1484,19 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage,
           if(element.type == BindType::ReadWriteResource &&
              element.registerSpace == (uint32_t)bind.bindset)
           {
-            for(size_t j = 0; j < element.views.size(); ++j)
+            size_t firstIdx = 0;
+            size_t count = element.views.size();
+
+            if(onlyUsed && val.empty())
+            {
+              firstIdx = (uint32_t)element.firstUsedIndex;
+              count = std::min(count - firstIdx,
+                               size_t(element.lastUsedIndex - element.firstUsedIndex + 1));
+
+              ret.back().firstIndex = (int32_t)firstIdx;
+            }
+
+            for(size_t j = firstIdx; j < count; ++j)
             {
               const D3D12Pipe::View &view = element.views[j];
               if(view.bind >= start && view.bind < end)
@@ -1471,9 +1504,13 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage,
                 val.push_back(BoundResource());
                 BoundResource &b = val.back();
                 b.resourceId = view.resourceId;
+                b.dynamicallyUsed = view.dynamicallyUsed;
                 b.firstMip = (int)view.firstMip;
                 b.firstSlice = (int)view.firstSlice;
                 b.typeCast = view.viewFormat.compType;
+
+                if(view.dynamicallyUsed)
+                  ret.back().dynamicallyUsedCount++;
               }
             }
           }
@@ -1530,7 +1567,8 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage,
             if(onlyUsed)
             {
               firstIdx = (uint32_t)bind.firstUsedIndex;
-              count = std::min(count, uint32_t(bind.lastUsedIndex - bind.firstUsedIndex + 1));
+              count =
+                  std::min(count - firstIdx, uint32_t(bind.lastUsedIndex - bind.firstUsedIndex + 1));
             }
 
             rdcarray<BoundResource> &val = ret.back().resources;

@@ -421,7 +421,7 @@ DOCUMENT(R"(A single source component for a destination texture swizzle.
 
   The fixed value ``1``.
 )");
-enum class TextureSwizzle : uint32_t
+enum class TextureSwizzle : uint8_t
 {
   Red,
   Green,
@@ -4077,7 +4077,7 @@ DOCUMENT(R"(A set of flags for D3D buffer view properties.
 
   The buffer is used with a structured buffer with associated hidden counter.
 )");
-enum class D3DBufferViewFlags : uint32_t
+enum class D3DBufferViewFlags : uint8_t
 {
   NoFlags = 0x0,
   Raw = 0x1,

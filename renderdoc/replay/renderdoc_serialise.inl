@@ -441,7 +441,7 @@ void DoSerialise(SerialiserType &ser, TextureSwizzle4 &el)
   SERIALISE_MEMBER(blue);
   SERIALISE_MEMBER(alpha);
 
-  SIZE_CHECK(16);
+  SIZE_CHECK(4);
 }
 
 template <typename SerialiserType>
@@ -1374,11 +1374,14 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::RootSignatureRange &el)
   SERIALISE_MEMBER(type);
   SERIALISE_MEMBER(visibility);
   SERIALISE_MEMBER(registerSpace);
+  SERIALISE_MEMBER(dynamicallyUsedCount);
+  SERIALISE_MEMBER(firstUsedIndex);
+  SERIALISE_MEMBER(lastUsedIndex);
   SERIALISE_MEMBER(constantBuffers);
   SERIALISE_MEMBER(samplers);
   SERIALISE_MEMBER(views);
 
-  SIZE_CHECK(96);
+  SIZE_CHECK(104);
 }
 
 template <typename SerialiserType>
@@ -1391,6 +1394,7 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::View &el)
   SERIALISE_MEMBER(viewFormat);
 
   SERIALISE_MEMBER(swizzle);
+  SERIALISE_MEMBER(dynamicallyUsed);
   SERIALISE_MEMBER(bufferFlags);
   SERIALISE_MEMBER(bufferStructCount);
   SERIALISE_MEMBER(elementByteSize);
@@ -1407,7 +1411,7 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::View &el)
 
   SERIALISE_MEMBER(minLODClamp);
 
-  SIZE_CHECK(112);
+  SIZE_CHECK(96);
 }
 
 template <typename SerialiserType>
@@ -1547,7 +1551,7 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::OM &el)
   SERIALISE_MEMBER(multiSampleCount);
   SERIALISE_MEMBER(multiSampleQuality);
 
-  SIZE_CHECK(280);
+  SIZE_CHECK(264);
 }
 
 template <typename SerialiserType>
@@ -1591,7 +1595,7 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::State &el)
 
   SERIALISE_MEMBER(resourceStates);
 
-  SIZE_CHECK(1432);
+  SIZE_CHECK(1416);
 }
 
 #pragma endregion D3D12 pipeline state
@@ -1678,7 +1682,7 @@ void DoSerialise(SerialiserType &ser, GLPipe::Texture &el)
   SERIALISE_MEMBER(depthReadChannel);
   SERIALISE_MEMBER(completeStatus);
 
-  SIZE_CHECK(64);
+  SIZE_CHECK(56);
 }
 
 template <typename SerialiserType>
@@ -1811,7 +1815,7 @@ void DoSerialise(SerialiserType &ser, GLPipe::Attachment &el)
   SERIALISE_MEMBER(mipLevel);
   SERIALISE_MEMBER(swizzle);
 
-  SIZE_CHECK(40);
+  SIZE_CHECK(24);
 }
 
 template <typename SerialiserType>
@@ -1824,7 +1828,7 @@ void DoSerialise(SerialiserType &ser, GLPipe::FBO &el)
   SERIALISE_MEMBER(drawBuffers);
   SERIALISE_MEMBER(readBuffer);
 
-  SIZE_CHECK(144);
+  SIZE_CHECK(112);
 }
 
 template <typename SerialiserType>
@@ -1845,7 +1849,7 @@ void DoSerialise(SerialiserType &ser, GLPipe::FrameBuffer &el)
   SERIALISE_MEMBER(readFBO);
   SERIALISE_MEMBER(blendState);
 
-  SIZE_CHECK(336);
+  SIZE_CHECK(272);
 }
 
 template <typename SerialiserType>
@@ -1894,7 +1898,7 @@ void DoSerialise(SerialiserType &ser, GLPipe::State &el)
 
   SERIALISE_MEMBER(hints);
 
-  SIZE_CHECK(2024);
+  SIZE_CHECK(1960);
 }
 
 #pragma endregion OpenGL pipeline state
@@ -1942,7 +1946,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::BindingElement &el)
   SERIALISE_MEMBER(chromaFilter);
   SERIALISE_MEMBER(forceExplicitReconstruction);
 
-  SIZE_CHECK(200);
+  SIZE_CHECK(184);
 };
 
 template <typename SerialiserType>
@@ -2223,7 +2227,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::Attachment &el)
   SERIALISE_MEMBER(numMips);
   SERIALISE_MEMBER(numSlices);
 
-  SIZE_CHECK(56);
+  SIZE_CHECK(48);
 }
 
 template <typename SerialiserType>

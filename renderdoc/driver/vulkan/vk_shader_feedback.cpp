@@ -1310,7 +1310,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
   // create it here so we won't re-run any code if the event is re-selected. We'll mark it as valid
   // if it actually has any data in it later.
-  DynamicShaderFeedback &result = m_BindlessFeedback.Usage[eventId];
+  VKDynamicShaderFeedback &result = m_BindlessFeedback.Usage[eventId];
 
   bool useBufferAddress = (m_pDriver->GetExtensions(NULL).ext_KHR_buffer_device_address ||
                            m_pDriver->GetExtensions(NULL).ext_EXT_buffer_device_address) &&

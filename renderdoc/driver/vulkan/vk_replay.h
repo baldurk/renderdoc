@@ -209,7 +209,7 @@ struct VulkanPostVSData
   }
 };
 
-struct DynamicShaderFeedback
+struct VKDynamicShaderFeedback
 {
   bool compute = false, valid = false;
   rdcarray<BindpointIndex> used;
@@ -744,7 +744,7 @@ private:
 
     GPUBuffer FeedbackBuffer;
 
-    std::map<uint32_t, DynamicShaderFeedback> Usage;
+    std::map<uint32_t, VKDynamicShaderFeedback> Usage;
   } m_BindlessFeedback;
 
   ShaderDebugData m_ShaderDebugData;

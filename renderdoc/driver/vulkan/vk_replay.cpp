@@ -1623,7 +1623,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
         &state.graphics.descSets, &state.compute.descSets,
     };
 
-    const DynamicShaderFeedback &usage = m_BindlessFeedback.Usage[eventId];
+    const VKDynamicShaderFeedback &usage = m_BindlessFeedback.Usage[eventId];
 
     m_VulkanPipelineState.shaderMessages = usage.messages;
 
