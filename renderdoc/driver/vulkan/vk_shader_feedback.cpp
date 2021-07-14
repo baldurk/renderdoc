@@ -53,7 +53,8 @@ struct feedbackData
 
 struct PrintfData
 {
-  rdcstr format;
+  rdcstr user_format;
+  rdcstr effective_format;
   // vectors are expanded so there's one for each component (as printf will expect)
   rdcarray<rdcspv::Scalar> argTypes;
   size_t payloadWords;
@@ -72,6 +73,7 @@ public:
     m_Cur = m_Start;
     m_Idx = 0;
   }
+  void error(const char *err) override { m_Error = err; }
   int get_int() override
   {
     int32_t ret = *(int32_t *)m_Cur;
@@ -125,11 +127,13 @@ public:
   }
 
   size_t get_size() override { return sizeof(size_t) == 8 ? (size_t)get_uint64() : get_uint(); }
+  rdcstr get_error() { return m_Error; }
 private:
   const uint32_t *m_Cur;
   const uint32_t *m_Start;
   size_t m_Idx;
   const PrintfData &m_Formats;
+  rdcstr m_Error;
 };
 
 rdcstr PatchFormatString(rdcstr format)
@@ -886,7 +890,8 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
 
           {
             rdcspv::OpString str(editor.GetID(rdcspv::Id::fromWord(extinst.params[0])));
-            format.format = PatchFormatString(str.string);
+            format.user_format = str.string;
+            format.effective_format = PatchFormatString(str.string);
           }
 
           rdcarray<rdcspv::Id> packetWords;
@@ -1848,7 +1853,10 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
           RDCLOG("pixel %u, %u", msg.location.pixel.x, msg.location.pixel.y);
         }
 
-        msg.message = StringFormat::FmtArgs(fmt.format.c_str(), args);
+        msg.message = StringFormat::FmtArgs(fmt.effective_format.c_str(), args);
+
+        if(!args.get_error().empty())
+          msg.message = args.get_error() + " in \"" + fmt.user_format + "\"";
 
         result.messages.push_back(msg);
       }

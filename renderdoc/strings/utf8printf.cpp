@@ -1401,11 +1401,6 @@ void formatargument(char type, void *rawarg, FormatterParams formatter, char *&o
 
     PrintFloat(argd, formatter, e, f, g, a, uppercaseDigits, output, actualsize, end);
   }
-  else
-  {
-    // Unrecognised format specifier
-    RDCDUMPMSG("Unrecognised % formatter");
-  }
 }
 
 struct va_arg_getter
@@ -1417,6 +1412,8 @@ struct va_arg_getter
   {
     return va_arg(list, T);
   }
+
+  void error(const char *err) {}
 };
 
 struct custom_arg_getter
@@ -1425,6 +1422,8 @@ struct custom_arg_getter
   custom_arg_getter(StringFormat::Args &f) : formatter(f) {}
   template <typename T>
   inline T get_next();
+
+  void error(const char *err) { formatter.error(err); }
 };
 
 template <>
@@ -1460,6 +1459,18 @@ inline size_t custom_arg_getter::get_next<size_t>()
 }
 #endif
 
+int utf8print_error(char *buf, size_t bufsize, const char *str)
+{
+  // copy the string with no formatting in the error case
+  size_t ret = strlen(str);
+  if(bufsize > 0)
+  {
+    memcpy(buf, str, RDCMIN(bufsize - 1, ret));
+    buf[RDCMIN(bufsize - 1, ret)] = 0;
+  }
+  return int(ret);
+}
+
 template <typename arg_getter>
 int utf8print_template(char *buf, size_t bufsize, const char *fmt, arg_getter args)
 {
@@ -1481,7 +1492,10 @@ int utf8print_template(char *buf, size_t bufsize, const char *fmt, arg_getter ar
       iter++;
 
       if(*iter == 0)
-        RDCDUMPMSG("unterminated formatter (should be %% if you want a literal %)");
+      {
+        args.error("unterminated formatter (should be %% if you want a literal %)");
+        return utf8print_error(buf, bufsize, fmt);
+      }
 
       if(*iter == '%')    // %% found, insert single % and continue copying
       {
@@ -1556,7 +1570,10 @@ int utf8print_template(char *buf, size_t bufsize, const char *fmt, arg_getter ar
 
         // unterminated formatter
         if(*iter == 0)
-          RDCDUMPMSG("Unterminated % formatter found after width");
+        {
+          args.error("Unterminated % formatter found after width");
+          return utf8print_error(buf, bufsize, fmt);
+        }
       }
       else
       {
@@ -1597,7 +1614,10 @@ int utf8print_template(char *buf, size_t bufsize, const char *fmt, arg_getter ar
 
           // unterminated formatter
           if(*iter == 0)
-            RDCDUMPMSG("Unterminated % formatter found after precision");
+          {
+            args.error("Unterminated % formatter found after precision");
+            return utf8print_error(buf, bufsize, fmt);
+          }
         }
       }
       else
@@ -1688,7 +1708,8 @@ int utf8print_template(char *buf, size_t bufsize, const char *fmt, arg_getter ar
     }
     else
     {
-      RDCDUMPMSG("Unrecognised % formatter");
+      args.error("Unrecognised % formatter");
+      return utf8print_error(buf, bufsize, fmt);
     }
 
     formatargument(type, arg, formatter, output, actualsize, end);
@@ -1913,6 +1934,24 @@ TEST_CASE("utf8printf buffer sizing", "[utf8printf]")
       CHECK(memcmp(bufb, refb, sizeof(refb)) == 0);
     }
   };
+};
+
+TEST_CASE("utf8printf error cases", "[utf8printf]")
+{
+  // unrecognised format type (covers most errors where an invalid character happens after optional
+  // precision stuff
+  CHECK(StringFormat::Fmt("%f foo %s: %q", 1.234f, "blah", 777) == "%f foo %s: %q");
+  CHECK(StringFormat::Fmt("%f foo %s: %8q", 1.234f, "blah", 777) == "%f foo %s: %8q");
+  CHECK(StringFormat::Fmt("%f foo %s: %1.8q", 1.234f, "blah", 777) == "%f foo %s: %1.8q");
+
+  // unterminated % at the end of the string
+  CHECK(StringFormat::Fmt("%f foo %s: %", 1.234f, "blah", 777) == "%f foo %s: %");
+  CHECK(StringFormat::Fmt("%f foo %s: %8", 1.234f, "blah", 777) == "%f foo %s: %8");
+  CHECK(StringFormat::Fmt("%f foo %s: %1.8", 1.234f, "blah", 777) == "%f foo %s: %1.8");
+  CHECK(StringFormat::Fmt("%f foo %s: %1.", 1.234f, "blah", 777) == "%f foo %s: %1.");
+
+  // precision as vararg
+  CHECK(StringFormat::Fmt("%f foo %*s", 1.234f, "blah", 777) == "%f foo %*s");
 };
 
 TEST_CASE("utf8printf standard string formatters", "[utf8printf]")
