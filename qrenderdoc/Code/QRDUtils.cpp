@@ -661,11 +661,13 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx, bool parseU
     var = QVariant::fromValue(linkedText);
     return;
   }
-
-  // if our text doesn't match any of the previous pattern, we still want to linkify URLs
-  if(HandleURLFragment(linkedText, text, parseURLs))
+  else
   {
-    var = QVariant::fromValue(linkedText);
+    // if our text doesn't match any of the previous pattern, we still want to linkify URLs
+    if(HandleURLFragment(linkedText, text, parseURLs))
+    {
+      var = QVariant::fromValue(linkedText);
+    }
   }
 }
 
