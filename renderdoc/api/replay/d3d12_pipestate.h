@@ -871,7 +871,7 @@ struct State
 
   DOCUMENT(R"(The root signature, as a range per element.
     
-:type: List[RootSignatureRange]
+:type: List[D3D12RootSignatureRange]
 )");
   rdcarray<RootSignatureRange> rootElements;
 
@@ -932,7 +932,7 @@ struct State
 
   DOCUMENT(R"(The resource states for the currently live resources.
 
-:type: List[ResourceData]
+:type: List[D3D12ResourceData]
 )");
   rdcarray<ResourceData> resourceStates;
 };
