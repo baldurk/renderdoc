@@ -33,7 +33,7 @@
 
 RDOC_CONFIG(rdcstr, D3D12_Debug_FeedbackDumpDirPath, "",
             "Path to dump bindless feedback annotation generated DXBC/DXIL files.");
-RDOC_CONFIG(bool, D3D12_Experimental_BindlessFeedback, true,
+RDOC_CONFIG(bool, D3D12_Experimental_BindlessFeedback, false,
             "EXPERIMENTAL: Enable fetching from GPU which descriptors were dynamically used in "
             "descriptor arrays.");
 
