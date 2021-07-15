@@ -810,6 +810,10 @@ void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, 
     sel.cursor.movePosition(QTextCursor::End, QTextCursor::KeepAnchor);
     docCtx.selections.push_back(sel);
   }
+  else
+  {
+    docCtx.palette.setColor(QPalette::Text, foreBrush.color());
+  }
 
   painter->setClipRect(docCtx.clip);
 
@@ -1189,7 +1193,7 @@ void RichTextViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
 
       painter->save();
 
-      QRect rect = option.rect;
+      QRect rect = opt.rect;
       if(!opt.icon.isNull())
       {
         QIcon::Mode mode;
@@ -1203,7 +1207,7 @@ void RichTextViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
         rect.setX(rect.x() + opt.icon.actualSize(opt.decorationSize, mode, state).width() + 4);
       }
 
-      RichResourceTextPaint(m_widget, painter, rect, opt.font, option.palette, option.state,
+      RichResourceTextPaint(m_widget, painter, rect, opt.font, opt.palette, opt.state,
                             m_widget->viewport()->mapFromGlobal(QCursor::pos()), v);
 
       painter->restore();
