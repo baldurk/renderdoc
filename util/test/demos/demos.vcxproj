@@ -179,6 +179,7 @@
     <ClCompile Include="d3d12\d3d12_amd_shader_extensions.cpp" />
     <ClCompile Include="d3d12\d3d12_buffer_truncation.cpp" />
     <ClCompile Include="d3d12\d3d12_cbuffer_zoo.cpp" />
+    <ClCompile Include="d3d12\d3d12_descriptor_indexing.cpp" />
     <ClCompile Include="d3d12\d3d12_discard_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_draw_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_empty_capture.cpp" />
