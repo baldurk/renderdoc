@@ -110,10 +110,34 @@ static bool AnnotateShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
       if(decl->operand.indices[1].index == decl->operand.indices[2].index)
         continue;
 
-      // the operand should be relative addressing like r0.x + 6 for a t6 resource being indexed
-      // with [r0.x]
-      RDCASSERT(operand.indices[1].relative &&
-                operand.indices[1].index == decl->operand.indices[1].index);
+      bool dynamic = operand.indices[1].relative;
+
+      Operand idx;
+
+      if(dynamic)
+      {
+        // the operand should be relative addressing like r0.x + 6 for a t6 resource being indexed
+        // with [r0.x]
+        RDCASSERT(operand.indices[1].index == decl->operand.indices[1].index);
+
+        idx = operand.indices[1].operand;
+
+        // should be getting a scalar index
+        if(idx.comps[1] != 0xff || idx.comps[2] != 0xff || idx.comps[3] != 0xff)
+        {
+          RDCERR("Unexpected vector index for resource: %s",
+                 operand.toString(dxbc->GetReflection(), ToString::None).c_str());
+          continue;
+        }
+      }
+      else
+      {
+        // shader could be indexing into an array with a fixed index. Handle that by subtracting the
+        // base manually
+        RDCASSERT(operand.indices[1].index >= decl->operand.indices[1].index);
+
+        idx = imm(uint32_t(operand.indices[1].index - decl->operand.indices[1].index));
+      }
 
       D3D12FeedbackKey key;
       key.type = operand.type;
@@ -129,21 +153,12 @@ static bool AnnotateShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
         continue;
       }
 
-      // should be getting a scalar index
-      if(operand.indices[1].operand.comps[1] != 0xff ||
-         operand.indices[1].operand.comps[2] != 0xff || operand.indices[1].operand.comps[3] != 0xff)
-      {
-        RDCERR("Unexpected vector index for resource: %s",
-               operand.toString(dxbc->GetReflection(), ToString::None).c_str());
-        continue;
-      }
-
       if(u.first == ~0U && u.second == ~0U)
         u = editor.DeclareUAV(desc, space, 0, 0);
 
       // resource base plus index
-      editor.InsertOperation(i++, oper(OPCODE_IADD, {temp(t).swizzle(0), imm(it->second.Slot()),
-                                                     operand.indices[1].operand}));
+      editor.InsertOperation(i++,
+                             oper(OPCODE_IADD, {temp(t).swizzle(0), imm(it->second.Slot()), idx}));
       // multiply by 4 for byte index
       editor.InsertOperation(i++,
                              oper(OPCODE_ISHL, {temp(t).swizzle(0), temp(t).swizzle(0), imm(2)}));

@@ -53,10 +53,11 @@ class D3D12_Descriptor_Indexing(rdtest.TestCase):
             #     image 15 in root range 0 should also be statically used
             #   - images 19, 20, 21 in root range 1 should be used for the non-uniform index
             #     images 49 & 59 in root range 1 should be used for a second array in the same range
+            #     image 60 in root range 1 should be used for a fixed index in an array
             #     image 99 and 103 in root range 1 should be used
             bind_info = {
                 0: [8, 12],
-                1: [19, 20, 21, 49, 59, 99, 103],
+                1: [19, 20, 21, 49, 59, 60, 99, 103],
             }
 
             if len(pipe.rootElements) != 3:

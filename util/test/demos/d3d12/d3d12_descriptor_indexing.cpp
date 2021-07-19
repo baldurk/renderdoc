@@ -114,6 +114,7 @@ float4 main(v2f IN) : SV_Target0
       {
         ret *= texArray2[t.binding].SampleLevel(s, uv.xy, 0);
         ret *= texArray2[t.binding+10].SampleLevel(s, uv.xy, 0);
+        ret *= texArray2[20].SampleLevel(s, uv.xy, 0);
       }
       else if(t.tex == 2)
       {
