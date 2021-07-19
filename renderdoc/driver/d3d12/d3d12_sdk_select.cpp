@@ -31,6 +31,8 @@
 RDOC_CONFIG(rdcstr, D3D12_D3D12CoreDirPath, "",
             "The location of the D3D12Core library. This path should be the directory that "
             "contains the D3D12Core.dll that you want to use.");
+RDOC_CONFIG(bool, D3D12_Debug_IgnoreSignatureCheck, false,
+            "Whether to ignore digital signature check for dll's embedded in capture file");
 
 // special hooking functions exposed on windows for hooking while in replay mode
 void Win32_RegisterManualModuleHooking();
@@ -183,11 +185,11 @@ bool IsSignedByMicrosoft(const rdcstr &filename)
   HCERTSTORE store = NULL;
   HCRYPTMSG msg = NULL;
   PCMSG_SIGNER_INFO signer_info = NULL;
-  DWORD signer_info_size{};
+  DWORD signer_info_size = 0;
   PCCERT_CONTEXT cert_context = NULL;
-  CERT_INFO cert_info{};
+  CERT_INFO cert_info = {};
   LPTSTR signer_name = NULL;
-  DWORD signer_name_length{};
+  DWORD signer_name_length = 0;
 
   do
   {
@@ -284,7 +286,7 @@ bool IsSignedByMicrosoft(const rdcstr &filename)
     // Since Microsoft uses multiple different signatures,
     // We just check whether "Microsoft" is a substring of signer simple name
     // Nobody except Microsoft should ever have such signature
-    if(wcsstr(signer_name, L"Microsoft") == nullptr)
+    if(wcsstr(signer_name, L"Microsoft") == NULL)
     {
       break;
     }
@@ -445,11 +447,21 @@ void D3D12_PrepareReplaySDKVersion(UINT SDKVersion, bytebuf d3d12core_file,
 
         if(!IsSignedByMicrosoft(filename))
         {
-          FileIO::Delete(filename);
-          RDCERR(
-              "Can't verify digital signature of D3D12Core.dll embedded in capture, it won't be "
-              "used");
-          break;
+          if(D3D12_Debug_IgnoreSignatureCheck())
+          {
+            RDCWARN(
+                "Can't verify digital signature of D3D12Core.dll embedded in capture, it will be "
+                "loaded since D3D12.Debug.IgnoreSignatureCheck is set to true");
+          }
+          else
+          {
+            FileIO::Delete(filename);
+            RDCERR(
+                "Can't verify digital signature of D3D12Core.dll embedded in capture, it won't be "
+                "loaded. If capture came from trusted source you want to load unsigned dll's set "
+                "D3D12.Debug.IgnoreSignatureCheck to true");
+            break;
+          }
         }
 
         rdcstr sdklayers_filename = get_dirname(filename) + "/d3d12sdklayers.dll";
@@ -465,12 +477,22 @@ void D3D12_PrepareReplaySDKVersion(UINT SDKVersion, bytebuf d3d12core_file,
 
         if(!IsSignedByMicrosoft(sdklayers_filename))
         {
-          FileIO::Delete(filename);
-          FileIO::Delete(sdklayers_filename);
-          RDCERR(
-              "Can't verify digital signature of d3d12sdklayers.dll embedded in capture, it won't "
-              "be used");
-          break;
+          if(D3D12_Debug_IgnoreSignatureCheck())
+          {
+            RDCWARN(
+                "Can't verify digital signature of d3d12sdklayers.dll embedded in capture, it will "
+                "be loaded since D3D12.Debug.IgnoreSignatureCheck is set to true");
+          }
+          else
+          {
+            FileIO::Delete(filename);
+            FileIO::Delete(sdklayers_filename);
+            RDCERR(
+                "Can't verify digital signature of d3d12sdklayers.dll embedded in capture, it "
+                "won't be loaded. If capture came from trusted source you want to load unsigned "
+                "dll's set D3D12.Debug.IgnoreSignatureCheck to true");
+            break;
+          }
         }
 
         D3D12Core_Override_Path = get_dirname(filename);
