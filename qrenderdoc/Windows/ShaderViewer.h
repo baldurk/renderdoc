@@ -160,6 +160,7 @@ private slots:
   void watch_keyPress(QKeyEvent *event);
   void performFind();
   void performFindAll();
+  void resultsDoubleClick(int position, int line);
   void performReplace();
   void performReplaceAll();
 
@@ -290,6 +291,8 @@ private:
   rdcarray<BoundResourceArray> m_ReadWriteResources;
   QList<int> m_Breakpoints;
 
+  QList<QPair<ScintillaEdit *, int>> m_FindAllResults;
+
   static const int CURRENT_MARKER = 0;
   static const int BREAKPOINT_MARKER = 2;
   static const int FINISHED_MARKER = 4;
@@ -299,6 +302,7 @@ private:
 
   static const int INDICATOR_FINDRESULT = 0;
   static const int INDICATOR_REGHIGHLIGHT = 1;
+  static const int INDICATOR_FINDALLHIGHLIGHT = 2;
 
   QString targetName(const ShaderProcessingTool &disasm);
 

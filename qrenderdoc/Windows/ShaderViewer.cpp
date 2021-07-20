@@ -131,6 +131,9 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
   ui->docking->setToolWindowProperties(
       m_FindResults, ToolWindowManager::HideOnClose | ToolWindowManager::DisallowFloatWindow);
 
+  QObject::connect(m_FindResults, &ScintillaEdit::doubleClick, this,
+                   &ShaderViewer::resultsDoubleClick);
+
   {
     m_DisassemblyView =
         MakeEditor(lit("scintillaDisassem"), QString(),
@@ -1201,6 +1204,15 @@ ScintillaEdit *ShaderViewer::MakeEditor(const QString &name, const QString &text
   ret->indicSetStyle(INDICATOR_FINDRESULT, INDIC_FULLBOX);
   ret->indicSetAlpha(INDICATOR_FINDRESULT, 50);
   ret->indicSetOutlineAlpha(INDICATOR_FINDRESULT, 80);
+
+  QColor highlightColor = palette().color(QPalette::Highlight).toRgb();
+
+  ret->indicSetFore(
+      INDICATOR_FINDALLHIGHLIGHT,
+      SCINTILLA_COLOUR(highlightColor.red(), highlightColor.green(), highlightColor.blue()));
+  ret->indicSetStyle(INDICATOR_FINDALLHIGHLIGHT, INDIC_FULLBOX);
+  ret->indicSetAlpha(INDICATOR_FINDALLHIGHLIGHT, 120);
+  ret->indicSetOutlineAlpha(INDICATOR_FINDALLHIGHLIGHT, 180);
 
   ConfigureSyntax(ret, lang);
 
@@ -5251,7 +5263,12 @@ void ShaderViewer::performFindAll()
 
   QList<QPair<int, int>> resultList;
 
+  m_FindAllResults.clear();
+
   QByteArray findUtf8 = find.toUtf8();
+
+  if(findUtf8.isEmpty())
+    return;
 
   for(ScintillaEdit *s : scintillas)
   {
@@ -5260,9 +5277,6 @@ void ShaderViewer::performFindAll()
 
     s->setIndicatorCurrent(INDICATOR_FINDRESULT);
     s->indicatorClearRange(start, end);
-
-    if(findUtf8.isEmpty())
-      continue;
 
     QPair<int, int> result;
 
@@ -5288,6 +5302,8 @@ void ShaderViewer::performFindAll()
 
         resultList.push_back(
             qMakePair(result.first - lineStart + startPos, result.second - lineStart + startPos));
+
+        m_FindAllResults.push_back({s, result.first});
       }
 
       start = result.second;
@@ -5295,13 +5311,13 @@ void ShaderViewer::performFindAll()
     } while(result.first >= 0);
   }
 
-  if(findUtf8.isEmpty())
-    return;
-
   results += tr("Matching lines: %1").arg(resultList.count());
 
   m_FindResults->setReadOnly(false);
   m_FindResults->setText(results.toUtf8().data());
+
+  m_FindResults->setIndicatorCurrent(INDICATOR_FINDALLHIGHLIGHT);
+  m_FindResults->indicatorClearRange(0, m_FindResults->length());
 
   m_FindResults->setIndicatorCurrent(INDICATOR_FINDRESULT);
 
@@ -5321,6 +5337,30 @@ void ShaderViewer::performFindAll()
                                                                  ui->docking->areaOf(cur), 0.2f));
     ui->docking->setToolWindowProperties(
         m_FindResults, ToolWindowManager::HideOnClose | ToolWindowManager::DisallowFloatWindow);
+  }
+}
+
+void ShaderViewer::resultsDoubleClick(int position, int line)
+{
+  if(line >= 1 && line - 1 < m_FindAllResults.count())
+  {
+    m_FindResults->setIndicatorCurrent(INDICATOR_FINDALLHIGHLIGHT);
+    m_FindResults->indicatorClearRange(0, m_FindResults->length());
+
+    sptr_t start = m_FindResults->positionFromLine(line);
+    sptr_t length = m_FindResults->lineLength(line);
+    m_FindResults->indicatorFillRange(start, length);
+
+    m_FindResults->setSelection(position, position);
+
+    ScintillaEdit *s = m_FindAllResults[line - 1].first;
+    int resultPos = m_FindAllResults[line - 1].second;
+    ToolWindowManager::raiseToolWindow(s);
+    s->activateWindow();
+    s->QWidget::setFocus();
+    s->clearSelections();
+    s->setSelection(resultPos, resultPos);
+    s->scrollCaret();
   }
 }
 
