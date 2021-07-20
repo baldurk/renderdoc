@@ -1359,7 +1359,8 @@ void WrappedID3D12Device::AddCaptureSubmission()
     // 15 is quite a lot of submissions.
     const int expectedMaxSubmissions = 15;
 
-    RenderDoc::Inst().SetProgress(CaptureProgress::FrameCapture, FakeProgress(m_SubmitCounter, 15));
+    RenderDoc::Inst().SetProgress(CaptureProgress::FrameCapture,
+                                  FakeProgress(m_SubmitCounter, expectedMaxSubmissions));
     m_SubmitCounter++;
   }
 }

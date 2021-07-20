@@ -2540,8 +2540,6 @@ void Program::EncodeOperation(rdcarray<uint32_t> &tokenStream, const Operation &
 
   uint32_t OpcodeToken0 = 0;
 
-  const bool sm51 = (m_Major == 0x5 && m_Minor == 0x1);
-
   Opcode::Type.Set(OpcodeToken0, op.operation);
 
   Opcode::TestNonZero.Set(OpcodeToken0, op.nonzero());

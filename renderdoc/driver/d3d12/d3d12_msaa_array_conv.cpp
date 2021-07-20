@@ -163,7 +163,6 @@ void D3D12DebugManager::CopyTex2DMSToArray(ID3D12GraphicsCommandList *list,
   const bool isDepth = IsDepthFormat(rtvDesc.Format) ||
                        (descMS.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) != 0 ||
                        (descArr.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) != 0;
-  const bool intFormat = IsUIntFormat(rtvDesc.Format) || IsIntFormat(rtvDesc.Format);
 
   const bool stencil = IsDepthAndStencilFormat(rtvDesc.Format);
   DXGI_FORMAT stencilFormat = DXGI_FORMAT_UNKNOWN;

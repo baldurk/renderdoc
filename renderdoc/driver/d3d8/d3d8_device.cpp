@@ -43,12 +43,6 @@ WrappedD3DDevice8::WrappedD3DDevice8(IDirect3DDevice8 *device, HWND wnd,
   m_InternalRefcount = 0;
   m_Alive = true;
 
-#if ENABLED(RDOC_RELEASE)
-  const bool debugSerialiser = false;
-#else
-  const bool debugSerialiser = true;
-#endif
-
   if(!RenderDoc::Inst().IsReplayApp())
   {
     m_State = CaptureState::BackgroundCapturing;

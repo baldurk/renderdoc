@@ -2747,7 +2747,6 @@ bool ReplayProxy::Tick(int type)
   if(m_Writer.IsErrored() || m_Reader.IsErrored() || m_IsErrored)
     return false;
 
-  const ReplayProxyPacket expectedPacket = (ReplayProxyPacket)type;
   ReplayProxyPacket packet = (ReplayProxyPacket)type;
 
   PROXY_DEBUG("Received %s", ToStr(packet).c_str());
