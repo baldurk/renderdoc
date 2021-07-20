@@ -1197,7 +1197,7 @@ ScintillaEdit *ShaderViewer::MakeEditor(const QString &name, const QString &text
   ret->indicSetStyle(INDICATOR_REGHIGHLIGHT, INDIC_ROUNDBOX);
 
   // set up find result highlight style
-  ret->indicSetFore(INDICATOR_FINDRESULT, SCINTILLA_COLOUR(200, 200, 127));
+  ret->indicSetFore(INDICATOR_FINDRESULT, SCINTILLA_COLOUR(200, 200, 64));
   ret->indicSetStyle(INDICATOR_FINDRESULT, INDIC_FULLBOX);
   ret->indicSetAlpha(INDICATOR_FINDRESULT, 50);
   ret->indicSetOutlineAlpha(INDICATOR_FINDRESULT, 80);
