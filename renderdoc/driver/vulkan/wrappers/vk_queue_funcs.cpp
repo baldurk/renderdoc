@@ -1259,7 +1259,8 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
     // 15 is quite a lot of submissions.
     const int expectedMaxSubmissions = 15;
 
-    RenderDoc::Inst().SetProgress(CaptureProgress::FrameCapture, FakeProgress(m_SubmitCounter, 15));
+    RenderDoc::Inst().SetProgress(CaptureProgress::FrameCapture,
+                                  FakeProgress(m_SubmitCounter, expectedMaxSubmissions));
     m_SubmitCounter++;
   }
 
@@ -1425,7 +1426,8 @@ VkResult WrappedVulkan::vkQueueSubmit2KHR(VkQueue queue, uint32_t submitCount,
     // 15 is quite a lot of submissions.
     const int expectedMaxSubmissions = 15;
 
-    RenderDoc::Inst().SetProgress(CaptureProgress::FrameCapture, FakeProgress(m_SubmitCounter, 15));
+    RenderDoc::Inst().SetProgress(CaptureProgress::FrameCapture,
+                                  FakeProgress(m_SubmitCounter, expectedMaxSubmissions));
     m_SubmitCounter++;
   }
 

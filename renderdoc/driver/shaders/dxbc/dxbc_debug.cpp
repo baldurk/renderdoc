@@ -1765,7 +1765,6 @@ void FlattenSingleVariable(const rdcstr &cbufferName, uint32_t byteOffset, const
   else
   {
     const uint32_t numRegisters = v.rowMajor ? v.rows : v.columns;
-    const uint32_t registerSize = v.rowMajor ? v.columns : v.rows;
     for(uint32_t reg = 0; reg < numRegisters; reg++)
     {
       outvars[outIdx + reg].rows = 1;

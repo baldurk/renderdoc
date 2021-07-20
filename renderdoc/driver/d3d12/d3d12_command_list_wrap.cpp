@@ -3540,7 +3540,6 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
 
   const bool multiaction = (count > 1 || comSig->sig.numActions > 1);
   const uint32_t sigSize = (uint32_t)comSig->sig.arguments.size();
-  const bool gfx = comSig->sig.graphics;
 
   // + 1 is because baseEvent refers to the marker before the commands
   exec.lastEvent = exec.baseEvent + 1 + sigSize * count;

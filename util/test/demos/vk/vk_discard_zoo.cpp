@@ -219,7 +219,6 @@ RD_TEST(VK_Discard_Zoo, VulkanGraphicsTest)
       delete[] empty;
     }
 
-    const VkImageUsageFlags usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     const VmaAllocationCreateInfo gpu = VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY});
 
     AllocatedImage ignoreimg(

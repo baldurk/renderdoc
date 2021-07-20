@@ -72,8 +72,6 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
 
   editor.Prepare();
 
-  const bool useBDA = (storageMode != Binding);
-
   uint32_t numInputs = (uint32_t)refl.inputSignature.size();
 
   uint32_t numOutputs = (uint32_t)refl.outputSignature.size();
