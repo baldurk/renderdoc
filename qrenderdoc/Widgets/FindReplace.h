@@ -77,6 +77,7 @@ signals:
   void performFindAll();
   void performReplace();
   void performReplaceAll();
+  void keyPress(QKeyEvent *e);
 
 private slots:
   // automatic slots

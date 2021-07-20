@@ -160,6 +160,10 @@ void FindReplace::keyPressEvent(QKeyEvent *event)
 
     m_direction = dir;
   }
+  else
+  {
+    emit keyPress(event);
+  }
 }
 
 void FindReplace::addHistory(QComboBox *combo)

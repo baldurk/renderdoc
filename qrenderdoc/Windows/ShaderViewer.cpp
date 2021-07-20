@@ -110,12 +110,26 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
   QObject::connect(m_FindReplace, &FindReplace::performReplace, this, &ShaderViewer::performReplace);
   QObject::connect(m_FindReplace, &FindReplace::performReplaceAll, this,
                    &ShaderViewer::performReplaceAll);
+  QObject::connect(m_FindReplace, &FindReplace::keyPress, [this](QKeyEvent *e) {
+    if(e->key() == Qt::Key_Escape)
+    {
+      // the find replace dialog is the only thing allowed to float. If it's in a floating area,
+      // hide it on escape
+      ToolWindowManagerArea *area = ui->docking->areaOf(m_FindReplace);
+
+      if(area && ui->docking->isFloating(m_FindReplace))
+      {
+        ui->docking->hideToolWindow(m_FindReplace);
+      }
+    }
+  });
 
   ui->docking->addToolWindow(m_FindReplace, ToolWindowManager::NoArea);
   ui->docking->setToolWindowProperties(m_FindReplace, ToolWindowManager::HideOnClose);
 
   ui->docking->addToolWindow(m_FindResults, ToolWindowManager::NoArea);
-  ui->docking->setToolWindowProperties(m_FindResults, ToolWindowManager::HideOnClose);
+  ui->docking->setToolWindowProperties(
+      m_FindResults, ToolWindowManager::HideOnClose | ToolWindowManager::DisallowFloatWindow);
 
   {
     m_DisassemblyView =
@@ -159,8 +173,6 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
                                              ToolWindowManager::DisallowFloatWindow |
                                              ToolWindowManager::AlwaysDisplayFullTabs);
   }
-
-  ui->docking->setAllowFloatingWindow(false);
 
   {
     QMenu *snippetsMenu = new QMenu(this);
@@ -5287,7 +5299,8 @@ void ShaderViewer::performFindAll()
     ui->docking->moveToolWindow(m_FindResults,
                                 ToolWindowManager::AreaReference(ToolWindowManager::BottomOf,
                                                                  ui->docking->areaOf(cur), 0.2f));
-    ui->docking->setToolWindowProperties(m_FindResults, ToolWindowManager::HideOnClose);
+    ui->docking->setToolWindowProperties(
+        m_FindResults, ToolWindowManager::HideOnClose | ToolWindowManager::DisallowFloatWindow);
   }
 }
 
