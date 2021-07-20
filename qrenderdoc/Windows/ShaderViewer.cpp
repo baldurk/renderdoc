@@ -1238,12 +1238,32 @@ void ShaderViewer::readonly_keyPressed(QKeyEvent *event)
   if(event->key() == Qt::Key_F && (event->modifiers() & Qt::ControlModifier))
   {
     m_FindReplace->setReplaceMode(false);
-    on_findReplace_clicked();
 
     ScintillaEdit *edit = qobject_cast<ScintillaEdit *>(QObject::sender());
 
     if(edit)
-      m_FindReplace->setFindText(QString::fromUtf8(edit->getSelText()));
+    {
+      // if there's a selection, fill the find prompt with that
+      if(!edit->getSelText().isEmpty())
+      {
+        m_FindReplace->setFindText(QString::fromUtf8(edit->getSelText()));
+      }
+      else
+      {
+        // otherwise pick the word under the cursor, if there is one
+        sptr_t scintillaPos = edit->currentPos();
+
+        sptr_t start = edit->wordStartPosition(scintillaPos, true);
+        sptr_t end = edit->wordEndPosition(scintillaPos, true);
+
+        QByteArray text = edit->textRange(start, end);
+
+        if(!text.isEmpty())
+          m_FindReplace->setFindText(QString::fromUtf8(text));
+      }
+    }
+
+    on_findReplace_clicked();
   }
 
   if(event->key() == Qt::Key_F3)
