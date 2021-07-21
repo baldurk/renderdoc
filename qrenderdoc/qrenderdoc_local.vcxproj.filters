@@ -1912,6 +1912,36 @@
     <Image Include="Resources\filter_reapply%402x.png">
       <Filter>Resources\Files</Filter>
     </Image>
+    <Image Include="Resources\control_reverse_base_blue.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_reverse_base_blue%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_reverse_cursor_blue.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_reverse_cursor_blue%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_reverse_nan_blue.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_reverse_nan_blue%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_reverse_sample_blue.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_reverse_sample_blue%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\filter.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\filter%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="python36.natvis" />

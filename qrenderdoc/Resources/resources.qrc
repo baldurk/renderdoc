@@ -59,6 +59,14 @@
         <file>control_play_blue@2x.png</file>
         <file>control_reverse_blue.png</file>
         <file>control_reverse_blue@2x.png</file>
+        <file>control_reverse_base_blue.png</file>
+        <file>control_reverse_base_blue@2x.png</file>
+        <file>control_reverse_cursor_blue.png</file>
+        <file>control_reverse_cursor_blue@2x.png</file>
+        <file>control_reverse_nan_blue.png</file>
+        <file>control_reverse_nan_blue@2x.png</file>
+        <file>control_reverse_sample_blue.png</file>
+        <file>control_reverse_sample_blue@2x.png</file>
         <file>control_sample_blue.png</file>
         <file>control_sample_blue@2x.png</file>
         <file>control_start_blue.png</file>

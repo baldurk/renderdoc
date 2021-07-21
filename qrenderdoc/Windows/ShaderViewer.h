@@ -175,22 +175,16 @@ private slots:
   void disasm_tooltipShow(int x, int y);
   void disasm_tooltipHide(int x, int y);
 
-public slots:
-  bool stepBack();
-  bool stepNext();
-  void runToCursor();
-  void runToSample();
-  void runToNanOrInf();
-  void runBack();
-  void run();
-
 private:
   explicit ShaderViewer(ICaptureContext &ctx, QWidget *parent = 0);
   void editShader(ResourceId id, ShaderStage stage, const QString &entryPoint,
                   const rdcstrpairs &files, ShaderEncoding shaderEncoding, ShaderCompileFlags flags);
   void debugShader(const ShaderBindpointMapping *bind, const ShaderReflection *shader,
                    ResourceId pipeline, ShaderDebugTrace *trace, const QString &debugContext);
+
   bool eventFilter(QObject *watched, QEvent *event) override;
+
+  QAction *MakeExecuteAction(QString name, const QIcon &icon, QString tooltip, QKeySequence shortcut);
 
   void MarkModification();
 
@@ -346,6 +340,16 @@ private:
 
   void setEditorWindowTitle();
 
+  enum StepMode
+  {
+    StepInto,
+    StepOver,
+    StepOut,
+  };
+
+  bool step(bool forward, StepMode mode);
+
+  void runToCursor(bool forward);
   void runTo(QVector<size_t> runToInstructions, bool forward,
              ShaderEvents condition = ShaderEvents::NoEvent);
 

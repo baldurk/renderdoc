@@ -32,6 +32,7 @@
 #include <QMouseEvent>
 #include <QShortcut>
 #include <QToolTip>
+#include "Code/Resources.h"
 #include "Code/ScintillaSyntax.h"
 #include "Widgets/FindReplace.h"
 #include "scintilla/include/SciLexer.h"
@@ -280,14 +281,9 @@ void ShaderViewer::editShader(ResourceId id, ShaderStage stage, const QString &e
   ui->snippets->setVisible(m_CustomShader);
 
   // hide debugging toolbar buttons
-  ui->debugSep->hide();
-  ui->runBack->hide();
-  ui->run->hide();
-  ui->stepBack->hide();
-  ui->stepNext->hide();
-  ui->runToCursor->hide();
-  ui->runToSample->hide();
-  ui->runToNaNOrInf->hide();
+  ui->editSep->hide();
+  ui->execBackwards->hide();
+  ui->execForwards->hide();
   ui->regFormatSep->hide();
   ui->intView->hide();
   ui->floatView->hide();
@@ -529,15 +525,22 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
   }
 
   // hide edit buttons
-  ui->editSep->hide();
   ui->refresh->hide();
   ui->snippets->hide();
+  ui->editSep->hide();
 
   if(m_Trace)
   {
     // hide signatures
     ui->inputSig->hide();
     ui->outputSig->hide();
+
+    // hide int/float toggles except on DXBC, other encodings are strongly typed
+    if(m_ShaderDetails->encoding != ShaderEncoding::DXBC)
+    {
+      ui->intView->hide();
+      ui->floatView->hide();
+    }
 
     if(m_ShaderDetails->debugInfo.files.isEmpty())
     {
@@ -647,13 +650,144 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     if(!hasLineInfo)
       ui->docking->raiseToolWindow(ui->debugVars);
 
-    QObject::connect(ui->stepBack, &QToolButton::clicked, this, &ShaderViewer::stepBack);
-    QObject::connect(ui->stepNext, &QToolButton::clicked, this, &ShaderViewer::stepNext);
-    QObject::connect(ui->runBack, &QToolButton::clicked, this, &ShaderViewer::runBack);
-    QObject::connect(ui->run, &QToolButton::clicked, this, &ShaderViewer::run);
-    QObject::connect(ui->runToCursor, &QToolButton::clicked, this, &ShaderViewer::runToCursor);
-    QObject::connect(ui->runToSample, &QToolButton::clicked, this, &ShaderViewer::runToSample);
-    QObject::connect(ui->runToNaNOrInf, &QToolButton::clicked, this, &ShaderViewer::runToNanOrInf);
+    // set up stepping/running actions
+
+    // we register the shortcuts via MainWindow so that it works regardless of the active scintilla
+    // but still handles multiple shader viewers being present (the one with focus will get the
+    // input)
+
+    // all shortcuts have a reverse version with shift. This means step out is Ctrl-F11 instead of
+    // Shift-F11, but otherwise the shortcuts behave the same as visual studio
+
+    {
+      QMenu *backwardsMenu = new QMenu(this);
+      QAction *act;
+
+      act = MakeExecuteAction(tr("&Run backwards"), Icons::control_start_blue(),
+                              tr("Run backwards to the start of the shader"),
+                              QKeySequence(Qt::Key_F5 | Qt::ShiftModifier));
+
+      QObject::connect(act, &QAction::triggered, [this]() { runTo({}, false); });
+      backwardsMenu->addAction(act);
+
+      act = MakeExecuteAction(
+          tr("Run backwards to &Cursor"), Icons::control_reverse_cursor_blue(),
+          tr("Run backwards until execution reaches the cursor, or the start of the shader"),
+          QKeySequence(Qt::Key_F10 | Qt::ControlModifier | Qt::ShiftModifier));
+
+      QObject::connect(act, &QAction::triggered, [this]() { runToCursor(false); });
+      backwardsMenu->addAction(act);
+
+      act = MakeExecuteAction(tr("Run backwards to &Sample"), Icons::control_reverse_sample_blue(),
+                              tr("Run backwards until execution reads from a resource, or the "
+                                 "start of the shader is reached"),
+                              QKeySequence());
+
+      QObject::connect(act, &QAction::triggered,
+                       [this]() { runTo({}, false, ShaderEvents::SampleLoadGather); });
+      backwardsMenu->addAction(act);
+
+      act = MakeExecuteAction(
+          tr("Run backwards to &NaN/Inf"), Icons::control_reverse_nan_blue(),
+          tr("Run backwards until a floating point instruction generates a NaN "
+             "or Inf, an integer instruction divides by 0, or the start of the shader is reached"),
+          QKeySequence());
+
+      QObject::connect(act, &QAction::triggered,
+                       [this]() { runTo({}, false, ShaderEvents::GeneratedNanOrInf); });
+      backwardsMenu->addAction(act);
+
+      backwardsMenu->addSeparator();
+
+      act = MakeExecuteAction(tr("Step backwards &Over"), Icons::control_reverse_blue(),
+                              tr("Step backwards, and don't enter functions when source debugging"),
+                              QKeySequence(Qt::Key_F10 | Qt::ShiftModifier));
+
+      QObject::connect(act, &QAction::triggered, [this]() { step(false, StepOver); });
+      backwardsMenu->addAction(act);
+
+      act = MakeExecuteAction(tr("Step backwards &Into"), Icons::control_reverse_blue(),
+                              tr("Step backwards, entering functions when source debugging"),
+                              QKeySequence(Qt::Key_F11 | Qt::ShiftModifier));
+
+      QObject::connect(act, &QAction::triggered, [this]() { step(false, StepInto); });
+      backwardsMenu->addAction(act);
+
+      act =
+          MakeExecuteAction(tr("Step backwards Ou&t"), Icons::control_reverse_blue(),
+                            tr("Step backwards, out of the current function when source debugging"),
+                            QKeySequence(Qt::Key_F11 | Qt::ControlModifier | Qt::ShiftModifier));
+
+      QObject::connect(act, &QAction::triggered, [this]() { step(false, StepOut); });
+      backwardsMenu->addAction(act);
+
+      ui->execBackwards->setMenu(backwardsMenu);
+    }
+
+    {
+      QMenu *forwardsMenu = new QMenu(this);
+      QAction *act;
+
+      act = MakeExecuteAction(tr("&Run forwards"), Icons::control_end_blue(),
+                              tr("Run forwards to the start of the shader"),
+                              QKeySequence(Qt::Key_F5));
+
+      QObject::connect(act, &QAction::triggered, [this]() { runTo({}, true); });
+      forwardsMenu->addAction(act);
+
+      act = MakeExecuteAction(
+          tr("Run forwards to &Cursor"), Icons::control_cursor_blue(),
+          tr("Run forwards until execution reaches the cursor, or the end of the shader"),
+          QKeySequence(Qt::Key_F10 | Qt::ControlModifier));
+
+      QObject::connect(act, &QAction::triggered, [this]() { runToCursor(true); });
+      forwardsMenu->addAction(act);
+
+      act = MakeExecuteAction(tr("Run forwards to &Sample"), Icons::control_sample_blue(),
+                              tr("Run forwards until execution reads from a resource, or the "
+                                 "end of the shader is reached"),
+                              QKeySequence());
+
+      QObject::connect(act, &QAction::triggered,
+                       [this]() { runTo({}, true, ShaderEvents::SampleLoadGather); });
+      forwardsMenu->addAction(act);
+
+      act = MakeExecuteAction(
+          tr("Run forwards to &NaN/Inf"), Icons::control_nan_blue(),
+          tr("Run forwards until a floating point instruction generates a NaN "
+             "or Inf, an integer instruction divides by 0, or the end of the shader is reached"),
+          QKeySequence());
+
+      QObject::connect(act, &QAction::triggered,
+                       [this]() { runTo({}, true, ShaderEvents::GeneratedNanOrInf); });
+      forwardsMenu->addAction(act);
+
+      forwardsMenu->addSeparator();
+
+      act = MakeExecuteAction(tr("Step forwards &Over"), Icons::control_play_blue(),
+                              tr("Step forwards, and don't enter functions when source debugging"),
+                              QKeySequence(Qt::Key_F10));
+
+      QObject::connect(act, &QAction::triggered, [this]() { step(true, StepOver); });
+      forwardsMenu->addAction(act);
+
+      act = MakeExecuteAction(tr("Step forwards &Into"), Icons::control_play_blue(),
+                              tr("Step forwards, entering functions when source debugging"),
+                              QKeySequence(Qt::Key_F11));
+
+      QObject::connect(act, &QAction::triggered, [this]() { step(true, StepInto); });
+      forwardsMenu->addAction(act);
+
+      act =
+          MakeExecuteAction(tr("Step forwards Ou&t"), Icons::control_play_blue(),
+                            tr("Step forwards, out of the current function when source debugging"),
+                            QKeySequence(Qt::Key_F11 | Qt::ControlModifier));
+
+      QObject::connect(act, &QAction::triggered, [this]() { step(true, StepOut); });
+      forwardsMenu->addAction(act);
+
+      ui->execForwards->setMenu(forwardsMenu);
+    }
 
     for(ScintillaEdit *edit : m_Scintillas)
     {
@@ -678,19 +812,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       QObject::connect(edit, &ScintillaEdit::dwellEnd, this, &ShaderViewer::disasm_tooltipHide);
     }
 
-    // register the shortcuts via MainWindow so that it works regardless of the active scintilla but
-    // still handles multiple shader viewers being present (the one with focus will get the input)
-    m_Ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_F10).toString(), this,
-                                            [this](QWidget *) { stepNext(); });
-    m_Ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_F10 | Qt::ShiftModifier).toString(),
-                                            this, [this](QWidget *) { stepBack(); });
-    m_Ctx.GetMainWindow()->RegisterShortcut(
-        QKeySequence(Qt::Key_F10 | Qt::ControlModifier).toString(), this,
-        [this](QWidget *) { runToCursor(); });
-    m_Ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_F5).toString(), this,
-                                            [this](QWidget *) { run(); });
-    m_Ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_F5 | Qt::ShiftModifier).toString(),
-                                            this, [this](QWidget *) { runBack(); });
+    // toggle breakpoint - F9
     m_Ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_F9).toString(), this,
                                             [this](QWidget *) { ToggleBreakpointOnInstruction(); });
 
@@ -830,14 +952,9 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     ui->callstack->hide();
 
     // hide debugging toolbar buttons
-    ui->debugSep->hide();
-    ui->runBack->hide();
-    ui->run->hide();
-    ui->stepBack->hide();
-    ui->stepNext->hide();
-    ui->runToCursor->hide();
-    ui->runToSample->hide();
-    ui->runToNaNOrInf->hide();
+    ui->editSep->hide();
+    ui->execBackwards->hide();
+    ui->execForwards->hide();
     ui->regFormatSep->hide();
     ui->intView->hide();
     ui->floatView->hide();
@@ -956,6 +1073,24 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     edit->markerDefine(BREAKPOINT_MARKER, SC_MARK_CIRCLE);
     edit->markerDefine(BREAKPOINT_MARKER + 1, SC_MARK_BACKGROUND);
   }
+}
+
+QAction *ShaderViewer::MakeExecuteAction(QString name, const QIcon &icon, QString tooltip,
+                                         QKeySequence shortcut)
+{
+  QAction *act = new QAction(name, this);
+  // set the shortcut context to something that shouldn't fire, since we want to handle this
+  // ourselves - we just want Qt to *display* the shortcut
+  act->setShortcutContext(Qt::WidgetShortcut);
+  act->setToolTip(tooltip);
+  act->setIcon(icon);
+  if(!shortcut.isEmpty())
+  {
+    act->setShortcut(shortcut);
+    m_Ctx.GetMainWindow()->RegisterShortcut(act->shortcut().toString(), this,
+                                            [act](QWidget *) { act->activate(QAction::Trigger); });
+  }
+  return act;
 }
 
 void ShaderViewer::updateWindowTitle()
@@ -1337,19 +1472,29 @@ void ShaderViewer::debug_contextMenu(const QPoint &pos)
   contextMenu.addSeparator();
 
   QAction addBreakpoint(tr("Toggle breakpoint here"), this);
-  QAction runCursor(tr("Run to Cursor"), this);
+  QAction runForwardCursor(tr("Run forwards to Cursor"), this);
+  QAction runBackwardCursor(tr("Run backwards to Cursor"), this);
+
+  addBreakpoint.setShortcut(QKeySequence(Qt::Key_F9));
+  runForwardCursor.setShortcut(QKeySequence(Qt::Key_F10 | Qt::ControlModifier));
+  runBackwardCursor.setShortcut(QKeySequence(Qt::Key_F10 | Qt::ControlModifier | Qt::ShiftModifier));
 
   QObject::connect(&addBreakpoint, &QAction::triggered, [this, scintillaPos] {
     m_DisassemblyView->setSelection(scintillaPos, scintillaPos);
     ToggleBreakpointOnInstruction();
   });
-  QObject::connect(&runCursor, &QAction::triggered, [this, scintillaPos] {
+  QObject::connect(&runForwardCursor, &QAction::triggered, [this, scintillaPos] {
     m_DisassemblyView->setSelection(scintillaPos, scintillaPos);
-    runToCursor();
+    runToCursor(true);
+  });
+  QObject::connect(&runBackwardCursor, &QAction::triggered, [this, scintillaPos] {
+    m_DisassemblyView->setSelection(scintillaPos, scintillaPos);
+    runToCursor(false);
   });
 
   contextMenu.addAction(&addBreakpoint);
-  contextMenu.addAction(&runCursor);
+  contextMenu.addAction(&runBackwardCursor);
+  contextMenu.addAction(&runForwardCursor);
   contextMenu.addSeparator();
 
   QAction copyText(tr("Copy"), this);
@@ -1682,100 +1827,120 @@ void ShaderViewer::on_watch_itemChanged(QTableWidgetItem *item)
   updateDebugState();
 }
 
-bool ShaderViewer::stepBack()
+bool ShaderViewer::step(bool forward, StepMode mode)
 {
   if(!m_Trace || m_States.empty())
     return false;
 
-  if(IsFirstState())
+  if((forward && IsLastState()) || (!forward && IsFirstState()))
     return false;
 
   if(isSourceDebugging())
   {
     LineColumnInfo oldLine = m_Trace->lineInfo[GetCurrentState().nextInstruction];
+    rdcarray<rdcstr> oldStack = GetCurrentState().callstack;
 
-    // first step to the next instruction in a backwards direction that's on a different line from
-    // the current one
     do
     {
-      applyBackwardsChange();
+      // step once in the right direction
+      if(forward)
+        applyForwardsChange();
+      else
+        applyBackwardsChange();
 
+      // break out if we hit a breakpoint, no matter what
       if(m_Breakpoints.contains((int)GetCurrentState().nextInstruction))
         break;
 
-      if(IsFirstState())
+      // if we've reached the limit, break
+      if((forward && IsLastState()) || (!forward && IsFirstState()))
         break;
 
-      if(m_Trace->lineInfo[GetCurrentState().nextInstruction].SourceEqual(oldLine))
+      // keep going if we're still on the same source line as we started
+      LineColumnInfo curLine = m_Trace->lineInfo[GetCurrentState().nextInstruction];
+      if(curLine.SourceEqual(oldLine))
         continue;
 
-      break;
+      // if we're stepping into, break now as soon as we hit a different line
+      if(mode == StepInto)
+        break;
+
+      // we're on a different line but that might not be enough for Step Out or Step Over
+      rdcarray<rdcstr> curStack = GetCurrentState().callstack;
+
+      // mode is StepOver or StepOut
+
+      if(mode == StepOver)
+      {
+        // if the stack hasn't grown, we assume that we're still in the same function so return
+        if(curStack.size() <= oldStack.size())
+          break;
+      }
+
+      if(mode == StepOut)
+      {
+        // if the stack has shrunk we must have exited the function
+        if(curStack.size() < oldStack.size())
+          break;
+      }
+
+      // if the stack is bigger (for stepover) or hasn't shrunk (for stepout) but the common subset
+      // is different, we have stepped into a different function due to inlining, so break
+      //
+      // E.g. A() -> B() stepover A() -> C() -> D()
+      //
+      // Or A() -> B() stepout A() -> C()
+      bool different = false;
+      for(size_t i = 0; i < qMin(curStack.size(), oldStack.size()); i++)
+      {
+        if(oldStack[i] != curStack[i])
+        {
+          different = true;
+          break;
+        }
+      }
+
+      if(different)
+        break;
+
     } while(true);
 
     oldLine = m_Trace->lineInfo[GetCurrentState().nextInstruction];
 
-    // now since a line can have multiple instructions, keep stepping (looking forward) until we
-    // reach the first instruction with an identical line info
-    while(!IsFirstState() &&
-          m_Trace->lineInfo[GetPreviousState().nextInstruction].SourceEqual(oldLine))
+    if(!forward)
     {
-      applyBackwardsChange();
+      // now since a line can have multiple instructions, we may only be on the last one of several.
+      // Keep stepping until we reach the first instruction with an identical line info and stop
+      // there
+      while(!IsFirstState() &&
+            m_Trace->lineInfo[GetPreviousState().nextInstruction].SourceEqual(oldLine))
+      {
+        applyBackwardsChange();
 
-      if(m_Breakpoints.contains((int)GetCurrentState().nextInstruction))
-        break;
+        // still need to check for instruction-level breakpoints
+        if(m_Breakpoints.contains((int)GetCurrentState().nextInstruction))
+          break;
+      }
     }
 
     updateDebugState();
   }
   else
   {
-    applyBackwardsChange();
-    updateDebugState();
-  }
+    // non-source stepping is easy, we just do one instruction in that direction regardless of step
+    // mode
 
-  return true;
-}
-
-bool ShaderViewer::stepNext()
-{
-  if(!m_Trace || m_States.empty())
-    return false;
-
-  if(IsLastState())
-    return false;
-
-  if(isSourceDebugging())
-  {
-    LineColumnInfo oldLine = m_Trace->lineInfo[GetCurrentState().nextInstruction];
-
-    do
-    {
+    if(forward)
       applyForwardsChange();
-
-      if(m_Breakpoints.contains((int)GetCurrentState().nextInstruction))
-        break;
-
-      if(IsLastState())
-        break;
-
-      if(m_Trace->lineInfo[GetCurrentState().nextInstruction].SourceEqual(oldLine))
-        continue;
-
-      break;
-    } while(true);
-
-    updateDebugState();
-  }
-  else
-  {
-    applyForwardsChange();
+    else
+      applyBackwardsChange();
     updateDebugState();
   }
 
   return true;
 }
 
-void ShaderViewer::runToCursor()
+void ShaderViewer::runToCursor(bool forward)
 {
   if(!m_Trace || m_States.empty())
     return;
@@ -1798,13 +1963,13 @@ void ShaderViewer::runToCursor()
     {
       if(fileMap.contains(i))
       {
-        runTo(fileMap[i], true);
+        runTo(fileMap[i], forward);
         return;
       }
     }
 
     // if we didn't find one, just run
-    run();
+    runTo({}, forward);
   }
   else
   {
@@ -1815,7 +1980,7 @@ void ShaderViewer::runToCursor()
       int line = instructionForDisassemblyLine(i);
       if(line >= 0)
       {
-        runTo({(size_t)line}, true);
+        runTo({(size_t)line}, forward);
         break;
       }
     }
@@ -1865,26 +2030,6 @@ const ShaderDebugState &ShaderViewer::GetNextState() const
     return m_States[m_CurrentStateIdx + 1];
 
   return m_States.back();
-}
-
-void ShaderViewer::runToSample()
-{
-  runTo({}, true, ShaderEvents::SampleLoadGather);
-}
-
-void ShaderViewer::runToNanOrInf()
-{
-  runTo({}, true, ShaderEvents::GeneratedNanOrInf);
-}
-
-void ShaderViewer::runBack()
-{
-  runTo({}, false);
-}
-
-void ShaderViewer::run()
-{
-  runTo({}, true);
 }
 
 void ShaderViewer::runTo(QVector<size_t> runToInstruction, bool forward, ShaderEvents condition)
@@ -4097,7 +4242,7 @@ void ShaderViewer::RunForward()
     return;
   }
 
-  run();
+  runTo({}, true);
 }
 
 void ShaderViewer::ShowErrors(const rdcstr &errors)

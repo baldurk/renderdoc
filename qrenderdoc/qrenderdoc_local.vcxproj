@@ -1947,8 +1947,16 @@ IF %ERRORLEVEL% NEQ 0 (echo ====================================================
     <Image Include="Resources\control_nan_blue.png" />
     <Image Include="Resources\control_play_blue%402x.png" />
     <Image Include="Resources\control_play_blue.png" />
+    <Image Include="Resources\control_reverse_base_blue%402x.png" />
+    <Image Include="Resources\control_reverse_base_blue.png" />
     <Image Include="Resources\control_reverse_blue%402x.png" />
     <Image Include="Resources\control_reverse_blue.png" />
+    <Image Include="Resources\control_reverse_cursor_blue%402x.png" />
+    <Image Include="Resources\control_reverse_cursor_blue.png" />
+    <Image Include="Resources\control_reverse_nan_blue%402x.png" />
+    <Image Include="Resources\control_reverse_nan_blue.png" />
+    <Image Include="Resources\control_reverse_sample_blue%402x.png" />
+    <Image Include="Resources\control_reverse_sample_blue.png" />
     <Image Include="Resources\control_sample_blue%402x.png" />
     <Image Include="Resources\control_sample_blue.png" />
     <Image Include="Resources\control_start_blue%402x.png" />
@@ -1963,6 +1971,8 @@ IF %ERRORLEVEL% NEQ 0 (echo ====================================================
     <Image Include="Resources\del.png" />
     <Image Include="Resources\disconnect%402x.png" />
     <Image Include="Resources\disconnect.png" />
+    <Image Include="Resources\filter%402x.png" />
+    <Image Include="Resources\filter.png" />
     <Image Include="Resources\filter_reapply%402x.png" />
     <Image Include="Resources\filter_reapply.png" />
     <Image Include="Resources\find%402x.png" />
