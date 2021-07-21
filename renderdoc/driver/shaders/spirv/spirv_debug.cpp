@@ -973,6 +973,14 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       for(uint32_t i = 0; i < shuffle.components.size(); i++)
       {
         uint32_t c = shuffle.components[i];
+
+        // "A Component literal may also be FFFFFFFF, which means the corresponding result component
+        // has no source and is undefined."
+        // If it has no defined source, we can use 0 safely and know that it's at least going to
+        // index validly
+        if(c == ~0U)
+          c = 0;
+
         if(c < vec1Cols)
           copyComp(var, i, src1, c);
         else
