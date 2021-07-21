@@ -450,16 +450,16 @@ void D3D12_PrepareReplaySDKVersion(UINT SDKVersion, bytebuf d3d12core_file,
           if(D3D12_Debug_IgnoreSignatureCheck())
           {
             RDCWARN(
-                "Can't verify digital signature of D3D12Core.dll embedded in capture, it will be "
-                "loaded since D3D12.Debug.IgnoreSignatureCheck is set to true");
+                "Can't verify the digital signature of the D3D12Core.dll embedded in capture, it "
+                "will be loaded since D3D12.Debug.IgnoreSignatureCheck is set to true");
           }
           else
           {
             FileIO::Delete(filename);
             RDCERR(
-                "Can't verify digital signature of D3D12Core.dll embedded in capture, it won't be "
-                "loaded. If capture came from trusted source you want to load unsigned dll's set "
-                "D3D12.Debug.IgnoreSignatureCheck to true");
+                "Can't verify the digital signature of the D3D12Core.dll embedded in capture, it "
+                "won't be loaded. If the capture came from a trusted source and you want to load "
+                "unsigned dll's, set D3D12.Debug.IgnoreSignatureCheck to true");
             break;
           }
         }
@@ -475,6 +475,8 @@ void D3D12_PrepareReplaySDKVersion(UINT SDKVersion, bytebuf d3d12core_file,
           FileIO::fclose(f);
         }
 
+// d3d12sdklayers.dll is not always signed
+#if 0
         if(!IsSignedByMicrosoft(sdklayers_filename))
         {
           if(D3D12_Debug_IgnoreSignatureCheck())
@@ -485,15 +487,16 @@ void D3D12_PrepareReplaySDKVersion(UINT SDKVersion, bytebuf d3d12core_file,
           }
           else
           {
-            FileIO::Delete(filename);
-            FileIO::Delete(sdklayers_filename);
             RDCERR(
                 "Can't verify digital signature of d3d12sdklayers.dll embedded in capture, it "
                 "won't be loaded. If capture came from trusted source you want to load unsigned "
                 "dll's set D3D12.Debug.IgnoreSignatureCheck to true");
+            FileIO::Delete(filename);
+            FileIO::Delete(sdklayers_filename);
             break;
           }
         }
+#endif
 
         D3D12Core_Override_Path = get_dirname(filename);
         D3D12Core_Temp_Path = get_dirname(filename);
