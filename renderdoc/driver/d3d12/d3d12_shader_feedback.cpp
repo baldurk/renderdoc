@@ -328,6 +328,10 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
   if(result.compute)
   {
     ID3D12RootSignature *sig = rm->GetCurrentAs<ID3D12RootSignature>(rs.compute.rootsig);
+
+    if(!sig)
+      return;
+
     modsig = ((WrappedID3D12RootSignature *)sig)->sig;
 
     space = modsig.maxSpaceIndex;
@@ -337,6 +341,10 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
   else
   {
     ID3D12RootSignature *sig = rm->GetCurrentAs<ID3D12RootSignature>(rs.graphics.rootsig);
+
+    if(!sig)
+      return;
+
     modsig = ((WrappedID3D12RootSignature *)sig)->sig;
 
     space = modsig.maxSpaceIndex;
