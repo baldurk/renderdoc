@@ -509,6 +509,23 @@ void D3D12_PrepareReplaySDKVersion(UINT SDKVersion, bytebuf d3d12core_file,
     {
       RDCERR("Couldn't write embedded D3D12Core.dll to disk! system dll will be used");
     }
+    else
+    {
+      UINT prevErrorMode = GetErrorMode();
+      SetErrorMode(prevErrorMode | SEM_FAILCRITICALERRORS);
+      HMODULE ret =
+          LoadLibraryW(StringFormat::UTF82Wide(D3D12Core_Override_Path + "/d3d12core.dll").c_str());
+
+      SetErrorMode(prevErrorMode);
+
+      if(ret == NULL)
+      {
+        RDCERR("Can't open DLL! Wrong architecture or incompatible? system dll will be used");
+        D3D12Core_Override_Path.clear();
+      }
+
+      FreeLibrary(ret);
+    }
   }
 }
 
