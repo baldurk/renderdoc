@@ -24,7 +24,6 @@
 
 #include "RDTreeWidget.h"
 #include <QApplication>
-#include <QClipboard>
 #include <QColor>
 #include <QDebug>
 #include <QHeaderView>

@@ -604,6 +604,8 @@ void RDTreeView::copySelection()
 
     int depth = GetDepth(model(), idx);
 
+    QString line;
+
     for(int i = 0; i < colCount; i++)
     {
       QString format = i == 0 ? QFormatStr("%1") : QFormatStr(" %1");
@@ -614,14 +616,14 @@ void RDTreeView::copySelection()
       if(i == 0)
         text.prepend(QString((depth - minDepth) * 2, QLatin1Char(' ')));
 
-      clipData += format.arg(text, -widths[i]);
+      line += format.arg(text, -widths[i]);
     }
 
-    clipData += lit("\n");
+    clipData += line.trimmed() + lit("\n");
   }
 
   QClipboard *clipboard = QApplication::clipboard();
-  clipboard->setText(clipData.trimmed());
+  clipboard->setText(clipData);
 }
 
 void RDTreeView::updateExpansionFromRow(RDTreeViewExpansionState &state, QModelIndex idx, uint seed,
