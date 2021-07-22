@@ -146,6 +146,21 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
   QObject::connect(ui->filterButton, &QToolButton::clicked, [this]() { refreshMessages(); });
   QObject::connect(ui->filter, &RDLineEdit::returnPressed, [this]() { refreshMessages(); });
 
+  QMenu *menu = new QMenu(this);
+
+  QAction *action = new QAction(tr("Export to &Text"));
+  action->setIcon(Icons::save());
+  QObject::connect(action, &QAction::triggered, this, &ShaderMessageViewer::exportText);
+  menu->addAction(action);
+
+  action = new QAction(tr("Export to &CSV"));
+  action->setIcon(Icons::save());
+  QObject::connect(action, &QAction::triggered, this, &ShaderMessageViewer::exportCSV);
+  menu->addAction(action);
+
+  ui->exportButton->setMenu(menu);
+  QObject::connect(ui->exportButton, &QToolButton::clicked, this, &ShaderMessageViewer::exportText);
+
   ui->vertex->setText(ToQStr(ShaderStage::Vertex, m_API));
   ui->hull->setText(ToQStr(ShaderStage::Hull, m_API));
   ui->domain->setText(ToQStr(ShaderStage::Domain, m_API));
@@ -511,6 +526,101 @@ void ShaderMessageViewer::OnEventChanged(uint32_t eventId)
 
     ui->messages->endUpdate();
   }
+}
+
+void ShaderMessageViewer::exportText()
+{
+  exportData(false);
+}
+
+void ShaderMessageViewer::exportCSV()
+{
+  exportData(true);
+}
+
+void ShaderMessageViewer::exportData(bool csv)
+{
+  QString filter;
+  QString title;
+  if(csv)
+  {
+    filter = tr("CSV Files (*.csv)");
+    title = tr("Export buffer to CSV");
+  }
+  else
+  {
+    filter = tr("Text Files (*.txt)");
+    title = tr("Export buffer to text");
+  }
+
+  QString filename =
+      RDDialog::getSaveFileName(this, title, QString(), tr("%1;;All files (*)").arg(filter));
+
+  if(filename.isEmpty())
+    return;
+
+  QFile *f = new QFile(filename);
+
+  QIODevice::OpenMode flags = QIODevice::WriteOnly | QFile::Truncate | QIODevice::Text;
+
+  if(!f->open(flags))
+  {
+    delete f;
+    RDDialog::critical(this, tr("Error exporting file"),
+                       tr("Couldn't open file '%1' for writing").arg(filename));
+    return;
+  }
+
+  LambdaThread *exportThread = new LambdaThread([this, csv, f]() {
+    QTextStream s(f);
+
+    if(csv)
+      s << tr("Location,Message\n");
+
+    int base = 2;
+
+    if(m_OrigShaders[5] != ResourceId())
+      base = 1;
+
+    int locationWidth = 0;
+    for(int i = 0; i < ui->messages->topLevelItemCount(); i++)
+    {
+      RDTreeWidgetItem *node = ui->messages->topLevelItem(i);
+
+      locationWidth = qMax(locationWidth, node->text(base).length());
+    }
+
+    for(int i = 0; i < ui->messages->topLevelItemCount(); i++)
+    {
+      RDTreeWidgetItem *node = ui->messages->topLevelItem(i);
+
+      if(csv)
+      {
+        s << "\"" << node->text(base) << "\",\""
+          << node->text(base + 1).replace(QLatin1Char('"'), lit("\"\"")) << "\"\n";
+      }
+      else
+      {
+        s << QFormatStr("%1").arg(node->text(base), -locationWidth) << "\t" << node->text(base + 1)
+          << "\n";
+      }
+    }
+
+    f->close();
+
+    delete f;
+  });
+  exportThread->start();
+
+  // wait a short while before displaying the progress dialog (which won't show if we're already
+  // done by the time we reach it)
+  for(int i = 0; exportThread->isRunning() && i < 100; i++)
+    QThread::msleep(5);
+
+  ShowProgressDialog(this, tr("Exporting messages"),
+                     [exportThread]() { return !exportThread->isRunning(); });
+
+  exportThread->deleteLater();
 }
 
 void ShaderMessageViewer::refreshMessages()

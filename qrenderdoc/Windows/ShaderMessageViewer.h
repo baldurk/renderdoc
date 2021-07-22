@@ -73,8 +73,12 @@ public:
   void OnEventChanged(uint32_t eventId) override;
 private slots:
 
+  void exportText();
+  void exportCSV();
+
 private:
   void refreshMessages();
+  void exportData(bool csv);
 
   Ui::ShaderMessageViewer *ui;
   ICaptureContext &m_Ctx;
