@@ -5439,7 +5439,7 @@ void ShaderViewer::performFindAll()
 
         QString lineText = QString::fromUtf8(s->textRange(lineStart, lineEnd));
 
-        results += QFormatStr("  %1(%2): ").arg(s->windowTitle()).arg(line, 4);
+        results += QFormatStr("  %1(%2): ").arg(s->windowTitle()).arg(line + 1, 4);
         int startPos = results.length();
 
         results += lineText;
