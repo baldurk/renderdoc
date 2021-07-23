@@ -114,6 +114,8 @@ RWStructuredBuffer<MyStruct> structrwtest : register(u2);
 Buffer<float> unboundsrv1 : register(t100);
 Texture2D<float> unboundsrv2 : register(t101);
 
+Buffer<float4> rgb_srv : register(t102);
+
 RWBuffer<float> unbounduav1 : register(u4);
 RWTexture2D<float> unbounduav2 : register(u5);
 
@@ -670,6 +672,10 @@ float4 main(v2f IN) : SV_Target0
 
     return read_val;
   }
+  if(IN.tri == 79)
+  {
+    return rgb_srv[0];
+  }
 
   return float4(0.4f, 0.4f, 0.4f, 0.4f);
 }
@@ -813,6 +819,9 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
     for(int i = 0; i < 220; i++)
       structdata[i] = float(i);
 
+    ID3D11BufferPtr rgbBuf = MakeBuffer().SRV().Data(structdata);
+    ID3D11ShaderResourceViewPtr rgbsrv = MakeSRV(rgbBuf).Format(DXGI_FORMAT_R32G32B32_FLOAT);
+
     ID3D11BufferPtr structBuf = MakeBuffer().SRV().Structured(11 * sizeof(float)).Data(structdata);
     ID3D11ShaderResourceViewPtr structsrv =
         MakeSRV(structBuf).Format(DXGI_FORMAT_UNKNOWN).FirstElement(3).NumElements(5);
@@ -835,6 +844,8 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
     };
 
     ctx->PSSetShaderResources(0, ARRAY_COUNT(srvs), srvs);
+
+    ctx->PSSetShaderResources(102, 1, &rgbsrv.GetInterfacePtr());
 
     // Create resources for MSAA draw
     ID3DBlobPtr vsmsaablob = Compile(D3DDefaultVertex, "main", "vs_5_0");

@@ -168,6 +168,8 @@ RWTexture2D<float> unbounduav2 : register(u5);
 RWBuffer<float> narrowtypeduav : register(u6);
 Buffer<float> narrowtypedsrv : register(t102);
 
+Buffer<float4> rgb_srv : register(t103);
+
 SamplerState linearclamp : register(s0);
 
 float4 main(v2f IN) : SV_Target0
@@ -694,6 +696,10 @@ float4 main(v2f IN) : SV_Target0
     narrowtypeduav[14] = 888.0f;
     return float4(narrowtypeduav[11], narrowtypeduav[12], narrowtypeduav[13], narrowtypeduav[14]);
   }
+  if(IN.tri == 76)
+  {
+    return rgb_srv[0];
+  }
 
   return float4(0.4f, 0.4f, 0.4f, 0.4f);
 }
@@ -862,6 +868,9 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
     float structdata[220];
     for(int i = 0; i < 220; i++)
       structdata[i] = float(i);
+
+    ID3D12ResourcePtr rgbbuf = MakeBuffer().Data(structdata);
+    MakeSRV(rgbbuf).Format(DXGI_FORMAT_R32G32B32_FLOAT).CreateGPU(23);
 
     ID3D12ResourcePtr structBuf = MakeBuffer().Data(structdata);
     MakeSRV(structBuf)

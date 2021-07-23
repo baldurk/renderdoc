@@ -677,100 +677,113 @@ ShaderVariable TypedUAVLoad(GlobalState::ViewFmt &fmt, const byte *d)
     result.value.f32v[2] = res.z;
     result.value.f32v[3] = 1.0f;
   }
-  else if(fmt.byteWidth == 4)
+  else
   {
-    const uint32_t *u = (const uint32_t *)d;
-
-    for(int c = 0; c < fmt.numComps; c++)
-      result.value.u32v[c] = u[c];
-  }
-  else if(fmt.byteWidth == 2)
-  {
-    if(fmt.fmt == CompType::Float)
+    if(fmt.byteWidth == 4)
     {
-      const uint16_t *u = (const uint16_t *)d;
-
-      for(int c = 0; c < fmt.numComps; c++)
-        result.value.f32v[c] = ConvertFromHalf(u[c]);
-    }
-    else if(fmt.fmt == CompType::UInt)
-    {
-      const uint16_t *u = (const uint16_t *)d;
+      const uint32_t *u = (const uint32_t *)d;
 
       for(int c = 0; c < fmt.numComps; c++)
         result.value.u32v[c] = u[c];
     }
-    else if(fmt.fmt == CompType::SInt)
+    else if(fmt.byteWidth == 2)
     {
-      const int16_t *in = (const int16_t *)d;
-
-      for(int c = 0; c < fmt.numComps; c++)
-        result.value.s32v[c] = in[c];
-    }
-    else if(fmt.fmt == CompType::UNorm || fmt.fmt == CompType::UNormSRGB)
-    {
-      const uint16_t *u = (const uint16_t *)d;
-
-      for(int c = 0; c < fmt.numComps; c++)
-        result.value.f32v[c] = float(u[c]) / float(0xffff);
-    }
-    else if(fmt.fmt == CompType::SNorm)
-    {
-      const int16_t *in = (const int16_t *)d;
-
-      for(int c = 0; c < fmt.numComps; c++)
+      if(fmt.fmt == CompType::Float)
       {
-        // -32768 is mapped to -1, then -32767 to -32767 are mapped to -1 to 1
-        if(in[c] == -32768)
-          result.value.f32v[c] = -1.0f;
-        else
-          result.value.f32v[c] = float(in[c]) / 32767.0f;
+        const uint16_t *u = (const uint16_t *)d;
+
+        for(int c = 0; c < fmt.numComps; c++)
+          result.value.f32v[c] = ConvertFromHalf(u[c]);
+      }
+      else if(fmt.fmt == CompType::UInt)
+      {
+        const uint16_t *u = (const uint16_t *)d;
+
+        for(int c = 0; c < fmt.numComps; c++)
+          result.value.u32v[c] = u[c];
+      }
+      else if(fmt.fmt == CompType::SInt)
+      {
+        const int16_t *in = (const int16_t *)d;
+
+        for(int c = 0; c < fmt.numComps; c++)
+          result.value.s32v[c] = in[c];
+      }
+      else if(fmt.fmt == CompType::UNorm || fmt.fmt == CompType::UNormSRGB)
+      {
+        const uint16_t *u = (const uint16_t *)d;
+
+        for(int c = 0; c < fmt.numComps; c++)
+          result.value.f32v[c] = float(u[c]) / float(0xffff);
+      }
+      else if(fmt.fmt == CompType::SNorm)
+      {
+        const int16_t *in = (const int16_t *)d;
+
+        for(int c = 0; c < fmt.numComps; c++)
+        {
+          // -32768 is mapped to -1, then -32767 to -32767 are mapped to -1 to 1
+          if(in[c] == -32768)
+            result.value.f32v[c] = -1.0f;
+          else
+            result.value.f32v[c] = float(in[c]) / 32767.0f;
+        }
+      }
+      else
+      {
+        RDCERR("Unexpected format type on buffer resource");
       }
     }
-    else
+    else if(fmt.byteWidth == 1)
     {
-      RDCERR("Unexpected format type on buffer resource");
-    }
-  }
-  else if(fmt.byteWidth == 1)
-  {
-    if(fmt.fmt == CompType::UInt)
-    {
-      const uint8_t *u = (const uint8_t *)d;
-
-      for(int c = 0; c < fmt.numComps; c++)
-        result.value.u32v[c] = u[c];
-    }
-    else if(fmt.fmt == CompType::SInt)
-    {
-      const int8_t *in = (const int8_t *)d;
-
-      for(int c = 0; c < fmt.numComps; c++)
-        result.value.s32v[c] = in[c];
-    }
-    else if(fmt.fmt == CompType::UNorm || fmt.fmt == CompType::UNormSRGB)
-    {
-      const uint8_t *u = (const uint8_t *)d;
-
-      for(int c = 0; c < fmt.numComps; c++)
-        result.value.f32v[c] = float(u[c]) / float(0xff);
-    }
-    else if(fmt.fmt == CompType::SNorm)
-    {
-      const int8_t *in = (const int8_t *)d;
-
-      for(int c = 0; c < fmt.numComps; c++)
+      if(fmt.fmt == CompType::UInt)
       {
-        // -128 is mapped to -1, then -127 to -127 are mapped to -1 to 1
-        if(in[c] == -128)
-          result.value.f32v[c] = -1.0f;
-        else
-          result.value.f32v[c] = float(in[c]) / 127.0f;
+        const uint8_t *u = (const uint8_t *)d;
+
+        for(int c = 0; c < fmt.numComps; c++)
+          result.value.u32v[c] = u[c];
+      }
+      else if(fmt.fmt == CompType::SInt)
+      {
+        const int8_t *in = (const int8_t *)d;
+
+        for(int c = 0; c < fmt.numComps; c++)
+          result.value.s32v[c] = in[c];
+      }
+      else if(fmt.fmt == CompType::UNorm || fmt.fmt == CompType::UNormSRGB)
+      {
+        const uint8_t *u = (const uint8_t *)d;
+
+        for(int c = 0; c < fmt.numComps; c++)
+          result.value.f32v[c] = float(u[c]) / float(0xff);
+      }
+      else if(fmt.fmt == CompType::SNorm)
+      {
+        const int8_t *in = (const int8_t *)d;
+
+        for(int c = 0; c < fmt.numComps; c++)
+        {
+          // -128 is mapped to -1, then -127 to -127 are mapped to -1 to 1
+          if(in[c] == -128)
+            result.value.f32v[c] = -1.0f;
+          else
+            result.value.f32v[c] = float(in[c]) / 127.0f;
+        }
+      }
+      else
+      {
+        RDCERR("Unexpected format type on buffer resource");
       }
     }
-    else
+
+    // fill in alpha with 1.0 or 1 as appropriate
+    if(fmt.numComps < 4)
     {
-      RDCERR("Unexpected format type on buffer resource");
+      if(fmt.fmt == CompType::UNorm || fmt.fmt == CompType::UNormSRGB ||
+         fmt.fmt == CompType::SNorm || fmt.fmt == CompType::Float)
+        result.value.f32v[3] = 1.0f;
+      else
+        result.value.u32v[3] = 1;
     }
   }
 
