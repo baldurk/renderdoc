@@ -771,7 +771,7 @@ void D3D11PipelineStateViewer::addResourceRow(const D3D11ViewTag &view,
       d = 0;
       a = 0;
       format = QString();
-      typeName = lit("Buffer");
+      typeName = QFormatStr("%1Buffer").arg(view.type == D3D11ViewTag::UAV ? lit("RW") : QString());
 
       if(r.bufferFlags & D3DBufferViewFlags::Raw)
       {

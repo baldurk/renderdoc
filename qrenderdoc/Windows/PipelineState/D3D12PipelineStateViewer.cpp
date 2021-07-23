@@ -802,13 +802,13 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view, const Bi
       d = 0;
       a = 0;
       format = QString();
-      typeName = lit("Buffer");
+      typeName = QFormatStr("%1Buffer").arg(uav ? lit("RW") : QString());
 
       if(r.bufferFlags & D3DBufferViewFlags::Raw)
       {
         typeName = QFormatStr("%1ByteAddressBuffer").arg(uav ? lit("RW") : QString());
       }
-      else if(r.elementByteSize > 0)
+      else if(r.elementByteSize > 0 && r.viewFormat.type == ResourceFormatType::Undefined)
       {
         // for structured buffers, display how many 'elements' there are in the buffer
         a = buf->length / r.elementByteSize;
