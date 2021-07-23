@@ -574,20 +574,27 @@ void ShaderMessageViewer::exportData(bool csv)
   LambdaThread *exportThread = new LambdaThread([this, csv, f]() {
     QTextStream s(f);
 
+    bool compute = (m_OrigShaders[5] != ResourceId());
+
     if(csv)
-      s << tr("Location,Message\n");
+    {
+      if(compute)
+        s << tr("Workgroup,Thread,Message\n");
+      else
+        s << tr("Location,Message\n");
+    }
 
-    int base = 2;
-
-    if(m_OrigShaders[5] != ResourceId())
-      base = 1;
+    const int start = compute ? 1 : 2;
+    const int end = 3;
 
     int locationWidth = 0;
     for(int i = 0; i < ui->messages->topLevelItemCount(); i++)
     {
       RDTreeWidgetItem *node = ui->messages->topLevelItem(i);
 
-      locationWidth = qMax(locationWidth, node->text(base).length());
+      locationWidth = qMax(locationWidth, node->text(start).length());
+      if(compute)
+        locationWidth = qMax(locationWidth, node->text(start + 1).length());
     }
 
     for(int i = 0; i < ui->messages->topLevelItemCount(); i++)
@@ -596,13 +603,17 @@ void ShaderMessageViewer::exportData(bool csv)
 
       if(csv)
       {
-        s << "\"" << node->text(base) << "\",\""
-          << node->text(base + 1).replace(QLatin1Char('"'), lit("\"\"")) << "\"\n";
+        int col = start;
+        for(; col <= end - 1; col++)
+          s << "\"" << node->text(col) << "\",";
+        s << "\"" << node->text(col).replace(QLatin1Char('"'), lit("\"\"")) << "\"\n";
       }
       else
       {
-        s << QFormatStr("%1").arg(node->text(base), -locationWidth) << "\t" << node->text(base + 1)
-          << "\n";
+        int col = start;
+        for(; col <= end - 1; col++)
+          s << QFormatStr("%1").arg(node->text(col), -locationWidth) << "\t";
+        s << node->text(col) << "\n";
       }
     }
 
