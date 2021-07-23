@@ -1676,9 +1676,15 @@ void WrappedID3D12Device::Unmap(ID3D12Resource *Resource, UINT Subresource, byte
   D3D12_RANGE range = {0, (SIZE_T)map.totalSize};
 
   if(pWrittenRange)
+  {
     range = *pWrittenRange;
 
-  if(capframe && range.End > range.Begin)
+    // clamp end if it's lower than begin
+    if(range.End < range.Begin)
+      range.End = range.Begin;
+  }
+
+  if(capframe)
     MapDataWrite(Resource, Subresource, mapPtr, range);
 }
 
