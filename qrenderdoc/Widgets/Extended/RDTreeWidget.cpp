@@ -311,45 +311,49 @@ void RDTreeWidgetItem::sort(int column, Qt::SortOrder order)
 {
   ICaptureContext *ctx = getCaptureContext(m_widget);
 
-  std::sort(m_children.begin(), m_children.end(),
-            [ctx, column, order](const RDTreeWidgetItem *a, const RDTreeWidgetItem *b) {
-              QVariant va = a->data(column, Qt::DisplayRole);
-              QVariant vb = b->data(column, Qt::DisplayRole);
+  std::stable_sort(m_children.begin(), m_children.end(),
+                   [ctx, column, order](const RDTreeWidgetItem *a, const RDTreeWidgetItem *b) {
 
-              QString sa, sb;
+                     if(a->treeWidget()->m_SortComparison)
+                       return a->treeWidget()->m_SortComparison(column, order, a, b);
 
-              if(ctx)
-              {
-                sa = RichResourceTextFormat(*ctx, va);
-                sb = RichResourceTextFormat(*ctx, vb);
-              }
-              else
-              {
-                sa = va.toString();
-                sb = vb.toString();
-              }
+                     QVariant va = a->data(column, Qt::DisplayRole);
+                     QVariant vb = b->data(column, Qt::DisplayRole);
 
-              bool da_ok = false, db_ok = false;
-              double da = sa.toDouble(&da_ok);
-              double db = sb.toDouble(&db_ok);
+                     QString sa, sb;
 
-              int comp;
+                     if(ctx)
+                     {
+                       sa = RichResourceTextFormat(*ctx, va);
+                       sb = RichResourceTextFormat(*ctx, vb);
+                     }
+                     else
+                     {
+                       sa = va.toString();
+                       sb = vb.toString();
+                     }
 
-              if(da_ok && db_ok)
-              {
-                if(order == Qt::AscendingOrder)
-                  return da < db;
-                return da > db;
-              }
-              else
-              {
-                comp = QString::compare(sa, sb, Qt::CaseInsensitive);
-              }
+                     bool da_ok = false, db_ok = false;
+                     double da = sa.toDouble(&da_ok);
+                     double db = sb.toDouble(&db_ok);
 
-              if(order == Qt::AscendingOrder)
-                return comp < 0;
-              return comp > 0;
-            });
+                     int comp;
+
+                     if(da_ok && db_ok)
+                     {
+                       if(order == Qt::AscendingOrder)
+                         return da < db;
+                       return da > db;
+                     }
+                     else
+                     {
+                       comp = QString::compare(sa, sb, Qt::CaseInsensitive);
+                     }
+
+                     if(order == Qt::AscendingOrder)
+                       return comp < 0;
+                     return comp > 0;
+                   });
 
   for(RDTreeWidgetItem *child : m_children)
     child->sort(column, order);

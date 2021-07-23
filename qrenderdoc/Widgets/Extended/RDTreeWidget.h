@@ -236,6 +236,10 @@ public:
 
   void copyItem(QPoint pos, RDTreeWidgetItem *item);
 
+  typedef std::function<bool(int, Qt::SortOrder, const RDTreeWidgetItem *, const RDTreeWidgetItem *)>
+      ComparisonFunction;
+
+  void setSortComparison(ComparisonFunction comparison) { m_SortComparison = comparison; }
   void setColumns(const QStringList &columns);
   const QStringList &getHeaders() const { return m_headers; }
   QString headerText(int column) const { return m_headers[column]; }
@@ -292,6 +296,8 @@ private:
   bool m_clearing = false;
 
   QStringList m_headers;
+
+  ComparisonFunction m_SortComparison;
 
   bool m_queueUpdates = false;
 

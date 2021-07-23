@@ -57,8 +57,8 @@ struct ItemHelper
   static bool lessthanRange(const T *a, const T *b, size_t count)
   {
     for(size_t i = 0; i < count; i++)
-      if(a[i] < b[i])
-        return true;
+      if(!(a[i] == b[i]))
+        return a[i] < b[i];
 
     return false;
   }

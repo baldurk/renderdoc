@@ -1849,8 +1849,6 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
           msg.location.pixel.y = location[0] & 0xffff;
           msg.location.pixel.sample = location[1];
           msg.location.pixel.primitive = location[2];
-
-          RDCLOG("pixel %u, %u", msg.location.pixel.x, msg.location.pixel.y);
         }
 
         msg.message = StringFormat::FmtArgs(fmt.effective_format.c_str(), args);

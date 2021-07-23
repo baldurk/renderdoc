@@ -288,7 +288,7 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
     else
       return;
 
-    ShaderMessage msg = m_Messages[msgIdx];
+    const ShaderMessage &msg = m_Messages[msgIdx];
 
     const ShaderReflection *refl = m_Ctx.CurPipelineState().GetShaderReflection(msg.stage);
 
@@ -380,7 +380,7 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
       else
         return;
 
-      ShaderMessage msg = m_Messages[msgIdx];
+      const ShaderMessage &msg = m_Messages[msgIdx];
 
       m_Ctx.SetEventID({}, m_EID, m_EID);
 
@@ -441,6 +441,71 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
   m_Ctx.AddCaptureViewer(this);
 
   OnEventChanged(m_Ctx.CurEvent());
+
+  ui->messages->setSortComparison(
+      [this](int col, Qt::SortOrder order, const RDTreeWidgetItem *a, const RDTreeWidgetItem *b) {
+        if(order == Qt::DescendingOrder)
+          std::swap(a, b);
+
+        const ShaderMessage &am = m_Messages[a->tag().toInt()];
+        const ShaderMessage &bm = m_Messages[b->tag().toInt()];
+
+        if(col == 3)
+        {
+          return am.message < bm.message;
+        }
+        else if(col == 2 || m_OrigShaders[5] == ResourceId())
+        {
+          // sort by location either if it's selected, or if it's not dispatch in which case we
+          // default to location sorting (don't try to sort by the button-only columns that have no
+          // data)
+
+          // sort by stage first
+          if(am.stage != bm.stage)
+            return am.stage < bm.stage;
+
+          if(am.stage == ShaderStage::Vertex)
+          {
+            const ShaderVertexMessageLocation &aloc = am.location.vertex;
+            const ShaderVertexMessageLocation &bloc = bm.location.vertex;
+
+            if(aloc.view != bloc.view)
+              return aloc.view < bloc.view;
+            if(aloc.instance != bloc.instance)
+              return aloc.instance < bloc.instance;
+            return aloc.vertexIndex < bloc.vertexIndex;
+          }
+          else if(am.stage == ShaderStage::Pixel)
+          {
+            const ShaderPixelMessageLocation &aloc = am.location.pixel;
+            const ShaderPixelMessageLocation &bloc = bm.location.pixel;
+
+            if(aloc.x != bloc.x)
+              return aloc.x < bloc.x;
+            if(aloc.y != bloc.y)
+              return aloc.y < bloc.y;
+            if(aloc.primitive != bloc.primitive)
+              return aloc.primitive < bloc.primitive;
+            return aloc.sample < bloc.sample;
+          }
+          else if(am.stage == ShaderStage::Compute)
+          {
+            // column 2 is the thread column for compute
+            return am.location.compute.thread < bm.location.compute.thread;
+          }
+          else
+          {
+            // can't sort these, pretend they're all equal
+            return false;
+          }
+        }
+        else if(col == 1)
+        {
+          return am.location.compute.workgroup < bm.location.compute.workgroup;
+        }
+
+        return false;
+      });
 
   ui->messages->sortByColumn(sortColumn, Qt::SortOrder::AscendingOrder);
 
