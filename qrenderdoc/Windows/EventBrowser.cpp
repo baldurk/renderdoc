@@ -188,6 +188,7 @@ struct EventItemModel : public QAbstractItemModel
     m_EIDNameCache.clear();
     m_Actions.clear();
     m_Chunks.clear();
+    m_Times.clear();
 
     if(!m_Ctx.CurRootActions().empty())
       m_Nodes[0] = CreateActionNode(NULL);
