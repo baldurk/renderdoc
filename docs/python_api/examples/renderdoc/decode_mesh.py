@@ -229,7 +229,7 @@ def sampleCode(controller):
 	# Move to that draw
 	controller.SetFrameEvent(draw.eventId, True)
 
-	print("Decoding mesh inputs at %d: %s\n\n" % (draw.eventId, draw.name))
+	print("Decoding mesh inputs at %d: %s\n\n" % (draw.eventId, draw.GetName(controller.GetStructuredFile())))
 
 	# Calculate the mesh input configuration
 	meshInputs = getMeshInputs(controller, draw)

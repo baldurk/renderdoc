@@ -40,7 +40,7 @@ def sampleCode(controller):
 	
 	filename = str(int(texsave.resourceId))
 
-	print("Saving images of %s at %d: %s" % (filename, draw.eventId, draw.name))
+	print("Saving images of %s at %d: %s" % (filename, draw.eventId, draw.GetName(controller.GetStructuredFile())))
 
 	# Save different types of texture
 
