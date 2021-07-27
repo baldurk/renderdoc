@@ -33,9 +33,9 @@
 
 RDOC_CONFIG(rdcstr, D3D12_Debug_FeedbackDumpDirPath, "",
             "Path to dump bindless feedback annotation generated DXBC/DXIL files.");
-RDOC_CONFIG(bool, D3D12_Experimental_BindlessFeedback, false,
-            "EXPERIMENTAL: Enable fetching from GPU which descriptors were dynamically used in "
-            "descriptor arrays.");
+RDOC_CONFIG(
+    bool, D3D12_BindlessFeedback, true,
+    "Enable fetching from GPU which descriptors were dynamically used in descriptor arrays.");
 
 struct D3D12FeedbackKey
 {
@@ -278,7 +278,7 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
   if(m_BindlessFeedback.Usage.find(eventId) != m_BindlessFeedback.Usage.end())
     return;
 
-  if(!D3D12_Experimental_BindlessFeedback())
+  if(!D3D12_BindlessFeedback())
     return;
 
   // create it here so we won't re-run any code if the event is re-selected. We'll mark it as valid
