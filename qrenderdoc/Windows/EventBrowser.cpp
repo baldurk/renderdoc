@@ -249,7 +249,7 @@ struct EventItemModel : public QAbstractItemModel
   void SetTimes(const rdcarray<CounterResult> &times)
   {
     // set all times for events to -1.0
-    m_Times.fill(m_Nodes[0].effectiveEID + 1, -1.0);
+    m_Times.fill(m_Actions.size() + 1, -1.0);
 
     // fill in the actual times
     for(const CounterResult &r : times)
