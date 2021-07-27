@@ -264,6 +264,7 @@ void MarkerBreadcrumbs::OnEventChanged(uint32_t eventId)
 void MarkerBreadcrumbs::ForceRefresh()
 {
   m_CurParent = NULL;
+  m_Layout->clear();
 
   OnEventChanged(m_Ctx.CurEvent());
 }
