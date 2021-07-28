@@ -36,7 +36,7 @@ rdcstr DoStringise(const D3D12Chunk &el)
     STRINGISE_ENUM_CLASS_NAMED(PushMarker, "ID3D12GraphicsCommandList::BeginEvent");
     STRINGISE_ENUM_CLASS_NAMED(SetMarker, "ID3D12GraphicsCommandList::SetMarker");
     STRINGISE_ENUM_CLASS_NAMED(PopMarker, "ID3D12GraphicsCommandList::EndEvent");
-    STRINGISE_ENUM_CLASS_NAMED(SetShaderDebugPath, "Internal: SetShaderDebugPath");
+    STRINGISE_ENUM_CLASS_NAMED(SetShaderDebugPath, "Internal::SetShaderDebugPath");
     STRINGISE_ENUM_CLASS_NAMED(CreateSwapBuffer, "IDXGISwapChain::GetBuffer");
     STRINGISE_ENUM_CLASS_NAMED(Device_CreateCommandQueue, "ID3D12Device::CreateCommandQueue");
     STRINGISE_ENUM_CLASS_NAMED(Device_CreateCommandAllocator,

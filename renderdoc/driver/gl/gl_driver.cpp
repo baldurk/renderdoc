@@ -1249,9 +1249,9 @@ void WrappedOpenGL::UnregisterReplayContext(GLWindowingData windata)
 template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_ContextConfiguration(SerialiserType &ser, void *ctx)
 {
-  SERIALISE_ELEMENT_LOCAL(Context, m_ContextData[ctx].m_ContextDataResourceID);
-  SERIALISE_ELEMENT_LOCAL(FBO, m_ContextData[ctx].m_ContextFBOID);
-  SERIALISE_ELEMENT_LOCAL(InitParams, m_ContextData[ctx].initParams);
+  SERIALISE_ELEMENT_LOCAL(Context, m_ContextData[ctx].m_ContextDataResourceID).Unimportant();
+  SERIALISE_ELEMENT_LOCAL(FBO, m_ContextData[ctx].m_ContextFBOID).Unimportant();
+  SERIALISE_ELEMENT_LOCAL(InitParams, m_ContextData[ctx].initParams).Unimportant();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -3008,7 +3008,7 @@ bool WrappedOpenGL::Serialise_BeginCaptureFrame(SerialiserType &ser)
     savedDebugMessages.swap(m_DebugMessages);
   }
 
-  SERIALISE_ELEMENT(state);
+  SERIALISE_ELEMENT(state).Unimportant();
 
   SERIALISE_CHECK_READ_ERRORS();
 
