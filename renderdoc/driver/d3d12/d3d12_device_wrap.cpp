@@ -1159,8 +1159,9 @@ void WrappedID3D12Device::CreateConstantBufferView(const D3D12_CONSTANT_BUFFER_V
       m_FrameCaptureRecord->AddChunk(scope.Get());
     }
 
-    GetResourceManager()->MarkResourceFrameReferenced(
-        WrappedID3D12Resource::GetResIDFromAddr(pDesc->BufferLocation), eFrameRef_Read);
+    if(pDesc)
+      GetResourceManager()->MarkResourceFrameReferenced(
+          WrappedID3D12Resource::GetResIDFromAddr(pDesc->BufferLocation), eFrameRef_Read);
   }
 
   GetWrapped(DestDescriptor)->Init(pDesc);
