@@ -335,6 +335,10 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     RDCEraseEl(psoDesc.RTVFormats);
     psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
 
+    // for now disable view instancing, unclear if this is legal but it
+    psoDesc.ViewInstancing.Flags = D3D12_VIEW_INSTANCING_FLAG_NONE;
+    psoDesc.ViewInstancing.ViewInstanceCount = 0;
+
     ID3D12PipelineState *pipe = NULL;
     hr = m_pDevice->CreatePipeState(psoDesc, &pipe);
     if(FAILED(hr))
