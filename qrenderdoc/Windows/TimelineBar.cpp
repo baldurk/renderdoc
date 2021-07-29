@@ -1050,6 +1050,8 @@ uint32_t TimelineBar::processActions(QVector<Marker> &markers, QVector<uint32_t>
 
       m.name = a.customName;
       m.eidStart = a.eventId;
+      if(a.IsFakeMarker())
+        m.eidStart = a.children[0].events[0].eventId;
       m.eidEnd = processActions(m.children, m.actions, a.children);
 
       maxEID = qMax(maxEID, m.eidEnd);
