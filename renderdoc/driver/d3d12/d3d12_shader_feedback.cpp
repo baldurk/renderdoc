@@ -188,6 +188,12 @@ static void AddArraySlots(WrappedID3D12PipelineState::ShaderEntry *shad, uint32_
   if(!shad)
     return;
 
+  if(shad->GetDXBC()->m_Version.Major >= 6)
+  {
+    RDCWARN("DXIL shaders are not supported for bindless feedback currently");
+    return;
+  }
+
   ShaderReflection &refl = shad->GetDetails();
   const ShaderBindpointMapping &mapping = shad->GetMapping();
 
@@ -245,30 +251,23 @@ static void AddArraySlots(WrappedID3D12PipelineState::ShaderEntry *shad, uint32_
     }
   }
 
-  if(shad->GetDXBC()->m_Version.Major > 6)
+  // only SM5.1 can have dynamic array indexing
+  if(shad->GetDXBC()->m_Version.Major == 5 && shad->GetDXBC()->m_Version.Minor == 1)
   {
-    RDCERR("DXIL shaders are not supported for bindless feedback currently");
-  }
-  else
-  {
-    // only SM5.1 can have dynamic array indexing
-    if(shad->GetDXBC()->m_Version.Major == 5 && shad->GetDXBC()->m_Version.Minor == 1)
+    if(AnnotateShader(shad->GetDXBC(), space, slots, editedBlob))
     {
-      if(AnnotateShader(shad->GetDXBC(), space, slots, editedBlob))
-      {
-        if(!D3D12_Debug_FeedbackDumpDirPath().empty())
-          FileIO::WriteAll(D3D12_Debug_FeedbackDumpDirPath() + "/before_dxbc_" +
-                               ToStr(shad->GetDetails().stage).c_str() + ".dxbc",
-                           shad->GetDXBC()->GetShaderBlob());
+      if(!D3D12_Debug_FeedbackDumpDirPath().empty())
+        FileIO::WriteAll(D3D12_Debug_FeedbackDumpDirPath() + "/before_dxbc_" +
+                             ToStr(shad->GetDetails().stage).c_str() + ".dxbc",
+                         shad->GetDXBC()->GetShaderBlob());
 
-        if(!D3D12_Debug_FeedbackDumpDirPath().empty())
-          FileIO::WriteAll(D3D12_Debug_FeedbackDumpDirPath() + "/after_dxbc_" +
-                               ToStr(shad->GetDetails().stage).c_str() + ".dxbc",
-                           editedBlob);
+      if(!D3D12_Debug_FeedbackDumpDirPath().empty())
+        FileIO::WriteAll(D3D12_Debug_FeedbackDumpDirPath() + "/after_dxbc_" +
+                             ToStr(shad->GetDetails().stage).c_str() + ".dxbc",
+                         editedBlob);
 
-        desc.pShaderBytecode = editedBlob.data();
-        desc.BytecodeLength = editedBlob.size();
-      }
+      desc.pShaderBytecode = editedBlob.data();
+      desc.BytecodeLength = editedBlob.size();
     }
   }
 }
@@ -323,7 +322,8 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
   std::map<D3D12FeedbackKey, D3D12FeedbackSlot> slots[6];
 
   // reserve the first 4 dwords for debug info and a validity flag
-  uint32_t numSlots = 4;
+  const uint32_t numReservedSlots = 4;
+  uint32_t numSlots = numReservedSlots;
 
   if(result.compute)
   {
@@ -356,8 +356,9 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
     AddArraySlots(pipe->PS(), space, maxDescriptors, slots[4], numSlots, editedBlob[4], pipeDesc.PS);
   }
 
-  // if numSlots was 0, none of the resources were arrayed so we have nothing to do. Silently return
-  if(numSlots == 0)
+  // if numSlots wasn't increased, none of the resources were arrayed so we have nothing to do.
+  // Silently return
+  if(numSlots == numReservedSlots)
     return;
 
   // need to be able to add a descriptor of our UAV without hitting the 64 DWORD limit
