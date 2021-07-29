@@ -2728,7 +2728,12 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCount(SerialiserType &ser,
           uint32_t baseEventID = it->eventId;
 
           // get the number of draws by looking at how many children the parent action has.
-          count = (uint32_t)GetAction(it->eventId)->children.size();
+          const rdcarray<ActionDescription> &children = GetAction(it->eventId)->children;
+          count = (uint32_t)children.size();
+
+          // don't count the popmarker child
+          if(!children.empty() && children.back().flags & ActionFlags::PopMarker)
+            count--;
 
           // when we have a callback, submit every action individually to the callback
           if(m_ActionCallback && IsDrawInRenderPass())
@@ -3043,7 +3048,12 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCount(
           uint32_t baseEventID = it->eventId;
 
           // get the number of draws by looking at how many children the parent action has.
-          count = (uint32_t)GetAction(it->eventId)->children.size();
+          const rdcarray<ActionDescription> &children = GetAction(it->eventId)->children;
+          count = (uint32_t)children.size();
+
+          // don't count the popmarker child
+          if(!children.empty() && children.back().flags & ActionFlags::PopMarker)
+            count--;
 
           // when we have a callback, submit every action individually to the callback
           if(m_ActionCallback && IsDrawInRenderPass())
