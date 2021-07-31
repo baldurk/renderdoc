@@ -67,7 +67,14 @@ void GLResourceManager::MarkFBOReferenced(GLResource res, FrameRefType ref)
   if(res.name == 0)
     return;
 
-  rdcpair<ResourceId, GLResourceRecord *> &it = m_CurrentResources[res];
+  auto iter = m_CurrentResources.find(res);
+  if(iter == m_CurrentResources.end())
+  {
+    RDCERR("Non-existing FBO %u referenced!", res.name);
+    return;
+  }
+
+  rdcpair<ResourceId, GLResourceRecord *> &it = iter->second;
 
   MarkResourceFrameReferenced(it.first, ref);
 
