@@ -28,6 +28,7 @@
 #include <QLayout>
 
 struct ICaptureContext;
+struct IEventBrowser;
 class RDToolButton;
 class RDLabel;
 

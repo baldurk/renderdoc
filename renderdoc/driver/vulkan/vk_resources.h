@@ -1983,8 +1983,8 @@ FrameRefType ImgRefs::Update(ImageRange range, FrameRefType refType, Compose com
   }
 
   Split(range.aspectMask != aspectMask,
-        range.baseMipLevel != 0 || (int)range.levelCount != imageInfo.levelCount,
-        range.baseArrayLayer != 0 || (int)range.layerCount != imageInfo.layerCount);
+        range.baseMipLevel != 0 || range.levelCount != imageInfo.levelCount,
+        range.baseArrayLayer != 0 || range.layerCount != imageInfo.layerCount);
 
   rdcarray<VkImageAspectFlags> splitAspects;
   if(areAspectsSplit)
