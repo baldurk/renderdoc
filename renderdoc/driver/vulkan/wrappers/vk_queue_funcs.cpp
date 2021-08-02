@@ -981,6 +981,15 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
 
       UpdateImageStates(refs.bindImageStates);
       GetResourceManager()->MergeReferencedMemory(refs.bindMemRefs);
+
+      // for storage buffers we have to pessimise memory references because the order matters - if
+      // the first recorded reference is a complete write then a later readbeforewrite won't
+      // properly mark it as needing initial states preserved. So we do that here. Images are
+      // handled separately
+      for(auto refit = refs.storableRefs.begin(); refit != refs.storableRefs.end(); ++refit)
+      {
+        GetResourceManager()->FixupStorageBufferMemory(refs.storableRefs);
+      }
     }
 
     GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);

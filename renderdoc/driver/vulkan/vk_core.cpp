@@ -1666,7 +1666,14 @@ template <typename SerialiserType>
 bool WrappedVulkan::Serialise_BeginCaptureFrame(SerialiserType &ser)
 {
   SCOPED_LOCK(m_ImageStatesLock);
+
+  for(auto it = m_ImageStates.begin(); it != m_ImageStates.end(); ++it)
+  {
+    it->second.LockWrite()->FixupStorageReferences();
+  }
+
   GetResourceManager()->SerialiseImageStates(ser, m_ImageStates);
+
   SERIALISE_CHECK_READ_ERRORS();
 
   return true;
@@ -2624,6 +2631,11 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
       ser.SkipCurrentChunk();
 #else
     Serialise_BeginCaptureFrame(ser);
+
+    if(IsLoading(m_State))
+    {
+      AddResourceCurChunk(m_InitParams.InstanceID);
+    }
 #endif
   }
 

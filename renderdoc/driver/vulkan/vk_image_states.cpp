@@ -1502,3 +1502,22 @@ void ImageState::BeginCapture()
     it->SetState(state);
   }
 }
+
+void ImageState::FixupStorageReferences()
+{
+  if(m_Storage)
+  {
+    // storage images we don't track the reference to because they're in descriptor sets, so the
+    // read/write state of them is unknown. We can't allow a 'completewrite' to be used as-is
+    // because
+    // there might be a read before then which we just didn't track at the time.
+    maxRefType = ComposeFrameRefsUnordered(maxRefType, eFrameRef_ReadBeforeWrite);
+
+    for(auto it = subresourceStates.begin(); it != subresourceStates.end(); ++it)
+    {
+      ImageSubresourceState state = it->state();
+      state.refType = ComposeFrameRefsUnordered(state.refType, eFrameRef_ReadBeforeWrite);
+      it->SetState(state);
+    }
+  }
+}
