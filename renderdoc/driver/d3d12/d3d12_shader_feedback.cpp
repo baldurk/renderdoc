@@ -616,6 +616,8 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
         }
       }
     }
+
+    std::sort(result.used.begin(), result.used.end());
   }
 
   // replay from the start as we may have corrupted state while fetching the above feedback.
