@@ -63,7 +63,7 @@ class MarkerBreadcrumbs : public QFrame
   Q_OBJECT
 
 public:
-  explicit MarkerBreadcrumbs(ICaptureContext &ctx, QWidget *parent = 0);
+  explicit MarkerBreadcrumbs(ICaptureContext &ctx, IEventBrowser *browser, QWidget *parent = 0);
   ~MarkerBreadcrumbs();
 
   // when a new event is selected
@@ -80,6 +80,7 @@ private:
   void ConfigurePathMenu(QMenu *, const ActionDescription *);
 
   ICaptureContext &m_Ctx;
+  IEventBrowser *m_Browser;
 
   QVector<const ActionDescription *> m_Path;
 

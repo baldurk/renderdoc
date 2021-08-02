@@ -206,8 +206,8 @@ QLayoutItem *BreadcrumbsLayout::takeAt(int index)
   return NULL;
 }
 
-MarkerBreadcrumbs::MarkerBreadcrumbs(ICaptureContext &ctx, QWidget *parent)
-    : QFrame(parent), m_Ctx(ctx)
+MarkerBreadcrumbs::MarkerBreadcrumbs(ICaptureContext &ctx, IEventBrowser *browser, QWidget *parent)
+    : QFrame(parent), m_Ctx(ctx), m_Browser(browser)
 {
   setFont(Formatter::PreferredFont());
 
@@ -232,7 +232,7 @@ MarkerBreadcrumbs::~MarkerBreadcrumbs()
 
 void MarkerBreadcrumbs::OnEventChanged(uint32_t eventId)
 {
-  const ActionDescription *parent = m_Ctx.GetEventBrowser()->GetActionForEID(m_Ctx.CurEvent());
+  const ActionDescription *parent = m_Browser->GetActionForEID(m_Ctx.CurEvent());
 
   if(parent != NULL && !(parent->flags & ActionFlags::PushMarker))
     parent = parent->parent;
@@ -276,8 +276,7 @@ void MarkerBreadcrumbs::ConfigurePathMenu(QMenu *menu, const ActionDescription *
   menu->clear();
   for(const ActionDescription &child : actions)
   {
-    if((child.flags & ActionFlags::PushMarker) &&
-       m_Ctx.GetEventBrowser()->IsAPIEventVisible(child.eventId))
+    if((child.flags & ActionFlags::PushMarker) && m_Browser->IsAPIEventVisible(child.eventId))
     {
       QAction *menuAction = new QAction(child.customName, menu);
 
@@ -331,8 +330,7 @@ void MarkerBreadcrumbs::AddPathButton(const ActionDescription *action)
 
   for(const ActionDescription &child : action ? action->children : m_Ctx.CurRootActions())
   {
-    if((child.flags & ActionFlags::PushMarker) &&
-       m_Ctx.GetEventBrowser()->IsAPIEventVisible(child.eventId))
+    if((child.flags & ActionFlags::PushMarker) && m_Browser->IsAPIEventVisible(child.eventId))
     {
       hasChildMarkers = true;
       break;

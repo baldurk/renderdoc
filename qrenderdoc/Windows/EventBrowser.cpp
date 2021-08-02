@@ -3388,7 +3388,7 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
     box->setContentsMargins(QMargins(0, 0, 0, 0));
     box->setMargin(0);
     box->setSpacing(0);
-    m_Breadcrumbs = new MarkerBreadcrumbs(m_Ctx, this);
+    m_Breadcrumbs = new MarkerBreadcrumbs(m_Ctx, this, this);
     box->addWidget(m_Breadcrumbs);
     ui->breadcrumbStrip->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Minimum);
 
