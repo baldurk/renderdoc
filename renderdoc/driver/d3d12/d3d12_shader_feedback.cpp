@@ -537,7 +537,6 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
           curIdentifier.rangeIndex = r;
 
           curKey.bind.bindset = range.RegisterSpace;
-          curKey.bind.bind = range.BaseShaderRegister;
 
           UINT num = range.NumDescriptors;
           uint32_t visMask = 0;
@@ -567,6 +566,7 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
               auto slotIt = slots[st].lower_bound(curKey);
 
               curIdentifier.descIndex = 0;
+              curKey.bind.bind = range.BaseShaderRegister;
 
               // iterate over the declared range. This could be unbounded, so we might exit
               // another way
