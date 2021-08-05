@@ -360,6 +360,10 @@ void initAdb()
   if(res.strStdout.find("daemon") >= 0 || res.strStderror.find("daemon") >= 0)
   {
     RDCLOG("Started adb server");
+    // support bluestack emulator
+    adbExecCommand(adb, "connect localhost:5555", ".", false);
+    // support mumu emulator
+    adbExecCommand(adb, "connect localhost:7555", ".", false);
   }
 }
 void shutdownAdb()
