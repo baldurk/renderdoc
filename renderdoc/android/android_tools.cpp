@@ -363,9 +363,10 @@ void initAdb()
   }
 
   // support bluestack emulator
-  adbExecCommand(adb, "connect 127.0.0.1:5555", workdir, true);
+  auto res0 = adbExecCommand(adb, "connect 127.0.0.1:5037", workdir, true);
+  auto res1 = adbExecCommand(adb, "connect 127.0.0.1:5555", workdir, true);
   // support mumu emulator
-  adbExecCommand(adb, "connect 127.0.0.1:7555", workdir, true);
+  auto res2 = adbExecCommand(adb, "connect 127.0.0.1:7555", workdir, true);
 }
 void shutdownAdb()
 {
