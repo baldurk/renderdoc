@@ -31,12 +31,13 @@
     <RootNamespace>qrenderdoc</RootNamespace>
     <Keyword>Qt4VSv1.0</Keyword>
     <ProjectName>qrenderdoc</ProjectName>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(SolutionDir)\util\WindowsSDKTarget.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <Import Project="$(SolutionDir)\qrenderdoc\Code\pyrenderdoc\python.props" />
   <PropertyGroup>
-    <PlatformToolSet>v140</PlatformToolSet>
+    <PlatformToolSet>v142</PlatformToolSet>
     <OutputDirectory>$(SolutionDir)$(Platform)\$(Configuration)\</OutputDirectory>
     <ATLMinimizesCRunTimeLibraryUsage>false</ATLMinimizesCRunTimeLibraryUsage>
     <CharacterSet>NotSet</CharacterSet>

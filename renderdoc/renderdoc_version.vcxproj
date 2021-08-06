@@ -23,13 +23,14 @@
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>version</RootNamespace>
     <ProjectName>version</ProjectName>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(SolutionDir)\util\WindowsSDKTarget.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup>
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
@@ -108,7 +109,9 @@ namespace GitIntrospection {
       </Code>
     </Task>
   </UsingTask>
-  <PropertyGroup><DisableFastUpToDateCheck>true</DisableFastUpToDateCheck></PropertyGroup>
+  <PropertyGroup>
+    <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
+  </PropertyGroup>
   <!-- Only actually run the task if we located the assembly for LibGit2Sharp. Otherwise silently skip this step. -->
   <Target Name="RunTask" BeforeTargets="PrepareForBuild" Condition="exists('$(LibGit2SharpPath)')">
     <GetGitCommit Repository="$(SolutionDir)" LibGit2SharpAssemblyPath="$(LibGit2SharpPath)" ContinueOnError="WarnAndContinue">
