@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,6 +32,7 @@
 #include <QMouseEvent>
 #include <QShortcut>
 #include <QToolTip>
+#include "Code/Resources.h"
 #include "Code/ScintillaSyntax.h"
 #include "Widgets/FindReplace.h"
 #include "scintilla/include/SciLexer.h"
@@ -110,12 +111,29 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
   QObject::connect(m_FindReplace, &FindReplace::performReplace, this, &ShaderViewer::performReplace);
   QObject::connect(m_FindReplace, &FindReplace::performReplaceAll, this,
                    &ShaderViewer::performReplaceAll);
+  QObject::connect(m_FindReplace, &FindReplace::keyPress, [this](QKeyEvent *e) {
+    if(e->key() == Qt::Key_Escape)
+    {
+      // the find replace dialog is the only thing allowed to float. If it's in a floating area,
+      // hide it on escape
+      ToolWindowManagerArea *area = ui->docking->areaOf(m_FindReplace);
+
+      if(area && ui->docking->isFloating(m_FindReplace))
+      {
+        ui->docking->hideToolWindow(m_FindReplace);
+      }
+    }
+  });
 
   ui->docking->addToolWindow(m_FindReplace, ToolWindowManager::NoArea);
   ui->docking->setToolWindowProperties(m_FindReplace, ToolWindowManager::HideOnClose);
 
   ui->docking->addToolWindow(m_FindResults, ToolWindowManager::NoArea);
-  ui->docking->setToolWindowProperties(m_FindResults, ToolWindowManager::HideOnClose);
+  ui->docking->setToolWindowProperties(
+      m_FindResults, ToolWindowManager::HideOnClose | ToolWindowManager::DisallowFloatWindow);
+
+  QObject::connect(m_FindResults, &ScintillaEdit::doubleClick, this,
+                   &ShaderViewer::resultsDoubleClick);
 
   {
     m_DisassemblyView =
@@ -160,14 +178,12 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
                                              ToolWindowManager::AlwaysDisplayFullTabs);
   }
 
-  ui->docking->setAllowFloatingWindow(false);
-
   {
     QMenu *snippetsMenu = new QMenu(this);
 
     QAction *dim = new QAction(tr("Texture Dimensions Global"), this);
     QAction *mip = new QAction(tr("Selected Mip Global"), this);
-    QAction *slice = new QAction(tr("Seleted Array Slice / Cubemap Face Global"), this);
+    QAction *slice = new QAction(tr("Selected Array Slice / Cubemap Face Global"), this);
     QAction *sample = new QAction(tr("Selected Sample Global"), this);
     QAction *type = new QAction(tr("Texture Type Global"), this);
     QAction *samplers = new QAction(tr("Point && Linear Samplers"), this);
@@ -265,14 +281,9 @@ void ShaderViewer::editShader(ResourceId id, ShaderStage stage, const QString &e
   ui->snippets->setVisible(m_CustomShader);
 
   // hide debugging toolbar buttons
-  ui->debugSep->hide();
-  ui->runBack->hide();
-  ui->run->hide();
-  ui->stepBack->hide();
-  ui->stepNext->hide();
-  ui->runToCursor->hide();
-  ui->runToSample->hide();
-  ui->runToNaNOrInf->hide();
+  ui->editSep->hide();
+  ui->execBackwards->hide();
+  ui->execForwards->hide();
   ui->regFormatSep->hide();
   ui->intView->hide();
   ui->floatView->hide();
@@ -477,10 +488,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
   if(m_ShaderDetails && !m_ShaderDetails->debugInfo.files.isEmpty())
   {
-    if(m_Trace)
-      setWindowTitle(QFormatStr("Debug %1() - %2").arg(m_ShaderDetails->entryPoint).arg(debugContext));
-    else
-      setWindowTitle(m_ShaderDetails->entryPoint);
+    updateWindowTitle();
 
     // add all the files, skipping any that have empty contents. We push a NULL in that case so the
     // indices still match up with what the debug info expects. Debug info *shouldn't* point us at
@@ -517,15 +525,22 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
   }
 
   // hide edit buttons
-  ui->editSep->hide();
   ui->refresh->hide();
   ui->snippets->hide();
+  ui->editSep->hide();
 
   if(m_Trace)
   {
     // hide signatures
     ui->inputSig->hide();
     ui->outputSig->hide();
+
+    // hide int/float toggles except on DXBC, other encodings are strongly typed
+    if(m_ShaderDetails->encoding != ShaderEncoding::DXBC)
+    {
+      ui->intView->hide();
+      ui->floatView->hide();
+    }
 
     if(m_ShaderDetails->debugInfo.files.isEmpty())
     {
@@ -635,13 +650,144 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     if(!hasLineInfo)
       ui->docking->raiseToolWindow(ui->debugVars);
 
-    QObject::connect(ui->stepBack, &QToolButton::clicked, this, &ShaderViewer::stepBack);
-    QObject::connect(ui->stepNext, &QToolButton::clicked, this, &ShaderViewer::stepNext);
-    QObject::connect(ui->runBack, &QToolButton::clicked, this, &ShaderViewer::runBack);
-    QObject::connect(ui->run, &QToolButton::clicked, this, &ShaderViewer::run);
-    QObject::connect(ui->runToCursor, &QToolButton::clicked, this, &ShaderViewer::runToCursor);
-    QObject::connect(ui->runToSample, &QToolButton::clicked, this, &ShaderViewer::runToSample);
-    QObject::connect(ui->runToNaNOrInf, &QToolButton::clicked, this, &ShaderViewer::runToNanOrInf);
+    // set up stepping/running actions
+
+    // we register the shortcuts via MainWindow so that it works regardless of the active scintilla
+    // but still handles multiple shader viewers being present (the one with focus will get the
+    // input)
+
+    // all shortcuts have a reverse version with shift. This means step out is Ctrl-F11 instead of
+    // Shift-F11, but otherwise the shortcuts behave the same as visual studio
+
+    {
+      QMenu *backwardsMenu = new QMenu(this);
+      QAction *act;
+
+      act = MakeExecuteAction(tr("&Run backwards"), Icons::control_start_blue(),
+                              tr("Run backwards to the start of the shader"),
+                              QKeySequence(Qt::Key_F5 | Qt::ShiftModifier));
+
+      QObject::connect(act, &QAction::triggered, [this]() { runTo({}, false); });
+      backwardsMenu->addAction(act);
+
+      act = MakeExecuteAction(
+          tr("Run backwards to &Cursor"), Icons::control_reverse_cursor_blue(),
+          tr("Run backwards until execution reaches the cursor, or the start of the shader"),
+          QKeySequence(Qt::Key_F10 | Qt::ControlModifier | Qt::ShiftModifier));
+
+      QObject::connect(act, &QAction::triggered, [this]() { runToCursor(false); });
+      backwardsMenu->addAction(act);
+
+      act = MakeExecuteAction(tr("Run backwards to &Sample"), Icons::control_reverse_sample_blue(),
+                              tr("Run backwards until execution reads from a resource, or the "
+                                 "start of the shader is reached"),
+                              QKeySequence());
+
+      QObject::connect(act, &QAction::triggered,
+                       [this]() { runTo({}, false, ShaderEvents::SampleLoadGather); });
+      backwardsMenu->addAction(act);
+
+      act = MakeExecuteAction(
+          tr("Run backwards to &NaN/Inf"), Icons::control_reverse_nan_blue(),
+          tr("Run backwards until a floating point instruction generates a NaN "
+             "or Inf, an integer instruction divides by 0, or the start of the shader is reached"),
+          QKeySequence());
+
+      QObject::connect(act, &QAction::triggered,
+                       [this]() { runTo({}, false, ShaderEvents::GeneratedNanOrInf); });
+      backwardsMenu->addAction(act);
+
+      backwardsMenu->addSeparator();
+
+      act = MakeExecuteAction(tr("Step backwards &Over"), Icons::control_reverse_blue(),
+                              tr("Step backwards, and don't enter functions when source debugging"),
+                              QKeySequence(Qt::Key_F10 | Qt::ShiftModifier));
+
+      QObject::connect(act, &QAction::triggered, [this]() { step(false, StepOver); });
+      backwardsMenu->addAction(act);
+
+      act = MakeExecuteAction(tr("Step backwards &Into"), Icons::control_reverse_blue(),
+                              tr("Step backwards, entering functions when source debugging"),
+                              QKeySequence(Qt::Key_F11 | Qt::ShiftModifier));
+
+      QObject::connect(act, &QAction::triggered, [this]() { step(false, StepInto); });
+      backwardsMenu->addAction(act);
+
+      act =
+          MakeExecuteAction(tr("Step backwards Ou&t"), Icons::control_reverse_blue(),
+                            tr("Step backwards, out of the current function when source debugging"),
+                            QKeySequence(Qt::Key_F11 | Qt::ControlModifier | Qt::ShiftModifier));
+
+      QObject::connect(act, &QAction::triggered, [this]() { step(false, StepOut); });
+      backwardsMenu->addAction(act);
+
+      ui->execBackwards->setMenu(backwardsMenu);
+    }
+
+    {
+      QMenu *forwardsMenu = new QMenu(this);
+      QAction *act;
+
+      act = MakeExecuteAction(tr("&Run forwards"), Icons::control_end_blue(),
+                              tr("Run forwards to the start of the shader"),
+                              QKeySequence(Qt::Key_F5));
+
+      QObject::connect(act, &QAction::triggered, [this]() { runTo({}, true); });
+      forwardsMenu->addAction(act);
+
+      act = MakeExecuteAction(
+          tr("Run forwards to &Cursor"), Icons::control_cursor_blue(),
+          tr("Run forwards until execution reaches the cursor, or the end of the shader"),
+          QKeySequence(Qt::Key_F10 | Qt::ControlModifier));
+
+      QObject::connect(act, &QAction::triggered, [this]() { runToCursor(true); });
+      forwardsMenu->addAction(act);
+
+      act = MakeExecuteAction(tr("Run forwards to &Sample"), Icons::control_sample_blue(),
+                              tr("Run forwards until execution reads from a resource, or the "
+                                 "end of the shader is reached"),
+                              QKeySequence());
+
+      QObject::connect(act, &QAction::triggered,
+                       [this]() { runTo({}, true, ShaderEvents::SampleLoadGather); });
+      forwardsMenu->addAction(act);
+
+      act = MakeExecuteAction(
+          tr("Run forwards to &NaN/Inf"), Icons::control_nan_blue(),
+          tr("Run forwards until a floating point instruction generates a NaN "
+             "or Inf, an integer instruction divides by 0, or the end of the shader is reached"),
+          QKeySequence());
+
+      QObject::connect(act, &QAction::triggered,
+                       [this]() { runTo({}, true, ShaderEvents::GeneratedNanOrInf); });
+      forwardsMenu->addAction(act);
+
+      forwardsMenu->addSeparator();
+
+      act = MakeExecuteAction(tr("Step forwards &Over"), Icons::control_play_blue(),
+                              tr("Step forwards, and don't enter functions when source debugging"),
+                              QKeySequence(Qt::Key_F10));
+
+      QObject::connect(act, &QAction::triggered, [this]() { step(true, StepOver); });
+      forwardsMenu->addAction(act);
+
+      act = MakeExecuteAction(tr("Step forwards &Into"), Icons::control_play_blue(),
+                              tr("Step forwards, entering functions when source debugging"),
+                              QKeySequence(Qt::Key_F11));
+
+      QObject::connect(act, &QAction::triggered, [this]() { step(true, StepInto); });
+      forwardsMenu->addAction(act);
+
+      act =
+          MakeExecuteAction(tr("Step forwards Ou&t"), Icons::control_play_blue(),
+                            tr("Step forwards, out of the current function when source debugging"),
+                            QKeySequence(Qt::Key_F11 | Qt::ControlModifier));
+
+      QObject::connect(act, &QAction::triggered, [this]() { step(true, StepOut); });
+      forwardsMenu->addAction(act);
+
+      ui->execForwards->setMenu(forwardsMenu);
+    }
 
     for(ScintillaEdit *edit : m_Scintillas)
     {
@@ -666,21 +812,9 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       QObject::connect(edit, &ScintillaEdit::dwellEnd, this, &ShaderViewer::disasm_tooltipHide);
     }
 
-    // register the shortcuts via MainWindow so that it works regardless of the active scintilla but
-    // still handles multiple shader viewers being present (the one with focus will get the input)
-    m_Ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_F10).toString(), this,
-                                            [this](QWidget *) { stepNext(); });
-    m_Ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_F10 | Qt::ShiftModifier).toString(),
-                                            this, [this](QWidget *) { stepBack(); });
-    m_Ctx.GetMainWindow()->RegisterShortcut(
-        QKeySequence(Qt::Key_F10 | Qt::ControlModifier).toString(), this,
-        [this](QWidget *) { runToCursor(); });
-    m_Ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_F5).toString(), this,
-                                            [this](QWidget *) { run(); });
-    m_Ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_F5 | Qt::ShiftModifier).toString(),
-                                            this, [this](QWidget *) { runBack(); });
+    // toggle breakpoint - F9
     m_Ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_F9).toString(), this,
-                                            [this](QWidget *) { ToggleBreakpoint(); });
+                                            [this](QWidget *) { ToggleBreakpointOnInstruction(); });
 
     // event filter to pick up tooltip events
     ui->constants->installEventFilter(this);
@@ -693,6 +827,8 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     m_BackgroundRunning.release();
 
     QPointer<ShaderViewer> me(this);
+
+    m_DeferredInit = true;
 
     m_Ctx.Replay().AsyncInvoke([this, me](IReplayController *r) {
       if(!me)
@@ -754,6 +890,11 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
           gotoSourceDebugging();
           updateDebugState();
         }
+
+        m_DeferredInit = false;
+        for(std::function<void(ShaderViewer *)> &f : m_DeferredCommands)
+          f(this);
+        m_DeferredCommands.clear();
       });
     });
 
@@ -811,14 +952,9 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     ui->callstack->hide();
 
     // hide debugging toolbar buttons
-    ui->debugSep->hide();
-    ui->runBack->hide();
-    ui->run->hide();
-    ui->stepBack->hide();
-    ui->stepNext->hide();
-    ui->runToCursor->hide();
-    ui->runToSample->hide();
-    ui->runToNaNOrInf->hide();
+    ui->editSep->hide();
+    ui->execBackwards->hide();
+    ui->execForwards->hide();
     ui->regFormatSep->hide();
     ui->intView->hide();
     ui->floatView->hide();
@@ -939,17 +1075,35 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
   }
 }
 
+QAction *ShaderViewer::MakeExecuteAction(QString name, const QIcon &icon, QString tooltip,
+                                         QKeySequence shortcut)
+{
+  QAction *act = new QAction(name, this);
+  // set the shortcut context to something that shouldn't fire, since we want to handle this
+  // ourselves - we just want Qt to *display* the shortcut
+  act->setShortcutContext(Qt::WidgetShortcut);
+  act->setToolTip(tooltip);
+  act->setIcon(icon);
+  if(!shortcut.isEmpty())
+  {
+    act->setShortcut(shortcut);
+    m_Ctx.GetMainWindow()->RegisterShortcut(act->shortcut().toString(), this,
+                                            [act](QWidget *) { act->activate(QAction::Trigger); });
+  }
+  return act;
+}
+
 void ShaderViewer::updateWindowTitle()
 {
   if(m_ShaderDetails)
   {
-    QString shaderName = m_Ctx.GetResourceName(m_ShaderDetails->resourceId);
+    QString shaderName = m_Ctx.GetResourceNameUnsuffixed(m_ShaderDetails->resourceId);
 
     // On D3D12, get the shader name from the pipeline rather than the shader itself
     // for the benefit of D3D12 which doesn't have separate shader objects
     if(m_Ctx.CurPipelineState().IsCaptureD3D12())
       shaderName = QFormatStr("%1 %2")
-                       .arg(m_Ctx.GetResourceName(m_Pipeline))
+                       .arg(m_Ctx.GetResourceNameUnsuffixed(m_Pipeline))
                        .arg(m_Ctx.CurPipelineState().Abbrev(m_ShaderDetails->stage));
 
     if(m_Trace)
@@ -1168,25 +1322,32 @@ ScintillaEdit *ShaderViewer::MakeEditor(const QString &name, const QString &text
 {
   ScintillaEdit *ret = new ScintillaEdit(this);
 
-  SetTextAndUpdateMargin0(ret, text);
-
   ret->setMarginLeft(4.0 * devicePixelRatioF());
   ret->setMarginWidthN(1, 0);
   ret->setMarginWidthN(2, 16.0 * devicePixelRatioF());
   ret->setObjectName(name);
 
-  ret->styleSetFont(STYLE_DEFAULT,
-                    QFontDatabase::systemFont(QFontDatabase::FixedFont).family().toUtf8().data());
+  ret->styleSetFont(STYLE_DEFAULT, Formatter::FixedFont().family().toUtf8().data());
+  ret->styleSetSize(STYLE_DEFAULT, Formatter::FixedFont().pointSize());
 
   // C# DarkGreen
   ret->indicSetFore(INDICATOR_REGHIGHLIGHT, SCINTILLA_COLOUR(0, 100, 0));
   ret->indicSetStyle(INDICATOR_REGHIGHLIGHT, INDIC_ROUNDBOX);
 
   // set up find result highlight style
-  ret->indicSetFore(INDICATOR_FINDRESULT, SCINTILLA_COLOUR(200, 200, 127));
+  ret->indicSetFore(INDICATOR_FINDRESULT, SCINTILLA_COLOUR(200, 200, 64));
   ret->indicSetStyle(INDICATOR_FINDRESULT, INDIC_FULLBOX);
   ret->indicSetAlpha(INDICATOR_FINDRESULT, 50);
   ret->indicSetOutlineAlpha(INDICATOR_FINDRESULT, 80);
+
+  QColor highlightColor = palette().color(QPalette::Highlight).toRgb();
+
+  ret->indicSetFore(
+      INDICATOR_FINDALLHIGHLIGHT,
+      SCINTILLA_COLOUR(highlightColor.red(), highlightColor.green(), highlightColor.blue()));
+  ret->indicSetStyle(INDICATOR_FINDALLHIGHLIGHT, INDIC_FULLBOX);
+  ret->indicSetAlpha(INDICATOR_FINDALLHIGHLIGHT, 120);
+  ret->indicSetOutlineAlpha(INDICATOR_FINDALLHIGHLIGHT, 180);
 
   ConfigureSyntax(ret, lang);
 
@@ -1197,6 +1358,8 @@ ScintillaEdit *ShaderViewer::MakeEditor(const QString &name, const QString &text
 
   ret->colourise(0, -1);
 
+  SetTextAndUpdateMargin0(ret, text);
+
   ret->emptyUndoBuffer();
 
   return ret;
@@ -1206,17 +1369,15 @@ void ShaderViewer::SetTextAndUpdateMargin0(ScintillaEdit *sc, const QString &tex
 {
   sc->setText(text.toUtf8().data());
 
-  sptr_t numlines = sc->lineCount();
+  int numLines = sc->lineCount();
 
-  int margin0width = 30;
-  if(numlines > 1000)
-    margin0width += 6;
-  if(numlines > 10000)
-    margin0width += 6;
+  // don't make the margin too narrow, it looks strange even if there are only 5 lines in a file
+  // we also add on an extra character for padding (with the *10)
+  numLines = qMax(1000, numLines * 10);
 
-  margin0width = int(margin0width * devicePixelRatioF());
+  sptr_t width = sc->textWidth(SC_MARGIN_RTEXT, QString::number(numLines).toUtf8().data());
 
-  sc->setMarginWidthN(0, margin0width);
+  sc->setMarginWidthN(0, int(width * devicePixelRatioF()));
 }
 
 void ShaderViewer::readonly_keyPressed(QKeyEvent *event)
@@ -1224,6 +1385,31 @@ void ShaderViewer::readonly_keyPressed(QKeyEvent *event)
   if(event->key() == Qt::Key_F && (event->modifiers() & Qt::ControlModifier))
   {
     m_FindReplace->setReplaceMode(false);
+
+    ScintillaEdit *edit = qobject_cast<ScintillaEdit *>(QObject::sender());
+
+    if(edit)
+    {
+      // if there's a selection, fill the find prompt with that
+      if(!edit->getSelText().isEmpty())
+      {
+        m_FindReplace->setFindText(QString::fromUtf8(edit->getSelText()));
+      }
+      else
+      {
+        // otherwise pick the word under the cursor, if there is one
+        sptr_t scintillaPos = edit->currentPos();
+
+        sptr_t start = edit->wordStartPosition(scintillaPos, true);
+        sptr_t end = edit->wordEndPosition(scintillaPos, true);
+
+        QByteArray text = edit->textRange(start, end);
+
+        if(!text.isEmpty())
+          m_FindReplace->setFindText(QString::fromUtf8(text));
+      }
+    }
+
     on_findReplace_clicked();
   }
 
@@ -1286,19 +1472,29 @@ void ShaderViewer::debug_contextMenu(const QPoint &pos)
   contextMenu.addSeparator();
 
   QAction addBreakpoint(tr("Toggle breakpoint here"), this);
-  QAction runCursor(tr("Run to Cursor"), this);
+  QAction runForwardCursor(tr("Run forwards to Cursor"), this);
+  QAction runBackwardCursor(tr("Run backwards to Cursor"), this);
+
+  addBreakpoint.setShortcut(QKeySequence(Qt::Key_F9));
+  runForwardCursor.setShortcut(QKeySequence(Qt::Key_F10 | Qt::ControlModifier));
+  runBackwardCursor.setShortcut(QKeySequence(Qt::Key_F10 | Qt::ControlModifier | Qt::ShiftModifier));
 
   QObject::connect(&addBreakpoint, &QAction::triggered, [this, scintillaPos] {
     m_DisassemblyView->setSelection(scintillaPos, scintillaPos);
-    ToggleBreakpoint();
+    ToggleBreakpointOnInstruction();
   });
-  QObject::connect(&runCursor, &QAction::triggered, [this, scintillaPos] {
+  QObject::connect(&runForwardCursor, &QAction::triggered, [this, scintillaPos] {
     m_DisassemblyView->setSelection(scintillaPos, scintillaPos);
-    runToCursor();
+    runToCursor(true);
+  });
+  QObject::connect(&runBackwardCursor, &QAction::triggered, [this, scintillaPos] {
+    m_DisassemblyView->setSelection(scintillaPos, scintillaPos);
+    runToCursor(false);
   });
 
   contextMenu.addAction(&addBreakpoint);
-  contextMenu.addAction(&runCursor);
+  contextMenu.addAction(&runBackwardCursor);
+  contextMenu.addAction(&runForwardCursor);
   contextMenu.addSeparator();
 
   QAction copyText(tr("Copy"), this);
@@ -1417,7 +1613,7 @@ void ShaderViewer::accessedResources_contextMenu(const QPoint &pos)
 
     QObject::connect(&gotoInstr, &QAction::triggered, [this, tag] {
       bool forward = (tag.step >= m_CurrentStateIdx);
-      runTo({tag.step}, forward);
+      runTo({m_States[tag.step].nextInstruction}, forward);
     });
 
     RDDialog::show(&contextMenu, w->viewport()->mapToGlobal(pos));
@@ -1631,100 +1827,120 @@ void ShaderViewer::on_watch_itemChanged(QTableWidgetItem *item)
   updateDebugState();
 }
 
-bool ShaderViewer::stepBack()
+bool ShaderViewer::step(bool forward, StepMode mode)
 {
   if(!m_Trace || m_States.empty())
     return false;
 
-  if(IsFirstState())
+  if((forward && IsLastState()) || (!forward && IsFirstState()))
     return false;
 
   if(isSourceDebugging())
   {
     LineColumnInfo oldLine = m_Trace->lineInfo[GetCurrentState().nextInstruction];
+    rdcarray<rdcstr> oldStack = GetCurrentState().callstack;
 
-    // first step to the next instruction in a backwards direction that's on a different line from
-    // the current one
     do
     {
-      applyBackwardsChange();
+      // step once in the right direction
+      if(forward)
+        applyForwardsChange();
+      else
+        applyBackwardsChange();
 
+      // break out if we hit a breakpoint, no matter what
       if(m_Breakpoints.contains((int)GetCurrentState().nextInstruction))
         break;
 
-      if(IsFirstState())
+      // if we've reached the limit, break
+      if((forward && IsLastState()) || (!forward && IsFirstState()))
         break;
 
-      if(m_Trace->lineInfo[GetCurrentState().nextInstruction].SourceEqual(oldLine))
+      // keep going if we're still on the same source line as we started
+      LineColumnInfo curLine = m_Trace->lineInfo[GetCurrentState().nextInstruction];
+      if(curLine.SourceEqual(oldLine))
         continue;
 
-      break;
+      // if we're stepping into, break now as soon as we hit a different line
+      if(mode == StepInto)
+        break;
+
+      // we're on a different line but that might not be enough for Step Out or Step Over
+      rdcarray<rdcstr> curStack = GetCurrentState().callstack;
+
+      // mode is StepOver or StepOut
+
+      if(mode == StepOver)
+      {
+        // if the stack hasn't grown, we assume that we're still in the same function so return
+        if(curStack.size() <= oldStack.size())
+          break;
+      }
+
+      if(mode == StepOut)
+      {
+        // if the stack has shrunk we must have exited the function
+        if(curStack.size() < oldStack.size())
+          break;
+      }
+
+      // if the stack is bigger (for stepover) or hasn't shrunk (for stepout) but the common subset
+      // is different, we have stepped into a different function due to inlining, so break
+      //
+      // E.g. A() -> B() stepover A() -> C() -> D()
+      //
+      // Or A() -> B() stepout A() -> C()
+      bool different = false;
+      for(size_t i = 0; i < qMin(curStack.size(), oldStack.size()); i++)
+      {
+        if(oldStack[i] != curStack[i])
+        {
+          different = true;
+          break;
+        }
+      }
+
+      if(different)
+        break;
+
     } while(true);
 
     oldLine = m_Trace->lineInfo[GetCurrentState().nextInstruction];
 
-    // now since a line can have multiple instructions, keep stepping (looking forward) until we
-    // reach the first instruction with an identical line info
-    while(!IsFirstState() &&
-          m_Trace->lineInfo[GetPreviousState().nextInstruction].SourceEqual(oldLine))
+    if(!forward)
     {
-      applyBackwardsChange();
+      // now since a line can have multiple instructions, we may only be on the last one of several.
+      // Keep stepping until we reach the first instruction with an identical line info and stop
+      // there
+      while(!IsFirstState() &&
+            m_Trace->lineInfo[GetPreviousState().nextInstruction].SourceEqual(oldLine))
+      {
+        applyBackwardsChange();
 
-      if(m_Breakpoints.contains((int)GetCurrentState().nextInstruction))
-        break;
+        // still need to check for instruction-level breakpoints
+        if(m_Breakpoints.contains((int)GetCurrentState().nextInstruction))
+          break;
+      }
     }
 
     updateDebugState();
   }
   else
   {
-    applyBackwardsChange();
-    updateDebugState();
-  }
+    // non-source stepping is easy, we just do one instruction in that direction regardless of step
+    // mode
 
-  return true;
-}
-
-bool ShaderViewer::stepNext()
-{
-  if(!m_Trace || m_States.empty())
-    return false;
-
-  if(IsLastState())
-    return false;
-
-  if(isSourceDebugging())
-  {
-    LineColumnInfo oldLine = m_Trace->lineInfo[GetCurrentState().nextInstruction];
-
-    do
-    {
+    if(forward)
       applyForwardsChange();
-
-      if(m_Breakpoints.contains((int)GetCurrentState().nextInstruction))
-        break;
-
-      if(IsLastState())
-        break;
-
-      if(m_Trace->lineInfo[GetCurrentState().nextInstruction].SourceEqual(oldLine))
-        continue;
-
-      break;
-    } while(true);
-
-    updateDebugState();
-  }
-  else
-  {
-    applyForwardsChange();
+    else
+      applyBackwardsChange();
     updateDebugState();
   }
 
   return true;
 }
 
-void ShaderViewer::runToCursor()
+void ShaderViewer::runToCursor(bool forward)
 {
   if(!m_Trace || m_States.empty())
     return;
@@ -1747,13 +1963,13 @@ void ShaderViewer::runToCursor()
     {
       if(fileMap.contains(i))
       {
-        runTo(fileMap[i], true);
+        runTo(fileMap[i], forward);
         return;
       }
     }
 
     // if we didn't find one, just run
-    run();
+    runTo({}, forward);
   }
   else
   {
@@ -1764,7 +1980,7 @@ void ShaderViewer::runToCursor()
       int line = instructionForDisassemblyLine(i);
       if(line >= 0)
       {
-        runTo({(size_t)line}, true);
+        runTo({(size_t)line}, forward);
         break;
       }
     }
@@ -1814,26 +2030,6 @@ const ShaderDebugState &ShaderViewer::GetNextState() const
     return m_States[m_CurrentStateIdx + 1];
 
   return m_States.back();
-}
-
-void ShaderViewer::runToSample()
-{
-  runTo({}, true, ShaderEvents::SampleLoadGather);
-}
-
-void ShaderViewer::runToNanOrInf()
-{
-  runTo({}, true, ShaderEvents::GeneratedNanOrInf);
-}
-
-void ShaderViewer::runBack()
-{
-  runTo({}, false);
-}
-
-void ShaderViewer::run()
-{
-  runTo({}, true);
 }
 
 void ShaderViewer::runTo(QVector<size_t> runToInstruction, bool forward, ShaderEvents condition)
@@ -3916,8 +4112,15 @@ void ShaderViewer::SetCurrentStep(uint32_t step)
   updateDebugState();
 }
 
-void ShaderViewer::ToggleBreakpoint(int32_t instruction)
+void ShaderViewer::ToggleBreakpointOnInstruction(int32_t instruction)
 {
+  if(m_DeferredInit)
+  {
+    m_DeferredCommands.push_back(
+        [instruction](ShaderViewer *v) { v->ToggleBreakpointOnInstruction(instruction); });
+    return;
+  }
+
   if(!m_Trace || m_States.empty())
     return;
 
@@ -3946,7 +4149,7 @@ void ShaderViewer::ToggleBreakpoint(int32_t instruction)
         if(fileMap.contains(i))
         {
           for(size_t inst : fileMap[i])
-            ToggleBreakpoint((int)inst);
+            ToggleBreakpointOnInstruction((int)inst);
 
           return;
         }
@@ -4025,6 +4228,23 @@ void ShaderViewer::ToggleBreakpoint(int32_t instruction)
   }
 }
 
+void ShaderViewer::ToggleBreakpointOnDisassemblyLine(int32_t disassemblyLine)
+{
+  // instructionForDisassemblyLine expects scintilla 0-based line numbers
+  ToggleBreakpointOnInstruction(instructionForDisassemblyLine(disassemblyLine - 1));
+}
+
+void ShaderViewer::RunForward()
+{
+  if(m_DeferredInit)
+  {
+    m_DeferredCommands.push_back([](ShaderViewer *v) { v->RunForward(); });
+    return;
+  }
+
+  runTo({}, true);
+}
+
 void ShaderViewer::ShowErrors(const rdcstr &errors)
 {
   if(m_Errors)
@@ -4050,6 +4270,22 @@ void ShaderViewer::AddWatch(const rdcstr &variable)
   ToolWindowManager::raiseToolWindow(ui->watch);
   ui->watch->activateWindow();
   ui->watch->QWidget::setFocus();
+}
+
+rdcstrpairs ShaderViewer::GetCurrentFileContents()
+{
+  rdcstrpairs files;
+  for(ScintillaEdit *s : m_Scintillas)
+  {
+    // don't include the disassembly view
+    if(m_DisassemblyView == s)
+      continue;
+
+    QWidget *w = (QWidget *)s;
+    files.push_back(
+        {w->property("filename").toString(), QString::fromUtf8(s->getText(s->textLength() + 1))});
+  }
+  return files;
 }
 
 int ShaderViewer::snippetPos()
@@ -4095,12 +4331,20 @@ layout(binding = 0, std140) uniform RENDERDOC_Uniforms
 {
     uvec4 TexDim;
     uint SelectedMip;
-    int TextureType;
+    int TextureType; // 1 = 1D, 2 = 2D, 3 = 3D, 4 = 2DMS
     uint SelectedSliceFace;
     int SelectedSample;
     uvec4 YUVDownsampleRate;
     uvec4 YUVAChannels;
 } RENDERDOC;
+
+#define RENDERDOC_TexDim RENDERDOC.TexDim
+#define RENDERDOC_SelectedMip RENDERDOC.SelectedMip
+#define RENDERDOC_TextureType RENDERDOC.TextureType
+#define RENDERDOC_SelectedSliceFace RENDERDOC.SelectedSliceFace
+#define RENDERDOC_SelectedSample RENDERDOC.SelectedSample
+#define RENDERDOC_YUVDownsampleRate RENDERDOC.YUVDownsampleRate
+#define RENDERDOC_YUVAChannels RENDERDOC.YUVAChannels
 
 )");
   }
@@ -4111,7 +4355,7 @@ cbuffer RENDERDOC_Constants : register(b0)
 {
     uint4 RENDERDOC_TexDim;
     uint RENDERDOC_SelectedMip;
-    int RENDERDOC_TextureType;
+    int RENDERDOC_TextureType; // 1 = 1D, 2 = 2D, 3 = 3D, 4 = 2DMS
     uint RENDERDOC_SelectedSliceFace;
     int RENDERDOC_SelectedSample;
     uint4 RENDERDOC_YUVDownsampleRate;
@@ -4285,7 +4529,7 @@ void ShaderViewer::snippet_selectedType()
   {
     text = lit(R"(
 // 1 = 1D, 2 = 2D, 3 = 3D, 4 = Depth, 5 = Depth + Stencil
-// 6 = Depth (MS), 7 = Depth + Stencil (MS)
+// 6 = Depth (MS), 7 = Depth + Stencil (MS), 9 = 2DMS
 uint RENDERDOC_TextureType;
 
 )");
@@ -4295,7 +4539,7 @@ uint RENDERDOC_TextureType;
     text = lit(R"(
 // 1 = 1D, 2 = 2D, 3 = 3D, 4 = Cube
 // 5 = 1DArray, 6 = 2DArray, 7 = CubeArray
-// 8 = Rect, 9 = Buffer, 10 = 2DMS
+// 8 = Rect, 9 = Buffer, 10 = 2DMS, 11 = 2DMSArray
 uniform uint RENDERDOC_TextureType;
 
 )");
@@ -4354,13 +4598,13 @@ Texture3D<float4> texDisplayTex3D : register(t8);
 Texture2DMSArray<float4> texDisplayTex2DMSArray : register(t9);
 Texture2DArray<float4> texDisplayYUVArray : register(t10);
 
-// Unsigned int samplers
+// Unsigned int
 Texture1DArray<uint4> texDisplayUIntTex1DArray : register(t11);
 Texture2DArray<uint4> texDisplayUIntTex2DArray : register(t12);
 Texture3D<uint4> texDisplayUIntTex3D : register(t13);
 Texture2DMSArray<uint4> texDisplayUIntTex2DMSArray : register(t14);
 
-// Int samplers
+// Int
 Texture1DArray<int4> texDisplayIntTex1DArray : register(t16);
 Texture2DArray<int4> texDisplayIntTex2DArray : register(t17);
 Texture3D<int4> texDisplayIntTex3D : register(t18);
@@ -4382,13 +4626,13 @@ Texture2DMSArray<uint2> texDisplayTexStencilMSArray : register(t7);
 Texture2DMSArray<float4> texDisplayTex2DMSArray : register(t9);
 Texture2DArray<float4> texDisplayYUVArray : register(t10);
 
-// Unsigned int samplers
+// Unsigned int
 Texture1DArray<uint4> texDisplayUIntTex1DArray : register(t11);
 Texture2DArray<uint4> texDisplayUIntTex2DArray : register(t12);
 Texture3D<uint4> texDisplayUIntTex3D : register(t13);
 Texture2DMSArray<uint4> texDisplayUIntTex2DMSArray : register(t19);
 
-// Int samplers
+// Int
 Texture1DArray<int4> texDisplayIntTex1DArray : register(t21);
 Texture2DArray<int4> texDisplayIntTex2DArray : register(t22);
 Texture3D<int4> texDisplayIntTex3D : register(t23);
@@ -4439,6 +4683,7 @@ layout (binding = 6) uniform usampler2DArray texUInt2DArray;
 layout (binding = 8) uniform usampler2DRect texUInt2DRect;
 layout (binding = 9) uniform usamplerBuffer texUIntBuffer;
 layout (binding = 10) uniform usampler2DMS texUInt2DMS;
+layout (binding = 11) uniform usampler2DMSArray texUInt2DMSArray;
 
 // Int samplers
 layout (binding = 1) uniform isampler1D texSInt1D;
@@ -4451,6 +4696,7 @@ layout (binding = 6) uniform isampler2DArray texSInt2DArray;
 layout (binding = 8) uniform isampler2DRect texSInt2DRect;
 layout (binding = 9) uniform isamplerBuffer texSIntBuffer;
 layout (binding = 10) uniform isampler2DMS texSInt2DMS;
+layout (binding = 11) uniform isampler2DMSArray texSInt2DMSArray;
 
 // Floating point samplers
 layout (binding = 1) uniform sampler1D tex1D;
@@ -4463,6 +4709,7 @@ layout (binding = 7) uniform samplerCubeArray texCubeArray;
 layout (binding = 8) uniform sampler2DRect tex2DRect;
 layout (binding = 9) uniform samplerBuffer texBuffer;
 layout (binding = 10) uniform sampler2DMS tex2DMS;
+layout (binding = 11) uniform sampler2DMSArray tex2DMSArray;
 // End Textures
 )"));
     }
@@ -5161,7 +5408,12 @@ void ShaderViewer::performFindAll()
 
   QList<QPair<int, int>> resultList;
 
+  m_FindAllResults.clear();
+
   QByteArray findUtf8 = find.toUtf8();
+
+  if(findUtf8.isEmpty())
+    return;
 
   for(ScintillaEdit *s : scintillas)
   {
@@ -5170,9 +5422,6 @@ void ShaderViewer::performFindAll()
 
     s->setIndicatorCurrent(INDICATOR_FINDRESULT);
     s->indicatorClearRange(start, end);
-
-    if(findUtf8.isEmpty())
-      continue;
 
     QPair<int, int> result;
 
@@ -5190,7 +5439,7 @@ void ShaderViewer::performFindAll()
 
         QString lineText = QString::fromUtf8(s->textRange(lineStart, lineEnd));
 
-        results += QFormatStr("  %1(%2): ").arg(s->windowTitle()).arg(line, 4);
+        results += QFormatStr("  %1(%2): ").arg(s->windowTitle()).arg(line + 1, 4);
         int startPos = results.length();
 
         results += lineText;
@@ -5198,6 +5447,8 @@ void ShaderViewer::performFindAll()
 
         resultList.push_back(
             qMakePair(result.first - lineStart + startPos, result.second - lineStart + startPos));
+
+        m_FindAllResults.push_back({s, result.first});
       }
 
       start = result.second;
@@ -5205,13 +5456,13 @@ void ShaderViewer::performFindAll()
     } while(result.first >= 0);
   }
 
-  if(findUtf8.isEmpty())
-    return;
-
   results += tr("Matching lines: %1").arg(resultList.count());
 
   m_FindResults->setReadOnly(false);
   m_FindResults->setText(results.toUtf8().data());
+
+  m_FindResults->setIndicatorCurrent(INDICATOR_FINDALLHIGHLIGHT);
+  m_FindResults->indicatorClearRange(0, m_FindResults->length());
 
   m_FindResults->setIndicatorCurrent(INDICATOR_FINDRESULT);
 
@@ -5229,7 +5480,32 @@ void ShaderViewer::performFindAll()
     ui->docking->moveToolWindow(m_FindResults,
                                 ToolWindowManager::AreaReference(ToolWindowManager::BottomOf,
                                                                  ui->docking->areaOf(cur), 0.2f));
-    ui->docking->setToolWindowProperties(m_FindResults, ToolWindowManager::HideOnClose);
+    ui->docking->setToolWindowProperties(
+        m_FindResults, ToolWindowManager::HideOnClose | ToolWindowManager::DisallowFloatWindow);
+  }
+}
+
+void ShaderViewer::resultsDoubleClick(int position, int line)
+{
+  if(line >= 1 && line - 1 < m_FindAllResults.count())
+  {
+    m_FindResults->setIndicatorCurrent(INDICATOR_FINDALLHIGHLIGHT);
+    m_FindResults->indicatorClearRange(0, m_FindResults->length());
+
+    sptr_t start = m_FindResults->positionFromLine(line);
+    sptr_t length = m_FindResults->lineLength(line);
+    m_FindResults->indicatorFillRange(start, length);
+
+    m_FindResults->setSelection(position, position);
+
+    ScintillaEdit *s = m_FindAllResults[line - 1].first;
+    int resultPos = m_FindAllResults[line - 1].second;
+    ToolWindowManager::raiseToolWindow(s);
+    s->activateWindow();
+    s->QWidget::setFocus();
+    s->clearSelections();
+    s->setSelection(resultPos, resultPos);
+    s->scrollCaret();
   }
 }
 

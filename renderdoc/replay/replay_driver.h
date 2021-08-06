@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -66,7 +66,7 @@ struct FrameRecord
 {
   FrameDescription frameInfo;
 
-  rdcarray<DrawcallDescription> drawcallList;
+  rdcarray<ActionDescription> actionList;
 };
 
 DECLARE_REFLECTION_STRUCT(FrameRecord);
@@ -263,6 +263,7 @@ public:
                           const MeshDisplay &cfg) = 0;
   virtual bool RenderTexture(TextureDisplay cfg) = 0;
 
+  virtual void SetCustomShaderIncludes(const rdcarray<rdcstr> &directories) = 0;
   virtual void BuildCustomShader(ShaderEncoding sourceEncoding, const bytebuf &source,
                                  const rdcstr &entry, const ShaderCompileFlags &compileFlags,
                                  ShaderStage type, ResourceId &id, rdcstr &errors) = 0;
@@ -298,13 +299,13 @@ struct IDeviceProtocolHandler : public IDeviceProtocolController
 };
 
 // utility functions useful in any driver implementation
-void SetupDrawcallPointers(rdcarray<DrawcallDescription *> &drawcallTable,
-                           rdcarray<DrawcallDescription> &draws);
+void SetupActionPointers(rdcarray<ActionDescription *> &actionTable,
+                         rdcarray<ActionDescription> &actions);
 
 // for hardware/APIs that can't do line rasterization, manually expand any triangle input topology
 // to a linestrip with strip restart indices.
-void PatchLineStripIndexBuffer(const DrawcallDescription *draw, uint8_t *idx8, uint16_t *idx16,
-                               uint32_t *idx32, rdcarray<uint32_t> &patchedIndices);
+void PatchLineStripIndexBuffer(const ActionDescription *action, Topology topology, uint8_t *idx8,
+                               uint16_t *idx16, uint32_t *idx32, rdcarray<uint32_t> &patchedIndices);
 
 void PatchTriangleFanRestartIndexBufer(rdcarray<uint32_t> &patchedIndices, uint32_t restartIndex);
 

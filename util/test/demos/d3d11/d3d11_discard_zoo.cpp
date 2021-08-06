@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -197,6 +197,12 @@ RD_TEST(D3D11_Discard_Zoo, D3D11GraphicsTest)
       ctx1->DiscardResource(tex);
       TEX_TEST("DiscardAll",
                MakeTexture(DXGI_FORMAT_R16G16B16A16_FLOAT, 300, 300).Multisampled(4).Array(5).RTV());
+      ctx1->DiscardResource(tex);
+      TEX_TEST("DiscardAll",
+               MakeTexture(DXGI_FORMAT_R16G16B16A16_UINT, 300, 300).Multisampled(4).Array(5).RTV());
+      ctx1->DiscardResource(tex);
+      TEX_TEST("DiscardAll",
+               MakeTexture(DXGI_FORMAT_R16G16B16A16_SINT, 300, 300).Multisampled(4).Array(5).RTV());
       ctx1->DiscardResource(tex);
 
       // test depth textures

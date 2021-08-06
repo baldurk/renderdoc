@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -145,6 +145,7 @@ public:
   rdcarray<rdcstr> GetDisassemblyTargets(bool withPipeline);
   rdcstr DisassembleShader(ResourceId pipeline, const ShaderReflection *refl, const rdcstr &target);
 
+  void SetCustomShaderIncludes(const rdcarray<rdcstr> &directories);
   rdcpair<ResourceId, rdcstr> BuildCustomShader(const rdcstr &entry, ShaderEncoding sourceEncoding,
                                                 bytebuf source,
                                                 const ShaderCompileFlags &compileFlags,
@@ -163,7 +164,7 @@ public:
 
   FrameDescription GetFrameInfo();
   const SDFile &GetStructuredFile();
-  const rdcarray<DrawcallDescription> &GetDrawcalls();
+  const rdcarray<ActionDescription> &GetRootActions();
   void AddFakeMarkers();
   rdcarray<CounterResult> FetchCounters(const rdcarray<GPUCounter> &counters);
   rdcarray<GPUCounter> EnumerateCounters();
@@ -223,13 +224,13 @@ private:
 
   void FetchPipelineState(uint32_t eventId);
 
-  DrawcallDescription *GetDrawcallByEID(uint32_t eventId);
-  bool ContainsMarker(const rdcarray<DrawcallDescription> &draws);
-  bool PassEquivalent(const DrawcallDescription &a, const DrawcallDescription &b);
+  ActionDescription *GetActionByEID(uint32_t eventId);
+  bool ContainsMarker(const rdcarray<ActionDescription> &actions);
+  bool PassEquivalent(const ActionDescription &a, const ActionDescription &b);
 
   IReplayDriver *GetDevice() { return m_pDevice; }
   FrameRecord m_FrameRecord;
-  rdcarray<DrawcallDescription *> m_Drawcalls;
+  rdcarray<ActionDescription *> m_Actions;
 
   uint64_t m_ThreadID;
 
@@ -240,6 +241,8 @@ private:
   int32_t m_ReplayLoopFinished = 0;
 
   uint32_t m_EventID;
+
+  std::map<uint32_t, uint32_t> m_EventRemap;
 
   const D3D11Pipe::State *m_D3D11PipelineState;
   const D3D12Pipe::State *m_D3D12PipelineState;

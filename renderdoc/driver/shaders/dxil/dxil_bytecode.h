@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -497,8 +497,9 @@ class Program : public DXBC::IDebugInfo
 {
 public:
   Program(const byte *bytes, size_t length);
-  Program(const Program &o) = default;
-  Program &operator=(const Program &o) = default;
+  Program(const Program &o) = delete;
+  Program(Program &&o) = delete;
+  Program &operator=(const Program &o) = delete;
   virtual ~Program() {}
   static bool Valid(const byte *bytes, size_t length);
 

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -56,6 +56,7 @@ public:
   void OnEventChanged(uint32_t eventId) override;
 
   void SelectPipelineStage(PipelineStage stage);
+  ResourceId GetResource(RDTreeWidgetItem *item);
 
 private slots:
   // automatic slots
@@ -88,8 +89,8 @@ private:
                       RDTreeWidget *tex, RDTreeWidget *samp, RDTreeWidget *cbuffer,
                       RDTreeWidget *uavs);
 
-  void addResourceRow(const D3D12ViewTag &view, const D3D12Pipe::Shader *stage,
-                      RDTreeWidget *resources);
+  void addResourceRow(const D3D12ViewTag &view, const Bindpoint *bind,
+                      const ShaderResource *shaderInput, RDTreeWidget *resources);
 
   void clearShaderState(RDLabel *shader, RDLabel *rootSig, RDTreeWidget *tex, RDTreeWidget *samp,
                         RDTreeWidget *cbuffer, RDTreeWidget *uavs);
@@ -106,6 +107,9 @@ private:
   void setViewDetails(RDTreeWidgetItem *node, const D3D12ViewTag &view, BufferDescription *buf);
 
   bool showNode(bool usedSlot, bool filledSlot);
+
+  bool m_ShowUnused = false;
+  bool m_ShowEmpty = false;
 
   QVariantList exportViewHTML(const D3D12Pipe::View &view, bool rw,
                               const ShaderResource *shaderInput, const QString &extraParams);

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2020 Baldur Karlsson
+ * Copyright (c) 2020-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -59,9 +59,8 @@ enum class NvShaderSpecial
   FootprintSingleLOD = 5,
 };
 
-enum class NvShaderAtomic
+enum class NvShaderAtomic : uint8_t
 {
-  Unknown = -1,
   And = 0,
   Or = 1,
   Xor = 2,
@@ -70,7 +69,12 @@ enum class NvShaderAtomic
   Min = 7,
   Swap = 8,
   CompareAndSwap = 9,
+  Unknown = 255,
 };
+
+struct D3D12_GRAPHICS_PIPELINE_STATE_DESC;
+struct D3D12_COMPUTE_PIPELINE_STATE_DESC;
+interface ID3D12PipelineState;
 
 MIDL_INTERFACE("DA122FC2-0F60-4904-AEA4-5ED1D2E1D19F")
 INVAPID3DDevice : public IUnknown
@@ -78,6 +82,16 @@ INVAPID3DDevice : public IUnknown
   virtual BOOL STDMETHODCALLTYPE SetReal(IUnknown * device) = 0;
   virtual IUnknown *STDMETHODCALLTYPE GetReal() = 0;
   virtual BOOL STDMETHODCALLTYPE SetShaderExtUAV(DWORD space, DWORD reg, BOOL global) = 0;
+
+  virtual void STDMETHODCALLTYPE UnwrapDesc(D3D12_GRAPHICS_PIPELINE_STATE_DESC * pDesc) = 0;
+  virtual void STDMETHODCALLTYPE UnwrapDesc(D3D12_COMPUTE_PIPELINE_STATE_DESC * pDesc) = 0;
+
+  virtual ID3D12PipelineState *STDMETHODCALLTYPE ProcessCreatedGraphicsPipelineState(
+      const D3D12_GRAPHICS_PIPELINE_STATE_DESC *pDesc, uint32_t reg, uint32_t space,
+      ID3D12PipelineState *realPSO) = 0;
+  virtual ID3D12PipelineState *STDMETHODCALLTYPE ProcessCreatedComputePipelineState(
+      const D3D12_COMPUTE_PIPELINE_STATE_DESC *pDesc, uint32_t reg, uint32_t space,
+      ID3D12PipelineState *realPSO) = 0;
 };
 
 INVAPID3DDevice *InitialiseNVAPIReplay();

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -418,11 +418,15 @@ struct ExecutionModes
 struct EntryPoint
 {
   EntryPoint() = default;
-  EntryPoint(ExecutionModel e, Id i, rdcstr n) : executionModel(e), id(i), name(n) {}
+  EntryPoint(ExecutionModel e, Id i, rdcstr n, const rdcarray<Id> &ids)
+      : executionModel(e), id(i), name(n), usedIds(ids)
+  {
+  }
   ExecutionModel executionModel;
   Id id;
   rdcstr name;
   ExecutionModes executionModes;
+  rdcarray<Id> usedIds;
 
   bool operator<(const EntryPoint &o) const
   {

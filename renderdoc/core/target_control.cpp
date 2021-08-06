@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -195,6 +195,8 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
 
       bool supported =
           RenderDoc::Inst().HasRemoteDriver(driver) || RenderDoc::Inst().HasReplayDriver(driver);
+
+      supported &= RenderDoc::Inst().HasActiveFrameCapturer(driver);
 
       WRITE_DATA_SCOPE();
       {

@@ -43,7 +43,7 @@ Once we have the :py:class:`~renderdoc.WindowingData`, we can create a :py:class
     # Create a texture output on the window
     out = controller.CreateOutput(windata, rd.ReplayOutputType.Texture)
 
-In order to iterate over all drawcalls we need some global state first from :py:meth:`~renderdoc.ReplayController.GetTextures` and :py:meth:`~renderdoc.ReplayController.GetDrawcalls`, and we'll also define a helper function to fetch a particular texture by resourceId, so that we can easily look up the details for a texture.
+In order to iterate over all actions we need some global state first from :py:meth:`~renderdoc.ReplayController.GetTextures` and :py:meth:`~renderdoc.ReplayController.GetRootActions`, and we'll also define a helper function to fetch a particular texture by resourceId, so that we can easily look up the details for a texture.
 
 .. highlight:: python
 .. code:: python
@@ -51,8 +51,8 @@ In order to iterate over all drawcalls we need some global state first from :py:
     # Fetch the list of textures
     textures = controller.GetTextures()
 
-    # Fetch the list of drawcalls
-    draws = controller.GetDrawcalls()
+    # Fetch the list of actions
+    actions = controller.GetRootActions()
 
     # Function to look up the texture descriptor for a given resourceId
     def getTexture(texid):
@@ -62,7 +62,7 @@ In order to iterate over all drawcalls we need some global state first from :py:
                 return tex
         return None
 
-We now define two callback functions - ``paint`` and ``advance``. ``paint`` will be called every 33ms, it will display the output with the latest state using :py:meth:`~renderdoc.ReplayOutput.Display`. ``advance`` changes the current state to reflect a new drawcall.
+We now define two callback functions - ``paint`` and ``advance``. ``paint`` will be called every 33ms, it will display the output with the latest state using :py:meth:`~renderdoc.ReplayOutput.Display`. ``advance`` changes the current state to reflect a new action.
 
 .. highlight:: python
 .. code:: python
@@ -73,48 +73,60 @@ We now define two callback functions - ``paint`` and ``advance``. ``paint`` will
         out.Display()
         window.after(33, paint)
 
-Within ``advance`` we do a few things. First we move the current event to the current drawcall's ``eventId``, using :py:meth:`~renderdoc.ReplayController.SetFrameEvent`. Then we set up the texture display configuration with :py:meth:`~renderdoc.ReplayOutput.SetTextureDisplay`, to point to the first colour output at that drawcall.
+Within ``advance`` we do a few things. First we move the current event to the current action's ``eventId``, using :py:meth:`~renderdoc.ReplayController.SetFrameEvent`. Then we set up the texture display configuration with :py:meth:`~renderdoc.ReplayOutput.SetTextureDisplay`, to point to the first colour output at that action.
 
 When we update to a new texture, we fetch its details using our earlier ``getTexture`` and calculate a scale that keeps the texture fully visible on screen.
 
-Finally we move to the next drawcall in the list for the next time ``advance`` is called.
+Finally we move to the next action in the list for the next time ``advance`` is called.
 
 .. highlight:: python
 .. code:: python
 
-    # Start on the first drawcall
-    curdraw = 0
+    # Start on the first action
+    curact = actions[0]
+    
+    loopcount = 0
 
-    # The advance function will be called every 150ms, to move to the next draw
+    # The advance function will be called every 50ms, to move to the next action
     def advance():
-        global out, window, curdraw
-
-        # Move to the current drawcall
-        controller.SetFrameEvent(draws[curdraw].eventId, False)
-
+        global out, window, curact, actions, loopcount
+    
+        # Move to the current action
+        controller.SetFrameEvent(curact.eventId, False)
+    
         # Initialise a default TextureDisplay object
         disp = rd.TextureDisplay()
-
+    
         # Set the first colour output as the texture to display
-        disp.resourceId = draws[curdraw].outputs[0]
-
-        # Get the details of this texture
-        texDetails = getTexture(disp.resourceId)
-
-        # Calculate the scale required in width and height
-        widthScale = window.winfo_width() / texDetails.width
-        heightScale = window.winfo_height() / texDetails.height
-
-        # Use the lower scale to fit the texture on the window
-        disp.scale = min(widthScale, heightScale)
-
-        # Update the texture display
-        out.SetTextureDisplay(disp)
-
-        # Set the next drawcall
-        curdraw = (curdraw + 1) % len(draws)
-
-        window.after(150, advance)
+        disp.resourceId = curact.outputs[0]
+    
+        if disp.resourceId != rd.ResourceId.Null():
+            # Get the details of this texture
+            texDetails = getTexture(disp.resourceId)
+    
+            # Calculate the scale required in width and height
+            widthScale = window.winfo_width() / texDetails.width
+            heightScale = window.winfo_height() / texDetails.height
+    
+            # Use the lower scale to fit the texture on the window
+            disp.scale = min(widthScale, heightScale)
+    
+            # Update the texture display
+            out.SetTextureDisplay(disp)
+    
+        # Set the next action
+        curact = curact.next
+    
+        # If we have no next action, start again from the first
+        if curact is None:
+            loopcount = loopcount + 1
+            curact = actions[0]
+    
+        # after 3 loops, quit
+        if loopcount == 3:
+            window.quit()
+        else:
+            window.after(50, advance)
 
 Once we have the callbacks defined, we call them once to initialise the display and set up the repeated callbacks, and start the tkinter main window loop.
 

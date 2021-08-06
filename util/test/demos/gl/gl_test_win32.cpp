@@ -1,7 +1,7 @@
 /******************************************************************************
 * The MIT License (MIT)
 *
-* Copyright (c) 2019-2020 Baldur Karlsson
+* Copyright (c) 2019-2021 Baldur Karlsson
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -122,6 +122,9 @@ bool OpenGLGraphicsTest::Init()
     TEST_ERROR("Error initialising glad");
     return false;
   }
+
+  if(WGL_EXT_swap_control)
+    wglSwapIntervalEXT(vsync ? 1 : 0);
 
   PostInit();
 

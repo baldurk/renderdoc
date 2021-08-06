@@ -1,7 +1,7 @@
 /******************************************************************************
 * The MIT License (MIT)
 *
-* Copyright (c) 2019-2020 Baldur Karlsson
+* Copyright (c) 2019-2021 Baldur Karlsson
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -49,9 +49,14 @@ struct D3D12GraphicsTest : public GraphicsTest
 
   void Prepare(int argc, char **argv);
   bool Init();
+
+  void PostDeviceCreate();
+
   void Shutdown();
   GraphicsWindow *MakeWindow(int width, int height, const char *title);
 
+  DXGI_SWAP_CHAIN_DESC1 MakeSwapchainDesc();
+  std::vector<IDXGIAdapterPtr> GetAdapters();
   HRESULT EnumAdapterByLuid(LUID luid, IDXGIAdapterPtr &pAdapter);
   ID3D12DevicePtr CreateDevice(const std::vector<IDXGIAdapterPtr> &adaptersToTry,
                                D3D_FEATURE_LEVEL features);
@@ -72,7 +77,8 @@ struct D3D12GraphicsTest : public GraphicsTest
     BufUAVType = 0xf00,
   };
 
-  ID3DBlobPtr Compile(std::string src, std::string entry, std::string profile);
+  ID3DBlobPtr Compile(std::string src, std::string entry, std::string profile,
+                      bool skipoptimise = true);
   void WriteBlob(std::string name, ID3DBlobPtr blob, bool compress);
 
   void SetBlobPath(std::string name, ID3DBlobPtr &blob);
@@ -185,16 +191,6 @@ struct D3D12GraphicsTest : public GraphicsTest
   DXGI_FORMAT backbufferFmt = DXGI_FORMAT_R8G8B8A8_UNORM;
   int backbufferCount = 2;
 
-  pD3DCompile dyn_D3DCompile = NULL;
-  pD3DStripShader dyn_D3DStripShader = NULL;
-  pD3DSetBlobPart dyn_D3DSetBlobPart = NULL;
-  pD3DCreateBlob dyn_CreateBlob = NULL;
-
-  PFN_D3D12_CREATE_DEVICE dyn_D3D12CreateDevice = NULL;
-
-  PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE dyn_serializeRootSig;
-  PFN_D3D12_SERIALIZE_ROOT_SIGNATURE dyn_serializeRootSigOld;
-
   GraphicsWindow *mainWindow = NULL;
 
   DXGI_ADAPTER_DESC adapterDesc = {};
@@ -207,6 +203,8 @@ struct D3D12GraphicsTest : public GraphicsTest
   ID3D12RootSignaturePtr swapBlitSig;
   ID3D12PipelineStatePtr swapBlitPso;
 
+  D3D_FEATURE_LEVEL minFeatureLevel = D3D_FEATURE_LEVEL_11_0;
+
   bool gpuva = false, m_12On7 = false, m_DXILSupport = false;
   IDXGIFactory1Ptr m_Factory;
 
@@ -218,6 +216,10 @@ struct D3D12GraphicsTest : public GraphicsTest
   ID3D12Device2Ptr dev2;
   ID3D12Device3Ptr dev3;
   ID3D12Device4Ptr dev4;
+  ID3D12Device5Ptr dev5;
+  ID3D12Device6Ptr dev6;
+  ID3D12Device7Ptr dev7;
+  ID3D12Device8Ptr dev8;
 
   ID3D12DescriptorHeapPtr m_RTV, m_DSV, m_CBVUAVSRV, m_Clear, m_Sampler;
 
@@ -225,6 +227,15 @@ struct D3D12GraphicsTest : public GraphicsTest
   ID3D12GraphicsCommandListPtr m_DebugList;
 
   ID3D12CommandQueuePtr queue;
+
+  D3D12_FEATURE_DATA_D3D12_OPTIONS opts = {};
+  D3D12_FEATURE_DATA_D3D12_OPTIONS1 opts1 = {};
+  D3D12_FEATURE_DATA_D3D12_OPTIONS2 opts2 = {};
+  D3D12_FEATURE_DATA_D3D12_OPTIONS3 opts3 = {};
+  D3D12_FEATURE_DATA_D3D12_OPTIONS4 opts4 = {};
+  D3D12_FEATURE_DATA_D3D12_OPTIONS5 opts5 = {};
+  D3D12_FEATURE_DATA_D3D12_OPTIONS6 opts6 = {};
+  D3D12_FEATURE_DATA_D3D12_OPTIONS7 opts7 = {};
 
   ID3D12FencePtr m_GPUSyncFence;
   HANDLE m_GPUSyncHandle = NULL;
@@ -235,4 +246,7 @@ struct D3D12GraphicsTest : public GraphicsTest
 
   std::vector<ID3D12GraphicsCommandListPtr> freeCommandBuffers;
   std::vector<std::pair<ID3D12GraphicsCommandListPtr, UINT64>> pendingCommandBuffers;
+
+private:
+  void AddHashIfMissing(void *ByteCode, size_t BytecodeLength);
 };

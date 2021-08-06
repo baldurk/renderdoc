@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,12 +22,14 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#define AMD_GPUPERFAPI_SKIP_VULKAN_INCLUDE 1
+
 #include "vk_debug.h"
 #include <float.h>
 #include "core/settings.h"
 #include "data/glsl_shaders.h"
 #include "driver/ihv/amd/amd_counters.h"
-#include "driver/ihv/amd/official/GPUPerfAPI/Include/GPUPerfAPI-VK.h"
+#include "driver/ihv/amd/official/GPUPerfAPI/Include/gpu_perf_api_vk.h"
 #include "driver/shaders/spirv/spirv_compile.h"
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
@@ -720,7 +722,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
 
     ResourceFormat fmt;
     fmt.type = ResourceFormatType::Regular;
-    fmt.compType = CompType::Float;
     fmt.compByteWidth = 4;
     fmt.compCount = 1;
 
@@ -728,7 +729,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
     {
       CREATE_OBJECT(m_DiscardSet[i], m_DiscardPool, m_DiscardSetLayout);
 
+      fmt.compType = CompType::Float;
       bytebuf pattern = GetDiscardPattern(DiscardType(i), fmt);
+      fmt.compType = CompType::UInt;
+      pattern.append(GetDiscardPattern(DiscardType(i), fmt));
 
       m_DiscardCB[i].Create(m_pDriver, m_Device, pattern.size(), 1, 0);
 
@@ -1760,6 +1764,13 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
     // create and cache a pipeline and RP that writes to this format and sample count
     if(passdata.pso == VK_NULL_HANDLE)
     {
+      BuiltinShaderBaseType baseType = BuiltinShaderBaseType::Float;
+
+      if(IsSIntFormat(imInfo.format))
+        baseType = BuiltinShaderBaseType::SInt;
+      else if(IsUIntFormat(imInfo.format))
+        baseType = BuiltinShaderBaseType::UInt;
+
       VkAttachmentReference attRef = {
           0, depth ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
                    : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -1803,8 +1814,8 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
           passdata.rp,
           m_DiscardLayout,
           m_pDriver->GetShaderCache()->GetBuiltinModule(BuiltinShader::BlitVS),
-          m_pDriver->GetShaderCache()->GetBuiltinModule(BuiltinShader::DiscardFS),
-          {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR},
+          m_pDriver->GetShaderCache()->GetBuiltinModule(BuiltinShader::DiscardFS, baseType),
+          {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_STENCIL_REFERENCE},
           imInfo.samples,
           false,    // sampleRateShading
           true,     // depthEnable
@@ -2827,8 +2838,8 @@ void VulkanReplay::CreateResources()
 
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 1.0f);
 
-  GPA_vkContextOpenInfo context = {Unwrap(m_pDriver->GetInstance()),
-                                   Unwrap(m_pDriver->GetPhysDev()), Unwrap(m_pDriver->GetDev())};
+  GpaVkContextOpenInfo context = {Unwrap(m_pDriver->GetInstance()), Unwrap(m_pDriver->GetPhysDev()),
+                                  Unwrap(m_pDriver->GetDev())};
 
   if(!m_pDriver->GetReplay()->IsRemoteProxy() && Vulkan_HardwareCounters())
   {

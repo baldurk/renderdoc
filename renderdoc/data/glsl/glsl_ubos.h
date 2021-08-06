@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -39,7 +39,8 @@ BINDING(0) uniform MeshUBOData
   uint homogenousInput;
   vec2 pointSpriteSize;
   uint rawoutput;
-  vec3 padding;
+  uint flipY;
+  vec2 padding;
 }
 INST_NAME(Mesh);
 

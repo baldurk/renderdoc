@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -121,16 +121,16 @@ Default - disabled
 )");
   bool captureCallstacks;
 
-  DOCUMENT(R"(When capturing CPU callstacks, only capture them from drawcalls.
+  DOCUMENT(R"(When capturing CPU callstacks, only capture them from actions.
 This option does nothing if :data:`captureCallstacks` is not enabled.
 
 Default - disabled
 
-``True`` - Only captures callstacks for drawcall type API events.
+``True`` - Only captures callstacks for actions.
 
 ``False`` - Callstacks, if enabled, are captured for every event.
 )");
-  bool captureCallstacksOnlyDraws;
+  bool captureCallstacksOnlyActions;
 
   DOCUMENT(R"(Specify a delay in seconds to wait for a debugger to attach, after
 creating or injecting into a process, before continuing to allow it to run.

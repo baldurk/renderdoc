@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,10 +33,6 @@
 #include <string>
 
 #include <android_native_app_glue.h>
-#define ANativeActivity_onCreate __attribute__((visibility("default"))) ANativeActivity_onCreate
-extern "C" {
-#include <android_native_app_glue.c>
-}
 
 #include <android/log.h>
 #define ANDROID_LOG(...) __android_log_print(ANDROID_LOG_INFO, "renderdoccmd", __VA_ARGS__);

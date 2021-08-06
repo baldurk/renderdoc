@@ -19,11 +19,11 @@ class VK_Misaligned_Dirty(rdtest.TestCase):
         return opts
 
     def check_capture(self):
-        draw = self.find_draw("Draw")
+        action = self.find_action("Draw")
 
-        self.check(draw is not None)
+        self.check(action is not None)
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         self.check(len(self.controller.GetFrameInfo().debugMessages) == 0)
         self.check(len(self.controller.GetDebugMessages()) == 0)
@@ -32,7 +32,7 @@ class VK_Misaligned_Dirty(rdtest.TestCase):
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, draw.numIndices)
+        postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
 
         val = 2.0 / 3.0
 
@@ -76,9 +76,9 @@ class VK_Misaligned_Dirty(rdtest.TestCase):
 
         rdtest.log.success("picked values are as expected")
 
-        checkpoint1 = self.find_draw("First Submit")
-        checkpoint2 = self.find_draw("Second Submit")
-        checkpoint3 = self.find_draw("Third Submit")
+        checkpoint1 = self.find_action("First Submit")
+        checkpoint2 = self.find_action("Second Submit")
+        checkpoint3 = self.find_action("Third Submit")
 
         self.check(checkpoint1 is not None)
         self.check(checkpoint2 is not None)

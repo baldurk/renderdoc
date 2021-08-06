@@ -15,7 +15,7 @@ Planned features
 * Diffing events in a given frame.
 * Modifying the pipeline on the fly to change state.
 * Highlighting redundant state-setting.
-* Tracking the dependencies or dependants of a given drawcall.
+* Tracking the dependencies or dependants of a given action.
 * Exposing an API to applications so they can give more details or annotation, more tightly integrating with the app itself.
 * A low-resource mode so RenderDoc can be left on by default whenever running an app, so it's always available if a bug appears.
 * Attaching to an already-running application

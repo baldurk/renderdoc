@@ -1,7 +1,7 @@
 /******************************************************************************
 * The MIT License (MIT)
 *
-* Copyright (c) 2019-2020 Baldur Karlsson
+* Copyright (c) 2019-2021 Baldur Karlsson
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -177,8 +177,8 @@ struct D3D11GraphicsTest : public GraphicsTest
   ID3D11VertexShaderPtr swapBlitVS;
   ID3D11PixelShaderPtr swapBlitPS;
 
-  D3D11_FEATURE_DATA_D3D11_OPTIONS opts;
-  D3D11_FEATURE_DATA_D3D11_OPTIONS1 opts1;
+  D3D11_FEATURE_DATA_D3D11_OPTIONS opts = {};
+  D3D11_FEATURE_DATA_D3D11_OPTIONS1 opts1 = {};
 
   ID3D11DepthStencilStatePtr depthState;
   ID3D11RasterizerStatePtr rastState;

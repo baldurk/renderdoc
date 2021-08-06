@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -61,6 +61,7 @@ public:
   void OnEventChanged(uint32_t eventId);
 
   void SelectPipelineStage(PipelineStage stage);
+  ResourceId GetResource(RDTreeWidgetItem *item);
 
 private slots:
   // automatic slots
@@ -76,8 +77,8 @@ private slots:
 
   // manual slots
   void shaderView_clicked();
-
   void shaderSave_clicked();
+  void shaderMessages_clicked();
   void predicateBufferView_clicked();
   void resource_itemActivated(RDTreeWidgetItem *item, int column);
   void resource_hoverItemChanged(RDTreeWidgetItem *hover);

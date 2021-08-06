@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -126,7 +126,8 @@ rdcstr DisassembleDXBC(const bytebuf &shaderBytes, const rdcstr &target)
   // we do a little mini parse of the DXBC file, just enough to get the shader code out. This is
   // because we're getting called from outside the D3D backend where the shader bytes are opaque.
 
-  const char *dxbcParseError = "; Failed to fetch D3D shader code from DXBC";
+  const char *dxbcParseError =
+      "; Failed to fetch D3D shader code from shader module, invalid DXBC container";
 
   const byte *base = shaderBytes.data();
   const uint32_t *end = (const uint32_t *)(base + shaderBytes.size());
@@ -159,6 +160,8 @@ rdcstr DisassembleDXBC(const bytebuf &shaderBytes, const rdcstr &target)
   in.pShaderByteCode = NULL;
   in.byteCodeLength = 0;
 
+  bool dxil = false;
+
   for(uint32_t offs : chunkOffsets)
   {
     dxbc = (const uint32_t *)(base + offs);
@@ -178,10 +181,18 @@ rdcstr DisassembleDXBC(const bytebuf &shaderBytes, const rdcstr &target)
 
       break;
     }
+    else if(*dxbc == MAKE_FOURCC('D', 'X', 'I', 'L') || *dxbc == MAKE_FOURCC('I', 'L', 'D', 'B'))
+    {
+      dxil = true;
+    }
   }
 
   if(in.byteCodeLength == 0)
+  {
+    if(dxil)
+      return "; Shader disassembly for DXIL shaders is not supported.";
     return dxbcParseError;
+  }
 
   out.size = sizeof(out);
 

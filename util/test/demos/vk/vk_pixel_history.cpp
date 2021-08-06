@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2020 Baldur Karlsson
+ * Copyright (c) 2020-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -273,6 +273,7 @@ void main()
         vkh::ImageCreateInfo(mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0,
                              depthStencilFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+    setName(depthimg.image, "depthimg");
 
     VkImageView dsvview = createImageView(vkh::ImageViewCreateInfo(
         depthimg.image, VK_IMAGE_VIEW_TYPE_2D, depthStencilFormat, {},
@@ -425,6 +426,7 @@ void main()
         vkh::ImageCreateInfo(mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0,
                              mainWindow->format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, 4, 5),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+    setName(subimg.image, "subimg");
 
     VkImageView subview = createImageView(vkh::ImageViewCreateInfo(
         subimg.image, VK_IMAGE_VIEW_TYPE_2D, mainWindow->format, {},
@@ -478,6 +480,7 @@ void main()
                                    mainWindow->scissor.extent.height, 0, mainWindow->format,
                                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, 1, 4, VK_SAMPLE_COUNT_4_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+    setName(submsimg.image, "submsimg");
 
     VkImageView submsview = createImageView(vkh::ImageViewCreateInfo(
         submsimg.image, VK_IMAGE_VIEW_TYPE_2D, mainWindow->format, {},
@@ -489,10 +492,12 @@ void main()
                              depthStencilFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 1, 4,
                              VK_SAMPLE_COUNT_4_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+    setName(msimgdepth.image, "msimgdepth");
 
     VkImageView msdepthview = createImageView(vkh::ImageViewCreateInfo(
         msimgdepth.image, VK_IMAGE_VIEW_TYPE_2D, depthStencilFormat, {},
-        vkh::ImageSubresourceRange(VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 2, 1)));
+        vkh::ImageSubresourceRange(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 2,
+                                   1)));
 
     VkFramebuffer submsfb = createFramebuffer(vkh::FramebufferCreateInfo(
         submsrp, {submsview, msdepthview},

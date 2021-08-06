@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -437,7 +437,7 @@ void main() {
               CHECK(member.type.descriptor.rows == 1);
               CHECK(member.type.descriptor.columns == 1);
               CHECK(member.type.descriptor.name == "int");
-              CHECK(member.byteOffset == 17);
+              CHECK(member.byteOffset == 17 * sizeof(uint64_t));
 
               CHECK(member.defaultValue == 12);
             }
@@ -452,7 +452,7 @@ void main() {
               CHECK(member.type.descriptor.rows == 1);
               CHECK(member.type.descriptor.columns == 1);
               CHECK(member.type.descriptor.name == "float");
-              CHECK(member.byteOffset == 19);
+              CHECK(member.byteOffset == 19 * sizeof(uint64_t));
 
               float defaultValueFloat;
               memcpy(&defaultValueFloat, &member.defaultValue, sizeof(float));
@@ -2088,16 +2088,6 @@ void main() {
           // this test on GLSL we do a little hack here, which can get removed when we update
           // glslang with the fix
           const ShaderConstantType *varType = &res.variableType;
-
-          if(testType == ShaderType::GLSL && res.variableType.members.size() != 2)
-          {
-            REQUIRE(varType->members.size() == 1);
-            REQUIRE(varType->members[0].name == "a");
-
-            varType = &res.variableType.members[0].type;
-
-            RDCWARN("Working around glslang reflection bug");
-          }
 
           REQUIRE_ARRAY_SIZE(varType->members.size(), 2);
           {

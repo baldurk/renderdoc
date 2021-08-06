@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -82,6 +82,9 @@ VarType OperationType(const DXBCBytecode::OpcodeType &op)
     case OPCODE_DISCARD:
     case OPCODE_NOP:
     case OPCODE_CUSTOMDATA:
+    case OPCODE_OPAQUE_CUSTOMDATA:
+    case OPCODE_SHADER_MESSAGE:
+    case OPCODE_DCL_IMMEDIATE_CONSTANT_BUFFER:
     case OPCODE_SYNC:
     case OPCODE_STORE_UAV_TYPED:
     case OPCODE_STORE_RAW:
@@ -352,6 +355,9 @@ bool OperationFlushing(const DXBCBytecode::OpcodeType &op)
     case OPCODE_DISCARD:
     case OPCODE_NOP:
     case OPCODE_CUSTOMDATA:
+    case OPCODE_OPAQUE_CUSTOMDATA:
+    case OPCODE_SHADER_MESSAGE:
+    case OPCODE_DCL_IMMEDIATE_CONSTANT_BUFFER:
     case OPCODE_SYNC:
     case OPCODE_STORE_UAV_TYPED:
     case OPCODE_STORE_RAW:
@@ -671,100 +677,113 @@ ShaderVariable TypedUAVLoad(GlobalState::ViewFmt &fmt, const byte *d)
     result.value.f32v[2] = res.z;
     result.value.f32v[3] = 1.0f;
   }
-  else if(fmt.byteWidth == 4)
+  else
   {
-    const uint32_t *u = (const uint32_t *)d;
-
-    for(int c = 0; c < fmt.numComps; c++)
-      result.value.u32v[c] = u[c];
-  }
-  else if(fmt.byteWidth == 2)
-  {
-    if(fmt.fmt == CompType::Float)
+    if(fmt.byteWidth == 4)
     {
-      const uint16_t *u = (const uint16_t *)d;
-
-      for(int c = 0; c < fmt.numComps; c++)
-        result.value.f32v[c] = ConvertFromHalf(u[c]);
-    }
-    else if(fmt.fmt == CompType::UInt)
-    {
-      const uint16_t *u = (const uint16_t *)d;
+      const uint32_t *u = (const uint32_t *)d;
 
       for(int c = 0; c < fmt.numComps; c++)
         result.value.u32v[c] = u[c];
     }
-    else if(fmt.fmt == CompType::SInt)
+    else if(fmt.byteWidth == 2)
     {
-      const int16_t *in = (const int16_t *)d;
-
-      for(int c = 0; c < fmt.numComps; c++)
-        result.value.s32v[c] = in[c];
-    }
-    else if(fmt.fmt == CompType::UNorm || fmt.fmt == CompType::UNormSRGB)
-    {
-      const uint16_t *u = (const uint16_t *)d;
-
-      for(int c = 0; c < fmt.numComps; c++)
-        result.value.f32v[c] = float(u[c]) / float(0xffff);
-    }
-    else if(fmt.fmt == CompType::SNorm)
-    {
-      const int16_t *in = (const int16_t *)d;
-
-      for(int c = 0; c < fmt.numComps; c++)
+      if(fmt.fmt == CompType::Float)
       {
-        // -32768 is mapped to -1, then -32767 to -32767 are mapped to -1 to 1
-        if(in[c] == -32768)
-          result.value.f32v[c] = -1.0f;
-        else
-          result.value.f32v[c] = float(in[c]) / 32767.0f;
+        const uint16_t *u = (const uint16_t *)d;
+
+        for(int c = 0; c < fmt.numComps; c++)
+          result.value.f32v[c] = ConvertFromHalf(u[c]);
+      }
+      else if(fmt.fmt == CompType::UInt)
+      {
+        const uint16_t *u = (const uint16_t *)d;
+
+        for(int c = 0; c < fmt.numComps; c++)
+          result.value.u32v[c] = u[c];
+      }
+      else if(fmt.fmt == CompType::SInt)
+      {
+        const int16_t *in = (const int16_t *)d;
+
+        for(int c = 0; c < fmt.numComps; c++)
+          result.value.s32v[c] = in[c];
+      }
+      else if(fmt.fmt == CompType::UNorm || fmt.fmt == CompType::UNormSRGB)
+      {
+        const uint16_t *u = (const uint16_t *)d;
+
+        for(int c = 0; c < fmt.numComps; c++)
+          result.value.f32v[c] = float(u[c]) / float(0xffff);
+      }
+      else if(fmt.fmt == CompType::SNorm)
+      {
+        const int16_t *in = (const int16_t *)d;
+
+        for(int c = 0; c < fmt.numComps; c++)
+        {
+          // -32768 is mapped to -1, then -32767 to -32767 are mapped to -1 to 1
+          if(in[c] == -32768)
+            result.value.f32v[c] = -1.0f;
+          else
+            result.value.f32v[c] = float(in[c]) / 32767.0f;
+        }
+      }
+      else
+      {
+        RDCERR("Unexpected format type on buffer resource");
       }
     }
-    else
+    else if(fmt.byteWidth == 1)
     {
-      RDCERR("Unexpected format type on buffer resource");
-    }
-  }
-  else if(fmt.byteWidth == 1)
-  {
-    if(fmt.fmt == CompType::UInt)
-    {
-      const uint8_t *u = (const uint8_t *)d;
-
-      for(int c = 0; c < fmt.numComps; c++)
-        result.value.u32v[c] = u[c];
-    }
-    else if(fmt.fmt == CompType::SInt)
-    {
-      const int8_t *in = (const int8_t *)d;
-
-      for(int c = 0; c < fmt.numComps; c++)
-        result.value.s32v[c] = in[c];
-    }
-    else if(fmt.fmt == CompType::UNorm || fmt.fmt == CompType::UNormSRGB)
-    {
-      const uint8_t *u = (const uint8_t *)d;
-
-      for(int c = 0; c < fmt.numComps; c++)
-        result.value.f32v[c] = float(u[c]) / float(0xff);
-    }
-    else if(fmt.fmt == CompType::SNorm)
-    {
-      const int8_t *in = (const int8_t *)d;
-
-      for(int c = 0; c < fmt.numComps; c++)
+      if(fmt.fmt == CompType::UInt)
       {
-        // -128 is mapped to -1, then -127 to -127 are mapped to -1 to 1
-        if(in[c] == -128)
-          result.value.f32v[c] = -1.0f;
-        else
-          result.value.f32v[c] = float(in[c]) / 127.0f;
+        const uint8_t *u = (const uint8_t *)d;
+
+        for(int c = 0; c < fmt.numComps; c++)
+          result.value.u32v[c] = u[c];
+      }
+      else if(fmt.fmt == CompType::SInt)
+      {
+        const int8_t *in = (const int8_t *)d;
+
+        for(int c = 0; c < fmt.numComps; c++)
+          result.value.s32v[c] = in[c];
+      }
+      else if(fmt.fmt == CompType::UNorm || fmt.fmt == CompType::UNormSRGB)
+      {
+        const uint8_t *u = (const uint8_t *)d;
+
+        for(int c = 0; c < fmt.numComps; c++)
+          result.value.f32v[c] = float(u[c]) / float(0xff);
+      }
+      else if(fmt.fmt == CompType::SNorm)
+      {
+        const int8_t *in = (const int8_t *)d;
+
+        for(int c = 0; c < fmt.numComps; c++)
+        {
+          // -128 is mapped to -1, then -127 to -127 are mapped to -1 to 1
+          if(in[c] == -128)
+            result.value.f32v[c] = -1.0f;
+          else
+            result.value.f32v[c] = float(in[c]) / 127.0f;
+        }
+      }
+      else
+      {
+        RDCERR("Unexpected format type on buffer resource");
       }
     }
-    else
+
+    // fill in alpha with 1.0 or 1 as appropriate
+    if(fmt.numComps < 4)
     {
-      RDCERR("Unexpected format type on buffer resource");
+      if(fmt.fmt == CompType::UNorm || fmt.fmt == CompType::UNormSRGB ||
+         fmt.fmt == CompType::SNorm || fmt.fmt == CompType::Float)
+        result.value.f32v[3] = 1.0f;
+      else
+        result.value.u32v[3] = 1;
     }
   }
 
@@ -1264,7 +1283,7 @@ void ThreadState::SetDst(ShaderDebugState *state, const Operand &dstoper, const 
   // in a vector operation like r0.zw = r4.xxxy + r6.yyyz
   // then we must write from matching component to matching component
 
-  if(op.saturate)
+  if(op.saturate())
     right = sat(right, OperationType(op.operation));
 
   ShaderVariableChange change = {*changeVar};
@@ -1682,12 +1701,12 @@ ShaderVariable ThreadState::GetSrc(const Operand &oper, const Operation &op, boo
     v.columns = 4;
   }
 
-  if(oper.modifier == OPERAND_MODIFIER_ABS || oper.modifier == OPERAND_MODIFIER_ABSNEG)
+  if(oper.flags & Operand::FLAG_ABS)
   {
     v = abs(v, OperationType(op.operation));
   }
 
-  if(oper.modifier == OPERAND_MODIFIER_NEG || oper.modifier == OPERAND_MODIFIER_ABSNEG)
+  if(oper.flags & Operand::FLAG_NEG)
   {
     v = neg(v, OperationType(op.operation));
   }
@@ -1759,7 +1778,6 @@ void FlattenSingleVariable(const rdcstr &cbufferName, uint32_t byteOffset, const
   else
   {
     const uint32_t numRegisters = v.rowMajor ? v.rows : v.columns;
-    const uint32_t registerSize = v.rowMajor ? v.columns : v.rows;
     for(uint32_t reg = 0; reg < numRegisters; reg++)
     {
       outvars[outIdx + reg].rows = 1;
@@ -2603,6 +2621,9 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
 
     case OPCODE_NOP:
     case OPCODE_CUSTOMDATA:
+    case OPCODE_OPAQUE_CUSTOMDATA:
+    case OPCODE_SHADER_MESSAGE:
+    case OPCODE_DCL_IMMEDIATE_CONSTANT_BUFFER: break;
     case OPCODE_SYNC:    // might never need to implement this. Who knows!
       break;
     case OPCODE_DMOV:
@@ -2888,17 +2909,15 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       GlobalState::UAVIterator uav = global.uavs.find(slot);
       if(uav == global.uavs.end())
       {
-        if(!apiWrapper->FetchUAV(slot))
-        {
-          RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
-          return;
-        }
+        apiWrapper->FetchUAV(slot);
         uav = global.uavs.find(slot);
       }
 
       MarkResourceAccess(state, TYPE_UNORDERED_ACCESS_VIEW, slot);
 
-      uint32_t count = uav->second.hiddenCounter++;
+      // if it's not a buffer or the buffer is empty this UAV is NULL/invalid, return 0 for the
+      // counter
+      uint32_t count = uav->second.data.empty() ? 0 : uav->second.hiddenCounter++;
       SetDst(state, op.operands[0], op, ShaderVariable("", count, count, count, count));
       break;
     }
@@ -2910,17 +2929,15 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       GlobalState::UAVIterator uav = global.uavs.find(slot);
       if(uav == global.uavs.end())
       {
-        if(!apiWrapper->FetchUAV(slot))
-        {
-          RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
-          return;
-        }
+        apiWrapper->FetchUAV(slot);
         uav = global.uavs.find(slot);
       }
 
       MarkResourceAccess(state, TYPE_UNORDERED_ACCESS_VIEW, slot);
 
-      uint32_t count = --uav->second.hiddenCounter;
+      // if it's not a buffer or the buffer is empty this UAV is NULL/invalid, return 0 for the
+      // counter
+      uint32_t count = uav->second.data.empty() ? 0 : --uav->second.hiddenCounter;
       SetDst(state, op.operands[0], op, ShaderVariable("", count, count, count, count));
       break;
     }
@@ -3039,11 +3056,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
         GlobalState::UAVIterator uav = global.uavs.find(slot);
         if(uav == global.uavs.end())
         {
-          if(!apiWrapper->FetchUAV(slot))
-          {
-            RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
-            return;
-          }
+          apiWrapper->FetchUAV(slot);
           uav = global.uavs.find(slot);
         }
 
@@ -3064,7 +3077,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           }
           else if(pDecl->declaration == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED)
           {
-            stride = pDecl->stride;
+            stride = pDecl->structured.stride;
             structured = true;
           }
         }
@@ -3148,7 +3161,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
     case OPCODE_LD_STRUCTURED:
     {
       uint32_t resIndex = 0;
-      uint32_t elemOffset = 0;
+      uint32_t structOffset = 0;
       uint32_t elemIdx = 0;
 
       uint32_t texCoords[3] = {0, 0, 0};
@@ -3202,11 +3215,11 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
                 srv ? OPCODE_DCL_RESOURCE_STRUCTURED : OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED;
             const DXBCBytecode::Declaration *pDecl = program->FindDeclaration(declType, resIndex);
             if(pDecl && pDecl->declaration == declOpcode)
-              stride = pDecl->stride;
+              stride = pDecl->structured.stride;
           }
         }
 
-        elemOffset = srcOpers[1].value.u32v[0];
+        structOffset = srcOpers[1].value.u32v[0];
         elemIdx = srcOpers[0].value.u32v[0];
       }
       else if(op.operation == OPCODE_LD_UAV_TYPED || op.operation == OPCODE_STORE_UAV_TYPED)
@@ -3261,13 +3274,13 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       bool texData = false;
       uint32_t rowPitch = 0;
       uint32_t depthPitch = 0;
-      uint32_t offset = 0;
+      uint32_t firstElem = 0;
       uint32_t numElems = 0;
       GlobalState::ViewFmt fmt;
 
       if(gsm)
       {
-        offset = 0;
+        firstElem = 0;
         if(resIndex > global.groupshared.size())
         {
           numElems = 0;
@@ -3297,18 +3310,15 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           GlobalState::SRVIterator srvIter = global.srvs.find(slot);
           if(srvIter == global.srvs.end())
           {
-            if(!apiWrapper->FetchSRV(slot))
-            {
-              RDCERR("Invalid SRV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
-              return;
-            }
+            apiWrapper->FetchSRV(slot);
             srvIter = global.srvs.find(slot);
           }
 
           MarkResourceAccess(state, TYPE_RESOURCE, slot);
 
           data = srvIter->second.data.data();
-          offset = srvIter->second.firstElement;
+          dataSize = srvIter->second.data.size();
+          firstElem = srvIter->second.firstElement;
           numElems = srvIter->second.numElements;
           fmt = srvIter->second.format;
         }
@@ -3317,11 +3327,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           GlobalState::UAVIterator uavIter = global.uavs.find(slot);
           if(uavIter == global.uavs.end())
           {
-            if(!apiWrapper->FetchUAV(slot))
-            {
-              RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
-              return;
-            }
+            apiWrapper->FetchUAV(slot);
             uavIter = global.uavs.find(slot);
           }
 
@@ -3332,47 +3338,47 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           texData = uavIter->second.tex;
           rowPitch = uavIter->second.rowPitch;
           depthPitch = uavIter->second.depthPitch;
-          offset = uavIter->second.firstElement;
+          firstElem = uavIter->second.firstElement;
           numElems = uavIter->second.numElements;
           fmt = uavIter->second.format;
         }
+
+        if(op.operation == OPCODE_LD_UAV_TYPED || op.operation == OPCODE_STORE_UAV_TYPED)
+          stride = fmt.Stride();
       }
 
       // indexing for raw views is in bytes, but firstElement/numElements is in format-sized
       // units. Multiply up by stride
       if(op.operation == OPCODE_LD_RAW || op.operation == OPCODE_STORE_RAW)
       {
-        offset *= RDCMIN(4, fmt.byteWidth);
+        firstElem *= RDCMIN(4, fmt.byteWidth);
         numElems *= RDCMIN(4, fmt.byteWidth);
       }
 
       RDCASSERT(data);
 
-      size_t texOffset = 0;
+      size_t dataOffset = 0;
 
       if(texData)
       {
-        texOffset += texCoords[0] * fmt.Stride();
-        texOffset += texCoords[1] * rowPitch;
-        texOffset += texCoords[2] * depthPitch;
+        dataOffset += texCoords[0] * fmt.Stride();
+        dataOffset += texCoords[1] * rowPitch;
+        dataOffset += texCoords[2] * depthPitch;
+      }
+      else
+      {
+        dataOffset += (firstElem + elemIdx) * stride;
+        dataOffset += structOffset;
       }
 
-      if(!data || (!texData && elemIdx >= numElems) || (texData && texOffset >= dataSize))
+      if(!data || (!texData && elemIdx >= numElems) || (texData && dataOffset >= dataSize))
       {
         if(load)
           SetDst(state, op.operands[0], op, ShaderVariable("", 0U, 0U, 0U, 0U));
       }
       else
       {
-        if(gsm || !texData)
-        {
-          data += (offset + elemIdx) * stride;
-          data += elemOffset;
-        }
-        else
-        {
-          data += texOffset;
-        }
+        data += dataOffset;
 
         int maxIndex = fmt.numComps;
 
@@ -3380,7 +3386,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
         if(op.operation == OPCODE_STORE_STRUCTURED || op.operation == OPCODE_LD_STRUCTURED)
         {
           srcIdx = 2;
-          maxIndex = (stride - elemOffset) / sizeof(uint32_t);
+          maxIndex = (stride - structOffset) / sizeof(uint32_t);
           fmt.byteWidth = 4;
           fmt.numComps = 4;
           if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] == 0xff &&
@@ -3663,7 +3669,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
         result = swizzled;
         result.type = VarType::Float;
       }
-      else if(op.resinfoRetType == RETTYPE_FLOAT)
+      else if(op.infoRetType == RETTYPE_FLOAT)
       {
         result.value.f32v[0] = (float)swizzled.value.u32v[0];
         result.value.f32v[1] = (float)swizzled.value.u32v[1];
@@ -3757,7 +3763,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
               program->FindDeclaration(TYPE_RESOURCE, (uint32_t)op.operands[2].indices[0].index);
           if(pDecl && pDecl->declaration == OPCODE_DCL_RESOURCE)
           {
-            switch(pDecl->dim)
+            switch(pDecl->resource.dim)
             {
               default:
               case RESOURCE_DIMENSION_UNKNOWN:
@@ -3790,7 +3796,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
         }
 
         // apply ret type
-        if(op.resinfoRetType == RETTYPE_FLOAT)
+        if(op.infoRetType == RETTYPE_FLOAT)
         {
           result.value.f32v[0] = (float)swizzled.value.u32v[0];
           result.value.f32v[1] = (float)swizzled.value.u32v[1];
@@ -3798,7 +3804,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           result.value.f32v[3] = (float)swizzled.value.u32v[3];
           result.type = VarType::Float;
         }
-        else if(op.resinfoRetType == RETTYPE_RCPFLOAT)
+        else if(op.infoRetType == RETTYPE_RCPFLOAT)
         {
           // only width/height/depth values we set are reciprocated, other values
           // are just left as is
@@ -3820,7 +3826,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           result.value.f32v[3] = (float)swizzled.value.u32v[3];
           result.type = VarType::Float;
         }
-        else if(op.resinfoRetType == RETTYPE_UINT)
+        else if(op.infoRetType == RETTYPE_UINT)
         {
           result = swizzled;
           result.type = VarType::UInt;
@@ -3879,21 +3885,17 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           samplerMode = decl.samplerMode;
           samplerBinding = GetBindingSlotForDeclaration(*program, decl);
         }
-        if(op.operation == OPCODE_LD && decl.dim == RESOURCE_DIMENSION_BUFFER &&
-           decl.declaration == OPCODE_DCL_RESOURCE && decl.operand.sameResource(op.operands[2]))
+        if(op.operation == OPCODE_LD && decl.declaration == OPCODE_DCL_RESOURCE &&
+           decl.resource.dim == RESOURCE_DIMENSION_BUFFER &&
+           decl.operand.sameResource(op.operands[2]))
         {
-          resourceDim = decl.dim;
+          resourceDim = decl.resource.dim;
 
           resourceBinding = GetBindingSlotForDeclaration(*program, decl);
           GlobalState::SRVIterator srv = global.srvs.find(resourceBinding);
           if(srv == global.srvs.end())
           {
-            if(!apiWrapper->FetchSRV(resourceBinding))
-            {
-              RDCERR("Invalid SRV reg=%u, space=%u", resourceBinding.shaderRegister,
-                     resourceBinding.registerSpace);
-              return;
-            }
+            apiWrapper->FetchSRV(resourceBinding);
             srv = global.srvs.find(resourceBinding);
           }
 
@@ -3910,7 +3912,8 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           {
             result = ShaderVariable("", 0.0f, 0.0f, 0.0f, 0.0f);
 
-            if(srcOpers[0].value.u32v[0] < numElems)
+            if(srcOpers[0].value.u32v[0] < numElems &&
+               data + srcOpers[0].value.u32v[0] * fmt.Stride() <= srv->second.data.end())
               result = TypedUAVLoad(fmt, data + srcOpers[0].value.u32v[0] * fmt.Stride());
           }
 
@@ -3940,9 +3943,9 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
         }
         if(decl.declaration == OPCODE_DCL_RESOURCE && decl.operand.sameResource(op.operands[2]))
         {
-          resourceDim = decl.dim;
-          resourceRetType = decl.resType[0];
-          sampleCount = decl.sampleCount;
+          resourceDim = decl.resource.dim;
+          resourceRetType = decl.resource.resType[0];
+          sampleCount = decl.resource.sampleCount;
 
           resourceBinding = GetBindingSlotForDeclaration(*program, decl);
 
@@ -3953,12 +3956,14 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           // doesn't seem like these are ever less than four components, even if the texture is
           // declared <float3> for example.
           // shouldn't matter though is it just comes out in the wash.
-          RDCASSERT(decl.resType[0] == decl.resType[1] && decl.resType[1] == decl.resType[2] &&
-                    decl.resType[2] == decl.resType[3]);
-          RDCASSERT(decl.resType[0] != DXBC::RETURN_TYPE_CONTINUED &&
-                    decl.resType[0] != DXBC::RETURN_TYPE_UNUSED &&
-                    decl.resType[0] != DXBC::RETURN_TYPE_MIXED && decl.resType[0] >= 0 &&
-                    decl.resType[0] < DXBC::NUM_RETURN_TYPES);
+          RDCASSERT(decl.resource.resType[0] == decl.resource.resType[1] &&
+                    decl.resource.resType[1] == decl.resource.resType[2] &&
+                    decl.resource.resType[2] == decl.resource.resType[3]);
+          RDCASSERT(decl.resource.resType[0] != DXBC::RETURN_TYPE_CONTINUED &&
+                    decl.resource.resType[0] != DXBC::RETURN_TYPE_UNUSED &&
+                    decl.resource.resType[0] != DXBC::RETURN_TYPE_MIXED &&
+                    decl.resource.resType[0] >= 0 &&
+                    decl.resource.resType[0] < DXBC::NUM_RETURN_TYPES);
         }
       }
 
@@ -4160,7 +4165,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       if(op.operation == OPCODE_CONTINUE || op.operation == OPCODE_CONTINUEC)
         depth = 1;
 
-      if((test == 0 && !op.nonzero) || (test != 0 && op.nonzero) ||
+      if((test == 0 && !op.nonzero()) || (test != 0 && op.nonzero()) ||
          op.operation == OPCODE_CONTINUE || op.operation == OPCODE_ENDLOOP)
       {
         // skip back one to the endloop that we're processing
@@ -4189,7 +4194,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
     {
       int32_t test = op.operation == OPCODE_BREAKC ? GetSrc(op.operands[0], op).value.s32v[0] : 0;
 
-      if((test == 0 && !op.nonzero) || (test != 0 && op.nonzero) || op.operation == OPCODE_BREAK)
+      if((test == 0 && !op.nonzero()) || (test != 0 && op.nonzero()) || op.operation == OPCODE_BREAK)
       {
         // break out (jump to next endloop/endswitch)
         int depth = 1;
@@ -4222,7 +4227,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
     {
       int32_t test = GetSrc(op.operands[0], op).value.s32v[0];
 
-      if((test == 0 && !op.nonzero) || (test != 0 && op.nonzero))
+      if((test == 0 && !op.nonzero()) || (test != 0 && op.nonzero()))
       {
         // nothing, we go into the if.
       }
@@ -4290,7 +4295,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
     {
       int32_t test = GetSrc(op.operands[0], op).value.s32v[0];
 
-      if((test != 0 && !op.nonzero) || (test == 0 && op.nonzero))
+      if((test != 0 && !op.nonzero()) || (test == 0 && op.nonzero()))
       {
         // don't discard
         break;
@@ -4305,7 +4310,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
     {
       int32_t test = op.operation == OPCODE_RETC ? GetSrc(op.operands[0], op).value.s32v[0] : 0;
 
-      if((test == 0 && !op.nonzero) || (test != 0 && op.nonzero) || op.operation == OPCODE_RET)
+      if((test == 0 && !op.nonzero()) || (test != 0 && op.nonzero()) || op.operation == OPCODE_RET)
       {
         // assumes not in a function call
         done = true;
@@ -4382,11 +4387,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       GlobalState::UAVIterator uav = global.uavs.find(slot);
       if(uav == global.uavs.end())
       {
-        if(!apiWrapper->FetchUAV(slot))
-        {
-          RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
-          return;
-        }
+        apiWrapper->FetchUAV(slot);
         uav = global.uavs.find(slot);
       }
 
@@ -4516,11 +4517,16 @@ void GlobalState::PopulateGroupshared(const DXBCBytecode::Program *pBytecode)
         mem.structured =
             (decl.declaration == DXBCBytecode::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED);
 
-        mem.count = decl.count;
         if(mem.structured)
-          mem.bytestride = decl.stride;
+        {
+          mem.count = decl.tsgm_structured.count;
+          mem.bytestride = decl.tsgm_structured.stride;
+        }
         else
+        {
+          mem.count = decl.tgsmCount;
           mem.bytestride = 4;    // raw groupshared is implicitly uint32s
+        }
 
         mem.data.resize(mem.bytestride * mem.count);
       }
@@ -4862,7 +4868,7 @@ DXBCBytecode::InterpolationMode GetInterpolationModeForInputParam(const SigParam
         if(decl.declaration == DXBCBytecode::OPCODE_DCL_INPUT_PS &&
            decl.operand.indices[0].absolute && decl.operand.indices[0].index == sig.regIndex)
         {
-          interpolation = decl.interpolation;
+          interpolation = decl.inputOutput.inputInterpolation;
           break;
         }
       }

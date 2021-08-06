@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -524,7 +524,8 @@ void Processor::RegisterOp(Iter it)
   else if(opdata.op == Op::EntryPoint)
   {
     OpEntryPoint decoded(it);
-    entries.push_back(EntryPoint(decoded.executionModel, decoded.entryPoint, decoded.name));
+    entries.push_back(
+        EntryPoint(decoded.executionModel, decoded.entryPoint, decoded.name, decoded.iface));
   }
   else if(opdata.op == Op::ExecutionMode)
   {

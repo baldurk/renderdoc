@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2020 Baldur Karlsson
+ * Copyright (c) 2020-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -334,7 +334,7 @@ public:
     if(!m_ResourcesDirty)
     {
       VkMarkerRegion region("ResetReplay");
-      // replay the draw to get back to 'normal' state for this event, and mark that we need to
+      // replay the action to get back to 'normal' state for this event, and mark that we need to
       // replay back to pristine state next time we need to fetch data.
       m_pDriver->ReplayLog(0, m_EventID, eReplay_OnlyDraw);
     }
@@ -444,21 +444,20 @@ public:
 
     if(location < location_inputs.size())
     {
-      const uint32_t typeSize = VarTypeByteSize(var.type);
       if(var.rows == 1)
       {
         if(component + var.columns > 4)
           RDCERR("Unexpected component %u for column count %u", component, var.columns);
 
         for(uint8_t c = 0; c < var.columns; c++)
-          copyComp(var, c, location_inputs[location], component + c, var.type);
+          copyComp(var, c, location_inputs[location], component + c);
       }
       else
       {
         RDCASSERTEQUAL(component, 0);
         for(uint8_t r = 0; r < var.rows; r++)
           for(uint8_t c = 0; c < var.columns; c++)
-            copyComp(var, r * var.columns + c, location_inputs[location + c], r, var.type);
+            copyComp(var, r * var.columns + c, location_inputs[location + c], r);
       }
       return;
     }
@@ -486,16 +485,21 @@ public:
 
       DerivativeDeltas ret;
 
+      ret.ddxcoarse.type = type;
+      ret.ddxfine.type = type;
+      ret.ddycoarse.type = type;
+      ret.ddyfine.type = type;
+
       RDCASSERT(component < 4, component);
 
       // rebase from component into [0]..
 
       for(uint32_t src = component, dst = 0; src < 4; src++, dst++)
       {
-        copyComp(ret.ddxcoarse, dst, deriv.ddxcoarse, src, type);
-        copyComp(ret.ddxfine, dst, deriv.ddxfine, src, type);
-        copyComp(ret.ddycoarse, dst, deriv.ddycoarse, src, type);
-        copyComp(ret.ddyfine, dst, deriv.ddyfine, src, type);
+        copyComp(ret.ddxcoarse, dst, deriv.ddxcoarse, src);
+        copyComp(ret.ddxfine, dst, deriv.ddxfine, src);
+        copyComp(ret.ddycoarse, dst, deriv.ddycoarse, src);
+        copyComp(ret.ddyfine, dst, deriv.ddyfine, src);
       }
 
       return ret;
@@ -1577,7 +1581,7 @@ private:
             GetDescriptor<VkDescriptorBufferInfo>("accessing buffer value", bind, valid);
         if(valid)
         {
-          // if the resources might be dirty from side-effects from the draw, replay back to right
+          // if the resources might be dirty from side-effects from the action, replay back to right
           // before it.
           if(m_ResourcesDirty)
           {
@@ -1609,7 +1613,7 @@ private:
           GetDescriptor<VkDescriptorImageInfo>("performing image load/store", bind, valid);
       if(valid)
       {
-        // if the resources might be dirty from side-effects from the draw, replay back to right
+        // if the resources might be dirty from side-effects from the action, replay back to right
         // before it.
         if(m_ResourcesDirty)
         {
@@ -2922,7 +2926,7 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
   rdcspv::Id entryID;
   for(const rdcspv::EntryPoint &e : editor.GetEntries())
   {
-    if(e.name == shadRefl.entryPoint)
+    if(e.name == shadRefl.entryPoint && e.executionModel == rdcspv::ExecutionModel::Fragment)
     {
       entryID = e.id;
       break;
@@ -3029,24 +3033,6 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
     addedInputs.push_back(sampleIndex.base);
 
     editor.AddCapability(rdcspv::Capability::SampleRateShading);
-  }
-
-  // add our inputs to the entry point's ID list. Since we're expanding the list we have to copy,
-  // erase, and insert. Modifying in-place doesn't support expanding
-  if(!addedInputs.empty())
-  {
-    rdcspv::Iter it = editor.GetEntry(entryID);
-
-    // this copies into the helper struct
-    rdcspv::OpEntryPoint entry(it);
-
-    // add our IDs
-    entry.iface.append(addedInputs);
-
-    // erase the old one
-    editor.Remove(it);
-
-    editor.AddOperation(it, entry);
   }
 
   rdcspv::Id PSInput;
@@ -3257,6 +3243,8 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
       PSHitRTArray,
   });
 
+  rdcspv::Id ssboVar;
+
   {
     editor.SetName(bufBase, "__rd_HitStorage");
 
@@ -3274,7 +3262,6 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
   }
 
   rdcspv::Id bufptrtype;
-  rdcspv::Id ssboVar;
   rdcspv::Id addressConstant;
 
   if(storageMode == Binding)
@@ -3334,7 +3321,6 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
 
     // add capabilities
     editor.AddCapability(rdcspv::Capability::PhysicalStorageBufferAddresses);
-    editor.AddCapability(rdcspv::Capability::Int64);
 
     // declare the address constant which we will specialise later. There is a chicken-and-egg where
     // this function determines how big the buffer needs to be so instead of hardcoding the address
@@ -3353,6 +3339,8 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
     }
     else
     {
+      editor.AddCapability(rdcspv::Capability::Int64);
+
       addressConstant =
           editor.AddSpecConstantImmediate<uint64_t>(0ULL, (uint32_t)InputSpecConstant::Address);
     }
@@ -3361,6 +3349,27 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
 
     // struct is block decorated
     editor.AddDecoration(rdcspv::OpDecorate(bufBase, rdcspv::Decoration::Block));
+  }
+
+  if(editor.EntryPointAllGlobals())
+    addedInputs.push_back(ssboVar);
+
+  // add our inputs to the entry point's ID list. Since we're expanding the list we have to copy,
+  // erase, and insert. Modifying in-place doesn't support expanding
+  if(!addedInputs.empty())
+  {
+    rdcspv::Iter it = editor.GetEntry(entryID);
+
+    // this copies into the helper struct
+    rdcspv::OpEntryPoint entry(it);
+
+    // add our IDs
+    entry.iface.append(addedInputs);
+
+    // erase the old one
+    editor.Remove(it);
+
+    editor.AddOperation(it, entry);
   }
 
   rdcspv::Id float4InPtr =
@@ -3700,22 +3709,22 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
   if(Vulkan_Debug_ShaderDebugLogging())
     RDCLOG("%s", regionName.c_str());
 
-  const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
+  const ActionDescription *action = m_pDriver->GetAction(eventId);
 
-  if(!(draw->flags & DrawFlags::Drawcall))
+  if(!(action->flags & ActionFlags::Drawcall))
   {
     RDCLOG("No drawcall selected");
     return new ShaderDebugTrace();
   }
 
   uint32_t vertOffset = 0, instOffset = 0;
-  if(!(draw->flags & DrawFlags::Indexed))
-    vertOffset = draw->vertexOffset;
+  if(!(action->flags & ActionFlags::Indexed))
+    vertOffset = action->vertexOffset;
 
-  if(draw->flags & DrawFlags::Instanced)
-    instOffset = draw->instanceOffset;
+  if(action->flags & ActionFlags::Instanced)
+    instOffset = action->instanceOffset;
 
-  // get ourselves in pristine state before this draw (without any side effects it may have had)
+  // get ourselves in pristine state before this action (without any side effects it may have had)
   m_pDriver->ReplayLog(0, eventId, eReplay_WithoutDraw);
 
   const VulkanCreationInfo::Pipeline &pipe = c.m_Pipeline[state.graphics.pipeline];
@@ -3745,13 +3754,14 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
     view = 0;
 
   std::map<ShaderBuiltin, ShaderVariable> &builtins = apiWrapper->builtin_inputs;
-  builtins[ShaderBuiltin::BaseInstance] = ShaderVariable(rdcstr(), draw->instanceOffset, 0U, 0U, 0U);
+  builtins[ShaderBuiltin::BaseInstance] =
+      ShaderVariable(rdcstr(), action->instanceOffset, 0U, 0U, 0U);
   builtins[ShaderBuiltin::BaseVertex] = ShaderVariable(
-      rdcstr(), (draw->flags & DrawFlags::Indexed) ? draw->baseVertex : draw->vertexOffset, 0U, 0U,
-      0U);
+      rdcstr(), (action->flags & ActionFlags::Indexed) ? action->baseVertex : action->vertexOffset,
+      0U, 0U, 0U);
   builtins[ShaderBuiltin::DeviceIndex] = ShaderVariable(rdcstr(), 0U, 0U, 0U, 0U);
-  builtins[ShaderBuiltin::DrawIndex] = ShaderVariable(rdcstr(), draw->drawIndex, 0U, 0U, 0U);
-  if(draw->flags & DrawFlags::Indexed)
+  builtins[ShaderBuiltin::DrawIndex] = ShaderVariable(rdcstr(), action->drawIndex, 0U, 0U, 0U);
+  if(action->flags & ActionFlags::Indexed)
     builtins[ShaderBuiltin::VertexIndex] = ShaderVariable(rdcstr(), idx, 0U, 0U, 0U);
   else
     builtins[ShaderBuiltin::VertexIndex] = ShaderVariable(rdcstr(), vertid + vertOffset, 0U, 0U, 0U);
@@ -3866,7 +3876,30 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
         }
         else
         {
-          var.type = VarType::Float;
+          var.type = VarType::UInt;
+
+          if(fmt.compType == CompType::UInt)
+          {
+            if(fmt.compByteWidth == 1)
+              var.type = VarType::UByte;
+            else if(fmt.compByteWidth == 2)
+              var.type = VarType::UShort;
+            else if(fmt.compByteWidth == 4)
+              var.type = VarType::UInt;
+            else if(fmt.compByteWidth == 8)
+              var.type = VarType::ULong;
+          }
+          else if(fmt.compType == CompType::SInt)
+          {
+            if(fmt.compByteWidth == 1)
+              var.type = VarType::SByte;
+            else if(fmt.compByteWidth == 2)
+              var.type = VarType::SShort;
+            else if(fmt.compByteWidth == 4)
+              var.type = VarType::SInt;
+            else if(fmt.compByteWidth == 8)
+              var.type = VarType::SLong;
+          }
 
           RDCASSERTEQUAL(fmt.compByteWidth, VarTypeByteSize(var.type));
           memcpy(var.value.u8v.data(), data.data(), fmt.compByteWidth * fmt.compCount);
@@ -3924,9 +3957,9 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   if(Vulkan_Debug_ShaderDebugLogging())
     RDCLOG("%s", regionName.c_str());
 
-  const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
+  const ActionDescription *action = m_pDriver->GetAction(eventId);
 
-  if(!(draw->flags & DrawFlags::Drawcall))
+  if(!(action->flags & ActionFlags::Drawcall))
   {
     RDCLOG("No drawcall selected");
     return new ShaderDebugTrace();
@@ -3940,7 +3973,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     return new ShaderDebugTrace();
   }
 
-  // get ourselves in pristine state before this draw (without any side effects it may have had)
+  // get ourselves in pristine state before this action (without any side effects it may have had)
   m_pDriver->ReplayLog(0, eventId, eReplay_WithoutDraw);
 
   VulkanCreationInfo::ShaderModule &shader = c.m_ShaderModule[pipe.shaders[4].module];
@@ -3963,8 +3996,9 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
   std::map<ShaderBuiltin, ShaderVariable> &builtins = apiWrapper->builtin_inputs;
   builtins[ShaderBuiltin::DeviceIndex] = ShaderVariable(rdcstr(), 0U, 0U, 0U, 0U);
-  builtins[ShaderBuiltin::DrawIndex] = ShaderVariable(rdcstr(), draw->drawIndex, 0U, 0U, 0U);
-  builtins[ShaderBuiltin::Position] = ShaderVariable(rdcstr(), x, y, 0U, 0U);
+  builtins[ShaderBuiltin::DrawIndex] = ShaderVariable(rdcstr(), action->drawIndex, 0U, 0U, 0U);
+  builtins[ShaderBuiltin::Position] =
+      ShaderVariable(rdcstr(), float(x) + 0.5f, float(y) + 0.5f, 0.0f, 0.0f);
 
   // If the pipe contains a geometry shader, then Primitive ID cannot be used in the pixel
   // shader without being emitted from the geometry shader. For now, check if this semantic
@@ -4046,7 +4080,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   }
 
   if(Vulkan_Debug_DisableBufferDeviceAddress() ||
-     m_pDriver->GetDriverInfo().AMDBufferDeviceAddressBrokenDriver())
+     m_pDriver->GetDriverInfo().BufferDeviceAddressBrokenDriver())
     storageMode = Binding;
 
   rdcarray<uint32_t> fragspv = shader.spirv.GetSPIRV();
@@ -4298,7 +4332,8 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   // buffer, we'd still want to spec-constant the address when possible so we're always going to
   // have some varying value.
   VkPipeline inputsPipe;
-  vkr = m_pDriver->vkCreateGraphicsPipelines(dev, NULL, 1, &graphicsInfo, NULL, &inputsPipe);
+  vkr =
+      m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &graphicsInfo, NULL, &inputsPipe);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
   // make copy of state to draw from
@@ -4351,7 +4386,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
     modifiedstate.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics);
 
-    m_pDriver->ReplayDraw(cmd, *draw);
+    m_pDriver->ReplayDraw(cmd, *action);
 
     modifiedstate.EndRenderPass(cmd);
 
@@ -4526,6 +4561,15 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
           builtin ? apiWrapper->builtin_derivatives[param.systemValue]
                   : apiWrapper->location_derivatives[param.regIndex];
 
+      var.rows = 1;
+      var.columns = param.compCount & 0xff;
+      var.type = param.varType;
+
+      deriv.ddxcoarse = var;
+      deriv.ddycoarse = var;
+      deriv.ddxfine = var;
+      deriv.ddyfine = var;
+
       const uint32_t comp = Bits::CountTrailingZeroes(uint32_t(param.regChannelMask));
       const uint32_t elemSize = VarTypeByteSize(param.varType);
 
@@ -4598,9 +4642,9 @@ ShaderDebugTrace *VulkanReplay::DebugThread(uint32_t eventId,
   if(Vulkan_Debug_ShaderDebugLogging())
     RDCLOG("%s", regionName.c_str());
 
-  const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
+  const ActionDescription *action = m_pDriver->GetAction(eventId);
 
-  if(!(draw->flags & DrawFlags::Dispatch))
+  if(!(action->flags & ActionFlags::Dispatch))
   {
     RDCLOG("No dispatch selected");
     return new ShaderDebugTrace();
@@ -4635,8 +4679,8 @@ ShaderDebugTrace *VulkanReplay::DebugThread(uint32_t eventId,
 
   std::map<ShaderBuiltin, ShaderVariable> &builtins = apiWrapper->builtin_inputs;
   builtins[ShaderBuiltin::DispatchSize] =
-      ShaderVariable(rdcstr(), draw->dispatchDimension[0], draw->dispatchDimension[1],
-                     draw->dispatchDimension[2], 0U);
+      ShaderVariable(rdcstr(), action->dispatchDimension[0], action->dispatchDimension[1],
+                     action->dispatchDimension[2], 0U);
   builtins[ShaderBuiltin::DispatchThreadIndex] = ShaderVariable(
       rdcstr(), groupid[0] * threadDim[0] + threadid[0], groupid[1] * threadDim[1] + threadid[1],
       groupid[2] * threadDim[2] + threadid[2], 0U);

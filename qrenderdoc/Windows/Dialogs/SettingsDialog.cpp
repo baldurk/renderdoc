@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -221,16 +221,12 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
 #endif
 
   ui->AllowGlobalHook->setChecked(m_Ctx.Config().AllowGlobalHook);
+  ui->AllowProcessInject->setChecked(m_Ctx.Config().AllowProcessInject);
 
   ui->EventBrowser_TimeUnit->setCurrentIndex((int)m_Ctx.Config().EventBrowser_TimeUnit);
   ui->EventBrowser_AddFake->setChecked(m_Ctx.Config().EventBrowser_AddFake);
-  ui->EventBrowser_HideEmpty->setChecked(m_Ctx.Config().EventBrowser_HideEmpty);
-  ui->EventBrowser_HideAPICalls->setChecked(m_Ctx.Config().EventBrowser_HideAPICalls);
   ui->EventBrowser_ApplyColors->setChecked(m_Ctx.Config().EventBrowser_ApplyColors);
   ui->EventBrowser_ColorEventRow->setChecked(m_Ctx.Config().EventBrowser_ColorEventRow);
-
-  // disable sub-checkbox
-  ui->EventBrowser_ColorEventRow->setEnabled(ui->EventBrowser_ApplyColors->isChecked());
 
   ui->Comments_ShowOnLoad->setChecked(m_Ctx.Config().Comments_ShowOnLoad);
 
@@ -247,6 +243,12 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
     ui->AllowGlobalHook->setToolTip(disabledTooltip);
     ui->globalHookLabel->setToolTip(disabledTooltip);
   }
+
+// process injection is not supported on non-Windows
+#if !defined(Q_OS_WIN32)
+  ui->injectProcLabel->setVisible(false);
+  ui->AllowProcessInject->setVisible(false);
+#endif
 
   m_Init = false;
 
@@ -383,6 +385,16 @@ void SettingsDialog::on_browseSaveCaptureDirectory_clicked()
 void SettingsDialog::on_AllowGlobalHook_toggled(bool checked)
 {
   m_Ctx.Config().AllowGlobalHook = ui->AllowGlobalHook->isChecked();
+
+  m_Ctx.Config().Save();
+
+  if(m_Ctx.HasCaptureDialog())
+    m_Ctx.GetCaptureDialog()->UpdateGlobalHook();
+}
+
+void SettingsDialog::on_AllowProcessInject_toggled(bool checked)
+{
+  m_Ctx.Config().AllowProcessInject = ui->AllowProcessInject->isChecked();
 
   m_Ctx.Config().Save();
 
@@ -803,6 +815,8 @@ bool SettingsDialog::editTool(int existing, ShaderProcessingTool &tool)
 
     QString message;
 
+    invalid = false;
+
     // ensure we don't have an invalid name
     if(tool.name == "Builtin")
     {
@@ -993,23 +1007,12 @@ void SettingsDialog::on_EventBrowser_AddFake_toggled(bool checked)
   m_Ctx.Config().Save();
 }
 
-void SettingsDialog::on_EventBrowser_HideEmpty_toggled(bool checked)
-{
-  m_Ctx.Config().EventBrowser_HideEmpty = ui->EventBrowser_HideEmpty->isChecked();
-
-  m_Ctx.Config().Save();
-}
-
-void SettingsDialog::on_EventBrowser_HideAPICalls_toggled(bool checked)
-{
-  m_Ctx.Config().EventBrowser_HideAPICalls = ui->EventBrowser_HideAPICalls->isChecked();
-
-  m_Ctx.Config().Save();
-}
-
 void SettingsDialog::on_EventBrowser_ApplyColors_toggled(bool checked)
 {
   m_Ctx.Config().EventBrowser_ApplyColors = ui->EventBrowser_ApplyColors->isChecked();
+
+  // disable sub-checkbox
+  ui->EventBrowser_ColorEventRow->setEnabled(ui->EventBrowser_ApplyColors->isChecked());
 
   m_Ctx.Config().Save();
 }

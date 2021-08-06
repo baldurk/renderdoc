@@ -16,13 +16,15 @@ class GL_Entry_Points(rdtest.TestCase):
         }
 
         for test in expected.keys():
-            marker: rd.DrawcallDescription = self.find_draw(test)
-            draw: rd.DrawcallDescription = marker.next
+            marker: rd.ActionDescription = self.find_action(test)
+            if marker is None:
+                raise rdtest.TestFailureException('Failed to find action {}'.format(test))
+            action: rd.ActionDescription = marker.next
 
             calls = []
 
             ev: rd.APIEvent
-            for ev in draw.events:
+            for ev in action.events:
                 # skip any events up to and including the marker itself
                 if ev.eventId <= marker.eventId:
                     continue

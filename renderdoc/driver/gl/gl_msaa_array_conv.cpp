@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -190,8 +190,8 @@ void WrappedOpenGL::CopyTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint wi
   rs.FetchState(this);
 
   GLenum viewClass;
-  GL.glGetInternalformativ(eGL_TEXTURE_2D_ARRAY, intFormat, eGL_VIEW_COMPATIBILITY_CLASS,
-                           sizeof(GLenum), (GLint *)&viewClass);
+  GL.glGetInternalformativ(eGL_TEXTURE_2D_ARRAY, intFormat, eGL_VIEW_COMPATIBILITY_CLASS, 1,
+                           (GLint *)&viewClass);
 
   GLenum fmt = eGL_R32UI;
   if(viewClass == eGL_VIEW_CLASS_8_BITS)
@@ -396,8 +396,8 @@ void WrappedOpenGL::CopyArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint wid
   rs.FetchState(this);
 
   GLenum viewClass;
-  drv.glGetInternalformativ(eGL_TEXTURE_2D_ARRAY, intFormat, eGL_VIEW_COMPATIBILITY_CLASS,
-                            sizeof(GLenum), (GLint *)&viewClass);
+  drv.glGetInternalformativ(eGL_TEXTURE_2D_ARRAY, intFormat, eGL_VIEW_COMPATIBILITY_CLASS, 1,
+                            (GLint *)&viewClass);
 
   GLenum fmt = eGL_R32UI;
   if(viewClass == eGL_VIEW_CLASS_8_BITS)

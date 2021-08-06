@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -54,6 +54,8 @@ class PythonShell;
 class ResourceInspector;
 class ShaderViewer;
 class MiniQtHelper;
+
+class QFileSystemWatcher;
 
 class CaptureContext : public ICaptureContext, IExtensionManager
 {
@@ -119,7 +121,8 @@ public:
   void SetRemoteHost(int hostIndex);
   void RefreshStatus() override { SetEventID({}, m_SelectedEventID, m_EventID, true); }
   bool IsResourceReplaced(ResourceId id) override;
-  void RegisterReplacement(ResourceId id) override;
+  ResourceId GetResourceReplacement(ResourceId id) override;
+  void RegisterReplacement(ResourceId from, ResourceId to) override;
   void UnregisterReplacement(ResourceId id) override;
   void RefreshUIStatus(const rdcarray<ICaptureViewer *> &exclude, bool updateSelectedEvent,
                        bool updateEvent);
@@ -153,16 +156,13 @@ public:
   rdcarray<ShaderEncoding> TargetShaderEncodings() override { return m_TargetEncodings; }
   uint32_t CurSelectedEvent() override { return m_SelectedEventID; }
   uint32_t CurEvent() override { return m_EventID; }
-  const DrawcallDescription *CurSelectedDrawcall() override
-  {
-    return GetDrawcall(CurSelectedEvent());
-  }
-  const DrawcallDescription *CurDrawcall() override { return GetDrawcall(CurEvent()); }
-  const DrawcallDescription *GetFirstDrawcall() override { return m_FirstDrawcall; };
-  const DrawcallDescription *GetLastDrawcall() override { return m_LastDrawcall; };
+  const ActionDescription *CurSelectedAction() override { return GetAction(CurSelectedEvent()); }
+  const ActionDescription *CurAction() override { return GetAction(CurEvent()); }
+  const ActionDescription *GetFirstAction() override { return m_FirstAction; };
+  const ActionDescription *GetLastAction() override { return m_LastAction; };
   bool OpenRGPProfile(const rdcstr &filename) override;
   IRGPInterop *GetRGPInterop() override { return m_RGP; }
-  const rdcarray<DrawcallDescription> &CurDrawcalls() override { return *m_Drawcalls; }
+  const rdcarray<ActionDescription> &CurRootActions() override { return *m_Actions; }
   ResourceDescription *GetResource(ResourceId id) override { return m_Resources[id]; }
   const rdcarray<ResourceDescription> &GetResources() override { return m_ResourceList; }
   rdcstr GetResourceName(ResourceId id) override;
@@ -175,9 +175,9 @@ public:
   const rdcarray<TextureDescription> &GetTextures() override { return m_TextureList; }
   BufferDescription *GetBuffer(ResourceId id) override { return m_Buffers[id]; }
   const rdcarray<BufferDescription> &GetBuffers() override { return m_BufferList; }
-  const DrawcallDescription *GetDrawcall(uint32_t eventId) override
+  const ActionDescription *GetAction(uint32_t eventId) override
   {
-    return GetDrawcall(*m_Drawcalls, eventId);
+    return GetAction(*m_Actions, eventId);
   }
   const SDFile &GetStructuredFile() override { return *m_StructuredFile; }
   WindowingSystem CurWindowingSystem() override { return m_CurWinSystem; }
@@ -257,6 +257,8 @@ public:
 
   IShaderViewer *ViewShader(const ShaderReflection *shader, ResourceId pipeline) override;
 
+  IShaderMessageViewer *ViewShaderMessages(ShaderStageMask stages) override;
+
   IBufferViewer *ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
                             const rdcstr &format = "") override;
   IBufferViewer *ViewTextureAsBuffer(ResourceId id, const Subresource &sub,
@@ -335,33 +337,33 @@ private:
   uint32_t m_SelectedEventID = 0;
   uint32_t m_EventID = 0;
 
-  const DrawcallDescription *GetDrawcall(const rdcarray<DrawcallDescription> &draws, uint32_t eventId)
+  const ActionDescription *GetAction(const rdcarray<ActionDescription> &actions, uint32_t eventId)
   {
-    for(const DrawcallDescription &d : draws)
+    for(const ActionDescription &a : actions)
     {
-      if(!d.children.empty())
+      if(!a.children.empty())
       {
-        const DrawcallDescription *draw = GetDrawcall(d.children, eventId);
-        if(draw != NULL)
-          return draw;
+        const ActionDescription *action = GetAction(a.children, eventId);
+        if(action != NULL)
+          return action;
       }
 
-      if(d.eventId == eventId)
-        return &d;
+      if(a.eventId == eventId)
+        return &a;
     }
 
     return NULL;
   }
 
   void setupDockWindow(QWidget *shad);
-  const rdcarray<DrawcallDescription> *m_Drawcalls;
-  rdcarray<DrawcallDescription> m_EmptyDraws;
+  const rdcarray<ActionDescription> *m_Actions;
+  rdcarray<ActionDescription> m_EmptyActions;
 
   rdcarray<ShaderEncoding> m_CustomEncodings, m_TargetEncodings;
   APIProperties m_APIProps;
   FrameDescription m_FrameInfo;
-  const DrawcallDescription *m_FirstDrawcall = NULL;
-  const DrawcallDescription *m_LastDrawcall = NULL;
+  const ActionDescription *m_FirstAction = NULL;
+  const ActionDescription *m_LastAction = NULL;
 
   IRGPInterop *m_RGP = NULL;
 
@@ -379,7 +381,10 @@ private:
   QMap<ResourceId, QString> m_CustomNames;
   int m_CustomNameCachedID = 1;
 
-  QVector<ResourceId> m_ReplacedResources;
+  // map orig replaced -> edited replacement ID
+  QMap<ResourceId, ResourceId> m_OrigToReplacedResources;
+  // reverse map, edited ID -> orig
+  QMap<ResourceId, ResourceId> m_ReplacedToOrigResources;
 
   const SDFile *m_StructuredFile = NULL;
   SDFile m_DummySDFile;
@@ -404,6 +409,8 @@ private:
   QList<ShaderViewer *> m_ShaderEditors;
 
   MiniQtHelper *m_QtHelper = NULL;
+
+  QFileSystemWatcher *m_Watcher = NULL;
 
   // Windows
   MainWindow *m_MainWindow = NULL;

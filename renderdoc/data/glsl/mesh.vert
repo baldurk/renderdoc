@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2020-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -67,6 +67,10 @@ void main(void)
 #ifdef VULKAN
   // GL->VK conventions
   gl_Position.y = -gl_Position.y;
+  if(Mesh.flipY == 1)
+  {
+    gl_Position.y = -gl_Position.y;
+  }
   if(Mesh.rawoutput == 0)
   {
     gl_Position.z = (gl_Position.z + gl_Position.w) / 2.0;

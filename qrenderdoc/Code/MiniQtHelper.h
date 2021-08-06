@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2020 Baldur Karlsson
+ * Copyright (c) 2020-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -38,6 +38,7 @@ public:
   void InvokeOntoUIThread(std::function<void()> callback) override;
 
   QWidget *CreateToplevelWidget(const rdcstr &windowTitle, WidgetCallback closed) override;
+  void CloseToplevelWidget(QWidget *widget) override;
 
   // widget hierarchy
 
@@ -89,6 +90,8 @@ public:
   QWidget *CreateButton(WidgetCallback pressed) override;
 
   QWidget *CreateLabel() override;
+  void SetLabelImage(QWidget *widget, const bytebuf &data, int32_t width, int32_t height,
+                     bool alpha) override;
 
   QWidget *CreateOutputRenderingWidget() override;
 

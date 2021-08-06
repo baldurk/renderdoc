@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -58,14 +58,11 @@ inline QString ToQStr(const T &el)
   return QString(ToStr(el));
 }
 
-// overload for a couple of things that need to know the pipeline type when converting
+// overloads for a couple of things that need to know the pipeline type when converting
 QString ToQStr(const ResourceUsage usage, const GraphicsAPI apitype);
-
-// overload for a couple of things that need to know the pipeline type when converting
 QString ToQStr(const ShaderStage stage, const GraphicsAPI apitype);
-
-// overload for a couple of things that need to know the pipeline type when converting
 QString ToQStr(const AddressMode addr, const GraphicsAPI apitype);
+QString ToQStr(const ShadingRateCombiner addr, const GraphicsAPI apitype);
 
 inline QMetaType::Type GetVariantMetatype(const QVariant &v)
 {
@@ -101,6 +98,9 @@ public:
 
   static QString DeclareStruct(const QString &name, const rdcarray<ShaderConstant> &members,
                                uint32_t requiredByteStride);
+
+  static uint32_t GetStructVarSize(const rdcarray<ShaderConstant> &members);
+
   static QString DeclarePaddingBytes(uint32_t bytes);
 };
 
@@ -126,6 +126,7 @@ void CombineUsageEvents(
 
 class RDTreeWidgetItem;
 
+QVariant SDObject2Variant(const SDObject *obj, bool inlineImportant);
 void addStructuredChildren(RDTreeWidgetItem *parent, const SDObject &parentObj);
 
 struct PointerTypeRegistry
@@ -189,7 +190,7 @@ ICaptureContext *getCaptureContext(const QWidget *widget);
 // NOTE: It is not possible to move a RichResourceText instance from one ICaptureContext to another
 // as the pointer is cached internally. Instead you should delete the old and re-initialise from
 // scratch.
-void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx = NULL);
+void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx = NULL, bool parseURLs = false);
 
 // Checks if a variant is rich resource text and should be treated specially
 // Particularly meaning we need mouse tracking on the widget to handle the on-hover highlighting
@@ -256,13 +257,14 @@ struct Formatter
   static QString Format(int32_t i, bool hex = false) { return QString::number(i); }
   static QString Format(int64_t i, bool hex = false) { return QString::number(i); }
   static const QFont &PreferredFont() { return *m_Font; }
+  static const QFont &FixedFont() { return *m_FixedFont; }
   static const QColor DarkCheckerColor() { return m_DarkChecker; }
   static const QColor LightCheckerColor() { return m_LightChecker; }
 private:
   static int m_minFigures, m_maxFigures, m_expNegCutoff, m_expPosCutoff;
   static double m_expNegValue, m_expPosValue;
-  static QFont *m_Font;
-  static float m_FontBaseSize;
+  static QFont *m_Font, *m_FixedFont;
+  static float m_FontBaseSize, m_FixedFontBaseSize;
   static QColor m_DarkChecker, m_LightChecker;
 };
 

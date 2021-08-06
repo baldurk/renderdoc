@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -545,28 +545,34 @@ void GLReplay::InitDebugData()
 
   BindUBO(DebugData.checkerProg, "CheckerboardUBOData", 0);
 
-  for(size_t numViews = 0; numViews < ARRAY_COUNT(DebugData.discardProg); numViews++)
+  for(size_t intIdx = 0; intIdx < 3; intIdx++)
   {
-    rdcstr defines;
-
-    if(numViews > 0 && IsGLES && HasExt[OVR_multiview])
-      defines = StringFormat::Fmt("#define NUM_VIEWS %zu", numViews + 1);
-
-    rdcstr blitvs =
-        GenerateGLSLShader(GetEmbeddedResource(glsl_blit_vert), shaderType, glslBaseVer, defines);
-
-    fs = GenerateGLSLShader(GetEmbeddedResource(glsl_discard_frag), shaderType, glslBaseVer);
-    DebugData.discardProg[numViews] = CreateShaderProgram(blitvs, fs);
-
-    BindUBO(DebugData.discardProg[numViews], "DiscardUBOData", 0);
-
-    if(!IsGLES)
+    for(size_t numViews = 0; numViews < ARRAY_COUNT(DebugData.discardProg[intIdx]); numViews++)
     {
-      rdcstr name = "col0";
-      for(GLuint i = 0; i < 8; i++)
+      rdcstr defines;
+
+      defines += rdcstr("#define SHADER_BASETYPE ") + ToStr(intIdx) + "\n";
+
+      if(numViews > 0 && IsGLES && HasExt[OVR_multiview])
+        defines = StringFormat::Fmt("#define NUM_VIEWS %zu\n", numViews + 1);
+
+      rdcstr blitvs =
+          GenerateGLSLShader(GetEmbeddedResource(glsl_blit_vert), shaderType, glslBaseVer, defines);
+
+      fs = GenerateGLSLShader(GetEmbeddedResource(glsl_discard_frag), shaderType, glslBaseVer,
+                              defines);
+      DebugData.discardProg[intIdx][numViews] = CreateShaderProgram(blitvs, fs);
+
+      BindUBO(DebugData.discardProg[intIdx][numViews], "DiscardUBOData", 0);
+
+      if(!IsGLES)
       {
-        name[3] = char('0' + i);
-        GL.glBindFragDataLocation(DebugData.discardProg[numViews], i, name.c_str());
+        rdcstr name = "col0";
+        for(GLuint i = 0; i < 8; i++)
+        {
+          name[3] = char('0' + i);
+          GL.glBindFragDataLocation(DebugData.discardProg[intIdx][numViews], i, name.c_str());
+        }
       }
     }
   }
@@ -578,6 +584,8 @@ void GLReplay::InitDebugData()
     fmt.compByteWidth = 4;
     fmt.compCount = 1;
     bytebuf pattern = GetDiscardPattern(DiscardType::InvalidateCall, fmt, 1, true);
+    fmt.compType = CompType::UInt;
+    pattern.append(GetDiscardPattern(DiscardType::InvalidateCall, fmt, 1, true));
     drv.glGenBuffers(1, &DebugData.discardPatternBuffer);
     drv.glBindBuffer(eGL_UNIFORM_BUFFER, DebugData.discardPatternBuffer);
     drv.glNamedBufferDataEXT(DebugData.discardPatternBuffer, pattern.size(), pattern.data(),
@@ -1147,14 +1155,18 @@ void GLReplay::DeleteDebugData()
 
   MakeCurrentReplayContext(&m_ReplayCtx);
 
-  GL.glDebugMessageCallback(NULL, NULL);
+  if(HasExt[KHR_debug])
+  {
+    GL.glDebugMessageCallback(NULL, NULL);
+  }
 
   if(DebugData.overlayProg)
     drv.glDeleteProgram(DebugData.overlayProg);
 
-  for(size_t i = 0; i < ARRAY_COUNT(DebugData.discardProg); i++)
-    if(DebugData.discardProg[i])
-      drv.glDeleteProgram(DebugData.discardProg[i]);
+  for(size_t b = 0; b < 3; b++)
+    for(size_t i = 0; i < ARRAY_COUNT(DebugData.discardProg[b]); i++)
+      if(DebugData.discardProg[b][i])
+        drv.glDeleteProgram(DebugData.discardProg[b][i]);
 
   if(HasExt[ARB_transform_feedback2])
     drv.glDeleteTransformFeedbacks(1, &DebugData.feedbackObj);
@@ -1163,7 +1175,10 @@ void GLReplay::DeleteDebugData()
 
   MakeCurrentReplayContext(m_DebugCtx);
 
-  GL.glDebugMessageCallback(NULL, NULL);
+  if(HasExt[KHR_debug])
+  {
+    GL.glDebugMessageCallback(NULL, NULL);
+  }
 
   ClearPostVSCache();
 
@@ -1351,9 +1366,6 @@ void GLReplay::FillWithDiscardPattern(DiscardType type, GLuint framebuffer, GLsi
         &numviews);
   }
 
-  GLuint prog = DebugData.discardProg[RDCCLAMP(numviews, 1, 4) - 1];
-
-  drv.glUseProgram(prog);
   drv.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.discardPatternBuffer);
 
   drv.glDisable(eGL_BLEND);
@@ -1378,6 +1390,8 @@ void GLReplay::FillWithDiscardPattern(DiscardType type, GLuint framebuffer, GLsi
   drv.glDepthMask(GL_FALSE);
   drv.glStencilMask(0);
 
+  int intIdx = -1;
+
   // enable masks specified by attachments
   bool stencil = false;
   for(GLsizei i = 0; i < numAttachments; i++)
@@ -1400,8 +1414,40 @@ void GLReplay::FillWithDiscardPattern(DiscardType type, GLuint framebuffer, GLsi
     else
     {
       drv.glColorMaski(attachments[i] - eGL_COLOR_ATTACHMENT0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
+      if(intIdx == -1)
+      {
+        GLuint att;
+        drv.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, attachments[i],
+                                                  eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+                                                  (GLint *)&att);
+        GLenum attType;
+        drv.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, attachments[i],
+                                                  eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
+                                                  (GLint *)&attType);
+
+        ResourceId id = drv.GetResourceManager()->GetResID(attType == eGL_RENDERBUFFER
+                                                               ? RenderbufferRes(drv.GetCtx(), att)
+                                                               : TextureRes(drv.GetCtx(), att));
+
+        GLenum fmt = m_pDriver->m_Textures[id].internalFormat;
+
+        if(IsUIntFormat(fmt))
+          intIdx = 1;
+        else if(IsSIntFormat(fmt))
+          intIdx = 2;
+        else
+          intIdx = 0;
+      }
     }
   }
+
+  if(intIdx == -1)
+    intIdx = 0;
+
+  GLuint prog = DebugData.discardProg[intIdx][RDCCLAMP(numviews, 1, 4) - 1];
+
+  drv.glUseProgram(prog);
 
   GLint loc = drv.glGetUniformLocation(prog, "flags");
 
@@ -1714,7 +1760,7 @@ bool GLReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType type
   switch(texDetails.curType)
   {
     case eGL_RENDERBUFFER:
-      texSlot = RESTYPE_TEX2D;
+      texSlot = texDetails.samples > 1 ? RESTYPE_TEX2DMS : RESTYPE_TEX2D;
       renderbuffer = true;
       break;
     case eGL_TEXTURE_1D: texSlot = RESTYPE_TEX1D; break;
@@ -1740,6 +1786,8 @@ bool GLReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType type
     // need replay context active to do blit (as FBOs aren't shared)
     MakeCurrentReplayContext(&m_ReplayCtx);
 
+    GLMarkerRegion blitRegion("Renderbuffer Blit");
+
     GLuint curDrawFBO = 0;
     GLuint curReadFBO = 0;
     GL.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&curDrawFBO);
@@ -1756,10 +1804,12 @@ bool GLReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType type
     GL.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curReadFBO);
 
     texname = texDetails.renderbufferReadTex;
-    target = eGL_TEXTURE_2D;
+    target = texDetails.samples > 1 ? eGL_TEXTURE_2D_MULTISAMPLE : eGL_TEXTURE_2D;
   }
 
   MakeCurrentReplayContext(m_DebugCtx);
+
+  GLMarkerRegion region("GetMinMax");
 
   RDCGLenum dsTexMode = eGL_NONE;
   if(IsDepthStencilFormat(texDetails.internalFormat))
@@ -1940,7 +1990,7 @@ bool GLReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompType t
   switch(texDetails.curType)
   {
     case eGL_RENDERBUFFER:
-      texSlot = RESTYPE_TEX2D;
+      texSlot = texDetails.samples > 1 ? RESTYPE_TEX2DMS : RESTYPE_TEX2D;
       renderbuffer = true;
       break;
     case eGL_TEXTURE_1D: texSlot = RESTYPE_TEX1D; break;
@@ -1966,6 +2016,8 @@ bool GLReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompType t
     // need replay context active to do blit (as FBOs aren't shared)
     MakeCurrentReplayContext(&m_ReplayCtx);
 
+    GLMarkerRegion blitRegion("Renderbuffer Blit");
+
     GLuint curDrawFBO = 0;
     GLuint curReadFBO = 0;
     GL.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&curDrawFBO);
@@ -1982,10 +2034,12 @@ bool GLReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompType t
     GL.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curReadFBO);
 
     texname = texDetails.renderbufferReadTex;
-    target = eGL_TEXTURE_2D;
+    target = texDetails.samples > 1 ? eGL_TEXTURE_2D_MULTISAMPLE : eGL_TEXTURE_2D;
   }
 
   MakeCurrentReplayContext(m_DebugCtx);
+
+  GLMarkerRegion region("GetHistogram");
 
   RDCGLenum dsTexMode = eGL_NONE;
   if(IsDepthStencilFormat(texDetails.internalFormat))

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -413,6 +413,10 @@ struct LogLine
       // if adb gave us DOS newlines, remove the \r
       if(message.back() == '\r')
         message.pop_back();
+
+      // ignore these libc spam messages
+      if(message.contains("Access denied finding property"))
+        return false;
 
       return true;
     }

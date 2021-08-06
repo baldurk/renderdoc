@@ -13,13 +13,13 @@ class D3D12_Shader_Linkage_Zoo(rdtest.TestCase):
 
         failed = False
 
-        test_marker: rd.DrawcallDescription = self.find_draw("draw")
+        test_marker: rd.ActionDescription = self.find_action("action")
         while test_marker is not None:
-            drawcall = test_marker.next
-            event_name = test_marker.name
-            test_marker: rd.DrawcallDescription = self.find_draw("draw", drawcall.eventId)
+            action = test_marker.next
+            event_name = test_marker.customName
+            test_marker: rd.ActionDescription = self.find_action("action", action.eventId)
 
-            self.controller.SetFrameEvent(drawcall.eventId, False)
+            self.controller.SetFrameEvent(action.eventId, False)
             pipe: rd.PipeState = self.controller.GetPipelineState()
 
             if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -290,7 +290,7 @@ LogView::LogView(ICaptureContext &ctx, QWidget *parent)
 
   ui->messages->setMouseTracking(true);
 
-  ui->messages->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+  ui->messages->setFont(Formatter::FixedFont());
 
   m_TypeModel = new QStandardItemModel(0, 1, this);
 

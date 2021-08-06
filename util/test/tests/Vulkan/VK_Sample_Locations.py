@@ -6,8 +6,8 @@ class VK_Sample_Locations(rdtest.TestCase):
     demos_test_name = 'VK_Sample_Locations'
 
     def check_capture(self):
-        draw: rd.DrawcallDescription = self.find_draw("Degenerate")
-        self.controller.SetFrameEvent(draw.next.eventId, True)
+        action: rd.ActionDescription = self.find_action("Degenerate")
+        self.controller.SetFrameEvent(action.next.eventId, True)
         pipe: rd.VKState = self.controller.GetVulkanPipelineState()
 
         if pipe.multisample.rasterSamples != 4:
@@ -33,8 +33,8 @@ class VK_Sample_Locations(rdtest.TestCase):
             raise rdtest.TestFailureException("In degenerate case, sample locations [1] and [2] DO match: {} vs {}"
                                               .format(sampleLoc.customLocations[1], sampleLoc.customLocations[2]))
 
-        draw: rd.DrawcallDescription = self.find_draw("Rotated")
-        self.controller.SetFrameEvent(draw.next.eventId, True)
+        action: rd.ActionDescription = self.find_action("Rotated")
+        self.controller.SetFrameEvent(action.next.eventId, True)
         pipe: rd.VKState = self.controller.GetVulkanPipelineState()
 
         if pipe.multisample.rasterSamples != 4:
@@ -88,13 +88,13 @@ class VK_Sample_Locations(rdtest.TestCase):
 
         stride = fmt.compByteWidth * fmt.compCount * dim[0]
 
-        last_draw: rd.DrawcallDescription = self.get_last_draw()
+        last_action: rd.ActionDescription = self.get_last_action()
 
-        self.controller.SetFrameEvent(last_draw.eventId, True)
+        self.controller.SetFrameEvent(last_action.eventId, True)
 
         # Due to the variability of rasterization between implementations or even drivers,
         # we don't want to check against a 'known good'.
-        # So instead we verify that at the first degenerate draw each pair of two sample's images are identical and that
+        # So instead we verify that at the first degenerate action each pair of two sample's images are identical and that
         # in the rotated grid case each sample's image is distinct.
         # In future we could also check that the degenerate case 'stretches' the triangle up, as with the way the
         # geometry is defined the second sample image should be a superset (i.e. strictly more samples covered).

@@ -66,7 +66,7 @@
      <item>
       <widget class="QToolButton" name="stepPrev">
        <property name="toolTip">
-        <string>Go to Previous Drawcall</string>
+        <string>Go to Previous Action</string>
        </property>
        <property name="icon">
         <iconset resource="../Resources/resources.qrc">
@@ -80,7 +80,7 @@
      <item>
       <widget class="QToolButton" name="stepNext">
        <property name="toolTip">
-        <string>Go to Next Drawcall</string>
+        <string>Go to Next Action</string>
        </property>
        <property name="icon">
         <iconset resource="../Resources/resources.qrc">
@@ -107,22 +107,11 @@
         <iconset resource="../Resources/resources.qrc">
          <normaloff>:/find.png</normaloff>:/find.png</iconset>
        </property>
-       <property name="autoRaise">
+       <property name="checkable">
         <bool>true</bool>
        </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QToolButton" name="gotoEID">
-       <property name="toolTip">
-        <string>Jump to an Event by EID</string>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="icon">
-        <iconset resource="../Resources/resources.qrc">
-         <normaloff>:/flag_green.png</normaloff>:/flag_green.png</iconset>
+       <property name="checked">
+        <bool>false</bool>
        </property>
        <property name="autoRaise">
         <bool>true</bool>
@@ -130,9 +119,9 @@
       </widget>
      </item>
      <item>
-      <widget class="QToolButton" name="timeDraws">
+      <widget class="QToolButton" name="timeActions">
        <property name="toolTip">
-        <string>Time durations for the drawcalls</string>
+        <string>Time durations for the actions</string>
        </property>
        <property name="text">
         <string/>
@@ -178,9 +167,9 @@
       </widget>
      </item>
      <item>
-      <widget class="QToolButton" name="exportDraws">
+      <widget class="QToolButton" name="exportActions">
        <property name="toolTip">
-        <string>Export the list of drawcalls to disk</string>
+        <string>Export the list of events to disk</string>
        </property>
        <property name="icon">
         <iconset resource="../Resources/resources.qrc">
@@ -216,83 +205,6 @@
       </spacer>
      </item>
     </layout>
-   </item>
-   <item>
-    <widget class="QWidget" name="jumpStrip" native="true">
-     <layout class="QHBoxLayout" name="horizontalLayout_3">
-      <property name="spacing">
-       <number>3</number>
-      </property>
-      <property name="leftMargin">
-       <number>6</number>
-      </property>
-      <property name="topMargin">
-       <number>0</number>
-      </property>
-      <property name="rightMargin">
-       <number>6</number>
-      </property>
-      <property name="bottomMargin">
-       <number>0</number>
-      </property>
-      <item>
-       <widget class="QLabel" name="label_3">
-        <property name="text">
-         <string/>
-        </property>
-        <property name="pixmap">
-         <pixmap resource="../Resources/resources.qrc">:/flag_green.png</pixmap>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="label_2">
-        <property name="text">
-         <string>Jump to Event</string>
-        </property>
-        <property name="textFormat">
-         <enum>Qt::PlainText</enum>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-        </property>
-        <property name="margin">
-         <number>0</number>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="RDLineEdit" name="jumpToEID">
-        <property name="minimumSize">
-         <size>
-          <width>0</width>
-          <height>20</height>
-         </size>
-        </property>
-        <property name="placeholderText">
-         <string>Event ID</string>
-        </property>
-        <property name="clearButtonEnabled">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QToolButton" name="closeJump">
-        <property name="text">
-         <string/>
-        </property>
-        <property name="icon">
-         <iconset resource="../Resources/resources.qrc">
-          <normaloff>:/cross.png</normaloff>:/cross.png</iconset>
-        </property>
-        <property name="autoRaise">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
    </item>
    <item>
     <widget class="QWidget" name="findStrip" native="true">
@@ -355,20 +267,6 @@
        </widget>
       </item>
       <item>
-       <widget class="QToolButton" name="closeFind">
-        <property name="text">
-         <string/>
-        </property>
-        <property name="icon">
-         <iconset resource="../Resources/resources.qrc">
-          <normaloff>:/cross.png</normaloff>:/cross.png</iconset>
-        </property>
-        <property name="autoRaise">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
        <widget class="QToolButton" name="findPrev">
         <property name="text">
          <string/>
@@ -397,6 +295,86 @@
        </widget>
       </item>
      </layout>
+    </widget>
+   </item><item>
+    <widget class="QWidget" name="filterStrip" native="true">
+     <layout class="QHBoxLayout" name="horizontalLayout_7">
+      <property name="spacing">
+       <number>3</number>
+      </property>
+      <property name="leftMargin">
+       <number>6</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>6</number>
+      </property>
+      <property name="bottomMargin">
+       <number>2</number>
+      </property>
+      <item>
+       <widget class="QLabel" name="label_6">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="pixmap">
+         <pixmap resource="../Resources/resources.qrc">:/filter.png</pixmap>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_7">
+        <property name="text">
+         <string>Filter</string>
+        </property>
+        <property name="textFormat">
+         <enum>Qt::PlainText</enum>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+        </property>
+        <property name="margin">
+         <number>0</number>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="RDTextEdit" name="filterExpression">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>20</height>
+         </size>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QToolButton" name="filterSettings">
+        <property name="toolTip">
+         <string>Configuration and help for filter expressions</string>
+        </property>
+        <property name="text">
+         <string>Settings &amp;&amp; Help</string>
+        </property>
+        <property name="icon">
+         <iconset resource="../Resources/resources.qrc">
+          <normaloff>:/cog.png</normaloff>:/cog.png</iconset>
+        </property>
+        <property name="toolButtonStyle">
+         <enum>Qt::ToolButtonTextBesideIcon</enum>
+        </property>
+        <property name="autoRaise">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QWidget" name="breadcrumbStrip" native="true">
     </widget>
    </item>
    <item>
@@ -467,7 +445,7 @@
     </widget>
    </item>
    <item>
-    <widget class="RDTreeWidget" name="events">
+    <widget class="RDTreeView" name="events">
      <property name="frameShape">
       <enum>QFrame::Box</enum>
      </property>
@@ -510,9 +488,14 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>RDTreeWidget</class>
+   <class>RDTreeView</class>
    <extends>QTreeView</extends>
-   <header>Widgets/Extended/RDTreeWidget.h</header>
+   <header>Widgets/Extended/RDTreeView.h</header>
+  </customwidget>
+  <customwidget>
+   <class>RDTextEdit</class>
+   <extends>QTextEdit</extends>
+   <header>Widgets/Extended/RDTextEdit.h</header>
   </customwidget>
   <customwidget>
    <class>RDLineEdit</class>

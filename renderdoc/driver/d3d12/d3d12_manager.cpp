@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -682,13 +682,16 @@ void D3D12ResourceManager::ApplyBarriers(rdcarray<D3D12_RESOURCE_BARRIER> &barri
 }
 
 template <typename SerialiserType>
-void D3D12ResourceManager::SerialiseResourceStates(SerialiserType &ser,
-                                                   rdcarray<D3D12_RESOURCE_BARRIER> &barriers,
-                                                   std::map<ResourceId, SubresourceStateVector> &states)
+void D3D12ResourceManager::SerialiseResourceStates(
+    SerialiserType &ser, rdcarray<D3D12_RESOURCE_BARRIER> &barriers,
+    std::map<ResourceId, SubresourceStateVector> &states,
+    const std::map<ResourceId, SubresourceStateVector> &initialStates)
 {
   SERIALISE_ELEMENT_LOCAL(NumMems, (uint32_t)states.size());
 
   auto srcit = states.begin();
+
+  std::unordered_set<ResourceId> processed;
 
   for(uint32_t i = 0; i < NumMems; i++)
   {
@@ -701,6 +704,8 @@ void D3D12ResourceManager::SerialiseResourceStates(SerialiserType &ser,
 
     if(IsReplayingAndReading() && liveid != ResourceId())
     {
+      processed.insert(liveid);
+
       for(size_t m = 0; m < States.size(); m++)
       {
         if(states[liveid][m] != States[m])
@@ -722,15 +727,48 @@ void D3D12ResourceManager::SerialiseResourceStates(SerialiserType &ser,
       srcit++;
   }
 
+  // for any resources that didn't have a recorded state, use the initialStates we're given and
+  // restore them if needed
+  if(IsReplayingAndReading())
+  {
+    for(auto it = initialStates.begin(); it != initialStates.end(); ++it)
+    {
+      // ignore internal resources, we only care about restoring states for captured resources
+      if(GetOriginalID(it->first) == it->first)
+        continue;
+
+      if(processed.find(it->first) == processed.end())
+      {
+        for(size_t m = 0; m < it->second.size(); m++)
+        {
+          if(states[it->first][m] != it->second[m])
+          {
+            D3D12_RESOURCE_BARRIER b;
+            b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+            b.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+            b.Transition.pResource = (ID3D12Resource *)GetCurrentResource(it->first);
+            b.Transition.Subresource = (UINT)m;
+            b.Transition.StateBefore = states[it->first][m];
+            b.Transition.StateAfter = it->second[m];
+
+            barriers.push_back(b);
+          }
+        }
+      }
+    }
+  }
+
   ApplyBarriers(barriers, states);
 }
 
 template void D3D12ResourceManager::SerialiseResourceStates(
     ReadSerialiser &ser, rdcarray<D3D12_RESOURCE_BARRIER> &barriers,
-    std::map<ResourceId, SubresourceStateVector> &states);
+    std::map<ResourceId, SubresourceStateVector> &states,
+    const std::map<ResourceId, SubresourceStateVector> &initialStates);
 template void D3D12ResourceManager::SerialiseResourceStates(
     WriteSerialiser &ser, rdcarray<D3D12_RESOURCE_BARRIER> &barriers,
-    std::map<ResourceId, SubresourceStateVector> &states);
+    std::map<ResourceId, SubresourceStateVector> &states,
+    const std::map<ResourceId, SubresourceStateVector> &initialStates);
 
 void D3D12ResourceManager::SetInternalResource(ID3D12DeviceChild *res)
 {

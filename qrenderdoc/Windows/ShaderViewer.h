@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -120,11 +120,15 @@ public:
   virtual uint32_t CurrentStep() override;
   virtual void SetCurrentStep(uint32_t step) override;
 
-  virtual void ToggleBreakpoint(int32_t instruction = -1) override;
+  virtual void ToggleBreakpointOnInstruction(int32_t instruction = -1) override;
+  virtual void ToggleBreakpointOnDisassemblyLine(int32_t disassemblyLine) override;
+  virtual void RunForward() override;
 
   virtual void ShowErrors(const rdcstr &errors) override;
 
   virtual void AddWatch(const rdcstr &variable) override;
+
+  virtual rdcstrpairs GetCurrentFileContents() override;
 
   // ICaptureViewer
   void OnCaptureLoaded() override;
@@ -156,6 +160,7 @@ private slots:
   void watch_keyPress(QKeyEvent *event);
   void performFind();
   void performFindAll();
+  void resultsDoubleClick(int position, int line);
   void performReplace();
   void performReplaceAll();
 
@@ -170,22 +175,16 @@ private slots:
   void disasm_tooltipShow(int x, int y);
   void disasm_tooltipHide(int x, int y);
 
-public slots:
-  bool stepBack();
-  bool stepNext();
-  void runToCursor();
-  void runToSample();
-  void runToNanOrInf();
-  void runBack();
-  void run();
-
 private:
   explicit ShaderViewer(ICaptureContext &ctx, QWidget *parent = 0);
   void editShader(ResourceId id, ShaderStage stage, const QString &entryPoint,
                   const rdcstrpairs &files, ShaderEncoding shaderEncoding, ShaderCompileFlags flags);
   void debugShader(const ShaderBindpointMapping *bind, const ShaderReflection *shader,
                    ResourceId pipeline, ShaderDebugTrace *trace, const QString &debugContext);
+
   bool eventFilter(QObject *watched, QEvent *event) override;
+
+  QAction *MakeExecuteAction(QString name, const QIcon &icon, QString tooltip, QKeySequence shortcut);
 
   void MarkModification();
 
@@ -272,6 +271,11 @@ private:
   size_t m_CurrentStateIdx = 0;
   rdcarray<ShaderVariable> m_Variables;
 
+  // true when debugging while we're populating the initial trace. Lets us queue up commands and
+  // process them once we've initialised properly
+  bool m_DeferredInit = false;
+  rdcarray<std::function<void(ShaderViewer *)>> m_DeferredCommands;
+
   QSemaphore m_BackgroundRunning;
 
   rdcarray<AccessedResourceData> m_AccessedResources;
@@ -280,6 +284,8 @@ private:
   rdcarray<BoundResourceArray> m_ReadOnlyResources;
   rdcarray<BoundResourceArray> m_ReadWriteResources;
   QList<int> m_Breakpoints;
+
+  QList<QPair<ScintillaEdit *, int>> m_FindAllResults;
 
   static const int CURRENT_MARKER = 0;
   static const int BREAKPOINT_MARKER = 2;
@@ -290,6 +296,7 @@ private:
 
   static const int INDICATOR_FINDRESULT = 0;
   static const int INDICATOR_REGHIGHLIGHT = 1;
+  static const int INDICATOR_FINDALLHIGHLIGHT = 2;
 
   QString targetName(const ShaderProcessingTool &disasm);
 
@@ -333,6 +340,16 @@ private:
 
   void setEditorWindowTitle();
 
+  enum StepMode
+  {
+    StepInto,
+    StepOver,
+    StepOut,
+  };
+
+  bool step(bool forward, StepMode mode);
+
+  void runToCursor(bool forward);
   void runTo(QVector<size_t> runToInstructions, bool forward,
              ShaderEvents condition = ShaderEvents::NoEvent);
 

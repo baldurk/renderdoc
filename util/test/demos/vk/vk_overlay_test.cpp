@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,9 @@ RD_TEST(VK_Overlay_Test, VulkanGraphicsTest)
 
   std::string common = R"EOSHADER(
 
-#version 420 core
+#version 450 core
+
+#extension GL_EXT_samplerless_texture_functions : require
 
 struct v2f
 {
@@ -50,8 +52,18 @@ layout(location = 2) in vec2 UV;
 
 layout(location = 0) out v2f vertOut;
 
+layout(constant_id = 1) const int spec_canary = 0;
+
 void main()
 {
+  if(spec_canary != 1337)
+  {
+    gl_Position = vertOut.pos = vec4(-1, -1, -1, 1);
+    vertOut.col = vec4(0, 0, 0, 0);
+    vertOut.uv = vec4(0, 0, 0, 0);
+    return;
+  }
+
 	vertOut.pos = vec4(Position.xyz, 1);
 	gl_Position = vertOut.pos;
 	vertOut.col = Color;
@@ -66,8 +78,19 @@ layout(location = 0) in v2f vertIn;
 
 layout(location = 0, index = 0) out vec4 Color;
 
+layout(constant_id = 2) const int spec_canary = 0;
+
+layout(binding = 0) uniform texture2D tex[64];
+
 void main()
 {
+  if(spec_canary != 1338) { Color = vec4(1.0, 0.0, 0.0, 1.0); return; }
+
+  if(vertIn.uv.z > 100.0f)
+  {
+    Color += texelFetch(tex[uint(vertIn.uv.z) % 50], ivec2(vertIn.uv.xy * vec2(4,4)), 0) * 0.001f;
+  }
+
 	Color = vertIn.col;
 }
 
@@ -78,8 +101,12 @@ void main()
 
 layout(location = 0, index = 0) out vec4 Color;
 
+layout(constant_id = 2) const int spec_canary = 0;
+
 void main()
 {
+  if(spec_canary != 1338) { Color = vec4(1.0, 0.0, 0.0, 1.0); return; }
+
 	Color = vec4(1,1,1,1);
 }
 
@@ -93,10 +120,15 @@ void main()
     if(!Init())
       return 3;
 
-    bool KHR_maintenance1 = std::find(devExts.begin(), devExts.end(),
-                                      VK_KHR_MAINTENANCE1_EXTENSION_NAME) != devExts.end();
+    bool KHR_maintenance1 = hasExt(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
 
-    VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo());
+    VkDescriptorSetLayout setlayout = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
+        {
+            0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 64, VK_SHADER_STAGE_FRAGMENT_BIT,
+        },
+    }));
+
+    VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo({setlayout}));
 
     // note that the Y position values are inverted for vulkan 1.0 viewport convention, relative to
     // all other APIs
@@ -241,6 +273,21 @@ void main()
         CompileShaderModule(common + pixel, ShaderLang::glsl, ShaderStage::frag, "main"),
     };
 
+    VkSpecializationMapEntry specmap[2] = {
+        {1, 0 * sizeof(uint32_t), sizeof(uint32_t)}, {2, 1 * sizeof(uint32_t), sizeof(uint32_t)},
+    };
+
+    uint32_t specvals[2] = {1337, 1338};
+
+    VkSpecializationInfo spec = {};
+    spec.mapEntryCount = ARRAY_COUNT(specmap);
+    spec.pMapEntries = specmap;
+    spec.dataSize = sizeof(specvals);
+    spec.pData = specvals;
+
+    pipeCreateInfo.stages[0].pSpecializationInfo = &spec;
+    pipeCreateInfo.stages[1].pSpecializationInfo = &spec;
+
     pipeCreateInfo.rasterizationState.depthClampEnable = VK_FALSE;
     pipeCreateInfo.rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
 
@@ -294,11 +341,17 @@ void main()
 
     pipeCreateInfo.stages[1] =
         CompileShaderModule(whitepixel, ShaderLang::glsl, ShaderStage::frag, "main");
+    pipeCreateInfo.stages[1].pSpecializationInfo = &spec;
     pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
     pipeCreateInfo.renderPass = subrp;
     pipeCreateInfo.depthStencilState.stencilTestEnable = VK_FALSE;
     pipeCreateInfo.depthStencilState.depthCompareOp = VK_COMPARE_OP_ALWAYS;
     VkPipeline whitepipe = createGraphicsPipeline(pipeCreateInfo);
+
+    pipeCreateInfo.rasterizationState.rasterizerDiscardEnable = VK_TRUE;
+    pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    pipeCreateInfo.renderPass = renderPass;
+    VkPipeline discardPipe = createGraphicsPipeline(pipeCreateInfo);
 
     AllocatedImage subimg(
         this,
@@ -347,7 +400,28 @@ void main()
         msaaRP, {msaaRTV, msaaDSV},
         {mainWindow->scissor.extent.width, mainWindow->scissor.extent.height}));
 
-    (void)msaaFB;
+    AllocatedImage img(this, vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                                  VK_IMAGE_USAGE_SAMPLED_BIT),
+                       VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+
+    setName(img.image, "Colour Tex");
+
+    VkImageView dummyView = createImageView(
+        vkh::ImageViewCreateInfo(img.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R32G32B32A32_SFLOAT));
+
+    VkDescriptorSet descset = allocateDescriptorSet(setlayout);
+
+    std::vector<VkWriteDescriptorSet> writes;
+    std::vector<VkDescriptorImageInfo> imInfo = {
+        vkh::DescriptorImageInfo(dummyView, VK_IMAGE_LAYOUT_GENERAL),
+    };
+    for(int i = 0; i < 64; i++)
+    {
+      writes.push_back(
+          vkh::WriteDescriptorSet(descset, 0, i, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, imInfo));
+    }
+
+    vkh::updateDescriptorSets(device, writes);
 
     while(Running())
     {
@@ -356,6 +430,25 @@ void main()
       vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
 
       StartUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
+
+      vkh::cmdPipelineBarrier(cmd, {
+                                       vkh::ImageMemoryBarrier(0, 0, VK_IMAGE_LAYOUT_UNDEFINED,
+                                                               VK_IMAGE_LAYOUT_GENERAL, img.image),
+                                   });
+
+      vkCmdBeginRenderPass(cmd,
+                           vkh::RenderPassBeginInfo(
+                               renderPass, fbs[mainWindow->imgIndex], mainWindow->scissor,
+                               {vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f), vkh::ClearValue(1.0f, 0)}),
+                           VK_SUBPASS_CONTENTS_INLINE);
+
+      vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
+      setMarker(cmd, "Discard Test");
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, discardPipe);
+      vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, {descset}, {});
+      vkCmdDraw(cmd, 3, 1, 0, 0);
+
+      vkCmdEndRenderPass(cmd);
 
       VkViewport v;
       VkRect2D s;
@@ -387,6 +480,8 @@ void main()
             VK_SUBPASS_CONTENTS_INLINE);
 
         // draw the setup triangles
+
+        setMarker(cmd, "Setup");
 
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, depthWritePipe[is_msaa ? 1 : 0]);
         vkCmdDraw(cmd, 3, 1, 0, 0);
@@ -457,8 +552,8 @@ void main()
       v = mainWindow->viewport;
       v.width /= 8.0f;
       v.height /= 8.0f;
-      v.width = floor(v.width);
-      v.height = floor(v.height);
+      v.width = floorf(v.width);
+      v.height = floorf(v.height);
       v.x += 2.0f;
       v.y += 2.0f;
       v.width -= 4.0f;

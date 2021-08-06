@@ -1,7 +1,7 @@
 /******************************************************************************
 * The MIT License (MIT)
 *
-* Copyright (c) 2019-2020 Baldur Karlsson
+* Copyright (c) 2019-2021 Baldur Karlsson
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -40,6 +40,9 @@ COM_SMARTPTR(ID3D12Device2);
 COM_SMARTPTR(ID3D12Device3);
 COM_SMARTPTR(ID3D12Device4);
 COM_SMARTPTR(ID3D12Device5);
+COM_SMARTPTR(ID3D12Device6);
+COM_SMARTPTR(ID3D12Device7);
+COM_SMARTPTR(ID3D12Device8);
 
 COM_SMARTPTR(ID3D12Fence);
 
@@ -51,6 +54,8 @@ COM_SMARTPTR(ID3D12GraphicsCommandList1);
 COM_SMARTPTR(ID3D12GraphicsCommandList2);
 COM_SMARTPTR(ID3D12GraphicsCommandList3);
 COM_SMARTPTR(ID3D12GraphicsCommandList4);
+COM_SMARTPTR(ID3D12GraphicsCommandList5);
+COM_SMARTPTR(ID3D12GraphicsCommandList6);
 
 COM_SMARTPTR(ID3D12CommandSignature);
 
@@ -262,9 +267,11 @@ D3D12_ROOT_PARAMETER1 cbvParam(D3D12_SHADER_VISIBILITY vis, UINT space, UINT reg
 
 D3D12_ROOT_PARAMETER1 constParam(D3D12_SHADER_VISIBILITY vis, UINT space, UINT reg, UINT num);
 
-D3D12_ROOT_PARAMETER1 tableParam(D3D12_SHADER_VISIBILITY vis, D3D12_DESCRIPTOR_RANGE_TYPE type,
-                                 UINT space, UINT basereg, UINT numreg, UINT descOffset = 0,
-                                 D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE);
+D3D12_ROOT_PARAMETER1 tableParam(
+    D3D12_SHADER_VISIBILITY vis, D3D12_DESCRIPTOR_RANGE_TYPE type, UINT space, UINT basereg,
+    UINT numreg, UINT descOffset = 0,
+    D3D12_DESCRIPTOR_RANGE_FLAGS flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE |
+                                         D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE);
 
 D3D12_INDIRECT_ARGUMENT_DESC vbArg(UINT slot);
 D3D12_INDIRECT_ARGUMENT_DESC ibArg();

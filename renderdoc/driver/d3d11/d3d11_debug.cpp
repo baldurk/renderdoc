@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -288,7 +288,8 @@ void D3D11DebugManager::InitReplayResources()
     rdcstr hlsl = GetEmbeddedResource(misc_hlsl);
 
     m_DiscardVS = shaderCache->MakeVShader(hlsl.c_str(), "RENDERDOC_FullscreenVS", "vs_4_0");
-    m_DiscardPS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_DiscardPS", "ps_4_0");
+    m_DiscardFloatPS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_DiscardFloatPS", "ps_4_0");
+    m_DiscardIntPS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_DiscardIntPS", "ps_4_0");
 
     ResourceFormat fmt;
     fmt.type = ResourceFormatType::Regular;
@@ -296,6 +297,8 @@ void D3D11DebugManager::InitReplayResources()
     fmt.compByteWidth = 4;
     fmt.compCount = 1;
     m_DiscardBytes = GetDiscardPattern(DiscardType::DiscardCall, fmt);
+    fmt.compType = CompType::SInt;
+    m_DiscardBytes.append(GetDiscardPattern(DiscardType::DiscardCall, fmt));
 
     D3D11_DEPTH_STENCIL_DESC desc;
 
@@ -355,7 +358,8 @@ void D3D11DebugManager::ShutdownResources()
       it->second->Release();
 
   SAFE_RELEASE(m_DiscardVS);
-  SAFE_RELEASE(m_DiscardPS);
+  SAFE_RELEASE(m_DiscardFloatPS);
+  SAFE_RELEASE(m_DiscardIntPS);
   SAFE_RELEASE(m_DiscardDepthState);
   SAFE_RELEASE(m_DiscardRasterState);
 
@@ -487,7 +491,16 @@ void D3D11DebugManager::FillWithDiscardPattern(DiscardType type, ID3D11Resource 
     // depth-stencil resources can't be sub-copied, so we need to render to them
     if(IsDepthFormat(key.fmt) || key.samp.Count > 1)
     {
-      D3D11MarkerRegion::Set("Depth texture");
+      D3D11MarkerRegion::Set("Depth/MSAA texture");
+
+      D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
+      rtvDesc.Format = GetTypedFormat(key.fmt, CompType::Float);
+
+      D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc;
+      dsvDesc.Flags = 0;
+      dsvDesc.Format = GetDepthTypedFormat(key.fmt);
+
+      bool intFormat = !IsDepthFormat(key.fmt) && (IsIntFormat(key.fmt) || IsUIntFormat(key.fmt));
 
       D3D11RenderStateTracker tracker(m_pImmediateContext);
 
@@ -496,15 +509,8 @@ void D3D11DebugManager::FillWithDiscardPattern(DiscardType type, ID3D11Resource 
       m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
       m_pImmediateContext->OMSetDepthStencilState(m_DiscardDepthState, 0);
       m_pImmediateContext->VSSetShader(m_DiscardVS, NULL, 0);
-      m_pImmediateContext->PSSetShader(m_DiscardPS, NULL, 0);
+      m_pImmediateContext->PSSetShader(intFormat ? m_DiscardIntPS : m_DiscardFloatPS, NULL, 0);
       m_pImmediateContext->RSSetState(m_DiscardRasterState);
-
-      D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
-      rtvDesc.Format = GetFloatTypedFormat(key.fmt);
-
-      D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc;
-      dsvDesc.Flags = 0;
-      dsvDesc.Format = GetDepthTypedFormat(key.fmt);
 
       if(key.samp.Count > 1)
       {
@@ -753,10 +759,15 @@ void D3D11DebugManager::FillWithDiscardPattern(DiscardType type, ID3D11Resource 
     for(UINT z = 0; z < RDCMAX(1U, desc.Depth >> subresource); z++)
       FillWithDiscardPattern(type, res, z, subresource, pRect, NumRects);
   }
-  else
+  else if(WrappedID3D11Buffer::IsAlloc(res))
   {
     // buffer
     FillWithDiscardPattern(type, res, 0, 0, pRect, NumRects);
+  }
+  else
+  {
+    RDCERR("Unknown resource type being discarded");
+    return;
   }
 }
 
@@ -784,6 +795,11 @@ void D3D11DebugManager::FillWithDiscardPattern(DiscardType type, ID3D11View *vie
   {
     range = ResourceRange((WrappedID3D11DepthStencilView *)view);
   }
+  else
+  {
+    RDCERR("Unknown view type being discarded");
+    return;
+  }
 
   ID3D11Resource *res = range.GetResource();
   UINT numMips = 1;
@@ -809,6 +825,15 @@ void D3D11DebugManager::FillWithDiscardPattern(DiscardType type, ID3D11View *vie
     ((WrappedID3D11Texture3D1 *)res)->GetDesc(&desc);
     numMips = desc.MipLevels;
     tex3D = true;
+  }
+  else if(WrappedID3D11Buffer::IsAlloc(res))
+  {
+    // nothing to do, just pass
+  }
+  else
+  {
+    RDCERR("View of unknown resource type being discarded");
+    return;
   }
 
   rdcarray<D3D11_RECT> rects;

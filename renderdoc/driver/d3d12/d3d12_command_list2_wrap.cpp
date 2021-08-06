@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,7 +32,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_WriteBufferImmediate(
   ID3D12GraphicsCommandList2 *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(Count);
-  SERIALISE_ELEMENT_ARRAY(pParams, Count);
+  SERIALISE_ELEMENT_ARRAY(pParams, Count).Important();
   SERIALISE_ELEMENT_ARRAY(pModes, Count);
 
   SERIALISE_CHECK_READ_ERRORS();

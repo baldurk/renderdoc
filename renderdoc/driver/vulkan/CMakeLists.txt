@@ -8,7 +8,7 @@ set(sources
     vk_debug.h
     vk_debug.cpp
     vk_postvs.cpp
-    vk_bindless_feedback.cpp
+    vk_shader_feedback.cpp
     vk_overlay.cpp
     vk_msaa_array_conv.cpp
     vk_outputwindow.cpp
@@ -26,7 +26,6 @@ set(sources
     vk_info.cpp
     vk_info.h
     vk_initstate.cpp
-    vk_sparse_initstate.cpp
     vk_manager.cpp
     vk_manager.h
     vk_memory.cpp
@@ -48,6 +47,7 @@ set(sources
     official/vulkan.h
     official/vulkan_android.h
     official/vulkan_core.h
+    official/vulkan_ggp.h
     official/vulkan_ios.h
     official/vulkan_macos.h
     official/vulkan_fuchsia.h
@@ -88,7 +88,7 @@ if(ANDROID)
     list(APPEND sources vk_posix.cpp vk_android.cpp vk_layer_android.cpp)
     list(APPEND definitions PRIVATE -DVK_USE_PLATFORM_ANDROID_KHR)
 elseif(APPLE)
-    list(APPEND sources vk_posix.cpp vk_apple.cpp vk_apple.mm)
+    list(APPEND sources vk_posix.cpp vk_apple.cpp vk_apple_helpers.mm)
 
     add_definitions(-DVK_USE_PLATFORM_MACOS_MVK -DVK_USE_PLATFORM_METAL_EXT)
 elseif(ENABLE_GGP)

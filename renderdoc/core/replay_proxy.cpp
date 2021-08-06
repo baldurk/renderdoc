@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -287,7 +287,10 @@ APIProperties ReplayProxy::Proxied_GetAPIProperties(ParamSerialiser &paramser,
   SERIALISE_RETURN(ret);
 
   if(!m_RemoteServer)
+  {
     ret.localRenderer = m_Proxy->GetAPIProperties().localRenderer;
+    ret.remoteReplay = true;
+  }
 
   m_APIProps = ret;
 
@@ -624,8 +627,8 @@ FrameRecord ReplayProxy::Proxied_GetFrameRecord(ParamSerialiser &paramser, Retur
 
   if(paramser.IsWriting())
   {
-    // re-configure the drawcall pointers, since they will be invalid
-    SetupDrawcallPointers(m_Drawcalls, ret.drawcallList);
+    // re-configure the action pointers, since they will be invalid
+    SetupActionPointers(m_Actions, ret.actionList);
   }
 
   return ret;
@@ -1206,7 +1209,8 @@ rdcstr ReplayProxy::Proxied_DisassembleShader(ParamSerialiser &paramser, ReturnS
 
   if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
   {
-    refl = m_Remote->GetShader(pipeline, m_Remote->GetLiveID(Shader), EntryPoint);
+    refl =
+        m_Remote->GetShader(m_Remote->GetLiveID(pipeline), m_Remote->GetLiveID(Shader), EntryPoint);
     ret = m_Remote->DisassembleShader(pipeline, refl, target);
   }
 
@@ -2439,20 +2443,20 @@ void ReplayProxy::EnsureBufCached(ResourceId bufid)
   }
 }
 
-const DrawcallDescription *ReplayProxy::FindDraw(const rdcarray<DrawcallDescription> &drawcallList,
+const ActionDescription *ReplayProxy::FindAction(const rdcarray<ActionDescription> &actionList,
                                                  uint32_t eventId)
 {
-  for(const DrawcallDescription &d : drawcallList)
+  for(const ActionDescription &a : actionList)
   {
-    if(!d.children.empty())
+    if(!a.children.empty())
     {
-      const DrawcallDescription *draw = FindDraw(d.children, eventId);
-      if(draw != NULL)
-        return draw;
+      const ActionDescription *action = FindAction(a.children, eventId);
+      if(action != NULL)
+        return action;
     }
 
-    if(d.eventId == eventId)
-      return &d;
+    if(a.eventId == eventId)
+      return &a;
   }
 
   return NULL;
@@ -2481,7 +2485,7 @@ void ReplayProxy::InitPreviewWindow()
       }
     }
 
-    if(m_FrameRecord.drawcallList.empty())
+    if(m_FrameRecord.actionList.empty())
       m_FrameRecord = m_Replay->GetFrameRecord();
   }
 }
@@ -2514,7 +2518,7 @@ void ReplayProxy::RefreshPreviewWindow()
     m_Replay->RenderCheckerboard(RenderDoc::Inst().DarkCheckerboardColor(),
                                  RenderDoc::Inst().LightCheckerboardColor());
 
-    const DrawcallDescription *curDraw = FindDraw(m_FrameRecord.drawcallList, m_EventID);
+    const ActionDescription *curDraw = FindAction(m_FrameRecord.actionList, m_EventID);
 
     if(curDraw)
     {
@@ -2743,7 +2747,6 @@ bool ReplayProxy::Tick(int type)
   if(m_Writer.IsErrored() || m_Reader.IsErrored() || m_IsErrored)
     return false;
 
-  const ReplayProxyPacket expectedPacket = (ReplayProxyPacket)type;
   ReplayProxyPacket packet = (ReplayProxyPacket)type;
 
   PROXY_DEBUG("Received %s", ToStr(packet).c_str());

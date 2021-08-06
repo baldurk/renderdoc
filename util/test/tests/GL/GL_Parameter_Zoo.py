@@ -9,11 +9,11 @@ class GL_Parameter_Zoo(rdtest.TestCase):
     demos_frame_cap = 6
 
     def check_capture(self):
-        id = self.get_last_draw().copyDestination
+        id = self.get_last_action().copyDestination
 
         tex_details = self.get_texture(id)
 
-        self.controller.SetFrameEvent(self.get_last_draw().eventId, True)
+        self.controller.SetFrameEvent(self.get_last_action().eventId, True)
 
         data = self.controller.GetTextureData(id, rd.Subresource(0, 0, 0))
         first_pixel = struct.unpack_from("BBBB", data, 0)
@@ -33,7 +33,7 @@ class GL_Parameter_Zoo(rdtest.TestCase):
 
         img_path = rdtest.get_tmp_path('preserved_alpha.png')
 
-        self.controller.SetFrameEvent(self.get_last_draw().eventId, True)
+        self.controller.SetFrameEvent(self.get_last_action().eventId, True)
 
         save_data = rd.TextureSave()
         save_data.resourceId = id
@@ -50,11 +50,11 @@ class GL_Parameter_Zoo(rdtest.TestCase):
         if not rdtest.value_compare(magic_pixel, val) or magic_pixel[3] not in [127, 128]:
             raise rdtest.TestFailureException("Pixel @ 320,50 should be blue: {}, not {}".format(val, magic_pixel))
 
-        draw = self.find_draw("Draw")
+        action = self.find_action("Draw")
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
-        postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, draw.numIndices)
+        postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
 
         postvs_ref = {
             0: {
@@ -81,7 +81,7 @@ class GL_Parameter_Zoo(rdtest.TestCase):
 
         results = self.controller.FetchCounters([rd.GPUCounter.RasterizedPrimitives, rd.GPUCounter.VSInvocations, rd.GPUCounter.FSInvocations])
 
-        results = [r for r in results if r.eventId == draw.eventId]
+        results = [r for r in results if r.eventId == action.eventId]
 
         if len(results) != 3:
             raise rdtest.TestFailureException("Expected 3 results, got {} results".format(len(results)))
@@ -108,3 +108,32 @@ class GL_Parameter_Zoo(rdtest.TestCase):
                 raise rdtest.TestFailureException("Unexpected counter result {}".format(r.counter))
 
         rdtest.log.success("Counter data retrieved successfully")
+
+        action = self.find_action("NoScissor")
+
+        self.check(action is not None)
+        action = action.next
+        pipe: rd.PipeState = self.controller.GetPipelineState()
+
+        tex = rd.TextureDisplay()
+        tex.overlay = rd.DebugOverlay.Drawcall
+        tex.resourceId = pipe.GetOutputTargets()[0].resourceId
+
+        out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100),
+                                                            rd.ReplayOutputType.Texture)
+
+        out.SetTextureDisplay(tex)
+
+        out.Display()
+
+        overlay_id = out.GetDebugOverlayTexID()
+
+        v = pipe.GetViewport(0)
+
+        self.check_pixel_value(overlay_id, int(0.5 * v.width), int(0.5 * v.height), [0.8, 0.1, 0.8, 1.0],
+                               eps=1.0 / 256.0)
+
+        out.Shutdown()
+
+        rdtest.log.success("Overlay color is as expected")
+

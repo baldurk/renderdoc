@@ -7,19 +7,19 @@ class D3D11_Stream_Out(rdtest.TestCase):
     demos_test_name = 'D3D11_Stream_Out'
 
     def check_capture(self):
-        draw = self.find_draw("Draw")
+        action = self.find_action("Draw")
 
-        self.check(draw is not None)
+        self.check(action is not None)
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
         # Get the input data as our reference
 
-        # First draw should have data at offset 0. First buffer has positions, second has colors (with doubled stride)
+        # First action should have data at offset 0. First buffer has positions, second has colors (with doubled stride)
 
-        vsin = self.get_vsin(draw)
+        vsin = self.get_vsin(action)
 
         pos = [(*v['POSITION'], 1.0) for v in vsin]
         col = [v['COLOR'] for v in vsin]
@@ -41,18 +41,18 @@ class D3D11_Stream_Out(rdtest.TestCase):
             if not rdtest.value_compare(c, so_c):
                 raise rdtest.TestFailureException("Streamed-out color {} doesn't match expected {}".format(so_c, c))
 
-        draw_auto = self.find_draw("DrawAuto", draw.eventId)
+        action_auto = self.find_action("DrawAuto", action.eventId)
 
-        # First draw should be 3 vertices
-        if not rdtest.value_compare(draw_auto.numIndices, 3):
-            raise rdtest.TestFailureException("First DrawAuto() draws {} vertices".format(draw_auto.numIndices))
+        # First action should be 3 vertices
+        if not rdtest.value_compare(action_auto.numIndices, 3):
+            raise rdtest.TestFailureException("First DrawAuto() actions {} vertices".format(action_auto.numIndices))
 
-        draw_auto = self.find_draw("DrawAuto", draw_auto.eventId+1)
+        action_auto = self.find_action("DrawAuto", action_auto.eventId+1)
 
-        # Second draw should be 6 vertices (3 vertices, instanced twice
-        if not rdtest.value_compare(draw_auto.numIndices, 6):
-            raise rdtest.TestFailureException("Second DrawAuto() draws {} vertices".format(draw_auto.numIndices))
-        if not rdtest.value_compare(draw_auto.numInstances, 1):
-            raise rdtest.TestFailureException("Second DrawAuto() draws {} instances".format(draw_auto.numInstances))
+        # Second action should be 6 vertices (3 vertices, instanced twice
+        if not rdtest.value_compare(action_auto.numIndices, 6):
+            raise rdtest.TestFailureException("Second DrawAuto() actions {} vertices".format(action_auto.numIndices))
+        if not rdtest.value_compare(action_auto.numInstances, 1):
+            raise rdtest.TestFailureException("Second DrawAuto() actions {} instances".format(action_auto.numInstances))
 
-        rdtest.log.success("First draw stream-out data is correct")
+        rdtest.log.success("First action stream-out data is correct")

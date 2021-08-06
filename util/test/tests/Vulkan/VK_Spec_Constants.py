@@ -6,14 +6,14 @@ class VK_Spec_Constants(rdtest.TestCase):
     demos_test_name = 'VK_Spec_Constants'
 
     def check_capture(self):
-        # find the first draw
-        draw = self.find_draw("Draw")
+        # find the first action
+        action = self.find_action("Draw")
 
-        # We should have 4 draws, with spec constant values 0, 1, 2, 3
+        # We should have 4 actions, with spec constant values 0, 1, 2, 3
         for num_colors in range(4):
-            self.check(draw is not None)
+            self.check(action is not None)
 
-            self.controller.SetFrameEvent(draw.eventId, False)
+            self.controller.SetFrameEvent(action.eventId, False)
 
             pipe: rd.PipeState = self.controller.GetPipelineState()
 
@@ -80,4 +80,4 @@ class VK_Spec_Constants(rdtest.TestCase):
 
             rdtest.log.success("Draw with {} colors picked value is as expected".format(num_colors))
 
-            draw = draw.next
+            action = action.next

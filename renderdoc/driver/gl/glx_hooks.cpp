@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -134,6 +134,68 @@ HOOK_EXPORT GLXContext glXCreateContext_renderdoc_hooked(Display *dpy, XVisualIn
     SCOPED_LOCK(glLock);
     glxhook.driver.CreateContext(data, shareList, init, false, false);
   }
+
+  return ret;
+}
+
+HOOK_EXPORT GLXContext glXCreateNewContext_renderdoc_hooked(Display *dpy, GLXFBConfig config,
+                                                            int renderType, GLXContext shareList,
+                                                            Bool direct)
+{
+  if(RenderDoc::Inst().IsReplayApp())
+  {
+    if(!GLX.glXCreateNewContext)
+      GLX.PopulateForReplay();
+
+    return GLX.glXCreateNewContext(dpy, config, renderType, shareList, direct);
+  }
+
+  EnsureRealLibraryLoaded();
+
+  GLXContext ret = GLX.glXCreateNewContext(dpy, config, renderType, shareList, direct);
+
+  // don't continue if context creation failed
+  if(!ret)
+    return ret;
+
+  GLInitParams init;
+
+  init.width = 0;
+  init.height = 0;
+
+  int value = 0;
+
+  XVisualInfo *vis = GLX.glXGetVisualFromFBConfig(dpy, config);
+
+  Keyboard::UseXlibDisplay(dpy);
+
+  GLX.glXGetConfig(dpy, vis, GLX_BUFFER_SIZE, &value);
+  init.colorBits = value;
+  GLX.glXGetConfig(dpy, vis, GLX_DEPTH_SIZE, &value);
+  init.depthBits = value;
+  GLX.glXGetConfig(dpy, vis, GLX_STENCIL_SIZE, &value);
+  init.stencilBits = value;
+  value = 1;    // default to srgb
+  GLX.glXGetConfig(dpy, vis, GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB, &value);
+  init.isSRGB = value;
+  value = 1;
+  GLX.glXGetConfig(dpy, vis, GLX_SAMPLES_ARB, &value);
+  init.multiSamples = RDCMAX(1, value);
+
+  GLWindowingData data;
+  data.dpy = dpy;
+  data.wnd = (GLXDrawable)NULL;
+  data.ctx = ret;
+  data.cfg = vis;
+
+  EnableGLHooks();
+
+  {
+    SCOPED_LOCK(glLock);
+    glxhook.driver.CreateContext(data, shareList, init, false, false);
+  }
+
+  XFree(vis);
 
   return ret;
 }
@@ -486,6 +548,8 @@ HOOK_EXPORT __GLXextFuncPtr glXGetProcAddress_renderdoc_hooked(const GLubyte *f)
   // return our glX hooks
   if(!strcmp(func, "glXCreateContext"))
     return (__GLXextFuncPtr)&glXCreateContext_renderdoc_hooked;
+  if(!strcmp(func, "glXCreateNewContext"))
+    return (__GLXextFuncPtr)&glXCreateNewContext_renderdoc_hooked;
   if(!strcmp(func, "glXDestroyContext"))
     return (__GLXextFuncPtr)&glXDestroyContext_renderdoc_hooked;
   if(!strcmp(func, "glXCreateContextAttribsARB"))
@@ -524,6 +588,12 @@ HOOK_EXPORT GLXContext glXCreateContext(Display *dpy, XVisualInfo *vis, GLXConte
                                         Bool direct)
 {
   return glXCreateContext_renderdoc_hooked(dpy, vis, shareList, direct);
+}
+
+HOOK_EXPORT GLXContext glXCreateNewContext(Display *dpy, GLXFBConfig config, int renderType,
+                                           GLXContext shareList, Bool direct)
+{
+  return glXCreateNewContext_renderdoc_hooked(dpy, config, renderType, shareList, direct);
 }
 
 HOOK_EXPORT void glXDestroyContext(Display *dpy, GLXContext ctx)
@@ -637,8 +707,6 @@ GLX_PASSTHRU_4(GLXFBConfig *, glXChooseFBConfig, Display *, dpy, int, screen, co
 GLX_PASSTHRU_3(XVisualInfo *, glXChooseVisual, Display *, dpy, int, screen, int *, attrib_list);
 GLX_PASSTHRU_4(int, glXGetConfig, Display *, dpy, XVisualInfo *, visual, int, attribute, int *,
                value);
-GLX_PASSTHRU_5(GLXContext, glXCreateNewContext, Display *, dpy, GLXFBConfig, config, int,
-               renderType, GLXContext, shareList, Bool, direct);
 GLX_PASSTHRU_4(void, glXCopyContext, Display *, dpy, GLXContext, source, GLXContext, dest,
                unsigned long, mask);
 GLX_PASSTHRU_4(int, glXQueryContext, Display *, dpy, GLXContext, ctx, int, attribute, int *, value);

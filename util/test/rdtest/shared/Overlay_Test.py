@@ -1,8 +1,5 @@
 import renderdoc as rd
 import rdtest
-from typing import List, Tuple
-import time
-import os
 
 
 # Not a direct test, re-used by API-specific tests
@@ -20,9 +17,9 @@ class Overlay_Test(rdtest.TestCase):
 
         for is_msaa in [False, True]:
             if is_msaa:
-                test_marker: rd.DrawcallDescription = self.find_draw("MSAA Test")
+                test_marker: rd.ActionDescription = self.find_action("MSAA Test")
             else:
-                test_marker: rd.DrawcallDescription = self.find_draw("Normal Test")
+                test_marker: rd.ActionDescription = self.find_action("Normal Test")
 
             self.controller.SetFrameEvent(test_marker.next.eventId, True)
 
@@ -72,7 +69,7 @@ class Overlay_Test(rdtest.TestCase):
                 if overlay == rd.DebugOverlay.ClearBeforeDraw or overlay == rd.DebugOverlay.ClearBeforePass:
                     continue
 
-                rdtest.log.print("Checking overlay {} in {} main draw".format("MSAA" if is_msaa else "normal", str(overlay)))
+                rdtest.log.print("Checking overlay {} in {} main action".format("MSAA" if is_msaa else "normal", str(overlay)))
 
                 tex.overlay = overlay
                 out.SetTextureDisplay(tex)
@@ -257,7 +254,7 @@ class Overlay_Test(rdtest.TestCase):
                 elif overlay == rd.DebugOverlay.QuadOverdrawDraw:
                     # This would require extreme command buffer patching to de-MSAA the framebuffer and renderpass
                     if api == rd.GraphicsAPI.Vulkan and is_msaa:
-                        rdtest.log.print("Quad overdraw not currently supported on MSAA on Vulkan")
+                        rdtest.log.print("Quad overdrawnot currently supported on MSAA on Vulkan")
                         continue
 
                     self.check_pixel_value(overlay_id, 150, 90, [1.0, 1.0, 1.0, 1.0], eps=eps)
@@ -391,7 +388,7 @@ class Overlay_Test(rdtest.TestCase):
                 rdtest.log.success("All normal overlays are as expected")
 
         # Check the viewport overlay especially
-        view_marker: rd.DrawcallDescription = self.find_draw("Viewport Test")
+        view_marker: rd.ActionDescription = self.find_action("Viewport Test")
 
         self.controller.SetFrameEvent(view_marker.next.eventId, True)
 
@@ -411,7 +408,7 @@ class Overlay_Test(rdtest.TestCase):
             if overlay == rd.DebugOverlay.ClearBeforeDraw or overlay == rd.DebugOverlay.ClearBeforePass:
                 continue
 
-            rdtest.log.print("Checking overlay {} in viewport draw".format(str(overlay)))
+            rdtest.log.print("Checking overlay {} in viewport action".format(str(overlay)))
 
             tex.resourceId = col_tex
             tex.overlay = overlay
@@ -430,7 +427,7 @@ class Overlay_Test(rdtest.TestCase):
             self.controller.SaveTexture(save_data, rdtest.get_tmp_path('overlay.png'))
 
             if overlay == rd.DebugOverlay.Drawcall:
-                # The drawcall overlay will show up outside the scissor region
+                # The action overlay will show up outside the scissor region
                 self.check_pixel_value(overlay_id, 50, 85, [0.8, 0.1, 0.8, 1.0], eps=eps)
                 self.check_pixel_value(overlay_id, 50, 50, [0.8, 0.1, 0.8, 1.0], eps=eps)
                 self.check_pixel_value(overlay_id, 50, 10, [0.8, 0.1, 0.8, 1.0], eps=eps)
@@ -509,7 +506,7 @@ class Overlay_Test(rdtest.TestCase):
 
         rdtest.log.success("Overlays are as expected around viewport/scissor behaviour")
 
-        test_marker: rd.DrawcallDescription = self.find_draw("Normal Test")
+        test_marker: rd.ActionDescription = self.find_action("Normal Test")
 
         # Now check clear-before-X by hand, for colour and for depth
         self.controller.SetFrameEvent(test_marker.next.eventId, True)
@@ -572,7 +569,7 @@ class Overlay_Test(rdtest.TestCase):
 
         rdtest.log.success("Clear before pass colour and depth values as expected")
 
-        # Check clear before draw
+        # Check clear before action
         tex.resourceId = col_tex
         tex.overlay = rd.DebugOverlay.ClearBeforeDraw
         out.SetTextureDisplay(tex)
@@ -607,13 +604,13 @@ class Overlay_Test(rdtest.TestCase):
         self.check_pixel_value(depth_tex, 250, 250, [1.0, 0.0/255.0, 0.0, 1.0], eps=eps)
         self.check_pixel_value(depth_tex, 50, 50, [1.0, 0.0/255.0, 0.0, 1.0], eps=eps)
 
-        rdtest.log.success("Clear before draw colour and depth values as expected")
+        rdtest.log.success("Clear before action colour and depth values as expected")
 
-        rdtest.log.success("All overlays as expected for main draw")
+        rdtest.log.success("All overlays as expected for main action")
 
         # Now test overlays on a render-to-slice/mip case
         for mip in [2, 3]:
-            sub_marker: rd.DrawcallDescription = self.find_draw("Subresources mip {}".format(mip))
+            sub_marker: rd.ActionDescription = self.find_action("Subresources mip {}".format(mip))
 
             self.controller.SetFrameEvent(sub_marker.next.eventId, True)
 

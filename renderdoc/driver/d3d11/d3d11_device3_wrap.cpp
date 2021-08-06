@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture2D1(SerialiserType &ser,
                                                      const D3D11_SUBRESOURCE_DATA *pInitialData,
                                                      ID3D11Texture2D1 **ppTexture2D)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Important();
 
   // unused, just for the sake of the user
   {
@@ -177,7 +177,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture3D1(SerialiserType &ser,
                                                      const D3D11_SUBRESOURCE_DATA *pInitialData,
                                                      ID3D11Texture3D1 **ppTexture3D)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Important();
 
   // unused, just for the sake of the user
   {
@@ -316,8 +316,8 @@ bool WrappedID3D11Device::Serialise_CreateShaderResourceView1(
     SerialiserType &ser, ID3D11Resource *pResource, const D3D11_SHADER_RESOURCE_VIEW_DESC1 *pDesc,
     ID3D11ShaderResourceView1 **ppSRView)
 {
-  SERIALISE_ELEMENT(pResource);
-  SERIALISE_ELEMENT_OPT(pDesc);
+  SERIALISE_ELEMENT(pResource).Important();
+  SERIALISE_ELEMENT_OPT(pDesc).Important();
   SERIALISE_ELEMENT_LOCAL(pView, GetIDForDeviceChild(*ppSRView))
       .TypedAs("ID3D11ShaderResourceView1 *"_lit);
 
@@ -456,8 +456,8 @@ bool WrappedID3D11Device::Serialise_CreateRenderTargetView1(SerialiserType &ser,
                                                             const D3D11_RENDER_TARGET_VIEW_DESC1 *pDesc,
                                                             ID3D11RenderTargetView1 **ppRTView)
 {
-  SERIALISE_ELEMENT(pResource);
-  SERIALISE_ELEMENT_OPT(pDesc);
+  SERIALISE_ELEMENT(pResource).Important();
+  SERIALISE_ELEMENT_OPT(pDesc).Important();
   SERIALISE_ELEMENT_LOCAL(pView, GetIDForDeviceChild(*ppRTView))
       .TypedAs("ID3D11RenderTargetView1 *"_lit);
 
@@ -593,8 +593,8 @@ bool WrappedID3D11Device::Serialise_CreateUnorderedAccessView1(
     SerialiserType &ser, ID3D11Resource *pResource, const D3D11_UNORDERED_ACCESS_VIEW_DESC1 *pDesc,
     ID3D11UnorderedAccessView1 **ppUAView)
 {
-  SERIALISE_ELEMENT(pResource);
-  SERIALISE_ELEMENT_OPT(pDesc);
+  SERIALISE_ELEMENT(pResource).Important();
+  SERIALISE_ELEMENT_OPT(pDesc).Important();
   SERIALISE_ELEMENT_LOCAL(pView, GetIDForDeviceChild(*ppUAView))
       .TypedAs("ID3D11UnorderedAccessView1 *"_lit);
 
@@ -711,7 +711,7 @@ bool WrappedID3D11Device::Serialise_CreateRasterizerState2(
     SerialiserType &ser, const D3D11_RASTERIZER_DESC2 *pRasterizerDesc,
     ID3D11RasterizerState2 **ppRasterizerState)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pRasterizerDesc);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pRasterizerDesc).Important();
   SERIALISE_ELEMENT_LOCAL(pState, GetIDForDeviceChild(*ppRasterizerState))
       .TypedAs("ID3D11RasterizerState2 *"_lit);
 
@@ -773,11 +773,15 @@ HRESULT WrappedID3D11Device::CreateRasterizerState2(const D3D11_RASTERIZER_DESC2
   {
     SCOPED_LOCK(m_D3DLock);
 
+    // need to flush pending dead now so we don't find a 'dead' wrapper below
+    FlushPendingDead();
+
     // duplicate states can be returned, if Create is called with a previous descriptor
     if(GetResourceManager()->HasWrapper(real))
     {
       real->Release();
       *ppRasterizerState = (ID3D11RasterizerState2 *)GetResourceManager()->GetWrapper(real);
+      Resurrect(*ppRasterizerState);
       (*ppRasterizerState)->AddRef();
       return ret;
     }
@@ -821,7 +825,7 @@ bool WrappedID3D11Device::Serialise_CreateQuery1(SerialiserType &ser,
                                                  const D3D11_QUERY_DESC1 *pQueryDesc,
                                                  ID3D11Query1 **ppQuery)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pQueryDesc);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pQueryDesc).Important();
   SERIALISE_ELEMENT_LOCAL(pQuery, GetIDForDeviceChild(*ppQuery)).TypedAs("ID3D11Query1 *"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();

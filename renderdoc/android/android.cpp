@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -413,7 +413,20 @@ ReplayStatus InstallRenderDocServer(const rdcstr &deviceID)
           "%s missing - ensure you build all ABIs your device can support for full compatibility",
           apk.c_str());
 
-    Process::ProcessResult adbInstall = adbExecCommand(deviceID, "install -r -g \"" + apk + "\"");
+    rdcstr api =
+        Android::adbExecCommand(deviceID, "shell getprop ro.build.version.sdk").strStdout.trimmed();
+
+    int apiVersion = atoi(api.c_str());
+
+    Process::ProcessResult adbInstall;
+    if(apiVersion >= 30)
+    {
+      adbInstall = adbExecCommand(deviceID, "install -r -g --force-queryable \"" + apk + "\"");
+    }
+    else
+    {
+      adbInstall = adbExecCommand(deviceID, "install -r -g \"" + apk + "\"");
+    }
 
     RDCLOG("Installed package '%s', checking for success...", apk.c_str());
 
@@ -1032,9 +1045,11 @@ struct AndroidController : public IDeviceProtocolHandler
 
       rdcstr package = GetRenderDocPackageForABI(abis.back());
 
+      rdcstr folderName = Android::GetFolderName(deviceID);
+
       // push settings file into our folder
       Android::adbExecCommand(deviceID, "push \"" + FileIO::GetAppFolderFilename("renderdoc.conf") +
-                                            "\" /sdcard/Android/data/" + package +
+                                            "\" /sdcard/Android/" + folderName + package +
                                             "/files/renderdoc.conf");
 
       // launch the last ABI, as the 64-bit version where possible, or 32-bit version where not.

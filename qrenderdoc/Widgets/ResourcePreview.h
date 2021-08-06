@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -66,9 +66,6 @@ public:
   void setSize(QSize s);
 
   void setSelected(bool sel);
-
-protected:
-  void changeEvent(QEvent *event) override;
 
 private:
   Ui::ResourcePreview *ui;

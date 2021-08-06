@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +24,7 @@
 
 #include <wchar.h>
 #include "common/common.h"
+#include "common/formatting.h"
 #include "os/os_specific.h"
 
 // grisu2 double-to-string function, returns number of digits written to digits array
@@ -433,12 +434,17 @@ void PrintInteger(bool typeUnsigned, uint64_t argu, int base, uint64_t numbits,
   }
 }
 
-void PrintFloat0(bool e, bool f, FormatterParams formatter, char prepend, char *&output,
-                 size_t &actualsize, char *end)
+void PrintFloat0(bool e, bool f, bool a, bool uppercaseDigits, FormatterParams formatter,
+                 char prepend, char *&output, size_t &actualsize, char *end)
 {
   int numwidth = 0;
 
-  if(e)
+  if(a && formatter.Precision == FormatterParams::NoPrecision)
+    formatter.Precision = 0;
+
+  if(a)
+    numwidth = formatter.Precision + 1 + 5;    // 0 plus precision plus 0xp+0
+  else if(e)
     numwidth = formatter.Precision + 1 + 4;    // 0 plus precision plus e+00
   else if(f || formatter.Flags & AlternateForm)
     numwidth = formatter.Precision + 1;    // 0 plus precision
@@ -446,10 +452,10 @@ void PrintFloat0(bool e, bool f, FormatterParams formatter, char prepend, char *
     numwidth = 1;
 
   // alternate form means . is included even if no digits after .
-  if(((e || f) && formatter.Precision > 0) || (formatter.Flags & AlternateForm))
+  if(((e || f || a) && formatter.Precision > 0) || (formatter.Flags & AlternateForm))
     numwidth++;    // .
 
-  if(!e && !f && (formatter.Flags & AlwaysDecimal))
+  if(!e && !f && !a && (formatter.Flags & AlwaysDecimal))
   {
     numwidth += 2;    // .0
   }
@@ -465,6 +471,9 @@ void PrintFloat0(bool e, bool f, FormatterParams formatter, char prepend, char *
 
   if(formatter.Flags & PadZeroes)
   {
+    if(a)
+      appendstring(output, actualsize, end, uppercaseDigits ? "0X" : "0x");
+
     if(prepend)
       addchar(output, actualsize, end, prepend);
     addchars(output, actualsize, end, size_t(padlen), '0');
@@ -474,11 +483,17 @@ void PrintFloat0(bool e, bool f, FormatterParams formatter, char prepend, char *
     addchars(output, actualsize, end, size_t(padlen), ' ');
     if(prepend)
       addchar(output, actualsize, end, prepend);
+
+    if(a)
+      appendstring(output, actualsize, end, uppercaseDigits ? "0X" : "0x");
   }
   else
   {
     if(prepend)
       addchar(output, actualsize, end, prepend);
+
+    if(a)
+      appendstring(output, actualsize, end, uppercaseDigits ? "0X" : "0x");
   }
 
   // print a .0 for all cases except non-alternate %g
@@ -492,6 +507,18 @@ void PrintFloat0(bool e, bool f, FormatterParams formatter, char prepend, char *
     if(e)
       appendstring(output, actualsize, end, "e+00");
   }
+  else if(a)
+  {
+    if(formatter.Precision == 0)
+    {
+      addchar(output, actualsize, end, '0');
+    }
+    else
+    {
+      appendstring(output, actualsize, end, "0.");
+      addchars(output, actualsize, end, size_t(formatter.Precision), '0');
+    }
+  }
   else
   {
     addchar(output, actualsize, end, '0');
@@ -503,13 +530,16 @@ void PrintFloat0(bool e, bool f, FormatterParams formatter, char prepend, char *
     }
   }
 
+  if(a)
+    appendstring(output, actualsize, end, "p+0");
+
   if(padlen > 0 && (formatter.Flags & LeftJustify))
   {
     addchars(output, actualsize, end, size_t(padlen), ' ');
   }
 }
 
-void PrintFloat(double argd, FormatterParams &formatter, bool e, bool f, bool g,
+void PrintFloat(double argd, FormatterParams &formatter, bool e, bool f, bool g, bool a,
                 bool uppercaseDigits, char *&output, size_t &actualsize, char *end)
 {
   // extract the pieces out of the double
@@ -531,7 +561,7 @@ void PrintFloat(double argd, FormatterParams &formatter, bool e, bool f, bool g,
   // special-case handling of printing 0
   if(rawexp == 0 && mantissa == 0)
   {
-    PrintFloat0(e, f, formatter, prepend, output, actualsize, end);
+    PrintFloat0(e, f, a, uppercaseDigits, formatter, prepend, output, actualsize, end);
   }
   // handle 'special' values, inf and nan
   else if(rawexp == 0x7ff)
@@ -546,6 +576,198 @@ void PrintFloat(double argd, FormatterParams &formatter, bool e, bool f, bool g,
     else
     {
       appendstring(output, actualsize, end, uppercaseDigits ? "NAN" : "nan");
+    }
+  }
+  else if(a)
+  {
+    char digits[18] = {0};
+    int ndigits = 0;
+
+    for(int d = 12; mantissa && d >= 0; d--)
+    {
+      const uint64_t mask = 0xfULL << (d * 4);
+      const uint64_t digit = (mantissa & mask) >> (d * 4);
+
+      char c = char('0' + digit);
+      if(digit >= 10)
+        c = char((uppercaseDigits ? 'A' : 'a') + digit - 10);
+
+      digits[ndigits++] = c;
+
+      mantissa &= ~mask;
+    }
+
+    // if no precision is specified, drop trailing 0s and ensure we don't pad or trim
+    if(formatter.Precision == FormatterParams::NoPrecision)
+    {
+      while(ndigits > 0 && digits[ndigits - 1] == '0')
+        ndigits--;
+
+      formatter.Precision = ndigits;
+    }
+
+    // hold the carry bit because if it's needed we have no decimals and need to format 0x2p+E
+    // instead of 0x1.Mp+E
+    bool carry = false;
+
+    // see if we need to trim and round
+    if(ndigits > formatter.Precision)
+    {
+      int removedigs = ndigits - formatter.Precision;
+
+      // if we're removing all digits, just check the first to see if it should be
+      // rounded up or down
+      if(removedigs == ndigits)
+      {
+        ndigits = 0;
+        // all hex digits are above '8' in ascii order, so we can do just one comparison
+        carry = (digits[0] >= '8');
+      }
+      else
+      {
+        // remove the specified number of digits
+        ndigits -= removedigs;
+
+        // round up the last digit (continually rolling up if necessary)
+        // note this will look 'ahead' into the last removed digits at first
+        carry = true;
+        for(int i = ndigits - 1; i >= 0; i--)
+        {
+          // should we round up?
+          if(digits[i + 1] >= '8')
+          {
+            digits[i + 1] = 0;
+
+            // unless current digit is an f, we can just increment it and stop
+            if(digits[i] != 'f' && digits[i] != 'F')
+            {
+              if(digits[i] != '9')
+                digits[i]++;
+              else
+                digits[i] = uppercaseDigits ? 'A' : 'a';
+              carry = false;
+              break;
+            }
+
+            // continue (carry to next digit)
+          }
+          else
+          {
+            // didn't need to round up, everything's fine.
+            carry = false;
+            break;
+          }
+
+          // trim off a digit (was an f/F)
+          ndigits--;
+          continue;
+        }
+      }
+    }
+
+    if(digits[0] == '0' && !carry && ndigits == 0)
+    {
+      // if we rounded off to a 0.0, print it with special handling
+      PrintFloat0(e, f, a, uppercaseDigits, formatter, prepend, output, actualsize, end);
+    }
+
+    int padtrailing0s = formatter.Precision - ndigits;
+
+    {
+      int numwidth = 0;
+
+      // first calculate the width of the produced output, so we can calculate any padding
+
+      numwidth = 3;           // 0x1
+      numwidth += ndigits;    // post-decimal digits
+      if(ndigits > 0 || (formatter.Flags & AlternateForm) || padtrailing0s > 0)
+        numwidth++;    // '.'
+      numwidth += padtrailing0s;
+      numwidth += 2;    // 'p+' or 'p-'
+      if(exponent >= 0xff || exponent <= -0xff)
+        numwidth += 3;
+      else if(exponent >= 0xf || exponent <= -0xf)
+        numwidth += 2;
+      else
+        numwidth += 1;
+      if(prepend)
+        numwidth++;    // +, - or ' '
+
+      int padlen = 0;
+
+      if(formatter.Width != FormatterParams::NoWidth && formatter.Width > numwidth)
+        padlen = formatter.Width - numwidth;
+
+      // pad with 0s or ' 's and insert the sign character
+      if(formatter.Flags & PadZeroes)
+      {
+        if(a)
+          appendstring(output, actualsize, end, uppercaseDigits ? "0X" : "0x");
+
+        if(prepend)
+          addchar(output, actualsize, end, prepend);
+        addchars(output, actualsize, end, size_t(padlen), '0');
+      }
+      else if(padlen > 0 && (formatter.Flags & LeftJustify) == 0)
+      {
+        addchars(output, actualsize, end, size_t(padlen), ' ');
+        if(prepend)
+          addchar(output, actualsize, end, prepend);
+
+        if(a)
+          appendstring(output, actualsize, end, uppercaseDigits ? "0X" : "0x");
+      }
+      else
+      {
+        if(prepend)
+          addchar(output, actualsize, end, prepend);
+
+        if(a)
+          appendstring(output, actualsize, end, uppercaseDigits ? "0X" : "0x");
+      }
+
+      if(carry)
+        addchar(output, actualsize, end, '2');
+      else
+        addchar(output, actualsize, end, '1');
+
+      // insert the decimals
+      if(ndigits > 0 || (formatter.Flags & AlternateForm) || padtrailing0s > 0)
+        addchar(output, actualsize, end, '.');
+      for(int i = 0; i < ndigits; i++)
+        addchar(output, actualsize, end, digits[i]);
+
+      // add the trailing 0s here
+      if(padtrailing0s > 0)
+        addchars(output, actualsize, end, size_t(padtrailing0s), '0');
+
+      // print the p+XXX exponential
+      addchar(output, actualsize, end, uppercaseDigits ? 'P' : 'p');
+      if(exponent >= 0)
+        addchar(output, actualsize, end, '+');
+      else
+        addchar(output, actualsize, end, '-');
+
+      int exponaccum = exponent >= 0 ? exponent : -exponent;
+
+      if(exponaccum >= 1000)
+        addchar(output, actualsize, end, '0' + char(exponaccum / 1000));
+      exponaccum %= 1000;
+
+      if(exponaccum >= 100)
+        addchar(output, actualsize, end, '0' + char(exponaccum / 100));
+      exponaccum %= 100;
+
+      if(exponaccum >= 10)
+        addchar(output, actualsize, end, '0' + char(exponaccum / 10));
+      exponaccum %= 10;
+
+      addchar(output, actualsize, end, '0' + char(exponaccum));
+
+      if(padlen > 0 && (formatter.Flags & LeftJustify))
+      {
+        addchars(output, actualsize, end, size_t(padlen), ' ');
+      }
     }
   }
   else
@@ -763,7 +985,7 @@ void PrintFloat(double argd, FormatterParams &formatter, bool e, bool f, bool g,
     else if(digits[0] == '0' && ndigits == 1)
     {
       // if we rounded off to a 0.0, print it with special handling
-      PrintFloat0(e, f, formatter, prepend, output, actualsize, end);
+      PrintFloat0(e, f, a, uppercaseDigits, formatter, prepend, output, actualsize, end);
     }
     else
     {
@@ -1151,19 +1373,25 @@ void formatargument(char type, void *rawarg, FormatterParams formatter, char *&o
     PrintInteger(typeUnsigned, argu, base, numbits, formatter, uppercaseDigits, output, actualsize,
                  end);
   }
-  else if(type == 'e' || type == 'E' || type == 'f' || type == 'F' || type == 'g' || type == 'G'
-          //|| type == 'a' || type == 'A' // hex floats not supported
-          )
+  else if(type == 'e' || type == 'E' || type == 'f' || type == 'F' || type == 'g' || type == 'G' ||
+          type == 'a' || type == 'A')
   {
     bool uppercaseDigits = type < 'a';
     double argd = *(double *)rawarg;
 
-    if(formatter.Precision == FormatterParams::NoPrecision)
+    bool e = (type == 'e' || type == 'E');
+    bool f = (type == 'f' || type == 'F');
+    bool g = (type == 'g' || type == 'G');
+    bool a = (type == 'a' || type == 'A');
+
+    if(!a && formatter.Precision == FormatterParams::NoPrecision)
+    {
       formatter.Precision = 6;
 
-    formatter.Precision = RDCMAX(0, formatter.Precision);
+      formatter.Precision = RDCMAX(0, formatter.Precision);
+    }
 
-    if(formatter.Precision == 0)
+    if(!a && formatter.Precision == 0)
     {
       if(argd > 0.0f && argd < 1.0f)
         argd = argd < 0.5f ? 0.0f : 1.0f;
@@ -1171,20 +1399,80 @@ void formatargument(char type, void *rawarg, FormatterParams formatter, char *&o
         argd = argd > -0.5f ? 0.0f : -1.0f;
     }
 
-    bool e = (type == 'e' || type == 'E');
-    bool f = (type == 'f' || type == 'F');
-    bool g = (type == 'g' || type == 'G');
-
-    PrintFloat(argd, formatter, e, f, g, uppercaseDigits, output, actualsize, end);
-  }
-  else
-  {
-    // Unrecognised format specifier
-    RDCDUMPMSG("Unrecognised % formatter");
+    PrintFloat(argd, formatter, e, f, g, a, uppercaseDigits, output, actualsize, end);
   }
 }
 
-int utf8printv(char *buf, size_t bufsize, const char *fmt, va_list args)
+struct va_arg_getter
+{
+  va_list list;
+  va_arg_getter(va_list l) { va_copy(list, l); }
+  template <typename T>
+  inline T get_next()
+  {
+    return va_arg(list, T);
+  }
+
+  void error(const char *err) {}
+};
+
+struct custom_arg_getter
+{
+  StringFormat::Args &formatter;
+  custom_arg_getter(StringFormat::Args &f) : formatter(f) {}
+  template <typename T>
+  inline T get_next();
+
+  void error(const char *err) { formatter.error(err); }
+};
+
+template <>
+inline int custom_arg_getter::get_next<int>()
+{
+  return formatter.get_int();
+}
+template <>
+inline unsigned int custom_arg_getter::get_next<unsigned int>()
+{
+  return formatter.get_uint();
+}
+template <>
+inline double custom_arg_getter::get_next<double>()
+{
+  return formatter.get_double();
+}
+template <>
+inline void *custom_arg_getter::get_next<void *>()
+{
+  return formatter.get_ptr();
+}
+template <>
+inline uint64_t custom_arg_getter::get_next<uint64_t>()
+{
+  return formatter.get_uint64();
+}
+#if ENABLED(RDOC_SIZET_SEP_TYPE)
+template <>
+inline size_t custom_arg_getter::get_next<size_t>()
+{
+  return formatter.get_size();
+}
+#endif
+
+int utf8print_error(char *buf, size_t bufsize, const char *str)
+{
+  // copy the string with no formatting in the error case
+  size_t ret = strlen(str);
+  if(bufsize > 0)
+  {
+    memcpy(buf, str, RDCMIN(bufsize - 1, ret));
+    buf[RDCMIN(bufsize - 1, ret)] = 0;
+  }
+  return int(ret);
+}
+
+template <typename arg_getter>
+int utf8print_template(char *buf, size_t bufsize, const char *fmt, arg_getter args)
 {
   // format, buffer and string arguments are assumed to be UTF-8 (except wide strings).
   // note that since the format specifiers are entirely ascii, we can byte-copy safely and handle
@@ -1204,7 +1492,10 @@ int utf8printv(char *buf, size_t bufsize, const char *fmt, va_list args)
       iter++;
 
       if(*iter == 0)
-        RDCDUMPMSG("unterminated formatter (should be %% if you want a literal %)");
+      {
+        args.error("unterminated formatter (should be %% if you want a literal %)");
+        return utf8print_error(buf, bufsize, fmt);
+      }
 
       if(*iter == '%')    // %% found, insert single % and continue copying
       {
@@ -1279,7 +1570,10 @@ int utf8printv(char *buf, size_t bufsize, const char *fmt, va_list args)
 
         // unterminated formatter
         if(*iter == 0)
-          RDCDUMPMSG("Unterminated % formatter found after width");
+        {
+          args.error("Unterminated % formatter found after width");
+          return utf8print_error(buf, bufsize, fmt);
+        }
       }
       else
       {
@@ -1295,25 +1589,36 @@ int utf8printv(char *buf, size_t bufsize, const char *fmt, va_list args)
       {
         iter++;
 
-        // invalid character following '.' it should be an integer
         // note standard printf supports * here to read precision from a vararg
-        if(*iter < '0' || *iter > '9')
-          RDCDUMPMSG("Unexpected character expecting precision");
-
-        formatter.Precision = int(*iter - '0');
-        iter++;    // step to next character
-
-        // continue while encountering digits, accumulating into width
-        while(*iter >= '0' && *iter <= '9')
+        if(*iter == '*')
         {
-          formatter.Precision *= 10;
-          formatter.Precision += int(*iter - '0');
-          iter++;
+          RDCDUMPMSG("Unexpected character * expecting precision");
         }
+        // if there's no value for the precision, it is 0
+        else if(*iter < '0' || *iter > '9')
+        {
+          formatter.Precision = 0;
+        }
+        else
+        {
+          formatter.Precision = int(*iter - '0');
+          iter++;    // step to next character
 
-        // unterminated formatter
-        if(*iter == 0)
-          RDCDUMPMSG("Unterminated % formatter found after precision");
+          // continue while encountering digits, accumulating into width
+          while(*iter >= '0' && *iter <= '9')
+          {
+            formatter.Precision *= 10;
+            formatter.Precision += int(*iter - '0');
+            iter++;
+          }
+
+          // unterminated formatter
+          if(*iter == 0)
+          {
+            args.error("Unterminated % formatter found after precision");
+            return utf8print_error(buf, bufsize, fmt);
+          }
+        }
       }
       else
       {
@@ -1369,17 +1674,18 @@ int utf8printv(char *buf, size_t bufsize, const char *fmt, va_list args)
     if(type == 'c')
     {
       int *i = (int *)arg;
-      *i = va_arg(args, int);
+      *i = args.template get_next<int>();
     }
     else if(type == 's' || type == 'p')
     {
       void **p = (void **)arg;
-      *p = va_arg(args, void *);
+      *p = args.template get_next<void *>();
     }
-    else if(type == 'e' || type == 'E' || type == 'f' || type == 'F' || type == 'g' || type == 'G')
+    else if(type == 'e' || type == 'E' || type == 'f' || type == 'F' || type == 'g' ||
+            type == 'G' || type == 'a' || type == 'A')
     {
       double *i = (double *)arg;
-      *i = va_arg(args, double);
+      *i = args.template get_next<double>();
     }
     else if(type == 'b' || type == 'B' || type == 'o' || type == 'x' || type == 'X' ||
             type == 'd' || type == 'i' || type == 'u')
@@ -1387,22 +1693,23 @@ int utf8printv(char *buf, size_t bufsize, const char *fmt, va_list args)
       if(formatter.Length == LongLong)
       {
         uint64_t *ull = (uint64_t *)arg;
-        *ull = va_arg(args, uint64_t);
+        *ull = args.template get_next<uint64_t>();
       }
       else if(formatter.Length == SizeT)
       {
         size_t *s = (size_t *)arg;
-        *s = va_arg(args, size_t);
+        *s = args.template get_next<size_t>();
       }
       else
       {
         unsigned int *u = (unsigned int *)arg;
-        *u = va_arg(args, unsigned int);
+        *u = args.template get_next<unsigned int>();
       }
     }
     else
     {
-      RDCDUMPMSG("Unrecognised % formatter");
+      args.error("Unrecognised % formatter");
+      return utf8print_error(buf, bufsize, fmt);
     }
 
     formatargument(type, arg, formatter, output, actualsize, end);
@@ -1456,16 +1763,29 @@ int utf8printv(char *buf, size_t bufsize, const char *fmt, va_list args)
   return int(actualsize);
 }
 
-int utf8printf(char *str, size_t bufSize, const char *fmt, ...)
+int utf8printv(char *buf, size_t bufSize, const char *fmt, va_list args)
+{
+  va_arg_getter getter(args);
+  return utf8print_template(buf, bufSize, fmt, getter);
+}
+
+int utf8printf(char *buf, size_t bufSize, const char *fmt, ...)
 {
   va_list args;
   va_start(args, fmt);
 
-  int ret = utf8printv(str, bufSize, fmt, args);
+  va_arg_getter getter(args);
+  int ret = utf8print_template(buf, bufSize, fmt, getter);
 
   va_end(args);
 
   return ret;
+}
+
+int utf8printf_custom(char *buf, size_t bufSize, const char *fmt, StringFormat::Args &args)
+{
+  custom_arg_getter getter(args);
+  return utf8print_template(buf, bufSize, fmt, getter);
 }
 
 #if ENABLED(ENABLE_UNIT_TESTS)
@@ -1614,6 +1934,24 @@ TEST_CASE("utf8printf buffer sizing", "[utf8printf]")
       CHECK(memcmp(bufb, refb, sizeof(refb)) == 0);
     }
   };
+};
+
+TEST_CASE("utf8printf error cases", "[utf8printf]")
+{
+  // unrecognised format type (covers most errors where an invalid character happens after optional
+  // precision stuff
+  CHECK(StringFormat::Fmt("%f foo %s: %q", 1.234f, "blah", 777) == "%f foo %s: %q");
+  CHECK(StringFormat::Fmt("%f foo %s: %8q", 1.234f, "blah", 777) == "%f foo %s: %8q");
+  CHECK(StringFormat::Fmt("%f foo %s: %1.8q", 1.234f, "blah", 777) == "%f foo %s: %1.8q");
+
+  // unterminated % at the end of the string
+  CHECK(StringFormat::Fmt("%f foo %s: %", 1.234f, "blah", 777) == "%f foo %s: %");
+  CHECK(StringFormat::Fmt("%f foo %s: %8", 1.234f, "blah", 777) == "%f foo %s: %8");
+  CHECK(StringFormat::Fmt("%f foo %s: %1.8", 1.234f, "blah", 777) == "%f foo %s: %1.8");
+  CHECK(StringFormat::Fmt("%f foo %s: %1.", 1.234f, "blah", 777) == "%f foo %s: %1.");
+
+  // precision as vararg
+  CHECK(StringFormat::Fmt("%f foo %*s", 1.234f, "blah", 777) == "%f foo %*s");
 };
 
 TEST_CASE("utf8printf standard string formatters", "[utf8printf]")
@@ -1840,6 +2178,40 @@ TEST_CASE("utf8printf printing floats", "[utf8printf]")
     CHECK(StringFormat::Fmt("%F", negone / zero) == "-INF");
     CHECK(StringFormat::Fmt("%F", sqrt(negone)) == "NAN");
     CHECK(StringFormat::Fmt("%F", -sqrt(negone)) == "NAN");
+
+    CHECK(StringFormat::Fmt("%g", one / zero) == "+inf");
+    CHECK(StringFormat::Fmt("%g", negone / zero) == "-inf");
+    CHECK(StringFormat::Fmt("%g", sqrt(negone)) == "nan");
+    CHECK(StringFormat::Fmt("%g", -sqrt(negone)) == "nan");
+
+    CHECK(StringFormat::Fmt("%G", one / zero) == "+INF");
+    CHECK(StringFormat::Fmt("%G", negone / zero) == "-INF");
+    CHECK(StringFormat::Fmt("%G", sqrt(negone)) == "NAN");
+    CHECK(StringFormat::Fmt("%G", -sqrt(negone)) == "NAN");
+
+    CHECK(StringFormat::Fmt("%e", one / zero) == "+inf");
+    CHECK(StringFormat::Fmt("%e", negone / zero) == "-inf");
+    CHECK(StringFormat::Fmt("%e", sqrt(negone)) == "nan");
+    CHECK(StringFormat::Fmt("%e", -sqrt(negone)) == "nan");
+
+    CHECK(StringFormat::Fmt("%E", one / zero) == "+INF");
+    CHECK(StringFormat::Fmt("%E", negone / zero) == "-INF");
+    CHECK(StringFormat::Fmt("%E", sqrt(negone)) == "NAN");
+    CHECK(StringFormat::Fmt("%E", -sqrt(negone)) == "NAN");
+
+    CHECK(StringFormat::Fmt("%a", one / zero) == "+inf");
+    CHECK(StringFormat::Fmt("%a", negone / zero) == "-inf");
+    CHECK(StringFormat::Fmt("%a", sqrt(negone)) == "nan");
+    CHECK(StringFormat::Fmt("%a", -sqrt(negone)) == "nan");
+
+    CHECK(StringFormat::Fmt("%A", one / zero) == "+INF");
+    CHECK(StringFormat::Fmt("%A", negone / zero) == "-INF");
+    CHECK(StringFormat::Fmt("%A", sqrt(negone)) == "NAN");
+    CHECK(StringFormat::Fmt("%A", -sqrt(negone)) == "NAN");
+
+    // subnormal value
+    CHECK(StringFormat::Fmt("%.8e", 1.23456789e-310) == "1.23456789e-310");
+    CHECK(StringFormat::Fmt("%.8e", -1.23456789e-310) == "-1.23456789e-310");
   }
 
   SECTION("Basic numbers as %f")
@@ -1944,6 +2316,66 @@ TEST_CASE("utf8printf printing floats", "[utf8printf]")
     CHECK(StringFormat::Fmt("%10.3f", 1.0) == "     1.000");
     CHECK(StringFormat::Fmt("%-10.3f", 1.0) == "1.000     ");
     CHECK(StringFormat::Fmt("%010.3f", 1.0) == "000001.000");
+  };
+
+  SECTION("Hex float printing")
+  {
+    SECTION("Basics")
+    {
+      CHECK(StringFormat::Fmt("%a", 0.0) == "0x0p+0");
+      CHECK(StringFormat::Fmt("%a", 1.0) == "0x1p+0");
+      CHECK(StringFormat::Fmt("%a", 2.0) == "0x1p+1");
+      CHECK(StringFormat::Fmt("%a", 3.0) == "0x1.8p+1");
+      CHECK(StringFormat::Fmt("%a", 5.0) == "0x1.4p+2");
+      CHECK(StringFormat::Fmt("%a", 0.1) == "0x1.999999999999ap-4");
+      CHECK(StringFormat::Fmt("%a", 0.2) == "0x1.999999999999ap-3");
+      CHECK(StringFormat::Fmt("%a", 0.25) == "0x1p-2");
+      CHECK(StringFormat::Fmt("%a", 0.75) == "0x1.8p-1");
+      CHECK(StringFormat::Fmt("%a", 1.234567890123456) == "0x1.3c0ca428c59f8p+0");
+      CHECK(StringFormat::Fmt("%a", 1.234567123456) == "0x1.3c0c974bf5d73p+0");
+      CHECK(StringFormat::Fmt("%a", 12345671234.56) == "0x1.6fedff2147ae1p+33");
+      CHECK(StringFormat::Fmt("%a", 12345671234.56e+20) == "0x1.f2a33fa95047cp+99");
+      CHECK(StringFormat::Fmt("%a", 12345671234.56e-20) == "0x1.0f7bf351a448p-33");
+
+      CHECK(StringFormat::Fmt("%A", 1.234567890123456) == "0X1.3C0CA428C59F8P+0");
+      CHECK(StringFormat::Fmt("%A", 1.234567123456) == "0X1.3C0C974BF5D73P+0");
+      CHECK(StringFormat::Fmt("%A", 12345671234.56) == "0X1.6FEDFF2147AE1P+33");
+      CHECK(StringFormat::Fmt("%A", 12345671234.56e+20) == "0X1.F2A33FA95047CP+99");
+      CHECK(StringFormat::Fmt("%A", 12345671234.56e-20) == "0X1.0F7BF351A448P-33");
+    };
+
+    SECTION("Padding")
+    {
+      CHECK(StringFormat::Fmt("%10.3a", 1.2345) == "0x1.3c1p+0");
+      CHECK(StringFormat::Fmt("%15.3a", 1.2345) == "     0x1.3c1p+0");
+      CHECK(StringFormat::Fmt("%-15.3a", 1.2345) == "0x1.3c1p+0     ");
+      CHECK(StringFormat::Fmt("%015.3a", 1.2345) == "0x000001.3c1p+0");
+    };
+
+    SECTION("Precision")
+    {
+      CHECK(StringFormat::Fmt("%.3a", 0.0) == "0x0.000p+0");
+      CHECK(StringFormat::Fmt("%.3a", 1.0) == "0x1.000p+0");
+      CHECK(StringFormat::Fmt("%.3a", 2.0) == "0x1.000p+1");
+      CHECK(StringFormat::Fmt("%.3a", 0.1) == "0x1.99ap-4");
+      CHECK(StringFormat::Fmt("%.3a", 0.2) == "0x1.99ap-3");
+      CHECK(StringFormat::Fmt("%.3a", 1.2313) == "0x1.3b3p+0");
+
+      CHECK(StringFormat::Fmt("%.0a", 0.0) == "0x0p+0");
+
+      CHECK(StringFormat::Fmt("%.1a", 0.2) == "0x1.ap-3");
+      CHECK(StringFormat::Fmt("%.0a", 0.2) == "0x2p-3");
+      CHECK(StringFormat::Fmt("%.a", 0.2) == "0x2p-3");
+    };
+
+    SECTION("Rounding")
+    {
+      CHECK(StringFormat::Fmt("%.5a", 0.12345) == "0x1.f9a6bp-4");
+      CHECK(StringFormat::Fmt("%.6a", 0.12345) == "0x1.f9a6b5p-4");
+
+      CHECK(StringFormat::Fmt("%.5a", 0.12345002) == "0x1.f9a6cp-4");
+      CHECK(StringFormat::Fmt("%.6a", 0.12345002) == "0x1.f9a6bap-4");
+    };
   };
 };
 

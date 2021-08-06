@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,7 @@
 
 namespace JDWP
 {
-// short helper functions to read/write vectors - always preceeded by an int length
+// short helper functions to read/write vectors - always preceded by an int length
 template <typename inner>
 void ReadVector(CommandData &data, rdcarray<inner> &vec,
                 std::function<void(CommandData &data, inner &i)> process)
@@ -89,7 +89,7 @@ bool Connection::SendReceive(Command &cmd)
   CommandSet sentSet = cmd.commandset;
   byte sentCmd = cmd.command;
 
-  // send the command, and recieve the reply back into the same object.
+  // send the command, and receive the reply back into the same object.
   // save the auto-generated ID for this command so we can compare it to the reply - we expect a
   // synchronous reply, no other commands in the way.
   uint32_t id = cmd.Send(writer);

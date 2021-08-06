@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -40,11 +40,21 @@ struct dds_data
   bool cubemap;
 
   ResourceFormat format;
+};
 
-  byte **subdata;
-  uint32_t *subsizes;
+struct read_dds_data : public dds_data
+{
+  bytebuf buffer;
+
+  // pairs of {offset, size} into above data buffer
+  rdcarray<rdcpair<size_t, size_t>> subresources;
+};
+
+struct write_dds_data : public dds_data
+{
+  rdcarray<byte *> subresources;
 };
 
 extern bool is_dds_file(byte *headerBuffer, size_t size);
-extern dds_data load_dds_from_file(StreamReader *reader);
-extern bool write_dds_to_file(FILE *f, const dds_data &data);
+extern read_dds_data load_dds_from_file(StreamReader *reader);
+extern bool write_dds_to_file(FILE *f, const write_dds_data &data);

@@ -634,6 +634,7 @@
     <ClCompile Include="$(IntDir)generated\moc_LiveCapture.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_EnvironmentEditor.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_OrderedListEditor.cpp" />
+    <ClCompile Include="$(IntDir)generated\moc_MarkerBreadcrumbs.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_RemoteManager.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_ExtensionManager.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_PerformanceCounterSelection.cpp" />
@@ -674,6 +675,7 @@
     </ClCompile>
     <ClCompile Include="$(IntDir)generated\moc_SettingsDialog.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_ShaderViewer.cpp" />
+    <ClCompile Include="$(IntDir)generated\moc_ShaderMessageViewer.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_PythonShell.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_PixelHistoryView.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_StatisticsViewer.cpp" />
@@ -733,6 +735,7 @@
     <ClCompile Include="Widgets\ThumbnailStrip.cpp" />
     <ClCompile Include="Widgets\ReplayOptionsSelector.cpp" />
     <ClCompile Include="Widgets\OrderedListEditor.cpp" />
+    <ClCompile Include="Widgets\MarkerBreadcrumbs.cpp" />
     <ClCompile Include="Code\CaptureContext.cpp" />
     <ClCompile Include="Styles\RDStyle\RDStyle.cpp" />
     <ClCompile Include="Styles\StyleData.cpp" />
@@ -778,6 +781,7 @@
     <ClCompile Include="Windows\PipelineState\PipelineStateViewer.cpp" />
     <ClCompile Include="Windows\PipelineState\VulkanPipelineStateViewer.cpp" />
     <ClCompile Include="Windows\ShaderViewer.cpp" />
+    <ClCompile Include="Windows\ShaderMessageViewer.cpp" />
     <ClCompile Include="Windows\PythonShell.cpp" />
     <ClCompile Include="Windows\PixelHistoryView.cpp" />
     <ClCompile Include="Windows\PerformanceCounterViewer.cpp" />
@@ -973,6 +977,7 @@
     <ClInclude Include="$(IntDir)generated\ui_ResourcePreview.h" />
     <ClInclude Include="$(IntDir)generated\ui_SettingsDialog.h" />
     <ClInclude Include="$(IntDir)generated\ui_ShaderViewer.h" />
+    <ClInclude Include="$(IntDir)generated\ui_ShaderMessageViewer.h" />
     <ClInclude Include="$(IntDir)generated\ui_PythonShell.h" />
     <ClInclude Include="$(IntDir)generated\ui_PixelHistoryView.h" />
     <ClInclude Include="$(IntDir)generated\ui_PerformanceCounterViewer.h" />
@@ -1167,6 +1172,12 @@
       <Message>MOC %(Filename).h</Message>
       <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
     </CustomBuild>
+    <CustomBuild Include="Widgets\MarkerBreadcrumbs.h">
+      <AdditionalInputs>%(Fullpath);$(QtBinDir)\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>"$(QtBinDir)\moc.exe" -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I"$(ProjectDir)." -I"$(SolutionDir)\renderdoc\api\replay" -I"$(QtIncludeDir)" -I"$(QtIncludeDir)\QtWidgets" -I"$(QtIncludeDir)\QtGui" -I"$(QtIncludeDir)\QtCore" "%(Fullpath)" -o "$(IntDir)generated\moc_%(Filename).cpp"</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
     <CustomBuild Include="Windows\APIInspector.h">
       <AdditionalInputs>%(Fullpath);$(QtBinDir)\moc.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>"$(QtBinDir)\moc.exe" -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I"$(ProjectDir)." -I"$(SolutionDir)\renderdoc\api\replay" -I"$(QtIncludeDir)" -I"$(QtIncludeDir)\QtWidgets" -I"$(QtIncludeDir)\QtGui" -I"$(QtIncludeDir)\QtCore" "%(Fullpath)" -o "$(IntDir)generated\moc_%(Filename).cpp"</Command>
@@ -1354,6 +1365,12 @@
       <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
     </CustomBuild>
     <CustomBuild Include="Windows\ShaderViewer.h">
+      <AdditionalInputs>%(Fullpath);$(QtBinDir)\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>"$(QtBinDir)\moc.exe" -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I"$(ProjectDir)." -I"$(SolutionDir)\renderdoc\api\replay" -I"$(QtIncludeDir)" -I"$(QtIncludeDir)\QtWidgets" -I"$(QtIncludeDir)\QtGui" -I"$(QtIncludeDir)\QtCore" "%(Fullpath)" -o "$(IntDir)generated\moc_%(Filename).cpp"</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\ShaderMessageViewer.h">
       <AdditionalInputs>%(Fullpath);$(QtBinDir)\moc.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>"$(QtBinDir)\moc.exe" -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I"$(ProjectDir)." -I"$(SolutionDir)\renderdoc\api\replay" -I"$(QtIncludeDir)" -I"$(QtIncludeDir)\QtWidgets" -I"$(QtIncludeDir)\QtGui" -I"$(QtIncludeDir)\QtCore" "%(Fullpath)" -o "$(IntDir)generated\moc_%(Filename).cpp"</Command>
       <Message>MOC %(Filename).h</Message>
@@ -1644,6 +1661,12 @@
       <Message>UIC %(Filename).ui</Message>
       <Outputs>$(IntDir)generated\ui_%(Filename).h</Outputs>
     </CustomBuild>
+    <CustomBuild Include="Windows\ShaderMessageViewer.ui">
+      <AdditionalInputs>%(Fullpath);$(QtBinDir)\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>"$(QtBinDir)\uic.exe" "%(Fullpath)" -o "$(IntDir)generated\ui_%(Filename).h"</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>$(IntDir)generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
     <CustomBuild Include="Windows\PythonShell.ui">
       <AdditionalInputs>%(Fullpath);$(QtBinDir)\uic.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>"$(QtBinDir)\uic.exe" "%(Fullpath)" -o "$(IntDir)generated\ui_%(Filename).h"</Command>
@@ -1797,6 +1820,26 @@ IF %ERRORLEVEL% NEQ 0 (echo ====================================================
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
     </Content>
+    <Content Include="$(QtBinDir)\libcrypto-1_1.dll" Condition="Exists('$(QtBinDir)\libcrypto-1_1.dll') AND '$(Platform)'=='Win32'">
+      <Link>libcrypto-1_1.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="$(QtBinDir)\libssl-1_1.dll" Condition="Exists('$(QtBinDir)\libssl-1_1.dll') AND '$(Platform)'=='Win32'">
+      <Link>libssl-1_1.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="$(QtBinDir)\libcrypto-1_1-x64.dll" Condition="Exists('$(QtBinDir)\libcrypto-1_1-x64.dll') AND '$(Platform)'=='x64'">
+      <Link>libcrypto-1_1-x64.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="$(QtBinDir)\libssl-1_1-x64.dll" Condition="Exists('$(QtBinDir)\libssl-1_1-x64.dll') AND '$(Platform)'=='x64'">
+      <Link>libssl-1_1-x64.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
     <Content Include="$(QtBinDir)\libeay32.dll" Condition="Exists('$(QtBinDir)\libeay32.dll')">
       <Link>libeay32.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -1905,18 +1948,34 @@ IF %ERRORLEVEL% NEQ 0 (echo ====================================================
     <Image Include="Resources\control_nan_blue.png" />
     <Image Include="Resources\control_play_blue%402x.png" />
     <Image Include="Resources\control_play_blue.png" />
+    <Image Include="Resources\control_reverse_base_blue%402x.png" />
+    <Image Include="Resources\control_reverse_base_blue.png" />
     <Image Include="Resources\control_reverse_blue%402x.png" />
     <Image Include="Resources\control_reverse_blue.png" />
+    <Image Include="Resources\control_reverse_cursor_blue%402x.png" />
+    <Image Include="Resources\control_reverse_cursor_blue.png" />
+    <Image Include="Resources\control_reverse_nan_blue%402x.png" />
+    <Image Include="Resources\control_reverse_nan_blue.png" />
+    <Image Include="Resources\control_reverse_sample_blue%402x.png" />
+    <Image Include="Resources\control_reverse_sample_blue.png" />
     <Image Include="Resources\control_sample_blue%402x.png" />
     <Image Include="Resources\control_sample_blue.png" />
     <Image Include="Resources\control_start_blue%402x.png" />
     <Image Include="Resources\control_start_blue.png" />
+    <Image Include="Resources\copy%402x.png" />
+    <Image Include="Resources\copy.png" />
     <Image Include="Resources\cross%402x.png" />
     <Image Include="Resources\cross.png" />
+    <Image Include="Resources\cut%402x.png" />
+    <Image Include="Resources\cut.png" />
     <Image Include="Resources\del%402x.png" />
     <Image Include="Resources\del.png" />
     <Image Include="Resources\disconnect%402x.png" />
     <Image Include="Resources\disconnect.png" />
+    <Image Include="Resources\filter%402x.png" />
+    <Image Include="Resources\filter.png" />
+    <Image Include="Resources\filter_reapply%402x.png" />
+    <Image Include="Resources\filter_reapply.png" />
     <Image Include="Resources\find%402x.png" />
     <Image Include="Resources\find.png" />
     <Image Include="Resources\flag_green%402x.png" />
@@ -1950,10 +2009,18 @@ IF %ERRORLEVEL% NEQ 0 (echo ====================================================
     <Image Include="Resources\page_white_link.png" />
     <Image Include="Resources\page_white_stack%402x.png" />
     <Image Include="Resources\page_white_stack.png" />
+    <Image Include="Resources\paste%402x.png" />
+    <Image Include="Resources\paste.png" />
+    <Image Include="Resources\pixel_history%402x.png" />
+    <Image Include="Resources\pixel_history.png" />
+    <Image Include="Resources\plugin%402x.png" />
+    <Image Include="Resources\plugin.png" />
     <Image Include="Resources\plugin_add%402x.png" />
     <Image Include="Resources\plugin_add.png" />
     <Image Include="Resources\save%402x.png" />
     <Image Include="Resources\save.png" />
+    <Image Include="Resources\text_add%402x.png" />
+    <Image Include="Resources\text_add.png" />
     <Image Include="Resources\tick%402x.png" />
     <Image Include="Resources\tick.png" />
     <Image Include="Resources\time%402x.png" />

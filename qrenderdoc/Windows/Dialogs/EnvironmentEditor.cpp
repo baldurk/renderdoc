@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -88,7 +88,7 @@ EnvironmentEditor::EnvironmentEditor(QWidget *parent)
 
   ui->variables->sortByColumn(0, Qt::DescendingOrder);
 
-  ui->variables->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+  ui->variables->setFont(Formatter::FixedFont());
 }
 
 EnvironmentEditor::~EnvironmentEditor()

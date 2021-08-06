@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -53,7 +53,7 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
   unsigned int m_iRefcount;
   bool m_Inited;
   RDCThumb m_Thumb;
-  dds_data m_ddsData;
+  read_dds_data m_ddsData;
 
   RDCThumbnailProvider() : m_iRefcount(1), m_Inited(false) { InterlockedIncrement(&numProviders); }
   virtual ~RDCThumbnailProvider() { InterlockedDecrement(&numProviders); }
@@ -140,7 +140,7 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
       StreamReader reader(captureHeader.data(), (ULONG)size);
       m_ddsData = load_dds_from_file(&reader);
 
-      if(m_ddsData.subdata == NULL)
+      if(m_ddsData.subresources.empty())
       {
         return E_INVALIDARG;
       }
@@ -148,18 +148,13 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
       // bitmap.
       m_Thumb.height = (uint16_t)m_ddsData.height;
       m_Thumb.width = (uint16_t)m_ddsData.width;
-      size_t len = m_ddsData.subsizes[0];    // size of slice 0
-      m_Thumb.pixels.resize(len);
-      memcpy(m_Thumb.pixels.data(), m_ddsData.subdata[0], len);    // slice 0
-      m_Thumb.format = FileType::DDS;
 
-      // We don't need any other data
-      for(uint32_t i = 0; i < m_ddsData.slices * m_ddsData.mips; i++)
-      {
-        delete[] m_ddsData.subdata[i];
-      }
-      delete[] m_ddsData.subsizes;
-      delete[] m_ddsData.subdata;
+      // size of slice 0
+      size_t len = m_ddsData.subresources[0].second;
+      m_Thumb.pixels.resize(len);
+      // slice 0 data
+      memcpy(m_Thumb.pixels.data(), m_ddsData.buffer.data() + m_ddsData.subresources[0].first, len);
+      m_Thumb.format = FileType::DDS;
     }
     else
     {

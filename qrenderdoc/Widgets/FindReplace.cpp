@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -40,6 +40,9 @@ FindReplace::FindReplace(QWidget *parent) : QFrame(parent), ui(new Ui::FindRepla
 
   RDLineEdit *edit = new RDLineEdit(this);
   ui->findText->setLineEdit(edit);
+
+  ui->findText->setAutoCompletion(false);
+  ui->replaceText->setAutoCompletion(false);
 
   QObject::connect(edit, &RDLineEdit::keyPress, [this](QKeyEvent *event) {
     if(event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter)
@@ -96,9 +99,19 @@ bool FindReplace::regexp()
   return ui->regexp->isChecked();
 }
 
+void FindReplace::setFindText(QString text)
+{
+  ui->findText->setCurrentText(text);
+}
+
 QString FindReplace::findText()
 {
   return ui->findText->currentText();
+}
+
+void FindReplace::setReplaceText(QString text)
+{
+  ui->replaceText->setCurrentText(text);
 }
 
 QString FindReplace::replaceText()
@@ -149,6 +162,10 @@ void FindReplace::keyPressEvent(QKeyEvent *event)
     emit performFind();
 
     m_direction = dir;
+  }
+  else
+  {
+    emit keyPress(event);
   }
 }
 

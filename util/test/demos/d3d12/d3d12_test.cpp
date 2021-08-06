@@ -1,7 +1,7 @@
 /******************************************************************************
 * The MIT License (MIT)
 *
-* Copyright (c) 2019-2020 Baldur Karlsson
+* Copyright (c) 2019-2021 Baldur Karlsson
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -27,13 +27,13 @@
 #include "d3d12_test.h"
 #include <stdio.h>
 #include "../3rdparty/lz4/lz4.h"
+#include "../3rdparty/md5/md5.h"
 #include "../renderdoc_app.h"
 #include "../win32/win32_window.h"
 #include "dx/official/dxcapi.h"
 
 typedef HRESULT(WINAPI *PFN_CREATE_DXGI_FACTORY1)(REFIID, void **);
 typedef HRESULT(WINAPI *PFN_CREATE_DXGI_FACTORY2)(UINT, REFIID, void **);
-using PFN_ENABLE_EXPERIMENTAL = decltype(&D3D12EnableExperimentalFeatures);
 
 typedef DXC_API_IMPORT HRESULT(__stdcall *pDxcCreateInstance)(REFCLSID rclsid, REFIID riid,
                                                               LPVOID *ppv);
@@ -47,6 +47,16 @@ HMODULE dxcompiler = NULL;
 IDXGIFactory1Ptr factory;
 std::vector<IDXGIAdapterPtr> adapters;
 bool d3d12on7 = false;
+
+pD3DCompile dyn_D3DCompile = NULL;
+pD3DStripShader dyn_D3DStripShader = NULL;
+pD3DSetBlobPart dyn_D3DSetBlobPart = NULL;
+pD3DCreateBlob dyn_CreateBlob = NULL;
+
+PFN_D3D12_CREATE_DEVICE dyn_D3D12CreateDevice = NULL;
+
+PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE dyn_serializeRootSig;
+PFN_D3D12_SERIALIZE_ROOT_SIGNATURE dyn_serializeRootSigOld;
 };    // namespace
 
 void D3D12GraphicsTest::Prepare(int argc, char **argv)
@@ -85,13 +95,6 @@ void D3D12GraphicsTest::Prepare(int argc, char **argv)
       PFN_CREATE_DXGI_FACTORY2 createFactory2 =
           (PFN_CREATE_DXGI_FACTORY2)GetProcAddress(dxgi, "CreateDXGIFactory2");
 
-      PFN_ENABLE_EXPERIMENTAL enableExperimental =
-          (PFN_ENABLE_EXPERIMENTAL)GetProcAddress(d3d12, "D3D12EnableExperimentalFeatures");
-
-      // try to enable unsigned shaders in case we don't get dxil.dll
-      if(enableExperimental)
-        enableExperimental(1, &D3D12ExperimentalShaderModels, NULL, NULL);
-
       HRESULT hr = E_FAIL;
 
       if(createFactory2)
@@ -119,6 +122,24 @@ void D3D12GraphicsTest::Prepare(int argc, char **argv)
         }
       }
     }
+
+    if(d3dcompiler)
+    {
+      dyn_D3DCompile = (pD3DCompile)GetProcAddress(d3dcompiler, "D3DCompile");
+      dyn_D3DStripShader = (pD3DStripShader)GetProcAddress(d3dcompiler, "D3DStripShader");
+      dyn_D3DSetBlobPart = (pD3DSetBlobPart)GetProcAddress(d3dcompiler, "D3DSetBlobPart");
+      dyn_CreateBlob = (pD3DCreateBlob)GetProcAddress(d3dcompiler, "D3DCreateBlob");
+    }
+
+    if(d3d12)
+    {
+      dyn_D3D12CreateDevice = (PFN_D3D12_CREATE_DEVICE)GetProcAddress(d3d12, "D3D12CreateDevice");
+
+      dyn_serializeRootSig = (PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE)GetProcAddress(
+          d3d12, "D3D12SerializeVersionedRootSignature");
+      dyn_serializeRootSigOld =
+          (PFN_D3D12_SERIALIZE_ROOT_SIGNATURE)GetProcAddress(d3d12, "D3D12SerializeRootSignature");
+    }
   }
 
   if(!d3d12)
@@ -129,6 +150,11 @@ void D3D12GraphicsTest::Prepare(int argc, char **argv)
     Avail = "d3dcompiler_XX.dll is not available";
   else if(!factory)
     Avail = "Couldn't create DXGI factory";
+  else if(!dyn_D3D12CreateDevice || !dyn_D3DCompile || !dyn_D3DStripShader || !dyn_D3DSetBlobPart ||
+          !dyn_CreateBlob)
+    Avail = "Missing required entry point";
+  else if(!dyn_serializeRootSig && !dyn_serializeRootSigOld)
+    Avail = "Missing required root signature serialize entry point";
 
   m_12On7 = d3d12on7;
 
@@ -143,6 +169,20 @@ void D3D12GraphicsTest::Prepare(int argc, char **argv)
   }
 
   m_Factory = factory;
+
+  ID3D12DevicePtr tmpdev = CreateDevice(adapters, minFeatureLevel);
+
+  if(tmpdev)
+  {
+    tmpdev->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &opts, sizeof(opts));
+    tmpdev->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS1, &opts1, sizeof(opts1));
+    tmpdev->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS2, &opts2, sizeof(opts2));
+    tmpdev->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS3, &opts3, sizeof(opts3));
+    tmpdev->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS4, &opts4, sizeof(opts4));
+    tmpdev->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &opts5, sizeof(opts5));
+    tmpdev->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS6, &opts6, sizeof(opts6));
+    tmpdev->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, &opts7, sizeof(opts7));
+  }
 }
 
 bool D3D12GraphicsTest::Init()
@@ -151,30 +191,9 @@ bool D3D12GraphicsTest::Init()
   if(!GraphicsTest::Init())
     return false;
 
-  // we can assume d3d12, dxgi and d3dcompiler are valid since we shouldn't be running the test if
-  // Prepare() failed
-
-  dyn_D3D12CreateDevice = (PFN_D3D12_CREATE_DEVICE)GetProcAddress(d3d12, "D3D12CreateDevice");
-
-  dyn_D3DCompile = (pD3DCompile)GetProcAddress(d3dcompiler, "D3DCompile");
-  dyn_D3DStripShader = (pD3DStripShader)GetProcAddress(d3dcompiler, "D3DStripShader");
-  dyn_D3DSetBlobPart = (pD3DSetBlobPart)GetProcAddress(d3dcompiler, "D3DSetBlobPart");
-  dyn_CreateBlob = (pD3DCreateBlob)GetProcAddress(d3dcompiler, "D3DCreateBlob");
-
-  dyn_serializeRootSig = (PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE)GetProcAddress(
-      d3d12, "D3D12SerializeVersionedRootSignature");
-  dyn_serializeRootSigOld =
-      (PFN_D3D12_SERIALIZE_ROOT_SIGNATURE)GetProcAddress(d3d12, "D3D12SerializeRootSignature");
-
   if(dyn_serializeRootSig == NULL)
   {
     TEST_WARN("Can't get D3D12SerializeVersionedRootSignature - old version of windows?");
-
-    if(dyn_serializeRootSigOld == NULL)
-    {
-      TEST_ERROR("Can't get D3D12SerializeRootSignature!");
-      return false;
-    }
   }
 
   if(debugDevice)
@@ -204,7 +223,7 @@ bool D3D12GraphicsTest::Init()
     }
   }
 
-  dev = CreateDevice(adapters, D3D_FEATURE_LEVEL_11_0);
+  dev = CreateDevice(adapters, minFeatureLevel);
   if(!dev)
     return false;
 
@@ -226,11 +245,7 @@ bool D3D12GraphicsTest::Init()
     }
   }
 
-  {
-    D3D12_COMMAND_QUEUE_DESC desc = {};
-    desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-    dev->CreateCommandQueue(&desc, __uuidof(ID3D12CommandQueue), (void **)&queue);
-  }
+  PostDeviceCreate();
 
   if(!headless)
   {
@@ -238,20 +253,7 @@ bool D3D12GraphicsTest::Init()
 
     mainWindow = win;
 
-    DXGI_SWAP_CHAIN_DESC1 swapDesc = {};
-
-    swapDesc.BufferCount = backbufferCount;
-    swapDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
-    swapDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
-    swapDesc.Flags = 0;
-    swapDesc.Format = backbufferFmt;
-    swapDesc.Width = screenWidth;
-    swapDesc.Height = screenHeight;
-    swapDesc.SampleDesc.Count = 1;
-    swapDesc.SampleDesc.Quality = 0;
-    swapDesc.Scaling = DXGI_SCALING_STRETCH;
-    swapDesc.Stereo = FALSE;
-    swapDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+    DXGI_SWAP_CHAIN_DESC1 swapDesc = MakeSwapchainDesc();
 
     if(!d3d12on7)
     {
@@ -294,6 +296,17 @@ bool D3D12GraphicsTest::Init()
                                             D3D12_RESOURCE_STATE_PRESENT, NULL,
                                             __uuidof(ID3D12Resource), (void **)&bbTex[1]));
     }
+  }
+
+  return true;
+}
+
+void D3D12GraphicsTest::PostDeviceCreate()
+{
+  {
+    D3D12_COMMAND_QUEUE_DESC desc = {};
+    desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+    dev->CreateCommandQueue(&desc, __uuidof(ID3D12CommandQueue), (void **)&queue);
   }
 
   dev->CreateFence(0, D3D12_FENCE_FLAG_SHARED, __uuidof(ID3D12Fence), (void **)&m_GPUSyncFence);
@@ -350,7 +363,7 @@ bool D3D12GraphicsTest::Init()
 
     desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     CHECK_HR(dev->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&m_Clear));
-    m_CBVUAVSRV->SetName(L"UAV clear heap");
+    m_Clear->SetName(L"UAV clear heap");
   }
 
   {
@@ -392,14 +405,14 @@ bool D3D12GraphicsTest::Init()
   {
     std::string blitPixel = R"EOSHADER(
 
-Texture2D<float4> tex : register(t0);
+	Texture2D<float4> tex : register(t0);
 
-float4 main(float4 pos : SV_Position) : SV_Target0
-{
-	return tex.Load(int3(pos.xy, 0));
-}
+	float4 main(float4 pos : SV_Position) : SV_Target0
+	{
+		return tex.Load(int3(pos.xy, 0));
+	}
 
-)EOSHADER";
+	)EOSHADER";
 
     ID3DBlobPtr vsblob = Compile(D3DFullscreenQuadVertex, "main", "vs_4_0");
     ID3DBlobPtr psblob = Compile(blitPixel, "main", "ps_4_0");
@@ -422,6 +435,10 @@ float4 main(float4 pos : SV_Position) : SV_Target0
   dev2 = dev;
   dev3 = dev;
   dev4 = dev;
+  dev5 = dev;
+  dev6 = dev;
+  dev7 = dev;
+  dev8 = dev;
 
   if(infoqueue)
   {
@@ -431,8 +448,6 @@ float4 main(float4 pos : SV_Position) : SV_Target0
 
     infoqueue->AddStorageFilterEntries(&filter);
   }
-
-  return true;
 }
 
 HRESULT D3D12GraphicsTest::EnumAdapterByLuid(LUID luid, IDXGIAdapterPtr &pAdapter)
@@ -463,6 +478,31 @@ HRESULT D3D12GraphicsTest::EnumAdapterByLuid(LUID luid, IDXGIAdapterPtr &pAdapte
   }
 
   return E_FAIL;
+}
+
+std::vector<IDXGIAdapterPtr> D3D12GraphicsTest::GetAdapters()
+{
+  return adapters;
+}
+
+DXGI_SWAP_CHAIN_DESC1 D3D12GraphicsTest::MakeSwapchainDesc()
+{
+  DXGI_SWAP_CHAIN_DESC1 swapDesc = {};
+
+  swapDesc.BufferCount = backbufferCount;
+  swapDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
+  swapDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
+  swapDesc.Flags = 0;
+  swapDesc.Format = backbufferFmt;
+  swapDesc.Width = screenWidth;
+  swapDesc.Height = screenHeight;
+  swapDesc.SampleDesc.Count = 1;
+  swapDesc.SampleDesc.Quality = 0;
+  swapDesc.Scaling = DXGI_SCALING_STRETCH;
+  swapDesc.Stereo = FALSE;
+  swapDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+
+  return swapDesc;
 }
 
 ID3D12DevicePtr D3D12GraphicsTest::CreateDevice(const std::vector<IDXGIAdapterPtr> &adaptersToTry,
@@ -610,6 +650,127 @@ void D3D12GraphicsTest::Present()
   GPUSync();
 
   m_Alloc->Reset();
+}
+
+void D3D12GraphicsTest::AddHashIfMissing(void *ByteCode, size_t BytecodeLength)
+{
+  struct FileHeader
+  {
+    uint32_t fourcc;
+    uint32_t hashValue[4];
+    uint32_t containerVersion;
+    uint32_t fileLength;
+  };
+
+  if(BytecodeLength < sizeof(FileHeader))
+  {
+    TEST_ERROR("Trying to hash corrupt DXBC container");
+    return;
+  }
+
+  FileHeader *header = (FileHeader *)ByteCode;
+
+#define MAKE_FOURCC(a, b, c, d) \
+  (((uint32_t)(d) << 24) | ((uint32_t)(c) << 16) | ((uint32_t)(b) << 8) | (uint32_t)(a))
+
+  if(header->fourcc != MAKE_FOURCC('D', 'X', 'B', 'C'))
+  {
+    TEST_ERROR("Trying to hash corrupt DXBC container");
+    return;
+  }
+
+  if(header->fileLength != (uint32_t)BytecodeLength)
+  {
+    TEST_ERROR("Trying to hash corrupt DXBC container");
+    return;
+  }
+
+  if(header->hashValue[0] != 0 || header->hashValue[1] != 0 || header->hashValue[2] != 0 ||
+     header->hashValue[3] != 0)
+    return;
+
+  MD5_CTX md5ctx = {};
+  MD5_Init(&md5ctx);
+
+  // the hashable data starts immediately after the hash.
+  byte *data = (byte *)&header->containerVersion;
+  uint32_t length = uint32_t(BytecodeLength - offsetof(FileHeader, containerVersion));
+
+  // we need to know the number of bits for putting in the trailing padding.
+  uint32_t numBits = length * 8;
+  uint32_t numBitsPart2 = (numBits >> 2) | 1;
+
+  // MD5 works on 64-byte chunks, process the first set of whole chunks, leaving 0-63 bytes left
+  // over
+  uint32_t leftoverLength = length % 64;
+  MD5_Update(&md5ctx, data, length - leftoverLength);
+
+  data += length - leftoverLength;
+
+  uint32_t block[16] = {};
+  static_assert(sizeof(block) == 64, "Block is not properly sized for MD5 round");
+
+  // normally MD5 finishes by appending a 1 bit to the bitstring. Since we are only appending bytes
+  // this would be an 0x80 byte (the first bit is considered to be the MSB). Then it pads out with
+  // zeroes until it has 56 bytes in the last block and appends appends the message length as a
+  // 64-bit integer as the final part of that block.
+  // in other words, normally whatever is leftover from the actual message gets one byte appended,
+  // then if there's at least 8 bytes left we'll append the length. Otherwise we pad that block with
+  // 0s and create a new block with the length at the end.
+  // Or as the original RFC/spec says: padding is always performed regardless of whether the
+  // original buffer already ended in exactly a 56 byte block.
+  //
+  // The DXBC finalisation is slightly different (previous work suggests this is due to a bug in the
+  // original implementation and it was maybe intended to be exactly MD5?):
+  //
+  // The length provided in the padding block is not 64-bit properly: the second dword with the high
+  // bits is instead the number of nybbles(?) with 1 OR'd on. The length is also split, so if it's
+  // in
+  // a padding block the low bits are in the first dword and the upper bits in the last. If there's
+  // no padding block the low dword is passed in first before the leftovers of the message and then
+  // the upper bits at the end.
+
+  // if the leftovers uses at least 56, we can't fit both the trailing 1 and the 64-bit length, so
+  // we need a padding block and then our own block for the length.
+  if(leftoverLength >= 56)
+  {
+    // pass in the leftover data padded out to 64 bytes with zeroes
+    MD5_Update(&md5ctx, data, leftoverLength);
+
+    block[0] = 0x80;    // first padding bit is 1
+    MD5_Update(&md5ctx, block, 64 - leftoverLength);
+
+    // the final block contains the number of bits in the first dword, and the weird upper bits
+    block[0] = numBits;
+    block[15] = numBitsPart2;
+
+    // process this block directly, we're replacing the call to MD5_Final here manually
+    MD5_Update(&md5ctx, block, 64);
+  }
+  else
+  {
+    // the leftovers mean we can put the padding inside the final block. But first we pass the "low"
+    // number of bits:
+    MD5_Update(&md5ctx, &numBits, sizeof(numBits));
+
+    if(leftoverLength)
+      MD5_Update(&md5ctx, data, leftoverLength);
+
+    uint32_t paddingBytes = 64 - leftoverLength - 4;
+
+    // prepare the remainder of this block, starting with the 0x80 padding start right after the
+    // leftovers and the first part of the bit length above.
+    block[0] = 0x80;
+    // then add the remainder of the 'length' here in the final part of the block
+    memcpy(((byte *)block) + paddingBytes - 4, &numBitsPart2, 4);
+
+    MD5_Update(&md5ctx, block, paddingBytes);
+  }
+
+  header->hashValue[0] = md5ctx.a;
+  header->hashValue[1] = md5ctx.b;
+  header->hashValue[2] = md5ctx.c;
+  header->hashValue[3] = md5ctx.d;
 }
 
 std::vector<byte> D3D12GraphicsTest::GetBufferData(ID3D12ResourcePtr buffer,
@@ -970,7 +1131,8 @@ COM_SMARTPTR(IDxcBlobEncoding);
 COM_SMARTPTR(IDxcOperationResult);
 COM_SMARTPTR(IDxcBlob);
 
-ID3DBlobPtr D3D12GraphicsTest::Compile(std::string src, std::string entry, std::string profile)
+ID3DBlobPtr D3D12GraphicsTest::Compile(std::string src, std::string entry, std::string profile,
+                                       bool skipoptimise)
 {
   ID3DBlobPtr blob = NULL;
 
@@ -1015,8 +1177,16 @@ ID3DBlobPtr D3D12GraphicsTest::Compile(std::string src, std::string entry, std::
     std::vector<std::wstring> argStorage;
 
     argStorage.push_back(L"-WX");
-    argStorage.push_back(L"-O0");
-    argStorage.push_back(L"-Od");
+    if(skipoptimise)
+    {
+      argStorage.push_back(L"-O0");
+      argStorage.push_back(L"-Od");
+    }
+    else
+    {
+      argStorage.push_back(L"-Ges");
+      argStorage.push_back(L"-O1");
+    }
     argStorage.push_back(L"-Zi");
     argStorage.push_back(L"-Qembed_debug");
 
@@ -1054,6 +1224,9 @@ ID3DBlobPtr D3D12GraphicsTest::Compile(std::string src, std::string entry, std::
       dyn_CreateBlob((uint32_t)code->GetBufferSize(), &blob);
 
       memcpy(blob->GetBufferPointer(), code->GetBufferPointer(), code->GetBufferSize());
+
+      // if we didn't have dxil.dll around there won't be a hash, add it ourselves
+      AddHashIfMissing(blob->GetBufferPointer(), code->GetBufferSize());
     }
     else
     {
@@ -1080,11 +1253,16 @@ ID3DBlobPtr D3D12GraphicsTest::Compile(std::string src, std::string entry, std::
   {
     ID3DBlobPtr error = NULL;
 
-    HRESULT hr = dyn_D3DCompile(
-        src.c_str(), src.length(), "", NULL, NULL, entry.c_str(), profile.c_str(),
-        D3DCOMPILE_WARNINGS_ARE_ERRORS | D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION |
-            D3DCOMPILE_OPTIMIZATION_LEVEL0 | D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES,
-        0, &blob, &error);
+    UINT flags = D3DCOMPILE_WARNINGS_ARE_ERRORS | D3DCOMPILE_DEBUG |
+                 D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES;
+
+    if(skipoptimise)
+      flags |= D3DCOMPILE_SKIP_OPTIMIZATION | D3DCOMPILE_OPTIMIZATION_LEVEL0;
+    else
+      flags |= D3DCOMPILE_ENABLE_STRICTNESS | D3DCOMPILE_OPTIMIZATION_LEVEL0;
+
+    HRESULT hr = dyn_D3DCompile(src.c_str(), src.length(), "", NULL, NULL, entry.c_str(),
+                                profile.c_str(), flags, 0, &blob, &error);
 
     if(FAILED(hr))
     {

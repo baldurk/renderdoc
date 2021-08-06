@@ -18,13 +18,13 @@ class D3D11_Refcount_Check(rdtest.TestCase):
 
 
     def check_capture(self):
-        draw = self.find_draw("Color Draw")
+        action = self.find_action("Color Draw")
 
-        self.check(draw is not None)
+        self.check(action is not None)
 
-        draw = draw.next
+        action = action.next
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -1025,7 +1025,8 @@ struct ConstantBlock
   bool operator==(const ConstantBlock &o) const
   {
     return name == o.name && variables == o.variables && bindPoint == o.bindPoint &&
-           byteSize == o.byteSize && bufferBacked == o.bufferBacked;
+           byteSize == o.byteSize && bufferBacked == o.bufferBacked &&
+           compileConstants == o.compileConstants;
   }
   bool operator<(const ConstantBlock &o) const
   {
@@ -1039,6 +1040,8 @@ struct ConstantBlock
       return byteSize < o.byteSize;
     if(!(bufferBacked == o.bufferBacked))
       return bufferBacked < o.bufferBacked;
+    if(!(compileConstants == o.compileConstants))
+      return compileConstants < o.compileConstants;
     return false;
   }
   DOCUMENT("The name of this constant block, may be empty on some APIs.");
@@ -1051,14 +1054,16 @@ struct ConstantBlock
   DOCUMENT(R"(The bindpoint for this block. This is an index in the
 :data:`ShaderBindpointMapping.constantBlocks` list.
 )");
-  int32_t bindPoint;
+  int32_t bindPoint = 0;
   DOCUMENT("The total number of bytes consumed by all of the constants contained in this block.");
-  uint32_t byteSize;
+  uint32_t byteSize = 0;
   DOCUMENT(R"(``True`` if the contents are stored in a buffer of memory. If not then they are set by
 some other API-specific method, such as direct function calls or they may be compile-time
 specialisation constants.
 )");
-  bool bufferBacked;
+  bool bufferBacked = true;
+  DOCUMENT("``True`` if this is a virtual buffer listing compile-time specialisation constants.");
+  bool compileConstants = false;
 };
 
 DECLARE_REFLECTION_STRUCT(ConstantBlock);

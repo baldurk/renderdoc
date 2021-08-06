@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -163,6 +163,18 @@ struct LegacyData
   QVariantMap _ConfigSettings;
 };
 
+static rdcarray<rdcpair<rdcstr, CustomPersistentStorage *>> &GetCustomStorage()
+{
+  static rdcarray<rdcpair<rdcstr, CustomPersistentStorage *>> ret;
+  return ret;
+}
+
+CustomPersistentStorage::CustomPersistentStorage(rdcstr name)
+{
+  if(!name.empty())
+    GetCustomStorage().push_back({name, this});
+}
+
 QVariantMap PersistantConfig::storeValues() const
 {
   QVariantMap ret;
@@ -185,6 +197,11 @@ QVariantMap PersistantConfig::storeValues() const
   ret[lit("ExternalTool_RGPIntegration")] = m_Legacy->_ExternalTool_RGPIntegration;
   ret[lit("ShaderViewer_FriendlyNaming")] = m_Legacy->_ShaderViewer_FriendlyNaming;
   ret[lit("ConfigSettings")] = m_Legacy->_ConfigSettings;
+
+  for(const rdcpair<rdcstr, CustomPersistentStorage *> &ps : GetCustomStorage())
+  {
+    ps.second->save(ret[QString(ps.first)]);
+  }
 
   return ret;
 }
@@ -295,6 +312,9 @@ void PersistantConfig::applyValues(const QVariantMap &values)
 
   if(saveConfig)
     RENDERDOC_SaveConfigSettings();
+
+  for(const rdcpair<rdcstr, CustomPersistentStorage *> &ps : GetCustomStorage())
+    ps.second->load(values[QString(ps.first)]);
 }
 
 static QMutex RemoteHostLock;

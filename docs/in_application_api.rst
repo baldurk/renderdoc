@@ -1,7 +1,7 @@
 In-application API
 ==================
 
-Reference for RenderDoc in-application API version 1.4.1. This API is not necessary to use RenderDoc by default, but if you would like more control or custom triggering of captures this API can provide the mechanism to do so.
+Reference for RenderDoc in-application API version 1.4.2. This API is not necessary to use RenderDoc by default, but if you would like more control or custom triggering of captures this API can provide the mechanism to do so.
 
 Make sure to use a matching API header for your build - if you use a newer header, the API version may not be available. All RenderDoc builds supporting this API ship the header in their root directory.
 
@@ -9,13 +9,9 @@ This page describes the RenderDoc API exposed to applications being captured, bo
 
 To begin using the API you need to fetch the ``RENDERDOC_GetAPI`` function. You should do this dynamically, it is not recommended to actually link against RenderDoc's DLL as it's intended to be injected or loaded at runtime. The header does not declare ``RENDERDOC_GetAPI``, it declares a function pointer typedef ``pRENDERDOC_GetAPI`` that you can use.
 
-There are two common ways to integrate RenderDoc. The recommended way is to passively check if the module is loaded, and use the API. This lets you continue to use RenderDoc entirely as normal, launching your program through the UI, but you can access additional functionality to e.g. trigger captures at custom times.
+The recommended way to access the RenderDoc API is to passively check if the module is loaded, and use the API if it is. This lets you continue to use RenderDoc entirely as normal, launching your program through the UI, but you can access additional functionality to e.g. trigger captures at custom times. When your program is launched independently it will see that the RenderDoc module is not present and safely fall back.
 
 To do this you'll use your platforms dynamic library functions to see if the library is open already - e.g. ``GetModuleHandle`` on Windows, or ``dlopen`` with the ``RTLD_NOW | RTLD_NOLOAD`` flags if available on \*nix systems. On most platforms you can just search for the module name - ``renderdoc.dll`` on Windows, or ``librenderdoc.so`` on Linux, or ``libVkLayer_GLES_RenderDoc.so`` on Android should be sufficient here, so you don't need to know the path to where RenderDoc is running from. This will vary by platform however so consult your platform's OS documentation. Then you can use ``GetProcAddress`` or ``dlsym`` to fetch the ``RENDERDOC_GetAPI`` function using the typedef above.
-
-On Windows only you can have a closer integration, where your code will explicitly load RenderDoc's library at runtime. This needs more care taken as it is much more complex. You will need to locate the RenderDoc module yourself, and load it as soon as possible after startup of your program. Due to the nature of RenderDoc's API hooking, the earlier you can load it the better in general. Once you've loaded it you can fetch the  ``RENDERDOC_GetAPI`` entry point as above, and use the API as normal.
-
-This is not supported on Linux or Android due to the differing methods of hooking and only Windows supporting injection at runtime.
 
 .. cpp:function:: int RENDERDOC_GetAPI(RENDERDOC_Version version, void **outAPIPointers)
 
@@ -116,9 +112,9 @@ This is not supported on Linux or Android due to the differing methods of hookin
 
     specifies whether each API call should save a callstack. Default is off.
 
-.. cpp:enumerator:: RENDERDOC_CaptureOption::eRENDERDOC_Option_CaptureCallstacksOnlyDraws
+.. cpp:enumerator:: RENDERDOC_CaptureOption::eRENDERDOC_Option_CaptureCallstacksOnlyActions
 
-    specifies whether - if ``CaptureCallstacks`` is enabled - callstacks are only saved on drawcalls. Default is off.
+    specifies whether - if ``CaptureCallstacks`` is enabled - callstacks are only saved on actions. Default is off.
 
 .. cpp:enumerator:: RENDERDOC_CaptureOption::eRENDERDOC_Option_DelayForDebugger
 

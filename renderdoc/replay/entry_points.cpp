@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -879,6 +879,10 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunFunctionalTests(int pytho
   // we don't care about pymalloc or not
   rdcstr pythonlibs[] = {"libpython3.?m.so.1.0", "libpython3.?.so.1.0", "libpython3.?m.so",
                          "libpython3.?.so"};
+#elif ENABLED(RDOC_APPLE)
+  const char *moduledir = "";
+  const char *modulename = "renderdoc.so";
+  rdcstr pythonlibs[] = {"libpython3.?.dylib"};
 #else
   const char *moduledir = "";
   const char *modulename = "";

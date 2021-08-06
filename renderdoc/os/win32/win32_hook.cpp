@@ -148,21 +148,17 @@ struct DllHookset
 
 struct CachedHookData
 {
-  CachedHookData()
-  {
-    ownmodule = NULL;
-    missedOrdinals = false;
-    RDCEraseEl(lowername);
-  }
+  bool hookAll = true;
 
   std::map<rdcstr, DllHookset> DllHooks;
-  HMODULE ownmodule;
+  HMODULE ownmodule = NULL;
   Threading::CriticalSection lock;
-  char lowername[512];
+  char lowername[512] = {};
 
   std::set<rdcstr> ignores;
 
-  bool missedOrdinals;
+  bool missedOrdinals = false;
+  std::function<HMODULE(const rdcstr &, HANDLE, DWORD)> libraryIntercept;
 
   int32_t posthooking = 0;
 
@@ -564,6 +560,9 @@ static void ForAllModules(std::function<void(const MODULEENTRY32 &me32)> callbac
 
 static void HookAllModules()
 {
+  if(!s_HookData->hookAll)
+    return;
+
   ForAllModules(
       [](const MODULEENTRY32 &me32) { s_HookData->ApplyHooks(me32.szModule, me32.hModule); });
 
@@ -635,6 +634,15 @@ static bool IsAPISet(const char *filename)
 
 HMODULE WINAPI Hooked_LoadLibraryExA(LPCSTR lpLibFileName, HANDLE fileHandle, DWORD flags, bool getModule = false)
 {
+  bool dohook = true;
+  if(s_HookData->libraryIntercept)
+  {
+    HMODULE ret = s_HookData->libraryIntercept(lpLibFileName, fileHandle, flags);
+    if(ret)
+      return ret;
+    dohook = false;
+  }
+
   HMODULE mod = GetModuleHandleA(lpLibFileName);
 #ifdef _HOOK_GET_MODULEHANDLE_
   if(getModule && mod != nullptr)
@@ -643,7 +651,6 @@ HMODULE WINAPI Hooked_LoadLibraryExA(LPCSTR lpLibFileName, HANDLE fileHandle, DW
   }
 #endif
 
-  bool dohook = true;
   if(flags == 0 && mod != nullptr)
     dohook = false;
 
@@ -670,6 +677,15 @@ HMODULE WINAPI Hooked_LoadLibraryExA(LPCSTR lpLibFileName, HANDLE fileHandle, DW
 HMODULE WINAPI Hooked_LoadLibraryExW(LPCWSTR lpLibFileName, HANDLE fileHandle, DWORD flags, bool getModule = false)
 {
   bool dohook = true;
+  if(s_HookData->libraryIntercept)
+  {
+    HMODULE ret =
+        s_HookData->libraryIntercept(StringFormat::Wide2UTF8(lpLibFileName), fileHandle, flags);
+    if(ret)
+      return ret;
+    dohook = false;
+  }
+
   HMODULE mod = GetModuleHandleW(lpLibFileName);
 #ifdef _HOOK_GET_MODULEHANDLE_
   if(getModule && mod != nullptr)
@@ -860,45 +876,10 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR func)
 
   return GetProcAddress(mod, func);
 }
-
-void LibraryHooks::RegisterFunctionHook(const char *libraryName, const FunctionHook &hook)
+static void InitHookData()
 {
-  if(!_stricmp(libraryName, "kernel32.dll"))
+  if(!s_HookData)
   {
-    if(hook.function == "LoadLibraryA" || hook.function == "LoadLibraryW" ||
-       hook.function == "LoadLibraryExA" || hook.function == "LoadLibraryExW" ||
-       hook.function == "GetProcAddress" 
-#ifdef _HOOK_GET_MODULEHANDLE_
-       || hook.function == "GetModuleHandleA" ||
-       hook.function == "GetModuleHandleW" || hook.function == "GetModuleHandleExA" ||
-       hook.function == "GetModuleHandleExW"
-#endif
-        )
-    {
-      RDCERR("Cannot hook LoadLibrary* or GetProcAddress, as these are hooked internally");
-      return;
-    }
-  }
-  s_HookData->DllHooks[strlower(rdcstr(libraryName))].FunctionHooks.push_back(hook);
-}
-
-void LibraryHooks::RegisterLibraryHook(const char *libraryName, FunctionLoadCallback loadedCallback)
-{
-  s_HookData->DllHooks[strlower(rdcstr(libraryName))].Callbacks.push_back(loadedCallback);
-}
-
-void LibraryHooks::IgnoreLibrary(const char *libraryName)
-{
-  rdcstr lowername = libraryName;
-
-  for(size_t i = 0; i < lowername.size(); i++)
-    lowername[i] = (char)tolower(lowername[i]);
-
-  s_HookData->ignores.insert(lowername);
-}
-
-void LibraryHooks::BeginHookRegistration()
-{
   s_HookData = new CachedHookData;
   RDCASSERT(s_HookData->DllHooks.empty());
   s_HookData->DllHooks["kernel32.dll"].FunctionHooks.push_back(
@@ -942,7 +923,48 @@ void LibraryHooks::BeginHookRegistration()
 
   GetModuleHandleEx(
       GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-      (LPCTSTR)&s_HookData, &s_HookData->ownmodule);
+      (LPCTSTR)&s_HookData, &s_HookData->ownmodule);void LibraryHooks::RegisterFunctionHook(const char *libraryName, const FunctionHook &hook)
+  }
+}
+
+{
+  if(!_stricmp(libraryName, "kernel32.dll"))
+  {
+    if(hook.function == "LoadLibraryA" || hook.function == "LoadLibraryW" ||
+       hook.function == "LoadLibraryExA" || hook.function == "LoadLibraryExW" ||
+       hook.function == "GetProcAddress" 
+#ifdef _HOOK_GET_MODULEHANDLE_
+       || hook.function == "GetModuleHandleA" ||
+       hook.function == "GetModuleHandleW" || hook.function == "GetModuleHandleExA" ||
+       hook.function == "GetModuleHandleExW"
+#endif
+        )
+    {
+      RDCERR("Cannot hook LoadLibrary* or GetProcAddress, as these are hooked internally");
+      return;
+    }
+  }
+  s_HookData->DllHooks[strlower(rdcstr(libraryName))].FunctionHooks.push_back(hook);
+}
+
+void LibraryHooks::RegisterLibraryHook(const char *libraryName, FunctionLoadCallback loadedCallback)
+{
+  s_HookData->DllHooks[strlower(rdcstr(libraryName))].Callbacks.push_back(loadedCallback);
+}
+
+void LibraryHooks::IgnoreLibrary(const char *libraryName)
+{
+  rdcstr lowername = libraryName;
+
+  for(size_t i = 0; i < lowername.size(); i++)
+    lowername[i] = (char)tolower(lowername[i]);
+
+  s_HookData->ignores.insert(lowername);
+}
+
+void LibraryHooks::BeginHookRegistration()
+{
+  InitHookData();
 }
 
 // hook all functions for currently loaded modules.
@@ -1013,6 +1035,36 @@ bool LibraryHooks::Detect(const char *identifier)
       ret = true;
   });
   return ret;
+}
+
+void Win32_RegisterManualModuleHooking()
+{
+  InitHookData();
+
+  s_HookData->hookAll = false;
+}
+
+void Win32_InterceptLibraryLoads(std::function<HMODULE(const rdcstr &, HANDLE, DWORD)> callback)
+{
+  s_HookData->libraryIntercept = callback;
+}
+
+void Win32_ManualHookModule(rdcstr modName, HMODULE module)
+{
+  for(auto it = s_HookData->DllHooks.begin(); it != s_HookData->DllHooks.end(); ++it)
+    std::sort(it->second.FunctionHooks.begin(), it->second.FunctionHooks.end());
+
+  modName = strlower(modName);
+
+  s_HookData->DllHooks[modName].module = module;
+
+  for(FunctionHook &hook : s_HookData->DllHooks[modName].FunctionHooks)
+  {
+    if(hook.orig)
+      *hook.orig = GetProcAddress(module, hook.function.c_str());
+  }
+
+  s_HookData->ApplyHooks(modName.c_str(), module);
 }
 
 // android only hooking functions, not used on win32

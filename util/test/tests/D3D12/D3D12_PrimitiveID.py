@@ -6,12 +6,12 @@ import rdtest
 class D3D12_PrimitiveID(rdtest.TestCase):
     demos_test_name = 'D3D12_PrimitiveID'
     
-    def test_draw(self, draw: rd.DrawcallDescription, x, y, prim, expected_prim, expected_output):
-        self.controller.SetFrameEvent(draw.eventId, True)
+    def test_action(self, action: rd.ActionDescription, x, y, prim, expected_prim, expected_output):
+        self.controller.SetFrameEvent(action.eventId, True)
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
         if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
-            rdtest.log.print("Skipping undebuggable shader at {}.".format(draw.name))
+            rdtest.log.print("Skipping undebuggable shader at {}.".format(action.eventId))
             return
 
         trace: rd.ShaderDebugTrace = self.controller.DebugPixel(x, y, rd.ReplayController.NoPreference, prim)
@@ -36,7 +36,7 @@ class D3D12_PrimitiveID(rdtest.TestCase):
                 return False
 
         # Compare shader debug output against an expected value instead of the RT's output,
-        # since we're testing overlapping primitives in a single draw
+        # since we're testing overlapping primitives in a single action
         if expected_output is not None:
             output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
             debugged = self.evaluate_source_var(output, variables)
@@ -57,27 +57,27 @@ class D3D12_PrimitiveID(rdtest.TestCase):
 
         success = True
 
-        # Jump to the draw
-        test_marker: rd.DrawcallDescription = self.find_draw("Test")
+        # Jump to the action
+        test_marker: rd.ActionDescription = self.find_action("Test")
 
         # Draw 1: No GS, PS without prim
-        draw = test_marker.next
-        success &= self.test_draw(draw, 100, 80, rd.ReplayController.NoPreference, [0], [0, 1, 0, 1])
+        action = test_marker.next
+        success &= self.test_action(action, 100, 80, rd.ReplayController.NoPreference, [0], [0, 1, 0, 1])
 
         # Draw 2: No GS, PS with prim
-        draw = draw.next
-        success &= self.test_draw(draw, 300, 80, rd.ReplayController.NoPreference, [0], [0, 1, 0, 1])
+        action = action.next
+        success &= self.test_action(action, 300, 80, rd.ReplayController.NoPreference, [0], [0, 1, 0, 1])
 
         # Draw 3: GS, PS without prim
-        draw = draw.next
-        success &= self.test_draw(draw, 125, 250, rd.ReplayController.NoPreference, [0], [0, 1, 0, 1])
+        action = action.next
+        success &= self.test_action(action, 125, 250, rd.ReplayController.NoPreference, [0], [0, 1, 0, 1])
 
         # Draw 4: GS, PS with prim
-        draw = draw.next
-        success &= self.test_draw(draw, 325, 250, 2, [2], [0.5, 1, 0, 1])
-        success &= self.test_draw(draw, 325, 250, 3, [3], [0.75, 1, 0, 1])
+        action = action.next
+        success &= self.test_action(action, 325, 250, 2, [2], [0.5, 1, 0, 1])
+        success &= self.test_action(action, 325, 250, 3, [3], [0.75, 1, 0, 1])
         # No expected output here, since it's nondeterministic which primitive gets selected
-        success &= self.test_draw(draw, 325, 250, rd.ReplayController.NoPreference, [2, 3], None)
+        success &= self.test_action(action, 325, 250, rd.ReplayController.NoPreference, [2, 3], None)
 
         if not success:
             raise rdtest.TestFailureException("Some tests were not as expected")

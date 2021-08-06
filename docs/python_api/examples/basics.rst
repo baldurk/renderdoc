@@ -11,13 +11,13 @@ ReplayController
 
 The primary interface for accessing the low level of RenderDoc's replay analysis is :py:class:`~renderdoc.ReplayController`.
 
-From this interface, information about the capture can be gathered, using e.g. :py:meth:`~renderdoc.ReplayController.GetDrawcalls` to return the list of root-level drawcalls in the frame, or :py:meth:`~renderdoc.ReplayController.GetResources` to return a list of all resources in the capture.
+From this interface, information about the capture can be gathered, using e.g. :py:meth:`~renderdoc.ReplayController.GetRootActions` to return the list of root-level actions in the frame, or :py:meth:`~renderdoc.ReplayController.GetResources` to return a list of all resources in the capture.
 
 Some methods like the two above return information which is global and does not vary across the frame. Most functions however return information relative to the current point in the frame.
 
 During RenderDoc's replay, you can imagine a cursor that moves back and forth between the start and end of the frame. All requests for information that varies - such as texture and buffer contents, pipeline state, and other information will be relative to the current event.
 
-Every function call within a frame is assigned an ascending ``eventId``, from ``1`` up to as many events as are in the frame. Within the drawcall list returned by :py:meth:`~renderdoc.ReplayController.GetDrawcalls`, each drawcall contains a list of events in :py:attr:`~renderdoc.DrawcallDescription.events`. These contain all of the ``eventId`` that immediately preceeded the draw. The details of the function call can be found by using :py:attr:`~renderdoc.APIEvent.chunkIndex` as an index into the structured data returned from :py:meth:`~renderdoc.GetStructuredFile`. The structured data contains the function name and the complete set of parameters passed to it, with their values.
+Every function call within a frame is assigned an ascending ``eventId``, from ``1`` up to as many events as are in the frame. Within the action list returned by :py:meth:`~renderdoc.ReplayController.GetRootActions`, each action contains a list of events in :py:attr:`~renderdoc.ActionDescription.events`. These contain all of the ``eventId`` that immediately preceeded the action. The details of the function call can be found by using :py:attr:`~renderdoc.APIEvent.chunkIndex` as an index into the structured data returned from :py:meth:`~renderdoc.GetStructuredFile`. The structured data contains the function name and the complete set of parameters passed to it, with their values.
 
 To change the current active event and move the cursor, you can call :py:meth:`~renderdoc.ReplayController.SetFrameEvent`. This will move the replay to represent the current state immediately after the given event has executed.
 
@@ -51,4 +51,4 @@ Functions such as :py:meth:`~qrenderdoc.CaptureContext.GetTextureViewer` will re
 
 You can also create new instances of windows such as buffer or shader viewers using :py:meth:`~qrenderdoc.CaptureContext.ViewBuffer` or :py:meth:`~qrenderdoc.CaptureContext.ViewShader`.
 
-The :py:class:`~qrenderdoc.CaptureContext` interface also provides useful utility functions such as :py:meth:`~qrenderdoc.CaptureContext.GetTexture` or :py:meth:`~qrenderdoc.CaptureContext.GetDrawcall` to look up objects by id instead of needing your own caching and lookup from the lists returned by the lower level interface.
+The :py:class:`~qrenderdoc.CaptureContext` interface also provides useful utility functions such as :py:meth:`~qrenderdoc.CaptureContext.GetTexture` or :py:meth:`~qrenderdoc.CaptureContext.GetAction` to look up objects by id instead of needing your own caching and lookup from the lists returned by the lower level interface.

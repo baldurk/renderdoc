@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,7 @@
 #include <QPainter>
 #include <QPainterPath>
 #include <QScrollBar>
+#include <QStylePainter>
 #include <QWheelEvent>
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
@@ -179,8 +180,8 @@ void TimelineBar::OnCaptureClosed()
   m_HistoryEvents.clear();
   m_UsageEvents.clear();
 
-  m_Draws.clear();
-  m_RootDraws.clear();
+  m_Actions.clear();
+  m_RootActions.clear();
   m_RootMarkers.clear();
 
   layout();
@@ -195,7 +196,7 @@ void TimelineBar::OnCaptureLoaded()
   else
     setWindowTitle(tr("Timeline - Capture"));
 
-  processDraws(m_RootMarkers, m_RootDraws, m_Ctx.CurDrawcalls());
+  processActions(m_RootMarkers, m_RootActions, m_Ctx.CurRootActions());
 
   m_zoom = 1.0;
   m_pan = 0.0;
@@ -250,7 +251,7 @@ void TimelineBar::layout()
 
   m_markerRect.setBottom(m_highlightingRect.top());
 
-  uint32_t maxEID = m_Draws.isEmpty() ? 0 : m_Draws.back();
+  uint32_t maxEID = m_Actions.isEmpty() ? 0 : m_Actions.back();
 
   int stepSize = 1;
   int stepMagnitude = 1;
@@ -359,18 +360,18 @@ void TimelineBar::mousePressEvent(QMouseEvent *e)
       return;
     }
 
-    if(!m_Draws.isEmpty() && m_dataArea.contains(m_lastPos))
+    if(!m_Actions.isEmpty() && m_dataArea.contains(m_lastPos))
     {
       uint32_t eid = eventAt(x);
-      auto it = std::find_if(m_Draws.begin(), m_Draws.end(), [eid](uint32_t d) {
+      auto it = std::find_if(m_Actions.begin(), m_Actions.end(), [eid](uint32_t d) {
         if(d >= eid)
           return true;
 
         return false;
       });
 
-      if(it == m_Draws.end())
-        m_Ctx.SetEventID({}, m_Draws.back(), m_Draws.back());
+      if(it == m_Actions.end())
+        m_Ctx.SetEventID({}, m_Actions.back(), m_Actions.back());
       else
         m_Ctx.SetEventID({}, *it, *it);
     }
@@ -396,18 +397,18 @@ void TimelineBar::mouseMoveEvent(QMouseEvent *e)
 
       layout();
     }
-    else if(!m_Draws.isEmpty() && m_dataArea.contains(e->localPos()) &&
+    else if(!m_Actions.isEmpty() && m_dataArea.contains(e->localPos()) &&
             !m_highlightingRect.contains(e->localPos()))
     {
       uint32_t eid = eventAt(x);
-      auto it = std::find_if(m_Draws.begin(), m_Draws.end(), [eid](uint32_t d) {
+      auto it = std::find_if(m_Actions.begin(), m_Actions.end(), [eid](uint32_t d) {
         if(d >= eid)
           return true;
 
         return false;
       });
 
-      if(it != m_Draws.end())
+      if(it != m_Actions.end())
         m_Ctx.SetEventID({}, *it, *it);
     }
   }
@@ -457,7 +458,7 @@ void TimelineBar::leaveEvent(QEvent *e)
 
 void TimelineBar::paintEvent(QPaintEvent *e)
 {
-  QPainter p(viewport());
+  QStylePainter p(viewport());
 
   p.setFont(font());
   p.setRenderHint(QPainter::TextAntialiasing);
@@ -468,11 +469,17 @@ void TimelineBar::paintEvent(QPaintEvent *e)
 
     p.fillRect(r, palette().brush(QPalette::Window));
 
-    r = r.marginsRemoved(QMargins(borderWidth + margin, borderWidth + margin, borderWidth + margin,
-                                  borderWidth + margin));
+    QRectF borderRect = r.marginsRemoved(uniformMargins(margin));
+    r = borderRect.marginsRemoved(uniformMargins(borderWidth));
 
     p.fillRect(r, palette().brush(QPalette::Base));
-    p.drawRect(r);
+
+    QStyleOptionFrame frameOpt;
+    frameOpt.initFrom(viewport());
+    frameOpt.rect = borderRect.toRect();
+    frameOpt.frameShape = QFrame::Box;
+    frameOpt.lineWidth = 1;
+    p.drawControl(QStyle::CE_ShapedFrame, frameOpt);
   }
 
   QTextOption to;
@@ -492,22 +499,23 @@ void TimelineBar::paintEvent(QPaintEvent *e)
 
     titleRect.setLeft(titleRect.left() - margin);
     titleRect.setTop(titleRect.top() - margin);
-    p.drawLine(titleRect.bottomLeft(), titleRect.bottomRight());
-    p.drawLine(titleRect.topRight(), titleRect.bottomRight());
+
+    drawLine(p, titleRect.bottomLeft(), titleRect.bottomRight());
+    drawLine(p, titleRect.topRight(), titleRect.bottomRight());
   }
 
   QRectF eidAxisRect = m_eidAxisRect;
 
-  p.drawLine(eidAxisRect.bottomLeft(), eidAxisRect.bottomRight() + QPointF(margin, 0));
+  drawLine(p, eidAxisRect.bottomLeft(), eidAxisRect.bottomRight() + QPointF(margin, 0));
 
-  p.drawLine(m_highlightingRect.topLeft(), m_highlightingRect.topRight());
+  drawLine(p, m_highlightingRect.topLeft(), m_highlightingRect.topRight());
 
-  if(m_Draws.isEmpty())
+  if(m_Actions.isEmpty())
     return;
 
   eidAxisRect.setLeft(m_eidAxisRect.left() + m_pan);
 
-  uint32_t maxEID = m_Draws.isEmpty() ? 0 : m_Draws.back();
+  uint32_t maxEID = m_Actions.isEmpty() ? 0 : m_Actions.back();
 
   to.setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
 
@@ -553,8 +561,8 @@ void TimelineBar::paintEvent(QPaintEvent *e)
       hoverRect = hoverRect.marginsAdded(QMargins(0, margin, 0, 0));
 
       if(hoverRect.left() >= m_eidAxisRect.left())
-        p.drawLine(hoverRect.topLeft(), hoverRect.bottomLeft());
-      p.drawLine(hoverRect.topRight(), hoverRect.bottomRight());
+        drawLine(p, hoverRect.topLeft(), hoverRect.bottomLeft());
+      drawLine(p, hoverRect.topRight(), hoverRect.bottomRight());
 
       // shrink the rect a bit for clipping against labels below
       hoverRect.setX(qRound(hoverRect.x() + 0.5));
@@ -593,7 +601,7 @@ void TimelineBar::paintEvent(QPaintEvent *e)
 
   {
     QPen pen = p.pen();
-    paintMarkers(p, m_RootMarkers, m_RootDraws, m_markerRect);
+    paintMarkers(p, m_RootMarkers, m_RootActions, m_markerRect);
     p.setPen(pen);
   }
 
@@ -617,16 +625,17 @@ void TimelineBar::paintEvent(QPaintEvent *e)
     qreal realMiddle = currentRect.center().x();
 
     // clamp the position from the left or right side
-    if(currentRect.left() < eidAxisRect.left())
-      currentRect.moveLeft(eidAxisRect.left());
-    else if(currentRect.right() > eidAxisRect.right())
-      currentRect.moveRight(eidAxisRect.right());
+    if(currentRect.left() < m_eidAxisRect.left())
+      currentRect.moveLeft(m_eidAxisRect.left());
+    else if(currentRect.right() > m_eidAxisRect.right())
+      currentRect.moveRight(m_eidAxisRect.right());
 
     // re-add the top margin so the lines match up with the border around the EID axis
     QRectF currentBackRect = currentRect.marginsAdded(QMargins(0, margin, 0, 0));
 
     p.fillRect(currentBackRect, palette().brush(QPalette::Base));
-    p.drawRect(currentBackRect);
+    drawLine(p, currentBackRect.topLeft(), currentBackRect.bottomLeft());
+    drawLine(p, currentBackRect.topRight(), currentBackRect.bottomRight());
 
     // draw the 'current marker' pixmap
     const QPixmap &px = Pixmaps::flag_green(devicePixelRatio());
@@ -638,13 +647,13 @@ void TimelineBar::paintEvent(QPaintEvent *e)
 
     // draw a line from the bottom of the shadow downwards
     QPointF currentTop = currentRect.center();
-    currentTop.setX(int(qBound(eidAxisRect.left(), realMiddle, eidAxisRect.right() - 2.0)) + 0.5);
+    currentTop.setX(int(qBound(m_eidAxisRect.left(), realMiddle, m_eidAxisRect.right() - 2.0)) + 0.5);
     currentTop.setY(currentRect.bottom());
 
     QPointF currentBottom = currentTop;
     currentBottom.setY(m_markerRect.bottom());
 
-    p.drawLine(currentTop, currentBottom);
+    drawLine(p, currentTop, currentBottom);
   }
 
   to.setAlignment(Qt::AlignLeft | Qt::AlignTop);
@@ -813,7 +822,8 @@ void TimelineBar::paintEvent(QPaintEvent *e)
         }
         else if(use.usage == ResourceUsage::StreamOut || use.usage == ResourceUsage::ResolveDst ||
                 use.usage == ResourceUsage::ColorTarget ||
-                use.usage == ResourceUsage::DepthStencilTarget || use.usage == ResourceUsage::CopyDst)
+                use.usage == ResourceUsage::DepthStencilTarget ||
+                use.usage == ResourceUsage::CopyDst || use.usage == ResourceUsage::CPUWrite)
         {
           pipranges[WriteUsage].push(pos, triRadius);
         }
@@ -889,10 +899,26 @@ TimelineBar::Marker *TimelineBar::findMarker(QVector<Marker> &markers, QRectF ma
   return NULL;
 }
 
-void TimelineBar::paintMarkers(QPainter &p, const QVector<Marker> &markers,
-                               const QVector<uint32_t> &draws, QRectF markerRect)
+void TimelineBar::drawLine(QStylePainter &p, QPointF start, QPointF end)
 {
-  if(markers.isEmpty() && draws.isEmpty())
+  if(start.x() == end.x() || start.y() == end.y())
+  {
+    QStyleOptionFrame opt;
+    opt.initFrom(viewport());
+    opt.rect = QRectF(start, end).toRect();
+    opt.frameShape = (start.y() == end.y() ? QFrame::HLine : QFrame::VLine);
+    p.drawControl(QStyle::CE_ShapedFrame, opt);
+  }
+  else
+  {
+    p.drawLine(start, end);
+  }
+}
+
+void TimelineBar::paintMarkers(QPainter &p, const QVector<Marker> &markers,
+                               const QVector<uint32_t> &actions, QRectF markerRect)
+{
+  if(markers.isEmpty() && actions.isEmpty())
     return;
 
   QTextOption to;
@@ -957,24 +983,24 @@ void TimelineBar::paintMarkers(QPainter &p, const QVector<Marker> &markers,
       childRect.setTop(r.bottom() + borderWidth * 2);
       childRect.setBottom(markerRect.bottom());
 
-      paintMarkers(p, m.children, m.draws, childRect);
+      paintMarkers(p, m.children, m.actions, childRect);
     }
   }
 
   p.setRenderHint(QPainter::Antialiasing);
 
-  for(uint32_t d : draws)
+  for(uint32_t a : actions)
   {
     QRectF r = markerRect;
-    r.setLeft(qMax(m_dataArea.left() + borderWidth * 3, offsetOf(d)));
-    r.setRight(qMin(m_dataArea.right() - borderWidth, offsetOf(d + 1)));
+    r.setLeft(qMax(m_dataArea.left() + borderWidth * 3, offsetOf(a)));
+    r.setRight(qMin(m_dataArea.right() - borderWidth, offsetOf(a + 1)));
     r.setHeight(fm.height() + borderWidth * 2);
 
     QPainterPath path;
     path.addRoundedRect(r, 5, 5);
 
     p.setPen(QPen(palette().brush(QPalette::Text), 1.0));
-    p.fillPath(path, d == m_Ctx.CurEvent() ? Qt::green : Qt::blue);
+    p.fillPath(path, a == m_Ctx.CurEvent() ? Qt::green : Qt::blue);
     p.drawPath(path);
   }
 
@@ -983,7 +1009,7 @@ void TimelineBar::paintMarkers(QPainter &p, const QVector<Marker> &markers,
 
 uint32_t TimelineBar::eventAt(qreal x)
 {
-  if(m_Draws.isEmpty())
+  if(m_Actions.isEmpty())
     return 0;
 
   // clamp to the visible viewport
@@ -996,7 +1022,7 @@ uint32_t TimelineBar::eventAt(qreal x)
   qreal steps = x / m_eidAxisLabelWidth;
 
   // finally convert to EID and clamp
-  uint32_t maxEID = m_Draws.back();
+  uint32_t maxEID = m_Actions.back();
   return qMin(maxEID, uint32_t(steps * m_eidAxisLabelStep));
 }
 
@@ -1010,28 +1036,28 @@ qreal TimelineBar::offsetOf(uint32_t eid)
          fractionalPart * m_eidAxisLabelWidth;
 }
 
-uint32_t TimelineBar::processDraws(QVector<Marker> &markers, QVector<uint32_t> &draws,
-                                   const rdcarray<DrawcallDescription> &curDraws)
+uint32_t TimelineBar::processActions(QVector<Marker> &markers, QVector<uint32_t> &actions,
+                                     const rdcarray<ActionDescription> &curActions)
 {
   uint32_t maxEID = 0;
 
-  for(const DrawcallDescription &d : curDraws)
+  for(const ActionDescription &a : curActions)
   {
-    if(!d.children.isEmpty())
+    if(!a.children.isEmpty())
     {
       markers.push_back(Marker());
       Marker &m = markers.back();
 
-      m.name = d.name;
-      m.eidStart = d.eventId;
-      m.eidEnd = processDraws(m.children, m.draws, d.children);
+      m.name = a.customName;
+      m.eidStart = a.eventId;
+      m.eidEnd = processActions(m.children, m.actions, a.children);
 
       maxEID = qMax(maxEID, m.eidEnd);
 
-      if(d.markerColor.w > 0.0f)
+      if(a.markerColor.w > 0.0f)
       {
         m.color = QColor::fromRgb(
-            qRgb(d.markerColor.x * 255.0f, d.markerColor.y * 255.0f, d.markerColor.z * 255.0f));
+            qRgb(a.markerColor.x * 255.0f, a.markerColor.y * 255.0f, a.markerColor.z * 255.0f));
       }
       else
       {
@@ -1040,14 +1066,14 @@ uint32_t TimelineBar::processDraws(QVector<Marker> &markers, QVector<uint32_t> &
     }
     else
     {
-      if(!(d.flags & DrawFlags::SetMarker))
+      if(!(a.flags & ActionFlags::SetMarker))
       {
-        m_Draws.push_back(d.eventId);
-        draws.push_back(d.eventId);
+        m_Actions.push_back(a.eventId);
+        actions.push_back(a.eventId);
       }
     }
 
-    maxEID = qMax(maxEID, d.eventId);
+    maxEID = qMax(maxEID, a.eventId);
   }
 
   return maxEID;

@@ -9,13 +9,25 @@ else()
 endif()
 
 if(APPLE)
-    list(APPEND sources renderdoccmd_apple.cpp)
+    list(APPEND sources renderdoccmd_apple.cpp apple/cocoa_window.mm)
+
+    find_library(COCOA_LIBRARY Cocoa)
+    list(APPEND libraries PRIVATE ${COCOA_LIBRARY})
+
+    find_library(QUARTZCORE_LIBRARY QuartzCore)
+    list(APPEND libraries PRIVATE ${QUARTZCORE_LIBRARY})
+
 elseif(ANDROID)
-    list(APPEND sources renderdoccmd_android.cpp)
+    string(REPLACE "\\" "/" GLUE_SOURCE "${ANDROID_NDK_ROOT_PATH}/sources/android/native_app_glue/android_native_app_glue.c")
+    list(APPEND sources renderdoccmd_android.cpp "${GLUE_SOURCE}")
     include_directories(${ANDROID_NDK_ROOT_PATH}/sources/android/native_app_glue)
     list(APPEND libraries PRIVATE -llog -landroid)
     set(LINKER_FLAGS "-Wl,--no-as-needed")
     
+    if(ENABLE_ASAN)
+        set(LINKER_FLAGS "${LINKER_FLAGS} -fsanitize=address")
+    endif()
+
     set_source_files_properties(renderdoccmd.cpp PROPERTIES COMPILE_FLAGS "-fexceptions -frtti")
     set_source_files_properties(renderdoccmd_android.cpp PROPERTIES COMPILE_FLAGS "-fexceptions")
 elseif(ENABLE_GGP)
@@ -49,8 +61,13 @@ if(ANDROID)
 else()
     set(CMAKE_SKIP_BUILD_RPATH TRUE)
     set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-    set(CMAKE_INSTALL_RPATH "$ORIGIN/:$ORIGIN/../lib${LIB_SUFFIX}/${LIB_SUBFOLDER_TRAIL_SLASH}")
-    set(CMAKE_EXE_LINKER_FLAGS "${LINKER_FLAGS}")
+    if(APPLE)
+        set(CMAKE_MACOSX_RPATH TRUE)
+        set(CMAKE_INSTALL_RPATH "@executable_path/../lib")
+    else()
+        set(CMAKE_INSTALL_RPATH "$ORIGIN/:$ORIGIN/../lib${LIB_SUFFIX}/${LIB_SUBFOLDER_TRAIL_SLASH}")
+    endif()
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LINKER_FLAGS}")
 
     add_executable(renderdoccmd ${sources})
 endif()
@@ -61,6 +78,10 @@ target_link_libraries(renderdoccmd ${libraries})
 install (TARGETS renderdoccmd DESTINATION bin)
 
 if(ANDROID)
+    # Android sets this to off becuase Android is always terrible forever.
+    # It breaks finding java in the path, so enable it again
+    set(CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH ON)
+
     #############################
     # We need to check that 'java' in PATH is new enough. Temporarily unset the JAVA_HOME env,
     # then invoke FindJava.cmake which will search just the PATH, then re-set it.
@@ -75,12 +96,11 @@ if(ANDROID)
     endif()
     message(STATUS "Using Java of version ${Java_VERSION}")
 
-    if(STRIP_ANDROID_LIBRARY AND CMAKE_STRIP AND RELEASE_MODE)
-        message(STATUS "renderdoccmd library will be stripped")
+    if(STRIP_ANDROID_LIBRARY AND ANDROID_STRIP_TOOL AND RELEASE_MODE)
         add_custom_command(TARGET renderdoccmd POST_BUILD
             COMMAND echo Stripping $<TARGET_FILE:renderdoccmd>
             COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:renderdoccmd> $<TARGET_FILE:renderdoccmd>.dbg
-            COMMAND ${CMAKE_STRIP} --strip-unneeded $<TARGET_FILE:renderdoccmd>)
+            COMMAND ${ANDROID_STRIP_TOOL} --strip-unneeded $<TARGET_FILE:renderdoccmd>)
     endif()
 
     set(ANDROID_BUILD_TOOLS_VERSION "" CACHE STRING "Version of Android build-tools to use instead of the default")
@@ -94,7 +114,7 @@ if(ANDROID)
         unset(__buildTools)
     endif()
     message(STATUS "Using Android build-tools version ${ANDROID_BUILD_TOOLS_VERSION}")
-    
+
     set(APK_TARGET_ID "" CACHE STRING "The Target ID to build the APK for like 'android-99', use <android list targets> to choose another one.")
     if(APK_TARGET_ID STREQUAL "")
         # This seems different from the platform we're targetting,
@@ -137,7 +157,7 @@ if(ANDROID)
     set(RT_JAR "$ENV{JAVA_HOME}/jre/lib/rt.jar")
     set(JAVA_BIN "$ENV{JAVA_HOME}/bin")
 
-    set(ANDROID_JAR "${ANDROID_SDK_ROOT_PATH}/platforms/${APK_TARGET_ID}/android.jar")
+    string(REPLACE "\\" "/" ANDROID_JAR "${ANDROID_SDK_ROOT_PATH}/platforms/${APK_TARGET_ID}/android.jar")
     if(CMAKE_HOST_WIN32)
         set(CLASS_PATH "${ANDROID_JAR}\;obj")
     else()
@@ -159,6 +179,10 @@ if(ANDROID)
         set(RENDERDOC_ANDROID_PACKAGE_NAME "org.renderdoc.renderdoccmd.arm32")
     elseif(ANDROID_ABI STREQUAL "arm64-v8a")
         set(RENDERDOC_ANDROID_PACKAGE_NAME "org.renderdoc.renderdoccmd.arm64")
+    elseif(ANDROID_ABI STREQUAL "x86")
+        set(RENDERDOC_ANDROID_PACKAGE_NAME "org.renderdoc.renderdoccmd.x86")
+    elseif(ANDROID_ABI STREQUAL "x86_64")
+        set(RENDERDOC_ANDROID_PACKAGE_NAME "org.renderdoc.renderdoccmd.x64")
     else()
         message(FATAL_ERROR "ABI ${ANDROID_ABI} is not supported.")
     endif()
@@ -182,6 +206,43 @@ if(ANDROID)
                        COMMAND ${CMAKE_COMMAND} -E make_directory bin
                        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:renderdoc> libs/lib/${ANDROID_ABI}/$<TARGET_FILE_NAME:renderdoc>
                        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:renderdoccmd> libs/lib/${ANDROID_ABI}/$<TARGET_FILE_NAME:renderdoccmd>
+                       )
+
+    if(ENABLE_ASAN)
+        set(ASAN_ABI_TAG "")
+        if(ANDROID_ABI STREQUAL "armeabi-v7a")
+            set(ASAN_ABI_TAG "arm")
+        elseif(ANDROID_ABI STREQUAL "arm64-v8a")
+            set(ASAN_ABI_TAG "aarch64")
+        else()
+            message(WARNING "Unknown ABI ${ANDROID_ABI}, libasan tag unknown")
+        endif()
+        
+        file(GLOB ASAN_LIBRARIES "${ANDROID_TOOLCHAIN_ROOT}/lib64/clang/*/lib/linux/libclang_rt.asan-${ASAN_ABI_TAG}-android.so")
+        list(SORT ASAN_LIBRARIES)
+
+        list(GET ASAN_LIBRARIES -1 ASAN_LIBRARY)
+
+        set(WRAP_SCRIPT "${ANDROID_NDK_ROOT_PATH}/wrap.sh/asan.sh")
+        
+        string(REPLACE "\\" "/" WRAP_SCRIPT "${WRAP_SCRIPT}")
+        string(REPLACE "\\" "/" ASAN_LIBRARY "${ASAN_LIBRARY}")
+
+        # Copy in the wrap script and libasan library
+        if(${WRAP_SCRIPT} STREQUAL "" OR NOT EXISTS ${WRAP_SCRIPT})
+            message(WARNING "Wrap script couldn't be found in NDK, you will need to manually create one and re-generate apk")
+        elseif(${ASAN_LIBRARY} STREQUAL "" OR NOT EXISTS ${ASAN_LIBRARY})
+            message(WARNING "libasan library couldn't be found in NDK, you will need to manually copy it in and re-generate apk")
+        else()
+            message(STATUS "Using wrap script ${WRAP_SCRIPT} and libasan library ${ASAN_LIBRARY}")
+            add_custom_command(OUTPUT ${APK_FILE} APPEND
+                COMMAND ${CMAKE_COMMAND} -E copy ${WRAP_SCRIPT} libs/lib/${ANDROID_ABI}/wrap.sh
+                COMMAND ${CMAKE_COMMAND} -E copy ${ASAN_LIBRARY} libs/lib/${ANDROID_ABI}/
+                )
+        endif()
+    endif()
+    
+    add_custom_command(OUTPUT ${APK_FILE} APPEND
                        COMMAND ${BUILD_TOOLS}/aapt package -f -m -S res -J src -M AndroidManifest.xml -I ${ANDROID_JAR}
                        COMMAND ${JAVA_BIN}/javac -d ./obj -source 1.7 -target 1.7 -bootclasspath ${RT_JAR} -classpath "${CLASS_PATH}" -sourcepath src src/org/renderdoc/renderdoccmd/*.java
                        COMMAND ${BUILD_TOOLS}/dx${TOOL_SCRIPT_EXTENSION} --dex --output=bin/classes.dex ./obj

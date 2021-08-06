@@ -1,7 +1,7 @@
 /******************************************************************************
 * The MIT License (MIT)
 *
-* Copyright (c) 2019-2020 Baldur Karlsson
+* Copyright (c) 2019-2021 Baldur Karlsson
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -147,6 +147,12 @@ bool OpenGLGraphicsTest::Init()
     return false;
   }
 
+  if(GLX_EXT_swap_control)
+  {
+    X11Window *x11win = (X11Window *)mainWindow;
+    glXSwapIntervalEXT(x11win->xlib.display, x11win->xlib.window, vsync ? 1 : 0);
+  }
+
   PostInit();
 
   return true;
@@ -224,7 +230,7 @@ void OpenGLGraphicsTest::ActivateContext(GraphicsWindow *win, void *ctx)
 
   if(ctx == NULL)
   {
-    glXMakeContextCurrent(x11win->xlib.display, NULL, NULL, NULL);
+    glXMakeContextCurrent(x11win->xlib.display, (GLXDrawable)NULL, (GLXDrawable)NULL, NULL);
     return;
   }
 

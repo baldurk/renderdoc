@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -78,11 +78,7 @@ public:
     m_italic = italic;
     dataChanged(0, Qt::FontRole);
   }
-  inline void setTreeColor(QColor col, float pixels)
-  {
-    m_treeCol = col;
-    m_treeColWidth = pixels;
-  }
+  inline void setTreeColor(QColor col) { m_treeCol = col; }
   inline void setBackgroundColor(QColor background) { setBackground(QBrush(background)); }
   inline void setForegroundColor(QColor foreground) { setForeground(QBrush(foreground)); }
   inline void setBackground(QBrush background)
@@ -144,7 +140,6 @@ private:
 
   friend class RDTreeWidget;
   friend class RDTreeWidgetModel;
-  friend class RDTreeWidgetDelegate;
 
   void setWidget(RDTreeWidget *widget);
   RDTreeWidget *m_widget = NULL;
@@ -174,7 +169,6 @@ private:
   bool m_bold = false;
   bool m_italic = false;
   QColor m_treeCol;
-  float m_treeColWidth = 0.0f;
   QBrush m_back;
   QBrush m_fore;
   QVariant m_tag;
@@ -209,13 +203,10 @@ private:
   RDTreeWidgetItem *m_Current;
 };
 
-class RichTextViewDelegate;
-
 class RDTreeWidget : public RDTreeView
 {
   Q_OBJECT
 
-  Q_PROPERTY(bool instantTooltips READ instantTooltips WRITE setInstantTooltips)
 public:
   explicit RDTreeWidget(QWidget *parent = 0);
   ~RDTreeWidget();
@@ -231,8 +222,6 @@ public:
   void setHoverHandCursor(bool hand) { m_hoverHandCursor = hand; }
   void setHoverClickActivate(bool click) { m_activateOnClick = click; }
   void setClearSelectionOnFocusLoss(bool clear) { m_clearSelectionOnFocusLoss = clear; }
-  bool instantTooltips() { return m_instantTooltips; }
-  void setInstantTooltips(bool instant) { m_instantTooltips = instant; }
   RDTreeWidgetItem *invisibleRootItem() { return m_root; }
   void addTopLevelItem(RDTreeWidgetItem *item) { m_root->addChild(item); }
   RDTreeWidgetItem *topLevelItem(int index) const { return m_root->child(index); }
@@ -243,9 +232,14 @@ public:
   void endUpdate();
   void setColumnAlignment(int column, Qt::Alignment align);
 
-  void setItemDelegate(QAbstractItemDelegate *delegate);
-  QAbstractItemDelegate *itemDelegate() const;
+  RDTreeWidgetItem *itemForIndex(QModelIndex idx) const;
 
+  void copyItem(QPoint pos, RDTreeWidgetItem *item);
+
+  typedef std::function<bool(int, Qt::SortOrder, const RDTreeWidgetItem *, const RDTreeWidgetItem *)>
+      ComparisonFunction;
+
+  void setSortComparison(ComparisonFunction comparison) { m_SortComparison = comparison; }
   void setColumns(const QStringList &columns);
   const QStringList &getHeaders() const { return m_headers; }
   QString headerText(int column) const { return m_headers[column]; }
@@ -282,7 +276,6 @@ private:
   void mouseReleaseEvent(QMouseEvent *e) override;
   void leaveEvent(QEvent *e) override;
   void focusOutEvent(QFocusEvent *event) override;
-  void drawBranches(QPainter *painter, const QRect &rect, const QModelIndex &index) const override;
 
   void selectionChanged(const QItemSelection &selected, const QItemSelection &deselected) override;
   void currentChanged(const QModelIndex &current, const QModelIndex &previous) override;
@@ -294,19 +287,17 @@ private:
 
   friend class RDTreeWidgetModel;
   friend class RDTreeWidgetItem;
-  friend class RDTreeWidgetDelegate;
 
   // invisible root item, used to simplify recursion by even top-level items having a parent
   RDTreeWidgetItem *m_root;
 
   RDTreeWidgetModel *m_model;
 
-  QAbstractItemDelegate *m_userDelegate = NULL;
-  RichTextViewDelegate *m_delegate;
-
   bool m_clearing = false;
 
   QStringList m_headers;
+
+  ComparisonFunction m_SortComparison;
 
   bool m_queueUpdates = false;
 
@@ -318,7 +309,6 @@ private:
 
   QVector<Qt::Alignment> m_alignments;
 
-  bool m_instantTooltips = false;
   int m_hoverColumn = -1;
   QIcon m_normalHoverIcon;
   QIcon m_activeHoverIcon;

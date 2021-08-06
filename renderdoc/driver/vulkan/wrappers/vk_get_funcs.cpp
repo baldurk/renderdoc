@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -47,20 +47,6 @@ void WrappedVulkan::vkGetPhysicalDeviceFeatures(VkPhysicalDevice physicalDevice,
                                                 VkPhysicalDeviceFeatures *pFeatures)
 {
   ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), pFeatures);
-
-  if(pFeatures)
-  {
-    // sparse features not supported
-    pFeatures->sparseBinding = VK_FALSE;
-    pFeatures->sparseResidencyBuffer = VK_FALSE;
-    pFeatures->sparseResidencyImage2D = VK_FALSE;
-    pFeatures->sparseResidencyImage3D = VK_FALSE;
-    pFeatures->sparseResidency2Samples = VK_FALSE;
-    pFeatures->sparseResidency4Samples = VK_FALSE;
-    pFeatures->sparseResidency8Samples = VK_FALSE;
-    pFeatures->sparseResidency16Samples = VK_FALSE;
-    pFeatures->sparseResidencyAliased = VK_FALSE;
-  }
 }
 
 void WrappedVulkan::vkGetPhysicalDeviceFormatProperties(VkPhysicalDevice physicalDevice,
@@ -265,7 +251,7 @@ void WrappedVulkan::vkGetImageMemoryRequirements(VkDevice device, VkImage image,
   // allow for this. The variability isn't quite clear, but for now we assume aligning size to
   // alignment * 4 should be sufficient (adding on a fixed padding won't help the problem as it
   // won't remove the variability, nor will adding then aligning for the same reason).
-  if(GetDriverInfo().UnreliableImageMemoryRequirements() && pMemoryRequirements->size > 0)
+  if(GetDriverInfo().AMDUnreliableImageMemoryRequirements() && pMemoryRequirements->size > 0)
   {
     VkMemoryRequirements &memreq = *pMemoryRequirements;
 
@@ -331,7 +317,7 @@ void WrappedVulkan::vkGetImageMemoryRequirements2(VkDevice device,
   // allow for this. The variability isn't quite clear, but for now we assume aligning size to
   // alignment * 4 should be sufficient (adding on a fixed padding won't help the problem as it
   // won't remove the variability, nor will adding then aligning for the same reason).
-  if(GetDriverInfo().UnreliableImageMemoryRequirements() &&
+  if(GetDriverInfo().AMDUnreliableImageMemoryRequirements() &&
      pMemoryRequirements->memoryRequirements.size > 0)
   {
     VkMemoryRequirements &memreq = pMemoryRequirements->memoryRequirements;
@@ -540,20 +526,6 @@ void WrappedVulkan::vkGetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice
           "can't support capture of bufferDeviceAddress");
       vulkan12->bufferDeviceAddress = vulkan12->bufferDeviceAddressMultiDevice = VK_FALSE;
     }
-  }
-
-  if(pFeatures)
-  {
-    // sparse features not supported
-    pFeatures->features.sparseBinding = VK_FALSE;
-    pFeatures->features.sparseResidencyBuffer = VK_FALSE;
-    pFeatures->features.sparseResidencyImage2D = VK_FALSE;
-    pFeatures->features.sparseResidencyImage3D = VK_FALSE;
-    pFeatures->features.sparseResidency2Samples = VK_FALSE;
-    pFeatures->features.sparseResidency4Samples = VK_FALSE;
-    pFeatures->features.sparseResidency8Samples = VK_FALSE;
-    pFeatures->features.sparseResidency16Samples = VK_FALSE;
-    pFeatures->features.sparseResidencyAliased = VK_FALSE;
   }
 }
 

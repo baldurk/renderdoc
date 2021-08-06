@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -273,7 +273,7 @@ void rdclog_filename(const char *filename)
   {
     logfileHandle = FileIO::logfile_open(*logfile);
 
-    if(logfileHandle && previous.c_str())
+    if(logfileHandle && !previous.empty())
     {
       rdcstr previousContents;
       FileIO::ReadAll(previous, previousContents);

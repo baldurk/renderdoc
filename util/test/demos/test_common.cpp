@@ -1,7 +1,7 @@
 /******************************************************************************
 * The MIT License (MIT)
 *
-* Copyright (c) 2019-2020 Baldur Karlsson
+* Copyright (c) 2019-2021 Baldur Karlsson
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -271,6 +271,13 @@ std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTa
   if(shaderc)
   {
 #if USE_LINKED_SHADERC
+    static bool logged = false;
+
+    if(!logged)
+    {
+      logged = true;
+      TEST_LOG("Compiling using built-in shaderc");
+    }
     shaderc_compile_options_t opts = shaderc_compile_options_initialize();
 
     if(lang == ShaderLang::glsl)

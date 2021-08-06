@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -186,9 +186,7 @@ private:
   D3D11RenderState *m_DeferredSavedState;
 
   rdcarray<APIEvent> m_CurEvents, m_Events;
-  bool m_AddedDrawcall;
-
-  bool HasNonMarkerEvents();
+  bool m_AddedAction;
 
   WrappedID3DUserDefinedAnnotation m_UserAnnotation;
   int32_t m_MarkerIndentLevel;
@@ -213,15 +211,15 @@ private:
 
   uint64_t m_CurChunkOffset;
   SDChunkMetaData m_ChunkMetadata;
-  uint32_t m_CurEventID, m_CurDrawcallID;
+  uint32_t m_CurEventID, m_CurActionID;
   D3D11Chunk m_LastChunk;
 
   ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
 
-  DrawcallDescription m_ParentDrawcall;
-  std::map<ResourceId, DrawcallDescription> m_CmdLists;
+  ActionDescription m_ParentAction;
+  std::map<ResourceId, ActionDescription> m_CmdLists;
 
-  rdcarray<DrawcallDescription *> m_DrawcallStack;
+  rdcarray<ActionDescription *> m_ActionStack;
 
   D3D11ResourceManager *GetResourceManager();
   static rdcstr GetChunkName(uint32_t idx);
@@ -231,10 +229,10 @@ private:
 
   void DrainAnnotationQueue();
 
-  void AddUsage(const DrawcallDescription &d);
+  void AddUsage(const ActionDescription &a);
 
   void AddEvent();
-  void AddDrawcall(const DrawcallDescription &d, bool hasEvents);
+  void AddAction(const ActionDescription &a);
 
   void RecordIndexBindStats(ID3D11Buffer *Buffer);
   void RecordVertexBindStats(UINT NumBuffers, ID3D11Buffer *const Buffers[]);
@@ -323,7 +321,7 @@ public:
   uint32_t GetEventID() { return m_CurEventID; }
   const APIEvent &GetEvent(uint32_t eventId) const;
 
-  const DrawcallDescription &GetRootDraw() { return m_ParentDrawcall; }
+  const ActionDescription &GetRootDraw() { return m_ParentAction; }
   void ThreadSafe_SetMarker(uint32_t col, const wchar_t *name);
   int ThreadSafe_BeginEvent(uint32_t col, const wchar_t *name);
   int ThreadSafe_EndEvent();

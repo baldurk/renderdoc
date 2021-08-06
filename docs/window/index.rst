@@ -10,6 +10,7 @@ Window reference
 	settings_window
 	pipeline_state
 	shader_viewer
+	shader_messages
 	timeline_bar
 	capture_connection
 	debug_messages

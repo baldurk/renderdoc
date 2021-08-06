@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -72,7 +72,7 @@ namespace rdcspv
 static const uint32_t MagicNumber = 0x07230203;
 static const uint32_t VersionMajor = 1;
 static const uint32_t VersionMinor = 5;
-static const uint32_t VersionRevision = 3;
+static const uint32_t VersionRevision = 4;
 static const uint32_t VersionPacked = (1 << 16) | (5 << 8);
 static const uint32_t OpCodeMask = 0xffff;
 static const uint32_t WordCountShift = 16;
@@ -115,6 +115,7 @@ enum class Generator : uint32_t
   ANGLEShaderCompiler = 24,
   MessiahShaderCompiler = 25,
   XeniaEmulatorMicrocodeTranslator = 26,
+  RustGPUCompilerBackend = 27,
 };
 
 enum class ImageOperands : uint32_t
@@ -823,7 +824,6 @@ enum class BuiltIn : uint32_t
   WorldToObjectNV = 5331,
   WorldToObjectKHR = 5331,
   HitTNV = 5332,
-  HitTKHR = 5332,
   HitKindNV = 5333,
   HitKindKHR = 5333,
   IncomingRayFlagsNV = 5351,
@@ -969,7 +969,9 @@ enum class Capability : uint32_t
   RoundingModeRTE = 4467,
   RoundingModeRTZ = 4468,
   RayQueryProvisionalKHR = 4471,
-  RayTraversalPrimitiveCullingProvisionalKHR = 4478,
+  RayQueryKHR = 4472,
+  RayTraversalPrimitiveCullingKHR = 4478,
+  RayTracingKHR = 4479,
   Float16ImageAMD = 5008,
   ImageGatherBiasLodAMD = 5009,
   FragmentMaskAMD = 5010,
@@ -1697,7 +1699,12 @@ enum class Op : uint16_t
   SubgroupAnyKHR = 4429,
   SubgroupAllEqualKHR = 4430,
   SubgroupReadInvocationKHR = 4432,
-  TypeRayQueryProvisionalKHR = 4472,
+  TraceRayKHR = 4445,
+  ExecuteCallableKHR = 4446,
+  ConvertUToAccelerationStructureKHR = 4447,
+  IgnoreIntersectionKHR = 4448,
+  TerminateRayKHR = 4449,
+  TypeRayQueryKHR = 4472,
   RayQueryInitializeKHR = 4473,
   RayQueryTerminateKHR = 4474,
   RayQueryGenerateIntersectionKHR = 4475,
@@ -1721,15 +1728,11 @@ enum class Op : uint16_t
   ReportIntersectionNV = 5334,
   ReportIntersectionKHR = 5334,
   IgnoreIntersectionNV = 5335,
-  IgnoreIntersectionKHR = 5335,
   TerminateRayNV = 5336,
-  TerminateRayKHR = 5336,
   TraceNV = 5337,
-  TraceRayKHR = 5337,
   TypeAccelerationStructureNV = 5341,
   TypeAccelerationStructureKHR = 5341,
   ExecuteCallableNV = 5344,
-  ExecuteCallableKHR = 5344,
   TypeCooperativeMatrixNV = 5358,
   CooperativeMatrixLoadNV = 5359,
   CooperativeMatrixStoreNV = 5360,

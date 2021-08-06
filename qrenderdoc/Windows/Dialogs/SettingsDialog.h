@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -63,6 +63,7 @@ private slots:
   void on_saveDirectory_textEdited(const QString &save);
   void on_browseSaveCaptureDirectory_clicked();
   void on_AllowGlobalHook_toggled(bool checked);
+  void on_AllowProcessInject_toggled(bool checked);
   void on_CheckUpdate_AllowChecks_toggled(bool checked);
   void on_Font_PreferMonospaced_toggled(bool checked);
   void on_AlwaysReplayLocally_toggled(bool checked);
@@ -97,8 +98,6 @@ private slots:
   // event browser
   void on_EventBrowser_TimeUnit_currentIndexChanged(int index);
   void on_EventBrowser_AddFake_toggled(bool checked);
-  void on_EventBrowser_HideEmpty_toggled(bool checked);
-  void on_EventBrowser_HideAPICalls_toggled(bool checked);
   void on_EventBrowser_ApplyColors_toggled(bool checked);
   void on_EventBrowser_ColorEventRow_toggled(bool checked);
 

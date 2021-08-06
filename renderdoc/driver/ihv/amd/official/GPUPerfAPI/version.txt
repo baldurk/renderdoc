@@ -1,3 +1,3 @@
-Release: GPUPerfAPI 3.3
+Release: GPUPerfAPI 3.8
 
-https://github.com/GPUOpen-Tools/GPA @ 1eaee4a094925bd30624defd1377c5a7efc92591
+https://github.com/GPUOpen-Tools/gpu_performance_api @ 643f328700a9240a29746a8a7fbed7cec100226a

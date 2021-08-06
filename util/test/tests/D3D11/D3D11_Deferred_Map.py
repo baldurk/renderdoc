@@ -6,10 +6,10 @@ class D3D11_Deferred_Map(rdtest.TestCase):
     demos_test_name = 'D3D11_Deferred_Map'
 
     def check_capture(self):
-        # Check at the last draw
-        draw = self.get_last_draw()
+        # Check at the last action
+        action = self.get_last_action()
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 

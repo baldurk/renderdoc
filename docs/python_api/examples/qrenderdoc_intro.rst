@@ -45,7 +45,7 @@ To invoke onto the right thread, you can use :py:meth:`~qrenderdoc.ReplayManager
 .. code:: python
 
     def myCallback(controller):
-        print("%d top-level drawcalls" % len(controller.GetDrawcalls()))
+        print("%d top-level actions" % len(controller.GetRootActions()))
 
     pyrenderdoc.Replay().BlockInvoke(myCallback)
 

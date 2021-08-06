@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -108,7 +108,18 @@
   RDCEraseEl(xcb);         \
   RDCEraseEl(wayland);
 
-#elif ENABLED(RDOC_APPLE) || ENABLED(RDOC_GGP)
+#elif ENABLED(RDOC_APPLE)
+
+#define WINDOW_HANDLE_DECL \
+  struct                   \
+  {                        \
+    void *view;            \
+    void *layer;           \
+  } cocoa;
+
+#define WINDOW_HANDLE_INIT RDCEraseEl(cocoa);
+
+#elif ENABLED(RDOC_GGP)
 
 #define WINDOW_HANDLE_DECL void *wnd;
 #define WINDOW_HANDLE_INIT wnd = NULL;
@@ -139,7 +150,7 @@ class WrappedVulkan;
 class VulkanDebugManager;
 class VulkanResourceManager;
 struct VulkanStatePipeline;
-struct VulkanAMDDrawCallback;
+struct VulkanAMDActionCallback;
 
 struct VulkanPostVSData
 {
@@ -198,10 +209,11 @@ struct VulkanPostVSData
   }
 };
 
-struct DynamicUsedBinds
+struct VKDynamicShaderFeedback
 {
   bool compute = false, valid = false;
   rdcarray<BindpointIndex> used;
+  rdcarray<ShaderMessage> messages;
 };
 
 enum TexDisplayFlags
@@ -361,6 +373,7 @@ public:
   void BuildTargetShader(ShaderEncoding sourceEncoding, const bytebuf &source, const rdcstr &entry,
                          const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId &id,
                          rdcstr &errors);
+  void SetCustomShaderIncludes(const rdcarray<rdcstr> &directories);
   void BuildCustomShader(ShaderEncoding sourceEncoding, const bytebuf &source, const rdcstr &entry,
                          const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId &id,
                          rdcstr &errors);
@@ -731,7 +744,7 @@ private:
 
     GPUBuffer FeedbackBuffer;
 
-    std::map<uint32_t, DynamicUsedBinds> Usage;
+    std::map<uint32_t, VKDynamicShaderFeedback> Usage;
   } m_BindlessFeedback;
 
   ShaderDebugData m_ShaderDebugData;
@@ -769,7 +782,7 @@ private:
   AMDCounters *m_pAMDCounters = NULL;
   AMDRGPControl *m_RGP = NULL;
 
-  VulkanAMDDrawCallback *m_pAMDDrawCallback = NULL;
+  VulkanAMDActionCallback *m_pAMDActionCallback = NULL;
 
   rdcarray<CounterResult> FetchCountersKHR(const rdcarray<GPUCounter> &counters);
 

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -69,7 +69,16 @@ bool IsDispatchableRes(WrappedVkRes *ptr)
 
 bool IsPostponableRes(const WrappedVkRes *ptr)
 {
-  return (WrappedVkDeviceMemory::IsAlloc(ptr) || WrappedVkImage::IsAlloc(ptr));
+  // only memory and images are postponed
+  if(WrappedVkDeviceMemory::IsAlloc(ptr) || WrappedVkImage::IsAlloc(ptr))
+  {
+    // and only if they're not storable. If they are storable they may have been written recently in
+    // a descriptor set binding and we didn't track it (since descriptor updates can be too
+    // high-frequency to be worth tracking), so pessimistically we don't postpone.
+    return !((WrappedVkNonDispRes *)ptr)->record->storable;
+  }
+
+  return false;
 }
 
 VkResourceType IdentifyTypeByPtr(WrappedVkRes *ptr)
@@ -3242,6 +3251,8 @@ RenderPassInfo::RenderPassInfo(const VkRenderPassCreateInfo &ci)
     imageAttachments[i].barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     imageAttachments[i].barrier.oldLayout = ci.pAttachments[i].initialLayout;
     imageAttachments[i].barrier.newLayout = ci.pAttachments[i].finalLayout;
+    imageAttachments[i].format = ci.pAttachments[i].format;
+    imageAttachments[i].samples = ci.pAttachments[i].samples;
   }
 
   // VK_KHR_multiview
@@ -3260,11 +3271,16 @@ RenderPassInfo::RenderPassInfo(const VkRenderPassCreateInfo &ci)
   }
 
   loadOpTable = new VkAttachmentLoadOp[arrayCount];
+  storeOpTable = new VkAttachmentStoreOp[arrayCount];
 
   // we only care about which attachment doesn't have LOAD specificed, so we
-  // assume all attachments have VK_ATTACHMENT_LOAD_OP_LOAD until proven otherwise
+  // assume all attachments have VK_ATTACHMENT_LOAD_OP_LOAD until proven otherwise.
+  // similarly for store
   for(uint32_t a = 0; a < arrayCount; ++a)
+  {
     loadOpTable[a] = VK_ATTACHMENT_LOAD_OP_LOAD;
+    storeOpTable[a] = VK_ATTACHMENT_STORE_OP_STORE;
+  }
 
   for(uint32_t s = 0; s < ci.subpassCount; ++s)
   {
@@ -3283,6 +3299,7 @@ RenderPassInfo::RenderPassInfo(const VkRenderPassCreateInfo &ci)
         if(index < ci.attachmentCount)
         {
           loadOpTable[index] = ci.pAttachments[index].loadOp;
+          storeOpTable[index] = ci.pAttachments[index].storeOp;
 
           if(multiviewViewMaskTable)
           {
@@ -3304,6 +3321,7 @@ RenderPassInfo::RenderPassInfo(const VkRenderPassCreateInfo &ci)
         if(index < ci.attachmentCount)
         {
           loadOpTable[index] = ci.pAttachments[index].loadOp;
+          storeOpTable[index] = ci.pAttachments[index].storeOp;
 
           if(multiviewViewMaskTable)
           {
@@ -3320,6 +3338,7 @@ RenderPassInfo::RenderPassInfo(const VkRenderPassCreateInfo &ci)
       if(index < ci.attachmentCount)
       {
         VkAttachmentLoadOp depthStencilLoadOp = ci.pAttachments[index].loadOp;
+        VkAttachmentStoreOp depthStencilStoreOp = ci.pAttachments[index].storeOp;
 
         // make depthstencil VK_ATTACHMENT_LOAD_OP_LOAD if either depth or stencil is
         // VK_ATTACHMENT_LOAD_OP_LOAD
@@ -3328,8 +3347,15 @@ RenderPassInfo::RenderPassInfo(const VkRenderPassCreateInfo &ci)
         {
           depthStencilLoadOp = ci.pAttachments[index].stencilLoadOp;
         }
+        // similarly for store
+        if(depthStencilStoreOp != VK_ATTACHMENT_STORE_OP_STORE &&
+           IsStencilFormat(ci.pAttachments[index].format))
+        {
+          depthStencilStoreOp = ci.pAttachments[index].stencilStoreOp;
+        }
 
         loadOpTable[index] = depthStencilLoadOp;
+        storeOpTable[index] = depthStencilStoreOp;
 
         if(multiviewViewMaskTable)
         {
@@ -3359,6 +3385,8 @@ RenderPassInfo::RenderPassInfo(const VkRenderPassCreateInfo2 &ci)
     imageAttachments[a].barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     imageAttachments[a].barrier.oldLayout = ci.pAttachments[i].initialLayout;
     imageAttachments[a].barrier.newLayout = ci.pAttachments[i].finalLayout;
+    imageAttachments[i].format = ci.pAttachments[i].format;
+    imageAttachments[i].samples = ci.pAttachments[i].samples;
 
     indexRemapTable[i] = a;
 
@@ -3394,11 +3422,16 @@ RenderPassInfo::RenderPassInfo(const VkRenderPassCreateInfo2 &ci)
   }
 
   loadOpTable = new VkAttachmentLoadOp[arrayCount];
+  storeOpTable = new VkAttachmentStoreOp[arrayCount];
 
   // we only care about which attachment doesn't have LOAD specificed, so we
-  // assume all attachments have VK_ATTACHMENT_LOAD_OP_LOAD until proven otherwise
+  // assume all attachments have VK_ATTACHMENT_LOAD_OP_LOAD until proven otherwise.
+  // similarly for store
   for(uint32_t a = 0; a < arrayCount; ++a)
+  {
     loadOpTable[a] = VK_ATTACHMENT_LOAD_OP_LOAD;
+    storeOpTable[a] = VK_ATTACHMENT_STORE_OP_STORE;
+  }
 
   for(uint32_t s = 0; s < ci.subpassCount; ++s)
   {
@@ -3420,6 +3453,7 @@ RenderPassInfo::RenderPassInfo(const VkRenderPassCreateInfo2 &ci)
           RDCASSERT(remappedIndex < arrayCount);
 
           loadOpTable[remappedIndex] = ci.pAttachments[index].loadOp;
+          storeOpTable[remappedIndex] = ci.pAttachments[index].storeOp;
 
           if(multiviewViewMaskTable)
           {
@@ -3444,6 +3478,7 @@ RenderPassInfo::RenderPassInfo(const VkRenderPassCreateInfo2 &ci)
           RDCASSERT(remappedIndex < arrayCount);
 
           loadOpTable[remappedIndex] = ci.pAttachments[index].loadOp;
+          storeOpTable[remappedIndex] = ci.pAttachments[index].storeOp;
 
           if(multiviewViewMaskTable)
           {
@@ -3460,7 +3495,9 @@ RenderPassInfo::RenderPassInfo(const VkRenderPassCreateInfo2 &ci)
       if(index < ci.attachmentCount)
       {
         VkAttachmentLoadOp depthStencilLoadOp = ci.pAttachments[index].loadOp;
+        VkAttachmentStoreOp depthStencilStoreOp = ci.pAttachments[index].storeOp;
         VkAttachmentLoadOp stencilLoadOp = ci.pAttachments[index].stencilLoadOp;
+        VkAttachmentStoreOp stencilStoreOp = ci.pAttachments[index].stencilStoreOp;
 
         uint32_t remappedIndex = indexRemapTable[index];
         RDCASSERT(remappedIndex < arrayCount);
@@ -3476,6 +3513,7 @@ RenderPassInfo::RenderPassInfo(const VkRenderPassCreateInfo2 &ci)
           if(separateStencil)
           {
             loadOpTable[remappedIndex + 1] = stencilLoadOp;
+            storeOpTable[remappedIndex + 1] = stencilStoreOp;
           }
           else
           {
@@ -3485,10 +3523,15 @@ RenderPassInfo::RenderPassInfo(const VkRenderPassCreateInfo2 &ci)
             {
               depthStencilLoadOp = stencilLoadOp;
             }
+            if(depthStencilStoreOp != VK_ATTACHMENT_STORE_OP_STORE)
+            {
+              depthStencilStoreOp = stencilStoreOp;
+            }
           }
         }
 
         loadOpTable[remappedIndex] = depthStencilLoadOp;
+        storeOpTable[remappedIndex] = depthStencilStoreOp;
 
         if(multiviewViewMaskTable)
         {
@@ -3503,6 +3546,7 @@ RenderPassInfo::~RenderPassInfo()
 {
   delete[] imageAttachments;
   delete[] loadOpTable;
+  delete[] storeOpTable;
   delete[] multiviewViewMaskTable;
 }
 
@@ -3524,9 +3568,10 @@ FramebufferInfo::~FramebufferInfo()
   delete[] imageAttachments;
 }
 
-bool FramebufferInfo::AttachmentFullyReferenced(size_t attachmentIndex, const RenderPassInfo *rpi)
+bool FramebufferInfo::AttachmentFullyReferenced(size_t attachmentIndex, VkResourceRecord *att,
+                                                VkImageSubresourceRange viewRange,
+                                                const RenderPassInfo *rpi)
 {
-  VkResourceRecord *att = imageAttachments[attachmentIndex].record;
   // if framebuffer doesn't reference the entire image
   if(att->resInfo->imageInfo.extent.width != width || att->resInfo->imageInfo.extent.height != height)
   {
@@ -3546,7 +3591,7 @@ bool FramebufferInfo::AttachmentFullyReferenced(size_t attachmentIndex, const Re
     uint32_t renderpass_viewmask = rpi->multiviewViewMaskTable[attachmentIndex];
     return (int)Bits::CountOnes(renderpass_viewmask) == att->resInfo->imageInfo.layerCount;
   }
-  return imageAttachments[attachmentIndex].barrier.subresourceRange.layerCount == layers;
+  return viewRange.layerCount == layers;
 }
 
 int ImgRefs::GetAspectCount() const
@@ -3782,10 +3827,15 @@ VkResourceRecord::~VkResourceRecord()
 void VkResourceRecord::MarkImageFrameReferenced(VkResourceRecord *img, const ImageRange &range,
                                                 FrameRefType refType)
 {
-  // mark backing memory
-  MarkResourceFrameReferenced(img->baseResource, refType);
-
   ResourceId id = img->GetResourceID();
+
+  // mark backing memory. For dedicated images we always treat the memory as read only so
+  // we don't try and include its initial contents.
+  if(img->dedicated)
+    MarkResourceFrameReferenced(img->baseResource, eFrameRef_Read);
+  else
+    MarkResourceFrameReferenced(img->baseResource, refType);
+
   if(img->resInfo && img->resInfo->IsSparse())
     cmdInfo->sparse.insert(img->resInfo);
 
@@ -3808,8 +3858,9 @@ void VkResourceRecord::MarkImageViewFrameReferenced(VkResourceRecord *view, cons
   // mark image view as read
   MarkResourceFrameReferenced(view->GetResourceID(), eFrameRef_Read);
 
-  // mark memory backing image
-  MarkResourceFrameReferenced(mem, refType);
+  // mark memory backing image as read only so we don't try and include its initial contents just
+  // because of an image's writes
+  MarkResourceFrameReferenced(mem, eFrameRef_Read);
 
   ImageSubresourceRange imgRange;
   imgRange.aspectMask = view->viewRange.aspectMask;
@@ -3984,229 +4035,62 @@ void VkResourceRecord::MarkBufferViewFrameReferenced(VkResourceRecord *bufView, 
 
 void ResourceInfo::Update(uint32_t numBindings, const VkSparseImageMemoryBind *pBindings)
 {
-  // update image page table mappings
-
-  for(uint32_t b = 0; b < numBindings; b++)
+  // update texel mappings
+  for(uint32_t i = 0; i < numBindings; i++)
   {
-    const VkSparseImageMemoryBind &newBind = pBindings[b];
+    const VkSparseImageMemoryBind &bind = pBindings[i];
 
-    // VKTODOMED handle sparse image arrays or sparse images with mips
-    RDCASSERT(newBind.subresource.arrayLayer == 0 && newBind.subresource.mipLevel == 0);
+    Sparse::PageTable &table = getSparseTableForAspect(bind.subresource.aspectMask);
 
-    rdcpair<VkDeviceMemory, VkDeviceSize> *pageTable = pages[newBind.subresource.aspectMask];
+    const uint32_t sub =
+        table.calcSubresource(bind.subresource.arrayLayer, bind.subresource.mipLevel);
 
-    VkOffset3D offsInPages = newBind.offset;
-    offsInPages.x /= pagedim.width;
-    offsInPages.y /= pagedim.height;
-    offsInPages.z /= pagedim.depth;
-
-    VkExtent3D extInPages = newBind.extent;
-    extInPages.width /= pagedim.width;
-    extInPages.height /= pagedim.height;
-    extInPages.depth /= pagedim.depth;
-
-    rdcpair<VkDeviceMemory, VkDeviceSize> mempair =
-        make_rdcpair(newBind.memory, newBind.memoryOffset);
-
-    for(uint32_t z = offsInPages.z; z < offsInPages.z + extInPages.depth; z++)
-    {
-      for(uint32_t y = offsInPages.y; y < offsInPages.y + extInPages.height; y++)
-      {
-        for(uint32_t x = offsInPages.x; x < offsInPages.x + extInPages.width; x++)
-        {
-          pageTable[z * imgdim.width * imgdim.height + y * imgdim.width + x] = mempair;
-        }
-      }
-    }
+    table.setImageBoxRange(
+        sub, {(uint32_t)bind.offset.x, (uint32_t)bind.offset.y, (uint32_t)bind.offset.z},
+        {bind.extent.width, bind.extent.height, bind.extent.depth}, GetResID(bind.memory),
+        bind.memoryOffset, false);
   }
 }
 
 void ResourceInfo::Update(uint32_t numBindings, const VkSparseMemoryBind *pBindings)
 {
-  // update opaque mappings
+  // update mip tail mappings
+  const bool isBuffer = (imageInfo.extent.width == 0);
 
-  for(uint32_t b = 0; b < numBindings; b++)
+  for(uint32_t i = 0; i < numBindings; i++)
   {
-    const VkSparseMemoryBind &newRange = pBindings[b];
+    const VkSparseMemoryBind &bind = pBindings[i];
 
-    bool found = false;
-
-    // this could be improved to do a binary search since the vector is sorted.
-    // for(auto it = opaquemappings.begin(); it != opaquemappings.end(); ++it)
-    for(size_t i = 0; i < opaquemappings.size(); i++)
+    // don't need to figure out which aspect we're in if we only have one table
+    if(isBuffer || altSparseAspects.empty())
     {
-      VkSparseMemoryBind &curRange = opaquemappings[i];
-
-      // the binding we're applying is after this item in the list,
-      // keep searching
-      if(curRange.resourceOffset + curRange.size <= newRange.resourceOffset)
-        continue;
-
-      // the binding we're applying is before this item, but doesn't
-      // overlap. Insert before us in the list
-      if(curRange.resourceOffset >= newRange.resourceOffset + newRange.size)
-      {
-        opaquemappings.insert(i, newRange);
-        found = true;
-        break;
-      }
-
-      // with sparse mappings it will be reasonably common to update an exact
-      // existing range, so check that first
-      if(newRange.resourceOffset == curRange.resourceOffset && newRange.size == curRange.size)
-      {
-        curRange = newRange;
-        found = true;
-        break;
-      }
-
-      // handle subranges within the current range
-      if(newRange.resourceOffset >= curRange.resourceOffset &&
-         newRange.resourceOffset + newRange.size <= curRange.resourceOffset + curRange.size)
-      {
-        // they start in the same place
-        if(newRange.resourceOffset == curRange.resourceOffset)
-        {
-          // change the current range to be the leftover second half
-          curRange.resourceOffset += newRange.size;
-          curRange.size -= newRange.size;
-
-          // insert the new mapping before our current one
-          opaquemappings.insert(i, newRange);
-          found = true;
-          break;
-        }
-        // they end in the same place
-        else if(newRange.resourceOffset + newRange.size == curRange.resourceOffset + curRange.size)
-        {
-          // save a copy
-          VkSparseMemoryBind first = curRange;
-
-          // set the new size of the first half
-          first.size = newRange.resourceOffset - curRange.resourceOffset;
-
-          // add the new range where the current iterator was
-          curRange = newRange;
-
-          // insert the old truncated mapping before our current position
-          opaquemappings.insert(i, first);
-          found = true;
-          break;
-        }
-        // the new range is a subsection
-        else
-        {
-          // save a copy
-          VkSparseMemoryBind first = curRange;
-
-          // set the new size of the first part
-          first.size = newRange.resourceOffset - first.resourceOffset;
-
-          // set the current range (third part) to start after the new range ends
-          curRange.size =
-              (curRange.resourceOffset + curRange.size) - (newRange.resourceOffset + newRange.size);
-          curRange.resourceOffset = newRange.resourceOffset + newRange.size;
-
-          // first insert the new range before our current range
-          opaquemappings.insert(i, newRange);
-
-          // now insert the remaining first part before that
-          opaquemappings.insert(i, first);
-
-          found = true;
-          break;
-        }
-      }
-
-      // this new range overlaps the current one and some subsequent ranges. Merge together
-
-      // find where this new range stops overlapping
-      size_t endi = i;
-      for(; endi < opaquemappings.size(); endi++)
-      {
-        if(newRange.resourceOffset + newRange.size <=
-           opaquemappings[endi].resourceOffset + opaquemappings[endi].size)
-          break;
-      }
-
-      VkSparseMemoryBind &endRange = opaquemappings[endi];
-
-      // see if there are any leftovers of the overlapped ranges at the start or end
-      bool leftoverstart = (newRange.resourceOffset < curRange.resourceOffset);
-      bool leftoverend = (endi < opaquemappings.size() && (endRange.resourceOffset + endRange.size >
-                                                           curRange.resourceOffset + curRange.size));
-
-      // no leftovers, the new range entirely covers the current and last (if there is one)
-      if(!leftoverstart && !leftoverend)
-      {
-        // erase all of the ranges. If endi is a valid index, it won't be erased, so we overwrite
-        // it. Otherwise there was no subsequent range so we just push_back()
-        opaquemappings.erase(i, endi - i);
-        if(endi < opaquemappings.size())
-          endRange = newRange;
-        else
-          opaquemappings.push_back(newRange);
-      }
-      // leftover at the start, but not the end
-      else if(leftoverstart && !leftoverend)
-      {
-        // save the current range
-        VkSparseMemoryBind first = curRange;
-
-        // modify the size to reflect what's left over
-        first.size = newRange.resourceOffset - first.resourceOffset;
-
-        // as above, erase and either re-insert or push_back()
-        opaquemappings.erase(i, endi - i);
-        if(endi < opaquemappings.size())
-        {
-          endRange = newRange;
-          opaquemappings.insert(endi, first);
-        }
-        else
-        {
-          opaquemappings.push_back(first);
-          opaquemappings.push_back(newRange);
-        }
-      }
-      // leftover at the end, but not the start
-      else if(!leftoverstart && leftoverend)
-      {
-        // erase up to but not including endit
-        opaquemappings.erase(i, endi - i);
-        // modify the leftovers at the end
-        endRange.resourceOffset = newRange.resourceOffset + newRange.size;
-        // insert the new range before
-        opaquemappings.insert(i, newRange);
-      }
-      // leftovers at both ends
-      else
-      {
-        // save the current range
-        VkSparseMemoryBind first = curRange;
-
-        // modify the size to reflect what's left over
-        first.size = newRange.resourceOffset - first.resourceOffset;
-
-        // erase up to but not including endit
-        opaquemappings.erase(i, endi - i);
-        // modify the leftovers at the end
-        endRange.size =
-            (endRange.resourceOffset + endRange.size) - (newRange.resourceOffset + newRange.size);
-        endRange.resourceOffset = newRange.resourceOffset + newRange.size;
-        // insert the new range before
-        opaquemappings.insert(i, newRange);
-        // insert the modified leftovers before that
-        opaquemappings.insert(i, first);
-      }
-
-      found = true;
-      break;
+      sparseTable.setMipTailRange(bind.resourceOffset, GetResID(bind.memory), bind.memoryOffset,
+                                  bind.size, false);
     }
+    else
+    {
+      bool found = false;
 
-    // if it wasn't found, this binding is after all mappings in our list
-    if(!found)
-      opaquemappings.push_back(newRange);
+      // ask each table if this offset is within its range
+      for(size_t a = 0; a <= altSparseAspects.size(); a++)
+      {
+        Sparse::PageTable &table =
+            a < altSparseAspects.size() ? altSparseAspects[a].table : sparseTable;
+
+        if(table.isByteOffsetInResource(bind.resourceOffset))
+        {
+          found = true;
+          table.setMipTailRange(bind.resourceOffset, GetResID(bind.memory), bind.memoryOffset,
+                                bind.size, false);
+        }
+      }
+
+      // just in case, if we don't find it in any then assume it's metadata
+      if(!found)
+        getSparseTableForAspect(VK_IMAGE_ASPECT_METADATA_BIT)
+            .setMipTailRange(bind.resourceOffset, GetResID(bind.memory), bind.memoryOffset,
+                             bind.size, false);
+    }
   }
 }
 
@@ -4227,6 +4111,7 @@ FrameRefType MarkImageReferenced(rdcflatmap<ResourceId, ImageState> &imageStates
 #if ENABLED(ENABLE_UNIT_TESTS)
 
 #undef None
+#undef Always
 
 #include "catch/catch.hpp"
 

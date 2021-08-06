@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -259,9 +259,26 @@ For some APIs that don't distinguish by entry point, this may be empty.
 )");
   ResourceId GetShader(ShaderStage stage) const;
 
+  DOCUMENT(R"(Returns the current primitive topology.
+
+.. note::
+  On OpenGL the primitive topology is not part of any state, but is specified in each action.
+  In this case the current topology is whichever was last specified to a action, as if there was
+  implicit state set by a action.
+
+:return: The current primitive topology.
+:rtype: Topology
+)");
+  Topology GetPrimitiveTopology() const;
+
   DOCUMENT(R"(Retrieves the current index buffer binding.
 
-:return: A :class:`BoundVBuffer` with the index buffer details. The stride is always 0.
+.. note::
+  On OpenGL the index stride/width is not part of any state, but is specified in each action.
+  In this case the current stride is whichever was last specified to a action, as if there was
+  implicit state set by a action.
+
+:return: A :class:`BoundVBuffer` with the index buffer details
 :rtype: BoundVBuffer
 )");
   BoundVBuffer GetIBuffer() const;
@@ -367,6 +384,13 @@ For some APIs that don't distinguish by entry point, this may be empty.
 :rtype: bool
 )");
   bool IsIndependentBlendingEnabled() const;
+
+  DOCUMENT(R"(Retrieves the shader messages obtained for the current action.
+
+:return: The shader messages obtained for the current action.
+:rtype: List[ShaderMessage]
+)");
+  const rdcarray<ShaderMessage> &GetShaderMessages() const;
 
 private:
   const D3D11Pipe::State *m_D3D11 = NULL;

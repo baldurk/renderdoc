@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,14 +36,14 @@ rdcstr DoStringise(const GLChunk &el)
     STRINGISE_ENUM_CLASS_NAMED(MakeContextCurrent, "MakeContextCurrent");
 
     STRINGISE_ENUM_CLASS_NAMED(glIndirectSubCommand, "Indirect sub-command");
-    STRINGISE_ENUM_CLASS_NAMED(glContextInit, "Internal: Context Initialisation");
+    STRINGISE_ENUM_CLASS_NAMED(glContextInit, "Internal::Context Initialisation");
 
     STRINGISE_ENUM_CLASS(vrapi_CreateTextureSwapChain);
     STRINGISE_ENUM_CLASS(vrapi_CreateTextureSwapChain2);
 
-    STRINGISE_ENUM_CLASS_NAMED(ContextConfiguration, "Internal: Context Configuration");
+    STRINGISE_ENUM_CLASS_NAMED(ContextConfiguration, "Internal::Context Configuration");
 
-    STRINGISE_ENUM_CLASS_NAMED(CoherentMapWrite, "Internal: Coherent Mapped Memory Write");
+    STRINGISE_ENUM_CLASS_NAMED(CoherentMapWrite, "Internal::Coherent Mapped Memory Write");
 
     STRINGISE_ENUM_CLASS(SwapBuffers);
     STRINGISE_ENUM_CLASS(wglSwapBuffers);
@@ -54,7 +54,7 @@ rdcstr DoStringise(const GLChunk &el)
     STRINGISE_ENUM_CLASS(eglSwapBuffersWithDamageEXT);
     STRINGISE_ENUM_CLASS(eglSwapBuffersWithDamageKHR);
 
-    STRINGISE_ENUM_CLASS_NAMED(ImplicitThreadSwitch, "Internal: Implicit thread context-switch");
+    STRINGISE_ENUM_CLASS_NAMED(ImplicitThreadSwitch, "Internal::Implicit thread context-switch");
 
 // re-use list of GL functions as chunks. Many of these will be aliased. This may not appear in the
 // same order as the definition, but that's OK.

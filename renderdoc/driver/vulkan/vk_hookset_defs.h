@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -526,7 +526,8 @@
   DeclExt(EXT_pipeline_creation_cache_control); \
   DeclExt(EXT_private_data);                    \
   DeclExt(EXT_extended_dynamic_state);          \
-  DeclExt(KHR_copy_commands2);
+  DeclExt(KHR_copy_commands2);                  \
+  DeclExt(KHR_synchronization2);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -625,7 +626,8 @@
   CheckExt(EXT_pipeline_creation_cache_control, VKXX); \
   CheckExt(EXT_private_data, VKXX);                    \
   CheckExt(EXT_extended_dynamic_state, VKXX);          \
-  CheckExt(KHR_copy_commands2, VKXX);
+  CheckExt(KHR_copy_commands2, VKXX);                  \
+  CheckExt(KHR_synchronization2, VKXX);
 
 #define HookInitVulkanInstanceExts_PhysDev()                                                         \
   HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                                \
@@ -859,6 +861,14 @@
   HookInitExtension(KHR_copy_commands2, CmdCopyImageToBuffer2KHR);                                 \
   HookInitExtension(KHR_copy_commands2, CmdBlitImage2KHR);                                         \
   HookInitExtension(KHR_copy_commands2, CmdResolveImage2KHR);                                      \
+  HookInitExtension(KHR_synchronization2, CmdSetEvent2KHR);                                        \
+  HookInitExtension(KHR_synchronization2, CmdResetEvent2KHR);                                      \
+  HookInitExtension(KHR_synchronization2, CmdWaitEvents2KHR);                                      \
+  HookInitExtension(KHR_synchronization2, CmdPipelineBarrier2KHR);                                 \
+  HookInitExtension(KHR_synchronization2, CmdWriteTimestamp2KHR);                                  \
+  HookInitExtension(KHR_synchronization2, QueueSubmit2KHR);                                        \
+  HookInitExtension(KHR_synchronization2 &&AMD_buffer_marker, CmdWriteBufferMarker2AMD);           \
+  /* No GetQueueCheckpointData2NV without VK_NV_device_diagnostic_checkpoints */                   \
   HookInitExtension_Device_Win32();                                                                \
   HookInitExtension_Device_Linux();                                                                \
   HookInitExtension_Device_GGP();                                                                  \
@@ -1527,6 +1537,21 @@
               const VkBlitImageInfo2KHR *, pBlitImageInfo);                                          \
   HookDefine2(void, vkCmdResolveImage2KHR, VkCommandBuffer, commandBuffer,                           \
               const VkResolveImageInfo2KHR *, pResolveImageInfo);                                    \
+  HookDefine3(void, vkCmdSetEvent2KHR, VkCommandBuffer, commandBuffer, VkEvent, event,               \
+              const VkDependencyInfoKHR *, pDependencyInfo);                                         \
+  HookDefine3(void, vkCmdResetEvent2KHR, VkCommandBuffer, commandBuffer, VkEvent, event,             \
+              VkPipelineStageFlags2KHR, stageMask);                                                  \
+  HookDefine4(void, vkCmdWaitEvents2KHR, VkCommandBuffer, commandBuffer, uint32_t, eventCount,       \
+              const VkEvent *, pEvents, const VkDependencyInfoKHR *, pDependencyInfos);              \
+  HookDefine2(void, vkCmdPipelineBarrier2KHR, VkCommandBuffer, commandBuffer,                        \
+              const VkDependencyInfoKHR *, pDependencyInfo);                                         \
+  HookDefine4(void, vkCmdWriteTimestamp2KHR, VkCommandBuffer, commandBuffer,                         \
+              VkPipelineStageFlags2KHR, stage, VkQueryPool, queryPool, uint32_t, query);             \
+  HookDefine4(VkResult, vkQueueSubmit2KHR, VkQueue, queue, uint32_t, submitCount,                    \
+              const VkSubmitInfo2KHR *, pSubmits, VkFence, fence);                                   \
+  HookDefine5(void, vkCmdWriteBufferMarker2AMD, VkCommandBuffer, commandBuffer,                      \
+              VkPipelineStageFlags2KHR, stage, VkBuffer, dstBuffer, VkDeviceSize, dstOffset,         \
+              uint32_t, marker);                                                                     \
   HookDefine_Win32();                                                                                \
   HookDefine_Linux();                                                                                \
   HookDefine_GGP();                                                                                  \

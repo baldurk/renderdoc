@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,9 +28,10 @@
 #include "dxbc_bytecode.h"
 #include "dxbc_container.h"
 
-static ShaderConstant MakeConstantBufferVariable(const DXBC::CBufferVariable &var);
+static ShaderConstant MakeConstantBufferVariable(bool cbufferPacking,
+                                                 const DXBC::CBufferVariable &var);
 
-static ShaderConstantType MakeShaderConstantType(DXBC::CBufferVariableType type)
+static ShaderConstantType MakeShaderConstantType(bool cbufferPacking, DXBC::CBufferVariableType type)
 {
   ShaderConstantType ret;
 
@@ -45,8 +46,14 @@ static ShaderConstantType MakeShaderConstantType(DXBC::CBufferVariableType type)
 
   uint32_t baseElemSize = (ret.descriptor.type == VarType::Double) ? 8 : 4;
 
-  // in D3D matrices always take up a float4 per row/column
-  ret.descriptor.matrixByteStride = uint8_t(baseElemSize * 4);
+  // in D3D matrices in cbuffers always take up a float4 per row/column. Structured buffers in
+  // SRVs/UAVs are tightly packed
+  if(cbufferPacking)
+    ret.descriptor.matrixByteStride = uint8_t(baseElemSize * 4);
+  else
+    ret.descriptor.matrixByteStride =
+        uint8_t(baseElemSize *
+                (ret.descriptor.rowMajorStorage ? ret.descriptor.rows : ret.descriptor.columns));
 
   if(type.descriptor.varClass == DXBC::CLASS_STRUCT)
   {
@@ -66,7 +73,7 @@ static ShaderConstantType MakeShaderConstantType(DXBC::CBufferVariableType type)
 
   ret.members.reserve(type.members.size());
   for(size_t i = 0; i < type.members.size(); i++)
-    ret.members.push_back(MakeConstantBufferVariable(type.members[i]));
+    ret.members.push_back(MakeConstantBufferVariable(cbufferPacking, type.members[i]));
 
   if(!ret.members.empty())
   {
@@ -77,14 +84,14 @@ static ShaderConstantType MakeShaderConstantType(DXBC::CBufferVariableType type)
   return ret;
 }
 
-static ShaderConstant MakeConstantBufferVariable(const DXBC::CBufferVariable &var)
+static ShaderConstant MakeConstantBufferVariable(bool cbufferPacking, const DXBC::CBufferVariable &var)
 {
   ShaderConstant ret;
 
   ret.name = var.name;
   ret.byteOffset = var.offset;
   ret.defaultValue = 0;
-  ret.type = MakeShaderConstantType(var.type);
+  ret.type = MakeShaderConstantType(cbufferPacking, var.type);
 
   return ret;
 }
@@ -188,7 +195,7 @@ static void MakeResourceList(bool srv, DXBC::DXBCContainer *dxbc,
       auto it = dxbc->GetReflection()->ResourceBinds.find(r.name);
       if(it != dxbc->GetReflection()->ResourceBinds.end())
       {
-        res.variableType = MakeShaderConstantType(it->second);
+        res.variableType = MakeShaderConstantType(false, it->second);
       }
       else
       {
@@ -292,7 +299,7 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl,
   }
 
   refl->encoding = ShaderEncoding::DXBC;
-  refl->rawBytes = dxbc->m_ShaderBlob;
+  refl->rawBytes = dxbc->GetShaderBlob();
 
   refl->dispatchThreadsDimension[0] = dxbc->GetReflection()->DispatchThreadsDimension[0];
   refl->dispatchThreadsDimension[1] = dxbc->GetReflection()->DispatchThreadsDimension[1];
@@ -328,7 +335,7 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl,
     for(size_t v = 0; v < dxbc->GetReflection()->CBuffers[i].variables.size(); v++)
     {
       cb.variables.push_back(
-          MakeConstantBufferVariable(dxbc->GetReflection()->CBuffers[i].variables[v]));
+          MakeConstantBufferVariable(true, dxbc->GetReflection()->CBuffers[i].variables[v]));
     }
   }
 

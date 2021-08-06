@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -1087,6 +1087,11 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
 
     SERIALISE_ELEMENT(enumVal);
 
+    rdcarray<MySpecialEnum> enumArray = {TheLastEnumValue, AnotherEnumValue, SecondEnumValue,
+                                         FirstEnumValue, FirstEnumValue};
+
+    SERIALISE_ELEMENT(enumArray);
+
     rdcarray<struct1> sparseStructArray;
 
     sparseStructArray.resize(10);
@@ -1128,6 +1133,10 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
 
     SERIALISE_ELEMENT(enumVal);
 
+    rdcarray<MySpecialEnum> enumArray;
+
+    SERIALISE_ELEMENT(enumArray);
+
     rdcarray<struct1> sparseStructArray;
 
     SERIALISE_ELEMENT(sparseStructArray);
@@ -1149,6 +1158,12 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
     CHECK(ser.GetReader()->AtEnd());
 
     CHECK(enumVal == AnotherEnumValue);
+
+    CHECK(enumArray[0] == TheLastEnumValue);
+    CHECK(enumArray[1] == AnotherEnumValue);
+    CHECK(enumArray[2] == SecondEnumValue);
+    CHECK(enumArray[3] == FirstEnumValue);
+    CHECK(enumArray[4] == FirstEnumValue);
 
     CHECK(sparseStructArray[0].x == 0.0f);
     CHECK(sparseStructArray[0].y == 0.0f);
@@ -1196,6 +1211,10 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
 
       SERIALISE_ELEMENT(enumVal);
 
+      rdcarray<MySpecialEnum> enumArray;
+
+      SERIALISE_ELEMENT(enumArray);
+
       rdcarray<struct1> sparseStructArray;
 
       SERIALISE_ELEMENT(sparseStructArray);
@@ -1218,14 +1237,14 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
 
     const SDFile &structData = ser.GetStructuredFile();
 
-    CHECK(structData.chunks.size() == 1);
+    REQUIRE(structData.chunks.size() == 1);
     CHECK(structData.buffers.size() == 0);
 
     REQUIRE(structData.chunks[0]);
 
     const SDChunk &chunk = *structData.chunks[0];
 
-    CHECK(chunk.NumChildren() == 5);
+    REQUIRE(chunk.NumChildren() == 6);
 
     for(const SDObject *o : chunk)
       REQUIRE(o);
@@ -1246,11 +1265,43 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
     {
       const SDObject &o = *chunk.GetChild(childIdx++);
 
+      CHECK(o.name == "enumArray");
+      CHECK(o.type.basetype == SDBasic::Array);
+      REQUIRE(o.NumChildren() == 5);
+
+      CHECK(o.GetChild(0)->type.basetype == SDBasic::Enum);
+      CHECK(o.GetChild(0)->type.flags == SDTypeFlags::HasCustomString);
+      CHECK(o.GetChild(0)->data.basic.u == TheLastEnumValue);
+      CHECK(o.GetChild(0)->data.str == "TheLastEnumValue");
+
+      CHECK(o.GetChild(1)->type.basetype == SDBasic::Enum);
+      CHECK(o.GetChild(1)->type.flags == SDTypeFlags::HasCustomString);
+      CHECK(o.GetChild(1)->data.basic.u == AnotherEnumValue);
+      CHECK(o.GetChild(1)->data.str == "AnotherEnumValue");
+
+      CHECK(o.GetChild(2)->type.basetype == SDBasic::Enum);
+      CHECK(o.GetChild(2)->type.flags == SDTypeFlags::HasCustomString);
+      CHECK(o.GetChild(2)->data.basic.u == SecondEnumValue);
+      CHECK(o.GetChild(2)->data.str == "SecondEnumValue");
+
+      CHECK(o.GetChild(3)->type.basetype == SDBasic::Enum);
+      CHECK(o.GetChild(3)->type.flags == SDTypeFlags::HasCustomString);
+      CHECK(o.GetChild(3)->data.basic.u == FirstEnumValue);
+      CHECK(o.GetChild(3)->data.str == "FirstEnumValue");
+
+      CHECK(o.GetChild(4)->type.basetype == SDBasic::Enum);
+      CHECK(o.GetChild(4)->type.flags == SDTypeFlags::HasCustomString);
+      CHECK(o.GetChild(4)->data.basic.u == FirstEnumValue);
+      CHECK(o.GetChild(4)->data.str == "FirstEnumValue");
+    }
+
+    {
+      const SDObject &o = *chunk.GetChild(childIdx++);
+
       CHECK(o.name == "sparseStructArray");
       CHECK(o.type.basetype == SDBasic::Array);
-      CHECK(o.type.byteSize == 10);
       CHECK(o.type.flags == SDTypeFlags::NoFlags);
-      CHECK(o.NumChildren() == 10);
+      REQUIRE(o.NumChildren() == 10);
 
       for(const SDObject *child : o)
       {
@@ -1296,7 +1347,7 @@ TEST_CASE("Read/write complex types", "[serialiser][structured]")
       CHECK(o.type.basetype == SDBasic::Struct);
       CHECK(o.type.byteSize == sizeof(struct2));
       CHECK(o.type.flags == SDTypeFlags::NoFlags);
-      CHECK(o.NumChildren() == 3);
+      REQUIRE(o.NumChildren() == 3);
 
       {
         const SDObject &c = *o.GetChild(0);

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -362,6 +362,8 @@ float4 main() : SV_Target0
     rootData.root_d.a[2] = 110.0f;
     rootData.root_d.b = 120.0f;
 
+    RootData emptyRoot = {};
+
     static_assert(sizeof(rootData) == 64, "Root data is mis-sized");
 
     ID3D12ResourcePtr vb = MakeBuffer().Data(DefaultTri);
@@ -369,7 +371,9 @@ float4 main() : SV_Target0
 
     ID3D12RootSignaturePtr sig = MakeSig({
         cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 7),
+        constParam(D3D12_SHADER_VISIBILITY_VERTEX, 0, 1, sizeof(rootData) / sizeof(uint32_t)),
         constParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 1, sizeof(rootData) / sizeof(uint32_t)),
+        constParam(D3D12_SHADER_VISIBILITY_GEOMETRY, 0, 1, sizeof(rootData) / sizeof(uint32_t)),
         cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 999999999, 0),
     });
 
@@ -414,9 +418,11 @@ float4 main() : SV_Target0
       cmd->SetGraphicsRootSignature(sig);
       cmd->SetGraphicsRootConstantBufferView(
           0, cb->GetGPUVirtualAddress() + bindOffset * sizeof(Vec4f));
-      cmd->SetGraphicsRoot32BitConstants(1, sizeof(rootData) / sizeof(uint32_t), &rootData, 0);
+      cmd->SetGraphicsRoot32BitConstants(1, sizeof(emptyRoot) / sizeof(uint32_t), &emptyRoot, 0);
+      cmd->SetGraphicsRoot32BitConstants(2, sizeof(rootData) / sizeof(uint32_t), &rootData, 0);
+      cmd->SetGraphicsRoot32BitConstants(3, sizeof(emptyRoot) / sizeof(uint32_t), &emptyRoot, 0);
       cmd->SetGraphicsRootConstantBufferView(
-          2, cb->GetGPUVirtualAddress() + bindOffset * sizeof(Vec4f) + 256);
+          4, cb->GetGPUVirtualAddress() + bindOffset * sizeof(Vec4f) + 256);
 
       RSSetViewport(cmd, {0.0f, 0.0f, (float)screenWidth, (float)screenHeight, 0.0f, 1.0f});
       RSSetScissorRect(cmd, {0, 0, screenWidth, screenHeight});

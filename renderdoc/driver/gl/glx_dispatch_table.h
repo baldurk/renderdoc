@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +31,8 @@
 // glX functions
 typedef GLXContext (*PFN_glXCreateContext)(Display *dpy, XVisualInfo *vis, GLXContext shareList,
                                            Bool direct);
+typedef GLXContext (*PFN_glXCreateNewContext)(Display *dpy, GLXFBConfig config, int renderType,
+                                              GLXContext shareList, Bool direct);
 typedef void (*PFN_glXDestroyContext)(Display *dpy, GLXContext ctx);
 typedef Bool (*PFN_glXMakeCurrent)(Display *dpy, GLXDrawable drawable, GLXContext ctx);
 typedef void (*PFN_glXSwapBuffers)(Display *dpy, GLXDrawable drawable);
@@ -66,6 +68,7 @@ typedef void (*PFN_glEnd)();
   FUNC(glXGetProcAddress);          \
   FUNC(glXGetProcAddressARB);       \
   FUNC(glXCreateContext);           \
+  FUNC(glXCreateNewContext);        \
   FUNC(glXDestroyContext);          \
   FUNC(glXCreateContextAttribsARB); \
   FUNC(glXMakeCurrent);             \

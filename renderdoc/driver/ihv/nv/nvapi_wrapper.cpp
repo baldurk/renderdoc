@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2020 Baldur Karlsson
+ * Copyright (c) 2020-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -114,6 +114,22 @@ public:
       }
     }
     return FALSE;
+  }
+
+  // only used on capture
+  virtual void STDMETHODCALLTYPE UnwrapDesc(D3D12_GRAPHICS_PIPELINE_STATE_DESC *pDesc) {}
+  virtual void STDMETHODCALLTYPE UnwrapDesc(D3D12_COMPUTE_PIPELINE_STATE_DESC *pDesc) {}
+  virtual ID3D12PipelineState *STDMETHODCALLTYPE
+  ProcessCreatedGraphicsPipelineState(const D3D12_GRAPHICS_PIPELINE_STATE_DESC *pDesc, uint32_t reg,
+                                      uint32_t space, ID3D12PipelineState *realPSO)
+  {
+    return NULL;
+  }
+  virtual ID3D12PipelineState *STDMETHODCALLTYPE
+  ProcessCreatedComputePipelineState(const D3D12_COMPUTE_PIPELINE_STATE_DESC *pDesc, uint32_t reg,
+                                     uint32_t space, ID3D12PipelineState *realPSO)
+  {
+    return NULL;
   }
 
 private:

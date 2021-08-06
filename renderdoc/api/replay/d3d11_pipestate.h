@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -152,6 +152,11 @@ struct IndexBuffer
 
   DOCUMENT("The byte offset from the start of the buffer to the beginning of the index data.");
   uint32_t byteOffset = 0;
+
+  DOCUMENT(R"(The number of bytes for each index in the index buffer. Typically 2 or 4 bytes but
+it can be 0 if no index buffer is bound.
+)");
+  uint32_t byteStride = 0;
 };
 
 DOCUMENT("Describes the input assembler data.");
@@ -188,6 +193,12 @@ struct InputAssembly
 :type: D3D11IndexBuffer
 )");
   IndexBuffer indexBuffer;
+
+  DOCUMENT(R"(The current primitive topology.
+
+:type: Topology
+)");
+  Topology topology = Topology::Unknown;
 };
 
 DOCUMENT("Describes the details of a D3D11 resource view - any one of UAV, SRV, RTV or DSV.");

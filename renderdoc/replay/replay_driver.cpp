@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -55,10 +55,10 @@ void DoSerialise(SerialiserType &ser, GetTextureDataParams &el)
 
 INSTANTIATE_SERIALISE_TYPE(GetTextureDataParams);
 
-static bool PreviousNextExcludedMarker(DrawcallDescription *draw)
+static bool PreviousNextExcludedMarker(ActionDescription *action)
 {
-  return bool(draw->flags & (DrawFlags::PushMarker | DrawFlags::SetMarker | DrawFlags::MultiDraw |
-                             DrawFlags::APICalls));
+  return bool(action->flags & (ActionFlags::PushMarker | ActionFlags::PopMarker |
+                               ActionFlags::SetMarker | ActionFlags::MultiAction));
 }
 
 CompType BaseRemapType(CompType typeCast)
@@ -75,114 +75,117 @@ CompType BaseRemapType(CompType typeCast)
   }
 }
 
-static DrawcallDescription *SetupDrawcallPointers(rdcarray<DrawcallDescription *> &drawcallTable,
-                                                  rdcarray<DrawcallDescription> &draws,
-                                                  DrawcallDescription *parent,
-                                                  DrawcallDescription *&previous)
+static ActionDescription *SetupActionPointers(rdcarray<ActionDescription *> &actionTable,
+                                              rdcarray<ActionDescription> &actions,
+                                              ActionDescription *parent, ActionDescription *&previous)
 {
-  DrawcallDescription *ret = NULL;
+  ActionDescription *ret = NULL;
 
-  for(size_t i = 0; i < draws.size(); i++)
+  for(size_t i = 0; i < actions.size(); i++)
   {
-    DrawcallDescription *draw = &draws[i];
+    ActionDescription *action = &actions[i];
 
-    draw->parent = parent;
+    RDCASSERTMSG("All actions must have their own event as the final event",
+                 !action->events.empty() && action->events.back().eventId == action->eventId);
 
-    if(!draw->children.empty())
+    action->parent = parent;
+
+    if(!action->children.empty())
     {
       {
-        RDCASSERT(drawcallTable.empty() || draw->eventId > drawcallTable.back()->eventId);
-        drawcallTable.resize(RDCMAX(drawcallTable.size(), size_t(draw->eventId) + 1));
-        drawcallTable[draw->eventId] = draw;
+        RDCASSERT(actionTable.empty() || action->eventId > actionTable.back()->eventId ||
+                  actionTable.back()->IsFakeMarker());
+        actionTable.resize(RDCMAX(actionTable.size(), size_t(action->eventId) + 1));
+        actionTable[action->eventId] = action;
       }
 
-      ret = SetupDrawcallPointers(drawcallTable, draw->children, draw, previous);
+      ret = SetupActionPointers(actionTable, action->children, action, previous);
     }
-    else if(PreviousNextExcludedMarker(draw))
+    else if(PreviousNextExcludedMarker(action))
     {
       // don't want to set up previous/next links for markers, but still add them to the table
       // Some markers like Present should have previous/next, but API Calls we also skip
 
       {
-        // we also allow equal EIDs for fake markers that don't have their own EIDs
-        RDCASSERT(drawcallTable.empty() || draw->eventId > drawcallTable.back()->eventId ||
-                  (draw->eventId == drawcallTable.back()->eventId &&
-                   (drawcallTable.back()->flags & DrawFlags::PushMarker)));
-        drawcallTable.resize(RDCMAX(drawcallTable.size(), size_t(draw->eventId) + 1));
-        drawcallTable[draw->eventId] = draw;
+        // we also allow non-contiguous EIDs for fake markers that have high EIDs
+        RDCASSERT(actionTable.empty() || action->eventId > actionTable.back()->eventId ||
+                  actionTable.back()->IsFakeMarker());
+        actionTable.resize(RDCMAX(actionTable.size(), size_t(action->eventId) + 1));
+        actionTable[action->eventId] = action;
       }
     }
     else
     {
       if(previous)
-        previous->next = draw;
-      draw->previous = previous;
+        previous->next = action;
+      action->previous = previous;
 
       {
-        // we also allow equal EIDs for fake markers that don't have their own EIDs
-        RDCASSERT(drawcallTable.empty() || draw->eventId > drawcallTable.back()->eventId ||
-                  (draw->eventId == drawcallTable.back()->eventId &&
-                   (drawcallTable.back()->flags & DrawFlags::PushMarker)));
-        drawcallTable.resize(RDCMAX(drawcallTable.size(), size_t(draw->eventId) + 1));
-        drawcallTable[draw->eventId] = draw;
+        // we also allow non-contiguous EIDs for fake markers that have high EIDs
+        RDCASSERT(actionTable.empty() || action->eventId > actionTable.back()->eventId ||
+                  actionTable.back()->IsFakeMarker());
+        actionTable.resize(RDCMAX(actionTable.size(), size_t(action->eventId) + 1));
+        actionTable[action->eventId] = action;
       }
 
-      ret = previous = draw;
+      ret = previous = action;
     }
   }
 
   return ret;
 }
 
-void SetupDrawcallPointers(rdcarray<DrawcallDescription *> &drawcallTable,
-                           rdcarray<DrawcallDescription> &draws)
+void SetupActionPointers(rdcarray<ActionDescription *> &actionTable,
+                         rdcarray<ActionDescription> &actions)
 {
-  DrawcallDescription *previous = NULL;
-  SetupDrawcallPointers(drawcallTable, draws, NULL, previous);
+  ActionDescription *previous = NULL;
+  SetupActionPointers(actionTable, actions, NULL, previous);
 
   // markers don't enter the previous/next chain, but we still want pointers for them that point to
-  // the next or previous actual draw (skipping any markers). This means that draw->next->previous
-  // != draw sometimes, but it's more useful than draw->next being NULL in the middle of the list.
+  // the next or previous actual action (skipping any markers). This means that
+  // action->next->previous
+  // != action sometimes, but it's more useful than action->next being NULL in the middle of the
+  // list.
   // This enables searching for a marker string and then being able to navigate from there and
   // joining the 'real' linked list after one step.
 
   previous = NULL;
-  rdcarray<DrawcallDescription *> markers;
+  rdcarray<ActionDescription *> markers;
 
-  for(DrawcallDescription *draw : drawcallTable)
+  for(ActionDescription *action : actionTable)
   {
-    if(!draw)
+    if(!action)
       continue;
 
-    bool marker = PreviousNextExcludedMarker(draw);
+    bool marker = PreviousNextExcludedMarker(action);
 
     if(marker)
     {
-      // point the previous pointer to the last non-marker draw we got. If we haven't hit one yet
+      // point the previous pointer to the last non-marker action we got. If we haven't hit one yet
       // because this is near the start, this will just be NULL.
-      draw->previous = previous;
+      action->previous = previous;
 
       // because there can be multiple markers consecutively we want to point all of their nexts to
-      // the next draw we encounter. Accumulate this list, though in most cases it will only be 1
+      // the next action we encounter. Accumulate this list, though in most cases it will only be 1
       // long as it's uncommon to have multiple markers one after the other
-      markers.push_back(draw);
+      markers.push_back(action);
     }
     else
     {
       // the next markers we encounter should point their previous to this.
-      previous = draw;
+      previous = action;
 
       // all previous markers point to this one
-      for(DrawcallDescription *m : markers)
-        m->next = draw;
+      for(ActionDescription *m : markers)
+        m->next = action;
 
       markers.clear();
     }
   }
 }
 
-void PatchLineStripIndexBuffer(const DrawcallDescription *draw, uint8_t *idx8, uint16_t *idx16,
-                               uint32_t *idx32, rdcarray<uint32_t> &patchedIndices)
+void PatchLineStripIndexBuffer(const ActionDescription *action, Topology topology, uint8_t *idx8,
+                               uint16_t *idx16, uint32_t *idx32, rdcarray<uint32_t> &patchedIndices)
 {
   const uint32_t restart = 0xffffffff;
 
@@ -190,11 +193,11 @@ void PatchLineStripIndexBuffer(const DrawcallDescription *draw, uint8_t *idx8, u
   (idx16 ? idx16[index + (offs)] \
          : (idx32 ? idx32[index + (offs)] : (idx8 ? idx8[index + (offs)] : index + (offs))))
 
-  switch(draw->topology)
+  switch(topology)
   {
     case Topology::TriangleList:
     {
-      for(uint32_t index = 0; index + 3 <= draw->numIndices; index += 3)
+      for(uint32_t index = 0; index + 3 <= action->numIndices; index += 3)
       {
         patchedIndices.push_back(IDX_VALUE(0));
         patchedIndices.push_back(IDX_VALUE(1));
@@ -211,7 +214,7 @@ void PatchLineStripIndexBuffer(const DrawcallDescription *draw, uint8_t *idx8, u
       // would need some more complex handling (you could two pairs of triangles in a single strip
       // by changing the winding, but then you'd need to restart and jump back, and handle a
       // trailing single triangle, etc).
-      for(uint32_t index = 0; index + 3 <= draw->numIndices; index++)
+      for(uint32_t index = 0; index + 3 <= action->numIndices; index++)
       {
         patchedIndices.push_back(IDX_VALUE(0));
         patchedIndices.push_back(IDX_VALUE(1));
@@ -231,7 +234,7 @@ void PatchLineStripIndexBuffer(const DrawcallDescription *draw, uint8_t *idx8, u
       // triangle then a base -> 2 for the last one. However I would be amazed if this code ever
       // runs except in an artificial test, so let's go with the simple and easy to understand
       // solution.
-      for(; index + 2 <= draw->numIndices; index++)
+      for(; index + 2 <= action->numIndices; index++)
       {
         patchedIndices.push_back(base);
         patchedIndices.push_back(IDX_VALUE(0));
@@ -244,7 +247,7 @@ void PatchLineStripIndexBuffer(const DrawcallDescription *draw, uint8_t *idx8, u
     case Topology::TriangleList_Adj:
     {
       // skip the adjacency values
-      for(uint32_t index = 0; index + 6 <= draw->numIndices; index += 6)
+      for(uint32_t index = 0; index + 6 <= action->numIndices; index += 6)
       {
         patchedIndices.push_back(IDX_VALUE(0));
         patchedIndices.push_back(IDX_VALUE(2));
@@ -257,7 +260,7 @@ void PatchLineStripIndexBuffer(const DrawcallDescription *draw, uint8_t *idx8, u
     case Topology::TriangleStrip_Adj:
     {
       // skip the adjacency values
-      for(uint32_t index = 0; index + 6 <= draw->numIndices; index += 2)
+      for(uint32_t index = 0; index + 6 <= action->numIndices; index += 2)
       {
         patchedIndices.push_back(IDX_VALUE(0));
         patchedIndices.push_back(IDX_VALUE(2));
@@ -268,7 +271,7 @@ void PatchLineStripIndexBuffer(const DrawcallDescription *draw, uint8_t *idx8, u
       break;
     }
     default:
-      RDCERR("Unsupported topology %s for line-list patching", ToStr(draw->topology).c_str());
+      RDCERR("Unsupported topology %s for line-list patching", ToStr(topology).c_str());
       return;
   }
 
@@ -587,6 +590,10 @@ FloatVector HighlightCache::InterpretVertex(const byte *data, uint32_t vert, con
 {
   FloatVector ret(0.0f, 0.0f, 0.0f, 1.0f);
 
+  if(cfg.position.format.compType == CompType::UInt ||
+     cfg.position.format.compType == CompType::SInt || cfg.position.format.compCount == 4)
+    ret.w = 0.0f;
+
   if(useidx && idxData)
   {
     if(vert >= (uint32_t)indices.size())
@@ -623,6 +630,10 @@ FloatVector HighlightCache::InterpretVertex(const byte *data, uint32_t vert,
   if(data + fmt.ElementSize() > end)
   {
     valid = false;
+
+    if(fmt.compType == CompType::UInt || fmt.compType == CompType::SInt || fmt.compCount == 4)
+      return FloatVector(0.0f, 0.0f, 0.0f, 0.0f);
+
     return FloatVector(0.0f, 0.0f, 0.0f, 1.0f);
   }
 
@@ -1276,13 +1287,19 @@ bytebuf GetDiscardPattern(DiscardType type, const ResourceFormat &fmt, uint32_t 
     ret.resize(rowPitch * DiscardPatternHeight);
     uint32_t *out = (uint32_t *)ret.data();
 
+    uint32_t minVal = 0;
+    uint32_t maxVal = 0xffffffff;
+
+    if(fmt.compType == CompType::UInt)
+      maxVal = (127u << 0) | (127u << 10) | (127u << 20) | (3u << 30);
+
     for(int yi = 0; yi < (int)DiscardPatternHeight; yi++)
     {
       int y = invert ? DiscardPatternHeight - 1 - yi : yi;
       for(int x = 0; x < (int)DiscardPatternWidth; x++)
       {
         char c = pattern.c_str()[y * DiscardPatternWidth + x];
-        *(out++) = (c == '#') ? 0xffffffff : 0x00000000;
+        *(out++) = (c == '#') ? maxVal : minVal;
       }
       out += (rowPitch - tightPitch);
     }
@@ -1562,7 +1579,7 @@ bytebuf GetDiscardPattern(DiscardType type, const ResourceFormat &fmt, uint32_t 
     {
       byte *rowout = out;
 
-      for(uint32_t i = 0; i < DiscardPatternWidth * DiscardPatternHeight; i++)
+      for(uint32_t i = 0; i < DiscardPatternWidth; i++)
       {
         memset(rowout, val, 16);
         rowout += 16;

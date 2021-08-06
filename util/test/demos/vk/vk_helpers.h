@@ -1,7 +1,7 @@
 /******************************************************************************
 * The MIT License (MIT)
 *
-* Copyright (c) 2019-2020 Baldur Karlsson
+* Copyright (c) 2019-2021 Baldur Karlsson
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -370,11 +370,11 @@ struct FenceCreateInfo : public VkFenceCreateInfo
 
 struct EventCreateInfo : public VkEventCreateInfo
 {
-  EventCreateInfo() : VkEventCreateInfo()
+  EventCreateInfo(VkEventCreateFlags flags = 0) : VkEventCreateInfo()
   {
     sType = VK_STRUCTURE_TYPE_EVENT_CREATE_INFO;
     pNext = NULL;
-    flags = 0;
+    this->flags = flags;
   }
 
   operator const VkEventCreateInfo *() const { return this; }
@@ -514,6 +514,12 @@ struct ImageCreateInfo : public VkImageCreateInfo
       imageType = VK_IMAGE_TYPE_2D;
     else
       imageType = VK_IMAGE_TYPE_1D;
+  }
+
+  VkImageCreateInfo &next(const void *next)
+  {
+    this->pNext = next;
+    return *this;
   }
 
   operator const VkImageCreateInfo *() const { return this; }
@@ -954,6 +960,12 @@ struct WriteDescriptorSet : public VkWriteDescriptorSet
                      const std::vector<VkBufferView> &texelBufferView)
       : WriteDescriptorSet(dstSet, dstBinding, 0, descriptorType, texelBufferView)
   {
+  }
+
+  WriteDescriptorSet &next(const void *next)
+  {
+    this->pNext = next;
+    return *this;
   }
 
   operator const VkWriteDescriptorSet *() const { return this; }

@@ -1,15 +1,10 @@
 import os
 import signal
+import datetime
 import time
 import renderdoc as rd
 from . import util
 from .logging import log
-
-
-# Keep running until we get a capture
-def run_until_capture(control):
-    """Exits when the first capture is made"""
-    return len(control.captures()) == 0
 
 
 class TargetControl():
@@ -60,7 +55,7 @@ class TargetControl():
         if self.control is not None:
             self.control.QueueCapture(frame, num)
 
-    def run(self, keep_running=run_until_capture):
+    def run(self, keep_running):
         """
         Runs a loop ticking the target control. The callback is called each time and
         can be used to determine if the loop should keep running. The default callback
@@ -75,12 +70,12 @@ class TargetControl():
         if self.control is None:
             return
 
-        start_time = time.time()
+        start_time = datetime.datetime.now(datetime.timezone.utc)
 
         while keep_running(self):
             msg: rd.TargetControlMessage = self.control.ReceiveMessage(None)
 
-            if time.time() - start_time > self._timeout:
+            if (datetime.datetime.now(datetime.timezone.utc) - start_time).total_seconds() > self._timeout:
                 log.error("Timed out")
                 break
 
@@ -92,12 +87,12 @@ class TargetControl():
             # If we got a new capture, add it to our list
             if msg.type == rd.TargetControlMessageType.NewCapture:
                 self._captures.append(msg.newCapture)
-                break
+                continue
 
             # Similarly for a new child
             if msg.type == rd.TargetControlMessageType.NewChild:
                 self._children.append(msg.newChild)
-                break
+                continue
 
         # Shut down the connection
         self.control.Shutdown()
@@ -150,7 +145,7 @@ def run_executable(exe: str, cmdline: str,
     return res.ident
 
 
-def run_and_capture(exe: str, cmdline: str, frame: int, *, frame_count=1, capture_name=None, opts=rd.GetDefaultCaptureOptions(),
+def run_and_capture(exe: str, cmdline: str, frame: int, *, frame_count=1, captures_expected=None, capture_name=None, opts=rd.GetDefaultCaptureOptions(),
                     timeout=None, logfile=None):
     """
     Helper function to run an executable with a command line, capture a particular frame, and exit.
@@ -173,6 +168,9 @@ def run_and_capture(exe: str, cmdline: str, frame: int, *, frame_count=1, captur
     if capture_name is None:
         capture_name = 'capture'
 
+    if captures_expected is None:
+        captures_expected = frame_count
+
     control = TargetControl(run_executable(exe, cmdline, cappath=util.get_tmp_path(capture_name), opts=opts), timeout=timeout)
 
     log.print("Queuing capture of frame {}..{} with timeout of {}".format(frame, frame+frame_count, "default" if timeout is None else timeout))
@@ -180,15 +178,19 @@ def run_and_capture(exe: str, cmdline: str, frame: int, *, frame_count=1, captur
     # Capture frame
     control.queue_capture(frame, frame_count)
 
-    # By default, runs until the first capture is made
-    control.run()
+    # Run until we have all expected captures (probably just 1). If the program
+    # exits or times out we will also stop, of course
+    control.run(keep_running=lambda x: len(x.captures()) < captures_expected)
 
     captures = control.captures()
 
     if logfile is not None and os.path.exists(logfile):
         log.inline_file('Process output', logfile, with_stdout=True)
 
-    if len(captures) == 0:
-        raise RuntimeError("No capture made")
+    if len(captures) != captures_expected:
+        if len(captures) == 0:
+            raise RuntimeError("No capture made in program")
+
+        raise RuntimeError("Expected {} captures, but only got {}".format(frame_count, len(captures)))
 
     return captures[0].path

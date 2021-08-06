@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -39,9 +39,9 @@ public:
   ~D3D12ShaderCache();
 
   rdcstr GetShaderBlob(const char *source, const char *entry, uint32_t compileFlags,
-                       const char *profile, ID3DBlob **srcblob);
+                       const rdcarray<rdcstr> &includeDirs, const char *profile, ID3DBlob **srcblob);
   rdcstr GetShaderBlob(const char *source, const char *entry, const ShaderCompileFlags &compileFlags,
-                       const char *profile, ID3DBlob **srcblob);
+                       const rdcarray<rdcstr> &includeDirs, const char *profile, ID3DBlob **srcblob);
 
   D3D12RootSignature GetRootSig(const void *data, size_t dataSize);
   ID3DBlob *MakeRootSig(const rdcarray<D3D12_ROOT_PARAMETER1> &params,

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -68,7 +68,8 @@ int GetIdentPort(pid_t childPid)
   rdcstr lsof = StringFormat::Fmt("lsof -p %d -a -i 4 -F n", (int)childPid);
   rdcstr result;
   uint32_t wait = 1;
-  for(int i = 0; i < 10; ++i)
+  // Wait for a maximum of ~8 seconds
+  for(int i = 0; i < 13; ++i)
   {
     result = execcmd(lsof.c_str());
     if(!result.empty())

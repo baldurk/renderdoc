@@ -1,11 +1,11 @@
 Save a texture to disk
 ======================
 
-In this example we will find a particular drawcall, and save the color output to disk as an image file.
+In this example we will find a particular action, and save the color output to disk as an image file.
 
-To begin with, so that we have an interesting drawcall selected we iterate over the list of draws finding the drawcall with the highest vertex count. For more on how to iterate through a capture's list of drawcalls, see :doc:`iter_draws`.
+To begin with, so that we have an interesting action selected we iterate over the list of actions finding the draw with the highest vertex count. For more on how to iterate through a capture's list of actions, see :doc:`iter_actions`.
 
-Once we have set the drawcall we want as the current event, we can configure the texture save operation. To do this we create a :py:class:`~renderdoc.TextureSave` object. The properties of the object determine how the texture will be mapped to an image file to be saved to disk.
+Once we have set the draw we want as the current event, we can configure the texture save operation. To do this we create a :py:class:`~renderdoc.TextureSave` object. The properties of the object determine how the texture will be mapped to an image file to be saved to disk.
 
 At minimum you need to select a file format, and we'll try a few - :py:attr:`~renderdoc.FileType.JPG`, :py:attr:`~renderdoc.FileType.HDR`, :py:attr:`~renderdoc.FileType.PNG`, and :py:attr:`~renderdoc.FileType.DDS`.
 

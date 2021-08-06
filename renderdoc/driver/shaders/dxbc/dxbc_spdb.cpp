@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -41,6 +41,7 @@
 namespace DXBC
 {
 static const uint32_t FOURCC_SPDB = MAKE_FOURCC('S', 'P', 'D', 'B');
+static const uint32_t FOURCC_DXBC = MAKE_FOURCC('D', 'X', 'B', 'C');
 
 bool IsPDBFile(void *data, size_t length)
 {
@@ -56,25 +57,11 @@ bool IsPDBFile(void *data, size_t length)
   return true;
 }
 
-SPDBChunk::SPDBChunk(void *chunk)
+SPDBChunk::SPDBChunk(byte *data, uint32_t spdblength)
 {
   m_HasDebugInfo = false;
 
-  byte *data = NULL;
-
   m_ShaderFlags = 0;
-
-  uint32_t spdblength;
-  {
-    uint32_t *raw = (uint32_t *)chunk;
-
-    if(raw[0] != FOURCC_SPDB)
-      return;
-
-    spdblength = raw[1];
-
-    data = (byte *)&raw[2];
-  }
 
   FileHeaderPage *header = (FileHeaderPage *)data;
 
@@ -511,6 +498,17 @@ SPDBChunk::SPDBChunk(void *chunk)
                 idx++;
                 break;
               }
+              case LF_METHOD:
+              {
+                lfMethod *method = (lfMethod *)iter;
+
+                SPDBLOG("  [%u]: Method %s used %u times in method list %u", idx, method->Name,
+                        method->count, method->mList);
+
+                idx++;
+                iter = bytes;
+                break;
+              }
               case LF_BCLASS:
               case LF_BINTERFACE:
               {
@@ -591,6 +589,13 @@ SPDBChunk::SPDBChunk(void *chunk)
           lfMFunc *mfunction = (lfMFunc *)leaf;
           SPDBLOG("Type %x is a member function of class %x returning %x with %u args: %x", id,
                   mfunction->classtype, mfunction->rvtype, mfunction->parmcount, mfunction->arglist);
+          break;
+        }
+        case LF_METHODLIST:
+        {
+          lfMethodList *mlist = (lfMethodList *)leaf;
+          (void)mlist;
+          SPDBLOG("Type %x is a method list", id);
           break;
         }
         case LF_STRIDED_ARRAY:
@@ -1831,9 +1836,21 @@ void SPDBChunk::GetLocals(const DXBC::DXBCContainer *dxbc, size_t, uintptr_t off
   }
 }
 
-IDebugInfo *MakeSPDBChunk(void *data)
+IDebugInfo *ProcessSPDBChunk(void *chunk)
 {
-  return new SPDBChunk(data);
+  uint32_t *raw = (uint32_t *)chunk;
+
+  if(raw[0] != FOURCC_SPDB)
+    return NULL;
+
+  uint32_t spdblength = raw[1];
+
+  return new SPDBChunk((byte *)&raw[2], spdblength);
+}
+
+IDebugInfo *ProcessPDB(byte *data, uint32_t length)
+{
+  return new SPDBChunk(data, length);
 }
 
 void UnwrapEmbeddedPDBData(bytebuf &bytes)
@@ -1899,14 +1916,23 @@ void UnwrapEmbeddedPDBData(bytebuf &bytes)
     }
   }
 
-  if(streams.size() < 5)
-    return;
+  if(streams.size() > 5)
+  {
+    // stream 5 is expected to contain the embedded data if this is a turducken PDB
+    PageMapping embeddedData(pages, header->PageSize, &streams[5].pageIndices[0],
+                             (uint32_t)streams[5].pageIndices.size());
 
-  // stream 5 is expected to contain the embedded data
-  PageMapping embeddedData(pages, header->PageSize, &streams[5].pageIndices[0],
-                           (uint32_t)streams[5].pageIndices.size());
+    if(streams[5].pageIndices.size() > 0)
+    {
+      const byte *data = embeddedData.Data();
 
-  bytes.assign(embeddedData.Data(), streams[5].byteLength);
+      // if we have a DXBC file in this stream, then it's what we want
+      if(!memcmp(data, &FOURCC_DXBC, 4))
+        bytes.assign(data, streams[5].byteLength);
+    }
+  }
+
+  delete[] pages;
 }
 
 };    // namespace DXBC

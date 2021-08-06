@@ -26,13 +26,13 @@ class VK_Line_Raster(rdtest.TestCase):
         return ret
 
     def check_capture(self):
-        draw = self.find_draw("vkCmdEndRenderPass")
+        action = self.find_action("vkCmdEndRenderPass")
 
-        self.check(draw is not None)
+        self.check(action is not None)
 
-        draw = draw.previous
+        action = action.previous
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -43,8 +43,21 @@ layout(push_constant, std140) uniform pushbuf
 layout(location = 0) out vec2 vertOutCol2;
 layout(location = 1) out vec4 vertOutcol;
 
+layout(constant_id = 1) const int spec_canary = 0;
+
 void main()
 {
+  if(spec_canary != 1337)
+  {
+    gl_Position = vec4(-1, -1, -1, 1);
+    vertOutcol = vec4(0, 0, 0, 0);
+    vertOutCol2 = vec2(0, 0);
+#if defined(USE_POINTS)
+    gl_PointSize = 0.0f;
+#endif
+    return;
+  }
+
 	vec4 pos = vec4(Position.xy * scale.xy + offset.xy, Position.z, 1.0f);
 	vertOutcol = Color;
 
@@ -57,7 +70,7 @@ void main()
 
   vertOutCol2.xy = pos.xy;
 
-	gl_Position = pos * vec4(1, -1, 1, 1);
+	gl_Position = pos * vec4(1, -1 * offset.w, 1, 1);
 #if defined(USE_POINTS)
   gl_PointSize = 1.0f;
 #endif
@@ -82,9 +95,13 @@ void main()
 
   int main()
   {
+    optDevExts.push_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
+
     // initialise, create window, create context, etc
     if(!Init())
       return 3;
+
+    bool KHR_maintenance1 = hasExt(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
 
     const DefaultA2V test[] = {
         // single color quad
@@ -175,10 +192,25 @@ void main()
     pipeCreateInfo.depthStencilState.stencilTestEnable = VK_FALSE;
     pipeCreateInfo.depthStencilState.back = pipeCreateInfo.depthStencilState.front;
 
+    VkSpecializationMapEntry specmap[1] = {
+        {1, 0 * sizeof(uint32_t), sizeof(uint32_t)},
+    };
+
+    uint32_t specvals[1] = {1337};
+
+    VkSpecializationInfo spec = {};
+    spec.mapEntryCount = ARRAY_COUNT(specmap);
+    spec.pMapEntries = specmap;
+    spec.dataSize = sizeof(specvals);
+    spec.pData = specvals;
+
+    pipeCreateInfo.stages[0].pSpecializationInfo = &spec;
+
     VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
 
     pipeCreateInfo.stages[0] = CompileShaderModule(vertex, ShaderLang::glsl, ShaderStage::vert,
                                                    "main", {std::make_pair("USE_POINTS", "1")}),
+    pipeCreateInfo.stages[0].pSpecializationInfo = &spec;
     pipeCreateInfo.inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
 
     VkPipeline pointspipe = createGraphicsPipeline(pipeCreateInfo);
@@ -198,7 +230,7 @@ void main()
 
     Vec4f cbufferdata[] = {
         Vec4f(2.0f / (float)screenWidth, 2.0f / (float)screenHeight, 1.0f, 1.0f),
-        Vec4f(-1.0f, -1.0f, 0.0f, 0.0f),
+        Vec4f(-1.0f, -1.0f, 1.0f, 1.0f),
     };
 
     AllocatedBuffer cb(
@@ -235,9 +267,26 @@ void main()
 
       vkCmdDraw(cmd, 3, 1, 10, 0);
 
-      setMarker(cmd, "Quad");
+      // if we have KHR_maintenance1, invert the viewport for the quad draw
+      if(KHR_maintenance1)
+      {
+        VkViewport v = mainWindow->viewport;
+        v.y += v.height;
+        v.height = -v.height;
+        vkCmdSetViewport(cmd, 0, 1, &v);
+        cbufferdata[1].w = -1.0f;
+        vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                           0, sizeof(cbufferdata), &cbufferdata);
+      }
 
+      setMarker(cmd, "Quad");
       vkCmdDraw(cmd, 6, 2, 0, 0);
+
+      cbufferdata[1].w = 1.0f;
+
+      vkCmdSetViewport(cmd, 0, 1, &mainWindow->viewport);
+      vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                         sizeof(cbufferdata), &cbufferdata);
 
       setMarker(cmd, "Points");
 

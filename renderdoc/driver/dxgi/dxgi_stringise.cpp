@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -179,6 +179,7 @@ rdcstr DoStringise(const D3D_FEATURE_LEVEL &el)
     STRINGISE_ENUM(D3D_FEATURE_LEVEL_11_1)
     STRINGISE_ENUM(D3D_FEATURE_LEVEL_12_0)
     STRINGISE_ENUM(D3D_FEATURE_LEVEL_12_1)
+    STRINGISE_ENUM(D3D_FEATURE_LEVEL_12_2)
   }
   END_ENUM_STRINGISE();
 }

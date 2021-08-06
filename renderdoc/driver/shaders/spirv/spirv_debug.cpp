@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2020 Baldur Karlsson
+ * Copyright (c) 2020-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -43,7 +43,7 @@ static bool ContainsNaNInf(const ShaderVariable &var)
   for(int c = 0; c < count; c++)
   {
 #undef _IMPL
-#define _IMPL(T) RDCISINF(comp<T>(var, c)) || RDCISNAN(comp<T>(var, c))
+#define _IMPL(T) ret |= RDCISINF(comp<T>(var, c)) || RDCISNAN(comp<T>(var, c))
 
     IMPL_FOR_FLOAT_TYPES(_IMPL);
   }
@@ -973,6 +973,14 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       for(uint32_t i = 0; i < shuffle.components.size(); i++)
       {
         uint32_t c = shuffle.components[i];
+
+        // "A Component literal may also be FFFFFFFF, which means the corresponding result component
+        // has no source and is undefined."
+        // If it has no defined source, we can use 0 safely and know that it's at least going to
+        // index validly
+        if(c == ~0U)
+          c = 0;
+
         if(c < vec1Cols)
           copyComp(var, i, src1, c);
         else
@@ -2715,12 +2723,12 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       if(texType & DebugAPIWrapper::Subpass_Texture)
       {
         // get current position
-        ShaderVariable curCoord;
+        ShaderVariable curCoord(rdcstr(), 0.0f, 0.0f, 0.0f, 0.0f);
         debugger.GetAPIWrapper()->FillInputValue(curCoord, ShaderBuiltin::Position, 0, 0);
 
         // co-ords are relative to the current position
-        setUintComp(coord, 0, uintComp(coord, 0) + uintComp(curCoord, 0));
-        setUintComp(coord, 1, uintComp(coord, 1) + uintComp(curCoord, 1));
+        setUintComp(coord, 0, uintComp(coord, 0) + (uint32_t)floatComp(curCoord, 0));
+        setUintComp(coord, 1, uintComp(coord, 1) + (uint32_t)floatComp(curCoord, 1));
 
         // do it with samplegather as ImageFetch rather than a Read which caches the whole texture
         // on the CPU for no reason (since we can't write to it)
@@ -3681,13 +3689,18 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::RayQueryGetWorldRayOriginKHR:
     case Op::RayQueryGetIntersectionObjectToWorldKHR:
     case Op::RayQueryGetIntersectionWorldToObjectKHR:
-    case Op::TypeRayQueryProvisionalKHR:
+    case Op::TypeRayQueryKHR:
     case Op::RayQueryInitializeKHR:
     case Op::RayQueryTerminateKHR:
     case Op::RayQueryGenerateIntersectionKHR:
     case Op::RayQueryConfirmIntersectionKHR:
     case Op::RayQueryProceedKHR:
     case Op::RayQueryGetIntersectionTypeKHR:
+    case Op::TraceRayKHR:
+    case Op::ExecuteCallableKHR:
+    case Op::ConvertUToAccelerationStructureKHR:
+    case Op::IgnoreIntersectionKHR:
+    case Op::TerminateRayKHR:
     {
       RDCERR("Unsupported extension opcode used %s", ToStr(opdata.op).c_str());
 

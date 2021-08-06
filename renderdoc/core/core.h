@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -85,7 +85,7 @@ enum class CaptureState
 {
   // This is the state while the initial load of a capture is happening and the replay is
   // initialising available resources. This is where any heavy one-off analysis can happen like
-  // noting down the details of a drawcall, tracking statistics about resource use and drawcall
+  // noting down the details of a action, tracking statistics about resource use and action
   // types, and creating resources that will be needed later in ActiveReplaying.
   //
   // After leaving this state, the capture enters ActiveReplaying and remains there until the
@@ -123,6 +123,8 @@ enum class CaptureState
   // anything about where in the frame we are.
   ActiveCapturing,
 };
+
+DECLARE_REFLECTION_ENUM(CaptureState);
 
 constexpr inline bool IsReplayMode(CaptureState state)
 {
@@ -523,6 +525,7 @@ public:
 
   void AddFrameCapturer(void *dev, void *wnd, IFrameCapturer *cap);
   void RemoveFrameCapturer(void *dev, void *wnd);
+  bool HasActiveFrameCapturer(RDCDriver driver) const;
 
   // add window-less frame capturers for use via users capturing
   // manually through the renderdoc API with NULL device/window handles

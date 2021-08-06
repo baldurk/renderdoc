@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -87,6 +87,18 @@ layout(set = 0, binding = 12, std430) buffer storebuftype
 
 layout(set = 0, binding = 13, rgba32f) uniform coherent image2D storeImage;
 
+layout(set = 1, binding = 5) uniform sampler2D linearSampledImage2;
+
+layout(set = 1, binding = 10, std140) uniform constsbuf2
+{
+  vec4 data;
+} cbuf2;
+
+layout(set = 1, binding = 20, std140) uniform constsbuf3
+{
+  vec4 data;
+} cbuf3;
+
 
 layout(location = 0) in v2f vertIn;
 
@@ -96,7 +108,9 @@ void main()
 {
   imageStore(oobImage, push.coord.xy, vec4(1,2,3,4));
   oobbuf.arr[push.coord.z] = vec4(1,2,3,4);
-  Color = vertIn.col + storebuf.arr[0] + imageLoad(storeImage, ivec2(0, 0)) + texture(linearSampledImage, vec2(0, 0));
+  Color = vertIn.col + storebuf.arr[0] + imageLoad(storeImage, ivec2(0, 0)) + texture(linearSampledImage, vec2(0, 0))
+        + texture(linearSampledImage2, vec2(0, 0)) + cbuf.data + cbuf2.data + cbuf3.data
+        + vec4(0,1,0,1);
 }
 
 )EOSHADER";
@@ -109,6 +123,8 @@ void main()
   {
     // require descriptor indexing
     devExts.push_back(VK_EXT_ROBUSTNESS_2_EXTENSION_NAME);
+
+    optDevExts.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
 
     features.robustBufferAccess = VK_TRUE;
 
@@ -133,6 +149,8 @@ void main()
     if(!Init())
       return 3;
 
+    bool KHR_push_descriptor = hasExt(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
+
     VkDescriptorSetLayout setlayout = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
         {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
         {3, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
@@ -143,11 +161,32 @@ void main()
         {13, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
     }));
 
-    VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo(
-        {setlayout},
-        {
-            vkh::PushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(Vec4i)),
-        }));
+    VkPipelineLayout layout;
+
+    if(KHR_push_descriptor)
+    {
+      VkDescriptorSetLayout pushlayout = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo(
+          {
+              {5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+              {10, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+              {20, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          },
+          VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR));
+
+      layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo(
+          {setlayout, pushlayout},
+          {
+              vkh::PushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(Vec4i)),
+          }));
+    }
+    else
+    {
+      layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo(
+          {setlayout},
+          {
+              vkh::PushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(Vec4i)),
+          }));
+    }
 
     vkh::GraphicsPipelineCreateInfo pipeCreateInfo;
 
@@ -236,12 +275,36 @@ void main()
       Vec4i push = {};
 
       if(robustnessFeatures.robustBufferAccess2)
+      {
         push.z = 1000000;
+        setMarker(cmd, "robustBufferAccess2");
+      }
+
       if(robustnessFeatures.robustImageAccess2)
+      {
         push.x = push.y = 1000000;
+        setMarker(cmd, "robustImageAccess2");
+      }
 
       vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, {descset}, {});
       vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(Vec4i), &push);
+
+      if(KHR_push_descriptor)
+      {
+        vkCmdPushDescriptorSetKHR(
+            cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 1, 1,
+            vkh::WriteDescriptorSet(
+                VK_NULL_HANDLE, 5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                {vkh::DescriptorImageInfo(VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED, pointsampler)}));
+        vkCmdPushDescriptorSetKHR(
+            cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 1, 1,
+            vkh::WriteDescriptorSet(VK_NULL_HANDLE, 10, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                    {vkh::DescriptorBufferInfo(VK_NULL_HANDLE)}));
+        vkCmdPushDescriptorSetKHR(
+            cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 1, 1,
+            vkh::WriteDescriptorSet(VK_NULL_HANDLE, 20, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                    {vkh::DescriptorBufferInfo(VK_NULL_HANDLE)}));
+      }
 
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);
       vkCmdSetViewport(cmd, 0, 1, &mainWindow->viewport);

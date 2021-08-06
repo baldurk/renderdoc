@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -275,12 +275,12 @@ void CaptureDialog::on_CaptureCallstacks_toggled(bool checked)
 {
   if(ui->CaptureCallstacks->isChecked())
   {
-    ui->CaptureCallstacksOnlyDraws->setEnabled(true);
+    ui->CaptureCallstacksOnlyActions->setEnabled(true);
   }
   else
   {
-    ui->CaptureCallstacksOnlyDraws->setChecked(false);
-    ui->CaptureCallstacksOnlyDraws->setEnabled(false);
+    ui->CaptureCallstacksOnlyActions->setChecked(false);
+    ui->CaptureCallstacksOnlyActions->setEnabled(false);
   }
 }
 
@@ -986,7 +986,7 @@ void CaptureDialog::SetSettings(CaptureSettings settings)
   ui->AllowVSync->setChecked(settings.options.allowVSync);
   ui->HookIntoChildren->setChecked(settings.options.hookIntoChildren);
   ui->CaptureCallstacks->setChecked(settings.options.captureCallstacks);
-  ui->CaptureCallstacksOnlyDraws->setChecked(settings.options.captureCallstacksOnlyDraws);
+  ui->CaptureCallstacksOnlyActions->setChecked(settings.options.captureCallstacksOnlyActions);
   ui->APIValidation->setChecked(settings.options.apiValidation);
   ui->RefAllResources->setChecked(settings.options.refAllResources);
   ui->CaptureAllCmdLists->setChecked(settings.options.captureAllCmdLists);
@@ -1034,7 +1034,7 @@ CaptureSettings CaptureDialog::Settings()
   ret.options.allowVSync = ui->AllowVSync->isChecked();
   ret.options.hookIntoChildren = ui->HookIntoChildren->isChecked();
   ret.options.captureCallstacks = ui->CaptureCallstacks->isChecked();
-  ret.options.captureCallstacksOnlyDraws = ui->CaptureCallstacksOnlyDraws->isChecked();
+  ret.options.captureCallstacksOnlyActions = ui->CaptureCallstacksOnlyActions->isChecked();
   ret.options.apiValidation = ui->APIValidation->isChecked();
   ret.options.refAllResources = ui->RefAllResources->isChecked();
   ret.options.captureAllCmdLists = ui->CaptureAllCmdLists->isChecked();

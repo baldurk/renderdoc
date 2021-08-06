@@ -126,6 +126,14 @@ This option **can be dangerous** which is why you have to deliberately enable it
 
 ---------------
 
+  | :guilabel:`Enable process injection (restart required)` Default: ``Disabled``
+
+On windows only RenderDoc is able to inject into running processes. By default this is disabled since it is almost never the right thing to do and can easily break, so you are strongly recommended to instead launch your program from RenderDoc's launch process panel.
+
+Injecting into processes can be unreliable and should only be used as a last resort when no other methods succeed, it should not be used as a primary method of launching applications.
+
+---------------
+
   | :guilabel:`Allow periodic anonymous update checks` Default: ``Enabled``
 
 Every couple of days RenderDoc will send a single web request to a secure server to see if a new version is available and let you know about it. The only information transmitted is the version of RenderDoc that is running.
@@ -243,7 +251,7 @@ Event Browser options
 
   | :guilabel:`Time unit used for event browser timings` Default: ``Microseconds``
 
-This option allows you to select the unit that will be shown in the duration column in the event browser when you time individual drawcalls.
+This option allows you to select the unit that will be shown in the duration column in the event browser when you time individual actions.
 
 Seconds through to nanoseconds are supported.
 
@@ -251,29 +259,9 @@ Seconds through to nanoseconds are supported.
 
   | :guilabel:`Add fake markers if none present` Default: ``Enable``
 
-If a capture is found to contain no markers whatsoever, RenderDoc will generate some default markers based on grouping drawcalls by the different output targets that they are drawing to. Roughly forming 'passes' of different types.
+If a capture is found to contain no markers whatsoever, RenderDoc will generate some default markers based on grouping actions by the different output targets that they are drawing to. Roughly forming 'passes' of different types.
 
-You can disable this option here if you want to view a pure list of drawcalls with no annotations.
-
-This option only applies itself the next time you load a capture.
-
-
----------------
-
-  | :guilabel:`Hide empty marker sections` Default: ``Disabled``
-
-Marker sections that contain no API calls or drawcalls will be completely removed. This also applies to the Timeline Bar.
-
-This option only applies itself the next time you load a capture.
-
-
----------------
-
-  | :guilabel:`Hide marker sections with only non-draw API calls` Default: ``Disabled``
-
-Marker sections that contain only miscellaneous non-draw API calls like queries or state setting will be completely removed. This also applies to the Timeline Bar.
-
-This can be useful if you have markers around occlusion queries or where you have a minor state change, and you don't want them cluttering up the capture.
+You can disable this option here if you want to view a pure list of actions with no annotations.
 
 This option only applies itself the next time you load a capture.
 
@@ -311,7 +299,7 @@ Android options
 
   | :guilabel:`Android SDK root path` Default: ``Empty``
 
-RenderDoc requires some android tools from the android SDK to be able to function. In most cases it's able to locate the tools automatically without any configuration needed, but if not this option allows you to manually locate the JDK root.
+RenderDoc requires some android tools from the android SDK to be able to function. In most cases it's able to locate the tools automatically without any configuration needed, but if not this option allows you to manually locate the SDK root.
 
 By default it will try to auto-locate those tools by looking in different environment variables like ``ANDROID_HOME`` and ``ANDROID_SDK``, or else searching the default executable path. If it fails completely it will try to use the tools bundled with RenderDoc's installation.
 

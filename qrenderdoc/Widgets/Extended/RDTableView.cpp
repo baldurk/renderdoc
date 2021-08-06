@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -150,7 +150,7 @@ void RDTableView::setColumnGroupRole(int role)
 void RDTableView::setPinnedColumns(int numColumns)
 {
   m_pinnedColumns = numColumns;
-  m_horizontalHeader->setPinnedColumns(numColumns);
+  m_horizontalHeader->setPinnedColumns(numColumns, this);
 }
 
 void RDTableView::keyPressEvent(QKeyEvent *e)

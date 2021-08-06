@@ -3585,6 +3585,11 @@
                   <property name="text">
                    <string/>
                   </property>
+                  <property name="font">
+                   <font>
+                    <pointsize>12</pointsize>
+                   </font>
+                  </property>
                   <property name="pixmap">
                    <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
                   </property>

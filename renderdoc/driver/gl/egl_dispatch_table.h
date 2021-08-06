@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -62,6 +62,8 @@ typedef EGLint(EGLAPIENTRY *PFN_eglGetError)(void);
 typedef EGLBoolean(EGLAPIENTRY *PFN_eglGetConfigAttrib)(EGLDisplay dpy, EGLConfig config,
                                                         EGLint attribute, EGLint *value);
 typedef const char *(EGLAPIENTRY *PFN_eglQueryString)(EGLDisplay dpy, EGLint name);
+typedef EGLBoolean(EGLAPIENTRY *PFN_eglQueryContext)(EGLDisplay dpy, EGLContext ctx,
+                                                     EGLint attribute, EGLint *value);
 typedef PFNEGLPOSTSUBBUFFERNVPROC PFN_eglPostSubBufferNV;
 typedef PFNEGLSWAPBUFFERSWITHDAMAGEEXTPROC PFN_eglSwapBuffersWithDamageEXT;
 typedef PFNEGLSWAPBUFFERSWITHDAMAGEKHRPROC PFN_eglSwapBuffersWithDamageKHR;
@@ -93,7 +95,8 @@ typedef PFNEGLSWAPBUFFERSWITHDAMAGEKHRPROC PFN_eglSwapBuffersWithDamageKHR;
   FUNC(Initialize, false, true);           \
   FUNC(QueryAPI, false, true);             \
   FUNC(QueryString, false, true);          \
-  FUNC(QuerySurface, false, true);
+  FUNC(QuerySurface, false, true);         \
+  FUNC(QueryContext, false, true);
 
 struct EGLDispatchTable
 {

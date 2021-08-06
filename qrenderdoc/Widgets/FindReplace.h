@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -61,7 +61,9 @@ public:
   bool matchWord();
   bool regexp();
 
+  void setFindText(QString text);
   QString findText();
+  void setReplaceText(QString text);
   QString replaceText();
 
 public slots:
@@ -75,6 +77,7 @@ signals:
   void performFindAll();
   void performReplace();
   void performReplaceAll();
+  void keyPress(QKeyEvent *e);
 
 private slots:
   // automatic slots

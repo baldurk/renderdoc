@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -58,14 +58,14 @@ struct GLReadWriteTag
     bindPoint = 0;
     offset = size = 0;
   }
-  GLReadWriteTag(uint32_t b, ResourceId id, uint64_t offs, uint64_t sz)
+  GLReadWriteTag(int32_t b, ResourceId id, uint64_t offs, uint64_t sz)
   {
     bindPoint = b;
     ID = id;
     offset = offs;
     size = sz;
   }
-  uint32_t bindPoint;
+  int32_t bindPoint;
   ResourceId ID;
   uint64_t offset;
   uint64_t size;
@@ -211,6 +211,8 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     ui->viBuffers->setClearSelectionOnFocusLoss(true);
     ui->viBuffers->setInstantTooltips(true);
     ui->viBuffers->setHoverIconColumn(6, action, action_hover);
+
+    m_Common.SetupResourceView(ui->viBuffers);
   }
 
   for(RDTreeWidget *tex : textures)
@@ -225,6 +227,8 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     tex->setHoverIconColumn(8, action, action_hover);
     tex->setClearSelectionOnFocusLoss(true);
     tex->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(tex);
   }
 
   for(RDTreeWidget *samp : samplers)
@@ -238,6 +242,8 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
 
     samp->setClearSelectionOnFocusLoss(true);
     samp->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(samp);
   }
 
   for(RDTreeWidget *ubo : ubos)
@@ -251,6 +257,8 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     ubo->setHoverIconColumn(4, action, action_hover);
     ubo->setClearSelectionOnFocusLoss(true);
     ubo->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(ubo);
   }
 
   for(RDTreeWidget *sub : subroutines)
@@ -265,18 +273,20 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     sub->setInstantTooltips(true);
   }
 
-  for(RDTreeWidget *ubo : readwrites)
+  for(RDTreeWidget *rw : readwrites)
   {
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
-    ubo->setHeader(header);
+    rw->setHeader(header);
 
-    ubo->setColumns({tr("Binding"), tr("Slot"), tr("Resource"), tr("Dimensions"), tr("Format"),
-                     tr("Access"), tr("Go")});
+    rw->setColumns({tr("Binding"), tr("Slot"), tr("Resource"), tr("Dimensions"), tr("Format"),
+                    tr("Access"), tr("Go")});
     header->setColumnStretchHints({1, 1, 2, 3, 3, 1, -1});
 
-    ubo->setHoverIconColumn(6, action, action_hover);
-    ubo->setClearSelectionOnFocusLoss(true);
-    ubo->setInstantTooltips(true);
+    rw->setHoverIconColumn(6, action, action_hover);
+    rw->setClearSelectionOnFocusLoss(true);
+    rw->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(rw);
   }
 
   {
@@ -292,6 +302,8 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     ui->xfbBuffers->setClearSelectionOnFocusLoss(true);
     ui->xfbBuffers->setInstantTooltips(true);
     ui->xfbBuffers->setHoverIconColumn(4, action, action_hover);
+
+    m_Common.SetupResourceView(ui->xfbBuffers);
   }
 
   {
@@ -331,6 +343,8 @@ GLPipelineStateViewer::GLPipelineStateViewer(ICaptureContext &ctx, PipelineState
     ui->framebuffer->setHoverIconColumn(8, action, action_hover);
     ui->framebuffer->setClearSelectionOnFocusLoss(true);
     ui->framebuffer->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(ui->framebuffer);
   }
 
   {
@@ -452,7 +466,50 @@ void GLPipelineStateViewer::OnEventChanged(uint32_t eventId)
 
 void GLPipelineStateViewer::SelectPipelineStage(PipelineStage stage)
 {
-  ui->pipeFlow->setSelectedStage((int)stage);
+  if(stage == PipelineStage::SampleMask)
+    ui->pipeFlow->setSelectedStage((int)PipelineStage::Rasterizer);
+  else
+    ui->pipeFlow->setSelectedStage((int)stage);
+}
+
+ResourceId GLPipelineStateViewer::GetResource(RDTreeWidgetItem *item)
+{
+  QVariant tag = item->tag();
+
+  const rdcarray<RDTreeWidget *> ubos = {
+      ui->vsUBOs, ui->tcsUBOs, ui->tesUBOs, ui->gsUBOs, ui->fsUBOs, ui->csUBOs,
+  };
+
+  if(tag.canConvert<ResourceId>())
+  {
+    return tag.value<ResourceId>();
+  }
+  else if(tag.canConvert<GLVBIBTag>())
+  {
+    GLVBIBTag buf = tag.value<GLVBIBTag>();
+    return buf.id;
+  }
+  else if(tag.canConvert<GLReadWriteTag>())
+  {
+    GLReadWriteTag rw = tag.value<GLReadWriteTag>();
+    return rw.ID;
+  }
+  else if(ubos.contains(item->treeWidget()))
+  {
+    const GLPipe::Shader *stage = stageForSender(item->treeWidget());
+
+    if(stage == NULL)
+      return ResourceId();
+
+    if(!tag.canConvert<int>())
+      return ResourceId();
+
+    int cb = tag.value<int>();
+
+    return m_Ctx.CurPipelineState().GetConstantBuffer(stage->stage, cb, 0).resourceId;
+  }
+
+  return ResourceId();
 }
 
 void GLPipelineStateViewer::on_showUnused_toggled(bool checked)
@@ -1046,10 +1103,24 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, RDLabel 
   vs = readwrites->verticalScrollBar()->value();
   readwrites->beginUpdate();
   readwrites->clear();
-  for(int i = 0; shaderDetails && i < shaderDetails->readWriteResources.count(); i++)
+
+  rdcarray<ShaderResource> rw;
+  if(shaderDetails)
+    rw = shaderDetails->readWriteResources;
+
+  // on GL read-write resources come from multiple namespaces so it's valid to have binding X for
+  // several. This makes it hard to do as we do above, iterate over every bind from 0 to max and
+  // find any matching shader bind. Instead we just sort by the bindpoint which we know internally
+  // in GL we normalised/sorted. The order of multiple elements on bindpoint 0 is undefined.
+  std::sort(rw.begin(), rw.end(), [](const ShaderResource &a, const ShaderResource &b) {
+    return a.bindPoint < b.bindPoint;
+  });
+
+  for(int i = 0; i < rw.count(); i++)
   {
-    const ShaderResource &res = shaderDetails->readWriteResources[i];
-    int bindPoint = stage.bindpointMapping.readWriteResources[res.bindPoint].bind;
+    const ShaderResource &res = rw[i];
+    const Bindpoint &bind = stage.bindpointMapping.readWriteResources[res.bindPoint];
+    int bindPoint = bind.bind;
 
     GLReadWriteType readWriteType = GetGLReadWriteType(res);
 
@@ -1078,7 +1149,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, RDLabel 
     }
 
     bool filledSlot = id != ResourceId();
-    bool usedSlot = stage.bindpointMapping.readWriteResources[i].used;
+    bool usedSlot = bind.used;
 
     if(showNode(usedSlot, filledSlot))
     {
@@ -1147,7 +1218,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, RDLabel 
         else
           dimensions = tr("%1 bytes").arg(length);
 
-        tag = QVariant::fromValue(GLReadWriteTag(i, id, offset, length));
+        tag = QVariant::fromValue(GLReadWriteTag(res.bindPoint, id, offset, length));
       }
 
       if(!filledSlot)
@@ -1250,7 +1321,7 @@ void GLPipelineStateViewer::setState()
   }
 
   const GLPipe::State &state = *m_Ctx.CurGLPipelineState();
-  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+  const ActionDescription *action = m_Ctx.CurAction();
 
   bool showUnused = ui->showUnused->isChecked();
   bool showEmpty = ui->showEmpty->isChecked();
@@ -1326,21 +1397,19 @@ void GLPipelineStateViewer::setState()
   ui->viAttrs->endUpdate();
   ui->viAttrs->verticalScrollBar()->setValue(vs);
 
-  Topology topo = draw ? draw->topology : Topology::Unknown;
-
-  int numCPs = PatchList_Count(topo);
+  int numCPs = PatchList_Count(state.vertexInput.topology);
   if(numCPs > 0)
   {
     ui->topology->setText(tr("PatchList (%1 Control Points)").arg(numCPs));
   }
   else
   {
-    ui->topology->setText(ToQStr(topo));
+    ui->topology->setText(ToQStr(state.vertexInput.topology));
   }
 
-  m_Common.setTopologyDiagram(ui->topologyDiagram, topo);
+  m_Common.setTopologyDiagram(ui->topologyDiagram, state.vertexInput.topology);
 
-  bool ibufferUsed = draw && (draw->flags & DrawFlags::Indexed);
+  bool ibufferUsed = action && (action->flags & ActionFlags::Indexed);
 
   if(ibufferUsed)
   {
@@ -1380,25 +1449,26 @@ void GLPipelineStateViewer::setState()
         length = buf->length;
 
       RDTreeWidgetItem *node = new RDTreeWidgetItem({tr("Element"), state.vertexInput.indexBuffer,
-                                                     draw ? draw->indexByteWidth : 0, 0, 0,
+                                                     state.vertexInput.indexByteStride, 0, 0,
                                                      (qulonglong)length, QString()});
 
       QString iformat;
-      if(draw)
+      if(action)
       {
-        if(draw->indexByteWidth == 1)
+        if(state.vertexInput.indexByteStride == 1)
           iformat = lit("ubyte");
-        else if(draw->indexByteWidth == 2)
+        else if(state.vertexInput.indexByteStride == 2)
           iformat = lit("ushort");
-        else if(draw->indexByteWidth == 4)
+        else if(state.vertexInput.indexByteStride == 4)
           iformat = lit("uint");
 
-        iformat += lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(draw->topology));
+        iformat +=
+            lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(state.vertexInput.topology));
       }
 
-      node->setTag(QVariant::fromValue(GLVBIBTag(state.vertexInput.indexBuffer,
-                                                 draw ? draw->indexOffset * draw->indexByteWidth : 0,
-                                                 iformat)));
+      node->setTag(QVariant::fromValue(GLVBIBTag(
+          state.vertexInput.indexBuffer,
+          action ? action->indexOffset * state.vertexInput.indexByteStride : 0, iformat)));
 
       if(!ibufferUsed)
         setInactiveRow(node);
@@ -1420,21 +1490,22 @@ void GLPipelineStateViewer::setState()
           {tr("Element"), tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), lit("-"), QString()});
 
       QString iformat;
-      if(draw)
+      if(action)
       {
-        if(draw->indexByteWidth == 1)
+        if(state.vertexInput.indexByteStride == 1)
           iformat = lit("ubyte");
-        else if(draw->indexByteWidth == 2)
+        else if(state.vertexInput.indexByteStride == 2)
           iformat = lit("ushort");
-        else if(draw->indexByteWidth == 4)
+        else if(state.vertexInput.indexByteStride == 4)
           iformat = lit("uint");
 
-        iformat += lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(draw->topology));
+        iformat +=
+            lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(state.vertexInput.topology));
       }
 
-      node->setTag(QVariant::fromValue(GLVBIBTag(state.vertexInput.indexBuffer,
-                                                 draw ? draw->indexOffset * draw->indexByteWidth : 0,
-                                                 iformat)));
+      node->setTag(QVariant::fromValue(GLVBIBTag(
+          state.vertexInput.indexBuffer,
+          action ? action->indexOffset * state.vertexInput.indexByteStride : 0, iformat)));
 
       setEmptyRow(node);
       m_EmptyNodes.push_back(node);
@@ -1974,7 +2045,7 @@ void GLPipelineStateViewer::setState()
         }
 
         QString slot = tr("Depth Only");
-        if(i == 1)
+        if(dsIdx == 1)
           slot = tr("Stencil Only");
 
         bool depthstencil = false;
@@ -2087,9 +2158,20 @@ void GLPipelineStateViewer::setState()
                                .arg(state.framebuffer.blendState.blendFactor[2], 0, 'f', 2)
                                .arg(state.framebuffer.blendState.blendFactor[3], 0, 'f', 2));
 
-  ui->depthEnabled->setPixmap(state.depthState.depthEnable ? tick : cross);
-  ui->depthFunc->setText(ToQStr(state.depthState.depthFunction));
-  ui->depthWrite->setPixmap(state.depthState.depthWrites ? tick : cross);
+  if(state.depthState.depthEnable)
+  {
+    ui->depthEnabled->setPixmap(tick);
+    ui->depthFunc->setText(ToQStr(state.depthState.depthFunction));
+    ui->depthWrite->setPixmap(state.depthState.depthWrites ? tick : cross);
+    ui->depthWrite->setText(QString());
+  }
+  else
+  {
+    ui->depthEnabled->setPixmap(cross);
+    ui->depthFunc->setText(tr("Disabled"));
+    ui->depthWrite->setPixmap(QPixmap());
+    ui->depthWrite->setText(tr("Disabled"));
+  }
 
   if(state.depthState.depthBounds)
   {
@@ -2148,11 +2230,11 @@ void GLPipelineStateViewer::setState()
   ui->stencils->endUpdate();
 
   // highlight the appropriate stages in the flowchart
-  if(draw == NULL)
+  if(action == NULL)
   {
     ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
   }
-  else if(draw->flags & DrawFlags::Dispatch)
+  else if(action->flags & ActionFlags::Dispatch)
   {
     ui->pipeFlow->setStagesEnabled({false, false, false, false, false, false, false, false, true});
   }
@@ -2219,9 +2301,21 @@ void GLPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, int c
   {
     GLReadWriteTag buf = tag.value<GLReadWriteTag>();
 
-    const ShaderResource &shaderRes = stage->reflection->readWriteResources[buf.bindPoint];
+    const ShaderResource *shaderRes = NULL;
 
-    QString format = BufferFormatter::GetBufferFormatString(shaderRes, ResourceFormat(), buf.offset);
+    for(const ShaderResource &res : stage->reflection->readWriteResources)
+    {
+      if(res.bindPoint == buf.bindPoint)
+      {
+        shaderRes = &res;
+        break;
+      }
+    }
+
+    if(!shaderRes)
+      return;
+
+    QString format = BufferFormatter::GetBufferFormatString(*shaderRes, ResourceFormat(), buf.offset);
 
     if(buf.ID != ResourceId())
     {
@@ -2425,7 +2519,7 @@ void GLPipelineStateViewer::shaderSave_clicked()
 
 void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::VertexInput &vtx)
 {
-  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+  const ActionDescription *action = m_Ctx.CurAction();
 
   const GLPipe::State &pipe = *m_Ctx.CurGLPipelineState();
   {
@@ -2505,13 +2599,13 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Vert
     }
 
     QString ifmt = lit("UNKNOWN");
-    if(draw)
+    if(action)
     {
-      if(draw->indexByteWidth == 1)
+      if(vtx.indexByteStride == 1)
         ifmt = lit("UNSIGNED_BYTE");
-      else if(draw->indexByteWidth == 2)
+      else if(vtx.indexByteStride == 2)
         ifmt = lit("UNSIGNED_SHORT");
-      else if(draw->indexByteWidth == 4)
+      else if(vtx.indexByteStride == 4)
         ifmt = lit("UNSIGNED_INT");
     }
 
@@ -2523,7 +2617,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Vert
   xml.writeEndElement();
 
   m_Common.exportHTMLTable(xml, {tr("Primitive Topology")},
-                           {ToQStr(draw ? draw->topology : Topology::Unknown)});
+                           {ToQStr(action ? vtx.topology : Topology::Unknown)});
 
   {
     xml.writeStartElement(tr("h3"));

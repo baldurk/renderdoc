@@ -1,8 +1,5 @@
 import renderdoc as rd
 import rdtest
-from typing import List, Tuple
-import time
-import os
 
 
 # Not a direct test, re-used by API-specific tests
@@ -10,11 +7,11 @@ class Buffer_Truncation(rdtest.TestCase):
     internal = True
 
     def check_capture(self):
-        draw = self.find_draw("Draw")
+        action = self.find_action("Draw")
 
-        self.check(draw is not None)
+        self.check(action is not None)
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         vsin_ref = {
             0: {
@@ -55,9 +52,9 @@ class Buffer_Truncation(rdtest.TestCase):
             },
         }
 
-        self.check_mesh_data(vsin_ref, self.get_vsin(draw))
+        self.check_mesh_data(vsin_ref, self.get_vsin(action))
 
-        postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, draw.numIndices)
+        postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
 
         postvs_ref = {
             0: {
@@ -106,7 +103,7 @@ class Buffer_Truncation(rdtest.TestCase):
 
         cbuf: rd.BoundCBuffer = pipe.GetConstantBuffer(stage, 0, 0)
 
-        if self.find_draw('NoCBufferRange') == None:
+        if self.find_action('NoCBufferRange') == None:
             self.check(cbuf.byteSize == 256)
 
         variables = self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),

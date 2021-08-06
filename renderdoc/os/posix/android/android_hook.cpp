@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -791,13 +791,13 @@ void LibraryHooks::EndHookRegistration()
   // call the callbacks for any libraries that loaded now. If the library wasn't loaded above then
   // it can't be loaded, since we only hook system libraries.
   std::map<rdcstr, rdcarray<FunctionLoadCallback>> callbacks = GetHookInfo().GetHookCallbacks();
-  for(const std::pair<rdcstr, rdcarray<FunctionLoadCallback>> &cb : callbacks)
+  for(auto it = callbacks.begin(); it != callbacks.end(); ++it)
   {
-    void *handle = dlopen(cb.first.c_str(), RTLD_GLOBAL);
+    void *handle = dlopen(it->first.c_str(), RTLD_GLOBAL);
     if(handle)
     {
-      HOOK_DEBUG_PRINT("Calling callbacks for %s", cb.first.c_str());
-      for(FunctionLoadCallback callback : cb.second)
+      HOOK_DEBUG_PRINT("Calling callbacks for %s", it->first.c_str());
+      for(FunctionLoadCallback callback : it->second)
         if(callback)
           callback(handle);
     }

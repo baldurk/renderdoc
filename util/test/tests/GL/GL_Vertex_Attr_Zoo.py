@@ -7,11 +7,11 @@ class GL_Vertex_Attr_Zoo(rdtest.TestCase):
     demos_test_name = 'GL_Vertex_Attr_Zoo'
 
     def check_capture(self):
-        draw = self.find_draw("Draw")
+        action = self.find_action("Draw")
 
-        self.check(draw is not None)
+        self.check(action is not None)
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         ref = {
             0: {
@@ -75,14 +75,14 @@ class GL_Vertex_Attr_Zoo(rdtest.TestCase):
         vsout_ref[2]['gl_Position'] = [0.5, 0.5, 0.0, 1.0]
         gsout_ref[2]['gl_Position'] = [0.5, 0.5, 0.4, 1.2]
 
-        self.check_mesh_data(in_ref, self.get_vsin(draw))
+        self.check_mesh_data(in_ref, self.get_vsin(action))
         rdtest.log.success("Vertex input data is as expected")
 
-        self.check_mesh_data(vsout_ref, self.get_postvs(draw, rd.MeshDataStage.VSOut))
+        self.check_mesh_data(vsout_ref, self.get_postvs(action, rd.MeshDataStage.VSOut))
 
         rdtest.log.success("Vertex output data is as expected")
 
-        self.check_mesh_data(gsout_ref, self.get_postvs(draw, rd.MeshDataStage.GSOut))
+        self.check_mesh_data(gsout_ref, self.get_postvs(action, rd.MeshDataStage.GSOut))
 
         rdtest.log.success("Geometry output data is as expected")
 

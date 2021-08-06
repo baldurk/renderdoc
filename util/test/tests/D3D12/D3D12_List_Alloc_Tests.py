@@ -9,13 +9,13 @@ class D3D12_List_Alloc_Tests(rdtest.TestCase):
     demos_frame_cap = 40
 
     def check_capture(self):
-        draw = self.find_draw("Draw")
+        action = self.find_action("Draw")
 
-        self.check(draw is not None)
+        self.check(action is not None)
 
-        draw = draw.next
+        action = action.next
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 

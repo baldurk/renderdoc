@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -251,10 +251,13 @@ struct varfunc
 
     PyObject *result = PyObject_Call(func, args, 0);
 
-    if(result == NULL)
-      HandleCallbackFailure(global_handle, exHandle);
-
     Py_DECREF(args);
+
+    if(result == NULL)
+    {
+      HandleCallbackFailure(global_handle, exHandle);
+      return rettype();
+    }
 
     return get_return<rettype>(funcname, result, global_handle, exHandle);
   }

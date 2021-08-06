@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -66,7 +66,7 @@ private:
   void AppendRasterizationStatistics();
   void AppendOutputStatistics();
   void AppendDetailedInformation();
-  void CountContributingEvents(const DrawcallDescription &draw, uint32_t &drawCount,
+  void CountContributingEvents(const ActionDescription &action, uint32_t &drawCount,
                                uint32_t &dispatchCount, uint32_t &diagnosticCount);
   void AppendAPICallSummary();
   void GenerateReport();

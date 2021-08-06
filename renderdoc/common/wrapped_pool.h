@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -172,8 +172,6 @@ private:
     }
     void *Allocate()
     {
-      const size_t itemSize = sizeof(WrapType);
-
       if(freeStackHead == 0)
       {
         return NULL;
@@ -182,6 +180,7 @@ private:
       void *ret = items + freeStack[freeStackHead];
 
 #if ENABLED(RDOC_DEVEL)
+      const size_t itemSize = sizeof(WrapType);
       memset(ret, 0xb0, itemSize);
 #endif
 
@@ -190,14 +189,13 @@ private:
 
     void Deallocate(void *p)
     {
-      const size_t itemSize = sizeof(WrapType);
-
       int idx = (int)((WrapType *)p - &items[0]);
 
       freeStack[freeStackHead] = idx;
       ++freeStackHead;
 
 #if ENABLED(RDOC_DEVEL)
+      const size_t itemSize = sizeof(WrapType);
       if(DebugClear)
         memset(p, 0xfe, itemSize);
 #endif

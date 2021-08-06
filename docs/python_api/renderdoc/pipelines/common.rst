@@ -99,6 +99,9 @@ Rasterizer
 .. autoclass:: renderdoc.LineRaster
   :members:
 
+.. autoclass:: renderdoc.ShadingRateCombiner
+  :members:
+
 
 Stencil
 -------
@@ -130,3 +133,23 @@ Blending
 .. autoclass:: renderdoc.LogicOperation
   :members:
 
+Shader Messages
+---------------
+
+.. autoclass:: renderdoc.ShaderMessage
+  :members:
+
+.. autoclass:: renderdoc.ShaderMessageLocation
+  :members:
+
+.. autoclass:: renderdoc.ShaderVertexMessageLocation
+  :members:
+
+.. autoclass:: renderdoc.ShaderPixelMessageLocation
+  :members:
+
+.. autoclass:: renderdoc.ShaderComputeMessageLocation
+  :members:
+
+
+* qrenderdoc.ShaderMessageViewer

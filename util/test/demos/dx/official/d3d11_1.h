@@ -203,7 +203,6 @@ struct CD3D11_BLEND_DESC1 : public D3D11_BLEND_DESC1
             RenderTarget[ i ] = defaultRenderTargetBlendDesc;
     }
     ~CD3D11_BLEND_DESC1() {}
-    operator const D3D11_BLEND_DESC1&() const { return *this; }
 };
 extern "C"{
 #endif
@@ -412,7 +411,6 @@ struct CD3D11_RASTERIZER_DESC1 : public D3D11_RASTERIZER_DESC1
         ForcedSampleCount = forcedSampleCount;
     }
     ~CD3D11_RASTERIZER_DESC1() {}
-    operator const D3D11_RASTERIZER_DESC1&() const { return *this; }
 };
 extern "C"{
 #endif

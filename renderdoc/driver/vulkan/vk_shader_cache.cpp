@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -119,7 +119,8 @@ static const BuiltinShaderConfig builtinShaders[] = {
     BuiltinShaderConfig(BuiltinShader::ShaderDebugSampleVS,
                         EmbeddedResource(glsl_shaderdebug_sample_vert), rdcspv::ShaderStage::Vertex),
     BuiltinShaderConfig(BuiltinShader::DiscardFS, EmbeddedResource(glsl_discard_frag),
-                        rdcspv::ShaderStage::Fragment),
+                        rdcspv::ShaderStage::Fragment, FeatureCheck::NoCheck,
+                        BuiltinShaderFlags::BaseTypeParameterised),
     BuiltinShaderConfig(
         BuiltinShader::HistogramCS, EmbeddedResource(glsl_histogram_comp),
         rdcspv::ShaderStage::Compute, FeatureCheck::NoCheck,
@@ -940,14 +941,14 @@ void VulkanShaderCache::MakeComputePipelineInfo(VkComputePipelineCreateInfo &pip
     {
       entry[s].constantID = pipeInfo.shaders[i].specialization[s].specID;
       entry[s].size = pipeInfo.shaders[i].specialization[s].dataSize;
-      entry[s].offset = dataOffset;
+      entry[s].offset = dataOffset * sizeof(uint64_t);
 
       specdata[dataOffset] = pipeInfo.shaders[i].specialization[s].value;
 
       dataOffset++;
     }
 
-    specInfo.dataSize = specdata.size();
+    specInfo.dataSize = specdata.size() * sizeof(uint64_t);
     specInfo.pData = specdata.data();
   }
 

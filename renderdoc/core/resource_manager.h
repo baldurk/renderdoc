@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -108,6 +108,12 @@ enum FrameRefType
   // are not reset, so the write from the previous replay may still be present.
   eFrameRef_WriteBeforeRead = 5,
 
+  // Similar to a CompleteWrite, but this is effectively an atomic "completely written, used, and
+  // discarded". This encodes more information than CompleteWrite because it tells us that the
+  // resource contents won't ever be used. For most purposes we treat this the same as
+  // CompleteWrite, but below we use it to identify skippable resources.
+  eFrameRef_CompleteWriteAndDiscard = 6,
+
   // No reference info is available;
   // This should only appear durring replay, and any (sub)resource with `Unknown`
   // reference type should be conservatively reset before each replay.
@@ -119,13 +125,14 @@ bool IncludesRead(FrameRefType refType);
 bool IncludesWrite(FrameRefType refType);
 
 const FrameRefType eFrameRef_Minimum = eFrameRef_None;
-const FrameRefType eFrameRef_Maximum = eFrameRef_WriteBeforeRead;
+const FrameRefType eFrameRef_Maximum = eFrameRef_CompleteWriteAndDiscard;
 
 // Threshold value for resource "age", i.e. how long it wasn't
 // referred with the any write reference.
 const double PERSISTENT_RESOURCE_AGE = 3000;
-// how long it wasn't referred with any read reference.
-const double IRRELEVANT_RESOURCE_AGE = 3000;
+// how long since the first time it was skipped. If the skip state hasn't been invalidated in this
+// long it can be skipped
+const double SKIP_RESOURCE_AGE = 3000;
 
 DECLARE_REFLECTION_ENUM(FrameRefType);
 
@@ -470,7 +477,7 @@ struct ResourceRecord
     return MarkResourceFrameReferenced(id, refType, ComposeFrameRefs);
   }
   void AddResourceReferences(ResourceRecordHandler *mgr);
-  void AddReferencedIDs(std::set<ResourceId> &ids)
+  void AddReferencedIDs(std::unordered_set<ResourceId> &ids)
   {
     for(auto it = m_FrameRefs.begin(); it != m_FrameRefs.end(); ++it)
       ids.insert(it->first);
@@ -665,10 +672,9 @@ public:
 
   void ResetLastWriteTimes();
   void ResetCaptureStartTime();
-  void ResetLastPartialUseTimes();
 
   bool HasPersistentAge(ResourceId id);
-  bool HasIrrelevantAge(ResourceId id);
+  bool HasSkippableAge(ResourceId id);
   bool IsResourcePostponed(ResourceId id);
   bool IsResourceSkipped(ResourceId id);
   bool ShouldPostpone(ResourceId id);
@@ -694,7 +700,7 @@ protected:
   virtual void Apply_InitialState(WrappedResourceType live, const InitialContentData &initial) = 0;
   virtual rdcarray<ResourceId> InitialContentResources();
 
-  void UpdateLastWriteAndPartialUseTime(ResourceId id, FrameRefType refType);
+  void UpdateLastWriteTime(ResourceId id, FrameRefType refType);
 
   void Prepare_InitialStateIfPostponed(ResourceId id, bool midframe);
   void SkipOrPostponeOrPrepare_InitialState(ResourceId id, FrameRefType refType);
@@ -776,12 +782,12 @@ protected:
     // to determine persistent resources, and is checked against the `PERSISTENT_RESOURCE_AGE`.
     double writeTime;
 
-    // partialUseTime is referring to: eFrameRef_PartialWrite, eFrameRef_Read,
-    // eFrameRef_ReadBeforeWrite, eFrameRef_WriteBeforeRead. The goal is to predict whether a
-    // resource will only ever have a eFrameRef_CompleteWrite reference. If it does, then we don't
-    // need to serialise the initial contents because we know it will always be fully initialised
-    // within the frame.
-    double partialUseTime;
+    // firstSkipTime is referring to the first time we saw a resource get marked as skippable.
+    // Any write will reset this time to 0.0 (not skippable), so if the firstSkipTime is longer than
+    // `SKIP_RESOURCE_AGE` ago then we know the resource has only ever been skipped (or not written)
+    // for that long. If the time is 0.0 then it's been written in a more visible way recently or
+    // has never been marked skippable.
+    double firstSkipTime;
 
     bool operator<(const ResourceId &o) const { return id < o; }
   };
@@ -850,7 +856,7 @@ void ResourceManager<Configuration>::MarkBackgroundFrameReferenced(
     if(refs.size() <= m_ResourceRefTimes.size())
     {
       for(auto it = refs.begin(); it != refs.end(); ++it)
-        UpdateLastWriteAndPartialUseTime(it->first, it->second);
+        UpdateLastWriteTime(it->first, it->second);
     }
     else
     {
@@ -859,7 +865,7 @@ void ResourceManager<Configuration>::MarkBackgroundFrameReferenced(
         auto it = refs.find(res.id);
 
         if(it != refs.end())
-          UpdateLastWriteAndPartialUseTime(it->first, it->second);
+          UpdateLastWriteTime(it->first, it->second);
       }
     }
   }
@@ -874,7 +880,9 @@ void ResourceManager<Configuration>::CleanBackgroundFrameReferences()
   {
     double now = m_ResourcesUpdateTimer.GetMilliseconds();
 
-    // retire any old entries, if they were written once they shouldn't be tracked forever.
+    // retire any old entries, if they were written once they shouldn't be tracked forever. This
+    // means the list only keeps track of recently written resources, not all resources that have
+    // ever been written.
     //
     // walk the array. If we find an item we want to remove we increment src otherwise we copy src
     // to dst (if they are different). Thus next time dst will point at the item we want to skip, at
@@ -884,7 +892,11 @@ void ResourceManager<Configuration>::CleanBackgroundFrameReferences()
     for(dst = 0, src = 0; src < m_ResourceRefTimes.size();)
     {
       ResourceRefTimes &check = m_ResourceRefTimes[src];
-      if(now - check.writeTime > IRRELEVANT_RESOURCE_AGE)
+
+      // if this isn't skippable, and the write time was a long time ago then we can delete it.
+      // Resources not in the list are treated as if they were written an infinite time ago and so
+      // are postponable.
+      if(now - check.writeTime > PERSISTENT_RESOURCE_AGE && check.firstSkipTime == 0.0)
       {
         // skip src, check the next one
         src++;
@@ -925,7 +937,7 @@ void ResourceManager<Configuration>::MarkResourceFrameReferenced(ResourceId id,
     }
   }
 
-  UpdateLastWriteAndPartialUseTime(id, refType);
+  UpdateLastWriteTime(id, refType);
 
   if(IsBackgroundCapturing(m_State))
     return;
@@ -1137,7 +1149,7 @@ void ResourceManager<Configuration>::SkipOrPostponeOrPrepare_InitialState(Resour
   // skip this forever if the first encounter is a complete write
   if(IsCompleteWriteFrameRef(refType))
   {
-    RDCDEBUG("Resource %s skipped forever on refType of %s)", ToStr(id).c_str(),
+    RDCDEBUG("Resource %s skipped forever on refType of %s", ToStr(id).c_str(),
              ToStr(refType).c_str());
     return;
   }
@@ -1183,20 +1195,20 @@ inline void ResourceManager<Configuration>::ResetLastWriteTimes()
 }
 
 template <typename Configuration>
-inline void ResourceManager<Configuration>::UpdateLastWriteAndPartialUseTime(ResourceId id,
-                                                                             FrameRefType refType)
+inline void ResourceManager<Configuration>::UpdateLastWriteTime(ResourceId id, FrameRefType refType)
 {
   // parent must hold m_Lock for us
+
+  // only care about write refs. A read ref would invalidate skippable state, however a skippable
+  // resource is left in an undefined state where reads are not valid so we don't. We need to see
+  // another write first before a read could be a problem, so we just pay attention for that write.
+  if(!IsDirtyFrameRef(refType))
+    return;
 
   ResourceRefTimes *it = std::lower_bound(m_ResourceRefTimes.begin(), m_ResourceRefTimes.end(), id);
 
   if(it == m_ResourceRefTimes.end() || it->id != id)
   {
-    // don't add resources unless it's a dirty ref. After that, we'll keep updating for read and
-    // write refs to get partialUseTime
-    if(!IsDirtyFrameRef(refType))
-      return;
-
     // if it's not pointing to the end, figure out where we need to insert it there
     size_t idx = it - m_ResourceRefTimes.begin();
     m_ResourceRefTimes.insert(idx, {id, 0.0, 0.0});
@@ -1205,21 +1217,18 @@ inline void ResourceManager<Configuration>::UpdateLastWriteAndPartialUseTime(Res
 
   double now = m_ResourcesUpdateTimer.GetMilliseconds();
 
-  if(IsDirtyFrameRef(refType))
-    it->writeTime = now;
+  it->writeTime = now;
 
-  if(!IsCompleteWriteFrameRef(refType))
-    it->partialUseTime = now;
-}
-
-template <typename Configuration>
-inline void ResourceManager<Configuration>::ResetLastPartialUseTimes()
-{
-  SCOPED_LOCK_OPTIONAL(m_Lock, m_Capturing);
-  for(auto it = m_ResourceRefTimes.begin(); it != m_ResourceRefTimes.end(); ++it)
+  if(refType == eFrameRef_CompleteWriteAndDiscard)
   {
-    if(m_captureStartTime - it->partialUseTime <= IRRELEVANT_RESOURCE_AGE)
-      it->partialUseTime = m_ResourcesUpdateTimer.GetMilliseconds();
+    // don't continually update it. We want to know that this resource *was* completely written and
+    // discarded, and hasn't been written in any other way since then.
+    if(it->firstSkipTime == 0.0)
+      it->firstSkipTime = now;
+  }
+  else
+  {
+    it->firstSkipTime = 0.0;
   }
 }
 
@@ -1237,16 +1246,21 @@ inline bool ResourceManager<Configuration>::HasPersistentAge(ResourceId id)
 }
 
 template <typename Configuration>
-inline bool ResourceManager<Configuration>::HasIrrelevantAge(ResourceId id)
+inline bool ResourceManager<Configuration>::HasSkippableAge(ResourceId id)
 {
   SCOPED_LOCK_OPTIONAL(m_Lock, m_Capturing);
 
   ResourceRefTimes *it = std::lower_bound(m_ResourceRefTimes.begin(), m_ResourceRefTimes.end(), id);
 
+  // if it doesn't have a write time, it can't be skippable
   if(it == m_ResourceRefTimes.end() || it->id != id)
     return false;
 
-  return m_ResourcesUpdateTimer.GetMilliseconds() - it->partialUseTime >= IRRELEVANT_RESOURCE_AGE;
+  // if it's never been skipped or it was reset, it's also not skippable
+  if(it->firstSkipTime == 0.0)
+    return false;
+
+  return m_ResourcesUpdateTimer.GetMilliseconds() - it->firstSkipTime >= SKIP_RESOURCE_AGE;
 }
 
 template <typename Configuration>
@@ -1286,7 +1300,7 @@ inline bool ResourceManager<Configuration>::ShouldSkip(ResourceId id)
   if(!IsResourceTrackedForPersistency(res))
     return false;
 
-  return HasIrrelevantAge(id);
+  return HasSkippableAge(id);
 }
 
 template <typename Configuration>
@@ -1911,6 +1925,10 @@ ResourceId ResourceManager<Configuration>::GetLiveID(ResourceId id)
 {
   if(id == ResourceId())
     return id;
+
+  auto it = m_Replacements.find(id);
+  if(it != m_Replacements.end())
+    return it->second;
 
   RDCASSERT(m_LiveIDs.find(id) != m_LiveIDs.end(), id);
   return m_LiveIDs[id];

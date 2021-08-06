@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -942,7 +942,9 @@ rdcstr DoStringise(const rdcspv::Capability &el)
     STRINGISE_ENUM_CLASS(RoundingModeRTE);
     STRINGISE_ENUM_CLASS(RoundingModeRTZ);
     STRINGISE_ENUM_CLASS(RayQueryProvisionalKHR);
-    STRINGISE_ENUM_CLASS(RayTraversalPrimitiveCullingProvisionalKHR);
+    STRINGISE_ENUM_CLASS(RayQueryKHR);
+    STRINGISE_ENUM_CLASS(RayTraversalPrimitiveCullingKHR);
+    STRINGISE_ENUM_CLASS(RayTracingKHR);
     STRINGISE_ENUM_CLASS(Float16ImageAMD);
     STRINGISE_ENUM_CLASS(ImageGatherBiasLodAMD);
     STRINGISE_ENUM_CLASS(FragmentMaskAMD);
@@ -1400,7 +1402,12 @@ rdcstr DoStringise(const rdcspv::Op &el)
     STRINGISE_ENUM_CLASS(SubgroupAnyKHR);
     STRINGISE_ENUM_CLASS(SubgroupAllEqualKHR);
     STRINGISE_ENUM_CLASS(SubgroupReadInvocationKHR);
-    STRINGISE_ENUM_CLASS(TypeRayQueryProvisionalKHR);
+    STRINGISE_ENUM_CLASS(TraceRayKHR);
+    STRINGISE_ENUM_CLASS(ExecuteCallableKHR);
+    STRINGISE_ENUM_CLASS(ConvertUToAccelerationStructureKHR);
+    STRINGISE_ENUM_CLASS(IgnoreIntersectionKHR);
+    STRINGISE_ENUM_CLASS(TerminateRayKHR);
+    STRINGISE_ENUM_CLASS(TypeRayQueryKHR);
     STRINGISE_ENUM_CLASS(RayQueryInitializeKHR);
     STRINGISE_ENUM_CLASS(RayQueryTerminateKHR);
     STRINGISE_ENUM_CLASS(RayQueryGenerateIntersectionKHR);
@@ -3811,7 +3818,33 @@ void OpDecoder::ForEachID(const ConstIter &it, const std::function<void(Id,bool)
       callback(Id::fromWord(it.word(3)), false);
       callback(Id::fromWord(it.word(4)), false);
       break;
-    case rdcspv::Op::TypeRayQueryProvisionalKHR:
+    case rdcspv::Op::TraceRayKHR:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
+      callback(Id::fromWord(it.word(7)), false);
+      callback(Id::fromWord(it.word(8)), false);
+      callback(Id::fromWord(it.word(9)), false);
+      callback(Id::fromWord(it.word(10)), false);
+      callback(Id::fromWord(it.word(11)), false);
+      break;
+    case rdcspv::Op::ExecuteCallableKHR:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
+      break;
+    case rdcspv::Op::ConvertUToAccelerationStructureKHR:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      break;
+    case rdcspv::Op::IgnoreIntersectionKHR:
+      break;
+    case rdcspv::Op::TerminateRayKHR:
+      break;
+    case rdcspv::Op::TypeRayQueryKHR:
       callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::RayQueryInitializeKHR:
@@ -7385,11 +7418,42 @@ rdcstr OpDecoder::Disassemble(const ConstIter &it, const std::function<rdcstr(Id
       ret += "SubgroupReadInvocationKHR(" + ParamToStr(idName, decoded.value) + ", " + ParamToStr(idName, decoded.index) + ")";
       break;
     }
-    case rdcspv::Op::TypeRayQueryProvisionalKHR:
+    case rdcspv::Op::TraceRayKHR:
     {
-      OpTypeRayQueryProvisionalKHR decoded(it);
+      OpTraceRayKHR decoded(it);
+      ret += "TraceRayKHR(" + ParamToStr(idName, decoded.accel) + ", " + ParamToStr(idName, decoded.rayFlags) + ", " + ParamToStr(idName, decoded.cullMask) + ", " + ParamToStr(idName, decoded.sBTOffset) + ", " + ParamToStr(idName, decoded.sBTStride) + ", " + ParamToStr(idName, decoded.missIndex) + ", " + ParamToStr(idName, decoded.rayOrigin) + ", " + ParamToStr(idName, decoded.rayTmin) + ", " + ParamToStr(idName, decoded.rayDirection) + ", " + ParamToStr(idName, decoded.rayTmax) + ", " + ParamToStr(idName, decoded.payload) + ")";
+      break;
+    }
+    case rdcspv::Op::ExecuteCallableKHR:
+    {
+      OpExecuteCallableKHR decoded(it);
+      ret += "ExecuteCallableKHR(" + ParamToStr(idName, decoded.sBTIndex) + ", " + ParamToStr(idName, decoded.callableData) + ")";
+      break;
+    }
+    case rdcspv::Op::ConvertUToAccelerationStructureKHR:
+    {
+      OpConvertUToAccelerationStructureKHR decoded(it);
+      ret += declName(decoded.resultType, decoded.result) + " = ";
+      ret += "ConvertUToAccelerationStructureKHR(" + ParamToStr(idName, decoded.accel) + ")";
+      break;
+    }
+    case rdcspv::Op::IgnoreIntersectionKHR:
+    {
+      OpIgnoreIntersectionKHR decoded(it);
+      ret += "IgnoreIntersectionKHR(" ")";
+      break;
+    }
+    case rdcspv::Op::TerminateRayKHR:
+    {
+      OpTerminateRayKHR decoded(it);
+      ret += "TerminateRayKHR(" ")";
+      break;
+    }
+    case rdcspv::Op::TypeRayQueryKHR:
+    {
+      OpTypeRayQueryKHR decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += "TypeRayQueryProvisionalKHR(" ")";
+      ret += "TypeRayQueryKHR(" ")";
       break;
     }
     case rdcspv::Op::RayQueryInitializeKHR:
@@ -9156,7 +9220,12 @@ OpDecoder::OpDecoder(const ConstIter &it)
     case rdcspv::Op::SubgroupAnyKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::SubgroupAllEqualKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::SubgroupReadInvocationKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
-    case rdcspv::Op::TypeRayQueryProvisionalKHR: result = Id::fromWord(it.word(1)); resultType = Id(); break;
+    case rdcspv::Op::TraceRayKHR: result = Id(); resultType = Id(); break;
+    case rdcspv::Op::ExecuteCallableKHR: result = Id(); resultType = Id(); break;
+    case rdcspv::Op::ConvertUToAccelerationStructureKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::IgnoreIntersectionKHR: result = Id(); resultType = Id(); break;
+    case rdcspv::Op::TerminateRayKHR: result = Id(); resultType = Id(); break;
+    case rdcspv::Op::TypeRayQueryKHR: result = Id::fromWord(it.word(1)); resultType = Id(); break;
     case rdcspv::Op::RayQueryInitializeKHR: result = Id(); resultType = Id(); break;
     case rdcspv::Op::RayQueryTerminateKHR: result = Id(); resultType = Id(); break;
     case rdcspv::Op::RayQueryGenerateIntersectionKHR: result = Id(); resultType = Id(); break;
@@ -9478,6 +9547,7 @@ rdcstr DoStringise(const rdcspv::Generator &el)
     STRINGISE_ENUM_CLASS_NAMED(ANGLEShaderCompiler, "ANGLE Shader Compiler from Google - Contact Shahbaz Youssefi, syoussefi@google.com");
     STRINGISE_ENUM_CLASS_NAMED(MessiahShaderCompiler, "Messiah Shader Compiler from Netease Games - Contact Yuwen Wu, atyuwen@gmail.com");
     STRINGISE_ENUM_CLASS_NAMED(XeniaEmulatorMicrocodeTranslator, "Xenia Emulator Microcode Translator from Xenia - Contact Vitaliy Kuzmin, triang3l@yandex.ru, https://github.com/xenia-project/xenia");
+    STRINGISE_ENUM_CLASS_NAMED(RustGPUCompilerBackend, "Rust GPU Compiler Backend from Embark Studios - https://github.com/embarkstudios/rust-gpu");
   }
   END_ENUM_STRINGISE();
 }

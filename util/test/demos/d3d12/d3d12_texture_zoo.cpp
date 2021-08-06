@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -635,7 +635,7 @@ int4 main(float4 pos : SV_Position, uint samp : SV_SampleIndex) : SV_Target0
 
     ID3D12PipelineStatePtr blitpso = MakePSO().RootSig(sig).VS(vsblob).PS(psblob);
 
-    uploadBuf = MakeBuffer().Upload().Size(1024 * 1024);
+    uploadBuf = MakeBuffer().Upload().Size(8 * 1024 * 1024);
 
     CurBuf = Map(uploadBuf, 0);
 
@@ -1119,6 +1119,110 @@ int4 main(float4 pos : SV_Position, uint samp : SV_SampleIndex) : SV_Target0
       GPUSync();
     }
 
+    std::vector<Vec4f> blue;
+    blue.resize(64 * 64 * 64, Vec4f(0.0f, 0.0f, 1.0f, 1.0f));
+
+    std::vector<Vec4f> green;
+    green.resize(64 * 64, Vec4f(0.0f, 1.0f, 0.0f, 1.0f));
+
+    CurBuf = Map(uploadBuf, 0);
+
+    memcpy(CurBuf, blue.data(), blue.size() * sizeof(Vec4f));
+    memcpy(CurBuf + blue.size() * sizeof(Vec4f), green.data(), green.size() * sizeof(Vec4f));
+
+    uploadBuf->Unmap(0, NULL);
+
+    // slice testing textures
+
+    TestCase slice_test_array = {};
+    TestCase slice_test_3d = {};
+    slice_test_array.dim = 2;
+    slice_test_array.isArray = true;
+    slice_test_array.res = MakeTexture(DXGI_FORMAT_R32G32B32A32_FLOAT, 64, 64).Array(64).Mips(2);
+    slice_test_array.srv = MakeSRV(slice_test_array.res).CreateGPU(srvIndex++);
+
+    slice_test_3d.dim = 3;
+    slice_test_3d.res = MakeTexture(DXGI_FORMAT_R32G32B32A32_FLOAT, 64, 64, 64).Mips(2);
+    slice_test_3d.srv = MakeSRV(slice_test_3d.res).CreateGPU(srvIndex++);
+
+    {
+      ID3D12GraphicsCommandListPtr cmd = GetCommandBuffer();
+
+      Reset(cmd);
+
+      ResourceBarrier(cmd, slice_test_array.res, D3D12_RESOURCE_STATE_COMMON,
+                      D3D12_RESOURCE_STATE_COPY_DEST);
+      ResourceBarrier(cmd, slice_test_3d.res, D3D12_RESOURCE_STATE_COMMON,
+                      D3D12_RESOURCE_STATE_COPY_DEST);
+
+      for(UINT s = 0; s < 64; s++)
+      {
+        for(UINT m = 0; m < 2; m++)
+        {
+          D3D12_TEXTURE_COPY_LOCATION dst = {};
+          D3D12_TEXTURE_COPY_LOCATION src = {};
+
+          dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+          dst.pResource = slice_test_array.res;
+          dst.SubresourceIndex = s * 2 + m;
+
+          src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+          src.pResource = uploadBuf;
+          src.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+          src.PlacedFootprint.Footprint.RowPitch = (64 >> m) * sizeof(Vec4f);
+          src.PlacedFootprint.Footprint.Width = 64 >> m;
+          src.PlacedFootprint.Footprint.Height = 64 >> m;
+          src.PlacedFootprint.Footprint.Depth = 1;
+
+          if(s == 17)
+            src.PlacedFootprint.Offset = blue.size() * sizeof(Vec4f);
+
+          cmd->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
+
+          if(s == 0)
+          {
+            dst.pResource = slice_test_3d.res;
+            dst.SubresourceIndex = m;
+            src.PlacedFootprint.Footprint.Depth = 64 >> m;
+
+            cmd->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
+          }
+        }
+      }
+
+      for(int m = 0; m < 2; m++)
+      {
+        D3D12_TEXTURE_COPY_LOCATION dst = {};
+        D3D12_TEXTURE_COPY_LOCATION src = {};
+
+        dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+        dst.pResource = slice_test_3d.res;
+        dst.SubresourceIndex = m;
+
+        src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+        src.pResource = uploadBuf;
+        src.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+        src.PlacedFootprint.Footprint.RowPitch = (64 >> m) * sizeof(Vec4f);
+        src.PlacedFootprint.Footprint.Width = 64 >> m;
+        src.PlacedFootprint.Footprint.Height = 64 >> m;
+        src.PlacedFootprint.Footprint.Depth = 1;
+        src.PlacedFootprint.Offset = blue.size() * sizeof(Vec4f);
+
+        cmd->CopyTextureRegion(&dst, 0, 0, 17, &src, NULL);
+      }
+
+      ResourceBarrier(cmd, slice_test_array.res, D3D12_RESOURCE_STATE_COPY_DEST,
+                      D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+      ResourceBarrier(cmd, slice_test_3d.res, D3D12_RESOURCE_STATE_COPY_DEST,
+                      D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+      cmd->Close();
+
+      Submit({cmd});
+
+      GPUSync();
+    }
+
     while(Running())
     {
       ID3D12GraphicsCommandListPtr cmd = GetCommandBuffer();
@@ -1138,6 +1242,28 @@ int4 main(float4 pos : SV_Position, uint samp : SV_SampleIndex) : SV_Target0
       cmd->SetDescriptorHeaps(1, &m_CBVUAVSRV.GetInterfacePtr());
 
       D3D12_VIEWPORT view = {0.0f, 0.0f, 10.0f, 10.0f, 0.0f, 1.0f};
+
+      {
+        RSSetViewport(cmd, view);
+        D3D12_RECT rect = {
+            (LONG)view.TopLeftX, (LONG)view.TopLeftY, LONG(view.TopLeftX + view.Width),
+            LONG(view.TopLeftY + view.Height),
+        };
+        RSSetScissorRect(cmd, rect);
+      }
+
+      // dummy draw for each slice test texture
+      pushMarker(cmd, "slice tests");
+      setMarker(cmd, "2D array");
+      cmd->SetPipelineState(GetPSO(slice_test_array));
+      cmd->SetGraphicsRootDescriptorTable(1, slice_test_array.srv);
+      cmd->DrawInstanced(0, 0, 0, 0);
+
+      setMarker(cmd, "3D");
+      cmd->SetPipelineState(GetPSO(slice_test_3d));
+      cmd->SetGraphicsRootDescriptorTable(1, slice_test_3d.srv);
+      cmd->DrawInstanced(0, 0, 0, 0);
+      popMarker(cmd);
 
       for(size_t i = 0; i < test_textures.size(); i++)
       {

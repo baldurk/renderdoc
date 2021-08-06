@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -280,12 +280,12 @@ bool WrappedOpenGL::Serialise_glDebugMessageInsert(SerialiserType &ser, GLenum s
 
     if(IsLoading(m_State))
     {
-      DrawcallDescription draw;
-      draw.name = name;
-      draw.flags |= DrawFlags::SetMarker;
+      ActionDescription action;
+      action.customName = name;
+      action.flags |= ActionFlags::SetMarker;
 
       AddEvent();
-      AddDrawcall(draw, false);
+      AddAction(action);
     }
   }
 
@@ -331,7 +331,7 @@ void WrappedOpenGL::glDebugMessageInsert(GLenum source, GLenum type, GLuint id, 
   if(IsActiveCapturing(m_State) && type == eGL_DEBUG_TYPE_MARKER)
   {
     USE_SCRATCH_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glDebugMessageInsert(ser, source, type, id, severity, length, buf);
 
@@ -381,12 +381,12 @@ bool WrappedOpenGL::Serialise_glInsertEventMarkerEXT(SerialiserType &ser, GLsize
 
     if(IsLoading(m_State))
     {
-      DrawcallDescription draw;
-      draw.name = marker;
-      draw.flags |= DrawFlags::SetMarker;
+      ActionDescription action;
+      action.customName = marker;
+      action.flags |= ActionFlags::SetMarker;
 
       AddEvent();
-      AddDrawcall(draw, false);
+      AddAction(action);
     }
   }
 
@@ -398,7 +398,7 @@ void WrappedOpenGL::glInsertEventMarkerEXT(GLsizei length, const GLchar *marker)
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glInsertEventMarkerEXT(ser, length, marker);
 
@@ -452,12 +452,12 @@ bool WrappedOpenGL::Serialise_glPushDebugGroup(SerialiserType &ser, GLenum sourc
 
     if(IsLoading(m_State))
     {
-      DrawcallDescription draw;
-      draw.name = message;
-      draw.flags |= DrawFlags::PushMarker;
+      ActionDescription action;
+      action.customName = message;
+      action.flags |= ActionFlags::PushMarker;
 
       AddEvent();
-      AddDrawcall(draw, false);
+      AddAction(action);
     }
   }
 
@@ -478,7 +478,7 @@ void WrappedOpenGL::glPushDebugGroup(GLenum source, GLuint id, GLsizei length, c
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glPushDebugGroup(ser, source, id, length, message);
 
@@ -495,18 +495,19 @@ bool WrappedOpenGL::Serialise_glPopDebugGroup(SerialiserType &ser)
       GLMarkerRegion::End();
     m_ReplayEventCount = RDCMAX(0, m_ReplayEventCount - 1);
 
-    if(IsLoading(m_State) && HasNonDebugMarkers())
+    if(IsLoading(m_State))
     {
-      DrawcallDescription draw;
-      draw.name = "API Calls";
-      draw.flags |= DrawFlags::APICalls;
+      ActionDescription action;
+      action.flags |= ActionFlags::PopMarker;
 
-      AddDrawcall(draw, true);
+      AddEvent();
+      AddAction(action);
     }
   }
 
   return true;
 }
+
 void WrappedOpenGL::glPopDebugGroup()
 {
   if(GL.glPopDebugGroup)
@@ -521,7 +522,7 @@ void WrappedOpenGL::glPopDebugGroup()
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glPopDebugGroup(ser);
 

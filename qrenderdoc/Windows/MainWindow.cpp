@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -115,7 +115,11 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
 
   setProperty("ICaptureContext", QVariant::fromValue((void *)&ctx));
 
-#if !defined(Q_OS_WIN32)
+#if defined(Q_OS_WIN32)
+  // remove inject menu item when it's not enabled in the settings
+  if(!ctx.Config().AllowProcessInject)
+    ui->menu_File->removeAction(ui->action_Inject_into_Process);
+#else
   // process injection is not supported on non-Windows, so remove the menu item rather than disable
   // it without a clear way to communicate that it is never supported
   ui->menu_File->removeAction(ui->action_Inject_into_Process);
@@ -257,9 +261,10 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
 #endif
 
   m_NetWorker = new NetworkWorker;
-  m_NetManagerThread = new LambdaThread([]() {
+  m_NetManagerThread = new LambdaThread([this]() {
     QEventLoop loop;
     loop.exec();
+    delete m_NetWorker;
   });
   m_NetManagerThread->moveObjectToThread(m_NetWorker);
   m_NetManagerThread->start();
@@ -1160,7 +1165,8 @@ void MainWindow::SetTitle(const QString &filename)
   if(RENDERDOC_STABLE_BUILD)
     text += lit(FULL_VERSION_STRING);
   else
-    text += tr("Unstable release (%1 - %2)")
+    text += tr("Unstable %1 Build (%2 - %3)")
+                .arg(RENDERDOC_IsReleaseBuild() ? lit("Release") : lit("Development"))
                 .arg(lit(FULL_VERSION_STRING))
                 .arg(QString::fromLatin1(RENDERDOC_GetCommitHash()));
 
@@ -2583,11 +2589,11 @@ void MainWindow::on_action_Start_Replay_Loop_triggered()
 
   const TextureDescription *displayTex = NULL;
 
-  const DrawcallDescription *lastDraw = m_Ctx.GetLastDrawcall();
+  const ActionDescription *lastAction = m_Ctx.GetLastAction();
 
-  displayTex = m_Ctx.GetTexture(lastDraw->copyDestination);
+  displayTex = m_Ctx.GetTexture(lastAction->copyDestination);
   if(!displayTex)
-    displayTex = m_Ctx.GetTexture(lastDraw->outputs[0]);
+    displayTex = m_Ctx.GetTexture(lastAction->outputs[0]);
 
   if(!displayTex)
   {

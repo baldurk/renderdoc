@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -39,7 +39,7 @@ int RENDERDOC_CC SetCaptureOptionU32(RENDERDOC_CaptureOption opt, uint32_t val)
     case eRENDERDOC_Option_APIValidation: opts.apiValidation = (val != 0); break;
     case eRENDERDOC_Option_CaptureCallstacks: opts.captureCallstacks = (val != 0); break;
     case eRENDERDOC_Option_CaptureCallstacksOnlyDraws:
-      opts.captureCallstacksOnlyDraws = (val != 0);
+      opts.captureCallstacksOnlyActions = (val != 0);
       break;
     case eRENDERDOC_Option_DelayForDebugger: opts.delayForDebugger = val; break;
     case eRENDERDOC_Option_VerifyBufferAccess: opts.verifyBufferAccess = (val != 0); break;
@@ -74,7 +74,7 @@ int RENDERDOC_CC SetCaptureOptionF32(RENDERDOC_CaptureOption opt, float val)
     case eRENDERDOC_Option_APIValidation: opts.apiValidation = (val != 0.0f); break;
     case eRENDERDOC_Option_CaptureCallstacks: opts.captureCallstacks = (val != 0.0f); break;
     case eRENDERDOC_Option_CaptureCallstacksOnlyDraws:
-      opts.captureCallstacksOnlyDraws = (val != 0.0f);
+      opts.captureCallstacksOnlyActions = (val != 0.0f);
       break;
     case eRENDERDOC_Option_DelayForDebugger: opts.delayForDebugger = (uint32_t)val; break;
     case eRENDERDOC_Option_VerifyBufferAccess: opts.verifyBufferAccess = (val != 0.0f); break;
@@ -108,7 +108,7 @@ uint32_t RENDERDOC_CC GetCaptureOptionU32(RENDERDOC_CaptureOption opt)
     case eRENDERDOC_Option_CaptureCallstacks:
       return (RenderDoc::Inst().GetCaptureOptions().captureCallstacks ? 1 : 0);
     case eRENDERDOC_Option_CaptureCallstacksOnlyDraws:
-      return (RenderDoc::Inst().GetCaptureOptions().captureCallstacksOnlyDraws ? 1 : 0);
+      return (RenderDoc::Inst().GetCaptureOptions().captureCallstacksOnlyActions ? 1 : 0);
     case eRENDERDOC_Option_DelayForDebugger:
       return (RenderDoc::Inst().GetCaptureOptions().delayForDebugger);
     case eRENDERDOC_Option_VerifyBufferAccess:
@@ -145,7 +145,7 @@ float RENDERDOC_CC GetCaptureOptionF32(RENDERDOC_CaptureOption opt)
     case eRENDERDOC_Option_CaptureCallstacks:
       return (RenderDoc::Inst().GetCaptureOptions().captureCallstacks ? 1.0f : 0.0f);
     case eRENDERDOC_Option_CaptureCallstacksOnlyDraws:
-      return (RenderDoc::Inst().GetCaptureOptions().captureCallstacksOnlyDraws ? 1.0f : 0.0f);
+      return (RenderDoc::Inst().GetCaptureOptions().captureCallstacksOnlyActions ? 1.0f : 0.0f);
     case eRENDERDOC_Option_DelayForDebugger:
       return (RenderDoc::Inst().GetCaptureOptions().delayForDebugger * 1.0f);
     case eRENDERDOC_Option_VerifyBufferAccess:
@@ -177,7 +177,7 @@ CaptureOptions::CaptureOptions()
   allowFullscreen = true;
   apiValidation = false;
   captureCallstacks = false;
-  captureCallstacksOnlyDraws = false;
+  captureCallstacksOnlyActions = false;
   delayForDebugger = 0;
   verifyBufferAccess = false;
   hookIntoChildren = false;

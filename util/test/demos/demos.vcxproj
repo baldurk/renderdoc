@@ -120,6 +120,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="3rdparty\fmt\format.cc" />
+    <ClCompile Include="3rdparty\md5\md5.c" />
     <ClCompile Include="d3d11\d3d11_1_many_uavs.cpp" />
     <ClCompile Include="d3d11\d3d11_amd_shader_extensions.cpp" />
     <ClCompile Include="d3d11\d3d11_array_interpolator.cpp" />
@@ -141,6 +142,7 @@
     <ClCompile Include="d3d11\d3d11_feature_level_9.cpp" />
     <ClCompile Include="d3d11\d3d11_helpers.cpp" />
     <ClCompile Include="d3d11\d3d11_large_buffer.cpp" />
+    <ClCompile Include="d3d11\d3d11_leak_check.cpp" />
     <ClCompile Include="d3d11\d3d11_many_rtvs.cpp" />
     <ClCompile Include="d3d11\d3d11_map_overrun.cpp" />
     <ClCompile Include="d3d11\d3d11_mesh_zoo.cpp" />
@@ -148,6 +150,7 @@
     <ClCompile Include="d3d11\d3d11_mip_gen_rt.cpp" />
     <ClCompile Include="d3d11\d3d11_mip_rtv.cpp" />
     <ClCompile Include="d3d11\d3d11_overdraw_stress.cpp" />
+    <ClCompile Include="d3d11\d3d11_parameter_zoo.cpp" />
     <ClCompile Include="d3d11\d3d11_pixel_history_zoo.cpp" />
     <ClCompile Include="d3d11\d3d11_primitiveid.cpp" />
     <ClCompile Include="d3d11\d3d11_shader_debug_zoo.cpp" />
@@ -173,8 +176,10 @@
     <ClCompile Include="d3d11\d3d11_untyped_backbuffer_descriptor.cpp" />
     <ClCompile Include="d3d11\d3d11_vertex_attr_zoo.cpp" />
     <ClCompile Include="d3d11\d3d11_video_textures.cpp" />
+    <ClCompile Include="d3d12\d3d12_amd_shader_extensions.cpp" />
     <ClCompile Include="d3d12\d3d12_buffer_truncation.cpp" />
     <ClCompile Include="d3d12\d3d12_cbuffer_zoo.cpp" />
+    <ClCompile Include="d3d12\d3d12_descriptor_indexing.cpp" />
     <ClCompile Include="d3d12\d3d12_discard_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_draw_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_empty_capture.cpp" />
@@ -182,6 +187,7 @@
     <ClCompile Include="d3d12\d3d12_existing_heap.cpp" />
     <ClCompile Include="d3d12\d3d12_helpers.cpp" />
     <ClCompile Include="d3d12\d3d12_large_buffer.cpp" />
+    <ClCompile Include="d3d12\d3d12_leak_check.cpp" />
     <ClCompile Include="d3d12\d3d12_list_alloc_tests.cpp" />
     <ClCompile Include="d3d12\d3d12_list_types.cpp" />
     <ClCompile Include="d3d12\d3d12_mesh_zoo.cpp" />
@@ -206,6 +212,7 @@
     <ClCompile Include="d3d12\d3d12_untyped_backbuffer_descriptor.cpp" />
     <ClCompile Include="d3d12\d3d12_vertex_attr_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_video_textures.cpp" />
+    <ClCompile Include="d3d12\d3d12_vrs.cpp" />
     <ClCompile Include="d3d12\d3d12_write_subresource.cpp" />
     <ClCompile Include="dx\d3d_helpers.cpp" />
     <ClCompile Include="3rdparty\glad\glad.c" />
@@ -216,6 +223,7 @@
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="3rdparty\glad\glad_wgl.c" />
+    <ClCompile Include="gl\gl_buffer_resizing.cpp" />
     <ClCompile Include="gl\gl_buffer_spam.cpp" />
     <ClCompile Include="gl\gl_buffer_truncation.cpp" />
     <ClCompile Include="gl\gl_buffer_updates.cpp" />
@@ -229,6 +237,7 @@
     <ClCompile Include="gl\gl_entry_points.cpp" />
     <ClCompile Include="gl\gl_large_bcn_arrays.cpp" />
     <ClCompile Include="gl\gl_large_buffer.cpp" />
+    <ClCompile Include="gl\gl_leak_check.cpp" />
     <ClCompile Include="gl\gl_map_overrun.cpp" />
     <ClCompile Include="gl\gl_marker_test.cpp" />
     <ClCompile Include="gl\gl_mesh_zoo.cpp" />
@@ -240,6 +249,7 @@
     <ClCompile Include="gl\gl_parameter_zoo.cpp" />
     <ClCompile Include="gl\gl_per_type_tex_units.cpp" />
     <ClCompile Include="gl\gl_queries_in_use.cpp" />
+    <ClCompile Include="gl\gl_renderbuffer_zoo.cpp" />
     <ClCompile Include="gl\gl_resource_lifetimes.cpp" />
     <ClCompile Include="gl\gl_runtime_bind_prog_to_pipe.cpp" />
     <ClCompile Include="gl\gl_separable_geometry_shader.cpp" />
@@ -270,6 +280,7 @@
     <ClCompile Include="test_common.cpp" />
     <ClCompile Include="texture_zoo.cpp" />
     <ClCompile Include="vk\vk_custom_border_color.cpp" />
+    <ClCompile Include="vk\vk_dedicated_allocation.cpp" />
     <ClCompile Include="vk\vk_descriptor_reuse.cpp" />
     <ClCompile Include="vk\vk_descriptor_variable_count.cpp" />
     <ClCompile Include="vk\vk_discard_zoo.cpp" />
@@ -278,6 +289,7 @@
     <ClCompile Include="vk\vk_khr_buffer_address.cpp" />
     <ClCompile Include="vk\vk_large_buffer.cpp" />
     <ClCompile Include="vk\vk_large_descriptor_sets.cpp" />
+    <ClCompile Include="vk\vk_leak_check.cpp" />
     <ClCompile Include="vk\vk_mesh_zoo.cpp" />
     <ClCompile Include="vk\vk_parameter_zoo.cpp" />
     <ClCompile Include="vk\vk_imageless_framebuffer.cpp" />
@@ -294,6 +306,7 @@
     <ClCompile Include="vk\vk_shader_isa.cpp" />
     <ClCompile Include="vk\vk_spec_constants.cpp" />
     <ClCompile Include="vk\vk_spirv_13_shaders.cpp" />
+    <ClCompile Include="vk\vk_sync2.cpp" />
     <ClCompile Include="vk\vk_texture_zoo.cpp" />
     <ClCompile Include="vk\vk_triangle_fan.cpp" />
     <ClCompile Include="vk\vk_buffer_truncation.cpp" />
@@ -329,6 +342,7 @@
     <ClInclude Include="3rdparty\fmt\format-inl.h" />
     <ClInclude Include="3rdparty\fmt\format.h" />
     <ClInclude Include="3rdparty\glad\khrplatform.h" />
+    <ClInclude Include="3rdparty\md5\md5.h" />
     <ClInclude Include="3rdparty\VulkanMemoryAllocator\vk_mem_alloc.h" />
     <ClInclude Include="d3d11\d3d11_helpers.h" />
     <ClInclude Include="d3d11\d3d11_test.h" />

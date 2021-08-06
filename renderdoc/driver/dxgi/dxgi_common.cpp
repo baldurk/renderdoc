@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -1661,6 +1661,88 @@ void WarnUnknownGUID(const char *name, REFIID riid)
   }
 }
 
+HRESULT STDMETHODCALLTYPE EmbeddedD3DIncluder::Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName,
+                                                    LPCVOID pParentData, LPCVOID *ppData,
+                                                    UINT *pBytes)
+{
+  const rdcstr *str = NULL;
+
+  rdcstr filename = pFileName;
+
+  for(const rdcpair<rdcstr, rdcstr> &f : m_FixedFiles)
+  {
+    if(filename == f.first)
+    {
+      str = &f.second;
+      break;
+    }
+  }
+
+  auto readFile = [this](rdcstr filename) {
+    rdcstr *filestr = new rdcstr;
+    FileIO::ReadAll(filename, *filestr);
+    m_FileStrings.push_back(filestr);
+
+    // this will be used to look up by pParentData later
+    m_StringPaths[filestr->c_str()] = get_dirname(filename);
+
+    return filestr;
+  };
+
+  // if it's an absolute path that exists, read it
+  if(!str && !FileIO::IsRelativePath(filename) && FileIO::exists(filename))
+  {
+    str = readFile(filename);
+  }
+
+  // if it's relative and we have a parent, check relative to the parent's file
+  if(!str && IncludeType == D3D_INCLUDE_LOCAL && pParentData)
+  {
+    auto it = m_StringPaths.find(pParentData);
+    if(it != m_StringPaths.end())
+    {
+      rdcstr base = it->second;
+      filename = base + "/" + filename;
+
+      if(FileIO::exists(filename))
+        str = readFile(filename);
+
+      // don't need to handle the else here, it becomes E_FAIL below which the compiler then throws
+      // an error for
+    }
+    else
+    {
+      RDCERR("Unrecognised parent file when opening %s", filename.c_str());
+    }
+  }
+
+  // if it's a system include, check relative to the include dirs
+  if(IncludeType == D3D_INCLUDE_SYSTEM && !m_IncludeDirs.empty())
+  {
+    rdcstr fn = filename;
+    for(rdcstr base : m_IncludeDirs)
+    {
+      filename = base + "/" + fn;
+
+      if(FileIO::exists(filename))
+      {
+        str = readFile(filename);
+        break;
+      }
+    }
+  }
+
+  if(!str)
+    return E_FAIL;
+
+  if(ppData)
+    *ppData = str->c_str();
+  if(pBytes)
+    *pBytes = (uint32_t)str->size();
+
+  return S_OK;
+}
+
 static rdcstr GetDeviceProperty(HDEVINFO devs, PSP_DEVINFO_DATA data, const DEVPROPKEY *key)
 {
   DEVPROPTYPE type = {};
@@ -2787,10 +2869,10 @@ template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, RECT &el)
 {
   // avoid serialising 'long' directly as we pretend it's only used for HRESULT
-  SERIALISE_MEMBER_TYPED(int32_t, left);
-  SERIALISE_MEMBER_TYPED(int32_t, top);
-  SERIALISE_MEMBER_TYPED(int32_t, right);
-  SERIALISE_MEMBER_TYPED(int32_t, bottom);
+  SERIALISE_MEMBER_TYPED(int32_t, left).Important();
+  SERIALISE_MEMBER_TYPED(int32_t, top).Important();
+  SERIALISE_MEMBER_TYPED(int32_t, right).Important();
+  SERIALISE_MEMBER_TYPED(int32_t, bottom).Important();
 }
 
 INSTANTIATE_SERIALISE_TYPE(RECT);

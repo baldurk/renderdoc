@@ -1,7 +1,7 @@
 Gotchas & Known Issues
 ======================
 
-This page (hopefully) keeps up to date with any known issues, bugs, unimplemented or partially unimplemented features.
+Here are some things to note, with known limitations of RenderDoc or uncommon gotchas that may cause problems.
 
 Things to Note
 --------------

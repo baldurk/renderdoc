@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -168,10 +168,10 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *real
   m_FailureReason = CaptureSucceeded;
   m_EmptyCommandList = true;
 
-  m_DrawcallStack.push_back(&m_ParentDrawcall);
+  m_ActionStack.push_back(&m_ParentAction);
 
   m_CurEventID = 0;
-  m_CurDrawcallID = 1;
+  m_CurActionID = 1;
 
   m_MarkerIndentLevel = 0;
 
@@ -250,18 +250,6 @@ void WrappedID3D11DeviceContext::GetDevice(ID3D11Device **ppDevice)
     *ppDevice = (ID3D11Device *)m_pDevice;
     (*ppDevice)->AddRef();
   }
-}
-
-bool WrappedID3D11DeviceContext::HasNonMarkerEvents()
-{
-  for(const APIEvent &ev : m_CurEvents)
-  {
-    D3D11Chunk chunk = (D3D11Chunk)m_StructuredFile->chunks[ev.chunkIndex]->metadata.chunkID;
-    if(chunk != D3D11Chunk::PushMarker && chunk != D3D11Chunk::PopMarker)
-      return true;
-  }
-
-  return false;
 }
 
 D3D11ResourceManager *WrappedID3D11DeviceContext::GetResourceManager()
@@ -554,7 +542,7 @@ void WrappedID3D11DeviceContext::FinishCapture()
 void WrappedID3D11DeviceContext::EndCaptureFrame()
 {
   WriteSerialiser &ser = m_ScratchSerialiser;
-  ser.SetDrawChunk();
+  ser.SetActionChunk();
   SCOPED_SERIALISE_CHUNK(SystemChunk::CaptureEnd);
 
   SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
@@ -576,14 +564,14 @@ bool WrappedID3D11DeviceContext::Serialise_Present(SerialiserType &ser, UINT Syn
   {
     AddEvent();
 
-    DrawcallDescription draw;
+    ActionDescription action;
 
-    draw.copyDestination = m_pDevice->GetBackbufferResourceID();
+    action.copyDestination = m_pDevice->GetBackbufferResourceID();
 
-    draw.name = StringFormat::Fmt("Present(%s)", ToStr(draw.copyDestination).c_str());
-    draw.flags |= DrawFlags::Present;
+    action.customName = StringFormat::Fmt("Present(%s)", ToStr(action.copyDestination).c_str());
+    action.flags |= ActionFlags::Present;
 
-    AddDrawcall(draw, true);
+    AddAction(action);
   }
 
   return true;
@@ -596,7 +584,7 @@ void WrappedID3D11DeviceContext::Present(UINT SyncInterval, UINT Flags)
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    GET_SERIALISER.SetDrawChunk();
+    GET_SERIALISER.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::SwapchainPresent);
     SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
     Serialise_Present(ser, SyncInterval, Flags);
@@ -682,11 +670,14 @@ bool WrappedID3D11DeviceContext::IsFL11_1()
 
 bool WrappedID3D11DeviceContext::ProcessChunk(ReadSerialiser &ser, D3D11Chunk chunk)
 {
-  SERIALISE_ELEMENT(m_CurContextId).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
+  SERIALISE_ELEMENT(m_CurContextId)
+      .Named("Context"_lit)
+      .TypedAs("ID3D11DeviceContext *"_lit)
+      .Unimportant();
 
   SERIALISE_CHECK_READ_ERRORS();
 
-  m_AddedDrawcall = false;
+  m_AddedAction = false;
 
   bool ret = false;
 
@@ -951,13 +942,15 @@ bool WrappedID3D11DeviceContext::ProcessChunk(ReadSerialiser &ser, D3D11Chunk ch
     {
       if(IsLoading(m_State) && m_LastChunk != D3D11Chunk::SwapchainPresent)
       {
-        DrawcallDescription draw;
-        draw.name = "End of Capture";
-        draw.flags |= DrawFlags::Present;
+        AddEvent();
 
-        draw.copyDestination = m_pDevice->GetBackbufferResourceID();
+        ActionDescription action;
+        action.customName = "End of Capture";
+        action.flags |= ActionFlags::Present;
 
-        AddDrawcall(draw, true);
+        action.copyDestination = m_pDevice->GetBackbufferResourceID();
+
+        AddAction(action);
       }
 
       ret = true;
@@ -977,40 +970,40 @@ bool WrappedID3D11DeviceContext::ProcessChunk(ReadSerialiser &ser, D3D11Chunk ch
     }
     else if(chunk == D3D11Chunk::PushMarker)
     {
-      // push down the drawcallstack to the latest drawcall
-      m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
+      // push down the action stack to the latest action
+      m_ActionStack.push_back(&m_ActionStack.back()->children.back());
     }
     else if(chunk == D3D11Chunk::PopMarker)
     {
-      // refuse to pop off further than the root drawcall (mismatched begin/end events e.g.)
-      if(m_DrawcallStack.size() > 1)
-        m_DrawcallStack.pop_back();
+      // refuse to pop off further than the root action (mismatched begin/end events e.g.)
+      if(m_ActionStack.size() > 1)
+        m_ActionStack.pop_back();
     }
 
-    if(!m_AddedDrawcall)
+    if(!m_AddedAction)
       AddEvent();
   }
 
-  m_AddedDrawcall = false;
+  m_AddedAction = false;
 
   return ret;
 }
 
-void WrappedID3D11DeviceContext::AddUsage(const DrawcallDescription &d)
+void WrappedID3D11DeviceContext::AddUsage(const ActionDescription &a)
 {
   const D3D11RenderState *pipe = m_CurrentPipelineState;
-  uint32_t e = d.eventId;
+  uint32_t e = a.eventId;
 
-  DrawFlags DrawMask = DrawFlags::Drawcall | DrawFlags::Dispatch | DrawFlags::CmdList;
-  if(!(d.flags & DrawMask))
+  ActionFlags ActionMask = ActionFlags::Drawcall | ActionFlags::Dispatch | ActionFlags::CmdList;
+  if(!(a.flags & ActionMask))
     return;
 
-  const bool isDispatch = bool(d.flags & DrawFlags::Dispatch);
+  const bool isDispatch = bool(a.flags & ActionFlags::Dispatch);
 
   //////////////////////////////
   // IA
 
-  if(d.flags & DrawFlags::Indexed && pipe->IA.IndexBuffer != NULL)
+  if(a.flags & ActionFlags::Indexed && pipe->IA.IndexBuffer != NULL)
     m_ResourceUses[GetIDForDeviceChild(pipe->IA.IndexBuffer)].push_back(
         EventUsage(e, ResourceUsage::IndexBuffer));
 
@@ -1112,61 +1105,49 @@ void WrappedID3D11DeviceContext::AddUsage(const DrawcallDescription &d)
   }
 }
 
-void WrappedID3D11DeviceContext::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
+void WrappedID3D11DeviceContext::AddAction(const ActionDescription &a)
 {
   if(m_CurEventID == 0)
     return;
 
-  DrawcallDescription draw = d;
+  ActionDescription action = a;
 
-  m_AddedDrawcall = true;
+  m_AddedAction = true;
 
-  draw.eventId = m_CurEventID;
-  draw.drawcallId = m_CurDrawcallID;
-
-  draw.indexByteWidth = 0;
-  if(m_CurrentPipelineState->IA.IndexFormat == DXGI_FORMAT_R16_UINT)
-    draw.indexByteWidth = 2;
-  if(m_CurrentPipelineState->IA.IndexFormat == DXGI_FORMAT_R32_UINT)
-    draw.indexByteWidth = 4;
-
-  draw.topology = MakePrimitiveTopology(m_CurrentPipelineState->IA.Topo);
+  action.eventId = m_CurEventID;
+  action.actionId = m_CurActionID;
 
   for(int i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
   {
-    draw.outputs[i] = ResourceId();
+    action.outputs[i] = ResourceId();
     if(m_CurrentPipelineState->OM.RenderTargets[i])
-      draw.outputs[i] = m_pDevice->GetResourceManager()->GetOriginalID(
+      action.outputs[i] = m_pDevice->GetResourceManager()->GetOriginalID(
           ((WrappedID3D11RenderTargetView1 *)m_CurrentPipelineState->OM.RenderTargets[i])
               ->GetResourceResID());
   }
 
   {
-    draw.depthOut = ResourceId();
+    action.depthOut = ResourceId();
     if(m_CurrentPipelineState->OM.DepthView)
-      draw.depthOut = m_pDevice->GetResourceManager()->GetOriginalID(
+      action.depthOut = m_pDevice->GetResourceManager()->GetOriginalID(
           ((WrappedID3D11DepthStencilView *)m_CurrentPipelineState->OM.DepthView)->GetResourceResID());
   }
 
-  // markers don't increment drawcall ID
-  DrawFlags MarkerMask = DrawFlags::SetMarker | DrawFlags::PushMarker;
-  if(!(draw.flags & MarkerMask))
-    m_CurDrawcallID++;
+  // markers don't increment action ID
+  ActionFlags MarkerMask = ActionFlags::SetMarker | ActionFlags::PushMarker | ActionFlags::PopMarker;
+  if(!(action.flags & MarkerMask))
+    m_CurActionID++;
 
-  if(hasEvents)
-  {
-    draw.events = m_CurEvents;
-    m_CurEvents.clear();
-  }
+  action.events.swap(m_CurEvents);
 
-  AddUsage(draw);
+  AddUsage(action);
 
-  // should have at least the root drawcall here, push this drawcall
+  // should have at least the root action here, push this action
   // onto the back's children list.
-  if(!m_DrawcallStack.empty())
-    m_DrawcallStack.back()->children.push_back(draw);
+  if(!m_ActionStack.empty())
+    m_ActionStack.back()->children.push_back(action);
   else
-    RDCERR("Somehow lost drawcall stack!");
+    RDCERR("Somehow lost action stack!");
 }
 
 void WrappedID3D11DeviceContext::AddEvent()
@@ -1180,8 +1161,6 @@ void WrappedID3D11DeviceContext::AddEvent()
   apievent.eventId = m_CurEventID;
 
   apievent.chunkIndex = uint32_t(m_StructuredFile->chunks.size() - 1);
-
-  apievent.callstack = m_ChunkMetadata.callstack;
 
   m_CurEvents.push_back(apievent);
 
@@ -1323,7 +1302,7 @@ ReplayStatus WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32
 
   if(IsLoading(m_State))
   {
-    m_pDevice->GetReplay()->WriteFrameRecord().drawcallList = m_ParentDrawcall.children;
+    m_pDevice->GetReplay()->WriteFrameRecord().actionList = m_ParentAction.children;
     m_pDevice->GetReplay()->WriteFrameRecord().frameInfo.debugMessages =
         m_pDevice->GetDebugMessages();
 
@@ -1342,7 +1321,7 @@ ReplayStatus WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32
       m_ResourceUses[it->first];
 
     // it's easier to remove duplicate usages here than check it as we go.
-    // this means if textures are bound in multiple places in the same draw
+    // this means if textures are bound in multiple places in the same action
     // we don't have duplicate uses
     for(auto it = m_ResourceUses.begin(); it != m_ResourceUses.end(); ++it)
     {

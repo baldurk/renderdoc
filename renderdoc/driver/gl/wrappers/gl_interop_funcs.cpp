@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -429,10 +429,13 @@ bool WrappedOpenGL::Serialise_wglDXLockObjectsNV(SerialiserType &ser, GLResource
     SERIALISE_ELEMENT_LOCAL(height, details.height).Hidden();
     SERIALISE_ELEMENT_LOCAL(depth, details.depth).Hidden();
 
-    RDCASSERT(internalFormat == details.internalFormat, internalFormat, details.internalFormat);
-    RDCASSERT(width == details.width, width, details.width);
-    RDCASSERT(height == details.height, height, details.height);
-    RDCASSERT(depth == details.depth, depth, details.depth);
+    if(!IsStructuredExporting(m_State))
+    {
+      RDCASSERT(internalFormat == details.internalFormat, internalFormat, details.internalFormat);
+      RDCASSERT(width == details.width, width, details.width);
+      RDCASSERT(height == details.height, height, details.height);
+      RDCASSERT(depth == details.depth, depth, details.depth);
+    }
 
     GLenum fmt = GetBaseFormat(internalFormat);
     GLenum type = GetDataType(internalFormat);

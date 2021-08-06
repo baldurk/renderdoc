@@ -25,6 +25,10 @@ Injecting into a Process
 
 	The important thing to note about injecting is that RenderDoc can only inject to processes that **have not initialised or used the target API**. If this is the case RenderDoc can insert its hooks before any use of the API and work as normal. If the API has already been used or initialised the results are undefined and likely RenderDoc will simply not function as it's too late to hook in.
 
+.. warning::
+
+  Injecting into processes is generally unreliable and even if it's done early there are cases where it can break. It is **strongly recommended** that this is only used as a last resort when you know there are constraints that cannot be satisfied any other way. Injection must be enabled via the settings menu and is not available by default, before enabling it consider if you can instead launch your program through RenderDoc as above which is much more reliable.
+
 It is possible to inject to an already running process as long as it hasn't yet initialised a graphics API. By selecting :guilabel:`File` → :guilabel:`Inject to Process`, the capture dialog will modify to list the running processes rather than asking for an executable and command line parameters.
 
 This can be useful if launching your application from a single exe is non-trivial and it's easier to inject into the process after it has been launched.

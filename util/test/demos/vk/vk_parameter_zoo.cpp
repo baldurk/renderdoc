@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -225,6 +225,7 @@ void main()
     optDevExts.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
     optDevExts.push_back(VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME);
     optDevExts.push_back(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
+    optDevExts.push_back(VK_KHR_BIND_MEMORY_2_EXTENSION_NAME);
 
     VulkanGraphicsTest::Prepare(argc, argv);
 
@@ -584,10 +585,56 @@ void main()
       vkDestroyPipeline(device, dummy, NULL);
     }
 
-    AllocatedBuffer vb(
-        this, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
-        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+    AllocatedBuffer vb;
+
+    if(std::find(devExts.begin(), devExts.end(), VK_KHR_BIND_MEMORY_2_EXTENSION_NAME) != devExts.end())
+    {
+      // if we have bind memory 2, try to bind two buffers simultaneously in one call and delete the
+      // other buffer. This ensure we don't try to bind an invalid buffer on replay.
+      VkBuffer tmp = VK_NULL_HANDLE;
+      VmaAllocation tmpAlloc = {};
+
+      vkCreateBuffer(device,
+                     vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                                   VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+                     NULL, &vb.buffer);
+      vkCreateBuffer(device,
+                     vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                                   VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+                     NULL, &tmp);
+
+      VmaAllocationCreateInfo allocInfo = {0, VMA_MEMORY_USAGE_CPU_TO_GPU};
+      allocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+
+      VmaAllocationInfo vbInfo, tmpInfo;
+
+      vmaAllocateMemoryForBuffer(allocator, vb.buffer, &allocInfo, &vb.alloc, &vbInfo);
+      vmaAllocateMemoryForBuffer(allocator, tmp, &allocInfo, &tmpAlloc, &tmpInfo);
+
+      VkBindBufferMemoryInfoKHR binds[2] = {};
+      binds[0].sType = VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_INFO_KHR;
+      binds[0].buffer = vb.buffer;
+      binds[0].memory = vbInfo.deviceMemory;
+      binds[0].memoryOffset = vbInfo.offset;
+      binds[1].sType = VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_INFO_KHR;
+      binds[1].buffer = tmp;
+      binds[1].memory = tmpInfo.deviceMemory;
+      binds[1].memoryOffset = tmpInfo.offset;
+      vkBindBufferMemory2KHR(device, 2, binds);
+
+      vmaFreeMemory(allocator, tmpAlloc);
+      vkDestroyBuffer(device, tmp, NULL);
+
+      vb.allocator = allocator;
+      bufferAllocs[vb.buffer] = vb.alloc;
+    }
+    else
+    {
+      vb = AllocatedBuffer(
+          this, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                              VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+          VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+    }
 
     vb.upload(DefaultTri);
 
@@ -1190,6 +1237,17 @@ void main()
         Submit(0, 4, {cmd});
       }
 
+      // try writing with an invalid sampler to the immutable, it should be ignored
+      vkh::updateDescriptorSets(
+          device,
+          {
+              vkh::WriteDescriptorSet(
+                  immutdescset, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                  {
+                      vkh::DescriptorImageInfo(validImgView, VK_IMAGE_LAYOUT_GENERAL, invalidSampler),
+                  }),
+          });
+
       // do a bunch of spinning on fences/semaphores that should not be serialised exhaustively
       VkResult status = VK_SUCCESS;
       for(size_t i = 0; i < 1000; i++)
@@ -1470,7 +1528,10 @@ void main()
     vkDestroyImageView(device, view3, NULL);
 
     if(KHR_descriptor_update_template && KHR_push_descriptor)
+    {
       vkDestroyDescriptorUpdateTemplateKHR(device, pushtempl, NULL);
+      vkDestroyDescriptorUpdateTemplateKHR(device, refpushtempl, NULL);
+    }
 
     if(KHR_descriptor_update_template)
       vkDestroyDescriptorUpdateTemplateKHR(device, reftempl, NULL);

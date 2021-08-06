@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -150,6 +150,20 @@ INSTANTIATE_SERIALISE_TYPE(ResourceId);
 ReplayStatus IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver);
 
 template <>
+rdcstr DoStringise(const CaptureState &el)
+{
+  BEGIN_ENUM_STRINGISE(CaptureState);
+  {
+    STRINGISE_ENUM_CLASS(LoadingReplaying);
+    STRINGISE_ENUM_CLASS(ActiveReplaying);
+    STRINGISE_ENUM_CLASS(StructuredExport);
+    STRINGISE_ENUM_CLASS(BackgroundCapturing);
+    STRINGISE_ENUM_CLASS(ActiveCapturing);
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
 rdcstr DoStringise(const RDCDriver &el)
 {
   BEGIN_ENUM_STRINGISE(RDCDriver);
@@ -174,9 +188,9 @@ rdcstr DoStringise(const ReplayLogType &el)
 {
   BEGIN_ENUM_STRINGISE(ReplayLogType);
   {
-    STRINGISE_ENUM_NAMED(eReplay_Full, "Full replay including draw");
-    STRINGISE_ENUM_NAMED(eReplay_WithoutDraw, "Replay without draw");
-    STRINGISE_ENUM_NAMED(eReplay_OnlyDraw, "Replay only draw");
+    STRINGISE_ENUM_NAMED(eReplay_Full, "Full replay including action");
+    STRINGISE_ENUM_NAMED(eReplay_WithoutDraw, "Replay without action");
+    STRINGISE_ENUM_NAMED(eReplay_OnlyDraw, "Replay only action");
   }
   END_ENUM_STRINGISE();
 }
@@ -246,12 +260,12 @@ rdcstr DoStringise(const SystemChunk &el)
 {
   BEGIN_ENUM_STRINGISE(SystemChunk);
   {
-    STRINGISE_ENUM_CLASS_NAMED(DriverInit, "Internal: Driver Initialisation Parameters");
-    STRINGISE_ENUM_CLASS_NAMED(InitialContentsList, "Internal: List of Initial Contents Resources");
-    STRINGISE_ENUM_CLASS_NAMED(InitialContents, "Internal: Initial Contents");
-    STRINGISE_ENUM_CLASS_NAMED(CaptureBegin, "Internal: Beginning of Capture");
-    STRINGISE_ENUM_CLASS_NAMED(CaptureScope, "Internal: Frame Metadata");
-    STRINGISE_ENUM_CLASS_NAMED(CaptureEnd, "Internal: End of Capture");
+    STRINGISE_ENUM_CLASS_NAMED(DriverInit, "Internal::Driver Initialisation Parameters");
+    STRINGISE_ENUM_CLASS_NAMED(InitialContentsList, "Internal::List of Initial Contents Resources");
+    STRINGISE_ENUM_CLASS_NAMED(InitialContents, "Internal::Initial Contents");
+    STRINGISE_ENUM_CLASS_NAMED(CaptureBegin, "Internal::Beginning of Capture");
+    STRINGISE_ENUM_CLASS_NAMED(CaptureScope, "Internal::Frame Metadata");
+    STRINGISE_ENUM_CLASS_NAMED(CaptureEnd, "Internal::End of Capture");
   }
   END_ENUM_STRINGISE();
 }
@@ -419,7 +433,7 @@ void RenderDoc::Initialise()
     FileIO::GetDefaultFiles(base, capture_filename, m_LoggingFilename, m_Target);
 
     if(m_CaptureFileTemplate.empty())
-      SetCaptureFileTemplate(capture_filename.c_str());
+      SetCaptureFileTemplate(capture_filename);
 
     RDCLOGFILE(m_LoggingFilename.c_str());
   }
@@ -451,6 +465,11 @@ void RenderDoc::Initialise()
 #if defined(RENDERDOC_HOOK_DLSYM)
   RDCWARN("dlsym() hooking enabled!");
 #endif
+
+  if(m_RemoteIdent == 0)
+    RDCWARN("Couldn't open socket for target control");
+  else
+    RDCDEBUG("Listening for target control on %u", m_RemoteIdent);
 
   Keyboard::Init();
 
@@ -1895,9 +1914,23 @@ void RenderDoc::RemoveFrameCapturer(void *dev, void *wnd)
   }
 }
 
+bool RenderDoc::HasActiveFrameCapturer(RDCDriver driver) const
+{
+  for(auto cap = m_WindowFrameCapturers.begin(); cap != m_WindowFrameCapturers.end(); cap++)
+    if(cap->second.FrameCapturer->GetFrameCaptureDriver() == driver)
+      return true;
+
+  for(auto cap = m_DeviceFrameCapturers.begin(); cap != m_DeviceFrameCapturers.end(); cap++)
+    if(cap->second->GetFrameCaptureDriver() == driver)
+      return true;
+
+  return false;
+}
+
 #if ENABLED(ENABLE_UNIT_TESTS)
 
 #undef None
+#undef Always
 
 #include "catch/catch.hpp"
 

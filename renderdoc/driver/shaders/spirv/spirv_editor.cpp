@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -143,6 +143,10 @@ void Editor::CreateEmpty(uint32_t major, uint32_t minor)
 
 Editor::~Editor()
 {
+  for(const Operation &op : m_DeferredConstants)
+    AddConstant(op);
+  m_DeferredConstants.clear();
+
   m_ExternalSPIRV.clear();
   m_ExternalSPIRV.reserve(m_SPIRV.size());
 
@@ -229,7 +233,7 @@ void Editor::AddDecoration(const Operation &op)
 void Editor::AddCapability(Capability cap)
 {
   // don't add duplicate capabilities
-  if(capabilities.find(cap) != capabilities.end())
+  if(HasCapability(cap))
     return;
 
   // insert the operation at the very start
@@ -237,6 +241,11 @@ void Editor::AddCapability(Capability cap)
   op.insertInto(m_SPIRV, FirstRealWord);
   RegisterOp(Iter(m_SPIRV, FirstRealWord));
   addWords(FirstRealWord, op.size());
+}
+
+bool Editor::HasCapability(Capability cap)
+{
+  return capabilities.find(cap) != capabilities.end();
 }
 
 void Editor::AddExtension(const rdcstr &extension)

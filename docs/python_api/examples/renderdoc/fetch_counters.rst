@@ -1,7 +1,7 @@
 Fetch GPU Counter Data
 ======================
 
-In this example we will gather GPU counter data over a capture and find any drawcalls that completely failed the depth/stencil test.
+In this example we will gather GPU counter data over a capture and find any actions that completely failed the depth/stencil test.
 
 The first thing we do is enumerate a list of counters that the implementation supports using :py:meth:`~renderdoc.ReplayController.EnumerateCounters`. A few of these counters values are statically known - see :py:class:`~renderdoc.GPUCounter`. If you know which counter you want ahead of time you can continue straight away by calling :py:meth:`~renderdoc.ReplayController.FetchCounters` with a list of counters to sample from, or :py:meth:`~renderdoc.ReplayController.DescribeCounter` to obtain a :py:class:`~renderdoc.CounterDescription` of the counter itself:
 
@@ -34,7 +34,7 @@ However we will also print all available counters. If the implementation support
 		print("    %s" % desc.description)
 		print("    Returns %d byte %s, representing %s" % (desc.resultByteWidth, desc.resultType, desc.unit))
 
-Once we have the list of :py:class:`~renderdoc.CounterResult` from sampling the specified counters, each result returned is for one counter on one event. Since we only fetched one counter we can simply iterate over the results looking up the drawcall for each. For actual draws (excluding clears and markers etc) we use the counter description to determine the data payload size, and get the value out. Interpreting this can either happen based on the description, or in our case we know that this counter returns a simple value we can check:
+Once we have the list of :py:class:`~renderdoc.CounterResult` from sampling the specified counters, each result returned is for one counter on one event. Since we only fetched one counter we can simply iterate over the results looking up the action for each. For actual draws (excluding clears and markers etc) we use the counter description to determine the data payload size, and get the value out. Interpreting this can either happen based on the description, or in our case we know that this counter returns a simple value we can check:
 
 .. highlight:: python
 .. code:: python
@@ -42,10 +42,10 @@ Once we have the list of :py:class:`~renderdoc.CounterResult` from sampling the 
 	# Look in the results for any draws with 0 samples written - this is an indication
 	# that if a lot of draws appear then culling could be better.
 	for r in results:
-		draw = draws[r.eventId]
+		draw = actions[r.eventId]
 
 		# Only care about draws, not about clears and other misc events
-		if not (draw.flags & rd.DrawFlags.Drawcall):
+		if not (draw.flags & rd.ActionFlags.Drawcall):
 			continue
 
 		if samplesPassedDesc.resultByteWidth == 4:
@@ -54,7 +54,7 @@ Once we have the list of :py:class:`~renderdoc.CounterResult` from sampling the 
 			val = r.value.u64
 
 		if val == 0:
-			print("EID %d '%s' had no samples pass depth/stencil test!" % (r.eventId, draw.name))
+			print("EID %d '%s' had no samples pass depth/stencil test!" % (r.eventId, draw.GetName(controller.GetStructuredFile())))
 
 Example Source
 --------------
@@ -109,11 +109,11 @@ Sample output:
     Counter 13 (CS Invocations):
         Number of times a compute shader was invoked.
         Returns 8 byte CompType.UInt, representing CounterUnit.Absolute
-    EID 69 'DrawIndexed(5580)' had no samples pass depth/stencil test!
-    EID 82 'DrawIndexed(5580)' had no samples pass depth/stencil test!
-    EID 95 'DrawIndexed(5580)' had no samples pass depth/stencil test!
-    EID 108 'DrawIndexed(5580)' had no samples pass depth/stencil test!
-    EID 199 'DrawIndexed(5220)' had no samples pass depth/stencil test!
-    EID 212 'DrawIndexed(5220)' had no samples pass depth/stencil test!
-    EID 225 'DrawIndexed(5220)' had no samples pass depth/stencil test!
-    EID 238 'DrawIndexed(5220)' had no samples pass depth/stencil test!
+    EID 69 'DrawIndexed()' had no samples pass depth/stencil test!
+    EID 82 'DrawIndexed()' had no samples pass depth/stencil test!
+    EID 95 'DrawIndexed()' had no samples pass depth/stencil test!
+    EID 108 'DrawIndexed()' had no samples pass depth/stencil test!
+    EID 199 'DrawIndexed()' had no samples pass depth/stencil test!
+    EID 212 'DrawIndexed()' had no samples pass depth/stencil test!
+    EID 225 'DrawIndexed()' had no samples pass depth/stencil test!
+    EID 238 'DrawIndexed()' had no samples pass depth/stencil test!

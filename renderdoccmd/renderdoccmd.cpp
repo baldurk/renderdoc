@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -104,17 +104,17 @@ void DisplayRendererPreview(IReplayController *renderer, uint32_t width, uint32_
     }
   }
 
-  rdcarray<DrawcallDescription> draws = renderer->GetDrawcalls();
+  rdcarray<ActionDescription> actions = renderer->GetRootActions();
 
-  DrawcallDescription *last = NULL;
+  ActionDescription *last = NULL;
 
-  if(!draws.empty())
-    last = &draws.back();
+  if(!actions.empty())
+    last = &actions.back();
 
   while(last && !last->children.empty())
     last = &last->children.back();
 
-  if(last && last->flags & DrawFlags::Present)
+  if(last && last->flags & ActionFlags::Present)
   {
     ResourceId id = last->copyDestination;
     if(id != ResourceId())
@@ -1404,7 +1404,7 @@ public:
       return 0;
     }
 
-    if(m_Info.flags & VulkanLayerFlags::UserRegisterable)
+    if(!(m_Info.flags & VulkanLayerFlags::UserRegisterable))
     {
       if(user)
       {
@@ -1614,8 +1614,8 @@ int renderdoccmd(GlobalEnvironment &env, std::vector<std::string> &argv)
               "Capturing Option: Unmutes API debugging output from --opt-api-validation.");
       cmd.add("opt-capture-callstacks", 0,
               "Capturing Option: Capture CPU callstacks for API events.");
-      cmd.add("opt-capture-callstacks-only-draws", 0,
-              "Capturing Option: When capturing CPU callstacks, only capture them from drawcalls.");
+      cmd.add("opt-capture-callstacks-only-actions", 0,
+              "Capturing Option: When capturing CPU callstacks, only capture them from actions.");
       cmd.add<int>("opt-delay-for-debugger", 0,
                    "Capturing Option: Specify a delay in seconds to wait for a debugger to attach.",
                    false, 0, cmdline::range(0, 10000));
@@ -1647,8 +1647,8 @@ int renderdoccmd(GlobalEnvironment &env, std::vector<std::string> &argv)
         opts.debugOutputMute = false;
       if(cmd.exist("opt-capture-callstacks"))
         opts.captureCallstacks = true;
-      if(cmd.exist("opt-capture-callstacks-only-draws"))
-        opts.captureCallstacksOnlyDraws = true;
+      if(cmd.exist("opt-capture-callstacks-only-actions"))
+        opts.captureCallstacksOnlyActions = true;
       if(cmd.exist("opt-verify-buffer-access"))
         opts.verifyBufferAccess = true;
       if(cmd.exist("opt-hook-children"))

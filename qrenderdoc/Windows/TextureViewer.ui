@@ -1212,12 +1212,20 @@ See FAQ on &quot;Gamma display of linear data&quot;</string>
         <property name="text">
          <string>History</string>
         </property>
+        <property name="icon">
+         <iconset resource="../../Resources/resources.qrc">
+          <normaloff>:/pixel_history.png</normaloff>:/pixel_history.png</iconset>
+        </property>
        </widget>
       </item>
       <item row="1" column="1">
        <widget class="QPushButton" name="debugPixelContext">
         <property name="text">
          <string>Debug</string>
+        </property>
+        <property name="icon">
+         <iconset resource="../../Resources/resources.qrc">
+          <normaloff>:/wrench.png</normaloff>:/wrench.png</iconset>
         </property>
        </widget>
       </item>

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -38,7 +38,7 @@ public:
   ~D3D11ShaderCache();
 
   rdcstr GetShaderBlob(const char *source, const char *entry, const uint32_t compileFlags,
-                       const char *profile, ID3DBlob **srcblob);
+                       const rdcarray<rdcstr> &includeDirs, const char *profile, ID3DBlob **srcblob);
   ID3D11VertexShader *MakeVShader(const char *source, const char *entry, const char *profile,
                                   int numInputDescs = 0, D3D11_INPUT_ELEMENT_DESC *inputs = NULL,
                                   ID3D11InputLayout **ret = NULL, rdcarray<byte> *blob = NULL);

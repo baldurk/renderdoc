@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -139,7 +139,7 @@ void NuklearShutdown()
   UnregisterClassW(wc.lpszClassName, wc.hInstance);
 }
 
-#else
+#elif defined(__linux__)
 
 #define NK_XLIB_IMPLEMENTATION
 #include "3rdparty/nuklear/nuklear_xlib.h"
@@ -213,6 +213,10 @@ void NuklearShutdown()
   XDestroyWindow(dpy, win);
   XCloseDisplay(dpy);
 }
+
+#else
+
+#error UNKNOWN PLATFORM
 
 #endif
 

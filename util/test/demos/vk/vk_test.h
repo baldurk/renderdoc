@@ -1,7 +1,7 @@
 /******************************************************************************
 * The MIT License (MIT)
 *
-* Copyright (c) 2019-2020 Baldur Karlsson
+* Copyright (c) 2019-2021 Baldur Karlsson
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -141,7 +141,7 @@ struct VulkanWindow : public GraphicsWindow
   bool Initialised() { return swap != VK_NULL_HANDLE; }
   VkCommandBuffer GetCommandBuffer(VkCommandBufferLevel level);
   void Submit(int index, int totalSubmits, const std::vector<VkCommandBuffer> &cmds,
-              const std::vector<VkCommandBuffer> &seccmds, VkQueue q);
+              const std::vector<VkCommandBuffer> &seccmds, VkQueue q, bool sync2);
   void Present(VkQueue q);
   void Acquire();
 
@@ -187,7 +187,7 @@ struct VulkanGraphicsTest : public GraphicsTest
                              VulkanWindow *window = NULL);
   void Submit(int index, int totalSubmits, const std::vector<VkCommandBuffer> &cmds,
               const std::vector<VkCommandBuffer> &seccmds = {}, VulkanWindow *window = NULL,
-              VkQueue q = VK_NULL_HANDLE);
+              VkQueue q = VK_NULL_HANDLE, bool sync2 = false);
   void Present(VulkanWindow *window = NULL, VkQueue q = VK_NULL_HANDLE);
 
   VkPipelineShaderStageCreateInfo CompileShaderModule(
@@ -241,6 +241,7 @@ struct VulkanGraphicsTest : public GraphicsTest
 
   // requested features
   VkPhysicalDeviceFeatures features = {};
+  VkPhysicalDeviceFeatures optFeatures = {};
 
   // enabled instance extensions
   std::vector<const char *> instExts;
@@ -251,6 +252,8 @@ struct VulkanGraphicsTest : public GraphicsTest
 
   // optional extensions, will be added to devExts if supported (allows fallback paths)
   std::vector<const char *> optDevExts;
+
+  bool hasExt(const char *ext);
 
   // a custom struct to pass to vkDeviceCreateInfo::pNext
   const void *devInfoNext = NULL;
@@ -285,6 +288,7 @@ struct VulkanGraphicsTest : public GraphicsTest
   VulkanWindow *mainWindow = NULL;
 
   // VMA
+  bool vmaDedicated = false;
   VmaAllocator allocator = VK_NULL_HANDLE;
 
 private:

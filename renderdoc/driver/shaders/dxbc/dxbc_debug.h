@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -39,7 +39,7 @@ namespace DXBCBytecode
 {
 struct Declaration;
 class Program;
-enum OperandType;
+enum OperandType : uint8_t;
 }
 
 class WrappedID3D11Device;
@@ -245,8 +245,8 @@ public:
   // During shader debugging, when a new resource is encountered, this will be called to fetch the
   // data on demand. Return true if the ShaderDebug::GlobalState data for the slot is populated,
   // return false if the resource cannot be found.
-  virtual bool FetchSRV(const BindingSlot &slot) = 0;
-  virtual bool FetchUAV(const BindingSlot &slot) = 0;
+  virtual void FetchSRV(const BindingSlot &slot) = 0;
+  virtual void FetchUAV(const BindingSlot &slot) = 0;
 
   virtual bool CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcode, const ShaderVariable &input,
                                       ShaderVariable &output1, ShaderVariable &output2) = 0;
@@ -263,7 +263,7 @@ public:
                                      SampleGatherResourceData resourceData,
                                      SampleGatherSamplerData samplerData, ShaderVariable uv,
                                      ShaderVariable ddxCalc, ShaderVariable ddyCalc,
-                                     const int texelOffsets[3], int multisampleIndex,
+                                     const int8_t texelOffsets[3], int multisampleIndex,
                                      float lodOrCompareValue, const uint8_t swizzle[4],
                                      GatherChannel gatherChannel, const char *opString,
                                      ShaderVariable &output) = 0;

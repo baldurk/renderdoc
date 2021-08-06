@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,8 +31,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetShadingRate(
 {
   ID3D12GraphicsCommandList5 *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(baseShadingRate);
-  SERIALISE_ELEMENT_ARRAY(combiners, 2);
+  SERIALISE_ELEMENT(baseShadingRate).Important();
+  SERIALISE_ELEMENT_ARRAY(combiners, 2).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -133,7 +133,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetShadingRateImage(Serialise
 {
   ID3D12GraphicsCommandList5 *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(shadingRateImage);
+  SERIALISE_ELEMENT(shadingRateImage).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -200,7 +200,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetShadingRateImage(Serialise
 void STDMETHODCALLTYPE
 WrappedID3D12GraphicsCommandList::RSSetShadingRateImage(ID3D12Resource *shadingRateImage)
 {
-  SERIALISE_TIME_CALL(m_pList5->RSSetShadingRateImage(shadingRateImage));
+  SERIALISE_TIME_CALL(m_pList5->RSSetShadingRateImage(Unwrap(shadingRateImage)));
 
   if(IsCaptureMode(m_State))
   {

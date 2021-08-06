@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -65,7 +65,7 @@ RD_TEST(GL_Queries_In_Use, OpenGLGraphicsTest)
     glAttachShader(program, vs);
     glAttachShader(program, fs);
 
-    GLchar *posOnly = "gl_Position";
+    const GLchar *posOnly = "gl_Position";
     glTransformFeedbackVaryings(program, 1, &posOnly, GL_INTERLEAVED_ATTRIBS);
 
     glLinkProgram(program);

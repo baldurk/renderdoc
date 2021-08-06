@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2020 Baldur Karlsson
+ * Copyright (c) 2020-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -316,6 +316,9 @@ private:
           // wrapper, and one by ags. In destroydevice we'll let ags release its, and we'll also
           // de-refcount our device.
           returnedParams->pDevice->AddRef();
+
+          if(ppDevice)
+            *ppDevice = returnedParams->pDevice;
 
           return S_OK;
         },

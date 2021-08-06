@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,7 @@
 
 #include <map>
 #include "api/replay/rdcarray.h"
+#include "api/replay/rdcpair.h"
 #include "api/replay/rdcstr.h"
 #include "api/replay/shader_types.h"
 
@@ -80,7 +81,7 @@ enum class ShaderType
 //
 // essentially all information comes from the wine project.
 /////////////////////////////////////////////////////////////////////////
-enum ResourceRetType
+enum ResourceRetType : uint8_t
 {
   RETURN_TYPE_UNKNOWN = 0,
   RETURN_TYPE_UNORM = 1,
@@ -142,11 +143,17 @@ enum SVSemantic
 
   SVNAME_FINAL_LINE_DENSITY_TESSFACTOR,
 
+  SVNAME_BARYCENTRICS,
+  SVNAME_SHADINGRATE,
+  SVNAME_CULLPRIMITIVE,
+
   SVNAME_TARGET = 64,
   SVNAME_DEPTH,
   SVNAME_COVERAGE,
   SVNAME_DEPTH_GREATER_EQUAL,
   SVNAME_DEPTH_LESS_EQUAL,
+  SVNAME_STENCIL_REF,
+  SVNAME_INNER_COVERAGE,
 };
 
 enum VariableType
@@ -302,6 +309,8 @@ struct CBufferVariableType
   // but might be a loose structure
   rdcarray<CBufferVariable> members;
 };
+
+rdcstr TypeName(CBufferVariableType::Descriptor desc);
 
 struct CBufferVariable
 {

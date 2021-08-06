@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -85,6 +85,11 @@ int main(int argc, char *argv[])
   QCoreApplication::setAttribute(Qt::AA_X11InitThreads);
 
   qInstallMessageHandler(sharedLogOutput);
+
+  // there seems to be a persistent crash in QWidgetPrivate::subtractOpaqueSiblings where a widget
+  // has no parent but is not a window. Try to work around it by setting this env var, as it's only
+  // an optimisation
+  qputenv("QT_NO_SUBTRACTOPAQUESIBLINGS", lit("1").toUtf8());
 
   qInfo() << "QRenderDoc initialising.";
 

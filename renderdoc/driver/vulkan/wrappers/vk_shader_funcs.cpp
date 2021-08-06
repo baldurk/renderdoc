@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -100,7 +100,7 @@ bool WrappedVulkan::Serialise_vkCreatePipelineLayout(SerialiserType &ser, VkDevi
                                                      VkPipelineLayout *pPipelineLayout)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo).Important();
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(PipelineLayout, GetResID(*pPipelineLayout))
       .TypedAs("VkPipelineLayout"_lit);
@@ -211,7 +211,7 @@ bool WrappedVulkan::Serialise_vkCreateShaderModule(SerialiserType &ser, VkDevice
                                                    VkShaderModule *pShaderModule)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo).Important();
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(ShaderModule, GetResID(*pShaderModule)).TypedAs("VkShaderModule"_lit);
 
@@ -315,7 +315,7 @@ bool WrappedVulkan::Serialise_vkCreatePipelineCache(SerialiserType &ser, VkDevic
                                                     VkPipelineCache *pPipelineCache)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo).Important();
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(PipelineCache, GetResID(*pPipelineCache)).TypedAs("VkPipelineCache"_lit);
 
@@ -405,7 +405,7 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT(pipelineCache);
   SERIALISE_ELEMENT(count);
-  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfos);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfos).Important();
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(Pipeline, GetResID(*pPipelines)).TypedAs("VkPipeline"_lit);
 
@@ -617,7 +617,7 @@ bool WrappedVulkan::Serialise_vkCreateComputePipelines(SerialiserType &ser, VkDe
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT(pipelineCache);
   SERIALISE_ELEMENT(count);
-  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfos);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfos).Important();
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(Pipeline, GetResID(*pPipelines)).TypedAs("VkPipeline"_lit);
 

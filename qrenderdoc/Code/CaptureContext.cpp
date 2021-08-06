@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +28,7 @@
 #include <QDirIterator>
 #include <QElapsedTimer>
 #include <QFileInfo>
+#include <QFileSystemWatcher>
 #include <QLabel>
 #include <QMenu>
 #include <QMessageBox>
@@ -53,6 +54,7 @@
 #include "Windows/PixelHistoryView.h"
 #include "Windows/PythonShell.h"
 #include "Windows/ResourceInspector.h"
+#include "Windows/ShaderMessageViewer.h"
 #include "Windows/ShaderViewer.h"
 #include "Windows/StatisticsViewer.h"
 #include "Windows/TextureViewer.h"
@@ -81,7 +83,7 @@ CaptureContext::CaptureContext(PersistantConfig &cfg) : m_Config(cfg)
   m_CurVulkanPipelineState = NULL;
   m_CurPipelineState = &m_DummyPipelineState;
 
-  m_Drawcalls = &m_EmptyDraws;
+  m_Actions = &m_EmptyActions;
 
   m_StructuredFile = &m_DummySDFile;
 
@@ -728,9 +730,22 @@ void CaptureContext::LoadCapture(const rdcstr &captureFile, const ReplayOptions 
   QElapsedTimer loadTimer;
   loadTimer.start();
 
-  ShowProgressDialog(m_MainWindow, tr("Loading Capture: %1").arg(origFilename),
+  ShowProgressDialog(m_MainWindow, tr("Loading Capture: %1").arg(QFileInfo(origFilename).fileName()),
                      [this]() { return !m_LoadInProgress; },
                      [this]() { return UpdateLoadProgress(); });
+
+  if(local)
+  {
+    m_Watcher = new QFileSystemWatcher({captureFile}, GetMainWindow()->Widget());
+
+    QObject::connect(m_Watcher, &QFileSystemWatcher::fileChanged, [this]() {
+      Replay().AsyncInvoke([this](IReplayController *r) {
+        r->FileChanged();
+        r->SetFrameEvent(m_EventID, true);
+        GUIInvoke::call(GetMainWindow()->Widget(), [this]() { RefreshUIStatus({}, true, true); });
+      });
+    });
+  }
 
 #if defined(RELEASE)
   ANALYTIC_ADDAVG(Performance.LoadTime, double(loadTimer.nsecsElapsed() * 1.0e-9));
@@ -767,10 +782,10 @@ void CaptureContext::LoadCapture(const rdcstr &captureFile, const ReplayOptions 
     rdcarray<ICaptureViewer *> viewers(m_CaptureViewers);
 
     // make sure we're on a consistent event before invoking viewer forms
-    if(m_LastDrawcall)
-      SetEventID(viewers, m_LastDrawcall->eventId, m_LastDrawcall->eventId, true);
-    else if(!m_Drawcalls->empty())
-      SetEventID(viewers, m_Drawcalls->back().eventId, m_Drawcalls->back().eventId, true);
+    if(m_LastAction)
+      SetEventID(viewers, m_LastAction->eventId, m_LastAction->eventId, true);
+    else if(!m_Actions->empty())
+      SetEventID(viewers, m_Actions->back().eventId, m_Actions->back().eventId, true);
 
     GUIInvoke::blockcall(m_MainWindow, [&viewers]() {
       // notify all the registers viewers that a capture has been loaded
@@ -842,9 +857,9 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const Repla
 
   m_EventID = 0;
 
-  m_FirstDrawcall = m_LastDrawcall = NULL;
+  m_FirstAction = m_LastAction = NULL;
 
-  // fetch initial data like drawcalls, textures and buffers
+  // fetch initial data like actions, textures and buffers
   m_Replay.BlockInvoke([this](IReplayController *r) {
     if(Config().EventBrowser_AddFake)
       r->AddFakeMarkers();
@@ -858,15 +873,15 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const Repla
 
     m_PostloadProgress = 0.2f;
 
-    m_Drawcalls = &r->GetDrawcalls();
+    m_Actions = &r->GetRootActions();
 
-    m_FirstDrawcall = &m_Drawcalls->at(0);
-    while(!m_FirstDrawcall->children.empty())
-      m_FirstDrawcall = &m_FirstDrawcall->children[0];
+    m_FirstAction = &m_Actions->at(0);
+    while(!m_FirstAction->children.empty())
+      m_FirstAction = &m_FirstAction->children[0];
 
-    m_LastDrawcall = &m_Drawcalls->back();
-    while(!m_LastDrawcall->children.empty())
-      m_LastDrawcall = &m_LastDrawcall->children.back();
+    m_LastAction = &m_Actions->back();
+    while(!m_LastAction->children.empty())
+      m_LastAction = &m_LastAction->children.back();
 
     m_PostloadProgress = 0.4f;
 
@@ -919,6 +934,8 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const Repla
 
 #elif defined(RENDERDOC_PLATFORM_APPLE)
     m_CurWinSystem = WindowingSystem::MacOS;
+#elif defined(RENDERDOC_PLATFORM_GGP)
+    m_CurWinSystem = WindowingSystem::GGP;
 #endif
 
     m_StructuredFile = &r->GetStructuredFile();
@@ -1272,6 +1289,9 @@ void CaptureContext::CloseCapture()
   if(!m_CaptureLoaded)
     return;
 
+  delete m_Watcher;
+  m_Watcher = NULL;
+
   delete m_RGP;
   m_RGP = NULL;
 
@@ -1281,22 +1301,23 @@ void CaptureContext::CloseCapture()
 
   m_CaptureFile = QString();
 
-  memset(&m_APIProps, 0, sizeof(m_APIProps));
-  memset(&m_FrameInfo, 0, sizeof(m_FrameInfo));
+  m_APIProps = APIProperties();
+  m_FrameInfo = FrameDescription();
   m_Buffers.clear();
   m_BufferList.clear();
   m_Textures.clear();
   m_TextureList.clear();
   m_Resources.clear();
   m_ResourceList.clear();
-  m_ReplacedResources.clear();
+  m_OrigToReplacedResources.clear();
+  m_ReplacedToOrigResources.clear();
 
   m_CustomNames.clear();
   m_Bookmarks.clear();
   m_Notes.clear();
 
-  m_Drawcalls = &m_EmptyDraws;
-  m_FirstDrawcall = m_LastDrawcall = NULL;
+  m_Actions = &m_EmptyActions;
+  m_FirstAction = m_LastAction = NULL;
 
   m_CurD3D11PipelineState = NULL;
   m_CurD3D12PipelineState = NULL;
@@ -1466,7 +1487,7 @@ void CaptureContext::SetEventID(const rdcarray<ICaptureViewer *> &exclude, uint3
   if(!IsCaptureLoaded())
     return;
 
-  if(eventId > m_LastDrawcall->eventId)
+  if(eventId > m_LastAction->eventId)
   {
     qCritical() << "Invalid EID being selected " << eventId;
     return;
@@ -1538,13 +1559,22 @@ void CaptureContext::SetRemoteHost(int hostIdx)
 
 bool CaptureContext::IsResourceReplaced(ResourceId id)
 {
-  return m_ReplacedResources.contains(id);
+  return m_OrigToReplacedResources.contains(id);
 }
 
-void CaptureContext::RegisterReplacement(ResourceId id)
+ResourceId CaptureContext::GetResourceReplacement(ResourceId id)
 {
-  if(!m_ReplacedResources.contains(id))
-    m_ReplacedResources.push_back(id);
+  auto it = m_OrigToReplacedResources.find(id);
+  if(it != m_OrigToReplacedResources.end())
+    return it.value();
+
+  return ResourceId();
+}
+
+void CaptureContext::RegisterReplacement(ResourceId from, ResourceId to)
+{
+  m_OrigToReplacedResources[from] = to;
+  m_ReplacedToOrigResources[to] = from;
 
   CacheResources();
 
@@ -1553,7 +1583,12 @@ void CaptureContext::RegisterReplacement(ResourceId id)
 
 void CaptureContext::UnregisterReplacement(ResourceId id)
 {
-  m_ReplacedResources.removeOne(id);
+  auto it = m_OrigToReplacedResources.find(id);
+  if(it != m_OrigToReplacedResources.end())
+  {
+    m_ReplacedToOrigResources.remove(it.value());
+    m_OrigToReplacedResources.remove(it.key());
+  }
 
   CacheResources();
 
@@ -1572,9 +1607,11 @@ void CaptureContext::RefreshUIStatus(const rdcarray<ICaptureViewer *> &exclude,
       PointerTypeRegistry::CacheShader(refl);
   }
 
-  for(ICaptureViewer *viewer : m_CaptureViewers)
+  rdcarray<ICaptureViewer *> capviewers(m_CaptureViewers);
+
+  for(ICaptureViewer *viewer : capviewers)
   {
-    if(exclude.contains(viewer))
+    if(!viewer || exclude.contains(viewer) || !m_CaptureViewers.contains(viewer))
       continue;
 
     if(updateSelectedEvent)
@@ -1932,6 +1969,9 @@ rdcstr CaptureContext::GetResourceNameUnsuffixed(ResourceId id)
   if(id == ResourceId())
     return tr("No Resource");
 
+  if(m_ReplacedToOrigResources.contains(id))
+    return GetResourceName(m_ReplacedToOrigResources[id]);
+
   ResourceDescription *desc = GetResource(id);
 
   if(desc)
@@ -1954,7 +1994,7 @@ rdcstr CaptureContext::GetResourceName(ResourceId id)
 {
   rdcstr ret = GetResourceNameUnsuffixed(id);
 
-  if(m_ReplacedResources.contains(id))
+  if(m_OrigToReplacedResources.contains(id))
     ret += tr(" (Edited)");
 
   return ret;
@@ -2044,9 +2084,9 @@ WindowingData CaptureContext::CreateWindowingData(QWidget *window)
 
   return CreateMacOSWindowingData(view, layer);
 
-#elif defined(RENDERDOC_PLATFORM_APPLE)
+#elif defined(RENDERDOC_PLATFORM_GGP)
 
-  WindowingData ret = {WindowingSystem::Unknown};
+  WindowingData ret = {WindowingSystem::GGP};
   return ret;
 
 #else
@@ -2393,7 +2433,8 @@ void CaptureContext::ApplyShaderEdit(IShaderViewer *viewer, ResourceId id, Shade
     {
       r->ReplaceResource(from, to);
 
-      GUIInvoke::call(GetMainWindow()->Widget(), [this, from]() { RegisterReplacement(from); });
+      GUIInvoke::call(GetMainWindow()->Widget(),
+                      [this, from, to]() { RegisterReplacement(from, to); });
     }
     if(ptr)
       GUIInvoke::call(ptr, [viewer, errs]() { viewer->ShowErrors(errs); });
@@ -2422,6 +2463,11 @@ IShaderViewer *CaptureContext::DebugShader(const ShaderBindpointMapping *bind,
 IShaderViewer *CaptureContext::ViewShader(const ShaderReflection *shader, ResourceId pipeline)
 {
   return ShaderViewer::ViewShader(*this, shader, pipeline, m_MainWindow->Widget());
+}
+
+IShaderMessageViewer *CaptureContext::ViewShaderMessages(ShaderStageMask stages)
+{
+  return new ShaderMessageViewer(*this, stages, m_MainWindow);
 }
 
 IBufferViewer *CaptureContext::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,

@@ -1,7 +1,7 @@
 /******************************************************************************
 * The MIT License (MIT)
 *
-* Copyright (c) 2019-2020 Baldur Karlsson
+* Copyright (c) 2019-2021 Baldur Karlsson
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -26,8 +26,10 @@
 
 #if defined(WIN32)
 #include "win32/win32_platform.h"
-#else
+#elif defined(__linux__)
 #include "linux/linux_platform.h"
+#else
+#error UNKNOWN PLATFORM
 #endif
 
 #include <math.h>
@@ -102,7 +104,7 @@ public:
     return Vec3f(y * o.z - z * o.y, z * o.x - x * o.z, x * o.y - y * o.x);
   }
 
-  inline float Length() const { return sqrt(Dot(*this)); }
+  inline float Length() const { return sqrtf(Dot(*this)); }
   inline void Normalise()
   {
     float l = Length();
@@ -242,7 +244,7 @@ struct TestMetadata
 
   bool IsAvailable() const { return test->Avail.empty(); }
   const char *AvailMessage() const { return test->Avail.c_str(); }
-  bool operator<(const TestMetadata &o)
+  bool operator<(const TestMetadata &o) const
   {
     if(API != o.API)
       return API < o.API;
@@ -287,6 +289,7 @@ void RegisterTest(TestMetadata test);
 
 std::string GetCWD();
 std::string GetEnvVar(const char *var);
+uint64_t GetMemoryUsage();
 
 #ifndef ARRAY_COUNT
 #define ARRAY_COUNT(arr) (sizeof(arr) / sizeof(arr[0]))
@@ -315,12 +318,15 @@ std::string trim(const std::string &str);
 
 void DebugPrint(const char *fmt, ...);
 
-#define TEST_ASSERT(cond, fmt, ...)                                                               \
-  if(!(cond))                                                                                     \
-  {                                                                                               \
-    DebugPrint("%s:%d Assert Failure '%s': " fmt "\n", __FILE__, __LINE__, #cond, ##__VA_ARGS__); \
-    DEBUG_BREAK();                                                                                \
-  }
+#define TEST_ASSERT(cond, fmt, ...)                                                                 \
+  do                                                                                                \
+  {                                                                                                 \
+    if(!(cond))                                                                                     \
+    {                                                                                               \
+      DebugPrint("%s:%d Assert Failure '%s': " fmt "\n", __FILE__, __LINE__, #cond, ##__VA_ARGS__); \
+      DEBUG_BREAK();                                                                                \
+    }                                                                                               \
+  } while(0)
 
 #define TEST_LOG(fmt, ...)                                                 \
   do                                                                       \

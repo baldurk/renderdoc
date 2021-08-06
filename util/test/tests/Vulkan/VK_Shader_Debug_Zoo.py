@@ -15,9 +15,9 @@ class VK_Shader_Debug_Zoo(rdtest.TestCase):
 
         for test_name in ["GLSL1 tests", "GLSL2 tests", "ASM tests"]:
             rdtest.log.begin_section(test_name)
-            draw = self.find_draw(test_name)
-            for child in range(len(draw.children)):
-                section = draw.children[child]
+            action = self.find_action(test_name)
+            for child in range(len(action.children)):
+                section = action.children[child]
                 self.controller.SetFrameEvent(section.eventId, False)
                 pipe: rd.PipeState = self.controller.GetPipelineState()
 

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -40,6 +40,8 @@ VkDynamicState ConvertDynamicState(VulkanDynamicStateIndex idx)
     case VkDynamicViewportWScalingNV: return VK_DYNAMIC_STATE_VIEWPORT_W_SCALING_NV;
     case VkDynamicDiscardRectangleEXT: return VK_DYNAMIC_STATE_DISCARD_RECTANGLE_EXT;
     case VkDynamicSampleLocationsEXT: return VK_DYNAMIC_STATE_SAMPLE_LOCATIONS_EXT;
+    case VkDynamicRayTracingStackSizeEXT:
+      return VK_DYNAMIC_STATE_RAY_TRACING_PIPELINE_STACK_SIZE_KHR;
     case VkDynamicViewportShadingRatePaletteNV:
       return VK_DYNAMIC_STATE_VIEWPORT_SHADING_RATE_PALETTE_NV;
     case VkDynamicViewportCoarseSampleOrderNV:
@@ -84,6 +86,8 @@ VulkanDynamicStateIndex ConvertDynamicState(VkDynamicState state)
     case VK_DYNAMIC_STATE_VIEWPORT_W_SCALING_NV: return VkDynamicViewportWScalingNV;
     case VK_DYNAMIC_STATE_DISCARD_RECTANGLE_EXT: return VkDynamicDiscardRectangleEXT;
     case VK_DYNAMIC_STATE_SAMPLE_LOCATIONS_EXT: return VkDynamicSampleLocationsEXT;
+    case VK_DYNAMIC_STATE_RAY_TRACING_PIPELINE_STACK_SIZE_KHR:
+      return VkDynamicRayTracingStackSizeEXT;
     case VK_DYNAMIC_STATE_VIEWPORT_SHADING_RATE_PALETTE_NV:
       return VkDynamicViewportShadingRatePaletteNV;
     case VK_DYNAMIC_STATE_VIEWPORT_COARSE_SAMPLE_ORDER_NV:
@@ -369,6 +373,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
 
     shad.module = shadid;
     shad.entryPoint = pCreateInfo->pStages[i].pName;
+    shad.stage = ShaderStage(stageIndex);
 
     ShaderModuleReflectionKey key(shad.entryPoint, ResourceId());
 

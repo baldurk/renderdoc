@@ -13,8 +13,8 @@ class GL_Mesh_Zoo(rdtest.TestCase):
         self.zoo_helper.check_capture(self.capture_filename, self.controller)
 
         # Test GL-only thing with geometry shader only and completely no-op vertex shader
-        draw = self.zoo_helper.find_draw("Geom Only").next
-        self.controller.SetFrameEvent(draw.eventId, False)
+        action = self.zoo_helper.find_action("Geom Only").next
+        self.controller.SetFrameEvent(action.eventId, False)
 
         pos: rd.MeshFormat = self.controller.GetPostVSData(0, 0, rd.MeshDataStage.VSOut)
 
@@ -38,19 +38,19 @@ class GL_Mesh_Zoo(rdtest.TestCase):
             },
         }
 
-        self.check_mesh_data(gsout_ref, self.get_postvs(draw, rd.MeshDataStage.GSOut))
+        self.check_mesh_data(gsout_ref, self.get_postvs(action, rd.MeshDataStage.GSOut))
 
         # Test GL-only thing with geometry shader only and completely no-op vertex shader
-        multibase = self.zoo_helper.find_draw("Multi Draw").next.parent
+        multibase = self.zoo_helper.find_action("Multi Draw").next.parent
         self.controller.SetFrameEvent(multibase.children[-1].eventId, False)
 
         baseVertex = [10, 11]
         baseInstance = [20, 22]
 
-        for d, draw in enumerate(multibase.children):
-            draw: rd.DrawcallDescription
+        for d, action in enumerate(multibase.children):
+            action: rd.ActionDescription
 
-            self.controller.SetFrameEvent(draw.eventId, False)
+            self.controller.SetFrameEvent(action.eventId, False)
 
             pipe: rd.PipeState = self.controller.GetPipelineState()
 
@@ -65,7 +65,7 @@ class GL_Mesh_Zoo(rdtest.TestCase):
             bv = baseVertex[d]
             bi = baseInstance[d]
 
-            for inst in range(draw.numInstances):
+            for inst in range(action.numInstances):
                 multi_ref = {
                     0: {
                         'basevtx': bv,
@@ -90,6 +90,6 @@ class GL_Mesh_Zoo(rdtest.TestCase):
                     },
                 }
 
-                self.check_mesh_data(multi_ref, self.get_postvs(draw, rd.MeshDataStage.VSOut, instance=inst))
+                self.check_mesh_data(multi_ref, self.get_postvs(action, rd.MeshDataStage.VSOut, instance=inst))
 
-        rdtest.log.success("Multi-draw pass is as expected")
+        rdtest.log.success("Multi-action pass is as expected")

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -71,6 +71,11 @@ void ReplayController::SetFrameEvent(uint32_t eventId, bool force)
 {
   CHECK_REPLAY_THREAD();
   RENDERDOC_PROFILEFUNCTION();
+
+  // use remapped event if there's a match
+  auto it = m_EventRemap.find(eventId);
+  if(it != m_EventRemap.end())
+    eventId = it->second;
 
   if(eventId != m_EventID || force)
   {
@@ -171,34 +176,34 @@ const SDFile &ReplayController::GetStructuredFile()
   return m_pDevice->GetStructuredFile();
 }
 
-DrawcallDescription *ReplayController::GetDrawcallByEID(uint32_t eventId)
+ActionDescription *ReplayController::GetActionByEID(uint32_t eventId)
 {
   CHECK_REPLAY_THREAD();
 
-  if(eventId >= m_Drawcalls.size())
+  if(eventId >= m_Actions.size())
     return NULL;
 
-  return m_Drawcalls[eventId];
+  return m_Actions[eventId];
 }
 
-const rdcarray<DrawcallDescription> &ReplayController::GetDrawcalls()
+const rdcarray<ActionDescription> &ReplayController::GetRootActions()
 {
   CHECK_REPLAY_THREAD();
 
-  return m_FrameRecord.drawcallList;
+  return m_FrameRecord.actionList;
 }
 
-bool ReplayController::ContainsMarker(const rdcarray<DrawcallDescription> &draws)
+bool ReplayController::ContainsMarker(const rdcarray<ActionDescription> &actions)
 {
   CHECK_REPLAY_THREAD();
 
   bool ret = false;
 
-  for(const DrawcallDescription &d : draws)
+  for(const ActionDescription &a : actions)
   {
-    ret |= (d.flags & DrawFlags::PushMarker) &&
-           !(d.flags & (DrawFlags::CmdList | DrawFlags::MultiDraw)) && !d.children.empty();
-    ret |= ContainsMarker(d.children);
+    ret |= (a.flags & ActionFlags::PushMarker) &&
+           !(a.flags & (ActionFlags::CmdList | ActionFlags::MultiAction)) && !a.children.empty();
+    ret |= ContainsMarker(a.children);
 
     if(ret)
       break;
@@ -207,16 +212,16 @@ bool ReplayController::ContainsMarker(const rdcarray<DrawcallDescription> &draws
   return ret;
 }
 
-bool ReplayController::PassEquivalent(const DrawcallDescription &a, const DrawcallDescription &b)
+bool ReplayController::PassEquivalent(const ActionDescription &a, const ActionDescription &b)
 {
   CHECK_REPLAY_THREAD();
 
-  // don't group draws and compute executes
-  if((a.flags & DrawFlags::Dispatch) != (b.flags & DrawFlags::Dispatch))
+  // don't group actions and compute executes
+  if((a.flags & ActionFlags::Dispatch) != (b.flags & ActionFlags::Dispatch))
     return false;
 
   // don't group present with anything
-  if((a.flags & DrawFlags::Present) != (b.flags & DrawFlags::Present))
+  if((a.flags & ActionFlags::Present) != (b.flags & ActionFlags::Present))
     return false;
 
   // don't group things with different depth outputs
@@ -269,7 +274,7 @@ bool ReplayController::PassEquivalent(const DrawcallDescription &a, const Drawca
 
   // use a kind of heuristic to group together passes where the outputs are similar enough.
   // could be useful for example if you're rendering to a gbuffer and sometimes you render
-  // without one target, but the draws are still batched up.
+  // without one target, but the actions are still batched up.
   if(numSame > RDCMAX(numAOuts, numBOuts) / 2 && RDCMAX(numAOuts, numBOuts) > 1)
     return true;
 
@@ -283,12 +288,15 @@ void ReplayController::AddFakeMarkers()
 {
   CHECK_REPLAY_THREAD();
 
-  rdcarray<DrawcallDescription> &draws = m_FrameRecord.drawcallList;
+  rdcarray<ActionDescription> &actions = m_FrameRecord.actionList;
 
-  if(ContainsMarker(draws))
+  if(ContainsMarker(actions))
     return;
 
-  rdcarray<DrawcallDescription> ret;
+  uint32_t newEventId = actions.back().events.back().eventId + 1;
+  uint32_t newActionId = actions.back().actionId + 1;
+
+  rdcarray<ActionDescription> ret;
 
   int depthpassID = 1;
   int copypassID = 1;
@@ -296,34 +304,34 @@ void ReplayController::AddFakeMarkers()
   int passID = 1;
 
   int start = 0;
-  int refdraw = 0;
+  int refaction = 0;
 
-  DrawFlags drawFlags = DrawFlags::Copy | DrawFlags::Resolve | DrawFlags::SetMarker |
-                        DrawFlags::APICalls | DrawFlags::CmdList;
+  ActionFlags actionFlags =
+      ActionFlags::Copy | ActionFlags::Resolve | ActionFlags::SetMarker | ActionFlags::CmdList;
 
-  for(int32_t i = 1; i < draws.count(); i++)
+  for(int32_t i = 1; i < actions.count(); i++)
   {
-    if(draws[refdraw].flags & drawFlags)
+    if(actions[refaction].flags & actionFlags)
     {
-      refdraw = i;
+      refaction = i;
       continue;
     }
 
-    if(draws[i].flags & drawFlags)
+    if(actions[i].flags & actionFlags)
       continue;
 
-    if(PassEquivalent(draws[i], draws[refdraw]))
+    if(PassEquivalent(actions[i], actions[refaction]))
       continue;
 
     int end = i - 1;
 
-    if(end - start < 2 || !draws[i].children.empty() || !draws[refdraw].children.empty())
+    if(end - start < 2 || !actions[i].children.empty() || !actions[refaction].children.empty())
     {
       for(int j = start; j <= end; j++)
-        ret.push_back(draws[j]);
+        ret.push_back(actions[j]);
 
       start = i;
-      refdraw = i;
+      refaction = i;
       continue;
     }
 
@@ -335,66 +343,74 @@ void ReplayController::AddFakeMarkers()
     {
       int outCount = 0;
 
-      if(!(draws[j].flags & (DrawFlags::Copy | DrawFlags::Resolve | DrawFlags::Clear |
-                             DrawFlags::PassBoundary | DrawFlags::SetMarker)))
+      if(!(actions[j].flags & (ActionFlags::Copy | ActionFlags::Resolve | ActionFlags::Clear |
+                               ActionFlags::PassBoundary | ActionFlags::SetMarker)))
         copyOnly = false;
 
-      for(ResourceId o : draws[j].outputs)
+      for(ResourceId o : actions[j].outputs)
         if(o != ResourceId())
           outCount++;
       minOutCount = RDCMIN(minOutCount, outCount);
       maxOutCount = RDCMAX(maxOutCount, outCount);
     }
 
-    DrawcallDescription mark;
+    ActionDescription mark;
 
-    mark.eventId = draws[start].eventId;
-    mark.drawcallId = draws[start].drawcallId;
+    mark.eventId = newEventId++;
+    mark.actionId = newActionId++;
 
-    mark.flags = DrawFlags::PushMarker;
-    mark.outputs = draws[end].outputs;
-    mark.depthOut = draws[end].depthOut;
-
-    mark.name = "Guessed Pass";
+    mark.flags = ActionFlags::PushMarker;
+    mark.outputs = actions[end].outputs;
+    mark.depthOut = actions[end].depthOut;
 
     minOutCount = RDCMAX(1, minOutCount);
 
-    const char *targets = draws[end].depthOut == ResourceId() ? "Targets" : "Targets + Depth";
+    const char *targets = actions[end].depthOut == ResourceId() ? "Targets" : "Targets + Depth";
 
     if(copyOnly)
-      mark.name = StringFormat::Fmt("Copy/Clear Pass #%d", copypassID++);
-    else if(draws[refdraw].flags & DrawFlags::Dispatch)
-      mark.name = StringFormat::Fmt("Compute Pass #%d", computepassID++);
+      mark.customName = StringFormat::Fmt("Copy/Clear Pass #%d", copypassID++);
+    else if(actions[refaction].flags & ActionFlags::Dispatch)
+      mark.customName = StringFormat::Fmt("Compute Pass #%d", computepassID++);
     else if(maxOutCount == 0)
-      mark.name = StringFormat::Fmt("Depth-only Pass #%d", depthpassID++);
+      mark.customName = StringFormat::Fmt("Depth-only Pass #%d", depthpassID++);
     else if(minOutCount == maxOutCount)
-      mark.name = StringFormat::Fmt("Colour Pass #%d (%d %s)", passID++, minOutCount, targets);
+      mark.customName = StringFormat::Fmt("Colour Pass #%d (%d %s)", passID++, minOutCount, targets);
     else
-      mark.name = StringFormat::Fmt("Colour Pass #%d (%d-%d %s)", passID++, minOutCount,
-                                    maxOutCount, targets);
+      mark.customName = StringFormat::Fmt("Colour Pass #%d (%d-%d %s)", passID++, minOutCount,
+                                          maxOutCount, targets);
 
     mark.children.resize(end - start + 1);
 
     for(int j = start; j <= end; j++)
-      mark.children[j - start] = draws[j];
+      mark.children[j - start] = actions[j];
+
+    APIEvent ev;
+    ev.eventId = mark.eventId;
+    ev.fileOffset = mark.children[0].events.back().fileOffset;
+    ev.chunkIndex = APIEvent::NoChunk;
+    mark.events.push_back(ev);
+
+    // when this event is selected, instead select the first the event before the first child's
+    // first event. This is effectively what would be the case if there was a real marker here.
+    m_EventRemap[mark.eventId] = mark.children[0].events[0].eventId - 1;
 
     ret.push_back(mark);
 
     start = i;
-    refdraw = i;
+    refaction = i;
   }
 
-  if(start < draws.count())
+  if(start < actions.count())
   {
-    for(int j = start; j < draws.count(); j++)
-      ret.push_back(draws[j]);
+    for(int j = start; j < actions.count(); j++)
+      ret.push_back(actions[j]);
   }
 
-  m_FrameRecord.drawcallList = ret;
+  m_FrameRecord.actionList = ret;
 
   // re-configure the previous/next pointeres
-  m_Drawcalls.clear();
-  SetupDrawcallPointers(m_Drawcalls, m_FrameRecord.drawcallList);
+  m_Actions.clear();
+  SetupActionPointers(m_Actions, m_FrameRecord.actionList);
 }
 
 rdcarray<CounterResult> ReplayController::FetchCounters(const rdcarray<GPUCounter> &counters)
@@ -477,19 +493,19 @@ MeshFormat ReplayController::GetPostVSData(uint32_t instID, uint32_t viewID, Mes
 {
   CHECK_REPLAY_THREAD();
 
-  DrawcallDescription *draw = GetDrawcallByEID(m_EventID);
+  ActionDescription *action = GetActionByEID(m_EventID);
 
   MeshFormat ret;
   RDCEraseEl(ret);
 
-  if(draw == NULL || !(draw->flags & DrawFlags::Drawcall))
+  if(action == NULL || !(action->flags & ActionFlags::Drawcall))
     return MeshFormat();
 
-  instID = RDCMIN(instID, draw->numInstances - 1);
+  instID = RDCMIN(instID, action->numInstances - 1);
 
-  m_pDevice->InitPostVSBuffers(draw->eventId);
+  m_pDevice->InitPostVSBuffers(action->eventId);
 
-  return m_pDevice->GetPostVSBuffers(draw->eventId, instID, viewID, stage);
+  return m_pDevice->GetPostVSBuffers(action->eventId, instID, viewID, stage);
 }
 
 bytebuf ReplayController::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len)
@@ -589,7 +605,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const rdcstr &pa
   // store sample count so we know how many 'slices' is one real slice
   // multisampled textures cannot have mips, subresource layout is same as would be for mips:
   // [slice0 sample0], [slice0 sample1], [slice1 sample0], [slice1 sample1]
-  uint32_t sampleCount = td.msSamp;
+  uint32_t sampleCount = RDCMAX(td.msSamp, 1U);
   bool multisampled = td.msSamp > 1;
 
   if(sd.sample.mapToArray)
@@ -1159,7 +1175,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const rdcstr &pa
   {
     if(sd.destType == FileType::DDS)
     {
-      dds_data ddsData;
+      write_dds_data ddsData;
 
       ResourceFormat saveFmt = td.format;
       // use typeCast to inform typeless saving, otherwise it will get lost
@@ -1172,7 +1188,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const rdcstr &pa
       ddsData.format = saveFmt;
       ddsData.mips = numMips;
       ddsData.slices = numSlices / td.depth;
-      ddsData.subdata = &subdata[0];
+      ddsData.subresources = subdata;
       ddsData.cubemap = td.cubemap && numSlices == 6;
 
       if(singleSlice)
@@ -1802,11 +1818,7 @@ ReplayOutput *ReplayController::CreateOutput(WindowingData window, ReplayOutputT
 
   m_Outputs.push_back(out);
 
-  m_pDevice->ReplayLog(m_EventID, eReplay_WithoutDraw);
-
   out->SetFrameEvent(m_EventID);
-
-  m_pDevice->ReplayLog(m_EventID, eReplay_OnlyDraw);
 
   return out;
 }
@@ -1910,6 +1922,13 @@ rdcpair<ResourceId, rdcstr> ReplayController::BuildTargetShader(
     m_TargetResources.insert(id);
 
   return rdcpair<ResourceId, rdcstr>(id, errs);
+}
+
+void ReplayController::SetCustomShaderIncludes(const rdcarray<rdcstr> &directories)
+{
+  CHECK_REPLAY_THREAD();
+
+  m_pDevice->SetCustomShaderIncludes(directories);
 }
 
 rdcpair<ResourceId, rdcstr> ReplayController::BuildCustomShader(
@@ -2052,13 +2071,13 @@ ReplayStatus ReplayController::PostCreateInit(IReplayDriver *device, RDCFile *rd
 
   m_FrameRecord = m_pDevice->GetFrameRecord();
 
-  if(m_FrameRecord.drawcallList.empty())
+  if(m_FrameRecord.actionList.empty())
     return ReplayStatus::APIReplayFailed;
 
-  m_Drawcalls.clear();
-  SetupDrawcallPointers(m_Drawcalls, m_FrameRecord.drawcallList);
+  m_Actions.clear();
+  SetupActionPointers(m_Actions, m_FrameRecord.actionList);
 
-  FetchPipelineState(m_Drawcalls.back()->eventId);
+  FetchPipelineState(m_Actions.back()->eventId);
 
   return ReplayStatus::Succeeded;
 }

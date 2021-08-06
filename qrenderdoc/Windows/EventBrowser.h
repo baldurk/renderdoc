@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,8 @@
 
 #include <QFrame>
 #include <QIcon>
+#include <QLabel>
+#include <QSet>
 #include "Code/Interface/QRDInterface.h"
 
 namespace Ui
@@ -35,11 +37,76 @@ class EventBrowser;
 
 class QSpacerItem;
 class QToolButton;
-class RDTreeWidgetItem;
 class QTimer;
 class QTextStream;
 class FlowLayout;
 struct EventItemTag;
+class RDLabel;
+class RDTreeWidget;
+class RDTreeWidgetItem;
+class RDTextEdit;
+class QListWidget;
+class QCheckBox;
+class QCompleter;
+class QStringListModel;
+
+typedef QSet<uint> RDTreeViewExpansionState;
+
+class RichTextViewDelegate;
+struct EventItemModel;
+struct EventFilterModel;
+
+struct ParseTrace;
+
+class MarkerBreadcrumbs;
+
+enum class MatchType
+{
+  MustMatch,
+  Normal,
+  CantMatch
+};
+
+struct FilterExpression
+{
+  MatchType matchType;
+
+  bool function;
+  QString name;
+  QString params;
+
+  QString printName() const
+  {
+    if(name == lit("$any$"))
+      return lit("(...)");
+    if(function)
+      return QFormatStr("$%1(%2)").arg(name).arg(params);
+    return name;
+  }
+
+  int position = -1;
+  int length = 0;
+
+  QColor col;
+
+  QVector<FilterExpression> exprs;
+};
+
+class ParseErrorTipLabel : public QLabel
+{
+private:
+  Q_OBJECT
+
+  QPoint m_Pos;
+  QWidget *m_Widget;
+
+public:
+  explicit ParseErrorTipLabel(QWidget *widget);
+
+protected:
+  void paintEvent(QPaintEvent *);
+  void resizeEvent(QResizeEvent *);
+};
 
 class EventBrowser : public QFrame, public IEventBrowser, public ICaptureViewer
 {
@@ -55,6 +122,22 @@ public:
   // IEventBrowser
   QWidget *Widget() override { return this; }
   void UpdateDurationColumn() override;
+  APIEvent GetAPIEventForEID(uint32_t eid) override;
+  const ActionDescription *GetActionForEID(uint32_t eid) override;
+  rdcstr GetEventName(uint32_t eventId) override;
+  bool IsAPIEventVisible(uint32_t eid) override;
+  bool RegisterEventFilterFunction(const rdcstr &name, const rdcstr &description,
+                                   EventFilterCallback filter, FilterParseCallback parser,
+                                   AutoCompleteCallback completer) override;
+  bool UnregisterEventFilterFunction(const rdcstr &name) override;
+
+  void SetCurrentFilterText(const rdcstr &text) override;
+  rdcstr GetCurrentFilterText() override;
+  void SetUseCustomActionNames(bool use) override;
+  void SetShowParameterNames(bool show) override;
+  void SetShowAllParameters(bool show) override;
+  void SetEmptyRegionsVisible(bool show) override;
+
   // ICaptureViewer
   void OnCaptureLoaded() override;
   void OnCaptureClosed() override;
@@ -66,81 +149,109 @@ public:
 
 private slots:
   // automatic slots
-  void on_find_clicked();
-  void on_gotoEID_clicked();
-  void on_timeDraws_clicked();
+  void on_find_toggled(bool checked);
+  void on_timeActions_clicked();
   void on_bookmark_clicked();
-  void on_HideFindJump();
-  void on_jumpToEID_returnPressed();
+  void on_HideFind();
   void on_findEvent_returnPressed();
   void on_findEvent_keyPress(QKeyEvent *event);
   void on_findEvent_textEdited(const QString &arg1);
-  void on_events_currentItemChanged(RDTreeWidgetItem *current, RDTreeWidgetItem *previous);
+  void on_filterExpression_keyPress(QKeyEvent *event);
+  void on_filterExpression_textChanged();
+  void on_filterExpression_mouseMoved(QMouseEvent *event);
+  void on_filterExpression_hoverEnter();
+  void on_filterExpression_hoverLeave();
   void on_findNext_clicked();
   void on_findPrev_clicked();
   void on_stepNext_clicked();
   void on_stepPrev_clicked();
-  void on_exportDraws_clicked();
+  void on_exportActions_clicked();
   void on_colSelect_clicked();
 
   // manual slots
   void findHighlight_timeout();
+  void explanation_currentItemChanged(RDTreeWidgetItem *current, RDTreeWidgetItem *prev);
+  void settings_filterApply();
+  void filterSettings_clicked();
+  void filter_forceCompletion_keyPress(QKeyEvent *e);
+  void savedFilter_keyPress(QKeyEvent *e);
+  void filter_CompletionBegin(QString prefix);
+  void filter_apply();
   void events_keyPress(QKeyEvent *event);
   void events_contextMenu(const QPoint &pos);
-
-public slots:
-  void clearBookmarks();
-  bool hasBookmark(uint32_t EID);
-  void toggleBookmark(uint32_t EID);
-  void jumpToBookmark(int idx);
+  void events_currentChanged(const QModelIndex &current, const QModelIndex &previous);
 
 private:
-  bool ShouldHide(const DrawcallDescription &drawcall);
-  QPair<uint32_t, uint32_t> AddDrawcalls(RDTreeWidgetItem *parent,
-                                         const rdcarray<DrawcallDescription> &draws);
-  void SetDrawcallTimes(RDTreeWidgetItem *node, const rdcarray<CounterResult> &results);
+  void ExpandNode(QModelIndex idx);
 
-  void ExpandNode(RDTreeWidgetItem *node);
-
-  bool FindEventNode(RDTreeWidgetItem *&found, RDTreeWidgetItem *parent, uint32_t eventId);
   bool SelectEvent(uint32_t eventId);
+  void SelectEvent(QModelIndex found);
 
-  void ClearFindIcons(RDTreeWidgetItem *parent);
-  void ClearFindIcons();
+  void updateFindResultsAvailable();
 
-  int SetFindIcons(RDTreeWidgetItem *parent, QString filter);
-  int SetFindIcons(QString filter);
-
+  void clearBookmarks();
+  void jumpToBookmark(int idx);
   void repopulateBookmarks();
   void highlightBookmarks();
-  bool hasBookmark(RDTreeWidgetItem *node);
 
-  RDTreeWidgetItem *FindNode(RDTreeWidgetItem *parent, QString filter, uint32_t after);
-  int FindEvent(RDTreeWidgetItem *parent, QString filter, uint32_t after, bool forward);
+  int FindEvent(QModelIndex parent, QString filter, uint32_t after, bool forward);
   int FindEvent(QString filter, uint32_t after, bool forward);
   void Find(bool forward);
 
-  QString GetExportDrawcallString(int indent, bool firstchild, const DrawcallDescription &drawcall);
-  double GetDrawTime(const DrawcallDescription &drawcall);
-  void GetMaxNameLength(int &maxNameLength, int indent, bool firstchild,
-                        const DrawcallDescription &drawcall);
-  void ExportDrawcall(QTextStream &writer, int maxNameLength, int indent, bool firstchild,
-                      const DrawcallDescription &drawcall);
+  void ShowSavedFilterCompleter(RDTextEdit *filter);
+  void CreateFilterDialog();
+
+  void AddFilterExplanations(RDTreeWidgetItem *root, QVector<FilterExpression> exprs, QString &notes);
+
+  QString GetExportString(int indent, bool firstchild, const QModelIndex &idx);
+  void GetMaxNameLength(int &maxNameLength, int indent, bool firstchild, const QModelIndex &idx);
+  void ExportAction(QTextStream &writer, int maxNameLength, int indent, bool firstchild,
+                    const QModelIndex &idx);
 
   QPalette m_redPalette;
 
+  RichTextViewDelegate *m_delegate = NULL;
+
+  EventItemModel *m_Model;
+  EventFilterModel *m_FilterModel;
+
   TimeUnit m_TimeUnit = TimeUnit::Count;
 
-  rdcarray<CounterResult> m_Times;
+  RDTreeViewExpansionState m_EventsExpansion;
 
-  QTimer *m_FindHighlight;
+  QTimer *m_FindHighlight, *m_FilterTimeout;
+
+  ParseTrace *m_ParseTrace;
+  ParseErrorTipLabel *m_ParseError;
+  QPoint m_ParseErrorPos;
 
   FlowLayout *m_BookmarkStripLayout;
   QSpacerItem *m_BookmarkSpacer;
   QMap<uint32_t, QToolButton *> m_BookmarkButtons;
 
-  void RefreshIcon(RDTreeWidgetItem *item, EventItemTag tag);
+  MarkerBreadcrumbs *m_Breadcrumbs;
 
+  struct
+  {
+    QDialog *Dialog;
+    RDLabel *Notes;
+    QListWidget *FuncList;
+    RDTextEdit *FuncDocs;
+    RDTextEdit *Filter;
+    RDTreeWidget *Explanation;
+
+    QCheckBox *ShowParams;
+    QCheckBox *ShowAll;
+    QCheckBox *UseCustom;
+
+    QTimer *Timeout;
+  } m_FilterSettings;
+
+  QCompleter *m_SavedCompleter;
+  QStringListModel *m_SavedCompletionModel;
+  RDTextEdit *m_CurrentFilterText;
+
+  void RefreshShaderMessages();
   Ui::EventBrowser *ui;
   ICaptureContext &m_Ctx;
 };

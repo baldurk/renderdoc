@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -60,8 +60,8 @@ public:
   void SetCurrentInstruction(uint32_t instruction) { m_instruction = instruction; }
   void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d);
 
-  bool FetchSRV(const DXBCDebug::BindingSlot &slot);
-  bool FetchUAV(const DXBCDebug::BindingSlot &slot);
+  void FetchSRV(const DXBCDebug::BindingSlot &slot);
+  void FetchUAV(const DXBCDebug::BindingSlot &slot);
 
   bool CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcode, const ShaderVariable &input,
                               ShaderVariable &output1, ShaderVariable &output2);
@@ -77,9 +77,10 @@ public:
                              DXBCDebug::SampleGatherResourceData resourceData,
                              DXBCDebug::SampleGatherSamplerData samplerData, ShaderVariable uv,
                              ShaderVariable ddxCalc, ShaderVariable ddyCalc,
-                             const int texelOffsets[3], int multisampleIndex, float lodOrCompareValue,
-                             const uint8_t swizzle[4], DXBCDebug::GatherChannel gatherChannel,
-                             const char *opString, ShaderVariable &output);
+                             const int8_t texelOffsets[3], int multisampleIndex,
+                             float lodOrCompareValue, const uint8_t swizzle[4],
+                             DXBCDebug::GatherChannel gatherChannel, const char *opString,
+                             ShaderVariable &output);
 
 private:
   DXBC::ShaderType GetShaderType() { return m_dxbc ? m_dxbc->m_Type : DXBC::ShaderType::Pixel; }
@@ -100,12 +101,13 @@ D3D11DebugAPIWrapper::D3D11DebugAPIWrapper(WrappedID3D11Device *device,
 
 D3D11DebugAPIWrapper::~D3D11DebugAPIWrapper()
 {
-  // if we replayed to before the draw for fetching some UAVs, replay back to after the draw to keep
+  // if we replayed to before the action for fetching some UAVs, replay back to after the action to
+  // keep
   // the state consistent.
   if(m_DidReplay)
   {
     D3D11MarkerRegion region("ResetReplay");
-    // replay the draw to get back to 'normal' state for this event, and mark that we need to
+    // replay the action to get back to 'normal' state for this event, and mark that we need to
     // replay back to pristine state next time we need to fetch data.
     m_pDevice->ReplayLog(0, m_EventID, eReplay_OnlyDraw);
   }
@@ -117,7 +119,7 @@ void D3D11DebugAPIWrapper::AddDebugMessage(MessageCategory c, MessageSeverity sv
   m_pDevice->AddDebugMessage(c, sv, src, d);
 }
 
-bool D3D11DebugAPIWrapper::FetchSRV(const DXBCDebug::BindingSlot &slot)
+void D3D11DebugAPIWrapper::FetchSRV(const DXBCDebug::BindingSlot &slot)
 {
   RDCASSERT(slot.registerSpace == 0);
   RDCASSERT(slot.shaderRegister < D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT);
@@ -131,19 +133,19 @@ bool D3D11DebugAPIWrapper::FetchSRV(const DXBCDebug::BindingSlot &slot)
   else if(GetShaderType() == DXBC::ShaderType::Compute)
     pSRV = rs->CS.SRVs[slot.shaderRegister];
 
+  DXBCDebug::GlobalState::SRVData &srvData = m_globalState.srvs[slot];
+
   if(!pSRV)
-    return false;
+    return;
 
   ID3D11Resource *res = NULL;
   pSRV->GetResource(&res);
 
   if(!res)
-    return false;
+    return;
 
   D3D11_SHADER_RESOURCE_VIEW_DESC sdesc;
   pSRV->GetDesc(&sdesc);
-
-  DXBCDebug::GlobalState::SRVData &srvData = m_globalState.srvs[slot];
 
   if(sdesc.Format != DXGI_FORMAT_UNKNOWN)
   {
@@ -189,12 +191,11 @@ bool D3D11DebugAPIWrapper::FetchSRV(const DXBCDebug::BindingSlot &slot)
   }
 
   SAFE_RELEASE(res);
-  return true;
 }
 
-bool D3D11DebugAPIWrapper::FetchUAV(const DXBCDebug::BindingSlot &slot)
+void D3D11DebugAPIWrapper::FetchUAV(const DXBCDebug::BindingSlot &slot)
 {
-  // if the UAV might be dirty from side-effects from the draw, replay back to right
+  // if the UAV might be dirty from side-effects from the action, replay back to right
   // before it.
   if(!m_DidReplay)
   {
@@ -214,13 +215,14 @@ bool D3D11DebugAPIWrapper::FetchUAV(const DXBCDebug::BindingSlot &slot)
   else if(GetShaderType() == DXBC::ShaderType::Compute)
     pUAV = rs->CSUAVs[slot.shaderRegister];
 
+  DXBCDebug::GlobalState::UAVData &uavData = m_globalState.uavs[slot];
+
   if(!pUAV)
-    return false;
+    return;
 
   ID3D11Resource *res = NULL;
   pUAV->GetResource(&res);
 
-  DXBCDebug::GlobalState::UAVData &uavData = m_globalState.uavs[slot];
   uavData.hiddenCounter = m_pDevice->GetDebugManager()->GetStructCount(pUAV);
 
   D3D11_UNORDERED_ACCESS_VIEW_DESC udesc;
@@ -417,8 +419,6 @@ bool D3D11DebugAPIWrapper::FetchUAV(const DXBCDebug::BindingSlot &slot)
   }
 
   SAFE_RELEASE(res);
-
-  return true;
 }
 
 ShaderVariable D3D11DebugAPIWrapper::GetSampleInfo(DXBCBytecode::OperandType type,
@@ -992,7 +992,7 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
 bool D3D11DebugAPIWrapper::CalculateSampleGather(
     DXBCBytecode::OpcodeType opcode, DXBCDebug::SampleGatherResourceData resourceData,
     DXBCDebug::SampleGatherSamplerData samplerData, ShaderVariable uv, ShaderVariable ddxCalc,
-    ShaderVariable ddyCalc, const int texelOffsets[3], int multisampleIndex,
+    ShaderVariable ddyCalc, const int8_t texelOffsets[3], int multisampleIndex,
     float lodOrCompareValue, const uint8_t swizzle[4], DXBCDebug::GatherChannel gatherChannel,
     const char *opString, ShaderVariable &output)
 {
@@ -1746,7 +1746,7 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
   D3D11MarkerRegion region(
       StringFormat::Fmt("DebugVertex @ %u of (%u,%u,%u)", eventId, vertid, instid, idx));
 
-  const DrawcallDescription *draw = m_pDevice->GetDrawcall(eventId);
+  const ActionDescription *action = m_pDevice->GetAction(eventId);
 
   D3D11RenderStateTracker tracker(m_pImmediateContext);
 
@@ -1781,7 +1781,7 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
   for(size_t i = 0; i < inputlayout.size(); i++)
   {
     if(inputlayout[i].InputSlotClass == D3D11_INPUT_PER_INSTANCE_DATA &&
-       inputlayout[i].InstanceDataStepRate < draw->numInstances)
+       inputlayout[i].InstanceDataStepRate < action->numInstances)
       MaxStepRate = RDCMAX(inputlayout[i].InstanceDataStepRate, MaxStepRate);
 
     UINT slot =
@@ -1813,20 +1813,20 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
     if(rs->IA.VBs[i])
     {
       GetDebugManager()->GetBufferData(
-          rs->IA.VBs[i], rs->IA.Offsets[i] + rs->IA.Strides[i] * (draw->vertexOffset + idx),
+          rs->IA.VBs[i], rs->IA.Offsets[i] + rs->IA.Strides[i] * (action->vertexOffset + idx),
           rs->IA.Strides[i], vertData[i]);
 
       for(UINT isr = 1; isr <= MaxStepRate; isr++)
       {
         GetDebugManager()->GetBufferData(
             rs->IA.VBs[i],
-            rs->IA.Offsets[i] + rs->IA.Strides[i] * (draw->instanceOffset + (instid / isr)),
+            rs->IA.Offsets[i] + rs->IA.Strides[i] * (action->instanceOffset + (instid / isr)),
             rs->IA.Strides[i], instData[i * MaxStepRate + isr - 1]);
       }
 
-      GetDebugManager()->GetBufferData(rs->IA.VBs[i],
-                                       rs->IA.Offsets[i] + rs->IA.Strides[i] * draw->instanceOffset,
-                                       rs->IA.Strides[i], staticData[i]);
+      GetDebugManager()->GetBufferData(
+          rs->IA.VBs[i], rs->IA.Offsets[i] + rs->IA.Strides[i] * action->instanceOffset,
+          rs->IA.Strides[i], staticData[i]);
     }
   }
 
@@ -1886,7 +1886,7 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
       }
       else
       {
-        if(el->InstanceDataStepRate == 0 || el->InstanceDataStepRate >= draw->numInstances)
+        if(el->InstanceDataStepRate == 0 || el->InstanceDataStepRate >= action->numInstances)
         {
           if(staticData[el->InputSlot].size() >= el->AlignedByteOffset)
           {
@@ -2066,9 +2066,9 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
     {
       uint32_t sv_vertid = vertid;
 
-      if(draw->flags & DrawFlags::Indexed)
+      if(action->flags & ActionFlags::Indexed)
       {
-        sv_vertid = idx - draw->baseVertex;
+        sv_vertid = idx - action->baseVertex;
       }
 
       if(dxbc->GetReflection()->InputSig[i].varType == VarType::Float)

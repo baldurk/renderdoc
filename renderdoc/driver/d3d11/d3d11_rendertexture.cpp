@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -724,8 +724,18 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flag
   if(details.texType == eTexType_3D)
   {
     pixelData.OutputDisplayFormat = RESTYPE_TEX3D;
-    pixelData.Slice = float(
-        RDCCLAMP(cfg.subresource.slice, 0U, (details.texDepth >> cfg.subresource.mip) - 1) + 0.001f);
+    float slice =
+        float(RDCCLAMP(cfg.subresource.slice, 0U, (details.texDepth >> cfg.subresource.mip) - 1));
+
+    // when sampling linearly, we need to add half a pixel to ensure we only sample the desired
+    // slice
+    if(cfg.subresource.mip == 0 && cfg.scale < 1.0f && !IsUIntFormat(details.srvFormat) &&
+       !IsIntFormat(details.srvFormat))
+      slice += 0.5f;
+    else
+      slice += 0.001f;
+
+    pixelData.Slice = slice;
   }
   else if(details.texType == eTexType_1D)
   {

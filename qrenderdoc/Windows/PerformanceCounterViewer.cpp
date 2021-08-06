@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -164,24 +164,6 @@ QTableWidgetItem *PerformanceCounterViewer::MakeCounterResultItem(const CounterR
       break;
   }
 
-  switch(description.unit)
-  {
-    case CounterUnit::Bytes: returnValue += lit(" bytes"); break;
-
-    case CounterUnit::Cycles: returnValue += lit(" cycles"); break;
-
-    case CounterUnit::Percentage: returnValue += lit(" %"); break;
-
-    case CounterUnit::Seconds: returnValue += lit(" ") + UnitSuffix(timeunit); break;
-
-    case CounterUnit::Absolute:
-    case CounterUnit::Ratio: break;
-
-    case CounterUnit::Hertz: returnValue += lit(" Hz"); break;
-    case CounterUnit::Volt: returnValue += lit(" V"); break;
-    case CounterUnit::Celsius: returnValue += lit(" °C"); break;
-  }
-
   return new CustomSortedTableItem(returnValue, SortValue(result, description));
 }
 
@@ -223,9 +205,32 @@ void PerformanceCounterViewer::CaptureCounters()
 
       QStringList headers;
       headers << lit("EID");
+      TimeUnit timeunit = m_Ctx.Config().EventBrowser_TimeUnit;
       for(const CounterDescription &cd : counterDescriptions)
       {
-        headers << cd.name;
+        QString unit = QString::null;
+        switch(cd.unit)
+        {
+          case CounterUnit::Bytes: unit = lit("bytes"); break;
+
+          case CounterUnit::Cycles: unit = lit("cycles"); break;
+
+          case CounterUnit::Percentage: unit = lit("%"); break;
+
+          case CounterUnit::Seconds: unit = UnitSuffix(timeunit); break;
+
+          case CounterUnit::Absolute:
+          case CounterUnit::Ratio: break;
+
+          case CounterUnit::Hertz: unit = lit("Hz"); break;
+          case CounterUnit::Volt: unit = lit("V"); break;
+          case CounterUnit::Celsius: unit = lit("°C"); break;
+        }
+
+        if(unit.isNull())
+          headers << cd.name;
+        else
+          headers << lit("%1 (%2)").arg(cd.name, unit);
       }
 
       QMap<uint32_t, int> eventIdToRow;

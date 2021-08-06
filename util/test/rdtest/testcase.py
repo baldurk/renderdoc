@@ -2,7 +2,7 @@ import os
 import traceback
 import copy
 import re
-import time
+import datetime
 import renderdoc as rd
 from . import util
 from . import analyse
@@ -135,6 +135,8 @@ class TestCase:
     demos_test_name = ''
     demos_frame_cap = 5
     demos_frame_count = 1
+    demos_timeout = None
+    demos_captures_expected = None
     _test_list = {}
 
     @staticmethod
@@ -153,7 +155,11 @@ class TestCase:
     def __init__(self):
         self.capture_filename = ""
         self.controller: rd.ReplayController = None
+        self.sdfile: rd.SDFile = None
         self._variables = []
+
+    def get_time(self):
+        return datetime.datetime.now(datetime.timezone.utc)
 
     def get_ref_path(self, name: str, extra: bool = False):
         if extra:
@@ -203,9 +209,13 @@ class TestCase:
 
         if self.demos_test_name != '':
             logfile = os.path.join(util.get_tmp_dir(), 'demos.log')
+            timeout = self.demos_timeout
+            if timeout is None:
+                timeout = util.get_demos_timeout()
             return capture.run_and_capture(util.get_demos_binary(), self.demos_test_name + " --log " + logfile,
-                                           self.demos_frame_cap, frame_count=self.demos_frame_count, logfile=logfile,
-                                           opts=self.get_capture_options(), timeout=util.get_demos_timeout())
+                                           self.demos_frame_cap, frame_count=self.demos_frame_count,
+                                           captures_expected=self.demos_captures_expected, logfile=logfile,
+                                           opts=self.get_capture_options(), timeout=timeout)
 
         raise NotImplementedError("If run() is not implemented in a test, then"
                                   "get_capture() and check_capture() must be.")
@@ -218,17 +228,23 @@ class TestCase:
         raise NotImplementedError("If run() is not implemented in a test, then"
                                   "get_capture() and check_capture() must be.")
 
-    def _find_draw(self, name: str, start_event: int, draw_list):
-        draw: rd.DrawcallDescription
-        for draw in draw_list:
-            # If this draw matches, return it
-            if draw.eventId >= start_event and (name == '' or name in draw.name):
-                return draw
+    def action_name(self, action: rd.ActionDescription):
+        if len(action.customName) > 0:
+            return action.customName
+
+        return self.sdfile.chunks[action.events[-1].chunkIndex].name
+
+    def _find_action(self, name: str, start_event: int, action_list):
+        action: rd.ActionDescription
+        for action in action_list:
+            # If this action matches, return it
+            if action.eventId >= start_event and (name == '' or name in self.action_name(action)):
+                return action
 
             # Recurse to children - depth-first search
-            ret: rd.DrawcallDescription = self._find_draw(name, start_event, draw.children)
+            ret: rd.ActionDescription = self._find_action(name, start_event, action.children)
 
-            # If we found our draw, return
+            # If we found our action, return
             if ret is not None:
                 return ret
 
@@ -237,63 +253,63 @@ class TestCase:
         # If we didn't find anything, return None
         return None
 
-    def find_draw(self, name: str, start_event: int = 0):
+    def find_action(self, name: str, start_event: int = 0):
         """
-        Finds the first drawcall matching given criteria
+        Finds the first action matching given criteria
 
-        :param name: The name to search for within the drawcalls
+        :param name: The name to search for within the actions
         :param start_event: The first eventId to search from.
         :return:
         """
 
-        return self._find_draw(name, start_event, self.controller.GetDrawcalls())
+        return self._find_action(name, start_event, self.controller.GetRootActions())
 
-    def get_draw(self, event: int = 0):
+    def get_action(self, event: int = 0):
         """
-        Finds the drawcall for the given event
+        Finds the action for the given event
 
         :param event: The eventId to search for.
         :return:
         """
 
-        return self._find_draw('', event, self.controller.GetDrawcalls())
+        return self._find_action('', event, self.controller.GetRootActions())
 
-    def get_vsin(self, draw: rd.DrawcallDescription, first_index: int=0, num_indices: int=0, instance: int=0, view: int=0):
+    def get_vsin(self, action: rd.ActionDescription, first_index: int=0, num_indices: int=0, instance: int=0, view: int=0):
         ib: rd.BoundVBuffer = self.controller.GetPipelineState().GetIBuffer()
 
         if num_indices == 0:
-            num_indices = draw.numIndices
+            num_indices = action.numIndices
         else:
-            num_indices = min(num_indices, draw.numIndices)
+            num_indices = min(num_indices, action.numIndices)
 
-        ioffs = draw.indexOffset * draw.indexByteWidth
+        ioffs = action.indexOffset * ib.byteStride
 
         mesh = rd.MeshFormat()
         mesh.numIndices = num_indices
         mesh.indexByteOffset = ib.byteOffset + ioffs
-        mesh.indexByteStride = draw.indexByteWidth
+        mesh.indexByteStride = ib.byteStride
         mesh.indexResourceId = ib.resourceId
-        mesh.baseVertex = draw.baseVertex
+        mesh.baseVertex = action.baseVertex
 
         if ib.byteSize > ioffs:
             mesh.indexByteSize = ib.byteSize - ioffs
         else:
             mesh.indexByteSize = 0
 
-        if not (draw.flags & rd.DrawFlags.Indexed):
+        if not (action.flags & rd.ActionFlags.Indexed):
             mesh.indexByteOffset = 0
             mesh.indexByteStride = 0
             mesh.indexResourceId = rd.ResourceId.Null()
 
-        attrs = analyse.get_vsin_attrs(self.controller, draw.vertexOffset, mesh)
+        attrs = analyse.get_vsin_attrs(self.controller, action.vertexOffset, mesh)
 
-        first_index = min(first_index, draw.numIndices-1)
+        first_index = min(first_index, action.numIndices-1)
 
-        indices = analyse.fetch_indices(self.controller, draw, mesh, 0, first_index, num_indices)
+        indices = analyse.fetch_indices(self.controller, action, mesh, 0, first_index, num_indices)
 
         return analyse.decode_mesh_data(self.controller, indices, indices, attrs, 0, 0)
 
-    def get_postvs(self, draw: rd.DrawcallDescription, data_stage: rd.MeshDataStage, first_index: int = 0,
+    def get_postvs(self, action: rd.ActionDescription, data_stage: rd.MeshDataStage, first_index: int = 0,
                    num_indices: int = 0, instance: int = 0, view: int = 0):
         mesh: rd.MeshFormat = self.controller.GetPostVSData(instance, view, data_stage)
 
@@ -309,27 +325,27 @@ class TestCase:
 
         ib: rd.BoundVBuffer = self.controller.GetPipelineState().GetIBuffer()
 
-        ioffs = draw.indexOffset * draw.indexByteWidth
+        ioffs = action.indexOffset * ib.byteStride
 
         in_mesh = rd.MeshFormat()
         in_mesh.numIndices = num_indices
         in_mesh.indexByteOffset = ib.byteOffset + ioffs
-        in_mesh.indexByteStride = draw.indexByteWidth
+        in_mesh.indexByteStride = ib.byteStride
         in_mesh.indexResourceId = ib.resourceId
-        in_mesh.baseVertex = draw.baseVertex
+        in_mesh.baseVertex = action.baseVertex
 
         if ib.byteSize > ioffs:
             in_mesh.indexByteSize = ib.byteSize - ioffs
         else:
             in_mesh.indexByteSize = 0
 
-        if not (draw.flags & rd.DrawFlags.Indexed):
+        if not (action.flags & rd.ActionFlags.Indexed):
             in_mesh.indexByteOffset = 0
             in_mesh.indexByteStride = 0
             in_mesh.indexResourceId = rd.ResourceId.Null()
 
-        indices = analyse.fetch_indices(self.controller, draw, mesh, 0, first_index, num_indices)
-        in_indices = analyse.fetch_indices(self.controller, draw, in_mesh, 0, first_index, num_indices)
+        indices = analyse.fetch_indices(self.controller, action, mesh, 0, first_index, num_indices)
+        in_indices = analyse.fetch_indices(self.controller, action, in_mesh, 0, first_index, num_indices)
 
         attrs = analyse.get_postvs_attrs(self.controller, mesh, data_stage)
 
@@ -373,6 +389,8 @@ class TestCase:
             # Reduce epsilon for RGBA8 textures if it's not already reduced
             if tex_details.format.compByteWidth == 1 and eps == util.FLT_EPSILON:
                 eps = (1.0 / 255.0)
+            if tex_details.format.compByteWidth == 2 and eps == util.FLT_EPSILON:
+                eps = (1.0 / 16384.0)
 
         picked: rd.PixelValue = self.controller.PickPixel(tex, x, y, sub, cast)
 
@@ -407,7 +425,7 @@ class TestCase:
     def check_triangle(self, out = None, back = None, fore = None, vp = None):
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        # if no output is specified, check the current colour output at this draw
+        # if no output is specified, check the current colour output at this action
         if out is None:
             out = pipe.GetOutputTargets()[0].resourceId
 
@@ -441,6 +459,7 @@ class TestCase:
         log.print("Loading capture")
 
         self.controller = analyse.open_capture(self.capture_filename, opts=self.get_replay_options())
+        self.sdfile = self.controller.GetStructuredFile()
 
         log.print("Checking capture")
 
@@ -450,21 +469,19 @@ class TestCase:
             self.controller.Shutdown()
 
     def invoketest(self, debugMode):
-        start_time = time.time()
+        start_time = self.get_time()
         self.run()
-        duration = time.time() - start_time
-        minutes = int(duration / 60) % 60
-        seconds = round(duration % 60)
-        log.print("Test ran in {:02}:{:02}".format(minutes, seconds))
+        duration = self.get_time() - start_time
+        log.print("Test ran in {}".format(duration))
         self.debugMode = debugMode
 
-    def get_first_draw(self):
-        first_draw: rd.DrawcallDescription = self.controller.GetDrawcalls()[0]
+    def get_first_action(self):
+        first_action: rd.ActionDescription = self.controller.GetRootActions()[0]
 
-        while len(first_draw.children) > 0:
-            first_draw = first_draw.children[0]
+        while len(first_action.children) > 0:
+            first_action = first_action.children[0]
 
-        return first_draw
+        return first_action
 
     def get_texture(self, id: rd.ResourceId):
         texs = self.controller.GetTextures()
@@ -496,24 +513,24 @@ class TestCase:
 
         return None
 
-    def get_last_draw(self):
-        last_draw: rd.DrawcallDescription = self.controller.GetDrawcalls()[-1]
+    def get_last_action(self):
+        last_action: rd.ActionDescription = self.controller.GetRootActions()[-1]
 
-        while len(last_draw.children) > 0:
-            last_draw = last_draw.children[-1]
+        while len(last_action.children) > 0:
+            last_action = last_action.children[-1]
 
-        return last_draw
+        return last_action
 
     def check_final_backbuffer(self):
         img_path = util.get_tmp_path('backbuffer.png')
         ref_path = self.get_ref_path('backbuffer.png')
 
-        last_draw: rd.DrawcallDescription = self.get_last_draw()
+        last_action: rd.ActionDescription = self.get_last_action()
 
-        self.controller.SetFrameEvent(last_draw.eventId, True)
+        self.controller.SetFrameEvent(last_action.eventId, True)
 
         save_data = rd.TextureSave()
-        save_data.resourceId = last_draw.copyDestination
+        save_data.resourceId = last_action.copyDestination
         save_data.destType = rd.FileType.PNG
 
         self.controller.SaveTexture(save_data, img_path)

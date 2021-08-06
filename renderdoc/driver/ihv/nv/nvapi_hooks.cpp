@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2020 Baldur Karlsson
+ * Copyright (c) 2020-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -75,12 +75,19 @@ enum NVENCSTATUS
   NV_ENC_ERR_INVALID_PTR = 6,
 };
 
-enum NV_ENC_INPUT_RESOURCE_TYPE
+enum NV_ENC_INPUT_RESOURCE_TYPE : uint32_t
 {
   NV_ENC_INPUT_RESOURCE_TYPE_DIRECTX = 0x0,
   NV_ENC_INPUT_RESOURCE_TYPE_CUDADEVICEPTR = 0x1,
   NV_ENC_INPUT_RESOURCE_TYPE_CUDAARRAY = 0x2,
   NV_ENC_INPUT_RESOURCE_TYPE_OPENGL_TEX = 0x3
+};
+
+enum NV_ENC_DEVICE_TYPE : uint32_t
+{
+  NV_ENC_DEVICE_TYPE_DIRECTX = 0x0,
+  NV_ENC_DEVICE_TYPE_CUDA = 0x1,
+  NV_ENC_DEVICE_TYPE_OPENGL = 0x2,
 };
 
 struct NV_ENC_REGISTER_RESOURCE
@@ -94,16 +101,33 @@ struct NV_ENC_REGISTER_RESOURCE
   // we don't need it
 };
 
-typedef NVENCSTATUS(NVENCAPI *PNVENCREGISTERRESOURCE)(void *, NV_ENC_REGISTER_RESOURCE *params);
+struct NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS
+{
+  uint32_t version;
+  NV_ENC_DEVICE_TYPE deviceType;
+  void *device;
+
+  // there is more data here but we don't allocate this structure only patch the above pointer, so
+  // we don't need it
+};
+
+typedef NVENCSTATUS(NVENCAPI *PNVENCREGISTERRESOURCE)(void *encoder,
+                                                      NV_ENC_REGISTER_RESOURCE *params);
+typedef NVENCSTATUS(NVENCAPI *PNVENCOPENENCODESESSION)(void *device, uint32_t devType,
+                                                       void **encoder);
+typedef NVENCSTATUS(NVENCAPI *PNVENCOPENENCODESESSIONEX)(NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS *params,
+                                                         void **encoder);
 
 struct NV_ENCODE_API_FUNCTION_LIST
 {
   uint32_t version;
   uint32_t reserved;
-  void *otherFunctions[30];    // other functions in the dispatch table
+  PNVENCOPENENCODESESSION nvEncOpenEncodeSession;
+  void *otherFunctions[28];    // other functions in the dispatch table
+  PNVENCOPENENCODESESSIONEX nvEncOpenEncodeSessionEx;
   PNVENCREGISTERRESOURCE nvEncRegisterResource;
 
-  // there is more data here but we don't allocate this structure only patch the above pointer, so
+  // there is more data here but we don't allocate this structure only patch the above pointers, so
   // we don't need it
 };
 
@@ -152,6 +176,8 @@ private:
   HOOK_NVAPI(NvAPI_D3D12_IsNvShaderExtnOpCodeSupported, 0x3dfacec8);       \
   HOOK_NVAPI(NvAPI_D3D12_SetNvShaderExtnSlotSpace, 0xac2dfeb5);            \
   HOOK_NVAPI(NvAPI_D3D12_SetNvShaderExtnSlotSpaceLocalThread, 0x43d867c0); \
+  HOOK_NVAPI(NvAPI_D3D12_CreateGraphicsPipelineState, 0x2fc28856);         \
+  HOOK_NVAPI(NvAPI_D3D12_CreateComputePipelineState, 0x2762deac);          \
   WHITELIST_NVAPI(NvAPI_Unload, 0xd22bdd7e);                               \
   WHITELIST_NVAPI(NvAPI_GetErrorMessage, 0x6c2d048c);                      \
   WHITELIST_NVAPI(NvAPI_GetInterfaceVersionString, 0x01053fa5);
@@ -173,6 +199,7 @@ private:
     }
     else
     {
+      RDCERR("Didn't pass RenderDoc-wrapped device to nvapi function");
       return NVAPI_INVALID_POINTER;
     }
   }
@@ -201,9 +228,17 @@ private:
 
         return ret;
       }
+      else
+      {
+        RDCERR("Couldn't retrieve ID3D12Device from RenderDoc-wrapped device");
+        return NVAPI_INVALID_POINTER;
+      }
     }
-
-    return NVAPI_INVALID_POINTER;
+    else
+    {
+      RDCERR("Didn't pass RenderDoc-wrapped device to nvapi function");
+      return NVAPI_INVALID_POINTER;
+    }
   }
 
   static NvAPI_Status __cdecl NvAPI_D3D11_SetNvShaderExtnSlot_hook(__in IUnknown *pDev,
@@ -223,6 +258,7 @@ private:
     }
     else
     {
+      RDCERR("Didn't pass RenderDoc-wrapped device to nvapi function");
       return NVAPI_INVALID_POINTER;
     }
   }
@@ -245,6 +281,7 @@ private:
     }
     else
     {
+      RDCERR("Didn't pass RenderDoc-wrapped device to nvapi function");
       return NVAPI_INVALID_POINTER;
     }
   }
@@ -268,6 +305,7 @@ private:
     }
     else
     {
+      RDCERR("Didn't pass RenderDoc-wrapped device to nvapi function");
       return NVAPI_INVALID_POINTER;
     }
   }
@@ -290,6 +328,175 @@ private:
     }
     else
     {
+      RDCERR("Didn't pass RenderDoc-wrapped device to nvapi function");
+      return NVAPI_INVALID_POINTER;
+    }
+  }
+
+  static NvAPI_Status __cdecl NvAPI_D3D12_CreateGraphicsPipelineState_hook(
+      __in ID3D12Device *pDevice, __in const D3D12_GRAPHICS_PIPELINE_STATE_DESC *pPSODesc,
+      NvU32 numExtensions, __in const NVAPI_D3D12_PSO_EXTENSION_DESC **ppExtensions,
+      __out ID3D12PipelineState **ppPSO)
+  {
+    // check that there's only supported extensions first, and extract the info we want.
+    uint32_t reg = 0, space = 0;
+    for(NvU32 i = 0; i < numExtensions; i++)
+    {
+      if(ppExtensions[i]->psoExtension != NV_PSO_SET_SHADER_EXTNENSION_SLOT_AND_SPACE)
+      {
+        RDCWARN("Unsupported D3D12 PSO extension: %d", ppExtensions[i]->psoExtension);
+        return NVAPI_NOT_SUPPORTED;
+      }
+
+      // the versions don't look to be backwards compatible so we have to require an exact version
+      if(ppExtensions[i]->baseVersion != NV_PSO_EXTENSION_DESC_VER)
+      {
+        RDCERR("Unsupported PSO extension version %x, expected %x", ppExtensions[i]->baseVersion,
+               NV_PSO_EXTENSION_DESC_VER);
+        return NVAPI_NOT_SUPPORTED;
+      }
+
+      const NVAPI_D3D12_PSO_SET_SHADER_EXTENSION_SLOT_DESC_V1 *psoExt =
+          (const NVAPI_D3D12_PSO_SET_SHADER_EXTENSION_SLOT_DESC_V1 *)ppExtensions[i];
+
+      if(psoExt->version != NV_SET_SHADER_EXTENSION_SLOT_DESC_VER)
+      {
+        RDCERR("Unsupported set-slot extension version %x, expected %x", psoExt->version,
+               NV_SET_SHADER_EXTENSION_SLOT_DESC_VER);
+        return NVAPI_NOT_SUPPORTED;
+      }
+
+      reg = psoExt->uavSlot;
+      space = psoExt->registerSpace;
+    }
+
+    INVAPID3DDevice *nvapiDev = NULL;
+    HRESULT hr = pDevice->QueryInterface(__uuidof(INVAPID3DDevice), (void **)&nvapiDev);
+    // this will only succeed if it's our own wrapped device. It doesn't change the refcount, this
+    // is a COM-breaking backdoor
+    if(SUCCEEDED(hr))
+    {
+      IUnknown *real = nvapiDev->GetReal();
+
+      ID3D12Device *dev = NULL;
+      hr = real->QueryInterface(__uuidof(ID3D12Device), (void **)&dev);
+
+      if(SUCCEEDED(hr))
+      {
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = *pPSODesc;
+        nvapiDev->UnwrapDesc(&desc);
+
+        ID3D12PipelineState *realPSO = NULL;
+        NvAPI_Status ret = nvhooks.NvAPI_D3D12_CreateGraphicsPipelineState()(
+            dev, &desc, numExtensions, ppExtensions, &realPSO);
+
+        dev->Release();
+
+        if(ret == NVAPI_OK)
+        {
+          *ppPSO = nvapiDev->ProcessCreatedGraphicsPipelineState(pPSODesc, reg, space, realPSO);
+          return NVAPI_OK;
+        }
+        else
+        {
+          SAFE_RELEASE(realPSO);
+        }
+
+        return ret;
+      }
+      else
+      {
+        RDCERR("Couldn't retrieve ID3D12Device from RenderDoc-wrapped device");
+        return NVAPI_INVALID_POINTER;
+      }
+    }
+    else
+    {
+      RDCERR("Didn't pass RenderDoc-wrapped device to nvapi function");
+      return NVAPI_INVALID_POINTER;
+    }
+  }
+
+  static NvAPI_Status __cdecl NvAPI_D3D12_CreateComputePipelineState_hook(
+      __in ID3D12Device *pDevice, __in const D3D12_COMPUTE_PIPELINE_STATE_DESC *pPSODesc,
+      NvU32 numExtensions, __in const NVAPI_D3D12_PSO_EXTENSION_DESC **ppExtensions,
+      __out ID3D12PipelineState **ppPSO)
+  {
+    // check that there's only supported extensions first, and extract the info we want.
+    uint32_t reg = 0, space = 0;
+    for(NvU32 i = 0; i < numExtensions; i++)
+    {
+      if(ppExtensions[i]->psoExtension != NV_PSO_SET_SHADER_EXTNENSION_SLOT_AND_SPACE)
+      {
+        RDCWARN("Unsupported D3D12 PSO extension: %d", ppExtensions[i]->psoExtension);
+        return NVAPI_NOT_SUPPORTED;
+      }
+
+      // the versions don't look to be backwards compatible so we have to require an exact version
+      if(ppExtensions[i]->baseVersion != NV_PSO_EXTENSION_DESC_VER)
+      {
+        RDCERR("Unsupported PSO extension version %x, expected %x", ppExtensions[i]->baseVersion,
+               NV_PSO_EXTENSION_DESC_VER);
+        return NVAPI_NOT_SUPPORTED;
+      }
+
+      const NVAPI_D3D12_PSO_SET_SHADER_EXTENSION_SLOT_DESC_V1 *psoExt =
+          (const NVAPI_D3D12_PSO_SET_SHADER_EXTENSION_SLOT_DESC_V1 *)ppExtensions[i];
+
+      if(psoExt->version != NV_SET_SHADER_EXTENSION_SLOT_DESC_VER)
+      {
+        RDCERR("Unsupported set-slot extension version %x, expected %x", psoExt->version,
+               NV_SET_SHADER_EXTENSION_SLOT_DESC_VER);
+        return NVAPI_NOT_SUPPORTED;
+      }
+
+      reg = psoExt->uavSlot;
+      space = psoExt->registerSpace;
+    }
+
+    INVAPID3DDevice *nvapiDev = NULL;
+    HRESULT hr = pDevice->QueryInterface(__uuidof(INVAPID3DDevice), (void **)&nvapiDev);
+    // this will only succeed if it's our own wrapped device. It doesn't change the refcount, this
+    // is a COM-breaking backdoor
+    if(SUCCEEDED(hr))
+    {
+      IUnknown *real = nvapiDev->GetReal();
+
+      ID3D12Device *dev = NULL;
+      hr = real->QueryInterface(__uuidof(ID3D12Device), (void **)&dev);
+
+      if(SUCCEEDED(hr))
+      {
+        D3D12_COMPUTE_PIPELINE_STATE_DESC desc = *pPSODesc;
+        nvapiDev->UnwrapDesc(&desc);
+
+        ID3D12PipelineState *realPSO = NULL;
+        NvAPI_Status ret = nvhooks.NvAPI_D3D12_CreateComputePipelineState()(
+            dev, &desc, numExtensions, ppExtensions, &realPSO);
+
+        dev->Release();
+
+        if(ret == NVAPI_OK)
+        {
+          *ppPSO = nvapiDev->ProcessCreatedComputePipelineState(pPSODesc, reg, space, realPSO);
+          return NVAPI_OK;
+        }
+        else
+        {
+          SAFE_RELEASE(realPSO);
+        }
+
+        return ret;
+      }
+      else
+      {
+        RDCERR("Couldn't retrieve ID3D12Device from RenderDoc-wrapped device");
+        return NVAPI_INVALID_POINTER;
+      }
+    }
+    else
+    {
+      RDCERR("Didn't pass RenderDoc-wrapped device to nvapi function");
       return NVAPI_INVALID_POINTER;
     }
   }
@@ -417,7 +624,77 @@ private:
     }
   }
 
+  PNVENCOPENENCODESESSION real_nvEncOpenEncodeSession = NULL;
+  PNVENCOPENENCODESESSIONEX real_nvEncOpenEncodeSessionEx = NULL;
   PNVENCREGISTERRESOURCE real_nvEncRegisterResource = NULL;
+
+  static NVENCSTATUS NVENCAPI NvEncodeAPIOpenEncodeSession_hook(void *device, uint32_t devType,
+                                                                void **encoder)
+  {
+    if(!nvhooks.real_nvEncOpenEncodeSession)
+    {
+      RDCERR("nvEncOpenEncodeSession called without hooking NvEncodeAPICreateInstance!");
+      return NV_ENC_ERR_INVALID_PTR;
+    }
+
+    if(devType != NV_ENC_DEVICE_TYPE_DIRECTX)
+    {
+      RDCWARN("Unsupported device type %d in encode session, passing through but this may break!",
+              devType);
+      return nvhooks.real_nvEncOpenEncodeSession(device, devType, encoder);
+    }
+
+    INVAPID3DDevice *nvapiDev = NULL;
+    HRESULT hr = ((IUnknown *)device)->QueryInterface(__uuidof(INVAPID3DDevice), (void **)&nvapiDev);
+
+    if(FAILED(hr))
+    {
+      RDCERR("nvEncOpenEncodeSession called with invalid non-wrapped device!");
+      return NV_ENC_ERR_INVALID_PTR;
+    }
+
+    return nvhooks.real_nvEncOpenEncodeSession(nvapiDev->GetReal(), devType, encoder);
+  }
+
+  static NVENCSTATUS NVENCAPI
+  NvEncodeAPIOpenEncodeSessionEx_hook(NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS *params, void **encoder)
+  {
+    if(!nvhooks.real_nvEncOpenEncodeSessionEx)
+    {
+      RDCERR("nvEncOpenEncodeSessionEx called without hooking NvEncodeAPICreateInstance!");
+      return NV_ENC_ERR_INVALID_PTR;
+    }
+
+    if(params->deviceType != NV_ENC_DEVICE_TYPE_DIRECTX)
+    {
+      RDCWARN("Unsupported device type %d in encode session, passing through but this may break!",
+              params->deviceType);
+      return nvhooks.real_nvEncOpenEncodeSessionEx(params, encoder);
+    }
+
+    // attempt to unwrap the handle in place
+    void *origDevice = params->device;
+
+    INVAPID3DDevice *nvapiDev = NULL;
+    HRESULT hr =
+        ((IUnknown *)origDevice)->QueryInterface(__uuidof(INVAPID3DDevice), (void **)&nvapiDev);
+
+    if(FAILED(hr))
+    {
+      RDCERR("nvEncOpenEncodeSessionEx called with invalid non-wrapped device!");
+      return NV_ENC_ERR_INVALID_PTR;
+    }
+
+    params->device = nvapiDev->GetReal();
+
+    // call out to the actual function
+    NVENCSTATUS ret = nvhooks.real_nvEncOpenEncodeSessionEx(params, encoder);
+
+    // restore the handle to the original value
+    params->device = origDevice;
+
+    return ret;
+  }
 
   static NVENCSTATUS NVENCAPI NvEncodeAPIRegisterResource_hook(void *encoder,
                                                                NV_ENC_REGISTER_RESOURCE *params)
@@ -458,17 +735,29 @@ private:
     {
       // this is an encoded struct version, 7 is a magic value, 8.1 is the major.minor of nvcodec
       // and 2 is the struct version
-      const uint32_t expectedVersion = 7 << 28 | 8 << 1 | 1 << 24 | 2 << 16;
-      if(functions->version != expectedVersion)
-        RDCWARN("Call to NvEncodeAPICreateInstance with version %x, expected %x",
-                functions->version, expectedVersion);
+      const uint32_t expectedVersion8_1 = 7 << 28 | 8 << 0 | 1 << 24 | 2 << 16;
+      const uint32_t expectedVersion11_0 = 7 << 28 | 11 << 0 | 0 << 24 | 2 << 16;
+      if(functions->version != expectedVersion8_1 && functions->version != expectedVersion11_0)
+        RDCWARN("Call to NvEncodeAPICreateInstance with untested version %x", functions->version);
 
       // we don't handle multiple different pointers coming back, but that seems unlikely.
       RDCASSERT(nvhooks.real_nvEncRegisterResource == NULL ||
                 nvhooks.real_nvEncRegisterResource == functions->nvEncRegisterResource);
       nvhooks.real_nvEncRegisterResource = functions->nvEncRegisterResource;
 
+      // we don't handle multiple different pointers coming back, but that seems unlikely.
+      RDCASSERT(nvhooks.real_nvEncOpenEncodeSession == NULL ||
+                nvhooks.real_nvEncOpenEncodeSession == functions->nvEncOpenEncodeSession);
+      nvhooks.real_nvEncOpenEncodeSession = functions->nvEncOpenEncodeSession;
+
+      // we don't handle multiple different pointers coming back, but that seems unlikely.
+      RDCASSERT(nvhooks.real_nvEncOpenEncodeSessionEx == NULL ||
+                nvhooks.real_nvEncOpenEncodeSessionEx == functions->nvEncOpenEncodeSessionEx);
+      nvhooks.real_nvEncOpenEncodeSessionEx = functions->nvEncOpenEncodeSessionEx;
+
       functions->nvEncRegisterResource = &NvEncodeAPIRegisterResource_hook;
+      functions->nvEncOpenEncodeSession = &NvEncodeAPIOpenEncodeSession_hook;
+      functions->nvEncOpenEncodeSessionEx = &NvEncodeAPIOpenEncodeSessionEx_hook;
     }
 
     return ret;

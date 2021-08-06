@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -365,8 +365,8 @@ uint32_t Serialiser<SerialiserMode::Writing>::BeginChunk(uint32_t chunkID, uint6
         {
           bool collect = RenderDoc::Inst().GetCaptureOptions().captureCallstacks;
 
-          if(RenderDoc::Inst().GetCaptureOptions().captureCallstacksOnlyDraws)
-            collect = collect && m_DrawChunk;
+          if(RenderDoc::Inst().GetCaptureOptions().captureCallstacksOnlyActions)
+            collect = collect && m_ActionChunk;
 
           if(collect)
           {
@@ -461,7 +461,7 @@ uint32_t Serialiser<SerialiserMode::Writing>::BeginChunk(uint32_t chunkID, uint6
 template <>
 void Serialiser<SerialiserMode::Writing>::EndChunk()
 {
-  m_DrawChunk = false;
+  m_ActionChunk = false;
 
   if(m_DataStreaming)
   {
@@ -503,8 +503,12 @@ void Serialiser<SerialiserMode::Writing>::EndChunk()
         m_Write->Write(padByte);
       }
 
-      RDCDEBUG("Chunk estimated at %llu bytes, actual length %llu. Added %llu bytes padding.",
-               m_ChunkMetadata.length, writtenLength, numPadBytes);
+      // only log if there's more than 128 bytes of padding
+      if(m_ChunkMetadata.length - writtenLength > 128)
+      {
+        RDCDEBUG("Chunk estimated at %llu bytes, actual length %llu. Added %llu bytes padding.",
+                 m_ChunkMetadata.length, writtenLength, numPadBytes);
+      }
     }
     else if(writtenLength > m_ChunkMetadata.length)
     {
@@ -517,7 +521,7 @@ void Serialiser<SerialiserMode::Writing>::EndChunk()
     }
     else
     {
-      RDCDEBUG("Chunk was exactly the estimate of %llu bytes.", m_ChunkMetadata.length);
+      // RDCDEBUG("Chunk was exactly the estimate of %llu bytes.", m_ChunkMetadata.length);
     }
   }
 
@@ -683,52 +687,52 @@ void DoSerialise(SerialiserType &ser, SDObjectPODData &el)
 }
 
 template <class SerialiserType>
-void DoSerialise(SerialiserType &ser, StructuredObjectList &el)
-{
-  // since structured objects aren't intended to be exported as nice structured data, only for pure
-  // transfer purposes, we don't make a proper array here and instead just manually serialise count
-  // + elements
-  uint64_t count = el.size();
-  ser.Serialise("count"_lit, count);
-
-  if(ser.IsReading())
-    el.resize((size_t)count);
-
-  for(size_t c = 0; c < (size_t)count; c++)
-  {
-    // we also assume that the caller serialising these objects will handle lifetime management.
-    if(ser.IsReading())
-      el[c] = new SDObject(""_lit, ""_lit);
-
-    ser.Serialise("$el"_lit, *el[c]);
-  }
-}
-
-template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, SDObjectData &el)
 {
   SERIALISE_MEMBER(basic);
   SERIALISE_MEMBER(str);
-  SERIALISE_MEMBER(children);
+
+  // this is deliberately not serialised here, it's serialised in the parent SDObject. See below
+  // SERIALISE_MEMBER(children);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, SDObject &el, StructuredObjectList &children)
+{
+  // serialising the data above doesn't serialise the children, so we can do it here using a
+  // potential lazy generator. This is so that we don't incur the full cost of populating lazy
+  // children all at once (which could be slow). This is a bit of a hack as this can take many
+  // seconds and cause a timeout during transfer, and it would be uglier to try and keep the
+  // connection alive while serialising chunks.
+  uint64_t childCount = children.size();
+  SERIALISE_ELEMENT(childCount).Hidden();
+
+  if(ser.IsReading())
+    children.resize((size_t)childCount);
+
+  for(size_t c = 0; c < el.NumChildren(); c++)
+  {
+    // we also assume that the caller serialising these objects will handle lifetime management.
+    if(ser.IsReading())
+      children[c] = new SDObject(""_lit, ""_lit);
+    else
+      el.PopulateChild(c);
+
+    ser.Serialise("$el"_lit, *children[c]);
+
+    if(ser.IsReading())
+      children[c]->m_Parent = &el;
+  }
 }
 
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, SDObject &el)
 {
-  if(ser.IsWriting())
-  {
-    el.PopulateAllChildren();
-  }
-
   SERIALISE_MEMBER(name);
   SERIALISE_MEMBER(type);
   SERIALISE_MEMBER(data);
 
-  if(ser.IsReading())
-  {
-    for(size_t i = 0; i < el.NumChildren(); i++)
-      el.GetChild(i)->m_Parent = &el;
-  }
+  DoSerialise(ser, el, el.data.children);
 }
 
 template <class SerialiserType>
@@ -736,14 +740,10 @@ void DoSerialise(SerialiserType &ser, SDChunk &el)
 {
   SERIALISE_MEMBER(name);
   SERIALISE_MEMBER(type);
-  SERIALISE_MEMBER(data);
   SERIALISE_MEMBER(metadata);
+  SERIALISE_MEMBER(data);
 
-  if(ser.IsReading())
-  {
-    for(size_t i = 0; i < el.NumChildren(); i++)
-      el.GetChild(i)->m_Parent = &el;
-  }
+  DoSerialise(ser, el, el.data.children);
 }
 
 INSTANTIATE_SERIALISE_TYPE(SDChunk);
@@ -894,6 +894,12 @@ rdcstr DoStringise(const rdcstr &el)
 
 template <>
 rdcstr DoStringise(const rdcinflexiblestr &el)
+{
+  return el;
+}
+
+template <>
+rdcstr DoStringise(const rdcliteral &el)
 {
   return el;
 }

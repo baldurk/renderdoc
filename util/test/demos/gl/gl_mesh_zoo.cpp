@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -323,7 +323,7 @@ void main()
       glBufferSubData(GL_DRAW_INDIRECT_BUFFER, sizeof(cmd), sizeof(cmd), &cmd);
       glBufferSubData(GL_PARAMETER_BUFFER, 0, sizeof(count), &count);
 
-      glMultiDrawElementsIndirectCount(GL_TRIANGLES, GL_UNSIGNED_INT, NULL, NULL, 4,
+      glMultiDrawElementsIndirectCount(GL_TRIANGLES, GL_UNSIGNED_INT, NULL, (GLintptr)0, 4,
                                        sizeof(DrawElementsIndirectCommand));
 
       glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);

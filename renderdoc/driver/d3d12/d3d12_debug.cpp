@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -272,38 +272,40 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     rdcstr meshhlsl = GetEmbeddedResource(mesh_hlsl);
 
     shaderCache->GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_MeshVS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
-                               "vs_5_0", &m_MeshVS);
+                               {}, "vs_5_0", &m_MeshVS);
     shaderCache->GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_MeshGS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
-                               "gs_5_0", &m_MeshGS);
+                               {}, "gs_5_0", &m_MeshGS);
     shaderCache->GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_MeshPS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
-                               "ps_5_0", &m_MeshPS);
+                               {}, "ps_5_0", &m_MeshPS);
   }
 
   {
     rdcstr hlsl = GetEmbeddedResource(misc_hlsl);
 
     shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_FullscreenVS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "vs_5_0", &m_FullscreenVS);
-    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DiscardPS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
-                               "ps_5_0", &m_DiscardPS);
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "vs_5_0", &m_FullscreenVS);
+    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DiscardFloatPS",
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &m_DiscardFloatPS);
+    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DiscardIntPS",
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &m_DiscardIntPS);
   }
 
   {
     rdcstr multisamplehlsl = GetEmbeddedResource(multisample_hlsl);
 
     shaderCache->GetShaderBlob(multisamplehlsl.c_str(), "RENDERDOC_CopyMSToArray",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &m_IntMS2Array);
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &m_IntMS2Array);
     shaderCache->GetShaderBlob(multisamplehlsl.c_str(), "RENDERDOC_FloatCopyMSToArray",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &m_FloatMS2Array);
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &m_FloatMS2Array);
     shaderCache->GetShaderBlob(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyMSToArray",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &m_DepthMS2Array);
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &m_DepthMS2Array);
 
     shaderCache->GetShaderBlob(multisamplehlsl.c_str(), "RENDERDOC_CopyArrayToMS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &m_IntArray2MS);
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &m_IntArray2MS);
     shaderCache->GetShaderBlob(multisamplehlsl.c_str(), "RENDERDOC_FloatCopyArrayToMS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &m_FloatArray2MS);
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &m_FloatArray2MS);
     shaderCache->GetShaderBlob(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyArrayToMS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &m_DepthArray2MS);
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &m_DepthArray2MS);
   }
 
   shaderCache->SetCaching(false);
@@ -387,7 +389,11 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     fmt.compByteWidth = 4;
     fmt.compCount = 1;
     bytebuf pattern = GetDiscardPattern(DiscardType::DiscardCall, fmt);
+    fmt.compType = CompType::UInt;
+    pattern.append(GetDiscardPattern(DiscardType::DiscardCall, fmt));
+
     m_DiscardConstants = MakeCBuffer(pattern.size());
+    m_pDevice->InternalRef();
     FillBuffer(m_DiscardConstants, 0, pattern.data(), pattern.size());
 
     ID3DBlob *root = shaderCache->MakeRootSig({
@@ -399,6 +405,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
     hr = m_pDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
                                         __uuidof(ID3D12RootSignature), (void **)&m_DiscardRootSig);
+    m_pDevice->InternalRef();
 
     SAFE_RELEASE(root);
   }
@@ -450,7 +457,8 @@ D3D12DebugManager::~D3D12DebugManager()
 
   SAFE_RELEASE(m_DiscardConstants);
   SAFE_RELEASE(m_DiscardRootSig);
-  SAFE_RELEASE(m_DiscardPS);
+  SAFE_RELEASE(m_DiscardFloatPS);
+  SAFE_RELEASE(m_DiscardIntPS);
 
   SAFE_RELEASE(m_DebugAlloc);
   SAFE_RELEASE(m_DebugList);
@@ -499,7 +507,7 @@ bool D3D12DebugManager::CreateMathIntrinsicsResources()
 
   ID3DBlob *csBlob = NULL;
   UINT flags = D3DCOMPILE_DEBUG | D3DCOMPILE_WARNINGS_ARE_ERRORS;
-  if(m_pDevice->GetShaderCache()->GetShaderBlob(csProgram.c_str(), "main", flags, "cs_5_0",
+  if(m_pDevice->GetShaderCache()->GetShaderBlob(csProgram.c_str(), "main", flags, {}, "cs_5_0",
                                                 &csBlob) != "")
   {
     RDCERR("Failed to create shader to calculate math intrinsic");
@@ -777,7 +785,7 @@ void D3D12DebugManager::FillWithDiscardPattern(ID3D12GraphicsCommandListX *cmd,
     if(depth)
       fmt = GetDepthTypedFormat(fmt);
     else
-      fmt = GetFloatTypedFormat(fmt);
+      fmt = GetTypedFormat(fmt, CompType::Float);
 
     rdcpair<DXGI_FORMAT, UINT> key = {fmt, desc.SampleDesc.Count};
     rdcpair<DXGI_FORMAT, UINT> stencilKey = {DXGI_FORMAT_UNKNOWN, desc.SampleDesc.Count};
@@ -796,6 +804,8 @@ void D3D12DebugManager::FillWithDiscardPattern(ID3D12GraphicsCommandListX *cmd,
       stencilpipe = m_DiscardPipes[stencilKey];
     }
 
+    bool intFormat = !depth && (IsIntFormat(fmt) || IsUIntFormat(fmt));
+
     if(pipe == NULL)
     {
       D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeDesc = {};
@@ -803,8 +813,10 @@ void D3D12DebugManager::FillWithDiscardPattern(ID3D12GraphicsCommandListX *cmd,
       pipeDesc.pRootSignature = m_DiscardRootSig;
       pipeDesc.VS.BytecodeLength = m_FullscreenVS->GetBufferSize();
       pipeDesc.VS.pShaderBytecode = m_FullscreenVS->GetBufferPointer();
-      pipeDesc.PS.BytecodeLength = m_DiscardPS->GetBufferSize();
-      pipeDesc.PS.pShaderBytecode = m_DiscardPS->GetBufferPointer();
+      pipeDesc.PS.BytecodeLength =
+          intFormat ? m_DiscardIntPS->GetBufferSize() : m_DiscardFloatPS->GetBufferSize();
+      pipeDesc.PS.pShaderBytecode =
+          intFormat ? m_DiscardIntPS->GetBufferPointer() : m_DiscardFloatPS->GetBufferPointer();
       pipeDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
       pipeDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
       pipeDesc.SampleMask = 0xFFFFFFFF;
@@ -1222,8 +1234,10 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
     return;
 
   D3D12_RESOURCE_DESC desc = buffer->GetDesc();
-  D3D12_HEAP_PROPERTIES heapProps;
-  buffer->GetHeapProperties(&heapProps, NULL);
+  D3D12_HEAP_PROPERTIES heapProps = {};
+  // can't call GetHeapProperties on sparse resources
+  if(!m_pDevice->IsSparseResource(GetResID(buffer)))
+    buffer->GetHeapProperties(&heapProps, NULL);
 
   if(offset >= desc.Width)
   {
@@ -1404,9 +1418,9 @@ void D3D12Replay::GeneralMisc::Init(WrappedID3D12Device *device, D3D12DebugManag
     ID3DBlob *CheckerboardPS = NULL;
 
     shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_FullscreenVS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "vs_5_0", &FullscreenVS);
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "vs_5_0", &FullscreenVS);
     shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_CheckerboardPS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &CheckerboardPS);
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &CheckerboardPS);
 
     RDCASSERT(CheckerboardPS);
     RDCASSERT(FullscreenVS);
@@ -1536,11 +1550,11 @@ void D3D12Replay::TextureRendering::Init(WrappedID3D12Device *device, D3D12Debug
     ID3DBlob *TexDisplayPS = NULL;
 
     shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_TexDisplayVS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "vs_5_0", &VS);
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "vs_5_0", &VS);
     RDCASSERT(VS);
 
     shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_TexDisplayPS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &TexDisplayPS);
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &TexDisplayPS);
     RDCASSERT(TexDisplayPS);
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeDesc = {};
@@ -1626,13 +1640,13 @@ void D3D12Replay::TextureRendering::Init(WrappedID3D12Device *device, D3D12Debug
     };
 
     shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_TexRemapFloat",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &TexRemap[0]);
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &TexRemap[0]);
     RDCASSERT(TexRemap[0]);
     shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_TexRemapUInt",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &TexRemap[1]);
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &TexRemap[1]);
     RDCASSERT(TexRemap[1]);
     shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_TexRemapSInt",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &TexRemap[2]);
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &TexRemap[2]);
     RDCASSERT(TexRemap[2]);
 
     for(int f = 0; f < 3; f++)
@@ -1697,24 +1711,25 @@ void D3D12Replay::OverlayRendering::Init(WrappedID3D12Device *device, D3D12Debug
     rdcstr meshhlsl = GetEmbeddedResource(mesh_hlsl);
 
     shaderCache->GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_TriangleSizeGS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "gs_5_0", &TriangleSizeGS);
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "gs_5_0", &TriangleSizeGS);
     shaderCache->GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_TriangleSizePS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &TriangleSizePS);
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &TriangleSizePS);
 
     shaderCache->GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_MeshVS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
-                               "vs_5_0", &MeshVS);
+                               {}, "vs_5_0", &MeshVS);
 
     rdcstr hlsl = GetEmbeddedResource(quadoverdraw_hlsl);
 
     shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_QuadOverdrawPS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &QuadOverdrawWritePS);
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &QuadOverdrawWritePS);
 
     // only create DXIL shaders if DXIL was used by the application, since dxc/dxcompiler is really
     // flakey.
     if(device->UsedDXIL())
     {
       shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_QuadOverdrawPS",
-                                 D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_6_0", &QuadOverdrawWriteDXILPS);
+                                 D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_6_0",
+                                 &QuadOverdrawWriteDXILPS);
 
       if(QuadOverdrawWriteDXILPS == NULL)
       {
@@ -1750,14 +1765,14 @@ void D3D12Replay::OverlayRendering::Init(WrappedID3D12Device *device, D3D12Debug
 
     ID3DBlob *FullscreenVS = NULL;
     shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_FullscreenVS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "vs_5_0", &FullscreenVS);
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "vs_5_0", &FullscreenVS);
     RDCASSERT(FullscreenVS);
 
     hlsl = GetEmbeddedResource(quadoverdraw_hlsl);
 
     ID3DBlob *QOResolvePS = NULL;
     shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_QOResolvePS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &QOResolvePS);
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &QOResolvePS);
     RDCASSERT(QOResolvePS);
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeDesc = {};
@@ -1856,7 +1871,7 @@ void D3D12Replay::VertexPicking::Init(WrappedID3D12Device *device, D3D12DebugMan
     ID3DBlob *meshPickCS;
 
     shaderCache->GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_MeshPickCS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "cs_5_0", &meshPickCS);
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "cs_5_0", &meshPickCS);
 
     RDCASSERT(meshPickCS);
 
@@ -2048,7 +2063,7 @@ void D3D12Replay::HistogramMinMax::Init(WrappedID3D12Device *device, D3D12DebugM
         hlsl += histogramhlsl;
 
         shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_TileMinMaxCS",
-                                   D3DCOMPILE_WARNINGS_ARE_ERRORS, "cs_5_0", &tile);
+                                   D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "cs_5_0", &tile);
 
         compPipeDesc.CS.BytecodeLength = tile->GetBufferSize();
         compPipeDesc.CS.pShaderBytecode = tile->GetBufferPointer();
@@ -2062,7 +2077,7 @@ void D3D12Replay::HistogramMinMax::Init(WrappedID3D12Device *device, D3D12DebugM
         }
 
         shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_HistogramCS",
-                                   D3DCOMPILE_WARNINGS_ARE_ERRORS, "cs_5_0", &histogram);
+                                   D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "cs_5_0", &histogram);
 
         compPipeDesc.CS.BytecodeLength = histogram->GetBufferSize();
         compPipeDesc.CS.pShaderBytecode = histogram->GetBufferPointer();
@@ -2078,7 +2093,7 @@ void D3D12Replay::HistogramMinMax::Init(WrappedID3D12Device *device, D3D12DebugM
         if(t == 1)
         {
           shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_ResultMinMaxCS",
-                                     D3DCOMPILE_WARNINGS_ARE_ERRORS, "cs_5_0", &result);
+                                     D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "cs_5_0", &result);
 
           compPipeDesc.CS.BytecodeLength = result->GetBufferSize();
           compPipeDesc.CS.pShaderBytecode = result->GetBufferPointer();
@@ -2260,29 +2275,29 @@ void MoveRootSignatureElementsToRegisterSpace(D3D12RootSignature &sig, uint32_t 
           D3D12_DESCRIPTOR_RANGE_TYPE rangeType = sig.Parameters[i].ranges[r].RangeType;
           if(rangeType == D3D12_DESCRIPTOR_RANGE_TYPE_CBV && type == D3D12DescriptorType::CBV)
           {
-            sig.Parameters[i].ranges[r].RegisterSpace = registerSpace;
+            sig.Parameters[i].ranges[r].RegisterSpace += registerSpace;
           }
           else if(rangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV && type == D3D12DescriptorType::SRV)
           {
-            sig.Parameters[i].ranges[r].RegisterSpace = registerSpace;
+            sig.Parameters[i].ranges[r].RegisterSpace += registerSpace;
           }
           else if(rangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV && type == D3D12DescriptorType::UAV)
           {
-            sig.Parameters[i].ranges[r].RegisterSpace = registerSpace;
+            sig.Parameters[i].ranges[r].RegisterSpace += registerSpace;
           }
         }
       }
       else if(rootType == D3D12_ROOT_PARAMETER_TYPE_CBV && type == D3D12DescriptorType::CBV)
       {
-        sig.Parameters[i].Descriptor.RegisterSpace = registerSpace;
+        sig.Parameters[i].Descriptor.RegisterSpace += registerSpace;
       }
       else if(rootType == D3D12_ROOT_PARAMETER_TYPE_SRV && type == D3D12DescriptorType::SRV)
       {
-        sig.Parameters[i].Descriptor.RegisterSpace = registerSpace;
+        sig.Parameters[i].Descriptor.RegisterSpace += registerSpace;
       }
       else if(rootType == D3D12_ROOT_PARAMETER_TYPE_UAV && type == D3D12DescriptorType::UAV)
       {
-        sig.Parameters[i].Descriptor.RegisterSpace = registerSpace;
+        sig.Parameters[i].Descriptor.RegisterSpace += registerSpace;
       }
     }
   }

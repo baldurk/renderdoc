@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@
 namespace JDWP
 {
 // enums and structs defined by the JDWP spec. These are defined in:
-// https://docs.oracle.com/javase/7/docs/platform/jpda/jdwp/jdwp-protocol.html#JDWP_Tag
+// https://docs.oracle.com/javase/7/docs/platform/jpda/jdwp/jdwp-protocol.html
 
 enum class CommandSet : byte
 {
@@ -58,7 +58,7 @@ enum class TypeTag : byte
 {
   Class = 1,
   Interface = 2,
-  Arrary = 3,
+  Array = 3,
 };
 
 enum class Tag : byte

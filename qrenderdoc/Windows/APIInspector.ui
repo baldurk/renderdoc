@@ -53,6 +53,9 @@
       <property name="rootIsDecorated">
        <bool>true</bool>
       </property>
+      <property name="uniformRowHeights">
+       <bool>true</bool>
+      </property>
       <property name="itemsExpandable">
        <bool>true</bool>
       </property>

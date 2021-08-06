@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -92,11 +92,13 @@ public:
   }
 
   StorageClass StorageBufferClass() { return m_StorageBufferClass; }
+  bool EntryPointAllGlobals() { return m_MajorVersion > 1 || m_MinorVersion >= 4; }
   void DecorateStorageBufferStruct(Id id);
   void SetName(Id id, const rdcstr &name);
   void SetMemberName(Id id, uint32_t member, const rdcstr &name);
   void AddDecoration(const Operation &op);
   void AddCapability(Capability cap);
+  bool HasCapability(Capability cap);
   void AddExtension(const rdcstr &extension);
   void AddExecutionMode(const Operation &mode);
   Id HasExtInst(const char *setname);
@@ -210,6 +212,22 @@ public:
     return ret;
   }
 
+  template <typename T>
+  Id AddConstantDeferred(T t)
+  {
+    Id typeId = DeclareType(scalar<T>());
+    Id retId = MakeId();
+    rdcarray<uint32_t> words = {typeId.value(), retId.value()};
+
+    words.resize(words.size() + (sizeof(T) + 3) / 4);
+
+    memcpy(&words[2], &t, sizeof(T));
+
+    m_DeferredConstants.add(Operation(Op::Constant, words));
+
+    return retId;
+  }
+
 private:
   using Processor::Parse;
   inline void addWords(size_t offs, size_t num) { addWords(offs, (int32_t)num); }
@@ -245,6 +263,8 @@ private:
 
   template <typename SPIRVType>
   const std::map<SPIRVType, Id> &GetTable() const;
+
+  OperationList m_DeferredConstants;
 
   rdcarray<uint32_t> &m_ExternalSPIRV;
 };

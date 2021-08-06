@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -57,8 +57,8 @@ struct ItemHelper
   static bool lessthanRange(const T *a, const T *b, size_t count)
   {
     for(size_t i = 0; i < count; i++)
-      if(a[i] < b[i])
-        return true;
+      if(!(a[i] == b[i]))
+        return a[i] < b[i];
 
     return false;
   }
@@ -186,6 +186,7 @@ public:
   {
     return usedCount == o.usedCount && ItemHelper<T>::equalRange(elems, o.elems, usedCount);
   }
+  bool operator!=(const rdcarray<T> &o) const { return !(*this == o); }
   bool operator<(const rdcarray<T> &o) const
   {
     if(usedCount != o.usedCount)
@@ -887,6 +888,11 @@ public:
     return *this;
   }
   rdcfixedarray() = default;
+  rdcfixedarray(const T (&in)[N])
+  {
+    for(size_t i = 0; i < N; i++)
+      elems[i] = in[i];
+  }
   rdcfixedarray(const std::initializer_list<T> &in)
   {
     static_assert(std::is_trivial<T>::value,

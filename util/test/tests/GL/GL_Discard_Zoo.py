@@ -13,11 +13,11 @@ class GL_Discard_Zoo(rdtest.Discard_Zoo):
     def check_capture(self):
         self.check_textures()
 
-        draw = self.find_draw("TestStart")
+        action = self.find_action("TestStart")
 
-        self.check(draw is not None)
+        self.check(action is not None)
 
-        self.controller.SetFrameEvent(draw.eventId, True)
+        self.controller.SetFrameEvent(action.eventId, True)
 
         # Check the buffer
         for res in self.controller.GetResources():
@@ -26,11 +26,11 @@ class GL_Discard_Zoo(rdtest.Discard_Zoo):
 
                 self.check(all([b == 0x88 for b in data]))
 
-        draw = self.find_draw("TestEnd")
+        action = self.find_action("TestEnd")
 
-        self.check(draw is not None)
+        self.check(action is not None)
 
-        self.controller.SetFrameEvent(draw.eventId, True)
+        self.controller.SetFrameEvent(action.eventId, True)
 
         # Check the buffer
         for res in self.controller.GetResources():

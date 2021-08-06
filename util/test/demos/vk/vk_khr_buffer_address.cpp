@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -134,6 +134,9 @@ void main()
 
     if(!bufaddrFeatures.bufferDeviceAddress)
       Avail = "Buffer device address feature 'bufferDeviceAddress' not available";
+
+    bufaddrFeatures.bufferDeviceAddressCaptureReplay = 0;
+    bufaddrFeatures.bufferDeviceAddressMultiDevice = 0;
 
     devInfoNext = &bufaddrFeatures;
   }

@@ -30,13 +30,13 @@ In the object we pass both the indices (which does not vary per attribute in our
 		meshInput = MeshData()
 		meshInput.indexResourceId = ib.resourceId
 		meshInput.indexByteOffset = ib.byteOffset
-		meshInput.indexByteStride = draw.indexByteWidth
+		meshInput.indexByteStride = ib.byteStride
 		meshInput.baseVertex = draw.baseVertex
 		meshInput.indexOffset = draw.indexOffset
 		meshInput.numIndices = draw.numIndices
 
 		# If the draw doesn't use an index buffer, don't use it even if bound
-		if not (draw.flags & rd.DrawFlags.Indexed):
+		if not (draw.flags & rd.ActionFlags.Indexed):
 			meshInput.indexResourceId = rd.ResourceId.Null()
 
 		# The total offset is the attribute offset from the base of the vertex

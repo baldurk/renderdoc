@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -63,6 +63,8 @@ enum CBVUAVSRVSlot
   SHADER_DEBUG_MSAA_UAV,
 
   TMP_UAV,
+
+  FEEDBACK_CLEAR_UAV,
 
   MSAA_SRV2x,
   MSAA_SRV4x,
@@ -230,7 +232,8 @@ private:
   ID3D12Fence *m_DebugFence = NULL;
 
   // Discard pattern rendering
-  ID3DBlob *m_DiscardPS = NULL;
+  ID3DBlob *m_DiscardFloatPS = NULL;
+  ID3DBlob *m_DiscardIntPS = NULL;
   ID3D12Resource *m_DiscardConstants = NULL;
   ID3D12RootSignature *m_DiscardRootSig = NULL;
 

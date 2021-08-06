@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -464,11 +464,17 @@ void main()
         viewAspect = VK_IMAGE_ASPECT_DEPTH_BIT;
     }
 
+    VkImageFormatListCreateInfoKHR formatList = {VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO_KHR};
+    formatList.viewFormatCount = 2;
+    VkFormat fmts[] = {test.fmt.texFmt, test.fmt.viewFmt};
+    formatList.pViewFormats = fmts;
+
     test.res = AllocatedImage(
         this,
         vkh::ImageCreateInfo(
             w, h, d, test.fmt.texFmt, usage, test.isMSAA ? 1 : texMips, test.isArray ? texSlices : 1,
-            test.isMSAA ? VkSampleCountFlagBits(texSamples) : VK_SAMPLE_COUNT_1_BIT, flags),
+            test.isMSAA ? VkSampleCountFlagBits(texSamples) : VK_SAMPLE_COUNT_1_BIT, flags)
+            .next(hasExt(VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME) ? &formatList : NULL),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
     test.view = createImageView(vkh::ImageViewCreateInfo(
         test.res.image, test.viewType, test.fmt.viewFmt, {}, vkh::ImageSubresourceRange(viewAspect)));
@@ -619,6 +625,7 @@ void main()
   void Prepare(int argc, char **argv)
   {
     devExts.push_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
+    optDevExts.push_back(VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME);
 
     features.sampleRateShading = true;
 
@@ -631,7 +638,7 @@ void main()
     if(!Init())
       return 3;
 
-    VkSampler sampler = createSampler(vkh::SamplerCreateInfo(VK_FILTER_LINEAR));
+    VkSampler sampler = createSampler(vkh::SamplerCreateInfo(VK_FILTER_NEAREST));
 
     setlayout = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
         {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, &sampler},
@@ -671,9 +678,9 @@ void main()
     VkFramebuffer framebuffer =
         createFramebuffer(vkh::FramebufferCreateInfo(rp, {fltView}, mainWindow->scissor.extent));
 
-    uploadBuf =
-        AllocatedBuffer(this, vkh::BufferCreateInfo(1024 * 1024, VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
-                        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+    uploadBuf = AllocatedBuffer(
+        this, vkh::BufferCreateInfo(8 * 1024 * 1024, VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     CurBuf = uploadBuf.map();
 
@@ -1402,6 +1409,151 @@ void main()
         vkDestroyPipeline(device, pipe, NULL);
     }
 
+    std::vector<Vec4f> blue;
+    blue.resize(64 * 64 * 64, Vec4f(0.0f, 0.0f, 1.0f, 1.0f));
+
+    std::vector<Vec4f> green;
+    green.resize(64 * 64, Vec4f(0.0f, 1.0f, 0.0f, 1.0f));
+
+    CurBuf = uploadBuf.map();
+
+    memcpy(CurBuf, blue.data(), blue.size() * sizeof(Vec4f));
+    memcpy(CurBuf + blue.size() * sizeof(Vec4f), green.data(), green.size() * sizeof(Vec4f));
+
+    uploadBuf.unmap();
+
+    // slice testing textures
+
+    TestCase slice_test_array = {};
+    TestCase slice_test_3d = {};
+    slice_test_array.dim = 2;
+    slice_test_array.isArray = true;
+    slice_test_array.res = AllocatedImage(
+        this,
+        vkh::ImageCreateInfo(64, 64, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
+                             VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, 2, 64),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+    slice_test_array.view = createImageView(vkh::ImageViewCreateInfo(
+        slice_test_array.res.image, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_FORMAT_R32G32B32A32_SFLOAT));
+    slice_test_array.set = allocateDescriptorSet(setlayout);
+    vkh::updateDescriptorSets(
+        device, {
+                    vkh::WriteDescriptorSet(slice_test_array.set, 0,
+                                            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                            {vkh::DescriptorImageInfo(slice_test_array.view)}),
+                });
+
+    slice_test_3d.dim = 3;
+    slice_test_3d.res = AllocatedImage(
+        this, vkh::ImageCreateInfo(64, 64, 64, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                   VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, 2),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+    slice_test_3d.view = createImageView(vkh::ImageViewCreateInfo(
+        slice_test_3d.res.image, VK_IMAGE_VIEW_TYPE_3D, VK_FORMAT_R32G32B32A32_SFLOAT));
+    slice_test_3d.set = allocateDescriptorSet(setlayout);
+    vkh::updateDescriptorSets(
+        device,
+        {
+            vkh::WriteDescriptorSet(slice_test_3d.set, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                    {vkh::DescriptorImageInfo(slice_test_3d.view)}),
+        });
+
+    {
+      VkCommandBuffer cmd = GetCommandBuffer();
+
+      vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
+
+      vkh::cmdPipelineBarrier(
+          cmd,
+          {
+              vkh::ImageMemoryBarrier(0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                      slice_test_array.res.image),
+              vkh::ImageMemoryBarrier(0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, slice_test_3d.res.image),
+          });
+
+      VkBufferImageCopy copy = {};
+      copy.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+      copy.imageExtent = {64, 64, 1};
+      copy.imageSubresource.layerCount = 64;
+
+      vkCmdCopyBufferToImage(cmd, uploadBuf.buffer, slice_test_array.res.image,
+                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+
+      copy.imageExtent.depth = 64;
+      copy.imageSubresource.layerCount = 1;
+      vkCmdCopyBufferToImage(cmd, uploadBuf.buffer, slice_test_3d.res.image,
+                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+
+      copy.imageSubresource.mipLevel = 1;
+      copy.imageExtent = {32, 32, 1};
+      copy.imageSubresource.layerCount = 64;
+      vkCmdCopyBufferToImage(cmd, uploadBuf.buffer, slice_test_array.res.image,
+                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+
+      copy.imageExtent.depth = 32;
+      copy.imageSubresource.layerCount = 1;
+      vkCmdCopyBufferToImage(cmd, uploadBuf.buffer, slice_test_3d.res.image,
+                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+
+      vkh::cmdPipelineBarrier(
+          cmd,
+          {
+              vkh::ImageMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
+                                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                      slice_test_array.res.image),
+              vkh::ImageMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
+                                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, slice_test_3d.res.image),
+          });
+
+      copy.imageSubresource.mipLevel = 0;
+      copy.imageSubresource.baseArrayLayer = 17;
+      copy.imageExtent = {64, 64, 1};
+      copy.imageSubresource.layerCount = 1;
+      copy.bufferOffset = blue.size() * sizeof(Vec4f);
+
+      vkCmdCopyBufferToImage(cmd, uploadBuf.buffer, slice_test_array.res.image,
+                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+
+      copy.imageSubresource.baseArrayLayer = 0;
+      copy.imageOffset.z = 17;
+      vkCmdCopyBufferToImage(cmd, uploadBuf.buffer, slice_test_3d.res.image,
+                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+
+      copy.imageSubresource.mipLevel = 1;
+      copy.imageExtent = {32, 32, 1};
+      copy.imageOffset.z = 0;
+      copy.imageSubresource.baseArrayLayer = 17;
+      vkCmdCopyBufferToImage(cmd, uploadBuf.buffer, slice_test_array.res.image,
+                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+
+      copy.imageSubresource.baseArrayLayer = 0;
+      copy.imageOffset.z = 17;
+      vkCmdCopyBufferToImage(cmd, uploadBuf.buffer, slice_test_3d.res.image,
+                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+
+      vkh::cmdPipelineBarrier(
+          cmd, {
+                   vkh::ImageMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+                                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                           slice_test_array.res.image),
+                   vkh::ImageMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+                                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                           slice_test_3d.res.image),
+               });
+
+      vkEndCommandBuffer(cmd);
+
+      Submit(99, 99, {cmd});
+
+      vkDeviceWaitIdle(device);
+    }
+
     while(Running())
     {
       VkCommandBuffer cmd = GetCommandBuffer();
@@ -1416,6 +1568,31 @@ void main()
                            VK_SUBPASS_CONTENTS_INLINE);
 
       VkViewport view = {0.0f, 0.0f, 10.0f, 10.0f, 0.0f, 1.0f};
+
+      {
+        VkRect2D scissor = {
+            {(int32_t)view.x + 1, (int32_t)view.y + 1},
+            {(uint32_t)view.width - 2, (uint32_t)view.height - 2},
+        };
+        vkCmdSetViewport(cmd, 0, 1, &view);
+        vkCmdSetScissor(cmd, 0, 1, &scissor);
+      }
+
+      // dummy draw for each slice test texture
+      pushMarker(cmd, "slice tests");
+      setMarker(cmd, "2D array");
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, GetPSO(slice_test_array));
+      vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0,
+                                 {slice_test_array.set}, {});
+      vkCmdDraw(cmd, 0, 0, 0, 0);
+
+      setMarker(cmd, "3D");
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, GetPSO(slice_test_3d));
+      vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0,
+                                 {slice_test_3d.set}, {});
+      vkCmdDraw(cmd, 0, 0, 0, 0);
+      popMarker(cmd);
+
       for(size_t i = 0; i < test_textures.size(); i++)
       {
         if(i == 0 || test_textures[i].fmt.texFmt != test_textures[i - 1].fmt.texFmt ||
@@ -1464,7 +1641,8 @@ void main()
 
       vkCmdEndRenderPass(cmd);
 
-      blitToSwap(cmd, fltTex.image, VK_IMAGE_LAYOUT_GENERAL, swapimg, VK_IMAGE_LAYOUT_GENERAL);
+      blitToSwap(cmd, fltTex.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, swapimg,
+                 VK_IMAGE_LAYOUT_GENERAL);
 
       FinishUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
 

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -231,6 +231,12 @@ void main()
     glBindFramebuffer(GL_FRAMEBUFFER, subfbo2);
 
     glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, subtex, 3, 2);
+
+    // keep a trash buffer bound to pixel pack/unpack
+    GLuint trash = MakeBuffer();
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, trash);
+    glBufferStorage(GL_PIXEL_UNPACK_BUFFER, 1024, 0, 0);
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, trash);
 
     while(Running())
     {

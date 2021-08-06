@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -274,6 +274,8 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
         rdcspv::CompilationSettings settings(rdcspv::InputLanguage::OpenGLGLSL,
                                              rdcspv::ShaderStage(ShaderIdx(type)));
 
+        settings.gles = IsGLES;
+
         rdcstr s = rdcspv::Compile(settings, sources, spirvwords);
         if(!spirvwords.empty())
           spirv.Parse(spirvwords);
@@ -362,7 +364,7 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glShaderSource(SerialiserType &ser, GLuint shaderHandle, GLsizei count,
                                              const GLchar *const *source, const GLint *length)
 {
-  SERIALISE_ELEMENT_LOCAL(shader, ShaderRes(GetCtx(), shaderHandle));
+  SERIALISE_ELEMENT_LOCAL(shader, ShaderRes(GetCtx(), shaderHandle)).Important();
 
   // serialisation can't handle the length parameter neatly, so we compromise by serialising via a
   // vector
@@ -378,7 +380,7 @@ bool WrappedOpenGL::Serialise_glShaderSource(SerialiserType &ser, GLuint shaderH
     }
   }
 
-  SERIALISE_ELEMENT(count);
+  SERIALISE_ELEMENT(count).Important();
   SERIALISE_ELEMENT(sources);
   SERIALISE_ELEMENT_ARRAY(length, count);
 

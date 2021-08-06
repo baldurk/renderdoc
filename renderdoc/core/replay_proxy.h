@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -405,6 +405,11 @@ public:
     return ~0U;
   }
 
+  void SetCustomShaderIncludes(const rdcarray<rdcstr> &directories)
+  {
+    if(m_Proxy)
+      m_Proxy->SetCustomShaderIncludes(directories);
+  }
   void BuildCustomShader(ShaderEncoding sourceEncoding, const bytebuf &source, const rdcstr &entry,
                          const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId &id,
                          rdcstr &errors)
@@ -585,7 +590,7 @@ private:
   void EnsureBufCached(ResourceId bufid);
   IMPLEMENT_FUNCTION_PROXIED(bool, NeedRemapForFetch, const ResourceFormat &format);
 
-  const DrawcallDescription *FindDraw(const rdcarray<DrawcallDescription> &drawcallList,
+  const ActionDescription *FindAction(const rdcarray<ActionDescription> &actionList,
                                       uint32_t eventId);
 
   bool CheckError(ReplayProxyPacket receivedPacket, ReplayProxyPacket expectedPacket);
@@ -715,7 +720,7 @@ private:
   APIProperties m_APIProps;
   std::map<ResourceId, TextureDescription> m_TextureInfo;
 
-  rdcarray<DrawcallDescription *> m_Drawcalls;
+  rdcarray<ActionDescription *> m_Actions;
 
   SDFile m_StructuredFile;
 

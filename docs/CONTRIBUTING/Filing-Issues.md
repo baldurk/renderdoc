@@ -10,7 +10,9 @@ Please use the bug report template when filing an issue about a bug or a crash, 
 
 This document explains what is expected in the template and is split into two parts - first for bug reports, and second for feature requests.
 
-As a general rule for all issues: Please be aware that RenderDoc is a tool for debugging your programs, not for copyright infringement. If your problem or request relates to violating copyright by extracting assets or injecting into copyrighted applications that are not your own then you will find no help here.
+:warning: :warning: :warning: :warning: :warning: :warning:
+As a general rule for all issues: RenderDoc is a tool for debugging your programs, not for copyright infringement. If your problem or request relates to capturing copyrighted applications that are not your own then you will find no help here and your issue will be immediately closed.
+:warning: :warning: :warning: :warning: :warning: :warning:
 
 To read more about how to file an issue click the appropriate link below:
 

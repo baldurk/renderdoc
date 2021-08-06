@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -38,8 +38,9 @@ namespace DXBC
 {
 class IDebugInfo;
 struct Reflection;
-IDebugInfo *MakeSDBGChunk(void *data);
-IDebugInfo *MakeSPDBChunk(void *data);
+IDebugInfo *ProcessSDBGChunk(void *data);
+IDebugInfo *ProcessSPDBChunk(void *data);
+IDebugInfo *ProcessPDB(byte *data, uint32_t length);
 bool IsPDBFile(void *data, size_t length);
 void UnwrapEmbeddedPDBData(bytebuf &bytes);
 };
@@ -129,8 +130,6 @@ enum class GlobalShaderFlags : int64_t
 
 BITMASK_OPERATORS(GlobalShaderFlags);
 
-rdcstr TypeName(CBufferVariableType::Descriptor desc);
-
 struct RDEFHeader;
 
 uint32_t DecodeFlags(const ShaderCompileFlags &compileFlags);
@@ -142,17 +141,20 @@ ShaderCompileFlags EncodeFlags(const uint32_t flags, const rdcstr &profile);
 class DXBCContainer
 {
 public:
-  DXBCContainer(bytebuf &ByteCode, const rdcstr &debugInfoPath, GraphicsAPI api,
+  DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPath, GraphicsAPI api,
                 uint32_t shaderExtReg, uint32_t shaderExtSpace);
   ~DXBCContainer();
+  DXBCContainer(const DXBCContainer &o) = delete;
+  DXBCContainer(DXBCContainer &&o) = delete;
+  DXBCContainer &operator=(const DXBCContainer &o) = delete;
+
   DXBC::ShaderType m_Type = DXBC::ShaderType::Max;
   struct
   {
     uint32_t Major = 0, Minor = 0;
   } m_Version;
 
-  bytebuf m_ShaderBlob;
-
+  const bytebuf &GetShaderBlob() const { return m_ShaderBlob; }
   const IDebugInfo *GetDebugInfo() const { return m_DebugInfo; }
   const Reflection *GetReflection() const { return m_Reflection; }
   D3D_PRIMITIVE_TOPOLOGY GetOutputTopology();
@@ -161,10 +163,15 @@ public:
   void FillTraceLineInfo(ShaderDebugTrace &trace) const;
   void FillStateInstructionInfo(ShaderDebugState &state) const;
 
+  static void ReplaceDXBCBytecode(bytebuf &ByteCode, const rdcarray<uint32_t> &replacement);
+
   const DXBCBytecode::Program *GetDXBCByteCode() const { return m_DXBCByteCode; }
   DXBCBytecode::Program *GetDXBCByteCode() { return m_DXBCByteCode; }
   const DXIL::Program *GetDXILByteCode() { return m_DXILByteCode; }
   static void GetHash(uint32_t hash[4], const void *ByteCode, size_t BytecodeLength);
+
+  static bool IsHashedContainer(void *ByteCode, size_t BytecodeLength);
+  static bool HashContainer(void *ByteCode, size_t BytecodeLength);
 
   static bool UsesExtensionUAV(uint32_t slot, uint32_t space, const void *ByteCode,
                                size_t BytecodeLength);
@@ -174,12 +181,10 @@ public:
   static rdcstr GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLength);
 
 private:
-  DXBCContainer(const DXBCContainer &o);
-  DXBCContainer &operator=(const DXBCContainer &o);
-
   void TryFetchSeparateDebugInfo(bytebuf &byteCode, const rdcstr &debugInfoPath);
 
   bytebuf m_DebugShaderBlob;
+  bytebuf m_ShaderBlob;
 
   rdcstr m_Disassembly;
 

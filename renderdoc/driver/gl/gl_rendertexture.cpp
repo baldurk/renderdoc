@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -86,6 +86,8 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
     // need replay context active to do blit (as FBOs aren't shared)
     MakeCurrentReplayContext(&m_ReplayCtx);
 
+    GLMarkerRegion blitRegion("Renderbuffer Blit");
+
     GLuint curDrawFBO = 0;
     GLuint curReadFBO = 0;
     drv.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&curDrawFBO);
@@ -110,6 +112,8 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
 
   MakeCurrentReplayContext(m_DebugCtx);
 
+  GLMarkerRegion region("RenderTextureInternal");
+
   uint32_t numMips = m_CachedTextures[cfg.resourceId].mips;
 
   GLuint castTexture = 0;
@@ -124,7 +128,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
     // if the format didn't change we can't re-interpret this format anyway
     if(displayFormat != texDetails.internalFormat)
     {
-      GLMarkerRegion region("Casting texture for view");
+      GLMarkerRegion castRegion("Casting texture for view");
 
       drv.glGenTextures(1, &castTexture);
       drv.glActiveTexture(eGL_TEXTURE0);
@@ -535,6 +539,22 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
   ubo->RangeMinimum = cfg.rangeMin;
   ubo->InverseRangeSize = 1.0f / (cfg.rangeMax - cfg.rangeMin);
 
+  TextureSamplerMode mode = TextureSamplerMode::Point;
+
+  if(cfg.subresource.mip == 0 && cfg.scale < 1.0f && dsTexMode == eGL_NONE &&
+     resType != RESTYPE_TEXBUFFER && resType != RESTYPE_TEXRECT && !intTexture)
+  {
+    mode = TextureSamplerMode::Linear;
+  }
+  else
+  {
+    if(resType == RESTYPE_TEXRECT || resType == RESTYPE_TEX2DMS ||
+       resType == RESTYPE_TEX2DMSARRAY || resType == RESTYPE_TEXBUFFER)
+      mode = TextureSamplerMode::PointNoMip;
+    else
+      mode = TextureSamplerMode::Point;
+  }
+
   ubo->MipLevel = (int)cfg.subresource.mip;
   if(texDetails.curType != eGL_TEXTURE_3D)
   {
@@ -550,9 +570,17 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
   }
   else
   {
-    uint32_t sliceFace =
-        RDCCLAMP(cfg.subresource.slice, 0U, RDCMAX((uint32_t)texDetails.depth, 1U) - 1);
-    ubo->Slice = (float)sliceFace + 0.001f;
+    float slice =
+        (float)RDCCLAMP(cfg.subresource.slice, 0U, RDCMAX((uint32_t)texDetails.depth, 1U) - 1);
+
+    // when sampling linearly, we need to add half a pixel to ensure we only sample the desired
+    // slice
+    if(mode == TextureSamplerMode::Linear)
+      slice += 0.5f;
+    else
+      slice += 0.001f;
+
+    ubo->Slice = slice;
   }
 
   ubo->OutputDisplayFormat = resType;
@@ -591,22 +619,6 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
   ubo->YUVAChannels = {};
 
   drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
-
-  TextureSamplerMode mode = TextureSamplerMode::Point;
-
-  if(cfg.subresource.mip == 0 && cfg.scale < 1.0f && dsTexMode == eGL_NONE &&
-     resType != RESTYPE_TEXBUFFER && resType != RESTYPE_TEXRECT && !intTexture)
-  {
-    mode = TextureSamplerMode::Linear;
-  }
-  else
-  {
-    if(resType == RESTYPE_TEXRECT || resType == RESTYPE_TEX2DMS ||
-       resType == RESTYPE_TEX2DMSARRAY || resType == RESTYPE_TEXBUFFER)
-      mode = TextureSamplerMode::PointNoMip;
-    else
-      mode = TextureSamplerMode::Point;
-  }
 
   TextureSamplerState prevSampState = SetSamplerParams(target, texname, mode);
 

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -258,7 +258,7 @@ static struct AnalyticsDocumentation
     DOCUMENT_ANALYTIC(ShaderEditing, "Did the user edit a shader (any API)?");
     DOCUMENT_ANALYTIC(CallstackResolve, "Did the user capture and resolve CPU callstacks?");
     DOCUMENT_ANALYTIC(PixelHistory, "Did the user run a pixel history?");
-    DOCUMENT_ANALYTIC(DrawcallTimes, "Did the user fetch drawcall timings/durations?");
+    DOCUMENT_ANALYTIC(DrawcallTimes, "Did the user fetch action timings/durations?");
     DOCUMENT_ANALYTIC(PerformanceCounters, "Did the user fetch advanced performance counters?");
     DOCUMENT_ANALYTIC(PythonInterop, "Did the user run any python scripts or commands?");
     DOCUMENT_ANALYTIC(CustomTextureVisualise,
@@ -273,7 +273,7 @@ static struct AnalyticsDocumentation
 
   struct
   {
-    DOCUMENT_ANALYTIC(EventBrowser, "Did the user ever export drawcalls from the event browser?");
+    DOCUMENT_ANALYTIC(EventBrowser, "Did the user ever export actions from the event browser?");
     DOCUMENT_ANALYTIC(PipelineState, "Did the user ever export the pipeline state (any API)?");
     DOCUMENT_ANALYTIC(MeshOutput, "Did the user ever export mesh data (inputs or outputs)?");
     DOCUMENT_ANALYTIC(RawBuffer, "Did the user ever export raw buffer data?");
@@ -523,6 +523,7 @@ void Analytics::DocumentReport()
   {
     QDialog dialog;
     dialog.setWindowTitle(lit("Sample Analytics Report"));
+    dialog.setWindowFlags(dialog.windowFlags() & ~Qt::WindowContextHelpButtonHint);
     dialog.setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     dialog.setFixedSize(600, 500);
 

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -364,8 +364,8 @@ void main()
         vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
 
         VkRect2D s = {{0, 0},
-                      {uint32_t(screenWidth / (int)sqrt(descriptorCount)),
-                       uint32_t(screenHeight / (int)sqrt(descriptorCount))}};
+                      {uint32_t(screenWidth / (int)sqrtf((float)descriptorCount)),
+                       uint32_t(screenHeight / (int)sqrtf((float)descriptorCount))}};
         VkViewport v = {0, 0, (float)s.extent.width, (float)s.extent.height, 0, 1};
 
         size_t randSeed = curFrame * threadIndex + threadIndex;

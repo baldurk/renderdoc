@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2020 Baldur Karlsson
+ * Copyright (c) 2020-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -416,9 +416,9 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       }
 
       // raytracing
-      case Capability::RayQueryProvisionalKHR:
-      case Capability::RayTraversalPrimitiveCullingProvisionalKHR:
-      case Capability::RayTracingProvisionalKHR:
+      case Capability::RayQueryKHR:
+      case Capability::RayTraversalPrimitiveCullingKHR:
+      case Capability::RayTracingKHR:
       {
         supported = false;
         break;
@@ -476,6 +476,14 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       case Capability::BlockingPipesINTEL:
       case Capability::Max:
       case Capability::Invalid:
+      {
+        supported = false;
+        break;
+      }
+
+      // deprecated provisional raytracing
+      case Capability::RayQueryProvisionalKHR:
+      case Capability::RayTracingProvisionalKHR:
       {
         supported = false;
         break;
@@ -844,7 +852,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
 
                   // now write it into the appropiate elements in the destination ShaderValue
                   for(uint32_t r = 0; r < var.rows; r++)
-                    copyComp(var, r * var.columns + c, tmp, r, var.type);
+                    copyComp(var, r * var.columns + c, tmp, r);
                 }
               }
               else
@@ -1512,18 +1520,33 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
 
     bind.arrayIndex = (uint32_t)ptr.value.u64v[ArrayVariableSlot];
 
-    uint32_t matrixStride = (uint32_t)ptr.value.u64v[MajorStrideVariableSlot];
-    bool rowMajor = (matrixStride & 0x80000000U) != 0;
-    matrixStride &= 0xff;
+    uint32_t varMatrixStride = (uint32_t)ptr.value.u64v[MajorStrideVariableSlot];
 
-    auto readCallback = [this, bind, matrixStride, rowMajor](
-        ShaderVariable &var, const Decorations &, const DataType &type, uint64_t offset,
-        const rdcstr &) {
+    Decorations parentDecorations;
+    if((varMatrixStride & 0x80000000U) != 0)
+      parentDecorations.flags = Decorations::RowMajor;
+    else
+      parentDecorations.flags = Decorations::ColMajor;
+
+    varMatrixStride &= 0xff;
+
+    if(varMatrixStride != 0)
+    {
+      parentDecorations.flags =
+          Decorations::Flags(parentDecorations.flags | Decorations::HasMatrixStride);
+      parentDecorations.matrixStride = varMatrixStride;
+    }
+
+    auto readCallback = [this, bind](ShaderVariable &var, const Decorations &dec,
+                                     const DataType &type, uint64_t offset, const rdcstr &) {
 
       // ignore any callbacks we get on the way up for structs/arrays, we don't need it we only read
       // or write at primitive level
       if(!var.members.empty())
         return;
+
+      bool rowMajor = (dec.flags & Decorations::RowMajor) != 0;
+      uint32_t matrixStride = dec.matrixStride;
 
       if(type.type == DataType::MatrixType)
       {
@@ -1554,7 +1577,7 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
           // transpose into our row major storage
           for(uint8_t r = 0; r < var.rows; r++)
             for(uint8_t c = 0; c < var.columns; c++)
-              copyComp(var, r * var.columns + c, tmp, c * var.rows + r, var.type);
+              copyComp(var, r * var.columns + c, tmp, c * var.rows + r);
         }
       }
       else if(type.type == DataType::VectorType)
@@ -1580,8 +1603,8 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
       }
     };
 
-    WalkVariable<ShaderVariable, true>(Decorations(), dataTypes[typeId], byteOffset, ret, rdcstr(),
-                                       readCallback);
+    WalkVariable<ShaderVariable, true>(parentDecorations, dataTypes[typeId], byteOffset, ret,
+                                       rdcstr(), readCallback);
 
     ret.name = ptr.name;
     return ret;
@@ -1713,11 +1736,12 @@ void Debugger::WriteThroughPointer(const ShaderVariable &ptr, const ShaderVariab
         else
         {
           ShaderVariable tmp;
+          tmp.type = var.type;
 
           // transpose from our row major storage
           for(uint8_t r = 0; r < var.rows; r++)
             for(uint8_t c = 0; c < var.columns; c++)
-              copyComp(tmp, c * var.rows + r, var, r * var.columns + c, var.type);
+              copyComp(tmp, c * var.rows + r, var, r * var.columns + c);
 
           // read column-wise
           for(uint8_t c = 0; c < var.columns; c++)
@@ -2334,6 +2358,15 @@ void Debugger::RegisterOp(Iter it)
     if(extSets[extinst.set] == "GLSL.std.450")
     {
       // all parameters to GLSL.std.450 are Ids, extend idDeathOffset appropriately
+      for(const uint32_t param : extinst.params)
+      {
+        Id id = Id::fromWord(param);
+        idDeathOffset[id] = RDCMAX(it.offs() + 1, idDeathOffset[id]);
+      }
+    }
+    else if(extSets[extinst.set] == "NonSemantic.DebugPrintf")
+    {
+      // all parameters to NonSemantic.DebugPrintf are Ids, extend idDeathOffset appropriately
       for(const uint32_t param : extinst.params)
       {
         Id id = Id::fromWord(param);

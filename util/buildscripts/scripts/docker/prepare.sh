@@ -27,32 +27,48 @@ apt-get install --force-yes -y libproxy-dev autoconf autogen libtool xutils-dev 
 update-alternatives --install /usr/bin/clang clang /usr/bin/clang-3.8 380
 update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-3.8 380
 
-# build xcb-keysyms for static linking
-wget https://xcb.freedesktop.org/dist/xcb-util-keysyms-0.4.0.tar.gz
-tar xzf xcb-util-keysyms-0.4.0.tar.gz
-cd xcb-util-keysyms-0.4.0/
-CFLAGS="-fPIC -fvisibility=hidden" ./configure --prefix=/usr --disable-shared --enable-static
+update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 500
+update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 500
+
+static_build_freedesktop_lib() {
+  wget https://xcb.freedesktop.org/dist/$1.tar.gz
+  tar -xf $1.tar.gz
+  cd $1
+  CFLAGS="-fPIC -fvisibility=hidden" ./configure --prefix=/usr --libdir=/usr/lib/x86_64-linux-gnu --disable-shared --enable-static
+  make && make install
+  cd ..
+}
+
+# First build xcb-proto required by libxcb
+static_build_freedesktop_lib xcb-proto-1.11
+
+# now build libxcb once with everything enabled and static only. This will produce all the xcb-*
+# libraries like libxcb-xinerama and libxcb-xfixes statically linked. We want these available to
+# Qt so we don't just disable them, but we don't want to dynamic link since on some distros
+# these libraries may not be installed yet and we want our package dependency footprint to be
+# minimal, ideally only packages that we expect to be installed
+wget https://xcb.freedesktop.org/dist/libxcb-1.11.tar.gz
+tar -xf libxcb-1.11.tar.gz
+cd libxcb-1.11
+CFLAGS="-fPIC -fvisibility=hidden" ./configure --prefix=/usr --libdir=/usr/lib/x86_64-linux-gnu --disable-shared --enable-static
 make
 make install
 cd ..
 
-# xcb-proto
-wget http://xcb.freedesktop.org/dist/xcb-proto-1.10.tar.gz
-tar -xf xcb-proto-1.10.tar.gz
-cd xcb-proto-1.10
-CFLAGS="-fPIC -fvisibility=hidden" ./configure --prefix=/usr
+# However to build properly we need the base xcb library as shared, so rebuild it but with all
+# the optional libraries above turned off
+rm -rf libxcb-1.11
+tar -xf libxcb-1.11.tar.gz
+cd libxcb-1.11
+CFLAGS="-fPIC" ./configure --prefix=/usr --libdir=/usr/lib/x86_64-linux-gnu --enable-shared --disable-static --disable-randr --disable-render --disable-shape --disable-shm --disable-sync --disable-xfixes --disable-xinerama --disable-xkb
 make
 make install
 cd ..
 
-# libxcb
-wget https://xcb.freedesktop.org/dist/libxcb-1.10.tar.gz
-tar -xf libxcb-1.10.tar.gz
-cd libxcb-1.10
-CFLAGS="-fPIC -fvisibility=hidden" ./configure --prefix=/usr
-make
-make install
-cd ..
+# build static versions of other xcb libraries Qt needs to build
+for I in xcb-util-keysyms-0.4.0 xcb-util-0.3.9 xcb-util-image-0.4.0 xcb-util-renderutil-0.3.9 xcb-util-wm-0.4.1; do
+  static_build_freedesktop_lib $I;
+done
 
 # libxkbcommon
 wget https://github.com/xkbcommon/libxkbcommon/archive/xkbcommon-0.7.0.tar.gz
@@ -66,37 +82,44 @@ cd ..
 # libfontconfig static linking seems to break, so dynamic link against libfreetype and libfontconfig
 apt-get install --force-yes -y libfontconfig1-dev
 
-# build qt for static linking
-#
-# Qt deleted the archive from their official mirrors (wtf?)
-# It is rehosted on renderdoc.org and the md5 is verified against the official md5:
-# https://web.archive.org/web/20161212004141/https://download.qt.io/archive/qt/5.6/5.6.2/single/md5sums.txt
-#wget http://download.qt.io/archive/qt/5.6/5.6.2/single/qt-everywhere-opensource-src-5.6.2.tar.xz
+# remove kerberos dev package so Qt doesn't link against it. There doesn't seem to be a configure
+# option to disable it, blech
+apt-get remove --force-yes -y libkrb5-dev
 
-wget https://renderdoc.org/qt-everywhere-opensource-src-5.6.2.tar.xz
-echo "5175fba2f221fd4c91e94771a57a5557  qt-everywhere-opensource-src-5.6.2.tar.xz" | md5sum -c -
-
-tar -xf qt-everywhere-opensource-src-5.6.2.tar.xz
-cd qt-everywhere-opensource-src-5.6.2
-
-# Fix for linking static qt into a shared library:
-# https://bugreports.qt.io/browse/QTBUG-52605
-# https://codereview.qt-project.org/171007
-cd qtbase
-git apply < /static_tagging.patch
-cd ..
-
-./configure -prefix /usr -release -opensource -confirm-license -static -platform linux-clang -no-qml-debug -qt-zlib -no-mtdev -no-journald -no-syslog -qt-libpng -qt-libjpeg -system-xkbcommon-x11 -fontconfig -no-icu -qt-harfbuzz -openssl -libproxy -qt-pcre -qt-xcb -no-xinput2 -no-pulseaudio -no-alsa -v -no-cups -no-linuxfb -no-opengl -no-gstreamer -no-libinput -no-sse3 -no-ssse3 -no-sse4.1 -no-sse4.2 -no-avx -no-avx2 -skip qtdeclarative -skip qtsensors -skip qtconnectivity -skip qtmultimedia -skip qtscript -skip qtserialbus -skip qtserialport -skip qtcanvas3d -skip qtenginio -skip qtlocation -skip qtgraphicaleffects -skip qtxmlpatterns -skip qtwebview -skip qt3d -skip qttools -nomake examples -nomake tools -nomake tests
+# Qt 5.15 needs openssl 1.1.1 headers even for runtime openssl. Presumably this will fail if the
+# resulting system doesn't have openssl 1.1.1, but we accept that since at worst it means no analytics.
+wget https://github.com/openssl/openssl/archive/OpenSSL_1_1_1.tar.gz
+tar -xf OpenSSL_1_1_1.tar.gz
+cd openssl-OpenSSL_1_1_1
+./config --prefix=/usr --libdir=lib/x86_64-linux-gnu --openssldir=/usr/lib/ssl
 make -j4
 make install
 cd ..
+
+# build qt for static linking
+wget https://download.qt.io/official_releases/qt/5.15/5.15.2/single/qt-everywhere-src-5.15.2.tar.xz
+echo "e1447db4f06c841d8947f0a6ce83a7b5  qt-everywhere-src-5.15.2.tar.xz" | md5sum -c -
+
+tar -xf qt-everywhere-src-5.15.2.tar.xz
+cd qt-everywhere-src-5.15.2
+
+./configure -prefix /usr -release -opensource -confirm-license -static -platform linux-clang -qt-zlib -no-mtdev -no-journald -no-syslog -qt-libpng -qt-libjpeg -fontconfig -no-icu -qt-harfbuzz -openssl-runtime -libproxy -qt-pcre -xcb -bundled-xcb-xinput -v -no-cups -no-linuxfb -no-opengl -no-libinput -no-sse3 -no-ssse3 -no-sse4.1 -no-sse4.2 -no-avx -no-avx2 -skip qtdeclarative -skip qtsensors -skip qtconnectivity -skip qtmultimedia -skip qtscript -skip qtserialbus -skip qtserialport -skip qtcanvas3d -skip qtlocation -skip qtgraphicaleffects -skip qtxmlpatterns -skip qtwebview -skip qt3d -skip qttools -nomake examples -nomake tools -nomake tests -platform linux-g++
+
+make -j$(nproc)
+make install
+cd ..
+
+# we can now install libcurl *after* building Qt, so that cmake can use it for curl with
+# ssl support. We can't do this before because it pulls in kerberos which we explicitly
+# uninstalled earlier
+apt-get install --force-yes -y libcurl4-openssl-dev
 
 # build cmake locally, to get ssl support for external projects
 wget http://www.cmake.org/files/v3.2/cmake-3.2.2.tar.gz
 tar xf cmake-3.2.2.tar.gz
 cd cmake-3.2.2
 ./configure --prefix=/usr --system-curl --parallel=4
-make -j4
+make -j$(nproc)
 make install
 cd ..
 
@@ -105,7 +128,7 @@ wget https://www.python.org/ftp/python/3.6.1/Python-3.6.1.tgz
 tar xf Python-3.6.1.tgz
 cd Python-3.6.1
 ./configure --prefix=/usr
-make -j4
+make -j$(nproc)
 make install
 cd ..
 

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -38,7 +38,8 @@ bool WrappedID3D12Device::Serialise_CreatePipelineState(SerialiserType &ser,
                                                         REFIID riid, void **ppPipelineState)
 {
   SERIALISE_ELEMENT_LOCAL(Descriptor, D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(*pDesc))
-      .Named("pDesc"_lit);
+      .Named("pDesc"_lit)
+      .Important();
   SERIALISE_ELEMENT_LOCAL(guid, riid).Named("riid"_lit);
   SERIALISE_ELEMENT_LOCAL(pPipelineState,
                           ((WrappedID3D12PipelineState *)*ppPipelineState)->GetResourceID())
@@ -132,22 +133,25 @@ bool WrappedID3D12Device::Serialise_CreatePipelineState(SerialiserType &ser,
           memcpy((void *)wrapped->graphics->StreamOutput.pSODeclaration,
                  Descriptor.StreamOutput.pSODeclaration,
                  sizeof(D3D12_SO_DECLARATION_ENTRY) * wrapped->graphics->StreamOutput.NumEntries);
-        }
-        else
-        {
-          wrapped->graphics->StreamOutput.pSODeclaration = NULL;
-        }
 
-        if(wrapped->graphics->StreamOutput.NumStrides)
-        {
-          wrapped->graphics->StreamOutput.pBufferStrides =
-              new UINT[wrapped->graphics->StreamOutput.NumStrides];
-          memcpy((void *)wrapped->graphics->StreamOutput.pBufferStrides,
-                 Descriptor.StreamOutput.pBufferStrides,
-                 sizeof(UINT) * wrapped->graphics->StreamOutput.NumStrides);
+          if(wrapped->graphics->StreamOutput.NumStrides)
+          {
+            wrapped->graphics->StreamOutput.pBufferStrides =
+                new UINT[wrapped->graphics->StreamOutput.NumStrides];
+            memcpy((void *)wrapped->graphics->StreamOutput.pBufferStrides,
+                   Descriptor.StreamOutput.pBufferStrides,
+                   sizeof(UINT) * wrapped->graphics->StreamOutput.NumStrides);
+          }
+          else
+          {
+            wrapped->graphics->StreamOutput.pBufferStrides = NULL;
+          }
         }
         else
         {
+          wrapped->graphics->StreamOutput.NumEntries = 0;
+          wrapped->graphics->StreamOutput.NumStrides = 0;
+          wrapped->graphics->StreamOutput.pSODeclaration = NULL;
           wrapped->graphics->StreamOutput.pBufferStrides = NULL;
         }
 
@@ -190,6 +194,9 @@ HRESULT WrappedID3D12Device::CreatePipelineState(const D3D12_PIPELINE_STATE_STRE
   D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC expandedDesc = *pDesc;
   D3D12_PACKED_PIPELINE_STATE_STREAM_DESC unwrappedDesc = expandedDesc;
   unwrappedDesc.Unwrap();
+
+  if(expandedDesc.errored)
+    return E_INVALIDARG;
 
   if(ppPipelineState == NULL)
     return m_pDevice3->CreatePipelineState(unwrappedDesc.AsDescStream(), riid, ppPipelineState);
@@ -305,22 +312,26 @@ HRESULT WrappedID3D12Device::CreatePipelineState(const D3D12_PIPELINE_STATE_STRE
           memcpy((void *)wrapped->graphics->StreamOutput.pSODeclaration,
                  expandedDesc.StreamOutput.pSODeclaration,
                  sizeof(D3D12_SO_DECLARATION_ENTRY) * wrapped->graphics->StreamOutput.NumEntries);
-        }
-        else
-        {
-          wrapped->graphics->StreamOutput.pSODeclaration = NULL;
-        }
 
-        if(wrapped->graphics->StreamOutput.NumStrides)
-        {
-          wrapped->graphics->StreamOutput.pBufferStrides =
-              new UINT[wrapped->graphics->StreamOutput.NumStrides];
-          memcpy((void *)wrapped->graphics->StreamOutput.pBufferStrides,
-                 expandedDesc.StreamOutput.pBufferStrides,
-                 sizeof(UINT) * wrapped->graphics->StreamOutput.NumStrides);
+          if(wrapped->graphics->StreamOutput.NumStrides)
+          {
+            wrapped->graphics->StreamOutput.pBufferStrides =
+                new UINT[wrapped->graphics->StreamOutput.NumStrides];
+            memcpy((void *)wrapped->graphics->StreamOutput.pBufferStrides,
+                   expandedDesc.StreamOutput.pBufferStrides,
+                   sizeof(UINT) * wrapped->graphics->StreamOutput.NumStrides);
+          }
+          else
+          {
+            wrapped->graphics->StreamOutput.NumStrides = 0;
+            wrapped->graphics->StreamOutput.pBufferStrides = NULL;
+          }
         }
         else
         {
+          wrapped->graphics->StreamOutput.NumStrides = 0;
+          wrapped->graphics->StreamOutput.NumEntries = 0;
+          wrapped->graphics->StreamOutput.pSODeclaration = NULL;
           wrapped->graphics->StreamOutput.pBufferStrides = NULL;
         }
 

@@ -1,7 +1,7 @@
 /******************************************************************************
 * The MIT License (MIT)
 *
-* Copyright (c) 2019-2020 Baldur Karlsson
+* Copyright (c) 2019-2021 Baldur Karlsson
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,32 @@
 ******************************************************************************/
 
 #include <stdlib.h>
+#include <unistd.h>
 #include "test_common.h"
+
+uint64_t GetMemoryUsage()
+{
+  FILE *f = fopen("/proc/self/statm", "r");
+
+  if(f == NULL)
+  {
+    TEST_WARN("Couldn't open /proc/self/statm");
+    return 0;
+  }
+
+  char line[512] = {};
+  fgets(line, 511, f);
+
+  fclose(f);
+
+  uint32_t rssPages = 0;
+  int num = sscanf(line, "%*u %u", &rssPages);
+
+  if(num == 1 && rssPages > 0)
+    return rssPages * (uint64_t)sysconf(_SC_PAGESIZE);
+
+  return 0;
+}
 
 std::string GetCWD()
 {

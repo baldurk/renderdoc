@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -72,9 +72,30 @@ void D3D12RenderState::ApplyState(WrappedID3D12Device *dev, ID3D12GraphicsComman
       if(dev->GetOpts2().DepthBoundsTestSupported)
         cmd->OMSetDepthBounds(depthBoundsMin, depthBoundsMax);
 
+      if(dev->GetOpts2().ProgrammableSamplePositionsTier !=
+         D3D12_PROGRAMMABLE_SAMPLE_POSITIONS_TIER_NOT_SUPPORTED)
+      {
+        if(samplePos.NumPixels > 0 && samplePos.NumSamplesPerPixel > 0)
+        {
+          cmd->SetSamplePositions(samplePos.NumSamplesPerPixel, samplePos.NumPixels,
+                                  (D3D12_SAMPLE_POSITION *)samplePos.Positions.data());
+        }
+      }
+
       // safe to set this - if the pipeline has view instancing disabled, it will do nothing
       if(dev->GetOpts3().ViewInstancingTier != D3D12_VIEW_INSTANCING_TIER_NOT_SUPPORTED)
         cmd->SetViewInstanceMask(viewInstMask);
+    }
+
+    if(GetWrapped(cmd)->GetReal5())
+    {
+      if(dev->GetOpts6().VariableShadingRateTier != D3D12_VARIABLE_SHADING_RATE_TIER_NOT_SUPPORTED)
+      {
+        cmd->RSSetShadingRate(shadingRate, shadingRateCombiners);
+        if(shadingRateImage != ResourceId())
+          cmd->RSSetShadingRateImage(
+              GetResourceManager()->GetCurrentAs<ID3D12Resource>(shadingRateImage));
+      }
     }
 
     if(ibuffer.buf != ResourceId())

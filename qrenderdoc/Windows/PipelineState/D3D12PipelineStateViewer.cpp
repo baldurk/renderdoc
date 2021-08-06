@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -261,12 +261,16 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
     ui->iaBuffers->setClearSelectionOnFocusLoss(true);
     ui->iaBuffers->setInstantTooltips(true);
     ui->iaBuffers->setHoverIconColumn(5, action, action_hover);
+
+    m_Common.SetupResourceView(ui->iaBuffers);
   }
 
   for(RDTreeWidget *res : resources)
   {
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
     res->setHeader(header);
+
+    header->setResizeContentsPrecision(20);
 
     res->setColumns({tr("Root Sig El"), tr("Space"), tr("Register"), tr("Resource"), tr("Type"),
                      tr("Width"), tr("Height"), tr("Depth"), tr("Array Size"), tr("Format"),
@@ -276,12 +280,16 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
     res->setHoverIconColumn(10, action, action_hover);
     res->setClearSelectionOnFocusLoss(true);
     res->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(res);
   }
 
   for(RDTreeWidget *uav : uavs)
   {
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
     uav->setHeader(header);
+
+    header->setResizeContentsPrecision(20);
 
     uav->setColumns({tr("Root Sig El"), tr("Space"), tr("Register"), tr("Resource"), tr("Type"),
                      tr("Width"), tr("Height"), tr("Depth"), tr("Array Size"), tr("Format"),
@@ -291,6 +299,8 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
     uav->setHoverIconColumn(10, action, action_hover);
     uav->setClearSelectionOnFocusLoss(true);
     uav->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(uav);
   }
 
   for(RDTreeWidget *samp : samplers)
@@ -298,18 +308,24 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
     samp->setHeader(header);
 
+    header->setResizeContentsPrecision(20);
+
     samp->setColumns({tr("Root Sig El"), tr("Space"), tr("Register"), tr("Addressing"),
                       tr("Filter"), tr("LOD Clamp"), tr("LOD Bias")});
     header->setColumnStretchHints({1, 1, 2, 2, 2, 2, 2});
 
     samp->setClearSelectionOnFocusLoss(true);
     samp->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(samp);
   }
 
   for(RDTreeWidget *cbuffer : cbuffers)
   {
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
     cbuffer->setHeader(header);
+
+    header->setResizeContentsPrecision(20);
 
     cbuffer->setColumns({tr("Root Sig El"), tr("Space"), tr("Register"), tr("Buffer"),
                          tr("Byte Range"), tr("Size"), tr("Go")});
@@ -318,6 +334,8 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
     cbuffer->setHoverIconColumn(6, action, action_hover);
     cbuffer->setClearSelectionOnFocusLoss(true);
     cbuffer->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(cbuffer);
   }
 
   {
@@ -332,6 +350,8 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
     ui->gsStreamOut->setHoverIconColumn(6, action, action_hover);
     ui->gsStreamOut->setClearSelectionOnFocusLoss(true);
     ui->gsStreamOut->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(ui->gsStreamOut);
   }
 
   {
@@ -371,6 +391,8 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
     ui->targetOutputs->setHoverIconColumn(8, action, action_hover);
     ui->targetOutputs->setClearSelectionOnFocusLoss(true);
     ui->targetOutputs->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(ui->targetOutputs);
   }
 
   {
@@ -495,7 +517,62 @@ void D3D12PipelineStateViewer::OnEventChanged(uint32_t eventId)
 
 void D3D12PipelineStateViewer::SelectPipelineStage(PipelineStage stage)
 {
-  ui->pipeFlow->setSelectedStage((int)stage);
+  if(stage == PipelineStage::SampleMask)
+    ui->pipeFlow->setSelectedStage((int)PipelineStage::ColorDepthOutput);
+  else
+    ui->pipeFlow->setSelectedStage((int)stage);
+}
+
+ResourceId D3D12PipelineStateViewer::GetResource(RDTreeWidgetItem *item)
+{
+  QVariant tag = item->tag();
+
+  if(tag.canConvert<ResourceId>())
+  {
+    return tag.value<ResourceId>();
+  }
+  else if(tag.canConvert<D3D12ViewTag>())
+  {
+    D3D12ViewTag viewTag = tag.value<D3D12ViewTag>();
+    return viewTag.res.resourceId;
+  }
+  else if(tag.canConvert<D3D12VBIBTag>())
+  {
+    D3D12VBIBTag buf = tag.value<D3D12VBIBTag>();
+    return buf.id;
+  }
+  else if(tag.canConvert<D3D12CBufTag>())
+  {
+    const D3D12Pipe::Shader *stage = stageForSender(item->treeWidget());
+
+    if(stage == NULL)
+      return ResourceId();
+
+    D3D12CBufTag cb = tag.value<D3D12CBufTag>();
+
+    if(cb.idx == ~0U)
+    {
+      if(cb.rootElement < m_Ctx.CurD3D12PipelineState()->rootElements.size())
+      {
+        const D3D12Pipe::RootSignatureRange &range =
+            m_Ctx.CurD3D12PipelineState()->rootElements[cb.rootElement];
+
+        if(cb.reg < range.constantBuffers.size())
+        {
+          // unused cbuffer, open regular buffer viewer
+          const D3D12Pipe::ConstantBuffer &buf = range.constantBuffers[cb.reg];
+
+          return buf.resourceId;
+        }
+      }
+
+      return ResourceId();
+    }
+
+    return m_Ctx.CurPipelineState().GetConstantBuffer(stage->stage, cb.idx, cb.arrayIdx).resourceId;
+  }
+
+  return ResourceId();
 }
 
 void D3D12PipelineStateViewer::on_showUnused_toggled(bool checked)
@@ -647,43 +724,15 @@ void D3D12PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const D3D1
   }
 }
 
-void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view,
-                                              const D3D12Pipe::Shader *stage, RDTreeWidget *resources)
+void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view, const Bindpoint *bind,
+                                              const ShaderResource *shaderInput,
+                                              RDTreeWidget *resources)
 {
   const D3D12Pipe::View &r = view.res;
   bool uav = view.type == D3D12ViewTag::UAV;
 
-  const Bindpoint *bind = NULL;
-  const ShaderResource *shaderInput = NULL;
-
-  if(stage && stage->reflection)
-  {
-    const rdcarray<Bindpoint> &binds = uav ? stage->bindpointMapping.readWriteResources
-                                           : stage->bindpointMapping.readOnlyResources;
-    const rdcarray<ShaderResource> &res =
-        uav ? stage->reflection->readWriteResources : stage->reflection->readOnlyResources;
-    for(int i = 0; i < binds.count(); i++)
-    {
-      const Bindpoint &b = binds[i];
-
-      bool regMatch = (b.bind == (int)view.res.bind);
-
-      // handle unbounded arrays specially. It's illegal to have an unbounded array with
-      // anything after it
-      if(b.bind <= (int)view.res.bind)
-        regMatch = (b.arraySize == ~0U) || (b.bind + (int)b.arraySize > (int)view.res.bind);
-
-      if(b.bindset == view.space && regMatch)
-      {
-        bind = &b;
-        shaderInput = &res[i];
-        break;
-      }
-    }
-  }
-
   bool filledSlot = (r.resourceId != ResourceId());
-  bool usedSlot = (bind && bind->used);
+  bool usedSlot = (bind && bind->used && r.dynamicallyUsed);
 
   // if a target is set to RTVs or DSV, it is implicitly used
   if(filledSlot)
@@ -695,6 +744,9 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view,
 
     if(shaderInput && !shaderInput->name.empty())
       regname += lit(": ") + shaderInput->name;
+
+    if(bind && bind->arraySize > 1)
+      regname += QFormatStr("[%1]").arg(view.res.bind - bind->bind);
 
     if(view.type == D3D12ViewTag::OMDepth)
       regname = tr("Depth");
@@ -750,13 +802,13 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view,
       d = 0;
       a = 0;
       format = QString();
-      typeName = lit("Buffer");
+      typeName = QFormatStr("%1Buffer").arg(uav ? lit("RW") : QString());
 
       if(r.bufferFlags & D3DBufferViewFlags::Raw)
       {
         typeName = QFormatStr("%1ByteAddressBuffer").arg(uav ? lit("RW") : QString());
       }
-      else if(r.elementByteSize > 0)
+      else if(r.elementByteSize > 0 && r.viewFormat.type == ResourceFormatType::Undefined)
       {
         // for structured buffers, display how many 'elements' there are in the buffer
         a = buf->length / r.elementByteSize;
@@ -820,19 +872,16 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view,
 
 bool D3D12PipelineStateViewer::showNode(bool usedSlot, bool filledSlot)
 {
-  const bool showUnused = ui->showUnused->isChecked();
-  const bool showEmpty = ui->showEmpty->isChecked();
-
   // show if it's referenced by the shader - regardless of empty or not
   if(usedSlot)
     return true;
 
   // it's not referenced, but if it's bound and we have "show unused" then show it
-  if(showUnused && filledSlot)
+  if(m_ShowUnused && filledSlot)
     return true;
 
   // it's empty, and we have "show empty"
-  if(showEmpty && !filledSlot)
+  if(m_ShowEmpty && !filledSlot)
     return true;
 
   return false;
@@ -929,6 +978,10 @@ void D3D12PipelineStateViewer::clearState()
   ui->frontCCW->setPixmap(tick);
   ui->conservativeRaster->setPixmap(cross);
 
+  ui->baseShadingRate->setText(lit("1x1"));
+  ui->shadingRateCombiners->setText(lit("Passthrough, Passthrough"));
+  ui->shadingRateImage->setText(ToQStr(ResourceId()));
+
   ui->depthBias->setText(lit("0.0"));
   ui->depthBiasClamp->setText(lit("0.0"));
   ui->slopeScaledBias->setText(lit("0.0"));
@@ -1015,30 +1068,153 @@ void D3D12PipelineStateViewer::setShaderState(
   cbuffers->beginUpdate();
   cbuffers->clear();
 
+  D3D12ViewTag tag;
+
   for(size_t i = 0; i < rootElements.size(); ++i)
   {
     if((rootElements[i].visibility & MaskForStage(stage.stage)) == ShaderStageMask::Unknown)
       continue;
 
+    if(!stage.reflection)
+      continue;
+
+    bool omittingEmpty = false;
+
+    tag.space = rootElements[i].registerSpace;
+    tag.rootElement = (int)i;
+    tag.immediate = rootElements[i].immediate;
+
     switch(rootElements[i].type)
     {
       case BindType::ReadOnlyResource:
-      {
-        for(size_t j = 0; j < rootElements[i].views.size(); ++j)
-        {
-          addResourceRow(D3D12ViewTag(D3D12ViewTag::SRV, rootElements[i].registerSpace, (int)i,
-                                      rootElements[i].immediate, rootElements[i].views[j]),
-                         &stage, resources);
-        }
-        break;
-      }
       case BindType::ReadWriteResource:
       {
-        for(size_t j = 0; j < rootElements[i].views.size(); ++j)
+        const bool srv = rootElements[i].type == BindType::ReadOnlyResource;
+
+        RDTreeWidget *tree = srv ? resources : uavs;
+        const rdcarray<Bindpoint> &binds = srv ? stage.bindpointMapping.readOnlyResources
+                                               : stage.bindpointMapping.readWriteResources;
+        const rdcarray<ShaderResource> &res =
+            srv ? stage.reflection->readOnlyResources : stage.reflection->readWriteResources;
+
+        tag.type = srv ? D3D12ViewTag::SRV : D3D12ViewTag::UAV;
+
+        const rdcarray<D3D12Pipe::View> &views = rootElements[i].views;
+
+        size_t firstView = rootElements[i].firstUsedIndex;
+        size_t lastView = qMin(views.size() - 1, size_t(rootElements[i].lastUsedIndex));
+
+        if(m_ShowUnused)
         {
-          addResourceRow(D3D12ViewTag(D3D12ViewTag::UAV, rootElements[i].registerSpace, (int)i,
-                                      rootElements[i].immediate, rootElements[i].views[j]),
-                         &stage, uavs);
+          firstView = 0;
+          lastView = views.size() - 1;
+        }
+
+        for(size_t j = firstView; j <= lastView;)
+        {
+          int shaderReg = (int)views[j].bind;
+
+          // find the first matching bind for this element
+          const Bindpoint *bind = NULL;
+          const ShaderResource *shaderInput = NULL;
+
+          for(int k = 0; k < binds.count(); k++)
+          {
+            const Bindpoint &b = binds[k];
+
+            // ignore binds in other spaces
+            if(b.bindset != tag.space)
+              continue;
+
+            // if we find an exact reg match, it's a match
+            bool regMatch = (b.bind == shaderReg);
+
+            // see if this bind is an array which our range falls into. We handle unbounded arrays
+            // specially assuming any earlier unbounded array contains all larger registers, since
+            // it's illegal to have an unbounded array with anything after it
+            if(b.bind <= shaderReg)
+              regMatch = (b.arraySize == ~0U) || (b.bind + (int)b.arraySize > shaderReg);
+
+            if(regMatch)
+            {
+              bind = &b;
+              shaderInput = &res[k];
+              break;
+            }
+          }
+
+          bool usedSlot = (bind && bind->used);
+
+          uint32_t arraySize = bind ? qMax(1U, bind->arraySize) : 1;
+
+          // if this bind isn't used, skip
+          if(!showNode(usedSlot, true))
+          {
+            omittingEmpty = false;
+            j += arraySize;
+            continue;
+          }
+
+          if(arraySize > 1)
+          {
+            // if this is an array bind, iterate over it trying to elide large empty ranges
+            for(uint32_t k = 0; k < arraySize && j <= lastView; k++)
+            {
+              if(
+                  // if current element is empty
+                  views[j].resourceId == ResourceId() &&
+                  // and will be shown
+                  showNode(usedSlot && views[j].dynamicallyUsed, false) &&
+                  // and we have two behind us and one ahead
+                  j >= 2 && j + 1 <= lastView &&
+                  // last two are empty and were be shown
+                  views[j - 2].resourceId == ResourceId() && views[j - 1].resourceId == ResourceId() &&
+                  showNode(usedSlot && views[j - 2].dynamicallyUsed, false) &&
+                  showNode(usedSlot && views[j - 1].dynamicallyUsed, false) &&
+                  // next one is empty and will be shown
+                  views[j + 1].resourceId == ResourceId() &&
+                  showNode(usedSlot && views[j + 1].dynamicallyUsed, false))
+              {
+                // if we haven't started omitting empty rows, add an empty row
+                if(!omittingEmpty)
+                {
+                  RDTreeWidgetItem *node = new RDTreeWidgetItem(
+                      {lit("..."), QString(), QString(), QString(), QString(), QString(), QString(),
+                       QString(), QString(), QString(), QString()});
+
+                  setEmptyRow(node);
+
+                  tree->addTopLevelItem(node);
+                }
+
+                // move to the next range element
+                omittingEmpty = true;
+                j++;
+              }
+              else
+              {
+                // either we have a real element here, or it's empty but not in the middle of a
+                // large
+                // range, so add it
+                tag.res = views[j];
+                addResourceRow(tag, bind, shaderInput, tree);
+                j++;
+
+                omittingEmpty = false;
+              }
+            }
+          }
+          else
+          {
+            // if this is a single bind, just add it
+            tag.res = views[j];
+            addResourceRow(tag, bind, shaderInput, tree);
+
+            // move to next range element
+            j++;
+
+            omittingEmpty = false;
+          }
         }
         break;
       }
@@ -1162,7 +1338,7 @@ void D3D12PipelineStateViewer::setShaderState(
         {
           const D3D12Pipe::ConstantBuffer &b = rootElements[i].constantBuffers[j];
 
-          QVariant tag;
+          QVariant cbuftag;
 
           const Bindpoint *bind = NULL;
           const ConstantBlock *shaderCBuf = NULL;
@@ -1187,14 +1363,14 @@ void D3D12PipelineStateViewer::setShaderState(
                 shaderCBuf = &res;
                 D3D12CBufTag cbufTag((uint32_t)k);
                 cbufTag.arrayIdx = b.bind - bm.bind;
-                tag = QVariant::fromValue(cbufTag);
+                cbuftag = QVariant::fromValue(cbufTag);
                 break;
               }
             }
           }
 
-          if(!tag.isValid())
-            tag = QVariant::fromValue(
+          if(!cbuftag.isValid())
+            cbuftag = QVariant::fromValue(
                 D3D12CBufTag(rootElements[i].registerSpace, b.bind, rootElements[i].rootElement));
 
           QString rootel;
@@ -1249,7 +1425,7 @@ void D3D12PipelineStateViewer::setShaderState(
                 {rootel, (qulonglong)rootElements[i].registerSpace, regname, b.resourceId,
                  QFormatStr("%1 - %2").arg(offset).arg(offset + bytesize), sizestr, QString()});
 
-            node->setTag(tag);
+            node->setTag(cbuftag);
 
             if(!filledSlot)
               setEmptyRow(node);
@@ -1288,8 +1464,12 @@ void D3D12PipelineStateViewer::setState()
     return;
   }
 
+  // cache latest state of these checkboxes
+  m_ShowUnused = ui->showUnused->isChecked();
+  m_ShowEmpty = ui->showEmpty->isChecked();
+
   const D3D12Pipe::State &state = *m_Ctx.CurD3D12PipelineState();
-  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+  const ActionDescription *action = m_Ctx.CurAction();
 
   const QPixmap &tick = Pixmaps::tick(this);
   const QPixmap &cross = Pixmaps::cross(this);
@@ -1364,21 +1544,19 @@ void D3D12PipelineStateViewer::setState()
   ui->iaLayouts->endUpdate();
   ui->iaLayouts->verticalScrollBar()->setValue(vs);
 
-  Topology topo = draw ? draw->topology : Topology::Unknown;
-
-  int numCPs = PatchList_Count(topo);
+  int numCPs = PatchList_Count(state.inputAssembly.topology);
   if(numCPs > 0)
   {
     ui->topology->setText(tr("PatchList (%1 Control Points)").arg(numCPs));
   }
   else
   {
-    ui->topology->setText(ToQStr(topo));
+    ui->topology->setText(ToQStr(state.inputAssembly.topology));
   }
 
-  m_Common.setTopologyDiagram(ui->topologyDiagram, topo);
+  m_Common.setTopologyDiagram(ui->topologyDiagram, state.inputAssembly.topology);
 
-  bool ibufferUsed = draw && (draw->flags & DrawFlags::Indexed);
+  bool ibufferUsed = action && (action->flags & ActionFlags::Indexed);
 
   m_VBNodes.clear();
   m_EmptyNodes.clear();
@@ -1389,30 +1567,31 @@ void D3D12PipelineStateViewer::setState()
 
   if(state.inputAssembly.indexBuffer.resourceId != ResourceId())
   {
-    if(ibufferUsed || ui->showUnused->isChecked())
+    if(ibufferUsed || m_ShowUnused)
     {
       uint64_t length = state.inputAssembly.indexBuffer.byteSize;
 
       BufferDescription *buf = m_Ctx.GetBuffer(state.inputAssembly.indexBuffer.resourceId);
 
       RDTreeWidgetItem *node = new RDTreeWidgetItem(
-          {tr("Index"), state.inputAssembly.indexBuffer.resourceId, draw ? draw->indexByteWidth : 0,
+          {tr("Index"), state.inputAssembly.indexBuffer.resourceId,
+           (qulonglong)state.inputAssembly.indexBuffer.byteStride,
            (qulonglong)state.inputAssembly.indexBuffer.byteOffset, (qulonglong)length, QString()});
 
       QString iformat;
-      if(draw)
-      {
-        if(draw->indexByteWidth == 1)
-          iformat = lit("ubyte");
-        else if(draw->indexByteWidth == 2)
-          iformat = lit("ushort");
-        else if(draw->indexByteWidth == 4)
-          iformat = lit("uint");
 
-        iformat += lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(draw->topology));
-      }
+      if(state.inputAssembly.indexBuffer.byteStride == 1)
+        iformat = lit("ubyte");
+      else if(state.inputAssembly.indexBuffer.byteStride == 2)
+        iformat = lit("ushort");
+      else if(state.inputAssembly.indexBuffer.byteStride == 4)
+        iformat = lit("uint");
 
-      uint32_t drawOffset = (draw ? draw->indexOffset * draw->indexByteWidth : 0);
+      iformat +=
+          lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(state.inputAssembly.topology));
+
+      uint32_t drawOffset =
+          (action ? action->indexOffset * state.inputAssembly.indexBuffer.byteStride : 0);
 
       node->setTag(QVariant::fromValue(
           D3D12VBIBTag(state.inputAssembly.indexBuffer.resourceId,
@@ -1445,25 +1624,25 @@ void D3D12PipelineStateViewer::setState()
   }
   else
   {
-    if(ibufferUsed || ui->showEmpty->isChecked())
+    if(ibufferUsed || m_ShowEmpty)
     {
       RDTreeWidgetItem *node = new RDTreeWidgetItem(
           {tr("Index"), tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), QString()});
 
       QString iformat;
-      if(draw)
-      {
-        if(draw->indexByteWidth == 1)
-          iformat = lit("ubyte");
-        else if(draw->indexByteWidth == 2)
-          iformat = lit("ushort");
-        else if(draw->indexByteWidth == 4)
-          iformat = lit("uint");
 
-        iformat += lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(draw->topology));
-      }
+      if(state.inputAssembly.indexBuffer.byteStride == 1)
+        iformat = lit("ubyte");
+      else if(state.inputAssembly.indexBuffer.byteStride == 2)
+        iformat = lit("ushort");
+      else if(state.inputAssembly.indexBuffer.byteStride == 4)
+        iformat = lit("uint");
 
-      uint32_t drawOffset = (draw ? draw->indexOffset * draw->indexByteWidth : 0);
+      iformat +=
+          lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(state.inputAssembly.topology));
+
+      uint32_t drawOffset =
+          (action ? action->indexOffset * state.inputAssembly.indexBuffer.byteStride : 0);
 
       node->setTag(QVariant::fromValue(
           D3D12VBIBTag(state.inputAssembly.indexBuffer.resourceId,
@@ -1705,6 +1884,15 @@ void D3D12PipelineStateViewer::setState()
       state.rasterizer.state.conservativeRasterization != ConservativeRaster::Disabled ? tick
                                                                                        : cross);
 
+  ui->baseShadingRate->setText(QFormatStr("%1x%2")
+                                   .arg(state.rasterizer.state.baseShadingRate.first)
+                                   .arg(state.rasterizer.state.baseShadingRate.second));
+  ui->shadingRateCombiners->setText(
+      QFormatStr("%1, %2")
+          .arg(ToQStr(state.rasterizer.state.shadingRateCombiners.first, GraphicsAPI::D3D12))
+          .arg(ToQStr(state.rasterizer.state.shadingRateCombiners.second, GraphicsAPI::D3D12)));
+  ui->shadingRateImage->setText(ToQStr(state.rasterizer.state.shadingRateImage));
+
   ////////////////////////////////////////////////
   // Output Merger
 
@@ -1718,14 +1906,14 @@ void D3D12PipelineStateViewer::setState()
     {
       addResourceRow(
           D3D12ViewTag(D3D12ViewTag::OMTarget, 0, 0, false, state.outputMerger.renderTargets[i]),
-          NULL, ui->targetOutputs);
+          NULL, NULL, ui->targetOutputs);
 
       if(state.outputMerger.renderTargets[i].resourceId != ResourceId())
         targets[i] = true;
     }
 
     addResourceRow(D3D12ViewTag(D3D12ViewTag::OMDepth, 0, 0, false, state.outputMerger.depthTarget),
-                   NULL, ui->targetOutputs);
+                   NULL, NULL, ui->targetOutputs);
   }
   ui->targetOutputs->clearSelection();
   ui->targetOutputs->endUpdate();
@@ -1787,9 +1975,20 @@ void D3D12PipelineStateViewer::setState()
                                .arg(state.outputMerger.blendState.blendFactor[2], 0, 'f', 2)
                                .arg(state.outputMerger.blendState.blendFactor[3], 0, 'f', 2));
 
-  ui->depthEnabled->setPixmap(state.outputMerger.depthStencilState.depthEnable ? tick : cross);
-  ui->depthFunc->setText(ToQStr(state.outputMerger.depthStencilState.depthFunction));
-  ui->depthWrite->setPixmap(state.outputMerger.depthStencilState.depthWrites ? tick : cross);
+  if(state.outputMerger.depthStencilState.depthEnable)
+  {
+    ui->depthEnabled->setPixmap(tick);
+    ui->depthFunc->setText(ToQStr(state.outputMerger.depthStencilState.depthFunction));
+    ui->depthWrite->setPixmap(state.outputMerger.depthStencilState.depthWrites ? tick : cross);
+    ui->depthWrite->setText(QString());
+  }
+  else
+  {
+    ui->depthEnabled->setPixmap(cross);
+    ui->depthFunc->setText(tr("Disabled"));
+    ui->depthWrite->setPixmap(QPixmap());
+    ui->depthWrite->setText(tr("Disabled"));
+  }
 
   if(state.outputMerger.depthStencilState.depthBoundsEnable)
   {
@@ -1829,8 +2028,8 @@ void D3D12PipelineStateViewer::setState()
 
   // set up thread debugging inputs
   if(m_Ctx.APIProps().shaderDebugging && state.computeShader.reflection &&
-     state.computeShader.reflection->debugInfo.debuggable && draw &&
-     (draw->flags & DrawFlags::Dispatch))
+     state.computeShader.reflection->debugInfo.debuggable && action &&
+     (action->flags & ActionFlags::Dispatch))
   {
     ui->groupX->setEnabled(true);
     ui->groupY->setEnabled(true);
@@ -1843,11 +2042,11 @@ void D3D12PipelineStateViewer::setState()
     ui->debugThread->setEnabled(true);
 
     // set maximums for CS debugging
-    ui->groupX->setMaximum((int)draw->dispatchDimension[0] - 1);
-    ui->groupY->setMaximum((int)draw->dispatchDimension[1] - 1);
-    ui->groupZ->setMaximum((int)draw->dispatchDimension[2] - 1);
+    ui->groupX->setMaximum((int)action->dispatchDimension[0] - 1);
+    ui->groupY->setMaximum((int)action->dispatchDimension[1] - 1);
+    ui->groupZ->setMaximum((int)action->dispatchDimension[2] - 1);
 
-    if(draw->dispatchThreadsDimension[0] == 0)
+    if(action->dispatchThreadsDimension[0] == 0)
     {
       ui->threadX->setMaximum((int)state.computeShader.reflection->dispatchThreadsDimension[0] - 1);
       ui->threadY->setMaximum((int)state.computeShader.reflection->dispatchThreadsDimension[1] - 1);
@@ -1855,9 +2054,9 @@ void D3D12PipelineStateViewer::setState()
     }
     else
     {
-      ui->threadX->setMaximum((int)draw->dispatchThreadsDimension[0] - 1);
-      ui->threadY->setMaximum((int)draw->dispatchThreadsDimension[1] - 1);
-      ui->threadZ->setMaximum((int)draw->dispatchThreadsDimension[2] - 1);
+      ui->threadX->setMaximum((int)action->dispatchThreadsDimension[0] - 1);
+      ui->threadY->setMaximum((int)action->dispatchThreadsDimension[1] - 1);
+      ui->threadZ->setMaximum((int)action->dispatchThreadsDimension[2] - 1);
     }
 
     ui->debugThread->setToolTip(QString());
@@ -1876,7 +2075,7 @@ void D3D12PipelineStateViewer::setState()
 
     if(!m_Ctx.APIProps().shaderDebugging)
       ui->debugThread->setToolTip(tr("This API does not support shader debugging"));
-    else if(!draw || !(draw->flags & DrawFlags::Dispatch))
+    else if(!action || !(action->flags & ActionFlags::Dispatch))
       ui->debugThread->setToolTip(tr("No dispatch selected"));
     else if(!state.computeShader.reflection)
       ui->debugThread->setToolTip(tr("No compute shader bound"));
@@ -1886,11 +2085,11 @@ void D3D12PipelineStateViewer::setState()
   }
 
   // highlight the appropriate stages in the flowchart
-  if(draw == NULL)
+  if(action == NULL)
   {
     ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
   }
-  else if(draw->flags & DrawFlags::Dispatch)
+  else if(action->flags & ActionFlags::Dispatch)
   {
     ui->pipeFlow->setStagesEnabled({false, false, false, false, false, false, false, false, true});
   }
@@ -2378,7 +2577,7 @@ QVariantList D3D12PipelineStateViewer::exportViewHTML(const D3D12Pipe::View &vie
 
 void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::InputAssembly &ia)
 {
-  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+  const ActionDescription *action = m_Ctx.CurAction();
 
   {
     xml.writeStartElement(lit("h3"));
@@ -2459,13 +2658,11 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
     length = qMin(length, (uint64_t)ia.indexBuffer.byteSize);
 
     QString ifmt = lit("UNKNOWN");
-    if(draw)
-    {
-      if(draw->indexByteWidth == 2)
-        ifmt = lit("R16_UINT");
-      if(draw->indexByteWidth == 4)
-        ifmt = lit("R32_UINT");
-    }
+
+    if(ia.indexBuffer.byteStride == 2)
+      ifmt = lit("R16_UINT");
+    if(ia.indexBuffer.byteStride == 4)
+      ifmt = lit("R32_UINT");
 
     m_Common.exportHTMLTable(xml, {tr("Buffer"), tr("Format"), tr("Offset"), tr("Byte Length")},
                              {name, ifmt, (qulonglong)ia.indexBuffer.byteOffset, (qulonglong)length});
@@ -2474,8 +2671,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
   xml.writeStartElement(lit("p"));
   xml.writeEndElement();
 
-  m_Common.exportHTMLTable(xml, {tr("Primitive Topology")},
-                           {ToQStr(draw ? draw->topology : Topology::Unknown)});
+  m_Common.exportHTMLTable(xml, {tr("Primitive Topology")}, {ToQStr(ia.topology)});
 }
 
 void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::Shader &sh,
@@ -3199,9 +3395,9 @@ void D3D12PipelineStateViewer::on_debugThread_clicked()
   if(!m_Ctx.IsCaptureLoaded())
     return;
 
-  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+  const ActionDescription *action = m_Ctx.CurAction();
 
-  if(!draw)
+  if(!action)
     return;
 
   ShaderReflection *shaderDetails = m_Ctx.CurD3D12PipelineState()->computeShader.reflection;
@@ -3214,11 +3410,11 @@ void D3D12PipelineStateViewer::on_debugThread_clicked()
   uint32_t groupdim[3] = {};
 
   for(int i = 0; i < 3; i++)
-    groupdim[i] = draw->dispatchDimension[i];
+    groupdim[i] = action->dispatchDimension[i];
 
   uint32_t threadsdim[3] = {};
   for(int i = 0; i < 3; i++)
-    threadsdim[i] = draw->dispatchThreadsDimension[i];
+    threadsdim[i] = action->dispatchThreadsDimension[i];
 
   if(threadsdim[0] == 0)
   {

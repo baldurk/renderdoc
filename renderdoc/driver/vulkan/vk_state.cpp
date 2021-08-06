@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -171,6 +171,9 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
       // state from earlier in the command buffer but there's no pipeline bound yet.
       for(size_t i = 0; i < VkDynamicCount; i++)
         dynamicStates[i] = true;
+
+      if(vk->GetDriverInfo().QualcommLineWidthDynamicStateCrash())
+        dynamicStates[VkDynamicLineWidth] = false;
     }
 
     if(!views.empty() && dynamicStates[VkDynamicViewport])
@@ -383,7 +386,7 @@ void VulkanRenderState::BindDescriptorSets(WrappedVulkan *vk, VkCommandBuffer cm
       // We can get into this situation if for example we have many sets bound at some point, then
       // there's a pipeline change that causes most or all of them to be invalidated as
       // incompatible, then the program only re-binds some subset that it knows is statically used
-      // by the next drawcall. The remaining sets are invalid, but also unused and this is
+      // by the next action. The remaining sets are invalid, but also unused and this is
       // explicitly allowed by the spec. We just have to make sure we don't try to actively bind
       // an incompatible descriptor set.
       ResourceId createdDescSetLayoutId = vk->GetDescLayoutForDescSet(pipe.descSets[i].descSet);

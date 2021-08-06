@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -446,6 +446,8 @@ static PROCESS_INFORMATION RunProcess(const rdcstr &app, const rdcstr &workingDi
   RDCEraseEl(si);
   RDCEraseEl(pSec);
   RDCEraseEl(tSec);
+
+  si.cb = sizeof(si);
 
   pSec.nLength = sizeof(pSec);
   tSec.nLength = sizeof(tSec);

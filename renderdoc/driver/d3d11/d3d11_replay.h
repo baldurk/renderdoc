@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -247,6 +247,7 @@ public:
   ResourceId RenderOverlay(ResourceId texid, FloatVector clearCol, DebugOverlay overlay,
                            uint32_t eventId, const rdcarray<uint32_t> &passEvents);
 
+  void SetCustomShaderIncludes(const rdcarray<rdcstr> &directories);
   void BuildCustomShader(ShaderEncoding sourceEncoding, const bytebuf &source, const rdcstr &entry,
                          const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId &id,
                          rdcstr &errors);
@@ -263,8 +264,8 @@ private:
   D3D11DebugManager *GetDebugManager();
   // shared by BuildCustomShader and BuildTargetShader
   void BuildShader(ShaderEncoding sourceEncoding, const bytebuf &source, const rdcstr &entry,
-                   const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId &id,
-                   rdcstr &errors);
+                   const ShaderCompileFlags &compileFlags, const rdcarray<rdcstr> &includeDirs,
+                   ShaderStage type, ResourceId &id, rdcstr &errors);
 
   void ClearPostVSCache();
 
@@ -276,13 +277,13 @@ private:
   rdcarray<CounterResult> FetchCountersNV(const rdcarray<GPUCounter> &counters);
   rdcarray<CounterResult> FetchCountersIntel(const rdcarray<GPUCounter> &counters);
 
-  void FillTimers(D3D11CounterContext &ctx, const DrawcallDescription &drawnode);
+  void FillTimers(D3D11CounterContext &ctx, const ActionDescription &actionnode);
   void FillTimersAMD(uint32_t &eventStartID, uint32_t &sampleIndex, rdcarray<uint32_t> &eventIDs,
-                     const DrawcallDescription &drawnode);
+                     const ActionDescription &actionnode);
   void FillTimersNV(uint32_t &eventStartID, uint32_t &sampleIndex, rdcarray<uint32_t> &eventIDs,
-                    const DrawcallDescription &drawnode);
+                    const ActionDescription &actionnode);
   void FillTimersIntel(uint32_t &eventStartID, uint32_t &sampleIndex, rdcarray<uint32_t> &eventIDs,
-                       const DrawcallDescription &drawnode);
+                       const ActionDescription &actionnode);
 
   void SerializeImmediateContext();
 
@@ -331,6 +332,8 @@ private:
 
   WrappedID3D11Device *m_pDevice = NULL;
   WrappedID3D11DeviceContext *m_pImmediateContext = NULL;
+
+  rdcarray<rdcstr> m_CustomShaderIncludes;
 
   // used to track the real state so we can preserve it even across work done to the output windows
   struct RealState

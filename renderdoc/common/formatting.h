@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,5 +28,20 @@
 
 namespace StringFormat
 {
+struct Args
+{
+  virtual void reset() = 0;
+
+  virtual void error(const char *err) = 0;
+
+  virtual int get_int() = 0;
+  virtual unsigned int get_uint() = 0;
+  virtual double get_double() = 0;
+  virtual void *get_ptr() = 0;
+  virtual uint64_t get_uint64() = 0;
+  virtual size_t get_size() = 0;
+};
+
 rdcstr Fmt(const char *format, ...);
+rdcstr FmtArgs(const char *format, Args &args);
 };

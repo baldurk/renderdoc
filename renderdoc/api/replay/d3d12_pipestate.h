@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -157,6 +157,11 @@ struct IndexBuffer
 
   DOCUMENT("The number of bytes available in this index buffer.");
   uint32_t byteSize = 0;
+
+  DOCUMENT(R"(The number of bytes for each index in the index buffer. Typically 2 or 4 bytes but
+it can be 0 if no index buffer is bound.
+)");
+  uint32_t byteStride = 0;
 };
 
 DOCUMENT("Describes the input assembler state in the PSO.");
@@ -189,6 +194,12 @@ struct InputAssembly
 If the value is 0, strip cutting is disabled.
 )");
   uint32_t indexStripCutValue = 0;
+
+  DOCUMENT(R"(The current primitive topology.
+
+:type: Topology
+)");
+  Topology topology = Topology::Unknown;
 };
 
 // immediate indicates either a root parameter (not in a table), or static samplers
@@ -271,6 +282,15 @@ struct View
 :type: TextureSwizzle4
 )");
   TextureSwizzle4 swizzle;
+  DOCUMENT(R"(``True`` if this binding element is dynamically used.
+
+If set to ``False`` this means that the binding was available to the shader but during execution it
+was not referenced. The data gathered for setting this variable is conservative, meaning that only
+accesses through arrays will have this calculated to reduce the required feedback bandwidth - single
+non-arrayed descriptors may have this value set to ``True`` even if the shader did not use them,
+since single descriptors may only be dynamically skipped by control flow.
+)");
+  bool dynamicallyUsed = true;
   DOCUMENT("The :class:`D3DBufferViewFlags` set for the buffer.");
   D3DBufferViewFlags bufferFlags = D3DBufferViewFlags::NoFlags;
   DOCUMENT("If the view has a hidden counter, this stores the current value of the counter.");
@@ -453,8 +473,9 @@ struct RootSignatureRange
   bool operator==(const RootSignatureRange &o) const
   {
     return immediate == o.immediate && rootElement == o.rootElement && visibility == o.visibility &&
-           registerSpace == o.registerSpace && constantBuffers == o.constantBuffers &&
-           samplers == o.samplers && views == o.views;
+           registerSpace == o.registerSpace && dynamicallyUsedCount == o.dynamicallyUsedCount &&
+           firstUsedIndex == o.firstUsedIndex && lastUsedIndex == o.lastUsedIndex &&
+           constantBuffers == o.constantBuffers && samplers == o.samplers && views == o.views;
   }
   bool operator<(const RootSignatureRange &o) const
   {
@@ -466,6 +487,12 @@ struct RootSignatureRange
       return visibility < o.visibility;
     if(!(registerSpace == o.registerSpace))
       return registerSpace < o.registerSpace;
+    if(!(dynamicallyUsedCount == o.dynamicallyUsedCount))
+      return dynamicallyUsedCount < o.dynamicallyUsedCount;
+    if(!(firstUsedIndex == o.firstUsedIndex))
+      return firstUsedIndex < o.firstUsedIndex;
+    if(!(lastUsedIndex == o.lastUsedIndex))
+      return lastUsedIndex < o.lastUsedIndex;
     if(!(constantBuffers == o.constantBuffers))
       return constantBuffers < o.constantBuffers;
     if(!(samplers == o.samplers))
@@ -485,6 +512,28 @@ struct RootSignatureRange
   ShaderStageMask visibility = ShaderStageMask::All;
   DOCUMENT("The register space of this element.");
   uint32_t registerSpace;
+  DOCUMENT(R"(Lists how many bindings in :data:`views` are dynamically used. Useful to avoid
+redundant iteration to determine whether any bindings are present.
+
+For more information see :data:`D3D12View.dynamicallyUsed`.
+)");
+  uint32_t dynamicallyUsedCount = ~0U;
+  DOCUMENT(R"(Gives the index of the first binding in :data:`views` that is dynamically used. Useful
+to avoid redundant iteration in very large descriptor arrays with a small subset that are used.
+
+For more information see :data:`D3D12View.dynamicallyUsed`.
+)");
+  int32_t firstUsedIndex = 0;
+  DOCUMENT(R"(Gives the index of the first binding in :data:`views` that is dynamically used. Useful
+to avoid redundant iteration in very large descriptor arrays with a small subset that are used.
+
+.. note::
+  This may be set to a higher value than the number of bindings, if no dynamic use information is
+  available. Ensure that this is an additional check on the bind and the count is still respected.
+
+For more information see :data:`D3D12View.dynamicallyUsed`.
+)");
+  int32_t lastUsedIndex = 0x7fffffff;
   DOCUMENT(R"(The constant buffers in this range.
 
 :type: List[D3D12ConstantBuffer]
@@ -626,6 +675,34 @@ not force any sample count.
   uint32_t forcedSampleCount = 0;
   DOCUMENT("The current :class:`ConservativeRaster` mode.");
   ConservativeRaster conservativeRasterization = ConservativeRaster::Disabled;
+  DOCUMENT(R"(The current base variable shading rate. This will always be 1x1 when variable shading
+is disabled.
+
+:type: Tuple[int,int]
+)");
+  rdcpair<uint32_t, uint32_t> baseShadingRate = {1, 1};
+  DOCUMENT(R"(The shading rate combiners.
+
+The combiners are applied as follows, according to the D3D spec:
+
+  ``intermediateRate = combiner[0] ( baseShadingRate,  shaderExportedShadingRate )``
+  ``finalRate        = combiner[1] ( intermediateRate, imageBasedShadingRate     )``
+
+Where the first input is from :data:`baseShadingRate` and the second is the exported shading rate
+from a vertex or geometry shader, which defaults to 1x1 if not exported.
+
+The intermediate result is then used as the first input to the second combiner, together with the
+shading rate sampled from the shading rate image.
+
+:type: Tuple[ShadingRateCombiner,ShadingRateCombiner]
+)");
+  rdcpair<ShadingRateCombiner, ShadingRateCombiner> shadingRateCombiners = {
+      ShadingRateCombiner::Passthrough, ShadingRateCombiner::Passthrough};
+  DOCUMENT(R"(The image bound as a shading rate image.
+
+:type: ResourceId
+)");
+  ResourceId shadingRateImage;
 };
 
 DOCUMENT("Describes the rasterization state of the D3D12 pipeline.");
@@ -832,7 +909,7 @@ struct State
 
   DOCUMENT(R"(The root signature, as a range per element.
     
-:type: List[RootSignatureRange]
+:type: List[D3D12RootSignatureRange]
 )");
   rdcarray<RootSignatureRange> rootElements;
 
@@ -893,7 +970,7 @@ struct State
 
   DOCUMENT(R"(The resource states for the currently live resources.
 
-:type: List[ResourceData]
+:type: List[D3D12ResourceData]
 )");
   rdcarray<ResourceData> resourceStates;
 };

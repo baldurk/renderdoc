@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -338,8 +338,11 @@ rdcarray<ID3D12Resource *> WrappedID3D12Resource::AddRefBuffersBeforeCapture(D3D
   for(size_t i = 0; i < addresses.size(); i++)
   {
     ID3D12Resource *resource = (ID3D12Resource *)rm->GetCurrentResource(m_Addresses.addresses[i].id);
-    resource->AddRef();
-    ret.push_back(resource);
+    if(resource)
+    {
+      resource->AddRef();
+      ret.push_back(resource);
+    }
   }
 
   return ret;
@@ -347,7 +350,8 @@ rdcarray<ID3D12Resource *> WrappedID3D12Resource::AddRefBuffersBeforeCapture(D3D
 
 WrappedID3D12DescriptorHeap::WrappedID3D12DescriptorHeap(ID3D12DescriptorHeap *real,
                                                          WrappedID3D12Device *device,
-                                                         const D3D12_DESCRIPTOR_HEAP_DESC &desc)
+                                                         const D3D12_DESCRIPTOR_HEAP_DESC &desc,
+                                                         UINT UnpatchedNumDescriptors)
     : WrappedDeviceChild12(real, device)
 {
   realCPUBase = real->GetCPUDescriptorHandleForHeapStart();
@@ -356,12 +360,12 @@ WrappedID3D12DescriptorHeap::WrappedID3D12DescriptorHeap(ID3D12DescriptorHeap *r
   SetResident(true);
 
   increment = device->GetUnwrappedDescriptorIncrement(desc.Type);
-  numDescriptors = desc.NumDescriptors;
+  numDescriptors = UnpatchedNumDescriptors;
 
-  descriptors = new D3D12Descriptor[numDescriptors];
+  descriptors = new D3D12Descriptor[desc.NumDescriptors];
 
-  RDCEraseMem(descriptors, sizeof(D3D12Descriptor) * numDescriptors);
-  for(UINT i = 0; i < numDescriptors; i++)
+  RDCEraseMem(descriptors, sizeof(D3D12Descriptor) * desc.NumDescriptors);
+  for(UINT i = 0; i < desc.NumDescriptors; i++)
     descriptors[i].Setup(this, i);
 }
 

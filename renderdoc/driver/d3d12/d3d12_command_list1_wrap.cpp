@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,9 +33,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_AtomicCopyBufferUINT(
 {
   ID3D12GraphicsCommandList1 *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(pDstBuffer);
+  SERIALISE_ELEMENT(pDstBuffer).Important();
   SERIALISE_ELEMENT(DstOffset);
-  SERIALISE_ELEMENT(pSrcBuffer);
+  SERIALISE_ELEMENT(pSrcBuffer).Important();
   SERIALISE_ELEMENT(SrcOffset);
   SERIALISE_ELEMENT(Dependencies);
   SERIALISE_ELEMENT_ARRAY(ppDependentResources, Dependencies);
@@ -85,30 +85,27 @@ bool WrappedID3D12GraphicsCommandList::Serialise_AtomicCopyBufferUINT(
       {
         m_Cmd->AddEvent();
 
-        DrawcallDescription draw;
-        draw.copySource = GetResourceManager()->GetOriginalID(GetResID(pSrcBuffer));
-        draw.copyDestination = GetResourceManager()->GetOriginalID(GetResID(pDstBuffer));
+        ActionDescription action;
+        action.copySource = GetResourceManager()->GetOriginalID(GetResID(pSrcBuffer));
+        action.copyDestination = GetResourceManager()->GetOriginalID(GetResID(pDstBuffer));
 
-        draw.name =
-            StringFormat::Fmt("AtomicCopyBufferUINT(%s, %s)", ToStr(draw.copyDestination).c_str(),
-                              ToStr(draw.copySource).c_str());
-        draw.flags |= DrawFlags::Copy;
+        action.flags |= ActionFlags::Copy;
 
-        m_Cmd->AddDrawcall(draw, true);
+        m_Cmd->AddAction(action);
 
-        D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
+        D3D12ActionTreeNode &actionNode = m_Cmd->GetActionStack().back()->children.back();
 
         if(pSrcBuffer == pDstBuffer)
         {
-          drawNode.resourceUsage.push_back(make_rdcpair(
-              GetResID(pSrcBuffer), EventUsage(drawNode.draw.eventId, ResourceUsage::Copy)));
+          actionNode.resourceUsage.push_back(make_rdcpair(
+              GetResID(pSrcBuffer), EventUsage(actionNode.action.eventId, ResourceUsage::Copy)));
         }
         else
         {
-          drawNode.resourceUsage.push_back(make_rdcpair(
-              GetResID(pSrcBuffer), EventUsage(drawNode.draw.eventId, ResourceUsage::CopySrc)));
-          drawNode.resourceUsage.push_back(make_rdcpair(
-              GetResID(pDstBuffer), EventUsage(drawNode.draw.eventId, ResourceUsage::CopyDst)));
+          actionNode.resourceUsage.push_back(make_rdcpair(
+              GetResID(pSrcBuffer), EventUsage(actionNode.action.eventId, ResourceUsage::CopySrc)));
+          actionNode.resourceUsage.push_back(make_rdcpair(
+              GetResID(pDstBuffer), EventUsage(actionNode.action.eventId, ResourceUsage::CopyDst)));
         }
       }
     }
@@ -129,7 +126,7 @@ void WrappedID3D12GraphicsCommandList::AtomicCopyBufferUINT(
   if(IsCaptureMode(m_State))
   {
     CACHE_THREAD_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_AtomicCopyBufferUINT);
     Serialise_AtomicCopyBufferUINT(ser, pDstBuffer, DstOffset, pSrcBuffer, SrcOffset, Dependencies,
                                    ppDependentResources, pDependentSubresourceRanges);
@@ -151,9 +148,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_AtomicCopyBufferUINT64(
 {
   ID3D12GraphicsCommandList1 *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(pDstBuffer);
+  SERIALISE_ELEMENT(pDstBuffer).Important();
   SERIALISE_ELEMENT(DstOffset);
-  SERIALISE_ELEMENT(pSrcBuffer);
+  SERIALISE_ELEMENT(pSrcBuffer).Important();
   SERIALISE_ELEMENT(SrcOffset);
   SERIALISE_ELEMENT(Dependencies);
   SERIALISE_ELEMENT_ARRAY(ppDependentResources, Dependencies);
@@ -203,30 +200,27 @@ bool WrappedID3D12GraphicsCommandList::Serialise_AtomicCopyBufferUINT64(
       {
         m_Cmd->AddEvent();
 
-        DrawcallDescription draw;
-        draw.copySource = GetResourceManager()->GetOriginalID(GetResID(pSrcBuffer));
-        draw.copyDestination = GetResourceManager()->GetOriginalID(GetResID(pDstBuffer));
+        ActionDescription action;
+        action.copySource = GetResourceManager()->GetOriginalID(GetResID(pSrcBuffer));
+        action.copyDestination = GetResourceManager()->GetOriginalID(GetResID(pDstBuffer));
 
-        draw.name =
-            StringFormat::Fmt("AtomicCopyBufferUINT64(%s, %s)", ToStr(draw.copyDestination).c_str(),
-                              ToStr(draw.copySource).c_str());
-        draw.flags |= DrawFlags::Copy;
+        action.flags |= ActionFlags::Copy;
 
-        m_Cmd->AddDrawcall(draw, true);
+        m_Cmd->AddAction(action);
 
-        D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
+        D3D12ActionTreeNode &actionNode = m_Cmd->GetActionStack().back()->children.back();
 
         if(pSrcBuffer == pDstBuffer)
         {
-          drawNode.resourceUsage.push_back(make_rdcpair(
-              GetResID(pSrcBuffer), EventUsage(drawNode.draw.eventId, ResourceUsage::Copy)));
+          actionNode.resourceUsage.push_back(make_rdcpair(
+              GetResID(pSrcBuffer), EventUsage(actionNode.action.eventId, ResourceUsage::Copy)));
         }
         else
         {
-          drawNode.resourceUsage.push_back(make_rdcpair(
-              GetResID(pSrcBuffer), EventUsage(drawNode.draw.eventId, ResourceUsage::CopySrc)));
-          drawNode.resourceUsage.push_back(make_rdcpair(
-              GetResID(pDstBuffer), EventUsage(drawNode.draw.eventId, ResourceUsage::CopyDst)));
+          actionNode.resourceUsage.push_back(make_rdcpair(
+              GetResID(pSrcBuffer), EventUsage(actionNode.action.eventId, ResourceUsage::CopySrc)));
+          actionNode.resourceUsage.push_back(make_rdcpair(
+              GetResID(pDstBuffer), EventUsage(actionNode.action.eventId, ResourceUsage::CopyDst)));
         }
       }
     }
@@ -247,7 +241,7 @@ void WrappedID3D12GraphicsCommandList::AtomicCopyBufferUINT64(
   if(IsCaptureMode(m_State))
   {
     CACHE_THREAD_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_AtomicCopyBufferUINT64);
     Serialise_AtomicCopyBufferUINT64(ser, pDstBuffer, DstOffset, pSrcBuffer, SrcOffset, Dependencies,
                                      ppDependentResources, pDependentSubresourceRanges);
@@ -267,8 +261,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetDepthBounds(SerialiserType
 {
   ID3D12GraphicsCommandList1 *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(Min);
-  SERIALISE_ELEMENT(Max);
+  SERIALISE_ELEMENT(Min).Important();
+  SERIALISE_ELEMENT(Max).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -342,7 +336,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetSamplePositions(
 {
   ID3D12GraphicsCommandList1 *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(NumSamplesPerPixel);
+  SERIALISE_ELEMENT(NumSamplesPerPixel).Important();
   SERIALISE_ELEMENT(NumPixels);
   SERIALISE_ELEMENT_ARRAY(pSamplePositions, NumSamplesPerPixel * NumPixels);
 
@@ -436,11 +430,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresourceRegion(
 {
   ID3D12GraphicsCommandList1 *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(pDstResource);
+  SERIALISE_ELEMENT(pDstResource).Important();
   SERIALISE_ELEMENT(DstSubresource);
   SERIALISE_ELEMENT(DstX);
   SERIALISE_ELEMENT(DstY);
-  SERIALISE_ELEMENT(pSrcResource);
+  SERIALISE_ELEMENT(pSrcResource).Important();
   SERIALISE_ELEMENT(SrcSubresource);
   SERIALISE_ELEMENT_OPT(pSrcRect);
   SERIALISE_ELEMENT(Format);
@@ -481,30 +475,29 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresourceRegion(
       {
         m_Cmd->AddEvent();
 
-        DrawcallDescription draw;
-        draw.copySource = GetResourceManager()->GetOriginalID(GetResID(pSrcResource));
-        draw.copyDestination = GetResourceManager()->GetOriginalID(GetResID(pDstResource));
+        ActionDescription action;
+        action.copySource = GetResourceManager()->GetOriginalID(GetResID(pSrcResource));
+        action.copyDestination = GetResourceManager()->GetOriginalID(GetResID(pDstResource));
 
-        draw.name =
-            StringFormat::Fmt("ResolveSubresourceRegion(%s, %s)",
-                              ToStr(draw.copyDestination).c_str(), ToStr(draw.copySource).c_str());
-        draw.flags |= DrawFlags::Resolve;
+        action.flags |= ActionFlags::Resolve;
 
-        m_Cmd->AddDrawcall(draw, true);
+        m_Cmd->AddAction(action);
 
-        D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
+        D3D12ActionTreeNode &actionNode = m_Cmd->GetActionStack().back()->children.back();
 
         if(pSrcResource == pDstResource)
         {
-          drawNode.resourceUsage.push_back(make_rdcpair(
-              GetResID(pSrcResource), EventUsage(drawNode.draw.eventId, ResourceUsage::Resolve)));
+          actionNode.resourceUsage.push_back(make_rdcpair(
+              GetResID(pSrcResource), EventUsage(actionNode.action.eventId, ResourceUsage::Resolve)));
         }
         else
         {
-          drawNode.resourceUsage.push_back(make_rdcpair(
-              GetResID(pSrcResource), EventUsage(drawNode.draw.eventId, ResourceUsage::ResolveSrc)));
-          drawNode.resourceUsage.push_back(make_rdcpair(
-              GetResID(pDstResource), EventUsage(drawNode.draw.eventId, ResourceUsage::ResolveDst)));
+          actionNode.resourceUsage.push_back(
+              make_rdcpair(GetResID(pSrcResource),
+                           EventUsage(actionNode.action.eventId, ResourceUsage::ResolveSrc)));
+          actionNode.resourceUsage.push_back(
+              make_rdcpair(GetResID(pDstResource),
+                           EventUsage(actionNode.action.eventId, ResourceUsage::ResolveDst)));
         }
       }
     }
@@ -525,7 +518,7 @@ void WrappedID3D12GraphicsCommandList::ResolveSubresourceRegion(
   if(IsCaptureMode(m_State))
   {
     CACHE_THREAD_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_ResolveSubresourceRegion);
     Serialise_ResolveSubresourceRegion(ser, pDstResource, DstSubresource, DstX, DstY, pSrcResource,
                                        SrcSubresource, pSrcRect, Format, ResolveMode);
@@ -541,7 +534,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetViewInstanceMask(SerialiserT
 {
   ID3D12GraphicsCommandList1 *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT(Mask);
+  SERIALISE_ELEMENT(Mask).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 

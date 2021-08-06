@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -51,8 +51,10 @@ struct D3D12InitParams
   uint32_t VendorUAV = ~0U;
   uint32_t VendorUAVSpace = ~0U;
 
+  UINT SDKVersion = 0;
+
   // check if a frame capture section version is supported
-  static const uint64_t CurrentVersion = 0xA;
+  static const uint64_t CurrentVersion = 0xC;
 
   static bool IsSupportedVersion(uint64_t ver);
 };
@@ -71,7 +73,7 @@ class D3D12DebugManager;
 // give every impression of working but do nothing.
 // Just allow the user to call functions so that they don't
 // have to check for E_NOINTERFACE when they expect an infoqueue to be there
-struct DummyID3D12InfoQueue : public ID3D12InfoQueue
+struct DummyID3D12InfoQueue : public ID3D12InfoQueue1
 {
   WrappedID3D12Device *m_pDevice;
 
@@ -164,6 +166,19 @@ struct DummyID3D12InfoQueue : public ID3D12InfoQueue
   virtual BOOL STDMETHODCALLTYPE GetBreakOnID(D3D12_MESSAGE_ID ID) { return FALSE; }
   virtual void STDMETHODCALLTYPE SetMuteDebugOutput(BOOL bMute) {}
   virtual BOOL STDMETHODCALLTYPE GetMuteDebugOutput() { return TRUE; }
+  //////////////////////////////
+  // implement ID3D12InfoQueue1
+  virtual HRESULT STDMETHODCALLTYPE RegisterMessageCallback(
+      _In_ D3D12MessageFunc CallbackFunc, _In_ D3D12_MESSAGE_CALLBACK_FLAGS CallbackFilterFlags,
+      _In_ void *pContext, _Inout_ DWORD *pCallbackCookie)
+  {
+    return S_OK;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE UnregisterMessageCallback(_In_ DWORD CallbackCookie)
+  {
+    return S_OK;
+  }
 };
 
 class WrappedID3D12Device;
@@ -500,6 +515,16 @@ public:
   virtual BOOL STDMETHODCALLTYPE SetReal(IUnknown *);
   virtual IUnknown *STDMETHODCALLTYPE GetReal();
   virtual BOOL STDMETHODCALLTYPE SetShaderExtUAV(DWORD space, DWORD reg, BOOL global);
+
+  virtual void STDMETHODCALLTYPE UnwrapDesc(D3D12_GRAPHICS_PIPELINE_STATE_DESC *pDesc);
+  virtual void STDMETHODCALLTYPE UnwrapDesc(D3D12_COMPUTE_PIPELINE_STATE_DESC *pDesc);
+
+  virtual ID3D12PipelineState *STDMETHODCALLTYPE
+  ProcessCreatedGraphicsPipelineState(const D3D12_GRAPHICS_PIPELINE_STATE_DESC *pDesc, uint32_t reg,
+                                      uint32_t space, ID3D12PipelineState *realPSO);
+  virtual ID3D12PipelineState *STDMETHODCALLTYPE
+  ProcessCreatedComputePipelineState(const D3D12_COMPUTE_PIPELINE_STATE_DESC *pDesc, uint32_t reg,
+                                     uint32_t space, ID3D12PipelineState *realPSO);
 };
 
 struct WrappedAGS12 : public IAGSD3DDevice
@@ -533,7 +558,7 @@ class WrappedID3D12CommandQueue;
   template <typename SerialiserType>                         \
   bool CONCAT(Serialise_, func(SerialiserType &ser, __VA_ARGS__));
 
-class WrappedID3D12Device : public IFrameCapturer, public ID3DDevice, public ID3D12Device8
+class WrappedID3D12Device : public IFrameCapturer, public ID3DDevice, public ID3D12Device9
 {
 private:
   ID3D12Device *m_pDevice;
@@ -545,6 +570,7 @@ private:
   ID3D12Device6 *m_pDevice6;
   ID3D12Device7 *m_pDevice7;
   ID3D12Device8 *m_pDevice8;
+  ID3D12Device9 *m_pDevice9;
   ID3D12DeviceDownlevel *m_pDownlevel;
 
   // list of all queues being captured
@@ -612,6 +638,10 @@ private:
   Threading::CriticalSection m_MapsLock;
   rdcarray<MapState> m_Maps;
 
+  Threading::CriticalSection m_SparseLock;
+  std::unordered_set<ResourceId> m_SparseResources;
+  std::unordered_set<ResourceId> m_SparseHeaps;
+
   Threading::CriticalSection m_WrapDeduplicateLock;
 
   bool ProcessChunk(ReadSerialiser &ser, D3D12Chunk context);
@@ -645,7 +675,7 @@ private:
 
   uint32_t m_FrameCounter = 0;
   rdcarray<FrameDescription> m_CapturedFrames;
-  rdcarray<DrawcallDescription *> m_Drawcalls;
+  rdcarray<ActionDescription *> m_Actions;
 
   ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
 
@@ -682,6 +712,11 @@ private:
   // in capture
   std::map<ResourceId, SubresourceStateVector> m_ResourceStates;
   Threading::CriticalSection m_ResourceStatesLock;
+
+  // used on replay only. Contains the initial resource states before any barriers - this allows us
+  // to reset any resources to their proper initial state if they were created mid-frame, since for
+  // those we won't have recorded their state at the start of the frame capture.
+  std::map<ResourceId, SubresourceStateVector> m_InitialResourceStates;
 
   std::set<ResourceId> m_Cubemaps;
 
@@ -758,7 +793,7 @@ public:
   Threading::RWLock &GetCapTransitionLock() { return m_CapTransitionLock; }
   void ReleaseSwapchainResources(IDXGISwapChain *swap, IUnknown **backbuffers, int numBackbuffers);
   void FirstFrame(IDXGISwapper *swapper);
-  const DrawcallDescription *GetDrawcall(uint32_t eventId);
+  const ActionDescription *GetAction(uint32_t eventId);
 
   ResourceId GetFrameCaptureResourceId() { return m_FrameCaptureRecord->GetResourceID(); }
   void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d);
@@ -843,6 +878,10 @@ public:
   int initStateCurBatch;
   ID3D12GraphicsCommandListX *initStateCurList;
 
+  // ExecuteLists may issue this many command lists together. If more than this are
+  // pending at once then they will be split up and issued in multiple calls.
+  static const UINT executeListsMaxSize = 50;
+
   ID3D12GraphicsCommandListX *GetNewList();
   ID3D12GraphicsCommandListX *GetInitialStateList();
   void CloseInitialStateList();
@@ -900,7 +939,7 @@ public:
        iid == __uuidof(ID3D12Device2) || iid == __uuidof(ID3D12Device3) ||
        iid == __uuidof(ID3D12Device4) || iid == __uuidof(ID3D12Device5) ||
        iid == __uuidof(ID3D12Device6) || iid == __uuidof(ID3D12Device7) ||
-       iid == __uuidof(ID3D12Device8))
+       iid == __uuidof(ID3D12Device8) || iid == __uuidof(ID3D12Device9))
       return true;
 
     return false;
@@ -925,6 +964,8 @@ public:
       return (ID3D12Device7 *)this;
     else if(iid == __uuidof(ID3D12Device8))
       return (ID3D12Device8 *)this;
+    else if(iid == __uuidof(ID3D12Device9))
+      return (ID3D12Device9 *)this;
 
     RDCERR("Requested unknown device interface %s", ToStr(iid).c_str());
 
@@ -1010,6 +1051,12 @@ public:
       this->AddRef();
       return S_OK;
     }
+    else if(riid == __uuidof(ID3D12Device9))
+    {
+      *ppvDevice = (ID3D12Device9 *)this;
+      this->AddRef();
+      return S_OK;
+    }
 
     return E_NOINTERFACE;
   }
@@ -1040,6 +1087,25 @@ public:
   }
   void CheckForDeath();
 
+  void GetSparseResources(std::unordered_set<ResourceId> &resources,
+                          std::unordered_set<ResourceId> &heaps)
+  {
+    SCOPED_LOCK(m_SparseLock);
+    resources = m_SparseResources;
+    heaps = m_SparseHeaps;
+  }
+  bool IsSparseResource(ResourceId id)
+  {
+    SCOPED_LOCK_OPTIONAL(m_SparseLock, IsCaptureMode(m_State));
+    return m_SparseResources.find(id) != m_SparseResources.end();
+  }
+
+  void AddSparseHeap(ResourceId heap)
+  {
+    SCOPED_LOCK(m_SparseLock);
+    m_SparseHeaps.insert(heap);
+  }
+
   void ReleaseResource(ID3D12DeviceChild *pResource);
 
   // helper function that takes an expanded descriptor, but downcasts it to the regular descriptor
@@ -1056,6 +1122,7 @@ public:
   IMPLEMENT_FUNCTION_SERIALISED(void, SetShaderExtUAV, GPUVendor vendor, uint32_t reg,
                                 uint32_t space, bool global);
   void GetShaderExtUAV(uint32_t &reg, uint32_t &space);
+  void SetShaderExt(GPUVendor vendor);
 
   // Protected session
   ID3D12Fence *CreateProtectedSessionFence(ID3D12Fence *real);
@@ -1092,6 +1159,17 @@ public:
   IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateCommandAllocator,
                                        D3D12_COMMAND_LIST_TYPE type, REFIID riid,
                                        void **ppCommandAllocator);
+
+  // these are separated from CreateGraphicsPipelineState and CreateComputePipelineState so that
+  // extension creation functions can pass in their custom-created pipeline state
+  void ProcessCreatedGraphicsPSO(ID3D12PipelineState *real, uint32_t vendorExtReg,
+                                 uint32_t vendorExtSpace,
+                                 const D3D12_GRAPHICS_PIPELINE_STATE_DESC *pDesc, REFIID riid,
+                                 void **ppPipelineState);
+  void ProcessCreatedComputePSO(ID3D12PipelineState *real, uint32_t vendorExtReg,
+                                uint32_t vendorExtSpace,
+                                const D3D12_COMPUTE_PIPELINE_STATE_DESC *pDesc, REFIID riid,
+                                void **ppPipelineState);
 
   IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateGraphicsPipelineState,
                                        const D3D12_GRAPHICS_PIPELINE_STATE_DESC *pDesc, REFIID riid,
@@ -1426,4 +1504,17 @@ public:
       _Out_writes_opt_(NumSubresources) D3D12_PLACED_SUBRESOURCE_FOOTPRINT *pLayouts,
       _Out_writes_opt_(NumSubresources) UINT *pNumRows,
       _Out_writes_opt_(NumSubresources) UINT64 *pRowSizeInBytes, _Out_opt_ UINT64 *pTotalBytes);
+
+  //////////////////////////////
+  // implement ID3D12Device9
+  virtual HRESULT STDMETHODCALLTYPE
+  CreateShaderCacheSession(_In_ const D3D12_SHADER_CACHE_SESSION_DESC *pDesc, REFIID riid,
+                           _COM_Outptr_opt_ void **ppvSession);
+
+  virtual HRESULT STDMETHODCALLTYPE ShaderCacheControl(D3D12_SHADER_CACHE_KIND_FLAGS Kinds,
+                                                       D3D12_SHADER_CACHE_CONTROL_FLAGS Control);
+
+  IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateCommandQueue1,
+                                       _In_ const D3D12_COMMAND_QUEUE_DESC *pDesc, REFIID CreatorID,
+                                       REFIID riid, _COM_Outptr_ void **ppCommandQueue);
 };

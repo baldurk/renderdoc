@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -12082,20 +12082,146 @@ struct OpSubgroupReadInvocationKHR
   Id index;
 };
 
-struct OpTypeRayQueryProvisionalKHR
+struct OpTraceRayKHR
 {
-  OpTypeRayQueryProvisionalKHR(const ConstIter &it)
+  OpTraceRayKHR(const ConstIter &it)
   {
     memcpy(this, it.words(), sizeof(*this));
   }
-  OpTypeRayQueryProvisionalKHR(IdResult result)
-      : op(Op::TypeRayQueryProvisionalKHR)
+  OpTraceRayKHR(Id accel, Id rayFlags, Id cullMask, Id sBTOffset, Id sBTStride, Id missIndex, Id rayOrigin, Id rayTmin, Id rayDirection, Id rayTmax, Id payload)
+      : op(Op::TraceRayKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->accel = accel;
+    this->rayFlags = rayFlags;
+    this->cullMask = cullMask;
+    this->sBTOffset = sBTOffset;
+    this->sBTStride = sBTStride;
+    this->missIndex = missIndex;
+    this->rayOrigin = rayOrigin;
+    this->rayTmin = rayTmin;
+    this->rayDirection = rayDirection;
+    this->rayTmax = rayTmax;
+    this->payload = payload;
+  }
+
+  static constexpr Op OpCode = Op::TraceRayKHR;
+  static constexpr uint16_t FixedWordSize = 12U;
+  Op op;
+  uint16_t wordCount;
+  Id accel;
+  Id rayFlags;
+  Id cullMask;
+  Id sBTOffset;
+  Id sBTStride;
+  Id missIndex;
+  Id rayOrigin;
+  Id rayTmin;
+  Id rayDirection;
+  Id rayTmax;
+  Id payload;
+};
+
+struct OpExecuteCallableKHR
+{
+  OpExecuteCallableKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpExecuteCallableKHR(Id sBTIndex, Id callableData)
+      : op(Op::ExecuteCallableKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->sBTIndex = sBTIndex;
+    this->callableData = callableData;
+  }
+
+  static constexpr Op OpCode = Op::ExecuteCallableKHR;
+  static constexpr uint16_t FixedWordSize = 3U;
+  Op op;
+  uint16_t wordCount;
+  Id sBTIndex;
+  Id callableData;
+};
+
+struct OpConvertUToAccelerationStructureKHR
+{
+  OpConvertUToAccelerationStructureKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpConvertUToAccelerationStructureKHR(IdResultType resultType, IdResult result, Id accel)
+      : op(Op::ConvertUToAccelerationStructureKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->accel = accel;
+  }
+
+  static constexpr Op OpCode = Op::ConvertUToAccelerationStructureKHR;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id accel;
+};
+
+struct OpIgnoreIntersectionKHR
+{
+  OpIgnoreIntersectionKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpIgnoreIntersectionKHR()
+      : op(Op::IgnoreIntersectionKHR)
+      , wordCount(FixedWordSize)
+  {
+    // no operands
+  }
+
+  static constexpr Op OpCode = Op::IgnoreIntersectionKHR;
+  static constexpr uint16_t FixedWordSize = 1U;
+  Op op;
+  uint16_t wordCount;
+  // no operands
+};
+
+struct OpTerminateRayKHR
+{
+  OpTerminateRayKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpTerminateRayKHR()
+      : op(Op::TerminateRayKHR)
+      , wordCount(FixedWordSize)
+  {
+    // no operands
+  }
+
+  static constexpr Op OpCode = Op::TerminateRayKHR;
+  static constexpr uint16_t FixedWordSize = 1U;
+  Op op;
+  uint16_t wordCount;
+  // no operands
+};
+
+struct OpTypeRayQueryKHR
+{
+  OpTypeRayQueryKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpTypeRayQueryKHR(IdResult result)
+      : op(Op::TypeRayQueryKHR)
       , wordCount(FixedWordSize)
   {
     this->result = result;
   }
 
-  static constexpr Op OpCode = Op::TypeRayQueryProvisionalKHR;
+  static constexpr Op OpCode = Op::TypeRayQueryKHR;
   static constexpr uint16_t FixedWordSize = 2U;
   Op op;
   uint16_t wordCount;

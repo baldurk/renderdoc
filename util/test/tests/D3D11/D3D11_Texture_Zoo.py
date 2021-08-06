@@ -1,8 +1,4 @@
-import renderdoc as rd
 import rdtest
-from typing import List, Tuple
-import time
-import os
 
 
 class D3D11_Texture_Zoo(rdtest.TestCase):

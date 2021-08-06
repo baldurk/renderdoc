@@ -124,8 +124,8 @@
             <File Id='Qt5Network' Name='Qt5Network.dll' DiskId='1' Source='dist/Release32/Qt5Network.dll' />
             <File Id='Qt5Svg' Name='Qt5Svg.dll' DiskId='1' Source='dist/Release32/Qt5Svg.dll' />
             <File Id='Qt5Widgets' Name='Qt5Widgets.dll' DiskId='1' Source='dist/Release32/Qt5Widgets.dll' />
-            <File Id='libeay32' Name='libeay32.dll' DiskId='1' Source='dist/Release32/libeay32.dll' />
-            <File Id='ssleay32' Name='ssleay32.dll' DiskId='1' Source='dist/Release32/ssleay32.dll' />
+            <File Id='libcrypto' Name='libcrypto-1_1.dll' DiskId='1' Source='dist/Release32/libcrypto-1_1.dll' />
+            <File Id='libssl' Name='libssl-1_1.dll' DiskId='1' Source='dist/Release32/libssl-1_1.dll' />
           </Component>
 
           <Component Id='Python' Guid='63C5667D-38DA-464B-8E2F-B2857B8EAEC8'>
@@ -309,7 +309,7 @@
     </Directory>
 
     <DirectoryRef Id="TARGETDIR">
-      <Merge Id="VCRedist32" DiskId="1" Language="0" SourceFile="C:\Program Files (x86)\Common Files\Merge Modules\Microsoft_VC140_CRT_x86.msm"/>
+      <Merge Id="VCRedist32" DiskId="1" Language="0" SourceFile="C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Redist\MSVC\v142\MergeModules\Microsoft_VC142_CRT_x86.msm"/>
     </DirectoryRef>
 
     <Property Id="VCRT32INSTALLED" Value="0">

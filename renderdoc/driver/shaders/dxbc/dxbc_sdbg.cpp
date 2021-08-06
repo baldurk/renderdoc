@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -151,7 +151,7 @@ rdcstr SDBGChunk::GetSymbolName(int32_t symbolOffset, int32_t symbolLength)
   return rdcstr(&m_RawData[offset], symbolLength);
 }
 
-IDebugInfo *MakeSDBGChunk(void *data)
+IDebugInfo *ProcessSDBGChunk(void *data)
 {
   return new SDBGChunk(data);
 }

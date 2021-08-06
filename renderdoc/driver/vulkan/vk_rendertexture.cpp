@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -293,8 +293,17 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, const ImageState &i
   }
   else
   {
-    uint32_t sliceFace = RDCCLAMP(cfg.subresource.slice, 0U, iminfo.extent.depth - 1);
-    data->Slice = (float)sliceFace + 0.001f;
+    float slice = (float)RDCCLAMP(cfg.subresource.slice, 0U, iminfo.extent.depth - 1);
+
+    // when sampling linearly, we need to add half a pixel to ensure we only sample the desired
+    // slice
+    if(cfg.subresource.mip == 0 && cfg.scale < 1.0f &&
+       (displayformat & (TEXDISPLAY_UINT_TEX | TEXDISPLAY_SINT_TEX)) == 0)
+      slice += 0.5f;
+    else
+      slice += 0.001f;
+
+    data->Slice = slice;
   }
 
   data->TextureResolutionPS.x = float(RDCMAX(1, tex_x >> cfg.subresource.mip));

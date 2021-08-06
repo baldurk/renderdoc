@@ -55,11 +55,11 @@ def open_capture(filename="", cap: rd.CaptureFile=None, opts: rd.ReplayOptions=N
     return controller
 
 
-def fetch_indices(controller: rd.ReplayController, draw: rd.DrawcallDescription, mesh: rd.MeshFormat, index_offset: int, first_index: int, num_indices: int):
+def fetch_indices(controller: rd.ReplayController, action: rd.ActionDescription, mesh: rd.MeshFormat, index_offset: int, first_index: int, num_indices: int):
 
     pipe = controller.GetPipelineState()
     restart_idx = pipe.GetStripRestartIndex() & ((1 << (mesh.indexByteStride*8)) - 1)
-    restart_enabled = pipe.IsStripRestartEnabled() and rd.IsStrip(draw.topology)
+    restart_enabled = pipe.IsStripRestartEnabled() and rd.IsStrip(pipe.GetPrimitiveTopology())
 
     # If we have an index buffer
     if mesh.indexResourceId != rd.ResourceId.Null():

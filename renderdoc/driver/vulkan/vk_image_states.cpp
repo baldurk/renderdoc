@@ -1270,6 +1270,12 @@ void ImageState::Transition(const ImageState &dstState, VkAccessFlags srcAccessM
     for(auto it = subresourceStates.RangeBegin(dstRng); it != subresourceStates.end(); ++it)
     {
       ImageSubresourceState srcSub;
+
+      // ignore transitions of subresources that were untouched if this isn't the *canonical* image
+      // state, but just an overlay tracking changes within a command buffer
+      if(it->state() == ImageSubresourceState() && m_Overlay)
+        continue;
+
       if(!it->state().Update(dstSub, srcSub, info.GetFrameRefCompFunc()))
         // subresource state did not change, so no need for a barrier
         continue;

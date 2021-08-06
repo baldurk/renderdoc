@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -799,27 +799,33 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
           {
             OpBranch decodedbranch(it);
 
-            ConstIter nextit = it;
-            nextit++;
-            while(nextit.opcode() == Op::Line || nextit.opcode() == Op::NoLine)
-              nextit++;
-
-            // we can now ignore everything between us and the label of this branch, which is almost
-            // always going to be the very next label.
-            //
-            // The reasoning is this:
-            // - assume the next block is not the one we are jumping to
-            // - all blocks inside the loop must only ever branch backwards to the header block
-            // (that's this one) so the block can't be jumped to from within the loop
-            // - it's also illegal to jump into a structured control flow construct from outside, so
-            //   it can't be jumped to from outside the loop
-            // - that means it is completely inaccessible from everywhere, so we can skip it
-
-            while(nextit.opcode() != Op::Label || OpLabel(nextit).result != decodedbranch.targetLabel)
+            // if the first branch after the loopmerge is to the continue target, this is an empty
+            // infinite loop. Don't try and detect the branch, just make an empty loop and exit.
+            if(decodedbranch.targetLabel != decoded.continueTarget)
             {
+              ConstIter nextit = it;
               nextit++;
-              it++;
-              instructionLines[it.offs()] = lineNum;
+              while(nextit.opcode() == Op::Line || nextit.opcode() == Op::NoLine)
+                nextit++;
+
+              // we can now ignore everything between us and the label of this branch, which is
+              // almost always going to be the very next label.
+              //
+              // The reasoning is this:
+              // - assume the next block is not the one we are jumping to
+              // - all blocks inside the loop must only ever branch backwards to the header block
+              //   (that's this one) so the block can't be jumped to from within the loop
+              // - it's also illegal to jump into a structured control flow construct from outside,
+              //   so it can't be jumped to from outside the loop
+              // - that means it is completely inaccessible from everywhere, so we can skip it
+
+              while(nextit.opcode() != Op::Label ||
+                    OpLabel(nextit).result != decodedbranch.targetLabel)
+              {
+                nextit++;
+                it++;
+                instructionLines[it.offs()] = lineNum;
+              }
             }
           }
           else
@@ -1538,18 +1544,27 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
           uint32_t inst = it.word(4);
 
           const bool IsGLSL450 = (setname == "GLSL.std.450");
+          const bool IsDebugPrintf = (setname == "NonSemantic.DebugPrintf");
           // GLSL.std.450 all parameters are Ids
           const bool idParams = IsGLSL450 || setname.beginsWith("NonSemantic.");
 
           if(IsGLSL450)
             ret += StringFormat::Fmt("%s::%s(", setname.c_str(), ToStr(GLSLstd450(inst)).c_str());
+          else if(IsDebugPrintf)
+            ret += "DebugPrintf(";
           else
             ret += StringFormat::Fmt("%s::[%u](", setname.c_str(), inst);
 
           for(size_t i = 5; i < it.size(); i++)
           {
+            if(i == 5 && IsDebugPrintf)
+              ret += "\"";
+
             // TODO could generate this from the instruction set grammar.
             ret += idParams ? idName(Id::fromWord(it.word(i))) : ToStr(it.word(i));
+
+            if(i == 5 && IsDebugPrintf)
+              ret += "\"";
 
             if(i + 1 < it.size())
               ret += ", ";

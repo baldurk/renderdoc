@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -220,8 +220,8 @@ bool WrappedVulkan::Serialise_vkGetSwapchainImagesKHR(SerialiserType &ser, VkDev
                                                       VkImage *pSwapchainImages)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(Swapchain, GetResID(swapchain)).TypedAs("VkSwapchainKHR"_lit);
-  SERIALISE_ELEMENT_LOCAL(SwapchainImageIndex, *pCount);
+  SERIALISE_ELEMENT_LOCAL(Swapchain, GetResID(swapchain)).TypedAs("VkSwapchainKHR"_lit).Important();
+  SERIALISE_ELEMENT_LOCAL(SwapchainImageIndex, *pCount).Important();
   SERIALISE_ELEMENT_LOCAL(SwapchainImage, GetResID(*pSwapchainImages)).TypedAs("VkImage"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -329,7 +329,7 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(SerialiserType &ser, VkDevice
                                                    VkSwapchainKHR *pSwapChain)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo).Important();
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(SwapChain, GetResID(*pSwapChain)).TypedAs("VkSwapchainKHR"_lit);
 
@@ -668,6 +668,18 @@ VkResult WrappedVulkan::vkCreateSwapchainKHR(VkDevice device,
 
   // make sure we can readback to get the screenshot, and render to it for the text overlay
   createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+  // if the surface supports them, add usage bits we don't need to look more like normal images
+  // (which is important when patching imageless framebuffer usage)
+  VkSurfaceCapabilitiesKHR surfCap = {};
+  ObjDisp(m_PhysicalDevice)
+      ->GetPhysicalDeviceSurfaceCapabilitiesKHR(Unwrap(m_PhysicalDevice),
+                                                Unwrap(createInfo.surface), &surfCap);
+  if(surfCap.supportedUsageFlags & VK_IMAGE_USAGE_SAMPLED_BIT)
+    createInfo.imageUsage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+  if(surfCap.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
+    createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
   createInfo.surface = Unwrap(createInfo.surface);
   createInfo.oldSwapchain = Unwrap(createInfo.oldSwapchain);
 
@@ -685,7 +697,7 @@ bool WrappedVulkan::Serialise_vkQueuePresentKHR(SerialiserType &ser, VkQueue que
                                                 const VkPresentInfoKHR *pPresentInfo)
 {
   SERIALISE_ELEMENT(queue);
-  SERIALISE_ELEMENT_LOCAL(PresentInfo, *pPresentInfo);
+  SERIALISE_ELEMENT_LOCAL(PresentInfo, *pPresentInfo).Important();
 
   ResourceId PresentedImage;
 
@@ -710,14 +722,14 @@ bool WrappedVulkan::Serialise_vkQueuePresentKHR(SerialiserType &ser, VkQueue que
   {
     AddEvent();
 
-    DrawcallDescription draw;
+    ActionDescription action;
 
-    draw.name = StringFormat::Fmt("vkQueuePresentKHR(%s)", ToStr(PresentedImage).c_str());
-    draw.flags |= DrawFlags::Present;
+    action.customName = StringFormat::Fmt("vkQueuePresentKHR(%s)", ToStr(PresentedImage).c_str());
+    action.flags |= ActionFlags::Present;
 
-    m_LastPresentedImage = draw.copyDestination = PresentedImage;
+    m_LastPresentedImage = action.copyDestination = PresentedImage;
 
-    AddDrawcall(draw, true);
+    AddAction(action);
   }
 
   return true;

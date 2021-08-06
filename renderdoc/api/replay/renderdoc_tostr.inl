@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2017-2020 Baldur Karlsson
+ * Copyright (c) 2017-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -53,22 +53,27 @@ rdcstr DoStringise(const ReplayStatus &el)
     STRINGISE_ENUM_CLASS_NAMED(InternalError, "Internal error");
     STRINGISE_ENUM_CLASS_NAMED(FileNotFound, "File not found");
     STRINGISE_ENUM_CLASS_NAMED(InjectionFailed, "RenderDoc injection failed");
-    STRINGISE_ENUM_CLASS_NAMED(IncompatibleProcess, "Process is incompatible");
+    STRINGISE_ENUM_CLASS_NAMED(IncompatibleProcess,
+                               "Process is incompatible with this build of RenderDoc");
     STRINGISE_ENUM_CLASS_NAMED(NetworkIOFailed, "Network I/O operation failed");
     STRINGISE_ENUM_CLASS_NAMED(NetworkRemoteBusy, "Remote side of network connection is busy");
     STRINGISE_ENUM_CLASS_NAMED(NetworkVersionMismatch, "Version mismatch between network clients");
     STRINGISE_ENUM_CLASS_NAMED(FileIOFailed, "File I/O failed");
-    STRINGISE_ENUM_CLASS_NAMED(FileIncompatibleVersion, "File of incompatible version");
-    STRINGISE_ENUM_CLASS_NAMED(FileCorrupted, "File corrupted");
+    STRINGISE_ENUM_CLASS_NAMED(
+        FileIncompatibleVersion,
+        "Capture file incompatible due to being made on an different major version of RenderDoc");
+    STRINGISE_ENUM_CLASS_NAMED(FileCorrupted, "File is corrupted");
     STRINGISE_ENUM_CLASS_NAMED(ImageUnsupported,
                                "The image file is recognised but the format is unsupported");
-    STRINGISE_ENUM_CLASS_NAMED(APIUnsupported, "API is unsupported");
-    STRINGISE_ENUM_CLASS_NAMED(APIInitFailed, "API initialisation failed");
-    STRINGISE_ENUM_CLASS_NAMED(APIIncompatibleVersion,
-                               "Captured API data has an incompatible version");
+    STRINGISE_ENUM_CLASS_NAMED(APIUnsupported, "API used in this capture is unsupported");
+    STRINGISE_ENUM_CLASS_NAMED(APIInitFailed,
+                               "API initialisation failed while loading the capture");
+    STRINGISE_ENUM_CLASS_NAMED(
+        APIIncompatibleVersion,
+        "Captured API data was made on a newer incompatible version of RenderDoc");
     STRINGISE_ENUM_CLASS_NAMED(
         APIHardwareUnsupported,
-        "Current hardware unsupported or incompatible with captured hardware");
+        "Current replaying hardware unsupported or incompatible with captured hardware");
     STRINGISE_ENUM_CLASS_NAMED(APIDataCorrupted,
                                "Replaying the capture encountered invalid/corrupted data");
     STRINGISE_ENUM_CLASS_NAMED(APIReplayFailed, "Replaying the capture failed at the API level");
@@ -319,6 +324,20 @@ rdcstr DoStringise(const ConservativeRaster &el)
     STRINGISE_ENUM_CLASS(Disabled);
     STRINGISE_ENUM_CLASS(Underestimate);
     STRINGISE_ENUM_CLASS(Overestimate);
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
+rdcstr DoStringise(const ShadingRateCombiner &el)
+{
+  BEGIN_ENUM_STRINGISE(ShadingRateCombiner)
+  {
+    STRINGISE_ENUM_CLASS(Keep);
+    STRINGISE_ENUM_CLASS(Replace);
+    STRINGISE_ENUM_CLASS(Min);
+    STRINGISE_ENUM_CLASS(Max);
+    STRINGISE_ENUM_CLASS(Multiply);
   }
   END_ENUM_STRINGISE();
 }
@@ -660,6 +679,9 @@ rdcstr DoStringise(const ShaderBuiltin &el)
     STRINGISE_ENUM_CLASS_NAMED(IsFullyCovered, "Is Fully Covered");
     STRINGISE_ENUM_CLASS_NAMED(FragAreaSize, "Fragment Area Size");
     STRINGISE_ENUM_CLASS_NAMED(FragInvocationCount, "Fragment Invocation Count");
+    STRINGISE_ENUM_CLASS_NAMED(PackedFragRate, "Packed Fragment Rate");
+    STRINGISE_ENUM_CLASS_NAMED(Barycentrics, "Barycentrics");
+    STRINGISE_ENUM_CLASS_NAMED(CullPrimitive, "Cull Primitive Output");
   }
   END_ENUM_STRINGISE();
 }
@@ -1015,6 +1037,8 @@ rdcstr DoStringise(const SectionType &el)
     STRINGISE_ENUM_CLASS_NAMED(ExtendedThumbnail, "renderdoc/internal/exthumb");
     STRINGISE_ENUM_CLASS_NAMED(EmbeddedLogfile, "renderdoc/internal/logfile");
     STRINGISE_ENUM_CLASS_NAMED(EditedShaders, "renderdoc/ui/edits");
+    STRINGISE_ENUM_CLASS_NAMED(D3D12Core, "renderdoc/internal/d3d12core");
+    STRINGISE_ENUM_CLASS_NAMED(D3D12SDKLayers, "renderdoc/internal/d3d12sdklayers");
   }
   END_ENUM_STRINGISE();
 }
@@ -1123,9 +1147,9 @@ rdcstr DoStringise(const BufferCategory &el)
 }
 
 template <>
-rdcstr DoStringise(const DrawFlags &el)
+rdcstr DoStringise(const ActionFlags &el)
 {
-  BEGIN_BITFIELD_STRINGISE(DrawFlags);
+  BEGIN_BITFIELD_STRINGISE(ActionFlags);
   {
     STRINGISE_BITFIELD_CLASS_VALUE_NAMED(NoFlags, "None");
 
@@ -1137,7 +1161,7 @@ rdcstr DoStringise(const DrawFlags &el)
     STRINGISE_BITFIELD_CLASS_BIT(PushMarker);
     STRINGISE_BITFIELD_CLASS_BIT(PopMarker);
     STRINGISE_BITFIELD_CLASS_BIT(Present);
-    STRINGISE_BITFIELD_CLASS_BIT(MultiDraw);
+    STRINGISE_BITFIELD_CLASS_BIT(MultiAction);
     STRINGISE_BITFIELD_CLASS_BIT(Copy);
     STRINGISE_BITFIELD_CLASS_BIT(Resolve);
     STRINGISE_BITFIELD_CLASS_BIT(GenMips);
@@ -1151,7 +1175,7 @@ rdcstr DoStringise(const DrawFlags &el)
     STRINGISE_BITFIELD_CLASS_BIT(ClearDepthStencil);
     STRINGISE_BITFIELD_CLASS_BIT(BeginPass);
     STRINGISE_BITFIELD_CLASS_BIT(EndPass);
-    STRINGISE_BITFIELD_CLASS_BIT(APICalls);
+    STRINGISE_BITFIELD_CLASS_BIT(CommandBufferBoundary);
   }
   END_BITFIELD_STRINGISE();
 }

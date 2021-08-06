@@ -50,6 +50,9 @@ else()
     )
 endif()
 
+set_property(SOURCE ${sources}
+    PROPERTY COMPILE_FLAGS "-Wno-unknown-warning-option -Wno-range-loop-construct")
+
 add_library(rdoc_arm OBJECT ${sources})
 
 set(include_dirs

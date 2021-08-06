@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,7 @@
 #include <QKeyEvent>
 #include <QMenu>
 #include <QScrollBar>
+#include "Code/QRDUtils.h"
 #include "Code/ScintillaSyntax.h"
 #include "Code/pyrenderdoc/PythonContext.h"
 #include "scintilla/include/SciLexer.h"
@@ -98,6 +99,10 @@ struct MiniQtInvoker : ObjectForwarder<IMiniQtHelper>
   QWidget *CreateToplevelWidget(const rdcstr &windowTitle, WidgetCallback closed)
   {
     return InvokeRetFunction<QWidget *>(&IMiniQtHelper::CreateToplevelWidget, windowTitle, closed);
+  }
+  void CloseToplevelWidget(QWidget *widget)
+  {
+    InvokeVoidFunction(&IMiniQtHelper::CloseToplevelWidget, widget);
   }
 
   // widget hierarchy
@@ -225,6 +230,10 @@ struct MiniQtInvoker : ObjectForwarder<IMiniQtHelper>
   }
 
   QWidget *CreateLabel() { return InvokeRetFunction<QWidget *>(&IMiniQtHelper::CreateLabel); }
+  void SetLabelImage(QWidget *widget, const bytebuf &data, int32_t width, int32_t height, bool alpha)
+  {
+    InvokeVoidFunction(&IMiniQtHelper::SetLabelImage, widget, data, width, height, alpha);
+  }
   QWidget *CreateOutputRenderingWidget()
   {
     return InvokeRetFunction<QWidget *>(&IMiniQtHelper::CreateOutputRenderingWidget);
@@ -422,19 +431,16 @@ struct CaptureContextInvoker : ObjectForwarder<ICaptureContext>
   }
   virtual uint32_t CurSelectedEvent() override { return m_Obj.CurSelectedEvent(); }
   virtual uint32_t CurEvent() override { return m_Obj.CurEvent(); }
-  virtual const DrawcallDescription *CurSelectedDrawcall() override
+  virtual const ActionDescription *CurSelectedAction() override
   {
-    return m_Obj.CurSelectedDrawcall();
+    return m_Obj.CurSelectedAction();
   }
-  virtual const DrawcallDescription *CurDrawcall() override { return m_Obj.CurDrawcall(); }
-  virtual const DrawcallDescription *GetFirstDrawcall() override
+  virtual const ActionDescription *CurAction() override { return m_Obj.CurAction(); }
+  virtual const ActionDescription *GetFirstAction() override { return m_Obj.GetFirstAction(); }
+  virtual const ActionDescription *GetLastAction() override { return m_Obj.GetLastAction(); }
+  virtual const rdcarray<ActionDescription> &CurRootActions() override
   {
-    return m_Obj.GetFirstDrawcall();
-  }
-  virtual const DrawcallDescription *GetLastDrawcall() override { return m_Obj.GetLastDrawcall(); }
-  virtual const rdcarray<DrawcallDescription> &CurDrawcalls() override
-  {
-    return m_Obj.CurDrawcalls();
+    return m_Obj.CurRootActions();
   }
   virtual ResourceDescription *GetResource(ResourceId id) override { return m_Obj.GetResource(id); }
   virtual const rdcarray<ResourceDescription> &GetResources() override
@@ -456,9 +462,9 @@ struct CaptureContextInvoker : ObjectForwarder<ICaptureContext>
   virtual const rdcarray<TextureDescription> &GetTextures() override { return m_Obj.GetTextures(); }
   virtual BufferDescription *GetBuffer(ResourceId id) override { return m_Obj.GetBuffer(id); }
   virtual const rdcarray<BufferDescription> &GetBuffers() override { return m_Obj.GetBuffers(); }
-  virtual const DrawcallDescription *GetDrawcall(uint32_t eventId) override
+  virtual const ActionDescription *GetAction(uint32_t eventId) override
   {
-    return m_Obj.GetDrawcall(eventId);
+    return m_Obj.GetAction(eventId);
   }
   virtual bool OpenRGPProfile(const rdcstr &filename) override
   {
@@ -533,9 +539,13 @@ struct CaptureContextInvoker : ObjectForwarder<ICaptureContext>
   {
     return InvokeRetFunction<bool>(&ICaptureContext::IsResourceReplaced, id);
   }
-  virtual void RegisterReplacement(ResourceId id) override
+  virtual ResourceId GetResourceReplacement(ResourceId id) override
   {
-    InvokeVoidFunction(&ICaptureContext::RegisterReplacement, id);
+    return InvokeRetFunction<ResourceId>(&ICaptureContext::GetResourceReplacement, id);
+  }
+  virtual void RegisterReplacement(ResourceId from, ResourceId to) override
+  {
+    InvokeVoidFunction(&ICaptureContext::RegisterReplacement, from, to);
   }
   virtual void UnregisterReplacement(ResourceId id) override
   {
@@ -756,6 +766,11 @@ struct CaptureContextInvoker : ObjectForwarder<ICaptureContext>
     return InvokeRetFunction<IShaderViewer *>(&ICaptureContext::ViewShader, shader, pipeline);
   }
 
+  virtual IShaderMessageViewer *ViewShaderMessages(ShaderStageMask stages) override
+  {
+    return InvokeRetFunction<IShaderMessageViewer *>(&ICaptureContext::ViewShaderMessages, stages);
+  }
+
   virtual IBufferViewer *ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
                                     const rdcstr &format = "") override
   {
@@ -815,17 +830,16 @@ PythonShell::PythonShell(ICaptureContext &ctx, QWidget *parent)
   QObject::connect(ui->lineInput, &RDLineEdit::keyPress, this, &PythonShell::interactive_keypress);
   QObject::connect(ui->helpSearch, &RDLineEdit::keyPress, this, &PythonShell::helpSearch_keypress);
 
-  ui->lineInput->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
-  ui->interactiveOutput->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
-  ui->scriptOutput->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
-  ui->helpText->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+  ui->lineInput->setFont(Formatter::FixedFont());
+  ui->interactiveOutput->setFont(Formatter::FixedFont());
+  ui->scriptOutput->setFont(Formatter::FixedFont());
+  ui->helpText->setFont(Formatter::FixedFont());
 
   ui->lineInput->setAcceptTabCharacters(true);
 
   scriptEditor = new ScintillaEdit(this);
 
-  scriptEditor->styleSetFont(
-      STYLE_DEFAULT, QFontDatabase::systemFont(QFontDatabase::FixedFont).family().toUtf8().data());
+  scriptEditor->styleSetFont(STYLE_DEFAULT, Formatter::FixedFont().family().toUtf8().data());
 
   scriptEditor->setMarginLeft(4.0 * devicePixelRatioF());
   scriptEditor->setMarginWidthN(0, 32.0 * devicePixelRatioF());

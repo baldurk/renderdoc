@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -219,7 +219,6 @@ RD_TEST(VK_Discard_Zoo, VulkanGraphicsTest)
       delete[] empty;
     }
 
-    const VkImageUsageFlags usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     const VmaAllocationCreateInfo gpu = VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY});
 
     AllocatedImage ignoreimg(
@@ -416,6 +415,10 @@ RD_TEST(VK_Discard_Zoo, VulkanGraphicsTest)
       TEX_TEST("DiscardAll", MakeTex2DMS(VK_FORMAT_R16G16B16A16_SFLOAT, 300, 300, 4));
       DiscardImage(cmd, tex);
       TEX_TEST("DiscardAll", MakeTex2DMS(VK_FORMAT_R16G16B16A16_SFLOAT, 300, 300, 4, 5));
+      DiscardImage(cmd, tex);
+      TEX_TEST("DiscardAll", MakeTex2DMS(VK_FORMAT_R16G16B16A16_UINT, 300, 300, 4, 5));
+      DiscardImage(cmd, tex);
+      TEX_TEST("DiscardAll", MakeTex2DMS(VK_FORMAT_R16G16B16A16_SINT, 300, 300, 4, 5));
       DiscardImage(cmd, tex);
 
       // test depth textures

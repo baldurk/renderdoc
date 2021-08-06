@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,13 @@ ResourcePreview::ResourcePreview(ICaptureContext &c, IReplayOutput *output, QWid
   ui->thumbnail->SetOutput(output);
 
   setBackgroundRole(QPalette::Background);
-  setForegroundRole(QPalette::Highlight);
+  setForegroundRole(QPalette::Foreground);
+
+  QPalette Pal(palette());
+
+  Pal.setColor(QPalette::Highlight, QColor(Qt::red));
+
+  setPalette(Pal);
 
   setSelected(false);
 
@@ -99,17 +105,7 @@ void ResourcePreview::setSelected(bool sel)
 {
   m_Selected = sel;
 
-  QPalette Pal(palette());
-
-  Pal.setColor(QPalette::Highlight, sel ? QColor(Qt::red) : Pal.color(QPalette::Foreground));
-
-  setPalette(Pal);
-}
-
-void ResourcePreview::changeEvent(QEvent *event)
-{
-  if(event->type() == QEvent::PaletteChange || event->type() == QEvent::StyleChange)
-    setSelected(m_Selected);
+  setForegroundRole(sel ? QPalette::Highlight : QPalette::Foreground);
 }
 
 WindowingData ResourcePreview::GetWidgetWindowingData()

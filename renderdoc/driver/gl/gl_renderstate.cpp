@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -1672,7 +1672,8 @@ void GLRenderState::ApplyState(WrappedOpenGL *driver)
 
   if(HasExt[ARB_tessellation_shader])
   {
-    GL.glPatchParameteri(eGL_PATCH_VERTICES, PatchParams.numVerts);
+    if(PatchParams.numVerts > 0)
+      GL.glPatchParameteri(eGL_PATCH_VERTICES, PatchParams.numVerts);
     if(!IsGLES)
     {
       GL.glPatchParameterfv(eGL_PATCH_DEFAULT_INNER_LEVEL, PatchParams.defaultInnerLevel);

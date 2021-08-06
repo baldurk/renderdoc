@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -781,13 +781,14 @@ void RDCFile::Create(const rdcstr &filename)
   // re-open as read-only now.
   FileIO::fclose(m_File);
   m_File = FileIO::fopen(filename, FileIO::ReadBinary);
-  FileIO::fseek64(m_File, 0, SEEK_END);
 
   if(!m_File)
   {
     RETURNERROR(ContainerError::FileIO, "Can't open capture file '%s' as read-only, errno %d",
                 filename.c_str(), errno);
   }
+
+  FileIO::fseek64(m_File, 0, SEEK_END);
 }
 
 int RDCFile::SectionIndex(SectionType type) const

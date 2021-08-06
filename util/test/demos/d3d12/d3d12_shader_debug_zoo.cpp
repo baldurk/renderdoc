@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2020 Baldur Karlsson
+ * Copyright (c) 2020-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -158,6 +158,19 @@ Texture2D<float> dimtex : register(t3);
 Texture2DMS<float> dimtexms : register(t4);
 RWByteAddressBuffer byterwtest : register(u1);
 RWStructuredBuffer<MyStruct> structrwtest : register(u2);
+
+Buffer<float> unboundsrv1 : register(t100);
+Texture2D<float> unboundsrv2 : register(t101);
+
+RWBuffer<float> unbounduav1 : register(u4);
+RWTexture2D<float> unbounduav2 : register(u5);
+
+RWBuffer<float> narrowtypeduav : register(u6);
+Buffer<float> narrowtypedsrv : register(t102);
+
+Buffer<float4> rgb_srv : register(t103);
+
+SamplerState linearclamp : register(s0);
 
 float4 main(v2f IN) : SV_Target0
 {
@@ -463,6 +476,8 @@ float4 main(v2f IN) : SV_Target0
 
     return float4(read.a, read.e, read.d.b[z+0], read.d.c);
   }
+)EOSHADER"
+                      R"EOSHADER(
 
   // storing in bounds
   if(IN.tri == 52)
@@ -645,6 +660,46 @@ float4 main(v2f IN) : SV_Target0
     sincos(val, a, b);
     return float4(val, a, b, 0.0f);
   }
+  if(IN.tri == 68)
+  {
+    return unboundsrv1[0].xxxx;
+  }
+  if(IN.tri == 69)
+  {
+    return unboundsrv2.Load(int3(0, 0, 0)).xxxx;
+  }
+  if(IN.tri == 70)
+  {
+    return unboundsrv2.Sample(linearclamp, float2(0, 0)).xxxx;
+  }
+  if(IN.tri == 71)
+  {
+    return unbounduav1[0].xxxx;
+  }
+  if(IN.tri == 72)
+  {
+    unbounduav1[1] = 1.234f;
+    return unbounduav1[1].xxxx;
+  }
+  if(IN.tri == 73)
+  {
+    unbounduav2[int2(0, 1)] = 1.234f;
+    return unbounduav2[int2(0, 1)].xxxx;
+  }
+  if(IN.tri == 74)
+  {
+    return float4(narrowtypedsrv[1], narrowtypedsrv[2], narrowtypedsrv[3], narrowtypedsrv[4]);
+  }
+  if(IN.tri == 75)
+  {
+    narrowtypeduav[13] = 555.0f;
+    narrowtypeduav[14] = 888.0f;
+    return float4(narrowtypeduav[11], narrowtypeduav[12], narrowtypeduav[13], narrowtypeduav[14]);
+  }
+  if(IN.tri == 76)
+  {
+    return rgb_srv[0];
+  }
 
   return float4(0.4f, 0.4f, 0.4f, 0.4f);
 }
@@ -714,10 +769,19 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
         D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0,
     });
 
-    ID3D12RootSignaturePtr sig = MakeSig({
-        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 5, 0),
-        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1, 2, 5),
-    });
+    D3D12_STATIC_SAMPLER_DESC staticSamp = {};
+    staticSamp.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+    staticSamp.AddressU = staticSamp.AddressV = staticSamp.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+    staticSamp.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+    ID3D12RootSignaturePtr sig = MakeSig(
+        {
+            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 5, 0),
+            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1, 2, 5),
+            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 100, 5, 20),
+            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 4, 3, 30),
+        },
+        D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, 1, &staticSamp);
 
     ID3D12PipelineStatePtr pso_5_0 = MakePSO()
                                          .RootSig(sig)
@@ -793,9 +857,20 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
     D3D12_CPU_DESCRIPTOR_HANDLE uav1cpu = uavView1.CreateClearCPU(5);
     D3D12_GPU_DESCRIPTOR_HANDLE uav1gpu = uavView1.CreateGPU(5);
 
+    uint16_t narrowdata[32];
+    for(size_t i = 0; i < ARRAY_COUNT(narrowdata); i++)
+      narrowdata[i] = MakeHalf(float(i));
+
+    ID3D12ResourcePtr narrowtypedbuf = MakeBuffer().UAV().Data(narrowdata);
+    MakeSRV(narrowtypedbuf).Format(DXGI_FORMAT_R16_FLOAT).CreateGPU(22);
+    MakeUAV(narrowtypedbuf).Format(DXGI_FORMAT_R16_FLOAT).CreateGPU(32);
+
     float structdata[220];
     for(int i = 0; i < 220; i++)
       structdata[i] = float(i);
+
+    ID3D12ResourcePtr rgbbuf = MakeBuffer().Data(structdata);
+    MakeSRV(rgbbuf).Format(DXGI_FORMAT_R32G32B32_FLOAT).CreateGPU(23);
 
     ID3D12ResourcePtr structBuf = MakeBuffer().Data(structdata);
     MakeSRV(structBuf)
@@ -857,6 +932,54 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
         D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS);
     ID3D12PipelineStatePtr vertexSamplePSO = MakePSO().RootSig(vertexSampleSig).VS(vsblob).PS(psblob);
 
+    // set the NULL descriptors
+    UINT inc = dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+    {
+      D3D12_SHADER_RESOURCE_VIEW_DESC srvdesc = {};
+      srvdesc.Format = DXGI_FORMAT_R32_FLOAT;
+      srvdesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+      srvdesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+      srvdesc.Buffer.NumElements = 10;
+
+      cpu = m_CBVUAVSRV->GetCPUDescriptorHandleForHeapStart();
+      cpu.ptr += inc * 20;
+      dev->CreateShaderResourceView(NULL, &srvdesc, cpu);
+    }
+
+    {
+      D3D12_SHADER_RESOURCE_VIEW_DESC srvdesc = {};
+      srvdesc.Format = DXGI_FORMAT_R32_FLOAT;
+      srvdesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+      srvdesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+      srvdesc.Texture2D.MipLevels = 1;
+
+      cpu = m_CBVUAVSRV->GetCPUDescriptorHandleForHeapStart();
+      cpu.ptr += inc * 21;
+      dev->CreateShaderResourceView(NULL, &srvdesc, cpu);
+    }
+
+    {
+      D3D12_UNORDERED_ACCESS_VIEW_DESC uavdesc = {};
+      uavdesc.Format = DXGI_FORMAT_R32_FLOAT;
+      uavdesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+      uavdesc.Buffer.NumElements = 10;
+
+      cpu = m_CBVUAVSRV->GetCPUDescriptorHandleForHeapStart();
+      cpu.ptr += inc * 30;
+      dev->CreateUnorderedAccessView(NULL, NULL, &uavdesc, cpu);
+    }
+
+    {
+      D3D12_UNORDERED_ACCESS_VIEW_DESC uavdesc = {};
+      uavdesc.Format = DXGI_FORMAT_R32_FLOAT;
+      uavdesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+
+      cpu = m_CBVUAVSRV->GetCPUDescriptorHandleForHeapStart();
+      cpu.ptr += inc * 31;
+      dev->CreateUnorderedAccessView(NULL, NULL, &uavdesc, cpu);
+    }
+
     while(Running())
     {
       ID3D12GraphicsCommandListPtr cmd = GetCommandBuffer();
@@ -886,6 +1009,8 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
         cmd->SetDescriptorHeaps(1, &m_CBVUAVSRV.GetInterfacePtr());
         cmd->SetGraphicsRootDescriptorTable(0, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
         cmd->SetGraphicsRootDescriptorTable(1, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
+        cmd->SetGraphicsRootDescriptorTable(2, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
+        cmd->SetGraphicsRootDescriptorTable(3, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
 
         cmd->SetPipelineState(psos[i]);
 

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -114,12 +114,12 @@ rdcarray<uint32_t> GLReplay::GetPassEvents(uint32_t eventId)
 {
   rdcarray<uint32_t> passEvents;
 
-  const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
+  const ActionDescription *action = m_pDriver->GetAction(eventId);
 
-  const DrawcallDescription *start = draw;
-  while(start && start->previous && !(start->previous->flags & DrawFlags::Clear))
+  const ActionDescription *start = action;
+  while(start && start->previous && !(start->previous->flags & ActionFlags::Clear))
   {
-    const DrawcallDescription *prev = start->previous;
+    const ActionDescription *prev = start->previous;
 
     if(start->outputs != prev->outputs || start->depthOut != prev->depthOut)
       break;
@@ -129,10 +129,10 @@ rdcarray<uint32_t> GLReplay::GetPassEvents(uint32_t eventId)
 
   while(start)
   {
-    if(start == draw)
+    if(start == action)
       break;
 
-    if(start->flags & DrawFlags::Drawcall)
+    if(start->flags & ActionFlags::Drawcall)
       passEvents.push_back(start->eventId);
 
     start = start->next;
@@ -804,10 +804,16 @@ void GLReplay::SavePipelineState(uint32_t eventId)
   drv.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&ibuffer);
   pipe.vertexInput.indexBuffer = rm->GetOriginalID(rm->GetResID(BufferRes(ctx, ibuffer)));
 
-  pipe.vertexInput.primitiveRestart = rs.Enabled[GLRenderState::eEnabled_PrimitiveRestart];
+  pipe.vertexInput.primitiveRestart = rs.Enabled[GLRenderState::eEnabled_PrimitiveRestart] ||
+                                      rs.Enabled[GLRenderState::eEnabled_PrimitiveRestartFixedIndex];
   pipe.vertexInput.restartIndex = rs.Enabled[GLRenderState::eEnabled_PrimitiveRestartFixedIndex]
                                       ? ~0U
                                       : rs.PrimitiveRestartIndex;
+
+  const GLDrawParams &drawParams = m_pDriver->GetDrawParameters(eventId);
+
+  pipe.vertexInput.indexByteStride = drawParams.indexWidth;
+  pipe.vertexInput.topology = drawParams.topo;
 
   // Vertex buffers and attributes
   GLint numVBufferBindings = 16;
@@ -2656,6 +2662,43 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
   {
     MakeCurrentReplayContext(m_DebugCtx);
 
+    if(texType == eGL_RENDERBUFFER)
+    {
+      // do blit from renderbuffer to texture
+      MakeCurrentReplayContext(&m_ReplayCtx);
+
+      GLuint curDrawFBO = 0;
+      GLuint curReadFBO = 0;
+      drv.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&curDrawFBO);
+      drv.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&curReadFBO);
+
+      drv.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, texDetails.renderbufferFBOs[1]);
+      drv.glBindFramebuffer(eGL_READ_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
+
+      GLenum b = GetBaseFormat(texDetails.internalFormat);
+
+      GLbitfield mask = GL_COLOR_BUFFER_BIT;
+
+      if(b == eGL_DEPTH_COMPONENT)
+        mask = GL_DEPTH_BUFFER_BIT;
+      else if(b == eGL_STENCIL)
+        mask = GL_STENCIL_BUFFER_BIT;
+      else if(b == eGL_DEPTH_STENCIL)
+        mask = GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT;
+
+      SafeBlitFramebuffer(0, 0, texDetails.width, texDetails.height, 0, 0, texDetails.width,
+                          texDetails.height, mask, eGL_NEAREST);
+
+      drv.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, curDrawFBO);
+      drv.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curReadFBO);
+
+      // then proceed to read from the texture
+      texname = texDetails.renderbufferReadTex;
+      texType = texDetails.samples > 1 ? eGL_TEXTURE_2D_MULTISAMPLE : eGL_TEXTURE_2D;
+
+      MakeCurrentReplayContext(m_DebugCtx);
+    }
+
     // copy multisampled texture to an array. This creates tempTex and returns it in that variable,
     // for us to own
     tempTex = 0;
@@ -2717,7 +2760,7 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
 
       // then proceed to read from the texture
       texname = texDetails.renderbufferReadTex;
-      texType = eGL_TEXTURE_2D;
+      texType = texDetails.samples > 1 ? eGL_TEXTURE_2D_MULTISAMPLE : eGL_TEXTURE_2D;
 
       MakeCurrentReplayContext(m_DebugCtx);
     }
@@ -2945,6 +2988,10 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
 
   if(tempTex)
     drv.glDeleteTextures(1, &tempTex);
+}
+
+void GLReplay::SetCustomShaderIncludes(const rdcarray<rdcstr> &directories)
+{
 }
 
 void GLReplay::BuildCustomShader(ShaderEncoding sourceEncoding, const bytebuf &source,
@@ -3579,8 +3626,8 @@ bool GLReplay::IsTextureSupported(const TextureDescription &tex)
   }
 
   GLint supported = 0, fragment = 0;
-  m_pDriver->glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_SUPPORTED, 4, &supported);
-  m_pDriver->glGetInternalformativ(target, fmt, eGL_FRAGMENT_TEXTURE, 4, &fragment);
+  m_pDriver->glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_SUPPORTED, 1, &supported);
+  m_pDriver->glGetInternalformativ(target, fmt, eGL_FRAGMENT_TEXTURE, 1, &fragment);
 
   // check the texture is supported
   if(supported == 0 || fragment == 0)
@@ -3591,8 +3638,8 @@ bool GLReplay::IsTextureSupported(const TextureDescription &tex)
   if(tex.msSamp > 1 && !IsDepthStencilFormat(fmt))
   {
     GLenum viewClass = eGL_NONE;
-    m_pDriver->glGetInternalformativ(eGL_TEXTURE_2D_ARRAY, fmt, eGL_VIEW_COMPATIBILITY_CLASS,
-                                     sizeof(GLenum), (GLint *)&viewClass);
+    m_pDriver->glGetInternalformativ(eGL_TEXTURE_2D_ARRAY, fmt, eGL_VIEW_COMPATIBILITY_CLASS, 1,
+                                     (GLint *)&viewClass);
 
     if(viewClass == eGL_NONE)
       return false;

@@ -148,6 +148,9 @@
     <Filter Include="3rdparty\half">
       <UniqueIdentifier>{1b49d2aa-1cfb-4f0a-8fcf-1065af55ea2b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rdparty\md5">
+      <UniqueIdentifier>{fcbf71ce-3767-435c-9aa2-e1327b9016f4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maths\camera.h">
@@ -561,6 +564,12 @@
     <ClInclude Include="3rdparty\superluminal\PerformanceAPI_capi.h">
       <Filter>3rdparty\superluminal</Filter>
     </ClInclude>
+    <ClInclude Include="core\sparse_page_table.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\md5\md5.h">
+      <Filter>3rdparty\md5</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -970,6 +979,12 @@
     </ClCompile>
     <ClCompile Include="3rdparty\superluminal\superluminal.cpp">
       <Filter>3rdparty\superluminal</Filter>
+    </ClCompile>
+    <ClCompile Include="core\sparse_page_table.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\md5\md5.c">
+      <Filter>3rdparty\md5</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

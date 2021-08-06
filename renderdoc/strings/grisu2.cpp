@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -234,7 +234,11 @@ int grisu2(uint64_t mantissa, int exponent, char digits[18], int &kout)
   //    12345678...e exp-52 (whole number)
   diy_fp w = diy_fp(mantissa | hiddenbit, exponent - 52);
   if(exponent == -1023)
-    w.exp = 1 - (1023 + 52);    // subnormal exponent
+  {
+    // subnormal exponent
+    w.mantissa = mantissa;
+    w.exp = 1 - (1023 + 52);
+  }
 
   // we know the w input comes from a double, so is only using the lower 52 bits at
   // most. We can safely multiply by 2 (and cancel by lowering exponent to match), then

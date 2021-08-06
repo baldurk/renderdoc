@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -65,6 +65,8 @@ struct SPIRVPatchData
 
   // the output topology for tessellation and geometry shaders
   Topology outTopo = Topology::Unknown;
+
+  bool usesPrintf = false;
 };
 
 namespace rdcspv
@@ -84,8 +86,7 @@ public:
 
   rdcstr Disassemble(const rdcstr &entryPoint, std::map<size_t, uint32_t> &instructionLines) const;
 
-  rdcarray<rdcstr> EntryPoints() const;
-  ShaderStage StageForEntry(const rdcstr &entryPoint) const;
+  rdcarray<ShaderEntryPoint> EntryPoints() const;
 
   void MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage stage, const rdcstr &entryPoint,
                       const rdcarray<SpecConstant> &specInfo, ShaderReflection &reflection,

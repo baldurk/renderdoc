@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,7 @@
 #include "core/plugins.h"
 #include "driver/dx/official/d3dcompiler.h"
 #include "driver/dx/official/dxcapi.h"
+#include "driver/dxgi/dxgi_common.h"
 #include "driver/shaders/dxbc/dxbc_container.h"
 #include "strings/string_utils.h"
 
@@ -55,6 +56,23 @@ static HMODULE GetDXC()
     // RenderDoc, otherwise it will try just the unadorned dll in case it's in the PATH somewhere.
     {
       dxilHandle = (HMODULE)Process::LoadModule(LocatePluginFile("d3d12", "dxil.dll"));
+
+      // dxc is very particular/brittle, so if we get dxil try to locate a dxcompiler right next to
+      // it. Loading a different dxcompiler might produce a non-working compiler setup. If we can't,
+      // we'll fall back to finding the next best dxcompiler we can
+      if(dxilHandle)
+      {
+        wchar_t dxilPath[MAX_PATH + 1] = {};
+        GetModuleFileNameW(dxilHandle, dxilPath, MAX_PATH);
+
+        rdcstr path = StringFormat::Wide2UTF8(dxilPath);
+        HMODULE dxcompiler = (HMODULE)Process::LoadModule(get_dirname(path) + "/dxcompiler.dll");
+        if(dxcompiler)
+        {
+          ret = dxcompiler;
+          return ret;
+        }
+      }
 
       // don't try to load dxcompiler.dll until we've got dxil.dll successfully, or if we're not
       // trying to get dxil. Otherwise we could load dxcompiler (to check for its existence) and
@@ -274,33 +292,6 @@ struct D3D12BlobShaderCallbacks
   const byte *GetData(ID3DBlob *blob) const { return (const byte *)blob->GetBufferPointer(); }
 } D3D12ShaderCacheCallbacks;
 
-struct EmbeddedD3D12Includer : public ID3DInclude
-{
-  rdcstr texsample = GetEmbeddedResource(hlsl_texsample_h);
-  rdcstr cbuffers = GetEmbeddedResource(hlsl_cbuffers_h);
-
-  virtual HRESULT STDMETHODCALLTYPE Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName,
-                                         LPCVOID pParentData, LPCVOID *ppData, UINT *pBytes) override
-  {
-    rdcstr *str;
-
-    if(!strcmp(pFileName, "hlsl_texsample.h"))
-      str = &texsample;
-    else if(!strcmp(pFileName, "hlsl_cbuffers.h"))
-      str = &cbuffers;
-    else
-      return E_FAIL;
-
-    if(ppData)
-      *ppData = str->c_str();
-    if(pBytes)
-      *pBytes = (uint32_t)str->size();
-
-    return S_OK;
-  }
-  virtual HRESULT STDMETHODCALLTYPE Close(LPCVOID pData) override { return S_OK; }
-};
-
 D3D12ShaderCache::D3D12ShaderCache()
 {
   bool success = LoadShaderCache("d3dshaders.cache", m_ShaderCacheMagic, m_ShaderCacheVersion,
@@ -325,16 +316,23 @@ D3D12ShaderCache::~D3D12ShaderCache()
 }
 
 rdcstr D3D12ShaderCache::GetShaderBlob(const char *source, const char *entry,
-                                       const ShaderCompileFlags &compileFlags, const char *profile,
+                                       const ShaderCompileFlags &compileFlags,
+                                       const rdcarray<rdcstr> &includeDirs, const char *profile,
                                        ID3DBlob **srcblob)
 {
-  EmbeddedD3D12Includer includer;
+  rdcstr cbuffers = GetEmbeddedResource(hlsl_cbuffers_h);
+  rdcstr texsample = GetEmbeddedResource(hlsl_texsample_h);
+
+  EmbeddedD3DIncluder includer(includeDirs,
+                               {
+                                   {"hlsl_texsample.h", texsample}, {"hlsl_cbuffers.h", cbuffers},
+                               });
 
   uint32_t hash = strhash(source);
   hash = strhash(entry, hash);
   hash = strhash(profile, hash);
-  hash = strhash(includer.cbuffers.c_str(), hash);
-  hash = strhash(includer.texsample.c_str(), hash);
+  hash = strhash(cbuffers.c_str(), hash);
+  hash = strhash(texsample.c_str(), hash);
   for(const ShaderCompileFlag &f : compileFlags.flags)
   {
     hash = strhash(f.name.c_str(), hash);
@@ -426,6 +424,10 @@ rdcstr D3D12ShaderCache::GetShaderBlob(const char *source, const char *entry,
         D3D12ShaderCacheCallbacks.Create((uint32_t)code->GetBufferSize(), code->GetBufferPointer(),
                                          &byteBlob);
 
+        if(!DXBC::DXBCContainer::IsHashedContainer(byteBlob->GetBufferPointer(),
+                                                   byteBlob->GetBufferSize()))
+          DXBC::DXBCContainer::HashContainer(byteBlob->GetBufferPointer(), byteBlob->GetBufferSize());
+
         SAFE_RELEASE(code);
       }
       else
@@ -512,9 +514,11 @@ rdcstr D3D12ShaderCache::GetShaderBlob(const char *source, const char *entry,
 }
 
 rdcstr D3D12ShaderCache::GetShaderBlob(const char *source, const char *entry, uint32_t compileFlags,
-                                       const char *profile, ID3DBlob **srcblob)
+                                       const rdcarray<rdcstr> &includeDirs, const char *profile,
+                                       ID3DBlob **srcblob)
 {
-  return GetShaderBlob(source, entry, DXBC::EncodeFlags(compileFlags, profile), profile, srcblob);
+  return GetShaderBlob(source, entry, DXBC::EncodeFlags(compileFlags, profile), includeDirs,
+                       profile, srcblob);
 }
 
 D3D12RootSignature D3D12ShaderCache::GetRootSig(const void *data, size_t dataSize)
@@ -806,7 +810,7 @@ ID3DBlob *D3D12ShaderCache::MakeFixedColShader(FixedColVariant variant, bool dxi
       StringFormat::Fmt("#define VARIANT %u\n\n", variant) + GetEmbeddedResource(fixedcol_hlsl);
   bool wasCaching = m_CacheShaders;
   m_CacheShaders = true;
-  GetShaderBlob(hlsl.c_str(), "main", ShaderCompileFlags(), dxil ? "ps_6_0" : "ps_5_0", &ret);
+  GetShaderBlob(hlsl.c_str(), "main", ShaderCompileFlags(), {}, dxil ? "ps_6_0" : "ps_5_0", &ret);
   m_CacheShaders = wasCaching;
 
   if(!ret)

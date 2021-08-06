@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -409,7 +409,7 @@ bool InjectLibraries(const rdcstr &deviceID, Network::Socket *sock)
 
   if(runtimeObject.tag != Tag::Object || runtimeObject.Object == 0)
   {
-    RDCERR("Failed to call getClass!");
+    RDCERR("Failed to call getRuntime!");
     return false;
   }
 

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -1026,6 +1026,46 @@ int4 main(float4 pos : SV_Position, uint samp : SV_SampleIndex) : SV_Target0
     ds.StencilEnable = FALSE;
     SetDepthState(ds);
 
+    std::vector<Vec4f> blue;
+    blue.resize(64 * 64 * 64, Vec4f(0.0f, 0.0f, 1.0f, 1.0f));
+
+    std::vector<Vec4f> green;
+    green.resize(64 * 64, Vec4f(0.0f, 1.0f, 0.0f, 1.0f));
+
+    // slice testing textures
+
+    TestCase slice_test_array = {};
+    TestCase slice_test_3d = {};
+    slice_test_array.res =
+        (ID3D11Texture2DPtr)MakeTexture(DXGI_FORMAT_R32G32B32A32_FLOAT, 64, 64).Array(64).Mips(2).SRV();
+    slice_test_array.srv = MakeSRV((ID3D11Texture2DPtr)slice_test_array.res);
+    slice_test_array.dim = 2;
+    slice_test_array.isArray = true;
+
+    for(UINT slice = 0; slice < 64; slice++)
+    {
+      ctx->UpdateSubresource(slice_test_array.res, slice * 2, NULL,
+                             slice == 17 ? green.data() : blue.data(), 64 * 4, 64 * 64 * 4);
+      ctx->UpdateSubresource(slice_test_array.res, slice * 2 + 1, NULL,
+                             slice == 17 ? green.data() : blue.data(), 32 * 4, 32 * 32 * 4);
+    }
+
+    slice_test_3d.res =
+        (ID3D11Texture3DPtr)MakeTexture(DXGI_FORMAT_R32G32B32A32_FLOAT, 64, 64, 64).Mips(2).SRV();
+    slice_test_3d.srv = MakeSRV((ID3D11Texture3DPtr)slice_test_3d.res);
+    slice_test_3d.dim = 3;
+
+    ctx->UpdateSubresource(slice_test_3d.res, 0, NULL, blue.data(), 64 * 4, 64 * 64 * 4);
+    ctx->UpdateSubresource(slice_test_3d.res, 1, NULL, blue.data(), 32 * 4, 32 * 32 * 4);
+
+    D3D11_BOX box = {};
+    box.right = box.bottom = 64;
+    box.front = 17;
+    box.back = 18;
+    ctx->UpdateSubresource(slice_test_3d.res, 0, &box, green.data(), 64 * 4, 64 * 64 * 4);
+    box.right = box.bottom = 32;
+    ctx->UpdateSubresource(slice_test_3d.res, 1, &box, green.data(), 32 * 4, 32 * 32 * 4);
+
     while(Running())
     {
       ctx->ClearState();
@@ -1042,6 +1082,21 @@ int4 main(float4 pos : SV_Position, uint samp : SV_SampleIndex) : SV_Target0
       D3D11_RASTERIZER_DESC rs = GetRasterState();
       rs.ScissorEnable = TRUE;
       SetRasterState(rs);
+
+      RSSetViewport(view);
+
+      // dummy draw for each slice test texture
+      pushMarker("slice tests");
+      setMarker("2D array");
+      ctx->PSSetShader(GetShader(slice_test_array), NULL, 0);
+      ctx->PSSetShaderResources(0, 1, &slice_test_array.srv.GetInterfacePtr());
+      ctx->Draw(0, 0);
+
+      setMarker("3D");
+      ctx->PSSetShader(GetShader(slice_test_3d), NULL, 0);
+      ctx->PSSetShaderResources(0, 1, &slice_test_3d.srv.GetInterfacePtr());
+      ctx->Draw(0, 0);
+      popMarker();
 
       for(size_t i = 0; i < test_textures.size(); i++)
       {

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -104,7 +104,7 @@ uvec4 SampleTextureUInt4(int type, vec2 pos, float slice, int mipLevel, int samp
   }
   else    // if (type == RESTYPE_TEX3D)
   {
-    col = texelFetch(texUInt3D, ivec3(pos * texRes.xy, slice + 0.001f), mipLevel);
+    col = texelFetch(texUInt3D, ivec3(pos * texRes.xy, slice), mipLevel);
   }
 
   return col;
@@ -195,7 +195,7 @@ ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int samp
   }
   else    // if (type == RESTYPE_TEX3D)
   {
-    col = texelFetch(texSInt3D, ivec3(pos * texRes.xy, slice + 0.001f), mipLevel);
+    col = texelFetch(texSInt3D, ivec3(pos * texRes.xy, slice), mipLevel);
   }
 
   return col;
@@ -377,7 +377,7 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
   }
   else if(type == RESTYPE_TEX3D)
   {
-    col = textureLod(tex3D, vec3(pos, (slice + 0.001f) / texRes.z), float(mipLevel));
+    col = textureLod(tex3D, vec3(pos, slice / texRes.z), float(mipLevel));
   }
   else if(type == RESTYPE_TEXCUBE)
   {

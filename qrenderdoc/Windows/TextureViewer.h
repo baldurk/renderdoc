@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -60,7 +60,7 @@ struct Following
 
   bool operator==(const Following &o);
   bool operator!=(const Following &o);
-  static void GetDrawContext(ICaptureContext &ctx, bool &copy, bool &clear, bool &compute);
+  static void GetActionContext(ICaptureContext &ctx, bool &copy, bool &clear, bool &compute);
 
   int GetHighestMip(ICaptureContext &ctx);
   int GetFirstArraySlice(ICaptureContext &ctx);
@@ -248,7 +248,7 @@ private:
 
   void UI_UpdateStatusText();
   void UI_UpdateTextureDetails();
-  void UI_OnTextureSelectionChanged(bool newdraw);
+  void UI_OnTextureSelectionChanged(bool newAction);
 
   void UI_SetHistogramRange(const TextureDescription *tex, CompType typeCast);
 
@@ -307,6 +307,8 @@ private:
 
   void ShowGotoPopup();
 
+  bool ShouldFlipForGL();
+
   void UI_UpdateFittedScale();
   void UI_SetScale(float s);
   void UI_SetScale(float s, int x, int y);
@@ -339,6 +341,7 @@ private:
 
   ResourceId m_LockedId;
   QMap<ResourceId, QWidget *> m_LockedTabs;
+  int m_ResourceCacheID = -1;
 
   TextureGoto *m_Goto;
 

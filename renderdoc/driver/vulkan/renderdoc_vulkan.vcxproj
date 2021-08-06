@@ -110,7 +110,7 @@
     <ClCompile Include="vk_apple.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="vk_bindless_feedback.cpp" />
+    <ClCompile Include="vk_shader_feedback.cpp" />
     <ClCompile Include="vk_image_states.cpp" />
     <ClCompile Include="vk_msaa_array_conv.cpp" />
     <ClCompile Include="vk_next_chains.cpp" />
@@ -125,7 +125,6 @@
     </ClCompile>
     <ClCompile Include="vk_shaderdebug.cpp" />
     <ClCompile Include="vk_shader_cache.cpp" />
-    <ClCompile Include="vk_sparse_initstate.cpp" />
     <ClCompile Include="vk_stringise.cpp" />
     <ClCompile Include="vk_counters.cpp" />
     <ClCompile Include="vk_dispatchtables.cpp" />
@@ -204,7 +203,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="renderdoc.json" />
-    <None Include="vk_apple.mm" />
+    <None Include="vk_apple_helpers.mm" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\shaders\spirv\renderdoc_spirv.vcxproj">

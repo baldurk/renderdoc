@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,14 +28,14 @@
 #include "d3d12_common.h"
 #include "d3d12_state.h"
 
-struct D3D12DrawcallTreeNode
+struct D3D12ActionTreeNode
 {
-  D3D12DrawcallTreeNode() {}
-  explicit D3D12DrawcallTreeNode(const DrawcallDescription &d) : draw(d) {}
-  D3D12DrawcallTreeNode(const D3D12DrawcallTreeNode &other) { *this = other; }
-  ~D3D12DrawcallTreeNode() { SAFE_DELETE(state); }
-  DrawcallDescription draw;
-  rdcarray<D3D12DrawcallTreeNode> children;
+  D3D12ActionTreeNode() {}
+  explicit D3D12ActionTreeNode(const ActionDescription &a) : action(a) {}
+  D3D12ActionTreeNode(const D3D12ActionTreeNode &other) { *this = other; }
+  ~D3D12ActionTreeNode() { SAFE_DELETE(state); }
+  ActionDescription action;
+  rdcarray<D3D12ActionTreeNode> children;
 
   D3D12RenderState *state = NULL;
 
@@ -43,30 +43,29 @@ struct D3D12DrawcallTreeNode
 
   rdcarray<ResourceId> executedCmds;
 
-  D3D12DrawcallTreeNode &operator=(const DrawcallDescription &d)
+  D3D12ActionTreeNode &operator=(const ActionDescription &a)
   {
-    *this = D3D12DrawcallTreeNode(d);
+    *this = D3D12ActionTreeNode(a);
     return *this;
   }
 
-  D3D12DrawcallTreeNode &operator=(const D3D12DrawcallTreeNode &d)
+  D3D12ActionTreeNode &operator=(const D3D12ActionTreeNode &a)
   {
-    draw = d.draw;
-    children = d.children;
+    action = a.action;
+    children = a.children;
 
-    if(d.state)
-      state = new D3D12RenderState(*d.state);
+    if(a.state)
+      state = new D3D12RenderState(*a.state);
     else
       state = NULL;
 
-    resourceUsage = d.resourceUsage;
+    resourceUsage = a.resourceUsage;
 
-    executedCmds = d.executedCmds;
+    executedCmds = a.executedCmds;
     return *this;
   }
 
-  void InsertAndUpdateIDs(const D3D12DrawcallTreeNode &child, uint32_t baseEventID,
-                          uint32_t baseDrawID)
+  void InsertAndUpdateIDs(const D3D12ActionTreeNode &child, uint32_t baseEventID, uint32_t baseDrawID)
   {
     for(size_t i = 0; i < child.resourceUsage.size(); i++)
     {
@@ -77,24 +76,24 @@ struct D3D12DrawcallTreeNode
     for(size_t i = 0; i < child.children.size(); i++)
     {
       children.push_back(child.children[i]);
-      children.back().draw.eventId += baseEventID;
-      children.back().draw.drawcallId += baseDrawID;
+      children.back().action.eventId += baseEventID;
+      children.back().action.actionId += baseDrawID;
 
-      for(APIEvent &ev : children.back().draw.events)
+      for(APIEvent &ev : children.back().action.events)
         ev.eventId += baseEventID;
     }
   }
 
-  rdcarray<DrawcallDescription> Bake()
+  rdcarray<ActionDescription> Bake()
   {
-    rdcarray<DrawcallDescription> ret;
+    rdcarray<ActionDescription> ret;
     if(children.empty())
       return ret;
 
     ret.resize(children.size());
     for(size_t i = 0; i < children.size(); i++)
     {
-      ret[i] = children[i].draw;
+      ret[i] = children[i].action;
       ret[i].children = children[i].Bake();
     }
 
@@ -102,7 +101,7 @@ struct D3D12DrawcallTreeNode
   }
 };
 
-struct D3D12DrawcallCallback
+struct D3D12ActionCallback
 {
   // the three callbacks are used to allow the callback implementor to either
   // do a modified draw before or after the real thing.
@@ -131,7 +130,7 @@ struct D3D12DrawcallCallback
   // called immediately before a command list is closed
   virtual void PreCloseCommandList(ID3D12GraphicsCommandListX *cmd) = 0;
   // if a command list is recorded once and submitted N > 1 times, then the same
-  // drawcall will have several EIDs that refer to it. We'll only do the full
+  // action will have several EIDs that refer to it. We'll only do the full
   // callbacks above for the first EID, then call this function for the others
   // to indicate that they are the same.
   virtual void AliasEvent(uint32_t primary, uint32_t alias) = 0;
@@ -171,8 +170,8 @@ class WrappedID3D12CommandSignature;
 
 struct BakedCmdListInfo
 {
-  ~BakedCmdListInfo() { SAFE_DELETE(draw); }
-  void ShiftForRemoved(uint32_t shiftDrawID, uint32_t shiftEID, size_t idx);
+  ~BakedCmdListInfo() { SAFE_DELETE(action); }
+  void ShiftForRemoved(uint32_t shiftActionID, uint32_t shiftEID, size_t idx);
 
   struct ExecuteData
   {
@@ -193,7 +192,7 @@ struct BakedCmdListInfo
 
   rdcarray<APIEvent> curEvents;
   rdcarray<DebugMessage> debugMessages;
-  rdcarray<D3D12DrawcallTreeNode *> drawStack;
+  rdcarray<D3D12ActionTreeNode *> actionStack;
 
   rdcarray<rdcpair<ResourceId, EventUsage> > resourceUsage;
 
@@ -213,10 +212,10 @@ struct BakedCmdListInfo
   uint32_t beginChunk = 0;
   uint32_t endChunk = 0;
 
-  D3D12DrawcallTreeNode *draw = NULL;    // the root draw to copy from when submitting
+  D3D12ActionTreeNode *action = NULL;    // the root action to copy from when submitting
   uint32_t eventCount;                   // how many events are in this cmd list, for quick skipping
   uint32_t curEventID;                   // current event ID while reading or executing
-  uint32_t drawCount;                    // similar to above
+  uint32_t actionCount;                  // similar to above
 };
 
 class WrappedID3D12Device;
@@ -227,7 +226,7 @@ struct D3D12CommandData
 
   WrappedID3D12Device *m_pDevice;
 
-  D3D12DrawcallCallback *m_DrawcallCallback;
+  D3D12ActionCallback *m_ActionCallback;
 
   ResourceId m_LastCmdListID;
 
@@ -297,22 +296,22 @@ struct D3D12CommandData
     bool renderPassActive;
   } m_Partial[ePartialNum];
 
-  // if we're replaying just a single draw or a particular command
+  // if we're replaying just a single action or a particular command
   // list subsection of command events, we don't go through the
   // whole original command lists to set up the partial replay,
   // so we just set this command list
   ID3D12GraphicsCommandListX *m_OutsideCmdList = NULL;
 
-  void InsertDrawsAndRefreshIDs(ResourceId cmd, rdcarray<D3D12DrawcallTreeNode> &cmdBufNodes);
+  void InsertActionsAndRefreshIDs(ResourceId cmd, rdcarray<D3D12ActionTreeNode> &cmdBufNodes);
 
   // this is a list of uint64_t file offset -> uint32_t EIDs of where each
-  // drawcall is used. E.g. the drawcall at offset 873954 is EID 50. If a
+  // action is used. E.g. the action at offset 873954 is EID 50. If a
   // command list is executed more than once, there may be more than
-  // one entry here - the drawcall will be aliased among several EIDs, with
+  // one entry here - the action will be aliased among several EIDs, with
   // the first one being the 'primary'
-  struct DrawcallUse
+  struct ActionUse
   {
-    DrawcallUse(uint64_t offs, uint32_t eid, ResourceId cmd = ResourceId(), uint32_t rel = 0)
+    ActionUse(uint64_t offs, uint32_t eid, ResourceId cmd = ResourceId(), uint32_t rel = 0)
         : fileOffset(offs), cmdList(cmd), eventId(eid), relativeEID(rel)
     {
     }
@@ -320,27 +319,27 @@ struct D3D12CommandData
     ResourceId cmdList;
     uint32_t eventId;
     uint32_t relativeEID;
-    bool operator<(const DrawcallUse &o) const
+    bool operator<(const ActionUse &o) const
     {
       if(fileOffset != o.fileOffset)
         return fileOffset < o.fileOffset;
       return eventId < o.eventId;
     }
   };
-  rdcarray<DrawcallUse> m_DrawcallUses;
+  rdcarray<ActionUse> m_ActionUses;
 
   rdcarray<DebugMessage> m_EventMessages;
 
   std::map<ResourceId, ID3D12GraphicsCommandListX *> m_RerecordCmds;
   rdcarray<ID3D12GraphicsCommandListX *> m_RerecordCmdList;
 
-  bool m_AddedDrawcall;
+  bool m_AddedAction;
 
   rdcarray<APIEvent> m_RootEvents, m_Events;
 
   uint64_t m_CurChunkOffset;
   SDChunkMetaData m_ChunkMetadata;
-  uint32_t m_RootEventID, m_RootDrawcallID;
+  uint32_t m_RootEventID, m_RootActionID;
   uint32_t m_FirstEventID, m_LastEventID;
   D3D12Chunk m_LastChunk;
 
@@ -352,21 +351,19 @@ struct D3D12CommandData
 
   std::map<ResourceId, rdcarray<EventUsage> > m_ResourceUses;
 
-  D3D12DrawcallTreeNode m_ParentDrawcall;
+  D3D12ActionTreeNode m_ParentAction;
 
-  rdcarray<D3D12DrawcallTreeNode *> m_RootDrawcallStack;
+  rdcarray<D3D12ActionTreeNode *> m_RootActionStack;
 
-  rdcarray<D3D12DrawcallTreeNode *> &GetDrawcallStack()
+  rdcarray<D3D12ActionTreeNode *> &GetActionStack()
   {
     if(m_LastCmdListID != ResourceId())
-      return m_BakedCmdListInfo[m_LastCmdListID].drawStack;
+      return m_BakedCmdListInfo[m_LastCmdListID].actionStack;
 
-    return m_RootDrawcallStack;
+    return m_RootActionStack;
   }
 
   void GetIndirectBuffer(size_t size, ID3D12Resource **buf, uint64_t *offs);
-
-  bool HasNonMarkerEvents(ResourceId cmdBuffer);
 
   // util function to handle fetching the right eventId, calling any
   // aliases then calling PreDraw/PreDispatch.
@@ -379,9 +376,9 @@ struct D3D12CommandData
   ID3D12GraphicsCommandListX *RerecordCmdList(ResourceId cmdid,
                                               PartialReplayIndex partialType = ePartialNum);
 
-  void AddDrawcall(const DrawcallDescription &d, bool hasEvents, bool addUsage = true);
+  void AddAction(const ActionDescription &a);
   void AddEvent();
-  void AddUsage(const D3D12RenderState &state, D3D12DrawcallTreeNode &drawNode);
-  void AddUsage(D3D12DrawcallTreeNode &drawNode, ResourceId id, uint32_t EID, ResourceUsage usage);
+  void AddUsage(const D3D12RenderState &state, D3D12ActionTreeNode &actionNode);
+  void AddUsage(D3D12ActionTreeNode &actionNode, ResourceId id, uint32_t EID, ResourceUsage usage);
   void AddUsage(ResourceId id, ResourceUsage usage);
 };

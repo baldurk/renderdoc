@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -163,6 +163,16 @@ static void StripUnwantedExtensions(rdcarray<rdcstr> &Extensions)
     // remove direct display extensions
     if(ext == "VK_KHR_display" || ext == "VK_EXT_direct_mode_display" ||
        ext == "VK_EXT_acquire_xlib_display" || ext == "VK_EXT_display_surface_counter")
+    {
+      return true;
+    }
+
+    // remove platform-specific external extensions, as we don't replay external objects. We leave
+    // the base extensions since they're widely supported and we don't strip all uses of e.g.
+    // feature structs.
+    if(ext == "VK_KHR_external_fence_fd" || ext == "VK_KHR_external_fence_win32" ||
+       ext == "VK_KHR_external_memory_fd" || ext == "VK_KHR_external_memory_win32" ||
+       ext == "VK_KHR_external_semaphore_fd" || ext == "VK_KHR_external_semaphore_win32")
     {
       return true;
     }
@@ -342,6 +352,18 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
   VkValidationFeatureDisableEXT disableFeatures[] = {VK_VALIDATION_FEATURE_DISABLE_SHADERS_EXT};
   featuresEXT.disabledValidationFeatureCount = ARRAY_COUNT(disableFeatures);
   featuresEXT.pDisabledValidationFeatures = disableFeatures;
+
+// enable this to get GPU-based validation, where available, whenever we enable API validation
+#if 0
+  if(m_ReplayOptions.apiValidation)
+  {
+    VkValidationFeatureEnableEXT enableFeatures[] = {
+        VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
+        VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT};
+    featuresEXT.enabledValidationFeatureCount = ARRAY_COUNT(enableFeatures);
+    featuresEXT.pEnabledValidationFeatures = enableFeatures;
+  }
+#endif
 
   VkValidationFlagsEXT flagsEXT = {VK_STRUCTURE_TYPE_VALIDATION_FLAGS_EXT};
   VkValidationCheckEXT disableChecks[] = {VK_VALIDATION_CHECK_SHADERS_EXT};
@@ -976,7 +998,8 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
   SERIALISE_ELEMENT(instance);
   SERIALISE_ELEMENT_LOCAL(PhysicalDeviceIndex, *pPhysicalDeviceCount);
   SERIALISE_ELEMENT_LOCAL(PhysicalDevice, GetResID(*pPhysicalDevices))
-      .TypedAs("VkPhysicalDevice"_lit);
+      .TypedAs("VkPhysicalDevice"_lit)
+      .Important();
 
   uint32_t legacyUnused_memIdxMap[VK_MAX_MEMORY_TYPES] = {0};
   // not used at the moment but useful for reference and might be used
@@ -1542,8 +1565,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
                                              const VkAllocationCallbacks *pAllocator,
                                              VkDevice *pDevice)
 {
-  SERIALISE_ELEMENT(physicalDevice);
-  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT(physicalDevice).Important();
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo).Important();
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(Device, GetResID(*pDevice)).TypedAs("VkDevice"_lit);
 
@@ -2346,6 +2369,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       {
         CHECK_PHYS_EXT_FEATURE(vulkanMemoryModel);
         CHECK_PHYS_EXT_FEATURE(vulkanMemoryModelDeviceScope);
+        CHECK_PHYS_EXT_FEATURE(vulkanMemoryModelAvailabilityVisibilityChains);
       }
       END_PHYS_EXT_CHECK();
 
@@ -2678,6 +2702,32 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         CHECK_PHYS_EXT_FEATURE(sparseImageInt64Atomics);
       }
       END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(
+          VkPhysicalDeviceZeroInitializeWorkgroupMemoryFeaturesKHR,
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ZERO_INITIALIZE_WORKGROUP_MEMORY_FEATURES_KHR);
+      {
+        CHECK_PHYS_EXT_FEATURE(shaderZeroInitializeWorkgroupMemory);
+      }
+      END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(
+          VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR,
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_WORKGROUP_MEMORY_EXPLICIT_LAYOUT_FEATURES_KHR);
+      {
+        CHECK_PHYS_EXT_FEATURE(workgroupMemoryExplicitLayout);
+        CHECK_PHYS_EXT_FEATURE(workgroupMemoryExplicitLayoutScalarBlockLayout);
+        CHECK_PHYS_EXT_FEATURE(workgroupMemoryExplicitLayout8BitAccess);
+        CHECK_PHYS_EXT_FEATURE(workgroupMemoryExplicitLayout16BitAccess);
+      }
+      END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceSynchronization2FeaturesKHR,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR);
+      {
+        CHECK_PHYS_EXT_FEATURE(synchronization2);
+      }
+      END_PHYS_EXT_CHECK();
     }
 
     if(availFeatures.depthClamp)
@@ -2772,9 +2822,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     if(availFeatures.shaderInt64)
       enabledFeatures.shaderInt64 = true;
     else
-      RDCWARN(
-          "shaderInt64 = false, feedback from bindless shader access will use less reliable "
-          "fallback.");
+      RDCWARN("shaderInt64 = false, feedback from shaders will use less reliable fallback.");
 
     if(availFeatures.shaderStorageImageWriteWithoutFormat)
       enabledFeatures.shaderStorageImageWriteWithoutFormat = true;
@@ -2798,7 +2846,16 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     if(availFeatures.fragmentStoresAndAtomics)
       enabledFeatures.fragmentStoresAndAtomics = true;
     else
-      RDCWARN("fragmentStoresAndAtomics = false, quad overdraw overlay will not be available");
+      RDCWARN(
+          "fragmentStoresAndAtomics = false, quad overdraw overlay will not be available and "
+          "feedback from shaders will not be fetched for fragment stage");
+
+    if(availFeatures.vertexPipelineStoresAndAtomics)
+      enabledFeatures.vertexPipelineStoresAndAtomics = true;
+    else
+      RDCWARN(
+          "vertexPipelineStoresAndAtomics = false, feedback from shaders will not be fetched for "
+          "vertex stages");
 
     if(availFeatures.sampleRateShading)
       enabledFeatures.sampleRateShading = true;
@@ -2995,7 +3052,19 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
               (VkPhysicalDeviceBufferDeviceAddressFeaturesEXT *)FindNextStruct(
                   &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_EXT);
 
-          if(!existingKHR && !existingEXT)
+          if(existingKHR)
+          {
+            if(existingKHR->bufferDeviceAddress)
+              existingKHR->bufferDeviceAddressCaptureReplay = VK_TRUE;
+            existingKHR->bufferDeviceAddress = VK_TRUE;
+          }
+          else if(existingEXT)
+          {
+            if(existingEXT->bufferDeviceAddress)
+              existingEXT->bufferDeviceAddressCaptureReplay = VK_TRUE;
+            existingEXT->bufferDeviceAddress = VK_TRUE;
+          }
+          else
           {
             // don't add a new VkPhysicalDeviceVulkan12Features to the pNext chain because if we do
             // we have to remove any components etc. Instead just add the individual
@@ -3307,7 +3376,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         ->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), &m_PhysicalDeviceData.availFeatures);
     m_PhysicalDeviceData.enabledFeatures = enabledFeatures;
 
-    m_PhysicalDeviceData.driverInfo = VkDriverInfo(m_PhysicalDeviceData.props);
+    m_PhysicalDeviceData.driverInfo = VkDriverInfo(m_PhysicalDeviceData.props, true);
 
     m_Replay->SetDriverInformation(m_PhysicalDeviceData.props);
 
@@ -3508,6 +3577,15 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
   else
     RDCWARN(
         "shaderStorageImageWriteWithoutFormat = false, multisampled textures will have empty "
+        "contents at frame start.");
+
+  // even though we don't actually do any multisampled stores, this is needed to be able to create
+  // MSAA images with STORAGE_BIT usage
+  if(availFeatures.shaderStorageImageMultisample)
+    enabledFeatures.shaderStorageImageMultisample = true;
+  else
+    RDCWARN(
+        "shaderStorageImageMultisample = false, multisampled textures will have empty "
         "contents at frame start.");
 
   // patch the enabled features
@@ -3742,7 +3820,7 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
         ->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), &m_PhysicalDeviceData.availFeatures);
     m_PhysicalDeviceData.enabledFeatures = enabledFeatures;
 
-    m_PhysicalDeviceData.driverInfo = VkDriverInfo(m_PhysicalDeviceData.props);
+    m_PhysicalDeviceData.driverInfo = VkDriverInfo(m_PhysicalDeviceData.props, true);
 
     ChooseMemoryIndices();
 
@@ -3861,7 +3939,7 @@ void WrappedVulkan::vkDestroyDevice(VkDevice device, const VkAllocationCallbacks
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkDeviceWaitIdle(SerialiserType &ser, VkDevice device)
 {
-  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT(device).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 

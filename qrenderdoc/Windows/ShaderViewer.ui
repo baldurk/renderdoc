@@ -117,136 +117,128 @@
    </property>
   </widget>
   <widget class="QFrame" name="resourcesPanel">
-    <property name="geometry">
-      <rect>
-        <x>20</x>
-        <y>310</y>
-        <width>256</width>
-        <height>192</height>
-      </rect>
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>310</y>
+     <width>256</width>
+     <height>192</height>
+    </rect>
+   </property>
+   <property name="contextMenuPolicy">
+    <enum>Qt::PreventContextMenu</enum>
+   </property>
+   <property name="frameShape">
+    <enum>QFrame::NoFrame</enum>
+   </property>
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <property name="spacing">
+     <number>2</number>
     </property>
-    <property name="contextMenuPolicy">
-      <enum>Qt::PreventContextMenu</enum>
+    <property name="leftMargin">
+     <number>0</number>
     </property>
-    <property name="frameShape">
-      <enum>QFrame::NoFrame</enum>
+    <property name="topMargin">
+     <number>0</number>
     </property>
-    <layout class="QVBoxLayout" name="verticalLayout">
-      <property name="spacing">
-        <number>2</number>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
+    <item>
+     <widget class="RDTreeWidget" name="accessedResources">
+      <property name="frameShape">
+       <enum>QFrame::NoFrame</enum>
       </property>
-      <property name="leftMargin">
+      <property name="allColumnsShowFocus">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QFrame" name="sortGroup">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="contextMenuPolicy">
+       <enum>Qt::PreventContextMenu</enum>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::NoFrame</enum>
+      </property>
+      <layout class="QHBoxLayout" name="horizontalLayout_6">
+       <property name="leftMargin">
         <number>0</number>
-      </property>
-      <property name="topMargin">
+       </property>
+       <property name="topMargin">
         <number>0</number>
-      </property>
-      <property name="rightMargin">
+       </property>
+       <property name="rightMargin">
         <number>0</number>
-      </property>
-      <property name="bottomMargin">
+       </property>
+       <property name="bottomMargin">
         <number>0</number>
-      </property>
-      <item>
-        <widget class="RDTreeWidget" name="accessedResources">
-          <property name="geometry">
-            <rect>
-              <x>20</x>
-              <y>310</y>
-              <width>256</width>
-              <height>192</height>
-            </rect>
-          </property>
-          <property name="frameShape">
-            <enum>QFrame::NoFrame</enum>
-          </property>
-          <property name="allColumnsShowFocus">
-            <bool>true</bool>
-          </property>
+       </property>
+       <item>
+        <widget class="QToolButton" name="resources_sortByResource">
+         <property name="toolTip">
+          <string>Sort accessed resource by shader binding</string>
+         </property>
+         <property name="text">
+          <string>Sort By Resource</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+         <property name="autoRaise">
+          <bool>true</bool>
+         </property>
         </widget>
-      </item>
-      <item>
-        <widget class="QFrame" name="sortGroup">
-          <property name="contextMenuPolicy">
-            <enum>Qt::PreventContextMenu</enum>
-          </property>
-          <property name="frameShape">
-            <enum>QFrame::NoFrame</enum>
-          </property>
-          <property name="sizePolicy">
-            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-            </sizepolicy>
-          </property>
-          <layout class="QHBoxLayout" name="horizontalLayout_6">
-            <property name="leftMargin">
-              <number>0</number>
-            </property>
-            <property name="topMargin">
-              <number>0</number>
-            </property>
-            <property name="rightMargin">
-              <number>0</number>
-            </property>
-            <property name="bottomMargin">
-              <number>0</number>
-            </property>
-            <item>
-              <widget class="QToolButton" name="resources_sortByResource">
-                <property name="text">
-                  <string>Sort By Resource</string>
-                </property>
-                <property name="checkable">
-                  <bool>true</bool>
-                </property>
-                <property name="checked">
-                  <bool>true</bool>
-                </property>
-                <property name="autoRaise">
-                  <bool>true</bool>
-                </property>
-                <property name="toolTip">
-                  <string>Sort accessed resource by shader binding</string>
-                </property>
-              </widget>
-            </item>
-            <item>
-              <widget class="QToolButton" name="resources_sortByStep">
-                <property name="text">
-                  <string>Sort By Instruction</string>
-                </property>
-                <property name="checkable">
-                  <bool>true</bool>
-                </property>
-                <property name="checked">
-                  <bool>false</bool>
-                </property>
-                <property name="autoRaise">
-                  <bool>true</bool>
-                </property>
-                <property name="toolTip">
-                  <string>Sort accessed resource by instruction step</string>
-                </property>
-              </widget>
-            </item>
-            <item>
-              <spacer name="resources_horizontalSpacer">
-                <property name="orientation">
-                  <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                  <size>
-                    <width>40</width>
-                    <height>20</height>
-                  </size>
-                </property>
-              </spacer>
-            </item>
-          </layout>
+       </item>
+       <item>
+        <widget class="QToolButton" name="resources_sortByStep">
+         <property name="toolTip">
+          <string>Sort accessed resource by instruction step</string>
+         </property>
+         <property name="text">
+          <string>Sort By Instruction</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+         <property name="checked">
+          <bool>false</bool>
+         </property>
+         <property name="autoRaise">
+          <bool>true</bool>
+         </property>
         </widget>
-      </item>
-    </layout>
+       </item>
+       <item>
+        <spacer name="resources_horizontalSpacer">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+    </item>
+   </layout>
   </widget>
   <widget class="RDTreeWidget" name="debugVars">
    <property name="geometry">
@@ -385,16 +377,19 @@
      </widget>
     </item>
     <item>
-     <widget class="QToolButton" name="runBack">
+     <widget class="QToolButton" name="execBackwards">
       <property name="toolTip">
-       <string>Run backwards (Shift-F5)</string>
+       <string>Run or step backwards in execution</string>
       </property>
       <property name="text">
-       <string>Run backwards</string>
+       <string>Execute backwards...</string>
       </property>
       <property name="icon">
        <iconset resource="../Resources/resources.qrc">
-        <normaloff>:/control_start_blue.png</normaloff>:/control_start_blue.png</iconset>
+        <normaloff>:/control_reverse_blue@2x.png</normaloff>:/control_reverse_blue@2x.png</iconset>
+      </property>
+      <property name="popupMode">
+       <enum>QToolButton::MenuButtonPopup</enum>
       </property>
       <property name="toolButtonStyle">
        <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -405,141 +400,19 @@
      </widget>
     </item>
     <item>
-     <widget class="QToolButton" name="stepBack">
+     <widget class="QToolButton" name="execForwards">
       <property name="toolTip">
-       <string>Step Back (Shift-F10)</string>
+       <string>Run or step forwards in execution</string>
       </property>
       <property name="text">
-       <string>Step Back</string>
-      </property>
-      <property name="icon">
-       <iconset resource="../Resources/resources.qrc">
-        <normaloff>:/control_reverse_blue.png</normaloff>:/control_reverse_blue.png</iconset>
-      </property>
-      <property name="toolButtonStyle">
-       <enum>Qt::ToolButtonTextBesideIcon</enum>
-      </property>
-      <property name="autoRaise">
-       <bool>true</bool>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QToolButton" name="stepNext">
-      <property name="toolTip">
-       <string>Step Next (F10)</string>
-      </property>
-      <property name="text">
-       <string>Step Next</string>
+       <string>Execute forwards...</string>
       </property>
       <property name="icon">
        <iconset resource="../Resources/resources.qrc">
         <normaloff>:/control_play_blue.png</normaloff>:/control_play_blue.png</iconset>
       </property>
-      <property name="toolButtonStyle">
-       <enum>Qt::ToolButtonTextBesideIcon</enum>
-      </property>
-      <property name="autoRaise">
-       <bool>true</bool>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="Line" name="debugSep">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QToolButton" name="run">
-      <property name="toolTip">
-       <string>Run forwards (F5)</string>
-      </property>
-      <property name="text">
-       <string>Run forwards</string>
-      </property>
-      <property name="icon">
-       <iconset resource="../Resources/resources.qrc">
-        <normaloff>:/control_end_blue.png</normaloff>:/control_end_blue.png</iconset>
-      </property>
-      <property name="toolButtonStyle">
-       <enum>Qt::ToolButtonTextBesideIcon</enum>
-      </property>
-      <property name="autoRaise">
-       <bool>true</bool>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QToolButton" name="runToCursor">
-      <property name="minimumSize">
-       <size>
-        <width>23</width>
-        <height>22</height>
-       </size>
-      </property>
-      <property name="toolTip">
-       <string>Run to Cursor (Ctrl-F10)</string>
-      </property>
-      <property name="text">
-       <string>Run to Cursor</string>
-      </property>
-      <property name="icon">
-       <iconset resource="../Resources/resources.qrc">
-        <normaloff>:/control_cursor_blue.png</normaloff>:/control_cursor_blue.png</iconset>
-      </property>
-      <property name="toolButtonStyle">
-       <enum>Qt::ToolButtonTextBesideIcon</enum>
-      </property>
-      <property name="autoRaise">
-       <bool>true</bool>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QToolButton" name="runToSample">
-      <property name="minimumSize">
-       <size>
-        <width>23</width>
-        <height>22</height>
-       </size>
-      </property>
-      <property name="toolTip">
-       <string>Run to Sample/Load/Gather</string>
-      </property>
-      <property name="text">
-       <string>Run to Sample</string>
-      </property>
-      <property name="icon">
-       <iconset resource="../Resources/resources.qrc">
-        <normaloff>:/control_sample_blue.png</normaloff>:/control_sample_blue.png</iconset>
-      </property>
-      <property name="toolButtonStyle">
-       <enum>Qt::ToolButtonTextBesideIcon</enum>
-      </property>
-      <property name="autoRaise">
-       <bool>true</bool>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QToolButton" name="runToNaNOrInf">
-      <property name="minimumSize">
-       <size>
-        <width>23</width>
-        <height>22</height>
-       </size>
-      </property>
-      <property name="toolTip">
-       <string>Run to NaN or Inf</string>
-      </property>
-      <property name="text">
-       <string>Run to NaN/Inf</string>
-      </property>
-      <property name="icon">
-       <iconset resource="../Resources/resources.qrc">
-        <normaloff>:/control_nan_blue.png</normaloff>:/control_nan_blue.png</iconset>
+      <property name="popupMode">
+       <enum>QToolButton::MenuButtonPopup</enum>
       </property>
       <property name="toolButtonStyle">
        <enum>Qt::ToolButtonTextBesideIcon</enum>

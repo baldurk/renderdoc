@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -198,20 +198,16 @@ struct GLWindowingData
     ctx = NULL;
     wnd = NULL;
     pix = NULL;
-
-    layer = NULL;
   }
 
   union
   {
     CGLContextObj ctx;
-    void *nsctx;    // during replay only, this is the NSOpenGLContext
+    void *nsgl_ctx;    // during replay only, this is the NSOpenGLContext
   };
 
   void *wnd;    // during capture, this is the CGL window ID. During replay, it's the NSView
   CGLPixelFormatObj pix;
-
-  void *layer;    // during replay only, this is the CALayer
 };
 
 #define DECL_HOOK_EXPORT(function)                                                                    \

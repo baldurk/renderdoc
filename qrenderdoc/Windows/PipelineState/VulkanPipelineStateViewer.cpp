@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -144,6 +144,11 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
       ui->gsShaderSaveButton, ui->fsShaderSaveButton,  ui->csShaderSaveButton,
   };
 
+  QToolButton *messageButtons[] = {
+      ui->vsShaderMessagesButton, ui->tcsShaderMessagesButton, ui->tesShaderMessagesButton,
+      ui->gsShaderMessagesButton, ui->fsShaderMessagesButton,  ui->csShaderMessagesButton,
+  };
+
   QToolButton *viewPredicateBufferButtons[] = {
       ui->predicateBufferViewButton, ui->csPredicateBufferViewButton,
   };
@@ -190,6 +195,10 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
 
   for(QToolButton *b : saveButtons)
     QObject::connect(b, &QToolButton::clicked, this, &VulkanPipelineStateViewer::shaderSave_clicked);
+
+  for(QToolButton *b : messageButtons)
+    QObject::connect(b, &QToolButton::clicked, this,
+                     &VulkanPipelineStateViewer::shaderMessages_clicked);
 
   for(QToolButton *b : viewPredicateBufferButtons)
     QObject::connect(b, &QToolButton::clicked, this,
@@ -259,6 +268,8 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     ui->viBuffers->setHoverIconColumn(7, action, action_hover);
     ui->viBuffers->setClearSelectionOnFocusLoss(true);
     ui->viBuffers->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(ui->viBuffers);
   }
 
   for(RDTreeWidget *res : resources)
@@ -273,6 +284,8 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     res->setHoverIconColumn(7, action, action_hover);
     res->setClearSelectionOnFocusLoss(true);
     res->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(res);
   }
 
   for(RDTreeWidget *ubo : ubos)
@@ -287,6 +300,8 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     ubo->setHoverIconColumn(6, action, action_hover);
     ubo->setClearSelectionOnFocusLoss(true);
     ubo->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(ubo);
   }
 
   {
@@ -302,6 +317,8 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     ui->xfbBuffers->setHoverIconColumn(7, action, action_hover);
     ui->xfbBuffers->setClearSelectionOnFocusLoss(true);
     ui->xfbBuffers->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(ui->xfbBuffers);
   }
 
   {
@@ -360,6 +377,8 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     ui->fbAttach->setHoverIconColumn(8, action, action_hover);
     ui->fbAttach->setClearSelectionOnFocusLoss(true);
     ui->fbAttach->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(ui->fbAttach);
   }
 
   {
@@ -465,7 +484,60 @@ void VulkanPipelineStateViewer::OnEventChanged(uint32_t eventId)
 
 void VulkanPipelineStateViewer::SelectPipelineStage(PipelineStage stage)
 {
-  ui->pipeFlow->setSelectedStage((int)stage);
+  if(stage == PipelineStage::SampleMask)
+    ui->pipeFlow->setSelectedStage((int)PipelineStage::Rasterizer);
+  else
+    ui->pipeFlow->setSelectedStage((int)stage);
+}
+
+ResourceId VulkanPipelineStateViewer::GetResource(RDTreeWidgetItem *item)
+{
+  QVariant tag = item->tag();
+
+  if(tag.canConvert<ResourceId>())
+  {
+    return tag.value<ResourceId>();
+  }
+  else if(tag.canConvert<VulkanTextureTag>())
+  {
+    VulkanTextureTag texTag = tag.value<VulkanTextureTag>();
+    return texTag.ID;
+  }
+  else if(tag.canConvert<VulkanBufferTag>())
+  {
+    VulkanBufferTag buf = tag.value<VulkanBufferTag>();
+    return buf.ID;
+  }
+  else if(tag.canConvert<VulkanVBIBTag>())
+  {
+    VulkanVBIBTag buf = tag.value<VulkanVBIBTag>();
+    return buf.id;
+  }
+  else if(tag.canConvert<VulkanCBufferTag>())
+  {
+    const VKPipe::Shader *stage = stageForSender(item->treeWidget());
+
+    if(stage == NULL)
+      return ResourceId();
+
+    VulkanCBufferTag cb = tag.value<VulkanCBufferTag>();
+
+    if(cb.slotIdx == ~0U)
+    {
+      // unused cbuffer, open regular buffer viewer
+      const VKPipe::Pipeline &pipe = cb.isGraphics ? m_Ctx.CurVulkanPipelineState()->graphics
+                                                   : m_Ctx.CurVulkanPipelineState()->compute;
+
+      const VKPipe::BindingElement &buf =
+          pipe.descriptorSets[cb.descSet].bindings[cb.descBind].binds[cb.arrayIdx];
+
+      return buf.resourceResourceId;
+    }
+
+    return m_Ctx.CurPipelineState().GetConstantBuffer(stage->stage, cb.slotIdx, cb.arrayIdx).resourceId;
+  }
+
+  return ResourceId();
 }
 
 void VulkanPipelineStateViewer::on_showUnused_toggled(bool checked)
@@ -746,6 +818,14 @@ void VulkanPipelineStateViewer::clearState()
 
   for(QToolButton *b : shaderButtons)
     b->setEnabled(false);
+
+  QToolButton *messageButtons[] = {
+      ui->vsShaderMessagesButton, ui->tcsShaderMessagesButton, ui->tesShaderMessagesButton,
+      ui->gsShaderMessagesButton, ui->fsShaderMessagesButton,  ui->csShaderMessagesButton,
+  };
+
+  for(QToolButton *b : messageButtons)
+    b->setVisible(false);
 
   const QPixmap &tick = Pixmaps::tick(this);
   const QPixmap &cross = Pixmaps::cross(this);
@@ -1530,7 +1610,7 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
   bool containsResource = filledSlot;
 
   // if it's masked out by stage bits, act as if it's not filled, so it's marked in red
-  if(!stageBitsIncluded)
+  if(!stageBitsIncluded && (cblock == NULL || cblock->bufferBacked))
     filledSlot = false;
 
   if(showNode(usedSlot, filledSlot))
@@ -1558,7 +1638,7 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
       RDTreeWidgetItem *node =
           new RDTreeWidgetItem({QString(), setname, slotname,
                                 arrayLength < 0 ? tr("Array[]") : tr("Array[%1]").arg(arrayLength),
-                                QString(), QString()});
+                                QString(), QString(), QString()});
 
       if(arrayLength < 0)
         arrayLength = 0;
@@ -1623,12 +1703,36 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
       {
         setname = QString();
         slotname = cblock->name;
-        name = tr("Push constants");
+        if(cblock->compileConstants)
+          name = tr("Specialization constants");
+        else if(descriptorBind && descriptorBind->inlineBlock)
+          name = tr("Inline uniforms");
+        else
+          name = tr("Push constants");
+
         vecrange = QString();
         sizestr = tr("%1 Variables").arg(numvars);
 
-        // could maybe get range from ShaderVariable.reg if it's filled out
-        // from SPIR-V side.
+        if(descriptorBind && descriptorBind->inlineBlock)
+        {
+          vecrange = QFormatStr("%1 - %2 bytes")
+                         .arg(descriptorBind->byteOffset)
+                         .arg(descriptorBind->byteOffset + descriptorBind->byteSize);
+        }
+        else if(!cblock->compileConstants)
+        {
+          vecrange = QFormatStr("%1 - %2 bytes")
+                         .arg(stage.pushConstantRangeByteOffset)
+                         .arg(stage.pushConstantRangeByteOffset + stage.pushConstantRangeByteSize);
+
+          if(stage.pushConstantRangeByteOffset + stage.pushConstantRangeByteSize >
+             m_Ctx.CurVulkanPipelineState()->pushconsts.size())
+          {
+            filledSlot = false;
+            vecrange +=
+                tr(", only %1 bytes pushed").arg(m_Ctx.CurVulkanPipelineState()->pushconsts.size());
+          }
+        }
       }
       else
       {
@@ -1847,16 +1951,9 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
       ConstantBlock &cblock = shaderDetails->constantBlocks[cb];
       if(cblock.bufferBacked == false)
       {
-        // could maybe get range from ShaderVariable.reg if it's filled out
-        // from SPIR-V side.
-
-        RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({QString(), QString(), cblock.name, tr("Push constants"), QString(),
-                                  tr("%1 Variables").arg(cblock.variables.count()), QString()});
-
-        node->setTag(QVariant::fromValue(VulkanCBufferTag(cb)));
-
-        ubos->addTopLevelItem(node);
+        addConstantBlockRow(
+            shaderDetails, stage, stage.bindpointMapping.constantBlocks[cblock.bindPoint].bindset,
+            stage.bindpointMapping.constantBlocks[cblock.bindPoint].bind, pipe, ubos);
       }
     }
   }
@@ -1882,7 +1979,7 @@ void VulkanPipelineStateViewer::setState()
   m_CombinedImageSamplers.clear();
 
   const VKPipe::State &state = *m_Ctx.CurVulkanPipelineState();
-  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+  const ActionDescription *action = m_Ctx.CurAction();
 
   bool showUnused = ui->showUnused->isChecked();
   bool showEmpty = ui->showEmpty->isChecked();
@@ -1947,19 +2044,17 @@ void VulkanPipelineStateViewer::setState()
   m_VBNodes.clear();
   m_EmptyNodes.clear();
 
-  Topology topo = draw != NULL ? draw->topology : Topology::Unknown;
-
-  int numCPs = PatchList_Count(topo);
+  int numCPs = PatchList_Count(state.inputAssembly.topology);
   if(numCPs > 0)
   {
     ui->topology->setText(tr("PatchList (%1 Control Points)").arg(numCPs));
   }
   else
   {
-    ui->topology->setText(ToQStr(topo));
+    ui->topology->setText(ToQStr(state.inputAssembly.topology));
   }
 
-  m_Common.setTopologyDiagram(ui->topologyDiagram, topo);
+  m_Common.setTopologyDiagram(ui->topologyDiagram, state.inputAssembly.topology);
 
   ui->primRestart->setVisible(state.inputAssembly.primitiveRestartEnable);
 
@@ -1967,7 +2062,7 @@ void VulkanPipelineStateViewer::setState()
   ui->viBuffers->beginUpdate();
   ui->viBuffers->clear();
 
-  bool ibufferUsed = draw != NULL && (draw->flags & DrawFlags::Indexed);
+  bool ibufferUsed = action != NULL && (action->flags & ActionFlags::Indexed);
 
   if(state.inputAssembly.indexBuffer.resourceId != ResourceId())
   {
@@ -1986,26 +2081,25 @@ void VulkanPipelineStateViewer::setState()
       RDTreeWidgetItem *node = new RDTreeWidgetItem(
           {tr("Index"), state.inputAssembly.indexBuffer.resourceId, tr("Index"), lit("-"),
            (qulonglong)state.inputAssembly.indexBuffer.byteOffset,
-           draw != NULL ? draw->indexByteWidth : 0, (qulonglong)length, QString()});
+           (qulonglong)state.inputAssembly.indexBuffer.byteStride, (qulonglong)length, QString()});
 
       QString iformat;
-      if(draw)
-      {
-        if(draw->indexByteWidth == 1)
-          iformat = lit("ubyte");
-        else if(draw->indexByteWidth == 2)
-          iformat = lit("ushort");
-        else if(draw->indexByteWidth == 4)
-          iformat = lit("uint");
 
-        iformat += lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(draw->topology));
-      }
+      if(state.inputAssembly.indexBuffer.byteStride == 1)
+        iformat = lit("ubyte");
+      else if(state.inputAssembly.indexBuffer.byteStride == 2)
+        iformat = lit("ushort");
+      else if(state.inputAssembly.indexBuffer.byteStride == 4)
+        iformat = lit("uint");
 
-      node->setTag(QVariant::fromValue(
-          VulkanVBIBTag(state.inputAssembly.indexBuffer.resourceId,
-                        state.inputAssembly.indexBuffer.byteOffset +
-                            (draw ? draw->indexOffset * draw->indexByteWidth : 0),
-                        iformat)));
+      iformat +=
+          lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(state.inputAssembly.topology));
+
+      node->setTag(QVariant::fromValue(VulkanVBIBTag(
+          state.inputAssembly.indexBuffer.resourceId,
+          state.inputAssembly.indexBuffer.byteOffset +
+              (action ? action->indexOffset * state.inputAssembly.indexBuffer.byteStride : 0),
+          iformat)));
 
       if(!ibufferUsed)
         setInactiveRow(node);
@@ -2027,23 +2121,22 @@ void VulkanPipelineStateViewer::setState()
                                                      lit("-"), lit("-"), lit("-"), QString()});
 
       QString iformat;
-      if(draw)
-      {
-        if(draw->indexByteWidth == 1)
-          iformat = lit("ubyte");
-        else if(draw->indexByteWidth == 2)
-          iformat = lit("ushort");
-        else if(draw->indexByteWidth == 4)
-          iformat = lit("uint");
 
-        iformat += lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(draw->topology));
-      }
+      if(state.inputAssembly.indexBuffer.byteStride == 1)
+        iformat = lit("ubyte");
+      else if(state.inputAssembly.indexBuffer.byteStride == 2)
+        iformat = lit("ushort");
+      else if(state.inputAssembly.indexBuffer.byteStride == 4)
+        iformat = lit("uint");
 
-      node->setTag(QVariant::fromValue(
-          VulkanVBIBTag(state.inputAssembly.indexBuffer.resourceId,
-                        state.inputAssembly.indexBuffer.byteOffset +
-                            (draw ? draw->indexOffset * draw->indexByteWidth : 0),
-                        iformat)));
+      iformat +=
+          lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(state.inputAssembly.topology));
+
+      node->setTag(QVariant::fromValue(VulkanVBIBTag(
+          state.inputAssembly.indexBuffer.resourceId,
+          state.inputAssembly.indexBuffer.byteOffset +
+              (action ? action->indexOffset * state.inputAssembly.indexBuffer.byteStride : 0),
+          iformat)));
 
       setEmptyRow(node);
       m_EmptyNodes.push_back(node);
@@ -2193,6 +2286,22 @@ void VulkanPipelineStateViewer::setState()
 
     m_Common.SetupShaderEditButton(b, pipe, stage->resourceId, stage->bindpointMapping,
                                    stage->reflection);
+  }
+
+  QToolButton *messageButtons[] = {
+      ui->vsShaderMessagesButton, ui->tcsShaderMessagesButton, ui->tesShaderMessagesButton,
+      ui->gsShaderMessagesButton, ui->fsShaderMessagesButton,  ui->csShaderMessagesButton,
+  };
+
+  int numMessages[6] = {};
+
+  for(const ShaderMessage &msg : state.shaderMessages)
+    numMessages[(uint32_t)msg.stage]++;
+
+  for(uint32_t i = 0; i < ARRAY_COUNT(numMessages); i++)
+  {
+    messageButtons[i]->setVisible(numMessages[i] > 0);
+    messageButtons[i]->setText(tr("%n Message(s)", "", numMessages[i]));
   }
 
   bool xfbSet = false;
@@ -2591,9 +2700,20 @@ void VulkanPipelineStateViewer::setState()
   else
     ui->logicOp->setText(lit("-"));
 
-  ui->depthEnabled->setPixmap(state.depthStencil.depthTestEnable ? tick : cross);
-  ui->depthFunc->setText(ToQStr(state.depthStencil.depthFunction));
-  ui->depthWrite->setPixmap(state.depthStencil.depthWriteEnable ? tick : cross);
+  if(state.depthStencil.depthTestEnable)
+  {
+    ui->depthEnabled->setPixmap(tick);
+    ui->depthFunc->setText(ToQStr(state.depthStencil.depthFunction));
+    ui->depthWrite->setPixmap(state.depthStencil.depthWriteEnable ? tick : cross);
+    ui->depthWrite->setText(QString());
+  }
+  else
+  {
+    ui->depthEnabled->setPixmap(cross);
+    ui->depthFunc->setText(tr("Disabled"));
+    ui->depthWrite->setPixmap(QPixmap());
+    ui->depthWrite->setText(tr("Disabled"));
+  }
 
   if(state.depthStencil.depthBoundsEnable)
   {
@@ -2651,8 +2771,8 @@ void VulkanPipelineStateViewer::setState()
 
   // set up thread debugging inputs
   if(m_Ctx.APIProps().shaderDebugging && state.computeShader.reflection &&
-     state.computeShader.reflection->debugInfo.debuggable && draw &&
-     (draw->flags & DrawFlags::Dispatch))
+     state.computeShader.reflection->debugInfo.debuggable && action &&
+     (action->flags & ActionFlags::Dispatch))
   {
     ui->groupX->setEnabled(true);
     ui->groupY->setEnabled(true);
@@ -2665,11 +2785,11 @@ void VulkanPipelineStateViewer::setState()
     ui->debugThread->setEnabled(true);
 
     // set maximums for CS debugging
-    ui->groupX->setMaximum((int)draw->dispatchDimension[0] - 1);
-    ui->groupY->setMaximum((int)draw->dispatchDimension[1] - 1);
-    ui->groupZ->setMaximum((int)draw->dispatchDimension[2] - 1);
+    ui->groupX->setMaximum((int)action->dispatchDimension[0] - 1);
+    ui->groupY->setMaximum((int)action->dispatchDimension[1] - 1);
+    ui->groupZ->setMaximum((int)action->dispatchDimension[2] - 1);
 
-    if(draw->dispatchThreadsDimension[0] == 0)
+    if(action->dispatchThreadsDimension[0] == 0)
     {
       ui->threadX->setMaximum((int)state.computeShader.reflection->dispatchThreadsDimension[0] - 1);
       ui->threadY->setMaximum((int)state.computeShader.reflection->dispatchThreadsDimension[1] - 1);
@@ -2677,9 +2797,9 @@ void VulkanPipelineStateViewer::setState()
     }
     else
     {
-      ui->threadX->setMaximum((int)draw->dispatchThreadsDimension[0] - 1);
-      ui->threadY->setMaximum((int)draw->dispatchThreadsDimension[1] - 1);
-      ui->threadZ->setMaximum((int)draw->dispatchThreadsDimension[2] - 1);
+      ui->threadX->setMaximum((int)action->dispatchThreadsDimension[0] - 1);
+      ui->threadY->setMaximum((int)action->dispatchThreadsDimension[1] - 1);
+      ui->threadZ->setMaximum((int)action->dispatchThreadsDimension[2] - 1);
     }
 
     ui->debugThread->setToolTip(QString());
@@ -2698,7 +2818,7 @@ void VulkanPipelineStateViewer::setState()
 
     if(!m_Ctx.APIProps().shaderDebugging)
       ui->debugThread->setToolTip(tr("This API does not support shader debugging"));
-    else if(!draw || !(draw->flags & DrawFlags::Dispatch))
+    else if(!action || !(action->flags & ActionFlags::Dispatch))
       ui->debugThread->setToolTip(tr("No dispatch selected"));
     else if(!state.computeShader.reflection)
       ui->debugThread->setToolTip(tr("No compute shader bound"));
@@ -2708,11 +2828,11 @@ void VulkanPipelineStateViewer::setState()
   }
 
   // highlight the appropriate stages in the flowchart
-  if(draw == NULL)
+  if(action == NULL)
   {
     ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
   }
-  else if(draw->flags & DrawFlags::Dispatch)
+  else if(action->flags & ActionFlags::Dispatch)
   {
     ui->pipeFlow->setStagesEnabled({false, false, false, false, false, false, false, false, true});
   }
@@ -3053,6 +3173,18 @@ void VulkanPipelineStateViewer::shaderSave_clicked()
   m_Common.SaveShaderFile(shaderDetails);
 }
 
+void VulkanPipelineStateViewer::shaderMessages_clicked()
+{
+  const VKPipe::Shader *stage = stageForSender(qobject_cast<QWidget *>(QObject::sender()));
+
+  if(stage == NULL)
+    return;
+
+  IShaderMessageViewer *shad = m_Ctx.ViewShaderMessages(MaskForStage(stage->stage));
+
+  m_Ctx.AddDockWindow(shad->Widget(), DockReference::AddTo, this);
+}
+
 void VulkanPipelineStateViewer::predicateBufferView_clicked()
 {
   const VKPipe::ConditionalRendering &cr = m_Ctx.CurVulkanPipelineState()->conditionalRendering;
@@ -3127,7 +3259,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
 
 void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::InputAssembly &ia)
 {
-  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+  const ActionDescription *action = m_Ctx.CurAction();
 
   {
     xml.writeStartElement(lit("h3"));
@@ -3146,15 +3278,13 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
     }
 
     QString ifmt = lit("UNKNOWN");
-    if(draw)
-    {
-      if(draw->indexByteWidth == 1)
-        ifmt = lit("UINT8");
-      else if(draw->indexByteWidth == 2)
-        ifmt = lit("UINT16");
-      else if(draw->indexByteWidth == 4)
-        ifmt = lit("UINT32");
-    }
+
+    if(ia.indexBuffer.byteStride == 1)
+      ifmt = lit("UINT8");
+    else if(ia.indexBuffer.byteStride == 2)
+      ifmt = lit("UINT16");
+    else if(ia.indexBuffer.byteStride == 4)
+      ifmt = lit("UINT32");
 
     m_Common.exportHTMLTable(
         xml, {tr("Buffer"), tr("Format"), tr("Offset"), tr("Byte Length"), tr("Primitive Restart")},
@@ -3165,9 +3295,9 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
   xml.writeStartElement(lit("p"));
   xml.writeEndElement();
 
-  m_Common.exportHTMLTable(xml, {tr("Primitive Topology"), tr("Tessellation Control Points")},
-                           {ToQStr(draw ? draw->topology : Topology::Unknown),
-                            m_Ctx.CurVulkanPipelineState()->tessellation.numControlPoints});
+  m_Common.exportHTMLTable(
+      xml, {tr("Primitive Topology"), tr("Tessellation Control Points")},
+      {ToQStr(ia.topology), m_Ctx.CurVulkanPipelineState()->tessellation.numControlPoints});
 }
 
 void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::Shader &sh)
@@ -3228,18 +3358,42 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
       // push constants
       if(!b.bufferBacked)
       {
+        const VKPipe::BindingElement *descriptorBind = NULL;
+
+        if(bindMap.bindset < pipeline.descriptorSets.count() &&
+           bindMap.bind < pipeline.descriptorSets[bindMap.bindset].bindings.count())
+          descriptorBind = &pipeline.descriptorSets[bindMap.bindset].bindings[bindMap.bind].binds[0];
+
+        QString name;
+        if(b.compileConstants)
+          name = tr("Specialization constants");
+        else if(descriptorBind->inlineBlock)
+          name = tr("Inline uniforms");
+        else
+          name = tr("Push constants");
+
+        qulonglong offset = 0, size = 0;
+
+        if(descriptorBind->inlineBlock)
+        {
+          offset = descriptorBind->byteOffset;
+          size = descriptorBind->byteSize;
+        }
+        else if(!b.compileConstants)
+        {
+          offset = sh.pushConstantRangeByteOffset;
+          size = sh.pushConstantRangeByteSize;
+        }
+
         // could maybe get range/size from ShaderVariable.reg if it's filled out
         // from SPIR-V side.
-        rows.push_back({QString(), b.name, tr("Push constants"), (qulonglong)0, (qulonglong)0,
-                        b.variables.count(), b.byteSize});
+        rows.push_back({QString(), b.name, name, offset, size, b.variables.count(), b.byteSize});
 
         continue;
       }
 
-      const VKPipe::DescriptorSet &set =
-          pipeline.descriptorSets[sh.bindpointMapping.constantBlocks[i].bindset];
-      const VKPipe::DescriptorBinding &bind =
-          set.bindings[sh.bindpointMapping.constantBlocks[i].bind];
+      const VKPipe::DescriptorSet &set = pipeline.descriptorSets[bindMap.bindset];
+      const VKPipe::DescriptorBinding &bind = set.bindings[bindMap.bind];
 
       QString setname = QString::number(bindMap.bindset);
 
@@ -3967,9 +4121,9 @@ void VulkanPipelineStateViewer::on_debugThread_clicked()
   if(!m_Ctx.IsCaptureLoaded())
     return;
 
-  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+  const ActionDescription *action = m_Ctx.CurAction();
 
-  if(!draw || !(draw->flags & DrawFlags::Dispatch))
+  if(!action || !(action->flags & ActionFlags::Dispatch))
     return;
 
   ShaderReflection *shaderDetails = m_Ctx.CurVulkanPipelineState()->computeShader.reflection;
@@ -3982,11 +4136,11 @@ void VulkanPipelineStateViewer::on_debugThread_clicked()
   uint32_t groupdim[3] = {};
 
   for(int i = 0; i < 3; i++)
-    groupdim[i] = draw->dispatchDimension[i];
+    groupdim[i] = action->dispatchDimension[i];
 
   uint32_t threadsdim[3] = {};
   for(int i = 0; i < 3; i++)
-    threadsdim[i] = draw->dispatchThreadsDimension[i];
+    threadsdim[i] = action->dispatchThreadsDimension[i];
 
   if(threadsdim[0] == 0)
   {

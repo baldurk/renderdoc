@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -223,6 +223,14 @@ bool D3D12InitParams::IsSupportedVersion(uint64_t ver)
   if(ver == 0x9)
     return true;
 
+  // 0xA -> 0xB - Added support for sparse/reserved/tiled resources
+  if(ver == 0xA)
+    return true;
+
+  // 0xB -> 0xC - Serialised D3D12 SDK version
+  if(ver == 0xB)
+    return true;
+
   return false;
 }
 
@@ -256,6 +264,15 @@ void DoSerialise(SerialiserType &ser, D3D12InitParams &el)
     el.VendorExtensions = GPUVendor::Unknown;
     el.VendorUAV = ~0U;
     el.VendorUAVSpace = ~0U;
+  }
+
+  if(ser.VersionAtLeast(0xC))
+  {
+    SERIALISE_MEMBER(SDKVersion);
+  }
+  else
+  {
+    el.SDKVersion = 0;
   }
 }
 
@@ -1165,6 +1182,26 @@ D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC::D3D12_EXPANDED_PIPELINE_STATE_STREAM_
       {
         ViewInstancing = ptr->data.ViewInstancing;
         ITER_ADV(D3D12_VIEW_INSTANCING_DESC);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_AS:
+      {
+        if(ptr->data.shader.BytecodeLength > 0)
+        {
+          RDCERR("AS passed to D3D12_PIPELINE_STATE_STREAM_DESC but mesh shaders not supported");
+          errored = true;
+        }
+        ITER_ADV(D3D12_SHADER_BYTECODE);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_MS:
+      {
+        if(ptr->data.shader.BytecodeLength > 0)
+        {
+          RDCERR("MS passed to D3D12_PIPELINE_STATE_STREAM_DESC but mesh shaders not supported");
+          errored = true;
+        }
+        ITER_ADV(D3D12_SHADER_BYTECODE);
         break;
       }
       default:

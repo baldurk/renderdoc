@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -273,7 +273,7 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(SerialiserType &ser, VkDevice dev
                                                VkDeviceMemory *pMemory)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(AllocateInfo, *pAllocateInfo);
+  SERIALISE_ELEMENT_LOCAL(AllocateInfo, *pAllocateInfo).Important();
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(Memory, GetResID(*pMemory)).TypedAs("VkDeviceMemory"_lit);
 
@@ -478,6 +478,12 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
   {
     ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pMemory);
 
+    VkMemoryDedicatedAllocateInfo *dedicated = (VkMemoryDedicatedAllocateInfo *)FindNextStruct(
+        pAllocateInfo, VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO);
+    VkDedicatedAllocationMemoryAllocateInfoNV *dedicatedNV =
+        (VkDedicatedAllocationMemoryAllocateInfoNV *)FindNextStruct(
+            pAllocateInfo, VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_MEMORY_ALLOCATE_INFO_NV);
+
     // create a buffer with the whole memory range bound, for copying to and from
     // conveniently (for initial state data)
     VkBuffer wholeMemBuf = VK_NULL_HANDLE;
@@ -504,20 +510,59 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
         bufInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     }
 
-    ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &bufInfo, NULL, &wholeMemBuf);
-    RDCASSERTEQUAL(ret, VK_SUCCESS);
+    VkDeviceSize memSize = info.allocationSize;
+    ResourceId bufid;
 
-    // we already validated above that the memory size is aligned/etc as necessary so we can
-    // create a buffer of the whole size, but just to keep the validation layers happy let's check
-    // the requirements here again.
-    VkMemoryRequirements mrq = {};
-    ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), wholeMemBuf, &mrq);
+    if(dedicated)
+    {
+      // either set the buffer that's dedicated, or if this is dedicated image memory set NULL
+      wholeMemBuf = dedicated->buffer;
+    }
+    else if(dedicatedNV)
+    {
+      wholeMemBuf = dedicatedNV->buffer;
+    }
+    else
+    {
+      ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &bufInfo, NULL, &wholeMemBuf);
+      RDCASSERTEQUAL(ret, VK_SUCCESS);
 
-    RDCASSERTEQUAL(mrq.size, info.allocationSize);
+      // we already validated above that the memory size is aligned/etc as necessary so we can
+      // create a buffer of the whole size, but just to keep the validation layers happy let's check
+      // the requirements here again.
+      VkMemoryRequirements mrq = {};
+      ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), wholeMemBuf, &mrq);
 
-    ResourceId bufid = GetResourceManager()->WrapResource(Unwrap(device), wholeMemBuf);
+      RDCASSERTEQUAL(mrq.size, info.allocationSize);
 
-    ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(wholeMemBuf), Unwrap(*pMemory), 0);
+      if((mrq.memoryTypeBits & (1U << info.memoryTypeIndex)) != 0)
+      {
+        bufid = GetResourceManager()->WrapResource(Unwrap(device), wholeMemBuf);
+
+        ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(wholeMemBuf), Unwrap(*pMemory), 0);
+      }
+      else
+      {
+        // can't create a memory-spanning buffer for this allocation. Assume this is a case where
+        // this memory type is only available to images and is not mappable - in which case the
+        // whole memory buffer won't be needed so we can skip this.
+        ObjDisp(device)->DestroyBuffer(Unwrap(device), wholeMemBuf, NULL);
+        wholeMemBuf = VK_NULL_HANDLE;
+      }
+    }
+
+    if((dedicated != NULL || dedicatedNV != NULL) && wholeMemBuf != VK_NULL_HANDLE)
+    {
+      VkDeviceSize bufSize = IsCaptureMode(m_State)
+                                 ? GetRecord(wholeMemBuf)->memSize
+                                 : m_CreationInfo.m_Buffer[GetResID(wholeMemBuf)].size;
+      if(memSize > bufSize)
+      {
+        RDCDEBUG("Truncating memory size %llu to dedicated buffer size %llu for %s", memSize,
+                 bufSize, ToStr(id).c_str());
+        memSize = bufSize;
+      }
+    }
 
     if(IsCaptureMode(m_State))
     {
@@ -571,13 +616,14 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
 
       record->AddChunk(chunk);
 
-      record->Length = info.allocationSize;
+      record->Length = memSize;
 
       uint32_t memProps =
           m_PhysicalDeviceData.memProps.memoryTypes[info.memoryTypeIndex].propertyFlags;
 
       record->memMapState = new MemMapState();
       record->memMapState->wholeMemBuf = wholeMemBuf;
+      record->memMapState->dedicated = dedicated != NULL || dedicatedNV != NULL;
 
       // if memory is not host visible, so not mappable, don't create map state at all
       if((memProps & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0)
@@ -591,8 +637,18 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
         // command buffer.
         if(Vulkan_GPUReadbackDeviceLocal() &&
            m_PhysicalDeviceData.props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+        {
           record->memMapState->readbackOnGPU =
               ((memProps & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) != 0);
+
+          // we need a wholeMemBuf to readback on the GPU
+          if(record->memMapState->readbackOnGPU && wholeMemBuf == VK_NULL_HANDLE)
+          {
+            RDCWARN(
+                "Memory allocation would have been readback on GPU, but can't without wholeMemBuf");
+            record->memMapState->readbackOnGPU = false;
+          }
+        }
       }
 
       GetResourceManager()->AddDeviceMemory(id);
@@ -603,8 +659,11 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
 
       m_CreationInfo.m_Memory[id].Init(GetResourceManager(), m_CreationInfo, &info);
 
-      // register as a live-only resource, so it is cleaned up properly
-      GetResourceManager()->AddLiveResource(bufid, wholeMemBuf);
+      if(dedicated == NULL && dedicatedNV == NULL && wholeMemBuf != VK_NULL_HANDLE)
+      {
+        // register as a live-only resource, so it is cleaned up properly
+        GetResourceManager()->AddLiveResource(bufid, wholeMemBuf);
+      }
 
       m_CreationInfo.m_Memory[id].wholeMemBuf = wholeMemBuf;
     }
@@ -651,7 +710,8 @@ void WrappedVulkan::vkFreeMemory(VkDevice device, VkDeviceMemory memory,
         memMapState->refData = NULL;
       }
 
-      // destroy the wholeMemBuf
+      // destroy the wholeMemBuf if it's one we allocated ourselves
+      if(!memMapState->dedicated)
       {
         ObjDisp(device)->DestroyBuffer(Unwrap(device), Unwrap(memMapState->wholeMemBuf), NULL);
         GetResourceManager()->ReleaseWrappedResource(memMapState->wholeMemBuf);
@@ -713,7 +773,8 @@ VkResult WrappedVulkan::vkMapMemory(VkDevice device, VkDeviceMemory mem, VkDevic
       state.refData = NULL;
 
       state.mapOffset = offset;
-      state.mapSize = size == VK_WHOLE_SIZE ? (memrecord->Length - offset) : size;
+      state.mapSize = size == VK_WHOLE_SIZE ? (memrecord->Length - offset)
+                                            : RDCMIN(memrecord->Length - offset, size);
       state.mapFlushed = false;
 
       *ppData = realData + misalignedOffset;
@@ -742,7 +803,7 @@ bool WrappedVulkan::Serialise_vkUnmapMemory(SerialiserType &ser, VkDevice device
                                             VkDeviceMemory memory)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT(memory);
+  SERIALISE_ELEMENT(memory).Important();
 
   uint64_t MapOffset = 0;
   uint64_t MapSize = 0;
@@ -807,13 +868,13 @@ bool WrappedVulkan::Serialise_vkUnmapMemory(SerialiserType &ser, VkDevice device
   {
     // not using SERIALISE_ELEMENT_ARRAY so we can deliberately avoid allocation - we serialise
     // directly into upload memory
-    ser.Serialise("MapData"_lit, MapData, MapSize, SerialiserFlags::NoFlags);
+    ser.Serialise("MapData"_lit, MapData, MapSize, SerialiserFlags::NoFlags).Important();
   }
   else
   {
     // serialise into temp storage
     byte *tmp = m_MaskedMapData.data();
-    ser.Serialise("MapData"_lit, tmp, MapSize, SerialiserFlags::NoFlags);
+    ser.Serialise("MapData"_lit, tmp, MapSize, SerialiserFlags::NoFlags).Important();
 
     const Intervals<VulkanCreationInfo::Memory::MemoryBinding> &bindings =
         m_CreationInfo.m_Memory[GetResID(memory)].bindings;
@@ -942,7 +1003,7 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
 {
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT(memRangeCount);
-  SERIALISE_ELEMENT_LOCAL(MemRange, *pMemRanges);
+  SERIALISE_ELEMENT_LOCAL(MemRange, *pMemRanges).Important();
 
   byte *MappedData = NULL;
   uint64_t memRangeSize = 1;
@@ -977,10 +1038,14 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
     if(ret != VK_SUCCESS)
       RDCERR("Error mapping memory on replay: %s", ToStr(ret).c_str());
 
-    const Intervals<VulkanCreationInfo::Memory::MemoryBinding> &bindings =
-        m_CreationInfo.m_Memory[GetResID(MemRange.memory)].bindings;
+    const VulkanCreationInfo::Memory &memInfo = m_CreationInfo.m_Memory[GetResID(MemRange.memory)];
+    const Intervals<VulkanCreationInfo::Memory::MemoryBinding> &bindings = memInfo.bindings;
 
-    uint64_t finish = MemRange.offset + MemRange.size;
+    memRangeSize = MemRange.size;
+    if(memRangeSize == VK_WHOLE_SIZE)
+      memRangeSize = memInfo.allocSize - MemRange.offset;
+
+    uint64_t finish = MemRange.offset + memRangeSize;
 
     auto it = bindings.find(MemRange.offset);
 
@@ -998,7 +1063,7 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
                           "Taking slow path to mask tiled memory writes");
         }
         directStream = false;
-        m_MaskedMapData.resize((size_t)MemRange.size);
+        m_MaskedMapData.resize((size_t)memRangeSize);
         break;
       }
 
@@ -1010,37 +1075,40 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
   {
     // not using SERIALISE_ELEMENT_ARRAY so we can deliberately avoid allocation - we serialise
     // directly into upload memory
-    ser.Serialise("MappedData"_lit, MappedData, memRangeSize, SerialiserFlags::NoFlags);
+    ser.Serialise("MapData"_lit, MappedData, memRangeSize, SerialiserFlags::NoFlags).Important();
   }
   else
   {
     // serialise into temp storage
     byte *tmp = m_MaskedMapData.data();
-    ser.Serialise("MapData"_lit, tmp, MemRange.size, SerialiserFlags::NoFlags);
+    ser.Serialise("MapData"_lit, tmp, memRangeSize, SerialiserFlags::NoFlags).Important();
 
     const Intervals<VulkanCreationInfo::Memory::MemoryBinding> &bindings =
         m_CreationInfo.m_Memory[GetResID(MemRange.memory)].bindings;
 
-    uint64_t finish = MemRange.offset + MemRange.size;
+    uint64_t mappedRegionStart = MemRange.offset;
+    uint64_t mappedRegionFinish = MemRange.offset + memRangeSize;
 
-    auto it = bindings.find(MemRange.offset);
+    auto it = bindings.find(mappedRegionStart);
 
     // iterate the bindings that this map region overlaps, and only memcpy the bits that we overlap
     // which are linear
-    while(it != bindings.end() && it->start() < finish)
+    while(it != bindings.end() && it->start() < mappedRegionFinish)
     {
       if(it->value() != VulkanCreationInfo::Memory::Tiled)
       {
         // start at the map offset or the region offset, whichever is *later*. E.g. if the region is
         // larger than the map we only start where the map started, and vice-versa if the map
         // started earlier than the region.
-        // We also rebase it so that it's relative to the map, so it's the byte offset for the
-        // memcpy
-        size_t offs = size_t(RDCMAX(it->start(), MemRange.offset) - MemRange.offset);
+        uint64_t start = RDCMAX(it->start(), mappedRegionStart);
 
-        // similarly, only copy up to the end of the region or the end ofthe map whichever is
-        // *sooner*.
-        size_t size = size_t(RDCMIN(it->finish(), finish) - offs);
+        // similarly, finish at the end of the region or the end of the map whichever is *sooner*.
+        uint64_t finish = RDCMIN(it->finish(), mappedRegionFinish);
+
+        // Transform now to be relative to the start of the map. Note that since we max'd with
+        // the map start/finish above this won't underflow
+        size_t offs = size_t(start - mappedRegionStart);
+        size_t size = size_t(finish - start);
 
         memcpy(MappedData + offs, m_MaskedMapData.data() + offs, size);
       }
@@ -1084,6 +1152,57 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
   return true;
 }
 
+void WrappedVulkan::InternalFlushMemoryRange(VkDevice device, const VkMappedMemoryRange &memRange,
+                                             bool internalFlush, bool capframe)
+{
+  ResourceId memid = GetResID(memRange.memory);
+  VkResourceRecord *record = GetRecord(memRange.memory);
+
+  MemMapState *state = record->memMapState;
+
+  if(!internalFlush)
+    state->mapFlushed = true;
+
+  if(state->mappedPtr == NULL)
+  {
+    RDCERR("Flushing memory %s that isn't currently mapped", ToStr(memid).c_str());
+    return;
+  }
+
+  if(capframe)
+  {
+    SCOPED_LOCK_OPTIONAL(state->mrLock, !internalFlush);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(internalFlush ? VulkanChunk::CoherentMapWrite
+                                         : VulkanChunk::vkFlushMappedMemoryRanges);
+    Serialise_vkFlushMappedMemoryRanges(ser, device, 1, &memRange);
+
+    m_FrameCaptureRecord->AddChunk(scope.Get());
+  }
+
+  if(capframe)
+  {
+    VkDeviceSize offs = memRange.offset;
+    VkDeviceSize size = memRange.size;
+
+    // map VK_WHOLE_SIZE into a specific size
+    if(size == VK_WHOLE_SIZE)
+      size = state->mapOffset + state->mapSize - offs;
+
+    GetResourceManager()->MarkMemoryFrameReferenced(memid, offs, size, eFrameRef_CompleteWrite);
+  }
+  else
+  {
+    FrameRefType refType = eFrameRef_PartialWrite;
+    if(memRange.offset == 0 && memRange.size >= record->Length)
+      refType = eFrameRef_CompleteWrite;
+
+    GetResourceManager()->MarkResourceFrameReferenced(memid, refType);
+  }
+}
+
 VkResult WrappedVulkan::vkFlushMappedMemoryRanges(VkDevice device, uint32_t memRangeCount,
                                                   const VkMappedMemoryRange *pMemRanges)
 {
@@ -1095,28 +1214,13 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(VkDevice device, uint32_t memR
   }
 
   VkResult ret;
-  bool internalFlush = false;
-
-  // don't call the driver for a fake coherent map flush
-  if(memRangeCount == 1 && pMemRanges->pNext == &internalMemoryFlushMarker)
-  {
-    ret = VK_SUCCESS;
-    internalFlush = true;
-
-    // for simplicity we set the pNext to NULL after we've seen our internal marker. We can safely
-    // modify this because it's a temporary variable in the calling stackframe
-    VkMappedMemoryRange *range = (VkMappedMemoryRange *)pMemRanges;
-    range->pNext = NULL;
-  }
-  else
-  {
-    SERIALISE_TIME_CALL(
-        ret = ObjDisp(device)->FlushMappedMemoryRanges(Unwrap(device), memRangeCount, unwrapped));
-  }
+  SERIALISE_TIME_CALL(
+      ret = ObjDisp(device)->FlushMappedMemoryRanges(Unwrap(device), memRangeCount, unwrapped));
 
   if(IsCaptureMode(m_State))
   {
     bool capframe = false;
+
     {
       SCOPED_READLOCK(m_CapTransitionLock);
       capframe = IsActiveCapturing(m_State);
@@ -1124,52 +1228,7 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(VkDevice device, uint32_t memR
 
     for(uint32_t i = 0; i < memRangeCount; i++)
     {
-      ResourceId memid = GetResID(pMemRanges[i].memory);
-      VkResourceRecord *record = GetRecord(pMemRanges[i].memory);
-
-      MemMapState *state = record->memMapState;
-
-      if(!internalFlush)
-        state->mapFlushed = true;
-
-      if(state->mappedPtr == NULL)
-      {
-        RDCERR("Flushing memory %s that isn't currently mapped", ToStr(memid).c_str());
-        continue;
-      }
-
-      if(capframe)
-      {
-        SCOPED_LOCK_OPTIONAL(state->mrLock, !internalFlush);
-
-        CACHE_THREAD_SERIALISER();
-
-        SCOPED_SERIALISE_CHUNK(internalFlush ? VulkanChunk::CoherentMapWrite
-                                             : VulkanChunk::vkFlushMappedMemoryRanges);
-        Serialise_vkFlushMappedMemoryRanges(ser, device, 1, pMemRanges + i);
-
-        m_FrameCaptureRecord->AddChunk(scope.Get());
-      }
-
-      if(capframe)
-      {
-        VkDeviceSize offs = pMemRanges[i].offset;
-        VkDeviceSize size = pMemRanges[i].size;
-
-        // map VK_WHOLE_SIZE into a specific size
-        if(size == VK_WHOLE_SIZE)
-          size = state->mapOffset + state->mapSize - offs;
-
-        GetResourceManager()->MarkMemoryFrameReferenced(memid, offs, size, eFrameRef_CompleteWrite);
-      }
-      else
-      {
-        FrameRefType refType = eFrameRef_PartialWrite;
-        if(pMemRanges[i].offset == 0 && pMemRanges[i].size >= record->Length)
-          refType = eFrameRef_CompleteWrite;
-
-        GetResourceManager()->MarkResourceFrameReferenced(memid, refType);
-      }
+      InternalFlushMemoryRange(device, pMemRanges[i], false, capframe);
     }
   }
 
@@ -1199,8 +1258,8 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory(SerialiserType &ser, VkDevice d
                                                  VkDeviceSize memoryOffset)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT(buffer);
-  SERIALISE_ELEMENT(memory);
+  SERIALISE_ELEMENT(buffer).Important();
+  SERIALISE_ELEMENT(memory).Important();
   SERIALISE_ELEMENT(memoryOffset);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -1283,9 +1342,14 @@ VkResult WrappedVulkan::vkBindBufferMemory(VkDevice device, VkBuffer buffer, VkD
     // to memory mid-frame
     record->AddChunk(chunk);
 
-    record->AddParent(GetRecord(memory));
+    VkResourceRecord *memrecord = GetRecord(memory);
+
+    record->AddParent(memrecord);
     record->baseResource = id;
+    record->dedicated = memrecord->memMapState->dedicated;
     record->memOffset = memoryOffset;
+
+    memrecord->storable |= record->storable;
 
     // if the buffer was force-referenced, do the same with the memory
     if(IsForcedReference(record))
@@ -1314,8 +1378,8 @@ bool WrappedVulkan::Serialise_vkBindImageMemory(SerialiserType &ser, VkDevice de
                                                 VkDeviceMemory memory, VkDeviceSize memoryOffset)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT(image);
-  SERIALISE_ELEMENT(memory);
+  SERIALISE_ELEMENT(image).Important();
+  SERIALISE_ELEMENT(memory).Important();
   SERIALISE_ELEMENT(memoryOffset);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -1402,12 +1466,15 @@ VkResult WrappedVulkan::vkBindImageMemory(VkDevice device, VkImage image, VkDevi
     // to memory mid-frame
     record->AddChunk(chunk);
 
-    record->AddParent(GetRecord(mem));
+    VkResourceRecord *memrecord = GetRecord(mem);
+
+    record->AddParent(memrecord);
 
     // images are a base resource but we want to track where their memory comes from.
     // Anything that looks up a baseResource for an image knows not to chase further
     // than the image.
-    record->baseResource = GetResID(mem);
+    record->baseResource = memrecord->GetResourceID();
+    record->dedicated = memrecord->memMapState->dedicated;
   }
   else
   {
@@ -1438,7 +1505,7 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(SerialiserType &ser, VkDevice devic
   }
 
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo).Important();
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(Buffer, GetResID(*pBuffer)).TypedAs("VkBuffer"_lit);
   // unused at the moment, just for user information
@@ -1612,6 +1679,9 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
 
       record->AddChunk(chunk);
 
+      record->storable = (pCreateInfo->usage & (VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                                                VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT)) != 0;
+
       bool isSparse = (pCreateInfo->flags & (VK_BUFFER_CREATE_SPARSE_BINDING_BIT |
                                              VK_BUFFER_CREATE_SPARSE_RESIDENCY_BIT)) != 0;
 
@@ -1633,6 +1703,11 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
         // pre-populate memory requirements
         ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), Unwrap(*pBuffer),
                                                      &record->resInfo->memreqs);
+
+        // initialise the sparse page table
+        if(isSparse)
+          record->resInfo->sparseTable.Initialise(pCreateInfo->size,
+                                                  record->resInfo->memreqs.alignment & 0xFFFFFFFFU);
 
         // for external buffers, try creating a non-external version and take the worst case of
         // memory requirements, in case the non-external one (as we will replay it) needs more
@@ -1705,7 +1780,7 @@ bool WrappedVulkan::Serialise_vkCreateBufferView(SerialiserType &ser, VkDevice d
                                                  VkBufferView *pView)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo).Important();
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(View, GetResID(*pView)).TypedAs("VkBufferView"_lit);
 
@@ -1792,6 +1867,7 @@ VkResult WrappedVulkan::vkCreateBufferView(VkDevice device, const VkBufferViewCr
       // store the base resource
       record->baseResource = bufferRecord->GetResourceID();
       record->baseResourceMem = bufferRecord->baseResource;
+      record->dedicated = bufferRecord->dedicated;
       record->resInfo = bufferRecord->resInfo;
       record->memOffset = bufferRecord->memOffset + pCreateInfo->offset;
       record->memSize = pCreateInfo->range;
@@ -1822,7 +1898,7 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
   }
 
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo).Important();
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(Image, GetResID(*pImage)).TypedAs("VkImage"_lit);
   // unused at the moment, just for user information
@@ -1877,7 +1953,10 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
 
     APIProps.YUVTextures |= IsYUVFormat(CreateInfo.format);
 
-    if(CreateInfo.flags & (VK_IMAGE_CREATE_SPARSE_BINDING_BIT | VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT))
+    const bool isSparse = (CreateInfo.flags & (VK_IMAGE_CREATE_SPARSE_BINDING_BIT |
+                                               VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT)) != 0;
+
+    if(isSparse)
     {
       APIProps.SparseResources = true;
     }
@@ -1896,6 +1975,53 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
       if(CreateInfo.samples != VK_SAMPLE_COUNT_1_BIT)
       {
         separateStencilUsage->stencilUsage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+      }
+    }
+
+    rdcarray<VkFormat> patchedFormatList;
+
+    // similarly for the image format list for MSAA textures, add the UINT cast format we will need
+    if(CreateInfo.samples != VK_SAMPLE_COUNT_1_BIT)
+    {
+      VkImageFormatListCreateInfo *formatListInfo = (VkImageFormatListCreateInfo *)FindNextStruct(
+          &CreateInfo, VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO);
+
+      if(formatListInfo)
+      {
+        uint32_t bs = GetByteSize(1, 1, 1, CreateInfo.format, 0);
+
+        VkFormat msaaCopyFormat = VK_FORMAT_UNDEFINED;
+        if(bs == 1)
+          msaaCopyFormat = VK_FORMAT_R8_UINT;
+        else if(bs == 2)
+          msaaCopyFormat = VK_FORMAT_R16_UINT;
+        else if(bs == 4)
+          msaaCopyFormat = VK_FORMAT_R32_UINT;
+        else if(bs == 8)
+          msaaCopyFormat = VK_FORMAT_R32G32_UINT;
+        else if(bs == 16)
+          msaaCopyFormat = VK_FORMAT_R32G32B32A32_UINT;
+
+        patchedFormatList.resize(formatListInfo->viewFormatCount + 1);
+
+        const VkFormat *oldFmts = formatListInfo->pViewFormats;
+        VkFormat *newFmts = patchedFormatList.data();
+        formatListInfo->pViewFormats = newFmts;
+
+        bool needAdded = true;
+        uint32_t i = 0;
+        for(; i < formatListInfo->viewFormatCount; i++)
+        {
+          newFmts[i] = oldFmts[i];
+          if(newFmts[i] == msaaCopyFormat)
+            needAdded = false;
+        }
+
+        if(needAdded)
+        {
+          newFmts[i] = msaaCopyFormat;
+          formatListInfo->viewFormatCount++;
+        }
       }
     }
 
@@ -1929,6 +2055,9 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
         state->wrappedHandle = img;
         *state = state->InitialState();
       }
+
+      if(isSparse)
+        state->isMemoryBound = true;
     }
 
     const char *prefix = "Image";
@@ -2014,7 +2143,19 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
   // create non-subsampled image to be able to copy its content
   createInfo_adjusted.flags &= ~VK_IMAGE_CREATE_SUBSAMPLED_BIT_EXT;
 
-  byte *tempMem = GetTempMemory(GetNextPatchSize(createInfo_adjusted.pNext));
+  size_t tempMemSize = GetNextPatchSize(createInfo_adjusted.pNext);
+
+  // reserve space for a patched view format list if necessary
+  if(createInfo_adjusted.samples != VK_SAMPLE_COUNT_1_BIT)
+  {
+    VkImageFormatListCreateInfo *formatListInfo = (VkImageFormatListCreateInfo *)FindNextStruct(
+        &createInfo_adjusted, VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO);
+
+    if(formatListInfo)
+      tempMemSize += sizeof(VkFormat) * (formatListInfo->viewFormatCount + 1);
+  }
+
+  byte *tempMem = GetTempMemory(tempMemSize);
 
   UnwrapNextChain(m_State, "VkImageCreateInfo", tempMem, (VkBaseInStructure *)&createInfo_adjusted);
 
@@ -2039,6 +2180,49 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
     }
   }
 
+  // similarly for the image format list for MSAA textures, add the UINT cast format we will need
+  if(createInfo_adjusted.samples != VK_SAMPLE_COUNT_1_BIT)
+  {
+    VkImageFormatListCreateInfo *formatListInfo = (VkImageFormatListCreateInfo *)FindNextStruct(
+        &createInfo_adjusted, VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO);
+
+    if(formatListInfo)
+    {
+      uint32_t bs = GetByteSize(1, 1, 1, createInfo_adjusted.format, 0);
+
+      VkFormat msaaCopyFormat = VK_FORMAT_UNDEFINED;
+      if(bs == 1)
+        msaaCopyFormat = VK_FORMAT_R8_UINT;
+      else if(bs == 2)
+        msaaCopyFormat = VK_FORMAT_R16_UINT;
+      else if(bs == 4)
+        msaaCopyFormat = VK_FORMAT_R32_UINT;
+      else if(bs == 8)
+        msaaCopyFormat = VK_FORMAT_R32G32_UINT;
+      else if(bs == 16)
+        msaaCopyFormat = VK_FORMAT_R32G32B32A32_UINT;
+
+      const VkFormat *oldFmts = formatListInfo->pViewFormats;
+      VkFormat *newFmts = (VkFormat *)tempMem;
+      formatListInfo->pViewFormats = newFmts;
+
+      bool needAdded = true;
+      uint32_t i = 0;
+      for(; i < formatListInfo->viewFormatCount; i++)
+      {
+        newFmts[i] = oldFmts[i];
+        if(newFmts[i] == msaaCopyFormat)
+          needAdded = false;
+      }
+
+      if(needAdded)
+      {
+        newFmts[i] = msaaCopyFormat;
+        formatListInfo->viewFormatCount++;
+      }
+    }
+  }
+
   VkResult ret;
   SERIALISE_TIME_CALL(
       ret = ObjDisp(device)->CreateImage(Unwrap(device), &createInfo_adjusted, pAllocator, pImage));
@@ -2046,6 +2230,9 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
   if(ret == VK_SUCCESS)
   {
     ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pImage);
+
+    const bool isSparse = (pCreateInfo->flags & (VK_IMAGE_CREATE_SPARSE_BINDING_BIT |
+                                                 VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT)) != 0;
 
     if(IsCaptureMode(m_State))
     {
@@ -2067,11 +2254,10 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
       ResourceInfo &resInfo = *record->resInfo;
       resInfo.imageInfo = ImageInfo(*pCreateInfo);
 
+      record->storable = (pCreateInfo->usage & VK_IMAGE_USAGE_STORAGE_BIT) != 0;
+
       // pre-populate memory requirements
       ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(*pImage), &resInfo.memreqs);
-
-      bool isSparse = (pCreateInfo->flags & (VK_IMAGE_CREATE_SPARSE_BINDING_BIT |
-                                             VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT)) != 0;
 
       bool isLinear = (pCreateInfo->tiling == VK_IMAGE_TILING_LINEAR);
 
@@ -2175,45 +2361,61 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
 
       if(isSparse)
       {
+        uint32_t pageByteSize = resInfo.memreqs.alignment & 0xFFFFFFFFu;
+
         if(pCreateInfo->flags & VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT)
         {
           // must record image and page dimension, and create page tables
-          uint32_t numreqs = NUM_VK_IMAGE_ASPECTS;
-          VkSparseImageMemoryRequirements reqs[NUM_VK_IMAGE_ASPECTS];
+          uint32_t numreqs = 8;
+          VkSparseImageMemoryRequirements reqs[8];
           ObjDisp(device)->GetImageSparseMemoryRequirements(Unwrap(device), Unwrap(*pImage),
                                                             &numreqs, reqs);
 
-          RDCASSERT(numreqs > 0);
+          // we only support at most DEPTH, STENCIL, METADATA = 3 aspects
+          RDCASSERT(numreqs > 0 && numreqs <= 3, numreqs);
 
-          resInfo.pagedim = reqs[0].formatProperties.imageGranularity;
-          resInfo.imgdim = pCreateInfo->extent;
-          resInfo.imgdim.width /= resInfo.pagedim.width;
-          resInfo.imgdim.height /= resInfo.pagedim.height;
-          resInfo.imgdim.depth /= resInfo.pagedim.depth;
+          // if we don't have just a single
+          resInfo.altSparseAspects.resize(numreqs - 1);
 
-          uint32_t numpages = resInfo.imgdim.width * resInfo.imgdim.height * resInfo.imgdim.depth;
+          Sparse::Coord dim = {pCreateInfo->extent.width, pCreateInfo->extent.height,
+                               pCreateInfo->extent.depth};
 
-          for(uint32_t i = 0; i < numreqs; i++)
+          for(uint32_t r = 0; r < numreqs; r++)
           {
-            // assume all page sizes are the same for all aspects
-            RDCASSERT(resInfo.pagedim.width == reqs[i].formatProperties.imageGranularity.width &&
-                      resInfo.pagedim.height == reqs[i].formatProperties.imageGranularity.height &&
-                      resInfo.pagedim.depth == reqs[i].formatProperties.imageGranularity.depth);
+            if(r == 0)
+              resInfo.sparseAspect = reqs[r].formatProperties.aspectMask;
+            else
+              resInfo.altSparseAspects[r - 1].aspectMask = reqs[r].formatProperties.aspectMask;
 
-            int a = 0;
-            for(a = 0; a < NUM_VK_IMAGE_ASPECTS; a++)
-            {
-              if(reqs[i].formatProperties.aspectMask & (1 << a))
-                break;
-            }
+            Sparse::PageTable &table =
+                r == 0 ? resInfo.sparseTable : resInfo.altSparseAspects[r - 1].table;
 
-            resInfo.pages[a] = new rdcpair<VkDeviceMemory, VkDeviceSize>[numpages];
+            bool singleMipTail =
+                (reqs[r].formatProperties.flags & VK_SPARSE_IMAGE_FORMAT_SINGLE_MIPTAIL_BIT) != 0;
+
+            const VkExtent3D &gran = reqs[r].formatProperties.imageGranularity;
+            Sparse::Coord pageSize = {gran.width, gran.height, gran.depth};
+
+            table.Initialise(
+                dim, pCreateInfo->mipLevels, pCreateInfo->arrayLayers, pageByteSize, pageSize,
+                // we MIN here so if the driver returns 999 we have a consistent value, so we can
+                // compare against it on replay
+                RDCMIN(reqs[r].imageMipTailFirstLod, pCreateInfo->mipLevels),
+                reqs[r].imageMipTailOffset,
+                // if formatProperties.flags does not contain
+                // VK_SPARSE_IMAGE_FORMAT_SINGLE_MIPTAIL_BIT (otherwise the value is undefined).
+                singleMipTail || pCreateInfo->arrayLayers == 0 ? 0 : reqs[r].imageMipTailStride,
+                // If formatProperties.flags contains VK_SPARSE_IMAGE_FORMAT_SINGLE_MIPTAIL_BIT,
+                // this is the size of the whole mip tail, otherwise this is the size of the mip
+                // tail of a single array layer.
+                singleMipTail ? reqs[r].imageMipTailSize
+                              : reqs[r].imageMipTailSize * pCreateInfo->arrayLayers);
           }
         }
         else
         {
-          // don't have to do anything, image is opaque and must be fully bound, just need
-          // to track the memory bindings.
+          // set page table up as if it were a buffer
+          resInfo.sparseTable.Initialise(resInfo.memreqs.size, pageByteSize);
         }
       }
     }
@@ -2224,7 +2426,12 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
       m_CreationInfo.m_Image[id].Init(GetResourceManager(), m_CreationInfo, pCreateInfo);
     }
 
-    InsertImageState(*pImage, id, ImageInfo(*pCreateInfo), eFrameRef_None);
+    LockedImageStateRef state =
+        InsertImageState(*pImage, id, ImageInfo(*pCreateInfo), eFrameRef_None);
+
+    // sparse resources are always treated as if memory is bound, don't skip anything
+    if(isSparse)
+      state->isMemoryBound = true;
   }
 
   return ret;
@@ -2239,7 +2446,7 @@ bool WrappedVulkan::Serialise_vkCreateImageView(SerialiserType &ser, VkDevice de
                                                 VkImageView *pView)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo).Important();
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(View, GetResID(*pView)).TypedAs("VkImageView"_lit);
 
@@ -2328,6 +2535,7 @@ VkResult WrappedVulkan::vkCreateImageView(VkDevice device, const VkImageViewCrea
       // to their memory, which we will also need so we store that separately
       record->baseResource = imageRecord->GetResourceID();
       record->baseResourceMem = imageRecord->baseResource;
+      record->dedicated = imageRecord->dedicated;
       record->resInfo = imageRecord->resInfo;
       record->viewRange = pCreateInfo->subresourceRange;
       record->viewRange.setViewType(pCreateInfo->viewType);
@@ -2350,7 +2558,7 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory2(SerialiserType &ser, VkDevice 
 {
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT(bindInfoCount);
-  SERIALISE_ELEMENT_ARRAY(pBindInfos, bindInfoCount);
+  SERIALISE_ELEMENT_ARRAY(pBindInfos, bindInfoCount).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2448,7 +2656,10 @@ VkResult WrappedVulkan::vkBindBufferMemory2(VkDevice device, uint32_t bindInfoCo
 
       bufrecord->AddParent(memrecord);
       bufrecord->baseResource = memrecord->GetResourceID();
+      bufrecord->dedicated = memrecord->memMapState->dedicated;
       bufrecord->memOffset = pBindInfos[i].memoryOffset;
+
+      memrecord->storable |= bufrecord->storable;
 
       // if the buffer was force-referenced, do the same with the memory
       if(IsForcedReference(bufrecord))
@@ -2461,6 +2672,13 @@ VkResult WrappedVulkan::vkBindBufferMemory2(VkDevice device, uint32_t bindInfoCo
             GetResID(pBindInfos[i].memory), pBindInfos[i].memoryOffset, bufrecord->memSize,
             eFrameRef_ReadBeforeWrite);
       }
+
+      // the memory is immediately dirty because we don't use dirty tracking, it's too expensive to
+      // follow all frame refs in the background and it's pointless because memory almost always
+      // immediately becomes dirty anyway. The one case we might care about non-dirty memory is
+      // memory that has been allocated but not used, but that will be skipped or postponed as
+      // appropriate.
+      GetResourceManager()->MarkDirtyResource(GetResID(pBindInfos[i].memory));
     }
   }
 
@@ -2474,7 +2692,7 @@ bool WrappedVulkan::Serialise_vkBindImageMemory2(SerialiserType &ser, VkDevice d
 {
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT(bindInfoCount);
-  SERIALISE_ELEMENT_ARRAY(pBindInfos, bindInfoCount);
+  SERIALISE_ELEMENT_ARRAY(pBindInfos, bindInfoCount).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2580,6 +2798,7 @@ VkResult WrappedVulkan::vkBindImageMemory2(VkDevice device, uint32_t bindInfoCou
       // Anything that looks up a baseResource for an image knows not to chase further
       // than the image.
       imgrecord->baseResource = memrecord->GetResourceID();
+      imgrecord->dedicated = memrecord->memMapState->dedicated;
     }
   }
   else

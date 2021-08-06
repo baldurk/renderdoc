@@ -106,9 +106,6 @@
     <ClCompile Include="vk_serialise.cpp">
       <Filter>Util</Filter>
     </ClCompile>
-    <ClCompile Include="vk_sparse_initstate.cpp">
-      <Filter>Core</Filter>
-    </ClCompile>
     <ClCompile Include="vk_postvs.cpp">
       <Filter>Replay</Filter>
     </ClCompile>
@@ -136,9 +133,6 @@
     <ClCompile Include="vk_next_chains.cpp">
       <Filter>Util</Filter>
     </ClCompile>
-    <ClCompile Include="vk_bindless_feedback.cpp">
-      <Filter>Replay</Filter>
-    </ClCompile>
     <ClCompile Include="imgrefs_tests.cpp">
       <Filter>Util</Filter>
     </ClCompile>
@@ -152,6 +146,9 @@
       <Filter>Util</Filter>
     </ClCompile>
     <ClCompile Include="vk_shaderdebug.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
+    <ClCompile Include="vk_shader_feedback.cpp">
       <Filter>Replay</Filter>
     </ClCompile>
   </ItemGroup>
@@ -208,6 +205,9 @@
       <Filter>official</Filter>
     </ClInclude>
     <ClInclude Include="official\vulkan_core.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="official\vulkan_ggp.h">
       <Filter>official</Filter>
     </ClInclude>
     <ClInclude Include="official\vulkan_ios.h">
@@ -283,7 +283,7 @@
     <None Include="renderdoc.json">
       <Filter>Layer</Filter>
     </None>
-    <None Include="vk_apple.mm">
+    <None Include="vk_apple_helpers.mm">
       <Filter>OS\Posix</Filter>
     </None>
   </ItemGroup>

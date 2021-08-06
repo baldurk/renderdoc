@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -32,7 +32,7 @@ bool WrappedOpenGL::Serialise_glProgramUniformVector(SerialiserType &ser, GLuint
                                                      GLint location, GLsizei count,
                                                      const void *value, UniformType type)
 {
-  SERIALISE_ELEMENT_LOCAL(Program, ProgramRes(GetCtx(), program));
+  SERIALISE_ELEMENT_LOCAL(Program, ProgramRes(GetCtx(), program)).Important();
   SERIALISE_ELEMENT(location);
 
   // this is used to share serialisation code amongst the brazillion variations
@@ -102,13 +102,13 @@ bool WrappedOpenGL::Serialise_glProgramUniformVector(SerialiserType &ser, GLuint
 
   // we don't want to allocate since we've already handled that
   if(elemBaseType == SDBasic::Float && elemSize == sizeof(float))
-    ser.Serialise("values"_lit, v.f, arrayLength, SerialiserFlags::NoFlags);
+    ser.Serialise("values"_lit, v.f, arrayLength, SerialiserFlags::NoFlags).Important();
   else if(elemBaseType == SDBasic::Float)
-    ser.Serialise("values"_lit, v.d, arrayLength, SerialiserFlags::NoFlags);
+    ser.Serialise("values"_lit, v.d, arrayLength, SerialiserFlags::NoFlags).Important();
   else if(elemBaseType == SDBasic::SignedInteger)
-    ser.Serialise("values"_lit, v.i, arrayLength, SerialiserFlags::NoFlags);
+    ser.Serialise("values"_lit, v.i, arrayLength, SerialiserFlags::NoFlags).Important();
   else if(elemBaseType == SDBasic::UnsignedInteger)
-    ser.Serialise("values"_lit, v.u, arrayLength, SerialiserFlags::NoFlags);
+    ser.Serialise("values"_lit, v.u, arrayLength, SerialiserFlags::NoFlags).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -160,9 +160,9 @@ bool WrappedOpenGL::Serialise_glProgramUniformMatrix(SerialiserType &ser, GLuint
                                                      GLboolean transpose, const void *value,
                                                      UniformType type)
 {
-  SERIALISE_ELEMENT_LOCAL(Program, ProgramRes(GetCtx(), program));
+  SERIALISE_ELEMENT_LOCAL(Program, ProgramRes(GetCtx(), program)).Important();
   SERIALISE_ELEMENT(location);
-  SERIALISE_ELEMENT_TYPED(bool, transpose);
+  SERIALISE_ELEMENT_TYPED(bool, transpose).Important();
 
   // this is used to share serialisation code amongst the brazillion variations
   SERIALISE_ELEMENT(type).Hidden();
@@ -227,9 +227,9 @@ bool WrappedOpenGL::Serialise_glProgramUniformMatrix(SerialiserType &ser, GLuint
 
   // we don't want to allocate since we've already handled that
   if(elemSize == sizeof(float))
-    ser.Serialise("values"_lit, v.f, arrayLength, SerialiserFlags::NoFlags);
+    ser.Serialise("values"_lit, v.f, arrayLength, SerialiserFlags::NoFlags).Important();
   else
-    ser.Serialise("values"_lit, v.d, arrayLength, SerialiserFlags::NoFlags);
+    ser.Serialise("values"_lit, v.d, arrayLength, SerialiserFlags::NoFlags).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 

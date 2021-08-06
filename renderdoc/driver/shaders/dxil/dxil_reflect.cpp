@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -415,9 +415,9 @@ static DXBC::CBufferVariableType MakeCBufferVariableType(const TypeInfo &typeInf
   else if(t->type == Type::Array)
   {
     ret = MakeCBufferVariableType(typeInfo, t->inner);
-    ret.descriptor.elements *= t->elemCount;
+    ret.descriptor.elements *= RDCMAX(1U, t->elemCount);
     // assume normal D3D array packing with each element on float4 boundary
-    ret.descriptor.bytesize += (t->elemCount - 1) * AlignUp16(ret.descriptor.bytesize);
+    ret.descriptor.bytesize += (ret.descriptor.elements - 1) * AlignUp16(ret.descriptor.bytesize);
     return ret;
   }
   else if(t->type == Type::Struct)
@@ -570,8 +570,6 @@ static void AddResourceBind(DXBC::Reflection *refl, const TypeInfo &typeInfo, co
                             const bool srv)
 {
   using namespace DXBC;
-
-  const bool uav = !srv;
 
   ShaderInputBind bind;
   bind.name = r->children[(size_t)ResField::Name]->str;
@@ -970,6 +968,8 @@ DXBC::Reflection *Program::GetReflection()
           var.type.descriptor.varClass = DXBC::CLASS_SCALAR;
           var.type.descriptor.varType = VarType::UInt;
 
+          uint32_t remainingBytes = var.type.descriptor.bytesize * 16;
+
           bind.variables.push_back(var);
 
           // add any remaining bytes if the struct isn't a multiple of float4 size
@@ -977,8 +977,7 @@ DXBC::Reflection *Program::GetReflection()
           var.type.descriptor.bytesize = var.type.descriptor.elements = 1;
           var.type.descriptor.varType = VarType::UByte;
 
-          for(uint32_t remainingBytes = var.type.descriptor.bytesize * 16;
-              remainingBytes < bind.descriptor.byteSize; remainingBytes++)
+          for(; remainingBytes < bind.descriptor.byteSize; remainingBytes++)
           {
             bind.variables.push_back(var);
           }

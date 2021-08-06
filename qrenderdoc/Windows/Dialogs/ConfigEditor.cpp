@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2020 Baldur Karlsson
+ * Copyright (c) 2020-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -331,8 +331,7 @@ public:
     m_Text = text;
     m_KeyText = m_Text;
     m_KeyText.replace(QLatin1Char('.'), QLatin1Char('_'));
-    emit beginResetModel();
-    emit endResetModel();
+    invalidateFilter();
   }
 
 protected:

@@ -6,17 +6,17 @@ class GL_Queries_In_Use(rdtest.TestCase):
     demos_test_name = 'GL_Queries_In_Use'
 
     def check_capture(self):
-        last_draw: rd.DrawcallDescription = self.get_last_draw()
+        last_action: rd.ActionDescription = self.get_last_action()
 
-        self.controller.SetFrameEvent(last_draw.eventId, True)
+        self.controller.SetFrameEvent(last_action.eventId, True)
 
-        tex_details = self.get_texture(last_draw.copyDestination)
+        tex_details = self.get_texture(last_action.copyDestination)
 
-        draw = self.find_draw("XFB Draw").next
+        action = self.find_action("XFB Draw").next
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
-        postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, draw.numIndices)
+        postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
 
         postvs_ref = {
             0: {
@@ -49,9 +49,9 @@ class GL_Queries_In_Use(rdtest.TestCase):
 
         results = self.controller.FetchCounters([rd.GPUCounter.RasterizedPrimitives, rd.GPUCounter.VSInvocations, rd.GPUCounter.FSInvocations])
 
-        draw = self.find_draw("Counters Draw").next
+        action = self.find_action("Counters Draw").next
 
-        results = [r for r in results if r.eventId == draw.eventId]
+        results = [r for r in results if r.eventId == action.eventId]
 
         if len(results) != 3:
             raise rdtest.TestFailureException("Expected 3 results, got {} results".format(len(results)))

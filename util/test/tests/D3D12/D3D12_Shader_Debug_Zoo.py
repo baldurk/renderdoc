@@ -17,19 +17,19 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
         for sm in range(len(shaderModels)):
             rdtest.log.begin_section(shaderModels[sm] + " tests")
 
-            # Jump to the draw
-            test_marker: rd.DrawcallDescription = self.find_draw(shaderModels[sm])
-            draw = test_marker.next
-            self.controller.SetFrameEvent(draw.eventId, False)
+            # Jump to the action
+            test_marker: rd.ActionDescription = self.find_action(shaderModels[sm])
+            action = test_marker.next
+            self.controller.SetFrameEvent(action.eventId, False)
 
             pipe: rd.PipeState = self.controller.GetPipelineState()
 
             if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
-                rdtest.log.print("Skipping undebuggable shader at {}.".format(draw.name))
+                rdtest.log.print("Skipping undebuggable shader at {}.".format(action.eventId))
                 return
 
             # Loop over every test
-            for test in range(draw.numInstances):
+            for test in range(action.numInstances):
                 # Debug the shader
                 trace: rd.ShaderDebugTrace = self.controller.DebugPixel(4 * test, 0, rd.ReplayController.NoPreference,
                                                                         rd.ReplayController.NoPreference)
@@ -54,9 +54,9 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
             rdtest.log.end_section(shaderModels[sm] + " tests")
 
         rdtest.log.begin_section("MSAA tests")
-        test_marker: rd.DrawcallDescription = self.find_draw("MSAA")
-        draw = test_marker.next
-        self.controller.SetFrameEvent(draw.eventId, False)
+        test_marker: rd.ActionDescription = self.find_action("MSAA")
+        action = test_marker.next
+        self.controller.SetFrameEvent(action.eventId, False)
         pipe: rd.PipeState = self.controller.GetPipelineState()
         for test in range(4):
             # Debug the shader
@@ -85,9 +85,9 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
 
         rdtest.log.end_section("MSAA tests")
 
-        test_marker: rd.DrawcallDescription = self.find_draw("VertexSample")
-        draw = test_marker.next
-        self.controller.SetFrameEvent(draw.eventId, False)
+        test_marker: rd.ActionDescription = self.find_action("VertexSample")
+        action = test_marker.next
+        self.controller.SetFrameEvent(action.eventId, False)
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
         # Debug the vertex shader

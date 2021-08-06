@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -159,8 +159,6 @@ void main()
     glDeleteShader(vs);
     glDeleteShader(fs);
 
-    glEnable(GL_SCISSOR_TEST);
-
     GLuint trash = MakeBuffer();
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, trash);
     glBufferStorage(GL_PIXEL_UNPACK_BUFFER, 1024, 0, 0);
@@ -195,11 +193,21 @@ void main()
       glPixelStorei(GL_PACK_ALIGNMENT, 8);
 
       glViewport(0, 0, GLsizei(screenWidth), GLsizei(screenHeight));
-      glScissor(0, 0, GLsizei(screenWidth), GLsizei(screenHeight));
 
       glBindBuffersBase(GL_SHADER_STORAGE_BUFFER, 0, 4, NULL);
 
       float col[] = {1.0f, 0.0f, 1.0f, 1.0f};
+      glClearBufferfv(GL_COLOR, 0, col);
+
+      setMarker("NoScissor");
+      glDisable(GL_SCISSOR_TEST);
+      glScissor(0, 0, 1, 1);
+      glProgramUniform1i(program, glGetUniformLocation(program, "mode"), 0);
+      glDrawArrays(GL_TRIANGLES, 0, 3);
+
+      glEnable(GL_SCISSOR_TEST);
+      glScissor(0, 0, GLsizei(screenWidth), GLsizei(screenHeight));
+
       glClearBufferfv(GL_COLOR, 0, col);
 
       glBindVertexArray(vao);

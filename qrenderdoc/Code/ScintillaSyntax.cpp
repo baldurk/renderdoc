@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -159,6 +159,8 @@ interpolateAtCentroid interpolateAtSample interpolateAtOffset EmitStreamVertex E
 EmitVertex EndPrimitive barrier memoryBarrier memoryBarrierAtomicCounter memoryBarrierBuffer
 memoryBarrierShared memoryBarrierImage groupMemoryBarrier
 
+debugPrintfEXT
+
 gl_CullDistance gl_FragCoord gl_FragDepth gl_FrontFacing gl_GlobalInvocationID gl_HelperInvocation
 gl_in gl_InstanceID gl_InvocationID gl_Layer gl_LocalInvocationID gl_LocalInvocationIndex
 gl_MaxPatchVertices gl_NumWorkGroups gl_out gl_PatchVerticesIn gl_PerVertex gl_PointCoord
@@ -245,7 +247,6 @@ void ConfigureSyntax(ScintillaEdit *scintilla, int language)
   }
 
   scintilla->setLexer(language);
-  scintilla->styleSetSize(STYLE_DEFAULT, 10);
 
 #define SC_COL(qcol) SCINTILLA_COLOUR(qcol.red(), qcol.green(), qcol.blue())
 

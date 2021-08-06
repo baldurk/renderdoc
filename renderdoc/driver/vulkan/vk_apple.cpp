@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,9 +28,8 @@
 
 #include <dlfcn.h>
 
-// helpers defined in vk_apple.mm
-extern "C" int getMetalLayerWidth(void *handle);
-extern "C" int getMetalLayerHeight(void *handle);
+// helpers defined in vk_apple_helpers.mm
+void getMetalLayerSize(void *layerHandle, int &width, int &height);
 
 #if defined(VK_USE_PLATFORM_MACOS_MVK)
 
@@ -89,7 +88,8 @@ VkResult WrappedVulkan::vkCreateMetalSurfaceEXT(VkInstance instance,
 void VulkanReplay::OutputWindow::SetWindowHandle(WindowingData window)
 {
   RDCASSERT(window.system == WindowingSystem::MacOS, window.system);
-  wnd = window.macOS.layer;
+  cocoa.view = window.macOS.view;
+  cocoa.layer = window.macOS.layer;
 }
 
 void VulkanReplay::OutputWindow::CreateSurface(WrappedVulkan *driver, VkInstance inst)
@@ -102,7 +102,7 @@ void VulkanReplay::OutputWindow::CreateSurface(WrappedVulkan *driver, VkInstance
     createInfo.sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT;
     createInfo.pNext = NULL;
     createInfo.flags = 0;
-    createInfo.pLayer = wnd;
+    createInfo.pLayer = cocoa.layer;
 
     RDCDEBUG("Creating macOS surface with EXT_metal_surface");
 
@@ -120,7 +120,7 @@ void VulkanReplay::OutputWindow::CreateSurface(WrappedVulkan *driver, VkInstance
     createInfo.sType = VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK;
     createInfo.pNext = NULL;
     createInfo.flags = 0;
-    createInfo.pView = wnd;
+    createInfo.pView = cocoa.view;
 
     RDCDEBUG("Creating macOS surface with MVK_macos_surface");
 
@@ -147,8 +147,7 @@ void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h
     return;
   }
 
-  w = getMetalLayerWidth(outw.wnd);
-  h = getMetalLayerHeight(outw.wnd);
+  getMetalLayerSize(outw.cocoa.layer, w, h);
 }
 
 static const rdcstr VulkanLibraryName = "libvulkan.1.dylib"_lit;

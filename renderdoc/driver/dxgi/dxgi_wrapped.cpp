@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -462,65 +462,48 @@ HRESULT WrappedIDXGISwapChain4::GetBuffer(
   static const GUID ID3D10Resource_uuid = {
       0x9b7e4c01, 0x342c, 0x4106, {0xa1, 0x9f, 0x4f, 0x27, 0x04, 0xf6, 0x89, 0xf0}};
 
-  IID uuid = riid;
-
-  if(uuid == ID3D10Texture2D_uuid || uuid == ID3D10Resource_uuid)
+  if(riid == ID3D10Texture2D_uuid || riid == ID3D10Resource_uuid)
   {
     RDCERR("Querying swapchain buffers via D3D10 interface UUIDs is not supported");
     return E_NOINTERFACE;
   }
-  else if(uuid == __uuidof(IDXGISurface))
+
+  IUnknown *unwrappedBackbuffer = NULL;
+
+  // query as the device's native backbuffer format
+  HRESULT ret =
+      m_pReal->GetBuffer(Buffer, m_pDevice->GetBackbufferUUID(), (void **)&unwrappedBackbuffer);
+
+  // if this fails we can't continue, the wrapping below assumes it's a native resource
+  if(FAILED(ret))
   {
-    RDCWARN("Querying swapchain buffer for IDXGISurface. This query is ambiguous.");
-
-    // query as native format so that wrapping works as expected
-    uuid = m_pDevice->GetBackbufferUUID();
+    RDCERR("Failed to get swapchain backbuffer %d as %s: HRESULT: %s", Buffer,
+           ToStr(m_pDevice->GetBackbufferUUID()).c_str(), ToStr(ret).c_str());
+    SAFE_RELEASE(unwrappedBackbuffer);
+    return ret;
   }
-  else if(uuid != __uuidof(ID3D11Texture2D) && uuid != __uuidof(ID3D11Texture2D1) &&
-          uuid != __uuidof(ID3D11Resource) && uuid != __uuidof(ID3D12Resource) &&
-          uuid != __uuidof(ID3D12Resource1))
+
+  DXGI_SWAP_CHAIN_DESC desc;
+  GetDesc(&desc);
+
+  // this wraps and takes the reference, so unwrappedBackbuffer no longer holds a reference
+  IUnknown *wrappedBackbuffer =
+      m_pDevice->WrapSwapchainBuffer(this, desc.BufferDesc.Format, Buffer, unwrappedBackbuffer);
+  unwrappedBackbuffer = NULL;
+
+  // now query the original UUID the user wanted
+  ret = wrappedBackbuffer->QueryInterface(riid, ppSurface);
+
+  if(FAILED(ret) || *ppSurface == NULL)
   {
-    RDCERR("Unsupported or unrecognised UUID passed to IDXGISwapChain::GetBuffer - %s",
-           ToStr(uuid).c_str());
-    return E_NOINTERFACE;
+    RDCERR("Couldn't convert wrapped swapchain backbuffer %d to %s: HRESULT: %s", Buffer,
+           ToStr(riid).c_str(), ToStr(ret).c_str());
+    SAFE_RELEASE(wrappedBackbuffer);
+    return ret;
   }
 
-  RDCASSERT(uuid == __uuidof(ID3D11Texture2D) || uuid == __uuidof(ID3D11Texture2D1) ||
-            uuid == __uuidof(ID3D11Resource) || uuid == __uuidof(ID3D12Resource) ||
-            uuid == __uuidof(ID3D12Resource1));
-
-  HRESULT ret = m_pReal->GetBuffer(Buffer, uuid, ppSurface);
-
-  {
-    IUnknown *realSurface = (IUnknown *)*ppSurface;
-    IUnknown *tex = realSurface;
-
-    if(FAILED(ret))
-    {
-      RDCERR("Failed to get swapchain backbuffer %d: HRESULT: %s", Buffer, ToStr(ret).c_str());
-      SAFE_RELEASE(realSurface);
-      tex = NULL;
-    }
-    else
-    {
-      DXGI_SWAP_CHAIN_DESC desc;
-      GetDesc(&desc);
-      tex = m_pDevice->WrapSwapchainBuffer(this, desc.BufferDesc.Format, Buffer, realSurface);
-    }
-
-    // if the original UUID was IDXGISurface, fixup for the expected interface being returned
-    if(tex && riid == __uuidof(IDXGISurface))
-    {
-      IDXGISurface *surf = NULL;
-      HRESULT hr = tex->QueryInterface(__uuidof(IDXGISurface), (void **)&surf);
-      RDCASSERTEQUAL(hr, S_OK);
-
-      tex->Release();
-      tex = surf;
-    }
-
-    *ppSurface = tex;
-  }
+  // now the reference is in ppSurface
+  SAFE_RELEASE(wrappedBackbuffer);
 
   return ret;
 }

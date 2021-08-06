@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,7 @@
 #include <QHeaderView>
 
 class QLabel;
+class QAbstractScrollArea;
 
 class RDHeaderView : public QHeaderView
 {
@@ -62,7 +63,7 @@ public:
 
   void setColumnGroupRole(int role) { m_columnGroupRole = role; }
   int columnGroupRole() const { return m_columnGroupRole; }
-  void setPinnedColumns(int numColumns) { m_pinnedColumns = numColumns; }
+  void setPinnedColumns(int numColumns, QAbstractScrollArea *scroll);
   int pinnedColumns() const { return m_pinnedColumns; }
   void setCustomSizing(bool sizing) { m_customSizing = sizing; }
   bool customSizing() const { return m_customSizing; }

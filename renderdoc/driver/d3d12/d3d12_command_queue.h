@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -155,6 +155,9 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
   WrappedID3D12CompatibilityQueue m_WrappedCompat;
 
   rdcarray<D3D12ResourceRecord *> m_CmdListRecords;
+  rdcarray<D3D12ResourceRecord *> m_CmdListAllocators;
+
+  std::unordered_set<ResourceId> m_SparseBindResources;
 
   // D3D12 guarantees that queues are thread-safe
   Threading::CriticalSection m_Lock;
@@ -191,10 +194,15 @@ public:
   D3D12ResourceRecord *GetCreationRecord() { return m_CreationRecord; }
   WrappedID3D12Device *GetWrappedDevice() { return m_pDevice; }
   const rdcarray<D3D12ResourceRecord *> &GetCmdLists() { return m_CmdListRecords; }
-  D3D12DrawcallTreeNode &GetParentDrawcall() { return m_Cmd.m_ParentDrawcall; }
+  D3D12ActionTreeNode &GetParentAction() { return m_Cmd.m_ParentAction; }
   const APIEvent &GetEvent(uint32_t eventId);
   uint32_t GetMaxEID() { return m_Cmd.m_Events.back().eventId; }
   void ClearAfterCapture();
+
+  bool IsSparseUpdatedResource(ResourceId id) const
+  {
+    return m_SparseBindResources.find(id) != m_SparseBindResources.end();
+  }
 
   ReplayStatus ReplayLog(CaptureState readType, uint32_t startEventID, uint32_t endEventID,
                          bool partial);

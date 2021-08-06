@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -269,13 +269,23 @@ layout(set = 0, binding = 0, std140) uniform constsbuf
   vec4 test;                            // {536, 537, 538, 539}
 };
 
+// this comes from inline uniform block data, where available
+
+layout(set = 0, binding = 1, std140) uniform inlineconsts
+{
+  vec4 inline_zero;
+  vec4 inline_a;
+  vec2 inline_b, inline_c;
+  vec3_1 inline_d;
+};
+
 layout (constant_id = 0) const int A = 10;
 layout (constant_id = 1) const float B = 0;
 layout (constant_id = 3) const bool C = false;
 
 void main()
 {
-  Color = test + vec4(0.1f, 0.0f, 0.0f, 0.0f);
+  Color = test + inline_zero + vec4(0.1f, 0.0f, 0.0f, 0.0f);
 }
 
 )EOSHADER";
@@ -527,18 +537,53 @@ layout(set = 0, binding = 0) cbuffer consts
   float4 test;                            // {536, 537, 538, 539}
 };
 
+// this comes from inline uniform block data, where available
+layout(set = 0, binding = 1) cbuffer inlineconsts
+{
+  float4 inline_zero;
+  float4 inline_a;
+  float2 inline_b, inline_c;
+  float3_1 inline_d;
+};
+
 float4 main() : SV_Target0
 {
-	return test + float4(0.1f, 0.0f, 0.0f, 0.0f);
+	return test + inline_zero + float4(0.1f, 0.0f, 0.0f, 0.0f);
 }
 
 )EOSHADER";
 
+  struct float3_1
+  {
+    float a[3];
+    float b;
+  };
+
+  struct InlineData
+  {
+    float inline_zero[4];
+    float inline_a[4];
+    float inline_b[2], inline_c[2];
+    float3_1 inline_d;
+  };
+
   void Prepare(int argc, char **argv)
   {
     devExts.push_back(VK_KHR_RELAXED_BLOCK_LAYOUT_EXTENSION_NAME);
+    optDevExts.push_back(VK_EXT_INLINE_UNIFORM_BLOCK_EXTENSION_NAME);
 
     VulkanGraphicsTest::Prepare(argc, argv);
+
+    static VkPhysicalDeviceInlineUniformBlockFeaturesEXT inlineFeats = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_FEATURES_EXT,
+    };
+
+    if(hasExt(VK_EXT_INLINE_UNIFORM_BLOCK_EXTENSION_NAME))
+    {
+      inlineFeats.inlineUniformBlock = VK_TRUE;
+      inlineFeats.pNext = (void *)devInfoNext;
+      devInfoNext = &inlineFeats;
+    }
   }
 
   int main()
@@ -547,8 +592,18 @@ float4 main() : SV_Target0
     if(!Init())
       return 3;
 
+    VkDescriptorType descType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    uint32_t descCount = 1;
+
+    if(hasExt(VK_EXT_INLINE_UNIFORM_BLOCK_EXTENSION_NAME))
+    {
+      descType = VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT;
+      descCount = 16 * sizeof(float);
+    }
+
     VkDescriptorSetLayout setlayout = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
         {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {1, descType, descCount, VK_SHADER_STAGE_FRAGMENT_BIT},
     }));
 
     VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo({setlayout}));
@@ -642,6 +697,35 @@ float4 main() : SV_Target0
 
     cb.upload(cbufferdata);
 
+    InlineData inlinedata = {};
+
+    inlinedata.inline_a[0] = 10.0f;
+    inlinedata.inline_a[1] = 20.0f;
+    inlinedata.inline_a[2] = 30.0f;
+    inlinedata.inline_a[3] = 40.0f;
+
+    inlinedata.inline_b[0] = 50.0f;
+    inlinedata.inline_b[1] = 60.0f;
+
+    inlinedata.inline_c[0] = 70.0f;
+    inlinedata.inline_c[1] = 80.0f;
+
+    inlinedata.inline_d.a[0] = 90.0f;
+    inlinedata.inline_d.a[1] = 100.0f;
+    inlinedata.inline_d.a[2] = 110.0f;
+    inlinedata.inline_d.b = 120.0f;
+
+    AllocatedBuffer inlinecb(
+        this, vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
+                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+
+    {
+      byte *ptr = inlinecb.map();
+      memcpy(ptr + bindOffset * sizeof(Vec4f), &inlinedata, sizeof(inlinedata));
+      inlinecb.unmap();
+    }
+
     VkDescriptorSet descset = allocateDescriptorSet(setlayout);
 
     vkh::updateDescriptorSets(
@@ -650,6 +734,30 @@ float4 main() : SV_Target0
                         descset, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                         {vkh::DescriptorBufferInfo(cb.buffer, bindOffset * sizeof(Vec4f))}),
                 });
+
+    if(hasExt(VK_EXT_INLINE_UNIFORM_BLOCK_EXTENSION_NAME))
+    {
+      VkWriteDescriptorSetInlineUniformBlockEXT inlineUpdate = {};
+      inlineUpdate.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT;
+      inlineUpdate.pData = &inlinedata;
+      inlineUpdate.dataSize = sizeof(inlinedata);
+      vkh::updateDescriptorSets(
+          device, {
+                      vkh::WriteDescriptorSet(
+                          descset, 1, VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT,
+                          {vkh::DescriptorBufferInfo(cb.buffer, bindOffset * sizeof(Vec4f))})
+                          .next(&inlineUpdate),
+                  });
+    }
+    else
+    {
+      vkh::updateDescriptorSets(
+          device, {
+                      vkh::WriteDescriptorSet(
+                          descset, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                          {vkh::DescriptorBufferInfo(inlinecb.buffer, bindOffset * sizeof(Vec4f))}),
+                  });
+    }
 
     while(Running())
     {

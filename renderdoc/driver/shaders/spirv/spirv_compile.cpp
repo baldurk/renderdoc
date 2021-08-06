@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -82,7 +82,7 @@ rdcstr rdcspv::Compile(const rdcspv::CompilationSettings &settings, const rdcarr
     if(settings.debugInfo)
       flags = EShMessages(flags | EShMsgDebugInfo);
 
-    bool success = shader->parse(GetDefaultResources(), 110, false, flags);
+    bool success = shader->parse(GetDefaultResources(), settings.gles ? 100 : 110, false, flags);
 
     if(!success)
     {

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -199,6 +199,24 @@ TEST_CASE("String hashing", "[string]")
           strhash("test of a long string for strhash"));
   };
 
+  SECTION("hash of NULL or empty string returns the seed")
+  {
+    CHECK(strhash(NULL, 5) == 5);
+    CHECK(strhash(NULL, 50) == 50);
+    CHECK(strhash(NULL, 500) == 500);
+    CHECK(strhash(NULL, 5000) == 5000);
+
+    CHECK(strhash("", 5) == 5);
+    CHECK(strhash("", 50) == 50);
+    CHECK(strhash("", 500) == 500);
+    CHECK(strhash("", 5000) == 5000);
+
+    CHECK(strhash("0", 5) != 5);
+    CHECK(strhash("0", 50) != 50);
+    CHECK(strhash("0", 500) != 500);
+    CHECK(strhash("0", 5000) != 5000);
+  };
+
   SECTION("Different inputs have different hashes")
   {
     CHECK(strhash("foobar") != strhash("blah"));
@@ -235,6 +253,23 @@ TEST_CASE("String manipulation", "[string]")
     CHECK(strlower("foobar") == "foobar");
     CHECK(strlower("Foobar") == "foobar");
     CHECK(strlower("FOOBAR") == "foobar");
+  };
+
+  SECTION("get_lastpathsep")
+  {
+    CHECK(get_lastpathsep("") == -1);
+    CHECK(get_lastpathsep("foo") == -1);
+    CHECK(get_lastpathsep("foobar.blah") == -1);
+    CHECK(get_lastpathsep("/foo") == 0);
+    CHECK(get_lastpathsep("/foobar.blah") == 0);
+    CHECK(get_lastpathsep("foo/bar/blah/") == 12);
+    CHECK(get_lastpathsep("foo\\bar\\blah\\") == 12);
+    CHECK(get_lastpathsep("foo/bar/blah") == 7);
+    CHECK(get_lastpathsep("foo\\bar\\blah") == 7);
+    CHECK(get_lastpathsep("/foo/bar/blah/") == 13);
+    CHECK(get_lastpathsep("\\foo\\bar\\blah\\") == 13);
+    CHECK(get_lastpathsep("/foo/bar/blah") == 8);
+    CHECK(get_lastpathsep("\\foo\\bar\\blah") == 8);
   };
 
   SECTION("basename")

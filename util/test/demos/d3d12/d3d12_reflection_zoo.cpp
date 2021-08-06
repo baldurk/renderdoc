@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -271,9 +271,6 @@ float4 main(float4 pos : SV_Position) : SV_Target0
 
     D3D12PSOCreator creator =
         MakePSO().RootSig(sig).RTVs({DXGI_FORMAT_R8G8B8A8_UNORM_SRGB}).VS(vs5blob);
-
-    D3D12_FEATURE_DATA_D3D12_OPTIONS opts = {};
-    dev->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &opts, sizeof(opts));
 
     respixel = fmt::format("#define ROV {0}\n\n{1}", opts.ROVsSupported ? 1 : 0, respixel);
 

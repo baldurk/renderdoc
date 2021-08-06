@@ -1,7 +1,7 @@
 /******************************************************************************
 * The MIT License (MIT)
 *
-* Copyright (c) 2019-2020 Baldur Karlsson
+* Copyright (c) 2019-2021 Baldur Karlsson
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,34 @@
 ******************************************************************************/
 
 #include "../test_common.h"
+
+#include <Psapi.h>
+
+uint64_t GetMemoryUsage()
+{
+  HANDLE proc = GetCurrentProcess();
+
+  if(proc == NULL)
+  {
+    TEST_ERROR("Couldn't open process: %d", GetLastError());
+    return 0;
+  }
+
+  PROCESS_MEMORY_COUNTERS memInfo = {};
+
+  uint64_t ret = 0;
+
+  if(GetProcessMemoryInfo(proc, &memInfo, sizeof(memInfo)))
+  {
+    ret = memInfo.WorkingSetSize;
+  }
+  else
+  {
+    TEST_ERROR("Couldn't get process memory info: %d", GetLastError());
+  }
+
+  return ret;
+}
 
 std::string GetCWD()
 {

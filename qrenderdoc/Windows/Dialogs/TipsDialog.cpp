@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -188,7 +188,7 @@ void TipsDialog::initialize()
          "to view the history of in the texture viewer, and click the 'history' button underneath "
          "the zoomed-in pixel context.\n\nEach event will show up red or green depending on "
          "whether it affected or didn't affect the pixel. By expanding the event, you can see the "
-         "possibly several primitives within the draw that overdrew the pixel.\n")));
+         "possibly several primitives within the action that overdrew the pixel.\n")));
 
   // Tip 18
   m_tips.push_back(
@@ -209,7 +209,7 @@ void TipsDialog::initialize()
   // Tip 20
   m_tips.push_back(
       Tip(tr("Gathering of per-event callstacks"),
-          tr("RenderDoc is able to gather callstacks either per-drawcall or per-API event. You can "
+          tr("RenderDoc is able to gather callstacks either per-action or per-API event. You can "
              "do this by enabling the option before launching an application capture.\n\nWhen "
              "loading the log, initially the callstacks will not be available until symbols are "
              "resolved. Go to tools -> resolve symbols to load up the pdbs matching the modules "
@@ -219,7 +219,7 @@ void TipsDialog::initialize()
   m_tips.push_back(Tip(
       tr("Texture debugging overlays"),
       tr("In the texture viewer, you can select from several helpful debugging overlays over the "
-         "current view. This can show wireframe or solid coloour overlays of the current drawcall, "
+         "current view. This can show wireframe or solid coloour overlays of the current action, "
          "as well as showing depth pass/fail or even representing quad overdraw as a heatmap.\n")));
 
   // Tip 22
@@ -268,7 +268,7 @@ void TipsDialog::initialize()
   m_tips.push_back(
       Tip(tr("Event browser keyboard shortcuts"),
           tr("In the event browser Ctrl-F opens up the find bar, to locate an event by its name. "
-             "Ctrl-G opens the jump-to-event to jump to the closest drawcall to a numbered event. "
+             "Ctrl-G opens the jump-to-event to jump to the closest action to a numbered event. "
              "Ctrl-B will toggle a bookmark at the current event.\n")));
 
   // Tip 28

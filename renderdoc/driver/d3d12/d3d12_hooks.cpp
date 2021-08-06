@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -105,7 +105,7 @@ public:
 // The inheritance is awful for these. See WrappedID3D12DebugDevice for why there are multiple
 // parent classes
 class WrappedID3D12Debug : public RefCounter12<ID3D12Debug>,
-                           public ID3D12Debug3,
+                           public ID3D12Debug5,
                            public ID3D12Debug1,
                            public ID3D12Debug2
 {
@@ -163,6 +163,12 @@ public:
   virtual void STDMETHODCALLTYPE SetGPUBasedValidationFlags(D3D12_GPU_BASED_VALIDATION_FLAGS Flags)
   {
   }
+  //////////////////////////////
+  // Implement ID3D12Debug4
+  virtual void STDMETHODCALLTYPE DisableDebugLayer(void) {}
+  //////////////////////////////
+  // Implement ID3D12Debug5
+  virtual void STDMETHODCALLTYPE SetEnableAutoName(BOOL Enable) {}
 };
 
 class D3D12Hook : LibraryHook
@@ -220,7 +226,7 @@ private:
        riid != __uuidof(ID3D12Device2) && riid != __uuidof(ID3D12Device3) &&
        riid != __uuidof(ID3D12Device4) && riid != __uuidof(ID3D12Device5) &&
        riid != __uuidof(ID3D12Device6) && riid != __uuidof(ID3D12Device7) &&
-       riid != __uuidof(ID3D12Device8))
+       riid != __uuidof(ID3D12Device8) && riid != __uuidof(ID3D12Device9))
     {
       RDCERR("Unsupported UUID %s for D3D12CreateDevice", ToStr(riid).c_str());
       return E_NOINTERFACE;
@@ -293,6 +299,11 @@ private:
           ID3D12Device8 *dev8 = (ID3D12Device8 *)*ppDevice;
           dev = (ID3D12Device *)dev8;
         }
+        else if(riid == __uuidof(ID3D12Device9))
+        {
+          ID3D12Device9 *dev9 = (ID3D12Device9 *)*ppDevice;
+          dev = (ID3D12Device *)dev9;
+        }
 
         WrappedID3D12Device *wrap = WrappedID3D12Device::Create(dev, params, EnableDebugLayer);
 
@@ -316,6 +327,8 @@ private:
           *ppDevice = (ID3D12Device7 *)wrap;
         else if(riid == __uuidof(ID3D12Device8))
           *ppDevice = (ID3D12Device8 *)wrap;
+        else if(riid == __uuidof(ID3D12Device9))
+          *ppDevice = (ID3D12Device9 *)wrap;
       }
     }
     else if(SUCCEEDED(ret))

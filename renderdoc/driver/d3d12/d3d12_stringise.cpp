@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,15 +28,15 @@
 template <>
 rdcstr DoStringise(const D3D12Chunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1112, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1113, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(D3D12Chunk)
   {
     STRINGISE_ENUM_CLASS_NAMED(SetName, "ID3D12Resource::SetName");
-    STRINGISE_ENUM_CLASS_NAMED(PushMarker, "Push Debug Region");
-    STRINGISE_ENUM_CLASS_NAMED(SetMarker, "Set Marker");
-    STRINGISE_ENUM_CLASS_NAMED(PopMarker, "Pop Debug Region");
-    STRINGISE_ENUM_CLASS_NAMED(SetShaderDebugPath, "Internal: SetShaderDebugPath");
+    STRINGISE_ENUM_CLASS_NAMED(PushMarker, "ID3D12GraphicsCommandList::BeginEvent");
+    STRINGISE_ENUM_CLASS_NAMED(SetMarker, "ID3D12GraphicsCommandList::SetMarker");
+    STRINGISE_ENUM_CLASS_NAMED(PopMarker, "ID3D12GraphicsCommandList::EndEvent");
+    STRINGISE_ENUM_CLASS_NAMED(SetShaderDebugPath, "Internal::SetShaderDebugPath");
     STRINGISE_ENUM_CLASS_NAMED(CreateSwapBuffer, "IDXGISwapChain::GetBuffer");
     STRINGISE_ENUM_CLASS_NAMED(Device_CreateCommandQueue, "ID3D12Device::CreateCommandQueue");
     STRINGISE_ENUM_CLASS_NAMED(Device_CreateCommandAllocator,
@@ -203,6 +203,7 @@ rdcstr DoStringise(const D3D12Chunk &el)
                                "ID3D12Device8::CreateCommittedResource2");
     STRINGISE_ENUM_CLASS_NAMED(Device_CreatePlacedResource1,
                                "ID3D12Device8::CreatePlacedResource1");
+    STRINGISE_ENUM_CLASS_NAMED(Device_CreateCommandQueue1, "ID3D12Device9::CreateCommandQueue1");
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }
   END_ENUM_STRINGISE()
@@ -1023,6 +1024,7 @@ rdcstr DoStringise(const D3D12_RESOURCE_STATES &el)
   {
     STRINGISE_BITFIELD_VALUE(D3D12_RESOURCE_STATE_COMMON);
     STRINGISE_BITFIELD_VALUE(D3D12_RESOURCE_STATE_GENERIC_READ);
+    STRINGISE_BITFIELD_VALUE(D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE);
 
     STRINGISE_BITFIELD_BIT(D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
     STRINGISE_BITFIELD_BIT(D3D12_RESOURCE_STATE_INDEX_BUFFER);
@@ -1038,7 +1040,15 @@ rdcstr DoStringise(const D3D12_RESOURCE_STATES &el)
     STRINGISE_BITFIELD_BIT(D3D12_RESOURCE_STATE_COPY_SOURCE);
     STRINGISE_BITFIELD_BIT(D3D12_RESOURCE_STATE_RESOLVE_DEST);
     STRINGISE_BITFIELD_BIT(D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
-    STRINGISE_BITFIELD_BIT(D3D12_RESOURCE_STATE_PREDICATION);
+
+    STRINGISE_BITFIELD_BIT(D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE);
+    STRINGISE_BITFIELD_BIT(D3D12_RESOURCE_STATE_SHADING_RATE_SOURCE);
+    STRINGISE_BITFIELD_BIT(D3D12_RESOURCE_STATE_VIDEO_DECODE_READ);
+    STRINGISE_BITFIELD_BIT(D3D12_RESOURCE_STATE_VIDEO_DECODE_WRITE);
+    STRINGISE_BITFIELD_BIT(D3D12_RESOURCE_STATE_VIDEO_PROCESS_READ);
+    STRINGISE_BITFIELD_BIT(D3D12_RESOURCE_STATE_VIDEO_PROCESS_WRITE);
+    STRINGISE_BITFIELD_BIT(D3D12_RESOURCE_STATE_VIDEO_ENCODE_READ);
+    STRINGISE_BITFIELD_BIT(D3D12_RESOURCE_STATE_VIDEO_ENCODE_WRITE);
   }
   END_BITFIELD_STRINGISE();
 }

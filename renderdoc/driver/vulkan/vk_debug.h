@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -90,7 +90,7 @@ public:
 
   void PatchOutputLocation(VkShaderModule &mod, BuiltinShader shaderType, uint32_t framebufferIndex);
   void PatchFixedColShader(VkShaderModule &mod, float col[4]);
-  void PatchLineStripIndexBuffer(const DrawcallDescription *draw, GPUBuffer &indexBuffer,
+  void PatchLineStripIndexBuffer(const ActionDescription *action, GPUBuffer &indexBuffer,
                                  uint32_t &indexCount);
 
   bool PixelHistorySetupResources(PixelHistoryResources &resources, VkImage targetImage,

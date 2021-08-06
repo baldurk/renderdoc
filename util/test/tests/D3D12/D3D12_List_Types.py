@@ -6,13 +6,13 @@ class D3D12_List_Types(rdtest.TestCase):
     demos_test_name = 'D3D12_List_Types'
 
     def check_capture(self):
-        draw = self.find_draw("Draw")
+        action = self.find_action("Draw")
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
-        self.check_triangle(out=draw.outputs[0], fore=[0.0, 1.0, 1.0, 1.0])
+        self.check_triangle(out=action.outputs[0], fore=[0.0, 1.0, 1.0, 1.0])
 
-        postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, draw.numIndices)
+        postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
 
         postvs_ref = {
             0: {

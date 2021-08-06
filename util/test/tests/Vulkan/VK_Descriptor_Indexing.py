@@ -7,11 +7,28 @@ class VK_Descriptor_Indexing(rdtest.TestCase):
 
     def check_capture(self):
 
-        draw = self.find_draw("Draw")
+        action = self.find_action("Dispatch")
+        self.check(action is not None)
+        self.controller.SetFrameEvent(action.eventId, False)
 
-        self.check(draw is not None)
+        pipe: rd.VKState = self.controller.GetVulkanPipelineState()
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        if len(pipe.compute.descriptorSets) != 1:
+            raise rdtest.TestFailureException("Wrong number of compute sets is bound: {}, not 1"
+                                              .format(len(pipe.compute.descriptorSets)))
+
+        binding = pipe.compute.descriptorSets[0].bindings[0]
+
+        if binding.dynamicallyUsedCount != 1:
+            raise rdtest.TestFailureException("Compute bind 0 doesn't have the right used count {}"
+                                              .format(binding.dynamicallyUsedCount))
+
+        if not binding.binds[15].dynamicallyUsed:
+            raise rdtest.TestFailureException("Compute bind 0[15] isn't dynamically used")
+
+        action = self.find_action("Draw")
+        self.check(action is not None)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         pipe: rd.VKState = self.controller.GetVulkanPipelineState()
 
@@ -28,7 +45,8 @@ class VK_Descriptor_Indexing(rdtest.TestCase):
         }
 
         if len(pipe.graphics.descriptorSets) != 1:
-            raise rdtest.TestFailureException("Wrong number of sets is bound: {}, not 1".format(len(pipe.graphics.descriptorSets)))
+            raise rdtest.TestFailureException("Wrong number of sets is bound: {}, not 1"
+                                              .format(len(pipe.graphics.descriptorSets)))
 
         desc_set: rd.VKDescriptorSet = pipe.graphics.descriptorSets[0]
 

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,50 +29,22 @@
 
 class WrappedVulkan;
 
-struct MemIDOffset
+struct SparseBinding : public VkBindSparseInfo
 {
-  ResourceId memory;
-  VkDeviceSize memOffs;
+  SparseBinding(WrappedVulkan *vk, VkBuffer unwrappedBuffer,
+                const rdcarray<AspectSparseTable> &tables);
+  SparseBinding(WrappedVulkan *vk, VkImage unwrappedImage, const rdcarray<AspectSparseTable> &tables);
+  SparseBinding(const SparseBinding &) = delete;
+
+  bool invalid = false;
+
+  VkSparseBufferMemoryBindInfo bufBind;
+  VkSparseImageMemoryBindInfo imgBind;
+  VkSparseImageOpaqueMemoryBindInfo imgOpaqueBind;
+
+  rdcarray<VkSparseMemoryBind> opaqueBinds;
+  rdcarray<VkSparseImageMemoryBind> imgBinds;
 };
-
-DECLARE_REFLECTION_STRUCT(MemIDOffset);
-
-struct SparseBufferInitState
-{
-  VkSparseMemoryBind *binds;
-  uint32_t numBinds;
-
-  MemIDOffset *memDataOffs;
-  uint32_t numUniqueMems;
-
-  VkDeviceSize totalSize;
-};
-
-DECLARE_REFLECTION_STRUCT(SparseBufferInitState);
-
-struct SparseImageInitState
-{
-  VkSparseMemoryBind *opaque;
-  uint32_t opaqueCount;
-
-  VkExtent3D imgdim;    // in pages
-  VkExtent3D pagedim;
-
-  // available on capture - filled out in Prepare_SparseInitialState and serialised to disk
-  MemIDOffset *pages[NUM_VK_IMAGE_ASPECTS];
-
-  uint32_t pageCount[NUM_VK_IMAGE_ASPECTS];
-
-  // available on replay - filled out in the read path of Serialise_SparseInitialState
-  VkSparseImageMemoryBind *pageBinds[NUM_VK_IMAGE_ASPECTS];
-
-  MemIDOffset *memDataOffs;
-  uint32_t numUniqueMems;
-
-  VkDeviceSize totalSize;
-};
-
-DECLARE_REFLECTION_STRUCT(SparseImageInitState);
 
 // this struct is copied around and for that reason we explicitly keep it simple and POD. The
 // lifetime of the memory allocated is controlled by the resource manager - when preparing or
@@ -85,8 +57,8 @@ struct VkInitialContents
     BufferCopy = 0,
     ClearColorImage = 1,
     ClearDepthStencilImage,
-    Sparse,
     DescriptorSet,
+    SparseTableOnly,
   };
 
   VkInitialContents()
@@ -110,6 +82,20 @@ struct VkInitialContents
     mem = m;
   }
 
+  void SnapshotPageTable(const ResourceInfo &resInfo)
+  {
+    SAFE_DELETE(sparseTables);
+
+    sparseTables = new rdcarray<AspectSparseTable>;
+    sparseTables->resize(resInfo.altSparseAspects.size() + 1);
+
+    sparseTables->at(0).aspectMask = resInfo.sparseAspect;
+    sparseTables->at(0).table = resInfo.sparseTable;
+
+    for(size_t a = 0; a < resInfo.altSparseAspects.size(); a++)
+      sparseTables->at(a + 1) = resInfo.altSparseAspects[a];
+  }
+
   template <typename Configuration>
   void Free(ResourceManager<Configuration> *rm)
   {
@@ -123,26 +109,10 @@ struct VkInitialContents
     rm->ResourceTypeRelease(GetWrapped(buf));
     rm->ResourceTypeRelease(GetWrapped(img));
 
-    // memory is not free'd here
+    SAFE_DELETE(sparseTables);
+    SAFE_DELETE(sparseBind);
 
-    if(tag == Sparse)
-    {
-      if(type == eResImage)
-      {
-        SAFE_DELETE_ARRAY(sparseImage.opaque);
-        for(uint32_t i = 0; i < NUM_VK_IMAGE_ASPECTS; i++)
-        {
-          SAFE_DELETE_ARRAY(sparseImage.pages[i]);
-          SAFE_DELETE_ARRAY(sparseImage.pageBinds[i]);
-        }
-        SAFE_DELETE_ARRAY(sparseImage.memDataOffs);
-      }
-      else if(type == eResBuffer)
-      {
-        SAFE_DELETE_ARRAY(sparseBuffer.binds);
-        SAFE_DELETE_ARRAY(sparseBuffer.memDataOffs);
-      }
-    }
+    // MemoryAllocation is not free'd here
   }
 
   // for descriptor heaps, when capturing we save the slots, when replaying we store direct writes
@@ -161,12 +131,10 @@ struct VkInitialContents
   MemoryAllocation mem;
   Tag tag;
 
-  // sparse resources need extra information. Which one is valid, depends on the value of type above
-  union
-  {
-    SparseBufferInitState sparseBuffer;
-    SparseImageInitState sparseImage;
-  };
+  // for sparse resources. The tables pointer is only valid on capture, it is converted to the queue
+  // sparse bind. Similar to the descriptors above
+  rdcarray<AspectSparseTable> *sparseTables;
+  SparseBinding *sparseBind;
 };
 
 struct VulkanResourceManagerConfiguration
@@ -237,10 +205,7 @@ public:
 
   ResourceId GetFirstIDForHandle(uint64_t handle);
 
-  // easy path for getting the unwrapped handle cast to the
-  // write type. Saves a lot of work casting to either WrappedVkNonDispRes
-  // or WrappedVkDispRes depending on the type, then ->real, then casting
-  // when this is all we want to do in most cases
+  // easy path for getting the wrapped handle cast to the correct type
   template <typename realtype>
   realtype GetLiveHandle(ResourceId origid)
   {
@@ -257,22 +222,29 @@ public:
 
   // handling memory & image layouts
   template <typename SrcBarrierType>
-  void RecordSingleBarrier(rdcarray<rdcpair<ResourceId, ImageRegionState> > &states, ResourceId id,
+  void RecordSingleBarrier(rdcarray<rdcpair<ResourceId, ImageRegionState>> &states, ResourceId id,
                            const SrcBarrierType &t, uint32_t nummips, uint32_t numslices);
 
-  void RecordBarriers(rdcarray<rdcpair<ResourceId, ImageRegionState> > &states,
+  void RecordBarriers(rdcarray<rdcpair<ResourceId, ImageRegionState>> &states,
                       const std::map<ResourceId, ImageLayouts> &layouts, uint32_t numBarriers,
                       const VkImageMemoryBarrier *barriers);
 
-  void MergeBarriers(rdcarray<rdcpair<ResourceId, ImageRegionState> > &dststates,
-                     rdcarray<rdcpair<ResourceId, ImageRegionState> > &srcstates);
+  void MergeBarriers(rdcarray<rdcpair<ResourceId, ImageRegionState>> &dststates,
+                     rdcarray<rdcpair<ResourceId, ImageRegionState>> &srcstates);
 
   void ApplyBarriers(uint32_t queueFamilyIndex,
-                     rdcarray<rdcpair<ResourceId, ImageRegionState> > &states,
+                     rdcarray<rdcpair<ResourceId, ImageRegionState>> &states,
                      std::map<ResourceId, ImageLayouts> &layouts);
 
   void RecordBarriers(rdcflatmap<ResourceId, ImageState> &states, uint32_t queueFamilyIndex,
                       uint32_t numBarriers, const VkImageMemoryBarrier *barriers);
+
+  // we "downcast" to VkImageMemoryBarrier since we don't care about access bits or pipeline stages,
+  // only layouts, and to date the VkImageMemoryBarrier can represent everything in
+  // VkImageMemoryBarrier2KHR. This includes new image layouts added (which should only be used if
+  // the extension is supported).
+  void RecordBarriers(rdcflatmap<ResourceId, ImageState> &states, uint32_t queueFamilyIndex,
+                      uint32_t numBarriers, const VkImageMemoryBarrier2KHR *barriers);
 
   template <typename SerialiserType>
   void SerialiseImageStates(SerialiserType &ser, std::map<ResourceId, LockingImageState> &states);
@@ -439,7 +411,7 @@ public:
   }
 
   // helper for sparse mappings
-  void MarkSparseMapReferenced(ResourceInfo *sparse);
+  void MarkSparseMapReferenced(const ResourceInfo *sparse);
 
   void SetInternalResource(ResourceId id);
 
@@ -449,7 +421,7 @@ public:
   void AddDeviceMemory(ResourceId mem);
   void RemoveDeviceMemory(ResourceId mem);
 
-  void MergeReferencedMemory(rdcflatmap<ResourceId, MemRefs> &memRefs);
+  void MergeReferencedMemory(std::unordered_map<ResourceId, MemRefs> &memRefs);
   void ClearReferencedMemory();
   MemRefs *FindMemRefs(ResourceId mem);
   ImgRefs *FindImgRefs(ResourceId img);
@@ -484,7 +456,7 @@ private:
   rdcarray<ResourceId> InitialContentResources();
 
   WrappedVulkan *m_Core;
-  rdcflatmap<ResourceId, MemRefs> m_MemFrameRefs;
+  std::unordered_map<ResourceId, MemRefs> m_MemFrameRefs;
   std::set<ResourceId> m_DeviceMemories;
   InitPolicy m_InitPolicy = eInitPolicy_CopyAll;
 };

@@ -22,17 +22,16 @@ if(ANDROID)
         PRIVATE -landroid)
 elseif(APPLE)
     list(APPEND RDOC_LIBRARIES
+        PRIVATE -lstdc++
         PRIVATE -liconv
         PRIVATE -lm
         PRIVATE -ldl)
 
-    if(ENABLE_VULKAN)
-        find_library(COCOA_LIBRARY Cocoa)
-        list(APPEND RDOC_LIBRARIES PRIVATE ${COCOA_LIBRARY})
+    find_library(COCOA_LIBRARY Cocoa)
+    list(APPEND RDOC_LIBRARIES PRIVATE ${COCOA_LIBRARY})
 
-        find_library(QUARTZCORE_LIBRARY QuartzCore)
-        list(APPEND RDOC_LIBRARIES PRIVATE ${QUARTZCORE_LIBRARY})
-    endif()
+    find_library(QUARTZCORE_LIBRARY QuartzCore)
+    list(APPEND RDOC_LIBRARIES PRIVATE ${QUARTZCORE_LIBRARY})
 
     if(ENABLE_GL)
         find_library(OPENGL_LIBRARY OpenGL)
@@ -155,6 +154,8 @@ set(sources
     core/plugins.h
     core/resource_manager.cpp
     core/resource_manager.h
+    core/sparse_page_table.cpp
+    core/sparse_page_table.h
     data/glsl/glsl_ubos.h
     data/glsl/glsl_ubos_cpp.h
     hooks/hooks.cpp
@@ -213,6 +214,8 @@ set(sources
     3rdparty/pugixml/pugiconfig.hpp
     3rdparty/lz4/lz4.c
     3rdparty/lz4/lz4.h
+    3rdparty/md5/md5.c
+    3rdparty/md5/md5.h
     3rdparty/miniz/miniz.c
     3rdparty/miniz/miniz.h
     3rdparty/superluminal/superluminal.cpp
@@ -288,6 +291,7 @@ elseif(APPLE)
     list(APPEND sources
         data/embedded_files.h
         os/posix/apple/apple_stringio.cpp
+        os/posix/apple/apple_helpers.mm
         os/posix/apple/apple_callstack.cpp
         os/posix/apple/apple_process.cpp
         os/posix/apple/apple_threading.cpp
@@ -389,6 +393,10 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR APPLE)
         # Only clang has this warning. Fixing it in this file causes a compile error on windows
         set_source_files_properties(os/os_specific.cpp
             PROPERTIES COMPILE_FLAGS "-Wno-unknown-warning-option -Wno-unused-lambda-capture")
+        
+        # We are deliberately testing self-assign here
+        set_source_files_properties(replay/basic_types_tests.cpp
+            PROPERTIES COMPILE_FLAGS "-Wno-unknown-warning-option -Wno-self-assign-overloaded")
     endif()
 endif()
 
@@ -558,7 +566,7 @@ link_directories(${CMAKE_CURRENT_BINARY_DIR})
 # On apple we need to pass the force_load parameter here - if we set it with LINK_FLAGS below
 # it gets applied too early (even if the -lrenderdoc_libentry is later)
 if(APPLE)
-    list(APPEND RDOC_LIBRARIES PRIVATE "-Wl,-force_load,librenderdoc_libentry.a -lrenderdoc_libentry")
+    list(APPEND RDOC_LIBRARIES PRIVATE "-Wl,-force_load,$<TARGET_FILE:renderdoc_libentry>")
 else()
     list(APPEND RDOC_LIBRARIES PRIVATE -lrenderdoc_libentry)
 endif()
@@ -591,24 +599,27 @@ endif()
 
 # On macOS set the rpath so that linked libraries are relative to the executable, not absolute
 if(APPLE)
-    set_target_properties(renderdoc PROPERTIES MACOSX_RPATH 1)
+    set_target_properties(renderdoc PROPERTIES MACOSX_RPATH TRUE)
+    set_target_properties(renderdoc PROPERTIES SKIP_BUILD_RPATH TRUE)
     set_target_properties(renderdoc PROPERTIES INSTALL_RPATH "@executable_path/../lib")
-    set_target_properties(renderdoc PROPERTIES INSTALL_NAME_DIR "@executable_path/../lib")
-    set_target_properties(renderdoc PROPERTIES BUILD_WITH_INSTALL_RPATH 1)
-    set_target_properties(renderdoc PROPERTIES BUILD_WITH_INSTALL_NAME_DIR 1)
+    set_target_properties(renderdoc PROPERTIES BUILD_WITH_INSTALL_RPATH TRUE)
+    set_target_properties(renderdoc PROPERTIES BUILD_WITH_INSTALL_NAME_DIR TRUE)
 endif()
 
 if(ANDROID)
-    set_target_properties(renderdoc PROPERTIES LINK_FLAGS "-Wl,--undefined,force_include_libentry -Wl,--build-id")
+    set(RDOC_LINK_FLAGS "-Wl,--undefined,force_include_libentry -Wl,--build-id")
+    if(ENABLE_ASAN)
+        set(RDOC_LINK_FLAGS "${RDOC_LINK_FLAGS} -fsanitize=address")
+    endif()
+    set_target_properties(renderdoc PROPERTIES LINK_FLAGS "${RDOC_LINK_FLAGS}")
     # rename output library
     set_target_properties(renderdoc PROPERTIES OUTPUT_NAME "VkLayer_GLES_RenderDoc")
 
-    if(STRIP_ANDROID_LIBRARY AND CMAKE_STRIP AND RELEASE_MODE)
-        message(STATUS "renderdoc library will be stripped")
+    if(STRIP_ANDROID_LIBRARY AND ANDROID_STRIP_TOOL AND RELEASE_MODE)
         add_custom_command(TARGET renderdoc POST_BUILD
             COMMAND echo Stripping $<TARGET_FILE:renderdoc>
             COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:renderdoc> $<TARGET_FILE:renderdoc>.dbg
-            COMMAND ${CMAKE_STRIP} --strip-unneeded $<TARGET_FILE:renderdoc>)
+            COMMAND ${ANDROID_STRIP_TOOL} --strip-unneeded $<TARGET_FILE:renderdoc>)
     endif()
 endif()
 

@@ -744,6 +744,18 @@
     <ClCompile Include="Code\MiniQtHelper.cpp">
       <Filter>Code</Filter>
     </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_ShaderMessageViewer.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\ShaderMessageViewer.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_MarkerBreadcrumbs.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\MarkerBreadcrumbs.cpp">
+      <Filter>Widgets</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -1108,6 +1120,9 @@
     </ClInclude>
     <ClInclude Include="Code\MiniQtHelper.h">
       <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_ShaderMessageViewer.h">
+      <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1511,6 +1526,15 @@
     <CustomBuild Include="Widgets\Extended\RDMenu.h">
       <Filter>Widgets\Extended</Filter>
     </CustomBuild>
+    <CustomBuild Include="Windows\ShaderMessageViewer.h">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\ShaderMessageViewer.ui">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\MarkerBreadcrumbs.h">
+      <Filter>Widgets</Filter>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resources\action.png">
@@ -1844,6 +1868,78 @@
       <Filter>Resources\Files</Filter>
     </Image>
     <Image Include="Resources\arrow_refresh.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\copy.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\copy%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\cut.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\cut%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\paste.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\paste%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\plugin.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\plugin%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\text_add.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\text_add%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\pixel_history.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\pixel_history%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\filter_reapply.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\filter_reapply%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_reverse_base_blue.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_reverse_base_blue%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_reverse_cursor_blue.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_reverse_cursor_blue%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_reverse_nan_blue.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_reverse_nan_blue%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_reverse_sample_blue.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_reverse_sample_blue%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\filter.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\filter%402x.png">
       <Filter>Resources\Files</Filter>
     </Image>
   </ItemGroup>

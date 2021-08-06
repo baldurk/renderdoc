@@ -18,6 +18,8 @@ class Repeat_Load(rdtest.TestCase):
                 rdtest.log.print("Skipping. Can't open {}: {}".format(path, err))
                 return
 
+            rdtest.log.print("Loaded capture.")
+
             # Do nothing, just ensure it's loaded
             memory_usage: int = rd.GetCurrentProcessMemoryUsage()
 

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -210,6 +210,8 @@ uint64_t Process::GetMemoryUsage()
 
   char line[512] = {};
   fgets(line, 511, f);
+
+  FileIO::fclose(f);
 
   uint32_t vmPages = 0;
   int num = sscanf(line, "%u", &vmPages);

@@ -1,7 +1,7 @@
 /******************************************************************************
 * The MIT License (MIT)
 *
-* Copyright (c) 2019-2020 Baldur Karlsson
+* Copyright (c) 2019-2021 Baldur Karlsson
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -50,7 +50,7 @@ void MakePixel(byte *data, const TexConfig &cfg, uint32_t x, uint32_t y, uint32_
         idx = 3 - idx;
 
       // subsequent slices add a coarse checkerboard pattern of inverted colors
-      if((slice % 3 > 0) && (((x / 2) % 2) != ((y / 2) % 2)))
+      if((slice % 2 > 0) && (((x / 2) % 2) != ((y / 2) % 2)))
         idx = 3 - idx;
 
       float f = vals[idx];

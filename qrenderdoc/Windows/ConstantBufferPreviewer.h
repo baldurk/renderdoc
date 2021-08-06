@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -84,6 +84,7 @@ private:
 
   void addVariables(RDTreeWidgetItem *root, const rdcarray<ShaderVariable> &vars);
   void setVariables(const rdcarray<ShaderVariable> &vars);
+  void setVariablesPreserveExpansion(const rdcarray<ShaderVariable> &vars, bool wasEmpty);
 
   void updateLabels();
 

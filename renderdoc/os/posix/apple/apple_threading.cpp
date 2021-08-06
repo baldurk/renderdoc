@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,7 +33,7 @@ double Timing::GetTickFrequency()
 
   uint64_t numer = timeInfo.numer;
   uint64_t denom = timeInfo.denom;
-  return ((double)numer / (double)denom) * 1000000.0;
+  return ((double)denom / (double)numer) * 1000000.0;
 }
 
 uint64_t Timing::GetTick()

@@ -1,7 +1,7 @@
 /******************************************************************************
 * The MIT License (MIT)
 *
-* Copyright (c) 2019-2020 Baldur Karlsson
+* Copyright (c) 2019-2021 Baldur Karlsson
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -90,6 +90,8 @@ COM_SMARTPTR(ID3D11UnorderedAccessView);
 COM_SMARTPTR(ID3D11DepthStencilView);
 
 COM_SMARTPTR(ID3D11Fence);
+
+COM_SMARTPTR(ID3DDeviceContextState);
 
 COM_SMARTPTR(ID3D11InfoQueue);
 COM_SMARTPTR(ID3DUserDefinedAnnotation);

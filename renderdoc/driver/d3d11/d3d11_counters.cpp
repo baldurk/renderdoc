@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -232,21 +232,21 @@ struct D3D11CounterContext
   rdcarray<GPUTimer> timers;
 };
 
-void D3D11Replay::FillTimers(D3D11CounterContext &ctx, const DrawcallDescription &drawnode)
+void D3D11Replay::FillTimers(D3D11CounterContext &ctx, const ActionDescription &actionnode)
 {
   const D3D11_QUERY_DESC qtimedesc = {D3D11_QUERY_TIMESTAMP, 0};
   const D3D11_QUERY_DESC qstatsdesc = {D3D11_QUERY_PIPELINE_STATISTICS, 0};
   const D3D11_QUERY_DESC qoccldesc = {D3D11_QUERY_OCCLUSION, 0};
 
-  if(drawnode.children.empty())
+  if(actionnode.children.empty())
     return;
 
-  for(size_t i = 0; i < drawnode.children.size(); i++)
+  for(size_t i = 0; i < actionnode.children.size(); i++)
   {
-    const DrawcallDescription &d = drawnode.children[i];
-    FillTimers(ctx, drawnode.children[i]);
+    const ActionDescription &a = actionnode.children[i];
+    FillTimers(ctx, actionnode.children[i]);
 
-    if(d.events.empty())
+    if(a.events.empty())
       continue;
 
     GPUTimer *timer = NULL;
@@ -257,7 +257,7 @@ void D3D11Replay::FillTimers(D3D11CounterContext &ctx, const DrawcallDescription
       ctx.timers.push_back(GPUTimer());
 
       timer = &ctx.timers.back();
-      timer->eventId = d.eventId;
+      timer->eventId = a.eventId;
       timer->before = timer->after = timer->stats = timer->occlusion = NULL;
 
       hr = m_pDevice->GetReal()->CreateQuery(&qtimedesc, &timer->before);
@@ -270,7 +270,7 @@ void D3D11Replay::FillTimers(D3D11CounterContext &ctx, const DrawcallDescription
       RDCASSERTEQUAL(hr, S_OK);
     }
 
-    m_pDevice->ReplayLog(ctx.eventStart, d.eventId, eReplay_WithoutDraw);
+    m_pDevice->ReplayLog(ctx.eventStart, a.eventId, eReplay_WithoutDraw);
 
     SerializeImmediateContext();
 
@@ -280,7 +280,7 @@ void D3D11Replay::FillTimers(D3D11CounterContext &ctx, const DrawcallDescription
       m_pImmediateContext->GetReal()->Begin(timer->occlusion);
     if(timer->before && timer->after)
       m_pImmediateContext->GetReal()->End(timer->before);
-    m_pDevice->ReplayLog(ctx.eventStart, d.eventId, eReplay_OnlyDraw);
+    m_pDevice->ReplayLog(ctx.eventStart, a.eventId, eReplay_OnlyDraw);
     if(timer->before && timer->after)
       m_pImmediateContext->GetReal()->End(timer->after);
     if(timer->occlusion)
@@ -288,7 +288,7 @@ void D3D11Replay::FillTimers(D3D11CounterContext &ctx, const DrawcallDescription
     if(timer->stats)
       m_pImmediateContext->GetReal()->End(timer->stats);
 
-    ctx.eventStart = d.eventId + 1;
+    ctx.eventStart = a.eventId + 1;
   }
 }
 
@@ -331,103 +331,103 @@ void D3D11Replay::SerializeImmediateContext()
 }
 
 void D3D11Replay::FillTimersAMD(uint32_t &eventStartID, uint32_t &sampleIndex,
-                                rdcarray<uint32_t> &eventIDs, const DrawcallDescription &drawnode)
+                                rdcarray<uint32_t> &eventIDs, const ActionDescription &actionnode)
 {
-  if(drawnode.children.empty())
+  if(actionnode.children.empty())
     return;
 
-  for(size_t i = 0; i < drawnode.children.size(); i++)
+  for(size_t i = 0; i < actionnode.children.size(); i++)
   {
-    const DrawcallDescription &d = drawnode.children[i];
+    const ActionDescription &a = actionnode.children[i];
 
-    FillTimersAMD(eventStartID, sampleIndex, eventIDs, drawnode.children[i]);
+    FillTimersAMD(eventStartID, sampleIndex, eventIDs, actionnode.children[i]);
 
-    if(d.events.empty())
+    if(a.events.empty())
       continue;
 
-    eventIDs.push_back(d.eventId);
+    eventIDs.push_back(a.eventId);
 
-    m_pDevice->ReplayLog(eventStartID, d.eventId, eReplay_WithoutDraw);
+    m_pDevice->ReplayLog(eventStartID, a.eventId, eReplay_WithoutDraw);
 
     SerializeImmediateContext();
 
     m_pAMDCounters->BeginSample(sampleIndex);
 
-    m_pDevice->ReplayLog(eventStartID, d.eventId, eReplay_OnlyDraw);
+    m_pDevice->ReplayLog(eventStartID, a.eventId, eReplay_OnlyDraw);
 
     m_pAMDCounters->EndSample();
 
-    eventStartID = d.eventId + 1;
+    eventStartID = a.eventId + 1;
     sampleIndex++;
   }
 }
 
 void D3D11Replay::FillTimersNV(uint32_t &eventStartID, uint32_t &sampleIndex,
-                               rdcarray<uint32_t> &eventIDs, const DrawcallDescription &drawnode)
+                               rdcarray<uint32_t> &eventIDs, const ActionDescription &actionnode)
 {
-  if(drawnode.children.empty())
+  if(actionnode.children.empty())
     return;
 
-  for(size_t i = 0; i < drawnode.children.size(); i++)
+  for(size_t i = 0; i < actionnode.children.size(); i++)
   {
-    const DrawcallDescription &d = drawnode.children[i];
+    const ActionDescription &a = actionnode.children[i];
 
-    FillTimersNV(eventStartID, sampleIndex, eventIDs, drawnode.children[i]);
+    FillTimersNV(eventStartID, sampleIndex, eventIDs, actionnode.children[i]);
 
-    if(d.events.empty() || (!(drawnode.children[i].flags & DrawFlags::Drawcall) &&
-                            !(drawnode.children[i].flags & DrawFlags::Dispatch)))
+    if(a.events.empty() || (!(actionnode.children[i].flags & ActionFlags::Drawcall) &&
+                            !(actionnode.children[i].flags & ActionFlags::Dispatch)))
       continue;
 
-    eventIDs.push_back(d.eventId);
+    eventIDs.push_back(a.eventId);
 
-    m_pDevice->ReplayLog(eventStartID, d.eventId, eReplay_WithoutDraw);
+    m_pDevice->ReplayLog(eventStartID, a.eventId, eReplay_WithoutDraw);
 
     SerializeImmediateContext();
 
     m_pNVCounters->BeginSample(sampleIndex);
 
-    m_pDevice->ReplayLog(eventStartID, d.eventId, eReplay_OnlyDraw);
+    m_pDevice->ReplayLog(eventStartID, a.eventId, eReplay_OnlyDraw);
 
     SerializeImmediateContext();
 
     m_pNVCounters->EndSample(sampleIndex);
 
-    eventStartID = d.eventId + 1;
+    eventStartID = a.eventId + 1;
     sampleIndex++;
   }
 }
 
 void D3D11Replay::FillTimersIntel(uint32_t &eventStartID, uint32_t &sampleIndex,
-                                  rdcarray<uint32_t> &eventIDs, const DrawcallDescription &drawnode)
+                                  rdcarray<uint32_t> &eventIDs, const ActionDescription &actionnode)
 {
-  if(drawnode.children.empty())
+  if(actionnode.children.empty())
     return;
 
-  for(size_t i = 0; i < drawnode.children.size(); i++)
+  for(size_t i = 0; i < actionnode.children.size(); i++)
   {
-    const DrawcallDescription &d = drawnode.children[i];
+    const ActionDescription &a = actionnode.children[i];
 
-    FillTimersIntel(eventStartID, sampleIndex, eventIDs, drawnode.children[i]);
+    FillTimersIntel(eventStartID, sampleIndex, eventIDs, actionnode.children[i]);
 
-    if(d.events.empty() || (!(drawnode.children[i].flags & DrawFlags::Drawcall) &&
-                            !(drawnode.children[i].flags & DrawFlags::Dispatch)))
+    if(a.events.empty() || (!(actionnode.children[i].flags & ActionFlags::Drawcall) &&
+                            !(actionnode.children[i].flags & ActionFlags::Dispatch)))
       continue;
 
-    eventIDs.push_back(d.eventId);
+    eventIDs.push_back(a.eventId);
 
-    m_pDevice->ReplayLog(eventStartID, d.eventId, eReplay_WithoutDraw);
+    m_pDevice->ReplayLog(eventStartID, a.eventId, eReplay_WithoutDraw);
 
     SerializeImmediateContext();
 
     m_pIntelCounters->BeginSample();
 
-    m_pDevice->ReplayLog(eventStartID, d.eventId, eReplay_OnlyDraw);
+    m_pDevice->ReplayLog(eventStartID, a.eventId, eReplay_OnlyDraw);
 
     SerializeImmediateContext();
 
     m_pIntelCounters->EndSample();
 
-    eventStartID = d.eventId + 1;
+    eventStartID = a.eventId + 1;
     sampleIndex++;
   }
 }

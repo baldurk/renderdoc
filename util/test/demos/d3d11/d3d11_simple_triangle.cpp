@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -50,10 +50,15 @@ RD_TEST(D3D11_Simple_Triangle, D3D11GraphicsTest)
     ID3D11Texture2DPtr fltTex = MakeTexture(DXGI_FORMAT_R32G32B32A32_FLOAT, 4, 4).RTV();
     ID3D11RenderTargetViewPtr fltRT = MakeRTV(fltTex);
 
+    ID3D11Texture2DPtr fltMSTex =
+        MakeTexture(DXGI_FORMAT_R16G16B16A16_FLOAT, 4, 4).RTV().Multisampled(4);
+    ID3D11RenderTargetViewPtr fltMSRT = MakeRTV(fltMSTex);
+
     while(Running())
     {
       ClearRenderTargetView(bbRTV, {0.2f, 0.2f, 0.2f, 1.0f});
       ClearRenderTargetView(fltRT, {0.2f, 0.2f, 0.2f, 1.0f});
+      ClearRenderTargetView(fltMSRT, {0.2f, 0.2f, 0.2f, 1.0f});
 
       IASetVertexBuffer(vb, sizeof(DefaultA2V), 0);
       ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -98,6 +98,18 @@ version of RenderDoc that addes a new section type. They should be considered eq
   This section contains any edited shaders.
 
   The name for this section will be "renderdoc/ui/edits".
+
+.. data:: D3D12Core
+
+  This section contains an internal copy of D3D12Core for replaying.
+
+  The name for this section will be "renderdoc/internal/d3d12core".
+
+.. data:: D3D12SDKLayers
+
+  This section contains an internal copy of D3D12SDKLayers for replaying.
+
+  The name for this section will be "renderdoc/internal/d3d12sdklayers".
 )");
 enum class SectionType : uint32_t
 {
@@ -112,6 +124,8 @@ enum class SectionType : uint32_t
   ExtendedThumbnail,
   EmbeddedLogfile,
   EditedShaders,
+  D3D12Core,
+  D3D12SDKLayers,
   Count,
 };
 
@@ -407,7 +421,7 @@ DOCUMENT(R"(A single source component for a destination texture swizzle.
 
   The fixed value ``1``.
 )");
-enum class TextureSwizzle : uint32_t
+enum class TextureSwizzle : uint8_t
 {
   Red,
   Green,
@@ -1062,6 +1076,21 @@ to apply to multiple related things - see :data:`ClipDistance`, :data:`CullDista
 .. data:: FragInvocationCount
 
   Gives the maximum number of invocations for the fragment being covered.
+
+.. data:: PackedFragRate
+
+  Contains the packed shading rate, with an API specific packing of X and Y. For example:
+
+  1x being 0, 2x being 1, 4x being 2. Then the lower two bits being the Y rate and the next 2 bits
+  being the X rate.
+
+.. data:: Barycentrics
+
+  Contains the barycentric co-ordinates.
+
+.. data:: CullPrimitive
+
+  An output to indicate whether or not a primitive should be culled.
 )");
 enum class ShaderBuiltin : uint32_t
 {
@@ -1115,6 +1144,9 @@ enum class ShaderBuiltin : uint32_t
   IsFullyCovered,
   FragAreaSize,
   FragInvocationCount,
+  PackedFragRate,
+  Barycentrics,
+  CullPrimitive,
   Count,
 };
 
@@ -1335,7 +1367,7 @@ DOCUMENT(R"(The format of an image file
 
   An EXR file
 
-.. data:: RAW
+.. data:: Raw
 
   Raw data, just the bytes of the image tightly packed with no metadata or compression/encoding
 )");
@@ -2489,6 +2521,11 @@ Note that a resource may be used for more than one thing in one event, see :clas
 .. data:: Barrier
 
   The resource is being specified in a barrier, as defined in Vulkan or Direct3D 12.
+
+.. data:: CPUWrite
+
+  The resource is written from the CPU, either directly as mapped memory or indirectly via a
+  synchronous update.
 )");
 enum class ResourceUsage : uint32_t
 {
@@ -2708,6 +2745,50 @@ enum class ConservativeRaster : uint32_t
 };
 
 DECLARE_REFLECTION_ENUM(ConservativeRaster);
+
+DOCUMENT(R"(A combiner to apply when determining a pixel shading rate.
+
+.. data:: Keep
+
+  Keep the first input to the combiner.
+
+.. data:: Passthrough
+
+  Keep the first input to the combiner. Alias for :data:`Keep`, for D3D terminology.
+
+.. data:: Replace
+
+  Replace with the second input to the combiner.
+
+.. data:: Override
+
+  Replace with the second input to the combiner. Alias for :data:`Replace`, for D3D terminology.
+
+.. data:: Min
+
+  Use the minimum (finest rate) of the two inputs.
+
+.. data:: Max
+
+  Use the maximum (coarsest rate) of the two inputs.
+
+.. data:: Multiply
+
+  Multiply the two rates together (e.g. 1x1 and 1x2 = 1x2, 2x2 and 2x2 = 4x4). Note that D3D names
+  this 'sum' misleadingly.
+)");
+enum class ShadingRateCombiner : uint32_t
+{
+  Keep,
+  Passthrough = Keep,
+  Replace,
+  Override = Replace,
+  Min,
+  Max,
+  Multiply,
+};
+
+DECLARE_REFLECTION_ENUM(ShadingRateCombiner);
 
 DOCUMENT(R"(The line rasterization mode.
 
@@ -3250,6 +3331,22 @@ enumerated with IDs in the appropriate ranges.
 .. data:: LastNvidia
 
   The nVidia-specific counter IDs end with this value.
+
+.. data:: FirstVulkanExtended
+
+  The Vulkan extended counter IDs start from this value.
+
+.. data:: LastVulkanExtended
+
+  The Vulkan extended counter IDs end with this value.
+
+.. data:: FirstARM
+
+  The ARM-specific counter IDs start from this value.
+
+.. data:: LastARM
+
+  The ARM-specific counter IDs end with this value.
 )");
 enum class GPUCounter : uint32_t
 {
@@ -3385,6 +3482,18 @@ DOCUMENT(R"(The unit that GPU counter data is returned in.
 .. data:: Cycles
 
   The value is a duration in clock cycles.
+
+.. data:: Hertz
+
+  The value is a value in Hertz (cycles per second).
+
+.. data:: Volt
+
+  The value is a value in Volts.
+
+.. data:: Celsius
+
+  The value is a value in Celsius.
 )");
 enum class CounterUnit : uint32_t
 {
@@ -3523,6 +3632,11 @@ a remote server.
   The API failed to replay the capture, with some runtime error that couldn't be determined until
   the replay began.
 
+.. data:: JDWPFailure
+
+  Use of JDWP to launch and inject into the application failed, this most often indicates that some
+  other JDWP-using program such as Android Studio is interfering.
+
 .. data:: AndroidGrantPermissionsFailed
 
   Failed to grant runtime permissions when installing Android remote server.
@@ -3611,6 +3725,10 @@ DOCUMENT(R"(The type of message received from or sent to an application target c
 .. data:: CaptureProgress
 
   Progress update on an on-going frame capture.
+
+.. data:: CapturableWindowCount
+
+  The number of capturable windows has changed.
 )");
 enum class TargetControlMessageType : uint32_t
 {
@@ -3787,10 +3905,6 @@ DOCUMENT(R"(Specifies a windowing system to use for creating an output window.
 
   The windowing data refers to an XCB window. See :func:`CreateXCBWindowingData`.
 
-.. data:: Wayland
-
-  The windowing data refers to an Wayland window. See :func:`CreateWaylandWindowingData`.
-
 .. data:: Android
 
   The windowing data refers to an Android window. See :func:`CreateAndroidWindowingData`.
@@ -3799,6 +3913,14 @@ DOCUMENT(R"(Specifies a windowing system to use for creating an output window.
 
   The windowing data refers to a MacOS / OS X NSView & CALayer that is Metal/GL compatible.
   See :func:`CreateMacOSWindowingData`.
+
+.. data:: GGP
+
+  The windowing data refers to an GGP surface. See :func:`CreateGgpWindowingData`.
+
+.. data:: Wayland
+
+  The windowing data refers to an Wayland window. See :func:`CreateWaylandWindowingData`.
 )");
 enum class WindowingSystem : uint32_t
 {
@@ -3922,7 +4044,7 @@ DOCUMENT(R"(A set of flags describing how this buffer may be used
 
 .. data:: Indirect
 
-  The buffer will be used to provide indirect parameters for launching GPU-based drawcalls.
+  The buffer will be used to provide indirect parameters for launching GPU-based actions.
 )");
 enum class BufferCategory : uint32_t
 {
@@ -3955,7 +4077,7 @@ DOCUMENT(R"(A set of flags for D3D buffer view properties.
 
   The buffer is used with a structured buffer with associated hidden counter.
 )");
-enum class D3DBufferViewFlags : uint32_t
+enum class D3DBufferViewFlags : uint8_t
 {
   NoFlags = 0x0,
   Raw = 0x1,
@@ -4104,111 +4226,109 @@ enum class ShaderEvents : uint32_t
 BITMASK_OPERATORS(ShaderEvents);
 DECLARE_REFLECTION_ENUM(ShaderEvents);
 
-DOCUMENT(R"(A set of flags describing the properties of a particular drawcall.
+DOCUMENT(R"(A set of flags describing the properties of a particular action. An action is a call
+such as a draw, a compute dispatch, clears, copies, resolves, etc. Any GPU event which may have
+deliberate visible side-effects to application-visible memory, typically resources such as textures
+and buffers. It also includes markers, which provide a user-generated annotation of events and
+actions.
 
 .. data:: NoFlags
 
-  The drawcall has no special properties.
+  The action has no special properties.
 
 .. data:: Clear
 
-  The drawcall is a clear call. See :data:`ClearColor` and :data:`ClearDepthStencil`.
+  The action is a clear call. See :data:`ClearColor` and :data:`ClearDepthStencil`.
 
 .. data:: Drawcall
 
-  The drawcall renders primitives using the graphics pipeline.
+  The action renders primitives using the graphics pipeline.
 
 .. data:: Dispatch
 
-  The drawcall issues a number of compute workgroups.
+  The action issues a number of compute workgroups.
 
 .. data:: CmdList
 
-  The drawcall calls into a previously recorded child command list.
+  The action calls into a previously recorded child command list.
 
 .. data:: SetMarker
 
-  The drawcall inserts a single debugging marker.
+  The action inserts a single debugging marker.
 
 .. data:: PushMarker
 
-  The drawcall begins a debugging marker region that has children.
+  The action begins a debugging marker region that has children.
 
 .. data:: PopMarker
 
-  The drawcall ends a debugging marker region.
-
-  .. note::
-
-    Drawcalls with this flag will not be exposed and it is only used internally for tracking
-    markers.
+  The action ends a debugging marker region.
 
 .. data:: Present
 
-  The drawcall is a presentation call that hands a swapchain image to the presentation engine.
+  The action is a presentation call that hands a swapchain image to the presentation engine.
 
-.. data:: MultiDraw
+.. data:: MultiAction
 
-  The drawcall is a multi-draw that contains several specified child draws.
+  The action is a multi-action that contains several specified child actions. Typically a MultiDraw
+  or ExecuteIndirect on D3D12.
 
 .. data:: Copy
 
-  The drawcall performs a resource copy operation.
+  The action performs a resource copy operation.
 
 .. data:: Resolve
 
-  The drawcall performs a resource resolve or blit operation.
+  The action performs a resource resolve or blit operation.
 
 .. data:: GenMips
 
-  The drawcall performs a resource mip-generation operation.
+  The action performs a resource mip-generation operation.
 
 .. data:: PassBoundary
 
-  The drawcall marks the beginning or end of a render pass. See :data:`BeginPass` and
+  The action marks the beginning or end of a render pass. See :data:`BeginPass` and
   :data:`EndPass`.
 
-.. data:: UseIBuffer
+.. data:: Indexed
 
-  The drawcall uses an index buffer.
+  The action uses an index buffer.
 
 .. data:: Instanced
 
-  The drawcall uses instancing. This does not mean it renders more than one instanced, simply that
+  The action uses instancing. This does not mean it renders more than one instanced, simply that
   it uses the instancing feature.
 
 .. data:: Auto
 
-  The drawcall interacts with stream-out to render all vertices previously written. This is a
+  The action interacts with stream-out to render all vertices previously written. This is a
   Direct3D 11 specific feature.
 
 .. data:: Indirect
 
-  The drawcall uses a buffer on the GPU to source some or all of its parameters in an indirect way.
+  The action uses a buffer on the GPU to source some or all of its parameters in an indirect way.
 
 .. data:: ClearColor
 
-  The drawcall clears a color target.
+  The action clears a color target.
 
 .. data:: ClearDepthStencil
 
-  The drawcall clears a depth-stencil target.
+  The action clears a depth-stencil target.
 
 .. data:: BeginPass
 
-  The drawcall marks the beginning of a render pass.
+  The action marks the beginning of a render pass.
 
 .. data:: EndPass
 
-  The drawcall marks the end of a render pass.
+  The action marks the end of a render pass.
 
-.. data:: APICalls
+.. data:: CommandBufferBoundary
 
-  The drawcall does not contain any work directly, but is a 'virtual' draw inserted to encompass
-  non-draw API calls that happened within a region, so they are included within the region where
-  they occurred and not grouped into the next drawcall outside that region.
+  The action is a virtual marker added to show command buffer boundaries.
 )");
-enum class DrawFlags : uint32_t
+enum class ActionFlags : uint32_t
 {
   NoFlags = 0x0000,
 
@@ -4221,7 +4341,7 @@ enum class DrawFlags : uint32_t
   PushMarker = 0x0020,
   PopMarker = 0x0040,    // this is only for internal tracking use
   Present = 0x0080,
-  MultiDraw = 0x0100,
+  MultiAction = 0x0100,
   Copy = 0x0200,
   Resolve = 0x0400,
   GenMips = 0x0800,
@@ -4236,11 +4356,11 @@ enum class DrawFlags : uint32_t
   ClearDepthStencil = 0x200000,
   BeginPass = 0x400000,
   EndPass = 0x800000,
-  APICalls = 0x1000000,
+  CommandBufferBoundary = 0x1000000,
 };
 
-BITMASK_OPERATORS(DrawFlags);
-DECLARE_REFLECTION_ENUM(DrawFlags);
+BITMASK_OPERATORS(ActionFlags);
+DECLARE_REFLECTION_ENUM(ActionFlags);
 
 DOCUMENT(R"(INTERNAL: A set of flags giving details of the current status of vulkan layer
 registration.

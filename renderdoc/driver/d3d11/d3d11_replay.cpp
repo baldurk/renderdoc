@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -740,6 +740,15 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
   ret.inputAssembly.indexBuffer.resourceId =
       rm->GetOriginalID(GetIDForDeviceChild(rs->IA.IndexBuffer));
   ret.inputAssembly.indexBuffer.byteOffset = rs->IA.IndexOffset;
+  switch(rs->IA.IndexFormat)
+  {
+    case DXGI_FORMAT_R32_UINT: ret.inputAssembly.indexBuffer.byteStride = 4; break;
+    case DXGI_FORMAT_R16_UINT: ret.inputAssembly.indexBuffer.byteStride = 2; break;
+    case DXGI_FORMAT_R8_UINT: ret.inputAssembly.indexBuffer.byteStride = 1; break;
+    default: ret.inputAssembly.indexBuffer.byteStride = 0; break;
+  }
+
+  ret.inputAssembly.topology = MakePrimitiveTopology(rs->IA.Topo);
 
   /////////////////////////////////////////////////
   // Shaders
@@ -1142,10 +1151,11 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
     for(i = 0; i < rs->RS.NumScissors; i++)
       ret.rasterizer.scissors[i] = Scissor(rs->RS.Scissors[i].left, rs->RS.Scissors[i].top,
                                            rs->RS.Scissors[i].right - rs->RS.Scissors[i].left,
-                                           rs->RS.Scissors[i].bottom - rs->RS.Scissors[i].top, true);
+                                           rs->RS.Scissors[i].bottom - rs->RS.Scissors[i].top,
+                                           ret.rasterizer.state.scissorEnable);
 
     for(; i < D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE; i++)
-      ret.rasterizer.scissors[i] = Scissor(0, 0, 0, 0, false);
+      ret.rasterizer.scissors[i] = Scissor(0, 0, 0, 0, ret.rasterizer.state.scissorEnable);
 
     ret.rasterizer.viewports.resize(D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE);
     for(i = 0; i < rs->RS.NumViews; i++)
@@ -1572,12 +1582,12 @@ rdcarray<uint32_t> D3D11Replay::GetPassEvents(uint32_t eventId)
 {
   rdcarray<uint32_t> passEvents;
 
-  const DrawcallDescription *draw = m_pDevice->GetDrawcall(eventId);
+  const ActionDescription *action = m_pDevice->GetAction(eventId);
 
-  const DrawcallDescription *start = draw;
-  while(start && start->previous && !(start->previous->flags & DrawFlags::Clear))
+  const ActionDescription *start = action;
+  while(start && start->previous && !(start->previous->flags & ActionFlags::Clear))
   {
-    const DrawcallDescription *prev = start->previous;
+    const ActionDescription *prev = start->previous;
 
     if(start->outputs != prev->outputs || start->depthOut != prev->depthOut)
       break;
@@ -1587,10 +1597,10 @@ rdcarray<uint32_t> D3D11Replay::GetPassEvents(uint32_t eventId)
 
   while(start)
   {
-    if(start == draw)
+    if(start == action)
       break;
 
-    if(start->flags & DrawFlags::Drawcall)
+    if(start->flags & ActionFlags::Drawcall)
       passEvents.push_back(start->eventId);
 
     start = start->next;
@@ -2535,7 +2545,8 @@ D3D11DebugManager *D3D11Replay::GetDebugManager()
 
 void D3D11Replay::BuildShader(ShaderEncoding sourceEncoding, const bytebuf &source,
                               const rdcstr &entry, const ShaderCompileFlags &compileFlags,
-                              ShaderStage type, ResourceId &id, rdcstr &errors)
+                              const rdcarray<rdcstr> &includeDirs, ShaderStage type, ResourceId &id,
+                              rdcstr &errors)
 {
   bytebuf compiledDXBC;
 
@@ -2570,7 +2581,7 @@ void D3D11Replay::BuildShader(ShaderEncoding sourceEncoding, const bytebuf &sour
     ID3DBlob *blob = NULL;
 
     errors = m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), entry.c_str(), flags,
-                                                        profile.c_str(), &blob);
+                                                        includeDirs, profile.c_str(), &blob);
 
     if(blob == NULL)
     {
@@ -2698,14 +2709,19 @@ void D3D11Replay::BuildTargetShader(ShaderEncoding sourceEncoding, const bytebuf
   ShaderCompileFlags debugCompileFlags = DXBC::EncodeFlags(
       DXBC::DecodeFlags(compileFlags) | D3DCOMPILE_DEBUG, DXBC::GetProfile(compileFlags));
 
-  BuildShader(sourceEncoding, source, entry, debugCompileFlags, type, id, errors);
+  BuildShader(sourceEncoding, source, entry, debugCompileFlags, {}, type, id, errors);
+}
+
+void D3D11Replay::SetCustomShaderIncludes(const rdcarray<rdcstr> &directories)
+{
+  m_CustomShaderIncludes = directories;
 }
 
 void D3D11Replay::BuildCustomShader(ShaderEncoding sourceEncoding, const bytebuf &source,
                                     const rdcstr &entry, const ShaderCompileFlags &compileFlags,
                                     ShaderStage type, ResourceId &id, rdcstr &errors)
 {
-  BuildTargetShader(sourceEncoding, source, entry, compileFlags, type, id, errors);
+  BuildShader(sourceEncoding, source, entry, compileFlags, m_CustomShaderIncludes, type, id, errors);
 }
 
 bool D3D11Replay::RenderTexture(TextureDisplay cfg)
@@ -3512,7 +3528,8 @@ ResourceId D3D11Replay::CreateProxyTexture(const TextureDescription &templateTex
     RDCERR("Invalid texture dimension: %d", templateTex.dimension);
   }
 
-  m_ProxyResources.push_back(resource);
+  if(resource)
+    m_ProxyResources.push_back(resource);
 
   m_ProxyResourceOrigInfo[ret] = templateTex;
 

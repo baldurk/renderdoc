@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -61,8 +61,7 @@ Intervals<uint64_t> make_intervals(const rdcarray<Interval> &intervals)
   {
     auto j = res.end();
     j--;
-    if(i->start > j->start())
-      j->split(i->start);
+    RDCASSERTMSG("make_intervals parameters must fully specify intervals", i->start == j->start());
     if(i->end < j->finish())
     {
       j->split(i->end);
@@ -284,15 +283,14 @@ TEST_CASE("Test Intervals type", "[intervals]")
     SECTION("update an empty interval at 0")
     {
       Intervals<uint64_t> test = make_intervals({{0, 0, 5}, {5, 1, 10}, {10, 0, UINT64_MAX}});
-      test.update(0, 0, 1, [](uint64_t x, uint64_t y) -> uint64_t { return x + y; });
+      test.update(0, 0, 1, [](uint64_t x, uint64_t y) -> uint64_t { return 99; });
       check_intervals(test, {{0, 0, 5}, {5, 1, 10}, {10, 0, UINT64_MAX}});
     };
 
     SECTION("update an empty interval at UINT64_MAX")
     {
       Intervals<uint64_t> test = make_intervals({{0, 0, 5}, {5, 1, 10}, {10, 0, UINT64_MAX}});
-      test.update(UINT64_MAX, UINT64_MAX, 1,
-                  [](uint64_t x, uint64_t y) -> uint64_t { return x + y; });
+      test.update(UINT64_MAX, UINT64_MAX, 1, [](uint64_t x, uint64_t y) -> uint64_t { return 99; });
       check_intervals(test, {{0, 0, 5}, {5, 1, 10}, {10, 0, UINT64_MAX}});
     };
   };

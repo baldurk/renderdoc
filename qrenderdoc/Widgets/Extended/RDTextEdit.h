@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,20 +23,65 @@
  ******************************************************************************/
 
 #pragma once
+
+#include <QStringList>
 #include <QTextEdit>
+#include <QToolButton>
+
+class QCompleter;
+class QStringListModel;
+class QToolButton;
+
+class RDTextEditDropDownButton : public QToolButton
+{
+private:
+  Q_OBJECT
+
+public:
+  explicit RDTextEditDropDownButton(QWidget *parent = 0);
+  ~RDTextEditDropDownButton();
+
+protected:
+  void paintEvent(QPaintEvent *) override;
+};
 
 class RDTextEdit : public QTextEdit
 {
 private:
   Q_OBJECT
+
+  bool m_singleLine = false;
+  QCompleter *m_Completer = NULL;
+  QStringListModel *m_CompletionModel = NULL;
+  QString m_WordCharacters;
+
+  QToolButton *m_Drop = NULL;
+
 public:
   explicit RDTextEdit(QWidget *parent = 0);
   ~RDTextEdit();
 
+  void setSingleLine();
+  void setDropDown();
+  void setHoverTrack();
+  void enableCompletion();
+
+  QCompleter *completer() { return m_Completer; }
+  void setCompletionWordCharacters(QString chars);
+  void setCompletionStrings(QStringList list);
+  bool completionInProgress();
+  void triggerCompletion();
+
 signals:
   void enter();
   void leave();
+  void hoverEnter();
+  void hoverLeave();
+  void dropDownClicked();
+  void mouseMoved(QMouseEvent *event);
   void keyPress(QKeyEvent *e);
+  void completionBegin(QString prefix);
+  void completionEnd();
 
 public slots:
 
@@ -44,4 +89,11 @@ protected:
   void focusInEvent(QFocusEvent *e);
   void focusOutEvent(QFocusEvent *e);
   void keyPressEvent(QKeyEvent *e);
+  void mouseMoveEvent(QMouseEvent *event);
+  void resizeEvent(QResizeEvent *e);
+
+  void updateDropButtonGeometry();
+
+  bool event(QEvent *e);
+  bool eventFilter(QObject *watched, QEvent *event);
 };

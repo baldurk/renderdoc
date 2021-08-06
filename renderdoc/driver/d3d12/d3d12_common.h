@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -58,6 +58,10 @@ struct D3D12MarkerRegion
 
 bool EnableD3D12DebugLayer(PFN_D3D12_GET_DEBUG_INTERFACE getDebugInterface = NULL);
 HRESULT EnumAdapterByLuid(IDXGIFactory1 *factory, LUID luid, IDXGIAdapter **pAdapter);
+
+void D3D12_PrepareReplaySDKVersion(UINT SDKVersion, bytebuf d3d12core, bytebuf d3d12sdklayers,
+                                   HMODULE d3d12lib);
+void D3D12_CleanupReplaySDK();
 
 inline void SetObjName(ID3D12Object *obj, const rdcstr &utf8name)
 {
@@ -364,7 +368,7 @@ DECLARE_REFLECTION_STRUCT(D3D12RootSignature);
 struct D3D12CommandSignature
 {
   bool graphics = true;
-  UINT numDraws = 0;
+  UINT numActions = 0;
   UINT ByteStride = 0;
   rdcarray<D3D12_INDIRECT_ARGUMENT_DESC> arguments;
 };
@@ -458,6 +462,8 @@ struct D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC
 
   // construct from the stream descriptor
   D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(const D3D12_PIPELINE_STATE_STREAM_DESC &stream);
+
+  bool errored = false;
 
   // graphics properties
   ID3D12RootSignature *pRootSignature = NULL;
@@ -663,6 +669,9 @@ DECLARE_REFLECTION_ENUM(D3D12_SHADER_VISIBILITY);
 DECLARE_REFLECTION_ENUM(D3D12_STATIC_BORDER_COLOR);
 DECLARE_REFLECTION_ENUM(D3D12_DESCRIPTOR_RANGE_TYPE);
 DECLARE_REFLECTION_ENUM(D3D12_DESCRIPTOR_RANGE_FLAGS);
+DECLARE_REFLECTION_ENUM(D3D12_TILE_COPY_FLAGS);
+DECLARE_REFLECTION_ENUM(D3D12_TILE_RANGE_FLAGS);
+DECLARE_REFLECTION_ENUM(D3D12_TILE_MAPPING_FLAGS);
 
 DECLARE_REFLECTION_STRUCT(D3D12_RESOURCE_DESC);
 DECLARE_REFLECTION_STRUCT(D3D12_COMMAND_QUEUE_DESC);
@@ -888,5 +897,6 @@ enum class D3D12Chunk : uint32_t
   SetShaderExtUAV,
   Device_CreateCommittedResource2,
   Device_CreatePlacedResource1,
+  Device_CreateCommandQueue1,
   Max,
 };

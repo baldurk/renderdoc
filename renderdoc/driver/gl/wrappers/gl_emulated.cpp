@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -3742,6 +3742,7 @@ void GLDispatchTable::DriverForEmulation(WrappedOpenGL *driver)
 #if ENABLED(ENABLE_UNIT_TESTS)
 
 #undef None
+#undef Always
 
 #include "../gl_shader_refl.h"
 #include "catch/catch.hpp"

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -72,7 +72,7 @@ bool WrappedID3D11Device::Serialise_CreateBlendState1(SerialiserType &ser,
                                                       const D3D11_BLEND_DESC1 *pBlendStateDesc,
                                                       ID3D11BlendState1 **ppBlendState)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pBlendStateDesc);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pBlendStateDesc).Important();
   SERIALISE_ELEMENT_LOCAL(pState, GetIDForDeviceChild(*ppBlendState))
       .TypedAs("ID3D11BlendState1 *"_lit);
 
@@ -132,11 +132,15 @@ HRESULT WrappedID3D11Device::CreateBlendState1(const D3D11_BLEND_DESC1 *pBlendSt
   {
     SCOPED_LOCK(m_D3DLock);
 
+    // need to flush pending dead now so we don't find a 'dead' wrapper below
+    FlushPendingDead();
+
     // duplicate states can be returned, if Create is called with a previous descriptor
     if(GetResourceManager()->HasWrapper(real))
     {
       real->Release();
       *ppBlendState = (ID3D11BlendState1 *)GetResourceManager()->GetWrapper(real);
+      Resurrect(*ppBlendState);
       (*ppBlendState)->AddRef();
       return ret;
     }
@@ -179,7 +183,7 @@ bool WrappedID3D11Device::Serialise_CreateRasterizerState1(
     SerialiserType &ser, const D3D11_RASTERIZER_DESC1 *pRasterizerDesc,
     ID3D11RasterizerState1 **ppRasterizerState)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pRasterizerDesc);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pRasterizerDesc).Important();
   SERIALISE_ELEMENT_LOCAL(pState, GetIDForDeviceChild(*ppRasterizerState))
       .TypedAs("ID3D11RasterizerState1 *"_lit);
 
@@ -239,11 +243,15 @@ HRESULT WrappedID3D11Device::CreateRasterizerState1(const D3D11_RASTERIZER_DESC1
   {
     SCOPED_LOCK(m_D3DLock);
 
+    // need to flush pending dead now so we don't find a 'dead' wrapper below
+    FlushPendingDead();
+
     // duplicate states can be returned, if Create is called with a previous descriptor
     if(GetResourceManager()->HasWrapper(real))
     {
       real->Release();
       *ppRasterizerState = (ID3D11RasterizerState1 *)GetResourceManager()->GetWrapper(real);
+      Resurrect(*ppRasterizerState);
       (*ppRasterizerState)->AddRef();
       return ret;
     }

@@ -136,6 +136,7 @@
     <ClInclude Include="3rdparty\jpeg-compressor\jpgd.h" />
     <ClInclude Include="3rdparty\jpeg-compressor\jpge.h" />
     <ClInclude Include="3rdparty\lz4\lz4.h" />
+    <ClInclude Include="3rdparty\md5\md5.h" />
     <ClInclude Include="3rdparty\miniz\miniz.h" />
     <ClInclude Include="3rdparty\plthook\plthook.h" />
     <ClInclude Include="3rdparty\pugixml\pugiconfig.hpp" />
@@ -215,6 +216,7 @@
     <ClInclude Include="core\remote_server.h" />
     <ClInclude Include="core\replay_proxy.h" />
     <ClInclude Include="core\resource_manager.h" />
+    <ClInclude Include="core\sparse_page_table.h" />
     <ClInclude Include="data\embedded_files.h" />
     <ClInclude Include="data\glsl\glsl_ubos.h" />
     <ClInclude Include="data\glsl\glsl_ubos_cpp.h" />
@@ -307,6 +309,14 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
     </ClCompile>
     <ClCompile Include="3rdparty\lz4\lz4.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\md5\md5.c">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <ForcedIncludeFiles>
       </ForcedIncludeFiles>
@@ -535,6 +545,7 @@
     <ClCompile Include="core\precompiled.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="core\sparse_page_table.cpp" />
     <ClCompile Include="core\target_control.cpp" />
     <ClCompile Include="core\remote_server.cpp" />
     <ClCompile Include="core\replay_proxy.cpp" />

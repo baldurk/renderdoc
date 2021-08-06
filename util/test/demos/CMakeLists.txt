@@ -4,13 +4,13 @@ set(PROJECT demos)
 
 set(VULKAN_SRC
         3rdparty/volk/volk.c
-        3rdparty/fmt/format.cc
         vk/vk_helpers.cpp
         vk/vk_test.cpp
         vk/vk_adv_cbuffer_zoo.cpp
         vk/vk_buffer_truncation.cpp
         vk/vk_cbuffer_zoo.cpp
         vk/vk_custom_border_color.cpp
+        vk/vk_dedicated_allocation.cpp
         vk/vk_descriptor_index.cpp
         vk/vk_descriptor_reuse.cpp
         vk/vk_descriptor_variable_count.cpp
@@ -27,6 +27,7 @@ set(VULKAN_SRC
         vk/vk_khr_buffer_address.cpp
         vk/vk_large_buffer.cpp
         vk/vk_large_descriptor_sets.cpp
+        vk/vk_leak_check.cpp
         vk/vk_line_raster.cpp
         vk/vk_mesh_zoo.cpp
         vk/vk_misaligned_dirty.cpp
@@ -47,6 +48,7 @@ set(VULKAN_SRC
         vk/vk_spec_constants.cpp
         vk/vk_spirv_13_shaders.cpp
         vk/vk_structured_buffer_nested.cpp
+        vk/vk_sync2.cpp
         vk/vk_texture_zoo.cpp
         vk/vk_triangle_fan.cpp
         vk/vk_validation_use.cpp
@@ -56,9 +58,8 @@ set(VULKAN_SRC
 
 set(OPENGL_SRC
         3rdparty/glad/glad.c
-        3rdparty/glad/glad_glx.c
         gl/gl_test.cpp
-        gl/gl_test_linux.cpp
+        gl/gl_buffer_resizing.cpp
         gl/gl_buffer_spam.cpp
         gl/gl_buffer_truncation.cpp
         gl/gl_buffer_updates.cpp
@@ -71,6 +72,7 @@ set(OPENGL_SRC
         gl/gl_entry_points.cpp
         gl/gl_large_bcn_arrays.cpp
         gl/gl_large_buffer.cpp
+        gl/gl_leak_check.cpp
         gl/gl_marker_test.cpp
         gl/gl_map_overrun.cpp
         gl/gl_mesh_zoo.cpp
@@ -82,6 +84,7 @@ set(OPENGL_SRC
         gl/gl_parameter_zoo.cpp
         gl/gl_per_type_tex_units.cpp
         gl/gl_queries_in_use.cpp
+        gl/gl_renderbuffer_zoo.cpp
         gl/gl_resource_lifetimes.cpp
         gl/gl_runtime_bind_prog_to_pipe.cpp
         gl/gl_separable_geometry_shader.cpp
@@ -97,13 +100,28 @@ set(OPENGL_SRC
         gl/gl_vertex_attr_zoo.cpp)
 
 set(SRC main.cpp
+        3rdparty/fmt/format.cc
         test_common.cpp
-        texture_zoo.cpp
-        linux/linux_platform.cpp
-        linux/linux_window.cpp)
+        texture_zoo.cpp)
 
 project(demos)
-add_executable(demos ${SRC} ${VULKAN_SRC} ${OPENGL_SRC})
+
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    list(APPEND warning_flags -Werror)
+    string(REPLACE ";" " " warning_flags "${warning_flags}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${warning_flags}")
+endif()
+
+if(NOT APPLE AND UNIX)
+    list(APPEND OPENGL_SRC
+        3rdparty/glad/glad_glx.c
+        gl/gl_test_linux.cpp)
+    list(APPEND SRC 
+        linux/linux_platform.cpp
+        linux/linux_window.cpp)
+    add_executable(demos ${SRC} ${VULKAN_SRC} ${OPENGL_SRC})
+endif()
 
 install(TARGETS demos DESTINATION .)
 

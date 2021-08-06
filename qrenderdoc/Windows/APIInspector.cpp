@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,8 +24,6 @@
 
 #include "APIInspector.h"
 #include "ui_APIInspector.h"
-
-Q_DECLARE_METATYPE(APIEvent);
 
 APIInspector::APIInspector(ICaptureContext &ctx, QWidget *parent)
     : QFrame(parent), ui(new Ui::APIInspector), m_Ctx(ctx)
@@ -159,17 +157,27 @@ void APIInspector::on_apiEvents_itemSelectionChanged()
 {
   RDTreeWidgetItem *node = ui->apiEvents->selectedItem();
 
-  if(!node)
-    return;
+  SDChunk *chunk = NULL;
+  // search up the tree to find the next parent with a chunk tag
+  while(node)
+  {
+    chunk = (SDChunk *)node->tag().value<quintptr>();
 
-  APIEvent ev = node->tag().value<APIEvent>();
+    // if we found one, break
+    if(chunk)
+      break;
 
-  if(!ev.callstack.isEmpty())
+    // move to the parent
+    node = node->parent();
+  }
+
+  if(chunk && !chunk->metadata.callstack.isEmpty())
   {
     if(m_Ctx.Replay().GetCaptureAccess())
     {
-      m_Ctx.Replay().AsyncInvoke([this, ev](IReplayController *) {
-        rdcarray<rdcstr> stack = m_Ctx.Replay().GetCaptureAccess()->GetResolve(ev.callstack);
+      m_Ctx.Replay().AsyncInvoke([this, chunk](IReplayController *) {
+        rdcarray<rdcstr> stack =
+            m_Ctx.Replay().GetCaptureAccess()->GetResolve(chunk->metadata.callstack);
 
         GUIInvoke::call(this, [this, stack]() { addCallstack(stack); });
       });
@@ -198,40 +206,68 @@ void APIInspector::fillAPIView()
 
   m_Chunks.clear();
 
-  const SDFile &file = m_Ctx.GetStructuredFile();
-  const DrawcallDescription *draw = m_Ctx.CurSelectedDrawcall();
+  const ActionDescription *action = m_Ctx.CurSelectedAction();
 
-  if(draw != NULL && !draw->events.isEmpty())
+  if(action != NULL && !action->events.isEmpty())
   {
-    for(const APIEvent &ev : draw->events)
+    if(action->IsFakeMarker())
     {
-      RDTreeWidgetItem *root = new RDTreeWidgetItem({QString::number(ev.eventId), QString()});
-
-      if(ev.chunkIndex < file.chunks.size())
-      {
-        SDChunk *chunk = file.chunks[ev.chunkIndex];
-
-        m_Chunks.push_back(chunk);
-
-        root->setText(1, chunk->name);
-
-        addStructuredChildren(root, *chunk);
-      }
-      else
-      {
-        root->setText(1, tr("Invalid chunk index %1").arg(ev.chunkIndex));
-      }
-
-      if(ev.eventId == draw->eventId)
-        root->setBold(true);
-
-      root->setTag(QVariant::fromValue(ev));
-
+      RDTreeWidgetItem *root = new RDTreeWidgetItem({lit("---"), QString(action->customName)});
+      root->setBold(true);
       ui->apiEvents->addTopLevelItem(root);
-
       ui->apiEvents->setSelectedItem(root);
     }
+    else
+    {
+      for(const APIEvent &ev : action->events)
+      {
+        addEvent(ev, ev.eventId == action->eventId);
+      }
+    }
+  }
+  else
+  {
+    APIEvent ev = m_Ctx.GetEventBrowser()->GetAPIEventForEID(m_Ctx.CurSelectedEvent());
+
+    if(ev.eventId > 0)
+      addEvent(ev, true);
   }
 
   ui->apiEvents->setUpdatesEnabled(true);
+}
+
+void APIInspector::addEvent(const APIEvent &ev, bool primary)
+{
+  if(ev.chunkIndex == APIEvent::NoChunk)
+    return;
+
+  const SDFile &file = m_Ctx.GetStructuredFile();
+
+  RDTreeWidgetItem *root = new RDTreeWidgetItem({QString::number(ev.eventId), QString()});
+
+  SDChunk *chunk = NULL;
+
+  if(ev.chunkIndex < file.chunks.size())
+  {
+    chunk = file.chunks[ev.chunkIndex];
+
+    m_Chunks.push_back(chunk);
+
+    root->setText(1, SDObject2Variant(chunk, true));
+
+    addStructuredChildren(root, *chunk);
+  }
+  else
+  {
+    root->setText(1, tr("Invalid chunk index %1").arg(ev.chunkIndex));
+  }
+
+  if(primary)
+    root->setBold(true);
+
+  root->setTag(QVariant::fromValue((quintptr)(void *)chunk));
+
+  ui->apiEvents->addTopLevelItem(root);
+
+  ui->apiEvents->setSelectedItem(root);
 }

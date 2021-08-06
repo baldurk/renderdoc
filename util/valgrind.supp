@@ -63,11 +63,24 @@
   fun:__glXInitialize
 }
 {
+  LLVMCond
+  Memcheck:Cond
+  ...
+  obj:*libLLVM*.so*
+}
+{
   XcbLeak
   Memcheck:Leak
   match-leak-kinds: all
   ...
   obj:*libxcb.so*
+}
+{
+  XcbLeak
+  Memcheck:Leak
+  match-leak-kinds: all
+  ...
+  obj:*radeonsi_dri.so*
 }
 
 # Qt
@@ -123,57 +136,45 @@
    fun:_ZN7QThread8finishedENS_14QPrivateSignalE
 }
 
-# Python 3.6
+# There's an invalid read in PCRE2 where it seems to do a wide load beyond the string
+# It's not a real bug, and unfortunately we have to be reasonably general with the
+# suppression to catch it in JIT'd code.
+{
+	PCRE2 JIT wide loads
+	Memcheck:Addr16
+	obj:???
+}
+{
+	PCRE2 JIT wide loads
+	Memcheck:Cond
+	obj:???
+}
+
+# Python
 {
   PythonLeak
   Memcheck:Leak
   match-leak-kinds: all
   ...
-  obj:*libpython3.6m.so*
+  obj:*libpython*.so*
 }
 {
   PythonRead
   Memcheck:Addr4
   ...
-  obj:*libpython3.6m.so*
+  obj:*libpython*.so*
 }
 {
   PythonRead
   Memcheck:Value8
   ...
-  obj:*libpython3.6m.so*
+  obj:*libpython*.so*
 }
 {
   PythonRead
   Memcheck:Cond
   ...
-  obj:*libpython3.6m.so*
-}
-# Python 3.7
-{
-  PythonLeak
-  Memcheck:Leak
-  match-leak-kinds: all
-  ...
-  obj:*libpython3.7m.so*
-}
-{
-  PythonRead
-  Memcheck:Addr4
-  ...
-  obj:*libpython3.7m.so*
-}
-{
-  PythonRead
-  Memcheck:Value8
-  ...
-  obj:*libpython3.7m.so*
-}
-{
-  PythonRead
-  Memcheck:Cond
-  ...
-  obj:*libpython3.7m.so*
+  obj:*libpython*.so*
 }
 
 # Unknown cause but not important leak

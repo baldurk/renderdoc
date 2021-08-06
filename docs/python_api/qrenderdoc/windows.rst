@@ -121,3 +121,10 @@ Pixel History
 .. autoclass:: qrenderdoc.PixelHistoryView
   :members:
 
+
+Shader Message Viewer
+---------------------
+
+.. autoclass:: qrenderdoc.ShaderMessageViewer
+  :members:
+

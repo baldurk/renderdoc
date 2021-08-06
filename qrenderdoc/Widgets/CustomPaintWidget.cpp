@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -49,7 +49,6 @@ CustomPaintWidget::CustomPaintWidget(QWidget *parent) : QWidget(parent)
   m_Tag = QFormatStr("custompaint%1").arg((uintptr_t) this);
 
   setAttribute(Qt::WA_OpaquePaintEvent);
-  setAttribute(Qt::WA_PaintOnScreen);
 
   m_Dark = Formatter::DarkCheckerColor();
   m_Light = Formatter::LightCheckerColor();
@@ -156,11 +155,11 @@ void CustomPaintWidget::changeEvent(QEvent *event)
 
 void CustomPaintWidget::renderInternal(QPaintEvent *e)
 {
-  if(m_Ctx && m_Output)
+  if(m_Ctx && m_Output && m_Ctx->IsCaptureLoaded())
   {
     QPointer<CustomPaintWidget> me(this);
     m_Ctx->Replay().AsyncInvoke(m_Tag, [me](IReplayController *r) {
-      if(me && me->m_Output)
+      if(me && me->m_Output && me->m_Ctx->IsCaptureLoaded())
         me->m_Output->Display();
     });
   }

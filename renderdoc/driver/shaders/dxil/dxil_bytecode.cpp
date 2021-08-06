@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -1900,7 +1900,7 @@ Program::Program(const byte *bytes, size_t length)
                 int64_t valSrc = LLVMBC::BitReader::svbr(op.get<uint64_t>());
                 uint64_t blockSrc = op.get<uint64_t>();
 
-                if(valSrc < 0)
+                if(valSrc <= 0)
                 {
                   inst.args.push_back(Symbol(SymbolType::Unknown, m_Symbols.size() - valSrc));
                 }

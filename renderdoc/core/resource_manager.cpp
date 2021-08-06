@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -63,6 +63,8 @@ rdcstr DoStringise(const FrameRefType &el)
     STRINGISE_ENUM_CLASS_NAMED(eFrameRef_CompleteWrite, "Complete Write");
     STRINGISE_ENUM_CLASS_NAMED(eFrameRef_Read, "Read");
     STRINGISE_ENUM_CLASS_NAMED(eFrameRef_ReadBeforeWrite, "Read Before Write");
+    STRINGISE_ENUM_CLASS_NAMED(eFrameRef_CompleteWriteAndDiscard, "Complete Write and Discard");
+    STRINGISE_ENUM_CLASS_NAMED(eFrameRef_Unknown, "Unknown");
   }
   END_ENUM_STRINGISE()
 }
@@ -95,38 +97,59 @@ FrameRefType ComposeFrameRefs(FrameRefType first, FrameRefType second)
         return first;
 
     case eFrameRef_CompleteWrite:
+    case eFrameRef_CompleteWriteAndDiscard:
     case eFrameRef_ReadBeforeWrite:
       // These reference types are both locked in, and cannot be affected by
       // later references.
       return first;
 
-    default: RDCERR("Unknown FrameRefType: %d", first); return eFrameRef_Maximum;
+    default: RDCERR("Unknown FrameRefType: %d", first); return eFrameRef_ReadBeforeWrite;
   }
 }
 
 FrameRefType ComposeFrameRefsUnordered(FrameRefType first, FrameRefType second)
 {
   if((IncludesRead(first) && IncludesWrite(second)) || (IncludesRead(second) && IncludesWrite(first)))
+  {
     // There is a way to order these references so that the resource is read
     // and then written. Since read-before-write is the worst case in terms of
     // reset requirements, we conservatively assume this is the case.
     return eFrameRef_ReadBeforeWrite;
+  }
   else
+  {
+    // first patch CompleteWriteAndDiscard to CompleteWrite so the values are as expected.
+    if(first == eFrameRef_CompleteWriteAndDiscard)
+      first = eFrameRef_CompleteWrite;
+    if(second == eFrameRef_CompleteWriteAndDiscard)
+      second = eFrameRef_CompleteWrite;
+
     // Otherwise either:
     // - first and second are each Read or None, or
     // - first and second are each CompleteWrite, PartialWrite or None.
     // In either case, Compose(first,second) = Compose(second,first) = max(first,second).
     return RDCMAX(first, second);
+  }
 }
 
 FrameRefType ComposeFrameRefsDisjoint(FrameRefType x, FrameRefType y)
 {
   if(x == eFrameRef_ReadBeforeWrite || y == eFrameRef_ReadBeforeWrite)
+  {
     // If any subresource is `ReadBeforeWrite`, then the whole resource is.
     return eFrameRef_ReadBeforeWrite;
+  }
   else
+  {
+    // first patch CompleteWriteAndDiscard to CompleteWrite so the values are as expected.
+    if(x == eFrameRef_CompleteWriteAndDiscard)
+      x = eFrameRef_CompleteWrite;
+    if(y == eFrameRef_CompleteWriteAndDiscard)
+      y = eFrameRef_CompleteWrite;
+
     // For all other cases, just return the larger value.
     return RDCMAX(x, y);
+  }
 }
 
 FrameRefType ComposeFrameRefsFirstKnown(FrameRefType first, FrameRefType second)
@@ -159,6 +182,7 @@ bool IncludesWrite(FrameRefType refType)
   {
     case eFrameRef_PartialWrite:
     case eFrameRef_CompleteWrite:
+    case eFrameRef_CompleteWriteAndDiscard:
     case eFrameRef_WriteBeforeRead:
     case eFrameRef_ReadBeforeWrite: return true;
     default: return false;
@@ -172,7 +196,7 @@ bool IsDirtyFrameRef(FrameRefType refType)
 
 bool IsCompleteWriteFrameRef(FrameRefType refType)
 {
-  return refType == eFrameRef_CompleteWrite;
+  return refType == eFrameRef_CompleteWrite || refType == eFrameRef_CompleteWriteAndDiscard;
 }
 
 void ResourceRecord::AddResourceReferences(ResourceRecordHandler *mgr)

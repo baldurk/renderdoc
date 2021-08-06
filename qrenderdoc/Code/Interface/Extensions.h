@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2019-2020 Baldur Karlsson
+ * Copyright (c) 2019-2021 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,6 +32,10 @@ typedef rdcarray<rdcpair<rdcstr, QVariant> > ExtensionCallbackData;
 #endif
 
 DOCUMENT(R"(Specifies the base menu to add a menu item into.
+
+.. data:: Unknown
+
+  Unknown/invalid window.
 
 .. data:: File
 
@@ -67,6 +71,10 @@ DECLARE_REFLECTION_ENUM(WindowMenu);
 
 DOCUMENT(R"(Specifies the panel to add a menu item into.
 
+.. data:: Unknown
+
+  Unknown/invalid panel.
+
 .. data:: EventBrowser
 
   The :class:`EventBrowser`.
@@ -95,6 +103,10 @@ enum class PanelMenu
 DECLARE_REFLECTION_ENUM(PanelMenu);
 
 DOCUMENT(R"(Specifies the panel to add a menu item into.
+
+.. data:: Unknown
+
+  Unknown/invalid context menu.
 
 .. data:: EventBrowser_Event
 
@@ -380,6 +392,15 @@ added in a vertical layout.
 :rtype: QWidget
 )");
   virtual QWidget *CreateToplevelWidget(const rdcstr &windowTitle, WidgetCallback closed) = 0;
+
+  DOCUMENT(R"(Closes a top-level widget as if the user had clicked to close.
+
+This function is undefined if used on a non top-level widget. It will invoke the closed widget
+callback.
+
+:param QWidget widget: The top-level widget to close.
+)");
+  virtual void CloseToplevelWidget(QWidget *widget) = 0;
 
   // widget hierarchy
 
@@ -693,6 +714,22 @@ The widget needs to be added to a parent to become part of a panel or window.
 :rtype: QWidget
 )");
   virtual QWidget *CreateLabel() = 0;
+
+  DOCUMENT(R"(Set an image for a label widget. If the widget isn't a label, this call has no effect.
+
+The label will be resized to a fixed size to display the image at 100% scale. Any text in the label
+will not be displayed, but passing an empty image will revert the label back to being text-based.
+
+The data must be in RGB(A) format with the first byte of each texel being R.
+
+:param QWidget widget: The widget to set the picture for.
+:param bytes data: The image data itself, tightly packed.
+:param int width: The width of the image in pixels.
+:param int height: The height of the image in pixels.
+:param bool alpha: ``True`` if the image data contains an alpha channel.
+)");
+  virtual void SetLabelImage(QWidget *widget, const bytebuf &data, int32_t width, int32_t height,
+                             bool alpha) = 0;
 
   DOCUMENT(R"(Create a widget suitable for rendering to with a :class:`renderdoc.ReplayOutput`. This
 widget takes care of painting on demand and recreating the internal display widget when necessary,

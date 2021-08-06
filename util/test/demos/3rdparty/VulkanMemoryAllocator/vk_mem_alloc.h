@@ -11888,8 +11888,6 @@ VkResult VmaAllocator_T::CreatePool(const VmaPoolCreateInfo* pCreateInfo, VmaPoo
 {
     VMA_DEBUG_LOG("  CreatePool: MemoryTypeIndex=%u, flags=%u", pCreateInfo->memoryTypeIndex, pCreateInfo->flags);
 
-    const bool isLinearAlgorithm = (pCreateInfo->flags & VMA_POOL_CREATE_LINEAR_ALGORITHM_BIT) != 0;
-
     VmaPoolCreateInfo newCreateInfo = *pCreateInfo;
 
     if(newCreateInfo.maxBlockCount == 0)
