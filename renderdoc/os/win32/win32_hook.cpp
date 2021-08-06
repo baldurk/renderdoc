@@ -923,10 +923,11 @@ static void InitHookData()
 
   GetModuleHandleEx(
       GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-      (LPCTSTR)&s_HookData, &s_HookData->ownmodule);void LibraryHooks::RegisterFunctionHook(const char *libraryName, const FunctionHook &hook)
+      (LPCTSTR)&s_HookData, &s_HookData->ownmodule);
   }
 }
 
+void LibraryHooks::RegisterFunctionHook(const char *libraryName, const FunctionHook &hook)
 {
   if(!_stricmp(libraryName, "kernel32.dll"))
   {
