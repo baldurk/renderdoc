@@ -400,19 +400,16 @@ uint64_t D3D12ResourceManager::GetSize_InitialState(ResourceId id, const D3D12In
   {
     ID3D12Resource *buf = (ID3D12Resource *)data.resource;
 
-    // readback heaps have already been copied to a buffer, so use that length
-    if(data.tag == D3D12InitialContents::MapDirect)
-      return WriteSerialiser::GetChunkAlignment() + 16 + uint64_t(data.dataSize);
-
-    uint64_t ret =
-        WriteSerialiser::GetChunkAlignment() + 16 + uint64_t(buf ? buf->GetDesc().Width : 0);
-
-    ret += 16;
+    uint64_t ret = WriteSerialiser::GetChunkAlignment() + 64;
 
     if(data.sparseTable)
       ret += 16 + data.sparseTable->GetSerialiseSize();
 
-    return ret;
+    // readback heaps have already been copied to a buffer, so use that length
+    if(data.tag == D3D12InitialContents::MapDirect)
+      return ret + uint64_t(data.dataSize);
+
+    return ret + uint64_t(buf ? buf->GetDesc().Width : 0);
   }
   else
   {
