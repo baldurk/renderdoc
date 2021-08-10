@@ -4321,8 +4321,18 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, ImageInfo &el)
 {
   SERIALISE_MEMBER(layerCount);
-  SERIALISE_MEMBER(levelCount);
-  SERIALISE_MEMBER(sampleCount);
+  // serialise these as full 32-bit integers for backwards compatibility
+  {
+    uint32_t levelCount = el.levelCount;
+    uint32_t sampleCount = el.sampleCount;
+    SERIALISE_ELEMENT(levelCount);
+    SERIALISE_ELEMENT(sampleCount);
+    if(ser.IsReading())
+    {
+      el.levelCount = (uint16_t)levelCount;
+      el.sampleCount = (uint16_t)sampleCount;
+    }
+  }
   SERIALISE_MEMBER(extent);
   SERIALISE_MEMBER(format);
   if(ser.VersionAtLeast(0x11))
