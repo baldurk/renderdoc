@@ -252,6 +252,24 @@ struct D3D12AMDActionCallback : public D3D12ActionCallback
   {
     PostRedraw(eid, cmd);
   }
+  void PreMisc(uint32_t eid, ActionFlags flags, ID3D12GraphicsCommandListX *cmd) override
+  {
+    if(flags & ActionFlags::PassBoundary)
+      return;
+    PreDraw(eid, cmd);
+  }
+  bool PostMisc(uint32_t eid, ActionFlags flags, ID3D12GraphicsCommandListX *cmd) override
+  {
+    if(flags & ActionFlags::PassBoundary)
+      return false;
+    return PostDraw(eid, cmd);
+  }
+  void PostRemisc(uint32_t eid, ActionFlags flags, ID3D12GraphicsCommandListX *cmd) override
+  {
+    if(flags & ActionFlags::PassBoundary)
+      return;
+    PostRedraw(eid, cmd);
+  }
 
   void AliasEvent(uint32_t primary, uint32_t alias) override
   {
@@ -416,6 +434,25 @@ struct D3D12GPUTimerCallback : public D3D12ActionCallback
   {
     PostRedraw(eid, cmd);
   }
+  void PreMisc(uint32_t eid, ActionFlags flags, ID3D12GraphicsCommandListX *cmd) override
+  {
+    if(flags & ActionFlags::PassBoundary)
+      return;
+    PreDraw(eid, cmd);
+  }
+  bool PostMisc(uint32_t eid, ActionFlags flags, ID3D12GraphicsCommandListX *cmd) override
+  {
+    if(flags & ActionFlags::PassBoundary)
+      return false;
+    return PostDraw(eid, cmd);
+  }
+  void PostRemisc(uint32_t eid, ActionFlags flags, ID3D12GraphicsCommandListX *cmd) override
+  {
+    if(flags & ActionFlags::PassBoundary)
+      return;
+    PostRedraw(eid, cmd);
+  }
+
   void PreCloseCommandList(ID3D12GraphicsCommandListX *cmd) override{};
   void AliasEvent(uint32_t primary, uint32_t alias) override
   {

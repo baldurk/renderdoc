@@ -1494,7 +1494,7 @@ void D3D12CommandData::GetIndirectBuffer(size_t size, ID3D12Resource **buf, uint
   m_IndirectOffset = AlignUp16(m_IndirectOffset + size);
 }
 
-uint32_t D3D12CommandData::HandlePreCallback(ID3D12GraphicsCommandListX *list, bool dispatch,
+uint32_t D3D12CommandData::HandlePreCallback(ID3D12GraphicsCommandListX *list, ActionFlags type,
                                              uint32_t multiDrawOffset)
 {
   if(!m_ActionCallback)
@@ -1529,10 +1529,24 @@ uint32_t D3D12CommandData::HandlePreCallback(ID3D12GraphicsCommandListX *list, b
 
   eventId += multiDrawOffset;
 
-  if(dispatch)
-    m_ActionCallback->PreDispatch(eventId, list);
-  else
-    m_ActionCallback->PreDraw(eventId, list);
+  switch(type)
+  {
+    case ActionFlags::Drawcall:
+    {
+      m_ActionCallback->PreDraw(eventId, list);
+      break;
+    }
+    case ActionFlags::Dispatch:
+    {
+      m_ActionCallback->PreDispatch(eventId, list);
+      break;
+    }
+    default:
+    {
+      m_ActionCallback->PreMisc(eventId, type, list);
+      break;
+    }
+  }
 
   return eventId;
 }

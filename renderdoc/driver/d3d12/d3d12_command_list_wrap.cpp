@@ -3157,11 +3157,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawInstanced(SerialiserType &s
       {
         ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
 
-        uint32_t eventId = m_Cmd->HandlePreCallback(list);
-
+        uint32_t eventId = m_Cmd->HandlePreCallback(list, ActionFlags::Drawcall);
         Unwrap(list)->DrawInstanced(VertexCountPerInstance, InstanceCount, StartVertexLocation,
                                     StartInstanceLocation);
-
         if(eventId && m_Cmd->m_ActionCallback->PostDraw(eventId, list))
         {
           Unwrap(list)->DrawInstanced(VertexCountPerInstance, InstanceCount, StartVertexLocation,
@@ -3240,11 +3238,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawIndexedInstanced(
       {
         ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
 
-        uint32_t eventId = m_Cmd->HandlePreCallback(list);
-
+        uint32_t eventId = m_Cmd->HandlePreCallback(list, ActionFlags::Drawcall);
         Unwrap(list)->DrawIndexedInstanced(IndexCountPerInstance, InstanceCount, StartIndexLocation,
                                            BaseVertexLocation, StartInstanceLocation);
-
         if(eventId && m_Cmd->m_ActionCallback->PostDraw(eventId, list))
         {
           Unwrap(list)->DrawIndexedInstanced(IndexCountPerInstance, InstanceCount, StartIndexLocation,
@@ -3324,14 +3320,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Dispatch(SerialiserType &ser, U
       {
         ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
 
-        uint32_t eventId = m_Cmd->HandlePreCallback(list, true);
-
+        uint32_t eventId = m_Cmd->HandlePreCallback(list, ActionFlags::Dispatch);
         Unwrap(list)->Dispatch(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
-
-        if(eventId && m_Cmd->m_ActionCallback->PostDraw(eventId, list))
+        if(eventId && m_Cmd->m_ActionCallback->PostDispatch(eventId, list))
         {
           Unwrap(list)->Dispatch(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
-          m_Cmd->m_ActionCallback->PostRedraw(eventId, list);
+          m_Cmd->m_ActionCallback->PostRedispatch(eventId, list);
         }
       }
     }
@@ -3394,14 +3388,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteBundle(SerialiserType &s
       {
         ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
 
-        uint32_t eventId = m_Cmd->HandlePreCallback(list, true);
-
+        uint32_t eventId = m_Cmd->HandlePreCallback(list, ActionFlags::CmdList);
         Unwrap(list)->ExecuteBundle(Unwrap(pBundle));
-
-        if(eventId && m_Cmd->m_ActionCallback->PostDraw(eventId, list))
+        if(eventId && m_Cmd->m_ActionCallback->PostMisc(eventId, ActionFlags::CmdList, list))
         {
           Unwrap(list)->ExecuteBundle(Unwrap(pBundle));
-          m_Cmd->m_ActionCallback->PostRedraw(eventId, list);
+          m_Cmd->m_ActionCallback->PostRemisc(eventId, ActionFlags::CmdList, list);
         }
       }
     }
@@ -4310,7 +4302,13 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
       {
         ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
 
+        uint32_t eventId = m_Cmd->HandlePreCallback(list, ActionFlags::MultiAction);
         ReplayExecuteIndirect(Unwrap(list));
+        if(eventId && m_Cmd->m_ActionCallback->PostMisc(eventId, ActionFlags::MultiAction, list))
+        {
+          ReplayExecuteIndirect(Unwrap(list));
+          m_Cmd->m_ActionCallback->PostRemisc(eventId, ActionFlags::MultiAction, list);
+        }
       }
     }
     else
@@ -4485,9 +4483,21 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearDepthStencilView(
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        Unwrap(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
-            ->ClearDepthStencilView(Unwrap(DepthStencilView), ClearFlags, Depth, Stencil, NumRects,
-                                    pRects);
+        ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+
+        uint32_t eventId =
+            m_Cmd->HandlePreCallback(list, ActionFlags::Clear | ActionFlags::ClearDepthStencil);
+        Unwrap(list)->ClearDepthStencilView(Unwrap(DepthStencilView), ClearFlags, Depth, Stencil,
+                                            NumRects, pRects);
+        if(eventId &&
+           m_Cmd->m_ActionCallback->PostMisc(
+               eventId, ActionFlags::Clear | ActionFlags::ClearDepthStencil, list))
+        {
+          Unwrap(list)->ClearDepthStencilView(Unwrap(DepthStencilView), ClearFlags, Depth, Stencil,
+                                              NumRects, pRects);
+          m_Cmd->m_ActionCallback->PostRemisc(
+              eventId, ActionFlags::Clear | ActionFlags::ClearDepthStencil, list);
+        }
       }
     }
     else
@@ -4581,8 +4591,19 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        Unwrap(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
-            ->ClearRenderTargetView(Unwrap(RenderTargetView), ColorRGBA, NumRects, pRects);
+        ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+
+        uint32_t eventId =
+            m_Cmd->HandlePreCallback(list, ActionFlags::Clear | ActionFlags::ClearColor);
+        Unwrap(list)->ClearRenderTargetView(Unwrap(RenderTargetView), ColorRGBA, NumRects, pRects);
+        if(eventId &&
+           m_Cmd->m_ActionCallback->PostMisc(eventId, ActionFlags::Clear | ActionFlags::ClearColor,
+                                             list))
+        {
+          Unwrap(list)->ClearRenderTargetView(Unwrap(RenderTargetView), ColorRGBA, NumRects, pRects);
+          m_Cmd->m_ActionCallback->PostRemisc(eventId, ActionFlags::Clear | ActionFlags::ClearColor,
+                                              list);
+        }
       }
     }
     else
@@ -4675,9 +4696,19 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewUint(
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        Unwrap(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
-            ->ClearUnorderedAccessViewUint(Unwrap(ViewGPUHandleInCurrentHeap), Unwrap(ViewCPUHandle),
-                                           Unwrap(pResource), Values, NumRects, pRects);
+        ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+
+        uint32_t eventId = m_Cmd->HandlePreCallback(list, ActionFlags::Clear);
+        Unwrap(list)->ClearUnorderedAccessViewUint(Unwrap(ViewGPUHandleInCurrentHeap),
+                                                   Unwrap(ViewCPUHandle), Unwrap(pResource), Values,
+                                                   NumRects, pRects);
+        if(eventId && m_Cmd->m_ActionCallback->PostMisc(eventId, ActionFlags::Clear, list))
+        {
+          Unwrap(list)->ClearUnorderedAccessViewUint(Unwrap(ViewGPUHandleInCurrentHeap),
+                                                     Unwrap(ViewCPUHandle), Unwrap(pResource),
+                                                     Values, NumRects, pRects);
+          m_Cmd->m_ActionCallback->PostRemisc(eventId, ActionFlags::Clear, list);
+        }
       }
     }
     else
@@ -4779,9 +4810,19 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewFloat(
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        Unwrap(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
-            ->ClearUnorderedAccessViewFloat(Unwrap(ViewGPUHandleInCurrentHeap), Unwrap(ViewCPUHandle),
-                                            Unwrap(pResource), Values, NumRects, pRects);
+        ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+
+        uint32_t eventId = m_Cmd->HandlePreCallback(list, ActionFlags::Clear);
+        Unwrap(list)->ClearUnorderedAccessViewFloat(Unwrap(ViewGPUHandleInCurrentHeap),
+                                                    Unwrap(ViewCPUHandle), Unwrap(pResource),
+                                                    Values, NumRects, pRects);
+        if(eventId && m_Cmd->m_ActionCallback->PostMisc(eventId, ActionFlags::Clear, list))
+        {
+          Unwrap(list)->ClearUnorderedAccessViewFloat(Unwrap(ViewGPUHandleInCurrentHeap),
+                                                      Unwrap(ViewCPUHandle), Unwrap(pResource),
+                                                      Values, NumRects, pRects);
+          m_Cmd->m_ActionCallback->PostRemisc(eventId, ActionFlags::Clear, list);
+        }
       }
     }
     else
@@ -4950,8 +4991,16 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyBufferRegion(SerialiserType
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
         ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+
+        uint32_t eventId = m_Cmd->HandlePreCallback(list, ActionFlags::Copy);
         Unwrap(list)->CopyBufferRegion(Unwrap(pDstBuffer), DstOffset, Unwrap(pSrcBuffer), SrcOffset,
                                        NumBytes);
+        if(eventId && m_Cmd->m_ActionCallback->PostMisc(eventId, ActionFlags::Copy, list))
+        {
+          Unwrap(list)->CopyBufferRegion(Unwrap(pDstBuffer), DstOffset, Unwrap(pSrcBuffer),
+                                         SrcOffset, NumBytes);
+          m_Cmd->m_ActionCallback->PostRemisc(eventId, ActionFlags::Copy, list);
+        }
       }
     }
     else
@@ -5045,7 +5094,14 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyTextureRegion(
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
         ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+
+        uint32_t eventId = m_Cmd->HandlePreCallback(list, ActionFlags::Copy);
         Unwrap(list)->CopyTextureRegion(&unwrappedDst, DstX, DstY, DstZ, &unwrappedSrc, pSrcBox);
+        if(eventId && m_Cmd->m_ActionCallback->PostMisc(eventId, ActionFlags::Copy, list))
+        {
+          Unwrap(list)->CopyTextureRegion(&unwrappedDst, DstX, DstY, DstZ, &unwrappedSrc, pSrcBox);
+          m_Cmd->m_ActionCallback->PostRemisc(eventId, ActionFlags::Copy, list);
+        }
       }
     }
     else
@@ -5153,7 +5209,14 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyResource(SerialiserType &se
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
         ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+
+        uint32_t eventId = m_Cmd->HandlePreCallback(list, ActionFlags::Copy);
         Unwrap(list)->CopyResource(Unwrap(pDstResource), Unwrap(pSrcResource));
+        if(eventId && m_Cmd->m_ActionCallback->PostMisc(eventId, ActionFlags::Copy, list))
+        {
+          Unwrap(list)->CopyResource(Unwrap(pDstResource), Unwrap(pSrcResource));
+          m_Cmd->m_ActionCallback->PostRemisc(eventId, ActionFlags::Copy, list);
+        }
       }
     }
     else
@@ -5339,8 +5402,16 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyTiles(
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
         ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+
+        uint32_t eventId = m_Cmd->HandlePreCallback(list, ActionFlags::Copy);
         Unwrap(list)->CopyTiles(Unwrap(pTiledResource), &TileRegionStartCoordinate, &TileRegionSize,
                                 Unwrap(pBuffer), BufferStartOffsetInBytes, Flags);
+        if(eventId && m_Cmd->m_ActionCallback->PostMisc(eventId, ActionFlags::Copy, list))
+        {
+          Unwrap(list)->CopyTiles(Unwrap(pTiledResource), &TileRegionStartCoordinate,
+                                  &TileRegionSize, Unwrap(pBuffer), BufferStartOffsetInBytes, Flags);
+          m_Cmd->m_ActionCallback->PostRemisc(eventId, ActionFlags::Copy, list);
+        }
       }
     }
     else

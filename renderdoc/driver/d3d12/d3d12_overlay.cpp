@@ -241,6 +241,10 @@ struct D3D12QuadOverdrawCallback : public D3D12ActionCallback
   void PreDispatch(uint32_t eid, ID3D12GraphicsCommandListX *cmd) {}
   bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandListX *cmd) { return false; }
   void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandListX *cmd) {}
+  // Ditto copy/etc
+  void PreMisc(uint32_t eid, ActionFlags flags, ID3D12GraphicsCommandListX *cmd) {}
+  bool PostMisc(uint32_t eid, ActionFlags flags, ID3D12GraphicsCommandListX *cmd) { return false; }
+  void PostRemisc(uint32_t eid, ActionFlags flags, ID3D12GraphicsCommandListX *cmd) {}
   void PreCloseCommandList(ID3D12GraphicsCommandListX *cmd) {}
   void AliasEvent(uint32_t primary, uint32_t alias)
   {

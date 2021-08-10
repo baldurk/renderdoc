@@ -1325,6 +1325,10 @@ struct D3D12InitPostVSCallback : public D3D12ActionCallback
   void PreDispatch(uint32_t eid, ID3D12GraphicsCommandListX *cmd) override {}
   bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandListX *cmd) override { return false; }
   void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandListX *cmd) override {}
+  // Ditto copy/etc
+  void PreMisc(uint32_t eid, ActionFlags flags, ID3D12GraphicsCommandListX *cmd) {}
+  bool PostMisc(uint32_t eid, ActionFlags flags, ID3D12GraphicsCommandListX *cmd) { return false; }
+  void PostRemisc(uint32_t eid, ActionFlags flags, ID3D12GraphicsCommandListX *cmd) {}
   void PreCloseCommandList(ID3D12GraphicsCommandListX *cmd) override {}
   void AliasEvent(uint32_t primary, uint32_t alias) override
   {

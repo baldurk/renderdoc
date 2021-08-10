@@ -127,6 +127,11 @@ struct D3D12ActionCallback
   virtual bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandListX *cmd) = 0;
   virtual void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandListX *cmd) = 0;
 
+  // finally, these are for copy/blit/resolve/clear/etc
+  virtual void PreMisc(uint32_t eid, ActionFlags flags, ID3D12GraphicsCommandListX *cmd) = 0;
+  virtual bool PostMisc(uint32_t eid, ActionFlags flags, ID3D12GraphicsCommandListX *cmd) = 0;
+  virtual void PostRemisc(uint32_t eid, ActionFlags flags, ID3D12GraphicsCommandListX *cmd) = 0;
+
   // called immediately before a command list is closed
   virtual void PreCloseCommandList(ID3D12GraphicsCommandListX *cmd) = 0;
   // if a command list is recorded once and submitted N > 1 times, then the same
@@ -367,8 +372,8 @@ struct D3D12CommandData
 
   // util function to handle fetching the right eventId, calling any
   // aliases then calling PreDraw/PreDispatch.
-  uint32_t HandlePreCallback(ID3D12GraphicsCommandListX *list, bool dispatch = false,
-                             uint32_t multiDrawOffset = 0);
+  uint32_t HandlePreCallback(ID3D12GraphicsCommandListX *list,
+                             ActionFlags type = ActionFlags::Drawcall, uint32_t multiDrawOffset = 0);
 
   bool InRerecordRange(ResourceId cmdid);
   bool HasRerecordCmdList(ResourceId cmdid);
