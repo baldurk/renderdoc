@@ -186,8 +186,9 @@ private:
 
   bool SelectEvent(uint32_t eventId);
   void SelectEvent(QModelIndex found);
+  void FindNext(bool forward);
 
-  void updateFindResultsAvailable();
+  void updateFindResultsAvailable(bool forceNoResults);
 
   void clearBookmarks();
   void jumpToBookmark(int idx);

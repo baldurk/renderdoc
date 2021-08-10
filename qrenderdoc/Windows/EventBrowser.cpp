@@ -343,11 +343,13 @@ struct EventItemModel : public QAbstractItemModel
     {
       // if the text doesn't exactly match the EID after converting back, don't treat this as an
       // EID-only search
-      if(text.trimmed() != QString::number(eid))
-        eidSearch = false;
+      eidSearch = (text.trimmed() == QString::number(eid));
 
-      m_FindResults.push_back(GetIndexForEID(eid));
+      if(eidSearch)
+        m_FindResults.push_back(GetIndexForEID(eid));
     }
+
+    m_FindEIDSearch = eidSearch;
 
     if(!m_FindString.isEmpty() && !eidSearch)
     {
@@ -361,13 +363,13 @@ struct EventItemModel : public QAbstractItemModel
       RefreshIcon(i);
   }
 
-  QModelIndex Find(bool forward)
+  QModelIndex Find(bool forward, QModelIndex eidStart)
   {
     if(m_FindResults.empty())
       return QModelIndex();
 
     // if we're already on a find result we can just zoom to the next one
-    int idx = m_FindResults.indexOf(m_CurrentEID);
+    int idx = m_FindResults.indexOf(eidStart);
     if(idx >= 0)
     {
       if(forward)
@@ -384,7 +386,7 @@ struct EventItemModel : public QAbstractItemModel
 
     // otherwise we need to do a more expensive search. Get the EID for the current, and find the
     // next find result after that (wrapping around)
-    uint32_t eid = data(m_CurrentEID, ROLE_EFFECTIVE_EID).toUInt();
+    uint32_t eid = data(eidStart, ROLE_EFFECTIVE_EID).toUInt();
 
     if(forward)
     {
@@ -414,7 +416,8 @@ struct EventItemModel : public QAbstractItemModel
     }
   }
 
-  int NumFindResults() { return m_FindResults.count(); }
+  int NumFindResults() const { return m_FindResults.count(); }
+  bool FindEIDSearch() const { return m_FindEIDSearch; }
   double GetSecondsDurationForEID(uint32_t eid)
   {
     if(eid < m_Times.size())
@@ -535,6 +538,7 @@ struct EventItemModel : public QAbstractItemModel
     return ret;
   }
 
+  QModelIndex GetCurrentEID() const { return m_CurrentEID; }
   //////////////////////////////////////////////////////////////////////////////////////
   //
   // QAbstractItemModel methods
@@ -836,6 +840,7 @@ private:
   rdcarray<QModelIndex> m_BookmarkIndices;
   QString m_FindString;
   rdcarray<QModelIndex> m_FindResults;
+  bool m_FindEIDSearch;
 
   int32_t m_RenameCacheID;
   QString m_ParamColCode;
@@ -3682,14 +3687,63 @@ void EventBrowser::on_HideFind()
 
   ui->findEvent->setText(QString());
   m_Model->SetFindText(QString());
-  updateFindResultsAvailable();
+  updateFindResultsAvailable(false);
 }
 
 void EventBrowser::findHighlight_timeout()
 {
+  FindNext(true);
+}
+
+void EventBrowser::FindNext(bool forward)
+{
   m_Model->SetFindText(ui->findEvent->text());
-  SelectEvent(m_FilterModel->mapFromSource(m_Model->Find(true)));
-  updateFindResultsAvailable();
+
+  // get the first result in this direction
+  QModelIndex firstResult = m_Model->Find(forward, m_Model->GetCurrentEID());
+
+  bool forceNone = false;
+
+  // we got a result but it might be filtered out. This also means that for EID selects we'll jump
+  // to the next visible EID
+  if(firstResult.isValid())
+  {
+    QModelIndex result = firstResult;
+    QModelIndex mappedResult = m_FilterModel->mapFromSource(result);
+
+    // loop if we have a valid result but it's invalid when mapped (i.e. filtered out)
+    while(result.isValid() && !mappedResult.isValid())
+    {
+      // get the next result in this direction. If we're doing an EID search, step EID-wise
+      if(m_Model->FindEIDSearch())
+        result = m_Model->GetIndexForEID(result.data(ROLE_SELECTED_EID).toUInt() + 1);
+      else
+        result = m_Model->Find(forward, result);
+
+      // if we've looped around or somehow get an invalid result, break
+      if(!result.isValid() || result == firstResult)
+        break;
+
+      // map it
+      mappedResult = m_FilterModel->mapFromSource(result);
+
+      // the loop condition will break if we got a mapped result
+    }
+
+    // if we got a valid visible result, select it
+    if(mappedResult.isValid())
+    {
+      SelectEvent(m_FilterModel->mapFromSource(result));
+    }
+    else
+    {
+      // otherwise tell the results below that there are no visible results, even though there might
+      // be some that are filtered out
+      forceNone = true;
+    }
+  }
+
+  updateFindResultsAvailable(forceNone);
 }
 
 void EventBrowser::CreateFilterDialog()
@@ -4580,7 +4634,7 @@ void EventBrowser::on_findEvent_textEdited(const QString &arg1)
     m_FindHighlight->stop();
 
     m_Model->SetFindText(QString());
-    updateFindResultsAvailable();
+    updateFindResultsAvailable(false);
   }
   else
   {
@@ -4741,8 +4795,9 @@ void EventBrowser::on_findEvent_keyPress(QKeyEvent *event)
       m_FindHighlight->stop();
 
     if(!ui->findEvent->text().isEmpty())
-      SelectEvent(m_FilterModel->mapFromSource(
-          m_Model->Find(event->modifiers() & Qt::ShiftModifier ? false : true)));
+    {
+      FindNext(event->modifiers() & Qt::ShiftModifier ? false : true);
+    }
 
     event->accept();
   }
@@ -4750,14 +4805,12 @@ void EventBrowser::on_findEvent_keyPress(QKeyEvent *event)
 
 void EventBrowser::on_findNext_clicked()
 {
-  SelectEvent(m_FilterModel->mapFromSource(m_Model->Find(true)));
-  updateFindResultsAvailable();
+  FindNext(true);
 }
 
 void EventBrowser::on_findPrev_clicked()
 {
-  SelectEvent(m_FilterModel->mapFromSource(m_Model->Find(false)));
-  updateFindResultsAvailable();
+  FindNext(false);
 }
 
 void EventBrowser::on_stepNext_clicked()
@@ -5023,11 +5076,7 @@ void EventBrowser::events_keyPress(QKeyEvent *event)
 
   if(event->key() == Qt::Key_F3)
   {
-    if(event->modifiers() == Qt::ShiftModifier)
-      SelectEvent(m_FilterModel->mapFromSource(m_Model->Find(false)));
-    else
-      SelectEvent(m_FilterModel->mapFromSource(m_Model->Find(true)));
-    updateFindResultsAvailable();
+    FindNext(event->modifiers() & Qt::ShiftModifier ? false : true);
   }
 
   if(event->modifiers() == Qt::ControlModifier)
@@ -5036,6 +5085,7 @@ void EventBrowser::events_keyPress(QKeyEvent *event)
     if(event->key() == Qt::Key_F || event->key() == Qt::Key_G)
     {
       ui->find->setChecked(true);
+      ui->findEvent->setFocus();
       event->accept();
     }
     else if(event->key() == Qt::Key_B)
@@ -5225,9 +5275,9 @@ void EventBrowser::SelectEvent(QModelIndex idx)
   ExpandNode(idx);
 }
 
-void EventBrowser::updateFindResultsAvailable()
+void EventBrowser::updateFindResultsAvailable(bool forceNoResults)
 {
-  if(m_Model->NumFindResults() > 0 || ui->findEvent->text().isEmpty())
+  if(!forceNoResults && (m_Model->NumFindResults() > 0 || ui->findEvent->text().isEmpty()))
     ui->findEvent->setPalette(palette());
   else
     ui->findEvent->setPalette(m_redPalette);
