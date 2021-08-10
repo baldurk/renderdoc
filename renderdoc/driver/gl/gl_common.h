@@ -803,6 +803,7 @@ extern bool IsGLES;
   EXT_TO_CHECK(99, 99, EXT_disjoint_timer_query)                 \
   EXT_TO_CHECK(99, 99, EXT_multisampled_render_to_texture)       \
   EXT_TO_CHECK(99, 99, OVR_multiview)                            \
+  EXT_TO_CHECK(99, 99, OES_texture_float)                        \
   EXT_TO_CHECK(99, 99, EXT_discard_framebuffer)
 
 // GL extensions equivalents
