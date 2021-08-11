@@ -3685,9 +3685,8 @@ void EventBrowser::on_HideFind()
 
   ui->find->setChecked(false);
 
-  ui->findEvent->setText(QString());
   m_Model->SetFindText(QString());
-  updateFindResultsAvailable(false);
+  ui->findEvent->setPalette(palette());
 }
 
 void EventBrowser::findHighlight_timeout()
@@ -4652,10 +4651,13 @@ void EventBrowser::on_filterExpression_keyPress(QKeyEvent *e)
 
     filter_apply();
   }
-
-  if(e->key() == Qt::Key_Down)
+  else if(e->key() == Qt::Key_Down)
   {
     ShowSavedFilterCompleter(ui->filterExpression);
+  }
+  else
+  {
+    events_keyPress(e);
   }
 }
 
