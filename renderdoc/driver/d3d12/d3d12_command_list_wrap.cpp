@@ -3866,11 +3866,11 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
 
     uint32_t shiftActionID = 0;
 
-    while(idx < actions.size() && actions[idx].action.eventId < lastEID)
-    {
-      actions.erase(idx);
+    while(idx + shiftActionID < actions.size() &&
+          actions[idx + shiftActionID].action.eventId < lastEID)
       shiftActionID++;
-    }
+
+    actions.erase(idx, shiftActionID);
 
     // shift all subsequent EIDs and action IDs so they're contiguous
     info.ShiftForRemoved(shiftActionID, shiftEID, idx);
