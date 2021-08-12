@@ -1467,7 +1467,7 @@ void D3D12CommandData::GetIndirectBuffer(size_t size, ID3D12Resource **buf, uint
     indirectDesc.MipLevels = 1;
     indirectDesc.SampleDesc.Count = 1;
     indirectDesc.SampleDesc.Quality = 0;
-    indirectDesc.Width = RDCMAX(AlignUp(size, (size_t)64), m_IndirectSize);
+    indirectDesc.Width = RDCMAX(AlignUp((uint64_t)size, 64ULL), m_IndirectSize);
 
     // create a custom heap that sits in CPU memory and is mappable, but we can
     // use for indirect args (unlike upload and readback).
