@@ -411,6 +411,9 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
             auto currentSub = current->subresourceStates.SubresourceIndexValue(
                 aspectIndex, subit->range().baseMipLevel, subit->range().baseArrayLayer,
                 subit->range().baseDepthSlice);
+            FrameRefType expectedRef = subit->state().refType;
+            if(current->m_Storage)
+              expectedRef = eFrameRef_ReadBeforeWrite;
             RDCASSERT(currentSub.refType == subit->state().refType ||
                       subit->state().refType == eFrameRef_Unknown);
             RDCASSERT(currentSub.oldLayout == subit->state().oldLayout ||
