@@ -105,7 +105,7 @@ ABI GetABI(const rdcstr &abiName)
   else if(abiName == "x86_64")
     return ABI::x86_64;
   else if(abiName == "x86")
-    return ABI::armeabi_v7a;
+    return ABI::x86;
 
   RDCWARN("Unknown or unsupported ABI %s", abiName.c_str());
 
