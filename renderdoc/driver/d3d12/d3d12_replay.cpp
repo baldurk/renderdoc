@@ -1402,6 +1402,9 @@ void D3D12Replay::FillRootElements(uint32_t eventId, const D3D12RenderState::Roo
 
 void D3D12Replay::SavePipelineState(uint32_t eventId)
 {
+  if(!m_D3D12PipelineState)
+    return;
+
   const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
 
   D3D12MarkerRegion::Begin(m_pDevice->GetQueue(),
@@ -1411,7 +1414,7 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
 
   D3D12MarkerRegion::End(m_pDevice->GetQueue());
 
-  D3D12Pipe::State &state = m_PipelineState;
+  D3D12Pipe::State &state = *m_D3D12PipelineState;
 
   /////////////////////////////////////////////////
   // Input Assembler

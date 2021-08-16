@@ -1817,10 +1817,18 @@ ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
       m_pDevice->GetQueue()->GetReal(),
       StringFormat::Fmt("DebugVertex @ %u of (%u,%u,%u)", eventId, vertid, instid, idx));
 
-  const D3D12Pipe::State *pipelineState = GetD3D12PipelineState();
-  const D3D12Pipe::Shader &vertexShader = pipelineState->vertexShader;
-  WrappedID3D12Shader *vs =
-      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12Shader>(vertexShader.resourceId);
+  D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
+
+  WrappedID3D12PipelineState *pso =
+      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
+
+  if(!pso || !pso->IsGraphics())
+  {
+    RDCERR("Can't debug with no current graphics pipeline");
+    return new ShaderDebugTrace;
+  }
+
+  WrappedID3D12Shader *vs = (WrappedID3D12Shader *)pso->graphics->VS.pShaderBytecode;
   if(!vs)
   {
     RDCERR("Can't debug with no current vertex shader");
@@ -1843,11 +1851,6 @@ ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
   }
 
   dxbc->GetDisassembly();
-
-  const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
-
-  WrappedID3D12PipelineState *pso =
-      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
 
   const ActionDescription *action = m_pDevice->GetAction(eventId);
 
@@ -2193,12 +2196,18 @@ ShaderDebugTrace *D3D12Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t
       m_pDevice->GetQueue()->GetReal(),
       StringFormat::Fmt("DebugPixel @ %u of (%u,%u) %u / %u", eventId, x, y, sample, primitive));
 
-  const D3D12Pipe::State *pipelineState = GetD3D12PipelineState();
+  D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
 
-  // Fetch the disassembly info from the pixel shader
-  const D3D12Pipe::Shader &pixelShader = pipelineState->pixelShader;
-  WrappedID3D12Shader *ps =
-      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12Shader>(pixelShader.resourceId);
+  WrappedID3D12PipelineState *pso =
+      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
+
+  if(!pso || !pso->IsGraphics())
+  {
+    RDCERR("Can't debug with no current graphics pipeline");
+    return new ShaderDebugTrace;
+  }
+
+  WrappedID3D12Shader *ps = (WrappedID3D12Shader *)pso->graphics->PS.pShaderBytecode;
   if(!ps)
   {
     RDCERR("Can't debug with no current pixel shader");
@@ -2226,27 +2235,21 @@ ShaderDebugTrace *D3D12Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t
   DXBCContainer *prevDxbc = NULL;
   // Check for geometry shader first
   {
-    const D3D12Pipe::Shader &geometryShader = pipelineState->geometryShader;
-    WrappedID3D12Shader *gs =
-        m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12Shader>(geometryShader.resourceId);
+    WrappedID3D12Shader *gs = (WrappedID3D12Shader *)pso->graphics->GS.pShaderBytecode;
     if(gs)
       prevDxbc = gs->GetDXBC();
   }
   // Check for domain shader next
   if(prevDxbc == NULL)
   {
-    const D3D12Pipe::Shader &domainShader = pipelineState->domainShader;
-    WrappedID3D12Shader *ds =
-        m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12Shader>(domainShader.resourceId);
+    WrappedID3D12Shader *ds = (WrappedID3D12Shader *)pso->graphics->DS.pShaderBytecode;
     if(ds)
       prevDxbc = ds->GetDXBC();
   }
   // Check for vertex shader last
   if(prevDxbc == NULL)
   {
-    const D3D12Pipe::Shader &vertexShader = pipelineState->vertexShader;
-    WrappedID3D12Shader *vs =
-        m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12Shader>(vertexShader.resourceId);
+    WrappedID3D12Shader *vs = (WrappedID3D12Shader *)pso->graphics->VS.pShaderBytecode;
     if(vs)
       prevDxbc = vs->GetDXBC();
   }
@@ -2277,7 +2280,6 @@ ShaderDebugTrace *D3D12Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t
   }
 
   // Store a copy of the event's render state to restore later
-  D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
   D3D12RenderState prevState = rs;
 
   // Fetch the multisample count from the PSO
@@ -2989,10 +2991,14 @@ ShaderDebugTrace *D3D12Replay::DebugThread(uint32_t eventId,
       StringFormat::Fmt("DebugThread @ %u: [%u, %u, %u] (%u, %u, %u)", eventId, groupid[0],
                         groupid[1], groupid[2], threadid[0], threadid[1], threadid[2]));
 
-  const D3D12Pipe::State *pipelineState = GetD3D12PipelineState();
-  const D3D12Pipe::Shader &computeShader = pipelineState->computeShader;
+  const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
+
+  WrappedID3D12PipelineState *pso =
+      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
+
   WrappedID3D12Shader *cs =
-      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12Shader>(computeShader.resourceId);
+      pso && pso->IsCompute() ? (WrappedID3D12Shader *)pso->compute->CS.pShaderBytecode : NULL;
+
   if(!cs)
   {
     RDCERR("Can't debug with no current compute shader");
@@ -3015,11 +3021,6 @@ ShaderDebugTrace *D3D12Replay::DebugThread(uint32_t eventId,
   }
 
   dxbc->GetDisassembly();
-
-  const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
-
-  WrappedID3D12PipelineState *pso =
-      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
 
   InterpretDebugger *interpreter = new InterpretDebugger;
   interpreter->eventId = eventId;

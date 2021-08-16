@@ -691,9 +691,12 @@ rdcarray<TextureDescription> D3D11Replay::GetTextures()
 
 void D3D11Replay::SavePipelineState(uint32_t eventId)
 {
+  if(!m_D3D11PipelineState)
+    return;
+
   D3D11RenderState *rs = m_pDevice->GetImmediateContext()->GetCurrentPipelineState();
 
-  D3D11Pipe::State &ret = m_CurPipelineState;
+  D3D11Pipe::State &ret = *m_D3D11PipelineState;
 
   /////////////////////////////////////////////////
   // Input Assembler

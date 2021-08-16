@@ -69,19 +69,46 @@ static void SetRTVDesc(D3D11_RENDER_TARGET_VIEW_DESC &rtDesc, const D3D11_TEXTUR
 
 RenderOutputSubresource D3D11Replay::GetRenderOutputSubresource(ResourceId id)
 {
-  id = m_pDevice->GetResourceManager()->GetOriginalID(id);
+  D3D11RenderState *rs = m_pDevice->GetImmediateContext()->GetCurrentPipelineState();
 
   for(size_t i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
   {
-    const D3D11Pipe::View &rt = m_CurPipelineState.outputMerger.renderTargets[i];
+    ID3D11RenderTargetView *rtv = rs->OM.RenderTargets[i];
+    ID3D11Resource *res = NULL;
+    if(rtv)
+    {
+      rtv->GetResource(&res);
+      if(res)
+        res->Release();
 
-    if(rt.viewResourceId == id || rt.resourceResourceId == id)
-      return RenderOutputSubresource(rt.firstMip, rt.firstSlice, rt.numSlices);
+      if(GetIDForDeviceChild(rtv) == id || GetIDForDeviceChild(res) == id)
+      {
+        D3D11_RENDER_TARGET_VIEW_DESC desc = {};
+        rtv->GetDesc(&desc);
+        return RenderOutputSubresource(GetMipForRtv(desc), GetSliceForRtv(desc),
+                                       GetSliceCountForRtv(desc));
+      }
+    }
   }
 
-  const D3D11Pipe::View &dsv = m_CurPipelineState.outputMerger.depthTarget;
-  if(dsv.viewResourceId == id || dsv.resourceResourceId == id)
-    return RenderOutputSubresource(dsv.firstMip, dsv.firstSlice, dsv.numSlices);
+  {
+    ID3D11DepthStencilView *dsv = rs->OM.DepthView;
+    ID3D11Resource *res = NULL;
+    if(dsv)
+    {
+      dsv->GetResource(&res);
+      if(res)
+        res->Release();
+
+      if(GetIDForDeviceChild(dsv) == id || GetIDForDeviceChild(res) == id)
+      {
+        D3D11_DEPTH_STENCIL_VIEW_DESC desc = {};
+        dsv->GetDesc(&desc);
+        return RenderOutputSubresource(GetMipForDsv(desc), GetSliceForDsv(desc),
+                                       GetSliceCountForDsv(desc));
+      }
+    }
+  }
 
   return RenderOutputSubresource(~0U, ~0U, 0);
 }

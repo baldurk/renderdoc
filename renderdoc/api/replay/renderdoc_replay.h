@@ -782,8 +782,8 @@ only ever have one result (only one entry point per shader).
 :return: The frame information.
 :rtype: ShaderReflection
 )");
-  virtual ShaderReflection *GetShader(ResourceId pipeline, ResourceId shader,
-                                      ShaderEntryPoint entry) = 0;
+  virtual const ShaderReflection *GetShader(ResourceId pipeline, ResourceId shader,
+                                            ShaderEntryPoint entry) = 0;
 
   DOCUMENT(R"(Retrieve the contents of a particular pixel in a texture.
 

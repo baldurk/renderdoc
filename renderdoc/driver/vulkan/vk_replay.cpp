@@ -1018,8 +1018,13 @@ static void Convert(TextureSwizzle4 &dst, VkComponentMapping src)
 
 void VulkanReplay::SavePipelineState(uint32_t eventId)
 {
+  if(!m_VulkanPipelineState)
+    return;
+
   const VulkanRenderState &state = m_pDriver->m_RenderState;
   VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
+
+  VKPipe::State &ret = *m_VulkanPipelineState;
 
   VulkanResourceManager *rm = m_pDriver->GetResourceManager();
 
@@ -1035,35 +1040,33 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     rdcarray<VKPipe::DescriptorSet> graphicsDescriptors;
     rdcarray<VKPipe::DescriptorSet> computeDescriptors;
 
-    m_VulkanPipelineState.graphics.descriptorSets.swap(graphicsDescriptors);
-    m_VulkanPipelineState.compute.descriptorSets.swap(computeDescriptors);
+    ret.graphics.descriptorSets.swap(graphicsDescriptors);
+    ret.compute.descriptorSets.swap(computeDescriptors);
 
-    m_VulkanPipelineState = VKPipe::State();
+    ret = VKPipe::State();
 
-    m_VulkanPipelineState.graphics.descriptorSets.swap(graphicsDescriptors);
-    m_VulkanPipelineState.compute.descriptorSets.swap(computeDescriptors);
+    ret.graphics.descriptorSets.swap(graphicsDescriptors);
+    ret.compute.descriptorSets.swap(computeDescriptors);
   }
 
-  m_VulkanPipelineState.pushconsts.resize(state.pushConstSize);
-  memcpy(m_VulkanPipelineState.pushconsts.data(), state.pushconsts, state.pushConstSize);
+  ret.pushconsts.resize(state.pushConstSize);
+  memcpy(ret.pushconsts.data(), state.pushconsts, state.pushConstSize);
 
   // General pipeline properties
-  m_VulkanPipelineState.compute.pipelineResourceId =
-      rm->GetUnreplacedOriginalID(state.compute.pipeline);
-  m_VulkanPipelineState.graphics.pipelineResourceId =
-      rm->GetUnreplacedOriginalID(state.graphics.pipeline);
+  ret.compute.pipelineResourceId = rm->GetUnreplacedOriginalID(state.compute.pipeline);
+  ret.graphics.pipelineResourceId = rm->GetUnreplacedOriginalID(state.graphics.pipeline);
 
   if(state.compute.pipeline != ResourceId())
   {
     const VulkanCreationInfo::Pipeline &p = c.m_Pipeline[state.compute.pipeline];
 
-    m_VulkanPipelineState.compute.pipelineLayoutResourceId = rm->GetOriginalID(p.layout);
+    ret.compute.pipelineLayoutResourceId = rm->GetOriginalID(p.layout);
 
     const VulkanCreationInfo::PipelineLayout &pl = c.m_PipelineLayout[p.layout];
 
-    m_VulkanPipelineState.compute.flags = p.flags;
+    ret.compute.flags = p.flags;
 
-    VKPipe::Shader &stage = m_VulkanPipelineState.computeShader;
+    VKPipe::Shader &stage = ret.computeShader;
 
     int i = 5;    // 5 is the CS idx (VS, TCS, TES, GS, FS, CS)
     {
@@ -1118,66 +1121,59 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
   }
   else
   {
-    m_VulkanPipelineState.compute.pipelineLayoutResourceId = ResourceId();
-    m_VulkanPipelineState.compute.flags = 0;
-    m_VulkanPipelineState.computeShader = VKPipe::Shader();
+    ret.compute.pipelineLayoutResourceId = ResourceId();
+    ret.compute.flags = 0;
+    ret.computeShader = VKPipe::Shader();
   }
 
   if(state.graphics.pipeline != ResourceId())
   {
     const VulkanCreationInfo::Pipeline &p = c.m_Pipeline[state.graphics.pipeline];
 
-    m_VulkanPipelineState.graphics.pipelineLayoutResourceId = rm->GetOriginalID(p.layout);
+    ret.graphics.pipelineLayoutResourceId = rm->GetOriginalID(p.layout);
 
     const VulkanCreationInfo::PipelineLayout &pl = c.m_PipelineLayout[p.layout];
 
-    m_VulkanPipelineState.graphics.flags = p.flags;
+    ret.graphics.flags = p.flags;
 
     // Input Assembly
-    m_VulkanPipelineState.inputAssembly.indexBuffer.resourceId = rm->GetOriginalID(state.ibuffer.buf);
-    m_VulkanPipelineState.inputAssembly.indexBuffer.byteOffset = state.ibuffer.offs;
-    m_VulkanPipelineState.inputAssembly.indexBuffer.byteStride = state.ibuffer.bytewidth;
-    m_VulkanPipelineState.inputAssembly.primitiveRestartEnable = p.primitiveRestartEnable;
-    m_VulkanPipelineState.inputAssembly.topology =
-        MakePrimitiveTopology(state.primitiveTopology, p.patchControlPoints);
+    ret.inputAssembly.indexBuffer.resourceId = rm->GetOriginalID(state.ibuffer.buf);
+    ret.inputAssembly.indexBuffer.byteOffset = state.ibuffer.offs;
+    ret.inputAssembly.indexBuffer.byteStride = state.ibuffer.bytewidth;
+    ret.inputAssembly.primitiveRestartEnable = p.primitiveRestartEnable;
+    ret.inputAssembly.topology = MakePrimitiveTopology(state.primitiveTopology, p.patchControlPoints);
 
     // Vertex Input
-    m_VulkanPipelineState.vertexInput.attributes.resize(p.vertexAttrs.size());
+    ret.vertexInput.attributes.resize(p.vertexAttrs.size());
     for(size_t i = 0; i < p.vertexAttrs.size(); i++)
     {
-      m_VulkanPipelineState.vertexInput.attributes[i].location = p.vertexAttrs[i].location;
-      m_VulkanPipelineState.vertexInput.attributes[i].binding = p.vertexAttrs[i].binding;
-      m_VulkanPipelineState.vertexInput.attributes[i].byteOffset = p.vertexAttrs[i].byteoffset;
-      m_VulkanPipelineState.vertexInput.attributes[i].format =
-          MakeResourceFormat(p.vertexAttrs[i].format);
+      ret.vertexInput.attributes[i].location = p.vertexAttrs[i].location;
+      ret.vertexInput.attributes[i].binding = p.vertexAttrs[i].binding;
+      ret.vertexInput.attributes[i].byteOffset = p.vertexAttrs[i].byteoffset;
+      ret.vertexInput.attributes[i].format = MakeResourceFormat(p.vertexAttrs[i].format);
     }
 
-    m_VulkanPipelineState.vertexInput.bindings.resize(p.vertexBindings.size());
+    ret.vertexInput.bindings.resize(p.vertexBindings.size());
     for(size_t i = 0; i < p.vertexBindings.size(); i++)
     {
-      m_VulkanPipelineState.vertexInput.bindings[i].vertexBufferBinding =
-          p.vertexBindings[i].vbufferBinding;
-      m_VulkanPipelineState.vertexInput.bindings[i].perInstance = p.vertexBindings[i].perInstance;
-      m_VulkanPipelineState.vertexInput.bindings[i].instanceDivisor =
-          p.vertexBindings[i].instanceDivisor;
+      ret.vertexInput.bindings[i].vertexBufferBinding = p.vertexBindings[i].vbufferBinding;
+      ret.vertexInput.bindings[i].perInstance = p.vertexBindings[i].perInstance;
+      ret.vertexInput.bindings[i].instanceDivisor = p.vertexBindings[i].instanceDivisor;
     }
 
-    m_VulkanPipelineState.vertexInput.vertexBuffers.resize(state.vbuffers.size());
+    ret.vertexInput.vertexBuffers.resize(state.vbuffers.size());
     for(size_t i = 0; i < state.vbuffers.size(); i++)
     {
-      m_VulkanPipelineState.vertexInput.vertexBuffers[i].resourceId =
-          rm->GetOriginalID(state.vbuffers[i].buf);
-      m_VulkanPipelineState.vertexInput.vertexBuffers[i].byteOffset = state.vbuffers[i].offs;
-      m_VulkanPipelineState.vertexInput.vertexBuffers[i].byteStride =
-          (uint32_t)state.vbuffers[i].stride;
-      m_VulkanPipelineState.vertexInput.vertexBuffers[i].byteSize = (uint32_t)state.vbuffers[i].size;
+      ret.vertexInput.vertexBuffers[i].resourceId = rm->GetOriginalID(state.vbuffers[i].buf);
+      ret.vertexInput.vertexBuffers[i].byteOffset = state.vbuffers[i].offs;
+      ret.vertexInput.vertexBuffers[i].byteStride = (uint32_t)state.vbuffers[i].stride;
+      ret.vertexInput.vertexBuffers[i].byteSize = (uint32_t)state.vbuffers[i].size;
     }
 
     // Shader Stages
     VKPipe::Shader *stages[] = {
-        &m_VulkanPipelineState.vertexShader,   &m_VulkanPipelineState.tessControlShader,
-        &m_VulkanPipelineState.tessEvalShader, &m_VulkanPipelineState.geometryShader,
-        &m_VulkanPipelineState.fragmentShader,
+        &ret.vertexShader,   &ret.tessControlShader, &ret.tessEvalShader,
+        &ret.geometryShader, &ret.fragmentShader,
     };
 
     for(size_t i = 0; i < ARRAY_COUNT(stages); i++)
@@ -1232,391 +1228,357 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     }
 
     // Tessellation
-    m_VulkanPipelineState.tessellation.numControlPoints = p.patchControlPoints;
+    ret.tessellation.numControlPoints = p.patchControlPoints;
 
-    m_VulkanPipelineState.tessellation.domainOriginUpperLeft =
+    ret.tessellation.domainOriginUpperLeft =
         p.tessellationDomainOrigin == VK_TESSELLATION_DOMAIN_ORIGIN_UPPER_LEFT;
 
     // Transform feedback
-    m_VulkanPipelineState.transformFeedback.buffers.resize(state.xfbbuffers.size());
+    ret.transformFeedback.buffers.resize(state.xfbbuffers.size());
     for(size_t i = 0; i < state.xfbbuffers.size(); i++)
     {
-      m_VulkanPipelineState.transformFeedback.buffers[i].bufferResourceId =
-          rm->GetOriginalID(state.xfbbuffers[i].buf);
-      m_VulkanPipelineState.transformFeedback.buffers[i].byteOffset = state.xfbbuffers[i].offs;
-      m_VulkanPipelineState.transformFeedback.buffers[i].byteSize = state.xfbbuffers[i].size;
+      ret.transformFeedback.buffers[i].bufferResourceId = rm->GetOriginalID(state.xfbbuffers[i].buf);
+      ret.transformFeedback.buffers[i].byteOffset = state.xfbbuffers[i].offs;
+      ret.transformFeedback.buffers[i].byteSize = state.xfbbuffers[i].size;
 
-      m_VulkanPipelineState.transformFeedback.buffers[i].active = false;
-      m_VulkanPipelineState.transformFeedback.buffers[i].counterBufferResourceId = ResourceId();
-      m_VulkanPipelineState.transformFeedback.buffers[i].counterBufferOffset = 0;
+      ret.transformFeedback.buffers[i].active = false;
+      ret.transformFeedback.buffers[i].counterBufferResourceId = ResourceId();
+      ret.transformFeedback.buffers[i].counterBufferOffset = 0;
 
       if(i >= state.firstxfbcounter)
       {
         size_t xfb = i - state.firstxfbcounter;
         if(xfb < state.xfbcounters.size())
         {
-          m_VulkanPipelineState.transformFeedback.buffers[i].active = true;
-          m_VulkanPipelineState.transformFeedback.buffers[i].counterBufferResourceId =
+          ret.transformFeedback.buffers[i].active = true;
+          ret.transformFeedback.buffers[i].counterBufferResourceId =
               rm->GetOriginalID(state.xfbcounters[xfb].buf);
-          m_VulkanPipelineState.transformFeedback.buffers[i].counterBufferOffset =
-              state.xfbcounters[xfb].offs;
+          ret.transformFeedback.buffers[i].counterBufferOffset = state.xfbcounters[xfb].offs;
         }
       }
     }
 
     // Viewport/Scissors
     size_t numViewScissors = state.views.size();
-    m_VulkanPipelineState.viewportScissor.viewportScissors.resize(numViewScissors);
+    ret.viewportScissor.viewportScissors.resize(numViewScissors);
     for(size_t i = 0; i < numViewScissors; i++)
     {
       if(i < state.views.size())
       {
-        m_VulkanPipelineState.viewportScissor.viewportScissors[i].vp.x = state.views[i].x;
-        m_VulkanPipelineState.viewportScissor.viewportScissors[i].vp.y = state.views[i].y;
-        m_VulkanPipelineState.viewportScissor.viewportScissors[i].vp.width = state.views[i].width;
-        m_VulkanPipelineState.viewportScissor.viewportScissors[i].vp.height = state.views[i].height;
-        m_VulkanPipelineState.viewportScissor.viewportScissors[i].vp.minDepth =
-            state.views[i].minDepth;
-        m_VulkanPipelineState.viewportScissor.viewportScissors[i].vp.maxDepth =
-            state.views[i].maxDepth;
+        ret.viewportScissor.viewportScissors[i].vp.x = state.views[i].x;
+        ret.viewportScissor.viewportScissors[i].vp.y = state.views[i].y;
+        ret.viewportScissor.viewportScissors[i].vp.width = state.views[i].width;
+        ret.viewportScissor.viewportScissors[i].vp.height = state.views[i].height;
+        ret.viewportScissor.viewportScissors[i].vp.minDepth = state.views[i].minDepth;
+        ret.viewportScissor.viewportScissors[i].vp.maxDepth = state.views[i].maxDepth;
       }
       else
       {
-        RDCEraseEl(m_VulkanPipelineState.viewportScissor.viewportScissors[i].vp);
+        RDCEraseEl(ret.viewportScissor.viewportScissors[i].vp);
       }
 
       if(i < state.scissors.size())
       {
-        m_VulkanPipelineState.viewportScissor.viewportScissors[i].scissor.x =
-            state.scissors[i].offset.x;
-        m_VulkanPipelineState.viewportScissor.viewportScissors[i].scissor.y =
-            state.scissors[i].offset.y;
-        m_VulkanPipelineState.viewportScissor.viewportScissors[i].scissor.width =
-            state.scissors[i].extent.width;
-        m_VulkanPipelineState.viewportScissor.viewportScissors[i].scissor.height =
-            state.scissors[i].extent.height;
+        ret.viewportScissor.viewportScissors[i].scissor.x = state.scissors[i].offset.x;
+        ret.viewportScissor.viewportScissors[i].scissor.y = state.scissors[i].offset.y;
+        ret.viewportScissor.viewportScissors[i].scissor.width = state.scissors[i].extent.width;
+        ret.viewportScissor.viewportScissors[i].scissor.height = state.scissors[i].extent.height;
       }
       else
       {
-        RDCEraseEl(m_VulkanPipelineState.viewportScissor.viewportScissors[i].scissor);
+        RDCEraseEl(ret.viewportScissor.viewportScissors[i].scissor);
       }
     }
 
     {
-      m_VulkanPipelineState.viewportScissor.discardRectangles.resize(p.discardRectangles.size());
+      ret.viewportScissor.discardRectangles.resize(p.discardRectangles.size());
       for(size_t i = 0; i < p.discardRectangles.size() && i < state.discardRectangles.size(); i++)
       {
-        m_VulkanPipelineState.viewportScissor.discardRectangles[i].x =
-            state.discardRectangles[i].offset.x;
-        m_VulkanPipelineState.viewportScissor.discardRectangles[i].y =
-            state.discardRectangles[i].offset.y;
-        m_VulkanPipelineState.viewportScissor.discardRectangles[i].width =
-            state.discardRectangles[i].extent.width;
-        m_VulkanPipelineState.viewportScissor.discardRectangles[i].height =
-            state.discardRectangles[i].extent.height;
+        ret.viewportScissor.discardRectangles[i].x = state.discardRectangles[i].offset.x;
+        ret.viewportScissor.discardRectangles[i].y = state.discardRectangles[i].offset.y;
+        ret.viewportScissor.discardRectangles[i].width = state.discardRectangles[i].extent.width;
+        ret.viewportScissor.discardRectangles[i].height = state.discardRectangles[i].extent.height;
       }
 
-      m_VulkanPipelineState.viewportScissor.discardRectanglesExclusive =
+      ret.viewportScissor.discardRectanglesExclusive =
           (p.discardMode == VK_DISCARD_RECTANGLE_MODE_EXCLUSIVE_EXT);
     }
 
     // Rasterizer
-    m_VulkanPipelineState.rasterizer.depthClampEnable = p.depthClampEnable;
-    m_VulkanPipelineState.rasterizer.depthClipEnable = p.depthClipEnable;
-    m_VulkanPipelineState.rasterizer.rasterizerDiscardEnable = p.rasterizerDiscardEnable;
-    m_VulkanPipelineState.rasterizer.frontCCW = state.frontFace == VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    ret.rasterizer.depthClampEnable = p.depthClampEnable;
+    ret.rasterizer.depthClipEnable = p.depthClipEnable;
+    ret.rasterizer.rasterizerDiscardEnable = p.rasterizerDiscardEnable;
+    ret.rasterizer.frontCCW = state.frontFace == VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
-    m_VulkanPipelineState.rasterizer.conservativeRasterization = ConservativeRaster::Disabled;
+    ret.rasterizer.conservativeRasterization = ConservativeRaster::Disabled;
     switch(p.conservativeRasterizationMode)
     {
       case VK_CONSERVATIVE_RASTERIZATION_MODE_UNDERESTIMATE_EXT:
-        m_VulkanPipelineState.rasterizer.conservativeRasterization =
-            ConservativeRaster::Underestimate;
+        ret.rasterizer.conservativeRasterization = ConservativeRaster::Underestimate;
         break;
       case VK_CONSERVATIVE_RASTERIZATION_MODE_OVERESTIMATE_EXT:
-        m_VulkanPipelineState.rasterizer.conservativeRasterization = ConservativeRaster::Overestimate;
+        ret.rasterizer.conservativeRasterization = ConservativeRaster::Overestimate;
         break;
       default: break;
     }
 
-    m_VulkanPipelineState.rasterizer.lineRasterMode = LineRaster::Default;
+    ret.rasterizer.lineRasterMode = LineRaster::Default;
 
     // "VK_LINE_RASTERIZATION_MODE_DEFAULT_EXT is equivalent to
     // VK_LINE_RASTERIZATION_MODE_RECTANGULAR_EXT if VkPhysicalDeviceLimits::strictLines is VK_TRUE"
     if(m_pDriver->GetDeviceProps().limits.strictLines)
-      m_VulkanPipelineState.rasterizer.lineRasterMode = LineRaster::Rectangular;
+      ret.rasterizer.lineRasterMode = LineRaster::Rectangular;
 
     switch(p.lineRasterMode)
     {
       case VK_LINE_RASTERIZATION_MODE_RECTANGULAR_EXT:
-        m_VulkanPipelineState.rasterizer.lineRasterMode = LineRaster::Rectangular;
+        ret.rasterizer.lineRasterMode = LineRaster::Rectangular;
         break;
       case VK_LINE_RASTERIZATION_MODE_BRESENHAM_EXT:
-        m_VulkanPipelineState.rasterizer.lineRasterMode = LineRaster::Bresenham;
+        ret.rasterizer.lineRasterMode = LineRaster::Bresenham;
         break;
       case VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH_EXT:
-        m_VulkanPipelineState.rasterizer.lineRasterMode = LineRaster::RectangularSmooth;
+        ret.rasterizer.lineRasterMode = LineRaster::RectangularSmooth;
         break;
       default: break;
     }
 
-    m_VulkanPipelineState.rasterizer.lineStippleFactor = state.stippleFactor;
-    m_VulkanPipelineState.rasterizer.lineStipplePattern = state.stipplePattern;
+    ret.rasterizer.lineStippleFactor = state.stippleFactor;
+    ret.rasterizer.lineStipplePattern = state.stipplePattern;
 
-    m_VulkanPipelineState.rasterizer.extraPrimitiveOverestimationSize =
-        p.extraPrimitiveOverestimationSize;
+    ret.rasterizer.extraPrimitiveOverestimationSize = p.extraPrimitiveOverestimationSize;
 
     switch(p.polygonMode)
     {
-      case VK_POLYGON_MODE_POINT:
-        m_VulkanPipelineState.rasterizer.fillMode = FillMode::Point;
-        break;
-      case VK_POLYGON_MODE_LINE:
-        m_VulkanPipelineState.rasterizer.fillMode = FillMode::Wireframe;
-        break;
-      case VK_POLYGON_MODE_FILL: m_VulkanPipelineState.rasterizer.fillMode = FillMode::Solid; break;
+      case VK_POLYGON_MODE_POINT: ret.rasterizer.fillMode = FillMode::Point; break;
+      case VK_POLYGON_MODE_LINE: ret.rasterizer.fillMode = FillMode::Wireframe; break;
+      case VK_POLYGON_MODE_FILL: ret.rasterizer.fillMode = FillMode::Solid; break;
       default:
-        m_VulkanPipelineState.rasterizer.fillMode = FillMode::Solid;
+        ret.rasterizer.fillMode = FillMode::Solid;
         RDCERR("Unexpected value for FillMode %x", p.polygonMode);
         break;
     }
 
     switch(state.cullMode)
     {
-      case VK_CULL_MODE_NONE: m_VulkanPipelineState.rasterizer.cullMode = CullMode::NoCull; break;
-      case VK_CULL_MODE_FRONT_BIT:
-        m_VulkanPipelineState.rasterizer.cullMode = CullMode::Front;
-        break;
-      case VK_CULL_MODE_BACK_BIT: m_VulkanPipelineState.rasterizer.cullMode = CullMode::Back; break;
-      case VK_CULL_MODE_FRONT_AND_BACK:
-        m_VulkanPipelineState.rasterizer.cullMode = CullMode::FrontAndBack;
-        break;
+      case VK_CULL_MODE_NONE: ret.rasterizer.cullMode = CullMode::NoCull; break;
+      case VK_CULL_MODE_FRONT_BIT: ret.rasterizer.cullMode = CullMode::Front; break;
+      case VK_CULL_MODE_BACK_BIT: ret.rasterizer.cullMode = CullMode::Back; break;
+      case VK_CULL_MODE_FRONT_AND_BACK: ret.rasterizer.cullMode = CullMode::FrontAndBack; break;
       default:
-        m_VulkanPipelineState.rasterizer.cullMode = CullMode::NoCull;
+        ret.rasterizer.cullMode = CullMode::NoCull;
         RDCERR("Unexpected value for CullMode %x", state.cullMode);
         break;
     }
 
-    m_VulkanPipelineState.rasterizer.depthBias = state.bias.depth;
-    m_VulkanPipelineState.rasterizer.depthBiasClamp = state.bias.biasclamp;
-    m_VulkanPipelineState.rasterizer.slopeScaledDepthBias = state.bias.slope;
-    m_VulkanPipelineState.rasterizer.lineWidth = state.lineWidth;
+    ret.rasterizer.depthBias = state.bias.depth;
+    ret.rasterizer.depthBiasClamp = state.bias.biasclamp;
+    ret.rasterizer.slopeScaledDepthBias = state.bias.slope;
+    ret.rasterizer.lineWidth = state.lineWidth;
 
     // MSAA
-    m_VulkanPipelineState.multisample.rasterSamples = p.rasterizationSamples;
-    m_VulkanPipelineState.multisample.sampleShadingEnable = p.sampleShadingEnable;
-    m_VulkanPipelineState.multisample.minSampleShading = p.minSampleShading;
-    m_VulkanPipelineState.multisample.sampleMask = p.sampleMask;
+    ret.multisample.rasterSamples = p.rasterizationSamples;
+    ret.multisample.sampleShadingEnable = p.sampleShadingEnable;
+    ret.multisample.minSampleShading = p.minSampleShading;
+    ret.multisample.sampleMask = p.sampleMask;
 
-    m_VulkanPipelineState.multisample.sampleLocations.customLocations.clear();
+    ret.multisample.sampleLocations.customLocations.clear();
     if(p.sampleLocations.enabled)
     {
-      m_VulkanPipelineState.multisample.sampleLocations.gridWidth =
-          state.sampleLocations.gridSize.width;
-      m_VulkanPipelineState.multisample.sampleLocations.gridHeight =
-          state.sampleLocations.gridSize.height;
-      m_VulkanPipelineState.multisample.sampleLocations.customLocations.reserve(
-          state.sampleLocations.locations.size());
+      ret.multisample.sampleLocations.gridWidth = state.sampleLocations.gridSize.width;
+      ret.multisample.sampleLocations.gridHeight = state.sampleLocations.gridSize.height;
+      ret.multisample.sampleLocations.customLocations.reserve(state.sampleLocations.locations.size());
       for(const VkSampleLocationEXT &loc : state.sampleLocations.locations)
       {
-        m_VulkanPipelineState.multisample.sampleLocations.customLocations.push_back(
-            {loc.x, loc.y, 0.0f, 0.0f});
+        ret.multisample.sampleLocations.customLocations.push_back({loc.x, loc.y, 0.0f, 0.0f});
       }
     }
 
     // Color Blend
-    m_VulkanPipelineState.colorBlend.alphaToCoverageEnable = p.alphaToCoverageEnable;
-    m_VulkanPipelineState.colorBlend.alphaToOneEnable = p.alphaToOneEnable;
+    ret.colorBlend.alphaToCoverageEnable = p.alphaToCoverageEnable;
+    ret.colorBlend.alphaToOneEnable = p.alphaToOneEnable;
 
-    m_VulkanPipelineState.colorBlend.blends.resize(p.attachments.size());
+    ret.colorBlend.blends.resize(p.attachments.size());
     for(size_t i = 0; i < p.attachments.size(); i++)
     {
-      m_VulkanPipelineState.colorBlend.blends[i].enabled = p.attachments[i].blendEnable;
+      ret.colorBlend.blends[i].enabled = p.attachments[i].blendEnable;
 
       // due to shared structs, this is slightly duplicated - Vulkan doesn't have separate states
       // for logic operations
-      m_VulkanPipelineState.colorBlend.blends[i].logicOperationEnabled = p.logicOpEnable;
-      m_VulkanPipelineState.colorBlend.blends[i].logicOperation = MakeLogicOp(p.logicOp);
+      ret.colorBlend.blends[i].logicOperationEnabled = p.logicOpEnable;
+      ret.colorBlend.blends[i].logicOperation = MakeLogicOp(p.logicOp);
 
-      m_VulkanPipelineState.colorBlend.blends[i].colorBlend.source =
-          MakeBlendMultiplier(p.attachments[i].blend.Source);
-      m_VulkanPipelineState.colorBlend.blends[i].colorBlend.destination =
+      ret.colorBlend.blends[i].colorBlend.source = MakeBlendMultiplier(p.attachments[i].blend.Source);
+      ret.colorBlend.blends[i].colorBlend.destination =
           MakeBlendMultiplier(p.attachments[i].blend.Destination);
-      m_VulkanPipelineState.colorBlend.blends[i].colorBlend.operation =
-          MakeBlendOp(p.attachments[i].blend.Operation);
+      ret.colorBlend.blends[i].colorBlend.operation = MakeBlendOp(p.attachments[i].blend.Operation);
 
-      m_VulkanPipelineState.colorBlend.blends[i].alphaBlend.source =
+      ret.colorBlend.blends[i].alphaBlend.source =
           MakeBlendMultiplier(p.attachments[i].alphaBlend.Source);
-      m_VulkanPipelineState.colorBlend.blends[i].alphaBlend.destination =
+      ret.colorBlend.blends[i].alphaBlend.destination =
           MakeBlendMultiplier(p.attachments[i].alphaBlend.Destination);
-      m_VulkanPipelineState.colorBlend.blends[i].alphaBlend.operation =
+      ret.colorBlend.blends[i].alphaBlend.operation =
           MakeBlendOp(p.attachments[i].alphaBlend.Operation);
 
-      m_VulkanPipelineState.colorBlend.blends[i].writeMask = p.attachments[i].channelWriteMask;
+      ret.colorBlend.blends[i].writeMask = p.attachments[i].channelWriteMask;
     }
 
-    m_VulkanPipelineState.colorBlend.blendFactor = state.blendConst;
+    ret.colorBlend.blendFactor = state.blendConst;
 
     // Depth Stencil
-    m_VulkanPipelineState.depthStencil.depthTestEnable = state.depthTestEnable != VK_FALSE;
-    m_VulkanPipelineState.depthStencil.depthWriteEnable = state.depthWriteEnable != VK_FALSE;
-    m_VulkanPipelineState.depthStencil.depthBoundsEnable = state.depthBoundsTestEnable != VK_FALSE;
-    m_VulkanPipelineState.depthStencil.depthFunction = MakeCompareFunc(state.depthCompareOp);
-    m_VulkanPipelineState.depthStencil.stencilTestEnable = state.stencilTestEnable != VK_FALSE;
+    ret.depthStencil.depthTestEnable = state.depthTestEnable != VK_FALSE;
+    ret.depthStencil.depthWriteEnable = state.depthWriteEnable != VK_FALSE;
+    ret.depthStencil.depthBoundsEnable = state.depthBoundsTestEnable != VK_FALSE;
+    ret.depthStencil.depthFunction = MakeCompareFunc(state.depthCompareOp);
+    ret.depthStencil.stencilTestEnable = state.stencilTestEnable != VK_FALSE;
 
-    m_VulkanPipelineState.depthStencil.frontFace.passOperation = MakeStencilOp(state.front.passOp);
-    m_VulkanPipelineState.depthStencil.frontFace.failOperation = MakeStencilOp(state.front.failOp);
-    m_VulkanPipelineState.depthStencil.frontFace.depthFailOperation =
-        MakeStencilOp(state.front.depthFailOp);
-    m_VulkanPipelineState.depthStencil.frontFace.function = MakeCompareFunc(state.front.compareOp);
+    ret.depthStencil.frontFace.passOperation = MakeStencilOp(state.front.passOp);
+    ret.depthStencil.frontFace.failOperation = MakeStencilOp(state.front.failOp);
+    ret.depthStencil.frontFace.depthFailOperation = MakeStencilOp(state.front.depthFailOp);
+    ret.depthStencil.frontFace.function = MakeCompareFunc(state.front.compareOp);
 
-    m_VulkanPipelineState.depthStencil.backFace.passOperation = MakeStencilOp(state.back.passOp);
-    m_VulkanPipelineState.depthStencil.backFace.failOperation = MakeStencilOp(state.back.failOp);
-    m_VulkanPipelineState.depthStencil.backFace.depthFailOperation =
-        MakeStencilOp(state.back.depthFailOp);
-    m_VulkanPipelineState.depthStencil.backFace.function = MakeCompareFunc(state.back.compareOp);
+    ret.depthStencil.backFace.passOperation = MakeStencilOp(state.back.passOp);
+    ret.depthStencil.backFace.failOperation = MakeStencilOp(state.back.failOp);
+    ret.depthStencil.backFace.depthFailOperation = MakeStencilOp(state.back.depthFailOp);
+    ret.depthStencil.backFace.function = MakeCompareFunc(state.back.compareOp);
 
-    m_VulkanPipelineState.depthStencil.minDepthBounds = state.mindepth;
-    m_VulkanPipelineState.depthStencil.maxDepthBounds = state.maxdepth;
+    ret.depthStencil.minDepthBounds = state.mindepth;
+    ret.depthStencil.maxDepthBounds = state.maxdepth;
 
-    m_VulkanPipelineState.depthStencil.frontFace.reference = state.front.ref;
-    m_VulkanPipelineState.depthStencil.frontFace.compareMask = state.front.compare;
-    m_VulkanPipelineState.depthStencil.frontFace.writeMask = state.front.write;
+    ret.depthStencil.frontFace.reference = state.front.ref;
+    ret.depthStencil.frontFace.compareMask = state.front.compare;
+    ret.depthStencil.frontFace.writeMask = state.front.write;
 
-    m_VulkanPipelineState.depthStencil.backFace.reference = state.back.ref;
-    m_VulkanPipelineState.depthStencil.backFace.compareMask = state.back.compare;
-    m_VulkanPipelineState.depthStencil.backFace.writeMask = state.back.write;
+    ret.depthStencil.backFace.reference = state.back.ref;
+    ret.depthStencil.backFace.compareMask = state.back.compare;
+    ret.depthStencil.backFace.writeMask = state.back.write;
   }
   else
   {
-    m_VulkanPipelineState.graphics.pipelineLayoutResourceId = ResourceId();
+    ret.graphics.pipelineLayoutResourceId = ResourceId();
 
-    m_VulkanPipelineState.graphics.flags = 0;
+    ret.graphics.flags = 0;
 
-    m_VulkanPipelineState.vertexInput.attributes.clear();
-    m_VulkanPipelineState.vertexInput.bindings.clear();
-    m_VulkanPipelineState.vertexInput.vertexBuffers.clear();
+    ret.vertexInput.attributes.clear();
+    ret.vertexInput.bindings.clear();
+    ret.vertexInput.vertexBuffers.clear();
 
     VKPipe::Shader *stages[] = {
-        &m_VulkanPipelineState.vertexShader,   &m_VulkanPipelineState.tessControlShader,
-        &m_VulkanPipelineState.tessEvalShader, &m_VulkanPipelineState.geometryShader,
-        &m_VulkanPipelineState.fragmentShader,
+        &ret.vertexShader,   &ret.tessControlShader, &ret.tessEvalShader,
+        &ret.geometryShader, &ret.fragmentShader,
     };
 
     for(size_t i = 0; i < ARRAY_COUNT(stages); i++)
       *stages[i] = VKPipe::Shader();
 
-    m_VulkanPipelineState.viewportScissor.viewportScissors.clear();
-    m_VulkanPipelineState.viewportScissor.discardRectangles.clear();
-    m_VulkanPipelineState.viewportScissor.discardRectanglesExclusive = true;
+    ret.viewportScissor.viewportScissors.clear();
+    ret.viewportScissor.discardRectangles.clear();
+    ret.viewportScissor.discardRectanglesExclusive = true;
 
-    m_VulkanPipelineState.colorBlend.blends.clear();
+    ret.colorBlend.blends.clear();
   }
 
   if(state.renderPass != ResourceId())
   {
     // Renderpass
-    m_VulkanPipelineState.currentPass.renderpass.resourceId = rm->GetOriginalID(state.renderPass);
-    m_VulkanPipelineState.currentPass.renderpass.subpass = state.subpass;
+    ret.currentPass.renderpass.resourceId = rm->GetOriginalID(state.renderPass);
+    ret.currentPass.renderpass.subpass = state.subpass;
     if(state.renderPass != ResourceId())
     {
-      m_VulkanPipelineState.currentPass.renderpass.inputAttachments =
+      ret.currentPass.renderpass.inputAttachments =
           c.m_RenderPass[state.renderPass].subpasses[state.subpass].inputAttachments;
-      m_VulkanPipelineState.currentPass.renderpass.colorAttachments =
+      ret.currentPass.renderpass.colorAttachments =
           c.m_RenderPass[state.renderPass].subpasses[state.subpass].colorAttachments;
-      m_VulkanPipelineState.currentPass.renderpass.resolveAttachments =
+      ret.currentPass.renderpass.resolveAttachments =
           c.m_RenderPass[state.renderPass].subpasses[state.subpass].resolveAttachments;
-      m_VulkanPipelineState.currentPass.renderpass.depthstencilAttachment =
+      ret.currentPass.renderpass.depthstencilAttachment =
           c.m_RenderPass[state.renderPass].subpasses[state.subpass].depthstencilAttachment;
-      m_VulkanPipelineState.currentPass.renderpass.fragmentDensityAttachment =
+      ret.currentPass.renderpass.fragmentDensityAttachment =
           c.m_RenderPass[state.renderPass].subpasses[state.subpass].fragmentDensityAttachment;
 
-      m_VulkanPipelineState.currentPass.renderpass.multiviews =
+      ret.currentPass.renderpass.multiviews =
           c.m_RenderPass[state.renderPass].subpasses[state.subpass].multiviews;
     }
 
     ResourceId fb = state.GetFramebuffer();
 
-    m_VulkanPipelineState.currentPass.framebuffer.resourceId = rm->GetOriginalID(fb);
+    ret.currentPass.framebuffer.resourceId = rm->GetOriginalID(fb);
 
     if(fb != ResourceId())
     {
-      m_VulkanPipelineState.currentPass.framebuffer.width = c.m_Framebuffer[fb].width;
-      m_VulkanPipelineState.currentPass.framebuffer.height = c.m_Framebuffer[fb].height;
-      m_VulkanPipelineState.currentPass.framebuffer.layers = c.m_Framebuffer[fb].layers;
+      ret.currentPass.framebuffer.width = c.m_Framebuffer[fb].width;
+      ret.currentPass.framebuffer.height = c.m_Framebuffer[fb].height;
+      ret.currentPass.framebuffer.layers = c.m_Framebuffer[fb].layers;
 
-      m_VulkanPipelineState.currentPass.framebuffer.attachments.resize(
-          c.m_Framebuffer[fb].attachments.size());
+      ret.currentPass.framebuffer.attachments.resize(c.m_Framebuffer[fb].attachments.size());
       for(size_t i = 0; i < c.m_Framebuffer[fb].attachments.size(); i++)
       {
         ResourceId viewid = state.GetFramebufferAttachments()[i];
 
         if(viewid != ResourceId())
         {
-          m_VulkanPipelineState.currentPass.framebuffer.attachments[i].viewResourceId =
-              rm->GetOriginalID(viewid);
-          m_VulkanPipelineState.currentPass.framebuffer.attachments[i].imageResourceId =
+          ret.currentPass.framebuffer.attachments[i].viewResourceId = rm->GetOriginalID(viewid);
+          ret.currentPass.framebuffer.attachments[i].imageResourceId =
               rm->GetOriginalID(c.m_ImageView[viewid].image);
 
-          m_VulkanPipelineState.currentPass.framebuffer.attachments[i].viewFormat =
+          ret.currentPass.framebuffer.attachments[i].viewFormat =
               MakeResourceFormat(c.m_ImageView[viewid].format);
-          m_VulkanPipelineState.currentPass.framebuffer.attachments[i].firstMip =
+          ret.currentPass.framebuffer.attachments[i].firstMip =
               c.m_ImageView[viewid].range.baseMipLevel;
-          m_VulkanPipelineState.currentPass.framebuffer.attachments[i].firstSlice =
+          ret.currentPass.framebuffer.attachments[i].firstSlice =
               c.m_ImageView[viewid].range.baseArrayLayer;
-          m_VulkanPipelineState.currentPass.framebuffer.attachments[i].numMips =
-              c.m_ImageView[viewid].range.levelCount;
-          m_VulkanPipelineState.currentPass.framebuffer.attachments[i].numSlices =
+          ret.currentPass.framebuffer.attachments[i].numMips = c.m_ImageView[viewid].range.levelCount;
+          ret.currentPass.framebuffer.attachments[i].numSlices =
               c.m_ImageView[viewid].range.layerCount;
 
-          Convert(m_VulkanPipelineState.currentPass.framebuffer.attachments[i].swizzle,
+          Convert(ret.currentPass.framebuffer.attachments[i].swizzle,
                   c.m_ImageView[viewid].componentMapping);
         }
         else
         {
-          m_VulkanPipelineState.currentPass.framebuffer.attachments[i].viewResourceId = ResourceId();
-          m_VulkanPipelineState.currentPass.framebuffer.attachments[i].imageResourceId = ResourceId();
+          ret.currentPass.framebuffer.attachments[i].viewResourceId = ResourceId();
+          ret.currentPass.framebuffer.attachments[i].imageResourceId = ResourceId();
 
-          m_VulkanPipelineState.currentPass.framebuffer.attachments[i].firstMip = 0;
-          m_VulkanPipelineState.currentPass.framebuffer.attachments[i].firstSlice = 0;
-          m_VulkanPipelineState.currentPass.framebuffer.attachments[i].numMips = 1;
-          m_VulkanPipelineState.currentPass.framebuffer.attachments[i].numSlices = 1;
+          ret.currentPass.framebuffer.attachments[i].firstMip = 0;
+          ret.currentPass.framebuffer.attachments[i].firstSlice = 0;
+          ret.currentPass.framebuffer.attachments[i].numMips = 1;
+          ret.currentPass.framebuffer.attachments[i].numSlices = 1;
         }
       }
     }
     else
     {
-      m_VulkanPipelineState.currentPass.framebuffer.width = 0;
-      m_VulkanPipelineState.currentPass.framebuffer.height = 0;
-      m_VulkanPipelineState.currentPass.framebuffer.layers = 0;
+      ret.currentPass.framebuffer.width = 0;
+      ret.currentPass.framebuffer.height = 0;
+      ret.currentPass.framebuffer.layers = 0;
     }
 
-    m_VulkanPipelineState.currentPass.renderArea.x = state.renderArea.offset.x;
-    m_VulkanPipelineState.currentPass.renderArea.y = state.renderArea.offset.y;
-    m_VulkanPipelineState.currentPass.renderArea.width = state.renderArea.extent.width;
-    m_VulkanPipelineState.currentPass.renderArea.height = state.renderArea.extent.height;
+    ret.currentPass.renderArea.x = state.renderArea.offset.x;
+    ret.currentPass.renderArea.y = state.renderArea.offset.y;
+    ret.currentPass.renderArea.width = state.renderArea.extent.width;
+    ret.currentPass.renderArea.height = state.renderArea.extent.height;
   }
   else
   {
-    m_VulkanPipelineState.currentPass.renderpass.resourceId = ResourceId();
-    m_VulkanPipelineState.currentPass.renderpass.subpass = 0;
-    m_VulkanPipelineState.currentPass.renderpass.inputAttachments.clear();
-    m_VulkanPipelineState.currentPass.renderpass.colorAttachments.clear();
-    m_VulkanPipelineState.currentPass.renderpass.resolveAttachments.clear();
-    m_VulkanPipelineState.currentPass.renderpass.depthstencilAttachment = -1;
-    m_VulkanPipelineState.currentPass.renderpass.fragmentDensityAttachment = -1;
+    ret.currentPass.renderpass.resourceId = ResourceId();
+    ret.currentPass.renderpass.subpass = 0;
+    ret.currentPass.renderpass.inputAttachments.clear();
+    ret.currentPass.renderpass.colorAttachments.clear();
+    ret.currentPass.renderpass.resolveAttachments.clear();
+    ret.currentPass.renderpass.depthstencilAttachment = -1;
+    ret.currentPass.renderpass.fragmentDensityAttachment = -1;
 
-    m_VulkanPipelineState.currentPass.framebuffer.resourceId = ResourceId();
-    m_VulkanPipelineState.currentPass.framebuffer.attachments.clear();
+    ret.currentPass.framebuffer.resourceId = ResourceId();
+    ret.currentPass.framebuffer.attachments.clear();
   }
 
   // Descriptor sets
-  m_VulkanPipelineState.graphics.descriptorSets.resize(state.graphics.descSets.size());
-  m_VulkanPipelineState.compute.descriptorSets.resize(state.compute.descSets.size());
+  ret.graphics.descriptorSets.resize(state.graphics.descSets.size());
+  ret.compute.descriptorSets.resize(state.compute.descSets.size());
 
   {
     rdcarray<VKPipe::DescriptorSet> *dsts[] = {
-        &m_VulkanPipelineState.graphics.descriptorSets, &m_VulkanPipelineState.compute.descriptorSets,
+        &ret.graphics.descriptorSets, &ret.compute.descriptorSets,
     };
 
     const rdcarray<VulkanStatePipeline::DescriptorAndOffsets> *srcs[] = {
@@ -1625,7 +1587,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
     const VKDynamicShaderFeedback &usage = m_BindlessFeedback.Usage[eventId];
 
-    m_VulkanPipelineState.shaderMessages = usage.messages;
+    ret.shaderMessages = usage.messages;
 
     for(size_t p = 0; p < ARRAY_COUNT(srcs); p++)
     {
@@ -1978,10 +1940,10 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
   // image layouts
   {
     size_t i = 0;
-    m_VulkanPipelineState.images.resize(m_pDriver->m_ImageStates.size());
+    ret.images.resize(m_pDriver->m_ImageStates.size());
     for(auto it = m_pDriver->m_ImageStates.begin(); it != m_pDriver->m_ImageStates.end(); ++it)
     {
-      VKPipe::ImageData &img = m_VulkanPipelineState.images[i];
+      VKPipe::ImageData &img = ret.images[i];
 
       if(rm->GetOriginalID(it->first) == it->first)
         continue;
@@ -2009,15 +1971,14 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       i++;
     }
 
-    m_VulkanPipelineState.images.resize(i);
+    ret.images.resize(i);
   }
 
   if(state.conditionalRendering.buffer != ResourceId())
   {
-    m_VulkanPipelineState.conditionalRendering.bufferId =
-        rm->GetOriginalID(state.conditionalRendering.buffer);
-    m_VulkanPipelineState.conditionalRendering.byteOffset = state.conditionalRendering.offset;
-    m_VulkanPipelineState.conditionalRendering.isInverted =
+    ret.conditionalRendering.bufferId = rm->GetOriginalID(state.conditionalRendering.buffer);
+    ret.conditionalRendering.byteOffset = state.conditionalRendering.offset;
+    ret.conditionalRendering.isInverted =
         state.conditionalRendering.flags == VK_CONDITIONAL_RENDERING_INVERTED_BIT_EXT;
 
     bytebuf data;
@@ -2027,11 +1988,10 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     uint32_t value;
     memcpy(&value, data.data(), sizeof(uint32_t));
 
-    m_VulkanPipelineState.conditionalRendering.isPassing = value != 0;
+    ret.conditionalRendering.isPassing = value != 0;
 
-    if(m_VulkanPipelineState.conditionalRendering.isInverted)
-      m_VulkanPipelineState.conditionalRendering.isPassing =
-          !m_VulkanPipelineState.conditionalRendering.isPassing;
+    if(ret.conditionalRendering.isInverted)
+      ret.conditionalRendering.isPassing = !ret.conditionalRendering.isPassing;
   }
 }
 

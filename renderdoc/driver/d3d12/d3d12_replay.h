@@ -111,11 +111,12 @@ public:
 
   FrameRecord &WriteFrameRecord() { return m_FrameRecord; }
   FrameRecord GetFrameRecord() { return m_FrameRecord; }
+  void SetPipelineStates(D3D11Pipe::State *d3d11, D3D12Pipe::State *d3d12, GLPipe::State *gl,
+                         VKPipe::State *vk)
+  {
+    m_D3D12PipelineState = d3d12;
+  }
   void SavePipelineState(uint32_t eventId);
-  const D3D11Pipe::State *GetD3D11PipelineState() { return NULL; }
-  const D3D12Pipe::State *GetD3D12PipelineState() { return &m_PipelineState; }
-  const GLPipe::State *GetGLPipelineState() { return NULL; }
-  const VKPipe::State *GetVulkanPipelineState() { return NULL; }
   void FreeTargetResource(ResourceId id);
   void FreeCustomShader(ResourceId id);
 
@@ -457,7 +458,7 @@ private:
   bool m_ISAChecked = false;
   bool m_ISAAvailable = false;
 
-  D3D12Pipe::State m_PipelineState;
+  D3D12Pipe::State *m_D3D12PipelineState = NULL;
 
   FrameRecord m_FrameRecord;
 

@@ -468,13 +468,18 @@ void VulkanDebugManager::PatchLineStripIndexBuffer(const ActionDescription *acti
 
 RenderOutputSubresource VulkanReplay::GetRenderOutputSubresource(ResourceId id)
 {
-  id = GetResourceManager()->GetOriginalID(id);
+  const VulkanRenderState &state = m_pDriver->m_RenderState;
+  VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
 
-  for(const VKPipe::Attachment &att : m_VulkanPipelineState.currentPass.framebuffer.attachments)
+  for(ResourceId viewid : state.GetFramebufferAttachments())
   {
-    if(att.viewResourceId == id || att.imageResourceId == id)
+    const VulkanCreationInfo::ImageView &viewInfo = c.m_ImageView[viewid];
+
+    if(viewid == id || viewInfo.image == id)
     {
-      return RenderOutputSubresource(att.firstMip, att.firstSlice, att.numSlices);
+      return RenderOutputSubresource(viewInfo.range.baseMipLevel,
+                                     c.m_ImageView[viewid].range.baseArrayLayer,
+                                     c.m_ImageView[viewid].range.layerCount);
     }
   }
 

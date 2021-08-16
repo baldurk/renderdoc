@@ -189,8 +189,58 @@ struct RemoteExecution
   else                                                                \
     return CONCAT(Proxied_, name)(m_Writer, m_Reader, ##__VA_ARGS__);
 
+ReplayProxy::ReplayProxy(ReadSerialiser &reader, WriteSerialiser &writer, IRemoteDriver *remoteDriver,
+                         IReplayDriver *replayDriver, RENDERDOC_PreviewWindowCallback previewWindow)
+    : m_Reader(reader),
+      m_Writer(writer),
+      m_Proxy(NULL),
+      m_Remote(remoteDriver),
+      m_Replay(replayDriver),
+      m_PreviewWindow(previewWindow),
+      m_RemoteServer(true)
+{
+  m_APIProps = m_Remote->GetAPIProperties();
+
+  InitRemoteExecutionThread();
+
+  if(m_Replay)
+    InitPreviewWindow();
+
+  if(m_APIProps.pipelineType == GraphicsAPI::D3D11)
+    m_D3D11PipelineState = new D3D11Pipe::State;
+  else if(m_APIProps.pipelineType == GraphicsAPI::D3D12)
+    m_D3D12PipelineState = new D3D12Pipe::State;
+  else if(m_APIProps.pipelineType == GraphicsAPI::OpenGL)
+    m_GLPipelineState = new GLPipe::State;
+  else if(m_APIProps.pipelineType == GraphicsAPI::Vulkan)
+    m_VulkanPipelineState = new VKPipe::State;
+
+  m_Remote->SetPipelineStates(m_D3D11PipelineState, m_D3D12PipelineState, m_GLPipelineState,
+                              m_VulkanPipelineState);
+}
+
+ReplayProxy::ReplayProxy(ReadSerialiser &reader, WriteSerialiser &writer, IReplayDriver *proxy)
+    : m_Reader(reader),
+      m_Writer(writer),
+      m_Proxy(proxy),
+      m_Remote(NULL),
+      m_Replay(NULL),
+      m_RemoteServer(false)
+{
+  ReplayProxy::GetAPIProperties();
+  ReplayProxy::FetchStructuredFile();
+}
+
 ReplayProxy::~ReplayProxy()
 {
+  if(m_Remote)
+  {
+    SAFE_DELETE(m_D3D11PipelineState);
+    SAFE_DELETE(m_D3D12PipelineState);
+    SAFE_DELETE(m_GLPipelineState);
+    SAFE_DELETE(m_VulkanPipelineState);
+  }
+
   ShutdownRemoteExecutionThread();
 
   ShutdownPreviewWindow();
@@ -1651,15 +1701,6 @@ void ReplayProxy::Proxied_SavePipelineState(ParamSerialiser &paramser, ReturnSer
     if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
     {
       m_Remote->SavePipelineState(eventId);
-
-      if(m_APIProps.pipelineType == GraphicsAPI::D3D11)
-        m_D3D11PipelineState = *m_Remote->GetD3D11PipelineState();
-      else if(m_APIProps.pipelineType == GraphicsAPI::D3D12)
-        m_D3D12PipelineState = *m_Remote->GetD3D12PipelineState();
-      else if(m_APIProps.pipelineType == GraphicsAPI::OpenGL)
-        m_GLPipelineState = *m_Remote->GetGLPipelineState();
-      else if(m_APIProps.pipelineType == GraphicsAPI::Vulkan)
-        m_VulkanPipelineState = *m_Remote->GetVulkanPipelineState();
     }
   }
 
@@ -1668,31 +1709,31 @@ void ReplayProxy::Proxied_SavePipelineState(ParamSerialiser &paramser, ReturnSer
     PACKET_HEADER(packet);
     if(m_APIProps.pipelineType == GraphicsAPI::D3D11)
     {
-      SERIALISE_ELEMENT(m_D3D11PipelineState);
+      SERIALISE_ELEMENT(*m_D3D11PipelineState);
     }
     else if(m_APIProps.pipelineType == GraphicsAPI::D3D12)
     {
-      SERIALISE_ELEMENT(m_D3D12PipelineState);
+      SERIALISE_ELEMENT(*m_D3D12PipelineState);
     }
     else if(m_APIProps.pipelineType == GraphicsAPI::OpenGL)
     {
-      SERIALISE_ELEMENT(m_GLPipelineState);
+      SERIALISE_ELEMENT(*m_GLPipelineState);
     }
     else if(m_APIProps.pipelineType == GraphicsAPI::Vulkan)
     {
-      SERIALISE_ELEMENT(m_VulkanPipelineState);
+      SERIALISE_ELEMENT(*m_VulkanPipelineState);
     }
     SERIALISE_ELEMENT(packet);
     ser.EndChunk();
 
     if(retser.IsReading())
     {
-      if(m_APIProps.pipelineType == GraphicsAPI::D3D11)
+      if(m_APIProps.pipelineType == GraphicsAPI::D3D11 && m_D3D11PipelineState)
       {
         D3D11Pipe::Shader *stages[] = {
-            &m_D3D11PipelineState.vertexShader, &m_D3D11PipelineState.hullShader,
-            &m_D3D11PipelineState.domainShader, &m_D3D11PipelineState.geometryShader,
-            &m_D3D11PipelineState.pixelShader,  &m_D3D11PipelineState.computeShader,
+            &m_D3D11PipelineState->vertexShader, &m_D3D11PipelineState->hullShader,
+            &m_D3D11PipelineState->domainShader, &m_D3D11PipelineState->geometryShader,
+            &m_D3D11PipelineState->pixelShader,  &m_D3D11PipelineState->computeShader,
         };
 
         for(int i = 0; i < 6; i++)
@@ -1700,32 +1741,32 @@ void ReplayProxy::Proxied_SavePipelineState(ParamSerialiser &paramser, ReturnSer
             stages[i]->reflection =
                 GetShader(ResourceId(), GetLiveID(stages[i]->resourceId), ShaderEntryPoint());
 
-        if(m_D3D11PipelineState.inputAssembly.resourceId != ResourceId())
-          m_D3D11PipelineState.inputAssembly.bytecode =
-              GetShader(ResourceId(), GetLiveID(m_D3D11PipelineState.inputAssembly.resourceId),
+        if(m_D3D11PipelineState->inputAssembly.resourceId != ResourceId())
+          m_D3D11PipelineState->inputAssembly.bytecode =
+              GetShader(ResourceId(), GetLiveID(m_D3D11PipelineState->inputAssembly.resourceId),
                         ShaderEntryPoint());
       }
-      else if(m_APIProps.pipelineType == GraphicsAPI::D3D12)
+      else if(m_APIProps.pipelineType == GraphicsAPI::D3D12 && m_D3D12PipelineState)
       {
         D3D12Pipe::Shader *stages[] = {
-            &m_D3D12PipelineState.vertexShader, &m_D3D12PipelineState.hullShader,
-            &m_D3D12PipelineState.domainShader, &m_D3D12PipelineState.geometryShader,
-            &m_D3D12PipelineState.pixelShader,  &m_D3D12PipelineState.computeShader,
+            &m_D3D12PipelineState->vertexShader, &m_D3D12PipelineState->hullShader,
+            &m_D3D12PipelineState->domainShader, &m_D3D12PipelineState->geometryShader,
+            &m_D3D12PipelineState->pixelShader,  &m_D3D12PipelineState->computeShader,
         };
 
-        ResourceId pipe = GetLiveID(m_D3D12PipelineState.pipelineResourceId);
+        ResourceId pipe = GetLiveID(m_D3D12PipelineState->pipelineResourceId);
 
         for(int i = 0; i < 6; i++)
           if(stages[i]->resourceId != ResourceId())
             stages[i]->reflection =
                 GetShader(pipe, GetLiveID(stages[i]->resourceId), ShaderEntryPoint());
       }
-      else if(m_APIProps.pipelineType == GraphicsAPI::OpenGL)
+      else if(m_APIProps.pipelineType == GraphicsAPI::OpenGL && m_GLPipelineState)
       {
         GLPipe::Shader *stages[] = {
-            &m_GLPipelineState.vertexShader,   &m_GLPipelineState.tessControlShader,
-            &m_GLPipelineState.tessEvalShader, &m_GLPipelineState.geometryShader,
-            &m_GLPipelineState.fragmentShader, &m_GLPipelineState.computeShader,
+            &m_GLPipelineState->vertexShader,   &m_GLPipelineState->tessControlShader,
+            &m_GLPipelineState->tessEvalShader, &m_GLPipelineState->geometryShader,
+            &m_GLPipelineState->fragmentShader, &m_GLPipelineState->computeShader,
         };
 
         for(int i = 0; i < 6; i++)
@@ -1733,20 +1774,20 @@ void ReplayProxy::Proxied_SavePipelineState(ParamSerialiser &paramser, ReturnSer
             stages[i]->reflection =
                 GetShader(ResourceId(), GetLiveID(stages[i]->shaderResourceId), ShaderEntryPoint());
       }
-      else if(m_APIProps.pipelineType == GraphicsAPI::Vulkan)
+      else if(m_APIProps.pipelineType == GraphicsAPI::Vulkan && m_VulkanPipelineState)
       {
         VKPipe::Shader *stages[] = {
-            &m_VulkanPipelineState.vertexShader,   &m_VulkanPipelineState.tessControlShader,
-            &m_VulkanPipelineState.tessEvalShader, &m_VulkanPipelineState.geometryShader,
-            &m_VulkanPipelineState.fragmentShader, &m_VulkanPipelineState.computeShader,
+            &m_VulkanPipelineState->vertexShader,   &m_VulkanPipelineState->tessControlShader,
+            &m_VulkanPipelineState->tessEvalShader, &m_VulkanPipelineState->geometryShader,
+            &m_VulkanPipelineState->fragmentShader, &m_VulkanPipelineState->computeShader,
         };
 
-        ResourceId pipe = GetLiveID(m_VulkanPipelineState.graphics.pipelineResourceId);
+        ResourceId pipe = GetLiveID(m_VulkanPipelineState->graphics.pipelineResourceId);
 
         for(int i = 0; i < 6; i++)
         {
           if(i == 5)
-            pipe = GetLiveID(m_VulkanPipelineState.compute.pipelineResourceId);
+            pipe = GetLiveID(m_VulkanPipelineState->compute.pipelineResourceId);
 
           if(stages[i]->resourceId != ResourceId())
             stages[i]->reflection =

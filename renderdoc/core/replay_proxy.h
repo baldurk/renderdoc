@@ -122,35 +122,10 @@ DECLARE_REFLECTION_ENUM(ReplayProxyPacket);
 class ReplayProxy : public IReplayDriver
 {
 public:
-  ReplayProxy(ReadSerialiser &reader, WriteSerialiser &writer, IReplayDriver *proxy)
-      : m_Reader(reader),
-        m_Writer(writer),
-        m_Proxy(proxy),
-        m_Remote(NULL),
-        m_Replay(NULL),
-        m_RemoteServer(false)
-  {
-    ReplayProxy::GetAPIProperties();
-    ReplayProxy::FetchStructuredFile();
-  }
+  ReplayProxy(ReadSerialiser &reader, WriteSerialiser &writer, IReplayDriver *proxy);
 
   ReplayProxy(ReadSerialiser &reader, WriteSerialiser &writer, IRemoteDriver *remoteDriver,
-              IReplayDriver *replayDriver, RENDERDOC_PreviewWindowCallback previewWindow)
-      : m_Reader(reader),
-        m_Writer(writer),
-        m_Proxy(NULL),
-        m_Remote(remoteDriver),
-        m_Replay(replayDriver),
-        m_PreviewWindow(previewWindow),
-        m_RemoteServer(true)
-  {
-    RDCEraseEl(m_APIProps);
-
-    InitRemoteExecutionThread();
-
-    if(m_Replay)
-      InitPreviewWindow();
-  }
+              IReplayDriver *replayDriver, RENDERDOC_PreviewWindowCallback previewWindow);
 
   virtual ~ReplayProxy();
 
@@ -460,11 +435,15 @@ public:
 
   bool Tick(int type);
 
-  const D3D11Pipe::State *GetD3D11PipelineState() { return &m_D3D11PipelineState; }
-  const D3D12Pipe::State *GetD3D12PipelineState() { return &m_D3D12PipelineState; }
-  const GLPipe::State *GetGLPipelineState() { return &m_GLPipelineState; }
-  const VKPipe::State *GetVulkanPipelineState() { return &m_VulkanPipelineState; }
   const SDFile &GetStructuredFile() { return m_StructuredFile; }
+  void SetPipelineStates(D3D11Pipe::State *d3d11, D3D12Pipe::State *d3d12, GLPipe::State *gl,
+                         VKPipe::State *vk)
+  {
+    m_D3D11PipelineState = d3d11;
+    m_D3D12PipelineState = d3d12;
+    m_GLPipelineState = gl;
+    m_VulkanPipelineState = vk;
+  }
   IMPLEMENT_FUNCTION_PROXIED(void, FetchStructuredFile);
 
   IMPLEMENT_FUNCTION_PROXIED(rdcarray<ResourceDescription>, GetResources);
@@ -724,8 +703,8 @@ private:
 
   SDFile m_StructuredFile;
 
-  D3D11Pipe::State m_D3D11PipelineState;
-  D3D12Pipe::State m_D3D12PipelineState;
-  GLPipe::State m_GLPipelineState;
-  VKPipe::State m_VulkanPipelineState;
+  D3D11Pipe::State *m_D3D11PipelineState = NULL;
+  D3D12Pipe::State *m_D3D12PipelineState = NULL;
+  GLPipe::State *m_GLPipelineState = NULL;
+  VKPipe::State *m_VulkanPipelineState = NULL;
 };

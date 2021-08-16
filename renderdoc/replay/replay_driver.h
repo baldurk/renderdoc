@@ -154,11 +154,9 @@ public:
 
   virtual rdcarray<EventUsage> GetUsage(ResourceId id) = 0;
 
+  virtual void SetPipelineStates(D3D11Pipe::State *d3d11, D3D12Pipe::State *d3d12,
+                                 GLPipe::State *gl, VKPipe::State *vk) = 0;
   virtual void SavePipelineState(uint32_t eventId) = 0;
-  virtual const D3D11Pipe::State *GetD3D11PipelineState() = 0;
-  virtual const D3D12Pipe::State *GetD3D12PipelineState() = 0;
-  virtual const GLPipe::State *GetGLPipelineState() = 0;
-  virtual const VKPipe::State *GetVulkanPipelineState() = 0;
 
   virtual FrameRecord GetFrameRecord() = 0;
 

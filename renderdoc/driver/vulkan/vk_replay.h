@@ -296,11 +296,12 @@ public:
   FrameRecord GetFrameRecord() { return m_FrameRecord; }
   rdcarray<DebugMessage> GetDebugMessages();
 
+  void SetPipelineStates(D3D11Pipe::State *d3d11, D3D12Pipe::State *d3d12, GLPipe::State *gl,
+                         VKPipe::State *vk)
+  {
+    m_VulkanPipelineState = vk;
+  }
   void SavePipelineState(uint32_t eventId);
-  const D3D11Pipe::State *GetD3D11PipelineState() { return NULL; }
-  const D3D12Pipe::State *GetD3D12PipelineState() { return NULL; }
-  const GLPipe::State *GetGLPipelineState() { return NULL; }
-  const VKPipe::State *GetVulkanPipelineState() { return &m_VulkanPipelineState; }
   void FreeTargetResource(ResourceId id);
 
   ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
@@ -752,7 +753,7 @@ private:
   rdcarray<ResourceDescription> m_Resources;
   std::map<ResourceId, size_t> m_ResourceIdx;
 
-  VKPipe::State m_VulkanPipelineState;
+  VKPipe::State *m_VulkanPipelineState = NULL;
 
   DriverInformation m_DriverInfo;
 

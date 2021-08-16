@@ -140,11 +140,12 @@ public:
 
   FrameRecord &WriteFrameRecord() { return m_FrameRecord; }
   FrameRecord GetFrameRecord() { return m_FrameRecord; }
+  void SetPipelineStates(D3D11Pipe::State *d3d11, D3D12Pipe::State *d3d12, GLPipe::State *gl,
+                         VKPipe::State *vk)
+  {
+    m_GLPipelineState = gl;
+  }
   void SavePipelineState(uint32_t eventId);
-  const D3D11Pipe::State *GetD3D11PipelineState() { return NULL; }
-  const D3D12Pipe::State *GetD3D12PipelineState() { return NULL; }
-  const GLPipe::State *GetGLPipelineState() { return &m_CurPipelineState; }
-  const VKPipe::State *GetVulkanPipelineState() { return NULL; }
   void FreeTargetResource(ResourceId id);
 
   ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
@@ -463,7 +464,7 @@ private:
   rdcarray<ResourceDescription> m_Resources;
   std::map<ResourceId, size_t> m_ResourceIdx;
 
-  GLPipe::State m_CurPipelineState;
+  GLPipe::State *m_GLPipelineState = NULL;
 
   FrameRecord m_FrameRecord;
 

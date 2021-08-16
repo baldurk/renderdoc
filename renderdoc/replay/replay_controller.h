@@ -175,7 +175,7 @@ public:
   rdcarray<DebugMessage> GetDebugMessages();
 
   rdcarray<ShaderEntryPoint> GetShaderEntryPoints(ResourceId shader);
-  ShaderReflection *GetShader(ResourceId pipeline, ResourceId shader, ShaderEntryPoint entry);
+  const ShaderReflection *GetShader(ResourceId pipeline, ResourceId shader, ShaderEntryPoint entry);
 
   PixelValue PickPixel(ResourceId textureId, uint32_t x, uint32_t y, const Subresource &sub,
                        CompType typeCast);
@@ -244,10 +244,10 @@ private:
 
   std::map<uint32_t, uint32_t> m_EventRemap;
 
-  const D3D11Pipe::State *m_D3D11PipelineState;
-  const D3D12Pipe::State *m_D3D12PipelineState;
-  const GLPipe::State *m_GLPipelineState;
-  const VKPipe::State *m_VulkanPipelineState;
+  D3D11Pipe::State m_D3D11PipelineState;
+  D3D12Pipe::State m_D3D12PipelineState;
+  GLPipe::State m_GLPipelineState;
+  VKPipe::State m_VulkanPipelineState;
   PipeState m_PipeState;
 
   rdcarray<ReplayOutput *> m_Outputs;

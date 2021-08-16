@@ -274,6 +274,17 @@ UINT GetSliceForDsv(const D3D11_DEPTH_STENCIL_VIEW_DESC &view)
   }
 }
 
+UINT GetSliceCountForDsv(const D3D11_DEPTH_STENCIL_VIEW_DESC &view)
+{
+  switch(view.ViewDimension)
+  {
+    case D3D11_DSV_DIMENSION_TEXTURE1DARRAY: return view.Texture1DArray.ArraySize;
+    case D3D11_DSV_DIMENSION_TEXTURE2DARRAY: return view.Texture2DArray.ArraySize;
+    case D3D11_DSV_DIMENSION_TEXTURE2DMSARRAY: return view.Texture2DMSArray.ArraySize;
+    default: return 0;
+  }
+}
+
 UINT GetMipForRtv(const D3D11_RENDER_TARGET_VIEW_DESC &view)
 {
   switch(view.ViewDimension)
@@ -286,6 +297,7 @@ UINT GetMipForRtv(const D3D11_RENDER_TARGET_VIEW_DESC &view)
     default: return 0;
   }
 }
+
 UINT GetSliceForRtv(const D3D11_RENDER_TARGET_VIEW_DESC &view)
 {
   switch(view.ViewDimension)
@@ -293,6 +305,17 @@ UINT GetSliceForRtv(const D3D11_RENDER_TARGET_VIEW_DESC &view)
     case D3D11_RTV_DIMENSION_TEXTURE1DARRAY: return view.Texture1DArray.FirstArraySlice;
     case D3D11_RTV_DIMENSION_TEXTURE2DARRAY: return view.Texture2DArray.FirstArraySlice;
     case D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY: return view.Texture2DMSArray.FirstArraySlice;
+    default: return 0;
+  }
+}
+
+UINT GetSliceCountForRtv(const D3D11_RENDER_TARGET_VIEW_DESC &view)
+{
+  switch(view.ViewDimension)
+  {
+    case D3D11_RTV_DIMENSION_TEXTURE1DARRAY: return view.Texture1DArray.ArraySize;
+    case D3D11_RTV_DIMENSION_TEXTURE2DARRAY: return view.Texture2DArray.ArraySize;
+    case D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY: return view.Texture2DMSArray.ArraySize;
     default: return 0;
   }
 }
@@ -322,6 +345,19 @@ UINT GetSliceForSrv(const D3D11_SHADER_RESOURCE_VIEW_DESC &view)
     default: return 0;
   }
 }
+
+UINT GetSliceCountForSrv(const D3D11_SHADER_RESOURCE_VIEW_DESC &view)
+{
+  switch(view.ViewDimension)
+  {
+    case D3D11_SRV_DIMENSION_TEXTURE1DARRAY: return view.Texture1DArray.ArraySize;
+    case D3D11_SRV_DIMENSION_TEXTURE2DARRAY: return view.Texture2DArray.ArraySize;
+    case D3D11_SRV_DIMENSION_TEXTURECUBEARRAY: return view.TextureCubeArray.NumCubes * 6;
+    case D3D11_SRV_DIMENSION_TEXTURE2DMSARRAY: return view.Texture2DMSArray.ArraySize;
+    default: return 0;
+  }
+}
+
 UINT GetMipForUav(const D3D11_UNORDERED_ACCESS_VIEW_DESC &view)
 {
   switch(view.ViewDimension)
@@ -341,6 +377,17 @@ UINT GetSliceForUav(const D3D11_UNORDERED_ACCESS_VIEW_DESC &view)
     case D3D11_UAV_DIMENSION_TEXTURE1DARRAY: return view.Texture1DArray.FirstArraySlice;
     case D3D11_UAV_DIMENSION_TEXTURE2DARRAY: return view.Texture2DArray.FirstArraySlice;
     case D3D11_UAV_DIMENSION_TEXTURE3D: return view.Texture3D.FirstWSlice;
+    default: return 0;
+  }
+}
+
+UINT GetSliceCountForUav(const D3D11_UNORDERED_ACCESS_VIEW_DESC &view)
+{
+  switch(view.ViewDimension)
+  {
+    case D3D11_UAV_DIMENSION_TEXTURE1DARRAY: return view.Texture1DArray.ArraySize;
+    case D3D11_UAV_DIMENSION_TEXTURE2DARRAY: return view.Texture2DArray.ArraySize;
+    case D3D11_UAV_DIMENSION_TEXTURE3D: return view.Texture3D.WSize;
     default: return 0;
   }
 }

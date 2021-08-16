@@ -45,13 +45,36 @@ public:
 
 #if defined(RENDERDOC_EXPORTS)
   // we initialise this internally only
-  void SetStates(APIProperties props, const D3D11Pipe::State *d3d11, const D3D12Pipe::State *d3d12,
-                 const GLPipe::State *gl, const VKPipe::State *vk)
+  void SetState(const D3D11Pipe::State *d3d11)
   {
-    m_PipelineType = props.pipelineType;
+    m_PipelineType = GraphicsAPI::D3D11;
     m_D3D11 = d3d11;
+    m_D3D12 = NULL;
+    m_GL = NULL;
+    m_Vulkan = NULL;
+  }
+  void SetState(const D3D12Pipe::State *d3d12)
+  {
+    m_PipelineType = GraphicsAPI::D3D12;
+    m_D3D11 = NULL;
     m_D3D12 = d3d12;
+    m_GL = NULL;
+    m_Vulkan = NULL;
+  }
+  void SetState(const GLPipe::State *gl)
+  {
+    m_PipelineType = GraphicsAPI::OpenGL;
+    m_D3D11 = NULL;
+    m_D3D12 = NULL;
     m_GL = gl;
+    m_Vulkan = NULL;
+  }
+  void SetState(const VKPipe::State *vk)
+  {
+    m_PipelineType = GraphicsAPI::Vulkan;
+    m_D3D11 = NULL;
+    m_D3D12 = NULL;
+    m_GL = NULL;
     m_Vulkan = vk;
   }
 #endif

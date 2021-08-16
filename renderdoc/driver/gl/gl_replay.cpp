@@ -783,7 +783,10 @@ rdcstr GLReplay::DisassembleShader(ResourceId pipeline, const ShaderReflection *
 
 void GLReplay::SavePipelineState(uint32_t eventId)
 {
-  GLPipe::State &pipe = m_CurPipelineState;
+  if(!m_GLPipelineState)
+    return;
+
+  GLPipe::State &pipe = *m_GLPipelineState;
   WrappedOpenGL &drv = *m_pDriver;
   GLResourceManager *rm = m_pDriver->GetResourceManager();
 

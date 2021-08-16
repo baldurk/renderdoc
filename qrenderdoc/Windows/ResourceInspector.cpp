@@ -553,7 +553,7 @@ void ResourceInspector::on_viewContents_clicked()
     ResourceId id = m_Resource;
     ICaptureContext *ctx = &m_Ctx;
     m_Ctx.Replay().AsyncInvoke([this, ctx, pipeid, id, entry](IReplayController *r) {
-      ShaderReflection *refl = r->GetShader(pipeid, id, entry);
+      const ShaderReflection *refl = r->GetShader(pipeid, id, entry);
 
       if(!refl)
         return;
