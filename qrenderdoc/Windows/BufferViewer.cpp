@@ -455,6 +455,7 @@ struct BufferElementProperties
   int buffer = 0;
   ShaderBuiltin systemValue = ShaderBuiltin::Undefined;
   bool perinstance = false;
+  bool floatCastWrong = false;
   int instancerate = 1;
 };
 
@@ -733,7 +734,14 @@ static QString interpretVariant(const QVariant &v, const ShaderConstant &el,
   }
   else if(vt == QMetaType::UInt || vt == QMetaType::UShort || vt == QMetaType::UChar)
   {
-    uint u = v.toUInt();
+    uint32_t u = v.toUInt();
+
+    if(prop.floatCastWrong)
+    {
+      float f = (float)u;
+      memcpy(&u, &f, sizeof(f));
+    }
+
     if(el.type.descriptor.displayAsHex && prop.format.type == ResourceFormatType::Regular)
       ret = Formatter::HexFormat(u, prop.format.compByteWidth);
     else
@@ -741,7 +749,14 @@ static QString interpretVariant(const QVariant &v, const ShaderConstant &el,
   }
   else if(vt == QMetaType::Int || vt == QMetaType::Short || vt == QMetaType::SChar)
   {
-    int i = v.toInt();
+    int32_t i = v.toInt();
+
+    if(prop.floatCastWrong)
+    {
+      float f = (float)i;
+      memcpy(&i, &f, sizeof(f));
+    }
+
     if(i >= 0)
       ret = lit(" ") + Formatter::Format(i);
     else
@@ -1533,6 +1548,7 @@ static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufda
     p.buffer = a.vertexBuffer;
     p.perinstance = a.perInstance;
     p.instancerate = a.instanceRate;
+    p.floatCastWrong = a.floatCastWrong;
     p.format = a.format;
 
     bufdata->vsinConfig.genericsEnabled[bufdata->vsinConfig.columns.count()] = false;

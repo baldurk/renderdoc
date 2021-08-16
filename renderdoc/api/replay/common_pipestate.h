@@ -482,6 +482,16 @@ from the vertex buffer before advancing to the next value.
   PixelValue genericValue;
   DOCUMENT("``True`` if this attribute is using :data:`genericValue` for its data.");
   bool genericEnabled = false;
+  DOCUMENT(R"(Only valid for attributes on OpenGL. If the attribute has been set up for integers to
+be converted to floats (glVertexAttribFormat with GL_INT) we store the format as integers. This is
+fine if the application has a float input in the shader it just means we display the raw integer
+instead of the casted float. However if the shader has an integer input this is invalid and it will
+read something undefined - possibly the int bits of the casted float.
+
+This property is set to ``True`` if the cast happens to an integer input and that bad cast needs to
+be emulated.
+)");
+  bool floatCastWrong = false;
   DOCUMENT("``True`` if this attribute is enabled and used by the vertex shader.");
   bool used;
 };

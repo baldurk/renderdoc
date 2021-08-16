@@ -800,16 +800,23 @@ rdcarray<VertexInputAttribute> PipeState::GetVertexInputs() const
         {
           int attrib = m_GL->vertexShader.bindpointMapping.inputAttributes[i];
 
+          const SigParameter &sigParam = m_GL->vertexShader.reflection->inputSignature[attrib];
+
           if(attrib >= 0 && attrib < m_GL->vertexShader.reflection->inputSignature.count())
-            ret[a].name = m_GL->vertexShader.reflection->inputSignature[attrib].varName;
+            ret[a].name = sigParam.varName;
 
           if(attrib == -1)
             continue;
 
+          VarType varType = sigParam.varType;
+
+          if(attrs[i].floatCast && (VarTypeCompType(sigParam.varType) == CompType::UInt ||
+                                    VarTypeCompType(sigParam.varType) == CompType::SInt))
+            ret[a].floatCastWrong = true;
+
           if(!attrs[i].enabled)
           {
-            uint32_t compCount = m_GL->vertexShader.reflection->inputSignature[attrib].compCount;
-            VarType varType = m_GL->vertexShader.reflection->inputSignature[attrib].varType;
+            uint32_t compCount = sigParam.compCount;
 
             for(uint32_t c = 0; c < compCount; c++)
             {
