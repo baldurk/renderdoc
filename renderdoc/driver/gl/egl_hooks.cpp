@@ -1008,6 +1008,11 @@ void EGLHook::RegisterHooks()
   LibraryHooks::RegisterLibraryHook("libGLESv2" LIBSUFFIX, NULL);
   LibraryHooks::RegisterLibraryHook("libGLESv1_CM" LIBSUFFIX, NULL);
 
+  // support bluestacks 
+  #if ENABLED(RDOC_ANDROID)
+  LibraryHooks::RegisterLibraryHook("libpga" LIBSUFFIX, NULL);
+  #endif
+
 #if ENABLED(RDOC_WIN32)
   // on windows, we want to ignore any GLES libraries to ensure we capture the GLES calls, not the
   // underlying GL calls
