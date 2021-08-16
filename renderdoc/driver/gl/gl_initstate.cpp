@@ -1195,13 +1195,13 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
 
         const auto &shadDetails = m_Driver->m_Shaders[details.stageShaders[i]];
 
-        IsProgramSPIRV |= shadDetails.reflection.encoding == ShaderEncoding::SPIRV;
+        IsProgramSPIRV |= shadDetails.reflection->encoding == ShaderEncoding::SPIRV;
 
         GLuint shad = drv.glCreateShader(shadDetails.type);
 
         if(shadDetails.type == eGL_VERTEX_SHADER)
         {
-          for(const SigParameter &sig : shadDetails.reflection.outputSignature)
+          for(const SigParameter &sig : shadDetails.reflection->outputSignature)
           {
             rdcstr name = sig.varName;
 
@@ -2218,11 +2218,11 @@ void GLResourceManager::Apply_InitialState(GLResource live, const GLInitialConte
 
     if(prog.stageShaders[0] != ResourceId())
       changedBindings |= CopyProgramAttribBindings(
-          initial.resource.name, live.name, &m_Driver->m_Shaders[prog.stageShaders[0]].reflection);
+          initial.resource.name, live.name, m_Driver->m_Shaders[prog.stageShaders[0]].reflection);
 
     if(prog.stageShaders[4] != ResourceId())
       changedBindings |= CopyProgramFragDataBindings(
-          initial.resource.name, live.name, &m_Driver->m_Shaders[prog.stageShaders[4]].reflection);
+          initial.resource.name, live.name, m_Driver->m_Shaders[prog.stageShaders[4]].reflection);
 
     // we need to re-link the program to apply the bindings, as long as it's linkable.
     // See the comment on shaderProgramUnlinkable for more information.

@@ -69,7 +69,7 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
   m_ScratchSerialiser.SetChunkMetadataRecording(flags);
   m_ScratchSerialiser.SetVersion(D3D11InitParams::CurrentVersion);
 
-  m_StructuredFile = &m_StoredStructuredData;
+  m_StructuredFile = m_StoredStructuredData = new SDFile;
 
   m_pDevice1 = NULL;
   m_pDevice2 = NULL;
@@ -259,6 +259,8 @@ WrappedID3D11Device::~WrappedID3D11Device()
 {
   if(m_pCurrentWrappedDevice == this)
     m_pCurrentWrappedDevice = NULL;
+
+  SAFE_DELETE(m_StoredStructuredData);
 
   D3D11MarkerRegion::device = NULL;
 
@@ -1325,7 +1327,7 @@ ReplayStatus WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc, bool store
 
   m_StructuredFile = &ser.GetStructuredFile();
 
-  m_StoredStructuredData.version = m_StructuredFile->version = m_SectionVersion;
+  m_StoredStructuredData->version = m_StructuredFile->version = m_SectionVersion;
 
   ser.SetVersion(m_SectionVersion);
 
@@ -1413,10 +1415,10 @@ ReplayStatus WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc, bool store
   }
 
   // steal the structured data for ourselves
-  m_StructuredFile->Swap(m_StoredStructuredData);
+  m_StructuredFile->Swap(*m_StoredStructuredData);
 
   // and in future use this file.
-  m_StructuredFile = &m_StoredStructuredData;
+  m_StructuredFile = m_StoredStructuredData;
 
   if(!IsStructuredExporting(m_State))
   {

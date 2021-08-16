@@ -113,7 +113,7 @@ WrappedVulkan::WrappedVulkan()
     m_State = CaptureState::BackgroundCapturing;
   }
 
-  m_StructuredFile = &m_StoredStructuredData;
+  m_StructuredFile = m_StoredStructuredData = new SDFile;
 
   m_SectionVersion = VkInitParams::CurrentVersion;
 
@@ -181,6 +181,8 @@ WrappedVulkan::~WrappedVulkan()
 
   if(VkMarkerRegion::vk == this)
     VkMarkerRegion::vk = NULL;
+
+  SAFE_DELETE(m_StoredStructuredData);
 
   // in case the application leaked some objects, avoid crashing trying
   // to release them ourselves by clearing the resource manager.
@@ -2422,7 +2424,7 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
 
   m_StructuredFile = &ser.GetStructuredFile();
 
-  m_StoredStructuredData.version = m_StructuredFile->version = m_SectionVersion;
+  m_StoredStructuredData->version = m_StructuredFile->version = m_SectionVersion;
 
   ser.SetVersion(m_SectionVersion);
 
@@ -2553,10 +2555,10 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
 #endif
 
   // steal the structured data for ourselves
-  m_StructuredFile->Swap(m_StoredStructuredData);
+  m_StructuredFile->Swap(*m_StoredStructuredData);
 
   // and in future use this file.
-  m_StructuredFile = &m_StoredStructuredData;
+  m_StructuredFile = m_StoredStructuredData;
 
   GetReplay()->WriteFrameRecord().frameInfo.uncompressedFileSize =
       rdc->GetSectionProperties(sectionIdx).uncompressedSize;

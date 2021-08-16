@@ -105,7 +105,7 @@ void GLReplay::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
   }
 }
 
-const SDFile &GLReplay::GetStructuredFile()
+SDFile *GLReplay::GetStructuredFile()
 {
   return m_pDriver->GetStructuredFile();
 }
@@ -732,26 +732,26 @@ rdcarray<ShaderEntryPoint> GLReplay::GetShaderEntryPoints(ResourceId shader)
 
   WrappedOpenGL::ShaderData &shaderDetails = m_pDriver->m_Shaders[shader];
 
-  if(shaderDetails.reflection.resourceId == ResourceId())
+  if(shaderDetails.reflection->resourceId == ResourceId())
   {
     RDCERR("Can't get shader details without successful reflect");
     return {};
   }
 
-  return {{shaderDetails.reflection.entryPoint, shaderDetails.reflection.stage}};
+  return {{shaderDetails.reflection->entryPoint, shaderDetails.reflection->stage}};
 }
 
 ShaderReflection *GLReplay::GetShader(ResourceId pipeline, ResourceId shader, ShaderEntryPoint entry)
 {
   auto &shaderDetails = m_pDriver->m_Shaders[shader];
 
-  if(shaderDetails.reflection.resourceId == ResourceId())
+  if(shaderDetails.reflection->resourceId == ResourceId())
   {
     RDCERR("Can't get shader details without successful reflect");
     return NULL;
   }
 
-  return &shaderDetails.reflection;
+  return shaderDetails.reflection;
 }
 
 rdcarray<rdcstr> GLReplay::GetDisassemblyTargets(bool withPipeline)
@@ -1047,10 +1047,10 @@ void GLReplay::SavePipelineState(uint32_t eventId)
 
           auto &shaderDetails = m_pDriver->m_Shaders[pipeDetails.stageShaders[i]];
 
-          if(shaderDetails.reflection.resourceId == ResourceId())
+          if(shaderDetails.reflection->resourceId == ResourceId())
             stages[i]->reflection = refls[i] = NULL;
           else
-            stages[i]->reflection = refls[i] = &shaderDetails.reflection;
+            stages[i]->reflection = refls[i] = shaderDetails.reflection;
 
           if(!shaderDetails.spirvWords.empty())
           {
@@ -1089,10 +1089,10 @@ void GLReplay::SavePipelineState(uint32_t eventId)
       {
         auto &shaderDetails = m_pDriver->m_Shaders[progDetails.stageShaders[i]];
 
-        if(shaderDetails.reflection.resourceId == ResourceId())
+        if(shaderDetails.reflection->resourceId == ResourceId())
           stages[i]->reflection = refls[i] = NULL;
         else
-          stages[i]->reflection = refls[i] = &shaderDetails.reflection;
+          stages[i]->reflection = refls[i] = shaderDetails.reflection;
 
         if(!shaderDetails.spirvWords.empty())
         {
@@ -2289,7 +2289,7 @@ void GLReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, rdcs
 
   auto &shaderDetails = m_pDriver->m_Shaders[shader];
 
-  if((int32_t)cbufSlot >= shaderDetails.reflection.constantBlocks.count())
+  if((int32_t)cbufSlot >= shaderDetails.reflection->constantBlocks.count())
   {
     RDCERR("Requesting invalid constant block");
     return;
@@ -2320,11 +2320,11 @@ void GLReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, rdcs
     }
   }
 
-  const ConstantBlock &cblock = shaderDetails.reflection.constantBlocks[cbufSlot];
+  const ConstantBlock &cblock = shaderDetails.reflection->constantBlocks[cbufSlot];
 
   if(shaderDetails.spirvWords.empty())
   {
-    OpenGLFillCBufferVariables(shaderDetails.reflection.resourceId, curProg,
+    OpenGLFillCBufferVariables(shaderDetails.reflection->resourceId, curProg,
                                cblock.bufferBacked ? true : false, "", cblock.variables, outvars,
                                data);
   }
@@ -2343,17 +2343,17 @@ void GLReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, rdcs
         specconsts.push_back(spec);
       }
 
-      FillSpecConstantVariables(shaderDetails.reflection.resourceId, cblock.variables, outvars,
+      FillSpecConstantVariables(shaderDetails.reflection->resourceId, cblock.variables, outvars,
                                 specconsts);
     }
     else if(!cblock.bufferBacked)
     {
-      OpenGLFillCBufferVariables(shaderDetails.reflection.resourceId, curProg, false, "",
+      OpenGLFillCBufferVariables(shaderDetails.reflection->resourceId, curProg, false, "",
                                  cblock.variables, outvars, data);
     }
     else
     {
-      StandardFillCBufferVariables(shaderDetails.reflection.resourceId, cblock.variables, outvars,
+      StandardFillCBufferVariables(shaderDetails.reflection->resourceId, cblock.variables, outvars,
                                    data);
     }
   }
@@ -3893,7 +3893,7 @@ void GL_ProcessStructured(RDCFile *rdc, SDFile &output)
   ReplayStatus status = device.ReadLogInitialisation(rdc, true);
 
   if(status == ReplayStatus::Succeeded)
-    device.GetStructuredFile().Swap(output);
+    device.GetStructuredFile()->Swap(output);
 }
 
 static StructuredProcessRegistration GLProcessRegistration(RDCDriver::OpenGL, &GL_ProcessStructured);

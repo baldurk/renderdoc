@@ -37,6 +37,8 @@ public:
   ImageViewer(IReplayDriver *proxy, const char *filename)
       : m_Proxy(proxy), m_Filename(filename), m_TextureID()
   {
+    m_File = new SDFile;
+
     // start with props so that m_Props.localRenderer is correct
     m_Props = m_Proxy->GetAPIProperties();
     m_Props.pipelineType = GraphicsAPI::D3D11;
@@ -58,7 +60,7 @@ public:
     SDChunk *chunk = new SDChunk(action.customName);
     chunk->AddAndOwnChild(makeSDString("path"_lit, filename));
 
-    m_File.chunks.push_back(chunk);
+    m_File->chunks.push_back(chunk);
 
     RefreshFile();
 
@@ -72,6 +74,7 @@ public:
   {
     m_Proxy->Shutdown();
     m_Proxy = NULL;
+    SAFE_DELETE(m_File);
   }
 
   bool IsRemoteProxy() { return true; }
@@ -220,7 +223,7 @@ public:
   {
     return ReplayStatus::Succeeded;
   }
-  const SDFile &GetStructuredFile() { return m_File; }
+  SDFile *GetStructuredFile() { return m_File; }
   void RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondaryDraws, const MeshDisplay &cfg)
   {
   }
@@ -348,7 +351,7 @@ private:
   rdcstr m_Filename;
   ResourceId m_TextureID, m_CustomTexID;
   rdcarray<ResourceDescription> m_Resources;
-  SDFile m_File;
+  SDFile *m_File;
   TextureDescription m_TexDetails;
 
   // if we remapped the texture for display, this contains the real data to return from

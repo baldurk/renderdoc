@@ -598,7 +598,7 @@ private:
   uint64_t m_TimeBase = 0;
   double m_TimeFrequency = 1.0f;
   SDFile *m_StructuredFile = NULL;
-  SDFile m_StoredStructuredData;
+  SDFile *m_StoredStructuredData;
 
   rdcarray<DebugMessage> m_DebugMessages;
 
@@ -659,7 +659,7 @@ public:
   void LockForChunkRemoval();
   void UnlockForChunkRemoval();
 
-  SDFile &GetStructuredFile() { return *m_StructuredFile; }
+  SDFile *GetStructuredFile() { return m_StructuredFile; }
   uint64_t GetTimeBase() { return m_TimeBase; }
   double GetTimeFrequency() { return m_TimeFrequency; }
   void FirstFrame(IDXGISwapper *swapper);

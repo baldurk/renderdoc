@@ -354,7 +354,7 @@ private:
   uint64_t m_TimeBase = 0;
   double m_TimeFrequency = 1.0f;
   SDFile *m_StructuredFile;
-  SDFile m_StoredStructuredData;
+  SDFile *m_StoredStructuredData;
 
   void AddResource(ResourceId id, ResourceType type, const char *defaultNamePrefix);
   void DerivedResource(ResourceId parentLive, ResourceId child);
@@ -1039,7 +1039,7 @@ public:
   void ReplayDraw(VkCommandBuffer cmd, const ActionDescription &action);
   ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
 
-  SDFile &GetStructuredFile() { return *m_StructuredFile; }
+  SDFile *GetStructuredFile() { return m_StructuredFile; }
   const APIEvent &GetEvent(uint32_t eventId);
   uint32_t GetMaxEID() { return m_Events.back().eventId; }
   const ActionDescription *GetAction(uint32_t eventId);

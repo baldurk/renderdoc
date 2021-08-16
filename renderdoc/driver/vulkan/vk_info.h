@@ -211,10 +211,15 @@ struct VulkanCreationInfo
 
   struct ShaderModuleReflection
   {
+    ShaderModuleReflection() { refl = new ShaderReflection; }
+    ~ShaderModuleReflection() { SAFE_DELETE(refl); }
+    ShaderModuleReflection(const ShaderModuleReflection &o) = delete;
+    ShaderModuleReflection &operator=(const ShaderModuleReflection &o) = delete;
+
     uint32_t stageIndex;
     rdcstr entryPoint;
     rdcstr disassembly;
-    ShaderReflection refl;
+    ShaderReflection *refl;
     ShaderBindpointMapping mapping;
     SPIRVPatchData patchData;
     std::map<size_t, uint32_t> instructionLines;

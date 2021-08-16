@@ -399,7 +399,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
     reflData.Init(resourceMan, shadid, info.m_ShaderModule[shadid].spirv, shad.entryPoint,
                   pCreateInfo->pStages[i].stage, shad.specialization);
 
-    shad.refl = &reflData.refl;
+    shad.refl = reflData.refl;
     shad.mapping = &reflData.mapping;
     shad.patchData = &reflData.patchData;
   }
@@ -728,7 +728,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
     reflData.Init(resourceMan, shadid, info.m_ShaderModule[shadid].spirv, shad.entryPoint,
                   pCreateInfo->stage.stage, shad.specialization);
 
-    shad.refl = &reflData.refl;
+    shad.refl = reflData.refl;
     shad.mapping = &reflData.mapping;
     shad.patchData = &reflData.patchData;
   }
@@ -1291,17 +1291,17 @@ void VulkanCreationInfo::ShaderModuleReflection::Init(VulkanResourceManager *res
     entryPoint = entry;
     stageIndex = StageIndex(stage);
 
-    spv.MakeReflection(GraphicsAPI::Vulkan, ShaderStage(stageIndex), entryPoint, specInfo, refl,
+    spv.MakeReflection(GraphicsAPI::Vulkan, ShaderStage(stageIndex), entryPoint, specInfo, *refl,
                        mapping, patchData);
 
-    refl.resourceId = resourceMan->GetOriginalID(id);
+    refl->resourceId = resourceMan->GetOriginalID(id);
   }
 }
 
 void VulkanCreationInfo::ShaderModuleReflection::PopulateDisassembly(const rdcspv::Reflector &spirv)
 {
   if(disassembly.empty())
-    disassembly = spirv.Disassemble(refl.entryPoint, instructionLines);
+    disassembly = spirv.Disassemble(refl->entryPoint, instructionLines);
 }
 
 void VulkanCreationInfo::QueryPool::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,

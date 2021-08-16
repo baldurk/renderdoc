@@ -68,7 +68,7 @@ void WrappedOpenGL::ShaderData::ProcessSPIRVCompilation(WrappedOpenGL &drv, Reso
                                                         const GLuint *pConstantIndex,
                                                         const GLuint *pConstantValue)
 {
-  reflection.resourceId = id;
+  reflection->resourceId = id;
 
   rdcarray<SpecConstant> specInfo;
   for(size_t i = 0; i < specInfo.size(); i++)
@@ -77,7 +77,7 @@ void WrappedOpenGL::ShaderData::ProcessSPIRVCompilation(WrappedOpenGL &drv, Reso
   }
 
   spirv.MakeReflection(GraphicsAPI::OpenGL, ShaderStage(ShaderIdx(type)), pEntryPoint, specInfo,
-                       reflection, mapping, patchData);
+                       *reflection, mapping, patchData);
 
   version = 460;
 
@@ -235,7 +235,7 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
         }
         else
         {
-          MakeShaderReflection(type, sepProg, reflection, outputUsage);
+          MakeShaderReflection(type, sepProg, *reflection, outputUsage);
           reflected = true;
 
           drv.glDeleteProgram(sepProg);
@@ -261,7 +261,7 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
 
         progDetails.glslangProgram = LinkProgramForReflection({glslangShader});
 
-        MakeShaderReflection(type, fakeProgram, reflection, outputUsage);
+        MakeShaderReflection(type, fakeProgram, *reflection, outputUsage);
         reflected = true;
 
         drv.glDeleteProgram(fakeProgram);
@@ -282,13 +282,13 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
         else
           disassembly = "Disassembly to SPIR-V failed:\n\n" + s;
 
-        reflection.resourceId = id;
+        reflection->resourceId = id;
 
-        reflection.rawBytes.assign((byte *)concatenated.c_str(), concatenated.size());
+        reflection->rawBytes.assign((byte *)concatenated.c_str(), concatenated.size());
 
-        reflection.debugInfo.files.resize(1);
-        reflection.debugInfo.files[0].filename = "main.glsl";
-        reflection.debugInfo.files[0].contents = concatenated;
+        reflection->debugInfo.files.resize(1);
+        reflection->debugInfo.files[0].filename = "main.glsl";
+        reflection->debugInfo.files[0].contents = concatenated;
       }
     }
 
@@ -405,10 +405,10 @@ bool WrappedOpenGL::Serialise_glShaderSource(SerialiserType &ser, GLuint shaderH
     // Doing this means we support the case of recompiling a shader different ways
     // and relinking a program before use, which is still moderately crazy and
     // so people who do that should be moderately ashamed.
-    if(m_Shaders[liveId].reflection.resourceId != ResourceId())
+    if(m_Shaders[liveId].reflection->resourceId != ResourceId())
     {
       m_Shaders[liveId].spirv = rdcspv::Reflector();
-      m_Shaders[liveId].reflection = ShaderReflection();
+      *m_Shaders[liveId].reflection = ShaderReflection();
     }
 
     AddResourceInitChunk(shader);

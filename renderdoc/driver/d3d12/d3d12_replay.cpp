@@ -265,7 +265,7 @@ void D3D12Replay::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
   m_pDevice->ReplayLog(0, endEventID, replayType);
 }
 
-const SDFile &D3D12Replay::GetStructuredFile()
+SDFile *D3D12Replay::GetStructuredFile()
 {
   return m_pDevice->GetStructuredFile();
 }
@@ -4283,7 +4283,7 @@ void D3D12_ProcessStructured(RDCFile *rdc, SDFile &output)
   ReplayStatus status = device.ReadLogInitialisation(rdc, true);
 
   if(status == ReplayStatus::Succeeded)
-    device.GetStructuredFile().Swap(output);
+    device.GetStructuredFile()->Swap(output);
 }
 
 static StructuredProcessRegistration D3D12ProcessRegistration(RDCDriver::D3D12,

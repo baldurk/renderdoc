@@ -984,12 +984,16 @@ public:
       m_ID = id;
       m_Bytecode.assign(code, codeLen);
       m_DXBCFile = NULL;
+      m_Details = new ShaderReflection;
     }
     ~ShaderEntry()
     {
       m_Bytecode.clear();
+      SAFE_DELETE(m_Details);
       SAFE_DELETE(m_DXBCFile);
     }
+    ShaderEntry(const ShaderEntry &e) = delete;
+    ShaderEntry &operator=(const ShaderEntry &e) = delete;
 
     void SetDebugInfoPath(const rdcstr &path) { m_DebugInfoPath = path; }
     void SetShaderExtSlot(uint32_t slot) { m_ShaderExtSlot = slot; }
@@ -1010,7 +1014,7 @@ public:
       if(!m_Built && GetDXBC() != NULL)
         BuildReflection();
       m_Built = true;
-      return m_Details;
+      return *m_Details;
     }
 
     const ShaderBindpointMapping &GetMapping()
@@ -1022,9 +1026,7 @@ public:
     }
 
   private:
-    ShaderEntry(const ShaderEntry &e);
     void TryReplaceOriginalByteCode();
-    ShaderEntry &operator=(const ShaderEntry &e);
 
     void BuildReflection();
 
@@ -1037,7 +1039,7 @@ public:
 
     bool m_Built = false;
     DXBC::DXBCContainer *m_DXBCFile;
-    ShaderReflection m_Details;
+    ShaderReflection *m_Details;
     ShaderBindpointMapping m_Mapping;
   };
 

@@ -685,6 +685,7 @@ public:
     {
       m_Bytecode.assign((const byte *)byteCode.pShaderBytecode, byteCode.BytecodeLength);
       m_DXBCFile = NULL;
+      m_Details = new ShaderReflection;
 
       device->GetResourceManager()->AddLiveResource(GetResourceID(), this);
 
@@ -709,8 +710,11 @@ public:
       m_Shaders.erase(m_Key);
       m_Bytecode.clear();
       SAFE_DELETE(m_DXBCFile);
+      SAFE_DELETE(m_Details);
       Shutdown();
     }
+    ShaderEntry(const ShaderEntry &e) = delete;
+    ShaderEntry &operator=(const ShaderEntry &e) = delete;
 
     static ShaderEntry *AddShader(const D3D12_SHADER_BYTECODE &byteCode, WrappedID3D12Device *device)
     {
@@ -789,7 +793,7 @@ public:
       if(!m_Built && GetDXBC() != NULL)
         BuildReflection();
       m_Built = true;
-      return m_Details;
+      return *m_Details;
     }
 
     const ShaderBindpointMapping &GetMapping()
@@ -801,9 +805,7 @@ public:
     }
 
   private:
-    ShaderEntry(const ShaderEntry &e);
     void TryReplaceOriginalByteCode();
-    ShaderEntry &operator=(const ShaderEntry &e);
 
     void BuildReflection();
 
@@ -814,7 +816,7 @@ public:
 
     bool m_Built;
     DXBC::DXBCContainer *m_DXBCFile;
-    ShaderReflection m_Details;
+    ShaderReflection *m_Details;
     ShaderBindpointMapping m_Mapping;
 
     static std::map<DXBCKey, ShaderEntry *> m_Shaders;

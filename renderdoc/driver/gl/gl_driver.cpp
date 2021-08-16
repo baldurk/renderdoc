@@ -618,7 +618,7 @@ WrappedOpenGL::WrappedOpenGL(GLPlatform &platform)
 
   m_Replay = new GLReplay(this);
 
-  m_StructuredFile = &m_StoredStructuredData;
+  m_StructuredFile = m_StoredStructuredData = new SDFile;
 
   uint32_t flags = WriteSerialiser::ChunkDuration | WriteSerialiser::ChunkTimestamp |
                    WriteSerialiser::ChunkThreadID;
@@ -937,6 +937,8 @@ WrappedOpenGL::~WrappedOpenGL()
   m_ArrayMS.Destroy();
 
   SAFE_DELETE(m_FrameReader);
+
+  SAFE_DELETE(m_StoredStructuredData);
 
   GetResourceManager()->ClearReferencedResources();
 
@@ -1659,8 +1661,9 @@ void WrappedOpenGL::ReplaceResource(ResourceId from, ResourceId to)
 
       ResourceId targetId = GetResourceManager()->GetResID(toresource);
 
-      // copy the shader data
-      ShaderData shaddata = m_Shaders[targetId];
+      // backup the shader data
+      rdcarray<rdcstr> shaderSources = m_Shaders[targetId].sources;
+      GLenum shaderType = m_Shaders[targetId].type;
 
       // delete the shader completely
       glDeleteShader(toresource.name);
@@ -1668,8 +1671,8 @@ void WrappedOpenGL::ReplaceResource(ResourceId from, ResourceId to)
 
       // create a new unwrapped/unregistered programshader. This must be created unwrapped so we can
       // assign the existing ID to it.
-      const char *str = shaddata.sources[0].c_str();
-      toresource = ProgramRes(GetCtx(), GL.glCreateShaderProgramv(shaddata.type, 1, &str));
+      const char *str = shaderSources[0].c_str();
+      toresource = ProgramRes(GetCtx(), GL.glCreateShaderProgramv(shaderType, 1, &str));
 
       // re-register the programshader in the place of where the shader used to be
       GetResourceManager()->RegisterResource(toresource, targetId);
@@ -1678,13 +1681,13 @@ void WrappedOpenGL::ReplaceResource(ResourceId from, ResourceId to)
 
       progDetails.linked = true;
       progDetails.shaders.push_back(targetId);
-      progDetails.stageShaders[ShaderIdx(shaddata.type)] = targetId;
+      progDetails.stageShaders[ShaderIdx(shaderType)] = targetId;
       progDetails.shaderProgramUnlinkable = true;
 
       ShaderData &shadDetails = m_Shaders[targetId];
 
-      shadDetails.type = shaddata.type;
-      shadDetails.sources = shaddata.sources;
+      shadDetails.type = shaderType;
+      shadDetails.sources = shaderSources;
 
       shadDetails.ProcessCompilation(*this, targetId, 0);
 
@@ -1694,11 +1697,11 @@ void WrappedOpenGL::ReplaceResource(ResourceId from, ResourceId to)
       GLuint progsrc = fromresource.name;
       GLuint progdst = toresource.name;
 
-      if(shaddata.type == eGL_VERTEX_SHADER)
-        CopyProgramAttribBindings(progsrc, progdst, &shadDetails.reflection);
+      if(shaderType == eGL_VERTEX_SHADER)
+        CopyProgramAttribBindings(progsrc, progdst, shadDetails.reflection);
 
-      if(shaddata.type == eGL_FRAGMENT_SHADER)
-        CopyProgramFragDataBindings(progsrc, progdst, &shadDetails.reflection);
+      if(shaderType == eGL_FRAGMENT_SHADER)
+        CopyProgramFragDataBindings(progsrc, progdst, shadDetails.reflection);
 
       {
         PerStageReflections dstStages;
@@ -1848,10 +1851,10 @@ void WrappedOpenGL::RefreshDerivedReplacements()
       ResourceId fs = progdata.stageShaders[4];
 
       if(vs != ResourceId())
-        CopyProgramAttribBindings(progsrc, progdst, &m_Shaders[vs].reflection);
+        CopyProgramAttribBindings(progsrc, progdst, m_Shaders[vs].reflection);
 
       if(fs != ResourceId())
-        CopyProgramFragDataBindings(progsrc, progdst, &m_Shaders[fs].reflection);
+        CopyProgramFragDataBindings(progsrc, progdst, m_Shaders[fs].reflection);
 
       // link new program
       glLinkProgram(progdst);
@@ -3295,7 +3298,7 @@ ReplayStatus WrappedOpenGL::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
 
   m_StructuredFile = &ser.GetStructuredFile();
 
-  m_StoredStructuredData.version = m_StructuredFile->version = m_SectionVersion;
+  m_StoredStructuredData->version = m_StructuredFile->version = m_SectionVersion;
 
   ser.SetVersion(m_SectionVersion);
 
@@ -3404,10 +3407,10 @@ ReplayStatus WrappedOpenGL::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
 #endif
 
   // steal the structured data for ourselves
-  m_StructuredFile->Swap(m_StoredStructuredData);
+  m_StructuredFile->Swap(*m_StoredStructuredData);
 
   // and in future use this file.
-  m_StructuredFile = &m_StoredStructuredData;
+  m_StructuredFile = m_StoredStructuredData;
 
   GetReplay()->WriteFrameRecord().frameInfo.uncompressedFileSize =
       rdc->GetSectionProperties(sectionIdx).uncompressedSize;
@@ -5344,7 +5347,7 @@ void WrappedOpenGL::AddUsage(const ActionDescription &a)
           {
             curProg = rm->GetCurrentResource(pipeDetails.stagePrograms[i]).name;
 
-            refl[i] = &m_Shaders[pipeDetails.stageShaders[i]].reflection;
+            refl[i] = m_Shaders[pipeDetails.stageShaders[i]].reflection;
             GetBindpointMapping(curProg, (int)i, refl[i], mapping[i]);
           }
         }
@@ -5358,7 +5361,7 @@ void WrappedOpenGL::AddUsage(const ActionDescription &a)
       {
         if(progDetails.stageShaders[i] != ResourceId())
         {
-          refl[i] = &m_Shaders[progDetails.stageShaders[i]].reflection;
+          refl[i] = m_Shaders[progDetails.stageShaders[i]].reflection;
           GetBindpointMapping(curProg, (int)i, refl[i], mapping[i]);
         }
       }

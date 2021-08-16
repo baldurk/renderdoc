@@ -435,7 +435,6 @@ public:
 
   bool Tick(int type);
 
-  const SDFile &GetStructuredFile() { return m_StructuredFile; }
   void SetPipelineStates(D3D11Pipe::State *d3d11, D3D12Pipe::State *d3d12, GLPipe::State *gl,
                          VKPipe::State *vk)
   {
@@ -444,6 +443,7 @@ public:
     m_GLPipelineState = gl;
     m_VulkanPipelineState = vk;
   }
+  SDFile *GetStructuredFile() { return m_StructuredFile; }
   IMPLEMENT_FUNCTION_PROXIED(void, FetchStructuredFile);
 
   IMPLEMENT_FUNCTION_PROXIED(rdcarray<ResourceDescription>, GetResources);
@@ -701,7 +701,7 @@ private:
 
   rdcarray<ActionDescription *> m_Actions;
 
-  SDFile m_StructuredFile;
+  SDFile *m_StructuredFile;
 
   D3D11Pipe::State *m_D3D11PipelineState = NULL;
   D3D12Pipe::State *m_D3D12PipelineState = NULL;

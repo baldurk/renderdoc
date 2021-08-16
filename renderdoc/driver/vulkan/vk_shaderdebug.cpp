@@ -2944,9 +2944,9 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
   } fragCoord, primitiveID, sampleIndex;
 
   // look to see which ones are already provided
-  for(size_t i = 0; i < shadRefl.refl.inputSignature.size(); i++)
+  for(size_t i = 0; i < shadRefl.refl->inputSignature.size(); i++)
   {
-    const SigParameter &param = shadRefl.refl.inputSignature[i];
+    const SigParameter &param = shadRefl.refl->inputSignature[i];
 
     BuiltinAccess *access = NULL;
 
@@ -3056,15 +3056,15 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
   };
 
   rdcarray<valueAndDerivs> values;
-  values.resize(shadRefl.refl.inputSignature.size());
+  values.resize(shadRefl.refl->inputSignature.size());
 
   {
     rdcarray<rdcspv::Id> ids;
     rdcarray<uint32_t> offsets;
     rdcarray<uint32_t> indices;
-    for(size_t i = 0; i < shadRefl.refl.inputSignature.size(); i++)
+    for(size_t i = 0; i < shadRefl.refl->inputSignature.size(); i++)
     {
-      const SigParameter &param = shadRefl.refl.inputSignature[i];
+      const SigParameter &param = shadRefl.refl->inputSignature[i];
 
       rdcspv::Scalar base = rdcspv::scalar(param.varType);
 
@@ -3109,7 +3109,7 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
     }
 
     for(size_t i = 0; i < values.size(); i++)
-      editor.SetMemberName(PSInput, values[i].structIndex, shadRefl.refl.inputSignature[i].varName);
+      editor.SetMemberName(PSInput, values[i].structIndex, shadRefl.refl->inputSignature[i].varName);
 
     editor.SetName(PSInput, "__rd_PSInput");
   }
@@ -3399,7 +3399,7 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
       for(size_t i = 0; i < values.size(); i++)
       {
         const SPIRVInterfaceAccess &access = shadRefl.patchData.inputs[i];
-        const SigParameter &param = shadRefl.refl.inputSignature[i];
+        const SigParameter &param = shadRefl.refl->inputSignature[i];
 
         rdcarray<rdcspv::Id> accessIndices;
         for(uint32_t idx : access.accessChain)
@@ -3735,9 +3735,9 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
   VulkanCreationInfo::ShaderModuleReflection &shadRefl =
       shader.GetReflection(entryPoint, state.graphics.pipeline);
 
-  if(!shadRefl.refl.debugInfo.debuggable)
+  if(!shadRefl.refl->debugInfo.debuggable)
   {
-    RDCLOG("Shader is not debuggable: %s", shadRefl.refl.debugInfo.debugStatus.c_str());
+    RDCLOG("Shader is not debuggable: %s", shadRefl.refl->debugInfo.debugStatus.c_str());
     return new ShaderDebugTrace();
   }
 
@@ -3983,9 +3983,9 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   VulkanCreationInfo::ShaderModuleReflection &shadRefl =
       shader.GetReflection(entryPoint, state.graphics.pipeline);
 
-  if(!shadRefl.refl.debugInfo.debuggable)
+  if(!shadRefl.refl->debugInfo.debuggable)
   {
-    RDCLOG("Shader is not debuggable: %s", shadRefl.refl.debugInfo.debugStatus.c_str());
+    RDCLOG("Shader is not debuggable: %s", shadRefl.refl->debugInfo.debugStatus.c_str());
     return new ShaderDebugTrace();
   }
 
@@ -4011,7 +4011,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
                                                                state.graphics.pipeline);
 
     // check to see if the shader outputs a primitive ID
-    for(const SigParameter &e : gsRefl.refl.outputSignature)
+    for(const SigParameter &e : gsRefl.refl->outputSignature)
     {
       if(e.systemValue == ShaderBuiltin::PrimitiveIndex)
       {
@@ -4090,7 +4090,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
   uint32_t paramAlign = 16;
 
-  for(const SigParameter &sig : shadRefl.refl.inputSignature)
+  for(const SigParameter &sig : shadRefl.refl->inputSignature)
   {
     if(VarTypeByteSize(sig.varType) * sig.compCount > paramAlign)
       paramAlign = 32;
@@ -4541,9 +4541,9 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     byte *ddxfine = (byte *)(PSInputs + 3 * structStride);
     byte *ddyfine = (byte *)(PSInputs + 4 * structStride);
 
-    for(size_t i = 0; i < shadRefl.refl.inputSignature.size(); i++)
+    for(size_t i = 0; i < shadRefl.refl->inputSignature.size(); i++)
     {
-      const SigParameter &param = shadRefl.refl.inputSignature[i];
+      const SigParameter &param = shadRefl.refl->inputSignature[i];
 
       bool builtin = true;
       if(param.systemValue == ShaderBuiltin::Undefined)
@@ -4661,9 +4661,9 @@ ShaderDebugTrace *VulkanReplay::DebugThread(uint32_t eventId,
   VulkanCreationInfo::ShaderModuleReflection &shadRefl =
       shader.GetReflection(entryPoint, state.compute.pipeline);
 
-  if(!shadRefl.refl.debugInfo.debuggable)
+  if(!shadRefl.refl->debugInfo.debuggable)
   {
-    RDCLOG("Shader is not debuggable: %s", shadRefl.refl.debugInfo.debugStatus.c_str());
+    RDCLOG("Shader is not debuggable: %s", shadRefl.refl->debugInfo.debugStatus.c_str());
     return new ShaderDebugTrace();
   }
 
@@ -4673,9 +4673,9 @@ ShaderDebugTrace *VulkanReplay::DebugThread(uint32_t eventId,
       new VulkanAPIWrapper(m_pDriver, c, VK_SHADER_STAGE_COMPUTE_BIT, eventId);
 
   uint32_t threadDim[3];
-  threadDim[0] = shadRefl.refl.dispatchThreadsDimension[0];
-  threadDim[1] = shadRefl.refl.dispatchThreadsDimension[1];
-  threadDim[2] = shadRefl.refl.dispatchThreadsDimension[2];
+  threadDim[0] = shadRefl.refl->dispatchThreadsDimension[0];
+  threadDim[1] = shadRefl.refl->dispatchThreadsDimension[1];
+  threadDim[2] = shadRefl.refl->dispatchThreadsDimension[2];
 
   std::map<ShaderBuiltin, ShaderVariable> &builtins = apiWrapper->builtin_inputs;
   builtins[ShaderBuiltin::DispatchSize] =

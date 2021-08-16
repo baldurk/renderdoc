@@ -1212,13 +1212,13 @@ ReplayStatus WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32
     ser.ConfigureStructuredExport(&GetChunkName, IsStructuredExporting(m_State),
                                   m_pDevice->GetTimeBase(), m_pDevice->GetTimeFrequency());
 
-    ser.GetStructuredFile().Swap(m_pDevice->GetStructuredFile());
+    ser.GetStructuredFile().Swap(*m_pDevice->GetStructuredFile());
 
     m_StructuredFile = &ser.GetStructuredFile();
   }
   else
   {
-    m_StructuredFile = &m_pDevice->GetStructuredFile();
+    m_StructuredFile = m_pDevice->GetStructuredFile();
   }
 
   m_DoStateVerify = true;
@@ -1333,7 +1333,7 @@ ReplayStatus WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32
 
   // swap the structure back now that we've accumulated the frame as well.
   if(IsLoading(m_State) || IsStructuredExporting(m_State))
-    ser.GetStructuredFile().Swap(m_pDevice->GetStructuredFile());
+    ser.GetStructuredFile().Swap(*m_pDevice->GetStructuredFile());
 
   m_StructuredFile = NULL;
 

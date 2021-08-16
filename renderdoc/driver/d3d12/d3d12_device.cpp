@@ -510,7 +510,7 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
 
   m_Replay = new D3D12Replay(this);
 
-  m_StructuredFile = &m_StoredStructuredData;
+  m_StructuredFile = m_StoredStructuredData = new SDFile;
 
   RDCEraseEl(m_D3D12Opts);
   RDCEraseEl(m_D3D12Opts1);
@@ -783,6 +783,8 @@ WrappedID3D12Device::~WrappedID3D12Device()
     SCOPED_LOCK(m_DeviceWrappersLock);
     m_DeviceWrappers.erase(m_pDevice);
   }
+
+  SAFE_DELETE(m_StoredStructuredData);
 
   RenderDoc::Inst().RemoveDeviceFrameCapturer((ID3D12Device *)this);
 
@@ -3888,7 +3890,7 @@ ReplayStatus WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool store
 
   m_StructuredFile = &ser.GetStructuredFile();
 
-  m_StoredStructuredData.version = m_StructuredFile->version = m_SectionVersion;
+  m_StoredStructuredData->version = m_StructuredFile->version = m_SectionVersion;
 
   ser.SetVersion(m_SectionVersion);
 
@@ -3982,10 +3984,10 @@ ReplayStatus WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool store
   }
 
   // steal the structured data for ourselves
-  m_StructuredFile->Swap(m_StoredStructuredData);
+  m_StructuredFile->Swap(*m_StoredStructuredData);
 
   // and in future use this file.
-  m_StructuredFile = &m_StoredStructuredData;
+  m_StructuredFile = m_StoredStructuredData;
 
   if(!IsStructuredExporting(m_State))
   {

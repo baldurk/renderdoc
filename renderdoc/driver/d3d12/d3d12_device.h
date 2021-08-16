@@ -671,7 +671,7 @@ private:
   uint64_t m_TimeBase = 0;
   double m_TimeFrequency = 1.0f;
   SDFile *m_StructuredFile = NULL;
-  SDFile m_StoredStructuredData;
+  SDFile *m_StoredStructuredData;
 
   uint32_t m_FrameCounter = 0;
   rdcarray<FrameDescription> m_CapturedFrames;
@@ -925,7 +925,7 @@ public:
     m_SectionVersion = sectionVersion;
     m_State = CaptureState::StructuredExport;
   }
-  SDFile &GetStructuredFile() { return *m_StructuredFile; }
+  SDFile *GetStructuredFile() { return m_StructuredFile; }
   uint64_t GetTimeBase() { return m_TimeBase; }
   double GetTimeFrequency() { return m_TimeFrequency; }
   // interface for DXGI

@@ -203,7 +203,7 @@ void VulkanReplay::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
   m_pDriver->ReplayLog(0, endEventID, replayType);
 }
 
-const SDFile &VulkanReplay::GetStructuredFile()
+SDFile *VulkanReplay::GetStructuredFile()
 {
   return m_pDriver->GetStructuredFile();
 }
@@ -436,7 +436,7 @@ ShaderReflection *VulkanReplay::GetShader(ResourceId pipeline, ResourceId shader
       .Init(GetResourceManager(), shader, shad->second.spirv, entry.name,
             VkShaderStageFlagBits(1 << uint32_t(entry.stage)), {});
 
-  return &shad->second.GetReflection(entry.name, pipeline).refl;
+  return shad->second.GetReflection(entry.name, pipeline).refl;
 }
 
 rdcarray<rdcstr> VulkanReplay::GetDisassemblyTargets(bool withPipeline)
@@ -2007,7 +2007,7 @@ void VulkanReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, 
     return;
   }
 
-  ShaderReflection &refl = it->second.GetReflection(entryPoint, pipeline).refl;
+  ShaderReflection &refl = *it->second.GetReflection(entryPoint, pipeline).refl;
   ShaderBindpointMapping &mapping = it->second.GetReflection(entryPoint, pipeline).mapping;
 
   if(cbufSlot >= (uint32_t)refl.constantBlocks.count())
@@ -4280,7 +4280,7 @@ void Vulkan_ProcessStructured(RDCFile *rdc, SDFile &output)
   ReplayStatus status = vulkan.ReadLogInitialisation(rdc, true);
 
   if(status == ReplayStatus::Succeeded)
-    vulkan.GetStructuredFile().Swap(output);
+    vulkan.GetStructuredFile()->Swap(output);
 }
 
 static StructuredProcessRegistration VulkanProcessRegistration(RDCDriver::Vulkan,

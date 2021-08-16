@@ -721,7 +721,7 @@ void WrappedVulkan::InsertActionsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
       // be in-lined as a single action, so we patch in-place
       if(!hasCount && indirectCount == 1)
       {
-        rdcstr name = GetStructuredFile().chunks[n.action.events.back().chunkIndex]->name;
+        rdcstr name = GetStructuredFile()->chunks[n.action.events.back().chunkIndex]->name;
 
         bool valid =
             PatchIndirectDraw(0, n.indirectPatch.stride, n.indirectPatch.type, n.action, ptr, end);
@@ -751,7 +751,7 @@ void WrappedVulkan::InsertActionsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
         RDCASSERT(i + indirectCount < cmdBufNodes.size(), i, indirectCount, n.indirectPatch.count,
                   cmdBufNodes.size());
 
-        rdcstr name = GetStructuredFile().chunks[n.action.events.back().chunkIndex]->name;
+        rdcstr name = GetStructuredFile()->chunks[n.action.events.back().chunkIndex]->name;
 
         // patch the count onto the root action name. The root is otherwise un-suffixed to allow
         // for collapsing non-multidraws and making everything generally simpler
@@ -767,7 +767,7 @@ void WrappedVulkan::InsertActionsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
           bool valid = PatchIndirectDraw(j, n.indirectPatch.stride, n.indirectPatch.type, n2.action,
                                          ptr, end);
 
-          name = GetStructuredFile().chunks[n2.action.events.back().chunkIndex]->name;
+          name = GetStructuredFile()->chunks[n2.action.events.back().chunkIndex]->name;
 
           if(valid)
             n2.action.customName = StringFormat::Fmt("%s[%zu](<%u, %u>)", name.c_str(), j,

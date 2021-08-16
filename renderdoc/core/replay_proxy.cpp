@@ -199,6 +199,8 @@ ReplayProxy::ReplayProxy(ReadSerialiser &reader, WriteSerialiser &writer, IRemot
       m_PreviewWindow(previewWindow),
       m_RemoteServer(true)
 {
+  m_StructuredFile = new SDFile;
+
   m_APIProps = m_Remote->GetAPIProperties();
 
   InitRemoteExecutionThread();
@@ -227,12 +229,15 @@ ReplayProxy::ReplayProxy(ReadSerialiser &reader, WriteSerialiser &writer, IRepla
       m_Replay(NULL),
       m_RemoteServer(false)
 {
+  m_StructuredFile = new SDFile;
+
   ReplayProxy::GetAPIProperties();
   ReplayProxy::FetchStructuredFile();
 }
 
 ReplayProxy::~ReplayProxy()
 {
+  SAFE_DELETE(m_StructuredFile);
   if(m_Remote)
   {
     SAFE_DELETE(m_D3D11PipelineState);
@@ -1853,12 +1858,12 @@ void ReplayProxy::Proxied_FetchStructuredFile(ParamSerialiser &paramser, ReturnS
     END_PARAMS();
   }
 
-  SDFile *file = &m_StructuredFile;
+  SDFile *file = m_StructuredFile;
 
   {
     REMOTE_EXECUTION();
     if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
-      file = (SDFile *)&m_Remote->GetStructuredFile();
+      file = (SDFile *)m_Remote->GetStructuredFile();
   }
 
   {

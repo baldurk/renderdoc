@@ -221,18 +221,18 @@ bool WrappedOpenGL::Check_SafeDraw(bool indexed)
     if(!shaderDetails.spirvWords.empty())
     {
       mapping = shaderDetails.mapping;
-      EvaluateSPIRVBindpointMapping(prog, 0, &shaderDetails.reflection, mapping);
+      EvaluateSPIRVBindpointMapping(prog, 0, shaderDetails.reflection, mapping);
     }
     else
     {
-      GetBindpointMapping(prog, 0, &shaderDetails.reflection, mapping);
+      GetBindpointMapping(prog, 0, shaderDetails.reflection, mapping);
     }
 
     for(int attrib = 0; attrib < mapping.inputAttributes.count(); attrib++)
     {
       // skip attributes that don't map to the shader, they're unused
       int reflIndex = mapping.inputAttributes[attrib];
-      if(reflIndex >= 0 && reflIndex < shaderDetails.reflection.inputSignature.count())
+      if(reflIndex >= 0 && reflIndex < shaderDetails.reflection->inputSignature.count())
       {
         // check that this attribute is in-bounds, and enabled. If so then the driver will read from
         // it so we make sure there's a buffer bound
@@ -257,7 +257,8 @@ bool WrappedOpenGL::Check_SafeDraw(bool indexed)
                   "No vertex buffer bound to attribute %d: %s (buffer slot %d) at draw!\n"
                   "This can be caused by deleting a buffer early, before all draws using it "
                   "have been made",
-                  attrib, shaderDetails.reflection.inputSignature[reflIndex].varName.c_str(), bufIdx));
+                  attrib, shaderDetails.reflection->inputSignature[reflIndex].varName.c_str(),
+                  bufIdx));
 
           ret = false;
         }
@@ -271,12 +272,12 @@ bool WrappedOpenGL::Check_SafeDraw(bool indexed)
             ResourceId id = GetResourceManager()->GetResID(BufferRes(GetCtx(), vb));
             AddDebugMessage(
                 MessageCategory::Undefined, MessageSeverity::High, MessageSource::IncorrectAPIUse,
-                StringFormat::Fmt("Vertex buffer %s bound to attribute %d: %s (buffer slot %d) at "
-                                  "draw is 0-sized!\n"
-                                  "Has this buffer been initialised?",
-                                  ToStr(GetResourceManager()->GetOriginalID(id)).c_str(), attrib,
-                                  shaderDetails.reflection.inputSignature[reflIndex].varName.c_str(),
-                                  bufIdx));
+                StringFormat::Fmt(
+                    "Vertex buffer %s bound to attribute %d: %s (buffer slot %d) at "
+                    "draw is 0-sized!\n"
+                    "Has this buffer been initialised?",
+                    ToStr(GetResourceManager()->GetOriginalID(id)).c_str(), attrib,
+                    shaderDetails.reflection->inputSignature[reflIndex].varName.c_str(), bufIdx));
 
             ret = false;
           }

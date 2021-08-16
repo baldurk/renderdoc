@@ -220,7 +220,7 @@ private:
   uint64_t m_TimeBase = 0;
   double m_TimeFrequency = 1.0f;
   SDFile *m_StructuredFile;
-  SDFile m_StoredStructuredData;
+  SDFile *m_StoredStructuredData;
 
   void AddResource(ResourceId id, ResourceType type, const char *defaultNamePrefix);
   void DerivedResource(GLResource parent, ResourceId child);
@@ -632,7 +632,7 @@ public:
     m_SectionVersion = sectionVersion;
     m_State = CaptureState::StructuredExport;
   }
-  SDFile &GetStructuredFile() { return *m_StructuredFile; }
+  SDFile *GetStructuredFile() { return m_StructuredFile; }
   void SetFetchCounters(bool in) { m_FetchCounters = in; };
   void SetDebugMsgContext(const rdcstr &context) { m_DebugMsgContext = context; }
   void AddDebugMessage(DebugMessage msg)
@@ -688,14 +688,18 @@ public:
 
   struct ShaderData
   {
-    ShaderData() : type(eGL_NONE), version(0) {}
+    ShaderData() : type(eGL_NONE), version(0) { reflection = new ShaderReflection; }
+    ~ShaderData() { SAFE_DELETE(reflection); }
+    ShaderData(const ShaderData &o) = delete;
+    ShaderData &operator=(const ShaderData &o) = delete;
+
     GLenum type;
     rdcarray<rdcstr> sources;
     rdcarray<rdcstr> includepaths;
     rdcspv::Reflector spirv;
     rdcstr disassembly;
     std::map<size_t, uint32_t> spirvInstructionLines;
-    ShaderReflection reflection;
+    ShaderReflection *reflection;
     int version;
 
     // used only when we're capturing and don't have driver-side reflection so we need to emulate
@@ -771,7 +775,7 @@ public:
       ResourceId shadId = progdata.stageShaders[i];
       if(shadId != ResourceId())
       {
-        stages.refls[i] = &m_Shaders[shadId].reflection;
+        stages.refls[i] = m_Shaders[shadId].reflection;
         stages.mappings[i] = &m_Shaders[shadId].mapping;
       }
     }

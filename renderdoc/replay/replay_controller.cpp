@@ -168,7 +168,7 @@ const SDFile &ReplayController::GetStructuredFile()
 {
   CHECK_REPLAY_THREAD();
 
-  return m_pDevice->GetStructuredFile();
+  return *m_pDevice->GetStructuredFile();
 }
 
 ActionDescription *ReplayController::GetActionByEID(uint32_t eventId)
