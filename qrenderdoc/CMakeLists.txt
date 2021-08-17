@@ -39,10 +39,6 @@ set(QMAKE_CXXFLAGS "")
 set(QMAKE_RPATHDIR "")
 set(SWIG_FLAGS "")
 
-if(RELEASE_MODE)
-    set(QMAKE_CONFIG "release")
-endif()
-
 if(ENABLE_ASAN)
     set (QMAKE_CXXFLAGS "-fsanitize=address -fno-omit-frame-pointer")
     set (QMAKE_LDFLAGS "-fsanitize=address")
@@ -65,6 +61,11 @@ if(NOT APPLE)
     else() # 32-bit
         set(SWIG_FLAGS "-DSWIGWORDSIZE32")
     endif()
+endif()
+
+if(RELEASE_MODE)
+    set(QMAKE_CONFIG "release")
+    set(QMAKE_CXXFLAGS "-DRELEASE=1 ${QMAKE_CXXFLAGS}")
 endif()
 
 if(QRENDERDOC_NO_CXX11_REGEX)

@@ -42,7 +42,7 @@ static BOOL add_hooks()
   // this instance is being used for a shell extension.
   if(f == "dllhost.exe" || f == "explorer.exe")
   {
-#ifndef _RELEASE
+#if ENABLED(RDOC_RELEASE)
     OutputDebugStringA(
         "Detecting shell process! Disabling hooking in dllhost.exe or explorer.exe\n");
 #endif

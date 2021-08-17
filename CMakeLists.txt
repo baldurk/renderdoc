@@ -323,7 +323,7 @@ set(RELEASE_MODE 0)
 if(cmake_build_type_lower STREQUAL "release" OR
    cmake_build_type_lower STREQUAL "relwithdebinfo" OR
    cmake_build_type_lower STREQUAL "minsizerel")
-    add_definitions(-D_RELEASE)
+    add_definitions(-DRELEASE)
     message(STATUS "Building RenderDoc in Release mode: ${CMAKE_BUILD_TYPE}")
     set(RELEASE_MODE 1)
 endif()
