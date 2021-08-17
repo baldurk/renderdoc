@@ -94,6 +94,8 @@ public:
 
   void LoadInitialLayout();
 
+  void sendErrorReport(bool forceCaptureInclusion);
+
   void setProgress(float val);
   void setRemoteHost(int hostIdx);
   void takeCaptureOwnership() { m_OwnTempCapture = true; }

@@ -48,6 +48,8 @@ void ReplayManager::OpenCapture(const QString &capturefile, const ReplayOptions 
   if(m_Running)
     return;
 
+  m_FatalError = ReplayStatus::Succeeded;
+
   // TODO maybe we could expose this choice to the user?
   int proxyRenderer = -1;
 
@@ -296,6 +298,7 @@ void ReplayManager::CancelReplayLoop()
 void ReplayManager::CloseThread()
 {
   m_Running = false;
+  m_FatalError = ReplayStatus::Succeeded;
 
   m_RenderCondition.wakeAll();
 
@@ -491,6 +494,13 @@ void ReplayManager::run(int proxyRenderer, const QString &capturefile, const Rep
       }
 
       cmd->method(m_Renderer);
+
+      ReplayStatus err = m_Renderer->GetFatalErrorStatus();
+      if(m_FatalError == ReplayStatus::Succeeded && err != ReplayStatus::Succeeded)
+      {
+        m_FatalError = err;
+        m_FatalErrorCallback();
+      }
 
       {
         QMutexLocker lock(&m_TimerLock);

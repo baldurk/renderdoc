@@ -762,6 +762,22 @@ newly generated messages will be returned after that.
 )");
   virtual rdcarray<DebugMessage> GetDebugMessages() = 0;
 
+  DOCUMENT(R"(Poll for the current status of the replay.
+
+This function can be used to monitor to see if a fatal error has been encountered and react
+appropriately, such as by displaying a message to the user. The replay controller interface should
+remain stable and return null/empty data for the most part, but it's recommended for maximum
+stability to stop using the controller when a fatal error is encountered.
+
+If there has been no error, this will return :data:`ReplayStatus.Succeeded`. If there has been an
+error this will return the error code every time, it will not be 'consumed' so it's safe to have
+multiple things checking it.
+
+:return: The current fatal error status.
+:rtype: ReplayStatus
+)");
+  virtual ReplayStatus GetFatalErrorStatus() = 0;
+
   DOCUMENT(R"(Retrieve a list of entry points for a shader.
 
 If the given ID doesn't specify a shader, an empty list will be return. On some APIs, the list will

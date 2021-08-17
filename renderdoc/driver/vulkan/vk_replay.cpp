@@ -32,6 +32,7 @@
 #include "driver/shaders/spirv/spirv_compile.h"
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
+#include "replay/dummy_driver.h"
 #include "serialise/rdcfile.h"
 #include "strings/string_utils.h"
 #include "vk_core.h"
@@ -81,6 +82,34 @@ void VulkanReplay::Shutdown()
 
   m_pDriver->Shutdown();
   delete m_pDriver;
+}
+
+ReplayStatus VulkanReplay::FatalErrorCheck()
+{
+  return m_pDriver->FatalErrorCheck();
+}
+
+IReplayDriver *VulkanReplay::MakeDummyDriver()
+{
+  // gather up the shaders we've allocated to pass to the dummy driver
+  rdcarray<ShaderReflection *> shaders;
+  for(auto it = m_pDriver->m_CreationInfo.m_ShaderModule.begin();
+      it != m_pDriver->m_CreationInfo.m_ShaderModule.end(); it++)
+  {
+    for(auto reflit = it->second.m_Reflections.begin(); reflit != it->second.m_Reflections.end();
+        ++reflit)
+    {
+      shaders.push_back(reflit->second.refl);
+      reflit->second.refl = NULL;
+    }
+  }
+
+  IReplayDriver *dummy = new DummyDriver(this, shaders);
+
+  // the dummy driver now owns the file, remove our reference
+  m_pDriver->DetachStructuredFile();
+
+  return dummy;
 }
 
 rdcarray<GPUDevice> VulkanReplay::GetAvailableGPUs()

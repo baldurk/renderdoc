@@ -1041,6 +1041,8 @@ public:
     DXBC::DXBCContainer *m_DXBCFile;
     ShaderReflection *m_Details;
     ShaderBindpointMapping m_Mapping;
+
+    friend class WrappedShader;
   };
 
   static std::map<ResourceId, ShaderEntry *> m_ShaderList;
@@ -1092,6 +1094,17 @@ public:
   {
     SCOPED_LOCK(m_ShaderListLock);
     return m_ShaderList[m_ID]->GetMapping();
+  }
+
+  static void GetReflections(rdcarray<ShaderReflection *> &refls)
+  {
+    SCOPED_LOCK(m_ShaderListLock);
+    refls.clear();
+    for(auto it = m_ShaderList.begin(); it != m_ShaderList.end(); ++it)
+    {
+      refls.push_back(it->second->m_Details);
+      it->second->m_Details = NULL;
+    }
   }
 
 private:

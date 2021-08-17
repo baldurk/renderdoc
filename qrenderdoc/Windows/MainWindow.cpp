@@ -1828,16 +1828,6 @@ void MainWindow::messageCheck()
       }
 
       GUIInvoke::call(this, [this, disconnected, msgs] {
-        // if we just got disconnected while replaying a capture, alert the user.
-        if(disconnected)
-        {
-          RDDialog::critical(this, tr("Remote server disconnected"),
-                             tr("Remote server disconnected during replaying of this capture.\n"
-                                "The replay will now be non-functional. To restore you will have "
-                                "to close the capture, allow "
-                                "RenderDoc to reconnect and load the capture again"));
-        }
-
         if(m_Ctx.Replay().CurrentRemote().IsValid() &&
            !m_Ctx.Replay().CurrentRemote().IsServerRunning())
           contextChooser->setIcon(Icons::cross());
@@ -2842,6 +2832,11 @@ void MainWindow::on_action_Resource_Inspector_triggered()
 
 void MainWindow::on_action_Send_Error_Report_triggered()
 {
+  sendErrorReport(false);
+}
+
+void MainWindow::sendErrorReport(bool forceCaptureInclusion)
+{
   rdcstr report;
   RENDERDOC_CreateBugReport(RENDERDOC_GetLogFile(), "", report);
 
@@ -2851,6 +2846,7 @@ void MainWindow::on_action_Send_Error_Report_triggered()
   json[lit("gitcommit")] = QString::fromLatin1(RENDERDOC_GetCommitHash());
   json[lit("replaycrash")] = 1;
   json[lit("manual")] = 1;
+  json[lit("forcecapture")] = forceCaptureInclusion ? 1 : 0;
   json[lit("report")] = (QString)report;
 
   CrashDialog crash(m_Ctx.Config(), json, this);

@@ -111,11 +111,12 @@ private:
 
   GLPlatform &m_Platform;
 
+  ReplayStatus m_FatalError = ReplayStatus::Succeeded;
   rdcarray<DebugMessage> m_DebugMessages;
   template <typename SerialiserType>
   void Serialise_DebugMessages(SerialiserType &ser);
   rdcarray<DebugMessage> GetDebugMessages();
-
+  ReplayStatus FatalErrorCheck() { return m_FatalError; }
   rdcstr m_DebugMsgContext;
 
   bool m_SuppressDebugMessages;
@@ -633,6 +634,7 @@ public:
     m_State = CaptureState::StructuredExport;
   }
   SDFile *GetStructuredFile() { return m_StructuredFile; }
+  void DetachStructuredFile() { m_StoredStructuredData = m_StructuredFile = NULL; }
   void SetFetchCounters(bool in) { m_FetchCounters = in; };
   void SetDebugMsgContext(const rdcstr &context) { m_DebugMsgContext = context; }
   void AddDebugMessage(DebugMessage msg)

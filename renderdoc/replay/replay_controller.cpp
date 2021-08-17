@@ -77,11 +77,13 @@ void ReplayController::SetFrameEvent(uint32_t eventId, bool force)
     m_EventID = eventId;
 
     m_pDevice->ReplayLog(eventId, eReplay_WithoutDraw);
+    FatalErrorCheck();
 
     for(size_t i = 0; i < m_Outputs.size(); i++)
       m_Outputs[i]->SetFrameEvent(eventId);
 
     m_pDevice->ReplayLog(eventId, eReplay_OnlyDraw);
+    FatalErrorCheck();
 
     FetchPipelineState(eventId);
   }
@@ -154,7 +156,9 @@ rdcstr ReplayController::DisassembleShader(ResourceId pipeline, const ShaderRefl
     if(t == target)
       return GCNISA::Disassemble(refl->encoding, refl->stage, refl->rawBytes, target);
 
-  return m_pDevice->DisassembleShader(m_pDevice->GetLiveID(pipeline), refl, target);
+  rdcstr ret = m_pDevice->DisassembleShader(m_pDevice->GetLiveID(pipeline), refl, target);
+  FatalErrorCheck();
+  return ret;
 }
 
 FrameDescription ReplayController::GetFrameInfo()
@@ -414,7 +418,9 @@ rdcarray<CounterResult> ReplayController::FetchCounters(const rdcarray<GPUCounte
 
   RENDERDOC_PROFILEFUNCTION();
 
-  return m_pDevice->FetchCounters(counters);
+  rdcarray<CounterResult> ret = m_pDevice->FetchCounters(counters);
+  FatalErrorCheck();
+  return ret;
 }
 
 rdcarray<GPUCounter> ReplayController::EnumerateCounters()
@@ -490,17 +496,18 @@ MeshFormat ReplayController::GetPostVSData(uint32_t instID, uint32_t viewID, Mes
 
   ActionDescription *action = GetActionByEID(m_EventID);
 
-  MeshFormat ret;
-  RDCEraseEl(ret);
-
   if(action == NULL || !(action->flags & ActionFlags::Drawcall))
     return MeshFormat();
 
   instID = RDCMIN(instID, action->numInstances - 1);
 
   m_pDevice->InitPostVSBuffers(action->eventId);
+  FatalErrorCheck();
 
-  return m_pDevice->GetPostVSBuffers(action->eventId, instID, viewID, stage);
+  MeshFormat ret = m_pDevice->GetPostVSBuffers(action->eventId, instID, viewID, stage);
+  FatalErrorCheck();
+
+  return ret;
 }
 
 bytebuf ReplayController::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len)
@@ -521,6 +528,7 @@ bytebuf ReplayController::GetBufferData(ResourceId buff, uint64_t offset, uint64
   }
 
   m_pDevice->GetBufferData(liveId, offset, len, retData);
+  FatalErrorCheck();
 
   return retData;
 }
@@ -541,6 +549,7 @@ bytebuf ReplayController::GetTextureData(ResourceId tex, const Subresource &sub)
   }
 
   m_pDevice->GetTextureData(liveId, sub, GetTextureDataParams(), ret);
+  FatalErrorCheck();
 
   return ret;
 }
@@ -856,6 +865,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const rdcstr &pa
 
       bytebuf data;
       m_pDevice->GetTextureData(liveid, sub, params, data);
+      FatalErrorCheck();
 
       if(data.empty())
       {
@@ -1530,6 +1540,7 @@ rdcarray<PixelModification> ReplayController::PixelHistory(ResourceId target, ui
     return ret;
 
   ret = m_pDevice->PixelHistory(events, id, x, y, subresource, typeCast);
+  FatalErrorCheck();
 
   SetFrameEvent(m_EventID, true);
 
@@ -1550,6 +1561,7 @@ PixelValue ReplayController::PickPixel(ResourceId tex, uint32_t x, uint32_t y,
     return ret;
 
   m_pDevice->PickPixel(m_pDevice->GetLiveID(tex), x, y, sub, typeCast, ret.floatValue.data());
+  FatalErrorCheck();
 
   return ret;
 }
@@ -1564,6 +1576,7 @@ rdcpair<PixelValue, PixelValue> ReplayController::GetMinMax(ResourceId textureId
 
   m_pDevice->GetMinMax(m_pDevice->GetLiveID(textureId), sub, typeCast, &minval.floatValue[0],
                        &maxval.floatValue[0]);
+  FatalErrorCheck();
 
   return make_rdcpair(minval, maxval);
 }
@@ -1578,6 +1591,7 @@ rdcarray<uint32_t> ReplayController::GetHistogram(ResourceId textureId, const Su
 
   m_pDevice->GetHistogram(m_pDevice->GetLiveID(textureId), sub, typeCast, minval, maxval, channels,
                           hist);
+  FatalErrorCheck();
 
   return hist;
 }
@@ -1590,8 +1604,12 @@ ShaderDebugTrace *ReplayController::DebugVertex(uint32_t vertid, uint32_t instid
   RENDERDOC_PROFILEFUNCTION();
 
   ShaderDebugTrace *ret = m_pDevice->DebugVertex(m_EventID, vertid, instid, idx, view);
+  FatalErrorCheck();
 
   SetFrameEvent(m_EventID, true);
+
+  if(ret->debugger)
+    m_Debuggers.push_back(ret->debugger);
 
   return ret;
 }
@@ -1604,8 +1622,12 @@ ShaderDebugTrace *ReplayController::DebugPixel(uint32_t x, uint32_t y, uint32_t 
   RENDERDOC_PROFILEFUNCTION();
 
   ShaderDebugTrace *ret = m_pDevice->DebugPixel(m_EventID, x, y, sample, primitive);
+  FatalErrorCheck();
 
   SetFrameEvent(m_EventID, true);
+
+  if(ret->debugger)
+    m_Debuggers.push_back(ret->debugger);
 
   return ret;
 }
@@ -1618,8 +1640,12 @@ ShaderDebugTrace *ReplayController::DebugThread(const rdcfixedarray<uint32_t, 3>
   RENDERDOC_PROFILEFUNCTION();
 
   ShaderDebugTrace *ret = m_pDevice->DebugThread(m_EventID, groupid, threadid);
+  FatalErrorCheck();
 
   SetFrameEvent(m_EventID, true);
+
+  if(ret->debugger)
+    m_Debuggers.push_back(ret->debugger);
 
   return ret;
 }
@@ -1631,6 +1657,7 @@ rdcarray<ShaderDebugState> ReplayController::ContinueDebug(ShaderDebugger *debug
   RENDERDOC_PROFILEFUNCTION();
 
   rdcarray<ShaderDebugState> ret = m_pDevice->ContinueDebug(debugger);
+  FatalErrorCheck();
 
   return ret;
 }
@@ -1641,6 +1668,7 @@ void ReplayController::FreeTrace(ShaderDebugTrace *trace)
 
   if(trace)
   {
+    m_Debuggers.removeOne(trace->debugger);
     m_pDevice->FreeDebugger(trace->debugger);
     delete trace;
   }
@@ -1659,7 +1687,10 @@ rdcarray<ShaderVariable> ReplayController::GetCBufferVariableContents(
   {
     buffer = m_pDevice->GetLiveID(buffer);
     if(buffer != ResourceId())
+    {
       m_pDevice->GetBufferData(buffer, offset, length, data);
+      FatalErrorCheck();
+    }
   }
 
   rdcarray<ShaderVariable> v;
@@ -1668,7 +1699,10 @@ rdcarray<ShaderVariable> ReplayController::GetCBufferVariableContents(
   shader = m_pDevice->GetLiveID(shader);
 
   if(shader != ResourceId())
+  {
     m_pDevice->FillCBufferVariables(pipeline, shader, entryPoint, cbufslot, v, data);
+    FatalErrorCheck();
+  }
 
   return v;
 }
@@ -1705,6 +1739,8 @@ rdcstr ReplayController::CreateRGPProfile(WindowingData window)
   for(int i = 0; i < 5; i++)
   {
     m_pDevice->ReplayLog(10000000, eReplay_Full);
+    if(FatalErrorCheck())
+      return "";
     output->Display();
   }
 
@@ -1730,12 +1766,16 @@ rdcstr ReplayController::CreateRGPProfile(WindowingData window)
 
     output->Display();
     m_pDevice->ReplayLog(10000000, eReplay_Full);
+    if(FatalErrorCheck())
+      return "";
   }
 
   output->Display();
 
   // restore back to where we were
   m_pDevice->ReplayLog(m_EventID, eReplay_Full);
+  if(FatalErrorCheck())
+    return "";
 
   ShutdownOutput(output);
 
@@ -1783,12 +1823,14 @@ void ReplayController::ReplayLoop(WindowingData window, ResourceId texid)
   while(Atomic::CmpExch32(&m_ReplayLoopCancel, 0, 0) == 0)
   {
     m_pDevice->ReplayLog(10000000, eReplay_Full);
+    FatalErrorCheck();
 
     output->Display();
   }
 
   // restore back to where we were
   m_pDevice->ReplayLog(m_EventID, eReplay_Full);
+  FatalErrorCheck();
 
   ShutdownOutput(output);
 
@@ -1865,6 +1907,48 @@ void ReplayController::Shutdown()
   delete this;
 }
 
+bool ReplayController::FatalErrorCheck()
+{
+  // we've already processed the fatal error if we have a status
+  if(m_FatalError != ReplayStatus::Succeeded)
+    return false;
+
+  m_FatalError = m_pDevice->FatalErrorCheck();
+
+  if(m_FatalError != ReplayStatus::Succeeded)
+  {
+    RDCLOG("Fatal error detected: %s", ToStr(m_FatalError).c_str());
+
+    IReplayDriver *old = m_pDevice;
+
+    // replace our driver with a dummy
+    m_pDevice = m_pDevice->MakeDummyDriver();
+
+    // replace the outputs as well
+    for(size_t i = 0; i < m_Outputs.size(); i++)
+    {
+      old->DestroyOutputWindow(m_Outputs[i]->m_MainOutput.outputID);
+      old->DestroyOutputWindow(m_Outputs[i]->m_PixelContext.outputID);
+      m_Outputs[i]->ClearThumbnails();
+
+      m_Outputs[i]->m_pDevice = m_pDevice;
+    }
+
+    // delete the old replay
+    old->Shutdown();
+
+    // reset pipeline states to default
+    m_D3D11PipelineState = D3D11Pipe::State();
+    m_D3D12PipelineState = D3D12Pipe::State();
+    m_GLPipelineState = GLPipe::State();
+    m_VulkanPipelineState = VKPipe::State();
+
+    return true;
+  }
+
+  return false;
+}
+
 rdcarray<ShaderEncoding> ReplayController::GetCustomShaderEncodings()
 {
   CHECK_REPLAY_THREAD();
@@ -1912,6 +1996,7 @@ rdcpair<ResourceId, rdcstr> ReplayController::BuildTargetShader(
   }
 
   m_pDevice->BuildTargetShader(sourceEncoding, source, entry, compileFlags, type, id, errs);
+  FatalErrorCheck();
 
   if(id != ResourceId())
     m_TargetResources.insert(id);
@@ -1952,6 +2037,7 @@ rdcpair<ResourceId, rdcstr> ReplayController::BuildCustomShader(
   RDCLOG("Building custom shader");
 
   m_pDevice->BuildCustomShader(sourceEncoding, source, entry, compileFlags, type, id, errs);
+  FatalErrorCheck();
 
   if(id != ResourceId())
   {
@@ -1987,6 +2073,7 @@ void ReplayController::ReplaceResource(ResourceId from, ResourceId to)
   CHECK_REPLAY_THREAD();
 
   m_pDevice->ReplaceResource(from, to);
+  FatalErrorCheck();
 
   SetFrameEvent(m_EventID, true);
 
@@ -2000,6 +2087,7 @@ void ReplayController::RemoveReplacement(ResourceId id)
   CHECK_REPLAY_THREAD();
 
   m_pDevice->RemoveReplacement(id);
+  FatalErrorCheck();
 
   SetFrameEvent(m_EventID, true);
 
@@ -2054,6 +2142,7 @@ ReplayStatus ReplayController::PostCreateInit(IReplayDriver *device, RDCFile *rd
   GCNISA::CacheSupport(m_APIProps.pipelineType);
 
   ReplayStatus status = m_pDevice->ReadLogInitialisation(rdc, false);
+  FatalErrorCheck();
 
   m_pDevice->SetPipelineStates(&m_D3D11PipelineState, &m_D3D12PipelineState, &m_GLPipelineState,
                                &m_VulkanPipelineState);
@@ -2101,6 +2190,7 @@ void ReplayController::FetchPipelineState(uint32_t eventId)
   RENDERDOC_PROFILEFUNCTION();
 
   m_pDevice->SavePipelineState(eventId);
+  FatalErrorCheck();
 
   if(m_APIProps.pipelineType == GraphicsAPI::D3D11)
     m_PipeState.SetState(&m_D3D11PipelineState);

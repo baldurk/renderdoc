@@ -148,6 +148,7 @@ public:
   bool IsCaptureLocal() override { return m_CaptureLocal; }
   bool IsCaptureTemporary() override { return m_CaptureTemporary; }
   bool IsCaptureLoading() override { return m_LoadInProgress; }
+  ReplayStatus GetFatalError() override { return m_Replay.GetFatalError(); }
   rdcstr GetCaptureFilename() override { return m_CaptureFile; }
   CaptureModifications GetCaptureModifications() override { return m_CaptureMods; }
   const FrameDescription &FrameInfo() override { return m_FrameInfo; }

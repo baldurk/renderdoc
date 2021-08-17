@@ -25,6 +25,7 @@
 #include "common/dds_readwrite.h"
 #include "core/core.h"
 #include "maths/formatpacking.h"
+#include "replay/dummy_driver.h"
 #include "replay/replay_driver.h"
 #include "serialise/rdcfile.h"
 #include "stb/stb_image.h"
@@ -72,12 +73,27 @@ public:
 
   virtual ~ImageViewer()
   {
-    m_Proxy->Shutdown();
-    m_Proxy = NULL;
     SAFE_DELETE(m_File);
+    if(m_Proxy)
+    {
+      m_Proxy->Shutdown();
+      m_Proxy = NULL;
+    }
   }
 
   bool IsRemoteProxy() { return true; }
+  ReplayStatus FatalErrorCheck()
+  {
+    // check for errors on the underlying proxy driver
+    return m_Proxy->FatalErrorCheck();
+  }
+  IReplayDriver *MakeDummyDriver()
+  {
+    IReplayDriver *ret = new DummyDriver(this, {});
+    // lose our structured file reference
+    m_File = NULL;
+    return ret;
+  }
   void Shutdown() { delete this; }
   // pass through necessary operations to proxy
   rdcarray<WindowingSystem> GetSupportedWindowSystems()

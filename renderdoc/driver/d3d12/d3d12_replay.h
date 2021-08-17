@@ -84,6 +84,9 @@ public:
   void Initialise(IDXGIFactory1 *factory);
   void Shutdown();
 
+  ReplayStatus FatalErrorCheck();
+  IReplayDriver *MakeDummyDriver();
+
   void CreateResources();
   void DestroyResources();
   DriverInformation GetDriverInfo() { return m_DriverInfo; }

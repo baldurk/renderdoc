@@ -26,6 +26,7 @@
 #include "replay_proxy.h"
 #include <list>
 #include "lz4/lz4.h"
+#include "replay/dummy_driver.h"
 #include "serialise/lz4io.h"
 
 template <>
@@ -128,25 +129,37 @@ rdcstr DoStringise(const ReplayProxyPacket &el)
 // begin serialising a return value. We begin a chunk here in either the writing or reading case
 // since this chunk is used purely to send/receive the return value and is fully handled within the
 // function.
-#define SERIALISE_RETURN(retval)                    \
-  {                                                 \
-    ReturnSerialiser &ser = retser;                 \
-    PACKET_HEADER(packet);                          \
-    SERIALISE_ELEMENT(retval);                      \
-    GET_SERIALISER.Serialise("packet"_lit, packet); \
-    ser.EndChunk();                                 \
-    CheckError(packet, expectedPacket);             \
+#define SERIALISE_RETURN(retval)                                                          \
+  {                                                                                       \
+    ReplayStatus fatalStatus = ReplayStatus::Succeeded;                                   \
+    if(m_RemoteServer)                                                                    \
+      fatalStatus = m_Remote->FatalErrorCheck();                                          \
+    ReturnSerialiser &ser = retser;                                                       \
+    PACKET_HEADER(packet);                                                                \
+    SERIALISE_ELEMENT(retval);                                                            \
+    GET_SERIALISER.Serialise("fatalStatus"_lit, fatalStatus);                             \
+    GET_SERIALISER.Serialise("packet"_lit, packet);                                       \
+    ser.EndChunk();                                                                       \
+    if(fatalStatus != ReplayStatus::Succeeded && m_FatalError == ReplayStatus::Succeeded) \
+      m_FatalError = fatalStatus;                                                         \
+    CheckError(packet, expectedPacket);                                                   \
   }
 
 // similar to the above, but for void functions that don't return anything. We still want to check
 // that both sides of the communication are on the same page.
-#define SERIALISE_RETURN_VOID()         \
-  {                                     \
-    ReturnSerialiser &ser = retser;     \
-    PACKET_HEADER(packet);              \
-    SERIALISE_ELEMENT(packet);          \
-    ser.EndChunk();                     \
-    CheckError(packet, expectedPacket); \
+#define SERIALISE_RETURN_VOID()                                                           \
+  {                                                                                       \
+    ReplayStatus fatalStatus = ReplayStatus::Succeeded;                                   \
+    if(m_RemoteServer)                                                                    \
+      fatalStatus = m_Remote->FatalErrorCheck();                                          \
+    ReturnSerialiser &ser = retser;                                                       \
+    PACKET_HEADER(packet);                                                                \
+    SERIALISE_ELEMENT(packet);                                                            \
+    GET_SERIALISER.Serialise("fatalStatus"_lit, fatalStatus);                             \
+    ser.EndChunk();                                                                       \
+    if(fatalStatus != ReplayStatus::Succeeded && m_FatalError == ReplayStatus::Succeeded) \
+      m_FatalError = fatalStatus;                                                         \
+    CheckError(packet, expectedPacket);                                                   \
   }
 
 // defines the area where we're executing on the remote host. To avoid timeouts, the remote side
@@ -2766,8 +2779,49 @@ void ReplayProxy::RemoteExecutionThreadEntry()
   }
 }
 
+ReplayStatus ReplayProxy::FatalErrorCheck()
+{
+  // this isn't proxied since it's called at relatively high frequency. Whenever we proxy a
+  // function, we also return the the remote side's status
+  if(m_IsErrored)
+  {
+    // if we're error'd due to a network issue (i.e. the other side crashed and disconnected) we
+    // won't have a status, set a generic one
+    if(m_FatalError == ReplayStatus::Succeeded)
+      m_FatalError = ReplayStatus::RemoteServerConnectionLost;
+
+    return m_FatalError;
+  }
+
+  return ReplayStatus::Succeeded;
+}
+
+IReplayDriver *ReplayProxy::MakeDummyDriver()
+{
+  // gather up the shaders we've allocated to pass to the dummy driver
+  rdcarray<ShaderReflection *> shaders;
+  for(auto it = m_ShaderReflectionCache.begin(); it != m_ShaderReflectionCache.end(); ++it)
+    shaders.push_back(it->second);
+  m_ShaderReflectionCache.clear();
+
+  IReplayDriver *dummy = new DummyDriver(this, shaders);
+
+  // the dummy driver now owns the file, remove our reference
+  m_StructuredFile = NULL;
+
+  return dummy;
+}
+
 bool ReplayProxy::CheckError(ReplayProxyPacket receivedPacket, ReplayProxyPacket expectedPacket)
 {
+  if(m_FatalError != ReplayStatus::Succeeded)
+  {
+    RDCERR("Fatal error detected while processing %s: %s", ToStr(expectedPacket).c_str(),
+           ToStr(m_FatalError).c_str());
+    m_IsErrored = true;
+    return true;
+  }
+
   if(m_Writer.IsErrored() || m_Reader.IsErrored() || m_IsErrored)
   {
     RDCERR("Error during processing of %s", ToStr(expectedPacket).c_str());

@@ -667,6 +667,7 @@ private:
   rdcarray<TempMem *> m_ThreadTempMem;
 
   rdcarray<DebugMessage> m_DebugMessages;
+  ReplayStatus m_FatalError = ReplayStatus::Succeeded;
 
   uint64_t m_TimeBase = 0;
   double m_TimeFrequency = 1.0f;
@@ -799,7 +800,7 @@ public:
   void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d);
   void AddDebugMessage(const DebugMessage &msg);
   rdcarray<DebugMessage> GetDebugMessages();
-
+  ReplayStatus FatalErrorCheck() { return m_FatalError; }
   ResourceDescription &GetResourceDesc(ResourceId id);
   void AddResource(ResourceId id, ResourceType type, const char *defaultNamePrefix);
   void DerivedResource(ResourceId parent, ResourceId child);
@@ -926,6 +927,7 @@ public:
     m_State = CaptureState::StructuredExport;
   }
   SDFile *GetStructuredFile() { return m_StructuredFile; }
+  void DetachStructuredFile() { m_StoredStructuredData = m_StructuredFile = NULL; }
   uint64_t GetTimeBase() { return m_TimeBase; }
   double GetTimeFrequency() { return m_TimeFrequency; }
   // interface for DXGI

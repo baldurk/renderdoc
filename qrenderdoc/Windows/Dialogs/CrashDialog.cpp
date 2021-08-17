@@ -39,6 +39,8 @@
 #include "Code/QRDUtils.h"
 #include "ui_CrashDialog.h"
 
+const qint64 MaxUploadSize = 2250LL * 1024LL * 1024LL;
+
 CrashDialog::CrashDialog(PersistantConfig &cfg, QVariantMap crashReportJSON, QWidget *parent)
     : QDialog(parent), ui(new Ui::CrashDialog), m_Config(cfg)
 {
@@ -50,11 +52,13 @@ CrashDialog::CrashDialog(PersistantConfig &cfg, QVariantMap crashReportJSON, QWi
   m_ReportMetadata = crashReportJSON;
 
   const bool replayCrash = crashReportJSON[lit("replaycrash")].toUInt() != 0;
+  const bool forceCapture = crashReportJSON[lit("forcecapture")].toUInt() != 0;
   const bool manualReport =
       crashReportJSON.contains(lit("manual")) && crashReportJSON[lit("manual")].toUInt() != 0;
 
   // remove metadata we don't send directly
   m_ReportMetadata.remove(lit("report"));
+  m_ReportMetadata.remove(lit("forcecapture"));
   m_ReportMetadata.remove(lit("replaycrash"));
 
   setStage(ReportStage::FillingDetails);
@@ -98,7 +102,7 @@ CrashDialog::CrashDialog(PersistantConfig &cfg, QVariantMap crashReportJSON, QWi
 
     cap->Shutdown();
 
-    if(capInfo.size() > 2250LL * 1024LL * 1024LL)
+    if(capInfo.size() > MaxUploadSize)
     {
       // capture is too large to upload :(
       ui->captureFilename->setText(
@@ -107,6 +111,13 @@ CrashDialog::CrashDialog(PersistantConfig &cfg, QVariantMap crashReportJSON, QWi
       ui->captureUpload->setEnabled(false);
 
       ui->capturePreviewFrame->hide();
+    }
+
+    if(forceCapture)
+    {
+      ui->captureUpload->setChecked(true);
+      ui->captureUpload->setEnabled(false);
+      ui->captureUpload->setText(ui->captureUpload->text() + tr(" (required)"));
     }
   }
   else
@@ -238,6 +249,13 @@ CrashDialog::~CrashDialog()
   delete ui;
 }
 
+bool CrashDialog::HasCaptureReady(PersistantConfig &cfg)
+{
+  QFileInfo capInfo(cfg.CrashReport_LastOpenedCapture);
+
+  return capInfo.exists() && capInfo.size() <= MaxUploadSize;
+}
+
 void CrashDialog::showEvent(QShowEvent *)
 {
   adjustSize();
@@ -299,7 +317,8 @@ void CrashDialog::on_send_clicked()
     if(result != QMessageBox::Yes)
     {
       // uncheck and return back so they can confirm
-      ui->captureUpload->setChecked(false);
+      if(ui->captureUpload->isEnabled())
+        ui->captureUpload->setChecked(false);
       return;
     }
   }

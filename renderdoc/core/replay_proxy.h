@@ -103,6 +103,8 @@ enum ReplayProxyPacket
 
   eReplayProxy_ContinueDebug,
   eReplayProxy_FreeDebugger,
+
+  eReplayProxy_FatalErrorCheck,
 };
 
 DECLARE_REFLECTION_ENUM(ReplayProxyPacket);
@@ -140,6 +142,8 @@ public:
   void RemoteExecutionThreadEntry();
 
   bool IsRemoteProxy() { return !m_RemoteServer; }
+  ReplayStatus FatalErrorCheck();
+  IReplayDriver *MakeDummyDriver();
   void Shutdown() { delete this; }
   ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
   {
@@ -694,6 +698,7 @@ private:
   Threading::ThreadHandle m_RemoteExecutionThread = 0;
 
   bool m_IsErrored = false;
+  ReplayStatus m_FatalError = ReplayStatus::Succeeded;
 
   FrameRecord m_FrameRecord;
   APIProperties m_APIProps;

@@ -77,7 +77,7 @@ private:
 
   uint64_t m_ThreadID;
 
-  ReplayController *m_pRenderer;
+  ReplayController *m_pController;
 
   bool m_OverlayDirty;
   bool m_ForceOverlayRefresh;
@@ -173,7 +173,7 @@ public:
   const rdcarray<BufferDescription> &GetBuffers();
   const rdcarray<ResourceDescription> &GetResources();
   rdcarray<DebugMessage> GetDebugMessages();
-
+  ReplayStatus GetFatalErrorStatus() { return m_FatalError; }
   rdcarray<ShaderEntryPoint> GetShaderEntryPoints(ResourceId shader);
   const ShaderReflection *GetShader(ResourceId pipeline, ResourceId shader, ShaderEntryPoint entry);
 
@@ -218,6 +218,8 @@ public:
   void ShutdownOutput(IReplayOutput *output);
   void Shutdown();
 
+  bool FatalErrorCheck();
+
 private:
   virtual ~ReplayController();
   ReplayStatus PostCreateInit(IReplayDriver *device, RDCFile *rdc);
@@ -240,6 +242,8 @@ private:
   int32_t m_ReplayLoopCancel = 0;
   int32_t m_ReplayLoopFinished = 0;
 
+  ReplayStatus m_FatalError = ReplayStatus::Succeeded;
+
   uint32_t m_EventID;
 
   std::map<uint32_t, uint32_t> m_EventRemap;
@@ -257,6 +261,8 @@ private:
   rdcarray<TextureDescription> m_Textures;
 
   IReplayDriver *m_pDevice;
+
+  rdcarray<ShaderDebugger *> m_Debuggers;
 
   std::set<ResourceId> m_TargetResources;
   std::set<ResourceId> m_CustomShaders;

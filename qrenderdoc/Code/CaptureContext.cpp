@@ -44,6 +44,7 @@
 #include "Windows/ConstantBufferPreviewer.h"
 #include "Windows/DebugMessageView.h"
 #include "Windows/Dialogs/CaptureDialog.h"
+#include "Windows/Dialogs/CrashDialog.h"
 #include "Windows/Dialogs/LiveCapture.h"
 #include "Windows/Dialogs/SettingsDialog.h"
 #include "Windows/EventBrowser.h"
@@ -97,6 +98,98 @@ CaptureContext::CaptureContext(PersistantConfig &cfg) : m_Config(cfg)
   m_MainWindow = new MainWindow(*this);
 
   m_MainWindow->LoadInitialLayout();
+
+  m_Replay.SetFatalErrorCallback([this]() {
+    GUIInvoke::call(m_MainWindow, [this]() {
+      RefreshUIStatus({}, true, true);
+
+      ReplayStatus err = GetFatalError();
+
+      QString title;
+      QString text;
+
+      if(err == ReplayStatus::RemoteServerConnectionLost)
+      {
+        QString serverName = Replay().CurrentRemote().Name();
+
+        title = tr("Connection lost to %1").arg(serverName);
+        text =
+            tr("Connection to %1 was lost while analysing capture.\n"
+               "This is most commonly caused by a crash, but that can't be verified and it may be "
+               "a connection issue.")
+                .arg(serverName);
+      }
+      else if(err == ReplayStatus::ReplayDeviceLost)
+      {
+        title = tr("Device Lost error");
+        text =
+            tr("The capture analysis encountered a device lost error. This may be due to an "
+               "application bug, a RenderDoc bug, or insufficient resources on the system to "
+               "analyse the capture.\n\n"
+               "It is recommended that you run your application with API validation enabled, as "
+               "API use errors can cause this kind of problem.");
+      }
+      else if(err == ReplayStatus::ReplayOutOfMemory)
+      {
+        title = tr("Out of GPU memory");
+        text = tr(
+            "While analysing the capture it ran out of GPU memory. This is most likely caused by "
+            "insufficient resources on the system to analyse the capture, which is possible if "
+            "there is memory pressure from other applications or if the capture is heavyweight.");
+      }
+      else
+      {
+        title = tr("Unrecoverable error");
+        text = tr("While analysing the capture we encountered an unrecoverable error:\n\n%1")
+                   .arg(QString(ToStr(err)));
+      }
+
+      text +=
+          tr("\n\n"
+             "This error is not recoverable and the analysis cannot continue. The UI will be "
+             "non-functional until the capture is closed and reloaded.\n\n");
+
+      bool add_report = false;
+
+      if(CrashDialog::HasCaptureReady(m_Config))
+      {
+        text += tr(
+            "If you think this may be a RenderDoc bug please click the button below to report it, "
+            "but note that this will require you to upload the capture for reproduction as "
+            "otherwise it is impossible to tell what the problem may be.");
+
+        add_report = true;
+      }
+      else
+      {
+        text += tr("The capture must be saved locally if you want to report this as a bug. ");
+
+        if(Replay().CurrentRemote().IsConnected())
+        {
+          text +=
+              tr("Before closing the capture you can save it to disk and manually report a bug. "
+                 "Please include the capture, or else it will be impossible to tell what the "
+                 "problem may be.");
+        }
+        else
+        {
+          text += tr("You will need to reconnect to the remote server to save the capture.");
+        }
+      }
+
+      QMessageBox mb(QMessageBox::Critical, title, text, QMessageBox::Ok, m_MainWindow);
+      mb.setDefaultButton(QMessageBox::NoButton);
+      QPushButton *report = NULL;
+      if(add_report)
+        report = mb.addButton(tr("Report bug"), QMessageBox::AcceptRole);
+      RDDialog::show(&mb);
+
+      if(mb.clickedButton() == (QAbstractButton *)report)
+      {
+        m_MainWindow->sendErrorReport(true);
+      }
+    });
+  });
 
   {
     QDir dir(ConfigFilePath("extensions"));
@@ -712,10 +805,11 @@ void CaptureContext::LoadCapture(const rdcstr &captureFile, const ReplayOptions 
   m_LoadInProgress = true;
 
   if(local)
-  {
     m_Config.CrashReport_LastOpenedCapture = origFilename;
-    m_Config.Save();
-  }
+  else
+    m_Config.CrashReport_LastOpenedCapture = QString();
+
+  m_Config.Save();
 
   bool newCapture = (!temporary && !Config().RecentCaptureFiles.contains(origFilename));
 

@@ -570,6 +570,9 @@
     <ClInclude Include="3rdparty\md5\md5.h">
       <Filter>3rdparty\md5</Filter>
     </ClInclude>
+    <ClInclude Include="replay\dummy_driver.h">
+      <Filter>Replay</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -985,6 +988,9 @@
     </ClCompile>
     <ClCompile Include="3rdparty\md5\md5.c">
       <Filter>3rdparty\md5</Filter>
+    </ClCompile>
+    <ClCompile Include="replay\dummy_driver.cpp">
+      <Filter>Replay</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

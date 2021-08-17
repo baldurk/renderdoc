@@ -29,6 +29,7 @@
 #include "driver/ihv/arm/arm_counters.h"
 #include "driver/ihv/intel/intel_gl_counters.h"
 #include "maths/matrix.h"
+#include "replay/dummy_driver.h"
 #include "serialise/rdcfile.h"
 #include "strings/string_utils.h"
 #include "gl_driver.h"
@@ -84,6 +85,29 @@ void GLReplay::Shutdown()
   }
 
   delete m_pDriver;
+}
+
+ReplayStatus GLReplay::FatalErrorCheck()
+{
+  return m_pDriver->FatalErrorCheck();
+}
+
+IReplayDriver *GLReplay::MakeDummyDriver()
+{
+  // gather up the shaders we've allocated to pass to the dummy driver
+  rdcarray<ShaderReflection *> shaders;
+  for(auto it = m_pDriver->m_Shaders.begin(); it != m_pDriver->m_Shaders.end(); it++)
+  {
+    shaders.push_back(it->second.reflection);
+    it->second.reflection = NULL;
+  }
+
+  IReplayDriver *dummy = new DummyDriver(this, shaders);
+
+  // the dummy driver now owns the file, remove our reference
+  m_pDriver->DetachStructuredFile();
+
+  return dummy;
 }
 
 ReplayStatus GLReplay::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)

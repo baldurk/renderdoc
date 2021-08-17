@@ -3656,6 +3656,18 @@ a remote server.
 .. data:: AndroidAPKVerifyFailed
 
   Failed to install Android remote server.
+
+.. data:: RemoteServerConnectionLost
+
+  While replaying on a remote server, the connection was lost.
+
+.. data:: ReplayOutOfMemory
+
+  While replaying, a GPU out of memory error was encountered.
+
+.. data:: ReplayDeviceLost
+
+  While replaying a device lost fatal error was encountered.
 )");
 enum class ReplayStatus : uint32_t
 {
@@ -3684,6 +3696,9 @@ enum class ReplayStatus : uint32_t
   AndroidAPKFolderNotFound,
   AndroidAPKInstallFailed,
   AndroidAPKVerifyFailed,
+  RemoteServerConnectionLost,
+  ReplayOutOfMemory,
+  ReplayDeviceLost,
 };
 
 DECLARE_REFLECTION_ENUM(ReplayStatus);

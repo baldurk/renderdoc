@@ -46,6 +46,8 @@ public:
   explicit CrashDialog(PersistantConfig &cfg, QVariantMap crashReportJSON, QWidget *parent = 0);
   ~CrashDialog();
 
+  static bool HasCaptureReady(PersistantConfig &cfg);
+
 private slots:
   // automatic slots
   void on_send_clicked();

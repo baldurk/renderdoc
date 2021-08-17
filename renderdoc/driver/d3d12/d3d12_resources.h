@@ -744,6 +744,16 @@ public:
       return false;
     }
 
+    static void GetReflections(rdcarray<ShaderReflection *> &refls)
+    {
+      refls.clear();
+      for(auto it = m_Shaders.begin(); it != m_Shaders.end(); ++it)
+      {
+        refls.push_back(it->second->m_Details);
+        it->second->m_Details = NULL;
+      }
+    }
+
     void GetShaderExtSlot(uint32_t &slot, uint32_t &space)
     {
       slot = m_ShaderExtSlot;

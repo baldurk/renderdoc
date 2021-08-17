@@ -32,6 +32,7 @@
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
+#include "replay/dummy_driver.h"
 #include "serialise/rdcfile.h"
 #include "strings/string_utils.h"
 #include "d3d12_command_queue.h"
@@ -112,6 +113,25 @@ void D3D12Replay::Initialise(IDXGIFactory1 *factory)
       SAFE_RELEASE(pDXGIAdapter);
     }
   }
+}
+
+ReplayStatus D3D12Replay::FatalErrorCheck()
+{
+  return m_pDevice->FatalErrorCheck();
+}
+
+IReplayDriver *D3D12Replay::MakeDummyDriver()
+{
+  // gather up the shaders we've allocated to pass to the dummy driver
+  rdcarray<ShaderReflection *> shaders;
+  WrappedID3D12Shader::GetReflections(shaders);
+
+  IReplayDriver *dummy = new DummyDriver(this, shaders);
+
+  // the dummy driver now owns the file, remove our reference
+  m_pDevice->DetachStructuredFile();
+
+  return dummy;
 }
 
 void D3D12Replay::CreateResources()

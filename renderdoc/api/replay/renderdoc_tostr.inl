@@ -91,6 +91,9 @@ rdcstr DoStringise(const ReplayStatus &el)
                                "Failed to install Android remote server for unknown reasons");
     STRINGISE_ENUM_CLASS_NAMED(AndroidAPKVerifyFailed,
                                "Failed to verify installed Android remote server");
+    STRINGISE_ENUM_CLASS_NAMED(RemoteServerConnectionLost, "Connection lost to remote server");
+    STRINGISE_ENUM_CLASS_NAMED(ReplayOutOfMemory, "Encountered GPU out of memory error");
+    STRINGISE_ENUM_CLASS_NAMED(ReplayDeviceLost, "Encountered a GPU device lost error");
   }
   END_ENUM_STRINGISE();
 }

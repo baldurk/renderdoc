@@ -286,10 +286,11 @@ private:
   void Serialise_DebugMessages(SerialiserType &ser);
 
   void ProcessDebugMessage(DebugMessage &DebugMessages);
-
   rdcarray<DebugMessage> GetDebugMessages();
   void AddDebugMessage(DebugMessage msg);
 
+  ReplayStatus m_FatalError = ReplayStatus::Succeeded;
+  ReplayStatus FatalErrorCheck() { return m_FatalError; }
   CaptureState m_State;
   bool m_AppControlledCapture = false;
 
@@ -1040,6 +1041,7 @@ public:
   ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
 
   SDFile *GetStructuredFile() { return m_StructuredFile; }
+  void DetachStructuredFile() { m_StoredStructuredData = m_StructuredFile = NULL; }
   const APIEvent &GetEvent(uint32_t eventId);
   uint32_t GetMaxEID() { return m_Events.back().eventId; }
   const ActionDescription *GetAction(uint32_t eventId);

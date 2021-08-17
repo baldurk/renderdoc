@@ -212,6 +212,7 @@ public:
   virtual bool IsRenderOutput(ResourceId id) = 0;
 
   virtual void FileChanged() = 0;
+  virtual ReplayStatus FatalErrorCheck() = 0;
 
   virtual bool NeedRemapForFetch(const ResourceFormat &format) = 0;
 
@@ -224,6 +225,8 @@ class IReplayDriver : public IRemoteDriver
 {
 public:
   virtual bool IsRemoteProxy() = 0;
+
+  virtual IReplayDriver *MakeDummyDriver() = 0;
 
   virtual rdcarray<WindowingSystem> GetSupportedWindowSystems() = 0;
 

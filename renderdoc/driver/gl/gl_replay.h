@@ -115,6 +115,9 @@ public:
   bool IsRemoteProxy() { return m_Proxy; }
   void Shutdown();
 
+  ReplayStatus FatalErrorCheck();
+  IReplayDriver *MakeDummyDriver();
+
   DriverInformation GetDriverInfo() { return m_DriverInfo; }
   rdcarray<GPUDevice> GetAvailableGPUs();
   APIProperties GetAPIProperties();

@@ -54,6 +54,8 @@ public:
 
   bool IsRunning();
   ReplayStatus GetCreateStatus() { return m_CreateStatus; }
+  void SetFatalErrorCallback(std::function<void()> cb) { m_FatalErrorCallback = cb; }
+  ReplayStatus GetFatalError() { return m_FatalError; }
   float GetCurrentProcessingTime();
   QString GetCurrentProcessingTag();
   // this tagged version is for cases when we might send a request - e.g. to pick a vertex or pixel
@@ -136,6 +138,8 @@ private:
   IRemoteServer *m_Remote = NULL;
   IRemoteServer *m_OrphanedRemote = NULL;
 
+  std::function<void()> m_FatalErrorCallback;
+  ReplayStatus m_FatalError = ReplayStatus::Succeeded;
   volatile bool m_Running;
   LambdaThread *m_Thread;
   ReplayStatus m_CreateStatus = ReplayStatus::Succeeded;

@@ -109,6 +109,9 @@ public:
   bool IsRemoteProxy() { return m_Proxy; }
   void Shutdown();
 
+  ReplayStatus FatalErrorCheck();
+  IReplayDriver *MakeDummyDriver();
+
   void CreateResources(IDXGIFactory *factory);
   void DestroyResources();
 

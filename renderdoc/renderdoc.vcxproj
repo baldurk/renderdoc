@@ -242,6 +242,7 @@
     </ClInclude>
     <ClInclude Include="os\win32\dia2_stubs.h" />
     <ClInclude Include="os\win32\win32_specific.h" />
+    <ClInclude Include="replay\dummy_driver.h" />
     <ClInclude Include="replay\replay_driver.h" />
     <ClInclude Include="replay\replay_controller.h" />
     <ClInclude Include="serialise\codecs\vk_cpp_codec_common.h" />
@@ -656,6 +657,7 @@
     <ClCompile Include="replay\basic_types_tests.cpp" />
     <ClCompile Include="replay\capture_file.cpp" />
     <ClCompile Include="replay\capture_options.cpp" />
+    <ClCompile Include="replay\dummy_driver.cpp" />
     <ClCompile Include="replay\entry_points.cpp" />
     <ClCompile Include="replay\replay_driver.cpp" />
     <ClCompile Include="replay\replay_output.cpp" />

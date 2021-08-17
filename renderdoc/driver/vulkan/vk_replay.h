@@ -267,6 +267,9 @@ public:
   bool IsRemoteProxy() { return m_Proxy; }
   void Shutdown();
 
+  ReplayStatus FatalErrorCheck();
+  IReplayDriver *MakeDummyDriver();
+
   void CreateResources();
   void DestroyResources();
 

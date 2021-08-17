@@ -32,6 +32,7 @@
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
+#include "replay/dummy_driver.h"
 #include "serialise/rdcfile.h"
 #include "strings/string_utils.h"
 #include "d3d11_context.h"
@@ -77,8 +78,29 @@ void D3D11Replay::Shutdown()
     m_ProxyResources[i]->Release();
   m_ProxyResources.clear();
 
+  m_RealState.state.Clear();
+
   // explicitly delete the device, as all the replay resources created will be keeping refs on it
   delete m_pDevice;
+}
+
+ReplayStatus D3D11Replay::FatalErrorCheck()
+{
+  return m_pDevice->FatalErrorCheck();
+}
+
+IReplayDriver *D3D11Replay::MakeDummyDriver()
+{
+  // gather up the shaders we've allocated to pass to the dummy driver
+  rdcarray<ShaderReflection *> shaders;
+  WrappedID3D11Shader<ID3D11ComputeShader>::GetReflections(shaders);
+
+  IReplayDriver *dummy = new DummyDriver(this, shaders);
+
+  // the dummy driver now owns the file, remove our reference
+  m_pDevice->DetachStructuredFile();
+
+  return dummy;
 }
 
 void D3D11Replay::CreateResources(IDXGIFactory *factory)

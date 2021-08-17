@@ -96,7 +96,12 @@ void CustomPaintWidget::OnSelectedEventChanged(uint32_t eventId)
 
 void CustomPaintWidget::OnEventChanged(uint32_t eventId)
 {
-  // nothing, we only care about capture loaded/closed events
+  // if we've encountered a fatal error recreate the widget and take over painting
+  if(m_Rendering && m_Ctx && m_Ctx->GetFatalError() != ReplayStatus::Succeeded)
+  {
+    RecreateInternalWidget();
+    update();
+  }
 }
 
 void CustomPaintWidget::update()
@@ -130,8 +135,9 @@ void CustomPaintWidget::RecreateInternalWidget()
     return;
   }
 
-  // if no capture is loaded, we're not rendering anymore.
-  m_Rendering = m_Rendering && m_Ctx && m_Ctx->IsCaptureLoaded();
+  // if no capture is loaded, or we've encountered a fatal error, we're not rendering anymore.
+  m_Rendering = m_Rendering && m_Ctx && m_Ctx->IsCaptureLoaded() &&
+                m_Ctx->GetFatalError() == ReplayStatus::Succeeded;
 
   // we need to recreate the widget if it's not matching out rendering state.
   if(m_Internal == NULL || m_Rendering != m_Internal->IsRendering())

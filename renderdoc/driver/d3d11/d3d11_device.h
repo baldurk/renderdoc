@@ -601,6 +601,7 @@ private:
   SDFile *m_StoredStructuredData;
 
   rdcarray<DebugMessage> m_DebugMessages;
+  ReplayStatus m_FatalError = ReplayStatus::Succeeded;
 
   rdcarray<FrameDescription> m_CapturedFrames;
   rdcarray<ActionDescription *> m_Actions;
@@ -660,10 +661,12 @@ public:
   void UnlockForChunkRemoval();
 
   SDFile *GetStructuredFile() { return m_StructuredFile; }
+  void DetachStructuredFile() { m_StoredStructuredData = m_StructuredFile = NULL; }
   uint64_t GetTimeBase() { return m_TimeBase; }
   double GetTimeFrequency() { return m_TimeFrequency; }
   void FirstFrame(IDXGISwapper *swapper);
 
+  ReplayStatus FatalErrorCheck() { return m_FatalError; }
   rdcarray<DebugMessage> GetDebugMessages();
   void AddDebugMessage(DebugMessage msg);
   void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d);

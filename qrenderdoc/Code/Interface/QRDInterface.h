@@ -1857,6 +1857,13 @@ temporary and treated like any other capture.
 )");
   virtual bool IsCaptureLoading() = 0;
 
+  DOCUMENT(R"(If a capture is loaded, return the current fatal error status.
+
+:return: If a capture is currently loaded, return the fatal error status.
+:rtype: ReplayStatus
+)");
+  virtual ReplayStatus GetFatalError() = 0;
+
   DOCUMENT(R"(Retrieve the filename for the currently loaded capture.
 
 :return: The filename of the current capture.
