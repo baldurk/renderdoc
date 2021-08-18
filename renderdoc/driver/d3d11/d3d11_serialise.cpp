@@ -64,9 +64,9 @@ SERIALISE_D3D_INTERFACES();
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_BUFFER_DESC &el)
 {
-  SERIALISE_MEMBER(ByteWidth);
+  SERIALISE_MEMBER(ByteWidth).Important();
   SERIALISE_MEMBER(Usage);
-  SERIALISE_MEMBER_TYPED(D3D11_BIND_FLAG, BindFlags);
+  SERIALISE_MEMBER_TYPED(D3D11_BIND_FLAG, BindFlags).Important();
   SERIALISE_MEMBER_TYPED(D3D11_CPU_ACCESS_FLAG, CPUAccessFlags);
   SERIALISE_MEMBER_TYPED(D3D11_RESOURCE_MISC_FLAG, MiscFlags);
   SERIALISE_MEMBER(StructureByteStride);
@@ -75,10 +75,10 @@ void DoSerialise(SerialiserType &ser, D3D11_BUFFER_DESC &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_TEXTURE1D_DESC &el)
 {
-  SERIALISE_MEMBER(Width);
+  SERIALISE_MEMBER(Width).Important();
   SERIALISE_MEMBER(MipLevels);
   SERIALISE_MEMBER(ArraySize);
-  SERIALISE_MEMBER(Format);
+  SERIALISE_MEMBER(Format).Important();
   SERIALISE_MEMBER(Usage);
   SERIALISE_MEMBER_TYPED(D3D11_BIND_FLAG, BindFlags);
   SERIALISE_MEMBER_TYPED(D3D11_CPU_ACCESS_FLAG, CPUAccessFlags);
@@ -88,11 +88,11 @@ void DoSerialise(SerialiserType &ser, D3D11_TEXTURE1D_DESC &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_TEXTURE2D_DESC &el)
 {
-  SERIALISE_MEMBER(Width);
-  SERIALISE_MEMBER(Height);
+  SERIALISE_MEMBER(Width).Important();
+  SERIALISE_MEMBER(Height).Important();
   SERIALISE_MEMBER(MipLevels);
   SERIALISE_MEMBER(ArraySize);
-  SERIALISE_MEMBER(Format);
+  SERIALISE_MEMBER(Format).Important();
   SERIALISE_MEMBER(SampleDesc);
   SERIALISE_MEMBER(Usage);
   SERIALISE_MEMBER_TYPED(D3D11_BIND_FLAG, BindFlags);
@@ -103,11 +103,11 @@ void DoSerialise(SerialiserType &ser, D3D11_TEXTURE2D_DESC &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_TEXTURE2D_DESC1 &el)
 {
-  SERIALISE_MEMBER(Width);
-  SERIALISE_MEMBER(Height);
+  SERIALISE_MEMBER(Width).Important();
+  SERIALISE_MEMBER(Height).Important();
   SERIALISE_MEMBER(MipLevels);
   SERIALISE_MEMBER(ArraySize);
-  SERIALISE_MEMBER(Format);
+  SERIALISE_MEMBER(Format).Important();
   SERIALISE_MEMBER(SampleDesc);
   SERIALISE_MEMBER(Usage);
   SERIALISE_MEMBER_TYPED(D3D11_BIND_FLAG, BindFlags);
@@ -119,11 +119,11 @@ void DoSerialise(SerialiserType &ser, D3D11_TEXTURE2D_DESC1 &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_TEXTURE3D_DESC &el)
 {
-  SERIALISE_MEMBER(Width);
-  SERIALISE_MEMBER(Height);
-  SERIALISE_MEMBER(Depth);
+  SERIALISE_MEMBER(Width).Important();
+  SERIALISE_MEMBER(Height).Important();
+  SERIALISE_MEMBER(Depth).Important();
   SERIALISE_MEMBER(MipLevels);
-  SERIALISE_MEMBER(Format);
+  SERIALISE_MEMBER(Format).Important();
   SERIALISE_MEMBER(Usage);
   SERIALISE_MEMBER_TYPED(D3D11_BIND_FLAG, BindFlags);
   SERIALISE_MEMBER_TYPED(D3D11_CPU_ACCESS_FLAG, CPUAccessFlags);
@@ -133,11 +133,11 @@ void DoSerialise(SerialiserType &ser, D3D11_TEXTURE3D_DESC &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_TEXTURE3D_DESC1 &el)
 {
-  SERIALISE_MEMBER(Width);
-  SERIALISE_MEMBER(Height);
-  SERIALISE_MEMBER(Depth);
+  SERIALISE_MEMBER(Width).Important();
+  SERIALISE_MEMBER(Height).Important();
+  SERIALISE_MEMBER(Depth).Important();
   SERIALISE_MEMBER(MipLevels);
-  SERIALISE_MEMBER(Format);
+  SERIALISE_MEMBER(Format).Important();
   SERIALISE_MEMBER(Usage);
   SERIALISE_MEMBER_TYPED(D3D11_BIND_FLAG, BindFlags);
   SERIALISE_MEMBER_TYPED(D3D11_CPU_ACCESS_FLAG, CPUAccessFlags);
@@ -148,15 +148,15 @@ void DoSerialise(SerialiserType &ser, D3D11_TEXTURE3D_DESC1 &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_BUFFER_SRV &el)
 {
-  SERIALISE_MEMBER(FirstElement);
-  SERIALISE_MEMBER(NumElements);
+  SERIALISE_MEMBER(FirstElement).Important();
+  SERIALISE_MEMBER(NumElements).Important();
 }
 
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_BUFFEREX_SRV &el)
 {
-  SERIALISE_MEMBER(FirstElement);
-  SERIALISE_MEMBER(NumElements);
+  SERIALISE_MEMBER(FirstElement).Important();
+  SERIALISE_MEMBER(NumElements).Important();
   SERIALISE_MEMBER_TYPED(D3D11_BUFFEREX_SRV_FLAG, Flags);
 }
 
@@ -248,7 +248,7 @@ void DoSerialise(SerialiserType &ser, D3D11_TEX2DMS_ARRAY_SRV &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_SHADER_RESOURCE_VIEW_DESC &el)
 {
-  SERIALISE_MEMBER(Format);
+  SERIALISE_MEMBER(Format).Important();
   SERIALISE_MEMBER(ViewDimension);
 
   switch(el.ViewDimension)
@@ -272,7 +272,7 @@ void DoSerialise(SerialiserType &ser, D3D11_SHADER_RESOURCE_VIEW_DESC &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_SHADER_RESOURCE_VIEW_DESC1 &el)
 {
-  SERIALISE_MEMBER(Format);
+  SERIALISE_MEMBER(Format).Important();
   SERIALISE_MEMBER(ViewDimension);
 
   switch(el.ViewDimension)
@@ -367,7 +367,7 @@ void DoSerialise(SerialiserType &ser, D3D11_TEX3D_RTV &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_RENDER_TARGET_VIEW_DESC &el)
 {
-  SERIALISE_MEMBER(Format);
+  SERIALISE_MEMBER(Format).Important();
   SERIALISE_MEMBER(ViewDimension);
 
   switch(el.ViewDimension)
@@ -388,7 +388,7 @@ void DoSerialise(SerialiserType &ser, D3D11_RENDER_TARGET_VIEW_DESC &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_RENDER_TARGET_VIEW_DESC1 &el)
 {
-  SERIALISE_MEMBER(Format);
+  SERIALISE_MEMBER(Format).Important();
   SERIALISE_MEMBER(ViewDimension);
 
   switch(el.ViewDimension)
@@ -469,7 +469,7 @@ void DoSerialise(SerialiserType &ser, D3D11_TEX3D_UAV &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_UNORDERED_ACCESS_VIEW_DESC &el)
 {
-  SERIALISE_MEMBER(Format);
+  SERIALISE_MEMBER(Format).Important();
   SERIALISE_MEMBER(ViewDimension);
 
   switch(el.ViewDimension)
@@ -488,7 +488,7 @@ void DoSerialise(SerialiserType &ser, D3D11_UNORDERED_ACCESS_VIEW_DESC &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_UNORDERED_ACCESS_VIEW_DESC1 &el)
 {
-  SERIALISE_MEMBER(Format);
+  SERIALISE_MEMBER(Format).Important();
   SERIALISE_MEMBER(ViewDimension);
 
   switch(el.ViewDimension)
@@ -547,7 +547,7 @@ void DoSerialise(SerialiserType &ser, D3D11_TEX2DMS_ARRAY_DSV &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_DEPTH_STENCIL_VIEW_DESC &el)
 {
-  SERIALISE_MEMBER(Format);
+  SERIALISE_MEMBER(Format).Important();
   SERIALISE_MEMBER(ViewDimension);
   SERIALISE_MEMBER_TYPED(D3D11_DSV_FLAG, Flags);
 
@@ -599,7 +599,9 @@ void DoSerialise(SerialiserType &ser, D3D11_BLEND_DESC &el)
 {
   SERIALISE_MEMBER_TYPED(bool, AlphaToCoverageEnable);
   SERIALISE_MEMBER_TYPED(bool, IndependentBlendEnable);
-  SERIALISE_MEMBER(RenderTarget);
+  // there's no good way to indicate that only the first array element should be important, so we
+  // just omit this entirely
+  SERIALISE_MEMBER(RenderTarget).Unimportant();
 }
 
 template <class SerialiserType>
@@ -607,7 +609,7 @@ void DoSerialise(SerialiserType &ser, D3D11_BLEND_DESC1 &el)
 {
   SERIALISE_MEMBER_TYPED(bool, AlphaToCoverageEnable);
   SERIALISE_MEMBER_TYPED(bool, IndependentBlendEnable);
-  SERIALISE_MEMBER(RenderTarget);
+  SERIALISE_MEMBER(RenderTarget).Unimportant();
 }
 
 template <class SerialiserType>
@@ -624,7 +626,7 @@ void DoSerialise(SerialiserType &ser, D3D11_DEPTH_STENCIL_DESC &el)
 {
   SERIALISE_MEMBER_TYPED(bool, DepthEnable);
   SERIALISE_MEMBER(DepthWriteMask);
-  SERIALISE_MEMBER(DepthFunc);
+  SERIALISE_MEMBER(DepthFunc).Important();
   SERIALISE_MEMBER_TYPED(bool, StencilEnable);
   SERIALISE_MEMBER(StencilReadMask);
   SERIALISE_MEMBER(StencilWriteMask);
@@ -636,7 +638,7 @@ template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_RASTERIZER_DESC &el)
 {
   SERIALISE_MEMBER(FillMode);
-  SERIALISE_MEMBER(CullMode);
+  SERIALISE_MEMBER(CullMode).Important();
   SERIALISE_MEMBER_TYPED(bool, FrontCounterClockwise);
   SERIALISE_MEMBER(DepthBias);
   SERIALISE_MEMBER(DepthBiasClamp);
@@ -651,7 +653,7 @@ template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_RASTERIZER_DESC1 &el)
 {
   SERIALISE_MEMBER(FillMode);
-  SERIALISE_MEMBER(CullMode);
+  SERIALISE_MEMBER(CullMode).Important();
   SERIALISE_MEMBER_TYPED(bool, FrontCounterClockwise);
   SERIALISE_MEMBER(DepthBias);
   SERIALISE_MEMBER(DepthBiasClamp);
@@ -667,7 +669,7 @@ template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_RASTERIZER_DESC2 &el)
 {
   SERIALISE_MEMBER(FillMode);
-  SERIALISE_MEMBER(CullMode);
+  SERIALISE_MEMBER(CullMode).Important();
   SERIALISE_MEMBER_TYPED(bool, FrontCounterClockwise);
   SERIALISE_MEMBER(DepthBias);
   SERIALISE_MEMBER(DepthBiasClamp);
@@ -683,14 +685,14 @@ void DoSerialise(SerialiserType &ser, D3D11_RASTERIZER_DESC2 &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_QUERY_DESC &el)
 {
-  SERIALISE_MEMBER(Query);
+  SERIALISE_MEMBER(Query).Important();
   SERIALISE_MEMBER(MiscFlags);
 }
 
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_QUERY_DESC1 &el)
 {
-  SERIALISE_MEMBER(Query);
+  SERIALISE_MEMBER(Query).Important();
   SERIALISE_MEMBER(MiscFlags);
   SERIALISE_MEMBER(ContextType);
 }
@@ -698,14 +700,14 @@ void DoSerialise(SerialiserType &ser, D3D11_QUERY_DESC1 &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_COUNTER_DESC &el)
 {
-  SERIALISE_MEMBER(Counter);
+  SERIALISE_MEMBER(Counter).Important();
   SERIALISE_MEMBER(MiscFlags);
 }
 
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_SAMPLER_DESC &el)
 {
-  SERIALISE_MEMBER(Filter);
+  SERIALISE_MEMBER(Filter).Important();
   SERIALISE_MEMBER(AddressU);
   SERIALISE_MEMBER(AddressV);
   SERIALISE_MEMBER(AddressW);
@@ -731,9 +733,9 @@ void DoSerialise(SerialiserType &ser, D3D11_SO_DECLARATION_ENTRY &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_INPUT_ELEMENT_DESC &el)
 {
-  SERIALISE_MEMBER(SemanticName);
-  SERIALISE_MEMBER(SemanticIndex);
-  SERIALISE_MEMBER(Format);
+  SERIALISE_MEMBER(SemanticName).Important();
+  SERIALISE_MEMBER(SemanticIndex).Important();
+  SERIALISE_MEMBER(Format).Important();
   SERIALISE_MEMBER(InputSlot);
   SERIALISE_MEMBER(AlignedByteOffset);
   SERIALISE_MEMBER(InputSlotClass);
@@ -752,10 +754,10 @@ void DoSerialise(SerialiserType &ser, D3D11_SUBRESOURCE_DATA &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11_VIEWPORT &el)
 {
-  SERIALISE_MEMBER(TopLeftX);
-  SERIALISE_MEMBER(TopLeftY);
-  SERIALISE_MEMBER(Width);
-  SERIALISE_MEMBER(Height);
+  SERIALISE_MEMBER(TopLeftX).Important();
+  SERIALISE_MEMBER(TopLeftY).Important();
+  SERIALISE_MEMBER(Width).Important();
+  SERIALISE_MEMBER(Height).Important();
   SERIALISE_MEMBER(MinDepth);
   SERIALISE_MEMBER(MaxDepth);
 }

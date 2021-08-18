@@ -386,7 +386,7 @@ void VulkanRenderState::BindDescriptorSets(WrappedVulkan *vk, VkCommandBuffer cm
       // We can get into this situation if for example we have many sets bound at some point, then
       // there's a pipeline change that causes most or all of them to be invalidated as
       // incompatible, then the program only re-binds some subset that it knows is statically used
-      // by the next drawcall. The remaining sets are invalid, but also unused and this is
+      // by the next action. The remaining sets are invalid, but also unused and this is
       // explicitly allowed by the spec. We just have to make sure we don't try to actively bind
       // an incompatible descriptor set.
       ResourceId createdDescSetLayoutId = vk->GetDescLayoutForDescSet(pipe.descSets[i].descSet);

@@ -44,7 +44,7 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource2(
 {
   SERIALISE_ELEMENT_LOCAL(props, *pHeapProperties).Named("pHeapProperties"_lit);
   SERIALISE_ELEMENT(HeapFlags);
-  SERIALISE_ELEMENT_LOCAL(desc, *pDesc).Named("pDesc"_lit);
+  SERIALISE_ELEMENT_LOCAL(desc, *pDesc).Named("pDesc"_lit).Important();
   SERIALISE_ELEMENT(InitialResourceState);
   SERIALISE_ELEMENT_OPT(pOptimizedClearValue);
   // placeholder for future use if we properly capture & replay protected sessions
@@ -262,9 +262,9 @@ bool WrappedID3D12Device::Serialise_CreatePlacedResource1(
     D3D12_RESOURCE_STATES InitialState, const D3D12_CLEAR_VALUE *pOptimizedClearValue, REFIID riid,
     void **ppvResource)
 {
-  SERIALISE_ELEMENT(pHeap);
+  SERIALISE_ELEMENT(pHeap).Important();
   SERIALISE_ELEMENT(HeapOffset);
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Named("pDesc"_lit);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Named("pDesc"_lit).Important();
   SERIALISE_ELEMENT(InitialState);
   SERIALISE_ELEMENT_OPT(pOptimizedClearValue);
   SERIALISE_ELEMENT_LOCAL(guid, riid).Named("riid"_lit);

@@ -145,6 +145,20 @@ DOCUMENT(R"(Bitfield flags that could be applied to a type.
 
   Special flag to indicate that this is structure is stored as a union, meaning all children share
   the same memory and some external flag indicates which element is valid.
+
+.. data:: Important
+
+  Indicates that this object is important or significant, to aid in generating a summary/one-line
+  view of a particular chunk by only including important children.
+
+  This property can be recursive - so an important child which is a structure can have only some
+  members which are important.
+
+.. data:: ImportantChildren
+
+  Indicates that only important children should be processed, as noted in :data:`Important`. This
+  may appear on an object which has no important children - which indicates explicitly that there
+  are no important children so when summarising no parameters should be shown.
 )");
 enum class SDTypeFlags : uint32_t
 {
@@ -155,6 +169,8 @@ enum class SDTypeFlags : uint32_t
   NullString = 0x8,
   FixedArray = 0x10,
   Union = 0x20,
+  Important = 0x40,
+  ImportantChildren = 0x80,
 };
 
 BITMASK_OPERATORS(SDTypeFlags);
@@ -375,6 +391,10 @@ private:
   friend void DoSerialise(SerialiserType &ser, SDObjectData &el);
   template <class SerialiserType>
   friend void DoSerialise(SerialiserType &ser, SDObject *el);
+  template <class SerialiserType>
+  friend void DoSerialise(SerialiserType &ser, SDObject &el);
+  template <class SerialiserType>
+  friend void DoSerialise(SerialiserType &ser, SDChunk &el);
 
   DOCUMENT("A list of :class:`SDObject` containing the children of this :class:`SDObject`.");
   mutable StructuredObjectList children;
@@ -932,6 +952,8 @@ private:
   friend void DoSerialise(SerialiserType &ser, SDObject &el);
   template <class SerialiserType>
   friend void DoSerialise(SerialiserType &ser, SDChunk &el);
+  template <class SerialiserType>
+  friend void DoSerialise(SerialiserType &ser, SDObject &el, StructuredObjectList &children);
 
   void DeleteLazyGenerator() const
   {

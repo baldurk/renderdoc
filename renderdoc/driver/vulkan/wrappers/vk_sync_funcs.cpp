@@ -103,7 +103,7 @@ bool WrappedVulkan::Serialise_vkCreateFence(SerialiserType &ser, VkDevice device
                                             const VkAllocationCallbacks *pAllocator, VkFence *pFence)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo).Important();
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(Fence, GetResID(*pFence)).TypedAs("VkFence"_lit);
 
@@ -184,7 +184,7 @@ template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkGetFenceStatus(SerialiserType &ser, VkDevice device, VkFence fence)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT(fence);
+  SERIALISE_ELEMENT(fence).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -238,7 +238,7 @@ bool WrappedVulkan::Serialise_vkResetFences(SerialiserType &ser, VkDevice device
 {
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT(fenceCount);
-  SERIALISE_ELEMENT_ARRAY(pFences, fenceCount);
+  SERIALISE_ELEMENT_ARRAY(pFences, fenceCount).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -287,9 +287,9 @@ bool WrappedVulkan::Serialise_vkWaitForFences(SerialiserType &ser, VkDevice devi
 {
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT(fenceCount);
-  SERIALISE_ELEMENT_ARRAY(pFences, fenceCount);
+  SERIALISE_ELEMENT_ARRAY(pFences, fenceCount).Important();
   SERIALISE_ELEMENT(waitAll);
-  SERIALISE_ELEMENT(timeout);
+  SERIALISE_ELEMENT(timeout).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -334,7 +334,7 @@ bool WrappedVulkan::Serialise_vkCreateEvent(SerialiserType &ser, VkDevice device
                                             const VkAllocationCallbacks *pAllocator, VkEvent *pEvent)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo).Important();
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(Event, GetResID(*pEvent)).TypedAs("VkEvent"_lit);
 
@@ -407,7 +407,7 @@ template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkSetEvent(SerialiserType &ser, VkDevice device, VkEvent event)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT(event);
+  SERIALISE_ELEMENT(event).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -445,7 +445,7 @@ template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkResetEvent(SerialiserType &ser, VkDevice device, VkEvent event)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT(event);
+  SERIALISE_ELEMENT(event).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -483,7 +483,7 @@ template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkGetEventStatus(SerialiserType &ser, VkDevice device, VkEvent event)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT(event);
+  SERIALISE_ELEMENT(event).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -537,7 +537,7 @@ bool WrappedVulkan::Serialise_vkCreateSemaphore(SerialiserType &ser, VkDevice de
                                                 VkSemaphore *pSemaphore)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo).Important();
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(Semaphore, GetResID(*pSemaphore)).TypedAs("VkSemaphore"_lit);
 
@@ -641,7 +641,7 @@ bool WrappedVulkan::Serialise_vkCmdSetEvent(SerialiserType &ser, VkCommandBuffer
                                             VkEvent event, VkPipelineStageFlags stageMask)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(event);
+  SERIALISE_ELEMENT(event).Important();
   SERIALISE_ELEMENT_TYPED(VkPipelineStageFlagBits, stageMask).TypedAs("VkPipelineStageFlags"_lit);
 
   Serialise_DebugMessages(ser);
@@ -696,7 +696,7 @@ bool WrappedVulkan::Serialise_vkCmdResetEvent(SerialiserType &ser, VkCommandBuff
                                               VkEvent event, VkPipelineStageFlags stageMask)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(event);
+  SERIALISE_ELEMENT(event).Important();
   SERIALISE_ELEMENT_TYPED(VkPipelineStageFlagBits, stageMask).TypedAs("VkPipelineStageFlags"_lit);
 
   Serialise_DebugMessages(ser);
@@ -760,7 +760,7 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
 
   // we serialise the original events even though we are going to replace them with our own
   SERIALISE_ELEMENT(eventCount);
-  SERIALISE_ELEMENT_ARRAY(pEvents, eventCount);
+  SERIALISE_ELEMENT_ARRAY(pEvents, eventCount).Important();
 
   SERIALISE_ELEMENT_TYPED(VkPipelineStageFlagBits, srcStageMask)
       .TypedAs("VkPipelineStageFlags"_lit);
@@ -768,11 +768,17 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
       .TypedAs("VkPipelineStageFlags"_lit);
 
   SERIALISE_ELEMENT(memoryBarrierCount);
+  if(memoryBarrierCount > 0)
+    ser.Important();
   SERIALISE_ELEMENT_ARRAY(pMemoryBarriers, memoryBarrierCount);
   SERIALISE_ELEMENT(bufferMemoryBarrierCount);
   SERIALISE_ELEMENT_ARRAY(pBufferMemoryBarriers, bufferMemoryBarrierCount);
+  if(bufferMemoryBarrierCount > 0)
+    ser.Important();
   SERIALISE_ELEMENT(imageMemoryBarrierCount);
   SERIALISE_ELEMENT_ARRAY(pImageMemoryBarriers, imageMemoryBarrierCount);
+  if(imageMemoryBarrierCount > 0)
+    ser.Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -993,7 +999,7 @@ bool WrappedVulkan::Serialise_vkGetSemaphoreCounterValue(SerialiserType &ser, Vk
                                                          VkSemaphore semaphore, uint64_t *pValue)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT(semaphore);
+  SERIALISE_ELEMENT(semaphore).Important();
   SERIALISE_ELEMENT_OPT(pValue);
 
   Serialise_DebugMessages(ser);
@@ -1049,7 +1055,7 @@ bool WrappedVulkan::Serialise_vkWaitSemaphores(SerialiserType &ser, VkDevice dev
                                                const VkSemaphoreWaitInfo *pWaitInfo, uint64_t timeout)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(WaitInfo, *pWaitInfo);
+  SERIALISE_ELEMENT_LOCAL(WaitInfo, *pWaitInfo).Important();
   SERIALISE_ELEMENT(timeout);
 
   Serialise_DebugMessages(ser);
@@ -1100,7 +1106,7 @@ bool WrappedVulkan::Serialise_vkSignalSemaphore(SerialiserType &ser, VkDevice de
                                                 const VkSemaphoreSignalInfo *pSignalInfo)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(SignalInfo, *pSignalInfo);
+  SERIALISE_ELEMENT_LOCAL(SignalInfo, *pSignalInfo).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -1145,8 +1151,8 @@ bool WrappedVulkan::Serialise_vkCmdSetEvent2KHR(SerialiserType &ser, VkCommandBu
                                                 const VkDependencyInfoKHR *pDependencyInfo)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(event);
-  SERIALISE_ELEMENT_LOCAL(DependencyInfo, *pDependencyInfo);
+  SERIALISE_ELEMENT(event).Important();
+  SERIALISE_ELEMENT_LOCAL(DependencyInfo, *pDependencyInfo).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -1210,7 +1216,7 @@ bool WrappedVulkan::Serialise_vkCmdResetEvent2KHR(SerialiserType &ser, VkCommand
                                                   VkEvent event, VkPipelineStageFlags2KHR stageMask)
 {
   SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(event);
+  SERIALISE_ELEMENT(event).Important();
   SERIALISE_ELEMENT_TYPED(VkPipelineStageFlagBits2KHR, stageMask)
       .TypedAs("VkPipelineStageFlags2KHR"_lit);
 
@@ -1272,8 +1278,8 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents2KHR(SerialiserType &ser, VkCommand
 
   // we serialise the original events even though we are going to replace them with our own
   SERIALISE_ELEMENT(eventCount);
-  SERIALISE_ELEMENT_ARRAY(pEvents, eventCount);
-  SERIALISE_ELEMENT_ARRAY(pDependencyInfos, eventCount);
+  SERIALISE_ELEMENT_ARRAY(pEvents, eventCount).Important();
+  SERIALISE_ELEMENT_ARRAY(pDependencyInfos, eventCount).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 

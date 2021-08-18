@@ -8,13 +8,13 @@ class D3D12_Parameter_Zoo(rdtest.TestCase):
     demos_test_name = 'D3D12_Parameter_Zoo'
 
     def check_capture(self):
-        draw = self.find_draw("Color Draw")
+        action = self.find_action("Color Draw")
 
-        self.check(draw is not None)
+        self.check(action is not None)
 
-        draw = draw.next
+        action = action.next
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
@@ -22,7 +22,7 @@ class D3D12_Parameter_Zoo(rdtest.TestCase):
 
         rdtest.log.success("Captured loaded with color as expected")
 
-        postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, draw.numIndices)
+        postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
 
         postvs_ref = {
             0: {

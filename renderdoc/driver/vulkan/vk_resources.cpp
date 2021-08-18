@@ -3589,7 +3589,7 @@ bool FramebufferInfo::AttachmentFullyReferenced(size_t attachmentIndex, VkResour
   {
     // check and make sure all views are referenced by the renderpass
     uint32_t renderpass_viewmask = rpi->multiviewViewMaskTable[attachmentIndex];
-    return (int)Bits::CountOnes(renderpass_viewmask) == att->resInfo->imageInfo.layerCount;
+    return Bits::CountOnes(renderpass_viewmask) == att->resInfo->imageInfo.layerCount;
   }
   return viewRange.layerCount == layers;
 }

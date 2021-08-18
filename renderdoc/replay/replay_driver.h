@@ -66,7 +66,7 @@ struct FrameRecord
 {
   FrameDescription frameInfo;
 
-  rdcarray<DrawcallDescription> drawcallList;
+  rdcarray<ActionDescription> actionList;
 };
 
 DECLARE_REFLECTION_STRUCT(FrameRecord);
@@ -299,12 +299,12 @@ struct IDeviceProtocolHandler : public IDeviceProtocolController
 };
 
 // utility functions useful in any driver implementation
-void SetupDrawcallPointers(rdcarray<DrawcallDescription *> &drawcallTable,
-                           rdcarray<DrawcallDescription> &draws);
+void SetupActionPointers(rdcarray<ActionDescription *> &actionTable,
+                         rdcarray<ActionDescription> &actions);
 
 // for hardware/APIs that can't do line rasterization, manually expand any triangle input topology
 // to a linestrip with strip restart indices.
-void PatchLineStripIndexBuffer(const DrawcallDescription *draw, Topology topology, uint8_t *idx8,
+void PatchLineStripIndexBuffer(const ActionDescription *action, Topology topology, uint8_t *idx8,
                                uint16_t *idx16, uint32_t *idx32, rdcarray<uint32_t> &patchedIndices);
 
 void PatchTriangleFanRestartIndexBufer(rdcarray<uint32_t> &patchedIndices, uint32_t restartIndex);

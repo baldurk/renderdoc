@@ -470,12 +470,12 @@
        </widget>
       </item>
       <item>
-       <widget class="QCheckBox" name="CaptureCallstacksOnlyDraws">
+       <widget class="QCheckBox" name="CaptureCallstacksOnlyActions">
         <property name="toolTip">
-         <string>Only collect callstacks on 'drawcall' level api calls</string>
+         <string>Only collect callstacks on actions (draws, dispatches, clears, copies, etc)</string>
         </property>
         <property name="text">
-         <string>Only Drawcall stacks</string>
+         <string>Only Action stacks</string>
         </property>
        </widget>
       </item>

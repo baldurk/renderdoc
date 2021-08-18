@@ -679,17 +679,29 @@ See :meth:`BuildTargetShader`.
 )");
   virtual const SDFile &GetStructuredFile() = 0;
 
-  DOCUMENT(R"(Add fake marker regions to the list of drawcalls in the capture, based on which
-textures are bound as outputs.
+  DOCUMENT(R"(Add fake marker regions to the list of actions in the capture, based on which
+textures are bound as outputs. Will not do anything if the capture already contains user marker
+regions.
+
+.. warning::
+  This must be called *immediately* after capture load, calling it at a later time will cause
+  corruption. No other functions should be called between load and this one.
+
+.. note::
+  The event IDs for fake marker pushes and pops will not be contiguous with the surrounding actions
+  and will be set to values above the last real event in the capture. This also means they break the
+  typical rules that event IDs always increase. It's recommended that these events are not
+  referenced directly in other calls such as SetFrameEvent, and fake markers should be used 
+  sparingly at all compared to proper application-provided markers.
 )");
   virtual void AddFakeMarkers() = 0;
 
-  DOCUMENT(R"(Retrieve the list of root-level drawcalls in the capture.
+  DOCUMENT(R"(Retrieve the list of root-level actions in the capture.
 
-:return: The list of root-level drawcalls in the capture.
-:rtype: List[DrawcallDescription]
+:return: The list of root-level actions in the capture.
+:rtype: List[ActionDescription]
 )");
-  virtual const rdcarray<DrawcallDescription> &GetDrawcalls() = 0;
+  virtual const rdcarray<ActionDescription> &GetRootActions() = 0;
 
   DOCUMENT(R"(Retrieve the values of a specified set of counters.
 

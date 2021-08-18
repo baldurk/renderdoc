@@ -85,22 +85,26 @@ static bool CompareModelIndex(const QModelIndex &a, const QModelIndex &b)
   return CompareModelIndex(ap, bp);
 }
 
-RDTreeViewDelegate::RDTreeViewDelegate(RDTreeView *view) : ForwardingDelegate(view), m_View(view)
+RDTreeViewDelegate::RDTreeViewDelegate(RDTreeView *view) : RichTextViewDelegate(view), m_View(view)
 {
 }
 
 void RDTreeViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
                                const QModelIndex &index) const
 {
-  return ForwardingDelegate::paint(painter, option, index);
+  return RichTextViewDelegate::paint(painter, option, index);
 }
 
 QSize RDTreeViewDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
-  QSize ret = ForwardingDelegate::sizeHint(option, index);
+  QSize ret = RichTextViewDelegate::sizeHint(option, index);
+
+  int minHeight = option.fontMetrics.height();
+  if(!m_View->ignoreIconSize())
+    minHeight = qMax(option.decorationSize.height(), minHeight);
 
   if(m_View->ignoreIconSize())
-    ret.setHeight(qMax(option.decorationSize.height() + 2, ret.height()));
+    ret.setHeight(qMax(qMax(option.decorationSize.height(), minHeight) + 2, ret.height()));
 
   // expand a pixel for the grid lines
   if(m_View->visibleGridLines())
@@ -108,9 +112,6 @@ QSize RDTreeViewDelegate::sizeHint(const QStyleOptionViewItem &option, const QMo
 
   // ensure we have at least the margin on top of font size. If the style applied more, don't add to
   // it.
-  int minHeight = option.fontMetrics.height();
-  if(!m_View->ignoreIconSize())
-    minHeight = qMax(option.decorationSize.height(), minHeight);
   ret.setHeight(qMax(ret.height(), minHeight + m_View->verticalItemMargin()));
 
   return ret;
@@ -227,6 +228,20 @@ void RDTreeView::mouseMoveEvent(QMouseEvent *e)
     m_Tooltip->hideTip();
 
   m_currentHoverIndex = indexAt(e->pos());
+
+  if(m_delegate->linkHover(e, font(), m_currentHoverIndex))
+  {
+    if(cursor().shape() != Qt::PointingHandCursor)
+    {
+      viewport()->update(visualRect(m_currentHoverIndex));
+      setCursor(QCursor(Qt::PointingHandCursor));
+    }
+  }
+  else if(cursor().shape() == Qt::PointingHandCursor)
+  {
+    viewport()->update(visualRect(m_currentHoverIndex));
+    unsetCursor();
+  }
 
   if(oldHoverIndex != m_currentHoverIndex)
   {
@@ -361,20 +376,44 @@ void RDTreeView::copyIndex(QPoint pos, QModelIndex index)
     selectionModel()->clear();
 }
 
-void RDTreeView::expandAll(QModelIndex index)
+void RDTreeView::expandAllInternal(QModelIndex index)
 {
+  int rows = model()->rowCount(index);
+
+  if(rows == 0)
+    return;
+
   expand(index);
 
-  for(int r = 0, rows = model()->rowCount(index); r < rows; r++)
+  for(int r = 0; r < rows; r++)
     expandAll(model()->index(r, 0, index));
+}
+
+void RDTreeView::collapseAllInternal(QModelIndex index)
+{
+  int rows = model()->rowCount(index);
+
+  if(rows == 0)
+    return;
+
+  collapse(index);
+
+  for(int r = 0; r < rows; r++)
+    collapseAll(model()->index(r, 0, index));
+}
+
+void RDTreeView::expandAll(QModelIndex index)
+{
+  setUpdatesEnabled(false);
+  expandAllInternal(index);
+  setUpdatesEnabled(true);
 }
 
 void RDTreeView::collapseAll(QModelIndex index)
 {
-  collapse(index);
-
-  for(int r = 0, rows = model()->rowCount(index); r < rows; r++)
-    collapseAll(model()->index(r, 0, index));
+  setUpdatesEnabled(false);
+  collapseAllInternal(index);
+  setUpdatesEnabled(true);
 }
 
 bool RDTreeView::viewportEvent(QEvent *event)
@@ -505,12 +544,10 @@ void RDTreeView::columnsAboutToBeMoved(const QModelIndex &sourceParent, int sour
   m_currentHoverIndex = QModelIndex();
 }
 
-void RDTreeView::saveExpansion(RDTreeViewExpansionState &state, const ExpansionKeyGen &keygen)
+void RDTreeView::updateExpansion(RDTreeViewExpansionState &state, const ExpansionKeyGen &keygen)
 {
-  state.clear();
-
   for(int i = 0; i < model()->rowCount(); i++)
-    saveExpansionFromRow(state, model()->index(i, 0), 0, keygen);
+    updateExpansionFromRow(state, model()->index(i, 0), 0, keygen);
 }
 
 void RDTreeView::applyExpansion(const RDTreeViewExpansionState &state, const ExpansionKeyGen &keygen)
@@ -567,6 +604,8 @@ void RDTreeView::copySelection()
 
     int depth = GetDepth(model(), idx);
 
+    QString line;
+
     for(int i = 0; i < colCount; i++)
     {
       QString format = i == 0 ? QFormatStr("%1") : QFormatStr(" %1");
@@ -577,20 +616,25 @@ void RDTreeView::copySelection()
       if(i == 0)
         text.prepend(QString((depth - minDepth) * 2, QLatin1Char(' ')));
 
-      clipData += format.arg(text, -widths[i]);
+      line += format.arg(text, -widths[i]);
     }
 
-    clipData += lit("\n");
+    clipData += line.trimmed() + lit("\n");
   }
 
   QClipboard *clipboard = QApplication::clipboard();
-  clipboard->setText(clipData.trimmed());
+  clipboard->setText(clipData);
 }
 
-void RDTreeView::saveExpansionFromRow(RDTreeViewExpansionState &state, QModelIndex idx, uint seed,
-                                      const ExpansionKeyGen &keygen)
+void RDTreeView::updateExpansionFromRow(RDTreeViewExpansionState &state, QModelIndex idx, uint seed,
+                                        const ExpansionKeyGen &keygen)
 {
   if(!idx.isValid())
+    return;
+
+  int rowcount = model()->rowCount(idx);
+
+  if(rowcount == 0)
     return;
 
   uint key = keygen(idx, seed);
@@ -601,8 +645,12 @@ void RDTreeView::saveExpansionFromRow(RDTreeViewExpansionState &state, QModelInd
     // only recurse to children if this one is expanded - forget expansion state under collapsed
     // branches. Technically we're losing information here but it allows us to skip a full expensive
     // search
-    for(int i = 0; i < model()->rowCount(idx); i++)
-      saveExpansionFromRow(state, model()->index(i, 0, idx), seed, keygen);
+    for(int i = 0; i < rowcount; i++)
+      updateExpansionFromRow(state, model()->index(i, 0, idx), seed, keygen);
+  }
+  else
+  {
+    state.remove(key);
   }
 }
 

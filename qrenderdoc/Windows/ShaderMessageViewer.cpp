@@ -146,6 +146,21 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
   QObject::connect(ui->filterButton, &QToolButton::clicked, [this]() { refreshMessages(); });
   QObject::connect(ui->filter, &RDLineEdit::returnPressed, [this]() { refreshMessages(); });
 
+  QMenu *menu = new QMenu(this);
+
+  QAction *action = new QAction(tr("Export to &Text"));
+  action->setIcon(Icons::save());
+  QObject::connect(action, &QAction::triggered, this, &ShaderMessageViewer::exportText);
+  menu->addAction(action);
+
+  action = new QAction(tr("Export to &CSV"));
+  action->setIcon(Icons::save());
+  QObject::connect(action, &QAction::triggered, this, &ShaderMessageViewer::exportCSV);
+  menu->addAction(action);
+
+  ui->exportButton->setMenu(menu);
+  QObject::connect(ui->exportButton, &QToolButton::clicked, this, &ShaderMessageViewer::exportText);
+
   ui->vertex->setText(ToQStr(ShaderStage::Vertex, m_API));
   ui->hull->setText(ToQStr(ShaderStage::Hull, m_API));
   ui->domain->setText(ToQStr(ShaderStage::Domain, m_API));
@@ -153,7 +168,7 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
   ui->pixel->setText(ToQStr(ShaderStage::Pixel, m_API));
 
   m_EID = m_Ctx.CurEvent();
-  m_Drawcall = m_Ctx.GetDrawcall(m_EID);
+  m_Action = m_Ctx.GetAction(m_EID);
 
   const PipeState &pipe = m_Ctx.CurPipelineState();
 
@@ -187,7 +202,7 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
 
   m_debugDelegate = new ButtonDelegate(Icons::wrench(), this);
 
-  if(m_Drawcall && (m_Drawcall->flags & DrawFlags::Dispatch))
+  if(m_Action && (m_Action->flags & ActionFlags::Dispatch))
   {
     ui->stageFilters->hide();
 
@@ -273,7 +288,7 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
     else
       return;
 
-    ShaderMessage msg = m_Messages[msgIdx];
+    const ShaderMessage &msg = m_Messages[msgIdx];
 
     const ShaderReflection *refl = m_Ctx.CurPipelineState().GetShaderReflection(msg.stage);
 
@@ -365,7 +380,7 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
       else
         return;
 
-      ShaderMessage msg = m_Messages[msgIdx];
+      const ShaderMessage &msg = m_Messages[msgIdx];
 
       m_Ctx.SetEventID({}, m_EID, m_EID);
 
@@ -418,13 +433,79 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
 
   ui->label->setText(tr("Shader messages from @%1 - %2")
                          .arg(m_EID)
-                         .arg(m_Drawcall ? m_Drawcall->name : rdcstr("Unknown draw")));
+                         .arg(m_Action ? m_Ctx.GetEventBrowser()->GetEventName(m_Action->eventId)
+                                       : rdcstr("Unknown action")));
 
   setWindowTitle(tr("Shader messages at @%1").arg(m_EID));
 
   m_Ctx.AddCaptureViewer(this);
 
   OnEventChanged(m_Ctx.CurEvent());
+
+  ui->messages->setSortComparison(
+      [this](int col, Qt::SortOrder order, const RDTreeWidgetItem *a, const RDTreeWidgetItem *b) {
+        if(order == Qt::DescendingOrder)
+          std::swap(a, b);
+
+        const ShaderMessage &am = m_Messages[a->tag().toInt()];
+        const ShaderMessage &bm = m_Messages[b->tag().toInt()];
+
+        if(col == 3)
+        {
+          return am.message < bm.message;
+        }
+        else if(col == 2 || m_OrigShaders[5] == ResourceId())
+        {
+          // sort by location either if it's selected, or if it's not dispatch in which case we
+          // default to location sorting (don't try to sort by the button-only columns that have no
+          // data)
+
+          // sort by stage first
+          if(am.stage != bm.stage)
+            return am.stage < bm.stage;
+
+          if(am.stage == ShaderStage::Vertex)
+          {
+            const ShaderVertexMessageLocation &aloc = am.location.vertex;
+            const ShaderVertexMessageLocation &bloc = bm.location.vertex;
+
+            if(aloc.view != bloc.view)
+              return aloc.view < bloc.view;
+            if(aloc.instance != bloc.instance)
+              return aloc.instance < bloc.instance;
+            return aloc.vertexIndex < bloc.vertexIndex;
+          }
+          else if(am.stage == ShaderStage::Pixel)
+          {
+            const ShaderPixelMessageLocation &aloc = am.location.pixel;
+            const ShaderPixelMessageLocation &bloc = bm.location.pixel;
+
+            if(aloc.x != bloc.x)
+              return aloc.x < bloc.x;
+            if(aloc.y != bloc.y)
+              return aloc.y < bloc.y;
+            if(aloc.primitive != bloc.primitive)
+              return aloc.primitive < bloc.primitive;
+            return aloc.sample < bloc.sample;
+          }
+          else if(am.stage == ShaderStage::Compute)
+          {
+            // column 2 is the thread column for compute
+            return am.location.compute.thread < bm.location.compute.thread;
+          }
+          else
+          {
+            // can't sort these, pretend they're all equal
+            return false;
+          }
+        }
+        else if(col == 1)
+        {
+          return am.location.compute.workgroup < bm.location.compute.workgroup;
+        }
+
+        return false;
+      });
 
   ui->messages->sortByColumn(sortColumn, Qt::SortOrder::AscendingOrder);
 
@@ -512,11 +593,117 @@ void ShaderMessageViewer::OnEventChanged(uint32_t eventId)
   }
 }
 
+void ShaderMessageViewer::exportText()
+{
+  exportData(false);
+}
+
+void ShaderMessageViewer::exportCSV()
+{
+  exportData(true);
+}
+
+void ShaderMessageViewer::exportData(bool csv)
+{
+  QString filter;
+  QString title;
+  if(csv)
+  {
+    filter = tr("CSV Files (*.csv)");
+    title = tr("Export buffer to CSV");
+  }
+  else
+  {
+    filter = tr("Text Files (*.txt)");
+    title = tr("Export buffer to text");
+  }
+
+  QString filename =
+      RDDialog::getSaveFileName(this, title, QString(), tr("%1;;All files (*)").arg(filter));
+
+  if(filename.isEmpty())
+    return;
+
+  QFile *f = new QFile(filename);
+
+  QIODevice::OpenMode flags = QIODevice::WriteOnly | QFile::Truncate | QIODevice::Text;
+
+  if(!f->open(flags))
+  {
+    delete f;
+    RDDialog::critical(this, tr("Error exporting file"),
+                       tr("Couldn't open file '%1' for writing").arg(filename));
+    return;
+  }
+
+  LambdaThread *exportThread = new LambdaThread([this, csv, f]() {
+    QTextStream s(f);
+
+    bool compute = (m_OrigShaders[5] != ResourceId());
+
+    if(csv)
+    {
+      if(compute)
+        s << tr("Workgroup,Thread,Message\n");
+      else
+        s << tr("Location,Message\n");
+    }
+
+    const int start = compute ? 1 : 2;
+    const int end = 3;
+
+    int locationWidth = 0;
+    for(int i = 0; i < ui->messages->topLevelItemCount(); i++)
+    {
+      RDTreeWidgetItem *node = ui->messages->topLevelItem(i);
+
+      locationWidth = qMax(locationWidth, node->text(start).length());
+      if(compute)
+        locationWidth = qMax(locationWidth, node->text(start + 1).length());
+    }
+
+    for(int i = 0; i < ui->messages->topLevelItemCount(); i++)
+    {
+      RDTreeWidgetItem *node = ui->messages->topLevelItem(i);
+
+      if(csv)
+      {
+        int col = start;
+        for(; col <= end - 1; col++)
+          s << "\"" << node->text(col) << "\",";
+        s << "\"" << node->text(col).replace(QLatin1Char('"'), lit("\"\"")) << "\"\n";
+      }
+      else
+      {
+        int col = start;
+        for(; col <= end - 1; col++)
+          s << QFormatStr("%1").arg(node->text(col), -locationWidth) << "\t";
+        s << node->text(col) << "\n";
+      }
+    }
+
+    f->close();
+
+    delete f;
+  });
+  exportThread->start();
+
+  // wait a short while before displaying the progress dialog (which won't show if we're already
+  // done by the time we reach it)
+  for(int i = 0; exportThread->isRunning() && i < 100; i++)
+    QThread::msleep(5);
+
+  ShowProgressDialog(this, tr("Exporting messages"),
+                     [exportThread]() { return !exportThread->isRunning(); });
+
+  exportThread->deleteLater();
+}
+
 void ShaderMessageViewer::refreshMessages()
 {
   ShaderStageMask mask = ShaderStageMask::Compute;
 
-  if(!m_Drawcall || !(m_Drawcall->flags & DrawFlags::Dispatch))
+  if(!m_Action || !(m_Action->flags & ActionFlags::Dispatch))
   {
     mask = ShaderStageMask::Unknown;
 
@@ -565,12 +752,12 @@ void ShaderMessageViewer::refreshMessages()
       }
 
       // only show the instance if the draw is actually instanced
-      if(m_Drawcall && (m_Drawcall->flags & DrawFlags::Instanced) && m_Drawcall->numInstances > 1)
+      if(m_Action && (m_Action->flags & ActionFlags::Instanced) && m_Action->numInstances > 1)
       {
         location += lit("Inst %1, ").arg(msg.location.vertex.instance);
       }
 
-      if(m_Drawcall && (m_Drawcall->flags & DrawFlags::Indexed))
+      if(m_Action && (m_Action->flags & ActionFlags::Indexed))
       {
         location += lit("Idx %1").arg(msg.location.vertex.vertexIndex);
       }

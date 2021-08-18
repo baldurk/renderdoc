@@ -603,7 +603,7 @@ private:
   rdcarray<DebugMessage> m_DebugMessages;
 
   rdcarray<FrameDescription> m_CapturedFrames;
-  rdcarray<DrawcallDescription *> m_Drawcalls;
+  rdcarray<ActionDescription *> m_Actions;
 
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Device);
@@ -648,7 +648,7 @@ public:
   WrappedID3D11DeviceContext *GetDeferredContext(size_t idx);
 
   ResourceId GetResourceID() { return m_ResourceID; }
-  const DrawcallDescription *GetDrawcall(uint32_t eventId);
+  const ActionDescription *GetAction(uint32_t eventId);
   ResourceDescription &GetResourceDesc(ResourceId id);
   FrameStatistics &GetFrameStats();
 

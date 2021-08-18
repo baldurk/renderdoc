@@ -7,9 +7,9 @@ class VK_Descriptor_Indexing(rdtest.TestCase):
 
     def check_capture(self):
 
-        draw = self.find_draw("Dispatch")
-        self.check(draw is not None)
-        self.controller.SetFrameEvent(draw.eventId, False)
+        action = self.find_action("Dispatch")
+        self.check(action is not None)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         pipe: rd.VKState = self.controller.GetVulkanPipelineState()
 
@@ -26,9 +26,9 @@ class VK_Descriptor_Indexing(rdtest.TestCase):
         if not binding.binds[15].dynamicallyUsed:
             raise rdtest.TestFailureException("Compute bind 0[15] isn't dynamically used")
 
-        draw = self.find_draw("Draw")
-        self.check(draw is not None)
-        self.controller.SetFrameEvent(draw.eventId, False)
+        action = self.find_action("Draw")
+        self.check(action is not None)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         pipe: rd.VKState = self.controller.GetVulkanPipelineState()
 

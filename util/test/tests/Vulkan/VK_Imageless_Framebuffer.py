@@ -6,11 +6,11 @@ class VK_Imageless_Framebuffer(rdtest.TestCase):
     demos_test_name = 'VK_Imageless_Framebuffer'
 
     def check_capture(self):
-        draw = self.find_draw("Draw")
+        action = self.find_action("Draw")
 
-        self.check(draw is not None)
+        self.check(action is not None)
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 

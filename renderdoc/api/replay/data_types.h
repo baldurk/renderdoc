@@ -30,6 +30,7 @@
 #include "replay_enums.h"
 #include "resourceid.h"
 #include "stringise.h"
+#include "structured_data.h"
 
 DOCUMENT("A floating point four-component vector");
 struct FloatVector
@@ -199,10 +200,6 @@ struct ResourceFormat
 :rtype: bool
 )");
   bool Special() const { return type != ResourceFormatType::Regular; }
-  DOCUMENT(R"(The :class:`ResourceFormatType` of this format. If the value is not
-:attr:`ResourceFormatType.Regular` then it's a non-uniform layout like block-compressed.
-)");
-
   DOCUMENT(R"(:return: ``True`` if the components are to be read in ``BGRA`` order.
 
 .. note::
@@ -389,9 +386,17 @@ texel.
     return 0;
   }
 
+  DOCUMENT(R"(The :class:`ResourceFormatType` of this format. If the value is not
+:attr:`ResourceFormatType.Regular` then it's a non-uniform layout like block-compressed.
+
+:type: ResourceFormatType
+)");
   ResourceFormatType type;
 
-  DOCUMENT("The :class:`type <CompType>` of each component.");
+  DOCUMENT(R"(The :class:`type <CompType>` of each component.
+
+:type: CompType
+)");
   CompType compType;
   DOCUMENT("The number of components in each element.");
   uint8_t compCount;
@@ -697,7 +702,12 @@ struct TextureDescription
 
 DECLARE_REFLECTION_STRUCT(TextureDescription);
 
-DOCUMENT("An individual API-level event, generally corresponds one-to-one with an API call.");
+DOCUMENT(R"(An individual API-level event, generally corresponds one-to-one with an API call.
+
+.. data:: NoChunk
+
+  No chunk is available.
+)");
 struct APIEvent
 {
   DOCUMENT("");
@@ -713,17 +723,21 @@ This is a 1-based count of API events in the capture. The eventId is used as a r
 many places in the API to represent where in the capture the 'current state' is, and to perform
 analysis in reference to the state at a particular point in the frame.
 
-eventIds are always increasing and positive, but they may not be contiguous - in some circumstances
-there may be gaps if some events are consumed entirely internally, such as debug marker pops which
-only modify the internal drawcall tree structures.
+eventIds are generally increasing, positive, and contiguous, with a few exceptions. These are when
+fake markers are added to a capture with :meth:`ReplayController.AddFakeMarkers`. Thus if strong
+eventId guarantees are desired, this function should be avoided.
 
 Also eventIds may not correspond directly to an actual function call - sometimes a function such as
-a multi draw indirect will be one function call that expands to multiple events to allow inspection
-of results part way through the multi draw.
+a multi action indirect will be one function call that expands to multiple events to allow inspection
+of results part way through the multi action.
 )");
   uint32_t eventId = 0;
 
-  DOCUMENT("The chunk index for this function call in the structured file.");
+  DOCUMENT(R"(The chunk index for this function call in the structured file.
+
+If no chunk index is available this will be set to :data:`NoChunk`. This will only happen for fake
+markers added to the capture after load.
+)");
   uint32_t chunkIndex = 0;
 
   DOCUMENT(R"(A byte offset in the data stream where this event happens.
@@ -732,6 +746,8 @@ of results part way through the multi draw.
   the start of the file on disk.
 )");
   uint64_t fileOffset = 0;
+
+  static const uint32_t NoChunk = ~0U;
 };
 
 DECLARE_REFLECTION_STRUCT(APIEvent);
@@ -1526,59 +1542,84 @@ an array slice.
 
 DECLARE_REFLECTION_STRUCT(Subresource);
 
-DOCUMENT("Describes the properties of a drawcall, dispatch, debug marker, or similar event.");
-struct DrawcallDescription
+DOCUMENT(R"(Describes the properties of an action.
+
+An action is a call such as a draw, a compute dispatch, clears, copies, resolves, etc. Any GPU event
+which may have deliberate visible side-effects to application-visible memory, typically resources
+such as textures and buffers. It also includes markers, which provide a user-generated annotation of
+events and actions.
+)");
+struct ActionDescription
 {
   DOCUMENT("");
-  DrawcallDescription() { Reset(); }
-  DrawcallDescription(const DrawcallDescription &) = default;
-  DrawcallDescription &operator=(const DrawcallDescription &) = default;
+  ActionDescription() = default;
+  ActionDescription(const ActionDescription &) = default;
+  ActionDescription &operator=(const ActionDescription &) = default;
 
-  DOCUMENT("Resets the drawcall back to a default/empty state.");
-  void Reset()
-  {
-    eventId = 0;
-    drawcallId = 0;
-    flags = DrawFlags::NoFlags;
-    markerColor = FloatVector();
-    numIndices = 0;
-    numInstances = 0;
-    indexOffset = 0;
-    baseVertex = 0;
-    vertexOffset = 0;
-    instanceOffset = 0;
-    drawIndex = 0;
+  DOCUMENT(R"(Returns whether or not this action corresponds to a fake marker added by
+:meth:`ReplayController.AddFakeMarkers`.
 
-    dispatchDimension[0] = dispatchDimension[1] = dispatchDimension[2] = 0;
-    dispatchThreadsDimension[0] = dispatchThreadsDimension[1] = dispatchThreadsDimension[2] = 0;
-    dispatchBase[0] = dispatchBase[1] = dispatchBase[2] = 0;
+Such actions may break expectations of event IDs and action IDs, so it is recommended to avoid
+processing them wherever possible.
 
-    copySource = ResourceId();
-    copyDestination = ResourceId();
-
-    parent = previous = next = NULL;
-
-    for(int i = 0; i < 8; i++)
-      outputs[i] = ResourceId();
-    depthOut = ResourceId();
-  }
-  DOCUMENT("");
-  bool operator==(const DrawcallDescription &o) const { return eventId == o.eventId; }
-  bool operator<(const DrawcallDescription &o) const { return eventId < o.eventId; }
-  DOCUMENT("The :data:`eventId <APIEvent.eventId>` that actually produced the drawcall.");
-  uint32_t eventId;
-  DOCUMENT("A 1-based index of this drawcall relative to other drawcalls.");
-  uint32_t drawcallId;
-
-  DOCUMENT(R"(The name of this drawcall. Typically a summarised/concise list of parameters.
-
-.. note:: For drawcalls, the convention is to list primary parameters (vertex/index count, instance
-  count) and omit secondary parameters (vertex offset, instance offset).
+:return: Returns whether or not this action is a fake marker.
+:rtype: bool
 )");
-  rdcstr name;
+  bool IsFakeMarker() const
+  {
+    return events.size() == 1 && events[0].chunkIndex == APIEvent::NoChunk;
+  }
 
-  DOCUMENT("A set of :class:`DrawFlags` properties describing what kind of drawcall this is.");
-  DrawFlags flags;
+  DOCUMENT(R"(Returns the name for this action, either from its custom name (see :data:`customName`)
+or from the matching chunk in the structured data passed in.
+
+:param SDFile structuredFile: The structured data file for the capture this action is from.
+:return: Returns the best available name for this action.
+:rtype: str
+)");
+  rdcstr GetName(const SDFile &structuredFile) const
+  {
+    if(!customName.empty())
+      return customName;
+
+    // if we have events, the last one is the one for this action. Return the corresponding chunk
+    // name
+    if(events.size() >= 1)
+    {
+      const uint32_t chunkIndex = events.back().chunkIndex;
+
+      if(chunkIndex < structuredFile.chunks.size())
+      {
+        rdcstr ret = structuredFile.chunks[chunkIndex]->name;
+        ret += "()";
+        return ret;
+      }
+    }
+
+    return rdcstr();
+  }
+
+  DOCUMENT("");
+  bool operator==(const ActionDescription &o) const { return eventId == o.eventId; }
+  bool operator<(const ActionDescription &o) const { return eventId < o.eventId; }
+  DOCUMENT("The :data:`eventId <APIEvent.eventId>` that actually produced the action.");
+  uint32_t eventId = 0;
+  DOCUMENT("A 1-based index of this action relative to other actions.");
+  uint32_t actionId = 0;
+
+  DOCUMENT(R"(The custom name of this action.
+
+For markers this will be a user-provided string. In most other cases this will be empty, and the
+name can be generated using structured data. The last listed event in :data:`events` will correspond
+to the event for the overall action, and its chunk will contain a name and any parameters.
+
+Some actions will have a custom name generated for e.g. reading back and directly displaying
+indirect parameters or render pass parameters.
+)");
+  rdcstr customName;
+
+  DOCUMENT("A set of :class:`ActionFlags` properties describing what kind of action this is.");
+  ActionFlags flags = ActionFlags::NoFlags;
 
   DOCUMENT(R"(A RGBA color specified by a debug marker call.
 
@@ -1586,48 +1627,48 @@ struct DrawcallDescription
 )");
   FloatVector markerColor;
 
-  DOCUMENT("The number of indices or vertices as appropriate for the drawcall. 0 if not used.");
-  uint32_t numIndices;
+  DOCUMENT("The number of indices or vertices as appropriate for a draw action. 0 if not used.");
+  uint32_t numIndices = 0;
 
-  DOCUMENT("The number of instances for the drawcall. 0 if not used.");
-  uint32_t numInstances;
+  DOCUMENT("The number of instances for a draw action. 0 if not used.");
+  uint32_t numInstances = 0;
 
   DOCUMENT("For indexed drawcalls, the offset added to each index after fetching.");
-  int32_t baseVertex;
+  int32_t baseVertex = 0;
 
   DOCUMENT("For indexed drawcalls, the first index to fetch from the index buffer.");
-  uint32_t indexOffset;
+  uint32_t indexOffset = 0;
 
   DOCUMENT("For non-indexed drawcalls, the offset applied before looking up each vertex input.");
-  uint32_t vertexOffset;
+  uint32_t vertexOffset = 0;
 
   DOCUMENT(
       "For instanced drawcalls, the offset applied before looking up instanced vertex inputs.");
-  uint32_t instanceOffset;
+  uint32_t instanceOffset = 0;
 
-  DOCUMENT(R"(The index of this draw in an call with multiple draws, e.g. an indirect draw.
+  DOCUMENT(R"(The index of this action in an call with multiple draws, e.g. an indirect action.
 
-0 if not part of a multi-draw.
+0 if not part of a multi-action.
 )");
-  uint32_t drawIndex;
+  uint32_t drawIndex = 0;
 
   DOCUMENT(R"(The 3D number of workgroups to dispatch in a dispatch call.
 
 :type: Tuple[int,int,int]
 )");
-  rdcfixedarray<uint32_t, 3> dispatchDimension;
+  rdcfixedarray<uint32_t, 3> dispatchDimension = {0, 0, 0};
 
   DOCUMENT(R"(The 3D size of each workgroup in threads if the call allows an override, or 0 if not.
 
 :type: Tuple[int,int,int]
 )");
-  rdcfixedarray<uint32_t, 3> dispatchThreadsDimension;
+  rdcfixedarray<uint32_t, 3> dispatchThreadsDimension = {0, 0, 0};
 
   DOCUMENT(R"(The 3D base offset of the workgroup ID if the call allows an override, or 0 if not.
 
 :type: Tuple[int,int,int]
 )");
-  rdcfixedarray<uint32_t, 3> dispatchBase;
+  rdcfixedarray<uint32_t, 3> dispatchBase = {0, 0, 0};
 
   DOCUMENT(R"(The :class:`ResourceId` identifying the source object in a copy, resolve or blit
 operation.
@@ -1651,26 +1692,26 @@ operation.
 )");
   Subresource copyDestinationSubresource;
 
-  DOCUMENT(R"(The parent of this drawcall, or ``None`` if there is no parent for this drawcall.
+  DOCUMENT(R"(The parent of this action, or ``None`` if there is no parent for this action.
 
-:type: DrawcallDescription
+:type: ActionDescription
 )");
-  const DrawcallDescription *parent;
+  const ActionDescription *parent = NULL;
 
-  DOCUMENT(R"(The previous drawcall in the frame, or ``None`` if this is the first drawcall in the
+  DOCUMENT(R"(The previous action in the frame, or ``None`` if this is the first action in the
 frame.
 
-:type: DrawcallDescription
+:type: ActionDescription
 )");
-  const DrawcallDescription *previous;
-  DOCUMENT(R"(The next drawcall in the frame, or ``None`` if this is the last drawcall in the frame.
+  const ActionDescription *previous = NULL;
+  DOCUMENT(R"(The next action in the frame, or ``None`` if this is the last action in the frame.
 
-:type: DrawcallDescription
+:type: ActionDescription
 )");
-  const DrawcallDescription *next;
+  const ActionDescription *next = NULL;
 
   DOCUMENT(R"(An 8-tuple of the :class:`ResourceId` ids for the color outputs, which can be used
-for very coarse bucketing of drawcalls into similar passes by their outputs.
+for very coarse bucketing of actions into similar passes by their outputs.
 
 :type: Tuple[ResourceId,...]
 )");
@@ -1678,20 +1719,20 @@ for very coarse bucketing of drawcalls into similar passes by their outputs.
   DOCUMENT("The resource used for depth output - see :data:`outputs`.");
   ResourceId depthOut;
 
-  DOCUMENT(R"(The events that happened since the previous drawcall.
+  DOCUMENT(R"(The events that happened since the previous action.
 
 :type: List[APIEvent]
 )");
   rdcarray<APIEvent> events;
 
-  DOCUMENT(R"(The child drawcalls below this one, if it's a marker region or multidraw type draw.
+  DOCUMENT(R"(The child actions below this one, if it's a marker region or multi-action.
 
-:type: List[DrawcallDescription]
+:type: List[ActionDescription]
 )");
-  rdcarray<DrawcallDescription> children;
+  rdcarray<ActionDescription> children;
 };
 
-DECLARE_REFLECTION_STRUCT(DrawcallDescription);
+DECLARE_REFLECTION_STRUCT(ActionDescription);
 
 DOCUMENT("Gives some API-specific information about the capture.");
 struct APIProperties
@@ -2080,7 +2121,7 @@ struct PixelModification
   bool unboundPS;
 
   DOCUMENT(R"(A 0-based index of which fragment this modification corresponds to, in the case that
-multiple fragments from a single draw wrote to a pixel.
+multiple fragments from a single action wrote to a pixel.
 )");
   uint32_t fragIndex;
 

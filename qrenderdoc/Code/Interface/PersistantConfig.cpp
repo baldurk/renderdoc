@@ -163,6 +163,18 @@ struct LegacyData
   QVariantMap _ConfigSettings;
 };
 
+static rdcarray<rdcpair<rdcstr, CustomPersistentStorage *>> &GetCustomStorage()
+{
+  static rdcarray<rdcpair<rdcstr, CustomPersistentStorage *>> ret;
+  return ret;
+}
+
+CustomPersistentStorage::CustomPersistentStorage(rdcstr name)
+{
+  if(!name.empty())
+    GetCustomStorage().push_back({name, this});
+}
+
 QVariantMap PersistantConfig::storeValues() const
 {
   QVariantMap ret;
@@ -185,6 +197,11 @@ QVariantMap PersistantConfig::storeValues() const
   ret[lit("ExternalTool_RGPIntegration")] = m_Legacy->_ExternalTool_RGPIntegration;
   ret[lit("ShaderViewer_FriendlyNaming")] = m_Legacy->_ShaderViewer_FriendlyNaming;
   ret[lit("ConfigSettings")] = m_Legacy->_ConfigSettings;
+
+  for(const rdcpair<rdcstr, CustomPersistentStorage *> &ps : GetCustomStorage())
+  {
+    ps.second->save(ret[QString(ps.first)]);
+  }
 
   return ret;
 }
@@ -295,6 +312,9 @@ void PersistantConfig::applyValues(const QVariantMap &values)
 
   if(saveConfig)
     RENDERDOC_SaveConfigSettings();
+
+  for(const rdcpair<rdcstr, CustomPersistentStorage *> &ps : GetCustomStorage())
+    ps.second->load(values[QString(ps.first)]);
 }
 
 static QMutex RemoteHostLock;
@@ -678,7 +698,7 @@ ShaderProcessingTool::ShaderProcessingTool(const QVariant &var)
 rdcstr ShaderProcessingTool::DefaultArguments() const
 {
   if(tool == KnownShaderTool::SPIRV_Cross)
-    return "--output {output_file} {input_file} --vulkan-semantics";
+    return "--output {output_file} {input_file} --vulkan-semantics --entry {entry_point}";
   else if(tool == KnownShaderTool::spirv_dis)
     return "--no-color -o {output_file} {input_file}";
   else if(tool == KnownShaderTool::glslangValidatorGLSL)

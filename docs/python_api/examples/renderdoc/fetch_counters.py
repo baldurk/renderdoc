@@ -7,23 +7,23 @@ if 'renderdoc' not in sys.modules and '_renderdoc' not in sys.modules:
 # Alias renderdoc for legibility
 rd = renderdoc
 
-draws = {}
+actions = {}
 
-# Define a recursive function for iterating over draws
+# Define a recursive function for iterating over actions
 def iterDraw(d, indent = ''):
-	global draws
+	global actions
 
-	# save the drawcall by eventId
-	draws[d.eventId] = d
+	# save the action by eventId
+	actions[d.eventId] = d
 
 	# Iterate over the draw's children
 	for d in d.children:
 		iterDraw(d, indent + '    ')
 
 def sampleCode(controller):
-	# Iterate over all of the root drawcalls, so we have names for each
+	# Iterate over all of the root actions, so we have names for each
 	# eventId
-	for d in controller.GetDrawcalls():
+	for d in controller.GetRootActions():
 		iterDraw(d)
 
 	# Enumerate the available counters
@@ -50,10 +50,10 @@ def sampleCode(controller):
 	# Look in the results for any draws with 0 samples written - this is an indication
 	# that if a lot of draws appear then culling could be better.
 	for r in results:
-		draw = draws[r.eventId]
+		draw = actions[r.eventId]
 
 		# Only care about draws, not about clears and other misc events
-		if not (draw.flags & rd.DrawFlags.Drawcall):
+		if not (draw.flags & rd.ActionFlags.Drawcall):
 			continue
 
 		if samplesPassedDesc.resultByteWidth == 4:
@@ -62,7 +62,7 @@ def sampleCode(controller):
 			val = r.value.u64
 
 		if val == 0:
-			print("EID %d '%s' had no samples pass depth/stencil test!" % (r.eventId, draw.name))
+			print("EID %d '%s' had no samples pass depth/stencil test!" % (r.eventId, draw.GetName(controller.GetStructuredFile())))
 
 def loadCapture(filename):
 	# Open a capture file handle

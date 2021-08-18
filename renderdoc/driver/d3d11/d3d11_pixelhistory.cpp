@@ -1329,7 +1329,7 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
     SAFE_RELEASE(curBS);
     SAFE_RELEASE(curDS);
 
-    // replay only draw to get immediately post-modification values
+    // replay only action to get immediately post-modification values
     m_pDevice->ReplayLog(events[ev].eventId, events[ev].eventId, eReplay_OnlyDraw);
 
     D3D11MarkerRegion::Set("Copying post-mod col/depth[1]");
@@ -1364,9 +1364,9 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
 
     ResourceRange resourceRange(targetres, mip, slice);
 
-    const DrawcallDescription *draw = m_pDevice->GetDrawcall(events[i].eventId);
+    const ActionDescription *action = m_pDevice->GetAction(events[i].eventId);
 
-    bool clear = bool(draw->flags & DrawFlags::Clear);
+    bool clear = bool(action->flags & ActionFlags::Clear);
 
     bool uavWrite =
         ((events[i].usage >= ResourceUsage::VS_RWResource &&
@@ -1437,7 +1437,7 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
 
       mod.preMod.col.uintValue[0] = (uint32_t)i;
 
-      if(!(draw->flags & DrawFlags::Clear) && !uavWrite)
+      if(!(action->flags & ActionFlags::Clear) && !uavWrite)
       {
         if(flags[i] & TestMustFail_DepthTesting)
           mod.depthTestFailed = true;
@@ -1903,7 +1903,7 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
   byte *pixstoreData = (byte *)mapped.pData;
 
   ////////////////////////////////////////////////////////////////////////////////////////
-  // Third loop over each modification event to read back the pre-draw colour + depth data
+  // Third loop over each modification event to read back the pre-action colour + depth data
   // as well as the # fragments to use in the next step
 
   for(size_t h = 0; h < history.size(); h++)
@@ -1998,17 +1998,16 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
 
   for(size_t h = 0; h < history.size(); h++)
   {
-    const DrawcallDescription *draw = m_pDevice->GetDrawcall(history[h].eventId);
+    const ActionDescription *action = m_pDevice->GetAction(history[h].eventId);
 
-    if(draw->flags & DrawFlags::Clear)
+    if(action->flags & ActionFlags::Clear)
       continue;
 
-    D3D11MarkerRegion historyData(
-        StringFormat::Fmt("Fetching history data for %u: %s", draw->eventId, draw->name.c_str()));
+    D3D11MarkerRegion historyData(StringFormat::Fmt("Fetching history data for %u", action->eventId));
 
     if(prev != history[h].eventId)
     {
-      D3D11MarkerRegion predraw("fetching pre-draw");
+      D3D11MarkerRegion predraw("fetching pre-action");
 
       m_pDevice->ReplayLog(0, history[h].eventId, eReplay_WithoutDraw);
       prev = history[h].eventId;
@@ -2142,7 +2141,7 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
     // if we're not the last modification in our event, need to fetch post fragment value
     if(h + 1 < history.size() && history[h].eventId == history[h + 1].eventId)
     {
-      D3D11MarkerRegion middraw("fetching mid-draw");
+      D3D11MarkerRegion middraw("fetching mid-action");
 
       m_pImmediateContext->OMSetRenderTargets(rtIndex + 1, RTVs, shaddepthOutputDSV);
 
@@ -2254,9 +2253,9 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
 
   for(size_t h = 0; h < history.size(); h++)
   {
-    const DrawcallDescription *draw = m_pDevice->GetDrawcall(history[h].eventId);
+    const ActionDescription *action = m_pDevice->GetAction(history[h].eventId);
 
-    if(draw->flags & DrawFlags::Clear)
+    if(action->flags & ActionFlags::Clear)
       continue;
 
     // if we're not the last modification in our event, need to fetch post fragment value
@@ -2402,22 +2401,22 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
         Topology topo =
             MakePrimitiveTopology(m_pImmediateContext->GetCurrentPipelineState()->IA.Topo);
 
-        // do draw
-        if(draw->flags & DrawFlags::Indexed)
+        // do action
+        if(action->flags & ActionFlags::Indexed)
         {
           // TODO once pixel history distinguishes between instances, draw only the instance for
           // this fragment
           m_pImmediateContext->DrawIndexedInstanced(
-              RENDERDOC_NumVerticesPerPrimitive(topo), RDCMAX(1U, draw->numInstances),
-              draw->indexOffset + RENDERDOC_VertexOffset(topo, history[h].primitiveID),
-              draw->baseVertex, draw->instanceOffset);
+              RENDERDOC_NumVerticesPerPrimitive(topo), RDCMAX(1U, action->numInstances),
+              action->indexOffset + RENDERDOC_VertexOffset(topo, history[h].primitiveID),
+              action->baseVertex, action->instanceOffset);
         }
         else
         {
           m_pImmediateContext->DrawInstanced(
-              RENDERDOC_NumVerticesPerPrimitive(topo), RDCMAX(1U, draw->numInstances),
-              draw->vertexOffset + RENDERDOC_VertexOffset(topo, history[h].primitiveID),
-              draw->instanceOffset);
+              RENDERDOC_NumVerticesPerPrimitive(topo), RDCMAX(1U, action->numInstances),
+              action->vertexOffset + RENDERDOC_VertexOffset(topo, history[h].primitiveID),
+              action->instanceOffset);
         }
 
         m_pImmediateContext->End(testQueries[0]);

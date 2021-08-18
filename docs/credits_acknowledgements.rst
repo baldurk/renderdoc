@@ -128,6 +128,10 @@ The following libraries and components are incorporated into RenderDoc, listed h
 
   Used to intercept and test AGS calls on D3D11/D3D12.
 
+* `md5 hashing <http://openwall.info/wiki/people/solar/software/public-domain-source-code/md5>`_ - Released to the Public Domain by Alexander Peslyak.
+
+  Used for calculating DXBC container hash.
+
 Thanks
 ------
 

@@ -10,9 +10,9 @@ class D3D11_Parameter_Zoo(rdtest.TestCase):
     def check_capture(self):
         rdtest.log.success("Got {} captures as expected".format(self.demos_frame_count))
 
-        draw = self.find_draw("Draw")
-        self.check(draw is not None)
-        self.controller.SetFrameEvent(draw.eventId, False)
+        action = self.find_action("Draw")
+        self.check(action is not None)
+        self.controller.SetFrameEvent(action.eventId, False)
         
         pipe: rd.PipeState = self.controller.GetPipelineState()
 

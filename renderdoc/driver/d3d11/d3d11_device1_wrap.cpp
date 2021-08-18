@@ -72,7 +72,7 @@ bool WrappedID3D11Device::Serialise_CreateBlendState1(SerialiserType &ser,
                                                       const D3D11_BLEND_DESC1 *pBlendStateDesc,
                                                       ID3D11BlendState1 **ppBlendState)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pBlendStateDesc);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pBlendStateDesc).Important();
   SERIALISE_ELEMENT_LOCAL(pState, GetIDForDeviceChild(*ppBlendState))
       .TypedAs("ID3D11BlendState1 *"_lit);
 
@@ -183,7 +183,7 @@ bool WrappedID3D11Device::Serialise_CreateRasterizerState1(
     SerialiserType &ser, const D3D11_RASTERIZER_DESC1 *pRasterizerDesc,
     ID3D11RasterizerState1 **ppRasterizerState)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pRasterizerDesc);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pRasterizerDesc).Important();
   SERIALISE_ELEMENT_LOCAL(pState, GetIDForDeviceChild(*ppRasterizerState))
       .TypedAs("ID3D11RasterizerState1 *"_lit);
 

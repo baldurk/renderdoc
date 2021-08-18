@@ -1506,7 +1506,7 @@ static void ConfigureColumnsForShader(ICaptureContext &ctx, const ShaderReflecti
 
 static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufdata)
 {
-  const DrawcallDescription *draw = ctx.CurDrawcall();
+  const ActionDescription *action = ctx.CurAction();
 
   rdcarray<VertexInputAttribute> vinputs = ctx.CurPipelineState().GetVertexInputs();
 
@@ -1553,16 +1553,16 @@ static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufda
   bufdata->vsinConfig.noVertices = false;
   bufdata->vsinConfig.noInstances = false;
 
-  if(draw)
+  if(action)
   {
-    bufdata->vsinConfig.numRows = draw->numIndices;
+    bufdata->vsinConfig.numRows = action->numIndices;
     bufdata->vsinConfig.unclampedNumRows = 0;
 
     // calculate an upper bound on the valid number of rows just in case it's an invalid value (e.g.
     // 0xdeadbeef) and we want to clamp.
     uint32_t numRowsUpperBound = 0;
 
-    if(draw->flags & DrawFlags::Indexed)
+    if(action->flags & ActionFlags::Indexed)
     {
       // In an indexed draw we clamp to however many indices are available in the index buffer
 
@@ -1575,7 +1575,7 @@ static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufda
         BufferDescription *buf = ctx.GetBuffer(ib.resourceId);
         if(buf)
         {
-          uint64_t offset = ib.byteOffset + draw->indexOffset * ib.byteStride;
+          uint64_t offset = ib.byteOffset + action->indexOffset * ib.byteStride;
           if(offset > buf->length)
             bytesAvailable = 0;
           else
@@ -1634,10 +1634,10 @@ static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufda
       bufdata->vsinConfig.numRows = numRowsUpperBound + 100;
     }
 
-    if((draw->flags & DrawFlags::Drawcall) && draw->numIndices == 0)
+    if((action->flags & ActionFlags::Drawcall) && action->numIndices == 0)
       bufdata->vsinConfig.noVertices = true;
 
-    if((draw->flags & DrawFlags::Instanced) && draw->numInstances == 0)
+    if((action->flags & ActionFlags::Instanced) && action->numInstances == 0)
     {
       bufdata->vsinConfig.noInstances = true;
       bufdata->vsinConfig.numRows = bufdata->vsinConfig.unclampedNumRows = 0;
@@ -1649,7 +1649,7 @@ static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufda
   bufdata->gsoutConfig.columns.clear();
   bufdata->gsoutConfig.props.clear();
 
-  if(draw)
+  if(action)
   {
     const ShaderReflection *vs = ctx.CurPipelineState().GetShaderReflection(ShaderStage::Vertex);
     const ShaderReflection *last = ctx.CurPipelineState().GetShaderReflection(ShaderStage::Geometry);
@@ -1663,19 +1663,19 @@ static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufda
 
 static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, PopulateBufferData *data)
 {
-  const DrawcallDescription *draw = ctx.CurDrawcall();
+  const ActionDescription *action = ctx.CurAction();
 
   BoundVBuffer ib = ctx.CurPipelineState().GetIBuffer();
 
   rdcarray<BoundVBuffer> vbs = ctx.CurPipelineState().GetVBuffers();
 
-  uint32_t numIndices = draw ? draw->numIndices : 0;
+  uint32_t numIndices = action ? action->numIndices : 0;
 
   bytebuf idata;
-  if(ib.resourceId != ResourceId() && draw && (draw->flags & DrawFlags::Indexed))
+  if(ib.resourceId != ResourceId() && action && (action->flags & ActionFlags::Indexed))
   {
     uint64_t readBytes = numIndices * ib.byteStride;
-    uint32_t offset = draw->indexOffset * ib.byteStride;
+    uint32_t offset = action->indexOffset * ib.byteStride;
 
     if(ib.byteSize > offset)
       readBytes = qMin(ib.byteSize - offset, readBytes);
@@ -1691,20 +1691,20 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
 
   data->vsinConfig.indices = new BufferData();
 
-  if(draw && ib.byteStride != 0 && !idata.isEmpty())
+  if(action && ib.byteStride != 0 && !idata.isEmpty())
     data->vsinConfig.indices->storage.resize(
         sizeof(uint32_t) *
         qMin(numIndices, (((uint32_t)idata.size() + ib.byteStride - 1) / ib.byteStride)));
-  else if(draw && (draw->flags & DrawFlags::Indexed))
+  else if(action && (action->flags & ActionFlags::Indexed))
     data->vsinConfig.indices->storage.resize(sizeof(uint32_t));
 
   uint32_t *indices = (uint32_t *)data->vsinConfig.indices->data();
 
   uint32_t maxIndex = 0;
-  if(draw)
+  if(action)
     maxIndex = qMax(1U, numIndices) - 1;
 
-  if(draw && !idata.isEmpty())
+  if(action && !idata.isEmpty())
   {
     maxIndex = 0;
     if(ib.byteStride == 1)
@@ -1782,20 +1782,20 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
     uint32_t maxIdx = 0;
     uint32_t offset = 0;
 
-    if(used && draw)
+    if(used && action)
     {
       if(pi)
       {
-        maxIdx = qMax(1U, draw->numInstances) - 1;
-        offset = draw->instanceOffset;
+        maxIdx = qMax(1U, action->numInstances) - 1;
+        offset = action->instanceOffset;
       }
       if(pv)
       {
         maxIdx = qMax(maxIndex, maxIdx);
-        offset = draw->vertexOffset;
+        offset = action->vertexOffset;
 
-        if(draw->baseVertex > 0)
-          maxIdx = qMax(maxIdx, maxIdx + (uint32_t)draw->baseVertex);
+        if(action->baseVertex > 0)
+          maxIdx = qMax(maxIdx, maxIdx + (uint32_t)action->baseVertex);
       }
 
       if(pi && pv)
@@ -1844,7 +1844,7 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
   data->vsoutConfig.baseVertex = data->postVS.baseVertex;
   data->vsoutConfig.displayBaseVertex = data->vsinConfig.baseVertex;
 
-  if(draw && data->postVS.indexResourceId != ResourceId() && (draw->flags & DrawFlags::Indexed))
+  if(action && data->postVS.indexResourceId != ResourceId() && (action->flags & ActionFlags::Indexed))
     idata = r->GetBufferData(data->postVS.indexResourceId, data->postVS.indexByteOffset,
                              numIndices * data->postVS.indexByteStride);
 
@@ -1860,7 +1860,7 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
     data->vsoutConfig.displayIndices->ref();
 
     data->vsoutConfig.indices = new BufferData();
-    if(draw && ib.byteStride != 0 && !idata.isEmpty())
+    if(action && ib.byteStride != 0 && !idata.isEmpty())
     {
       data->vsoutConfig.indices->storage.resize(sizeof(uint32_t) * numIndices);
       indices = (uint32_t *)data->vsoutConfig.indices->data();
@@ -2384,7 +2384,7 @@ void BufferViewer::stageRowMenu(MeshDataStage stage, QMenu *menu, const QPoint &
     {
       m_DebugVert->setToolTip(tr("This API does not support shader debugging"));
     }
-    else if(!m_Ctx.CurDrawcall() || !(m_Ctx.CurDrawcall()->flags & DrawFlags::Drawcall))
+    else if(!m_Ctx.CurAction() || !(m_Ctx.CurAction()->flags & ActionFlags::Drawcall))
     {
       m_DebugVert->setToolTip(tr("No draw call selected"));
     }
@@ -2532,7 +2532,7 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
 
   updateWindowTitle();
 
-  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+  const ActionDescription *action = m_Ctx.CurAction();
 
   configureDrawRange();
 
@@ -2546,7 +2546,7 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
 
     const PipeState &pipe = m_Ctx.CurPipelineState();
 
-    if(pipe.IsStripRestartEnabled() && draw && (draw->flags & DrawFlags::Indexed) &&
+    if(pipe.IsStripRestartEnabled() && action && (action->flags & ActionFlags::Indexed) &&
        SupportsRestart(pipe.GetPrimitiveTopology()))
     {
       bufdata->vsinConfig.primRestart = pipe.GetStripRestartIndex();
@@ -2593,18 +2593,18 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
   m_ModelVSOut->beginReset();
   m_ModelGSOut->beginReset();
 
-  bufdata->vsinConfig.baseVertex = draw ? draw->baseVertex : 0;
+  bufdata->vsinConfig.baseVertex = action ? action->baseVertex : 0;
 
-  ui->instance->setEnabled(draw && (draw->flags & DrawFlags::Instanced));
+  ui->instance->setEnabled(action && (action->flags & ActionFlags::Instanced));
   if(!ui->instance->isEnabled())
     ui->instance->setValue(0);
 
-  if(draw)
-    ui->instance->setMaximum(qMax(0, int(draw->numInstances) - 1));
+  if(action)
+    ui->instance->setMaximum(qMax(0, int(action->numInstances) - 1));
 
   uint32_t numViews = m_Ctx.CurPipelineState().MultiviewBroadcastCount();
 
-  if(draw && numViews > 1)
+  if(action && numViews > 1)
   {
     ui->viewIndex->setEnabled(true);
     ui->viewIndex->setMaximum(qMax(0, int(numViews) - 1));
@@ -2813,11 +2813,11 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
 
 void BufferViewer::populateBBox(PopulateBufferData *bufdata)
 {
-  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+  const ActionDescription *action = m_Ctx.CurAction();
 
-  if(draw && m_MeshView)
+  if(action && m_MeshView)
   {
-    uint32_t eventId = draw->eventId;
+    uint32_t eventId = action->eventId;
     bool calcNeeded = false;
 
     {
@@ -3092,15 +3092,15 @@ void BufferViewer::UI_CalculateMeshFormats()
   const PipeState &pipe = m_Ctx.CurPipelineState();
 
   rdcarray<BoundVBuffer> vbs = pipe.GetVBuffers();
-  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+  const ActionDescription *action = m_Ctx.CurAction();
 
-  if(draw)
+  if(action)
   {
     m_VSInPosition = MeshFormat();
     m_VSInSecondary = MeshFormat();
 
     m_VSInPosition.allowRestart = pipe.IsStripRestartEnabled() &&
-                                  (draw->flags & DrawFlags::Indexed) &&
+                                  (action->flags & ActionFlags::Indexed) &&
                                   SupportsRestart(pipe.GetPrimitiveTopology());
     m_VSInPosition.restartIndex = pipe.GetStripRestartIndex();
 
@@ -3115,20 +3115,20 @@ void BufferViewer::UI_CalculateMeshFormats()
       if(vsinConfig.unclampedNumRows > 0)
         m_VSInPosition.numIndices = vsinConfig.numRows;
       else
-        m_VSInPosition.numIndices = draw->numIndices;
+        m_VSInPosition.numIndices = action->numIndices;
 
-      if((draw->flags & DrawFlags::Instanced) && draw->numInstances == 0)
+      if((action->flags & ActionFlags::Instanced) && action->numInstances == 0)
         m_VSInPosition.numIndices = 0;
 
       BoundVBuffer ib = pipe.GetIBuffer();
       m_VSInPosition.topology = pipe.GetPrimitiveTopology();
       m_VSInPosition.indexByteStride = ib.byteStride;
-      m_VSInPosition.baseVertex = draw->baseVertex;
+      m_VSInPosition.baseVertex = action->baseVertex;
       m_VSInPosition.indexResourceId = ib.resourceId;
-      m_VSInPosition.indexByteOffset = ib.byteOffset + draw->indexOffset * ib.byteStride;
+      m_VSInPosition.indexByteOffset = ib.byteOffset + action->indexOffset * ib.byteStride;
       m_VSInPosition.indexByteSize = ib.byteSize;
 
-      if((draw->flags & DrawFlags::Indexed) && m_VSInPosition.indexByteStride == 0)
+      if((action->flags & ActionFlags::Indexed) && m_VSInPosition.indexByteStride == 0)
         m_VSInPosition.indexByteStride = 4U;
 
       {
@@ -3143,7 +3143,7 @@ void BufferViewer::UI_CalculateMeshFormats()
           m_VSInPosition.vertexResourceId = vbs[prop.buffer].resourceId;
           m_VSInPosition.vertexByteStride = vbs[prop.buffer].byteStride;
           m_VSInPosition.vertexByteOffset = vbs[prop.buffer].byteOffset + el.byteOffset +
-                                            draw->vertexOffset * m_VSInPosition.vertexByteStride;
+                                            action->vertexOffset * m_VSInPosition.vertexByteStride;
           m_VSInPosition.vertexByteSize = vbs[prop.buffer].byteSize;
         }
         else
@@ -3154,6 +3154,7 @@ void BufferViewer::UI_CalculateMeshFormats()
         }
 
         m_VSInPosition.format = prop.format;
+        m_VSInPosition.format.compCount = qMin((uint8_t)3, m_VSInPosition.format.compCount);
       }
 
       elIdx = m_ModelVSIn->secondaryColumn();
@@ -3171,7 +3172,7 @@ void BufferViewer::UI_CalculateMeshFormats()
           m_VSInSecondary.vertexResourceId = vbs[prop.buffer].resourceId;
           m_VSInSecondary.vertexByteStride = vbs[prop.buffer].byteStride;
           m_VSInSecondary.vertexByteOffset = vbs[prop.buffer].byteOffset + el.byteOffset +
-                                             draw->vertexOffset * m_VSInSecondary.vertexByteStride;
+                                             action->vertexOffset * m_VSInSecondary.vertexByteStride;
           m_VSInSecondary.vertexByteSize = vbs[prop.buffer].byteSize;
         }
         else
@@ -3208,7 +3209,11 @@ void BufferViewer::UI_CalculateMeshFormats()
       // if geometry/tessellation is enabled, don't unproject VS output data
       if(m_Ctx.CurPipelineState().GetShader(ShaderStage::Tess_Eval) != ResourceId() ||
          m_Ctx.CurPipelineState().GetShader(ShaderStage::Geometry) != ResourceId())
+      {
         m_PostVSPosition.unproject = false;
+        // ignore any W component that might be there, let it be filled in with 1.0
+        m_PostVSPosition.format.compCount = qMin((uint8_t)3, m_VSInPosition.format.compCount);
+      }
 
       elIdx = m_ModelVSOut->secondaryColumn();
 
@@ -3256,7 +3261,7 @@ void BufferViewer::UI_CalculateMeshFormats()
 
     m_PostGSPosition.indexByteStride = 0;
 
-    if(!(draw->flags & DrawFlags::Indexed))
+    if(!(action->flags & ActionFlags::Indexed))
       m_PostVSPosition.indexByteStride = m_VSInPosition.indexByteStride = 0;
   }
   else
@@ -3274,7 +3279,7 @@ void BufferViewer::UI_CalculateMeshFormats()
 
 void BufferViewer::configureDrawRange()
 {
-  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+  const ActionDescription *action = m_Ctx.CurAction();
 
   int curIndex = ui->drawRange->currentIndex();
 
@@ -3282,7 +3287,7 @@ void BufferViewer::configureDrawRange()
 
   // don't check the flags, check if there are actually multiple instances
   if(m_Ctx.IsCaptureLoaded())
-    instanced = draw && draw->numInstances > 1;
+    instanced = action && action->numInstances > 1;
 
   ui->drawRange->blockSignals(true);
   ui->drawRange->clear();
@@ -4015,20 +4020,27 @@ void BufferViewer::exportData(const BufferExport &params)
   if(!m_Ctx.IsCaptureLoaded())
     return;
 
-  if(!m_Ctx.CurDrawcall())
+  if(!m_Ctx.CurAction())
     return;
 
   if(!m_CurView)
     return;
 
   QString filter;
+  QString title;
   if(params.format == BufferExport::CSV)
+  {
     filter = tr("CSV Files (*.csv)");
+    title = tr("Export buffer to CSV");
+  }
   else if(params.format == BufferExport::RawBytes)
+  {
     filter = tr("Binary Files (*.bin)");
+    title = tr("Export buffer to bytes");
+  }
 
-  QString filename = RDDialog::getSaveFileName(this, tr("Export buffer to bytes"), QString(),
-                                               tr("%1;;All files (*)").arg(filter));
+  QString filename =
+      RDDialog::getSaveFileName(this, title, QString(), tr("%1;;All files (*)").arg(filter));
 
   if(filename.isEmpty())
     return;
@@ -4266,7 +4278,7 @@ void BufferViewer::debugVertex()
   if(!m_Ctx.IsCaptureLoaded())
     return;
 
-  if(!m_Ctx.CurDrawcall())
+  if(!m_Ctx.CurAction())
     return;
 
   if(!m_CurView)
@@ -4307,7 +4319,7 @@ void BufferViewer::debugVertex()
 
   QString debugContext = tr("Vertex %1").arg(vertid);
 
-  if(m_Ctx.CurDrawcall()->numInstances > 1)
+  if(m_Ctx.CurAction()->numInstances > 1)
     debugContext += tr(", Instance %1").arg(m_Config.curInstance);
 
   // wait a short while before displaying the progress dialog (which won't show if we're already

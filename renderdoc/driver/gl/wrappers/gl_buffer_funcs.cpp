@@ -957,11 +957,11 @@ bool WrappedOpenGL::Serialise_glNamedBufferSubDataEXT(SerialiserType &ser, GLuin
                                                       GLintptr offsetPtr, GLsizeiptr size,
                                                       const void *data)
 {
-  SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle));
+  SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle)).Important();
   SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr);
 
   SERIALISE_ELEMENT_LOCAL(bytesize, (uint64_t)size);
-  SERIALISE_ELEMENT_ARRAY(data, bytesize);
+  SERIALISE_ELEMENT_ARRAY(data, bytesize).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1097,8 +1097,8 @@ bool WrappedOpenGL::Serialise_glNamedCopyBufferSubDataEXT(SerialiserType &ser,
                                                           GLintptr readOffsetPtr,
                                                           GLintptr writeOffsetPtr, GLsizeiptr sizePtr)
 {
-  SERIALISE_ELEMENT_LOCAL(readBuffer, BufferRes(GetCtx(), readBufferHandle));
-  SERIALISE_ELEMENT_LOCAL(writeBuffer, BufferRes(GetCtx(), writeBufferHandle));
+  SERIALISE_ELEMENT_LOCAL(readBuffer, BufferRes(GetCtx(), readBufferHandle)).Important();
+  SERIALISE_ELEMENT_LOCAL(writeBuffer, BufferRes(GetCtx(), writeBufferHandle)).Important();
   SERIALISE_ELEMENT_LOCAL(readOffset, (uint64_t)readOffsetPtr);
   SERIALISE_ELEMENT_LOCAL(writeOffset, (uint64_t)writeOffsetPtr);
   SERIALISE_ELEMENT_LOCAL(size, (uint64_t)sizePtr);
@@ -1117,16 +1117,13 @@ bool WrappedOpenGL::Serialise_glNamedCopyBufferSubDataEXT(SerialiserType &ser,
       ResourceId srcid = GetResourceManager()->GetResID(readBuffer);
       ResourceId dstid = GetResourceManager()->GetResID(writeBuffer);
 
-      DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%s, %s)", ToStr(gl_CurChunk).c_str(),
-                                    ToStr(GetResourceManager()->GetOriginalID(srcid)).c_str(),
-                                    ToStr(GetResourceManager()->GetOriginalID(dstid)).c_str());
-      draw.flags |= DrawFlags::Copy;
+      ActionDescription action;
+      action.flags |= ActionFlags::Copy;
 
-      draw.copySource = GetResourceManager()->GetOriginalID(srcid);
-      draw.copyDestination = GetResourceManager()->GetOriginalID(dstid);
+      action.copySource = GetResourceManager()->GetOriginalID(srcid);
+      action.copyDestination = GetResourceManager()->GetOriginalID(dstid);
 
-      AddDrawcall(draw, true);
+      AddAction(action);
 
       if(srcid == dstid)
       {
@@ -1431,9 +1428,9 @@ bool WrappedOpenGL::Serialise_glBindBufferRange(SerialiserType &ser, GLenum targ
                                                 GLuint bufferHandle, GLintptr offsetPtr,
                                                 GLsizeiptr sizePtr)
 {
-  SERIALISE_ELEMENT(target);
-  SERIALISE_ELEMENT(index);
-  SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle));
+  SERIALISE_ELEMENT(target).Important();
+  SERIALISE_ELEMENT(index).Important();
+  SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle)).Important();
   SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr);
   SERIALISE_ELEMENT_LOCAL(size, (uint64_t)sizePtr);
 
@@ -1574,8 +1571,8 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glBindBuffersBase(SerialiserType &ser, GLenum target, GLuint first,
                                                 GLsizei count, const GLuint *bufferHandles)
 {
-  SERIALISE_ELEMENT(target);
-  SERIALISE_ELEMENT(first);
+  SERIALISE_ELEMENT(target).Important();
+  SERIALISE_ELEMENT(first).Important();
   SERIALISE_ELEMENT(count);
 
   // can't serialise arrays of GL handles since they're not wrapped or typed :(.
@@ -1588,7 +1585,7 @@ bool WrappedOpenGL::Serialise_glBindBuffersBase(SerialiserType &ser, GLenum targ
       buffers.push_back(BufferRes(GetCtx(), bufferHandles ? bufferHandles[i] : 0));
   }
 
-  SERIALISE_ELEMENT(buffers);
+  SERIALISE_ELEMENT(buffers).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1782,10 +1779,10 @@ bool WrappedOpenGL::Serialise_glBindBuffersRange(SerialiserType &ser, GLenum tar
       sizes.push_back((uint64_t)sizePtrs[i]);
   }
 
-  SERIALISE_ELEMENT(target);
-  SERIALISE_ELEMENT(first);
+  SERIALISE_ELEMENT(target).Important();
+  SERIALISE_ELEMENT(first).Important();
   SERIALISE_ELEMENT(count);
-  SERIALISE_ELEMENT(buffers);
+  SERIALISE_ELEMENT(buffers).Important();
   SERIALISE_ELEMENT(offsets);
   SERIALISE_ELEMENT(sizes);
 
@@ -2008,14 +2005,12 @@ bool WrappedOpenGL::Serialise_glInvalidateBufferData(SerialiserType &ser, GLuint
     {
       AddEvent();
 
-      DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(),
-                                    ToStr(GetResourceManager()->GetOriginalID(id)).c_str());
-      draw.flags |= DrawFlags::Clear;
+      ActionDescription action;
+      action.flags |= ActionFlags::Clear;
 
-      draw.copyDestination = GetResourceManager()->GetOriginalID(id);
+      action.copyDestination = GetResourceManager()->GetOriginalID(id);
 
-      AddDrawcall(draw, true);
+      AddAction(action);
 
       m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Discard));
     }
@@ -2055,7 +2050,7 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glInvalidateBufferSubData(SerialiserType &ser, GLuint bufferHandle,
                                                         GLintptr offsetPtr, GLsizeiptr lengthPtr)
 {
-  SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle));
+  SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle)).Important();
   SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr);
   SERIALISE_ELEMENT_LOCAL(length, (uint64_t)lengthPtr);
 
@@ -2087,14 +2082,12 @@ bool WrappedOpenGL::Serialise_glInvalidateBufferSubData(SerialiserType &ser, GLu
     {
       AddEvent();
 
-      DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(),
-                                    ToStr(GetResourceManager()->GetOriginalID(id)).c_str());
-      draw.flags |= DrawFlags::Clear;
+      ActionDescription action;
+      action.flags |= ActionFlags::Clear;
 
-      draw.copyDestination = GetResourceManager()->GetOriginalID(id);
+      action.copyDestination = GetResourceManager()->GetOriginalID(id);
 
-      AddDrawcall(draw, true);
+      AddAction(action);
 
       m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Discard));
     }
@@ -2228,7 +2221,7 @@ void WrappedOpenGL::glInvalidateBufferSubData(GLuint buffer, GLintptr offset, GL
  * segment of the buffer.
  *
  * The reason for finding the actual difference segment is that many maps will be of a large region
- * or even the whole buffer, but only update a small section, perhaps once per drawcall. So
+ * or even the whole buffer, but only update a small section, perhaps once per action. So
  * serialising the entirety of a large buffer many many times can rapidly inflate the size of the
  * log. The savings from this can be many GBs as if a 4MB buffer is updated 1000 times, each time
  * only updating 1KB, this is a difference between 1MB and 4000MB in written data, most of which is
@@ -2290,8 +2283,8 @@ void WrappedOpenGL::glInvalidateBufferSubData(GLuint buffer, GLintptr offset, GL
  *
  * When frame capturing, we insert an implicit call to PersistentMapMemoryBarrier() over all
  * coherent maps whenever any GL function is called that could conceivably read from buffer memory.
- * This is at the very least all draw calls but also any texture calls that could read from a PBO or
- * other calls. When PersistentMapMemoryBarrier() is called we check to see what has changed and
+ * This is at the very least all action calls but also any texture calls that could read from a PBO
+ * or other calls. When PersistentMapMemoryBarrier() is called we check to see what has changed and
  * serialise it - similar in principle to an implicit call to glFlushMappedBufferRange() over the
  * whole buffer.
  *
@@ -2625,7 +2618,10 @@ bool WrappedOpenGL::Serialise_glUnmapNamedBufferEXT(SerialiserType &ser, GLuint 
        // range.
        record->Map.offset == 0 && length == record->Length &&
        // similarly for invalidate maps, we want to update the whole buffer
-       !record->Map.invalidate)
+       !record->Map.invalidate &&
+       // also not for persistent maps. If these are being unmapped, we save the whole buffer
+       // contents - we check for differences in the case where a persistent map is held open.
+       !record->Map.persistent)
     {
       size_t s = (size_t)diffStart;
       size_t e = (size_t)diffEnd;
@@ -2724,14 +2720,30 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
       }
       case GLResourceRecord::Mapped_Direct:
       {
-        // if it was writeable, this is a problem while capturing a frame
-        if(IsActiveCapturing(m_State) && (record->Map.access & GL_MAP_WRITE_BIT))
+        // if this was a persistent map we either got unlucky and captured right during a frame that
+        // unmapped a long-term persistent map, in which case failing the capture isn't a big deal,
+        // or the application is doing something very strange and repeatedly mapping and unmapping
+        // persistently at high enough frequency that all/most frames have such an unmap. In that
+        // case we have to ensure we handle this otherwise it won't be captureable.
+        if(IsActiveCapturing(m_State))
         {
-          RDCERR(
-              "Failed to cap frame - we saw an Unmap() that we didn't capture the corresponding "
-              "Map() for");
-          m_SuccessfulCapture = false;
-          m_FailureReason = CaptureFailed_UncappedUnmap;
+          if(record->Map.persistent)
+          {
+            // serialise the write to the buffer
+            USE_SCRATCH_SERIALISER();
+            SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+            Serialise_glUnmapNamedBufferEXT(ser, buffer);
+            GetContextRecord()->AddChunk(scope.Get());
+          }
+          // if it was writeable, this is a problem while capturing a frame
+          else if(record->Map.access & GL_MAP_WRITE_BIT)
+          {
+            RDCERR(
+                "Failed to cap frame - we saw an Unmap() that we didn't capture the corresponding "
+                "Map() for");
+            m_SuccessfulCapture = false;
+            m_FailureReason = CaptureFailed_UncappedUnmap;
+          }
         }
         // need to do the real unmap
         ret = GL.glUnmapNamedBufferEXT(buffer);
@@ -4767,9 +4779,9 @@ bool WrappedOpenGL::Serialise_glVertexArrayBindVertexBufferEXT(SerialiserType &s
                                                                GLuint bufferHandle,
                                                                GLintptr offsetPtr, GLsizei stride)
 {
-  SERIALISE_ELEMENT_LOCAL(vaobj, VertexArrayRes(GetCtx(), vaobjHandle));
-  SERIALISE_ELEMENT(bindingindex);
-  SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle));
+  SERIALISE_ELEMENT_LOCAL(vaobj, VertexArrayRes(GetCtx(), vaobjHandle)).Important();
+  SERIALISE_ELEMENT(bindingindex).Important();
+  SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle)).Important();
   SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr);
   SERIALISE_ELEMENT(stride);
 
@@ -4891,10 +4903,10 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexBuffers(SerialiserType &ser, GL
       offsets.push_back((uint64_t)offsetPtrs[i]);
   }
 
-  SERIALISE_ELEMENT_LOCAL(vaobj, VertexArrayRes(GetCtx(), vaobjHandle));
-  SERIALISE_ELEMENT(first);
+  SERIALISE_ELEMENT_LOCAL(vaobj, VertexArrayRes(GetCtx(), vaobjHandle)).Important();
+  SERIALISE_ELEMENT(first).Important();
   SERIALISE_ELEMENT(count);
-  SERIALISE_ELEMENT(buffers);
+  SERIALISE_ELEMENT(buffers).Important();
   SERIALISE_ELEMENT(offsets);
   SERIALISE_ELEMENT_ARRAY(strides, count);
 

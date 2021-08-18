@@ -851,9 +851,10 @@ struct ImageSubresourceRange;
 
 struct ImageInfo
 {
-  int layerCount = 0;
-  int levelCount = 0;
-  int sampleCount = 0;
+  uint32_t layerCount = 0;
+  uint16_t levelCount = 0;
+  uint16_t sampleCount = 0;
+  bool storage = false;
   VkExtent3D extent = {0, 0, 0};
   VkImageType imageType = VK_IMAGE_TYPE_2D;
   VkFormat format = VK_FORMAT_UNDEFINED;
@@ -861,8 +862,8 @@ struct ImageInfo
   VkSharingMode sharingMode = VK_SHARING_MODE_EXCLUSIVE;
   VkImageAspectFlags aspects = 0;
   ImageInfo() {}
-  ImageInfo(VkFormat format, VkExtent3D extent, int levelCount, int layerCount, int sampleCount,
-            VkImageLayout initialLayout, VkSharingMode sharingMode)
+  ImageInfo(VkFormat format, VkExtent3D extent, uint16_t levelCount, uint32_t layerCount,
+            uint16_t sampleCount, VkImageLayout initialLayout, VkSharingMode sharingMode)
       : format(format),
         extent(extent),
         levelCount(levelCount),
@@ -875,8 +876,8 @@ struct ImageInfo
   }
   ImageInfo(const VkImageCreateInfo &ci)
       : layerCount(ci.arrayLayers),
-        levelCount(ci.mipLevels),
-        sampleCount((int)ci.samples),
+        levelCount((uint16_t)ci.mipLevels),
+        sampleCount((uint16_t)ci.samples),
         extent(ci.extent),
         imageType(ci.imageType),
         format(ci.format),
@@ -896,6 +897,11 @@ struct ImageInfo
       extent.depth = 1;
     }
     aspects = FormatImageAspects(format);
+
+    if(ci.usage & VK_IMAGE_USAGE_STORAGE_BIT)
+    {
+      storage = true;
+    }
   }
   ImageInfo(const VkSwapchainCreateInfoKHR &ci)
       : layerCount(ci.imageArrayLayers),
@@ -972,6 +978,7 @@ struct ResourceInfo
   Sparse::PageTable sparseTable;
   rdcarray<AspectSparseTable> altSparseAspects;
   VkImageAspectFlags sparseAspect;
+  bool storable;
 
   Sparse::PageTable &getSparseTableForAspect(VkImageAspectFlags aspects)
   {
@@ -1111,6 +1118,7 @@ struct DescriptorBindRefs
   std::unordered_map<ResourceId, MemRefs> bindMemRefs;
   rdcflatmap<ResourceId, ImageState> bindImageStates;
   std::unordered_set<VkResourceRecord *> sparseRefs;
+  std::unordered_set<VkResourceRecord *> storableRefs;
 };
 
 struct PipelineLayoutData
@@ -1701,6 +1709,7 @@ struct ImageState
   rdcarray<VkImageMemoryBarrier> newQueueFamilyTransfers;
   bool isMemoryBound = false;
   bool m_Overlay = false;
+  bool m_Storage = false;
   ResourceId boundMemory = ResourceId();
   VkDeviceSize boundMemoryOffset = 0ull;
   VkDeviceSize boundMemorySize = 0ull;
@@ -1710,7 +1719,10 @@ struct ImageState
   inline const ImageInfo &GetImageInfo() const { return subresourceStates.GetImageInfo(); }
   inline ImageState() {}
   inline ImageState(VkImage wrappedHandle, const ImageInfo &imageInfo, FrameRefType refType)
-      : wrappedHandle(wrappedHandle), subresourceStates(imageInfo, refType), maxRefType(refType)
+      : wrappedHandle(wrappedHandle),
+        subresourceStates(imageInfo, refType),
+        maxRefType(refType),
+        m_Storage(imageInfo.storage)
   {
   }
   void SetOverlay() { m_Overlay = true; }
@@ -1778,6 +1790,7 @@ struct ImageState
                                uint32_t arrayLayer) const;
 
   void BeginCapture();
+  void FixupStorageReferences();
 };
 
 DECLARE_REFLECTION_STRUCT(ImageState);
@@ -1970,8 +1983,8 @@ FrameRefType ImgRefs::Update(ImageRange range, FrameRefType refType, Compose com
   }
 
   Split(range.aspectMask != aspectMask,
-        range.baseMipLevel != 0 || (int)range.levelCount != imageInfo.levelCount,
-        range.baseArrayLayer != 0 || (int)range.layerCount != imageInfo.layerCount);
+        range.baseMipLevel != 0 || range.levelCount != imageInfo.levelCount,
+        range.baseArrayLayer != 0 || range.layerCount != imageInfo.layerCount);
 
   rdcarray<VkImageAspectFlags> splitAspects;
   if(areAspectsSplit)

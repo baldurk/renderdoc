@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <wincrypt.h>
 #include "core/settings.h"
 #include "hooks/hooks.h"
 #include "strings/string_utils.h"
@@ -30,6 +31,8 @@
 RDOC_CONFIG(rdcstr, D3D12_D3D12CoreDirPath, "",
             "The location of the D3D12Core library. This path should be the directory that "
             "contains the D3D12Core.dll that you want to use.");
+RDOC_CONFIG(bool, D3D12_Debug_IgnoreSignatureCheck, false,
+            "Whether to ignore digital signature check for dll's embedded in capture file");
 
 // special hooking functions exposed on windows for hooking while in replay mode
 void Win32_RegisterManualModuleHooking();
@@ -41,7 +44,7 @@ namespace
 DWORD SystemCoreVersion;
 rdcstr D3D12Core_Override_Path;
 rdcstr D3D12Core_Temp_Path;
-};
+};    // namespace
 
 MIDL_INTERFACE("DFAFDD2C-355F-4CB3-A8B2-EA7F9260148B")
 ID3D12CoreModule : public IUnknown
@@ -152,6 +155,160 @@ HRESULT WINAPI Hooked_SDKLayers_D3D12GetInterface(_In_ REFCLSID rclsid, _In_ REF
     *ppvDebug = (ID3D12CoreModule *)(new WrappedCoreModule((ID3D12CoreModule *)*ppvDebug));
 
   return ret;
+}
+
+// Can check signatures of .exe and .dll files
+bool IsSignedByMicrosoft(const rdcstr &filename)
+{
+  bool IsSignatureValid = false;
+
+  typedef BOOL(WINAPI * PFN_CRYPTQUERYOBJECT)(DWORD, const void *, DWORD, DWORD, DWORD, DWORD *,
+                                              DWORD *, DWORD *, HCERTSTORE *, HCRYPTMSG *,
+                                              const void **);
+  typedef BOOL(WINAPI * PFN_CRYPTMSGGETPARAM)(HCRYPTMSG, DWORD, DWORD, void *, DWORD *);
+  typedef PCCERT_CONTEXT(WINAPI * PFN_CERTFINDCERTIFICATEINSTORE)(HCERTSTORE, DWORD, DWORD, DWORD,
+                                                                  const void *, PCCERT_CONTEXT);
+  typedef DWORD(WINAPI * PFN_CERTGETNAMESTRINGW)(PCCERT_CONTEXT, DWORD, DWORD, void *, LPWSTR, DWORD);
+  typedef BOOL(WINAPI * PFN_CERTFREECERTIFICATECONTEXT)(PCCERT_CONTEXT);
+  typedef BOOL(WINAPI * PFN_CERTCLOSESTORE)(HCERTSTORE, DWORD);
+  typedef BOOL(WINAPI * PFN_CRYPTMSGCLOSE)(HCRYPTMSG);
+
+  HMODULE crypt32 = NULL;
+  PFN_CRYPTQUERYOBJECT CryptQueryObject = NULL;
+  PFN_CRYPTMSGGETPARAM CryptMsgGetParam = NULL;
+  PFN_CERTFINDCERTIFICATEINSTORE CertFindCertificateInStore = NULL;
+  PFN_CERTGETNAMESTRINGW CertGetNameStringW = NULL;
+  PFN_CERTFREECERTIFICATECONTEXT CertFreeCertificateContext = NULL;
+  PFN_CERTCLOSESTORE CertCloseStore = NULL;
+  PFN_CRYPTMSGCLOSE CryptMsgClose = NULL;
+
+  HCERTSTORE store = NULL;
+  HCRYPTMSG msg = NULL;
+  PCMSG_SIGNER_INFO signer_info = NULL;
+  DWORD signer_info_size = 0;
+  PCCERT_CONTEXT cert_context = NULL;
+  CERT_INFO cert_info = {};
+  LPTSTR signer_name = NULL;
+  DWORD signer_name_length = 0;
+
+  do
+  {
+    crypt32 = LoadLibraryA("crypt32.dll");
+
+    if(!crypt32)
+    {
+      break;
+    }
+
+    CryptQueryObject = (PFN_CRYPTQUERYOBJECT)GetProcAddress(crypt32, "CryptQueryObject");
+    CryptMsgGetParam = (PFN_CRYPTMSGGETPARAM)GetProcAddress(crypt32, "CryptMsgGetParam");
+    CertFindCertificateInStore =
+        (PFN_CERTFINDCERTIFICATEINSTORE)GetProcAddress(crypt32, "CertFindCertificateInStore");
+    CertGetNameStringW = (PFN_CERTGETNAMESTRINGW)GetProcAddress(crypt32, "CertGetNameStringW");
+    CertFreeCertificateContext =
+        (PFN_CERTFREECERTIFICATECONTEXT)GetProcAddress(crypt32, "CertFreeCertificateContext");
+    CertCloseStore = (PFN_CERTCLOSESTORE)GetProcAddress(crypt32, "CertCloseStore");
+    CryptMsgClose = (PFN_CRYPTMSGCLOSE)GetProcAddress(crypt32, "CryptMsgClose");
+
+    if(!CryptQueryObject || !CryptMsgGetParam || !CertFindCertificateInStore ||
+       !CertGetNameStringW || !CertFreeCertificateContext || !CertCloseStore || !CryptMsgClose)
+    {
+      break;
+    }
+
+    rdcwstr wideFilename = StringFormat::UTF82Wide(filename);
+
+    // Get message handle and store handle from the signed file.
+    BOOL res = CryptQueryObject(
+        CERT_QUERY_OBJECT_FILE, wideFilename.c_str(), CERT_QUERY_CONTENT_FLAG_PKCS7_SIGNED_EMBED,
+        CERT_QUERY_FORMAT_FLAG_BINARY, 0, NULL, NULL, NULL, &store, &msg, NULL);
+
+    if(!res)
+    {
+      break;
+    }
+
+    // Get signer information size.
+    res = CryptMsgGetParam(msg, CMSG_SIGNER_INFO_PARAM, 0, NULL, &signer_info_size);
+    if(!res)
+    {
+      break;
+    }
+
+    // Allocate memory for signer information.
+    signer_info = (PCMSG_SIGNER_INFO)LocalAlloc(LPTR, signer_info_size);
+    if(!signer_info)
+    {
+      break;
+    }
+
+    // Get Signer Information.
+    res = CryptMsgGetParam(msg, CMSG_SIGNER_INFO_PARAM, 0, (PVOID)signer_info, &signer_info_size);
+    if(!res)
+    {
+      break;
+    }
+
+    cert_info.Issuer = signer_info->Issuer;
+    cert_info.SerialNumber = signer_info->SerialNumber;
+
+    // Get Certificate handle
+    cert_context = CertFindCertificateInStore(store, X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, 0,
+                                              CERT_FIND_SUBJECT_CERT, (PVOID)&cert_info, NULL);
+    if(!cert_context)
+    {
+      break;
+    }
+
+    // Get Subject name size.
+    signer_name_length =
+        CertGetNameStringW(cert_context, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, NULL, NULL, 0);
+    if(!signer_name_length)
+    {
+      break;
+    }
+
+    // Allocate memory for subject name.
+    signer_name = (LPTSTR)LocalAlloc(LPTR, signer_name_length * sizeof(WCHAR));
+    if(!signer_name)
+    {
+      break;
+    }
+
+    // Get subject name.
+    if(!CertGetNameStringW(cert_context, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, NULL, signer_name,
+                           signer_name_length))
+    {
+      break;
+    }
+
+    // Check whether signer is Microsoft
+    // Since Microsoft uses multiple different signatures,
+    // We just check whether "Microsoft" is a substring of signer simple name
+    // Nobody except Microsoft should ever have such signature
+    if(wcsstr(signer_name, L"Microsoft") == NULL)
+    {
+      break;
+    }
+
+    IsSignatureValid = true;
+
+  } while(0);
+
+  if(signer_info != NULL)
+    LocalFree(signer_info);
+  if(cert_context != NULL)
+    CertFreeCertificateContext(cert_context);
+  if(store != NULL)
+    CertCloseStore(store, 0);
+  if(msg != NULL)
+    CryptMsgClose(msg);
+  if(signer_name != NULL)
+    LocalFree(signer_name);
+  if(crypt32)
+    FreeLibrary(crypt32);
+
+  return IsSignatureValid;
 }
 
 void D3D12_PrepareReplaySDKVersion(UINT SDKVersion, bytebuf d3d12core_file,
@@ -288,12 +445,28 @@ void D3D12_PrepareReplaySDKVersion(UINT SDKVersion, bytebuf d3d12core_file,
         FileIO::fwrite(d3d12core_file.data(), 1, d3d12core_file.size(), f);
         FileIO::fclose(f);
 
-        D3D12Core_Override_Path = get_dirname(filename);
-        D3D12Core_Temp_Path = get_dirname(filename);
+        if(!IsSignedByMicrosoft(filename))
+        {
+          if(D3D12_Debug_IgnoreSignatureCheck())
+          {
+            RDCWARN(
+                "Can't verify the digital signature of the D3D12Core.dll embedded in capture, it "
+                "will be loaded since D3D12.Debug.IgnoreSignatureCheck is set to true");
+          }
+          else
+          {
+            FileIO::Delete(filename);
+            RDCERR(
+                "Can't verify the digital signature of the D3D12Core.dll embedded in capture, it "
+                "won't be loaded. If the capture came from a trusted source and you want to load "
+                "unsigned dll's, set D3D12.Debug.IgnoreSignatureCheck to true");
+            break;
+          }
+        }
 
-        filename = get_dirname(filename) + "/d3d12sdklayers.dll";
+        rdcstr sdklayers_filename = get_dirname(filename) + "/d3d12sdklayers.dll";
 
-        f = FileIO::fopen(filename.c_str(), FileIO::WriteBinary);
+        f = FileIO::fopen(sdklayers_filename.c_str(), FileIO::WriteBinary);
 
         // if we can write to this file, we have exclusive use of it so let's write it and use it
         if(f)
@@ -302,6 +475,32 @@ void D3D12_PrepareReplaySDKVersion(UINT SDKVersion, bytebuf d3d12core_file,
           FileIO::fclose(f);
         }
 
+// d3d12sdklayers.dll is not always signed
+#if 0
+        if(!IsSignedByMicrosoft(sdklayers_filename))
+        {
+          if(D3D12_Debug_IgnoreSignatureCheck())
+          {
+            RDCWARN(
+                "Can't verify digital signature of d3d12sdklayers.dll embedded in capture, it will "
+                "be loaded since D3D12.Debug.IgnoreSignatureCheck is set to true");
+          }
+          else
+          {
+            RDCERR(
+                "Can't verify digital signature of d3d12sdklayers.dll embedded in capture, it "
+                "won't be loaded. If capture came from trusted source you want to load unsigned "
+                "dll's set D3D12.Debug.IgnoreSignatureCheck to true");
+            FileIO::Delete(filename);
+            FileIO::Delete(sdklayers_filename);
+            break;
+          }
+        }
+#endif
+
+        D3D12Core_Override_Path = get_dirname(filename);
+        D3D12Core_Temp_Path = get_dirname(filename);
+
         break;
       }
     }
@@ -309,6 +508,23 @@ void D3D12_PrepareReplaySDKVersion(UINT SDKVersion, bytebuf d3d12core_file,
     if(D3D12Core_Override_Path.empty() || !FileIO::exists(D3D12Core_Override_Path.c_str()))
     {
       RDCERR("Couldn't write embedded D3D12Core.dll to disk! system dll will be used");
+    }
+    else
+    {
+      UINT prevErrorMode = GetErrorMode();
+      SetErrorMode(prevErrorMode | SEM_FAILCRITICALERRORS);
+      HMODULE ret =
+          LoadLibraryW(StringFormat::UTF82Wide(D3D12Core_Override_Path + "/d3d12core.dll").c_str());
+
+      SetErrorMode(prevErrorMode);
+
+      if(ret == NULL)
+      {
+        RDCERR("Can't open DLL! Wrong architecture or incompatible? system dll will be used");
+        D3D12Core_Override_Path.clear();
+      }
+
+      FreeLibrary(ret);
     }
   }
 }

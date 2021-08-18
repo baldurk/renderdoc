@@ -213,6 +213,12 @@ ShaderToolOutput ShaderProcessingTool::DisassembleShader(QWidget *window,
       arg = input_file;
     if(arg == lit("{output_file}"))
       arg = output_file = tmpPath(lit("shader_output"));
+    if(arg == lit("{entry_point}"))
+    {
+      arg = shaderDetails->entryPoint;
+      if(arg.isEmpty())
+        arg = lit("main");
+    }
 
     // allow substring matches from the left, to enable e.g. {hlsl_stage2}_6_0
     if(arg.left(13) == lit("{glsl_stage4}"))

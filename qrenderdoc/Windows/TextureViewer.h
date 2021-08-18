@@ -60,7 +60,7 @@ struct Following
 
   bool operator==(const Following &o);
   bool operator!=(const Following &o);
-  static void GetDrawContext(ICaptureContext &ctx, bool &copy, bool &clear, bool &compute);
+  static void GetActionContext(ICaptureContext &ctx, bool &copy, bool &clear, bool &compute);
 
   int GetHighestMip(ICaptureContext &ctx);
   int GetFirstArraySlice(ICaptureContext &ctx);
@@ -248,7 +248,7 @@ private:
 
   void UI_UpdateStatusText();
   void UI_UpdateTextureDetails();
-  void UI_OnTextureSelectionChanged(bool newdraw);
+  void UI_OnTextureSelectionChanged(bool newAction);
 
   void UI_SetHistogramRange(const TextureDescription *tex, CompType typeCast);
 

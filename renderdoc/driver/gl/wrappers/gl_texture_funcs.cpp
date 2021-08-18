@@ -333,7 +333,7 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glBindTextures(SerialiserType &ser, GLuint first, GLsizei count,
                                              const GLuint *textureHandles)
 {
-  SERIALISE_ELEMENT(first);
+  SERIALISE_ELEMENT(first).Important();
   SERIALISE_ELEMENT(count);
 
   // can't serialise arrays of GL handles since they're not wrapped or typed :(.
@@ -346,7 +346,7 @@ bool WrappedOpenGL::Serialise_glBindTextures(SerialiserType &ser, GLuint first, 
       textures.push_back(TextureRes(GetCtx(), textureHandles ? textureHandles[i] : 0));
   }
 
-  SERIALISE_ELEMENT(textures);
+  SERIALISE_ELEMENT(textures).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -420,9 +420,9 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glBindMultiTextureEXT(SerialiserType &ser, GLenum texunit,
                                                     GLenum target, GLuint textureHandle)
 {
-  SERIALISE_ELEMENT(texunit);
+  SERIALISE_ELEMENT(texunit).Important();
   SERIALISE_ELEMENT(target);
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
 
   if(IsReplayingAndReading())
   {
@@ -791,7 +791,7 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glGenerateTextureMipmapEXT(SerialiserType &ser, GLuint textureHandle,
                                                          GLenum target)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
   SERIALISE_ELEMENT(target);
   HIDE_ARB_DSA_TARGET();
 
@@ -816,13 +816,10 @@ bool WrappedOpenGL::Serialise_glGenerateTextureMipmapEXT(SerialiserType &ser, GL
           CalcNumMips(m_Textures[liveId].width, m_Textures[liveId].height, m_Textures[liveId].depth);
       m_Textures[liveId].mipsValid = (1 << mips) - 1;
 
-      DrawcallDescription draw;
-      draw.name = StringFormat::Fmt(
-          "%s(%s)", ToStr(gl_CurChunk).c_str(),
-          ToStr(GetResourceManager()->GetOriginalID(GetResourceManager()->GetResID(texture))).c_str());
-      draw.flags |= DrawFlags::GenMips;
+      ActionDescription action;
+      action.flags |= ActionFlags::GenMips;
 
-      AddDrawcall(draw, true);
+      AddAction(action);
 
       m_ResourceUses[GetResourceManager()->GetResID(texture)].push_back(
           EventUsage(m_CurEventID, ResourceUsage::GenMips));
@@ -849,7 +846,7 @@ void WrappedOpenGL::Common_glGenerateTextureMipmapEXT(GLResourceRecord *record, 
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glGenerateTextureMipmapEXT(ser, record->Resource.name, target);
 
@@ -920,7 +917,7 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glInvalidateTexImage(SerialiserType &ser, GLuint textureHandle,
                                                    GLint level)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
   SERIALISE_ELEMENT(level);
 
   Serialise_DebugMessages(ser);
@@ -1022,14 +1019,12 @@ bool WrappedOpenGL::Serialise_glInvalidateTexImage(SerialiserType &ser, GLuint t
     {
       AddEvent();
 
-      DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(),
-                                    ToStr(GetResourceManager()->GetOriginalID(liveId)).c_str());
-      draw.flags |= DrawFlags::Clear;
+      ActionDescription action;
+      action.flags |= ActionFlags::Clear;
 
-      draw.copyDestination = GetResourceManager()->GetOriginalID(liveId);
+      action.copyDestination = GetResourceManager()->GetOriginalID(liveId);
 
-      AddDrawcall(draw, true);
+      AddAction(action);
 
       m_ResourceUses[GetResourceManager()->GetResID(texture)].push_back(
           EventUsage(m_CurEventID, ResourceUsage::Discard));
@@ -1054,7 +1049,7 @@ void WrappedOpenGL::glInvalidateTexImage(GLuint texture, GLint level)
     if(IsActiveCapturing(m_State))
     {
       USE_SCRATCH_SERIALISER();
-      ser.SetDrawChunk();
+      ser.SetActionChunk();
       SCOPED_SERIALISE_CHUNK(gl_CurChunk);
       Serialise_glInvalidateTexImage(ser, texture, level);
 
@@ -1076,7 +1071,7 @@ bool WrappedOpenGL::Serialise_glInvalidateTexSubImage(SerialiserType &ser, GLuin
                                                       GLint zoffset, GLsizei width, GLsizei height,
                                                       GLsizei depth)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
   SERIALISE_ELEMENT(level);
   SERIALISE_ELEMENT(xoffset);
   SERIALISE_ELEMENT(yoffset);
@@ -1176,14 +1171,12 @@ bool WrappedOpenGL::Serialise_glInvalidateTexSubImage(SerialiserType &ser, GLuin
     {
       AddEvent();
 
-      DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(),
-                                    ToStr(GetResourceManager()->GetOriginalID(liveId)).c_str());
-      draw.flags |= DrawFlags::Clear;
+      ActionDescription action;
+      action.flags |= ActionFlags::Clear;
 
-      draw.copyDestination = GetResourceManager()->GetOriginalID(liveId);
+      action.copyDestination = GetResourceManager()->GetOriginalID(liveId);
 
-      AddDrawcall(draw, true);
+      AddAction(action);
 
       m_ResourceUses[GetResourceManager()->GetResID(texture)].push_back(
           EventUsage(m_CurEventID, ResourceUsage::Discard));
@@ -1211,7 +1204,7 @@ void WrappedOpenGL::glInvalidateTexSubImage(GLuint texture, GLint level, GLint x
     if(IsActiveCapturing(m_State))
     {
       USE_SCRATCH_SERIALISER();
-      ser.SetDrawChunk();
+      ser.SetActionChunk();
       SCOPED_SERIALISE_CHUNK(gl_CurChunk);
       Serialise_glInvalidateTexSubImage(ser, texture, level, xoffset, yoffset, zoffset, width,
                                         height, depth);
@@ -1238,7 +1231,8 @@ bool WrappedOpenGL::Serialise_glCopyImageSubData(SerialiserType &ser, GLuint src
 {
   SERIALISE_ELEMENT_LOCAL(srcName, srcTarget == eGL_RENDERBUFFER
                                        ? RenderbufferRes(GetCtx(), srcHandle)
-                                       : TextureRes(GetCtx(), srcHandle));
+                                       : TextureRes(GetCtx(), srcHandle))
+      .Important();
   SERIALISE_ELEMENT(srcTarget);
   SERIALISE_ELEMENT(srcLevel);
   SERIALISE_ELEMENT(srcX);
@@ -1246,7 +1240,8 @@ bool WrappedOpenGL::Serialise_glCopyImageSubData(SerialiserType &ser, GLuint src
   SERIALISE_ELEMENT(srcZ);
   SERIALISE_ELEMENT_LOCAL(dstName, dstTarget == eGL_RENDERBUFFER
                                        ? RenderbufferRes(GetCtx(), dstHandle)
-                                       : TextureRes(GetCtx(), dstHandle));
+                                       : TextureRes(GetCtx(), dstHandle))
+      .Important();
   SERIALISE_ELEMENT(dstTarget);
   SERIALISE_ELEMENT(dstLevel);
   SERIALISE_ELEMENT(dstX);
@@ -1272,24 +1267,21 @@ bool WrappedOpenGL::Serialise_glCopyImageSubData(SerialiserType &ser, GLuint src
       ResourceId srcid = GetResourceManager()->GetResID(srcName);
       ResourceId dstid = GetResourceManager()->GetResID(dstName);
 
-      DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%s, %s)", ToStr(gl_CurChunk).c_str(),
-                                    ToStr(GetResourceManager()->GetOriginalID(srcid)).c_str(),
-                                    ToStr(GetResourceManager()->GetOriginalID(dstid)).c_str());
-      draw.flags |= DrawFlags::Copy;
+      ActionDescription action;
+      action.flags |= ActionFlags::Copy;
 
-      draw.copySource = GetResourceManager()->GetOriginalID(srcid);
-      draw.copyDestination = GetResourceManager()->GetOriginalID(dstid);
+      action.copySource = GetResourceManager()->GetOriginalID(srcid);
+      action.copyDestination = GetResourceManager()->GetOriginalID(dstid);
 
-      draw.copyDestinationSubresource.mip = dstLevel;
+      action.copyDestinationSubresource.mip = dstLevel;
       if(dstTarget != eGL_TEXTURE_3D)
-        draw.copyDestinationSubresource.slice = dstZ;
+        action.copyDestinationSubresource.slice = dstZ;
 
-      draw.copySourceSubresource.mip = srcLevel;
+      action.copySourceSubresource.mip = srcLevel;
       if(srcTarget != eGL_TEXTURE_3D)
-        draw.copySourceSubresource.slice = srcZ;
+        action.copySourceSubresource.slice = srcZ;
 
-      AddDrawcall(draw, true);
+      AddAction(action);
 
       if(srcid == dstid)
       {
@@ -1343,7 +1335,7 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
       return;
 
     USE_SCRATCH_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glCopyImageSubData(ser, srcName, srcTarget, srcLevel, srcX, srcY, srcZ, dstName,
                                  dstTarget, dstLevel, dstX, dstY, dstZ, srcWidth, srcHeight,
@@ -1446,7 +1438,7 @@ bool WrappedOpenGL::Serialise_glCopyTextureSubImage1DEXT(SerialiserType &ser, GL
                                                          GLenum target, GLint level, GLint xoffset,
                                                          GLint x, GLint y, GLsizei width)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
   SERIALISE_ELEMENT(target);
   HIDE_ARB_DSA_TARGET();
   SERIALISE_ELEMENT(level);
@@ -1559,7 +1551,7 @@ bool WrappedOpenGL::Serialise_glCopyTextureSubImage2DEXT(SerialiserType &ser, GL
                                                          GLint yoffset, GLint x, GLint y,
                                                          GLsizei width, GLsizei height)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
   SERIALISE_ELEMENT(target);
   HIDE_ARB_DSA_TARGET();
   SERIALISE_ELEMENT(level);
@@ -1680,7 +1672,7 @@ bool WrappedOpenGL::Serialise_glCopyTextureSubImage3DEXT(SerialiserType &ser, GL
                                                          GLint yoffset, GLint zoffset, GLint x,
                                                          GLint y, GLsizei width, GLsizei height)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
   SERIALISE_ELEMENT(target);
   HIDE_ARB_DSA_TARGET();
   SERIALISE_ELEMENT(level);
@@ -1804,10 +1796,10 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glTextureParameteriEXT(SerialiserType &ser, GLuint textureHandle,
                                                      GLenum target, GLenum pname, GLint param)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
   SERIALISE_ELEMENT(target);
   HIDE_ARB_DSA_TARGET();
-  SERIALISE_ELEMENT(pname);
+  SERIALISE_ELEMENT(pname).Important();
 
   RDCCOMPILE_ASSERT(sizeof(int32_t) == sizeof(GLenum),
                     "int32_t isn't the same size as GLenum - aliased serialising will break");
@@ -1818,11 +1810,11 @@ bool WrappedOpenGL::Serialise_glTextureParameteriEXT(SerialiserType &ser, GLuint
      pname == GL_TEXTURE_SWIZZLE_G || pname == GL_TEXTURE_SWIZZLE_B || pname == GL_TEXTURE_SWIZZLE_A ||
      pname == GL_TEXTURE_WRAP_S || pname == GL_TEXTURE_WRAP_T || pname == GL_TEXTURE_WRAP_R)
   {
-    SERIALISE_ELEMENT_TYPED(GLenum, param);
+    SERIALISE_ELEMENT_TYPED(GLenum, param).Important();
   }
   else
   {
-    SERIALISE_ELEMENT(param);
+    SERIALISE_ELEMENT(param).Important();
   }
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -1934,11 +1926,11 @@ bool WrappedOpenGL::Serialise_glTextureParameterivEXT(SerialiserType &ser, GLuin
                                                       GLenum target, GLenum pname,
                                                       const GLint *params)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
   SERIALISE_ELEMENT(target);
   HIDE_ARB_DSA_TARGET();
-  SERIALISE_ELEMENT(pname);
-  SERIALISE_ELEMENT_ARRAY(params, numParams(pname));
+  SERIALISE_ELEMENT(pname).Important();
+  SERIALISE_ELEMENT_ARRAY(params, numParams(pname)).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2053,11 +2045,11 @@ bool WrappedOpenGL::Serialise_glTextureParameterIivEXT(SerialiserType &ser, GLui
                                                        GLenum target, GLenum pname,
                                                        const GLint *params)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
   SERIALISE_ELEMENT(target);
   HIDE_ARB_DSA_TARGET();
-  SERIALISE_ELEMENT(pname);
-  SERIALISE_ELEMENT_ARRAY(params, numParams(pname));
+  SERIALISE_ELEMENT(pname).Important();
+  SERIALISE_ELEMENT_ARRAY(params, numParams(pname)).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2172,11 +2164,11 @@ bool WrappedOpenGL::Serialise_glTextureParameterIuivEXT(SerialiserType &ser, GLu
                                                         GLenum target, GLenum pname,
                                                         const GLuint *params)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
   SERIALISE_ELEMENT(target);
   HIDE_ARB_DSA_TARGET();
-  SERIALISE_ELEMENT(pname);
-  SERIALISE_ELEMENT_ARRAY(params, numParams(pname));
+  SERIALISE_ELEMENT(pname).Important();
+  SERIALISE_ELEMENT_ARRAY(params, numParams(pname)).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2290,11 +2282,11 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glTextureParameterfEXT(SerialiserType &ser, GLuint textureHandle,
                                                      GLenum target, GLenum pname, GLfloat param)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
   SERIALISE_ELEMENT(target);
   HIDE_ARB_DSA_TARGET();
-  SERIALISE_ELEMENT(pname);
-  SERIALISE_ELEMENT(param);
+  SERIALISE_ELEMENT(pname).Important();
+  SERIALISE_ELEMENT(param).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2405,11 +2397,11 @@ bool WrappedOpenGL::Serialise_glTextureParameterfvEXT(SerialiserType &ser, GLuin
                                                       GLenum target, GLenum pname,
                                                       const GLfloat *params)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
   SERIALISE_ELEMENT(target);
   HIDE_ARB_DSA_TARGET();
-  SERIALISE_ELEMENT(pname);
-  SERIALISE_ELEMENT_ARRAY(params, numParams(pname));
+  SERIALISE_ELEMENT(pname).Important();
+  SERIALISE_ELEMENT_ARRAY(params, numParams(pname)).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2612,11 +2604,11 @@ bool WrappedOpenGL::Serialise_glTextureImage1DEXT(SerialiserType &ser, GLuint te
                                                   GLsizei width, GLint border, GLenum format,
                                                   GLenum type, const void *pixels)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
-  SERIALISE_ELEMENT(target);
-  SERIALISE_ELEMENT(level);
-  SERIALISE_ELEMENT_TYPED(GLenum, internalformat);
-  SERIALISE_ELEMENT(width);
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
+  SERIALISE_ELEMENT(target).Important();
+  SERIALISE_ELEMENT(level).Important();
+  SERIALISE_ELEMENT_TYPED(GLenum, internalformat).Important();
+  SERIALISE_ELEMENT(width).Important();
   SERIALISE_ELEMENT(border);
   SERIALISE_ELEMENT(format);
   SERIALISE_ELEMENT(type);
@@ -2837,12 +2829,12 @@ bool WrappedOpenGL::Serialise_glTextureImage2DEXT(SerialiserType &ser, GLuint te
                                                   GLsizei width, GLsizei height, GLint border,
                                                   GLenum format, GLenum type, const void *pixels)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
-  SERIALISE_ELEMENT(target);
-  SERIALISE_ELEMENT(level);
-  SERIALISE_ELEMENT_TYPED(GLenum, internalformat);
-  SERIALISE_ELEMENT(width);
-  SERIALISE_ELEMENT(height);
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
+  SERIALISE_ELEMENT(target).Important();
+  SERIALISE_ELEMENT(level).Important();
+  SERIALISE_ELEMENT_TYPED(GLenum, internalformat).Important();
+  SERIALISE_ELEMENT(width).Important();
+  SERIALISE_ELEMENT(height).Important();
   SERIALISE_ELEMENT(border);
   SERIALISE_ELEMENT(format);
   SERIALISE_ELEMENT(type);
@@ -3092,12 +3084,12 @@ bool WrappedOpenGL::Serialise_glTextureImage3DEXT(SerialiserType &ser, GLuint te
                                                   GLint border, GLenum format, GLenum type,
                                                   const void *pixels)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
-  SERIALISE_ELEMENT(target);
-  SERIALISE_ELEMENT(level);
-  SERIALISE_ELEMENT_TYPED(GLenum, internalformat);
-  SERIALISE_ELEMENT(width);
-  SERIALISE_ELEMENT(height);
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
+  SERIALISE_ELEMENT(target).Important();
+  SERIALISE_ELEMENT(level).Important();
+  SERIALISE_ELEMENT_TYPED(GLenum, internalformat).Important();
+  SERIALISE_ELEMENT(width).Important();
+  SERIALISE_ELEMENT(height).Important();
   SERIALISE_ELEMENT(depth);
   SERIALISE_ELEMENT(border);
   SERIALISE_ELEMENT(format);
@@ -3328,11 +3320,11 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage1DEXT(SerialiserType &ser,
                                                             GLsizei width, GLint border,
                                                             GLsizei imageSize, const GLvoid *pixels)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
-  SERIALISE_ELEMENT(target);
-  SERIALISE_ELEMENT(level);
-  SERIALISE_ELEMENT(internalformat);
-  SERIALISE_ELEMENT(width);
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
+  SERIALISE_ELEMENT(target).Important();
+  SERIALISE_ELEMENT(level).Important();
+  SERIALISE_ELEMENT(internalformat).Important();
+  SERIALISE_ELEMENT(width).Important();
   SERIALISE_ELEMENT(border);
 
   byte *unpackedPixels = NULL;
@@ -3648,12 +3640,12 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage2DEXT(SerialiserType &ser,
                                                             GLsizei height, GLint border,
                                                             GLsizei imageSize, const GLvoid *pixels)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
-  SERIALISE_ELEMENT(target);
-  SERIALISE_ELEMENT(level);
-  SERIALISE_ELEMENT(internalformat);
-  SERIALISE_ELEMENT(width);
-  SERIALISE_ELEMENT(height);
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
+  SERIALISE_ELEMENT(target).Important();
+  SERIALISE_ELEMENT(level).Important();
+  SERIALISE_ELEMENT(internalformat).Important();
+  SERIALISE_ELEMENT(width).Important();
+  SERIALISE_ELEMENT(height).Important();
   SERIALISE_ELEMENT(border);
 
   byte *unpackedPixels = NULL;
@@ -3907,13 +3899,13 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage3DEXT(SerialiserType &ser,
                                                             GLsizei depth, GLint border,
                                                             GLsizei imageSize, const GLvoid *pixels)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
-  SERIALISE_ELEMENT(target);
-  SERIALISE_ELEMENT(level);
-  SERIALISE_ELEMENT(internalformat);
-  SERIALISE_ELEMENT(width);
-  SERIALISE_ELEMENT(height);
-  SERIALISE_ELEMENT(depth);
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
+  SERIALISE_ELEMENT(target).Important();
+  SERIALISE_ELEMENT(level).Important();
+  SERIALISE_ELEMENT(internalformat).Important();
+  SERIALISE_ELEMENT(width).Important();
+  SERIALISE_ELEMENT(height).Important();
+  SERIALISE_ELEMENT(depth).Important();
   SERIALISE_ELEMENT(border);
 
   byte *unpackedPixels = NULL;
@@ -4147,13 +4139,13 @@ bool WrappedOpenGL::Serialise_glCopyTextureImage1DEXT(SerialiserType &ser, GLuin
                                                       GLenum internalformat, GLint x, GLint y,
                                                       GLsizei width, GLint border)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
   SERIALISE_ELEMENT(target);
   SERIALISE_ELEMENT(level);
-  SERIALISE_ELEMENT(internalformat);
+  SERIALISE_ELEMENT(internalformat).Important();
   SERIALISE_ELEMENT(x);
   SERIALISE_ELEMENT(y);
-  SERIALISE_ELEMENT(width);
+  SERIALISE_ELEMENT(width).Important();
   SERIALISE_ELEMENT(border);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -4309,14 +4301,14 @@ bool WrappedOpenGL::Serialise_glCopyTextureImage2DEXT(SerialiserType &ser, GLuin
                                                       GLenum internalformat, GLint x, GLint y,
                                                       GLsizei width, GLsizei height, GLint border)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
   SERIALISE_ELEMENT(target);
   SERIALISE_ELEMENT(level);
-  SERIALISE_ELEMENT(internalformat);
+  SERIALISE_ELEMENT(internalformat).Important();
   SERIALISE_ELEMENT(x);
   SERIALISE_ELEMENT(y);
-  SERIALISE_ELEMENT(width);
-  SERIALISE_ELEMENT(height);
+  SERIALISE_ELEMENT(width).Important();
+  SERIALISE_ELEMENT(height).Important();
   SERIALISE_ELEMENT(border);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -4475,12 +4467,12 @@ bool WrappedOpenGL::Serialise_glTextureStorage1DEXT(SerialiserType &ser, GLuint 
                                                     GLenum target, GLsizei levels,
                                                     GLenum internalformat, GLsizei width)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
-  SERIALISE_ELEMENT(target);
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
+  SERIALISE_ELEMENT(target).Important();
   HIDE_ARB_DSA_TARGET();
-  SERIALISE_ELEMENT(levels);
-  SERIALISE_ELEMENT(internalformat);
-  SERIALISE_ELEMENT(width);
+  SERIALISE_ELEMENT(levels).Important();
+  SERIALISE_ELEMENT(internalformat).Important();
+  SERIALISE_ELEMENT(width).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -4601,13 +4593,13 @@ bool WrappedOpenGL::Serialise_glTextureStorage2DEXT(SerialiserType &ser, GLuint 
                                                     GLenum internalformat, GLsizei width,
                                                     GLsizei height)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
-  SERIALISE_ELEMENT(target);
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
+  SERIALISE_ELEMENT(target).Important();
   HIDE_ARB_DSA_TARGET();
-  SERIALISE_ELEMENT(levels);
-  SERIALISE_ELEMENT(internalformat);
-  SERIALISE_ELEMENT(width);
-  SERIALISE_ELEMENT(height);
+  SERIALISE_ELEMENT(levels).Important();
+  SERIALISE_ELEMENT(internalformat).Important();
+  SERIALISE_ELEMENT(width).Important();
+  SERIALISE_ELEMENT(height).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -4731,14 +4723,14 @@ bool WrappedOpenGL::Serialise_glTextureStorage3DEXT(SerialiserType &ser, GLuint 
                                                     GLenum internalformat, GLsizei width,
                                                     GLsizei height, GLsizei depth)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
-  SERIALISE_ELEMENT(target);
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
+  SERIALISE_ELEMENT(target).Important();
   HIDE_ARB_DSA_TARGET();
-  SERIALISE_ELEMENT(levels);
-  SERIALISE_ELEMENT(internalformat);
-  SERIALISE_ELEMENT(width);
-  SERIALISE_ELEMENT(height);
-  SERIALISE_ELEMENT(depth);
+  SERIALISE_ELEMENT(levels).Important();
+  SERIALISE_ELEMENT(internalformat).Important();
+  SERIALISE_ELEMENT(width).Important();
+  SERIALISE_ELEMENT(height).Important();
+  SERIALISE_ELEMENT(depth).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -4865,13 +4857,13 @@ bool WrappedOpenGL::Serialise_glTextureStorage2DMultisampleEXT(SerialiserType &s
                                                                GLsizei width, GLsizei height,
                                                                GLboolean fixedsamplelocations)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
-  SERIALISE_ELEMENT(target);
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
+  SERIALISE_ELEMENT(target).Important();
   HIDE_ARB_DSA_TARGET();
-  SERIALISE_ELEMENT(samples);
-  SERIALISE_ELEMENT(internalformat);
-  SERIALISE_ELEMENT(width);
-  SERIALISE_ELEMENT(height);
+  SERIALISE_ELEMENT(samples).Important();
+  SERIALISE_ELEMENT(internalformat).Important();
+  SERIALISE_ELEMENT(width).Important();
+  SERIALISE_ELEMENT(height).Important();
   SERIALISE_ELEMENT_TYPED(bool, fixedsamplelocations);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -5042,14 +5034,14 @@ bool WrappedOpenGL::Serialise_glTextureStorage3DMultisampleEXT(SerialiserType &s
                                                                GLsizei height, GLsizei depth,
                                                                GLboolean fixedsamplelocations)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
-  SERIALISE_ELEMENT(target);
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
+  SERIALISE_ELEMENT(target).Important();
   HIDE_ARB_DSA_TARGET();
-  SERIALISE_ELEMENT(samples);
-  SERIALISE_ELEMENT(internalformat);
-  SERIALISE_ELEMENT(width);
-  SERIALISE_ELEMENT(height);
-  SERIALISE_ELEMENT(depth);
+  SERIALISE_ELEMENT(samples).Important();
+  SERIALISE_ELEMENT(internalformat).Important();
+  SERIALISE_ELEMENT(width).Important();
+  SERIALISE_ELEMENT(height).Important();
+  SERIALISE_ELEMENT(depth).Important();
   SERIALISE_ELEMENT_TYPED(bool, fixedsamplelocations);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -5228,7 +5220,7 @@ bool WrappedOpenGL::Serialise_glTextureSubImage1DEXT(SerialiserType &ser, GLuint
                                                      GLsizei width, GLenum format, GLenum type,
                                                      const void *pixels)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
   SERIALISE_ELEMENT(target);
   HIDE_ARB_DSA_TARGET();
   SERIALISE_ELEMENT(level);
@@ -5263,7 +5255,7 @@ bool WrappedOpenGL::Serialise_glTextureSubImage1DEXT(SerialiserType &ser, GLuint
   // in.
   if(!UnpackBufBound)
   {
-    ser.Serialise("pixels"_lit, pixels, subimageSize, SerialiserFlags::AllocateMemory);
+    ser.Serialise("pixels"_lit, pixels, subimageSize, SerialiserFlags::AllocateMemory).Important();
   }
   else
   {
@@ -5453,7 +5445,7 @@ bool WrappedOpenGL::Serialise_glTextureSubImage2DEXT(SerialiserType &ser, GLuint
                                                      GLint yoffset, GLsizei width, GLsizei height,
                                                      GLenum format, GLenum type, const void *pixels)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
   SERIALISE_ELEMENT(target);
   HIDE_ARB_DSA_TARGET();
   SERIALISE_ELEMENT(level);
@@ -5490,7 +5482,7 @@ bool WrappedOpenGL::Serialise_glTextureSubImage2DEXT(SerialiserType &ser, GLuint
   // in.
   if(!UnpackBufBound)
   {
-    ser.Serialise("pixels"_lit, pixels, subimageSize, SerialiserFlags::AllocateMemory);
+    ser.Serialise("pixels"_lit, pixels, subimageSize, SerialiserFlags::AllocateMemory).Important();
   }
   else
   {
@@ -5686,7 +5678,7 @@ bool WrappedOpenGL::Serialise_glTextureSubImage3DEXT(SerialiserType &ser, GLuint
                                                      GLsizei height, GLsizei depth, GLenum format,
                                                      GLenum type, const void *pixels)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
   SERIALISE_ELEMENT(target);
   HIDE_ARB_DSA_TARGET();
   SERIALISE_ELEMENT(level);
@@ -5725,7 +5717,7 @@ bool WrappedOpenGL::Serialise_glTextureSubImage3DEXT(SerialiserType &ser, GLuint
   // in.
   if(!UnpackBufBound)
   {
-    ser.Serialise("pixels"_lit, pixels, subimageSize, SerialiserFlags::AllocateMemory);
+    ser.Serialise("pixels"_lit, pixels, subimageSize, SerialiserFlags::AllocateMemory).Important();
   }
   else
   {
@@ -5925,7 +5917,7 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage1DEXT(SerialiserType &s
                                                                GLsizei width, GLenum format,
                                                                GLsizei imageSize, const void *pixels)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
   SERIALISE_ELEMENT(target);
   HIDE_ARB_DSA_TARGET();
   SERIALISE_ELEMENT(level);
@@ -5959,7 +5951,8 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage1DEXT(SerialiserType &s
   // in.
   if(!UnpackBufBound)
   {
-    ser.Serialise("pixels"_lit, pixels, (uint32_t &)imageSize, SerialiserFlags::AllocateMemory);
+    ser.Serialise("pixels"_lit, pixels, (uint32_t &)imageSize, SerialiserFlags::AllocateMemory)
+        .Important();
   }
   else
   {
@@ -6140,7 +6133,7 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage2DEXT(SerialiserType &s
                                                                GLsizei height, GLenum format,
                                                                GLsizei imageSize, const void *pixels)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
   SERIALISE_ELEMENT(target);
   HIDE_ARB_DSA_TARGET();
   SERIALISE_ELEMENT(level);
@@ -6175,7 +6168,8 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage2DEXT(SerialiserType &s
   // in.
   if(!UnpackBufBound)
   {
-    ser.Serialise("pixels"_lit, pixels, (uint32_t &)imageSize, SerialiserFlags::AllocateMemory);
+    ser.Serialise("pixels"_lit, pixels, (uint32_t &)imageSize, SerialiserFlags::AllocateMemory)
+        .Important();
   }
   else
   {
@@ -6372,7 +6366,7 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage3DEXT(
     GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format,
     GLsizei imageSize, const void *pixels)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
   SERIALISE_ELEMENT(target);
   HIDE_ARB_DSA_TARGET();
   SERIALISE_ELEMENT(level);
@@ -6409,7 +6403,8 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage3DEXT(
   // in.
   if(!UnpackBufBound)
   {
-    ser.Serialise("pixels"_lit, pixels, (uint32_t &)imageSize, SerialiserFlags::AllocateMemory);
+    ser.Serialise("pixels"_lit, pixels, (uint32_t &)imageSize, SerialiserFlags::AllocateMemory)
+        .Important();
   }
   else
   {
@@ -6616,11 +6611,11 @@ bool WrappedOpenGL::Serialise_glTextureBufferRangeEXT(SerialiserType &ser, GLuin
                                                       GLuint bufferHandle, GLintptr offsetPtr,
                                                       GLsizeiptr sizePtr)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
   SERIALISE_ELEMENT(target);
   HIDE_ARB_DSA_TARGET();
   SERIALISE_ELEMENT(internalformat);
-  SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle));
+  SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle)).Important();
   SERIALISE_ELEMENT_LOCAL(offs, (uint64_t)offsetPtr);
   SERIALISE_ELEMENT_LOCAL(size, (uint64_t)sizePtr);
 
@@ -6795,11 +6790,11 @@ bool WrappedOpenGL::Serialise_glTextureBufferEXT(SerialiserType &ser, GLuint tex
                                                  GLenum target, GLenum internalformat,
                                                  GLuint bufferHandle)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
   SERIALISE_ELEMENT(target);
   HIDE_ARB_DSA_TARGET();
   SERIALISE_ELEMENT(internalformat);
-  SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle));
+  SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle)).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -7000,11 +6995,11 @@ bool WrappedOpenGL::Serialise_glTextureFoveationParametersQCOM(SerialiserType &s
                                                                GLfloat focalY, GLfloat gainX,
                                                                GLfloat gainY, GLfloat foveaArea)
 {
-  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle)).Important();
   SERIALISE_ELEMENT(layer);
   SERIALISE_ELEMENT(focalPoint);
-  SERIALISE_ELEMENT(focalX);
-  SERIALISE_ELEMENT(focalY);
+  SERIALISE_ELEMENT(focalX).Important();
+  SERIALISE_ELEMENT(focalY).Important();
   SERIALISE_ELEMENT(gainX);
   SERIALISE_ELEMENT(gainY);
   SERIALISE_ELEMENT(foveaArea);

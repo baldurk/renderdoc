@@ -590,7 +590,7 @@ private:
   void EnsureBufCached(ResourceId bufid);
   IMPLEMENT_FUNCTION_PROXIED(bool, NeedRemapForFetch, const ResourceFormat &format);
 
-  const DrawcallDescription *FindDraw(const rdcarray<DrawcallDescription> &drawcallList,
+  const ActionDescription *FindAction(const rdcarray<ActionDescription> &actionList,
                                       uint32_t eventId);
 
   bool CheckError(ReplayProxyPacket receivedPacket, ReplayProxyPacket expectedPacket);
@@ -720,7 +720,7 @@ private:
   APIProperties m_APIProps;
   std::map<ResourceId, TextureDescription> m_TextureInfo;
 
-  rdcarray<DrawcallDescription *> m_Drawcalls;
+  rdcarray<ActionDescription *> m_Actions;
 
   SDFile m_StructuredFile;
 

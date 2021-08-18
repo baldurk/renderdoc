@@ -7,13 +7,13 @@ class GL_Shader_ISA(rdtest.TestCase):
     demos_test_name = 'GL_Shader_ISA'
 
     def check_capture(self):
-        draw = self.find_draw("GPU=")
+        action = self.find_action("GPU=")
 
-        self.check(draw is not None)
+        self.check(action is not None)
 
-        is_amd = 'AMD' in draw.name
+        is_amd = 'AMD' in action.customName
 
-        self.controller.SetFrameEvent(draw.next.eventId, False)
+        self.controller.SetFrameEvent(action.next.eventId, False)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 

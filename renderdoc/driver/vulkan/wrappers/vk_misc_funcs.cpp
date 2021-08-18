@@ -519,7 +519,7 @@ bool WrappedVulkan::Serialise_vkCreateSampler(SerialiserType &ser, VkDevice devi
                                               VkSampler *pSampler)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo).Important();
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(Sampler, GetResID(*pSampler)).TypedAs("VkSampler"_lit);
 
@@ -673,7 +673,7 @@ bool WrappedVulkan::Serialise_vkCreateFramebuffer(SerialiserType &ser, VkDevice 
                                                   VkFramebuffer *pFramebuffer)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo).Important();
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(Framebuffer, GetResID(*pFramebuffer)).TypedAs("VkFramebuffer"_lit);
 
@@ -934,7 +934,7 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(SerialiserType &ser, VkDevice d
                                                  VkRenderPass *pRenderPass)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo).Important();
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(RenderPass, GetResID(*pRenderPass)).TypedAs("VkRenderPass"_lit);
 
@@ -1186,7 +1186,7 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass2(SerialiserType &ser, VkDevice 
                                                   VkRenderPass *pRenderPass)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo).Important();
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(RenderPass, GetResID(*pRenderPass)).TypedAs("VkRenderPass"_lit);
 
@@ -1418,7 +1418,7 @@ bool WrappedVulkan::Serialise_vkCreateQueryPool(SerialiserType &ser, VkDevice de
                                                 VkQueryPool *pQueryPool)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo).Important();
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(QueryPool, GetResID(*pQueryPool)).TypedAs("VkQueryPool"_lit);
 
@@ -1550,7 +1550,7 @@ bool WrappedVulkan::Serialise_vkResetQueryPool(SerialiserType &ser, VkDevice dev
                                                uint32_t queryCount)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT(queryPool);
+  SERIALISE_ELEMENT(queryPool).Important();
   SERIALISE_ELEMENT(firstQuery);
   SERIALISE_ELEMENT(queryCount);
 
@@ -1592,7 +1592,7 @@ bool WrappedVulkan::Serialise_vkCreateSamplerYcbcrConversion(
     const VkAllocationCallbacks *pAllocator, VkSamplerYcbcrConversion *pYcbcrConversion)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo).Important();
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(ycbcrConversion, GetResID(*pYcbcrConversion))
       .TypedAs("VkSamplerYcbcrConversion"_lit);
@@ -2020,8 +2020,8 @@ template <typename SerialiserType>
 bool WrappedVulkan::Serialise_SetShaderDebugPath(SerialiserType &ser, VkShaderModule ShaderObject,
                                                  rdcstr DebugPath)
 {
-  SERIALISE_ELEMENT(ShaderObject);
-  SERIALISE_ELEMENT(DebugPath);
+  SERIALISE_ELEMENT(ShaderObject).Important();
+  SERIALISE_ELEMENT(DebugPath).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2071,8 +2071,9 @@ bool WrappedVulkan::Serialise_vkDebugMarkerSetObjectNameEXT(
     SerialiserType &ser, VkDevice device, const VkDebugMarkerObjectNameInfoEXT *pNameInfo)
 {
   SERIALISE_ELEMENT_LOCAL(
-      Object, GetObjData(pNameInfo->objectType, pNameInfo->object).record->GetResourceID());
-  SERIALISE_ELEMENT_LOCAL(ObjectName, pNameInfo->pObjectName);
+      Object, GetObjData(pNameInfo->objectType, pNameInfo->object).record->GetResourceID())
+      .Important();
+  SERIALISE_ELEMENT_LOCAL(ObjectName, pNameInfo->pObjectName).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2188,8 +2189,9 @@ bool WrappedVulkan::Serialise_vkSetDebugUtilsObjectNameEXT(
     SerialiserType &ser, VkDevice device, const VkDebugUtilsObjectNameInfoEXT *pNameInfo)
 {
   SERIALISE_ELEMENT_LOCAL(
-      Object, GetObjData(pNameInfo->objectType, pNameInfo->objectHandle).record->GetResourceID());
-  SERIALISE_ELEMENT_LOCAL(ObjectName, pNameInfo->pObjectName);
+      Object, GetObjData(pNameInfo->objectType, pNameInfo->objectHandle).record->GetResourceID())
+      .Important();
+  SERIALISE_ELEMENT_LOCAL(ObjectName, pNameInfo->pObjectName).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2277,43 +2279,6 @@ VkResult WrappedVulkan::vkSetDebugUtilsObjectTagEXT(VkDevice device,
   return VK_SUCCESS;
 }
 
-INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateSampler, VkDevice device,
-                                const VkSamplerCreateInfo *pCreateInfo,
-                                const VkAllocationCallbacks *pAllocator, VkSampler *pSampler);
-
-INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateFramebuffer, VkDevice device,
-                                const VkFramebufferCreateInfo *pCreateInfo,
-                                const VkAllocationCallbacks *pAllocator, VkFramebuffer *pFramebuffer);
-
-INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateRenderPass, VkDevice device,
-                                const VkRenderPassCreateInfo *pCreateInfo,
-                                const VkAllocationCallbacks *pAllocator, VkRenderPass *pRenderPass);
-
-INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateRenderPass2, VkDevice device,
-                                const VkRenderPassCreateInfo2 *pCreateInfo,
-                                const VkAllocationCallbacks *pAllocator, VkRenderPass *pRenderPass);
-
-INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateQueryPool, VkDevice device,
-                                const VkQueryPoolCreateInfo *pCreateInfo,
-                                const VkAllocationCallbacks *pAllocator, VkQueryPool *pQueryPool);
-
-INSTANTIATE_FUNCTION_SERIALISED(void, SetShaderDebugPath, VkShaderModule ShaderObject,
-                                rdcstr DebugPath);
-
-INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkDebugMarkerSetObjectNameEXT, VkDevice device,
-                                const VkDebugMarkerObjectNameInfoEXT *pNameInfo);
-
-INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkSetDebugUtilsObjectNameEXT, VkDevice device,
-                                const VkDebugUtilsObjectNameInfoEXT *pNameInfo);
-
-INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateSamplerYcbcrConversion, VkDevice device,
-                                const VkSamplerYcbcrConversionCreateInfo *pCreateInfo,
-                                const VkAllocationCallbacks *pAllocator,
-                                VkSamplerYcbcrConversion *pYcbcrConversion);
-
-INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkResetQueryPool, VkDevice device, VkQueryPool queryPool,
-                                uint32_t firstQuery, uint32_t queryCount);
-
 VkResult WrappedVulkan::vkGetRefreshCycleDurationGOOGLE(
     VkDevice device, VkSwapchainKHR swapchain, VkRefreshCycleDurationGOOGLE *pDisplayTimingProperties)
 {
@@ -2393,3 +2358,40 @@ void WrappedVulkan::vkGetPrivateDataEXT(VkDevice device, VkObjectType objectType
   return ObjDisp(device)->GetPrivateDataEXT(Unwrap(device), objectType, objdata.unwrapped,
                                             privateDataSlot, pData);
 }
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateSampler, VkDevice device,
+                                const VkSamplerCreateInfo *pCreateInfo,
+                                const VkAllocationCallbacks *pAllocator, VkSampler *pSampler);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateFramebuffer, VkDevice device,
+                                const VkFramebufferCreateInfo *pCreateInfo,
+                                const VkAllocationCallbacks *pAllocator, VkFramebuffer *pFramebuffer);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateRenderPass, VkDevice device,
+                                const VkRenderPassCreateInfo *pCreateInfo,
+                                const VkAllocationCallbacks *pAllocator, VkRenderPass *pRenderPass);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateRenderPass2, VkDevice device,
+                                const VkRenderPassCreateInfo2 *pCreateInfo,
+                                const VkAllocationCallbacks *pAllocator, VkRenderPass *pRenderPass);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateQueryPool, VkDevice device,
+                                const VkQueryPoolCreateInfo *pCreateInfo,
+                                const VkAllocationCallbacks *pAllocator, VkQueryPool *pQueryPool);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, SetShaderDebugPath, VkShaderModule ShaderObject,
+                                rdcstr DebugPath);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkDebugMarkerSetObjectNameEXT, VkDevice device,
+                                const VkDebugMarkerObjectNameInfoEXT *pNameInfo);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkSetDebugUtilsObjectNameEXT, VkDevice device,
+                                const VkDebugUtilsObjectNameInfoEXT *pNameInfo);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateSamplerYcbcrConversion, VkDevice device,
+                                const VkSamplerYcbcrConversionCreateInfo *pCreateInfo,
+                                const VkAllocationCallbacks *pAllocator,
+                                VkSamplerYcbcrConversion *pYcbcrConversion);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkResetQueryPool, VkDevice device, VkQueryPool queryPool,
+                                uint32_t firstQuery, uint32_t queryCount);

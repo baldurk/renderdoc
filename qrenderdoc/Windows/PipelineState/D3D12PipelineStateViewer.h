@@ -108,6 +108,9 @@ private:
 
   bool showNode(bool usedSlot, bool filledSlot);
 
+  bool m_ShowUnused = false;
+  bool m_ShowEmpty = false;
+
   QVariantList exportViewHTML(const D3D12Pipe::View &view, bool rw,
                               const ShaderResource *shaderInput, const QString &extraParams);
   void exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::InputAssembly &ia);

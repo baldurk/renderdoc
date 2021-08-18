@@ -41,63 +41,63 @@ class D3D12_VRS(rdtest.TestCase):
         return "?x?"
 
     def check_capture(self):
-        # we do two passes, first when we're selecting the actual draws and second when we're in a second command buffer
-        # going over the same viewports but with dummy draws. To ensure the results are the same whether or not we're
+        # we do two passes, first when we're selecting the actual actions and second when we're in a second command buffer
+        # going over the same viewports but with dummy actions. To ensure the results are the same whether or not we're
         # in the VRS command buffer
         for pass_name in ["First", "Second"]:
-            pass_draw = self.find_draw(pass_name)
+            pass_action = self.find_action(pass_name)
             
-            draw = self.find_draw("Default", pass_draw.eventId)
-            self.check(draw is not None)
-            self.controller.SetFrameEvent(draw.next.eventId, False)
+            action = self.find_action("Default", pass_action.eventId)
+            self.check(action is not None)
+            self.controller.SetFrameEvent(action.next.eventId, False)
 
             num_checks = 0
 
             self.check(self.get_shading_rates() == ("1x1", "1x1"),
-                       "{} shading rates unexpected: {}".format(draw.name, self.get_shading_rates()))
+                       "{} shading rates unexpected: {}".format(action.customName, self.get_shading_rates()))
             num_checks += 1
 
-            draw = self.find_draw("Base", pass_draw.eventId)
-            self.controller.SetFrameEvent(draw.next.eventId, False)
+            action = self.find_action("Base", pass_action.eventId)
+            self.controller.SetFrameEvent(action.next.eventId, False)
             self.check(self.get_shading_rates() == ("2x2", "2x2"),
-                       "{} shading rates unexpected: {}".format(draw.name, self.get_shading_rates()))
+                       "{} shading rates unexpected: {}".format(action.customName, self.get_shading_rates()))
             num_checks += 1
 
-            draw = self.find_draw("Vertex", pass_draw.eventId)
-            if draw is not None:
-                self.controller.SetFrameEvent(draw.next.eventId, False)
+            action = self.find_action("Vertex", pass_action.eventId)
+            if action is not None:
+                self.controller.SetFrameEvent(action.next.eventId, False)
                 self.check(self.get_shading_rates() == ("1x1", "2x2"),
-                           "{} shading rates unexpected: {}".format(draw.name, self.get_shading_rates()))
+                           "{} shading rates unexpected: {}".format(action.customName, self.get_shading_rates()))
                 num_checks += 1
                 rdtest.log.success("Shading rates were as expected in per-vertex case")
 
-            draw = self.find_draw("Image", pass_draw.eventId)
-            if draw is not None:
-                self.controller.SetFrameEvent(draw.next.eventId, False)
+            action = self.find_action("Image", pass_action.eventId)
+            if action is not None:
+                self.controller.SetFrameEvent(action.next.eventId, False)
                 self.check(self.get_shading_rates() == ("2x2", "1x1"),
-                           "{} shading rates unexpected: {}".format(draw.name, self.get_shading_rates()))
+                           "{} shading rates unexpected: {}".format(action.customName, self.get_shading_rates()))
                 num_checks += 1
                 rdtest.log.success("Shading rates were as expected in image-based case")
 
-            draw = self.find_draw("Base + Vertex", pass_draw.eventId)
-            if draw is not None:
-                self.controller.SetFrameEvent(draw.next.eventId, False)
+            action = self.find_action("Base + Vertex", pass_action.eventId)
+            if action is not None:
+                self.controller.SetFrameEvent(action.next.eventId, False)
                 self.check(self.get_shading_rates() == ("2x2", "2x2"),
-                           "{} shading rates unexpected: {}".format(draw.name, self.get_shading_rates()))
+                           "{} shading rates unexpected: {}".format(action.customName, self.get_shading_rates()))
                 num_checks += 1
 
-            draw = self.find_draw("Base + Image", pass_draw.eventId)
-            if draw is not None:
-                self.controller.SetFrameEvent(draw.next.eventId, False)
+            action = self.find_action("Base + Image", pass_action.eventId)
+            if action is not None:
+                self.controller.SetFrameEvent(action.next.eventId, False)
                 self.check(self.get_shading_rates() == ("2x2", "2x2"),
-                           "{} shading rates unexpected: {}".format(draw.name, self.get_shading_rates()))
+                           "{} shading rates unexpected: {}".format(action.customName, self.get_shading_rates()))
                 num_checks += 1
 
-            draw = self.find_draw("Vertex + Image", pass_draw.eventId)
-            if draw is not None:
-                self.controller.SetFrameEvent(draw.next.eventId, False)
+            action = self.find_action("Vertex + Image", pass_action.eventId)
+            if action is not None:
+                self.controller.SetFrameEvent(action.next.eventId, False)
                 self.check(self.get_shading_rates() == ("2x2", "2x2"),
-                           "{} shading rates unexpected: {}".format(draw.name, self.get_shading_rates()))
+                           "{} shading rates unexpected: {}".format(action.customName, self.get_shading_rates()))
                 num_checks += 1
 
             rdtest.log.success("{}pass: Shading rates were as expected in {} test cases".format(pass_name, num_checks))

@@ -59,9 +59,8 @@ enum class NvShaderSpecial
   FootprintSingleLOD = 5,
 };
 
-enum class NvShaderAtomic
+enum class NvShaderAtomic : uint8_t
 {
-  Unknown = -1,
   And = 0,
   Or = 1,
   Xor = 2,
@@ -70,6 +69,7 @@ enum class NvShaderAtomic
   Min = 7,
   Swap = 8,
   CompareAndSwap = 9,
+  Unknown = 255,
 };
 
 struct D3D12_GRAPHICS_PIPELINE_STATE_DESC;

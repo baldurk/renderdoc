@@ -12,6 +12,8 @@ On windows, the `Development` configuration is recommended for day-to-day dev. I
 
 First check that you have all of the [required dependencies](Dependencies.md#linux).
 
+RenderDoc only supports building on 64-bit x86 linux. 32-Bit x86 and any ARM/other platforms are not supported.
+
 Currently linux should work with gcc 5+ and clang 3.4+ as it requires C++14 compiler support. The CI builds with gcc-5.0 and clang-3.8. Within reason other compilers will be supported if the required patches are minimal. Distribution packages should be built with the `Release` CMake build type so that warnings do not trigger errors. To build just run:
 
 ```

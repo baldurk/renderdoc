@@ -89,11 +89,13 @@ More details can be found on the :doc:`../window/event_browser` page.
 
 .. |timeline_marker| image:: ../imgs/icons/timeline_marker.png
 
-The Event Browser is the primary method of stepping through the frame and browsing the events that occurred within. The first column EID (Event ID) indicates which event or API call this was in the frame, chronologically. Events which are listed here are generally output/draw type events, including Clears. Copy and Map type calls are not included and are available in the API Calls view (see below).
+The Event Browser is the primary method of stepping through the frame and browsing the events that occurred within. The first column EID (Event ID) indicates which event or API call this was in the frame, chronologically. 
+
+By default the events which are listed here are those known as actions. Draws and dispatches are examples of actions, but also events that modify resources like clears and copies. State setting and other CPU-update calls like Maps are not included and are available in the API Calls view (see below). You can use the filter field to include or exclude events as you wish, for more information see :doc:`../how/how_filter_events`.
 
 The columns can be customised and reordered, the |timeline_marker| select columns button (or right-click) will allow you to choose which columns are displayed.
 
-Standard performance markers are available and create the hierarchy/labels as you would expect. These can be expanded or collapsed and keyboard browsing is available through normal controls - left and right go higher or lower in the hierarchy, and up and down goes up and down through siblings.
+Standard performance markers are available and create the hierarchy/labels as you would expect. These can be expanded or collapsed and keyboard browsing is available through normal controls - left and right go higher or lower in the hierarchy, and up and down goes up and down through siblings. For more information on these markers, see :doc:`../how/how_annotate_capture`.
 
 .. |flag_green| image:: ../imgs/icons/flag_green.png
 .. |find| image:: ../imgs/icons/find.png
@@ -101,7 +103,7 @@ Standard performance markers are available and create the hierarchy/labels as yo
 
 The 'current' event - i.e. the event at which we are inspecting the graphics state - is highlighted with a green Flag |flag_green| and the row is highlighted. As any row is selected it immediately becomes the new current event.
 
-While the Event Browser is selected, you can press the shortcut keys :kbd:`CTRL-F` or :kbd:`CTRL-G` to find |find| or jump to a given EID |flag_green| respectively.
+While the Event Browser is selected, you can press the shortcut keys :kbd:`CTRL-F` to find |find| a given event or action. You can enter a number to jump to that given EID.
 
 
 The |asterisk_orange| bookmark button will allow you to bookmark an event, the shortcut key is :kbd:`CTRL-B`.
@@ -119,10 +121,9 @@ API Inspector
 
 More details can be found on the :doc:`../window/api_inspector` page.
 
-The API Calls window updates as a new event is selected. It shows the individual API calls and their parameters between the previous and current event. The bottom entry in this list always corresponds to the event that is currently selected, and each row can be expanded to show the parameters that were passed to that API call.
+The API Calls window updates as a new event is selected. It shows the individual API calls and their parameters. If an action is selected, the list shows all API calls between the previous action and this action and the last entry in this list always corresponds to the action itself. Each row can be expanded to show the parameters that were passed to that API call.
 
 At the bottom of the window is an optional expandable section which shows the callstack (if available and recorded) from the application code into the API function.
-
 
 In order to view these callstacks you must first resolve the symbols recorded with the capture. To do this click on :guilabel:`Resolve Symbols` under the :guilabel:`Tools` menu. More details on this process can be found in the guide: :doc:`../how/how_capture_callstack`.
 
@@ -137,11 +138,11 @@ More details can be found on the :doc:`../window/timeline_bar` page.
 
 The timeline bar is essentially an alternate view of the frame, with the horizontal axis being time in the frame. The horizontal axis is scaled evenly by API calls, such that every API call has the same width at any given zoom level.
 
-The frame marker hierarchy is top-down in this case, and can be expanded or collapsed by clicking on each section. In this image, "Render Scene" and "Toon shading draw" are both expanded, but the other sections remain collapsed. Each drawcall is rendered as a blue pip underneath the section of the hierarchy that it is a child of. The current drawcall (if visible) is rendered as a green circle.
+The frame marker hierarchy is top-down in this case, and can be expanded or collapsed by clicking on each section. In this image, "Render Scene" and "Toon shading draw" are both expanded, but the other sections remain collapsed. Each action is rendered as a blue pip underneath the section of the hierarchy that it is a child of. The current action (if visible) is rendered as a green circle.
 
-There is a vertical line around the current drawcall, as well as a |flag_green| above, and a gray outline around the event where the mouse is hovering.
+There is a vertical line around the current action, as well as a |flag_green| above, and a gray outline around the event where the mouse is hovering.
 
-When the currently selected texture is used in the frame, each drawcall that references it draws a marker below the bar. The different colours of marker indicate whether the drawcall at that point is writing to the texture, reading, both reading & writing simultaneously, etc. If the markers are too close together they will space themselves to be readable and will not necessarily line up to a particular drawcall unless you zoom in.
+When the currently selected texture is used in the frame, each action that references it draws a marker below the bar. The different colours of marker indicate whether the action at that point is writing to the texture, reading, both reading & writing simultaneously, etc. If the markers are too close together they will space themselves to be readable and will not necessarily line up to a particular action unless you zoom in.
 
 This can be a very useful tool to trace data through a frame, as well as highlighting potential redundancy or errors if a target is being written to where it should not.
 

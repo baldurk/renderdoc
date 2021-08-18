@@ -6,9 +6,9 @@ class GL_Marker_Test(rdtest.TestCase):
     demos_test_name = 'GL_Marker_Test'
 
     def check_capture(self):
-        draws = self.controller.GetDrawcalls()
+        actions = self.controller.GetRootActions()
 
-        d = draws[1]
+        d = actions[1]
 
         names = [
             'EXT marker 1',
@@ -23,7 +23,7 @@ class GL_Marker_Test(rdtest.TestCase):
         ]
 
         for n in names:
-            self.check(d.name == n)
+            self.check(d.customName == n)
             d = d.children[0]
 
         d = d.parent
@@ -45,9 +45,9 @@ class GL_Marker_Test(rdtest.TestCase):
 
         i = 0
         for name in names:
-            self.check(name == d.children[i].name)
+            self.check(name == d.children[i].customName)
             i += 1
 
         self.check(i == len(names))
 
-        self.check('glDrawArrays' in d.children[i].name)
+        self.check('glDrawArrays' in self.action_name(d.children[i]))

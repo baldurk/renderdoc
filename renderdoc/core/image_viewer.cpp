@@ -46,16 +46,16 @@ public:
     m_FrameRecord.frameInfo.frameNumber = 1;
     RDCEraseEl(m_FrameRecord.frameInfo.stats);
 
-    m_FrameRecord.drawcallList.resize(1);
-    DrawcallDescription &d = m_FrameRecord.drawcallList[0];
-    d.drawcallId = 1;
-    d.eventId = 1;
-    d.name = get_basename(filename);
+    m_FrameRecord.actionList.resize(1);
+    ActionDescription &action = m_FrameRecord.actionList[0];
+    action.actionId = 1;
+    action.eventId = 1;
+    action.customName = get_basename(filename);
     APIEvent ev;
     ev.eventId = 1;
-    d.events.push_back(ev);
+    action.events.push_back(ev);
 
-    SDChunk *chunk = new SDChunk(d.name);
+    SDChunk *chunk = new SDChunk(action.customName);
     chunk->AddAndOwnChild(makeSDString("path"_lit, filename));
 
     m_File.chunks.push_back(chunk);

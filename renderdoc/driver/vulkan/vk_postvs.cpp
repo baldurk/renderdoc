@@ -64,15 +64,13 @@ enum StorageMode
 static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
                                        const SPIRVPatchData &patchData, const char *entryName,
                                        StorageMode storageMode, rdcarray<uint32_t> instDivisor,
-                                       const DrawcallDescription *draw, uint32_t numVerts,
+                                       const ActionDescription *action, uint32_t numVerts,
                                        uint32_t numViews, uint32_t baseSpecConstant,
                                        rdcarray<uint32_t> &modSpirv, uint32_t &bufStride)
 {
   rdcspv::Editor editor(modSpirv);
 
   editor.Prepare();
-
-  const bool useBDA = (storageMode != Binding);
 
   uint32_t numInputs = (uint32_t)refl.inputSignature.size();
 
@@ -673,7 +671,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
 
       editor.SetName(vbuffersVariable, "__rd_vbuffers");
 
-      if(draw->flags & DrawFlags::Indexed)
+      if(action->flags & ActionFlags::Indexed)
       {
         rdcspv::Id ibufferType = editor.DeclareType(rdcspv::Pointer(uintStructType, bufferClass));
 
@@ -759,7 +757,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
   rdcspv::Id outBufferVarID;
   rdcspv::Id outputStructPtrType;
   rdcspv::Id numVertsConstID = editor.AddConstantImmediate<uint32_t>(numVerts);
-  rdcspv::Id numInstConstID = editor.AddConstantImmediate<uint32_t>(draw->numInstances);
+  rdcspv::Id numInstConstID = editor.AddConstantImmediate<uint32_t>(action->numInstances);
   rdcspv::Id numViewsConstID = editor.AddConstantImmediate<uint32_t>(numViews);
 
   editor.SetName(numVertsConstID, "numVerts");
@@ -1020,7 +1018,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
 
       // if we're indexing, look up the index buffer. We don't have to apply vertexOffset - it was
       // already applied when we read back and uniq-ified the index buffer.
-      if(draw->flags & DrawFlags::Indexed)
+      if(action->flags & ActionFlags::Indexed)
       {
         rdcspv::Id idxPtr;
 
@@ -1039,20 +1037,20 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
       rdcspv::Id vertexLookupID = vertexIndexID;
       rdcspv::Id instanceLookupID = instID;
 
-      if(!(draw->flags & DrawFlags::Indexed))
+      if(!(action->flags & ActionFlags::Indexed))
       {
         // for non-indexed draws, we manually apply the vertex offset, but here after we used the
         // 0-based one to calculate the array slot
         vertexIndexID =
             ops.add(rdcspv::OpIAdd(u32Type, editor.MakeId(), vtxID,
-                                   editor.AddConstantImmediate<uint32_t>(draw->vertexOffset)));
+                                   editor.AddConstantImmediate<uint32_t>(action->vertexOffset)));
       }
       editor.SetName(vertexIndexID, "vertexIndex");
 
       // instIndex = inst + instOffset
       rdcspv::Id instIndexID =
           ops.add(rdcspv::OpIAdd(u32Type, editor.MakeId(), instID,
-                                 editor.AddConstantImmediate<uint32_t>(draw->instanceOffset)));
+                                 editor.AddConstantImmediate<uint32_t>(action->instanceOffset)));
       editor.SetName(instIndexID, "instanceIndex");
 
       rdcspv::Id idxs[64] = {};
@@ -1070,11 +1068,11 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
             valueID = vertexIndexID;
             // although for indexed draws we accounted for vertexOffset when looking up fixed
             // function vertex inputs, we still need to apply it to the VertexIndex builtin here.
-            if(draw->flags & DrawFlags::Indexed)
+            if(action->flags & ActionFlags::Indexed)
             {
-              valueID =
-                  ops.add(rdcspv::OpIAdd(u32Type, editor.MakeId(), valueID,
-                                         editor.AddConstantImmediate<uint32_t>(draw->vertexOffset)));
+              valueID = ops.add(
+                  rdcspv::OpIAdd(u32Type, editor.MakeId(), valueID,
+                                 editor.AddConstantImmediate<uint32_t>(action->vertexOffset)));
             }
           }
           else if(builtin == ShaderBuiltin::InstanceIndex)
@@ -1087,23 +1085,23 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
           }
           else if(builtin == ShaderBuiltin::BaseVertex)
           {
-            if(draw->flags & DrawFlags::Indexed)
+            if(action->flags & ActionFlags::Indexed)
             {
-              valueID = editor.AddConstantImmediate<uint32_t>(draw->vertexOffset);
+              valueID = editor.AddConstantImmediate<uint32_t>(action->vertexOffset);
             }
             else
             {
-              valueID = editor.AddConstantImmediate<int32_t>(draw->baseVertex);
+              valueID = editor.AddConstantImmediate<int32_t>(action->baseVertex);
               compType = CompType::SInt;
             }
           }
           else if(builtin == ShaderBuiltin::BaseInstance)
           {
-            valueID = editor.AddConstantImmediate<uint32_t>(draw->instanceOffset);
+            valueID = editor.AddConstantImmediate<uint32_t>(action->instanceOffset);
           }
           else if(builtin == ShaderBuiltin::DrawIndex)
           {
-            valueID = editor.AddConstantImmediate<uint32_t>(draw->drawIndex);
+            valueID = editor.AddConstantImmediate<uint32_t>(action->drawIndex);
           }
           else if(builtin == ShaderBuiltin::SubgroupEqualMask ||
                   builtin == ShaderBuiltin::SubgroupGreaterMask ||
@@ -1425,7 +1423,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
 
   const VulkanCreationInfo::Pipeline &pipeInfo = creationInfo.m_Pipeline[state.graphics.pipeline];
 
-  const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eventId);
+  const ActionDescription *action = m_pDriver->GetAction(eventId);
 
   const VulkanCreationInfo::ShaderModule &moduleInfo =
       creationInfo.m_ShaderModule[pipeInfo.shaders[0].module];
@@ -1625,7 +1623,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
   VkBuffer rebasedIdxBuf = VK_NULL_HANDLE;
   VkDeviceMemory rebasedIdxBufMem = VK_NULL_HANDLE;
 
-  uint32_t numVerts = drawcall->numIndices;
+  uint32_t numVerts = action->numIndices;
   VkDeviceSize bufSize = 0;
 
   uint32_t numViews = 1;
@@ -1645,15 +1643,15 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
 
   uint32_t idxsize = state.ibuffer.bytewidth;
 
-  uint32_t maxIndex = RDCMAX(drawcall->baseVertex, 0) + numVerts - 1;
+  uint32_t maxIndex = RDCMAX(action->baseVertex, 0) + numVerts - 1;
 
-  uint32_t maxInstance = drawcall->instanceOffset + drawcall->numInstances - 1;
+  uint32_t maxInstance = action->instanceOffset + action->numInstances - 1;
 
   const VkMemoryAllocateFlagsInfo memFlags = {
       VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO, NULL, VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT,
   };
 
-  if(drawcall->flags & DrawFlags::Indexed)
+  if(action->flags & ActionFlags::Indexed)
   {
     const bool restart = pipeCreateInfo.pInputAssemblyState->primitiveRestartEnable &&
                          SupportsRestart(MakePrimitiveTopology(state.primitiveTopology, 3));
@@ -1665,8 +1663,8 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
 
     // fetch ibuffer
     if(state.ibuffer.buf != ResourceId())
-      GetBufferData(state.ibuffer.buf, state.ibuffer.offs + drawcall->indexOffset * idxsize,
-                    uint64_t(drawcall->numIndices) * idxsize, idxdata);
+      GetBufferData(state.ibuffer.buf, state.ibuffer.offs + action->indexOffset * idxsize,
+                    uint64_t(action->numIndices) * idxsize, idxdata);
 
     // figure out what the maximum index could be, so we can clamp our index buffer to something
     // sane
@@ -1703,7 +1701,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
 
     // in case the vertex buffers were set but had invalid stride (0), max with the number
     // of vertices too. This is fine since the max here is just a conservative limit
-    maxIdx = RDCMAX(maxIdx, drawcall->numIndices);
+    maxIdx = RDCMAX(maxIdx, action->numIndices);
 
     // do ibuffer rebasing/remapping
 
@@ -1715,11 +1713,11 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
       idx16 = (uint16_t *)&idxdata[0];
 
     // only read as many indices as were available in the buffer
-    uint32_t numIndices = RDCMIN(uint32_t(idxdata.size() / idxsize), drawcall->numIndices);
+    uint32_t numIndices = RDCMIN(uint32_t(idxdata.size() / idxsize), action->numIndices);
 
     uint32_t idxclamp = 0;
-    if(drawcall->baseVertex < 0)
-      idxclamp = uint32_t(-drawcall->baseVertex);
+    if(action->baseVertex < 0)
+      idxclamp = uint32_t(-action->baseVertex);
 
     // grab all unique vertex indices referenced
     for(uint32_t i = 0; i < numIndices; i++)
@@ -1735,10 +1733,10 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
       // apply baseVertex but clamp to 0 (don't allow index to become negative)
       if(i32 < idxclamp)
         i32 = 0;
-      else if(drawcall->baseVertex < 0)
+      else if(action->baseVertex < 0)
         i32 -= idxclamp;
-      else if(drawcall->baseVertex > 0)
-        i32 += drawcall->baseVertex;
+      else if(action->baseVertex > 0)
+        i32 += action->baseVertex;
 
       // we clamp to maxIdx here, to avoid any invalid indices like 0xffffffff
       // from filtering through. Worst case we index to the end of the vertex
@@ -1755,7 +1753,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
 
     // if we read out of bounds, we'll also have a 0 index being referenced
     // (as 0 is read). Don't insert 0 if we already have 0 though
-    if(numIndices < drawcall->numIndices && (indices.empty() || indices[0] != 0))
+    if(numIndices < action->numIndices && (indices.empty() || indices[0] != 0))
       indices.insert(0, 0);
 
     maxIndex = indices.back();
@@ -1861,10 +1859,10 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
       // apply baseVertex but clamp to 0 (don't allow index to become negative)
       if(i32 < idxclamp)
         i32 = 0;
-      else if(drawcall->baseVertex < 0)
+      else if(action->baseVertex < 0)
         i32 -= idxclamp;
-      else if(drawcall->baseVertex > 0)
-        i32 += drawcall->baseVertex;
+      else if(action->baseVertex > 0)
+        i32 += action->baseVertex;
 
       if(idx32)
         idx32[i] = uint32_t(indexRemap[i32]);
@@ -1982,13 +1980,13 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
       {
         len = (uint64_t(maxInstance) + 1) * stride;
 
-        offs += drawcall->instanceOffset * stride;
+        offs += action->instanceOffset * stride;
       }
       else
       {
         len = (uint64_t(maxIndex) + 1) * stride;
 
-        offs += drawcall->vertexOffset * stride;
+        offs += action->vertexOffset * stride;
       }
 
       len = RDCMIN(len, state.vbuffers[binding].size);
@@ -2322,7 +2320,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
 
   ConvertToMeshOutputCompute(*refl, *pipeInfo.shaders[0].patchData,
                              pipeInfo.shaders[0].entryPoint.c_str(), storageMode, attrInstDivisor,
-                             drawcall, numVerts, numViews, baseSpecConstant, modSpirv, bufStride);
+                             action, numVerts, numViews, baseSpecConstant, modSpirv, bufStride);
 
   if(!Vulkan_Debug_PostVSDumpDirPath().empty())
     FileIO::WriteAll(Vulkan_Debug_PostVSDumpDirPath() + "/debug_postvs_comp.spv", modSpirv);
@@ -2336,7 +2334,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     VkBufferCreateInfo bufInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
 
     // set bufSize
-    bufSize = bufInfo.size = uint64_t(numVerts) * uint64_t(drawcall->numInstances) *
+    bufSize = bufInfo.size = uint64_t(numVerts) * uint64_t(action->numInstances) *
                              uint64_t(bufStride) * uint64_t(numViews);
 
     bufInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
@@ -2574,7 +2572,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
 
     // do single draw
     modifiedstate.BindPipeline(m_pDriver, cmd, VulkanRenderState::BindCompute, true);
-    uint64_t totalVerts = numVerts * uint64_t(drawcall->numInstances) * uint64_t(numViews);
+    uint64_t totalVerts = numVerts * uint64_t(action->numInstances) * uint64_t(numViews);
 
     // the validation layers will probably complain about this dispatch saying some arrays aren't
     // fully updated. That's because they don't statically analyse that only fixed indices are
@@ -2723,12 +2721,12 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
   m_PostVS.Data[eventId].vsout.nearPlane = nearp;
   m_PostVS.Data[eventId].vsout.farPlane = farp;
 
-  m_PostVS.Data[eventId].vsout.useIndices = bool(drawcall->flags & DrawFlags::Indexed);
-  m_PostVS.Data[eventId].vsout.numVerts = drawcall->numIndices;
+  m_PostVS.Data[eventId].vsout.useIndices = bool(action->flags & ActionFlags::Indexed);
+  m_PostVS.Data[eventId].vsout.numVerts = action->numIndices;
 
   m_PostVS.Data[eventId].vsout.instStride = 0;
-  if(drawcall->flags & DrawFlags::Instanced)
-    m_PostVS.Data[eventId].vsout.instStride = uint32_t(bufSize / (drawcall->numInstances * numViews));
+  if(action->flags & ActionFlags::Instanced)
+    m_PostVS.Data[eventId].vsout.instStride = uint32_t(bufSize / (action->numInstances * numViews));
 
   m_PostVS.Data[eventId].vsout.idxbuf = VK_NULL_HANDLE;
   if(m_PostVS.Data[eventId].vsout.useIndices && state.ibuffer.buf != ResourceId())
@@ -2776,7 +2774,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
 
   const VulkanCreationInfo::Pipeline &pipeInfo = creationInfo.m_Pipeline[state.graphics.pipeline];
 
-  const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eventId);
+  const ActionDescription *action = m_pDriver->GetAction(eventId);
 
   // set defaults so that we don't try to fetch this output again if something goes wrong and the
   // same event is selected again
@@ -2951,7 +2949,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
   state.xfbbuffers.clear();
   state.xfbcounters.clear();
 
-  if(m_PostVS.XFBQueryPoolSize < drawcall->numInstances)
+  if(m_PostVS.XFBQueryPoolSize < action->numInstances)
   {
     if(m_PostVS.XFBQueryPoolSize != VK_NULL_HANDLE)
       m_pDriver->vkDestroyQueryPool(m_Device, m_PostVS.XFBQueryPool, NULL);
@@ -2961,14 +2959,14 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
         NULL,
         0,
         VK_QUERY_TYPE_TRANSFORM_FEEDBACK_STREAM_EXT,
-        drawcall->numInstances,
+        action->numInstances,
         0,
     };
 
     vkr = m_pDriver->vkCreateQueryPool(m_Device, &info, NULL, &m_PostVS.XFBQueryPool);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-    m_PostVS.XFBQueryPoolSize = drawcall->numInstances;
+    m_PostVS.XFBQueryPoolSize = action->numInstances;
   }
 
   VkBuffer meshBuffer = VK_NULL_HANDLE;
@@ -2977,7 +2975,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
   // start with bare minimum size, which might be enough if no expansion happens
   VkDeviceSize bufferSize = 0;
   VkDeviceSize dataSize =
-      uint64_t(drawcall->numIndices) * uint64_t(drawcall->numInstances) * uint64_t(xfbStride);
+      uint64_t(action->numIndices) * uint64_t(action->numInstances) * uint64_t(xfbStride);
 
   VkXfbQueryResult queryResult = {};
 
@@ -3077,7 +3075,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
 
     ObjDisp(cmd)->CmdBeginTransformFeedbackEXT(Unwrap(cmd), 0, 1, NULL, NULL);
 
-    m_pDriver->ReplayDraw(cmd, *drawcall);
+    m_pDriver->ReplayDraw(cmd, *action);
 
     ObjDisp(cmd)->CmdEndTransformFeedbackEXT(Unwrap(cmd), 0, 1, NULL, NULL);
 
@@ -3107,7 +3105,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
 
   // instanced draws must be replayed one at a time so we can record the number of primitives from
   // each drawcall, as due to expansion this can vary per-instance.
-  if(drawcall->flags & DrawFlags::Instanced && drawcall->numInstances > 1)
+  if(action->flags & ActionFlags::Instanced && action->numInstances > 1)
   {
     VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 
@@ -3118,17 +3116,17 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     ObjDisp(dev)->CmdResetQueryPool(Unwrap(cmd), Unwrap(m_PostVS.XFBQueryPool), 0,
-                                    drawcall->numInstances);
+                                    action->numInstances);
 
     state.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics);
 
-    DrawcallDescription draw = *drawcall;
+    ActionDescription act = *action;
 
     // do incremental draws to get the output size. We have to do this O(N^2) style because
     // there's no way to replay only a single instance. We have to replay 1, 2, 3, ... N
     // instances and count the total number of verts each time, then we can see from the
     // difference how much each instance wrote.
-    for(uint32_t inst = 1; inst <= drawcall->numInstances; inst++)
+    for(uint32_t inst = 1; inst <= action->numInstances; inst++)
     {
       ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), Unwrap(m_PostVS.XFBQueryPool), inst - 1, 0);
 
@@ -3138,8 +3136,8 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
 
       ObjDisp(cmd)->CmdBeginTransformFeedbackEXT(Unwrap(cmd), 0, 1, NULL, NULL);
 
-      draw.numInstances = inst;
-      m_pDriver->ReplayDraw(cmd, draw);
+      act.numInstances = inst;
+      m_pDriver->ReplayDraw(cmd, act);
 
       ObjDisp(cmd)->CmdEndTransformFeedbackEXT(Unwrap(cmd), 0, 1, NULL, NULL);
 
@@ -3155,16 +3153,16 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
     m_pDriver->FlushQ();
 
     rdcarray<VkXfbQueryResult> queryResults;
-    queryResults.resize(drawcall->numInstances);
+    queryResults.resize(action->numInstances);
     vkr = ObjDisp(dev)->GetQueryPoolResults(
-        Unwrap(dev), Unwrap(m_PostVS.XFBQueryPool), 0, drawcall->numInstances,
-        sizeof(VkXfbQueryResult) * drawcall->numInstances, queryResults.data(),
+        Unwrap(dev), Unwrap(m_PostVS.XFBQueryPool), 0, action->numInstances,
+        sizeof(VkXfbQueryResult) * action->numInstances, queryResults.data(),
         sizeof(VkXfbQueryResult), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     uint64_t prevVertCount = 0;
 
-    for(uint32_t inst = 0; inst < drawcall->numInstances; inst++)
+    for(uint32_t inst = 0; inst < action->numInstances; inst++)
     {
       uint64_t vertCount = queryResults[inst].numPrimitivesWritten * primitiveMultiplier;
 
@@ -3320,9 +3318,9 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId, VulkanRenderState state)
   if(pipeInfo.shaders[0].module == ResourceId())
     return;
 
-  const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eventId);
+  const ActionDescription *action = m_pDriver->GetAction(eventId);
 
-  if(drawcall == NULL || drawcall->numIndices == 0 || drawcall->numInstances == 0)
+  if(action == NULL || action->numIndices == 0 || action->numInstances == 0)
     return;
 
   VkMarkerRegion::Begin(StringFormat::Fmt("FetchVSOut for %u", eventId));
@@ -3347,14 +3345,14 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
   InitPostVSBuffers(eventId, m_pDriver->GetRenderState());
 }
 
-struct VulkanInitPostVSCallback : public VulkanDrawcallCallback
+struct VulkanInitPostVSCallback : public VulkanActionCallback
 {
   VulkanInitPostVSCallback(WrappedVulkan *vk, const rdcarray<uint32_t> &events)
       : m_pDriver(vk), m_Events(events)
   {
-    m_pDriver->SetDrawcallCB(this);
+    m_pDriver->SetActionCB(this);
   }
-  ~VulkanInitPostVSCallback() { m_pDriver->SetDrawcallCB(NULL); }
+  ~VulkanInitPostVSCallback() { m_pDriver->SetActionCB(NULL); }
   void PreDraw(uint32_t eid, VkCommandBuffer cmd)
   {
     if(m_Events.contains(eid))
@@ -3368,9 +3366,9 @@ struct VulkanInitPostVSCallback : public VulkanDrawcallCallback
   bool PostDispatch(uint32_t eid, VkCommandBuffer cmd) { return false; }
   void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) {}
   // Ditto copy/etc
-  void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) {}
-  bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) { return false; }
-  void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) {}
+  void PreMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) {}
+  bool PostMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) { return false; }
+  void PostRemisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) {}
   void PreEndCommandBuffer(VkCommandBuffer cmd) {}
   void AliasEvent(uint32_t primary, uint32_t alias)
   {
@@ -3397,8 +3395,8 @@ void VulkanReplay::InitPostVSBuffers(const rdcarray<uint32_t> &events)
 
   for(; first < events.size(); first++)
   {
-    const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(events[first]);
-    if(drawcall->flags & DrawFlags::PassBoundary)
+    const ActionDescription *action = m_pDriver->GetAction(events[first]);
+    if(action->flags & ActionFlags::PassBoundary)
       continue;
     break;
   }
@@ -3429,11 +3427,11 @@ MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uin
   if(m_PostVS.Data.find(eventId) != m_PostVS.Data.end())
     postvs = m_PostVS.Data[eventId];
 
-  const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eventId);
+  const ActionDescription *action = m_pDriver->GetAction(eventId);
 
   uint32_t numInstances = 1;
-  if(drawcall && (drawcall->flags & DrawFlags::Instanced))
-    numInstances = drawcall->numInstances;
+  if(action && (action->flags & ActionFlags::Instanced))
+    numInstances = action->numInstances;
 
   VulkanPostVSData::StageData s = postvs.GetStage(stage);
 

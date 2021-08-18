@@ -14,16 +14,16 @@ class VK_Discard_Zoo(rdtest.Discard_Zoo):
         self.check_textures()
 
         # Test render pass attachments
-        draw = self.find_draw("TestStart")
+        action = self.find_action("TestStart")
 
         rpcol: rd.TextureDescription = self.get_texture(
             [res for res in self.controller.GetResources() if "RPCol" in res.name][0].resourceId)
         rpdepth: rd.TextureDescription = self.get_texture(
             [res for res in self.controller.GetResources() if "RPDepth" in res.name][0].resourceId)
 
-        self.check(draw is not None)
+        self.check(action is not None)
 
-        self.controller.SetFrameEvent(draw.next.eventId, True)
+        self.controller.SetFrameEvent(action.next.eventId, True)
 
         # At the start they should be cleared
 
@@ -34,9 +34,9 @@ class VK_Discard_Zoo(rdtest.Discard_Zoo):
 
         rdtest.log.success("Values are correct before the renderpass")
 
-        draw = self.find_draw("TestMiddle")
+        action = self.find_action("TestMiddle")
 
-        self.controller.SetFrameEvent(draw.next.eventId, True)
+        self.controller.SetFrameEvent(action.next.eventId, True)
 
         for y in range(0, rpcol.height-1, 17):
             for x in range(0, rpcol.width-1, 17):
@@ -66,9 +66,9 @@ class VK_Discard_Zoo(rdtest.Discard_Zoo):
 
         rdtest.log.success("Values are correct in the middle of the renderpass")
 
-        draw = self.find_draw("TestEnd")
+        action = self.find_action("TestEnd")
 
-        self.controller.SetFrameEvent(draw.next.eventId, True)
+        self.controller.SetFrameEvent(action.next.eventId, True)
 
         for y in range(0, rpcol.height-1, 17):
             for x in range(0, rpcol.width-1, 17):
@@ -101,9 +101,9 @@ class VK_Discard_Zoo(rdtest.Discard_Zoo):
         self.check(middle_col_bytes != end_col_bytes)
         self.check(middle_depth_bytes != end_depth_bytes)
 
-        draw = self.find_draw("UndefinedLoad_Before")
+        action = self.find_action("UndefinedLoad_Before")
 
-        self.controller.SetFrameEvent(draw.next.eventId, True)
+        self.controller.SetFrameEvent(action.next.eventId, True)
 
         # check that they are cleared again
         for y in range(0, rpcol.height-1, 17):
@@ -113,9 +113,9 @@ class VK_Discard_Zoo(rdtest.Discard_Zoo):
 
         rdtest.log.success("Values are correct before the UNDEFINED initial layout renderpass")
 
-        draw = self.find_draw("UndefinedLoad_After")
+        action = self.find_action("UndefinedLoad_After")
 
-        self.controller.SetFrameEvent(draw.next.eventId, True)
+        self.controller.SetFrameEvent(action.next.eventId, True)
 
         # check that they are all undefined pattern - initial layout affects the whole resource
         for y in range(0, rpcol.height-1, 17):

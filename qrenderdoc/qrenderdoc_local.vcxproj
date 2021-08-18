@@ -633,6 +633,7 @@
     <ClCompile Include="$(IntDir)generated\moc_LiveCapture.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_EnvironmentEditor.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_OrderedListEditor.cpp" />
+    <ClCompile Include="$(IntDir)generated\moc_MarkerBreadcrumbs.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_RemoteManager.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_ExtensionManager.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_PerformanceCounterSelection.cpp" />
@@ -733,6 +734,7 @@
     <ClCompile Include="Widgets\ThumbnailStrip.cpp" />
     <ClCompile Include="Widgets\ReplayOptionsSelector.cpp" />
     <ClCompile Include="Widgets\OrderedListEditor.cpp" />
+    <ClCompile Include="Widgets\MarkerBreadcrumbs.cpp" />
     <ClCompile Include="Code\CaptureContext.cpp" />
     <ClCompile Include="Styles\RDStyle\RDStyle.cpp" />
     <ClCompile Include="Styles\StyleData.cpp" />
@@ -1164,6 +1166,12 @@
       <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
     </CustomBuild>
     <CustomBuild Include="Widgets\OrderedListEditor.h">
+      <AdditionalInputs>%(Fullpath);$(QtBinDir)\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>"$(QtBinDir)\moc.exe" -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I"$(ProjectDir)." -I"$(SolutionDir)\renderdoc\api\replay" -I"$(QtIncludeDir)" -I"$(QtIncludeDir)\QtWidgets" -I"$(QtIncludeDir)\QtGui" -I"$(QtIncludeDir)\QtCore" "%(Fullpath)" -o "$(IntDir)generated\moc_%(Filename).cpp"</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\MarkerBreadcrumbs.h">
       <AdditionalInputs>%(Fullpath);$(QtBinDir)\moc.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>"$(QtBinDir)\moc.exe" -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I"$(ProjectDir)." -I"$(SolutionDir)\renderdoc\api\replay" -I"$(QtIncludeDir)" -I"$(QtIncludeDir)\QtWidgets" -I"$(QtIncludeDir)\QtGui" -I"$(QtIncludeDir)\QtCore" "%(Fullpath)" -o "$(IntDir)generated\moc_%(Filename).cpp"</Command>
       <Message>MOC %(Filename).h</Message>
@@ -1939,8 +1947,16 @@ IF %ERRORLEVEL% NEQ 0 (echo ====================================================
     <Image Include="Resources\control_nan_blue.png" />
     <Image Include="Resources\control_play_blue%402x.png" />
     <Image Include="Resources\control_play_blue.png" />
+    <Image Include="Resources\control_reverse_base_blue%402x.png" />
+    <Image Include="Resources\control_reverse_base_blue.png" />
     <Image Include="Resources\control_reverse_blue%402x.png" />
     <Image Include="Resources\control_reverse_blue.png" />
+    <Image Include="Resources\control_reverse_cursor_blue%402x.png" />
+    <Image Include="Resources\control_reverse_cursor_blue.png" />
+    <Image Include="Resources\control_reverse_nan_blue%402x.png" />
+    <Image Include="Resources\control_reverse_nan_blue.png" />
+    <Image Include="Resources\control_reverse_sample_blue%402x.png" />
+    <Image Include="Resources\control_reverse_sample_blue.png" />
     <Image Include="Resources\control_sample_blue%402x.png" />
     <Image Include="Resources\control_sample_blue.png" />
     <Image Include="Resources\control_start_blue%402x.png" />
@@ -1955,6 +1971,10 @@ IF %ERRORLEVEL% NEQ 0 (echo ====================================================
     <Image Include="Resources\del.png" />
     <Image Include="Resources\disconnect%402x.png" />
     <Image Include="Resources\disconnect.png" />
+    <Image Include="Resources\filter%402x.png" />
+    <Image Include="Resources\filter.png" />
+    <Image Include="Resources\filter_reapply%402x.png" />
+    <Image Include="Resources\filter_reapply.png" />
     <Image Include="Resources\find%402x.png" />
     <Image Include="Resources\find.png" />
     <Image Include="Resources\flag_green%402x.png" />

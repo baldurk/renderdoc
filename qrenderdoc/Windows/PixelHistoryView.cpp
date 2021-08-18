@@ -134,9 +134,9 @@ public:
     if(isEvent(parent))
     {
       const QList<PixelModification> &mods = getMods(parent);
-      const DrawcallDescription *draw = m_Ctx.GetDrawcall(mods.front().eventId);
+      const ActionDescription *action = m_Ctx.GetAction(mods.front().eventId);
 
-      if(draw && draw->flags & (DrawFlags::Clear | DrawFlags::PassBoundary))
+      if(action && action->flags & (ActionFlags::Clear | ActionFlags::PassBoundary))
         return 0;
 
       return mods.count();
@@ -194,32 +194,32 @@ public:
           if(isEvent(index))
           {
             const QList<PixelModification> &mods = getMods(index);
-            const DrawcallDescription *drawcall = m_Ctx.GetDrawcall(mods.front().eventId);
-            if(!drawcall)
+            const ActionDescription *action = m_Ctx.GetAction(mods.front().eventId);
+            if(!action)
               return QVariant();
 
             QString ret;
-            QList<const DrawcallDescription *> drawstack;
-            const DrawcallDescription *parent = drawcall->parent;
+            QList<const ActionDescription *> actionstack;
+            const ActionDescription *parent = action->parent;
             while(parent)
             {
-              drawstack.push_back(parent);
+              actionstack.push_back(parent);
               parent = parent->parent;
             }
 
-            if(!drawstack.isEmpty())
+            if(!actionstack.isEmpty())
             {
-              ret += lit("> ") + drawstack.back()->name;
+              ret += lit("> ") + actionstack.back()->customName;
 
-              if(drawstack.count() > 3)
+              if(actionstack.count() > 3)
                 ret += lit(" ...");
 
               ret += lit("\n");
 
-              if(drawstack.count() > 2)
-                ret += lit("> ") + drawstack[1]->name + lit("\n");
-              if(drawstack.count() > 1)
-                ret += lit("> ") + drawstack[0]->name + lit("\n");
+              if(actionstack.count() > 2)
+                ret += lit("> ") + actionstack[1]->customName + lit("\n");
+              if(actionstack.count() > 1)
+                ret += lit("> ") + actionstack[0]->customName + lit("\n");
 
               ret += lit("\n");
             }
@@ -231,7 +231,7 @@ public:
             {
               ret += tr("EID %1\n%2\nBound as UAV or copy - potential modification")
                          .arg(mods.front().eventId)
-                         .arg(drawcall->name);
+                         .arg(m_Ctx.GetEventBrowser()->GetEventName(action->eventId));
 
               if(mods[0].preMod.col.uintValue == mods[0].postMod.col.uintValue)
               {
@@ -249,7 +249,7 @@ public:
 
               ret += tr("EID %1\n%2%3\n%4 Fragments touching pixel\n")
                          .arg(mods.front().eventId)
-                         .arg(drawcall->name)
+                         .arg(m_Ctx.GetEventBrowser()->GetEventName(action->eventId))
                          .arg(failure)
                          .arg(mods.count());
             }
@@ -795,9 +795,9 @@ void PixelHistoryView::jumpToPrimitive(EventTag tag)
 
   IBufferViewer *viewer = m_Ctx.GetMeshPreview();
 
-  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+  const ActionDescription *action = m_Ctx.CurAction();
 
-  if(draw)
+  if(action)
   {
     uint32_t vertIdx =
         RENDERDOC_VertexOffset(m_Ctx.CurPipelineState().GetPrimitiveTopology(), tag.primitive);

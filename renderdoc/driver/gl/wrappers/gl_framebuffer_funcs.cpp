@@ -1680,9 +1680,9 @@ bool WrappedOpenGL::Serialise_glFramebufferDrawBuffersEXT(SerialiserType &ser,
                                                           GLuint framebufferHandle, GLsizei n,
                                                           const GLenum *bufs)
 {
-  SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
+  SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle)).Important();
   SERIALISE_ELEMENT(n);
-  SERIALISE_ELEMENT_ARRAY(bufs, n);
+  SERIALISE_ELEMENT_ARRAY(bufs, n).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1775,7 +1775,7 @@ bool WrappedOpenGL::Serialise_glInvalidateNamedFramebufferData(SerialiserType &s
                                                                GLsizei numAttachments,
                                                                const GLenum *attachments)
 {
-  SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
+  SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle)).Important();
   SERIALISE_ELEMENT(numAttachments);
   SERIALISE_ELEMENT_ARRAY(attachments, numAttachments);
 
@@ -1816,10 +1816,8 @@ bool WrappedOpenGL::Serialise_glInvalidateNamedFramebufferData(SerialiserType &s
 
       ResourceId fbid = GetResourceManager()->GetResID(framebuffer);
 
-      DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(),
-                                    ToStr(GetResourceManager()->GetOriginalID(fbid)).c_str());
-      draw.flags |= DrawFlags::Clear;
+      ActionDescription action;
+      action.flags |= ActionFlags::Clear;
 
       for(GLsizei i = 0; i < numAttachments; i++)
       {
@@ -1838,13 +1836,13 @@ bool WrappedOpenGL::Serialise_glInvalidateNamedFramebufferData(SerialiserType &s
         else
           id = GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), obj));
 
-        if(draw.copyDestination == ResourceId())
-          draw.copyDestination = GetResourceManager()->GetOriginalID(id);
+        if(action.copyDestination == ResourceId())
+          action.copyDestination = GetResourceManager()->GetOriginalID(id);
 
         m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Discard));
       }
 
-      AddDrawcall(draw, true);
+      AddAction(action);
     }
   }
 
@@ -1970,7 +1968,7 @@ bool WrappedOpenGL::Serialise_glInvalidateNamedFramebufferSubData(
     SerialiserType &ser, GLuint framebufferHandle, GLsizei numAttachments,
     const GLenum *attachments, GLint x, GLint y, GLsizei width, GLsizei height)
 {
-  SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
+  SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle)).Important();
   SERIALISE_ELEMENT(numAttachments);
   SERIALISE_ELEMENT_ARRAY(attachments, numAttachments);
   SERIALISE_ELEMENT(x);
@@ -2016,10 +2014,8 @@ bool WrappedOpenGL::Serialise_glInvalidateNamedFramebufferSubData(
 
       ResourceId fbid = GetResourceManager()->GetResID(framebuffer);
 
-      DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(),
-                                    ToStr(GetResourceManager()->GetOriginalID(fbid)).c_str());
-      draw.flags |= DrawFlags::Clear;
+      ActionDescription action;
+      action.flags |= ActionFlags::Clear;
 
       for(GLsizei i = 0; i < numAttachments; i++)
       {
@@ -2038,13 +2034,13 @@ bool WrappedOpenGL::Serialise_glInvalidateNamedFramebufferSubData(
         else
           id = GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), obj));
 
-        if(draw.copyDestination == ResourceId())
-          draw.copyDestination = GetResourceManager()->GetOriginalID(id);
+        if(action.copyDestination == ResourceId())
+          action.copyDestination = GetResourceManager()->GetOriginalID(id);
 
         m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Discard));
       }
 
-      AddDrawcall(draw, true);
+      AddAction(action);
     }
   }
 
@@ -2136,8 +2132,10 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(SerialiserType &ser,
                                                      GLint dstX0, GLint dstY0, GLint dstX1,
                                                      GLint dstY1, GLbitfield mask, GLenum filter)
 {
-  SERIALISE_ELEMENT_LOCAL(readFramebuffer, FramebufferRes(GetCtx(), readFramebufferHandle));
-  SERIALISE_ELEMENT_LOCAL(drawFramebuffer, FramebufferRes(GetCtx(), drawFramebufferHandle));
+  SERIALISE_ELEMENT_LOCAL(readFramebuffer, FramebufferRes(GetCtx(), readFramebufferHandle))
+      .Important();
+  SERIALISE_ELEMENT_LOCAL(drawFramebuffer, FramebufferRes(GetCtx(), drawFramebufferHandle))
+      .Important();
   SERIALISE_ELEMENT(srcX0);
   SERIALISE_ELEMENT(srcY0);
   SERIALISE_ELEMENT(srcX1);
@@ -2171,11 +2169,8 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(SerialiserType &ser,
       ResourceId readId = GetResourceManager()->GetResID(readFramebuffer);
       ResourceId drawId = GetResourceManager()->GetResID(drawFramebuffer);
 
-      DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("%s(%s, %s)", ToStr(gl_CurChunk).c_str(),
-                                    ToStr(GetResourceManager()->GetOriginalID(readId)).c_str(),
-                                    ToStr(GetResourceManager()->GetOriginalID(drawId)).c_str());
-      draw.flags |= DrawFlags::Resolve;
+      ActionDescription action;
+      action.flags |= ActionFlags::Resolve;
 
       GLint numCols = 8;
       GL.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
@@ -2221,42 +2216,42 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(SerialiserType &ser,
         {
           if(attachName == eGL_COLOR_ATTACHMENT0)
           {
-            draw.copySource = GetResourceManager()->GetOriginalID(srcid);
-            draw.copyDestination = GetResourceManager()->GetOriginalID(dstid);
+            action.copySource = GetResourceManager()->GetOriginalID(srcid);
+            action.copyDestination = GetResourceManager()->GetOriginalID(dstid);
 
             GLint mip = 0, slice = 0;
             if(dsttype == eGL_TEXTURE)
               GetFramebufferMipAndLayer(drawFramebuffer.name, eGL_COLOR_ATTACHMENT0, &mip, &slice);
-            draw.copyDestinationSubresource.mip = mip;
-            draw.copyDestinationSubresource.slice = slice;
+            action.copyDestinationSubresource.mip = mip;
+            action.copyDestinationSubresource.slice = slice;
 
             mip = 0;
             slice = 0;
             if(srctype == eGL_TEXTURE)
               GetFramebufferMipAndLayer(readFramebuffer.name, eGL_COLOR_ATTACHMENT0, &mip, &slice);
-            draw.copySourceSubresource.mip = mip;
-            draw.copySourceSubresource.slice = slice;
+            action.copySourceSubresource.mip = mip;
+            action.copySourceSubresource.slice = slice;
           }
         }
         else
         {
           if(attachName == eGL_DEPTH_ATTACHMENT)
           {
-            draw.copySource = GetResourceManager()->GetOriginalID(srcid);
-            draw.copyDestination = GetResourceManager()->GetOriginalID(dstid);
+            action.copySource = GetResourceManager()->GetOriginalID(srcid);
+            action.copyDestination = GetResourceManager()->GetOriginalID(dstid);
 
             GLint mip = 0, slice = 0;
             if(dsttype == eGL_TEXTURE)
               GetFramebufferMipAndLayer(drawFramebuffer.name, eGL_DEPTH_ATTACHMENT, &mip, &slice);
-            draw.copyDestinationSubresource.mip = mip;
-            draw.copyDestinationSubresource.slice = slice;
+            action.copyDestinationSubresource.mip = mip;
+            action.copyDestinationSubresource.slice = slice;
 
             mip = 0;
             slice = 0;
             if(srctype == eGL_TEXTURE)
               GetFramebufferMipAndLayer(readFramebuffer.name, eGL_DEPTH_ATTACHMENT, &mip, &slice);
-            draw.copySourceSubresource.mip = mip;
-            draw.copySourceSubresource.slice = slice;
+            action.copySourceSubresource.mip = mip;
+            action.copySourceSubresource.slice = slice;
           }
         }
 
@@ -2283,7 +2278,7 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(SerialiserType &ser,
         }
       }
 
-      AddDrawcall(draw, true);
+      AddAction(action);
     }
   }
 
@@ -2307,7 +2302,7 @@ void WrappedOpenGL::glBlitNamedFramebuffer(GLuint readFramebuffer, GLuint drawFr
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_glBlitNamedFramebuffer(ser, readFramebuffer, drawFramebuffer, srcX0, srcY0, srcX1,
                                      srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);

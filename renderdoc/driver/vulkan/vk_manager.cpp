@@ -296,7 +296,7 @@ template <typename SerialiserType>
 void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
                                                  std::map<ResourceId, LockingImageState> &states)
 {
-  SERIALISE_ELEMENT_LOCAL(NumImages, (uint32_t)states.size());
+  SERIALISE_ELEMENT_LOCAL(NumImages, (uint32_t)states.size()).Important();
 
   auto srcit = states.begin();
 
@@ -411,6 +411,9 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
             auto currentSub = current->subresourceStates.SubresourceIndexValue(
                 aspectIndex, subit->range().baseMipLevel, subit->range().baseArrayLayer,
                 subit->range().baseDepthSlice);
+            FrameRefType expectedRef = subit->state().refType;
+            if(current->m_Storage)
+              expectedRef = eFrameRef_ReadBeforeWrite;
             RDCASSERT(currentSub.refType == subit->state().refType ||
                       subit->state().refType == eFrameRef_Unknown);
             RDCASSERT(currentSub.oldLayout == subit->state().oldLayout ||
@@ -948,6 +951,25 @@ void VulkanResourceManager::MergeReferencedMemory(std::unordered_map<ResourceId,
       m_MemFrameRefs[j->first] = j->second;
     else
       i->second.Merge(j->second);
+  }
+}
+
+void VulkanResourceManager::FixupStorageBufferMemory(
+    const std::unordered_set<VkResourceRecord *> &storageBuffers)
+{
+  SCOPED_LOCK_OPTIONAL(m_Lock, m_Capturing);
+
+  for(VkResourceRecord *buf : storageBuffers)
+  {
+    ResourceId id = buf->GetResourceID();
+    MemRefs ref;
+    ref.Update(buf->memOffset, buf->memSize, eFrameRef_ReadBeforeWrite);
+
+    auto i = m_MemFrameRefs.find(id);
+    if(i == m_MemFrameRefs.end())
+      m_MemFrameRefs[id] = ref;
+    else
+      i->second.Merge(ref, ComposeFrameRefsUnordered);
   }
 }
 

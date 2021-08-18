@@ -91,9 +91,9 @@ This option will cause RenderDoc to save a callstack from user code into the API
 
 ----------
 
-  | :guilabel:`Only Drawcall Callstacks` Default: ``Disabled``
+  | :guilabel:`Only Action Callstacks` Default: ``Disabled``
 
-This option modifies the above capturing of callstacks to only be saved for drawcall-type API calls. This can reduce the CPU load, as well as file-size and memory overhead of capturing callstacks for every API call which may not be desired. Only valid if ``Collect Callstacks`` is enabled.
+This option modifies the above capturing of callstacks to only be saved for action calls. This can reduce the CPU load, as well as file-size and memory overhead of capturing callstacks for every API call which may not be desired. Only valid if ``Collect Callstacks`` is enabled.
 
 ----------
 

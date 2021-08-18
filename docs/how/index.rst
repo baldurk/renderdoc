@@ -5,6 +5,7 @@ How do I ...?
 
 	how_capture_frame
 	how_android_capture
+	how_filter_events
 	how_debug_shader
 	how_inspect_pixel
 	how_view_texture

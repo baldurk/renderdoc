@@ -37,9 +37,9 @@ class GL_Callstacks(rdtest.TestCase):
         if not cap.InitResolver(False, resolve_progress):
             raise rdtest.TestFailureException("Failed to initialise callstack resolver")
 
-        draw = self.find_draw("Draw")
+        action = self.find_action("Draw")
 
-        event: rd.APIEvent = draw.events[-1]
+        event: rd.APIEvent = action.events[-1]
 
         expected_funcs = [
             "GL_Callstacks::testFunction",

@@ -736,8 +736,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
       GLint idxbuf = 0;
       drv.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, &idxbuf);
 
-      const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
-      const GLDrawParams &drawParams = m_pDriver->GetDrawcallParameters(eventId);
+      const ActionDescription *action = m_pDriver->GetAction(eventId);
+      const GLDrawParams &drawParams = m_pDriver->GetDrawParameters(eventId);
 
       rdcarray<uint32_t> patchedIndices;
 
@@ -745,7 +745,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
       if(idxbuf)
       {
         rdcarray<byte> idxs;
-        uint32_t offset = draw->indexOffset * drawParams.indexWidth;
+        uint32_t offset = action->indexOffset * drawParams.indexWidth;
         uint32_t length = 1;
         drv.glGetNamedBufferParameterivEXT(idxbuf, eGL_BUFFER_SIZE, (GLint *)&length);
 
@@ -753,13 +753,13 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
         drv.glGetBufferSubData(
             eGL_ELEMENT_ARRAY_BUFFER, offset,
             RDCMIN(GLsizeiptr(length - offset),
-                   GLsizeiptr(draw->numIndices) * GLsizeiptr(drawParams.indexWidth)),
+                   GLsizeiptr(action->numIndices) * GLsizeiptr(drawParams.indexWidth)),
             &idxs[0]);
 
         // unbind the real index buffer
         drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, 0);
 
-        uint32_t expectedSize = draw->numIndices * drawParams.indexWidth;
+        uint32_t expectedSize = action->numIndices * drawParams.indexWidth;
 
         if(idxs.size() < expectedSize)
         {
@@ -768,7 +768,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
         }
 
         PatchLineStripIndexBuffer(
-            draw, drawParams.topo,
+            action, drawParams.topo,
             drawParams.indexWidth == 1 ? (uint8_t *)idxs.data() : (uint8_t *)NULL,
             drawParams.indexWidth == 2 ? (uint16_t *)idxs.data() : (uint16_t *)NULL,
             drawParams.indexWidth == 4 ? (uint32_t *)idxs.data() : (uint32_t *)NULL, patchedIndices);
@@ -777,28 +777,28 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
       {
         // generate 'index' list
         rdcarray<uint32_t> idxs;
-        idxs.resize(draw->numIndices);
-        for(uint32_t i = 0; i < draw->numIndices; i++)
+        idxs.resize(action->numIndices);
+        for(uint32_t i = 0; i < action->numIndices; i++)
           idxs[i] = i;
-        PatchLineStripIndexBuffer(draw, drawParams.topo, NULL, NULL, idxs.data(), patchedIndices);
+        PatchLineStripIndexBuffer(action, drawParams.topo, NULL, NULL, idxs.data(), patchedIndices);
       }
 
       GLboolean primRestart = drv.glIsEnabled(eGL_PRIMITIVE_RESTART_FIXED_INDEX);
       drv.glEnable(eGL_PRIMITIVE_RESTART_FIXED_INDEX);
 
-      if(draw->flags & DrawFlags::Instanced)
+      if(action->flags & ActionFlags::Instanced)
       {
         if(HasExt[ARB_base_instance])
         {
           drv.glDrawElementsInstancedBaseVertexBaseInstance(
               eGL_LINE_STRIP, (GLsizei)patchedIndices.size(), eGL_UNSIGNED_INT,
-              patchedIndices.data(), draw->numInstances, 0, draw->instanceOffset);
+              patchedIndices.data(), action->numInstances, 0, action->instanceOffset);
         }
         else
         {
           drv.glDrawElementsInstancedBaseVertex(eGL_LINE_STRIP, (GLsizei)patchedIndices.size(),
                                                 eGL_UNSIGNED_INT, patchedIndices.data(),
-                                                draw->numInstances, 0);
+                                                action->numInstances, 0);
         }
       }
       else
@@ -1653,9 +1653,9 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
         drv.glUseProgram(DebugData.trisizeProg);
         drv.glBindProgramPipeline(0);
 
-        const DrawcallDescription *draw = m_pDriver->GetDrawcall(events[i]);
+        const ActionDescription *action = m_pDriver->GetAction(events[i]);
 
-        for(uint32_t inst = 0; draw && inst < RDCMAX(1U, draw->numInstances); inst++)
+        for(uint32_t inst = 0; action && inst < RDCMAX(1U, action->numInstances); inst++)
         {
           MeshFormat postvs = GetPostVSBuffers(events[i], inst, 0, MeshDataStage::GSOut);
           if(postvs.vertexResourceId == ResourceId())

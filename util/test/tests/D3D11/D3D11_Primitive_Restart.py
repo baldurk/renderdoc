@@ -6,15 +6,15 @@ class D3D11_Primitive_Restart(rdtest.TestCase):
     demos_test_name = 'D3D11_Primitive_Restart'
 
     def check_capture(self):
-        draw = self.find_draw("Draw")
+        action = self.find_action("Draw")
 
-        self.check(draw is not None)
+        self.check(action is not None)
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, draw.numIndices)
+        postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
 
         ib = pipe.GetIBuffer()
 
@@ -51,14 +51,14 @@ class D3D11_Primitive_Restart(rdtest.TestCase):
 
         self.check_mesh_data(postvs_ref, postvs_data)
 
-        # Now check the draw with a vertex offset
-        draw = self.find_draw("Draw", draw.eventId+1)
+        # Now check the action with a vertex offset
+        action = self.find_action("Draw", action.eventId+1)
 
-        self.check(draw is not None)
+        self.check(action is not None)
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
-        postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, draw.numIndices)
+        postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
 
         # Data should be identical
 

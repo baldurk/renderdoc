@@ -39,7 +39,7 @@ namespace DXBCBytecode
 {
 struct Declaration;
 class Program;
-enum OperandType;
+enum OperandType : uint8_t;
 }
 
 class WrappedID3D11Device;
@@ -263,7 +263,7 @@ public:
                                      SampleGatherResourceData resourceData,
                                      SampleGatherSamplerData samplerData, ShaderVariable uv,
                                      ShaderVariable ddxCalc, ShaderVariable ddyCalc,
-                                     const int texelOffsets[3], int multisampleIndex,
+                                     const int8_t texelOffsets[3], int multisampleIndex,
                                      float lodOrCompareValue, const uint8_t swizzle[4],
                                      GatherChannel gatherChannel, const char *opString,
                                      ShaderVariable &output) = 0;

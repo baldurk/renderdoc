@@ -140,6 +140,7 @@
     <ClCompile Include="d3d12_serialise.cpp" />
     <ClCompile Include="d3d12_shaderdebug.cpp" />
     <ClCompile Include="d3d12_shader_cache.cpp" />
+    <ClCompile Include="d3d12_shader_feedback.cpp" />
     <ClCompile Include="d3d12_state.cpp" />
     <ClCompile Include="d3d12_stringise.cpp" />
     <ClCompile Include="precompiled.cpp">

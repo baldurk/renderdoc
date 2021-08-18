@@ -53,7 +53,8 @@ struct feedbackData
 
 struct PrintfData
 {
-  rdcstr format;
+  rdcstr user_format;
+  rdcstr effective_format;
   // vectors are expanded so there's one for each component (as printf will expect)
   rdcarray<rdcspv::Scalar> argTypes;
   size_t payloadWords;
@@ -72,6 +73,7 @@ public:
     m_Cur = m_Start;
     m_Idx = 0;
   }
+  void error(const char *err) override { m_Error = err; }
   int get_int() override
   {
     int32_t ret = *(int32_t *)m_Cur;
@@ -125,11 +127,13 @@ public:
   }
 
   size_t get_size() override { return sizeof(size_t) == 8 ? (size_t)get_uint64() : get_uint(); }
+  rdcstr get_error() { return m_Error; }
 private:
   const uint32_t *m_Cur;
   const uint32_t *m_Start;
   size_t m_Idx;
   const PrintfData &m_Formats;
+  rdcstr m_Error;
 };
 
 rdcstr PatchFormatString(rdcstr format)
@@ -886,7 +890,8 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
 
           {
             rdcspv::OpString str(editor.GetID(rdcspv::Id::fromWord(extinst.params[0])));
-            format.format = PatchFormatString(str.string);
+            format.user_format = str.string;
+            format.effective_format = PatchFormatString(str.string);
           }
 
           rdcarray<rdcspv::Id> packetWords;
@@ -1305,7 +1310,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
   // create it here so we won't re-run any code if the event is re-selected. We'll mark it as valid
   // if it actually has any data in it later.
-  DynamicShaderFeedback &result = m_BindlessFeedback.Usage[eventId];
+  VKDynamicShaderFeedback &result = m_BindlessFeedback.Usage[eventId];
 
   bool useBufferAddress = (m_pDriver->GetExtensions(NULL).ext_KHR_buffer_device_address ||
                            m_pDriver->GetExtensions(NULL).ext_EXT_buffer_device_address) &&
@@ -1320,12 +1325,12 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   const VulkanRenderState &state = m_pDriver->m_RenderState;
   VulkanCreationInfo &creationInfo = m_pDriver->m_CreationInfo;
 
-  const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eventId);
+  const ActionDescription *action = m_pDriver->GetAction(eventId);
 
-  if(drawcall == NULL || !(drawcall->flags & (DrawFlags::Dispatch | DrawFlags::Drawcall)))
+  if(action == NULL || !(action->flags & (ActionFlags::Dispatch | ActionFlags::Drawcall)))
     return;
 
-  result.compute = bool(drawcall->flags & DrawFlags::Dispatch);
+  result.compute = bool(action->flags & ActionFlags::Dispatch);
 
   const VulkanStatePipeline &pipe = result.compute ? state.compute : state.graphics;
 
@@ -1664,7 +1669,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   if(!useBufferAddress)
   {
     // replace descriptor set IDs with our temporary sets. The offsets we keep the same. If the
-    // original draw had no sets, we ensure there's room (with no offsets needed)
+    // original action had no sets, we ensure there's room (with no offsets needed)
 
     if(modifiedpipe.descSets.empty())
       modifiedpipe.descSets.resize(1);
@@ -1708,14 +1713,14 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
     {
       modifiedstate.BindPipeline(m_pDriver, cmd, VulkanRenderState::BindCompute, true);
 
-      ObjDisp(cmd)->CmdDispatch(Unwrap(cmd), drawcall->dispatchDimension[0],
-                                drawcall->dispatchDimension[1], drawcall->dispatchDimension[2]);
+      ObjDisp(cmd)->CmdDispatch(Unwrap(cmd), action->dispatchDimension[0],
+                                action->dispatchDimension[1], action->dispatchDimension[2]);
     }
     else
     {
       modifiedstate.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics);
 
-      m_pDriver->ReplayDraw(cmd, *drawcall);
+      m_pDriver->ReplayDraw(cmd, *action);
 
       modifiedstate.EndRenderPass(cmd);
     }
@@ -1829,13 +1834,13 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
         else if(stage == ShaderStage::Vertex)
         {
           msg.location.vertex.vertexIndex = location[0];
-          if(!(drawcall->flags & DrawFlags::Indexed))
+          if(!(action->flags & ActionFlags::Indexed))
           {
             // for non-indexed draws get back to 0-based index
-            msg.location.vertex.vertexIndex -= drawcall->vertexOffset;
+            msg.location.vertex.vertexIndex -= action->vertexOffset;
           }
           // go back to a 0-based instance index
-          msg.location.vertex.instance = location[1] - drawcall->instanceOffset;
+          msg.location.vertex.instance = location[1] - action->instanceOffset;
           msg.location.vertex.view = location[2];
         }
         else
@@ -1844,11 +1849,12 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
           msg.location.pixel.y = location[0] & 0xffff;
           msg.location.pixel.sample = location[1];
           msg.location.pixel.primitive = location[2];
-
-          RDCLOG("pixel %u, %u", msg.location.pixel.x, msg.location.pixel.y);
         }
 
-        msg.message = StringFormat::FmtArgs(fmt.format.c_str(), args);
+        msg.message = StringFormat::FmtArgs(fmt.effective_format.c_str(), args);
+
+        if(!args.get_error().empty())
+          msg.message = args.get_error() + " in \"" + fmt.user_format + "\"";
 
         result.messages.push_back(msg);
       }

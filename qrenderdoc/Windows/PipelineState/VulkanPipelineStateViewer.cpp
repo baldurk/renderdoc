@@ -1979,7 +1979,7 @@ void VulkanPipelineStateViewer::setState()
   m_CombinedImageSamplers.clear();
 
   const VKPipe::State &state = *m_Ctx.CurVulkanPipelineState();
-  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+  const ActionDescription *action = m_Ctx.CurAction();
 
   bool showUnused = ui->showUnused->isChecked();
   bool showEmpty = ui->showEmpty->isChecked();
@@ -2062,7 +2062,7 @@ void VulkanPipelineStateViewer::setState()
   ui->viBuffers->beginUpdate();
   ui->viBuffers->clear();
 
-  bool ibufferUsed = draw != NULL && (draw->flags & DrawFlags::Indexed);
+  bool ibufferUsed = action != NULL && (action->flags & ActionFlags::Indexed);
 
   if(state.inputAssembly.indexBuffer.resourceId != ResourceId())
   {
@@ -2098,7 +2098,7 @@ void VulkanPipelineStateViewer::setState()
       node->setTag(QVariant::fromValue(VulkanVBIBTag(
           state.inputAssembly.indexBuffer.resourceId,
           state.inputAssembly.indexBuffer.byteOffset +
-              (draw ? draw->indexOffset * state.inputAssembly.indexBuffer.byteStride : 0),
+              (action ? action->indexOffset * state.inputAssembly.indexBuffer.byteStride : 0),
           iformat)));
 
       if(!ibufferUsed)
@@ -2135,7 +2135,7 @@ void VulkanPipelineStateViewer::setState()
       node->setTag(QVariant::fromValue(VulkanVBIBTag(
           state.inputAssembly.indexBuffer.resourceId,
           state.inputAssembly.indexBuffer.byteOffset +
-              (draw ? draw->indexOffset * state.inputAssembly.indexBuffer.byteStride : 0),
+              (action ? action->indexOffset * state.inputAssembly.indexBuffer.byteStride : 0),
           iformat)));
 
       setEmptyRow(node);
@@ -2771,8 +2771,8 @@ void VulkanPipelineStateViewer::setState()
 
   // set up thread debugging inputs
   if(m_Ctx.APIProps().shaderDebugging && state.computeShader.reflection &&
-     state.computeShader.reflection->debugInfo.debuggable && draw &&
-     (draw->flags & DrawFlags::Dispatch))
+     state.computeShader.reflection->debugInfo.debuggable && action &&
+     (action->flags & ActionFlags::Dispatch))
   {
     ui->groupX->setEnabled(true);
     ui->groupY->setEnabled(true);
@@ -2785,11 +2785,11 @@ void VulkanPipelineStateViewer::setState()
     ui->debugThread->setEnabled(true);
 
     // set maximums for CS debugging
-    ui->groupX->setMaximum((int)draw->dispatchDimension[0] - 1);
-    ui->groupY->setMaximum((int)draw->dispatchDimension[1] - 1);
-    ui->groupZ->setMaximum((int)draw->dispatchDimension[2] - 1);
+    ui->groupX->setMaximum((int)action->dispatchDimension[0] - 1);
+    ui->groupY->setMaximum((int)action->dispatchDimension[1] - 1);
+    ui->groupZ->setMaximum((int)action->dispatchDimension[2] - 1);
 
-    if(draw->dispatchThreadsDimension[0] == 0)
+    if(action->dispatchThreadsDimension[0] == 0)
     {
       ui->threadX->setMaximum((int)state.computeShader.reflection->dispatchThreadsDimension[0] - 1);
       ui->threadY->setMaximum((int)state.computeShader.reflection->dispatchThreadsDimension[1] - 1);
@@ -2797,9 +2797,9 @@ void VulkanPipelineStateViewer::setState()
     }
     else
     {
-      ui->threadX->setMaximum((int)draw->dispatchThreadsDimension[0] - 1);
-      ui->threadY->setMaximum((int)draw->dispatchThreadsDimension[1] - 1);
-      ui->threadZ->setMaximum((int)draw->dispatchThreadsDimension[2] - 1);
+      ui->threadX->setMaximum((int)action->dispatchThreadsDimension[0] - 1);
+      ui->threadY->setMaximum((int)action->dispatchThreadsDimension[1] - 1);
+      ui->threadZ->setMaximum((int)action->dispatchThreadsDimension[2] - 1);
     }
 
     ui->debugThread->setToolTip(QString());
@@ -2818,7 +2818,7 @@ void VulkanPipelineStateViewer::setState()
 
     if(!m_Ctx.APIProps().shaderDebugging)
       ui->debugThread->setToolTip(tr("This API does not support shader debugging"));
-    else if(!draw || !(draw->flags & DrawFlags::Dispatch))
+    else if(!action || !(action->flags & ActionFlags::Dispatch))
       ui->debugThread->setToolTip(tr("No dispatch selected"));
     else if(!state.computeShader.reflection)
       ui->debugThread->setToolTip(tr("No compute shader bound"));
@@ -2828,11 +2828,11 @@ void VulkanPipelineStateViewer::setState()
   }
 
   // highlight the appropriate stages in the flowchart
-  if(draw == NULL)
+  if(action == NULL)
   {
     ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
   }
-  else if(draw->flags & DrawFlags::Dispatch)
+  else if(action->flags & ActionFlags::Dispatch)
   {
     ui->pipeFlow->setStagesEnabled({false, false, false, false, false, false, false, false, true});
   }
@@ -3259,7 +3259,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
 
 void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::InputAssembly &ia)
 {
-  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+  const ActionDescription *action = m_Ctx.CurAction();
 
   {
     xml.writeStartElement(lit("h3"));
@@ -4121,9 +4121,9 @@ void VulkanPipelineStateViewer::on_debugThread_clicked()
   if(!m_Ctx.IsCaptureLoaded())
     return;
 
-  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+  const ActionDescription *action = m_Ctx.CurAction();
 
-  if(!draw || !(draw->flags & DrawFlags::Dispatch))
+  if(!action || !(action->flags & ActionFlags::Dispatch))
     return;
 
   ShaderReflection *shaderDetails = m_Ctx.CurVulkanPipelineState()->computeShader.reflection;
@@ -4136,11 +4136,11 @@ void VulkanPipelineStateViewer::on_debugThread_clicked()
   uint32_t groupdim[3] = {};
 
   for(int i = 0; i < 3; i++)
-    groupdim[i] = draw->dispatchDimension[i];
+    groupdim[i] = action->dispatchDimension[i];
 
   uint32_t threadsdim[3] = {};
   for(int i = 0; i < 3; i++)
-    threadsdim[i] = draw->dispatchThreadsDimension[i];
+    threadsdim[i] = action->dispatchThreadsDimension[i];
 
   if(threadsdim[0] == 0)
   {

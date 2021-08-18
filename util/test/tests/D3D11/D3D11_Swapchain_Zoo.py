@@ -10,13 +10,13 @@ class D3D11_Swapchain_Zoo(rdtest.TestCase):
     demos_captures_expected = 1
 
     def check_capture(self):
-        draw = self.find_draw("DrawIndexed")
+        action = self.find_action("DrawIndexed")
 
-        while draw is not None:
-            self.controller.SetFrameEvent(draw.eventId, False)
+        while action is not None:
+            self.controller.SetFrameEvent(action.eventId, False)
 
             self.check_triangle(back=[0.0, 0.0, 0.0, 1.0])
 
-            rdtest.log.success("OK at {}".format(draw.previous.name))
+            rdtest.log.success("OK at {}".format(action.previous.customName))
 
-            draw = self.find_draw("DrawIndexed", draw.eventId+1)
+            action = self.find_action("DrawIndexed", action.eventId+1)

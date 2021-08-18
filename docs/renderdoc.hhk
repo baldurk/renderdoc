@@ -82,12 +82,12 @@
     <param name="Local" value="behind_scenes/d3d12_support.html">
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
-    <param name="Keyword" value="Drawcall Timings">
-    <param name="Local" value="window/event_browser.html#timing-drawcalls">
+    <param name="Keyword" value="Action Timings">
+    <param name="Local" value="window/event_browser.html#timing-actions">
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
     <param name="Keyword" value="Event Hierarchy">
-    <param name="Local" value="window/event_browser.html#timing-drawcalls">
+    <param name="Local" value="window/event_browser.html#timing-actions">
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
     <param name="Keyword" value="FAQ">
@@ -350,8 +350,8 @@
     <param name="Local" value="html/credits_acknowledgements.html">
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
-    <param name="Keyword" value="Timing drawcalls">
-    <param name="Local" value="window/event_browser.html#timing-drawcalls">
+    <param name="Keyword" value="Timing actions">
+    <param name="Local" value="window/event_browser.html#timing-actions">
 </OBJECT>
 <LI> <OBJECT type="text/sitemap">
     <param name="Keyword" value="Tips &amp; Tricks">

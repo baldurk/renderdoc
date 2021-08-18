@@ -282,6 +282,15 @@ struct View
 :type: TextureSwizzle4
 )");
   TextureSwizzle4 swizzle;
+  DOCUMENT(R"(``True`` if this binding element is dynamically used.
+
+If set to ``False`` this means that the binding was available to the shader but during execution it
+was not referenced. The data gathered for setting this variable is conservative, meaning that only
+accesses through arrays will have this calculated to reduce the required feedback bandwidth - single
+non-arrayed descriptors may have this value set to ``True`` even if the shader did not use them,
+since single descriptors may only be dynamically skipped by control flow.
+)");
+  bool dynamicallyUsed = true;
   DOCUMENT("The :class:`D3DBufferViewFlags` set for the buffer.");
   D3DBufferViewFlags bufferFlags = D3DBufferViewFlags::NoFlags;
   DOCUMENT("If the view has a hidden counter, this stores the current value of the counter.");
@@ -464,8 +473,9 @@ struct RootSignatureRange
   bool operator==(const RootSignatureRange &o) const
   {
     return immediate == o.immediate && rootElement == o.rootElement && visibility == o.visibility &&
-           registerSpace == o.registerSpace && constantBuffers == o.constantBuffers &&
-           samplers == o.samplers && views == o.views;
+           registerSpace == o.registerSpace && dynamicallyUsedCount == o.dynamicallyUsedCount &&
+           firstUsedIndex == o.firstUsedIndex && lastUsedIndex == o.lastUsedIndex &&
+           constantBuffers == o.constantBuffers && samplers == o.samplers && views == o.views;
   }
   bool operator<(const RootSignatureRange &o) const
   {
@@ -477,6 +487,12 @@ struct RootSignatureRange
       return visibility < o.visibility;
     if(!(registerSpace == o.registerSpace))
       return registerSpace < o.registerSpace;
+    if(!(dynamicallyUsedCount == o.dynamicallyUsedCount))
+      return dynamicallyUsedCount < o.dynamicallyUsedCount;
+    if(!(firstUsedIndex == o.firstUsedIndex))
+      return firstUsedIndex < o.firstUsedIndex;
+    if(!(lastUsedIndex == o.lastUsedIndex))
+      return lastUsedIndex < o.lastUsedIndex;
     if(!(constantBuffers == o.constantBuffers))
       return constantBuffers < o.constantBuffers;
     if(!(samplers == o.samplers))
@@ -496,6 +512,28 @@ struct RootSignatureRange
   ShaderStageMask visibility = ShaderStageMask::All;
   DOCUMENT("The register space of this element.");
   uint32_t registerSpace;
+  DOCUMENT(R"(Lists how many bindings in :data:`views` are dynamically used. Useful to avoid
+redundant iteration to determine whether any bindings are present.
+
+For more information see :data:`D3D12View.dynamicallyUsed`.
+)");
+  uint32_t dynamicallyUsedCount = ~0U;
+  DOCUMENT(R"(Gives the index of the first binding in :data:`views` that is dynamically used. Useful
+to avoid redundant iteration in very large descriptor arrays with a small subset that are used.
+
+For more information see :data:`D3D12View.dynamicallyUsed`.
+)");
+  int32_t firstUsedIndex = 0;
+  DOCUMENT(R"(Gives the index of the first binding in :data:`views` that is dynamically used. Useful
+to avoid redundant iteration in very large descriptor arrays with a small subset that are used.
+
+.. note::
+  This may be set to a higher value than the number of bindings, if no dynamic use information is
+  available. Ensure that this is an additional check on the bind and the count is still respected.
+
+For more information see :data:`D3D12View.dynamicallyUsed`.
+)");
+  int32_t lastUsedIndex = 0x7fffffff;
   DOCUMENT(R"(The constant buffers in this range.
 
 :type: List[D3D12ConstantBuffer]
@@ -871,7 +909,7 @@ struct State
 
   DOCUMENT(R"(The root signature, as a range per element.
     
-:type: List[RootSignatureRange]
+:type: List[D3D12RootSignatureRange]
 )");
   rdcarray<RootSignatureRange> rootElements;
 
@@ -932,7 +970,7 @@ struct State
 
   DOCUMENT(R"(The resource states for the currently live resources.
 
-:type: List[ResourceData]
+:type: List[D3D12ResourceData]
 )");
   rdcarray<ResourceData> resourceStates;
 };

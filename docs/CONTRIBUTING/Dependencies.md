@@ -8,6 +8,8 @@ On Windows there are no dependencies - you can always compile the latest version
 
 ## Linux
 
+RenderDoc only supports building on 64-bit x86 linux. 32-Bit x86 and any ARM/other platforms are not supported.
+
 Requirements for the core library and renderdoccmd are `libx11`, `libxcb`, `libxcb-keysyms` and `libGL`. The exact are packages for these vary by distribution.
 
 For qrenderdoc you need Qt5 >= 5.6 along with the 'svg' and 'x11extras' packages. You also need `python3-dev` for the python integration, and `bison`, `autoconf`, `automake` and `libpcre3-dev` for building the custom SWIG tool for generating bindings.

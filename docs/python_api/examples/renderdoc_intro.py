@@ -23,7 +23,7 @@ if status != rd.ReplayStatus.Succeeded:
     raise RuntimeError("Couldn't initialise replay: " + str(status))
 
 # Now we can use the controller!
-print("%d top-level drawcalls" % len(controller.GetDrawcalls()))
+print("%d top-level actions" % len(controller.GetRootActions()))
 
 controller.Shutdown()
 

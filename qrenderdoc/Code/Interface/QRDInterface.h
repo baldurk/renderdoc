@@ -194,9 +194,72 @@ protected:
 
 DECLARE_REFLECTION_STRUCT(IMainWindow);
 
-DOCUMENT("The event browser window.");
+DOCUMENT(R"(The event browser window.
+
+.. function:: EventFilterCallback(context, filter, params, eventId, chunk, action, name)
+
+  Not a member function - the signature for any ``EventFilterCallback`` callbacks.
+
+  Called for each event in a capture when performing filtering in the Event Browser. The associated
+  ``FilterParseCallback`` will be called first to parse the parameters, and is available for caching
+  or syntax checking. The same filter name and params string will be passed to this function.
+
+  :param CaptureContext context: The current capture context.
+  :param str filter: The name of the filter function.
+  :param str params: The parameters to the filter function.
+  :param int eventId: The event's :data:`eventId <renderdoc.APIEvent.eventId>`.
+  :param renderdoc.SDChunk chunk: The structured data chunk for this event.
+  :param renderdoc.ActionDescription action: The action that contains this event. If the event is
+    the action itself then the event ID will be equal.
+  :param str name: The name of the event as shown in the event browser, for string-based filtering.
+  :return: Whether or not this event matches the filter
+  :rtype: bool
+
+.. function:: FilterParseCallback(context, filter, params)
+
+  Not a member function - the signature for any ``FilterParseCallback`` callbacks.
+
+  Called once when the filter changes, to allow parsing any any data caching, as well as reporting
+  of errors in the filter usage.
+
+  :param CaptureContext context: The current capture context.
+  :param str filter: The name of the filter function.
+  :param str params: The parameters to the filter function.
+  :return: An empty string if the parse succeeded, otherwise any error messages to be displayed to
+    the user, such as syntax or other errors.
+  :rtype: str
+
+.. function:: AutoCompleteCallback(context, filter, params)
+
+  Not a member function - the signature for any ``AutoCompleteCallback`` callbacks.
+
+  Called when autocompletion is triggered inside a filter. The params passed are any previous
+  text inside the filter's parameter list up to where the cursor is. The callback should return a
+  list of identifiers used for auto-completion.
+
+  The list does not have to be pre-filtered for matches to the :paramref:`params`, that is provided
+  to allow different autocompletion at different stages (e.g. if there are no parameters, you can
+  autocomplete a property, if a property is already present you can autocomplete valid values for
+  it)
+
+  :param CaptureContext context: The current capture context.
+  :param str filter: The name of the filter function.
+  :param str params: The previous parameter text to the filter function.
+  :return: A list of strings giving identifiers to autocomplete, or an empty list of there are no
+    such identifiers to prompt.
+  :rtype: List[str]
+)");
 struct IEventBrowser
 {
+  typedef std::function<bool(ICaptureContext *, const rdcstr &, const rdcstr &, uint32_t,
+                             const SDChunk *, const ActionDescription *, const rdcstr &)>
+      EventFilterCallback;
+
+  typedef std::function<rdcstr(ICaptureContext *, const rdcstr &, const rdcstr &)> FilterParseCallback;
+
+  typedef std::function<rdcarray<rdcstr>(ICaptureContext *, const rdcstr &, const rdcstr &)>
+      AutoCompleteCallback;
+
   DOCUMENT(R"(Retrieves the PySide2 QWidget for this :class:`EventBrowser` if PySide2 is available, or otherwise
 returns a unique opaque pointer that can be passed back to any RenderDoc functions expecting a
 QWidget.
@@ -208,6 +271,141 @@ QWidget.
 
   DOCUMENT("Updates the duration column if the selected time unit changes.");
   virtual void UpdateDurationColumn() = 0;
+
+  DOCUMENT(R"(Uses the existing caching in the event browser to return a :class:`~renderdoc.APIEvent`
+for a specified EID.
+
+If no capture is loaded or the EID doesn't correspond to a known event, an empty struct will be
+returned.
+
+:param int eventId: The EID to look up.
+:return: The event corresponding to the EID, or an empty struct if no such EID exists.
+:rtype: renderdoc.APIEvent
+)");
+  virtual APIEvent GetAPIEventForEID(uint32_t eventId) = 0;
+
+  DOCUMENT(R"(Uses the existing caching in the event browser to return a
+:class:`~renderdoc.ActionDescription` for a specified EID. This action may not be the exact EID
+specified, but it will be the action that the EID is associated with. I.e. if you specify the EID for
+a state setting event the next action will be returned.
+
+If no capture is loaded or the EID doesn't correspond to a known event, ``None`` will be returned.
+
+:param int eventId: The EID to look up.
+:return: The action containing the EID, or ``None`` if no such EID exists.
+:rtype: renderdoc.ActionDescription
+)");
+  virtual const ActionDescription *GetActionForEID(uint32_t eventId) = 0;
+
+  DOCUMENT(R"(Returns the formatted name of an event according to the current settings, whether
+that be a custom name or an auto-generated name with/without parameter names.
+
+If no capture is loaded or the EID doesn't correspond to a known event, an empty string will be
+returned.
+
+:param int eventId: The EID to look up.
+:return: The formatted name of the specified event, or ``None`` if no such EID exists.
+:rtype: str
+)");
+  virtual rdcstr GetEventName(uint32_t eventId) = 0;
+
+  DOCUMENT(R"(Determines if a given EID is visible with the current filters applied to the event
+browser.
+
+If no capture is loaded or the EID doesn't correspond to a known event, ``False`` will be returned.
+
+:param int eventId: The EID to look up.
+:return: Whether or not the event is currently visible (passing the filters).
+:rtype: bool
+)");
+  virtual bool IsAPIEventVisible(uint32_t eventId) = 0;
+
+  DOCUMENT(R"(Registers a new event browser filter function.
+
+Filter functions are available as $name() so long as they don't shadow an existing function. The
+filter callback will be called for each event to filter.
+
+The parser callback will be called once when a filter is first specified or the parameters change.
+Note that a filter can be used multiple times in a filter expression! For this reason the parser
+may be called multiple times and the filter callback takes the parameters string. If any expensive
+work is done then the parameters can be used as a cache key to cache any data once per filter
+expression.
+
+:param str name: The name of the filter function.
+:param str description: The description of the filter function. This should explain the available
+  parameters (if applicable) and what the filter does. It will be used for documenting to users
+  what each filter means.
+:param EventFilterCallback filter: The callback to call for each candidate event to perform
+  filtering.
+:param FilterParseCallback parser: The callback to call when the parsing the parameters and checking
+  for any errors. This can be ``None`` if no pre-parsing is required.
+:param AutoCompleteCallback completer: The callback to call when trying to provide autocomplete
+  suggestions. This can be ``None`` if no completion is desired/applicable.
+:return: Whether or not the registration was successful.
+:rtype: bool
+)");
+  virtual bool RegisterEventFilterFunction(const rdcstr &name, const rdcstr &description,
+                                           EventFilterCallback filter, FilterParseCallback parser,
+                                           AutoCompleteCallback completer) = 0;
+
+  DOCUMENT(R"(Unregisters an event browser filter function that was previously registered.
+
+:param str name: The name of the filter function.
+
+:return: Whether or not the unregistration was successful.
+:rtype: bool
+)");
+  virtual bool UnregisterEventFilterFunction(const rdcstr &name) = 0;
+
+  DOCUMENT(R"(Sets the current filter text. This will not modify any saved filter but will modify
+the scratch filter. The filter is applied immediately.
+
+:param str text: The filter text.
+)");
+  virtual void SetCurrentFilterText(const rdcstr &text) = 0;
+
+  DOCUMENT(R"(Returns the current filter text, whether temporary or a saved filter.
+
+:return: The current filter text.
+:rtype: str
+)");
+  virtual rdcstr GetCurrentFilterText() = 0;
+
+  DOCUMENT(R"(Sets whether or not custom action names are used. Certain actions such as indirect
+actions it is useful to show a custom action name which contains the actual indirect parameters
+instead of the 'raw' parameters.
+
+:param bool use: Whether or not custom action names will be used.
+)");
+  virtual void SetUseCustomActionNames(bool use) = 0;
+
+  DOCUMENT(R"(Sets whether or not parameter names are shown in the events. If disabled, only the
+value is shown and the parameter is implicit.
+
+.. note::
+  If custom action names are used this will not have an effect for any such actions. See
+  :meth:`SetUseCustomActionNames`.
+
+:param bool show: Whether or not parameter names will be shown.
+)");
+  virtual void SetShowParameterNames(bool show) = 0;
+
+  DOCUMENT(R"(Sets whether or not all parameters are shown in the events. By default only
+the most significant parameters are shown.
+
+.. note::
+  If custom action names are used this will not have an effect for any such actions. See
+  :meth:`SetUseCustomActionNames`.
+
+:param bool show: Whether or not parameter names will be shown.
+)");
+  virtual void SetShowAllParameters(bool show) = 0;
+
+  DOCUMENT(R"(Sets whether or not marker regions which have no visible actions.
+
+:param bool show: Whether or not empty regions after filtering will be shown.
+)");
+  virtual void SetEmptyRegionsVisible(bool show) = 0;
 
 protected:
   IEventBrowser() = default;
@@ -1723,43 +1921,43 @@ information for how this differs.
 )");
   virtual uint32_t CurEvent() = 0;
 
-  DOCUMENT(R"(Retrieve the currently selected drawcall.
+  DOCUMENT(R"(Retrieve the currently selected action.
 
-In most cases, prefer using :meth:`CurDrawcall`. See :meth:`CaptureViewer.OnSelectedEventChanged` for
+In most cases, prefer using :meth:`CurAction`. See :meth:`CaptureViewer.OnSelectedEventChanged` for
 more information for how this differs.
 
-:return: The currently selected drawcall.
-:rtype: renderdoc.DrawcallDescription
+:return: The currently selected action.
+:rtype: renderdoc.ActionDescription
 )");
-  virtual const DrawcallDescription *CurSelectedDrawcall() = 0;
+  virtual const ActionDescription *CurSelectedAction() = 0;
 
-  DOCUMENT(R"(Retrieve the current drawcall.
+  DOCUMENT(R"(Retrieve the current action.
 
-:return: The current drawcall, or ``None`` if no drawcall is selected.
-:rtype: renderdoc.DrawcallDescription
+:return: The current action, or ``None`` if no action is selected.
+:rtype: renderdoc.ActionDescription
 )");
-  virtual const DrawcallDescription *CurDrawcall() = 0;
+  virtual const ActionDescription *CurAction() = 0;
 
-  DOCUMENT(R"(Retrieve the first drawcall in the capture.
+  DOCUMENT(R"(Retrieve the first action in the capture.
 
-:return: The first drawcall.
-:rtype: renderdoc.DrawcallDescription
+:return: The first action.
+:rtype: renderdoc.ActionDescription
 )");
-  virtual const DrawcallDescription *GetFirstDrawcall() = 0;
+  virtual const ActionDescription *GetFirstAction() = 0;
 
-  DOCUMENT(R"(Retrieve the last drawcall in the capture.
+  DOCUMENT(R"(Retrieve the last action in the capture.
 
-:return: The last drawcall.
-:rtype: renderdoc.DrawcallDescription
+:return: The last action.
+:rtype: renderdoc.ActionDescription
 )");
-  virtual const DrawcallDescription *GetLastDrawcall() = 0;
+  virtual const ActionDescription *GetLastAction() = 0;
 
-  DOCUMENT(R"(Retrieve the root list of drawcalls in the current capture.
+  DOCUMENT(R"(Retrieve the root list of actions in the current capture.
 
-:return: The root drawcalls.
-:rtype: List[renderdoc.DrawcallDescription]
+:return: The root actions.
+:rtype: List[renderdoc.ActionDescription]
 )");
-  virtual const rdcarray<DrawcallDescription> &CurDrawcalls() = 0;
+  virtual const rdcarray<ActionDescription> &CurRootActions() = 0;
 
   DOCUMENT(R"(Retrieve the information about a particular resource.
 
@@ -1881,15 +2079,15 @@ considered out of date
 )");
   virtual const rdcarray<BufferDescription> &GetBuffers() = 0;
 
-  DOCUMENT(R"(Retrieve the information about a drawcall at a given
+  DOCUMENT(R"(Retrieve the information about an action at a given
 :data:`eventId <renderdoc.APIEvent.eventId>`.
 
 :param int eventId: The :data:`eventId <renderdoc.APIEvent.eventId>` to query for.
-:return: The information about the drawcall, or ``None`` if the
-  :data:`eventId <renderdoc.APIEvent.eventId>` doesn't correspond to a drawcall.
-:rtype: renderdoc.DrawcallDescription
+:return: The information about the action, or ``None`` if the
+  :data:`eventId <renderdoc.APIEvent.eventId>` doesn't correspond to an action.
+:rtype: renderdoc.ActionDescription
 )");
-  virtual const DrawcallDescription *GetDrawcall(uint32_t eventId) = 0;
+  virtual const ActionDescription *GetAction(uint32_t eventId) = 0;
 
   DOCUMENT(R"(Sets the path to the RGP profile to use with :meth:`GetRGPInterop`, launches RGP and
 opens an interop connection. This function will block (with a progress dialog) until either an

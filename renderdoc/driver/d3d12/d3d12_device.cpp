@@ -1359,7 +1359,8 @@ void WrappedID3D12Device::AddCaptureSubmission()
     // 15 is quite a lot of submissions.
     const int expectedMaxSubmissions = 15;
 
-    RenderDoc::Inst().SetProgress(CaptureProgress::FrameCapture, FakeProgress(m_SubmitCounter, 15));
+    RenderDoc::Inst().SetProgress(CaptureProgress::FrameCapture,
+                                  FakeProgress(m_SubmitCounter, expectedMaxSubmissions));
     m_SubmitCounter++;
   }
 }
@@ -1457,7 +1458,7 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(SerialiserType &ser, IDX
 
   SERIALISE_ELEMENT(Buffer);
   SERIALISE_ELEMENT_LOCAL(SwapbufferID, GetResID(pRes)).TypedAs("ID3D12Resource *"_lit);
-  SERIALISE_ELEMENT_LOCAL(BackbufferDescriptor, pRes->GetDesc());
+  SERIALISE_ELEMENT_LOCAL(BackbufferDescriptor, pRes->GetDesc()).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1676,9 +1677,15 @@ void WrappedID3D12Device::Unmap(ID3D12Resource *Resource, UINT Subresource, byte
   D3D12_RANGE range = {0, (SIZE_T)map.totalSize};
 
   if(pWrittenRange)
+  {
     range = *pWrittenRange;
 
-  if(capframe && range.End > range.Begin)
+    // clamp end if it's lower than begin
+    if(range.End < range.Begin)
+      range.End = range.Begin;
+  }
+
+  if(capframe)
     MapDataWrite(Resource, Subresource, mapPtr, range);
 }
 
@@ -1687,7 +1694,7 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
                                                  UINT Subresource, byte *MappedData,
                                                  D3D12_RANGE range)
 {
-  SERIALISE_ELEMENT(Resource);
+  SERIALISE_ELEMENT(Resource).Important();
   SERIALISE_ELEMENT(Subresource);
 
   // tracks if we've already uploaded the data to a persistent buffer and don't need to re-serialise
@@ -1720,7 +1727,7 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
     flags = SerialiserFlags::NoFlags;
   }
 
-  ser.Serialise("MappedData"_lit, MappedData, range.End - range.Begin, flags);
+  ser.Serialise("MappedData"_lit, MappedData, range.End - range.Begin, flags).Important();
 
   SERIALISE_ELEMENT(range);
 
@@ -1826,7 +1833,7 @@ bool WrappedID3D12Device::Serialise_WriteToSubresource(SerialiserType &ser, ID3D
                                                        const void *pSrcData, UINT SrcRowPitch,
                                                        UINT SrcDepthPitch)
 {
-  SERIALISE_ELEMENT(Resource);
+  SERIALISE_ELEMENT(Resource).Important();
   SERIALISE_ELEMENT(Subresource);
   SERIALISE_ELEMENT_OPT(pDstBox);
 
@@ -1879,7 +1886,7 @@ bool WrappedID3D12Device::Serialise_WriteToSubresource(SerialiserType &ser, ID3D
     }
   }
 
-  SERIALISE_ELEMENT_ARRAY(pSrcData, dataSize);
+  SERIALISE_ELEMENT_ARRAY(pSrcData, dataSize).Important();
   SERIALISE_ELEMENT(dataSize).Hidden();
 
   SERIALISE_ELEMENT(SrcRowPitch);
@@ -2098,7 +2105,8 @@ bool WrappedID3D12Device::Serialise_Present(SerialiserType &ser, ID3D12Resource 
                                             UINT SyncInterval, UINT Flags)
 {
   SERIALISE_ELEMENT_LOCAL(PresentedBackbuffer, GetResID(PresentedImage))
-      .TypedAs("ID3D12Resource *"_lit);
+      .TypedAs("ID3D12Resource *"_lit)
+      .Important();
 
   // we don't do anything with these parameters, they're just here to store
   // them for user benefits
@@ -2112,15 +2120,15 @@ bool WrappedID3D12Device::Serialise_Present(SerialiserType &ser, ID3D12Resource 
     D3D12CommandData &cmd = *m_Queue->GetCommandData();
     cmd.AddEvent();
 
-    DrawcallDescription draw;
+    ActionDescription action;
 
-    draw.name = StringFormat::Fmt("Present(%s)", ToStr(PresentedBackbuffer).c_str());
-    draw.flags |= DrawFlags::Present;
+    action.customName = StringFormat::Fmt("Present(%s)", ToStr(PresentedBackbuffer).c_str());
+    action.flags |= ActionFlags::Present;
 
     cmd.m_LastPresentedImage = PresentedBackbuffer;
-    draw.copyDestination = PresentedBackbuffer;
+    action.copyDestination = PresentedBackbuffer;
 
-    cmd.AddDrawcall(draw, true);
+    cmd.AddAction(action);
   }
 
   return true;
@@ -2191,7 +2199,7 @@ template bool WrappedID3D12Device::Serialise_BeginCaptureFrame(WriteSerialiser &
 void WrappedID3D12Device::EndCaptureFrame()
 {
   WriteSerialiser &ser = GetThreadSerialiser();
-  ser.SetDrawChunk();
+  ser.SetActionChunk();
   SCOPED_SERIALISE_CHUNK(SystemChunk::CaptureEnd);
 
   // here for compatibility reasons, this used to store the presented Resource.
@@ -2833,15 +2841,15 @@ void WrappedID3D12Device::AddDebugMessage(MessageCategory c, MessageSeverity sv,
   msg.description = d;
   if(IsActiveReplaying(m_State))
   {
-    // look up the EID this drawcall came from
-    D3D12CommandData::DrawcallUse use(cmd.m_CurChunkOffset, 0);
-    auto it = std::lower_bound(cmd.m_DrawcallUses.begin(), cmd.m_DrawcallUses.end(), use);
-    RDCASSERT(it != cmd.m_DrawcallUses.end());
+    // look up the EID this action came from
+    D3D12CommandData::ActionUse use(cmd.m_CurChunkOffset, 0);
+    auto it = std::lower_bound(cmd.m_ActionUses.begin(), cmd.m_ActionUses.end(), use);
+    RDCASSERT(it != cmd.m_ActionUses.end());
 
-    if(it != cmd.m_DrawcallUses.end())
+    if(it != cmd.m_ActionUses.end())
       msg.eventId = it->eventId;
     else
-      RDCERR("Couldn't locate drawcall use for current chunk offset %llu", cmd.m_CurChunkOffset);
+      RDCERR("Couldn't locate action use for current chunk offset %llu", cmd.m_CurChunkOffset);
 
     AddDebugMessage(msg);
   }
@@ -3582,12 +3590,12 @@ void WrappedID3D12Device::FlushLists(bool forceSync, ID3D12CommandQueue *queue)
   }
 }
 
-const DrawcallDescription *WrappedID3D12Device::GetDrawcall(uint32_t eventId)
+const ActionDescription *WrappedID3D12Device::GetAction(uint32_t eventId)
 {
-  if(eventId >= m_Drawcalls.size())
+  if(eventId >= m_Actions.size())
     return NULL;
 
-  return m_Drawcalls[eventId];
+  return m_Actions[eventId];
 }
 
 bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
@@ -3981,11 +3989,11 @@ ReplayStatus WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool store
 
   if(!IsStructuredExporting(m_State))
   {
-    GetReplay()->WriteFrameRecord().drawcallList = m_Queue->GetParentDrawcall().Bake();
+    GetReplay()->WriteFrameRecord().actionList = m_Queue->GetParentAction().Bake();
 
-    m_Queue->GetParentDrawcall().children.clear();
+    m_Queue->GetParentAction().children.clear();
 
-    SetupDrawcallPointers(m_Drawcalls, GetReplay()->WriteFrameRecord().drawcallList);
+    SetupActionPointers(m_Actions, GetReplay()->WriteFrameRecord().actionList);
 
     D3D12CommandData &cmd = *m_Queue->GetCommandData();
 
@@ -4105,7 +4113,7 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
 
     // we'll need our own command list if we're replaying just a subsection
     // of events within a single command list record - always if it's only
-    // one drawcall, or if start event ID is > 0 we assume the outside code
+    // one action, or if start event ID is > 0 we assume the outside code
     // has chosen a subsection that lies within a command list
     if(partial)
     {

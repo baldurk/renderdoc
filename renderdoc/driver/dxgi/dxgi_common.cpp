@@ -2869,10 +2869,10 @@ template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, RECT &el)
 {
   // avoid serialising 'long' directly as we pretend it's only used for HRESULT
-  SERIALISE_MEMBER_TYPED(int32_t, left);
-  SERIALISE_MEMBER_TYPED(int32_t, top);
-  SERIALISE_MEMBER_TYPED(int32_t, right);
-  SERIALISE_MEMBER_TYPED(int32_t, bottom);
+  SERIALISE_MEMBER_TYPED(int32_t, left).Important();
+  SERIALISE_MEMBER_TYPED(int32_t, top).Important();
+  SERIALISE_MEMBER_TYPED(int32_t, right).Important();
+  SERIALISE_MEMBER_TYPED(int32_t, bottom).Important();
 }
 
 INSTANTIATE_SERIALISE_TYPE(RECT);

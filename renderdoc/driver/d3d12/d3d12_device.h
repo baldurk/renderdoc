@@ -675,7 +675,7 @@ private:
 
   uint32_t m_FrameCounter = 0;
   rdcarray<FrameDescription> m_CapturedFrames;
-  rdcarray<DrawcallDescription *> m_Drawcalls;
+  rdcarray<ActionDescription *> m_Actions;
 
   ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
 
@@ -793,7 +793,7 @@ public:
   Threading::RWLock &GetCapTransitionLock() { return m_CapTransitionLock; }
   void ReleaseSwapchainResources(IDXGISwapChain *swap, IUnknown **backbuffers, int numBackbuffers);
   void FirstFrame(IDXGISwapper *swapper);
-  const DrawcallDescription *GetDrawcall(uint32_t eventId);
+  const ActionDescription *GetAction(uint32_t eventId);
 
   ResourceId GetFrameCaptureResourceId() { return m_FrameCaptureRecord->GetResourceID(); }
   void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d);

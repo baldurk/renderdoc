@@ -41,6 +41,9 @@ FindReplace::FindReplace(QWidget *parent) : QFrame(parent), ui(new Ui::FindRepla
   RDLineEdit *edit = new RDLineEdit(this);
   ui->findText->setLineEdit(edit);
 
+  ui->findText->setAutoCompletion(false);
+  ui->replaceText->setAutoCompletion(false);
+
   QObject::connect(edit, &RDLineEdit::keyPress, [this](QKeyEvent *event) {
     if(event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter)
     {
@@ -159,6 +162,10 @@ void FindReplace::keyPressEvent(QKeyEvent *event)
     emit performFind();
 
     m_direction = dir;
+  }
+  else
+  {
+    emit keyPress(event);
   }
 }
 

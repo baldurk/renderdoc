@@ -489,23 +489,24 @@ div.stage table tr td { border-right: 1px solid #AAAAAA; background-color: #EEEE
 
             QString context = frameNumber == ~0U ? tr("Capture") : tr("Frame %1").arg(frameNumber);
 
-            const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+            const ActionDescription *action = m_Ctx.CurAction();
 
-            QList<const DrawcallDescription *> drawstack;
-            const DrawcallDescription *parent = draw ? draw->parent : NULL;
+            QList<const ActionDescription *> actionstack;
+            const ActionDescription *parent = action ? action->parent : NULL;
             while(parent)
             {
-              drawstack.push_front(parent);
+              actionstack.push_front(parent);
               parent = parent->parent;
             }
 
-            for(const DrawcallDescription *d : drawstack)
+            for(const ActionDescription *d : actionstack)
             {
-              context += QFormatStr(" > %1").arg(d->name);
+              context += QFormatStr(" > %1").arg(d->customName);
             }
 
-            if(draw)
-              context += QFormatStr(" => %1").arg(draw->name);
+            if(action)
+              context +=
+                  QFormatStr(" => %1").arg(m_Ctx.GetEventBrowser()->GetEventName(action->eventId));
             else
               context += tr(" => Capture Start");
 

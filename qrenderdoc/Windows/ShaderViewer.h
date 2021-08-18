@@ -160,6 +160,7 @@ private slots:
   void watch_keyPress(QKeyEvent *event);
   void performFind();
   void performFindAll();
+  void resultsDoubleClick(int position, int line);
   void performReplace();
   void performReplaceAll();
 
@@ -174,22 +175,16 @@ private slots:
   void disasm_tooltipShow(int x, int y);
   void disasm_tooltipHide(int x, int y);
 
-public slots:
-  bool stepBack();
-  bool stepNext();
-  void runToCursor();
-  void runToSample();
-  void runToNanOrInf();
-  void runBack();
-  void run();
-
 private:
   explicit ShaderViewer(ICaptureContext &ctx, QWidget *parent = 0);
   void editShader(ResourceId id, ShaderStage stage, const QString &entryPoint,
                   const rdcstrpairs &files, ShaderEncoding shaderEncoding, ShaderCompileFlags flags);
   void debugShader(const ShaderBindpointMapping *bind, const ShaderReflection *shader,
                    ResourceId pipeline, ShaderDebugTrace *trace, const QString &debugContext);
+
   bool eventFilter(QObject *watched, QEvent *event) override;
+
+  QAction *MakeExecuteAction(QString name, const QIcon &icon, QString tooltip, QKeySequence shortcut);
 
   void MarkModification();
 
@@ -290,6 +285,8 @@ private:
   rdcarray<BoundResourceArray> m_ReadWriteResources;
   QList<int> m_Breakpoints;
 
+  QList<QPair<ScintillaEdit *, int>> m_FindAllResults;
+
   static const int CURRENT_MARKER = 0;
   static const int BREAKPOINT_MARKER = 2;
   static const int FINISHED_MARKER = 4;
@@ -299,6 +296,7 @@ private:
 
   static const int INDICATOR_FINDRESULT = 0;
   static const int INDICATOR_REGHIGHLIGHT = 1;
+  static const int INDICATOR_FINDALLHIGHLIGHT = 2;
 
   QString targetName(const ShaderProcessingTool &disasm);
 
@@ -342,6 +340,16 @@ private:
 
   void setEditorWindowTitle();
 
+  enum StepMode
+  {
+    StepInto,
+    StepOver,
+    StepOut,
+  };
+
+  bool step(bool forward, StepMode mode);
+
+  void runToCursor(bool forward);
   void runTo(QVector<size_t> runToInstructions, bool forward,
              ShaderEvents condition = ShaderEvents::NoEvent);
 

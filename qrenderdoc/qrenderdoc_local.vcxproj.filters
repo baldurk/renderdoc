@@ -750,6 +750,12 @@
     <ClCompile Include="Windows\ShaderMessageViewer.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_MarkerBreadcrumbs.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\MarkerBreadcrumbs.cpp">
+      <Filter>Widgets</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -1526,6 +1532,9 @@
     <CustomBuild Include="Windows\ShaderMessageViewer.ui">
       <Filter>Windows</Filter>
     </CustomBuild>
+    <CustomBuild Include="Widgets\MarkerBreadcrumbs.h">
+      <Filter>Widgets</Filter>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resources\action.png">
@@ -1895,6 +1904,42 @@
       <Filter>Resources\Files</Filter>
     </Image>
     <Image Include="Resources\pixel_history%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\filter_reapply.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\filter_reapply%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_reverse_base_blue.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_reverse_base_blue%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_reverse_cursor_blue.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_reverse_cursor_blue%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_reverse_nan_blue.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_reverse_nan_blue%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_reverse_sample_blue.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\control_reverse_sample_blue%402x.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\filter.png">
+      <Filter>Resources\Files</Filter>
+    </Image>
+    <Image Include="Resources\filter%402x.png">
       <Filter>Resources\Files</Filter>
     </Image>
   </ItemGroup>

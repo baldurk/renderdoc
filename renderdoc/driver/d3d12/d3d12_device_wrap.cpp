@@ -42,7 +42,7 @@ bool WrappedID3D12Device::Serialise_CreateCommandQueue(SerialiserType &ser,
                                                        const D3D12_COMMAND_QUEUE_DESC *pDesc,
                                                        REFIID riid, void **ppCommandQueue)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Named("pDesc"_lit);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Named("pDesc"_lit).Important();
   SERIALISE_ELEMENT_LOCAL(guid, riid).Named("riid"_lit);
   SERIALISE_ELEMENT_LOCAL(pCommandQueue,
                           ((WrappedID3D12CommandQueue *)*ppCommandQueue)->GetResourceID())
@@ -169,7 +169,7 @@ bool WrappedID3D12Device::Serialise_CreateCommandAllocator(SerialiserType &ser,
                                                            D3D12_COMMAND_LIST_TYPE type,
                                                            REFIID riid, void **ppCommandAllocator)
 {
-  SERIALISE_ELEMENT(type);
+  SERIALISE_ELEMENT(type).Important();
   SERIALISE_ELEMENT_LOCAL(guid, riid).Named("riid"_lit);
   SERIALISE_ELEMENT_LOCAL(pCommandAllocator,
                           ((WrappedID3D12CommandAllocator *)*ppCommandAllocator)->GetResourceID())
@@ -257,7 +257,7 @@ bool WrappedID3D12Device::Serialise_CreateCommandList(SerialiserType &ser, UINT 
                                                       REFIID riid, void **ppCommandList)
 {
   SERIALISE_ELEMENT(nodeMask);
-  SERIALISE_ELEMENT(type);
+  SERIALISE_ELEMENT(type).Important();
   SERIALISE_ELEMENT(pCommandAllocator);
   SERIALISE_ELEMENT(pInitialState);
   SERIALISE_ELEMENT_LOCAL(guid, riid).Named("riid"_lit);
@@ -272,6 +272,8 @@ bool WrappedID3D12Device::Serialise_CreateCommandList(SerialiserType &ser, UINT 
 
   if(IsReplayingAndReading())
   {
+    nodeMask = 0;
+
     ID3D12GraphicsCommandList *list = NULL;
     HRESULT hr = CreateCommandList(nodeMask, type, pCommandAllocator, pInitialState,
                                    __uuidof(ID3D12GraphicsCommandList), (void **)&list);
@@ -405,7 +407,7 @@ bool WrappedID3D12Device::Serialise_CreateGraphicsPipelineState(
     SerialiserType &ser, const D3D12_GRAPHICS_PIPELINE_STATE_DESC *pDesc, REFIID riid,
     void **ppPipelineState)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Named("pDesc"_lit);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Named("pDesc"_lit).Important();
   SERIALISE_ELEMENT_LOCAL(guid, riid).Named("riid"_lit);
   SERIALISE_ELEMENT_LOCAL(pPipelineState,
                           ((WrappedID3D12PipelineState *)*ppPipelineState)->GetResourceID())
@@ -681,7 +683,7 @@ bool WrappedID3D12Device::Serialise_CreateComputePipelineState(
     SerialiserType &ser, const D3D12_COMPUTE_PIPELINE_STATE_DESC *pDesc, REFIID riid,
     void **ppPipelineState)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Named("pDesc"_lit);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Named("pDesc"_lit).Important();
   SERIALISE_ELEMENT_LOCAL(guid, riid).Named("riid"_lit);
   SERIALISE_ELEMENT_LOCAL(pPipelineState,
                           ((WrappedID3D12PipelineState *)*ppPipelineState)->GetResourceID())
@@ -834,7 +836,9 @@ bool WrappedID3D12Device::Serialise_CreateDescriptorHeap(
     SerialiserType &ser, const D3D12_DESCRIPTOR_HEAP_DESC *pDescriptorHeapDesc, REFIID riid,
     void **ppvHeap)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDescriptorHeapDesc).Named("pDescriptorHeapDesc"_lit);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDescriptorHeapDesc)
+      .Named("pDescriptorHeapDesc"_lit)
+      .Important();
   SERIALISE_ELEMENT_LOCAL(guid, riid).Named("riid"_lit);
   SERIALISE_ELEMENT_LOCAL(pHeap, ((WrappedID3D12DescriptorHeap *)*ppvHeap)->GetResourceID())
       .TypedAs("ID3D12DescriptorHeap *"_lit);
@@ -933,7 +937,7 @@ bool WrappedID3D12Device::Serialise_CreateRootSignature(SerialiserType &ser, UIN
                                                         void **ppvRootSignature)
 {
   SERIALISE_ELEMENT(nodeMask);
-  SERIALISE_ELEMENT_ARRAY(pBlobWithRootSignature, blobLengthInBytes_);
+  SERIALISE_ELEMENT_ARRAY(pBlobWithRootSignature, blobLengthInBytes_).Important();
   SERIALISE_ELEMENT_LOCAL(blobLengthInBytes, uint64_t(blobLengthInBytes_));
   SERIALISE_ELEMENT_LOCAL(guid, riid).Named("riid"_lit);
   SERIALISE_ELEMENT_LOCAL(pRootSignature,
@@ -944,6 +948,8 @@ bool WrappedID3D12Device::Serialise_CreateRootSignature(SerialiserType &ser, UIN
 
   if(IsReplayingAndReading())
   {
+    nodeMask = 0;
+
     ID3D12RootSignature *ret = NULL;
     HRESULT hr = m_pDevice->CreateRootSignature(nodeMask, pBlobWithRootSignature,
                                                 (SIZE_T)blobLengthInBytes, guid, (void **)&ret);
@@ -1100,8 +1106,8 @@ template <typename SerialiserType>
 bool WrappedID3D12Device::Serialise_DynamicDescriptorWrite(SerialiserType &ser,
                                                            const DynamicDescriptorWrite *write)
 {
-  SERIALISE_ELEMENT_LOCAL(desc, write->desc);
-  SERIALISE_ELEMENT_LOCAL(dst, ToPortableHandle(write->dest));
+  SERIALISE_ELEMENT_LOCAL(desc, write->desc).Important();
+  SERIALISE_ELEMENT_LOCAL(dst, ToPortableHandle(write->dest)).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1153,8 +1159,9 @@ void WrappedID3D12Device::CreateConstantBufferView(const D3D12_CONSTANT_BUFFER_V
       m_FrameCaptureRecord->AddChunk(scope.Get());
     }
 
-    GetResourceManager()->MarkResourceFrameReferenced(
-        WrappedID3D12Resource::GetResIDFromAddr(pDesc->BufferLocation), eFrameRef_Read);
+    if(pDesc)
+      GetResourceManager()->MarkResourceFrameReferenced(
+          WrappedID3D12Resource::GetResIDFromAddr(pDesc->BufferLocation), eFrameRef_Read);
   }
 
   GetWrapped(DestDescriptor)->Init(pDesc);
@@ -1370,7 +1377,7 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource(
 {
   SERIALISE_ELEMENT_LOCAL(props, *pHeapProperties).Named("pHeapProperties"_lit);
   SERIALISE_ELEMENT(HeapFlags);
-  SERIALISE_ELEMENT_LOCAL(desc, *pDesc).Named("pDesc"_lit);
+  SERIALISE_ELEMENT_LOCAL(desc, *pDesc).Named("pDesc"_lit).Important();
   SERIALISE_ELEMENT(InitialResourceState);
   SERIALISE_ELEMENT_OPT(pOptimizedClearValue);
   SERIALISE_ELEMENT_LOCAL(guid, riidResource).Named("riidResource"_lit);
@@ -1587,7 +1594,7 @@ template <typename SerialiserType>
 bool WrappedID3D12Device::Serialise_CreateHeap(SerialiserType &ser, const D3D12_HEAP_DESC *pDesc,
                                                REFIID riid, void **ppvHeap)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Named("pDesc"_lit);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Named("pDesc"_lit).Important();
   SERIALISE_ELEMENT_LOCAL(guid, riid).Named("riid"_lit);
   SERIALISE_ELEMENT_LOCAL(pHeap, ((WrappedID3D12Heap *)*ppvHeap)->GetResourceID())
       .TypedAs("ID3D12Heap *"_lit);
@@ -1684,9 +1691,9 @@ bool WrappedID3D12Device::Serialise_CreatePlacedResource(
     D3D12_RESOURCE_STATES InitialState, const D3D12_CLEAR_VALUE *pOptimizedClearValue, REFIID riid,
     void **ppvResource)
 {
-  SERIALISE_ELEMENT(pHeap);
+  SERIALISE_ELEMENT(pHeap).Important();
   SERIALISE_ELEMENT(HeapOffset);
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Named("pDesc"_lit);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Named("pDesc"_lit).Important();
   SERIALISE_ELEMENT(InitialState);
   SERIALISE_ELEMENT_OPT(pOptimizedClearValue);
   SERIALISE_ELEMENT_LOCAL(guid, riid).Named("riid"_lit);
@@ -1888,7 +1895,7 @@ bool WrappedID3D12Device::Serialise_CreateReservedResource(
     SerialiserType &ser, const D3D12_RESOURCE_DESC *pDesc, D3D12_RESOURCE_STATES InitialState,
     const D3D12_CLEAR_VALUE *pOptimizedClearValue, REFIID riid, void **ppvResource)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Named("pDesc"_lit);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Named("pDesc"_lit).Important();
   SERIALISE_ELEMENT(InitialState);
   SERIALISE_ELEMENT_OPT(pOptimizedClearValue);
   SERIALISE_ELEMENT_LOCAL(guid, riid).Named("riid"_lit);
@@ -2117,7 +2124,7 @@ template <typename SerialiserType>
 bool WrappedID3D12Device::Serialise_CreateFence(SerialiserType &ser, UINT64 InitialValue,
                                                 D3D12_FENCE_FLAGS Flags, REFIID riid, void **ppFence)
 {
-  SERIALISE_ELEMENT(InitialValue);
+  SERIALISE_ELEMENT(InitialValue).Important();
   SERIALISE_ELEMENT(Flags);
   SERIALISE_ELEMENT_LOCAL(guid, riid).Named("riid"_lit);
   SERIALISE_ELEMENT_LOCAL(pFence, ((WrappedID3D12Fence *)*ppFence)->GetResourceID())
@@ -2211,7 +2218,7 @@ bool WrappedID3D12Device::Serialise_CreateQueryHeap(SerialiserType &ser,
                                                     const D3D12_QUERY_HEAP_DESC *pDesc, REFIID riid,
                                                     void **ppvHeap)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Named("pDesc"_lit);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Named("pDesc"_lit).Important();
   SERIALISE_ELEMENT_LOCAL(guid, riid).Named("riid"_lit);
   SERIALISE_ELEMENT_LOCAL(pQueryHeap, ((WrappedID3D12QueryHeap *)*ppvHeap)->GetResourceID())
       .TypedAs("ID3D12QueryHeap *"_lit);
@@ -2289,7 +2296,7 @@ bool WrappedID3D12Device::Serialise_CreateCommandSignature(SerialiserType &ser,
                                                            ID3D12RootSignature *pRootSignature,
                                                            REFIID riid, void **ppvCommandSignature)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Named("pDesc"_lit);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Named("pDesc"_lit).Important();
   SERIALISE_ELEMENT(pRootSignature);
   SERIALISE_ELEMENT_LOCAL(guid, riid).Named("riid"_lit);
   SERIALISE_ELEMENT_LOCAL(pCommandSignature,
@@ -2317,10 +2324,10 @@ bool WrappedID3D12Device::Serialise_CreateCommandSignature(SerialiserType &ser,
       wrapped->sig.arguments.assign(Descriptor.pArgumentDescs, Descriptor.NumArgumentDescs);
 
       wrapped->sig.graphics = true;
-      wrapped->sig.numDraws = 0;
+      wrapped->sig.numActions = 0;
 
       // From MSDN, command signatures are either graphics or compute so just search for dispatches:
-      // "A given command signature is either a draw or a compute command signature. If a command
+      // "A given command signature is either an action or a compute command signature. If a command
       // signature contains a drawing operation, then it is a graphics command signature. Otherwise,
       // the command signature must contain a dispatch operation, and it is a compute command
       // signature."
@@ -2332,7 +2339,7 @@ bool WrappedID3D12Device::Serialise_CreateCommandSignature(SerialiserType &ser,
         if(Descriptor.pArgumentDescs[i].Type == D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH ||
            Descriptor.pArgumentDescs[i].Type == D3D12_INDIRECT_ARGUMENT_TYPE_DRAW ||
            Descriptor.pArgumentDescs[i].Type == D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED)
-          wrapped->sig.numDraws++;
+          wrapped->sig.numActions++;
       }
 
       ret = wrapped;
@@ -2635,7 +2642,7 @@ template <typename SerialiserType>
 bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE, REFIID riid,
                                                      void **ppvObj)
 {
-  SERIALISE_ELEMENT_LOCAL(ResourceRIID, riid);
+  SERIALISE_ELEMENT_LOCAL(ResourceRIID, riid).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 

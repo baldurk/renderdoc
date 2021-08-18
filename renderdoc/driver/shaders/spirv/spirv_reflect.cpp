@@ -955,7 +955,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
         // on Vulkan should never have elements that have no binding declared but are used. On GL we
         // should have gotten a location
         // above, which will be rewritten later when looking up the pipeline state since it's
-        // mutable from draw to draw in theory.
+        // mutable from action to action in theory.
         RDCASSERT(!bindmap.used || bindmap.bind != INVALID_BIND);
 
         // opaque type - buffers, images, etc
@@ -1040,7 +1040,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
           // on Vulkan should never have elements that have no binding declared but are used, unless
           // it's push constants (which is handled elsewhere). On GL we should have gotten a
           // location above, which will be rewritten later when looking up the pipeline state since
-          // it's mutable from draw to draw in theory.
+          // it's mutable from action to action in theory.
           RDCASSERT(!bindmap.used || pushConst || bindmap.bind != INVALID_BIND);
 
           if(ssbo)

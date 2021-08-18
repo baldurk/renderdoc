@@ -42,12 +42,12 @@ Pixel debugging is launched from the texture viewer. For more details on selecti
 
 When a given pixel is selected you can click the history button underneath the pixel context. This will launch the :ref:`pixel-history` window with the selected pixel showing every modification. You can then choose to debug any of the triangles that generated a change.
 
-If you already have the current drawcall selected that you want to debug, you can click the debug button to skip the pixel history and jump straight to the debugger. The inputs to the pixel will be automatically filled in.
+If you already have the current draw selected that you want to debug, you can click the debug button to skip the pixel history and jump straight to the debugger. The inputs to the pixel will be automatically filled in.
 
 There are a couple of things to note while pixel debugging:
 
-* If the drawcall selected doesn't write to the pixel you have highlighted, the pixel history window will open to let you choose which draw call to debug.
-* If a drawcall overdraws the same pixel several times then the results of debugging will come from the last fragment that passed the depth test. If you wish to choose a particular fragment from the list then first launch the pixel history and choose which fragment to debug from the list there.
+* If the draw selected doesn't write to the pixel you have highlighted, the pixel history window will open to let you choose which draw call to debug.
+* If a draw overdraws the same pixel several times then the results of debugging will come from the last fragment that passed the depth test. If you wish to choose a particular fragment from the list then first launch the pixel history and choose which fragment to debug from the list there.
 
 Debugging a Compute thread
 --------------------------

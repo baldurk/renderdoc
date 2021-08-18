@@ -5,31 +5,31 @@ import rdtest
 class Draw_Zoo(rdtest.TestCase):
     internal = True
 
-    def vid(self, draw: rd.DrawcallDescription, val: int):
+    def vid(self, action: rd.ActionDescription, val: int):
         # For D3D, Vertex ID is either 0-based for non indexed calls, or the raw index. That means no baseVertex applied
         if rd.IsD3D(self.props.pipelineType):
-            if draw.flags & rd.DrawFlags.Indexed:
-                return float(val - draw.baseVertex)
+            if action.flags & rd.ActionFlags.Indexed:
+                return float(val - action.baseVertex)
             return float(val)
 
         # For GL and vulkan it includes all offsets - so for non-indexed that includes vertexOffset, and for indexed
         # that includes baseVertex
-        if draw.flags & rd.DrawFlags.Indexed:
+        if action.flags & rd.ActionFlags.Indexed:
             return float(val)
-        return float(val + draw.vertexOffset)
+        return float(val + action.vertexOffset)
 
-    def iid(self, draw: rd.DrawcallDescription, val: int):
+    def iid(self, action: rd.ActionDescription, val: int):
         # See above - similar for instance ID, but only vulkan includes the instanceOffset in instance ID
 
-        if (self.props.pipelineType == rd.GraphicsAPI.Vulkan) and draw.flags & rd.DrawFlags.Instanced:
-            return float(val + draw.instanceOffset)
+        if (self.props.pipelineType == rd.GraphicsAPI.Vulkan) and action.flags & rd.ActionFlags.Instanced:
+            return float(val + action.instanceOffset)
 
         return float(val)
 
-    def check_draw(self, draw: rd.DrawcallDescription, ref_data):
-        rdtest.log.print("Checking draw {}".format(draw.eventId))
+    def check_action(self, action: rd.ActionDescription, ref_data):
+        rdtest.log.print("Checking action {}".format(action.eventId))
 
-        self.controller.SetFrameEvent(draw.eventId, True)
+        self.controller.SetFrameEvent(action.eventId, True)
 
         self.pipe: rd.PipeState = self.controller.GetPipelineState()
 
@@ -80,10 +80,10 @@ class Draw_Zoo(rdtest.TestCase):
                     vsin_pos_name: ref_data['pos'][v],
                 }
 
-        self.check_mesh_data(vsin_ref, self.get_vsin(draw))
+        self.check_mesh_data(vsin_ref, self.get_vsin(action))
 
-        num_instances = draw.numInstances
-        if not (draw.flags & rd.DrawFlags.Instanced):
+        num_instances = action.numInstances
+        if not (action.flags & rd.ActionFlags.Instanced):
             num_instances = 1
 
         rdtest.log.success("Checked vertex in data")
@@ -104,11 +104,11 @@ class Draw_Zoo(rdtest.TestCase):
                         'vtx': v,
                         'idx': ref_data['base']+v,
                         vsout_pos_name: conv_out_pos(ref_data['pos'][v]),
-                        'VID': self.vid(draw, ref_data['base']+v),
-                        'IID': self.iid(draw, inst),
+                        'VID': self.vid(action, ref_data['base']+v),
+                        'IID': self.iid(action, inst),
                     }
 
-            postvs = self.get_postvs(draw, rd.MeshDataStage.VSOut, instance=inst)
+            postvs = self.get_postvs(action, rd.MeshDataStage.VSOut, instance=inst)
 
             self.check_mesh_data(vsout_ref, postvs)
 
@@ -128,13 +128,13 @@ class Draw_Zoo(rdtest.TestCase):
             for vert, coord in enumerate(ref_data['pixels'][inst]):
                 if coord[0] == 0 and coord[1] == 0:
                     continue
-                val = (self.vid(draw, ref_data['base'] + vert), self.iid(draw, inst), float(inst) * 0.5,
+                val = (self.vid(action, ref_data['base'] + vert), self.iid(action, inst), float(inst) * 0.5,
                        postvs[vert]['COLOR'][1] + postvs[vert]['TEXCOORD'][0])
                 self.check_pixel_value(out_tex, coord[0], coord[1], val, eps=0.3)
 
             rdtest.log.success("Checked pixels in instance {}".format(inst))
 
-        rdtest.log.success("Checked draw {}".format(draw.eventId))
+        rdtest.log.success("Checked action {}".format(action.eventId))
 
     def check_debug(self, vtx, idx, inst, postvs):
         trace: rd.ShaderDebugTrace = self.controller.DebugVertex(vtx, inst, idx, 0)
@@ -174,9 +174,9 @@ class Draw_Zoo(rdtest.TestCase):
     def check_capture(self):
         self.props: rd.APIProperties = self.controller.GetAPIProperties()
 
-        test_marker: rd.DrawcallDescription = self.find_draw("Test")
+        test_marker: rd.ActionDescription = self.find_action("Test")
 
-        draw: rd.DrawcallDescription = test_marker.next
+        action: rd.ActionDescription = test_marker.next
 
         rdtest.log.begin_section("Non-indexed, non-instanced cases")
 
@@ -187,34 +187,34 @@ class Draw_Zoo(rdtest.TestCase):
             'pixels': [[(12, 12), (24, 34), (35, 12)]],
         }
 
-        self.check_draw(draw, ref)
-        self.check(draw.vertexOffset == 0)
+        self.check_action(action, ref)
+        self.check(action.vertexOffset == 0)
         self.check(self.pipe.GetVBuffers()[0].byteOffset == 0)
-        draw = draw.next
+        action = action.next
 
-        # Vertex offset in the draw
+        # Vertex offset in the action
         ref = {
             'base': 0,
             'pos': [[-0.5, -0.5, 0.0], [0.0, 0.5, 0.0], [0.5, -0.5, 0.0]],
             'pixels': [[(60, 35), (72, 13), (83, 35)]],
         }
 
-        self.check_draw(draw, ref)
-        self.check(draw.vertexOffset > 0)
+        self.check_action(action, ref)
+        self.check(action.vertexOffset > 0)
         self.check(self.pipe.GetVBuffers()[0].byteOffset == 0)
-        draw = draw.next
+        action = action.next
 
-        # Vertex offset in draw and in vertex binding
+        # Vertex offset in action and in vertex binding
         ref = {
             'base': 0,
             'pos': [[-0.5, 0.0, 0.0], [0.0, -0.5, 0.0], [0.0, 0.5, 0.0]],
             'pixels': [[(108, 23), (119, 35), (119, 13)]],
         }
 
-        self.check_draw(draw, ref)
-        self.check(draw.vertexOffset > 0)
+        self.check_action(action, ref)
+        self.check(action.vertexOffset > 0)
         self.check(self.pipe.GetVBuffers()[0].byteOffset > 0)
-        draw = draw.next
+        action = action.next
 
         rdtest.log.end_section("Non-indexed, non-instanced cases")
 
@@ -227,75 +227,75 @@ class Draw_Zoo(rdtest.TestCase):
             'pixels': [[(12, 60), (24, 82), (35, 60)]],
         }
 
-        self.check_draw(draw, ref)
-        self.check(draw.indexOffset == 0)
-        self.check(draw.baseVertex == 0)
-        self.check(draw.vertexOffset == 0)
+        self.check_action(action, ref)
+        self.check(action.indexOffset == 0)
+        self.check(action.baseVertex == 0)
+        self.check(action.vertexOffset == 0)
         self.check(self.pipe.GetVBuffers()[0].byteOffset == 0)
         self.check(self.pipe.GetIBuffer().byteOffset == 0)
-        draw = draw.next
+        action = action.next
 
-        # first index in the draw
+        # first index in the action
         ref = {
             'base': 5,
             'pos': [[-0.5, -0.5, 0.0], [0.0, 0.5, 0.0], [0.5, -0.5, 0.0]],
             'pixels': [[(60, 83), (72, 61), (83, 83)]],
         }
 
-        self.check_draw(draw, ref)
-        self.check(draw.indexOffset > 0)
-        self.check(draw.baseVertex == 0)
-        self.check(draw.vertexOffset == 0)
+        self.check_action(action, ref)
+        self.check(action.indexOffset > 0)
+        self.check(action.baseVertex == 0)
+        self.check(action.vertexOffset == 0)
         self.check(self.pipe.GetVBuffers()[0].byteOffset == 0)
         self.check(self.pipe.GetIBuffer().byteOffset == 0)
-        draw = draw.next
+        action = action.next
 
-        # first index and base vertex in the draw
+        # first index and base vertex in the action
         ref = {
             'base': 13,
             'pos': [[-0.5, 0.0, 0.0], [0.0, -0.5, 0.0], [0.0, 0.5, 0.0]],
             'pixels': [[(108, 71), (119, 83), (119, 61)]],
         }
 
-        self.check_draw(draw, ref)
-        self.check(draw.indexOffset > 0)
-        self.check(draw.baseVertex < 0)
-        self.check(draw.vertexOffset == 0)
+        self.check_action(action, ref)
+        self.check(action.indexOffset > 0)
+        self.check(action.baseVertex < 0)
+        self.check(action.vertexOffset == 0)
         self.check(self.pipe.GetVBuffers()[0].byteOffset == 0)
         self.check(self.pipe.GetIBuffer().byteOffset == 0)
-        draw = draw.next
+        action = action.next
 
-        # first index and base vertex in the draw, and vertex binding offset
+        # first index and base vertex in the action, and vertex binding offset
         ref = {
             'base': 3,
             'pos': [[-0.5, 0.0, 0.0], [0.0, -0.5, 0.0], [0.0, 0.5, 0.0]],
             'pixels': [[(156, 71), (167, 83), (167, 61)]],
         }
 
-        self.check_draw(draw, ref)
-        self.check(draw.indexOffset > 0)
-        self.check(draw.baseVertex < 0)
-        self.check(draw.vertexOffset == 0)
+        self.check_action(action, ref)
+        self.check(action.indexOffset > 0)
+        self.check(action.baseVertex < 0)
+        self.check(action.vertexOffset == 0)
         self.check(self.pipe.GetVBuffers()[0].byteOffset > 0)
         self.check(self.pipe.GetIBuffer().byteOffset == 0)
-        draw = draw.next
+        action = action.next
 
-        # first index and base vertex in the draw, and vertex & index binding offset
+        # first index and base vertex in the action, and vertex & index binding offset
         ref = {
             'base': 4,
             'pos': [[0.0, -0.5, 0.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0]],
             'pixels': [[(216, 82), (226, 71), (216, 61)]],
         }
 
-        self.check_draw(draw, ref)
-        self.check(draw.indexOffset > 0)
-        self.check(draw.baseVertex < 0)
-        self.check(draw.vertexOffset == 0)
+        self.check_action(action, ref)
+        self.check(action.indexOffset > 0)
+        self.check(action.baseVertex < 0)
+        self.check(action.vertexOffset == 0)
         self.check(self.pipe.GetVBuffers()[0].byteOffset > 0)
         # OpenGL doesn't support offset on index buffer bindings
         if self.props.pipelineType != rd.GraphicsAPI.OpenGL:
             self.check(self.pipe.GetIBuffer().byteOffset > 0)
-        draw = draw.next
+        action = action.next
 
         # Skip indexed strips for now
         ref = {
@@ -313,8 +313,8 @@ class Draw_Zoo(rdtest.TestCase):
             'pixels': [[(252, 67), (252, 71), (256, 67)]],
         }
 
-        self.check_draw(draw, ref)
-        draw = draw.next
+        self.check_action(action, ref)
+        action = action.next
 
         ref = {
             'base': 30,
@@ -331,8 +331,8 @@ class Draw_Zoo(rdtest.TestCase):
             'pixels': [[(300, 67), (300, 71), (304, 67)]],
         }
 
-        self.check_draw(draw, ref)
-        draw = draw.next
+        self.check_action(action, ref)
+        action = action.next
 
         rdtest.log.end_section("indexed, non-instanced")
 
@@ -348,12 +348,12 @@ class Draw_Zoo(rdtest.TestCase):
             ],
         }
 
-        self.check_draw(draw, ref)
-        self.check(draw.instanceOffset == 0)
+        self.check_action(action, ref)
+        self.check(action.instanceOffset == 0)
         self.check(self.pipe.GetVBuffers()[1].byteOffset == 0)
-        draw = draw.next
+        action = action.next
 
-        # instance offset in the draw
+        # instance offset in the action
         ref = {
             'base': 0,
             'pos': [[-0.5, -0.5, 0.0], [0.0, 0.5, 0.0], [0.5, -0.5, 0.0]],
@@ -363,12 +363,12 @@ class Draw_Zoo(rdtest.TestCase):
             ],
         }
 
-        self.check_draw(draw, ref)
-        self.check(draw.instanceOffset > 0)
+        self.check_action(action, ref)
+        self.check(action.instanceOffset > 0)
         self.check(self.pipe.GetVBuffers()[1].byteOffset == 0)
-        draw = draw.next
+        action = action.next
 
-        # instance offset in the draw and offset on the instanced VB
+        # instance offset in the action and offset on the instanced VB
         ref = {
             'base': 0,
             'pos': [[-0.5, 0.0, 0.0], [0.0, -0.5, 0.0], [0.0, 0.5, 0.0]],
@@ -378,10 +378,10 @@ class Draw_Zoo(rdtest.TestCase):
             ],
         }
 
-        self.check_draw(draw, ref)
-        self.check(draw.instanceOffset > 0)
+        self.check_action(action, ref)
+        self.check(action.instanceOffset > 0)
         self.check(self.pipe.GetVBuffers()[1].byteOffset > 0)
-        draw = draw.next
+        action = action.next
 
         rdtest.log.end_section("non-indexed, instanced")
 
@@ -397,12 +397,12 @@ class Draw_Zoo(rdtest.TestCase):
             ],
         }
 
-        self.check_draw(draw, ref)
-        self.check(draw.instanceOffset == 0)
+        self.check_action(action, ref)
+        self.check(action.instanceOffset == 0)
         self.check(self.pipe.GetVBuffers()[1].byteOffset == 0)
-        draw = draw.next
+        action = action.next
 
-        # instance offset in the draw
+        # instance offset in the action
         ref = {
             'base': 13,
             'pos': [[-0.5, 0.0, 0.0], [0.0, -0.5, 0.0], [0.0, 0.5, 0.0]],
@@ -412,12 +412,12 @@ class Draw_Zoo(rdtest.TestCase):
             ],
         }
 
-        self.check_draw(draw, ref)
-        self.check(draw.instanceOffset > 0)
+        self.check_action(action, ref)
+        self.check(action.instanceOffset > 0)
         self.check(self.pipe.GetVBuffers()[1].byteOffset == 0)
-        draw = draw.next
+        action = action.next
 
-        # instance offset in the draw and offset on the instanced VB
+        # instance offset in the action and offset on the instanced VB
         ref = {
             'base': 23,
             'pos': [[0.0, -0.5, 0.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0]],
@@ -427,9 +427,9 @@ class Draw_Zoo(rdtest.TestCase):
             ],
         }
 
-        self.check_draw(draw, ref)
-        self.check(draw.instanceOffset > 0)
+        self.check_action(action, ref)
+        self.check(action.instanceOffset > 0)
         self.check(self.pipe.GetVBuffers()[1].byteOffset > 0)
-        draw = draw.next
+        action = action.next
 
         rdtest.log.end_section("indexed, instanced")

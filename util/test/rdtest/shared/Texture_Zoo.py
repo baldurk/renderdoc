@@ -492,11 +492,10 @@ class Texture_Zoo():
         self.out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100),
                                                                  rd.ReplayOutputType.Texture)
 
-        for d in self.controller.GetDrawcalls():
-
-            if 'slice tests' in d.name:
+        for d in self.controller.GetRootActions():
+            if 'slice tests' in d.customName:
                 for sub in d.children:
-                    if 'Draw' in sub.name:
+                    if sub.flags & rd.ActionFlags.Drawcall:
                         self.controller.SetFrameEvent(sub.eventId, True)
 
                         pipe = self.controller.GetPipelineState()
@@ -546,41 +545,41 @@ class Texture_Zoo():
 
                                     rdtest.log.success('Displayed pixel is correct at scale {}% in slice {} mip {}'
                                                        .format(int(scale * 100), sl, mip))
-                    else:
-                        rdtest.log.print('Checking {} for slice display'.format(sub.name))
+                    elif sub.flags & rd.ActionFlags.SetMarker:
+                        rdtest.log.print('Checking {} for slice display'.format(sub.customName))
 
                 continue
 
             # Check each region for the tests within
-            if d.flags & rd.DrawFlags.PushMarker:
+            if d.flags & rd.ActionFlags.PushMarker:
                 name = ''
                 tests_run = 0
 
                 failed = False
 
-                # Iterate over drawcalls in this region
+                # Iterate over actions in this region
                 for sub in d.children:
-                    sub: rd.DrawcallDescription
+                    sub: rd.ActionDescription
 
-                    if sub.flags & rd.DrawFlags.SetMarker:
-                        name = sub.name
+                    if sub.flags & rd.ActionFlags.SetMarker:
+                        name = sub.customName
 
-                    # Check this draw
-                    if sub.flags & rd.DrawFlags.Drawcall:
+                    # Check this action
+                    if sub.flags & rd.ActionFlags.Drawcall:
                         tests_run = tests_run + 1
                         try:
                             # Set this event as current
                             self.controller.SetFrameEvent(sub.eventId, True)
 
-                            self.filename = (d.name + '@' + name).replace('->', '_')
+                            self.filename = (d.customName + '@' + name).replace('->', '_')
 
-                            self.check_test(d.name, name, Texture_Zoo.TEST_CAPTURE)
+                            self.check_test(d.customName, name, Texture_Zoo.TEST_CAPTURE)
                         except rdtest.TestFailureException as ex:
                             failed = any_failed = True
                             rdtest.log.error(str(ex))
 
                 if not failed:
-                    rdtest.log.success("All {} texture tests for {} are OK".format(tests_run, d.name))
+                    rdtest.log.success("All {} texture tests for {} are OK".format(tests_run, d.customName))
 
         self.out.Shutdown()
         self.out = None
@@ -690,7 +689,7 @@ class Texture_Zoo():
 
             [a, b] = file.name.replace('.dds', ' (DDS)').replace('.png', ' (PNG)').split('@')
 
-            self.controller.SetFrameEvent(self.controller.GetDrawcalls()[0].eventId, True)
+            self.controller.SetFrameEvent(self.controller.GetRootActions()[0].eventId, True)
 
             try:
                 self.opengl_mode = False

@@ -7,56 +7,56 @@ if 'renderdoc' not in sys.modules and '_renderdoc' not in sys.modules:
 # Alias renderdoc for legibility
 rd = renderdoc
 
-# Define a recursive function for iterating over draws
-def iterDraw(d, indent = ''):
-	# Print this drawcall
-	print('%s%d: %s' % (indent, d.eventId, d.name))
+# Define a recursive function for iterating over actions
+def iterAction(d, indent = ''):
+	# Print this action
+	print('%s%d: %s' % (indent, d.eventId, d.GetName(controller.GetStructuredFile())))
 
-	# Iterate over the draw's children
+	# Iterate over the action's children
 	for d in d.children:
-		iterDraw(d, indent + '    ')
+		iterAction(d, indent + '    ')
 
 def sampleCode(controller):
-	# Iterate over all of the root drawcalls
-	for d in controller.GetDrawcalls():
-		iterDraw(d)
+	# Iterate over all of the root actions
+	for d in controller.GetRootActions():
+		iterAction(d)
 
-	# Start iterating from the first real draw as a child of markers
-	draw = controller.GetDrawcalls()[0]
+	# Start iterating from the first real action as a child of markers
+	action = controller.GetRootActions()[0]
 
-	while len(draw.children) > 0:
-		draw = draw.children[0]
+	while len(action.children) > 0:
+		action = action.children[0]
 
 	# Counter for which pass we're in
 	passnum = 0
-	# Counter for how many draws are in the pass
+	# Counter for how many actions are in the pass
 	passcontents = 0
-	# Whether we've started seeing draws in the pass - i.e. we're past any
+	# Whether we've started seeing actions in the pass - i.e. we're past any
 	# starting clear calls that may be batched together
 	inpass = False
 
-	print("Pass #0 starts with %d: %s" % (draw.eventId, draw.name))
+	print("Pass #0 starts with %d: %s" % (action.eventId, action.GetName(controller.GetStructuredFile())))
 
-	while draw != None:
+	while action != None:
 		# When we encounter a clear
-		if draw.flags & rd.DrawFlags.Clear:
+		if action.flags & rd.ActionFlags.Clear:
 			if inpass:
-				print("Pass #%d contained %d draws" % (passnum, passcontents))
+				print("Pass #%d contained %d actions" % (passnum, passcontents))
 				passnum += 1
-				print("Pass #%d starts with %d: %s" % (passnum, draw.eventId, draw.name))
+				print("Pass #%d starts with %d: %s" % (passnum, action.eventId, action.GetName(controller.GetStructuredFile())))
 				passcontents = 0
 				inpass = False
 		else:
 			passcontents += 1
 			inpass = True
 
-		# Advance to the next drawcall
-		draw = draw.next
-		if draw is None:
+		# Advance to the next action
+		action = action.next
+		if action is None:
 			break
 
 	if inpass:
-		print("Pass #%d contained %d draws" % (passnum, passcontents))
+		print("Pass #%d contained %d actions" % (passnum, passcontents))
 
 def loadCapture(filename):
 	# Open a capture file handle

@@ -80,5 +80,5 @@ Keyboard Shortcuts
 #. In the texture viewer you can hit :kbd:`Ctrl-G` to open a popup that lets you jump to a particular pixel co-ordinate.
 #. In the texture viewer, after selecting a pixel you can use the arrow keys to 'nudge' one pixel at a time in any direction to fine-tune the selection.
 #. To close a capture, press :kbd:`Ctrl-F4`. This will prompt to save if there are any unsaved changes.
-#. Anywhere in the UI, you can use :kbd:`Ctrl-Left` and :kbd:`Ctrl-Right` to jump to the previous or next drawcall.
+#. Anywhere in the UI, you can use :kbd:`Ctrl-Left` and :kbd:`Ctrl-Right` to jump to the previous or next action.
 #. If you :doc:`add some bookmarks <../how/how_annotate_capture>` you can globally press any key from :kbd:`Ctrl-1` to :kbd:`Ctrl-0` to jump to the first 10 bookmarks.

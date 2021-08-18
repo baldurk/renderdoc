@@ -140,7 +140,6 @@ private:
 
   friend class RDTreeWidget;
   friend class RDTreeWidgetModel;
-  friend class RDTreeWidgetDelegate;
 
   void setWidget(RDTreeWidget *widget);
   RDTreeWidget *m_widget = NULL;
@@ -204,8 +203,6 @@ private:
   RDTreeWidgetItem *m_Current;
 };
 
-class RichTextViewDelegate;
-
 class RDTreeWidget : public RDTreeView
 {
   Q_OBJECT
@@ -235,13 +232,14 @@ public:
   void endUpdate();
   void setColumnAlignment(int column, Qt::Alignment align);
 
-  void setItemDelegate(QAbstractItemDelegate *delegate);
-  QAbstractItemDelegate *itemDelegate() const;
-
   RDTreeWidgetItem *itemForIndex(QModelIndex idx) const;
 
   void copyItem(QPoint pos, RDTreeWidgetItem *item);
 
+  typedef std::function<bool(int, Qt::SortOrder, const RDTreeWidgetItem *, const RDTreeWidgetItem *)>
+      ComparisonFunction;
+
+  void setSortComparison(ComparisonFunction comparison) { m_SortComparison = comparison; }
   void setColumns(const QStringList &columns);
   const QStringList &getHeaders() const { return m_headers; }
   QString headerText(int column) const { return m_headers[column]; }
@@ -289,19 +287,17 @@ private:
 
   friend class RDTreeWidgetModel;
   friend class RDTreeWidgetItem;
-  friend class RDTreeWidgetDelegate;
 
   // invisible root item, used to simplify recursion by even top-level items having a parent
   RDTreeWidgetItem *m_root;
 
   RDTreeWidgetModel *m_model;
 
-  QAbstractItemDelegate *m_userDelegate = NULL;
-  RichTextViewDelegate *m_delegate;
-
   bool m_clearing = false;
 
   QStringList m_headers;
+
+  ComparisonFunction m_SortComparison;
 
   bool m_queueUpdates = false;
 

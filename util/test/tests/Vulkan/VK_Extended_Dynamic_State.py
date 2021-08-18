@@ -6,9 +6,9 @@ class VK_Extended_Dynamic_State(rdtest.TestCase):
     demos_test_name = 'VK_Extended_Dynamic_State'
 
     def check_capture(self):
-        draw: rd.DrawcallDescription = self.find_draw("Draw")
+        action: rd.ActionDescription = self.find_action("Draw")
 
-        self.controller.SetFrameEvent(draw.eventId, True)
+        self.controller.SetFrameEvent(action.eventId, True)
 
         vsin_ref = {
             0: {
@@ -41,9 +41,9 @@ class VK_Extended_Dynamic_State(rdtest.TestCase):
             },
         }
 
-        self.check_mesh_data(vsin_ref, self.get_vsin(draw))
+        self.check_mesh_data(vsin_ref, self.get_vsin(action))
 
-        postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, draw.numIndices)
+        postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
 
         postvs_ref = {
             0: {

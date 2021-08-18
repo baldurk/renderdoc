@@ -32,11 +32,11 @@ class VK_Synchronization_2(rdtest.TestCase):
                 if img.layouts[0].name != "VK_IMAGE_LAYOUT_PRESENT_SRC_KHR":
                     raise rdtest.TestFailureException("Swapchain image is in {} layout".format(img.layouts[0].name))
 
-        draw = self.find_draw("Before Transition")
+        action = self.find_action("Before Transition")
 
-        self.check(draw is not None)
+        self.check(action is not None)
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         pipe: rd.VKState = self.controller.GetVulkanPipelineState()
 
@@ -59,14 +59,14 @@ class VK_Synchronization_2(rdtest.TestCase):
                 if img.layouts[0].name != "VK_IMAGE_LAYOUT_PRESENT_SRC_KHR":
                     raise rdtest.TestFailureException("Swapchain image is in {} layout".format(img.layouts[0].name))
 
-        draw = self.find_draw("vkCmdDraw")
+        action = self.find_action("vkCmdDraw")
 
-        self.check(draw is not None)
+        self.check(action is not None)
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         # Check that the backbuffer didn't get discarded
-        self.check_triangle(out=draw.outputs[0])
+        self.check_triangle(out=action.outputs[0])
 
         col = [float(0x40) / 255.0] * 4
 

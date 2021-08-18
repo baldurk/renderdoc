@@ -32,7 +32,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_WriteBufferImmediate(
   ID3D12GraphicsCommandList2 *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(Count);
-  SERIALISE_ELEMENT_ARRAY(pParams, Count);
+  SERIALISE_ELEMENT_ARRAY(pParams, Count).Important();
   SERIALISE_ELEMENT_ARRAY(pModes, Count);
 
   SERIALISE_CHECK_READ_ERRORS();

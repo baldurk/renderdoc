@@ -77,7 +77,7 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(
     SerialiserType &ser, ID3D11Resource *pDstResource, UINT DstSubresource, const D3D11_BOX *pDstBox,
     const void *pSrcData, UINT SrcRowPitch, UINT SrcDepthPitch, UINT CopyFlags)
 {
-  SERIALISE_ELEMENT(pDstResource);
+  SERIALISE_ELEMENT(pDstResource).Important();
   SERIALISE_ELEMENT(DstSubresource);
   SERIALISE_ELEMENT_OPT(pDstBox);
   SERIALISE_ELEMENT(SrcRowPitch);
@@ -188,7 +188,7 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(
       }
     }
 
-    SERIALISE_ELEMENT_ARRAY(pSrcData, SourceDataLength);
+    SERIALISE_ELEMENT_ARRAY(pSrcData, SourceDataLength).Important();
     SERIALISE_ELEMENT(SourceDataLength);
 
     SERIALISE_CHECK_READ_ERRORS();
@@ -409,12 +409,12 @@ bool WrappedID3D11DeviceContext::Serialise_CopySubresourceRegion1(
     UINT DstZ, ID3D11Resource *pSrcResource, UINT SrcSubresource, const D3D11_BOX *pSrcBox,
     UINT CopyFlags)
 {
-  SERIALISE_ELEMENT(pDstResource);
+  SERIALISE_ELEMENT(pDstResource).Important();
   SERIALISE_ELEMENT(DstSubresource);
   SERIALISE_ELEMENT(DstX);
   SERIALISE_ELEMENT(DstY);
   SERIALISE_ELEMENT(DstZ);
-  SERIALISE_ELEMENT(pSrcResource);
+  SERIALISE_ELEMENT(pSrcResource).Important();
   SERIALISE_ELEMENT(SrcSubresource);
   SERIALISE_ELEMENT_OPT(pSrcBox);
   SERIALISE_ELEMENT_TYPED(D3D11_COPY_FLAGS, CopyFlags);
@@ -454,18 +454,17 @@ bool WrappedID3D11DeviceContext::Serialise_CopySubresourceRegion1(
 
       AddEvent();
 
-      DrawcallDescription draw;
-      draw.name = "CopySubresourceRegion1(" + ToStr(dstOrigID) + ", " + ToStr(srcOrigID) + ")";
-      draw.flags |= DrawFlags::Copy;
+      ActionDescription action;
+      action.flags |= ActionFlags::Copy;
 
       if(pDstResource && pSrcResource)
       {
-        draw.copySource = srcOrigID;
-        draw.copySourceSubresource =
+        action.copySource = srcOrigID;
+        action.copySourceSubresource =
             Subresource(GetMipForSubresource(pSrcResource, SrcSubresource),
                         GetSliceForSubresource(pSrcResource, SrcSubresource));
-        draw.copyDestination = dstOrigID;
-        draw.copyDestinationSubresource =
+        action.copyDestination = dstOrigID;
+        action.copyDestinationSubresource =
             Subresource(GetMipForSubresource(pDstResource, DstSubresource),
                         GetSliceForSubresource(pDstResource, DstSubresource));
 
@@ -483,7 +482,7 @@ bool WrappedID3D11DeviceContext::Serialise_CopySubresourceRegion1(
         }
       }
 
-      AddDrawcall(draw, true);
+      AddAction(action);
     }
   }
 
@@ -538,7 +537,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearView(SerialiserType &ser, ID3D11
                                                      const D3D11_RECT *pRect, UINT NumRects)
 {
   SERIALISE_ELEMENT(pView);
-  SERIALISE_ELEMENT_ARRAY(ColorRGBA, 4);
+  SERIALISE_ELEMENT_ARRAY(ColorRGBA, 4).Important();
   SERIALISE_ELEMENT_ARRAY(pRect, NumRects);
   SERIALISE_ELEMENT(NumRects);
 
@@ -562,11 +561,9 @@ bool WrappedID3D11DeviceContext::Serialise_ClearView(SerialiserType &ser, ID3D11
       // add this event
       AddEvent();
 
-      DrawcallDescription draw;
+      ActionDescription action;
 
-      draw.name = StringFormat::Fmt("ClearView(%f, %f, %f, %f, %u rects)", ColorRGBA[0],
-                                    ColorRGBA[1], ColorRGBA[2], ColorRGBA[3], NumRects);
-      draw.flags |= DrawFlags::Clear;
+      action.flags |= ActionFlags::Clear;
 
       ResourceId resid = GetViewResourceResID(pView);
 
@@ -574,14 +571,14 @@ bool WrappedID3D11DeviceContext::Serialise_ClearView(SerialiserType &ser, ID3D11
       {
         m_ResourceUses[resid].push_back(
             EventUsage(m_CurEventID, ResourceUsage::Clear, GetIDForDeviceChild(pView)));
-        draw.copyDestination = GetResourceManager()->GetOriginalID(resid);
-        draw.copyDestinationSubresource = Subresource();
+        action.copyDestination = GetResourceManager()->GetOriginalID(resid);
+        action.copyDestinationSubresource = Subresource();
 
         const ResourceRange &range = GetResourceRange(pView);
-        draw.copyDestinationSubresource = Subresource(range.GetMinMip(), range.GetMinSlice());
+        action.copyDestinationSubresource = Subresource(range.GetMinMip(), range.GetMinSlice());
       }
 
-      AddDrawcall(draw, true);
+      AddAction(action);
     }
   }
 
@@ -639,7 +636,7 @@ void WrappedID3D11DeviceContext::ClearView(ID3D11View *pView, const FLOAT Color[
     if(IsActiveCapturing(m_State))
     {
       USE_SCRATCH_SERIALISER();
-      ser.SetDrawChunk();
+      ser.SetActionChunk();
       SCOPED_SERIALISE_CHUNK(D3D11Chunk::ClearView);
       SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
       Serialise_ClearView(ser, pView, Color, pRect, NumRects);
@@ -671,9 +668,9 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetConstantBuffers1(
     SerialiserType &ser, UINT StartSlot, UINT NumBuffers, ID3D11Buffer *const *ppConstantBuffers,
     const UINT *pFirstConstant, const UINT *pNumConstants)
 {
-  SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(StartSlot).Important();
   SERIALISE_ELEMENT(NumBuffers);
-  SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
+  SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers).Important();
   SERIALISE_ELEMENT_ARRAY(pFirstConstant, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pNumConstants, NumBuffers);
 
@@ -802,9 +799,9 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetConstantBuffers1(
     SerialiserType &ser, UINT StartSlot, UINT NumBuffers, ID3D11Buffer *const *ppConstantBuffers,
     const UINT *pFirstConstant, const UINT *pNumConstants)
 {
-  SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(StartSlot).Important();
   SERIALISE_ELEMENT(NumBuffers);
-  SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
+  SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers).Important();
   SERIALISE_ELEMENT_ARRAY(pFirstConstant, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pNumConstants, NumBuffers);
 
@@ -933,9 +930,9 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetConstantBuffers1(
     SerialiserType &ser, UINT StartSlot, UINT NumBuffers, ID3D11Buffer *const *ppConstantBuffers,
     const UINT *pFirstConstant, const UINT *pNumConstants)
 {
-  SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(StartSlot).Important();
   SERIALISE_ELEMENT(NumBuffers);
-  SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
+  SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers).Important();
   SERIALISE_ELEMENT_ARRAY(pFirstConstant, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pNumConstants, NumBuffers);
 
@@ -1064,9 +1061,9 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetConstantBuffers1(
     SerialiserType &ser, UINT StartSlot, UINT NumBuffers, ID3D11Buffer *const *ppConstantBuffers,
     const UINT *pFirstConstant, const UINT *pNumConstants)
 {
-  SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(StartSlot).Important();
   SERIALISE_ELEMENT(NumBuffers);
-  SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
+  SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers).Important();
   SERIALISE_ELEMENT_ARRAY(pFirstConstant, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pNumConstants, NumBuffers);
 
@@ -1195,9 +1192,9 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetConstantBuffers1(
     SerialiserType &ser, UINT StartSlot, UINT NumBuffers, ID3D11Buffer *const *ppConstantBuffers,
     const UINT *pFirstConstant, const UINT *pNumConstants)
 {
-  SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(StartSlot).Important();
   SERIALISE_ELEMENT(NumBuffers);
-  SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
+  SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers).Important();
   SERIALISE_ELEMENT_ARRAY(pFirstConstant, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pNumConstants, NumBuffers);
 
@@ -1326,9 +1323,9 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetConstantBuffers1(
     SerialiserType &ser, UINT StartSlot, UINT NumBuffers, ID3D11Buffer *const *ppConstantBuffers,
     const UINT *pFirstConstant, const UINT *pNumConstants)
 {
-  SERIALISE_ELEMENT(StartSlot);
+  SERIALISE_ELEMENT(StartSlot).Important();
   SERIALISE_ELEMENT(NumBuffers);
-  SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers);
+  SERIALISE_ELEMENT_ARRAY(ppConstantBuffers, NumBuffers).Important();
   SERIALISE_ELEMENT_ARRAY(pFirstConstant, NumBuffers);
   SERIALISE_ELEMENT_ARRAY(pNumConstants, NumBuffers);
 
@@ -1714,7 +1711,7 @@ template <typename SerialiserType>
 bool WrappedID3D11DeviceContext::Serialise_DiscardResource(SerialiserType &ser,
                                                            ID3D11Resource *pResource)
 {
-  SERIALISE_ELEMENT(pResource);
+  SERIALISE_ELEMENT(pResource).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -1741,14 +1738,13 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardResource(SerialiserType &ser,
 
       AddEvent();
 
-      DrawcallDescription draw;
+      ActionDescription action;
 
-      draw.name = StringFormat::Fmt("DiscardResource(%s)", ToStr(dstOrigID).c_str());
-      draw.flags |= DrawFlags::Clear;
-      draw.copyDestination = dstOrigID;
-      draw.copyDestinationSubresource = Subresource();
+      action.flags |= ActionFlags::Clear;
+      action.copyDestination = dstOrigID;
+      action.copyDestinationSubresource = Subresource();
 
-      AddDrawcall(draw, true);
+      AddAction(action);
 
       if(pResource)
         m_ResourceUses[dstLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::Discard));
@@ -1783,7 +1779,7 @@ void WrappedID3D11DeviceContext::DiscardResource(ID3D11Resource *pResource)
   if(IsActiveCapturing(m_State))
   {
     USE_SCRATCH_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D11Chunk::DiscardResource);
     SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
     Serialise_DiscardResource(ser, pResource);
@@ -1802,7 +1798,7 @@ void WrappedID3D11DeviceContext::DiscardResource(ID3D11Resource *pResource)
 template <typename SerialiserType>
 bool WrappedID3D11DeviceContext::Serialise_DiscardView(SerialiserType &ser, ID3D11View *pResourceView)
 {
-  SERIALISE_ELEMENT(pResourceView);
+  SERIALISE_ELEMENT(pResourceView).Important();
 
   Serialise_DebugMessages(ser);
 
@@ -1828,23 +1824,21 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView(SerialiserType &ser, ID3D
     {
       AddEvent();
 
-      DrawcallDescription draw;
+      ActionDescription action;
 
-      draw.flags |= DrawFlags::Clear;
-      draw.copyDestinationSubresource = Subresource();
+      action.flags |= ActionFlags::Clear;
+      action.copyDestinationSubresource = Subresource();
       if(pResourceView)
       {
         const ResourceRange &range = GetResourceRange(pResourceView);
         ResourceId resid = GetViewResourceResID(pResourceView);
-        draw.copyDestination = m_pDevice->GetResourceManager()->GetOriginalID(resid);
-        draw.copyDestinationSubresource = Subresource(range.GetMinMip(), range.GetMinSlice());
+        action.copyDestination = m_pDevice->GetResourceManager()->GetOriginalID(resid);
+        action.copyDestinationSubresource = Subresource(range.GetMinMip(), range.GetMinSlice());
         m_ResourceUses[resid].push_back(
             EventUsage(m_CurEventID, ResourceUsage::Discard, GetIDForDeviceChild(pResourceView)));
       }
 
-      draw.name = StringFormat::Fmt("DiscardView(%s)", ToStr(draw.copyDestination).c_str());
-
-      AddDrawcall(draw, true);
+      AddAction(action);
     }
   }
 
@@ -1901,7 +1895,7 @@ void WrappedID3D11DeviceContext::DiscardView(ID3D11View *pResourceView)
     if(IsActiveCapturing(m_State))
     {
       USE_SCRATCH_SERIALISER();
-      ser.SetDrawChunk();
+      ser.SetActionChunk();
       SCOPED_SERIALISE_CHUNK(D3D11Chunk::DiscardView);
       SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
       Serialise_DiscardView(ser, pResourceView);
@@ -1934,7 +1928,7 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView1(SerialiserType &ser,
                                                         ID3D11View *pResourceView,
                                                         const D3D11_RECT *pRect, UINT NumRects)
 {
-  SERIALISE_ELEMENT(pResourceView);
+  SERIALISE_ELEMENT(pResourceView).Important();
   SERIALISE_ELEMENT_ARRAY(pRect, NumRects);
   SERIALISE_ELEMENT(NumRects);
 
@@ -1965,23 +1959,21 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView1(SerialiserType &ser,
     {
       AddEvent();
 
-      DrawcallDescription draw;
+      ActionDescription action;
 
-      draw.flags |= DrawFlags::Clear;
+      action.flags |= ActionFlags::Clear;
 
       if(pResourceView)
       {
         const ResourceRange &range = GetResourceRange(pResourceView);
         ResourceId resid = GetViewResourceResID(pResourceView);
-        draw.copyDestination = m_pDevice->GetResourceManager()->GetOriginalID(resid);
-        draw.copyDestinationSubresource = Subresource(range.GetMinMip(), range.GetMinSlice());
+        action.copyDestination = m_pDevice->GetResourceManager()->GetOriginalID(resid);
+        action.copyDestinationSubresource = Subresource(range.GetMinMip(), range.GetMinSlice());
         m_ResourceUses[resid].push_back(
             EventUsage(m_CurEventID, ResourceUsage::Discard, GetIDForDeviceChild(pResourceView)));
       }
 
-      draw.name = StringFormat::Fmt("DiscardView1(%s)", ToStr(draw.copyDestination).c_str());
-
-      AddDrawcall(draw, true);
+      AddAction(action);
     }
   }
 
@@ -2039,7 +2031,7 @@ void WrappedID3D11DeviceContext::DiscardView1(ID3D11View *pResourceView, const D
     if(IsActiveCapturing(m_State))
     {
       USE_SCRATCH_SERIALISER();
-      ser.SetDrawChunk();
+      ser.SetActionChunk();
       SCOPED_SERIALISE_CHUNK(D3D11Chunk::DiscardView1);
       SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
       Serialise_DiscardView1(ser, pResourceView, pRects, NumRects);

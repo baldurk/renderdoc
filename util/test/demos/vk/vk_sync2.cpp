@@ -171,16 +171,6 @@ RD_TEST(VK_Synchronization_2, VulkanGraphicsTest)
 
       setMarker(cmd, "Before Transition");
 
-      // after the first N frames, we expect the swapchain to be in PRESENT_SRC
-      vkh::cmdPipelineBarrier(cmd,
-                              {
-                                  vkh::ImageMemoryBarrier(0, VK_ACCESS_TRANSFER_WRITE_BIT,
-                                                          (size_t)curFrame <= mainWindow->GetCount()
-                                                              ? VK_IMAGE_LAYOUT_UNDEFINED
-                                                              : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                                                          VK_IMAGE_LAYOUT_GENERAL, swapimg),
-                              });
-
       VkDependencyInfoKHR dependency = {VK_STRUCTURE_TYPE_DEPENDENCY_INFO_KHR};
 
       VkBufferMemoryBarrier2KHR bufBarrier = {VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2_KHR};
@@ -253,11 +243,11 @@ RD_TEST(VK_Synchronization_2, VulkanGraphicsTest)
 
       vkCmdResetEvent2KHR(cmd, ev, VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT_KHR);
 
-      vkCmdSetEvent2KHR(cmd, ev, &dependency);
-
       vkCmdClearColorImage(cmd, swapimg, VK_IMAGE_LAYOUT_GENERAL,
                            vkh::ClearColorValue(0.2f, 0.2f, 0.2f, 1.0f), 1,
                            vkh::ImageSubresourceRange());
+
+      vkCmdSetEvent2KHR(cmd, ev, &dependency);
 
       VkImageCopy region = {
           {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},

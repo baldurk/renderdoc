@@ -7,10 +7,10 @@ class VK_Overlay_Test(rdtest.Overlay_Test):
     internal = False
 
     def check_capture(self):
-        # Check clear-before-draw when first selecting a draw, to ensure that bindless feedback doesn't interfere
+        # Check clear-before-action when first selecting a action, to ensure that bindless feedback doesn't interfere
         out = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
 
-        setup_marker = self.find_draw("Setup")
+        setup_marker = self.find_action("Setup")
         self.controller.SetFrameEvent(setup_marker.next.eventId, True)
 
         pipe = self.controller.GetPipelineState()
@@ -23,11 +23,11 @@ class VK_Overlay_Test(rdtest.Overlay_Test):
 
         out.Display()
 
-        # Select the next setup draw
+        # Select the next setup action
         self.controller.SetFrameEvent(setup_marker.next.eventId, True)
 
-        # Select the real draw for the first time
-        self.controller.SetFrameEvent(self.find_draw("Normal Test").next.eventId, True)
+        # Select the real action for the first time
+        self.controller.SetFrameEvent(self.find_action("Normal Test").next.eventId, True)
 
         self.check_pixel_value(tex.resourceId, 180, 150, [0.0, 0.0, 0.0, 0.0])
         self.check_pixel_value(tex.resourceId, 50, 50, [0.0, 0.0, 0.0, 0.0])
@@ -43,7 +43,7 @@ class VK_Overlay_Test(rdtest.Overlay_Test):
 
         # Don't check any pixel values, but ensure all overlays at least work with rasterizer discard and no
         # viewport/scissor bound
-        sub_marker = self.find_draw("Discard Test")
+        sub_marker = self.find_action("Discard Test")
         self.controller.SetFrameEvent(sub_marker.next.eventId, True)
 
         pipe = self.controller.GetPipelineState()

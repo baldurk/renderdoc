@@ -25,7 +25,7 @@
 #include "dxbc_bytecode.h"
 #include "common/formatting.h"
 #include "os/os_specific.h"
-#include "dxbc_container.h"
+#include "dxbc_bytecode_ops.h"
 
 static ShaderVariable makeReg(rdcstr name)
 {
@@ -39,10 +39,33 @@ namespace DXBCBytecode
 Program::Program(const byte *bytes, size_t length)
 {
   RDCASSERT((length % 4) == 0);
-  m_HexDump.resize(length / 4);
-  memcpy(m_HexDump.data(), bytes, length);
+  m_ProgramWords.resize(length / 4);
+  memcpy(m_ProgramWords.data(), bytes, length);
 
-  FetchTypeVersion();
+  if(m_ProgramWords.empty())
+    return;
+
+  uint32_t *begin = &m_ProgramWords.front();
+  uint32_t *cur = begin;
+
+  m_Type = VersionToken::ProgramType.Get(cur[0]);
+  m_Major = VersionToken::MajorVersion.Get(cur[0]);
+  m_Minor = VersionToken::MinorVersion.Get(cur[0]);
+}
+
+Program::Program(const rdcarray<uint32_t> &words)
+{
+  m_ProgramWords = words;
+
+  if(m_ProgramWords.empty())
+    return;
+
+  uint32_t *begin = &m_ProgramWords.front();
+  uint32_t *cur = begin;
+
+  m_Type = VersionToken::ProgramType.Get(cur[0]);
+  m_Major = VersionToken::MajorVersion.Get(cur[0]);
+  m_Minor = VersionToken::MinorVersion.Get(cur[0]);
 }
 
 void HandleResourceArrayIndices(const rdcarray<DXBCBytecode::RegIndex> &indices,
@@ -64,9 +87,117 @@ void HandleResourceArrayIndices(const rdcarray<DXBCBytecode::RegIndex> &indices,
   }
 }
 
+bool Program::UsesExtensionUAV(uint32_t slot, uint32_t space, const byte *bytes, size_t length)
+{
+  uint32_t *begin = (uint32_t *)bytes;
+  uint32_t *cur = begin;
+  uint32_t *end = begin + (length / sizeof(uint32_t));
+
+  const bool sm51 = (VersionToken::MajorVersion.Get(cur[0]) == 0x5 &&
+                     VersionToken::MinorVersion.Get(cur[0]) == 0x1);
+
+  if(sm51 && space == ~0U)
+    return false;
+
+  // skip version and length
+  cur += 2;
+
+  while(cur < end)
+  {
+    uint32_t OpcodeToken0 = cur[0];
+
+    OpcodeType op = Opcode::Type.Get(OpcodeToken0);
+
+    // nvidia is a structured buffer with counter
+    // AMD is a RW byte address buffer
+    if((op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED &&
+        Decl::HasOrderPreservingCounter.Get(OpcodeToken0)) ||
+       op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW)
+    {
+      uint32_t *tokenStream = cur;
+
+      // skip opcode and length
+      tokenStream++;
+
+      uint32_t indexDim = Oper::IndexDimension.Get(tokenStream[0]);
+      OperandIndexType idx0Type = Oper::Index0.Get(tokenStream[0]);
+      OperandIndexType idx1Type = Oper::Index1.Get(tokenStream[0]);
+      OperandIndexType idx2Type = Oper::Index2.Get(tokenStream[0]);
+
+      // expect only one immediate index for the operand on SM <= 5.0, and three immediate indices
+      // on SM5.1
+      if((indexDim == 1 && idx0Type == INDEX_IMMEDIATE32) ||
+         (indexDim == 3 && idx0Type == INDEX_IMMEDIATE32 && idx1Type == INDEX_IMMEDIATE32 &&
+          idx2Type == INDEX_IMMEDIATE32))
+      {
+        bool extended = Oper::Extended.Get(tokenStream[0]);
+
+        tokenStream++;
+
+        while(extended)
+        {
+          extended = ExtendedOperand::Extended.Get(tokenStream[0]) == 1;
+
+          tokenStream++;
+        }
+
+        uint32_t opreg = tokenStream[0];
+        tokenStream++;
+
+        // on 5.1 opreg is just the identifier which means nothing, the binding comes next as a
+        // range, like U1[7:7] is bound to slot 7
+        if(indexDim == 3)
+        {
+          uint32_t lower = tokenStream[0];
+          uint32_t upper = tokenStream[1];
+          tokenStream += 2;
+
+          // the magic UAV should be lower == upper. If that isn't the case, don't match this even
+          // if the range includes our target register
+          if(lower == upper)
+            opreg = lower;
+          else
+            opreg = ~0U;
+        }
+
+        if(op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED)
+        {
+          // stride
+          tokenStream++;
+        }
+
+        if(sm51)
+        {
+          uint32_t opspace = tokenStream[0];
+
+          if(space == opspace && slot == opreg)
+            return true;
+        }
+        else
+        {
+          if(slot == opreg)
+            return true;
+        }
+      }
+    }
+
+    if(op == OPCODE_CUSTOMDATA)
+    {
+      // length in opcode token is 0, full length is in second dword
+      cur += cur[1];
+    }
+    else
+    {
+      cur += Opcode::Length.Get(OpcodeToken0);
+    }
+  }
+
+  return false;
+}
+
 DXBC::Reflection *Program::GuessReflection()
 {
-  DisassembleHexDump();
+  DecodeProgram();
 
   // we don't store this, since it's just a guess. If our m_Reflection is NULL that indicates no
   // useful reflection is present
@@ -118,9 +249,9 @@ DXBC::Reflection *Program::GuessReflection()
         desc.space = dcl.space;
         desc.reg = idx;
         desc.bindCount = 1;
-        desc.retType = dcl.resType[0];
+        desc.retType = dcl.resource.resType[0];
 
-        switch(dcl.dim)
+        switch(dcl.resource.dim)
         {
           case RESOURCE_DIMENSION_BUFFER: desc.dimension = DXBC::ShaderInputBind::DIM_BUFFER; break;
           case RESOURCE_DIMENSION_TEXTURE1D:
@@ -213,7 +344,7 @@ DXBC::Reflection *Program::GuessReflection()
         desc.bindCount = 1;
         desc.retType = DXBC::RETURN_TYPE_MIXED;
         desc.dimension = DXBC::ShaderInputBind::DIM_BUFFER;
-        desc.numComps = dcl.stride;
+        desc.numComps = dcl.structured.stride;
 
         HandleResourceArrayIndices(dcl.operand.indices, desc);
 
@@ -236,14 +367,14 @@ DXBC::Reflection *Program::GuessReflection()
             DXBC::ShaderInputBind::TYPE_UAV_RWSTRUCTURED;    // doesn't seem to be anything that
                                                              // determines append vs consume vs
                                                              // rwstructured
-        if(dcl.hasCounter)
+        if(dcl.structured.hasCounter)
           desc.type = DXBC::ShaderInputBind::TYPE_UAV_RWSTRUCTURED_WITH_COUNTER;
         desc.space = dcl.space;
         desc.reg = idx;
         desc.bindCount = 1;
         desc.retType = DXBC::RETURN_TYPE_MIXED;
         desc.dimension = DXBC::ShaderInputBind::DIM_BUFFER;
-        desc.numComps = dcl.stride;
+        desc.numComps = dcl.structured.stride;
 
         HandleResourceArrayIndices(dcl.operand.indices, desc);
 
@@ -266,9 +397,9 @@ DXBC::Reflection *Program::GuessReflection()
         desc.space = dcl.space;
         desc.reg = idx;
         desc.bindCount = 1;
-        desc.retType = dcl.resType[0];
+        desc.retType = dcl.uav_typed.resType[0];
 
-        switch(dcl.dim)
+        switch(dcl.uav_typed.dim)
         {
           case RESOURCE_DIMENSION_BUFFER: desc.dimension = DXBC::ShaderInputBind::DIM_BUFFER; break;
           case RESOURCE_DIMENSION_TEXTURE1D:
@@ -323,7 +454,8 @@ DXBC::Reflection *Program::GuessReflection()
         bool isShaderModel51 = IsShaderModel51();
         uint32_t idx = (uint32_t)dcl.operand.indices[0].index;
         uint32_t reg = isShaderModel51 ? (uint32_t)dcl.operand.indices[1].index : idx;
-        uint32_t numVecs = isShaderModel51 ? dcl.float4size : (uint32_t)dcl.operand.indices[1].index;
+        uint32_t numVecs =
+            isShaderModel51 ? dcl.cbuffer.vectorSize : (uint32_t)dcl.operand.indices[1].index;
 
         desc.name = StringFormat::Fmt("cbuffer%u", idx);
         desc.type = DXBC::ShaderInputBind::TYPE_CBUFFER;
@@ -407,7 +539,7 @@ rdcstr Program::GetDebugStatus()
     return rdcstr();
 
   // otherwise we need to check that no unsupported vendor extensions are used
-  DisassembleHexDump();
+  DecodeProgram();
 
   for(const Operation &op : m_Instructions)
   {
@@ -435,7 +567,7 @@ rdcstr Program::GetDebugStatus()
 
 D3D_PRIMITIVE_TOPOLOGY Program::GetOutputTopology()
 {
-  DisassembleHexDump();
+  DecodeProgram();
 
   if(m_Type != DXBC::ShaderType::Geometry && m_Type != DXBC::ShaderType::Domain)
     return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
@@ -443,10 +575,10 @@ D3D_PRIMITIVE_TOPOLOGY Program::GetOutputTopology()
   for(const DXBCBytecode::Declaration &decl : m_Declarations)
   {
     if(decl.declaration == DXBCBytecode::OPCODE_DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY)
-      return decl.outTopology;
+      return decl.geomOutputTopology;
     if(decl.declaration == DXBCBytecode::OPCODE_DCL_TESS_DOMAIN)
     {
-      if(decl.domain == DXBCBytecode::DOMAIN_ISOLINE)
+      if(decl.tessDomain == DXBCBytecode::DOMAIN_ISOLINE)
         return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
       else
         return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
@@ -492,6 +624,25 @@ void Program::SetupRegisterFile(rdcarray<ShaderVariable> &registers) const
     registers.push_back(makeReg(rdcstr()));
   if(m_OutputCoverage)
     registers.push_back(makeReg(rdcstr()));
+}
+
+const Declaration *Program::FindDeclaration(OperandType declType, uint32_t identifier) const
+{
+  // Given a declType and identifier (together defining a binding such as t0, s1, etc.),
+  // return the matching declaration if it exists. The logic for this is the same for all
+  // shader model versions.
+  size_t numDeclarations = m_Declarations.size();
+  for(size_t i = 0; i < numDeclarations; ++i)
+  {
+    const Declaration &decl = m_Declarations[i];
+    if(decl.operand.type == declType)
+    {
+      if(decl.operand.indices[0].index == identifier)
+        return &decl;
+    }
+  }
+
+  return NULL;
 }
 
 uint32_t Program::GetRegisterIndex(OperandType type, uint32_t index) const

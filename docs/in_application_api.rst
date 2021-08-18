@@ -1,7 +1,7 @@
 In-application API
 ==================
 
-Reference for RenderDoc in-application API version 1.4.1. This API is not necessary to use RenderDoc by default, but if you would like more control or custom triggering of captures this API can provide the mechanism to do so.
+Reference for RenderDoc in-application API version 1.4.2. This API is not necessary to use RenderDoc by default, but if you would like more control or custom triggering of captures this API can provide the mechanism to do so.
 
 Make sure to use a matching API header for your build - if you use a newer header, the API version may not be available. All RenderDoc builds supporting this API ship the header in their root directory.
 
@@ -112,9 +112,9 @@ To do this you'll use your platforms dynamic library functions to see if the lib
 
     specifies whether each API call should save a callstack. Default is off.
 
-.. cpp:enumerator:: RENDERDOC_CaptureOption::eRENDERDOC_Option_CaptureCallstacksOnlyDraws
+.. cpp:enumerator:: RENDERDOC_CaptureOption::eRENDERDOC_Option_CaptureCallstacksOnlyActions
 
-    specifies whether - if ``CaptureCallstacks`` is enabled - callstacks are only saved on drawcalls. Default is off.
+    specifies whether - if ``CaptureCallstacks`` is enabled - callstacks are only saved on actions. Default is off.
 
 .. cpp:enumerator:: RENDERDOC_CaptureOption::eRENDERDOC_Option_DelayForDebugger
 

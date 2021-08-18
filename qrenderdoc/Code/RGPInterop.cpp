@@ -213,11 +213,13 @@ void RGPInterop::EventSelected(RGPInteropEvent event)
     return;
   }
 
-  const DrawcallDescription *draw = m_Ctx.GetDrawcall(eventId);
+  const ActionDescription *action = m_Ctx.GetAction(eventId);
 
-  if(draw && QString(draw->name) != event.eventname)
-    qWarning() << "Drawcall name mismatch. Expected " << event.eventname << " but got "
-               << QString(draw->name);
+  const SDFile &file = m_Ctx.GetStructuredFile();
+
+  if(action && QString(file.chunks[action->events.back().chunkIndex]->name) != event.eventname)
+    qWarning() << "Action name mismatch. Expected " << event.eventname << " but got "
+               << QString(file.chunks[action->events.back().chunkIndex]->name);
 
   m_Ctx.SetEventID({}, eventId, eventId);
 
@@ -248,15 +250,16 @@ void RGPInterop::ConnectionEstablished()
   });
 }
 
-void RGPInterop::CreateMapping(const rdcarray<DrawcallDescription> &drawcalls)
+void RGPInterop::CreateMapping(const rdcarray<ActionDescription> &actions)
 {
   const SDFile &file = m_Ctx.GetStructuredFile();
 
-  for(const DrawcallDescription &draw : drawcalls)
+  for(const ActionDescription &action : actions)
   {
-    for(const APIEvent &ev : draw.events)
+    for(const APIEvent &ev : action.events)
     {
-      if(ev.chunkIndex == 0 || ev.chunkIndex >= file.chunks.size())
+      if(ev.chunkIndex == 0 || ev.chunkIndex == APIEvent::NoChunk ||
+         ev.chunkIndex >= file.chunks.size())
         continue;
 
       const SDChunk *chunk = file.chunks[ev.chunkIndex];
@@ -264,18 +267,33 @@ void RGPInterop::CreateMapping(const rdcarray<DrawcallDescription> &drawcalls)
       if(m_EventNames.contains(chunk->name, Qt::CaseSensitive))
       {
         m_Event2RGP[ev.eventId].interoplinearid = (uint32_t)m_RGP2Event.size();
-        if(ev.eventId == draw.eventId)
-          m_Event2RGP[ev.eventId].eventname = draw.name;
-        else
-          m_Event2RGP[ev.eventId].eventname = chunk->name;
+        rdcstr n = chunk->name;
+        if(n.contains(':'))
+          n.erase(0, n.find_last_of(":") + 1);
+        n += "(";
+        bool first = true;
+        for(size_t i = 0; i < chunk->NumChildren(); i++)
+        {
+          const SDObject *o = chunk->GetChild(i);
+          if(o->type.flags & SDTypeFlags::Important)
+          {
+            if(!first)
+              n += ", ";
+            first = false;
+            n += ToStr(o->AsUInt32());
+          }
+        }
+        n += ")";
+
+        m_Event2RGP[ev.eventId].eventname = n;
 
         m_RGP2Event.push_back(ev.eventId);
       }
     }
 
     // if we have children, step into them first before going to our next sibling
-    if(!draw.children.empty())
-      CreateMapping(draw.children);
+    if(!action.children.empty())
+      CreateMapping(action.children);
   }
 }
 
@@ -307,13 +325,13 @@ void RGPInterop::CreateMapping(uint32_t version)
   if(m_EventNames.isEmpty())
     return;
 
-  m_Event2RGP.resize(m_Ctx.GetLastDrawcall()->eventId + 1);
+  m_Event2RGP.resize(m_Ctx.GetLastAction()->eventId + 1);
 
   // linearId 0 is invalid, so map to eventId 0.
   // the first real event will be linearId 1
   m_RGP2Event.push_back(0);
 
-  CreateMapping(m_Ctx.CurDrawcalls());
+  CreateMapping(m_Ctx.CurRootActions());
 }
 
 QString RGPInterop::EncodeCommand(RGPCommand command, QVariantList params)

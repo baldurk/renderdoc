@@ -6,11 +6,11 @@ class VK_SPIRV_13_Shaders(rdtest.TestCase):
     demos_test_name = 'VK_SPIRV_13_Shaders'
 
     def check_capture(self):
-        draw = self.find_draw("Draw")
+        action = self.find_action("Draw")
 
-        self.check(draw is not None)
+        self.check(action is not None)
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
@@ -48,7 +48,7 @@ class VK_SPIRV_13_Shaders(rdtest.TestCase):
 
         rdtest.log.success("shader reflection and disassembly as expected")
 
-        postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, draw.numIndices)
+        postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
 
         postvs_ref = {
             0: {

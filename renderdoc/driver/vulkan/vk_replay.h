@@ -150,7 +150,7 @@ class WrappedVulkan;
 class VulkanDebugManager;
 class VulkanResourceManager;
 struct VulkanStatePipeline;
-struct VulkanAMDDrawCallback;
+struct VulkanAMDActionCallback;
 
 struct VulkanPostVSData
 {
@@ -209,7 +209,7 @@ struct VulkanPostVSData
   }
 };
 
-struct DynamicShaderFeedback
+struct VKDynamicShaderFeedback
 {
   bool compute = false, valid = false;
   rdcarray<BindpointIndex> used;
@@ -744,7 +744,7 @@ private:
 
     GPUBuffer FeedbackBuffer;
 
-    std::map<uint32_t, DynamicShaderFeedback> Usage;
+    std::map<uint32_t, VKDynamicShaderFeedback> Usage;
   } m_BindlessFeedback;
 
   ShaderDebugData m_ShaderDebugData;
@@ -782,7 +782,7 @@ private:
   AMDCounters *m_pAMDCounters = NULL;
   AMDRGPControl *m_RGP = NULL;
 
-  VulkanAMDDrawCallback *m_pAMDDrawCallback = NULL;
+  VulkanAMDActionCallback *m_pAMDActionCallback = NULL;
 
   rdcarray<CounterResult> FetchCountersKHR(const rdcarray<GPUCounter> &counters);
 

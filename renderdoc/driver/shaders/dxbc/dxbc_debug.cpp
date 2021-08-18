@@ -82,6 +82,9 @@ VarType OperationType(const DXBCBytecode::OpcodeType &op)
     case OPCODE_DISCARD:
     case OPCODE_NOP:
     case OPCODE_CUSTOMDATA:
+    case OPCODE_OPAQUE_CUSTOMDATA:
+    case OPCODE_SHADER_MESSAGE:
+    case OPCODE_DCL_IMMEDIATE_CONSTANT_BUFFER:
     case OPCODE_SYNC:
     case OPCODE_STORE_UAV_TYPED:
     case OPCODE_STORE_RAW:
@@ -352,6 +355,9 @@ bool OperationFlushing(const DXBCBytecode::OpcodeType &op)
     case OPCODE_DISCARD:
     case OPCODE_NOP:
     case OPCODE_CUSTOMDATA:
+    case OPCODE_OPAQUE_CUSTOMDATA:
+    case OPCODE_SHADER_MESSAGE:
+    case OPCODE_DCL_IMMEDIATE_CONSTANT_BUFFER:
     case OPCODE_SYNC:
     case OPCODE_STORE_UAV_TYPED:
     case OPCODE_STORE_RAW:
@@ -671,100 +677,113 @@ ShaderVariable TypedUAVLoad(GlobalState::ViewFmt &fmt, const byte *d)
     result.value.f32v[2] = res.z;
     result.value.f32v[3] = 1.0f;
   }
-  else if(fmt.byteWidth == 4)
+  else
   {
-    const uint32_t *u = (const uint32_t *)d;
-
-    for(int c = 0; c < fmt.numComps; c++)
-      result.value.u32v[c] = u[c];
-  }
-  else if(fmt.byteWidth == 2)
-  {
-    if(fmt.fmt == CompType::Float)
+    if(fmt.byteWidth == 4)
     {
-      const uint16_t *u = (const uint16_t *)d;
-
-      for(int c = 0; c < fmt.numComps; c++)
-        result.value.f32v[c] = ConvertFromHalf(u[c]);
-    }
-    else if(fmt.fmt == CompType::UInt)
-    {
-      const uint16_t *u = (const uint16_t *)d;
+      const uint32_t *u = (const uint32_t *)d;
 
       for(int c = 0; c < fmt.numComps; c++)
         result.value.u32v[c] = u[c];
     }
-    else if(fmt.fmt == CompType::SInt)
+    else if(fmt.byteWidth == 2)
     {
-      const int16_t *in = (const int16_t *)d;
-
-      for(int c = 0; c < fmt.numComps; c++)
-        result.value.s32v[c] = in[c];
-    }
-    else if(fmt.fmt == CompType::UNorm || fmt.fmt == CompType::UNormSRGB)
-    {
-      const uint16_t *u = (const uint16_t *)d;
-
-      for(int c = 0; c < fmt.numComps; c++)
-        result.value.f32v[c] = float(u[c]) / float(0xffff);
-    }
-    else if(fmt.fmt == CompType::SNorm)
-    {
-      const int16_t *in = (const int16_t *)d;
-
-      for(int c = 0; c < fmt.numComps; c++)
+      if(fmt.fmt == CompType::Float)
       {
-        // -32768 is mapped to -1, then -32767 to -32767 are mapped to -1 to 1
-        if(in[c] == -32768)
-          result.value.f32v[c] = -1.0f;
-        else
-          result.value.f32v[c] = float(in[c]) / 32767.0f;
+        const uint16_t *u = (const uint16_t *)d;
+
+        for(int c = 0; c < fmt.numComps; c++)
+          result.value.f32v[c] = ConvertFromHalf(u[c]);
+      }
+      else if(fmt.fmt == CompType::UInt)
+      {
+        const uint16_t *u = (const uint16_t *)d;
+
+        for(int c = 0; c < fmt.numComps; c++)
+          result.value.u32v[c] = u[c];
+      }
+      else if(fmt.fmt == CompType::SInt)
+      {
+        const int16_t *in = (const int16_t *)d;
+
+        for(int c = 0; c < fmt.numComps; c++)
+          result.value.s32v[c] = in[c];
+      }
+      else if(fmt.fmt == CompType::UNorm || fmt.fmt == CompType::UNormSRGB)
+      {
+        const uint16_t *u = (const uint16_t *)d;
+
+        for(int c = 0; c < fmt.numComps; c++)
+          result.value.f32v[c] = float(u[c]) / float(0xffff);
+      }
+      else if(fmt.fmt == CompType::SNorm)
+      {
+        const int16_t *in = (const int16_t *)d;
+
+        for(int c = 0; c < fmt.numComps; c++)
+        {
+          // -32768 is mapped to -1, then -32767 to -32767 are mapped to -1 to 1
+          if(in[c] == -32768)
+            result.value.f32v[c] = -1.0f;
+          else
+            result.value.f32v[c] = float(in[c]) / 32767.0f;
+        }
+      }
+      else
+      {
+        RDCERR("Unexpected format type on buffer resource");
       }
     }
-    else
+    else if(fmt.byteWidth == 1)
     {
-      RDCERR("Unexpected format type on buffer resource");
-    }
-  }
-  else if(fmt.byteWidth == 1)
-  {
-    if(fmt.fmt == CompType::UInt)
-    {
-      const uint8_t *u = (const uint8_t *)d;
-
-      for(int c = 0; c < fmt.numComps; c++)
-        result.value.u32v[c] = u[c];
-    }
-    else if(fmt.fmt == CompType::SInt)
-    {
-      const int8_t *in = (const int8_t *)d;
-
-      for(int c = 0; c < fmt.numComps; c++)
-        result.value.s32v[c] = in[c];
-    }
-    else if(fmt.fmt == CompType::UNorm || fmt.fmt == CompType::UNormSRGB)
-    {
-      const uint8_t *u = (const uint8_t *)d;
-
-      for(int c = 0; c < fmt.numComps; c++)
-        result.value.f32v[c] = float(u[c]) / float(0xff);
-    }
-    else if(fmt.fmt == CompType::SNorm)
-    {
-      const int8_t *in = (const int8_t *)d;
-
-      for(int c = 0; c < fmt.numComps; c++)
+      if(fmt.fmt == CompType::UInt)
       {
-        // -128 is mapped to -1, then -127 to -127 are mapped to -1 to 1
-        if(in[c] == -128)
-          result.value.f32v[c] = -1.0f;
-        else
-          result.value.f32v[c] = float(in[c]) / 127.0f;
+        const uint8_t *u = (const uint8_t *)d;
+
+        for(int c = 0; c < fmt.numComps; c++)
+          result.value.u32v[c] = u[c];
+      }
+      else if(fmt.fmt == CompType::SInt)
+      {
+        const int8_t *in = (const int8_t *)d;
+
+        for(int c = 0; c < fmt.numComps; c++)
+          result.value.s32v[c] = in[c];
+      }
+      else if(fmt.fmt == CompType::UNorm || fmt.fmt == CompType::UNormSRGB)
+      {
+        const uint8_t *u = (const uint8_t *)d;
+
+        for(int c = 0; c < fmt.numComps; c++)
+          result.value.f32v[c] = float(u[c]) / float(0xff);
+      }
+      else if(fmt.fmt == CompType::SNorm)
+      {
+        const int8_t *in = (const int8_t *)d;
+
+        for(int c = 0; c < fmt.numComps; c++)
+        {
+          // -128 is mapped to -1, then -127 to -127 are mapped to -1 to 1
+          if(in[c] == -128)
+            result.value.f32v[c] = -1.0f;
+          else
+            result.value.f32v[c] = float(in[c]) / 127.0f;
+        }
+      }
+      else
+      {
+        RDCERR("Unexpected format type on buffer resource");
       }
     }
-    else
+
+    // fill in alpha with 1.0 or 1 as appropriate
+    if(fmt.numComps < 4)
     {
-      RDCERR("Unexpected format type on buffer resource");
+      if(fmt.fmt == CompType::UNorm || fmt.fmt == CompType::UNormSRGB ||
+         fmt.fmt == CompType::SNorm || fmt.fmt == CompType::Float)
+        result.value.f32v[3] = 1.0f;
+      else
+        result.value.u32v[3] = 1;
     }
   }
 
@@ -1264,7 +1283,7 @@ void ThreadState::SetDst(ShaderDebugState *state, const Operand &dstoper, const 
   // in a vector operation like r0.zw = r4.xxxy + r6.yyyz
   // then we must write from matching component to matching component
 
-  if(op.saturate)
+  if(op.saturate())
     right = sat(right, OperationType(op.operation));
 
   ShaderVariableChange change = {*changeVar};
@@ -1682,12 +1701,12 @@ ShaderVariable ThreadState::GetSrc(const Operand &oper, const Operation &op, boo
     v.columns = 4;
   }
 
-  if(oper.modifier == OPERAND_MODIFIER_ABS || oper.modifier == OPERAND_MODIFIER_ABSNEG)
+  if(oper.flags & Operand::FLAG_ABS)
   {
     v = abs(v, OperationType(op.operation));
   }
 
-  if(oper.modifier == OPERAND_MODIFIER_NEG || oper.modifier == OPERAND_MODIFIER_ABSNEG)
+  if(oper.flags & Operand::FLAG_NEG)
   {
     v = neg(v, OperationType(op.operation));
   }
@@ -1759,7 +1778,6 @@ void FlattenSingleVariable(const rdcstr &cbufferName, uint32_t byteOffset, const
   else
   {
     const uint32_t numRegisters = v.rowMajor ? v.rows : v.columns;
-    const uint32_t registerSize = v.rowMajor ? v.columns : v.rows;
     for(uint32_t reg = 0; reg < numRegisters; reg++)
     {
       outvars[outIdx + reg].rows = 1;
@@ -2603,6 +2621,9 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
 
     case OPCODE_NOP:
     case OPCODE_CUSTOMDATA:
+    case OPCODE_OPAQUE_CUSTOMDATA:
+    case OPCODE_SHADER_MESSAGE:
+    case OPCODE_DCL_IMMEDIATE_CONSTANT_BUFFER: break;
     case OPCODE_SYNC:    // might never need to implement this. Who knows!
       break;
     case OPCODE_DMOV:
@@ -3056,7 +3077,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           }
           else if(pDecl->declaration == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED)
           {
-            stride = pDecl->stride;
+            stride = pDecl->structured.stride;
             structured = true;
           }
         }
@@ -3194,7 +3215,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
                 srv ? OPCODE_DCL_RESOURCE_STRUCTURED : OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED;
             const DXBCBytecode::Declaration *pDecl = program->FindDeclaration(declType, resIndex);
             if(pDecl && pDecl->declaration == declOpcode)
-              stride = pDecl->stride;
+              stride = pDecl->structured.stride;
           }
         }
 
@@ -3648,7 +3669,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
         result = swizzled;
         result.type = VarType::Float;
       }
-      else if(op.resinfoRetType == RETTYPE_FLOAT)
+      else if(op.infoRetType == RETTYPE_FLOAT)
       {
         result.value.f32v[0] = (float)swizzled.value.u32v[0];
         result.value.f32v[1] = (float)swizzled.value.u32v[1];
@@ -3742,7 +3763,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
               program->FindDeclaration(TYPE_RESOURCE, (uint32_t)op.operands[2].indices[0].index);
           if(pDecl && pDecl->declaration == OPCODE_DCL_RESOURCE)
           {
-            switch(pDecl->dim)
+            switch(pDecl->resource.dim)
             {
               default:
               case RESOURCE_DIMENSION_UNKNOWN:
@@ -3775,7 +3796,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
         }
 
         // apply ret type
-        if(op.resinfoRetType == RETTYPE_FLOAT)
+        if(op.infoRetType == RETTYPE_FLOAT)
         {
           result.value.f32v[0] = (float)swizzled.value.u32v[0];
           result.value.f32v[1] = (float)swizzled.value.u32v[1];
@@ -3783,7 +3804,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           result.value.f32v[3] = (float)swizzled.value.u32v[3];
           result.type = VarType::Float;
         }
-        else if(op.resinfoRetType == RETTYPE_RCPFLOAT)
+        else if(op.infoRetType == RETTYPE_RCPFLOAT)
         {
           // only width/height/depth values we set are reciprocated, other values
           // are just left as is
@@ -3805,7 +3826,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           result.value.f32v[3] = (float)swizzled.value.u32v[3];
           result.type = VarType::Float;
         }
-        else if(op.resinfoRetType == RETTYPE_UINT)
+        else if(op.infoRetType == RETTYPE_UINT)
         {
           result = swizzled;
           result.type = VarType::UInt;
@@ -3864,10 +3885,11 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           samplerMode = decl.samplerMode;
           samplerBinding = GetBindingSlotForDeclaration(*program, decl);
         }
-        if(op.operation == OPCODE_LD && decl.dim == RESOURCE_DIMENSION_BUFFER &&
-           decl.declaration == OPCODE_DCL_RESOURCE && decl.operand.sameResource(op.operands[2]))
+        if(op.operation == OPCODE_LD && decl.declaration == OPCODE_DCL_RESOURCE &&
+           decl.resource.dim == RESOURCE_DIMENSION_BUFFER &&
+           decl.operand.sameResource(op.operands[2]))
         {
-          resourceDim = decl.dim;
+          resourceDim = decl.resource.dim;
 
           resourceBinding = GetBindingSlotForDeclaration(*program, decl);
           GlobalState::SRVIterator srv = global.srvs.find(resourceBinding);
@@ -3921,9 +3943,9 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
         }
         if(decl.declaration == OPCODE_DCL_RESOURCE && decl.operand.sameResource(op.operands[2]))
         {
-          resourceDim = decl.dim;
-          resourceRetType = decl.resType[0];
-          sampleCount = decl.sampleCount;
+          resourceDim = decl.resource.dim;
+          resourceRetType = decl.resource.resType[0];
+          sampleCount = decl.resource.sampleCount;
 
           resourceBinding = GetBindingSlotForDeclaration(*program, decl);
 
@@ -3934,12 +3956,14 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           // doesn't seem like these are ever less than four components, even if the texture is
           // declared <float3> for example.
           // shouldn't matter though is it just comes out in the wash.
-          RDCASSERT(decl.resType[0] == decl.resType[1] && decl.resType[1] == decl.resType[2] &&
-                    decl.resType[2] == decl.resType[3]);
-          RDCASSERT(decl.resType[0] != DXBC::RETURN_TYPE_CONTINUED &&
-                    decl.resType[0] != DXBC::RETURN_TYPE_UNUSED &&
-                    decl.resType[0] != DXBC::RETURN_TYPE_MIXED && decl.resType[0] >= 0 &&
-                    decl.resType[0] < DXBC::NUM_RETURN_TYPES);
+          RDCASSERT(decl.resource.resType[0] == decl.resource.resType[1] &&
+                    decl.resource.resType[1] == decl.resource.resType[2] &&
+                    decl.resource.resType[2] == decl.resource.resType[3]);
+          RDCASSERT(decl.resource.resType[0] != DXBC::RETURN_TYPE_CONTINUED &&
+                    decl.resource.resType[0] != DXBC::RETURN_TYPE_UNUSED &&
+                    decl.resource.resType[0] != DXBC::RETURN_TYPE_MIXED &&
+                    decl.resource.resType[0] >= 0 &&
+                    decl.resource.resType[0] < DXBC::NUM_RETURN_TYPES);
         }
       }
 
@@ -4141,7 +4165,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       if(op.operation == OPCODE_CONTINUE || op.operation == OPCODE_CONTINUEC)
         depth = 1;
 
-      if((test == 0 && !op.nonzero) || (test != 0 && op.nonzero) ||
+      if((test == 0 && !op.nonzero()) || (test != 0 && op.nonzero()) ||
          op.operation == OPCODE_CONTINUE || op.operation == OPCODE_ENDLOOP)
       {
         // skip back one to the endloop that we're processing
@@ -4170,7 +4194,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
     {
       int32_t test = op.operation == OPCODE_BREAKC ? GetSrc(op.operands[0], op).value.s32v[0] : 0;
 
-      if((test == 0 && !op.nonzero) || (test != 0 && op.nonzero) || op.operation == OPCODE_BREAK)
+      if((test == 0 && !op.nonzero()) || (test != 0 && op.nonzero()) || op.operation == OPCODE_BREAK)
       {
         // break out (jump to next endloop/endswitch)
         int depth = 1;
@@ -4203,7 +4227,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
     {
       int32_t test = GetSrc(op.operands[0], op).value.s32v[0];
 
-      if((test == 0 && !op.nonzero) || (test != 0 && op.nonzero))
+      if((test == 0 && !op.nonzero()) || (test != 0 && op.nonzero()))
       {
         // nothing, we go into the if.
       }
@@ -4271,7 +4295,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
     {
       int32_t test = GetSrc(op.operands[0], op).value.s32v[0];
 
-      if((test != 0 && !op.nonzero) || (test == 0 && op.nonzero))
+      if((test != 0 && !op.nonzero()) || (test == 0 && op.nonzero()))
       {
         // don't discard
         break;
@@ -4286,7 +4310,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
     {
       int32_t test = op.operation == OPCODE_RETC ? GetSrc(op.operands[0], op).value.s32v[0] : 0;
 
-      if((test == 0 && !op.nonzero) || (test != 0 && op.nonzero) || op.operation == OPCODE_RET)
+      if((test == 0 && !op.nonzero()) || (test != 0 && op.nonzero()) || op.operation == OPCODE_RET)
       {
         // assumes not in a function call
         done = true;
@@ -4493,11 +4517,16 @@ void GlobalState::PopulateGroupshared(const DXBCBytecode::Program *pBytecode)
         mem.structured =
             (decl.declaration == DXBCBytecode::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED);
 
-        mem.count = decl.count;
         if(mem.structured)
-          mem.bytestride = decl.stride;
+        {
+          mem.count = decl.tsgm_structured.count;
+          mem.bytestride = decl.tsgm_structured.stride;
+        }
         else
+        {
+          mem.count = decl.tgsmCount;
           mem.bytestride = 4;    // raw groupshared is implicitly uint32s
+        }
 
         mem.data.resize(mem.bytestride * mem.count);
       }
@@ -4839,7 +4868,7 @@ DXBCBytecode::InterpolationMode GetInterpolationModeForInputParam(const SigParam
         if(decl.declaration == DXBCBytecode::OPCODE_DCL_INPUT_PS &&
            decl.operand.indices[0].absolute && decl.operand.indices[0].index == sig.regIndex)
         {
-          interpolation = decl.interpolation;
+          interpolation = decl.inputOutput.inputInterpolation;
           break;
         }
       }

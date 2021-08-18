@@ -1321,7 +1321,7 @@ void GLPipelineStateViewer::setState()
   }
 
   const GLPipe::State &state = *m_Ctx.CurGLPipelineState();
-  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+  const ActionDescription *action = m_Ctx.CurAction();
 
   bool showUnused = ui->showUnused->isChecked();
   bool showEmpty = ui->showEmpty->isChecked();
@@ -1409,7 +1409,7 @@ void GLPipelineStateViewer::setState()
 
   m_Common.setTopologyDiagram(ui->topologyDiagram, state.vertexInput.topology);
 
-  bool ibufferUsed = draw && (draw->flags & DrawFlags::Indexed);
+  bool ibufferUsed = action && (action->flags & ActionFlags::Indexed);
 
   if(ibufferUsed)
   {
@@ -1453,7 +1453,7 @@ void GLPipelineStateViewer::setState()
                                                      (qulonglong)length, QString()});
 
       QString iformat;
-      if(draw)
+      if(action)
       {
         if(state.vertexInput.indexByteStride == 1)
           iformat = lit("ubyte");
@@ -1466,9 +1466,9 @@ void GLPipelineStateViewer::setState()
             lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(state.vertexInput.topology));
       }
 
-      node->setTag(QVariant::fromValue(
-          GLVBIBTag(state.vertexInput.indexBuffer,
-                    draw ? draw->indexOffset * state.vertexInput.indexByteStride : 0, iformat)));
+      node->setTag(QVariant::fromValue(GLVBIBTag(
+          state.vertexInput.indexBuffer,
+          action ? action->indexOffset * state.vertexInput.indexByteStride : 0, iformat)));
 
       if(!ibufferUsed)
         setInactiveRow(node);
@@ -1490,7 +1490,7 @@ void GLPipelineStateViewer::setState()
           {tr("Element"), tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), lit("-"), QString()});
 
       QString iformat;
-      if(draw)
+      if(action)
       {
         if(state.vertexInput.indexByteStride == 1)
           iformat = lit("ubyte");
@@ -1503,9 +1503,9 @@ void GLPipelineStateViewer::setState()
             lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(state.vertexInput.topology));
       }
 
-      node->setTag(QVariant::fromValue(
-          GLVBIBTag(state.vertexInput.indexBuffer,
-                    draw ? draw->indexOffset * state.vertexInput.indexByteStride : 0, iformat)));
+      node->setTag(QVariant::fromValue(GLVBIBTag(
+          state.vertexInput.indexBuffer,
+          action ? action->indexOffset * state.vertexInput.indexByteStride : 0, iformat)));
 
       setEmptyRow(node);
       m_EmptyNodes.push_back(node);
@@ -2230,11 +2230,11 @@ void GLPipelineStateViewer::setState()
   ui->stencils->endUpdate();
 
   // highlight the appropriate stages in the flowchart
-  if(draw == NULL)
+  if(action == NULL)
   {
     ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
   }
-  else if(draw->flags & DrawFlags::Dispatch)
+  else if(action->flags & ActionFlags::Dispatch)
   {
     ui->pipeFlow->setStagesEnabled({false, false, false, false, false, false, false, false, true});
   }
@@ -2519,7 +2519,7 @@ void GLPipelineStateViewer::shaderSave_clicked()
 
 void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::VertexInput &vtx)
 {
-  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+  const ActionDescription *action = m_Ctx.CurAction();
 
   const GLPipe::State &pipe = *m_Ctx.CurGLPipelineState();
   {
@@ -2599,7 +2599,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Vert
     }
 
     QString ifmt = lit("UNKNOWN");
-    if(draw)
+    if(action)
     {
       if(vtx.indexByteStride == 1)
         ifmt = lit("UNSIGNED_BYTE");
@@ -2617,7 +2617,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Vert
   xml.writeEndElement();
 
   m_Common.exportHTMLTable(xml, {tr("Primitive Topology")},
-                           {ToQStr(draw ? vtx.topology : Topology::Unknown)});
+                           {ToQStr(action ? vtx.topology : Topology::Unknown)});
 
   {
     xml.writeStartElement(tr("h3"));

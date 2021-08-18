@@ -52,6 +52,8 @@ float4 main() : SV_Target0
 
     uint32_t indices[1024 / 4] = {0, 1, 2};
 
+    dev->CreateConstantBufferView(NULL, m_CBVUAVSRV->GetCPUDescriptorHandleForHeapStart());
+
     ID3D12ResourcePtr vb = MakeBuffer().Data(DefaultTri);
     ID3D12ResourcePtr ib = MakeBuffer().Data(indices);
 

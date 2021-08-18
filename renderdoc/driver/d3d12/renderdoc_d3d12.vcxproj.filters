@@ -75,7 +75,9 @@
     <ClInclude Include="..\dx\official\D3D11On12On7.h">
       <Filter>official</Filter>
     </ClInclude>
-    <ClInclude Include="d3d12_hooks.h" />
+    <ClInclude Include="d3d12_hooks.h">
+      <Filter>Hooks</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="d3d12_common.cpp">
@@ -203,6 +205,9 @@
     </ClCompile>
     <ClCompile Include="d3d12_sdk_select.cpp">
       <Filter>Util</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d12_shader_feedback.cpp">
+      <Filter>Replay</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

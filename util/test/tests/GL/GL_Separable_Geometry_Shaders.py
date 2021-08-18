@@ -6,11 +6,11 @@ class GL_Separable_Geometry_Shaders(rdtest.TestCase):
     demos_test_name = 'GL_Separable_Geometry_Shaders'
 
     def check_capture(self):
-        draw = self.find_draw("Draw")
+        action = self.find_action("Draw")
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
-        postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, draw.numIndices)
+        postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
 
         postvs_ref = {
             0: {
@@ -38,7 +38,7 @@ class GL_Separable_Geometry_Shaders(rdtest.TestCase):
 
         self.check_mesh_data(postvs_ref, postvs_data)
 
-        postgs_data = self.get_postvs(draw, rd.MeshDataStage.GSOut, 0, draw.numIndices*3)
+        postgs_data = self.get_postvs(action, rd.MeshDataStage.GSOut, 0, action.numIndices*3)
 
         postgs_ref = {
             0: {

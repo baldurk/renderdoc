@@ -23,6 +23,10 @@ elseif(ANDROID)
     include_directories(${ANDROID_NDK_ROOT_PATH}/sources/android/native_app_glue)
     list(APPEND libraries PRIVATE -llog -landroid)
     set(LINKER_FLAGS "-Wl,--no-as-needed")
+    
+    if(ENABLE_ASAN)
+        set(LINKER_FLAGS "${LINKER_FLAGS} -fsanitize=address")
+    endif()
 
     set_source_files_properties(renderdoccmd.cpp PROPERTIES COMPILE_FLAGS "-fexceptions -frtti")
     set_source_files_properties(renderdoccmd_android.cpp PROPERTIES COMPILE_FLAGS "-fexceptions")
@@ -202,6 +206,43 @@ if(ANDROID)
                        COMMAND ${CMAKE_COMMAND} -E make_directory bin
                        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:renderdoc> libs/lib/${ANDROID_ABI}/$<TARGET_FILE_NAME:renderdoc>
                        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:renderdoccmd> libs/lib/${ANDROID_ABI}/$<TARGET_FILE_NAME:renderdoccmd>
+                       )
+
+    if(ENABLE_ASAN)
+        set(ASAN_ABI_TAG "")
+        if(ANDROID_ABI STREQUAL "armeabi-v7a")
+            set(ASAN_ABI_TAG "arm")
+        elseif(ANDROID_ABI STREQUAL "arm64-v8a")
+            set(ASAN_ABI_TAG "aarch64")
+        else()
+            message(WARNING "Unknown ABI ${ANDROID_ABI}, libasan tag unknown")
+        endif()
+        
+        file(GLOB ASAN_LIBRARIES "${ANDROID_TOOLCHAIN_ROOT}/lib64/clang/*/lib/linux/libclang_rt.asan-${ASAN_ABI_TAG}-android.so")
+        list(SORT ASAN_LIBRARIES)
+
+        list(GET ASAN_LIBRARIES -1 ASAN_LIBRARY)
+
+        set(WRAP_SCRIPT "${ANDROID_NDK_ROOT_PATH}/wrap.sh/asan.sh")
+        
+        string(REPLACE "\\" "/" WRAP_SCRIPT "${WRAP_SCRIPT}")
+        string(REPLACE "\\" "/" ASAN_LIBRARY "${ASAN_LIBRARY}")
+
+        # Copy in the wrap script and libasan library
+        if(${WRAP_SCRIPT} STREQUAL "" OR NOT EXISTS ${WRAP_SCRIPT})
+            message(WARNING "Wrap script couldn't be found in NDK, you will need to manually create one and re-generate apk")
+        elseif(${ASAN_LIBRARY} STREQUAL "" OR NOT EXISTS ${ASAN_LIBRARY})
+            message(WARNING "libasan library couldn't be found in NDK, you will need to manually copy it in and re-generate apk")
+        else()
+            message(STATUS "Using wrap script ${WRAP_SCRIPT} and libasan library ${ASAN_LIBRARY}")
+            add_custom_command(OUTPUT ${APK_FILE} APPEND
+                COMMAND ${CMAKE_COMMAND} -E copy ${WRAP_SCRIPT} libs/lib/${ANDROID_ABI}/wrap.sh
+                COMMAND ${CMAKE_COMMAND} -E copy ${ASAN_LIBRARY} libs/lib/${ANDROID_ABI}/
+                )
+        endif()
+    endif()
+    
+    add_custom_command(OUTPUT ${APK_FILE} APPEND
                        COMMAND ${BUILD_TOOLS}/aapt package -f -m -S res -J src -M AndroidManifest.xml -I ${ANDROID_JAR}
                        COMMAND ${JAVA_BIN}/javac -d ./obj -source 1.7 -target 1.7 -bootclasspath ${RT_JAR} -classpath "${CLASS_PATH}" -sourcepath src src/org/renderdoc/renderdoccmd/*.java
                        COMMAND ${BUILD_TOOLS}/dx${TOOL_SCRIPT_EXTENSION} --dex --output=bin/classes.dex ./obj

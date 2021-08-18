@@ -104,7 +104,7 @@ public:
     return Vec3f(y * o.z - z * o.y, z * o.x - x * o.z, x * o.y - y * o.x);
   }
 
-  inline float Length() const { return sqrt(Dot(*this)); }
+  inline float Length() const { return sqrtf(Dot(*this)); }
   inline void Normalise()
   {
     float l = Length();

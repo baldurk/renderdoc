@@ -6,11 +6,11 @@ class VK_CBuffer_Zoo(rdtest.TestCase):
     demos_test_name = 'VK_CBuffer_Zoo'
 
     def check_capture(self):
-        draw = self.find_draw("Draw")
+        action = self.find_action("Draw")
 
-        self.check(draw is not None)
+        self.check(action is not None)
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         props: rd.APIProperties = self.controller.GetAPIProperties()
 
@@ -18,7 +18,7 @@ class VK_CBuffer_Zoo(rdtest.TestCase):
 
         stage = rd.ShaderStage.Pixel
 
-        # Verify that the GLSL draw is first
+        # Verify that the GLSL action is first
         disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), pipe.GetShaderReflection(stage),
                                                    '')
 
@@ -77,16 +77,16 @@ class VK_CBuffer_Zoo(rdtest.TestCase):
 
         rdtest.log.success("Specialization constants are as expected")
 
-        # Move to the HLSL draw
-        draw = draw.next
+        # Move to the HLSL action
+        action = action.next
 
-        self.check(draw is not None)
+        self.check(action is not None)
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        # Verify that this is the HLSL draw
+        # Verify that this is the HLSL action
         disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), pipe.GetShaderReflection(stage),
                                                    '')
 

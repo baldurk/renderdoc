@@ -32,6 +32,8 @@ struct Args
 {
   virtual void reset() = 0;
 
+  virtual void error(const char *err) = 0;
+
   virtual int get_int() = 0;
   virtual unsigned int get_uint() = 0;
   virtual double get_double() = 0;

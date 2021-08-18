@@ -1926,6 +1926,10 @@ ResourceId ResourceManager<Configuration>::GetLiveID(ResourceId id)
   if(id == ResourceId())
     return id;
 
+  auto it = m_Replacements.find(id);
+  if(it != m_Replacements.end())
+    return it->second;
+
   RDCASSERT(m_LiveIDs.find(id) != m_LiveIDs.end(), id);
   return m_LiveIDs[id];
 }

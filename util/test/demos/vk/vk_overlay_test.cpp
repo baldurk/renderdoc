@@ -412,13 +412,13 @@ void main()
     VkDescriptorSet descset = allocateDescriptorSet(setlayout);
 
     std::vector<VkWriteDescriptorSet> writes;
+    std::vector<VkDescriptorImageInfo> imInfo = {
+        vkh::DescriptorImageInfo(dummyView, VK_IMAGE_LAYOUT_GENERAL),
+    };
     for(int i = 0; i < 64; i++)
     {
       writes.push_back(
-          vkh::WriteDescriptorSet(descset, 0, i, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                                  {
-                                      vkh::DescriptorImageInfo(dummyView, VK_IMAGE_LAYOUT_GENERAL),
-                                  }));
+          vkh::WriteDescriptorSet(descset, 0, i, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, imInfo));
     }
 
     vkh::updateDescriptorSets(device, writes);
@@ -552,8 +552,8 @@ void main()
       v = mainWindow->viewport;
       v.width /= 8.0f;
       v.height /= 8.0f;
-      v.width = floor(v.width);
-      v.height = floor(v.height);
+      v.width = floorf(v.width);
+      v.height = floorf(v.height);
       v.x += 2.0f;
       v.y += 2.0f;
       v.width -= 4.0f;

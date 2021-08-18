@@ -417,27 +417,12 @@ DECLARE_REFLECTION_STRUCT(BugReport);
   CONFIG_SETTING_VAL(public, int, TimeUnit, EventBrowser_TimeUnit, TimeUnit::Microseconds)         \
                                                                                                    \
   DOCUMENT(                                                                                        \
-      "``True`` if fake drawcall marker regions should be added to captures that don't have any "  \
-      "markers, for easier browsing. The regions are identified by grouping drawcalls that write " \
+      "``True`` if fake action marker regions should be added to captures that don't have any "    \
+      "markers, for easier browsing. The regions are identified by grouping actions that write "   \
       "to the same targets together.\n"                                                            \
       "\n"                                                                                         \
       "Defaults to ``True``.");                                                                    \
   CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_AddFake, true)                               \
-                                                                                                   \
-  DOCUMENT(                                                                                        \
-      "``True`` if the :class:`EventBrowser` should hide marker regions that don't contain any "   \
-      "actual non-marker events.\n"                                                                \
-      "\n"                                                                                         \
-      "Defaults to ``False``.");                                                                   \
-  CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_HideEmpty, false)                            \
-                                                                                                   \
-  DOCUMENT(                                                                                        \
-      "``True`` if the :class:`EventBrowser` should hide marker regions that don't contain any "   \
-      "events that aren't just drawcalls (this will hide events under 'API Events' "               \
-      "faux-markers).\n"                                                                           \
-      "\n"                                                                                         \
-      "Defaults to ``False``.");                                                                   \
-  CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_HideAPICalls, false)                         \
                                                                                                    \
   DOCUMENT(                                                                                        \
       "``True`` if the :class:`EventBrowser` should apply any colors specified with API marker "   \
@@ -716,6 +701,19 @@ As the name suggests, this is used for tracking a 'recent file' list.
 void RemoveRecentFile(rdcarray<rdcstr> &recentList, const rdcstr &file);
 
 struct LegacyData;
+
+#if !defined(SWIG)
+class QVariant;
+
+// not exposed to swig - allow windows to have completely custom persistent storage that aren't
+// "settings".
+struct CustomPersistentStorage
+{
+  CustomPersistentStorage(rdcstr name);
+  virtual void save(QVariant &v) const = 0;
+  virtual void load(const QVariant &v) = 0;
+};
+#endif
 
 DOCUMENT(R"(A persistant config file that is automatically loaded and saved, which contains any
 settings and information that needs to be preserved from one run to the next.

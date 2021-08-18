@@ -732,7 +732,7 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view, const Bi
   bool uav = view.type == D3D12ViewTag::UAV;
 
   bool filledSlot = (r.resourceId != ResourceId());
-  bool usedSlot = (bind && bind->used);
+  bool usedSlot = (bind && bind->used && r.dynamicallyUsed);
 
   // if a target is set to RTVs or DSV, it is implicitly used
   if(filledSlot)
@@ -802,13 +802,13 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view, const Bi
       d = 0;
       a = 0;
       format = QString();
-      typeName = lit("Buffer");
+      typeName = QFormatStr("%1Buffer").arg(uav ? lit("RW") : QString());
 
       if(r.bufferFlags & D3DBufferViewFlags::Raw)
       {
         typeName = QFormatStr("%1ByteAddressBuffer").arg(uav ? lit("RW") : QString());
       }
-      else if(r.elementByteSize > 0)
+      else if(r.elementByteSize > 0 && r.viewFormat.type == ResourceFormatType::Undefined)
       {
         // for structured buffers, display how many 'elements' there are in the buffer
         a = buf->length / r.elementByteSize;
@@ -872,19 +872,16 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view, const Bi
 
 bool D3D12PipelineStateViewer::showNode(bool usedSlot, bool filledSlot)
 {
-  const bool showUnused = ui->showUnused->isChecked();
-  const bool showEmpty = ui->showEmpty->isChecked();
-
   // show if it's referenced by the shader - regardless of empty or not
   if(usedSlot)
     return true;
 
   // it's not referenced, but if it's bound and we have "show unused" then show it
-  if(showUnused && filledSlot)
+  if(m_ShowUnused && filledSlot)
     return true;
 
   // it's empty, and we have "show empty"
-  if(showEmpty && !filledSlot)
+  if(m_ShowEmpty && !filledSlot)
     return true;
 
   return false;
@@ -1104,7 +1101,16 @@ void D3D12PipelineStateViewer::setShaderState(
 
         const rdcarray<D3D12Pipe::View> &views = rootElements[i].views;
 
-        for(size_t j = 0; j < views.size();)
+        size_t firstView = rootElements[i].firstUsedIndex;
+        size_t lastView = qMin(views.size() - 1, size_t(rootElements[i].lastUsedIndex));
+
+        if(m_ShowUnused)
+        {
+          firstView = 0;
+          lastView = views.size() - 1;
+        }
+
+        for(size_t j = firstView; j <= lastView;)
         {
           int shaderReg = (int)views[j].bind;
 
@@ -1137,22 +1143,37 @@ void D3D12PipelineStateViewer::setShaderState(
             }
           }
 
-          uint32_t arraySize = bind ? qMax(1U, bind->arraySize) : 0;
+          bool usedSlot = (bind && bind->used);
+
+          uint32_t arraySize = bind ? qMax(1U, bind->arraySize) : 1;
+
+          // if this bind isn't used, skip
+          if(!showNode(usedSlot, true))
+          {
+            omittingEmpty = false;
+            j += arraySize;
+            continue;
+          }
 
           if(arraySize > 1)
           {
             // if this is an array bind, iterate over it trying to elide large empty ranges
-            for(uint32_t k = 0; k < arraySize && j < views.size(); k++)
+            for(uint32_t k = 0; k < arraySize && j <= lastView; k++)
             {
               if(
                   // if current element is empty
                   views[j].resourceId == ResourceId() &&
+                  // and will be shown
+                  showNode(usedSlot && views[j].dynamicallyUsed, false) &&
                   // and we have two behind us and one ahead
-                  j >= 2 && j + 1 < views.size() &&
-                  // last two are empty
+                  j >= 2 && j + 1 <= lastView &&
+                  // last two are empty and were be shown
                   views[j - 2].resourceId == ResourceId() && views[j - 1].resourceId == ResourceId() &&
-                  // next one is empty
-                  views[j + 1].resourceId == ResourceId())
+                  showNode(usedSlot && views[j - 2].dynamicallyUsed, false) &&
+                  showNode(usedSlot && views[j - 1].dynamicallyUsed, false) &&
+                  // next one is empty and will be shown
+                  views[j + 1].resourceId == ResourceId() &&
+                  showNode(usedSlot && views[j + 1].dynamicallyUsed, false))
               {
                 // if we haven't started omitting empty rows, add an empty row
                 if(!omittingEmpty)
@@ -1443,8 +1464,12 @@ void D3D12PipelineStateViewer::setState()
     return;
   }
 
+  // cache latest state of these checkboxes
+  m_ShowUnused = ui->showUnused->isChecked();
+  m_ShowEmpty = ui->showEmpty->isChecked();
+
   const D3D12Pipe::State &state = *m_Ctx.CurD3D12PipelineState();
-  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+  const ActionDescription *action = m_Ctx.CurAction();
 
   const QPixmap &tick = Pixmaps::tick(this);
   const QPixmap &cross = Pixmaps::cross(this);
@@ -1531,7 +1556,7 @@ void D3D12PipelineStateViewer::setState()
 
   m_Common.setTopologyDiagram(ui->topologyDiagram, state.inputAssembly.topology);
 
-  bool ibufferUsed = draw && (draw->flags & DrawFlags::Indexed);
+  bool ibufferUsed = action && (action->flags & ActionFlags::Indexed);
 
   m_VBNodes.clear();
   m_EmptyNodes.clear();
@@ -1542,7 +1567,7 @@ void D3D12PipelineStateViewer::setState()
 
   if(state.inputAssembly.indexBuffer.resourceId != ResourceId())
   {
-    if(ibufferUsed || ui->showUnused->isChecked())
+    if(ibufferUsed || m_ShowUnused)
     {
       uint64_t length = state.inputAssembly.indexBuffer.byteSize;
 
@@ -1566,7 +1591,7 @@ void D3D12PipelineStateViewer::setState()
           lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(state.inputAssembly.topology));
 
       uint32_t drawOffset =
-          (draw ? draw->indexOffset * state.inputAssembly.indexBuffer.byteStride : 0);
+          (action ? action->indexOffset * state.inputAssembly.indexBuffer.byteStride : 0);
 
       node->setTag(QVariant::fromValue(
           D3D12VBIBTag(state.inputAssembly.indexBuffer.resourceId,
@@ -1599,7 +1624,7 @@ void D3D12PipelineStateViewer::setState()
   }
   else
   {
-    if(ibufferUsed || ui->showEmpty->isChecked())
+    if(ibufferUsed || m_ShowEmpty)
     {
       RDTreeWidgetItem *node = new RDTreeWidgetItem(
           {tr("Index"), tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), QString()});
@@ -1617,7 +1642,7 @@ void D3D12PipelineStateViewer::setState()
           lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(state.inputAssembly.topology));
 
       uint32_t drawOffset =
-          (draw ? draw->indexOffset * state.inputAssembly.indexBuffer.byteStride : 0);
+          (action ? action->indexOffset * state.inputAssembly.indexBuffer.byteStride : 0);
 
       node->setTag(QVariant::fromValue(
           D3D12VBIBTag(state.inputAssembly.indexBuffer.resourceId,
@@ -2003,8 +2028,8 @@ void D3D12PipelineStateViewer::setState()
 
   // set up thread debugging inputs
   if(m_Ctx.APIProps().shaderDebugging && state.computeShader.reflection &&
-     state.computeShader.reflection->debugInfo.debuggable && draw &&
-     (draw->flags & DrawFlags::Dispatch))
+     state.computeShader.reflection->debugInfo.debuggable && action &&
+     (action->flags & ActionFlags::Dispatch))
   {
     ui->groupX->setEnabled(true);
     ui->groupY->setEnabled(true);
@@ -2017,11 +2042,11 @@ void D3D12PipelineStateViewer::setState()
     ui->debugThread->setEnabled(true);
 
     // set maximums for CS debugging
-    ui->groupX->setMaximum((int)draw->dispatchDimension[0] - 1);
-    ui->groupY->setMaximum((int)draw->dispatchDimension[1] - 1);
-    ui->groupZ->setMaximum((int)draw->dispatchDimension[2] - 1);
+    ui->groupX->setMaximum((int)action->dispatchDimension[0] - 1);
+    ui->groupY->setMaximum((int)action->dispatchDimension[1] - 1);
+    ui->groupZ->setMaximum((int)action->dispatchDimension[2] - 1);
 
-    if(draw->dispatchThreadsDimension[0] == 0)
+    if(action->dispatchThreadsDimension[0] == 0)
     {
       ui->threadX->setMaximum((int)state.computeShader.reflection->dispatchThreadsDimension[0] - 1);
       ui->threadY->setMaximum((int)state.computeShader.reflection->dispatchThreadsDimension[1] - 1);
@@ -2029,9 +2054,9 @@ void D3D12PipelineStateViewer::setState()
     }
     else
     {
-      ui->threadX->setMaximum((int)draw->dispatchThreadsDimension[0] - 1);
-      ui->threadY->setMaximum((int)draw->dispatchThreadsDimension[1] - 1);
-      ui->threadZ->setMaximum((int)draw->dispatchThreadsDimension[2] - 1);
+      ui->threadX->setMaximum((int)action->dispatchThreadsDimension[0] - 1);
+      ui->threadY->setMaximum((int)action->dispatchThreadsDimension[1] - 1);
+      ui->threadZ->setMaximum((int)action->dispatchThreadsDimension[2] - 1);
     }
 
     ui->debugThread->setToolTip(QString());
@@ -2050,7 +2075,7 @@ void D3D12PipelineStateViewer::setState()
 
     if(!m_Ctx.APIProps().shaderDebugging)
       ui->debugThread->setToolTip(tr("This API does not support shader debugging"));
-    else if(!draw || !(draw->flags & DrawFlags::Dispatch))
+    else if(!action || !(action->flags & ActionFlags::Dispatch))
       ui->debugThread->setToolTip(tr("No dispatch selected"));
     else if(!state.computeShader.reflection)
       ui->debugThread->setToolTip(tr("No compute shader bound"));
@@ -2060,11 +2085,11 @@ void D3D12PipelineStateViewer::setState()
   }
 
   // highlight the appropriate stages in the flowchart
-  if(draw == NULL)
+  if(action == NULL)
   {
     ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
   }
-  else if(draw->flags & DrawFlags::Dispatch)
+  else if(action->flags & ActionFlags::Dispatch)
   {
     ui->pipeFlow->setStagesEnabled({false, false, false, false, false, false, false, false, true});
   }
@@ -2552,7 +2577,7 @@ QVariantList D3D12PipelineStateViewer::exportViewHTML(const D3D12Pipe::View &vie
 
 void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::InputAssembly &ia)
 {
-  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+  const ActionDescription *action = m_Ctx.CurAction();
 
   {
     xml.writeStartElement(lit("h3"));
@@ -3370,9 +3395,9 @@ void D3D12PipelineStateViewer::on_debugThread_clicked()
   if(!m_Ctx.IsCaptureLoaded())
     return;
 
-  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+  const ActionDescription *action = m_Ctx.CurAction();
 
-  if(!draw)
+  if(!action)
     return;
 
   ShaderReflection *shaderDetails = m_Ctx.CurD3D12PipelineState()->computeShader.reflection;
@@ -3385,11 +3410,11 @@ void D3D12PipelineStateViewer::on_debugThread_clicked()
   uint32_t groupdim[3] = {};
 
   for(int i = 0; i < 3; i++)
-    groupdim[i] = draw->dispatchDimension[i];
+    groupdim[i] = action->dispatchDimension[i];
 
   uint32_t threadsdim[3] = {};
   for(int i = 0; i < 3; i++)
-    threadsdim[i] = draw->dispatchThreadsDimension[i];
+    threadsdim[i] = action->dispatchThreadsDimension[i];
 
   if(threadsdim[0] == 0)
   {

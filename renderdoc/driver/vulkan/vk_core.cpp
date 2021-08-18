@@ -127,19 +127,19 @@ WrappedVulkan::WrappedVulkan()
   debugMessageSinkTLSSlot = Threading::AllocateTLSSlot();
 
   m_RootEventID = 1;
-  m_RootDrawcallID = 1;
+  m_RootActionID = 1;
   m_FirstEventID = 0;
   m_LastEventID = ~0U;
 
-  m_DrawcallCallback = NULL;
+  m_ActionCallback = NULL;
   m_SubmitChain = NULL;
 
   m_CurChunkOffset = 0;
-  m_AddedDrawcall = false;
+  m_AddedAction = false;
 
   m_LastCmdBufferID = ResourceId();
 
-  m_DrawcallStack.push_back(&m_ParentDrawcall);
+  m_ActionStack.push_back(&m_ParentAction);
 
   m_SetDeviceLoaderData = NULL;
 
@@ -202,6 +202,49 @@ WrappedVulkan::~WrappedVulkan()
   delete m_Replay;
 }
 
+VkCommandBuffer WrappedVulkan::GetInitStateCmd()
+{
+  if(initStateCurBatch >= initialStateMaxBatch)
+  {
+    CloseInitStateCmd();
+  }
+
+  if(initStateCurCmd == VK_NULL_HANDLE)
+  {
+    initStateCurCmd = GetNextCmd();
+
+    VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
+                                          VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+    VkResult vkr = ObjDisp(initStateCurCmd)->BeginCommandBuffer(Unwrap(initStateCurCmd), &beginInfo);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    if(IsReplayMode(m_State))
+    {
+      VkMarkerRegion::Begin("!!!!RenderDoc Internal: ApplyInitialContents batched list",
+                            initStateCurCmd);
+    }
+  }
+
+  initStateCurBatch++;
+
+  return initStateCurCmd;
+}
+
+void WrappedVulkan::CloseInitStateCmd()
+{
+  if(initStateCurCmd == VK_NULL_HANDLE)
+    return;
+
+  VkMarkerRegion::End(initStateCurCmd);
+
+  VkResult vkr = ObjDisp(initStateCurCmd)->EndCommandBuffer(Unwrap(initStateCurCmd));
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  initStateCurCmd = VK_NULL_HANDLE;
+  initStateCurBatch = 0;
+}
+
 VkCommandBuffer WrappedVulkan::GetNextCmd()
 {
   VkCommandBuffer ret;
@@ -224,12 +267,11 @@ VkCommandBuffer WrappedVulkan::GetNextCmd()
     };
     VkResult vkr = ObjDisp(m_Device)->AllocateCommandBuffers(Unwrap(m_Device), &cmdInfo, &ret);
 
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
     if(m_SetDeviceLoaderData)
       m_SetDeviceLoaderData(m_Device, ret);
     else
       SetDispatchTableOverMagicNumber(m_Device, ret);
-
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     GetResourceManager()->WrapResource(Unwrap(m_Device), ret);
   }
@@ -534,19 +576,19 @@ void WrappedVulkan::InlineCleanupImageBarriers(VkCommandBuffer cmd, ImageBarrier
     DoPipelineBarrier(cmd, (uint32_t)batch.size(), batch.data());
 }
 
-uint32_t WrappedVulkan::HandlePreCallback(VkCommandBuffer commandBuffer, DrawFlags type,
+uint32_t WrappedVulkan::HandlePreCallback(VkCommandBuffer commandBuffer, ActionFlags type,
                                           uint32_t multiDrawOffset)
 {
-  if(!m_DrawcallCallback)
+  if(!m_ActionCallback)
     return 0;
 
-  // look up the EID this drawcall came from
-  DrawcallUse use(m_CurChunkOffset, 0);
-  auto it = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
+  // look up the EID this action came from
+  ActionUse use(m_CurChunkOffset, 0);
+  auto it = std::lower_bound(m_ActionUses.begin(), m_ActionUses.end(), use);
 
-  if(it == m_DrawcallUses.end())
+  if(it == m_ActionUses.end())
   {
-    RDCERR("Couldn't find drawcall use entry for %llu", m_CurChunkOffset);
+    RDCERR("Couldn't find action use entry for %llu", m_CurChunkOffset);
     return 0;
   }
 
@@ -554,33 +596,36 @@ uint32_t WrappedVulkan::HandlePreCallback(VkCommandBuffer commandBuffer, DrawFla
 
   RDCASSERT(eventId != 0);
 
-  // handle all aliases of this drawcall as long as it's not a multidraw
-  const DrawcallDescription *draw = GetDrawcall(eventId);
+  // handle all aliases of this action as long as it's not a multidraw
+  const ActionDescription *action = GetAction(eventId);
 
-  if(draw == NULL || !(draw->flags & DrawFlags::MultiDraw))
+  if(action == NULL || !(action->flags & ActionFlags::MultiAction))
   {
     ++it;
-    while(it != m_DrawcallUses.end() && it->fileOffset == m_CurChunkOffset)
+    while(it != m_ActionUses.end() && it->fileOffset == m_CurChunkOffset)
     {
-      m_DrawcallCallback->AliasEvent(eventId, it->eventId);
+      m_ActionCallback->AliasEvent(eventId, it->eventId);
       ++it;
     }
   }
 
   eventId += multiDrawOffset;
 
-  if(type == DrawFlags::Drawcall)
-    m_DrawcallCallback->PreDraw(eventId, commandBuffer);
-  else if(type == DrawFlags::Dispatch)
-    m_DrawcallCallback->PreDispatch(eventId, commandBuffer);
+  if(type == ActionFlags::Drawcall)
+    m_ActionCallback->PreDraw(eventId, commandBuffer);
+  else if(type == ActionFlags::Dispatch)
+    m_ActionCallback->PreDispatch(eventId, commandBuffer);
   else
-    m_DrawcallCallback->PreMisc(eventId, type, commandBuffer);
+    m_ActionCallback->PreMisc(eventId, type, commandBuffer);
 
   return eventId;
 }
 
 rdcstr WrappedVulkan::GetChunkName(uint32_t idx)
 {
+  if((SystemChunk)idx == SystemChunk::DriverInit)
+    return "vkCreateInstance"_lit;
+
   if((SystemChunk)idx < SystemChunk::FirstDriverChunk)
     return ToStr((SystemChunk)idx);
 
@@ -1597,7 +1642,7 @@ bool WrappedVulkan::Serialise_CaptureScope(SerialiserType &ser)
 void WrappedVulkan::EndCaptureFrame(VkImage presentImage)
 {
   CACHE_THREAD_SERIALISER();
-  ser.SetDrawChunk();
+  ser.SetActionChunk();
   SCOPED_SERIALISE_CHUNK(SystemChunk::CaptureEnd);
 
   SERIALISE_ELEMENT_LOCAL(PresentedImage, GetResID(presentImage)).TypedAs("VkImage"_lit);
@@ -1621,7 +1666,14 @@ template <typename SerialiserType>
 bool WrappedVulkan::Serialise_BeginCaptureFrame(SerialiserType &ser)
 {
   SCOPED_LOCK(m_ImageStatesLock);
+
+  for(auto it = m_ImageStates.begin(); it != m_ImageStates.end(); ++it)
+  {
+    it->second.LockWrite()->FixupStorageReferences();
+  }
+
   GetResourceManager()->SerialiseImageStates(ser, m_ImageStates);
+
   SERIALISE_CHECK_READ_ERRORS();
 
   return true;
@@ -2523,7 +2575,7 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
     RDCASSERT(m_Device != VK_NULL_HANDLE && m_Queue != VK_NULL_HANDLE &&
               m_InternalCmds.cmdpool != VK_NULL_HANDLE);
 
-    // create indirect draw buffer
+    // create indirect action buffer
     m_IndirectBufferSize = AlignUp(m_IndirectBufferSize + 63, (size_t)64);
 
     m_IndirectBuffer.Create(this, GetDev(), m_IndirectBufferSize * 2, 1,
@@ -2579,6 +2631,11 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
       ser.SkipCurrentChunk();
 #else
     Serialise_BeginCaptureFrame(ser);
+
+    if(IsLoading(m_State))
+    {
+      AddResourceCurChunk(m_InitParams.InstanceID);
+    }
 #endif
   }
 
@@ -2625,7 +2682,7 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
   else
   {
     m_RootEventID = 1;
-    m_RootDrawcallID = 1;
+    m_RootActionID = 1;
     m_FirstEventID = 0;
     m_LastEventID = ~0U;
   }
@@ -2715,11 +2772,11 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
 
   if(IsLoading(m_State))
   {
-    GetReplay()->WriteFrameRecord().drawcallList = m_ParentDrawcall.Bake();
+    GetReplay()->WriteFrameRecord().actionList = m_ParentAction.Bake();
 
-    SetupDrawcallPointers(m_Drawcalls, GetReplay()->WriteFrameRecord().drawcallList);
+    SetupActionPointers(m_Actions, GetReplay()->WriteFrameRecord().actionList);
 
-    m_ParentDrawcall.children.clear();
+    m_ParentAction.children.clear();
   }
 
   if(!IsStructuredExporting(m_State))
@@ -2768,6 +2825,9 @@ void WrappedVulkan::ApplyInitialContents()
   RENDERDOC_PROFILEFUNCTION();
   VkMarkerRegion region("ApplyInitialContents");
 
+  initStateCurBatch = 0;
+  initStateCurCmd = VK_NULL_HANDLE;
+
   // check that we have all external queues necessary
   for(size_t i = 0; i < m_ExternalQueues.size(); i++)
   {
@@ -2815,6 +2875,15 @@ void WrappedVulkan::ApplyInitialContents()
 
   // actually apply the initial contents here
   GetResourceManager()->ApplyInitialContents();
+
+  // close the final command buffer
+  if(initStateCurCmd != VK_NULL_HANDLE)
+  {
+    CloseInitStateCmd();
+  }
+
+  initStateCurBatch = 0;
+  initStateCurCmd = VK_NULL_HANDLE;
 
   for(auto it = m_ImageStates.begin(); it != m_ImageStates.end(); ++it)
   {
@@ -2907,7 +2976,7 @@ void WrappedVulkan::ApplyInitialContents()
 
 bool WrappedVulkan::ContextProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
 {
-  m_AddedDrawcall = false;
+  m_AddedAction = false;
 
   bool success = ProcessChunk(ser, chunk);
 
@@ -2922,16 +2991,16 @@ bool WrappedVulkan::ContextProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
     }
     else if(chunk == VulkanChunk::vkQueueEndDebugUtilsLabelEXT)
     {
-      // also ignore, this just pops the drawcall stack
+      // also ignore, this just pops the action stack
     }
     else
     {
-      if(!m_AddedDrawcall)
+      if(!m_AddedAction)
         AddEvent();
     }
   }
 
-  m_AddedDrawcall = false;
+  m_AddedAction = false;
 
   return true;
 }
@@ -3359,6 +3428,15 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
     {
       GetResourceManager()->CreateInitialContents(ser);
 
+      if(initStateCurCmd != VK_NULL_HANDLE)
+      {
+        CloseInitStateCmd();
+        SubmitAndFlushImageStateBarriers(m_setupImageBarriers);
+        SubmitCmds();
+        FlushQ();
+        SubmitAndFlushImageStateBarriers(m_cleanupImageBarriers);
+      }
+
       SERIALISE_CHECK_READ_ERRORS();
     }
     else if(system == SystemChunk::InitialContents)
@@ -3382,13 +3460,13 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       {
         AddEvent();
 
-        DrawcallDescription draw;
-        draw.name = "End of Capture";
-        draw.flags |= DrawFlags::Present;
+        ActionDescription action;
+        action.customName = "End of Capture";
+        action.flags |= ActionFlags::Present;
 
-        draw.copyDestination = m_LastPresentedImage;
+        action.copyDestination = m_LastPresentedImage;
 
-        AddDrawcall(draw, true);
+        AddAction(action);
       }
 
       return true;
@@ -3492,7 +3570,7 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
 
     // we'll need our own command buffer if we're replaying just a subsection
     // of events within a single command buffer record - always if it's only
-    // one drawcall, or if start event ID is > 0 we assume the outside code
+    // one action, or if start event ID is > 0 we assume the outside code
     // has chosen a subsection that lies within a command buffer
     if(partial)
     {
@@ -3511,29 +3589,28 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
 
       if(m_Partial[Primary].renderPassActive)
       {
-        const DrawcallDescription *draw = GetDrawcall(endEventID);
+        const ActionDescription *action = GetAction(endEventID);
 
         bool rpUnneeded = false;
 
-        // if we're only replaying a draw, and it's not a drawcall or dispatch, don't try and bind
+        // if we're only replaying an action, and it's not an draw or dispatch, don't try and bind
         // all the replay state as we don't know if it will be valid.
         if(replayType == eReplay_OnlyDraw)
         {
-          if(!draw)
+          if(!action)
           {
             rpUnneeded = true;
           }
-          else if(!(draw->flags & (DrawFlags::Drawcall | DrawFlags::Dispatch)))
+          else if(!(action->flags & (ActionFlags::Drawcall | ActionFlags::Dispatch)))
           {
             rpUnneeded = true;
           }
         }
 
-        // if we have an indirect draw with one draw, the subcommand will have an event which isn't
-        // a DrawcallDescription and selecting it will still replay that indirect draw. We need to
-        // detect this case and ensure we prepare the RP.
-        // This doesn't happen for multi-draw indirects because there each subcommand has an actual
-        // DrawcallDescription
+        // if we have an indirect action with one action, the subcommand will have an event which
+        // isn't a ActionDescription and selecting it will still replay that indirect action. We
+        // need to detect this case and ensure we prepare the RP. This doesn't happen for
+        // multi-action indirects because there each subcommand has an actual ActionDescription
         if(rpUnneeded)
         {
           APIEvent ev = GetEvent(endEventID);
@@ -3580,7 +3657,7 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
 
       // check if the render pass is active - it could have become active
       // even if it wasn't before (if the above event was a CmdBeginRenderPass).
-      // If we began our own custom single-draw loadrp, and it was ended by a CmdEndRenderPass,
+      // If we began our own custom single-action loadrp, and it was ended by a CmdEndRenderPass,
       // we need to reverse the virtual transitions we did above, as it won't happen otherwise
       if(m_Partial[Primary].renderPassActive)
         m_RenderState.EndRenderPass(cmd);
@@ -3759,14 +3836,14 @@ void WrappedVulkan::AddDebugMessage(MessageCategory c, MessageSeverity sv, Messa
   msg.eventId = 0;
   if(IsActiveReplaying(m_State))
   {
-    // look up the EID this drawcall came from
-    DrawcallUse use(m_CurChunkOffset, 0);
-    auto it = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
+    // look up the EID this action came from
+    ActionUse use(m_CurChunkOffset, 0);
+    auto it = std::lower_bound(m_ActionUses.begin(), m_ActionUses.end(), use);
 
-    if(it != m_DrawcallUses.end())
+    if(it != m_ActionUses.end())
       msg.eventId = it->eventId;
     else
-      RDCERR("Couldn't locate drawcall use for current chunk offset %llu", m_CurChunkOffset);
+      RDCERR("Couldn't locate action use for current chunk offset %llu", m_CurChunkOffset);
   }
   msg.messageID = 0;
   msg.source = src;
@@ -3804,11 +3881,11 @@ VkBool32 WrappedVulkan::DebugCallback(MessageSeverity severity, MessageCategory 
       // during replay we can get an eventId to correspond to this message.
       if(IsActiveReplaying(m_State))
       {
-        // look up the EID this drawcall came from
-        DrawcallUse use(m_CurChunkOffset, 0);
-        auto it = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
+        // look up the EID this action came from
+        ActionUse use(m_CurChunkOffset, 0);
+        auto it = std::lower_bound(m_ActionUses.begin(), m_ActionUses.end(), use);
 
-        if(it != m_DrawcallUses.end())
+        if(it != m_ActionUses.end())
           msg.eventId = it->eventId;
       }
 
@@ -3952,21 +4029,6 @@ const VkFormatProperties &WrappedVulkan::GetFormatProperties(VkFormat f)
   return m_PhysicalDeviceData.fmtProps[f];
 }
 
-bool WrappedVulkan::HasNonMarkerEvents(ResourceId cmdBuffer)
-{
-  for(const APIEvent &ev : m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents)
-  {
-    VulkanChunk chunk = (VulkanChunk)m_StructuredFile->chunks[ev.chunkIndex]->metadata.chunkID;
-    if(chunk != VulkanChunk::vkCmdDebugMarkerBeginEXT &&
-       chunk != VulkanChunk::vkCmdDebugMarkerEndEXT &&
-       chunk != VulkanChunk::vkCmdBeginDebugUtilsLabelEXT &&
-       chunk != VulkanChunk::vkCmdEndDebugUtilsLabelEXT)
-      return true;
-  }
-
-  return false;
-}
-
 bool WrappedVulkan::InRerecordRange(ResourceId cmdid)
 {
   // if we have an outside command buffer, assume the range is valid and we're replaying all events
@@ -4041,22 +4103,22 @@ ResourceId WrappedVulkan::GetPartialCommandBuffer()
   return m_Partial[Primary].partialParent;
 }
 
-void WrappedVulkan::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
+void WrappedVulkan::AddAction(const ActionDescription &a)
 {
-  m_AddedDrawcall = true;
+  m_AddedAction = true;
 
-  DrawcallDescription draw = d;
-  draw.eventId = m_LastCmdBufferID != ResourceId()
-                     ? m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID
-                     : m_RootEventID;
-  draw.drawcallId = m_LastCmdBufferID != ResourceId()
-                        ? m_BakedCmdBufferInfo[m_LastCmdBufferID].drawCount
-                        : m_RootDrawcallID;
+  ActionDescription action = a;
+  action.eventId = m_LastCmdBufferID != ResourceId()
+                       ? m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID
+                       : m_RootEventID;
+  action.actionId = m_LastCmdBufferID != ResourceId()
+                        ? m_BakedCmdBufferInfo[m_LastCmdBufferID].actionCount
+                        : m_RootActionID;
 
   for(int i = 0; i < 8; i++)
-    draw.outputs[i] = ResourceId();
+    action.outputs[i] = ResourceId();
 
-  draw.depthOut = ResourceId();
+  action.depthOut = ResourceId();
 
   if(m_LastCmdBufferID != ResourceId())
   {
@@ -4074,92 +4136,87 @@ void WrappedVulkan::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
       rdcarray<uint32_t> &colAtt = m_CreationInfo.m_RenderPass[rp].subpasses[sp].colorAttachments;
       int32_t dsAtt = m_CreationInfo.m_RenderPass[rp].subpasses[sp].depthstencilAttachment;
 
-      RDCASSERT(colAtt.size() <= ARRAY_COUNT(draw.outputs));
+      RDCASSERT(colAtt.size() <= ARRAY_COUNT(action.outputs));
 
-      for(size_t i = 0; i < ARRAY_COUNT(draw.outputs) && i < colAtt.size(); i++)
+      for(size_t i = 0; i < ARRAY_COUNT(action.outputs) && i < colAtt.size(); i++)
       {
         if(colAtt[i] == VK_ATTACHMENT_UNUSED)
           continue;
 
         RDCASSERT(colAtt[i] < atts.size());
-        draw.outputs[i] =
+        action.outputs[i] =
             GetResourceManager()->GetOriginalID(m_CreationInfo.m_ImageView[atts[colAtt[i]]].image);
       }
 
       if(dsAtt != -1)
       {
         RDCASSERT(dsAtt < (int32_t)atts.size());
-        draw.depthOut =
+        action.depthOut =
             GetResourceManager()->GetOriginalID(m_CreationInfo.m_ImageView[atts[dsAtt]].image);
       }
     }
   }
 
-  // markers don't increment drawcall ID
-  DrawFlags MarkerMask = DrawFlags::SetMarker | DrawFlags::PushMarker | DrawFlags::PassBoundary;
-  if(!(draw.flags & MarkerMask))
+  // markers don't increment action ID
+  ActionFlags MarkerMask = ActionFlags::SetMarker | ActionFlags::PushMarker |
+                           ActionFlags::PopMarker | ActionFlags::PassBoundary;
+  if(!(action.flags & MarkerMask))
   {
     if(m_LastCmdBufferID != ResourceId())
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].drawCount++;
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].actionCount++;
     else
-      m_RootDrawcallID++;
+      m_RootActionID++;
   }
 
-  if(hasEvents)
-  {
-    rdcarray<APIEvent> &srcEvents = m_LastCmdBufferID != ResourceId()
-                                        ? m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents
-                                        : m_RootEvents;
+  action.events.swap(m_LastCmdBufferID != ResourceId()
+                         ? m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents
+                         : m_RootEvents);
 
-    draw.events = srcEvents;
-    srcEvents.clear();
-  }
-
-  // should have at least the root drawcall here, push this drawcall
+  // should have at least the root action here, push this action
   // onto the back's children list.
-  if(!GetDrawcallStack().empty())
+  if(!GetActionStack().empty())
   {
-    VulkanDrawcallTreeNode node(draw);
+    VulkanActionTreeNode node(action);
 
     node.resourceUsage.swap(m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage);
 
     if(m_LastCmdBufferID != ResourceId())
       AddUsage(node, m_BakedCmdBufferInfo[m_LastCmdBufferID].debugMessages);
 
-    node.children.reserve(draw.children.size());
-    for(const DrawcallDescription &child : draw.children)
-      node.children.push_back(VulkanDrawcallTreeNode(child));
-    GetDrawcallStack().back()->children.push_back(node);
+    node.children.reserve(action.children.size());
+    for(const ActionDescription &child : action.children)
+      node.children.push_back(VulkanActionTreeNode(child));
+    GetActionStack().back()->children.push_back(node);
   }
   else
-    RDCERR("Somehow lost drawcall stack!");
+    RDCERR("Somehow lost action stack!");
 }
 
-void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, rdcarray<DebugMessage> &debugMessages)
+void WrappedVulkan::AddUsage(VulkanActionTreeNode &actionNode, rdcarray<DebugMessage> &debugMessages)
 {
-  DrawcallDescription &d = drawNode.draw;
+  ActionDescription &action = actionNode.action;
 
   const VulkanRenderState &state = m_BakedCmdBufferInfo[m_LastCmdBufferID].state;
   VulkanCreationInfo &c = m_CreationInfo;
-  uint32_t e = d.eventId;
+  uint32_t eid = action.eventId;
 
-  DrawFlags DrawMask = DrawFlags::Drawcall | DrawFlags::Dispatch;
-  if(!(d.flags & DrawMask))
+  ActionFlags DrawMask = ActionFlags::Drawcall | ActionFlags::Dispatch;
+  if(!(action.flags & DrawMask))
     return;
 
   //////////////////////////////
   // Vertex input
 
-  if(d.flags & DrawFlags::Indexed && state.ibuffer.buf != ResourceId())
-    drawNode.resourceUsage.push_back(
-        make_rdcpair(state.ibuffer.buf, EventUsage(e, ResourceUsage::IndexBuffer)));
+  if(action.flags & ActionFlags::Indexed && state.ibuffer.buf != ResourceId())
+    actionNode.resourceUsage.push_back(
+        make_rdcpair(state.ibuffer.buf, EventUsage(eid, ResourceUsage::IndexBuffer)));
 
   for(size_t i = 0; i < state.vbuffers.size(); i++)
   {
     if(state.vbuffers[i].buf != ResourceId())
     {
-      drawNode.resourceUsage.push_back(
-          make_rdcpair(state.vbuffers[i].buf, EventUsage(e, ResourceUsage::VertexBuffer)));
+      actionNode.resourceUsage.push_back(
+          make_rdcpair(state.vbuffers[i].buf, EventUsage(eid, ResourceUsage::VertexBuffer)));
     }
   }
 
@@ -4168,8 +4225,8 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, rdcarray<DebugMes
   {
     if(state.xfbbuffers[i].buf != ResourceId())
     {
-      drawNode.resourceUsage.push_back(
-          make_rdcpair(state.xfbbuffers[i].buf, EventUsage(e, ResourceUsage::StreamOut)));
+      actionNode.resourceUsage.push_back(
+          make_rdcpair(state.xfbbuffers[i].buf, EventUsage(eid, ResourceUsage::StreamOut)));
     }
   }
 
@@ -4180,12 +4237,12 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, rdcarray<DebugMes
 
   int shaderStart = 0;
   int shaderEnd = 0;
-  if(d.flags & DrawFlags::Dispatch)
+  if(action.flags & ActionFlags::Dispatch)
   {
     shaderStart = 5;
     shaderEnd = 6;
   }
-  else if(d.flags & DrawFlags::Drawcall)
+  else if(action.flags & ActionFlags::Drawcall)
   {
     shaderStart = 0;
     shaderEnd = 5;
@@ -4222,7 +4279,7 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, rdcarray<DebugMes
     };
 
     DebugMessage msg;
-    msg.eventId = e;
+    msg.eventId = eid;
     msg.category = MessageCategory::Execution;
     msg.messageID = 0;
     msg.source = MessageSource::IncorrectAPIUse;
@@ -4343,7 +4400,7 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, rdcarray<DebugMes
           }
 
           if(id != ResourceId())
-            drawNode.resourceUsage.push_back(make_rdcpair(id, EventUsage(e, usage)));
+            actionNode.resourceUsage.push_back(make_rdcpair(id, EventUsage(eid, usage)));
         }
       }
     }
@@ -4352,16 +4409,16 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, rdcarray<DebugMes
   //////////////////////////////
   // Framebuffer/renderpass
 
-  AddFramebufferUsage(drawNode, state.renderPass, state.GetFramebuffer(), state.subpass,
+  AddFramebufferUsage(actionNode, state.renderPass, state.GetFramebuffer(), state.subpass,
                       state.GetFramebufferAttachments());
 }
 
-void WrappedVulkan::AddFramebufferUsage(VulkanDrawcallTreeNode &drawNode, ResourceId renderPass,
+void WrappedVulkan::AddFramebufferUsage(VulkanActionTreeNode &actionNode, ResourceId renderPass,
                                         ResourceId framebuffer, uint32_t subpass,
                                         const rdcarray<ResourceId> &fbattachments)
 {
   VulkanCreationInfo &c = m_CreationInfo;
-  uint32_t e = drawNode.draw.eventId;
+  uint32_t e = actionNode.action.eventId;
 
   if(renderPass != ResourceId() && framebuffer != ResourceId())
   {
@@ -4381,7 +4438,7 @@ void WrappedVulkan::AddFramebufferUsage(VulkanDrawcallTreeNode &drawNode, Resour
         uint32_t att = sub.inputAttachments[i];
         if(att == VK_ATTACHMENT_UNUSED)
           continue;
-        drawNode.resourceUsage.push_back(
+        actionNode.resourceUsage.push_back(
             make_rdcpair(c.m_ImageView[fbattachments[att]].image,
                          EventUsage(e, ResourceUsage::InputTarget, fbattachments[att])));
       }
@@ -4391,7 +4448,7 @@ void WrappedVulkan::AddFramebufferUsage(VulkanDrawcallTreeNode &drawNode, Resour
         uint32_t att = sub.colorAttachments[i];
         if(att == VK_ATTACHMENT_UNUSED)
           continue;
-        drawNode.resourceUsage.push_back(
+        actionNode.resourceUsage.push_back(
             make_rdcpair(c.m_ImageView[fbattachments[att]].image,
                          EventUsage(e, ResourceUsage::ColorTarget, fbattachments[att])));
       }
@@ -4399,7 +4456,7 @@ void WrappedVulkan::AddFramebufferUsage(VulkanDrawcallTreeNode &drawNode, Resour
       if(sub.depthstencilAttachment >= 0)
       {
         int32_t att = sub.depthstencilAttachment;
-        drawNode.resourceUsage.push_back(
+        actionNode.resourceUsage.push_back(
             make_rdcpair(c.m_ImageView[fbattachments[att]].image,
                          EventUsage(e, ResourceUsage::DepthStencilTarget, fbattachments[att])));
       }
@@ -4407,15 +4464,15 @@ void WrappedVulkan::AddFramebufferUsage(VulkanDrawcallTreeNode &drawNode, Resour
   }
 }
 
-void WrappedVulkan::AddFramebufferUsageAllChildren(VulkanDrawcallTreeNode &drawNode,
+void WrappedVulkan::AddFramebufferUsageAllChildren(VulkanActionTreeNode &actionNode,
                                                    ResourceId renderPass, ResourceId framebuffer,
                                                    uint32_t subpass,
                                                    const rdcarray<ResourceId> &fbattachments)
 {
-  for(VulkanDrawcallTreeNode &c : drawNode.children)
+  for(VulkanActionTreeNode &c : actionNode.children)
     AddFramebufferUsageAllChildren(c, renderPass, framebuffer, subpass, fbattachments);
 
-  AddFramebufferUsage(drawNode, renderPass, framebuffer, subpass, fbattachments);
+  AddFramebufferUsage(actionNode, renderPass, framebuffer, subpass, fbattachments);
 }
 
 void WrappedVulkan::AddEvent()
@@ -4461,12 +4518,12 @@ const APIEvent &WrappedVulkan::GetEvent(uint32_t eventId)
   return m_Events[RDCMIN(idx, m_Events.size() - 1)];
 }
 
-const DrawcallDescription *WrappedVulkan::GetDrawcall(uint32_t eventId)
+const ActionDescription *WrappedVulkan::GetAction(uint32_t eventId)
 {
-  if(eventId >= m_Drawcalls.size())
+  if(eventId >= m_Actions.size())
     return NULL;
 
-  return m_Drawcalls[eventId];
+  return m_Actions[eventId];
 }
 
 uint32_t WrappedVulkan::FindCommandQueueFamily(ResourceId cmdId)
@@ -4569,36 +4626,35 @@ void WrappedVulkan::UpdateImageStates(const rdcflatmap<ResourceId, ImageState> &
   }
 }
 
-void WrappedVulkan::ReplayDraw(VkCommandBuffer cmd, const DrawcallDescription &drawcall)
+void WrappedVulkan::ReplayDraw(VkCommandBuffer cmd, const ActionDescription &action)
 {
-  // if this isn't a multidraw (or it's the first draw in a multidraw, it's fairly easy
-  if(drawcall.drawIndex == 0)
+  // if this isn't a multidraw (or it's the first action in a multidraw, it's fairly easy
+  if(action.drawIndex == 0)
   {
-    if(drawcall.flags & DrawFlags::Indexed)
-      ObjDisp(cmd)->CmdDrawIndexed(Unwrap(cmd), drawcall.numIndices, drawcall.numInstances,
-                                   drawcall.indexOffset, drawcall.baseVertex,
-                                   drawcall.instanceOffset);
+    if(action.flags & ActionFlags::Indexed)
+      ObjDisp(cmd)->CmdDrawIndexed(Unwrap(cmd), action.numIndices, action.numInstances,
+                                   action.indexOffset, action.baseVertex, action.instanceOffset);
     else
-      ObjDisp(cmd)->CmdDraw(Unwrap(cmd), drawcall.numIndices, drawcall.numInstances,
-                            drawcall.vertexOffset, drawcall.instanceOffset);
+      ObjDisp(cmd)->CmdDraw(Unwrap(cmd), action.numIndices, action.numInstances,
+                            action.vertexOffset, action.instanceOffset);
   }
   else
   {
     // otherwise it's a bit more complex, we need to set up a multidraw with the first N draws nop'd
     // out and the parameters added into the last one
 
-    VkMarkerRegion::Begin(StringFormat::Fmt("ReplayDraw(drawIndex=%u)", drawcall.drawIndex), cmd);
+    VkMarkerRegion::Begin(StringFormat::Fmt("ReplayDraw(drawIndex=%u)", action.drawIndex), cmd);
 
     bytebuf params;
 
-    if(drawcall.flags & DrawFlags::Indexed)
+    if(action.flags & ActionFlags::Indexed)
     {
       VkDrawIndexedIndirectCommand drawParams;
-      drawParams.indexCount = drawcall.numIndices;
-      drawParams.instanceCount = drawcall.numInstances;
-      drawParams.firstIndex = drawcall.indexOffset;
-      drawParams.vertexOffset = drawcall.baseVertex;
-      drawParams.firstInstance = drawcall.instanceOffset;
+      drawParams.indexCount = action.numIndices;
+      drawParams.instanceCount = action.numInstances;
+      drawParams.firstIndex = action.indexOffset;
+      drawParams.vertexOffset = action.baseVertex;
+      drawParams.firstInstance = action.instanceOffset;
 
       params.resize(sizeof(drawParams));
       memcpy(params.data(), &drawParams, sizeof(drawParams));
@@ -4607,17 +4663,17 @@ void WrappedVulkan::ReplayDraw(VkCommandBuffer cmd, const DrawcallDescription &d
     {
       VkDrawIndirectCommand drawParams;
 
-      drawParams.vertexCount = drawcall.numIndices;
-      drawParams.instanceCount = drawcall.numInstances;
-      drawParams.firstVertex = drawcall.vertexOffset;
-      drawParams.firstInstance = drawcall.instanceOffset;
+      drawParams.vertexCount = action.numIndices;
+      drawParams.instanceCount = action.numInstances;
+      drawParams.firstVertex = action.vertexOffset;
+      drawParams.firstInstance = action.instanceOffset;
 
       params.resize(sizeof(drawParams));
       memcpy(params.data(), &drawParams, sizeof(drawParams));
     }
 
     // ensure the custom buffer is large enough
-    VkDeviceSize bufLength = params.size() * (drawcall.drawIndex + 1);
+    VkDeviceSize bufLength = params.size() * (action.drawIndex + 1);
 
     RDCASSERT(bufLength <= m_IndirectBufferSize, bufLength, m_IndirectBufferSize);
 
@@ -4648,7 +4704,7 @@ void WrappedVulkan::ReplayDraw(VkCommandBuffer cmd, const DrawcallDescription &d
 
     // upload the parameters for the draw we want
     ObjDisp(cmd)->CmdUpdateBuffer(Unwrap(cmd), Unwrap(m_IndirectBuffer.buf),
-                                  m_IndirectBufferSize + params.size() * drawcall.drawIndex,
+                                  m_IndirectBufferSize + params.size() * action.drawIndex,
                                   params.size(), params.data());
 
     // finally wait for copy to complete before drawing from it
@@ -4657,13 +4713,13 @@ void WrappedVulkan::ReplayDraw(VkCommandBuffer cmd, const DrawcallDescription &d
 
     DoPipelineBarrier(cmd, 1, &bufBarrier);
 
-    if(drawcall.flags & DrawFlags::Indexed)
+    if(action.flags & ActionFlags::Indexed)
       ObjDisp(cmd)->CmdDrawIndexedIndirect(Unwrap(cmd), Unwrap(m_IndirectBuffer.buf),
-                                           m_IndirectBufferSize, drawcall.drawIndex + 1,
+                                           m_IndirectBufferSize, action.drawIndex + 1,
                                            (uint32_t)params.size());
     else
       ObjDisp(cmd)->CmdDrawIndirect(Unwrap(cmd), Unwrap(m_IndirectBuffer.buf), m_IndirectBufferSize,
-                                    drawcall.drawIndex + 1, (uint32_t)params.size());
+                                    action.drawIndex + 1, (uint32_t)params.size());
 
     VkMarkerRegion::End(cmd);
   }

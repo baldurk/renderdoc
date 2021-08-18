@@ -33,7 +33,7 @@ class Iter_Test(rdtest.TestCase):
         texsave.destType = rd.FileType.DDS
         self.controller.SaveTexture(texsave, filename + ".dds")
 
-    def image_save(self, draw: rd.DrawcallDescription):
+    def image_save(self, action: rd.ActionDescription):
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
         texsave = rd.TextureSave()
@@ -48,46 +48,46 @@ class Iter_Test(rdtest.TestCase):
         texsave.mip = depth.firstMip
         self.save_texture(texsave)
 
-        rdtest.log.success('Successfully saved images at {}: {}'.format(draw.eventId, draw.name))
+        rdtest.log.success('Successfully saved images at {}'.format(action.eventId))
 
-    def vert_debug(self, draw: rd.DrawcallDescription):
+    def vert_debug(self, action: rd.ActionDescription):
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
         refl: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
 
         if pipe.GetShader(rd.ShaderStage.Vertex) == rd.ResourceId.Null():
-            rdtest.log.print("No vertex shader bound at {}: {}".format(draw.eventId, draw.name))
+            rdtest.log.print("No vertex shader bound at {}".format(action.eventId))
             return
 
-        if not (draw.flags & rd.DrawFlags.Drawcall):
-            rdtest.log.print("{}: {} is not a debuggable drawcall".format(draw.eventId, draw.name))
+        if not (action.flags & rd.ActionFlags.Drawcall):
+            rdtest.log.print("{} is not a debuggable action".format(action.eventId))
             return
 
-        vtx = int(random.random()*draw.numIndices)
+        vtx = int(random.random()*action.numIndices)
         inst = 0
         idx = vtx
 
-        if draw.numIndices == 0:
-            rdtest.log.print("Empty drawcall (0 vertices), skipping")
+        if action.numIndices == 0:
+            rdtest.log.print("Empty action (0 vertices), skipping")
             return
 
-        if draw.flags & rd.DrawFlags.Instanced:
-            inst = int(random.random()*draw.numInstances)
-            if draw.numInstances == 0:
-                rdtest.log.print("Empty drawcall (0 instances), skipping")
+        if action.flags & rd.ActionFlags.Instanced:
+            inst = int(random.random()*action.numInstances)
+            if action.numInstances == 0:
+                rdtest.log.print("Empty action (0 instances), skipping")
                 return
 
-        if draw.flags & rd.DrawFlags.Indexed:
+        if action.flags & rd.ActionFlags.Indexed:
             ib = pipe.GetIBuffer()
 
             mesh = rd.MeshFormat()
             mesh.indexResourceId = ib.resourceId
             mesh.indexByteStride = ib.byteStride
-            mesh.indexByteOffset = ib.byteOffset + draw.indexOffset * ib.byteStride
+            mesh.indexByteOffset = ib.byteOffset + action.indexOffset * ib.byteStride
             mesh.indexByteSize = ib.byteSize
-            mesh.baseVertex = draw.baseVertex
+            mesh.baseVertex = action.baseVertex
 
-            indices = rdtest.fetch_indices(self.controller, draw, mesh, 0, vtx, 1)
+            indices = rdtest.fetch_indices(self.controller, action, mesh, 0, vtx, 1)
 
             if len(indices) < 1:
                 rdtest.log.print("No index buffer, skipping")
@@ -102,7 +102,7 @@ class Iter_Test(rdtest.TestCase):
 
         rdtest.log.print("Debugging vtx %d idx %d (inst %d)" % (vtx, idx, inst))
 
-        postvs = self.get_postvs(draw, rd.MeshDataStage.VSOut, first_index=vtx, num_indices=1, instance=inst)
+        postvs = self.get_postvs(action, rd.MeshDataStage.VSOut, first_index=vtx, num_indices=1, instance=inst)
 
         trace: rd.ShaderDebugTrace = self.controller.DebugVertex(vtx, inst, idx, 0)
 
@@ -130,7 +130,7 @@ class Iter_Test(rdtest.TestCase):
                 if len(expect) != value.columns:
                     raise rdtest.TestFailureException(
                         "Output {} at EID {} has different size ({} values) to expectation ({} values)"
-                            .format(name, draw.eventId, value.columns, len(expect)))
+                            .format(name, action.eventId, value.columns, len(expect)))
 
                 compType = rd.VarTypeCompType(value.type)
                 if compType == rd.CompType.UInt:
@@ -153,7 +153,7 @@ class Iter_Test(rdtest.TestCase):
                 if not is_eq:
                     rdtest.log.error(
                         "Debugged value {} at EID {} vert {} (idx {}) instance {}: {} difference. {} doesn't exactly match postvs output {}".format(
-                            name, draw.eventId, vtx, idx, inst, diff_amt, debugged, expect))
+                            name, action.eventId, vtx, idx, inst, diff_amt, debugged, expect))
 
                 outputs = outputs + 1
 
@@ -162,24 +162,24 @@ class Iter_Test(rdtest.TestCase):
 
         self.controller.FreeTrace(trace)
 
-    def pixel_debug(self, draw: rd.DrawcallDescription):
+    def pixel_debug(self, action: rd.ActionDescription):
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
         if pipe.GetShader(rd.ShaderStage.Pixel) == rd.ResourceId.Null():
-            rdtest.log.print("No pixel shader bound at {}: {}".format(draw.eventId, draw.name))
+            rdtest.log.print("No pixel shader bound at {}".format(action.eventId))
             return
 
         if len(pipe.GetOutputTargets()) == 0 and pipe.GetDepthTarget().resourceId == rd.ResourceId.Null():
-            rdtest.log.print("No render targets bound at {}: {}".format(draw.eventId, draw.name))
+            rdtest.log.print("No render targets bound at {}".format(action.eventId))
             return
 
-        if not (draw.flags & rd.DrawFlags.Drawcall):
-            rdtest.log.print("{}: {} is not a debuggable drawcall".format(draw.eventId, draw.name))
+        if not (action.flags & rd.ActionFlags.Drawcall):
+            rdtest.log.print("{} is not a debuggable action".format(action.eventId))
             return
 
         viewport = pipe.GetViewport(0)
 
-        # TODO, query for some pixel this drawcall actually touched.
+        # TODO, query for some pixel this action actually touched.
         x = int(random.random()*viewport.width + viewport.x)
         y = int(random.random()*viewport.height + viewport.y)
 
@@ -187,7 +187,7 @@ class Iter_Test(rdtest.TestCase):
 
         if len(pipe.GetOutputTargets()) > 0:
             valid_targets = [o.resourceId for o in pipe.GetOutputTargets() if o.resourceId != rd.ResourceId.Null()]
-            rdtest.log.print("Valid targets at {} are {}".format(draw.eventId, valid_targets))
+            rdtest.log.print("Valid targets at {} are {}".format(action.eventId, valid_targets))
             if len(valid_targets) > 0:
                 target = valid_targets[int(random.random()*len(valid_targets))]
 
@@ -195,7 +195,7 @@ class Iter_Test(rdtest.TestCase):
             target = pipe.GetDepthTarget().resourceId
 
         if target == rd.ResourceId.Null():
-            rdtest.log.print("No targets bound! Can't fetch history at {}".format(draw.eventId))
+            rdtest.log.print("No targets bound! Can't fetch history at {}".format(action.eventId))
             return
 
         rdtest.log.print("Fetching history for %d,%d on target %s" % (x, y, str(target)))
@@ -208,16 +208,16 @@ class Iter_Test(rdtest.TestCase):
 
         for i in reversed(range(len(history))):
             mod = history[i]
-            draw = self.find_draw('', mod.eventId)
+            action = self.find_action('', mod.eventId)
 
-            if draw is None or not (draw.flags & rd.DrawFlags.Drawcall):
+            if action is None or not (action.flags & rd.ActionFlags.Drawcall):
                 continue
 
-            rdtest.log.print("  hit %d at %d is %s (%s)" % (i, mod.eventId, draw.name, str(draw.flags)))
+            rdtest.log.print("  hit %d at %d (%s)" % (i, mod.eventId, str(action.flags)))
 
             lastmod = history[i]
 
-            rdtest.log.print("Got a hit on a drawcall at event %d" % lastmod.eventId)
+            rdtest.log.print("Got a hit on a action at event %d" % lastmod.eventId)
 
             if mod.sampleMasked or mod.backfaceCulled or mod.depthClipped or mod.viewClipped or mod.scissorClipped or mod.shaderDiscarded or mod.depthTestFailed or mod.stencilTestFailed:
                 rdtest.log.print("This hit failed, looking for one that passed....")
@@ -253,10 +253,10 @@ class Iter_Test(rdtest.TestCase):
 
             output_index = [o.resourceId for o in pipe.GetOutputTargets()].index(target)
 
-            if draw.outputs[0] == rd.ResourceId.Null():
+            if action.outputs[0] == rd.ResourceId.Null():
                 rdtest.log.success('Successfully debugged pixel in {} cycles, skipping result check due to no output'.format(cycles))
                 self.controller.FreeTrace(trace)
-            elif (draw.flags & rd.DrawFlags.Instanced) and draw.numInstances > 1:
+            elif (action.flags & rd.ActionFlags.Instanced) and action.numInstances > 1:
                 rdtest.log.success('Successfully debugged pixel in {} cycles, skipping result check due to instancing'.format(cycles))
                 self.controller.FreeTrace(trace)
             elif pipe.GetColorBlends()[output_index].writeMask == 0:
@@ -294,19 +294,19 @@ class Iter_Test(rdtest.TestCase):
                     # This could be an application error - undefined but seen in the wild
                     rdtest.log.error("At EID {} No output variable declared for index {}".format(lastmod.eventId, output_index))
 
-            self.controller.SetFrameEvent(draw.eventId, True)
+            self.controller.SetFrameEvent(action.eventId, True)
 
     def iter_test(self):
         # Handy tweaks when running locally to disable certain things
 
-        action_chance = 0.1     # Chance of doing anything at all
+        test_chance = 0.1       # Chance of doing anything at all
         do_image_save = 0.25    # Chance of saving images of the outputs
         do_vert_debug = 1.0     # Chance of debugging a vertex (if valid)
         do_pixel_debug = 1.0    # Chance of doing pixel history at the current event and debugging a pixel (if valid)
 
         self.props: rd.APIProperties = self.controller.GetAPIProperties()
 
-        actions = {
+        event_tests = {
             'Image Save': {'chance': do_image_save, 'func': self.image_save},
             'Vertex Debug': {'chance': do_vert_debug, 'func': self.vert_debug},
             'Pixel History & Debug': {'chance': do_pixel_debug, 'func': self.pixel_debug},
@@ -315,33 +315,33 @@ class Iter_Test(rdtest.TestCase):
         # To choose an action, if we're going to do one, we take random in range(0, choice_max) then check each action
         # type in turn to see which part of the range we landed in
         choice_max = 0
-        for action in actions:
-            choice_max += actions[action]['chance']
+        for event_test in event_tests:
+            choice_max += event_tests[event_test]['chance']
 
-        draw = self.get_first_draw()
-        last_draw = self.get_last_draw()
+        action = self.get_first_action()
+        last_action = self.get_last_action()
 
-        while draw:
-            rdtest.log.print("{}/{} - {}".format(draw.eventId, last_draw.eventId, draw.name))
+        while action:
+            rdtest.log.print("{}/{}".format(action.eventId, last_action.eventId))
 
-            self.controller.SetFrameEvent(draw.eventId, False)
+            self.controller.SetFrameEvent(action.eventId, False)
 
             rdtest.log.print("Set event")
 
             # If we should take an action at this event
-            if random.random() < action_chance:
+            if random.random() < test_chance:
                 c = random.random() * choice_max
 
-                for action in actions:
-                    chance = actions[action]['chance']
+                for event_test in event_tests:
+                    chance = event_tests[event_test]['chance']
                     if c < chance:
-                        rdtest.log.print("Performing action '{}'".format(action))
-                        actions[action]['func'](draw)
+                        rdtest.log.print("Performing test '{}' on event {}".format(event_test, action.eventId))
+                        event_tests[event_test]['func'](action)
                         break
                     else:
                         c -= chance
 
-            draw = draw.next
+            action = action.next
 
     def run(self):
         dir_path = self.get_ref_path('', extra=True)

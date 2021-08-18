@@ -99,7 +99,7 @@ CaptureSettings::operator QVariant() const
   opts[lit("allowFullscreen")] = options.allowFullscreen;
   opts[lit("apiValidation")] = options.apiValidation;
   opts[lit("captureCallstacks")] = options.captureCallstacks;
-  opts[lit("captureCallstacksOnlyDraws")] = options.captureCallstacksOnlyDraws;
+  opts[lit("captureCallstacksOnlyDraws")] = options.captureCallstacksOnlyActions;
   opts[lit("delayForDebugger")] = options.delayForDebugger;
   opts[lit("verifyBufferAccess")] = options.verifyBufferAccess;
   opts[lit("hookIntoChildren")] = options.hookIntoChildren;
@@ -138,7 +138,7 @@ CaptureSettings::CaptureSettings(const QVariant &v)
   options.allowFullscreen = opts[lit("allowFullscreen")].toBool();
   options.apiValidation = opts[lit("apiValidation")].toBool();
   options.captureCallstacks = opts[lit("captureCallstacks")].toBool();
-  options.captureCallstacksOnlyDraws = opts[lit("captureCallstacksOnlyDraws")].toBool();
+  options.captureCallstacksOnlyActions = opts[lit("captureCallstacksOnlyDraws")].toBool();
   options.delayForDebugger = opts[lit("delayForDebugger")].toUInt();
   // old name for verifyBufferAccess was verifyMapWrites, so use that as a fallback
   if(opts.contains(lit("verifyBufferAccess")))

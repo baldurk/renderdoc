@@ -246,4 +246,7 @@ struct D3D12GraphicsTest : public GraphicsTest
 
   std::vector<ID3D12GraphicsCommandListPtr> freeCommandBuffers;
   std::vector<std::pair<ID3D12GraphicsCommandListPtr, UINT64>> pendingCommandBuffers;
+
+private:
+  void AddHashIfMissing(void *ByteCode, size_t BytecodeLength);
 };

@@ -571,8 +571,6 @@ static void AddResourceBind(DXBC::Reflection *refl, const TypeInfo &typeInfo, co
 {
   using namespace DXBC;
 
-  const bool uav = !srv;
-
   ShaderInputBind bind;
   bind.name = r->children[(size_t)ResField::Name]->str;
   bind.type = ShaderInputBind::TYPE_TEXTURE;

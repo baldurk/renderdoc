@@ -842,9 +842,9 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
 
       SAFE_RELEASE(ds);
 
-      const DrawcallDescription *draw = m_pDevice->GetDrawcall(events[i]);
+      const ActionDescription *action = m_pDevice->GetAction(events[i]);
 
-      for(uint32_t inst = 0; draw && inst < RDCMAX(1U, draw->numInstances); inst++)
+      for(uint32_t inst = 0; action && inst < RDCMAX(1U, action->numInstances); inst++)
       {
         MeshFormat fmt = GetPostVSBuffers(events[i], inst, 0, MeshDataStage::GSOut);
         if(fmt.vertexResourceId == ResourceId())

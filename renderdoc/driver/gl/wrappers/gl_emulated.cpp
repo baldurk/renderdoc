@@ -2634,15 +2634,6 @@ void APIENTRY _glGetTexLevelParameterfv(GLenum target, GLint level, GLenum pname
 void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, const GLenum type,
                              void *pixels)
 {
-  if((format == eGL_DEPTH_COMPONENT && !HasExt[NV_read_depth]) ||
-     (format == eGL_STENCIL && !HasExt[NV_read_stencil]) ||
-     (format == eGL_DEPTH_STENCIL && !HasExt[NV_read_depth_stencil]))
-  {
-    // TODO create a workaround for this
-    // return silently, check was made during startup
-    return;
-  }
-
   switch(target)
   {
     case eGL_TEXTURE_1D:
@@ -2687,6 +2678,7 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
     attachment = eGL_DEPTH_STENCIL_ATTACHMENT;
 
   bool readDirectly = true;
+  bool depthFormat = false;
 
   // we know luminance/alpha formats can't be read directly, so assume failure for them
   if(format == eGL_LUMINANCE_ALPHA || format == eGL_LUMINANCE || format == eGL_ALPHA)
@@ -2699,6 +2691,18 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
   if(format == eGL_RGB && type == eGL_UNSIGNED_BYTE)
   {
     readDirectly = false;
+  }
+
+  if((format == eGL_DEPTH_COMPONENT && !HasExt[NV_read_depth]) ||
+     (format == eGL_STENCIL && !HasExt[NV_read_stencil]) ||
+     (format == eGL_DEPTH_STENCIL && !HasExt[NV_read_depth_stencil]))
+  {
+    readDirectly = false;
+  }
+
+  if(format == eGL_DEPTH_COMPONENT || format == eGL_STENCIL || format == eGL_DEPTH_STENCIL)
+  {
+    depthFormat = true;
   }
 
   // if we can't attach the texture to a framebuffer, we can't readpixels it directly
@@ -2774,13 +2778,30 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
     }
     else
     {
+      if(depthFormat)
+      {
+        // all depth formats we read back as RGBA float
+        remappedFmt.compType = CompType::Float;
+        remappedFmt.compCount = 4;
+        remappedFmt.type = ResourceFormatType::Regular;
+
+        // try full floats
+        remappedFmt.compByteWidth = 4;
+
+        // unless it's not supported
+        if(!HasExt[OES_texture_float] && GLCoreVersion < 30)
+        {
+          remappedFmt.compByteWidth = 2;
+          RDCDEBUG("Implementation doesn't support float color targets, reading as half-float");
+        }
+      }
       // for most regular formats we just try to remap to the 4-component version assuming that if
       // the smaller version is supported then the larger version is supported and FBO'able. This
       // should hold for RGB formats at least.
-      if(origFmt.type == ResourceFormatType::Regular &&
-         (origFmt.compType == CompType::Float || origFmt.compType == CompType::UNorm ||
-          origFmt.compType == CompType::UInt || origFmt.compType == CompType::SInt ||
-          origFmt.compType == CompType::UNormSRGB))
+      else if(origFmt.type == ResourceFormatType::Regular &&
+              (origFmt.compType == CompType::Float || origFmt.compType == CompType::UNorm ||
+               origFmt.compType == CompType::UInt || origFmt.compType == CompType::SInt ||
+               origFmt.compType == CompType::UNormSRGB))
       {
         remappedFmt.compCount = 4;
         remappedFmt.SetBGRAOrder(false);
@@ -2848,6 +2869,13 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
     GL.glTexParameteri(target, eGL_TEXTURE_BASE_LEVEL, level);
     GL.glTexParameteri(target, eGL_TEXTURE_MAX_LEVEL, level);
 
+    GLenum depthMode = eGL_DEPTH_COMPONENT;
+    if(depthFormat && HasExt[ARB_stencil_texturing])
+    {
+      GL.glGetTexParameteriv(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, (GLint *)&depthMode);
+      GL.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, eGL_DEPTH_COMPONENT);
+    }
+
     // only support 2D textures for now
     RDCASSERT(target == eGL_TEXTURE_2D, target);
     GL.glGenTextures(1, &readtex);
@@ -2863,7 +2891,8 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
     GLenum fbostatus = GL.glCheckFramebufferStatus(eGL_FRAMEBUFFER);
 
     if(fbostatus != eGL_FRAMEBUFFER_COMPLETE)
-      RDCERR("glReadPixels emulation blit FBO is %s", ToStr(fbostatus).c_str());
+      RDCERR("glReadPixels emulation blit FBO is %s with format %s", ToStr(fbostatus).c_str(),
+             ToStr(internalformat).c_str());
 
     // push rendering state
     GLPushPopState textState;
@@ -2916,7 +2945,7 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
         swizzle[2] = 'a';
         swizzle[3] = 'a';
       }
-      else if(format == eGL_LUMINANCE)
+      else if(format == eGL_LUMINANCE || depthFormat)
       {
         swizzle[0] = 'r';
         swizzle[1] = 'r';
@@ -3014,6 +3043,14 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
 
     GL.glDrawArrays(eGL_TRIANGLES, 0, 3);
 
+    // if we support reading stencil, read the stencil into green
+    if(remapformat == eGL_DEPTH_STENCIL && HasExt[ARB_stencil_texturing])
+    {
+      GL.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, eGL_STENCIL_INDEX);
+      GL.glColorMask(GL_FALSE, GL_TRUE, GL_FALSE, GL_FALSE);
+      GL.glDrawArrays(eGL_TRIANGLES, 0, 3);
+    }
+
     GL.glDeleteVertexArrays(1, &vao);
     GL.glDeleteBuffers(1, &vb);
     GL.glDeleteProgram(prog);
@@ -3032,11 +3069,18 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
     GL.glTexParameteri(target, eGL_TEXTURE_BASE_LEVEL, baseLevel);
     GL.glTexParameteri(target, eGL_TEXTURE_MAX_LEVEL, maxLevel);
 
+    if(depthFormat && HasExt[ARB_stencil_texturing])
+    {
+      GL.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, depthMode);
+    }
+
     // read from the blitted texture from level 0, as red
     GL.glBindTexture(target, readtex);
     level = 0;
     readFormat = remapformat;
     readType = remaptype;
+
+    attachment = eGL_COLOR_ATTACHMENT0;
 
     RDCDEBUG("Done blit");
   }
@@ -3114,7 +3158,7 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
       if(implType == eGL_HALF_FLOAT_OES && readType == eGL_HALF_FLOAT)
         readType = eGL_HALF_FLOAT_OES;
 
-      if(implFormat == readFormat && implType == readType)
+      if(!depthFormat && implFormat == readFormat && implType == readType)
       {
         // great, the implementation supports the format and type we want
       }
@@ -3194,6 +3238,10 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
         readCompCount = 2;
       else if(readFormat == eGL_RED || readFormat == eGL_RED_INTEGER)
         readCompCount = 1;
+      else if(readFormat == eGL_DEPTH_COMPONENT || readFormat == eGL_STENCIL_INDEX)
+        readCompCount = 1;
+      else if(readFormat == eGL_DEPTH_STENCIL)
+        readCompCount = 2;
       else
         RDCERR("Unexpected implementation format %s, assuming one component",
                ToStr(readFormat).c_str());
@@ -3201,9 +3249,12 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
       // how big is a component (1/2/4 bytes)
       size_t readCompSize = GetByteSize(1, 1, 1, eGL_RED, readType);
 
+      if(depthFormat)
+        readCompSize = 4;
+
       // if the type didn't change from what the caller expects, we only changed the number of
       // components. This is easy to remap
-      if(type == readType && !disableSRGBCorrect &&
+      if(type == readType && !disableSRGBCorrect && !depthFormat &&
          (origFmt.type == ResourceFormatType::Regular || origFmt.type == ResourceFormatType::A8))
       {
         RDCDEBUG("Component number changed only");
@@ -3282,6 +3333,18 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
         byte *srcPixel = readback;
         byte *dstPixel = dst;
 
+        size_t dstStride = origFmt.ElementSize();
+
+        bool d24 = false;
+        // D24 is not written tightly packed, add extra byte for padding
+        if(origFmt.type == ResourceFormatType::Regular && origFmt.compCount == 1 &&
+           origFmt.compByteWidth == 3 && origFmt.compType == CompType::Depth)
+        {
+          d24 = true;
+          dstStride = 4;
+          RDCDEBUG("Handling D24 only");
+        }
+
         // go pixel-by-pixel, reading in the readback format and writing in the dest format
         for(GLint i = 0; i < width * height; i++)
         {
@@ -3306,7 +3369,17 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
             memcpy(dstPixel, &val, sizeof(val));
           }
 
-          dstPixel += origFmt.ElementSize();
+          if(d24)
+          {
+            // normally we'd expect D24 to be in the bottom 3 bytes, since D24S8 puts stencil in the
+            // top byte. However on upload GL doesn't really support a proper preserving upload (or
+            // not portably) so we specify UNSIGNED_INT. Shifting like this is what a proper GL
+            // implementation does on read and gives us the right results.
+            uint32_t *p = (uint32_t *)dstPixel;
+            *p = (*p << 8) | (*p >> 16);
+          }
+
+          dstPixel += dstStride;
           srcPixel += readCompSize * readCompCount;
         }
       }

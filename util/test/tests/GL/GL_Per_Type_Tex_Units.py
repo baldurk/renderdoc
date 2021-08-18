@@ -8,9 +8,9 @@ class GL_Per_Type_Tex_Units(rdtest.TestCase):
     demos_test_name = 'GL_Per_Type_Tex_Units'
 
     def check_capture(self):
-        draw = self.find_draw("Draw")
+        action = self.find_action("Draw")
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(action.eventId, False)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 

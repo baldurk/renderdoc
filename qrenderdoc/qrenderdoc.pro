@@ -228,6 +228,7 @@ SOURCES += Code/qrenderdoc.cpp \
     Windows/TimelineBar.cpp \
     Windows/Dialogs/SettingsDialog.cpp \
     Widgets/OrderedListEditor.cpp \
+    Widgets/MarkerBreadcrumbs.cpp \
     Widgets/Extended/RDTableWidget.cpp \
     Windows/Dialogs/SuggestRemoteDialog.cpp \
     Windows/Dialogs/VirtualFileDialog.cpp \
@@ -311,6 +312,7 @@ HEADERS += Code/CaptureContext.h \
     Windows/TimelineBar.h \
     Windows/Dialogs/SettingsDialog.h \
     Widgets/OrderedListEditor.h \
+    Widgets/MarkerBreadcrumbs.h \
     Widgets/Extended/RDTableWidget.h \
     Windows/Dialogs/SuggestRemoteDialog.h \
     Windows/Dialogs/VirtualFileDialog.h \

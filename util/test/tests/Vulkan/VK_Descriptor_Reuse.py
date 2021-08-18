@@ -8,13 +8,13 @@ class VK_Descriptor_Reuse(rdtest.TestCase):
     demos_frame_cap = 100
 
     def check_capture(self):
-        last_draw: rd.DrawcallDescription = self.get_last_draw()
+        last_action: rd.ActionDescription = self.get_last_action()
 
-        self.controller.SetFrameEvent(last_draw.eventId, True)
+        self.controller.SetFrameEvent(last_action.eventId, True)
 
-        draw: rd.DrawcallDescription = self.find_draw('Duration')
+        action: rd.ActionDescription = self.find_action('Duration')
 
-        min_duration = float(draw.name.split(' = ')[1])
+        min_duration = float(action.customName.split(' = ')[1])
 
         if rd.IsReleaseBuild():
             if min_duration >= 15.0:

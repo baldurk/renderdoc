@@ -446,9 +446,9 @@ private:
   std::map<ShaderKey, VkShaderModule> m_ShaderReplacements;
 };
 
-// VulkanPixelHistoryCallback is a generic VulkanDrawcallCallback that can be used for
+// VulkanPixelHistoryCallback is a generic VulkanActionCallback that can be used for
 // pixel history replays.
-struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
+struct VulkanPixelHistoryCallback : public VulkanActionCallback
 {
   VulkanPixelHistoryCallback(WrappedVulkan *vk, PixelHistoryShaderCache *shaderCache,
                              const PixelHistoryCallbackInfo &callbackInfo, VkQueryPool occlusionPool)
@@ -457,7 +457,7 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
         m_CallbackInfo(callbackInfo),
         m_OcclusionPool(occlusionPool)
   {
-    m_pDriver->SetDrawcallCB(this);
+    m_pDriver->SetActionCB(this);
 
     if(m_pDriver->GetDeviceEnabledFeatures().occlusionQueryPrecise)
       m_QueryFlags |= VK_QUERY_CONTROL_PRECISE_BIT;
@@ -465,7 +465,7 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
 
   virtual ~VulkanPixelHistoryCallback()
   {
-    m_pDriver->SetDrawcallCB(NULL);
+    m_pDriver->SetActionCB(NULL);
     for(const VkRenderPass &rp : m_RpsToDestroy)
       m_pDriver->vkDestroyRenderPass(m_pDriver->GetDev(), rp, NULL);
     for(const VkFramebuffer &fb : m_FbsToDestroy)
@@ -1130,9 +1130,9 @@ struct VulkanOcclusionCallback : public VulkanPixelHistoryCallback
   void PreDispatch(uint32_t eid, VkCommandBuffer cmd) { return; }
   bool PostDispatch(uint32_t eid, VkCommandBuffer cmd) { return false; }
   void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) {}
-  void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) { return; }
-  bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) { return false; }
-  void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) {}
+  void PreMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) { return; }
+  bool PostMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) { return false; }
+  void PostRemisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) {}
   void PreEndCommandBuffer(VkCommandBuffer cmd) {}
   void AliasEvent(uint32_t primary, uint32_t alias) {}
   bool SplitSecondary() { return false; }
@@ -1174,14 +1174,14 @@ private:
   // draw with an occlusion query.
   void ReplayDrawWithQuery(VkCommandBuffer cmd, uint32_t eventId)
   {
-    const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eventId);
+    const ActionDescription *action = m_pDriver->GetAction(eventId);
     m_pDriver->GetCmdRenderState().BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics,
                                                 false);
 
     uint32_t occlIndex = (uint32_t)m_OcclusionQueries.size();
     ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), m_OcclusionPool, occlIndex, m_QueryFlags);
 
-    m_pDriver->ReplayDraw(cmd, *drawcall);
+    m_pDriver->ReplayDraw(cmd, *action);
 
     ObjDisp(cmd)->CmdEndQuery(Unwrap(cmd), m_OcclusionPool, occlIndex);
     m_OcclusionQueries.insert(std::make_pair(eventId, occlIndex));
@@ -1469,7 +1469,7 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
     return false;
   }
   void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) {}
-  void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd)
+  void PreMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd)
   {
     if(!m_Events.contains(eid))
       return;
@@ -1484,7 +1484,7 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
     }
     PreDispatch(eid, cmd);
   }
-  bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd)
+  bool PostMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd)
   {
     if(!m_Events.contains(eid))
       return false;
@@ -1497,12 +1497,12 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
       }
       return false;
     }
-    if(flags & DrawFlags::BeginPass)
+    if(flags & ActionFlags::BeginPass)
       m_pDriver->GetCmdRenderState().EndRenderPass(cmd);
 
     bool ret = PostDispatch(eid, cmd);
 
-    if(flags & DrawFlags::BeginPass)
+    if(flags & ActionFlags::BeginPass)
       m_pDriver->GetCmdRenderState().BeginRenderPassAndApplyState(m_pDriver, cmd,
                                                                   VulkanRenderState::BindNone);
 
@@ -1510,7 +1510,7 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
   }
 
   bool SplitSecondary() { return true; }
-  void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) {}
+  void PostRemisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) {}
   void PreEndCommandBuffer(VkCommandBuffer cmd) {}
   void AliasEvent(uint32_t primary, uint32_t alias)
   {
@@ -1615,8 +1615,8 @@ private:
       ObjDisp(cmd)->CmdClearAttachments(Unwrap(cmd), 1, &att, 1, &rect);
     }
 
-    const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eventId);
-    m_pDriver->ReplayDraw(cmd, *drawcall);
+    const ActionDescription *action = m_pDriver->GetAction(eventId);
+    m_pDriver->ReplayDraw(cmd, *action);
 
     m_pDriver->GetCmdRenderState().EndRenderPass(cmd);
   }
@@ -1728,9 +1728,9 @@ struct TestsFailedCallback : public VulkanPixelHistoryCallback
   void PreDispatch(uint32_t eid, VkCommandBuffer cmd) {}
   bool PostDispatch(uint32_t eid, VkCommandBuffer cmd) { return false; }
   void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) {}
-  void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) {}
-  bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) { return false; }
-  void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) {}
+  void PreMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) {}
+  bool PostMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) { return false; }
+  void PostRemisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) {}
   bool SplitSecondary() { return false; }
   void PreCmdExecute(uint32_t baseEid, uint32_t secondaryFirst, uint32_t secondaryLast,
                      VkCommandBuffer cmd)
@@ -2155,8 +2155,8 @@ private:
 
     ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), m_OcclusionPool, index, m_QueryFlags);
 
-    const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eventId);
-    m_pDriver->ReplayDraw(cmd, *drawcall);
+    const ActionDescription *action = m_pDriver->GetAction(eventId);
+    m_pDriver->ReplayDraw(cmd, *action);
 
     ObjDisp(cmd)->CmdEndQuery(Unwrap(cmd), m_OcclusionPool, index);
   }
@@ -2384,8 +2384,8 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
         ObjDisp(cmd)->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_AND_BACK, 0xff);
         ObjDisp(cmd)->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_AND_BACK, 0xff);
         ObjDisp(cmd)->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_FRONT_AND_BACK, f);
-        const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eid);
-        m_pDriver->ReplayDraw(cmd, *drawcall);
+        const ActionDescription *action = m_pDriver->GetAction(eid);
+        m_pDriver->ReplayDraw(cmd, *action);
         state.EndRenderPass(cmd);
 
         if(i == 1)
@@ -2475,8 +2475,8 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       ObjDisp(cmd)->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_AND_BACK, 0xff);
       ObjDisp(cmd)->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_AND_BACK, 0xff);
       ObjDisp(cmd)->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_FRONT_AND_BACK, f);
-      const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eid);
-      m_pDriver->ReplayDraw(cmd, *drawcall);
+      const ActionDescription *action = m_pDriver->GetAction(eid);
+      m_pDriver->ReplayDraw(cmd, *action);
       state.EndRenderPass(cmd);
 
       CopyImagePixel(cmd, colourCopyParams, (fragsProcessed + f) * sizeof(PerFragmentInfo) +
@@ -2664,9 +2664,9 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
   void PreDispatch(uint32_t eid, VkCommandBuffer cmd) {}
   bool PostDispatch(uint32_t eid, VkCommandBuffer cmd) { return false; }
   void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) {}
-  void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) {}
-  bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) { return false; }
-  void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) {}
+  void PreMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) {}
+  bool PostMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) { return false; }
+  void PostRemisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) {}
   void PreEndCommandBuffer(VkCommandBuffer cmd) {}
   void AliasEvent(uint32_t primary, uint32_t alias) {}
   bool SplitSecondary() { return false; }
@@ -2743,17 +2743,16 @@ struct VulkanPixelHistoryDiscardedFragmentsCallback : VulkanPixelHistoryCallback
     {
       uint32_t queryId = (uint32_t)m_OcclusionIndices.size();
       ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), m_OcclusionPool, queryId, m_QueryFlags);
-      const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eid);
       uint32_t primId = primIds[i];
-      DrawcallDescription draw = *drawcall;
-      draw.numIndices = RENDERDOC_NumVerticesPerPrimitive(topo);
-      draw.indexOffset += RENDERDOC_VertexOffset(topo, primId);
-      draw.vertexOffset += RENDERDOC_VertexOffset(topo, primId);
+      ActionDescription action = *m_pDriver->GetAction(eid);
+      action.numIndices = RENDERDOC_NumVerticesPerPrimitive(topo);
+      action.indexOffset += RENDERDOC_VertexOffset(topo, primId);
+      action.vertexOffset += RENDERDOC_VertexOffset(topo, primId);
       // TODO once pixel history distinguishes between instances, draw only the instance for
       // this fragment.
       // TODO replay with a dummy index buffer so that all primitives other than the target one are
       // degenerate - that way the vertex index etc is still the same as it should be.
-      m_pDriver->ReplayDraw(cmd, draw);
+      m_pDriver->ReplayDraw(cmd, action);
       ObjDisp(cmd)->CmdEndQuery(Unwrap(cmd), m_OcclusionPool, queryId);
 
       m_OcclusionIndices[make_rdcpair<uint32_t, uint32_t>(eid, primId)] = queryId;
@@ -2808,9 +2807,9 @@ struct VulkanPixelHistoryDiscardedFragmentsCallback : VulkanPixelHistoryCallback
   void PreDispatch(uint32_t eid, VkCommandBuffer cmd) {}
   bool PostDispatch(uint32_t eid, VkCommandBuffer cmd) { return false; }
   void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) {}
-  void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) {}
-  bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) { return false; }
-  void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) {}
+  void PreMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) {}
+  bool PostMisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) { return false; }
+  void PostRemisc(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) {}
   void PreEndCommandBuffer(VkCommandBuffer cmd) {}
   void AliasEvent(uint32_t primary, uint32_t alias) {}
   bool SplitSecondary() { return false; }

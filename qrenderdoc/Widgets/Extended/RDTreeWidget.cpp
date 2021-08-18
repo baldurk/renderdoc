@@ -24,7 +24,6 @@
 
 #include "RDTreeWidget.h"
 #include <QApplication>
-#include <QClipboard>
 #include <QColor>
 #include <QDebug>
 #include <QHeaderView>
@@ -312,45 +311,49 @@ void RDTreeWidgetItem::sort(int column, Qt::SortOrder order)
 {
   ICaptureContext *ctx = getCaptureContext(m_widget);
 
-  std::sort(m_children.begin(), m_children.end(),
-            [ctx, column, order](const RDTreeWidgetItem *a, const RDTreeWidgetItem *b) {
-              QVariant va = a->data(column, Qt::DisplayRole);
-              QVariant vb = b->data(column, Qt::DisplayRole);
+  std::stable_sort(m_children.begin(), m_children.end(),
+                   [ctx, column, order](const RDTreeWidgetItem *a, const RDTreeWidgetItem *b) {
 
-              QString sa, sb;
+                     if(a->treeWidget()->m_SortComparison)
+                       return a->treeWidget()->m_SortComparison(column, order, a, b);
 
-              if(ctx)
-              {
-                sa = RichResourceTextFormat(*ctx, va);
-                sb = RichResourceTextFormat(*ctx, vb);
-              }
-              else
-              {
-                sa = va.toString();
-                sb = vb.toString();
-              }
+                     QVariant va = a->data(column, Qt::DisplayRole);
+                     QVariant vb = b->data(column, Qt::DisplayRole);
 
-              bool da_ok = false, db_ok = false;
-              double da = sa.toDouble(&da_ok);
-              double db = sb.toDouble(&db_ok);
+                     QString sa, sb;
 
-              int comp;
+                     if(ctx)
+                     {
+                       sa = RichResourceTextFormat(*ctx, va);
+                       sb = RichResourceTextFormat(*ctx, vb);
+                     }
+                     else
+                     {
+                       sa = va.toString();
+                       sb = vb.toString();
+                     }
 
-              if(da_ok && db_ok)
-              {
-                if(order == Qt::AscendingOrder)
-                  return da < db;
-                return da > db;
-              }
-              else
-              {
-                comp = QString::compare(sa, sb, Qt::CaseInsensitive);
-              }
+                     bool da_ok = false, db_ok = false;
+                     double da = sa.toDouble(&da_ok);
+                     double db = sb.toDouble(&db_ok);
 
-              if(order == Qt::AscendingOrder)
-                return comp < 0;
-              return comp > 0;
-            });
+                     int comp;
+
+                     if(da_ok && db_ok)
+                     {
+                       if(order == Qt::AscendingOrder)
+                         return da < db;
+                       return da > db;
+                     }
+                     else
+                     {
+                       comp = QString::compare(sa, sb, Qt::CaseInsensitive);
+                     }
+
+                     if(order == Qt::AscendingOrder)
+                       return comp < 0;
+                     return comp > 0;
+                   });
 
   for(RDTreeWidgetItem *child : m_children)
     child->sort(column, order);
@@ -604,9 +607,6 @@ RDTreeWidgetItemIterator &RDTreeWidgetItemIterator::operator++()
 
 RDTreeWidget::RDTreeWidget(QWidget *parent) : RDTreeView(parent)
 {
-  m_delegate = new RichTextViewDelegate(this);
-  RDTreeView::setItemDelegate(m_delegate);
-
   header()->setSectionsMovable(false);
 
   m_root = new RDTreeWidgetItem;
@@ -628,7 +628,9 @@ RDTreeWidget::RDTreeWidget(QWidget *parent) : RDTreeView(parent)
 
 RDTreeWidget::~RDTreeWidget()
 {
+  blockSignals(true);
   RDTreeView::setModel(NULL);
+  blockSignals(false);
 
   delete m_root;
   delete m_model;
@@ -687,17 +689,6 @@ void RDTreeWidget::setColumnAlignment(int column, Qt::Alignment align)
     m_alignments.resize(column + 1);
 
   m_alignments[column] = align;
-}
-
-void RDTreeWidget::setItemDelegate(QAbstractItemDelegate *delegate)
-{
-  m_userDelegate = delegate;
-  m_delegate->setForwardDelegate(m_userDelegate);
-}
-
-QAbstractItemDelegate *RDTreeWidget::itemDelegate() const
-{
-  return m_userDelegate;
 }
 
 RDTreeWidgetItem *RDTreeWidget::itemForIndex(QModelIndex idx) const
@@ -794,6 +785,7 @@ void RDTreeWidget::clear()
 void RDTreeWidget::mouseMoveEvent(QMouseEvent *e)
 {
   RDTreeWidgetItem *oldHover = m_model->itemForIndex(m_currentHoverIndex);
+  QModelIndex oldHoverIndex = m_currentHoverIndex;
 
   RDTreeView::mouseMoveEvent(e);
 
@@ -803,12 +795,8 @@ void RDTreeWidget::mouseMoveEvent(QMouseEvent *e)
   {
     setCursor(QCursor(Qt::PointingHandCursor));
   }
-  else if(m_delegate->linkHover(e, font(), m_currentHoverIndex))
-  {
-    m_model->itemChanged(m_model->itemForIndex(m_currentHoverIndex), {Qt::DecorationRole});
-    setCursor(QCursor(Qt::PointingHandCursor));
-  }
-  else
+  else if(oldHoverIndex.column() == m_hoverColumn &&
+          m_currentHoverIndex.column() != m_hoverColumn && m_hoverHandCursor)
   {
     unsetCursor();
   }
@@ -859,7 +847,10 @@ void RDTreeWidget::leaveEvent(QEvent *e)
 void RDTreeWidget::focusOutEvent(QFocusEvent *event)
 {
   if(m_clearSelectionOnFocusLoss)
+  {
+    setCurrentItem(NULL);
     clearSelection();
+  }
 
   RDTreeView::focusOutEvent(event);
 }

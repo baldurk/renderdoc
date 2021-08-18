@@ -31,7 +31,7 @@
 #include "d3d12_state.h"
 
 class AMDCounters;
-struct D3D12AMDDrawCallback;
+struct D3D12AMDActionCallback;
 class WrappedID3D12Device;
 
 class D3D12DebugManager;
@@ -48,6 +48,27 @@ enum TexDisplayFlags
   eTexDisplay_RemapFloat = 0x10,
   eTexDisplay_RemapUInt = 0x20,
   eTexDisplay_RemapSInt = 0x40,
+};
+
+struct D3D12FeedbackBindIdentifier
+{
+  size_t rootEl;
+  size_t rangeIndex;
+  UINT descIndex;
+
+  bool operator<(const D3D12FeedbackBindIdentifier &o) const
+  {
+    if(rootEl != o.rootEl)
+      return rootEl < o.rootEl;
+    if(rangeIndex != o.rangeIndex)
+      return rangeIndex < o.rangeIndex;
+    return descIndex < o.descIndex;
+  }
+
+  bool operator==(const D3D12FeedbackBindIdentifier &o) const
+  {
+    return rootEl == o.rootEl && rangeIndex == o.rangeIndex && descIndex == o.descIndex;
+  }
 };
 
 class D3D12Replay : public IReplayDriver
@@ -214,14 +235,16 @@ public:
   void FileChanged() {}
   AMDCounters *GetAMDCounters() { return m_pAMDCounters; }
 private:
-  void FillRootElements(const D3D12RenderState::RootSignature &rootSig,
+  void FillRootElements(uint32_t eventId, const D3D12RenderState::RootSignature &rootSig,
                         const ShaderBindpointMapping *mappings[(uint32_t)ShaderStage::Count],
                         rdcarray<D3D12Pipe::RootSignatureRange> &rootElements);
   void FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor *desc);
 
+  bool CreateSOBuffers();
   void ClearPostVSCache();
 
-  bool CreateSOBuffers();
+  void FetchShaderFeedback(uint32_t eventId);
+  void ClearFeedbackCache();
 
   void RefreshDerivedReplacements();
 
@@ -237,6 +260,19 @@ private:
     m_OutputWidth = (float)w;
     m_OutputHeight = (float)h;
   }
+
+  struct D3D12DynamicShaderFeedback
+  {
+    bool compute = false, valid = false;
+    rdcarray<D3D12FeedbackBindIdentifier> used;
+  };
+
+  struct Feedback
+  {
+    ID3D12Resource *FeedbackBuffer = NULL;
+
+    std::unordered_map<uint32_t, D3D12DynamicShaderFeedback> Usage;
+  } m_BindlessFeedback;
 
   struct D3D12PostVSData
   {
@@ -437,7 +473,7 @@ private:
 
   DriverInformation m_DriverInfo;
 
-  D3D12AMDDrawCallback *m_pAMDDrawCallback = NULL;
+  D3D12AMDActionCallback *m_pAMDActionCallback = NULL;
 
   rdcarray<rdcstr> m_CustomShaderIncludes;
 

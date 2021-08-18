@@ -226,7 +226,7 @@ void ReplayOutput::RefreshOverlay()
 {
   CHECK_REPLAY_THREAD();
 
-  DrawcallDescription *draw = m_pRenderer->GetDrawcallByEID(m_EventID);
+  ActionDescription *action = m_pRenderer->GetActionByEID(m_EventID);
 
   passEvents = m_pDevice->GetPassEvents(m_EventID);
 
@@ -251,9 +251,9 @@ void ReplayOutput::RefreshOverlay()
     if(m_Type == ReplayOutputType::Mesh)
       m_OverlayDirty = false;
 
-    if(draw != NULL && (draw->flags & DrawFlags::Drawcall))
+    if(action != NULL && (action->flags & ActionFlags::Drawcall))
     {
-      m_pDevice->InitPostVSBuffers(draw->eventId);
+      m_pDevice->InitPostVSBuffers(action->eventId);
 
       if(postVSWholePass && !passEvents.empty())
       {
@@ -268,7 +268,7 @@ void ReplayOutput::RefreshOverlay()
   {
     ResourceId id = m_pDevice->GetLiveID(m_RenderData.texDisplay.resourceId);
 
-    if(draw && m_pDevice->IsRenderOutput(id))
+    if(action && m_pDevice->IsRenderOutput(id))
     {
       FloatVector f = m_RenderData.texDisplay.backgroundColor;
 
@@ -387,15 +387,15 @@ rdcpair<uint32_t, uint32_t> ReplayOutput::PickVertex(uint32_t x, uint32_t y)
 
   RENDERDOC_PROFILEFUNCTION();
 
-  DrawcallDescription *draw = m_pRenderer->GetDrawcallByEID(m_EventID);
+  ActionDescription *action = m_pRenderer->GetActionByEID(m_EventID);
 
   const rdcpair<uint32_t, uint32_t> errorReturn = {~0U, ~0U};
 
-  if(!draw)
+  if(!action)
     return errorReturn;
   if(m_RenderData.meshDisplay.type == MeshDataStage::Unknown)
     return errorReturn;
-  if(!(draw->flags & DrawFlags::Drawcall))
+  if(!(action->flags & ActionFlags::Drawcall))
     return errorReturn;
 
   MeshDisplay cfg = m_RenderData.meshDisplay;
@@ -410,7 +410,7 @@ rdcpair<uint32_t, uint32_t> ReplayOutput::PickVertex(uint32_t x, uint32_t y)
 
   // input data either doesn't vary with instance, or is trivial (all verts the same for that
   // element), so only care about fetching the right instance for post-VS stages
-  if((draw->flags & DrawFlags::Instanced) && m_RenderData.meshDisplay.type != MeshDataStage::VSIn)
+  if((action->flags & ActionFlags::Instanced) && m_RenderData.meshDisplay.type != MeshDataStage::VSIn)
   {
     // if no special options are enabled, just look at the current instance
     uint32_t firstInst = m_RenderData.meshDisplay.curInstance;
@@ -424,20 +424,20 @@ rdcpair<uint32_t, uint32_t> ReplayOutput::PickVertex(uint32_t x, uint32_t y)
     if(m_RenderData.meshDisplay.showAllInstances)
     {
       firstInst = 0;
-      maxInst = RDCMAX(1U, draw->numInstances);
+      maxInst = RDCMAX(1U, action->numInstances);
     }
 
     // used for post-VS output, calculate the offset of the element we're using as position,
     // relative to 0
     MeshFormat fmt =
-        m_pDevice->GetPostVSBuffers(draw->eventId, m_RenderData.meshDisplay.curInstance,
+        m_pDevice->GetPostVSBuffers(action->eventId, m_RenderData.meshDisplay.curInstance,
                                     m_RenderData.meshDisplay.curView, m_RenderData.meshDisplay.type);
     uint64_t elemOffset = cfg.position.vertexByteOffset - fmt.vertexByteOffset;
 
     for(uint32_t inst = firstInst; inst < maxInst; inst++)
     {
       // find the start of this buffer, and apply the element offset, then pick in that instance
-      fmt = m_pDevice->GetPostVSBuffers(draw->eventId, inst, m_RenderData.meshDisplay.curView,
+      fmt = m_pDevice->GetPostVSBuffers(action->eventId, inst, m_RenderData.meshDisplay.curView,
                                         m_RenderData.meshDisplay.type);
       if(fmt.vertexResourceId != ResourceId())
         cfg.position.vertexByteOffset = fmt.vertexByteOffset + elemOffset;
@@ -680,7 +680,7 @@ void ReplayOutput::DisplayTex()
 
   RENDERDOC_PROFILEFUNCTION();
 
-  DrawcallDescription *draw = m_pRenderer->GetDrawcallByEID(m_EventID);
+  ActionDescription *action = m_pRenderer->GetActionByEID(m_EventID);
 
   if(m_MainOutput.outputID == 0)
     return;
@@ -696,7 +696,7 @@ void ReplayOutput::DisplayTex()
   texDisplay.rawOutput = false;
   texDisplay.resourceId = m_pDevice->GetLiveID(texDisplay.resourceId);
 
-  if(m_RenderData.texDisplay.overlay != DebugOverlay::NoOverlay && draw)
+  if(m_RenderData.texDisplay.overlay != DebugOverlay::NoOverlay && action)
   {
     if(m_OverlayDirty)
     {
@@ -742,7 +742,7 @@ void ReplayOutput::DisplayTex()
 
   ResourceId id = m_pDevice->GetLiveID(m_RenderData.texDisplay.resourceId);
 
-  if(m_RenderData.texDisplay.overlay != DebugOverlay::NoOverlay && draw &&
+  if(m_RenderData.texDisplay.overlay != DebugOverlay::NoOverlay && action &&
      m_pDevice->IsRenderOutput(id) && m_RenderData.texDisplay.overlay != DebugOverlay::NaN &&
      m_RenderData.texDisplay.overlay != DebugOverlay::Clipping && m_OverlayResourceId != ResourceId())
   {
@@ -769,11 +769,11 @@ void ReplayOutput::DisplayMesh()
 
   RENDERDOC_PROFILEFUNCTION();
 
-  DrawcallDescription *draw = m_pRenderer->GetDrawcallByEID(m_EventID);
+  ActionDescription *action = m_pRenderer->GetActionByEID(m_EventID);
 
-  if(draw == NULL || m_MainOutput.outputID == 0 || m_Width <= 0 || m_Height <= 0 ||
+  if(action == NULL || m_MainOutput.outputID == 0 || m_Width <= 0 || m_Height <= 0 ||
      (m_RenderData.meshDisplay.type == MeshDataStage::Unknown) ||
-     !(draw->flags & DrawFlags::Drawcall))
+     !(action->flags & ActionFlags::Drawcall))
   {
     FloatVector color;
     m_pDevice->BindOutputWindow(m_MainOutput.outputID, false);
@@ -809,7 +809,7 @@ void ReplayOutput::DisplayMesh()
   rdcarray<MeshFormat> secondaryDraws;
 
   // we choose a pallette here so that the colours stay consistent (i.e the
-  // current draw is always the same colour), but also to indicate somewhat
+  // current action is always the same colour), but also to indicate somewhat
   // the relationship - ie. instances are closer in colour than other draws
   // in the pass
 
@@ -833,7 +833,7 @@ void ReplayOutput::DisplayMesh()
   {
     for(size_t i = 0; m_RenderData.meshDisplay.showWholePass && i < passEvents.size(); i++)
     {
-      DrawcallDescription *d = m_pRenderer->GetDrawcallByEID(passEvents[i]);
+      ActionDescription *d = m_pRenderer->GetActionByEID(passEvents[i]);
 
       if(d)
       {
@@ -855,22 +855,22 @@ void ReplayOutput::DisplayMesh()
       }
     }
 
-    // draw previous instances in the current drawcall
-    if(draw->flags & DrawFlags::Instanced)
+    // action previous instances in the current action
+    if(action->flags & ActionFlags::Instanced)
     {
       uint32_t maxInst = 0;
       if(m_RenderData.meshDisplay.showPrevInstances)
         maxInst = RDCMAX(1U, m_RenderData.meshDisplay.curInstance);
       if(m_RenderData.meshDisplay.showAllInstances)
-        maxInst = RDCMAX(1U, draw->numInstances);
+        maxInst = RDCMAX(1U, action->numInstances);
 
       for(uint32_t inst = 0; inst < maxInst; inst++)
       {
         // get the 'most final' stage
         MeshFormat fmt = m_pDevice->GetPostVSBuffers(
-            draw->eventId, inst, m_RenderData.meshDisplay.curView, MeshDataStage::GSOut);
+            action->eventId, inst, m_RenderData.meshDisplay.curView, MeshDataStage::GSOut);
         if(fmt.vertexResourceId == ResourceId())
-          fmt = m_pDevice->GetPostVSBuffers(draw->eventId, inst, m_RenderData.meshDisplay.curView,
+          fmt = m_pDevice->GetPostVSBuffers(action->eventId, inst, m_RenderData.meshDisplay.curView,
                                             MeshDataStage::VSOut);
 
         fmt.meshColor = otherInstances;

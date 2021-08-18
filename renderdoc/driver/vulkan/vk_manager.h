@@ -422,6 +422,7 @@ public:
   void RemoveDeviceMemory(ResourceId mem);
 
   void MergeReferencedMemory(std::unordered_map<ResourceId, MemRefs> &memRefs);
+  void FixupStorageBufferMemory(const std::unordered_set<VkResourceRecord *> &storageBuffers);
   void ClearReferencedMemory();
   MemRefs *FindMemRefs(ResourceId mem);
   ImgRefs *FindImgRefs(ResourceId img);

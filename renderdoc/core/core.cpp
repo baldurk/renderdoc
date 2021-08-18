@@ -188,9 +188,9 @@ rdcstr DoStringise(const ReplayLogType &el)
 {
   BEGIN_ENUM_STRINGISE(ReplayLogType);
   {
-    STRINGISE_ENUM_NAMED(eReplay_Full, "Full replay including draw");
-    STRINGISE_ENUM_NAMED(eReplay_WithoutDraw, "Replay without draw");
-    STRINGISE_ENUM_NAMED(eReplay_OnlyDraw, "Replay only draw");
+    STRINGISE_ENUM_NAMED(eReplay_Full, "Full replay including action");
+    STRINGISE_ENUM_NAMED(eReplay_WithoutDraw, "Replay without action");
+    STRINGISE_ENUM_NAMED(eReplay_OnlyDraw, "Replay only action");
   }
   END_ENUM_STRINGISE();
 }
@@ -260,12 +260,12 @@ rdcstr DoStringise(const SystemChunk &el)
 {
   BEGIN_ENUM_STRINGISE(SystemChunk);
   {
-    STRINGISE_ENUM_CLASS_NAMED(DriverInit, "Internal: Driver Initialisation Parameters");
-    STRINGISE_ENUM_CLASS_NAMED(InitialContentsList, "Internal: List of Initial Contents Resources");
-    STRINGISE_ENUM_CLASS_NAMED(InitialContents, "Internal: Initial Contents");
-    STRINGISE_ENUM_CLASS_NAMED(CaptureBegin, "Internal: Beginning of Capture");
-    STRINGISE_ENUM_CLASS_NAMED(CaptureScope, "Internal: Frame Metadata");
-    STRINGISE_ENUM_CLASS_NAMED(CaptureEnd, "Internal: End of Capture");
+    STRINGISE_ENUM_CLASS_NAMED(DriverInit, "Internal::Driver Initialisation Parameters");
+    STRINGISE_ENUM_CLASS_NAMED(InitialContentsList, "Internal::List of Initial Contents Resources");
+    STRINGISE_ENUM_CLASS_NAMED(InitialContents, "Internal::Initial Contents");
+    STRINGISE_ENUM_CLASS_NAMED(CaptureBegin, "Internal::Beginning of Capture");
+    STRINGISE_ENUM_CLASS_NAMED(CaptureScope, "Internal::Frame Metadata");
+    STRINGISE_ENUM_CLASS_NAMED(CaptureEnd, "Internal::End of Capture");
   }
   END_ENUM_STRINGISE();
 }

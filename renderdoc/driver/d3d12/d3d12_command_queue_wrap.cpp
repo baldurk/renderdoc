@@ -27,9 +27,6 @@
 #include "d3d12_command_list.h"
 #include "d3d12_resources.h"
 
-RDOC_CONFIG(bool, D3D12_HideCommandBoundaries, false,
-            "Hides the auto-generated submitted command list boundaries.");
-
 template <typename SerialiserType>
 bool WrappedID3D12CommandQueue::Serialise_UpdateTileMappings(
     SerialiserType &ser, ID3D12Resource *pResource, UINT NumResourceRegions,
@@ -40,11 +37,11 @@ bool WrappedID3D12CommandQueue::Serialise_UpdateTileMappings(
 {
   ID3D12CommandQueue *pQueue = this;
   SERIALISE_ELEMENT(pQueue);
-  SERIALISE_ELEMENT(pResource);
+  SERIALISE_ELEMENT(pResource).Important();
   SERIALISE_ELEMENT(NumResourceRegions);
   SERIALISE_ELEMENT_ARRAY(pResourceRegionStartCoordinates, NumResourceRegions);
   SERIALISE_ELEMENT_ARRAY(pResourceRegionSizes, NumResourceRegions);
-  SERIALISE_ELEMENT(pHeap);
+  SERIALISE_ELEMENT(pHeap).Important();
   SERIALISE_ELEMENT(NumRanges);
   SERIALISE_ELEMENT_ARRAY(pRangeFlags, NumRanges);
   SERIALISE_ELEMENT_ARRAY(pHeapRangeStartOffsets, NumRanges);
@@ -82,7 +79,7 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::UpdateTileMappings(
   if(IsActiveCapturing(m_State))
   {
     CACHE_THREAD_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::Queue_UpdateTileMappings);
     Serialise_UpdateTileMappings(ser, pResource, NumResourceRegions, pResourceRegionStartCoordinates,
                                  pResourceRegionSizes, pHeap, NumRanges, pRangeFlags,
@@ -337,9 +334,9 @@ bool WrappedID3D12CommandQueue::Serialise_CopyTileMappings(
 {
   ID3D12CommandQueue *pQueue = this;
   SERIALISE_ELEMENT(pQueue);
-  SERIALISE_ELEMENT(pDstResource);
+  SERIALISE_ELEMENT(pDstResource).Important();
   SERIALISE_ELEMENT_LOCAL(DstRegionStartCoordinate, *pDstRegionStartCoordinate);
-  SERIALISE_ELEMENT(pSrcResource);
+  SERIALISE_ELEMENT(pSrcResource).Important();
   SERIALISE_ELEMENT_LOCAL(SrcRegionStartCoordinate, *pSrcRegionStartCoordinate);
   SERIALISE_ELEMENT_LOCAL(RegionSize, *pRegionSize);
   SERIALISE_ELEMENT(Flags);
@@ -372,7 +369,7 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::CopyTileMappings(
   if(IsActiveCapturing(m_State))
   {
     CACHE_THREAD_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::Queue_CopyTileMappings);
     Serialise_CopyTileMappings(ser, pDstResource, pDstRegionStartCoordinate, pSrcResource,
                                pSrcRegionStartCoordinate, pRegionSize, Flags);
@@ -437,7 +434,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
 {
   ID3D12CommandQueue *pQueue = this;
   SERIALISE_ELEMENT(pQueue);
-  SERIALISE_ELEMENT(NumCommandLists);
+  SERIALISE_ELEMENT(NumCommandLists).Important();
   SERIALISE_ELEMENT_ARRAY(ppCommandLists, NumCommandLists);
 
   {
@@ -538,29 +535,29 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
         BakedCmdListInfo &cmdListInfo = m_Cmd.m_BakedCmdListInfo[cmd];
 
         // add a fake marker
-        DrawcallDescription draw;
-        if(!D3D12_HideCommandBoundaries())
+        ActionDescription action;
         {
-          draw.name =
+          action.customName =
               StringFormat::Fmt("=> %s[%u]: Reset(%s)", basename.c_str(), c, ToStr(cmd).c_str());
-          draw.flags = DrawFlags::PassBoundary | DrawFlags::BeginPass;
+          action.flags = ActionFlags::CommandBufferBoundary | ActionFlags::PassBoundary |
+                         ActionFlags::BeginPass;
           m_Cmd.AddEvent();
 
           m_Cmd.m_RootEvents.back().chunkIndex = cmdListInfo.beginChunk;
           m_Cmd.m_Events.back().chunkIndex = cmdListInfo.beginChunk;
 
-          m_Cmd.AddDrawcall(draw, true);
+          m_Cmd.AddAction(action);
           m_Cmd.m_RootEventID++;
         }
 
         // insert the baked command list in-line into this list of notes, assigning new event and
         // drawIDs
-        m_Cmd.InsertDrawsAndRefreshIDs(cmd, cmdListInfo.draw->children);
+        m_Cmd.InsertActionsAndRefreshIDs(cmd, cmdListInfo.action->children);
 
-        for(size_t e = 0; e < cmdListInfo.draw->executedCmds.size(); e++)
+        for(size_t e = 0; e < cmdListInfo.action->executedCmds.size(); e++)
         {
           rdcarray<uint32_t> &submits = m_Cmd.m_Partial[D3D12CommandData::Secondary]
-                                            .cmdListExecs[cmdListInfo.draw->executedCmds[e]];
+                                            .cmdListExecs[cmdListInfo.action->executedCmds[e]];
 
           for(size_t s = 0; s < submits.size(); s++)
             submits[s] += m_Cmd.m_RootEventID;
@@ -576,20 +573,30 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
         // only primary command lists can be submitted
         m_Cmd.m_Partial[D3D12CommandData::Primary].cmdListExecs[cmd].push_back(m_Cmd.m_RootEventID);
 
-        m_Cmd.m_RootEventID += cmdListInfo.eventCount;
-        m_Cmd.m_RootDrawcallID += cmdListInfo.drawCount;
-
-        if(!D3D12_HideCommandBoundaries())
+        for(size_t e = 0; e < cmdListInfo.curEvents.size(); e++)
         {
-          draw.name =
+          APIEvent apievent = cmdListInfo.curEvents[e];
+          apievent.eventId += m_Cmd.m_RootEventID;
+
+          m_Cmd.m_RootEvents.push_back(apievent);
+          m_Cmd.m_Events.resize_for_index(apievent.eventId);
+          m_Cmd.m_Events[apievent.eventId] = apievent;
+        }
+
+        m_Cmd.m_RootEventID += cmdListInfo.eventCount;
+        m_Cmd.m_RootActionID += cmdListInfo.actionCount;
+
+        {
+          action.customName =
               StringFormat::Fmt("=> %s[%u]: Close(%s)", basename.c_str(), c, ToStr(cmd).c_str());
-          draw.flags = DrawFlags::PassBoundary | DrawFlags::EndPass;
+          action.flags =
+              ActionFlags::CommandBufferBoundary | ActionFlags::PassBoundary | ActionFlags::EndPass;
           m_Cmd.AddEvent();
 
           m_Cmd.m_RootEvents.back().chunkIndex = cmdListInfo.endChunk;
           m_Cmd.m_Events.back().chunkIndex = cmdListInfo.endChunk;
 
-          m_Cmd.AddDrawcall(draw, true);
+          m_Cmd.AddAction(action);
           m_Cmd.m_RootEventID++;
         }
       }
@@ -611,13 +618,12 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
         ResourceId cmd = GetResourceManager()->GetOriginalID(GetResID(ppCommandLists[c]));
 
         m_Cmd.m_RootEventID += m_Cmd.m_BakedCmdListInfo[cmd].eventCount;
-        m_Cmd.m_RootDrawcallID += m_Cmd.m_BakedCmdListInfo[cmd].drawCount;
+        m_Cmd.m_RootActionID += m_Cmd.m_BakedCmdListInfo[cmd].actionCount;
 
         // 2 extra for the virtual labels around the command list
-        if(!D3D12_HideCommandBoundaries())
         {
           m_Cmd.m_RootEventID += 2;
-          m_Cmd.m_RootDrawcallID += 2;
+          m_Cmd.m_RootActionID += 2;
         }
       }
 
@@ -650,7 +656,6 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
 
           // account for the virtual label at the start of the events here
           // so it matches up to baseEvent
-          if(!D3D12_HideCommandBoundaries())
           {
             eid++;
           }
@@ -682,7 +687,6 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
 
           // 1 extra to account for the virtual end command list label (begin is accounted for
           // above)
-          if(!D3D12_HideCommandBoundaries())
           {
             eid++;
           }
@@ -1000,7 +1004,7 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
 
       {
         WriteSerialiser &ser = GetThreadSerialiser();
-        ser.SetDrawChunk();
+        ser.SetActionChunk();
         SCOPED_SERIALISE_CHUNK(D3D12Chunk::Queue_ExecuteCommandLists);
         Serialise_ExecuteCommandLists(ser, NumCommandLists, ppCommandLists);
 
@@ -1036,12 +1040,12 @@ bool WrappedID3D12CommandQueue::Serialise_SetMarker(SerialiserType &ser, UINT Me
 
     if(IsLoading(m_State))
     {
-      DrawcallDescription draw;
-      draw.name = MarkerText;
-      draw.flags |= DrawFlags::SetMarker;
+      ActionDescription action;
+      action.customName = MarkerText;
+      action.flags |= ActionFlags::SetMarker;
 
       m_Cmd.AddEvent();
-      m_Cmd.AddDrawcall(draw, false);
+      m_Cmd.AddAction(action);
     }
   }
 
@@ -1056,7 +1060,7 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::SetMarker(UINT Metadata, const
   if(IsActiveCapturing(m_State))
   {
     CACHE_THREAD_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::Queue_SetMarker);
     Serialise_SetMarker(ser, Metadata, pData, Size);
 
@@ -1075,7 +1079,7 @@ bool WrappedID3D12CommandQueue::Serialise_BeginEvent(SerialiserType &ser, UINT M
 
   ID3D12CommandQueue *pQueue = this;
   SERIALISE_ELEMENT(pQueue);
-  SERIALISE_ELEMENT(MarkerText);
+  SERIALISE_ELEMENT(MarkerText).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1085,15 +1089,15 @@ bool WrappedID3D12CommandQueue::Serialise_BeginEvent(SerialiserType &ser, UINT M
 
     if(IsLoading(m_State))
     {
-      DrawcallDescription draw;
-      draw.name = MarkerText;
-      draw.flags |= DrawFlags::PushMarker;
+      ActionDescription action;
+      action.customName = MarkerText;
+      action.flags |= ActionFlags::PushMarker;
 
       m_Cmd.AddEvent();
-      m_Cmd.AddDrawcall(draw, false);
+      m_Cmd.AddAction(action);
 
-      // now push the drawcall stack
-      m_Cmd.GetDrawcallStack().push_back(&m_Cmd.GetDrawcallStack().back()->children.back());
+      // now push the action stack
+      m_Cmd.GetActionStack().push_back(&m_Cmd.GetActionStack().back()->children.back());
     }
   }
 
@@ -1108,7 +1112,7 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::BeginEvent(UINT Metadata, cons
   if(IsActiveCapturing(m_State))
   {
     CACHE_THREAD_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::Queue_BeginEvent);
     Serialise_BeginEvent(ser, Metadata, pData, Size);
 
@@ -1130,11 +1134,14 @@ bool WrappedID3D12CommandQueue::Serialise_EndEvent(SerialiserType &ser)
 
     if(IsLoading(m_State))
     {
-      if(m_Cmd.GetDrawcallStack().size() > 1)
-        m_Cmd.GetDrawcallStack().pop_back();
+      ActionDescription action;
+      action.flags |= ActionFlags::PopMarker;
 
-      // Skip - pop marker draws aren't processed otherwise, we just apply them to the drawcall
-      // stack.
+      m_Cmd.AddEvent();
+      m_Cmd.AddAction(action);
+
+      if(m_Cmd.GetActionStack().size() > 1)
+        m_Cmd.GetActionStack().pop_back();
     }
   }
 
@@ -1148,7 +1155,7 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::EndEvent()
   if(IsActiveCapturing(m_State))
   {
     CACHE_THREAD_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::Queue_EndEvent);
     Serialise_EndEvent(ser);
 
@@ -1162,8 +1169,8 @@ bool WrappedID3D12CommandQueue::Serialise_Signal(SerialiserType &ser, ID3D12Fenc
 {
   ID3D12CommandQueue *pQueue = this;
   SERIALISE_ELEMENT(pQueue);
-  SERIALISE_ELEMENT(pFence);
-  SERIALISE_ELEMENT(Value);
+  SERIALISE_ELEMENT(pFence).Important();
+  SERIALISE_ELEMENT(Value).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1201,8 +1208,8 @@ bool WrappedID3D12CommandQueue::Serialise_Wait(SerialiserType &ser, ID3D12Fence 
 {
   ID3D12CommandQueue *pQueue = this;
   SERIALISE_ELEMENT(pQueue);
-  SERIALISE_ELEMENT(pFence);
-  SERIALISE_ELEMENT(Value);
+  SERIALISE_ELEMENT(pFence).Important();
+  SERIALISE_ELEMENT(Value).Important();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1270,7 +1277,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::Present(
 
     {
       CACHE_THREAD_SERIALISER();
-      ser.SetDrawChunk();
+      ser.SetActionChunk();
       SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_Close);
       list->Serialise_Close(ser);
 

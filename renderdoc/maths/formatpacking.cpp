@@ -728,6 +728,17 @@ void EncodeFormattedComponents(const ResourceFormat &fmt, FloatVector v, byte *d
             *success = false;
         }
       }
+      else if(fmt.compByteWidth == 3 && compType == CompType::Depth)
+      {
+        // 24-bit depth is a weird edge case we need to assemble it by hand
+        uint8_t *u8 = (uint8_t *)data;
+
+        uint32_t depth = uint32_t(RDCCLAMP(*comp, 0.0f, 1.0f) * 16777215.0f);
+
+        u8[0] = uint8_t((depth & 0x0000ff) >> 0);
+        u8[1] = uint8_t((depth & 0x00ff00) >> 8);
+        u8[2] = uint8_t((depth & 0xff0000) >> 16);
+      }
       else if(fmt.compByteWidth == 2)
       {
         uint16_t *u16 = (uint16_t *)data;

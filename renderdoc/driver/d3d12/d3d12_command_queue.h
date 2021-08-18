@@ -194,7 +194,7 @@ public:
   D3D12ResourceRecord *GetCreationRecord() { return m_CreationRecord; }
   WrappedID3D12Device *GetWrappedDevice() { return m_pDevice; }
   const rdcarray<D3D12ResourceRecord *> &GetCmdLists() { return m_CmdListRecords; }
-  D3D12DrawcallTreeNode &GetParentDrawcall() { return m_Cmd.m_ParentDrawcall; }
+  D3D12ActionTreeNode &GetParentAction() { return m_Cmd.m_ParentAction; }
   const APIEvent &GetEvent(uint32_t eventId);
   uint32_t GetMaxEID() { return m_Cmd.m_Events.back().eventId; }
   void ClearAfterCapture();

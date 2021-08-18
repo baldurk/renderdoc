@@ -60,7 +60,7 @@ In the 3D Mesh preview, you have the option to display the mesh with some solid 
 
 To select which element will be displayed as secondary, simply right click on the column you would like to use. This can be done on the input and output separately, and 4-component columns have the option to either show RGB as color, or alpha as grayscale.
 
-The selection will be remembered as long as the mesh format stays consistent between draws.
+The selection will be remembered as long as the mesh format stays consistent between actions.
 
 You can also use this if the position data isn't detected in your inputs and you'd like to choose which element contains the positions, or if you'd like to visualise some other data such as UV co-ordinates as positional (in effect rendering the mesh in uv-space).
 

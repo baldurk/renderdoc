@@ -38,7 +38,8 @@ bool WrappedID3D12Device::Serialise_CreatePipelineState(SerialiserType &ser,
                                                         REFIID riid, void **ppPipelineState)
 {
   SERIALISE_ELEMENT_LOCAL(Descriptor, D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(*pDesc))
-      .Named("pDesc"_lit);
+      .Named("pDesc"_lit)
+      .Important();
   SERIALISE_ELEMENT_LOCAL(guid, riid).Named("riid"_lit);
   SERIALISE_ELEMENT_LOCAL(pPipelineState,
                           ((WrappedID3D12PipelineState *)*ppPipelineState)->GetResourceID())

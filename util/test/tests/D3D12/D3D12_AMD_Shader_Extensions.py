@@ -7,11 +7,11 @@ class D3D12_AMD_Shader_Extensions(rdtest.TestCase):
     demos_test_name = 'D3D12_AMD_Shader_Extensions'
 
     def check_capture(self):
-        for pass_type in ["SM50", "SM51", "SM60"]:
-            draw = self.find_draw(pass_type + " Draw")
+        for pass_type in ["SM51", "SM60"]:
+            action = self.find_action(pass_type + " Draw")
 
-            if draw is not None:
-                self.controller.SetFrameEvent(draw.next.eventId, False)
+            if action is not None:
+                self.controller.SetFrameEvent(action.next.eventId, False)
 
                 pipe = self.controller.GetPipelineState()
                 tex = pipe.GetOutputTargets()[0].resourceId
@@ -37,17 +37,17 @@ class D3D12_AMD_Shader_Extensions(rdtest.TestCase):
 
                 rdtest.log.success("Picked barycentric values are as expected")
 
-                draw = self.find_draw(pass_type + " Dispatch")
+                action = self.find_action(pass_type + " Dispatch")
 
-                self.controller.SetFrameEvent(draw.next.eventId, False)
+                self.controller.SetFrameEvent(action.next.eventId, False)
 
-                # find the cpuMax and gpuMax draws
-                cpuMax = self.find_draw(pass_type + " cpuMax")
-                gpuMax = self.find_draw(pass_type + " gpuMax")
+                # find the cpuMax and gpuMax actions
+                cpuMax = self.find_action(pass_type + " cpuMax")
+                gpuMax = self.find_action(pass_type + " gpuMax")
 
                 # The values should be identical
-                cpuMax = int(cpuMax.name.split(': ')[1])
-                gpuMax = int(gpuMax.name.split(': ')[1])
+                cpuMax = int(cpuMax.customName.split(': ')[1])
+                gpuMax = int(gpuMax.customName.split(': ')[1])
 
                 if cpuMax != gpuMax or cpuMax == 0:
                     raise rdtest.TestFailureException(
@@ -68,7 +68,7 @@ class D3D12_AMD_Shader_Extensions(rdtest.TestCase):
                 rdtest.log.success("replayed gpuMax is as expected")
             # We should get everything except maybe DXIL
             elif pass_type != "SM60":
-                raise rdtest.TestFailureException("Didn't find test draw for {}".format(pass_type))
+                raise rdtest.TestFailureException("Didn't find test action for {}".format(pass_type))
 
             # We always check the CS pipe to ensure the reflection is OK
             cs_pipe = self.get_resource_by_name("cspipe" + pass_type)
@@ -107,7 +107,7 @@ class D3D12_AMD_Shader_Extensions(rdtest.TestCase):
             rdtest.log.success("compute shader disassembly is as expected")
 
             if refl.debugInfo.debuggable:
-                self.controller.SetFrameEvent(self.find_draw("Dispatch").eventId, False)
+                self.controller.SetFrameEvent(self.find_action("Dispatch").eventId, False)
 
                 trace: rd.ShaderDebugTrace = self.controller.DebugThread((0, 0, 0), (0, 0, 0))
 

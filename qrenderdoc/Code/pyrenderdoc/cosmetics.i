@@ -150,7 +150,7 @@ fail:
 
 %enddef // %define DEFINE_SAFE_COMPARISONS
 
-DEFINE_SAFE_EQUALITY(DrawcallDescription)
+DEFINE_SAFE_EQUALITY(ActionDescription)
 DEFINE_SAFE_EQUALITY(CounterResult)
 DEFINE_SAFE_EQUALITY(APIEvent)
 DEFINE_SAFE_EQUALITY(Bindpoint)

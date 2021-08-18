@@ -642,10 +642,10 @@ WrappedOpenGL::WrappedOpenGL(GLPlatform &platform)
 
   m_SuppressDebugMessages = false;
 
-  m_DrawcallStack.push_back(&m_ParentDrawcall);
+  m_ActionStack.push_back(&m_ParentAction);
 
   m_CurEventID = 0;
-  m_CurDrawcallID = 0;
+  m_CurActionID = 0;
   m_FirstEventID = 0;
   m_LastEventID = ~0U;
 
@@ -700,7 +700,7 @@ WrappedOpenGL::WrappedOpenGL(GLPlatform &platform)
   m_CurrentDefaultFBO = 0;
 
   m_CurChunkOffset = 0;
-  m_AddedDrawcall = false;
+  m_AddedAction = false;
 
   m_CurCtxDataTLS = Threading::AllocateTLSSlot();
 }
@@ -1249,9 +1249,9 @@ void WrappedOpenGL::UnregisterReplayContext(GLWindowingData windata)
 template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_ContextConfiguration(SerialiserType &ser, void *ctx)
 {
-  SERIALISE_ELEMENT_LOCAL(Context, m_ContextData[ctx].m_ContextDataResourceID);
-  SERIALISE_ELEMENT_LOCAL(FBO, m_ContextData[ctx].m_ContextFBOID);
-  SERIALISE_ELEMENT_LOCAL(InitParams, m_ContextData[ctx].initParams);
+  SERIALISE_ELEMENT_LOCAL(Context, m_ContextData[ctx].m_ContextDataResourceID).Unimportant();
+  SERIALISE_ELEMENT_LOCAL(FBO, m_ContextData[ctx].m_ContextFBOID).Unimportant();
+  SERIALISE_ELEMENT_LOCAL(InitParams, m_ContextData[ctx].initParams).Unimportant();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -2111,7 +2111,7 @@ void WrappedOpenGL::SwapBuffers(WindowingSystem winSystem, void *windowHandle)
     SERIALISE_TIME_CALL();
 
     USE_SCRATCH_SERIALISER();
-    ser.SetDrawChunk();
+    ser.SetActionChunk();
     SCOPED_SERIALISE_CHUNK(gl_CurChunk);
     Serialise_Present(ser);
 
@@ -2661,21 +2661,21 @@ bool WrappedOpenGL::Serialise_Present(SerialiserType &ser)
   {
     AddEvent();
 
-    DrawcallDescription draw;
+    ActionDescription action;
 
     GLuint col = 0;
     GL.glGetNamedFramebufferAttachmentParameterivEXT(m_CurrentDefaultFBO, eGL_COLOR_ATTACHMENT0,
                                                      eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
                                                      (GLint *)&col);
 
-    draw.copyDestination = GetResourceManager()->GetOriginalID(
+    action.copyDestination = GetResourceManager()->GetOriginalID(
         GetResourceManager()->GetResID(TextureRes(GetCtx(), col)));
 
-    draw.name =
-        StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(), ToStr(draw.copyDestination).c_str());
-    draw.flags |= DrawFlags::Present;
+    action.customName = StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(),
+                                          ToStr(action.copyDestination).c_str());
+    action.flags |= ActionFlags::Present;
 
-    AddDrawcall(draw, true);
+    AddAction(action);
   }
 
   return true;
@@ -2730,7 +2730,7 @@ bool WrappedOpenGL::Serialise_ContextInit(ReadSerialiser &ser)
 void WrappedOpenGL::ContextEndFrame()
 {
   USE_SCRATCH_SERIALISER();
-  ser.SetDrawChunk();
+  ser.SetActionChunk();
   SCOPED_SERIALISE_CHUNK(SystemChunk::CaptureEnd);
 
   m_ContextRecord->AddChunk(scope.Get());
@@ -3008,7 +3008,7 @@ bool WrappedOpenGL::Serialise_BeginCaptureFrame(SerialiserType &ser)
     savedDebugMessages.swap(m_DebugMessages);
   }
 
-  SERIALISE_ELEMENT(state);
+  SERIALISE_ELEMENT(state).Unimportant();
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -3259,20 +3259,6 @@ void WrappedOpenGL::AddResourceInitChunk(GLResource res)
   }
 }
 
-bool WrappedOpenGL::HasNonDebugMarkers()
-{
-  for(const APIEvent &ev : m_CurEvents)
-  {
-    GLChunk chunk = (GLChunk)m_StructuredFile->chunks[ev.chunkIndex]->metadata.chunkID;
-    if(chunk != GLChunk::glPushGroupMarkerEXT && chunk != GLChunk::glPopGroupMarkerEXT &&
-       chunk != GLChunk::glPushDebugGroupKHR && chunk != GLChunk::glPopDebugGroupKHR &&
-       chunk != GLChunk::glPushDebugGroup && chunk != GLChunk::glPopDebugGroup)
-      return true;
-  }
-
-  return false;
-}
-
 ReplayStatus WrappedOpenGL::ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers)
 {
   int sectionIdx = rdc->SectionIndex(SectionType::FrameCapture);
@@ -3491,19 +3477,19 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
       {
         AddEvent();
 
-        DrawcallDescription draw;
-        draw.name = "End of Capture";
-        draw.flags |= DrawFlags::Present;
+        ActionDescription action;
+        action.customName = "End of Capture";
+        action.flags |= ActionFlags::Present;
 
         GLuint col = 0;
         GL.glGetNamedFramebufferAttachmentParameterivEXT(m_CurrentDefaultFBO, eGL_COLOR_ATTACHMENT0,
                                                          eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
                                                          (GLint *)&col);
 
-        draw.copyDestination = GetResourceManager()->GetOriginalID(
+        action.copyDestination = GetResourceManager()->GetOriginalID(
             GetResourceManager()->GetResID(TextureRes(GetCtx(), col)));
 
-        AddDrawcall(draw, true);
+        AddAction(action);
       }
       return true;
     }
@@ -5132,7 +5118,7 @@ ReplayStatus WrappedOpenGL::ContextReplayLog(CaptureState readType, uint32_t sta
   else
   {
     m_CurEventID = 1;
-    m_CurDrawcallID = 1;
+    m_CurActionID = 1;
     m_FirstEventID = 0;
     m_LastEventID = ~0U;
   }
@@ -5187,13 +5173,13 @@ ReplayStatus WrappedOpenGL::ContextReplayLog(CaptureState readType, uint32_t sta
 
   if(IsLoading(m_State))
   {
-    GetReplay()->WriteFrameRecord().drawcallList = m_ParentDrawcall.children;
+    GetReplay()->WriteFrameRecord().actionList = m_ParentAction.children;
     GetReplay()->WriteFrameRecord().frameInfo.debugMessages = GetDebugMessages();
 
-    SetupDrawcallPointers(m_Drawcalls, GetReplay()->WriteFrameRecord().drawcallList);
+    SetupActionPointers(m_Actions, GetReplay()->WriteFrameRecord().actionList);
 
     // it's easier to remove duplicate usages here than check it as we go.
-    // this means if textures are bound in multiple places in the same draw
+    // this means if textures are bound in multiple places in the same action
     // we don't have duplicate uses
     for(auto it = m_ResourceUses.begin(); it != m_ResourceUses.end(); ++it)
     {
@@ -5243,7 +5229,7 @@ ReplayStatus WrappedOpenGL::ContextReplayLog(CaptureState readType, uint32_t sta
 
 bool WrappedOpenGL::ContextProcessChunk(ReadSerialiser &ser, GLChunk chunk)
 {
-  m_AddedDrawcall = false;
+  m_AddedAction = false;
 
   bool success = ProcessChunk(ser, chunk);
 
@@ -5265,47 +5251,47 @@ bool WrappedOpenGL::ContextProcessChunk(ReadSerialiser &ser, GLChunk chunk)
       case GLChunk::glPushDebugGroup:
       case GLChunk::glPushDebugGroupKHR:
       {
-        // push down the drawcallstack to the latest drawcall
-        m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
+        // push down the action stack to the latest action
+        m_ActionStack.push_back(&m_ActionStack.back()->children.back());
         break;
       }
       case GLChunk::glPopGroupMarkerEXT:
       case GLChunk::glPopDebugGroup:
       case GLChunk::glPopDebugGroupKHR:
       {
-        // refuse to pop off further than the root drawcall (mismatched begin/end events e.g.)
-        if(m_DrawcallStack.size() > 1)
-          m_DrawcallStack.pop_back();
+        // refuse to pop off further than the root action (mismatched begin/end events e.g.)
+        if(m_ActionStack.size() > 1)
+          m_ActionStack.pop_back();
         break;
       }
       default: break;
     }
 
-    if(!m_AddedDrawcall)
+    if(!m_AddedAction)
       AddEvent();
   }
 
-  m_AddedDrawcall = false;
+  m_AddedAction = false;
 
   return true;
 }
 
-void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
+void WrappedOpenGL::AddUsage(const ActionDescription &a)
 {
-  DrawFlags DrawDispatchMask = DrawFlags::Drawcall | DrawFlags::Dispatch;
-  if(!(d.flags & DrawDispatchMask))
+  ActionFlags DrawDispatchMask = ActionFlags::Drawcall | ActionFlags::Dispatch;
+  if(!(a.flags & DrawDispatchMask))
     return;
 
   GLResourceManager *rm = GetResourceManager();
 
   ContextPair &ctx = GetCtx();
 
-  uint32_t e = d.eventId;
+  uint32_t e = a.eventId;
 
   //////////////////////////////
   // Input
 
-  if(d.flags & DrawFlags::Indexed)
+  if(a.flags & ActionFlags::Indexed)
   {
     GLuint ibuffer = 0;
     GL.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&ibuffer);
@@ -5346,7 +5332,7 @@ void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
 
       if(curProg == 0)
       {
-        // no program bound at this draw
+        // no program bound at this action
       }
       else
       {
@@ -5534,15 +5520,15 @@ void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
   }
 }
 
-void WrappedOpenGL::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
+void WrappedOpenGL::AddAction(const ActionDescription &a)
 {
-  m_AddedDrawcall = true;
+  m_AddedAction = true;
 
   WrappedOpenGL *context = this;
 
-  DrawcallDescription draw = d;
-  draw.eventId = m_CurEventID;
-  draw.drawcallId = m_CurDrawcallID;
+  ActionDescription action = a;
+  action.eventId = m_CurEventID;
+  action.actionId = m_CurActionID;
 
   m_DrawcallParams.resize_for_index(m_CurEventID);
   m_DrawcallParams[m_CurEventID].indexWidth = m_LastIndexWidth;
@@ -5556,7 +5542,7 @@ void WrappedOpenGL::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
     GLint numCols = 8;
     GL.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
 
-    RDCEraseEl(draw.outputs);
+    RDCEraseEl(action.outputs);
 
     for(GLint i = 0; i < RDCMIN(numCols, 8); i++)
     {
@@ -5570,10 +5556,10 @@ void WrappedOpenGL::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
           eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
 
       if(type == eGL_TEXTURE)
-        draw.outputs[i] = GetResourceManager()->GetOriginalID(
+        action.outputs[i] = GetResourceManager()->GetOriginalID(
             GetResourceManager()->GetResID(TextureRes(GetCtx(), curCol[i])));
       else
-        draw.outputs[i] = GetResourceManager()->GetOriginalID(
+        action.outputs[i] = GetResourceManager()->GetOriginalID(
             GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), curCol[i])));
     }
 
@@ -5585,32 +5571,29 @@ void WrappedOpenGL::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
     GL.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
                                              eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
     if(type == eGL_TEXTURE)
-      draw.depthOut = GetResourceManager()->GetOriginalID(
+      action.depthOut = GetResourceManager()->GetOriginalID(
           GetResourceManager()->GetResID(TextureRes(GetCtx(), curDepth)));
     else
-      draw.depthOut = GetResourceManager()->GetOriginalID(
+      action.depthOut = GetResourceManager()->GetOriginalID(
           GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), curDepth)));
   }
 
-  // markers don't increment drawcall ID
-  DrawFlags MarkerMask = DrawFlags::SetMarker | DrawFlags::PushMarker | DrawFlags::MultiDraw;
-  if(!(draw.flags & MarkerMask))
-    m_CurDrawcallID++;
+  // markers don't increment action ID
+  ActionFlags MarkerMask = ActionFlags::SetMarker | ActionFlags::PushMarker |
+                           ActionFlags::PopMarker | ActionFlags::MultiAction;
+  if(!(action.flags & MarkerMask))
+    m_CurActionID++;
 
-  if(hasEvents)
-  {
-    draw.events = m_CurEvents;
-    m_CurEvents.clear();
-  }
+  action.events.swap(m_CurEvents);
 
-  AddUsage(draw);
+  AddUsage(action);
 
-  // should have at least the root drawcall here, push this drawcall
+  // should have at least the root action here, push this action
   // onto the back's children list.
-  if(!context->m_DrawcallStack.empty())
-    m_DrawcallStack.back()->children.push_back(draw);
+  if(!context->m_ActionStack.empty())
+    m_ActionStack.back()->children.push_back(action);
   else
-    RDCERR("Somehow lost drawcall stack!");
+    RDCERR("Somehow lost action stack!");
 }
 
 void WrappedOpenGL::AddEvent()
@@ -5643,15 +5626,15 @@ const APIEvent &WrappedOpenGL::GetEvent(uint32_t eventId)
   return m_Events[RDCMIN(idx, m_Events.size() - 1)];
 }
 
-const DrawcallDescription *WrappedOpenGL::GetDrawcall(uint32_t eventId)
+const ActionDescription *WrappedOpenGL::GetAction(uint32_t eventId)
 {
-  if(eventId >= m_Drawcalls.size())
+  if(eventId >= m_Actions.size())
     return NULL;
 
-  return m_Drawcalls[eventId];
+  return m_Actions[eventId];
 }
 
-const GLDrawParams &WrappedOpenGL::GetDrawcallParameters(uint32_t eventId)
+const GLDrawParams &WrappedOpenGL::GetDrawParameters(uint32_t eventId)
 {
   m_DrawcallParams.resize_for_index(eventId);
   return m_DrawcallParams[eventId];

@@ -64,7 +64,7 @@ bool WrappedID3D12Device::Serialise_CreateCommandQueue1(SerialiserType &ser,
                                                         REFIID CreatorID, REFIID riid,
                                                         void **ppCommandQueue)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Named("pDesc"_lit);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Named("pDesc"_lit).Important();
   SERIALISE_ELEMENT_LOCAL(creator, CreatorID).Named("CreatorID"_lit);
   SERIALISE_ELEMENT_LOCAL(guid, riid).Named("riid"_lit);
   SERIALISE_ELEMENT_LOCAL(pCommandQueue,

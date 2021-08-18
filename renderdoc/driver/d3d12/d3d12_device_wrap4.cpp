@@ -36,7 +36,7 @@ bool WrappedID3D12Device::Serialise_CreateCommandList1(SerialiserType &ser, UINT
                                                        void **ppCommandList)
 {
   SERIALISE_ELEMENT(nodeMask);
-  SERIALISE_ELEMENT(type);
+  SERIALISE_ELEMENT(type).Important();
   SERIALISE_ELEMENT(flags);
   SERIALISE_ELEMENT_LOCAL(guid, riid).Named("riid"_lit);
   SERIALISE_ELEMENT_LOCAL(pCommandList,
@@ -50,6 +50,8 @@ bool WrappedID3D12Device::Serialise_CreateCommandList1(SerialiserType &ser, UINT
 
   if(IsReplayingAndReading())
   {
+    nodeMask = 0;
+
     ID3D12GraphicsCommandList *list = NULL;
     HRESULT hr = E_NOINTERFACE;
     if(m_pDevice4)
@@ -210,7 +212,7 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource1(
 {
   SERIALISE_ELEMENT_LOCAL(props, *pHeapProperties).Named("pHeapProperties"_lit);
   SERIALISE_ELEMENT(HeapFlags);
-  SERIALISE_ELEMENT_LOCAL(desc, *pDesc).Named("pDesc"_lit);
+  SERIALISE_ELEMENT_LOCAL(desc, *pDesc).Named("pDesc"_lit).Important();
   SERIALISE_ELEMENT(InitialResourceState);
   SERIALISE_ELEMENT_OPT(pOptimizedClearValue);
   // placeholder for future use if we properly capture & replay protected sessions
@@ -418,7 +420,7 @@ bool WrappedID3D12Device::Serialise_CreateHeap1(SerialiserType &ser, const D3D12
                                                 ID3D12ProtectedResourceSession *pProtectedSession,
                                                 REFIID riid, void **ppvHeap)
 {
-  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Named("pDesc"_lit);
+  SERIALISE_ELEMENT_LOCAL(Descriptor, *pDesc).Named("pDesc"_lit).Important();
   // placeholder for future use if we properly capture & replay protected sessions
   SERIALISE_ELEMENT_LOCAL(ProtectedSession, ResourceId()).Named("pProtectedSession"_lit);
   SERIALISE_ELEMENT_LOCAL(guid, riid).Named("riid"_lit);

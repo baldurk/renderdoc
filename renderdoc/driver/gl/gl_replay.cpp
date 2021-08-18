@@ -114,12 +114,12 @@ rdcarray<uint32_t> GLReplay::GetPassEvents(uint32_t eventId)
 {
   rdcarray<uint32_t> passEvents;
 
-  const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
+  const ActionDescription *action = m_pDriver->GetAction(eventId);
 
-  const DrawcallDescription *start = draw;
-  while(start && start->previous && !(start->previous->flags & DrawFlags::Clear))
+  const ActionDescription *start = action;
+  while(start && start->previous && !(start->previous->flags & ActionFlags::Clear))
   {
-    const DrawcallDescription *prev = start->previous;
+    const ActionDescription *prev = start->previous;
 
     if(start->outputs != prev->outputs || start->depthOut != prev->depthOut)
       break;
@@ -129,10 +129,10 @@ rdcarray<uint32_t> GLReplay::GetPassEvents(uint32_t eventId)
 
   while(start)
   {
-    if(start == draw)
+    if(start == action)
       break;
 
-    if(start->flags & DrawFlags::Drawcall)
+    if(start->flags & ActionFlags::Drawcall)
       passEvents.push_back(start->eventId);
 
     start = start->next;
@@ -810,7 +810,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
                                       ? ~0U
                                       : rs.PrimitiveRestartIndex;
 
-  const GLDrawParams &drawParams = m_pDriver->GetDrawcallParameters(eventId);
+  const GLDrawParams &drawParams = m_pDriver->GetDrawParameters(eventId);
 
   pipe.vertexInput.indexByteStride = drawParams.indexWidth;
   pipe.vertexInput.topology = drawParams.topo;
@@ -3626,8 +3626,8 @@ bool GLReplay::IsTextureSupported(const TextureDescription &tex)
   }
 
   GLint supported = 0, fragment = 0;
-  m_pDriver->glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_SUPPORTED, 4, &supported);
-  m_pDriver->glGetInternalformativ(target, fmt, eGL_FRAGMENT_TEXTURE, 4, &fragment);
+  m_pDriver->glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_SUPPORTED, 1, &supported);
+  m_pDriver->glGetInternalformativ(target, fmt, eGL_FRAGMENT_TEXTURE, 1, &fragment);
 
   // check the texture is supported
   if(supported == 0 || fragment == 0)
@@ -3638,8 +3638,8 @@ bool GLReplay::IsTextureSupported(const TextureDescription &tex)
   if(tex.msSamp > 1 && !IsDepthStencilFormat(fmt))
   {
     GLenum viewClass = eGL_NONE;
-    m_pDriver->glGetInternalformativ(eGL_TEXTURE_2D_ARRAY, fmt, eGL_VIEW_COMPATIBILITY_CLASS,
-                                     sizeof(GLenum), (GLint *)&viewClass);
+    m_pDriver->glGetInternalformativ(eGL_TEXTURE_2D_ARRAY, fmt, eGL_VIEW_COMPATIBILITY_CLASS, 1,
+                                     (GLint *)&viewClass);
 
     if(viewClass == eGL_NONE)
       return false;

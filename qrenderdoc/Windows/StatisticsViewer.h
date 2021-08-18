@@ -66,7 +66,7 @@ private:
   void AppendRasterizationStatistics();
   void AppendOutputStatistics();
   void AppendDetailedInformation();
-  void CountContributingEvents(const DrawcallDescription &draw, uint32_t &drawCount,
+  void CountContributingEvents(const ActionDescription &action, uint32_t &drawCount,
                                uint32_t &dispatchCount, uint32_t &diagnosticCount);
   void AppendAPICallSummary();
   void GenerateReport();

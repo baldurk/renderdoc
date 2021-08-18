@@ -201,13 +201,53 @@ struct RichResourceText
 
   // a plain-text version of the document, suitable for e.g. copy-paste
   QString text;
+  int textCacheId = 0;
 
   // the ideal width for the document
   int idealWidth = 0;
   int numLines = 1;
 
+  bool forcehtml = false;
+
   // cache the context once we've obtained it.
   ICaptureContext *ctxptr = NULL;
+
+  void cacheText(const QWidget *widget)
+  {
+    if(!ctxptr)
+      ctxptr = getCaptureContext(widget);
+
+    if(!ctxptr)
+      return;
+
+    ICaptureContext &ctx = *(ICaptureContext *)ctxptr;
+
+    int refCache = ctx.ResourceNameCacheID();
+
+    if(textCacheId == refCache)
+      return;
+
+    textCacheId = refCache;
+
+    text.clear();
+
+    for(const QVariant &v : fragments)
+    {
+      if(v.userType() == qMetaTypeId<ResourceId>())
+      {
+        QString resname = GetTruncatedResourceName(ctx, v.value<ResourceId>());
+        text += resname;
+      }
+      else if(v.type() == QVariant::UInt)
+      {
+        text += lit("EID @%1").arg(v.toUInt());
+      }
+      else
+      {
+        text += v.toString();
+      }
+    }
+  }
 
   void cacheDocument(const QWidget *widget)
   {
@@ -221,10 +261,11 @@ struct RichResourceText
 
     int refCache = ctx.ResourceNameCacheID();
 
-    if(cacheId == refCache)
+    if(cacheId == refCache && textCacheId == refCache)
       return;
 
     cacheId = refCache;
+    textCacheId = refCache;
 
     // use a table to ensure images don't screw up the baseline for text. DON'T JUDGE ME.
     QString html = lit("<table><tr>");
@@ -247,8 +288,9 @@ struct RichResourceText
       if(v.userType() == qMetaTypeId<ResourceId>())
       {
         QString resname = GetTruncatedResourceName(ctx, v.value<ResourceId>()).toHtmlEscaped();
-        html += lit("<td valign=\"middle\"><b>%1</b></td>"
-                    "<td valign=\"middle\"><img width=\"16\" src=':/link%3.png'></td>")
+        html += lit("<td valign=\"middle\" style=\"line-height: 14px\"><b>%1</b></td>"
+                    "<td valign=\"middle\" style=\"line-height: 14px\">"
+                    "<img width=\"16\" src=':/link%3.png'></td>")
                     .arg(resname)
                     .arg(highdpi ? lit("@2x") : QString());
         text += resname;
@@ -264,8 +306,9 @@ struct RichResourceText
         QString msgstr =
             QApplication::translate("qrenderdoc", "%n msg(s)", "Shader messages", link.numMessages);
 
-        html += lit("<td valign=\"middle\"><img width=\"16\" src=':/text_add%3.png'></td>"
-                    "<td valign=\"middle\">%1</td>")
+        html += lit("<td valign=\"middle\" style=\"line-height: 14px\">"
+                    "<img width=\"16\" src=':/text_add%3.png'></td>"
+                    "<td valign=\"middle\" style=\"line-height: 14px\">%1</td>")
                     .arg(msgstr)
                     .arg(highdpi ? lit("@2x") : QString());
         text += msgstr;
@@ -275,7 +318,8 @@ struct RichResourceText
       }
       else if(v.type() == QVariant::UInt)
       {
-        html += lit("<td valign=\"middle\"><font color='#0000FF'><u>EID @%1</u></font></td>")
+        html += lit("<td valign=\"middle\" style=\"line-height: 14px\">"
+                    "<font color='#0000FF'><u>EID @%1</u></font></td>")
                     .arg(v.toUInt());
         text += lit("EID @%1").arg(v.toUInt());
 
@@ -283,13 +327,21 @@ struct RichResourceText
       }
       else
       {
-        QString htmlfrag = v.toString().toHtmlEscaped();
-        int newlines = htmlfrag.count(QLatin1Char('\n'));
-        htmlfrag.replace(lit(" "), lit("&nbsp;"));
-        htmlfrag.replace(lit("\n"), lit("</td></tr></table><table><tr><td valign=\"middle\">"));
+        QString htmlfrag = v.toString();
 
-        html += lit("<td valign=\"middle\">%1</td>").arg(htmlfrag);
+        if(!forcehtml)
+        {
+          htmlfrag = htmlfrag.toHtmlEscaped();
+          htmlfrag.replace(lit(" "), lit("&nbsp;"));
+        }
+
+        int newlines = htmlfrag.count(QLatin1Char('\n'));
+        htmlfrag.replace(
+            lit("\n"),
+            lit("</td></tr></table><table><tr><td valign=\"middle\" style=\"line-height: 14px\">"));
+
         text += v.toString();
+        html += lit("<td valign=\"middle\" style=\"line-height: 14px\">%1</td>").arg(htmlfrag);
 
         numLines += newlines;
 
@@ -389,7 +441,7 @@ ICaptureContext *getCaptureContext(const QWidget *widget)
 
 QString ResIdTextToString(RichResourceTextPtr ptr)
 {
-  ptr->cacheDocument(NULL);
+  ptr->cacheText(NULL);
   return ptr->text;
 }
 
@@ -413,7 +465,44 @@ void RegisterMetatypeConversions()
   QMetaType::registerConverter<GPUAddressPtr, QString>(&GPUAddressToString);
 }
 
-void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx)
+bool HandleURLFragment(RichResourceTextPtr linkedText, QString text, bool parseURLs)
+{
+  bool hasURL = false;
+  if(parseURLs)
+  {
+    static QRegularExpression urlRE(lit(
+        R"(https?://([a-zA-Z0-9]+\.)?[-a-zA-Z0-9@:%._+~#=]{2,256}.([a-z]{2,8})+/[-a-zA-Z0-9@:%_+.~#?&/=]*)"));
+
+    QRegularExpressionMatch urlMatch = urlRE.match(text);
+
+    while(urlMatch.hasMatch())
+    {
+      QUrl url = urlMatch.captured(0);
+
+      int end = urlMatch.capturedEnd();
+
+      // push any text that preceeded the url.
+      if(urlMatch.capturedStart(0) > 0)
+        linkedText->fragments.push_back(text.left(urlMatch.capturedStart(0)));
+
+      text.remove(0, end);
+
+      linkedText->fragments.push_back(url);
+
+      urlMatch = urlRE.match(text);
+
+      hasURL = true;
+    }
+  }
+
+  if(!text.isEmpty())
+  {
+    linkedText->fragments.push_back(text);
+  }
+  return hasURL;
+}
+
+void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx, bool parseURLs)
 {
   // we only upconvert from strings, any other type with a string representation is not expected to
   // contain ResourceIds. In particular if the variant is already a ResourceId we can return.
@@ -426,7 +515,8 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx)
 
   // do a simple string search first before using regular expressions
   if(!text.contains(lit("ResourceId::")) && !text.contains(lit("GPUAddress::")) &&
-     !text.contains(lit("__rd_msgs::")) && !text.contains(QLatin1Char('@')))
+     !text.contains(lit("__rd_msgs::")) && !text.contains(QLatin1Char('@')) && !parseURLs &&
+     !(text.startsWith(lit("<rdhtml>")) && text.endsWith(lit("</rdhtml>"))))
     return;
 
   // two forms: GPUAddress::012345        - typeless
@@ -455,12 +545,23 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx)
     return;
   }
 
+  const bool forcehtml = text.startsWith(lit("<rdhtml>")) && text.endsWith(lit("</rdhtml>"));
+  if(forcehtml)
+  {
+    text = text.mid(8, text.length() - 17);
+  }
+
   // use regexp to split up into fragments of text and resourceid. The resourceid is then
   // formatted on the fly in RichResourceText::cacheDocument
   static QRegularExpression resRE(
       lit("(ResourceId::)([0-9]+)|(@)([0-9]+)|(__rd_msgs::)([0-9]+):([0-9]+)"));
 
   match = resRE.match(text);
+
+  RichResourceTextPtr linkedText(new RichResourceText);
+
+  linkedText->ctxptr = ctx;
+  linkedText->forcehtml = forcehtml;
 
   if(match.hasMatch())
   {
@@ -476,10 +577,6 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx)
       return;
     }
 
-    RichResourceTextPtr linkedText(new RichResourceText);
-
-    linkedText->ctxptr = ctx;
-
     while(match.hasMatch())
     {
       ResourceId id;
@@ -491,7 +588,7 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx)
 
         // push any text that preceeded the ResourceId.
         if(match.capturedStart(1) > 0)
-          linkedText->fragments.push_back(text.left(match.capturedStart(1)));
+          HandleURLFragment(linkedText, text.left(match.capturedStart(1)), parseURLs);
 
         text.remove(0, match.capturedEnd(2));
 
@@ -505,7 +602,7 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx)
 
         // push any text that preceeded the msgs link.
         if(match.capturedStart(5) > 0)
-          linkedText->fragments.push_back(text.left(match.capturedStart(5)));
+          HandleURLFragment(linkedText, text.left(match.capturedStart(5)), parseURLs);
 
         text.remove(0, match.capturedEnd(7));
 
@@ -524,9 +621,18 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx)
           continue;
         }
 
+        int start = match.capturedStart(3);
+
+        // skip matches with an identifier character before the @, like foo@4
+        if(start > 0 && (text[start - 1].isLetterOrNumber() || text[start - 1] == QLatin1Char('_')))
+        {
+          match = resRE.match(text, end);
+          continue;
+        }
+
         // push any text that preceeded the EID.
         if(match.capturedStart(3) > 0)
-          linkedText->fragments.push_back(text.left(match.capturedStart(3)));
+          HandleURLFragment(linkedText, text.left(match.capturedStart(3)), parseURLs);
 
         text.remove(0, end);
 
@@ -539,16 +645,29 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx)
     if(!text.isEmpty())
     {
       // if we didn't get any fragments that means we only encountered false positive matches e.g.
-      // @2x. Return the normal text as non-richresourcetext
-      if(linkedText->fragments.empty())
+      // @2x. Return the normal text as non-richresourcetext unless we're forcing it
+      if(linkedText->fragments.empty() && !forcehtml)
         return;
 
-      linkedText->fragments.push_back(text);
+      HandleURLFragment(linkedText, text, parseURLs);
     }
 
-    linkedText->doc.setHtml(text);
+    var = QVariant::fromValue(linkedText);
+  }
+  else if(forcehtml)
+  {
+    linkedText->fragments.push_back(text);
 
     var = QVariant::fromValue(linkedText);
+    return;
+  }
+  else
+  {
+    // if our text doesn't match any of the previous pattern, we still want to linkify URLs
+    if(HandleURLFragment(linkedText, text, parseURLs))
+    {
+      var = QVariant::fromValue(linkedText);
+    }
   }
 }
 
@@ -556,7 +675,7 @@ bool RichResourceTextCheck(const QVariant &var)
 {
   return var.userType() == qMetaTypeId<RichResourceTextPtr>() ||
          var.userType() == qMetaTypeId<GPUAddressPtr>() ||
-         var.userType() == qMetaTypeId<ResourceId>();
+         var.userType() == qMetaTypeId<ResourceId>() || var.userType() == qMetaTypeId<QUrl>();
 }
 
 // I'm not sure if this should come from the style or not - the QTextDocument handles this in
@@ -679,9 +798,22 @@ void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, 
 
   QAbstractTextDocumentLayout::PaintContext docCtx;
   docCtx.palette = palette;
-  docCtx.palette.setColor(QPalette::Text, foreBrush.color());
 
   docCtx.clip = QRectF(0, 0, rect.width() - 1, rect.height());
+
+  if(state & QStyle::State_Selected)
+  {
+    QAbstractTextDocumentLayout::Selection sel;
+    sel.format.setForeground(foreBrush.color());
+    sel.cursor = QTextCursor(&linkedText->doc);
+    sel.cursor.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
+    sel.cursor.movePosition(QTextCursor::End, QTextCursor::KeepAnchor);
+    docCtx.selections.push_back(sel);
+  }
+  else
+  {
+    docCtx.palette.setColor(QPalette::Text, foreBrush.color());
+  }
 
   painter->setClipRect(docCtx.clip);
 
@@ -710,7 +842,7 @@ void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, 
       {
         QVariant v = linkedText->fragments[frag];
         if((v.userType() == qMetaTypeId<ResourceId>() && v.value<ResourceId>() != ResourceId()) ||
-           v.userType() == qMetaTypeId<ShaderMessageLink>())
+           v.userType() == qMetaTypeId<ShaderMessageLink>() || v.userType() == qMetaTypeId<QUrl>())
         {
           layout->blockBoundingRect(block);
           QRectF blockrect = layout->blockBoundingRect(block);
@@ -725,7 +857,10 @@ void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, 
             blockrect = blockrect.united(layout->blockBoundingRect(block.next()));
           }
 
-          blockrect.translate(0.0, -2.0);
+          if(v.userType() != qMetaTypeId<QUrl>())
+          {
+            blockrect.translate(0.0, -2.0);
+          }
 
           blockrect.setRight(qMin(blockrect.right(), (qreal)rect.width()));
 
@@ -999,6 +1134,17 @@ bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect
 
         return true;
       }
+      else if(v.type() == QVariant::Url)
+      {
+        QUrl url = v.value<QUrl>();
+
+        if(event->type() == QEvent::MouseButtonRelease)
+        {
+          QDesktopServices::openUrl(url);
+        }
+
+        return true;
+      }
     }
   }
 
@@ -1047,7 +1193,7 @@ void RichTextViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
 
       painter->save();
 
-      QRect rect = option.rect;
+      QRect rect = opt.rect;
       if(!opt.icon.isNull())
       {
         QIcon::Mode mode;
@@ -1061,7 +1207,7 @@ void RichTextViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
         rect.setX(rect.x() + opt.icon.actualSize(opt.decorationSize, mode, state).width() + 4);
       }
 
-      RichResourceTextPaint(m_widget, painter, rect, opt.font, option.palette, option.state,
+      RichResourceTextPaint(m_widget, painter, rect, opt.font, opt.palette, opt.state,
                             m_widget->viewport()->mapFromGlobal(QCursor::pos()), v);
 
       painter->restore();
@@ -1157,27 +1303,27 @@ QString ToQStr(const ResourceUsage usage, const GraphicsAPI apitype)
 
       case ResourceUsage::VS_Constants: return lit("VS - Constant Buffer");
       case ResourceUsage::GS_Constants: return lit("GS - Constant Buffer");
-      case ResourceUsage::HS_Constants: return lit("HS - Constant Buffer");
-      case ResourceUsage::DS_Constants: return lit("DS - Constant Buffer");
+      case ResourceUsage::HS_Constants: return lit("TCS - Constant Buffer");
+      case ResourceUsage::DS_Constants: return lit("TES - Constant Buffer");
       case ResourceUsage::CS_Constants: return lit("CS - Constant Buffer");
-      case ResourceUsage::PS_Constants: return lit("PS - Constant Buffer");
+      case ResourceUsage::PS_Constants: return lit("FS - Constant Buffer");
       case ResourceUsage::All_Constants: return lit("All - Constant Buffer");
 
       case ResourceUsage::StreamOut: return lit("Stream Out");
 
       case ResourceUsage::VS_Resource: return lit("VS - Resource");
       case ResourceUsage::GS_Resource: return lit("GS - Resource");
-      case ResourceUsage::HS_Resource: return lit("HS - Resource");
-      case ResourceUsage::DS_Resource: return lit("DS - Resource");
+      case ResourceUsage::HS_Resource: return lit("TCS - Resource");
+      case ResourceUsage::DS_Resource: return lit("TES - Resource");
       case ResourceUsage::CS_Resource: return lit("CS - Resource");
-      case ResourceUsage::PS_Resource: return lit("PS - Resource");
+      case ResourceUsage::PS_Resource: return lit("FS - Resource");
       case ResourceUsage::All_Resource: return lit("All - Resource");
 
       case ResourceUsage::VS_RWResource: return lit("VS - UAV");
-      case ResourceUsage::HS_RWResource: return lit("HS - UAV");
-      case ResourceUsage::DS_RWResource: return lit("DS - UAV");
+      case ResourceUsage::HS_RWResource: return lit("TCS - UAV");
+      case ResourceUsage::DS_RWResource: return lit("TES - UAV");
       case ResourceUsage::GS_RWResource: return lit("GS - UAV");
-      case ResourceUsage::PS_RWResource: return lit("PS - UAV");
+      case ResourceUsage::PS_RWResource: return lit("FS - UAV");
       case ResourceUsage::CS_RWResource: return lit("CS - UAV");
       case ResourceUsage::All_RWResource: return lit("All - UAV");
 
@@ -1462,27 +1608,27 @@ void CombineUsageEvents(ICaptureContext &ctx, const rdcarray<EventUsage> &usage,
     if(u.usage == us && u.eventId == end)
       continue;
 
-    const DrawcallDescription *draw = ctx.GetDrawcall(u.eventId);
+    const ActionDescription *action = ctx.GetAction(u.eventId);
 
     bool distinct = false;
 
     // if the usage is different from the last, add a new entry,
-    // or if the previous draw link is broken.
-    if(u.usage != us || draw == NULL || draw->previous == 0)
+    // or if the previous action link is broken.
+    if(u.usage != us || action == NULL || action->previous == 0)
     {
       distinct = true;
     }
     else
     {
-      // otherwise search back through real draws, to see if the
+      // otherwise search back through real actions, to see if the
       // last event was where we were - otherwise it's a new
-      // distinct set of drawcalls and should have a separate
+      // distinct set of actions and should have a separate
       // entry in the context menu
-      const DrawcallDescription *prev = draw->previous;
+      const ActionDescription *prev = action->previous;
 
       while(prev != NULL && prev->eventId > end)
       {
-        if(!(prev->flags & (DrawFlags::Dispatch | DrawFlags::Drawcall | DrawFlags::CmdList)))
+        if(!(prev->flags & (ActionFlags::Dispatch | ActionFlags::Drawcall | ActionFlags::CmdList)))
         {
           prev = prev->previous;
         }
@@ -1518,7 +1664,7 @@ void CombineUsageEvents(ICaptureContext &ctx, const rdcarray<EventUsage> &usage,
     callback(start, end, us);
 }
 
-QVariant SDObject2Variant(const SDObject *obj)
+QVariant SDObject2Variant(const SDObject *obj, bool inlineImportant)
 {
   QVariant param;
 
@@ -1543,9 +1689,100 @@ QVariant SDObject2Variant(const SDObject *obj)
   {
     switch(obj->type.basetype)
     {
-      case SDBasic::Chunk: param = QVariant(); break;
-      case SDBasic::Struct: param = QFormatStr("%1()").arg(obj->type.name); break;
-      case SDBasic::Array: param = QFormatStr("%1[]").arg(obj->type.name); break;
+      case SDBasic::Chunk:
+      {
+        if(inlineImportant)
+        {
+          QString name = obj->name;
+
+          // don't display any "ClassName::" prefix by default here
+          int nsSep = name.indexOf(lit("::"));
+          if(nsSep > 0)
+            name.remove(0, nsSep + 2);
+
+          name += lit("(");
+
+          bool onlyImportant(obj->type.flags & SDTypeFlags::ImportantChildren);
+
+          bool first = true;
+          for(const SDObject *child : *obj)
+          {
+            // never display hidden members
+            if(child->type.flags & SDTypeFlags::Hidden)
+              continue;
+
+            if(!onlyImportant || (child->type.flags & SDTypeFlags::Important))
+            {
+              if(!first)
+                name += lit(", ");
+              name += SDObject2Variant(child, true).toString();
+              first = false;
+            }
+          }
+
+          name += lit(")");
+          param = name;
+        }
+        else
+        {
+          param = QVariant();
+        }
+        break;
+      }
+      case SDBasic::Struct:
+      case SDBasic::Array:
+      {
+        // only inline important arrays with up to 4 elements
+        if(inlineImportant && (obj->type.basetype == SDBasic::Struct || obj->NumChildren() <= 4))
+        {
+          int numImportantChildren = 0;
+
+          if(obj->NumChildren() == 0)
+          {
+            param = lit("{}");
+          }
+          else
+          {
+            bool importantChildren(obj->type.flags & SDTypeFlags::ImportantChildren);
+
+            bool first = true;
+            QString s;
+            for(size_t i = 0; i < obj->NumChildren(); i++)
+            {
+              const SDObject *child = obj->GetChild(i);
+
+              if(!importantChildren || (obj->GetChild(i)->type.flags & SDTypeFlags::Important))
+              {
+                if(!first)
+                  s += lit(", ");
+                first = false;
+                s += SDObject2Variant(child, true).toString();
+                numImportantChildren++;
+              }
+            }
+
+            // when a struct only has one important member, just display that as-if it were the
+            // struct. We rely on the underlying important flagging to not make things too
+            // confusing.
+            // This addresses case where there's a struct hierarchy but we only care about one
+            // member a level or two down - we don't end up with { { { { Resource } } } }
+            // it also helps with structs that we want to display as just a single thing - like a
+            // struct that references a resource with adjacent properties, which we want to elide to
+            // just the resource itself.
+            if(importantChildren && numImportantChildren == 1 && obj->type.basetype == SDBasic::Struct)
+              param = s;
+            else
+              param = QFormatStr("{ %1 }").arg(s);
+          }
+        }
+        else
+        {
+          param = obj->type.basetype == SDBasic::Array
+                      ? QFormatStr("%1[%2]").arg(obj->type.name).arg(obj->NumChildren())
+                      : QFormatStr("%1()").arg(obj->type.name);
+        }
+        break;
+      }
       case SDBasic::Null: param = lit("NULL"); break;
       case SDBasic::Buffer: param = lit("(%1 bytes)").arg(obj->type.byteSize); break;
       case SDBasic::String:
@@ -1588,7 +1825,7 @@ void addStructuredChildren(RDTreeWidgetItem *parent, const SDObject &parentObj)
 
     RDTreeWidgetItem *item = new RDTreeWidgetItem({name, QString()});
 
-    item->setText(1, SDObject2Variant(obj));
+    item->setText(1, SDObject2Variant(obj, false));
 
     if(obj->type.basetype == SDBasic::Chunk || obj->type.basetype == SDBasic::Struct ||
        obj->type.basetype == SDBasic::Array)
@@ -3227,7 +3464,12 @@ QVariant StructuredDataItemModel::data(const QModelIndex &index, int role) const
           return QFormatStr("[%1]").arg(index.row());
         else
           return obj->name;
-      case Value: return SDObject2Variant(obj);
+      case Value:
+      {
+        QVariant v = SDObject2Variant(obj, obj->GetParent() ? false : true);
+        RichResourceTextInitialise(v, NULL);
+        return v;
+      }
       case Type: return obj->type.name;
     }
   }

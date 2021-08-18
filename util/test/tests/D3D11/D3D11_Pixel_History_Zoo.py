@@ -8,20 +8,20 @@ class D3D11_Pixel_History_Zoo(rdtest.TestCase):
     demos_test_name = 'D3D11_Pixel_History_Zoo'
 
     def check_capture(self):
-        draws = self.controller.GetDrawcalls()
+        actions = self.controller.GetRootActions()
 
-        for d in self.controller.GetDrawcalls():
-            # Only process test draws
-            if not d.name.startswith('Test'):
+        for d in self.controller.GetRootActions():
+            # Only process test actions
+            if not d.customName.startswith('Test'):
                 continue
 
-            # Go to the last child draw
+            # Go to the last child action
             self.controller.SetFrameEvent(d.children[-1].eventId, True)
 
-            if any(['UInt tex' in d.name for d in d.children]):
+            if any(['UInt tex' in d.customName for d in d.children]):
                 value_selector = lambda x: x.uintValue
                 shader_out = (0, 1, 1234, 5)
-            elif any(['SInt tex' in d.name for d in d.children]):
+            elif any(['SInt tex' in d.customName for d in d.children]):
                 value_selector = lambda x: x.intValue
                 shader_out = (0, 1, -1234, 5)
             else:
@@ -47,7 +47,7 @@ class D3D11_Pixel_History_Zoo(rdtest.TestCase):
 
             modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
 
-            # Should be at least two modifications in every test - clear and draw
+            # Should be at least two modifications in every test - clear and action
             self.check(len(modifs) >= 2)
 
             # Check that the modifications are self consistent - postmod of each should match premod of the next
@@ -59,7 +59,7 @@ class D3D11_Pixel_History_Zoo(rdtest.TestCase):
                                                                                   modifs[i + 1].eventId,
                                                                                   value_selector(modifs[i].preMod.col)))
 
-                if self.get_draw(modifs[i].eventId).flags & rd.DrawFlags.Drawcall:
+                if self.get_action(modifs[i].eventId).flags & rd.ActionFlags.Drawcall:
                     if not rdtest.value_compare(value_selector(modifs[i].shaderOut.col), shader_out):
                         raise rdtest.TestFailureException(
                             "Shader output {} isn't as expected {}".format(value_selector(modifs[i].shaderOut.col),

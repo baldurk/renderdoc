@@ -498,6 +498,17 @@ SPDBChunk::SPDBChunk(byte *data, uint32_t spdblength)
                 idx++;
                 break;
               }
+              case LF_METHOD:
+              {
+                lfMethod *method = (lfMethod *)iter;
+
+                SPDBLOG("  [%u]: Method %s used %u times in method list %u", idx, method->Name,
+                        method->count, method->mList);
+
+                idx++;
+                iter = bytes;
+                break;
+              }
               case LF_BCLASS:
               case LF_BINTERFACE:
               {
@@ -578,6 +589,13 @@ SPDBChunk::SPDBChunk(byte *data, uint32_t spdblength)
           lfMFunc *mfunction = (lfMFunc *)leaf;
           SPDBLOG("Type %x is a member function of class %x returning %x with %u args: %x", id,
                   mfunction->classtype, mfunction->rvtype, mfunction->parmcount, mfunction->arglist);
+          break;
+        }
+        case LF_METHODLIST:
+        {
+          lfMethodList *mlist = (lfMethodList *)leaf;
+          (void)mlist;
+          SPDBLOG("Type %x is a method list", id);
           break;
         }
         case LF_STRIDED_ARRAY:

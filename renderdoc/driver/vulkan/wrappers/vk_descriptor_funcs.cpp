@@ -186,7 +186,7 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorPool(SerialiserType &ser, VkDevi
                                                      VkDescriptorPool *pDescriptorPool)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo).Important();
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(DescriptorPool, GetResID(*pDescriptorPool))
       .TypedAs("VkDescriptorPool"_lit);
@@ -265,7 +265,7 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorSetLayout(
     const VkAllocationCallbacks *pAllocator, VkDescriptorSetLayout *pSetLayout)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo).Important();
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(SetLayout, GetResID(*pSetLayout)).TypedAs("VkDescriptorSetLayout"_lit);
 
@@ -408,7 +408,7 @@ bool WrappedVulkan::Serialise_vkAllocateDescriptorSets(SerialiserType &ser, VkDe
                                                        VkDescriptorSet *pDescriptorSets)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(AllocateInfo, *pAllocateInfo);
+  SERIALISE_ELEMENT_LOCAL(AllocateInfo, *pAllocateInfo).Important();
   SERIALISE_ELEMENT_LOCAL(DescriptorSet, GetResID(*pDescriptorSets)).TypedAs("VkDescriptorSet"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -994,8 +994,12 @@ bool WrappedVulkan::Serialise_vkUpdateDescriptorSets(SerialiserType &ser, VkDevi
   SERIALISE_ELEMENT(device);
   SERIALISE_ELEMENT(writeCount);
   SERIALISE_ELEMENT_ARRAY(pDescriptorWrites, writeCount);
+  if(writeCount > 0)
+    ser.Important();
   SERIALISE_ELEMENT(copyCount);
   SERIALISE_ELEMENT_ARRAY(pDescriptorCopies, copyCount);
+  if(copyCount > 0)
+    ser.Important();
 
   Serialise_DebugMessages(ser);
 
@@ -1398,7 +1402,7 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorUpdateTemplate(
     const VkAllocationCallbacks *pAllocator, VkDescriptorUpdateTemplate *pDescriptorUpdateTemplate)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo).Important();
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(DescriptorUpdateTemplate, GetResID(*pDescriptorUpdateTemplate))
       .TypedAs("VkDescriptorUpdateTemplate"_lit);
@@ -1488,8 +1492,8 @@ bool WrappedVulkan::Serialise_vkUpdateDescriptorSetWithTemplate(
     VkDescriptorUpdateTemplate descriptorUpdateTemplate, const void *pData)
 {
   SERIALISE_ELEMENT(device);
-  SERIALISE_ELEMENT(descriptorSet);
-  SERIALISE_ELEMENT(descriptorUpdateTemplate);
+  SERIALISE_ELEMENT(descriptorSet).Important();
+  SERIALISE_ELEMENT(descriptorUpdateTemplate).Important();
 
   // we can't serialise pData as-is, since we need to decode to ResourceId for references, etc. The
   // sensible way to do this is to decode the data into a series of writes and serialise that.

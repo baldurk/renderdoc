@@ -51,7 +51,7 @@ OpenGL ES capture and replay on Android is natively supported. For more informat
 OS X
 ----
 
-OS X is not yet officially supported for OpenGL capture, however work is in progress on development builds.
+OS X is not supported.
 
 See Also
 --------

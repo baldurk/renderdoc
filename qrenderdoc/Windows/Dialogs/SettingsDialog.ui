@@ -1004,49 +1004,6 @@ After interop is enabled you will need to reload any capture.</string>
           <string>Event Browser</string>
          </property>
          <layout class="QGridLayout" name="gridLayout_7">
-          <item row="3" column="0">
-           <widget class="QLabel" name="label_21">
-            <property name="toolTip">
-             <string>In the Event Browser and Timeline Bar, marker sections that contain only non-draw API calls - e.g. only queries, or only state setting - will be completely removed</string>
-            </property>
-            <property name="text">
-             <string>Hide marker sections with only non-draw API calls (requires file reload)</string>
-            </property>
-            <property name="wordWrap">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="1">
-           <widget class="QCheckBox" name="EventBrowser_HideAPICalls">
-            <property name="toolTip">
-             <string>In the Event Browser and Timeline Bar, marker sections that contain only non-draw API calls - e.g. only queries, or only state setting - will be completely removed</string>
-            </property>
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="1">
-           <widget class="QCheckBox" name="EventBrowser_HideEmpty">
-            <property name="toolTip">
-             <string>In the Event Browser and Timeline Bar, marker sections that contain no API calls or drawcalls will be completely removed</string>
-            </property>
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="0">
-           <widget class="QLabel" name="label_20">
-            <property name="toolTip">
-             <string>In the Event Browser and Timeline Bar, marker sections that contain no API calls or drawcalls will be completely removed</string>
-            </property>
-            <property name="text">
-             <string>Hide empty marker sections (requires file reload)</string>
-            </property>
-           </widget>
-          </item>
           <item row="0" column="1">
            <widget class="QComboBox" name="EventBrowser_TimeUnit">
             <property name="toolTip">
@@ -1079,11 +1036,11 @@ After interop is enabled you will need to reload any capture.</string>
              <string>The time unit to use when displaying the duration column in the event browser</string>
             </property>
             <property name="text">
-             <string>Time unit used for drawcall durations</string>
+             <string>Time unit used for action durations</string>
             </property>
            </widget>
           </item>
-          <item row="5" column="0">
+          <item row="3" column="0">
            <widget class="QLabel" name="label_23">
             <property name="toolTip">
              <string>When coloring marker sections in the Event Browser, the whole row of a marker region will be colored, not just a bar to the left of its children.</string>
@@ -1093,18 +1050,18 @@ After interop is enabled you will need to reload any capture.</string>
             </property>
            </widget>
           </item>
-          <item row="4" column="0">
+          <item row="2" column="0">
            <widget class="QLabel" name="label_22">
             <property name="toolTip">
              <string>In the Event Browser and Timeline Bar, marker sections and marker labels will be colored with an API-specified color.
 </string>
             </property>
             <property name="text">
-             <string>Apply marker colors (requires file reload)</string>
+             <string>Apply marker colors</string>
             </property>
            </widget>
           </item>
-          <item row="5" column="1">
+          <item row="3" column="1">
            <widget class="QCheckBox" name="EventBrowser_ColorEventRow">
             <property name="toolTip">
              <string>When coloring marker sections in the Event Browser, the whole row of a marker region will be colored, not just a bar to the left of its children.</string>
@@ -1114,7 +1071,7 @@ After interop is enabled you will need to reload any capture.</string>
             </property>
            </widget>
           </item>
-          <item row="4" column="1">
+          <item row="2" column="1">
            <widget class="QCheckBox" name="EventBrowser_ApplyColors">
             <property name="toolTip">
              <string>In the Event Browser and Timeline Bar, marker sections and marker labels will be colored with an API-specified color.

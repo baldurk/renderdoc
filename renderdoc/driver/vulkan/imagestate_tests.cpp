@@ -137,9 +137,9 @@ TEST_CASE("Test ImageState type", "[imagestate]")
   VkImage image = (VkImage)123;
   VkFormat format = VK_FORMAT_D16_UNORM_S8_UINT;
   VkExtent3D extent = {100, 100, 13};
-  int levelCount = 11;
-  int layerCount = 17;
-  int sampleCount = 1;
+  uint16_t levelCount = 11;
+  uint32_t layerCount = 17;
+  uint16_t sampleCount = 1;
   ImageInfo imageInfo(format, extent, levelCount, layerCount, sampleCount,
                       VK_IMAGE_LAYOUT_UNDEFINED, VK_SHARING_MODE_EXCLUSIVE);
 

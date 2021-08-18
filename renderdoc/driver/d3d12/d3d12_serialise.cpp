@@ -272,8 +272,8 @@ void DoSerialise(SerialiserType &ser, DynamicDescriptorCopy &el)
     src.heap = rm->GetOriginalID(src.heap);
   }
 
-  ser.Serialise("dst"_lit, dst);
-  ser.Serialise("src"_lit, src);
+  ser.Serialise("dst"_lit, dst).Important();
+  ser.Serialise("src"_lit, src).Important();
 
   if(ser.IsReading())
   {
@@ -303,7 +303,7 @@ void DoSerialise(SerialiserType &ser, D3D12BufferLocation &el)
   if(ser.IsStructurising() && rm)
     buffer = rm->GetOriginalID(buffer);
 
-  ser.Serialise("Buffer"_lit, buffer);
+  ser.Serialise("Buffer"_lit, buffer).Important();
   ser.Serialise("Offset"_lit, offs);
 
   if(ser.IsReading())
@@ -320,6 +320,10 @@ void DoSerialise(SerialiserType &ser, D3D12Descriptor &el)
 {
   D3D12DescriptorType type = el.GetType();
   ser.Serialise("type"_lit, type);
+
+  // SRV/RTV/DSV/UAV will make the resource important, others just display the type
+  if(type == D3D12DescriptorType::Sampler)
+    ser.Important();
 
   ID3D12DescriptorHeap *heap = (ID3D12DescriptorHeap *)el.data.samp.heap;
 
@@ -349,7 +353,7 @@ void DoSerialise(SerialiserType &ser, D3D12Descriptor &el)
     }
     case D3D12DescriptorType::CBV:
     {
-      ser.Serialise("Descriptor"_lit, el.data.nonsamp.cbv);
+      ser.Serialise("Descriptor"_lit, el.data.nonsamp.cbv).Important();
       break;
     }
     case D3D12DescriptorType::SRV:
@@ -359,7 +363,7 @@ void DoSerialise(SerialiserType &ser, D3D12Descriptor &el)
       if(ser.IsStructurising())
         Resource = rm->GetOriginalID(Resource);
 
-      ser.Serialise("Resource"_lit, Resource).TypedAs("ID3D12Resource *"_lit);
+      ser.Serialise("Resource"_lit, Resource).TypedAs("ID3D12Resource *"_lit).Important();
 
       // convert to Live ID on replay
       if(ser.IsReading())
@@ -382,7 +386,7 @@ void DoSerialise(SerialiserType &ser, D3D12Descriptor &el)
       if(ser.IsStructurising())
         Resource = rm->GetOriginalID(Resource);
 
-      ser.Serialise("Resource"_lit, Resource).TypedAs("ID3D12Resource *"_lit);
+      ser.Serialise("Resource"_lit, Resource).TypedAs("ID3D12Resource *"_lit).Important();
 
       // convert to Live ID on replay
       if(ser.IsReading())
@@ -399,7 +403,7 @@ void DoSerialise(SerialiserType &ser, D3D12Descriptor &el)
       if(ser.IsStructurising())
         Resource = rm->GetOriginalID(Resource);
 
-      ser.Serialise("Resource"_lit, Resource).TypedAs("ID3D12Resource *"_lit);
+      ser.Serialise("Resource"_lit, Resource).TypedAs("ID3D12Resource *"_lit).Important();
 
       // convert to Live ID on replay
       if(ser.IsReading())
@@ -420,7 +424,7 @@ void DoSerialise(SerialiserType &ser, D3D12Descriptor &el)
         CounterResource = rm->GetOriginalID(CounterResource);
       }
 
-      ser.Serialise("Resource"_lit, Resource).TypedAs("ID3D12Resource *"_lit);
+      ser.Serialise("Resource"_lit, Resource).TypedAs("ID3D12Resource *"_lit).Important();
       ser.Serialise("CounterResource"_lit, CounterResource).TypedAs("ID3D12Resource *"_lit);
 
       // convert to Live ID on replay
@@ -453,8 +457,8 @@ template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC &el)
 {
   SERIALISE_MEMBER(pRootSignature);
-  SERIALISE_MEMBER(VS);
-  SERIALISE_MEMBER(PS);
+  SERIALISE_MEMBER(VS).Important();
+  SERIALISE_MEMBER(PS).Important();
   SERIALISE_MEMBER(DS);
   SERIALISE_MEMBER(HS);
   SERIALISE_MEMBER(GS);
@@ -473,7 +477,10 @@ void DoSerialise(SerialiserType &ser, D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC 
   SERIALISE_MEMBER(CachedPSO);
   SERIALISE_MEMBER(Flags);
   SERIALISE_MEMBER(ViewInstancing);
-  SERIALISE_MEMBER(CS);
+  SERIALISE_MEMBER(CS).Important();
+
+  if(ser.IsReading())
+    el.NodeMask = 0;
 }
 
 template <>
@@ -496,11 +503,17 @@ void DoSerialise(SerialiserType &ser, D3D12_RESOURCE_DESC &el)
 {
   SERIALISE_MEMBER(Dimension);
   SERIALISE_MEMBER(Alignment);
-  SERIALISE_MEMBER(Width);
+  SERIALISE_MEMBER(Width).Important();
   SERIALISE_MEMBER(Height);
+  if(el.Dimension != D3D12_RESOURCE_DIMENSION_BUFFER)
+    ser.Important();
   SERIALISE_MEMBER(DepthOrArraySize);
+  if(el.Dimension != D3D12_RESOURCE_DIMENSION_BUFFER)
+    ser.Important();
   SERIALISE_MEMBER(MipLevels);
   SERIALISE_MEMBER(Format);
+  if(el.Dimension != D3D12_RESOURCE_DIMENSION_BUFFER)
+    ser.Important();
   SERIALISE_MEMBER(SampleDesc);
   SERIALISE_MEMBER(Layout);
   SERIALISE_MEMBER(Flags);
@@ -519,11 +532,11 @@ void DoSerialise(SerialiserType &ser, D3D12_RESOURCE_DESC1 &el)
 {
   SERIALISE_MEMBER(Dimension);
   SERIALISE_MEMBER(Alignment);
-  SERIALISE_MEMBER(Width);
-  SERIALISE_MEMBER(Height);
-  SERIALISE_MEMBER(DepthOrArraySize);
+  SERIALISE_MEMBER(Width).Important();
+  SERIALISE_MEMBER(Height).Important();
+  SERIALISE_MEMBER(DepthOrArraySize).Important();
   SERIALISE_MEMBER(MipLevels);
-  SERIALISE_MEMBER(Format);
+  SERIALISE_MEMBER(Format).Important();
   SERIALISE_MEMBER(SampleDesc);
   SERIALISE_MEMBER(Layout);
   SERIALISE_MEMBER(Flags);
@@ -533,16 +546,19 @@ void DoSerialise(SerialiserType &ser, D3D12_RESOURCE_DESC1 &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_COMMAND_QUEUE_DESC &el)
 {
-  SERIALISE_MEMBER(Type);
+  SERIALISE_MEMBER(Type).Important();
   SERIALISE_MEMBER(Priority);
   SERIALISE_MEMBER(Flags);
   SERIALISE_MEMBER(NodeMask);
+
+  if(ser.IsReading())
+    el.NodeMask = 0;
 }
 
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_SHADER_BYTECODE &el)
 {
-  SERIALISE_MEMBER_ARRAY(pShaderBytecode, BytecodeLength);
+  SERIALISE_MEMBER_ARRAY(pShaderBytecode, BytecodeLength).Important();
 
   // don't serialise size_t, otherwise capture/replay between different bit-ness won't work
   {
@@ -665,7 +681,7 @@ void DoSerialise(SerialiserType &ser, D3D12_INPUT_LAYOUT_DESC &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_INDIRECT_ARGUMENT_DESC &el)
 {
-  SERIALISE_MEMBER(Type);
+  SERIALISE_MEMBER(Type).Important();
 
   switch(el.Type)
   {
@@ -701,8 +717,11 @@ void DoSerialise(SerialiserType &ser, D3D12_COMMAND_SIGNATURE_DESC &el)
 {
   SERIALISE_MEMBER(ByteStride);
   SERIALISE_MEMBER(NumArgumentDescs);
-  SERIALISE_MEMBER_ARRAY(pArgumentDescs, NumArgumentDescs);
+  SERIALISE_MEMBER_ARRAY(pArgumentDescs, NumArgumentDescs).Important();
   SERIALISE_MEMBER(NodeMask);
+
+  if(ser.IsReading())
+    el.NodeMask = 0;
 }
 
 template <>
@@ -727,8 +746,8 @@ template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_GRAPHICS_PIPELINE_STATE_DESC &el)
 {
   SERIALISE_MEMBER(pRootSignature);
-  SERIALISE_MEMBER(VS);
-  SERIALISE_MEMBER(PS);
+  SERIALISE_MEMBER(VS).Important();
+  SERIALISE_MEMBER(PS).Important();
   SERIALISE_MEMBER(DS);
   SERIALISE_MEMBER(HS);
   SERIALISE_MEMBER(GS);
@@ -747,6 +766,9 @@ void DoSerialise(SerialiserType &ser, D3D12_GRAPHICS_PIPELINE_STATE_DESC &el)
   SERIALISE_MEMBER(NodeMask);
   SERIALISE_MEMBER(CachedPSO);
   SERIALISE_MEMBER(Flags);
+
+  if(ser.IsReading())
+    el.NodeMask = 0;
 }
 
 template <>
@@ -766,10 +788,13 @@ template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_COMPUTE_PIPELINE_STATE_DESC &el)
 {
   SERIALISE_MEMBER(pRootSignature);
-  SERIALISE_MEMBER(CS);
+  SERIALISE_MEMBER(CS).Important();
   SERIALISE_MEMBER(NodeMask);
   SERIALISE_MEMBER(CachedPSO);
   SERIALISE_MEMBER(Flags);
+
+  if(ser.IsReading())
+    el.NodeMask = 0;
 }
 
 template <>
@@ -781,7 +806,7 @@ void Deserialise(const D3D12_COMPUTE_PIPELINE_STATE_DESC &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_VERTEX_BUFFER_VIEW &el)
 {
-  SERIALISE_MEMBER_TYPED(D3D12BufferLocation, BufferLocation);
+  SERIALISE_MEMBER_TYPED(D3D12BufferLocation, BufferLocation).Important();
   SERIALISE_MEMBER(SizeInBytes);
   SERIALISE_MEMBER(StrideInBytes);
 }
@@ -789,7 +814,7 @@ void DoSerialise(SerialiserType &ser, D3D12_VERTEX_BUFFER_VIEW &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_INDEX_BUFFER_VIEW &el)
 {
-  SERIALISE_MEMBER_TYPED(D3D12BufferLocation, BufferLocation);
+  SERIALISE_MEMBER_TYPED(D3D12BufferLocation, BufferLocation).Important();
   SERIALISE_MEMBER(SizeInBytes);
   SERIALISE_MEMBER(Format);
 }
@@ -805,7 +830,7 @@ void DoSerialise(SerialiserType &ser, D3D12_STREAM_OUTPUT_BUFFER_VIEW &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_CONSTANT_BUFFER_VIEW_DESC &el)
 {
-  SERIALISE_MEMBER_TYPED(D3D12BufferLocation, BufferLocation);
+  SERIALISE_MEMBER_TYPED(D3D12BufferLocation, BufferLocation).Important();
   SERIALISE_MEMBER(SizeInBytes);
 }
 
@@ -897,7 +922,7 @@ void DoSerialise(SerialiserType &ser, D3D12_TEXCUBE_ARRAY_SRV &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_SHADER_RESOURCE_VIEW_DESC &el)
 {
-  SERIALISE_MEMBER(Format);
+  SERIALISE_MEMBER(Format).Important();
   SERIALISE_MEMBER(ViewDimension);
   // cast to a special enum so we print nicely
   SERIALISE_MEMBER_TYPED(D3D12ComponentMapping, Shader4ComponentMapping);
@@ -981,7 +1006,7 @@ void DoSerialise(SerialiserType &ser, D3D12_TEX3D_RTV &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_RENDER_TARGET_VIEW_DESC &el)
 {
-  SERIALISE_MEMBER(Format);
+  SERIALISE_MEMBER(Format).Important();
   SERIALISE_MEMBER(ViewDimension);
 
   switch(el.ViewDimension)
@@ -1044,7 +1069,7 @@ void DoSerialise(SerialiserType &ser, D3D12_TEX2DMS_ARRAY_DSV &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_DEPTH_STENCIL_VIEW_DESC &el)
 {
-  SERIALISE_MEMBER(Format);
+  SERIALISE_MEMBER(Format).Important();
   SERIALISE_MEMBER(Flags);
   SERIALISE_MEMBER(ViewDimension);
 
@@ -1114,7 +1139,7 @@ void DoSerialise(SerialiserType &ser, D3D12_TEX3D_UAV &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_UNORDERED_ACCESS_VIEW_DESC &el)
 {
-  SERIALISE_MEMBER(Format);
+  SERIALISE_MEMBER(Format).Important();
   SERIALISE_MEMBER(ViewDimension);
 
   switch(el.ViewDimension)
@@ -1135,7 +1160,7 @@ void DoSerialise(SerialiserType &ser, D3D12_UNORDERED_ACCESS_VIEW_DESC &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_RESOURCE_TRANSITION_BARRIER &el)
 {
-  SERIALISE_MEMBER(pResource);
+  SERIALISE_MEMBER(pResource).Important();
   // cast to a special enum so we print 'all subresources' nicely
   SERIALISE_MEMBER_TYPED(D3D12ResourceBarrierSubresource, Subresource);
   SERIALISE_MEMBER(StateBefore);
@@ -1158,12 +1183,12 @@ void DoSerialise(SerialiserType &ser, D3D12_RESOURCE_UAV_BARRIER &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_RESOURCE_BARRIER &el)
 {
-  SERIALISE_MEMBER(Type);
+  SERIALISE_MEMBER(Type).Important();
   SERIALISE_MEMBER(Flags);
 
   switch(el.Type)
   {
-    case D3D12_RESOURCE_BARRIER_TYPE_TRANSITION: SERIALISE_MEMBER(Transition); break;
+    case D3D12_RESOURCE_BARRIER_TYPE_TRANSITION: SERIALISE_MEMBER(Transition).Important(); break;
     case D3D12_RESOURCE_BARRIER_TYPE_ALIASING: SERIALISE_MEMBER(Aliasing); break;
     case D3D12_RESOURCE_BARRIER_TYPE_UAV: SERIALISE_MEMBER(UAV); break;
   }
@@ -1177,12 +1202,15 @@ void DoSerialise(SerialiserType &ser, D3D12_HEAP_PROPERTIES &el)
   SERIALISE_MEMBER(MemoryPoolPreference);
   SERIALISE_MEMBER(CreationNodeMask);
   SERIALISE_MEMBER(VisibleNodeMask);
+
+  if(ser.IsReading())
+    el.CreationNodeMask = el.VisibleNodeMask = 0;
 }
 
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_HEAP_DESC &el)
 {
-  SERIALISE_MEMBER(SizeInBytes);
+  SERIALISE_MEMBER(SizeInBytes).Important();
   SERIALISE_MEMBER(Properties);
   SERIALISE_MEMBER(Alignment);
   SERIALISE_MEMBER(Flags);
@@ -1191,18 +1219,24 @@ void DoSerialise(SerialiserType &ser, D3D12_HEAP_DESC &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_DESCRIPTOR_HEAP_DESC &el)
 {
-  SERIALISE_MEMBER(Type);
-  SERIALISE_MEMBER(NumDescriptors);
+  SERIALISE_MEMBER(Type).Important();
+  SERIALISE_MEMBER(NumDescriptors).Important();
   SERIALISE_MEMBER(Flags);
   SERIALISE_MEMBER(NodeMask);
+
+  if(ser.IsReading())
+    el.NodeMask = 0;
 }
 
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_QUERY_HEAP_DESC &el)
 {
-  SERIALISE_MEMBER(Type);
-  SERIALISE_MEMBER(Count);
+  SERIALISE_MEMBER(Type).Important();
+  SERIALISE_MEMBER(Count).Important();
   SERIALISE_MEMBER(NodeMask);
+
+  if(ser.IsReading())
+    el.NodeMask = 0;
 }
 
 template <class SerialiserType>
@@ -1243,7 +1277,7 @@ void DoSerialise(SerialiserType &ser, D3D12_PLACED_SUBRESOURCE_FOOTPRINT &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_TEXTURE_COPY_LOCATION &el)
 {
-  SERIALISE_MEMBER(pResource);
+  SERIALISE_MEMBER(pResource).Important();
   SERIALISE_MEMBER(Type);
 
   switch(el.Type)
@@ -1309,10 +1343,10 @@ void DoSerialise(SerialiserType &ser, D3D12_RANGE &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_VIEWPORT &el)
 {
-  SERIALISE_MEMBER(TopLeftX);
-  SERIALISE_MEMBER(TopLeftY);
-  SERIALISE_MEMBER(Width);
-  SERIALISE_MEMBER(Height);
+  SERIALISE_MEMBER(TopLeftX).Important();
+  SERIALISE_MEMBER(TopLeftY).Important();
+  SERIALISE_MEMBER(Width).Important();
+  SERIALISE_MEMBER(Height).Important();
   SERIALISE_MEMBER(MinDepth);
   SERIALISE_MEMBER(MaxDepth);
 }
@@ -1331,7 +1365,7 @@ void DoSerialise(SerialiserType &ser, D3D12_BOX &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_SAMPLER_DESC &el)
 {
-  SERIALISE_MEMBER(Filter);
+  SERIALISE_MEMBER(Filter).Important();
   SERIALISE_MEMBER(AddressU);
   SERIALISE_MEMBER(AddressV);
   SERIALISE_MEMBER(AddressW);
@@ -1355,7 +1389,7 @@ void DoSerialise(SerialiserType &ser, D3D12_DEPTH_STENCIL_DESC1 &el)
 {
   SERIALISE_MEMBER(DepthEnable);
   SERIALISE_MEMBER(DepthWriteMask);
-  SERIALISE_MEMBER(DepthFunc);
+  SERIALISE_MEMBER(DepthFunc).Important();
   SERIALISE_MEMBER(StencilEnable);
   SERIALISE_MEMBER(StencilReadMask);
   SERIALISE_MEMBER(StencilWriteMask);
@@ -1414,7 +1448,7 @@ void DoSerialise(SerialiserType &ser, D3D12_WRITEBUFFERIMMEDIATE_PARAMETER &el)
         "Re-capture to fix this.");
     SERIALISE_MEMBER(Dest);
   }
-  SERIALISE_MEMBER(Value);
+  SERIALISE_MEMBER(Value).Important();
 }
 
 template <class SerialiserType>
@@ -1513,8 +1547,8 @@ void Deserialise(const D3D12_RENDER_PASS_DEPTH_STENCIL_DESC &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_DRAW_ARGUMENTS &el)
 {
-  SERIALISE_MEMBER(VertexCountPerInstance);
-  SERIALISE_MEMBER(InstanceCount);
+  SERIALISE_MEMBER(VertexCountPerInstance).Important();
+  SERIALISE_MEMBER(InstanceCount).Important();
   SERIALISE_MEMBER(StartVertexLocation);
   SERIALISE_MEMBER(StartInstanceLocation);
 }
@@ -1522,8 +1556,8 @@ void DoSerialise(SerialiserType &ser, D3D12_DRAW_ARGUMENTS &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_DRAW_INDEXED_ARGUMENTS &el)
 {
-  SERIALISE_MEMBER(IndexCountPerInstance);
-  SERIALISE_MEMBER(InstanceCount);
+  SERIALISE_MEMBER(IndexCountPerInstance).Important();
+  SERIALISE_MEMBER(InstanceCount).Important();
   SERIALISE_MEMBER(StartIndexLocation);
   SERIALISE_MEMBER(BaseVertexLocation);
   SERIALISE_MEMBER(StartInstanceLocation);
@@ -1532,9 +1566,9 @@ void DoSerialise(SerialiserType &ser, D3D12_DRAW_INDEXED_ARGUMENTS &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_DISPATCH_ARGUMENTS &el)
 {
-  SERIALISE_MEMBER(ThreadGroupCountX);
-  SERIALISE_MEMBER(ThreadGroupCountY);
-  SERIALISE_MEMBER(ThreadGroupCountZ);
+  SERIALISE_MEMBER(ThreadGroupCountX).Important();
+  SERIALISE_MEMBER(ThreadGroupCountY).Important();
+  SERIALISE_MEMBER(ThreadGroupCountZ).Important();
 }
 
 INSTANTIATE_SERIALISE_TYPE(D3D12RootSignature);

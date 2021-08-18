@@ -225,13 +225,8 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
 
   ui->EventBrowser_TimeUnit->setCurrentIndex((int)m_Ctx.Config().EventBrowser_TimeUnit);
   ui->EventBrowser_AddFake->setChecked(m_Ctx.Config().EventBrowser_AddFake);
-  ui->EventBrowser_HideEmpty->setChecked(m_Ctx.Config().EventBrowser_HideEmpty);
-  ui->EventBrowser_HideAPICalls->setChecked(m_Ctx.Config().EventBrowser_HideAPICalls);
   ui->EventBrowser_ApplyColors->setChecked(m_Ctx.Config().EventBrowser_ApplyColors);
   ui->EventBrowser_ColorEventRow->setChecked(m_Ctx.Config().EventBrowser_ColorEventRow);
-
-  // disable sub-checkbox
-  ui->EventBrowser_ColorEventRow->setEnabled(ui->EventBrowser_ApplyColors->isChecked());
 
   ui->Comments_ShowOnLoad->setChecked(m_Ctx.Config().Comments_ShowOnLoad);
 
@@ -1012,23 +1007,12 @@ void SettingsDialog::on_EventBrowser_AddFake_toggled(bool checked)
   m_Ctx.Config().Save();
 }
 
-void SettingsDialog::on_EventBrowser_HideEmpty_toggled(bool checked)
-{
-  m_Ctx.Config().EventBrowser_HideEmpty = ui->EventBrowser_HideEmpty->isChecked();
-
-  m_Ctx.Config().Save();
-}
-
-void SettingsDialog::on_EventBrowser_HideAPICalls_toggled(bool checked)
-{
-  m_Ctx.Config().EventBrowser_HideAPICalls = ui->EventBrowser_HideAPICalls->isChecked();
-
-  m_Ctx.Config().Save();
-}
-
 void SettingsDialog::on_EventBrowser_ApplyColors_toggled(bool checked)
 {
   m_Ctx.Config().EventBrowser_ApplyColors = ui->EventBrowser_ApplyColors->isChecked();
+
+  // disable sub-checkbox
+  ui->EventBrowser_ColorEventRow->setEnabled(ui->EventBrowser_ApplyColors->isChecked());
 
   m_Ctx.Config().Save();
 }

@@ -8,12 +8,12 @@ class GL_Buffer_Updates(rdtest.TestCase):
     def check_capture(self):
         tex = rd.TextureDisplay()
 
-        # At each draw, the centre pixel of the viewport should be green
-        draw = self.get_first_draw()
-        while draw is not None:
-            self.controller.SetFrameEvent(draw.eventId, False)
+        # At each action, the centre pixel of the viewport should be green
+        action = self.get_first_action()
+        while action is not None:
+            self.controller.SetFrameEvent(action.eventId, False)
 
-            if draw.flags & rd.DrawFlags.Drawcall:
+            if action.flags & rd.ActionFlags.Drawcall:
                 pipe = self.controller.GetPipelineState()
                 tex = self.controller.GetPipelineState().GetOutputTargets()[0].resourceId
 
@@ -26,7 +26,7 @@ class GL_Buffer_Updates(rdtest.TestCase):
 
                 self.check_pixel_value(tex, x, y, [0.0, 1.0, 0.0, 1.0])
 
-            draw = draw.next
+            action = action.next
 
         rdtest.log.success("Draws are all green")
 
