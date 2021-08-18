@@ -62,7 +62,7 @@ Error TargetAARCH64::EmitTrampoline(const TrampolineConfig &config,
       if (target_addr > 0xffffffff)
         return Error("Target address is out of range for the trampoline");
       uint32_t target_addr32 = target_addr;
-      codegen.AddInstruction(//增加指令
+      codegen.AddInstruction(
           llvm::MCInstBuilder(llvm::AArch64::LDRWl)
               .addReg(llvm::AArch64::X17)
               .addExpr(codegen.CreateDataExpr(target_addr32)));
@@ -131,7 +131,6 @@ Error TargetAARCH64::RewriteInstruction(const llvm::MCInst &inst,
     case llvm::AArch64::STRWui:
     case llvm::AArch64::STRQui:
     case llvm::AArch64::STRXpre:
-    case llvm::AArch64::STRQui:
     case llvm::AArch64::STRXui:
     case llvm::AArch64::SUBSWri:
     case llvm::AArch64::SUBSXri:
