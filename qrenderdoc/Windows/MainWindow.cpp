@@ -1827,7 +1827,7 @@ void MainWindow::messageCheck()
         msgs = r->GetDebugMessages();
       }
 
-      GUIInvoke::call(this, [this, disconnected, msgs] {
+      GUIInvoke::call(this, [this, msgs] {
         if(m_Ctx.Replay().CurrentRemote().IsValid() &&
            !m_Ctx.Replay().CurrentRemote().IsServerRunning())
           contextChooser->setIcon(Icons::cross());
