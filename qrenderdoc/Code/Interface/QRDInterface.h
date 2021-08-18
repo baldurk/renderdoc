@@ -1860,7 +1860,7 @@ temporary and treated like any other capture.
   DOCUMENT(R"(If a capture is loaded, return the current fatal error status.
 
 :return: If a capture is currently loaded, return the fatal error status.
-:rtype: ReplayStatus
+:rtype: renderdoc.ReplayStatus
 )");
   virtual ReplayStatus GetFatalError() = 0;
 
