@@ -129,6 +129,7 @@ Error TargetAARCH64::RewriteInstruction(const llvm::MCInst &inst,
     case llvm::AArch64::STRBBui:
     case llvm::AArch64::STRSui:
     case llvm::AArch64::STRWui:
+    case llvm::AArch64::STRQui:
     case llvm::AArch64::STRXpre:
     case llvm::AArch64::STRXui:
     case llvm::AArch64::SUBSWri:
