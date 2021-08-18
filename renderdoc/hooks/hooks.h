@@ -32,7 +32,14 @@ typedef std::function<void(void *)> FunctionLoadCallback;
 struct FunctionHook
 {
   FunctionHook() : orig(NULL), hook(NULL) {}
-  FunctionHook(const char *f, void **o, void *d) : function(f), orig(o), hook(d) {}
+ 
+  FunctionHook(const char *f, void **o, void *d) : function(f), orig(o), hook(d) {
+  /*
+   * f:函数名称
+   * *o:被hook的函数
+   * d:hook函数
+   */
+  }
   bool operator<(const FunctionHook &h) const { return function < h.function; }
   rdcstr function;
   void **orig;
@@ -141,6 +148,7 @@ struct LibraryHook;
 // this singleton allows you to compile in code that defines a hook for a given library
 // (and it will be registered). Then when the renderdoc library is initialised in the target
 // program RegisterHooks() will be called to set up the hooks.
+//不同平台会override该类中的函数，例如android,
 class LibraryHooks
 {
 public:

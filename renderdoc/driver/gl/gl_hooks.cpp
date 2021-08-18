@@ -154,7 +154,7 @@ void default_ret()
 
 #endif
 
-DefineSupportedHooks();
+DefineSupportedHooks();//根据opengl的参数个数和类型定义待hook函数的wrapper
 DefineUnsupportedHooks();
 
 // these functions we provide ourselves, so we should return our hook even if there's no onward
@@ -281,7 +281,9 @@ void GLHook::RegisterHooks()
   LibraryHooks::RegisterFunctionHook( \
       libraryName,                    \
       FunctionHook(STRINGIZE(name), (void **)&GL.func, (void *)&CONCAT(func, _renderdoc_hooked)));
-
+  /*
+   * hook opengl所有的api
+   */
   ForEachSupported(RegisterFunc);
 
 #if ENABLED(RDOC_WIN32)

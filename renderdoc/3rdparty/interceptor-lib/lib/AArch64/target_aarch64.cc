@@ -62,7 +62,7 @@ Error TargetAARCH64::EmitTrampoline(const TrampolineConfig &config,
       if (target_addr > 0xffffffff)
         return Error("Target address is out of range for the trampoline");
       uint32_t target_addr32 = target_addr;
-      codegen.AddInstruction(
+      codegen.AddInstruction(//增加指令
           llvm::MCInstBuilder(llvm::AArch64::LDRWl)
               .addReg(llvm::AArch64::X17)
               .addExpr(codegen.CreateDataExpr(target_addr32)));
