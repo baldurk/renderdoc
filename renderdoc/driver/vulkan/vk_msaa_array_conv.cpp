@@ -91,7 +91,7 @@ void VulkanDebugManager::CopyTex2DMSToArray(VkImage destArray, VkImage srcMS, Vk
     viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 
   vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &srcView);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 
   viewInfo.image = destArray;
   viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
@@ -112,6 +112,9 @@ void VulkanDebugManager::CopyTex2DMSToArray(VkImage destArray, VkImage srcMS, Vk
     {
       cmd = m_pDriver->GetNextCmd();
 
+      if(cmd == VK_NULL_HANDLE)
+        return;
+
       ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 
       ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
@@ -124,7 +127,7 @@ void VulkanDebugManager::CopyTex2DMSToArray(VkImage destArray, VkImage srcMS, Vk
     viewInfo.subresourceRange.layerCount = 1;
 
     vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &destView);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     views.push_back(destView);
 
@@ -233,13 +236,13 @@ void VulkanDebugManager::CopyDepthTex2DMSToArray(VkImage destArray, VkImage srcM
   };
 
   vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &srcDepthView);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 
   if(aspectFlags & VK_IMAGE_ASPECT_STENCIL_BIT)
   {
     viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
     vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &srcStencilView);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
   }
 
   viewInfo.subresourceRange.aspectMask = aspectFlags;
@@ -256,7 +259,7 @@ void VulkanDebugManager::CopyDepthTex2DMSToArray(VkImage destArray, VkImage srcM
     viewInfo.subresourceRange.layerCount = 1;
 
     vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &destView[i]);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
   }
 
   VkDescriptorImageInfo srcdesc[2];
@@ -343,10 +346,13 @@ void VulkanDebugManager::CopyDepthTex2DMSToArray(VkImage destArray, VkImage srcM
     fbinfo.pAttachments = destView + i;
 
     vkr = ObjDisp(dev)->CreateFramebuffer(Unwrap(dev), &fbinfo, NULL, &fb[i]);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
   }
 
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
+
+  if(cmd == VK_NULL_HANDLE)
+    return;
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
@@ -481,13 +487,13 @@ void VulkanDebugManager::CopyArrayToTex2DMS(VkImage destMS, VkImage srcArray, Vk
     viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 
   vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &srcView);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 
   viewInfo.image = destMS;
   viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
 
   vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &destView);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 
   VkDescriptorImageInfo srcdesc = {0};
   srcdesc.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -508,6 +514,9 @@ void VulkanDebugManager::CopyArrayToTex2DMS(VkImage destMS, VkImage srcArray, Vk
   ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(writeSet), writeSet, 0, NULL);
 
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
+
+  if(cmd == VK_NULL_HANDLE)
+    return;
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
@@ -600,13 +609,13 @@ void VulkanDebugManager::CopyDepthArrayToTex2DMS(VkImage destMS, VkImage srcArra
   };
 
   vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &srcDepthView);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 
   if(aspectFlags & VK_IMAGE_ASPECT_STENCIL_BIT)
   {
     viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
     vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &srcStencilView);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
   }
 
   viewInfo.subresourceRange.aspectMask = aspectFlags;
@@ -623,7 +632,7 @@ void VulkanDebugManager::CopyDepthArrayToTex2DMS(VkImage destMS, VkImage srcArra
     viewInfo.subresourceRange.layerCount = 1;
 
     vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &destView[i]);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
   }
 
   VkDescriptorImageInfo srcdesc[2];
@@ -710,10 +719,13 @@ void VulkanDebugManager::CopyDepthArrayToTex2DMS(VkImage destMS, VkImage srcArra
     fbinfo.pAttachments = destView + i;
 
     vkr = ObjDisp(dev)->CreateFramebuffer(Unwrap(dev), &fbinfo, NULL, &fb[i]);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
   }
 
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
+
+  if(cmd == VK_NULL_HANDLE)
+    return;
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};

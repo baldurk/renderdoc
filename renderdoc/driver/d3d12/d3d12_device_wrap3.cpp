@@ -88,6 +88,10 @@ HRESULT WrappedID3D12Device::OpenExistingHeapFromAddress(const void *pAddress, R
 
     *ppvHeap = (ID3D12Heap *)wrapped;
   }
+  else
+  {
+    CheckHRESULT(ret);
+  }
 
   return ret;
 }
@@ -152,6 +156,10 @@ HRESULT WrappedID3D12Device::OpenExistingHeapFromFileMapping(HANDLE hFileMapping
     }
 
     *ppvHeap = (ID3D12Heap *)wrapped;
+  }
+  else
+  {
+    CheckHRESULT(ret);
   }
 
   return ret;

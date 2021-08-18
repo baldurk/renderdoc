@@ -160,6 +160,10 @@ HRESULT WrappedID3D12Device::CreateCommandQueue(const D3D12_COMMAND_QUEUE_DESC *
 
     *ppCommandQueue = (ID3D12CommandQueue *)wrapped;
   }
+  else
+  {
+    CheckHRESULT(ret);
+  }
 
   return ret;
 }
@@ -244,6 +248,10 @@ HRESULT WrappedID3D12Device::CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE type
     }
 
     *ppCommandAllocator = (ID3D12CommandAllocator *)wrapped;
+  }
+  else
+  {
+    CheckHRESULT(ret);
   }
 
   return ret;
@@ -397,6 +405,10 @@ HRESULT WrappedID3D12Device::CreateCommandList(UINT nodeMask, D3D12_COMMAND_LIST
       *ppCommandList = (ID3D12CommandList *)wrapped;
     else
       RDCERR("Unexpected riid! %s", ToStr(riid).c_str());
+  }
+  else
+  {
+    CheckHRESULT(ret);
   }
 
   return ret;
@@ -674,6 +686,10 @@ HRESULT WrappedID3D12Device::CreateGraphicsPipelineState(const D3D12_GRAPHICS_PI
 
     ProcessCreatedGraphicsPSO(real, reg, space, pDesc, riid, ppPipelineState);
   }
+  else
+  {
+    CheckHRESULT(ret);
+  }
 
   return ret;
 }
@@ -827,6 +843,10 @@ HRESULT WrappedID3D12Device::CreateComputePipelineState(const D3D12_COMPUTE_PIPE
 
     ProcessCreatedComputePSO(real, reg, space, pDesc, riid, ppPipelineState);
   }
+  else
+  {
+    CheckHRESULT(ret);
+  }
 
   return ret;
 }
@@ -925,6 +945,10 @@ HRESULT WrappedID3D12Device::CreateDescriptorHeap(const D3D12_DESCRIPTOR_HEAP_DE
     }
 
     *ppvHeap = (ID3D12DescriptorHeap *)wrapped;
+  }
+  else
+  {
+    CheckHRESULT(ret);
   }
 
   return ret;
@@ -1097,6 +1121,10 @@ HRESULT WrappedID3D12Device::CreateRootSignature(UINT nodeMask, const void *pBlo
     }
 
     *ppvRootSignature = (ID3D12RootSignature *)wrapped;
+  }
+  else
+  {
+    CheckHRESULT(ret);
   }
 
   return ret;
@@ -1586,6 +1614,10 @@ HRESULT WrappedID3D12Device::CreateCommittedResource(const D3D12_HEAP_PROPERTIES
       }
     }
   }
+  else
+  {
+    CheckHRESULT(ret);
+  }
 
   return ret;
 }
@@ -1680,6 +1712,10 @@ HRESULT WrappedID3D12Device::CreateHeap(const D3D12_HEAP_DESC *pDesc, REFIID rii
     }
 
     *ppvHeap = (ID3D12Heap *)wrapped;
+  }
+  else
+  {
+    CheckHRESULT(ret);
   }
 
   return ret;
@@ -1885,6 +1921,10 @@ HRESULT WrappedID3D12Device::CreatePlacedResource(ID3D12Heap *pHeap, UINT64 Heap
         m_RefBuffers.push_back(wrapped);
       }
     }
+  }
+  else
+  {
+    CheckHRESULT(ret);
   }
 
   return ret;
@@ -2116,6 +2156,10 @@ HRESULT WrappedID3D12Device::CreateReservedResource(const D3D12_RESOURCE_DESC *p
       }
     }
   }
+  else
+  {
+    CheckHRESULT(ret);
+  }
 
   return ret;
 }
@@ -2209,6 +2253,10 @@ HRESULT WrappedID3D12Device::CreateFence(UINT64 InitialValue, D3D12_FENCE_FLAGS 
     else if(riid == __uuidof(ID3D12Fence1))
       *ppFence = (ID3D12Fence1 *)wrapped;
   }
+  else
+  {
+    CheckHRESULT(ret);
+  }
 
   return ret;
 }
@@ -2285,6 +2333,10 @@ HRESULT WrappedID3D12Device::CreateQueryHeap(const D3D12_QUERY_HEAP_DESC *pDesc,
     }
 
     *ppvHeap = (ID3D12QueryHeap *)wrapped;
+  }
+  else
+  {
+    CheckHRESULT(ret);
   }
 
   return ret;
@@ -2412,6 +2464,10 @@ HRESULT WrappedID3D12Device::CreateCommandSignature(const D3D12_COMMAND_SIGNATUR
     }
 
     *ppvCommandSignature = (ID3D12CommandSignature *)wrapped;
+  }
+  else
+  {
+    CheckHRESULT(ret);
   }
 
   return ret;

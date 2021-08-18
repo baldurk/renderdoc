@@ -608,6 +608,8 @@ void ReplayOutput::Display()
     if(m_pDevice->CheckResizeOutputWindow(m_Thumbnails[i].outputID))
       m_Thumbnails[i].dirty = true;
 
+  m_pController->FatalErrorCheck();
+
   if(m_MainOutput.dirty)
   {
     m_MainOutput.dirty = false;

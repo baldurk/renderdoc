@@ -68,7 +68,7 @@ VkIndirectPatchData WrappedVulkan::FetchIndirectData(VkIndirectPatchType type,
 
   VkResult vkr = ObjDisp(m_Device)->BindBufferMemory(Unwrap(m_Device), Unwrap(paramsbuf),
                                                      Unwrap(alloc.mem), alloc.offs);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 
   VkBufferMemoryBarrier buf = {
       VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,

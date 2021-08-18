@@ -1257,6 +1257,9 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
 {
   SCOPED_DBG_SINK();
 
+  if(HasFatalError())
+    return VK_ERROR_DEVICE_LOST;
+
   if(!m_MarkedActive)
   {
     m_MarkedActive = true;
@@ -1423,6 +1426,9 @@ VkResult WrappedVulkan::vkQueueSubmit2KHR(VkQueue queue, uint32_t submitCount,
                                           const VkSubmitInfo2KHR *pSubmits, VkFence fence)
 {
   SCOPED_DBG_SINK();
+
+  if(HasFatalError())
+    return VK_ERROR_DEVICE_LOST;
 
   if(!m_MarkedActive)
   {
@@ -1640,6 +1646,9 @@ bool WrappedVulkan::Serialise_vkQueueBindSparse(SerialiserType &ser, VkQueue que
 VkResult WrappedVulkan::vkQueueBindSparse(VkQueue queue, uint32_t bindInfoCount,
                                           const VkBindSparseInfo *pBindInfo, VkFence fence)
 {
+  if(HasFatalError())
+    return VK_ERROR_DEVICE_LOST;
+
   // need to allocate space for each bind batch
   size_t tempmemSize = sizeof(VkBindSparseInfo) * bindInfoCount;
 

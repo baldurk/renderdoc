@@ -666,7 +666,10 @@ public:
   double GetTimeFrequency() { return m_TimeFrequency; }
   void FirstFrame(IDXGISwapper *swapper);
 
+  void CheckHRESULT(HRESULT hr);
+  void ReportFatalError(ReplayStatus error) { m_FatalError = error; }
   ReplayStatus FatalErrorCheck() { return m_FatalError; }
+  bool HasFatalError() { return m_FatalError != ReplayStatus::Succeeded; }
   rdcarray<DebugMessage> GetDebugMessages();
   void AddDebugMessage(DebugMessage msg);
   void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d);

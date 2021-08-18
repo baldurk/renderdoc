@@ -341,7 +341,7 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(SerialiserType &ser, VkDevice
 
     vkr = ObjDisp(device)->GetSwapchainImagesKHR(Unwrap(device), Unwrap(*pSwapChain), &NumImages,
                                                  NULL);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
   }
 
   SERIALISE_ELEMENT(NumImages);
@@ -394,7 +394,7 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(SerialiserType &ser, VkDevice
       VkImage im = VK_NULL_HANDLE;
 
       VkResult vkr = ObjDisp(device)->CreateImage(Unwrap(device), &imInfo, NULL, &im);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      CheckVkResult(vkr);
 
       ResourceId liveId = GetResourceManager()->WrapResource(Unwrap(device), im);
 
@@ -408,14 +408,17 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(SerialiserType &ser, VkDevice
       };
 
       vkr = ObjDisp(device)->AllocateMemory(Unwrap(device), &allocInfo, NULL, &mem);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      CheckVkResult(vkr);
+
+      if(vkr != VK_SUCCESS)
+        return false;
 
       ResourceId memid = GetResourceManager()->WrapResource(Unwrap(device), mem);
       // register as a live-only resource, so it is cleaned up properly
       GetResourceManager()->AddLiveResource(memid, mem);
 
       vkr = ObjDisp(device)->BindImageMemory(Unwrap(device), Unwrap(im), Unwrap(mem), 0);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      CheckVkResult(vkr);
 
       // image live ID will be assigned separately in Serialise_vkGetSwapChainInfoWSI
       // memory doesn't have a live ID
@@ -533,7 +536,7 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
       };
 
       vkr = vt->CreateRenderPass(Unwrap(device), &rpinfo, NULL, &swapInfo.rp);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      CheckVkResult(vkr);
 
       GetResourceManager()->WrapResource(Unwrap(device), swapInfo.rp);
       GetResourceManager()->SetInternalResource(GetResID(swapInfo.rp));
@@ -543,7 +546,7 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
     {
       uint32_t numSwapImages;
       vkr = vt->GetSwapchainImagesKHR(Unwrap(device), Unwrap(*pSwapChain), &numSwapImages, NULL);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      CheckVkResult(vkr);
 
       swapInfo.lastPresent.imageIndex = 0;
       swapInfo.lastPresent.presentQueue = VK_NULL_HANDLE;
@@ -561,7 +564,7 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
 
       // go through our own function so we assign these images IDs
       vkr = vkGetSwapchainImagesKHR(device, *pSwapChain, &numSwapImages, images);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      CheckVkResult(vkr);
 
       for(uint32_t i = 0; i < numSwapImages; i++)
       {
@@ -594,7 +597,7 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
                                          VK_FENCE_CREATE_SIGNALED_BIT};
 
           vkr = ObjDisp(device)->CreateFence(Unwrap(device), &fenceInfo, NULL, &swapImInfo.fence);
-          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+          CheckVkResult(vkr);
 
           GetResourceManager()->WrapResource(Unwrap(device), swapImInfo.fence);
           GetResourceManager()->SetInternalResource(GetResID(swapImInfo.fence));
@@ -605,7 +608,7 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
 
           vkr = ObjDisp(device)->CreateSemaphore(Unwrap(device), &semInfo, NULL,
                                                  &swapImInfo.overlaydone);
-          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+          CheckVkResult(vkr);
 
           GetResourceManager()->WrapResource(Unwrap(device), swapImInfo.overlaydone);
           GetResourceManager()->SetInternalResource(GetResID(swapImInfo.overlaydone));
@@ -625,7 +628,7 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
           };
 
           vkr = vt->CreateImageView(Unwrap(device), &info, NULL, &swapImInfo.view);
-          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+          CheckVkResult(vkr);
 
           GetResourceManager()->WrapResource(Unwrap(device), swapImInfo.view);
           GetResourceManager()->SetInternalResource(GetResID(swapImInfo.view));
@@ -643,7 +646,7 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
           };
 
           vkr = vt->CreateFramebuffer(Unwrap(device), &fbinfo, NULL, &swapImInfo.fb);
-          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+          CheckVkResult(vkr);
 
           GetResourceManager()->WrapResource(Unwrap(device), swapImInfo.fb);
           GetResourceManager()->SetInternalResource(GetResID(swapImInfo.fb));
@@ -826,7 +829,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
       // If this ring has never been used the fence is signalled on creation.
       // this should generally be a no-op because we only get here when we've acquired the image
       VkResult vkr = vt->WaitForFences(Unwrap(m_Device), 1, UnwrapPtr(imfence), VK_TRUE, 50000000);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      CheckVkResult(vkr);
 
       vkr = vt->ResetFences(Unwrap(m_Device), 1, UnwrapPtr(imfence));
 
@@ -836,7 +839,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
                                             VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
       vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      CheckVkResult(vkr);
 
       VkImageMemoryBarrier bbBarrier = {
           VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -888,12 +891,12 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
         // wait for this queue ring to be free, but with a reasonably aggressive timeout (50ms). If
         // this ring has never been used the fence is signalled on creation
         vkr = vt->WaitForFences(Unwrap(m_Device), 1, UnwrapPtr(fence), VK_TRUE, 50000000);
-        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+        CheckVkResult(vkr);
 
         vkr = vt->ResetFences(Unwrap(m_Device), 1, UnwrapPtr(fence));
 
         vkr = vt->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
-        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+        CheckVkResult(vkr);
 
         DoPipelineBarrier(extQCmd, 1, &bbBarrier);
 
@@ -913,7 +916,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
             UnwrapPtr(m_ExternalQueues[swapQueueIndex].ring[ringIdx].fromext);
 
         vkr = ObjDisp(q)->QueueSubmit(Unwrap(q), 1, &submitInfo, VK_NULL_HANDLE);
-        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+        CheckVkResult(vkr);
 
         // next submit needs to wait on fromext
         unwrappedSems.assign(submitInfo.pSignalSemaphores, 1);
@@ -954,7 +957,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
         submitInfo.pCommandBuffers = UnwrapPtr(cmd);
 
         vkr = ObjDisp(m_Queue)->QueueSubmit(Unwrap(m_Queue), 1, &submitInfo, Unwrap(imfence));
-        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+        CheckVkResult(vkr);
       }
 
       if(swapQueueIndex != m_QueueFamilyIdx && !swapInfo.concurrent)
@@ -963,7 +966,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
         VkFence fence = m_ExternalQueues[swapQueueIndex].ring[ringIdx].fence;
 
         vkr = vt->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
-        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+        CheckVkResult(vkr);
 
         DoPipelineBarrier(extQCmd, 1, &bbBarrier);
 
@@ -990,7 +993,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
         // submit and signal the fence when we're done, so we know next time around that this is
         // safe to re-use
         vkr = ObjDisp(q)->QueueSubmit(Unwrap(q), 1, &submitInfo, Unwrap(fence));
-        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+        CheckVkResult(vkr);
       }
 
       // the present waits on our new semaphore

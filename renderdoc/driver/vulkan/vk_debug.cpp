@@ -391,7 +391,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
   rm->SetInternalResource(GetResID(m_ArrayMSSampler));
 
   vkr = m_pDriver->vkCreateDescriptorPool(dev, &poolInfo, NULL, &m_ArrayMSDescriptorPool);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 
   rm->SetInternalResource(GetResID(m_ArrayMSDescriptorPool));
 
@@ -475,7 +475,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
       continue;
 
     vkr = driver->vkCreateImage(driver->GetDev(), &imInfo, NULL, &m_DummyStencilImage[0]);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     rm->SetInternalResource(GetResID(m_DummyStencilImage[0]));
 
@@ -498,7 +498,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
     RDCASSERT(imgprops.sampleCounts & imInfo.samples, imgprops.sampleCounts, imInfo.samples);
 
     vkr = driver->vkCreateImage(driver->GetDev(), &imInfo, NULL, &m_DummyStencilImage[1]);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     rm->SetInternalResource(GetResID(m_DummyStencilImage[1]));
 
@@ -519,17 +519,20 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
     };
 
     vkr = driver->vkAllocateMemory(driver->GetDev(), &allocInfo, NULL, &m_DummyStencilMemory);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
+
+    if(vkr != VK_SUCCESS)
+      return;
 
     rm->SetInternalResource(GetResID(m_DummyStencilMemory));
 
     vkr =
         driver->vkBindImageMemory(driver->GetDev(), m_DummyStencilImage[0], m_DummyStencilMemory, 0);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     vkr = driver->vkBindImageMemory(driver->GetDev(), m_DummyStencilImage[1], m_DummyStencilMemory,
                                     AlignUp(mrq[0].size, mrq[1].alignment));
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     VkImageViewCreateInfo viewInfo = {
         VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -546,24 +549,27 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
     };
 
     vkr = driver->vkCreateImageView(driver->GetDev(), &viewInfo, NULL, &m_DummyStencilView[0]);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     rm->SetInternalResource(GetResID(m_DummyStencilView[0]));
 
     viewInfo.image = m_DummyStencilImage[1];
 
     vkr = driver->vkCreateImageView(driver->GetDev(), &viewInfo, NULL, &m_DummyStencilView[1]);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     rm->SetInternalResource(GetResID(m_DummyStencilView[1]));
 
     VkCommandBuffer cmd = driver->GetNextCmd();
 
+    if(cmd == VK_NULL_HANDLE)
+      return;
+
     VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                           VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
     vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     // need to update image layout into valid state
     VkImageMemoryBarrier barrier = {
@@ -711,7 +717,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
 
     // create descriptor pool
     vkr = driver->vkCreateDescriptorPool(driver->GetDev(), &descPoolInfo, NULL, &m_DiscardPool);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     CREATE_OBJECT(m_DiscardSetLayout,
                   {
@@ -845,7 +851,7 @@ void VulkanDebugManager::CreateCustomShaderTex(uint32_t width, uint32_t height, 
       };
 
       vkr = m_pDriver->vkCreateFramebuffer(m_Device, &fbinfo, NULL, &m_Custom.TexFB);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      CheckVkResult(vkr);
       return;
     }
 
@@ -880,7 +886,7 @@ void VulkanDebugManager::CreateCustomShaderTex(uint32_t width, uint32_t height, 
   };
 
   vkr = m_pDriver->vkCreateImage(m_Device, &imInfo, NULL, &m_Custom.TexImg);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 
   VkMemoryRequirements mrq = {0};
   m_pDriver->vkGetImageMemoryRequirements(m_Device, m_Custom.TexImg, &mrq);
@@ -898,13 +904,16 @@ void VulkanDebugManager::CreateCustomShaderTex(uint32_t width, uint32_t height, 
     };
 
     vkr = m_pDriver->vkAllocateMemory(m_Device, &allocInfo, NULL, &m_Custom.TexMem);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
+
+    if(vkr != VK_SUCCESS)
+      return;
 
     m_Custom.TexMemSize = mrq.size;
   }
 
   vkr = m_pDriver->vkBindImageMemory(m_Device, m_Custom.TexImg, m_Custom.TexMem, 0);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 
   VkImageViewCreateInfo viewInfo = {
       VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -924,12 +933,15 @@ void VulkanDebugManager::CreateCustomShaderTex(uint32_t width, uint32_t height, 
   {
     viewInfo.subresourceRange.baseMipLevel = i;
     vkr = m_pDriver->vkCreateImageView(m_Device, &viewInfo, NULL, &m_Custom.TexImgView[i]);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
   }
 
   // need to update image layout into valid state
 
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
+
+  if(cmd == VK_NULL_HANDLE)
+    return;
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
@@ -942,7 +954,7 @@ void VulkanDebugManager::CreateCustomShaderTex(uint32_t width, uint32_t height, 
                          m_pDriver->GetImageTransitionInfo());
 
   vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
   m_pDriver->SubmitCmds();
@@ -964,7 +976,7 @@ void VulkanDebugManager::CreateCustomShaderTex(uint32_t width, uint32_t height, 
   };
 
   vkr = m_pDriver->vkCreateFramebuffer(m_Device, &fbinfo, NULL, &m_Custom.TexFB);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 }
 
 void VulkanDebugManager::CreateCustomShaderPipeline(ResourceId shader, VkPipelineLayout pipeLayout)
@@ -1344,6 +1356,9 @@ uint32_t VulkanReplay::PickVertex(uint32_t eventId, int32_t w, int32_t h, const 
 
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 
+  if(cmd == VK_NULL_HANDLE)
+    return ~0U;
+
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
@@ -1433,7 +1448,7 @@ uint32_t VulkanReplay::PickVertex(uint32_t eventId, int32_t w, int32_t h, const 
   DoPipelineBarrier(cmd, 1, &bufBarrier);
 
   VkResult vkr = vt->EndCommandBuffer(Unwrap(cmd));
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
   m_pDriver->SubmitCmds();
@@ -1653,11 +1668,14 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
 
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 
+  if(cmd == VK_NULL_HANDLE)
+    return;
+
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
   VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 
   VkBufferMemoryBarrier bufBarrier = {
       VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
@@ -1677,7 +1695,7 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
   DoPipelineBarrier(cmd, 1, &bufBarrier);
 
   vkr = vt->EndCommandBuffer(Unwrap(cmd));
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
   m_pDriver->SubmitCmds();
@@ -1689,8 +1707,11 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
 
     cmd = m_pDriver->GetNextCmd();
 
+    if(cmd == VK_NULL_HANDLE)
+      return;
+
     vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     VkBufferCopy region = {srcoffset, 0, chunkSize};
     vt->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(m_ReadbackWindow.buf), 1, &region);
@@ -1705,7 +1726,7 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
     DoPipelineBarrier(cmd, 1, &bufBarrier);
 
     vkr = vt->EndCommandBuffer(Unwrap(cmd));
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     m_pDriver->SubmitCmds();
     m_pDriver->FlushQ();
@@ -1713,14 +1734,16 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
     byte *pData = NULL;
     vkr = vt->MapMemory(Unwrap(dev), Unwrap(m_ReadbackWindow.mem), 0, VK_WHOLE_SIZE, 0,
                         (void **)&pData);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
+    if(vkr != VK_SUCCESS)
+      return;
 
     VkMappedMemoryRange range = {
         VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, NULL, Unwrap(m_ReadbackWindow.mem), 0, VK_WHOLE_SIZE,
     };
 
     vkr = vt->InvalidateMappedMemoryRanges(Unwrap(dev), 1, &range);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     RDCASSERT(pData != NULL);
     memcpy(&ret[dstoffset], pData, (size_t)chunkSize);
@@ -1873,7 +1896,7 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
 
           VkImageView view;
           VkResult vkr = driver->vkCreateImageView(driver->GetDev(), &viewInfo, NULL, &view);
-          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+          CheckVkResult(vkr);
 
           imgdata.views.push_back(view);
 
@@ -1892,7 +1915,7 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
 
           VkFramebuffer fb;
           vkr = driver->vkCreateFramebuffer(driver->GetDev(), &fbinfo, NULL, &fb);
-          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+          CheckVkResult(vkr);
 
           imgdata.fbs.push_back(fb);
         }
@@ -2047,13 +2070,16 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
     };
 
     vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, NULL, &buf);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     MemoryAllocation alloc = m_pDriver->AllocateMemoryForResource(
         buf, MemoryScope::ImmutableReplayDebug, MemoryType::GPULocal);
 
+    if(alloc.mem == VK_NULL_HANDLE)
+      return;
+
     vkr = vt->BindBufferMemory(Unwrap(dev), Unwrap(buf), Unwrap(alloc.mem), alloc.offs);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     vt->CmdUpdateBuffer(Unwrap(cmd), Unwrap(buf), 0, pattern.size(), pattern.data());
 
@@ -2195,7 +2221,7 @@ void VulkanDebugManager::InitReadbackBuffer(VkDeviceSize sz)
 
     VkResult vkr = ObjDisp(dev)->MapMemory(Unwrap(dev), Unwrap(m_ReadbackWindow.mem), 0,
                                            VK_WHOLE_SIZE, 0, (void **)&m_ReadbackPtr);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
   }
 }
 
@@ -2577,7 +2603,7 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
     {
       // create new offseted descriptor layout
       vkr = m_pDriver->vkCreateDescriptorSetLayout(dev, &descsetLayoutInfo, NULL, &setLayouts[i]);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      CheckVkResult(vkr);
     }
 
     if(hasImmutableSamplers)
@@ -2606,7 +2632,7 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
 
   // create descriptor pool with enough space for our descriptors
   vkr = m_pDriver->vkCreateDescriptorPool(dev, &poolCreateInfo, NULL, &descpool);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 
   // allocate all the descriptors
   VkDescriptorSetAllocateInfo descSetAllocInfo = {
@@ -2912,7 +2938,7 @@ void VulkanReplay::GeneralMisc::Init(WrappedVulkan *driver, VkDescriptorPool des
 
   // create descriptor pool
   vkr = driver->vkCreateDescriptorPool(driver->GetDev(), &descPoolInfo, NULL, &DescriptorPool);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  driver->CheckVkResult(vkr);
 
   CREATE_OBJECT(PointSampler, VK_FILTER_NEAREST);
 }
@@ -3071,11 +3097,14 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
   {
     VkCommandBuffer cmd = driver->GetNextCmd();
 
+    if(cmd == VK_NULL_HANDLE)
+      return;
+
     VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                           VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
     vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    driver->CheckVkResult(vkr);
 
     int index = 0;
 
@@ -3140,14 +3169,17 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
         }
 
         vkr = driver->vkCreateImage(driver->GetDev(), &imInfo, NULL, &DummyImages[fmt][type]);
-        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+        driver->CheckVkResult(vkr);
 
         MemoryAllocation alloc = driver->AllocateMemoryForResource(
             DummyImages[fmt][type], MemoryScope::ImmutableReplayDebug, MemoryType::GPULocal);
 
+        if(alloc.mem == VK_NULL_HANDLE)
+          return;
+
         vkr = driver->vkBindImageMemory(driver->GetDev(), DummyImages[fmt][type], alloc.mem,
                                         alloc.offs);
-        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+        driver->CheckVkResult(vkr);
 
         // fill out the descriptor set write to the write binding - set will be filled out
         // on demand when we're actually using these writes.
@@ -3199,13 +3231,16 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
       };
 
       vkr = driver->vkCreateBuffer(driver->GetDev(), &bufInfo, NULL, &DummyBuffer);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      driver->CheckVkResult(vkr);
 
       MemoryAllocation alloc = driver->AllocateMemoryForResource(
           DummyBuffer, MemoryScope::ImmutableReplayDebug, MemoryType::GPULocal);
 
+      if(alloc.mem == VK_NULL_HANDLE)
+        return;
+
       vkr = driver->vkBindBufferMemory(driver->GetDev(), DummyBuffer, alloc.mem, alloc.offs);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      driver->CheckVkResult(vkr);
     }
 
     // now that the image memory is bound, we can create the image views and fill the descriptor
@@ -3245,7 +3280,7 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
 
         vkr = driver->vkCreateImageView(driver->GetDev(), &viewInfo, NULL,
                                         &DummyImageViews[fmt][type]);
-        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+        driver->CheckVkResult(vkr);
 
         // the cubemap view we don't create an info for it, and the image is already transitioned
         if(cube)
@@ -3291,7 +3326,7 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
         };
 
         vkr = driver->vkCreateBufferView(driver->GetDev(), &viewInfo, NULL, &DummyBufferView[i]);
-        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+        driver->CheckVkResult(vkr);
       }
     }
 
@@ -3659,7 +3694,7 @@ void VulkanReplay::PixelPicking::Init(WrappedVulkan *driver, VkDescriptorPool de
   };
 
   vkr = driver->vkCreateImage(driver->GetDev(), &imInfo, NULL, &Image);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  driver->CheckVkResult(vkr);
 
   VkMemoryRequirements mrq = {0};
   driver->vkGetImageMemoryRequirements(driver->GetDev(), Image, &mrq);
@@ -3671,10 +3706,10 @@ void VulkanReplay::PixelPicking::Init(WrappedVulkan *driver, VkDescriptorPool de
   };
 
   vkr = driver->vkAllocateMemory(driver->GetDev(), &allocInfo, NULL, &ImageMem);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  driver->CheckVkResult(vkr);
 
   vkr = driver->vkBindImageMemory(driver->GetDev(), Image, ImageMem, 0);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  driver->CheckVkResult(vkr);
 
   VkImageViewCreateInfo viewInfo = {
       VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -3691,17 +3726,20 @@ void VulkanReplay::PixelPicking::Init(WrappedVulkan *driver, VkDescriptorPool de
   };
 
   vkr = driver->vkCreateImageView(driver->GetDev(), &viewInfo, NULL, &ImageView);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  driver->CheckVkResult(vkr);
 
   // need to update image layout into valid state
 
   VkCommandBuffer cmd = driver->GetNextCmd();
 
+  if(cmd == VK_NULL_HANDLE)
+    return;
+
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
   vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  driver->CheckVkResult(vkr);
 
   VkImageMemoryBarrier barrier = {
       VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -3728,7 +3766,7 @@ void VulkanReplay::PixelPicking::Init(WrappedVulkan *driver, VkDescriptorPool de
   };
 
   vkr = driver->vkCreateFramebuffer(driver->GetDev(), &fbinfo, NULL, &FB);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  driver->CheckVkResult(vkr);
 
   // since we always sync for readback, doesn't need to be ring'd
   ReadbackBuffer.Create(driver, driver->GetDev(), sizeof(float) * 4, 1,
@@ -3773,7 +3811,7 @@ void VulkanReplay::PixelHistory::Init(WrappedVulkan *driver, VkDescriptorPool de
 
   // create descriptor pool
   vkr = driver->vkCreateDescriptorPool(driver->GetDev(), &descPoolInfo, NULL, &MSCopyDescPool);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  driver->CheckVkResult(vkr);
 
   CREATE_OBJECT(MSCopyPipeLayout, MSCopyDescSetLayout, 32);
   CREATE_OBJECT(MSCopyPipe, MSCopyPipeLayout,
@@ -3973,7 +4011,7 @@ void ShaderDebugData::Init(WrappedVulkan *driver, VkDescriptorPool descriptorPoo
   };
 
   vkr = driver->vkCreateImage(driver->GetDev(), &imInfo, NULL, &Image);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  driver->CheckVkResult(vkr);
 
   VkMemoryRequirements mrq = {0};
   driver->vkGetImageMemoryRequirements(driver->GetDev(), Image, &mrq);
@@ -3985,10 +4023,10 @@ void ShaderDebugData::Init(WrappedVulkan *driver, VkDescriptorPool descriptorPoo
   };
 
   vkr = driver->vkAllocateMemory(driver->GetDev(), &allocInfo, NULL, &ImageMemory);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  driver->CheckVkResult(vkr);
 
   vkr = driver->vkBindImageMemory(driver->GetDev(), Image, ImageMemory, 0);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  driver->CheckVkResult(vkr);
 
   VkImageViewCreateInfo viewInfo = {
       VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -4005,7 +4043,7 @@ void ShaderDebugData::Init(WrappedVulkan *driver, VkDescriptorPool descriptorPoo
   };
 
   vkr = driver->vkCreateImageView(driver->GetDev(), &viewInfo, NULL, &ImageView);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  driver->CheckVkResult(vkr);
 
   VkAttachmentDescription attDesc = {
       0,
@@ -4052,7 +4090,7 @@ void ShaderDebugData::Init(WrappedVulkan *driver, VkDescriptorPool descriptorPoo
   };
 
   vkr = driver->vkCreateFramebuffer(driver->GetDev(), &fbinfo, NULL, &Framebuffer);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  driver->CheckVkResult(vkr);
 
   MathResult.Create(driver, driver->GetDev(), sizeof(Vec4f) * 4, 1,
                     GPUBuffer::eGPUBufferGPULocal | GPUBuffer::eGPUBufferSSBO);

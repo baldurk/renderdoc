@@ -321,6 +321,9 @@ void D3D12DebugManager::CopyTex2DMSToArray(ID3D12GraphicsCommandList *list,
   {
     list->Close();
 
+    if(m_pDevice->HasFatalError())
+      return;
+
     ID3D12CommandList *l = list;
     m_pDevice->GetQueue()->GetReal()->ExecuteCommandLists(1, &l);
     m_pDevice->GPUSync(m_pDevice->GetQueue()->GetReal(), Unwrap(m_DebugFence));

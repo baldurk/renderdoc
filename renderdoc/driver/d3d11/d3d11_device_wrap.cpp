@@ -238,6 +238,10 @@ HRESULT WrappedID3D11Device::CreateBuffer(const D3D11_BUFFER_DESC *pDesc,
 
     *ppBuffer = wrapped;
   }
+  else
+  {
+    CheckHRESULT(ret);
+  }
 
   return ret;
 }
@@ -492,6 +496,10 @@ HRESULT WrappedID3D11Device::CreateTexture1D(const D3D11_TEXTURE1D_DESC *pDesc,
 
     *ppTexture1D = wrapped;
   }
+  else
+  {
+    CheckHRESULT(ret);
+  }
 
   return ret;
 }
@@ -628,6 +636,10 @@ HRESULT WrappedID3D11Device::CreateTexture2D(const D3D11_TEXTURE2D_DESC *pDesc,
 
     *ppTexture2D = wrapped;
   }
+  else
+  {
+    CheckHRESULT(ret);
+  }
 
   return ret;
 }
@@ -763,6 +775,10 @@ HRESULT WrappedID3D11Device::CreateTexture3D(const D3D11_TEXTURE3D_DESC *pDesc,
 
     *ppTexture3D = wrapped;
   }
+  else
+  {
+    CheckHRESULT(ret);
+  }
 
   return ret;
 }
@@ -893,6 +909,10 @@ HRESULT WrappedID3D11Device::CreateShaderResourceView(ID3D11Resource *pResource,
     }
 
     *ppSRView = wrapped;
+  }
+  else
+  {
+    CheckHRESULT(ret);
   }
 
   return ret;
@@ -1039,6 +1059,11 @@ HRESULT WrappedID3D11Device::CreateUnorderedAccessView(ID3D11Resource *pResource
 
     *ppUAView = wrapped;
   }
+  else
+  {
+    CheckHRESULT(ret);
+  }
+
   return ret;
 }
 
@@ -1164,6 +1189,10 @@ HRESULT WrappedID3D11Device::CreateRenderTargetView(ID3D11Resource *pResource,
 
     *ppRTView = wrapped;
   }
+  else
+  {
+    CheckHRESULT(ret);
+  }
 
   return ret;
 }
@@ -1258,6 +1287,10 @@ HRESULT WrappedID3D11Device::CreateDepthStencilView(ID3D11Resource *pResource,
     }
 
     *ppDepthStencilView = wrapped;
+  }
+  else
+  {
+    CheckHRESULT(ret);
   }
 
   return ret;
@@ -1491,6 +1524,10 @@ HRESULT WrappedID3D11Device::CreateVertexShader(const void *pShaderBytecode, SIZ
 
     *ppVertexShader = wrapped;
   }
+  else
+  {
+    CheckHRESULT(ret);
+  }
 
   return ret;
 }
@@ -1623,6 +1660,10 @@ HRESULT WrappedID3D11Device::CreateGeometryShader(const void *pShaderBytecode, S
     }
 
     *ppGeometryShader = wrapped;
+  }
+  else
+  {
+    CheckHRESULT(ret);
   }
 
   return ret;
@@ -1767,6 +1808,10 @@ HRESULT WrappedID3D11Device::CreateGeometryShaderWithStreamOutput(
 
     *ppGeometryShader = wrapped;
   }
+  else
+  {
+    CheckHRESULT(ret);
+  }
 
   return ret;
 }
@@ -1897,6 +1942,10 @@ HRESULT WrappedID3D11Device::CreatePixelShader(const void *pShaderBytecode, SIZE
 
     *ppPixelShader = wrapped;
   }
+  else
+  {
+    CheckHRESULT(ret);
+  }
 
   return ret;
 }
@@ -2025,6 +2074,10 @@ HRESULT WrappedID3D11Device::CreateHullShader(const void *pShaderBytecode, SIZE_
     }
 
     *ppHullShader = wrapped;
+  }
+  else
+  {
+    CheckHRESULT(ret);
   }
 
   return ret;
@@ -2158,6 +2211,10 @@ HRESULT WrappedID3D11Device::CreateDomainShader(const void *pShaderBytecode, SIZ
 
     *ppDomainShader = wrapped;
   }
+  else
+  {
+    CheckHRESULT(ret);
+  }
 
   return ret;
 }
@@ -2290,6 +2347,10 @@ HRESULT WrappedID3D11Device::CreateComputeShader(const void *pShaderBytecode, SI
     }
 
     *ppComputeShader = wrapped;
+  }
+  else
+  {
+    CheckHRESULT(ret);
   }
 
   return ret;
@@ -2509,6 +2570,10 @@ HRESULT WrappedID3D11Device::CreateClassLinkage(ID3D11ClassLinkage **ppLinkage)
 
     *ppLinkage = wrapped;
   }
+  else
+  {
+    CheckHRESULT(ret);
+  }
 
   return ret;
 }
@@ -2619,6 +2684,10 @@ HRESULT WrappedID3D11Device::CreateBlendState(const D3D11_BLEND_DESC *pBlendStat
 
     *ppBlendState = wrapped;
   }
+  else
+  {
+    CheckHRESULT(ret);
+  }
 
   return ret;
 }
@@ -2726,6 +2795,10 @@ HRESULT WrappedID3D11Device::CreateDepthStencilState(const D3D11_DEPTH_STENCIL_D
     }
 
     *ppDepthStencilState = wrapped;
+  }
+  else
+  {
+    CheckHRESULT(ret);
   }
 
   return ret;
@@ -2835,6 +2908,10 @@ HRESULT WrappedID3D11Device::CreateRasterizerState(const D3D11_RASTERIZER_DESC *
 
     *ppRasterizerState = wrapped;
   }
+  else
+  {
+    CheckHRESULT(ret);
+  }
 
   return ret;
 }
@@ -2943,6 +3020,10 @@ HRESULT WrappedID3D11Device::CreateSamplerState(const D3D11_SAMPLER_DESC *pSampl
 
     *ppSamplerState = wrapped;
   }
+  else
+  {
+    CheckHRESULT(ret);
+  }
 
   return ret;
 }
@@ -3017,6 +3098,10 @@ HRESULT WrappedID3D11Device::CreateQuery(const D3D11_QUERY_DESC *pQueryDesc, ID3
     }
 
     *ppQuery = wrapped;
+  }
+  else
+  {
+    CheckHRESULT(ret);
   }
 
   return ret;
@@ -3105,6 +3190,10 @@ HRESULT WrappedID3D11Device::CreatePredicate(const D3D11_QUERY_DESC *pPredicateD
 
     *ppPredicate = wrapped;
   }
+  else
+  {
+    CheckHRESULT(ret);
+  }
 
   return ret;
 }
@@ -3187,6 +3276,10 @@ HRESULT WrappedID3D11Device::CreateCounter(const D3D11_COUNTER_DESC *pCounterDes
 
     *ppCounter = wrapped;
   }
+  else
+  {
+    CheckHRESULT(ret);
+  }
 
   return ret;
 }
@@ -3267,6 +3360,10 @@ HRESULT WrappedID3D11Device::CreateDeferredContext(UINT ContextFlags,
     }
 
     *ppDeferredContext = wrapped;
+  }
+  else
+  {
+    CheckHRESULT(ret);
   }
 
   return ret;

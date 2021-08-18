@@ -114,6 +114,7 @@ public:
   const WrappedVulkan::DescriptorSetInfo &GetDescSetInfo(ResourceId ds) const;
 
 private:
+  void CheckVkResult(VkResult vkr) { return m_pDriver->CheckVkResult(vkr); }
   // GetBufferData
   GPUBuffer m_ReadbackWindow;
   byte *m_ReadbackPtr = NULL;

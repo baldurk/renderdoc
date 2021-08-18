@@ -328,7 +328,7 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
 
           VkResult vkr = driver->vkCreateShaderModule(
               m_Device, &modinfo, NULL, &m_BuiltinShaderModules[i][baseType][textureType]);
-          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+          driver->CheckVkResult(vkr);
 
           driver->GetResourceManager()->SetInternalResource(
               GetResID(m_BuiltinShaderModules[i][baseType][textureType]));
@@ -393,7 +393,7 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
 
     VkResult vkr = ObjDisp(m_Device)->CreatePipelineCache(Unwrap(m_Device), &createInfo, NULL,
                                                           &m_PipelineCache);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    driver->CheckVkResult(vkr);
 
     if(vkr == VK_SUCCESS)
     {

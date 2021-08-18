@@ -1286,6 +1286,9 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
 void WrappedID3D11Device::Apply_InitialState(ID3D11DeviceChild *live,
                                              const D3D11InitialContents &initial)
 {
+  if(HasFatalError())
+    return;
+
   if(initial.resourceType == Resource_UnorderedAccessView)
   {
     ID3D11UnorderedAccessView *uav = (ID3D11UnorderedAccessView *)live;

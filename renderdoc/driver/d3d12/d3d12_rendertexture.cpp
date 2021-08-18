@@ -241,10 +241,18 @@ void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource, CompTyp
           NULL, __uuidof(ID3D12Resource), (void **)&m_TexResource);
       RDCASSERTEQUAL(hr, S_OK);
 
+      if(FAILED(hr))
+      {
+        RDCERR("Couldn't create display texture");
+        return;
+      }
+
       m_TexResource->SetName(L"m_TexResource");
     }
 
     ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+    if(!list)
+      return;
 
     // prepare real resource for copying
     if(!barriers.empty())
@@ -665,6 +673,8 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
 
   {
     ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+    if(!list)
+      return false;
 
     if(!barriers.empty())
       list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);

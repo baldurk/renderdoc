@@ -800,7 +800,11 @@ public:
   void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d);
   void AddDebugMessage(const DebugMessage &msg);
   rdcarray<DebugMessage> GetDebugMessages();
+
+  void CheckHRESULT(HRESULT hr);
+  void ReportFatalError(ReplayStatus error) { m_FatalError = error; }
   ReplayStatus FatalErrorCheck() { return m_FatalError; }
+  bool HasFatalError() { return m_FatalError != ReplayStatus::Succeeded; }
   ResourceDescription &GetResourceDesc(ResourceId id);
   void AddResource(ResourceId id, ResourceType type, const char *defaultNamePrefix);
   void DerivedResource(ResourceId parent, ResourceId child);

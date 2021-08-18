@@ -261,12 +261,16 @@ void D3D11Replay::FillTimers(D3D11CounterContext &ctx, const ActionDescription &
       timer->before = timer->after = timer->stats = timer->occlusion = NULL;
 
       hr = m_pDevice->GetReal()->CreateQuery(&qtimedesc, &timer->before);
+      m_pDevice->CheckHRESULT(hr);
       RDCASSERTEQUAL(hr, S_OK);
       hr = m_pDevice->GetReal()->CreateQuery(&qtimedesc, &timer->after);
+      m_pDevice->CheckHRESULT(hr);
       RDCASSERTEQUAL(hr, S_OK);
       hr = m_pDevice->GetReal()->CreateQuery(&qstatsdesc, &timer->stats);
+      m_pDevice->CheckHRESULT(hr);
       RDCASSERTEQUAL(hr, S_OK);
       hr = m_pDevice->GetReal()->CreateQuery(&qoccldesc, &timer->occlusion);
+      m_pDevice->CheckHRESULT(hr);
       RDCASSERTEQUAL(hr, S_OK);
     }
 
@@ -286,9 +290,8 @@ void D3D11Replay::FillTimers(D3D11CounterContext &ctx, const ActionDescription &
     if(timer->occlusion)
       m_pImmediateContext->GetReal()->End(timer->occlusion);
     if(timer->stats)
-      m_pImmediateContext->GetReal()->End(timer->stats);
 
-    ctx.eventStart = a.eventId + 1;
+      ctx.eventStart = a.eventId + 1;
   }
 }
 
@@ -298,8 +301,10 @@ void D3D11Replay::SerializeImmediateContext()
   D3D11_QUERY_DESC desc = {D3D11_QUERY_EVENT};
 
   HRESULT hr = m_pDevice->GetReal()->CreateQuery(&desc, &query);
+  m_pDevice->CheckHRESULT(hr);
   if(FAILED(hr))
   {
+    RDCERR("Failed to create SerializeImmediateContext query HRESULT: %s", ToStr(hr).c_str());
     return;
   }
 
@@ -627,6 +632,7 @@ rdcarray<CounterResult> D3D11Replay::FetchCounters(const rdcarray<GPUCounter> &c
   HRESULT hr = S_OK;
 
   hr = m_pDevice->CreateQuery(&disjointdesc, &disjoint);
+  m_pDevice->CheckHRESULT(hr);
   if(FAILED(hr))
   {
     RDCERR("Failed to create disjoint query HRESULT: %s", ToStr(hr).c_str());
@@ -634,6 +640,7 @@ rdcarray<CounterResult> D3D11Replay::FetchCounters(const rdcarray<GPUCounter> &c
   }
 
   hr = m_pDevice->CreateQuery(&qdesc, &start);
+  m_pDevice->CheckHRESULT(hr);
   if(FAILED(hr))
   {
     RDCERR("Failed to create start query HRESULT: %s", ToStr(hr).c_str());

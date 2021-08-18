@@ -153,16 +153,19 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
         arrayInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
 
       vkr = ObjDisp(d)->CreateImage(Unwrap(d), &arrayInfo, NULL, &arrayIm);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      CheckVkResult(vkr);
 
       GetResourceManager()->WrapResource(Unwrap(d), arrayIm);
 
       MemoryAllocation arrayMem =
           AllocateMemoryForResource(arrayIm, MemoryScope::InitialContents, MemoryType::GPULocal);
 
+      if(arrayMem.mem == VK_NULL_HANDLE)
+        return false;
+
       vkr = ObjDisp(d)->BindImageMemory(Unwrap(d), Unwrap(arrayIm), Unwrap(arrayMem.mem),
                                         arrayMem.offs);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      CheckVkResult(vkr);
 
       // we don't use the memory after this, so we don't need to keep a reference. It's needed for
       // backing the array image only.
@@ -244,22 +247,25 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     VkBuffer dstBuf;
 
     vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, NULL, &dstBuf);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     GetResourceManager()->WrapResource(Unwrap(d), dstBuf);
 
     MemoryAllocation readbackmem =
         AllocateMemoryForResource(dstBuf, MemoryScope::InitialContents, MemoryType::Readback);
 
+    if(readbackmem.mem == VK_NULL_HANDLE)
+      return false;
+
     vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), Unwrap(dstBuf), Unwrap(readbackmem.mem),
                                        readbackmem.offs);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                           VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
     vkr = ObjDisp(d)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     VkImageAspectFlags aspectFlags = FormatImageAspects(imageInfo.format);
 
@@ -292,7 +298,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       DoPipelineBarrier(cmd, 1, &arrayimBarrier);
 
       vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(cmd));
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      CheckVkResult(vkr);
 
       GetDebugManager()->CopyTex2DMSToArray(Unwrap(arrayIm), realim, imageInfo.extent,
                                             imageInfo.layerCount, imageInfo.sampleCount,
@@ -301,7 +307,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       cmd = GetNextCmd();
 
       vkr = ObjDisp(d)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      CheckVkResult(vkr);
 
       arrayimBarrier.srcAccessMask =
           VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
@@ -406,7 +412,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     m_cleanupImageBarriers.Merge(cleanupBarriers);
 
     vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(cmd));
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     SubmitAndFlushImageStateBarriers(m_setupImageBarriers);
     SubmitCmds();
@@ -487,12 +493,15 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
     bufInfo.size = datasize;
     vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, NULL, &dstBuf);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     GetResourceManager()->WrapResource(Unwrap(d), dstBuf);
 
     MemoryAllocation readbackmem =
         AllocateMemoryForResource(dstBuf, MemoryScope::InitialContents, MemoryType::Readback);
+
+    if(readbackmem.mem == VK_NULL_HANDLE)
+      return false;
 
     // dummy request to keep the validation layers happy - the buffers are identical so the
     // requirements must be identical
@@ -501,16 +510,16 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       ObjDisp(d)->GetBufferMemoryRequirements(Unwrap(d), Unwrap(dstBuf), &mrq);
     }
 
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
     vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), Unwrap(dstBuf), Unwrap(readbackmem.mem),
                                        readbackmem.offs);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                           VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
     vkr = ObjDisp(d)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     VkBufferCopy region = {0, 0, datasize};
 
@@ -518,7 +527,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
                               1, &region);
 
     vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(cmd));
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     // INITSTATEBATCH
     SubmitCmds();
@@ -1456,7 +1465,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
         mappedMem = initial->mem;
         vkr = ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mappedMem.mem), initial->mem.offs,
                                     initial->mem.size, 0, (void **)&Contents);
-        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+        CheckVkResult(vkr);
 
         // invalidate the cpu cache for this memory range to avoid reading stale data
         VkMappedMemoryRange range = {
@@ -1468,7 +1477,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
         };
 
         vkr = ObjDisp(d)->InvalidateMappedMemoryRanges(Unwrap(d), 1, &range);
-        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+        CheckVkResult(vkr);
       }
     }
     else if(IsReplayingAndReading() && !ser.IsErrored())
@@ -1483,18 +1492,26 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
       };
 
       vkr = vkCreateBuffer(d, &bufInfo, NULL, &uploadBuf);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      CheckVkResult(vkr);
 
       uploadMemory =
           AllocateMemoryForResource(uploadBuf, MemoryScope::InitialContents, MemoryType::Upload);
 
+      if(uploadMemory.mem == VK_NULL_HANDLE)
+        return false;
+
       vkr = vkBindBufferMemory(d, uploadBuf, uploadMemory.mem, uploadMemory.offs);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      CheckVkResult(vkr);
 
       mappedMem = uploadMemory;
 
-      ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mappedMem.mem), mappedMem.offs,
-                            AlignUp(mappedMem.size, nonCoherentAtomSize), 0, (void **)&Contents);
+      vkr = ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mappedMem.mem), mappedMem.offs,
+                                  AlignUp(mappedMem.size, nonCoherentAtomSize), 0,
+                                  (void **)&Contents);
+      CheckVkResult(vkr);
+
+      if(vkr != VK_SUCCESS)
+        return false;
     }
 
     // not using SERIALISE_ELEMENT_ARRAY so we can deliberately avoid allocation - we serialise
@@ -1516,7 +1533,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
         };
 
         vkr = ObjDisp(d)->FlushMappedMemoryRanges(Unwrap(d), 1, &range);
-        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+        CheckVkResult(vkr);
       }
 
       ObjDisp(d)->UnmapMemory(Unwrap(d), Unwrap(mappedMem.mem));
@@ -1591,21 +1608,27 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
           VkImage arrayIm;
 
           vkr = vkCreateImage(d, &arrayInfo, NULL, &arrayIm);
-          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+          CheckVkResult(vkr);
 
           MemoryAllocation arrayMem =
               AllocateMemoryForResource(arrayIm, MemoryScope::InitialContents, MemoryType::GPULocal);
 
+          if(arrayMem.mem == VK_NULL_HANDLE)
+            return false;
+
           vkr = vkBindImageMemory(d, arrayIm, arrayMem.mem, arrayMem.offs);
-          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+          CheckVkResult(vkr);
 
           VkCommandBuffer cmd = GetNextCmd();
+
+          if(cmd == VK_NULL_HANDLE)
+            return false;
 
           VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                                 VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
           vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+          CheckVkResult(vkr);
 
           VkExtent3D extent = c.extent;
 
@@ -1708,7 +1731,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
           DoPipelineBarrier(cmd, 1, &dstimBarrier);
 
           vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+          CheckVkResult(vkr);
 
           // INITSTATEBATCH
           SubmitCmds();
@@ -1796,6 +1819,9 @@ void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool)
 
 void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialContents &initial)
 {
+  if(HasFatalError())
+    return;
+
   VkResourceType type = initial.type;
 
   ResourceId id = GetResourceManager()->GetID(live);
@@ -2030,8 +2056,11 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
 
       VkCommandBuffer cmd = GetNextCmd();
 
+      if(cmd == VK_NULL_HANDLE)
+        return;
+
       vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      CheckVkResult(vkr);
 
       VulkanCreationInfo::Image &c = m_CreationInfo.m_Image[id];
 
@@ -2048,7 +2077,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
       VkImage arrayIm = initial.img;
 
       vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      CheckVkResult(vkr);
 
       GetDebugManager()->CopyArrayToTex2DMS(ToUnwrappedHandle<VkImage>(live), Unwrap(arrayIm),
                                             c.extent, c.arrayLayers, (uint32_t)c.samples, fmt);
@@ -2345,8 +2374,11 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
 
     VkCommandBuffer cmd = GetNextCmd();
 
+    if(cmd == VK_NULL_HANDLE)
+      return;
+
     vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     VkMarkerRegion::Begin(StringFormat::Fmt("Initial state for %s", ToStr(orig).c_str()), cmd);
 
@@ -2380,7 +2412,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
     VkMarkerRegion::End(cmd);
 
     vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
     SubmitCmds();

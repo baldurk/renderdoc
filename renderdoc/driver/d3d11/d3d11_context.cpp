@@ -1284,6 +1284,9 @@ ReplayStatus WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32
     if(ser.GetReader()->IsErrored())
       return ReplayStatus::APIDataCorrupted;
 
+    if(m_pDevice->HasFatalError())
+      return m_pDevice->FatalErrorCheck();
+
     // if there wasn't a serialisation error, but the chunk didn't succeed, then it's an API replay
     // failure.
     if(!success)

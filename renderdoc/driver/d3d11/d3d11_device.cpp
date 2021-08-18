@@ -1370,7 +1370,7 @@ ReplayStatus WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc, bool store
     // if there wasn't a serialisation error, but the chunk didn't succeed, then it's an API replay
     // failure.
     if(!success)
-      return m_FailedReplayStatus;
+      return HasFatalError() ? m_FatalError : m_FailedReplayStatus;
 
     uint64_t offsetEnd = reader->GetOffset();
 
@@ -1474,6 +1474,12 @@ ReplayStatus WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc, bool store
   RDCDEBUG("Allocating %llu persistant bytes of memory for the log.",
            GetReplay()->WriteFrameRecord().frameInfo.persistentSize);
 
+  if(HasFatalError())
+    return m_FatalError;
+
+  if(m_pDevice && m_pDevice->GetDeviceRemovedReason() != S_OK)
+    return ReplayStatus::ReplayDeviceLost;
+
   return ReplayStatus::Succeeded;
 }
 
@@ -1521,6 +1527,9 @@ void WrappedID3D11Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
     D3D11MarkerRegion::End();
 
   D3D11MarkerRegion::Set("!!!!RenderDoc Internal: Done replay");
+
+  if(m_pDevice->GetDeviceRemovedReason() != S_OK)
+    m_FatalError = ReplayStatus::ReplayDeviceLost;
 }
 
 void WrappedID3D11Device::NewSwapchainBuffer(IUnknown *backbuffer)
@@ -2506,6 +2515,29 @@ void WrappedID3D11Device::FirstFrame(IDXGISwapper *swapper)
 
     m_AppControlledCapture = false;
     m_CapturedFrames.back().frameNumber = 0;
+  }
+}
+
+void WrappedID3D11Device::CheckHRESULT(HRESULT hr)
+{
+  if(SUCCEEDED(hr) || HasFatalError())
+    return;
+
+  if(hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET ||
+     hr == DXGI_ERROR_DEVICE_HUNG || hr == DXGI_ERROR_DRIVER_INTERNAL_ERROR ||
+     hr == DXGI_ERROR_DRIVER_INTERNAL_ERROR)
+  {
+    RDCLOG("Logging device lost fatal error for %s", ToStr(hr).c_str());
+    m_FatalError = ReplayStatus::ReplayDeviceLost;
+  }
+  else if(hr == E_OUTOFMEMORY)
+  {
+    RDCLOG("Logging out of memory fatal error for %s", ToStr(hr).c_str());
+    m_FatalError = ReplayStatus::ReplayOutOfMemory;
+  }
+  else
+  {
+    RDCLOG("Ignoring return code %s", ToStr(hr).c_str());
   }
 }
 

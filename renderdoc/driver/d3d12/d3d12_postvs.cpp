@@ -602,6 +602,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     byte *byteData = NULL;
     D3D12_RANGE range = {0, (SIZE_T)m_SOBufferSize};
     hr = m_SOStagingBuffer->Map(0, &range, (void **)&byteData);
+    m_pDevice->CheckHRESULT(hr);
     if(FAILED(hr))
     {
       RDCERR("Failed to map sobuffer HRESULT: %s", ToStr(hr).c_str());
@@ -898,6 +899,12 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
       D3D12_QUERY_DATA_SO_STATISTICS *data;
       hr = m_SOStagingBuffer->Map(0, &range, (void **)&data);
+      m_pDevice->CheckHRESULT(hr);
+      if(FAILED(hr))
+      {
+        RDCERR("Couldn't get SO statistics data");
+        return;
+      }
 
       D3D12_QUERY_DATA_SO_STATISTICS result = *data;
 
@@ -1061,6 +1068,12 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
         D3D12_QUERY_DATA_SO_STATISTICS *data;
         hr = m_SOStagingBuffer->Map(0, &range, (void **)&data);
+        m_pDevice->CheckHRESULT(hr);
+        if(FAILED(hr))
+        {
+          RDCERR("Couldn't get SO statistics data");
+          return;
+        }
 
         uint64_t outputSize = data->PrimitivesStorageNeeded * 3 * stride;
 
@@ -1125,6 +1138,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     byte *byteData = NULL;
     D3D12_RANGE range = {0, (SIZE_T)m_SOBufferSize};
     hr = m_SOStagingBuffer->Map(0, &range, (void **)&byteData);
+    m_pDevice->CheckHRESULT(hr);
     if(FAILED(hr))
     {
       RDCERR("Failed to map sobuffer HRESULT: %s", ToStr(hr).c_str());

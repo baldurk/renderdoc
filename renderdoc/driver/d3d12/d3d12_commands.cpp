@@ -959,6 +959,9 @@ ReplayStatus WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_
 
     m_pDevice->ExecuteLists();
     m_pDevice->FlushLists();
+
+    if(m_pDevice->HasFatalError())
+      return m_pDevice->FatalErrorCheck();
   }
 
   if(IsActiveReplaying(m_State))
@@ -1027,6 +1030,9 @@ ReplayStatus WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_
     // failure.
     if(!success)
       return m_FailedReplayStatus;
+
+    if(m_pDevice->HasFatalError())
+      return m_pDevice->FatalErrorCheck();
 
     RenderDoc::Inst().SetProgress(
         LoadProgress::FrameEventsRead,

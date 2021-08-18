@@ -167,6 +167,10 @@ HRESULT WrappedID3D12Device::CreateCommandList1(UINT nodeMask, D3D12_COMMAND_LIS
     else
       RDCERR("Unexpected riid! %s", ToStr(riid).c_str());
   }
+  else
+  {
+    CheckHRESULT(ret);
+  }
 
   return ret;
 }
@@ -411,6 +415,10 @@ HRESULT WrappedID3D12Device::CreateCommittedResource1(
       }
     }
   }
+  else
+  {
+    CheckHRESULT(ret);
+  }
 
   return ret;
 }
@@ -516,6 +524,10 @@ HRESULT WrappedID3D12Device::CreateHeap1(const D3D12_HEAP_DESC *pDesc,
     }
 
     *ppvHeap = (ID3D12Heap *)wrapped;
+  }
+  else
+  {
+    CheckHRESULT(ret);
   }
 
   return ret;

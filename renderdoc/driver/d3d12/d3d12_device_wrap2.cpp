@@ -353,6 +353,10 @@ HRESULT WrappedID3D12Device::CreatePipelineState(const D3D12_PIPELINE_STATE_STRE
 
     *ppPipelineState = (ID3D12PipelineState *)wrapped;
   }
+  else
+  {
+    CheckHRESULT(ret);
+  }
 
   return ret;
 }

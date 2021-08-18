@@ -441,7 +441,7 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
     VkBuffer buf;
 
     VkResult vkr = ObjDisp(device)->CreateBuffer(Unwrap(device), &bufInfo, NULL, &buf);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     if(vkr == VK_SUCCESS && buf != VK_NULL_HANDLE)
     {
@@ -686,6 +686,10 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
       m_CreationInfo.m_Memory[id].wholeMemBuf = wholeMemBuf;
     }
   }
+  else
+  {
+    CheckVkResult(ret);
+  }
 
   return ret;
 }
@@ -851,7 +855,10 @@ bool WrappedVulkan::Serialise_vkUnmapMemory(SerialiserType &ser, VkDevice device
     VkResult vkr = ObjDisp(device)->MapMemory(Unwrap(device), Unwrap(memory), MapOffset, MapSize, 0,
                                               (void **)&MapData);
     if(vkr != VK_SUCCESS)
+    {
       RDCERR("Error mapping memory on replay: %s", ToStr(vkr).c_str());
+      return false;
+    }
 
     const Intervals<VulkanCreationInfo::Memory::MemoryBinding> &bindings =
         m_CreationInfo.m_Memory[GetResID(memory)].bindings;
@@ -1340,6 +1347,8 @@ VkResult WrappedVulkan::vkBindBufferMemory(VkDevice device, VkBuffer buffer, VkD
   SERIALISE_TIME_CALL(ret = ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(buffer),
                                                               Unwrap(memory), memoryOffset));
 
+  CheckVkResult(ret);
+
   if(IsCaptureMode(m_State))
   {
     Chunk *chunk = NULL;
@@ -1457,6 +1466,8 @@ VkResult WrappedVulkan::vkBindImageMemory(VkDevice device, VkImage image, VkDevi
   VkResult ret;
   SERIALISE_TIME_CALL(ret = ObjDisp(device)->BindImageMemory(Unwrap(device), Unwrap(image),
                                                              Unwrap(mem), memOffset));
+
+  CheckVkResult(ret);
 
   if(IsCaptureMode(m_State))
   {
@@ -1788,6 +1799,10 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
 
       m_CreationInfo.m_Buffer[id].Init(GetResourceManager(), m_CreationInfo, pCreateInfo);
     }
+  }
+  else
+  {
+    CheckVkResult(ret);
   }
 
   return ret;
@@ -2454,6 +2469,10 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
     if(isSparse)
       state->isMemoryBound = true;
   }
+  else
+  {
+    CheckVkResult(ret);
+  }
 
   return ret;
 }
@@ -2651,6 +2670,8 @@ VkResult WrappedVulkan::vkBindBufferMemory2(VkDevice device, uint32_t bindInfoCo
   SERIALISE_TIME_CALL(
       ret = ObjDisp(device)->BindBufferMemory2(Unwrap(device), bindInfoCount, unwrapped));
 
+  CheckVkResult(ret);
+
   if(IsCaptureMode(m_State))
   {
     for(uint32_t i = 0; i < bindInfoCount; i++)
@@ -2779,6 +2800,8 @@ VkResult WrappedVulkan::vkBindImageMemory2(VkDevice device, uint32_t bindInfoCou
   VkResult ret;
   SERIALISE_TIME_CALL(
       ret = ObjDisp(device)->BindImageMemory2(Unwrap(device), bindInfoCount, unwrapped));
+
+  CheckVkResult(ret);
 
   if(IsCaptureMode(m_State))
   {

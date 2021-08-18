@@ -37,6 +37,8 @@ void D3D11Replay::OutputWindow::MakeRTV()
   {
     hr = swap->GetBuffer(0, __uuidof(ID3D11Texture2D), (void **)&texture);
 
+    dev->CheckHRESULT(hr);
+
     if(FAILED(hr))
     {
       RDCERR("Failed to get swap chain buffer, HRESULT: %s", ToStr(hr).c_str());
@@ -64,6 +66,8 @@ void D3D11Replay::OutputWindow::MakeRTV()
   }
 
   hr = dev->CreateRenderTargetView(texture, NULL, &rtv);
+
+  dev->CheckHRESULT(hr);
 
   SAFE_RELEASE(texture);
 
@@ -103,6 +107,8 @@ void D3D11Replay::OutputWindow::MakeDSV()
 
   HRESULT hr = dev->CreateTexture2D(&texDesc, NULL, &texture);
 
+  dev->CheckHRESULT(hr);
+
   if(FAILED(hr))
   {
     RDCERR("Failed to create DSV texture for main output, HRESULT: %s", ToStr(hr).c_str());
@@ -112,6 +118,8 @@ void D3D11Replay::OutputWindow::MakeDSV()
   }
 
   hr = dev->CreateDepthStencilView(texture, NULL, &dsv);
+
+  dev->CheckHRESULT(hr);
 
   SAFE_RELEASE(texture);
 
@@ -156,6 +164,8 @@ uint64_t D3D11Replay::MakeOutputWindow(WindowingData window, bool depth)
     HRESULT hr = S_OK;
 
     hr = m_pFactory->CreateSwapChain(m_pDevice, &swapDesc, &outw.swap);
+
+    m_pDevice->CheckHRESULT(hr);
 
     if(FAILED(hr))
     {
@@ -232,6 +242,8 @@ bool D3D11Replay::CheckResizeOutputWindow(uint64_t id)
 
       HRESULT hr = outw.swap->ResizeBuffers(desc.BufferCount, outw.width, outw.height,
                                             desc.BufferDesc.Format, desc.Flags);
+
+      m_pDevice->CheckHRESULT(hr);
 
       if(FAILED(hr))
       {
@@ -316,6 +328,8 @@ void D3D11Replay::GetOutputWindowData(uint64_t id, bytebuf &retData)
 
   HRESULT hr = m_pDevice->CreateTexture2D(&texDesc, NULL, &readback);
 
+  m_pDevice->CheckHRESULT(hr);
+
   if(FAILED(hr))
   {
     RDCERR("Couldn't create staging texture for readback, HRESULT: %s", ToStr(hr).c_str());
@@ -331,6 +345,8 @@ void D3D11Replay::GetOutputWindowData(uint64_t id, bytebuf &retData)
     texDesc.Usage = D3D11_USAGE_DEFAULT;
 
     hr = m_pDevice->CreateTexture2D(&texDesc, NULL, &resolve);
+
+    m_pDevice->CheckHRESULT(hr);
 
     if(FAILED(hr))
     {
@@ -436,7 +452,11 @@ void D3D11Replay::FlipOutputWindow(uint64_t id)
     return;
 
   if(m_OutputWindows[id].swap)
-    m_OutputWindows[id].swap->Present(0, 0);
+  {
+    HRESULT hr = m_OutputWindows[id].swap->Present(0, 0);
+
+    m_pDevice->CheckHRESULT(hr);
+  }
 
   if(m_RealState.active)
   {

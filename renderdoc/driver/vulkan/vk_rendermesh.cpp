@@ -366,13 +366,13 @@ VKMeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(VkPipelineL
 
   vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, NULL,
                                     &cache.pipes[VKMeshDisplayPipelines::ePipe_Wire]);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 
   ds.depthTestEnable = true;
 
   vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, NULL,
                                     &cache.pipes[VKMeshDisplayPipelines::ePipe_WireDepth]);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 
   // solid shading pipeline
   rs.polygonMode = VK_POLYGON_MODE_FILL;
@@ -380,13 +380,13 @@ VKMeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(VkPipelineL
 
   vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, NULL,
                                     &cache.pipes[VKMeshDisplayPipelines::ePipe_Solid]);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 
   ds.depthTestEnable = true;
 
   vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, NULL,
                                     &cache.pipes[VKMeshDisplayPipelines::ePipe_SolidDepth]);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 
   if(secondary.vertexResourceId != ResourceId())
   {
@@ -399,7 +399,7 @@ VKMeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(VkPipelineL
 
     vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, NULL,
                                       &cache.pipes[VKMeshDisplayPipelines::ePipe_Secondary]);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
   }
 
   vertAttrs[1].binding = 0;
@@ -414,7 +414,7 @@ VKMeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(VkPipelineL
   {
     vkr = vt->CreateGraphicsPipelines(Unwrap(m_Device), VK_NULL_HANDLE, 1, &pipeInfo, NULL,
                                       &cache.pipes[VKMeshDisplayPipelines::ePipe_Lit]);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
   }
 
   for(uint32_t i = 0; i < VKMeshDisplayPipelines::ePipe_Count; i++)
@@ -447,13 +447,16 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
   const VkDevDispatchTable *vt = ObjDisp(dev);
 
+  if(cmd == VK_NULL_HANDLE)
+    return;
+
   VkResult vkr = VK_SUCCESS;
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
   vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 
   VkMarkerRegion::Begin(
       StringFormat::Fmt("RenderMesh with %zu secondary draws", secondaryDraws.size()), cmd);
@@ -540,7 +543,7 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
           vt->CmdEndRenderPass(Unwrap(cmd));
 
           vkr = vt->EndCommandBuffer(Unwrap(cmd));
-          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+          CheckVkResult(vkr);
 
           m_pDriver->SubmitCmds();
           m_pDriver->FlushQ();
@@ -549,8 +552,11 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
 
           cmd = m_pDriver->GetNextCmd();
 
+          if(cmd == VK_NULL_HANDLE)
+            return;
+
           vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+          CheckVkResult(vkr);
           vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
           vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
@@ -601,15 +607,18 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
       vt->CmdEndRenderPass(Unwrap(cmd));
 
       vkr = vt->EndCommandBuffer(Unwrap(cmd));
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      CheckVkResult(vkr);
 
       m_pDriver->SubmitCmds();
       m_pDriver->FlushQ();
 
       cmd = m_pDriver->GetNextCmd();
 
+      if(cmd == VK_NULL_HANDLE)
+        return;
+
       vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      CheckVkResult(vkr);
       vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
       vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
@@ -945,7 +954,7 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
       vt->CmdEndRenderPass(Unwrap(cmd));
 
       vkr = vt->EndCommandBuffer(Unwrap(cmd));
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      CheckVkResult(vkr);
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
       m_pDriver->SubmitCmds();
@@ -958,8 +967,11 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
       // get a new cmdbuffer and begin it
       cmd = m_pDriver->GetNextCmd();
 
+      if(cmd == VK_NULL_HANDLE)
+        return;
+
       vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      CheckVkResult(vkr);
       vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
       vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
@@ -1173,7 +1185,7 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
   VkMarkerRegion::End(cmd);
 
   vkr = vt->EndCommandBuffer(Unwrap(cmd));
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
   m_pDriver->SubmitCmds();

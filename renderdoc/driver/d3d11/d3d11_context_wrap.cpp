@@ -7669,6 +7669,8 @@ HRESULT WrappedID3D11DeviceContext::Map(ID3D11Resource *pResource, UINT Subresou
     }
   }
 
+  m_pDevice->CheckHRESULT(ret);
+
   return ret;
 }
 

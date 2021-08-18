@@ -224,7 +224,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 
       vkr = ObjDisp(inst)->GetPhysicalDeviceSurfaceFormatsKHR(Unwrap(phys), Unwrap(surface),
                                                               &numFormats, NULL);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      driver->CheckVkResult(vkr);
 
       if(numFormats > 0)
       {
@@ -232,7 +232,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 
         vkr = ObjDisp(inst)->GetPhysicalDeviceSurfaceFormatsKHR(Unwrap(phys), Unwrap(surface),
                                                                 &numFormats, formats);
-        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+        driver->CheckVkResult(vkr);
 
         if(numFormats == 1 && formats[0].format == VK_FORMAT_UNDEFINED)
         {
@@ -271,7 +271,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 
       vkr = ObjDisp(inst)->GetPhysicalDeviceSurfacePresentModesKHR(Unwrap(phys), Unwrap(surface),
                                                                    &numModes, NULL);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      driver->CheckVkResult(vkr);
 
       if(numModes > 0)
       {
@@ -279,7 +279,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 
         vkr = ObjDisp(inst)->GetPhysicalDeviceSurfacePresentModesKHR(Unwrap(phys), Unwrap(surface),
                                                                      &numModes, modes);
-        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+        driver->CheckVkResult(vkr);
 
         // If mailbox mode is available, use it, as is the lowest-latency non-
         // tearing mode.  If not, try IMMEDIATE which will usually be available,
@@ -330,7 +330,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
     };
 
     vkr = vt->CreateSwapchainKHR(Unwrap(device), &swapInfo, NULL, &swap);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    driver->CheckVkResult(vkr);
 
     if(old != VK_NULL_HANDLE)
     {
@@ -365,13 +365,13 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
     GetResourceManager()->WrapResource(Unwrap(device), swap);
 
     vkr = vt->GetSwapchainImagesKHR(Unwrap(device), Unwrap(swap), &numImgs, NULL);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    driver->CheckVkResult(vkr);
 
     RDCASSERT(numImgs <= 8, numImgs);
 
     VkImage *imgs = new VkImage[numImgs];
     vkr = vt->GetSwapchainImagesKHR(Unwrap(device), Unwrap(swap), &numImgs, imgs);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    driver->CheckVkResult(vkr);
 
     for(size_t i = 0; i < numImgs; i++)
     {
@@ -410,7 +410,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
     };
 
     vkr = vt->CreateImage(Unwrap(device), &imInfo, NULL, &dsimg);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    driver->CheckVkResult(vkr);
 
     GetResourceManager()->WrapResource(Unwrap(device), dsimg);
 
@@ -424,12 +424,15 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
     };
 
     vkr = vt->AllocateMemory(Unwrap(device), &allocInfo, NULL, &dsmem);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    driver->CheckVkResult(vkr);
+
+    if(vkr != VK_SUCCESS)
+      return;
 
     GetResourceManager()->WrapResource(Unwrap(device), dsmem);
 
     vkr = vt->BindImageMemory(Unwrap(device), Unwrap(dsimg), Unwrap(dsmem), 0);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    driver->CheckVkResult(vkr);
 
     depthBarrier.image = Unwrap(dsimg);
     depthBarrier.oldLayout = depthBarrier.newLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -447,7 +450,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
     };
 
     vkr = vt->CreateImageView(Unwrap(device), &info, NULL, &dsview);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    driver->CheckVkResult(vkr);
 
     GetResourceManager()->WrapResource(Unwrap(device), dsview);
 
@@ -458,7 +461,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
     imInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
     vkr = vt->CreateImage(Unwrap(device), &imInfo, NULL, &resolveimg);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    driver->CheckVkResult(vkr);
 
     GetResourceManager()->WrapResource(Unwrap(device), resolveimg);
 
@@ -468,12 +471,15 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
     allocInfo.memoryTypeIndex = driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits);
 
     vkr = vt->AllocateMemory(Unwrap(device), &allocInfo, NULL, &resolvemem);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    driver->CheckVkResult(vkr);
+
+    if(vkr != VK_SUCCESS)
+      return;
 
     GetResourceManager()->WrapResource(Unwrap(device), resolvemem);
 
     vkr = vt->BindImageMemory(Unwrap(device), Unwrap(resolveimg), Unwrap(resolvemem), 0);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    driver->CheckVkResult(vkr);
   }
 
   {
@@ -513,7 +519,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
     };
 
     vkr = vt->CreateRenderPass(Unwrap(device), &rpinfo, NULL, &rp);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    driver->CheckVkResult(vkr);
 
     GetResourceManager()->WrapResource(Unwrap(device), rp);
 
@@ -524,7 +530,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
       rpinfo.attachmentCount = 2;
 
       vkr = vt->CreateRenderPass(Unwrap(device), &rpinfo, NULL, &rpdepth);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      driver->CheckVkResult(vkr);
 
       GetResourceManager()->WrapResource(Unwrap(device), rpdepth);
     }
@@ -551,7 +557,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
     };
 
     vkr = vt->CreateImage(Unwrap(device), &imInfo, NULL, &bb);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    driver->CheckVkResult(vkr);
 
     GetResourceManager()->WrapResource(Unwrap(device), bb);
 
@@ -565,12 +571,15 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
     };
 
     vkr = vt->AllocateMemory(Unwrap(device), &allocInfo, NULL, &bbmem);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    driver->CheckVkResult(vkr);
+
+    if(vkr != VK_SUCCESS)
+      return;
 
     GetResourceManager()->WrapResource(Unwrap(device), bbmem);
 
     vkr = vt->BindImageMemory(Unwrap(device), Unwrap(bb), Unwrap(bbmem), 0);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    driver->CheckVkResult(vkr);
 
     bbBarrier.image = Unwrap(bb);
     bbBarrier.oldLayout = bbBarrier.newLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -590,7 +599,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
     };
 
     vkr = vt->CreateImageView(Unwrap(device), &info, NULL, &bbview);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    driver->CheckVkResult(vkr);
 
     GetResourceManager()->WrapResource(Unwrap(device), bbview);
 
@@ -608,7 +617,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
       };
 
       vkr = vt->CreateFramebuffer(Unwrap(device), &fbinfo, NULL, &fb);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      driver->CheckVkResult(vkr);
 
       GetResourceManager()->WrapResource(Unwrap(device), fb);
     }
@@ -629,7 +638,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
       };
 
       vkr = vt->CreateFramebuffer(Unwrap(device), &fbinfo, NULL, &fbdepth);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      driver->CheckVkResult(vkr);
 
       GetResourceManager()->WrapResource(Unwrap(device), fbdepth);
     }
@@ -645,6 +654,9 @@ void VulkanReplay::GetOutputWindowData(uint64_t id, bytebuf &retData)
 
   VkDevice device = m_pDriver->GetDev();
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
+
+  if(cmd == VK_NULL_HANDLE)
+    return;
 
   const VkDevDispatchTable *vt = ObjDisp(device);
 
@@ -663,7 +675,7 @@ void VulkanReplay::GetOutputWindowData(uint64_t id, bytebuf &retData)
       VK_BUFFER_USAGE_TRANSFER_DST_BIT,
   };
   vt->CreateBuffer(Unwrap(device), &bufInfo, NULL, &readbackBuf);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  m_pDriver->CheckVkResult(vkr);
 
   VkMemoryRequirements mrq = {0};
 
@@ -676,17 +688,20 @@ void VulkanReplay::GetOutputWindowData(uint64_t id, bytebuf &retData)
 
   VkDeviceMemory readbackMem = VK_NULL_HANDLE;
   vkr = vt->AllocateMemory(Unwrap(device), &allocInfo, NULL, &readbackMem);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  m_pDriver->CheckVkResult(vkr);
+
+  if(vkr != VK_SUCCESS)
+    return;
 
   vkr = vt->BindBufferMemory(Unwrap(device), readbackBuf, readbackMem, 0);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  m_pDriver->CheckVkResult(vkr);
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
   // do image copy
   vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  m_pDriver->CheckVkResult(vkr);
 
   VkBufferImageCopy cpy = {
       0,
@@ -749,7 +764,7 @@ void VulkanReplay::GetOutputWindowData(uint64_t id, bytebuf &retData)
   outw.bbBarrier.srcAccessMask = outw.bbBarrier.dstAccessMask;
 
   vkr = vt->EndCommandBuffer(Unwrap(cmd));
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  m_pDriver->CheckVkResult(vkr);
 
   m_pDriver->SubmitCmds();
   m_pDriver->FlushQ();    // need to wait so we can readback
@@ -757,15 +772,16 @@ void VulkanReplay::GetOutputWindowData(uint64_t id, bytebuf &retData)
   // map memory and readback
   byte *pData = NULL;
   vkr = vt->MapMemory(Unwrap(device), readbackMem, 0, bufInfo.size, 0, (void **)&pData);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
-  RDCASSERT(pData != NULL);
+  m_pDriver->CheckVkResult(vkr);
+  if(vkr != VK_SUCCESS)
+    return;
 
   VkMappedMemoryRange range = {
       VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, NULL, readbackMem, 0, VK_WHOLE_SIZE,
   };
 
   vkr = vt->InvalidateMappedMemoryRanges(Unwrap(device), 1, &range);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  m_pDriver->CheckVkResult(vkr);
 
   {
     retData.resize(outw.width * outw.height * 3);
@@ -879,6 +895,9 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
   const VkDevDispatchTable *vt = ObjDisp(dev);
   VkResult vkr = VK_SUCCESS;
 
+  if(cmd == VK_NULL_HANDLE)
+    return;
+
   // if we have a swapchain, acquire the next image.
   if(outw.swap != VK_NULL_HANDLE)
   {
@@ -889,7 +908,7 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
     VkSemaphoreCreateInfo semInfo = {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, NULL, 0};
 
     vkr = vt->CreateSemaphore(Unwrap(dev), &semInfo, NULL, &sem);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    m_pDriver->CheckVkResult(vkr);
 
     vkr = vt->AcquireNextImageKHR(Unwrap(dev), Unwrap(outw.swap), UINT64_MAX, sem, VK_NULL_HANDLE,
                                   &outw.curidx);
@@ -910,7 +929,7 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
     if(vkr == VK_SUBOPTIMAL_KHR)
       vkr = VK_SUCCESS;
 
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    m_pDriver->CheckVkResult(vkr);
 
     VkSubmitInfo submitInfo = {
         VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -925,7 +944,7 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
     };
 
     vkr = vt->QueueSubmit(Unwrap(m_pDriver->GetQ()), 1, &submitInfo, VK_NULL_HANDLE);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    m_pDriver->CheckVkResult(vkr);
 
     vt->QueueWaitIdle(Unwrap(m_pDriver->GetQ()));
 
@@ -936,7 +955,7 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
   vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  m_pDriver->CheckVkResult(vkr);
 
   outw.depthBarrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
@@ -999,11 +1018,14 @@ void VulkanReplay::ClearOutputWindowColor(uint64_t id, FloatVector col)
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
   const VkDevDispatchTable *vt = ObjDisp(dev);
 
+  if(cmd == VK_NULL_HANDLE)
+    return;
+
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
   VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  m_pDriver->CheckVkResult(vkr);
 
   VkMarkerRegion::Begin("ClearOutputWindowColor", cmd);
 
@@ -1053,11 +1075,14 @@ void VulkanReplay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t sten
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
   const VkDevDispatchTable *vt = ObjDisp(dev);
 
+  if(cmd == VK_NULL_HANDLE)
+    return;
+
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
   VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  m_pDriver->CheckVkResult(vkr);
 
   VkClearDepthStencilValue ds = {depth, stencil};
 
@@ -1106,11 +1131,14 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
   const VkDevDispatchTable *vt = ObjDisp(dev);
 
+  if(cmd == VK_NULL_HANDLE)
+    return;
+
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
   VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  m_pDriver->CheckVkResult(vkr);
 
   VkMarkerRegion::Begin("FlipOutputWindow", cmd);
 
@@ -1212,6 +1240,10 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
                                   &vkr};
 
   VkResult retvkr = vt->QueuePresentKHR(Unwrap(m_pDriver->GetQ()), &presentInfo);
+
+  if(retvkr != VK_ERROR_OUT_OF_DATE_KHR && retvkr != VK_SUBOPTIMAL_KHR &&
+     retvkr != VK_ERROR_SURFACE_LOST_KHR)
+    m_pDriver->CheckVkResult(retvkr);
 
   m_pDriver->FlushQ();
 

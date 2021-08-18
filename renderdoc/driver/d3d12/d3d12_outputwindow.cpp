@@ -207,8 +207,15 @@ uint64_t D3D12Replay::MakeOutputWindow(WindowingData window, bool depth)
 
     if(outw.swap)
     {
-      outw.swap->GetBuffer(0, __uuidof(ID3D12Resource), (void **)&outw.bb[0]);
-      outw.swap->GetBuffer(1, __uuidof(ID3D12Resource), (void **)&outw.bb[1]);
+      hr = outw.swap->GetBuffer(0, __uuidof(ID3D12Resource), (void **)&outw.bb[0]);
+      m_pDevice->CheckHRESULT(hr);
+      if(FAILED(hr))
+        return 0;
+      hr = outw.swap->GetBuffer(1, __uuidof(ID3D12Resource), (void **)&outw.bb[1]);
+      m_pDevice->CheckHRESULT(hr);
+      if(FAILED(hr))
+        return 0;
+
       outw.bbDesc = outw.bb[0]->GetDesc();
     }
     else
@@ -315,6 +322,7 @@ bool D3D12Replay::CheckResizeOutputWindow(uint64_t id)
 
         HRESULT hr = outw.swap->ResizeBuffers(desc.BufferCount, outw.width, outw.height,
                                               desc.BufferDesc.Format, desc.Flags);
+        m_pDevice->CheckHRESULT(hr);
 
         if(FAILED(hr))
         {
@@ -322,8 +330,14 @@ bool D3D12Replay::CheckResizeOutputWindow(uint64_t id)
           return true;
         }
 
-        outw.swap->GetBuffer(0, __uuidof(ID3D12Resource), (void **)&outw.bb[0]);
-        outw.swap->GetBuffer(1, __uuidof(ID3D12Resource), (void **)&outw.bb[1]);
+        hr = outw.swap->GetBuffer(0, __uuidof(ID3D12Resource), (void **)&outw.bb[0]);
+        m_pDevice->CheckHRESULT(hr);
+        if(FAILED(hr))
+          return true;
+        hr = outw.swap->GetBuffer(1, __uuidof(ID3D12Resource), (void **)&outw.bb[1]);
+        m_pDevice->CheckHRESULT(hr);
+        if(FAILED(hr))
+          return true;
       }
 
       outw.bbIdx = 0;
@@ -417,10 +431,13 @@ void D3D12Replay::GetOutputWindowData(uint64_t id, bytebuf &retData)
   HRESULT hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &bufDesc,
                                                   D3D12_RESOURCE_STATE_COPY_DEST, NULL,
                                                   __uuidof(ID3D12Resource), (void **)&readback);
+  m_pDevice->CheckHRESULT(hr);
 
   if(SUCCEEDED(hr))
   {
     ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+    if(!list)
+      return;
 
     D3D12_RESOURCE_BARRIER barrier = {};
 
@@ -480,6 +497,7 @@ void D3D12Replay::GetOutputWindowData(uint64_t id, bytebuf &retData)
 
     byte *data = NULL;
     hr = readback->Map(0, NULL, (void **)&data);
+    m_pDevice->CheckHRESULT(hr);
 
     if(SUCCEEDED(hr) && data)
     {
@@ -521,6 +539,8 @@ void D3D12Replay::ClearOutputWindowColor(uint64_t id, FloatVector col)
     return;
 
   ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+  if(!list)
+    return;
 
   list->ClearRenderTargetView(m_OutputWindows[id].rtv, &col.x, 0, NULL);
 
@@ -533,6 +553,8 @@ void D3D12Replay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t stenc
     return;
 
   ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+  if(!list)
+    return;
 
   list->ClearDepthStencilView(m_OutputWindows[id].dsv,
                               D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, depth, stencil, 0,
@@ -603,6 +625,8 @@ void D3D12Replay::FlipOutputWindow(uint64_t id)
   }
 
   ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+  if(!list)
+    return;
 
   // resolve or copy from colour to backbuffer
   if(outw.colResolve)
@@ -666,6 +690,8 @@ void D3D12Replay::FlipOutputWindow(uint64_t id)
     m_pDevice->MarkListExecuted((ID3D12GraphicsCommandListX *)list);
 
     list = m_pDevice->GetNewList();
+    if(!list)
+      return;
 
     std::swap(toPresent.Transition.StateBefore, toPresent.Transition.StateAfter);
 
@@ -678,7 +704,10 @@ void D3D12Replay::FlipOutputWindow(uint64_t id)
   m_pDevice->FlushLists();
 
   if(outw.swap)
-    outw.swap->Present(0, 0);
+  {
+    HRESULT hr = outw.swap->Present(0, 0);
+    m_pDevice->CheckHRESULT(hr);
+  }
 
   outw.bbIdx++;
   outw.bbIdx %= 2;

@@ -793,6 +793,9 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
 
           ID3D12GraphicsCommandList *list = Unwrap(m_Device->GetInitialStateList());
 
+          if(!list)
+            return false;
+
           D3D12_RESOURCE_DESC arrayDesc = resDesc;
           arrayDesc.Alignment = 0;
           arrayDesc.DepthOrArraySize *= (UINT16)arrayDesc.SampleDesc.Count;
@@ -894,6 +897,9 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
           if(msaaTex)
           {
             list = Unwrap(m_Device->GetInitialStateList());
+
+            if(!list)
+              return false;
 
             D3D12_RESOURCE_BARRIER b = {};
             b.Transition.pResource = Unwrap(msaaTex);
@@ -1023,6 +1029,9 @@ void D3D12ResourceManager::Create_InitialState(ResourceId id, ID3D12DeviceChild 
 void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live,
                                               const D3D12InitialContents &data)
 {
+  if(m_Device->HasFatalError())
+    return;
+
   D3D12ResourceType type = (D3D12ResourceType)data.resourceType;
 
   if(type == Resource_DescriptorHeap)
@@ -1055,6 +1064,9 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live,
       {
         if(IsLoading(m_State) || m_Device->GetQueue()->IsSparseUpdatedResource(GetResID(live)))
           data.sparseBinds->Apply(m_Device, (ID3D12Resource *)live);
+
+        if(m_Device->HasFatalError())
+          return;
       }
       else
       {
@@ -1079,6 +1091,7 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live,
         if(copyDst->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
         {
           hr = copyDst->Map(0, NULL, (void **)&dst);
+          m_Device->CheckHRESULT(hr);
 
           if(FAILED(hr))
           {
@@ -1111,6 +1124,7 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live,
           for(UINT i = 0; i < numSubresources; i++)
           {
             hr = copyDst->Map(i, NULL, (void **)&dst);
+            m_Device->CheckHRESULT(hr);
 
             if(FAILED(hr))
             {
@@ -1155,6 +1169,9 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live,
         }
 
         ID3D12GraphicsCommandList *list = Unwrap(m_Device->GetInitialStateList());
+
+        if(!list)
+          return;
 
         rdcarray<D3D12_RESOURCE_BARRIER> barriers;
 

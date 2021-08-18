@@ -96,14 +96,14 @@ void VulkanReplay::CreateTexImageView(VkImage liveIm, const VulkanCreationInfo::
 
       // create as wrapped
       vkr = m_pDriver->vkCreateImageView(dev, &viewInfo, NULL, &views.views[i]);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      CheckVkResult(vkr);
     }
   }
   else
   {
     // create first view
     vkr = m_pDriver->vkCreateImageView(dev, &viewInfo, NULL, &views.views[0]);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     // for depth-stencil images, create a second view for stencil only
     if(IsDepthAndStencilFormat(fmt))
@@ -111,7 +111,7 @@ void VulkanReplay::CreateTexImageView(VkImage liveIm, const VulkanCreationInfo::
       viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
 
       vkr = m_pDriver->vkCreateImageView(dev, &viewInfo, NULL, &views.views[1]);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      CheckVkResult(vkr);
     }
   }
 }
@@ -492,6 +492,9 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, const ImageState &i
   vt->UpdateDescriptorSets(Unwrap(dev), (uint32_t)writeSets.size(), &writeSets[0], 0, NULL);
 
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
+
+  if(cmd == VK_NULL_HANDLE)
+    return false;
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};

@@ -352,7 +352,13 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
 
     // do the actual allocation
     VkResult vkr = ObjDisp(d)->AllocateMemory(Unwrap(d), &info, NULL, &chunk.mem);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
+
+    ret.offs = 0;
+    ret.mem = VK_NULL_HANDLE;
+
+    if(vkr != VK_SUCCESS)
+      return ret;
 
     GetResourceManager()->WrapResource(Unwrap(d), chunk.mem);
 
@@ -360,7 +366,6 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
     blockList.push_back(chunk);
 
     // return the first bytes in the new chunk
-    ret.offs = 0;
     ret.mem = chunk.mem;
   }
 

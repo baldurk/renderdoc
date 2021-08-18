@@ -63,7 +63,7 @@ void VulkanReplay::OutputWindow::CreateSurface(WrappedVulkan *driver, VkInstance
 
   VkResult vkr =
       ObjDisp(inst)->CreateStreamDescriptorSurfaceGGP(Unwrap(inst), &createInfo, NULL, &surface);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  driver->CheckVkResult(vkr);
 
   return;
 }

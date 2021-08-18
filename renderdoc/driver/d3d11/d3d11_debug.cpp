@@ -122,6 +122,7 @@ void D3D11DebugManager::FillCBuffer(ID3D11Buffer *buf, const void *data, size_t 
 
   HRESULT hr = m_pImmediateContext->GetReal()->Map(UNWRAP(WrappedID3D11Buffer, buf), 0,
                                                    D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+  m_pDevice->CheckHRESULT(hr);
 
   if(FAILED(hr))
   {
@@ -404,17 +405,26 @@ void D3D11DebugManager::FillWithDiscardPattern(DiscardType type, ID3D11Resource 
         if(desc.CPUAccessFlags & D3D11_CPU_ACCESS_WRITE)
         {
           D3D11_MAPPED_SUBRESOURCE mapped = {};
-          m_pImmediateContext->Map(res, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+          HRESULT hr = m_pImmediateContext->Map(res, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+          m_pDevice->CheckHRESULT(hr);
 
-          byte *dst = (byte *)mapped.pData;
-          dst += pRect[r].left;
-          for(size_t i = 0; i < size; i++)
+          if(SUCCEEDED(hr))
           {
-            memcpy(dst, &value, RDCMIN(sizeof(uint32_t), size - i));
-            dst += sizeof(uint32_t);
-          }
+            byte *dst = (byte *)mapped.pData;
+            dst += pRect[r].left;
+            for(size_t i = 0; i < size; i++)
+            {
+              memcpy(dst, &value, RDCMIN(sizeof(uint32_t), size - i));
+              dst += sizeof(uint32_t);
+            }
 
-          m_pImmediateContext->Unmap(res, 0);
+            m_pImmediateContext->Unmap(res, 0);
+          }
+          else
+          {
+            RDCERR("Couldn't fill discard pattern: %s", ToStr(hr).c_str());
+            return;
+          }
         }
       }
       else if(desc.Usage == D3D11_USAGE_DEFAULT)
@@ -857,6 +867,7 @@ uint32_t D3D11DebugManager::GetStructCount(ID3D11UnorderedAccessView *uav)
 
   D3D11_MAPPED_SUBRESOURCE mapped;
   HRESULT hr = m_pImmediateContext->Map(StageBuffer, 0, D3D11_MAP_READ, 0, &mapped);
+  m_pDevice->CheckHRESULT(hr);
 
   if(FAILED(hr))
   {
@@ -935,6 +946,7 @@ void D3D11DebugManager::GetBufferData(ID3D11Buffer *buffer, uint64_t offset, uin
 
     HRESULT hr = m_pImmediateContext->GetReal()->Map(UNWRAP(WrappedID3D11Buffer, StageBuffer), 0,
                                                      D3D11_MAP_READ, 0, &mapped);
+    m_pDevice->CheckHRESULT(hr);
 
     if(FAILED(hr))
     {

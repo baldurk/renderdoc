@@ -290,7 +290,6 @@ private:
   void AddDebugMessage(DebugMessage msg);
 
   ReplayStatus m_FatalError = ReplayStatus::Succeeded;
-  ReplayStatus FatalErrorCheck() { return m_FatalError; }
   CaptureState m_State;
   bool m_AppControlledCapture = false;
 
@@ -478,7 +477,7 @@ private:
   rdcarray<ExternalQueue> m_ExternalQueues;
 
   VkCommandBuffer GetExtQueueCmd(uint32_t queueFamilyIdx) const;
-  void SubmitAndFlushExtQueue(uint32_t queueFamilyIdx) const;
+  void SubmitAndFlushExtQueue(uint32_t queueFamilyIdx);
 
   void SubmitAndFlushImageStateBarriers(ImageBarrierSequence &barriers);
   void InlineSetupImageBarriers(VkCommandBuffer cmd, ImageBarrierSequence &batches);
@@ -1102,6 +1101,16 @@ public:
 
   bool SelectGraphicsComputeQueue(const rdcarray<VkQueueFamilyProperties> &queueProps,
                                   VkDeviceCreateInfo &createInfo, uint32_t &queueFamilyIndex);
+
+  ReplayStatus FatalErrorCheck() { return m_FatalError; }
+  bool HasFatalError() { return m_FatalError != ReplayStatus::Succeeded; }
+  inline void CheckVkResult(VkResult vkr)
+  {
+    if(vkr == VK_SUCCESS)
+      return;
+    CheckErrorVkResult(vkr);
+  }
+  void CheckErrorVkResult(VkResult vkr);
 
   bool SeparateDepthStencil() const { return m_SeparateDepthStencil; }
   bool NULLDescriptorsAllowed() const { return m_NULLDescriptorsAllowed; }

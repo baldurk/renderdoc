@@ -699,7 +699,7 @@ public:
       }
 
       VkResult vkr = m_pDriver->vkCreateImageView(dev, &viewInfo, NULL, &sampleView);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      m_pDriver->CheckVkResult(vkr);
 
       m_SampleViews[GetResID(view)] = sampleView;
     }
@@ -783,7 +783,7 @@ public:
           sampInfo.mipLodBias += bias;
 
           VkResult vkr = m_pDriver->vkCreateSampler(dev, &sampInfo, NULL, &sampler);
-          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+          m_pDriver->CheckVkResult(vkr);
 
           insertIt.first->second = sampler;
         }
@@ -1248,11 +1248,14 @@ public:
     {
       VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 
+      if(cmd == VK_NULL_HANDLE)
+        return false;
+
       VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                             VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
       VkResult vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      m_pDriver->CheckVkResult(vkr);
 
       VkClearValue clear = {};
 
@@ -1307,7 +1310,7 @@ public:
       DoPipelineBarrier(cmd, 1, &bufBarrier);
 
       vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      m_pDriver->CheckVkResult(vkr);
 
       m_pDriver->SubmitCmds();
       m_pDriver->FlushQ();
@@ -1381,11 +1384,14 @@ public:
     {
       VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 
+      if(cmd == VK_NULL_HANDLE)
+        return false;
+
       VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                             VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
       VkResult vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      m_pDriver->CheckVkResult(vkr);
 
       ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
                                     Unwrap(m_DebugData.MathPipe[floatSizeIdx]));
@@ -1437,7 +1443,7 @@ public:
       DoPipelineBarrier(cmd, 1, &bufBarrier);
 
       vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      m_pDriver->CheckVkResult(vkr);
 
       m_pDriver->SubmitCmds();
       m_pDriver->FlushQ();
@@ -1735,7 +1741,7 @@ private:
 
       VkResult vkr = m_pDriver->vkCreateShaderModule(m_pDriver->GetDev(), &moduleCreateInfo, NULL,
                                                      &m_DebugData.Module[shaderIndex]);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      m_pDriver->CheckVkResult(vkr);
 
       const char *filename[] = {
           "/debug_psgather_float.spv", "/debug_psgather_uint.spv", "/debug_psgather_sint.spv",
@@ -4206,7 +4212,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     };
 
     vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &pipeLayout);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     graphicsInfo.layout = pipeLayout;
 
@@ -4283,7 +4289,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
       moduleCreateInfo.codeSize = fragspv.size() * sizeof(uint32_t);
 
       vkr = m_pDriver->vkCreateShaderModule(dev, &moduleCreateInfo, NULL, &stage.module);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      CheckVkResult(vkr);
 
       stage.pSpecializationInfo = &specInfo;
 
@@ -4321,7 +4327,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
       moduleCreateInfo.codeSize = spirv.size() * sizeof(uint32_t);
 
       vkr = m_pDriver->vkCreateShaderModule(dev, &moduleCreateInfo, NULL, &stage.module);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      CheckVkResult(vkr);
 
       modules.push_back(stage.module);
     }
@@ -4334,7 +4340,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   VkPipeline inputsPipe;
   vkr =
       m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &graphicsInfo, NULL, &inputsPipe);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 
   // make copy of state to draw from
   VulkanRenderState modifiedstate = state;
@@ -4359,11 +4365,14 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   {
     VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 
+    if(cmd == VK_NULL_HANDLE)
+      return new ShaderDebugTrace;
+
     VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                           VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
     vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     // fill destination buffer with 0s to ensure a baseline to then feedback against
     ObjDisp(dev)->CmdFillBuffer(Unwrap(cmd), Unwrap(m_BindlessFeedback.FeedbackBuffer.buf), 0,
@@ -4391,7 +4400,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     modifiedstate.EndRenderPass(cmd);
 
     vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     m_pDriver->SubmitCmds();
     m_pDriver->FlushQ();

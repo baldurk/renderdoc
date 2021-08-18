@@ -535,6 +535,7 @@ rdcarray<CounterResult> D3D12Replay::FetchCounters(const rdcarray<GPUCounter> &c
   HRESULT hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &bufDesc,
                                                   D3D12_RESOURCE_STATE_COPY_DEST, NULL,
                                                   __uuidof(ID3D12Resource), (void **)&readbackBuf);
+  m_pDevice->CheckHRESULT(hr);
   if(FAILED(hr))
   {
     RDCERR("Failed to create query readback buffer HRESULT: %s", ToStr(hr).c_str());
@@ -548,6 +549,7 @@ rdcarray<CounterResult> D3D12Replay::FetchCounters(const rdcarray<GPUCounter> &c
   ID3D12QueryHeap *timerQueryHeap = NULL;
   hr = m_pDevice->CreateQueryHeap(&timerQueryDesc, __uuidof(timerQueryHeap),
                                   (void **)&timerQueryHeap);
+  m_pDevice->CheckHRESULT(hr);
   if(FAILED(hr))
   {
     RDCERR("Failed to create timer query heap HRESULT: %s", ToStr(hr).c_str());
@@ -561,6 +563,7 @@ rdcarray<CounterResult> D3D12Replay::FetchCounters(const rdcarray<GPUCounter> &c
   ID3D12QueryHeap *pipestatsQueryHeap = NULL;
   hr = m_pDevice->CreateQueryHeap(&pipestatsQueryDesc, __uuidof(pipestatsQueryHeap),
                                   (void **)&pipestatsQueryHeap);
+  m_pDevice->CheckHRESULT(hr);
   if(FAILED(hr))
   {
     RDCERR("Failed to create pipeline statistics query heap HRESULT: %s", ToStr(hr).c_str());
@@ -574,6 +577,7 @@ rdcarray<CounterResult> D3D12Replay::FetchCounters(const rdcarray<GPUCounter> &c
   ID3D12QueryHeap *occlusionQueryHeap = NULL;
   hr = m_pDevice->CreateQueryHeap(&occlusionQueryDesc, __uuidof(occlusionQueryHeap),
                                   (void **)&occlusionQueryHeap);
+  m_pDevice->CheckHRESULT(hr);
   if(FAILED(hr))
   {
     RDCERR("Failed to create occlusion query heap HRESULT: %s", ToStr(hr).c_str());
@@ -587,6 +591,7 @@ rdcarray<CounterResult> D3D12Replay::FetchCounters(const rdcarray<GPUCounter> &c
                 "D3D12 counters require Win10 developer mode enabled: Settings > Update & Security "
                 "> For Developers > Developer Mode",
                 "D3D12 Counters Error", MB_ICONWARNING | MB_OK);
+  m_pDevice->CheckHRESULT(hr);
 
   D3D12GPUTimerCallback cb(m_pDevice, this, timerQueryHeap, pipestatsQueryHeap, occlusionQueryHeap);
 
@@ -602,6 +607,9 @@ rdcarray<CounterResult> D3D12Replay::FetchCounters(const rdcarray<GPUCounter> &c
   m_pDevice->SetStablePowerState(FALSE);
 
   ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+
+  if(!list)
+    return ret;
 
   UINT64 bufferOffset = 0;
 
@@ -629,6 +637,7 @@ rdcarray<CounterResult> D3D12Replay::FetchCounters(const rdcarray<GPUCounter> &c
 
   uint8_t *data;
   hr = readbackBuf->Map(0, &range, (void **)&data);
+  m_pDevice->CheckHRESULT(hr);
   if(FAILED(hr))
   {
     RDCERR("Failed to read timer query heap data HRESULT: %s", ToStr(hr).c_str());

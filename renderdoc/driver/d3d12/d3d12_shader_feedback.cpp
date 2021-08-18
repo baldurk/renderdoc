@@ -280,6 +280,9 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
   if(!D3D12_BindlessFeedback())
     return;
 
+  if(m_pDevice->HasFatalError())
+    return;
+
   // create it here so we won't re-run any code if the event is re-selected. We'll mark it as valid
   // if it actually has any data in it later.
   D3D12DynamicShaderFeedback &result = m_BindlessFeedback.Usage[eventId];
@@ -432,6 +435,8 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
                                          GetDebugManager()->GetUAVClearHandle(FEEDBACK_CLEAR_UAV));
 
     ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+    if(!list)
+      return;
 
     UINT zeroes[4] = {0, 0, 0, 0};
     list->ClearUnorderedAccessViewUint(GetDebugManager()->GetGPUHandle(FEEDBACK_CLEAR_UAV),

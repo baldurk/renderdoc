@@ -1804,6 +1804,8 @@ void D3D12Replay::RenderHighlightBox(float w, float h, float scale)
 
   {
     ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+    if(!list)
+      return;
 
     float black[] = {0.0f, 0.0f, 0.0f, 1.0f};
     float white[] = {1.0f, 1.0f, 1.0f, 1.0f};
@@ -1877,6 +1879,8 @@ void D3D12Replay::RenderCheckerboard(FloatVector dark, FloatVector light)
 
   {
     ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+    if(!list)
+      return;
 
     list->OMSetRenderTargets(1, &outw.rtv, TRUE, NULL);
 
@@ -2268,6 +2272,8 @@ uint32_t D3D12Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height
   }
 
   ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+  if(!list)
+    return ~0U;
 
   list->SetPipelineState(m_VertexPick.Pipe);
 
@@ -2288,6 +2294,8 @@ uint32_t D3D12Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height
   GetDebugManager()->GetBufferData(m_VertexPick.ResultBuf, 0, 0, results);
 
   list = m_pDevice->GetNewList();
+  if(!list)
+    return ~0U;
 
   UINT zeroes[4] = {0, 0, 0, 0};
   list->ClearUnorderedAccessViewUint(GetDebugManager()->GetGPUHandle(PICK_RESULT_CLEAR_UAV),
@@ -2396,6 +2404,8 @@ void D3D12Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Su
   }
 
   ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+  if(!list)
+    return;
 
   D3D12_RESOURCE_BARRIER barrier = {};
 
@@ -2435,6 +2445,7 @@ void D3D12Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Su
 
   float *pix = NULL;
   HRESULT hr = m_General.ResultReadbackBuffer->Map(0, &range, (void **)&pix);
+  m_pDevice->CheckHRESULT(hr);
 
   if(FAILED(hr))
   {
@@ -2522,6 +2533,8 @@ bool D3D12Replay::GetMinMax(ResourceId texid, const Subresource &sub, CompType t
 
   {
     ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+    if(!list)
+      return false;
 
     if(!barriers.empty())
       list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
@@ -2609,6 +2622,7 @@ bool D3D12Replay::GetMinMax(ResourceId texid, const Subresource &sub, CompType t
 
   void *data = NULL;
   HRESULT hr = m_General.ResultReadbackBuffer->Map(0, &range, &data);
+  m_pDevice->CheckHRESULT(hr);
 
   if(FAILED(hr))
   {
@@ -2718,6 +2732,8 @@ bool D3D12Replay::GetHistogram(ResourceId texid, const Subresource &sub, CompTyp
 
   {
     ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+    if(!list)
+      return false;
 
     if(!barriers.empty())
       list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
@@ -2780,6 +2796,7 @@ bool D3D12Replay::GetHistogram(ResourceId texid, const Subresource &sub, CompTyp
 
   void *data = NULL;
   HRESULT hr = m_General.ResultReadbackBuffer->Map(0, &range, &data);
+  m_pDevice->CheckHRESULT(hr);
 
   histogram.clear();
   histogram.resize(HGRAM_NUM_BUCKETS);
@@ -3335,7 +3352,11 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
     hr = m_pDevice->CreateCommittedResource(&defaultHeap, D3D12_HEAP_FLAG_NONE, &copyDesc,
                                             D3D12_RESOURCE_STATE_RENDER_TARGET, NULL,
                                             __uuidof(ID3D12Resource), (void **)&remapTexture);
-    RDCASSERTEQUAL(hr, S_OK);
+    if(FAILED(hr))
+    {
+      RDCERR("Couldn't create remap texture: %s", ToStr(hr).c_str());
+      return;
+    }
 
     TexDisplayFlags flags =
         IsSRGBFormat(copyDesc.Format) ? eTexDisplay_None : eTexDisplay_LinearRender;
@@ -3411,6 +3432,8 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
     tmpTexture = srcTexture = remapTexture;
 
     list = m_pDevice->GetNewList();
+    if(!list)
+      return;
 
     D3D12_RESOURCE_BARRIER b = {};
     b.Transition.pResource = remapTexture;
@@ -3441,11 +3464,17 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
     hr = m_pDevice->CreateCommittedResource(&defaultHeap, D3D12_HEAP_FLAG_NONE, &copyDesc,
                                             D3D12_RESOURCE_STATE_RESOLVE_DEST, NULL,
                                             __uuidof(ID3D12Resource), (void **)&resolveTexture);
-    RDCASSERTEQUAL(hr, S_OK);
+    if(FAILED(hr))
+    {
+      RDCERR("Couldn't create resolve texture: %s", ToStr(hr).c_str());
+      return;
+    }
 
     RDCASSERT(!isDepth && !isStencil);
 
     list = m_pDevice->GetNewList();
+    if(!list)
+      return;
 
     // put source texture into resolve source state
     const rdcarray<D3D12_RESOURCE_STATES> &states = m_pDevice->GetSubresourceStates(tex);
@@ -3511,9 +3540,15 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
         &defaultHeap, D3D12_HEAP_FLAG_NONE, &copyDesc,
         isDepth ? D3D12_RESOURCE_STATE_DEPTH_WRITE : D3D12_RESOURCE_STATE_RENDER_TARGET, NULL,
         __uuidof(ID3D12Resource), (void **)&arrayTexture);
-    RDCASSERTEQUAL(hr, S_OK);
+    if(FAILED(hr))
+    {
+      RDCERR("Couldn't create array texture: %s", ToStr(hr).c_str());
+      return;
+    }
 
     list = m_pDevice->GetNewList();
+    if(!list)
+      return;
 
     // put source texture into shader read state
     const rdcarray<D3D12_RESOURCE_STATES> &states = m_pDevice->GetSubresourceStates(tex);
@@ -3553,6 +3588,8 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
     tmpTexture = srcTexture = arrayTexture;
 
     list = m_pDevice->GetNewList();
+    if(!list)
+      return;
 
     // real resource back to normal
     for(size_t i = 0; i < barriers.size(); i++)
@@ -3575,6 +3612,8 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
 
   if(list == NULL)
     list = m_pDevice->GetNewList();
+  if(!list)
+    return;
 
   rdcarray<D3D12_RESOURCE_BARRIER> barriers;
 
@@ -3661,7 +3700,11 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
   hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &readbackDesc,
                                           D3D12_RESOURCE_STATE_COPY_DEST, NULL,
                                           __uuidof(ID3D12Resource), (void **)&readbackBuf);
-  RDCASSERTEQUAL(hr, S_OK);
+  if(FAILED(hr))
+  {
+    RDCERR("Couldn't create readback buffer: %s", ToStr(hr).c_str());
+    return;
+  }
 
   for(UINT p = 0; p < planes; p++)
   {
@@ -3697,6 +3740,13 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
   // map the buffer and copy to return buffer
   byte *pData = NULL;
   hr = readbackBuf->Map(0, NULL, (void **)&pData);
+  m_pDevice->CheckHRESULT(hr);
+  if(FAILED(hr))
+  {
+    RDCERR("Couldn't map readback buffer: %s", ToStr(hr).c_str());
+    readbackBuf->Unmap(0, NULL);
+    return;
+  }
   RDCASSERTEQUAL(hr, S_OK);
 
   RDCASSERT(pData != NULL);
@@ -3869,7 +3919,11 @@ ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid,
     HRESULT hr = m_pDevice->CreateCommittedResource(
         &heapProps, D3D12_HEAP_FLAG_NONE, &resDesc, D3D12_RESOURCE_STATE_RENDER_TARGET, NULL,
         __uuidof(ID3D12Resource), (void **)&m_CustomShaderTex);
-    RDCASSERTEQUAL(hr, S_OK);
+    if(FAILED(hr))
+    {
+      RDCERR("Couldn't create custom shader texture: %s", ToStr(hr).c_str());
+      return ResourceId();
+    }
 
     if(m_CustomShaderTex)
     {
@@ -3894,6 +3948,8 @@ ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid,
                                     GetDebugManager()->GetCPUHandle(CUSTOM_SHADER_RTV));
 
   ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+  if(!list)
+    return ResourceId();
 
   float clr[] = {0.0f, 0.0f, 0.0f, 0.0f};
   list->ClearRenderTargetView(GetDebugManager()->GetCPUHandle(CUSTOM_SHADER_RTV), clr, 0, NULL);

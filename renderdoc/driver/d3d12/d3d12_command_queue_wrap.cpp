@@ -711,6 +711,8 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
 void WrappedID3D12CommandQueue::ExecuteCommandLists(UINT NumCommandLists,
                                                     ID3D12CommandList *const *ppCommandLists)
 {
+  if(m_pDevice->HasFatalError())
+    return;
   ExecuteCommandListsInternal(NumCommandLists, ppCommandLists, false, false);
 }
 

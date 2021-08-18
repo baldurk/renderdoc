@@ -252,6 +252,10 @@ HRESULT WrappedID3D12Device::CreateCommittedResource2(
       }
     }
   }
+  else
+  {
+    CheckHRESULT(ret);
+  }
 
   return ret;
 }
@@ -468,6 +472,10 @@ HRESULT WrappedID3D12Device::CreatePlacedResource1(ID3D12Heap *pHeap, UINT64 Hea
         m_RefBuffers.push_back(wrapped);
       }
     }
+  }
+  else
+  {
+    CheckHRESULT(ret);
   }
 
   return ret;

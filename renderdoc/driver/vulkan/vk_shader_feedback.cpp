@@ -1515,7 +1515,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
       };
 
       vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &pipeLayout);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      CheckVkResult(vkr);
 
       // we'll only use one, set both structs to keep things simple
       computeInfo.layout = pipeLayout;
@@ -1578,7 +1578,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
     moduleCreateInfo.codeSize = modSpirv.size() * sizeof(uint32_t);
 
     vkr = m_pDriver->vkCreateShaderModule(dev, &moduleCreateInfo, NULL, &modules[0]);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     stage.module = modules[0];
   }
@@ -1638,7 +1638,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
       moduleCreateInfo.codeSize = modSpirv.size() * sizeof(uint32_t);
 
       vkr = m_pDriver->vkCreateShaderModule(dev, &moduleCreateInfo, NULL, &modules[i]);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      CheckVkResult(vkr);
 
       stage.module = modules[i];
     }
@@ -1650,13 +1650,13 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   {
     vkr = m_pDriver->vkCreateComputePipelines(m_Device, VK_NULL_HANDLE, 1, &computeInfo, NULL,
                                               &feedbackPipe);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
   }
   else
   {
     vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &graphicsInfo, NULL,
                                                &feedbackPipe);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
   }
 
   // make copy of state to draw from
@@ -1684,11 +1684,14 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   {
     VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 
+    if(cmd == VK_NULL_HANDLE)
+      return;
+
     VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                           VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
     vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     // fill destination buffer with 0s to ensure a baseline to then feedback against
     ObjDisp(dev)->CmdFillBuffer(Unwrap(cmd), Unwrap(m_BindlessFeedback.FeedbackBuffer.buf), 0,
@@ -1726,7 +1729,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
     }
 
     vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     m_pDriver->SubmitCmds();
     m_pDriver->FlushQ();

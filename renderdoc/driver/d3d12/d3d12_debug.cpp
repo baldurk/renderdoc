@@ -661,6 +661,7 @@ void D3D12DebugManager::FillBuffer(ID3D12Resource *buf, size_t offset, const voi
   D3D12_RANGE range = {offset, offset + size};
   byte *ptr = NULL;
   HRESULT hr = buf->Map(0, &range, (void **)&ptr);
+  m_pDevice->CheckHRESULT(hr);
 
   if(FAILED(hr))
   {
@@ -1276,6 +1277,7 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
 
     byte *data = NULL;
     HRESULT hr = buffer->Map(0, &range, (void **)&data);
+    m_pDevice->CheckHRESULT(hr);
 
     if(FAILED(hr))
     {
@@ -1320,6 +1322,7 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
 
     void *data = NULL;
     HRESULT hr = m_ReadbackBuffer->Map(0, &range, &data);
+    m_pDevice->CheckHRESULT(hr);
 
     if(FAILED(hr))
     {

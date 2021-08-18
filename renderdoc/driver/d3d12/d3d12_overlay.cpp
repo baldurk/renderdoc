@@ -439,6 +439,8 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
     renderDepth->SetName(L"Overlay renderDepth");
 
     ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+    if(!list)
+      return ResourceId();
 
     const rdcarray<D3D12_RESOURCE_STATES> &states =
         m_pDevice->GetSubresourceStates(GetResID(realDepth));
@@ -492,6 +494,8 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
   rtDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
 
   ID3D12GraphicsCommandListX *list = m_pDevice->GetNewList();
+  if(!list)
+    return ResourceId();
 
   // clear all mips and all slices first
   for(UINT mip = 0; mip < overlayTexDesc.MipLevels; mip++)
@@ -841,6 +845,8 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
         m_pDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);
 
       list = m_pDevice->GetNewList();
+      if(!list)
+        return ResourceId();
 
       for(size_t i = 0; i < rts.size(); i++)
       {
@@ -984,6 +990,8 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       rs = prev;
 
       list = m_pDevice->GetNewList();
+      if(!list)
+        return ResourceId();
 
       rs.ApplyState(m_pDevice, list);
 
@@ -1185,6 +1193,8 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
 
         if(list == NULL)
           list = m_pDevice->GetNewList();
+        if(!list)
+          return ResourceId();
 
         rs.ApplyState(m_pDevice, list);
 
@@ -1298,6 +1308,8 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
         list->Close();
         m_pDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);
         list = m_pDevice->GetNewList();
+        if(!list)
+          return ResourceId();
       }
 
       uint32_t width = uint32_t(RDCMAX(1ULL, overlayTexDesc.Width >> (sub.mip + 1)));
@@ -1407,6 +1419,8 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       // resolve pass
       {
         list = m_pDevice->GetNewList();
+        if(!list)
+          return ResourceId();
 
         D3D12_RESOURCE_BARRIER overdrawBarriers[2] = {};
 

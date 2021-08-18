@@ -245,6 +245,8 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
   OutputWindow &outw = it->second;
 
   ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+  if(!list)
+    return;
 
   list->OMSetRenderTargets(1, &outw.rtv, TRUE, &outw.dsv);
 

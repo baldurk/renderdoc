@@ -616,21 +616,24 @@ rdcarray<CounterResult> VulkanReplay::FetchCountersKHR(const rdcarray<GPUCounter
 
   VkQueryPool queryPool;
   vkr = ObjDisp(dev)->CreateQueryPool(Unwrap(dev), &queryPoolCreateInfo, NULL, &queryPool);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 
   // Reset query pool
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
+
+  if(cmd == VK_NULL_HANDLE)
+    return {};
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
   vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 
   ObjDisp(dev)->CmdResetQueryPool(Unwrap(cmd), queryPool, 0, maxEID);
 
   vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 
   m_pDriver->SubmitCmds();
 
@@ -656,7 +659,7 @@ rdcarray<CounterResult> VulkanReplay::FetchCountersKHR(const rdcarray<GPUCounter
       Unwrap(dev), queryPool, 0, (uint32_t)cb.m_Results.size(),
       sizeof(VkPerformanceCounterResultKHR) * perfResults.size(), &perfResults[0],
       sizeof(VkPerformanceCounterResultKHR) * counters.size(), VK_QUERY_RESULT_WAIT_BIT);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 
   ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), queryPool, NULL);
 
@@ -859,7 +862,7 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
   VkQueryPool timeStampPool;
   VkResult vkr =
       ObjDisp(dev)->CreateQueryPool(Unwrap(dev), &timeStampPoolCreateInfo, NULL, &timeStampPool);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 
   bool occlNeeded = false;
   bool statsNeeded = false;
@@ -888,23 +891,26 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
   if(availableFeatures.occlusionQueryPrecise && occlNeeded)
   {
     vkr = ObjDisp(dev)->CreateQueryPool(Unwrap(dev), &occlusionPoolCreateInfo, NULL, &occlusionPool);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
   }
 
   VkQueryPool pipeStatsPool = VK_NULL_HANDLE;
   if(availableFeatures.pipelineStatisticsQuery && statsNeeded)
   {
     vkr = ObjDisp(dev)->CreateQueryPool(Unwrap(dev), &pipeStatsPoolCreateInfo, NULL, &pipeStatsPool);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
   }
 
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
+
+  if(cmd == VK_NULL_HANDLE)
+    return {};
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
   vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 
   ObjDisp(dev)->CmdResetQueryPool(Unwrap(cmd), timeStampPool, 0, maxEID * 2);
   if(occlusionPool != VK_NULL_HANDLE)
@@ -913,7 +919,7 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
     ObjDisp(dev)->CmdResetQueryPool(Unwrap(cmd), pipeStatsPool, 0, maxEID);
 
   vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
   m_pDriver->SubmitCmds();
@@ -931,7 +937,7 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
       Unwrap(dev), timeStampPool, 0, (uint32_t)m_TimeStampData.size(),
       sizeof(uint64_t) * m_TimeStampData.size(), &m_TimeStampData[0], sizeof(uint64_t),
       VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  CheckVkResult(vkr);
 
   ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), timeStampPool, NULL);
 
@@ -943,7 +949,7 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
         Unwrap(dev), occlusionPool, 0, (uint32_t)m_OcclusionData.size(),
         sizeof(uint64_t) * m_OcclusionData.size(), &m_OcclusionData[0], sizeof(uint64_t),
         VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), occlusionPool, NULL);
   }
@@ -956,7 +962,7 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
         Unwrap(dev), pipeStatsPool, 0, (uint32_t)cb.m_Results.size(),
         sizeof(uint64_t) * m_PipeStatsData.size(), &m_PipeStatsData[0], sizeof(uint64_t) * 11,
         VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    CheckVkResult(vkr);
 
     ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), pipeStatsPool, NULL);
   }

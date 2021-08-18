@@ -187,6 +187,10 @@ HRESULT WrappedID3D12Device::CreateCommandQueue1(const D3D12_COMMAND_QUEUE_DESC 
 
     *ppCommandQueue = (ID3D12CommandQueue *)wrapped;
   }
+  else
+  {
+    CheckHRESULT(ret);
+  }
 
   return ret;
 }

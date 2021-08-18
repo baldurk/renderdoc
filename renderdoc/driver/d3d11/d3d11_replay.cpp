@@ -1705,6 +1705,8 @@ void D3D11Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Su
   mapped.pData = NULL;
   HRESULT hr = m_pImmediateContext->Map(m_PixelPick.StageTexture, 0, D3D11_MAP_READ, 0, &mapped);
 
+  m_pDevice->CheckHRESULT(hr);
+
   if(FAILED(hr))
   {
     RDCERR("Failed to map stage buff HRESULT: %s", ToStr(hr).c_str());
@@ -1815,6 +1817,8 @@ bool D3D11Replay::GetMinMax(ResourceId texid, const Subresource &sub, CompType t
   D3D11_MAPPED_SUBRESOURCE mapped;
 
   HRESULT hr = m_pImmediateContext->Map(m_Histogram.ResultStageBuff, 0, D3D11_MAP_READ, 0, &mapped);
+
+  m_pDevice->CheckHRESULT(hr);
 
   if(FAILED(hr))
   {
@@ -1945,6 +1949,8 @@ bool D3D11Replay::GetHistogram(ResourceId texid, const Subresource &sub, CompTyp
   D3D11_MAPPED_SUBRESOURCE mapped;
 
   HRESULT hr = m_pImmediateContext->Map(m_Histogram.ResultStageBuff, 0, D3D11_MAP_READ, 0, &mapped);
+
+  m_pDevice->CheckHRESULT(hr);
 
   histogram.clear();
   histogram.resize(HGRAM_NUM_BUCKETS);

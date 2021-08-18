@@ -50,7 +50,7 @@ void VulkanReplay::OutputWindow::CreateSurface(WrappedVulkan *driver, VkInstance
       (const char *)&dllLocator, (HMODULE *)&createInfo.hinstance);
 
   VkResult vkr = ObjDisp(inst)->CreateWin32SurfaceKHR(Unwrap(inst), &createInfo, NULL, &surface);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  driver->CheckVkResult(vkr);
 }
 
 void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)

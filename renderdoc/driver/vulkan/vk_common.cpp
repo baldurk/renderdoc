@@ -226,7 +226,7 @@ void GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, u
     bufInfo.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
   VkResult vkr = driver->vkCreateBuffer(dev, &bufInfo, NULL, &buf);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  driver->CheckVkResult(vkr);
 
   VkMemoryRequirements mrq = {};
   driver->vkGetBufferMemoryRequirements(dev, buf, &mrq);
@@ -250,10 +250,13 @@ void GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, u
   }
 
   vkr = driver->vkAllocateMemory(dev, &allocInfo, NULL, &mem);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  driver->CheckVkResult(vkr);
+
+  if(vkr != VK_SUCCESS)
+    return;
 
   vkr = driver->vkBindBufferMemory(dev, buf, mem, 0);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  driver->CheckVkResult(vkr);
 }
 
 void GPUBuffer::FillDescriptor(VkDescriptorBufferInfo &desc)
@@ -298,7 +301,7 @@ void *GPUBuffer::Map(uint32_t *bindoffset, VkDeviceSize usedsize)
 
   void *ptr = NULL;
   VkResult vkr = m_pDriver->vkMapMemory(device, mem, offset, size, 0, (void **)&ptr);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  m_pDriver->CheckVkResult(vkr);
 
   if(createFlags & eGPUBufferReadback)
   {
@@ -307,7 +310,7 @@ void *GPUBuffer::Map(uint32_t *bindoffset, VkDeviceSize usedsize)
     };
 
     vkr = m_pDriver->vkInvalidateMappedMemoryRanges(device, 1, &range);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    m_pDriver->CheckVkResult(vkr);
   }
 
   return ptr;
@@ -333,7 +336,7 @@ void GPUBuffer::Unmap()
     };
 
     VkResult vkr = m_pDriver->vkFlushMappedMemoryRanges(device, 1, &range);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    m_pDriver->CheckVkResult(vkr);
   }
 
   m_pDriver->vkUnmapMemory(device, mem);
