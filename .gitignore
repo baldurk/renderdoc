@@ -45,3 +45,6 @@ qrenderdoc/3rdparty/pyside
 .DS_Store
 plugins-*/
 __pycache__
+.vscode
+.idea
+.github
