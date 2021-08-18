@@ -47,3 +47,4 @@ plugins-*/
 __pycache__
 .vscode
 .idea
+.github
