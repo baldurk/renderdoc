@@ -729,7 +729,7 @@ struct GLDispatchTable
   // As with other aliases, this assumes the functions defined to have identical semantics are safe
   // to substitute for each other (which in theory should be true). We do it this way around rather
   // than have EXT_dsa as aliases of ARB_dsa - which is usually what we do for EXT extension
-  // variants. The reason being we want to support hw/sw configurations where ARB_dsa is not
+  // variants. The reason being we want to support hw/sw configurations where A1RB_dsa is not
   // present, so we need to fall back on EXT_dsa. If the EXT functions are the aliases, we will
   // never fetch them when getting function pointers, so if ARB_dsa functions aren't present then we
   // just get NULL. In theory EXT_dsa supported cases should be a strict superset of ARB_dsa

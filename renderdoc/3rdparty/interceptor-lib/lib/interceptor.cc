@@ -53,7 +53,9 @@
 using namespace interceptor;
 
 namespace interceptor {
-
+/**
+ * inline hook 拦截器
+ */
 class InterceptorImpl {
  public:
   InterceptorImpl();
@@ -311,7 +313,7 @@ Error InterceptorImpl::CreateCompensationFunction(void *old_function,
 }
 
 Error InterceptorImpl::InterceptFunction(void *old_function, void *new_function,
-                                         void **callback_function) {
+                                         void **callback_function) {5
   if (!callback_function) {
     // TODO: Verify that the function is long enough for placing a trampoline
     //       inside it. If it isn't then currently we are overwriting the
@@ -319,7 +321,8 @@ Error InterceptorImpl::InterceptFunction(void *old_function, void *new_function,
 
     // We don't have to set up a callback function so installing a trampoline
     // without generating compensation instructions is sufficient.
-    TrampolineConfig full_config = target_->GetFullTrampolineConfig();
+    //运行到此处的一定是callback_function==NULL也就是说 *trampoline==NULL
+    TrampolineConfig full_config = target_->GetFullTrampolineConfig()
     return InstallTrampoline(full_config, old_function, new_function);
   }
 

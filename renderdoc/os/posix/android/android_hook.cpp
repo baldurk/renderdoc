@@ -521,7 +521,9 @@ extern "C" __attribute__((visibility("default"))) void *hooked_dlsym(void *handl
   HOOK_DEBUG_PRINT("real ret is %p in %s", ret, info.dli_fname);
   return ret;
 }
-
+/**
+ * hook 公共的库，例如lib.so中的dlopen和dlsym
+ */
 static void InstallHooksCommon()
 {
   suppressTLS = Threading::AllocateTLSSlot();
@@ -572,7 +574,7 @@ void PatchHookedFunctions()
   rdcarray<rdcstr> libs = GetHookInfo().GetLibHooks();
   rdcarray<FunctionHook> funchooks = GetHookInfo().GetFunctionHooks();
 
-  // we just leak this
+  // we just leak this，加载拦截器
   void *intercept = InitializeInterceptor();
 
   std::set<rdcstr> fallbacklibs;
@@ -593,7 +595,9 @@ void PatchHookedFunctions()
     HOOK_DEBUG_PRINT("Hooking %s = %p", lib.c_str(), handle);
 
     std::set<void *> foundfunctions;
-
+    /**
+     * funchooks包含dlopen或者dlsym
+     */
     for(const FunctionHook &hook : funchooks)
     {
       void *oldfunc = dlsym(handle, hook.function.c_str());
@@ -604,6 +608,7 @@ void PatchHookedFunctions()
             // all GL functions in libGLES*.so are just trampolines to his.
             // However, we do not support trampoline interception for now,
             // so try to intercept the internal implementation instead.
+            //华为的opengl接口只是它们自己的跳板，他们重新实现了一套HWOpengl
       */
       if(huawei && oldfunc == NULL)
         oldfunc = dlsym(handle, ("hw_" + hook.function).c_str());
@@ -622,7 +627,7 @@ void PatchHookedFunctions()
 
       void *trampoline = NULL;
 
-      bool success = InterceptFunction(intercept, oldfunc, hook.hook, &trampoline, &intercept_error);
+      bool success = InterceptFunction(intercept, oldfunc, hook.hook, &trampoline, &intercept_error);//开始对函数进行hook，使用llvm来生成汇编代码，但是理论上只hook了dlopen一个函数。。
 
       if(!hook.orig)
         RDCWARN("No original pointer for hook of '%s' - trampoline will be lost!",
