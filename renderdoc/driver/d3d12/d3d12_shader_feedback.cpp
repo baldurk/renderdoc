@@ -567,11 +567,11 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
           {
             if(visMask & (1 << st))
             {
-              // the feedback entries start here
-              auto slotIt = slots[st].lower_bound(curKey);
-
               curIdentifier.descIndex = 0;
               curKey.bind.bind = range.BaseShaderRegister;
+
+              // the feedback entries start here
+              auto slotIt = slots[st].lower_bound(curKey);
 
               // iterate over the declared range. This could be unbounded, so we might exit
               // another way
