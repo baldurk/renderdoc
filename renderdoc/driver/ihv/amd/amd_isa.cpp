@@ -26,9 +26,14 @@
 #include "common/common.h"
 #include "common/formatting.h"
 #include "core/plugins.h"
+#include "core/settings.h"
 #include "os/os_specific.h"
 #include "strings/string_utils.h"
 #include "amd_isa_devices.h"
+
+RDOC_CONFIG(bool, AMD_ISA_ShowLegacyASICs, false,
+            "Show legacy ASICs for AMD shader disassembly targets. Note that depending on the "
+            "environment if driver support is required, these may not be available.");
 
 namespace GCNISA
 {
@@ -162,7 +167,7 @@ void GetTargets(GraphicsAPI api, rdcarray<rdcstr> &targets)
   {
     targets.push_back("AMDIL");
 
-    for(int i = 0; i < asicCount; i++)
+    for(int i = AMD_ISA_ShowLegacyASICs() ? 0 : legacyAsicCount; i < asicCount; i++)
       targets.push_back(asicInfo[i].name);
   }
   else

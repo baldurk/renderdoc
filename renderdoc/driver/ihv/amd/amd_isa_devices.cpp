@@ -54,10 +54,13 @@ const GCNISA::asic GCNISA::asicInfo[] = {
     // Arctic Islands
     {"GCN (gfx900)", "900", FAMILY_AI, AI_GD_P0, "gfx900"},
     {"GCN (gfx902)", "902", FAMILY_AI, AI_GD_P0, "gfx902"},
-    {"GCN (Vega 20)", "906", FAMILY_AI, AI_VEGA20_P_A0, "gfx906"},
+    {"GCN (gfx906)", "906", FAMILY_AI, AI_VEGA20_P_A0, "gfx906"},
     // Navi
-    {"RDNA (Navi 10)", "1010", FAMILY_NV, NV_NAVI10_P_A0, "gfx1010"},
-    {"RDNA (Navi 14)", "1012", FAMILY_NV, NV_NAVI14_M_A0, "gfx1012"},
+    {"RDNA (gfx1010)", "1010", FAMILY_NV, NV_NAVI10_P_A0, "gfx1010"},
+    {"RDNA (gfx1012)", "1012", FAMILY_NV, NV_NAVI14_M_A0, "gfx1012"},
+    {"RDNA2 (gfx1030)", "1030", FAMILY_NV, NV_NAVI21_P_A0, "gfx1030"},
+    {"RDNA2 (gfx1031)", "1031", FAMILY_NV, NV_NAVI22_P_A0, "gfx1031"},
+    {"RDNA2 (gfx1032)", "1032", FAMILY_NV, NV_NAVI23_P_A0, "gfx1032"},
 };
 
 RDCCOMPILE_ASSERT(ARRAY_COUNT(GCNISA::asicInfo) == GCNISA::asicCount, "Mismatched array count");

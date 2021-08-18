@@ -109,7 +109,11 @@ enum {
 
 enum {
     NV_NAVI10_P_A0 = 1,
-    NV_NAVI14_M_A0 = 20
+    NV_NAVI12_P_A0 = 10,
+    NV_NAVI14_M_A0 = 20,
+    NV_NAVI21_P_A0 = 40,
+    NV_NAVI22_P_A0 = 50,
+    NV_NAVI23_P_A0 = 60,
 };
 
 enum {

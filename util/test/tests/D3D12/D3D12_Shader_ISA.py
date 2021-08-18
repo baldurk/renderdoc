@@ -52,11 +52,11 @@ class D3D12_Shader_ISA(rdtest.TestCase):
                 raise rdtest.TestFailureException(
                     "AMDIL ISA doesn't contain '{}' as expected: {}".format(fragment, disasm))
 
-        if 'RDNA (Navi 10)' not in isas:
+        if 'RDNA (gfx1010)' not in isas:
             raise rdtest.TestFailureException(
-                "RDNA (Navi 10) is not an available disassembly target. Are you missing plugins?")
+                "RDNA (gfx1010) is not an available disassembly target. Are you missing plugins?")
 
-        disasm: str = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, 'RDNA (Navi 10)')
+        disasm: str = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, 'RDNA (gfx1010)')
 
         expected = [
             'asic(GFX10)',
