@@ -978,7 +978,6 @@ struct ResourceInfo
   Sparse::PageTable sparseTable;
   rdcarray<AspectSparseTable> altSparseAspects;
   VkImageAspectFlags sparseAspect;
-  bool storable;
 
   Sparse::PageTable &getSparseTableForAspect(VkImageAspectFlags aspects)
   {

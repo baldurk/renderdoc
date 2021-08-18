@@ -1729,8 +1729,6 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
       {
         record->resInfo = new ResourceInfo();
 
-        record->resInfo->storable = record->storable;
-
         // pre-populate memory requirements
         ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), Unwrap(*pBuffer),
                                                      &record->resInfo->memreqs);
@@ -1904,6 +1902,7 @@ VkResult WrappedVulkan::vkCreateBufferView(VkDevice device, const VkBufferViewCr
       record->baseResourceMem = bufferRecord->baseResource;
       record->dedicated = bufferRecord->dedicated;
       record->resInfo = bufferRecord->resInfo;
+      record->storable = bufferRecord->storable;
       record->memOffset = bufferRecord->memOffset + pCreateInfo->offset;
       record->memSize = pCreateInfo->range;
       if(record->memSize == VK_WHOLE_SIZE)
@@ -2289,8 +2288,7 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
       ResourceInfo &resInfo = *record->resInfo;
       resInfo.imageInfo = ImageInfo(*pCreateInfo);
 
-      record->resInfo->storable = record->storable =
-          (pCreateInfo->usage & VK_IMAGE_USAGE_STORAGE_BIT) != 0;
+      record->storable = (pCreateInfo->usage & VK_IMAGE_USAGE_STORAGE_BIT) != 0;
 
       // pre-populate memory requirements
       ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(*pImage), &resInfo.memreqs);

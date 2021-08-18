@@ -1163,7 +1163,7 @@ void DescriptorSetSlot::AccumulateBindRefs(DescriptorBindRefs &refs, VulkanResou
       AddBindFrameRef(refs, bufView->baseResource, eFrameRef_Read);
     if(bufView->baseResourceMem != ResourceId())
       AddMemFrameRef(refs, bufView->baseResourceMem, bufView->memOffset, bufView->memSize, ref);
-    if(bufView->resInfo->storable)
+    if(bufView->storable)
       refs.storableRefs.insert(rm->GetResourceRecord(bufView->baseResource));
   }
   if(imgView)
