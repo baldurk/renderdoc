@@ -97,10 +97,12 @@ set(sources
     api/replay/apidefs.h
     api/replay/capture_options.h
     api/replay/common_pipestate.h
+    api/replay/pipestate.h
     api/replay/control_types.h
     api/replay/data_types.h
     api/replay/rdcarray.h
     api/replay/rdcdatetime.h
+    api/replay/rdcflatmap.h
     api/replay/rdcpair.h
     api/replay/rdcstr.h
     api/replay/replay_enums.h
@@ -118,6 +120,7 @@ set(sources
     common/custom_assert.h
     common/dds_readwrite.cpp
     common/dds_readwrite.h
+    common/formatting.h
     common/globalconfig.h
     common/shader_cache.h
     common/threading.h
