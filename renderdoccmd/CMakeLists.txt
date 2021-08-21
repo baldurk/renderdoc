@@ -1,4 +1,8 @@
-set(sources renderdoccmd.cpp)
+set(sources 
+    renderdoccmd.cpp
+    renderdoccmd.h
+    3rdparty/cmdline/cmdline.h
+    )
 set(includes PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty ${CMAKE_SOURCE_DIR}/renderdoc/api)
 set(libraries PRIVATE renderdoc)
 
