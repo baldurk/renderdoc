@@ -1011,6 +1011,8 @@ private:
 
     ret.action = action;
     ret.effectiveEID = actionRange.back().eventId;
+    if(actionRange.back().flags & ActionFlags::PopMarker)
+      ret.effectiveEID--;
 
     ret.row2action[0] = 0;
 
