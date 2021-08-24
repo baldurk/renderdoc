@@ -1126,6 +1126,9 @@ private:
     if(it != m_EIDNameCache.end())
       return it.value();
 
+    if(eid == 0)
+      return tr("Capture Start");
+
     const ActionDescription *action = m_Actions[eid];
 
     QString name;
