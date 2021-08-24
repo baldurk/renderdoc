@@ -414,7 +414,7 @@ rdcpair<uint32_t, uint32_t> ReplayOutput::PickVertex(uint32_t x, uint32_t y)
 
   MeshDisplay cfg = m_RenderData.meshDisplay;
 
-  if(cfg.position.vertexResourceId == ResourceId())
+  if(cfg.position.vertexResourceId == ResourceId() || cfg.position.numIndices == 0)
     return errorReturn;
 
   cfg.position.vertexResourceId = m_pDevice->GetLiveID(cfg.position.vertexResourceId);
