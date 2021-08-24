@@ -260,6 +260,14 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
   ui->action_Send_Error_Report->setEnabled(false);
 #endif
 
+  // only allow sending error reports if we have a valid git commit hash
+  rdcstr hash = RENDERDOC_GetCommitHash();
+  if(hash.length() != 40 || hash.find_first_not_of("0123456789abcdef") >= 0)
+  {
+    qInfo() << "Disabling error reports due to invalid commit hash";
+    ui->action_Send_Error_Report->setEnabled(false);
+  }
+
   m_NetWorker = new NetworkWorker;
   m_NetManagerThread = new LambdaThread([this]() {
     QEventLoop loop;
