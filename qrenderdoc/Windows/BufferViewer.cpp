@@ -2673,8 +2673,14 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
         rangeEnd = UINT64_MAX;
 
       // get the underlying buffer length
-      uint64_t bufferLength =
-          m_IsBuffer && m_BufferID != ResourceId() ? m_Ctx.GetBuffer(m_BufferID)->length : 0;
+      uint64_t bufferLength = 0;
+
+      if(m_IsBuffer && m_BufferID != ResourceId())
+      {
+        const BufferDescription *desc = m_Ctx.GetBuffer(m_BufferID);
+        if(desc)
+          bufferLength = desc->length;
+      }
 
       // clamp the range to the buffer length, which may end up with it being empty
       rangeEnd = qMin(rangeEnd, bufferLength);
