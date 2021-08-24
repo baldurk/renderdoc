@@ -540,6 +540,10 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
   // don't support any extensions for this createinfo
   RDCASSERT(pCreateInfo->pApplicationInfo == NULL || pCreateInfo->pApplicationInfo->pNext == NULL);
 
+  const bool internalInstance =
+      (pCreateInfo->pApplicationInfo && pCreateInfo->pApplicationInfo->pApplicationName &&
+       rdcstr(pCreateInfo->pApplicationInfo->pApplicationName) == "RenderDoc forced instance");
+
   VkLayerInstanceCreateInfo *layerCreateInfo = (VkLayerInstanceCreateInfo *)pCreateInfo->pNext;
 
   // step through the chain of pNext until we get to the link info
@@ -615,69 +619,73 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
     }
   }
 
-  const char **addedExts = new const char *[modifiedCreateInfo.enabledExtensionCount + 1];
+  const char **addedExts = NULL;
 
-  bool hasDebugReport = false, hasDebugUtils = false;
-
-  for(uint32_t i = 0; i < modifiedCreateInfo.enabledExtensionCount; i++)
+  if(!internalInstance)
   {
-    addedExts[i] = modifiedCreateInfo.ppEnabledExtensionNames[i];
-    if(!strcmp(addedExts[i], VK_EXT_DEBUG_REPORT_EXTENSION_NAME))
-      hasDebugReport = true;
-    if(!strcmp(addedExts[i], VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
-      hasDebugUtils = true;
-  }
+    addedExts = new const char *[modifiedCreateInfo.enabledExtensionCount + 1];
 
-  rdcarray<VkExtensionProperties> supportedExts;
-
-  // enumerate what instance extensions are available
-  void *module = LoadVulkanLibrary();
-  if(module)
-  {
-    PFN_vkEnumerateInstanceExtensionProperties enumInstExts =
-        (PFN_vkEnumerateInstanceExtensionProperties)Process::GetFunctionAddress(
-            module, "vkEnumerateInstanceExtensionProperties");
-
-    if(enumInstExts)
+    bool hasDebugReport = false, hasDebugUtils = false;
+    for(uint32_t i = 0; i < modifiedCreateInfo.enabledExtensionCount; i++)
     {
-      uint32_t numSupportedExts = 0;
-      enumInstExts(NULL, &numSupportedExts, NULL);
-
-      supportedExts.resize(numSupportedExts);
-      enumInstExts(NULL, &numSupportedExts, &supportedExts[0]);
+      addedExts[i] = modifiedCreateInfo.ppEnabledExtensionNames[i];
+      if(!strcmp(addedExts[i], VK_EXT_DEBUG_REPORT_EXTENSION_NAME))
+        hasDebugReport = true;
+      if(!strcmp(addedExts[i], VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
+        hasDebugUtils = true;
     }
-  }
 
-  if(supportedExts.empty())
-    RDCWARN(
-        "Couldn't load vkEnumerateInstanceExtensionProperties in vkCreateInstance to enumerate "
-        "instance extensions");
+    rdcarray<VkExtensionProperties> supportedExts;
 
-  // always enable debug report/utils, if it's available
-  if(!hasDebugUtils)
-  {
-    for(const VkExtensionProperties &ext : supportedExts)
+    // enumerate what instance extensions are available
+    void *module = LoadVulkanLibrary();
+    if(module)
     {
-      if(!strcmp(ext.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
+      PFN_vkEnumerateInstanceExtensionProperties enumInstExts =
+          (PFN_vkEnumerateInstanceExtensionProperties)Process::GetFunctionAddress(
+              module, "vkEnumerateInstanceExtensionProperties");
+
+      if(enumInstExts)
       {
-        addedExts[modifiedCreateInfo.enabledExtensionCount++] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
-        break;
+        uint32_t numSupportedExts = 0;
+        enumInstExts(NULL, &numSupportedExts, NULL);
+
+        supportedExts.resize(numSupportedExts);
+        enumInstExts(NULL, &numSupportedExts, &supportedExts[0]);
       }
     }
-  }
-  else if(!hasDebugReport)
-  {
-    for(const VkExtensionProperties &ext : supportedExts)
+
+    if(supportedExts.empty())
+      RDCWARN(
+          "Couldn't load vkEnumerateInstanceExtensionProperties in vkCreateInstance to enumerate "
+          "instance extensions");
+
+    // always enable debug report/utils, if it's available
+    if(!hasDebugUtils)
     {
-      if(!strcmp(ext.extensionName, VK_EXT_DEBUG_REPORT_EXTENSION_NAME))
+      for(const VkExtensionProperties &ext : supportedExts)
       {
-        addedExts[modifiedCreateInfo.enabledExtensionCount++] = VK_EXT_DEBUG_REPORT_EXTENSION_NAME;
-        break;
+        if(!strcmp(ext.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
+        {
+          addedExts[modifiedCreateInfo.enabledExtensionCount++] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
+          break;
+        }
       }
     }
-  }
+    else if(!hasDebugReport)
+    {
+      for(const VkExtensionProperties &ext : supportedExts)
+      {
+        if(!strcmp(ext.extensionName, VK_EXT_DEBUG_REPORT_EXTENSION_NAME))
+        {
+          addedExts[modifiedCreateInfo.enabledExtensionCount++] = VK_EXT_DEBUG_REPORT_EXTENSION_NAME;
+          break;
+        }
+      }
+    }
 
-  modifiedCreateInfo.ppEnabledExtensionNames = addedExts;
+    modifiedCreateInfo.ppEnabledExtensionNames = addedExts;
+  }
 
   bool brokenGetDeviceProcAddr = false;
 
@@ -779,13 +787,12 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
     CheckInstanceExts();
   }
 
-  delete[] addedExts;
+  SAFE_DELETE_ARRAY(addedExts);
 
   InitInstanceExtensionTables(m_Instance, record->instDevInfo);
 
   // don't register a frame capturer for our internal instance on android
-  if(pCreateInfo->pApplicationInfo && pCreateInfo->pApplicationInfo->pApplicationName &&
-     rdcstr(pCreateInfo->pApplicationInfo->pApplicationName) == "RenderDoc forced instance")
+  if(internalInstance)
   {
     RDCDEBUG("Not registering internal instance as frame capturer");
   }
