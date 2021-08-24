@@ -465,6 +465,8 @@ struct BufferConfiguration
   uint32_t numRows = 0, unclampedNumRows = 0;
   uint32_t pagingOffset = 0;
 
+  QString noDraw;
+
   bool noVertices = false;
   bool noInstances = false;
 
@@ -495,6 +497,8 @@ struct BufferConfiguration
     numRows = o.numRows;
     unclampedNumRows = o.unclampedNumRows;
     pagingOffset = o.pagingOffset;
+
+    noDraw = o.noDraw;
 
     noVertices = o.noVertices;
     noInstances = o.noInstances;
@@ -543,6 +547,8 @@ struct BufferConfiguration
     genericsEnabled.clear();
     numRows = 0;
     unclampedNumRows = 0;
+
+    noDraw.clear();
 
     noVertices = false;
     noInstances = false;
@@ -822,6 +828,8 @@ public:
 
     if(ret == 0)
     {
+      if(!config.noDraw.isEmpty())
+        ret += config.noDraw.count(QLatin1Char('\n')) + 1;
       if(config.noVertices)
         ret++;
       if(config.noInstances)
@@ -1033,7 +1041,8 @@ public:
 
       if(role == Qt::DisplayRole)
       {
-        if(config.numRows == 0 && (config.noInstances || config.noVertices))
+        if(config.numRows == 0 &&
+           (config.noInstances || config.noVertices || !config.noDraw.isEmpty()))
         {
           if(col < 2)
             return lit("---");
@@ -1041,7 +1050,11 @@ public:
           if(col != 2)
             return QVariant();
 
-          if(config.noVertices && config.noInstances)
+          if(!config.noDraw.isEmpty())
+          {
+            return config.noDraw.split(QLatin1Char('\n'))[row];
+          }
+          else if(config.noVertices && config.noInstances)
           {
             if(row == 0)
               return lit("No Vertices");
@@ -1523,6 +1536,47 @@ static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufda
 {
   const ActionDescription *action = ctx.CurAction();
 
+  bufdata->vsinConfig.numRows = 0;
+  bufdata->vsinConfig.unclampedNumRows = 0;
+
+  bufdata->vsinConfig.noVertices = false;
+  bufdata->vsinConfig.noInstances = false;
+
+  if(!action || !(action->flags & ActionFlags::Drawcall))
+  {
+    IEventBrowser *eb = ctx.GetEventBrowser();
+
+    bufdata->vsinConfig.noDraw =
+        lit("No current draw action\nSelected EID @%1 - %2\nEffective EID: @%3 - %4")
+            .arg(ctx.CurSelectedEvent())
+            .arg(QString(eb->GetEventName(ctx.CurSelectedEvent())))
+            .arg(ctx.CurEvent())
+            .arg(QString(eb->GetEventName(ctx.CurEvent())));
+
+    ShaderConstant f;
+    f.name = "ERROR";
+    f.type.descriptor.columns = 1;
+    f.type.descriptor.rows = 1;
+
+    BufferElementProperties p;
+    p.format.type = ResourceFormatType::Regular;
+    p.format.compType = CompType::UInt;
+    p.format.compCount = 1;
+    p.format.compByteWidth = 4;
+
+    bufdata->vsinConfig.columns.push_back(f);
+    bufdata->vsinConfig.props.push_back(p);
+    bufdata->vsinConfig.genericsEnabled.push_back(false);
+    bufdata->vsinConfig.generics.push_back(PixelValue());
+
+    bufdata->vsoutConfig.columns.clear();
+    bufdata->vsoutConfig.props.clear();
+    bufdata->gsoutConfig.columns.clear();
+    bufdata->gsoutConfig.props.clear();
+
+    return;
+  }
+
   rdcarray<VertexInputAttribute> vinputs = ctx.CurPipelineState().GetVertexInputs();
 
   bufdata->vsinConfig.columns.reserve(vinputs.count());
@@ -1562,12 +1616,6 @@ static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufda
     bufdata->vsinConfig.columns.push_back(f);
     bufdata->vsinConfig.props.push_back(p);
   }
-
-  bufdata->vsinConfig.numRows = 0;
-  bufdata->vsinConfig.unclampedNumRows = 0;
-
-  bufdata->vsinConfig.noVertices = false;
-  bufdata->vsinConfig.noInstances = false;
 
   if(action)
   {
@@ -2577,6 +2625,12 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
     }
 
     ConfigureMeshColumns(m_Ctx, bufdata);
+
+    if(!bufdata->vsinConfig.noDraw.isEmpty())
+    {
+      m_ColumnWidthRowCount = 0;
+      m_DataColWidth = 500;
+    }
 
     Viewport vp = m_Ctx.CurPipelineState().GetViewport(0);
 
