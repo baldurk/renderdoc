@@ -55,11 +55,24 @@
 
 struct EventBrowserPersistentStorage : public CustomPersistentStorage
 {
-  EventBrowserPersistentStorage() : CustomPersistentStorage(rdcstr()) {}
-  EventBrowserPersistentStorage(rdcstr name) : CustomPersistentStorage(name) {}
+  EventBrowserPersistentStorage() : CustomPersistentStorage(rdcstr())
+  {
+    version = LatestVersion;
+    SetDefaultCurrentFilter();
+    AddDefaultSavedFilters();
+  }
+  EventBrowserPersistentStorage(rdcstr name) : CustomPersistentStorage(name)
+  {
+    version = LatestVersion;
+    SetDefaultCurrentFilter();
+    AddDefaultSavedFilters();
+  }
+
   void save(QVariant &v) const
   {
     QVariantMap settings;
+
+    settings[lit("version")] = LatestVersion;
 
     settings[lit("current")] = CurrentFilter;
 
@@ -76,6 +89,8 @@ struct EventBrowserPersistentStorage : public CustomPersistentStorage
   {
     QVariantMap settings = v.toMap();
 
+    int loadedVersion = settings[lit("version")].toInt();
+
     QVariant current = settings[lit("current")];
     if(current.isValid() && current.type() == QVariant::String)
     {
@@ -83,8 +98,10 @@ struct EventBrowserPersistentStorage : public CustomPersistentStorage
     }
     else
     {
-      CurrentFilter = lit("$action()");
+      SetDefaultCurrentFilter();
     }
+
+    SavedFilters.clear();
 
     QVariant saved = settings[lit("filters")];
     if(saved.isValid() && saved.type() == QVariant::List)
@@ -106,12 +123,37 @@ struct EventBrowserPersistentStorage : public CustomPersistentStorage
     }
     else
     {
-      SavedFilters.push_back(qMakePair(lit("Default"), lit("$action()")));
-      SavedFilters.push_back(qMakePair(lit("Actions and Barriers"), lit("$action() Barrier")));
-      SavedFilters.push_back(qMakePair(lit("Hide Copies & Clears"), lit("$action() -Copy -Clear")));
+      AddDefaultSavedFilters();
+    }
+
+    // version 2 we fixed an issue where a default profile wouldn't have the proper default filter
+    // etc. That shipped in v1.15.
+    // If we detect an old profile being loaded AND there are: no saved filters, or empty filter, we
+    // choose to override and set the default filter/add saved filters. If the user has set a
+    // filter, or saved some, we don't do anything as they have used the feature and we'll respect
+    // what they've done. If the user has deliberately left it blank we have no way of telling, so
+    // we set the default filter to cover the common case of someone who hasn't used the filter at
+    // all.
+    if(loadedVersion < 2)
+    {
+      if(CurrentFilter.isEmpty())
+        SetDefaultCurrentFilter();
+
+      if(SavedFilters.isEmpty())
+        AddDefaultSavedFilters();
     }
   }
 
+  void SetDefaultCurrentFilter() { CurrentFilter = lit("$action()"); }
+  void AddDefaultSavedFilters()
+  {
+    SavedFilters.push_back(qMakePair(lit("Default"), lit("$action()")));
+    SavedFilters.push_back(qMakePair(lit("Actions and Barriers"), lit("$action() Barrier")));
+    SavedFilters.push_back(qMakePair(lit("Hide Copies & Clears"), lit("$action() -Copy -Clear")));
+  }
+
+  static const int LatestVersion = 2;
+  int version;
   QString CurrentFilter;
   QList<QPair<QString, QString>> SavedFilters;
 };
