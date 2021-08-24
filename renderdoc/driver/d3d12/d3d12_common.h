@@ -65,7 +65,8 @@ void D3D12_CleanupReplaySDK();
 
 inline void SetObjName(ID3D12Object *obj, const rdcstr &utf8name)
 {
-  obj->SetName(StringFormat::UTF82Wide(utf8name).c_str());
+  if(obj)
+    obj->SetName(StringFormat::UTF82Wide(utf8name).c_str());
 }
 
 #define PIX_EVENT_UNICODE_VERSION 0
