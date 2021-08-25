@@ -305,7 +305,7 @@ void Program::PostprocessVendorExtensions()
     // happens is that when we see opode get written if it's NV_EXTN_OP_FP16_ATOMIC then we jump
     // straight to UAVInstructionBody and re-use the UAV instruction header from last time. We
     // know this MUST be a continuation because otherwise NV_EXTN_OP_FP16_ATOMIC is always
-    // preceeded by a UAV instruction header (via markUAV).
+    // preceded by a UAV instruction header (via markUAV).
     InstructionHeader,
     InstructionBody,
     // we move from Instruction1Out to this state when markUAV is written. The next UAV write is

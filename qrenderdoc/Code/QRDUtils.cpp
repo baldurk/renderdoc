@@ -481,7 +481,7 @@ bool HandleURLFragment(RichResourceTextPtr linkedText, QString text, bool parseU
 
       int end = urlMatch.capturedEnd();
 
-      // push any text that preceeded the url.
+      // push any text that preceded the url.
       if(urlMatch.capturedStart(0) > 0)
         linkedText->fragments.push_back(text.left(urlMatch.capturedStart(0)));
 
@@ -586,7 +586,7 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx, bool parseU
         qulonglong idnum = match.captured(2).toULongLong();
         memcpy(&id, &idnum, sizeof(id));
 
-        // push any text that preceeded the ResourceId.
+        // push any text that preceded the ResourceId.
         if(match.capturedStart(1) > 0)
           HandleURLFragment(linkedText, text.left(match.capturedStart(1)), parseURLs);
 
@@ -600,7 +600,7 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx, bool parseU
         link.eid = match.captured(6).toUInt();
         link.numMessages = match.captured(7).toUInt();
 
-        // push any text that preceeded the msgs link.
+        // push any text that preceded the msgs link.
         if(match.capturedStart(5) > 0)
           HandleURLFragment(linkedText, text.left(match.capturedStart(5)), parseURLs);
 
@@ -630,7 +630,7 @@ void RichResourceTextInitialise(QVariant &var, ICaptureContext *ctx, bool parseU
           continue;
         }
 
-        // push any text that preceeded the EID.
+        // push any text that preceded the EID.
         if(match.capturedStart(3) > 0)
           HandleURLFragment(linkedText, text.left(match.capturedStart(3)), parseURLs);
 

@@ -2263,7 +2263,7 @@ typedef struct lfModifierEx {
  *      size of the following variable length data.  When the numeric
  *      data is a single byte less than 0x8000, then the data is output
  *      directly.  If the data is more the 0x8000 or is a negative value,
- *      then the data is preceeded by the proper index.
+ *      then the data is preceded by the proper index.
  */
 
 
