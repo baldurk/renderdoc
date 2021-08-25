@@ -219,8 +219,6 @@ private slots:
   void thumb_clicked(QMouseEvent *);
   void thumb_doubleClicked(QMouseEvent *);
   void texContextItem_triggered();
-  void showUnused_triggered();
-  void showEmpty_triggered();
 
   void zoomOption_returnPressed();
 
@@ -331,9 +329,6 @@ private:
   int m_HighWaterStatusLength = 0;
   int m_PrevFirstArraySlice = -1;
   int m_PrevHighestMip = -1;
-
-  bool m_ShowEmpty = false;
-  bool m_ShowUnused = false;
 
   bool m_Visualise = false;
   bool m_NoRangePaint = false;

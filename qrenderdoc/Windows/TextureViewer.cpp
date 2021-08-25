@@ -89,6 +89,10 @@ Following::Following() : tex(*FollowingInternal::invalid)
 {
   // we need a default constructor for QVariant but we don't want it to be valid, we always
   // initialise Following() with a TextureViewer reference.
+  Type = FollowType::OutputColor;
+  Stage = ShaderStage::Pixel;
+  index = 0;
+  arrayEl = 0;
 }
 
 Following &Following::operator=(const Following &other)
@@ -2270,22 +2274,6 @@ void TextureViewer::texContextItem_triggered()
   }
 }
 
-void TextureViewer::showUnused_triggered()
-{
-  m_ShowUnused = !m_ShowUnused;
-
-  if(m_Ctx.IsCaptureLoaded())
-    m_Ctx.RefreshStatus();
-}
-
-void TextureViewer::showEmpty_triggered()
-{
-  m_ShowEmpty = !m_ShowEmpty;
-
-  if(m_Ctx.IsCaptureLoaded())
-    m_Ctx.RefreshStatus();
-}
-
 void TextureViewer::AddResourceUsageEntry(QMenu &menu, uint32_t start, uint32_t end,
                                           ResourceUsage usage)
 {
@@ -2310,8 +2298,6 @@ void TextureViewer::OpenResourceContextMenu(ResourceId id, bool input,
 {
   QMenu contextMenu(this);
 
-  QAction showUnused(tr("Show Unused"), this);
-  QAction showEmpty(tr("Show Empty"), this);
   QAction openLockedTab(tr("Open new Locked Tab"), this);
   QAction openResourceInspector(tr("Open in Resource Inspector"), this);
   QAction usageTitle(tr("Used:"), this);
@@ -2320,25 +2306,15 @@ void TextureViewer::OpenResourceContextMenu(ResourceId id, bool input,
   openLockedTab.setIcon(Icons::action_hover());
   openResourceInspector.setIcon(Icons::link());
 
-  showUnused.setChecked(m_ShowUnused);
-  showUnused.setChecked(m_ShowEmpty);
-
-  contextMenu.addAction(&showUnused);
-  contextMenu.addAction(&showEmpty);
-
-  QObject::connect(&showUnused, &QAction::triggered, this, &TextureViewer::showUnused_triggered);
-  QObject::connect(&showEmpty, &QAction::triggered, this, &TextureViewer::showEmpty_triggered);
-
   if(m_Ctx.CurPipelineState().SupportsBarriers())
   {
-    contextMenu.addSeparator();
     imageLayout.setText(tr("Image is in layout ") + m_Ctx.CurPipelineState().GetResourceLayout(id));
     contextMenu.addAction(&imageLayout);
+    contextMenu.addSeparator();
   }
 
   if(id != ResourceId())
   {
-    contextMenu.addSeparator();
     contextMenu.addAction(&openLockedTab);
     contextMenu.addAction(&openResourceInspector);
 
@@ -2370,7 +2346,6 @@ void TextureViewer::OpenResourceContextMenu(ResourceId id, bool input,
   }
   else
   {
-    contextMenu.addSeparator();
     m_Ctx.Extensions().MenuDisplaying(input ? ContextMenu::TextureViewer_InputThumbnail
                                             : ContextMenu::TextureViewer_OutputThumbnail,
                                       &contextMenu, {});
@@ -2466,7 +2441,7 @@ void TextureViewer::InitStageResourcePreviews(ShaderStage stage,
 
     int arrayLen = resArray != NULL ? resArray->count() : 1;
 
-    const bool collapseArray = arrayLen > 8 && (dynamicallyUsedResCount > 20 || m_ShowUnused);
+    const bool collapseArray = arrayLen > 8 && dynamicallyUsedResCount > 20;
 
     for(int i = 0; i < arrayLen; i++)
     {
@@ -2492,12 +2467,6 @@ void TextureViewer::InitStageResourcePreviews(ShaderStage stage,
       // omit buffers even if the shader uses them.
       if(res.resourceId != ResourceId() && m_Ctx.GetTexture(res.resourceId) == NULL)
         show = copy;
-
-      // it's bound, but not referenced, and we have "show disabled"
-      show = show || (m_ShowUnused && res.resourceId != ResourceId());
-
-      // it's empty, and we have "show empty"
-      show = show || (m_ShowEmpty && res.resourceId == ResourceId());
 
       // it's the one we're following
       show = show || (follow == m_Following);
@@ -3121,14 +3090,12 @@ void TextureViewer::OnEventChanged(uint32_t eventId)
     const ShaderBindpointMapping &mapping = Following::GetMapping(m_Ctx, stage);
 
     if(!mapping.readOnlyResources.empty())
-      m_ReadOnlyResources[(uint32_t)stage] =
-          Following::GetReadOnlyResources(m_Ctx, stage, !m_ShowUnused);
+      m_ReadOnlyResources[(uint32_t)stage] = Following::GetReadOnlyResources(m_Ctx, stage, true);
     else
       m_ReadOnlyResources[(uint32_t)stage].clear();
 
     if(!mapping.readWriteResources.empty())
-      m_ReadWriteResources[(uint32_t)stage] =
-          Following::GetReadWriteResources(m_Ctx, stage, !m_ShowUnused);
+      m_ReadWriteResources[(uint32_t)stage] = Following::GetReadWriteResources(m_Ctx, stage, true);
     else
       m_ReadWriteResources[(uint32_t)stage].clear();
   }
