@@ -1531,7 +1531,7 @@ microseconds. May be 1.0 if all timestamps and durations are already in microsec
 )");
   virtual double TimestampFrequency() = 0;
 
-  DOCUMENT(R"(Sets the matadata for this capture handle.
+  DOCUMENT(R"(Sets the metadata for this capture handle.
 
 This function may only be called if the handle is 'empty' - i.e. no file has been opened with
 :meth:`OpenFile` or :meth:`OpenBuffer`.
