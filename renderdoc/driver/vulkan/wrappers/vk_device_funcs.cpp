@@ -2811,7 +2811,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       // if the feature is available but we can't use it, warn
       RDCWARN(
           "robustBufferAccess is available, but cannot be enabled due to "
-          "robustBufferAccessUpdateAfterBind not being avilable and some UpdateAfterBind features "
+          "robustBufferAccessUpdateAfterBind not being available and some UpdateAfterBind features "
           "being enabled. "
           "out of bounds access due to bugs in application or RenderDoc may cause crashes");
     }
