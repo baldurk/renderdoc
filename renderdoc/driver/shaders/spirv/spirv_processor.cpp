@@ -1011,7 +1011,7 @@ ShaderVariable Processor::EvaluateConstant(Id constID, const rdcarray<SpecConsta
 
     if(specop.params.empty())
     {
-      RDCERR("Expected paramaters for SpecConstantOp %s", ToStr(specop.op).c_str());
+      RDCERR("Expected parameters for SpecConstantOp %s", ToStr(specop.op).c_str());
       return ret;
     }
 
@@ -1025,7 +1025,7 @@ ShaderVariable Processor::EvaluateConstant(Id constID, const rdcarray<SpecConsta
 
       if(params.size() != 3)
       {
-        RDCERR("Expected 3 paramaters for SpecConstantOp Select, got %zu", params.size());
+        RDCERR("Expected 3 parameters for SpecConstantOp Select, got %zu", params.size());
         return ret;
       }
 
@@ -1122,7 +1122,7 @@ ShaderVariable Processor::EvaluateConstant(Id constID, const rdcarray<SpecConsta
     {
       if(specop.params.size() < 3)
       {
-        RDCERR("Expected at least 3 paramaters for SpecConstantOp CompositeInsert, got %zu",
+        RDCERR("Expected at least 3 parameters for SpecConstantOp CompositeInsert, got %zu",
                specop.params.size());
         return ret;
       }
@@ -1191,7 +1191,7 @@ ShaderVariable Processor::EvaluateConstant(Id constID, const rdcarray<SpecConsta
     {
       if(specop.params.size() < 3)
       {
-        RDCERR("Expected at least 3 paramaters for SpecConstantOp VectorShuffle, got %zu",
+        RDCERR("Expected at least 3 parameters for SpecConstantOp VectorShuffle, got %zu",
                specop.params.size());
         return ret;
       }
@@ -1349,7 +1349,7 @@ ShaderVariable Processor::EvaluateConstant(Id constID, const rdcarray<SpecConsta
       case Op::SGreaterThanEqual:
         if(params.size() != 2)
         {
-          RDCERR("Expected 2 paramaters for SpecConstantOp %s, got %zu", ToStr(specop.op).c_str(),
+          RDCERR("Expected 2 parameters for SpecConstantOp %s, got %zu", ToStr(specop.op).c_str(),
                  params.size());
           return ret;
         }
