@@ -107,7 +107,7 @@ struct ICamera;
 
 DOCUMENT(R"(
 Describes how to render a mesh preview of one or more meshes. Describes the camera configuration as
-well as what options to use when rendering both the current mesh, and any other auxilliary meshes.
+well as what options to use when rendering both the current mesh, and any other auxiliary meshes.
 
 .. data:: NoHighlight
 

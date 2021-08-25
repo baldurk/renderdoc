@@ -525,7 +525,7 @@ human-readable name by the application.
 
   DOCUMENT(R"(The chunk indices in the structured file that initialised this resource.
 
-This will at least contain the first call that created it, but may contain other auxilliary calls.
+This will at least contain the first call that created it, but may contain other auxiliary calls.
 
 :type: List[int]
 )");

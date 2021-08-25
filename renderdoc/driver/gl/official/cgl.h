@@ -176,7 +176,7 @@ typedef enum _CGLRendererProperty {
 	kCGLRPAccumModes                                         = 104, /* a bitfield of supported accum buffer formats     */
 	kCGLRPDepthModes                                         = 105, /* a bitfield of supported depth buffer depths      */
 	kCGLRPStencilModes                                       = 106, /* a bitfield of supported stencil buffer depths    */
-	kCGLRPMaxAuxBuffers                                      = 107, /* maximum number of auxilliary buffers             */
+	kCGLRPMaxAuxBuffers                                      = 107, /* maximum number of auxiliary buffers              */
 	kCGLRPMaxSampleBuffers                                   = 108, /* maximum number of sample buffers                 */
 	kCGLRPMaxSamples                                         = 109, /* maximum number of samples                        */
 	kCGLRPSampleModes                                        = 110, /* a bitfield of supported sample modes             */
