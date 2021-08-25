@@ -1750,7 +1750,7 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
     {
       ID3D12Resource *uploadBuf = GetUploadBuffer(cmd.m_CurChunkOffset, rangeSize);
 
-      if(uploadBuf)
+      if(!uploadBuf)
       {
         RDCERR("Couldn't get upload buffer");
         return false;
