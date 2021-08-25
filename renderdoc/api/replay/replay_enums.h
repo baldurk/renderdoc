@@ -930,7 +930,7 @@ to apply to multiple related things - see :data:`ClipDistance`, :data:`CullDista
 .. data:: DomainLocation
 
   An input to the tessellation evaluation or domain shader, giving the normalised location on the
-  output patch where evaluation is occuring. E.g. for triangle output this is the barycentric
+  output patch where evaluation is occurring. E.g. for triangle output this is the barycentric
   co-ordinates of the output vertex.
 
 .. data:: IsFrontFace
