@@ -1028,7 +1028,7 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state,
           RDCASSERT(baseLocation == uniform.Values[0].Location);
 
           // for SPIR-V the locations are fixed in the shader and are not mutable. We just check for
-          // existance of something with this location. If nothing is found, we return -1
+          // existence of something with this location. If nothing is found, we return -1
           // (non-existant) which prevents us from trying to write to a bad location.
           for(const UnrolledSPIRVConstant &var : spirvGlobals)
           {

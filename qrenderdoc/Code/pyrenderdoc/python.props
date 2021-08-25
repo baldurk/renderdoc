@@ -25,7 +25,7 @@
      ALSO: pythonXY.zip isn't included in the installed distribution (it instead
      uses the Lib/ folder with all the loose uncompiled library source).
      It will need to be generated manually or obtained from the embeddable zip.
-     As a result we use the existance of the .lib, .h and .zip as a key to
+     As a result we use the existence of the .lib, .h and .zip as a key to
      ensure we only use -->
 
 <!-- MSBuild doesn't implement a simple loop so just do this by hand by

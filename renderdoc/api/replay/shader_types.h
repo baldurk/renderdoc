@@ -581,7 +581,7 @@ struct ShaderVariableChange
   }
 
   DOCUMENT(R"(The value of the variable before the change. If this variable is uninitialised that
-means the variable came into existance on this step.
+means the variable came into existence on this step.
 
 :type: ShaderVariable
 )");

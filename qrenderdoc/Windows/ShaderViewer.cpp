@@ -3271,7 +3271,7 @@ void ShaderViewer::updateDebugState()
 
       bool modified = false;
 
-      // don't list any modified variables on the first step when they all come into existance
+      // don't list any modified variables on the first step when they all come into existence
       if(l.variables[0].type == DebugVariableType::Variable && !IsFirstState())
       {
         for(const DebugVariableReference &v : l.variables)
