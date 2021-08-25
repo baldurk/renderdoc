@@ -260,7 +260,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12Resource::Map(UINT Subresource,
     map[Subresource].realPtr = (byte *)mapPtr;
     map[Subresource].refcount++;
 
-    // on the first map, register this so we can flush any updates in case it's left persistant
+    // on the first map, register this so we can flush any updates in case it's left persistent
     if(map[Subresource].refcount == 1)
       m_pDevice->Map(this, Subresource);
   }

@@ -2666,9 +2666,9 @@ capture's API.
 )");
   virtual const PipeState &CurPipelineState() = 0;
 
-  DOCUMENT(R"(Retrieve the current persistant config.
+  DOCUMENT(R"(Retrieve the current persistent config.
 
-:return: The current persistant config manager.
+:return: The current persistent config manager.
 :rtype: PersistantConfig
 )");
   virtual PersistantConfig &Config() = 0;
