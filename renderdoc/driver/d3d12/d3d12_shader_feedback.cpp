@@ -302,6 +302,12 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
       (WrappedID3D12PipelineState *)rm->GetCurrentAs<ID3D12PipelineState>(rs.pipe);
   D3D12RootSignature modsig;
 
+  if(!pipe)
+  {
+    RDCERR("Can't fetch shader feedback, no pipeline state bound");
+    return;
+  }
+
   bytebuf editedBlob[5];
 
   D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC pipeDesc;
