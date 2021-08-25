@@ -475,7 +475,7 @@ layout type widgets.
   virtual QWidget *GetChild(QWidget *parent, int32_t index) = 0;
 
   DOCUMENT(R"(Destroy a widget. Widgets stay alive unless explicitly destroyed here, OR in one other
-case when they are in a widget hiearchy under a top-level window which the user closes, which can
+case when they are in a widget hierarchy under a top-level window which the user closes, which can
 be detected with the callback parameter in :meth:`CreateToplevelWidget`.
 
 If the widget being destroyed is a top-level window, it will be closed. Otherwise if it is part of a
