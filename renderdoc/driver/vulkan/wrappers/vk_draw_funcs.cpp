@@ -2518,10 +2518,13 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(SerialiserType &ser,
               if(att < (uint32_t)rp.subpasses[state.subpass].colorAttachments.size())
               {
                 att = rp.subpasses[state.subpass].colorAttachments[att];
-                actionNode.resourceUsage.push_back(make_rdcpair(
-                    m_CreationInfo.m_ImageView[state.GetFramebufferAttachments()[att]].image,
-                    EventUsage(actionNode.action.eventId, ResourceUsage::Clear,
-                               state.GetFramebufferAttachments()[att])));
+                if(att < (uint32_t)state.GetFramebufferAttachments().size())
+                {
+                  actionNode.resourceUsage.push_back(make_rdcpair(
+                      m_CreationInfo.m_ImageView[state.GetFramebufferAttachments()[att]].image,
+                      EventUsage(actionNode.action.eventId, ResourceUsage::Clear,
+                                 state.GetFramebufferAttachments()[att])));
+                }
               }
             }
             else if(pAttachments[a].aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT)
