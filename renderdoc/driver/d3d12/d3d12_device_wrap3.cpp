@@ -178,13 +178,13 @@ HRESULT WrappedID3D12Device::EnqueueMakeResident(D3D12_RESIDENCY_FLAGS Flags, UI
     if(WrappedID3D12DescriptorHeap::IsAlloc(ppObjects[i]))
     {
       WrappedID3D12DescriptorHeap *heap = (WrappedID3D12DescriptorHeap *)ppObjects[i];
-      heap->SetResident(true);
+      heap->MakeResident();
       unwrapped[i] = heap->GetReal();
     }
     else if(WrappedID3D12Resource::IsAlloc(ppObjects[i]))
     {
       WrappedID3D12Resource *res = (WrappedID3D12Resource *)ppObjects[i];
-      res->SetResident(true);
+      res->MakeResident();
       unwrapped[i] = res->GetReal();
     }
     else

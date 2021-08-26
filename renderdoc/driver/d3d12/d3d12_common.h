@@ -152,8 +152,7 @@ class RefCounter12
 {
 private:
   unsigned int m_iRefcount;
-  unsigned int m_InternalRefcount : 30;
-  unsigned int resident : 1;
+  unsigned int m_InternalRefcount : 31;
   unsigned int m_SelfDeleting : 1;
 
 protected:
@@ -165,11 +164,7 @@ protected:
 
 public:
   RefCounter12(RealType *real, bool selfDelete = true)
-      : m_pReal(real),
-        m_iRefcount(1),
-        m_InternalRefcount(0),
-        resident(1),
-        m_SelfDeleting(selfDelete ? 1 : 0)
+      : m_pReal(real), m_iRefcount(1), m_InternalRefcount(0), m_SelfDeleting(selfDelete ? 1 : 0)
   {
   }
   virtual ~RefCounter12() {}
@@ -179,8 +174,6 @@ public:
   // add them here and they're subtracted from return values
   void AddInternalRef() { m_InternalRefcount++; }
   void ReleaseInternalRef() { m_InternalRefcount--; }
-  bool Resident() { return resident != 0; }
-  void SetResident(bool r) { resident = r ? 1 : 0; }
   //////////////////////////////
   // implement IUnknown
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)

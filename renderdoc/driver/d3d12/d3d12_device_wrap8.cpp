@@ -413,6 +413,8 @@ HRESULT WrappedID3D12Device::CreatePlacedResource1(ID3D12Heap *pHeap, UINT64 Hea
   {
     WrappedID3D12Resource *wrapped = new WrappedID3D12Resource(real, this);
 
+    wrapped->SetHeap(pHeap);
+
     if(IsCaptureMode(m_State))
     {
       CACHE_THREAD_SERIALISER();

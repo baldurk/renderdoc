@@ -51,10 +51,10 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
   else if(type == Resource_Resource)
   {
     WrappedID3D12Resource *r = (WrappedID3D12Resource *)res;
-    ID3D12Pageable *pageable = r;
+    ID3D12Pageable *pageable = r->ResidencyPageable();
 
     bool nonresident = false;
-    if(!r->Resident())
+    if(!r->IsResident())
       nonresident = true;
 
     D3D12_RESOURCE_DESC desc = r->GetDesc();

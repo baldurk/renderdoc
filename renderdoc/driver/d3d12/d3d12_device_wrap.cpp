@@ -1569,7 +1569,7 @@ HRESULT WrappedID3D12Device::CreateCommittedResource(const D3D12_HEAP_PROPERTIES
                                         pOptimizedClearValue, riidResource, (void **)&wrapped);
 
       if(HeapFlags & D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT)
-        wrapped->SetResident(false);
+        wrapped->Evict();
 
       D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
       record->type = Resource_Resource;
@@ -1697,7 +1697,7 @@ HRESULT WrappedID3D12Device::CreateHeap(const D3D12_HEAP_DESC *pDesc, REFIID rii
       Serialise_CreateHeap(ser, pDesc, riid, (void **)&wrapped);
 
       if(pDesc->Flags & D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT)
-        wrapped->SetResident(false);
+        wrapped->Evict();
 
       D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
       record->type = Resource_Heap;
@@ -1867,6 +1867,8 @@ HRESULT WrappedID3D12Device::CreatePlacedResource(ID3D12Heap *pHeap, UINT64 Heap
   if(SUCCEEDED(ret))
   {
     WrappedID3D12Resource *wrapped = new WrappedID3D12Resource(real, this);
+
+    wrapped->SetHeap(pHeap);
 
     if(IsCaptureMode(m_State))
     {
@@ -3053,7 +3055,7 @@ HRESULT WrappedID3D12Device::OpenSharedHandleInternal(D3D12Chunk chunkType,
       WrappedID3D12Resource *wrapped = new WrappedID3D12Resource(real, this);
 
       if(HeapFlags & D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT)
-        wrapped->SetResident(false);
+        wrapped->Evict();
 
       wrappedDeviceChild = wrapped;
 
@@ -3098,7 +3100,7 @@ HRESULT WrappedID3D12Device::OpenSharedHandleInternal(D3D12Chunk chunkType,
       WrappedID3D12Heap *wrapped = new WrappedID3D12Heap(real, this);
 
       if(HeapFlags & D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT)
-        wrapped->SetResident(false);
+        wrapped->Evict();
 
       wrappedDeviceChild = wrapped;
 
@@ -3144,13 +3146,13 @@ HRESULT WrappedID3D12Device::MakeResident(UINT NumObjects, ID3D12Pageable *const
     if(WrappedID3D12DescriptorHeap::IsAlloc(ppObjects[i]))
     {
       WrappedID3D12DescriptorHeap *heap = (WrappedID3D12DescriptorHeap *)ppObjects[i];
-      heap->SetResident(true);
+      heap->MakeResident();
       unwrapped[i] = heap->GetReal();
     }
     else if(WrappedID3D12Resource::IsAlloc(ppObjects[i]))
     {
       WrappedID3D12Resource *res = (WrappedID3D12Resource *)ppObjects[i];
-      res->SetResident(true);
+      res->MakeResident();
       unwrapped[i] = res->GetReal();
     }
     else
@@ -3171,13 +3173,13 @@ HRESULT WrappedID3D12Device::Evict(UINT NumObjects, ID3D12Pageable *const *ppObj
     if(WrappedID3D12DescriptorHeap::IsAlloc(ppObjects[i]))
     {
       WrappedID3D12DescriptorHeap *heap = (WrappedID3D12DescriptorHeap *)ppObjects[i];
-      heap->SetResident(false);
+      heap->Evict();
       unwrapped[i] = heap->GetReal();
     }
     else if(WrappedID3D12Resource::IsAlloc(ppObjects[i]))
     {
       WrappedID3D12Resource *res = (WrappedID3D12Resource *)ppObjects[i];
-      res->SetResident(false);
+      res->Evict();
       unwrapped[i] = res->GetReal();
     }
     else

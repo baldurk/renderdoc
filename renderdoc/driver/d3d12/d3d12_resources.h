@@ -68,6 +68,7 @@ class WrappedDeviceChild12 : public RefCounter12<NestedType>,
 {
 protected:
   WrappedID3D12Device *m_pDevice;
+  int32_t m_Resident = 1;
 
   WrappedDeviceChild12(NestedType *real, WrappedID3D12Device *device)
       : RefCounter12(real), m_pDevice(device)
@@ -105,6 +106,9 @@ protected:
 public:
   typedef NestedType InnerType;
 
+  bool IsResident() { return m_Resident > 0; }
+  void MakeResident() { Atomic::Inc32(&m_Resident); }
+  void Evict() { Atomic::Dec32(&m_Resident); }
   NestedType *GetReal() { return m_pReal; }
   ULONG STDMETHODCALLTYPE AddRef() { return RefCounter12::SoftRef(m_pDevice); }
   ULONG STDMETHODCALLTYPE Release() { return RefCounter12::SoftRelease(m_pDevice); }
@@ -915,9 +919,26 @@ class WrappedID3D12Resource
 
   WriteSerialiser &GetThreadSerialiser();
 
+  WrappedID3D12Heap *m_Heap = NULL;
+
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12Resource, false);
 
+  bool IsResident()
+  {
+    if(m_Heap)
+      return m_Heap->IsResident();
+    return WrappedDeviceChild12::IsResident();
+  }
+
+  ID3D12Pageable *ResidencyPageable()
+  {
+    if(m_Heap)
+      return m_Heap;
+    return this;
+  }
+
+  void SetHeap(ID3D12Heap *heap) { m_Heap = (WrappedID3D12Heap *)heap; }
   static void RefBuffers(D3D12ResourceManager *rm);
 
   static rdcarray<ID3D12Resource *> AddRefBuffersBeforeCapture(D3D12ResourceManager *rm);

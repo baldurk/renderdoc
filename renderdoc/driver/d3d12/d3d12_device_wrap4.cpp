@@ -509,7 +509,7 @@ HRESULT WrappedID3D12Device::CreateHeap1(const D3D12_HEAP_DESC *pDesc,
       Serialise_CreateHeap1(ser, pDesc, pProtectedSession, riid, (void **)&wrapped);
 
       if(pDesc->Flags & D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT)
-        wrapped->SetResident(false);
+        wrapped->Evict();
 
       D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
       record->type = Resource_Heap;
