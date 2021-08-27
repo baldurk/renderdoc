@@ -910,8 +910,8 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
     vkr = vt->CreateSemaphore(Unwrap(dev), &semInfo, NULL, &sem);
     m_pDriver->CheckVkResult(vkr);
 
-    vkr = vt->AcquireNextImageKHR(Unwrap(dev), Unwrap(outw.swap), UINT64_MAX, sem, VK_NULL_HANDLE,
-                                  &outw.curidx);
+    vkr = vt->AcquireNextImageKHR(Unwrap(dev), Unwrap(outw.swap), 2000000000ULL, sem,
+                                  VK_NULL_HANDLE, &outw.curidx);
 
     if(vkr == VK_ERROR_OUT_OF_DATE_KHR)
     {
@@ -922,8 +922,8 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
       CheckResizeOutputWindow(id);
 
       // then try again to acquire.
-      vkr = vt->AcquireNextImageKHR(Unwrap(dev), Unwrap(outw.swap), UINT64_MAX, sem, VK_NULL_HANDLE,
-                                    &outw.curidx);
+      vkr = vt->AcquireNextImageKHR(Unwrap(dev), Unwrap(outw.swap), 2000000000ULL, sem,
+                                    VK_NULL_HANDLE, &outw.curidx);
     }
 
     if(vkr == VK_SUBOPTIMAL_KHR)
