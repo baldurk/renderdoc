@@ -89,7 +89,7 @@ void D3D12Replay::OutputWindow::MakeRTV(bool msaa)
                                       D3D12_RESOURCE_STATE_COPY_SOURCE, NULL,
                                       __uuidof(ID3D12Resource), (void **)&colResolve);
 
-    col->SetName(L"Output Window Resolve");
+    colResolve->SetName(L"Output Window Resolve");
 
     if(FAILED(hr))
     {
@@ -134,7 +134,7 @@ void D3D12Replay::OutputWindow::MakeDSV()
                                             D3D12_RESOURCE_STATE_DEPTH_WRITE, NULL,
                                             __uuidof(ID3D12Resource), (void **)&depth);
 
-  col->SetName(L"Output Window Depth");
+  depth->SetName(L"Output Window Depth");
 
   if(FAILED(hr))
   {
