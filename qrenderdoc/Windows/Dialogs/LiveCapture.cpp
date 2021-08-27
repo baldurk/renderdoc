@@ -926,6 +926,21 @@ void LiveCapture::cleanItems()
   ui->captures->clear();
 }
 
+void LiveCapture::fileSaved(QString from, QString to)
+{
+  for(int i = 0; i < ui->captures->count(); i++)
+  {
+    Capture *cap = GetCapture(ui->captures->item(i));
+
+    if(cap->path == from)
+    {
+      cap->path = to;
+      cap->saved = true;
+      cap->local = true;
+    }
+  }
+}
+
 void LiveCapture::previewToggle_toggled(bool checked)
 {
   if(m_IgnorePreviewToggle)

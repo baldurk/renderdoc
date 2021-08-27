@@ -1005,6 +1005,8 @@ bool MainWindow::PromptSaveCaptureAs()
 
   if(!saveFilename.isEmpty())
   {
+    QString origFilename = m_Ctx.GetCaptureFilename();
+
     bool success = m_Ctx.SaveCaptureTo(saveFilename);
 
     if(!success)
@@ -1013,6 +1015,9 @@ bool MainWindow::PromptSaveCaptureAs()
     AddRecentFile(m_Ctx.Config().RecentCaptureFiles, saveFilename);
     PopulateRecentCaptureFiles();
     SetTitle(saveFilename);
+
+    for(LiveCapture *live : m_LiveCaptures)
+      live->fileSaved(origFilename, saveFilename);
 
     return true;
   }

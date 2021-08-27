@@ -60,6 +60,7 @@ public:
   void QueueCapture(int frameNumber, int numFrames);
   const QString &hostname() { return m_Hostname; }
   void cleanItems();
+  void fileSaved(QString from, QString to);
 
 public slots:
   bool checkAllowClose();
