@@ -1573,6 +1573,12 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(IDXGISwapper *swapper, DXGI_F
         states = {D3D12_RESOURCE_STATE_PRESENT};
       }
     }
+    else
+    {
+      WrappedID3D12Resource *wrapped = (WrappedID3D12Resource *)pRes;
+
+      GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
+    }
   }
 
   if(IsCaptureMode(m_State))

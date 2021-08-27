@@ -1704,6 +1704,10 @@ IUnknown *WrappedID3D11Device::WrapSwapchainBuffer(IDXGISwapper *swapper, DXGI_F
 
       record->AddChunk(scope.Get());
     }
+    else
+    {
+      GetResourceManager()->AddLiveResource(id, pTex);
+    }
   }
 
   if(buffer == 0 && IsCaptureMode(m_State) && m_SwapChains[swapper] == NULL)
