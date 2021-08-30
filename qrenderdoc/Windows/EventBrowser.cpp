@@ -363,6 +363,9 @@ struct EventItemModel : public QAbstractItemModel
     if(m_FindString == text)
       return;
 
+    if(!m_Ctx.IsCaptureLoaded())
+      return;
+
     rdcarray<QModelIndex> oldResults;
     oldResults.swap(m_FindResults);
 
@@ -472,6 +475,9 @@ struct EventItemModel : public QAbstractItemModel
   {
     if(eid == 0)
       return createIndex(0, 0, TagCaptureStart);
+
+    if(eid >= m_Actions.size())
+      return QModelIndex();
 
     const ActionDescription *action = m_Actions[eid];
     if(action)
@@ -3746,6 +3752,9 @@ void EventBrowser::findHighlight_timeout()
 
 void EventBrowser::FindNext(bool forward)
 {
+  if(!m_Ctx.IsCaptureLoaded())
+    return;
+
   m_Model->SetFindText(ui->findEvent->text());
 
   // get the first result in this direction
@@ -4498,6 +4507,9 @@ void EventBrowser::filter_CompletionBegin(QString prefix)
 
 void EventBrowser::filter_apply()
 {
+  if(!m_Ctx.IsCaptureLoaded())
+    return;
+
   if(ui->filterExpression->completionInProgress())
     return;
 
