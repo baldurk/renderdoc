@@ -2573,10 +2573,6 @@ private:
 
         rdcspv::ImageOperandsAndParamDatas imageOperands;
 
-        if(m_pDriver->GetDeviceEnabledFeatures().shaderImageGatherExtended &&
-           offsets[i] != rdcspv::Id())
-          imageOperands.setOffset(offsets[i]);
-
         cases.add(rdcspv::OpLabel(label));
         rdcspv::Id loadedImage =
             cases.add(rdcspv::OpLoad(texSampTypes[i], editor.MakeId(), bindVars[i]));
@@ -2642,10 +2638,6 @@ private:
           targets.push_back({(uint32_t)op * 10 + i, label});
 
           rdcspv::ImageOperandsAndParamDatas imageOperands;
-
-          if(m_pDriver->GetDeviceEnabledFeatures().shaderImageGatherExtended &&
-             offsets[i] != rdcspv::Id())
-            imageOperands.setOffset(offsets[i]);
 
           cases.add(rdcspv::OpLabel(label));
           rdcspv::Id loadedImage =
