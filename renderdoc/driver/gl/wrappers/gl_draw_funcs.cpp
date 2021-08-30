@@ -4454,6 +4454,7 @@ bool WrappedOpenGL::Serialise_glClear(SerialiserType &ser, GLbitfield mask)
         action.flags |= ActionFlags::ClearDepthStencil;
 
       ResourceId dstId;
+      GLenum attach = eGL_COLOR_ATTACHMENT0;
 
       if(mask & GL_DEPTH_BUFFER_BIT)
       {
@@ -4464,6 +4465,7 @@ bool WrappedOpenGL::Serialise_glClear(SerialiserType &ser, GLbitfield mask)
           m_ResourceUses[res_id].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
 
           dstId = res_id;
+          attach = eGL_DEPTH_ATTACHMENT;
         }
       }
 
@@ -4476,6 +4478,7 @@ bool WrappedOpenGL::Serialise_glClear(SerialiserType &ser, GLbitfield mask)
           m_ResourceUses[res_id].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
 
           dstId = res_id;
+          attach = eGL_STENCIL_ATTACHMENT;
         }
       }
 
@@ -4494,18 +4497,19 @@ bool WrappedOpenGL::Serialise_glClear(SerialiserType &ser, GLbitfield mask)
             m_ResourceUses[res_id].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
 
             dstId = res_id;
+            attach = GLenum(eGL_COLOR_ATTACHMENT0 + i);
           }
         }
       }
 
       action.copyDestination = GetResourceManager()->GetOriginalID(dstId);
 
-      if(m_Textures[dstId].curType != eGL_RENDERBUFFER)
+      if(dstId != ResourceId() && m_Textures[dstId].curType != eGL_RENDERBUFFER)
       {
         GLuint curDrawFBO = 0;
         GL.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&curDrawFBO);
         GLint mip = 0, slice = 0;
-        GetFramebufferMipAndLayer(curDrawFBO, eGL_COLOR_ATTACHMENT0, &mip, &slice);
+        GetFramebufferMipAndLayer(curDrawFBO, attach, &mip, &slice);
         action.copyDestinationSubresource.mip = mip;
         action.copyDestinationSubresource.slice = slice;
       }
