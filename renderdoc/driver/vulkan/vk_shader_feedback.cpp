@@ -1439,8 +1439,12 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
     }
   }
 
+  // replay from the start without this action, as we want a clean state to do printfs from.
+  m_pDriver->ReplayLog(0, eventId, eReplay_WithoutDraw);
+
   // we go through the driver for all these creations since they need to be properly
-  // registered in order to be put in the partial replay state
+  // registered in order to be put in the partial replay state. Our patched shader is valid so we
+  // don't need to replay after doing the feedback execute
   VkResult vkr = VK_SUCCESS;
   VkDevice dev = m_Device;
 
@@ -1893,9 +1897,6 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   for(size_t i = 0; i < ARRAY_COUNT(modules); i++)
     if(modules[i] != VK_NULL_HANDLE)
       m_pDriver->vkDestroyShaderModule(dev, modules[i], NULL);
-
-  // replay from the start as we may have corrupted state while fetching the above feedback.
-  m_pDriver->ReplayLog(0, eventId, eReplay_Full);
 }
 
 #if ENABLED(ENABLE_UNIT_TESTS)
