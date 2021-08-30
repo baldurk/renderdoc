@@ -526,6 +526,17 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
     return new ShaderDebugTrace;
   }
 
+  rdcarray<Id> entryInterface;
+
+  for(const EntryPoint &e : entries)
+  {
+    if(e.id == entryId)
+    {
+      entryInterface = e.usedIds;
+      break;
+    }
+  }
+
   global.clock = uint64_t(time(NULL)) << 32;
 
   for(auto it = extSets.begin(); it != extSets.end(); it++)
@@ -618,6 +629,9 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
   {
     if(v.storage == StorageClass::Input || v.storage == StorageClass::Output)
     {
+      if(!entryInterface.contains(v.id))
+        continue;
+
       const bool isInput = (v.storage == StorageClass::Input);
 
       ShaderVariable var;
