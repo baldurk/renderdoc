@@ -991,6 +991,9 @@ private:
       if(a.eventId >= m_Times.size())
         continue;
 
+      if(qIsNaN(m_Times[a.eventId]) || qIsInf(m_Times[a.eventId]))
+        continue;
+
       // add the time for this event, if it's non-negative. Because we fill out nodes in reverse
       // order, any children that are nodes themselves should be populated by now
       duration += qMax(0.0, m_Times[a.eventId]);
