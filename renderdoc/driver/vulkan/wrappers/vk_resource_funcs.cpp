@@ -2475,6 +2475,30 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
   return ret;
 }
 
+void WrappedVulkan::PatchImageViewUsage(VkImageViewUsageCreateInfo *usage, VkFormat imgFormat,
+                                        VkSampleCountFlagBits samples)
+{
+  // this matches the mutations we do to images, so see vkCreateImage
+  usage->usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+  usage->usage |= VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+  usage->usage &= ~VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
+
+  if(samples != VK_SAMPLE_COUNT_1_BIT)
+  {
+    usage->usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+
+    if(!IsDepthOrStencilFormat(imgFormat))
+    {
+      if(GetDebugManager() && GetShaderCache()->IsArray2MSSupported())
+        usage->usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+    }
+    else
+    {
+      usage->usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    }
+  }
+}
+
 // Image view functions
 
 template <typename SerialiserType>
@@ -2494,9 +2518,20 @@ bool WrappedVulkan::Serialise_vkCreateImageView(SerialiserType &ser, VkDevice de
   {
     VkImageView view = VK_NULL_HANDLE;
 
-    VkImageViewCreateInfo unwrappedInfo = CreateInfo;
-    unwrappedInfo.image = Unwrap(unwrappedInfo.image);
-    VkResult ret = ObjDisp(device)->CreateImageView(Unwrap(device), &unwrappedInfo, NULL, &view);
+    byte *tempMem = GetTempMemory(GetNextPatchSize(&CreateInfo));
+    VkImageViewCreateInfo *unwrappedInfo = UnwrapStructAndChain(m_State, tempMem, &CreateInfo);
+
+    VkImageViewUsageCreateInfo *usageInfo = (VkImageViewUsageCreateInfo *)FindNextStruct(
+        unwrappedInfo, VK_STRUCTURE_TYPE_IMAGE_VIEW_USAGE_CREATE_INFO);
+
+    if(usageInfo)
+    {
+      VkSampleCountFlagBits samples = m_CreationInfo.m_Image[GetResID(CreateInfo.image)].samples;
+
+      PatchImageViewUsage(usageInfo, CreateInfo.format, samples);
+    }
+
+    VkResult ret = ObjDisp(device)->CreateImageView(Unwrap(device), unwrappedInfo, NULL, &view);
 
     APIProps.YUVTextures |= IsYUVFormat(CreateInfo.format);
 
@@ -2540,11 +2575,26 @@ bool WrappedVulkan::Serialise_vkCreateImageView(SerialiserType &ser, VkDevice de
 VkResult WrappedVulkan::vkCreateImageView(VkDevice device, const VkImageViewCreateInfo *pCreateInfo,
                                           const VkAllocationCallbacks *pAllocator, VkImageView *pView)
 {
-  VkImageViewCreateInfo unwrappedInfo = *pCreateInfo;
-  unwrappedInfo.image = Unwrap(unwrappedInfo.image);
+  byte *tempMem = GetTempMemory(GetNextPatchSize(pCreateInfo));
+  VkImageViewCreateInfo *unwrappedInfo = UnwrapStructAndChain(m_State, tempMem, pCreateInfo);
+
+  VkImageViewUsageCreateInfo *usageInfo = (VkImageViewUsageCreateInfo *)FindNextStruct(
+      unwrappedInfo, VK_STRUCTURE_TYPE_IMAGE_VIEW_USAGE_CREATE_INFO);
+
+  if(usageInfo)
+  {
+    VkSampleCountFlagBits samples;
+    if(IsCaptureMode(m_State))
+      samples = (VkSampleCountFlagBits)GetRecord(pCreateInfo->image)->resInfo->imageInfo.sampleCount;
+    else
+      samples = m_CreationInfo.m_Image[GetResID(pCreateInfo->image)].samples;
+
+    PatchImageViewUsage(usageInfo, pCreateInfo->format, samples);
+  }
+
   VkResult ret;
   SERIALISE_TIME_CALL(
-      ret = ObjDisp(device)->CreateImageView(Unwrap(device), &unwrappedInfo, pAllocator, pView));
+      ret = ObjDisp(device)->CreateImageView(Unwrap(device), unwrappedInfo, pAllocator, pView));
 
   if(ret == VK_SUCCESS)
   {

@@ -850,6 +850,8 @@ private:
 
   void PatchAttachment(VkFramebufferAttachmentImageInfo *att, VkFormat imgFormat,
                        VkSampleCountFlagBits samples);
+  void PatchImageViewUsage(VkImageViewUsageCreateInfo *usage, VkFormat imgFormat,
+                           VkSampleCountFlagBits samples);
 
   VkIndirectPatchData FetchIndirectData(VkIndirectPatchType type, VkCommandBuffer commandBuffer,
                                         VkBuffer dataBuffer, VkDeviceSize dataOffset, uint32_t count,
