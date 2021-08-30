@@ -2846,6 +2846,8 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
 
   editor.Prepare();
 
+  rdcspv::Id entryID;
+
   // first delete all functions. We will recreate the entry point with just what we need
   {
     rdcarray<rdcspv::Id> removedIds;
@@ -2856,6 +2858,25 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
     {
       removedIds.push_back(rdcspv::OpDecoder(it).result);
       editor.Remove(it);
+      it++;
+    }
+
+    it = editor.Begin(rdcspv::Section::EntryPoints);
+    end = editor.End(rdcspv::Section::EntryPoints);
+    while(it < end)
+    {
+      rdcspv::OpEntryPoint e(it);
+      if(e.name == shadRefl.entryPoint && e.executionModel == rdcspv::ExecutionModel::Fragment)
+      {
+        // remember the Id of our entry point
+        entryID = e.entryPoint;
+      }
+      else
+      {
+        // remove all other entry points
+        removedIds.push_back(e.entryPoint);
+        editor.Remove(it);
+      }
       it++;
     }
 
@@ -2919,17 +2940,6 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
     bufferClass = editor.StorageBufferClass();
   else
     bufferClass = rdcspv::StorageClass::PhysicalStorageBuffer;
-
-  // remove all other entry point
-  rdcspv::Id entryID;
-  for(const rdcspv::EntryPoint &e : editor.GetEntries())
-  {
-    if(e.name == shadRefl.entryPoint && e.executionModel == rdcspv::ExecutionModel::Fragment)
-    {
-      entryID = e.id;
-      break;
-    }
-  }
 
   rdcarray<rdcspv::Id> addedInputs;
 
