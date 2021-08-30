@@ -232,68 +232,6 @@ static GLenum MakeGLType(const ShaderConstantType &type)
   return eGL_FLOAT;
 }
 
-static GLenum MakeGLType(const ShaderResource &res)
-{
-  if(res.variableType.descriptor.type == VarType::UInt)
-  {
-    switch(res.resType)
-    {
-      case TextureType::Buffer: return eGL_UNSIGNED_INT_SAMPLER_BUFFER;
-      case TextureType::Texture1D: return eGL_UNSIGNED_INT_SAMPLER_1D;
-      case TextureType::Texture1DArray: return eGL_UNSIGNED_INT_SAMPLER_1D_ARRAY;
-      case TextureType::Texture2D: return eGL_UNSIGNED_INT_SAMPLER_2D;
-      case TextureType::TextureRect: return eGL_UNSIGNED_INT_SAMPLER_2D_RECT;
-      case TextureType::Texture2DArray: return eGL_UNSIGNED_INT_SAMPLER_2D_ARRAY;
-      case TextureType::Texture2DMS: return eGL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE;
-      case TextureType::Texture2DMSArray: return eGL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY;
-      case TextureType::Texture3D: return eGL_UNSIGNED_INT_SAMPLER_3D;
-      case TextureType::TextureCube: return eGL_UNSIGNED_INT_SAMPLER_CUBE;
-      case TextureType::TextureCubeArray: return eGL_UNSIGNED_INT_SAMPLER_CUBE_MAP_ARRAY;
-      default: break;
-    }
-  }
-  else if(res.variableType.descriptor.type == VarType::SInt)
-  {
-    switch(res.resType)
-    {
-      case TextureType::Buffer: return eGL_INT_SAMPLER_BUFFER;
-      case TextureType::Texture1D: return eGL_INT_SAMPLER_1D;
-      case TextureType::Texture1DArray: return eGL_INT_SAMPLER_1D_ARRAY;
-      case TextureType::Texture2D: return eGL_INT_SAMPLER_2D;
-      case TextureType::TextureRect: return eGL_INT_SAMPLER_2D_RECT;
-      case TextureType::Texture2DArray: return eGL_INT_SAMPLER_2D_ARRAY;
-      case TextureType::Texture2DMS: return eGL_INT_SAMPLER_2D_MULTISAMPLE;
-      case TextureType::Texture2DMSArray: return eGL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY;
-      case TextureType::Texture3D: return eGL_INT_SAMPLER_3D;
-      case TextureType::TextureCube: return eGL_INT_SAMPLER_CUBE;
-      case TextureType::TextureCubeArray: return eGL_INT_SAMPLER_CUBE_MAP_ARRAY;
-      default: break;
-    }
-  }
-  else
-  {
-    switch(res.resType)
-    {
-      case TextureType::Buffer: return eGL_SAMPLER_BUFFER;
-      case TextureType::Texture1D: return eGL_SAMPLER_1D;
-      case TextureType::Texture1DArray: return eGL_SAMPLER_1D_ARRAY;
-      case TextureType::Texture2D: return eGL_SAMPLER_2D;
-      case TextureType::TextureRect: return eGL_SAMPLER_2D_RECT;
-      case TextureType::Texture2DArray: return eGL_SAMPLER_2D_ARRAY;
-      case TextureType::Texture2DMS: return eGL_SAMPLER_2D_MULTISAMPLE;
-      case TextureType::Texture2DMSArray: return eGL_SAMPLER_2D_MULTISAMPLE_ARRAY;
-      case TextureType::Texture3D: return eGL_SAMPLER_3D;
-      case TextureType::TextureCube: return eGL_SAMPLER_CUBE;
-      case TextureType::TextureCubeArray: return eGL_SAMPLER_CUBE_MAP_ARRAY;
-      default: break;
-    }
-  }
-
-  RDCERR("Unhandled GL type");
-
-  return eGL_SAMPLER_2D;
-}
-
 static void UnrollConstant(rdcarray<UnrolledSPIRVConstant> &unrolled, const ShaderConstant &var,
                            const rdcstr &basename, uint32_t &location)
 {
@@ -382,36 +320,6 @@ static void UnrollConstants(const PerStageReflections &stages,
 
           if(!already)
             UnrollConstant(globals, shaderConst);
-        }
-      }
-    }
-
-    // now include the samplers which can be bound
-    for(const ShaderResource &res : stages.refls[s]->readOnlyResources)
-    {
-      if(res.isTexture && res.bindPoint < stages.mappings[s]->readOnlyResources.count())
-      {
-        int32_t location = -stages.mappings[s]->readOnlyResources[res.bindPoint].bind;
-
-        bool already = false;
-
-        for(const UnrolledSPIRVConstant &existing : globals)
-        {
-          if(existing.location == location)
-          {
-            already = true;
-            break;
-          }
-        }
-
-        if(!already)
-        {
-          UnrolledSPIRVConstant u;
-          u.glType = MakeGLType(res);
-          memcpy(u.name, res.name.c_str(), RDCMIN(res.name.size(), ARRAY_COUNT(u.name)));
-          u.arraySize = 1;
-          u.location = location;
-          globals.push_back(u);
         }
       }
     }
