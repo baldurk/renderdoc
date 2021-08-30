@@ -296,9 +296,9 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glDispatchCompute(SerialiserType &ser, GLuint num_groups_x,
                                                 GLuint num_groups_y, GLuint num_groups_z)
 {
-  SERIALISE_ELEMENT(num_groups_x);
-  SERIALISE_ELEMENT(num_groups_y);
-  SERIALISE_ELEMENT(num_groups_z);
+  SERIALISE_ELEMENT(num_groups_x).Important();
+  SERIALISE_ELEMENT(num_groups_y).Important();
+  SERIALISE_ELEMENT(num_groups_z).Important();
 
   Serialise_DebugMessages(ser);
 

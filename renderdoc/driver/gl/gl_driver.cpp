@@ -3095,7 +3095,7 @@ void WrappedOpenGL::Serialise_DebugMessages(SerialiserType &ser)
     DebugMessages.swap(m_DebugMessages);
   }
 
-  SERIALISE_ELEMENT(DebugMessages);
+  SERIALISE_ELEMENT(DebugMessages).Unimportant();
 
   // if we're using replay-time API validation, fetch messages at replay time and ignore any
   // serialised ones
