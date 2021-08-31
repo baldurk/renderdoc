@@ -28,22 +28,12 @@
 
 namespace LLVMBC
 {
-struct AbbrevParam
-{
-  AbbrevEncoding encoding;
-  uint64_t value;    // this is also the bitwidth for Fixed/VBR
-};
-
-struct AbbrevDesc
-{
-  rdcarray<AbbrevParam> params;
-};
-
 // the temporary context while pushing/popping blocks
 struct BlockContext
 {
-  BlockContext(size_t size = 2) : abbrevSize(size) {}
+  BlockContext(size_t size, size_t offs = 0) : abbrevSize(size), lengthOffset(offs) {}
   size_t abbrevSize;
+  size_t lengthOffset;
   rdcarray<AbbrevDesc> abbrevs;
 };
 
@@ -62,6 +52,8 @@ bool BitcodeReader::Valid(const byte *bitcode, size_t length)
 
 BitcodeReader::BitcodeReader(const byte *bitcode, size_t length) : b(bitcode, length)
 {
+  abbrevSize = 2;
+
   uint32_t magic = b.Read<uint32_t>();
 
   RDCASSERT(magic == BitcodeMagic);
@@ -78,7 +70,7 @@ BlockOrRecord BitcodeReader::ReadToplevelBlock()
   BlockOrRecord ret;
 
   // should hit ENTER_SUBBLOCK first for top-level block
-  uint32_t abbrevID = b.fixed<uint32_t>(abbrevSize());
+  uint32_t abbrevID = b.fixed<uint32_t>(abbrevSize);
   RDCASSERT(abbrevID == ENTER_SUBBLOCK);
 
   ReadBlockContents(ret);
@@ -95,7 +87,8 @@ void BitcodeReader::ReadBlockContents(BlockOrRecord &block)
 {
   block.id = b.vbr<uint32_t>(8);
 
-  blockStack.push_back(new BlockContext(b.vbr<size_t>(4)));
+  abbrevSize = b.vbr<size_t>(4);
+  blockStack.push_back(new BlockContext(abbrevSize));
 
   b.align32bits();
   block.blockDwordLength = b.Read<uint32_t>();
@@ -106,7 +99,7 @@ void BitcodeReader::ReadBlockContents(BlockOrRecord &block)
   uint32_t abbrevID = ~0U;
   do
   {
-    abbrevID = b.fixed<uint32_t>(abbrevSize());
+    abbrevID = b.fixed<uint32_t>(abbrevSize);
 
     if(abbrevID == END_BLOCK)
     {
@@ -254,6 +247,8 @@ void BitcodeReader::ReadBlockContents(BlockOrRecord &block)
 
   delete blockStack.back();
   blockStack.erase(blockStack.size() - 1);
+
+  abbrevSize = blockStack.empty() ? 2 : blockStack.back()->abbrevSize;
 }
 
 uint64_t BitcodeReader::decodeAbbrevParam(const AbbrevParam &param)
@@ -267,17 +262,11 @@ uint64_t BitcodeReader::decodeAbbrevParam(const AbbrevParam &param)
     case AbbrevEncoding::Char6: return b.c6();
     case AbbrevEncoding::Literal: return param.value;
     case AbbrevEncoding::Array:
-    case AbbrevEncoding::Blob: RDCERR("Array and blob types must be decoded specially");
+    case AbbrevEncoding::Blob: RDCERR("Array and blob types must be decoded specially"); break;
+    case AbbrevEncoding::Unknown: RDCERR("Unexpected abbrev encoding"); break;
   }
 
   return 0;
-}
-
-size_t BitcodeReader::abbrevSize() const
-{
-  if(blockStack.empty())
-    return 2;
-  return blockStack.back()->abbrevSize;
 }
 
 const AbbrevDesc &BitcodeReader::getAbbrev(uint32_t blockId, uint32_t abbrevID)

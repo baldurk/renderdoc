@@ -68,10 +68,10 @@ public:
 
 private:
   BitReader b;
+  size_t abbrevSize;
 
   void ReadBlockContents(BlockOrRecord &block);
   const AbbrevDesc &getAbbrev(uint32_t blockId, uint32_t abbrevID);
-  size_t abbrevSize() const;
   uint64_t decodeAbbrevParam(const AbbrevParam &param);
 
   rdcarray<BlockContext *> blockStack;

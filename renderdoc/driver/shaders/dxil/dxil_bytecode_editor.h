@@ -42,7 +42,7 @@ public:
 private:
   bytebuf &m_OutBlob;
 
-  bytebuf EncodeProgram();
+  bytebuf EncodeProgram() const;
 };
 
 };    // namespace DXIL

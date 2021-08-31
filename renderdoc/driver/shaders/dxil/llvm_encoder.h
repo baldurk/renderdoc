@@ -27,6 +27,7 @@
 #include "api/replay/rdcarray.h"
 #include "api/replay/rdcstr.h"
 #include "llvm_bitwriter.h"
+#include "llvm_common.h"
 
 namespace LLVMBC
 {
@@ -36,8 +37,24 @@ public:
   BitcodeWriter(bytebuf &buf);
   ~BitcodeWriter();
 
+  void BeginBlock(KnownBlock block);
+
+  void EndBlock();
+
+  void ModuleBlockInfo(uint32_t numTypes);
+
+  void Unabbrev(uint32_t record, uint32_t val);
+  void Unabbrev(uint32_t record, uint64_t val);
+  void Unabbrev(uint32_t record, const rdcarray<uint32_t> &vals);
+  void Unabbrev(uint32_t record, const rdcarray<uint64_t> &vals);
+
 private:
   BitWriter b;
+
+  size_t abbrevSize;
+  KnownBlock curBlock;
+
+  rdcarray<rdcpair<KnownBlock, size_t>> blockStack;
 };
 
 };    // namespace LLVMBC

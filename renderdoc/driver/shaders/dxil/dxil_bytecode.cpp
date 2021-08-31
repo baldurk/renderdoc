@@ -29,12 +29,15 @@
 #include "common/common.h"
 #include "common/formatting.h"
 #include "os/os_specific.h"
+#include "llvm_common.h"
 #include "llvm_decoder.h"
 
 #define IS_KNOWN(val, KnownID) (decltype(KnownID)(val) == KnownID)
 
 namespace DXIL
 {
+using namespace LLVMBC;
+
 void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
                    std::function<const Type *(uint64_t)> getType,
                    std::function<const Type *(const Type *, Type::PointerAddrSpace)> getPtrType,
@@ -302,7 +305,7 @@ Program::Program(const byte *bytes, size_t length)
   LLVMBC::BlockOrRecord root = reader.ReadToplevelBlock();
 
   // the top-level block should be MODULE_BLOCK
-  RDCASSERT(KnownBlocks(root.id) == KnownBlocks::MODULE_BLOCK);
+  RDCASSERT(KnownBlock(root.id) == KnownBlock::MODULE_BLOCK);
 
   // we should have consumed all bits, only one top-level block
   RDCASSERT(reader.AtEndOfStream());
@@ -497,11 +500,11 @@ Program::Program(const byte *bytes, size_t length)
     }
     else if(rootchild.IsBlock())
     {
-      if(IS_KNOWN(rootchild.id, KnownBlocks::BLOCKINFO))
+      if(IS_KNOWN(rootchild.id, KnownBlock::BLOCKINFO))
       {
         // do nothing, this is internal parse data
       }
-      else if(IS_KNOWN(rootchild.id, KnownBlocks::PARAMATTR_GROUP_BLOCK))
+      else if(IS_KNOWN(rootchild.id, KnownBlock::PARAMATTR_GROUP_BLOCK))
       {
         for(const LLVMBC::BlockOrRecord &attrgroup : rootchild.children)
         {
@@ -562,7 +565,7 @@ Program::Program(const byte *bytes, size_t length)
           m_AttributeGroups[id] = group;
         }
       }
-      else if(IS_KNOWN(rootchild.id, KnownBlocks::PARAMATTR_BLOCK))
+      else if(IS_KNOWN(rootchild.id, KnownBlock::PARAMATTR_BLOCK))
       {
         for(const LLVMBC::BlockOrRecord &paramattr : rootchild.children)
         {
@@ -602,7 +605,7 @@ Program::Program(const byte *bytes, size_t length)
           m_Attributes.push_back(attrs);
         }
       }
-      else if(IS_KNOWN(rootchild.id, KnownBlocks::TYPE_BLOCK))
+      else if(IS_KNOWN(rootchild.id, KnownBlock::TYPE_BLOCK))
       {
         rdcstr structname;
 
@@ -763,7 +766,7 @@ Program::Program(const byte *bytes, size_t length)
           }
         }
       }
-      else if(IS_KNOWN(rootchild.id, KnownBlocks::CONSTANTS_BLOCK))
+      else if(IS_KNOWN(rootchild.id, KnownBlock::CONSTANTS_BLOCK))
       {
         const Type *t = NULL;
         m_Constants.reserve(m_Constants.size() + rootchild.children.size());
@@ -820,7 +823,7 @@ Program::Program(const byte *bytes, size_t length)
           }
         }
       }
-      else if(IS_KNOWN(rootchild.id, KnownBlocks::VALUE_SYMTAB_BLOCK))
+      else if(IS_KNOWN(rootchild.id, KnownBlock::VALUE_SYMTAB_BLOCK))
       {
         for(const LLVMBC::BlockOrRecord &symtab : rootchild.children)
         {
@@ -868,7 +871,7 @@ Program::Program(const byte *bytes, size_t length)
           }
         }
       }
-      else if(IS_KNOWN(rootchild.id, KnownBlocks::METADATA_BLOCK))
+      else if(IS_KNOWN(rootchild.id, KnownBlock::METADATA_BLOCK))
       {
         m_Metadata.reserve(rootchild.children.size());
         for(size_t i = 0; i < rootchild.children.size(); i++)
@@ -945,7 +948,7 @@ Program::Program(const byte *bytes, size_t length)
           }
         }
       }
-      else if(IS_KNOWN(rootchild.id, KnownBlocks::FUNCTION_BLOCK))
+      else if(IS_KNOWN(rootchild.id, KnownBlock::FUNCTION_BLOCK))
       {
         Function &f = m_Functions[functionDecls[0]];
         functionDecls.erase(0);
@@ -980,7 +983,7 @@ Program::Program(const byte *bytes, size_t length)
         {
           if(funcChild.IsBlock())
           {
-            if(IS_KNOWN(funcChild.id, KnownBlocks::CONSTANTS_BLOCK))
+            if(IS_KNOWN(funcChild.id, KnownBlock::CONSTANTS_BLOCK))
             {
               f.constants.reserve(funcChild.children.size());
 
@@ -1030,7 +1033,7 @@ Program::Program(const byte *bytes, size_t length)
 
               instrSymbolStart = m_Symbols.size();
             }
-            else if(IS_KNOWN(funcChild.id, KnownBlocks::METADATA_BLOCK))
+            else if(IS_KNOWN(funcChild.id, KnownBlock::METADATA_BLOCK))
             {
               f.metadata.resize(funcChild.children.size());
 
@@ -1080,7 +1083,7 @@ Program::Program(const byte *bytes, size_t length)
                 m++;
               }
             }
-            else if(IS_KNOWN(funcChild.id, KnownBlocks::VALUE_SYMTAB_BLOCK))
+            else if(IS_KNOWN(funcChild.id, KnownBlock::VALUE_SYMTAB_BLOCK))
             {
               for(const LLVMBC::BlockOrRecord &symtab : funcChild.children)
               {
@@ -1141,7 +1144,7 @@ Program::Program(const byte *bytes, size_t length)
                 }
               }
             }
-            else if(IS_KNOWN(funcChild.id, KnownBlocks::METADATA_ATTACHMENT))
+            else if(IS_KNOWN(funcChild.id, KnownBlock::METADATA_ATTACHMENT))
             {
               for(const LLVMBC::BlockOrRecord &meta : funcChild.children)
               {
@@ -1173,7 +1176,7 @@ Program::Program(const byte *bytes, size_t length)
                   f.instructions[(size_t)meta.ops[0]].attachedMeta.swap(attach);
               }
             }
-            else if(IS_KNOWN(funcChild.id, KnownBlocks::USELIST_BLOCK))
+            else if(IS_KNOWN(funcChild.id, KnownBlock::USELIST_BLOCK))
             {
               RDCDEBUG("Ignoring uselist block");
             }

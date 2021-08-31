@@ -24,17 +24,341 @@
 
 #include "llvm_encoder.h"
 #include "os/os_specific.h"
-#include "llvm_common.h"
 
 namespace LLVMBC
 {
+static uint32_t GetBlockAbbrevSize(KnownBlock block)
+{
+  uint32_t ret = 0;
+
+  // the abbrev sizes seem to be hardcoded in llvm? At least this matches dxc's llvm
+  switch(block)
+  {
+    case KnownBlock::BLOCKINFO: ret = 2; break;
+    case KnownBlock::MODULE_BLOCK: ret = 3; break;
+    case KnownBlock::PARAMATTR_BLOCK: ret = 3; break;
+    case KnownBlock::PARAMATTR_GROUP_BLOCK: ret = 3; break;
+    case KnownBlock::CONSTANTS_BLOCK: ret = 4; break;
+    case KnownBlock::FUNCTION_BLOCK: ret = 4; break;
+    case KnownBlock::VALUE_SYMTAB_BLOCK: ret = 4; break;
+    case KnownBlock::METADATA_BLOCK: ret = 3; break;
+    case KnownBlock::METADATA_ATTACHMENT: ret = 3; break;
+    case KnownBlock::TYPE_BLOCK: ret = 4; break;
+    case KnownBlock::USELIST_BLOCK: ret = 3; break;
+    case KnownBlock::Count: break;
+  }
+
+  return ret;
+}
+
+#define MagicFixedSizeNumTypes 99
+
+#define AbbFixed(n)          \
+  {                          \
+    AbbrevEncoding::Fixed, n \
+  }
+#define AbbVBR(n)          \
+  {                        \
+    AbbrevEncoding::VBR, n \
+  }
+#define AbbArray()           \
+  {                          \
+    AbbrevEncoding::Array, 0 \
+  }
+#define AbbLiteral(lit)                    \
+  {                                        \
+    AbbrevEncoding::Literal, uint64_t(lit) \
+  }
+#define AbbChar6()           \
+  {                          \
+    AbbrevEncoding::Char6, 0 \
+  }
+
+#define AbbFixedTypes() AbbFixed(MagicFixedSizeNumTypes)
+
+using AbbrevDefinition = AbbrevParam[8];
+
+// known abbreviations. Encoded as an array of abbrevs, with each one being an array of params (the
+// last param will have AbbrevEncoding::Unknown == 0)
+enum class ValueSymtabAbbrev
+{
+  Entry8,
+  Entry7,
+  Entry6,
+  BBEntry6,
+};
+
+AbbrevDefinition ValueSymtabAbbrevDefs[] = {
+    // Entry8
+    {
+        AbbFixed(3), AbbVBR(8), AbbArray(), AbbFixed(8),
+    },
+    // Entry7
+    {
+        AbbLiteral(ValueSymtabRecord::ENTRY), AbbVBR(8), AbbArray(), AbbFixed(7),
+    },
+    // Entry6
+    {
+        AbbLiteral(ValueSymtabRecord::ENTRY), AbbVBR(8), AbbArray(), AbbChar6(),
+    },
+    // BBEntry6
+    {
+        AbbLiteral(ValueSymtabRecord::BBENTRY), AbbVBR(8), AbbArray(), AbbChar6(),
+    },
+};
+
+enum class ConstantsAbbrev
+{
+  SetType,
+  Integer,
+  EvalCast,
+  Null,
+};
+
+AbbrevDefinition ConstantsAbbrevDefs[] = {
+    // SetType
+    {
+        AbbLiteral(ConstantsRecord::SETTYPE), AbbFixedTypes(),
+    },
+    // Integer
+    {
+        AbbLiteral(ConstantsRecord::INTEGER), AbbVBR(8),
+    },
+    // EvalCast
+    {
+        AbbLiteral(ConstantsRecord::EVAL_CAST), AbbFixed(4), AbbFixedTypes(), AbbVBR(8),
+    },
+    // Null
+    {
+        AbbLiteral(ConstantsRecord::CONST_NULL),
+    },
+};
+
+enum class FunctionAbbrev
+{
+  Load,
+  BinOp,
+  BinOpFlags,
+  Cast,
+  RetVoid,
+  RetValue,
+  Unreachable,
+  GEP,
+};
+
+AbbrevDefinition FunctionAbbrevDefs[] = {
+    // Load
+    {
+        AbbLiteral(FunctionRecord::INST_LOAD), AbbVBR(6), AbbFixedTypes(), AbbVBR(4), AbbFixed(1),
+    },
+    // BinOp
+    {
+        AbbLiteral(FunctionRecord::INST_BINOP), AbbVBR(6), AbbVBR(6), AbbFixed(4),
+    },
+    // BinOpFlags
+    {
+        AbbLiteral(FunctionRecord::INST_BINOP), AbbVBR(6), AbbVBR(6), AbbFixed(4), AbbFixed(7),
+    },
+    // Cast
+    {
+        AbbLiteral(FunctionRecord::INST_CAST), AbbVBR(6), AbbFixedTypes(), AbbFixed(4),
+    },
+    // RetVoid
+    {
+        AbbLiteral(FunctionRecord::INST_RET),
+    },
+    // RetValue
+    {
+        AbbLiteral(FunctionRecord::INST_RET), AbbVBR(6),
+    },
+    // Unreachable
+    {
+        AbbLiteral(FunctionRecord::INST_UNREACHABLE),
+    },
+    // GEP
+    {
+        AbbLiteral(FunctionRecord::INST_GEP), AbbFixed(1), AbbFixedTypes(), AbbArray(), AbbVBR(6),
+    },
+};
+
+static AbbrevDefinition *GetAbbrevs(KnownBlock block)
+{
+  AbbrevDefinition *ret = NULL;
+
+  switch(block)
+  {
+    case KnownBlock::VALUE_SYMTAB_BLOCK: ret = ValueSymtabAbbrevDefs; break;
+    case KnownBlock::CONSTANTS_BLOCK: ret = ConstantsAbbrevDefs; break;
+    case KnownBlock::FUNCTION_BLOCK: ret = FunctionAbbrevDefs; break;
+    default: break;
+  }
+
+  return ret;
+}
+
+static uint32_t GetNumAbbrevs(KnownBlock block)
+{
+  uint32_t ret = 0;
+
+  switch(block)
+  {
+    case KnownBlock::VALUE_SYMTAB_BLOCK: ret = ARRAY_COUNT(ValueSymtabAbbrevDefs); break;
+    case KnownBlock::CONSTANTS_BLOCK: ret = ARRAY_COUNT(ConstantsAbbrevDefs); break;
+    case KnownBlock::FUNCTION_BLOCK: ret = ARRAY_COUNT(FunctionAbbrevDefs); break;
+    default: break;
+  }
+
+  return ret;
+}
+
 BitcodeWriter::BitcodeWriter(bytebuf &buf) : b(buf)
 {
   b.Write(LLVMBC::BitcodeMagic);
+
+  curBlock = KnownBlock::Count;
+  abbrevSize = 2;
 }
 
 BitcodeWriter::~BitcodeWriter()
 {
+}
+
+void BitcodeWriter::BeginBlock(KnownBlock block)
+{
+  uint32_t newAbbrevSize = GetBlockAbbrevSize(block);
+
+  if(newAbbrevSize == 0)
+  {
+    RDCERR("Encoding error: unrecognised block %u", block);
+    return;
+  }
+
+  b.fixed(abbrevSize, ENTER_SUBBLOCK);
+  b.vbr(8, block);
+  b.vbr(4, newAbbrevSize);
+  b.align32bits();
+
+  size_t offs = b.GetByteOffset();
+
+  // write a placeholder length
+  b.Write<uint32_t>(0U);
+
+  curBlock = block;
+  abbrevSize = newAbbrevSize;
+  blockStack.push_back({block, offs});
+}
+
+void BitcodeWriter::EndBlock()
+{
+  b.vbr(abbrevSize, END_BLOCK);
+  b.align32bits();
+
+  size_t offs = blockStack.back().second;
+
+  // -4 because we don't include the word with the length itself
+  size_t lengthInBytes = b.GetByteOffset() - offs - 4;
+
+  b.PatchLengthWord(offs, uint32_t(lengthInBytes / 4));
+
+  blockStack.pop_back();
+  if(blockStack.empty())
+  {
+    curBlock = KnownBlock::Count;
+    abbrevSize = 2;
+  }
+  else
+  {
+    curBlock = blockStack.back().first;
+    abbrevSize = GetBlockAbbrevSize(curBlock);
+  }
+}
+
+void BitcodeWriter::ModuleBlockInfo(uint32_t numTypes)
+{
+  // these abbrevs are hardcoded in llvm, at least at dxc's version
+  BeginBlock(KnownBlock::BLOCKINFO);
+
+  // the module-level blockinfo contains abbrevs for these block types that can be repeated
+  // subblocks
+  for(KnownBlock block :
+      {KnownBlock::VALUE_SYMTAB_BLOCK, KnownBlock::CONSTANTS_BLOCK, KnownBlock::FUNCTION_BLOCK})
+  {
+    Unabbrev((uint32_t)BlockInfoRecord::SETBID, (uint32_t)block);
+    AbbrevDefinition *abbrevs = GetAbbrevs(block);
+    uint32_t numAbbrevs = GetNumAbbrevs(block);
+
+    for(uint32_t i = 0; i < numAbbrevs; i++)
+    {
+      b.fixed(abbrevSize, DEFINE_ABBREV);
+
+      AbbrevParam *abbrev = abbrevs[i];
+
+      uint32_t numParams = 0;
+      while(abbrev[numParams].encoding != AbbrevEncoding::Unknown)
+        numParams++;
+
+      b.vbr(5, numParams);
+
+      for(uint32_t p = 0; p < numParams; p++)
+      {
+        AbbrevParam param = abbrev[p];
+
+        if(param.value == MagicFixedSizeNumTypes)
+        {
+          param.value = 32 - Bits::CountLeadingZeroes(numTypes);
+        }
+
+        const bool lit = param.encoding == AbbrevEncoding::Literal;
+        b.fixed<bool>(1, lit);
+        if(lit)
+        {
+          b.vbr(8, param.value);
+        }
+        else
+        {
+          b.fixed(3, param.encoding);
+          if(param.encoding == AbbrevEncoding::VBR || param.encoding == AbbrevEncoding::Fixed)
+            b.vbr(5, param.value);
+        }
+      }
+    }
+  }
+
+  EndBlock();
+}
+
+void BitcodeWriter::Unabbrev(uint32_t record, uint32_t val)
+{
+  b.fixed(abbrevSize, UNABBREV_RECORD);
+  b.vbr(6, record);
+  b.vbr(6, 1U);    // num parameters
+  b.vbr(6, val);
+}
+
+void BitcodeWriter::Unabbrev(uint32_t record, uint64_t val)
+{
+  b.fixed(abbrevSize, UNABBREV_RECORD);
+  b.vbr(6, record);
+  b.vbr(6, 1U);    // num parameters
+  b.vbr(6, val);
+}
+
+void BitcodeWriter::Unabbrev(uint32_t record, const rdcarray<uint32_t> &vals)
+{
+  b.fixed(abbrevSize, UNABBREV_RECORD);
+  b.vbr(6, record);
+  b.vbr(6, vals.size());
+  for(uint32_t v : vals)
+    b.vbr(6, v);
+}
+
+void BitcodeWriter::Unabbrev(uint32_t record, const rdcarray<uint64_t> &vals)
+{
+  b.fixed(abbrevSize, UNABBREV_RECORD);
+  b.vbr(6, record);
+  b.vbr(6, vals.size());
+  for(uint64_t v : vals)
+    b.vbr(6, v);
 }
 };
 

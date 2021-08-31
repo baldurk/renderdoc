@@ -24,26 +24,27 @@
 
 #include "dxil_debuginfo.h"
 #include "common/formatting.h"
+#include "llvm_common.h"
 #include "llvm_decoder.h"
 
 namespace DXIL
 {
 bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Metadata &meta)
 {
-  MetaDataRecord id = (MetaDataRecord)metaRecord.id;
+  LLVMBC::MetaDataRecord id = (LLVMBC::MetaDataRecord)metaRecord.id;
 
   auto getNonNullMeta = [this](uint64_t id) { return &m_Metadata[size_t(id)]; };
   auto getMeta = [this](uint64_t id) { return id ? &m_Metadata[size_t(id - 1)] : NULL; };
   auto getMetaString = [this](uint64_t id) { return id ? &m_Metadata[size_t(id - 1)].str : NULL; };
 
-  if(id == MetaDataRecord::FILE)
+  if(id == LLVMBC::MetaDataRecord::FILE)
   {
     meta.isDistinct = (metaRecord.ops[0] & 0x1);
 
     meta.dwarf = new DIFile(getMeta(metaRecord.ops[1]), getMeta(metaRecord.ops[2]));
     meta.children = {getMeta(metaRecord.ops[1]), getMeta(metaRecord.ops[2])};
   }
-  else if(id == MetaDataRecord::COMPILE_UNIT)
+  else if(id == LLVMBC::MetaDataRecord::COMPILE_UNIT)
   {
     // should be at least 14 parameters
     RDCASSERT(metaRecord.ops.size() >= 14);
@@ -62,7 +63,7 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
                      getMeta(metaRecord.ops[10]), getMeta(metaRecord.ops[11]),
                      getMeta(metaRecord.ops[12]), getMeta(metaRecord.ops[13])};
   }
-  else if(id == MetaDataRecord::BASIC_TYPE)
+  else if(id == LLVMBC::MetaDataRecord::BASIC_TYPE)
   {
     meta.isDistinct = (metaRecord.ops[0] & 0x1);
 
@@ -70,7 +71,7 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
         new DIBasicType(DW_TAG(metaRecord.ops[1]), getMetaString(metaRecord.ops[2]),
                         metaRecord.ops[3], metaRecord.ops[4], DW_ENCODING(metaRecord.ops[5]));
   }
-  else if(id == MetaDataRecord::DERIVED_TYPE)
+  else if(id == LLVMBC::MetaDataRecord::DERIVED_TYPE)
   {
     meta.isDistinct = (metaRecord.ops[0] & 0x1);
 
@@ -83,7 +84,7 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
     meta.children = {getMeta(metaRecord.ops[3]), getMeta(metaRecord.ops[5]),
                      getMeta(metaRecord.ops[6]), getMeta(metaRecord.ops[11])};
   }
-  else if(id == MetaDataRecord::COMPOSITE_TYPE)
+  else if(id == LLVMBC::MetaDataRecord::COMPOSITE_TYPE)
   {
     meta.isDistinct = (metaRecord.ops[0] & 0x1);
 
@@ -98,7 +99,7 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
                      getMeta(metaRecord.ops[6]), getMeta(metaRecord.ops[11]),
                      getMeta(metaRecord.ops[14])};
   }
-  else if(id == MetaDataRecord::TEMPLATE_TYPE)
+  else if(id == LLVMBC::MetaDataRecord::TEMPLATE_TYPE)
   {
     meta.isDistinct = (metaRecord.ops[0] & 0x1);
 
@@ -107,7 +108,7 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
 
     meta.children = {getMeta(metaRecord.ops[2])};
   }
-  else if(id == MetaDataRecord::TEMPLATE_VALUE)
+  else if(id == LLVMBC::MetaDataRecord::TEMPLATE_VALUE)
   {
     meta.isDistinct = (metaRecord.ops[0] & 0x1);
 
@@ -117,7 +118,7 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
 
     meta.children = {getMeta(metaRecord.ops[3]), getMeta(metaRecord.ops[4])};
   }
-  else if(id == MetaDataRecord::SUBPROGRAM)
+  else if(id == LLVMBC::MetaDataRecord::SUBPROGRAM)
   {
     meta.isDistinct = (metaRecord.ops[0] & 0x1);
 
@@ -134,7 +135,7 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
                      getMeta(metaRecord.ops[14]), getMeta(metaRecord.ops[15]),
                      getMeta(metaRecord.ops[16]), getMeta(metaRecord.ops[17])};
   }
-  else if(id == MetaDataRecord::SUBROUTINE_TYPE)
+  else if(id == LLVMBC::MetaDataRecord::SUBROUTINE_TYPE)
   {
     meta.isDistinct = (metaRecord.ops[0] & 0x1);
 
@@ -142,7 +143,7 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
 
     meta.children = {getMeta(metaRecord.ops[2])};
   }
-  else if(id == MetaDataRecord::GLOBAL_VAR)
+  else if(id == LLVMBC::MetaDataRecord::GLOBAL_VAR)
   {
     meta.isDistinct = (metaRecord.ops[0] & 0x1);
 
@@ -165,7 +166,7 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
       RDCERR("Unsupported version of global variable metadata");
     }
   }
-  else if(id == MetaDataRecord::LOCATION)
+  else if(id == LLVMBC::MetaDataRecord::LOCATION)
   {
     meta.isDistinct = (metaRecord.ops[0] & 0x1);
 
@@ -177,7 +178,7 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
 
     meta.children = {getNonNullMeta(metaRecord.ops[3]), getMeta(metaRecord.ops[4])};
   }
-  else if(id == MetaDataRecord::LOCAL_VAR)
+  else if(id == LLVMBC::MetaDataRecord::LOCAL_VAR)
   {
     meta.isDistinct = (metaRecord.ops[0] & 0x1);
 
@@ -189,7 +190,7 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
     meta.children = {getMeta(metaRecord.ops[2]), getMeta(metaRecord.ops[4]),
                      getMeta(metaRecord.ops[6])};
   }
-  else if(id == MetaDataRecord::LEXICAL_BLOCK)
+  else if(id == LLVMBC::MetaDataRecord::LEXICAL_BLOCK)
   {
     meta.isDistinct = (metaRecord.ops[0] & 0x1);
 
@@ -198,13 +199,13 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
 
     meta.children = {getMeta(metaRecord.ops[1]), getMeta(metaRecord.ops[2])};
   }
-  else if(id == MetaDataRecord::SUBRANGE)
+  else if(id == LLVMBC::MetaDataRecord::SUBRANGE)
   {
     meta.isDistinct = (metaRecord.ops[0] & 0x1);
 
     meta.dwarf = new DISubrange(metaRecord.ops[1], LLVMBC::BitReader::svbr(metaRecord.ops[2]));
   }
-  else if(id == MetaDataRecord::EXPRESSION)
+  else if(id == LLVMBC::MetaDataRecord::EXPRESSION)
   {
     DIExpression *expr = new DIExpression;
 

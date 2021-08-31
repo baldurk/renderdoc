@@ -40,11 +40,19 @@ DXIL::ProgramEditor::~ProgramEditor()
   DXBC::DXBCContainer::ReplaceDXILBytecode(m_OutBlob, EncodeProgram());
 }
 
-bytebuf DXIL::ProgramEditor::EncodeProgram()
+bytebuf DXIL::ProgramEditor::EncodeProgram() const
 {
   bytebuf ret;
 
   LLVMBC::BitcodeWriter writer(ret);
+
+  writer.BeginBlock(LLVMBC::KnownBlock::MODULE_BLOCK);
+
+  writer.Unabbrev((uint32_t)LLVMBC::ModuleRecord::VERSION, 1U);
+
+  writer.ModuleBlockInfo((uint32_t)m_Types.size());
+
+  writer.EndBlock();
 
   ProgramHeader header;
 
