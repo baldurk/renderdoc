@@ -24,21 +24,10 @@
 
 #include "llvm_decoder.h"
 #include "os/os_specific.h"
+#include "llvm_common.h"
 
 namespace LLVMBC
 {
-enum class AbbrevEncoding : uint8_t
-{
-  Fixed = 1,
-  VBR = 2,
-  Array = 3,
-  Char6 = 4,
-  Blob = 5,
-  // the abbrev encoding is only 3 bits, so 8 is not representable, we can store whether or not
-  // we're a literal this way.
-  Literal = 8,
-};
-
 struct AbbrevParam
 {
   AbbrevEncoding encoding;
@@ -65,24 +54,6 @@ struct BlockInfo
   // rdcarray<rdcstr> recordnames;
   rdcarray<AbbrevDesc> abbrevs;
 };
-
-enum AbbrevId
-{
-  END_BLOCK = 0,
-  ENTER_SUBBLOCK = 1,
-  DEFINE_ABBREV = 2,
-  UNABBREV_RECORD = 3,
-  APPLICATION_ABBREV = 4,
-};
-
-enum class BlockInfoRecord
-{
-  SETBID = 1,
-  BLOCKNAME = 2,
-  SETRECORDNAME = 3,
-};
-
-static const uint32_t BitcodeMagic = MAKE_FOURCC('B', 'C', 0xC0, 0xDE);
 
 bool BitcodeReader::Valid(const byte *bitcode, size_t length)
 {

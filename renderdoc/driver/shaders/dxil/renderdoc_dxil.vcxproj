@@ -102,21 +102,27 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="dxil_bytecode.cpp" />
+    <ClCompile Include="dxil_bytecode_editor.cpp" />
     <ClCompile Include="dxil_common.cpp" />
     <ClCompile Include="dxil_debuginfo.cpp" />
     <ClCompile Include="dxil_disassemble.cpp" />
     <ClCompile Include="dxil_reflect.cpp" />
     <ClCompile Include="llvm_decoder.cpp" />
+    <ClCompile Include="llvm_encoder.cpp" />
     <ClCompile Include="precompiled.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dxil_bytecode.h" />
+    <ClInclude Include="dxil_bytecode_editor.h" />
     <ClInclude Include="dxil_common.h" />
     <ClInclude Include="dxil_debuginfo.h" />
     <ClInclude Include="llvm_bitreader.h" />
+    <ClInclude Include="llvm_bitwriter.h" />
+    <ClInclude Include="llvm_common.h" />
     <ClInclude Include="llvm_decoder.h" />
+    <ClInclude Include="llvm_encoder.h" />
     <ClInclude Include="precompiled.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

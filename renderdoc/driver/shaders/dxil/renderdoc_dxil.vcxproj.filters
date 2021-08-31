@@ -10,6 +10,8 @@
     <ClCompile Include="dxil_disassemble.cpp" />
     <ClCompile Include="dxil_reflect.cpp" />
     <ClCompile Include="dxil_common.cpp" />
+    <ClCompile Include="dxil_bytecode_editor.cpp" />
+    <ClCompile Include="llvm_encoder.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="precompiled.h">
@@ -20,6 +22,10 @@
     <ClInclude Include="dxil_bytecode.h" />
     <ClInclude Include="dxil_debuginfo.h" />
     <ClInclude Include="dxil_common.h" />
+    <ClInclude Include="dxil_bytecode_editor.h" />
+    <ClInclude Include="llvm_bitwriter.h" />
+    <ClInclude Include="llvm_encoder.h" />
+    <ClInclude Include="llvm_common.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="PCH">

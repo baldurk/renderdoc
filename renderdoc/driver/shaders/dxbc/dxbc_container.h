@@ -164,10 +164,12 @@ public:
   void FillStateInstructionInfo(ShaderDebugState &state) const;
 
   static void ReplaceDXBCBytecode(bytebuf &ByteCode, const rdcarray<uint32_t> &replacement);
+  static void ReplaceDXILBytecode(bytebuf &ByteCode, const bytebuf &replacement);
 
   const DXBCBytecode::Program *GetDXBCByteCode() const { return m_DXBCByteCode; }
   DXBCBytecode::Program *GetDXBCByteCode() { return m_DXBCByteCode; }
-  const DXIL::Program *GetDXILByteCode() { return m_DXILByteCode; }
+  const DXIL::Program *GetDXILByteCode() const { return m_DXILByteCode; }
+  DXIL::Program *GetDXILByteCode() { return m_DXILByteCode; }
   static void GetHash(uint32_t hash[4], const void *ByteCode, size_t BytecodeLength);
 
   static bool IsHashedContainer(const void *ByteCode, size_t BytecodeLength);

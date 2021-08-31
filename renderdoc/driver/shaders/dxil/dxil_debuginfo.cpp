@@ -28,51 +28,6 @@
 
 namespace DXIL
 {
-enum class MetaDataRecord : uint32_t
-{
-  STRING_OLD = 1,
-  VALUE = 2,
-  NODE = 3,
-  NAME = 4,
-  DISTINCT_NODE = 5,
-  KIND = 6,
-  LOCATION = 7,
-  OLD_NODE = 8,
-  OLD_FN_NODE = 9,
-  NAMED_NODE = 10,
-  ATTACHMENT = 11,
-  GENERIC_DEBUG = 12,
-  SUBRANGE = 13,
-  ENUMERATOR = 14,
-  BASIC_TYPE = 15,
-  FILE = 16,
-  DERIVED_TYPE = 17,
-  COMPOSITE_TYPE = 18,
-  SUBROUTINE_TYPE = 19,
-  COMPILE_UNIT = 20,
-  SUBPROGRAM = 21,
-  LEXICAL_BLOCK = 22,
-  LEXICAL_BLOCK_FILE = 23,
-  NAMESPACE = 24,
-  TEMPLATE_TYPE = 25,
-  TEMPLATE_VALUE = 26,
-  GLOBAL_VAR = 27,
-  LOCAL_VAR = 28,
-  EXPRESSION = 29,
-  OBJC_PROPERTY = 30,
-  IMPORTED_ENTITY = 31,
-  MODULE = 32,
-  MACRO = 33,
-  MACRO_FILE = 34,
-  STRINGS = 35,
-  GLOBAL_DECL_ATTACHMENT = 36,
-  GLOBAL_VAR_EXPR = 37,
-  INDEX_OFFSET = 38,
-  INDEX = 39,
-  LABEL = 40,
-  COMMON_BLOCK = 44,
-};
-
 bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Metadata &meta)
 {
   MetaDataRecord id = (MetaDataRecord)metaRecord.id;
