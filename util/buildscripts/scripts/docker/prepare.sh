@@ -3,7 +3,7 @@ set -e
 set -x
 
 # fix EOL ubuntu package URLs
-sudo sed -i.bak -r 's/(archive|security).ubuntu.com/old-releases.ubuntu.com/g' /etc/apt/sources.list
+sed -i.bak -r 's/(archive|security).ubuntu.com/old-releases.ubuntu.com/g' /etc/apt/sources.list
 
 # initial update
 apt-get update
