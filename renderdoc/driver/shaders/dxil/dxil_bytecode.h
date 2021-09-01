@@ -123,6 +123,12 @@ struct Symbol
   Symbol(SymbolType type = SymbolType::Unknown, uint64_t idx = 0) : type(type), idx(idx) {}
   SymbolType type;
   uint64_t idx;
+  bool operator<(const Symbol &o) const
+  {
+    if(type != o.type)
+      return type < o.type;
+    return idx < o.idx;
+  }
 };
 
 enum class GlobalFlags : uint32_t
@@ -163,6 +169,8 @@ struct GlobalVar
 struct Alias
 {
   rdcstr name;
+  const Type *type = NULL;
+  uint64_t valID = 0;
 };
 
 // this enum is ordered to match the serialised order of these attributes

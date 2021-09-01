@@ -262,6 +262,10 @@ BitcodeWriter::BitcodeWriter(bytebuf &buf) : b(buf)
 
   curBlock = KnownBlock::Count;
   abbrevSize = 2;
+
+  numAbbrevs = 0;
+
+  m_GlobalVarAbbrev = ~0U;
 }
 
 BitcodeWriter::~BitcodeWriter()
@@ -373,10 +377,31 @@ void BitcodeWriter::WriteAbbrevDefinition(AbbrevParam *abbrev)
   }
 }
 
-void BitcodeWriter::ModuleBlockInfo(uint32_t numTypes)
+void BitcodeWriter::ConfigureSizes(size_t numTypes, size_t numSections, uint64_t maxAlign,
+                                   uint32_t maxGlobalType)
 {
-  m_NumTypeBits = 32 - Bits::CountLeadingZeroes(numTypes);
+  m_NumTypeBits = 32 - Bits::CountLeadingZeroes((uint32_t)numTypes);
 
+  m_GlobalTypeBits = 32 - Bits::CountLeadingZeroes(maxGlobalType);
+
+  if(numSections == 0)
+    m_NumSectionBits = 0;
+  else
+    m_NumSectionBits = 32 - Bits::CountLeadingZeroes((uint32_t)numSections);
+
+  if(maxAlign == 0)
+  {
+    m_AlignBits = 0;
+  }
+  else
+  {
+    uint32_t encodedAlign = 32 - Bits::CountLeadingZeroes((uint32_t)maxAlign);
+    m_AlignBits = 32 - Bits::CountLeadingZeroes(encodedAlign);
+  }
+}
+
+void BitcodeWriter::ModuleBlockInfo()
+{
   // these abbrevs are hardcoded in llvm, at least at dxc's version
   BeginBlock(KnownBlock::BLOCKINFO);
 
@@ -394,6 +419,29 @@ void BitcodeWriter::ModuleBlockInfo(uint32_t numTypes)
   }
 
   EndBlock();
+}
+
+void BitcodeWriter::EmitGlobalVarAbbrev()
+{
+  m_GlobalVarAbbrev = numAbbrevs;
+
+  AbbrevParam align = AbbFixed(m_AlignBits);
+  if(m_AlignBits == 0)
+    align = AbbLiteral(0);
+
+  AbbrevParam section = AbbFixed(m_NumSectionBits);
+  if(m_NumSectionBits == 0)
+    section = AbbLiteral(0);
+
+  m_GlobalVarAbbrevDef[0] = AbbLiteral(ModuleRecord::GLOBALVAR);
+  m_GlobalVarAbbrevDef[1] = AbbFixed(m_GlobalTypeBits);
+  m_GlobalVarAbbrevDef[2] = AbbVBR(6);
+  m_GlobalVarAbbrevDef[3] = AbbVBR(6);
+  m_GlobalVarAbbrevDef[4] = AbbFixed(5);
+  m_GlobalVarAbbrevDef[5] = align;
+  m_GlobalVarAbbrevDef[6] = section;
+
+  WriteAbbrevDefinition(m_GlobalVarAbbrevDef);
 }
 
 uint32_t BitcodeWriter::GetAbbrevID(uint32_t id)
@@ -421,6 +469,13 @@ void BitcodeWriter::AutoRecord(uint32_t record, bool param, uint64_t val)
   {
     case KnownBlock::VALUE_SYMTAB_BLOCK:
       RDCERR("Symbol table entry needs multiple parameters");
+      break;
+    case KnownBlock::MODULE_BLOCK:
+      switch(ModuleRecord(record))
+      {
+        case ModuleRecord::GLOBALVAR: RDCERR("global var needs multiple parameters"); break;
+        default: break;
+      }
       break;
     case KnownBlock::TYPE_BLOCK:
       switch(TypeRecord(record))
@@ -458,6 +513,21 @@ void BitcodeWriter::AutoRecord(uint32_t record, const rdcarray<uint64_t> &vals)
     case KnownBlock::VALUE_SYMTAB_BLOCK:
       // the selection of abbrev here depends on the data
       break;
+    case KnownBlock::MODULE_BLOCK:
+      switch(ModuleRecord(record))
+      {
+        case ModuleRecord::GLOBALVAR:
+        {
+          idx = m_GlobalVarAbbrev;
+          // if any of the later values are non-zero, can't use the global var abbrev
+          for(size_t i = 6; i < vals.size(); i++)
+            if(vals[i] != 0)
+              idx = ~0U;
+          break;
+        }
+        default: break;
+      }
+      break;
     case KnownBlock::TYPE_BLOCK:
       switch(TypeRecord(record))
       {
@@ -490,7 +560,14 @@ void BitcodeWriter::AutoRecord(uint32_t record, const rdcarray<uint64_t> &vals)
   }
 
   // if we got a valid abbrev, use it, otherwise emit unabbrev
-  if(idx < numAbbrevDefs)
+  if(idx == m_GlobalVarAbbrev && idx != ~0U)
+  {
+    // write the abbrev ID
+    b.fixed(abbrevSize, GetAbbrevID(m_GlobalVarAbbrev));
+
+    Abbrev(m_GlobalVarAbbrevDef, record, vals);
+  }
+  else if(idx < numAbbrevDefs)
   {
     // write the abbrev ID
     b.fixed(abbrevSize, GetAbbrevID(idx));

@@ -37,11 +37,13 @@ public:
   BitcodeWriter(bytebuf &buf);
   ~BitcodeWriter();
 
-  void BeginBlock(KnownBlock block);
+  void ConfigureSizes(size_t numTypes, size_t numSections, uint64_t maxAlign, uint32_t maxGlobalType);
 
+  void BeginBlock(KnownBlock block);
   void EndBlock();
 
-  void ModuleBlockInfo(uint32_t numTypes);
+  void ModuleBlockInfo();
+  void EmitGlobalVarAbbrev();
 
   void AutoRecord(uint32_t record, bool param, uint64_t val);
   void AutoRecord(uint32_t record, const rdcarray<uint64_t> &vals);
@@ -87,10 +89,16 @@ private:
   BitWriter b;
 
   uint32_t m_NumTypeBits;
+  uint32_t m_GlobalTypeBits;
+  uint32_t m_NumSectionBits;
+  uint32_t m_AlignBits;
 
   size_t abbrevSize;
   uint32_t numAbbrevs;
   KnownBlock curBlock;
+
+  uint32_t m_GlobalVarAbbrev;
+  AbbrevParam m_GlobalVarAbbrevDef[10] = {};
 
   struct BlockContext
   {
