@@ -50,7 +50,111 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
 
   writer.Unabbrev((uint32_t)LLVMBC::ModuleRecord::VERSION, 1U);
 
-  writer.ModuleBlockInfo((uint32_t)m_Types.size());
+  {
+    writer.ModuleBlockInfo((uint32_t)m_Types.size());
+  }
+
+  if(!m_AttributeGroups.empty())
+  {
+    writer.BeginBlock(LLVMBC::KnownBlock::PARAMATTR_GROUP_BLOCK);
+
+    rdcarray<uint64_t> vals;
+
+    for(size_t i = 0; i < m_AttributeGroups.size(); i++)
+    {
+      if(m_AttributeGroups[i].valid)
+      {
+        const Attributes &group = m_AttributeGroups[i];
+
+        vals.clear();
+        vals.push_back(i);
+        vals.push_back(group.index);
+
+        // decompose params bitfield into bits
+        if(group.params != Attribute::None)
+        {
+          uint64_t params = (uint64_t)group.params;
+          for(uint64_t p = 0; p < 64; p++)
+          {
+            if((params & (1ULL << p)) != 0)
+            {
+              switch(Attribute(1ULL << p))
+              {
+                case Attribute::Alignment:
+                {
+                  vals.push_back(1);
+                  vals.push_back(p);
+                  vals.push_back(group.align);
+                  break;
+                }
+                case Attribute::StackAlignment:
+                {
+                  vals.push_back(1);
+                  vals.push_back(p);
+                  vals.push_back(group.stackAlign);
+                  break;
+                }
+                case Attribute::Dereferenceable:
+                {
+                  vals.push_back(1);
+                  vals.push_back(p);
+                  vals.push_back(group.derefBytes);
+                  break;
+                }
+                case Attribute::DereferenceableOrNull:
+                {
+                  vals.push_back(1);
+                  vals.push_back(p);
+                  vals.push_back(group.derefOrNullBytes);
+                  break;
+                }
+                default:
+                {
+                  // this attribute just exists or doesn't
+                  vals.push_back(0);
+                  vals.push_back(p);
+                }
+              }
+            }
+          }
+        }
+
+        if(!group.strs.empty())
+        {
+          for(const rdcpair<rdcstr, rdcstr> &strAttr : group.strs)
+          {
+            if(strAttr.second.empty())
+              vals.push_back(3);
+            else
+              vals.push_back(4);
+
+            // iterate including NULL terminator
+            for(size_t c = 0; c < strAttr.first.size() + 1; c++)
+              vals.push_back(uint64_t(strAttr.first[c]));
+
+            for(size_t c = 0; !strAttr.second.empty() && c < strAttr.second.size() + 1; c++)
+              vals.push_back(uint64_t(strAttr.second[c]));
+          }
+        }
+
+        writer.Unabbrev((uint32_t)LLVMBC::ParamAttrGroupRecord::ENTRY, vals);
+      }
+    }
+
+    writer.EndBlock();
+  }
+
+  if(!m_Attributes.empty())
+  {
+    writer.BeginBlock(LLVMBC::KnownBlock::PARAMATTR_BLOCK);
+
+    for(size_t i = 0; i < m_Attributes.size(); i++)
+    {
+      writer.Unabbrev((uint32_t)LLVMBC::ParamAttrRecord::ENTRY, m_Attributes[i].groups);
+    }
+
+    writer.EndBlock();
+  }
 
   writer.EndBlock();
 

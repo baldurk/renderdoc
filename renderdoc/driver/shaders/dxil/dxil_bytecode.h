@@ -221,7 +221,10 @@ BITMASK_OPERATORS(Attribute);
 
 struct Attributes
 {
+  bool valid = false;
   uint64_t index = 0;
+
+  rdcarray<uint64_t> groups;
 
   Attribute params = Attribute::None;
   uint64_t align = 0, stackAlign = 0, derefBytes = 0, derefOrNullBytes = 0;

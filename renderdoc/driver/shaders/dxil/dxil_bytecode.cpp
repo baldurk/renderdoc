@@ -524,6 +524,7 @@ Program::Program(const byte *bytes, size_t length)
 
           size_t id = (size_t)attrgroup.ops[0];
           group.index = attrgroup.ops[1];
+          group.valid = true;
 
           for(size_t i = 2; i < attrgroup.ops.size(); i++)
           {
@@ -583,6 +584,7 @@ Program::Program(const byte *bytes, size_t length)
 
           Attributes attrs;
           attrs.index = m_Attributes.size();
+          attrs.groups = paramattr.ops;
 
           for(uint64_t g : paramattr.ops)
           {
