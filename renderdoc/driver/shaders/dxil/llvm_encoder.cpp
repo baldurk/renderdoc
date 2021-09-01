@@ -57,8 +57,6 @@ static uint32_t GetBlockAbbrevSize(KnownBlock block)
   return ret;
 }
 
-#define MagicFixedSizeNumTypes 99
-
 #define AbbFixed(n)          \
   {                          \
     AbbrevEncoding::Fixed, n \
@@ -80,7 +78,11 @@ static uint32_t GetBlockAbbrevSize(KnownBlock block)
     AbbrevEncoding::Char6, 0 \
   }
 
+#define MagicFixedSizeNumTypes 99
+#define MagicFixedSizeNumConstants 999
+
 #define AbbFixedTypes() AbbFixed(MagicFixedSizeNumTypes)
+#define AbbFixedConstants() AbbFixed(MagicFixedSizeNumConstants)
 
 using AbbrevDefinition = AbbrevParam[8];
 
@@ -119,6 +121,11 @@ enum class ConstantsAbbrev
   Integer,
   EvalCast,
   Null,
+  // the ones below are only used in the global constants block
+  Aggregate,
+  String,
+  CString7,
+  CString6,
 };
 
 AbbrevDefinition ConstantsAbbrevDefs[] = {
@@ -137,6 +144,25 @@ AbbrevDefinition ConstantsAbbrevDefs[] = {
     // Null
     {
         AbbLiteral(ConstantsRecord::CONST_NULL),
+    },
+};
+
+AbbrevDefinition ConstantsGlobalAbbrevDefs[] = {
+    // Aggregate
+    {
+        AbbLiteral(ConstantsRecord::AGGREGATE), AbbArray(), AbbFixedConstants(),
+    },
+    // String
+    {
+        AbbLiteral(ConstantsRecord::STRING), AbbArray(), AbbFixed(8),
+    },
+    // CString7
+    {
+        AbbLiteral(ConstantsRecord::CSTRING), AbbArray(), AbbFixed(7),
+    },
+    // CString6
+    {
+        AbbLiteral(ConstantsRecord::CSTRING), AbbArray(), AbbChar6(),
     },
 };
 
@@ -263,8 +289,6 @@ BitcodeWriter::BitcodeWriter(bytebuf &buf) : b(buf)
   curBlock = KnownBlock::Count;
   abbrevSize = 2;
 
-  numAbbrevs = 0;
-
   m_GlobalVarAbbrev = ~0U;
 }
 
@@ -294,16 +318,32 @@ void BitcodeWriter::BeginBlock(KnownBlock block)
 
   curBlock = block;
   abbrevSize = newAbbrevSize;
-  blockStack.push_back({block, offs, numAbbrevs});
+  blockStack.push_back({block, offs});
+
+  curAbbrevs.swap(blockStack.back().abbrevs);
 
   // emit known abbrevs here that aren't in blockinfo
   switch(block)
   {
-    case KnownBlock::VALUE_SYMTAB_BLOCK:
     case KnownBlock::CONSTANTS_BLOCK:
+    case KnownBlock::VALUE_SYMTAB_BLOCK:
     case KnownBlock::FUNCTION_BLOCK:
     {
-      // these blocks have abbrevs but we shouldn't emit them as they're handled in blockinfo
+      // these blocks have abbrevs from the blockinfo. Don't write them, but add them to our abbrev
+      // dictionary
+      uint32_t numAbbrevDefs = GetNumAbbrevDefs(block);
+      AbbrevDefinition *abbrevs = GetAbbrevDefs(block);
+      for(uint32_t i = 0; i < numAbbrevDefs; i++)
+        curAbbrevs.push_back(abbrevs[i]);
+
+      // the global constants block has some extra abbrevs
+      // blockStack[0] is always the module block
+      if(block == KnownBlock::CONSTANTS_BLOCK && blockStack.size() == 2)
+      {
+        for(size_t i = 0; i < ARRAY_COUNT(ConstantsGlobalAbbrevDefs); i++)
+          WriteAbbrevDefinition(ConstantsGlobalAbbrevDefs[i]);
+      }
+
       break;
     }
     default:
@@ -338,14 +378,14 @@ void BitcodeWriter::EndBlock()
   else
   {
     curBlock = blockStack.back().block;
-    numAbbrevs = blockStack.back().numAbbrevs;
+    curAbbrevs = blockStack.back().abbrevs;
     abbrevSize = GetBlockAbbrevSize(curBlock);
   }
 }
 
 void BitcodeWriter::WriteAbbrevDefinition(AbbrevParam *abbrev)
 {
-  numAbbrevs++;
+  curAbbrevs.push_back(abbrev);
 
   b.fixed(abbrevSize, DEFINE_ABBREV);
 
@@ -361,6 +401,8 @@ void BitcodeWriter::WriteAbbrevDefinition(AbbrevParam *abbrev)
 
     if(param.value == MagicFixedSizeNumTypes)
       param.value = m_NumTypeBits;
+    if(param.value == MagicFixedSizeNumConstants)
+      param.value = m_NumConstantBits;
 
     const bool lit = param.encoding == AbbrevEncoding::Literal;
     b.fixed<bool>(1, lit);
@@ -377,10 +419,11 @@ void BitcodeWriter::WriteAbbrevDefinition(AbbrevParam *abbrev)
   }
 }
 
-void BitcodeWriter::ConfigureSizes(size_t numTypes, size_t numSections, uint64_t maxAlign,
-                                   uint32_t maxGlobalType)
+void BitcodeWriter::ConfigureSizes(size_t numTypes, size_t numGlobalConsts, size_t numSections,
+                                   uint64_t maxAlign, uint32_t maxGlobalType)
 {
   m_NumTypeBits = 32 - Bits::CountLeadingZeroes((uint32_t)numTypes);
+  m_NumConstantBits = 32 - Bits::CountLeadingZeroes((uint32_t)numGlobalConsts);
 
   m_GlobalTypeBits = 32 - Bits::CountLeadingZeroes(maxGlobalType);
 
@@ -410,7 +453,7 @@ void BitcodeWriter::ModuleBlockInfo()
   for(KnownBlock block :
       {KnownBlock::VALUE_SYMTAB_BLOCK, KnownBlock::CONSTANTS_BLOCK, KnownBlock::FUNCTION_BLOCK})
   {
-    Unabbrev((uint32_t)BlockInfoRecord::SETBID, (uint32_t)block);
+    Unabbrev((uint32_t)BlockInfoRecord::SETBID, true, (uint32_t)block);
     AbbrevDefinition *abbrevs = GetAbbrevDefs(block);
     uint32_t numAbbrevDefs = GetNumAbbrevDefs(block);
 
@@ -423,7 +466,7 @@ void BitcodeWriter::ModuleBlockInfo()
 
 void BitcodeWriter::EmitGlobalVarAbbrev()
 {
-  m_GlobalVarAbbrev = numAbbrevs;
+  m_GlobalVarAbbrev = (uint32_t)curAbbrevs.size();
 
   AbbrevParam align = AbbFixed(m_AlignBits);
   if(m_AlignBits == 0)
@@ -447,21 +490,13 @@ void BitcodeWriter::EmitGlobalVarAbbrev()
 uint32_t BitcodeWriter::GetAbbrevID(uint32_t id)
 {
   // the id is a block-local index, starting from 0, of the abbrevs defined for that block.
-
-  // when we begin a block, we store the number of previously defined abbrevs from earlier blocks so
-  // we add that on
-  id += blockStack.back().numAbbrevs;
-
   // the ID we need to encode starts at APPLICATION_ABBREV for the first one, so add that
   return APPLICATION_ABBREV + id;
 }
 
 void BitcodeWriter::AutoRecord(uint32_t record, bool param, uint64_t val)
 {
-  AbbrevDefinition *abbrevs = GetAbbrevDefs(curBlock);
-  uint32_t numAbbrevDefs = GetNumAbbrevDefs(curBlock);
-
-  uint32_t idx = numAbbrevDefs;
+  uint32_t idx = ~0U;
 
   // the records with abbrevs are hardcoded, so just determine if this record in this block has an
   // abbrev and select it here
@@ -477,6 +512,33 @@ void BitcodeWriter::AutoRecord(uint32_t record, bool param, uint64_t val)
         default: break;
       }
       break;
+    case KnownBlock::CONSTANTS_BLOCK:
+    {
+      // blockStack[0] is always the module block
+      const bool globalConsts = blockStack.size() == 2;
+      switch(ConstantsRecord(record))
+      {
+        // global only abbrevs
+        case ConstantsRecord::AGGREGATE:
+          if(globalConsts)
+            idx = (uint32_t)ConstantsAbbrev::Aggregate;
+          break;
+        case ConstantsRecord::STRING:
+          if(globalConsts)
+            idx = (uint32_t)ConstantsAbbrev::String;
+          break;
+        // these abbrevs are available in all constants blocks
+        case ConstantsRecord::SETTYPE: idx = (uint32_t)ConstantsAbbrev::SetType; break;
+        case ConstantsRecord::INTEGER: idx = (uint32_t)ConstantsAbbrev::Integer; break;
+        case ConstantsRecord::EVAL_CAST:
+          idx = (uint32_t)ConstantsAbbrev::EvalCast;
+          break;
+        // LLVM doesn't seem to use this abbrev?
+        // case ConstantsRecord::CONST_NULL: idx = (uint32_t)ConstantsAbbrev::Null; break;
+        default: break;
+      }
+      break;
+    }
     case KnownBlock::TYPE_BLOCK:
       switch(TypeRecord(record))
       {
@@ -493,17 +555,21 @@ void BitcodeWriter::AutoRecord(uint32_t record, bool param, uint64_t val)
   }
 
   // if we got a valid abbrev, use it, otherwise emit unabbrev
-  if(idx < numAbbrevDefs)
-    Abbrev(abbrevs[idx], GetAbbrevID(record), val);
+  if(idx < curAbbrevs.size())
+  {
+    // write the abbrev ID
+    b.fixed(abbrevSize, GetAbbrevID(idx));
+
+    Abbrev(curAbbrevs[idx], record, val);
+  }
   else
+  {
     Unabbrev(record, param, val);
+  }
 }
 
 void BitcodeWriter::AutoRecord(uint32_t record, const rdcarray<uint64_t> &vals)
 {
-  AbbrevDefinition *abbrevs = GetAbbrevDefs(curBlock);
-  uint32_t numAbbrevDefs = GetNumAbbrevDefs(curBlock);
-
   uint32_t idx = ~0U;
 
   // the records with abbrevs are hardcoded, so just determine if this record in this block has an
@@ -528,6 +594,48 @@ void BitcodeWriter::AutoRecord(uint32_t record, const rdcarray<uint64_t> &vals)
         default: break;
       }
       break;
+    case KnownBlock::CONSTANTS_BLOCK:
+    {
+      // blockStack[0] is always the module block
+      const bool globalConsts = blockStack.size() == 2;
+      switch(ConstantsRecord(record))
+      {
+        // global only abbrevs
+        case ConstantsRecord::AGGREGATE:
+          if(globalConsts)
+            idx = (uint32_t)ConstantsAbbrev::Aggregate;
+          break;
+        case ConstantsRecord::STRING:
+          if(globalConsts)
+            idx = (uint32_t)ConstantsAbbrev::String;
+          break;
+        case ConstantsRecord::CSTRING:
+          if(globalConsts)
+          {
+            bool c6 = true, c7 = true;
+            for(size_t i = 0; (c6 || c7) && i < vals.size(); i++)
+            {
+              if(!isChar6(char(vals[i])))
+                c6 = false;
+              if(vals[i] >= 128)
+                c7 = false;
+            }
+
+            if(c6)
+              idx = (uint32_t)ConstantsAbbrev::CString6;
+            else if(c7)
+              idx = (uint32_t)ConstantsAbbrev::CString7;
+          }
+          break;
+        // these abbrevs are available in all constants blocks
+        case ConstantsRecord::SETTYPE: idx = (uint32_t)ConstantsAbbrev::SetType; break;
+        case ConstantsRecord::INTEGER: idx = (uint32_t)ConstantsAbbrev::Integer; break;
+        case ConstantsRecord::EVAL_CAST: idx = (uint32_t)ConstantsAbbrev::EvalCast; break;
+        case ConstantsRecord::CONST_NULL: idx = (uint32_t)ConstantsAbbrev::Null; break;
+        default: break;
+      }
+      break;
+    }
     case KnownBlock::TYPE_BLOCK:
       switch(TypeRecord(record))
       {
@@ -560,23 +668,16 @@ void BitcodeWriter::AutoRecord(uint32_t record, const rdcarray<uint64_t> &vals)
   }
 
   // if we got a valid abbrev, use it, otherwise emit unabbrev
-  if(idx == m_GlobalVarAbbrev && idx != ~0U)
-  {
-    // write the abbrev ID
-    b.fixed(abbrevSize, GetAbbrevID(m_GlobalVarAbbrev));
-
-    Abbrev(m_GlobalVarAbbrevDef, record, vals);
-  }
-  else if(idx < numAbbrevDefs)
+  if(idx < curAbbrevs.size())
   {
     // write the abbrev ID
     b.fixed(abbrevSize, GetAbbrevID(idx));
 
-    Abbrev(abbrevs[idx], record, vals);
+    Abbrev(curAbbrevs[idx], record, vals);
   }
   else
   {
-    Unabbrev(record, vals);
+    Unabbrev(record, false, vals);
   }
 }
 
@@ -634,9 +735,16 @@ void BitcodeWriter::WriteAbbrevParam(const AbbrevParam &abbrev, uint64_t val)
     return;
 
   if(abbrev.encoding == AbbrevEncoding::Fixed)
-    b.fixed(abbrev.value == MagicFixedSizeNumTypes ? m_NumTypeBits : abbrev.value, val);
+  {
+    uint64_t width = abbrev.value;
+    if(abbrev.value == MagicFixedSizeNumTypes)
+      width = m_NumTypeBits;
+    else if(abbrev.value == MagicFixedSizeNumConstants)
+      width = m_NumConstantBits;
+    b.fixed((size_t)width, val);
+  }
   else if(abbrev.encoding == AbbrevEncoding::VBR)
-    b.vbr(abbrev.value, val);
+    b.vbr((size_t)abbrev.value, val);
   else if(abbrev.encoding == AbbrevEncoding::Char6)
     b.c6(char(val));
   else
@@ -652,7 +760,7 @@ void BitcodeWriter::Unabbrev(uint32_t record, bool param, uint64_t val)
     b.vbr(6, val);
 }
 
-void BitcodeWriter::Unabbrev(uint32_t record, const rdcarray<uint64_t> &vals)
+void BitcodeWriter::Unabbrev(uint32_t record, bool, const rdcarray<uint64_t> &vals)
 {
   b.fixed(abbrevSize, UNABBREV_RECORD);
   b.vbr(6, record);

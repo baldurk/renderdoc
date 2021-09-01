@@ -355,14 +355,68 @@ inline Operation DecodeCast(uint64_t opcode)
   }
 }
 
+inline uint64_t EncodeCast(Operation op)
+{
+  switch(op)
+  {
+    case Operation::Trunc: return 0; break;
+    case Operation::ZExt: return 1; break;
+    case Operation::SExt: return 2; break;
+    case Operation::FToU: return 3; break;
+    case Operation::FToS: return 4; break;
+    case Operation::UToF: return 5; break;
+    case Operation::SToF: return 6; break;
+    case Operation::FPTrunc: return 7; break;
+    case Operation::FPExt: return 8; break;
+    case Operation::PtrToI: return 9; break;
+    case Operation::IToPtr: return 10; break;
+    case Operation::Bitcast: return 11; break;
+    case Operation::AddrSpaceCast: return 12; break;
+    default: return ~0U;
+  }
+}
+
 struct Constant
 {
+  Constant() = default;
+  Constant &operator=(const Constant &o) = delete;
+  Constant(const Constant &o)
+  {
+    type = o.type;
+    val = o.val;
+    inner = o.inner;
+    str = o.str;
+    undef = o.undef;
+    nullconst = o.nullconst;
+    symbol = o.symbol;
+    data = o.data;
+    op = o.op;
+    if(data)
+    {
+      members.resize(o.members.size());
+      for(size_t i = 0; i < members.size(); i++)
+        members[i] = new Constant(*o.members[i]);
+    }
+    else
+    {
+      members = o.members;
+    }
+  }
+  ~Constant()
+  {
+    // data constants own their members, they aren't pointers to other constants
+    if(data)
+    {
+      for(size_t i = 0; i < members.size(); i++)
+        delete members[i];
+    }
+  }
   const Type *type = NULL;
   ShaderValue val = {};
-  rdcarray<Constant> members;
+  rdcarray<const Constant *> members;
   const Constant *inner = NULL;
   rdcstr str;
-  bool undef = false, nullconst = false, symbol = false;
+  bool undef = false, nullconst = false, symbol = false, data = false;
   Operation op = Operation::NoOp;
 
   rdcstr toString(bool withType = false) const;

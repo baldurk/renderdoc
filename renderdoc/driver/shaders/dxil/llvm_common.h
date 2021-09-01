@@ -95,7 +95,7 @@ enum class ModuleRecord : uint32_t
   SECTIONNAME = 5,
   GLOBALVAR = 7,
   FUNCTION = 8,
-  ALIAS = 14,
+  ALIAS = 9,
 };
 
 enum class ConstantsRecord : uint32_t

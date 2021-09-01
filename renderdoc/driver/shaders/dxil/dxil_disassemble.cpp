@@ -1265,8 +1265,8 @@ void Program::MakeDisassemblyString()
 
             if(props && !props->nullconst)
             {
-              packedProps[0] = props->members[0].val.u32v[0];
-              packedProps[1] = props->members[1].val.u32v[0];
+              packedProps[0] = props->members[0]->val.u32v[0];
+              packedProps[1] = props->members[1]->val.u32v[0];
             }
 
             ComponentType compType = ComponentType(packedProps[0] & 0x1f);
@@ -1742,14 +1742,14 @@ rdcstr Constant::toString(bool withType) const
       {
         ret += "getelementptr inbounds (";
 
-        const Type *baseType = members[0].type;
+        const Type *baseType = members[0]->type;
         RDCASSERT(baseType->type == Type::Pointer);
         ret += baseType->inner->toString();
         for(size_t i = 0; i < members.size(); i++)
         {
           ret += ", ";
 
-          ret += members[i].toString(withType);
+          ret += members[i]->toString(withType);
         }
         ret += ")";
         break;
@@ -1849,7 +1849,7 @@ rdcstr Constant::toString(bool withType) const
       if(i > 0)
         ret += ", ";
 
-      ret += members[i].toString(withType);
+      ret += members[i]->toString(withType);
     }
     ret += "]";
   }
@@ -1861,7 +1861,7 @@ rdcstr Constant::toString(bool withType) const
       if(i > 0)
         ret += ", ";
 
-      ret += members[i].toString(withType);
+      ret += members[i]->toString(withType);
     }
     ret += " }";
   }

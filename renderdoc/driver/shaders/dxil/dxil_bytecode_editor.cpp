@@ -24,6 +24,7 @@
 
 #include "dxil_bytecode_editor.h"
 #include "driver/shaders/dxbc/dxbc_container.h"
+#include "maths/half_convert.h"
 #include "dxil_bytecode.h"
 #include "llvm_encoder.h"
 
@@ -51,18 +52,31 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
   uint64_t maxAlign = 0;
   uint32_t maxGlobalType = 0;
 
+  auto getTypeID = [this](const Type *t) { return uint64_t(t - m_Types.begin()); };
+
   for(size_t i = 0; i < m_GlobalVars.size(); i++)
   {
     maxAlign = RDCMAX(m_GlobalVars[i].align, maxAlign);
     RDCASSERT(m_GlobalVars[i].type->type == Type::Pointer);
-    uint32_t typeIndex = uint32_t(m_GlobalVars[i].type->inner - m_Types.begin());
+    uint32_t typeIndex = uint32_t(getTypeID(m_GlobalVars[i].type->inner));
     maxGlobalType = RDCMAX(typeIndex, maxGlobalType);
   }
 
   for(size_t i = 0; i < m_Functions.size(); i++)
     maxAlign = RDCMAX(m_Functions[i].align, maxAlign);
 
-  writer.ConfigureSizes(m_Types.size(), m_Sections.size(), maxAlign, maxGlobalType);
+  size_t numGlobalConsts = 0;
+
+  for(size_t i = m_GlobalVars.size() + m_Functions.size(); i < m_Symbols.size(); i++)
+  {
+    // stop once we pass constants
+    if(m_Symbols[i].type != SymbolType::Constant)
+      break;
+
+    numGlobalConsts++;
+  }
+
+  writer.ConfigureSizes(m_Types.size(), numGlobalConsts, m_Sections.size(), maxAlign, maxGlobalType);
 
   writer.BeginBlock(LLVMBC::KnownBlock::MODULE_BLOCK);
 
@@ -206,18 +220,17 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
       }
       else if(m_Types[i].type == Type::Vector)
       {
-        size_t innerTypeIndex = m_Types[i].inner - m_Types.begin();
-        writer.Record(LLVMBC::TypeRecord::VECTOR, {m_Types[i].elemCount, innerTypeIndex});
+        writer.Record(LLVMBC::TypeRecord::VECTOR,
+                      {m_Types[i].elemCount, getTypeID(m_Types[i].inner)});
       }
       else if(m_Types[i].type == Type::Array)
       {
-        size_t innerTypeIndex = m_Types[i].inner - m_Types.begin();
-        writer.Record(LLVMBC::TypeRecord::ARRAY, {m_Types[i].elemCount, innerTypeIndex});
+        writer.Record(LLVMBC::TypeRecord::ARRAY, {m_Types[i].elemCount, getTypeID(m_Types[i].inner)});
       }
       else if(m_Types[i].type == Type::Pointer)
       {
-        size_t innerTypeIndex = m_Types[i].inner - m_Types.begin();
-        writer.Record(LLVMBC::TypeRecord::POINTER, {innerTypeIndex, (uint64_t)m_Types[i].addrSpace});
+        writer.Record(LLVMBC::TypeRecord::POINTER,
+                      {getTypeID(m_Types[i].inner), (uint64_t)m_Types[i].addrSpace});
       }
       else if(m_Types[i].type == Type::Struct)
       {
@@ -240,7 +253,7 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
           vals.push_back(m_Types[i].packedStruct ? 1 : 0);
 
           for(const Type *t : m_Types[i].members)
-            vals.push_back(t - m_Types.begin());
+            vals.push_back(getTypeID(t));
 
           writer.Record(type, vals);
         }
@@ -251,10 +264,10 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
 
         vals.push_back(m_Types[i].vararg ? 1 : 0);
 
-        vals.push_back(m_Types[i].inner - m_Types.begin());
+        vals.push_back(getTypeID(m_Types[i].inner));
 
         for(const Type *t : m_Types[i].members)
-          vals.push_back(t - m_Types.begin());
+          vals.push_back(getTypeID(t));
 
         writer.Record(LLVMBC::TypeRecord::FUNCTION, vals);
       }
@@ -285,7 +298,7 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
     const GlobalVar &g = m_GlobalVars[i];
 
     // global vars write the value type, not the pointer
-    size_t typeIndex = g.type->inner - m_Types.begin();
+    uint64_t typeIndex = getTypeID(g.type->inner);
 
     uint64_t linkageValue = 0;
 
@@ -334,7 +347,7 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
   for(size_t i = 0; i < m_Functions.size(); i++)
   {
     const Function &f = m_Functions[i];
-    size_t typeIndex = f.funcType - m_Types.begin();
+    uint64_t typeIndex = getTypeID(f.funcType);
 
     writer.Record(LLVMBC::ModuleRecord::FUNCTION,
                   {
@@ -373,7 +386,7 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
   for(size_t i = 0; i < m_Aliases.size(); i++)
   {
     const Alias &a = m_Aliases[i];
-    size_t typeIndex = a.type - m_Types.begin();
+    uint64_t typeIndex = getTypeID(a.type);
 
     writer.Record(LLVMBC::ModuleRecord::ALIAS, {
                                                    typeIndex, a.valID,
@@ -382,6 +395,120 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
                                                    // visibility
                                                    0U,
                                                });
+  }
+
+  // the symbols for constants start after the global variables and functions which we just
+  // outputted
+  {
+    bool inblock = false;
+
+    const Type *curType = NULL;
+
+    for(size_t i = m_GlobalVars.size() + m_Functions.size(); i < m_Symbols.size(); i++)
+    {
+      // stop once we pass constants
+      if(m_Symbols[i].type != SymbolType::Constant)
+        break;
+
+      if(!inblock)
+      {
+        inblock = true;
+        writer.BeginBlock(LLVMBC::KnownBlock::CONSTANTS_BLOCK);
+      }
+
+      const Constant &c = m_Constants[i];
+      if(c.type != curType)
+      {
+        writer.Record(LLVMBC::ConstantsRecord::SETTYPE, getTypeID(c.type));
+        curType = c.type;
+      }
+
+      if(c.nullconst)
+      {
+        writer.Record(LLVMBC::ConstantsRecord::CONST_NULL);
+      }
+      else if(c.undef)
+      {
+        writer.Record(LLVMBC::ConstantsRecord::UNDEF);
+      }
+      else if(c.op == Operation::GetElementPtr)
+      {
+        rdcarray<uint64_t> vals;
+        vals.reserve(c.members.size() * 2 + 1);
+
+        // DXC's version of llvm always writes the explicit type here
+        vals.push_back(getTypeID(c.type));
+
+        for(size_t m = 0; m < c.members.size(); m++)
+        {
+          vals.push_back(getTypeID(c.members[m]->type));
+          vals.push_back(c.members[m] - m_Constants.begin());
+        }
+
+        writer.Record(LLVMBC::ConstantsRecord::EVAL_GEP, vals);
+      }
+      else if(c.op != Operation::NoOp)
+      {
+        uint64_t cast = EncodeCast(c.op);
+        RDCASSERT(cast != ~0U);
+
+        writer.Record(LLVMBC::ConstantsRecord::EVAL_CAST,
+                      {EncodeCast(c.op), getTypeID(c.type), getTypeID(c.inner->type),
+                       uint64_t(c.inner - m_Constants.begin())});
+      }
+      else if(c.type->scalarType == Type::Int)
+      {
+        writer.Record(LLVMBC::ConstantsRecord::INTEGER, LLVMBC::BitWriter::svbr(c.val.s64v[0]));
+      }
+      else if(c.type->scalarType == Type::Float)
+      {
+        writer.Record(LLVMBC::ConstantsRecord::FLOAT, c.val.u64v[0]);
+      }
+      else if(!c.str.empty())
+      {
+        if(c.str.indexOf('\0') < 0)
+        {
+          writer.Record(LLVMBC::ConstantsRecord::CSTRING, c.str);
+        }
+        else
+        {
+          writer.Record(LLVMBC::ConstantsRecord::STRING, c.str);
+        }
+      }
+      else if(c.data)
+      {
+        rdcarray<uint64_t> vals;
+        vals.reserve(c.members.size());
+
+        if(c.type->type == Type::Vector)
+        {
+          for(uint32_t m = 0; m < c.type->elemCount; m++)
+            vals.push_back(c.type->bitWidth <= 32 ? c.val.u32v[m] : c.val.u64v[m]);
+        }
+        else
+        {
+          for(size_t m = 0; m < c.members.size(); m++)
+            vals.push_back(c.type->inner->bitWidth <= 32 ? c.members[m]->val.u32v[0]
+                                                         : c.members[m]->val.u64v[0]);
+        }
+
+        writer.Record(LLVMBC::ConstantsRecord::DATA, vals);
+      }
+      else if(c.type->type == Type::Vector || c.type->type == Type::Array ||
+              c.type->type == Type::Struct)
+      {
+        rdcarray<uint64_t> vals;
+        vals.reserve(c.members.size());
+
+        for(size_t m = 0; m < c.members.size(); m++)
+          vals.push_back(c.members[m] - m_Constants.begin());
+
+        writer.Record(LLVMBC::ConstantsRecord::AGGREGATE, vals);
+      }
+    }
+
+    if(inblock)
+      writer.EndBlock();
   }
 
   writer.EndBlock();

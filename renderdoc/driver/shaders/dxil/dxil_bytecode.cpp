@@ -84,8 +84,8 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
     Constant v;
     v.op = DecodeCast(constant.ops[0]);
     v.type = curType;
-    // getType(constant.ops[1]); type of the constant, which we ignore
     v.inner = getConstant(constant.ops[2]);
+    RDCASSERT(getType(constant.ops[1]) == v.inner->type);
     addConstant(v);
   }
   else if(IS_KNOWN(constant.id, ConstantsRecord::EVAL_GEP))
@@ -104,26 +104,28 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
       const Constant *a = getConstant(constant.ops[idx + 1]);
       RDCASSERT(t == a->type);
 
-      v.members.push_back(*a);
+      v.members.push_back(a);
     }
 
     if(!v.type)
-      v.type = v.members[0].type;
-
-    // walk the type list to get the return type
-    for(idx = 2; idx < v.members.size(); idx++)
     {
-      if(v.type->type == Type::Vector || v.type->type == Type::Array)
+      v.type = v.members[0]->type;
+
+      // walk the type list to get the return type
+      for(idx = 2; idx < v.members.size(); idx++)
       {
-        v.type = v.type->inner;
-      }
-      else if(v.type->type == Type::Struct)
-      {
-        v.type = v.type->members[v.members[idx].val.u32v[0]];
-      }
-      else
-      {
-        RDCERR("Unexpected type %d encountered in GEP", v.type->type);
+        if(v.type->type == Type::Vector || v.type->type == Type::Array)
+        {
+          v.type = v.type->inner;
+        }
+        else if(v.type->type == Type::Struct)
+        {
+          v.type = v.type->members[v.members[idx]->val.u32v[0]];
+        }
+        else
+        {
+          RDCERR("Unexpected type %d encountered in GEP", v.type->type);
+        }
       }
     }
 
@@ -145,6 +147,8 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
 
         if(member)
         {
+          v.members.push_back(member);
+
           if(v.type->bitWidth <= 32)
             v.val.u32v[m] = member->val.u32v[m];
           else
@@ -164,13 +168,13 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
 
         if(member && member->type)
         {
-          v.members.push_back(*member);
+          v.members.push_back(member);
         }
         else
         {
-          Constant c;
-          c.type = NULL;
-          c.val.u64v[0] = m;
+          Constant *c = new Constant();
+          c->type = NULL;
+          c->val.u64v[0] = m;
           v.members.push_back(c);
           RDCWARN("Index %llu out of bounds for constants array, possible forward reference", m);
         }
@@ -182,6 +186,7 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
   {
     Constant v;
     v.type = curType;
+    v.data = true;
     if(v.type->type == Type::Vector)
     {
       for(size_t m = 0; m < constant.ops.size(); m++)
@@ -196,12 +201,12 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
     {
       for(size_t m = 0; m < constant.ops.size(); m++)
       {
-        Constant el;
-        el.type = v.type->inner;
-        if(el.type->bitWidth <= 32)
-          el.val.u32v[0] = constant.ops[m] & ((1ULL << el.type->bitWidth) - 1);
+        Constant *el = new Constant();
+        el->type = v.type->inner;
+        if(el->type->bitWidth <= 32)
+          el->val.u32v[0] = constant.ops[m] & ((1ULL << el->type->bitWidth) - 1);
         else
-          el.val.u64v[m] = constant.ops[m];
+          el->val.u64v[0] = constant.ops[m];
         v.members.push_back(el);
       }
     }
@@ -474,8 +479,15 @@ Program::Program(const byte *bytes, size_t length)
       }
       else if(IS_KNOWN(rootchild.id, ModuleRecord::ALIAS))
       {
-        // [alias value type, addrspace, aliasee val#, linkage, visibility]
+        // [alias type, aliasee val#, linkage, visibility]
         Alias a;
+
+        a.type = &m_Types[(size_t)rootchild.ops[0]];
+        a.valID = rootchild.ops[1];
+
+        // ignore rest of properties, assert that if present they are 0
+        for(size_t p = 2; p < rootchild.ops.size(); p++)
+          RDCASSERT(rootchild.ops[p] == 0, p, rootchild.ops[p]);
 
         // symbols refer into any of N types in declaration order
         m_Symbols.push_back({SymbolType::Alias, m_Aliases.size()});
@@ -483,7 +495,7 @@ Program::Program(const byte *bytes, size_t length)
         // all global symbols are 'values' in LLVM, we don't need this but need to keep indexing the
         // same
         Constant v;
-        v.type = &m_Types[(size_t)rootchild.ops[0]];
+        v.type = a.type;
         v.symbol = true;
         m_Constants.push_back(v);
 
@@ -800,25 +812,30 @@ Program::Program(const byte *bytes, size_t length)
           if(c.members.empty())
             continue;
 
-          for(Constant &m : c.members)
+          for(size_t m = 0; m < c.members.size(); m++)
           {
-            if(m.type == NULL)
+            const Constant *mem = c.members[m];
+            if(mem->type == NULL)
             {
-              if(m.val.u64v[0] > 0)
+              size_t idx = (size_t)mem->val.u64v[0];
+
+              delete mem;
+
+              if(idx > 0)
               {
-                size_t idx = (size_t)m.val.u64v[0];
                 if(idx < m_Constants.size())
                 {
-                  m = m_Constants[idx];
+                  c.members[m] = &m_Constants[idx];
                 }
                 else
                 {
-                  m = Constant();
+                  c.members[m] = &m_Constants[0];
                   RDCERR("Couldn't resolve constant %zu", idx);
                 }
               }
               else
               {
+                c.members[m] = &m_Constants[0];
                 RDCERR("Unexpected member with no type but no forward-index constant value");
               }
             }
@@ -1017,16 +1034,21 @@ Program::Program(const byte *bytes, size_t length)
                 if(c.members.empty())
                   continue;
 
-                for(Constant &m : c.members)
+                for(size_t m = 0; m < c.members.size(); m++)
                 {
-                  if(m.type == NULL)
+                  const Constant *mem = c.members[m];
+                  if(mem->type == NULL)
                   {
-                    if(m.val.u64v[0] > 0)
+                    uint64_t idx = mem->val.u64v[0];
+                    delete mem;
+
+                    if(idx > 0)
                     {
-                      m = *getConstant(m.val.u64v[0]);
+                      c.members[m] = getConstant(idx);
                     }
                     else
                     {
+                      c.members[m] = getConstant(0);
                       RDCERR("Unexpected member with no type but no forward-index constant value");
                     }
                   }

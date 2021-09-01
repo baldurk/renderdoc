@@ -37,7 +37,8 @@ public:
   BitcodeWriter(bytebuf &buf);
   ~BitcodeWriter();
 
-  void ConfigureSizes(size_t numTypes, size_t numSections, uint64_t maxAlign, uint32_t maxGlobalType);
+  void ConfigureSizes(size_t numTypes, size_t numGlobalConsts, size_t numSections,
+                      uint64_t maxAlign, uint32_t maxGlobalType);
 
   void BeginBlock(KnownBlock block);
   void EndBlock();
@@ -77,7 +78,7 @@ private:
   void WriteAbbrevDefinition(AbbrevParam *abbrev);
 
   void Unabbrev(uint32_t record, bool param, uint64_t val);
-  void Unabbrev(uint32_t record, const rdcarray<uint64_t> &vals);
+  void Unabbrev(uint32_t record, bool, const rdcarray<uint64_t> &vals);
 
   void Abbrev(AbbrevParam *abbrev, uint32_t record, uint64_t val);
   void Abbrev(AbbrevParam *abbrev, uint32_t record, const rdcarray<uint64_t> &vals);
@@ -89,12 +90,13 @@ private:
   BitWriter b;
 
   uint32_t m_NumTypeBits;
+  uint32_t m_NumConstantBits;
   uint32_t m_GlobalTypeBits;
   uint32_t m_NumSectionBits;
   uint32_t m_AlignBits;
 
   size_t abbrevSize;
-  uint32_t numAbbrevs;
+  rdcarray<AbbrevParam *> curAbbrevs;
   KnownBlock curBlock;
 
   uint32_t m_GlobalVarAbbrev;
@@ -104,7 +106,7 @@ private:
   {
     KnownBlock block;
     size_t offset;
-    uint32_t numAbbrevs;
+    rdcarray<AbbrevParam *> abbrevs;
   };
 
   rdcarray<BlockContext> blockStack;
