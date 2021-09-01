@@ -43,18 +43,63 @@ public:
 
   void ModuleBlockInfo(uint32_t numTypes);
 
-  void Unabbrev(uint32_t record, uint32_t val);
-  void Unabbrev(uint32_t record, uint64_t val);
-  void Unabbrev(uint32_t record, const rdcarray<uint32_t> &vals);
-  void Unabbrev(uint32_t record, const rdcarray<uint64_t> &vals);
+  void AutoRecord(uint32_t record, bool param, uint64_t val);
+  void AutoRecord(uint32_t record, const rdcarray<uint64_t> &vals);
+
+  template <typename RecordType>
+  void Record(RecordType record)
+  {
+    AutoRecord((uint32_t)record, false, 0U);
+  }
+  template <typename RecordType>
+  void Record(RecordType record, uint64_t val)
+  {
+    AutoRecord((uint32_t)record, true, val);
+  }
+  template <typename RecordType>
+  void Record(RecordType record, const rdcarray<uint64_t> &vals)
+  {
+    AutoRecord((uint32_t)record, vals);
+  }
+  template <typename RecordType>
+  void Record(RecordType record, const rdcstr &str)
+  {
+    rdcarray<uint64_t> vals;
+    vals.resize(str.size());
+    for(size_t i = 0; i < vals.size(); i++)
+      vals[i] = str[i];
+    AutoRecord((uint32_t)record, vals);
+  }
 
 private:
+  void WriteAbbrevDefinition(AbbrevParam *abbrev);
+
+  void Unabbrev(uint32_t record, bool param, uint64_t val);
+  void Unabbrev(uint32_t record, const rdcarray<uint64_t> &vals);
+
+  void Abbrev(AbbrevParam *abbrev, uint32_t record, uint64_t val);
+  void Abbrev(AbbrevParam *abbrev, uint32_t record, const rdcarray<uint64_t> &vals);
+
+  void WriteAbbrevParam(const AbbrevParam &abbrev, uint64_t val);
+
+  uint32_t GetAbbrevID(uint32_t id);
+
   BitWriter b;
 
+  uint32_t m_NumTypeBits;
+
   size_t abbrevSize;
+  uint32_t numAbbrevs;
   KnownBlock curBlock;
 
-  rdcarray<rdcpair<KnownBlock, size_t>> blockStack;
+  struct BlockContext
+  {
+    KnownBlock block;
+    size_t offset;
+    uint32_t numAbbrevs;
+  };
+
+  rdcarray<BlockContext> blockStack;
 };
 
 };    // namespace LLVMBC

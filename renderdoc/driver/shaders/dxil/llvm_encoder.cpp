@@ -27,6 +27,12 @@
 
 namespace LLVMBC
 {
+static bool isChar6(char c)
+{
+  return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= '|') || (c >= '0' && c <= '9') || c == '_' ||
+         c == '.';
+}
+
 static uint32_t GetBlockAbbrevSize(KnownBlock block)
 {
   uint32_t ret = 0;
@@ -181,7 +187,44 @@ AbbrevDefinition FunctionAbbrevDefs[] = {
     },
 };
 
-static AbbrevDefinition *GetAbbrevs(KnownBlock block)
+enum class TypeAbbrev
+{
+  Pointer,
+  Function,
+  AnonStruct,
+  StructName,
+  NamedStruct,
+  Array,
+};
+
+AbbrevDefinition TypeAbbrevDefs[] = {
+    // Pointer
+    {
+        AbbLiteral(TypeRecord::POINTER), AbbFixedTypes(), AbbLiteral(0),
+    },
+    // Function
+    {
+        AbbLiteral(TypeRecord::FUNCTION), AbbFixed(1), AbbArray(), AbbFixedTypes(),
+    },
+    // AnonStruct
+    {
+        AbbLiteral(TypeRecord::STRUCT_ANON), AbbFixed(1), AbbArray(), AbbFixedTypes(),
+    },
+    // StructName
+    {
+        AbbLiteral(TypeRecord::STRUCT_NAME), AbbArray(), AbbChar6(),
+    },
+    // NamedStruct
+    {
+        AbbLiteral(TypeRecord::STRUCT_NAMED), AbbFixed(1), AbbArray(), AbbFixedTypes(),
+    },
+    // Array
+    {
+        AbbLiteral(TypeRecord::ARRAY), AbbVBR(8), AbbFixedTypes(),
+    },
+};
+
+static AbbrevDefinition *GetAbbrevDefs(KnownBlock block)
 {
   AbbrevDefinition *ret = NULL;
 
@@ -190,13 +233,14 @@ static AbbrevDefinition *GetAbbrevs(KnownBlock block)
     case KnownBlock::VALUE_SYMTAB_BLOCK: ret = ValueSymtabAbbrevDefs; break;
     case KnownBlock::CONSTANTS_BLOCK: ret = ConstantsAbbrevDefs; break;
     case KnownBlock::FUNCTION_BLOCK: ret = FunctionAbbrevDefs; break;
+    case KnownBlock::TYPE_BLOCK: ret = TypeAbbrevDefs; break;
     default: break;
   }
 
   return ret;
 }
 
-static uint32_t GetNumAbbrevs(KnownBlock block)
+static uint32_t GetNumAbbrevDefs(KnownBlock block)
 {
   uint32_t ret = 0;
 
@@ -205,6 +249,7 @@ static uint32_t GetNumAbbrevs(KnownBlock block)
     case KnownBlock::VALUE_SYMTAB_BLOCK: ret = ARRAY_COUNT(ValueSymtabAbbrevDefs); break;
     case KnownBlock::CONSTANTS_BLOCK: ret = ARRAY_COUNT(ConstantsAbbrevDefs); break;
     case KnownBlock::FUNCTION_BLOCK: ret = ARRAY_COUNT(FunctionAbbrevDefs); break;
+    case KnownBlock::TYPE_BLOCK: ret = ARRAY_COUNT(TypeAbbrevDefs); break;
     default: break;
   }
 
@@ -245,7 +290,27 @@ void BitcodeWriter::BeginBlock(KnownBlock block)
 
   curBlock = block;
   abbrevSize = newAbbrevSize;
-  blockStack.push_back({block, offs});
+  blockStack.push_back({block, offs, numAbbrevs});
+
+  // emit known abbrevs here that aren't in blockinfo
+  switch(block)
+  {
+    case KnownBlock::VALUE_SYMTAB_BLOCK:
+    case KnownBlock::CONSTANTS_BLOCK:
+    case KnownBlock::FUNCTION_BLOCK:
+    {
+      // these blocks have abbrevs but we shouldn't emit them as they're handled in blockinfo
+      break;
+    }
+    default:
+    {
+      uint32_t numAbbrevDefs = GetNumAbbrevDefs(block);
+      AbbrevDefinition *abbrevs = GetAbbrevDefs(block);
+      for(uint32_t i = 0; i < numAbbrevDefs; i++)
+        WriteAbbrevDefinition(abbrevs[i]);
+      break;
+    }
+  }
 }
 
 void BitcodeWriter::EndBlock()
@@ -253,7 +318,7 @@ void BitcodeWriter::EndBlock()
   b.vbr(abbrevSize, END_BLOCK);
   b.align32bits();
 
-  size_t offs = blockStack.back().second;
+  size_t offs = blockStack.back().offset;
 
   // -4 because we don't include the word with the length itself
   size_t lengthInBytes = b.GetByteOffset() - offs - 4;
@@ -268,13 +333,50 @@ void BitcodeWriter::EndBlock()
   }
   else
   {
-    curBlock = blockStack.back().first;
+    curBlock = blockStack.back().block;
+    numAbbrevs = blockStack.back().numAbbrevs;
     abbrevSize = GetBlockAbbrevSize(curBlock);
+  }
+}
+
+void BitcodeWriter::WriteAbbrevDefinition(AbbrevParam *abbrev)
+{
+  numAbbrevs++;
+
+  b.fixed(abbrevSize, DEFINE_ABBREV);
+
+  uint32_t numParams = 0;
+  while(abbrev[numParams].encoding != AbbrevEncoding::Unknown)
+    numParams++;
+
+  b.vbr(5, numParams);
+
+  for(uint32_t p = 0; p < numParams; p++)
+  {
+    AbbrevParam param = abbrev[p];
+
+    if(param.value == MagicFixedSizeNumTypes)
+      param.value = m_NumTypeBits;
+
+    const bool lit = param.encoding == AbbrevEncoding::Literal;
+    b.fixed<bool>(1, lit);
+    if(lit)
+    {
+      b.vbr(8, param.value);
+    }
+    else
+    {
+      b.fixed(3, param.encoding);
+      if(param.encoding == AbbrevEncoding::VBR || param.encoding == AbbrevEncoding::Fixed)
+        b.vbr(5, param.value);
+    }
   }
 }
 
 void BitcodeWriter::ModuleBlockInfo(uint32_t numTypes)
 {
+  m_NumTypeBits = 32 - Bits::CountLeadingZeroes(numTypes);
+
   // these abbrevs are hardcoded in llvm, at least at dxc's version
   BeginBlock(KnownBlock::BLOCKINFO);
 
@@ -284,72 +386,193 @@ void BitcodeWriter::ModuleBlockInfo(uint32_t numTypes)
       {KnownBlock::VALUE_SYMTAB_BLOCK, KnownBlock::CONSTANTS_BLOCK, KnownBlock::FUNCTION_BLOCK})
   {
     Unabbrev((uint32_t)BlockInfoRecord::SETBID, (uint32_t)block);
-    AbbrevDefinition *abbrevs = GetAbbrevs(block);
-    uint32_t numAbbrevs = GetNumAbbrevs(block);
+    AbbrevDefinition *abbrevs = GetAbbrevDefs(block);
+    uint32_t numAbbrevDefs = GetNumAbbrevDefs(block);
 
-    for(uint32_t i = 0; i < numAbbrevs; i++)
-    {
-      b.fixed(abbrevSize, DEFINE_ABBREV);
-
-      AbbrevParam *abbrev = abbrevs[i];
-
-      uint32_t numParams = 0;
-      while(abbrev[numParams].encoding != AbbrevEncoding::Unknown)
-        numParams++;
-
-      b.vbr(5, numParams);
-
-      for(uint32_t p = 0; p < numParams; p++)
-      {
-        AbbrevParam param = abbrev[p];
-
-        if(param.value == MagicFixedSizeNumTypes)
-        {
-          param.value = 32 - Bits::CountLeadingZeroes(numTypes);
-        }
-
-        const bool lit = param.encoding == AbbrevEncoding::Literal;
-        b.fixed<bool>(1, lit);
-        if(lit)
-        {
-          b.vbr(8, param.value);
-        }
-        else
-        {
-          b.fixed(3, param.encoding);
-          if(param.encoding == AbbrevEncoding::VBR || param.encoding == AbbrevEncoding::Fixed)
-            b.vbr(5, param.value);
-        }
-      }
-    }
+    for(uint32_t i = 0; i < numAbbrevDefs; i++)
+      WriteAbbrevDefinition(abbrevs[i]);
   }
 
   EndBlock();
 }
 
-void BitcodeWriter::Unabbrev(uint32_t record, uint32_t val)
+uint32_t BitcodeWriter::GetAbbrevID(uint32_t id)
 {
-  b.fixed(abbrevSize, UNABBREV_RECORD);
-  b.vbr(6, record);
-  b.vbr(6, 1U);    // num parameters
-  b.vbr(6, val);
+  // the id is a block-local index, starting from 0, of the abbrevs defined for that block.
+
+  // when we begin a block, we store the number of previously defined abbrevs from earlier blocks so
+  // we add that on
+  id += blockStack.back().numAbbrevs;
+
+  // the ID we need to encode starts at APPLICATION_ABBREV for the first one, so add that
+  return APPLICATION_ABBREV + id;
 }
 
-void BitcodeWriter::Unabbrev(uint32_t record, uint64_t val)
+void BitcodeWriter::AutoRecord(uint32_t record, bool param, uint64_t val)
 {
-  b.fixed(abbrevSize, UNABBREV_RECORD);
-  b.vbr(6, record);
-  b.vbr(6, 1U);    // num parameters
-  b.vbr(6, val);
+  AbbrevDefinition *abbrevs = GetAbbrevDefs(curBlock);
+  uint32_t numAbbrevDefs = GetNumAbbrevDefs(curBlock);
+
+  uint32_t idx = numAbbrevDefs;
+
+  // the records with abbrevs are hardcoded, so just determine if this record in this block has an
+  // abbrev and select it here
+  switch(curBlock)
+  {
+    case KnownBlock::VALUE_SYMTAB_BLOCK:
+      RDCERR("Symbol table entry needs multiple parameters");
+      break;
+    case KnownBlock::TYPE_BLOCK:
+      switch(TypeRecord(record))
+      {
+        case TypeRecord::POINTER: RDCERR("Pointer type needs multiple parameters"); break;
+        case TypeRecord::FUNCTION: idx = (uint32_t)TypeAbbrev::Function; break;
+        case TypeRecord::STRUCT_ANON: idx = (uint32_t)TypeAbbrev::AnonStruct; break;
+        case TypeRecord::STRUCT_NAME: idx = (uint32_t)TypeAbbrev::StructName; break;
+        case TypeRecord::STRUCT_NAMED: idx = (uint32_t)TypeAbbrev::NamedStruct; break;
+        case TypeRecord::ARRAY: idx = (uint32_t)TypeAbbrev::Array; break;
+        default: break;
+      }
+      break;
+    default: break;
+  }
+
+  // if we got a valid abbrev, use it, otherwise emit unabbrev
+  if(idx < numAbbrevDefs)
+    Abbrev(abbrevs[idx], GetAbbrevID(record), val);
+  else
+    Unabbrev(record, param, val);
 }
 
-void BitcodeWriter::Unabbrev(uint32_t record, const rdcarray<uint32_t> &vals)
+void BitcodeWriter::AutoRecord(uint32_t record, const rdcarray<uint64_t> &vals)
+{
+  AbbrevDefinition *abbrevs = GetAbbrevDefs(curBlock);
+  uint32_t numAbbrevDefs = GetNumAbbrevDefs(curBlock);
+
+  uint32_t idx = ~0U;
+
+  // the records with abbrevs are hardcoded, so just determine if this record in this block has an
+  // abbrev and select it here
+  switch(curBlock)
+  {
+    case KnownBlock::VALUE_SYMTAB_BLOCK:
+      // the selection of abbrev here depends on the data
+      break;
+    case KnownBlock::TYPE_BLOCK:
+      switch(TypeRecord(record))
+      {
+        case TypeRecord::POINTER:
+          // only use pointer abbrev if address space is 0
+          if(vals.size() == 2 && vals[1] == 0)
+            idx = (uint32_t)TypeAbbrev::Pointer;
+          break;
+        case TypeRecord::FUNCTION: idx = (uint32_t)TypeAbbrev::Function; break;
+        case TypeRecord::STRUCT_ANON: idx = (uint32_t)TypeAbbrev::AnonStruct; break;
+        case TypeRecord::STRUCT_NAME:
+        {
+          idx = (uint32_t)TypeAbbrev::StructName;
+          for(size_t i = 0; i < vals.size(); i++)
+          {
+            if(!isChar6(char(vals[i])))
+            {
+              idx = ~0U;
+              break;
+            }
+          }
+          break;
+        }
+        case TypeRecord::STRUCT_NAMED: idx = (uint32_t)TypeAbbrev::NamedStruct; break;
+        case TypeRecord::ARRAY: idx = (uint32_t)TypeAbbrev::Array; break;
+        default: break;
+      }
+      break;
+    default: break;
+  }
+
+  // if we got a valid abbrev, use it, otherwise emit unabbrev
+  if(idx < numAbbrevDefs)
+  {
+    // write the abbrev ID
+    b.fixed(abbrevSize, GetAbbrevID(idx));
+
+    Abbrev(abbrevs[idx], record, vals);
+  }
+  else
+  {
+    Unabbrev(record, vals);
+  }
+}
+
+void BitcodeWriter::Abbrev(AbbrevParam *abbr, uint32_t record, uint64_t val)
+{
+  WriteAbbrevParam(abbr[0], record);
+  // if this abbrev has a parameter, encode it - it may be parameterless in which case we ignore val
+  if(abbr[1].encoding != AbbrevEncoding::Unknown)
+    WriteAbbrevParam(abbr[1], val);
+}
+
+void BitcodeWriter::Abbrev(AbbrevParam *abbr, uint32_t record, const rdcarray<uint64_t> &vals)
+{
+  WriteAbbrevParam(abbr[0], record);
+
+  size_t i = 0;
+  abbr++;
+  while(abbr->encoding != AbbrevEncoding::Unknown)
+  {
+    RDCASSERT(i < vals.size());
+
+    // only one array per abbrev, consume the rest of the vals
+    if(abbr->encoding == AbbrevEncoding::Array)
+    {
+      abbr++;
+      RDCASSERT(abbr->encoding != AbbrevEncoding::Unknown);
+
+      b.vbr(6, vals.size() - i);
+
+      for(; i < vals.size(); i++)
+        WriteAbbrevParam(abbr[0], vals[i]);
+
+      // end now
+      break;
+    }
+    else if(abbr->encoding == AbbrevEncoding::Blob)
+    {
+      // expect vals to be length then blob pointer packed into uint64_t
+      size_t length = (size_t)vals[i];
+      byte *blob = (byte *)vals[i + 1];
+      b.WriteBlob(blob, length);
+    }
+    else
+    {
+      WriteAbbrevParam(abbr[0], vals[i++]);
+      abbr++;
+    }
+  }
+}
+
+void BitcodeWriter::WriteAbbrevParam(const AbbrevParam &abbrev, uint64_t val)
+{
+  // if the encoding is a literal we don't have to do anything
+  if(abbrev.encoding == AbbrevEncoding::Literal)
+    return;
+
+  if(abbrev.encoding == AbbrevEncoding::Fixed)
+    b.fixed(abbrev.value == MagicFixedSizeNumTypes ? m_NumTypeBits : abbrev.value, val);
+  else if(abbrev.encoding == AbbrevEncoding::VBR)
+    b.vbr(abbrev.value, val);
+  else if(abbrev.encoding == AbbrevEncoding::Char6)
+    b.c6(char(val));
+  else
+    RDCERR("Unexpected abbrev param type: %d", abbrev.encoding);
+}
+
+void BitcodeWriter::Unabbrev(uint32_t record, bool param, uint64_t val)
 {
   b.fixed(abbrevSize, UNABBREV_RECORD);
   b.vbr(6, record);
-  b.vbr(6, vals.size());
-  for(uint32_t v : vals)
-    b.vbr(6, v);
+  b.vbr(6, param ? 1U : 0U);
+  if(param)
+    b.vbr(6, val);
 }
 
 void BitcodeWriter::Unabbrev(uint32_t record, const rdcarray<uint64_t> &vals)

@@ -48,7 +48,7 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
 
   writer.BeginBlock(LLVMBC::KnownBlock::MODULE_BLOCK);
 
-  writer.Unabbrev((uint32_t)LLVMBC::ModuleRecord::VERSION, 1U);
+  writer.Record(LLVMBC::ModuleRecord::VERSION, 1U);
 
   {
     writer.ModuleBlockInfo((uint32_t)m_Types.size());
@@ -137,7 +137,7 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
           }
         }
 
-        writer.Unabbrev((uint32_t)LLVMBC::ParamAttrGroupRecord::ENTRY, vals);
+        writer.Record(LLVMBC::ParamAttrGroupRecord::ENTRY, vals);
       }
     }
 
@@ -149,8 +149,97 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
     writer.BeginBlock(LLVMBC::KnownBlock::PARAMATTR_BLOCK);
 
     for(size_t i = 0; i < m_Attributes.size(); i++)
+      writer.Record(LLVMBC::ParamAttrRecord::ENTRY, m_Attributes[i].groups);
+
+    writer.EndBlock();
+  }
+
+  {
+    writer.BeginBlock(LLVMBC::KnownBlock::TYPE_BLOCK);
+
+    writer.Record(LLVMBC::TypeRecord::NUMENTRY, (uint32_t)m_Types.size());
+
+    for(size_t i = 0; i < m_Types.size(); i++)
     {
-      writer.Unabbrev((uint32_t)LLVMBC::ParamAttrRecord::ENTRY, m_Attributes[i].groups);
+      if(m_Types[i].isVoid())
+      {
+        writer.Record(LLVMBC::TypeRecord::VOID);
+      }
+      else if(m_Types[i].type == Type::Label)
+      {
+        writer.Record(LLVMBC::TypeRecord::LABEL);
+      }
+      else if(m_Types[i].type == Type::Metadata)
+      {
+        writer.Record(LLVMBC::TypeRecord::METADATA);
+      }
+      else if(m_Types[i].type == Type::Scalar && m_Types[i].scalarType == Type::Float)
+      {
+        if(m_Types[i].bitWidth == 16)
+          writer.Record(LLVMBC::TypeRecord::HALF);
+        else if(m_Types[i].bitWidth == 32)
+          writer.Record(LLVMBC::TypeRecord::FLOAT);
+        else if(m_Types[i].bitWidth == 64)
+          writer.Record(LLVMBC::TypeRecord::DOUBLE);
+      }
+      else if(m_Types[i].type == Type::Scalar && m_Types[i].scalarType == Type::Int)
+      {
+        writer.Record(LLVMBC::TypeRecord::INTEGER, m_Types[i].bitWidth);
+      }
+      else if(m_Types[i].type == Type::Vector)
+      {
+        size_t innerTypeIndex = m_Types[i].inner - m_Types.begin();
+        writer.Record(LLVMBC::TypeRecord::VECTOR, {m_Types[i].elemCount, innerTypeIndex});
+      }
+      else if(m_Types[i].type == Type::Array)
+      {
+        size_t innerTypeIndex = m_Types[i].inner - m_Types.begin();
+        writer.Record(LLVMBC::TypeRecord::ARRAY, {m_Types[i].elemCount, innerTypeIndex});
+      }
+      else if(m_Types[i].type == Type::Pointer)
+      {
+        size_t innerTypeIndex = m_Types[i].inner - m_Types.begin();
+        writer.Record(LLVMBC::TypeRecord::POINTER, {innerTypeIndex, (uint64_t)m_Types[i].addrSpace});
+      }
+      else if(m_Types[i].type == Type::Struct)
+      {
+        if(m_Types[i].members.empty())
+        {
+          writer.Record(LLVMBC::TypeRecord::OPAQUE);
+        }
+        else
+        {
+          LLVMBC::TypeRecord type = LLVMBC::TypeRecord::STRUCT_ANON;
+
+          if(!m_Types[i].name.empty())
+          {
+            writer.Record(LLVMBC::TypeRecord::STRUCT_NAME, m_Types[i].name);
+            type = LLVMBC::TypeRecord::STRUCT_NAMED;
+          }
+
+          rdcarray<uint64_t> vals;
+
+          vals.push_back(m_Types[i].packedStruct ? 1 : 0);
+
+          for(const Type *t : m_Types[i].members)
+            vals.push_back(t - m_Types.begin());
+
+          writer.Record(type, vals);
+        }
+      }
+      else if(m_Types[i].type == Type::Function)
+      {
+        rdcarray<uint64_t> vals;
+
+        vals.push_back(m_Types[i].vararg ? 1 : 0);
+
+        vals.push_back(m_Types[i].inner - m_Types.begin());
+
+        for(const Type *t : m_Types[i].members)
+          vals.push_back(t - m_Types.begin());
+
+        writer.Record(LLVMBC::TypeRecord::FUNCTION, vals);
+      }
     }
 
     writer.EndBlock();
