@@ -911,7 +911,9 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
       range.End = 0;
       m_SOStagingBuffer->Unmap(0, &range);
 
-      uint64_t outputSize = data->PrimitivesStorageNeeded * 3 * stride;
+      // reserve space for enough 'buffer filled size' locations
+      UINT64 SizeCounterBytes = AlignUp(uint64_t(action->numInstances * sizeof(UINT64)), 64ULL);
+      uint64_t outputSize = SizeCounterBytes + result.PrimitivesStorageNeeded * 3 * stride;
 
       if(m_SOBufferSize < outputSize)
       {
@@ -961,8 +963,6 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
         rs.ApplyGraphicsRootElements(list);
       }
 
-      // reserve space for enough 'buffer filled size' locations
-      UINT64 SizeCounterBytes = AlignUp(uint64_t(action->numInstances * sizeof(UINT64)), 64ULL);
       view.BufferLocation = m_SOBuffer->GetGPUVirtualAddress() + SizeCounterBytes;
       view.SizeInBytes = m_SOBufferSize - SizeCounterBytes;
 
@@ -1000,6 +1000,16 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
           GetDebugManager()->ResetDebugAlloc();
 
           list = GetDebugManager()->ResetDebugList();
+
+          rs.ApplyState(m_pDevice, list);
+
+          list->SetPipelineState(pipe);
+
+          if(soSig)
+          {
+            list->SetGraphicsRootSignature(soSig);
+            rs.ApplyGraphicsRootElements(list);
+          }
         }
       }
 
@@ -1178,6 +1188,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     if(numBytesWritten == 0)
     {
       SAFE_RELEASE(soSig);
+      m_SOStagingBuffer->Unmap(0, &range);
       return;
     }
 
