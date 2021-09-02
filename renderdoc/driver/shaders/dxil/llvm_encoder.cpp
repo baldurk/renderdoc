@@ -733,6 +733,45 @@ void BitcodeWriter::AutoRecord(uint32_t record, const rdcarray<uint64_t> &vals)
   }
 }
 
+void BitcodeWriter::RecordSymTabEntry(size_t id, const rdcstr &str, bool basicBlock)
+{
+  bool c6 = true, c7 = true;
+  for(size_t i = 0; (c6 || c7) && i < str.size(); i++)
+  {
+    if(!isChar6(str[i]))
+      c6 = false;
+    if((unsigned char)str[i] >= 128)
+      c7 = false;
+  }
+
+  ValueSymtabAbbrev abbrev = ValueSymtabAbbrev::Entry8;
+  ValueSymtabRecord record = ValueSymtabRecord::ENTRY;
+
+  if(basicBlock)
+  {
+    record = ValueSymtabRecord::BBENTRY;
+    if(c6)
+      abbrev = ValueSymtabAbbrev::BBEntry6;
+  }
+  else
+  {
+    if(c6)
+      abbrev = ValueSymtabAbbrev::Entry6;
+    else if(c7)
+      abbrev = ValueSymtabAbbrev::Entry7;
+  }
+
+  // write the abbrev ID
+  b.fixed(abbrevSize, GetAbbrevID((uint32_t)abbrev));
+
+  rdcarray<uint64_t> vals;
+  vals.resize(str.size() + 1);
+  vals[0] = id;
+  for(size_t i = 0; i < str.size(); i++)
+    vals[i + 1] = str[i];
+  Abbrev(ValueSymtabAbbrevDefs[(uint32_t)abbrev], (uint32_t)record, vals);
+}
+
 void BitcodeWriter::Abbrev(AbbrevParam *abbr, uint32_t record, uint64_t val)
 {
   WriteAbbrevParam(abbr[0], record);

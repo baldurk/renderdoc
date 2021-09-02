@@ -619,6 +619,39 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
     writer.EndBlock();
   }
 
+  {
+    writer.BeginBlock(LLVMBC::KnownBlock::VALUE_SYMTAB_BLOCK);
+
+    rdcarray<rdcpair<size_t, const rdcstr *>> entries;
+
+    for(size_t s = 0; s < m_Symbols.size(); s++)
+    {
+      bool symtab = false;
+      switch(m_Symbols[s].type)
+      {
+        case SymbolType::GlobalVar:
+        case SymbolType::Function:
+        case SymbolType::Alias: symtab = true; break;
+        default: break;
+      }
+
+      if(symtab)
+        entries.push_back({s, &m_Constants[s].str});
+    }
+
+    // sort the entries by string in order
+    std::sort(entries.begin(), entries.end(),
+              [](const rdcpair<size_t, const rdcstr *> &a,
+                 const rdcpair<size_t, const rdcstr *> &b) { return *a.second < *b.second; });
+
+    // we use a special function to record the entry so it can take the string as-is to check it for
+    // validity
+    for(const rdcpair<size_t, const rdcstr *> &it : entries)
+      writer.RecordSymTabEntry(it.first, *it.second);
+
+    writer.EndBlock();
+  }
+
   writer.EndBlock();
 
   ProgramHeader header;

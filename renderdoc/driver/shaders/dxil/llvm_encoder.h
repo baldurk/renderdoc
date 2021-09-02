@@ -87,6 +87,8 @@ public:
     AutoRecord((uint32_t)record, vals);
   }
 
+  void RecordSymTabEntry(size_t id, const rdcstr &str, bool basicBlock = false);
+
 private:
   void WriteAbbrevDefinition(AbbrevParam *abbrev);
 
