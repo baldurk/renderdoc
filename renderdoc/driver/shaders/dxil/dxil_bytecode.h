@@ -480,7 +480,7 @@ struct Metadata
   ~Metadata();
 
   uint32_t id = ~0U;
-  bool isDistinct = false, isConstant = false;
+  bool isDistinct = false, isConstant = false, isString = false;
 
   const Constant *constant = NULL;
 

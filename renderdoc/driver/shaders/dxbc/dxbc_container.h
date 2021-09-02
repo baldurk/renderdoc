@@ -164,6 +164,7 @@ public:
   void FillStateInstructionInfo(ShaderDebugState &state) const;
 
   static void ReplaceDXBCBytecode(bytebuf &ByteCode, const rdcarray<uint32_t> &replacement);
+  static void StripDXILDebugInfo(bytebuf &ByteCode);
   static void ReplaceDXILBytecode(bytebuf &ByteCode, const bytebuf &replacement);
 
   const DXBCBytecode::Program *GetDXBCByteCode() const { return m_DXBCByteCode; }

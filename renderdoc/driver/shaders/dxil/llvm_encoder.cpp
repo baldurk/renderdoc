@@ -250,6 +250,28 @@ AbbrevDefinition TypeAbbrevDefs[] = {
     },
 };
 
+enum class MetadataAbbrev
+{
+  String,
+  DebugLocation,
+  Name,
+};
+
+AbbrevDefinition MetadataAbbrevDefs[] = {
+    // String
+    {
+        AbbLiteral(MetaDataRecord::STRING_OLD), AbbArray(), AbbFixed(8),
+    },
+    // DebugLocation
+    {
+        AbbLiteral(MetaDataRecord::LOCATION), AbbFixed(1), AbbVBR(6), AbbVBR(8), AbbVBR(6), AbbVBR(6),
+    },
+    // Name
+    {
+        AbbLiteral(MetaDataRecord::NAME), AbbArray(), AbbFixed(8),
+    },
+};
+
 static AbbrevDefinition *GetAbbrevDefs(KnownBlock block)
 {
   AbbrevDefinition *ret = NULL;
@@ -260,6 +282,7 @@ static AbbrevDefinition *GetAbbrevDefs(KnownBlock block)
     case KnownBlock::CONSTANTS_BLOCK: ret = ConstantsAbbrevDefs; break;
     case KnownBlock::FUNCTION_BLOCK: ret = FunctionAbbrevDefs; break;
     case KnownBlock::TYPE_BLOCK: ret = TypeAbbrevDefs; break;
+    case KnownBlock::METADATA_BLOCK: ret = MetadataAbbrevDefs; break;
     default: break;
   }
 
@@ -276,6 +299,7 @@ static uint32_t GetNumAbbrevDefs(KnownBlock block)
     case KnownBlock::CONSTANTS_BLOCK: ret = ARRAY_COUNT(ConstantsAbbrevDefs); break;
     case KnownBlock::FUNCTION_BLOCK: ret = ARRAY_COUNT(FunctionAbbrevDefs); break;
     case KnownBlock::TYPE_BLOCK: ret = ARRAY_COUNT(TypeAbbrevDefs); break;
+    case KnownBlock::METADATA_BLOCK: ret = ARRAY_COUNT(MetadataAbbrevDefs); break;
     default: break;
   }
 
@@ -288,8 +312,6 @@ BitcodeWriter::BitcodeWriter(bytebuf &buf) : b(buf)
 
   curBlock = KnownBlock::Count;
   abbrevSize = 2;
-
-  m_GlobalVarAbbrev = ~0U;
 }
 
 BitcodeWriter::~BitcodeWriter()
@@ -346,6 +368,11 @@ void BitcodeWriter::BeginBlock(KnownBlock block)
 
       break;
     }
+    case KnownBlock::METADATA_BLOCK:
+    {
+      // this is handled manually, only in the first global metadata block
+      break;
+    }
     default:
     {
       uint32_t numAbbrevDefs = GetNumAbbrevDefs(block);
@@ -400,9 +427,9 @@ void BitcodeWriter::WriteAbbrevDefinition(AbbrevParam *abbrev)
     AbbrevParam param = abbrev[p];
 
     if(param.value == MagicFixedSizeNumTypes)
-      param.value = m_NumTypeBits;
+      param.value = m_Cfg.numTypes;
     if(param.value == MagicFixedSizeNumConstants)
-      param.value = m_NumConstantBits;
+      param.value = m_Cfg.numGlobalConsts;
 
     const bool lit = param.encoding == AbbrevEncoding::Literal;
     b.fixed<bool>(1, lit);
@@ -419,27 +446,22 @@ void BitcodeWriter::WriteAbbrevDefinition(AbbrevParam *abbrev)
   }
 }
 
-void BitcodeWriter::ConfigureSizes(size_t numTypes, size_t numGlobalConsts, size_t numSections,
-                                   uint64_t maxAlign, uint32_t maxGlobalType)
+void BitcodeWriter::ConfigureSizes(Config cfg)
 {
-  m_NumTypeBits = 32 - Bits::CountLeadingZeroes((uint32_t)numTypes);
-  m_NumConstantBits = 32 - Bits::CountLeadingZeroes((uint32_t)numGlobalConsts);
+  m_Cfg = cfg;
 
-  m_GlobalTypeBits = 32 - Bits::CountLeadingZeroes(maxGlobalType);
+  m_Cfg.numTypes = 32 - Bits::CountLeadingZeroes((uint32_t)m_Cfg.numTypes);
+  m_Cfg.numGlobalConsts = 32 - Bits::CountLeadingZeroes((uint32_t)m_Cfg.numGlobalConsts);
 
-  if(numSections == 0)
-    m_NumSectionBits = 0;
-  else
-    m_NumSectionBits = 32 - Bits::CountLeadingZeroes((uint32_t)numSections);
+  m_Cfg.maxGlobalType = 32 - Bits::CountLeadingZeroes(m_Cfg.maxGlobalType);
 
-  if(maxAlign == 0)
+  if(m_Cfg.numSections > 0)
+    m_Cfg.numSections = 32 - Bits::CountLeadingZeroes((uint32_t)m_Cfg.numSections);
+
+  if(m_Cfg.maxAlign > 0)
   {
-    m_AlignBits = 0;
-  }
-  else
-  {
-    uint32_t encodedAlign = 32 - Bits::CountLeadingZeroes((uint32_t)maxAlign);
-    m_AlignBits = 32 - Bits::CountLeadingZeroes(encodedAlign);
+    uint32_t encodedAlign = 32 - Bits::CountLeadingZeroes((uint32_t)cfg.maxAlign);
+    m_Cfg.maxAlign = 32 - Bits::CountLeadingZeroes(encodedAlign);
   }
 }
 
@@ -468,16 +490,16 @@ void BitcodeWriter::EmitGlobalVarAbbrev()
 {
   m_GlobalVarAbbrev = (uint32_t)curAbbrevs.size();
 
-  AbbrevParam align = AbbFixed(m_AlignBits);
-  if(m_AlignBits == 0)
+  AbbrevParam align = AbbFixed(m_Cfg.maxAlign);
+  if(m_Cfg.maxAlign == 0)
     align = AbbLiteral(0);
 
-  AbbrevParam section = AbbFixed(m_NumSectionBits);
-  if(m_NumSectionBits == 0)
+  AbbrevParam section = AbbFixed(m_Cfg.numSections);
+  if(m_Cfg.numSections == 0)
     section = AbbLiteral(0);
 
   m_GlobalVarAbbrevDef[0] = AbbLiteral(ModuleRecord::GLOBALVAR);
-  m_GlobalVarAbbrevDef[1] = AbbFixed(m_GlobalTypeBits);
+  m_GlobalVarAbbrevDef[1] = AbbFixed(m_Cfg.maxGlobalType);
   m_GlobalVarAbbrevDef[2] = AbbVBR(6);
   m_GlobalVarAbbrevDef[3] = AbbVBR(6);
   m_GlobalVarAbbrevDef[4] = AbbFixed(5);
@@ -485,6 +507,28 @@ void BitcodeWriter::EmitGlobalVarAbbrev()
   m_GlobalVarAbbrevDef[6] = section;
 
   WriteAbbrevDefinition(m_GlobalVarAbbrevDef);
+}
+
+void BitcodeWriter::EmitMetaDataAbbrev()
+{
+  // metadata only emits its abbrev if there are the relevant nodes
+  if(m_Cfg.hasMetaString)
+  {
+    m_MetaStringAbbrev = (uint32_t)curAbbrevs.size();
+    WriteAbbrevDefinition(MetadataAbbrevDefs[(uint32_t)MetadataAbbrev::String]);
+  }
+  if(m_Cfg.hasDebugLoc)
+  {
+    m_MetaLocationAbbrev = (uint32_t)curAbbrevs.size();
+    WriteAbbrevDefinition(MetadataAbbrevDefs[(uint32_t)MetadataAbbrev::DebugLocation]);
+  }
+  if(m_Cfg.hasNamedMeta)
+  {
+    m_MetaNameAbbrev = (uint32_t)curAbbrevs.size();
+    WriteAbbrevDefinition(MetadataAbbrevDefs[(uint32_t)MetadataAbbrev::Name]);
+  }
+
+  // we don't handle GENERIC_DEBUG
 }
 
 uint32_t BitcodeWriter::GetAbbrevID(uint32_t id)
@@ -664,6 +708,14 @@ void BitcodeWriter::AutoRecord(uint32_t record, const rdcarray<uint64_t> &vals)
         default: break;
       }
       break;
+    case KnownBlock::METADATA_BLOCK:
+      switch(MetaDataRecord(record))
+      {
+        case MetaDataRecord::STRING_OLD: idx = (uint32_t)m_MetaStringAbbrev; break;
+        case MetaDataRecord::LOCATION: idx = (uint32_t)m_MetaLocationAbbrev; break;
+        case MetaDataRecord::NAME: idx = (uint32_t)m_MetaNameAbbrev; break;
+        default: break;
+      }
     default: break;
   }
 
@@ -697,8 +749,6 @@ void BitcodeWriter::Abbrev(AbbrevParam *abbr, uint32_t record, const rdcarray<ui
   abbr++;
   while(abbr->encoding != AbbrevEncoding::Unknown)
   {
-    RDCASSERT(i < vals.size());
-
     // only one array per abbrev, consume the rest of the vals
     if(abbr->encoding == AbbrevEncoding::Array)
     {
@@ -715,6 +765,8 @@ void BitcodeWriter::Abbrev(AbbrevParam *abbr, uint32_t record, const rdcarray<ui
     }
     else if(abbr->encoding == AbbrevEncoding::Blob)
     {
+      RDCASSERT(i < vals.size());
+
       // expect vals to be length then blob pointer packed into uint64_t
       size_t length = (size_t)vals[i];
       byte *blob = (byte *)vals[i + 1];
@@ -722,6 +774,8 @@ void BitcodeWriter::Abbrev(AbbrevParam *abbr, uint32_t record, const rdcarray<ui
     }
     else
     {
+      RDCASSERT(i < vals.size());
+
       WriteAbbrevParam(abbr[0], vals[i++]);
       abbr++;
     }
@@ -738,9 +792,9 @@ void BitcodeWriter::WriteAbbrevParam(const AbbrevParam &abbrev, uint64_t val)
   {
     uint64_t width = abbrev.value;
     if(abbrev.value == MagicFixedSizeNumTypes)
-      width = m_NumTypeBits;
+      width = m_Cfg.numTypes;
     else if(abbrev.value == MagicFixedSizeNumConstants)
-      width = m_NumConstantBits;
+      width = m_Cfg.numGlobalConsts;
     b.fixed((size_t)width, val);
   }
   else if(abbrev.encoding == AbbrevEncoding::VBR)

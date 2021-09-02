@@ -37,14 +37,27 @@ public:
   BitcodeWriter(bytebuf &buf);
   ~BitcodeWriter();
 
-  void ConfigureSizes(size_t numTypes, size_t numGlobalConsts, size_t numSections,
-                      uint64_t maxAlign, uint32_t maxGlobalType);
+  struct Config
+  {
+    size_t numTypes;
+    size_t numGlobalConsts;
+    size_t numSections;
+    uint64_t maxAlign;
+    uint32_t maxGlobalType;
+    bool hasMetaString;
+    bool hasDebugLoc;
+    bool hasNamedMeta;
+  };
+
+  void ConfigureSizes(Config cfg);
 
   void BeginBlock(KnownBlock block);
+
   void EndBlock();
 
   void ModuleBlockInfo();
   void EmitGlobalVarAbbrev();
+  void EmitMetaDataAbbrev();
 
   void AutoRecord(uint32_t record, bool param, uint64_t val);
   void AutoRecord(uint32_t record, const rdcarray<uint64_t> &vals);
@@ -89,17 +102,17 @@ private:
 
   BitWriter b;
 
-  uint32_t m_NumTypeBits;
-  uint32_t m_NumConstantBits;
-  uint32_t m_GlobalTypeBits;
-  uint32_t m_NumSectionBits;
-  uint32_t m_AlignBits;
+  Config m_Cfg;
 
   size_t abbrevSize;
   rdcarray<AbbrevParam *> curAbbrevs;
   KnownBlock curBlock;
 
-  uint32_t m_GlobalVarAbbrev;
+  uint32_t m_GlobalVarAbbrev = ~0U;
+  uint32_t m_MetaStringAbbrev = ~0U;
+  uint32_t m_MetaLocationAbbrev = ~0U;
+  uint32_t m_MetaNameAbbrev = ~0U;
+
   AbbrevParam m_GlobalVarAbbrevDef[10] = {};
 
   struct BlockContext

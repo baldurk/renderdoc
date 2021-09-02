@@ -714,7 +714,7 @@ void DXBCContainer::ReplaceDXBCBytecode(bytebuf &ByteCode, const rdcarray<uint32
   HashContainer(ByteCode.data(), ByteCode.size());
 }
 
-void DXBCContainer::ReplaceDXILBytecode(bytebuf &ByteCode, const bytebuf &replacement)
+void DXBCContainer::StripDXILDebugInfo(bytebuf &ByteCode)
 {
   FileHeader *header = (FileHeader *)ByteCode.data();
 
@@ -736,15 +736,44 @@ void DXBCContainer::ReplaceDXILBytecode(bytebuf &ByteCode, const bytebuf &replac
 
     if(*fourcc == FOURCC_ILDB)
     {
+      uint32_t size = 8 + *chunkSize;
       // strip ILDB because it's valid code (with debug info) and who knows what might use it
-      ByteCode.erase(offs, 8 + *chunkSize);
-
       for(uint32_t c = chunkIdx; c < header->numChunks; c++)
-        chunkOffsets[c + 1] = chunkOffsets[c];
+        chunkOffsets[c] = chunkOffsets[c + 1] - size;
 
       header->numChunks--;
+      header->fileLength -= size;
+
+      ByteCode.erase(offs, size);
+
+      break;
     }
-    else if(*fourcc == FOURCC_DXIL)
+  }
+
+  HashContainer(ByteCode.data(), ByteCode.size());
+}
+
+void DXBCContainer::ReplaceDXILBytecode(bytebuf &ByteCode, const bytebuf &replacement)
+{
+  FileHeader *header = (FileHeader *)ByteCode.data();
+
+  if(header->fourcc != FOURCC_DXBC)
+    return;
+
+  if(header->fileLength != (uint32_t)ByteCode.size())
+    return;
+
+  uint32_t *chunkOffsets =
+      (uint32_t *)(ByteCode.data() + sizeof(FileHeader));    // right after the header
+
+  for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
+  {
+    uint32_t offs = chunkOffsets[chunkIdx];
+
+    uint32_t *fourcc = (uint32_t *)(ByteCode.data() + offs);
+    uint32_t *chunkSize = (uint32_t *)(fourcc + 1);
+
+    if(*fourcc == FOURCC_DXIL)
     {
       int32_t diff = int32_t(replacement.size()) - int32_t(*chunkSize);
 

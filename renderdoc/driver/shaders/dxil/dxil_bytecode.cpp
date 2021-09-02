@@ -920,7 +920,7 @@ Program::Program(const byte *bytes, size_t length)
           else if(IS_KNOWN(metaRecord.id, MetaDataRecord::KIND))
           {
             size_t kind = (size_t)metaRecord.ops[0];
-            m_Kinds.resize(RDCMAX(m_Kinds.size(), kind + 1));
+            m_Kinds.resize_for_index(kind);
             m_Kinds[kind] = metaRecord.getString(1);
             continue;
           }
@@ -939,6 +939,7 @@ Program::Program(const byte *bytes, size_t length)
             if(IS_KNOWN(metaRecord.id, MetaDataRecord::STRING_OLD))
             {
               meta.isConstant = true;
+              meta.isString = true;
               meta.str = metaRecord.getString();
             }
             else if(IS_KNOWN(metaRecord.id, MetaDataRecord::VALUE))

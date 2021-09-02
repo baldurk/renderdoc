@@ -33,9 +33,9 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
 {
   LLVMBC::MetaDataRecord id = (LLVMBC::MetaDataRecord)metaRecord.id;
 
-  auto getNonNullMeta = [this](uint64_t id) { return &m_Metadata[size_t(id)]; };
-  auto getMeta = [this](uint64_t id) { return id ? &m_Metadata[size_t(id - 1)] : NULL; };
-  auto getMetaString = [this](uint64_t id) { return id ? &m_Metadata[size_t(id - 1)].str : NULL; };
+#define getNonNullMeta(id) &m_Metadata[size_t(id)]
+#define getMeta(id) (id ? &m_Metadata[size_t(id - 1)] : NULL)
+#define getMetaString(id) (id ? &m_Metadata[size_t(id - 1)].str : NULL)
 
   if(id == LLVMBC::MetaDataRecord::FILE)
   {
