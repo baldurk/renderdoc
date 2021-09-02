@@ -90,7 +90,7 @@ enum class StructMemberAnnotation
 template <typename T>
 T getival(const Metadata *m)
 {
-  return T(m->constant->val.u32v[0]);
+  return T(m->value.constant->val.u32v[0]);
 }
 
 void Program::FetchComputeProperties(DXBC::Reflection *reflection)
@@ -815,10 +815,9 @@ DXBC::Reflection *Program::GetReflection()
 
   if(dx.valver && dx.valver->children.size() == 1 && dx.valver->children[0]->children.size() == 2)
   {
-    m_CompilerSig +=
-        StringFormat::Fmt(" (Validation version %s.%s)",
-                          dx.valver->children[0]->children[0]->constant->toString().c_str(),
-                          dx.valver->children[0]->children[1]->constant->toString().c_str());
+    m_CompilerSig += StringFormat::Fmt(
+        " (Validation version %s.%s)", dx.valver->children[0]->children[0]->value.toString().c_str(),
+        dx.valver->children[0]->children[1]->value.toString().c_str());
   }
 
   if(dx.entryPoints && dx.entryPoints->children.size() > 0 &&
@@ -837,8 +836,8 @@ DXBC::Reflection *Program::GetReflection()
   {
     m_Profile =
         StringFormat::Fmt("%s_%s_%s", dx.shaderModel->children[0]->children[0]->str.c_str(),
-                          dx.shaderModel->children[0]->children[1]->constant->toString().c_str(),
-                          dx.shaderModel->children[0]->children[2]->constant->toString().c_str());
+                          dx.shaderModel->children[0]->children[1]->value.toString().c_str(),
+                          dx.shaderModel->children[0]->children[2]->value.toString().c_str());
   }
   else
   {

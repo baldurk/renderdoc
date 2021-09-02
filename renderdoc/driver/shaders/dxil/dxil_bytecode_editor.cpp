@@ -45,16 +45,14 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
 {
   bytebuf ret;
 
-  std::map<Symbol, uint32_t> valueId;
-
   LLVMBC::BitcodeWriter writer(ret);
 
   LLVMBC::BitcodeWriter::Config cfg = {};
 
 #define getTypeID(t) uint64_t(t - m_Types.begin())
-#define getConstantID(c) uint64_t(c - m_Constants.begin())
 #define getMetaID(m) uint64_t(m - m_Metadata.begin())
 #define getMetaIDOrNull(m) (m ? (uint64_t(m - m_Metadata.begin()) + 1) : 0)
+#define getValueID(v) uint64_t(123)
 
   for(size_t i = 0; i < m_GlobalVars.size(); i++)
   {
@@ -87,10 +85,10 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
 
   cfg.hasNamedMeta = !m_NamedMeta.empty();
 
-  for(size_t i = m_GlobalVars.size() + m_Functions.size(); i < m_Symbols.size(); i++)
+  for(size_t i = m_GlobalVars.size() + m_Functions.size(); i < m_Values.size(); i++)
   {
     // stop once we pass constants
-    if(m_Symbols[i].type != SymbolType::Constant)
+    if(m_Values[i].type != ValueType::Constant)
       break;
 
     cfg.numGlobalConsts++;
@@ -352,8 +350,8 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
                   {
                       typeIndex, uint64_t(((g.flags & GlobalFlags::IsConst) ? 1 : 0) | 0x2 |
                                           ((uint32_t)g.type->addrSpace << 2)),
-                      g.initialiser.type != SymbolType::Unknown ? valueId[g.initialiser] + 1 : 0,
-                      linkageValue, 32 - Bits::CountLeadingZeroes(g.align), uint64_t(g.section + 1),
+                      g.initialiser ? getValueID(Value(g.initialiser)) + 1 : 0, linkageValue,
+                      32 - Bits::CountLeadingZeroes(g.align), uint64_t(g.section + 1),
                       // visibility
                       0U,
                       // TLS mode
@@ -370,7 +368,7 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
   for(size_t i = 0; i < m_Functions.size(); i++)
   {
     const Function &f = m_Functions[i];
-    uint64_t typeIndex = getTypeID(f.funcType);
+    uint64_t typeIndex = getTypeID(f.funcType->inner);
 
     writer.Record(LLVMBC::ModuleRecord::FUNCTION,
                   {
@@ -427,12 +425,8 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
 
     const Type *curType = NULL;
 
-    for(size_t i = m_GlobalVars.size() + m_Functions.size(); i < m_Symbols.size(); i++)
+    for(size_t i = 0; i < m_Constants.size(); i++)
     {
-      // stop once we pass constants
-      if(m_Symbols[i].type != SymbolType::Constant)
-        break;
-
       if(!inblock)
       {
         inblock = true;
@@ -464,8 +458,8 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
 
         for(size_t m = 0; m < c.members.size(); m++)
         {
-          vals.push_back(getTypeID(c.members[m]->type));
-          vals.push_back(getConstantID(c.members[m]));
+          vals.push_back(getTypeID(c.members[m].GetType()));
+          vals.push_back(getValueID(c.members[m]));
         }
 
         writer.Record(LLVMBC::ConstantsRecord::EVAL_GEP, vals);
@@ -477,7 +471,7 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
 
         writer.Record(
             LLVMBC::ConstantsRecord::EVAL_CAST,
-            {EncodeCast(c.op), getTypeID(c.type), getTypeID(c.inner->type), getConstantID(c.inner)});
+            {EncodeCast(c.op), getTypeID(c.type), getTypeID(c.inner->type), getValueID(c.inner)});
       }
       else if(c.type->scalarType == Type::Int)
       {
@@ -511,8 +505,7 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
         else
         {
           for(size_t m = 0; m < c.members.size(); m++)
-            vals.push_back(c.type->inner->bitWidth <= 32 ? c.members[m]->val.u32v[0]
-                                                         : c.members[m]->val.u64v[0]);
+            vals.push_back(c.members[m].literal);
         }
 
         writer.Record(LLVMBC::ConstantsRecord::DATA, vals);
@@ -524,7 +517,7 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
         vals.reserve(c.members.size());
 
         for(size_t m = 0; m < c.members.size(); m++)
-          vals.push_back(getConstantID(c.members[m]));
+          vals.push_back(getValueID(c.members[m]));
 
         writer.Record(LLVMBC::ConstantsRecord::AGGREGATE, vals);
       }
@@ -553,7 +546,7 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
       else if(m_Metadata[i].isConstant)
       {
         writer.Record(LLVMBC::MetaDataRecord::VALUE,
-                      {getTypeID(m_Metadata[i].type), getConstantID(m_Metadata[i].constant)});
+                      {getTypeID(m_Metadata[i].type), getValueID(m_Metadata[i].value)});
       }
       else if(m_Metadata[i].dwarf || m_Metadata[i].debugLoc)
       {
@@ -624,19 +617,19 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
 
     rdcarray<rdcpair<size_t, const rdcstr *>> entries;
 
-    for(size_t s = 0; s < m_Symbols.size(); s++)
+    for(size_t s = 0; s < m_Values.size(); s++)
     {
-      bool symtab = false;
-      switch(m_Symbols[s].type)
+      const rdcstr *str = NULL;
+      switch(m_Values[s].type)
       {
-        case SymbolType::GlobalVar:
-        case SymbolType::Function:
-        case SymbolType::Alias: symtab = true; break;
+        case ValueType::GlobalVar: str = &m_Values[s].global->name; break;
+        case ValueType::Function: str = &m_Values[s].function->name; break;
+        case ValueType::Alias: str = &m_Values[s].alias->name; break;
         default: break;
       }
 
-      if(symtab)
-        entries.push_back({s, &m_Constants[s].str});
+      if(str)
+        entries.push_back({s, str});
     }
 
     // sort the entries by string in order

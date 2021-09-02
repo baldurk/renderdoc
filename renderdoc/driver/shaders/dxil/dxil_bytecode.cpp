@@ -41,7 +41,7 @@ using namespace LLVMBC;
 void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
                    std::function<const Type *(uint64_t)> getType,
                    std::function<const Type *(const Type *, Type::PointerAddrSpace)> getPtrType,
-                   std::function<const Constant *(uint64_t)> getConstant,
+                   std::function<const Value *(uint64_t)> getValue,
                    std::function<void(const Constant &)> addConstant)
 {
   if(IS_KNOWN(constant.id, ConstantsRecord::SETTYPE))
@@ -51,166 +51,148 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
   else if(IS_KNOWN(constant.id, ConstantsRecord::CONST_NULL) ||
           IS_KNOWN(constant.id, ConstantsRecord::UNDEF))
   {
-    Constant v;
-    v.type = curType;
-    v.nullconst = IS_KNOWN(constant.id, ConstantsRecord::CONST_NULL);
-    v.undef = IS_KNOWN(constant.id, ConstantsRecord::UNDEF);
-    addConstant(v);
+    Constant c;
+    c.type = curType;
+    c.nullconst = IS_KNOWN(constant.id, ConstantsRecord::CONST_NULL);
+    c.undef = IS_KNOWN(constant.id, ConstantsRecord::UNDEF);
+    addConstant(c);
   }
   else if(IS_KNOWN(constant.id, ConstantsRecord::INTEGER))
   {
-    Constant v;
-    v.type = curType;
-    v.val.s64v[0] = LLVMBC::BitReader::svbr(constant.ops[0]);
-    addConstant(v);
+    Constant c;
+    c.type = curType;
+    c.val.s64v[0] = LLVMBC::BitReader::svbr(constant.ops[0]);
+    addConstant(c);
   }
   else if(IS_KNOWN(constant.id, ConstantsRecord::FLOAT))
   {
-    Constant v;
-    v.type = curType;
-    memcpy(&v.val.f64v[0], &constant.ops[0], curType->bitWidth / 8);
-    addConstant(v);
+    Constant c;
+    c.type = curType;
+    memcpy(&c.val.u64v[0], &constant.ops[0], curType->bitWidth / 8);
+    addConstant(c);
   }
   else if(IS_KNOWN(constant.id, ConstantsRecord::STRING) ||
           IS_KNOWN(constant.id, ConstantsRecord::CSTRING))
   {
-    Constant v;
-    v.type = curType;
-    v.str = constant.getString(0);
-    addConstant(v);
+    Constant c;
+    c.type = curType;
+    c.str = constant.getString(0);
+    addConstant(c);
   }
   else if(IS_KNOWN(constant.id, ConstantsRecord::EVAL_CAST))
   {
-    Constant v;
-    v.op = DecodeCast(constant.ops[0]);
-    v.type = curType;
-    v.inner = getConstant(constant.ops[2]);
-    RDCASSERT(getType(constant.ops[1]) == v.inner->type);
-    addConstant(v);
+    Constant c;
+    c.op = DecodeCast(constant.ops[0]);
+    c.type = curType;
+    c.inner = getValue(constant.ops[2])->constant;
+    RDCASSERT(getType(constant.ops[1]) == c.inner->type);
+    addConstant(c);
   }
   else if(IS_KNOWN(constant.id, ConstantsRecord::EVAL_GEP))
   {
-    Constant v;
+    Constant c;
 
-    v.op = Operation::GetElementPtr;
+    c.op = Operation::GetElementPtr;
 
     size_t idx = 0;
     if(constant.ops.size() & 1)
-      v.type = getType(constant.ops[idx++]);
+      c.type = getType(constant.ops[idx++]);
 
     for(; idx < constant.ops.size(); idx += 2)
     {
       const Type *t = getType(constant.ops[idx]);
-      const Constant *a = getConstant(constant.ops[idx + 1]);
-      RDCASSERT(t == a->type);
+      const Value *v = getValue(constant.ops[idx + 1]);
+      RDCASSERT(v->type != ValueType::Unknown && v->GetType() == t);
 
-      v.members.push_back(a);
+      c.members.push_back(*v);
     }
 
-    if(!v.type)
-    {
-      v.type = v.members[0]->type;
+    c.type = c.members[0].GetType()->inner;
 
-      // walk the type list to get the return type
-      for(idx = 2; idx < v.members.size(); idx++)
+    // walk the type list to get the return type
+    for(idx = 2; idx < c.members.size(); idx++)
+    {
+      if(c.type->type == Type::Vector || c.type->type == Type::Array)
       {
-        if(v.type->type == Type::Vector || v.type->type == Type::Array)
-        {
-          v.type = v.type->inner;
-        }
-        else if(v.type->type == Type::Struct)
-        {
-          v.type = v.type->members[v.members[idx]->val.u32v[0]];
-        }
-        else
-        {
-          RDCERR("Unexpected type %d encountered in GEP", v.type->type);
-        }
+        c.type = c.type->inner;
+      }
+      else if(c.type->type == Type::Struct)
+      {
+        c.type = c.type->members[c.members[idx].constant->val.u32v[0]];
+      }
+      else
+      {
+        RDCERR("Unexpected type %d encountered in GEP", c.type->type);
       }
     }
 
     // the result is a pointer to the return type
-    v.type = getPtrType(v.type, curType->addrSpace);
+    c.type = getPtrType(c.type, curType->addrSpace);
 
-    addConstant(v);
+    addConstant(c);
   }
   else if(IS_KNOWN(constant.id, ConstantsRecord::AGGREGATE))
   {
-    Constant v;
-    v.type = curType;
-    if(v.type->type == Type::Vector)
+    Constant c;
+    c.type = curType;
+    if(c.type->type == Type::Vector)
     {
       // inline vectors
       for(size_t m = 0; m < constant.ops.size(); m++)
       {
-        const Constant *member = getConstant(constant.ops[m]);
+        const Value *member = getValue(constant.ops[m]);
+        RDCASSERT(member->type != ValueType::Unknown);
 
-        if(member)
+        c.members.push_back(*member);
+
+        if(member->type != ValueType::Unknown)
         {
-          v.members.push_back(member);
-
-          if(v.type->bitWidth <= 32)
-            v.val.u32v[m] = member->val.u32v[m];
+          if(c.type->bitWidth <= 32)
+            c.val.u32v[m] = member->constant->val.u32v[m];
           else
-            v.val.u64v[m] = member->val.u64v[m];
+            c.val.u64v[m] = member->constant->val.u64v[m];
         }
         else
         {
-          RDCERR("Index %llu out of bounds for constants array", constant.ops[m]);
+          RDCERR("Forward reference unexpected for vector");
         }
       }
     }
     else
     {
       for(uint64_t m : constant.ops)
-      {
-        const Constant *member = getConstant(m);
-
-        if(member && member->type)
-        {
-          v.members.push_back(member);
-        }
-        else
-        {
-          Constant *c = new Constant();
-          c->type = NULL;
-          c->val.u64v[0] = m;
-          v.members.push_back(c);
-          RDCWARN("Index %llu out of bounds for constants array, possible forward reference", m);
-        }
-      }
+        c.members.push_back(Value(Value::ForwardRef, getValue(m)));
     }
-    addConstant(v);
+    addConstant(c);
   }
   else if(IS_KNOWN(constant.id, ConstantsRecord::DATA))
   {
-    Constant v;
-    v.type = curType;
-    v.data = true;
-    if(v.type->type == Type::Vector)
+    Constant c;
+    c.type = curType;
+    c.data = true;
+    if(c.type->type == Type::Vector)
     {
       for(size_t m = 0; m < constant.ops.size(); m++)
       {
-        if(v.type->bitWidth <= 32)
-          v.val.u32v[m] = constant.ops[m] & ((1ULL << v.type->bitWidth) - 1);
+        if(c.type->bitWidth <= 32)
+          c.val.u32v[m] = constant.ops[m] & ((1ULL << c.type->bitWidth) - 1);
         else
-          v.val.u64v[m] = constant.ops[m];
+          c.val.u64v[m] = constant.ops[m];
       }
     }
     else
     {
       for(size_t m = 0; m < constant.ops.size(); m++)
       {
-        Constant *el = new Constant();
-        el->type = v.type->inner;
-        if(el->type->bitWidth <= 32)
-          el->val.u32v[0] = constant.ops[m] & ((1ULL << el->type->bitWidth) - 1);
+        uint64_t val = 0;
+        if(c.type->inner->bitWidth <= 32)
+          val = constant.ops[m] & ((1ULL << c.type->inner->bitWidth) - 1);
         else
-          el->val.u64v[0] = constant.ops[m];
-        v.members.push_back(el);
+          val = constant.ops[m];
+        c.members.push_back(Value(val));
       }
     }
-    addConstant(v);
+    addConstant(c);
   }
   else
   {
@@ -229,14 +211,14 @@ struct OpReader
   FunctionRecord type;
 
   size_t remaining() { return values.size() - idx; }
-  Symbol getSymbol(uint64_t val) { return prog->m_Symbols[prog->m_Symbols.size() - (size_t)val]; }
-  Symbol getSymbol(bool withType = true)
+  Value getSymbol(uint64_t val) { return prog->m_Values[prog->m_Values.size() - (size_t)val]; }
+  Value getSymbol(bool withType = true)
   {
     // get the value
     uint64_t val = get<uint64_t>();
 
     // if it's not a forward reference, resolve the relative-ness and return
-    if(val <= prog->m_Symbols.size())
+    if(val <= prog->m_Values.size())
     {
       return getSymbol(val);
     }
@@ -248,18 +230,18 @@ struct OpReader
         m_LastType = getType();
 
       // return the forward reference symbol
-      return Symbol(SymbolType::Unknown, prog->m_Symbols.size() - (int32_t)val);
+      return Value(Value::ForwardRef, &prog->m_Values.back() + 1 - (int32_t)val);
     }
   }
 
   // some symbols are referenced absolute, not relative
-  Symbol getSymbolAbsolute() { return prog->m_Symbols[get<size_t>()]; }
+  Value getSymbolAbsolute() { return prog->m_Values[get<size_t>()]; }
   const Type *getType() { return &prog->m_Types[get<size_t>()]; }
-  const Type *getType(const Function &f, Symbol s)
+  const Type *getType(const Function &f, Value v)
   {
-    if(s.type == SymbolType::Unknown)
+    if(v.type == ValueType::Unknown)
       return m_LastType;
-    return prog->GetSymbolType(f, s);
+    return v.GetType();
   }
 
   template <typename T>
@@ -274,6 +256,23 @@ private:
   Program *prog;
   const Type *m_LastType = NULL;
 };
+
+const Type *Value::GetType() const
+{
+  switch(type)
+  {
+    case ValueType::Constant: return constant->type;
+    case ValueType::Instruction: return instruction->type;
+    case ValueType::GlobalVar: return global->type;
+    case ValueType::Function: return function->funcType;
+    case ValueType::Metadata: return meta->type;
+    case ValueType::Unknown:
+    case ValueType::Alias:
+    case ValueType::BasicBlock:
+    case ValueType::Literal: RDCERR("Unexpected symbol to get type for %d", type); break;
+  }
+  return NULL;
+}
 
 bool Program::Valid(const byte *bytes, size_t length)
 {
@@ -327,6 +326,12 @@ Program::Program(const byte *bytes, size_t length)
 
   rdcarray<size_t> functionDecls;
 
+  // conservatively resize these so we can take pointers to put in the values array. There aren't
+  // many root entries so this is a reasonable bound
+  m_GlobalVars.reserve(root.children.size());
+  m_Functions.reserve(root.children.size());
+  m_Aliases.reserve(root.children.size());
+
   for(const LLVMBC::BlockOrRecord &rootchild : root.children)
   {
     if(rootchild.IsRecord())
@@ -362,7 +367,7 @@ Program::Program(const byte *bytes, size_t length)
           addrSpace = Type::PointerAddrSpace(rootchild.ops[1] >> 2);
 
         if(rootchild.ops[2])
-          g.initialiser = Symbol(SymbolType::Constant, rootchild.ops[2] - 1);
+          g.initialiser += rootchild.ops[2];
 
         switch(rootchild.ops[3])
         {
@@ -419,23 +424,15 @@ Program::Program(const byte *bytes, size_t length)
           RDCASSERTMSG("global has comdat", rootchild.ops[11] == 0);
         }
 
-        // symbols refer into any of N types in declaration order
-        m_Symbols.push_back({SymbolType::GlobalVar, m_GlobalVars.size()});
+        const Type *ptrType = GetPointerType(g.type, addrSpace);
 
-        // all global symbols are 'values' in LLVM, we don't need this but need to keep indexing the
-        // same
-        Constant v;
-        v.symbol = true;
-
-        v.type = GetPointerType(g.type, addrSpace);
-
-        if(v.type == g.type)
+        if(ptrType == g.type)
           RDCERR("Expected to find pointer type for global variable");
 
-        g.type = v.type;
+        g.type = ptrType;
 
-        m_Constants.push_back(v);
         m_GlobalVars.push_back(g);
+        m_Values.push_back(Value(&m_GlobalVars.back()));
       }
       else if(IS_KNOWN(rootchild.id, ModuleRecord::FUNCTION))
       {
@@ -458,24 +455,18 @@ Program::Program(const byte *bytes, size_t length)
         for(size_t p = 6; p < rootchild.ops.size(); p++)
           RDCASSERT(rootchild.ops[p] == 0, p, rootchild.ops[p]);
 
-        // symbols refer into any of N types in declaration order
-        m_Symbols.push_back({SymbolType::Function, m_Functions.size()});
+        const Type *ptrType = GetPointerType(f.funcType, Type::PointerAddrSpace::Default);
 
-        // all global symbols are 'values' in LLVM, we don't need this but need to keep indexing the
-        // same
-        Constant v;
-        v.symbol = true;
-        v.type = GetPointerType(f.funcType, Type::PointerAddrSpace::Default);
-
-        if(v.type == f.funcType)
+        if(ptrType == f.funcType)
           RDCERR("Expected to find pointer type for function");
 
-        m_Constants.push_back(v);
+        f.funcType = ptrType;
 
         if(!f.external)
           functionDecls.push_back(m_Functions.size());
 
         m_Functions.push_back(f);
+        m_Values.push_back(Value(&m_Functions.back()));
       }
       else if(IS_KNOWN(rootchild.id, ModuleRecord::ALIAS))
       {
@@ -489,17 +480,8 @@ Program::Program(const byte *bytes, size_t length)
         for(size_t p = 2; p < rootchild.ops.size(); p++)
           RDCASSERT(rootchild.ops[p] == 0, p, rootchild.ops[p]);
 
-        // symbols refer into any of N types in declaration order
-        m_Symbols.push_back({SymbolType::Alias, m_Aliases.size()});
-
-        // all global symbols are 'values' in LLVM, we don't need this but need to keep indexing the
-        // same
-        Constant v;
-        v.type = a.type;
-        v.symbol = true;
-        m_Constants.push_back(v);
-
         m_Aliases.push_back(a);
+        m_Values.push_back(Value(&m_Aliases.back()));
       }
       else if(IS_KNOWN(rootchild.id, ModuleRecord::SECTIONNAME))
       {
@@ -783,7 +765,9 @@ Program::Program(const byte *bytes, size_t length)
       else if(IS_KNOWN(rootchild.id, KnownBlock::CONSTANTS_BLOCK))
       {
         const Type *t = NULL;
-        m_Constants.reserve(m_Constants.size() + rootchild.children.size());
+        // resize then clear to ensure the constants array memory that we reserve is cleared to 0
+        m_Constants.resize(rootchild.children.size());
+        m_Constants.clear();
         for(const LLVMBC::BlockOrRecord &constant : rootchild.children)
         {
           if(constant.IsBlock())
@@ -796,48 +780,21 @@ Program::Program(const byte *bytes, size_t length)
                         [this](const Type *t, Type::PointerAddrSpace addrSpace) {
                           return GetPointerType(t, addrSpace);
                         },
-                        [this](uint64_t v) {
-                          size_t idx = (size_t)v;
-                          return idx < m_Constants.size() ? &m_Constants[idx] : NULL;
-                        },
+                        [this](uint64_t v) { return &m_Values[(size_t)v]; },
                         [this](const Constant &v) {
-                          m_Symbols.push_back({SymbolType::Constant, m_Constants.size()});
                           m_Constants.push_back(v);
+                          m_Values.push_back(Value(&m_Constants.back()));
                         });
         }
 
-        // post-patch up contants with members that are references to future constants (blech!)
-        for(Constant &c : m_Constants)
+        for(size_t i = 0; i < m_Constants.size(); i++)
         {
-          if(c.members.empty())
-            continue;
-
-          for(size_t m = 0; m < c.members.size(); m++)
+          for(Value &v : m_Constants[i].members)
           {
-            const Constant *mem = c.members[m];
-            if(mem->type == NULL)
+            if(!v.empty() && v.type == ValueType::Unknown)
             {
-              size_t idx = (size_t)mem->val.u64v[0];
-
-              delete mem;
-
-              if(idx > 0)
-              {
-                if(idx < m_Constants.size())
-                {
-                  c.members[m] = &m_Constants[idx];
-                }
-                else
-                {
-                  c.members[m] = &m_Constants[0];
-                  RDCERR("Couldn't resolve constant %zu", idx);
-                }
-              }
-              else
-              {
-                c.members[m] = &m_Constants[0];
-                RDCERR("Unexpected member with no type but no forward-index constant value");
-              }
+              v = *v.value;
+              RDCASSERT(v.type == ValueType::Constant);
             }
           }
         }
@@ -858,35 +815,42 @@ Program::Program(const byte *bytes, size_t length)
             continue;
           }
 
-          size_t s = (size_t)symtab.ops[0];
-          if(s < m_Symbols.size())
+          size_t v = (size_t)symtab.ops[0];
+          if(v < m_Values.size())
           {
-            size_t idx = (size_t)m_Symbols[s].idx;
-            switch(m_Symbols[s].type)
+            switch(m_Values[v].type)
             {
-              case SymbolType::Unknown:
-              case SymbolType::Constant:
-              case SymbolType::Argument:
-              case SymbolType::Instruction:
-              case SymbolType::Metadata:
-              case SymbolType::Literal:
-              case SymbolType::BasicBlock:
-                RDCERR("Unexpected global symbol referring to %d", m_Symbols[s].type);
+              case ValueType::Unknown:
+              case ValueType::Constant:
+              case ValueType::Instruction:
+              case ValueType::Metadata:
+              case ValueType::Literal:
+              case ValueType::BasicBlock:
+                RDCERR("Unexpected global symbol referring to %d", m_Values[v].type);
                 break;
-              case SymbolType::GlobalVar:
-                m_Constants[s].str = m_GlobalVars[idx].name = symtab.getString(1);
+              case ValueType::GlobalVar:
+              {
+                GlobalVar *global = (GlobalVar *)m_Values[v].global;
+                global->name = symtab.getString(1);
                 break;
-              case SymbolType::Function:
-                m_Constants[s].str = m_Functions[idx].name = symtab.getString(1);
+              }
+              case ValueType::Function:
+              {
+                Function *function = (Function *)m_Values[v].function;
+                function->name = symtab.getString(1);
                 break;
-              case SymbolType::Alias:
-                m_Constants[s].str = m_Aliases[idx].name = symtab.getString(1);
+              }
+              case ValueType::Alias:
+              {
+                Alias *alias = (Alias *)m_Values[v].alias;
+                alias->name = symtab.getString(1);
                 break;
+              }
             }
           }
           else
           {
-            RDCERR("Symbol %llu referenced out of bounds", s);
+            RDCERR("Value %llu referenced out of bounds", v);
           }
         }
       }
@@ -945,7 +909,7 @@ Program::Program(const byte *bytes, size_t length)
             else if(IS_KNOWN(metaRecord.id, MetaDataRecord::VALUE))
             {
               meta.isConstant = true;
-              meta.constant = &m_Constants[(size_t)metaRecord.ops[1]];
+              meta.value = m_Values[(size_t)metaRecord.ops[1]];
               meta.type = &m_Types[(size_t)metaRecord.ops[0]];
             }
             else if(IS_KNOWN(metaRecord.id, MetaDataRecord::NODE) ||
@@ -973,7 +937,10 @@ Program::Program(const byte *bytes, size_t length)
         Function &f = m_Functions[functionDecls[0]];
         functionDecls.erase(0);
 
-        auto getConstant = [this, &f](uint64_t v) { return GetFunctionConstant(f, v); };
+        // conservative resize here so we can take pointers and have them stay valid
+        f.instructions.reserve(rootchild.children.size());
+        m_Values.reserve(m_Values.size() + rootchild.children.size());
+
         auto getMeta = [this, &f](uint64_t v) {
           size_t idx = (size_t)v;
           return idx - 1 < m_Metadata.size() ? &m_Metadata[idx] : &f.metadata[idx];
@@ -984,16 +951,17 @@ Program::Program(const byte *bytes, size_t length)
                                                                 : &f.metadata[idx - 1]);
         };
 
-        size_t prevNumSymbols = m_Symbols.size();
+        size_t prevNumSymbols = m_Values.size();
         size_t instrSymbolStart = 0;
 
-        for(size_t i = 0; i < f.funcType->members.size(); i++)
+        f.args.reserve(f.funcType->inner->members.size());
+        for(size_t i = 0; i < f.funcType->inner->members.size(); i++)
         {
           Instruction arg;
-          arg.type = f.funcType->members[i];
+          arg.type = f.funcType->inner->members[i];
           arg.name = StringFormat::Fmt("arg%zu", i);
           f.args.push_back(arg);
-          m_Symbols.push_back({SymbolType::Argument, i});
+          m_Values.push_back(Value(&f.args.back()));
         }
 
         size_t curBlock = 0;
@@ -1005,7 +973,10 @@ Program::Program(const byte *bytes, size_t length)
           {
             if(IS_KNOWN(funcChild.id, KnownBlock::CONSTANTS_BLOCK))
             {
-              f.constants.reserve(funcChild.children.size());
+              // resize then clear to ensure the constants array memory that we reserve is cleared
+              // to 0
+              f.constants.resize(funcChild.children.size());
+              f.constants.clear();
 
               const Type *t = NULL;
               for(const LLVMBC::BlockOrRecord &constant : funcChild.children)
@@ -1020,43 +991,26 @@ Program::Program(const byte *bytes, size_t length)
                               [this](const Type *t, Type::PointerAddrSpace addrSpace) {
                                 return GetPointerType(t, addrSpace);
                               },
-                              getConstant,
+                              [this](uint64_t v) { return &m_Values[(size_t)v]; },
                               [this, &f](const Constant &v) {
-                                m_Symbols.push_back({SymbolType::Constant,
-                                                     m_Constants.size() + f.constants.size()});
                                 f.constants.push_back(v);
+                                m_Values.push_back(Value(&f.constants.back()));
                               });
               }
 
-              // post-patch up contants with members that are references to future constants
-              // (blech!)
-              for(Constant &c : f.constants)
+              for(size_t i = 0; i < f.constants.size(); i++)
               {
-                if(c.members.empty())
-                  continue;
-
-                for(size_t m = 0; m < c.members.size(); m++)
+                for(Value &v : f.constants[i].members)
                 {
-                  const Constant *mem = c.members[m];
-                  if(mem->type == NULL)
+                  if(!v.empty() && v.type == ValueType::Unknown)
                   {
-                    uint64_t idx = mem->val.u64v[0];
-                    delete mem;
-
-                    if(idx > 0)
-                    {
-                      c.members[m] = getConstant(idx);
-                    }
-                    else
-                    {
-                      c.members[m] = getConstant(0);
-                      RDCERR("Unexpected member with no type but no forward-index constant value");
-                    }
+                    v = *v.value;
+                    RDCASSERT(v.type == ValueType::Constant);
                   }
                 }
               }
 
-              instrSymbolStart = m_Symbols.size();
+              instrSymbolStart = m_Values.size();
             }
             else if(IS_KNOWN(funcChild.id, KnownBlock::METADATA_BLOCK))
             {
@@ -1078,25 +1032,14 @@ Program::Program(const byte *bytes, size_t length)
                 {
                   meta.isConstant = true;
                   size_t idx = (size_t)metaRecord.ops[1];
-                  if(idx < m_Constants.size())
+                  if(idx < m_Values.size())
                   {
-                    // global constant reference
-                    meta.constant = &m_Constants[idx];
+                    meta.value = m_Values[idx];
                   }
                   else
                   {
-                    idx -= m_Constants.size();
-                    if(idx < f.constants.size())
-                    {
-                      // function-local constant reference
-                      meta.constant = &f.constants[idx];
-                    }
-                    else
-                    {
-                      // forward reference to instruction
-                      meta.func = &f;
-                      meta.instruction = idx - f.constants.size();
-                    }
+                    // forward reference
+                    meta.value = Value(Value::ForwardRef, &m_Values[idx]);
                   }
                   meta.type = &m_Types[(size_t)metaRecord.ops[0]];
                 }
@@ -1122,39 +1065,42 @@ Program::Program(const byte *bytes, size_t length)
                 {
                   size_t idx = (size_t)symtab.ops[0];
 
-                  if(idx >= m_Symbols.size())
+                  if(idx >= m_Values.size())
                   {
                     RDCERR("Out of bounds symbol index %zu (%s) in function symbol table", idx,
                            symtab.getString(1).c_str());
                     continue;
                   }
 
-                  Symbol s = m_Symbols[idx];
+                  const Value &v = m_Values[idx];
 
-                  switch(s.type)
+                  switch(v.type)
                   {
-                    case SymbolType::Unknown:
-                    case SymbolType::Constant:
-                      if(s.idx < m_Constants.size())
-                        RDCERR("Unexpected local symbol referring to global value");
-                      else
-                        f.constants[(size_t)s.idx - m_Constants.size()].str = symtab.getString(1);
+                    case ValueType::Unknown:
+                    case ValueType::Constant:
+                    {
+                      Constant *constant = (Constant *)v.constant;
+                      constant->str = symtab.getString(1);
                       break;
-                    case SymbolType::Argument:
-                      f.args[(size_t)s.idx].name = symtab.getString(1);
+                    }
+                    case ValueType::Instruction:
+                    {
+                      Instruction *instruction = (Instruction *)v.instruction;
+                      instruction->name = symtab.getString(1);
                       break;
-                    case SymbolType::Instruction:
-                      f.instructions[(size_t)s.idx].name = symtab.getString(1);
+                    }
+                    case ValueType::BasicBlock:
+                    {
+                      Block *block = (Block *)v.block;
+                      block->name = symtab.getString(1);
                       break;
-                    case SymbolType::BasicBlock:
-                      f.blocks[(size_t)s.idx].name = symtab.getString(1);
-                      break;
-                    case SymbolType::GlobalVar:
-                    case SymbolType::Function:
-                    case SymbolType::Alias:
-                    case SymbolType::Metadata:
-                    case SymbolType::Literal:
-                      RDCERR("Unexpected local symbol referring to %d", s.type);
+                    }
+                    case ValueType::GlobalVar:
+                    case ValueType::Function:
+                    case ValueType::Alias:
+                    case ValueType::Metadata:
+                    case ValueType::Literal:
+                      RDCERR("Unexpected local symbol referring to %d", v.type);
                       break;
                   }
                 }
@@ -1259,37 +1205,41 @@ Program::Program(const byte *bytes, size_t length)
               if(callingFlags & (1ULL << 15))
                 op.get<uint64_t>();    // funcCallType
 
-              Symbol s = op.getSymbol();
+              Value v = op.getSymbol();
 
-              if(s.type != SymbolType::Function)
+              if(v.type != ValueType::Function)
               {
-                RDCERR("Unexpected symbol type %d called in INST_CALL", s.type);
+                RDCERR("Unexpected symbol type %d called in INST_CALL", v.type);
                 continue;
               }
 
-              inst.funcCall = &m_Functions[(size_t)s.idx];
-              inst.type = inst.funcCall->funcType->inner;
+              inst.funcCall = v.function;
+              inst.type = inst.funcCall->funcType->inner->inner;
 
               for(size_t i = 0; op.remaining() > 0; i++)
               {
-                if(inst.funcCall->funcType->members[i]->type == Type::Metadata)
+                if(inst.funcCall->funcType->inner->members[i]->type == Type::Metadata)
                 {
-                  s.type = SymbolType::Metadata;
-                  s.idx = uint32_t((uint64_t)m_Symbols.size() - op.get<uint64_t>());
+                  int32_t offs = (int32_t)op.get<uint32_t>();
+                  size_t idx = m_Values.size() - offs;
+                  if(idx < m_Metadata.size())
+                    v = Value(&m_Metadata[idx]);
+                  else
+                    v = Value(&f.metadata[idx - m_Metadata.size()]);
                 }
                 else
                 {
-                  s = op.getSymbol(false);
+                  v = op.getSymbol(false);
                 }
-                inst.args.push_back(s);
+                inst.args.push_back(v);
               }
 
-              RDCASSERTEQUAL(inst.args.size(), inst.funcCall->funcType->members.size());
-
-              if(!inst.type->isVoid())
-                m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
+              RDCASSERTEQUAL(inst.args.size(), inst.funcCall->funcType->inner->members.size());
 
               f.instructions.push_back(inst);
+
+              if(!inst.type->isVoid())
+                m_Values.push_back(Value(&f.instructions.back()));
             }
             else if(op.type == FunctionRecord::INST_CAST)
             {
@@ -1301,9 +1251,8 @@ Program::Program(const byte *bytes, size_t length)
               uint64_t opcode = op.get<uint64_t>();
               inst.op = DecodeCast(opcode);
 
-              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
-
               f.instructions.push_back(inst);
+              m_Values.push_back(Value(&f.instructions.back()));
             }
             else if(op.type == FunctionRecord::INST_EXTRACTVAL)
             {
@@ -1320,12 +1269,11 @@ Program::Program(const byte *bytes, size_t length)
                   inst.type = inst.type->inner;
                 else
                   inst.type = inst.type->members[(size_t)val];
-                inst.args.push_back({SymbolType::Literal, val});
+                inst.args.push_back(Value(val));
               }
 
-              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
-
               f.instructions.push_back(inst);
+              m_Values.push_back(Value(&f.instructions.back()));
             }
             else if(op.type == FunctionRecord::INST_RET)
             {
@@ -1343,13 +1291,14 @@ Program::Program(const byte *bytes, size_t length)
               {
                 inst.args.push_back(op.getSymbol());
                 inst.type = op.getType(f, inst.args.back());
-
-                m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
               }
 
               curBlock++;
 
               f.instructions.push_back(inst);
+
+              if(!inst.args.empty())
+                m_Values.push_back(Value(&f.instructions.back()));
             }
             else if(op.type == FunctionRecord::INST_BINOP)
             {
@@ -1408,9 +1357,8 @@ Program::Program(const byte *bytes, size_t length)
                 }
               }
 
-              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
-
               f.instructions.push_back(inst);
+              m_Values.push_back(Value(&f.instructions.back()));
             }
             else if(op.type == FunctionRecord::INST_UNREACHABLE)
             {
@@ -1455,9 +1403,8 @@ Program::Program(const byte *bytes, size_t length)
 
               inst.align = (1U << align) >> 1;
 
-              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
-
               f.instructions.push_back(inst);
+              m_Values.push_back(Value(&f.instructions.back()));
             }
             else if(op.type == FunctionRecord::INST_INBOUNDS_GEP_OLD ||
                     op.type == FunctionRecord::INST_GEP_OLD || op.type == FunctionRecord::INST_GEP)
@@ -1493,10 +1440,10 @@ Program::Program(const byte *bytes, size_t length)
                 }
                 else if(inst.type->type == Type::Struct)
                 {
-                  Symbol s = inst.args[idx];
+                  Value v = inst.args[idx];
                   // if it's a struct the index must be constant
-                  RDCASSERT(s.type == SymbolType::Constant);
-                  inst.type = inst.type->members[GetFunctionConstant(f, s.idx)->val.u32v[0]];
+                  RDCASSERT(v.type == ValueType::Constant);
+                  inst.type = inst.type->members[v.constant->val.u32v[0]];
                 }
                 else
                 {
@@ -1509,9 +1456,8 @@ Program::Program(const byte *bytes, size_t length)
 
               RDCASSERT(inst.type->type == Type::Pointer);
 
-              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
-
               f.instructions.push_back(inst);
+              m_Values.push_back(Value(&f.instructions.back()));
             }
             else if(op.type == FunctionRecord::INST_LOAD)
             {
@@ -1536,9 +1482,8 @@ Program::Program(const byte *bytes, size_t length)
               inst.opFlags |= (op.get<uint64_t>() != 0) ? InstructionFlags::Volatile
                                                         : InstructionFlags::NoFlags;
 
-              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
-
               f.instructions.push_back(inst);
+              m_Values.push_back(Value(&f.instructions.back()));
             }
             else if(op.type == FunctionRecord::INST_STORE_OLD || op.type == FunctionRecord::INST_STORE)
             {
@@ -1633,9 +1578,8 @@ Program::Program(const byte *bytes, size_t length)
               RDCASSERT(inst.type->type == argType->type &&
                         inst.type->elemCount == argType->elemCount);
 
-              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
-
               f.instructions.push_back(inst);
+              m_Values.push_back(Value(&f.instructions.back()));
             }
             else if(op.type == FunctionRecord::INST_SELECT || op.type == FunctionRecord::INST_VSELECT)
             {
@@ -1656,9 +1600,8 @@ Program::Program(const byte *bytes, size_t length)
               else
                 inst.args.push_back(op.getSymbol());
 
-              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
-
               f.instructions.push_back(inst);
+              m_Values.push_back(Value(&f.instructions.back()));
             }
             else if(op.type == FunctionRecord::INST_BR)
             {
@@ -1670,14 +1613,14 @@ Program::Program(const byte *bytes, size_t length)
 
               // true destination
               uint64_t trueDest = op.get<uint64_t>();
-              inst.args.push_back(Symbol(SymbolType::BasicBlock, trueDest));
+              inst.args.push_back(Value(&f.blocks[(size_t)trueDest]));
               f.blocks[(size_t)trueDest].preds.insert(0, &f.blocks[curBlock]);
 
               if(op.remaining() > 0)
               {
                 // false destination
                 uint64_t falseDest = op.get<uint64_t>();
-                inst.args.push_back(Symbol(SymbolType::BasicBlock, falseDest));
+                inst.args.push_back(Value(&f.blocks[(size_t)falseDest]));
                 f.blocks[(size_t)falseDest].preds.insert(0, &f.blocks[curBlock]);
 
                 // predicate
@@ -1710,9 +1653,9 @@ Program::Program(const byte *bytes, size_t length)
                 inst.args.push_back(op.getSymbol(false));
 
                 // default block
-                uint64_t defaultDest = op.get<uint64_t>();
-                inst.args.push_back(Symbol(SymbolType::BasicBlock, defaultDest));
-                f.blocks[(size_t)defaultDest].preds.insert(0, &f.blocks[curBlock]);
+                size_t defaultDest = op.get<size_t>();
+                inst.args.push_back(Value(&f.blocks[defaultDest]));
+                f.blocks[defaultDest].preds.insert(0, &f.blocks[curBlock]);
 
                 RDCERR("Unsupported switch instruction version");
               }
@@ -1722,9 +1665,9 @@ Program::Program(const byte *bytes, size_t length)
                 inst.args.push_back(op.getSymbol(false));
 
                 // default block
-                uint64_t defaultDest = op.get<uint64_t>();
-                inst.args.push_back(Symbol(SymbolType::BasicBlock, defaultDest));
-                f.blocks[(size_t)defaultDest].preds.insert(0, &f.blocks[curBlock]);
+                size_t defaultDest = op.get<size_t>();
+                inst.args.push_back(Value(&f.blocks[defaultDest]));
+                f.blocks[defaultDest].preds.insert(0, &f.blocks[curBlock]);
 
                 uint64_t numCases = op.remaining() / 2;
 
@@ -1734,9 +1677,9 @@ Program::Program(const byte *bytes, size_t length)
                   inst.args.push_back(op.getSymbolAbsolute());
 
                   // case block
-                  uint64_t caseDest = op.get<uint64_t>();
-                  inst.args.push_back(Symbol(SymbolType::BasicBlock, caseDest));
-                  f.blocks[(size_t)caseDest].preds.insert(0, &f.blocks[curBlock]);
+                  size_t caseDest = op.get<size_t>();
+                  inst.args.push_back(Value(&f.blocks[caseDest]));
+                  f.blocks[caseDest].preds.insert(0, &f.blocks[curBlock]);
                 }
               }
 
@@ -1759,18 +1702,18 @@ Program::Program(const byte *bytes, size_t length)
 
                 if(valSrc <= 0)
                 {
-                  inst.args.push_back(Symbol(SymbolType::Unknown, m_Symbols.size() - valSrc));
+                  inst.args.push_back(Value(Value::ForwardRef,
+                                            &m_Values[size_t((int64_t)m_Values.size() - valSrc)]));
                 }
                 else
                 {
                   inst.args.push_back(op.getSymbol((uint64_t)valSrc));
                 }
-                inst.args.push_back(Symbol(SymbolType::BasicBlock, blockSrc));
+                inst.args.push_back(Value(&f.blocks[(size_t)blockSrc]));
               }
 
-              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
-
               f.instructions.push_back(inst);
+              m_Values.push_back(Value(&f.instructions.back()));
             }
             else if(op.type == FunctionRecord::INST_LOADATOMIC)
             {
@@ -1821,9 +1764,8 @@ Program::Program(const byte *bytes, size_t length)
                 default: RDCERR("Unexpected synchronisation scope %llu", opcode); break;
               }
 
-              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
-
               f.instructions.push_back(inst);
+              m_Values.push_back(Value(&f.instructions.back()));
             }
             else if(op.type == FunctionRecord::INST_STOREATOMIC_OLD ||
                     op.type == FunctionRecord::INST_STOREATOMIC)
@@ -1936,9 +1878,8 @@ Program::Program(const byte *bytes, size_t length)
                 default: RDCERR("Unexpected synchronisation scope %llu", opcode); break;
               }
 
-              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
-
               f.instructions.push_back(inst);
+              m_Values.push_back(Value(&f.instructions.back()));
             }
             else if(op.type == FunctionRecord::INST_CMPXCHG ||
                     op.type == FunctionRecord::INST_CMPXCHG_OLD)
@@ -2031,9 +1972,8 @@ Program::Program(const byte *bytes, size_t length)
               if(op.get<uint64_t>())
                 inst.opFlags |= InstructionFlags::Weak;
 
-              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
-
               f.instructions.push_back(inst);
+              m_Values.push_back(Value(&f.instructions.back()));
             }
             else if(op.type == FunctionRecord::INST_FENCE)
             {
@@ -2089,9 +2029,8 @@ Program::Program(const byte *bytes, size_t length)
               // index
               inst.args.push_back(op.getSymbol());
 
-              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
-
               f.instructions.push_back(inst);
+              m_Values.push_back(Value(&f.instructions.back()));
             }
             else if(op.type == FunctionRecord::INST_INSERTELT)
             {
@@ -2113,9 +2052,8 @@ Program::Program(const byte *bytes, size_t length)
               // index
               inst.args.push_back(op.getSymbol());
 
-              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
-
               f.instructions.push_back(inst);
+              m_Values.push_back(Value(&f.instructions.back()));
             }
             else if(op.type == FunctionRecord::INST_SHUFFLEVEC)
             {
@@ -2152,9 +2090,8 @@ Program::Program(const byte *bytes, size_t length)
 
               RDCASSERT(inst.type);
 
-              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
-
               f.instructions.push_back(inst);
+              m_Values.push_back(Value(&f.instructions.back()));
             }
             else if(op.type == FunctionRecord::INST_INSERTVAL)
             {
@@ -2175,11 +2112,10 @@ Program::Program(const byte *bytes, size_t length)
               inst.args.push_back(op.getSymbol());
               // indices as literals
               while(op.remaining() > 0)
-                inst.args.push_back(Symbol(SymbolType::Literal, op.get<uint64_t>()));
-
-              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
+                inst.args.push_back(Value(op.get<uint64_t>()));
 
               f.instructions.push_back(inst);
+              m_Values.push_back(Value(&f.instructions.back()));
             }
             else if(op.type == FunctionRecord::INST_VAARG)
             {
@@ -2208,17 +2144,27 @@ Program::Program(const byte *bytes, size_t length)
         if(f.blocks[0].name.empty())
           f.blocks[0].resultID = (uint32_t)resultID++;
 
+        for(size_t i = 0; i < f.metadata.size(); i++)
+        {
+          Value &v = f.metadata[i].value;
+          if(!v.empty() && v.type == ValueType::Unknown)
+          {
+            v = *v.value;
+            RDCASSERT(v.type == ValueType::Instruction);
+          }
+        }
+
         curBlock = 0;
         for(size_t i = 0; i < f.instructions.size(); i++)
         {
           // fix up forward references here, we couldn't write them up front because we didn't know
           // how many actual symbols (non-void instructions) existed after the given instruction
-          for(Symbol &s : f.instructions[i].args)
+          for(Value &s : f.instructions[i].args)
           {
-            if(s.type == SymbolType::Unknown)
+            if(s.type == ValueType::Unknown)
             {
-              s = m_Symbols[(size_t)s.idx];
-              RDCASSERT(s.type == SymbolType::Instruction);
+              s = *s.value;
+              RDCASSERT(s.type == ValueType::Instruction);
             }
           }
 
@@ -2245,18 +2191,25 @@ Program::Program(const byte *bytes, size_t length)
           f.instructions[i].resultID = (uint32_t)resultID++;
         }
 
-        // rebase metadata, we get indices that skip void results, so look up the Symbols directory
-        // to get to a normal instruction index
-        for(Metadata &m : f.metadata)
-          if(m.func)
-            m.instruction = (size_t)m_Symbols[instrSymbolStart + m.instruction].idx;
-
-        m_Symbols.resize(prevNumSymbols);
+        m_Values.resize(prevNumSymbols);
       }
       else
       {
         RDCERR("Unknown block ID %u encountered at module scope", rootchild.id);
       }
+    }
+  }
+
+  // pointer fixups. This is only needed for global variabls as it has forward references to
+  // constants before we can even reserve the constants.
+  for(GlobalVar &g : m_GlobalVars)
+  {
+    if(g.initialiser)
+    {
+      size_t idx = g.initialiser - (Constant *)NULL;
+      Value v = m_Values[idx - 1];
+      RDCASSERT(v.type == ValueType::Constant);
+      g.initialiser = v.constant;
     }
   }
 
@@ -2296,47 +2249,6 @@ uint32_t Program::GetOrAssignMetaID(DebugLocation &l)
     GetOrAssignMetaID(l.inlinedAt);
 
   return l.id;
-}
-
-const Type *Program::GetSymbolType(const Function &f, Symbol s)
-{
-  const Type *ret = NULL;
-  switch(s.type)
-  {
-    case SymbolType::Constant:
-      if(s.idx < m_Constants.size())
-        ret = m_Constants[(size_t)s.idx].type;
-      else
-        ret = f.constants[(size_t)s.idx - m_Constants.size()].type;
-      break;
-    case SymbolType::Argument: ret = f.funcType->members[(size_t)s.idx]; break;
-    case SymbolType::Instruction: ret = f.instructions[(size_t)s.idx].type; break;
-    case SymbolType::GlobalVar: ret = m_GlobalVars[(size_t)s.idx].type; break;
-    case SymbolType::Function: ret = m_Functions[(size_t)s.idx].funcType; break;
-    case SymbolType::Metadata:
-      if(s.idx < m_Metadata.size())
-        ret = m_Metadata[(size_t)s.idx].type;
-      else
-        ret = f.metadata[(size_t)s.idx - m_Metadata.size()].type;
-      break;
-    case SymbolType::Unknown:
-    case SymbolType::Alias:
-    case SymbolType::BasicBlock:
-    case SymbolType::Literal: RDCERR("Unexpected symbol to get type for %d", s.type); break;
-  }
-  return ret;
-}
-
-const Constant *Program::GetFunctionConstant(const Function &f, uint64_t v)
-{
-  size_t idx = (size_t)v;
-  return idx < m_Constants.size() ? &m_Constants[idx] : &f.constants[idx - m_Constants.size()];
-}
-
-const Metadata *Program::GetFunctionMetadata(const Function &f, uint64_t v)
-{
-  size_t idx = (size_t)v;
-  return idx < m_Metadata.size() ? &m_Metadata[idx] : &f.metadata[idx - m_Metadata.size()];
 }
 
 const DXIL::Type *Program::GetVoidType()

@@ -94,8 +94,8 @@ struct TypeOrderer
     if(m->type)
       accumulate(m->type);
 
-    if(m->constant)
-      accumulate(m->constant->type);
+    if(!m->value.empty())
+      accumulate(m->value.GetType());
 
     for(const Metadata *c : m->children)
       if(c)
@@ -383,8 +383,8 @@ void Program::MakeDisassemblyString()
     const GlobalVar &g = m_GlobalVars[i];
     typeOrderer.accumulate(g.type);
 
-    if(g.initialiser.type == SymbolType::Constant)
-      typeOrderer.accumulate(m_Constants[(size_t)g.initialiser.idx].type);
+    if(g.initialiser)
+      typeOrderer.accumulate(g.initialiser->type);
   }
 
   for(size_t i = 0; i < m_Functions.size(); i++)
@@ -399,8 +399,8 @@ void Program::MakeDisassemblyString()
       typeOrderer.accumulate(inst.type);
       for(size_t a = 0; a < inst.args.size(); a++)
       {
-        if(inst.args[a].type != SymbolType::Literal && inst.args[a].type != SymbolType::BasicBlock)
-          typeOrderer.accumulate(GetSymbolType(func, inst.args[a]));
+        if(inst.args[a].type != ValueType::Literal && inst.args[a].type != ValueType::BasicBlock)
+          typeOrderer.accumulate(inst.args[a].GetType());
       }
 
       for(size_t m = 0; m < inst.attachedMeta.size(); m++)
@@ -453,7 +453,7 @@ void Program::MakeDisassemblyString()
     switch(g.flags & GlobalFlags::LinkageMask)
     {
       case GlobalFlags::ExternalLinkage:
-        if(g.initialiser.type != SymbolType::Constant)
+        if(!g.initialiser)
           m_Disassembly += "external ";
         break;
       case GlobalFlags::PrivateLinkage: m_Disassembly += "private "; break;
@@ -480,8 +480,8 @@ void Program::MakeDisassemblyString()
     else
       m_Disassembly += "global ";
 
-    if(g.initialiser.type == SymbolType::Constant)
-      m_Disassembly += m_Constants[(size_t)g.initialiser.idx].toString(true);
+    if(g.initialiser)
+      m_Disassembly += g.initialiser->toString(true);
     else
       m_Disassembly += g.type->inner->toString();
 
@@ -526,78 +526,72 @@ void Program::MakeDisassemblyString()
   {
     Function &func = m_Functions[i];
 
-    auto argToString = [this, &func](Symbol s, bool withTypes) {
+    auto argToString = [this, &func](Value v, bool withTypes) {
       rdcstr ret;
-      switch(s.type)
+      switch(v.type)
       {
-        case SymbolType::Unknown:
-        case SymbolType::Alias: ret = "???"; break;
-        case SymbolType::Literal:
+        case ValueType::Unknown:
+        case ValueType::Alias: ret = "???"; break;
+        case ValueType::Literal:
           if(withTypes)
             ret += "i32 ";
-          ret += StringFormat::Fmt("%lld", s.idx);
+          ret += StringFormat::Fmt("%llu", v.literal);
           break;
-        case SymbolType::Metadata:
+        case ValueType::Metadata:
           if(withTypes)
             ret += "metadata ";
-          if(s.idx < m_Metadata.size())
+          if(m_Metadata.begin() <= v.meta && v.meta < m_Metadata.end())
           {
-            Metadata &m = m_Metadata[(size_t)s.idx];
-            if(m.isConstant && m.constant && m.constant->symbol)
-              ret += m.constant->toString(withTypes);
-            else if(m.isConstant && m.constant &&
-                    (m.constant->type->type == Type::Scalar ||
-                     m.constant->type->type == Type::Vector || m.constant->undef ||
-                     m.constant->nullconst || m.constant->type->name.beginsWith("class.matrix.")))
+            const Metadata &m = *v.meta;
+            if(m.isConstant && m.value.type == ValueType::Constant &&
+               (m.value.constant->type->type == Type::Scalar ||
+                m.value.constant->type->type == Type::Vector || m.value.constant->undef ||
+                m.value.constant->nullconst ||
+                m.value.constant->type->name.beginsWith("class.matrix.")))
             {
-              ret += m.constant->toString(withTypes);
+              ret += m.value.constant->toString(withTypes);
+            }
+            else if(m.isConstant && m.value.type == ValueType::GlobalVar)
+            {
+              if(withTypes)
+                ret += m.value.global->type->toString() + " ";
+              ret += "@" + escapeStringIfNeeded(m.value.global->name);
             }
             else
             {
-              ret += StringFormat::Fmt("!%u", GetOrAssignMetaID(&m));
+              ret += StringFormat::Fmt("!%u", GetOrAssignMetaID((Metadata *)&m));
             }
           }
           else
           {
-            ret += GetFunctionMetadata(func, s.idx)->refString();
+            ret += v.meta->refString();
           }
           break;
-        case SymbolType::Function:
-          ret = "@" + escapeStringIfNeeded(m_Functions[(size_t)s.idx].name);
-          break;
-        case SymbolType::GlobalVar:
+        case ValueType::Function: ret = "@" + escapeStringIfNeeded(v.function->name); break;
+        case ValueType::GlobalVar:
           if(withTypes)
-            ret = m_GlobalVars[(size_t)s.idx].type->toString() + " ";
-          ret += "@" + escapeStringIfNeeded(m_GlobalVars[(size_t)s.idx].name);
+            ret = v.global->type->toString() + " ";
+          ret += "@" + escapeStringIfNeeded(v.global->name);
           break;
-        case SymbolType::Constant:
-          ret = GetFunctionConstant(func, s.idx)->toString(withTypes);
-          break;
-        case SymbolType::Argument:
-          if(withTypes)
-            ret = func.args[(size_t)s.idx].type->toString() + " ";
-          ret += "%" + escapeStringIfNeeded(func.args[(size_t)s.idx].name);
-          break;
-        case SymbolType::Instruction:
+        case ValueType::Constant: ret = v.constant->toString(withTypes); break;
+        case ValueType::Instruction:
         {
-          const Instruction &refinst = func.instructions[(size_t)s.idx];
           if(withTypes)
-            ret = refinst.type->toString() + " ";
-          if(refinst.name.empty())
-            ret += StringFormat::Fmt("%%%u", refinst.resultID);
+            ret = v.instruction->type->toString() + " ";
+          if(v.instruction->name.empty())
+            ret += StringFormat::Fmt("%%%u", v.instruction->resultID);
           else
-            ret += StringFormat::Fmt("%%%s", escapeStringIfNeeded(refinst.name).c_str());
+            ret += StringFormat::Fmt("%%%s", escapeStringIfNeeded(v.instruction->name).c_str());
           break;
         }
-        case SymbolType::BasicBlock:
+        case ValueType::BasicBlock:
         {
-          const Block &block = func.blocks[(size_t)s.idx];
           if(withTypes)
             ret = "label ";
-          if(block.name.empty())
-            ret += StringFormat::Fmt("%%%u", block.resultID);
+          if(v.block->name.empty())
+            ret += StringFormat::Fmt("%%%u", v.block->resultID);
           else
-            ret += StringFormat::Fmt("%%%s", escapeStringIfNeeded(block.name).c_str());
+            ret += StringFormat::Fmt("%%%s", escapeStringIfNeeded(v.block->name).c_str());
         }
       }
       return ret;
@@ -610,7 +604,7 @@ void Program::MakeDisassemblyString()
     }
 
     m_Disassembly += (func.external ? "declare " : "define ");
-    m_Disassembly += func.funcType->declFunction("@" + escapeStringIfNeeded(func.name));
+    m_Disassembly += func.funcType->inner->declFunction("@" + escapeStringIfNeeded(func.name));
 
     if(func.attrs)
       m_Disassembly += StringFormat::Fmt(" #%u", func.attrs->index);
@@ -652,7 +646,7 @@ void Program::MakeDisassemblyString()
             m_Disassembly += " @" + escapeStringIfNeeded(inst.funcCall->name);
             m_Disassembly += "(";
             bool first = true;
-            for(Symbol &s : inst.args)
+            for(Value &s : inst.args)
             {
               if(!first)
                 m_Disassembly += ", ";
@@ -708,7 +702,7 @@ void Program::MakeDisassemblyString()
             m_Disassembly += "extractvalue ";
             m_Disassembly += argToString(inst.args[0], true);
             for(size_t n = 1; n < inst.args.size(); n++)
-              m_Disassembly += StringFormat::Fmt(", %llu", inst.args[n].idx);
+              m_Disassembly += StringFormat::Fmt(", %llu", inst.args[n].literal);
             break;
           }
           case Operation::FAdd:
@@ -767,7 +761,7 @@ void Program::MakeDisassemblyString()
               m_Disassembly += " ";
 
             bool first = true;
-            for(Symbol &s : inst.args)
+            for(Value &s : inst.args)
             {
               if(!first)
                 m_Disassembly += ", ";
@@ -793,10 +787,10 @@ void Program::MakeDisassemblyString()
             m_Disassembly += "getelementptr ";
             if(inst.opFlags & InstructionFlags::InBounds)
               m_Disassembly += "inbounds ";
-            m_Disassembly += GetSymbolType(func, inst.args[0])->inner->toString();
+            m_Disassembly += inst.args[0].GetType()->inner->toString();
             m_Disassembly += ", ";
             bool first = true;
-            for(Symbol &s : inst.args)
+            for(Value &s : inst.args)
             {
               if(!first)
                 m_Disassembly += ", ";
@@ -814,7 +808,7 @@ void Program::MakeDisassemblyString()
             m_Disassembly += inst.type->toString();
             m_Disassembly += ", ";
             bool first = true;
-            for(Symbol &s : inst.args)
+            for(Value &s : inst.args)
             {
               if(!first)
                 m_Disassembly += ", ";
@@ -970,7 +964,7 @@ void Program::MakeDisassemblyString()
             m_Disassembly += argToString(inst.args[1], true);
             for(size_t a = 2; a < inst.args.size(); a++)
             {
-              m_Disassembly += ", " + ToStr(inst.args[a].idx);
+              m_Disassembly += ", " + ToStr(inst.args[a].literal);
             }
             break;
           }
@@ -1050,7 +1044,7 @@ void Program::MakeDisassemblyString()
             m_Disassembly += inst.type->toString();
             m_Disassembly += ", ";
             bool first = true;
-            for(Symbol &s : inst.args)
+            for(Value &s : inst.args)
             {
               if(!first)
                 m_Disassembly += ", ";
@@ -1081,7 +1075,7 @@ void Program::MakeDisassemblyString()
               m_Disassembly += "volatile ";
 
             bool first = true;
-            for(Symbol &s : inst.args)
+            for(Value &s : inst.args)
             {
               if(!first)
                 m_Disassembly += ", ";
@@ -1152,7 +1146,7 @@ void Program::MakeDisassemblyString()
             }
 
             bool first = true;
-            for(Symbol &s : inst.args)
+            for(Value &s : inst.args)
             {
               if(!first)
                 m_Disassembly += ", ";
@@ -1223,21 +1217,19 @@ void Program::MakeDisassemblyString()
 
           if(varIdx > 0)
           {
-            RDCASSERT(inst.args[varIdx].type == SymbolType::Metadata);
-            RDCASSERT(inst.args[exprIdx].type == SymbolType::Metadata);
+            RDCASSERT(inst.args[varIdx].type == ValueType::Metadata);
+            RDCASSERT(inst.args[exprIdx].type == ValueType::Metadata);
             m_Disassembly += StringFormat::Fmt(
-                " ; var:%s ",
-                escapeString(GetDebugVarName(GetFunctionMetadata(func, inst.args[varIdx].idx)->dwarf))
-                    .c_str());
-            m_Disassembly += GetFunctionMetadata(func, inst.args[exprIdx].idx)->valString();
+                " ; var:%s ", escapeString(GetDebugVarName(inst.args[varIdx].meta->dwarf)).c_str());
+            m_Disassembly += inst.args[exprIdx].meta->valString();
           }
         }
 
         if(inst.funcCall && inst.funcCall->name.beginsWith("dx.op."))
         {
-          if(inst.args[0].type == SymbolType::Constant)
+          if(inst.args[0].type == ValueType::Constant)
           {
-            uint32_t opcode = GetFunctionConstant(func, inst.args[0].idx)->val.u32v[0];
+            uint32_t opcode = inst.args[0].constant->val.u32v[0];
             if(opcode < ARRAY_COUNT(funcSigs))
             {
               m_Disassembly += "  ; ";
@@ -1248,12 +1240,10 @@ void Program::MakeDisassemblyString()
 
         if(inst.funcCall && inst.funcCall->name.beginsWith("dx.op.annotateHandle"))
         {
-          if(inst.args[2].type == SymbolType::Constant && inst.args[3].type == SymbolType::Constant)
+          if(inst.args[2].type == ValueType::Constant && inst.args[3].type == ValueType::Constant)
           {
-            ResourceClass resClass =
-                (ResourceClass)GetFunctionConstant(func, inst.args[2].idx)->val.u32v[0];
-            ResourceKind resKind =
-                (ResourceKind)GetFunctionConstant(func, inst.args[3].idx)->val.u32v[0];
+            ResourceClass resClass = (ResourceClass)inst.args[2].constant->val.u32v[0];
+            ResourceKind resKind = (ResourceKind)inst.args[3].constant->val.u32v[0];
 
             m_Disassembly += "  resource: ";
 
@@ -1261,12 +1251,12 @@ void Program::MakeDisassemblyString()
 
             uint32_t packedProps[2] = {};
 
-            const Constant *props = GetFunctionConstant(func, inst.args[4].idx);
+            const Constant *props = inst.args[4].constant;
 
             if(props && !props->nullconst)
             {
-              packedProps[0] = props->members[0]->val.u32v[0];
-              packedProps[1] = props->members[1]->val.u32v[0];
+              packedProps[0] = props->members[0].constant->val.u32v[0];
+              packedProps[1] = props->members[1].constant->val.u32v[0];
             }
 
             ComponentType compType = ComponentType(packedProps[0] & 0x1f);
@@ -1635,28 +1625,29 @@ rdcstr Metadata::valString() const
     }
     else
     {
-      if(constant)
+      const Instruction *i = NULL;
+
+      if(inst && *inst)
+        i = *inst;
+      else if(value.type == ValueType::Instruction)
+        i = value.instruction;
+
+      if(i)
       {
-        if(type != constant->type)
-          RDCERR("Type mismatch in metadata");
-        return constant->toString(true);
+        if(i->name.empty())
+          return StringFormat::Fmt("%s %%%u", i->type->toString().c_str(), i->resultID);
+        else
+          return StringFormat::Fmt("%s %%%s", i->type->toString().c_str(),
+                                   escapeStringIfNeeded(i->name).c_str());
+      }
+      else if(!value.empty())
+      {
+        return value.toString(true);
       }
       else
       {
-        if(func && instruction < func->instructions.size())
-        {
-          const Instruction &inst = func->instructions[instruction];
-          if(inst.name.empty())
-            return StringFormat::Fmt("%s %%%u", inst.type->toString().c_str(), inst.resultID);
-          else
-            return StringFormat::Fmt("%s %%%s", inst.type->toString().c_str(),
-                                     escapeStringIfNeeded(inst.name).c_str());
-        }
-        else
-        {
-          RDCERR("No instruction symbol for value-less metadata");
-          return "???";
-        }
+        RDCERR("No instruction for value-less metadata");
+        return "???";
       }
     }
   }
@@ -1717,6 +1708,62 @@ static void floatAppendToString(const Type *t, const ShaderValue &val, uint32_t 
   ret += StringFormat::Fmt("0x%llX", d);
 }
 
+void shaderValAppendToString(const Type *type, const ShaderValue &val, uint32_t i, rdcstr &ret)
+{
+  if(type->scalarType == Type::Float)
+  {
+    floatAppendToString(type, val, i, ret);
+  }
+  else if(type->scalarType == Type::Int)
+  {
+    // LLVM seems to always interpret these as signed? :(
+    if(type->bitWidth > 32)
+      ret += StringFormat::Fmt("%lld", val.s64v[i]);
+    else if(type->bitWidth == 1)
+      ret += val.u32v[i] ? "true" : "false";
+    else
+      ret += StringFormat::Fmt("%d", val.s32v[i]);
+  }
+}
+
+rdcstr Value::toString(bool withType) const
+{
+  rdcstr ret;
+  if(withType)
+  {
+    const Type *t = GetType();
+    if(t)
+      ret += t->toString() + " ";
+    else
+      RDCERR("Type requested in value string, but no type available");
+  }
+  switch(type)
+  {
+    case ValueType::Function:
+      ret += StringFormat::Fmt("@%s", escapeStringIfNeeded(function->name).c_str());
+      break;
+    case ValueType::GlobalVar:
+      ret += StringFormat::Fmt("@%s", escapeStringIfNeeded(global->name).c_str());
+      break;
+    case ValueType::Alias:
+      ret += StringFormat::Fmt("@%s", escapeStringIfNeeded(alias->name).c_str());
+      break;
+    case ValueType::Constant: return constant->toString(withType); break;
+    case ValueType::Unknown:
+      RDCERR("Invalid or forward-reference value being stringised");
+      ret += "???";
+      break;
+    case ValueType::Instruction:
+    case ValueType::Metadata:
+    case ValueType::Literal:
+    case ValueType::BasicBlock:
+      RDCERR("Unexpected value being stringised");
+      ret += "???";
+      break;
+  }
+  return ret;
+}
+
 rdcstr Constant::toString(bool withType) const
 {
   if(type == NULL)
@@ -1729,10 +1776,6 @@ rdcstr Constant::toString(bool withType) const
   {
     ret += "undef";
   }
-  else if(symbol)
-  {
-    ret += StringFormat::Fmt("@%s", escapeStringIfNeeded(str).c_str());
-  }
   else if(op != Operation::NoOp)
   {
     switch(op)
@@ -1742,14 +1785,14 @@ rdcstr Constant::toString(bool withType) const
       {
         ret += "getelementptr inbounds (";
 
-        const Type *baseType = members[0]->type;
+        const Type *baseType = members[0].GetType();
         RDCASSERT(baseType->type == Type::Pointer);
         ret += baseType->inner->toString();
         for(size_t i = 0; i < members.size(); i++)
         {
           ret += ", ";
 
-          ret += members[i]->toString(withType);
+          ret += members[i].toString(withType);
         }
         ret += ")";
         break;
@@ -1797,20 +1840,7 @@ rdcstr Constant::toString(bool withType) const
   }
   else if(type->type == Type::Scalar)
   {
-    if(type->scalarType == Type::Float)
-    {
-      floatAppendToString(type, val, 0, ret);
-    }
-    else if(type->scalarType == Type::Int)
-    {
-      // LLVM seems to always interpret these as signed? :(
-      if(type->bitWidth > 32)
-        ret += StringFormat::Fmt("%lld", val.s64v[0]);
-      else if(type->bitWidth == 1)
-        ret += val.u32v[0] ? "true" : "false";
-      else
-        ret += StringFormat::Fmt("%d", val.s32v[0]);
-    }
+    shaderValAppendToString(type, val, 0, ret);
   }
   else if(nullconst)
   {
@@ -1825,19 +1855,7 @@ rdcstr Constant::toString(bool withType) const
         ret += ", ";
       if(withType)
         ret += type->inner->toString() + " ";
-      if(type->scalarType == Type::Float)
-      {
-        floatAppendToString(type, val, i, ret);
-      }
-      else if(type->scalarType == Type::Int)
-      {
-        if(type->bitWidth > 32)
-          ret += StringFormat::Fmt("%lld", val.s64v[i]);
-        else if(type->bitWidth == 1)
-          ret += val.u32v[i] ? "true" : "false";
-        else
-          ret += StringFormat::Fmt("%d", val.s32v[i]);
-      }
+      shaderValAppendToString(type, val, i, ret);
     }
     ret += ">";
   }
@@ -1849,7 +1867,20 @@ rdcstr Constant::toString(bool withType) const
       if(i > 0)
         ret += ", ";
 
-      ret += members[i]->toString(withType);
+      if(members[i].type == ValueType::Literal)
+      {
+        if(withType)
+          ret += type->inner->toString() + " ";
+
+        ShaderValue v;
+        v.u64v[0] = members[i].literal;
+
+        shaderValAppendToString(type->inner, v, 0, ret);
+      }
+      else
+      {
+        ret += members[i].toString(withType);
+      }
     }
     ret += "]";
   }
@@ -1861,7 +1892,17 @@ rdcstr Constant::toString(bool withType) const
       if(i > 0)
         ret += ", ";
 
-      ret += members[i]->toString(withType);
+      if(members[i].type == ValueType::Literal)
+      {
+        ShaderValue v;
+        v.u64v[0] = members[i].literal;
+
+        shaderValAppendToString(members[i].GetType(), v, 0, ret);
+      }
+      else
+      {
+        ret += members[i].toString(withType);
+      }
     }
     ret += " }";
   }

@@ -104,31 +104,65 @@ struct Type
   rdcarray<const Type *> members;    // the members for a struct, the parameters for functions
 };
 
-enum class SymbolType
+enum class ValueType
 {
   Unknown,
   Function,
   GlobalVar,
   Alias,
   Constant,
-  Argument,
   Instruction,
   Metadata,
   Literal,
   BasicBlock,
 };
 
-struct Symbol
+struct Function;
+struct GlobalVar;
+struct Alias;
+struct Constant;
+struct Instruction;
+struct Metadata;
+struct Block;
+struct Type;
+
+struct Value
 {
-  Symbol(SymbolType type = SymbolType::Unknown, uint64_t idx = 0) : type(type), idx(idx) {}
-  SymbolType type;
-  uint64_t idx;
-  bool operator<(const Symbol &o) const
+  enum ForwardRefTag
   {
-    if(type != o.type)
-      return type < o.type;
-    return idx < o.idx;
+    ForwardRef
+  };
+  Value() : type(ValueType::Unknown), literal(0) {}
+  explicit Value(ForwardRefTag, const Value *value) : type(ValueType::Unknown), value(value) {}
+  explicit Value(const Function *function) : type(ValueType::Function), function(function) {}
+  explicit Value(const GlobalVar *global) : type(ValueType::GlobalVar), global(global) {}
+  explicit Value(const Alias *alias) : type(ValueType::Alias), alias(alias) {}
+  explicit Value(const Constant *constant) : type(ValueType::Constant), constant(constant) {}
+  explicit Value(const Instruction *instruction)
+      : type(ValueType::Instruction), instruction(instruction)
+  {
   }
+  explicit Value(const Metadata *meta) : type(ValueType::Metadata), meta(meta) {}
+  explicit Value(const Block *block) : type(ValueType::BasicBlock), block(block) {}
+  explicit Value(uint64_t literal) : type(ValueType::Literal), literal(literal) {}
+  bool empty() const { return type == ValueType::Unknown && literal == 0; }
+  const Type *GetType() const;
+  rdcstr toString(bool withType = false) const;
+
+  bool operator==(const Value &o) { return type == o.type && literal == o.literal; }
+  ValueType type;
+  union
+  {
+    const Value *value;
+    const Function *function;
+    const GlobalVar *global;
+    const Alias *alias;
+    const Constant *constant;
+    const Instruction *instruction;
+    const Metadata *meta;
+    const Block *block;
+    uint64_t literal;
+  };
 };
 
 enum class GlobalFlags : uint32_t
@@ -163,7 +197,7 @@ struct GlobalVar
   uint64_t align = 0;
   int32_t section = -1;
   GlobalFlags flags = GlobalFlags::NoFlags;
-  Symbol initialiser;
+  const Constant *initialiser = NULL;
 };
 
 struct Alias
@@ -378,45 +412,12 @@ inline uint64_t EncodeCast(Operation op)
 
 struct Constant
 {
-  Constant() = default;
-  Constant &operator=(const Constant &o) = delete;
-  Constant(const Constant &o)
-  {
-    type = o.type;
-    val = o.val;
-    inner = o.inner;
-    str = o.str;
-    undef = o.undef;
-    nullconst = o.nullconst;
-    symbol = o.symbol;
-    data = o.data;
-    op = o.op;
-    if(data)
-    {
-      members.resize(o.members.size());
-      for(size_t i = 0; i < members.size(); i++)
-        members[i] = new Constant(*o.members[i]);
-    }
-    else
-    {
-      members = o.members;
-    }
-  }
-  ~Constant()
-  {
-    // data constants own their members, they aren't pointers to other constants
-    if(data)
-    {
-      for(size_t i = 0; i < members.size(); i++)
-        delete members[i];
-    }
-  }
   const Type *type = NULL;
   ShaderValue val = {};
-  rdcarray<const Constant *> members;
+  rdcarray<Value> members;
   const Constant *inner = NULL;
   rdcstr str;
-  bool undef = false, nullconst = false, symbol = false, data = false;
+  bool undef = false, nullconst = false, data = false;
   Operation op = Operation::NoOp;
 
   rdcstr toString(bool withType = false) const;
@@ -454,10 +455,6 @@ struct DIBase
   }
 };
 
-struct Function;
-
-struct Metadata;
-
 struct DebugLocation
 {
   uint32_t id = ~0U;
@@ -482,10 +479,9 @@ struct Metadata
   uint32_t id = ~0U;
   bool isDistinct = false, isConstant = false, isString = false;
 
-  const Constant *constant = NULL;
+  Value value;
 
-  const Function *func = NULL;
-  size_t instruction = ~0U;
+  const Instruction *const *inst = NULL;
 
   const Type *type = NULL;
   rdcstr str;
@@ -501,8 +497,6 @@ struct NamedMetadata : public Metadata
 {
   rdcstr name;
 };
-
-struct Function;
 
 enum class InstructionFlags : uint32_t
 {
@@ -556,8 +550,6 @@ BITMASK_OPERATORS(InstructionFlags);
 
 typedef rdcarray<rdcpair<uint64_t, Metadata *>> AttachedMetadata;
 
-struct Block;
-
 struct Instruction
 {
   Operation op = Operation::NoOp;
@@ -570,7 +562,7 @@ struct Instruction
   uint32_t debugLoc = ~0U;
   uint32_t align = 0;
   const Type *type = NULL;
-  rdcarray<Symbol> args;
+  rdcarray<Value> args;
   AttachedMetadata attachedMeta;
 
   // function calls
@@ -651,9 +643,6 @@ protected:
 
   uint32_t GetOrAssignMetaID(Metadata *m);
   uint32_t GetOrAssignMetaID(DebugLocation &l);
-  const Type *GetSymbolType(const Function &f, Symbol s);
-  const Constant *GetFunctionConstant(const Function &f, uint64_t v);
-  const Metadata *GetFunctionMetadata(const Function &f, uint64_t v);
   const Type *GetVoidType();
   const Type *GetBoolType();
   const Type *GetPointerType(const Type *type, Type::PointerAddrSpace addrSpace) const;
@@ -670,7 +659,7 @@ protected:
   rdcarray<GlobalVar> m_GlobalVars;
   rdcarray<Function> m_Functions;
   rdcarray<Alias> m_Aliases;
-  rdcarray<Symbol> m_Symbols;
+  rdcarray<Value> m_Values;
   rdcarray<rdcstr> m_Sections;
 
   rdcarray<rdcstr> m_Kinds;
