@@ -527,8 +527,8 @@ void Program::MakeDisassemblyString()
             if(m.isConstant && m.constant && m.constant->symbol)
               ret += m.constant->toString(withTypes);
             else if(m.isConstant && m.constant &&
-                    (m.constant->type->type == Type::Scalar || m.constant->nullconst ||
-                     m.constant->type->name.beginsWith("class.matrix.")))
+                    (m.constant->type->type == Type::Scalar || m.constant->type->type == Type::Vector ||
+                     m.constant->nullconst || m.constant->type->name.beginsWith("class.matrix.")))
               ret += m.constant->toString(withTypes);
             else
               ret += StringFormat::Fmt("!%u", GetOrAssignMetaID(&m));
@@ -1750,11 +1750,19 @@ rdcstr Constant::toString(bool withType) const
         ret += StringFormat::Fmt("%d", val.s32v[0]);
     }
   }
+  else if(nullconst)
+  {
+    ret += "zeroinitializer";
+  }
   else if(type->type == Type::Vector)
   {
     ret += "<";
     for(uint32_t i = 0; i < type->elemCount; i++)
     {
+      if(i > 0)
+        ret += ", ";
+      if(withType)
+        ret += type->inner->toString() + " ";
       if(type->scalarType == Type::Float)
       {
         // TODO need to know how to determine signedness here
@@ -1773,10 +1781,6 @@ rdcstr Constant::toString(bool withType) const
       }
     }
     ret += ">";
-  }
-  else if(nullconst)
-  {
-    ret += "zeroinitializer";
   }
   else if(type->type == Type::Array)
   {
