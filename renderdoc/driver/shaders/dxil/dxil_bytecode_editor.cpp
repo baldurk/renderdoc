@@ -41,13 +41,19 @@ DXIL::ProgramEditor::~ProgramEditor()
   DXBC::DXBCContainer::ReplaceDXILBytecode(m_OutBlob, EncodeProgram());
 }
 
+#define getAttribID(a) uint64_t(a - m_Attributes.begin())
 #define getTypeID(t) uint64_t(t - m_Types.begin())
 #define getMetaID(m) uint64_t(m - m_Metadata.begin())
-#define getMetaIDOrNull(m) (m ? (uint64_t(m - m_Metadata.begin()) + 1) : 0)
+#define getMetaIDOrNull(m) (m ? (getMetaID(m) + 1) : 0ULL)
+#define getFunctionMetaID(m)                                                        \
+  uint64_t(m >= m_Metadata.begin() && m < m_Metadata.end() ? m - m_Metadata.begin() \
+                                                           : m - f.metadata.begin())
+#define getFunctionMetaIDOrNull(m) (m ? (getFunctionMetaID(m) + 1) : 0ULL)
+
+#define getValueID(v) uint64_t(values.indexOf(v))
 
 bytebuf DXIL::ProgramEditor::EncodeProgram() const
 {
-#define getValueID(v) uint64_t(values.indexOf(v))
   rdcarray<Value> values = m_Values;
 
   bytebuf ret;
@@ -92,12 +98,11 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
     // stop once we pass constants
     if(m_Values[i].type != ValueType::Constant)
       break;
-
-    cfg.numGlobalConsts++;
   }
 
   cfg.numTypes = m_Types.size();
   cfg.numSections = m_Sections.size();
+  cfg.numGlobalValues = m_Values.size();
 
   writer.ConfigureSizes(cfg);
 
@@ -353,7 +358,7 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
                       typeIndex, uint64_t(((g.flags & GlobalFlags::IsConst) ? 1 : 0) | 0x2 |
                                           ((uint32_t)g.type->addrSpace << 2)),
                       g.initialiser ? getValueID(Value(g.initialiser)) + 1 : 0, linkageValue,
-                      32 - Bits::CountLeadingZeroes(g.align), uint64_t(g.section + 1),
+                      Log2Floor((uint32_t)g.align) + 1, uint64_t(g.section + 1),
                       // visibility
                       0U,
                       // TLS mode
@@ -510,6 +515,38 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
     writer.EndBlock();
   }
 
+#define encodeRelativeValueID(v)                              \
+  {                                                           \
+    uint64_t valID = getValueID(v);                           \
+    if(valID <= instValueID)                                  \
+    {                                                         \
+      vals.push_back(instValueID - valID);                    \
+    }                                                         \
+    else                                                      \
+    {                                                         \
+      forwardRefs = true;                                     \
+      /* signed integer two's complement for negative    */   \
+      /* values referencing forward from the instruction */   \
+      vals.push_back(0x100000000ULL - (valID - instValueID)); \
+      vals.push_back(getTypeID(v.GetType()));                 \
+    }                                                         \
+  }
+
+// some cases don't encode the type even for forward refs, if it's implicit (e.g. second parameter
+// in a binop). This also doesn't count as a forward ref for the case of breaking the abbrev use
+#define encodeRelativeValueIDTypeless(v)                      \
+  {                                                           \
+    uint64_t valID = getValueID(v);                           \
+    if(valID <= instValueID)                                  \
+    {                                                         \
+      vals.push_back(instValueID - valID);                    \
+    }                                                         \
+    else                                                      \
+    {                                                         \
+      vals.push_back(0x100000000ULL - (valID - instValueID)); \
+    }                                                         \
+  }
+
   for(const Function &f : m_Functions)
   {
     if(f.external)
@@ -537,6 +574,488 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
       EncodeMetadata(writer, values, f.metadata);
 
       writer.EndBlock();
+    }
+
+    // value IDs for instructions start after all the constants
+    uint32_t instValueID = uint32_t(m_Values.size() + f.constants.size() + f.args.size());
+
+    uint32_t debugLoc = ~0U;
+
+    bool forwardRefs = false;
+    rdcarray<uint64_t> vals;
+
+    for(const Instruction &inst : f.instructions)
+    {
+      forwardRefs = false;
+      vals.clear();
+
+      switch(inst.op)
+      {
+        case Operation::NoOp: RDCERR("Unexpected no-op encoding"); continue;
+        case Operation::Call:
+        {
+          vals.push_back(inst.paramAttrs ? getAttribID(inst.paramAttrs) + 1 : 0);
+          // always emit func type
+          uint64_t flags = 1 << 15;
+          if(inst.opFlags != InstructionFlags::NoFlags)
+            flags |= 1 << 17;
+          vals.push_back(flags);
+          if(inst.opFlags != InstructionFlags::NoFlags)
+            vals.push_back((uint64_t)inst.opFlags);
+          vals.push_back(getTypeID(inst.funcCall->funcType->inner));
+          encodeRelativeValueID(Value(inst.funcCall));
+          for(size_t a = 0; a < inst.args.size(); a++)
+          {
+            if(inst.args[a].type == ValueType::Metadata)
+            {
+              vals.push_back(getFunctionMetaID(inst.args[a].meta));
+            }
+            else
+            {
+              encodeRelativeValueIDTypeless(inst.args[a]);
+            }
+          }
+          writer.RecordInstruction(LLVMBC::FunctionRecord::INST_CALL, vals, forwardRefs);
+          break;
+        }
+        case Operation::Trunc:
+        case Operation::ZExt:
+        case Operation::SExt:
+        case Operation::FToU:
+        case Operation::FToS:
+        case Operation::UToF:
+        case Operation::SToF:
+        case Operation::FPTrunc:
+        case Operation::FPExt:
+        case Operation::PtrToI:
+        case Operation::IToPtr:
+        case Operation::Bitcast:
+        case Operation::AddrSpaceCast:
+        {
+          encodeRelativeValueID(inst.args[0]);
+          vals.push_back(getTypeID(inst.type));
+          vals.push_back(EncodeCast(inst.op));
+
+          writer.RecordInstruction(LLVMBC::FunctionRecord::INST_CAST, vals, forwardRefs);
+          break;
+        }
+        case Operation::ExtractVal:
+        {
+          encodeRelativeValueID(inst.args[0]);
+          for(size_t i = 1; i < inst.args.size(); i++)
+            vals.push_back(inst.args[i].literal);
+          writer.RecordInstruction(LLVMBC::FunctionRecord::INST_EXTRACTVAL, vals, forwardRefs);
+          break;
+        }
+        case Operation::Ret:
+        {
+          if(!inst.args.empty())
+          {
+            encodeRelativeValueID(inst.args[0]);
+          }
+          writer.RecordInstruction(LLVMBC::FunctionRecord::INST_RET, vals, forwardRefs);
+          break;
+        }
+        case Operation::FAdd:
+        case Operation::FSub:
+        case Operation::FMul:
+        case Operation::FDiv:
+        case Operation::FRem:
+        case Operation::Add:
+        case Operation::Sub:
+        case Operation::Mul:
+        case Operation::UDiv:
+        case Operation::SDiv:
+        case Operation::URem:
+        case Operation::SRem:
+        case Operation::ShiftLeft:
+        case Operation::LogicalShiftRight:
+        case Operation::ArithShiftRight:
+        case Operation::And:
+        case Operation::Or:
+        case Operation::Xor:
+        {
+          encodeRelativeValueID(inst.args[0]);
+          encodeRelativeValueIDTypeless(inst.args[1]);
+
+          const Type *t = inst.args[0].GetType();
+
+          const bool isFloatOp = (t->scalarType == Type::Float);
+
+          uint64_t opcode = 0;
+          switch(inst.op)
+          {
+            case Operation::FAdd:
+            case Operation::Add: opcode = 0; break;
+            case Operation::FSub:
+            case Operation::Sub: opcode = 1; break;
+            case Operation::FMul:
+            case Operation::Mul: opcode = 2; break;
+            case Operation::UDiv: opcode = 3; break;
+            case Operation::FDiv:
+            case Operation::SDiv: opcode = 4; break;
+            case Operation::URem: opcode = 5; break;
+            case Operation::FRem:
+            case Operation::SRem: opcode = 6; break;
+            case Operation::ShiftLeft: opcode = 7; break;
+            case Operation::LogicalShiftRight: opcode = 8; break;
+            case Operation::ArithShiftRight: opcode = 9; break;
+            case Operation::And: opcode = 10; break;
+            case Operation::Or: opcode = 11; break;
+            case Operation::Xor: opcode = 12; break;
+            default: break;
+          }
+          vals.push_back(opcode);
+
+          if(inst.opFlags != InstructionFlags::NoFlags)
+          {
+            uint64_t flags = 0;
+            if(inst.op == Operation::Add || inst.op == Operation::Sub ||
+               inst.op == Operation::Mul || inst.op == Operation::ShiftLeft)
+            {
+              if(inst.opFlags & InstructionFlags::NoSignedWrap)
+                flags |= 0x2;
+              if(inst.opFlags & InstructionFlags::NoUnsignedWrap)
+                flags |= 0x1;
+              vals.push_back(flags);
+            }
+            else if(inst.op == Operation::SDiv || inst.op == Operation::UDiv ||
+                    inst.op == Operation::LogicalShiftRight || inst.op == Operation::ArithShiftRight)
+            {
+              if(inst.opFlags & InstructionFlags::Exact)
+                flags |= 0x1;
+              vals.push_back(flags);
+            }
+            else if(isFloatOp)
+            {
+              // fast math flags overlap
+              vals.push_back(uint64_t(inst.opFlags));
+            }
+          }
+
+          writer.RecordInstruction(LLVMBC::FunctionRecord::INST_BINOP, vals, forwardRefs);
+          break;
+        }
+        case Operation::Unreachable:
+        {
+          writer.RecordInstruction(LLVMBC::FunctionRecord::INST_UNREACHABLE, {}, false);
+          break;
+        }
+        case Operation::Alloca:
+        {
+          vals.push_back(getTypeID(inst.type->inner));
+          vals.push_back(getTypeID(inst.args[0].GetType()));
+          vals.push_back(getValueID(inst.args[0]));
+          uint64_t alignAndFlags = Log2Floor(inst.align) + 1;
+          // DXC always sets this bit, as the type is ap ointer
+          alignAndFlags |= 1U << 6;
+          if(inst.opFlags & InstructionFlags::ArgumentAlloca)
+            alignAndFlags |= 1U << 5;
+          vals.push_back(alignAndFlags);
+          writer.RecordInstruction(LLVMBC::FunctionRecord::INST_ALLOCA, vals, forwardRefs);
+          break;
+        }
+        case Operation::GetElementPtr:
+        {
+          vals.push_back((inst.opFlags & InstructionFlags::InBounds) ? 1U : 0U);
+          vals.push_back(getTypeID(inst.args[0].GetType()->inner));
+
+          for(size_t i = 0; i < inst.args.size(); i++)
+          {
+            encodeRelativeValueID(inst.args[i]);
+          }
+
+          writer.RecordInstruction(LLVMBC::FunctionRecord::INST_GEP, vals, forwardRefs);
+          break;
+        }
+        case Operation::Load:
+        {
+          encodeRelativeValueID(inst.args[0]);
+          vals.push_back(getTypeID(inst.type));
+          vals.push_back(Log2Floor(inst.align) + 1);
+          vals.push_back((inst.opFlags & InstructionFlags::Volatile) ? 1U : 0U);
+          writer.RecordInstruction(LLVMBC::FunctionRecord::INST_LOAD, vals, forwardRefs);
+          break;
+        }
+        case Operation::Store:
+        {
+          encodeRelativeValueID(inst.args[0]);
+          encodeRelativeValueID(inst.args[1]);
+          vals.push_back(Log2Floor(inst.align) + 1);
+          vals.push_back((inst.opFlags & InstructionFlags::Volatile) ? 1U : 0U);
+          writer.RecordInstruction(LLVMBC::FunctionRecord::INST_STORE, vals, forwardRefs);
+          break;
+        }
+        case Operation::FOrdFalse:
+        case Operation::FOrdEqual:
+        case Operation::FOrdGreater:
+        case Operation::FOrdGreaterEqual:
+        case Operation::FOrdLess:
+        case Operation::FOrdLessEqual:
+        case Operation::FOrdNotEqual:
+        case Operation::FOrd:
+        case Operation::FUnord:
+        case Operation::FUnordEqual:
+        case Operation::FUnordGreater:
+        case Operation::FUnordGreaterEqual:
+        case Operation::FUnordLess:
+        case Operation::FUnordLessEqual:
+        case Operation::FUnordNotEqual:
+        case Operation::FOrdTrue:
+        case Operation::IEqual:
+        case Operation::INotEqual:
+        case Operation::UGreater:
+        case Operation::UGreaterEqual:
+        case Operation::ULess:
+        case Operation::ULessEqual:
+        case Operation::SGreater:
+        case Operation::SGreaterEqual:
+        case Operation::SLess:
+        case Operation::SLessEqual:
+        {
+          encodeRelativeValueID(inst.args[0]);
+          encodeRelativeValueIDTypeless(inst.args[1]);
+
+          uint64_t opcode = 0;
+          switch(inst.op)
+          {
+            case Operation::FOrdFalse: opcode = 0; break;
+            case Operation::FOrdEqual: opcode = 1; break;
+            case Operation::FOrdGreater: opcode = 2; break;
+            case Operation::FOrdGreaterEqual: opcode = 3; break;
+            case Operation::FOrdLess: opcode = 4; break;
+            case Operation::FOrdLessEqual: opcode = 5; break;
+            case Operation::FOrdNotEqual: opcode = 6; break;
+            case Operation::FOrd: opcode = 7; break;
+            case Operation::FUnord: opcode = 8; break;
+            case Operation::FUnordEqual: opcode = 9; break;
+            case Operation::FUnordGreater: opcode = 10; break;
+            case Operation::FUnordGreaterEqual: opcode = 11; break;
+            case Operation::FUnordLess: opcode = 12; break;
+            case Operation::FUnordLessEqual: opcode = 13; break;
+            case Operation::FUnordNotEqual: opcode = 14; break;
+            case Operation::FOrdTrue: opcode = 15; break;
+
+            case Operation::IEqual: opcode = 32; break;
+            case Operation::INotEqual: opcode = 33; break;
+            case Operation::UGreater: opcode = 34; break;
+            case Operation::UGreaterEqual: opcode = 35; break;
+            case Operation::ULess: opcode = 36; break;
+            case Operation::ULessEqual: opcode = 37; break;
+            case Operation::SGreater: opcode = 38; break;
+            case Operation::SGreaterEqual: opcode = 39; break;
+            case Operation::SLess: opcode = 40; break;
+            case Operation::SLessEqual: opcode = 41; break;
+
+            default: break;
+          }
+
+          vals.push_back(opcode);
+
+          if(inst.opFlags != InstructionFlags::NoFlags)
+            vals.push_back((uint64_t)inst.opFlags);
+
+          writer.RecordInstruction(LLVMBC::FunctionRecord::INST_CMP2, vals, forwardRefs);
+          break;
+        }
+        case Operation::Select:
+        {
+          encodeRelativeValueID(inst.args[0]);
+          encodeRelativeValueIDTypeless(inst.args[1]);
+          encodeRelativeValueID(inst.args[2]);
+          writer.RecordInstruction(LLVMBC::FunctionRecord::INST_VSELECT, vals, forwardRefs);
+          break;
+        }
+        case Operation::ExtractElement:
+        {
+          encodeRelativeValueID(inst.args[0]);
+          encodeRelativeValueID(inst.args[1]);
+          writer.RecordInstruction(LLVMBC::FunctionRecord::INST_EXTRACTELT, vals, forwardRefs);
+          break;
+        }
+        case Operation::InsertElement:
+        {
+          encodeRelativeValueID(inst.args[0]);
+          encodeRelativeValueIDTypeless(inst.args[1]);
+          encodeRelativeValueID(inst.args[2]);
+          writer.RecordInstruction(LLVMBC::FunctionRecord::INST_INSERTELT, vals, forwardRefs);
+          break;
+        }
+        case Operation::ShuffleVector:
+        {
+          encodeRelativeValueID(inst.args[0]);
+          encodeRelativeValueIDTypeless(inst.args[1]);
+          encodeRelativeValueID(inst.args[2]);
+          writer.RecordInstruction(LLVMBC::FunctionRecord::INST_SHUFFLEVEC, vals, forwardRefs);
+          break;
+        }
+        case Operation::InsertValue:
+        {
+          encodeRelativeValueID(inst.args[0]);
+          encodeRelativeValueID(inst.args[1]);
+          for(size_t i = 2; i < inst.args.size(); i++)
+            vals.push_back(inst.args[i].literal);
+          writer.RecordInstruction(LLVMBC::FunctionRecord::INST_INSERTVAL, vals, forwardRefs);
+          break;
+        }
+        case Operation::Branch:
+        {
+          vals.push_back(uint64_t(inst.args[0].block - f.blocks.begin()));
+
+          if(inst.args.size() > 1)
+          {
+            vals.push_back(uint64_t(inst.args[1].block - f.blocks.begin()));
+            encodeRelativeValueIDTypeless(inst.args[2]);
+          }
+
+          writer.RecordInstruction(LLVMBC::FunctionRecord::INST_BR, vals, forwardRefs);
+          break;
+        }
+        case Operation::Phi:
+        {
+          vals.push_back(getTypeID(inst.type));
+
+          for(size_t i = 0; i < inst.args.size(); i += 2)
+          {
+            uint64_t valID = getValueID(inst.args[i]);
+            int64_t valRef = int64_t(instValueID) - int64_t(valID);
+
+            vals.push_back(LLVMBC::BitWriter::svbr(valRef));
+            vals.push_back(uint64_t(inst.args[i + 1].block - f.blocks.begin()));
+          }
+
+          writer.RecordInstruction(LLVMBC::FunctionRecord::INST_PHI, vals, forwardRefs);
+          break;
+        }
+        case Operation::Switch:
+        {
+          vals.push_back(getTypeID(inst.args[0].GetType()));
+          encodeRelativeValueIDTypeless(inst.args[0]);
+
+          vals.push_back(uint64_t(inst.args[1].block - f.blocks.begin()));
+
+          for(size_t i = 2; i < inst.args.size(); i += 2)
+          {
+            vals.push_back(getValueID(inst.args[i]));
+            vals.push_back(uint64_t(inst.args[i + 1].block - f.blocks.begin()));
+          }
+
+          writer.RecordInstruction(LLVMBC::FunctionRecord::INST_SWITCH, vals, forwardRefs);
+          break;
+        }
+        case Operation::Fence:
+        {
+          vals.push_back(((uint64_t)inst.opFlags & (uint64_t)InstructionFlags::SuccessOrderMask) >>
+                         12U);
+          vals.push_back((inst.opFlags & InstructionFlags::SingleThread) ? 0U : 1U);
+          writer.RecordInstruction(LLVMBC::FunctionRecord::INST_FENCE, vals, forwardRefs);
+          break;
+        }
+        case Operation::CompareExchange:
+        {
+          encodeRelativeValueID(inst.args[0]);
+          encodeRelativeValueID(inst.args[1]);
+          encodeRelativeValueIDTypeless(inst.args[2]);
+          vals.push_back((inst.opFlags & InstructionFlags::Volatile) ? 1U : 0U);
+          vals.push_back(((uint64_t)inst.opFlags & (uint64_t)InstructionFlags::SuccessOrderMask) >>
+                         12U);
+          vals.push_back((inst.opFlags & InstructionFlags::SingleThread) ? 0U : 1U);
+          vals.push_back(((uint64_t)inst.opFlags & (uint64_t)InstructionFlags::FailureOrderMask) >>
+                         15U);
+          vals.push_back((inst.opFlags & InstructionFlags::Weak) ? 1U : 0U);
+          writer.RecordInstruction(LLVMBC::FunctionRecord::INST_CMPXCHG, vals, forwardRefs);
+          break;
+        }
+        case Operation::LoadAtomic:
+        {
+          encodeRelativeValueID(inst.args[0]);
+          vals.push_back(getTypeID(inst.type));
+          vals.push_back(Log2Floor(inst.align) + 1);
+          vals.push_back((inst.opFlags & InstructionFlags::Volatile) ? 1U : 0U);
+          vals.push_back(((uint64_t)inst.opFlags & (uint64_t)InstructionFlags::SuccessOrderMask) >>
+                         12U);
+          vals.push_back((inst.opFlags & InstructionFlags::SingleThread) ? 0U : 1U);
+          writer.RecordInstruction(LLVMBC::FunctionRecord::INST_LOADATOMIC, vals, forwardRefs);
+          break;
+        }
+        case Operation::StoreAtomic:
+        {
+          encodeRelativeValueID(inst.args[0]);
+          encodeRelativeValueID(inst.args[1]);
+          vals.push_back(Log2Floor(inst.align) + 1);
+          vals.push_back((inst.opFlags & InstructionFlags::Volatile) ? 1U : 0U);
+          vals.push_back(((uint64_t)inst.opFlags & (uint64_t)InstructionFlags::SuccessOrderMask) >>
+                         12U);
+          vals.push_back((inst.opFlags & InstructionFlags::SingleThread) ? 0U : 1U);
+          writer.RecordInstruction(LLVMBC::FunctionRecord::INST_STOREATOMIC, vals, forwardRefs);
+          break;
+        }
+        case Operation::AtomicExchange:
+        case Operation::AtomicAdd:
+        case Operation::AtomicSub:
+        case Operation::AtomicAnd:
+        case Operation::AtomicNand:
+        case Operation::AtomicOr:
+        case Operation::AtomicXor:
+        case Operation::AtomicMax:
+        case Operation::AtomicMin:
+        case Operation::AtomicUMax:
+        case Operation::AtomicUMin:
+        {
+          encodeRelativeValueID(inst.args[0]);
+          encodeRelativeValueIDTypeless(inst.args[1]);
+
+          uint64_t opcode = 0;
+          switch(inst.op)
+          {
+            case Operation::AtomicExchange: opcode = 0; break;
+            case Operation::AtomicAdd: opcode = 1; break;
+            case Operation::AtomicSub: opcode = 2; break;
+            case Operation::AtomicAnd: opcode = 3; break;
+            case Operation::AtomicNand: opcode = 4; break;
+            case Operation::AtomicOr: opcode = 5; break;
+            case Operation::AtomicXor: opcode = 6; break;
+            case Operation::AtomicMax: opcode = 7; break;
+            case Operation::AtomicMin: opcode = 8; break;
+            case Operation::AtomicUMax: opcode = 9; break;
+            case Operation::AtomicUMin: opcode = 10; break;
+
+            default: break;
+          }
+
+          vals.push_back(opcode);
+
+          vals.push_back((inst.opFlags & InstructionFlags::Volatile) ? 1U : 0U);
+          vals.push_back(((uint64_t)inst.opFlags & (uint64_t)InstructionFlags::SuccessOrderMask) >>
+                         12U);
+          vals.push_back((inst.opFlags & InstructionFlags::SingleThread) ? 0U : 1U);
+          writer.RecordInstruction(LLVMBC::FunctionRecord::INST_ATOMICRMW, vals, forwardRefs);
+          break;
+        }
+      }
+
+      // instruction IDs are the values (i.e. all instructions that return non-void are a value)
+      if(inst.type != m_VoidType)
+        instValueID++;
+
+      // no debug location? omit
+      if(inst.debugLoc == ~0U)
+        continue;
+
+      // same as last time? emit 'again' record
+      if(inst.debugLoc == debugLoc)
+        writer.Record(LLVMBC::FunctionRecord::DEBUG_LOC_AGAIN);
+
+      // new debug location
+      const DebugLocation &loc = m_DebugLocations[inst.debugLoc];
+
+      writer.Record(LLVMBC::FunctionRecord::DEBUG_LOC,
+                    {
+                        loc.line, loc.col, getFunctionMetaIDOrNull(loc.scope),
+                        getFunctionMetaIDOrNull(loc.inlinedAt),
+                    });
+
+      debugLoc = inst.debugLoc;
     }
 
     writer.EndBlock();

@@ -1200,10 +1200,24 @@ Program::Program(const byte *bytes, size_t length)
               uint64_t callingFlags = op.get<uint64_t>();
 
               if(callingFlags & (1ULL << 17))
+              {
                 inst.opFlags = op.get<InstructionFlags>();
+                RDCASSERT(inst.opFlags != InstructionFlags::NoFlags);
+
+                callingFlags &= ~(1ULL << 17);
+              }
+
+              const Type *funcCallType = NULL;
 
               if(callingFlags & (1ULL << 15))
-                op.get<uint64_t>();    // funcCallType
+              {
+                funcCallType = op.getType();    // funcCallType
+
+                callingFlags &= ~(1ULL << 15);
+              }
+
+              RDCASSERTMSG("Calling flags should only have at most two known bits set",
+                           callingFlags == 0, callingFlags);
 
               Value v = op.getSymbol();
 
@@ -1215,6 +1229,11 @@ Program::Program(const byte *bytes, size_t length)
 
               inst.funcCall = v.function;
               inst.type = inst.funcCall->funcType->inner->inner;
+
+              if(funcCallType)
+              {
+                RDCASSERT(funcCallType == inst.funcCall->funcType->inner);
+              }
 
               for(size_t i = 0; op.remaining() > 0; i++)
               {
@@ -1355,6 +1374,8 @@ Program::Program(const byte *bytes, size_t length)
                   // fast math flags overlap
                   inst.opFlags = InstructionFlags(flags);
                 }
+
+                RDCASSERT(inst.opFlags != InstructionFlags::NoFlags);
               }
 
               f.instructions.push_back(inst);
@@ -1366,7 +1387,11 @@ Program::Program(const byte *bytes, size_t length)
 
               inst.op = Operation::Unreachable;
 
+              inst.type = GetVoidType();
+
               curBlock++;
+
+              f.instructions.push_back(inst);
             }
             else if(op.type == FunctionRecord::INST_ALLOCA)
             {
@@ -1383,15 +1408,18 @@ Program::Program(const byte *bytes, size_t length)
               RDCASSERT(inst.type->type == Type::Pointer);
 
               // type of the size - ignored
-              (void)op.getType();
+              const Type *sizeType = op.getType();
               // size
               inst.args.push_back(op.getSymbolAbsolute());
+
+              RDCASSERT(sizeType == inst.args.back().GetType());
 
               uint64_t align = op.get<uint64_t>();
 
               if(align & 0x20)
               {
                 // argument alloca
+                inst.opFlags |= InstructionFlags::ArgumentAlloca;
               }
               if((align & 0x40) == 0)
               {
@@ -1557,7 +1585,11 @@ Program::Program(const byte *bytes, size_t length)
 
               // fast math flags
               if(op.remaining() > 0)
+              {
                 inst.opFlags = op.get<InstructionFlags>();
+
+                RDCASSERTNOTEQUAL((uint64_t)inst.opFlags, 0);
+              }
 
               inst.type = GetBoolType();
 

@@ -236,15 +236,33 @@ void FreeAlignedBuffer(byte *buf)
 
 uint32_t Log2Floor(uint32_t value)
 {
-  RDCASSERT(value > 0);
+  if(!value)
+    return ~0U;
   return 31 - Bits::CountLeadingZeroes(value);
 }
 
 #if ENABLED(RDOC_X64)
 uint64_t Log2Floor(uint64_t value)
 {
-  RDCASSERT(value > 0);
+  if(!value)
+    return ~0ULL;
   return 63 - Bits::CountLeadingZeroes(value);
+}
+#endif
+
+uint32_t Log2Ceil(uint32_t value)
+{
+  if(!value)
+    return ~0U;
+  return 32 - Bits::CountLeadingZeroes(value - 1);
+}
+
+#if ENABLED(RDOC_X64)
+uint64_t Log2Ceil(uint64_t value)
+{
+  if(!value)
+    return ~0ULL;
+  return 64 - Bits::CountLeadingZeroes(value - 1);
 }
 #endif
 

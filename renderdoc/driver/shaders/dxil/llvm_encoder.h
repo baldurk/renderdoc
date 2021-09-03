@@ -40,7 +40,7 @@ public:
   struct Config
   {
     size_t numTypes;
-    size_t numGlobalConsts;
+    size_t numGlobalValues;
     size_t numSections;
     uint64_t maxAlign;
     uint32_t maxGlobalType;
@@ -88,6 +88,7 @@ public:
   }
 
   void RecordSymTabEntry(size_t id, const rdcstr &str, bool basicBlock = false);
+  void RecordInstruction(FunctionRecord record, const rdcarray<uint64_t> &vals, bool forwardRefs);
 
 private:
   void WriteAbbrevDefinition(AbbrevParam *abbrev);

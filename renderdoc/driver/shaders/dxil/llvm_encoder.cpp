@@ -342,7 +342,8 @@ void BitcodeWriter::BeginBlock(KnownBlock block)
   abbrevSize = newAbbrevSize;
   blockStack.push_back({block, offs});
 
-  curAbbrevs.swap(blockStack.back().abbrevs);
+  if(!blockStack.empty())
+    curAbbrevs.swap(blockStack.back().abbrevs);
 
   // emit known abbrevs here that aren't in blockinfo
   switch(block)
@@ -396,6 +397,8 @@ void BitcodeWriter::EndBlock()
 
   b.PatchLengthWord(offs, uint32_t(lengthInBytes / 4));
 
+  curAbbrevs = blockStack.back().abbrevs;
+
   blockStack.pop_back();
   if(blockStack.empty())
   {
@@ -405,7 +408,6 @@ void BitcodeWriter::EndBlock()
   else
   {
     curBlock = blockStack.back().block;
-    curAbbrevs = blockStack.back().abbrevs;
     abbrevSize = GetBlockAbbrevSize(curBlock);
   }
 }
@@ -429,7 +431,7 @@ void BitcodeWriter::WriteAbbrevDefinition(AbbrevParam *abbrev)
     if(param.value == MagicFixedSizeNumTypes)
       param.value = m_Cfg.numTypes;
     if(param.value == MagicFixedSizeNumConstants)
-      param.value = m_Cfg.numGlobalConsts;
+      param.value = m_Cfg.numGlobalValues;
 
     const bool lit = param.encoding == AbbrevEncoding::Literal;
     b.fixed<bool>(1, lit);
@@ -450,18 +452,18 @@ void BitcodeWriter::ConfigureSizes(Config cfg)
 {
   m_Cfg = cfg;
 
-  m_Cfg.numTypes = 32 - Bits::CountLeadingZeroes((uint32_t)m_Cfg.numTypes);
-  m_Cfg.numGlobalConsts = 32 - Bits::CountLeadingZeroes((uint32_t)m_Cfg.numGlobalConsts);
+  m_Cfg.numTypes = Log2Ceil((uint32_t)m_Cfg.numTypes + 1);
+  m_Cfg.numGlobalValues = Log2Ceil((uint32_t)m_Cfg.numGlobalValues + 1);
 
-  m_Cfg.maxGlobalType = 32 - Bits::CountLeadingZeroes(m_Cfg.maxGlobalType);
+  m_Cfg.maxGlobalType = Log2Ceil(m_Cfg.maxGlobalType + 1);
 
   if(m_Cfg.numSections > 0)
-    m_Cfg.numSections = 32 - Bits::CountLeadingZeroes((uint32_t)m_Cfg.numSections);
+    m_Cfg.numSections = Log2Ceil((uint32_t)m_Cfg.numSections + 1);
 
   if(m_Cfg.maxAlign > 0)
   {
-    uint32_t encodedAlign = 32 - Bits::CountLeadingZeroes((uint32_t)cfg.maxAlign);
-    m_Cfg.maxAlign = 32 - Bits::CountLeadingZeroes(encodedAlign);
+    uint32_t encodedAlign = Log2Floor((uint32_t)cfg.maxAlign) + 1;
+    m_Cfg.maxAlign = Log2Ceil(encodedAlign + 1);
   }
 }
 
@@ -772,6 +774,60 @@ void BitcodeWriter::RecordSymTabEntry(size_t id, const rdcstr &str, bool basicBl
   Abbrev(ValueSymtabAbbrevDefs[(uint32_t)abbrev], (uint32_t)record, vals);
 }
 
+void BitcodeWriter::RecordInstruction(FunctionRecord record, const rdcarray<uint64_t> &vals,
+                                      bool forwardRefs)
+{
+  uint32_t idx = ~0U;
+
+  switch(record)
+  {
+    case FunctionRecord::INST_RET:
+      if(vals.empty())
+        idx = (uint32_t)FunctionAbbrev::RetVoid;
+      else
+        idx = (uint32_t)FunctionAbbrev::RetValue;
+      break;
+    case FunctionRecord::INST_GEP: idx = (uint32_t)FunctionAbbrev::GEP; break;
+    case FunctionRecord::INST_UNREACHABLE: idx = (uint32_t)FunctionAbbrev::Unreachable; break;
+    case FunctionRecord::INST_LOAD:
+      if(!forwardRefs)
+        idx = (uint32_t)FunctionAbbrev::Load;
+      break;
+    case FunctionRecord::INST_CAST:
+      if(!forwardRefs)
+        idx = (uint32_t)FunctionAbbrev::Cast;
+      break;
+    case FunctionRecord::INST_BINOP:
+      if(!forwardRefs)
+      {
+        idx = (uint32_t)FunctionAbbrev::BinOp;
+
+        // binop with no forward refs is:
+        // [0]: first param (no type)
+        // [1]: second param
+        // [2]: binop itself
+        // then if there is a 4th val, that is flags
+        if(vals.size() == 4)
+          idx = (uint32_t)FunctionAbbrev::BinOpFlags;
+      }
+      break;
+    default: break;
+  }
+
+  // if we got a valid abbrev, use it, otherwise emit unabbrev
+  if(idx != ~0U)
+  {
+    // write the abbrev ID
+    b.fixed(abbrevSize, GetAbbrevID(idx));
+
+    Abbrev(curAbbrevs[idx], (uint32_t)record, vals);
+  }
+  else
+  {
+    Unabbrev((uint32_t)record, false, vals);
+  }
+}
+
 void BitcodeWriter::Abbrev(AbbrevParam *abbr, uint32_t record, uint64_t val)
 {
   WriteAbbrevParam(abbr[0], record);
@@ -833,7 +889,7 @@ void BitcodeWriter::WriteAbbrevParam(const AbbrevParam &abbrev, uint64_t val)
     if(abbrev.value == MagicFixedSizeNumTypes)
       width = m_Cfg.numTypes;
     else if(abbrev.value == MagicFixedSizeNumConstants)
-      width = m_Cfg.numGlobalConsts;
+      width = m_Cfg.numGlobalValues;
     b.fixed((size_t)width, val);
   }
   else if(abbrev.encoding == AbbrevEncoding::VBR)

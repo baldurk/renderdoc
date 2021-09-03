@@ -293,8 +293,10 @@ byte *AllocAlignedBuffer(uint64_t size, uint64_t alignment = 64);
 void FreeAlignedBuffer(byte *buf);
 
 uint32_t Log2Floor(uint32_t value);
+uint32_t Log2Ceil(uint32_t value);
 #if ENABLED(RDOC_X64)
 uint64_t Log2Floor(uint64_t value);
+uint64_t Log2Ceil(uint64_t value);
 #endif
 
 // super ugly - on apple size_t is a separate type, so we need a new overload
@@ -305,6 +307,24 @@ inline size_t Log2Floor(size_t value)
   return (size_t)Log2Floor((uint64_t)value);
 #else
   return (size_t)Log2Floor((uint32_t)value);
+#endif
+}
+
+inline size_t Log2Ceil(size_t value)
+{
+#if ENABLED(RDOC_X64)
+  return (size_t)Log2Ceil((uint64_t)value);
+#else
+  return (size_t)Log2Ceil((uint32_t)value);
+#endif
+}
+
+inline size_t Log2(size_t value)
+{
+#if ENABLED(RDOC_X64)
+  return (size_t)Log2((uint64_t)value);
+#else
+  return (size_t)Log2((uint32_t)value);
 #endif
 }
 #endif

@@ -544,6 +544,8 @@ enum class InstructionFlags : uint32_t
   FailureRelease = (0x4 << 15),
   FailureAcquireRelease = (0x5 << 15),
   FailureSequentiallyConsistent = (0x6 << 15),
+
+  ArgumentAlloca = 1 << 18,
 };
 
 BITMASK_OPERATORS(InstructionFlags);
