@@ -2191,6 +2191,7 @@ Program::Program(const byte *bytes, size_t length)
           f.instructions[i].resultID = (uint32_t)resultID++;
         }
 
+        f.values.assign(m_Values.data() + prevNumSymbols, m_Values.size() - prevNumSymbols);
         m_Values.resize(prevNumSymbols);
       }
       else

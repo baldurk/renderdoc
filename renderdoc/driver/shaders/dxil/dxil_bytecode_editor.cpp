@@ -41,18 +41,20 @@ DXIL::ProgramEditor::~ProgramEditor()
   DXBC::DXBCContainer::ReplaceDXILBytecode(m_OutBlob, EncodeProgram());
 }
 
+#define getTypeID(t) uint64_t(t - m_Types.begin())
+#define getMetaID(m) uint64_t(m - m_Metadata.begin())
+#define getMetaIDOrNull(m) (m ? (uint64_t(m - m_Metadata.begin()) + 1) : 0)
+
 bytebuf DXIL::ProgramEditor::EncodeProgram() const
 {
+#define getValueID(v) uint64_t(values.indexOf(v))
+  rdcarray<Value> values = m_Values;
+
   bytebuf ret;
 
   LLVMBC::BitcodeWriter writer(ret);
 
   LLVMBC::BitcodeWriter::Config cfg = {};
-
-#define getTypeID(t) uint64_t(t - m_Types.begin())
-#define getMetaID(m) uint64_t(m - m_Metadata.begin())
-#define getMetaIDOrNull(m) (m ? (uint64_t(m - m_Metadata.begin()) + 1) : 0)
-#define getValueID(v) uint64_t(123)
 
   for(size_t i = 0; i < m_GlobalVars.size(); i++)
   {
@@ -420,111 +422,13 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
 
   // the symbols for constants start after the global variables and functions which we just
   // outputted
+  if(!m_Constants.empty())
   {
-    bool inblock = false;
+    writer.BeginBlock(LLVMBC::KnownBlock::CONSTANTS_BLOCK);
 
-    const Type *curType = NULL;
+    EncodeConstants(writer, values, m_Constants);
 
-    for(size_t i = 0; i < m_Constants.size(); i++)
-    {
-      if(!inblock)
-      {
-        inblock = true;
-        writer.BeginBlock(LLVMBC::KnownBlock::CONSTANTS_BLOCK);
-      }
-
-      const Constant &c = m_Constants[i];
-      if(c.type != curType)
-      {
-        writer.Record(LLVMBC::ConstantsRecord::SETTYPE, getTypeID(c.type));
-        curType = c.type;
-      }
-
-      if(c.nullconst)
-      {
-        writer.Record(LLVMBC::ConstantsRecord::CONST_NULL);
-      }
-      else if(c.undef)
-      {
-        writer.Record(LLVMBC::ConstantsRecord::UNDEF);
-      }
-      else if(c.op == Operation::GetElementPtr)
-      {
-        rdcarray<uint64_t> vals;
-        vals.reserve(c.members.size() * 2 + 1);
-
-        // DXC's version of llvm always writes the explicit type here
-        vals.push_back(getTypeID(c.type));
-
-        for(size_t m = 0; m < c.members.size(); m++)
-        {
-          vals.push_back(getTypeID(c.members[m].GetType()));
-          vals.push_back(getValueID(c.members[m]));
-        }
-
-        writer.Record(LLVMBC::ConstantsRecord::EVAL_GEP, vals);
-      }
-      else if(c.op != Operation::NoOp)
-      {
-        uint64_t cast = EncodeCast(c.op);
-        RDCASSERT(cast != ~0U);
-
-        writer.Record(
-            LLVMBC::ConstantsRecord::EVAL_CAST,
-            {EncodeCast(c.op), getTypeID(c.type), getTypeID(c.inner->type), getValueID(c.inner)});
-      }
-      else if(c.type->scalarType == Type::Int)
-      {
-        writer.Record(LLVMBC::ConstantsRecord::INTEGER, LLVMBC::BitWriter::svbr(c.val.s64v[0]));
-      }
-      else if(c.type->scalarType == Type::Float)
-      {
-        writer.Record(LLVMBC::ConstantsRecord::FLOAT, c.val.u64v[0]);
-      }
-      else if(!c.str.empty())
-      {
-        if(c.str.indexOf('\0') < 0)
-        {
-          writer.Record(LLVMBC::ConstantsRecord::CSTRING, c.str);
-        }
-        else
-        {
-          writer.Record(LLVMBC::ConstantsRecord::STRING, c.str);
-        }
-      }
-      else if(c.data)
-      {
-        rdcarray<uint64_t> vals;
-        vals.reserve(c.members.size());
-
-        if(c.type->type == Type::Vector)
-        {
-          for(uint32_t m = 0; m < c.type->elemCount; m++)
-            vals.push_back(c.type->bitWidth <= 32 ? c.val.u32v[m] : c.val.u64v[m]);
-        }
-        else
-        {
-          for(size_t m = 0; m < c.members.size(); m++)
-            vals.push_back(c.members[m].literal);
-        }
-
-        writer.Record(LLVMBC::ConstantsRecord::DATA, vals);
-      }
-      else if(c.type->type == Type::Vector || c.type->type == Type::Array ||
-              c.type->type == Type::Struct)
-      {
-        rdcarray<uint64_t> vals;
-        vals.reserve(c.members.size());
-
-        for(size_t m = 0; m < c.members.size(); m++)
-          vals.push_back(getValueID(c.members[m]));
-
-        writer.Record(LLVMBC::ConstantsRecord::AGGREGATE, vals);
-      }
-    }
-
-    if(inblock)
-      writer.EndBlock();
+    writer.EndBlock();
   }
 
   if(!m_Metadata.empty())
@@ -533,48 +437,9 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
 
     writer.EmitMetaDataAbbrev();
 
+    EncodeMetadata(writer, values, m_Metadata);
+
     rdcarray<uint64_t> vals;
-
-    bool errored = false;
-
-    for(size_t i = 0; i < m_Metadata.size(); i++)
-    {
-      if(m_Metadata[i].isString)
-      {
-        writer.Record(LLVMBC::MetaDataRecord::STRING_OLD, m_Metadata[i].str);
-      }
-      else if(m_Metadata[i].isConstant)
-      {
-        writer.Record(LLVMBC::MetaDataRecord::VALUE,
-                      {getTypeID(m_Metadata[i].type), getValueID(m_Metadata[i].value)});
-      }
-      else if(m_Metadata[i].dwarf || m_Metadata[i].debugLoc)
-      {
-        if(!errored)
-          RDCERR("Unexpected debug metadata node - expect to only encode stripped DXIL chunks");
-        errored = true;
-
-        // replace this with the first NULL constant value
-        for(size_t c = 0; c < m_Constants.size(); c++)
-        {
-          if(m_Constants[c].nullconst)
-          {
-            writer.Record(LLVMBC::MetaDataRecord::VALUE,
-                          {getTypeID(m_Constants[c].type), (uint64_t)c});
-          }
-        }
-      }
-      else
-      {
-        vals.clear();
-        for(size_t m = 0; m < m_Metadata[i].children.size(); m++)
-          vals.push_back(getMetaIDOrNull(m_Metadata[i].children[m]));
-
-        writer.Record(m_Metadata[i].isDistinct ? LLVMBC::MetaDataRecord::DISTINCT_NODE
-                                               : LLVMBC::MetaDataRecord::NODE,
-                      vals);
-      }
-    }
 
     for(size_t i = 0; i < m_NamedMeta.size(); i++)
     {
@@ -645,6 +510,40 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
     writer.EndBlock();
   }
 
+  for(const Function &f : m_Functions)
+  {
+    if(f.external)
+      continue;
+
+    values.append(f.values);
+
+    writer.BeginBlock(LLVMBC::KnownBlock::FUNCTION_BLOCK);
+
+    writer.Record(LLVMBC::FunctionRecord::DECLAREBLOCKS, f.blocks.size());
+
+    if(!f.constants.empty())
+    {
+      writer.BeginBlock(LLVMBC::KnownBlock::CONSTANTS_BLOCK);
+
+      EncodeConstants(writer, values, f.constants);
+
+      writer.EndBlock();
+    }
+
+    if(!f.metadata.empty())
+    {
+      writer.BeginBlock(LLVMBC::KnownBlock::METADATA_BLOCK);
+
+      EncodeMetadata(writer, values, f.metadata);
+
+      writer.EndBlock();
+    }
+
+    writer.EndBlock();
+
+    values.resize(values.size() - f.values.size());
+  }
+
   writer.EndBlock();
 
   ProgramHeader header;
@@ -662,4 +561,148 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
   ret.resize(AlignUp4(ret.size()));
 
   return ret;
+}
+
+void DXIL::ProgramEditor::EncodeConstants(LLVMBC::BitcodeWriter &writer,
+                                          const rdcarray<Value> &values,
+                                          const rdcarray<Constant> &constants) const
+{
+  const Type *curType = NULL;
+
+  for(const Constant &c : constants)
+  {
+    if(c.type != curType)
+    {
+      writer.Record(LLVMBC::ConstantsRecord::SETTYPE, getTypeID(c.type));
+      curType = c.type;
+    }
+
+    if(c.nullconst)
+    {
+      writer.Record(LLVMBC::ConstantsRecord::CONST_NULL);
+    }
+    else if(c.undef)
+    {
+      writer.Record(LLVMBC::ConstantsRecord::UNDEF);
+    }
+    else if(c.op == Operation::GetElementPtr)
+    {
+      rdcarray<uint64_t> vals;
+      vals.reserve(c.members.size() * 2 + 1);
+
+      // DXC's version of llvm always writes the explicit type here
+      vals.push_back(getTypeID(c.members[0].GetType()->inner));
+
+      for(size_t m = 0; m < c.members.size(); m++)
+      {
+        vals.push_back(getTypeID(c.members[m].GetType()));
+        vals.push_back(getValueID(c.members[m]));
+      }
+
+      writer.Record(LLVMBC::ConstantsRecord::EVAL_GEP, vals);
+    }
+    else if(c.op != Operation::NoOp)
+    {
+      uint64_t cast = EncodeCast(c.op);
+      RDCASSERT(cast != ~0U);
+
+      writer.Record(LLVMBC::ConstantsRecord::EVAL_CAST,
+                    {EncodeCast(c.op), getTypeID(c.type), getTypeID(c.inner->type),
+                     getValueID(Value(c.inner))});
+    }
+    else if(c.data)
+    {
+      rdcarray<uint64_t> vals;
+      vals.reserve(c.members.size());
+
+      if(c.type->type == Type::Vector)
+      {
+        for(uint32_t m = 0; m < c.type->elemCount; m++)
+          vals.push_back(c.type->bitWidth <= 32 ? c.val.u32v[m] : c.val.u64v[m]);
+      }
+      else
+      {
+        for(size_t m = 0; m < c.members.size(); m++)
+          vals.push_back(c.members[m].literal);
+      }
+
+      writer.Record(LLVMBC::ConstantsRecord::DATA, vals);
+    }
+    else if(c.type->type == Type::Vector || c.type->type == Type::Array ||
+            c.type->type == Type::Struct)
+    {
+      rdcarray<uint64_t> vals;
+      vals.reserve(c.members.size());
+
+      for(size_t m = 0; m < c.members.size(); m++)
+        vals.push_back(getValueID(c.members[m]));
+
+      writer.Record(LLVMBC::ConstantsRecord::AGGREGATE, vals);
+    }
+    else if(c.type->scalarType == Type::Int)
+    {
+      writer.Record(LLVMBC::ConstantsRecord::INTEGER, LLVMBC::BitWriter::svbr(c.val.s64v[0]));
+    }
+    else if(c.type->scalarType == Type::Float)
+    {
+      writer.Record(LLVMBC::ConstantsRecord::FLOAT, c.val.u64v[0]);
+    }
+    else if(!c.str.empty())
+    {
+      if(c.str.indexOf('\0') < 0)
+      {
+        writer.Record(LLVMBC::ConstantsRecord::CSTRING, c.str);
+      }
+      else
+      {
+        writer.Record(LLVMBC::ConstantsRecord::STRING, c.str);
+      }
+    }
+  }
+}
+
+void DXIL::ProgramEditor::EncodeMetadata(LLVMBC::BitcodeWriter &writer, const rdcarray<Value> &values,
+                                         const rdcarray<Metadata> &meta) const
+{
+  rdcarray<uint64_t> vals;
+
+  bool errored = false;
+
+  for(size_t i = 0; i < meta.size(); i++)
+  {
+    if(meta[i].isString)
+    {
+      writer.Record(LLVMBC::MetaDataRecord::STRING_OLD, meta[i].str);
+    }
+    else if(meta[i].isConstant)
+    {
+      writer.Record(LLVMBC::MetaDataRecord::VALUE,
+                    {getTypeID(meta[i].type), getValueID(meta[i].value)});
+    }
+    else if(meta[i].dwarf || meta[i].debugLoc)
+    {
+      if(!errored)
+        RDCERR("Unexpected debug metadata node - expect to only encode stripped DXIL chunks");
+      errored = true;
+
+      // replace this with the first NULL constant value
+      for(size_t c = 0; c < m_Constants.size(); c++)
+      {
+        if(m_Constants[c].nullconst)
+        {
+          writer.Record(LLVMBC::MetaDataRecord::VALUE, {getTypeID(m_Constants[c].type), (uint64_t)c});
+        }
+      }
+    }
+    else
+    {
+      vals.clear();
+      for(size_t m = 0; m < meta[i].children.size(); m++)
+        vals.push_back(getMetaIDOrNull(meta[i].children[m]));
+
+      writer.Record(
+          meta[i].isDistinct ? LLVMBC::MetaDataRecord::DISTINCT_NODE : LLVMBC::MetaDataRecord::NODE,
+          vals);
+    }
+  }
 }

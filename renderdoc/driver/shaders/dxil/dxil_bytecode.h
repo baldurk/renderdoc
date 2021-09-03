@@ -589,6 +589,7 @@ struct Function
 
   rdcarray<Instruction> args;
   rdcarray<Instruction> instructions;
+  rdcarray<Value> values;
 
   rdcarray<Block> blocks;
   rdcarray<Constant> constants;

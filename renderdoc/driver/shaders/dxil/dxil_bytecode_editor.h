@@ -31,6 +31,11 @@ namespace DXBC
 class DXBCContainer;
 };
 
+namespace LLVMBC
+{
+class BitcodeWriter;
+};
+
 namespace DXIL
 {
 class ProgramEditor : public Program
@@ -43,6 +48,11 @@ private:
   bytebuf &m_OutBlob;
 
   bytebuf EncodeProgram() const;
+
+  void EncodeConstants(LLVMBC::BitcodeWriter &writer, const rdcarray<Value> &values,
+                       const rdcarray<Constant> &constants) const;
+  void EncodeMetadata(LLVMBC::BitcodeWriter &writer, const rdcarray<Value> &values,
+                      const rdcarray<Metadata> &meta) const;
 };
 
 };    // namespace DXIL
