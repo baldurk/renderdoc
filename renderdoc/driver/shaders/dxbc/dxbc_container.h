@@ -170,7 +170,7 @@ public:
   const DXIL::Program *GetDXILByteCode() { return m_DXILByteCode; }
   static void GetHash(uint32_t hash[4], const void *ByteCode, size_t BytecodeLength);
 
-  static bool IsHashedContainer(void *ByteCode, size_t BytecodeLength);
+  static bool IsHashedContainer(const void *ByteCode, size_t BytecodeLength);
   static bool HashContainer(void *ByteCode, size_t BytecodeLength);
 
   static bool UsesExtensionUAV(uint32_t slot, uint32_t space, const void *ByteCode,

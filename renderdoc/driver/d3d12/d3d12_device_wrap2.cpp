@@ -55,6 +55,17 @@ bool WrappedID3D12Device::Serialise_CreatePipelineState(SerialiserType &ser,
     ID3D12PipelineState *ret = NULL;
     HRESULT hr = E_NOINTERFACE;
 
+    for(size_t i = 0; i < unwrappedDesc.GetStageCount(); i++)
+    {
+      D3D12_SHADER_BYTECODE &sh = unwrappedDesc.GetStage(i);
+
+      if(sh.BytecodeLength == 0 || sh.pShaderBytecode == NULL)
+        continue;
+
+      if(!DXBC::DXBCContainer::IsHashedContainer(sh.pShaderBytecode, sh.BytecodeLength))
+        DXBC::DXBCContainer::HashContainer((void *)sh.pShaderBytecode, sh.BytecodeLength);
+    }
+
     if(m_pDevice2)
       hr = m_pDevice2->CreatePipelineState(unwrappedDesc.AsDescStream(), guid, (void **)&ret);
     else

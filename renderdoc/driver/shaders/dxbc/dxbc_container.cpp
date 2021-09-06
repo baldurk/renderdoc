@@ -754,12 +754,12 @@ void DXBCContainer::GetHash(uint32_t hash[4], const void *ByteCode, size_t Bytec
   }
 }
 
-bool DXBCContainer::IsHashedContainer(void *ByteCode, size_t BytecodeLength)
+bool DXBCContainer::IsHashedContainer(const void *ByteCode, size_t BytecodeLength)
 {
   if(BytecodeLength < sizeof(FileHeader))
     return false;
 
-  FileHeader *header = (FileHeader *)ByteCode;
+  const FileHeader *header = (const FileHeader *)ByteCode;
 
   if(header->fourcc != FOURCC_DXBC)
     return false;

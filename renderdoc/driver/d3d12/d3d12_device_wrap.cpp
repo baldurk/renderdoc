@@ -432,6 +432,25 @@ bool WrappedID3D12Device::Serialise_CreateGraphicsPipelineState(
     D3D12_GRAPHICS_PIPELINE_STATE_DESC unwrappedDesc = Descriptor;
     unwrappedDesc.pRootSignature = Unwrap(unwrappedDesc.pRootSignature);
 
+    {
+      D3D12_SHADER_BYTECODE *shaders[] = {
+          &Descriptor.VS, &Descriptor.HS, &Descriptor.DS, &Descriptor.GS, &Descriptor.PS,
+      };
+
+      for(size_t i = 0; i < ARRAY_COUNT(shaders); i++)
+      {
+        if(shaders[i]->BytecodeLength == 0 || shaders[i]->pShaderBytecode == NULL)
+          continue;
+
+        // add any missing hashes ourselves. This probably comes from a capture with experimental
+        // enabled so it can load unhashed, but we want to be more proactive
+        if(!DXBC::DXBCContainer::IsHashedContainer(shaders[i]->pShaderBytecode,
+                                                   shaders[i]->BytecodeLength))
+          DXBC::DXBCContainer::HashContainer((void *)shaders[i]->pShaderBytecode,
+                                             shaders[i]->BytecodeLength);
+      }
+    }
+
     ID3D12PipelineState *ret = NULL;
     HRESULT hr = m_pDevice->CreateGraphicsPipelineState(&unwrappedDesc, guid, (void **)&ret);
 
@@ -711,6 +730,13 @@ bool WrappedID3D12Device::Serialise_CreateComputePipelineState(
   {
     D3D12_COMPUTE_PIPELINE_STATE_DESC unwrappedDesc = Descriptor;
     unwrappedDesc.pRootSignature = Unwrap(unwrappedDesc.pRootSignature);
+
+    // add any missing hashes ourselves. This probably comes from a capture with experimental
+    // enabled so it can load unhashed, but we want to be more proactive
+    if(!DXBC::DXBCContainer::IsHashedContainer(Descriptor.CS.pShaderBytecode,
+                                               Descriptor.CS.BytecodeLength))
+      DXBC::DXBCContainer::HashContainer((void *)Descriptor.CS.pShaderBytecode,
+                                         Descriptor.CS.BytecodeLength);
 
     ID3D12PipelineState *ret = NULL;
     HRESULT hr = m_pDevice->CreateComputePipelineState(&unwrappedDesc, guid, (void **)&ret);
