@@ -584,10 +584,14 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
     bool forwardRefs = false;
     rdcarray<uint64_t> vals;
 
+    bool needMetaAttach = !f.attachedMeta.empty();
+
     for(const Instruction &inst : f.instructions)
     {
       forwardRefs = false;
       vals.clear();
+
+      needMetaAttach |= !inst.attachedMeta.empty();
 
       switch(inst.op)
       {
@@ -1056,6 +1060,42 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
                     });
 
       debugLoc = inst.debugLoc;
+    }
+
+    if(needMetaAttach)
+    {
+      writer.BeginBlock(LLVMBC::KnownBlock::METADATA_ATTACHMENT);
+
+      vals.clear();
+
+      for(const rdcpair<uint64_t, Metadata *> &m : f.attachedMeta)
+      {
+        vals.push_back(m.first);
+        vals.push_back(getFunctionMetaID(m.second));
+      }
+
+      if(!vals.empty())
+        writer.Record(LLVMBC::MetaDataRecord::ATTACHMENT, vals);
+
+      for(size_t i = 0; i < f.instructions.size(); i++)
+      {
+        if(f.instructions[i].attachedMeta.empty())
+          continue;
+
+        vals.clear();
+
+        vals.push_back(uint64_t(i));
+
+        for(const rdcpair<uint64_t, Metadata *> &m : f.instructions[i].attachedMeta)
+        {
+          vals.push_back(m.first);
+          vals.push_back(getFunctionMetaID(m.second));
+        }
+
+        writer.Record(LLVMBC::MetaDataRecord::ATTACHMENT, vals);
+      }
+
+      writer.EndBlock();
     }
 
     writer.EndBlock();
