@@ -1830,7 +1830,7 @@ rdcstr Constant::toString(bool withType) const
         }
 
         ret += "(";
-        ret += inner->toString(withType);
+        ret += inner.toString(withType);
         ret += " to ";
         ret += type->toString();
         ret += ")";

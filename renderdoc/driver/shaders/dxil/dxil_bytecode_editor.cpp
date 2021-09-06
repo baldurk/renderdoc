@@ -1181,8 +1181,7 @@ void DXIL::ProgramEditor::EncodeConstants(LLVMBC::BitcodeWriter &writer,
       RDCASSERT(cast != ~0U);
 
       writer.Record(LLVMBC::ConstantsRecord::EVAL_CAST,
-                    {EncodeCast(c.op), getTypeID(c.type), getTypeID(c.inner->type),
-                     getValueID(Value(c.inner))});
+                    {cast, getTypeID(c.inner.GetType()), getValueID(c.inner)});
     }
     else if(c.data)
     {

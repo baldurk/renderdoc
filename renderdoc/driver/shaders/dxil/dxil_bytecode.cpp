@@ -84,8 +84,16 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
     Constant c;
     c.op = DecodeCast(constant.ops[0]);
     c.type = curType;
-    c.inner = getValue(constant.ops[2])->constant;
-    RDCASSERT(getType(constant.ops[1]) == c.inner->type);
+    const Value *v = getValue(constant.ops[2]);
+    if(v->type == ValueType::Unknown)
+    {
+      c.inner = Value(Value::ForwardRef, v);
+    }
+    else
+    {
+      RDCASSERT(v->GetType() == getType(constant.ops[1]));
+      c.inner = *v;
+    }
     addConstant(c);
   }
   else if(IS_KNOWN(constant.id, ConstantsRecord::EVAL_GEP))
@@ -291,6 +299,15 @@ bool Program::Valid(const byte *bytes, size_t length)
 
   return LLVMBC::BitcodeReader::Valid(
       ptr + offsetof(ProgramHeader, DxilMagic) + header->BitcodeOffset, header->BitcodeSize);
+}
+
+void ResolveForwardReference(Value &v)
+{
+  if(!v.empty() && v.type == ValueType::Unknown)
+  {
+    v = *v.value;
+    RDCASSERT(v.type == ValueType::Constant || v.type == ValueType::Literal);
+  }
 }
 
 Program::Program(const byte *bytes, size_t length)
@@ -765,9 +782,16 @@ Program::Program(const byte *bytes, size_t length)
       else if(IS_KNOWN(rootchild.id, KnownBlock::CONSTANTS_BLOCK))
       {
         const Type *t = NULL;
+
         // resize then clear to ensure the constants array memory that we reserve is cleared to 0
         m_Constants.resize(rootchild.children.size());
         m_Constants.clear();
+
+        // ensure forward references stay valid until we resolve them after the loop
+        size_t sz = m_Values.size();
+        m_Values.resize(sz + rootchild.children.size());
+        m_Values.resize(sz);
+
         for(const LLVMBC::BlockOrRecord &constant : rootchild.children)
         {
           if(constant.IsBlock())
@@ -790,13 +814,8 @@ Program::Program(const byte *bytes, size_t length)
         for(size_t i = 0; i < m_Constants.size(); i++)
         {
           for(Value &v : m_Constants[i].members)
-          {
-            if(!v.empty() && v.type == ValueType::Unknown)
-            {
-              v = *v.value;
-              RDCASSERT(v.type == ValueType::Constant);
-            }
-          }
+            ResolveForwardReference(v);
+          ResolveForwardReference(m_Constants[i].inner);
         }
       }
       else if(IS_KNOWN(rootchild.id, KnownBlock::VALUE_SYMTAB_BLOCK))
@@ -939,7 +958,6 @@ Program::Program(const byte *bytes, size_t length)
 
         // conservative resize here so we can take pointers and have them stay valid
         f.instructions.reserve(rootchild.children.size());
-        m_Values.reserve(m_Values.size() + rootchild.children.size());
 
         auto getMeta = [this, &f](uint64_t v) {
           size_t idx = (size_t)v;
@@ -967,6 +985,14 @@ Program::Program(const byte *bytes, size_t length)
         size_t curBlock = 0;
         int32_t debugLocIndex = -1;
 
+        // reserve enough values for the instructions (conservatively)
+        {
+          size_t sz = m_Values.size();
+          m_Values.resize(sz + rootchild.children.size());
+          m_Values.resize(sz);
+        }
+        const Value *valueStorage = m_Values.data();
+
         for(const LLVMBC::BlockOrRecord &funcChild : rootchild.children)
         {
           if(funcChild.IsBlock())
@@ -977,6 +1003,15 @@ Program::Program(const byte *bytes, size_t length)
               // to 0
               f.constants.resize(funcChild.children.size());
               f.constants.clear();
+
+              // reserve enough values for constants and instructions. We should encounter this
+              // before anything that can forward reference values
+              {
+                size_t sz = m_Values.size();
+                m_Values.resize(sz + rootchild.children.size() + funcChild.children.size());
+                m_Values.resize(sz);
+              }
+              valueStorage = m_Values.data();
 
               const Type *t = NULL;
               for(const LLVMBC::BlockOrRecord &constant : funcChild.children)
@@ -1001,13 +1036,8 @@ Program::Program(const byte *bytes, size_t length)
               for(size_t i = 0; i < f.constants.size(); i++)
               {
                 for(Value &v : f.constants[i].members)
-                {
-                  if(!v.empty() && v.type == ValueType::Unknown)
-                  {
-                    v = *v.value;
-                    RDCASSERT(v.type == ValueType::Constant);
-                  }
-                }
+                  ResolveForwardReference(v);
+                ResolveForwardReference(f.constants[i].inner);
               }
 
               instrSymbolStart = m_Values.size();
@@ -2191,6 +2221,8 @@ Program::Program(const byte *bytes, size_t length)
             }
           }
         }
+
+        RDCASSERT(valueStorage == m_Values.data());
 
         RDCASSERT(curBlock == f.blocks.size());
 

@@ -415,7 +415,7 @@ struct Constant
   const Type *type = NULL;
   ShaderValue val = {};
   rdcarray<Value> members;
-  const Constant *inner = NULL;
+  Value inner;
   rdcstr str;
   bool undef = false, nullconst = false, data = false;
   Operation op = Operation::NoOp;
