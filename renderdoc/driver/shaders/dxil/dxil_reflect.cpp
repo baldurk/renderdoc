@@ -83,6 +83,8 @@ enum class StructMemberAnnotation
   InterpolationMode = 5,
   FieldName = 6,
   CompType = 7,
+  Precise = 8,
+  CBUsed = 9,
 };
 
 template <typename T>
@@ -266,6 +268,8 @@ struct TypeInfo
       SNorm = 0x2,
       RowMajor = 0x4,
       Matrix = 0x8,
+      Precise = 0x10,
+      CBUsed = 0x20,
     } flags = None;
     uint8_t rows = 0, cols = 0;
     uint32_t offset;
@@ -358,6 +362,18 @@ struct TypeInfo
             case StructMemberAnnotation::CompType:
               memberOut.type = getival<ComponentType>(memberIn->children[tag + 1]);
               break;
+            case StructMemberAnnotation::Precise:
+            {
+              if(getival<uint32_t>(memberIn->children[tag + 1]) != 0)
+                memberOut.flags = MemberData::Flags(memberOut.flags | MemberData::Precise);
+              break;
+            }
+            case StructMemberAnnotation::CBUsed:
+            {
+              if(getival<uint32_t>(memberIn->children[tag + 1]) != 0)
+                memberOut.flags = MemberData::Flags(memberOut.flags | MemberData::CBUsed);
+              break;
+            }
             default: RDCWARN("Unexpected field tag %u", fieldTag); break;
           }
         }
