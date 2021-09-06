@@ -600,6 +600,9 @@ struct Function
   rdcarray<Instruction> instructions;
   rdcarray<Value> values;
 
+  rdcarray<size_t> valueSymtabOrder;
+  bool sortedSymtab = true;
+
   rdcarray<Block> blocks;
   rdcarray<Constant> constants;
   rdcarray<Metadata> metadata;
@@ -675,6 +678,9 @@ protected:
   rdcarray<rdcstr> m_Sections;
 
   rdcarray<rdcstr> m_Kinds;
+
+  rdcarray<size_t> m_ValueSymtabOrder;
+  bool m_SortedSymtab = true;
 
   rdcarray<Type> m_Types;
   const Type *m_VoidType = NULL;

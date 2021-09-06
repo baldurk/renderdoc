@@ -482,12 +482,13 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
     writer.EndBlock();
   }
 
+  if(!m_ValueSymtabOrder.empty())
   {
     writer.BeginBlock(LLVMBC::KnownBlock::VALUE_SYMTAB_BLOCK);
 
     rdcarray<rdcpair<size_t, const rdcstr *>> entries;
 
-    for(size_t s = 0; s < m_Values.size(); s++)
+    for(size_t s : m_ValueSymtabOrder)
     {
       const rdcstr *str = NULL;
       switch(m_Values[s].type)
@@ -501,11 +502,6 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
       if(str)
         entries.push_back({s, str});
     }
-
-    // sort the entries by string in order
-    std::sort(entries.begin(), entries.end(),
-              [](const rdcpair<size_t, const rdcstr *> &a,
-                 const rdcpair<size_t, const rdcstr *> &b) { return *a.second < *b.second; });
 
     // we use a special function to record the entry so it can take the string as-is to check it for
     // validity
@@ -1060,6 +1056,36 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
                     });
 
       debugLoc = inst.debugLoc;
+    }
+
+    if(!f.valueSymtabOrder.empty())
+    {
+      writer.BeginBlock(LLVMBC::KnownBlock::VALUE_SYMTAB_BLOCK);
+
+      rdcarray<rdcpair<size_t, const rdcstr *>> entries;
+
+      for(size_t s : f.valueSymtabOrder)
+      {
+        const rdcstr *str = NULL;
+        switch(values[s].type)
+        {
+          case ValueType::Instruction: str = &values[s].instruction->name; break;
+          case ValueType::Constant: str = &values[s].constant->str; break;
+          case ValueType::BasicBlock: str = &values[s].block->name; break;
+          default: break;
+        }
+
+        if(str)
+          entries.push_back({s, str});
+      }
+
+      // we use a special function to record the entry so it can take the string as-is to check it
+      // for
+      // validity
+      for(const rdcpair<size_t, const rdcstr *> &it : entries)
+        writer.RecordSymTabEntry(it.first, *it.second);
+
+      writer.EndBlock();
     }
 
     if(needMetaAttach)
