@@ -579,6 +579,13 @@ struct Block
   rdcarray<const Block *> preds;
 };
 
+struct UselistEntry
+{
+  bool block = false;
+  Value value;
+  rdcarray<uint64_t> shuffle;
+};
+
 struct Function
 {
   rdcstr name;
@@ -596,6 +603,8 @@ struct Function
   rdcarray<Block> blocks;
   rdcarray<Constant> constants;
   rdcarray<Metadata> metadata;
+
+  rdcarray<UselistEntry> uselist;
 
   AttachedMetadata attachedMeta;
 };

@@ -175,6 +175,12 @@ enum class ValueSymtabRecord : uint32_t
   COMBINED_ENTRY = 5,
 };
 
+enum class UselistRecord : uint32_t
+{
+  DEFAULT = 1,
+  BB = 2,
+};
+
 enum class MetaDataRecord : uint32_t
 {
   STRING_OLD = 1,

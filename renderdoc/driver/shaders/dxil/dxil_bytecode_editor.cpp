@@ -1098,6 +1098,21 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
       writer.EndBlock();
     }
 
+    if(!f.uselist.empty())
+    {
+      writer.BeginBlock(LLVMBC::KnownBlock::USELIST_BLOCK);
+
+      for(const UselistEntry &u : f.uselist)
+      {
+        vals = u.shuffle;
+        vals.push_back(getValueID(u.value));
+
+        writer.Record(u.block ? LLVMBC::UselistRecord::BB : LLVMBC::UselistRecord::DEFAULT, vals);
+      }
+
+      writer.EndBlock();
+    }
+
     writer.EndBlock();
 
     values.resize(values.size() - f.values.size());

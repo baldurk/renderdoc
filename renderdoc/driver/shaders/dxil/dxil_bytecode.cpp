@@ -1149,7 +1149,30 @@ Program::Program(const byte *bytes, size_t length)
             }
             else if(IS_KNOWN(funcChild.id, KnownBlock::USELIST_BLOCK))
             {
-              RDCDEBUG("Ignoring uselist block");
+              for(const LLVMBC::BlockOrRecord &uselist : funcChild.children)
+              {
+                if(uselist.IsBlock())
+                {
+                  RDCERR("Unexpected subblock in USELIST_BLOCK");
+                  continue;
+                }
+
+                const bool bb = IS_KNOWN(uselist.id, UselistRecord::BB);
+                if(IS_KNOWN(uselist.id, UselistRecord::DEFAULT) || bb)
+                {
+                  UselistEntry u;
+                  u.block = bb;
+                  u.shuffle = uselist.ops;
+                  u.value = m_Values[(size_t)u.shuffle.back()];
+                  u.shuffle.pop_back();
+                  f.uselist.push_back(u);
+                }
+                else
+                {
+                  RDCERR("Unexpected record %u in USELIST_BLOCK", uselist.id);
+                  continue;
+                }
+              }
             }
             else
             {
