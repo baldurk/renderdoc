@@ -1067,12 +1067,19 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
       for(size_t s : f.valueSymtabOrder)
       {
         const rdcstr *str = NULL;
-        switch(values[s].type)
+        if(s & 0x80000000U)
         {
-          case ValueType::Instruction: str = &values[s].instruction->name; break;
-          case ValueType::Constant: str = &values[s].constant->str; break;
-          case ValueType::BasicBlock: str = &values[s].block->name; break;
-          default: break;
+          str = &f.blocks[s & ~0x80000000U].name;
+        }
+        else
+        {
+          switch(values[s].type)
+          {
+            case ValueType::Instruction: str = &values[s].instruction->name; break;
+            case ValueType::Constant: str = &values[s].constant->str; break;
+            case ValueType::BasicBlock: str = &values[s].block->name; break;
+            default: break;
+          }
         }
 
         if(str)
@@ -1083,7 +1090,8 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
       // for
       // validity
       for(const rdcpair<size_t, const rdcstr *> &it : entries)
-        writer.RecordSymTabEntry(it.first, *it.second);
+        writer.RecordSymTabEntry(it.first & ~0x80000000U, *it.second,
+                                 it.first & 0x80000000U ? true : false);
 
       writer.EndBlock();
     }

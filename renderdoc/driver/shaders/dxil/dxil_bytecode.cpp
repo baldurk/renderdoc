@@ -1137,25 +1137,33 @@ Program::Program(const byte *bytes, size_t length)
 
                   if(!f.valueSymtabOrder.empty())
                   {
-                    const Value &prevValue = m_Values[f.valueSymtabOrder.back()];
-                    switch(prevValue.type)
+                    size_t vidx = f.valueSymtabOrder.back();
+                    if(vidx & 0x80000000U)
                     {
-                      case ValueType::Constant:
+                      f.sortedSymtab &= f.blocks[vidx & ~0x80000000U].name < str;
+                    }
+                    else
+                    {
+                      const Value &prevValue = m_Values[vidx];
+                      switch(prevValue.type)
                       {
-                        f.sortedSymtab &= prevValue.constant->str < str;
-                        break;
+                        case ValueType::Constant:
+                        {
+                          f.sortedSymtab &= prevValue.constant->str < str;
+                          break;
+                        }
+                        case ValueType::Instruction:
+                        {
+                          f.sortedSymtab &= prevValue.instruction->name < str;
+                          break;
+                        }
+                        case ValueType::BasicBlock:
+                        {
+                          f.sortedSymtab &= prevValue.block->name < str;
+                          break;
+                        }
+                        default: break;
                       }
-                      case ValueType::Instruction:
-                      {
-                        f.sortedSymtab &= prevValue.instruction->name < str;
-                        break;
-                      }
-                      case ValueType::BasicBlock:
-                      {
-                        f.sortedSymtab &= prevValue.block->name < str;
-                        break;
-                      }
-                      default: break;
                     }
                   }
 
@@ -1194,6 +1202,8 @@ Program::Program(const byte *bytes, size_t length)
                 else if(IS_KNOWN(symtab.id, ValueSymtabRecord::BBENTRY))
                 {
                   f.blocks[(size_t)symtab.ops[0]].name = symtab.getString(1);
+
+                  f.valueSymtabOrder.push_back(0x80000000U | (size_t)symtab.ops[0]);
                 }
                 else
                 {
