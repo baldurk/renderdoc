@@ -1496,7 +1496,7 @@ rdcstr Type::toString() const
     }
     case Vector: return StringFormat::Fmt("<%u x %s>", elemCount, inner->toString().c_str());
     case Pointer:
-      if(addrSpace == 0)
+      if(addrSpace == Type::PointerAddrSpace::Default)
         return StringFormat::Fmt("%s*", inner->toString().c_str());
       else
         return StringFormat::Fmt("%s addrspace(%d)*", inner->toString().c_str(), addrSpace);

@@ -248,7 +248,7 @@ static Operation DecodeCast(uint64_t opcode)
 
 void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
                    std::function<const Type *(uint64_t)> getType,
-                   std::function<const Type *(const Type *)> getPtrType,
+                   std::function<const Type *(const Type *, Type::PointerAddrSpace)> getPtrType,
                    std::function<const Constant *(uint64_t)> getConstant,
                    std::function<void(const Constant &)> addConstant)
 {
@@ -336,7 +336,7 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
     }
 
     // the result is a pointer to the return type
-    v.type = getPtrType(v.type);
+    v.type = getPtrType(v.type, curType->addrSpace);
 
     addConstant(v);
   }
@@ -557,6 +557,10 @@ Program::Program(const byte *bytes, size_t length)
         if(rootchild.ops[1] & 0x1)
           g.flags |= GlobalFlags::IsConst;
 
+        Type::PointerAddrSpace addrSpace = g.type->addrSpace;
+        if(rootchild.ops[1] & 0x2)
+          addrSpace = Type::PointerAddrSpace(rootchild.ops[1] >> 2);
+
         if(rootchild.ops[2])
           g.initialiser = Symbol(SymbolType::Constant, rootchild.ops[2] - 1);
 
@@ -623,7 +627,7 @@ Program::Program(const byte *bytes, size_t length)
         Constant v;
         v.symbol = true;
 
-        v.type = GetPointerType(g.type);
+        v.type = GetPointerType(g.type, addrSpace);
 
         if(v.type == g.type)
           RDCERR("Expected to find pointer type for global variable");
@@ -661,16 +665,7 @@ Program::Program(const byte *bytes, size_t length)
         // same
         Constant v;
         v.symbol = true;
-        v.type = f.funcType;
-
-        for(size_t ty = 0; ty < m_Types.size(); ty++)
-        {
-          if(m_Types[ty].type == Type::Pointer && m_Types[ty].inner == f.funcType)
-          {
-            v.type = &m_Types[ty];
-            break;
-          }
-        }
+        v.type = GetPointerType(f.funcType, Type::PointerAddrSpace::Default);
 
         if(v.type == f.funcType)
           RDCERR("Expected to find pointer type for function");
@@ -989,7 +984,9 @@ Program::Program(const byte *bytes, size_t length)
           }
 
           ParseConstant(constant, t, [this](uint64_t op) { return &m_Types[(size_t)op]; },
-                        [this](const Type *t) { return GetPointerType(t); },
+                        [this](const Type *t, Type::PointerAddrSpace addrSpace) {
+                          return GetPointerType(t, addrSpace);
+                        },
                         [this](uint64_t v) {
                           size_t idx = (size_t)v;
                           return idx < m_Constants.size() ? &m_Constants[idx] : NULL;
@@ -1205,7 +1202,10 @@ Program::Program(const byte *bytes, size_t length)
                 }
 
                 ParseConstant(constant, t, [this](uint64_t op) { return &m_Types[(size_t)op]; },
-                              [this](const Type *t) { return GetPointerType(t); }, getConstant,
+                              [this](const Type *t, Type::PointerAddrSpace addrSpace) {
+                                return GetPointerType(t, addrSpace);
+                              },
+                              getConstant,
                               [this, &f](const Constant &v) {
                                 m_Symbols.push_back({SymbolType::Constant,
                                                      m_Constants.size() + f.constants.size()});
@@ -1610,7 +1610,7 @@ Program::Program(const byte *bytes, size_t length)
 
               // we now have the inner type, but this instruction returns a pointer to that type so
               // adjust
-              inst.type = GetPointerType(inst.type);
+              inst.type = GetPointerType(inst.type, Type::PointerAddrSpace::Default);
 
               RDCASSERT(inst.type->type == Type::Pointer);
 
@@ -1685,7 +1685,7 @@ Program::Program(const byte *bytes, size_t length)
               }
 
               // get the pointer type
-              inst.type = GetPointerType(inst.type);
+              inst.type = GetPointerType(inst.type, op.getType(f, inst.args[0])->addrSpace);
 
               RDCASSERT(inst.type->type == Type::Pointer);
 
@@ -2560,11 +2560,11 @@ const DXIL::Type *Program::GetBoolType()
   return m_BoolType;
 }
 
-const Type *Program::GetPointerType(const Type *type)
+const Type *Program::GetPointerType(const Type *type, Type::PointerAddrSpace addrSpace) const
 {
   for(const Type &t : m_Types)
   {
-    if(t.type == Type::Pointer && t.inner == type)
+    if(t.type == Type::Pointer && t.inner == type && t.addrSpace == addrSpace)
     {
       return &t;
     }

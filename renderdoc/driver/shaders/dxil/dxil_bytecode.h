@@ -62,7 +62,7 @@ struct Type
     Int,
   } scalarType = Void;
 
-  enum PointerAddrSpace
+  enum class PointerAddrSpace
   {
     Default = 0,
     DeviceMemory = 1,
@@ -558,7 +558,7 @@ private:
   const Metadata *GetFunctionMetadata(const Function &f, uint64_t v);
   const Type *GetVoidType();
   const Type *GetBoolType();
-  const Type *GetPointerType(const Type *type);
+  const Type *GetPointerType(const Type *type, Type::PointerAddrSpace addrSpace) const;
 
   DXBC::ShaderType m_Type;
   uint32_t m_Major, m_Minor;
