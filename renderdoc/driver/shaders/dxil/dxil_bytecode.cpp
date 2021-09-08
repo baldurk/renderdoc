@@ -2165,8 +2165,7 @@ Program::Program(const byte *bytes, size_t length)
             }
             else if(op.type == FunctionRecord::INST_EXTRACTELT)
             {
-              // DXIL claims to be scalarised so should this appear?
-              RDCWARN("Unexpected vector instruction extractelement in DXIL");
+              // DXIL claims to be scalarised but lol that's a lie
 
               Instruction inst;
 
@@ -2186,8 +2185,7 @@ Program::Program(const byte *bytes, size_t length)
             }
             else if(op.type == FunctionRecord::INST_INSERTELT)
             {
-              // DXIL claims to be scalarised so should this appear?
-              RDCWARN("Unexpected vector instruction insertelement in DXIL");
+              // DXIL claims to be scalarised but lol that's a lie
 
               Instruction inst;
 
