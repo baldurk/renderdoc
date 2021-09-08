@@ -1562,6 +1562,8 @@ Program::Program(const byte *bytes, size_t length)
               Instruction inst;
 
               inst.op = Operation::Unreachable;
+
+              curBlock++;
             }
             else if(op.type == FunctionRecord::INST_ALLOCA)
             {
