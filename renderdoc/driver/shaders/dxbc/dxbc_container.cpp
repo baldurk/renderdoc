@@ -262,6 +262,7 @@ static const uint32_t FOURCC_ISG1 = MAKE_FOURCC('I', 'S', 'G', '1');
 static const uint32_t FOURCC_OSG1 = MAKE_FOURCC('O', 'S', 'G', '1');
 static const uint32_t FOURCC_OSG5 = MAKE_FOURCC('O', 'S', 'G', '5');
 static const uint32_t FOURCC_PCSG = MAKE_FOURCC('P', 'C', 'S', 'G');
+static const uint32_t FOURCC_PSG1 = MAKE_FOURCC('P', 'S', 'G', '1');
 static const uint32_t FOURCC_Aon9 = MAKE_FOURCC('A', 'o', 'n', '9');
 static const uint32_t FOURCC_PRIV = MAKE_FOURCC('P', 'R', 'I', 'V');
 static const uint32_t FOURCC_DXIL = MAKE_FOURCC('D', 'X', 'I', 'L');
@@ -270,7 +271,7 @@ static const uint32_t FOURCC_ILDN = MAKE_FOURCC('I', 'L', 'D', 'N');
 static const uint32_t FOURCC_HASH = MAKE_FOURCC('H', 'A', 'S', 'H');
 static const uint32_t FOURCC_SFI0 = MAKE_FOURCC('S', 'F', 'I', '0');
 static const uint32_t FOURCC_PSV0 = MAKE_FOURCC('P', 'S', 'V', '0');
-static const uint32_t FOURCC_RST0 = MAKE_FOURCC('R', 'S', 'T', '0');
+static const uint32_t FOURCC_RTS0 = MAKE_FOURCC('R', 'T', 'S', '0');
 
 ShaderBuiltin GetSystemValue(SVSemantic systemValue)
 {
@@ -1483,7 +1484,7 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
     {
       m_GlobalFlags = *(const GlobalShaderFlags *)chunkContents;
     }
-    else if(*fourcc == FOURCC_RST0)
+    else if(*fourcc == FOURCC_RTS0)
     {
       // root signature
     }
@@ -1493,7 +1494,8 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
       // enough, and doesn't have anything else interesting so we skip it
     }
     else if(*fourcc == FOURCC_ISGN || *fourcc == FOURCC_OSGN || *fourcc == FOURCC_ISG1 ||
-            *fourcc == FOURCC_OSG1 || *fourcc == FOURCC_OSG5 || *fourcc == FOURCC_PCSG)
+            *fourcc == FOURCC_OSG1 || *fourcc == FOURCC_OSG5 || *fourcc == FOURCC_PCSG ||
+            *fourcc == FOURCC_PSG1)
     {
       // processed later
     }
@@ -1600,7 +1602,8 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
     char *chunkContents = (char *)(fourcc + 2);
 
     if(*fourcc == FOURCC_ISGN || *fourcc == FOURCC_OSGN || *fourcc == FOURCC_ISG1 ||
-       *fourcc == FOURCC_OSG1 || *fourcc == FOURCC_OSG5 || *fourcc == FOURCC_PCSG)
+       *fourcc == FOURCC_OSG1 || *fourcc == FOURCC_OSG5 || *fourcc == FOURCC_PCSG ||
+       *fourcc == FOURCC_PSG1)
     {
       SIGNHeader *sign = (SIGNHeader *)chunkContents;
 
@@ -1620,7 +1623,7 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
         sig = &m_Reflection->OutputSig;
         output = true;
       }
-      if(*fourcc == FOURCC_PCSG)
+      if(*fourcc == FOURCC_PCSG || *fourcc == FOURCC_PSG1)
       {
         sig = &m_Reflection->PatchConstantSig;
         patch = true;
@@ -1638,7 +1641,7 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
 
         const SIGNElement *el = el0;
 
-        if(*fourcc == FOURCC_ISG1 || *fourcc == FOURCC_OSG1)
+        if(*fourcc == FOURCC_ISG1 || *fourcc == FOURCC_OSG1 || *fourcc == FOURCC_PSG1)
         {
           desc.stream = el1->stream;
 
@@ -1661,8 +1664,20 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
           desc.varType = VarType::UInt;
         else if(compType == COMPONENT_TYPE_SINT32)
           desc.varType = VarType::SInt;
-        else if(compType != COMPONENT_TYPE_FLOAT32)
-          RDCERR("Unexpected component type in signature");
+        else if(compType == COMPONENT_TYPE_FLOAT32)
+          desc.varType = VarType::Float;
+        else if(compType == COMPONENT_TYPE_UINT16)
+          desc.varType = VarType::UShort;
+        else if(compType == COMPONENT_TYPE_SINT16)
+          desc.varType = VarType::SShort;
+        else if(compType == COMPONENT_TYPE_FLOAT16)
+          desc.varType = VarType::Half;
+        else if(compType == COMPONENT_TYPE_UINT64)
+          desc.varType = VarType::ULong;
+        else if(compType == COMPONENT_TYPE_SINT64)
+          desc.varType = VarType::SLong;
+        else if(compType == COMPONENT_TYPE_FLOAT64)
+          desc.varType = VarType::Double;
 
         desc.regChannelMask = (uint8_t)(el->mask & 0xff);
         desc.channelUsedMask = (uint8_t)(el->rwMask & 0xff);
