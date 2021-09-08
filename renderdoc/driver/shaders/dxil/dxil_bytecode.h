@@ -49,6 +49,9 @@ struct ProgramHeader
   uint32_t BitcodeSize;      // Size of LLVM bitcode.
 };
 
+struct Instruction;
+struct AttributeSet;
+
 struct Type
 {
   enum TypeKind
@@ -85,7 +88,8 @@ struct Type
 
   bool isVoid() const { return type == Scalar && scalarType == Void; }
   rdcstr toString() const;
-  rdcstr declFunction(rdcstr funcName) const;
+  rdcstr declFunction(rdcstr funcName, const rdcarray<Instruction> &args,
+                      const AttributeSet *attrs) const;
 
   // for scalars, arrays, vectors, pointers
   union
@@ -261,18 +265,31 @@ enum class Attribute : uint64_t
 
 BITMASK_OPERATORS(Attribute);
 
-struct Attributes
+struct AttributeGroup
 {
-  bool valid = false;
-  uint64_t index = 0;
+  enum Slot : uint64_t
+  {
+    InvalidSlot = ~0U - 1,
+    FunctionSlot = ~0U,
+    ReturnSlot = 0U,
+    Param1Slot = 1U,
+  };
 
-  rdcarray<uint64_t> groups;
+  uint32_t slotIndex = InvalidSlot;
 
   Attribute params = Attribute::None;
   uint64_t align = 0, stackAlign = 0, derefBytes = 0, derefOrNullBytes = 0;
   rdcarray<rdcpair<rdcstr, rdcstr>> strs;
 
-  rdcstr toString() const;
+  rdcstr toString(bool stringAttrs) const;
+};
+
+struct AttributeSet
+{
+  const AttributeGroup *functionSlot = NULL;
+  rdcarray<const AttributeGroup *> groupSlots;
+
+  rdcarray<uint64_t> orderedGroups;
 };
 
 enum class Operation : uint8_t
@@ -568,7 +585,7 @@ struct Instruction
   AttachedMetadata attachedMeta;
 
   // function calls
-  const Attributes *paramAttrs = NULL;
+  const AttributeSet *paramAttrs = NULL;
   const Function *funcCall = NULL;
 };
 
@@ -592,7 +609,7 @@ struct Function
 
   const Type *funcType = NULL;
   bool external = false;
-  const Attributes *attrs = NULL;
+  const AttributeSet *attrs = NULL;
 
   uint64_t align = 0;
 
@@ -686,8 +703,8 @@ protected:
   const Type *m_VoidType = NULL;
   const Type *m_BoolType = NULL;
 
-  rdcarray<Attributes> m_AttributeGroups;
-  rdcarray<Attributes> m_Attributes;
+  rdcarray<AttributeGroup> m_AttributeGroups;
+  rdcarray<AttributeSet> m_AttributeSets;
 
   rdcarray<Constant> m_Constants;
 

@@ -463,8 +463,8 @@ Program::Program(const byte *bytes, size_t length)
         f.external = (rootchild.ops[2] != 0);
         // ignore linkage
         RDCASSERTMSG("Linkage is non-default", rootchild.ops[3] == 0);
-        if(rootchild.ops[4] > 0 && rootchild.ops[4] - 1 < m_Attributes.size())
-          f.attrs = &m_Attributes[(size_t)rootchild.ops[4] - 1];
+        if(rootchild.ops[4] > 0 && rootchild.ops[4] - 1 < m_AttributeSets.size())
+          f.attrs = &m_AttributeSets[(size_t)rootchild.ops[4] - 1];
 
         f.align = rootchild.ops[5];
 
@@ -531,11 +531,10 @@ Program::Program(const byte *bytes, size_t length)
             continue;
           }
 
-          Attributes group;
+          AttributeGroup group;
 
           size_t id = (size_t)attrgroup.ops[0];
-          group.index = attrgroup.ops[1];
-          group.valid = true;
+          group.slotIndex = (uint32_t)attrgroup.ops[1];
 
           for(size_t i = 2; i < attrgroup.ops.size(); i++)
           {
@@ -565,8 +564,22 @@ Program::Program(const byte *bytes, size_t length)
               }
               default:
               {
-                rdcstr a = attrgroup.getString(i + 1);
-                rdcstr b = attrgroup.getString(i + 1 + a.size() + 1);
+                rdcstr a, b;
+
+                a = attrgroup.getString(i + 1);
+                a.resize(strlen(a.c_str()));
+
+                if(attrgroup.ops[i] == 4)
+                {
+                  b = attrgroup.getString(i + 1 + a.size() + 1);
+                  b.resize(strlen(b.c_str()));
+                  i += a.size() + b.size() + 2;
+                }
+                else
+                {
+                  i += a.size() + 1;
+                }
+
                 group.strs.push_back({a, b});
                 break;
               }
@@ -593,21 +606,25 @@ Program::Program(const byte *bytes, size_t length)
             continue;
           }
 
-          Attributes attrs;
-          attrs.index = m_Attributes.size();
-          attrs.groups = paramattr.ops;
+          AttributeSet attrs;
+
+          attrs.orderedGroups = paramattr.ops;
 
           for(uint64_t g : paramattr.ops)
           {
             if(g < m_AttributeGroups.size())
             {
-              Attributes &other = m_AttributeGroups[(size_t)g];
-              attrs.params |= other.params;
-              attrs.align = RDCMAX(attrs.align, other.align);
-              attrs.stackAlign = RDCMAX(attrs.stackAlign, other.stackAlign);
-              attrs.derefBytes = RDCMAX(attrs.derefBytes, other.derefBytes);
-              attrs.derefOrNullBytes = RDCMAX(attrs.derefOrNullBytes, other.derefOrNullBytes);
-              attrs.strs.append(other.strs);
+              const AttributeGroup &group = m_AttributeGroups[(size_t)g];
+              if(group.slotIndex == AttributeGroup::FunctionSlot)
+              {
+                RDCASSERT(attrs.functionSlot == NULL);
+                attrs.functionSlot = &group;
+              }
+              else
+              {
+                attrs.groupSlots.resize_for_index(group.slotIndex);
+                attrs.groupSlots[group.slotIndex] = &m_AttributeGroups[(size_t)g];
+              }
             }
             else
             {
@@ -615,7 +632,7 @@ Program::Program(const byte *bytes, size_t length)
             }
           }
 
-          m_Attributes.push_back(attrs);
+          m_AttributeSets.push_back(attrs);
         }
       }
       else if(IS_KNOWN(rootchild.id, KnownBlock::TYPE_BLOCK))
@@ -1315,7 +1332,7 @@ Program::Program(const byte *bytes, size_t length)
               inst.op = Operation::Call;
               size_t attr = op.get<size_t>();
               if(attr > 0)
-                inst.paramAttrs = &m_Attributes[attr - 1];
+                inst.paramAttrs = &m_AttributeSets[attr - 1];
 
               uint64_t callingFlags = op.get<uint64_t>();
 

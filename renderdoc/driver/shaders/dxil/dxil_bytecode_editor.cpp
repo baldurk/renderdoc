@@ -41,7 +41,7 @@ DXIL::ProgramEditor::~ProgramEditor()
   DXBC::DXBCContainer::ReplaceDXILBytecode(m_OutBlob, EncodeProgram());
 }
 
-#define getAttribID(a) uint64_t(a - m_Attributes.begin())
+#define getAttribID(a) uint64_t(a - m_AttributeSets.begin())
 #define getTypeID(t) uint64_t(t - m_Types.begin())
 #define getMetaID(m) uint64_t(m - m_Metadata.begin())
 #define getMetaIDOrNull(m) (m ? (getMetaID(m) + 1) : 0ULL)
@@ -122,13 +122,13 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
 
     for(size_t i = 0; i < m_AttributeGroups.size(); i++)
     {
-      if(m_AttributeGroups[i].valid)
+      if(m_AttributeGroups[i].slotIndex != AttributeGroup::InvalidSlot)
       {
-        const Attributes &group = m_AttributeGroups[i];
+        const AttributeGroup &group = m_AttributeGroups[i];
 
         vals.clear();
         vals.push_back(i);
-        vals.push_back(group.index);
+        vals.push_back(group.slotIndex);
 
         // decompose params bitfield into bits
         if(group.params != Attribute::None)
@@ -204,12 +204,12 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
     writer.EndBlock();
   }
 
-  if(!m_Attributes.empty())
+  if(!m_AttributeSets.empty())
   {
     writer.BeginBlock(LLVMBC::KnownBlock::PARAMATTR_BLOCK);
 
-    for(size_t i = 0; i < m_Attributes.size(); i++)
-      writer.Record(LLVMBC::ParamAttrRecord::ENTRY, m_Attributes[i].groups);
+    for(size_t i = 0; i < m_AttributeSets.size(); i++)
+      writer.Record(LLVMBC::ParamAttrRecord::ENTRY, m_AttributeSets[i].orderedGroups);
 
     writer.EndBlock();
   }
@@ -387,7 +387,7 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
                       // linkage
                       0U,
                       // attributes
-                      uint64_t(f.attrs ? 1U + (f.attrs - m_Attributes.begin()) : 0U),
+                      uint64_t(f.attrs ? 1U + getAttribID(f.attrs) : 0U),
                       // alignment
                       f.align,
                       // section

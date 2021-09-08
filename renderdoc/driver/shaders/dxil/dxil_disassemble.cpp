@@ -522,11 +522,23 @@ void Program::MakeDisassemblyString()
     namedMeta += "}\n";
   }
 
+  rdcarray<const AttributeGroup *> funcAttrGroups;
+  for(size_t i = 0; i < m_AttributeGroups.size(); i++)
+  {
+    if(m_AttributeGroups[i].slotIndex != AttributeGroup::FunctionSlot)
+      continue;
+
+    if(funcAttrGroups.contains(&m_AttributeGroups[i]))
+      continue;
+
+    funcAttrGroups.push_back(&m_AttributeGroups[i]);
+  }
+
   for(size_t i = 0; i < m_Functions.size(); i++)
   {
     Function &func = m_Functions[i];
 
-    auto argToString = [this, &func](Value v, bool withTypes) {
+    auto argToString = [this, &func](Value v, bool withTypes, const rdcstr &attrString = "") {
       rdcstr ret;
       switch(v.type)
       {
@@ -535,11 +547,13 @@ void Program::MakeDisassemblyString()
         case ValueType::Literal:
           if(withTypes)
             ret += "i32 ";
+          ret += attrString;
           ret += StringFormat::Fmt("%llu", v.literal);
           break;
         case ValueType::Metadata:
           if(withTypes)
             ret += "metadata ";
+          ret += attrString;
           if(m_Metadata.begin() <= v.meta && v.meta < m_Metadata.end())
           {
             const Metadata &m = *v.meta;
@@ -567,17 +581,25 @@ void Program::MakeDisassemblyString()
             ret += v.meta->refString();
           }
           break;
-        case ValueType::Function: ret = "@" + escapeStringIfNeeded(v.function->name); break;
+        case ValueType::Function:
+          ret += attrString;
+          ret = "@" + escapeStringIfNeeded(v.function->name);
+          break;
         case ValueType::GlobalVar:
           if(withTypes)
             ret = v.global->type->toString() + " ";
+          ret += attrString;
           ret += "@" + escapeStringIfNeeded(v.global->name);
           break;
-        case ValueType::Constant: ret = v.constant->toString(withTypes); break;
+        case ValueType::Constant:
+          ret += attrString;
+          ret = v.constant->toString(withTypes);
+          break;
         case ValueType::Instruction:
         {
           if(withTypes)
             ret = v.instruction->type->toString() + " ";
+          ret += attrString;
           if(v.instruction->name.empty())
             ret += StringFormat::Fmt("%%%u", v.instruction->resultID);
           else
@@ -588,6 +610,7 @@ void Program::MakeDisassemblyString()
         {
           if(withTypes)
             ret = "label ";
+          ret += attrString;
           if(v.block->name.empty())
             ret += StringFormat::Fmt("%%%u", v.block->resultID);
           else
@@ -597,17 +620,19 @@ void Program::MakeDisassemblyString()
       return ret;
     };
 
-    if(func.attrs)
+    if(func.attrs && func.attrs->functionSlot)
     {
-      m_Disassembly += StringFormat::Fmt("; Function Attrs: %s\n", func.attrs->toString().c_str());
+      m_Disassembly += StringFormat::Fmt("; Function Attrs: %s\n",
+                                         func.attrs->functionSlot->toString(false).c_str());
       instructionLine++;
     }
 
     m_Disassembly += (func.external ? "declare " : "define ");
-    m_Disassembly += func.funcType->inner->declFunction("@" + escapeStringIfNeeded(func.name));
+    m_Disassembly += func.funcType->inner->declFunction("@" + escapeStringIfNeeded(func.name),
+                                                        func.args, func.attrs);
 
-    if(func.attrs)
-      m_Disassembly += StringFormat::Fmt(" #%u", func.attrs->index);
+    if(func.attrs && func.attrs->functionSlot)
+      m_Disassembly += StringFormat::Fmt(" #%u", funcAttrGroups.indexOf(func.attrs->functionSlot));
 
     if(!func.external)
     {
@@ -646,18 +671,33 @@ void Program::MakeDisassemblyString()
             m_Disassembly += " @" + escapeStringIfNeeded(inst.funcCall->name);
             m_Disassembly += "(";
             bool first = true;
+
+            // attribute args start from 1
+            size_t argIdx = 1;
             for(Value &s : inst.args)
             {
               if(!first)
                 m_Disassembly += ", ";
               first = false;
 
-              m_Disassembly += argToString(s, true);
+              // see if we have param attrs for this param
+              rdcstr attrString;
+              if(inst.paramAttrs && argIdx < inst.paramAttrs->groupSlots.size() &&
+                 inst.paramAttrs->groupSlots[argIdx])
+              {
+                attrString = inst.paramAttrs->groupSlots[argIdx]->toString(true) + " ";
+              }
+
+              m_Disassembly += argToString(s, true, attrString);
+
+              argIdx++;
             }
             m_Disassembly += ")";
             debugCall = inst.funcCall->name.beginsWith("llvm.dbg.");
-            if(inst.paramAttrs)
-              m_Disassembly += StringFormat::Fmt(" #%u", inst.paramAttrs - m_Attributes.begin());
+
+            if(inst.paramAttrs && inst.paramAttrs->functionSlot)
+              m_Disassembly +=
+                  StringFormat::Fmt(" #%u", funcAttrGroups.indexOf(inst.paramAttrs->functionSlot));
             break;
           }
           case Operation::Trunc:
@@ -1415,11 +1455,13 @@ void Program::MakeDisassemblyString()
     }
   }
 
-  for(size_t i = 0; i < m_Attributes.size(); i++)
-    m_Disassembly +=
-        StringFormat::Fmt("attributes #%zu = { %s }\n", i, m_Attributes[i].toString().c_str());
+  for(size_t i = 0; i < funcAttrGroups.size(); i++)
+  {
+    m_Disassembly += StringFormat::Fmt("attributes #%zu = { %s }\n", i,
+                                       funcAttrGroups[i]->toString(true).c_str());
+  }
 
-  if(!m_Attributes.empty())
+  if(!funcAttrGroups.empty())
     m_Disassembly += "\n";
 
   m_Disassembly += namedMeta + "\n";
@@ -1491,7 +1533,7 @@ rdcstr Type::toString() const
       else
         return StringFormat::Fmt("%s addrspace(%d)*", inner->toString().c_str(), addrSpace);
     case Array: return StringFormat::Fmt("[%u x %s]", elemCount, inner->toString().c_str());
-    case Function: return declFunction(rdcstr());
+    case Function: return declFunction(rdcstr(), {}, NULL);
     case Struct:
     {
       rdcstr ret;
@@ -1518,7 +1560,8 @@ rdcstr Type::toString() const
   }
 }
 
-rdcstr Type::declFunction(rdcstr funcName) const
+rdcstr Type::declFunction(rdcstr funcName, const rdcarray<Instruction> &args,
+                          const AttributeSet *attrs) const
 {
   rdcstr ret = inner->toString();
   ret += " " + funcName + "(";
@@ -1527,12 +1570,20 @@ rdcstr Type::declFunction(rdcstr funcName) const
     if(i > 0)
       ret += ", ";
     ret += members[i]->toString();
+
+    if(attrs && i + 1 < attrs->groupSlots.size() && attrs->groupSlots[i + 1])
+    {
+      ret += " " + attrs->groupSlots[i + 1]->toString(true);
+    }
+
+    if(i < args.size() && !args[i].name.empty())
+      ret += " %" + escapeStringIfNeeded(args[i].name);
   }
   ret += ")";
   return ret;
 }
 
-rdcstr Attributes::toString() const
+rdcstr AttributeGroup::toString(bool stringAttrs) const
 {
   rdcstr ret = "";
   Attribute p = params;
@@ -1569,8 +1620,18 @@ rdcstr Attributes::toString() const
     }
   }
 
-  for(const rdcpair<rdcstr, rdcstr> &str : strs)
-    ret += " " + escapeString(str.first) + "=" + escapeString(str.second);
+  if(stringAttrs)
+  {
+    ret.trim();
+
+    for(const rdcpair<rdcstr, rdcstr> &str : strs)
+    {
+      if(str.second.empty())
+        ret += " " + escapeString(str.first);
+      else
+        ret += " " + escapeString(str.first) + "=" + escapeString(str.second);
+    }
+  }
 
   return ret.trimmed();
 }
