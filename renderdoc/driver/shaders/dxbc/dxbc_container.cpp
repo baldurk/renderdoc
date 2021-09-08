@@ -272,6 +272,7 @@ static const uint32_t FOURCC_HASH = MAKE_FOURCC('H', 'A', 'S', 'H');
 static const uint32_t FOURCC_SFI0 = MAKE_FOURCC('S', 'F', 'I', '0');
 static const uint32_t FOURCC_PSV0 = MAKE_FOURCC('P', 'S', 'V', '0');
 static const uint32_t FOURCC_RTS0 = MAKE_FOURCC('R', 'T', 'S', '0');
+static const uint32_t FOURCC_RDAT = MAKE_FOURCC('R', 'D', 'A', 'T');
 
 ShaderBuiltin GetSystemValue(SVSemantic systemValue)
 {
@@ -1487,6 +1488,10 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
     else if(*fourcc == FOURCC_RTS0)
     {
       // root signature
+    }
+    else if(*fourcc == FOURCC_RDAT)
+    {
+      // runtime data
     }
     else if(*fourcc == FOURCC_PSV0)
     {
