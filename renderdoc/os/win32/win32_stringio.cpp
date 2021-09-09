@@ -592,6 +592,15 @@ FILE *fopen(const rdcstr &filename, FileMode mode)
 
   FILE *ret = NULL;
   ::_wfopen_s(&ret, wfn.c_str(), modeString[mode]);
+
+  // specify the handle as non-inheriting
+  if(ret)
+  {
+    int fd = ::_fileno(ret);
+    HANDLE h = (HANDLE)::_get_osfhandle(fd);
+    SetHandleInformation(h, HANDLE_FLAG_INHERIT, 0);
+  }
+
   return ret;
 }
 
@@ -659,8 +668,14 @@ int fclose(FILE *f)
 LogFileHandle *logfile_open(const rdcstr &filename)
 {
   rdcwstr wfn = StringFormat::UTF82Wide(filename);
+
+  // specify the handle as non-inheriting
+  SECURITY_ATTRIBUTES security = {};
+  security.nLength = sizeof(security);
+  security.bInheritHandle = FALSE;
+
   return (LogFileHandle *)CreateFileW(wfn.c_str(), FILE_APPEND_DATA,
-                                      FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_ALWAYS,
+                                      FILE_SHARE_READ | FILE_SHARE_WRITE, &security, OPEN_ALWAYS,
                                       FILE_ATTRIBUTE_NORMAL, NULL);
 }
 
