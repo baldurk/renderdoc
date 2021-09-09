@@ -26,8 +26,17 @@
 #include <stdlib.h>
 #include <algorithm>
 #include "common/formatting.h"
+#include "maths/half_convert.h"
 #include "dxil_bytecode.h"
 #include "dxil_common.h"
+
+#define DXC_COMPATIBLE_DISASM OPTION_OFF
+
+#if ENABLED(DXC_COMPATIBLE_DISASM) && ENABLED(RDOC_RELEASE)
+
+#error "DXC compatible disassembly should only be enabled in debug builds for testing"
+
+#endif
 
 namespace DXIL
 {
@@ -441,21 +450,31 @@ void Program::MakeDisassemblyString()
     const GlobalVar &g = m_GlobalVars[i];
 
     m_Disassembly += StringFormat::Fmt("@%s = ", escapeStringIfNeeded(g.name).c_str());
-    if(g.initialiser.type != SymbolType::Constant)
+    switch(g.flags & GlobalFlags::LinkageMask)
     {
-      if(g.flags & GlobalFlags::IsExternal)
-        m_Disassembly += "external ";
+      case GlobalFlags::ExternalLinkage:
+        if(g.initialiser.type != SymbolType::Constant)
+          m_Disassembly += "external ";
+        break;
+      case GlobalFlags::PrivateLinkage: m_Disassembly += "private "; break;
+      case GlobalFlags::InternalLinkage: m_Disassembly += "internal "; break;
+      case GlobalFlags::LinkOnceAnyLinkage: m_Disassembly += "linkonce "; break;
+      case GlobalFlags::LinkOnceODRLinkage: m_Disassembly += "linkonce_odr "; break;
+      case GlobalFlags::WeakAnyLinkage: m_Disassembly += "weak "; break;
+      case GlobalFlags::WeakODRLinkage: m_Disassembly += "weak_odr "; break;
+      case GlobalFlags::CommonLinkage: m_Disassembly += "common "; break;
+      case GlobalFlags::AppendingLinkage: m_Disassembly += "appending "; break;
+      case GlobalFlags::ExternalWeakLinkage: m_Disassembly += "extern_weak "; break;
+      case GlobalFlags::AvailableExternallyLinkage: m_Disassembly += "available_externally "; break;
+      default: break;
     }
-    if(g.flags & GlobalFlags::IsAppending)
-      m_Disassembly += "appending ";
-    else if(!(g.flags & GlobalFlags::IsExternal))
-      m_Disassembly += "internal ";
-    if(g.type->addrSpace)
-      m_Disassembly += StringFormat::Fmt("addrspace(%d) ", g.type->addrSpace);
+
     if(g.flags & GlobalFlags::LocalUnnamedAddr)
       m_Disassembly += "local_unnamed_addr ";
     else if(g.flags & GlobalFlags::GlobalUnnamedAddr)
       m_Disassembly += "unnamed_addr ";
+    if(g.type->addrSpace != Type::PointerAddrSpace::Default)
+      m_Disassembly += StringFormat::Fmt("addrspace(%d) ", g.type->addrSpace);
     if(g.flags & GlobalFlags::IsConst)
       m_Disassembly += "constant ";
     else
@@ -527,11 +546,16 @@ void Program::MakeDisassemblyString()
             if(m.isConstant && m.constant && m.constant->symbol)
               ret += m.constant->toString(withTypes);
             else if(m.isConstant && m.constant &&
-                    (m.constant->type->type == Type::Scalar || m.constant->type->type == Type::Vector ||
+                    (m.constant->type->type == Type::Scalar ||
+                     m.constant->type->type == Type::Vector || m.constant->undef ||
                      m.constant->nullconst || m.constant->type->name.beginsWith("class.matrix.")))
+            {
               ret += m.constant->toString(withTypes);
+            }
             else
+            {
               ret += StringFormat::Fmt("!%u", GetOrAssignMetaID(&m));
+            }
           }
           else
           {
@@ -638,6 +662,8 @@ void Program::MakeDisassemblyString()
             }
             m_Disassembly += ")";
             debugCall = inst.funcCall->name.beginsWith("llvm.dbg.");
+            if(inst.paramAttrs)
+              m_Disassembly += StringFormat::Fmt(" #%u", inst.paramAttrs - m_Attributes.begin());
             break;
           }
           case Operation::Trunc:
@@ -1365,6 +1391,12 @@ void Program::MakeDisassemblyString()
             labelName.push_back(' ');
 
           labelName += "; preds = ";
+#if ENABLED(DXC_COMPATIBLE_DISASM)
+          // unfortunately due to how llvm/dxc packs its preds, this is not feasible to replicate so
+          // instead we omit the pred list entirely and dxc's output needs to be regex replaced to
+          // match
+          labelName += "...";
+#else
           bool first = true;
           for(const Block *pred : func.blocks[curBlock].preds)
           {
@@ -1376,6 +1408,7 @@ void Program::MakeDisassemblyString()
             else
               labelName += "%" + escapeStringIfNeeded(pred->name);
           }
+#endif
 
           m_Disassembly += labelName;
           m_Disassembly += "\n";
@@ -1408,9 +1441,15 @@ void Program::MakeDisassemblyString()
   {
     if(numIdx < m_NumberedMeta.size() && m_NumberedMeta[numIdx]->id == i)
     {
-      m_Disassembly += StringFormat::Fmt("!%u = %s%s\n", i,
-                                         m_NumberedMeta[numIdx]->isDistinct ? "distinct " : "",
-                                         m_NumberedMeta[numIdx]->valString().c_str());
+      rdcstr metaline = StringFormat::Fmt("!%u = %s%s\n", i,
+                                          m_NumberedMeta[numIdx]->isDistinct ? "distinct " : "",
+                                          m_NumberedMeta[numIdx]->valString().c_str());
+#if ENABLED(DXC_COMPATIBLE_DISASM)
+      for(size_t c = 0; c < metaline.size(); c += 4096)
+        m_Disassembly += metaline.substr(c, 4096);
+#else
+      m_Disassembly += metaline;
+#endif
       if(m_NumberedMeta[numIdx]->dwarf)
         m_NumberedMeta[numIdx]->dwarf->setID(i);
       numIdx++;
@@ -1555,8 +1594,10 @@ rdcstr Metadata::refString() const
 
 rdcstr DebugLocation::toString() const
 {
-  rdcstr ret = StringFormat::Fmt("!DILocation(line: %llu, column: %llu, scope: %s", line, col,
-                                 scope ? scope->refString().c_str() : "null");
+  rdcstr ret = StringFormat::Fmt("!DILocation(line: %llu", line);
+  if(col)
+    ret += StringFormat::Fmt(", column: %llu", col);
+  ret += StringFormat::Fmt(", scope: %s", scope ? scope->refString().c_str() : "null");
   if(inlinedAt)
     ret += StringFormat::Fmt(", inlinedAt: %s", inlinedAt->refString().c_str());
   ret += ")";
@@ -1577,6 +1618,9 @@ rdcstr Metadata::valString() const
   {
     if(type == NULL)
     {
+// don't truncate here for dxc-compatible disassembly, instead we wrap at 4096 columns at a higher
+// level
+#if DISABLED(DXC_COMPATIBLE_DISASM)
       // truncate very long strings - most likely these are shader source
       if(str.length() > 400)
       {
@@ -1585,10 +1629,9 @@ rdcstr Metadata::valString() const
         trunc.insert(200, "...");
         return StringFormat::Fmt("!%s", escapeString(trunc).c_str());
       }
-      else
-      {
-        return StringFormat::Fmt("!%s", escapeString(str).c_str());
-      }
+#endif
+
+      return StringFormat::Fmt("!%s", escapeString(str).c_str());
     }
     else
     {
@@ -1635,6 +1678,43 @@ rdcstr Metadata::valString() const
 
     return ret;
   }
+}
+
+static void floatAppendToString(const Type *t, const ShaderValue &val, uint32_t i, rdcstr &ret)
+{
+#if ENABLED(DXC_COMPATIBLE_DISASM)
+  // dxc/llvm always prints half floats as their 16-bit hex representation.
+  if(t->bitWidth == 16)
+  {
+    ret += StringFormat::Fmt("0xH%04X", val.u64v[i]);
+    return;
+  }
+#endif
+
+  double d = t->bitWidth == 64 ? val.f64v[i] : val.f32v[i];
+
+  // NaNs/infs are printed as hex to ensure we don't lose bits
+  if(RDCISFINITE(d))
+  {
+    // check we can reparse precisely a float-formatted string. Otherwise we print as hex
+    rdcstr flt = StringFormat::Fmt("%.6le", d);
+
+#if ENABLED(DXC_COMPATIBLE_DISASM)
+    // dxc/llvm only prints floats as floats if they roundtrip, but our disassembly doesn't need to
+    // roundtrip so it's better to display the value in all cases
+    double reparse = strtod(flt.begin(), NULL);
+
+    if(d == reparse)
+    {
+      ret += flt;
+      return;
+    }
+#else
+    ret += flt;
+#endif
+  }
+
+  ret += StringFormat::Fmt("0x%llX", d);
 }
 
 rdcstr Constant::toString(bool withType) const
@@ -1719,25 +1799,7 @@ rdcstr Constant::toString(bool withType) const
   {
     if(type->scalarType == Type::Float)
     {
-      double orig;
-      if(type->bitWidth > 32)
-        orig = val.f64v[0];
-      else
-        orig = val.f32v[0];
-
-      // NaNs/infs are printed as hex to ensure we don't lose bits
-      if(RDCISFINITE(orig))
-      {
-        // check we can reparse precisely a float-formatted string. Otherwise we print as hex
-        rdcstr flt = StringFormat::Fmt("%.6le", orig);
-
-        double reparse = strtod(flt.begin(), NULL);
-
-        if(orig == reparse)
-          return ret + flt;
-      }
-
-      ret += StringFormat::Fmt("0x%llX", orig);
+      floatAppendToString(type, val, 0, ret);
     }
     else if(type->scalarType == Type::Int)
     {
@@ -1765,19 +1827,16 @@ rdcstr Constant::toString(bool withType) const
         ret += type->inner->toString() + " ";
       if(type->scalarType == Type::Float)
       {
-        // TODO need to know how to determine signedness here
-        if(type->bitWidth > 32)
-          ret += StringFormat::Fmt("%le", val.f64v[i]);
-        else
-          ret += StringFormat::Fmt("%e", val.f32v[i]);
+        floatAppendToString(type, val, i, ret);
       }
       else if(type->scalarType == Type::Int)
       {
-        // TODO need to know how to determine signedness here
         if(type->bitWidth > 32)
-          ret += StringFormat::Fmt("%llu", val.u64v[i]);
+          ret += StringFormat::Fmt("%lld", val.s64v[i]);
+        else if(type->bitWidth == 1)
+          ret += val.u32v[i] ? "true" : "false";
         else
-          ret += StringFormat::Fmt("%u", val.u32v[i]);
+          ret += StringFormat::Fmt("%d", val.s32v[i]);
       }
     }
     ret += ">";

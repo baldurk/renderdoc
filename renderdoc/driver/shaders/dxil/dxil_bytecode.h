@@ -117,11 +117,24 @@ struct Symbol
 enum class GlobalFlags : uint32_t
 {
   NoFlags = 0,
-  IsConst = 0x1,
-  IsExternal = 0x2,
-  LocalUnnamedAddr = 0x4,
-  GlobalUnnamedAddr = 0x8,
-  IsAppending = 0x10,
+  ExternalLinkage = 1,
+  AvailableExternallyLinkage = 2,
+  LinkOnceAnyLinkage = 3,
+  LinkOnceODRLinkage = 4,
+  WeakAnyLinkage = 5,
+  WeakODRLinkage = 6,
+  AppendingLinkage = 7,
+  InternalLinkage = 8,
+  PrivateLinkage = 9,
+  ExternalWeakLinkage = 10,
+  CommonLinkage = 11,
+  LinkageMask = 0xf,
+  IsConst = 0x10,
+  IsExternal = 0x20,
+  LocalUnnamedAddr = 0x40,
+  GlobalUnnamedAddr = 0x80,
+  IsAppending = 0x100,
+  ExternallyInitialised = 0x200,
 };
 
 BITMASK_OPERATORS(GlobalFlags);
@@ -482,6 +495,8 @@ struct Function
   const Type *funcType = NULL;
   bool external = false;
   const Attributes *attrs = NULL;
+
+  uint64_t align = 0;
 
   rdcarray<Instruction> args;
   rdcarray<Instruction> instructions;

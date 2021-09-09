@@ -94,7 +94,7 @@ inline float ConvertFromHalf(uint16_t comp)
   if(exponent == 0x00)
   {
     if(mantissa == 0)
-      return 0.0f;
+      return sign ? -0.0f : 0.0f;
 
     // subnormal
     float ret = (float)mantissa;

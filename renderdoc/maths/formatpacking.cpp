@@ -1281,11 +1281,6 @@ TEST_CASE("Check format conversion", "[format]")
         float f2 = ConvertFromHalf(i2);
         CHECK(!RDCISFINITE(f2));
       }
-      else if(i == 0x8000)
-      {
-        // signed 0
-        CHECK(i2 == 0);
-      }
       else
       {
         CHECK(i == i2);

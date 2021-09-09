@@ -28,7 +28,6 @@
 #include <string>
 #include "common/common.h"
 #include "common/formatting.h"
-#include "maths/half_convert.h"
 #include "os/os_specific.h"
 #include "llvm_decoder.h"
 
@@ -277,12 +276,7 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
   {
     Constant v;
     v.type = curType;
-    if(curType->bitWidth == 16)
-      v.val.f32v[0] = ConvertFromHalf(uint16_t(constant.ops[0] & 0xffff));
-    else if(curType->bitWidth == 32)
-      memcpy(&v.val.f32v[0], &constant.ops[0], sizeof(float));
-    else
-      memcpy(&v.val.f64v[0], &constant.ops[0], sizeof(double));
+    memcpy(&v.val.f64v[0], &constant.ops[0], curType->bitWidth / 8);
     addConstant(v);
   }
   else if(IS_KNOWN(constant.id, ConstantsRecord::STRING) ||
@@ -563,6 +557,39 @@ Program::Program(const byte *bytes, size_t length)
         if(rootchild.ops[1] & 0x1)
           g.flags |= GlobalFlags::IsConst;
 
+        if(rootchild.ops[2])
+          g.initialiser = Symbol(SymbolType::Constant, rootchild.ops[2] - 1);
+
+        switch(rootchild.ops[3])
+        {
+          case 0: g.flags |= GlobalFlags::ExternalLinkage; break;
+          case 16: g.flags |= GlobalFlags::WeakAnyLinkage; break;
+          case 2: g.flags |= GlobalFlags::AppendingLinkage; break;
+          case 3: g.flags |= GlobalFlags::InternalLinkage; break;
+          case 18: g.flags |= GlobalFlags::LinkOnceAnyLinkage; break;
+          case 7: g.flags |= GlobalFlags::ExternalWeakLinkage; break;
+          case 8: g.flags |= GlobalFlags::CommonLinkage; break;
+          case 9: g.flags |= GlobalFlags::PrivateLinkage; break;
+          case 17: g.flags |= GlobalFlags::WeakODRLinkage; break;
+          case 19: g.flags |= GlobalFlags::LinkOnceODRLinkage; break;
+          case 12: g.flags |= GlobalFlags::AvailableExternallyLinkage; break;
+          default: break;
+        }
+
+        g.align = (1ULL << rootchild.ops[4]) >> 1;
+
+        g.section = int32_t(rootchild.ops[5]) - 1;
+
+        if(rootchild.ops.size() > 6)
+        {
+          RDCASSERTMSG("global has non-default visibility", rootchild.ops[6] == 0);
+        }
+
+        if(rootchild.ops.size() > 7)
+        {
+          RDCASSERTMSG("global has non-default TLS mode", rootchild.ops[7] == 0);
+        }
+
         if(rootchild.ops.size() > 8)
         {
           if(rootchild.ops[8] == 1)
@@ -571,23 +598,22 @@ Program::Program(const byte *bytes, size_t length)
             g.flags |= GlobalFlags::LocalUnnamedAddr;
         }
 
-        if(rootchild.ops[2])
-          g.initialiser = Symbol(SymbolType::Constant, rootchild.ops[2] - 1);
-
-        switch(rootchild.ops[3])
+        if(rootchild.ops.size() > 9)
         {
-          case 0:
-          case 5:
-          case 6:
-          case 7:
-          case 15: g.flags |= GlobalFlags::IsExternal; break;
-          case 2: g.flags |= GlobalFlags::IsAppending; break;
-          default: break;
+          if(rootchild.ops[9])
+            g.flags |= GlobalFlags::ExternallyInitialised;
         }
 
-        g.align = (1ULL << rootchild.ops[4]) >> 1;
+        if(rootchild.ops.size() > 10)
+        {
+          RDCASSERTMSG("global has non-default DLL storage class", rootchild.ops[10] == 0);
+        }
 
-        g.section = int32_t(rootchild.ops[5]) - 1;
+        if(rootchild.ops.size() > 11)
+        {
+          // assume no comdat
+          RDCASSERTMSG("global has comdat", rootchild.ops[11] == 0);
+        }
 
         // symbols refer into any of N types in declaration order
         m_Symbols.push_back({SymbolType::GlobalVar, m_GlobalVars.size()});
@@ -610,16 +636,23 @@ Program::Program(const byte *bytes, size_t length)
       else if(IS_KNOWN(rootchild.id, ModuleRecord::FUNCTION))
       {
         // [type, callingconv, isproto, linkage, paramattrs, alignment, section, visibility, gc,
-        // unnamed_addr]
+        // unnamed_addr, prologuedata, dllstorageclass, comdat, prefixdata]
         Function f;
 
         f.funcType = &m_Types[(size_t)rootchild.ops[0]];
         // ignore callingconv
+        RDCASSERTMSG("Calling convention is non-default", rootchild.ops[1] == 0);
         f.external = (rootchild.ops[2] != 0);
         // ignore linkage
+        RDCASSERTMSG("Linkage is non-default", rootchild.ops[3] == 0);
         if(rootchild.ops[4] > 0 && rootchild.ops[4] - 1 < m_Attributes.size())
           f.attrs = &m_Attributes[(size_t)rootchild.ops[4] - 1];
-        // ignore rest of properties
+
+        f.align = rootchild.ops[5];
+
+        // ignore rest of properties, assert that if present they are 0
+        for(size_t p = 6; p < rootchild.ops.size(); p++)
+          RDCASSERT(rootchild.ops[p] == 0, p, rootchild.ops[p]);
 
         // symbols refer into any of N types in declaration order
         m_Symbols.push_back({SymbolType::Function, m_Functions.size()});
@@ -1394,7 +1427,9 @@ Program::Program(const byte *bytes, size_t length)
             {
               Instruction inst;
               inst.op = Operation::Call;
-              inst.paramAttrs = &m_Attributes[op.get<size_t>()];
+              size_t attr = op.get<size_t>();
+              if(attr > 0)
+                inst.paramAttrs = &m_Attributes[attr - 1];
 
               uint64_t callingFlags = op.get<uint64_t>();
 
