@@ -837,3 +837,8 @@ ID3DBlob *D3D12ShaderCache::GetQuadShaderDXILBlob()
   D3D12ShaderCacheCallbacks.Create((uint32_t)embedded.size(), embedded.data(), &ret);
   return ret;
 }
+
+void D3D12ShaderCache::LoadDXC()
+{
+  GetDXC();
+}

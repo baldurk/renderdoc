@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "dxil_bytecode_editor.h"
+#include "driver/dx/official/dxcapi.h"
 #include "driver/shaders/dxbc/dxbc_container.h"
 #include "maths/half_convert.h"
 #include "dxil_bytecode.h"
@@ -36,9 +37,102 @@ DXIL::ProgramEditor::ProgramEditor(const DXBC::DXBCContainer *container, bytebuf
   m_OutBlob = container->GetShaderBlob();
 }
 
+typedef HRESULT(WINAPI *pD3DCreateBlob)(SIZE_T Size, ID3DBlob **ppBlob);
+typedef DXC_API_IMPORT HRESULT(__stdcall *pDxcCreateInstance)(REFCLSID rclsid, REFIID riid,
+                                                              LPVOID *ppv);
+
 DXIL::ProgramEditor::~ProgramEditor()
 {
   DXBC::DXBCContainer::ReplaceDXILBytecode(m_OutBlob, EncodeProgram());
+
+#if ENABLED(RDOC_DEVEL)
+  // on debug builds, run through dxil for "validation" if it's available.
+  // we need BOTH of htese because dxil.dll's interface is incomplete, it lacks the library
+  // functionality that we only need to create blobs
+  HMODULE dxil = GetModuleHandleA("dxil.dll");
+  HMODULE dxc = GetModuleHandleA("dxcompiler.dll");
+
+  if(dxc != NULL && dxil != NULL)
+  {
+    pDxcCreateInstance dxcCreate = (pDxcCreateInstance)GetProcAddress(dxc, "DxcCreateInstance");
+    pDxcCreateInstance dxilCreate = (pDxcCreateInstance)GetProcAddress(dxil, "DxcCreateInstance");
+
+    IDxcValidator *validator = NULL;
+    HRESULT hr = dxilCreate(CLSID_DxcValidator, __uuidof(IDxcValidator), (void **)&validator);
+
+    if(FAILED(hr))
+    {
+      RDCWARN("Couldn't create DXC validator");
+      SAFE_RELEASE(validator);
+      return;
+    }
+
+    IDxcLibrary *library = NULL;
+    hr = dxcCreate(CLSID_DxcLibrary, __uuidof(IDxcLibrary), (void **)&library);
+
+    if(FAILED(hr))
+    {
+      RDCWARN("Couldn't create DXC library");
+      SAFE_RELEASE(validator);
+      SAFE_RELEASE(library);
+      return;
+    }
+
+    IDxcBlobEncoding *blob = NULL;
+    hr = library->CreateBlobWithEncodingFromPinned(m_OutBlob.data(), (UINT32)m_OutBlob.size(), 0,
+                                                   &blob);
+
+    if(FAILED(hr))
+    {
+      RDCWARN("Couldn't create DXC byte blob");
+      SAFE_RELEASE(validator);
+      SAFE_RELEASE(library);
+      SAFE_RELEASE(blob);
+      return;
+    }
+
+    IDxcOperationResult *result;
+    validator->Validate(blob, DxcValidatorFlags_Default, &result);
+
+    if(!result)
+    {
+      RDCWARN("Couldn't validate shader blob");
+      SAFE_RELEASE(validator);
+      SAFE_RELEASE(library);
+      SAFE_RELEASE(blob);
+      return;
+    }
+
+    SAFE_RELEASE(blob);
+
+    result->GetStatus(&hr);
+    if(FAILED(hr))
+    {
+      rdcstr err;
+      result->GetErrorBuffer(&blob);
+      if(blob)
+      {
+        IDxcBlobEncoding *utf8 = NULL;
+        library->GetBlobAsUtf8(blob, &utf8);
+
+        if(utf8)
+          err = (char *)utf8->GetBufferPointer();
+
+        SAFE_RELEASE(utf8);
+      }
+      SAFE_RELEASE(blob);
+
+      if(err.empty())
+        RDCERR("DXIL validation failed but couldn't get error string");
+      else
+        RDCERR("DXIL validation failed: %s", err.c_str());
+    }
+
+    SAFE_RELEASE(validator);
+    SAFE_RELEASE(library);
+    SAFE_RELEASE(result);
+  }
+#endif
 }
 
 #define getAttribID(a) uint64_t(a - m_AttributeSets.begin())

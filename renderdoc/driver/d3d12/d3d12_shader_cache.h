@@ -61,6 +61,8 @@ public:
   ID3DBlob *MakeFixedColShader(FixedColVariant variant, bool dxil = false);
   ID3DBlob *GetQuadShaderDXILBlob();
 
+  void LoadDXC();
+
   void SetCaching(bool enabled) { m_CacheShaders = enabled; }
 private:
   static const uint32_t m_ShaderCacheMagic = 0xf000baba;
