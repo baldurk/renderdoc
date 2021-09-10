@@ -1256,8 +1256,8 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
   TryFetchSeparateDebugInfo(m_ShaderBlob, debugInfoPath);
 
   // just for convenience
-  char *data = (char *)m_ShaderBlob.data();
-  char *debugData = (char *)m_DebugShaderBlob.data();
+  byte *data = (byte *)m_ShaderBlob.data();
+  byte *debugData = (byte *)m_DebugShaderBlob.data();
 
   FileHeader *header = (FileHeader *)data;
   FileHeader *debugHeader = (FileHeader *)debugData;
@@ -1567,6 +1567,14 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
     {
       // we avoiding parsing these immediately because you can get both in a dxbc, so we prefer the
       // debug version.
+      // we do remember where the non-debug DXIL is though so we can return it for editing (we only
+      // edit non-debug DXIL)
+
+      if(*fourcc == FOURCC_DXIL)
+      {
+        m_NonDebugDXILByteCodeOffset = chunkContents - data;
+        m_NonDebugDXILByteCodeSize = *chunkSize;
+      }
     }
     else if(*fourcc == FOURCC_ILDN)
     {

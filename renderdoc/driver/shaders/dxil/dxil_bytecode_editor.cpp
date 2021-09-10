@@ -30,8 +30,7 @@
 #include "llvm_encoder.h"
 
 DXIL::ProgramEditor::ProgramEditor(const DXBC::DXBCContainer *container, bytebuf &outBlob)
-    : Program(container->GetDXILByteCode()->GetBytes().data(),
-              container->GetDXILByteCode()->GetBytes().size()),
+    : Program(container->GetNonDebugDXILByteCode(), container->GetNonDebugDXILByteCodeSize()),
       m_OutBlob(outBlob)
 {
   m_OutBlob = container->GetShaderBlob();

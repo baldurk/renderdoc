@@ -173,6 +173,11 @@ public:
   DXIL::Program *GetDXILByteCode() { return m_DXILByteCode; }
   static void GetHash(uint32_t hash[4], const void *ByteCode, size_t BytecodeLength);
 
+  const byte *GetNonDebugDXILByteCode() const
+  {
+    return m_ShaderBlob.data() + m_NonDebugDXILByteCodeOffset;
+  }
+  size_t GetNonDebugDXILByteCodeSize() const { return m_NonDebugDXILByteCodeSize; }
   static bool IsHashedContainer(const void *ByteCode, size_t BytecodeLength);
   static bool HashContainer(void *ByteCode, size_t BytecodeLength);
 
@@ -202,6 +207,9 @@ private:
 
   rdcstr m_DebugFileName;
   GlobalShaderFlags m_GlobalFlags = GlobalShaderFlags::None;
+
+  size_t m_NonDebugDXILByteCodeOffset = 0;
+  size_t m_NonDebugDXILByteCodeSize = 0;
 
   ShaderStatistics m_ShaderStats;
   DXBCBytecode::Program *m_DXBCByteCode = NULL;
