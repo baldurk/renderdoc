@@ -1387,6 +1387,8 @@ VkResult WrappedVulkan::vkBindBufferMemory(VkDevice device, VkBuffer buffer, VkD
                                                         eFrameRef_ReadBeforeWrite);
       GetResourceManager()->MarkMemoryFrameReferenced(id, memoryOffset, record->memSize,
                                                       eFrameRef_ReadBeforeWrite);
+
+      memrecord->hasBDA = true;
     }
 
     // the memory is immediately dirty because we don't use dirty tracking, it's too expensive to

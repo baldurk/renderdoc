@@ -2195,6 +2195,7 @@ public:
   VkResourceType resType;
   bool storable = false;
   bool dedicated = false;
+  bool hasBDA = false;
 
   void MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSize offset, VkDeviceSize size,
                                  FrameRefType refType);

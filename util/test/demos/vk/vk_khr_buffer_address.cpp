@@ -296,15 +296,18 @@ void main()
       // look ma, no binds
       DrawData *bindptr = drawsgpu;
       drawscpu[0].scale.x = (abs(sinf(time)) + 0.1f) * 0.5f;
+      drawscpu[0].scale.y = 0.5f;
       vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_ALL, 0, 8, &bindptr);
       vkCmdDraw(cmd, 3, 1, 0, 0);
 
       bindptr++;
+      drawscpu[1].scale.x = 0.5f;
       drawscpu[1].scale.y = (abs(cosf(time)) + 0.1f) * 0.5f;
       vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_ALL, 0, 8, &bindptr);
       vkCmdDraw(cmd, 3, 1, 0, 0);
 
       bindptr++;
+      drawscpu[2].scale = Vec2f(0.5f, 0.5f);
       drawscpu[2].tint = Vec4f(cosf(time) * 0.5f + 0.5f, sinf(time) * 0.5f + 0.5f,
                                cosf(time + 3.14f) * 0.5f + 0.5f, 1.0f);
       vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_ALL, 0, 8, &bindptr);
@@ -317,6 +320,12 @@ void main()
       vkEndCommandBuffer(cmd);
 
       Submit(0, 1, {cmd});
+
+      vkDeviceWaitIdle(device);
+
+      drawscpu[0].scale = Vec2f(0.0f, 0.0f);
+      drawscpu[1].scale = Vec2f(0.0f, 0.0f);
+      drawscpu[2].scale = Vec2f(0.0f, 0.0f);
 
       Present();
 

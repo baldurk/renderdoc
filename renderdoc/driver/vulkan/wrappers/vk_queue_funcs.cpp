@@ -1013,8 +1013,9 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
       // potential persistent map
       if(state.mapCoherent && state.mappedPtr && !state.mapFlushed)
       {
-        // only need to flush memory that could affect this submitted batch of work
-        if(refdIDs.find(record->GetResourceID()) == refdIDs.end())
+        // only need to flush memory that could affect this submitted batch of work, or if there are
+        // BDA buffers bound (as we can't track those!)
+        if(!record->hasBDA && refdIDs.find(record->GetResourceID()) == refdIDs.end())
         {
           RDCDEBUG("Map of memory %s not referenced in this queue - not flushing",
                    ToStr(record->GetResourceID()).c_str());
