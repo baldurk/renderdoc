@@ -233,7 +233,7 @@ bool WrappedVulkan::Serialise_vkCmdSetScissorWithCountEXT(SerialiserType &ser,
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(scissorCount);
-  SERIALISE_ELEMENT_ARRAY(pScissors, scissorCount);
+  SERIALISE_ELEMENT_ARRAY(pScissors, scissorCount).Important();
 
   Serialise_DebugMessages(ser);
 
