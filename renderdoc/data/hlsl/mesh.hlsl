@@ -44,7 +44,14 @@ meshV2F RENDERDOC_MeshVS(meshA2V IN, uint vid : SV_VertexID)
   float2 psprite[4] = {float2(-1.0f, -1.0f), float2(-1.0f, 1.0f), float2(1.0f, -1.0f),
                        float2(1.0f, 1.0f)};
 
-  OUT.pos = mul(IN.pos, ModelViewProj);
+  float4 pos = IN.pos;
+
+  if(homogenousInput == 0u)
+  {
+    pos = float4(pos.xyz, 1);
+  }
+
+  OUT.pos = mul(pos, ModelViewProj);
   OUT.pos.xy += SpriteSize.xy * 0.01f * psprite[vid % 4] * OUT.pos.w;
   OUT.norm = float3(0, 0, 1);
   OUT.secondary = IN.secondary;

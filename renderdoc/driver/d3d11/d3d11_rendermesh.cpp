@@ -54,6 +54,7 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
 
   vertexData.ModelViewProj = projMat.Mul(camMat);
   vertexData.SpriteSize = Vec2f();
+  vertexData.homogenousInput = cfg.position.unproject;
 
   Vec4f col(0.0f, 0.0f, 0.0f, 1.0f);
   ID3D11Buffer *psCBuf = GetDebugManager()->MakeCBuffer(&col, sizeof(col));
@@ -319,6 +320,8 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
   }
 
   m_pImmediateContext->RSSetState(m_MeshRender.WireframeRasterState);
+
+  vertexData.homogenousInput = 0U;
 
   // set up state for drawing helpers
   {

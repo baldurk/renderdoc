@@ -267,6 +267,7 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
 
   vertexData.ModelViewProj = projMat.Mul(camMat);
   vertexData.SpriteSize = Vec2f();
+  vertexData.homogenousInput = cfg.position.unproject;
 
   MeshPixelCBuffer pixelData;
 
@@ -543,6 +544,10 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
 
   pixelData.MeshDisplayFormat = MESHDISPLAY_SOLID;
 
+  vertexData.homogenousInput = 0U;
+
+  vsCB = GetDebugManager()->UploadConstants(&vertexData, sizeof(vertexData));
+
   // cache pipelines for use in drawing wireframe helpers
   cache = GetDebugManager()->CacheMeshDisplayPipelines(helper, helper);
 
@@ -584,6 +589,9 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
 
     list->SetPipelineState(cache.pipes[MeshDisplayPipelines::ePipe_WireDepth]);
 
+    list->SetGraphicsRootConstantBufferView(0, vsCB);
+    list->SetGraphicsRootConstantBufferView(1, vsCB);
+
     list->DrawInstanced(24, 1, 0, 0);
   }
 
@@ -605,6 +613,9 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
     list->IASetVertexBuffers(0, 1, &view);
 
     list->SetPipelineState(cache.pipes[MeshDisplayPipelines::ePipe_Wire]);
+
+    list->SetGraphicsRootConstantBufferView(0, vsCB);
+    list->SetGraphicsRootConstantBufferView(1, vsCB);
 
     pixelData.MeshColour = Vec3f(1.0f, 0.0f, 0.0f);
     list->SetGraphicsRoot32BitConstants(2, 4, &pixelData, 0);
@@ -654,6 +665,9 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
     list->SetGraphicsRoot32BitConstants(2, 4, &pixelData, 0);
 
     list->SetPipelineState(cache.pipes[MeshDisplayPipelines::ePipe_Wire]);
+
+    list->SetGraphicsRootConstantBufferView(0, vsCB);
+    list->SetGraphicsRootConstantBufferView(1, vsCB);
 
     list->DrawInstanced(24, 1, 0, 0);
   }

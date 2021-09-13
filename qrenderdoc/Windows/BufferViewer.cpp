@@ -3230,7 +3230,6 @@ void BufferViewer::UI_CalculateMeshFormats()
         }
 
         m_VSInPosition.format = prop.format;
-        m_VSInPosition.format.compCount = qMin((uint8_t)3, m_VSInPosition.format.compCount);
       }
 
       elIdx = m_ModelVSIn->secondaryColumn();
@@ -3285,11 +3284,7 @@ void BufferViewer::UI_CalculateMeshFormats()
       // if geometry/tessellation is enabled, don't unproject VS output data
       if(m_Ctx.CurPipelineState().GetShader(ShaderStage::Tess_Eval) != ResourceId() ||
          m_Ctx.CurPipelineState().GetShader(ShaderStage::Geometry) != ResourceId())
-      {
         m_PostVSPosition.unproject = false;
-        // ignore any W component that might be there, let it be filled in with 1.0
-        m_PostVSPosition.format.compCount = qMin((uint8_t)3, m_VSInPosition.format.compCount);
-      }
 
       elIdx = m_ModelVSOut->secondaryColumn();
 

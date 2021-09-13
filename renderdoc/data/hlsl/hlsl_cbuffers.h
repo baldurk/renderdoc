@@ -102,6 +102,8 @@ cbuffer MeshVertexCBuffer REG(b0)
   row_major float4x4 ModelViewProj;
 
   float2 SpriteSize;
+
+  uint homogenousInput;
 };
 
 cbuffer MeshGeometryCBuffer REG(b0)
