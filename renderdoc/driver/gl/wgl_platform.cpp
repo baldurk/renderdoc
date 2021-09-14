@@ -70,10 +70,16 @@ class WGLPlatform : public GLPlatform
   virtual void PopChildContext(GLWindowingData existing, GLWindowingData newChild,
                                GLWindowingData saved)
   {
-    MakeContextCurrent(saved);
-    // release the DC now, if we didn't use our own because theirs was invalid
-    if(saved.DC != newChild.DC)
-      ::ReleaseDC(saved.wnd, saved.DC);
+    // if possible we want to use the existing DC so that we have a valid DC for further work (the
+    // cloned one we're making is going to be destroyed). First try to rebind the existing as-is,
+    // and only if that fails - e.g. due to a stale DC - use our cloned one to rebind the context
+    if(!MakeContextCurrent(existing))
+    {
+      MakeContextCurrent(saved);
+      // release the DC now, if we didn't use our own because theirs was invalid
+      if(saved.DC != newChild.DC)
+        ::ReleaseDC(saved.wnd, saved.DC);
+    }
   }
   GLWindowingData CloneTemporaryContext(GLWindowingData share)
   {

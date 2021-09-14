@@ -101,7 +101,15 @@ void WGLHook::PopulateFromContext(HDC dc, HGLRC rc)
     });
 
     // restore DC/context
-    WGL.wglMakeCurrent(prevDC, prevContext);
+    if(!WGL.wglMakeCurrent(prevDC, prevContext))
+    {
+      RDCWARN(
+          "Couldn't restore prev context %p with prev DC %p - possibly stale. Using new DC %p to "
+          "ensure context is rebound properly",
+          prevContext, prevDC, dc);
+
+      WGL.wglMakeCurrent(dc, prevContext);
+    }
   }
 }
 
