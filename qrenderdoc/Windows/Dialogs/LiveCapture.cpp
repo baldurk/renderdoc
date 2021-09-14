@@ -801,6 +801,16 @@ void LiveCapture::openCapture(Capture *cap)
 
 bool LiveCapture::saveCapture(Capture *cap, QString path)
 {
+  // if this is the current capture, do the save through the main window
+  if(QString(m_Ctx.GetCaptureFilename()) == cap->path)
+  {
+    // if there's no target path, let the main window prompt for save.
+    if(path.isEmpty())
+      return m_Main->PromptSaveCaptureAs();
+    else
+      return m_Main->SaveCurrentCapture(path);
+  }
+
   if(path.isEmpty())
   {
     path = m_Main->GetSavePath();

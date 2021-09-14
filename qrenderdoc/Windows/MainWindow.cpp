@@ -1004,25 +1004,30 @@ bool MainWindow::PromptSaveCaptureAs()
   QString saveFilename = GetSavePath();
 
   if(!saveFilename.isEmpty())
-  {
-    QString origFilename = m_Ctx.GetCaptureFilename();
-
-    bool success = m_Ctx.SaveCaptureTo(saveFilename);
-
-    if(!success)
-      return false;
-
-    AddRecentFile(m_Ctx.Config().RecentCaptureFiles, saveFilename);
-    PopulateRecentCaptureFiles();
-    SetTitle(saveFilename);
-
-    for(LiveCapture *live : m_LiveCaptures)
-      live->fileSaved(origFilename, saveFilename);
-
-    return true;
-  }
+    return SaveCurrentCapture(saveFilename);
 
   return false;
+}
+
+bool MainWindow::SaveCurrentCapture(QString saveFilename)
+{
+  QString origFilename = m_Ctx.GetCaptureFilename();
+
+  bool success = m_Ctx.SaveCaptureTo(saveFilename);
+
+  if(!success)
+    return false;
+
+  AddRecentFile(m_Ctx.Config().RecentCaptureFiles, saveFilename);
+  PopulateRecentCaptureFiles();
+  SetTitle(saveFilename);
+
+  for(LiveCapture *live : m_LiveCaptures)
+    live->fileSaved(origFilename, saveFilename);
+
+  ui->action_Save_Capture_Inplace->setEnabled(false);
+
+  return true;
 }
 
 void MainWindow::exportCapture(const CaptureFileFormat &fmt)

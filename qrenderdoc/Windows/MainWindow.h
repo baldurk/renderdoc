@@ -115,6 +115,10 @@ public:
   void ShowLiveCapture(LiveCapture *live);
   void LiveCaptureClosed(LiveCapture *live);
 
+  bool PromptCloseCapture();
+  bool PromptSaveCaptureAs();
+  bool SaveCurrentCapture(QString saveFilename);
+
   void RemoveRecentCapture(const QString &filename);
 
   QMenu *GetBaseMenu(WindowMenu base, rdcstr name);
@@ -279,8 +283,6 @@ private:
   void recentCaptureFile(const QString &filename);
   void recentCaptureSetting(const QString &filename);
 
-  bool PromptCloseCapture();
-  bool PromptSaveCaptureAs();
   void OpenCaptureConfigFile(const QString &filename, bool exe);
 
   QVariantMap saveState();
