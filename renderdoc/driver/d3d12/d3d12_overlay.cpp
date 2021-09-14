@@ -1161,6 +1161,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       MeshVertexCBuffer vertexData = {};
       vertexData.ModelViewProj = Matrix4f::Identity();
       vertexData.SpriteSize = Vec2f();
+      vertexData.homogenousInput = 1U;
 
       D3D12RenderState::SignatureElement vertexElem(eRootCBV, ResourceId(), 0);
       WrappedID3D12Resource::GetResIDFromAddr(

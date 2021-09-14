@@ -817,6 +817,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
     MeshVertexCBuffer vertexData = {};
     vertexData.ModelViewProj = Matrix4f::Identity();
     vertexData.SpriteSize = Vec2f();
+    vertexData.homogenousInput = 1U;
     ID3D11Buffer *vsBuf = GetDebugManager()->MakeCBuffer(&vertexData, sizeof(vertexData));
 
     float overlayConsts[] = {0.0f, 0.0f, 0.0f, 0.0f};
