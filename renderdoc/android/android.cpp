@@ -96,7 +96,7 @@ rdcstr GetDefaultActivityForPackage(const rdcstr &deviceID, const rdcstr &packag
   {
     line.trim();
 
-    if(line.beginsWith("name="))
+    if(line.beginsWith("name=") && !line.contains("com.android"))
     {
       return line.substr(5);
     }
