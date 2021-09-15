@@ -1707,13 +1707,7 @@
     </CustomBuild>
     <CustomBuild Include="Resources\qtconf.qrc">
       <AdditionalInputs>Resources\qtconf.qrc;$(QtBinDir)\rcc.exe;%(AdditionalInputs)</AdditionalInputs>
-      <Command>"$(QtBinDir)\rcc.exe" -name qtconf Resources\qtconf.qrc -o "$(IntDir)generated\qrc_qtconf.cpp"
-IF %ERRORLEVEL% NEQ 0 (echo ===========================================================================)
-IF %ERRORLEVEL% NEQ 0 (echo It looks like you don't have the dependencies for the Qt UI.)
-IF %ERRORLEVEL% NEQ 0 (echo Until v1.0 is approaching stable, these aren't committed to the repository.)
-IF %ERRORLEVEL% NEQ 0 (echo Download and extract https://renderdoc.org/qrenderdoc_3rdparty.zip.)
-IF %ERRORLEVEL% NEQ 0 (echo ===========================================================================)
-</Command>
+      <Command>"$(QtBinDir)\rcc.exe" -name qtconf Resources\qtconf.qrc -o "$(IntDir)generated\qrc_qtconf.cpp"</Command>
       <Message>RCC qtconf.qrc</Message>
       <Outputs>$(IntDir)generated\qrc_qtconf.cpp</Outputs>
     </CustomBuild>

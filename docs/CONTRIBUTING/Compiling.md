@@ -2,7 +2,7 @@
 
 ## Windows
 
-The main [renderdoc.sln](renderdoc.sln) is a VS2015 solution. It should also compile in VS2017, just select to update the compilers if you don't have the 2015 compilers available.
+The main [renderdoc.sln](renderdoc.sln) is a VS2015 solution. It should also compile in later VS versions, just select to update the compilers if you don't have the 2015 compilers available.
 
 There are no external dependencies apart from the Windows SDK and any version will work, otherwise all libraries/headers needed to build are included in the git checkout.
 
