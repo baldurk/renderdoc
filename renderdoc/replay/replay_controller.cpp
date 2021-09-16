@@ -2153,20 +2153,25 @@ ReplayStatus ReplayController::PostCreateInit(IReplayDriver *device, RDCFile *rd
     return status;
 
   m_Buffers = m_pDevice->GetBuffers();
+  FatalErrorCheck();
   m_Textures = m_pDevice->GetTextures();
+  FatalErrorCheck();
   m_Resources = m_pDevice->GetResources();
+  FatalErrorCheck();
 
   m_FrameRecord = m_pDevice->GetFrameRecord();
+  FatalErrorCheck();
 
-  if(m_FrameRecord.actionList.empty())
+  if(m_FrameRecord.actionList.empty() || m_FatalError != ReplayStatus::Succeeded)
     return ReplayStatus::APIReplayFailed;
 
   m_Actions.clear();
   SetupActionPointers(m_Actions, m_FrameRecord.actionList);
 
   FetchPipelineState(m_Actions.back()->eventId);
+  FatalErrorCheck();
 
-  return ReplayStatus::Succeeded;
+  return m_FatalError;
 }
 
 void ReplayController::FileChanged()
