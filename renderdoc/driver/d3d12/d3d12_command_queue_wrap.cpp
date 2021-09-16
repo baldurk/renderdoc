@@ -506,12 +506,21 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
             // ensure all work on all queues has finished
             m_pDevice->GPUSyncAllQueues();
 
+            if(m_pDevice->HasFatalError())
+              return false;
+
             // readback the patch buffer and perform patching
             m_ReplayList->PatchExecuteIndirect(info, uint32_t(c - 1));
+
+            if(m_pDevice->HasFatalError())
+              return false;
 
             // execute next list with this indirect.
             list = Unwrap(info.crackedLists[c]);
             real->ExecuteCommandLists(1, &list);
+
+            if(m_pDevice->HasFatalError())
+              return false;
           }
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)

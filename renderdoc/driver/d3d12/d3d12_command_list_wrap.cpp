@@ -3528,7 +3528,11 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
   {
     bytebuf data;
     m_pDevice->GetDebugManager()->GetBufferData(exec.countBuf, exec.countOffs, 4, data);
-    count = RDCMIN(count, *(uint32_t *)&data[0]);
+
+    if(data.size() < sizeof(uint32_t))
+      count = 0;
+    else
+      count = RDCMIN(count, *(uint32_t *)&data[0]);
   }
 
   exec.realCount = count;
@@ -3542,6 +3546,9 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
   D3D12_RANGE range = {0, D3D12CommandData::m_IndirectSize};
   byte *mapPtr = NULL;
   m_pDevice->CheckHRESULT(exec.argBuf->Map(0, &range, (void **)&mapPtr));
+
+  if(m_pDevice->HasFatalError())
+    return;
 
   rdcarray<D3D12ActionTreeNode> &actions = info.action->children;
 
