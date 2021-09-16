@@ -1869,10 +1869,15 @@ Available numeric properties. Compare with <code>$event(prop > 100)</code> or <c
       return NULL;
     }
 
-    int operatorIdx = operators.indexOf(tokens[1].text);
+    int operatorIdx = -1;
 
-    if(tokens[1].text == lit("="))
-      operatorIdx = 0;
+    if(tokens.size() >= 2)
+    {
+      operatorIdx = operators.indexOf(tokens[1].text);
+
+      if(tokens[1].text == lit("="))
+        operatorIdx = 0;
+    }
 
     if(tokens.size() != 3 || operatorIdx < 0 || operatorIdx >= operators.size())
     {
@@ -2269,7 +2274,7 @@ and these can be queried with a filter such as <code>$action(flags & Clear|Clear
       if(tokens.size() < 3 || (tokens[1].text != lit("&") && tokens[1].text != lit("=")))
       {
         trace.position = tokens[0].position;
-        trace.length = (tokens[1].position + tokens[1].length) - trace.position + 1;
+        trace.length = (tokens.back().position + tokens.back().length) - trace.position + 1;
         trace.setError(tr("Expected $action(flags & ...)", "EventFilterModel"));
         return NULL;
       }
