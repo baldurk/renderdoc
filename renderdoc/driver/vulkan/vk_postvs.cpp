@@ -1642,6 +1642,8 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
   }
 
   uint32_t idxsize = state.ibuffer.bytewidth;
+  if(idxsize == 0)
+    idxsize = 4U;
 
   uint32_t maxIndex = RDCMAX(action->baseVertex, 0) + numVerts - 1;
 
