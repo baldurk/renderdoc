@@ -338,6 +338,7 @@
       <Merge Id="VCRedist64" DiskId="1" Language="0" SourceFile="C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Redist\MSVC\v142\MergeModules\Microsoft_VC142_CRT_x86.msm"/>
     </DirectoryRef>
 
+    <!-- check if the runtime is installed -->
     <Property Id="VCRT64INSTALLED" Value="0">
       <RegistrySearch Id="VCRT64Key"
         Root="HKLM"
@@ -355,6 +356,60 @@
         Win64="no"
         Type="raw" />
     </Property>
+
+    <!-- grab the major/minor version numbers, as we need to check if 2019 is installed or only an older version -->
+    <Property Id="VCRT64MAJOR" Value="0">
+      <RegistrySearch Id="VCRT64MajorKey"
+        Root="HKLM"
+        Key="Software\Microsoft\VisualStudio\14.0\VC\Runtimes\x64"
+        Name="Major"
+        Win64="yes"
+        Type="raw" />
+    </Property>
+
+    <Property Id="VCRT64MINOR" Value="0">
+      <RegistrySearch Id="VCRT64MinorKey"
+        Root="HKLM"
+        Key="Software\Microsoft\VisualStudio\14.0\VC\Runtimes\x64"
+        Name="Minor"
+        Win64="yes"
+        Type="raw" />
+    </Property>
+
+    <Property Id="VCRT32MAJOR" Value="0">
+      <RegistrySearch Id="VCRT32MajorKey"
+        Root="HKLM"
+        Key="Software\Microsoft\VisualStudio\14.0\VC\Runtimes\x86"
+        Name="Major"
+        Win64="no"
+        Type="raw" />
+    </Property>
+
+    <Property Id="VCRT32MINOR" Value="0">
+      <RegistrySearch Id="VCRT32MinorKey"
+        Root="HKLM"
+        Key="Software\Microsoft\VisualStudio\14.0\VC\Runtimes\x86"
+        Name="Minor"
+        Win64="no"
+        Type="raw" />
+    </Property>
+
+    <!-- the versions are stored in DWORDs which windows installer returns as #14 etc. We need to strip the # to actually compare :( -->
+    <CustomAction Id="RemoveHash" Script="vbscript">
+      <![CDATA[
+        Session.Property("VCRT64MAJOR") = Replace(Session.Property("VCRT64MAJOR"),"#","")
+        Session.Property("VCRT64MINOR") = Replace(Session.Property("VCRT64MINOR"),"#","")
+        Session.Property("VCRT32MAJOR") = Replace(Session.Property("VCRT32MAJOR"),"#","")
+        Session.Property("VCRT32MINOR") = Replace(Session.Property("VCRT32MINOR"),"#","")
+        ]]>
+    </CustomAction>
+
+    <InstallExecuteSequence>
+      <Custom Action="RemoveHash" Before="LaunchConditions"/>
+    </InstallExecuteSequence>
+    <InstallUISequence>
+      <Custom Action="RemoveHash" Before="LaunchConditions"/>
+    </InstallUISequence>
 
     <Feature Id='Complete' Title='RenderDoc' Description='Everything included.' AllowAdvertise='no' Absent='disallow' Display='expand' Level='1' ConfigurableDirectory='INSTALLDIR'>
       <Feature Id='MainProgram' Title='Program' Description='The main executable with everything needed to capture and replay.' AllowAdvertise='no' Absent='disallow' Level='1'>
@@ -386,17 +441,18 @@
 
       </Feature>
 
-      <Feature Id='VCRedist32' Title='Visual C++ 2015 Runtime Update 3 (x86)' AllowAdvertise="no" Display="hidden" Level="1">
+      <Feature Id='VCRedist32' Title='Visual C++ 2019 Runtime (x86)' AllowAdvertise="no" Display="hidden" Level="1">
+        <!-- install the redist either if it's not installed at all, or if it's too old (14.20 is the first VS2019 redist) -->
         <Condition Level='0'>
-          <![CDATA[Installed OR (VCRT32INSTALLED <> "0")]]>
+          <![CDATA[Installed OR (VCRT32INSTALLED <> "0" AND VCRT32MAJOR >= "14" AND VCRT32MINOR >= "20")]]>
         </Condition>
 
         <MergeRef Id="VCRedist32"/>
       </Feature>
 
-      <Feature Id='VCRedist64' Title='Visual C++ 2015 Runtime Update 3 (x64)' AllowAdvertise="no" Display="hidden" Level="1">
+      <Feature Id='VCRedist64' Title='Visual C++ 2019 Runtime (x64)' AllowAdvertise="no" Display="hidden" Level="1">
         <Condition Level='0'>
-          <![CDATA[Installed OR (VCRT64INSTALLED <> "0")]]>
+          <![CDATA[Installed OR (VCRT64INSTALLED <> "0" AND VCRT64MAJOR >= "14" AND VCRT64MINOR >= "20")]]>
         </Condition>
 
         <MergeRef Id="VCRedist64"/>
