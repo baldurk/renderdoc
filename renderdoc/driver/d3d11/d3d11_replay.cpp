@@ -727,6 +727,8 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
   D3D11ResourceManager *rm = m_pDevice->GetResourceManager();
 
   ret.inputAssembly.bytecode = NULL;
+  ret.inputAssembly.resourceId = ResourceId();
+  ret.inputAssembly.layouts.clear();
 
   if(rs->IA.Layout)
   {
