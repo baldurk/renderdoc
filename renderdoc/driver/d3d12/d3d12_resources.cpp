@@ -355,7 +355,8 @@ WrappedID3D12DescriptorHeap::WrappedID3D12DescriptorHeap(ID3D12DescriptorHeap *r
     : WrappedDeviceChild12(real, device)
 {
   realCPUBase = real->GetCPUDescriptorHandleForHeapStart();
-  realGPUBase = real->GetGPUDescriptorHandleForHeapStart();
+  if(desc.Flags & D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE)
+    realGPUBase = real->GetGPUDescriptorHandleForHeapStart();
 
   increment = device->GetUnwrappedDescriptorIncrement(desc.Type);
   numDescriptors = UnpatchedNumDescriptors;
