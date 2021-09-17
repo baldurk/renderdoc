@@ -1162,6 +1162,19 @@ void WrappedID3D11DeviceContext::AddEvent()
 
   apievent.chunkIndex = uint32_t(m_StructuredFile->chunks.size() - 1);
 
+  // if we're using replay-time debug messages, fetch them now since we can do better to correlate
+  // to events on replay
+  if(m_pDevice->GetReplayOptions().apiValidation)
+  {
+    rdcarray<DebugMessage> messages = m_pDevice->GetDebugMessages();
+
+    for(size_t i = 0; i < messages.size(); i++)
+    {
+      messages[i].eventId = apievent.eventId;
+      m_pDevice->AddDebugMessage(messages[i]);
+    }
+  }
+
   m_CurEvents.push_back(apievent);
 
   if(IsLoading(m_State))
