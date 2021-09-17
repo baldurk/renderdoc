@@ -931,7 +931,12 @@ public:
     m_State = CaptureState::StructuredExport;
   }
   SDFile *GetStructuredFile() { return m_StructuredFile; }
-  void DetachStructuredFile() { m_StoredStructuredData = m_StructuredFile = NULL; }
+  SDFile *DetachStructuredFile()
+  {
+    SDFile *ret = m_StoredStructuredData;
+    m_StoredStructuredData = m_StructuredFile = NULL;
+    return ret;
+  }
   uint64_t GetTimeBase() { return m_TimeBase; }
   double GetTimeFrequency() { return m_TimeFrequency; }
   // interface for DXGI

@@ -24,16 +24,17 @@
 
 #include "dummy_driver.h"
 
-DummyDriver::DummyDriver(IReplayDriver *original, const rdcarray<ShaderReflection *> &shaders)
+DummyDriver::DummyDriver(IReplayDriver *original, const rdcarray<ShaderReflection *> &shaders,
+                         SDFile *sdfile)
 {
   m_Shaders = shaders;
+  m_SDFile = sdfile;
 
   m_Props = original->GetAPIProperties();
   m_Resources = original->GetResources();
   m_Buffers = original->GetBuffers();
   m_Textures = original->GetTextures();
   m_FrameRecord = original->GetFrameRecord();
-  m_SDFile = original->GetStructuredFile();
   m_TargetEncodings = original->GetTargetShaderEncodings();
   m_DriverInfo = original->GetDriverInfo();
 

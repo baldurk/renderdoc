@@ -33,7 +33,7 @@
 class DummyDriver : public IReplayDriver
 {
 public:
-  DummyDriver(IReplayDriver *original, const rdcarray<ShaderReflection *> &shaders);
+  DummyDriver(IReplayDriver *original, const rdcarray<ShaderReflection *> &shaders, SDFile *sdfile);
 
   void Shutdown();
 

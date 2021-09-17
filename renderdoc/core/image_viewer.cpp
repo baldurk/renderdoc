@@ -89,7 +89,7 @@ public:
   }
   IReplayDriver *MakeDummyDriver()
   {
-    IReplayDriver *ret = new DummyDriver(this, {});
+    IReplayDriver *ret = new DummyDriver(this, {}, m_File);
     // lose our structured file reference
     m_File = NULL;
     return ret;

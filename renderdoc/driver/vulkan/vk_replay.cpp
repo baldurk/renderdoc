@@ -104,10 +104,7 @@ IReplayDriver *VulkanReplay::MakeDummyDriver()
     }
   }
 
-  IReplayDriver *dummy = new DummyDriver(this, shaders);
-
-  // the dummy driver now owns the file, remove our reference
-  m_pDriver->DetachStructuredFile();
+  IReplayDriver *dummy = new DummyDriver(this, shaders, m_pDriver->DetachStructuredFile());
 
   return dummy;
 }

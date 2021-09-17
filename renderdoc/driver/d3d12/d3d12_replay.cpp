@@ -126,10 +126,7 @@ IReplayDriver *D3D12Replay::MakeDummyDriver()
   rdcarray<ShaderReflection *> shaders;
   WrappedID3D12Shader::GetReflections(shaders);
 
-  IReplayDriver *dummy = new DummyDriver(this, shaders);
-
-  // the dummy driver now owns the file, remove our reference
-  m_pDevice->DetachStructuredFile();
+  IReplayDriver *dummy = new DummyDriver(this, shaders, m_pDevice->DetachStructuredFile());
 
   return dummy;
 }
