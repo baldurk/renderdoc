@@ -1110,7 +1110,7 @@ void D3D12PipelineStateViewer::setShaderState(
           lastView = views.size() - 1;
         }
 
-        for(size_t j = firstView; j <= lastView;)
+        for(size_t j = firstView; j < views.size() && j <= lastView;)
         {
           int shaderReg = (int)views[j].bind;
 
