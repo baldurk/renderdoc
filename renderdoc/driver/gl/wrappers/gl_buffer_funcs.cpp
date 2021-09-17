@@ -4941,7 +4941,7 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexBuffers(SerialiserType &ser, GL
 
     if(IsLoading(m_State))
     {
-      for(GLsizei i = 0; i < count; i++)
+      for(size_t i = 0; i < buffers.size(); i++)
       {
         m_Buffers[GetResourceManager()->GetResID(buffers[i])].curType = eGL_ARRAY_BUFFER;
         m_Buffers[GetResourceManager()->GetResID(buffers[i])].creationFlags |= BufferCategory::Vertex;
