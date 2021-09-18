@@ -1,4 +1,4 @@
-set(sources 
+set(sources
     renderdoccmd.cpp
     renderdoccmd.h
     3rdparty/cmdline/cmdline.h
@@ -27,7 +27,7 @@ elseif(ANDROID)
     include_directories(${ANDROID_NDK_ROOT_PATH}/sources/android/native_app_glue)
     list(APPEND libraries PRIVATE -llog -landroid)
     set(LINKER_FLAGS "-Wl,--no-as-needed")
-    
+
     if(ENABLE_ASAN)
         set(LINKER_FLAGS "${LINKER_FLAGS} -fsanitize=address")
     endif()
@@ -221,14 +221,14 @@ if(ANDROID)
         else()
             message(WARNING "Unknown ABI ${ANDROID_ABI}, libasan tag unknown")
         endif()
-        
+
         file(GLOB ASAN_LIBRARIES "${ANDROID_TOOLCHAIN_ROOT}/lib64/clang/*/lib/linux/libclang_rt.asan-${ASAN_ABI_TAG}-android.so")
         list(SORT ASAN_LIBRARIES)
 
         list(GET ASAN_LIBRARIES -1 ASAN_LIBRARY)
 
         set(WRAP_SCRIPT "${ANDROID_NDK_ROOT_PATH}/wrap.sh/asan.sh")
-        
+
         string(REPLACE "\\" "/" WRAP_SCRIPT "${WRAP_SCRIPT}")
         string(REPLACE "\\" "/" ASAN_LIBRARY "${ASAN_LIBRARY}")
 
@@ -245,11 +245,18 @@ if(ANDROID)
                 )
         endif()
     endif()
-    
+
+    set(D8_SCRIPT "${BUILD_TOOLS}/d8${TOOL_SCRIPT_EXTENSION}")
+    if(NOT EXISTS ${D8_SCRIPT})
+        set(DEX_COMMAND ${BUILD_TOOLS}/dx${TOOL_SCRIPT_EXTENSION} --dex --output=bin/classes.dex ./obj)
+    else()
+        set(DEX_COMMAND ${D8_SCRIPT} --output ./bin/ ./obj/org/renderdoc/renderdoccmd/*/*.class)
+    endif()
+
     add_custom_command(OUTPUT ${APK_FILE} APPEND
                        COMMAND ${BUILD_TOOLS}/aapt package -f -m -S res -J src -M AndroidManifest.xml -I ${ANDROID_JAR}
                        COMMAND ${JAVA_BIN}/javac -d ./obj -source 1.7 -target 1.7 -bootclasspath ${RT_JAR} -classpath "${CLASS_PATH}" -sourcepath src src/org/renderdoc/renderdoccmd/*.java
-                       COMMAND ${BUILD_TOOLS}/dx${TOOL_SCRIPT_EXTENSION} --dex --output=bin/classes.dex ./obj
+                       COMMAND ${DEX_COMMAND}
                        COMMAND ${BUILD_TOOLS}/aapt package -f -M AndroidManifest.xml --version-code ${APK_VERSION_CODE} --version-name ${APK_VERSION_NAME} -S res -I ${ANDROID_JAR} -F RenderDocCmd-unaligned.apk bin libs
                        COMMAND ${BUILD_TOOLS}/zipalign -f 4 RenderDocCmd-unaligned.apk RenderDocCmd.apk
                        COMMAND ${BUILD_TOOLS}/apksigner${TOOL_SCRIPT_EXTENSION} sign --ks ${KEYSTORE} --ks-pass pass:android --key-pass pass:android --ks-key-alias rdocandroidkey RenderDocCmd.apk
