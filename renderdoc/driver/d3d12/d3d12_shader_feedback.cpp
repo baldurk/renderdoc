@@ -24,6 +24,8 @@
 
 #include "core/settings.h"
 #include "driver/shaders/dxbc/dxbc_bytecode_editor.h"
+#include "driver/shaders/dxil/dxil_bytecode_editor.h"
+#include "driver/shaders/dxil/dxil_common.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_debug.h"
 #include "d3d12_device.h"
@@ -67,9 +69,9 @@ private:
   uint32_t used : 1;
 };
 
-static bool AnnotateShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
-                           const std::map<D3D12FeedbackKey, D3D12FeedbackSlot> &slots,
-                           bytebuf &editedBlob)
+static bool AnnotateDXBCShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
+                               const std::map<D3D12FeedbackKey, D3D12FeedbackSlot> &slots,
+                               bytebuf &editedBlob)
 {
   using namespace DXBCBytecode;
   using namespace DXBCBytecode::Edit;
@@ -180,6 +182,350 @@ static bool AnnotateShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
   return false;
 }
 
+static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
+                               const std::map<D3D12FeedbackKey, D3D12FeedbackSlot> &slots,
+                               bytebuf &editedBlob)
+{
+  DXIL::ProgramEditor editor(dxbc, slots.size(), editedBlob);
+
+  const DXIL::Type *i32 = editor.GetInt32Type();
+  const DXIL::Type *i8 = editor.GetInt8Type();
+  const DXIL::Type *i1 = editor.GetBoolType();
+
+  const DXIL::Type *handleType = editor.GetTypeByName("dx.types.Handle");
+  const DXIL::Function *createHandle = editor.GetFunctionByName("dx.op.createHandle");
+
+  // if we don't have the handle type then this shader can't use any dynamically! we have no
+  // feedback to get
+  if(!handleType || !createHandle)
+    return false;
+
+  // get the atomic function we'll need
+  const DXIL::Function *atomicBinOp = editor.GetFunctionByName("dx.op.atomicBinOp.i32");
+  if(!atomicBinOp)
+  {
+    DXIL::Type atomicType;
+    atomicType.type = DXIL::Type::Function;
+    // return type
+    atomicType.inner = i32;
+    atomicType.members = {i32, handleType, i32, i32, i32, i32, i32};
+
+    const DXIL::Type *funcType = editor.AddType(atomicType);
+
+    DXIL::Type funcPtrType;
+    funcPtrType.type = DXIL::Type::Pointer;
+    funcPtrType.inner = funcType;
+
+    DXIL::Function atomicFunc;
+    atomicFunc.name = "dx.op.atomicBinOp.i32";
+    atomicFunc.funcType = editor.AddType(funcPtrType);
+    atomicFunc.external = true;
+
+    for(const DXIL::AttributeSet &attrs : editor.GetAttributeSets())
+    {
+      if(attrs.functionSlot && attrs.functionSlot->params == DXIL::Attribute::NoUnwind)
+      {
+        atomicFunc.attrs = &attrs;
+        break;
+      }
+    }
+
+    if(!atomicFunc.attrs)
+      RDCWARN("Couldn't find existing nounwind attr set");
+    // should we add a set here? or assume the attrs don't matter because this is a builtin function
+    // anyway?
+
+    atomicBinOp = editor.DeclareFunction(atomicFunc);
+  }
+
+  // when we add metadata we do it in reverse order since it's unclear if we're supposed to have
+  // forward references (LLVM seems to handle it, but not emit it, so it's very much a grey area)
+  // we do this by recreating any nodes that we modify (or their parents recursively up to the named
+  // metadata)
+
+  // declare the resource, this happens purely in metadata but we need to store the slot
+  uint32_t regSlot = 0;
+  DXIL::Metadata *reslist = NULL;
+  {
+    const DXIL::Type *rw = editor.GetTypeByName("struct.RWByteAddressBuffer");
+
+    // declare the type if not present
+    if(!rw)
+    {
+      DXIL::Type rwType;
+      rwType.name = "struct.RWByteAddressBuffer";
+      rwType.type = DXIL::Type::Struct;
+      rwType.members = {i32};
+
+      rw = editor.AddType(rwType);
+    }
+
+    const DXIL::Type *rwptr = editor.GetPointerType(rw, DXIL::Type::PointerAddrSpace::Default);
+
+    if(!rwptr)
+    {
+      DXIL::Type rwPtrType;
+      rwPtrType.type = DXIL::Type::Pointer;
+      rwPtrType.addrSpace = DXIL::Type::PointerAddrSpace::Default;
+      rwPtrType.inner = rw;
+
+      rwptr = editor.AddType(rwPtrType);
+    }
+
+    DXIL::Metadata *resources = editor.GetMetadataByName("dx.resources");
+
+    // if there are no resources declared we can't have any dynamic indexing
+    if(!resources)
+      return false;
+
+    reslist = resources->children[0];
+
+    DXIL::Metadata *uavs = reslist->children[1];
+
+    for(size_t i = 0; uavs && i < uavs->children.size(); i++)
+    {
+      // each UAV child should have a fixed format, [0] is the reg ID and I think this should always
+      // be == the index
+      const DXIL::Metadata *uav = uavs->children[i];
+      const DXIL::Metadata *slot = uav->children[0];
+
+      if(slot->value.type != DXIL::ValueType::Constant)
+      {
+        RDCWARN("Unexpected non-constant slot ID in UAV");
+        continue;
+      }
+
+      RDCASSERT(slot->value.constant->val.u32v[0] == i);
+
+      regSlot = RDCMAX(slot->value.constant->val.u32v[0] + 1, regSlot);
+    }
+
+    DXIL::Metadata *uavRecord[11] = {
+        editor.AddMetadata(DXIL::Metadata()),
+        editor.AddMetadata(DXIL::Metadata()),
+        editor.AddMetadata(DXIL::Metadata()),
+        editor.AddMetadata(DXIL::Metadata()),
+        editor.AddMetadata(DXIL::Metadata()),
+        editor.AddMetadata(DXIL::Metadata()),
+        editor.AddMetadata(DXIL::Metadata()),
+        editor.AddMetadata(DXIL::Metadata()),
+        editor.AddMetadata(DXIL::Metadata()),
+        editor.AddMetadata(DXIL::Metadata()),
+        NULL,
+    };
+
+#define SET_CONST_META(m, t, v) \
+  m->isConstant = true;         \
+  m->type = t;                  \
+  m->value = DXIL::Value(editor.GetOrAddConstant(DXIL::Constant(t, v)));
+
+    // linear reg slot/ID
+    SET_CONST_META(uavRecord[0], i32, regSlot);
+    // variable
+    {
+      DXIL::Constant c;
+      c.type = rwptr;
+      c.undef = true;
+      uavRecord[1]->isConstant = true;
+      uavRecord[1]->type = rwptr;
+      uavRecord[1]->value = DXIL::Value(editor.GetOrAddConstant(c));
+    }
+    // name, empty
+    uavRecord[2]->isString = true;
+    // reg space
+    SET_CONST_META(uavRecord[3], i32, space);
+    // reg base
+    SET_CONST_META(uavRecord[4], i32, 0U);
+    // reg count
+    SET_CONST_META(uavRecord[5], i32, 1U);
+    // shape
+    SET_CONST_META(uavRecord[6], i32, uint32_t(DXIL::ResourceKind::RawBuffer));
+    // globally coherent
+    SET_CONST_META(uavRecord[7], i1, 0U);
+    // hidden counter
+    SET_CONST_META(uavRecord[8], i1, 0U);
+    // raster order
+    SET_CONST_META(uavRecord[9], i1, 0U);
+    // UAV tags
+    uavRecord[10] = NULL;
+
+    // create the new UAV record
+    DXIL::Metadata *feedbackuav = editor.AddMetadata(DXIL::Metadata());
+    feedbackuav->children.assign(uavRecord, ARRAY_COUNT(uavRecord));
+
+    // now push our record onto a new UAV list (either copied from the existing, or created fresh if
+    // there isn't an existing one). This ensures it has all backwards references
+    if(uavs)
+      uavs = editor.AddMetadata(*uavs);
+    else
+      uavs = editor.AddMetadata(DXIL::Metadata());
+
+    uavs->children.push_back(feedbackuav);
+
+    // now recreate the reslist, and repoint the uavs
+    reslist = editor.AddMetadata(*reslist);
+    reslist->children[1] = uavs;
+
+    // finally repoint the named metadata
+    resources->children[0] = reslist;
+  }
+
+  rdcstr entryName;
+  // add the entry point tags
+  {
+    DXIL::Metadata *entryPoints = editor.GetMetadataByName("dx.entryPoints");
+
+    if(!entryPoints)
+    {
+      RDCERR("Couldn't find entry point list");
+      return false;
+    }
+
+    // TODO select the entry point for multiple entry points? RT only for now
+    DXIL::Metadata *entry = entryPoints->children[0];
+
+    entryName = entry->children[1]->str;
+
+    DXIL::Metadata *taglist = entry->children[4];
+
+    // find existing shader flags tag, if there is one
+    DXIL::Metadata *shaderFlagsTag = NULL;
+    DXIL::Metadata *shaderFlagsData = NULL;
+    size_t existingTag = 0;
+    for(size_t t = 0; taglist && t < taglist->children.size(); t += 2)
+    {
+      RDCASSERT(taglist->children[t]->isConstant);
+      if(taglist->children[t]->value.constant->val.u32v[0] ==
+         (uint32_t)DXIL::ShaderEntryTag::ShaderFlags)
+      {
+        shaderFlagsTag = taglist->children[t];
+        shaderFlagsData = taglist->children[t + 1];
+        existingTag = t + 1;
+        break;
+      }
+    }
+
+    uint32_t shaderFlagsValue = shaderFlagsData ? shaderFlagsData->value.constant->val.u32v[0] : 0U;
+
+    // raw and structured buffers
+    shaderFlagsValue |= 0x10;
+
+    if(editor.GetShaderType() != DXBC::ShaderType::Compute &&
+       editor.GetShaderType() != DXBC::ShaderType::Pixel)
+    {
+      // UAVs on non-PS/CS stages
+      shaderFlagsValue |= 0x10000;
+    }
+
+    // (re-)create shader flags tag
+    shaderFlagsData = editor.AddMetadata(DXIL::Metadata());
+    SET_CONST_META(shaderFlagsData, i32, shaderFlagsValue);
+
+    // if we didn't have a shader tags entry at all, create the metadata node for the shader flags
+    // tag
+    if(!shaderFlagsTag)
+    {
+      shaderFlagsTag = editor.AddMetadata(DXIL::Metadata());
+      SET_CONST_META(shaderFlagsTag, i32, (uint32_t)DXIL::ShaderEntryTag::ShaderFlags);
+    }
+
+    // (re-)create tag list
+    if(taglist)
+      taglist = editor.AddMetadata(*taglist);
+    else
+      taglist = editor.AddMetadata(DXIL::Metadata());
+
+    // if we had a tag already, we can just re-use that tag node and replace the data node.
+    // Otherwise we need to add both, and we insert them first
+    if(existingTag)
+    {
+      taglist->children[existingTag] = shaderFlagsData;
+    }
+    else
+    {
+      taglist->children.insert(0, shaderFlagsTag);
+      taglist->children.insert(1, shaderFlagsData);
+    }
+
+    // recreate the entry
+    entry = editor.AddMetadata(*entry);
+
+    // repoint taglist and reslist
+    entry->children[3] = reslist;
+    entry->children[4] = taglist;
+
+    // finally repoint the named metadata
+    entryPoints->children[0] = entry;
+  }
+
+  DXIL::Function *f = editor.GetFunctionByName(entryName);
+
+  if(!f)
+  {
+    RDCERR("Couldn't find entry point function '%s'", entryName.c_str());
+    return false;
+  }
+
+  // create our handle first thing
+  DXIL::Instruction *handle;
+  {
+    DXIL::Instruction inst;
+    inst.op = DXIL::Operation::Call;
+    inst.type = handleType;
+    inst.funcCall = createHandle;
+    inst.args = {
+        // dx.op.createHandle opcode
+        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 57U))),
+        // kind = UAV
+        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i8, 1U))),
+        // ID/slot
+        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, regSlot))),
+        // array index
+        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 0U))),
+        // non-uniform
+        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i1, 0U))),
+    };
+
+    handle = editor.AddInstruction(f, 0, inst);
+  }
+
+  const DXIL::Constant *undefi32;
+  {
+    DXIL::Constant c;
+    c.type = i32;
+    c.undef = true;
+    undefi32 = editor.GetOrAddConstant(f, c);
+  }
+
+  // insert an or to offset 0, just to indicate validity
+  {
+    DXIL::Instruction inst;
+    inst.op = DXIL::Operation::Call;
+    inst.type = i32;
+    inst.funcCall = atomicBinOp;
+    inst.args = {
+        // dx.op.atomicBinOp.i32 opcode
+        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 78U))),
+        // feedback UAV handle
+        DXIL::Value(handle),
+        // operation OR
+        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 2U))),
+        // offset
+        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 0U))),
+        // offset 2
+        DXIL::Value(undefi32),
+        // offset 3
+        DXIL::Value(undefi32),
+        // value
+        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, ~0U))),
+    };
+
+    editor.AddInstruction(f, 1, inst);
+  }
+
+  return true;
+}
+
 static void AddArraySlots(WrappedID3D12PipelineState::ShaderEntry *shad, uint32_t space,
                           uint32_t maxDescriptors,
                           std::map<D3D12FeedbackKey, D3D12FeedbackSlot> &slots, uint32_t &numSlots,
@@ -187,12 +533,6 @@ static void AddArraySlots(WrappedID3D12PipelineState::ShaderEntry *shad, uint32_
 {
   if(!shad)
     return;
-
-  if(shad->GetDXBC()->m_Version.Major >= 6)
-  {
-    RDCWARN("DXIL shaders are not supported for bindless feedback currently");
-    return;
-  }
 
   ShaderReflection &refl = shad->GetDetails();
   const ShaderBindpointMapping &mapping = shad->GetMapping();
@@ -254,7 +594,7 @@ static void AddArraySlots(WrappedID3D12PipelineState::ShaderEntry *shad, uint32_
   // only SM5.1 can have dynamic array indexing
   if(shad->GetDXBC()->m_Version.Major == 5 && shad->GetDXBC()->m_Version.Minor == 1)
   {
-    if(AnnotateShader(shad->GetDXBC(), space, slots, editedBlob))
+    if(AnnotateDXBCShader(shad->GetDXBC(), space, slots, editedBlob))
     {
       if(!D3D12_Debug_FeedbackDumpDirPath().empty())
         FileIO::WriteAll(D3D12_Debug_FeedbackDumpDirPath() + "/before_dxbc_" +
@@ -265,6 +605,34 @@ static void AddArraySlots(WrappedID3D12PipelineState::ShaderEntry *shad, uint32_
         FileIO::WriteAll(D3D12_Debug_FeedbackDumpDirPath() + "/after_dxbc_" +
                              ToStr(shad->GetDetails().stage).c_str() + ".dxbc",
                          editedBlob);
+
+      desc.pShaderBytecode = editedBlob.data();
+      desc.BytecodeLength = editedBlob.size();
+    }
+  }
+  else if(shad->GetDXBC()->m_Version.Major >= 6)
+  {
+    if(AnnotateDXILShader(shad->GetDXBC(), space, slots, editedBlob))
+    {
+      DXBC::DXBCContainer::StripDXILDebugInfo(editedBlob);
+
+      if(!D3D12_Debug_FeedbackDumpDirPath().empty())
+      {
+        bytebuf orig = shad->GetDXBC()->GetShaderBlob();
+
+        DXBC::DXBCContainer::StripDXILDebugInfo(orig);
+
+        FileIO::WriteAll(D3D12_Debug_FeedbackDumpDirPath() + "/before_dxil_" +
+                             ToStr(shad->GetDetails().stage).c_str() + ".dxbc",
+                         orig);
+      }
+
+      if(!D3D12_Debug_FeedbackDumpDirPath().empty())
+      {
+        FileIO::WriteAll(D3D12_Debug_FeedbackDumpDirPath() + "/after_dxil_" +
+                             ToStr(shad->GetDetails().stage).c_str() + ".dxbc",
+                         editedBlob);
+      }
 
       desc.pShaderBytecode = editedBlob.data();
       desc.BytecodeLength = editedBlob.size();
