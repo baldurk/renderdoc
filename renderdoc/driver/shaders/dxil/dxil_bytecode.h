@@ -208,7 +208,7 @@ struct Alias
 {
   rdcstr name;
   const Type *type = NULL;
-  uint64_t valID = 0;
+  Value val;
 };
 
 // this enum is ordered to match the serialised order of these attributes
@@ -617,7 +617,7 @@ struct Function
   rdcarray<Instruction> instructions;
   rdcarray<Value> values;
 
-  rdcarray<size_t> valueSymtabOrder;
+  rdcarray<Value> valueSymtabOrder;
   bool sortedSymtab = true;
 
   rdcarray<Block> blocks;
@@ -673,6 +673,8 @@ protected:
   bool ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Metadata &meta);
   rdcstr GetDebugVarName(const DIBase *d);
 
+  rdcstr &GetValueSymtabString(const Value &v);
+
   uint32_t GetOrAssignMetaID(Metadata *m);
   uint32_t GetOrAssignMetaID(DebugLocation &l);
   const Type *GetVoidType();
@@ -696,7 +698,7 @@ protected:
 
   rdcarray<rdcstr> m_Kinds;
 
-  rdcarray<size_t> m_ValueSymtabOrder;
+  rdcarray<Value> m_ValueSymtabOrder;
   bool m_SortedSymtab = true;
 
   rdcarray<Type> m_Types;

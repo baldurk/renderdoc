@@ -145,6 +145,9 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
     c.type = curType;
     if(c.type->type == Type::Vector)
     {
+      // only handle 4-wide vectors right now
+      RDCASSERT(constant.ops.size() <= 4);
+
       // inline vectors
       for(size_t m = 0; m < constant.ops.size(); m++)
       {
@@ -491,7 +494,7 @@ Program::Program(const byte *bytes, size_t length)
         Alias a;
 
         a.type = &m_Types[(size_t)rootchild.ops[0]];
-        a.valID = rootchild.ops[1];
+        a.val = m_Values[(size_t)rootchild.ops[1]];
 
         // ignore rest of properties, assert that if present they are 0
         for(size_t p = 2; p < rootchild.ops.size(); p++)
@@ -851,72 +854,22 @@ Program::Program(const byte *bytes, size_t length)
             continue;
           }
 
-          size_t v = (size_t)symtab.ops[0];
-          if(v < m_Values.size())
+          size_t vidx = (size_t)symtab.ops[0];
+          if(vidx < m_Values.size())
           {
+            const Value &v = m_Values[vidx];
             rdcstr str = symtab.getString(1);
 
-            if(!m_ValueSymtabOrder.empty())
-            {
-              const Value &prevValue = m_Values[m_ValueSymtabOrder.back()];
-              switch(prevValue.type)
-              {
-                case ValueType::GlobalVar:
-                {
-                  m_SortedSymtab &= prevValue.global->name < str;
-                  break;
-                }
-                case ValueType::Function:
-                {
-                  m_SortedSymtab &= prevValue.function->name < str;
-                  break;
-                }
-                case ValueType::Alias:
-                {
-                  m_SortedSymtab &= prevValue.alias->name < str;
-                  break;
-                }
-                default: break;
-              }
-            }
+            GetValueSymtabString(v) = str;
 
-            switch(m_Values[v].type)
-            {
-              case ValueType::Unknown:
-              case ValueType::Constant:
-              case ValueType::Instruction:
-              case ValueType::Metadata:
-              case ValueType::Literal:
-              case ValueType::BasicBlock:
-              {
-                RDCERR("Unexpected global symbol referring to %d", m_Values[v].type);
-                break;
-              }
-              case ValueType::GlobalVar:
-              {
-                GlobalVar *global = (GlobalVar *)m_Values[v].global;
-                global->name = str;
-                break;
-              }
-              case ValueType::Function:
-              {
-                Function *function = (Function *)m_Values[v].function;
-                function->name = str;
-                break;
-              }
-              case ValueType::Alias:
-              {
-                Alias *alias = (Alias *)m_Values[v].alias;
-                alias->name = str;
-                break;
-              }
-            }
+            if(!m_ValueSymtabOrder.empty())
+              m_SortedSymtab &= GetValueSymtabString(m_ValueSymtabOrder.back()) < str;
 
             m_ValueSymtabOrder.push_back(v);
           }
           else
           {
-            RDCERR("Value %llu referenced out of bounds", v);
+            RDCERR("Value %zu referenced out of bounds", vidx);
           }
         }
       }
@@ -1152,75 +1105,24 @@ Program::Program(const byte *bytes, size_t length)
                   const Value &v = m_Values[idx];
                   rdcstr str = symtab.getString(1);
 
+                  GetValueSymtabString(v) = str;
+
                   if(!f.valueSymtabOrder.empty())
-                  {
-                    size_t vidx = f.valueSymtabOrder.back();
-                    if(vidx & 0x80000000U)
-                    {
-                      f.sortedSymtab &= f.blocks[vidx & ~0x80000000U].name < str;
-                    }
-                    else
-                    {
-                      const Value &prevValue = m_Values[vidx];
-                      switch(prevValue.type)
-                      {
-                        case ValueType::Constant:
-                        {
-                          f.sortedSymtab &= prevValue.constant->str < str;
-                          break;
-                        }
-                        case ValueType::Instruction:
-                        {
-                          f.sortedSymtab &= prevValue.instruction->name < str;
-                          break;
-                        }
-                        case ValueType::BasicBlock:
-                        {
-                          f.sortedSymtab &= prevValue.block->name < str;
-                          break;
-                        }
-                        default: break;
-                      }
-                    }
-                  }
+                    f.sortedSymtab &= GetValueSymtabString(f.valueSymtabOrder.back()) < str;
 
-                  switch(v.type)
-                  {
-                    case ValueType::Constant:
-                    {
-                      Constant *constant = (Constant *)v.constant;
-                      constant->str = str;
-                      break;
-                    }
-                    case ValueType::Instruction:
-                    {
-                      Instruction *instruction = (Instruction *)v.instruction;
-                      instruction->name = str;
-                      break;
-                    }
-                    case ValueType::BasicBlock:
-                    {
-                      Block *block = (Block *)v.block;
-                      block->name = str;
-                      break;
-                    }
-                    case ValueType::Unknown:
-                    case ValueType::GlobalVar:
-                    case ValueType::Function:
-                    case ValueType::Alias:
-                    case ValueType::Metadata:
-                    case ValueType::Literal:
-                      RDCERR("Unexpected local symbol referring to %d", v.type);
-                      break;
-                  }
-
-                  f.valueSymtabOrder.push_back(idx);
+                  f.valueSymtabOrder.push_back(v);
                 }
                 else if(IS_KNOWN(symtab.id, ValueSymtabRecord::BBENTRY))
                 {
-                  f.blocks[(size_t)symtab.ops[0]].name = symtab.getString(1);
+                  Value v(&f.blocks[(size_t)symtab.ops[0]]);
+                  rdcstr str = symtab.getString(1);
 
-                  f.valueSymtabOrder.push_back(0x80000000U | (size_t)symtab.ops[0]);
+                  GetValueSymtabString(v) = str;
+
+                  if(!f.valueSymtabOrder.empty())
+                    f.sortedSymtab &= GetValueSymtabString(f.valueSymtabOrder.back()) < str;
+
+                  f.valueSymtabOrder.push_back(v);
                 }
                 else
                 {
@@ -2384,6 +2286,25 @@ Program::Program(const byte *bytes, size_t length)
   }
 
   RDCASSERT(functionDecls.empty());
+}
+
+rdcstr &Program::GetValueSymtabString(const Value &v)
+{
+  static rdcstr err;
+  switch(v.type)
+  {
+    case ValueType::Constant: return (rdcstr &)v.constant->str;
+    case ValueType::Instruction: return (rdcstr &)v.instruction->name;
+    case ValueType::BasicBlock: return (rdcstr &)v.block->name;
+    case ValueType::GlobalVar: return (rdcstr &)v.global->name;
+    case ValueType::Function: return (rdcstr &)v.function->name;
+    case ValueType::Alias: return (rdcstr &)v.alias->name;
+    case ValueType::Unknown:
+    case ValueType::Metadata:
+    case ValueType::Literal: RDCERR("Unexpected value symtab entry referring to %d", v.type); break;
+  }
+
+  return err;
 }
 
 uint32_t Program::GetOrAssignMetaID(Metadata *m)

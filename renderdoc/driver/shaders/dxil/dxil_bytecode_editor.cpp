@@ -510,7 +510,7 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
     uint64_t typeIndex = getTypeID(a.type);
 
     writer.Record(LLVMBC::ModuleRecord::ALIAS, {
-                                                   typeIndex, a.valID,
+                                                   typeIndex, getValueID(a.val),
                                                    // linkage
                                                    0U,
                                                    // visibility
@@ -579,27 +579,20 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
   {
     writer.BeginBlock(LLVMBC::KnownBlock::VALUE_SYMTAB_BLOCK);
 
-    rdcarray<rdcpair<size_t, const rdcstr *>> entries;
-
-    for(size_t s : m_ValueSymtabOrder)
+    for(Value v : m_ValueSymtabOrder)
     {
       const rdcstr *str = NULL;
-      switch(m_Values[s].type)
+      switch(v.type)
       {
-        case ValueType::GlobalVar: str = &m_Values[s].global->name; break;
-        case ValueType::Function: str = &m_Values[s].function->name; break;
-        case ValueType::Alias: str = &m_Values[s].alias->name; break;
+        case ValueType::GlobalVar: str = &v.global->name; break;
+        case ValueType::Function: str = &v.function->name; break;
+        case ValueType::Alias: str = &v.alias->name; break;
         default: break;
       }
 
       if(str)
-        entries.push_back({s, str});
+        writer.RecordSymTabEntry(getValueID(v), *str);
     }
-
-    // we use a special function to record the entry so it can take the string as-is to check it for
-    // validity
-    for(const rdcpair<size_t, const rdcstr *> &it : entries)
-      writer.RecordSymTabEntry(it.first, *it.second);
 
     writer.EndBlock();
   }
@@ -1155,36 +1148,25 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
     {
       writer.BeginBlock(LLVMBC::KnownBlock::VALUE_SYMTAB_BLOCK);
 
-      rdcarray<rdcpair<size_t, const rdcstr *>> entries;
-
-      for(size_t s : f.valueSymtabOrder)
+      for(Value v : f.valueSymtabOrder)
       {
         const rdcstr *str = NULL;
-        if(s & 0x80000000U)
+        switch(v.type)
         {
-          str = &f.blocks[s & ~0x80000000U].name;
-        }
-        else
-        {
-          switch(values[s].type)
-          {
-            case ValueType::Instruction: str = &values[s].instruction->name; break;
-            case ValueType::Constant: str = &values[s].constant->str; break;
-            case ValueType::BasicBlock: str = &values[s].block->name; break;
-            default: break;
-          }
+          case ValueType::Instruction: str = &v.instruction->name; break;
+          case ValueType::Constant: str = &v.constant->str; break;
+          case ValueType::BasicBlock: str = &v.block->name; break;
+          default: break;
         }
 
         if(str)
-          entries.push_back({s, str});
+        {
+          if(v.type == ValueType::BasicBlock)
+            writer.RecordSymTabEntry(v.block - f.blocks.begin(), *str, true);
+          else
+            writer.RecordSymTabEntry(getValueID(v), *str);
+        }
       }
-
-      // we use a special function to record the entry so it can take the string as-is to check it
-      // for
-      // validity
-      for(const rdcpair<size_t, const rdcstr *> &it : entries)
-        writer.RecordSymTabEntry(it.first & ~0x80000000U, *it.second,
-                                 it.first & 0x80000000U ? true : false);
 
       writer.EndBlock();
     }
