@@ -29,19 +29,448 @@
 #include "dxil_bytecode.h"
 #include "llvm_encoder.h"
 
-DXIL::ProgramEditor::ProgramEditor(const DXBC::DXBCContainer *container, bytebuf &outBlob)
-    : Program(container->GetNonDebugDXILByteCode(), container->GetNonDebugDXILByteCodeSize()),
-      m_OutBlob(outBlob)
-{
-  m_OutBlob = container->GetShaderBlob();
-}
-
 typedef HRESULT(WINAPI *pD3DCreateBlob)(SIZE_T Size, ID3DBlob **ppBlob);
 typedef DXC_API_IMPORT HRESULT(__stdcall *pDxcCreateInstance)(REFCLSID rclsid, REFIID riid,
                                                               LPVOID *ppv);
 
-DXIL::ProgramEditor::~ProgramEditor()
+namespace DXIL
 {
+ProgramEditor::ProgramEditor(const DXBC::DXBCContainer *container, size_t reservationSize,
+                             bytebuf &outBlob)
+    : Program(container->GetNonDebugDXILByteCode(), container->GetNonDebugDXILByteCodeSize()),
+      m_OutBlob(outBlob)
+{
+  m_OutBlob = container->GetShaderBlob();
+
+  // swap into preserved storage
+  m_Functions.swap(m_OldFunctions);
+  m_Types.swap(m_OldTypes);
+  m_Constants.swap(m_OldConstants);
+  m_Metadata.swap(m_OldMetadata);
+
+  // give all objects an ID so we can find them afterwards uniquely and easy.
+  for(size_t i = 0; i < m_OldTypes.size(); i++)
+    m_OldTypes[i].id = (uint16_t)i;
+
+  for(Function &f : m_OldFunctions)
+  {
+    // This ID is only used in disassembly so we can freely overwrite it
+    for(size_t i = 0; i < f.instructions.size(); i++)
+      f.instructions[i].resultID = (uint32_t)i;
+    for(size_t i = 0; i < f.args.size(); i++)
+      f.args[i].resultID = (uint32_t)i;
+
+    for(size_t i = 0; i < f.blocks.size(); i++)
+      f.blocks[i].resultID = (uint32_t)i;
+
+    for(size_t i = 0; i < f.metadata.size(); i++)
+      f.metadata[i].id = (uint32_t)i;
+    for(size_t i = 0; i < f.constants.size(); i++)
+      f.constants[i].setID((uint32_t)i);
+  }
+
+  for(size_t i = 0; i < m_OldMetadata.size(); i++)
+    m_OldMetadata[i].id = (uint32_t)i;
+
+  for(size_t i = 0; i < m_OldConstants.size(); i++)
+    m_OldConstants[i].setID((uint32_t)i);
+
+  // now duplicate. Any copied pointers underneath these elements will *still be valid* and
+  // importantly *still point to the right element even if we edit the arrays*, because they're now
+  // pointing into the old arrays above. Just the indices will be wrong, which we only need when
+  // encoding
+  m_Functions = m_OldFunctions;
+  m_Types = m_OldTypes;
+  m_Constants = m_OldConstants;
+  m_Metadata = m_OldMetadata;
+
+  // reserve enough space so that these arrays don't resize out from under us
+  for(Function &f : m_Functions)
+  {
+    f.instructions.reserve(f.instructions.size() * 2 + reservationSize * 4);
+    f.constants.reserve(f.constants.size() * 2 + reservationSize * 4);
+  }
+
+  m_Functions.reserve(m_Functions.size() * 2 + reservationSize);
+  m_Types.reserve(m_Types.size() * 2 + reservationSize);
+  m_Constants.reserve(m_Constants.size() * 2 + reservationSize);
+  m_Metadata.reserve(m_Metadata.size() * 2 + reservationSize);
+
+#if ENABLED(RDOC_DEVEL)
+  m_DebugFunctionsData = m_Functions.data();
+  m_DebugFunctions.resize(m_Functions.size());
+  for(size_t i = 0; i < m_DebugFunctions.size(); i++)
+  {
+    m_DebugFunctions[i].instructions = m_Functions[i].instructions.data();
+    m_DebugFunctions[i].constants = m_Functions[i].constants.data();
+  }
+  m_DebugTypesData = m_Types.data();
+  m_DebugConstantsData = m_Constants.data();
+  m_DebugMetadataData = m_Metadata.data();
+#endif
+
+  // reset cached types
+  m_VoidType = NULL;
+  m_BoolType = NULL;
+  m_Int32Type = NULL;
+  m_Int8Type = NULL;
+}
+
+#define IN_ARRAY(array, ptr) (array.begin() <= ptr && ptr < array.end())
+
+#define GET_META_ID(a) (a)->id
+#define GET_CONST_ID(a) (a)->getID()
+#define GET_INST_ID(a) (a)->resultID
+#define GET_TYPE_ID(a) (a)->id
+
+// this is our main fixup algorithm. We start from the old ID (which was the index in the old array)
+// then start searching forward until we find it, or another valid ID. If we find another valid ID
+// that's greater we switch and go backwards (less likely since we don't expect to remove much) to
+// find the new location, and then get the updated pointer
+//
+// we skip any items with an ID of ~0U as these are new items, so we don't know which side our one
+// will be - again we assume it will be later as we usually insert, pushing indices later
+#define REPOINT_PTR(array, ptr, getId)        \
+  uint32_t idx = getId(ptr);                  \
+  RDCASSERT(idx < 0x80000000U);               \
+  if(idx >= array.size())                     \
+    idx = uint32_t(array.size() - 1);         \
+                                              \
+  /* search forward first */                  \
+  for(; idx < array.size(); idx++)            \
+  {                                           \
+    if(getId(&array[idx]) == getId(ptr))      \
+      break;                                  \
+                                              \
+    if(getId(&array[idx]) >= 0x80000000U)     \
+      continue;                               \
+                                              \
+    if(getId(&array[idx]) > getId(ptr))       \
+      break;                                  \
+  }                                           \
+                                              \
+  /* if we didn't find it, search back */     \
+  if(getId(&array[idx]) != getId(ptr))        \
+  {                                           \
+    idx = getId(ptr);                         \
+    for(; idx > 0; idx--)                     \
+    {                                         \
+      if(getId(&array[idx]) == getId(ptr))    \
+        break;                                \
+                                              \
+      if(getId(&array[idx]) >= 0x80000000U)   \
+        continue;                             \
+                                              \
+      if(getId(&array[idx]) < getId(ptr))     \
+        break;                                \
+    }                                         \
+  }                                           \
+                                              \
+  decltype(array)::value_type *result = NULL; \
+  if(getId(&array[idx]) == getId(ptr))        \
+    result = &array[idx];                     \
+  else                                        \
+    RDCERR("Couldn't find item in new array!");
+
+void ProgramEditor::Fixup(Value &v, Function *oldf, Function *newf)
+{
+  switch(v.type)
+  {
+    case ValueType::Constant: Fixup((Constant *&)v.constant, oldf, newf); break;
+    case ValueType::Metadata: Fixup((Metadata *&)v.meta, oldf, newf); break;
+    case ValueType::Instruction: Fixup((Instruction *&)v.instruction, oldf, newf); break;
+    case ValueType::BasicBlock: Fixup((Block *&)v.block, oldf, newf); break;
+    case ValueType::Function:
+      Fixup((Function *&)v.function);
+      break;
+    // other value types shouldn't need fixups
+    default: break;
+  }
+}
+
+void ProgramEditor::Fixup(Function *&f)
+{
+  if(!f)
+    return;
+
+  if(IN_ARRAY(m_OldFunctions, f))
+  {
+    // most of the time we won't modify the functions, check if it's at the same index
+    size_t idx = f - m_OldFunctions.begin();
+
+    if(m_Functions[idx].name == f->name)
+    {
+      f = &m_Functions[idx];
+    }
+    else
+    {
+      // otherwise just do a linear search, we don't expect too many functions
+      for(Function &newf : m_Functions)
+      {
+        if(newf.name == f->name)
+        {
+          f = &newf;
+          break;
+        }
+      }
+    }
+  }
+}
+
+void ProgramEditor::Fixup(Type *&t)
+{
+  if(!t)
+    return;
+
+  if(IN_ARRAY(m_OldTypes, t))
+  {
+    REPOINT_PTR(m_Types, t, GET_TYPE_ID);
+
+    if(result)
+      t = result;
+  }
+}
+
+void ProgramEditor::Fixup(Block *&b, Function *oldf, Function *newf)
+{
+  if(IN_ARRAY(oldf->blocks, b))
+  {
+    REPOINT_PTR(newf->blocks, b, GET_INST_ID);
+
+    if(result)
+      b = result;
+  }
+}
+
+// this variant fixes up the pointer itself only, but doesn't recurse. We don't recurse because we
+// have a parent loop that iterates over all the instructions in the new function
+void ProgramEditor::Fixup(Instruction *&i, Function *oldf, Function *newf)
+{
+  if(!i)
+    return;
+
+  if(IN_ARRAY(oldf->args, i))
+  {
+    REPOINT_PTR(newf->args, i, GET_INST_ID);
+
+    if(result)
+      i = result;
+  }
+
+  if(IN_ARRAY(oldf->instructions, i))
+  {
+    REPOINT_PTR(newf->instructions, i, GET_INST_ID);
+
+    if(result)
+      i = result;
+  }
+}
+
+void ProgramEditor::Fixup(Constant *&c, Function *oldf, Function *newf)
+{
+  if(!c)
+    return;
+
+  if(IN_ARRAY(m_OldConstants, c))
+  {
+    REPOINT_PTR(m_Constants, c, GET_CONST_ID);
+
+    if(result)
+      c = result;
+  }
+
+  if(oldf && IN_ARRAY(oldf->constants, c))
+  {
+    REPOINT_PTR(newf->constants, c, GET_CONST_ID);
+
+    if(result)
+      c = result;
+  }
+}
+
+void ProgramEditor::Fixup(Metadata *&m, Function *oldf, Function *newf)
+{
+  if(!m)
+    return;
+
+  if(IN_ARRAY(m_OldMetadata, m))
+  {
+    REPOINT_PTR(m_Metadata, m, GET_META_ID);
+
+    if(result)
+      m = result;
+  }
+
+  if(oldf && IN_ARRAY(oldf->metadata, m))
+  {
+    REPOINT_PTR(newf->metadata, m, GET_META_ID);
+
+    if(result)
+      m = result;
+  }
+}
+
+ProgramEditor::~ProgramEditor()
+{
+#if ENABLED(RDOC_DEVEL)
+  RDCASSERTMSG("Function storage has resized", m_DebugFunctionsData == m_Functions.data());
+  for(size_t i = 0; i < m_DebugFunctions.size(); i++)
+  {
+    RDCASSERTMSG("Instruction storage has resized",
+                 m_DebugFunctions[i].instructions == m_Functions[i].instructions.data());
+    RDCASSERTMSG("Function constant storage has resized",
+                 m_DebugFunctions[i].constants == m_Functions[i].constants.data());
+  }
+  RDCASSERTMSG("Types storage has resized", m_DebugTypesData == m_Types.data());
+  RDCASSERTMSG("Constants storage has resized", m_DebugConstantsData == m_Constants.data());
+  RDCASSERTMSG("Metadata storage has resized", m_DebugMetadataData == m_Metadata.data());
+#endif
+
+  // fixup pass. Find any pointers into m_Old* and repoint them to the appropriate corresponding
+  // element in m_*
+
+  for(GlobalVar &v : m_GlobalVars)
+  {
+    if(v.initialiser && !IN_ARRAY(m_Constants, v.initialiser))
+      Fixup(v.initialiser);
+
+    Fixup(v.type);
+  }
+
+  for(Type &t : m_Types)
+  {
+    Fixup(t.inner);
+
+    for(size_t i = 0; i < t.members.size(); i++)
+      Fixup(t.members[i]);
+  }
+
+  for(Alias &a : m_Aliases)
+  {
+    Fixup(a.type);
+    Fixup(a.val);
+  }
+
+  for(Constant &c : m_Constants)
+  {
+    Fixup(c.type);
+    Fixup(c.inner);
+    for(size_t i = 0; i < c.members.size(); i++)
+      Fixup(c.members[i]);
+  }
+
+  for(Metadata &m : m_Metadata)
+  {
+    Fixup(m.type);
+
+    Fixup(m.value);
+
+    for(size_t i = 0; i < m.children.size(); i++)
+      Fixup(m.children[i]);
+  }
+
+  for(Metadata &m : m_NamedMeta)
+  {
+    Fixup(m.type);
+
+    Fixup(m.value);
+
+    for(size_t i = 0; i < m.children.size(); i++)
+      Fixup(m.children[i]);
+  }
+
+  for(size_t fidx = 0; fidx < m_Functions.size(); fidx++)
+  {
+    Function &oldf = m_OldFunctions[fidx];
+    Function &f = m_Functions[fidx];
+
+    Fixup(f.funcType);
+
+    for(Instruction &i : f.args)
+      Fixup(i.type);
+
+    for(Instruction &i : f.instructions)
+    {
+      Fixup(i.type);
+
+      for(Value &v : i.args)
+        Fixup(v, &oldf, &f);
+
+      for(rdcpair<uint64_t, Metadata *> &m : i.attachedMeta)
+        Fixup(m.second, &oldf, &f);
+
+      Fixup(i.funcCall);
+    }
+
+    for(Constant &c : f.constants)
+    {
+      Fixup(c.type);
+      Fixup(c.inner);
+      for(size_t i = 0; i < c.members.size(); i++)
+        Fixup(c.members[i]);
+    }
+
+    for(Value &v : f.values)
+      Fixup(v, &oldf, &f);
+
+    for(Block &b : f.blocks)
+    {
+      for(size_t i = 0; i < b.preds.size(); i++)
+        Fixup(b.preds[i], &oldf, &f);
+    }
+
+    for(Metadata &m : f.metadata)
+    {
+      Fixup(m.type);
+
+      Fixup(m.value, &oldf, &f);
+
+      for(size_t i = 0; i < m.children.size(); i++)
+        Fixup(m.children[i], &oldf, &f);
+    }
+
+    for(UselistEntry &u : f.uselist)
+      Fixup(u.value, &oldf, &f);
+
+    for(Value &v : f.valueSymtabOrder)
+      Fixup(v, &oldf, &f);
+  }
+
+  for(Value &v : m_Values)
+    Fixup(v);
+
+  for(Value &v : m_ValueSymtabOrder)
+    Fixup(v);
+
+#if ENABLED(RDOC_DEVEL)
+#define CLEAR_THEN_FILL(array)      \
+  {                                 \
+    sz = array.size();              \
+    array.clear();                  \
+    memset(array.data(), 0xfe, sz); \
+  }
+  size_t sz;
+  // clear, then fill the old arrays with garbage, so we can be more sure we're not accessing stale
+  // data
+  for(Function &f : m_OldFunctions)
+  {
+    CLEAR_THEN_FILL(f.instructions);
+    CLEAR_THEN_FILL(f.constants);
+    CLEAR_THEN_FILL(f.metadata);
+  }
+
+  CLEAR_THEN_FILL(m_OldFunctions);
+  CLEAR_THEN_FILL(m_OldTypes);
+  CLEAR_THEN_FILL(m_OldConstants);
+  CLEAR_THEN_FILL(m_OldMetadata);
+#endif
+
+  // cache known types for encoding
+  GetVoidType();
+  GetBoolType();
+  GetInt32Type();
+
+  // replace the DXIL bytecode in the container with
   DXBC::DXBCContainer::ReplaceDXILBytecode(m_OutBlob, EncodeProgram());
 
 #if ENABLED(RDOC_DEVEL)
@@ -126,12 +555,224 @@ DXIL::ProgramEditor::~ProgramEditor()
       else
         RDCERR("DXIL validation failed: %s", err.c_str());
     }
+    else
+    {
+      RDCDEBUG("Edited DXIL validated successfully");
+    }
 
     SAFE_RELEASE(validator);
     SAFE_RELEASE(library);
     SAFE_RELEASE(result);
   }
 #endif
+}
+
+const Type *ProgramEditor::GetTypeByName(const rdcstr &name)
+{
+  for(size_t i = 0; i < m_Types.size(); i++)
+    if(m_Types[i].name == name)
+      return &m_Types[i];
+
+  return NULL;
+}
+
+Function *ProgramEditor::GetFunctionByName(const rdcstr &name)
+{
+  for(size_t i = 0; i < m_Functions.size(); i++)
+    if(m_Functions[i].name == name)
+      return &m_Functions[i];
+
+  return NULL;
+}
+
+Metadata *ProgramEditor::GetMetadataByName(const rdcstr &name)
+{
+  for(size_t i = 0; i < m_NamedMeta.size(); i++)
+    if(m_NamedMeta[i].name == name)
+      return &m_NamedMeta[i];
+
+  return NULL;
+}
+
+const Type *ProgramEditor::AddType(const Type &t)
+{
+  // check all inner types already point into our array
+  if(t.inner && !IN_ARRAY(m_Types, t.inner) && !IN_ARRAY(m_OldTypes, t.inner))
+  {
+    RDCERR("New type references invalid inner type");
+    return NULL;
+  }
+
+  for(const Type *c : t.members)
+  {
+    if(!IN_ARRAY(m_Types, c) && !IN_ARRAY(m_OldTypes, c))
+    {
+      RDCERR("New type references invalid member type");
+      return NULL;
+    }
+  }
+
+  m_Types.push_back(t);
+  return &m_Types.back();
+}
+
+const Function *ProgramEditor::DeclareFunction(const Function &f)
+{
+  // only accept function declarations, not definitions
+  if(!f.args.empty() || !f.instructions.empty() || !f.values.empty() || !f.blocks.empty() ||
+     !f.constants.empty() || !f.metadata.empty() || !f.uselist.empty() || !f.attachedMeta.empty() ||
+     !f.valueSymtabOrder.empty())
+  {
+    RDCERR("Only function declarations are allowed");
+    return NULL;
+  }
+
+  // check that inner pointers are valid
+  if(!IN_ARRAY(m_Types, f.funcType) && !IN_ARRAY(m_OldTypes, f.funcType))
+  {
+    RDCERR("Function references invalid type");
+    return NULL;
+  }
+
+  Value v(&m_Functions[m_Functions.size()]);
+
+  // insert the value after the last current function
+  for(size_t i = m_Functions.size() - 1; i < m_Values.size(); i++)
+  {
+    if(m_Values[i].type == ValueType::Function &&
+       m_Values[i].function->name == m_Functions.back().name)
+    {
+      m_Values.insert(i + 1, v);
+      break;
+    }
+  }
+
+  // functions need to be added to the symtab or dxc complains
+  if(m_SortedSymtab)
+  {
+    // if the symtab was sorted, add in sorted order
+    size_t idx = 0;
+    for(; idx < m_ValueSymtabOrder.size(); idx++)
+    {
+      if(f.name < GetValueSymtabString(m_ValueSymtabOrder[idx]))
+        break;
+    }
+
+    m_ValueSymtabOrder.insert(idx, v);
+  }
+  else
+  {
+    // otherwise just append
+    m_ValueSymtabOrder.push_back(v);
+  }
+
+  m_Functions.push_back(f);
+  return &m_Functions.back();
+}
+
+Metadata *ProgramEditor::AddMetadata(const Metadata &m)
+{
+  if(m.dwarf || m.debugLoc)
+  {
+    RDCERR("Metadata with debug information is not supported");
+    return NULL;
+  }
+
+  // check that inner pointers are valid
+  if(m.type && !IN_ARRAY(m_Types, m.type) && !IN_ARRAY(m_OldTypes, m.type))
+  {
+    RDCERR("Metadata references invalid type");
+    return NULL;
+  }
+
+  for(const Metadata *c : m.children)
+  {
+    if(c && !IN_ARRAY(m_Metadata, c) && !IN_ARRAY(m_OldMetadata, c))
+    {
+      RDCERR("New metadata references invalid member metadata");
+      return NULL;
+    }
+  }
+
+  m_Metadata.push_back(m);
+  return &m_Metadata.back();
+}
+
+const Constant *ProgramEditor::GetOrAddConstant(const Constant &c)
+{
+  // check that inner pointers are valid
+  if(!IN_ARRAY(m_Types, c.type) && !IN_ARRAY(m_OldTypes, c.type))
+  {
+    RDCERR("Constant references invalid type");
+    return NULL;
+  }
+
+  // for scalars, check for an existing constant
+  if(c.type->type == Type::Scalar)
+  {
+    for(Constant &existing : m_Constants)
+    {
+      if(existing.type == c.type && existing.undef == c.undef &&
+         existing.nullconst == c.nullconst && existing.val.u64v[0] == c.val.u64v[0])
+      {
+        return &existing;
+      }
+    }
+  }
+
+  m_Constants.push_back(c);
+  m_Values.push_back(Value(&m_Constants.back()));
+  return &m_Constants.back();
+}
+
+const Constant *ProgramEditor::GetOrAddConstant(Function *f, const Constant &c)
+{
+  // check that inner pointers are valid
+  if(!IN_ARRAY(m_Types, c.type) && !IN_ARRAY(m_OldTypes, c.type))
+  {
+    RDCERR("Constant references invalid type");
+    return NULL;
+  }
+
+  // for scalars, check for an existing constant
+  if(c.type->type == Type::Scalar)
+  {
+    for(Constant &existing : f->constants)
+    {
+      if(existing.type == c.type && existing.undef == c.undef &&
+         existing.nullconst == c.nullconst && existing.val.u64v[0] == c.val.u64v[0])
+      {
+        return &existing;
+      }
+    }
+  }
+
+  f->constants.push_back(c);
+  f->values.insert(f->constants.size() - 1, Value(&f->constants.back()));
+  return &f->constants.back();
+}
+
+Instruction *ProgramEditor::AddInstruction(Function *f, size_t idx, const Instruction &inst)
+{
+  size_t valueIdx = f->constants.size() + idx;
+  if(inst.type != m_VoidType)
+  {
+    // find the value index for the instruction we're inserting before. This won't match up exactly
+    // with the instructions sadly as not all
+    // instructions are values :(
+    for(; valueIdx > f->constants.size(); valueIdx--)
+      if(f->values[valueIdx].instruction->resultID == f->instructions[idx].resultID)
+        break;
+
+    RDCASSERT(f->values[valueIdx].instruction->resultID == f->instructions[idx].resultID);
+  }
+
+  f->instructions.insert(idx, inst);
+  f->instructions[idx].resultID = m_InsertedInstructionID--;
+  Instruction *ret = &f->instructions[idx];
+  if(inst.type != m_VoidType)
+    f->values.insert(valueIdx, Value(ret));
+  return ret;
 }
 
 #define getAttribID(a) uint64_t(a - m_AttributeSets.begin())
@@ -145,7 +786,7 @@ DXIL::ProgramEditor::~ProgramEditor()
 
 #define getValueID(v) uint64_t(values.indexOf(v))
 
-bytebuf DXIL::ProgramEditor::EncodeProgram() const
+bytebuf ProgramEditor::EncodeProgram() const
 {
   rdcarray<Value> values = m_Values;
 
@@ -421,6 +1062,8 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
     // global vars write the value type, not the pointer
     uint64_t typeIndex = getTypeID(g.type->inner);
 
+    RDCASSERT((size_t)typeIndex < m_Types.size());
+
     uint64_t linkageValue = 0;
 
     switch(g.flags & GlobalFlags::LinkageMask)
@@ -469,6 +1112,8 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
   {
     const Function &f = m_Functions[i];
     uint64_t typeIndex = getTypeID(f.funcType->inner);
+
+    RDCASSERT((size_t)typeIndex < m_Types.size());
 
     writer.Record(LLVMBC::ModuleRecord::FUNCTION,
                   {
@@ -1122,7 +1767,13 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
 
       // instruction IDs are the values (i.e. all instructions that return non-void are a value)
       if(inst.type != m_VoidType)
+      {
+#if 0
+        uint64_t dbgValueId = getValueID(Value(&inst));
+        RDCASSERT(instValueID == dbgValueId);
+#endif
         instValueID++;
+      }
 
       // no debug location? omit
       if(inst.debugLoc == ~0U)
@@ -1246,9 +1897,8 @@ bytebuf DXIL::ProgramEditor::EncodeProgram() const
   return ret;
 }
 
-void DXIL::ProgramEditor::EncodeConstants(LLVMBC::BitcodeWriter &writer,
-                                          const rdcarray<Value> &values,
-                                          const rdcarray<Constant> &constants) const
+void ProgramEditor::EncodeConstants(LLVMBC::BitcodeWriter &writer, const rdcarray<Value> &values,
+                                    const rdcarray<Constant> &constants) const
 {
   const Type *curType = NULL;
 
@@ -1343,8 +1993,8 @@ void DXIL::ProgramEditor::EncodeConstants(LLVMBC::BitcodeWriter &writer,
   }
 }
 
-void DXIL::ProgramEditor::EncodeMetadata(LLVMBC::BitcodeWriter &writer, const rdcarray<Value> &values,
-                                         const rdcarray<Metadata> &meta) const
+void ProgramEditor::EncodeMetadata(LLVMBC::BitcodeWriter &writer, const rdcarray<Value> &values,
+                                   const rdcarray<Metadata> &meta) const
 {
   rdcarray<uint64_t> vals;
 
@@ -1388,3 +2038,5 @@ void DXIL::ProgramEditor::EncodeMetadata(LLVMBC::BitcodeWriter &writer, const rd
     }
   }
 }
+
+};    // namespace DXIL

@@ -104,6 +104,7 @@ struct Type
 
   // struct or function
   bool packedStruct = false, vararg = false;
+  uint16_t id = 0xFFFF;
   rdcstr name;
   rdcarray<const Type *> members;    // the members for a struct, the parameters for functions
 };
@@ -429,6 +430,8 @@ inline uint64_t EncodeCast(Operation op)
 
 struct Constant
 {
+  Constant() = default;
+  Constant(const Type *t, uint32_t v) : type(t) { val.u32v[0] = v; }
   const Type *type = NULL;
   ShaderValue val = {};
   rdcarray<Value> members;
@@ -437,6 +440,9 @@ struct Constant
   bool undef = false, nullconst = false, data = false;
   Operation op = Operation::NoOp;
 
+  // steal the last unused part of ShaderValue, used for identifying constants under patching
+  uint32_t getID() { return val.u32v[15]; }
+  void setID(uint32_t id) { val.u32v[15] = id; }
   rdcstr toString(bool withType = false) const;
 };
 
