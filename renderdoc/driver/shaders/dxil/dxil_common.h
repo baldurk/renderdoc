@@ -81,6 +81,15 @@ enum class ResourceKind
   SamplerComparison,
 };
 
+enum class ShaderEntryTag
+{
+  ShaderFlags = 0,
+  Geometry = 1,
+  Domain = 2,
+  Hull = 3,
+  Compute = 4,
+};
+
 };    // namespace DXIL
 
 DECLARE_STRINGISE_TYPE(DXIL::ComponentType);

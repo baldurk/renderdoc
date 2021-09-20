@@ -2435,9 +2435,7 @@ const Type *Program::GetPointerType(const Type *type, Type::PointerAddrSpace add
     }
   }
 
-  RDCERR("Couldn't find pointer type");
-
-  return type;
+  return NULL;
 }
 
 Metadata::~Metadata()

@@ -28,15 +28,6 @@
 
 namespace DXIL
 {
-enum class ShaderTag
-{
-  ShaderFlags = 0,
-  Geometry = 1,
-  Domain = 2,
-  Hull = 3,
-  Compute = 4,
-};
-
 enum class ResField
 {
   ID = 0,
@@ -149,7 +140,7 @@ void Program::FetchComputeProperties(DXBC::Reflection *reflection)
       for(size_t t = 0; t < tags.children.size(); t += 2)
       {
         RDCASSERT(tags.children[t]->isConstant);
-        if(getival<ShaderTag>(tags.children[t]) == ShaderTag::Compute)
+        if(getival<ShaderEntryTag>(tags.children[t]) == ShaderEntryTag::Compute)
         {
           Metadata &threadDim = *tags.children[t + 1];
           RDCASSERTEQUAL(threadDim.children.size(), 3);
@@ -190,7 +181,7 @@ D3D_PRIMITIVE_TOPOLOGY Program::GetOutputTopology()
       for(size_t t = 0; t < tags.children.size(); t += 2)
       {
         RDCASSERT(tags.children[t]->isConstant);
-        if(getival<ShaderTag>(tags.children[t]) == ShaderTag::Geometry)
+        if(getival<ShaderEntryTag>(tags.children[t]) == ShaderEntryTag::Geometry)
         {
           Metadata &geomData = *tags.children[t + 1];
           RDCASSERTEQUAL(geomData.children.size(), 5);
