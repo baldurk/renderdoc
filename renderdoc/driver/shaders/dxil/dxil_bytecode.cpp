@@ -2383,6 +2383,48 @@ const DXIL::Type *Program::GetBoolType()
   return m_BoolType;
 }
 
+const Type *Program::GetInt32Type()
+{
+  if(m_Int32Type)
+    return m_Int32Type;
+
+  for(size_t i = 0; i < m_Types.size(); i++)
+  {
+    if(m_Types[i].type == Type::Scalar && m_Types[i].scalarType == Type::Int &&
+       m_Types[i].bitWidth == 32)
+    {
+      m_Int32Type = &m_Types[i];
+      break;
+    }
+  }
+
+  if(!m_Int32Type)
+    RDCERR("Couldn't find void type");
+
+  return m_Int32Type;
+}
+
+const Type *Program::GetInt8Type()
+{
+  if(m_Int8Type)
+    return m_Int8Type;
+
+  for(size_t i = 0; i < m_Types.size(); i++)
+  {
+    if(m_Types[i].type == Type::Scalar && m_Types[i].scalarType == Type::Int &&
+       m_Types[i].bitWidth == 8)
+    {
+      m_Int8Type = &m_Types[i];
+      break;
+    }
+  }
+
+  if(!m_Int8Type)
+    RDCERR("Couldn't find void type");
+
+  return m_Int8Type;
+}
+
 const Type *Program::GetPointerType(const Type *type, Type::PointerAddrSpace addrSpace) const
 {
   for(const Type &t : m_Types)

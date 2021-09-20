@@ -679,6 +679,8 @@ protected:
   uint32_t GetOrAssignMetaID(DebugLocation &l);
   const Type *GetVoidType();
   const Type *GetBoolType();
+  const Type *GetInt32Type();
+  const Type *GetInt8Type();
   const Type *GetPointerType(const Type *type, Type::PointerAddrSpace addrSpace) const;
 
   bytebuf m_Bytes;
@@ -704,6 +706,8 @@ protected:
   rdcarray<Type> m_Types;
   const Type *m_VoidType = NULL;
   const Type *m_BoolType = NULL;
+  const Type *m_Int32Type = NULL;
+  const Type *m_Int8Type = NULL;
 
   rdcarray<AttributeGroup> m_AttributeGroups;
   rdcarray<AttributeSet> m_AttributeSets;
