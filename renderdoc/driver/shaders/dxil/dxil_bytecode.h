@@ -498,8 +498,6 @@ struct Metadata
 
   Value value;
 
-  const Instruction *const *inst = NULL;
-
   const Type *type = NULL;
   rdcstr str;
   rdcarray<Metadata *> children;

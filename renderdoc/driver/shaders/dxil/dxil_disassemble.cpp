@@ -1688,9 +1688,7 @@ rdcstr Metadata::valString() const
     {
       const Instruction *i = NULL;
 
-      if(inst && *inst)
-        i = *inst;
-      else if(value.type == ValueType::Instruction)
+      if(value.type == ValueType::Instruction)
         i = value.instruction;
 
       if(i)
