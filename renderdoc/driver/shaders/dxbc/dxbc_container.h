@@ -163,9 +163,16 @@ public:
   void FillTraceLineInfo(ShaderDebugTrace &trace) const;
   void FillStateInstructionInfo(ShaderDebugState &state) const;
 
-  static void ReplaceDXBCBytecode(bytebuf &ByteCode, const rdcarray<uint32_t> &replacement);
   static void StripDXILDebugInfo(bytebuf &ByteCode);
-  static void ReplaceDXILBytecode(bytebuf &ByteCode, const bytebuf &replacement);
+  static void ReplaceChunk(bytebuf &ByteCode, uint32_t fourcc, const byte *replacement, size_t size);
+
+  template <typename T>
+  static void ReplaceChunk(bytebuf &ByteCode, uint32_t fourcc, const rdcarray<T> &replacement)
+  {
+    ReplaceChunk(ByteCode, fourcc, (byte *)replacement.data(), replacement.byteSize());
+  }
+
+  static const byte *FindChunk(const bytebuf &ByteCode, uint32_t fourcc, size_t &size);
 
   const DXBCBytecode::Program *GetDXBCByteCode() const { return m_DXBCByteCode; }
   DXBCBytecode::Program *GetDXBCByteCode() { return m_DXBCByteCode; }

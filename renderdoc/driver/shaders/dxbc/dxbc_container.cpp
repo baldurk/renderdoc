@@ -654,66 +654,6 @@ void DXBCContainer::FillStateInstructionInfo(ShaderDebugState &state) const
   }
 }
 
-void DXBCContainer::ReplaceDXBCBytecode(bytebuf &ByteCode, const rdcarray<uint32_t> &replacement)
-{
-  FileHeader *header = (FileHeader *)ByteCode.data();
-
-  if(header->fourcc != FOURCC_DXBC)
-    return;
-
-  if(header->fileLength != (uint32_t)ByteCode.size())
-    return;
-
-  uint32_t *chunkOffsets =
-      (uint32_t *)(ByteCode.data() + sizeof(FileHeader));    // right after the header
-
-  for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
-  {
-    uint32_t offs = chunkOffsets[chunkIdx];
-
-    uint32_t *fourcc = (uint32_t *)(ByteCode.data() + offs);
-    uint32_t *chunkSize = (uint32_t *)(fourcc + 1);
-
-    if(*fourcc == FOURCC_SHEX || *fourcc == FOURCC_SHDR)
-    {
-      int32_t diff = int32_t(replacement.byteSize()) - int32_t(*chunkSize);
-
-      *chunkSize = (uint32_t)replacement.byteSize();
-
-      if(diff == 0)
-      {
-        memcpy(ByteCode.data() + offs + 8, replacement.data(), replacement.byteSize());
-      }
-      else if(diff > 0)
-      {
-        const byte *replaceBytes = (const byte *)replacement.data();
-        ByteCode.insert(offs + 8, replaceBytes, diff);
-        memcpy(ByteCode.data() + offs + 8 + diff, replaceBytes + diff, replacement.byteSize() - diff);
-      }
-      else if(diff < 0)
-      {
-        ByteCode.erase(offs + 8, -diff);
-        memcpy(ByteCode.data() + offs + 8, replacement.data(), replacement.byteSize());
-      }
-
-      // fixup offsets of chunks after this point
-      header = (FileHeader *)ByteCode.data();
-      chunkOffsets = (uint32_t *)(ByteCode.data() + sizeof(FileHeader));
-
-      header->fileLength += diff;
-
-      chunkIdx++;
-
-      for(; chunkIdx < header->numChunks; chunkIdx++)
-        chunkOffsets[chunkIdx] += diff;
-
-      break;
-    }
-  }
-
-  HashContainer(ByteCode.data(), ByteCode.size());
-}
-
 void DXBCContainer::StripDXILDebugInfo(bytebuf &ByteCode)
 {
   FileHeader *header = (FileHeader *)ByteCode.data();
@@ -753,7 +693,8 @@ void DXBCContainer::StripDXILDebugInfo(bytebuf &ByteCode)
   HashContainer(ByteCode.data(), ByteCode.size());
 }
 
-void DXBCContainer::ReplaceDXILBytecode(bytebuf &ByteCode, const bytebuf &replacement)
+void DXBCContainer::ReplaceChunk(bytebuf &ByteCode, uint32_t fourcc, const byte *replacement,
+                                 size_t size)
 {
   FileHeader *header = (FileHeader *)ByteCode.data();
 
@@ -770,29 +711,29 @@ void DXBCContainer::ReplaceDXILBytecode(bytebuf &ByteCode, const bytebuf &replac
   {
     uint32_t offs = chunkOffsets[chunkIdx];
 
-    uint32_t *fourcc = (uint32_t *)(ByteCode.data() + offs);
-    uint32_t *chunkSize = (uint32_t *)(fourcc + 1);
+    uint32_t *chunkFourcc = (uint32_t *)(ByteCode.data() + offs);
+    uint32_t *chunkSize = (uint32_t *)(chunkFourcc + 1);
 
-    if(*fourcc == FOURCC_DXIL)
+    if(*chunkFourcc == fourcc)
     {
-      int32_t diff = int32_t(replacement.size()) - int32_t(*chunkSize);
+      int32_t diff = int32_t(size) - int32_t(*chunkSize);
 
-      *chunkSize = (uint32_t)replacement.size();
+      *chunkSize = (uint32_t)size;
 
       if(diff == 0)
       {
-        memcpy(ByteCode.data() + offs + 8, replacement.data(), replacement.size());
+        memcpy(ByteCode.data() + offs + 8, replacement, size);
       }
       else if(diff > 0)
       {
-        const byte *replaceBytes = (const byte *)replacement.data();
+        const byte *replaceBytes = (const byte *)replacement;
         ByteCode.insert(offs + 8, replaceBytes, diff);
-        memcpy(ByteCode.data() + offs + 8 + diff, replaceBytes + diff, replacement.size() - diff);
+        memcpy(ByteCode.data() + offs + 8 + diff, replaceBytes + diff, size - diff);
       }
       else if(diff < 0)
       {
         ByteCode.erase(offs + 8, -diff);
-        memcpy(ByteCode.data() + offs + 8, replacement.data(), replacement.size());
+        memcpy(ByteCode.data() + offs + 8, replacement, size);
       }
 
       // fixup offsets of chunks after this point
@@ -806,11 +747,42 @@ void DXBCContainer::ReplaceDXILBytecode(bytebuf &ByteCode, const bytebuf &replac
       for(; chunkIdx < header->numChunks; chunkIdx++)
         chunkOffsets[chunkIdx] += diff;
 
-      break;
+      HashContainer(ByteCode.data(), ByteCode.size());
+      return;
+    }
+  }
+}
+
+const byte *DXBCContainer::FindChunk(const bytebuf &ByteCode, uint32_t fourcc, size_t &size)
+{
+  const FileHeader *header = (const FileHeader *)ByteCode.data();
+
+  size = 0;
+
+  if(header->fourcc != FOURCC_DXBC)
+    return NULL;
+
+  if(header->fileLength != (uint32_t)ByteCode.size())
+    return NULL;
+
+  const uint32_t *chunkOffsets =
+      (const uint32_t *)(ByteCode.data() + sizeof(FileHeader));    // right after the header
+
+  for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
+  {
+    uint32_t offs = chunkOffsets[chunkIdx];
+
+    const uint32_t *chunkFourcc = (uint32_t *)(ByteCode.data() + offs);
+    const uint32_t *chunkSize = (uint32_t *)(chunkFourcc + 1);
+
+    if(*chunkFourcc == fourcc)
+    {
+      size = *chunkSize;
+      return ByteCode.data() + offs + 8;
     }
   }
 
-  HashContainer(ByteCode.data(), ByteCode.size());
+  return NULL;
 }
 
 void DXBCContainer::GetHash(uint32_t hash[4], const void *ByteCode, size_t BytecodeLength)

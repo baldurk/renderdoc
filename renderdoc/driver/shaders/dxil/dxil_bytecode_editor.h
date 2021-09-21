@@ -25,6 +25,7 @@
 #pragma once
 
 #include "dxil_bytecode.h"
+#include "dxil_common.h"
 
 namespace DXBC
 {
@@ -38,6 +39,20 @@ class BitcodeWriter;
 
 namespace DXIL
 {
+enum class DXILResourceType
+{
+  Unknown,
+  Sampler,
+  CBuffer,
+  TypedSRV,
+  ByteAddressSRV,
+  StructuredSRV,
+  TypedUAV,
+  ByteAddressUAV,
+  StructuredUAV,
+  StructuredUAVWithCounter,
+};
+
 class ProgramEditor : public Program
 {
 public:
@@ -69,6 +84,9 @@ public:
   const Constant *GetOrAddConstant(Function *f, const Constant &c);
 
   Instruction *AddInstruction(Function *f, size_t idx, const Instruction &inst);
+
+  void RegisterUAV(DXILResourceType type, uint32_t space, uint32_t regBase, uint32_t regEnd,
+                   ResourceKind kind);
 
 private:
   bytebuf &m_OutBlob;

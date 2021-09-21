@@ -458,6 +458,10 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
     entryPoints->children[0] = entry;
   }
 
+  // get the editor to patch PSV0 with our extra UAV
+  editor.RegisterUAV(DXIL::DXILResourceType::ByteAddressUAV, space, 0, 0,
+                     DXIL::ResourceKind::RawBuffer);
+
   DXIL::Function *f = editor.GetFunctionByName(entryName);
 
   if(!f)

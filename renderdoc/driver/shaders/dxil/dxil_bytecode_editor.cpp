@@ -471,7 +471,7 @@ ProgramEditor::~ProgramEditor()
   GetInt32Type();
 
   // replace the DXIL bytecode in the container with
-  DXBC::DXBCContainer::ReplaceDXILBytecode(m_OutBlob, EncodeProgram());
+  DXBC::DXBCContainer::ReplaceChunk(m_OutBlob, MAKE_FOURCC('D', 'X', 'I', 'L'), EncodeProgram());
 
 #if ENABLED(RDOC_DEVEL)
   // on debug builds, run through dxil for "validation" if it's available.
@@ -1895,6 +1895,87 @@ bytebuf ProgramEditor::EncodeProgram() const
   ret.resize(AlignUp4(ret.size()));
 
   return ret;
+}
+
+struct ResourceBind0
+{
+  DXILResourceType type;
+  uint32_t space;
+  uint32_t regBase;
+  uint32_t regEnd;
+};
+
+struct ResourceBind1 : ResourceBind0
+{
+  ResourceKind kind;
+  uint32_t flags;
+};
+
+// this function should be expanded in future, maybe to automatically re-write the PSV0 from the
+// DXIL data in ~ProgramEditor()
+void ProgramEditor::RegisterUAV(DXILResourceType type, uint32_t space, uint32_t regBase,
+                                uint32_t regEnd, ResourceKind kind)
+{
+  size_t sz = 0;
+  const byte *psv0 = DXBC::DXBCContainer::FindChunk(m_OutBlob, MAKE_FOURCC('P', 'S', 'V', '0'), sz);
+
+  ResourceBind1 bind = {};
+  bind.type = type;
+  bind.space = space;
+  bind.regBase = regBase;
+  bind.regEnd = regEnd;
+  bind.kind = kind;
+
+  if(psv0)
+  {
+    bytebuf psv0blob(psv0, sz);
+
+    byte *begin = psv0blob.data();
+    byte *end = begin + sz;
+
+    byte *cur = begin;
+
+    uint32_t *headerSize = (uint32_t *)cur;
+    cur += sizeof(uint32_t);
+    if(cur >= end)
+      return;
+
+    // don't need to patch the header
+    cur += *headerSize;
+    if(cur >= end)
+      return;
+
+    uint32_t *numResources = (uint32_t *)cur;
+    cur += sizeof(uint32_t);
+    if(cur >= end)
+      return;
+
+    uint32_t *resourceBindSize = (uint32_t *)cur;
+    cur += sizeof(uint32_t);
+    if(cur >= end)
+      return;
+
+    // fortunately UAVs are the last entry so we don't need to walk the list to insert in the right
+    // place, we can just add it at the end
+    cur += (*resourceBindSize) * (*numResources);
+    if(cur >= end)
+      return;
+
+    // add an extra resource
+    (*numResources)++;
+
+    if(*resourceBindSize == sizeof(ResourceBind1) || *resourceBindSize == sizeof(ResourceBind0))
+    {
+      psv0blob.insert(cur - begin, (byte *)&bind, *resourceBindSize);
+    }
+    else
+    {
+      RDCERR("Unexpected resource bind size %u", *resourceBindSize);
+      return;
+    }
+
+    DXBC::DXBCContainer::ReplaceChunk(m_OutBlob, MAKE_FOURCC('P', 'S', 'V', '0'), psv0blob);
+  }
 }
 
 void ProgramEditor::EncodeConstants(LLVMBC::BitcodeWriter &writer, const rdcarray<Value> &values,
