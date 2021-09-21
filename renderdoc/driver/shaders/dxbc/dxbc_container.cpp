@@ -676,15 +676,25 @@ void DXBCContainer::StripDXILDebugInfo(bytebuf &ByteCode)
 
     if(*fourcc == FOURCC_ILDB)
     {
+      // the size of the whole chunk that we're erasing is the chunk's size itself, plus 8 bytes for
+      // fourcc+size
       uint32_t size = 8 + *chunkSize;
-      // strip ILDB because it's valid code (with debug info) and who knows what might use it
       for(uint32_t c = chunkIdx; c < header->numChunks; c++)
         chunkOffsets[c] = chunkOffsets[c + 1] - size;
 
       header->numChunks--;
       header->fileLength -= size;
 
+      // all chunk offsets (before and after) and file size decrement by a uint32, because we're
+      // going to remove a chunkoffset as well which is before them all
+      for(uint32_t c = 0; c < header->numChunks; c++)
+        chunkOffsets[c] -= sizeof(uint32_t);
+      header->fileLength -= sizeof(uint32_t);
+
+      // erase the chunk itself
       ByteCode.erase(offs, size);
+      // remove the chunk offset
+      ByteCode.erase(sizeof(FileHeader) + header->numChunks * sizeof(uint32_t), 4);
 
       break;
     }

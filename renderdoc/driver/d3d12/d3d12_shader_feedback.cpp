@@ -618,6 +618,7 @@ static void AddArraySlots(WrappedID3D12PipelineState::ShaderEntry *shad, uint32_
   {
     if(AnnotateDXILShader(shad->GetDXBC(), space, slots, editedBlob))
     {
+      // strip ILDB because it's valid code (with debug info) and who knows what might use it
       DXBC::DXBCContainer::StripDXILDebugInfo(editedBlob);
 
       if(!D3D12_Debug_FeedbackDumpDirPath().empty())
