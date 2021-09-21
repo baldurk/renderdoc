@@ -318,15 +318,6 @@ inline size_t Log2Ceil(size_t value)
   return (size_t)Log2Ceil((uint32_t)value);
 #endif
 }
-
-inline size_t Log2(size_t value)
-{
-#if ENABLED(RDOC_X64)
-  return (size_t)Log2((uint64_t)value);
-#else
-  return (size_t)Log2((uint32_t)value);
-#endif
-}
 #endif
 
 /////////////////////////////////////////////////
