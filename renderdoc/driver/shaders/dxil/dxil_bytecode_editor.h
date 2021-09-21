@@ -53,6 +53,14 @@ enum class DXILResourceType
   StructuredUAVWithCounter,
 };
 
+enum class HandleKind
+{
+  SRV = 0,
+  UAV = 1,
+  CBuffer = 2,
+  Sampler = 3,
+};
+
 class ProgramEditor : public Program
 {
 public:

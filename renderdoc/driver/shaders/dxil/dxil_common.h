@@ -90,6 +90,36 @@ enum class ShaderEntryTag
   Compute = 4,
 };
 
+enum class ResField
+{
+  ID = 0,
+  VarDecl = 1,
+  Name = 2,
+  Space = 3,
+  RegBase = 4,
+  RegCount = 5,
+
+  // SRV
+  SRVShape = 6,
+  SRVSampleCount = 7,
+  SRVTags = 8,
+
+  // UAV
+  UAVShape = 6,
+  UAVGloballyCoherent = 7,
+  UAVHiddenCounter = 8,
+  UAVRasterOrder = 9,
+  UAVTags = 10,
+
+  // CBuffer
+  CBufferByteSize = 6,
+  CBufferTags = 7,
+
+  // Sampler
+  SamplerType = 6,
+  SamplerTags = 7,
+};
+
 };    // namespace DXIL
 
 DECLARE_STRINGISE_TYPE(DXIL::ComponentType);

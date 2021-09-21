@@ -69,6 +69,9 @@ private:
   uint32_t used : 1;
 };
 
+static const uint32_t numReservedSlots = 4;
+static const uint32_t magicFeedbackValue = 0xbeebf33d;
+
 static bool AnnotateDXBCShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
                                const std::map<D3D12FeedbackKey, D3D12FeedbackSlot> &slots,
                                bytebuf &editedBlob)
@@ -165,7 +168,8 @@ static bool AnnotateDXBCShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
       editor.InsertOperation(i++,
                              oper(OPCODE_ISHL, {temp(t).swizzle(0), temp(t).swizzle(0), imm(2)}));
       // atomic or the slot
-      editor.InsertOperation(i++, oper(OPCODE_ATOMIC_OR, {uav(u), temp(t).swizzle(0), imm(~0U)}));
+      editor.InsertOperation(
+          i++, oper(OPCODE_ATOMIC_OR, {uav(u), temp(t).swizzle(0), imm(magicFeedbackValue)}));
 
       // only one resource operand per instruction
       break;
@@ -175,7 +179,8 @@ static bool AnnotateDXBCShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
   if(u.first != ~0U || u.second != ~0U)
   {
     editor.InsertOperation(0, oper(OPCODE_MOV, {temp(t).swizzle(0), imm(0)}));
-    editor.InsertOperation(1, oper(OPCODE_ATOMIC_OR, {uav(u), temp(t).swizzle(0), imm(~0U)}));
+    editor.InsertOperation(
+        1, oper(OPCODE_ATOMIC_OR, {uav(u), temp(t).swizzle(0), imm(magicFeedbackValue)}));
     return true;
   }
 
@@ -238,6 +243,11 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
     atomicBinOp = editor.DeclareFunction(atomicFunc);
   }
 
+  // while we're iterating through the metadata to add our UAV, we'll also note the shader-local
+  // register IDs of each SRV/UAV with slots, and record the base slot in this array for easy access
+  // later when annotating dx.op.createHandle calls
+  rdcarray<uint32_t> srvBaseSlots, uavBaseSlots;
+
   // when we add metadata we do it in reverse order since it's unclear if we're supposed to have
   // forward references (LLVM seems to handle it, but not emit it, so it's very much a grey area)
   // we do this by recreating any nodes that we modify (or their parents recursively up to the named
@@ -280,14 +290,71 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
 
     reslist = resources->children[0];
 
+    DXIL::Metadata *srvs = reslist->children[0];
     DXIL::Metadata *uavs = reslist->children[1];
+
+    D3D12FeedbackKey key;
+
+    key.type = DXBCBytecode::TYPE_RESOURCE;
+
+    for(size_t i = 0; srvs && i < srvs->children.size(); i++)
+    {
+      // each SRV child should have a fixed format
+      const DXIL::Metadata *srv = srvs->children[i];
+      const DXIL::Metadata *slot = srv->children[(size_t)DXIL::ResField::ID];
+      const DXIL::Metadata *srvSpace = srv->children[(size_t)DXIL::ResField::Space];
+      const DXIL::Metadata *reg = srv->children[(size_t)DXIL::ResField::RegBase];
+
+      if(slot->value.type != DXIL::ValueType::Constant)
+      {
+        RDCWARN("Unexpected non-constant slot ID in SRV");
+        continue;
+      }
+
+      if(srvSpace->value.type != DXIL::ValueType::Constant)
+      {
+        RDCWARN("Unexpected non-constant register space in SRV");
+        continue;
+      }
+
+      if(reg->value.type != DXIL::ValueType::Constant)
+      {
+        RDCWARN("Unexpected non-constant register base in SRV");
+        continue;
+      }
+
+      uint32_t id = slot->value.constant->val.u32v[0];
+      key.bind.bindset = srvSpace->value.constant->val.u32v[0];
+      key.bind.bind = reg->value.constant->val.u32v[0];
+
+      // ensure every valid ID has an index, even if it's 0
+      srvBaseSlots.resize_for_index(id);
+
+      auto it = slots.find(key);
+
+      // not annotated
+      if(it == slots.end())
+        continue;
+
+      uint32_t feedbackSlot = it->second.Slot();
+
+      // we assume all feedback slots are non-zero, so that a 0 base slot can be used as an
+      // identifier for 'this resource isn't annotated'
+      RDCASSERT(feedbackSlot > 0);
+
+      srvBaseSlots[id] = feedbackSlot;
+    }
+
+    key.type = DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW;
 
     for(size_t i = 0; uavs && i < uavs->children.size(); i++)
     {
       // each UAV child should have a fixed format, [0] is the reg ID and I think this should always
       // be == the index
       const DXIL::Metadata *uav = uavs->children[i];
-      const DXIL::Metadata *slot = uav->children[0];
+      const DXIL::Metadata *slot = uav->children[(size_t)DXIL::ResField::ID];
+      const DXIL::Metadata *uavSpace = uav->children[(size_t)DXIL::ResField::Space];
+      const DXIL::Metadata *reg = uav->children[(size_t)DXIL::ResField::RegBase];
 
       if(slot->value.type != DXIL::ValueType::Constant)
       {
@@ -295,9 +362,46 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
         continue;
       }
 
+      if(uavSpace->value.type != DXIL::ValueType::Constant)
+      {
+        RDCWARN("Unexpected non-constant register space in UAV");
+        continue;
+      }
+
+      if(reg->value.type != DXIL::ValueType::Constant)
+      {
+        RDCWARN("Unexpected non-constant register base in UAV");
+        continue;
+      }
+
       RDCASSERT(slot->value.constant->val.u32v[0] == i);
 
-      regSlot = RDCMAX(slot->value.constant->val.u32v[0] + 1, regSlot);
+      uint32_t id = slot->value.constant->val.u32v[0];
+      regSlot = RDCMAX(id + 1, regSlot);
+
+      // ensure every valid ID has an index, even if it's 0
+      uavBaseSlots.resize_for_index(id);
+
+      key.bind.bindset = uavSpace->value.constant->val.u32v[0];
+      key.bind.bind = reg->value.constant->val.u32v[0];
+
+      auto it = slots.find(key);
+
+      // not annotated
+      if(it == slots.end())
+        continue;
+
+      // static used i.e. not arrayed? ignore
+      if(it->second.StaticUsed())
+        continue;
+
+      uint32_t feedbackSlot = it->second.Slot();
+
+      // we assume all feedback slots are non-zero, so that a 0 base slot can be used as an
+      // identifier for 'this resource isn't annotated'
+      RDCASSERT(feedbackSlot > 0);
+
+      uavBaseSlots[id] = feedbackSlot;
     }
 
     DXIL::Metadata *uavRecord[11] = {
@@ -481,7 +585,7 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
         // dx.op.createHandle opcode
         DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 57U))),
         // kind = UAV
-        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i8, 1U))),
+        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i8, (uint32_t)DXIL::HandleKind::UAV))),
         // ID/slot
         DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, regSlot))),
         // array index
@@ -521,10 +625,95 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
         // offset 3
         DXIL::Value(undefi32),
         // value
-        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, ~0U))),
+        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, magicFeedbackValue))),
     };
 
     editor.AddInstruction(f, 1, inst);
+  }
+
+  for(size_t i = 2; i < f->instructions.size(); i++)
+  {
+    const DXIL::Instruction &inst = f->instructions[i];
+    // we want to annotate any calls to createHandle
+    if(inst.op == DXIL::Operation::Call && inst.funcCall->name == createHandle->name)
+    {
+      if(inst.args.size() != 5)
+      {
+        RDCERR("Unexpected number of arguments to createHandle");
+        continue;
+      }
+
+      DXIL::Value kindArg = inst.args[1];
+      DXIL::Value idArg = inst.args[2];
+      DXIL::Value idxArg = inst.args[3];
+
+      if(kindArg.type != DXIL::ValueType::Constant || idArg.type != DXIL::ValueType::Constant)
+      {
+        RDCERR("Unexpected non-constant argument to createHandle");
+        continue;
+      }
+
+      DXIL::HandleKind kind = (DXIL::HandleKind)kindArg.constant->val.u32v[0];
+      uint32_t id = idArg.constant->val.u32v[0];
+
+      uint32_t slot = 0;
+
+      if(kind == DXIL::HandleKind::SRV && id < srvBaseSlots.size())
+        slot = srvBaseSlots[id];
+      else if(kind == DXIL::HandleKind::UAV && id < uavBaseSlots.size())
+        slot = uavBaseSlots[id];
+
+      if(slot == 0)
+        continue;
+
+      DXIL::Instruction op;
+      op.op = DXIL::Operation::Add;
+      op.type = i32;
+      op.args = {
+          // idx to the createHandle op
+          idxArg,
+          // base slot
+          DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, slot))),
+      };
+
+      // slotPlusBase = idx + slot
+      DXIL::Instruction *slotPlusBase = editor.AddInstruction(f, i, op);
+      i++;
+
+      op.op = DXIL::Operation::ShiftLeft;
+      op.type = i32;
+      op.args = {
+          DXIL::Value(slotPlusBase), DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 2U))),
+      };
+
+      // byteOffset = slotPlusBase << 2
+      DXIL::Instruction *byteOffset = editor.AddInstruction(f, i, op);
+      i++;
+
+      op.op = DXIL::Operation::Call;
+      op.type = i32;
+      op.funcCall = atomicBinOp;
+      op.args = {
+          // dx.op.atomicBinOp.i32 opcode
+          DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 78U))),
+          // feedback UAV handle
+          DXIL::Value(handle),
+          // operation OR
+          DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 2U))),
+          // offset
+          DXIL::Value(byteOffset),
+          // offset 2
+          DXIL::Value(undefi32),
+          // offset 3
+          DXIL::Value(undefi32),
+          // value
+          DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, magicFeedbackValue))),
+      };
+
+      // don't care about the return value from this
+      editor.AddInstruction(f, i, op);
+      i++;
+    }
   }
 
   return true;
@@ -594,6 +783,10 @@ static void AddArraySlots(WrappedID3D12PipelineState::ShaderEntry *shad, uint32_
       slots[key].SetStaticUsed();
     }
   }
+
+  // if we haven't encountered any array slots, no need to do any patching
+  if(numSlots == numReservedSlots)
+    return;
 
   // only SM5.1 can have dynamic array indexing
   if(shad->GetDXBC()->m_Version.Major == 5 && shad->GetDXBC()->m_Version.Minor == 1)
@@ -704,7 +897,6 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
   std::map<D3D12FeedbackKey, D3D12FeedbackSlot> slots[6];
 
   // reserve the first 4 dwords for debug info and a validity flag
-  const uint32_t numReservedSlots = 4;
   uint32_t numSlots = numReservedSlots;
 
   if(result.compute)
@@ -896,112 +1088,121 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
   {
     uint32_t *slotsData = (uint32_t *)results.data();
 
-    result.valid = true;
-
-    // now we iterate over descriptor ranges and find which (of potentially multiple) registers each
-    // descriptor maps to and store the index if it's dynamically or statically used. We do this
-    // here so it only happens once instead of doing it when looking up the data.
-
-    D3D12FeedbackKey curKey;
-    D3D12FeedbackBindIdentifier curIdentifier = {};
-    // don't iterate the last signature element because that's ours!
-    for(size_t rootEl = 0; rootEl < modsig.Parameters.size() - 1; rootEl++)
+    if(slotsData[0] == magicFeedbackValue)
     {
-      curIdentifier.rootEl = rootEl;
+      result.valid = true;
 
-      const D3D12RootSignatureParameter &p = modsig.Parameters[rootEl];
+      // now we iterate over descriptor ranges and find which (of potentially multiple) registers
+      // each descriptor maps to and store the index if it's dynamically or statically used. We do
+      // this here so it only happens once instead of doing it when looking up the data.
 
-      // only tables need feedback data, others all are treated as dynamically used
-      if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+      D3D12FeedbackKey curKey;
+      D3D12FeedbackBindIdentifier curIdentifier = {};
+      // don't iterate the last signature element because that's ours!
+      for(size_t rootEl = 0; rootEl < modsig.Parameters.size() - 1; rootEl++)
       {
-        for(size_t r = 0; r < p.ranges.size(); r++)
+        curIdentifier.rootEl = rootEl;
+
+        const D3D12RootSignatureParameter &p = modsig.Parameters[rootEl];
+
+        // only tables need feedback data, others all are treated as dynamically used
+        if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
         {
-          const D3D12_DESCRIPTOR_RANGE1 &range = p.ranges[r];
-
-          curIdentifier.rangeIndex = r;
-
-          curKey.bind.bindset = range.RegisterSpace;
-
-          UINT num = range.NumDescriptors;
-          uint32_t visMask = 0;
-          // see which shader's binds we should look up for this range
-          switch(p.ShaderVisibility)
+          for(size_t r = 0; r < p.ranges.size(); r++)
           {
-            case D3D12_SHADER_VISIBILITY_ALL: visMask = result.compute ? 0x1 : 0xff; break;
-            case D3D12_SHADER_VISIBILITY_VERTEX: visMask = 1 << 0; break;
-            case D3D12_SHADER_VISIBILITY_HULL: visMask = 1 << 1; break;
-            case D3D12_SHADER_VISIBILITY_DOMAIN: visMask = 1 << 2; break;
-            case D3D12_SHADER_VISIBILITY_GEOMETRY: visMask = 1 << 3; break;
-            case D3D12_SHADER_VISIBILITY_PIXEL: visMask = 1 << 4; break;
-            default: RDCERR("Unexpected shader visibility %d", p.ShaderVisibility); return;
-          }
+            const D3D12_DESCRIPTOR_RANGE1 &range = p.ranges[r];
 
-          // set the key type
-          if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV)
-            curKey.type = DXBCBytecode::TYPE_RESOURCE;
-          else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
-            curKey.type = DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW;
+            curIdentifier.rangeIndex = r;
 
-          for(uint32_t st = 0; st < 5; st++)
-          {
-            if(visMask & (1 << st))
+            curKey.bind.bindset = range.RegisterSpace;
+
+            UINT num = range.NumDescriptors;
+            uint32_t visMask = 0;
+            // see which shader's binds we should look up for this range
+            switch(p.ShaderVisibility)
             {
-              curIdentifier.descIndex = 0;
-              curKey.bind.bind = range.BaseShaderRegister;
+              case D3D12_SHADER_VISIBILITY_ALL: visMask = result.compute ? 0x1 : 0xff; break;
+              case D3D12_SHADER_VISIBILITY_VERTEX: visMask = 1 << 0; break;
+              case D3D12_SHADER_VISIBILITY_HULL: visMask = 1 << 1; break;
+              case D3D12_SHADER_VISIBILITY_DOMAIN: visMask = 1 << 2; break;
+              case D3D12_SHADER_VISIBILITY_GEOMETRY: visMask = 1 << 3; break;
+              case D3D12_SHADER_VISIBILITY_PIXEL: visMask = 1 << 4; break;
+              default: RDCERR("Unexpected shader visibility %d", p.ShaderVisibility); return;
+            }
 
-              // the feedback entries start here
-              auto slotIt = slots[st].lower_bound(curKey);
+            // set the key type
+            if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV)
+              curKey.type = DXBCBytecode::TYPE_RESOURCE;
+            else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
+              curKey.type = DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW;
 
-              // iterate over the declared range. This could be unbounded, so we might exit
-              // another way
-              for(uint32_t i = 0; i < num; i++)
+            for(uint32_t st = 0; st < 5; st++)
+            {
+              if(visMask & (1 << st))
               {
-                // stop when we've run out of recorded used slots
-                if(slotIt == slots[st].end())
-                  break;
+                curIdentifier.descIndex = 0;
+                curKey.bind.bind = range.BaseShaderRegister;
 
-                Bindpoint bind = slotIt->first.bind;
+                // the feedback entries start here
+                auto slotIt = slots[st].lower_bound(curKey);
 
-                // stop if the next used slot is in another space or is another type
-                if(bind.bindset > curKey.bind.bindset || slotIt->first.type != curKey.type)
-                  break;
-
-                // if the next bind is definitely outside this range, early out now instead of
-                // iterating fruitlessly
-                if((uint32_t)bind.bind > range.BaseShaderRegister + num)
-                  break;
-
-                int32_t lastBind = bind.bind + (int32_t)RDCCLAMP(bind.arraySize, 1U, maxDescriptors);
-
-                // if this slot's array covers the current bind, check the result
-                if(bind.bind <= curKey.bind.bind && curKey.bind.bind < lastBind)
+                // iterate over the declared range. This could be unbounded, so we might exit
+                // another way
+                for(uint32_t i = 0; i < num; i++)
                 {
-                  // if it's static used by having a fixed result declared, it's used
-                  const bool staticUsed = slotIt->second.StaticUsed();
+                  // stop when we've run out of recorded used slots
+                  if(slotIt == slots[st].end())
+                    break;
 
-                  // otherwise check the feedback we got
-                  const uint32_t baseSlot = slotIt->second.Slot();
-                  const uint32_t arrayIndex = curKey.bind.bind - bind.bind;
+                  Bindpoint bind = slotIt->first.bind;
 
-                  if(staticUsed || slotsData[baseSlot + arrayIndex])
-                    result.used.push_back(curIdentifier);
+                  // stop if the next used slot is in another space or is another type
+                  if(bind.bindset > curKey.bind.bindset || slotIt->first.type != curKey.type)
+                    break;
+
+                  // if the next bind is definitely outside this range, early out now instead of
+                  // iterating fruitlessly
+                  if((uint32_t)bind.bind > range.BaseShaderRegister + num)
+                    break;
+
+                  int32_t lastBind =
+                      bind.bind + (int32_t)RDCCLAMP(bind.arraySize, 1U, maxDescriptors);
+
+                  // if this slot's array covers the current bind, check the result
+                  if(bind.bind <= curKey.bind.bind && curKey.bind.bind < lastBind)
+                  {
+                    // if it's static used by having a fixed result declared, it's used
+                    const bool staticUsed = slotIt->second.StaticUsed();
+
+                    // otherwise check the feedback we got
+                    const uint32_t baseSlot = slotIt->second.Slot();
+                    const uint32_t arrayIndex = curKey.bind.bind - bind.bind;
+
+                    if(staticUsed || slotsData[baseSlot + arrayIndex])
+                      result.used.push_back(curIdentifier);
+                  }
+
+                  curKey.bind.bind++;
+                  curIdentifier.descIndex++;
+
+                  // if we've passed this slot, move to the next one. Because we're iterating a
+                  // contiguous range of binds the next slot will be enough for the next iteration
+                  if(curKey.bind.bind >= lastBind)
+                    slotIt++;
                 }
-
-                curKey.bind.bind++;
-                curIdentifier.descIndex++;
-
-                // if we've passed this slot, move to the next one. Because we're iterating a
-                // contiguous range of binds the next slot will be enough for the next iteration
-                if(curKey.bind.bind >= lastBind)
-                  slotIt++;
               }
             }
           }
         }
       }
-    }
 
-    std::sort(result.used.begin(), result.used.end());
+      std::sort(result.used.begin(), result.used.end());
+    }
+    else
+    {
+      RDCERR("Didn't get valid feedback identifier. Expected %08x got %08x", magicFeedbackValue,
+             slotsData[0]);
+    }
   }
 
   // replay from the start as we may have corrupted state while fetching the above feedback.
