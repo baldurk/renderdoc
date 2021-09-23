@@ -647,9 +647,9 @@ public:
   void FetchComputeProperties(DXBC::Reflection *reflection);
   DXBC::Reflection *GetReflection();
 
-  DXBC::ShaderType GetShaderType() { return m_Type; }
-  uint32_t GetMajorVersion() { return m_Major; }
-  uint32_t GetMinorVersion() { return m_Minor; }
+  DXBC::ShaderType GetShaderType() const { return m_Type; }
+  uint32_t GetMajorVersion() const { return m_Major; }
+  uint32_t GetMinorVersion() const { return m_Minor; }
   D3D_PRIMITIVE_TOPOLOGY GetOutputTopology();
   const rdcstr &GetDisassembly()
   {

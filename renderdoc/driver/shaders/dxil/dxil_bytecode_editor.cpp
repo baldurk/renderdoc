@@ -1976,6 +1976,20 @@ void ProgramEditor::RegisterUAV(DXILResourceType type, uint32_t space, uint32_t 
 
     DXBC::DXBCContainer::ReplaceChunk(m_OutBlob, MAKE_FOURCC('P', 'S', 'V', '0'), psv0blob);
   }
+
+  // patch SFI0 here for non-CS non-PS shaders
+  if(m_Type != DXBC::ShaderType::Compute && m_Type != DXBC::ShaderType::Pixel)
+  {
+    // cheekily cast away const since this returns the blob in-place
+    DXBC::GlobalShaderFlags *flags = (DXBC::GlobalShaderFlags *)DXBC::DXBCContainer::FindChunk(
+        m_OutBlob, MAKE_FOURCC('S', 'F', 'I', '0'), sz);
+
+    // this *should* always be present, so we can just add our flag
+    if(flags)
+      (*flags) |= DXBC::GlobalShaderFlags::UAVsEveryStage;
+    else
+      RDCWARN("Feature flags chunk not present");
+  }
 }
 
 void ProgramEditor::EncodeConstants(LLVMBC::BitcodeWriter &writer, const rdcarray<Value> &values,
