@@ -797,7 +797,6 @@ VkResult WrappedVulkan::vkMapMemory(VkDevice device, VkDeviceMemory mem, VkDevic
       state.mapOffset = offset;
       state.mapSize = size == VK_WHOLE_SIZE ? (memrecord->Length - offset)
                                             : RDCMIN(memrecord->Length - offset, size);
-      state.mapFlushed = false;
 
       *ppData = realData + misalignedOffset;
 
@@ -1184,9 +1183,6 @@ void WrappedVulkan::InternalFlushMemoryRange(VkDevice device, const VkMappedMemo
   VkResourceRecord *record = GetRecord(memRange.memory);
 
   MemMapState *state = record->memMapState;
-
-  if(!internalFlush)
-    state->mapFlushed = true;
 
   if(state->mappedPtr == NULL)
   {

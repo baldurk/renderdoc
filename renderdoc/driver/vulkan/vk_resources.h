@@ -1136,7 +1136,6 @@ struct MemMapState
   VkDeviceSize mapOffset = 0, mapSize = 0;
   bool dedicated = false;
   bool needRefData = false;
-  bool mapFlushed = false;
   bool mapCoherent = false;
   bool readbackOnGPU = false;
   // pointer to base of memory, may not be valid until after mapOffset bytes

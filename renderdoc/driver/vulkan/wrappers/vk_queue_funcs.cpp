@@ -1011,7 +1011,7 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
       SCOPED_LOCK(state.mrLock);
 
       // potential persistent map
-      if(state.mapCoherent && state.mappedPtr && !state.mapFlushed)
+      if(state.mapCoherent && state.mappedPtr)
       {
         // only need to flush memory that could affect this submitted batch of work, or if there are
         // BDA buffers bound (as we can't track those!)
