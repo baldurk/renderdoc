@@ -899,6 +899,10 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
   // reserve the first 4 dwords for debug info and a validity flag
   uint32_t numSlots = numReservedSlots;
 
+#if ENABLED(RDOC_DEVEL)
+  m_pDevice->GetShaderCache()->LoadDXC();
+#endif
+
   if(result.compute)
   {
     ID3D12RootSignature *sig = rm->GetCurrentAs<ID3D12RootSignature>(rs.compute.rootsig);
