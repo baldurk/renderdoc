@@ -920,8 +920,6 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
 
             D3D12_RANGE range = {diffStart, diffEnd};
 
-            m_pDevice->MapDataWrite(res, subres, data, range);
-
             if(ref == NULL)
             {
               res->AllocShadow(subres, size);
@@ -929,8 +927,9 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
               ref = res->GetShadow(subres);
             }
 
-            // update comparison shadow for next time
-            memcpy(ref, data, size);
+            // passing true here asks the serialisation function to update the shadow pointer for
+            // this resource
+            m_pDevice->MapDataWrite(res, subres, data, range, true);
 
             GetResourceManager()->MarkDirtyResource(res->GetResourceID());
           }

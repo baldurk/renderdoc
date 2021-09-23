@@ -1694,13 +1694,13 @@ void WrappedID3D12Device::Unmap(ID3D12Resource *Resource, UINT Subresource, byte
   }
 
   if(capframe)
-    MapDataWrite(Resource, Subresource, mapPtr, range);
+    MapDataWrite(Resource, Subresource, mapPtr, range, false);
 }
 
 template <typename SerialiserType>
 bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Resource *Resource,
                                                  UINT Subresource, byte *MappedData,
-                                                 D3D12_RANGE range)
+                                                 D3D12_RANGE range, bool coherentFlush)
 {
   SERIALISE_ELEMENT(Resource).Important();
   SERIALISE_ELEMENT(Subresource);
@@ -1737,11 +1737,30 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
 
   ser.Serialise("MappedData"_lit, MappedData, range.End - range.Begin, flags).Important();
 
+  size_t dataOffset = 0;
+  if(ser.IsWriting())
+    dataOffset = ser.GetWriter()->GetOffset() - (range.End - range.Begin);
+
   SERIALISE_ELEMENT(range);
 
   uint64_t rangeSize = range.End - range.Begin;
 
   SERIALISE_CHECK_READ_ERRORS();
+
+  if(ser.IsWriting() && coherentFlush)
+  {
+    byte *ref = GetWrapped(Resource)->GetShadow(Subresource);
+    const byte *serialisedData = ser.GetWriter()->GetData() + dataOffset;
+
+    if(ref)
+    {
+      memcpy(ref + range.Begin, serialisedData, size_t(range.End - range.Begin));
+    }
+    else
+    {
+      RDCERR("Shadow data not allocated when coherent map flush is processed!");
+    }
+  }
 
   // don't do anything if end <= begin because the range is empty.
   if(IsReplayingAndReading() && Resource && range.End > range.Begin)
@@ -1824,19 +1843,21 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
 }
 
 template bool WrappedID3D12Device::Serialise_MapDataWrite(ReadSerialiser &ser,
-                                                          ID3D12Resource *Resource, UINT Subresource,
-                                                          byte *MappedData, D3D12_RANGE range);
+                                                          ID3D12Resource *Resource,
+                                                          UINT Subresource, byte *MappedData,
+                                                          D3D12_RANGE range, bool coherentFlush);
 template bool WrappedID3D12Device::Serialise_MapDataWrite(WriteSerialiser &ser,
-                                                          ID3D12Resource *Resource, UINT Subresource,
-                                                          byte *MappedData, D3D12_RANGE range);
+                                                          ID3D12Resource *Resource,
+                                                          UINT Subresource, byte *MappedData,
+                                                          D3D12_RANGE range, bool coherentFlush);
 
 void WrappedID3D12Device::MapDataWrite(ID3D12Resource *Resource, UINT Subresource, byte *mapPtr,
-                                       D3D12_RANGE range)
+                                       D3D12_RANGE range, bool coherentFlush)
 {
   CACHE_THREAD_SERIALISER();
 
-  SCOPED_SERIALISE_CHUNK(D3D12Chunk::Resource_Unmap);
-  Serialise_MapDataWrite(ser, Resource, Subresource, mapPtr, range);
+  SCOPED_SERIALISE_CHUNK(coherentFlush ? D3D12Chunk::CoherentMapWrite : D3D12Chunk::Resource_Unmap);
+  Serialise_MapDataWrite(ser, Resource, Subresource, mapPtr, range, coherentFlush);
 
   m_FrameCaptureRecord->AddChunk(scope.Get());
 
@@ -3814,6 +3835,7 @@ bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
     case D3D12Chunk::List_IndirectSubCommand:
     case D3D12Chunk::Swapchain_Present:
     case D3D12Chunk::List_ClearState:
+    case D3D12Chunk::CoherentMapWrite:
       RDCERR("Unexpected chunk while processing initialisation: %s", ToStr(context).c_str());
       return false;
 

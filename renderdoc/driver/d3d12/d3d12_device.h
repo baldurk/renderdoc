@@ -1072,8 +1072,8 @@ public:
     return E_NOINTERFACE;
   }
 
-  IMPLEMENT_FUNCTION_THREAD_SERIALISED(void, MapDataWrite, ID3D12Resource *Resource,
-                                       UINT Subresource, byte *mapPtr, D3D12_RANGE range);
+  IMPLEMENT_FUNCTION_THREAD_SERIALISED(void, MapDataWrite, ID3D12Resource *Resource, UINT Subresource,
+                                       byte *mapPtr, D3D12_RANGE range, bool coherentFlush);
   IMPLEMENT_FUNCTION_THREAD_SERIALISED(void, WriteToSubresource, ID3D12Resource *Resource,
                                        UINT Subresource, const D3D12_BOX *pDstBox,
                                        const void *pSrcData, UINT SrcRowPitch, UINT SrcDepthPitch);

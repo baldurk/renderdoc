@@ -902,5 +902,6 @@ enum class D3D12Chunk : uint32_t
   Device_CreateCommittedResource2,
   Device_CreatePlacedResource1,
   Device_CreateCommandQueue1,
+  CoherentMapWrite,
   Max,
 };

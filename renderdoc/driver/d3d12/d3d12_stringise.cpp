@@ -28,7 +28,7 @@
 template <>
 rdcstr DoStringise(const D3D12Chunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1113, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1114, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(D3D12Chunk)
   {
@@ -204,6 +204,7 @@ rdcstr DoStringise(const D3D12Chunk &el)
     STRINGISE_ENUM_CLASS_NAMED(Device_CreatePlacedResource1,
                                "ID3D12Device8::CreatePlacedResource1");
     STRINGISE_ENUM_CLASS_NAMED(Device_CreateCommandQueue1, "ID3D12Device9::CreateCommandQueue1");
+    STRINGISE_ENUM_CLASS_NAMED(CoherentMapWrite, "Internal::Coherent Mapped Memory Write");
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }
   END_ENUM_STRINGISE()
