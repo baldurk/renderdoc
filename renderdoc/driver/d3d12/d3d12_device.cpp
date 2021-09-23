@@ -1739,7 +1739,7 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
 
   size_t dataOffset = 0;
   if(ser.IsWriting())
-    dataOffset = ser.GetWriter()->GetOffset() - (range.End - range.Begin);
+    dataOffset = size_t(ser.GetWriter()->GetOffset() - (range.End - range.Begin));
 
   SERIALISE_ELEMENT(range);
 
