@@ -105,6 +105,7 @@ private:
 
   void setViewDetails(RDTreeWidgetItem *node, const D3D12ViewTag &view, TextureDescription *tex);
   void setViewDetails(RDTreeWidgetItem *node, const D3D12ViewTag &view, BufferDescription *buf);
+  bool isByteAddress(const D3D12Pipe::View &r, const ShaderResource *shaderInput);
 
   bool showNode(bool usedSlot, bool filledSlot);
 

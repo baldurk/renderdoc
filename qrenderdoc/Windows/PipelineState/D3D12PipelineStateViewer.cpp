@@ -804,7 +804,7 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view, const Bi
       format = QString();
       typeName = QFormatStr("%1Buffer").arg(uav ? lit("RW") : QString());
 
-      if(r.bufferFlags & D3DBufferViewFlags::Raw)
+      if(isByteAddress(r, shaderInput))
       {
         typeName = QFormatStr("%1ByteAddressBuffer").arg(uav ? lit("RW") : QString());
       }
@@ -2521,7 +2521,7 @@ QVariantList D3D12PipelineStateViewer::exportViewHTML(const D3D12Pipe::View &vie
     viewType = ToQStr(view.type);
     typeName = lit("Buffer");
 
-    if(view.bufferFlags & D3DBufferViewFlags::Raw)
+    if(isByteAddress(view, shaderInput))
     {
       typeName = rw ? lit("RWByteAddressBuffer") : lit("ByteAddressBuffer");
     }
@@ -3307,6 +3307,21 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
                              },
                              {exportViewHTML(om.depthTarget, false, NULL, extra)});
   }
+}
+
+bool D3D12PipelineStateViewer::isByteAddress(const D3D12Pipe::View &r,
+                                             const ShaderResource *shaderInput)
+{
+  if(r.bufferFlags & D3DBufferViewFlags::Raw)
+    return true;
+
+  if(r.viewFormat.type == ResourceFormatType::Undefined && r.elementByteSize == 4 && shaderInput &&
+     shaderInput->variableType.descriptor.type == VarType::UByte &&
+     shaderInput->variableType.descriptor.rows == 1 &&
+     shaderInput->variableType.descriptor.columns == 1)
+    return true;
+
+  return false;
 }
 
 void D3D12PipelineStateViewer::on_exportHTML_clicked()
