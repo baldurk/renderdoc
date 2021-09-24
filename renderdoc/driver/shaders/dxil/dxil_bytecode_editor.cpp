@@ -551,9 +551,9 @@ ProgramEditor::~ProgramEditor()
       SAFE_RELEASE(blob);
 
       if(err.empty())
-        RDCERR("DXIL validation failed but couldn't get error string");
+        RDCWARN("DXIL validation failed but couldn't get error string");
       else
-        RDCERR("DXIL validation failed: %s", err.c_str());
+        RDCWARN("DXIL validation failed: %s", err.c_str());
     }
     else
     {
