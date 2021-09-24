@@ -998,6 +998,9 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
       GetResourceManager()->MarkResourceFrameReferenced(GetResID(fence), eFrameRef_Read);
 
     rdcarray<VkResourceRecord *> maps;
+
+    // don't flush maps when there are no command buffers
+    if(!commandBuffers.empty())
     {
       SCOPED_LOCK(m_CoherentMapsLock);
       maps = m_CoherentMaps;
