@@ -336,6 +336,10 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
       if(it == slots.end())
         continue;
 
+      // static used i.e. not arrayed? ignore
+      if(it->second.StaticUsed())
+        continue;
+
       uint32_t feedbackSlot = it->second.Slot();
 
       // we assume all feedback slots are non-zero, so that a 0 base slot can be used as an
