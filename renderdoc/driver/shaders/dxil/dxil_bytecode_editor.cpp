@@ -754,7 +754,7 @@ const Constant *ProgramEditor::GetOrAddConstant(Function *f, const Constant &c)
 
 Instruction *ProgramEditor::AddInstruction(Function *f, size_t idx, const Instruction &inst)
 {
-  size_t valueIdx = f->constants.size() + idx;
+  size_t valueIdx = RDCMIN(f->values.size() - 1, f->constants.size() + idx);
   if(inst.type != m_VoidType)
   {
     // find the value index for the instruction we're inserting before. This won't match up exactly
