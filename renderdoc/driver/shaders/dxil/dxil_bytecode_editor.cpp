@@ -471,7 +471,7 @@ ProgramEditor::~ProgramEditor()
   GetInt32Type();
 
   // replace the DXIL bytecode in the container with
-  DXBC::DXBCContainer::ReplaceChunk(m_OutBlob, MAKE_FOURCC('D', 'X', 'I', 'L'), EncodeProgram());
+  DXBC::DXBCContainer::ReplaceChunk(m_OutBlob, DXBC::FOURCC_DXIL, EncodeProgram());
 
 #if ENABLED(RDOC_DEVEL)
   // on debug builds, run through dxil for "validation" if it's available.
@@ -1884,7 +1884,7 @@ bytebuf ProgramEditor::EncodeProgram() const
 
   header.ProgramVersion = ((m_Major & 0xf) << 4) | (m_Minor & 0xf);
   header.ProgramType = (uint16_t)m_Type;
-  header.DxilMagic = MAKE_FOURCC('D', 'X', 'I', 'L');
+  header.DxilMagic = DXBC::FOURCC_DXIL;
   header.DxilVersion = m_DXILVersion;
   header.BitcodeOffset = sizeof(ProgramHeader) - offsetof(ProgramHeader, DxilMagic);
   header.BitcodeSize = (uint32_t)ret.size();
@@ -1917,7 +1917,7 @@ void ProgramEditor::RegisterUAV(DXILResourceType type, uint32_t space, uint32_t 
                                 uint32_t regEnd, ResourceKind kind)
 {
   size_t sz = 0;
-  const byte *psv0 = DXBC::DXBCContainer::FindChunk(m_OutBlob, MAKE_FOURCC('P', 'S', 'V', '0'), sz);
+  const byte *psv0 = DXBC::DXBCContainer::FindChunk(m_OutBlob, DXBC::FOURCC_PSV0, sz);
 
   ResourceBind1 bind = {};
   bind.type = type;
@@ -1974,15 +1974,15 @@ void ProgramEditor::RegisterUAV(DXILResourceType type, uint32_t space, uint32_t 
       return;
     }
 
-    DXBC::DXBCContainer::ReplaceChunk(m_OutBlob, MAKE_FOURCC('P', 'S', 'V', '0'), psv0blob);
+    DXBC::DXBCContainer::ReplaceChunk(m_OutBlob, DXBC::FOURCC_PSV0, psv0blob);
   }
 
   // patch SFI0 here for non-CS non-PS shaders
   if(m_Type != DXBC::ShaderType::Compute && m_Type != DXBC::ShaderType::Pixel)
   {
     // cheekily cast away const since this returns the blob in-place
-    DXBC::GlobalShaderFlags *flags = (DXBC::GlobalShaderFlags *)DXBC::DXBCContainer::FindChunk(
-        m_OutBlob, MAKE_FOURCC('S', 'F', 'I', '0'), sz);
+    DXBC::GlobalShaderFlags *flags =
+        (DXBC::GlobalShaderFlags *)DXBC::DXBCContainer::FindChunk(m_OutBlob, DXBC::FOURCC_SFI0, sz);
 
     // this *should* always be present, so we can just add our flag
     if(flags)
@@ -1990,6 +1990,9 @@ void ProgramEditor::RegisterUAV(DXILResourceType type, uint32_t space, uint32_t 
     else
       RDCWARN("Feature flags chunk not present");
   }
+
+  // strip the root signature, we shouldn't need it and it may no longer match and fail validation
+  DXBC::DXBCContainer::StripChunk(m_OutBlob, DXBC::FOURCC_RTS0);
 }
 
 void ProgramEditor::EncodeConstants(LLVMBC::BitcodeWriter &writer, const rdcarray<Value> &values,

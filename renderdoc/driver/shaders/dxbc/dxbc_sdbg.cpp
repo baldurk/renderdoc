@@ -30,8 +30,6 @@
 
 namespace DXBC
 {
-static const uint32_t FOURCC_SDBG = MAKE_FOURCC('S', 'D', 'B', 'G');
-
 SDBGChunk::SDBGChunk(void *data)
 {
   m_HasDebugInfo = false;

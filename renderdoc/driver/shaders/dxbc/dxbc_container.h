@@ -130,6 +130,32 @@ enum class GlobalShaderFlags : int64_t
 
 BITMASK_OPERATORS(GlobalShaderFlags);
 
+static const uint32_t FOURCC_DXBC = MAKE_FOURCC('D', 'X', 'B', 'C');
+static const uint32_t FOURCC_RDEF = MAKE_FOURCC('R', 'D', 'E', 'F');
+static const uint32_t FOURCC_RD11 = MAKE_FOURCC('R', 'D', '1', '1');
+static const uint32_t FOURCC_STAT = MAKE_FOURCC('S', 'T', 'A', 'T');
+static const uint32_t FOURCC_SHEX = MAKE_FOURCC('S', 'H', 'E', 'X');
+static const uint32_t FOURCC_SHDR = MAKE_FOURCC('S', 'H', 'D', 'R');
+static const uint32_t FOURCC_SDBG = MAKE_FOURCC('S', 'D', 'B', 'G');
+static const uint32_t FOURCC_SPDB = MAKE_FOURCC('S', 'P', 'D', 'B');
+static const uint32_t FOURCC_ISGN = MAKE_FOURCC('I', 'S', 'G', 'N');
+static const uint32_t FOURCC_OSGN = MAKE_FOURCC('O', 'S', 'G', 'N');
+static const uint32_t FOURCC_ISG1 = MAKE_FOURCC('I', 'S', 'G', '1');
+static const uint32_t FOURCC_OSG1 = MAKE_FOURCC('O', 'S', 'G', '1');
+static const uint32_t FOURCC_OSG5 = MAKE_FOURCC('O', 'S', 'G', '5');
+static const uint32_t FOURCC_PCSG = MAKE_FOURCC('P', 'C', 'S', 'G');
+static const uint32_t FOURCC_PSG1 = MAKE_FOURCC('P', 'S', 'G', '1');
+static const uint32_t FOURCC_Aon9 = MAKE_FOURCC('A', 'o', 'n', '9');
+static const uint32_t FOURCC_PRIV = MAKE_FOURCC('P', 'R', 'I', 'V');
+static const uint32_t FOURCC_DXIL = MAKE_FOURCC('D', 'X', 'I', 'L');
+static const uint32_t FOURCC_ILDB = MAKE_FOURCC('I', 'L', 'D', 'B');
+static const uint32_t FOURCC_ILDN = MAKE_FOURCC('I', 'L', 'D', 'N');
+static const uint32_t FOURCC_HASH = MAKE_FOURCC('H', 'A', 'S', 'H');
+static const uint32_t FOURCC_SFI0 = MAKE_FOURCC('S', 'F', 'I', '0');
+static const uint32_t FOURCC_PSV0 = MAKE_FOURCC('P', 'S', 'V', '0');
+static const uint32_t FOURCC_RTS0 = MAKE_FOURCC('R', 'T', 'S', '0');
+static const uint32_t FOURCC_RDAT = MAKE_FOURCC('R', 'D', 'A', 'T');
+
 struct RDEFHeader;
 
 uint32_t DecodeFlags(const ShaderCompileFlags &compileFlags);
@@ -163,7 +189,7 @@ public:
   void FillTraceLineInfo(ShaderDebugTrace &trace) const;
   void FillStateInstructionInfo(ShaderDebugState &state) const;
 
-  static void StripDXILDebugInfo(bytebuf &ByteCode);
+  static void StripChunk(bytebuf &ByteCode, uint32_t fourcc);
   static void ReplaceChunk(bytebuf &ByteCode, uint32_t fourcc, const byte *replacement, size_t size);
 
   template <typename T>

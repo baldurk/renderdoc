@@ -248,32 +248,6 @@ struct SIGNElement1
 static const uint32_t STATSizeDX10 = 29 * 4;    // either 29 uint32s
 static const uint32_t STATSizeDX11 = 37 * 4;    // or 37 uint32s
 
-static const uint32_t FOURCC_DXBC = MAKE_FOURCC('D', 'X', 'B', 'C');
-static const uint32_t FOURCC_RDEF = MAKE_FOURCC('R', 'D', 'E', 'F');
-static const uint32_t FOURCC_RD11 = MAKE_FOURCC('R', 'D', '1', '1');
-static const uint32_t FOURCC_STAT = MAKE_FOURCC('S', 'T', 'A', 'T');
-static const uint32_t FOURCC_SHEX = MAKE_FOURCC('S', 'H', 'E', 'X');
-static const uint32_t FOURCC_SHDR = MAKE_FOURCC('S', 'H', 'D', 'R');
-static const uint32_t FOURCC_SDBG = MAKE_FOURCC('S', 'D', 'B', 'G');
-static const uint32_t FOURCC_SPDB = MAKE_FOURCC('S', 'P', 'D', 'B');
-static const uint32_t FOURCC_ISGN = MAKE_FOURCC('I', 'S', 'G', 'N');
-static const uint32_t FOURCC_OSGN = MAKE_FOURCC('O', 'S', 'G', 'N');
-static const uint32_t FOURCC_ISG1 = MAKE_FOURCC('I', 'S', 'G', '1');
-static const uint32_t FOURCC_OSG1 = MAKE_FOURCC('O', 'S', 'G', '1');
-static const uint32_t FOURCC_OSG5 = MAKE_FOURCC('O', 'S', 'G', '5');
-static const uint32_t FOURCC_PCSG = MAKE_FOURCC('P', 'C', 'S', 'G');
-static const uint32_t FOURCC_PSG1 = MAKE_FOURCC('P', 'S', 'G', '1');
-static const uint32_t FOURCC_Aon9 = MAKE_FOURCC('A', 'o', 'n', '9');
-static const uint32_t FOURCC_PRIV = MAKE_FOURCC('P', 'R', 'I', 'V');
-static const uint32_t FOURCC_DXIL = MAKE_FOURCC('D', 'X', 'I', 'L');
-static const uint32_t FOURCC_ILDB = MAKE_FOURCC('I', 'L', 'D', 'B');
-static const uint32_t FOURCC_ILDN = MAKE_FOURCC('I', 'L', 'D', 'N');
-static const uint32_t FOURCC_HASH = MAKE_FOURCC('H', 'A', 'S', 'H');
-static const uint32_t FOURCC_SFI0 = MAKE_FOURCC('S', 'F', 'I', '0');
-static const uint32_t FOURCC_PSV0 = MAKE_FOURCC('P', 'S', 'V', '0');
-static const uint32_t FOURCC_RTS0 = MAKE_FOURCC('R', 'T', 'S', '0');
-static const uint32_t FOURCC_RDAT = MAKE_FOURCC('R', 'D', 'A', 'T');
-
 ShaderBuiltin GetSystemValue(SVSemantic systemValue)
 {
   switch(systemValue)
@@ -654,7 +628,7 @@ void DXBCContainer::FillStateInstructionInfo(ShaderDebugState &state) const
   }
 }
 
-void DXBCContainer::StripDXILDebugInfo(bytebuf &ByteCode)
+void DXBCContainer::StripChunk(bytebuf &ByteCode, uint32_t fourcc)
 {
   FileHeader *header = (FileHeader *)ByteCode.data();
 
@@ -671,10 +645,10 @@ void DXBCContainer::StripDXILDebugInfo(bytebuf &ByteCode)
   {
     uint32_t offs = chunkOffsets[chunkIdx];
 
-    uint32_t *fourcc = (uint32_t *)(ByteCode.data() + offs);
-    uint32_t *chunkSize = (uint32_t *)(fourcc + 1);
+    uint32_t *chunkFourcc = (uint32_t *)(ByteCode.data() + offs);
+    uint32_t *chunkSize = (uint32_t *)(chunkFourcc + 1);
 
-    if(*fourcc == FOURCC_ILDB)
+    if(*chunkFourcc == fourcc)
     {
       // the size of the whole chunk that we're erasing is the chunk's size itself, plus 8 bytes for
       // fourcc+size

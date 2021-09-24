@@ -40,9 +40,6 @@
 
 namespace DXBC
 {
-static const uint32_t FOURCC_SPDB = MAKE_FOURCC('S', 'P', 'D', 'B');
-static const uint32_t FOURCC_DXBC = MAKE_FOURCC('D', 'X', 'B', 'C');
-
 bool IsPDBFile(void *data, size_t length)
 {
   FileHeaderPage *header = (FileHeaderPage *)data;
