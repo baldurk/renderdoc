@@ -98,6 +98,7 @@ set(sources
     api/replay/capture_options.h
     api/replay/common_pipestate.h
     api/replay/pipestate.h
+    api/replay/pipestate.inl
     api/replay/control_types.h
     api/replay/data_types.h
     api/replay/rdcarray.h
