@@ -14,7 +14,7 @@ class D3D12_Descriptor_Indexing(rdtest.TestCase):
 
     def check_capture(self):
 
-        for sm in ["sm_5_1"]:
+        for sm in ["sm_5_1", "sm_6_0"]:
             base = self.find_action("Tests " + sm)
             action = self.find_action("Dispatch", base.eventId)
             self.check(action is not None)
@@ -86,4 +86,4 @@ class D3D12_Descriptor_Indexing(rdtest.TestCase):
                         raise rdtest.TestFailureException(
                             "Range {} element {} expected to be unused, but is.".format(rangeIdx, idx))
 
-            rdtest.log.success("Dynamic usage is as expected")
+            rdtest.log.success("Dynamic usage is as expected for {}".format(sm))
