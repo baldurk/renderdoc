@@ -1415,6 +1415,8 @@ void D3D12Replay::FillRootElements(uint32_t eventId, const D3D12RenderState::Roo
     samp.minLOD = sampDesc.MinLOD;
     samp.mipLODBias = sampDesc.MipLODBias;
   }
+
+  rootElements.resize(ridx);
 }
 
 void D3D12Replay::SavePipelineState(uint32_t eventId)
