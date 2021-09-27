@@ -245,8 +245,9 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
 
   // while we're iterating through the metadata to add our UAV, we'll also note the shader-local
   // register IDs of each SRV/UAV with slots, and record the base slot in this array for easy access
-  // later when annotating dx.op.createHandle calls
-  rdcarray<uint32_t> srvBaseSlots, uavBaseSlots;
+  // later when annotating dx.op.createHandle calls. We also need to know the base register because
+  // the index dxc provides is register-relative
+  rdcarray<rdcpair<uint32_t, int32_t>> srvBaseSlots, uavBaseSlots;
 
   // when we add metadata we do it in reverse order since it's unclear if we're supposed to have
   // forward references (LLVM seems to handle it, but not emit it, so it's very much a grey area)
@@ -346,7 +347,7 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
       // identifier for 'this resource isn't annotated'
       RDCASSERT(feedbackSlot > 0);
 
-      srvBaseSlots[id] = feedbackSlot;
+      srvBaseSlots[id] = {feedbackSlot, key.bind.bind};
     }
 
     key.type = DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW;
@@ -405,7 +406,7 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
       // identifier for 'this resource isn't annotated'
       RDCASSERT(feedbackSlot > 0);
 
-      uavBaseSlots[id] = feedbackSlot;
+      uavBaseSlots[id] = {feedbackSlot, key.bind.bind};
     }
 
     DXIL::Metadata *uavRecord[11] = {
@@ -660,27 +661,40 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
       DXIL::HandleKind kind = (DXIL::HandleKind)kindArg.constant->val.u32v[0];
       uint32_t id = idArg.constant->val.u32v[0];
 
-      uint32_t slot = 0;
+      rdcpair<uint32_t, int32_t> slotInfo = {0, 0};
 
       if(kind == DXIL::HandleKind::SRV && id < srvBaseSlots.size())
-        slot = srvBaseSlots[id];
+        slotInfo = srvBaseSlots[id];
       else if(kind == DXIL::HandleKind::UAV && id < uavBaseSlots.size())
-        slot = uavBaseSlots[id];
+        slotInfo = uavBaseSlots[id];
 
-      if(slot == 0)
+      if(slotInfo.first == 0)
         continue;
 
       DXIL::Instruction op;
-      op.op = DXIL::Operation::Add;
+      op.op = DXIL::Operation::Sub;
       op.type = i32;
       op.args = {
           // idx to the createHandle op
           idxArg,
-          // base slot
-          DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, slot))),
+          // register that this is relative to
+          DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, (uint32_t)slotInfo.second))),
       };
 
-      // slotPlusBase = idx + slot
+      // idx0Based = idx - baseReg
+      DXIL::Instruction *idx0Based = editor.AddInstruction(f, i, op);
+      i++;
+
+      op.op = DXIL::Operation::Add;
+      op.type = i32;
+      op.args = {
+          // idx to the createHandle op
+          DXIL::Value(idx0Based),
+          // base slot
+          DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, slotInfo.first))),
+      };
+
+      // slotPlusBase = idx0Based + slot
       DXIL::Instruction *slotPlusBase = editor.AddInstruction(f, i, op);
       i++;
 

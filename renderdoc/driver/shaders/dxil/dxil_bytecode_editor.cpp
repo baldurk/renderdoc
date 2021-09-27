@@ -87,7 +87,7 @@ ProgramEditor::ProgramEditor(const DXBC::DXBCContainer *container, size_t reserv
   // reserve enough space so that these arrays don't resize out from under us
   for(Function &f : m_Functions)
   {
-    f.instructions.reserve(f.instructions.size() * 2 + reservationSize * 4);
+    f.instructions.reserve(f.instructions.size() * 4 + reservationSize * 4);
     f.constants.reserve(f.constants.size() * 2 + reservationSize * 4);
   }
 
