@@ -232,7 +232,7 @@ private:
         char result[2048] = {0};
         fread(result, 1, 2047, f);
 
-        fclose(f);
+        ::pclose(f);
 
         char *line2 = strchr(result, '\n');
         if(line2)
