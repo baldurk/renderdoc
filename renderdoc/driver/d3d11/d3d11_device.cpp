@@ -2528,8 +2528,7 @@ void WrappedID3D11Device::CheckHRESULT(HRESULT hr)
     return;
 
   if(hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET ||
-     hr == DXGI_ERROR_DEVICE_HUNG || hr == DXGI_ERROR_DRIVER_INTERNAL_ERROR ||
-     hr == DXGI_ERROR_DRIVER_INTERNAL_ERROR)
+     hr == DXGI_ERROR_DEVICE_HUNG || hr == DXGI_ERROR_DRIVER_INTERNAL_ERROR)
   {
     RDCLOG("Logging device lost fatal error for %s", ToStr(hr).c_str());
     m_FatalError = ReplayStatus::ReplayDeviceLost;

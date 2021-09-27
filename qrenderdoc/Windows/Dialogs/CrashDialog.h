@@ -47,6 +47,7 @@ public:
   ~CrashDialog();
 
   static bool HasCaptureReady(PersistantConfig &cfg);
+  static bool CaptureTooLarge(PersistantConfig &cfg);
 
 private slots:
   // automatic slots

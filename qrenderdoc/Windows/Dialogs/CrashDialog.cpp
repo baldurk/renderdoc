@@ -256,6 +256,13 @@ bool CrashDialog::HasCaptureReady(PersistantConfig &cfg)
   return capInfo.exists() && capInfo.size() <= MaxUploadSize;
 }
 
+bool CrashDialog::CaptureTooLarge(PersistantConfig &cfg)
+{
+  QFileInfo capInfo(cfg.CrashReport_LastOpenedCapture);
+
+  return capInfo.exists() && capInfo.size() > MaxUploadSize;
+}
+
 void CrashDialog::showEvent(QShowEvent *)
 {
   adjustSize();
@@ -319,6 +326,15 @@ void CrashDialog::on_send_clicked()
       // uncheck and return back so they can confirm
       if(ui->captureUpload->isEnabled())
         ui->captureUpload->setChecked(false);
+      else
+        RDDialog::information(
+            this, tr("Capture required"),
+            tr("<html>For unrecoverable errors like the one you encountered, without a "
+               "capture to reproduce the problem it's impossible to tell what "
+               "went wrong so a crash report is unfortunately required.\n\n"
+               "If you don't wish to share your capture that is OK. You can also email me at <a "
+               "href=\"mailto:baldurk@baldurk.org?subject=RenderDoc%20Unrecoverable%20error\">"
+               "baldurk@baldurk.org</a> with information and I can help investigate.</html>"));
       return;
     }
   }

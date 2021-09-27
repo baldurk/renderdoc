@@ -160,6 +160,15 @@ CaptureContext::CaptureContext(PersistantConfig &cfg) : m_Config(cfg)
 
         add_report = true;
       }
+      else if(CrashDialog::CaptureTooLarge(m_Config))
+      {
+        text +=
+            tr("<html>Your capture is too lage to upload as a crash report so this can't be "
+               "automatically reported. "
+               "Please email me at <a "
+               "href=\"mailto:baldurk@baldurk.org?subject=RenderDoc%20Unrecoverable%20error\">"
+               "baldurk@baldurk.org</a> with information and I can help investigate.</html>");
+      }
       else
       {
         text += tr("The capture must be saved locally if you want to report this as a bug. ");
