@@ -713,6 +713,8 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
 
   D3D11RenderState *rs = m_pDevice->GetImmediateContext()->GetCurrentPipelineState();
 
+  m_RenderStateOM = rs->OM;
+
   D3D11Pipe::State &ret = *m_D3D11PipelineState;
 
   /////////////////////////////////////////////////

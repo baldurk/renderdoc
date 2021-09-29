@@ -494,4 +494,7 @@ private:
   FrameRecord m_FrameRecord;
 
   D3D11Pipe::State *m_D3D11PipelineState = NULL;
+
+  // save the clean replay-time render state OM to check against
+  D3D11RenderState::OutputMerger m_RenderStateOM;
 };

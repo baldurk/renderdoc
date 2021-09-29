@@ -69,11 +69,9 @@ static void SetRTVDesc(D3D11_RENDER_TARGET_VIEW_DESC &rtDesc, const D3D11_TEXTUR
 
 RenderOutputSubresource D3D11Replay::GetRenderOutputSubresource(ResourceId id)
 {
-  D3D11RenderState *rs = m_pDevice->GetImmediateContext()->GetCurrentPipelineState();
-
   for(size_t i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
   {
-    ID3D11RenderTargetView *rtv = rs->OM.RenderTargets[i];
+    ID3D11RenderTargetView *rtv = m_RenderStateOM.RenderTargets[i];
     ID3D11Resource *res = NULL;
     if(rtv)
     {
@@ -92,7 +90,7 @@ RenderOutputSubresource D3D11Replay::GetRenderOutputSubresource(ResourceId id)
   }
 
   {
-    ID3D11DepthStencilView *dsv = rs->OM.DepthView;
+    ID3D11DepthStencilView *dsv = m_RenderStateOM.DepthView;
     ID3D11Resource *res = NULL;
     if(dsv)
     {
