@@ -358,8 +358,7 @@ static void create(WrappedVulkan *driver, const char *objName, const int line, V
 
 VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
 {
-  if(RenderDoc::Inst().GetCrashHandler())
-    RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(VulkanDebugManager));
+  RenderDoc::Inst().RegisterMemoryRegion(this, sizeof(VulkanDebugManager));
 
   m_pDriver = driver;
 

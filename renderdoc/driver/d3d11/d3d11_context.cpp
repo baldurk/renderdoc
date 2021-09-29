@@ -75,9 +75,7 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *real
       m_pRealContext(context),
       m_ScratchSerialiser(new StreamWriter(1024), Ownership::Stream)
 {
-  if(RenderDoc::Inst().GetCrashHandler())
-    RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this,
-                                                              sizeof(WrappedID3D11DeviceContext));
+  RenderDoc::Inst().RegisterMemoryRegion(this, sizeof(WrappedID3D11DeviceContext));
 
   for(int i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
   {
@@ -239,8 +237,7 @@ WrappedID3D11DeviceContext::~WrappedID3D11DeviceContext()
 
   m_pDevice = NULL;
 
-  if(RenderDoc::Inst().GetCrashHandler())
-    RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
+  RenderDoc::Inst().UnregisterMemoryRegion(this);
 }
 
 void WrappedID3D11DeviceContext::GetDevice(ID3D11Device **ppDevice)

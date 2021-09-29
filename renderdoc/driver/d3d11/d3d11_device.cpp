@@ -48,8 +48,7 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
       m_WrappedNVAPI(*this),
       m_WrappedAGS(*this)
 {
-  if(RenderDoc::Inst().GetCrashHandler())
-    RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(WrappedID3D11Device));
+  RenderDoc::Inst().RegisterMemoryRegion(this, sizeof(WrappedID3D11Device));
 
   // if there's no other device, claim it!
   if(m_pCurrentWrappedDevice == NULL)
@@ -333,8 +332,7 @@ WrappedID3D11Device::~WrappedID3D11Device()
   SAFE_RELEASE(m_ReplayNVAPI);
   SAFE_RELEASE(m_ReplayAGS);
 
-  if(RenderDoc::Inst().GetCrashHandler())
-    RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
+  RenderDoc::Inst().UnregisterMemoryRegion(this);
 }
 
 HRESULT STDMETHODCALLTYPE DummyID3D11InfoQueue::QueryInterface(REFIID riid, void **ppvObject)

@@ -49,8 +49,7 @@ static const char *KHRExecutablePropertiesTarget = "KHR_pipeline_executable_prop
 
 VulkanReplay::VulkanReplay(WrappedVulkan *d)
 {
-  if(RenderDoc::Inst().GetCrashHandler())
-    RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(VulkanReplay));
+  RenderDoc::Inst().RegisterMemoryRegion(this, sizeof(VulkanReplay));
 
   m_pDriver = d;
   m_Proxy = false;

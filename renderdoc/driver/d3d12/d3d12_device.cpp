@@ -503,8 +503,7 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
       m_WrappedNVAPI(*this),
       m_WrappedAGS(*this)
 {
-  if(RenderDoc::Inst().GetCrashHandler())
-    RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(WrappedID3D12Device));
+  RenderDoc::Inst().RegisterMemoryRegion(this, sizeof(WrappedID3D12Device));
 
   m_SectionVersion = D3D12InitParams::CurrentVersion;
 
@@ -871,8 +870,7 @@ WrappedID3D12Device::~WrappedID3D12Device()
   SAFE_RELEASE(m_ReplayNVAPI);
   SAFE_RELEASE(m_ReplayAGS);
 
-  if(RenderDoc::Inst().GetCrashHandler())
-    RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
+  RenderDoc::Inst().UnregisterMemoryRegion(this);
 }
 
 WrappedID3D12Device *WrappedID3D12Device::Create(ID3D12Device *realDevice, D3D12InitParams params,

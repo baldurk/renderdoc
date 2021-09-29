@@ -56,8 +56,7 @@ static void InternalRef(ID3D11DeviceChild *child)
 
 D3D11DebugManager::D3D11DebugManager(WrappedID3D11Device *wrapper)
 {
-  if(RenderDoc::Inst().GetCrashHandler())
-    RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(D3D11DebugManager));
+  RenderDoc::Inst().RegisterMemoryRegion(this, sizeof(D3D11DebugManager));
 
   m_pDevice = wrapper;
   m_pImmediateContext = wrapper->GetImmediateContext();
@@ -85,8 +84,7 @@ D3D11DebugManager::~D3D11DebugManager()
     m_ShaderItemCache.pop_back();
   }
 
-  if(RenderDoc::Inst().GetCrashHandler())
-    RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
+  RenderDoc::Inst().UnregisterMemoryRegion(this);
 }
 
 //////////////////////////////////////////////////////

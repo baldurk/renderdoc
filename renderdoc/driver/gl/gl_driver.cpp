@@ -608,8 +608,7 @@ void WrappedOpenGL::BuildGLESExtensions()
 WrappedOpenGL::WrappedOpenGL(GLPlatform &platform)
     : m_Platform(platform), m_ScratchSerialiser(new StreamWriter(1024), Ownership::Stream)
 {
-  if(RenderDoc::Inst().GetCrashHandler())
-    RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(WrappedOpenGL));
+  RenderDoc::Inst().RegisterMemoryRegion(this, sizeof(WrappedOpenGL));
 
   BuildGLExtensions();
   BuildGLESExtensions();
@@ -974,8 +973,7 @@ WrappedOpenGL::~WrappedOpenGL()
   for(size_t i = 0; i < m_CtxDataVector.size(); i++)
     delete m_CtxDataVector[i];
 
-  if(RenderDoc::Inst().GetCrashHandler())
-    RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
+  RenderDoc::Inst().UnregisterMemoryRegion(this);
 
   delete m_Replay;
 }

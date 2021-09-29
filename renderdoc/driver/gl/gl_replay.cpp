@@ -47,8 +47,7 @@ GLReplay::GLReplay(WrappedOpenGL *d)
 {
   m_pDriver = d;
 
-  if(RenderDoc::Inst().GetCrashHandler())
-    RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(GLReplay));
+  RenderDoc::Inst().RegisterMemoryRegion(this, sizeof(GLReplay));
 
   m_Proxy = false;
 

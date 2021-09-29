@@ -53,8 +53,7 @@ ReplayController::ReplayController()
 
   m_EventID = 100000;
 
-  if(RenderDoc::Inst().GetCrashHandler())
-    RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(ReplayController));
+  RenderDoc::Inst().RegisterMemoryRegion(this, sizeof(ReplayController));
 }
 
 ReplayController::~ReplayController()

@@ -52,8 +52,7 @@ static const char *DXBCDisassemblyTarget = "DXBC";
 
 D3D11Replay::D3D11Replay(WrappedID3D11Device *d)
 {
-  if(RenderDoc::Inst().GetCrashHandler())
-    RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(D3D11Replay));
+  RenderDoc::Inst().RegisterMemoryRegion(this, sizeof(D3D11Replay));
 
   m_pDevice = d;
   m_pImmediateContext = d->GetImmediateContext();
@@ -68,8 +67,7 @@ D3D11Replay::D3D11Replay(WrappedID3D11Device *d)
 
 D3D11Replay::~D3D11Replay()
 {
-  if(RenderDoc::Inst().GetCrashHandler())
-    RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
+  RenderDoc::Inst().UnregisterMemoryRegion(this);
 }
 
 void D3D11Replay::Shutdown()

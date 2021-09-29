@@ -811,8 +811,7 @@ template <typename Configuration>
 ResourceManager<Configuration>::ResourceManager(CaptureState &state) : m_State(state)
 {
   m_Capturing = IsCaptureMode(state);
-  if(RenderDoc::Inst().GetCrashHandler())
-    RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(ResourceManager));
+  RenderDoc::Inst().RegisterMemoryRegion(this, sizeof(ResourceManager));
 }
 
 template <typename Configuration>
@@ -841,8 +840,7 @@ ResourceManager<Configuration>::~ResourceManager()
   RDCASSERT(m_InitialContents.empty());
   RDCASSERT(m_ResourceRecords.empty());
 
-  if(RenderDoc::Inst().GetCrashHandler())
-    RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
+  RenderDoc::Inst().UnregisterMemoryRegion(this);
 }
 
 template <typename Configuration>

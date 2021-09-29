@@ -281,6 +281,11 @@ RenderDoc &RenderDoc::Inst()
 
 void RenderDoc::RecreateCrashHandler()
 {
+  SCOPED_WRITELOCK(m_ExHandlerLock);
+
+  if(!m_ExHandler)
+    return;
+
 #if ENABLED(RDOC_CRASH_HANDLER)
 
 #if ENABLED(RDOC_WIN32)
@@ -321,18 +326,37 @@ void RenderDoc::RecreateCrashHandler()
 #endif
 
   m_ExHandler = new CrashHandler(m_ExHandler);
-#endif
 
-  if(m_ExHandler)
-    m_ExHandler->RegisterMemoryRegion(this, sizeof(RenderDoc));
+  m_ExHandler->RegisterMemoryRegion(this, sizeof(RenderDoc));
+#endif
 }
 
 void RenderDoc::UnloadCrashHandler()
 {
-  if(m_ExHandler)
-    m_ExHandler->UnregisterMemoryRegion(this);
+  SCOPED_WRITELOCK(m_ExHandlerLock);
+
+  if(!m_ExHandler)
+    return;
+
+  m_ExHandler->UnregisterMemoryRegion(this);
 
   SAFE_DELETE(m_ExHandler);
+}
+
+void RenderDoc::RegisterMemoryRegion(void *mem, size_t size)
+{
+  SCOPED_READLOCK(m_ExHandlerLock);
+
+  if(m_ExHandler)
+    m_ExHandler->RegisterMemoryRegion(mem, size);
+}
+
+void RenderDoc::UnregisterMemoryRegion(void *mem)
+{
+  SCOPED_READLOCK(m_ExHandlerLock);
+
+  if(m_ExHandler)
+    m_ExHandler->UnregisterMemoryRegion(mem);
 }
 
 RenderDoc::RenderDoc()
@@ -583,6 +607,11 @@ void RenderDoc::InitialiseReplay(GlobalEnvironment env, const rdcarray<rdcstr> &
     for(size_t i = 0; i < args.size(); i++)
       RDCDEBUG("[%u]: %s", (uint32_t)i, args[i].c_str());
   }
+
+  if(args.contains("--crash"))
+    UnloadCrashHandler();
+  else
+    RecreateCrashHandler();
 
   if(env.enumerateGPUs)
   {

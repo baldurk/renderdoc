@@ -98,8 +98,7 @@ void VkInitParams::Set(const VkInstanceCreateInfo *pCreateInfo, ResourceId inst)
 
 WrappedVulkan::WrappedVulkan()
 {
-  if(RenderDoc::Inst().GetCrashHandler())
-    RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(WrappedVulkan));
+  RenderDoc::Inst().RegisterMemoryRegion(this, sizeof(WrappedVulkan));
 
   if(RenderDoc::Inst().IsReplayApp())
   {

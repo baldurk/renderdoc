@@ -124,8 +124,7 @@ ReplayOutput::ReplayOutput(ReplayController *parent, WindowingData window, Repla
 
   m_CustomShaderResourceId = ResourceId();
 
-  if(RenderDoc::Inst().GetCrashHandler())
-    RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(ReplayController));
+  RenderDoc::Inst().RegisterMemoryRegion(this, sizeof(ReplayController));
 }
 
 ReplayOutput::~ReplayOutput()

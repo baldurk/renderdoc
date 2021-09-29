@@ -381,9 +381,7 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
       m_WrappedDownlevel(*this),
       m_WrappedCompat(*this)
 {
-  if(RenderDoc::Inst().GetCrashHandler())
-    RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this,
-                                                              sizeof(WrappedID3D12CommandQueue));
+  RenderDoc::Inst().RegisterMemoryRegion(this, sizeof(WrappedID3D12CommandQueue));
 
   m_WrappedDebug.m_pQueue = this;
   m_pDownlevel = NULL;
@@ -1088,9 +1086,7 @@ WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12Graphic
                                                                    CaptureState &state)
     : m_RefCounter(real, false), m_pList(real), m_pDevice(device), m_State(state)
 {
-  if(RenderDoc::Inst().GetCrashHandler())
-    RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(
-        this, sizeof(WrappedID3D12GraphicsCommandList));
+  RenderDoc::Inst().RegisterMemoryRegion(this, sizeof(WrappedID3D12GraphicsCommandList));
 
   m_pList1 = NULL;
   m_pList2 = NULL;

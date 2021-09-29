@@ -440,7 +440,8 @@ public:
   const CaptureOptions &GetCaptureOptions() const { return m_Options; }
   void RecreateCrashHandler();
   void UnloadCrashHandler();
-  ICrashHandler *GetCrashHandler() const { return m_ExHandler; }
+  void RegisterMemoryRegion(void *mem, size_t size);
+  void UnregisterMemoryRegion(void *mem);
   void ResamplePixels(const FramePixels &in, RDCThumb &out);
   void EncodePixelsPNG(const RDCThumb &in, RDCThumb &out);
   RDCFile *CreateRDC(RDCDriver driver, uint32_t frameNum, const FramePixels &fp);
@@ -708,6 +709,7 @@ private:
   static void TargetControlClientThread(uint32_t version, Network::Socket *client);
 
   ICrashHandler *m_ExHandler;
+  Threading::RWLock m_ExHandlerLock;
 
   void ProcessConfig();
 

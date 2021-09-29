@@ -233,8 +233,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetDebugLogFile(const rdcst
     RDCLOGFILE(log.c_str());
 
     // need to recreate the crash handler to propagate the new log filename.
-    if(RenderDoc::Inst().GetCrashHandler() != NULL)
-      RenderDoc::Inst().RecreateCrashHandler();
+    RenderDoc::Inst().RecreateCrashHandler();
   }
 }
 
@@ -284,20 +283,6 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_InitialiseReplay(GlobalEnvi
                                                                       const rdcarray<rdcstr> &args)
 {
   RenderDoc::Inst().InitialiseReplay(env, args);
-
-  if(RenderDoc::Inst().GetCrashHandler() == NULL)
-    return;
-
-  for(const rdcstr &s : args)
-  {
-    if(s == "--crash")
-    {
-      RenderDoc::Inst().UnloadCrashHandler();
-      return;
-    }
-  }
-
-  RenderDoc::Inst().RecreateCrashHandler();
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_ShutdownReplay()
@@ -337,18 +322,12 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CreateBugReport(const rdcst
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_RegisterMemoryRegion(void *base, size_t size)
 {
-  ICrashHandler *handler = RenderDoc::Inst().GetCrashHandler();
-
-  if(handler)
-    handler->RegisterMemoryRegion(base, size);
+  RenderDoc::Inst().RegisterMemoryRegion(base, size);
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_UnregisterMemoryRegion(void *base)
 {
-  ICrashHandler *handler = RenderDoc::Inst().GetCrashHandler();
-
-  if(handler)
-    handler->UnregisterMemoryRegion(base);
+  RenderDoc::Inst().UnregisterMemoryRegion(base);
 }
 
 extern "C" RENDERDOC_API ExecuteResult RENDERDOC_CC

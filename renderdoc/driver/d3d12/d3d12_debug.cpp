@@ -103,8 +103,7 @@ inline static D3D12_ROOT_PARAMETER1 tableParam(D3D12_SHADER_VISIBILITY vis,
 
 D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 {
-  if(RenderDoc::Inst().GetCrashHandler())
-    RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(D3D12DebugManager));
+  RenderDoc::Inst().RegisterMemoryRegion(this, sizeof(D3D12DebugManager));
 
   m_pDevice = wrapper;
 
@@ -475,8 +474,7 @@ D3D12DebugManager::~D3D12DebugManager()
   for(size_t i = 0; i < m_DiscardBuffers.size(); i++)
     m_DiscardBuffers[i]->Release();
 
-  if(RenderDoc::Inst().GetCrashHandler())
-    RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
+  RenderDoc::Inst().UnregisterMemoryRegion(this);
 }
 
 bool D3D12DebugManager::CreateMathIntrinsicsResources()
