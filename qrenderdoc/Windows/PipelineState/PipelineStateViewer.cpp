@@ -1448,6 +1448,7 @@ QString PipelineStateViewer::GetVBufferFormatString(uint32_t slot)
     QString sanitised_name = real_name;
 
     sanitised_name.replace(QLatin1Char('.'), QLatin1Char('_'))
+        .replace(QLatin1Char(':'), QLatin1Char('_'))
         .replace(QLatin1Char('['), QLatin1Char('_'))
         .replace(QLatin1Char(']'), QLatin1Char('_'));
 
