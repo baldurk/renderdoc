@@ -1638,6 +1638,10 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
 
   sig.channelUsedMask = sig.regChannelMask;
 
+  uint32_t regStep = 1;
+  if(sig.varType == VarType::Double || sig.varType == VarType::ULong || sig.varType == VarType::SLong)
+    regStep = 2;
+
   for(uint32_t a = 0; a < arraySize; a++)
   {
     rdcstr n = varName;
@@ -1651,7 +1655,7 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
     {
       sigarray.push_back(sig);
 
-      regIndex++;
+      regIndex += regStep;
 
       if(isInput)
         patchData.inputs.push_back(patch);
@@ -1667,7 +1671,7 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
       {
         SigParameter s = sig;
         s.varName = StringFormat::Fmt("%s:%s%u", n.c_str(), rowmajor ? "row" : "col", m);
-        s.regIndex += m;
+        s.regIndex += m * regStep;
 
         sigarray.push_back(s);
 
@@ -1676,7 +1680,7 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
         else
           patchData.outputs.push_back(patch);
 
-        regIndex++;
+        regIndex += regStep;
 
         // increment the matrix column access chain
         patch.accessChain.back()++;
@@ -1687,7 +1691,7 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
       patch.accessChain.pop_back();
     }
 
-    sig.regIndex += RDCMAX(1U, varType->matrix().count);
+    sig.regIndex += RDCMAX(1U, varType->matrix().count) * regStep;
     // increment the array index access chain (if it exists)
     if(isArray)
     {
