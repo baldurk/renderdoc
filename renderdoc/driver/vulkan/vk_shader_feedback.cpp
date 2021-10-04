@@ -265,6 +265,9 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
   rdcspv::Id maxPrintfWordOffset =
       editor.AddConstantImmediate<uint32_t>(Vulkan_Debug_PrintfBufferSize() / sizeof(uint32_t));
 
+  rdcspv::Id falsePrintfValue = editor.AddConstantImmediate<uint32_t>(0U);
+  rdcspv::Id truePrintfValue = editor.AddConstantImmediate<uint32_t>(1U);
+
   rdcspv::Id uint32Type = editor.DeclareType(rdcspv::scalar<uint32_t>());
   rdcspv::Id int32Type = editor.DeclareType(rdcspv::scalar<int32_t>());
   rdcspv::Id f32Type = editor.DeclareType(rdcspv::scalar<float>());
@@ -930,7 +933,7 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
                 it++;
               }
 
-              // handle ints and floats
+              // handle ints, floats, and bools
               if(typeIt.opcode() == rdcspv::Op::TypeInt)
               {
                 rdcspv::OpTypeInt intType(typeIt);
@@ -987,6 +990,13 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
                 {
                   packetWords.push_back(param);
                 }
+              }
+              else if(typeIt.opcode() == rdcspv::Op::TypeBool)
+              {
+                packetWords.push_back(
+                    editor.AddOperation(it, rdcspv::OpSelect(uint32Type, editor.MakeId(), input,
+                                                             truePrintfValue, falsePrintfValue)));
+                it++;
               }
               else if(typeIt.opcode() == rdcspv::Op::TypeFloat)
               {
