@@ -259,9 +259,10 @@ void GLReplay::FillTimers(GLCounterContext &ctx, const ActionDescription &action
   for(size_t i = 0; i < actionnode.children.size(); i++)
   {
     const ActionDescription &a = actionnode.children[i];
-    FillTimers(ctx, actionnode.children[i], counters);
+    FillTimers(ctx, a, counters);
 
-    if(a.events.empty())
+    // for marker regions and multi-actions, don't fetch counters for them, only their children
+    if(!a.children.empty())
       continue;
 
     GPUQueries *queries = NULL;
