@@ -1043,6 +1043,14 @@ struct AndroidController : public IDeviceProtocolHandler
       Android::adbForwardPorts(dev.portbase, deviceID, 0, 0, false);
       Android::ResetCaptureSettings(deviceID);
 
+      // make Oculus' on device vulkan validation layer available for load
+      Android::adbExecCommand(
+          deviceID,
+          "shell setprop debug.oculus.usepackagedvvl." RENDERDOC_ANDROID_PACKAGE_BASE ".arm32 1");
+      Android::adbExecCommand(
+          deviceID,
+          "shell setprop debug.oculus.usepackagedvvl." RENDERDOC_ANDROID_PACKAGE_BASE ".arm64 1");
+
       rdcstr package = GetRenderDocPackageForABI(abis.back());
 
       rdcstr folderName = Android::GetFolderName(deviceID);
