@@ -606,6 +606,8 @@ private:
   rdcarray<FrameDescription> m_CapturedFrames;
   rdcarray<ActionDescription *> m_Actions;
 
+  void MaskResourceMiscFlags(UINT &MiscFlags);
+
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Device);
 

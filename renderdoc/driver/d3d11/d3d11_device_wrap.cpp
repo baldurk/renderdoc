@@ -28,6 +28,16 @@
 #include "d3d11_debug.h"
 #include "d3d11_resources.h"
 
+void WrappedID3D11Device::MaskResourceMiscFlags(UINT &MiscFlags)
+{
+  MiscFlags &=
+      ~(D3D11_RESOURCE_MISC_SHARED | D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX |
+        D3D11_RESOURCE_MISC_GDI_COMPATIBLE | D3D11_RESOURCE_MISC_SHARED_NTHANDLE |
+        D3D11_RESOURCE_MISC_RESTRICTED_CONTENT | D3D11_RESOURCE_MISC_RESTRICT_SHARED_RESOURCE |
+        D3D11_RESOURCE_MISC_RESTRICT_SHARED_RESOURCE_DRIVER | D3D11_RESOURCE_MISC_GUARDED |
+        D3D11_RESOURCE_MISC_HW_PROTECTED);
+}
+
 template <typename SerialiserType>
 bool WrappedID3D11Device::Serialise_CreateBuffer(SerialiserType &ser, const D3D11_BUFFER_DESC *pDesc,
                                                  const D3D11_SUBRESOURCE_DATA *pInitialData,
@@ -99,9 +109,7 @@ bool WrappedID3D11Device::Serialise_CreateBuffer(SerialiserType &ser, const D3D1
     HRESULT hr = S_OK;
 
     // unset flags that are unimportant/problematic in replay
-    Descriptor.MiscFlags &=
-        ~(D3D11_RESOURCE_MISC_SHARED | D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX |
-          D3D11_RESOURCE_MISC_GDI_COMPATIBLE | D3D11_RESOURCE_MISC_SHARED_NTHANDLE);
+    MaskResourceMiscFlags(Descriptor.MiscFlags);
 
     D3D11_SUBRESOURCE_DATA data;
     data.pSysMem = InitialData;
@@ -408,9 +416,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture1D(SerialiserType &ser,
     TextureDisplayType dispType = DispTypeForTexture(Descriptor);
 
     // unset flags that are unimportant/problematic in replay
-    Descriptor.MiscFlags &=
-        ~(D3D11_RESOURCE_MISC_SHARED | D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX |
-          D3D11_RESOURCE_MISC_GDI_COMPATIBLE | D3D11_RESOURCE_MISC_SHARED_NTHANDLE);
+    MaskResourceMiscFlags(Descriptor.MiscFlags);
 
     if(pInitialData != NULL)
       hr = m_pDevice->CreateTexture1D(&Descriptor, &descs[0], &ret);
@@ -550,9 +556,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture2D(SerialiserType &ser,
     APIProps.YUVTextures |= IsYUVFormat(Descriptor.Format);
 
     // unset flags that are unimportant/problematic in replay
-    Descriptor.MiscFlags &=
-        ~(D3D11_RESOURCE_MISC_SHARED | D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX |
-          D3D11_RESOURCE_MISC_GDI_COMPATIBLE | D3D11_RESOURCE_MISC_SHARED_NTHANDLE);
+    MaskResourceMiscFlags(Descriptor.MiscFlags);
 
     if(pInitialData != NULL)
       hr = m_pDevice->CreateTexture2D(&Descriptor, &descs[0], &ret);
@@ -689,9 +693,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture3D(SerialiserType &ser,
     APIProps.YUVTextures |= IsYUVFormat(Descriptor.Format);
 
     // unset flags that are unimportant/problematic in replay
-    Descriptor.MiscFlags &=
-        ~(D3D11_RESOURCE_MISC_SHARED | D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX |
-          D3D11_RESOURCE_MISC_GDI_COMPATIBLE | D3D11_RESOURCE_MISC_SHARED_NTHANDLE);
+    MaskResourceMiscFlags(Descriptor.MiscFlags);
 
     if(pInitialData != NULL)
       hr = m_pDevice->CreateTexture3D(&Descriptor, &descs[0], &ret);
@@ -3422,9 +3424,7 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HAND
       HRESULT hr = S_OK;
 
       // unset flags that are unimportant/problematic in replay
-      Descriptor.MiscFlags &=
-          ~(D3D11_RESOURCE_MISC_SHARED | D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX |
-            D3D11_RESOURCE_MISC_GDI_COMPATIBLE | D3D11_RESOURCE_MISC_SHARED_NTHANDLE);
+      MaskResourceMiscFlags(Descriptor.MiscFlags);
 
       D3D11_SUBRESOURCE_DATA data;
       data.pSysMem = BufferContents;
@@ -3502,9 +3502,7 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HAND
       TextureDisplayType dispType = DispTypeForTexture(Descriptor);
 
       // unset flags that are unimportant/problematic in replay
-      Descriptor.MiscFlags &=
-          ~(D3D11_RESOURCE_MISC_SHARED | D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX |
-            D3D11_RESOURCE_MISC_GDI_COMPATIBLE | D3D11_RESOURCE_MISC_SHARED_NTHANDLE);
+      MaskResourceMiscFlags(Descriptor.MiscFlags);
 
       hr = m_pDevice->CreateTexture1D(&Descriptor, NULL, &ret);
 
@@ -3548,9 +3546,7 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HAND
       TextureDisplayType dispType = DispTypeForTexture(Descriptor);
 
       // unset flags that are unimportant/problematic in replay
-      Descriptor.MiscFlags &=
-          ~(D3D11_RESOURCE_MISC_SHARED | D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX |
-            D3D11_RESOURCE_MISC_GDI_COMPATIBLE | D3D11_RESOURCE_MISC_SHARED_NTHANDLE);
+      MaskResourceMiscFlags(Descriptor.MiscFlags);
 
       hr = m_pDevice->CreateTexture2D(&Descriptor, NULL, &ret);
 
@@ -3594,9 +3590,7 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(SerialiserType &ser, HAND
       TextureDisplayType dispType = DispTypeForTexture(Descriptor);
 
       // unset flags that are unimportant/problematic in replay
-      Descriptor.MiscFlags &=
-          ~(D3D11_RESOURCE_MISC_SHARED | D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX |
-            D3D11_RESOURCE_MISC_GDI_COMPATIBLE | D3D11_RESOURCE_MISC_SHARED_NTHANDLE);
+      MaskResourceMiscFlags(Descriptor.MiscFlags);
 
       hr = m_pDevice->CreateTexture3D(&Descriptor, NULL, &ret);
 
