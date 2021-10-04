@@ -698,7 +698,8 @@ ShaderProcessingTool::ShaderProcessingTool(const QVariant &var)
 rdcstr ShaderProcessingTool::DefaultArguments() const
 {
   if(tool == KnownShaderTool::SPIRV_Cross)
-    return "--output {output_file} {input_file} --vulkan-semantics --entry {entry_point}";
+    return "--output {output_file} {input_file} --vulkan-semantics --entry {entry_point} --stage "
+           "{glsl_stage4}";
   else if(tool == KnownShaderTool::spirv_dis)
     return "--no-color -o {output_file} {input_file}";
   else if(tool == KnownShaderTool::glslangValidatorGLSL)
