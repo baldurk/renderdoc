@@ -1817,7 +1817,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
         {
           VulkanCreationInfo::ShaderModule &mod = creationInfo.m_ShaderModule[sh.module];
           VulkanCreationInfo::ShaderModuleReflection &modrefl =
-              mod.GetReflection(sh.entryPoint, pipe.pipeline);
+              mod.GetReflection(stage, sh.entryPoint, pipe.pipeline);
           modrefl.PopulateDisassembly(mod.spirv);
 
           const std::map<size_t, uint32_t> instructionLines = modrefl.instructionLines;

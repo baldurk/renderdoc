@@ -194,15 +194,22 @@ struct VulkanCreationInfo
 {
   struct ShaderModuleReflectionKey
   {
-    ShaderModuleReflectionKey(const rdcstr &e, ResourceId p) : entryPoint(e), specialisingPipe(p) {}
+    ShaderModuleReflectionKey(ShaderStage s, const rdcstr &e, ResourceId p)
+        : stage(s), entryPoint(e), specialisingPipe(p)
+    {
+    }
     bool operator<(const ShaderModuleReflectionKey &o) const
     {
       if(entryPoint != o.entryPoint)
         return entryPoint < o.entryPoint;
+      if(stage != o.stage)
+        return stage < o.stage;
 
       return specialisingPipe < o.specialisingPipe;
     }
 
+    // stage of the entry point
+    ShaderStage stage;
     // name of the entry point
     rdcstr entryPoint;
     // ID of the pipeline ONLY if it contains specialisation constant data
@@ -607,15 +614,15 @@ struct VulkanCreationInfo
     void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
               const VkShaderModuleCreateInfo *pCreateInfo);
 
-    ShaderModuleReflection &GetReflection(const rdcstr &entry, ResourceId pipe)
+    ShaderModuleReflection &GetReflection(ShaderStage stage, const rdcstr &entry, ResourceId pipe)
     {
       // look for one from this pipeline specifically, if it was specialised
-      auto it = m_Reflections.find({entry, pipe});
+      auto it = m_Reflections.find({stage, entry, pipe});
       if(it != m_Reflections.end())
         return it->second;
 
       // if not, just return the non-specialised version
-      return m_Reflections[{entry, ResourceId()}];
+      return m_Reflections[{stage, entry, ResourceId()}];
     }
 
     rdcspv::Reflector spirv;

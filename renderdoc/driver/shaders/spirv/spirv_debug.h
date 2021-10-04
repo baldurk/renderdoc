@@ -328,7 +328,7 @@ private:
 
   DenseIdMap<rdcstr> strings;
   rdcarray<MemberName> memberNames;
-  std::map<rdcstr, Id> entryLookup;
+  std::map<ShaderEntryPoint, Id> entryLookup;
 
   SparseIdMap<size_t> idDeathOffset;
 

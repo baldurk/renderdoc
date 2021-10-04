@@ -457,11 +457,11 @@ ShaderReflection *VulkanReplay::GetShader(ResourceId pipeline, ResourceId shader
 
   // if this shader was never used in a pipeline the reflection won't be prepared. Do that now -
   // this will be ignored if it was already prepared.
-  shad->second.GetReflection(entry.name, pipeline)
+  shad->second.GetReflection(entry.stage, entry.name, pipeline)
       .Init(GetResourceManager(), shader, shad->second.spirv, entry.name,
             VkShaderStageFlagBits(1 << uint32_t(entry.stage)), {});
 
-  return shad->second.GetReflection(entry.name, pipeline).refl;
+  return shad->second.GetReflection(entry.stage, entry.name, pipeline).refl;
 }
 
 rdcarray<rdcstr> VulkanReplay::GetDisassemblyTargets(bool withPipeline)
@@ -568,7 +568,7 @@ rdcstr VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderReflecti
   if(target == SPIRVDisassemblyTarget || target.empty())
   {
     VulkanCreationInfo::ShaderModuleReflection &moduleRefl =
-        it->second.GetReflection(refl->entryPoint, pipeline);
+        it->second.GetReflection(refl->stage, refl->entryPoint, pipeline);
     moduleRefl.PopulateDisassembly(it->second.spirv);
 
     return moduleRefl.disassembly;
@@ -587,8 +587,8 @@ rdcstr VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderReflecti
 
     VkPipeline pipe = m_pDriver->GetResourceManager()->GetCurrentHandle<VkPipeline>(pipeline);
 
-    VkShaderStageFlagBits stageBit =
-        VkShaderStageFlagBits(1 << it->second.GetReflection(refl->entryPoint, pipeline).stageIndex);
+    VkShaderStageFlagBits stageBit = VkShaderStageFlagBits(
+        1 << it->second.GetReflection(refl->stage, refl->entryPoint, pipeline).stageIndex);
 
     size_t size;
     vt->GetShaderInfoAMD(Unwrap(dev), Unwrap(pipe), stageBit, VK_SHADER_INFO_TYPE_DISASSEMBLY_AMD,
@@ -613,8 +613,8 @@ rdcstr VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderReflecti
 
     CachePipelineExecutables(pipeline);
 
-    VkShaderStageFlagBits stageBit =
-        VkShaderStageFlagBits(1 << it->second.GetReflection(refl->entryPoint, pipeline).stageIndex);
+    VkShaderStageFlagBits stageBit = VkShaderStageFlagBits(
+        1 << it->second.GetReflection(refl->stage, refl->entryPoint, pipeline).stageIndex);
 
     const rdcarray<PipelineExecutables> &executables = m_PipelineExecutables[pipeline];
 
@@ -2026,9 +2026,9 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
   }
 }
 
-void VulkanReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, rdcstr entryPoint,
-                                        uint32_t cbufSlot, rdcarray<ShaderVariable> &outvars,
-                                        const bytebuf &data)
+void VulkanReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, ShaderStage stage,
+                                        rdcstr entryPoint, uint32_t cbufSlot,
+                                        rdcarray<ShaderVariable> &outvars, const bytebuf &data)
 {
   auto it = m_pDriver->m_CreationInfo.m_ShaderModule.find(shader);
 
@@ -2038,8 +2038,8 @@ void VulkanReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, 
     return;
   }
 
-  ShaderReflection &refl = *it->second.GetReflection(entryPoint, pipeline).refl;
-  ShaderBindpointMapping &mapping = it->second.GetReflection(entryPoint, pipeline).mapping;
+  ShaderReflection &refl = *it->second.GetReflection(stage, entryPoint, pipeline).refl;
+  ShaderBindpointMapping &mapping = it->second.GetReflection(stage, entryPoint, pipeline).mapping;
 
   if(cbufSlot >= (uint32_t)refl.constantBlocks.count())
   {
@@ -2095,7 +2095,8 @@ void VulkanReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, 
       if(pipeIt != m_pDriver->m_CreationInfo.m_Pipeline.end())
       {
         const rdcarray<SpecConstant> &specInfo =
-            pipeIt->second.shaders[it->second.GetReflection(entryPoint, pipeline).stageIndex].specialization;
+            pipeIt->second.shaders[it->second.GetReflection(stage, entryPoint, pipeline).stageIndex]
+                .specialization;
 
         FillSpecConstantVariables(refl.resourceId, c.variables, outvars, specInfo);
       }

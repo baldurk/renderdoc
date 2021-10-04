@@ -1674,8 +1674,8 @@ void ReplayController::FreeTrace(ShaderDebugTrace *trace)
 }
 
 rdcarray<ShaderVariable> ReplayController::GetCBufferVariableContents(
-    ResourceId pipeline, ResourceId shader, const rdcstr &entryPoint, uint32_t cbufslot,
-    ResourceId buffer, uint64_t offset, uint64_t length)
+    ResourceId pipeline, ResourceId shader, ShaderStage stage, const rdcstr &entryPoint,
+    uint32_t cbufslot, ResourceId buffer, uint64_t offset, uint64_t length)
 {
   CHECK_REPLAY_THREAD();
 
@@ -1699,7 +1699,7 @@ rdcarray<ShaderVariable> ReplayController::GetCBufferVariableContents(
 
   if(shader != ResourceId())
   {
-    m_pDevice->FillCBufferVariables(pipeline, shader, entryPoint, cbufslot, v, data);
+    m_pDevice->FillCBufferVariables(pipeline, shader, stage, entryPoint, cbufslot, v, data);
     FatalErrorCheck();
   }
 

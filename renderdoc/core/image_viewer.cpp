@@ -271,8 +271,9 @@ public:
     return desc;
   }
   rdcarray<CounterResult> FetchCounters(const rdcarray<GPUCounter> &counters) { return {}; }
-  void FillCBufferVariables(ResourceId pipeline, ResourceId shader, rdcstr entryPoint,
-                            uint32_t cbufSlot, rdcarray<ShaderVariable> &outvars, const bytebuf &data)
+  void FillCBufferVariables(ResourceId pipeline, ResourceId shader, ShaderStage stage,
+                            rdcstr entryPoint, uint32_t cbufSlot, rdcarray<ShaderVariable> &outvars,
+                            const bytebuf &data)
   {
   }
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &retData) {}

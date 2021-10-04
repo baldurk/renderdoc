@@ -190,9 +190,9 @@ public:
   virtual CounterDescription DescribeCounter(GPUCounter counterID) = 0;
   virtual rdcarray<CounterResult> FetchCounters(const rdcarray<GPUCounter> &counterID) = 0;
 
-  virtual void FillCBufferVariables(ResourceId pipeline, ResourceId shader, rdcstr entryPoint,
-                                    uint32_t cbufSlot, rdcarray<ShaderVariable> &outvars,
-                                    const bytebuf &data) = 0;
+  virtual void FillCBufferVariables(ResourceId pipeline, ResourceId shader, ShaderStage stage,
+                                    rdcstr entryPoint, uint32_t cbufSlot,
+                                    rdcarray<ShaderVariable> &outvars, const bytebuf &data) = 0;
 
   virtual rdcarray<PixelModification> PixelHistory(rdcarray<EventUsage> events, ResourceId target,
                                                    uint32_t x, uint32_t y, const Subresource &sub,

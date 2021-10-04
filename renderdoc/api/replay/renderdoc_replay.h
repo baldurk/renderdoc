@@ -962,6 +962,7 @@ otherwise.
 
 :param ResourceId pipeline: The pipeline state object, if applicable, that this shader is bound to.
 :param ResourceId shader: The id of the shader to use for metadata.
+:param ShaderStage stage: The shader stage to fetch variables from.
 :param str entryPoint: The entry point of the shader being used. In some APIs, this is ignored.
 :param int cbufslot: The index in the :data:`ShaderReflection.constantBlocks` list to look up.
 :param ResourceId buffer: The id of the buffer to use for data. If
@@ -972,7 +973,8 @@ otherwise.
 :return: The shader variables with their contents.
 :rtype: List[ShaderVariable]
 )");
-  virtual rdcarray<ShaderVariable> GetCBufferVariableContents(ResourceId pipeline, ResourceId shader,
+  virtual rdcarray<ShaderVariable> GetCBufferVariableContents(ResourceId pipeline,
+                                                              ResourceId shader, ShaderStage stage,
                                                               const rdcstr &entryPoint,
                                                               uint32_t cbufslot, ResourceId buffer,
                                                               uint64_t offset, uint64_t length) = 0;

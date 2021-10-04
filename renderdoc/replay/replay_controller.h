@@ -202,9 +202,9 @@ public:
   bool SaveTexture(const TextureSave &saveData, const rdcstr &path);
 
   rdcarray<ShaderVariable> GetCBufferVariableContents(ResourceId pipeline, ResourceId shader,
-                                                      const rdcstr &entryPoint, uint32_t cbufslot,
-                                                      ResourceId buffer, uint64_t offset,
-                                                      uint64_t length);
+                                                      ShaderStage stage, const rdcstr &entryPoint,
+                                                      uint32_t cbufslot, ResourceId buffer,
+                                                      uint64_t offset, uint64_t length);
 
   rdcarray<WindowingSystem> GetSupportedWindowSystems();
 

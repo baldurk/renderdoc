@@ -236,9 +236,9 @@ rdcarray<CounterResult> DummyDriver::FetchCounters(const rdcarray<GPUCounter> &c
   return {};
 }
 
-void DummyDriver::FillCBufferVariables(ResourceId pipeline, ResourceId shader, rdcstr entryPoint,
-                                       uint32_t cbufSlot, rdcarray<ShaderVariable> &outvars,
-                                       const bytebuf &data)
+void DummyDriver::FillCBufferVariables(ResourceId pipeline, ResourceId shader, ShaderStage stage,
+                                       rdcstr entryPoint, uint32_t cbufSlot,
+                                       rdcarray<ShaderVariable> &outvars, const bytebuf &data)
 {
   outvars.clear();
 }

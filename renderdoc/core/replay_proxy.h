@@ -482,7 +482,7 @@ public:
                              const rdcarray<GPUCounter> &counterID);
 
   IMPLEMENT_FUNCTION_PROXIED(void, FillCBufferVariables, ResourceId pipeline, ResourceId shader,
-                             rdcstr entryPoint, uint32_t cbufSlot,
+                             ShaderStage stage, rdcstr entryPoint, uint32_t cbufSlot,
                              rdcarray<ShaderVariable> &outvars, const bytebuf &data);
 
   IMPLEMENT_FUNCTION_PROXIED(void, GetBufferData, ResourceId buff, uint64_t offset, uint64_t len,

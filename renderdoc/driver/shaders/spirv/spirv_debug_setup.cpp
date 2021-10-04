@@ -518,7 +518,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
                                        const std::map<size_t, uint32_t> &instructionLines,
                                        const SPIRVPatchData &patchData, uint32_t activeIndex)
 {
-  Id entryId = entryLookup[entryPoint];
+  Id entryId = entryLookup[ShaderEntryPoint(entryPoint, shaderStage)];
 
   if(entryId == Id())
   {
@@ -2440,7 +2440,8 @@ void Debugger::RegisterOp(Iter it)
   {
     OpEntryPoint entryPoint(it);
 
-    entryLookup[entryPoint.name] = entryPoint.entryPoint;
+    entryLookup[ShaderEntryPoint(entryPoint.name, MakeShaderStage(entryPoint.executionModel))] =
+        entryPoint.entryPoint;
   }
   else if(opdata.op == Op::Function)
   {

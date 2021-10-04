@@ -846,8 +846,9 @@ CounterDescription ReplayProxy::DescribeCounter(GPUCounter counterID)
 template <typename ParamSerialiser, typename ReturnSerialiser>
 void ReplayProxy::Proxied_FillCBufferVariables(ParamSerialiser &paramser, ReturnSerialiser &retser,
                                                ResourceId pipeline, ResourceId shader,
-                                               rdcstr entryPoint, uint32_t cbufSlot,
-                                               rdcarray<ShaderVariable> &outvars, const bytebuf &data)
+                                               ShaderStage stage, rdcstr entryPoint,
+                                               uint32_t cbufSlot, rdcarray<ShaderVariable> &outvars,
+                                               const bytebuf &data)
 {
   const ReplayProxyPacket expectedPacket = eReplayProxy_FillCBufferVariables;
   ReplayProxyPacket packet = eReplayProxy_FillCBufferVariables;
@@ -856,6 +857,7 @@ void ReplayProxy::Proxied_FillCBufferVariables(ParamSerialiser &paramser, Return
     BEGIN_PARAMS();
     SERIALISE_ELEMENT(pipeline);
     SERIALISE_ELEMENT(shader);
+    SERIALISE_ELEMENT(stage);
     SERIALISE_ELEMENT(entryPoint);
     SERIALISE_ELEMENT(cbufSlot);
     SERIALISE_ELEMENT(data);
@@ -865,17 +867,17 @@ void ReplayProxy::Proxied_FillCBufferVariables(ParamSerialiser &paramser, Return
   {
     REMOTE_EXECUTION();
     if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
-      m_Remote->FillCBufferVariables(pipeline, shader, entryPoint, cbufSlot, outvars, data);
+      m_Remote->FillCBufferVariables(pipeline, shader, stage, entryPoint, cbufSlot, outvars, data);
   }
 
   SERIALISE_RETURN(outvars);
 }
 
-void ReplayProxy::FillCBufferVariables(ResourceId pipeline, ResourceId shader, rdcstr entryPoint,
-                                       uint32_t cbufSlot, rdcarray<ShaderVariable> &outvars,
-                                       const bytebuf &data)
+void ReplayProxy::FillCBufferVariables(ResourceId pipeline, ResourceId shader, ShaderStage stage,
+                                       rdcstr entryPoint, uint32_t cbufSlot,
+                                       rdcarray<ShaderVariable> &outvars, const bytebuf &data)
 {
-  PROXY_FUNCTION(FillCBufferVariables, pipeline, shader, entryPoint, cbufSlot, outvars, data);
+  PROXY_FUNCTION(FillCBufferVariables, pipeline, shader, stage, entryPoint, cbufSlot, outvars, data);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
@@ -2900,7 +2902,7 @@ bool ReplayProxy::Tick(int type)
     {
       rdcarray<ShaderVariable> vars;
       bytebuf data;
-      FillCBufferVariables(ResourceId(), ResourceId(), "", 0, vars, data);
+      FillCBufferVariables(ResourceId(), ResourceId(), ShaderStage::Count, "", 0, vars, data);
       break;
     }
     case eReplayProxy_InitPostVS: InitPostVSBuffers(0); break;

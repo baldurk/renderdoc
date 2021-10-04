@@ -375,11 +375,11 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
     shad.entryPoint = pCreateInfo->pStages[i].pName;
     shad.stage = ShaderStage(stageIndex);
 
-    ShaderModuleReflectionKey key(shad.entryPoint, ResourceId());
+    ShaderModuleReflectionKey key(shad.stage, shad.entryPoint, ResourceId());
 
     if(pCreateInfo->pStages[i].pSpecializationInfo)
     {
-      key = ShaderModuleReflectionKey(shad.entryPoint, id);
+      key = ShaderModuleReflectionKey(shad.stage, shad.entryPoint, id);
 
       const byte *data = (const byte *)pCreateInfo->pStages[i].pSpecializationInfo->pData;
 
@@ -704,11 +704,11 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
     shad.module = shadid;
     shad.entryPoint = pCreateInfo->stage.pName;
 
-    ShaderModuleReflectionKey key(shad.entryPoint, ResourceId());
+    ShaderModuleReflectionKey key(ShaderStage::Compute, shad.entryPoint, ResourceId());
 
     if(pCreateInfo->stage.pSpecializationInfo)
     {
-      key = ShaderModuleReflectionKey(shad.entryPoint, id);
+      key = ShaderModuleReflectionKey(ShaderStage::Compute, shad.entryPoint, id);
 
       const byte *data = (const byte *)pCreateInfo->stage.pSpecializationInfo->pData;
 

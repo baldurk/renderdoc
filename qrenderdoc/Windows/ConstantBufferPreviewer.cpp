@@ -161,7 +161,7 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventId)
     m_Ctx.Replay().AsyncInvoke(
         [this, prevShader, entryPoint, offset, size, wasEmpty](IReplayController *r) {
           rdcarray<ShaderVariable> vars = r->GetCBufferVariableContents(
-              m_pipe, m_shader, entryPoint, m_slot, m_cbuffer, offset, size);
+              m_pipe, m_shader, m_stage, entryPoint, m_slot, m_cbuffer, offset, size);
           GUIInvoke::call(this, [this, prevShader, vars, wasEmpty] {
 
             RDTreeViewExpansionState &prevShaderExpansionState =

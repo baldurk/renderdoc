@@ -2299,9 +2299,9 @@ void GLReplay::OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool b
   }
 }
 
-void GLReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, rdcstr entryPoint,
-                                    uint32_t cbufSlot, rdcarray<ShaderVariable> &outvars,
-                                    const bytebuf &data)
+void GLReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, ShaderStage stage,
+                                    rdcstr entryPoint, uint32_t cbufSlot,
+                                    rdcarray<ShaderVariable> &outvars, const bytebuf &data)
 {
   WrappedOpenGL &drv = *m_pDriver;
 

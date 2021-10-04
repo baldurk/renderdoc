@@ -3741,7 +3741,7 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
   const rdcarray<SpecConstant> &spec = pipe.shaders[0].specialization;
 
   VulkanCreationInfo::ShaderModuleReflection &shadRefl =
-      shader.GetReflection(entryPoint, state.graphics.pipeline);
+      shader.GetReflection(ShaderStage::Vertex, entryPoint, state.graphics.pipeline);
 
   if(!shadRefl.refl->debugInfo.debuggable)
   {
@@ -3989,7 +3989,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   const rdcarray<SpecConstant> &spec = pipe.shaders[4].specialization;
 
   VulkanCreationInfo::ShaderModuleReflection &shadRefl =
-      shader.GetReflection(entryPoint, state.graphics.pipeline);
+      shader.GetReflection(ShaderStage::Pixel, entryPoint, state.graphics.pipeline);
 
   if(!shadRefl.refl->debugInfo.debuggable)
   {
@@ -4015,8 +4015,8 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   if(pipe.shaders[3].module != ResourceId())
   {
     VulkanCreationInfo::ShaderModuleReflection &gsRefl =
-        c.m_ShaderModule[pipe.shaders[3].module].GetReflection(pipe.shaders[3].entryPoint,
-                                                               state.graphics.pipeline);
+        c.m_ShaderModule[pipe.shaders[3].module].GetReflection(
+            ShaderStage::Geometry, pipe.shaders[3].entryPoint, state.graphics.pipeline);
 
     // check to see if the shader outputs a primitive ID
     for(const SigParameter &e : gsRefl.refl->outputSignature)
@@ -4670,7 +4670,7 @@ ShaderDebugTrace *VulkanReplay::DebugThread(uint32_t eventId,
   const rdcarray<SpecConstant> &spec = pipe.shaders[5].specialization;
 
   VulkanCreationInfo::ShaderModuleReflection &shadRefl =
-      shader.GetReflection(entryPoint, state.compute.pipeline);
+      shader.GetReflection(ShaderStage::Compute, entryPoint, state.compute.pipeline);
 
   if(!shadRefl.refl->debugInfo.debuggable)
   {
