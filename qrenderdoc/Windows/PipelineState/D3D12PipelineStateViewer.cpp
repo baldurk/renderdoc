@@ -59,23 +59,23 @@ struct D3D12CBufTag
   D3D12CBufTag()
   {
     idx = ~0U;
-    space = reg = rootElement = arrayIdx = 0;
+    space = reg = rootElementsIdx = arrayIdx = 0;
   }
   D3D12CBufTag(uint32_t s, uint32_t r, uint32_t el)
   {
     idx = ~0U;
     space = s;
     reg = r;
-    rootElement = el;
+    rootElementsIdx = el;
     arrayIdx = 0;
   }
   D3D12CBufTag(uint32_t i)
   {
     idx = i;
-    space = reg = rootElement = arrayIdx = 0;
+    space = reg = rootElementsIdx = arrayIdx = 0;
   }
 
-  uint32_t idx, space, reg, rootElement, arrayIdx;
+  uint32_t idx, space, reg, rootElementsIdx, arrayIdx;
 };
 
 Q_DECLARE_METATYPE(D3D12CBufTag);
@@ -90,14 +90,14 @@ struct D3D12ViewTag
     OMDepth,
   };
 
-  D3D12ViewTag() : type(SRV), space(0), rootElement(0), immediate(false) {}
+  D3D12ViewTag() : type(SRV), space(0), rootSignatureIndex(0), immediate(false) {}
   D3D12ViewTag(ResType t, int s, int el, bool imm, const D3D12Pipe::View &rs)
-      : type(t), space(s), rootElement(el), immediate(imm), res(rs)
+      : type(t), space(s), rootSignatureIndex(el), immediate(imm), res(rs)
   {
   }
 
   ResType type;
-  int space, rootElement;
+  int space, rootSignatureIndex;
   bool immediate;
   D3D12Pipe::View res;
 };
@@ -552,10 +552,10 @@ ResourceId D3D12PipelineStateViewer::GetResource(RDTreeWidgetItem *item)
 
     if(cb.idx == ~0U)
     {
-      if(cb.rootElement < m_Ctx.CurD3D12PipelineState()->rootElements.size())
+      if(cb.rootElementsIdx < m_Ctx.CurD3D12PipelineState()->rootElements.size())
       {
         const D3D12Pipe::RootSignatureRange &range =
-            m_Ctx.CurD3D12PipelineState()->rootElements[cb.rootElement];
+            m_Ctx.CurD3D12PipelineState()->rootElements[cb.rootElementsIdx];
 
         if(cb.reg < range.constantBuffers.size())
         {
@@ -846,8 +846,9 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view, const Bi
     }
     else
     {
-      QString rootel = view.immediate ? tr("#%1 Direct").arg(view.rootElement)
-                                      : tr("#%1 Table[%2]").arg(view.rootElement).arg(r.tableIndex);
+      QString rootel = view.immediate
+                           ? tr("#%1 Direct").arg(view.rootSignatureIndex)
+                           : tr("#%1 Table[%2]").arg(view.rootSignatureIndex).arg(r.tableIndex);
 
       node = new RDTreeWidgetItem(
           {rootel, view.space, regname, r.resourceId, typeName, w, h, d, a, format, QString()});
@@ -1081,7 +1082,7 @@ void D3D12PipelineStateViewer::setShaderState(
     bool omittingEmpty = false;
 
     tag.space = rootElements[i].registerSpace;
-    tag.rootElement = (int)i;
+    tag.rootSignatureIndex = rootElements[i].rootSignatureIndex;
     tag.immediate = rootElements[i].immediate;
 
     switch(rootElements[i].type)
@@ -1252,8 +1253,8 @@ void D3D12PipelineStateViewer::setShaderState(
 
           QString rootel =
               rootElements[i].immediate
-                  ? tr("#%1 Static").arg(rootElements[i].rootElement)
-                  : tr("#%1 Table[%2]").arg(rootElements[i].rootElement).arg(s.tableIndex);
+                  ? tr("#%1 Static").arg(rootElements[i].rootSignatureIndex)
+                  : tr("#%1 Table[%2]").arg(rootElements[i].rootSignatureIndex).arg(s.tableIndex);
 
           bool filledSlot = s.filter.minify != FilterMode::NoFilter;
           bool usedSlot = (bind && bind->used);
@@ -1370,21 +1371,21 @@ void D3D12PipelineStateViewer::setShaderState(
           }
 
           if(!cbuftag.isValid())
-            cbuftag = QVariant::fromValue(
-                D3D12CBufTag(rootElements[i].registerSpace, b.bind, rootElements[i].rootElement));
+            cbuftag =
+                QVariant::fromValue(D3D12CBufTag(rootElements[i].registerSpace, b.bind, (uint32_t)i));
 
           QString rootel;
 
           if(rootElements[i].immediate)
           {
             if(!b.rootValues.empty())
-              rootel = tr("#%1 Consts").arg(rootElements[i].rootElement);
+              rootel = tr("#%1 Consts").arg(rootElements[i].rootSignatureIndex);
             else
-              rootel = tr("#%1 Direct").arg(rootElements[i].rootElement);
+              rootel = tr("#%1 Direct").arg(rootElements[i].rootSignatureIndex);
           }
           else
           {
-            rootel = tr("#%1 Table[%2]").arg(rootElements[i].rootElement).arg(b.tableIndex);
+            rootel = tr("#%1 Table[%2]").arg(rootElements[i].rootSignatureIndex).arg(b.tableIndex);
           }
 
           bool filledSlot = (b.resourceId != ResourceId());
@@ -2260,7 +2261,7 @@ void D3D12PipelineStateViewer::cbuffer_itemActivated(RDTreeWidgetItem *item, int
   {
     // unused cbuffer, open regular buffer viewer
     const D3D12Pipe::ConstantBuffer &buf =
-        m_Ctx.CurD3D12PipelineState()->rootElements[cb.rootElement].constantBuffers[cb.reg];
+        m_Ctx.CurD3D12PipelineState()->rootElements[cb.rootElementsIdx].constantBuffers[cb.reg];
 
     if(buf.resourceId != ResourceId())
     {
@@ -2753,8 +2754,8 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
           }
 
           QString rootel = els[i].immediate
-                               ? tr("#%1 Direct").arg(els[i].rootElement)
-                               : tr("#%1 Table[%2]").arg(els[i].rootElement).arg(v.tableIndex);
+                               ? tr("#%1 Direct").arg(els[i].rootSignatureIndex)
+                               : tr("#%1 Table[%2]").arg(els[i].rootSignatureIndex).arg(v.tableIndex);
 
           QVariantList row = exportViewHTML(v, false, shaderInput, QString());
 
@@ -2797,8 +2798,8 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
           }
 
           QString rootel = els[i].immediate
-                               ? tr("#%1 Direct").arg(els[i].rootElement)
-                               : tr("#%1 Table[%2]").arg(els[i].rootElement).arg(v.tableIndex);
+                               ? tr("#%1 Direct").arg(els[i].rootSignatureIndex)
+                               : tr("#%1 Table[%2]").arg(els[i].rootSignatureIndex).arg(v.tableIndex);
 
           QVariantList row = exportViewHTML(v, true, shaderInput, QString());
 
@@ -2841,8 +2842,8 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
           }
 
           QString rootel = els[i].immediate
-                               ? tr("#%1 Static").arg(els[i].rootElement)
-                               : tr("#%1 Table[%2]").arg(els[i].rootElement).arg(s.tableIndex);
+                               ? tr("#%1 Static").arg(els[i].rootSignatureIndex)
+                               : tr("#%1 Table[%2]").arg(els[i].rootSignatureIndex).arg(s.tableIndex);
 
           {
             QString regname = QString::number(s.bind);
@@ -2946,13 +2947,13 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
           if(els[i].immediate)
           {
             if(!b.rootValues.empty())
-              rootel = tr("#%1 Consts").arg(els[i].rootElement);
+              rootel = tr("#%1 Consts").arg(els[i].rootSignatureIndex);
             else
-              rootel = tr("#%1 Direct").arg(els[i].rootElement);
+              rootel = tr("#%1 Direct").arg(els[i].rootSignatureIndex);
           }
           else
           {
-            rootel = tr("#%1 Table[%2]").arg(els[i].rootElement).arg(b.tableIndex);
+            rootel = tr("#%1 Table[%2]").arg(els[i].rootSignatureIndex).arg(b.tableIndex);
           }
 
           {

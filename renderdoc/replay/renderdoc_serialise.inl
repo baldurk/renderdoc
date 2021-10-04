@@ -1370,7 +1370,7 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12Pipe::RootSignatureRange &el)
 {
   SERIALISE_MEMBER(immediate);
-  SERIALISE_MEMBER(rootElement);
+  SERIALISE_MEMBER(rootSignatureIndex);
   SERIALISE_MEMBER(type);
   SERIALISE_MEMBER(visibility);
   SERIALISE_MEMBER(registerSpace);

@@ -472,17 +472,18 @@ struct RootSignatureRange
 
   bool operator==(const RootSignatureRange &o) const
   {
-    return immediate == o.immediate && rootElement == o.rootElement && visibility == o.visibility &&
-           registerSpace == o.registerSpace && dynamicallyUsedCount == o.dynamicallyUsedCount &&
-           firstUsedIndex == o.firstUsedIndex && lastUsedIndex == o.lastUsedIndex &&
-           constantBuffers == o.constantBuffers && samplers == o.samplers && views == o.views;
+    return immediate == o.immediate && rootSignatureIndex == o.rootSignatureIndex &&
+           visibility == o.visibility && registerSpace == o.registerSpace &&
+           dynamicallyUsedCount == o.dynamicallyUsedCount && firstUsedIndex == o.firstUsedIndex &&
+           lastUsedIndex == o.lastUsedIndex && constantBuffers == o.constantBuffers &&
+           samplers == o.samplers && views == o.views;
   }
   bool operator<(const RootSignatureRange &o) const
   {
     if(!(immediate == o.immediate))
       return immediate < o.immediate;
-    if(!(rootElement == o.rootElement))
-      return rootElement < o.rootElement;
+    if(!(rootSignatureIndex == o.rootSignatureIndex))
+      return rootSignatureIndex < o.rootSignatureIndex;
     if(!(visibility == o.visibility))
       return visibility < o.visibility;
     if(!(registerSpace == o.registerSpace))
@@ -505,7 +506,7 @@ struct RootSignatureRange
   DOCUMENT("``True`` if this root element is a root constant (i.e. not in a table).");
   bool immediate = false;
   DOCUMENT("The index in the original root signature that this descriptor came from.");
-  uint32_t rootElement = ~0U;
+  uint32_t rootSignatureIndex = ~0U;
   DOCUMENT("The :class:`BindType` contained by this element.");
   BindType type = BindType::Unknown;
   DOCUMENT("The :class:`ShaderStageMask` of this element.");

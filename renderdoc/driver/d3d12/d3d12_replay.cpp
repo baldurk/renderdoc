@@ -979,7 +979,7 @@ void D3D12Replay::FillRootElements(uint32_t eventId, const D3D12RenderState::Roo
       rootElements.resize_for_index(ridx);
       D3D12Pipe::RootSignatureRange &element = rootElements[ridx++];
       element.immediate = true;
-      element.rootElement = (uint32_t)rootEl;
+      element.rootSignatureIndex = (uint32_t)rootEl;
       element.type = BindType::ConstantBuffer;
       element.registerSpace = p.Constants.RegisterSpace;
       element.visibility = ToShaderStageMask(p.ShaderVisibility);
@@ -1010,7 +1010,7 @@ void D3D12Replay::FillRootElements(uint32_t eventId, const D3D12RenderState::Roo
       rootElements.resize_for_index(ridx);
       D3D12Pipe::RootSignatureRange &element = rootElements[ridx++];
       element.immediate = true;
-      element.rootElement = (uint32_t)rootEl;
+      element.rootSignatureIndex = (uint32_t)rootEl;
       element.type = BindType::ConstantBuffer;
       element.registerSpace = p.Descriptor.RegisterSpace;
       element.visibility = ToShaderStageMask(p.ShaderVisibility);
@@ -1043,7 +1043,7 @@ void D3D12Replay::FillRootElements(uint32_t eventId, const D3D12RenderState::Roo
       rootElements.resize_for_index(ridx);
       D3D12Pipe::RootSignatureRange &element = rootElements[ridx++];
       element.immediate = true;
-      element.rootElement = (uint32_t)rootEl;
+      element.rootSignatureIndex = (uint32_t)rootEl;
       element.type = BindType::ReadOnlyResource;
       element.registerSpace = p.Descriptor.RegisterSpace;
       element.visibility = ToShaderStageMask(p.ShaderVisibility);
@@ -1083,7 +1083,7 @@ void D3D12Replay::FillRootElements(uint32_t eventId, const D3D12RenderState::Roo
       rootElements.resize_for_index(ridx);
       D3D12Pipe::RootSignatureRange &element = rootElements[ridx++];
       element.immediate = true;
-      element.rootElement = (uint32_t)rootEl;
+      element.rootSignatureIndex = (uint32_t)rootEl;
       element.type = BindType::ReadWriteResource;
       element.registerSpace = p.Descriptor.RegisterSpace;
       element.visibility = ToShaderStageMask(p.ShaderVisibility);
@@ -1145,7 +1145,7 @@ void D3D12Replay::FillRootElements(uint32_t eventId, const D3D12RenderState::Roo
         D3D12Pipe::RootSignatureRange &element = rootElements[ridx++];
 
         element.immediate = false;
-        element.rootElement = (uint32_t)rootEl;
+        element.rootSignatureIndex = (uint32_t)rootEl;
         element.registerSpace = range.RegisterSpace;
         element.visibility = ToShaderStageMask(p.ShaderVisibility);
 
@@ -1364,7 +1364,7 @@ void D3D12Replay::FillRootElements(uint32_t eventId, const D3D12RenderState::Roo
     rootElements.resize_for_index(ridx);
     D3D12Pipe::RootSignatureRange &element = rootElements[ridx++];
     element.immediate = true;
-    element.rootElement = (uint32_t)i;
+    element.rootSignatureIndex = (uint32_t)i;
     element.type = BindType::Sampler;
     element.registerSpace = sampDesc.RegisterSpace;
     element.visibility = ToShaderStageMask(sampDesc.ShaderVisibility);
