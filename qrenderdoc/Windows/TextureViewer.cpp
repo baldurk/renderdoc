@@ -3338,11 +3338,11 @@ void TextureViewer::UI_SetScale(float s, int x, int y)
   newPos = QPoint((int)(newPos.x() * scaleDelta), (int)(newPos.y() * scaleDelta));
   newPos += QPoint(x, y);
 
-  setScrollPosition(newPos);
-
   setCurrentZoomValue(m_TexDisplay.scale);
 
   UI_CalcScrollbars();
+
+  setScrollPosition(newPos);
 }
 
 void TextureViewer::setCurrentZoomValue(float zoom)
