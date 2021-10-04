@@ -81,7 +81,8 @@ struct BufferFormatter
   static GraphicsAPI m_API;
 
   static QString DeclareStruct(QList<QString> &declaredStructs, const QString &name,
-                               const rdcarray<ShaderConstant> &members, uint32_t requiredByteStride);
+                               const rdcarray<ShaderConstant> &members, uint32_t requiredByteStride,
+                               QString innerSkippedPrefixString);
 
   static uint32_t GetVarSize(const ShaderConstant &var);
 

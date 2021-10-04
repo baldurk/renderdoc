@@ -600,66 +600,58 @@ QString BufferFormatter::GetBufferFormatString(const ShaderResource &res,
 
   if(!res.variableType.members.empty())
   {
+    QList<QString> declaredStructs;
     if(m_API == GraphicsAPI::Vulkan || m_API == GraphicsAPI::OpenGL)
     {
       const rdcarray<ShaderConstant> &members = res.variableType.members;
 
-      format += QFormatStr("struct %1\n{\n").arg(res.name);
-
-      // GL/Vulkan allow fixed-sized members before the array-of-structs. This can't be
-      // represented in a buffer format so we skip it
-      if(members.count() > 1)
+      // if there is only one member in the root array, we can just call DeclareStruct directly
+      if(members.count() <= 1)
       {
-        format += tr("    // members skipped as they are fixed size:\n");
-        baseByteOffset += members.back().byteOffset;
+        format = DeclareStruct(declaredStructs, res.name, members, 0, QString());
       }
-
-      QString varTypeName;
-      QString comment = lit("// ");
-      for(int i = 0; i < members.count(); i++)
+      else
       {
-        QString arraySize;
-        if(members[i].type.descriptor.elements > 1)
-          arraySize = QFormatStr("[%1]").arg(members[i].type.descriptor.elements);
+        // otherwise we need to build up the comment indicating which fixed-size members we skipped
+        QString fixedPrefixString = tr("    // members skipped as they are fixed size:\n");
+        baseByteOffset += members.back().byteOffset;
 
-        varTypeName = members[i].type.descriptor.name;
-
-        if(i + 1 == members.count())
+        // list each member before the last, commented out.
+        for(int i = 0; i < members.count() - 1; i++)
         {
-          comment.clear();
-          arraySize.clear();
+          QString arraySize;
+          if(members[i].type.descriptor.elements > 1)
+            arraySize = QFormatStr("[%1]").arg(members[i].type.descriptor.elements);
 
-          if(members.count() > 1)
-            format +=
-                lit("    // final array struct @ byte offset %1\n").arg(members.back().byteOffset);
+          QString varName = members[i].name;
 
-          // give GL nameless structs a better name
-          if(varTypeName.isEmpty() || varTypeName == lit("struct"))
-            varTypeName = lit("root_struct");
+          if(varName.isEmpty())
+            varName = QFormatStr("_child%1").arg(i);
+
+          fixedPrefixString += QFormatStr("    // %1 %2%3;\n")
+                                   .arg(members[i].type.descriptor.name)
+                                   .arg(varName)
+                                   .arg(arraySize);
         }
 
-        QString varName = members[i].name;
+        fixedPrefixString +=
+            lit("    // final array struct @ byte offset %1\n").arg(members.back().byteOffset);
 
-        if(varName.isEmpty())
-          varName = QFormatStr("_child%1").arg(i);
+        // construct a fake list of members with only the last arrayed one, to pass to DeclareStruct
+        rdcarray<ShaderConstant> fakeLastMember;
+        fakeLastMember.push_back(members.back());
+        // rebase offset of this member to 0 so that DeclareStruct doesn't think any padding is
+        // needed
+        fakeLastMember[0].byteOffset = 0;
 
-        format +=
-            QFormatStr("    %1%2 %3%4;\n").arg(comment).arg(varTypeName).arg(varName).arg(arraySize);
-      }
-
-      format += lit("}");
-
-      // if the last member is a struct, declare it
-      if(!members.back().type.members.isEmpty())
-      {
-        format = DeclareStruct(varTypeName, members.back().type.members,
-                               members.back().type.descriptor.arrayByteStride) +
-                 lit("\n") + format;
+        format = DeclareStruct(declaredStructs, res.name, fakeLastMember,
+                               fakeLastMember[0].type.descriptor.arrayByteStride, fixedPrefixString);
       }
     }
     else
     {
-      format = DeclareStruct(res.variableType.descriptor.name, res.variableType.members, 0);
+      format = DeclareStruct(declaredStructs, res.variableType.descriptor.name,
+                             res.variableType.members, 0, QString());
     }
   }
   else
@@ -827,11 +819,13 @@ QString BufferFormatter::DeclarePaddingBytes(uint32_t bytes)
 
 QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QString &name,
                                        const rdcarray<ShaderConstant> &members,
-                                       uint32_t requiredByteStride)
+                                       uint32_t requiredByteStride, QString innerSkippedPrefixString)
 {
   QString ret;
 
   ret = lit("struct %1\n{\n").arg(name);
+
+  ret += innerSkippedPrefixString;
 
   uint32_t offset = 0;
 
@@ -862,7 +856,7 @@ QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QS
       {
         declaredStructs.push_back(varTypeName);
         ret = DeclareStruct(declaredStructs, varTypeName, pointeeType.members,
-                            pointeeType.descriptor.arrayByteStride) +
+                            pointeeType.descriptor.arrayByteStride, QString()) +
               lit("\n") + ret;
       }
 
@@ -880,7 +874,7 @@ QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QS
       {
         declaredStructs.push_back(varTypeName);
         ret = DeclareStruct(declaredStructs, varTypeName, members[i].type.members,
-                            members[i].type.descriptor.arrayByteStride) +
+                            members[i].type.descriptor.arrayByteStride, QString()) +
               lit("\n") + ret;
       }
     }
@@ -960,7 +954,7 @@ QString BufferFormatter::DeclareStruct(const QString &name, const rdcarray<Shade
                                        uint32_t requiredByteStride)
 {
   QList<QString> declaredStructs;
-  return DeclareStruct(declaredStructs, name, members, requiredByteStride);
+  return DeclareStruct(declaredStructs, name, members, requiredByteStride, QString());
 }
 
 void SetInterpretedResourceFormat(ShaderConstant &elem, ResourceFormatType interpretType,
