@@ -3851,6 +3851,9 @@ HRESULT WrappedID3D11Device::OpenSharedResourceInternal(D3D11Chunk chunkType,
     record->AddChunk(chunk);
     record->SetDataPtr(chunk->GetData());
 
+    if(IsActiveCapturing(m_State))
+      Prepare_InitialState(GetResourceManager()->GetCurrentResource(wrappedID));
+
     return S_OK;
   }
 
