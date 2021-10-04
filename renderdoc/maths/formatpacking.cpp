@@ -607,7 +607,7 @@ FloatVector DecodeFormattedComponents(const ResourceFormat &fmt, const byte *dat
 
 void EncodeFormattedComponents(const ResourceFormat &fmt, FloatVector v, byte *data, bool *success)
 {
-  uint64_t dummy = 0;
+  uint64_t dummy[4] = {};
   if(!data)
     data = (byte *)&dummy;
 

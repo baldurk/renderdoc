@@ -392,14 +392,76 @@ public:
       return false;
     }
 
-    RDCASSERTEQUAL(data.texelSize, VarTypeByteSize(output.type) * output.columns);
-    memcpy(output.value.u8v.data(), data.texel(coords, sample), data.texelSize);
+    CompType varComp = VarTypeCompType(output.type);
+
+    set0001(output);
+
+    ShaderVariable input;
+    input.columns = data.fmt.compCount;
+
+    if(data.fmt.compType == CompType::UInt)
+    {
+      RDCASSERT(varComp == CompType::UInt, varComp);
+
+      // set up input type for proper expansion below
+      if(data.fmt.compByteWidth == 1)
+        input.type = VarType::UByte;
+      else if(data.fmt.compByteWidth == 2)
+        input.type = VarType::UShort;
+      else if(data.fmt.compByteWidth == 4)
+        input.type = VarType::UInt;
+      else if(data.fmt.compByteWidth == 8)
+        input.type = VarType::ULong;
+
+      memcpy(input.value.u8v.data(), data.texel(coords, sample), data.texelSize);
+
+      for(uint8_t c = 0; c < RDCMIN(output.columns, input.columns); c++)
+        setUintComp(output, c, uintComp(input, c));
+    }
+    else if(data.fmt.compType == CompType::SInt)
+    {
+      RDCASSERT(varComp == CompType::SInt, varComp);
+
+      // set up input type for proper expansion below
+      if(data.fmt.compByteWidth == 1)
+        input.type = VarType::SByte;
+      else if(data.fmt.compByteWidth == 2)
+        input.type = VarType::SShort;
+      else if(data.fmt.compByteWidth == 4)
+        input.type = VarType::SInt;
+      else if(data.fmt.compByteWidth == 8)
+        input.type = VarType::SLong;
+
+      memcpy(input.value.u8v.data(), data.texel(coords, sample), data.texelSize);
+
+      for(uint8_t c = 0; c < RDCMIN(output.columns, input.columns); c++)
+        setIntComp(output, c, intComp(input, c));
+    }
+    else
+    {
+      RDCASSERT(varComp == CompType::Float, varComp);
+
+      // do the decode of whatever unorm/float/etc the format is
+      FloatVector v = DecodeFormattedComponents(data.fmt, data.texel(coords, sample));
+
+      // set it into f32v
+      input.value.f32v[0] = v.x;
+      input.value.f32v[1] = v.y;
+      input.value.f32v[2] = v.z;
+      input.value.f32v[3] = v.w;
+
+      // read as floats
+      input.type = VarType::Float;
+
+      for(uint8_t c = 0; c < RDCMIN(output.columns, input.columns); c++)
+        setFloatComp(output, c, input.value.f32v[c]);
+    }
 
     return true;
   }
 
   virtual bool WriteTexel(BindpointIndex imageBind, const ShaderVariable &coord, uint32_t sample,
-                          const ShaderVariable &value) override
+                          const ShaderVariable &input) override
   {
     ImageData &data = PopulateImage(imageBind);
 
@@ -420,8 +482,69 @@ public:
       return false;
     }
 
-    RDCASSERTEQUAL(data.texelSize, VarTypeByteSize(value.type) * value.columns);
-    memcpy(data.texel(coords, sample), value.value.u8v.data(), data.texelSize);
+    CompType varComp = VarTypeCompType(input.type);
+
+    ShaderVariable output;
+    output.columns = data.fmt.compCount;
+
+    if(data.fmt.compType == CompType::UInt)
+    {
+      RDCASSERT(varComp == CompType::UInt, varComp);
+
+      // set up output type for proper expansion below
+      if(data.fmt.compByteWidth == 1)
+        output.type = VarType::UByte;
+      else if(data.fmt.compByteWidth == 2)
+        output.type = VarType::UShort;
+      else if(data.fmt.compByteWidth == 4)
+        output.type = VarType::UInt;
+      else if(data.fmt.compByteWidth == 8)
+        output.type = VarType::ULong;
+
+      for(uint8_t c = 0; c < RDCMIN(output.columns, input.columns); c++)
+        setUintComp(output, c, uintComp(input, c));
+
+      memcpy(data.texel(coords, sample), output.value.u8v.data(), data.texelSize);
+    }
+    else if(data.fmt.compType == CompType::SInt)
+    {
+      RDCASSERT(varComp == CompType::SInt, varComp);
+
+      // set up input type for proper expansion below
+      if(data.fmt.compByteWidth == 1)
+        output.type = VarType::SByte;
+      else if(data.fmt.compByteWidth == 2)
+        output.type = VarType::SShort;
+      else if(data.fmt.compByteWidth == 4)
+        output.type = VarType::SInt;
+      else if(data.fmt.compByteWidth == 8)
+        output.type = VarType::SLong;
+
+      for(uint8_t c = 0; c < RDCMIN(output.columns, input.columns); c++)
+        setIntComp(output, c, intComp(input, c));
+
+      memcpy(data.texel(coords, sample), output.value.u8v.data(), data.texelSize);
+    }
+    else
+    {
+      RDCASSERT(varComp == CompType::Float, varComp);
+
+      // read as floats
+      output.type = VarType::Float;
+
+      for(uint8_t c = 0; c < RDCMIN(output.columns, input.columns); c++)
+        setFloatComp(output, c, input.value.f32v[c]);
+
+      FloatVector v;
+
+      // set it into f32v
+      v.x = input.value.f32v[0];
+      v.y = input.value.f32v[1];
+      v.z = input.value.f32v[2];
+      v.w = input.value.f32v[3];
+
+      EncodeFormattedComponents(data.fmt, v, data.texel(coords, sample));
+    }
 
     return true;
   }
@@ -1489,6 +1612,7 @@ private:
   {
     uint32_t width = 0, height = 0, depth = 0;
     uint32_t texelSize = 0, rowPitch = 0, slicePitch = 0, samplePitch = 0;
+    ResourceFormat fmt;
     bytebuf bytes;
 
     byte *texel(const uint32_t *coord, uint32_t sample)
@@ -1649,6 +1773,9 @@ private:
               data.depth = imageProps.arrayLayers - viewProps.range.baseArrayLayer;
           }
 
+          ResourceFormat fmt = MakeResourceFormat(imageProps.format);
+
+          data.fmt = MakeResourceFormat(imageProps.format);
           data.texelSize = GetByteSize(1, 1, 1, imageProps.format, 0);
           data.rowPitch = GetByteSize(data.width, 1, 1, imageProps.format, 0);
           data.slicePitch = GetByteSize(data.width, data.height, 1, imageProps.format, 0);
