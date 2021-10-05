@@ -2869,24 +2869,26 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
     GL.glTexParameteri(target, eGL_TEXTURE_BASE_LEVEL, level);
     GL.glTexParameteri(target, eGL_TEXTURE_MAX_LEVEL, level);
 
-    GLenum depthMode = eGL_DEPTH_COMPONENT;
-    if(depthFormat && HasExt[ARB_stencil_texturing])
-    {
-      GL.glGetTexParameteriv(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, (GLint *)&depthMode);
-      GL.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, eGL_DEPTH_COMPONENT);
-    }
-
-    // only support 2D textures for now
-    RDCASSERT(target == eGL_TEXTURE_2D, target);
+    // support 2D/Array/3D textures for now
+    RDCASSERT((target == eGL_TEXTURE_2D) || (target == eGL_TEXTURE_2D_ARRAY) ||
+                  (target == eGL_TEXTURE_3D),
+              target);
     GL.glGenTextures(1, &readtex);
     GL.glBindTexture(target, readtex);
 
     // allocate the texture
     GL.glTexParameteri(target, eGL_TEXTURE_MAX_LEVEL, 0);
-    GL.glTexImage2D(target, 0, internalformat, width, height, 0, remapformat, remaptype, NULL);
-
-    // render to it
-    GL.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, target, readtex, 0);
+    if(target == eGL_TEXTURE_2D)
+    {
+      GL.glTexImage2D(target, 0, internalformat, width, height, 0, remapformat, remaptype, NULL);
+      GL.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, target, readtex, 0);
+    }
+    else
+    {
+      GL.glTexImage3D(target, 0, internalformat, width, height, depth, 0, remapformat, remaptype,
+                      NULL);
+      GL.glFramebufferTextureLayer(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, readtex, 0, 0);
+    }
 
     GLenum fbostatus = GL.glCheckFramebufferStatus(eGL_FRAMEBUFFER);
 
@@ -2918,56 +2920,65 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
       disableSRGBCorrect = true;
     }
 
-    GL.glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-
     GL.glActiveTexture(eGL_TEXTURE0);
-    GL.glBindTexture(eGL_TEXTURE_2D, boundTexture);
+    GL.glBindTexture(target, boundTexture);
 
     GLuint prog;
 
     {
-      const char *vs =
-          "attribute vec2 pos;\n"
-          "void main() { gl_Position = vec4(pos, 0.5, 0.5); }";
-
-      char fs_src[] =
-          "precision highp float;\n"
-          "uniform vec2 res;\n"
-          "uniform sampler2D srcTex;\n"
-          "void main() { gl_FragColor = texture2D(srcTex, vec2(gl_FragCoord.xy)/res).????; }";
-
-      char *swizzle = strchr(fs_src, '?');
-
+      const char *swizzle = "rgba";
       if(format == eGL_ALPHA)
       {
-        swizzle[0] = 'a';
-        swizzle[1] = 'a';
-        swizzle[2] = 'a';
-        swizzle[3] = 'a';
+        swizzle = "aaaa";
       }
       else if(format == eGL_LUMINANCE || depthFormat)
       {
-        swizzle[0] = 'r';
-        swizzle[1] = 'r';
-        swizzle[2] = 'r';
-        swizzle[3] = 'r';
+        swizzle = "rrrr";
       }
       else if(format == eGL_LUMINANCE_ALPHA)
       {
-        swizzle[0] = 'r';
-        swizzle[1] = 'a';
-        swizzle[2] = 'a';
-        swizzle[3] = 'a';
+        swizzle = "raaa";
+      }
+
+      rdcstr vssource;
+      rdcstr fssource;
+      if(target == eGL_TEXTURE_2D)
+      {
+        vssource =
+            "attribute vec2 pos;\n"
+            "void main() { gl_Position = vec4(pos, 0.5, 0.5); }";
+
+        fssource =
+            rdcstr(
+                "precision highp float;\n"
+                "uniform vec3 res;\n"
+                "uniform sampler2D srcTex;\n"
+                "void main() { gl_FragColor = texture2D(srcTex, vec2(gl_FragCoord.xy)/res.xy).") +
+            swizzle + "; }";
       }
       else
       {
-        swizzle[0] = 'r';
-        swizzle[1] = 'g';
-        swizzle[2] = 'b';
-        swizzle[3] = 'a';
+        vssource =
+            "#version 300 es\n"
+            "in vec2 pos;\n"
+            "void main() { gl_Position = vec4(pos, 0.5, 0.5); }";
+
+        const char *sampler = (target == eGL_TEXTURE_2D_ARRAY) ? "sampler2DArray" : "sampler3D";
+
+        fssource =
+            rdcstr(
+                "#version 300 es\n"
+                "uniform highp vec3 res;\n"
+                "uniform highp ") +
+            sampler +
+            " srcTex;\n"
+            "out highp vec4 color;\n"
+            "void main() { color = texture(srcTex, vec3(gl_FragCoord.xy/res.xy, res.z).xyz)." +
+            swizzle + "; }";
       }
 
-      const char *fs = fs_src;
+      const char *vs = vssource.c_str();
+      const char *fs = fssource.c_str();
 
       GLuint vert = GL.glCreateShader(eGL_VERTEX_SHADER);
       GLuint frag = GL.glCreateShader(eGL_FRAGMENT_SHADER);
@@ -3036,19 +3047,39 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
 
     GL.glUseProgram(prog);
 
-    loc = GL.glGetUniformLocation(prog, "srcTex");
-    GL.glUniform1i(loc, 0);
-    loc = GL.glGetUniformLocation(prog, "res");
-    GL.glUniform2f(loc, float(width), float(height));
-
-    GL.glDrawArrays(eGL_TRIANGLES, 0, 3);
-
-    // if we support reading stencil, read the stencil into green
-    if(remapformat == eGL_DEPTH_STENCIL && HasExt[ARB_stencil_texturing])
+    GLenum depthMode = eGL_DEPTH_COMPONENT;
+    if(depthFormat && HasExt[ARB_stencil_texturing])
     {
-      GL.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, eGL_STENCIL_INDEX);
-      GL.glColorMask(GL_FALSE, GL_TRUE, GL_FALSE, GL_FALSE);
+      GL.glGetTexParameteriv(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, (GLint *)&depthMode);
+    }
+
+    for(int32_t d = 0; d < depth; ++d)
+    {
+      GL.glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
+      if(depthFormat && HasExt[ARB_stencil_texturing])
+      {
+        GL.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, eGL_DEPTH_COMPONENT);
+      }
+      if(target != eGL_TEXTURE_2D)
+      {
+        GL.glFramebufferTextureLayer(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, readtex, 0, d);
+      }
+
+      loc = GL.glGetUniformLocation(prog, "srcTex");
+      GL.glUniform1i(loc, 0);
+      loc = GL.glGetUniformLocation(prog, "res");
+      GL.glUniform3f(loc, float(width), float(height), float(d));
+
       GL.glDrawArrays(eGL_TRIANGLES, 0, 3);
+
+      // if we support reading stencil, read the stencil into green
+      if(remapformat == eGL_DEPTH_STENCIL && HasExt[ARB_stencil_texturing])
+      {
+        GL.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, eGL_STENCIL_INDEX);
+        GL.glColorMask(GL_FALSE, GL_TRUE, GL_FALSE, GL_FALSE);
+        GL.glDrawArrays(eGL_TRIANGLES, 0, 3);
+      }
     }
 
     GL.glDeleteVertexArrays(1, &vao);
