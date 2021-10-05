@@ -1162,6 +1162,8 @@ private:
       }
     }
 
+    bool forceHTML = false;
+
     if(name.isEmpty())
     {
       for(const APIEvent &e : action->events)
@@ -1218,10 +1220,7 @@ private:
       if(name.isEmpty())
         qCritical() << "Couldn't find APIEvent for" << eid;
 
-      // force html even for events that don't reference resources etc, to get the italics for
-      // parameters
-      if(m_ShowParameterNames)
-        name = lit("<rdhtml>") + name + lit("</rdhtml>");
+      forceHTML = m_ShowParameterNames;
     }
 
     if(m_MessageCounts.contains(eid))
@@ -1230,6 +1229,11 @@ private:
       if(count > 0)
         name += lit(" __rd_msgs::%1:%2").arg(eid).arg(count);
     }
+
+    // force html even for events that don't reference resources etc, to get the italics for
+    // parameters
+    if(forceHTML)
+      name = lit("<rdhtml>") + name + lit("</rdhtml>");
 
     QVariant v = name;
 

@@ -189,6 +189,8 @@ struct ShaderMessageLink
 
 Q_DECLARE_METATYPE(ShaderMessageLink);
 
+static QRegularExpression htmlRE(lit("<[^>]*>"));
+
 // this is an opaque struct that contains the data to render, hit-test, etc for some text that
 // contains links to resources. It will update and cache the names of the resources.
 struct RichResourceText
@@ -242,9 +244,24 @@ struct RichResourceText
       {
         text += lit("EID @%1").arg(v.toUInt());
       }
+      else if(v.userType() == qMetaTypeId<ShaderMessageLink>())
+      {
+        ShaderMessageLink link = v.value<ShaderMessageLink>();
+
+        text +=
+            QApplication::translate("qrenderdoc", "%n msg(s)", "Shader messages", link.numMessages);
+      }
       else
       {
-        text += v.toString();
+        if(forcehtml)
+        {
+          // strip html tags and convert any html entities
+          text += QUrl::fromPercentEncoding(v.toString().replace(htmlRE, QString()).toLatin1());
+        }
+        else
+        {
+          text += v.toString();
+        }
       }
     }
   }
@@ -340,7 +357,15 @@ struct RichResourceText
             lit("\n"),
             lit("</td></tr></table><table><tr><td valign=\"middle\" style=\"line-height: 14px\">"));
 
-        text += v.toString();
+        if(forcehtml)
+        {
+          text += QUrl::fromPercentEncoding(v.toString().replace(htmlRE, QString()).toLatin1());
+        }
+        else
+        {
+          text += v.toString();
+        }
+
         html += lit("<td valign=\"middle\" style=\"line-height: 14px\">%1</td>").arg(htmlfrag);
 
         numLines += newlines;
