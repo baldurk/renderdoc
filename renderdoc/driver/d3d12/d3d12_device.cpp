@@ -3914,6 +3914,9 @@ void WrappedID3D12Device::DerivedResource(ID3D12DeviceChild *parent, ResourceId 
 
 void WrappedID3D12Device::DerivedResource(ResourceId parent, ResourceId child)
 {
+  if(GetReplay()->GetResourceDesc(parent).derivedResources.contains(child))
+    return;
+
   GetReplay()->GetResourceDesc(parent).derivedResources.push_back(child);
   GetReplay()->GetResourceDesc(child).parentResources.push_back(parent);
 }

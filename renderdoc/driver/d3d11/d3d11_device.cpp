@@ -2704,6 +2704,9 @@ void WrappedID3D11Device::DerivedResource(ID3D11DeviceChild *parent, ResourceId 
 {
   ResourceId parentId = GetResourceManager()->GetOriginalID(GetIDForDeviceChild(parent));
 
+  if(GetReplay()->GetResourceDesc(parentId).derivedResources.contains(child))
+    return;
+
   GetReplay()->GetResourceDesc(parentId).derivedResources.push_back(child);
   GetReplay()->GetResourceDesc(child).parentResources.push_back(parentId);
 }

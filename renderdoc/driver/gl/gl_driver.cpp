@@ -3236,6 +3236,9 @@ void WrappedOpenGL::DerivedResource(GLResource parent, ResourceId child)
 {
   ResourceId parentId = GetResourceManager()->GetOriginalID(GetResourceManager()->GetResID(parent));
 
+  if(GetReplay()->GetResourceDesc(parentId).derivedResources.contains(child))
+    return;
+
   GetReplay()->GetResourceDesc(parentId).derivedResources.push_back(child);
   GetReplay()->GetResourceDesc(child).parentResources.push_back(parentId);
 }

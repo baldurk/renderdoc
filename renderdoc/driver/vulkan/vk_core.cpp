@@ -2395,6 +2395,9 @@ void WrappedVulkan::DerivedResource(ResourceId parentLive, ResourceId child)
 {
   ResourceId parentId = GetResourceManager()->GetOriginalID(parentLive);
 
+  if(GetReplay()->GetResourceDesc(parentId).derivedResources.contains(child))
+    return;
+
   GetReplay()->GetResourceDesc(parentId).derivedResources.push_back(child);
   GetReplay()->GetResourceDesc(child).parentResources.push_back(parentId);
 }
