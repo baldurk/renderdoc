@@ -6378,7 +6378,7 @@ void DoSerialise(SerialiserType &ser, VkAttachmentDescription2 &el)
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER_VKFLAGS(VkAttachmentDescriptionFlags, flags);
-  SERIALISE_MEMBER(format);
+  SERIALISE_MEMBER(format).Important();
   SERIALISE_MEMBER(samples);
   SERIALISE_MEMBER(loadOp);
   SERIALISE_MEMBER(storeOp);
