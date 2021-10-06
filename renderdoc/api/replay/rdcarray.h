@@ -931,9 +931,6 @@ struct bytebuf : public rdcarray<byte>
     resize(in.size());
     memcpy(elems, in.data(), (size_t)in.size());
   }
-  operator QByteArray() const
-  {
-    return QByteArray::fromRawData((const char *)elems, (int32_t)usedCount);
-  }
+  operator QByteArray() const { return QByteArray((const char *)elems, (int32_t)usedCount); }
 #endif
 };
