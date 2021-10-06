@@ -67,7 +67,7 @@ private slots:
   // automatic slots
   void on_showUnused_toggled(bool checked);
   void on_showEmpty_toggled(bool checked);
-  void on_exportHTML_clicked();
+
   void on_meshView_clicked();
   void on_viAttrs_itemActivated(RDTreeWidgetItem *item, int column);
   void on_viBuffers_itemActivated(RDTreeWidgetItem *item, int column);
@@ -86,6 +86,9 @@ private slots:
   void vertex_leave(QEvent *e);
 
   void on_debugThread_clicked();
+
+  void exportHTML_clicked();
+  void exportFOZ_clicked();
 
 private:
   Ui::VulkanPipelineStateViewer *ui;
@@ -137,6 +140,22 @@ private:
   void exportHTML(QXmlStreamWriter &xml, const VKPipe::DepthStencil &ds);
   void exportHTML(QXmlStreamWriter &xml, const VKPipe::CurrentPass &pass);
   void exportHTML(QXmlStreamWriter &xml, const VKPipe::ConditionalRendering &cr);
+
+  QString GetFossilizeHash(ResourceId id);
+  QString GetFossilizeFilename(QDir d, uint32_t tag, ResourceId id);
+  QVariant ConvertSDObjectToFossilizeJSON(const SDObject *obj, QMap<QByteArray, QByteArray> renames);
+  void AddFossilizeNexts(QVariantMap &info, const SDObject *baseStruct);
+  QByteArray ReconstructSpecializationData(const VKPipe::Shader &sh, const SDObject *mapEntries);
+  QString GetBufferForFossilize(const SDObject *obj);
+  void EncodeFossilizeVarint(const bytebuf &spirv, bytebuf &varint);
+  void WriteFossilizeJSON(QIODevice &f, QVariantMap &contents);
+
+  void exportFOZ(QString dir, ResourceId pso);
+
+  QMenu *m_ExportMenu = NULL;
+
+  QAction *m_ExportHTML = NULL;
+  QAction *m_ExportFOZ = NULL;
 
   // keep track of the VB nodes (we want to be able to highlight them easily on hover)
   QList<RDTreeWidgetItem *> m_VBNodes;

@@ -24,6 +24,7 @@
 
 #include "VulkanPipelineStateViewer.h"
 #include <float.h>
+#include <QJsonDocument>
 #include <QMenu>
 #include <QMouseEvent>
 #include <QScrollBar>
@@ -454,6 +455,26 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
   ui->framebuffer->setFont(Formatter::PreferredFont());
   ui->fbAttach->setFont(Formatter::PreferredFont());
   ui->blends->setFont(Formatter::PreferredFont());
+
+  m_ExportMenu = new QMenu(this);
+
+  m_ExportHTML = new QAction(tr("Export current state to &HTML"), this);
+  m_ExportHTML->setIcon(Icons::save());
+  m_ExportFOZ = new QAction(tr("Export to &Fossilize database"), this);
+  m_ExportFOZ->setIcon(Icons::save());
+
+  m_ExportMenu->addAction(m_ExportHTML);
+  m_ExportMenu->addAction(m_ExportFOZ);
+
+  ui->exportDrop->setMenu(m_ExportMenu);
+
+  QObject::connect(m_ExportHTML, &QAction::triggered, this,
+                   &VulkanPipelineStateViewer::exportHTML_clicked);
+  QObject::connect(m_ExportFOZ, &QAction::triggered, this,
+                   &VulkanPipelineStateViewer::exportFOZ_clicked);
+
+  QObject::connect(ui->exportDrop, &QToolButton::clicked, this,
+                   &VulkanPipelineStateViewer::exportHTML_clicked);
 
   // reset everything back to defaults
   clearState();
@@ -4021,8 +4042,596 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml,
       });
 }
 
-void VulkanPipelineStateViewer::on_exportHTML_clicked()
+QString VulkanPipelineStateViewer::GetFossilizeHash(ResourceId id)
 {
+  uint h = qHash(ToQStr(id));
+
+  if(id == ResourceId())
+    h = 0;
+
+  return QFormatStr("%1").arg(h, 16, 16, QLatin1Char('0'));
+}
+
+QString VulkanPipelineStateViewer::GetFossilizeFilename(QDir d, uint32_t tag, ResourceId id)
+{
+  return d.absoluteFilePath(
+      lit("%1.%2.json").arg(tag, 2, 16, QLatin1Char('0')).arg(GetFossilizeHash(id)));
+}
+
+QByteArray VulkanPipelineStateViewer::ReconstructSpecializationData(const VKPipe::Shader &sh,
+                                                                    const SDObject *mapEntries)
+{
+  bytebuf specData;
+
+  // reconstruct the original spec data as best as we can
+  const bytebuf &src = sh.specializationData;
+
+  for(size_t i = 0; i < mapEntries->NumChildren(); i++)
+  {
+    const SDObject *map = mapEntries->GetChild(i);
+
+    size_t srcByteOffset = map->FindChild("constantID")->AsUInt32() * sizeof(uint64_t);
+    size_t dstByteOffset = map->FindChild("offset")->AsUInt32();
+    size_t size = map->FindChild("size")->AsUInt32();
+
+    Q_ASSERT(srcByteOffset + size <= src.size());
+
+    specData.resize_for_index(dstByteOffset + size - 1);
+    memcpy(specData.data() + dstByteOffset, src.data() + srcByteOffset, size);
+  }
+
+  return specData;
+}
+
+QString VulkanPipelineStateViewer::GetBufferForFossilize(const SDObject *obj)
+{
+  const VKPipe::State *pipe = m_Ctx.CurVulkanPipelineState();
+
+  QByteArray ret;
+  if(obj->name == "pData" && obj->GetParent() && obj->GetParent()->name == "pSpecializationInfo")
+  {
+    const SDObject *shad = obj->GetParent()->GetParent();
+    const SDObject *stage = NULL;
+    if(shad)
+      stage = shad->FindChild("stage");
+
+    const SDObject *mapEntries = obj->GetParent()->FindChild("pMapEntries");
+
+    if(stage)
+    {
+      switch(ShaderStageMask(stage->AsUInt32()))
+      {
+        case ShaderStageMask::Vertex:
+          ret = ReconstructSpecializationData(pipe->vertexShader, mapEntries);
+          break;
+        case ShaderStageMask::Tess_Control:
+          ret = ReconstructSpecializationData(pipe->tessControlShader, mapEntries);
+          break;
+        case ShaderStageMask::Tess_Eval:
+          ret = ReconstructSpecializationData(pipe->tessEvalShader, mapEntries);
+          break;
+        case ShaderStageMask::Geometry:
+          ret = ReconstructSpecializationData(pipe->geometryShader, mapEntries);
+          break;
+        case ShaderStageMask::Pixel:
+          ret = ReconstructSpecializationData(pipe->fragmentShader, mapEntries);
+          break;
+        case ShaderStageMask::Compute:
+          ret = ReconstructSpecializationData(pipe->computeShader, mapEntries);
+          break;
+        default: break;
+      }
+    }
+
+    const SDObject *size = obj->GetParent()->FindChild("dataSize");
+    if(size)
+    {
+      Q_ASSERT((uint32_t)ret.size() <= size->AsUInt32());
+      ret.resize(size->AsUInt32());
+    }
+  }
+  return QString::fromLatin1(ret.toBase64());
+}
+
+void VulkanPipelineStateViewer::AddFossilizeNexts(QVariantMap &info, const SDObject *baseStruct)
+{
+  QVariantList nexts;
+
+  while(baseStruct)
+  {
+    const SDObject *next = baseStruct->FindChild("pNext");
+
+    if(next && next->type.basetype != SDBasic::Null)
+    {
+      QVariant v = ConvertSDObjectToFossilizeJSON(
+          next, {
+                    // VkPipelineVertexInputDivisorStateCreateInfoEXT
+                    {"pVertexBindingDivisors", "vertexBindingDivisors"},
+                    // VkRenderPassMultiviewCreateInfo
+                    {"subpassCount", ""},
+                    {"pViewMasks", "viewMasks"},
+                    {"dependencyCount", ""},
+                    {"pViewOffsets", "viewOffsets"},
+                    {"correlationMaskCount", ""},
+                    {"pCorrelationMasks", "correlationMasks"},
+                    // VkDescriptorSetLayoutBindingFlagsCreateInfoEXT
+                    {"bindingCount", ""},
+                    {"pBindingFlags", "bindingFlags"},
+                    // VkSubpassDescriptionDepthStencilResolve
+                    {"pDepthStencilResolveAttachment", "depthStencilResolveAttachment"},
+                    // VkFragmentShadingRateAttachmentInfoKHR
+                    {"pFragmentShadingRateAttachment", "fragmentShadingRateAttachment"},
+                });
+
+      QVariantMap &vm = (QVariantMap &)v.data_ptr();
+
+      vm[lit("sType")] = next->FindChild("sType")->AsUInt32();
+      nexts.push_back(v);
+      baseStruct = next;
+    }
+    else
+    {
+      break;
+    }
+  }
+
+  if(!nexts.empty())
+  {
+    info[lit("pNext")] = nexts;
+  }
+}
+
+QVariant VulkanPipelineStateViewer::ConvertSDObjectToFossilizeJSON(const SDObject *obj,
+                                                                   QMap<QByteArray, QByteArray> renames)
+{
+  switch(obj->type.basetype)
+  {
+    case SDBasic::Chunk:
+    case SDBasic::Struct:
+    {
+      QVariantMap map;
+      for(size_t i = 0; i < obj->NumChildren(); i++)
+      {
+        const SDObject *ch = obj->GetChild(i);
+
+        if(ch->name == "sType" || ch->name == "pNext" || ch->name == "pNextType")
+          continue;
+
+        QByteArray name(ch->name.c_str(), (int)ch->name.size());
+
+        auto it = renames.find(name);
+        if(it != renames.end())
+          name = it.value();
+
+        if(name.isEmpty())
+          continue;
+
+        QString key = QString::fromLatin1(name);
+
+        QVariant v = ConvertSDObjectToFossilizeJSON(ch, renames);
+        if(v.isValid())
+          map[key] = v;
+      }
+
+      AddFossilizeNexts(map, obj);
+
+      return map;
+    }
+    case SDBasic::Null: break;
+    case SDBasic::Buffer: return GetBufferForFossilize(obj);
+    case SDBasic::Array:
+    {
+      if(obj->NumChildren() == 0)
+        return QVariant();
+
+      QVariantList list;
+      for(size_t j = 0; j < obj->NumChildren(); j++)
+        list.push_back(ConvertSDObjectToFossilizeJSON(obj->GetChild(j), renames));
+      return list;
+      break;
+    }
+    case SDBasic::String: return QString(obj->AsString()); break;
+    case SDBasic::Enum:
+    case SDBasic::UnsignedInteger: return obj->AsUInt64(); break;
+    case SDBasic::SignedInteger: return obj->AsInt64(); break;
+    case SDBasic::Float: return obj->AsDouble(); break;
+    case SDBasic::Boolean: return obj->AsBool() ? 1U : 0U; break;
+    case SDBasic::Character: return QString(QLatin1Char(obj->AsChar())); break;
+    case SDBasic::Resource: return GetFossilizeHash(obj->AsResourceId()); break;
+  }
+
+  return QVariant();
+}
+
+void VulkanPipelineStateViewer::EncodeFossilizeVarint(const bytebuf &spirv, bytebuf &varint)
+{
+  if((spirv.size() % 4) != 0)
+    return;
+
+  const uint32_t *curWord = (const uint32_t *)spirv.data();
+
+  varint.reserve(spirv.size() / 2);
+
+  for(size_t i = 0; i < spirv.size(); i += 4)
+  {
+    uint32_t w = *curWord;
+
+    do
+    {
+      if(w <= 0x7f)
+        varint.push_back(uint8_t(w));
+      else
+        varint.push_back(uint8_t(w & 0x7fU) | 0x80U);
+
+      w >>= 7;
+    } while(w);
+
+    curWord++;
+  }
+}
+
+void VulkanPipelineStateViewer::WriteFossilizeJSON(QIODevice &f, QVariantMap &contents)
+{
+  contents[lit("version")] = 6;
+
+  QJsonDocument doc = QJsonDocument::fromVariant(contents);
+
+  QByteArray jsontext = doc.toJson(QJsonDocument::Compact);
+
+  f.write(jsontext);
+}
+
+void VulkanPipelineStateViewer::exportFOZ(QString dir, ResourceId pso)
+{
+  enum
+  {
+    TagAppInfo = 0,
+    TagSampler = 1,
+    TagDescriptorSetLayout = 2,
+    TagPipelineLayout = 3,
+    TagShaderModule = 4,
+    TagRenderPass = 5,
+    TagGraphicsPipe = 6,
+    TagComputePipe = 7,
+  };
+
+  QDir d(dir);
+
+  const SDFile &sdfile = m_Ctx.GetStructuredFile();
+
+  const VKPipe::State *pipe = m_Ctx.CurVulkanPipelineState();
+
+  // enumerate all the parents of the pipeline, and cache the name of the first initialisation
+  // chunk (easy way to find things by type)
+  rdcarray<rdcpair<rdcstr, const ResourceDescription *>> resources;
+
+  {
+    rdcarray<ResourceId> todo;
+    rdcarray<ResourceId> done;
+
+    todo.push_back(pso);
+
+    while(!todo.empty())
+    {
+      ResourceId cur = todo.back();
+      todo.pop_back();
+
+      const ResourceDescription *desc = m_Ctx.GetResource(cur);
+      resources.push_back({sdfile.chunks[desc->initialisationChunks[0]]->name, desc});
+      done.push_back(cur);
+
+      for(ResourceId parent : desc->parentResources)
+      {
+        if(!done.contains(parent))
+          todo.push_back(parent);
+      }
+    }
+  }
+
+  {
+    const ResourceDescription *instance = NULL;
+    const ResourceDescription *device = NULL;
+
+    for(size_t i = 0; i < resources.size(); i++)
+    {
+      if(resources[i].first == "vkCreateInstance")
+        instance = resources[i].second;
+      else if(resources[i].first == "vkCreateDevice")
+        device = resources[i].second;
+    }
+
+    if(!instance || instance->type != ResourceType::Device)
+    {
+      RDDialog::critical(this, tr("Couldn't locate instance"),
+                         tr("Couldn't locate VkInstance from current PSO!"));
+      return;
+    }
+    if(!device || device->type != ResourceType::Device)
+    {
+      RDDialog::critical(this, tr("Couldn't locate device"),
+                         tr("Couldn't locate VkDevice from current PSO!"));
+      return;
+    }
+
+    QFile f(GetFossilizeFilename(d, TagAppInfo, instance->resourceId));
+    if(f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
+    {
+      QVariantMap instanceData;
+
+      const SDChunk *instCreate = sdfile.chunks[instance->initialisationChunks[0]];
+
+      QVariantMap appInfo;
+      QVariantMap physicalDeviceFeatures;
+
+      const SDObject *apiVersion = instCreate->FindChildRecursively("APIVersion");
+      if(apiVersion && apiVersion->AsUInt32() > 0)
+      {
+        appInfo[lit("applicationName")] = instCreate->FindChildRecursively("AppName")->AsString();
+        appInfo[lit("engineName")] = instCreate->FindChildRecursively("EngineName")->AsString();
+        appInfo[lit("applicationVersion")] =
+            instCreate->FindChildRecursively("AppVersion")->AsUInt32();
+        appInfo[lit("engineVersion")] = instCreate->FindChildRecursively("EngineVersion")->AsUInt32();
+        appInfo[lit("apiVersion")] = apiVersion->AsUInt32();
+      }
+
+      const SDChunk *devCreate = sdfile.chunks[device->initialisationChunks[0]];
+
+      // this is a recursive search so we don't need to care if it's in PDF or PDF2
+      const SDObject *robustBufferAccess = devCreate->FindChildRecursively("robustBufferAccess");
+      if(robustBufferAccess)
+      {
+        physicalDeviceFeatures[lit("robustBufferAccess")] = robustBufferAccess->AsUInt32();
+      }
+
+      instanceData[lit("applicationInfo")] = appInfo;
+      instanceData[lit("physicalDeviceFeatures")] = physicalDeviceFeatures;
+
+      WriteFossilizeJSON(f, instanceData);
+    }
+  }
+
+  for(size_t i = 0; i < resources.size(); i++)
+  {
+    const SDChunk *create = sdfile.chunks[resources[i].second->initialisationChunks[0]];
+
+    ResourceId id = resources[i].second->resourceId;
+
+    if(resources[i].first == "vkCreateSampler")
+    {
+      QFile f(GetFossilizeFilename(d, TagSampler, id));
+      if(f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
+      {
+        const SDObject *createInfo = create->FindChildRecursively("CreateInfo");
+
+        QVariant samplerData = ConvertSDObjectToFossilizeJSON(createInfo, {});
+
+        QVariantMap root({{lit("samplers"), QVariantMap({{GetFossilizeHash(id), samplerData}})}});
+
+        WriteFossilizeJSON(f, root);
+      }
+    }
+    else if(resources[i].first == "vkCreateDescriptorSetLayout")
+    {
+      QFile f(GetFossilizeFilename(d, TagDescriptorSetLayout, id));
+      if(f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
+      {
+        const SDObject *createInfo = create->FindChildRecursively("CreateInfo");
+
+        QVariant layoutData = ConvertSDObjectToFossilizeJSON(
+            createInfo, {
+                            {"bindingCount", ""}, {"pBindings", "bindings"},
+                        });
+
+        QVariantMap root({{lit("setLayouts"), QVariantMap({{GetFossilizeHash(id), layoutData}})}});
+
+        WriteFossilizeJSON(f, root);
+      }
+    }
+    else if(resources[i].first == "vkCreatePipelineLayout")
+    {
+      QFile f(GetFossilizeFilename(d, TagPipelineLayout, id));
+      if(f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
+      {
+        const SDObject *createInfo = create->FindChildRecursively("CreateInfo");
+
+        QVariant layoutData = ConvertSDObjectToFossilizeJSON(
+            createInfo, {
+                            {"setLayoutCount", ""},
+                            {"pSetLayouts", "setLayouts"},
+                            {"pushConstantRangeCount", ""},
+                            {"pPushConstantRanges", "pushConstantRanges"},
+                        });
+
+        QVariantMap root(
+            {{lit("pipelineLayouts"), QVariantMap({{GetFossilizeHash(id), layoutData}})}});
+
+        WriteFossilizeJSON(f, root);
+      }
+    }
+    else if(resources[i].first == "vkCreateRenderPass" ||
+            resources[i].first == "vkCreateRenderPass2")
+    {
+      QFile f(GetFossilizeFilename(d, TagRenderPass, id));
+      if(f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
+      {
+        const SDObject *createInfo = create->FindChildRecursively("CreateInfo");
+
+        QVariant layoutData = ConvertSDObjectToFossilizeJSON(
+            createInfo, {
+                            {"attachmentCount", ""},
+                            {"pAttachments", "attachments"},
+                            {"dependencyCount", ""},
+                            {"pDependencies", "dependencies"},
+                            {"subpassCount", ""},
+                            {"pSubpasses", "subpasses"},
+                            {"pDepthStencilAttachment", "depthStencilAttachment"},
+                            {"colorAttachmentCount", ""},
+                            {"pColorAttachments", "colorAttachments"},
+                            {"inputAttachmentCount", ""},
+                            {"pInputAttachments", "inputAttachments"},
+                            {"preserveAttachmentCount", ""},
+                            {"pPreserveAttachments", "preserveAttachments"},
+                            {"resolveAttachmentCount", ""},
+                            {"pResolveAttachments", "resolveAttachments"},
+                        });
+
+        QVariantMap root({{lit("renderPasses"), QVariantMap({{GetFossilizeHash(id), layoutData}})}});
+
+        WriteFossilizeJSON(f, root);
+      }
+    }
+    else if(resources[i].first == "vkCreateGraphicsPipelines")
+    {
+      QFile f(GetFossilizeFilename(d, TagGraphicsPipe, id));
+      if(f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
+      {
+        const SDObject *createInfo = create->FindChildRecursively("CreateInfo");
+
+        QVariant layoutData = ConvertSDObjectToFossilizeJSON(
+            createInfo, {
+                            {"pName", "name"},
+                            {"mapEntryCount", ""},
+                            {"pMapEntries", "mapEntries"},
+                            {"pSpecializationInfo", "specializationInfo"},
+                            {"pData", "data"},
+                            {"pTessellationState", "tessellationState"},
+                            {"pDynamicState", "dynamicState"},
+                            {"pMultisampleState", "multisampleState"},
+                            {"pSampleMask", "sampleMask"},
+                            {"pVertexInputState", "vertexInputState"},
+                            {"vertexAttributeDescriptionCount", ""},
+                            {"vertexBindingDescriptionCount", ""},
+                            {"pVertexAttributeDescriptions", "attributes"},
+                            {"pVertexBindingDescriptions", "bindings"},
+                            {"pRasterizationState", "rasterizationState"},
+                            {"pInputAssemblyState", "inputAssemblyState"},
+                            {"pColorBlendState", "colorBlendState"},
+                            {"attachmentCount", ""},
+                            {"pAttachments", "attachments"},
+                            {"pViewportState", "viewportState"},
+                            {"dynamicStateCount", ""},
+                            {"pDynamicStates", "dynamicState"},
+                            {"pViewports", "viewports"},
+                            {"pScissors", "scissors"},
+                            {"pDepthStencilState", "depthStencilState"},
+                            {"stageCount", ""},
+                            {"pStages", "stages"},
+                        });
+
+        QVariantMap root(
+            {{lit("graphicsPipelines"), QVariantMap({{GetFossilizeHash(id), layoutData}})}});
+
+        WriteFossilizeJSON(f, root);
+      }
+    }
+    else if(resources[i].first == "vkCreateComputePipelines")
+    {
+      QFile f(GetFossilizeFilename(d, TagComputePipe, id));
+      if(f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
+      {
+        const SDObject *createInfo = create->FindChildRecursively("CreateInfo");
+
+        QVariant layoutData = ConvertSDObjectToFossilizeJSON(
+            createInfo, {
+                            {"pName", "name"},
+                            {"mapEntryCount", ""},
+                            {"pMapEntries", "mapEntries"},
+                            {"pSpecializationInfo", "specializationInfo"},
+                            {"pData", "data"},
+                        });
+
+        QVariantMap root(
+            {{lit("computePipelines"), QVariantMap({{GetFossilizeHash(id), layoutData}})}});
+
+        WriteFossilizeJSON(f, root);
+      }
+    }
+    else if(resources[i].first == "vkCreateShaderModule")
+    {
+      QFile f(GetFossilizeFilename(d, TagShaderModule, id));
+      if(f.open(QIODevice::WriteOnly | QIODevice::Truncate))
+      {
+        // shaders we handle specially
+        QVariantMap shaderData;
+
+        const bytebuf *spirv = NULL;
+
+        // we don't care which reflection we get, as long as the ID matches
+        for(const VKPipe::Shader *sh :
+            {&pipe->vertexShader, &pipe->tessControlShader, &pipe->tessEvalShader,
+             &pipe->geometryShader, &pipe->fragmentShader, &pipe->computeShader})
+        {
+          if(sh->resourceId == id)
+            spirv = &sh->reflection->rawBytes;
+        }
+
+        if(!spirv)
+        {
+          RDDialog::critical(
+              this, tr("Shader not found"),
+              tr("Couldn't get SPIR-V bytes for bound shader %1").arg(m_Ctx.GetResourceName(id)));
+          return;
+        }
+
+        bytebuf varint;
+
+        EncodeFossilizeVarint(*spirv, varint);
+
+        shaderData[lit("varintOffset")] = 0;
+        shaderData[lit("varintSize")] = varint.size();
+        shaderData[lit("codeSize")] = spirv->size();
+        shaderData[lit("flags")] =
+            create->FindChildRecursively("CreateInfo")->FindChild("flags")->AsUInt32();
+
+        QVariantMap root({{lit("shaderModules"), QVariantMap({{GetFossilizeHash(id), shaderData}})}});
+
+        WriteFossilizeJSON(f, root);
+
+        f.write(QByteArray(1, '\0'));
+        f.write((const char *)varint.data(), (qint64)varint.size());
+      }
+    }
+  }
+}
+
+void VulkanPipelineStateViewer::exportFOZ_clicked()
+{
+  if(!m_Ctx.IsCaptureLoaded())
+    return;
+
+  if(!m_Ctx.CurAction())
+  {
+    RDDialog::critical(this, tr("No action selected"),
+                       tr("To export the pipeline as FOZ an action must be selected."));
+    return;
+  }
+
+  ResourceId pso;
+
+  if(m_Ctx.CurAction()->flags & ActionFlags::Dispatch)
+    pso = m_Ctx.CurVulkanPipelineState()->compute.pipelineResourceId;
+  else if(m_Ctx.CurAction()->flags & ActionFlags::Drawcall)
+    pso = m_Ctx.CurVulkanPipelineState()->graphics.pipelineResourceId;
+
+  if(pso == ResourceId())
+  {
+    RDDialog::critical(
+        this, tr("No pipeline bound"),
+        tr("To export the pipeline as FOZ an action must be selected which has a pipeline bound."));
+    return;
+  }
+
+  QString dir = RDDialog::getExistingDirectory(this, tr("Export pipeline state as fossilize DB"));
+
+  if(!dir.isEmpty())
+    exportFOZ(dir, pso);
+}
+
+void VulkanPipelineStateViewer::exportHTML_clicked()
+{
+  if(!m_Ctx.IsCaptureLoaded())
+    return;
+
   QXmlStreamWriter *xmlptr = m_Common.beginHTMLExport();
 
   if(xmlptr)

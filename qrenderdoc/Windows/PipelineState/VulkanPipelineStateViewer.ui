@@ -114,9 +114,9 @@
        </widget>
       </item>
       <item>
-       <widget class="QToolButton" name="exportHTML">
+       <widget class="QToolButton" name="exportDrop">
         <property name="toolTip">
-         <string>Export the current pipeline state to an HTML file</string>
+         <string>Export the current pipeline state to an HTML file or Fossilize database</string>
         </property>
         <property name="text">
          <string>Export</string>
@@ -127,6 +127,9 @@
         </property>
         <property name="checkable">
          <bool>false</bool>
+        </property>
+        <property name="popupMode">
+         <enum>QToolButton::MenuButtonPopup</enum>
         </property>
         <property name="toolButtonStyle">
          <enum>Qt::ToolButtonTextBesideIcon</enum>
