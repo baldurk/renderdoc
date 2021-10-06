@@ -58,6 +58,8 @@ static BOOL add_hooks()
 
     RenderDoc::Inst().Initialise();
 
+    LibraryHooks::ReplayInitialise();
+
     return true;
   }
 

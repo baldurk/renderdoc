@@ -76,6 +76,9 @@ __attribute__((visibility("default"))) void *dlopen(const char *filename, int fl
     return ret;
   }
 
+  if(RenderDoc::Inst().IsReplayApp())
+    return realdlopen(filename, flag);
+
   // don't do any hook processing inside here even if we call dlopen again
   Atomic::Inc32(&tlsbusyflag);
   void *ret = realdlopen(filename, flag);
@@ -203,6 +206,9 @@ __attribute__((visibility("default"))) int execve(const char *pathname, char *co
     return passthru(pathname, argv, envp);
   }
 
+  if(RenderDoc::Inst().IsReplayApp())
+    return realexecve(pathname, argv, envp);
+
   rdcarray<char *> modifiedEnv;
   rdcstr envpStr;
 
@@ -236,6 +242,9 @@ __attribute__((visibility("default"))) int execvpe(const char *pathname, char *c
     return passthru(pathname, argv, envp);
   }
 
+  if(RenderDoc::Inst().IsReplayApp())
+    return realexecvpe(pathname, argv, envp);
+
   rdcarray<char *> modifiedEnv;
   rdcstr envpStr;
 
@@ -264,6 +273,9 @@ __attribute__((visibility("default"))) pid_t fork()
     FORKPROC passthru = (FORKPROC)dlsym(RTLD_NEXT, "fork");
     return passthru();
   }
+
+  if(RenderDoc::Inst().IsReplayApp())
+    return realfork();
 
   // if we're not hooking children just call to the real one, we don't have to do anything
   if(!RenderDoc::Inst().GetCaptureOptions().hookIntoChildren)
@@ -508,6 +520,15 @@ void *intercept_dlopen(const char *filename, int flag, void *ret)
   CheckLoadedLibraries();
 
   return ret;
+}
+
+void LibraryHooks::ReplayInitialise()
+{
+  realdlopen = (DLOPENPROC)dlsym(RTLD_NEXT, "dlopen");
+  realfork = (FORKPROC)dlsym(RTLD_NEXT, "fork");
+  realexecle = (EXECLEPROC)dlsym(RTLD_NEXT, "execle");
+  realexecve = (EXECVEPROC)dlsym(RTLD_NEXT, "execve");
+  realexecvpe = (EXECVPEPROC)dlsym(RTLD_NEXT, "execvpe");
 }
 
 void LibraryHooks::BeginHookRegistration()

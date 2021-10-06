@@ -940,6 +940,10 @@ void LibraryHooks::Refresh()
   // don't need to refresh on windows
 }
 
+void LibraryHooks::ReplayInitialise()
+{
+}
+
 void LibraryHooks::RemoveHooks()
 {
   LibraryHooks::RemoveHookCallbacks();

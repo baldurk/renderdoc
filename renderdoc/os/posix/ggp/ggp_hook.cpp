@@ -43,6 +43,10 @@ void LibraryHooks::RemoveHooks()
 {
 }
 
+void LibraryHooks::ReplayInitialise()
+{
+}
+
 void LibraryHooks::Refresh()
 {
 }

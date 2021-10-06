@@ -685,6 +685,11 @@ void LibraryHooks::RemoveHooks()
   RDCERR("Removing hooks is not possible on this platform");
 }
 
+void LibraryHooks::ReplayInitialise()
+{
+  // nothing to do
+}
+
 void LibraryHooks::BeginHookRegistration()
 {
   // nothing to do

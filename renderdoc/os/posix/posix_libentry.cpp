@@ -39,6 +39,8 @@ void library_loaded()
 
     RenderDoc::Inst().Initialise();
 
+    LibraryHooks::ReplayInitialise();
+
     return;
   }
   else

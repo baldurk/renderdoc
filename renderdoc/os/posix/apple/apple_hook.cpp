@@ -99,6 +99,11 @@ void LibraryHooks::RemoveHooks()
   RDCERR("Removing hooks is not possible on this platform");
 }
 
+void LibraryHooks::ReplayInitialise()
+{
+  // nothing to do
+}
+
 void LibraryHooks::EndHookRegistration()
 {
   // process libraries with callbacks by loading them if necessary (though we should be linked to
