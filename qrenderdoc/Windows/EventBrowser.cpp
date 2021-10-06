@@ -1344,22 +1344,6 @@ bool EvaluateFilterSet(ICaptureContext &ctx, const rdcarray<EventFilter> &filter
   return accept;
 }
 
-static const SDObject *FindChildRecursively(const SDObject *parent, rdcstr name)
-{
-  const SDObject *o = parent->FindChild(name);
-  if(o)
-    return o;
-
-  for(size_t i = 0; i < parent->NumChildren(); i++)
-  {
-    o = FindChildRecursively(parent->GetChild(i), name);
-    if(o)
-      return o;
-  }
-
-  return NULL;
-}
-
 struct ParseTrace
 {
   int position = -1;
@@ -1787,7 +1771,7 @@ searched for as a case-insensitive substring.
       if(!chunk)
         return false;
 
-      const SDObject *o = FindChildRecursively(chunk, paramName);
+      const SDObject *o = chunk->FindChildRecursively(paramName);
 
       if(!o)
         return false;

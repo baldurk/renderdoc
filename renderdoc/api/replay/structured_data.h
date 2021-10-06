@@ -618,6 +618,31 @@ returned.
     return NULL;
   }
 
+  DOCUMENT(R"(Find a child object by a given name recursively. If no matching child is found,
+``None`` is returned.
+
+The order of the search is not guaranteed, so care should be taken when the name may not be unique.
+
+:param str childName: The name to search for.
+:return: A reference to the child object if found, or ``None`` if not.
+:rtype: SDObject
+)");
+  inline SDObject *FindChildRecursively(const rdcstr &childName)
+  {
+    SDObject *o = FindChild(childName);
+    if(o)
+      return o;
+
+    for(size_t i = 0; i < NumChildren(); i++)
+    {
+      o = GetChild(i)->FindChildRecursively(childName);
+      if(o)
+        return o;
+    }
+
+    return NULL;
+  }
+
   DOCUMENT(R"(Find a child object by a given index. If the index is out of bounds, ``None`` is
 returned.
 
@@ -650,6 +675,21 @@ returned.
     for(size_t i = 0; i < data.children.size(); i++)
       if(GetChild(i)->name == childName)
         return GetChild(i);
+    return NULL;
+  }
+  inline const SDObject *FindChildRecursively(const rdcstr &childName) const
+  {
+    const SDObject *o = FindChild(childName);
+    if(o)
+      return o;
+
+    for(size_t i = 0; i < NumChildren(); i++)
+    {
+      o = GetChild(i)->FindChildRecursively(childName);
+      if(o)
+        return o;
+    }
+
     return NULL;
   }
   inline const SDObject *GetChild(size_t index) const
