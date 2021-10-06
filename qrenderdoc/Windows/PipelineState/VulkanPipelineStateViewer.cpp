@@ -3367,14 +3367,14 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
         QString name;
         if(b.compileConstants)
           name = tr("Specialization constants");
-        else if(descriptorBind->inlineBlock)
+        else if(descriptorBind && descriptorBind->inlineBlock)
           name = tr("Inline uniforms");
         else
           name = tr("Push constants");
 
         qulonglong offset = 0, size = 0;
 
-        if(descriptorBind->inlineBlock)
+        if(descriptorBind && descriptorBind->inlineBlock)
         {
           offset = descriptorBind->byteOffset;
           size = descriptorBind->byteSize;
@@ -3632,7 +3632,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
           w = buf->length;
           h = 0;
           d = 0;
-          a = 0;
+          arr = 0;
           format = lit("-");
 
           viewParams = tr("Byte Range: %1").arg(formatByteRange(buf, &descriptorBind));
