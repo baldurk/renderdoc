@@ -4228,16 +4228,15 @@ QVariant VulkanPipelineStateViewer::ConvertSDObjectToFossilizeJSON(const SDObjec
       for(size_t j = 0; j < obj->NumChildren(); j++)
         list.push_back(ConvertSDObjectToFossilizeJSON(obj->GetChild(j), renames));
       return list;
-      break;
     }
-    case SDBasic::String: return QString(obj->AsString()); break;
+    case SDBasic::String: return QString(obj->AsString());
     case SDBasic::Enum:
-    case SDBasic::UnsignedInteger: return (qulonglong)obj->AsUInt64(); break;
-    case SDBasic::SignedInteger: return (qlonglong)obj->AsInt64(); break;
-    case SDBasic::Float: return obj->AsDouble(); break;
-    case SDBasic::Boolean: return obj->AsBool() ? 1U : 0U; break;
-    case SDBasic::Character: return QString(QLatin1Char(obj->AsChar())); break;
-    case SDBasic::Resource: return GetFossilizeHash(obj->AsResourceId()); break;
+    case SDBasic::UnsignedInteger: return (qulonglong)obj->AsUInt64();
+    case SDBasic::SignedInteger: return (qlonglong)obj->AsInt64();
+    case SDBasic::Float: return obj->AsDouble();
+    case SDBasic::Boolean: return obj->AsBool() ? 1U : 0U;
+    case SDBasic::Character: return QString(QLatin1Char(obj->AsChar()));
+    case SDBasic::Resource: return GetFossilizeHash(obj->AsResourceId());
   }
 
   return QVariant();
