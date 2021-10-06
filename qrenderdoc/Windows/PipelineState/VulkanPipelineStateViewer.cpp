@@ -4232,8 +4232,8 @@ QVariant VulkanPipelineStateViewer::ConvertSDObjectToFossilizeJSON(const SDObjec
     }
     case SDBasic::String: return QString(obj->AsString()); break;
     case SDBasic::Enum:
-    case SDBasic::UnsignedInteger: return obj->AsUInt64(); break;
-    case SDBasic::SignedInteger: return obj->AsInt64(); break;
+    case SDBasic::UnsignedInteger: return (qulonglong)obj->AsUInt64(); break;
+    case SDBasic::SignedInteger: return (qlonglong)obj->AsInt64(); break;
     case SDBasic::Float: return obj->AsDouble(); break;
     case SDBasic::Boolean: return obj->AsBool() ? 1U : 0U; break;
     case SDBasic::Character: return QString(QLatin1Char(obj->AsChar())); break;
@@ -4578,8 +4578,8 @@ void VulkanPipelineStateViewer::exportFOZ(QString dir, ResourceId pso)
         EncodeFossilizeVarint(*spirv, varint);
 
         shaderData[lit("varintOffset")] = 0;
-        shaderData[lit("varintSize")] = varint.size();
-        shaderData[lit("codeSize")] = spirv->size();
+        shaderData[lit("varintSize")] = qulonglong(varint.size());
+        shaderData[lit("codeSize")] = qulonglong(spirv->size());
         shaderData[lit("flags")] =
             create->FindChildRecursively("CreateInfo")->FindChild("flags")->AsUInt32();
 

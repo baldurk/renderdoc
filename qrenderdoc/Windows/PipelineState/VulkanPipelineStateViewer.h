@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <QDir>
 #include <QFrame>
 #include "Code/Interface/QRDInterface.h"
 
