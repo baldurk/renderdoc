@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ComputeDebugSelector</class>
+ <widget class="QDialog" name="ComputeDebugSelector">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>268</width>
+    <height>237</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="windowTitle">
+   <string>Debug Compute Shader</string>
+  </property>
+  <property name="sizeGripEnabled">
+   <bool>false</bool>
+  </property>
+  <property name="modal">
+   <bool>true</bool>
+  </property>
+  <property name="windowModality">
+   <enum>Qt::ApplicationModal</enum>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="sizeConstraint">
+    <enum>QLayout::SetFixedSize</enum>
+   </property>
+   <item>
+    <widget class="QGroupBox" name="groupBox">
+     <property name="title">
+      <string>Debug Group and Thread ID</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_groupthread">
+      <property name="verticalSpacing">
+       <number>3</number>
+      </property>
+      <item row="0" column="0">
+       <widget class="QLabel" name="groupDebugLabel">
+        <property name="text">
+         <string>Debug Group:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QSpinBox" name="groupX"/>
+      </item>
+      <item row="0" column="2">
+       <widget class="QSpinBox" name="groupY"/>
+      </item>
+      <item row="0" column="3">
+       <widget class="QSpinBox" name="groupZ"/>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="threadDebugLabel">
+        <property name="text">
+         <string>Thread:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QSpinBox" name="threadX"/>
+      </item>
+      <item row="1" column="2">
+       <widget class="QSpinBox" name="threadY"/>
+      </item>
+      <item row="1" column="3">
+       <widget class="QSpinBox" name="threadZ"/>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBox1">
+     <property name="title">
+      <string>Dispatch Thread ID</string>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout_dispatchthread">
+      <item>
+       <widget class="QSpinBox" name="dispatchX"/>
+      </item>
+      <item>
+       <widget class="QSpinBox" name="dispatchY"/>
+      </item>
+      <item>
+       <widget class="QSpinBox" name="dispatchZ"/>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_buttons">
+     <property name="alignment">
+      <set>Qt::AlignRight</set>
+     </property>
+     <item>
+      <widget class="QPushButton" name="beginDebug">
+       <property name="text">
+        <string>Debug</string>
+       </property>
+       <property name="icon">
+        <iconset resource="../../Resources/resources.qrc">
+         <normaloff>:/wrench.png</normaloff>:/wrench.png
+        </iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="cancelDebug">
+       <property name="text">
+        <string>Cancel</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

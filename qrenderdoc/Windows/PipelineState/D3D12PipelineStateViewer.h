@@ -34,6 +34,7 @@ class D3D12PipelineStateViewer;
 
 class QXmlStreamWriter;
 
+class ComputeDebugSelector;
 class RDLabel;
 class RDTreeWidget;
 class RDTreeWidgetItem;
@@ -77,12 +78,15 @@ private slots:
   void cbuffer_itemActivated(RDTreeWidgetItem *item, int column);
   void vertex_leave(QEvent *e);
 
-  void on_debugThread_clicked();
+  void on_computeDebugSelector_clicked();
+  void computeDebugSelector_beginDebug(const rdcfixedarray<uint32_t, 3> &group,
+                                       const rdcfixedarray<uint32_t, 3> &thread);
 
 private:
   Ui::D3D12PipelineStateViewer *ui;
   ICaptureContext &m_Ctx;
   PipelineStateViewer &m_Common;
+  ComputeDebugSelector *m_ComputeDebugSelector;
 
   void setShaderState(const rdcarray<D3D12Pipe::RootSignatureRange> &rootElements,
                       const D3D12Pipe::Shader &stage, RDLabel *shader, RDLabel *rootSig,
