@@ -35,6 +35,7 @@ class VulkanPipelineStateViewer;
 
 class QXmlStreamWriter;
 
+class ComputeDebugSelector;
 class RDLabel;
 class RDTreeWidget;
 class RDTreeWidgetItem;
@@ -86,7 +87,9 @@ private slots:
   void ubo_itemActivated(RDTreeWidgetItem *item, int column);
   void vertex_leave(QEvent *e);
 
-  void on_debugThread_clicked();
+  void on_computeDebugSelector_clicked();
+  void computeDebugSelector_beginDebug(const rdcfixedarray<uint32_t, 3> &group,
+                                       const rdcfixedarray<uint32_t, 3> &thread);
 
   void exportHTML_clicked();
   void exportFOZ_clicked();
@@ -95,6 +98,7 @@ private:
   Ui::VulkanPipelineStateViewer *ui;
   ICaptureContext &m_Ctx;
   PipelineStateViewer &m_Common;
+  ComputeDebugSelector *m_ComputeDebugSelector;
 
   QVariantList makeSampler(const QString &bindset, const QString &slotname,
                            const VKPipe::BindingElement &descriptor);

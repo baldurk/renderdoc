@@ -408,6 +408,9 @@
     <ClCompile Include="$(IntDir)generated\moc_CaptureDialog.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+   <ClCompile Include="$(IntDir)generated\moc_ComputeDebugSelector.cpp">
+    <Filter>Generated Files</Filter>
+   </ClCompile>
     <ClCompile Include="$(IntDir)generated\moc_ConstantBufferPreviewer.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
@@ -756,6 +759,9 @@
     <ClCompile Include="Widgets\MarkerBreadcrumbs.cpp">
       <Filter>Widgets</Filter>
     </ClCompile>
+    <ClCompile Include="Widgets\ComputeDebugSelector.cpp">
+      <Filter>Widgets</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -965,6 +971,9 @@
     <ClInclude Include="$(IntDir)generated\ui_CaptureDialog.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
+   <ClInclude Include="$(IntDir)generated\ui_ComputeDebugSelector.h">
+    <Filter>Generated Files</Filter>
+   </ClInclude>
     <ClInclude Include="$(IntDir)generated\ui_ConstantBufferPreviewer.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
@@ -1533,6 +1542,12 @@
       <Filter>Windows</Filter>
     </CustomBuild>
     <CustomBuild Include="Widgets\MarkerBreadcrumbs.h">
+      <Filter>Widgets</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\ComputeDebugSelector.h">
+      <Filter>Widgets</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\ComputeDebugSelector.ui">
       <Filter>Widgets</Filter>
     </CustomBuild>
   </ItemGroup>

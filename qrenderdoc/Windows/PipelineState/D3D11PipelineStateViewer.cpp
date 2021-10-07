@@ -29,6 +29,7 @@
 #include <QScrollBar>
 #include <QXmlStreamWriter>
 #include "Code/Resources.h"
+#include "Widgets/ComputeDebugSelector.h"
 #include "Widgets/Extended/RDHeaderView.h"
 #include "flowlayout/FlowLayout.h"
 #include "toolwindowmanager/ToolWindowManager.h"
@@ -76,6 +77,8 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
     : QFrame(parent), ui(new Ui::D3D11PipelineStateViewer), m_Ctx(ctx), m_Common(common)
 {
   ui->setupUi(this);
+
+  m_ComputeDebugSelector = new ComputeDebugSelector(this);
 
   const QIcon &action = Icons::action();
   const QIcon &action_hover = Icons::action_hover();
@@ -147,6 +150,9 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
     b->setForegroundRole(QPalette::ToolTipText);
     b->setMinimumSizeHint(QSize(250, 0));
   }
+
+  QObject::connect(m_ComputeDebugSelector, &ComputeDebugSelector::beginDebug, this,
+                   &D3D11PipelineStateViewer::computeDebugSelector_beginDebug);
 
   for(QToolButton *b : editButtons)
     QObject::connect(b, &QToolButton::clicked, &m_Common, &PipelineStateViewer::shaderEdit_clicked);
@@ -413,13 +419,6 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
   ui->csUAVs->setFont(Formatter::PreferredFont());
   ui->gsStreamOut->setFont(Formatter::PreferredFont());
 
-  ui->groupX->setFont(Formatter::PreferredFont());
-  ui->groupY->setFont(Formatter::PreferredFont());
-  ui->groupZ->setFont(Formatter::PreferredFont());
-  ui->threadX->setFont(Formatter::PreferredFont());
-  ui->threadY->setFont(Formatter::PreferredFont());
-  ui->threadZ->setFont(Formatter::PreferredFont());
-
   ui->vsShader->setFont(Formatter::PreferredFont());
   ui->vsResources->setFont(Formatter::PreferredFont());
   ui->vsSamplers->setFont(Formatter::PreferredFont());
@@ -464,6 +463,7 @@ D3D11PipelineStateViewer::D3D11PipelineStateViewer(ICaptureContext &ctx,
 D3D11PipelineStateViewer::~D3D11PipelineStateViewer()
 {
   delete ui;
+  delete m_ComputeDebugSelector;
 }
 
 void D3D11PipelineStateViewer::OnCaptureLoaded()
@@ -982,17 +982,7 @@ void D3D11PipelineStateViewer::clearState()
 
   ui->predicateGroup->setVisible(false);
 
-  {
-    ui->groupX->setEnabled(false);
-    ui->groupY->setEnabled(false);
-    ui->groupZ->setEnabled(false);
-
-    ui->threadX->setEnabled(false);
-    ui->threadY->setEnabled(false);
-    ui->threadZ->setEnabled(false);
-
-    ui->debugThread->setEnabled(false);
-  }
+  ui->computeDebugSelector->setEnabled(false);
 }
 
 void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, RDLabel *shader,
@@ -1939,61 +1929,54 @@ void D3D11PipelineStateViewer::setState()
   ui->stencils->endUpdate();
 
   // set up thread debugging inputs
-  if(m_Ctx.APIProps().shaderDebugging && state.computeShader.reflection &&
-     state.computeShader.reflection->debugInfo.debuggable && action &&
-     (action->flags & ActionFlags::Dispatch))
+  bool enableDebug = m_Ctx.APIProps().shaderDebugging && state.computeShader.reflection &&
+                     state.computeShader.reflection->debugInfo.debuggable && action &&
+                     (action->flags & ActionFlags::Dispatch);
+  if(enableDebug)
   {
-    ui->groupX->setEnabled(true);
-    ui->groupY->setEnabled(true);
-    ui->groupZ->setEnabled(true);
+    // Validate dispatch/threadgroup dimensions
+    enableDebug &= action->dispatchDimension[0] > 0;
+    enableDebug &= action->dispatchDimension[1] > 0;
+    enableDebug &= action->dispatchDimension[2] > 0;
 
-    ui->threadX->setEnabled(true);
-    ui->threadY->setEnabled(true);
-    ui->threadZ->setEnabled(true);
+    const rdcfixedarray<uint32_t, 3> &threadDims =
+        (action->dispatchThreadsDimension[0] == 0)
+            ? state.computeShader.reflection->dispatchThreadsDimension
+            : action->dispatchThreadsDimension;
+    enableDebug &= threadDims[0] > 0;
+    enableDebug &= threadDims[1] > 0;
+    enableDebug &= threadDims[2] > 0;
+  }
 
-    ui->debugThread->setEnabled(true);
+  if(enableDebug)
+  {
+    ui->computeDebugSelector->setEnabled(true);
 
     // set maximums for CS debugging
-    ui->groupX->setMaximum((int)action->dispatchDimension[0] - 1);
-    ui->groupY->setMaximum((int)action->dispatchDimension[1] - 1);
-    ui->groupZ->setMaximum((int)action->dispatchDimension[2] - 1);
+    m_ComputeDebugSelector->SetThreadBounds(
+        action->dispatchDimension, (action->dispatchThreadsDimension[0] == 0)
+                                       ? state.computeShader.reflection->dispatchThreadsDimension
+                                       : action->dispatchThreadsDimension);
 
-    if(action->dispatchThreadsDimension[0] == 0)
-    {
-      ui->threadX->setMaximum((int)state.computeShader.reflection->dispatchThreadsDimension[0] - 1);
-      ui->threadY->setMaximum((int)state.computeShader.reflection->dispatchThreadsDimension[1] - 1);
-      ui->threadZ->setMaximum((int)state.computeShader.reflection->dispatchThreadsDimension[2] - 1);
-    }
-    else
-    {
-      ui->threadX->setMaximum((int)action->dispatchThreadsDimension[0] - 1);
-      ui->threadY->setMaximum((int)action->dispatchThreadsDimension[1] - 1);
-      ui->threadZ->setMaximum((int)action->dispatchThreadsDimension[2] - 1);
-    }
-
-    ui->debugThread->setToolTip(QString());
+    ui->computeDebugSelector->setToolTip(
+        tr("Debug this compute shader by specifying group/thread ID or dispatch ID"));
   }
   else
   {
-    ui->groupX->setEnabled(false);
-    ui->groupY->setEnabled(false);
-    ui->groupZ->setEnabled(false);
-
-    ui->threadX->setEnabled(false);
-    ui->threadY->setEnabled(false);
-    ui->threadZ->setEnabled(false);
-
-    ui->debugThread->setEnabled(false);
+    ui->computeDebugSelector->setEnabled(false);
 
     if(!m_Ctx.APIProps().shaderDebugging)
-      ui->debugThread->setToolTip(tr("This API does not support shader debugging"));
+      ui->computeDebugSelector->setToolTip(tr("This API does not support shader debugging"));
     else if(!action || !(action->flags & ActionFlags::Dispatch))
-      ui->debugThread->setToolTip(tr("No dispatch selected"));
+      ui->computeDebugSelector->setToolTip(tr("No dispatch selected"));
     else if(!state.computeShader.reflection)
-      ui->debugThread->setToolTip(tr("No compute shader bound"));
+      ui->computeDebugSelector->setToolTip(tr("No compute shader bound"));
     else if(!state.computeShader.reflection->debugInfo.debuggable)
-      ui->debugThread->setToolTip(tr("This shader doesn't support debugging: %1")
-                                      .arg(state.computeShader.reflection->debugInfo.debugStatus));
+      ui->computeDebugSelector->setToolTip(
+          tr("This shader doesn't support debugging: %1")
+              .arg(state.computeShader.reflection->debugInfo.debugStatus));
+    else
+      ui->computeDebugSelector->setToolTip(tr("Invalid dispatch/threadgroup dimensions."));
   }
 
   // highlight the appropriate stages in the flowchart
@@ -3200,8 +3183,9 @@ void D3D11PipelineStateViewer::on_meshView_clicked()
   ToolWindowManager::raiseToolWindow(m_Ctx.GetMeshPreview()->Widget());
 }
 
-void D3D11PipelineStateViewer::on_debugThread_clicked()
+void D3D11PipelineStateViewer::on_computeDebugSelector_clicked()
 {
+  // Check whether debugging is valid for this event before showing the dialog
   if(!m_Ctx.IsCaptureLoaded())
     return;
 
@@ -3217,37 +3201,40 @@ void D3D11PipelineStateViewer::on_debugThread_clicked()
   if(!shaderDetails)
     return;
 
-  uint32_t groupdim[3] = {};
+  RDDialog::show(m_ComputeDebugSelector);
+}
 
-  for(int i = 0; i < 3; i++)
-    groupdim[i] = action->dispatchDimension[i];
+void D3D11PipelineStateViewer::computeDebugSelector_beginDebug(
+    const rdcfixedarray<uint32_t, 3> &group, const rdcfixedarray<uint32_t, 3> &thread)
+{
+  const ActionDescription *action = m_Ctx.CurAction();
 
-  uint32_t threadsdim[3] = {};
-  for(int i = 0; i < 3; i++)
-    threadsdim[i] = action->dispatchThreadsDimension[i];
+  if(!action)
+    return;
 
-  if(threadsdim[0] == 0)
-  {
-    for(int i = 0; i < 3; i++)
-      threadsdim[i] = shaderDetails->dispatchThreadsDimension[i];
-  }
+  ShaderReflection *shaderDetails = m_Ctx.CurD3D12PipelineState()->computeShader.reflection;
+  const ShaderBindpointMapping &bindMapping =
+      m_Ctx.CurD3D12PipelineState()->computeShader.bindpointMapping;
+
+  if(!shaderDetails)
+    return;
 
   struct threadSelect
   {
     rdcfixedarray<uint32_t, 3> g;
     rdcfixedarray<uint32_t, 3> t;
-  } thread = {
+  } debugThread = {
       // g[]
-      {(uint32_t)ui->groupX->value(), (uint32_t)ui->groupY->value(), (uint32_t)ui->groupZ->value()},
+      {group[0], group[1], group[2]},
       // t[]
-      {(uint32_t)ui->threadX->value(), (uint32_t)ui->threadY->value(), (uint32_t)ui->threadZ->value()},
+      {thread[0], thread[1], thread[2]},
   };
 
   bool done = false;
   ShaderDebugTrace *trace = NULL;
 
-  m_Ctx.Replay().AsyncInvoke([&trace, &done, thread](IReplayController *r) {
-    trace = r->DebugThread(thread.g, thread.t);
+  m_Ctx.Replay().AsyncInvoke([&trace, &done, debugThread](IReplayController *r) {
+    trace = r->DebugThread(debugThread.g, debugThread.t);
 
     if(trace->debugger == NULL)
     {
@@ -3259,12 +3246,12 @@ void D3D11PipelineStateViewer::on_debugThread_clicked()
   });
 
   QString debugContext = lit("Group [%1,%2,%3] Thread [%4,%5,%6]")
-                             .arg(thread.g[0])
-                             .arg(thread.g[1])
-                             .arg(thread.g[2])
-                             .arg(thread.t[0])
-                             .arg(thread.t[1])
-                             .arg(thread.t[2]);
+                             .arg(group[0])
+                             .arg(group[1])
+                             .arg(group[2])
+                             .arg(thread[0])
+                             .arg(thread[1])
+                             .arg(thread[2]);
 
   // wait a short while before displaying the progress dialog (which won't show if we're already
   // done by the time we reach it)
@@ -3283,7 +3270,8 @@ void D3D11PipelineStateViewer::on_debugThread_clicked()
 
   // viewer takes ownership of the trace
   IShaderViewer *s =
-      m_Ctx.DebugShader(&bindMapping, shaderDetails, ResourceId(), trace, debugContext);
+      m_Ctx.DebugShader(&bindMapping, shaderDetails,
+                        m_Ctx.CurPipelineState().GetComputePipelineObject(), trace, debugContext);
 
   m_Ctx.AddDockWindow(s->Widget(), DockReference::AddTo, this);
 }

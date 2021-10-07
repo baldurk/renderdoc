@@ -3010,13 +3010,13 @@ ShaderDebugTrace *D3D12Replay::DebugThread(uint32_t eventId,
 
   if(!dxbc)
   {
-    RDCERR("Pixel shader couldn't be reflected");
+    RDCERR("Compute shader couldn't be reflected");
     return new ShaderDebugTrace;
   }
 
   if(!refl.debugInfo.debuggable)
   {
-    RDCERR("Pixel shader is not debuggable");
+    RDCERR("Compute shader is not debuggable");
     return new ShaderDebugTrace;
   }
 

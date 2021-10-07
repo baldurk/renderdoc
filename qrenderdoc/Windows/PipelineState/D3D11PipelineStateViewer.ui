@@ -4091,76 +4091,21 @@
            </widget>
           </item>
           <item>
-           <widget class="QFrame" name="csDebugFrame">
-            <layout class="QHBoxLayout" name="horizontalLayout_34">
-             <property name="spacing">
-              <number>0</number>
-             </property>
-             <property name="leftMargin">
-              <number>0</number>
-             </property>
-             <property name="topMargin">
-              <number>0</number>
-             </property>
-             <property name="rightMargin">
-              <number>0</number>
-             </property>
-             <property name="bottomMargin">
-              <number>0</number>
-             </property>
-             <item>
-              <widget class="QLabel" name="groupDebugLabel">
-               <property name="text">
-                <string>Debug Group:</string>
-               </property>
-               <property name="indent">
-                <number>20</number>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QSpinBox" name="groupX"/>
-             </item>
-             <item>
-              <widget class="QSpinBox" name="groupY"/>
-             </item>
-             <item>
-              <widget class="QSpinBox" name="groupZ"/>
-             </item>
-             <item>
-              <widget class="QLabel" name="threadDebugLabel">
-               <property name="text">
-                <string>Thread:</string>
-               </property>
-               <property name="indent">
-                <number>20</number>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QSpinBox" name="threadX"/>
-             </item>
-             <item>
-              <widget class="QSpinBox" name="threadY"/>
-             </item>
-             <item>
-              <widget class="QSpinBox" name="threadZ"/>
-             </item>
-             <item>
-              <widget class="QToolButton" name="debugThread">
-               <property name="text">
-                <string/>
-               </property>
-               <property name="icon">
-                <iconset resource="../../Resources/resources.qrc">
-                 <normaloff>:/wrench.png</normaloff>:/wrench.png</iconset>
-               </property>
-               <property name="autoRaise">
-                <bool>true</bool>
-               </property>
-              </widget>
-             </item>
-            </layout>
+           <widget class="QToolButton" name="computeDebugSelector">
+            <property name="text">
+             <string>Debug</string>
+            </property>
+            <property name="icon">
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/wrench.png</normaloff>:/wrench.png
+             </iconset>
+            </property>
+            <property name="toolButtonStyle">
+             <enum>Qt::ToolButtonTextBesideIcon</enum>
+            </property>
+            <property name="autoRaise">
+             <bool>true</bool>
+            </property>
            </widget>
           </item>
           <item>
