@@ -1389,36 +1389,41 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
         }
         else
         {
-          size_t srcSliceSize =
-              GetCompressedByteSize(srcLevelWidth, srcLevelHeight, 1, srcData.internalFormat);
-          size_t dstSliceSize =
-              GetCompressedByteSize(dstLevelWidth, dstLevelHeight, 1, dstData.internalFormat);
-          rdcpair<uint32_t, uint32_t> srcBlockSize = GetCompressedBlockSize(srcData.internalFormat);
-          rdcpair<uint32_t, uint32_t> dstBlockSize = GetCompressedBlockSize(dstData.internalFormat);
+          rdcfixedarray<uint32_t, 3> srcBlockSize = GetCompressedBlockSize(srcData.internalFormat);
+          rdcfixedarray<uint32_t, 3> dstBlockSize = GetCompressedBlockSize(dstData.internalFormat);
 
-          RDCASSERT(srcWidth % srcBlockSize.first == 0);
-          RDCASSERT(srcWidth % dstBlockSize.first == 0);
-          RDCASSERT(srcHeight % srcBlockSize.second == 0);
-          RDCASSERT(srcHeight % dstBlockSize.second == 0);
-          for(size_t z = 0; z < (size_t)srcDepth; z++)
+          size_t srcSliceSize = GetCompressedByteSize(srcLevelWidth, srcLevelHeight,
+                                                      srcBlockSize[2], srcData.internalFormat);
+          size_t dstSliceSize = GetCompressedByteSize(dstLevelWidth, dstLevelHeight,
+                                                      dstBlockSize[2], dstData.internalFormat);
+
+          RDCASSERT(srcWidth % srcBlockSize[0] == 0);
+          RDCASSERT(srcWidth % dstBlockSize[0] == 0);
+          RDCASSERT(srcHeight % srcBlockSize[1] == 0);
+          RDCASSERT(srcHeight % dstBlockSize[1] == 0);
+          RDCASSERT(srcDepth % srcBlockSize[2] == 0);
+          RDCASSERT(srcDepth % dstBlockSize[2] == 0);
+          for(size_t z = 0; z < (size_t)srcDepth; z += srcBlockSize[2])
           {
-            size_t srcLineSize = GetCompressedByteSize(srcLevelWidth, (GLsizei)srcBlockSize.second,
-                                                       1, srcData.internalFormat);
-            size_t dstLineSize = GetCompressedByteSize(dstLevelWidth, (GLsizei)dstBlockSize.second,
-                                                       1, dstData.internalFormat);
-            size_t srcOffset =
-                srcSliceSize * (srcZ + z) + srcLineSize * (srcY / (GLsizei)srcBlockSize.second);
-            srcOffset +=
-                GetCompressedByteSize(srcX, (GLsizei)srcBlockSize.second, 1, srcData.internalFormat);
-            size_t dstOffset =
-                dstSliceSize * (dstZ + z) + dstLineSize * (dstY / (GLsizei)dstBlockSize.second);
-            dstOffset +=
-                GetCompressedByteSize(dstX, (GLsizei)dstBlockSize.second, 1, dstData.internalFormat);
-            size_t blockSize = GetCompressedByteSize(srcWidth, (GLsizei)dstBlockSize.second, 1,
-                                                     srcData.internalFormat);
+            size_t srcLineSize =
+                GetCompressedByteSize(srcLevelWidth, (GLsizei)srcBlockSize[1],
+                                      (GLsizei)srcBlockSize[2], srcData.internalFormat);
+            size_t dstLineSize =
+                GetCompressedByteSize(dstLevelWidth, (GLsizei)dstBlockSize[1],
+                                      (GLsizei)dstBlockSize[2], dstData.internalFormat);
+            size_t srcOffset = srcSliceSize * ((srcZ + z) / (GLsizei)srcBlockSize[2]) +
+                               srcLineSize * (srcY / (GLsizei)srcBlockSize[1]);
+            srcOffset += GetCompressedByteSize(srcX, (GLsizei)srcBlockSize[1],
+                                               (GLsizei)srcBlockSize[2], srcData.internalFormat);
+            size_t dstOffset = dstSliceSize * ((dstZ + z) / (GLsizei)dstBlockSize[2]) +
+                               dstLineSize * (dstY / (GLsizei)dstBlockSize[1]);
+            dstOffset += GetCompressedByteSize(dstX, (GLsizei)dstBlockSize[1],
+                                               (GLsizei)dstBlockSize[2], dstData.internalFormat);
+            size_t blockSize = GetCompressedByteSize(
+                srcWidth, (GLsizei)dstBlockSize[1], (GLsizei)dstBlockSize[2], srcData.internalFormat);
             bytebuf &srcCd = srcData.compressedData[srcLevel];
             bytebuf &dstCd = dstData.compressedData[dstLevel];
-            for(size_t y = 0; y < (size_t)srcHeight; y += srcBlockSize.second)
+            for(size_t y = 0; y < (size_t)srcHeight; y += srcBlockSize[1])
             {
               if(dstCd.size() < dstOffset + blockSize || srcCd.size() < srcOffset + blockSize)
                 break;
