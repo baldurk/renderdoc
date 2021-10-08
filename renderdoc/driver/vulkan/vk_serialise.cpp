@@ -612,6 +612,12 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_FRAGMENT_DENSITY_MAP_CREATE_INFO_EXT,                     \
                VkRenderPassFragmentDensityMapCreateInfoEXT)                                            \
                                                                                                        \
+  /* VK_EXT_fragment_density_map_2 */                                                                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_2_FEATURES_EXT,                  \
+               VkPhysicalDeviceFragmentDensityMap2FeaturesEXT)                                         \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_2_PROPERTIES_EXT,                \
+               VkPhysicalDeviceFragmentDensityMap2PropertiesEXT)                                       \
+                                                                                                       \
   /* VK_EXT_fragment_shader_interlock */                                                               \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_INTERLOCK_FEATURES_EXT,               \
                VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT)                                     \
@@ -1169,10 +1175,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMPORT_MEMORY_HOST_POINTER_INFO_EXT)                             \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MEMORY_HOST_POINTER_PROPERTIES_EXT)                              \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_MEMORY_HOST_PROPERTIES_EXT)             \
-                                                                                                       \
-  /* VK_EXT_fragment_density_map_2 */                                                                  \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_2_FEATURES_EXT)             \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_2_PROPERTIES_EXT)           \
                                                                                                        \
   /* VK_EXT_headless_surface */                                                                        \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_HEADLESS_SURFACE_CREATE_INFO_EXT)                                \
@@ -5062,6 +5064,41 @@ void DoSerialise(SerialiserType &ser, VkPhysicalDeviceFragmentDensityMapProperti
 
 template <>
 void Deserialise(const VkPhysicalDeviceFragmentDensityMapPropertiesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceFragmentDensityMap2FeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_2_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(fragmentDensityMapDeferred);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceFragmentDensityMap2FeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceFragmentDensityMap2PropertiesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_2_PROPERTIES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(subsampledLoads);
+  SERIALISE_MEMBER(subsampledCoarseReconstructionEarlyAccess);
+  SERIALISE_MEMBER(maxSubsampledArrayLayers);
+  SERIALISE_MEMBER(maxDescriptorSetSubsampledSamplers);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceFragmentDensityMap2PropertiesEXT &el)
 {
   DeserialiseNext(el.pNext);
 }
@@ -9268,6 +9305,8 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFeatures2);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFloatControlsProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMapFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMapPropertiesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMap2FeaturesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMap2PropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentShaderBarycentricFeaturesNV);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceGroupProperties);
