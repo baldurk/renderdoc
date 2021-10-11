@@ -84,7 +84,7 @@ class VK_Robustness2(rdtest.TestCase):
 
             var_check = rdtest.ConstantBufferChecker(
                 self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
-                                                           pipe.GetShader(rd.ShaderStage.Fragment), refl.entryPoint, i,
+                                                           pipe.GetShader(rd.ShaderStage.Fragment), rd.ShaderStage.Fragment, refl.entryPoint, i,
                                                            cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
 
             if cb.bufferBacked:

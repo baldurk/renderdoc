@@ -75,7 +75,7 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
 
         var_check = rdtest.ConstantBufferChecker(
             self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
-                                                       pipe.GetShader(stage),
+                                                       pipe.GetShader(stage), stage,
                                                        pipe.GetShaderEntryPoint(stage), 0,
                                                        cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
 
@@ -83,7 +83,7 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
 
         root_check = rdtest.ConstantBufferChecker(
             self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
-                                                       pipe.GetShader(stage),
+                                                       pipe.GetShader(stage), stage,
                                                        pipe.GetShaderEntryPoint(stage), 1,
                                                        cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
 
@@ -91,7 +91,7 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
 
         huge_check = rdtest.ConstantBufferChecker(
             self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
-                                                       pipe.GetShader(stage),
+                                                       pipe.GetShader(stage), stage,
                                                        pipe.GetShaderEntryPoint(stage), 2,
                                                        cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
 

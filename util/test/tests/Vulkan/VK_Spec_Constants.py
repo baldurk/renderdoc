@@ -34,7 +34,7 @@ class VK_Spec_Constants(rdtest.TestCase):
                 cbuf: rd.BoundCBuffer = pipe.GetConstantBuffer(rd.ShaderStage.Pixel, 0, 0)
 
                 cb_vars = self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
-                                                                     pipe.GetShader(rd.ShaderStage.Pixel),
+                                                                     pipe.GetShader(rd.ShaderStage.Pixel), rd.ShaderStage.Pixel,
                                                                      pipe.GetShaderEntryPoint(rd.ShaderStage.Pixel), 0,
                                                                      cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize)
 
@@ -57,7 +57,7 @@ class VK_Spec_Constants(rdtest.TestCase):
             cbuf: rd.BoundCBuffer = pipe.GetConstantBuffer(rd.ShaderStage.Pixel, 1, 0)
 
             cb_vars = self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
-                                                                 pipe.GetShader(rd.ShaderStage.Pixel),
+                                                                 pipe.GetShader(rd.ShaderStage.Pixel), rd.ShaderStage.Pixel,
                                                                  pipe.GetShaderEntryPoint(rd.ShaderStage.Pixel), 1,
                                                                  cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize)
 
