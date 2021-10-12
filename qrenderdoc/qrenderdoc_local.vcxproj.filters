@@ -141,6 +141,9 @@
     <ClCompile Include="Windows\Dialogs\AboutDialog.cpp">
       <Filter>Windows\Dialogs</Filter>
     </ClCompile>
+    <ClCompile Include="Windows\Dialogs\AxisMappingDialog.cpp">
+      <Filter>Windows\Dialogs</Filter>
+    </ClCompile>
     <ClCompile Include="Windows\Dialogs\TextureSaveDialog.cpp">
       <Filter>Windows\Dialogs</Filter>
     </ClCompile>
@@ -397,6 +400,9 @@
       <Filter>Generated Files</Filter>
     </ClCompile>
     <ClCompile Include="$(IntDir)generated\moc_APIInspector.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_AxisMappingDialog.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
     <ClCompile Include="$(IntDir)generated\moc_BufferFormatSpecifier.cpp">
@@ -962,6 +968,9 @@
     <ClInclude Include="$(IntDir)generated\ui_APIInspector.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_AxisMappingDialog.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
     <ClInclude Include="$(IntDir)generated\ui_BufferFormatSpecifier.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
@@ -1229,6 +1238,9 @@
     <CustomBuild Include="Windows\Dialogs\AboutDialog.ui">
       <Filter>Windows\Dialogs</Filter>
     </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\AxisMappingDialog.ui">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
     <CustomBuild Include="Windows\Dialogs\CaptureDialog.ui">
       <Filter>Windows\Dialogs</Filter>
     </CustomBuild>
@@ -1320,6 +1332,9 @@
       <Filter>Widgets</Filter>
     </CustomBuild>
     <CustomBuild Include="Windows\Dialogs\AboutDialog.h">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\AxisMappingDialog.h">
       <Filter>Windows\Dialogs</Filter>
     </CustomBuild>
     <CustomBuild Include="Windows\Dialogs\CaptureDialog.h">

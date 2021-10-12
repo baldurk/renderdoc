@@ -616,6 +616,7 @@
     <ClCompile Include="$(IntDir)generated\moc_AnalyticsConfirmDialog.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_AnalyticsPromptDialog.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_APIInspector.cpp" />
+    <ClCompile Include="$(IntDir)generated\moc_AxisMappingDialog.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_ResourceInspector.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_BufferFormatSpecifier.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_ComputeDebugSelector.cpp" />
@@ -754,6 +755,7 @@
     <ClCompile Include="Windows\Dialogs\UpdateDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\AnalyticsConfirmDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\AnalyticsPromptDialog.cpp" />
+    <ClCompile Include="Windows\Dialogs\AxisMappingDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\CaptureDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\LiveCapture.cpp" />
     <ClCompile Include="Windows\Dialogs\EnvironmentEditor.cpp" />
@@ -955,6 +957,7 @@
     <ClInclude Include="$(IntDir)generated\ui_AnalyticsConfirmDialog.h" />
     <ClInclude Include="$(IntDir)generated\ui_AnalyticsPromptDialog.h" />
     <ClInclude Include="$(IntDir)generated\ui_APIInspector.h" />
+    <ClInclude Include="$(IntDir)generated\ui_AxisMappingDialog.h" />
     <ClInclude Include="$(IntDir)generated\ui_ResourceInspector.h" />
     <ClInclude Include="$(IntDir)generated\ui_BufferFormatSpecifier.h" />
     <ClInclude Include="$(IntDir)generated\ui_ComputeDebugSelector.h" />
@@ -1258,6 +1261,12 @@
       <Message>MOC %(Filename).h</Message>
       <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
     </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\AxisMappingDialog.h">
+      <AdditionalInputs>%(Fullpath);$(QtBinDir)\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>"$(QtBinDir)\moc.exe" -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I"$(ProjectDir)." -I"$(SolutionDir)\renderdoc\api\replay" -I"$(QtIncludeDir)" -I"$(QtIncludeDir)\QtWidgets" -I"$(QtIncludeDir)\QtGui" -I"$(QtIncludeDir)\QtCore" "%(Fullpath)" -o "$(IntDir)generated\moc_%(Filename).cpp"</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
     <CustomBuild Include="Windows\Dialogs\CaptureDialog.h">
       <AdditionalInputs>%(Fullpath);$(QtBinDir)\moc.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>"$(QtBinDir)\moc.exe" -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I"$(ProjectDir)." -I"$(SolutionDir)\renderdoc\api\replay" -I"$(QtIncludeDir)" -I"$(QtIncludeDir)\QtWidgets" -I"$(QtIncludeDir)\QtGui" -I"$(QtIncludeDir)\QtCore" "%(Fullpath)" -o "$(IntDir)generated\moc_%(Filename).cpp"</Command>
@@ -1548,6 +1557,12 @@
       <Outputs>$(IntDir)generated\ui_%(Filename).h</Outputs>
     </CustomBuild>
     <CustomBuild Include="Windows\Dialogs\AnalyticsPromptDialog.ui">
+      <AdditionalInputs>%(Fullpath);$(QtBinDir)\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>"$(QtBinDir)\uic.exe" "%(Fullpath)" -o "$(IntDir)generated\ui_%(Filename).h"</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>$(IntDir)generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\AxisMappingDialog.ui">
       <AdditionalInputs>%(Fullpath);$(QtBinDir)\uic.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>"$(QtBinDir)\uic.exe" "%(Fullpath)" -o "$(IntDir)generated\ui_%(Filename).h"</Command>
       <Message>UIC %(Filename).ui</Message>

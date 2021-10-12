@@ -2238,6 +2238,21 @@ bool GLReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompType t
   return true;
 }
 
+static Matrix4f getAxisMapMat(const MeshDisplay &cfg)
+{
+  Matrix4f axisMapMat = Matrix4f::Identity();
+  axisMapMat[0] = cfg.xAxisMapping.x;
+  axisMapMat[4] = cfg.xAxisMapping.y;
+  axisMapMat[8] = cfg.xAxisMapping.z;
+  axisMapMat[1] = cfg.yAxisMapping.x;
+  axisMapMat[5] = cfg.yAxisMapping.y;
+  axisMapMat[9] = cfg.yAxisMapping.z;
+  axisMapMat[2] = cfg.zAxisMapping.x;
+  axisMapMat[6] = cfg.zAxisMapping.y;
+  axisMapMat[10] = cfg.zAxisMapping.z;
+  return axisMapMat;
+}
+
 uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
                               const MeshDisplay &cfg, uint32_t x, uint32_t y)
 {
@@ -2254,6 +2269,10 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
 
   Matrix4f camMat = cfg.cam ? ((Camera *)cfg.cam)->GetMatrix() : Matrix4f::Identity();
   Matrix4f pickMVP = projMat.Mul(camMat);
+  if(!cfg.position.unproject)
+  {
+    pickMVP = pickMVP.Mul(getAxisMapMat(cfg));
+  }
 
   bool reverseProjection = false;
   Matrix4f guessProj;

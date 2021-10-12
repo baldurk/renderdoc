@@ -36,6 +36,7 @@
 #include <QtMath>
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
+#include "Windows/Dialogs/AxisMappingDialog.h"
 #include "ui_BufferViewer.h"
 
 static const uint32_t MaxVisibleRows = 10000;
@@ -70,7 +71,7 @@ enum
 #error "Unknown platform! Define NativeScanCode"
 #endif
 };
-};
+};    // namespace NativeScanCode
 
 namespace NativeVirtualKey
 {
@@ -101,7 +102,7 @@ enum
 #error "Unknown platform! Define NativeVirtualKey"
 #endif
 };
-};
+};    // namespace NativeVirtualKey
 
 class CameraWrapper
 {
@@ -2167,6 +2168,11 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
 
   ui->matrixType->addItems({tr("Perspective"), tr("Orthographic")});
 
+  ui->axisMappingCombo->addItems({tr("Y-up, left handed"), tr("Y-up, right handed"),
+                                  tr("Z-up, left handed"), tr("Z-up, right handed"),
+                                  tr("Custom...")});
+  ui->axisMappingCombo->setCurrentIndex(0);
+
   // wireframe only available on solid shaded options
   ui->wireframeRender->setEnabled(false);
 
@@ -2688,7 +2694,6 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
   QPointer<BufferViewer> me(this);
 
   m_Ctx.Replay().AsyncInvoke([this, me, bufdata](IReplayController *r) {
-
     if(!me)
       return;
 
@@ -2945,7 +2950,18 @@ void BufferViewer::populateBBox(PopulateBufferData *bufdata)
 
 QVariant BufferViewer::persistData()
 {
-  QVariantMap state = ui->dockarea->saveState();
+  QVariantMap state;
+  state[lit("dockarea")] = ui->dockarea->saveState();
+  state[lit("axisMappingIndex")] = ui->axisMappingCombo->currentIndex();
+  QVariantList xAxisMapping = {QVariant(m_Config.xAxisMapping.x), QVariant(m_Config.xAxisMapping.y),
+                               QVariant(m_Config.xAxisMapping.z)};
+  state[lit("xAxisMapping")] = xAxisMapping;
+  QVariantList yAxisMapping = {QVariant(m_Config.yAxisMapping.x), QVariant(m_Config.yAxisMapping.y),
+                               QVariant(m_Config.yAxisMapping.z)};
+  state[lit("yAxisMapping")] = yAxisMapping;
+  QVariantList zAxisMapping = {QVariant(m_Config.zAxisMapping.x), QVariant(m_Config.zAxisMapping.y),
+                               QVariant(m_Config.zAxisMapping.z)};
+  state[lit("zAxisMapping")] = zAxisMapping;
 
   return state;
 }
@@ -2954,7 +2970,20 @@ void BufferViewer::setPersistData(const QVariant &persistData)
 {
   QVariantMap state = persistData.toMap();
 
-  ui->dockarea->restoreState(state);
+  ui->dockarea->restoreState(state[lit("dockarea")].toMap());
+  ui->axisMappingCombo->setCurrentIndex(state[lit("axisMappingIndex")].toInt());
+  if(!state[lit("xAxisMapping")].toList().isEmpty())
+  {
+    m_Config.xAxisMapping.x = state[lit("xAxisMapping")].toList()[0].toInt();
+    m_Config.xAxisMapping.y = state[lit("xAxisMapping")].toList()[1].toInt();
+    m_Config.xAxisMapping.z = state[lit("xAxisMapping")].toList()[2].toInt();
+    m_Config.yAxisMapping.x = state[lit("yAxisMapping")].toList()[0].toInt();
+    m_Config.yAxisMapping.y = state[lit("yAxisMapping")].toList()[1].toInt();
+    m_Config.yAxisMapping.z = state[lit("yAxisMapping")].toList()[2].toInt();
+    m_Config.zAxisMapping.x = state[lit("zAxisMapping")].toList()[0].toInt();
+    m_Config.zAxisMapping.y = state[lit("zAxisMapping")].toList()[1].toInt();
+    m_Config.zAxisMapping.z = state[lit("zAxisMapping")].toList()[2].toInt();
+  }
 }
 
 void BufferViewer::calcBoundingData(CalcBoundingBoxData &bbox)
@@ -4030,6 +4059,57 @@ void BufferViewer::camGuess_changed(double value)
   INVOKE_MEMFN(RT_UpdateAndDisplay);
 }
 
+void BufferViewer::on_axisMappingCombo_currentIndexChanged(int index)
+{
+  if(index != 4)
+  {
+    switch(index)
+    {
+      case 0:    // Y-up, Left Handed
+        m_Config.xAxisMapping = FloatVector(1.0f, 0.0f, 0.0f, 0.0f);
+        m_Config.yAxisMapping = FloatVector(0.0f, 1.0f, 0.0f, 0.0f);
+        m_Config.zAxisMapping = FloatVector(0.0f, 0.0f, 1.0f, 0.0f);
+        break;
+      case 1:    // Y-up, Right Handed
+        m_Config.xAxisMapping = FloatVector(1.0f, 0.0f, 0.0f, 0.0f);
+        m_Config.yAxisMapping = FloatVector(0.0f, 1.0f, 0.0f, 0.0f);
+        m_Config.zAxisMapping = FloatVector(0.0f, 0.0f, -1.0f, 0.0f);
+        break;
+      case 2:    // Z-up, Left Handed
+        m_Config.xAxisMapping = FloatVector(1.0f, 0.0f, 0.0f, 0.0f);
+        m_Config.yAxisMapping = FloatVector(0.0f, 0.0f, -1.0f, 0.0f);
+        m_Config.zAxisMapping = FloatVector(0.0f, 1.0f, 0.0f, 0.0f);
+        break;
+      case 3:    // Z-up, Right Handed
+        m_Config.xAxisMapping = FloatVector(1.0f, 0.0f, 0.0f, 0.0f);
+        m_Config.yAxisMapping = FloatVector(0.0f, 0.0f, 1.0f, 0.0f);
+        m_Config.zAxisMapping = FloatVector(0.0f, 1.0f, 0.0f, 0.0f);
+        break;
+      default: break;
+    }
+    ui->axisMappingButton->setEnabled(false);
+    INVOKE_MEMFN(RT_UpdateAndDisplay);
+  }
+  else
+  {
+    ui->axisMappingButton->setEnabled(true);
+  }
+}
+
+void BufferViewer::on_axisMappingButton_clicked()
+{
+  AxisMappingDialog dialog(m_Ctx, m_Config, this);
+  RDDialog::show(&dialog);
+
+  if(dialog.result() == QDialog::Accepted)
+  {
+    m_Config.xAxisMapping = dialog.getXAxisMapping();
+    m_Config.yAxisMapping = dialog.getYAxisMapping();
+    m_Config.zAxisMapping = dialog.getZAxisMapping();
+    INVOKE_MEMFN(RT_UpdateAndDisplay);
+  }
+}
+
 void BufferViewer::processFormat(const QString &format)
 {
   QString errors;
@@ -4385,7 +4465,6 @@ void BufferViewer::debugVertex()
     }
 
     done = true;
-
   });
 
   QString debugContext = tr("Vertex %1").arg(vertid);
