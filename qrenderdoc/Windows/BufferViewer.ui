@@ -495,7 +495,7 @@ Enter 0.0 to use automatic/guessed value derived from data.</string>
                  </property>
                 </widget>
                </item>
-               <item row="7" column="0" colspan="2">
+               <item row="9" column="0" colspan="2">
                 <widget class="Line" name="line_2">
                  <property name="orientation">
                   <enum>Qt::Horizontal</enum>
@@ -560,7 +560,7 @@ Enter 0.0 to use automatic/guessed value derived from data.</string>
                  </property>
                 </widget>
                </item>
-               <item row="8" column="1">
+               <item row="10" column="1">
                 <widget class="QLabel" name="minBoundsLabel">
                  <property name="text">
                   <string/>
@@ -584,7 +584,7 @@ Enter 0.0 to use automatic/guessed value derived from data.</string>
                  </property>
                 </widget>
                </item>
-               <item row="10" column="1">
+               <item row="12" column="1">
                 <spacer name="verticalSpacer">
                  <property name="orientation">
                   <enum>Qt::Vertical</enum>
@@ -597,21 +597,41 @@ Enter 0.0 to use automatic/guessed value derived from data.</string>
                  </property>
                 </spacer>
                </item>
-               <item row="9" column="1">
+               <item row="11" column="1">
                 <widget class="QLabel" name="maxBoundsLabel">
                  <property name="text">
                   <string/>
                  </property>
                 </widget>
                </item>
-               <item row="8" column="0">
+               <item row="10" column="0">
                 <widget class="QLabel" name="label_3">
                  <property name="text">
                   <string>Bounding Box:</string>
                  </property>
                 </widget>
                </item>
-              </layout>
+			   <item row="7" column="0">
+				<widget class="QLabel" name="axisMappingLabel">
+				 <property name="text">
+				  <string>Axis Mapping:</string>
+				 </property>
+				</widget>
+			   </item>
+			   <item row="8" column="1">
+				<widget class="QPushButton" name="axisMappingButton">
+			     <property name="enabled">
+				  <bool>false</bool>
+				 </property>
+			     <property name="text">
+				  <string>Edit Custom Mapping</string>
+				 </property>
+				</widget>
+			   </item>
+               <item row="7" column="1">
+				<widget class="QComboBox" name="axisMappingCombo"/>
+			   </item>
+			  </layout>
              </widget>
             </widget>
            </item>

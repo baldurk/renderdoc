@@ -33,6 +33,21 @@
 #define OPENGL 1
 #include "data/glsl/glsl_ubos_cpp.h"
 
+static Matrix4f getAxisMapMat(const MeshDisplay &cfg)
+{
+  Matrix4f axisMapMat = Matrix4f::Identity();
+  axisMapMat[0] = cfg.xAxisMapping.x;
+  axisMapMat[4] = cfg.xAxisMapping.y;
+  axisMapMat[8] = cfg.xAxisMapping.z;
+  axisMapMat[1] = cfg.yAxisMapping.x;
+  axisMapMat[5] = cfg.yAxisMapping.y;
+  axisMapMat[9] = cfg.yAxisMapping.z;
+  axisMapMat[2] = cfg.zAxisMapping.x;
+  axisMapMat[6] = cfg.zAxisMapping.y;
+  axisMapMat[10] = cfg.zAxisMapping.z;
+  return axisMapMat;
+}
+
 void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondaryDraws,
                           const MeshDisplay &cfg)
 {
@@ -51,7 +66,9 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
 
   Matrix4f camMat = cfg.cam ? ((Camera *)cfg.cam)->GetMatrix() : Matrix4f::Identity();
 
-  Matrix4f ModelViewProj = projMat.Mul(camMat);
+  Matrix4f axisMapMat = getAxisMapMat(cfg);
+
+  Matrix4f ModelViewProj = projMat.Mul(camMat.Mul(axisMapMat));
   Matrix4f guessProjInv;
 
   drv.glBindVertexArray(DebugData.meshVAO);
@@ -479,6 +496,8 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
     uboParams.color = Vec4f(0.2f, 0.2f, 1.0f, 1.0f);
 
     Matrix4f mvpMat = projMat.Mul(camMat);
+    if(!cfg.position.unproject)
+      mvpMat = mvpMat.Mul(axisMapMat);
 
     uboParams.mvp = mvpMat;
 
@@ -589,7 +608,7 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
       if(cfg.position.unproject)
         ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
       else
-        ModelViewProj = projMat.Mul(camMat);
+        ModelViewProj = projMat.Mul(camMat.Mul(axisMapMat));
 
       uboParams.homogenousInput = cfg.position.unproject;
 
