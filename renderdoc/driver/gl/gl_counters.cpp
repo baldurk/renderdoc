@@ -323,7 +323,8 @@ void GLReplay::FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex,
 
     FillTimersAMD(eventStartID, sampleIndex, eventIDs, actionnode.children[i]);
 
-    if(a.events.empty())
+    if(a.events.empty() ||
+       (a.flags & (ActionFlags::PushMarker | ActionFlags::SetMarker | ActionFlags::PopMarker)))
       continue;
 
     eventIDs->push_back(a.eventId);
