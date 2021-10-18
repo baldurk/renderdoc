@@ -1003,15 +1003,22 @@ GLResourceRecord *WrappedOpenGL::GetContextRecord()
 
 void WrappedOpenGL::CheckImplicitThread()
 {
-  if(IsActiveCapturing(m_State) && m_LastCtx != GetCtx().ctx)
-  {
-    m_LastCtx = GetCtx().ctx;
+  void *ctx = GetCtx().ctx;
 
-    USE_SCRATCH_SERIALISER();
-    SCOPED_SERIALISE_CHUNK(GLChunk::ImplicitThreadSwitch);
-    Serialise_ContextConfiguration(ser, m_LastCtx);
-    Serialise_BeginCaptureFrame(ser);
-    GetContextRecord()->AddChunk(scope.Get());
+  if(m_LastCtx != ctx)
+  {
+    m_LastCtx = ctx;
+
+    if(IsActiveCapturing(m_State))
+    {
+      USE_SCRATCH_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(GLChunk::ImplicitThreadSwitch);
+      Serialise_ContextConfiguration(ser, m_LastCtx);
+      Serialise_BeginCaptureFrame(ser);
+      GetContextRecord()->AddChunk(scope.Get());
+    }
+
+    CheckQueuedInitialFetches(m_LastCtx);
   }
 }
 
@@ -1304,58 +1311,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
   if(m_LastContexts.size() > 10)
     m_LastContexts.erase(0);
 
-  if(IsActiveCapturing(m_State))
-  {
-    // fetch any initial states needed. Note this is insufficient, and doesn't handle the case
-    // where we might just suddenly start getting commands on a thread that already has a context
-    // active. For now we assume we'll only get GL commands from a single thread
-    //
-    // First we process any queued fetches from the context itself (i.e. non-shared resources),
-    // then from the context's share group.
-    for(void *ctx : {(void *)winData.ctx, (void *)GetShareGroup(winData.ctx)})
-    {
-      QueuedResource fetch;
-      fetch.res.ContextShareGroup = ctx;
-      size_t before = m_QueuedInitialFetches.size();
-      auto it = std::lower_bound(m_QueuedInitialFetches.begin(), m_QueuedInitialFetches.end(), fetch);
-      size_t i = it - m_QueuedInitialFetches.begin();
-      while(i < m_QueuedInitialFetches.size() && it->res.ContextShareGroup == ctx)
-      {
-        GetResourceManager()->ContextPrepare_InitialState(it->res);
-        m_QueuedInitialFetches.erase(i);
-      }
-      size_t after = m_QueuedInitialFetches.size();
-
-      (void)before;
-      (void)after;
-      RDCDEBUG("Prepared %zu resources on context/sharegroup %p, %zu left", before - after, ctx,
-               after);
-    }
-  }
-
-  // also if there are any queued releases, process them now
-  if(!m_QueuedReleases.empty())
-  {
-    for(void *ctx : {(void *)winData.ctx, (void *)GetShareGroup(winData.ctx)})
-    {
-      QueuedResource fetch;
-      fetch.res.ContextShareGroup = ctx;
-      size_t before = m_QueuedReleases.size();
-      auto it = std::lower_bound(m_QueuedReleases.begin(), m_QueuedReleases.end(), fetch);
-      size_t i = it - m_QueuedReleases.begin();
-      while(it != m_QueuedReleases.end() && it->res.ContextShareGroup == ctx)
-      {
-        ReleaseResource(it->res);
-        m_QueuedReleases.erase(i);
-      }
-      size_t after = m_QueuedReleases.size();
-
-      (void)before;
-      (void)after;
-      RDCDEBUG("Released %zu resources on context/sharegroup %p, %zu left", before - after, ctx,
-               after);
-    }
-  }
+  CheckQueuedInitialFetches(winData.ctx);
 
   ContextData &ctxdata = m_ContextData[winData.ctx];
 
@@ -2788,6 +2744,62 @@ void WrappedOpenGL::QueueResourceRelease(GLResource res)
 
   auto insertPos = std::lower_bound(m_QueuedReleases.begin(), m_QueuedReleases.end(), q);
   m_QueuedReleases.insert(insertPos - m_QueuedReleases.begin(), q);
+}
+
+void WrappedOpenGL::CheckQueuedInitialFetches(void *checkCtx)
+{
+  if(IsActiveCapturing(m_State))
+  {
+    // fetch any initial states needed. Note this is insufficient, and doesn't handle the case
+    // where we might just suddenly start getting commands on a thread that already has a context
+    // active. For now we assume we'll only get GL commands from a single thread
+    //
+    // First we process any queued fetches from the context itself (i.e. non-shared resources),
+    // then from the context's share group.
+    for(void *ctx : {(void *)checkCtx, (void *)GetShareGroup(checkCtx)})
+    {
+      QueuedResource fetch;
+      fetch.res.ContextShareGroup = ctx;
+      size_t before = m_QueuedInitialFetches.size();
+      auto it = std::lower_bound(m_QueuedInitialFetches.begin(), m_QueuedInitialFetches.end(), fetch);
+      size_t i = it - m_QueuedInitialFetches.begin();
+      while(i < m_QueuedInitialFetches.size() && it->res.ContextShareGroup == ctx)
+      {
+        GetResourceManager()->ContextPrepare_InitialState(it->res);
+        m_QueuedInitialFetches.erase(i);
+      }
+      size_t after = m_QueuedInitialFetches.size();
+
+      (void)before;
+      (void)after;
+      RDCDEBUG("Prepared %zu resources on context/sharegroup %p, %zu left", before - after, ctx,
+               after);
+    }
+  }
+
+  // also if there are any queued releases, process them now
+  if(!m_QueuedReleases.empty())
+  {
+    for(void *ctx : {(void *)checkCtx, (void *)GetShareGroup(checkCtx)})
+    {
+      QueuedResource fetch;
+      fetch.res.ContextShareGroup = ctx;
+      size_t before = m_QueuedReleases.size();
+      auto it = std::lower_bound(m_QueuedReleases.begin(), m_QueuedReleases.end(), fetch);
+      size_t i = it - m_QueuedReleases.begin();
+      while(it != m_QueuedReleases.end() && it->res.ContextShareGroup == ctx)
+      {
+        ReleaseResource(it->res);
+        m_QueuedReleases.erase(i);
+      }
+      size_t after = m_QueuedReleases.size();
+
+      (void)before;
+      (void)after;
+      RDCDEBUG("Released %zu resources on context/sharegroup %p, %zu left", before - after, ctx,
+               after);
+    }
+  }
 }
 
 void WrappedOpenGL::CreateTextureImage(GLuint tex, GLenum internalFormat, GLenum initFormatHint,

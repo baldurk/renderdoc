@@ -564,6 +564,7 @@ private:
 
   void QueuePrepareInitialState(GLResource res);
   void QueueResourceRelease(GLResource res);
+  void CheckQueuedInitialFetches(void *ctx);
 
   void ReleaseResource(GLResource res);
 
