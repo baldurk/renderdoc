@@ -290,8 +290,9 @@ void D3D11Replay::FillTimers(D3D11CounterContext &ctx, const ActionDescription &
     if(timer->occlusion)
       m_pImmediateContext->GetReal()->End(timer->occlusion);
     if(timer->stats)
+      m_pImmediateContext->GetReal()->End(timer->stats);
 
-      ctx.eventStart = a.eventId + 1;
+    ctx.eventStart = a.eventId + 1;
   }
 }
 
