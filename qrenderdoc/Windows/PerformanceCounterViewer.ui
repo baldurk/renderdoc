@@ -84,10 +84,10 @@
         <item>
          <widget class="QToolButton" name="syncViews">
           <property name="toolTip">
-           <string>Sync Views</string>
+           <string>Sync with Event Browser for event selection and visibility</string>
           </property>
           <property name="text">
-           <string>Sync Views</string>
+           <string>Sync with Event Browser</string>
           </property>
           <property name="icon">
            <iconset resource="../Resources/resources.qrc">
@@ -147,12 +147,21 @@
     </layout>
    </item>
    <item>
-    <widget class="RDTableWidget" name="counterResults">
-     <property name="editTriggers">
-      <set>QAbstractItemView::NoEditTriggers</set>
+    <widget class="RDTableView" name="counterResults">
+     <property name="horizontalScrollBarPolicy">
+      <enum>Qt::ScrollBarAlwaysOn</enum>
+     </property>
+     <property name="selectionMode">
+      <enum>QAbstractItemView::ExtendedSelection</enum>
      </property>
      <property name="selectionBehavior">
       <enum>QAbstractItemView::SelectRows</enum>
+     </property>
+     <property name="verticalScrollMode">
+      <enum>QAbstractItemView::ScrollPerItem</enum>
+     </property>
+     <property name="horizontalScrollMode">
+      <enum>QAbstractItemView::ScrollPerItem</enum>
      </property>
      <property name="sortingEnabled">
       <bool>true</bool>
@@ -169,9 +178,9 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>RDTableWidget</class>
+   <class>RDTableView</class>
    <extends>QTableWidget</extends>
-   <header>Widgets/Extended/RDTableWidget.h</header>
+   <header>Widgets/Extended/RDTableView.h</header>
   </customwidget>
  </customwidgets>
  <resources>

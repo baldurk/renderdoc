@@ -27,77 +27,257 @@
 #include "Windows/Dialogs/PerformanceCounterSelection.h"
 #include "ui_PerformanceCounterViewer.h"
 
-struct SortValue
+static const int EIDRole = Qt::UserRole + 1;
+static const int SortDataRole = Qt::UserRole + 2;
+
+class PerformanceCounterItemModel : public QAbstractItemModel
 {
-  enum
+public:
+  PerformanceCounterItemModel(ICaptureContext &ctx, QObject *parent)
+      : QAbstractItemModel(parent), m_Ctx(ctx)
   {
-    Integer,
-    Float
-  } type;
-  union
+    m_TimeUnit = m_Ctx.Config().EventBrowser_TimeUnit;
+    m_NumRows = 0;
+  }
+
+  bool UpdateDurationColumn()
+  {
+    if(m_TimeUnit == m_Ctx.Config().EventBrowser_TimeUnit)
+      return false;
+
+    m_TimeUnit = m_Ctx.Config().EventBrowser_TimeUnit;
+    emit headerDataChanged(Qt::Horizontal, 1, columnCount());
+
+    return true;
+  }
+
+  void refresh(const rdcarray<CounterDescription> &counterDescriptions,
+               const rdcarray<CounterResult> &results)
+  {
+    emit beginResetModel();
+
+    m_Descriptions = counterDescriptions;
+
+    QMap<uint32_t, int> eventIdToRow;
+    for(const CounterResult &result : results)
+    {
+      if(eventIdToRow.contains(result.eventId))
+        continue;
+      eventIdToRow.insert(result.eventId, eventIdToRow.size());
+    }
+    QMap<GPUCounter, int> counterToCol;
+    for(int i = 0; i < counterDescriptions.count(); i++)
+    {
+      counterToCol[counterDescriptions[i].counter] = i;
+    }
+
+    m_NumRows = eventIdToRow.size();
+    m_Data.resize(m_NumRows * (m_Descriptions.size() + 1));
+
+    for(int i = 0; i < (int)results.size(); ++i)
+    {
+      int row = eventIdToRow[results[i].eventId];
+
+      getData(row, 0).u = results[i].eventId;
+
+      int col = counterToCol[results[i].counter];
+
+      const CounterDescription &desc = counterDescriptions[col];
+
+      col++;
+
+      if(desc.resultType == CompType::UInt)
+      {
+        if(desc.resultByteWidth == 4)
+          getData(row, col).u = results[i].value.u32;
+        else
+          getData(row, col).u = results[i].value.u64;
+      }
+      else
+      {
+        if(desc.resultByteWidth == 4)
+          getData(row, col).f = results[i].value.f;
+        else
+          getData(row, col).f = results[i].value.d;
+      }
+    }
+
+    emit endResetModel();
+  }
+
+  QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override
+  {
+    if(row < 0 || row >= rowCount())
+      return QModelIndex();
+
+    return createIndex(row, column);
+  }
+
+  QModelIndex parent(const QModelIndex &index) const override { return QModelIndex(); }
+  int rowCount(const QModelIndex &parent = QModelIndex()) const override { return m_NumRows; }
+  int columnCount(const QModelIndex &parent = QModelIndex()) const override
+  {
+    return m_Descriptions.count() + 1;
+  }
+  Qt::ItemFlags flags(const QModelIndex &index) const override
+  {
+    if(!index.isValid())
+      return 0;
+
+    return QAbstractItemModel::flags(index);
+  }
+
+  QVariant headerData(int section, Qt::Orientation orientation, int role) const override
+  {
+    if(orientation == Qt::Horizontal && role == Qt::DisplayRole)
+    {
+      if(section == 0)
+        return lit("EID");
+
+      const CounterDescription &cd = m_Descriptions[section - 1];
+
+      QString unit = QString::null;
+      switch(cd.unit)
+      {
+        case CounterUnit::Bytes: unit = lit("bytes"); break;
+
+        case CounterUnit::Cycles: unit = lit("cycles"); break;
+
+        case CounterUnit::Percentage: unit = lit("%"); break;
+
+        case CounterUnit::Seconds: unit = UnitSuffix(m_TimeUnit); break;
+
+        case CounterUnit::Absolute:
+        case CounterUnit::Ratio: break;
+
+        case CounterUnit::Hertz: unit = lit("Hz"); break;
+        case CounterUnit::Volt: unit = lit("V"); break;
+        case CounterUnit::Celsius: unit = lit("°C"); break;
+      }
+
+      if(unit.isNull())
+        return cd.name;
+      else
+        return QFormatStr("%1 (%2)").arg(cd.name, unit);
+    }
+
+    return QVariant();
+  }
+
+  QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override
+  {
+    if(index.isValid())
+    {
+      int row = index.row();
+      int col = index.column();
+
+      if(role == Qt::TextAlignmentRole)
+      {
+        if(col == 0)
+          return QVariant(Qt::AlignLeft | Qt::AlignVCenter);
+        else
+          return QVariant(Qt::AlignRight | Qt::AlignVCenter);
+      }
+
+      if((role == Qt::DisplayRole && col == 0) || role == EIDRole)
+        return (qulonglong)getData(row, 0).u;
+
+      const CounterDescription &desc = m_Descriptions[col - 1];
+
+      if(role == SortDataRole)
+      {
+        if(desc.resultType == CompType::UInt)
+          return (qulonglong)getData(row, col).u;
+        else
+          return getData(row, col).f;
+      }
+
+      if(role == Qt::DisplayRole)
+      {
+        if(desc.resultType == CompType::UInt)
+          return (qulonglong)getData(row, col).u;
+
+        double val = getData(row, col).f;
+
+        if(desc.unit == CounterUnit::Seconds)
+        {
+          if(m_TimeUnit == TimeUnit::Milliseconds)
+            val *= 1000.0;
+          else if(m_TimeUnit == TimeUnit::Microseconds)
+            val *= 1000000.0;
+          else if(m_TimeUnit == TimeUnit::Nanoseconds)
+            val *= 1000000000.0;
+        }
+
+        return Formatter::Format(val);
+      }
+    }
+
+    return QVariant();
+  }
+
+private:
+  ICaptureContext &m_Ctx;
+
+  union CounterDataVal
   {
     uint64_t u;
-    double d;
-  } val;
+    double f;
+  };
 
-  SortValue(uint32_t eventId)
+  const CounterDataVal &getData(int row, int col) const
   {
-    type = Integer;
-    val.u = eventId;
+    return m_Data[row * (m_Descriptions.size() + 1) + col];
   }
 
-  SortValue(const CounterResult &result, const CounterDescription &description)
+  CounterDataVal &getData(int row, int col)
   {
-    switch(description.resultType)
-    {
-      case CompType::Float:
-        type = Float;
-        if(description.resultByteWidth == 8)
-          val.d = result.value.d;
-        else
-          val.d = result.value.f;
-        break;
-
-      case CompType::UInt:
-        type = Integer;
-        if(description.resultByteWidth == 8)
-          val.u = result.value.u64;
-        else
-          val.u = result.value.u32;
-        break;
-
-      default:
-        qCritical() << "Unexpected component type" << ToQStr(description.resultType);
-        type = Float;
-        val.d = -1.0;
-        break;
-    }
+    return m_Data[row * (m_Descriptions.size() + 1) + col];
   }
+
+  TimeUnit m_TimeUnit;
+
+  rdcarray<CounterDataVal> m_Data;
+  rdcarray<CounterDescription> m_Descriptions;
+  int m_NumRows;
 };
 
-struct CustomSortedTableItem : public QTableWidgetItem
+class PerformanceCounterFilterModel : public QSortFilterProxyModel
 {
-  explicit CustomSortedTableItem(const QString &text, SortValue v)
-      : QTableWidgetItem(text), sortVal(v)
+public:
+  PerformanceCounterFilterModel(ICaptureContext &ctx, QObject *parent)
+      : QSortFilterProxyModel(parent), m_Ctx(ctx)
   {
   }
-  bool operator<(const QTableWidgetItem &other) const
-  {
-    const CustomSortedTableItem &customother = (const CustomSortedTableItem &)other;
 
-    if(sortVal.type == SortValue::Integer)
-      return sortVal.val.u < customother.sortVal.val.u;
-    return sortVal.val.d < customother.sortVal.val.d;
+  void refresh(bool sync)
+  {
+    if(m_Sync || sync)
+    {
+      m_Sync = sync;
+      invalidateFilter();
+    }
   }
 
-  virtual QVariant data(int role) const
+protected:
+  bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const override
   {
-    if(role == Qt::TextAlignmentRole && column() > 0)
-      return QVariant(Qt::AlignRight | Qt::AlignCenter);
+    if(!m_Sync)
+      return true;
 
-    return QTableWidgetItem::data(role);
+    QModelIndex idx = sourceModel()->index(sourceRow, 0, sourceParent);
+
+    return m_Ctx.GetEventBrowser()->IsAPIEventVisible(idx.data(EIDRole).toUInt());
   }
-  SortValue sortVal;
+
+  bool lessThan(const QModelIndex &left, const QModelIndex &right) const override
+  {
+    return sourceModel()->data(left, SortDataRole) < sourceModel()->data(right, SortDataRole);
+  }
+
+private:
+  ICaptureContext &m_Ctx;
+  bool m_Sync = false;
 };
 
 PerformanceCounterViewer::PerformanceCounterViewer(ICaptureContext &ctx, QWidget *parent)
@@ -113,7 +293,19 @@ PerformanceCounterViewer::PerformanceCounterViewer(ICaptureContext &ctx, QWidget
   ui->captureCounters->setEnabled(m_Ctx.IsCaptureLoaded());
   ui->saveCSV->setEnabled(m_Ctx.IsCaptureLoaded());
 
+  m_ItemModel = new PerformanceCounterItemModel(m_Ctx, this);
+  m_FilterModel = new PerformanceCounterFilterModel(m_Ctx, this);
+
+  m_FilterModel->setSourceModel(m_ItemModel);
+  ui->counterResults->setModel(m_FilterModel);
+
   ui->counterResults->horizontalHeader()->setSectionsMovable(true);
+  ui->counterResults->horizontalHeader()->setStretchLastSection(false);
+
+  ui->counterResults->setFont(Formatter::PreferredFont());
+
+  ui->counterResults->setSortingEnabled(true);
+  ui->counterResults->sortByColumn(0, Qt::AscendingOrder);
 }
 
 PerformanceCounterViewer::~PerformanceCounterViewer()
@@ -122,49 +314,6 @@ PerformanceCounterViewer::~PerformanceCounterViewer()
 
   m_Ctx.RemoveCaptureViewer(this);
   delete ui;
-}
-
-QTableWidgetItem *PerformanceCounterViewer::MakeCounterResultItem(const CounterResult &result,
-                                                                  const CounterDescription &description)
-{
-  QString returnValue;
-
-  double mul = 1.0;
-
-  TimeUnit timeunit = m_Ctx.Config().EventBrowser_TimeUnit;
-
-  if(description.unit == CounterUnit::Seconds)
-  {
-    if(timeunit == TimeUnit::Milliseconds)
-      mul *= 1000.0;
-    else if(timeunit == TimeUnit::Microseconds)
-      mul *= 1000000.0;
-    else if(timeunit == TimeUnit::Nanoseconds)
-      mul *= 1000000000.0;
-  }
-
-  switch(description.resultType)
-  {
-    case CompType::Float:
-      if(description.resultByteWidth == 8)
-        returnValue += Formatter::Format(mul * result.value.d);
-      else
-        returnValue += Formatter::Format(mul * result.value.f);
-      break;
-
-    case CompType::UInt:
-      if(description.resultByteWidth == 8)
-        returnValue += Formatter::Format(result.value.u64);
-      else
-        returnValue += Formatter::Format(result.value.u32);
-      break;
-
-    default:
-      // assert (false)
-      break;
-  }
-
-  return new CustomSortedTableItem(returnValue, SortValue(result, description));
 }
 
 void PerformanceCounterViewer::CaptureCounters()
@@ -184,85 +333,18 @@ void PerformanceCounterViewer::CaptureCounters()
     rdcarray<GPUCounter> counters;
     counters.resize(m_SelectedCounters.size());
 
-    QMap<GPUCounter, CounterDescription> counterDescriptions;
+    rdcarray<CounterDescription> counterDescriptions;
 
     for(int i = 0; i < m_SelectedCounters.size(); ++i)
     {
       counters[i] = (GPUCounter)m_SelectedCounters[i];
-      counterDescriptions.insert(counters[i], controller->DescribeCounter(counters[i]));
+      counterDescriptions.push_back(controller->DescribeCounter(counters[i]));
     }
 
-    QMap<GPUCounter, int> counterIndex;
-    for(int i = 0; i < m_SelectedCounters.size(); ++i)
-    {
-      counterIndex.insert((GPUCounter)m_SelectedCounters[i], i);
-    }
+    rdcarray<CounterResult> results = controller->FetchCounters(counters);
 
-    const rdcarray<CounterResult> results = controller->FetchCounters(counters);
-
-    GUIInvoke::call(this, [this, results, counterDescriptions, counterIndex]() {
-      ui->counterResults->clear();
-
-      QStringList headers;
-      headers << lit("EID");
-      TimeUnit timeunit = m_Ctx.Config().EventBrowser_TimeUnit;
-      for(const CounterDescription &cd : counterDescriptions)
-      {
-        QString unit = QString::null;
-        switch(cd.unit)
-        {
-          case CounterUnit::Bytes: unit = lit("bytes"); break;
-
-          case CounterUnit::Cycles: unit = lit("cycles"); break;
-
-          case CounterUnit::Percentage: unit = lit("%"); break;
-
-          case CounterUnit::Seconds: unit = UnitSuffix(timeunit); break;
-
-          case CounterUnit::Absolute:
-          case CounterUnit::Ratio: break;
-
-          case CounterUnit::Hertz: unit = lit("Hz"); break;
-          case CounterUnit::Volt: unit = lit("V"); break;
-          case CounterUnit::Celsius: unit = lit("°C"); break;
-        }
-
-        if(unit.isNull())
-          headers << cd.name;
-        else
-          headers << lit("%1 (%2)").arg(cd.name, unit);
-      }
-
-      QMap<uint32_t, int> eventIdToRow;
-      for(const CounterResult &result : results)
-      {
-        if(eventIdToRow.contains(result.eventId))
-          continue;
-        eventIdToRow.insert(result.eventId, eventIdToRow.size());
-      }
-
-      ui->counterResults->setColumnCount(headers.size());
-      ui->counterResults->setHorizontalHeaderLabels(headers);
-      ui->counterResults->setRowCount(eventIdToRow.size());
-
-      ui->counterResults->setSortingEnabled(false);
-
-      for(int i = 0; i < (int)results.size(); ++i)
-      {
-        int row = eventIdToRow[results[i].eventId];
-
-        ui->counterResults->setItem(row, 0,
-                                    new CustomSortedTableItem(QString::number(results[i].eventId),
-                                                              SortValue(results[i].eventId)));
-
-        ui->counterResults->setItem(
-            row, counterIndex[results[i].counter] + 1,
-            MakeCounterResultItem(results[i], counterDescriptions[results[i].counter]));
-
-        ui->counterResults->item(row, 0)->setData(Qt::UserRole, results[i].eventId);
-      }
-
-      ui->counterResults->setSortingEnabled(true);
+    GUIInvoke::call(this, [this, results, counterDescriptions]() {
+      m_ItemModel->refresh(counterDescriptions, results);
 
       ui->counterResults->resizeColumnsToContents();
     });
@@ -278,9 +360,13 @@ void PerformanceCounterViewer::OnCaptureClosed()
   ui->captureCounters->setEnabled(false);
   ui->saveCSV->setEnabled(false);
 
-  ui->counterResults->clearContents();
-  ui->counterResults->setRowCount(0);
-  ui->counterResults->setColumnCount(1);
+  m_ItemModel->refresh({}, {});
+}
+
+void PerformanceCounterViewer::UpdateDurationColumn()
+{
+  if(m_ItemModel->UpdateDurationColumn())
+    ui->counterResults->viewport()->update();
 }
 
 void PerformanceCounterViewer::OnCaptureLoaded()
@@ -291,16 +377,17 @@ void PerformanceCounterViewer::OnCaptureLoaded()
 
 void PerformanceCounterViewer::OnEventChanged(uint32_t eventId)
 {
+  m_FilterModel->refresh(ui->syncViews->isChecked());
   if(ui->syncViews->isChecked())
   {
-    const int numItems = (int)ui->counterResults->rowCount();
+    const int numItems = (int)ui->counterResults->model()->rowCount();
     for(int i = 0; i < numItems; ++i)
     {
-      QTableWidgetItem *item = ui->counterResults->item(i, 0);
-      if(item->data(Qt::UserRole).toUInt() == eventId)
+      QModelIndex index = ui->counterResults->model()->index(i, 0);
+      if(index.data(EIDRole).toUInt() == eventId)
       {
-        ui->counterResults->setCurrentItem(item);
-        ui->counterResults->scrollToItem(item);
+        ui->counterResults->setCurrentIndex(index);
+        ui->counterResults->scrollTo(index);
         break;
       }
     }
@@ -309,16 +396,14 @@ void PerformanceCounterViewer::OnEventChanged(uint32_t eventId)
 
 void PerformanceCounterViewer::on_counterResults_doubleClicked(const QModelIndex &index)
 {
-  QTableWidgetItem *item = ui->counterResults->item(index.row(), 0);
+  uint32_t eid = index.data(EIDRole).toUInt();
 
-  if(item)
-  {
-    bool ok = false;
-    uint32_t eid = item->data(Qt::UserRole).toUInt(&ok);
+  m_Ctx.SetEventID({}, eid, eid);
+}
 
-    if(ok)
-      m_Ctx.SetEventID({}, eid, eid);
-  }
+void PerformanceCounterViewer::on_syncViews_toggled(bool checked)
+{
+  OnEventChanged(m_Ctx.CurEvent());
 }
 
 void PerformanceCounterViewer::on_saveCSV_clicked()
@@ -336,28 +421,25 @@ void PerformanceCounterViewer::on_saveCSV_clicked()
       {
         QTextStream ts(&f);
 
-        for(int col = 0; col < ui->counterResults->columnCount(); col++)
-        {
-          ts << ui->counterResults->horizontalHeaderItem(col)->text();
+        QAbstractItemModel *model = ui->counterResults->model();
 
-          if(col == ui->counterResults->columnCount() - 1)
+        for(int col = 0; col < model->columnCount(); col++)
+        {
+          ts << model->headerData(col, Qt::Horizontal).toString();
+
+          if(col == model->columnCount() - 1)
             ts << lit("\n");
           else
             ts << lit(",");
         }
 
-        for(int row = 0; row < ui->counterResults->rowCount(); row++)
+        for(int row = 0; row < model->rowCount(); row++)
         {
-          for(int col = 0; col < ui->counterResults->columnCount(); col++)
+          for(int col = 0; col < model->columnCount(); col++)
           {
-            QTableWidgetItem *item = ui->counterResults->item(row, col);
+            ts << model->index(row, col).data().toString();
 
-            if(item)
-              ts << item->text();
-            else
-              ts << lit("-");
-
-            if(col == ui->counterResults->columnCount() - 1)
+            if(col == model->columnCount() - 1)
               ts << lit("\n");
             else
               ts << lit(",");

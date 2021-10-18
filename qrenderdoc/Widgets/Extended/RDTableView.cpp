@@ -38,6 +38,7 @@ RDTableView::RDTableView(QWidget *parent) : QTableView(parent)
 {
   m_horizontalHeader = new RDHeaderView(Qt::Horizontal, this);
   setHorizontalHeader(m_horizontalHeader);
+  m_horizontalHeader->setSectionsClickable(true);
 
   m_delegate = new RichTextViewDelegate(this);
   QTableView::setItemDelegate(m_delegate);

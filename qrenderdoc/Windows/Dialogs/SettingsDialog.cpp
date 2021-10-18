@@ -997,6 +997,9 @@ void SettingsDialog::on_EventBrowser_TimeUnit_currentIndexChanged(int index)
   if(m_Ctx.HasEventBrowser())
     m_Ctx.GetEventBrowser()->UpdateDurationColumn();
 
+  if(m_Ctx.HasPerformanceCounterViewer())
+    m_Ctx.GetPerformanceCounterViewer()->UpdateDurationColumn();
+
   m_Ctx.Config().Save();
 }
 

@@ -34,6 +34,9 @@ class PerformanceCounterViewer;
 
 class QTableWidgetItem;
 
+class PerformanceCounterItemModel;
+class PerformanceCounterFilterModel;
+
 class PerformanceCounterViewer : public QFrame, public IPerformanceCounterViewer, public ICaptureViewer
 {
   Q_OBJECT
@@ -42,8 +45,9 @@ public:
   explicit PerformanceCounterViewer(ICaptureContext &ctx, QWidget *parent = 0);
   ~PerformanceCounterViewer();
 
-  // IStatisticsViewer
+  // IPerformanceCounterViewer
   QWidget *Widget() override { return this; }
+  void UpdateDurationColumn() override;
   // ICaptureViewer
   void OnCaptureLoaded() override;
   void OnCaptureClosed() override;
@@ -52,13 +56,19 @@ public:
 private slots:
   // automatic slots
   void on_counterResults_doubleClicked(const QModelIndex &index);
+  void on_syncViews_toggled(bool checked);
   void on_saveCSV_clicked();
 
 private:
+  /*
   QTableWidgetItem *MakeCounterResultItem(const CounterResult &result,
                                           const CounterDescription &description);
+  */
 
   QList<GPUCounter> m_SelectedCounters;
+
+  PerformanceCounterItemModel *m_ItemModel;
+  PerformanceCounterFilterModel *m_FilterModel;
 
   Ui::PerformanceCounterViewer *ui;
   ICaptureContext &m_Ctx;
