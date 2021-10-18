@@ -159,6 +159,11 @@ DOCUMENT(R"(Bitfield flags that could be applied to a type.
   Indicates that only important children should be processed, as noted in :data:`Important`. This
   may appear on an object which has no important children - which indicates explicitly that there
   are no important children so when summarising no parameters should be shown.
+
+.. data:: HiddenChildren
+
+  Indicates that some children are marked as hidden. This can be important for cases where the
+  number of children is important.
 )");
 enum class SDTypeFlags : uint32_t
 {
@@ -171,6 +176,7 @@ enum class SDTypeFlags : uint32_t
   Union = 0x20,
   Important = 0x40,
   ImportantChildren = 0x80,
+  HiddenChildren = 0x100,
 };
 
 BITMASK_OPERATORS(SDTypeFlags);

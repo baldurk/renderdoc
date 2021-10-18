@@ -221,6 +221,15 @@ static void Obj2XML(pugi::xml_node &parent, SDObject &child)
   if(child.type.flags & SDTypeFlags::Union)
     obj.append_attribute("union") = true;
 
+  if(child.type.flags & SDTypeFlags::Important)
+    obj.append_attribute("important") = true;
+
+  if(child.type.flags & SDTypeFlags::ImportantChildren)
+    obj.append_attribute("importantchildren") = true;
+
+  if(child.type.flags & SDTypeFlags::HiddenChildren)
+    obj.append_attribute("hiddenchildren") = true;
+
   if(child.type.basetype == SDBasic::Chunk)
   {
     RDCFATAL("Nested chunks!");
@@ -499,6 +508,15 @@ static SDObject *XML2Obj(pugi::xml_node &obj)
 
   if(obj.attribute("union"))
     ret->type.flags |= SDTypeFlags::Union;
+
+  if(obj.attribute("important"))
+    ret->type.flags |= SDTypeFlags::Important;
+
+  if(obj.attribute("importantchildren"))
+    ret->type.flags |= SDTypeFlags::ImportantChildren;
+
+  if(obj.attribute("hiddenchildren"))
+    ret->type.flags |= SDTypeFlags::HiddenChildren;
 
   if(obj.attribute("typename"))
     ret->type.name = obj.attribute("typename").as_string();

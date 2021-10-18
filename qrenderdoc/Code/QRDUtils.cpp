@@ -3311,6 +3311,24 @@ QModelIndex StructuredDataItemModel::index(int row, int column, const QModelInde
     }
     else
     {
+      if(par->type.flags & SDTypeFlags::HiddenChildren)
+      {
+        // if this node has hidden children, get the index relative to only visible children
+        int idx = 0;
+        for(size_t i = 0; i < par->NumChildren(); i++)
+        {
+          SDObject *ch = par->GetChild(i);
+
+          if(ch->type.flags & SDTypeFlags::Hidden)
+            continue;
+
+          if(idx == row)
+            return createIndex(row, column, encodeIndex({Direct, ch, 0}));
+
+          idx++;
+        }
+      }
+
       return createIndex(row, column, encodeIndex({Direct, par->GetChild(row), 0}));
     }
   }
@@ -3379,9 +3397,21 @@ QModelIndex StructuredDataItemModel::parent(const QModelIndex &index) const
     }
 
     // search our parent to find out our child index
+    int idx = 0;
+    bool largeArray = isLargeArray(parent);
     for(size_t i = 0; i < parent->NumChildren(); i++)
-      if(parent->GetChild(i) == obj)
-        return createIndex((int)i, 0, obj);
+    {
+      const SDObject *ch = parent->GetChild(i);
+      if(ch == obj)
+        return createIndex(idx, 0, obj);
+
+      // for non-large arrays, we account for hidden children. Large arrays should not have any
+      // hidden children anyway
+      if(!largeArray && (ch->type.flags & SDTypeFlags::Hidden))
+        continue;
+
+      idx++;
+    }
 
     return QModelIndex();
   }
@@ -3418,9 +3448,30 @@ int StructuredDataItemModel::rowCount(const QModelIndex &parent) const
   if(obj)
   {
     if(isLargeArray(obj))
+    {
       return (int(obj->NumChildren()) + ArrayPageSize - 1) / ArrayPageSize;
+    }
     else
-      return (int)obj->NumChildren();
+    {
+      if(obj->type.flags & SDTypeFlags::HiddenChildren)
+      {
+        // if this node has hidden children, count the *actual* number of children
+        int numChildren = 0;
+        for(size_t i = 0; i < obj->NumChildren(); i++)
+        {
+          if(obj->GetChild(i)->type.flags & SDTypeFlags::Hidden)
+            continue;
+
+          numChildren++;
+        }
+
+        return numChildren;
+      }
+      else
+      {
+        return (int)obj->NumChildren();
+      }
+    }
   }
 
   return 0;

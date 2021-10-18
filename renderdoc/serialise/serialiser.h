@@ -1142,6 +1142,8 @@ public:
     {
       SDObject &current = *m_StructureStack.back();
 
+      current.type.flags |= SDTypeFlags::HiddenChildren;
+
       if(current.NumChildren() > 0)
         current.GetChild(current.NumChildren() - 1)->type.flags |= SDTypeFlags::Hidden;
     }
