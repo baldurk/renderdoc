@@ -33,6 +33,7 @@
 
 static const int ResourceIdRole = Qt::UserRole;
 static const int FilterRole = Qt::UserRole + 1;
+static const int LastAccessSortRole = Qt::UserRole + 2;
 
 class ResourceListItemModel : public QAbstractItemModel
 {
@@ -46,6 +47,13 @@ public:
   {
     emit beginResetModel();
     emit endResetModel();
+  }
+
+  void bumpLastUse(ResourceId id) { m_LastUse[id] = ++m_LastUseIdx; }
+  void resetLastUse()
+  {
+    m_LastUseIdx = 1;
+    m_LastUse.clear();
   }
 
   QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override
@@ -88,6 +96,9 @@ public:
 
         if(role == FilterRole)
           return ToQStr(desc.type) + lit(" ") + m_Ctx.GetResourceName(desc.resourceId);
+
+        if(role == LastAccessSortRole)
+          return m_LastUse[desc.resourceId];
       }
     }
 
@@ -96,7 +107,33 @@ public:
 
 private:
   ICaptureContext &m_Ctx;
+
+  QMap<ResourceId, uint32_t> m_LastUse;
+  uint32_t m_LastUseIdx = 1;
 };
+
+bool ResourceSorterModel::lessThan(const QModelIndex &source_left, const QModelIndex &source_right) const
+{
+  if(m_Sort == SortType::Creation)
+  {
+    return source_left.data(ResourceIdRole).value<ResourceId>() <
+           source_right.data(ResourceIdRole).value<ResourceId>();
+  }
+  else if(m_Sort == SortType::LastAccess)
+  {
+    uint a = source_left.data(LastAccessSortRole).toUInt();
+    uint b = source_right.data(LastAccessSortRole).toUInt();
+
+    // if they're different, sort by access. Otherwise fall through to alphabetical
+    // we invert the reason, so that high values (recent access) are first
+    if(a != b)
+      return a > b;
+
+    return QCollatorSortFilterProxyModel::lessThan(source_left, source_right);
+  }
+
+  return QCollatorSortFilterProxyModel::lessThan(source_left, source_right);
+}
 
 ResourceInspector::ResourceInspector(ICaptureContext &ctx, QWidget *parent)
     : QFrame(parent), ui(new Ui::ResourceInspector), m_Ctx(ctx)
@@ -113,13 +150,17 @@ ResourceInspector::ResourceInspector(ICaptureContext &ctx, QWidget *parent)
 
   m_ResourceModel = new ResourceListItemModel(this, m_Ctx);
 
-  m_FilterModel = new QCollatorSortFilterProxyModel(this);
+  m_FilterModel = new ResourceSorterModel(this);
   m_FilterModel->setSourceModel(m_ResourceModel);
   m_FilterModel->setFilterCaseSensitivity(Qt::CaseInsensitive);
   m_FilterModel->setFilterRole(FilterRole);
   m_FilterModel->sort(0);
   m_FilterModel->collator()->setNumericMode(true);
   m_FilterModel->collator()->setCaseSensitivity(Qt::CaseInsensitive);
+
+  ui->sortType->addItems(
+      {tr("Sort alphabetically"), tr("Sort by creation time"), tr("Sort by recently viewed")});
+  ui->sortType->adjustSize();
 
   ui->resourceList->setModel(m_FilterModel);
 
@@ -193,6 +234,8 @@ ResourceInspector::ResourceInspector(ICaptureContext &ctx, QWidget *parent)
   vertical->addWidget(ui->titleWidget);
   vertical->addWidget(ui->dockarea);
 
+  ui->resourceListFilter->setPlaceholderText(tr("Filter..."));
+
   Inspect(ResourceId());
 
   m_Ctx.AddCaptureViewer(this);
@@ -228,6 +271,11 @@ void ResourceInspector::Inspect(ResourceId id)
     m_ResourceCacheID = m_Ctx.ResourceNameCacheID();
     m_ResourceModel->reset();
   }
+
+  m_ResourceModel->bumpLastUse(id);
+
+  m_FilterModel->invalidate();
+  m_FilterModel->sort(0);
 
   if(m_Ctx.HasResourceCustomName(id))
     ui->resetName->show();
@@ -420,6 +468,7 @@ void ResourceInspector::OnCaptureClosed()
   ui->viewContents->hide();
 
   m_ResourceModel->reset();
+  m_ResourceModel->resetLastUse();
 
   m_ChunksModel->setObjects({});
   ui->initChunks->clearInternalExpansions();
@@ -491,6 +540,11 @@ void ResourceInspector::on_resetName_clicked()
   ResourceId id = m_Resource;
   m_Resource = ResourceId();
   Inspect(id);
+}
+
+void ResourceInspector::on_sortType_currentIndexChanged(int index)
+{
+  m_FilterModel->setSortType((ResourceSorterModel::SortType)index);
 }
 
 void ResourceInspector::on_cancelResourceListFilter_clicked()

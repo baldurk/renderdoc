@@ -76,6 +76,9 @@
      </layout>
     </item>
     <item>
+     <widget class="QComboBox" name="sortType"/>
+    </item>
+    <item>
      <widget class="RDListView" name="resourceList">
       <property name="frameShape">
        <enum>QFrame::Box</enum>
