@@ -1166,55 +1166,55 @@ private:
 
     if(name.isEmpty())
     {
-      for(const APIEvent &e : action->events)
+      auto eidit = std::lower_bound(action->events.begin(), action->events.end(), eid,
+                                    [](const APIEvent &e, uint32_t eid) { return e.eventId < eid; });
+
+      if(eidit != action->events.end() && eidit->eventId == eid)
       {
-        if(e.eventId == eid)
+        const APIEvent &e = *eidit;
+
+        const SDChunk *chunk = m_Ctx.GetStructuredFile().chunks[e.chunkIndex];
+        name = chunk->name;
+
+        // don't display any "ClassName::" prefix. We keep it for the API inspector which is more
+        // verbose
+        int nsSep = name.indexOf(lit("::"));
+        if(nsSep > 0)
+          name.remove(0, nsSep + 2);
+
+        name += QLatin1Char('(');
+
+        bool onlyImportant(chunk->type.flags & SDTypeFlags::ImportantChildren);
+
+        for(size_t i = 0; i < chunk->NumChildren(); i++)
         {
-          const SDChunk *chunk = m_Ctx.GetStructuredFile().chunks[e.chunkIndex];
-          name = chunk->name;
+          if(chunk->GetChild(i)->type.flags & SDTypeFlags::Hidden)
+            continue;
 
-          // don't display any "ClassName::" prefix. We keep it for the API inspector which is more
-          // verbose
-          int nsSep = name.indexOf(lit("::"));
-          if(nsSep > 0)
-            name.remove(0, nsSep + 2);
+          const SDObject *o = chunk->GetChild(i);
 
-          name += QLatin1Char('(');
+          // never display hidden members
+          if(o->type.flags & SDTypeFlags::Hidden)
+            continue;
 
-          bool onlyImportant(chunk->type.flags & SDTypeFlags::ImportantChildren);
-
-          for(size_t i = 0; i < chunk->NumChildren(); i++)
+          if(!onlyImportant || (o->type.flags & SDTypeFlags::Important) || m_ShowAllParameters)
           {
-            if(chunk->GetChild(i)->type.flags & SDTypeFlags::Hidden)
-              continue;
+            if(name.at(name.size() - 1) != QLatin1Char('('))
+              name += lit(", ");
 
-            const SDObject *o = chunk->GetChild(i);
-
-            // never display hidden members
-            if(o->type.flags & SDTypeFlags::Hidden)
-              continue;
-
-            if(!onlyImportant || (o->type.flags & SDTypeFlags::Important) || m_ShowAllParameters)
+            if(m_ShowParameterNames)
             {
-              if(name.at(name.size() - 1) != QLatin1Char('('))
-                name += lit(", ");
-
-              if(m_ShowParameterNames)
-              {
-                name += lit("<span style='color: %1'>").arg(m_ParamColCode);
-                name += o->name;
-                name += lit("</span>");
-                name += QLatin1Char('=');
-              }
-
-              name += SDObject2Variant(o, true).toString();
+              name += lit("<span style='color: %1'>").arg(m_ParamColCode);
+              name += o->name;
+              name += lit("</span>");
+              name += QLatin1Char('=');
             }
+
+            name += SDObject2Variant(o, true).toString();
           }
-
-          name += QLatin1Char(')');
-
-          break;
         }
+
+        name += QLatin1Char(')');
       }
 
       if(name.isEmpty())
