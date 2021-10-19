@@ -58,6 +58,22 @@ rdcstr DoStringise(const D3D12ComponentMapping &el)
 {
   RDCCOMPILE_ASSERT(sizeof(D3D12ComponentMapping) == sizeof(uint32_t), "Enum isn't uint sized");
 
+  // handle some common ones as literals to avoid allocations
+  if(el == D3D12_ENCODE_SHADER_4_COMPONENT_MAPPING(0, 1, 2, 3))
+    return "RGBA"_lit;
+  if(el == D3D12_ENCODE_SHADER_4_COMPONENT_MAPPING(0, 1, 2, 4))
+    return "RGB0"_lit;
+  if(el == D3D12_ENCODE_SHADER_4_COMPONENT_MAPPING(0, 1, 2, 5))
+    return "RGB1"_lit;
+  if(el == D3D12_ENCODE_SHADER_4_COMPONENT_MAPPING(0, 4, 4, 4))
+    return "R000"_lit;
+  if(el == D3D12_ENCODE_SHADER_4_COMPONENT_MAPPING(0, 4, 4, 5))
+    return "R001"_lit;
+  if(el == D3D12_ENCODE_SHADER_4_COMPONENT_MAPPING(0, 5, 5, 5))
+    return "R111"_lit;
+  if(el == D3D12_ENCODE_SHADER_4_COMPONENT_MAPPING(3, 2, 1, 3))
+    return "BGRA"_lit;
+
   rdcstr ret;
 
   // value should always be <= 5, see D3D12_SHADER_COMPONENT_MAPPING
