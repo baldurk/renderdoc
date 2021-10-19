@@ -50,11 +50,11 @@ void D3D12RenderState::ApplyState(WrappedID3D12Device *dev, ID3D12GraphicsComman
 {
   D3D12_COMMAND_LIST_TYPE type = cmd->GetType();
 
+  if(pipe != ResourceId())
+    cmd->SetPipelineState(GetResourceManager()->GetCurrentAs<ID3D12PipelineState>(pipe));
+
   if(type == D3D12_COMMAND_LIST_TYPE_DIRECT || type == D3D12_COMMAND_LIST_TYPE_BUNDLE)
   {
-    if(pipe != ResourceId())
-      cmd->SetPipelineState(GetResourceManager()->GetCurrentAs<ID3D12PipelineState>(pipe));
-
     if(!views.empty())
       cmd->RSSetViewports((UINT)views.size(), &views[0]);
 
