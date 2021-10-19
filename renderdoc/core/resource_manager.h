@@ -638,7 +638,7 @@ public:
   // Live resources to replace serialised IDs
   void AddLiveResource(ResourceId origid, WrappedResourceType livePtr);
   bool HasLiveResource(ResourceId origid);
-  WrappedResourceType GetLiveResource(ResourceId origid);
+  WrappedResourceType GetLiveResource(ResourceId origid, bool optional = false);
   void EraseLiveResource(ResourceId origid);
 
   // when asked for a given id, return the resource for a replacement id
@@ -1816,20 +1816,31 @@ bool ResourceManager<Configuration>::HasLiveResource(ResourceId origid)
 
 template <typename Configuration>
 typename Configuration::WrappedResourceType ResourceManager<Configuration>::GetLiveResource(
-    ResourceId origid)
+    ResourceId origid, bool optional)
 {
   SCOPED_LOCK_OPTIONAL(m_Lock, m_Capturing);
 
   if(origid == ResourceId())
     return (WrappedResourceType)RecordType::NullResource;
 
-  RDCASSERT(HasLiveResource(origid), origid);
+#if DISABLED(RDOC_RELEASE)
+  if(!optional)
+  {
+    RDCASSERT(HasLiveResource(origid), origid);
+  }
+#endif
 
-  if(m_Replacements.find(origid) != m_Replacements.end())
-    return GetLiveResource(m_Replacements[origid]);
+  {
+    auto it = m_Replacements.find(origid);
+    if(it != m_Replacements.end())
+      return GetLiveResource(it->second);
+  }
 
-  if(m_LiveResourceMap.find(origid) != m_LiveResourceMap.end())
-    return m_LiveResourceMap[origid];
+  {
+    auto it = m_LiveResourceMap.find(origid);
+    if(it != m_LiveResourceMap.end())
+      return it->second;
+  }
 
   return (WrappedResourceType)RecordType::NullResource;
 }

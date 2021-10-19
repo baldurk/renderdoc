@@ -693,9 +693,9 @@ public:
   {
   }
   template <class T>
-  T *GetLiveAs(ResourceId id)
+  T *GetLiveAs(ResourceId id, bool optional = false)
   {
-    return (T *)GetLiveResource(id);
+    return (T *)GetLiveResource(id, optional);
   }
 
   template <class T>
