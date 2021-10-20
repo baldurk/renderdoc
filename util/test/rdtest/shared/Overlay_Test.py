@@ -6,7 +6,7 @@ import rdtest
 class Overlay_Test(rdtest.TestCase):
     internal = True
 
-    def check_capture(self):
+    def check_capture(self, base_event=0):
         out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
 
         self.check(out is not None)
@@ -17,9 +17,9 @@ class Overlay_Test(rdtest.TestCase):
 
         for is_msaa in [False, True]:
             if is_msaa:
-                test_marker: rd.ActionDescription = self.find_action("MSAA Test")
+                test_marker: rd.ActionDescription = self.find_action("MSAA Test", base_event)
             else:
-                test_marker: rd.ActionDescription = self.find_action("Normal Test")
+                test_marker: rd.ActionDescription = self.find_action("Normal Test", base_event)
 
             self.controller.SetFrameEvent(test_marker.next.eventId, True)
 
@@ -388,7 +388,7 @@ class Overlay_Test(rdtest.TestCase):
                 rdtest.log.success("All normal overlays are as expected")
 
         # Check the viewport overlay especially
-        view_marker: rd.ActionDescription = self.find_action("Viewport Test")
+        view_marker: rd.ActionDescription = self.find_action("Viewport Test", base_event)
 
         self.controller.SetFrameEvent(view_marker.next.eventId, True)
 
@@ -506,7 +506,7 @@ class Overlay_Test(rdtest.TestCase):
 
         rdtest.log.success("Overlays are as expected around viewport/scissor behaviour")
 
-        test_marker: rd.ActionDescription = self.find_action("Normal Test")
+        test_marker: rd.ActionDescription = self.find_action("Normal Test", base_event)
 
         # Now check clear-before-X by hand, for colour and for depth
         self.controller.SetFrameEvent(test_marker.next.eventId, True)
@@ -610,7 +610,7 @@ class Overlay_Test(rdtest.TestCase):
 
         # Now test overlays on a render-to-slice/mip case
         for mip in [2, 3]:
-            sub_marker: rd.ActionDescription = self.find_action("Subresources mip {}".format(mip))
+            sub_marker: rd.ActionDescription = self.find_action("Subresources mip {}".format(mip), base_event)
 
             self.controller.SetFrameEvent(sub_marker.next.eventId, True)
 

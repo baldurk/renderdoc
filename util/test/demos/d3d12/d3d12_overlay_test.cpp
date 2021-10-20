@@ -29,6 +29,51 @@ RD_TEST(D3D12_Overlay_Test, D3D12GraphicsTest)
   static constexpr const char *Description =
       "Makes a couple of draws that show off all the overlays in some way";
 
+  std::string vertexEndPosVert = R"EOSHADER(
+
+struct vertin
+{
+	float3 pos : POSITION;
+	float4 col : COLOR0;
+	float2 uv : TEXCOORD0;
+};
+
+struct v2f
+{
+	float4 col : COLOR0;
+	float2 uv : TEXCOORD0;
+	float4 pos : SV_POSITION;
+};
+
+v2f main(vertin IN)
+{
+	v2f OUT = (v2f)0;
+
+	OUT.pos = float4(IN.pos.xyz, 1);
+	OUT.col = IN.col;
+	OUT.uv = IN.uv;
+
+	return OUT;
+}
+
+)EOSHADER";
+
+  std::string vertexEndPosPixel = R"EOSHADER(
+
+struct v2f
+{
+	float4 col : COLOR0;
+	float2 uv : TEXCOORD0;
+	float4 pos : SV_POSITION;
+};
+
+float4 main(v2f IN) : SV_Target0
+{
+	return IN.col;
+}
+
+)EOSHADER";
+
   std::string whitePixel = R"EOSHADER(
 
 float4 main() : SV_Target0
@@ -44,9 +89,23 @@ float4 main() : SV_Target0
     if(!Init())
       return 3;
 
-    ID3DBlobPtr vsblob = Compile(D3DDefaultVertex, "main", "vs_4_0");
-    ID3DBlobPtr psblob = Compile(D3DDefaultPixel, "main", "ps_4_0");
-    ID3DBlobPtr whitepsblob = Compile(whitePixel, "main", "ps_4_0");
+    ID3DBlobPtr vsblob[3] = {};
+    ID3DBlobPtr psblob[3] = {};
+    ID3DBlobPtr whitepsblob[3] = {};
+
+    {
+      int i = 0;
+      for(std::string profile : {"_5_0", "_5_1", "_6_0"})
+      {
+        if(i == 2 && !m_DXILSupport)
+          continue;
+
+        vsblob[i] = Compile(vertexEndPosVert, "main", "vs" + profile);
+        psblob[i] = Compile(vertexEndPosPixel, "main", "ps" + profile);
+        whitepsblob[i] = Compile(whitePixel, "main", "ps" + profile);
+        i++;
+      }
+    }
 
     const DefaultA2V VBData[] = {
         // this triangle occludes in depth
@@ -137,62 +196,70 @@ float4 main() : SV_Target0
     DXGI_SAMPLE_DESC noMSAA = {1, 0};
     DXGI_SAMPLE_DESC yesMSAA = {4, qual};
 
-    D3D12PSOCreator creator = MakePSO().RootSig(sig).InputLayout().VS(vsblob).PS(psblob).DSV(
-        DXGI_FORMAT_D32_FLOAT_S8X24_UINT);
+    ID3D12PipelineStatePtr depthWritePipe[3][2];
+    ID3D12PipelineStatePtr stencilWritePipe[3][2];
+    ID3D12PipelineStatePtr backgroundPipe[3][2];
+    ID3D12PipelineStatePtr pipe[3][2];
+    ID3D12PipelineStatePtr whitepipe[3];
 
-    creator.GraphicsDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
-    creator.GraphicsDesc.RasterizerState.DepthClipEnable = TRUE;
+    for(int i = 0; i < 3; i++)
+    {
+      if(vsblob[i] == NULL)
+        continue;
 
-    creator.GraphicsDesc.DepthStencilState.DepthEnable = TRUE;
-    creator.GraphicsDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-    creator.GraphicsDesc.DepthStencilState.StencilEnable = FALSE;
-    creator.GraphicsDesc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-    creator.GraphicsDesc.DepthStencilState.FrontFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
-    creator.GraphicsDesc.DepthStencilState.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
-    creator.GraphicsDesc.DepthStencilState.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
-    creator.GraphicsDesc.DepthStencilState.BackFace =
-        creator.GraphicsDesc.DepthStencilState.FrontFace;
-    creator.GraphicsDesc.DepthStencilState.StencilReadMask = 0xff;
-    creator.GraphicsDesc.DepthStencilState.StencilWriteMask = 0xff;
+      D3D12PSOCreator creator = MakePSO().RootSig(sig).InputLayout().VS(vsblob[i]).PS(psblob[i]).DSV(
+          DXGI_FORMAT_D32_FLOAT_S8X24_UINT);
 
-    creator.GraphicsDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-    ID3D12PipelineStatePtr depthWritePipe[2];
-    creator.GraphicsDesc.SampleDesc = noMSAA;
-    depthWritePipe[0] = creator;
-    creator.GraphicsDesc.SampleDesc = yesMSAA;
-    depthWritePipe[1] = creator;
+      creator.GraphicsDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+      creator.GraphicsDesc.RasterizerState.DepthClipEnable = TRUE;
 
-    creator.GraphicsDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
-    creator.GraphicsDesc.DepthStencilState.StencilEnable = TRUE;
+      creator.GraphicsDesc.DepthStencilState.DepthEnable = TRUE;
+      creator.GraphicsDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+      creator.GraphicsDesc.DepthStencilState.StencilEnable = FALSE;
+      creator.GraphicsDesc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+      creator.GraphicsDesc.DepthStencilState.FrontFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
+      creator.GraphicsDesc.DepthStencilState.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+      creator.GraphicsDesc.DepthStencilState.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+      creator.GraphicsDesc.DepthStencilState.BackFace =
+          creator.GraphicsDesc.DepthStencilState.FrontFace;
+      creator.GraphicsDesc.DepthStencilState.StencilReadMask = 0xff;
+      creator.GraphicsDesc.DepthStencilState.StencilWriteMask = 0xff;
 
-    ID3D12PipelineStatePtr stencilWritePipe[2];
-    creator.GraphicsDesc.SampleDesc = noMSAA;
-    stencilWritePipe[0] = creator;
-    creator.GraphicsDesc.SampleDesc = yesMSAA;
-    stencilWritePipe[1] = creator;
+      creator.GraphicsDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+      creator.GraphicsDesc.SampleDesc = noMSAA;
+      depthWritePipe[i][0] = creator;
+      creator.GraphicsDesc.SampleDesc = yesMSAA;
+      depthWritePipe[i][1] = creator;
 
-    creator.GraphicsDesc.DepthStencilState.StencilEnable = FALSE;
-    ID3D12PipelineStatePtr backgroundPipe[2];
-    creator.GraphicsDesc.SampleDesc = noMSAA;
-    backgroundPipe[0] = creator;
-    creator.GraphicsDesc.SampleDesc = yesMSAA;
-    backgroundPipe[1] = creator;
+      creator.GraphicsDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+      creator.GraphicsDesc.DepthStencilState.StencilEnable = TRUE;
 
-    creator.GraphicsDesc.DepthStencilState.StencilEnable = TRUE;
-    creator.GraphicsDesc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_GREATER;
-    ID3D12PipelineStatePtr pipe[2];
-    creator.GraphicsDesc.SampleDesc = noMSAA;
-    pipe[0] = creator;
-    creator.GraphicsDesc.SampleDesc = yesMSAA;
-    pipe[1] = creator;
+      creator.GraphicsDesc.SampleDesc = noMSAA;
+      stencilWritePipe[i][0] = creator;
+      creator.GraphicsDesc.SampleDesc = yesMSAA;
+      stencilWritePipe[i][1] = creator;
 
-    creator.GraphicsDesc.DepthStencilState.StencilEnable = FALSE;
-    creator.GraphicsDesc.DepthStencilState.DepthEnable = FALSE;
-    creator.GraphicsDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-    creator.PS(whitepsblob);
-    creator.DSV(DXGI_FORMAT_UNKNOWN);
-    creator.GraphicsDesc.SampleDesc = noMSAA;
-    ID3D12PipelineStatePtr whitepipe = creator;
+      creator.GraphicsDesc.DepthStencilState.StencilEnable = FALSE;
+      creator.GraphicsDesc.SampleDesc = noMSAA;
+      backgroundPipe[i][0] = creator;
+      creator.GraphicsDesc.SampleDesc = yesMSAA;
+      backgroundPipe[i][1] = creator;
+
+      creator.GraphicsDesc.DepthStencilState.StencilEnable = TRUE;
+      creator.GraphicsDesc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_GREATER;
+      creator.GraphicsDesc.SampleDesc = noMSAA;
+      pipe[i][0] = creator;
+      creator.GraphicsDesc.SampleDesc = yesMSAA;
+      pipe[i][1] = creator;
+
+      creator.GraphicsDesc.DepthStencilState.StencilEnable = FALSE;
+      creator.GraphicsDesc.DepthStencilState.DepthEnable = FALSE;
+      creator.GraphicsDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+      creator.PS(whitepsblob[i]);
+      creator.DSV(DXGI_FORMAT_UNKNOWN);
+      creator.GraphicsDesc.SampleDesc = noMSAA;
+      whitepipe[i] = creator;
+    }
 
     ResourceBarrier(vb, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 
@@ -220,132 +287,158 @@ float4 main() : SV_Target0
 
     while(Running())
     {
-      ID3D12GraphicsCommandListPtr cmd = GetCommandBuffer();
+      ID3D12ResourcePtr bb;
 
-      Reset(cmd);
-
-      ID3D12ResourcePtr bb = StartUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
-      for(bool is_msaa : {false, true})
+      int pass = 0;
+      for(std::string profile : {"sm5.0", "sm5.1", "sm6.0"})
       {
-        D3D12_CPU_DESCRIPTOR_HANDLE rtv =
-            MakeRTV(is_msaa ? msaatex : bb).Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB).CreateCPU(0);
+        if(whitepipe[pass] == NULL)
+          break;
 
-        cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-        IASetVertexBuffer(cmd, vb, sizeof(DefaultA2V), 0);
-        cmd->SetGraphicsRootSignature(sig);
-
-        RSSetViewport(cmd, {10.0f, 10.0f, (float)screenWidth - 20.0f, (float)screenHeight - 20.0f,
-                            0.0f, 1.0f});
-        RSSetScissorRect(cmd, {0, 0, screenWidth, screenHeight});
-
-        OMSetRenderTargets(cmd, {rtv}, MakeDSV(is_msaa ? msaadsv : dsv).CreateCPU(0));
-
-        ClearRenderTargetView(cmd, rtv, {0.2f, 0.2f, 0.2f, 1.0f});
-        ClearDepthStencilView(cmd, is_msaa ? msaadsv : dsv,
-                              D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0);
-
-        cmd->OMSetStencilRef(0x55);
-
-        // draw the setup triangles
-        cmd->SetPipelineState(depthWritePipe[is_msaa ? 1 : 0]);
-        cmd->DrawInstanced(3, 1, 0, 0);
-
-        cmd->SetPipelineState(stencilWritePipe[is_msaa ? 1 : 0]);
-        cmd->DrawInstanced(3, 1, 3, 0);
-
-        cmd->SetPipelineState(backgroundPipe[is_msaa ? 1 : 0]);
-        cmd->DrawInstanced(3, 1, 6, 0);
-
-        // add a marker so we can easily locate this draw
-        setMarker(cmd, is_msaa ? "MSAA Test" : "Normal Test");
-
-        cmd->SetPipelineState(pipe[is_msaa ? 1 : 0]);
-        cmd->DrawInstanced(24, 1, 9, 0);
-
-        if(!is_msaa)
-        {
-          setMarker(cmd, "Viewport Test");
-
-          RSSetViewport(cmd, {10.0f, 10.0f, 80.0f, 80.0f, 0.0f, 1.0f});
-          RSSetScissorRect(cmd, {24, 24, 76, 76});
-          cmd->SetPipelineState(backgroundPipe[0]);
-          cmd->DrawInstanced(3, 1, 33, 0);
-        }
-      }
-
-      D3D12_CPU_DESCRIPTOR_HANDLE subrtv = MakeRTV(subtex)
-                                               .Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)
-                                               .FirstSlice(2)
-                                               .NumSlices(1)
-                                               .FirstMip(2)
-                                               .NumMips(1)
-                                               .CreateCPU(1);
-
-      RSSetViewport(cmd, {5.0f, 5.0f, float(screenWidth) / 4.0f - 10.0f,
-                          float(screenHeight) / 4.0f - 10.0f, 0.0f, 1.0f});
-      RSSetScissorRect(cmd, {0, 0, screenWidth / 4, screenHeight / 4});
-
-      OMSetRenderTargets(cmd, {subrtv}, {});
-
-      ClearRenderTargetView(cmd, subrtv, {0.0f, 0.0f, 0.0f, 1.0f});
-
-      cmd->SetPipelineState(whitepipe);
-
-      subrtv = MakeRTV(subtex)
-                   .Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)
-                   .FirstSlice(2)
-                   .NumSlices(1)
-                   .FirstMip(3)
-                   .NumMips(1)
-                   .CreateCPU(1);
-
-      setMarker(cmd, "Subresources mip 2");
-      cmd->DrawInstanced(24, 1, 9, 0);
-
-      RSSetViewport(cmd, {2.0f, 2.0f, float(screenWidth / 8) - 4.0f, float(screenHeight / 8) - 4.0f,
-                          0.0f, 1.0f});
-      RSSetScissorRect(cmd, {0, 0, screenWidth / 8, screenHeight / 8});
-
-      OMSetRenderTargets(cmd, {subrtv}, {});
-
-      ClearRenderTargetView(cmd, subrtv, {0.0f, 0.0f, 0.0f, 1.0f});
-
-      setMarker(cmd, "Subresources mip 3");
-      cmd->DrawInstanced(24, 1, 9, 0);
-
-      cmd->Close();
-
-      Submit({cmd});
-
-      {
-        cmd = GetCommandBuffer();
+        ID3D12GraphicsCommandListPtr cmd = GetCommandBuffer();
 
         Reset(cmd);
 
-        D3D12_CPU_DESCRIPTOR_HANDLE rtv =
-            MakeRTV(bb).Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB).CreateCPU(0);
+        if(pass == 0)
+          bb = StartUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-        cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        pushMarker(cmd, profile + " tests");
 
-        IASetVertexBuffer(cmd, vb, sizeof(DefaultA2V), 0);
-        cmd->SetGraphicsRootSignature(sig);
+        for(bool is_msaa : {false, true})
+        {
+          D3D12_CPU_DESCRIPTOR_HANDLE rtv =
+              MakeRTV(is_msaa ? msaatex : bb).Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB).CreateCPU(0);
 
-        OMSetRenderTargets(cmd, {rtv}, {});
+          cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-        cmd->SetPipelineState(whitepipe);
+          IASetVertexBuffer(cmd, vb, sizeof(DefaultA2V), 0);
+          cmd->SetGraphicsRootSignature(sig);
 
-        setMarker(cmd, "NoView draw");
+          RSSetViewport(cmd, {10.0f, 10.0f, (float)screenWidth - 20.0f, (float)screenHeight - 20.0f,
+                              0.0f, 1.0f});
+          RSSetScissorRect(cmd, {0, 0, screenWidth, screenHeight});
 
-        cmd->DrawInstanced(3, 1, 33, 0);
+          OMSetRenderTargets(cmd, {rtv}, MakeDSV(is_msaa ? msaadsv : dsv).CreateCPU(0));
+
+          ClearRenderTargetView(cmd, rtv, {0.2f, 0.2f, 0.2f, 1.0f});
+          ClearDepthStencilView(cmd, is_msaa ? msaadsv : dsv,
+                                D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0);
+
+          cmd->OMSetStencilRef(0x55);
+
+          // draw the setup triangles
+          cmd->SetPipelineState(depthWritePipe[pass][is_msaa ? 1 : 0]);
+          cmd->DrawInstanced(3, 1, 0, 0);
+
+          cmd->SetPipelineState(stencilWritePipe[pass][is_msaa ? 1 : 0]);
+          cmd->DrawInstanced(3, 1, 3, 0);
+
+          cmd->SetPipelineState(backgroundPipe[pass][is_msaa ? 1 : 0]);
+          cmd->DrawInstanced(3, 1, 6, 0);
+
+          // add a marker so we can easily locate this draw
+          setMarker(cmd, is_msaa ? "MSAA Test" : "Normal Test");
+
+          cmd->SetPipelineState(pipe[pass][is_msaa ? 1 : 0]);
+          cmd->DrawInstanced(24, 1, 9, 0);
+
+          if(!is_msaa)
+          {
+            setMarker(cmd, "Viewport Test");
+
+            RSSetViewport(cmd, {10.0f, 10.0f, 80.0f, 80.0f, 0.0f, 1.0f});
+            RSSetScissorRect(cmd, {24, 24, 76, 76});
+            cmd->SetPipelineState(backgroundPipe[pass][0]);
+            cmd->DrawInstanced(3, 1, 33, 0);
+          }
+        }
+
+        D3D12_CPU_DESCRIPTOR_HANDLE subrtv = MakeRTV(subtex)
+                                                 .Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)
+                                                 .FirstSlice(2)
+                                                 .NumSlices(1)
+                                                 .FirstMip(2)
+                                                 .NumMips(1)
+                                                 .CreateCPU(1);
+
+        RSSetViewport(cmd, {5.0f, 5.0f, float(screenWidth) / 4.0f - 10.0f,
+                            float(screenHeight) / 4.0f - 10.0f, 0.0f, 1.0f});
+        RSSetScissorRect(cmd, {0, 0, screenWidth / 4, screenHeight / 4});
+
+        OMSetRenderTargets(cmd, {subrtv}, {});
+
+        ClearRenderTargetView(cmd, subrtv, {0.0f, 0.0f, 0.0f, 1.0f});
+
+        cmd->SetPipelineState(whitepipe[pass]);
+
+        subrtv = MakeRTV(subtex)
+                     .Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)
+                     .FirstSlice(2)
+                     .NumSlices(1)
+                     .FirstMip(3)
+                     .NumMips(1)
+                     .CreateCPU(1);
+
+        setMarker(cmd, "Subresources mip 2");
+        cmd->DrawInstanced(24, 1, 9, 0);
+
+        RSSetViewport(cmd, {2.0f, 2.0f, float(screenWidth / 8) - 4.0f,
+                            float(screenHeight / 8) - 4.0f, 0.0f, 1.0f});
+        RSSetScissorRect(cmd, {0, 0, screenWidth / 8, screenHeight / 8});
+
+        OMSetRenderTargets(cmd, {subrtv}, {});
+
+        ClearRenderTargetView(cmd, subrtv, {0.0f, 0.0f, 0.0f, 1.0f});
+
+        setMarker(cmd, "Subresources mip 3");
+        cmd->DrawInstanced(24, 1, 9, 0);
+
+        cmd->Close();
+
+        Submit({cmd});
+
+        {
+          cmd = GetCommandBuffer();
+
+          Reset(cmd);
+
+          D3D12_CPU_DESCRIPTOR_HANDLE rtv =
+              MakeRTV(bb).Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB).CreateCPU(0);
+
+          cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+          IASetVertexBuffer(cmd, vb, sizeof(DefaultA2V), 0);
+          cmd->SetGraphicsRootSignature(sig);
+
+          OMSetRenderTargets(cmd, {rtv}, {});
+
+          cmd->SetPipelineState(whitepipe[0]);
+
+          setMarker(cmd, "NoView draw");
+
+          cmd->DrawInstanced(3, 1, 33, 0);
+
+          popMarker(cmd);
+
+          cmd->Close();
+        }
+
+        Submit({cmd});
+
+        pass++;
+      }
+
+      {
+        ID3D12GraphicsCommandListPtr cmd = GetCommandBuffer();
+
+        Reset(cmd);
 
         FinishUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
         cmd->Close();
-      }
 
-      Submit({cmd});
+        Submit({cmd});
+      }
 
       Present();
     }

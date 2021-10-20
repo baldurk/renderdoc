@@ -159,6 +159,7 @@ public:
 
   void RemoveOperation(size_t idx, size_t count = 1) { m_Instructions.erase(idx, count); }
   Operation &GetInstruction(size_t idx) { return m_Instructions[idx]; };
+  Declaration &GetDeclaration(size_t idx) { return m_Declarations[idx]; };
 private:
   bytebuf &m_OutBlob;
   bool m_SM51 = false;

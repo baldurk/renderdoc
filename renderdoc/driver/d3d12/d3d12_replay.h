@@ -238,6 +238,8 @@ public:
   bool IsRenderOutput(ResourceId id) { return GetRenderOutputSubresource(id).mip != ~0U; }
   void FileChanged() {}
   AMDCounters *GetAMDCounters() { return m_pAMDCounters; }
+  void PatchQuadWritePS(D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC &pipeDesc, bool dxil);
+
 private:
   void FillRootElements(uint32_t eventId, const D3D12RenderState::RootSignature &rootSig,
                         const ShaderBindpointMapping *mappings[(uint32_t)ShaderStage::Count],
@@ -480,6 +482,8 @@ private:
   D3D12AMDActionCallback *m_pAMDActionCallback = NULL;
 
   rdcarray<rdcstr> m_CustomShaderIncludes;
+
+  std::map<rdcfixedarray<uint32_t, 4>, bytebuf> m_PatchedPSCache;
 
   void FillTimersAMD(uint32_t *eventStartID, uint32_t *sampleIndex, rdcarray<uint32_t> *eventIDs);
 

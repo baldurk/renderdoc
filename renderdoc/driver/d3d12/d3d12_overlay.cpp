@@ -23,12 +23,17 @@
  ******************************************************************************/
 
 #include "common/shader_cache.h"
+#include "core/settings.h"
 #include "data/resource.h"
 #include "driver/dx/official/d3dcompiler.h"
 #include "driver/dxgi/dxgi_common.h"
+#include "driver/shaders/dxbc/dxbc_bytecode_editor.h"
+#include "driver/shaders/dxil/dxil_bytecode_editor.h"
+#include "driver/shaders/dxil/dxil_common.h"
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
 #include "maths/vec.h"
+#include "serialise/streamio.h"
 #include "stb/stb_truetype.h"
 #include "strings/string_utils.h"
 #include "d3d12_command_list.h"
@@ -40,20 +45,15 @@
 
 #include "data/hlsl/hlsl_cbuffers.h"
 
+RDOC_CONFIG(rdcstr, D3D12_Debug_OverlayDumpDirPath, "",
+            "Path to dump quad overdraw patched DXIL files.");
+
 struct D3D12QuadOverdrawCallback : public D3D12ActionCallback
 {
-  D3D12QuadOverdrawCallback(WrappedID3D12Device *dev, D3D12_SHADER_BYTECODE quadWrite,
-                            D3D12_SHADER_BYTECODE quadWriteDXIL, const rdcarray<uint32_t> &events,
+  D3D12QuadOverdrawCallback(WrappedID3D12Device *dev, const rdcarray<uint32_t> &events,
                             ID3D12Resource *depth, ID3D12Resource *msdepth, PortableHandle dsv,
                             PortableHandle uav)
-      : m_pDevice(dev),
-        m_QuadWritePS(quadWrite),
-        m_QuadWriteDXILPS(quadWriteDXIL),
-        m_Events(events),
-        m_Depth(depth),
-        m_MSDepth(msdepth),
-        m_DSV(dsv),
-        m_UAV(uav)
+      : m_pDevice(dev), m_Events(events), m_Depth(depth), m_MSDepth(msdepth), m_DSV(dsv), m_UAV(uav)
   {
     m_pDevice->GetQueue()->GetCommandData()->m_ActionCallback = this;
   }
@@ -144,19 +144,17 @@ struct D3D12QuadOverdrawCallback : public D3D12ActionCallback
       bool dxil =
           DXBC::DXBCContainer::CheckForDXIL(pipeDesc.VS.pShaderBytecode, pipeDesc.VS.BytecodeLength);
 
-      if(dxil)
+      // dxil is stricter about pipeline signatures matching. On D3D11 there's an error but all
+      // drivers handle a PS that reads no VS outputs and only screenspace SV_Position and
+      // SV_Coverage. On D3D12 we need to patch to generate a new PS
+      m_pDevice->GetReplay()->PatchQuadWritePS(pipeDesc, dxil);
+      if(pipeDesc.PS.BytecodeLength == 0)
       {
-        pipeDesc.PS = m_QuadWriteDXILPS;
-        if(pipeDesc.PS.BytecodeLength == 0)
-        {
-          m_pDevice->AddDebugMessage(MessageCategory::Shaders, MessageSeverity::High,
-                                     MessageSource::UnsupportedConfiguration,
-                                     "No DXIL shader available for overlay");
-        }
-      }
-      else
-      {
-        pipeDesc.PS = m_QuadWritePS;
+        m_pDevice->AddDebugMessage(
+            MessageCategory::Shaders, MessageSeverity::High, MessageSource::UnsupportedConfiguration,
+            StringFormat::Fmt("No quad write %s shader available for overlay",
+                              dxil ? "DXIL" : "DXBC"));
+        return;
       }
 
       pipeDesc.pRootSignature = cache.sig;
@@ -252,8 +250,6 @@ struct D3D12QuadOverdrawCallback : public D3D12ActionCallback
   }
 
   WrappedID3D12Device *m_pDevice;
-  D3D12_SHADER_BYTECODE m_QuadWritePS;
-  D3D12_SHADER_BYTECODE m_QuadWriteDXILPS;
   const rdcarray<uint32_t> &m_Events;
   PortableHandle m_UAV;
   PortableHandle m_DSV;
@@ -298,6 +294,697 @@ static void SetRTVDesc(D3D12_RENDER_TARGET_VIEW_DESC &rtDesc, const D3D12_RESOUR
     if(texDesc.SampleDesc.Count > 1)
       rtDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
   }
+}
+
+void D3D12Replay::PatchQuadWritePS(D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC &pipeDesc, bool dxil)
+{
+  pipeDesc.PS.pShaderBytecode = NULL;
+  pipeDesc.PS.BytecodeLength = 0;
+
+  ID3DBlob *quadWriteBlob = dxil ? m_Overlay.QuadOverdrawWriteDXILPS : m_Overlay.QuadOverdrawWritePS;
+
+  if(!quadWriteBlob)
+  {
+    RDCERR("Compiled quad overdraw write %s blob isn't available", dxil ? "DXIL" : "DXBC");
+    return;
+  }
+
+  D3D12_SHADER_BYTECODE *rastFeeding = &pipeDesc.VS;
+
+  if(pipeDesc.DS.BytecodeLength > 0)
+    rastFeeding = &pipeDesc.DS;
+
+  uint32_t hash[4];
+  DXBC::DXBCContainer::GetHash(hash, rastFeeding->pShaderBytecode, rastFeeding->BytecodeLength);
+
+  rdcfixedarray<uint32_t, 4> key = hash;
+
+  bytebuf &patchedPs = m_PatchedPSCache[key];
+
+  // check if we have this shader's matching PS cached already
+  if(!patchedPs.empty())
+  {
+    pipeDesc.PS.pShaderBytecode = patchedPs.data();
+    pipeDesc.PS.BytecodeLength = patchedPs.size();
+    return;
+  }
+
+  bytebuf rastFeedingBytes((const byte *)rastFeeding->pShaderBytecode, rastFeeding->BytecodeLength);
+
+  // get the DXBC for the previous stage
+  DXBC::DXBCContainer rastFeedingDXBC(rastFeedingBytes, rdcstr(), GraphicsAPI::D3D12, ~0U, ~0U);
+
+  bytebuf patchedDXBC((const byte *)quadWriteBlob->GetBufferPointer(),
+                      quadWriteBlob->GetBufferSize());
+
+  // if the previous stage already outputs position as the first register, we're done as the
+  // precompiled quadwrite will be compatible! no patching necessary
+  if(rastFeedingDXBC.GetReflection()->OutputSig.size() >= 1 &&
+     rastFeedingDXBC.GetReflection()->OutputSig[0].regIndex == 0 &&
+     rastFeedingDXBC.GetReflection()->OutputSig[0].systemValue == ShaderBuiltin::Position)
+  {
+    patchedDXBC.swap(patchedPs);
+
+    pipeDesc.PS.pShaderBytecode = patchedPs.data();
+    pipeDesc.PS.BytecodeLength = patchedPs.size();
+    return;
+  }
+
+  if(!D3D12_Debug_OverlayDumpDirPath().empty())
+    FileIO::WriteAll(D3D12_Debug_OverlayDumpDirPath() + "/before_quadps.dxbc", patchedDXBC);
+
+  DXBC::DXBCContainer quadOverdrawDXBC(patchedDXBC, rdcstr(), GraphicsAPI::D3D12, ~0U, ~0U);
+
+  if(dxil)
+  {
+    rdcstr stringTable;
+    stringTable.push_back('\0');
+
+    rdcarray<uint32_t> semanticIndexTable;
+
+    rdcarray<uint32_t> stringTableOffsets;
+    rdcarray<uint32_t> semanticIndexTableOffsets;
+
+    {
+      // use a local bytebuf so that if we error out, patchedPs above won't be modified
+      DXIL::ProgramEditor editor(
+          &quadOverdrawDXBC, rastFeedingDXBC.GetDXILByteCode()->GetMetadataCount() * 2, patchedDXBC);
+
+      const DXIL::Type *i32 = editor.GetInt32Type();
+      const DXIL::Type *i8 = editor.GetInt8Type();
+
+      // We need to make two changes: copy the raster-feeding shader's output signature wholesale
+      // into
+      // the pixel shader. It only needs position, which *must* have been written by definition, the
+      // coverage input comes from an intrinsic. None of the properties should need to change, so
+      // it's
+      // a pure deep copy of metadata and properties to ensure a compatible signature.
+      //
+      // After that, we need to find the input load ops in the original shader, and patch the row it
+      // refers to (it would have been 0 previously). Since position is a full float4 we shouldn't
+      // have to change anything else
+
+      const DXIL::Metadata *rastEntryPoints =
+          rastFeedingDXBC.GetDXILByteCode()->GetMetadataByName("dx.entryPoints");
+
+      if(!rastEntryPoints)
+      {
+        RDCERR("Couldn't find entry point list");
+        return;
+      }
+
+      // TODO select the entry point for multiple entry points? RT only for now
+      RDCASSERT(rastEntryPoints->children.size() > 0 && rastEntryPoints->children[0]);
+      const DXIL::Metadata *rastEntry = rastEntryPoints->children[0];
+
+      RDCASSERT(rastEntry->children.size() > 2 && rastEntry->children[2]);
+      const DXIL::Metadata *rastSigs = rastEntry->children[2];
+
+      RDCASSERT(rastSigs->children.size() > 1 && rastSigs->children[1]);
+      const DXIL::Metadata *rastOutSig = rastSigs->children[1];
+
+      DXIL::Metadata *entryPoints = editor.GetMetadataByName("dx.entryPoints");
+
+      if(!entryPoints)
+      {
+        RDCERR("Couldn't find entry point list");
+        return;
+      }
+
+      // TODO select the entry point for multiple entry points? RT only for now
+      RDCASSERT(entryPoints->children.size() > 0 && entryPoints->children[0]);
+      DXIL::Metadata *entry = entryPoints->children[0];
+
+      rdcstr entryName = entry->children[1]->str;
+
+      RDCASSERT(entry->children.size() > 2 && entry->children[2]);
+      DXIL::Metadata *sigs = entry->children[2];
+
+      RDCASSERT(sigs->children.size() > 0);
+
+      DXIL::Metadata inputSig;
+
+      uint32_t posID = ~0U;
+
+#define DUPLICATE_META_CONSTANT(newConst, type_, oldConst)                                      \
+  {                                                                                             \
+    DXIL::Metadata m;                                                                           \
+    m.isConstant = true;                                                                        \
+    m.type = type_;                                                                             \
+    m.value = DXIL::Value(                                                                      \
+        editor.GetOrAddConstant(DXIL::Constant(type_, oldConst->value.constant->val.u32v[0]))); \
+    newConst = editor.AddMetadata(m);                                                           \
+  }
+
+      for(size_t i = 0; i < rastOutSig->children.size(); i++)
+      {
+        const DXIL::Metadata *oldSigEl = rastOutSig->children[i];
+        DXIL::Metadata newSigEl;
+
+        newSigEl.children.resize(oldSigEl->children.size());
+
+        // element ID
+        DUPLICATE_META_CONSTANT(newSigEl.children[0], i32, oldSigEl->children[0]);
+
+        // semantic name
+        {
+          DXIL::Metadata m;
+          m.isString = true;
+          m.str = oldSigEl->children[1]->str;
+          newSigEl.children[1] = editor.AddMetadata(m);
+
+          // only append non-system values to the string table
+          if(oldSigEl->children[3]->value.constant->val.u32v[0] == 0)
+          {
+            stringTableOffsets.push_back((uint32_t)stringTable.size());
+            stringTable.append(m.str);
+            stringTable.push_back('\0');
+          }
+          else
+          {
+            stringTableOffsets.push_back(0);
+          }
+        }
+
+        // component type
+        DUPLICATE_META_CONSTANT(newSigEl.children[2], i8, oldSigEl->children[2]);
+
+        // semantic kind
+        DUPLICATE_META_CONSTANT(newSigEl.children[3], i8, oldSigEl->children[3]);
+
+        // SV_Position is 3
+        if(oldSigEl->children[3]->value.constant->val.u32v[0] == 3)
+          posID = oldSigEl->children[0]->value.constant->val.u32v[0];
+
+        rdcarray<uint32_t> semIndexValues;
+
+        // semantic indices
+        const DXIL::Metadata *oldSemIdxs = oldSigEl->children[4];
+        if(oldSemIdxs)
+        {
+          DXIL::Metadata semanticIndices;
+
+          // the semantic index node is a list of constants
+          semanticIndices.children.resize(oldSemIdxs->children.size());
+          for(size_t sidx = 0; sidx < oldSemIdxs->children.size(); sidx++)
+          {
+            DUPLICATE_META_CONSTANT(semanticIndices.children[sidx], i32, oldSemIdxs->children[sidx]);
+            semIndexValues.push_back(oldSemIdxs->children[sidx]->value.constant->val.u32v[0]);
+          }
+
+          // copy the list
+          newSigEl.children[4] = editor.AddMetadata(semanticIndices);
+        }
+
+        size_t tableOffset = ~0U;
+
+        // try to find semIndexValues in semanticIndexTable
+        for(size_t offs = 0; offs + semIndexValues.size() <= semanticIndexTable.size(); offs++)
+        {
+          bool match = true;
+          for(size_t sidx = 0; sidx < semIndexValues.size(); sidx++)
+          {
+            if(semanticIndexTable[offs + sidx] != semIndexValues[sidx])
+            {
+              match = false;
+              break;
+            }
+          }
+
+          if(match)
+          {
+            tableOffset = offs;
+            break;
+          }
+        }
+
+        // if we didn't find it, append
+        if(tableOffset == ~0U)
+        {
+          tableOffset = semanticIndexTable.size();
+          semanticIndexTable.append(semIndexValues);
+        }
+
+        semanticIndexTableOffsets.push_back((uint32_t)tableOffset);
+
+        // interpolation mode
+        DUPLICATE_META_CONSTANT(newSigEl.children[5], i8, oldSigEl->children[5]);
+
+        // number of rows
+        DUPLICATE_META_CONSTANT(newSigEl.children[6], i32, oldSigEl->children[6]);
+
+        // number of columns
+        DUPLICATE_META_CONSTANT(newSigEl.children[7], i8, oldSigEl->children[7]);
+
+        // start row
+        DUPLICATE_META_CONSTANT(newSigEl.children[8], i32, oldSigEl->children[8]);
+
+        // start column
+        DUPLICATE_META_CONSTANT(newSigEl.children[9], i8, oldSigEl->children[9]);
+
+        // the extra tag/thing list is also a series of ints
+        const DXIL::Metadata *oldTagList = oldSigEl->children[10];
+        if(oldTagList)
+        {
+          DXIL::Metadata tagList;
+
+          // the semantic index node is a list of constants
+          tagList.children.resize(oldTagList->children.size());
+          for(size_t sidx = 0; sidx < oldTagList->children.size(); sidx++)
+          {
+            DUPLICATE_META_CONSTANT(tagList.children[sidx], i32, oldTagList->children[sidx]);
+          }
+
+          // copy the list
+          newSigEl.children[10] = editor.AddMetadata(tagList);
+        }
+
+        inputSig.children.push_back(editor.AddMetadata(newSigEl));
+      }
+
+      if(posID == ~0U)
+      {
+        RDCERR("Couldn't find position output in previous shader");
+        return;
+      }
+
+      // recreate input signature list, for backwards references
+      sigs->children[0] = editor.AddMetadata(inputSig);
+
+      // recreate backwards upwards
+      sigs = editor.AddMetadata(*sigs);
+      entry->children[2] = sigs;
+      entry = editor.AddMetadata(*entry);
+      entryPoints->children[0] = entry;
+
+      DXIL::Function *f = editor.GetFunctionByName(entryName);
+
+      if(!f)
+      {
+        RDCERR("Couldn't find entry point function '%s'", entryName.c_str());
+        return;
+      }
+
+      DXIL::Value inputIDValue(editor.GetOrAddConstant(f, DXIL::Constant(i32, posID)));
+
+      // now locate the loadInputs and patch the row they refer to. We can unconditionally patch
+      // them all as there was only one input previously
+      for(size_t i = 0; i < f->instructions.size(); i++)
+      {
+        DXIL::Instruction &inst = f->instructions[i];
+
+        if(inst.op == DXIL::Operation::Call && inst.funcCall->name == "dx.op.loadInput.f32")
+        {
+          if(inst.args.size() != 5)
+          {
+            RDCERR("Unexpected number of arguments to createHandle");
+            continue;
+          }
+
+          // arg[0] is the loadInput magic number
+          // arg[1] is the ID we want to patch
+
+          inst.args[1] = inputIDValue;
+        }
+      }
+    }
+
+    {
+      // do a horrible franken-patch to merge the PSV0 chunks. We use the header from the existing
+      // PS,
+      // change the number of declared input elements, then copy the signature elements from the
+      // last
+      // shader's chunk. We can't copy the whole string table because that will likely include other
+      // strings and then the damned thing won't match according to the runtime's validation.
+      size_t rastPsv0Size = 0;
+      const byte *rastPsv0Bytes =
+          DXBC::DXBCContainer::FindChunk(rastFeedingBytes, DXBC::FOURCC_PSV0, rastPsv0Size);
+      StreamReader rastPsv0(rastPsv0Bytes, rastPsv0Size);
+
+      size_t psPsv0Size = 0;
+      const byte *psPsv0Bytes =
+          DXBC::DXBCContainer::FindChunk(patchedDXBC, DXBC::FOURCC_PSV0, psPsv0Size);
+      StreamReader psPsv0(psPsv0Bytes, psPsv0Size);
+
+      StreamWriter mergedPsv0(1024);
+
+      uint32_t rastHeaderSize = 0;
+      if(!rastPsv0.Read<uint32_t>(rastHeaderSize))
+        return;
+
+      uint32_t psHeaderSize = 0;
+      if(!psPsv0.Read<uint32_t>(psHeaderSize))
+        return;
+
+      struct PSVHeader0
+      {
+        uint32_t unused[6];
+      };
+
+      struct PSVHeader1 : public PSVHeader0
+      {
+        // other data
+        uint32_t unused1;
+
+        // signature element counts
+        uint8_t inputEls;
+        uint8_t outputEls;
+        uint8_t patchConstEls;
+
+        // signature vector counts
+        uint8_t inputVecs;
+        uint8_t outputVecs[4];
+      };
+
+      struct PSVHeader2 : public PSVHeader1
+      {
+        uint32_t NumThreadsX;
+        uint32_t NumThreadsY;
+        uint32_t NumThreadsZ;
+      };
+
+      bytebuf copyBuf;
+      PSVHeader2 rastHeader = {}, psHeader = {};
+
+      if(rastHeaderSize < sizeof(PSVHeader1))
+      {
+        // only copy the header0 part out of the ps one since we won't have signature data to copy,
+        // hope this is OK
+
+        // read the whole ps header
+        psPsv0.Read(&psHeader, psHeaderSize);
+
+        // write only the old sized header
+        mergedPsv0.Write(rastHeaderSize);
+        mergedPsv0.Write(&psHeader, rastHeaderSize);
+      }
+      else
+      {
+        rastPsv0.Read(&rastHeader, rastHeaderSize);
+        psPsv0.Read(&psHeader, psHeaderSize);
+
+        // copy the previous output signature into the ps input
+        psHeader.inputEls = rastHeader.outputEls;
+        psHeader.inputVecs = rastHeader.outputVecs[0];
+
+        // the ps header should have no other elements for us to worry about
+        RDCASSERT(psHeader.outputEls == 0);
+        RDCASSERT(psHeader.patchConstEls == 0);
+        RDCASSERT(psHeader.outputVecs[0] == 0);
+        RDCASSERT(psHeader.outputVecs[1] == 0);
+        RDCASSERT(psHeader.outputVecs[2] == 0);
+        RDCASSERT(psHeader.outputVecs[3] == 0);
+
+        // we should have a table offset for each output entry
+        RDCASSERT(rastHeader.outputEls == stringTableOffsets.size());
+        RDCASSERT(rastHeader.outputEls == semanticIndexTableOffsets.size());
+
+        mergedPsv0.Write(psHeaderSize);
+        mergedPsv0.Write(&psHeader, psHeaderSize);
+      }
+
+      // skip resource counts in raster side shader
+      uint32_t rastResCount = 0;
+      if(!rastPsv0.Read<uint32_t>(rastResCount))
+        return;
+
+      if(rastResCount > 0)
+      {
+        uint32_t resSize = 0;
+        if(!rastPsv0.Read<uint32_t>(resSize))
+          return;
+        rastPsv0.SkipBytes(rastResCount * resSize);
+      }
+
+      uint32_t psResCount = 0;
+      if(!psPsv0.Read<uint32_t>(psResCount))
+        return;
+      mergedPsv0.Write(psResCount);
+
+      // copy any resources in the pixel psv0
+      if(psResCount > 0)
+      {
+        uint32_t resSize = 0;
+        if(!psPsv0.Read<uint32_t>(resSize))
+          return;
+        mergedPsv0.Write(resSize);
+        copyBuf.resize(psResCount * resSize);
+        psPsv0.Read(copyBuf.data(), copyBuf.size());
+        mergedPsv0.Write(copyBuf.data(), copyBuf.size());
+      }
+
+      // if we have a new header with signature elements (what we expect)
+      if(rastHeaderSize >= sizeof(PSVHeader1))
+      {
+        // we're effectively done with the rest of the ps chunk here, we're just going to copy the
+        // old
+        // chunk except skipping the input signature. There might be data we don't need in the
+        // string/indices tables but that's fine.
+
+        // align string table to multiple of 4 size
+        stringTable.resize(AlignUp4(stringTable.size()));
+
+        // skip the old string table and semantic index table
+        uint32_t stringTableSize = 0;
+        if(!rastPsv0.Read<uint32_t>(stringTableSize))
+          return;
+        rastPsv0.SkipBytes(stringTableSize);
+
+        uint32_t indexTableSize = 0;
+        if(!rastPsv0.Read<uint32_t>(indexTableSize))
+          return;
+        rastPsv0.SkipBytes(indexTableSize * sizeof(uint32_t));
+
+        mergedPsv0.Write((uint32_t)stringTable.size());
+        mergedPsv0.Write(stringTable.data(), stringTable.size());
+
+        mergedPsv0.Write((uint32_t)semanticIndexTable.size());
+        mergedPsv0.Write(semanticIndexTable.data(), semanticIndexTable.byteSize());
+
+        uint32_t sigElSize = 0;
+        if(!rastPsv0.Read<uint32_t>(sigElSize))
+          return;
+        mergedPsv0.Write(sigElSize);
+
+        // skip any inputs from the previous stage, we don't want to copy that
+        rastPsv0.SkipBytes(rastHeader.inputEls * sigElSize);
+
+        struct PSVSigElement
+        {
+          uint32_t stringTableOffset;
+          uint32_t semanticTableOffset;
+        };
+
+        // copy the output elements, this will become the input elements. We need to modify the
+        // table
+        // offsets to match the one we generated
+        for(uint8_t el = 0; el < rastHeader.outputEls; el++)
+        {
+          copyBuf.resize(sigElSize);
+          rastPsv0.Read(copyBuf.data(), copyBuf.size());
+          PSVSigElement *sigEl = (PSVSigElement *)copyBuf.data();
+          sigEl->stringTableOffset = stringTableOffsets[el];
+          sigEl->semanticTableOffset = semanticIndexTableOffsets[el];
+
+          mergedPsv0.Write(copyBuf.data(), copyBuf.size());
+        }
+      }
+
+      DXBC::DXBCContainer::ReplaceChunk(patchedDXBC, DXBC::FOURCC_PSV0, mergedPsv0.GetData(),
+                                        (size_t)mergedPsv0.GetOffset());
+    }
+  }
+  else    // dxbc bytecode not dxil
+  {
+    using namespace DXBCBytecode;
+    using namespace DXBCBytecode::Edit;
+
+    ProgramEditor editor(&quadOverdrawDXBC, patchedDXBC);
+
+    // find out which register the previous shader used to write position, we don't need to declare
+    // any of the others just match the register
+    uint32_t posReg = 0;
+    for(const SigParameter &sig : rastFeedingDXBC.GetReflection()->OutputSig)
+    {
+      if(sig.systemValue == ShaderBuiltin::Position)
+      {
+        posReg = sig.regIndex;
+        break;
+      }
+    }
+
+    for(size_t i = 0; i < editor.GetNumDeclarations(); i++)
+    {
+      Declaration &decl = editor.GetDeclaration(i);
+
+      // there's only one SIV input
+      if(decl.declaration == OpcodeType::OPCODE_DCL_INPUT_PS_SIV)
+      {
+        RDCASSERT(decl.operand.type == OperandType::TYPE_INPUT);
+        if(decl.operand.indices.size() >= 1)
+        {
+          decl.operand.indices[0].index = posReg;
+        }
+        else
+        {
+          RDCERR("Unexpected number of indices for declared PS input");
+        }
+
+        break;
+      }
+    }
+
+    // now patch any instructions that reference the input
+    for(size_t i = 0; i < editor.GetNumInstructions(); i++)
+    {
+      Operation &op = editor.GetInstruction(i);
+
+      for(Operand &operand : op.operands)
+      {
+        if(operand.type == OperandType::TYPE_INPUT && operand.indices.size() == 1 &&
+           operand.indices[0].index == 0)
+          operand.indices[0].index = posReg;
+      }
+    }
+  }
+
+  // copy the raster shader's OSGX to the pixel's ISGX
+  {
+    struct SigElement
+    {
+      uint32_t nameOffset;
+      uint32_t semanticIdx;
+      uint32_t systemType;
+      uint32_t componentType;
+      uint32_t registerNum;
+      uint8_t mask;
+      uint8_t rwMask;
+      uint16_t unused;
+    };
+
+    struct SigElement7
+    {
+      uint32_t stream;
+      SigElement el;
+    };
+
+    struct SigElement1
+    {
+      SigElement7 el7;
+      uint32_t precision;
+    };
+
+    bytebuf osg;
+
+    StreamWriter isg(1024);
+
+    size_t inSigElSize = 0;
+    size_t outSigElSize = 0;
+
+    size_t rastOSGSize = 0;
+    const byte *rastOSGBytes =
+        DXBC::DXBCContainer::FindChunk(rastFeedingBytes, DXBC::FOURCC_OSG1, rastOSGSize);
+
+    if(rastOSGBytes)
+    {
+      osg.assign(rastOSGBytes, rastOSGSize);
+      inSigElSize = sizeof(SigElement1);
+    }
+    else
+    {
+      rastOSGBytes = DXBC::DXBCContainer::FindChunk(rastFeedingBytes, DXBC::FOURCC_OSG5, rastOSGSize);
+
+      if(rastOSGBytes)
+      {
+        osg.assign(rastOSGBytes, rastOSGSize);
+        inSigElSize = sizeof(SigElement7);
+      }
+      else
+      {
+        rastOSGBytes =
+            DXBC::DXBCContainer::FindChunk(rastFeedingBytes, DXBC::FOURCC_OSGN, rastOSGSize);
+
+        if(!rastOSGBytes)
+        {
+          RDCERR("Couldn't find any output signature in rasterizing-feeding shader");
+          return;
+        }
+
+        osg.assign(rastOSGBytes, rastOSGSize);
+        inSigElSize = sizeof(SigElement);
+      }
+    }
+
+    size_t sz;
+
+    if(DXBC::DXBCContainer::FindChunk(patchedDXBC, DXBC::FOURCC_ISG1, sz))
+    {
+      outSigElSize = sizeof(SigElement1);
+    }
+    else if(DXBC::DXBCContainer::FindChunk(patchedDXBC, DXBC::FOURCC_ISGN, sz))
+    {
+      outSigElSize = sizeof(SigElement);
+    }
+    else
+    {
+      RDCERR("Couldn't find any input signature in pixel shader");
+      return;
+    }
+
+    uint32_t *u = (uint32_t *)osg.data();
+
+    uint32_t numSigEls = *u;
+
+    isg.Write(u[0]);
+    isg.Write(u[1]);
+
+    for(uint32_t el = 0; el < numSigEls; el++)
+    {
+      SigElement1 s = {};
+
+      size_t offset = sizeof(uint32_t) * 2 + inSigElSize * el;
+
+      // read the input element into wherever it sits. We can leave any other elements
+      // (stream/precision) as 0 and that's fine
+      if(inSigElSize == sizeof(SigElement1))
+        memcpy(&s, osg.data() + offset, inSigElSize);
+      else if(inSigElSize == sizeof(SigElement7))
+        memcpy(&s.el7, osg.data() + offset, inSigElSize);
+      else if(inSigElSize == sizeof(SigElement))
+        memcpy(&s.el7.el, osg.data() + offset, inSigElSize);
+
+      // set the rw mask
+      s.el7.el.rwMask = 0;
+
+      // dxbc seems to set the rwMask to .xy for position being read
+      if(!dxil && s.el7.el.systemType == 1)
+        s.el7.el.rwMask = 0x3;
+
+      // write the output element
+      if(inSigElSize == sizeof(SigElement1))
+        isg.Write(s);
+      else if(inSigElSize == sizeof(SigElement))
+        isg.Write(s.el7.el);
+    }
+
+    size_t stringsOffset = sizeof(uint32_t) * 2 + inSigElSize * numSigEls;
+    isg.Write(osg.data() + stringsOffset, osg.size() - stringsOffset);
+
+    DXBC::DXBCContainer::ReplaceChunk(
+        patchedDXBC, outSigElSize == sizeof(SigElement1) ? DXBC::FOURCC_ISG1 : DXBC::FOURCC_ISGN,
+        isg.GetData(), (size_t)isg.GetOffset());
+  }
+
+  // store the patched DXBC into the cache result
+  patchedDXBC.swap(patchedPs);
+
+  if(!D3D12_Debug_OverlayDumpDirPath().empty())
+    FileIO::WriteAll(D3D12_Debug_OverlayDumpDirPath() + "/after_quadps.dxbc", patchedPs);
+
+  DXBC::DXBCContainer(patchedPs, rdcstr(), GraphicsAPI::D3D12, ~0U, ~0U).GetDisassembly();
+
+  pipeDesc.PS.pShaderBytecode = patchedPs.data();
+  pipeDesc.PS.BytecodeLength = patchedPs.size();
 }
 
 RenderOutputSubresource D3D12Replay::GetRenderOutputSubresource(ResourceId id)
@@ -1365,17 +2052,6 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
 
       m_pDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);
 
-      D3D12_SHADER_BYTECODE quadWrite;
-      quadWrite.BytecodeLength = m_Overlay.QuadOverdrawWritePS->GetBufferSize();
-      quadWrite.pShaderBytecode = m_Overlay.QuadOverdrawWritePS->GetBufferPointer();
-
-      D3D12_SHADER_BYTECODE quadWriteDXIL = {};
-      if(m_Overlay.QuadOverdrawWriteDXILPS)
-      {
-        quadWriteDXIL.BytecodeLength = m_Overlay.QuadOverdrawWriteDXILPS->GetBufferSize();
-        quadWriteDXIL.pShaderBytecode = m_Overlay.QuadOverdrawWriteDXILPS->GetBufferPointer();
-      }
-
       ID3D12Resource *overrideDepth = NULL;
 
       ResourceId res = rs.GetDSVID();
@@ -1410,8 +2086,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       }
 
       // declare callback struct here
-      D3D12QuadOverdrawCallback cb(m_pDevice, quadWrite, quadWriteDXIL, events, overrideDepth,
-                                   overrideDepth ? curDepth : NULL,
+      D3D12QuadOverdrawCallback cb(m_pDevice, events, overrideDepth, overrideDepth ? curDepth : NULL,
                                    overrideDepth ? ToPortableHandle(dsv) : PortableHandle(),
                                    ToPortableHandle(GetDebugManager()->GetCPUHandle(OVERDRAW_UAV)));
 

@@ -304,6 +304,15 @@ bool Program::Valid(const byte *bytes, size_t length)
       ptr + offsetof(ProgramHeader, DxilMagic) + header->BitcodeOffset, header->BitcodeSize);
 }
 
+const Metadata *Program::GetMetadataByName(const rdcstr &name) const
+{
+  for(size_t i = 0; i < m_NamedMeta.size(); i++)
+    if(m_NamedMeta[i].name == name)
+      return &m_NamedMeta[i];
+
+  return NULL;
+}
+
 void ResolveForwardReference(Value &v)
 {
   if(!v.empty() && v.type == ValueType::Unknown)

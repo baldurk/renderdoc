@@ -671,6 +671,8 @@ public:
   void GetLocals(const DXBC::DXBCContainer *dxbc, size_t instruction, uintptr_t offset,
                  rdcarray<SourceVariableMapping> &locals) const override;
 
+  const Metadata *GetMetadataByName(const rdcstr &name) const;
+  size_t GetMetadataCount() const { return m_Metadata.size() + m_NamedMeta.size(); }
 protected:
   void MakeDisassemblyString();
 
