@@ -272,6 +272,10 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
               VkPhysicalDeviceInlineUniformBlockPropertiesEXT);                                      \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_3_PROPERTIES,                            \
               VkPhysicalDeviceMaintenance3Properties);                                               \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_4_FEATURES_KHR,                          \
+              VkPhysicalDeviceMaintenance4FeaturesKHR);                                              \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_4_PROPERTIES_KHR,                        \
+              VkPhysicalDeviceMaintenance4PropertiesKHR);                                            \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT,                        \
               VkPhysicalDeviceMemoryBudgetPropertiesEXT);                                            \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2,                                 \
@@ -661,10 +665,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_CU_FUNCTION_CREATE_INFO_NVX:                                       \
   case VK_STRUCTURE_TYPE_CU_LAUNCH_INFO_NVX:                                                \
   case VK_STRUCTURE_TYPE_CU_MODULE_CREATE_INFO_NVX:                                         \
-  case VK_STRUCTURE_TYPE_DEVICE_BUFFER_MEMORY_REQUIREMENTS_KHR:                             \
   case VK_STRUCTURE_TYPE_DEVICE_DEVICE_MEMORY_REPORT_CREATE_INFO_EXT:                       \
   case VK_STRUCTURE_TYPE_DEVICE_DIAGNOSTICS_CONFIG_CREATE_INFO_NV:                          \
-  case VK_STRUCTURE_TYPE_DEVICE_IMAGE_MEMORY_REQUIREMENTS_KHR:                              \
   case VK_STRUCTURE_TYPE_DEVICE_MEMORY_OVERALLOCATION_CREATE_INFO_AMD:                      \
   case VK_STRUCTURE_TYPE_DEVICE_MEMORY_REPORT_CALLBACK_DATA_EXT:                            \
   case VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_LIST_2_EXT:                         \
@@ -731,8 +733,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_DRM_FORMAT_MODIFIER_INFO_EXT:                \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INHERITED_VIEWPORT_SCISSOR_FEATURES_NV:            \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INVOCATION_MASK_FEATURES_HUAWEI:                   \
-  case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_4_FEATURES_KHR:                        \
-  case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_4_PROPERTIES_KHR:                      \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV:                           \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV:                         \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTI_DRAW_FEATURES_EXT:                           \
@@ -944,12 +944,28 @@ size_t GetNextPatchSize(const void *pNext)
             memSize += info->pBindings[i].descriptorCount * sizeof(VkSampler);
         break;
       }
+      case VK_STRUCTURE_TYPE_DEVICE_BUFFER_MEMORY_REQUIREMENTS_KHR:
+      {
+        memSize += sizeof(VkDeviceBufferMemoryRequirementsKHR);
+
+        VkDeviceBufferMemoryRequirementsKHR *info = (VkDeviceBufferMemoryRequirementsKHR *)next;
+        memSize += GetNextPatchSize(info->pCreateInfo);
+        break;
+      }
       case VK_STRUCTURE_TYPE_DEVICE_GROUP_DEVICE_CREATE_INFO:
       {
         memSize += sizeof(VkDeviceGroupDeviceCreateInfo);
 
         VkDeviceGroupDeviceCreateInfo *info = (VkDeviceGroupDeviceCreateInfo *)next;
         memSize += info->physicalDeviceCount * sizeof(VkPhysicalDevice);
+        break;
+      }
+      case VK_STRUCTURE_TYPE_DEVICE_IMAGE_MEMORY_REQUIREMENTS_KHR:
+      {
+        memSize += sizeof(VkDeviceImageMemoryRequirementsKHR);
+
+        VkDeviceImageMemoryRequirementsKHR *info = (VkDeviceImageMemoryRequirementsKHR *)next;
+        memSize += GetNextPatchSize(info->pCreateInfo);
         break;
       }
       case VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO:
@@ -1669,6 +1685,23 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
 
         break;
       }
+      case VK_STRUCTURE_TYPE_DEVICE_BUFFER_MEMORY_REQUIREMENTS_KHR:
+      {
+        const VkDeviceBufferMemoryRequirementsKHR *in =
+            (const VkDeviceBufferMemoryRequirementsKHR *)nextInput;
+        VkDeviceBufferMemoryRequirementsKHR *out = (VkDeviceBufferMemoryRequirementsKHR *)tempMem;
+
+        // append immediately so tempMem is incremented
+        AppendModifiedChainedStruct(tempMem, out, nextChainTail);
+
+        out->sType = VK_STRUCTURE_TYPE_DEVICE_BUFFER_MEMORY_REQUIREMENTS_KHR;
+        out->pNext = in->pNext;
+
+        out->pCreateInfo = AllocStructCopy(tempMem, in->pCreateInfo);
+        UnwrapNextChain(state, "VkBufferCreateInfo", tempMem, (VkBaseInStructure *)out->pCreateInfo);
+
+        break;
+      }
       case VK_STRUCTURE_TYPE_DEVICE_GROUP_DEVICE_CREATE_INFO:
       {
         const VkDeviceGroupDeviceCreateInfo *in = (const VkDeviceGroupDeviceCreateInfo *)nextInput;
@@ -1686,6 +1719,24 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
 
         for(uint32_t i = 0; i < in->physicalDeviceCount; i++)
           outDevices[i] = Unwrap(in->pPhysicalDevices[i]);
+
+        break;
+      }
+      case VK_STRUCTURE_TYPE_DEVICE_IMAGE_MEMORY_REQUIREMENTS_KHR:
+      {
+        const VkDeviceImageMemoryRequirementsKHR *in =
+            (const VkDeviceImageMemoryRequirementsKHR *)nextInput;
+        VkDeviceImageMemoryRequirementsKHR *out = (VkDeviceImageMemoryRequirementsKHR *)tempMem;
+
+        // append immediately so tempMem is incremented
+        AppendModifiedChainedStruct(tempMem, out, nextChainTail);
+
+        out->sType = VK_STRUCTURE_TYPE_DEVICE_IMAGE_MEMORY_REQUIREMENTS_KHR;
+        out->pNext = in->pNext;
+        out->planeAspect = in->planeAspect;
+
+        out->pCreateInfo = AllocStructCopy(tempMem, in->pCreateInfo);
+        UnwrapNextChain(state, "VkImageCreateInfo", tempMem, (VkBaseInStructure *)out->pCreateInfo);
 
         break;
       }
@@ -2324,8 +2375,16 @@ void CopyNextChainForPatching(const char *structName, byte *&tempMem, VkBaseInSt
         CopyNextChainedStruct(sizeof(VkDescriptorSetLayoutCreateInfo), tempMem, nextInput,
                               nextChainTail);
         break;
+      case VK_STRUCTURE_TYPE_DEVICE_BUFFER_MEMORY_REQUIREMENTS_KHR:
+        CopyNextChainedStruct(sizeof(VkDeviceBufferMemoryRequirementsKHR), tempMem, nextInput,
+                              nextChainTail);
+        break;
       case VK_STRUCTURE_TYPE_DEVICE_GROUP_DEVICE_CREATE_INFO:
         CopyNextChainedStruct(sizeof(VkDeviceGroupDeviceCreateInfo), tempMem, nextInput,
+                              nextChainTail);
+        break;
+      case VK_STRUCTURE_TYPE_DEVICE_IMAGE_MEMORY_REQUIREMENTS_KHR:
+        CopyNextChainedStruct(sizeof(VkDeviceImageMemoryRequirementsKHR), tempMem, nextInput,
                               nextChainTail);
         break;
       case VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO:

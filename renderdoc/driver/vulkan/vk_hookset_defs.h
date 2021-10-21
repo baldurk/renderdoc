@@ -528,7 +528,8 @@
   DeclExt(EXT_extended_dynamic_state);          \
   DeclExt(KHR_copy_commands2);                  \
   DeclExt(KHR_synchronization2);                \
-  DeclExt(KHR_present_wait);
+  DeclExt(KHR_present_wait);                    \
+  DeclExt(KHR_maintenance4);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -870,6 +871,9 @@
   HookInitExtension(KHR_synchronization2, QueueSubmit2KHR);                                        \
   HookInitExtension(KHR_synchronization2 &&AMD_buffer_marker, CmdWriteBufferMarker2AMD);           \
   HookInitExtension(KHR_present_wait, WaitForPresentKHR);                                          \
+  HookInitExtension(KHR_maintenance4, GetDeviceBufferMemoryRequirementsKHR);                       \
+  HookInitExtension(KHR_maintenance4, GetDeviceImageMemoryRequirementsKHR);                        \
+  HookInitExtension(KHR_maintenance4, GetDeviceImageSparseMemoryRequirementsKHR);                  \
   /* No GetQueueCheckpointData2NV without VK_NV_device_diagnostic_checkpoints */                   \
   HookInitExtension_Device_Win32();                                                                \
   HookInitExtension_Device_Linux();                                                                \
@@ -1556,6 +1560,16 @@
               uint32_t, marker);                                                                     \
   HookDefine4(VkResult, vkWaitForPresentKHR, VkDevice, device, VkSwapchainKHR, swapchain,            \
               uint64_t, presentId, uint64_t, timeout);                                               \
+  HookDefine3(void, vkGetDeviceBufferMemoryRequirementsKHR, VkDevice, device,                        \
+              const VkDeviceBufferMemoryRequirementsKHR *, pInfo, VkMemoryRequirements2 *,           \
+              pMemoryRequirements);                                                                  \
+  HookDefine3(void, vkGetDeviceImageMemoryRequirementsKHR, VkDevice, device,                         \
+              const VkDeviceImageMemoryRequirementsKHR *, pInfo, VkMemoryRequirements2 *,            \
+              pMemoryRequirements);                                                                  \
+  HookDefine4(void, vkGetDeviceImageSparseMemoryRequirementsKHR, VkDevice, device,                   \
+              const VkDeviceImageMemoryRequirementsKHR *, pInfo, uint32_t *,                         \
+              pSparseMemoryRequirementCount, VkSparseImageMemoryRequirements2 *,                     \
+              pSparseMemoryRequirements);                                                            \
   HookDefine_Win32();                                                                                \
   HookDefine_Linux();                                                                                \
   HookDefine_GGP();                                                                                  \

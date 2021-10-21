@@ -1603,6 +1603,9 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
 {
   VkBufferCreateInfo adjusted_info = *pCreateInfo;
 
+  // if you change any properties here, ensure you also update
+  // vkGetDeviceBufferMemoryRequirementsKHR
+
   // TEMP HACK: Until we define a portable fake hardware, need to match the requirements for usage
   // on replay, so that the memory requirements are the same
   adjusted_info.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
@@ -2135,6 +2138,9 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
                                       const VkAllocationCallbacks *pAllocator, VkImage *pImage)
 {
   VkImageCreateInfo createInfo_adjusted = *pCreateInfo;
+
+  // if you change any properties here, ensure you also update
+  // vkGetDeviceImageMemoryRequirementsKHR
 
   createInfo_adjusted.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 

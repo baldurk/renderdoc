@@ -2459,4 +2459,18 @@ public:
 
   IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkWaitForPresentKHR, VkDevice device,
                                 VkSwapchainKHR swapchain, uint64_t presentId, uint64_t timeout);
+
+  // VK_KHR_maintenance4
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkGetDeviceBufferMemoryRequirementsKHR, VkDevice device,
+                                const VkDeviceBufferMemoryRequirementsKHR *pInfo,
+                                VkMemoryRequirements2 *pMemoryRequirements);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkGetDeviceImageMemoryRequirementsKHR, VkDevice device,
+                                const VkDeviceImageMemoryRequirementsKHR *pInfo,
+                                VkMemoryRequirements2 *pMemoryRequirements);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkGetDeviceImageSparseMemoryRequirementsKHR, VkDevice device,
+                                const VkDeviceImageMemoryRequirementsKHR *pInfo,
+                                uint32_t *pSparseMemoryRequirementCount,
+                                VkSparseImageMemoryRequirements2 *pSparseMemoryRequirements);
 };
