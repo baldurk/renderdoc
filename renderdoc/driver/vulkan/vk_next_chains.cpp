@@ -163,6 +163,7 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   COPY_STRUCT(VK_STRUCTURE_TYPE_FILTER_CUBIC_IMAGE_VIEW_IMAGE_FORMAT_PROPERTIES_EXT,                 \
               VkFilterCubicImageViewImageFormatPropertiesEXT);                                       \
   COPY_STRUCT(VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2, VkFormatProperties2);                           \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_3_KHR, VkFormatProperties3KHR);                    \
   COPY_STRUCT(VK_STRUCTURE_TYPE_HDR_METADATA_EXT, VkHdrMetadataEXT)                                  \
   COPY_STRUCT(VK_STRUCTURE_TYPE_IMAGE_BLIT_2_KHR, VkImageBlit2KHR);                                  \
   COPY_STRUCT(VK_STRUCTURE_TYPE_IMAGE_COPY_2_KHR, VkImageCopy2KHR);                                  \
@@ -663,7 +664,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_DEVICE_MEMORY_REPORT_CALLBACK_DATA_EXT:                            \
   case VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_LIST_2_EXT:                         \
   case VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_LIST_EXT:                           \
-  case VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_3_KHR:                                           \
   case VK_STRUCTURE_TYPE_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR:                         \
   case VK_STRUCTURE_TYPE_FRAMEBUFFER_MIXED_SAMPLES_COMBINATION_NV:                          \
   case VK_STRUCTURE_TYPE_GENERATED_COMMANDS_INFO_NV:                                        \

@@ -943,6 +943,9 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_FD_INFO_KHR, VkImportSemaphoreFdInfoKHR)             \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_SEMAPHORE_GET_FD_INFO_KHR, VkSemaphoreGetFdInfoKHR)                   \
                                                                                                        \
+  /* VK_KHR_format_feature_flags2 */                                                                   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_3_KHR, VkFormatProperties3KHR)                      \
+                                                                                                       \
   /* VK_KHR_get_display_properties2 */                                                                 \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_DISPLAY_PROPERTIES_2_KHR, VkDisplayProperties2KHR)                    \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_DISPLAY_PLANE_PROPERTIES_2_KHR, VkDisplayPlaneProperties2KHR)         \
@@ -1308,9 +1311,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR)             \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_PROPERTIES_KHR)           \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR)                 \
-                                                                                                       \
-  /* VK_KHR_format_feature_flags2 */                                                                   \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_3_KHR)                                         \
                                                                                                        \
   /* VK_KHR_fragment_shading_rate */                                                                   \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR)                       \
@@ -8899,6 +8899,23 @@ void Deserialise(const VkFormatProperties2 &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkFormatProperties3KHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_3_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_VKFLAGS(VkFormatFeatureFlags2KHR, linearTilingFeatures);
+  SERIALISE_MEMBER_VKFLAGS(VkFormatFeatureFlags2KHR, optimalTilingFeatures);
+  SERIALISE_MEMBER_VKFLAGS(VkFormatFeatureFlags2KHR, bufferFeatures);
+}
+
+template <>
+void Deserialise(const VkFormatProperties3KHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkImageFormatProperties &el)
 {
   SERIALISE_MEMBER(maxExtent);
@@ -9365,6 +9382,7 @@ INSTANTIATE_SERIALISE_TYPE(VkFenceCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkFenceGetFdInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkFilterCubicImageViewImageFormatPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkFormatProperties2);
+INSTANTIATE_SERIALISE_TYPE(VkFormatProperties3KHR);
 INSTANTIATE_SERIALISE_TYPE(VkFramebufferAttachmentImageInfo);
 INSTANTIATE_SERIALISE_TYPE(VkFramebufferAttachmentsCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkFramebufferCreateInfo);

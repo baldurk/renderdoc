@@ -1193,6 +1193,9 @@ static const VkExtensionProperties supportedExtensions[] = {
     },
 #endif
     {
+        VK_KHR_FORMAT_FEATURE_FLAGS_2_EXTENSION_NAME, VK_KHR_FORMAT_FEATURE_FLAGS_2_SPEC_VERSION,
+    },
+    {
         VK_KHR_GET_DISPLAY_PROPERTIES_2_EXTENSION_NAME, VK_KHR_GET_DISPLAY_PROPERTIES_2_SPEC_VERSION,
     },
     {

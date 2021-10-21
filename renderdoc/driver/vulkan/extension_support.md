@@ -121,6 +121,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_KHR_external_semaphore_fd`
 * `VK_KHR_external_semaphore_win32`
 * `VK_KHR_external_semaphore`
+* `VK_KHR_format_feature_flags2`
 * `VK_KHR_get_display_properties2`
 * `VK_KHR_get_memory_requirements2`
 * `VK_KHR_get_physical_device_properties2`
@@ -186,7 +187,6 @@ KHR extensions will definitely be implemented at some point, though KHR extensio
 
 ## KHR Extensions
 
-* `VK_KHR_format_feature_flags2`
 * `VK_KHR_fragment_shading_rate`
 * `VK_KHR_maintenance4`
 * `VK_KHR_present_id`
