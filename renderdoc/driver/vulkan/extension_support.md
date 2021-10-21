@@ -135,6 +135,8 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_KHR_multiview`
 * `VK_KHR_performance_query`
 * `VK_KHR_pipeline_executable_properties`
+* `VK_KHR_present_id`
+* `VK_KHR_present_wait`
 * `VK_KHR_push_descriptor`
 * `VK_KHR_relaxed_block_layout`
 * `VK_KHR_sampler_mirror_clamp_to_edge`
@@ -189,8 +191,6 @@ KHR extensions will definitely be implemented at some point, though KHR extensio
 
 * `VK_KHR_fragment_shading_rate`
 * `VK_KHR_maintenance4`
-* `VK_KHR_present_id`
-* `VK_KHR_present_wait`
 * `VK_KHR_shader_integer_dot_product`
 * `VK_KHR_shader_subgroup_uniform_control_flow`
 

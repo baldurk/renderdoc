@@ -769,7 +769,8 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
        next->sType != VK_STRUCTURE_TYPE_DEVICE_GROUP_PRESENT_INFO_KHR &&
        next->sType != VK_STRUCTURE_TYPE_PRESENT_FRAME_TOKEN_GGP &&
        next->sType != VK_STRUCTURE_TYPE_PRESENT_REGIONS_KHR &&
-       next->sType != VK_STRUCTURE_TYPE_PRESENT_TIMES_INFO_GOOGLE)
+       next->sType != VK_STRUCTURE_TYPE_PRESENT_TIMES_INFO_GOOGLE &&
+       next->sType != VK_STRUCTURE_TYPE_PRESENT_ID_KHR)
     {
       RDCWARN("Unsupported pNext structure in pPresentInfo: %s", ToStr(next->sType).c_str());
     }
@@ -1307,6 +1308,12 @@ VkResult WrappedVulkan::vkCreateHeadlessSurfaceEXT(VkInstance instance,
   }
 
   return ret;
+}
+
+VkResult WrappedVulkan::vkWaitForPresentKHR(VkDevice device, VkSwapchainKHR swapchain,
+                                            uint64_t presentId, uint64_t timeout)
+{
+  return ObjDisp(device)->WaitForPresentKHR(Unwrap(device), Unwrap(swapchain), presentId, timeout);
 }
 
 #ifdef VK_USE_PLATFORM_WIN32_KHR

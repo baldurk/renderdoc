@@ -2454,4 +2454,9 @@ public:
 
   IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkQueueSubmit2KHR, VkQueue queue, uint32_t submitCount,
                                 const VkSubmitInfo2KHR *pSubmits, VkFence fence);
+
+  // VK_KHR_present_wait
+
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkWaitForPresentKHR, VkDevice device,
+                                VkSwapchainKHR swapchain, uint64_t presentId, uint64_t timeout);
 };

@@ -527,7 +527,8 @@
   DeclExt(EXT_private_data);                    \
   DeclExt(EXT_extended_dynamic_state);          \
   DeclExt(KHR_copy_commands2);                  \
-  DeclExt(KHR_synchronization2);
+  DeclExt(KHR_synchronization2);                \
+  DeclExt(KHR_present_wait);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -868,6 +869,7 @@
   HookInitExtension(KHR_synchronization2, CmdWriteTimestamp2KHR);                                  \
   HookInitExtension(KHR_synchronization2, QueueSubmit2KHR);                                        \
   HookInitExtension(KHR_synchronization2 &&AMD_buffer_marker, CmdWriteBufferMarker2AMD);           \
+  HookInitExtension(KHR_present_wait, WaitForPresentKHR);                                          \
   /* No GetQueueCheckpointData2NV without VK_NV_device_diagnostic_checkpoints */                   \
   HookInitExtension_Device_Win32();                                                                \
   HookInitExtension_Device_Linux();                                                                \
@@ -1552,6 +1554,8 @@
   HookDefine5(void, vkCmdWriteBufferMarker2AMD, VkCommandBuffer, commandBuffer,                      \
               VkPipelineStageFlags2KHR, stage, VkBuffer, dstBuffer, VkDeviceSize, dstOffset,         \
               uint32_t, marker);                                                                     \
+  HookDefine4(VkResult, vkWaitForPresentKHR, VkDevice, device, VkSwapchainKHR, swapchain,            \
+              uint64_t, presentId, uint64_t, timeout);                                               \
   HookDefine_Win32();                                                                                \
   HookDefine_Linux();                                                                                \
   HookDefine_GGP();                                                                                  \

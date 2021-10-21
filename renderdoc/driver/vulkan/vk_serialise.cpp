@@ -1040,6 +1040,15 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INTERNAL_REPRESENTATION_KHR,                      \
                VkPipelineExecutableInternalRepresentationKHR)                                          \
                                                                                                        \
+  /* VK_KHR_present_id */                                                                              \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PRESENT_ID_KHR, VkPresentIdKHR)                                       \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_FEATURES_KHR,                              \
+               VkPhysicalDevicePresentIdFeaturesKHR)                                                   \
+                                                                                                       \
+  /* VK_KHR_present_wait */                                                                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR,                            \
+               VkPhysicalDevicePresentWaitFeaturesKHR)                                                 \
+                                                                                                       \
   /* VK_KHR_push_descriptor */                                                                         \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PUSH_DESCRIPTOR_PROPERTIES_KHR,                       \
                VkPhysicalDevicePushDescriptorPropertiesKHR)                                            \
@@ -1327,13 +1336,6 @@ SERIALISE_VK_HANDLES();
                                                                                                        \
   /* VK_KHR_pipeline_library */                                                                        \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_LIBRARY_CREATE_INFO_KHR)                                \
-                                                                                                       \
-  /* VK_KHR_present_id */                                                                              \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PRESENT_ID_KHR)                                                  \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_FEATURES_KHR)                         \
-                                                                                                       \
-  /* VK_KHR_present_wait */                                                                            \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR)                       \
                                                                                                        \
   /* VK_KHR_ray_tracing_pipeline */                                                                    \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR)                            \
@@ -5422,6 +5424,53 @@ void Deserialise(const VkPipelineExecutableInternalRepresentationKHR &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPresentIdKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_PRESENT_ID_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(swapchainCount);
+  SERIALISE_MEMBER_ARRAY(pPresentIds);
+}
+
+template <>
+void Deserialise(const VkPresentIdKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDevicePresentIdFeaturesKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_FEATURES_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(presentId);
+}
+
+template <>
+void Deserialise(const VkPhysicalDevicePresentIdFeaturesKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDevicePresentWaitFeaturesKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(presentWait);
+}
+
+template <>
+void Deserialise(const VkPhysicalDevicePresentWaitFeaturesKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPhysicalDevicePushDescriptorPropertiesKHR &el)
 {
   RDCASSERT(ser.IsReading() ||
@@ -9480,6 +9529,8 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePipelineCreationCacheControlFeaturesE
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePointClippingProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePrivateDataFeaturesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePresentIdFeaturesKHR);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePresentWaitFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceProperties2);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceProtectedMemoryFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceProtectedMemoryProperties);
@@ -9554,6 +9605,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPipelineTessellationStateCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineVertexInputDivisorStateCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineVertexInputStateCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineViewportStateCreateInfo);
+INSTANTIATE_SERIALISE_TYPE(VkPresentIdKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPresentInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPresentRegionsKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPresentTimeGOOGLE);

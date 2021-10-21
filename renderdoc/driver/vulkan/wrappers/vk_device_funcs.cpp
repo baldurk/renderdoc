@@ -179,7 +179,8 @@ static void StripUnwantedExtensions(rdcarray<rdcstr> &Extensions)
     }
 
     // remove WSI-only extensions
-    if(ext == "VK_GOOGLE_display_timing")
+    if(ext == "VK_GOOGLE_display_timing" || ext == "VK_KHR_display_swapchain" ||
+       ext == "VK_EXT_display_control" || ext == "VK_KHR_present_id")
       return true;
 
     // remove fullscreen exclusive extension
@@ -188,7 +189,8 @@ static void StripUnwantedExtensions(rdcarray<rdcstr> &Extensions)
 
     // this is debug only, nothing to capture, so nothing to replay
     if(ext == "VK_EXT_tooling_info" || ext == "VK_EXT_private_data" ||
-       ext == "VK_EXT_validation_features" || ext == "VK_EXT_validation_flags")
+       ext == "VK_EXT_validation_features" || ext == "VK_EXT_validation_cache" ||
+       ext == "VK_EXT_validation_flags")
       return true;
 
     // these are debug only and will be added (if supported) as optional
@@ -1618,19 +1620,6 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     rdcarray<rdcstr> Extensions;
     for(uint32_t i = 0; i < createInfo.enabledExtensionCount; i++)
     {
-      // don't include the debug marker extension
-      if(!strcmp(createInfo.ppEnabledExtensionNames[i], VK_EXT_DEBUG_MARKER_EXTENSION_NAME))
-        continue;
-
-      // don't include the validation cache extension
-      if(!strcmp(createInfo.ppEnabledExtensionNames[i], VK_EXT_VALIDATION_CACHE_EXTENSION_NAME))
-        continue;
-
-      // don't include direct-display WSI extensions
-      if(!strcmp(createInfo.ppEnabledExtensionNames[i], VK_KHR_DISPLAY_SWAPCHAIN_EXTENSION_NAME) ||
-         !strcmp(createInfo.ppEnabledExtensionNames[i], VK_EXT_DISPLAY_CONTROL_EXTENSION_NAME))
-        continue;
-
       Extensions.push_back(createInfo.ppEnabledExtensionNames[i]);
     }
 
@@ -2062,12 +2051,18 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       return false;
     }
 
-    // remove private data structs to improve capture compatibility, since we don't replay any
-    // private data.
+    // remove structs from extensions that we have stripped but may still be referenced here,
+    // to ensure we don't pass structs for disabled extensions.
     if(RemoveNextStruct(&createInfo, VK_STRUCTURE_TYPE_DEVICE_PRIVATE_DATA_CREATE_INFO_EXT) ||
        RemoveNextStruct(&createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRIVATE_DATA_FEATURES_EXT))
     {
-      RDCLOG("Removed private data structs from vkCreateDevice pNext chain");
+      RDCLOG("Removed VK_EXT_private_data structs from vkCreateDevice pNext chain");
+    }
+
+    if(RemoveNextStruct(&createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_FEATURES_KHR) ||
+       RemoveNextStruct(&createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR))
+    {
+      RDCLOG("Removed VK_KHR_present_id/wait structs from vkCreateDevice pNext chain");
     }
 
     VkPhysicalDeviceFeatures enabledFeatures = {0};
