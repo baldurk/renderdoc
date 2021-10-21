@@ -39,7 +39,7 @@ void MakeFakeUUID()
     // need a null terminator as it's a fixed size non-string array)
     rdcstr uuid = StringFormat::sntimef(Timing::GetUTCTime(), "rdoc%y%m%d%H%M%S");
     RDCASSERT(uuid.size() == sizeof(fakeRenderDocUUID));
-    memcpy(fakeRenderDocUUID, uuid.c_str(), RDCMIN(VK_UUID_SIZE, uuid.count()));
+    memcpy(fakeRenderDocUUID, uuid.c_str(), RDCMIN((size_t)VK_UUID_SIZE, uuid.size()));
   }
 }
 
@@ -365,7 +365,8 @@ void WrappedVulkan::vkGetRenderAreaGranularity(VkDevice device, VkRenderPass ren
 VkResult WrappedVulkan::vkGetPipelineCacheData(VkDevice device, VkPipelineCache pipelineCache,
                                                size_t *pDataSize, void *pData)
 {
-  size_t totalSize = 16 + VK_UUID_SIZE + 4;    // required header (16+UUID) and 4 0 bytes
+  // required header and 4 NULL bytes
+  size_t totalSize = sizeof(VkPipelineCacheHeaderVersionOne) + 4;
 
   if(pDataSize && !pData)
     *pDataSize = totalSize;
@@ -378,24 +379,27 @@ VkResult WrappedVulkan::vkGetPipelineCacheData(VkDevice device, VkPipelineCache 
       return VK_INCOMPLETE;
     }
 
-    uint32_t *ptr = (uint32_t *)pData;
+    VkPipelineCacheHeaderVersionOne *header = (VkPipelineCacheHeaderVersionOne *)pData;
 
-    ptr[0] = 16 + VK_UUID_SIZE;
-    ptr[1] = VK_PIPELINE_CACHE_HEADER_VERSION_ONE;
+    RDCCOMPILE_ASSERT(sizeof(VkPipelineCacheHeaderVersionOne) == 16 + VK_UUID_SIZE,
+                      "Pipeline cache header size is wrong");
+
+    header->headerSize = sizeof(VkPipelineCacheHeaderVersionOne);
+    header->headerVersion = VK_PIPELINE_CACHE_HEADER_VERSION_ONE;
     // just in case the user expects a valid vendorID/deviceID, write the real one
     // MULTIDEVICE need to get the right physical device for this device
-    ptr[2] = m_PhysicalDeviceData.props.vendorID;
-    ptr[3] = m_PhysicalDeviceData.props.deviceID;
+    header->vendorID = m_PhysicalDeviceData.props.vendorID;
+    header->deviceID = m_PhysicalDeviceData.props.deviceID;
 
     MakeFakeUUID();
 
-    memcpy(ptr + 4, fakeRenderDocUUID, VK_UUID_SIZE);
-    // [4], [5], [6], [7]
+    memcpy(header->pipelineCacheUUID, fakeRenderDocUUID, VK_UUID_SIZE);
 
     RDCCOMPILE_ASSERT(VK_UUID_SIZE == 16, "VK_UUID_SIZE has changed");
 
     // empty bytes
-    ptr[8] = 0;
+    uint32_t *ptr = (uint32_t *)(header + 1);
+    *ptr = 0;
   }
 
   // we don't want the application to use pipeline caches at all, and especially

@@ -116,6 +116,10 @@ enum class Generator : uint32_t
   MessiahShaderCompiler = 25,
   XeniaEmulatorMicrocodeTranslator = 26,
   RustGPUCompilerBackend = 27,
+  Naga = 28,
+  MSPShaderCompiler = 29,
+  SpvGenTwoSPIRVIRTools = 30,
+  SkiaSkSL = 31,
 };
 
 enum class ImageOperands : uint32_t
@@ -139,6 +143,7 @@ enum class ImageOperands : uint32_t
   VolatileTexelKHR = 0x0800,
   SignExtend = 0x1000,
   ZeroExtend = 0x2000,
+  Offsets = 0x10000,
   Max,
   Invalid = ~0U,
 };
@@ -153,6 +158,8 @@ enum class FPFastMathMode : uint32_t
   NSZ = 0x0004,
   AllowRecip = 0x0008,
   Fast = 0x0010,
+  AllowContractFastINTEL = 0x10000,
+  AllowReassocINTEL = 0x20000,
   Max,
   Invalid = ~0U,
 };
@@ -189,6 +196,7 @@ enum class LoopControl : uint32_t
   LoopCoalesceINTEL = 0x100000,
   MaxInterleavingINTEL = 0x200000,
   SpeculatedIterationsINTEL = 0x400000,
+  NoFusionINTEL = 0x800000,
   Max,
   Invalid = ~0U,
 };
@@ -202,6 +210,7 @@ enum class FunctionControl : uint32_t
   DontInline = 0x0002,
   Pure = 0x0004,
   Const = 0x0008,
+  OptNoneINTEL = 0x10000,
   Max,
   Invalid = ~0U,
 };
@@ -302,6 +311,7 @@ enum class SourceLanguage : uint32_t
   OpenCL_C = 3,
   OpenCL_CPP = 4,
   HLSL = 5,
+  CPP_for_OpenCL = 6,
   Max,
   Invalid = ~0U,
 };
@@ -395,6 +405,7 @@ enum class ExecutionMode : uint32_t
   SubgroupsPerWorkgroupId = 37,
   LocalSizeId = 38,
   LocalSizeHintId = 39,
+  SubgroupUniformControlFlowKHR = 4421,
   PostDepthCoverage = 4446,
   DenormPreserve = 4459,
   DenormFlushToZero = 4460,
@@ -413,10 +424,16 @@ enum class ExecutionMode : uint32_t
   SampleInterlockUnorderedEXT = 5369,
   ShadingRateInterlockOrderedEXT = 5370,
   ShadingRateInterlockUnorderedEXT = 5371,
+  SharedLocalMemorySizeINTEL = 5618,
+  RoundingModeRTPINTEL = 5620,
+  RoundingModeRTNINTEL = 5621,
+  FloatingPointModeALTINTEL = 5622,
+  FloatingPointModeIEEEINTEL = 5623,
   MaxWorkgroupSizeINTEL = 5893,
   MaxWorkDimINTEL = 5894,
   NoGlobalOffsetINTEL = 5895,
   NumSIMDWorkitemsINTEL = 5896,
+  SchedulerTargetFmaxMhzINTEL = 5903,
   Max,
   Invalid = ~0U,
 };
@@ -451,6 +468,8 @@ enum class StorageClass : uint32_t
   PhysicalStorageBuffer = 5349,
   PhysicalStorageBufferEXT = 5349,
   CodeSectionINTEL = 5605,
+  DeviceOnlyINTEL = 5936,
+  HostOnlyINTEL = 5937,
   Max,
   Invalid = ~0U,
 };
@@ -594,10 +613,51 @@ enum class FPRoundingMode : uint32_t
   Invalid = ~0U,
 };
 
+enum class FPDenormMode : uint32_t
+{
+  Preserve = 0,
+  FlushToZero = 1,
+  Max,
+  Invalid = ~0U,
+};
+
+enum class QuantizationModes : uint32_t
+{
+  TRN = 0,
+  TRN_ZERO = 1,
+  RND = 2,
+  RND_ZERO = 3,
+  RND_INF = 4,
+  RND_MIN_INF = 5,
+  RND_CONV = 6,
+  RND_CONV_ODD = 7,
+  Max,
+  Invalid = ~0U,
+};
+
+enum class FPOperationMode : uint32_t
+{
+  IEEE = 0,
+  ALT = 1,
+  Max,
+  Invalid = ~0U,
+};
+
+enum class OverflowModes : uint32_t
+{
+  WRAP = 0,
+  SAT = 1,
+  SAT_ZERO = 2,
+  SAT_SYM = 3,
+  Max,
+  Invalid = ~0U,
+};
+
 enum class LinkageType : uint32_t
 {
   Export = 0,
   Import = 1,
+  LinkOnceODR = 2,
   Max,
   Invalid = ~0U,
 };
@@ -691,12 +751,22 @@ enum class Decoration : uint32_t
   RestrictPointerEXT = 5355,
   AliasedPointer = 5356,
   AliasedPointerEXT = 5356,
+  SIMTCallINTEL = 5599,
   ReferencedIndirectlyINTEL = 5602,
+  ClobberINTEL = 5607,
+  SideEffectsINTEL = 5608,
+  VectorComputeVariableINTEL = 5624,
+  FuncParamIOKindINTEL = 5625,
+  VectorComputeFunctionINTEL = 5626,
+  StackCallINTEL = 5627,
+  GlobalVariableOffsetINTEL = 5628,
   CounterBuffer = 5634,
   HlslCounterBufferGOOGLE = 5634,
   UserSemantic = 5635,
   HlslSemanticGOOGLE = 5635,
   UserTypeGOOGLE = 5636,
+  FunctionRoundingModeINTEL = 5822,
+  FunctionDenormModeINTEL = 5823,
   RegisterINTEL = 5825,
   MemoryINTEL = 5826,
   NumbanksINTEL = 5827,
@@ -709,6 +779,17 @@ enum class Decoration : uint32_t
   MergeINTEL = 5834,
   BankBitsINTEL = 5835,
   ForcePow2DepthINTEL = 5836,
+  BurstCoalesceINTEL = 5899,
+  CacheSizeINTEL = 5900,
+  DontStaticallyCoalesceINTEL = 5901,
+  PrefetchINTEL = 5902,
+  StallEnableINTEL = 5905,
+  FuseLoopsInFunctionINTEL = 5907,
+  BufferLocationINTEL = 5921,
+  IOPipeStorageINTEL = 5944,
+  FunctionFloatingPointModeINTEL = 6080,
+  SingleElementVectorINTEL = 6085,
+  VectorComputeCallableFunctionINTEL = 6087,
   Max,
   Invalid = ~0U,
 };
@@ -757,14 +838,14 @@ enum class BuiltIn : uint32_t
   VertexIndex = 42,
   InstanceIndex = 43,
   SubgroupEqMask = 4416,
-  SubgroupGeMask = 4417,
-  SubgroupGtMask = 4418,
-  SubgroupLeMask = 4419,
-  SubgroupLtMask = 4420,
   SubgroupEqMaskKHR = 4416,
+  SubgroupGeMask = 4417,
   SubgroupGeMaskKHR = 4417,
+  SubgroupGtMask = 4418,
   SubgroupGtMaskKHR = 4418,
+  SubgroupLeMask = 4419,
   SubgroupLeMaskKHR = 4419,
+  SubgroupLtMask = 4420,
   SubgroupLtMaskKHR = 4420,
   BaseVertex = 4424,
   BaseInstance = 4425,
@@ -826,6 +907,7 @@ enum class BuiltIn : uint32_t
   HitTNV = 5332,
   HitKindNV = 5333,
   HitKindKHR = 5333,
+  CurrentRayTimeNV = 5334,
   IncomingRayFlagsNV = 5351,
   IncomingRayFlagsKHR = 5351,
   RayGeometryIndexKHR = 5352,
@@ -947,6 +1029,9 @@ enum class Capability : uint32_t
   FragmentShadingRateKHR = 4422,
   SubgroupBallotKHR = 4423,
   DrawParameters = 4427,
+  WorkgroupMemoryExplicitLayoutKHR = 4428,
+  WorkgroupMemoryExplicitLayout8BitAccessKHR = 4429,
+  WorkgroupMemoryExplicitLayout16BitAccessKHR = 4430,
   SubgroupVoteKHR = 4431,
   StorageBuffer16BitAccess = 4433,
   StorageUniformBufferBlock16 = 4433,
@@ -1019,6 +1104,7 @@ enum class Capability : uint32_t
   StorageTexelBufferArrayNonUniformIndexing = 5312,
   StorageTexelBufferArrayNonUniformIndexingEXT = 5312,
   RayTracingNV = 5340,
+  RayTracingMotionBlurNV = 5341,
   VulkanMemoryModel = 5345,
   VulkanMemoryModelKHR = 5345,
   VulkanMemoryModelDeviceScope = 5346,
@@ -1037,21 +1123,51 @@ enum class Capability : uint32_t
   SubgroupBufferBlockIOINTEL = 5569,
   SubgroupImageBlockIOINTEL = 5570,
   SubgroupImageMediaBlockIOINTEL = 5579,
+  RoundToInfinityINTEL = 5582,
+  FloatingPointModeINTEL = 5583,
   IntegerFunctions2INTEL = 5584,
   FunctionPointersINTEL = 5603,
   IndirectReferencesINTEL = 5604,
+  AsmINTEL = 5606,
+  AtomicFloat32MinMaxEXT = 5612,
+  AtomicFloat64MinMaxEXT = 5613,
+  AtomicFloat16MinMaxEXT = 5616,
+  VectorComputeINTEL = 5617,
+  VectorAnyINTEL = 5619,
+  ExpectAssumeKHR = 5629,
   SubgroupAvcMotionEstimationINTEL = 5696,
   SubgroupAvcMotionEstimationIntraINTEL = 5697,
   SubgroupAvcMotionEstimationChromaINTEL = 5698,
+  VariableLengthArrayINTEL = 5817,
+  FunctionFloatControlINTEL = 5821,
   FPGAMemoryAttributesINTEL = 5824,
+  FPFastMathModeINTEL = 5837,
+  ArbitraryPrecisionIntegersINTEL = 5844,
+  ArbitraryPrecisionFloatingPointINTEL = 5845,
   UnstructuredLoopControlsINTEL = 5886,
   FPGALoopControlsINTEL = 5888,
   KernelAttributesINTEL = 5892,
   FPGAKernelAttributesINTEL = 5897,
+  FPGAMemoryAccessesINTEL = 5898,
+  FPGAClusterAttributesINTEL = 5904,
+  LoopFuseINTEL = 5906,
+  FPGABufferLocationINTEL = 5920,
+  ArbitraryPrecisionFixedPointINTEL = 5922,
+  USMStorageClassesINTEL = 5935,
+  IOPipesINTEL = 5943,
   BlockingPipesINTEL = 5945,
   FPGARegINTEL = 5948,
+  DotProductInputAllKHR = 6016,
+  DotProductInput4x8BitKHR = 6017,
+  DotProductInput4x8BitPackedKHR = 6018,
+  DotProductKHR = 6019,
+  BitInstructions = 6025,
   AtomicFloat32AddEXT = 6033,
   AtomicFloat64AddEXT = 6034,
+  LongConstantCompositeINTEL = 6089,
+  OptNoneINTEL = 6094,
+  AtomicFloat16AddEXT = 6095,
+  DebugInfoModuleINTEL = 6114,
   Max,
   Invalid = ~0U,
 };
@@ -1077,6 +1193,13 @@ enum class RayQueryCandidateIntersectionType : uint32_t
 {
   RayQueryCandidateIntersectionTriangleKHR = 0,
   RayQueryCandidateIntersectionAABBKHR = 1,
+  Max,
+  Invalid = ~0U,
+};
+
+enum class PackedVectorFormat : uint32_t
+{
+  PackedVectorFormat4x8BitKHR = 0,
   Max,
   Invalid = ~0U,
 };
@@ -1111,6 +1234,7 @@ struct ImageOperandsAndParamDatas
   IdScope makeTexelAvailableKHR;
   IdScope makeTexelVisible;
   IdScope makeTexelVisibleKHR;
+  Id offsets;
   
   operator ImageOperands() const { return flags; }
   bool operator &(const ImageOperands v) const { return bool(flags & v); }
@@ -1152,6 +1276,8 @@ struct ImageOperandsAndParamDatas
   void unsetSignExtend() { flags &= ~ImageOperands::SignExtend; }
   void setZeroExtend() { flags |= ImageOperands::ZeroExtend; }
   void unsetZeroExtend() { flags &= ~ImageOperands::ZeroExtend; }
+  void setOffsets(Id offsetsParam) { flags |= ImageOperands::Offsets; offsets = offsetsParam; }
+  void unsetOffsets() { flags &= ~ImageOperands::Offsets; }
 };
 
 struct LoopControlAndParamDatas
@@ -1171,6 +1297,7 @@ struct LoopControlAndParamDatas
   uint32_t loopCoalesceINTEL;
   uint32_t maxInterleavingINTEL;
   uint32_t speculatedIterationsINTEL;
+  uint32_t noFusionINTEL;
   
   operator LoopControl() const { return flags; }
   bool operator &(const LoopControl v) const { return bool(flags & v); }
@@ -1208,6 +1335,8 @@ struct LoopControlAndParamDatas
   void unsetMaxInterleavingINTEL() { flags &= ~LoopControl::MaxInterleavingINTEL; }
   void setSpeculatedIterationsINTEL(uint32_t speculatedIterationsINTELParam) { flags |= LoopControl::SpeculatedIterationsINTEL; speculatedIterationsINTEL = speculatedIterationsINTELParam; }
   void unsetSpeculatedIterationsINTEL() { flags &= ~LoopControl::SpeculatedIterationsINTEL; }
+  void setNoFusionINTEL(uint32_t noFusionINTELParam) { flags |= LoopControl::NoFusionINTEL; noFusionINTEL = noFusionINTELParam; }
+  void unsetNoFusionINTEL() { flags &= ~LoopControl::NoFusionINTEL; }
 };
 
 struct MemoryAccessAndParamDatas
@@ -1265,6 +1394,13 @@ struct LocalSizeIdParams
   Id zsize;
 };
 
+struct LocalSizeHintIdParams
+{
+  Id xsizehint;
+  Id ysizehint;
+  Id zsizehint;
+};
+
 struct MaxWorkgroupSizeINTELParams
 {
   uint32_t max_x_size;
@@ -1287,20 +1423,44 @@ struct ExecutionModeAndParamData
     uint32_t subgroupsPerWorkgroup;
     Id subgroupsPerWorkgroupId;
     LocalSizeIdParams localSizeId;
-    Id localSizeHintId;
+    LocalSizeHintIdParams localSizeHintId;
     uint32_t denormPreserve;
     uint32_t denormFlushToZero;
     uint32_t signedZeroInfNanPreserve;
     uint32_t roundingModeRTE;
     uint32_t roundingModeRTZ;
     uint32_t outputPrimitivesNV;
+    uint32_t sharedLocalMemorySizeINTEL;
+    uint32_t roundingModeRTPINTEL;
+    uint32_t roundingModeRTNINTEL;
+    uint32_t floatingPointModeALTINTEL;
+    uint32_t floatingPointModeIEEEINTEL;
     MaxWorkgroupSizeINTELParams maxWorkgroupSizeINTEL;
     uint32_t maxWorkDimINTEL;
     uint32_t numSIMDWorkitemsINTEL;
+    uint32_t schedulerTargetFmaxMhzINTEL;
   };
   
   operator ExecutionMode() const { return value; }
   bool operator ==(const ExecutionMode v) const { return value == v; }
+};
+
+struct FunctionRoundingModeINTELParams
+{
+  uint32_t targetWidth;
+  FPRoundingMode fPRoundingMode;
+};
+
+struct FunctionDenormModeINTELParams
+{
+  uint32_t targetWidth;
+  FPDenormMode fPDenormMode;
+};
+
+struct FunctionFloatingPointModeINTELParams
+{
+  uint32_t targetWidth;
+  FPOperationMode fPOperationMode;
 };
 
 struct DecorationAndParamData
@@ -1332,14 +1492,24 @@ struct DecorationAndParamData
     Id alignmentId;
     Id maxByteOffsetId;
     uint32_t secondaryViewportRelativeNV;
+    uint32_t sIMTCallINTEL;
+    uint32_t funcParamIOKindINTEL;
+    uint32_t globalVariableOffsetINTEL;
     Id counterBuffer;
     Id hlslCounterBufferGOOGLE;
+    FunctionRoundingModeINTELParams functionRoundingModeINTEL;
+    FunctionDenormModeINTELParams functionDenormModeINTEL;
     uint32_t numbanksINTEL;
     uint32_t bankwidthINTEL;
     uint32_t maxPrivateCopiesINTEL;
     uint32_t maxReplicatesINTEL;
     uint32_t bankBitsINTEL;
     uint32_t forcePow2DepthINTEL;
+    uint32_t cacheSizeINTEL;
+    uint32_t prefetchINTEL;
+    uint32_t bufferLocationINTEL;
+    uint32_t iOPipeStorageINTEL;
+    FunctionFloatingPointModeINTELParams functionFloatingPointModeINTEL;
   };
   
   operator Decoration() const { return value; }
@@ -1704,6 +1874,12 @@ enum class Op : uint16_t
   ConvertUToAccelerationStructureKHR = 4447,
   IgnoreIntersectionKHR = 4448,
   TerminateRayKHR = 4449,
+  SDotKHR = 4450,
+  UDotKHR = 4451,
+  SUDotKHR = 4452,
+  SDotAccSatKHR = 4453,
+  UDotAccSatKHR = 4454,
+  SUDotAccSatKHR = 4455,
   TypeRayQueryKHR = 4472,
   RayQueryInitializeKHR = 4473,
   RayQueryTerminateKHR = 4474,
@@ -1730,6 +1906,8 @@ enum class Op : uint16_t
   IgnoreIntersectionNV = 5335,
   TerminateRayNV = 5336,
   TraceNV = 5337,
+  TraceMotionNV = 5338,
+  TraceRayMotionNV = 5339,
   TypeAccelerationStructureNV = 5341,
   TypeAccelerationStructureKHR = 5341,
   ExecuteCallableNV = 5344,
@@ -1766,8 +1944,15 @@ enum class Op : uint16_t
   USubSatINTEL = 5596,
   IMul32x16INTEL = 5597,
   UMul32x16INTEL = 5598,
-  FunctionPointerINTEL = 5600,
+  ConstFunctionPointerINTEL = 5600,
   FunctionPointerCallINTEL = 5601,
+  AsmTargetINTEL = 5609,
+  AsmINTEL = 5610,
+  AsmCallINTEL = 5611,
+  AtomicFMinEXT = 5614,
+  AtomicFMaxEXT = 5615,
+  AssumeTrueKHR = 5630,
+  ExpectKHR = 5631,
   DecorateString = 5632,
   DecorateStringGOOGLE = 5632,
   MemberDecorateString = 5633,
@@ -1890,7 +2075,64 @@ enum class Op : uint16_t
   SubgroupAvcSicGetPackedSkcLumaCountThresholdINTEL = 5814,
   SubgroupAvcSicGetPackedSkcLumaSumThresholdINTEL = 5815,
   SubgroupAvcSicGetInterRawSadsINTEL = 5816,
+  VariableLengthArrayINTEL = 5818,
+  SaveMemoryINTEL = 5819,
+  RestoreMemoryINTEL = 5820,
+  ArbitraryFloatSinCosPiINTEL = 5840,
+  ArbitraryFloatCastINTEL = 5841,
+  ArbitraryFloatCastFromIntINTEL = 5842,
+  ArbitraryFloatCastToIntINTEL = 5843,
+  ArbitraryFloatAddINTEL = 5846,
+  ArbitraryFloatSubINTEL = 5847,
+  ArbitraryFloatMulINTEL = 5848,
+  ArbitraryFloatDivINTEL = 5849,
+  ArbitraryFloatGTINTEL = 5850,
+  ArbitraryFloatGEINTEL = 5851,
+  ArbitraryFloatLTINTEL = 5852,
+  ArbitraryFloatLEINTEL = 5853,
+  ArbitraryFloatEQINTEL = 5854,
+  ArbitraryFloatRecipINTEL = 5855,
+  ArbitraryFloatRSqrtINTEL = 5856,
+  ArbitraryFloatCbrtINTEL = 5857,
+  ArbitraryFloatHypotINTEL = 5858,
+  ArbitraryFloatSqrtINTEL = 5859,
+  ArbitraryFloatLogINTEL = 5860,
+  ArbitraryFloatLog2INTEL = 5861,
+  ArbitraryFloatLog10INTEL = 5862,
+  ArbitraryFloatLog1pINTEL = 5863,
+  ArbitraryFloatExpINTEL = 5864,
+  ArbitraryFloatExp2INTEL = 5865,
+  ArbitraryFloatExp10INTEL = 5866,
+  ArbitraryFloatExpm1INTEL = 5867,
+  ArbitraryFloatSinINTEL = 5868,
+  ArbitraryFloatCosINTEL = 5869,
+  ArbitraryFloatSinCosINTEL = 5870,
+  ArbitraryFloatSinPiINTEL = 5871,
+  ArbitraryFloatCosPiINTEL = 5872,
+  ArbitraryFloatASinINTEL = 5873,
+  ArbitraryFloatASinPiINTEL = 5874,
+  ArbitraryFloatACosINTEL = 5875,
+  ArbitraryFloatACosPiINTEL = 5876,
+  ArbitraryFloatATanINTEL = 5877,
+  ArbitraryFloatATanPiINTEL = 5878,
+  ArbitraryFloatATan2INTEL = 5879,
+  ArbitraryFloatPowINTEL = 5880,
+  ArbitraryFloatPowRINTEL = 5881,
+  ArbitraryFloatPowNINTEL = 5882,
   LoopControlINTEL = 5887,
+  FixedSqrtINTEL = 5923,
+  FixedRecipINTEL = 5924,
+  FixedRsqrtINTEL = 5925,
+  FixedSinINTEL = 5926,
+  FixedCosINTEL = 5927,
+  FixedSinCosINTEL = 5928,
+  FixedSinPiINTEL = 5929,
+  FixedCosPiINTEL = 5930,
+  FixedSinCosPiINTEL = 5931,
+  FixedLogINTEL = 5932,
+  FixedExpINTEL = 5933,
+  PtrCastToCrossWorkgroupINTEL = 5934,
+  CrossWorkgroupCastToPtrINTEL = 5938,
   ReadPipeBlockingINTEL = 5946,
   WritePipeBlockingINTEL = 5947,
   FPGARegINTEL = 5949,
@@ -1912,6 +2154,10 @@ enum class Op : uint16_t
   RayQueryGetIntersectionObjectToWorldKHR = 6031,
   RayQueryGetIntersectionWorldToObjectKHR = 6032,
   AtomicFAddEXT = 6035,
+  TypeBufferSurfaceINTEL = 6086,
+  TypeStructContinuedINTEL = 6090,
+  ConstantCompositeContinuedINTEL = 6091,
+  SpecConstantCompositeContinuedINTEL = 6092,
 
   Max,
 };
@@ -2033,6 +2279,10 @@ DECLARE_STRINGISE_TYPE(rdcspv::ImageFormat);
 DECLARE_STRINGISE_TYPE(rdcspv::ImageChannelOrder);
 DECLARE_STRINGISE_TYPE(rdcspv::ImageChannelDataType);
 DECLARE_STRINGISE_TYPE(rdcspv::FPRoundingMode);
+DECLARE_STRINGISE_TYPE(rdcspv::FPDenormMode);
+DECLARE_STRINGISE_TYPE(rdcspv::QuantizationModes);
+DECLARE_STRINGISE_TYPE(rdcspv::FPOperationMode);
+DECLARE_STRINGISE_TYPE(rdcspv::OverflowModes);
 DECLARE_STRINGISE_TYPE(rdcspv::LinkageType);
 DECLARE_STRINGISE_TYPE(rdcspv::AccessQualifier);
 DECLARE_STRINGISE_TYPE(rdcspv::FunctionParameterAttribute);
@@ -2045,3 +2295,4 @@ DECLARE_STRINGISE_TYPE(rdcspv::Capability);
 DECLARE_STRINGISE_TYPE(rdcspv::RayQueryIntersection);
 DECLARE_STRINGISE_TYPE(rdcspv::RayQueryCommittedIntersectionType);
 DECLARE_STRINGISE_TYPE(rdcspv::RayQueryCandidateIntersectionType);
+DECLARE_STRINGISE_TYPE(rdcspv::PackedVectorFormat);

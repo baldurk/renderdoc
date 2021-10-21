@@ -3238,6 +3238,8 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       break;
     }
     case Op::AtomicFAddEXT:
+    case Op::AtomicFMinEXT:
+    case Op::AtomicFMaxEXT:
     case Op::AtomicIAdd:
     case Op::AtomicISub:
     case Op::AtomicSMin:
@@ -3346,6 +3348,18 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       {
 #undef _IMPL
 #define _IMPL(T) comp<T>(result, 0) += comp<T>(value, 0)
+        IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, value.type);
+      }
+      else if(opdata.op == Op::AtomicFMaxEXT)
+      {
+#undef _IMPL
+#define _IMPL(T) comp<T>(result, 0) += RDCMAX(comp<T>(result, 0), comp<T>(value, 0))
+        IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, value.type);
+      }
+      else if(opdata.op == Op::AtomicFMinEXT)
+      {
+#undef _IMPL
+#define _IMPL(T) comp<T>(result, 0) += RDCMIN(comp<T>(result, 0), comp<T>(value, 0))
         IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, value.type);
       }
 
@@ -3462,6 +3476,12 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::SubgroupAnyKHR:
     case Op::SubgroupAllEqualKHR:
     case Op::SubgroupReadInvocationKHR:
+    case Op::SDotKHR:
+    case Op::UDotKHR:
+    case Op::SUDotKHR:
+    case Op::SDotAccSatKHR:
+    case Op::UDotAccSatKHR:
+    case Op::SUDotAccSatKHR:
     {
       RDCERR("Group opcodes not supported. SPIR-V should have been rejected by capability!");
 
@@ -3498,6 +3518,13 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::EndStreamPrimitive:
     {
       // nothing to do for these, even if debugging geometry shaders?
+      break;
+    }
+
+    case Op::AssumeTrueKHR:
+    case Op::ExpectKHR:
+    {
+      // we can ignore these, they are optimisation hints
       break;
     }
 
@@ -3669,7 +3696,6 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::SubgroupAvcSicGetPackedSkcLumaCountThresholdINTEL:
     case Op::SubgroupAvcSicGetPackedSkcLumaSumThresholdINTEL:
     case Op::SubgroupAvcSicGetInterRawSadsINTEL:
-    case Op::FunctionPointerINTEL:
     case Op::FunctionPointerCallINTEL:
     case Op::LoopControlINTEL:
     case Op::RayQueryGetRayTMinKHR:
@@ -3701,6 +3727,73 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::ConvertUToAccelerationStructureKHR:
     case Op::IgnoreIntersectionKHR:
     case Op::TerminateRayKHR:
+    case Op::AsmINTEL:
+    case Op::VariableLengthArrayINTEL:
+    case Op::TraceMotionNV:
+    case Op::TraceRayMotionNV:
+    case Op::ConstFunctionPointerINTEL:
+    case Op::AsmTargetINTEL:
+    case Op::AsmCallINTEL:
+    case Op::SaveMemoryINTEL:
+    case Op::RestoreMemoryINTEL:
+    case Op::ArbitraryFloatSinCosPiINTEL:
+    case Op::ArbitraryFloatCastINTEL:
+    case Op::ArbitraryFloatCastFromIntINTEL:
+    case Op::ArbitraryFloatCastToIntINTEL:
+    case Op::ArbitraryFloatAddINTEL:
+    case Op::ArbitraryFloatSubINTEL:
+    case Op::ArbitraryFloatMulINTEL:
+    case Op::ArbitraryFloatDivINTEL:
+    case Op::ArbitraryFloatGTINTEL:
+    case Op::ArbitraryFloatGEINTEL:
+    case Op::ArbitraryFloatLTINTEL:
+    case Op::ArbitraryFloatLEINTEL:
+    case Op::ArbitraryFloatEQINTEL:
+    case Op::ArbitraryFloatRecipINTEL:
+    case Op::ArbitraryFloatRSqrtINTEL:
+    case Op::ArbitraryFloatCbrtINTEL:
+    case Op::ArbitraryFloatHypotINTEL:
+    case Op::ArbitraryFloatSqrtINTEL:
+    case Op::ArbitraryFloatLogINTEL:
+    case Op::ArbitraryFloatLog2INTEL:
+    case Op::ArbitraryFloatLog10INTEL:
+    case Op::ArbitraryFloatLog1pINTEL:
+    case Op::ArbitraryFloatExpINTEL:
+    case Op::ArbitraryFloatExp2INTEL:
+    case Op::ArbitraryFloatExp10INTEL:
+    case Op::ArbitraryFloatExpm1INTEL:
+    case Op::ArbitraryFloatSinINTEL:
+    case Op::ArbitraryFloatCosINTEL:
+    case Op::ArbitraryFloatSinCosINTEL:
+    case Op::ArbitraryFloatSinPiINTEL:
+    case Op::ArbitraryFloatCosPiINTEL:
+    case Op::ArbitraryFloatASinINTEL:
+    case Op::ArbitraryFloatASinPiINTEL:
+    case Op::ArbitraryFloatACosINTEL:
+    case Op::ArbitraryFloatACosPiINTEL:
+    case Op::ArbitraryFloatATanINTEL:
+    case Op::ArbitraryFloatATanPiINTEL:
+    case Op::ArbitraryFloatATan2INTEL:
+    case Op::ArbitraryFloatPowINTEL:
+    case Op::ArbitraryFloatPowRINTEL:
+    case Op::ArbitraryFloatPowNINTEL:
+    case Op::FixedSqrtINTEL:
+    case Op::FixedRecipINTEL:
+    case Op::FixedRsqrtINTEL:
+    case Op::FixedSinINTEL:
+    case Op::FixedCosINTEL:
+    case Op::FixedSinCosINTEL:
+    case Op::FixedSinPiINTEL:
+    case Op::FixedCosPiINTEL:
+    case Op::FixedSinCosPiINTEL:
+    case Op::FixedLogINTEL:
+    case Op::FixedExpINTEL:
+    case Op::PtrCastToCrossWorkgroupINTEL:
+    case Op::CrossWorkgroupCastToPtrINTEL:
+    case Op::TypeBufferSurfaceINTEL:
+    case Op::TypeStructContinuedINTEL:
+    case Op::ConstantCompositeContinuedINTEL:
+    case Op::SpecConstantCompositeContinuedINTEL:
     {
       RDCERR("Unsupported extension opcode used %s", ToStr(opdata.op).c_str());
 

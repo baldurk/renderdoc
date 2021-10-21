@@ -677,6 +677,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
       case SourceLanguage::HLSL: reflection.debugInfo.encoding = ShaderEncoding::HLSL; break;
       case SourceLanguage::OpenCL_C:
       case SourceLanguage::OpenCL_CPP:
+      case SourceLanguage::CPP_for_OpenCL:
       case SourceLanguage::Unknown:
       case SourceLanguage::Invalid:
       case SourceLanguage::Max: break;

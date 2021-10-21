@@ -64,6 +64,9 @@ def operand_name(name, lowercase_first = True):
     if name.lower() == 'default':
         return 'def'
 
+    if name.lower() == 'asm':
+        return 'assembly'
+
     if lowercase_first:
         return name[0].lower() + name[1:]
     else:
@@ -932,7 +935,8 @@ for inst in spirv['instructions']:
         all_size = 1 # size, but with all optionals included
         iter_init = '    memcpy(this, it.words(), sizeof(*this));'
         complex_type = False
-        manual_init = '    this->op = OpCode;\n'
+        manual_init  = '    uint32_t word = 0;(void)word;\n'
+        manual_init += '    this->op = OpCode;\n'
         manual_init += '    this->wordCount = (uint16_t)it.size();\n'
         oper_cast = '  operator Operation() const\n  {\n    rdcarray<uint32_t> words;\n'
         has_funcs = ''
@@ -960,7 +964,7 @@ for inst in spirv['instructions']:
                     size_name = 'MinWordSize'
                     construct_size = 'MinWordSize'
                     complex_type = True
-                    manual_init += '    uint32_t word = {};\n'.format(all_size)
+                    manual_init += '    word = {};\n'.format(all_size)
 
                 quantifier = ''
 
@@ -971,7 +975,7 @@ for inst in spirv['instructions']:
                         construct_size = 'MinWordSize'
                         complex_type = True
                         if quantifier == '*':
-                            manual_init += '    uint32_t word = {};\n'.format(all_size)
+                            manual_init += '    word = {};\n'.format(all_size)
 
                 if kind['is_id']:
                     if quantifier == '*':
@@ -983,7 +987,7 @@ for inst in spirv['instructions']:
                     size_name = 'MinWordSize'
                     construct_size = 'MinWordSize'
                     complex_type = True
-                    manual_init += '    uint32_t word = {};\n'.format(all_size)
+                    manual_init += '    word = {};\n'.format(all_size)
 
                 opType,opName = (kind['type'], operand_name(operand['name'] if 'name' in operand else kind['def_name']))
 

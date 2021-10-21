@@ -55,12 +55,22 @@
 
 #endif
 
+// set up these defines so that vulkan_core.h doesn't trash the enum names we want to define as real
+// 64-bit enums
+#define VkAccessFlagBits2KHR VkAccessFlagBits2KHR_VkFlags64_typedef
+#define VkPipelineStageFlagBits2KHR VkPipelineStageFlagBits2KHR_VkFlags64_typedef
+#define VkFormatFeatureFlagBits2KHR VkFormatFeatureFlagBits2KHR_VkFlags64_typedef
+
 #include "core/core.h"
 #include "core/resource_manager.h"
 #include "official/vk_layer.h"
 #include "official/vulkan.h"
 #include "serialise/serialiser.h"
 #include "vk_dispatchtables.h"
+
+#undef VkAccessFlagBits2KHR
+#undef VkPipelineStageFlagBits2KHR
+#undef VkFormatFeatureFlagBits2KHR
 
 #undef Bool
 #undef None
@@ -1548,6 +1558,7 @@ DECLARE_REFLECTION_STRUCT(VkAndroidHardwareBufferFormatPropertiesANDROID);
 DECLARE_REFLECTION_STRUCT(VkImportAndroidHardwareBufferInfoANDROID);
 DECLARE_REFLECTION_STRUCT(VkMemoryGetAndroidHardwareBufferInfoANDROID);
 DECLARE_REFLECTION_STRUCT(VkExternalFormatANDROID);
+DECLARE_REFLECTION_STRUCT(VkAndroidHardwareBufferFormatProperties2ANDROID);
 
 DECLARE_DESERIALISE_TYPE(VkAndroidHardwareBufferUsageANDROID);
 DECLARE_DESERIALISE_TYPE(VkAndroidHardwareBufferPropertiesANDROID);
@@ -1555,6 +1566,7 @@ DECLARE_DESERIALISE_TYPE(VkAndroidHardwareBufferFormatPropertiesANDROID);
 DECLARE_DESERIALISE_TYPE(VkImportAndroidHardwareBufferInfoANDROID);
 DECLARE_DESERIALISE_TYPE(VkMemoryGetAndroidHardwareBufferInfoANDROID);
 DECLARE_DESERIALISE_TYPE(VkExternalFormatANDROID);
+DECLARE_DESERIALISE_TYPE(VkAndroidHardwareBufferFormatProperties2ANDROID);
 #endif
 
 // GGP only structs
@@ -1566,11 +1578,19 @@ DECLARE_DESERIALISE_TYPE(VkPresentFrameTokenGGP);
 
 // we add these fake enums so we have a type for type-dispatch in the serialiser. Due to C ABI rules
 // the vulkan API doesn't define native 64-bit enums itself
+//
+// if you get a compile error here, then somehow the macro shenanigans we play above to stop
+// vulkan_core.h from defining 'typedef VkFlags64 VkAccessFlagBits2KHR' has failed. We try to make
+// it use a different non-clashing name so that this name can be clear for a proper separate type.
 enum VkAccessFlagBits2KHR : uint64_t
 {
 };
 
 enum VkPipelineStageFlagBits2KHR : uint64_t
+{
+};
+
+enum VkFormatFeatureFlagBits2KHR : uint64_t
 {
 };
 
@@ -1632,6 +1652,7 @@ DECLARE_REFLECTION_ENUM(VkFilter);
 DECLARE_REFLECTION_ENUM(VkFlagWithNoBits);
 DECLARE_REFLECTION_ENUM(VkFormat);
 DECLARE_REFLECTION_ENUM(VkFormatFeatureFlagBits);
+DECLARE_REFLECTION_ENUM(VkFormatFeatureFlagBits2KHR);
 DECLARE_REFLECTION_ENUM(VkFramebufferCreateFlagBits);
 DECLARE_REFLECTION_ENUM(VkFrontFace);
 DECLARE_REFLECTION_ENUM(VkImageAspectFlagBits);
@@ -1686,7 +1707,6 @@ DECLARE_REFLECTION_ENUM(VkSemaphoreImportFlagBits);
 DECLARE_REFLECTION_ENUM(VkSemaphoreType);
 DECLARE_REFLECTION_ENUM(VkSemaphoreWaitFlagBits);
 DECLARE_REFLECTION_ENUM(VkShaderFloatControlsIndependence);
-DECLARE_REFLECTION_ENUM(VkShaderModuleCreateFlagBits);
 DECLARE_REFLECTION_ENUM(VkShaderStageFlagBits);
 DECLARE_REFLECTION_ENUM(VkSharingMode);
 DECLARE_REFLECTION_ENUM(VkSparseImageFormatFlagBits);

@@ -64,6 +64,13 @@ enum VulkanDynamicStateIndex
   VkDynamicStencilTestEnableEXT,
   VkDynamicStencilOpEXT,
   VkDynamicRayTracingStackSizeEXT,
+  VkDynamicVertexInputEXT,
+  VkDynamicControlPointsEXT,
+  VkDynamicRastDiscardEXT,
+  VkDynamicDepthBiasEnableEXT,
+  VkDynamicLogicOpEXT,
+  VkDynamicPrimRestartEXT,
+  VkDynamicColorWriteEXT,
   VkDynamicCount,
 };
 

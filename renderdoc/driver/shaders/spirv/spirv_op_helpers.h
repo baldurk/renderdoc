@@ -234,6 +234,11 @@ inline ImageOperandsAndParamDatas DecodeParam(const ConstIter &it, uint32_t &wor
     ret.makeTexelVisible = Id::fromWord(it.word(word));
     word += 1;
   }
+  if(ret.flags & ImageOperands::Offsets)
+  {
+    ret.offsets = Id::fromWord(it.word(word));
+    word += 1;
+  }
   return ret;
 }
 
@@ -281,6 +286,10 @@ inline void EncodeParam(rdcarray<uint32_t> &words, const ImageOperandsAndParamDa
   {
     words.push_back(param.makeTexelVisible.value());
   }
+  if(param.flags & ImageOperands::Offsets)
+  {
+    words.push_back(param.offsets.value());
+  }
 }
 
 inline uint16_t ExtraWordCount(const ImageOperands imageOperands)
@@ -297,6 +306,7 @@ inline uint16_t ExtraWordCount(const ImageOperands imageOperands)
     case ImageOperands::MinLod: return 1;
     case ImageOperands::MakeTexelAvailable: return 1;
     case ImageOperands::MakeTexelVisible: return 1;
+    case ImageOperands::Offsets: return 1;
     default: break;
   }
   return 0;
@@ -374,6 +384,11 @@ inline LoopControlAndParamDatas DecodeParam(const ConstIter &it, uint32_t &word)
     ret.speculatedIterationsINTEL = (uint32_t)it.word(word);
     word += 1;
   }
+  if(ret.flags & LoopControl::NoFusionINTEL)
+  {
+    ret.noFusionINTEL = (uint32_t)it.word(word);
+    word += 1;
+  }
   return ret;
 }
 
@@ -432,6 +447,10 @@ inline void EncodeParam(rdcarray<uint32_t> &words, const LoopControlAndParamData
   {
     words.push_back((uint32_t)param.speculatedIterationsINTEL);
   }
+  if(param.flags & LoopControl::NoFusionINTEL)
+  {
+    words.push_back((uint32_t)param.noFusionINTEL);
+  }
 }
 
 inline uint16_t ExtraWordCount(const LoopControl loopControl)
@@ -451,6 +470,7 @@ inline uint16_t ExtraWordCount(const LoopControl loopControl)
     case LoopControl::LoopCoalesceINTEL: return 1;
     case LoopControl::MaxInterleavingINTEL: return 1;
     case LoopControl::SpeculatedIterationsINTEL: return 1;
+    case LoopControl::NoFusionINTEL: return 1;
     default: break;
   }
   return 0;
@@ -646,12 +666,14 @@ struct ExecutionModeParam<ExecutionMode::LocalSizeId>
 template<>
 struct ExecutionModeParam<ExecutionMode::LocalSizeHintId>
 {
-  Id localSizeHintId;
-  ExecutionModeParam(Id localSizeHintIdParam) {  localSizeHintId = localSizeHintIdParam; }
+  LocalSizeHintIdParams localSizeHintId;
+  ExecutionModeParam(Id xsizehint, Id ysizehint, Id zsizehint) {  localSizeHintId.xsizehint = xsizehint; localSizeHintId.ysizehint = ysizehint; localSizeHintId.zsizehint = zsizehint; }
   operator ExecutionModeAndParamData()
   {
     ExecutionModeAndParamData ret(ExecutionMode::LocalSizeHintId);
-    ret.localSizeHintId = localSizeHintId;
+    ret.localSizeHintId.xsizehint = localSizeHintId.xsizehint;
+    ret.localSizeHintId.ysizehint = localSizeHintId.ysizehint;
+    ret.localSizeHintId.zsizehint = localSizeHintId.zsizehint;
     return ret;
   }
 };
@@ -735,6 +757,71 @@ struct ExecutionModeParam<ExecutionMode::OutputPrimitivesNV>
 };
 
 template<>
+struct ExecutionModeParam<ExecutionMode::SharedLocalMemorySizeINTEL>
+{
+  uint32_t sharedLocalMemorySizeINTEL;
+  ExecutionModeParam(uint32_t sharedLocalMemorySizeINTELParam) {  sharedLocalMemorySizeINTEL = sharedLocalMemorySizeINTELParam; }
+  operator ExecutionModeAndParamData()
+  {
+    ExecutionModeAndParamData ret(ExecutionMode::SharedLocalMemorySizeINTEL);
+    ret.sharedLocalMemorySizeINTEL = sharedLocalMemorySizeINTEL;
+    return ret;
+  }
+};
+
+template<>
+struct ExecutionModeParam<ExecutionMode::RoundingModeRTPINTEL>
+{
+  uint32_t roundingModeRTPINTEL;
+  ExecutionModeParam(uint32_t roundingModeRTPINTELParam) {  roundingModeRTPINTEL = roundingModeRTPINTELParam; }
+  operator ExecutionModeAndParamData()
+  {
+    ExecutionModeAndParamData ret(ExecutionMode::RoundingModeRTPINTEL);
+    ret.roundingModeRTPINTEL = roundingModeRTPINTEL;
+    return ret;
+  }
+};
+
+template<>
+struct ExecutionModeParam<ExecutionMode::RoundingModeRTNINTEL>
+{
+  uint32_t roundingModeRTNINTEL;
+  ExecutionModeParam(uint32_t roundingModeRTNINTELParam) {  roundingModeRTNINTEL = roundingModeRTNINTELParam; }
+  operator ExecutionModeAndParamData()
+  {
+    ExecutionModeAndParamData ret(ExecutionMode::RoundingModeRTNINTEL);
+    ret.roundingModeRTNINTEL = roundingModeRTNINTEL;
+    return ret;
+  }
+};
+
+template<>
+struct ExecutionModeParam<ExecutionMode::FloatingPointModeALTINTEL>
+{
+  uint32_t floatingPointModeALTINTEL;
+  ExecutionModeParam(uint32_t floatingPointModeALTINTELParam) {  floatingPointModeALTINTEL = floatingPointModeALTINTELParam; }
+  operator ExecutionModeAndParamData()
+  {
+    ExecutionModeAndParamData ret(ExecutionMode::FloatingPointModeALTINTEL);
+    ret.floatingPointModeALTINTEL = floatingPointModeALTINTEL;
+    return ret;
+  }
+};
+
+template<>
+struct ExecutionModeParam<ExecutionMode::FloatingPointModeIEEEINTEL>
+{
+  uint32_t floatingPointModeIEEEINTEL;
+  ExecutionModeParam(uint32_t floatingPointModeIEEEINTELParam) {  floatingPointModeIEEEINTEL = floatingPointModeIEEEINTELParam; }
+  operator ExecutionModeAndParamData()
+  {
+    ExecutionModeAndParamData ret(ExecutionMode::FloatingPointModeIEEEINTEL);
+    ret.floatingPointModeIEEEINTEL = floatingPointModeIEEEINTEL;
+    return ret;
+  }
+};
+
+template<>
 struct ExecutionModeParam<ExecutionMode::MaxWorkgroupSizeINTEL>
 {
   MaxWorkgroupSizeINTELParams maxWorkgroupSizeINTEL;
@@ -771,6 +858,19 @@ struct ExecutionModeParam<ExecutionMode::NumSIMDWorkitemsINTEL>
   {
     ExecutionModeAndParamData ret(ExecutionMode::NumSIMDWorkitemsINTEL);
     ret.numSIMDWorkitemsINTEL = numSIMDWorkitemsINTEL;
+    return ret;
+  }
+};
+
+template<>
+struct ExecutionModeParam<ExecutionMode::SchedulerTargetFmaxMhzINTEL>
+{
+  uint32_t schedulerTargetFmaxMhzINTEL;
+  ExecutionModeParam(uint32_t schedulerTargetFmaxMhzINTELParam) {  schedulerTargetFmaxMhzINTEL = schedulerTargetFmaxMhzINTELParam; }
+  operator ExecutionModeAndParamData()
+  {
+    ExecutionModeAndParamData ret(ExecutionMode::SchedulerTargetFmaxMhzINTEL);
+    ret.schedulerTargetFmaxMhzINTEL = schedulerTargetFmaxMhzINTEL;
     return ret;
   }
 };
@@ -829,8 +929,10 @@ inline ExecutionModeAndParamData DecodeParam(const ConstIter &it, uint32_t &word
       word += 3;
       break;
     case ExecutionMode::LocalSizeHintId:
-      ret.localSizeHintId = Id::fromWord(it.word(word));
-      word += 1;
+      ret.localSizeHintId.xsizehint = Id::fromWord(it.word(word+0));
+      ret.localSizeHintId.ysizehint = Id::fromWord(it.word(word+1));
+      ret.localSizeHintId.zsizehint = Id::fromWord(it.word(word+2));
+      word += 3;
       break;
     case ExecutionMode::DenormPreserve:
       ret.denormPreserve = (uint32_t)it.word(word);
@@ -856,6 +958,26 @@ inline ExecutionModeAndParamData DecodeParam(const ConstIter &it, uint32_t &word
       ret.outputPrimitivesNV = (uint32_t)it.word(word);
       word += 1;
       break;
+    case ExecutionMode::SharedLocalMemorySizeINTEL:
+      ret.sharedLocalMemorySizeINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
+    case ExecutionMode::RoundingModeRTPINTEL:
+      ret.roundingModeRTPINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
+    case ExecutionMode::RoundingModeRTNINTEL:
+      ret.roundingModeRTNINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
+    case ExecutionMode::FloatingPointModeALTINTEL:
+      ret.floatingPointModeALTINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
+    case ExecutionMode::FloatingPointModeIEEEINTEL:
+      ret.floatingPointModeIEEEINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
     case ExecutionMode::MaxWorkgroupSizeINTEL:
       ret.maxWorkgroupSizeINTEL.max_x_size = (uint32_t)it.word(word+0);
       ret.maxWorkgroupSizeINTEL.max_y_size = (uint32_t)it.word(word+1);
@@ -868,6 +990,10 @@ inline ExecutionModeAndParamData DecodeParam(const ConstIter &it, uint32_t &word
       break;
     case ExecutionMode::NumSIMDWorkitemsINTEL:
       ret.numSIMDWorkitemsINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
+    case ExecutionMode::SchedulerTargetFmaxMhzINTEL:
+      ret.schedulerTargetFmaxMhzINTEL = (uint32_t)it.word(word);
       word += 1;
       break;
     default: break;
@@ -914,7 +1040,9 @@ inline void EncodeParam(rdcarray<uint32_t> &words, const ExecutionModeAndParamDa
       words.push_back(param.localSizeId.zsize.value());
       break;
     case ExecutionMode::LocalSizeHintId:
-      words.push_back(param.localSizeHintId.value());
+      words.push_back(param.localSizeHintId.xsizehint.value());
+      words.push_back(param.localSizeHintId.ysizehint.value());
+      words.push_back(param.localSizeHintId.zsizehint.value());
       break;
     case ExecutionMode::DenormPreserve:
       words.push_back((uint32_t)param.denormPreserve);
@@ -934,6 +1062,21 @@ inline void EncodeParam(rdcarray<uint32_t> &words, const ExecutionModeAndParamDa
     case ExecutionMode::OutputPrimitivesNV:
       words.push_back((uint32_t)param.outputPrimitivesNV);
       break;
+    case ExecutionMode::SharedLocalMemorySizeINTEL:
+      words.push_back((uint32_t)param.sharedLocalMemorySizeINTEL);
+      break;
+    case ExecutionMode::RoundingModeRTPINTEL:
+      words.push_back((uint32_t)param.roundingModeRTPINTEL);
+      break;
+    case ExecutionMode::RoundingModeRTNINTEL:
+      words.push_back((uint32_t)param.roundingModeRTNINTEL);
+      break;
+    case ExecutionMode::FloatingPointModeALTINTEL:
+      words.push_back((uint32_t)param.floatingPointModeALTINTEL);
+      break;
+    case ExecutionMode::FloatingPointModeIEEEINTEL:
+      words.push_back((uint32_t)param.floatingPointModeIEEEINTEL);
+      break;
     case ExecutionMode::MaxWorkgroupSizeINTEL:
       words.push_back((uint32_t)param.maxWorkgroupSizeINTEL.max_x_size);
       words.push_back((uint32_t)param.maxWorkgroupSizeINTEL.max_y_size);
@@ -944,6 +1087,9 @@ inline void EncodeParam(rdcarray<uint32_t> &words, const ExecutionModeAndParamDa
       break;
     case ExecutionMode::NumSIMDWorkitemsINTEL:
       words.push_back((uint32_t)param.numSIMDWorkitemsINTEL);
+      break;
+    case ExecutionMode::SchedulerTargetFmaxMhzINTEL:
+      words.push_back((uint32_t)param.schedulerTargetFmaxMhzINTEL);
       break;
     default: break;
   }
@@ -962,16 +1108,22 @@ inline uint16_t ExtraWordCount(const ExecutionMode executionMode)
     case ExecutionMode::SubgroupsPerWorkgroup: return 1;
     case ExecutionMode::SubgroupsPerWorkgroupId: return 1;
     case ExecutionMode::LocalSizeId: return 3;
-    case ExecutionMode::LocalSizeHintId: return 1;
+    case ExecutionMode::LocalSizeHintId: return 3;
     case ExecutionMode::DenormPreserve: return 1;
     case ExecutionMode::DenormFlushToZero: return 1;
     case ExecutionMode::SignedZeroInfNanPreserve: return 1;
     case ExecutionMode::RoundingModeRTE: return 1;
     case ExecutionMode::RoundingModeRTZ: return 1;
     case ExecutionMode::OutputPrimitivesNV: return 1;
+    case ExecutionMode::SharedLocalMemorySizeINTEL: return 1;
+    case ExecutionMode::RoundingModeRTPINTEL: return 1;
+    case ExecutionMode::RoundingModeRTNINTEL: return 1;
+    case ExecutionMode::FloatingPointModeALTINTEL: return 1;
+    case ExecutionMode::FloatingPointModeIEEEINTEL: return 1;
     case ExecutionMode::MaxWorkgroupSizeINTEL: return 3;
     case ExecutionMode::MaxWorkDimINTEL: return 1;
     case ExecutionMode::NumSIMDWorkitemsINTEL: return 1;
+    case ExecutionMode::SchedulerTargetFmaxMhzINTEL: return 1;
     default: break;
   }
   return 0;
@@ -992,6 +1144,14 @@ inline uint16_t OptionalWordCount(const ImageChannelOrder val) { return val != I
 inline uint16_t OptionalWordCount(const ImageChannelDataType val) { return val != ImageChannelDataType::Invalid ? 1 : 0; }
 
 inline uint16_t OptionalWordCount(const FPRoundingMode val) { return val != FPRoundingMode::Invalid ? 1 : 0; }
+
+inline uint16_t OptionalWordCount(const FPDenormMode val) { return val != FPDenormMode::Invalid ? 1 : 0; }
+
+inline uint16_t OptionalWordCount(const QuantizationModes val) { return val != QuantizationModes::Invalid ? 1 : 0; }
+
+inline uint16_t OptionalWordCount(const FPOperationMode val) { return val != FPOperationMode::Invalid ? 1 : 0; }
+
+inline uint16_t OptionalWordCount(const OverflowModes val) { return val != OverflowModes::Invalid ? 1 : 0; }
 
 inline uint16_t OptionalWordCount(const LinkageType val) { return val != LinkageType::Invalid ? 1 : 0; }
 
@@ -1301,6 +1461,45 @@ struct DecorationParam<Decoration::SecondaryViewportRelativeNV>
 };
 
 template<>
+struct DecorationParam<Decoration::SIMTCallINTEL>
+{
+  uint32_t sIMTCallINTEL;
+  DecorationParam(uint32_t sIMTCallINTELParam) {  sIMTCallINTEL = sIMTCallINTELParam; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::SIMTCallINTEL);
+    ret.sIMTCallINTEL = sIMTCallINTEL;
+    return ret;
+  }
+};
+
+template<>
+struct DecorationParam<Decoration::FuncParamIOKindINTEL>
+{
+  uint32_t funcParamIOKindINTEL;
+  DecorationParam(uint32_t funcParamIOKindINTELParam) {  funcParamIOKindINTEL = funcParamIOKindINTELParam; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::FuncParamIOKindINTEL);
+    ret.funcParamIOKindINTEL = funcParamIOKindINTEL;
+    return ret;
+  }
+};
+
+template<>
+struct DecorationParam<Decoration::GlobalVariableOffsetINTEL>
+{
+  uint32_t globalVariableOffsetINTEL;
+  DecorationParam(uint32_t globalVariableOffsetINTELParam) {  globalVariableOffsetINTEL = globalVariableOffsetINTELParam; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::GlobalVariableOffsetINTEL);
+    ret.globalVariableOffsetINTEL = globalVariableOffsetINTEL;
+    return ret;
+  }
+};
+
+template<>
 struct DecorationParam<Decoration::CounterBuffer>
 {
   Id counterBuffer;
@@ -1309,6 +1508,34 @@ struct DecorationParam<Decoration::CounterBuffer>
   {
     DecorationAndParamData ret(Decoration::CounterBuffer);
     ret.counterBuffer = counterBuffer;
+    return ret;
+  }
+};
+
+template<>
+struct DecorationParam<Decoration::FunctionRoundingModeINTEL>
+{
+  FunctionRoundingModeINTELParams functionRoundingModeINTEL;
+  DecorationParam(uint32_t targetWidth, FPRoundingMode fPRoundingMode) {  functionRoundingModeINTEL.targetWidth = targetWidth; functionRoundingModeINTEL.fPRoundingMode = fPRoundingMode; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::FunctionRoundingModeINTEL);
+    ret.functionRoundingModeINTEL.targetWidth = functionRoundingModeINTEL.targetWidth;
+    ret.functionRoundingModeINTEL.fPRoundingMode = functionRoundingModeINTEL.fPRoundingMode;
+    return ret;
+  }
+};
+
+template<>
+struct DecorationParam<Decoration::FunctionDenormModeINTEL>
+{
+  FunctionDenormModeINTELParams functionDenormModeINTEL;
+  DecorationParam(uint32_t targetWidth, FPDenormMode fPDenormMode) {  functionDenormModeINTEL.targetWidth = targetWidth; functionDenormModeINTEL.fPDenormMode = fPDenormMode; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::FunctionDenormModeINTEL);
+    ret.functionDenormModeINTEL.targetWidth = functionDenormModeINTEL.targetWidth;
+    ret.functionDenormModeINTEL.fPDenormMode = functionDenormModeINTEL.fPDenormMode;
     return ret;
   }
 };
@@ -1387,6 +1614,72 @@ struct DecorationParam<Decoration::ForcePow2DepthINTEL>
   {
     DecorationAndParamData ret(Decoration::ForcePow2DepthINTEL);
     ret.forcePow2DepthINTEL = forcePow2DepthINTEL;
+    return ret;
+  }
+};
+
+template<>
+struct DecorationParam<Decoration::CacheSizeINTEL>
+{
+  uint32_t cacheSizeINTEL;
+  DecorationParam(uint32_t cacheSizeINTELParam) {  cacheSizeINTEL = cacheSizeINTELParam; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::CacheSizeINTEL);
+    ret.cacheSizeINTEL = cacheSizeINTEL;
+    return ret;
+  }
+};
+
+template<>
+struct DecorationParam<Decoration::PrefetchINTEL>
+{
+  uint32_t prefetchINTEL;
+  DecorationParam(uint32_t prefetchINTELParam) {  prefetchINTEL = prefetchINTELParam; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::PrefetchINTEL);
+    ret.prefetchINTEL = prefetchINTEL;
+    return ret;
+  }
+};
+
+template<>
+struct DecorationParam<Decoration::BufferLocationINTEL>
+{
+  uint32_t bufferLocationINTEL;
+  DecorationParam(uint32_t bufferLocationINTELParam) {  bufferLocationINTEL = bufferLocationINTELParam; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::BufferLocationINTEL);
+    ret.bufferLocationINTEL = bufferLocationINTEL;
+    return ret;
+  }
+};
+
+template<>
+struct DecorationParam<Decoration::IOPipeStorageINTEL>
+{
+  uint32_t iOPipeStorageINTEL;
+  DecorationParam(uint32_t iOPipeStorageINTELParam) {  iOPipeStorageINTEL = iOPipeStorageINTELParam; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::IOPipeStorageINTEL);
+    ret.iOPipeStorageINTEL = iOPipeStorageINTEL;
+    return ret;
+  }
+};
+
+template<>
+struct DecorationParam<Decoration::FunctionFloatingPointModeINTEL>
+{
+  FunctionFloatingPointModeINTELParams functionFloatingPointModeINTEL;
+  DecorationParam(uint32_t targetWidth, FPOperationMode fPOperationMode) {  functionFloatingPointModeINTEL.targetWidth = targetWidth; functionFloatingPointModeINTEL.fPOperationMode = fPOperationMode; }
+  operator DecorationAndParamData()
+  {
+    DecorationAndParamData ret(Decoration::FunctionFloatingPointModeINTEL);
+    ret.functionFloatingPointModeINTEL.targetWidth = functionFloatingPointModeINTEL.targetWidth;
+    ret.functionFloatingPointModeINTEL.fPOperationMode = functionFloatingPointModeINTEL.fPOperationMode;
     return ret;
   }
 };
@@ -1494,9 +1787,31 @@ inline DecorationAndParamData DecodeParam(const ConstIter &it, uint32_t &word)
       ret.secondaryViewportRelativeNV = (uint32_t)it.word(word);
       word += 1;
       break;
+    case Decoration::SIMTCallINTEL:
+      ret.sIMTCallINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
+    case Decoration::FuncParamIOKindINTEL:
+      ret.funcParamIOKindINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
+    case Decoration::GlobalVariableOffsetINTEL:
+      ret.globalVariableOffsetINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
     case Decoration::CounterBuffer:
       ret.counterBuffer = Id::fromWord(it.word(word));
       word += 1;
+      break;
+    case Decoration::FunctionRoundingModeINTEL:
+      ret.functionRoundingModeINTEL.targetWidth = (uint32_t)it.word(word+0);
+      ret.functionRoundingModeINTEL.fPRoundingMode = (FPRoundingMode)it.word(word+1);
+      word += 2;
+      break;
+    case Decoration::FunctionDenormModeINTEL:
+      ret.functionDenormModeINTEL.targetWidth = (uint32_t)it.word(word+0);
+      ret.functionDenormModeINTEL.fPDenormMode = (FPDenormMode)it.word(word+1);
+      word += 2;
       break;
     case Decoration::NumbanksINTEL:
       ret.numbanksINTEL = (uint32_t)it.word(word);
@@ -1521,6 +1836,27 @@ inline DecorationAndParamData DecodeParam(const ConstIter &it, uint32_t &word)
     case Decoration::ForcePow2DepthINTEL:
       ret.forcePow2DepthINTEL = (uint32_t)it.word(word);
       word += 1;
+      break;
+    case Decoration::CacheSizeINTEL:
+      ret.cacheSizeINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
+    case Decoration::PrefetchINTEL:
+      ret.prefetchINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
+    case Decoration::BufferLocationINTEL:
+      ret.bufferLocationINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
+    case Decoration::IOPipeStorageINTEL:
+      ret.iOPipeStorageINTEL = (uint32_t)it.word(word);
+      word += 1;
+      break;
+    case Decoration::FunctionFloatingPointModeINTEL:
+      ret.functionFloatingPointModeINTEL.targetWidth = (uint32_t)it.word(word+0);
+      ret.functionFloatingPointModeINTEL.fPOperationMode = (FPOperationMode)it.word(word+1);
+      word += 2;
       break;
     default: break;
   }
@@ -1601,8 +1937,25 @@ inline void EncodeParam(rdcarray<uint32_t> &words, const DecorationAndParamData 
     case Decoration::SecondaryViewportRelativeNV:
       words.push_back((uint32_t)param.secondaryViewportRelativeNV);
       break;
+    case Decoration::SIMTCallINTEL:
+      words.push_back((uint32_t)param.sIMTCallINTEL);
+      break;
+    case Decoration::FuncParamIOKindINTEL:
+      words.push_back((uint32_t)param.funcParamIOKindINTEL);
+      break;
+    case Decoration::GlobalVariableOffsetINTEL:
+      words.push_back((uint32_t)param.globalVariableOffsetINTEL);
+      break;
     case Decoration::CounterBuffer:
       words.push_back(param.counterBuffer.value());
+      break;
+    case Decoration::FunctionRoundingModeINTEL:
+      words.push_back((uint32_t)param.functionRoundingModeINTEL.targetWidth);
+      words.push_back((uint32_t)param.functionRoundingModeINTEL.fPRoundingMode);
+      break;
+    case Decoration::FunctionDenormModeINTEL:
+      words.push_back((uint32_t)param.functionDenormModeINTEL.targetWidth);
+      words.push_back((uint32_t)param.functionDenormModeINTEL.fPDenormMode);
       break;
     case Decoration::NumbanksINTEL:
       words.push_back((uint32_t)param.numbanksINTEL);
@@ -1621,6 +1974,22 @@ inline void EncodeParam(rdcarray<uint32_t> &words, const DecorationAndParamData 
       break;
     case Decoration::ForcePow2DepthINTEL:
       words.push_back((uint32_t)param.forcePow2DepthINTEL);
+      break;
+    case Decoration::CacheSizeINTEL:
+      words.push_back((uint32_t)param.cacheSizeINTEL);
+      break;
+    case Decoration::PrefetchINTEL:
+      words.push_back((uint32_t)param.prefetchINTEL);
+      break;
+    case Decoration::BufferLocationINTEL:
+      words.push_back((uint32_t)param.bufferLocationINTEL);
+      break;
+    case Decoration::IOPipeStorageINTEL:
+      words.push_back((uint32_t)param.iOPipeStorageINTEL);
+      break;
+    case Decoration::FunctionFloatingPointModeINTEL:
+      words.push_back((uint32_t)param.functionFloatingPointModeINTEL.targetWidth);
+      words.push_back((uint32_t)param.functionFloatingPointModeINTEL.fPOperationMode);
       break;
     default: break;
   }
@@ -1653,13 +2022,23 @@ inline uint16_t ExtraWordCount(const Decoration decoration)
     case Decoration::AlignmentId: return 1;
     case Decoration::MaxByteOffsetId: return 1;
     case Decoration::SecondaryViewportRelativeNV: return 1;
+    case Decoration::SIMTCallINTEL: return 1;
+    case Decoration::FuncParamIOKindINTEL: return 1;
+    case Decoration::GlobalVariableOffsetINTEL: return 1;
     case Decoration::CounterBuffer: return 1;
+    case Decoration::FunctionRoundingModeINTEL: return 2;
+    case Decoration::FunctionDenormModeINTEL: return 2;
     case Decoration::NumbanksINTEL: return 1;
     case Decoration::BankwidthINTEL: return 1;
     case Decoration::MaxPrivateCopiesINTEL: return 1;
     case Decoration::MaxReplicatesINTEL: return 1;
     case Decoration::BankBitsINTEL: return 1;
     case Decoration::ForcePow2DepthINTEL: return 1;
+    case Decoration::CacheSizeINTEL: return 1;
+    case Decoration::PrefetchINTEL: return 1;
+    case Decoration::BufferLocationINTEL: return 1;
+    case Decoration::IOPipeStorageINTEL: return 1;
+    case Decoration::FunctionFloatingPointModeINTEL: return 2;
     default: break;
   }
   return 0;
@@ -1680,6 +2059,8 @@ inline uint16_t OptionalWordCount(const RayQueryIntersection val) { return val !
 inline uint16_t OptionalWordCount(const RayQueryCommittedIntersectionType val) { return val != RayQueryCommittedIntersectionType::Invalid ? 1 : 0; }
 
 inline uint16_t OptionalWordCount(const RayQueryCandidateIntersectionType val) { return val != RayQueryCandidateIntersectionType::Invalid ? 1 : 0; }
+
+inline uint16_t OptionalWordCount(const PackedVectorFormat val) { return val != PackedVectorFormat::Invalid ? 1 : 0; }
 
 
 inline uint16_t ExtraWordCount(const rdcstr &val)
@@ -1768,9 +2149,10 @@ struct OpSourceContinued
 {
   OpSourceContinued(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
-    uint32_t word = 1;
+    word = 1;
     this->continuedSource = DecodeParam<rdcstr>(it, word);
   }
   OpSourceContinued(rdcstr continuedSource)
@@ -1797,12 +2179,13 @@ struct OpSource
 {
   OpSource(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->sourceLanguage = (SourceLanguage)it.word(1);
     this->version = (uint32_t)it.word(2);
     this->file = (it.size() > 3) ? Id::fromWord(it.word(3)) : Id();
-    uint32_t word = 4;
+    word = 4;
     this->source = DecodeParam<rdcstr>(it, word);
   }
   OpSource(SourceLanguage sourceLanguage, uint32_t version, Id file = Id(), rdcstr source = "")
@@ -1841,9 +2224,10 @@ struct OpSourceExtension
 {
   OpSourceExtension(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
-    uint32_t word = 1;
+    word = 1;
     this->extension = DecodeParam<rdcstr>(it, word);
   }
   OpSourceExtension(rdcstr extension)
@@ -1870,10 +2254,11 @@ struct OpName
 {
   OpName(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->target = Id::fromWord(it.word(1));
-    uint32_t word = 2;
+    word = 2;
     this->name = DecodeParam<rdcstr>(it, word);
   }
   OpName(Id target, rdcstr name)
@@ -1903,11 +2288,12 @@ struct OpMemberName
 {
   OpMemberName(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->type = Id::fromWord(it.word(1));
     this->member = (uint32_t)it.word(2);
-    uint32_t word = 3;
+    word = 3;
     this->name = DecodeParam<rdcstr>(it, word);
   }
   OpMemberName(Id type, uint32_t member, rdcstr name)
@@ -1940,10 +2326,11 @@ struct OpString
 {
   OpString(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->result = Id::fromWord(it.word(1));
-    uint32_t word = 2;
+    word = 2;
     this->string = DecodeParam<rdcstr>(it, word);
   }
   OpString(IdResult result, rdcstr string)
@@ -1997,9 +2384,10 @@ struct OpExtension
 {
   OpExtension(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
-    uint32_t word = 1;
+    word = 1;
     this->name = DecodeParam<rdcstr>(it, word);
   }
   OpExtension(rdcstr name)
@@ -2026,10 +2414,11 @@ struct OpExtInstImport
 {
   OpExtInstImport(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->result = Id::fromWord(it.word(1));
-    uint32_t word = 2;
+    word = 2;
     this->name = DecodeParam<rdcstr>(it, word);
   }
   OpExtInstImport(IdResult result, rdcstr name)
@@ -2083,11 +2472,12 @@ struct OpEntryPoint
 {
   OpEntryPoint(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->executionModel = (ExecutionModel)it.word(1);
     this->entryPoint = Id::fromWord(it.word(2));
-    uint32_t word = 3;
+    word = 3;
     this->name = DecodeParam<rdcstr>(it, word);
     this->iface = MultiParam<Id>(it, word);
   }
@@ -2127,10 +2517,11 @@ struct OpExecutionMode
 {
   OpExecutionMode(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->entryPoint = Id::fromWord(it.word(1));
-    uint32_t word = 2;
+    word = 2;
     this->mode = DecodeParam<ExecutionModeAndParamData>(it, word);
   }
   OpExecutionMode(Id entryPoint, ExecutionModeAndParamData mode)
@@ -2314,6 +2705,7 @@ struct OpTypeImage
 {
   OpTypeImage(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->result = Id::fromWord(it.word(1));
@@ -2464,10 +2856,11 @@ struct OpTypeStruct
 {
   OpTypeStruct(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->result = Id::fromWord(it.word(1));
-    uint32_t word = 2;
+    word = 2;
     this->members = MultiParam<Id>(it, word);
   }
   OpTypeStruct(IdResult result, const rdcarray<Id> &members = {})
@@ -2500,10 +2893,11 @@ struct OpTypeOpaque
 {
   OpTypeOpaque(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->result = Id::fromWord(it.word(1));
-    uint32_t word = 2;
+    word = 2;
     this->thenameoftheopaquetype = DecodeParam<rdcstr>(it, word);
   }
   OpTypeOpaque(IdResult result, rdcstr thenameoftheopaquetype)
@@ -2557,11 +2951,12 @@ struct OpTypeFunction
 {
   OpTypeFunction(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->result = Id::fromWord(it.word(1));
     this->returnType = Id::fromWord(it.word(2));
-    uint32_t word = 3;
+    word = 3;
     this->parameters = MultiParam<Id>(it, word);
   }
   OpTypeFunction(IdResult result, Id returnType, const rdcarray<Id> &parameters = {})
@@ -2767,11 +3162,12 @@ struct OpConstantComposite
 {
   OpConstantComposite(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
     this->result = Id::fromWord(it.word(2));
-    uint32_t word = 3;
+    word = 3;
     this->constituents = MultiParam<Id>(it, word);
   }
   OpConstantComposite(IdResultType resultType, IdResult result, const rdcarray<Id> &constituents = {})
@@ -2903,11 +3299,12 @@ struct OpSpecConstantComposite
 {
   OpSpecConstantComposite(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
     this->result = Id::fromWord(it.word(2));
-    uint32_t word = 3;
+    word = 3;
     this->constituents = MultiParam<Id>(it, word);
   }
   OpSpecConstantComposite(IdResultType resultType, IdResult result, const rdcarray<Id> &constituents = {})
@@ -3013,12 +3410,13 @@ struct OpFunctionCall
 {
   OpFunctionCall(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
     this->result = Id::fromWord(it.word(2));
     this->function = Id::fromWord(it.word(3));
-    uint32_t word = 4;
+    word = 4;
     this->arguments = MultiParam<Id>(it, word);
   }
   OpFunctionCall(IdResultType resultType, IdResult result, Id function, const rdcarray<Id> &arguments = {})
@@ -3057,6 +3455,7 @@ struct OpVariable
 {
   OpVariable(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -3127,12 +3526,13 @@ struct OpLoad
 {
   OpLoad(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
     this->result = Id::fromWord(it.word(2));
     this->pointer = Id::fromWord(it.word(3));
-    uint32_t word = 4;
+    word = 4;
     this->memoryAccess = DecodeParam<MemoryAccessAndParamDatas>(it, word);
   }
   OpLoad(IdResultType resultType, IdResult result, Id pointer, MemoryAccessAndParamDatas memoryAccess = MemoryAccess::None)
@@ -3168,11 +3568,12 @@ struct OpStore
 {
   OpStore(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->pointer = Id::fromWord(it.word(1));
     this->object = Id::fromWord(it.word(2));
-    uint32_t word = 3;
+    word = 3;
     this->memoryAccess = DecodeParam<MemoryAccessAndParamDatas>(it, word);
   }
   OpStore(Id pointer, Id object, MemoryAccessAndParamDatas memoryAccess = MemoryAccess::None)
@@ -3205,11 +3606,12 @@ struct OpCopyMemory
 {
   OpCopyMemory(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->target = Id::fromWord(it.word(1));
     this->source = Id::fromWord(it.word(2));
-    uint32_t word = 3;
+    word = 3;
     this->memoryAccess0 = DecodeParam<MemoryAccessAndParamDatas>(it, word);
     this->memoryAccess1 = DecodeParam<MemoryAccessAndParamDatas>(it, word);
   }
@@ -3246,12 +3648,13 @@ struct OpCopyMemorySized
 {
   OpCopyMemorySized(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->target = Id::fromWord(it.word(1));
     this->source = Id::fromWord(it.word(2));
     this->size = Id::fromWord(it.word(3));
-    uint32_t word = 4;
+    word = 4;
     this->memoryAccess0 = DecodeParam<MemoryAccessAndParamDatas>(it, word);
     this->memoryAccess1 = DecodeParam<MemoryAccessAndParamDatas>(it, word);
   }
@@ -3291,12 +3694,13 @@ struct OpAccessChain
 {
   OpAccessChain(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
     this->result = Id::fromWord(it.word(2));
     this->base = Id::fromWord(it.word(3));
-    uint32_t word = 4;
+    word = 4;
     this->indexes = MultiParam<Id>(it, word);
   }
   OpAccessChain(IdResultType resultType, IdResult result, Id base, const rdcarray<Id> &indexes = {})
@@ -3335,12 +3739,13 @@ struct OpInBoundsAccessChain
 {
   OpInBoundsAccessChain(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
     this->result = Id::fromWord(it.word(2));
     this->base = Id::fromWord(it.word(3));
-    uint32_t word = 4;
+    word = 4;
     this->indexes = MultiParam<Id>(it, word);
   }
   OpInBoundsAccessChain(IdResultType resultType, IdResult result, Id base, const rdcarray<Id> &indexes = {})
@@ -3379,13 +3784,14 @@ struct OpPtrAccessChain
 {
   OpPtrAccessChain(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
     this->result = Id::fromWord(it.word(2));
     this->base = Id::fromWord(it.word(3));
     this->element = Id::fromWord(it.word(4));
-    uint32_t word = 5;
+    word = 5;
     this->indexes = MultiParam<Id>(it, word);
   }
   OpPtrAccessChain(IdResultType resultType, IdResult result, Id base, Id element, const rdcarray<Id> &indexes = {})
@@ -3477,13 +3883,14 @@ struct OpInBoundsPtrAccessChain
 {
   OpInBoundsPtrAccessChain(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
     this->result = Id::fromWord(it.word(2));
     this->base = Id::fromWord(it.word(3));
     this->element = Id::fromWord(it.word(4));
-    uint32_t word = 5;
+    word = 5;
     this->indexes = MultiParam<Id>(it, word);
   }
   OpInBoundsPtrAccessChain(IdResultType resultType, IdResult result, Id base, Id element, const rdcarray<Id> &indexes = {})
@@ -3525,10 +3932,11 @@ struct OpDecorate
 {
   OpDecorate(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->target = Id::fromWord(it.word(1));
-    uint32_t word = 2;
+    word = 2;
     this->decoration = DecodeParam<DecorationAndParamData>(it, word);
   }
   OpDecorate(Id target, DecorationAndParamData decoration)
@@ -3558,11 +3966,12 @@ struct OpMemberDecorate
 {
   OpMemberDecorate(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->structureType = Id::fromWord(it.word(1));
     this->member = (uint32_t)it.word(2);
-    uint32_t word = 3;
+    word = 3;
     this->decoration = DecodeParam<DecorationAndParamData>(it, word);
   }
   OpMemberDecorate(Id structureType, uint32_t member, DecorationAndParamData decoration)
@@ -3615,10 +4024,11 @@ struct OpGroupDecorate
 {
   OpGroupDecorate(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->decorationGroup = Id::fromWord(it.word(1));
-    uint32_t word = 2;
+    word = 2;
     this->targets = MultiParam<Id>(it, word);
   }
   OpGroupDecorate(Id decorationGroup, const rdcarray<Id> &targets = {})
@@ -3651,10 +4061,11 @@ struct OpGroupMemberDecorate
 {
   OpGroupMemberDecorate(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->decorationGroup = Id::fromWord(it.word(1));
-    uint32_t word = 2;
+    word = 2;
     this->targets = MultiParam<PairIdRefLiteralInteger>(it, word);
   }
   OpGroupMemberDecorate(Id decorationGroup, const rdcarray<PairIdRefLiteralInteger> &targets = {})
@@ -3741,13 +4152,14 @@ struct OpVectorShuffle
 {
   OpVectorShuffle(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
     this->result = Id::fromWord(it.word(2));
     this->vector1 = Id::fromWord(it.word(3));
     this->vector2 = Id::fromWord(it.word(4));
-    uint32_t word = 5;
+    word = 5;
     this->components = MultiParam<uint32_t>(it, word);
   }
   OpVectorShuffle(IdResultType resultType, IdResult result, Id vector1, Id vector2, const rdcarray<uint32_t> &components = {})
@@ -3789,11 +4201,12 @@ struct OpCompositeConstruct
 {
   OpCompositeConstruct(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
     this->result = Id::fromWord(it.word(2));
-    uint32_t word = 3;
+    word = 3;
     this->constituents = MultiParam<Id>(it, word);
   }
   OpCompositeConstruct(IdResultType resultType, IdResult result, const rdcarray<Id> &constituents = {})
@@ -3829,12 +4242,13 @@ struct OpCompositeExtract
 {
   OpCompositeExtract(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
     this->result = Id::fromWord(it.word(2));
     this->composite = Id::fromWord(it.word(3));
-    uint32_t word = 4;
+    word = 4;
     this->indexes = MultiParam<uint32_t>(it, word);
   }
   OpCompositeExtract(IdResultType resultType, IdResult result, Id composite, const rdcarray<uint32_t> &indexes = {})
@@ -3873,13 +4287,14 @@ struct OpCompositeInsert
 {
   OpCompositeInsert(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
     this->result = Id::fromWord(it.word(2));
     this->object = Id::fromWord(it.word(3));
     this->composite = Id::fromWord(it.word(4));
-    uint32_t word = 5;
+    word = 5;
     this->indexes = MultiParam<uint32_t>(it, word);
   }
   OpCompositeInsert(IdResultType resultType, IdResult result, Id object, Id composite, const rdcarray<uint32_t> &indexes = {})
@@ -3995,13 +4410,14 @@ struct OpImageSampleImplicitLod
 {
   OpImageSampleImplicitLod(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
     this->result = Id::fromWord(it.word(2));
     this->sampledImage = Id::fromWord(it.word(3));
     this->coordinate = Id::fromWord(it.word(4));
-    uint32_t word = 5;
+    word = 5;
     this->imageOperands = DecodeParam<ImageOperandsAndParamDatas>(it, word);
   }
   OpImageSampleImplicitLod(IdResultType resultType, IdResult result, Id sampledImage, Id coordinate, ImageOperandsAndParamDatas imageOperands = ImageOperands::None)
@@ -4040,13 +4456,14 @@ struct OpImageSampleExplicitLod
 {
   OpImageSampleExplicitLod(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
     this->result = Id::fromWord(it.word(2));
     this->sampledImage = Id::fromWord(it.word(3));
     this->coordinate = Id::fromWord(it.word(4));
-    uint32_t word = 5;
+    word = 5;
     this->imageOperands = DecodeParam<ImageOperandsAndParamDatas>(it, word);
   }
   OpImageSampleExplicitLod(IdResultType resultType, IdResult result, Id sampledImage, Id coordinate, ImageOperandsAndParamDatas imageOperands)
@@ -4085,6 +4502,7 @@ struct OpImageSampleDrefImplicitLod
 {
   OpImageSampleDrefImplicitLod(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -4092,7 +4510,7 @@ struct OpImageSampleDrefImplicitLod
     this->sampledImage = Id::fromWord(it.word(3));
     this->coordinate = Id::fromWord(it.word(4));
     this->dref = Id::fromWord(it.word(5));
-    uint32_t word = 6;
+    word = 6;
     this->imageOperands = DecodeParam<ImageOperandsAndParamDatas>(it, word);
   }
   OpImageSampleDrefImplicitLod(IdResultType resultType, IdResult result, Id sampledImage, Id coordinate, Id dref, ImageOperandsAndParamDatas imageOperands = ImageOperands::None)
@@ -4134,6 +4552,7 @@ struct OpImageSampleDrefExplicitLod
 {
   OpImageSampleDrefExplicitLod(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -4141,7 +4560,7 @@ struct OpImageSampleDrefExplicitLod
     this->sampledImage = Id::fromWord(it.word(3));
     this->coordinate = Id::fromWord(it.word(4));
     this->dref = Id::fromWord(it.word(5));
-    uint32_t word = 6;
+    word = 6;
     this->imageOperands = DecodeParam<ImageOperandsAndParamDatas>(it, word);
   }
   OpImageSampleDrefExplicitLod(IdResultType resultType, IdResult result, Id sampledImage, Id coordinate, Id dref, ImageOperandsAndParamDatas imageOperands)
@@ -4183,13 +4602,14 @@ struct OpImageSampleProjImplicitLod
 {
   OpImageSampleProjImplicitLod(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
     this->result = Id::fromWord(it.word(2));
     this->sampledImage = Id::fromWord(it.word(3));
     this->coordinate = Id::fromWord(it.word(4));
-    uint32_t word = 5;
+    word = 5;
     this->imageOperands = DecodeParam<ImageOperandsAndParamDatas>(it, word);
   }
   OpImageSampleProjImplicitLod(IdResultType resultType, IdResult result, Id sampledImage, Id coordinate, ImageOperandsAndParamDatas imageOperands = ImageOperands::None)
@@ -4228,13 +4648,14 @@ struct OpImageSampleProjExplicitLod
 {
   OpImageSampleProjExplicitLod(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
     this->result = Id::fromWord(it.word(2));
     this->sampledImage = Id::fromWord(it.word(3));
     this->coordinate = Id::fromWord(it.word(4));
-    uint32_t word = 5;
+    word = 5;
     this->imageOperands = DecodeParam<ImageOperandsAndParamDatas>(it, word);
   }
   OpImageSampleProjExplicitLod(IdResultType resultType, IdResult result, Id sampledImage, Id coordinate, ImageOperandsAndParamDatas imageOperands)
@@ -4273,6 +4694,7 @@ struct OpImageSampleProjDrefImplicitLod
 {
   OpImageSampleProjDrefImplicitLod(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -4280,7 +4702,7 @@ struct OpImageSampleProjDrefImplicitLod
     this->sampledImage = Id::fromWord(it.word(3));
     this->coordinate = Id::fromWord(it.word(4));
     this->dref = Id::fromWord(it.word(5));
-    uint32_t word = 6;
+    word = 6;
     this->imageOperands = DecodeParam<ImageOperandsAndParamDatas>(it, word);
   }
   OpImageSampleProjDrefImplicitLod(IdResultType resultType, IdResult result, Id sampledImage, Id coordinate, Id dref, ImageOperandsAndParamDatas imageOperands = ImageOperands::None)
@@ -4322,6 +4744,7 @@ struct OpImageSampleProjDrefExplicitLod
 {
   OpImageSampleProjDrefExplicitLod(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -4329,7 +4752,7 @@ struct OpImageSampleProjDrefExplicitLod
     this->sampledImage = Id::fromWord(it.word(3));
     this->coordinate = Id::fromWord(it.word(4));
     this->dref = Id::fromWord(it.word(5));
-    uint32_t word = 6;
+    word = 6;
     this->imageOperands = DecodeParam<ImageOperandsAndParamDatas>(it, word);
   }
   OpImageSampleProjDrefExplicitLod(IdResultType resultType, IdResult result, Id sampledImage, Id coordinate, Id dref, ImageOperandsAndParamDatas imageOperands)
@@ -4371,13 +4794,14 @@ struct OpImageFetch
 {
   OpImageFetch(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
     this->result = Id::fromWord(it.word(2));
     this->image = Id::fromWord(it.word(3));
     this->coordinate = Id::fromWord(it.word(4));
-    uint32_t word = 5;
+    word = 5;
     this->imageOperands = DecodeParam<ImageOperandsAndParamDatas>(it, word);
   }
   OpImageFetch(IdResultType resultType, IdResult result, Id image, Id coordinate, ImageOperandsAndParamDatas imageOperands = ImageOperands::None)
@@ -4416,6 +4840,7 @@ struct OpImageGather
 {
   OpImageGather(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -4423,7 +4848,7 @@ struct OpImageGather
     this->sampledImage = Id::fromWord(it.word(3));
     this->coordinate = Id::fromWord(it.word(4));
     this->component = Id::fromWord(it.word(5));
-    uint32_t word = 6;
+    word = 6;
     this->imageOperands = DecodeParam<ImageOperandsAndParamDatas>(it, word);
   }
   OpImageGather(IdResultType resultType, IdResult result, Id sampledImage, Id coordinate, Id component, ImageOperandsAndParamDatas imageOperands = ImageOperands::None)
@@ -4465,6 +4890,7 @@ struct OpImageDrefGather
 {
   OpImageDrefGather(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -4472,7 +4898,7 @@ struct OpImageDrefGather
     this->sampledImage = Id::fromWord(it.word(3));
     this->coordinate = Id::fromWord(it.word(4));
     this->dref = Id::fromWord(it.word(5));
-    uint32_t word = 6;
+    word = 6;
     this->imageOperands = DecodeParam<ImageOperandsAndParamDatas>(it, word);
   }
   OpImageDrefGather(IdResultType resultType, IdResult result, Id sampledImage, Id coordinate, Id dref, ImageOperandsAndParamDatas imageOperands = ImageOperands::None)
@@ -4514,13 +4940,14 @@ struct OpImageRead
 {
   OpImageRead(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
     this->result = Id::fromWord(it.word(2));
     this->image = Id::fromWord(it.word(3));
     this->coordinate = Id::fromWord(it.word(4));
-    uint32_t word = 5;
+    word = 5;
     this->imageOperands = DecodeParam<ImageOperandsAndParamDatas>(it, word);
   }
   OpImageRead(IdResultType resultType, IdResult result, Id image, Id coordinate, ImageOperandsAndParamDatas imageOperands = ImageOperands::None)
@@ -4559,12 +4986,13 @@ struct OpImageWrite
 {
   OpImageWrite(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->image = Id::fromWord(it.word(1));
     this->coordinate = Id::fromWord(it.word(2));
     this->texel = Id::fromWord(it.word(3));
-    uint32_t word = 4;
+    word = 4;
     this->imageOperands = DecodeParam<ImageOperandsAndParamDatas>(it, word);
   }
   OpImageWrite(Id image, Id coordinate, Id texel, ImageOperandsAndParamDatas imageOperands = ImageOperands::None)
@@ -7988,11 +8416,12 @@ struct OpPhi
 {
   OpPhi(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
     this->result = Id::fromWord(it.word(2));
-    uint32_t word = 3;
+    word = 3;
     this->parents = MultiParam<PairIdRefIdRef>(it, word);
   }
   OpPhi(IdResultType resultType, IdResult result, const rdcarray<PairIdRefIdRef> &parents = {})
@@ -8028,11 +8457,12 @@ struct OpLoopMerge
 {
   OpLoopMerge(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->mergeBlock = Id::fromWord(it.word(1));
     this->continueTarget = Id::fromWord(it.word(2));
-    uint32_t word = 3;
+    word = 3;
     this->loopControl = DecodeParam<LoopControlAndParamDatas>(it, word);
   }
   OpLoopMerge(Id mergeBlock, Id continueTarget, LoopControlAndParamDatas loopControl)
@@ -8127,12 +8557,13 @@ struct OpBranchConditional
 {
   OpBranchConditional(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->condition = Id::fromWord(it.word(1));
     this->trueLabel = Id::fromWord(it.word(2));
     this->falseLabel = Id::fromWord(it.word(3));
-    uint32_t word = 4;
+    word = 4;
     this->branchweights = MultiParam<uint32_t>(it, word);
   }
   OpBranchConditional(Id condition, Id trueLabel, Id falseLabel, const rdcarray<uint32_t> &branchweights = {})
@@ -8171,11 +8602,12 @@ struct OpSwitch
 {
   OpSwitch(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->selector = Id::fromWord(it.word(1));
     this->def = Id::fromWord(it.word(2));
-    uint32_t word = 3;
+    word = 3;
     this->target = MultiParam<PairLiteralIntegerIdRef>(it, word);
   }
   OpSwitch(Id selector, Id def, const rdcarray<PairLiteralIntegerIdRef> &target = {})
@@ -9167,6 +9599,7 @@ struct OpEnqueueKernel
 {
   OpEnqueueKernel(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -9181,7 +9614,7 @@ struct OpEnqueueKernel
     this->param = Id::fromWord(it.word(10));
     this->paramSize = Id::fromWord(it.word(11));
     this->paramAlign = Id::fromWord(it.word(12));
-    uint32_t word = 13;
+    word = 13;
     this->localSize = MultiParam<Id>(it, word);
   }
   OpEnqueueKernel(IdResultType resultType, IdResult result, Id queue, Id flags, Id nDRange, Id numEvents, Id waitEvents, Id retEvent, Id invoke, Id param, Id paramSize, Id paramAlign, const rdcarray<Id> &localSize = {})
@@ -9553,13 +9986,14 @@ struct OpImageSparseSampleImplicitLod
 {
   OpImageSparseSampleImplicitLod(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
     this->result = Id::fromWord(it.word(2));
     this->sampledImage = Id::fromWord(it.word(3));
     this->coordinate = Id::fromWord(it.word(4));
-    uint32_t word = 5;
+    word = 5;
     this->imageOperands = DecodeParam<ImageOperandsAndParamDatas>(it, word);
   }
   OpImageSparseSampleImplicitLod(IdResultType resultType, IdResult result, Id sampledImage, Id coordinate, ImageOperandsAndParamDatas imageOperands = ImageOperands::None)
@@ -9598,13 +10032,14 @@ struct OpImageSparseSampleExplicitLod
 {
   OpImageSparseSampleExplicitLod(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
     this->result = Id::fromWord(it.word(2));
     this->sampledImage = Id::fromWord(it.word(3));
     this->coordinate = Id::fromWord(it.word(4));
-    uint32_t word = 5;
+    word = 5;
     this->imageOperands = DecodeParam<ImageOperandsAndParamDatas>(it, word);
   }
   OpImageSparseSampleExplicitLod(IdResultType resultType, IdResult result, Id sampledImage, Id coordinate, ImageOperandsAndParamDatas imageOperands)
@@ -9643,6 +10078,7 @@ struct OpImageSparseSampleDrefImplicitLod
 {
   OpImageSparseSampleDrefImplicitLod(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -9650,7 +10086,7 @@ struct OpImageSparseSampleDrefImplicitLod
     this->sampledImage = Id::fromWord(it.word(3));
     this->coordinate = Id::fromWord(it.word(4));
     this->dref = Id::fromWord(it.word(5));
-    uint32_t word = 6;
+    word = 6;
     this->imageOperands = DecodeParam<ImageOperandsAndParamDatas>(it, word);
   }
   OpImageSparseSampleDrefImplicitLod(IdResultType resultType, IdResult result, Id sampledImage, Id coordinate, Id dref, ImageOperandsAndParamDatas imageOperands = ImageOperands::None)
@@ -9692,6 +10128,7 @@ struct OpImageSparseSampleDrefExplicitLod
 {
   OpImageSparseSampleDrefExplicitLod(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -9699,7 +10136,7 @@ struct OpImageSparseSampleDrefExplicitLod
     this->sampledImage = Id::fromWord(it.word(3));
     this->coordinate = Id::fromWord(it.word(4));
     this->dref = Id::fromWord(it.word(5));
-    uint32_t word = 6;
+    word = 6;
     this->imageOperands = DecodeParam<ImageOperandsAndParamDatas>(it, word);
   }
   OpImageSparseSampleDrefExplicitLod(IdResultType resultType, IdResult result, Id sampledImage, Id coordinate, Id dref, ImageOperandsAndParamDatas imageOperands)
@@ -9741,13 +10178,14 @@ struct OpImageSparseSampleProjImplicitLod
 {
   OpImageSparseSampleProjImplicitLod(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
     this->result = Id::fromWord(it.word(2));
     this->sampledImage = Id::fromWord(it.word(3));
     this->coordinate = Id::fromWord(it.word(4));
-    uint32_t word = 5;
+    word = 5;
     this->imageOperands = DecodeParam<ImageOperandsAndParamDatas>(it, word);
   }
   OpImageSparseSampleProjImplicitLod(IdResultType resultType, IdResult result, Id sampledImage, Id coordinate, ImageOperandsAndParamDatas imageOperands = ImageOperands::None)
@@ -9786,13 +10224,14 @@ struct OpImageSparseSampleProjExplicitLod
 {
   OpImageSparseSampleProjExplicitLod(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
     this->result = Id::fromWord(it.word(2));
     this->sampledImage = Id::fromWord(it.word(3));
     this->coordinate = Id::fromWord(it.word(4));
-    uint32_t word = 5;
+    word = 5;
     this->imageOperands = DecodeParam<ImageOperandsAndParamDatas>(it, word);
   }
   OpImageSparseSampleProjExplicitLod(IdResultType resultType, IdResult result, Id sampledImage, Id coordinate, ImageOperandsAndParamDatas imageOperands)
@@ -9831,6 +10270,7 @@ struct OpImageSparseSampleProjDrefImplicitLod
 {
   OpImageSparseSampleProjDrefImplicitLod(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -9838,7 +10278,7 @@ struct OpImageSparseSampleProjDrefImplicitLod
     this->sampledImage = Id::fromWord(it.word(3));
     this->coordinate = Id::fromWord(it.word(4));
     this->dref = Id::fromWord(it.word(5));
-    uint32_t word = 6;
+    word = 6;
     this->imageOperands = DecodeParam<ImageOperandsAndParamDatas>(it, word);
   }
   OpImageSparseSampleProjDrefImplicitLod(IdResultType resultType, IdResult result, Id sampledImage, Id coordinate, Id dref, ImageOperandsAndParamDatas imageOperands = ImageOperands::None)
@@ -9880,6 +10320,7 @@ struct OpImageSparseSampleProjDrefExplicitLod
 {
   OpImageSparseSampleProjDrefExplicitLod(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -9887,7 +10328,7 @@ struct OpImageSparseSampleProjDrefExplicitLod
     this->sampledImage = Id::fromWord(it.word(3));
     this->coordinate = Id::fromWord(it.word(4));
     this->dref = Id::fromWord(it.word(5));
-    uint32_t word = 6;
+    word = 6;
     this->imageOperands = DecodeParam<ImageOperandsAndParamDatas>(it, word);
   }
   OpImageSparseSampleProjDrefExplicitLod(IdResultType resultType, IdResult result, Id sampledImage, Id coordinate, Id dref, ImageOperandsAndParamDatas imageOperands)
@@ -9929,13 +10370,14 @@ struct OpImageSparseFetch
 {
   OpImageSparseFetch(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
     this->result = Id::fromWord(it.word(2));
     this->image = Id::fromWord(it.word(3));
     this->coordinate = Id::fromWord(it.word(4));
-    uint32_t word = 5;
+    word = 5;
     this->imageOperands = DecodeParam<ImageOperandsAndParamDatas>(it, word);
   }
   OpImageSparseFetch(IdResultType resultType, IdResult result, Id image, Id coordinate, ImageOperandsAndParamDatas imageOperands = ImageOperands::None)
@@ -9974,6 +10416,7 @@ struct OpImageSparseGather
 {
   OpImageSparseGather(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -9981,7 +10424,7 @@ struct OpImageSparseGather
     this->sampledImage = Id::fromWord(it.word(3));
     this->coordinate = Id::fromWord(it.word(4));
     this->component = Id::fromWord(it.word(5));
-    uint32_t word = 6;
+    word = 6;
     this->imageOperands = DecodeParam<ImageOperandsAndParamDatas>(it, word);
   }
   OpImageSparseGather(IdResultType resultType, IdResult result, Id sampledImage, Id coordinate, Id component, ImageOperandsAndParamDatas imageOperands = ImageOperands::None)
@@ -10023,6 +10466,7 @@ struct OpImageSparseDrefGather
 {
   OpImageSparseDrefGather(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -10030,7 +10474,7 @@ struct OpImageSparseDrefGather
     this->sampledImage = Id::fromWord(it.word(3));
     this->coordinate = Id::fromWord(it.word(4));
     this->dref = Id::fromWord(it.word(5));
-    uint32_t word = 6;
+    word = 6;
     this->imageOperands = DecodeParam<ImageOperandsAndParamDatas>(it, word);
   }
   OpImageSparseDrefGather(IdResultType resultType, IdResult result, Id sampledImage, Id coordinate, Id dref, ImageOperandsAndParamDatas imageOperands = ImageOperands::None)
@@ -10168,13 +10612,14 @@ struct OpImageSparseRead
 {
   OpImageSparseRead(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
     this->result = Id::fromWord(it.word(2));
     this->image = Id::fromWord(it.word(3));
     this->coordinate = Id::fromWord(it.word(4));
-    uint32_t word = 5;
+    word = 5;
     this->imageOperands = DecodeParam<ImageOperandsAndParamDatas>(it, word);
   }
   OpImageSparseRead(IdResultType resultType, IdResult result, Id image, Id coordinate, ImageOperandsAndParamDatas imageOperands = ImageOperands::None)
@@ -10439,9 +10884,10 @@ struct OpModuleProcessed
 {
   OpModuleProcessed(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
-    uint32_t word = 1;
+    word = 1;
     this->process = DecodeParam<rdcstr>(it, word);
   }
   OpModuleProcessed(rdcstr process)
@@ -10468,10 +10914,11 @@ struct OpExecutionModeId
 {
   OpExecutionModeId(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->entryPoint = Id::fromWord(it.word(1));
-    uint32_t word = 2;
+    word = 2;
     this->mode = DecodeParam<ExecutionModeAndParamData>(it, word);
   }
   OpExecutionModeId(Id entryPoint, ExecutionModeAndParamData mode)
@@ -10501,10 +10948,11 @@ struct OpDecorateId
 {
   OpDecorateId(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->target = Id::fromWord(it.word(1));
-    uint32_t word = 2;
+    word = 2;
     this->decoration = DecodeParam<DecorationAndParamData>(it, word);
   }
   OpDecorateId(Id target, DecorationAndParamData decoration)
@@ -10962,6 +11410,7 @@ struct OpGroupNonUniformIAdd
 {
   OpGroupNonUniformIAdd(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -11012,6 +11461,7 @@ struct OpGroupNonUniformFAdd
 {
   OpGroupNonUniformFAdd(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -11062,6 +11512,7 @@ struct OpGroupNonUniformIMul
 {
   OpGroupNonUniformIMul(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -11112,6 +11563,7 @@ struct OpGroupNonUniformFMul
 {
   OpGroupNonUniformFMul(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -11162,6 +11614,7 @@ struct OpGroupNonUniformSMin
 {
   OpGroupNonUniformSMin(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -11212,6 +11665,7 @@ struct OpGroupNonUniformUMin
 {
   OpGroupNonUniformUMin(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -11262,6 +11716,7 @@ struct OpGroupNonUniformFMin
 {
   OpGroupNonUniformFMin(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -11312,6 +11767,7 @@ struct OpGroupNonUniformSMax
 {
   OpGroupNonUniformSMax(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -11362,6 +11818,7 @@ struct OpGroupNonUniformUMax
 {
   OpGroupNonUniformUMax(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -11412,6 +11869,7 @@ struct OpGroupNonUniformFMax
 {
   OpGroupNonUniformFMax(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -11462,6 +11920,7 @@ struct OpGroupNonUniformBitwiseAnd
 {
   OpGroupNonUniformBitwiseAnd(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -11512,6 +11971,7 @@ struct OpGroupNonUniformBitwiseOr
 {
   OpGroupNonUniformBitwiseOr(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -11562,6 +12022,7 @@ struct OpGroupNonUniformBitwiseXor
 {
   OpGroupNonUniformBitwiseXor(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -11612,6 +12073,7 @@ struct OpGroupNonUniformLogicalAnd
 {
   OpGroupNonUniformLogicalAnd(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -11662,6 +12124,7 @@ struct OpGroupNonUniformLogicalOr
 {
   OpGroupNonUniformLogicalOr(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -11712,6 +12175,7 @@ struct OpGroupNonUniformLogicalXor
 {
   OpGroupNonUniformLogicalXor(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -12208,6 +12672,300 @@ struct OpTerminateRayKHR
   // no operands
 };
 
+struct OpSDotKHR
+{
+  OpSDotKHR(const ConstIter &it)
+  {
+    uint32_t word = 0;(void)word;
+    this->op = OpCode;
+    this->wordCount = (uint16_t)it.size();
+    this->resultType = Id::fromWord(it.word(1));
+    this->result = Id::fromWord(it.word(2));
+    this->vector1 = Id::fromWord(it.word(3));
+    this->vector2 = Id::fromWord(it.word(4));
+    this->packedVectorFormat = (it.size() > 5) ? (PackedVectorFormat)it.word(5) : PackedVectorFormat::Invalid;
+  }
+  OpSDotKHR(IdResultType resultType, IdResult result, Id vector1, Id vector2, PackedVectorFormat packedVectorFormat = PackedVectorFormat::Invalid)
+      : op(Op::SDotKHR)
+      , wordCount(MinWordSize + OptionalWordCount(packedVectorFormat))
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->vector1 = vector1;
+    this->vector2 = vector2;
+    this->packedVectorFormat = packedVectorFormat;
+  }
+  operator Operation() const
+  {
+    rdcarray<uint32_t> words;
+    words.push_back(resultType.value());
+    words.push_back(result.value());
+    words.push_back(vector1.value());
+    words.push_back(vector2.value());
+    if(packedVectorFormat != PackedVectorFormat::Invalid) words.push_back((uint32_t)packedVectorFormat);
+    return Operation(OpCode, words);
+  }
+
+  static constexpr Op OpCode = Op::SDotKHR;
+  static constexpr uint16_t MinWordSize = 5U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id vector1;
+  Id vector2;
+  PackedVectorFormat packedVectorFormat;
+
+  bool HasPackedVectorFormat() const { return wordCount > 5; }
+};
+
+struct OpUDotKHR
+{
+  OpUDotKHR(const ConstIter &it)
+  {
+    uint32_t word = 0;(void)word;
+    this->op = OpCode;
+    this->wordCount = (uint16_t)it.size();
+    this->resultType = Id::fromWord(it.word(1));
+    this->result = Id::fromWord(it.word(2));
+    this->vector1 = Id::fromWord(it.word(3));
+    this->vector2 = Id::fromWord(it.word(4));
+    this->packedVectorFormat = (it.size() > 5) ? (PackedVectorFormat)it.word(5) : PackedVectorFormat::Invalid;
+  }
+  OpUDotKHR(IdResultType resultType, IdResult result, Id vector1, Id vector2, PackedVectorFormat packedVectorFormat = PackedVectorFormat::Invalid)
+      : op(Op::UDotKHR)
+      , wordCount(MinWordSize + OptionalWordCount(packedVectorFormat))
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->vector1 = vector1;
+    this->vector2 = vector2;
+    this->packedVectorFormat = packedVectorFormat;
+  }
+  operator Operation() const
+  {
+    rdcarray<uint32_t> words;
+    words.push_back(resultType.value());
+    words.push_back(result.value());
+    words.push_back(vector1.value());
+    words.push_back(vector2.value());
+    if(packedVectorFormat != PackedVectorFormat::Invalid) words.push_back((uint32_t)packedVectorFormat);
+    return Operation(OpCode, words);
+  }
+
+  static constexpr Op OpCode = Op::UDotKHR;
+  static constexpr uint16_t MinWordSize = 5U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id vector1;
+  Id vector2;
+  PackedVectorFormat packedVectorFormat;
+
+  bool HasPackedVectorFormat() const { return wordCount > 5; }
+};
+
+struct OpSUDotKHR
+{
+  OpSUDotKHR(const ConstIter &it)
+  {
+    uint32_t word = 0;(void)word;
+    this->op = OpCode;
+    this->wordCount = (uint16_t)it.size();
+    this->resultType = Id::fromWord(it.word(1));
+    this->result = Id::fromWord(it.word(2));
+    this->vector1 = Id::fromWord(it.word(3));
+    this->vector2 = Id::fromWord(it.word(4));
+    this->packedVectorFormat = (it.size() > 5) ? (PackedVectorFormat)it.word(5) : PackedVectorFormat::Invalid;
+  }
+  OpSUDotKHR(IdResultType resultType, IdResult result, Id vector1, Id vector2, PackedVectorFormat packedVectorFormat = PackedVectorFormat::Invalid)
+      : op(Op::SUDotKHR)
+      , wordCount(MinWordSize + OptionalWordCount(packedVectorFormat))
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->vector1 = vector1;
+    this->vector2 = vector2;
+    this->packedVectorFormat = packedVectorFormat;
+  }
+  operator Operation() const
+  {
+    rdcarray<uint32_t> words;
+    words.push_back(resultType.value());
+    words.push_back(result.value());
+    words.push_back(vector1.value());
+    words.push_back(vector2.value());
+    if(packedVectorFormat != PackedVectorFormat::Invalid) words.push_back((uint32_t)packedVectorFormat);
+    return Operation(OpCode, words);
+  }
+
+  static constexpr Op OpCode = Op::SUDotKHR;
+  static constexpr uint16_t MinWordSize = 5U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id vector1;
+  Id vector2;
+  PackedVectorFormat packedVectorFormat;
+
+  bool HasPackedVectorFormat() const { return wordCount > 5; }
+};
+
+struct OpSDotAccSatKHR
+{
+  OpSDotAccSatKHR(const ConstIter &it)
+  {
+    uint32_t word = 0;(void)word;
+    this->op = OpCode;
+    this->wordCount = (uint16_t)it.size();
+    this->resultType = Id::fromWord(it.word(1));
+    this->result = Id::fromWord(it.word(2));
+    this->vector1 = Id::fromWord(it.word(3));
+    this->vector2 = Id::fromWord(it.word(4));
+    this->accumulator = Id::fromWord(it.word(5));
+    this->packedVectorFormat = (it.size() > 6) ? (PackedVectorFormat)it.word(6) : PackedVectorFormat::Invalid;
+  }
+  OpSDotAccSatKHR(IdResultType resultType, IdResult result, Id vector1, Id vector2, Id accumulator, PackedVectorFormat packedVectorFormat = PackedVectorFormat::Invalid)
+      : op(Op::SDotAccSatKHR)
+      , wordCount(MinWordSize + OptionalWordCount(packedVectorFormat))
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->vector1 = vector1;
+    this->vector2 = vector2;
+    this->accumulator = accumulator;
+    this->packedVectorFormat = packedVectorFormat;
+  }
+  operator Operation() const
+  {
+    rdcarray<uint32_t> words;
+    words.push_back(resultType.value());
+    words.push_back(result.value());
+    words.push_back(vector1.value());
+    words.push_back(vector2.value());
+    words.push_back(accumulator.value());
+    if(packedVectorFormat != PackedVectorFormat::Invalid) words.push_back((uint32_t)packedVectorFormat);
+    return Operation(OpCode, words);
+  }
+
+  static constexpr Op OpCode = Op::SDotAccSatKHR;
+  static constexpr uint16_t MinWordSize = 6U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id vector1;
+  Id vector2;
+  Id accumulator;
+  PackedVectorFormat packedVectorFormat;
+
+  bool HasPackedVectorFormat() const { return wordCount > 6; }
+};
+
+struct OpUDotAccSatKHR
+{
+  OpUDotAccSatKHR(const ConstIter &it)
+  {
+    uint32_t word = 0;(void)word;
+    this->op = OpCode;
+    this->wordCount = (uint16_t)it.size();
+    this->resultType = Id::fromWord(it.word(1));
+    this->result = Id::fromWord(it.word(2));
+    this->vector1 = Id::fromWord(it.word(3));
+    this->vector2 = Id::fromWord(it.word(4));
+    this->accumulator = Id::fromWord(it.word(5));
+    this->packedVectorFormat = (it.size() > 6) ? (PackedVectorFormat)it.word(6) : PackedVectorFormat::Invalid;
+  }
+  OpUDotAccSatKHR(IdResultType resultType, IdResult result, Id vector1, Id vector2, Id accumulator, PackedVectorFormat packedVectorFormat = PackedVectorFormat::Invalid)
+      : op(Op::UDotAccSatKHR)
+      , wordCount(MinWordSize + OptionalWordCount(packedVectorFormat))
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->vector1 = vector1;
+    this->vector2 = vector2;
+    this->accumulator = accumulator;
+    this->packedVectorFormat = packedVectorFormat;
+  }
+  operator Operation() const
+  {
+    rdcarray<uint32_t> words;
+    words.push_back(resultType.value());
+    words.push_back(result.value());
+    words.push_back(vector1.value());
+    words.push_back(vector2.value());
+    words.push_back(accumulator.value());
+    if(packedVectorFormat != PackedVectorFormat::Invalid) words.push_back((uint32_t)packedVectorFormat);
+    return Operation(OpCode, words);
+  }
+
+  static constexpr Op OpCode = Op::UDotAccSatKHR;
+  static constexpr uint16_t MinWordSize = 6U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id vector1;
+  Id vector2;
+  Id accumulator;
+  PackedVectorFormat packedVectorFormat;
+
+  bool HasPackedVectorFormat() const { return wordCount > 6; }
+};
+
+struct OpSUDotAccSatKHR
+{
+  OpSUDotAccSatKHR(const ConstIter &it)
+  {
+    uint32_t word = 0;(void)word;
+    this->op = OpCode;
+    this->wordCount = (uint16_t)it.size();
+    this->resultType = Id::fromWord(it.word(1));
+    this->result = Id::fromWord(it.word(2));
+    this->vector1 = Id::fromWord(it.word(3));
+    this->vector2 = Id::fromWord(it.word(4));
+    this->accumulator = Id::fromWord(it.word(5));
+    this->packedVectorFormat = (it.size() > 6) ? (PackedVectorFormat)it.word(6) : PackedVectorFormat::Invalid;
+  }
+  OpSUDotAccSatKHR(IdResultType resultType, IdResult result, Id vector1, Id vector2, Id accumulator, PackedVectorFormat packedVectorFormat = PackedVectorFormat::Invalid)
+      : op(Op::SUDotAccSatKHR)
+      , wordCount(MinWordSize + OptionalWordCount(packedVectorFormat))
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->vector1 = vector1;
+    this->vector2 = vector2;
+    this->accumulator = accumulator;
+    this->packedVectorFormat = packedVectorFormat;
+  }
+  operator Operation() const
+  {
+    rdcarray<uint32_t> words;
+    words.push_back(resultType.value());
+    words.push_back(result.value());
+    words.push_back(vector1.value());
+    words.push_back(vector2.value());
+    words.push_back(accumulator.value());
+    if(packedVectorFormat != PackedVectorFormat::Invalid) words.push_back((uint32_t)packedVectorFormat);
+    return Operation(OpCode, words);
+  }
+
+  static constexpr Op OpCode = Op::SUDotAccSatKHR;
+  static constexpr uint16_t MinWordSize = 6U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id vector1;
+  Id vector2;
+  Id accumulator;
+  PackedVectorFormat packedVectorFormat;
+
+  bool HasPackedVectorFormat() const { return wordCount > 6; }
+};
+
 struct OpTypeRayQueryKHR
 {
   OpTypeRayQueryKHR(const ConstIter &it)
@@ -12658,13 +13416,13 @@ struct OpReadClockKHR
   {
     memcpy(this, it.words(), sizeof(*this));
   }
-  OpReadClockKHR(IdResultType resultType, IdResult result, IdScope execution)
+  OpReadClockKHR(IdResultType resultType, IdResult result, IdScope scope)
       : op(Op::ReadClockKHR)
       , wordCount(FixedWordSize)
   {
     this->resultType = resultType;
     this->result = result;
-    this->execution = execution;
+    this->scope = scope;
   }
 
   static constexpr Op OpCode = Op::ReadClockKHR;
@@ -12673,13 +13431,14 @@ struct OpReadClockKHR
   uint16_t wordCount;
   IdResultType resultType;
   IdResult result;
-  IdScope execution;
+  IdScope scope;
 };
 
 struct OpImageSampleFootprintNV
 {
   OpImageSampleFootprintNV(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -12688,7 +13447,7 @@ struct OpImageSampleFootprintNV
     this->coordinate = Id::fromWord(it.word(4));
     this->granularity = Id::fromWord(it.word(5));
     this->coarse = Id::fromWord(it.word(6));
-    uint32_t word = 7;
+    word = 7;
     this->imageOperands = DecodeParam<ImageOperandsAndParamDatas>(it, word);
   }
   OpImageSampleFootprintNV(IdResultType resultType, IdResult result, Id sampledImage, Id coordinate, Id granularity, Id coarse, ImageOperandsAndParamDatas imageOperands = ImageOperands::None)
@@ -12881,6 +13640,90 @@ struct OpTraceNV
   Id payloadId;
 };
 
+struct OpTraceMotionNV
+{
+  OpTraceMotionNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpTraceMotionNV(Id accel, Id rayFlags, Id cullMask, Id sBTOffset, Id sBTStride, Id missIndex, Id rayOrigin, Id rayTmin, Id rayDirection, Id rayTmax, Id time, Id payloadId)
+      : op(Op::TraceMotionNV)
+      , wordCount(FixedWordSize)
+  {
+    this->accel = accel;
+    this->rayFlags = rayFlags;
+    this->cullMask = cullMask;
+    this->sBTOffset = sBTOffset;
+    this->sBTStride = sBTStride;
+    this->missIndex = missIndex;
+    this->rayOrigin = rayOrigin;
+    this->rayTmin = rayTmin;
+    this->rayDirection = rayDirection;
+    this->rayTmax = rayTmax;
+    this->time = time;
+    this->payloadId = payloadId;
+  }
+
+  static constexpr Op OpCode = Op::TraceMotionNV;
+  static constexpr uint16_t FixedWordSize = 13U;
+  Op op;
+  uint16_t wordCount;
+  Id accel;
+  Id rayFlags;
+  Id cullMask;
+  Id sBTOffset;
+  Id sBTStride;
+  Id missIndex;
+  Id rayOrigin;
+  Id rayTmin;
+  Id rayDirection;
+  Id rayTmax;
+  Id time;
+  Id payloadId;
+};
+
+struct OpTraceRayMotionNV
+{
+  OpTraceRayMotionNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpTraceRayMotionNV(Id accel, Id rayFlags, Id cullMask, Id sBTOffset, Id sBTStride, Id missIndex, Id rayOrigin, Id rayTmin, Id rayDirection, Id rayTmax, Id time, Id payload)
+      : op(Op::TraceRayMotionNV)
+      , wordCount(FixedWordSize)
+  {
+    this->accel = accel;
+    this->rayFlags = rayFlags;
+    this->cullMask = cullMask;
+    this->sBTOffset = sBTOffset;
+    this->sBTStride = sBTStride;
+    this->missIndex = missIndex;
+    this->rayOrigin = rayOrigin;
+    this->rayTmin = rayTmin;
+    this->rayDirection = rayDirection;
+    this->rayTmax = rayTmax;
+    this->time = time;
+    this->payload = payload;
+  }
+
+  static constexpr Op OpCode = Op::TraceRayMotionNV;
+  static constexpr uint16_t FixedWordSize = 13U;
+  Op op;
+  uint16_t wordCount;
+  Id accel;
+  Id rayFlags;
+  Id cullMask;
+  Id sBTOffset;
+  Id sBTStride;
+  Id missIndex;
+  Id rayOrigin;
+  Id rayTmin;
+  Id rayDirection;
+  Id rayTmax;
+  Id time;
+  Id payload;
+};
+
 struct OpTypeAccelerationStructureNV
 {
   OpTypeAccelerationStructureNV(const ConstIter &it)
@@ -12955,6 +13798,7 @@ struct OpCooperativeMatrixLoadNV
 {
   OpCooperativeMatrixLoadNV(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
@@ -12962,7 +13806,7 @@ struct OpCooperativeMatrixLoadNV
     this->pointer = Id::fromWord(it.word(3));
     this->stride = Id::fromWord(it.word(4));
     this->columnMajor = Id::fromWord(it.word(5));
-    uint32_t word = 6;
+    word = 6;
     this->memoryAccess = DecodeParam<MemoryAccessAndParamDatas>(it, word);
   }
   OpCooperativeMatrixLoadNV(IdResultType resultType, IdResult result, Id pointer, Id stride, Id columnMajor, MemoryAccessAndParamDatas memoryAccess = MemoryAccess::None)
@@ -13004,13 +13848,14 @@ struct OpCooperativeMatrixStoreNV
 {
   OpCooperativeMatrixStoreNV(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->pointer = Id::fromWord(it.word(1));
     this->object = Id::fromWord(it.word(2));
     this->stride = Id::fromWord(it.word(3));
     this->columnMajor = Id::fromWord(it.word(4));
-    uint32_t word = 5;
+    word = 5;
     this->memoryAccess = DecodeParam<MemoryAccessAndParamDatas>(it, word);
   }
   OpCooperativeMatrixStoreNV(Id pointer, Id object, Id stride, Id columnMajor, MemoryAccessAndParamDatas memoryAccess = MemoryAccess::None)
@@ -13801,14 +14646,14 @@ struct OpUMul32x16INTEL
   Id operand2;
 };
 
-struct OpFunctionPointerINTEL
+struct OpConstFunctionPointerINTEL
 {
-  OpFunctionPointerINTEL(const ConstIter &it)
+  OpConstFunctionPointerINTEL(const ConstIter &it)
   {
     memcpy(this, it.words(), sizeof(*this));
   }
-  OpFunctionPointerINTEL(IdResultType resultType, IdResult result, Id function)
-      : op(Op::FunctionPointerINTEL)
+  OpConstFunctionPointerINTEL(IdResultType resultType, IdResult result, Id function)
+      : op(Op::ConstFunctionPointerINTEL)
       , wordCount(FixedWordSize)
   {
     this->resultType = resultType;
@@ -13816,7 +14661,7 @@ struct OpFunctionPointerINTEL
     this->function = function;
   }
 
-  static constexpr Op OpCode = Op::FunctionPointerINTEL;
+  static constexpr Op OpCode = Op::ConstFunctionPointerINTEL;
   static constexpr uint16_t FixedWordSize = 4U;
   Op op;
   uint16_t wordCount;
@@ -13829,11 +14674,12 @@ struct OpFunctionPointerCallINTEL
 {
   OpFunctionPointerCallINTEL(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->resultType = Id::fromWord(it.word(1));
     this->result = Id::fromWord(it.word(2));
-    uint32_t word = 3;
+    word = 3;
     this->operand1 = MultiParam<Id>(it, word);
   }
   OpFunctionPointerCallINTEL(IdResultType resultType, IdResult result, const rdcarray<Id> &operand1 = {})
@@ -13865,14 +14711,255 @@ struct OpFunctionPointerCallINTEL
   rdcarray<Id> operand1;
 };
 
+struct OpAsmTargetINTEL
+{
+  OpAsmTargetINTEL(const ConstIter &it)
+  {
+    uint32_t word = 0;(void)word;
+    this->op = OpCode;
+    this->wordCount = (uint16_t)it.size();
+    this->resultType = Id::fromWord(it.word(1));
+    this->result = Id::fromWord(it.word(2));
+    word = 3;
+    this->asmtarget = DecodeParam<rdcstr>(it, word);
+  }
+  OpAsmTargetINTEL(IdResultType resultType, IdResult result, rdcstr asmtarget)
+      : op(Op::AsmTargetINTEL)
+      , wordCount(MinWordSize + ExtraWordCount(asmtarget))
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->asmtarget = asmtarget;
+  }
+  operator Operation() const
+  {
+    rdcarray<uint32_t> words;
+    words.push_back(resultType.value());
+    words.push_back(result.value());
+    EncodeParam(words, asmtarget);
+    return Operation(OpCode, words);
+  }
+
+  static constexpr Op OpCode = Op::AsmTargetINTEL;
+  static constexpr uint16_t MinWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  rdcstr asmtarget;
+};
+
+struct OpAsmINTEL
+{
+  OpAsmINTEL(const ConstIter &it)
+  {
+    uint32_t word = 0;(void)word;
+    this->op = OpCode;
+    this->wordCount = (uint16_t)it.size();
+    this->resultType = Id::fromWord(it.word(1));
+    this->result = Id::fromWord(it.word(2));
+    this->asmtype = Id::fromWord(it.word(3));
+    this->target = Id::fromWord(it.word(4));
+    word = 5;
+    this->asminstructions = DecodeParam<rdcstr>(it, word);
+    word = 6;
+    this->constraints = DecodeParam<rdcstr>(it, word);
+  }
+  OpAsmINTEL(IdResultType resultType, IdResult result, Id asmtype, Id target, rdcstr asminstructions, rdcstr constraints)
+      : op(Op::AsmINTEL)
+      , wordCount(MinWordSize + ExtraWordCount(constraints))
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->asmtype = asmtype;
+    this->target = target;
+    this->asminstructions = asminstructions;
+    this->constraints = constraints;
+  }
+  operator Operation() const
+  {
+    rdcarray<uint32_t> words;
+    words.push_back(resultType.value());
+    words.push_back(result.value());
+    words.push_back(asmtype.value());
+    words.push_back(target.value());
+    EncodeParam(words, asminstructions);
+    EncodeParam(words, constraints);
+    return Operation(OpCode, words);
+  }
+
+  static constexpr Op OpCode = Op::AsmINTEL;
+  static constexpr uint16_t MinWordSize = 7U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id asmtype;
+  Id target;
+  rdcstr asminstructions;
+  rdcstr constraints;
+};
+
+struct OpAsmCallINTEL
+{
+  OpAsmCallINTEL(const ConstIter &it)
+  {
+    uint32_t word = 0;(void)word;
+    this->op = OpCode;
+    this->wordCount = (uint16_t)it.size();
+    this->resultType = Id::fromWord(it.word(1));
+    this->result = Id::fromWord(it.word(2));
+    this->assembly = Id::fromWord(it.word(3));
+    word = 4;
+    this->argument0 = MultiParam<Id>(it, word);
+  }
+  OpAsmCallINTEL(IdResultType resultType, IdResult result, Id assembly, const rdcarray<Id> &argument0 = {})
+      : op(Op::AsmCallINTEL)
+      , wordCount(MinWordSize + MultiWordCount(argument0))
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->assembly = assembly;
+    this->argument0 = argument0;
+  }
+  operator Operation() const
+  {
+    rdcarray<uint32_t> words;
+    words.push_back(resultType.value());
+    words.push_back(result.value());
+    words.push_back(assembly.value());
+    for(size_t i=0; i < argument0.size(); i++)
+    {
+      words.push_back(argument0[i].value());
+    }
+    return Operation(OpCode, words);
+  }
+
+  static constexpr Op OpCode = Op::AsmCallINTEL;
+  static constexpr uint16_t MinWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id assembly;
+  rdcarray<Id> argument0;
+};
+
+struct OpAtomicFMinEXT
+{
+  OpAtomicFMinEXT(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpAtomicFMinEXT(IdResultType resultType, IdResult result, Id pointer, IdScope memory, IdMemorySemantics semantics, Id value)
+      : op(Op::AtomicFMinEXT)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->pointer = pointer;
+    this->memory = memory;
+    this->semantics = semantics;
+    this->value = value;
+  }
+
+  static constexpr Op OpCode = Op::AtomicFMinEXT;
+  static constexpr uint16_t FixedWordSize = 7U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id pointer;
+  IdScope memory;
+  IdMemorySemantics semantics;
+  Id value;
+};
+
+struct OpAtomicFMaxEXT
+{
+  OpAtomicFMaxEXT(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpAtomicFMaxEXT(IdResultType resultType, IdResult result, Id pointer, IdScope memory, IdMemorySemantics semantics, Id value)
+      : op(Op::AtomicFMaxEXT)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->pointer = pointer;
+    this->memory = memory;
+    this->semantics = semantics;
+    this->value = value;
+  }
+
+  static constexpr Op OpCode = Op::AtomicFMaxEXT;
+  static constexpr uint16_t FixedWordSize = 7U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id pointer;
+  IdScope memory;
+  IdMemorySemantics semantics;
+  Id value;
+};
+
+struct OpAssumeTrueKHR
+{
+  OpAssumeTrueKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpAssumeTrueKHR(Id condition)
+      : op(Op::AssumeTrueKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->condition = condition;
+  }
+
+  static constexpr Op OpCode = Op::AssumeTrueKHR;
+  static constexpr uint16_t FixedWordSize = 2U;
+  Op op;
+  uint16_t wordCount;
+  Id condition;
+};
+
+struct OpExpectKHR
+{
+  OpExpectKHR(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpExpectKHR(IdResultType resultType, IdResult result, Id value, Id expectedValue)
+      : op(Op::ExpectKHR)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->value = value;
+    this->expectedValue = expectedValue;
+  }
+
+  static constexpr Op OpCode = Op::ExpectKHR;
+  static constexpr uint16_t FixedWordSize = 5U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id value;
+  Id expectedValue;
+};
+
 struct OpDecorateString
 {
   OpDecorateString(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->target = Id::fromWord(it.word(1));
-    uint32_t word = 2;
+    word = 2;
     this->decoration = DecodeParam<DecorationAndParamData>(it, word);
   }
   OpDecorateString(Id target, DecorationAndParamData decoration)
@@ -13902,11 +14989,12 @@ struct OpMemberDecorateString
 {
   OpMemberDecorateString(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
     this->structType = Id::fromWord(it.word(1));
     this->member = (uint32_t)it.word(2);
-    uint32_t word = 3;
+    word = 3;
     this->decoration = DecodeParam<DecorationAndParamData>(it, word);
   }
   OpMemberDecorateString(Id structType, uint32_t member, DecorationAndParamData decoration)
@@ -16969,13 +18057,1488 @@ struct OpSubgroupAvcSicGetInterRawSadsINTEL
   Id payload;
 };
 
+struct OpVariableLengthArrayINTEL
+{
+  OpVariableLengthArrayINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpVariableLengthArrayINTEL(IdResultType resultType, IdResult result, Id lenght)
+      : op(Op::VariableLengthArrayINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->lenght = lenght;
+  }
+
+  static constexpr Op OpCode = Op::VariableLengthArrayINTEL;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id lenght;
+};
+
+struct OpSaveMemoryINTEL
+{
+  OpSaveMemoryINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpSaveMemoryINTEL(IdResultType resultType, IdResult result)
+      : op(Op::SaveMemoryINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+  }
+
+  static constexpr Op OpCode = Op::SaveMemoryINTEL;
+  static constexpr uint16_t FixedWordSize = 3U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+};
+
+struct OpRestoreMemoryINTEL
+{
+  OpRestoreMemoryINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpRestoreMemoryINTEL(Id ptr)
+      : op(Op::RestoreMemoryINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->ptr = ptr;
+  }
+
+  static constexpr Op OpCode = Op::RestoreMemoryINTEL;
+  static constexpr uint16_t FixedWordSize = 2U;
+  Op op;
+  uint16_t wordCount;
+  Id ptr;
+};
+
+struct OpArbitraryFloatSinCosPiINTEL
+{
+  OpArbitraryFloatSinCosPiINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatSinCosPiINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, uint32_t mout, uint32_t fromSign, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatSinCosPiINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->mout = mout;
+    this->fromSign = fromSign;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatSinCosPiINTEL;
+  static constexpr uint16_t FixedWordSize = 10U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  uint32_t mout;
+  uint32_t fromSign;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatCastINTEL
+{
+  OpArbitraryFloatCastINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatCastINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatCastINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatCastINTEL;
+  static constexpr uint16_t FixedWordSize = 9U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatCastFromIntINTEL
+{
+  OpArbitraryFloatCastFromIntINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatCastFromIntINTEL(IdResultType resultType, IdResult result, Id a, uint32_t mout, uint32_t fromSign, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatCastFromIntINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->mout = mout;
+    this->fromSign = fromSign;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatCastFromIntINTEL;
+  static constexpr uint16_t FixedWordSize = 9U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t mout;
+  uint32_t fromSign;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatCastToIntINTEL
+{
+  OpArbitraryFloatCastToIntINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatCastToIntINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatCastToIntINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatCastToIntINTEL;
+  static constexpr uint16_t FixedWordSize = 8U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatAddINTEL
+{
+  OpArbitraryFloatAddINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatAddINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, Id b, uint32_t m2, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatAddINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->b = b;
+    this->m2 = m2;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatAddINTEL;
+  static constexpr uint16_t FixedWordSize = 11U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  Id b;
+  uint32_t m2;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatSubINTEL
+{
+  OpArbitraryFloatSubINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatSubINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, Id b, uint32_t m2, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatSubINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->b = b;
+    this->m2 = m2;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatSubINTEL;
+  static constexpr uint16_t FixedWordSize = 11U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  Id b;
+  uint32_t m2;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatMulINTEL
+{
+  OpArbitraryFloatMulINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatMulINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, Id b, uint32_t m2, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatMulINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->b = b;
+    this->m2 = m2;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatMulINTEL;
+  static constexpr uint16_t FixedWordSize = 11U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  Id b;
+  uint32_t m2;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatDivINTEL
+{
+  OpArbitraryFloatDivINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatDivINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, Id b, uint32_t m2, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatDivINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->b = b;
+    this->m2 = m2;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatDivINTEL;
+  static constexpr uint16_t FixedWordSize = 11U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  Id b;
+  uint32_t m2;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatGTINTEL
+{
+  OpArbitraryFloatGTINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatGTINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, Id b, uint32_t m2)
+      : op(Op::ArbitraryFloatGTINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->b = b;
+    this->m2 = m2;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatGTINTEL;
+  static constexpr uint16_t FixedWordSize = 7U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  Id b;
+  uint32_t m2;
+};
+
+struct OpArbitraryFloatGEINTEL
+{
+  OpArbitraryFloatGEINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatGEINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, Id b, uint32_t m2)
+      : op(Op::ArbitraryFloatGEINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->b = b;
+    this->m2 = m2;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatGEINTEL;
+  static constexpr uint16_t FixedWordSize = 7U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  Id b;
+  uint32_t m2;
+};
+
+struct OpArbitraryFloatLTINTEL
+{
+  OpArbitraryFloatLTINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatLTINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, Id b, uint32_t m2)
+      : op(Op::ArbitraryFloatLTINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->b = b;
+    this->m2 = m2;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatLTINTEL;
+  static constexpr uint16_t FixedWordSize = 7U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  Id b;
+  uint32_t m2;
+};
+
+struct OpArbitraryFloatLEINTEL
+{
+  OpArbitraryFloatLEINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatLEINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, Id b, uint32_t m2)
+      : op(Op::ArbitraryFloatLEINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->b = b;
+    this->m2 = m2;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatLEINTEL;
+  static constexpr uint16_t FixedWordSize = 7U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  Id b;
+  uint32_t m2;
+};
+
+struct OpArbitraryFloatEQINTEL
+{
+  OpArbitraryFloatEQINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatEQINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, Id b, uint32_t m2)
+      : op(Op::ArbitraryFloatEQINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->b = b;
+    this->m2 = m2;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatEQINTEL;
+  static constexpr uint16_t FixedWordSize = 7U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  Id b;
+  uint32_t m2;
+};
+
+struct OpArbitraryFloatRecipINTEL
+{
+  OpArbitraryFloatRecipINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatRecipINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatRecipINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatRecipINTEL;
+  static constexpr uint16_t FixedWordSize = 9U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatRSqrtINTEL
+{
+  OpArbitraryFloatRSqrtINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatRSqrtINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatRSqrtINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatRSqrtINTEL;
+  static constexpr uint16_t FixedWordSize = 9U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatCbrtINTEL
+{
+  OpArbitraryFloatCbrtINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatCbrtINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatCbrtINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatCbrtINTEL;
+  static constexpr uint16_t FixedWordSize = 9U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatHypotINTEL
+{
+  OpArbitraryFloatHypotINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatHypotINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, Id b, uint32_t m2, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatHypotINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->b = b;
+    this->m2 = m2;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatHypotINTEL;
+  static constexpr uint16_t FixedWordSize = 11U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  Id b;
+  uint32_t m2;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatSqrtINTEL
+{
+  OpArbitraryFloatSqrtINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatSqrtINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatSqrtINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatSqrtINTEL;
+  static constexpr uint16_t FixedWordSize = 9U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatLogINTEL
+{
+  OpArbitraryFloatLogINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatLogINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatLogINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatLogINTEL;
+  static constexpr uint16_t FixedWordSize = 9U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatLog2INTEL
+{
+  OpArbitraryFloatLog2INTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatLog2INTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatLog2INTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatLog2INTEL;
+  static constexpr uint16_t FixedWordSize = 9U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatLog10INTEL
+{
+  OpArbitraryFloatLog10INTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatLog10INTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatLog10INTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatLog10INTEL;
+  static constexpr uint16_t FixedWordSize = 9U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatLog1pINTEL
+{
+  OpArbitraryFloatLog1pINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatLog1pINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatLog1pINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatLog1pINTEL;
+  static constexpr uint16_t FixedWordSize = 9U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatExpINTEL
+{
+  OpArbitraryFloatExpINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatExpINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatExpINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatExpINTEL;
+  static constexpr uint16_t FixedWordSize = 9U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatExp2INTEL
+{
+  OpArbitraryFloatExp2INTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatExp2INTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatExp2INTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatExp2INTEL;
+  static constexpr uint16_t FixedWordSize = 9U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatExp10INTEL
+{
+  OpArbitraryFloatExp10INTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatExp10INTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatExp10INTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatExp10INTEL;
+  static constexpr uint16_t FixedWordSize = 9U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatExpm1INTEL
+{
+  OpArbitraryFloatExpm1INTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatExpm1INTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatExpm1INTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatExpm1INTEL;
+  static constexpr uint16_t FixedWordSize = 9U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatSinINTEL
+{
+  OpArbitraryFloatSinINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatSinINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatSinINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatSinINTEL;
+  static constexpr uint16_t FixedWordSize = 9U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatCosINTEL
+{
+  OpArbitraryFloatCosINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatCosINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatCosINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatCosINTEL;
+  static constexpr uint16_t FixedWordSize = 9U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatSinCosINTEL
+{
+  OpArbitraryFloatSinCosINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatSinCosINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatSinCosINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatSinCosINTEL;
+  static constexpr uint16_t FixedWordSize = 9U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatSinPiINTEL
+{
+  OpArbitraryFloatSinPiINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatSinPiINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatSinPiINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatSinPiINTEL;
+  static constexpr uint16_t FixedWordSize = 9U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatCosPiINTEL
+{
+  OpArbitraryFloatCosPiINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatCosPiINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatCosPiINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatCosPiINTEL;
+  static constexpr uint16_t FixedWordSize = 9U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatASinINTEL
+{
+  OpArbitraryFloatASinINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatASinINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatASinINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatASinINTEL;
+  static constexpr uint16_t FixedWordSize = 9U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatASinPiINTEL
+{
+  OpArbitraryFloatASinPiINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatASinPiINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatASinPiINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatASinPiINTEL;
+  static constexpr uint16_t FixedWordSize = 9U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatACosINTEL
+{
+  OpArbitraryFloatACosINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatACosINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatACosINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatACosINTEL;
+  static constexpr uint16_t FixedWordSize = 9U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatACosPiINTEL
+{
+  OpArbitraryFloatACosPiINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatACosPiINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatACosPiINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatACosPiINTEL;
+  static constexpr uint16_t FixedWordSize = 9U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatATanINTEL
+{
+  OpArbitraryFloatATanINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatATanINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatATanINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatATanINTEL;
+  static constexpr uint16_t FixedWordSize = 9U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatATanPiINTEL
+{
+  OpArbitraryFloatATanPiINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatATanPiINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatATanPiINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatATanPiINTEL;
+  static constexpr uint16_t FixedWordSize = 9U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatATan2INTEL
+{
+  OpArbitraryFloatATan2INTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatATan2INTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, Id b, uint32_t m2, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatATan2INTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->b = b;
+    this->m2 = m2;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatATan2INTEL;
+  static constexpr uint16_t FixedWordSize = 11U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  Id b;
+  uint32_t m2;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatPowINTEL
+{
+  OpArbitraryFloatPowINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatPowINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, Id b, uint32_t m2, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatPowINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->b = b;
+    this->m2 = m2;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatPowINTEL;
+  static constexpr uint16_t FixedWordSize = 11U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  Id b;
+  uint32_t m2;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatPowRINTEL
+{
+  OpArbitraryFloatPowRINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatPowRINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, Id b, uint32_t m2, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatPowRINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->b = b;
+    this->m2 = m2;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatPowRINTEL;
+  static constexpr uint16_t FixedWordSize = 11U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  Id b;
+  uint32_t m2;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
+struct OpArbitraryFloatPowNINTEL
+{
+  OpArbitraryFloatPowNINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpArbitraryFloatPowNINTEL(IdResultType resultType, IdResult result, Id a, uint32_t m1, Id b, uint32_t mout, uint32_t enableSubnormals, uint32_t roundingMode, uint32_t roundingAccuracy)
+      : op(Op::ArbitraryFloatPowNINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->a = a;
+    this->m1 = m1;
+    this->b = b;
+    this->mout = mout;
+    this->enableSubnormals = enableSubnormals;
+    this->roundingMode = roundingMode;
+    this->roundingAccuracy = roundingAccuracy;
+  }
+
+  static constexpr Op OpCode = Op::ArbitraryFloatPowNINTEL;
+  static constexpr uint16_t FixedWordSize = 10U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id a;
+  uint32_t m1;
+  Id b;
+  uint32_t mout;
+  uint32_t enableSubnormals;
+  uint32_t roundingMode;
+  uint32_t roundingAccuracy;
+};
+
 struct OpLoopControlINTEL
 {
   OpLoopControlINTEL(const ConstIter &it)
   {
+    uint32_t word = 0;(void)word;
     this->op = OpCode;
     this->wordCount = (uint16_t)it.size();
-    uint32_t word = 1;
+    word = 1;
     this->loopControlParameters = MultiParam<uint32_t>(it, word);
   }
   OpLoopControlINTEL(const rdcarray<uint32_t> &loopControlParameters = {})
@@ -16999,6 +19562,450 @@ struct OpLoopControlINTEL
   Op op;
   uint16_t wordCount;
   rdcarray<uint32_t> loopControlParameters;
+};
+
+struct OpFixedSqrtINTEL
+{
+  OpFixedSqrtINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpFixedSqrtINTEL(IdResultType resultType, IdResult result, Id inputType, Id input, uint32_t s, uint32_t i, uint32_t rI, uint32_t q, uint32_t o)
+      : op(Op::FixedSqrtINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->inputType = inputType;
+    this->input = input;
+    this->s = s;
+    this->i = i;
+    this->rI = rI;
+    this->q = q;
+    this->o = o;
+  }
+
+  static constexpr Op OpCode = Op::FixedSqrtINTEL;
+  static constexpr uint16_t FixedWordSize = 10U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id inputType;
+  Id input;
+  uint32_t s;
+  uint32_t i;
+  uint32_t rI;
+  uint32_t q;
+  uint32_t o;
+};
+
+struct OpFixedRecipINTEL
+{
+  OpFixedRecipINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpFixedRecipINTEL(IdResultType resultType, IdResult result, Id inputType, Id input, uint32_t s, uint32_t i, uint32_t rI, uint32_t q, uint32_t o)
+      : op(Op::FixedRecipINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->inputType = inputType;
+    this->input = input;
+    this->s = s;
+    this->i = i;
+    this->rI = rI;
+    this->q = q;
+    this->o = o;
+  }
+
+  static constexpr Op OpCode = Op::FixedRecipINTEL;
+  static constexpr uint16_t FixedWordSize = 10U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id inputType;
+  Id input;
+  uint32_t s;
+  uint32_t i;
+  uint32_t rI;
+  uint32_t q;
+  uint32_t o;
+};
+
+struct OpFixedRsqrtINTEL
+{
+  OpFixedRsqrtINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpFixedRsqrtINTEL(IdResultType resultType, IdResult result, Id inputType, Id input, uint32_t s, uint32_t i, uint32_t rI, uint32_t q, uint32_t o)
+      : op(Op::FixedRsqrtINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->inputType = inputType;
+    this->input = input;
+    this->s = s;
+    this->i = i;
+    this->rI = rI;
+    this->q = q;
+    this->o = o;
+  }
+
+  static constexpr Op OpCode = Op::FixedRsqrtINTEL;
+  static constexpr uint16_t FixedWordSize = 10U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id inputType;
+  Id input;
+  uint32_t s;
+  uint32_t i;
+  uint32_t rI;
+  uint32_t q;
+  uint32_t o;
+};
+
+struct OpFixedSinINTEL
+{
+  OpFixedSinINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpFixedSinINTEL(IdResultType resultType, IdResult result, Id inputType, Id input, uint32_t s, uint32_t i, uint32_t rI, uint32_t q, uint32_t o)
+      : op(Op::FixedSinINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->inputType = inputType;
+    this->input = input;
+    this->s = s;
+    this->i = i;
+    this->rI = rI;
+    this->q = q;
+    this->o = o;
+  }
+
+  static constexpr Op OpCode = Op::FixedSinINTEL;
+  static constexpr uint16_t FixedWordSize = 10U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id inputType;
+  Id input;
+  uint32_t s;
+  uint32_t i;
+  uint32_t rI;
+  uint32_t q;
+  uint32_t o;
+};
+
+struct OpFixedCosINTEL
+{
+  OpFixedCosINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpFixedCosINTEL(IdResultType resultType, IdResult result, Id inputType, Id input, uint32_t s, uint32_t i, uint32_t rI, uint32_t q, uint32_t o)
+      : op(Op::FixedCosINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->inputType = inputType;
+    this->input = input;
+    this->s = s;
+    this->i = i;
+    this->rI = rI;
+    this->q = q;
+    this->o = o;
+  }
+
+  static constexpr Op OpCode = Op::FixedCosINTEL;
+  static constexpr uint16_t FixedWordSize = 10U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id inputType;
+  Id input;
+  uint32_t s;
+  uint32_t i;
+  uint32_t rI;
+  uint32_t q;
+  uint32_t o;
+};
+
+struct OpFixedSinCosINTEL
+{
+  OpFixedSinCosINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpFixedSinCosINTEL(IdResultType resultType, IdResult result, Id inputType, Id input, uint32_t s, uint32_t i, uint32_t rI, uint32_t q, uint32_t o)
+      : op(Op::FixedSinCosINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->inputType = inputType;
+    this->input = input;
+    this->s = s;
+    this->i = i;
+    this->rI = rI;
+    this->q = q;
+    this->o = o;
+  }
+
+  static constexpr Op OpCode = Op::FixedSinCosINTEL;
+  static constexpr uint16_t FixedWordSize = 10U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id inputType;
+  Id input;
+  uint32_t s;
+  uint32_t i;
+  uint32_t rI;
+  uint32_t q;
+  uint32_t o;
+};
+
+struct OpFixedSinPiINTEL
+{
+  OpFixedSinPiINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpFixedSinPiINTEL(IdResultType resultType, IdResult result, Id inputType, Id input, uint32_t s, uint32_t i, uint32_t rI, uint32_t q, uint32_t o)
+      : op(Op::FixedSinPiINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->inputType = inputType;
+    this->input = input;
+    this->s = s;
+    this->i = i;
+    this->rI = rI;
+    this->q = q;
+    this->o = o;
+  }
+
+  static constexpr Op OpCode = Op::FixedSinPiINTEL;
+  static constexpr uint16_t FixedWordSize = 10U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id inputType;
+  Id input;
+  uint32_t s;
+  uint32_t i;
+  uint32_t rI;
+  uint32_t q;
+  uint32_t o;
+};
+
+struct OpFixedCosPiINTEL
+{
+  OpFixedCosPiINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpFixedCosPiINTEL(IdResultType resultType, IdResult result, Id inputType, Id input, uint32_t s, uint32_t i, uint32_t rI, uint32_t q, uint32_t o)
+      : op(Op::FixedCosPiINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->inputType = inputType;
+    this->input = input;
+    this->s = s;
+    this->i = i;
+    this->rI = rI;
+    this->q = q;
+    this->o = o;
+  }
+
+  static constexpr Op OpCode = Op::FixedCosPiINTEL;
+  static constexpr uint16_t FixedWordSize = 10U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id inputType;
+  Id input;
+  uint32_t s;
+  uint32_t i;
+  uint32_t rI;
+  uint32_t q;
+  uint32_t o;
+};
+
+struct OpFixedSinCosPiINTEL
+{
+  OpFixedSinCosPiINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpFixedSinCosPiINTEL(IdResultType resultType, IdResult result, Id inputType, Id input, uint32_t s, uint32_t i, uint32_t rI, uint32_t q, uint32_t o)
+      : op(Op::FixedSinCosPiINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->inputType = inputType;
+    this->input = input;
+    this->s = s;
+    this->i = i;
+    this->rI = rI;
+    this->q = q;
+    this->o = o;
+  }
+
+  static constexpr Op OpCode = Op::FixedSinCosPiINTEL;
+  static constexpr uint16_t FixedWordSize = 10U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id inputType;
+  Id input;
+  uint32_t s;
+  uint32_t i;
+  uint32_t rI;
+  uint32_t q;
+  uint32_t o;
+};
+
+struct OpFixedLogINTEL
+{
+  OpFixedLogINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpFixedLogINTEL(IdResultType resultType, IdResult result, Id inputType, Id input, uint32_t s, uint32_t i, uint32_t rI, uint32_t q, uint32_t o)
+      : op(Op::FixedLogINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->inputType = inputType;
+    this->input = input;
+    this->s = s;
+    this->i = i;
+    this->rI = rI;
+    this->q = q;
+    this->o = o;
+  }
+
+  static constexpr Op OpCode = Op::FixedLogINTEL;
+  static constexpr uint16_t FixedWordSize = 10U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id inputType;
+  Id input;
+  uint32_t s;
+  uint32_t i;
+  uint32_t rI;
+  uint32_t q;
+  uint32_t o;
+};
+
+struct OpFixedExpINTEL
+{
+  OpFixedExpINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpFixedExpINTEL(IdResultType resultType, IdResult result, Id inputType, Id input, uint32_t s, uint32_t i, uint32_t rI, uint32_t q, uint32_t o)
+      : op(Op::FixedExpINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->inputType = inputType;
+    this->input = input;
+    this->s = s;
+    this->i = i;
+    this->rI = rI;
+    this->q = q;
+    this->o = o;
+  }
+
+  static constexpr Op OpCode = Op::FixedExpINTEL;
+  static constexpr uint16_t FixedWordSize = 10U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id inputType;
+  Id input;
+  uint32_t s;
+  uint32_t i;
+  uint32_t rI;
+  uint32_t q;
+  uint32_t o;
+};
+
+struct OpPtrCastToCrossWorkgroupINTEL
+{
+  OpPtrCastToCrossWorkgroupINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpPtrCastToCrossWorkgroupINTEL(IdResultType resultType, IdResult result, Id pointer)
+      : op(Op::PtrCastToCrossWorkgroupINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->pointer = pointer;
+  }
+
+  static constexpr Op OpCode = Op::PtrCastToCrossWorkgroupINTEL;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id pointer;
+};
+
+struct OpCrossWorkgroupCastToPtrINTEL
+{
+  OpCrossWorkgroupCastToPtrINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpCrossWorkgroupCastToPtrINTEL(IdResultType resultType, IdResult result, Id pointer)
+      : op(Op::CrossWorkgroupCastToPtrINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->pointer = pointer;
+  }
+
+  static constexpr Op OpCode = Op::CrossWorkgroupCastToPtrINTEL;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id pointer;
 };
 
 struct OpReadPipeBlockingINTEL
@@ -17539,6 +20546,127 @@ struct OpAtomicFAddEXT
   IdScope memory;
   IdMemorySemantics semantics;
   Id value;
+};
+
+struct OpTypeBufferSurfaceINTEL
+{
+  OpTypeBufferSurfaceINTEL(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpTypeBufferSurfaceINTEL(IdResult result, AccessQualifier accessQualifier)
+      : op(Op::TypeBufferSurfaceINTEL)
+      , wordCount(FixedWordSize)
+  {
+    this->result = result;
+    this->accessQualifier = accessQualifier;
+  }
+
+  static constexpr Op OpCode = Op::TypeBufferSurfaceINTEL;
+  static constexpr uint16_t FixedWordSize = 3U;
+  Op op;
+  uint16_t wordCount;
+  IdResult result;
+  AccessQualifier accessQualifier;
+};
+
+struct OpTypeStructContinuedINTEL
+{
+  OpTypeStructContinuedINTEL(const ConstIter &it)
+  {
+    uint32_t word = 0;(void)word;
+    this->op = OpCode;
+    this->wordCount = (uint16_t)it.size();
+    word = 1;
+    this->members = MultiParam<Id>(it, word);
+  }
+  OpTypeStructContinuedINTEL(const rdcarray<Id> &members = {})
+      : op(Op::TypeStructContinuedINTEL)
+      , wordCount(MinWordSize + MultiWordCount(members))
+  {
+    this->members = members;
+  }
+  operator Operation() const
+  {
+    rdcarray<uint32_t> words;
+    for(size_t i=0; i < members.size(); i++)
+    {
+      words.push_back(members[i].value());
+    }
+    return Operation(OpCode, words);
+  }
+
+  static constexpr Op OpCode = Op::TypeStructContinuedINTEL;
+  static constexpr uint16_t MinWordSize = 1U;
+  Op op;
+  uint16_t wordCount;
+  rdcarray<Id> members;
+};
+
+struct OpConstantCompositeContinuedINTEL
+{
+  OpConstantCompositeContinuedINTEL(const ConstIter &it)
+  {
+    uint32_t word = 0;(void)word;
+    this->op = OpCode;
+    this->wordCount = (uint16_t)it.size();
+    word = 1;
+    this->constituents = MultiParam<Id>(it, word);
+  }
+  OpConstantCompositeContinuedINTEL(const rdcarray<Id> &constituents = {})
+      : op(Op::ConstantCompositeContinuedINTEL)
+      , wordCount(MinWordSize + MultiWordCount(constituents))
+  {
+    this->constituents = constituents;
+  }
+  operator Operation() const
+  {
+    rdcarray<uint32_t> words;
+    for(size_t i=0; i < constituents.size(); i++)
+    {
+      words.push_back(constituents[i].value());
+    }
+    return Operation(OpCode, words);
+  }
+
+  static constexpr Op OpCode = Op::ConstantCompositeContinuedINTEL;
+  static constexpr uint16_t MinWordSize = 1U;
+  Op op;
+  uint16_t wordCount;
+  rdcarray<Id> constituents;
+};
+
+struct OpSpecConstantCompositeContinuedINTEL
+{
+  OpSpecConstantCompositeContinuedINTEL(const ConstIter &it)
+  {
+    uint32_t word = 0;(void)word;
+    this->op = OpCode;
+    this->wordCount = (uint16_t)it.size();
+    word = 1;
+    this->constituents = MultiParam<Id>(it, word);
+  }
+  OpSpecConstantCompositeContinuedINTEL(const rdcarray<Id> &constituents = {})
+      : op(Op::SpecConstantCompositeContinuedINTEL)
+      , wordCount(MinWordSize + MultiWordCount(constituents))
+  {
+    this->constituents = constituents;
+  }
+  operator Operation() const
+  {
+    rdcarray<uint32_t> words;
+    for(size_t i=0; i < constituents.size(); i++)
+    {
+      words.push_back(constituents[i].value());
+    }
+    return Operation(OpCode, words);
+  }
+
+  static constexpr Op OpCode = Op::SpecConstantCompositeContinuedINTEL;
+  static constexpr uint16_t MinWordSize = 1U;
+  Op op;
+  uint16_t wordCount;
+  rdcarray<Id> constituents;
 };
 
 template<typename T>

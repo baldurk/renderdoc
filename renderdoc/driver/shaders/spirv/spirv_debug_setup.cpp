@@ -343,6 +343,11 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       case Capability::VulkanMemoryModelDeviceScope:
       case Capability::DemoteToHelperInvocationEXT:
       case Capability::AtomicFloat32AddEXT:
+      case Capability::AtomicFloat32MinMaxEXT:
+      case Capability::AtomicFloat16AddEXT:
+      case Capability::AtomicFloat16MinMaxEXT:
+      case Capability::AtomicFloat64AddEXT:
+      case Capability::AtomicFloat64MinMaxEXT:
       case Capability::Float16Buffer:
       case Capability::Float16:
       case Capability::Int64:
@@ -356,9 +361,10 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       case Capability::UniformAndStorageBuffer8BitAccess:
       case Capability::StoragePushConstant8:
       case Capability::Float64:
-      case Capability::AtomicFloat64AddEXT:
       case Capability::Int64Atomics:
       case Capability::Int64ImageEXT:
+      case Capability::ExpectAssumeKHR:
+      case Capability::BitInstructions:
       {
         supported = true;
         break;
@@ -396,6 +402,11 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       case Capability::SubgroupBallotKHR:
       case Capability::SubgroupVoteKHR:
 
+      // workgroup layout:
+      case Capability::WorkgroupMemoryExplicitLayout16BitAccessKHR:
+      case Capability::WorkgroupMemoryExplicitLayout8BitAccessKHR:
+      case Capability::WorkgroupMemoryExplicitLayoutKHR:
+
       // sparse operations
       case Capability::SparseResidency:
 
@@ -410,6 +421,16 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
 
       // fragment shading rate
       case Capability::FragmentShadingRateKHR:
+      {
+        supported = false;
+        break;
+      }
+
+      // integer dot product
+      case Capability::DotProductKHR:
+      case Capability::DotProductInput4x8BitKHR:
+      case Capability::DotProductInput4x8BitPackedKHR:
+      case Capability::DotProductInputAllKHR:
       {
         supported = false;
         break;
@@ -474,6 +495,27 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       case Capability::UnstructuredLoopControlsINTEL:
       case Capability::KernelAttributesINTEL:
       case Capability::BlockingPipesINTEL:
+      case Capability::OptNoneINTEL:
+      case Capability::RayTracingMotionBlurNV:
+      case Capability::RoundToInfinityINTEL:
+      case Capability::FloatingPointModeINTEL:
+      case Capability::AsmINTEL:
+      case Capability::VectorAnyINTEL:
+      case Capability::VectorComputeINTEL:
+      case Capability::VariableLengthArrayINTEL:
+      case Capability::FunctionFloatControlINTEL:
+      case Capability::FPFastMathModeINTEL:
+      case Capability::ArbitraryPrecisionFixedPointINTEL:
+      case Capability::ArbitraryPrecisionFloatingPointINTEL:
+      case Capability::ArbitraryPrecisionIntegersINTEL:
+      case Capability::FPGAMemoryAccessesINTEL:
+      case Capability::FPGAClusterAttributesINTEL:
+      case Capability::LoopFuseINTEL:
+      case Capability::FPGABufferLocationINTEL:
+      case Capability::USMStorageClassesINTEL:
+      case Capability::IOPipesINTEL:
+      case Capability::LongConstantCompositeINTEL:
+      case Capability::DebugInfoModuleINTEL:
       case Capability::Max:
       case Capability::Invalid:
       {

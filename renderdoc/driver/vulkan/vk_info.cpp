@@ -62,6 +62,13 @@ VkDynamicState ConvertDynamicState(VulkanDynamicStateIndex idx)
     case VkDynamicDepthBoundsTestEnableEXT: return VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE_EXT;
     case VkDynamicStencilTestEnableEXT: return VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE_EXT;
     case VkDynamicStencilOpEXT: return VK_DYNAMIC_STATE_STENCIL_OP_EXT;
+    case VkDynamicVertexInputEXT: return VK_DYNAMIC_STATE_VERTEX_INPUT_EXT;
+    case VkDynamicControlPointsEXT: return VK_DYNAMIC_STATE_PATCH_CONTROL_POINTS_EXT;
+    case VkDynamicRastDiscardEXT: return VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE_EXT;
+    case VkDynamicDepthBiasEnableEXT: return VK_DYNAMIC_STATE_DEPTH_BIAS_ENABLE_EXT;
+    case VkDynamicLogicOpEXT: return VK_DYNAMIC_STATE_LOGIC_OP_EXT;
+    case VkDynamicPrimRestartEXT: return VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE_EXT;
+    case VkDynamicColorWriteEXT: return VK_DYNAMIC_STATE_COLOR_WRITE_ENABLE_EXT;
     case VkDynamicCount: break;
   }
 
@@ -108,6 +115,13 @@ VulkanDynamicStateIndex ConvertDynamicState(VkDynamicState state)
     case VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE_EXT: return VkDynamicDepthBoundsTestEnableEXT;
     case VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE_EXT: return VkDynamicStencilTestEnableEXT;
     case VK_DYNAMIC_STATE_STENCIL_OP_EXT: return VkDynamicStencilOpEXT;
+    case VK_DYNAMIC_STATE_VERTEX_INPUT_EXT: return VkDynamicVertexInputEXT;
+    case VK_DYNAMIC_STATE_PATCH_CONTROL_POINTS_EXT: return VkDynamicControlPointsEXT;
+    case VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE_EXT: return VkDynamicRastDiscardEXT;
+    case VK_DYNAMIC_STATE_DEPTH_BIAS_ENABLE_EXT: return VkDynamicDepthBiasEnableEXT;
+    case VK_DYNAMIC_STATE_LOGIC_OP_EXT: return VkDynamicLogicOpEXT;
+    case VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE_EXT: return VkDynamicPrimRestartEXT;
+    case VK_DYNAMIC_STATE_COLOR_WRITE_ENABLE_EXT: return VkDynamicColorWriteEXT;
     case VK_DYNAMIC_STATE_MAX_ENUM: break;
   }
 
