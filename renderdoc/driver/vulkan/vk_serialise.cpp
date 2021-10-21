@@ -752,6 +752,10 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_FLOAT_FEATURES_EXT,                     \
                VkPhysicalDeviceShaderAtomicFloatFeaturesEXT)                                           \
                                                                                                        \
+  /* VK_EXT_shader_atomic_float2 */                                                                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_FLOAT_2_FEATURES_EXT,                   \
+               VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT)                                          \
+                                                                                                       \
   /* VK_EXT_shader_demote_to_helper_invocation */                                                      \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DEMOTE_TO_HELPER_INVOCATION_FEATURES_EXT,      \
                VkPhysicalDeviceShaderDemoteToHelperInvocationFeaturesEXT)                              \
@@ -1290,9 +1294,6 @@ SERIALISE_VK_HANDLES();
                                                                                                        \
   /* VK_EXT_rgba10x6_formats */                                                                        \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RGBA10X6_FORMATS_FEATURES_EXT)                   \
-                                                                                                       \
-  /* VK_EXT_shader_atomic_float2 */                                                                    \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_FLOAT_2_FEATURES_EXT)              \
                                                                                                        \
   /* VK_EXT_texture_compression_astc_hdr */                                                            \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXTURE_COMPRESSION_ASTC_HDR_FEATURES_EXT)       \
@@ -8204,6 +8205,33 @@ void Deserialise(const VkPhysicalDeviceShaderAtomicFloatFeaturesEXT &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_FLOAT_2_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(shaderBufferFloat16Atomics);
+  SERIALISE_MEMBER(shaderBufferFloat16AtomicAdd);
+  SERIALISE_MEMBER(shaderBufferFloat16AtomicMinMax);
+  SERIALISE_MEMBER(shaderBufferFloat32AtomicMinMax);
+  SERIALISE_MEMBER(shaderBufferFloat64AtomicMinMax);
+  SERIALISE_MEMBER(shaderSharedFloat16Atomics);
+  SERIALISE_MEMBER(shaderSharedFloat16AtomicAdd);
+  SERIALISE_MEMBER(shaderSharedFloat16AtomicMinMax);
+  SERIALISE_MEMBER(shaderSharedFloat32AtomicMinMax);
+  SERIALISE_MEMBER(shaderSharedFloat64AtomicMinMax);
+  SERIALISE_MEMBER(shaderImageFloat32AtomicMinMax);
+  SERIALISE_MEMBER(sparseImageFloat32AtomicMinMax);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPhysicalDeviceShaderImageAtomicInt64FeaturesEXT &el)
 {
   RDCASSERT(ser.IsReading() ||
@@ -9697,6 +9725,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSamplerYcbcrConversionFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceScalarBlockLayoutFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSeparateDepthStencilLayoutsFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderAtomicFloatFeaturesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderAtomicInt64Features);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderClockFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderCorePropertiesAMD);

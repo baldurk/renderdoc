@@ -69,6 +69,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_scalar_block_layout`
 * `VK_EXT_separate_stencil_usage`
 * `VK_EXT_shader_atomic_float`
+* `VK_EXT_shader_atomic_float2`
 * `VK_EXT_shader_demote_to_helper_invocation`
 * `VK_EXT_shader_image_atomic_int64`
 * `VK_EXT_shader_stencil_export`
@@ -229,7 +230,6 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_EXT_primitive_topology_list_restart`
 * `VK_EXT_provoking_vertex`
 * `VK_EXT_rgba10x6_formats`
-* `VK_EXT_shader_atomic_float2`
 * `VK_EXT_texture_compression_astc_hdr`
 * `VK_EXT_vertex_input_dynamic_state`
 * `VK_EXT_ycbcr_2plane_444_formats`
