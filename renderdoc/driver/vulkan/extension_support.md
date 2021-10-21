@@ -148,8 +148,10 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_KHR_shader_draw_parameters`
 * `VK_KHR_shader_float_controls`
 * `VK_KHR_shader_float16_int8`
+* `VK_KHR_shader_integer_dot_product`
 * `VK_KHR_shader_non_semantic_info`
 * `VK_KHR_shader_subgroup_extended_types`
+* `VK_KHR_shader_subgroup_uniform_control_flow`
 * `VK_KHR_shader_terminate_invocation`
 * `VK_KHR_shared_presentable_image`
 * `VK_KHR_spirv_1_4`
@@ -191,8 +193,6 @@ KHR extensions will definitely be implemented at some point, though KHR extensio
 ## KHR Extensions
 
 * `VK_KHR_fragment_shading_rate`
-* `VK_KHR_shader_integer_dot_product`
-* `VK_KHR_shader_subgroup_uniform_control_flow`
 
 ## KHR Portability
 

@@ -1099,9 +1099,19 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT_CONTROLS_PROPERTIES,                            \
                VkPhysicalDeviceFloatControlsProperties)                                                \
                                                                                                        \
+  /* VK_KHR_shader_integer_dot_product */                                                              \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_INTEGER_DOT_PRODUCT_FEATURES_KHR,              \
+               VkPhysicalDeviceShaderIntegerDotProductFeaturesKHR)                                     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_INTEGER_DOT_PRODUCT_PROPERTIES_KHR,            \
+               VkPhysicalDeviceShaderIntegerDotProductPropertiesKHR)                                   \
+                                                                                                       \
   /* VK_KHR_shader_subgroup_extended_types */                                                          \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SUBGROUP_EXTENDED_TYPES_FEATURES,              \
                VkPhysicalDeviceShaderSubgroupExtendedTypesFeatures)                                    \
+                                                                                                       \
+  /* VK_KHR_shader_subgroup_uniform_control_flow */                                                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SUBGROUP_UNIFORM_CONTROL_FLOW_FEATURES_KHR,    \
+               VkPhysicalDeviceShaderSubgroupUniformControlFlowFeaturesKHR)                            \
                                                                                                        \
   /* VK_KHR_shader_terminate_invocation */                                                             \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_TERMINATE_INVOCATION_FEATURES_KHR,             \
@@ -1350,14 +1360,6 @@ SERIALISE_VK_HANDLES();
                                                                                                        \
   /* VK_KHR_ray_query */                                                                               \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR)                          \
-                                                                                                       \
-  /* VK_KHR_shader_integer_dot_product */                                                              \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_INTEGER_DOT_PRODUCT_FEATURES_KHR)         \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_INTEGER_DOT_PRODUCT_PROPERTIES_KHR)       \
-                                                                                                       \
-  /* VK_KHR_shader_subgroup_uniform_control_flow */                                                    \
-  PNEXT_UNSUPPORTED(                                                                                   \
-      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SUBGROUP_UNIFORM_CONTROL_FLOW_FEATURES_KHR)             \
                                                                                                        \
   /* VK_NV_clip_space_w_scaling */                                                                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_W_SCALING_STATE_CREATE_INFO_NV)                \
@@ -7985,6 +7987,84 @@ void Deserialise(const VkPhysicalDeviceShaderSubgroupExtendedTypesFeatures &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceShaderIntegerDotProductFeaturesKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_INTEGER_DOT_PRODUCT_FEATURES_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(shaderIntegerDotProduct);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceShaderIntegerDotProductFeaturesKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceShaderIntegerDotProductPropertiesKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_INTEGER_DOT_PRODUCT_PROPERTIES_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(integerDotProduct8BitUnsignedAccelerated);
+  SERIALISE_MEMBER(integerDotProduct8BitSignedAccelerated);
+  SERIALISE_MEMBER(integerDotProduct8BitMixedSignednessAccelerated);
+  SERIALISE_MEMBER(integerDotProduct4x8BitPackedUnsignedAccelerated);
+  SERIALISE_MEMBER(integerDotProduct4x8BitPackedSignedAccelerated);
+  SERIALISE_MEMBER(integerDotProduct4x8BitPackedMixedSignednessAccelerated);
+  SERIALISE_MEMBER(integerDotProduct16BitUnsignedAccelerated);
+  SERIALISE_MEMBER(integerDotProduct16BitSignedAccelerated);
+  SERIALISE_MEMBER(integerDotProduct16BitMixedSignednessAccelerated);
+  SERIALISE_MEMBER(integerDotProduct32BitUnsignedAccelerated);
+  SERIALISE_MEMBER(integerDotProduct32BitSignedAccelerated);
+  SERIALISE_MEMBER(integerDotProduct32BitMixedSignednessAccelerated);
+  SERIALISE_MEMBER(integerDotProduct64BitUnsignedAccelerated);
+  SERIALISE_MEMBER(integerDotProduct64BitSignedAccelerated);
+  SERIALISE_MEMBER(integerDotProduct64BitMixedSignednessAccelerated);
+  SERIALISE_MEMBER(integerDotProductAccumulatingSaturating8BitUnsignedAccelerated);
+  SERIALISE_MEMBER(integerDotProductAccumulatingSaturating8BitSignedAccelerated);
+  SERIALISE_MEMBER(integerDotProductAccumulatingSaturating8BitMixedSignednessAccelerated);
+  SERIALISE_MEMBER(integerDotProductAccumulatingSaturating4x8BitPackedUnsignedAccelerated);
+  SERIALISE_MEMBER(integerDotProductAccumulatingSaturating4x8BitPackedSignedAccelerated);
+  SERIALISE_MEMBER(integerDotProductAccumulatingSaturating4x8BitPackedMixedSignednessAccelerated);
+  SERIALISE_MEMBER(integerDotProductAccumulatingSaturating16BitUnsignedAccelerated);
+  SERIALISE_MEMBER(integerDotProductAccumulatingSaturating16BitSignedAccelerated);
+  SERIALISE_MEMBER(integerDotProductAccumulatingSaturating16BitMixedSignednessAccelerated);
+  SERIALISE_MEMBER(integerDotProductAccumulatingSaturating32BitUnsignedAccelerated);
+  SERIALISE_MEMBER(integerDotProductAccumulatingSaturating32BitSignedAccelerated);
+  SERIALISE_MEMBER(integerDotProductAccumulatingSaturating32BitMixedSignednessAccelerated);
+  SERIALISE_MEMBER(integerDotProductAccumulatingSaturating64BitUnsignedAccelerated);
+  SERIALISE_MEMBER(integerDotProductAccumulatingSaturating64BitSignedAccelerated);
+  SERIALISE_MEMBER(integerDotProductAccumulatingSaturating64BitMixedSignednessAccelerated);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceShaderIntegerDotProductPropertiesKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceShaderSubgroupUniformControlFlowFeaturesKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType ==
+                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SUBGROUP_UNIFORM_CONTROL_FLOW_FEATURES_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(shaderSubgroupUniformControlFlow);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceShaderSubgroupUniformControlFlowFeaturesKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPhysicalDeviceMemoryPriorityFeaturesEXT &el)
 {
   RDCASSERT(ser.IsReading() ||
@@ -9625,7 +9705,10 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderDrawParametersFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderFloat16Int8Features);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderImageAtomicInt64FeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderImageFootprintFeaturesNV);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderIntegerDotProductFeaturesKHR);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderIntegerDotProductPropertiesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderSubgroupExtendedTypesFeatures);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderSubgroupUniformControlFlowFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderTerminateInvocationFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSparseImageFormatInfo2);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSubgroupProperties);
