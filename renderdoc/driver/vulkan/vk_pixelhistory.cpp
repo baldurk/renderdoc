@@ -687,6 +687,15 @@ protected:
       descs[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
       descs[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
       descs[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+      if(rpInfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+        descs[i].loadOp = VK_ATTACHMENT_LOAD_OP_NONE_EXT;
+      if(rpInfo.attachments[i].storeOp == VK_ATTACHMENT_STORE_OP_NONE_EXT)
+        descs[i].storeOp = VK_ATTACHMENT_STORE_OP_NONE_EXT;
+      if(rpInfo.attachments[i].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+        descs[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_NONE_EXT;
+      if(rpInfo.attachments[i].stencilStoreOp == VK_ATTACHMENT_STORE_OP_NONE_EXT)
+        descs[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_NONE_EXT;
+
       descs[i].initialLayout = rpInfo.attachments[i].initialLayout;
       descs[i].finalLayout = rpInfo.attachments[i].finalLayout;
     }

@@ -36,7 +36,7 @@ static rdcstr ToHumanStr(const VkAttachmentLoadOp &el)
   {
     case VK_ATTACHMENT_LOAD_OP_LOAD: return "Load";
     case VK_ATTACHMENT_LOAD_OP_CLEAR: return "Clear";
-    case VK_ATTACHMENT_LOAD_OP_DONT_CARE: return "Don't Care";
+    case VK_ATTACHMENT_LOAD_OP_NONE_EXT: return "None";
   }
   END_ENUM_STRINGISE();
 }
@@ -47,6 +47,7 @@ static rdcstr ToHumanStr(const VkAttachmentStoreOp &el)
   {
     case VK_ATTACHMENT_STORE_OP_STORE: return "Store";
     case VK_ATTACHMENT_STORE_OP_DONT_CARE: return "Don't Care";
+    case VK_ATTACHMENT_STORE_OP_NONE_EXT: return "None";
   }
   END_ENUM_STRINGISE();
 }
@@ -1485,8 +1486,17 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
             if(att >= rpinfo.attachments.size())
               continue;
 
-            if(rpinfo.attachments[att].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ||
-               rpinfo.attachments[att].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
+            VkImageAspectFlags clearAspects = 0;
+
+            // loadOp governs color, and depth
+            if(rpinfo.attachments[att].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
+              clearAspects |= VK_IMAGE_ASPECT_COLOR_BIT | VK_IMAGE_ASPECT_DEPTH_BIT;
+            // stencilLoadOp governs the stencil
+            if(rpinfo.attachments[att].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
+              clearAspects |= VK_IMAGE_ASPECT_STENCIL_BIT;
+
+            // if any aspect is set to clear, go check it in more detail
+            if(clearAspects != 0)
             {
               VulkanCreationInfo::ImageView viewinfo = m_CreationInfo.m_ImageView[fbattachments[att]];
 
@@ -1498,8 +1508,15 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
                 clear.clearValue = unwrappedInfo.pClearValues[att];
               else
                 RDCWARN("Missing clear value for attachment %u", att);
-              clearrects.push_back(rect);
-              clearatts.push_back(clear);
+
+              // check that the actual aspects in the attachment overlap with those being cleared.
+              // In particular this means we ignore stencil load op being CLEAR for a color
+              // attachment - that doesn't mean we should clear the color
+              if(clear.aspectMask & clearAspects)
+              {
+                clearrects.push_back(rect);
+                clearatts.push_back(clear);
+              }
             }
           }
 
@@ -1662,7 +1679,8 @@ void WrappedVulkan::vkCmdBeginRenderPass(VkCommandBuffer commandBuffer,
 
       if(renderArea_covers_entire_framebuffer && framebuffer_reference_entire_attachment)
       {
-        if(rpInfo->loadOpTable[i] != VK_ATTACHMENT_LOAD_OP_LOAD)
+        if(rpInfo->loadOpTable[i] != VK_ATTACHMENT_LOAD_OP_LOAD &&
+           rpInfo->loadOpTable[i] != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
         {
           refType = eFrameRef_CompleteWrite;
         }
@@ -2291,7 +2309,8 @@ void WrappedVulkan::vkCmdBeginRenderPass2(VkCommandBuffer commandBuffer,
 
       if(renderArea_covers_entire_framebuffer && framebuffer_reference_entire_attachment)
       {
-        if(rpInfo->loadOpTable[i] != VK_ATTACHMENT_LOAD_OP_LOAD)
+        if(rpInfo->loadOpTable[i] != VK_ATTACHMENT_LOAD_OP_LOAD &&
+           rpInfo->loadOpTable[i] != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
         {
           refType = eFrameRef_CompleteWrite;
         }
@@ -2757,6 +2776,12 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
                 renderstate.vbuffers.resize_for_index(bind.vbufferBinding);
                 renderstate.vbuffers[bind.vbufferBinding].stride = bind.bytestride;
               }
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicColorWriteEXT])
+            {
+              renderstate.colorWriteEnable.resize(pipeInfo.attachments.size());
+              for(size_t i = 0; i < renderstate.colorWriteEnable.size(); i++)
+                renderstate.colorWriteEnable[i] = pipeInfo.attachments[i].channelWriteMask != 0;
             }
           }
         }

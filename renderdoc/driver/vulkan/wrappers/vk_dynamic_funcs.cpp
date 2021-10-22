@@ -1514,6 +1514,72 @@ void WrappedVulkan::vkCmdSetStencilOpEXT(VkCommandBuffer commandBuffer, VkStenci
   }
 }
 
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdSetColorWriteEnableEXT(SerialiserType &ser,
+                                                          VkCommandBuffer commandBuffer,
+                                                          uint32_t attachmentCount,
+                                                          const VkBool32 *pColorWriteEnables)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT(attachmentCount);
+  SERIALISE_ELEMENT_ARRAY(pColorWriteEnables, attachmentCount).Important();
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        {
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          renderstate.colorWriteEnable.assign(pColorWriteEnables, attachmentCount);
+        }
+      }
+      else
+      {
+        commandBuffer = VK_NULL_HANDLE;
+      }
+    }
+
+    if(commandBuffer != VK_NULL_HANDLE)
+      ObjDisp(commandBuffer)
+          ->CmdSetColorWriteEnableEXT(Unwrap(commandBuffer), attachmentCount, pColorWriteEnables);
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdSetColorWriteEnableEXT(VkCommandBuffer commandBuffer,
+                                                uint32_t attachmentCount,
+                                                const VkBool32 *pColorWriteEnables)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)
+          ->CmdSetColorWriteEnableEXT(Unwrap(commandBuffer), attachmentCount, pColorWriteEnables));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetColorWriteEnableEXT);
+    Serialise_vkCmdSetColorWriteEnableEXT(ser, commandBuffer, attachmentCount, pColorWriteEnables);
+
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
+  }
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetViewport, VkCommandBuffer commandBuffer,
                                 uint32_t firstViewport, uint32_t viewportCount,
                                 const VkViewport *pViewports);
@@ -1587,3 +1653,6 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetStencilTestEnableEXT, VkCommandBuf
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetStencilOpEXT, VkCommandBuffer commandBuffer,
                                 VkStencilFaceFlags faceMask, VkStencilOp failOp, VkStencilOp passOp,
                                 VkStencilOp depthFailOp, VkCompareOp compareOp);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetColorWriteEnableEXT, VkCommandBuffer commandBuffer,
+                                uint32_t attachmentCount, const VkBool32 *pColorWriteEnables);

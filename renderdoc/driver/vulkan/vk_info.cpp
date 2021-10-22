@@ -699,6 +699,22 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
 
     attachments.clear();
   }
+
+  // this struct probably will never get used, since the user could just set the colorWriteMask
+  // above to 0. It's really only useful for specifying how the dynamic state works. However just
+  // for completeness...
+  const VkPipelineColorWriteCreateInfoEXT *colorWriteEnable =
+      (const VkPipelineColorWriteCreateInfoEXT *)FindNextStruct(
+          pCreateInfo->pRasterizationState, VK_STRUCTURE_TYPE_PIPELINE_COLOR_WRITE_CREATE_INFO_EXT);
+  if(colorWriteEnable)
+  {
+    RDCASSERTEQUAL(attachments.size(), colorWriteEnable->attachmentCount);
+    for(size_t i = 0; i < attachments.size() && i < colorWriteEnable->attachmentCount; i++)
+    {
+      if(!colorWriteEnable->pColorWriteEnables[i])
+        attachments[i].channelWriteMask = 0;
+    }
+  }
 }
 
 void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,

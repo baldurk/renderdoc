@@ -191,6 +191,9 @@ struct VulkanRenderState
 
   VkBool32 stencilTestEnable = VK_FALSE;
 
+  // color write enable
+  rdcarray<VkBool32> colorWriteEnable;
+
 private:
   ResourceId framebuffer;
   rdcarray<ResourceId> fbattachments;

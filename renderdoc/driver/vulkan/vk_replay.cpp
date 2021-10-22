@@ -1452,6 +1452,9 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
           MakeBlendOp(p.attachments[i].alphaBlend.Operation);
 
       ret.colorBlend.blends[i].writeMask = p.attachments[i].channelWriteMask;
+
+      if(i < state.colorWriteEnable.size() && !state.colorWriteEnable[i])
+        ret.colorBlend.blends[i].writeMask = 0;
     }
 
     ret.colorBlend.blendFactor = state.blendConst;

@@ -374,7 +374,7 @@ struct VulkanCreationInfo
     VkLogicOp logicOp;
     float blendConst[4];
 
-    struct Attachment
+    struct CBAttachment
     {
       bool blendEnable;
 
@@ -387,7 +387,7 @@ struct VulkanCreationInfo
 
       uint8_t channelWriteMask;
     };
-    rdcarray<Attachment> attachments;
+    rdcarray<CBAttachment> attachments;
 
     // VkPipelineDynamicStateCreateInfo
     bool dynamicStates[VkDynamicCount];

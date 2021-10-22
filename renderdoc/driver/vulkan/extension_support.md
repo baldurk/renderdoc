@@ -26,6 +26,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_astc_decode_mode`
 * `VK_EXT_buffer_device_address`
 * `VK_EXT_calibrated_timestamps`
+* `VK_EXT_color_write_enable`
 * `VK_EXT_conditional_rendering`
 * `VK_EXT_conservative_rasterization`
 * `VK_EXT_custom_border_color`
@@ -55,6 +56,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_index_type_uint8`
 * `VK_EXT_inline_uniform_block`
 * `VK_EXT_line_rasterization`
+* `VK_EXT_load_store_op_none`
 * `VK_EXT_memory_budget`
 * `VK_EXT_memory_priority`
 * `VK_EXT_metal_surface`
@@ -220,12 +222,10 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_EXT_acquire_drm_display`
 * `VK_EXT_blend_operation_advanced`
 * `VK_EXT_border_color_swizzle`
-* `VK_EXT_color_write_enable`
 * `VK_EXT_device_memory_report`
 * `VK_EXT_extended_dynamic_state2`
 * `VK_EXT_external_memory_host`
 * `VK_EXT_image_drm_format_modifier`
-* `VK_EXT_load_store_op_none`
 * `VK_EXT_multi_draw`
 * `VK_EXT_pageable_device_local_memory`
 * `VK_EXT_physical_device_drm`

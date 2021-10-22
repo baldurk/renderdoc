@@ -957,8 +957,10 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(SerialiserType &ser, VkDevice d
     {
       if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest)
       {
-        att[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        att[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
+        if(att[i].storeOp != VK_ATTACHMENT_STORE_OP_NONE_EXT)
+          att[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        if(att[i].stencilStoreOp != VK_ATTACHMENT_STORE_OP_NONE_EXT)
+          att[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
 
         if(att[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
         {
@@ -1035,8 +1037,10 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(SerialiserType &ser, VkDevice d
         // without doing a clear or a DONT_CARE load.
         for(uint32_t i = 0; i < CreateInfo.attachmentCount; i++)
         {
-          att[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-          att[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+          if(att[i].loadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+            att[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+          if(att[i].stencilLoadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+            att[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
         }
 
         VkRenderPassCreateInfo loadInfo = CreateInfo;
@@ -1139,8 +1143,10 @@ VkResult WrappedVulkan::vkCreateRenderPass(VkDevice device, const VkRenderPassCr
       for(uint32_t i = 0; i < info.attachmentCount; i++)
       {
         atts[i] = info.pAttachments[i];
-        atts[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-        atts[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+        if(atts[i].loadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+          atts[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+        if(atts[i].stencilLoadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+          atts[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
       }
 
       info.pAttachments = atts.data();
@@ -1207,8 +1213,10 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass2(SerialiserType &ser, VkDevice 
     VkAttachmentDescription2 *att = (VkAttachmentDescription2 *)CreateInfo.pAttachments;
     for(uint32_t i = 0; i < CreateInfo.attachmentCount; i++)
     {
-      att[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-      att[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
+      if(att[i].storeOp != VK_ATTACHMENT_STORE_OP_NONE_EXT)
+        att[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+      if(att[i].stencilStoreOp != VK_ATTACHMENT_STORE_OP_NONE_EXT)
+        att[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
 
       if(att[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
         att[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
@@ -1265,8 +1273,10 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass2(SerialiserType &ser, VkDevice 
         // without doing a clear or a DONT_CARE load.
         for(uint32_t i = 0; i < CreateInfo.attachmentCount; i++)
         {
-          att[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-          att[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+          if(att[i].loadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+            att[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+          if(att[i].stencilLoadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+            att[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
         }
 
         VkRenderPassCreateInfo2 loadInfo = CreateInfo;
@@ -1371,8 +1381,10 @@ VkResult WrappedVulkan::vkCreateRenderPass2(VkDevice device,
       for(uint32_t i = 0; i < info.attachmentCount; i++)
       {
         atts[i] = info.pAttachments[i];
-        atts[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-        atts[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+        if(atts[i].loadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+          atts[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+        if(atts[i].stencilLoadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+          atts[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
       }
 
       info.pAttachments = atts.data();

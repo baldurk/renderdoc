@@ -181,6 +181,13 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
     if(!scissors.empty() && dynamicStates[VkDynamicScissor])
       ObjDisp(cmd)->CmdSetScissor(Unwrap(cmd), 0, (uint32_t)scissors.size(), &scissors[0]);
 
+    if(vk->DynamicColorWrite())
+    {
+      if(!colorWriteEnable.empty() && dynamicStates[VkDynamicColorWriteEXT])
+        ObjDisp(cmd)->CmdSetColorWriteEnableEXT(Unwrap(cmd), (uint32_t)colorWriteEnable.size(),
+                                                colorWriteEnable.data());
+    }
+
     if(vk->ExtendedDynamicState())
     {
       if(!views.empty() && dynamicStates[VkDynamicViewportCountEXT])

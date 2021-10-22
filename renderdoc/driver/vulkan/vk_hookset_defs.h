@@ -529,7 +529,8 @@
   DeclExt(KHR_copy_commands2);                  \
   DeclExt(KHR_synchronization2);                \
   DeclExt(KHR_present_wait);                    \
-  DeclExt(KHR_maintenance4);
+  DeclExt(KHR_maintenance4);                    \
+  DeclExt(EXT_color_write_enable);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -629,7 +630,10 @@
   CheckExt(EXT_private_data, VKXX);                    \
   CheckExt(EXT_extended_dynamic_state, VKXX);          \
   CheckExt(KHR_copy_commands2, VKXX);                  \
-  CheckExt(KHR_synchronization2, VKXX);
+  CheckExt(KHR_synchronization2, VKXX);                \
+  CheckExt(KHR_present_wait, VKXX);                    \
+  CheckExt(KHR_maintenance4, VKXX);                    \
+  CheckExt(EXT_color_write_enable, VKXX);
 
 #define HookInitVulkanInstanceExts_PhysDev()                                                         \
   HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                                \
@@ -874,6 +878,7 @@
   HookInitExtension(KHR_maintenance4, GetDeviceBufferMemoryRequirementsKHR);                       \
   HookInitExtension(KHR_maintenance4, GetDeviceImageMemoryRequirementsKHR);                        \
   HookInitExtension(KHR_maintenance4, GetDeviceImageSparseMemoryRequirementsKHR);                  \
+  HookInitExtension(EXT_color_write_enable, CmdSetColorWriteEnableEXT);                            \
   /* No GetQueueCheckpointData2NV without VK_NV_device_diagnostic_checkpoints */                   \
   HookInitExtension_Device_Win32();                                                                \
   HookInitExtension_Device_Linux();                                                                \
@@ -1570,6 +1575,8 @@
               const VkDeviceImageMemoryRequirementsKHR *, pInfo, uint32_t *,                         \
               pSparseMemoryRequirementCount, VkSparseImageMemoryRequirements2 *,                     \
               pSparseMemoryRequirements);                                                            \
+  HookDefine3(void, vkCmdSetColorWriteEnableEXT, VkCommandBuffer, commandBuffer, uint32_t,           \
+              attachmentCount, const VkBool32 *, pColorWriteEnables);                                \
   HookDefine_Win32();                                                                                \
   HookDefine_Linux();                                                                                \
   HookDefine_GGP();                                                                                  \

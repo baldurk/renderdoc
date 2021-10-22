@@ -407,6 +407,7 @@ private:
   bool m_SeparateDepthStencil = false;
   bool m_NULLDescriptorsAllowed = false;
   bool m_ExtendedDynState = false;
+  bool m_DynColorWrite = false;
 
   PFN_vkSetDeviceLoaderData m_SetDeviceLoaderData;
 
@@ -1122,6 +1123,7 @@ public:
   bool SeparateDepthStencil() const { return m_SeparateDepthStencil; }
   bool NULLDescriptorsAllowed() const { return m_NULLDescriptorsAllowed; }
   bool ExtendedDynamicState() const { return m_ExtendedDynState; }
+  bool DynamicColorWrite() const { return m_DynColorWrite; }
   VulkanRenderState &GetRenderState() { return m_RenderState; }
   void SetActionCB(VulkanActionCallback *cb) { m_ActionCallback = cb; }
   void SetSubmitChain(void *submitChain) { m_SubmitChain = submitChain; }
@@ -2473,4 +2475,9 @@ public:
                                 const VkDeviceImageMemoryRequirementsKHR *pInfo,
                                 uint32_t *pSparseMemoryRequirementCount,
                                 VkSparseImageMemoryRequirements2 *pSparseMemoryRequirements);
+
+  // VK_EXT_color_write_enable
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetColorWriteEnableEXT, VkCommandBuffer commandBuffer,
+                                uint32_t attachmentCount, const VkBool32 *pColorWriteEnables);
 };

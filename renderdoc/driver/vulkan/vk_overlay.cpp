@@ -2766,6 +2766,11 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
                                          state.front.passOp, state.front.depthFailOp,
                                          state.front.compareOp);
                 }
+                else if(d == VK_DYNAMIC_STATE_COLOR_WRITE_ENABLE_EXT)
+                {
+                  vt->CmdSetColorWriteEnableEXT(Unwrap(cmd), (uint32_t)state.colorWriteEnable.size(),
+                                                state.colorWriteEnable.data());
+                }
               }
 
               if(fmt.indexByteStride)

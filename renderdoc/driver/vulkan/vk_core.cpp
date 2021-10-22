@@ -879,6 +879,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME, VK_EXT_CALIBRATED_TIMESTAMPS_SPEC_VERSION,
     },
     {
+        VK_EXT_COLOR_WRITE_ENABLE_EXTENSION_NAME, VK_EXT_COLOR_WRITE_ENABLE_SPEC_VERSION,
+    },
+    {
         VK_EXT_CONDITIONAL_RENDERING_EXTENSION_NAME, VK_EXT_CONDITIONAL_RENDERING_SPEC_VERSION,
     },
     {
@@ -964,6 +967,9 @@ static const VkExtensionProperties supportedExtensions[] = {
     },
     {
         VK_EXT_INLINE_UNIFORM_BLOCK_EXTENSION_NAME, VK_EXT_INLINE_UNIFORM_BLOCK_SPEC_VERSION,
+    },
+    {
+        VK_EXT_LOAD_STORE_OP_NONE_EXTENSION_NAME, VK_EXT_LOAD_STORE_OP_NONE_SPEC_VERSION,
     },
     {
         VK_EXT_LINE_RASTERIZATION_EXTENSION_NAME, VK_EXT_LINE_RASTERIZATION_SPEC_VERSION,
@@ -3478,6 +3484,8 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
     case VulkanChunk::vkCmdWriteBufferMarker2AMD:
       return Serialise_vkCmdWriteBufferMarker2AMD(ser, VK_NULL_HANDLE, VK_PIPELINE_STAGE_2_NONE_KHR,
                                                   VK_NULL_HANDLE, 0, 0);
+    case VulkanChunk::vkCmdSetColorWriteEnableEXT:
+      return Serialise_vkCmdSetColorWriteEnableEXT(ser, VK_NULL_HANDLE, 0, NULL);
 
     // chunks that are reserved but not yet serialised
     case VulkanChunk::vkResetCommandPool:
