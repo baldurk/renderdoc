@@ -63,6 +63,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_post_depth_coverage`
 * `VK_EXT_private_data`
 * `VK_EXT_queue_family_foreign`
+* `VK_EXT_rgba10x6_formats`
 * `VK_EXT_robustness2`
 * `VK_EXT_sample_locations`
 * `VK_EXT_sampler_filter_minmax`
@@ -230,7 +231,6 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_EXT_physical_device_drm`
 * `VK_EXT_primitive_topology_list_restart`
 * `VK_EXT_provoking_vertex`
-* `VK_EXT_rgba10x6_formats`
 * `VK_EXT_texture_compression_astc_hdr`
 * `VK_EXT_vertex_input_dynamic_state`
 
