@@ -812,6 +812,10 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_FEATURES_EXT,                \
                VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT)                                      \
                                                                                                        \
+  /* VK_EXT_ycbcr_2plane_444_formats */                                                                \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_YCBCR_2_PLANE_444_FORMATS_FEATURES_EXT,               \
+               VkPhysicalDeviceYcbcr2Plane444FormatsFeaturesEXT)                                       \
+                                                                                                       \
   /* VK_EXT_ycbcr_image_arrays */                                                                      \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_YCBCR_IMAGE_ARRAYS_FEATURES_EXT,                      \
                VkPhysicalDeviceYcbcrImageArraysFeaturesEXT)                                            \
@@ -1302,9 +1306,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_INPUT_DYNAMIC_STATE_FEATURES_EXT)         \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_VERTEX_INPUT_BINDING_DESCRIPTION_2_EXT)                          \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT)                        \
-                                                                                                       \
-  /* VK_EXT_ycbcr_2plane_444_formats */                                                                \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_YCBCR_2_PLANE_444_FORMATS_FEATURES_EXT)          \
                                                                                                        \
   /* VK_HUAWEI_invocation_mask */                                                                      \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INVOCATION_MASK_FEATURES_HUAWEI)                 \
@@ -4115,6 +4116,22 @@ void DoSerialise(SerialiserType &ser, VkPhysicalDeviceYcbcrImageArraysFeaturesEX
 
 template <>
 void Deserialise(const VkPhysicalDeviceYcbcrImageArraysFeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceYcbcr2Plane444FormatsFeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_YCBCR_2_PLANE_444_FORMATS_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(ycbcr2plane444Formats);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceYcbcr2Plane444FormatsFeaturesEXT &el)
 {
   DeserialiseNext(el.pNext);
 }
@@ -9762,6 +9779,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVulkan12Features);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVulkan12Properties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVulkanMemoryModelFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceWorkgroupMemoryExplicitLayoutFeaturesKHR);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceYcbcr2Plane444FormatsFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceYcbcrImageArraysFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceZeroInitializeWorkgroupMemoryFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineCacheCreateInfo);

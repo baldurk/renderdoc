@@ -85,6 +85,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_validation_features`
 * `VK_EXT_validation_flags`
 * `VK_EXT_vertex_attribute_divisor`
+* `VK_EXT_ycbcr_2plane_444_formats`
 * `VK_EXT_ycbcr_image_arrays`
 * `VK_GGP_frame_token`
 * `VK_GGP_stream_descriptor_surface`
@@ -232,7 +233,6 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_EXT_rgba10x6_formats`
 * `VK_EXT_texture_compression_astc_hdr`
 * `VK_EXT_vertex_input_dynamic_state`
-* `VK_EXT_ycbcr_2plane_444_formats`
 
 ## Platform/IHV Extensions
 
