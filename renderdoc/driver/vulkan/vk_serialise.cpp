@@ -661,6 +661,12 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_QUEUE_GLOBAL_PRIORITY_CREATE_INFO_EXT,                         \
                VkDeviceQueueGlobalPriorityCreateInfoEXT)                                               \
                                                                                                        \
+  /* VK_EXT_global_priority_query */                                                                   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GLOBAL_PRIORITY_QUERY_FEATURES_EXT,                   \
+               VkPhysicalDeviceGlobalPriorityQueryFeaturesEXT)                                         \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_QUEUE_FAMILY_GLOBAL_PRIORITY_PROPERTIES_EXT,                          \
+               VkQueueFamilyGlobalPriorityPropertiesEXT)                                               \
+                                                                                                       \
   /* VK_EXT_hdr_metadata */                                                                            \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_HDR_METADATA_EXT, VkHdrMetadataEXT)                                   \
                                                                                                        \
@@ -1266,10 +1272,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMPORT_MEMORY_HOST_POINTER_INFO_EXT)                             \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MEMORY_HOST_POINTER_PROPERTIES_EXT)                              \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_MEMORY_HOST_PROPERTIES_EXT)             \
-                                                                                                       \
-  /* VK_EXT_global_priority_query */                                                                   \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GLOBAL_PRIORITY_QUERY_FEATURES_EXT)              \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_QUEUE_FAMILY_GLOBAL_PRIORITY_PROPERTIES_EXT)                     \
                                                                                                        \
   /* VK_EXT_headless_surface */                                                                        \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_HEADLESS_SURFACE_CREATE_INFO_EXT)                                \
@@ -7831,6 +7833,39 @@ void Deserialise(const VkDeviceQueueGlobalPriorityCreateInfoEXT &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceGlobalPriorityQueryFeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GLOBAL_PRIORITY_QUERY_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(globalPriorityQuery);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceGlobalPriorityQueryFeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkQueueFamilyGlobalPriorityPropertiesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_QUEUE_FAMILY_GLOBAL_PRIORITY_PROPERTIES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(priorityCount);
+  SERIALISE_MEMBER(priorities);
+}
+
+template <>
+void Deserialise(const VkQueueFamilyGlobalPriorityPropertiesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPhysicalDeviceMemoryBudgetPropertiesEXT &el)
 {
   RDCASSERT(ser.IsReading() ||
@@ -9720,6 +9755,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMap2FeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMap2PropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentShaderBarycentricFeaturesNV);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceGlobalPriorityQueryFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceGroupProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceHostQueryResetFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceIDProperties);
@@ -9836,6 +9872,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPrivateDataSlotCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkProtectedSubmitInfo);
 INSTANTIATE_SERIALISE_TYPE(VkQueryPoolCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkQueryPoolPerformanceCreateInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkQueueFamilyGlobalPriorityPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkQueueFamilyProperties2);
 INSTANTIATE_SERIALISE_TYPE(VkRefreshCycleDurationGOOGLE);
 INSTANTIATE_SERIALISE_TYPE(VkRenderPassAttachmentBeginInfo);

@@ -47,6 +47,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_fragment_shader_interlock`
 * `VK_EXT_full_screen_exclusive`
 * `VK_EXT_global_priority`
+* `VK_EXT_global_priority_query`
 * `VK_EXT_hdr_metadata`
 * `VK_EXT_headless_surface`
 * `VK_EXT_host_query_reset`
@@ -223,7 +224,6 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_EXT_device_memory_report`
 * `VK_EXT_extended_dynamic_state2`
 * `VK_EXT_external_memory_host`
-* `VK_EXT_global_priority_query`
 * `VK_EXT_image_drm_format_modifier`
 * `VK_EXT_load_store_op_none`
 * `VK_EXT_multi_draw`
