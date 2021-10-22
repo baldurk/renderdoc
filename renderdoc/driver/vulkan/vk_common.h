@@ -716,6 +716,12 @@ enum class VulkanChunk : uint32_t
   vkQueueSubmit2KHR,
   vkCmdWriteBufferMarker2AMD,
   vkCmdSetColorWriteEnableEXT,
+  vkCmdSetDepthBiasEnableEXT,
+  vkCmdSetLogicOpEXT,
+  vkCmdSetPatchControlPointsEXT,
+  vkCmdSetPrimitiveRestartEnableEXT,
+  vkCmdSetRasterizerDiscardEnableEXT,
+  vkCmdSetVertexInputEXT,
   Max,
 };
 
@@ -931,6 +937,7 @@ DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceDescriptorIndexingProperties)
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceDiscardRectanglePropertiesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceDriverProperties);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceExtendedDynamicStateFeaturesEXT);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceExtendedDynamicState2FeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceExternalBufferInfo);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceExternalFenceInfo);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceExternalImageFormatInfo);
@@ -1017,6 +1024,7 @@ DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceUniformBufferStandardLayoutFeatures);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceVariablePointerFeatures);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceVertexAttributeDivisorPropertiesEXT);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceVulkan11Features);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceVulkan11Properties);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceVulkan12Features);
@@ -1113,6 +1121,8 @@ DECLARE_REFLECTION_STRUCT(VkTimelineSemaphoreSubmitInfo);
 DECLARE_REFLECTION_STRUCT(VkValidationCacheCreateInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkValidationFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkValidationFlagsEXT);
+DECLARE_REFLECTION_STRUCT(VkVertexInputAttributeDescription2EXT);
+DECLARE_REFLECTION_STRUCT(VkVertexInputBindingDescription2EXT);
 DECLARE_REFLECTION_STRUCT(VkWriteDescriptorSet);
 DECLARE_REFLECTION_STRUCT(VkWriteDescriptorSetInlineUniformBlockEXT);
 
@@ -1278,6 +1288,7 @@ DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceDescriptorIndexingProperties)
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceDiscardRectanglePropertiesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceDriverProperties);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceExtendedDynamicStateFeaturesEXT);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceExtendedDynamicState2FeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceExternalBufferInfo);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceExternalFenceInfo);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceExternalImageFormatInfo);
@@ -1364,6 +1375,7 @@ DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceUniformBufferStandardLayoutFeatures);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceVariablePointerFeatures);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceVertexAttributeDivisorPropertiesEXT);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceVulkan11Features);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceVulkan11Properties);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceVulkan12Features);
@@ -1457,6 +1469,8 @@ DECLARE_DESERIALISE_TYPE(VkTimelineSemaphoreSubmitInfo);
 DECLARE_DESERIALISE_TYPE(VkValidationCacheCreateInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkValidationFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkValidationFlagsEXT);
+DECLARE_DESERIALISE_TYPE(VkVertexInputAttributeDescription2EXT);
+DECLARE_DESERIALISE_TYPE(VkVertexInputBindingDescription2EXT);
 DECLARE_DESERIALISE_TYPE(VkWriteDescriptorSet);
 DECLARE_DESERIALISE_TYPE(VkWriteDescriptorSetInlineUniformBlockEXT);
 

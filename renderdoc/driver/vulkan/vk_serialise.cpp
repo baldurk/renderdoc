@@ -639,6 +639,10 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT,                  \
                VkPhysicalDeviceExtendedDynamicStateFeaturesEXT)                                        \
                                                                                                        \
+  /* VK_EXT_extended_dynamic_state2 */                                                                 \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT,                \
+               VkPhysicalDeviceExtendedDynamicState2FeaturesEXT)                                       \
+                                                                                                       \
   /* VK_EXT_filter_cubic */                                                                            \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_VIEW_IMAGE_FORMAT_INFO_EXT,                     \
                VkPhysicalDeviceImageViewImageFormatInfoEXT)                                            \
@@ -827,6 +831,14 @@ SERIALISE_VK_HANDLES();
                VkPipelineVertexInputDivisorStateCreateInfoEXT)                                         \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_FEATURES_EXT,                \
                VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT)                                      \
+                                                                                                       \
+  /* VK_EXT_vertex_input_dynamic_state */                                                              \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_INPUT_DYNAMIC_STATE_FEATURES_EXT,              \
+               VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT)                                     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_VERTEX_INPUT_BINDING_DESCRIPTION_2_EXT,                               \
+               VkVertexInputBindingDescription2EXT)                                                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT,                             \
+               VkVertexInputAttributeDescription2EXT)                                                  \
                                                                                                        \
   /* VK_EXT_ycbcr_2plane_444_formats */                                                                \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_YCBCR_2_PLANE_444_FORMATS_FEATURES_EXT,               \
@@ -1267,9 +1279,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DEVICE_DEVICE_MEMORY_REPORT_CREATE_INFO_EXT)                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DEVICE_MEMORY_REPORT_CALLBACK_DATA_EXT)                          \
                                                                                                        \
-  /* VK_EXT_extended_dynamic_state2 */                                                                 \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT)           \
-                                                                                                       \
   /* VK_EXT_external_memory_host */                                                                    \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMPORT_MEMORY_HOST_POINTER_INFO_EXT)                             \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MEMORY_HOST_POINTER_PROPERTIES_EXT)                              \
@@ -1306,11 +1315,6 @@ SERIALISE_VK_HANDLES();
                                                                                                        \
   /* VK_EXT_texture_compression_astc_hdr */                                                            \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXTURE_COMPRESSION_ASTC_HDR_FEATURES_EXT)       \
-                                                                                                       \
-  /* VK_EXT_vertex_input_dynamic_state */                                                              \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_INPUT_DYNAMIC_STATE_FEATURES_EXT)         \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_VERTEX_INPUT_BINDING_DESCRIPTION_2_EXT)                          \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT)                        \
                                                                                                        \
   /* VK_HUAWEI_invocation_mask */                                                                      \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INVOCATION_MASK_FEATURES_HUAWEI)                 \
@@ -4892,6 +4896,59 @@ void Deserialise(const VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_INPUT_DYNAMIC_STATE_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(vertexInputDynamicState);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkVertexInputBindingDescription2EXT &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_VERTEX_INPUT_BINDING_DESCRIPTION_2_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(binding);
+  SERIALISE_MEMBER(stride);
+  SERIALISE_MEMBER(inputRate);
+  SERIALISE_MEMBER(divisor);
+}
+
+template <>
+void Deserialise(const VkVertexInputBindingDescription2EXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkVertexInputAttributeDescription2EXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(location);
+  SERIALISE_MEMBER(binding);
+  SERIALISE_MEMBER(format);
+  SERIALISE_MEMBER(offset);
+}
+
+template <>
+void Deserialise(const VkVertexInputAttributeDescription2EXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPhysicalDevice8BitStorageFeatures &el)
 {
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES);
@@ -5239,6 +5296,24 @@ void DoSerialise(SerialiserType &ser, VkPhysicalDeviceExtendedDynamicStateFeatur
 
 template <>
 void Deserialise(const VkPhysicalDeviceExtendedDynamicStateFeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceExtendedDynamicState2FeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(extendedDynamicState2);
+  SERIALISE_MEMBER(extendedDynamicState2LogicOp);
+  SERIALISE_MEMBER(extendedDynamicState2PatchControlPoints);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceExtendedDynamicState2FeaturesEXT &el)
 {
   DeserialiseNext(el.pNext);
 }
@@ -9778,6 +9853,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceDescriptorIndexingProperties)
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceDiscardRectanglePropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceDriverProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceExtendedDynamicStateFeaturesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceExtendedDynamicState2FeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceExternalBufferInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceExternalFenceInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceExternalImageFormatInfo);
@@ -9862,6 +9938,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceUniformBufferStandardLayoutFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVariablePointerFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVertexAttributeDivisorPropertiesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVulkan11Features);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVulkan11Properties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVulkan12Features);
@@ -9958,6 +10035,8 @@ INSTANTIATE_SERIALISE_TYPE(VkTimelineSemaphoreSubmitInfo);
 INSTANTIATE_SERIALISE_TYPE(VkValidationCacheCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkValidationFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkValidationFlagsEXT);
+INSTANTIATE_SERIALISE_TYPE(VkVertexInputAttributeDescription2EXT);
+INSTANTIATE_SERIALISE_TYPE(VkVertexInputBindingDescription2EXT);
 INSTANTIATE_SERIALISE_TYPE(VkWriteDescriptorSet);
 
 // plain structs with no next chain

@@ -3919,7 +3919,7 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
 
     bool found = false;
 
-    for(const VulkanCreationInfo::Pipeline::Binding &bind : pipe.vertexBindings)
+    for(const VulkanCreationInfo::Pipeline::VertBinding &bind : pipe.vertexBindings)
     {
       if(bind.vbufferBinding != attr.binding)
         continue;

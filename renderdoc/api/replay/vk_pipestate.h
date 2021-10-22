@@ -805,6 +805,8 @@ See :data:`conservativeRasterizationMode`
 )");
   float extraPrimitiveOverestimationSize = 0.0f;
 
+  DOCUMENT("Whether depth biasing is enabled.");
+  bool depthBiasEnable = false;
   DOCUMENT("The fixed depth bias value to apply to z-values.");
   float depthBias = 0.0f;
   DOCUMENT(R"(The clamp value for calculated depth bias from :data:`depthBias` and

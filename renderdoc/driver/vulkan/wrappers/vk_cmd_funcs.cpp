@@ -2771,7 +2771,7 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
             }
             if(!pipeInfo.dynamicStates[VkDynamicVertexInputBindingStrideEXT])
             {
-              for(const VulkanCreationInfo::Pipeline::Binding &bind : pipeInfo.vertexBindings)
+              for(const VulkanCreationInfo::Pipeline::VertBinding &bind : pipeInfo.vertexBindings)
               {
                 renderstate.vbuffers.resize_for_index(bind.vbufferBinding);
                 renderstate.vbuffers[bind.vbufferBinding].stride = bind.bytestride;
@@ -2782,6 +2782,53 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
               renderstate.colorWriteEnable.resize(pipeInfo.attachments.size());
               for(size_t i = 0; i < renderstate.colorWriteEnable.size(); i++)
                 renderstate.colorWriteEnable[i] = pipeInfo.attachments[i].channelWriteMask != 0;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicDepthBiasEnableEXT])
+            {
+              renderstate.depthBiasEnable = pipeInfo.depthBiasEnable;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicLogicOpEXT])
+            {
+              renderstate.logicOp = pipeInfo.logicOp;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicControlPointsEXT])
+            {
+              renderstate.patchControlPoints = pipeInfo.patchControlPoints;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicPrimRestartEXT])
+            {
+              renderstate.primRestartEnable = pipeInfo.primitiveRestartEnable;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicRastDiscardEXT])
+            {
+              renderstate.rastDiscardEnable = pipeInfo.rasterizerDiscardEnable;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicVertexInputEXT])
+            {
+              renderstate.vertexAttributes.resize(pipeInfo.vertexAttrs.size());
+              for(size_t i = 0; i < renderstate.vertexAttributes.size(); i++)
+              {
+                renderstate.vertexAttributes[i].sType =
+                    VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT;
+                renderstate.vertexAttributes[i].pNext = NULL;
+                renderstate.vertexAttributes[i].format = pipeInfo.vertexAttrs[i].format;
+                renderstate.vertexAttributes[i].binding = pipeInfo.vertexAttrs[i].binding;
+                renderstate.vertexAttributes[i].offset = pipeInfo.vertexAttrs[i].byteoffset;
+                renderstate.vertexAttributes[i].location = pipeInfo.vertexAttrs[i].location;
+              }
+              renderstate.vertexBindings.resize(pipeInfo.vertexBindings.size());
+              for(size_t i = 0; i < renderstate.vertexBindings.size(); i++)
+              {
+                renderstate.vertexBindings[i].sType =
+                    VK_STRUCTURE_TYPE_VERTEX_INPUT_BINDING_DESCRIPTION_2_EXT;
+                renderstate.vertexBindings[i].pNext = NULL;
+                renderstate.vertexBindings[i].binding = pipeInfo.vertexBindings[i].vbufferBinding;
+                renderstate.vertexBindings[i].inputRate = pipeInfo.vertexBindings[i].perInstance
+                                                              ? VK_VERTEX_INPUT_RATE_INSTANCE
+                                                              : VK_VERTEX_INPUT_RATE_VERTEX;
+                renderstate.vertexBindings[i].stride = pipeInfo.vertexBindings[i].bytestride;
+                renderstate.vertexBindings[i].divisor = pipeInfo.vertexBindings[i].instanceDivisor;
+              }
             }
           }
         }
@@ -3106,7 +3153,15 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers2EXT(
             // if strides is NULL the pipeline bound must have had no dynamic state for stride and
             // so stride was filled out then, we leave it as-is.
             if(pStrides)
+            {
               renderstate.vbuffers[firstBinding + i].stride = pStrides[i];
+
+              // if we have dynamic vertex input data, update the strides. If we don't have any
+              // that's fine we can skip this, it means the application must provide a later
+              // vkCmdSetVertexInput which overrides anything we'd set here
+              if(firstBinding + i < renderstate.vertexBindings.size())
+                renderstate.vertexBindings[firstBinding + i].stride = (uint32_t)pStrides[i];
+            }
           }
         }
       }
@@ -6277,6 +6332,96 @@ void WrappedVulkan::vkCmdEndConditionalRenderingEXT(VkCommandBuffer commandBuffe
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdSetVertexInputEXT(
+    SerialiserType &ser, VkCommandBuffer commandBuffer, uint32_t vertexBindingDescriptionCount,
+    const VkVertexInputBindingDescription2EXT *pVertexBindingDescriptions,
+    uint32_t vertexAttributeDescriptionCount,
+    const VkVertexInputAttributeDescription2EXT *pVertexAttributeDescriptions)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT(vertexBindingDescriptionCount).Important();
+  SERIALISE_ELEMENT_ARRAY(pVertexBindingDescriptions, vertexBindingDescriptionCount);
+  SERIALISE_ELEMENT(vertexAttributeDescriptionCount).Important();
+  SERIALISE_ELEMENT_ARRAY(pVertexAttributeDescriptions, vertexAttributeDescriptionCount);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+        ObjDisp(commandBuffer)
+            ->CmdSetVertexInputEXT(Unwrap(commandBuffer), vertexBindingDescriptionCount,
+                                   pVertexBindingDescriptions, vertexAttributeDescriptionCount,
+                                   pVertexAttributeDescriptions);
+
+        {
+          VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.vertexBindings.assign(pVertexBindingDescriptions,
+                                            vertexBindingDescriptionCount);
+          renderstate.vertexAttributes.assign(pVertexAttributeDescriptions,
+                                              vertexAttributeDescriptionCount);
+
+          for(uint32_t i = 0; i < vertexBindingDescriptionCount; i++)
+          {
+            // set strides whether or not the vertex buffers have been bound, so that the stride is
+            // available if a later call to BindVertexBuffers2 doesn't pass any strides (it should
+            // use the strides from here)
+            renderstate.vbuffers.resize_for_index(i);
+            renderstate.vbuffers[i].stride = pVertexBindingDescriptions[i].stride;
+          }
+        }
+      }
+    }
+    else
+    {
+      ObjDisp(commandBuffer)
+          ->CmdSetVertexInputEXT(Unwrap(commandBuffer), vertexBindingDescriptionCount,
+                                 pVertexBindingDescriptions, vertexAttributeDescriptionCount,
+                                 pVertexAttributeDescriptions);
+    }
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdSetVertexInputEXT(
+    VkCommandBuffer commandBuffer, uint32_t vertexBindingDescriptionCount,
+    const VkVertexInputBindingDescription2EXT *pVertexBindingDescriptions,
+    uint32_t vertexAttributeDescriptionCount,
+    const VkVertexInputAttributeDescription2EXT *pVertexAttributeDescriptions)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)
+          ->CmdSetVertexInputEXT(Unwrap(commandBuffer), vertexBindingDescriptionCount,
+                                 pVertexBindingDescriptions, vertexAttributeDescriptionCount,
+                                 pVertexAttributeDescriptions));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetVertexInputEXT);
+    Serialise_vkCmdSetVertexInputEXT(ser, commandBuffer, vertexBindingDescriptionCount,
+                                     pVertexBindingDescriptions, vertexAttributeDescriptionCount,
+                                     pVertexAttributeDescriptions);
+
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
+  }
+}
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateCommandPool, VkDevice device,
                                 const VkCommandPoolCreateInfo *pCreateInfo,
@@ -6434,3 +6579,10 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdPipelineBarrier2KHR, VkCommandBuffer 
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdWriteTimestamp2KHR, VkCommandBuffer commandBuffer,
                                 VkPipelineStageFlags2KHR stage, VkQueryPool queryPool,
                                 uint32_t query);
+
+INSTANTIATE_FUNCTION_SERIALISED(
+    void, vkCmdSetVertexInputEXT, VkCommandBuffer commandBuffer,
+    uint32_t vertexBindingDescriptionCount,
+    const VkVertexInputBindingDescription2EXT *pVertexBindingDescriptions,
+    uint32_t vertexAttributeDescriptionCount,
+    const VkVertexInputAttributeDescription2EXT *pVertexAttributeDescriptions);

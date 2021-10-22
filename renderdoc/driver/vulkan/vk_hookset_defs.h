@@ -530,7 +530,9 @@
   DeclExt(KHR_synchronization2);                \
   DeclExt(KHR_present_wait);                    \
   DeclExt(KHR_maintenance4);                    \
-  DeclExt(EXT_color_write_enable);
+  DeclExt(EXT_color_write_enable);              \
+  DeclExt(EXT_extended_dynamic_state2);         \
+  DeclExt(EXT_vertex_input_dynamic_state);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -633,7 +635,9 @@
   CheckExt(KHR_synchronization2, VKXX);                \
   CheckExt(KHR_present_wait, VKXX);                    \
   CheckExt(KHR_maintenance4, VKXX);                    \
-  CheckExt(EXT_color_write_enable, VKXX);
+  CheckExt(EXT_color_write_enable, VKXX);              \
+  CheckExt(EXT_extended_dynamic_state2, VKXX);         \
+  CheckExt(EXT_vertex_input_dynamic_state, VKXX);
 
 #define HookInitVulkanInstanceExts_PhysDev()                                                         \
   HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                                \
@@ -874,12 +878,18 @@
   HookInitExtension(KHR_synchronization2, CmdWriteTimestamp2KHR);                                  \
   HookInitExtension(KHR_synchronization2, QueueSubmit2KHR);                                        \
   HookInitExtension(KHR_synchronization2 &&AMD_buffer_marker, CmdWriteBufferMarker2AMD);           \
+  /* No GetQueueCheckpointData2NV without VK_NV_device_diagnostic_checkpoints */                   \
   HookInitExtension(KHR_present_wait, WaitForPresentKHR);                                          \
   HookInitExtension(KHR_maintenance4, GetDeviceBufferMemoryRequirementsKHR);                       \
   HookInitExtension(KHR_maintenance4, GetDeviceImageMemoryRequirementsKHR);                        \
   HookInitExtension(KHR_maintenance4, GetDeviceImageSparseMemoryRequirementsKHR);                  \
   HookInitExtension(EXT_color_write_enable, CmdSetColorWriteEnableEXT);                            \
-  /* No GetQueueCheckpointData2NV without VK_NV_device_diagnostic_checkpoints */                   \
+  HookInitExtension(EXT_extended_dynamic_state2, CmdSetDepthBiasEnableEXT);                        \
+  HookInitExtension(EXT_extended_dynamic_state2, CmdSetLogicOpEXT);                                \
+  HookInitExtension(EXT_extended_dynamic_state2, CmdSetPatchControlPointsEXT);                     \
+  HookInitExtension(EXT_extended_dynamic_state2, CmdSetPrimitiveRestartEnableEXT);                 \
+  HookInitExtension(EXT_extended_dynamic_state2, CmdSetRasterizerDiscardEnableEXT);                \
+  HookInitExtension(EXT_vertex_input_dynamic_state, CmdSetVertexInputEXT);                         \
   HookInitExtension_Device_Win32();                                                                \
   HookInitExtension_Device_Linux();                                                                \
   HookInitExtension_Device_GGP();                                                                  \
@@ -1577,6 +1587,19 @@
               pSparseMemoryRequirements);                                                            \
   HookDefine3(void, vkCmdSetColorWriteEnableEXT, VkCommandBuffer, commandBuffer, uint32_t,           \
               attachmentCount, const VkBool32 *, pColorWriteEnables);                                \
+  HookDefine2(void, vkCmdSetDepthBiasEnableEXT, VkCommandBuffer, commandBuffer, VkBool32,            \
+              depthBiasEnable);                                                                      \
+  HookDefine2(void, vkCmdSetLogicOpEXT, VkCommandBuffer, commandBuffer, VkLogicOp, logicOp);         \
+  HookDefine2(void, vkCmdSetPatchControlPointsEXT, VkCommandBuffer, commandBuffer, uint32_t,         \
+              patchControlPoints);                                                                   \
+  HookDefine2(void, vkCmdSetPrimitiveRestartEnableEXT, VkCommandBuffer, commandBuffer, VkBool32,     \
+              primitiveRestartEnable);                                                               \
+  HookDefine2(void, vkCmdSetRasterizerDiscardEnableEXT, VkCommandBuffer, commandBuffer, VkBool32,    \
+              rasterizerDiscardEnable);                                                              \
+  HookDefine5(void, vkCmdSetVertexInputEXT, VkCommandBuffer, commandBuffer, uint32_t,                \
+              vertexBindingDescriptionCount, const VkVertexInputBindingDescription2EXT *,            \
+              pVertexBindingDescriptions, uint32_t, vertexAttributeDescriptionCount,                 \
+              const VkVertexInputAttributeDescription2EXT *, pVertexAttributeDescriptions);          \
   HookDefine_Win32();                                                                                \
   HookDefine_Linux();                                                                                \
   HookDefine_GGP();                                                                                  \

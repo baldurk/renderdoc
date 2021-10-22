@@ -2446,9 +2446,24 @@ void VulkanPipelineStateViewer::setState()
   ui->cullMode->setText(ToQStr(state.rasterizer.cullMode));
   ui->frontCCW->setPixmap(state.rasterizer.frontCCW ? tick : cross);
 
-  ui->depthBias->setText(Formatter::Format(state.rasterizer.depthBias));
-  ui->depthBiasClamp->setText(Formatter::Format(state.rasterizer.depthBiasClamp));
-  ui->slopeScaledBias->setText(Formatter::Format(state.rasterizer.slopeScaledDepthBias));
+  if(state.rasterizer.depthBiasEnable)
+  {
+    ui->depthBias->setText(Formatter::Format(state.rasterizer.depthBias));
+    ui->depthBiasClamp->setText(Formatter::Format(state.rasterizer.depthBiasClamp));
+    ui->slopeScaledBias->setText(Formatter::Format(state.rasterizer.slopeScaledDepthBias));
+    ui->depthBias->setPixmap(QPixmap());
+    ui->depthBiasClamp->setPixmap(QPixmap());
+    ui->slopeScaledBias->setPixmap(QPixmap());
+  }
+  else
+  {
+    ui->depthBias->setText(QString());
+    ui->depthBiasClamp->setText(QString());
+    ui->slopeScaledBias->setText(QString());
+    ui->depthBias->setPixmap(cross);
+    ui->depthBiasClamp->setPixmap(cross);
+    ui->slopeScaledBias->setPixmap(cross);
+  }
 
   ui->depthClamp->setPixmap(state.rasterizer.depthClampEnable ? tick : cross);
   ui->depthClip->setPixmap(state.rasterizer.depthClipEnable ? tick : cross);
@@ -3733,9 +3748,13 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
     xml.writeEndElement();
 
     m_Common.exportHTMLTable(
-        xml, {tr("Depth Bias"), tr("Depth Bias Clamp"), tr("Slope Scaled Bias"), tr("Line Width")},
-        {Formatter::Format(rs.depthBias), Formatter::Format(rs.depthBiasClamp),
-         Formatter::Format(rs.slopeScaledDepthBias), Formatter::Format(rs.lineWidth)});
+        xml, {tr("Depth Bias Enable"), tr("Depth Bias"), tr("Depth Bias Clamp"),
+              tr("Slope Scaled Bias"), tr("Line Width")},
+        {
+            rs.depthBiasEnable ? tr("Yes") : tr("No"), Formatter::Format(rs.depthBias),
+            Formatter::Format(rs.depthBiasClamp), Formatter::Format(rs.slopeScaledDepthBias),
+            Formatter::Format(rs.lineWidth),
+        });
   }
 
   const VKPipe::MultiSample &msaa = m_Ctx.CurVulkanPipelineState()->multisample;

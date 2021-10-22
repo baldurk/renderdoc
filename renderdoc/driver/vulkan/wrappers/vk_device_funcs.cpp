@@ -2808,6 +2808,26 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         m_DynColorWrite = (ext->colorWriteEnable != VK_FALSE);
       }
       END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceExtendedDynamicState2FeaturesEXT,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT);
+      {
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState2);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState2LogicOp);
+        CHECK_PHYS_EXT_FEATURE(extendedDynamicState2PatchControlPoints);
+
+        m_ExtendedDynState2 = (ext->extendedDynamicState2 != VK_FALSE);
+      }
+      END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_INPUT_DYNAMIC_STATE_FEATURES_EXT);
+      {
+        CHECK_PHYS_EXT_FEATURE(vertexInputDynamicState);
+
+        m_DynVertexInput = (ext->vertexInputDynamicState != VK_FALSE);
+      }
+      END_PHYS_EXT_CHECK();
     }
 
     if(availFeatures.depthClamp)

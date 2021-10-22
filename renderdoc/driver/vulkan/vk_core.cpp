@@ -925,6 +925,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME, VK_EXT_EXTENDED_DYNAMIC_STATE_SPEC_VERSION,
     },
     {
+        VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME, VK_EXT_EXTENDED_DYNAMIC_STATE_2_SPEC_VERSION,
+    },
+    {
         VK_EXT_EXTERNAL_MEMORY_DMA_BUF_EXTENSION_NAME, VK_EXT_EXTERNAL_MEMORY_DMA_BUF_SPEC_VERSION,
     },
     {
@@ -1075,6 +1078,10 @@ static const VkExtensionProperties supportedExtensions[] = {
     },
     {
         VK_EXT_VERTEX_ATTRIBUTE_DIVISOR_EXTENSION_NAME, VK_EXT_VERTEX_ATTRIBUTE_DIVISOR_SPEC_VERSION,
+    },
+    {
+        VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME,
+        VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_SPEC_VERSION,
     },
     {
         VK_EXT_YCBCR_2PLANE_444_FORMATS_EXTENSION_NAME, VK_EXT_YCBCR_2PLANE_444_FORMATS_SPEC_VERSION,
@@ -3486,6 +3493,19 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
                                                   VK_NULL_HANDLE, 0, 0);
     case VulkanChunk::vkCmdSetColorWriteEnableEXT:
       return Serialise_vkCmdSetColorWriteEnableEXT(ser, VK_NULL_HANDLE, 0, NULL);
+
+    case VulkanChunk::vkCmdSetDepthBiasEnableEXT:
+      return Serialise_vkCmdSetDepthBiasEnableEXT(ser, VK_NULL_HANDLE, VK_FALSE);
+    case VulkanChunk::vkCmdSetLogicOpEXT:
+      return Serialise_vkCmdSetLogicOpEXT(ser, VK_NULL_HANDLE, VK_LOGIC_OP_MAX_ENUM);
+    case VulkanChunk::vkCmdSetPatchControlPointsEXT:
+      return Serialise_vkCmdSetPatchControlPointsEXT(ser, VK_NULL_HANDLE, 0);
+    case VulkanChunk::vkCmdSetPrimitiveRestartEnableEXT:
+      return Serialise_vkCmdSetPrimitiveRestartEnableEXT(ser, VK_NULL_HANDLE, VK_FALSE);
+    case VulkanChunk::vkCmdSetRasterizerDiscardEnableEXT:
+      return Serialise_vkCmdSetRasterizerDiscardEnableEXT(ser, VK_NULL_HANDLE, VK_FALSE);
+    case VulkanChunk::vkCmdSetVertexInputEXT:
+      return Serialise_vkCmdSetVertexInputEXT(ser, VK_NULL_HANDLE, 0, NULL, 0, NULL);
 
     // chunks that are reserved but not yet serialised
     case VulkanChunk::vkResetCommandPool:

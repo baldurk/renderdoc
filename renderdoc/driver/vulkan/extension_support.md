@@ -41,6 +41,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_display_control`
 * `VK_EXT_display_surface_counter`
 * `VK_EXT_extended_dynamic_state`
+* `VK_EXT_extended_dynamic_state2`
 * `VK_EXT_external_memory_dma_buf`
 * `VK_EXT_filter_cubic`
 * `VK_EXT_fragment_density_map`
@@ -89,6 +90,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_validation_features`
 * `VK_EXT_validation_flags`
 * `VK_EXT_vertex_attribute_divisor`
+* `VK_EXT_vertex_input_dynamic_state`
 * `VK_EXT_ycbcr_2plane_444_formats`
 * `VK_EXT_ycbcr_image_arrays`
 * `VK_GGP_frame_token`
@@ -223,7 +225,6 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_EXT_blend_operation_advanced`
 * `VK_EXT_border_color_swizzle`
 * `VK_EXT_device_memory_report`
-* `VK_EXT_extended_dynamic_state2`
 * `VK_EXT_external_memory_host`
 * `VK_EXT_image_drm_format_modifier`
 * `VK_EXT_multi_draw`
@@ -232,7 +233,6 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_EXT_primitive_topology_list_restart`
 * `VK_EXT_provoking_vertex`
 * `VK_EXT_texture_compression_astc_hdr`
-* `VK_EXT_vertex_input_dynamic_state`
 
 ## Platform/IHV Extensions
 

@@ -279,7 +279,7 @@ struct VulkanCreationInfo
     Shader shaders[6];
 
     // VkPipelineVertexInputStateCreateInfo
-    struct Binding
+    struct VertBinding
     {
       uint32_t vbufferBinding;
       uint32_t bytestride;
@@ -288,7 +288,7 @@ struct VulkanCreationInfo
       // VkVertexInputBindingDivisorDescriptionEXT
       uint32_t instanceDivisor;
     };
-    rdcarray<Binding> vertexBindings;
+    rdcarray<VertBinding> vertexBindings;
 
     struct Attribute
     {

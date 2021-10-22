@@ -225,6 +225,20 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
       }
     }
 
+    if(vk->ExtendedDynamicState2())
+    {
+      if(dynamicStates[VkDynamicDepthBiasEnableEXT])
+        ObjDisp(cmd)->CmdSetDepthBiasEnableEXT(Unwrap(cmd), depthBiasEnable);
+      if(dynamicStates[VkDynamicLogicOpEXT])
+        ObjDisp(cmd)->CmdSetLogicOpEXT(Unwrap(cmd), logicOp);
+      if(dynamicStates[VkDynamicControlPointsEXT])
+        ObjDisp(cmd)->CmdSetPatchControlPointsEXT(Unwrap(cmd), patchControlPoints);
+      if(dynamicStates[VkDynamicPrimRestartEXT])
+        ObjDisp(cmd)->CmdSetPrimitiveRestartEnableEXT(Unwrap(cmd), primRestartEnable);
+      if(dynamicStates[VkDynamicRastDiscardEXT])
+        ObjDisp(cmd)->CmdSetRasterizerDiscardEnableEXT(Unwrap(cmd), rastDiscardEnable);
+    }
+
     if(dynamicStates[VkDynamicLineWidth])
       ObjDisp(cmd)->CmdSetLineWidth(Unwrap(cmd), lineWidth);
 
@@ -286,6 +300,13 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
       ObjDisp(cmd)->CmdBindIndexBuffer(
           Unwrap(cmd), Unwrap(vk->GetResourceManager()->GetCurrentHandle<VkBuffer>(ibuffer.buf)),
           ibuffer.offs, type);
+    }
+
+    if(vk->DynamicVertexInput() && dynamicStates[VkDynamicVertexInputEXT])
+    {
+      ObjDisp(cmd)->CmdSetVertexInputEXT(Unwrap(cmd), (uint32_t)vertexBindings.size(),
+                                         vertexBindings.data(), (uint32_t)vertexAttributes.size(),
+                                         vertexAttributes.data());
     }
 
     bool dynamicStride =

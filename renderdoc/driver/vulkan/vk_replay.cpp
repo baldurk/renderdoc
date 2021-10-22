@@ -1171,8 +1171,9 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     ret.inputAssembly.indexBuffer.resourceId = rm->GetOriginalID(state.ibuffer.buf);
     ret.inputAssembly.indexBuffer.byteOffset = state.ibuffer.offs;
     ret.inputAssembly.indexBuffer.byteStride = state.ibuffer.bytewidth;
-    ret.inputAssembly.primitiveRestartEnable = p.primitiveRestartEnable;
-    ret.inputAssembly.topology = MakePrimitiveTopology(state.primitiveTopology, p.patchControlPoints);
+    ret.inputAssembly.primitiveRestartEnable = state.primRestartEnable != VK_FALSE;
+    ret.inputAssembly.topology =
+        MakePrimitiveTopology(state.primitiveTopology, state.patchControlPoints);
 
     // Vertex Input
     ret.vertexInput.attributes.resize(p.vertexAttrs.size());
@@ -1338,7 +1339,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     // Rasterizer
     ret.rasterizer.depthClampEnable = p.depthClampEnable;
     ret.rasterizer.depthClipEnable = p.depthClipEnable;
-    ret.rasterizer.rasterizerDiscardEnable = p.rasterizerDiscardEnable;
+    ret.rasterizer.rasterizerDiscardEnable = state.rastDiscardEnable != VK_FALSE;
     ret.rasterizer.frontCCW = state.frontFace == VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
     ret.rasterizer.conservativeRasterization = ConservativeRaster::Disabled;
@@ -1402,6 +1403,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
         break;
     }
 
+    ret.rasterizer.depthBiasEnable = state.depthBiasEnable != VK_FALSE;
     ret.rasterizer.depthBias = state.bias.depth;
     ret.rasterizer.depthBiasClamp = state.bias.biasclamp;
     ret.rasterizer.slopeScaledDepthBias = state.bias.slope;
@@ -1437,7 +1439,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       // due to shared structs, this is slightly duplicated - Vulkan doesn't have separate states
       // for logic operations
       ret.colorBlend.blends[i].logicOperationEnabled = p.logicOpEnable;
-      ret.colorBlend.blends[i].logicOperation = MakeLogicOp(p.logicOp);
+      ret.colorBlend.blends[i].logicOperation = MakeLogicOp(state.logicOp);
 
       ret.colorBlend.blends[i].colorBlend.source = MakeBlendMultiplier(p.attachments[i].blend.Source);
       ret.colorBlend.blends[i].colorBlend.destination =

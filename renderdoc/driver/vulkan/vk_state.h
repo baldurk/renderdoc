@@ -194,6 +194,17 @@ struct VulkanRenderState
   // color write enable
   rdcarray<VkBool32> colorWriteEnable;
 
+  // extended dynamic state 2
+  VkBool32 depthBiasEnable = VK_FALSE;
+  VkLogicOp logicOp = VK_LOGIC_OP_MAX_ENUM;
+  uint32_t patchControlPoints = 0;
+  VkBool32 primRestartEnable = VK_FALSE;
+  VkBool32 rastDiscardEnable = VK_FALSE;
+
+  // dynamic vertex input
+  rdcarray<VkVertexInputBindingDescription2EXT> vertexBindings;
+  rdcarray<VkVertexInputAttributeDescription2EXT> vertexAttributes;
+
 private:
   ResourceId framebuffer;
   rdcarray<ResourceId> fbattachments;

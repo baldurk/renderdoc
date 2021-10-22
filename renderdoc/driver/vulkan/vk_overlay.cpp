@@ -2576,9 +2576,11 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         // remove any dynamic states we don't want
         for(uint32_t i = 0; i < dynamicStateCount;)
         {
-          // we are controlling the vertex binding so we don't need the stride to be dynamic.
+          // we are controlling the vertex binding so we don't need the stride or input to be
+          // dynamic.
           // Similarly we're controlling the topology so that doesn't need to be dynamic
           if(dynamicStateList[i] == VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE_EXT ||
+             dynamicStateList[i] == VK_DYNAMIC_STATE_VERTEX_INPUT_EXT ||
              dynamicStateList[i] == VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY_EXT)
           {
             // swap with the last item if this isn't the last one
@@ -2770,6 +2772,30 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
                 {
                   vt->CmdSetColorWriteEnableEXT(Unwrap(cmd), (uint32_t)state.colorWriteEnable.size(),
                                                 state.colorWriteEnable.data());
+                }
+                else if(d == VK_DYNAMIC_STATE_DEPTH_BIAS_ENABLE_EXT)
+                {
+                  vt->CmdSetDepthBiasEnableEXT(Unwrap(cmd), state.depthBiasEnable);
+                }
+                else if(d == VK_DYNAMIC_STATE_LOGIC_OP_EXT)
+                {
+                  vt->CmdSetLogicOpEXT(Unwrap(cmd), state.logicOp);
+                }
+                else if(d == VK_DYNAMIC_STATE_PATCH_CONTROL_POINTS_EXT)
+                {
+                  vt->CmdSetPatchControlPointsEXT(Unwrap(cmd), state.patchControlPoints);
+                }
+                else if(d == VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE_EXT)
+                {
+                  vt->CmdSetPrimitiveRestartEnableEXT(Unwrap(cmd), state.primRestartEnable);
+                }
+                else if(d == VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE_EXT)
+                {
+                  vt->CmdSetRasterizerDiscardEnableEXT(Unwrap(cmd), state.rastDiscardEnable);
+                }
+                else if(d == VK_DYNAMIC_STATE_VERTEX_INPUT_EXT)
+                {
+                  RDCERR("Vertex input dynamic state found, should have been stripped");
                 }
               }
 
