@@ -491,6 +491,8 @@ struct VulkanCreationInfo
       VkExtent2D shadingRateTexelSize;
 
       rdcarray<uint32_t> multiviews;
+
+      bool feedbackLoop;
     };
     rdcarray<Subpass> subpasses;
 

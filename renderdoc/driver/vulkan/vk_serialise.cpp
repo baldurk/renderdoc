@@ -559,6 +559,10 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ASTC_DECODE_FEATURES_EXT,                             \
                VkPhysicalDeviceASTCDecodeFeaturesEXT)                                                  \
                                                                                                        \
+  /* VK_EXT_attachment_feedback_loop_layout */                                                         \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ATTACHMENT_FEEDBACK_LOOP_LAYOUT_FEATURES_EXT,         \
+               VkPhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT)                                \
+                                                                                                       \
   /* VK_EXT_buffer_device_address */                                                                   \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_CREATE_INFO_EXT,                                \
                VkBufferDeviceAddressCreateInfoEXT)                                                     \
@@ -1327,9 +1331,6 @@ SERIALISE_VK_HANDLES();
   /* VK_AMD_shader_early_and_late_fragment_tests */                                                    \
   PNEXT_UNSUPPORTED(                                                                                   \
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_EARLY_AND_LATE_FRAGMENT_TESTS_FEATURES_AMD)             \
-                                                                                                       \
-  /* VK_EXT_attachment_feedback_loop_layout */                                                         \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ATTACHMENT_FEEDBACK_LOOP_LAYOUT_FEATURES_EXT)    \
                                                                                                        \
   /* VK_EXT_blend_operation_advanced */                                                                \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BLEND_OPERATION_ADVANCED_FEATURES_EXT)           \
@@ -7616,6 +7617,23 @@ void Deserialise(const VkExternalMemoryImageCreateInfoNV &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType ==
+                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ATTACHMENT_FEEDBACK_LOOP_LAYOUT_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(attachmentFeedbackLoopLayout);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPhysicalDeviceShaderImageFootprintFeaturesNV &el)
 {
   RDCASSERT(ser.IsReading() ||
@@ -10645,6 +10663,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderIntegerDotProductProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderSubgroupExtendedTypesFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderSubgroupUniformControlFlowFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderTerminateInvocationFeatures);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSparseImageFormatInfo2);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSubgroupProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSubgroupSizeControlFeatures);

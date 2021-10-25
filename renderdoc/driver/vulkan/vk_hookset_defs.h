@@ -537,7 +537,8 @@
   DeclExt(EXT_extended_dynamic_state2);         \
   DeclExt(EXT_vertex_input_dynamic_state);      \
   DeclExt(KHR_dynamic_rendering);               \
-  DeclExt(KHR_fragment_shading_rate);
+  DeclExt(KHR_fragment_shading_rate);           \
+  DeclExt(EXT_attachment_feedback_loop_layout);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -645,7 +646,8 @@
   CheckExt(EXT_extended_dynamic_state2, VK13);         \
   CheckExt(EXT_vertex_input_dynamic_state, VKXX);      \
   CheckExt(KHR_dynamic_rendering, VK13);               \
-  CheckExt(KHR_fragment_shading_rate, VKXX);
+  CheckExt(KHR_fragment_shading_rate, VKXX);           \
+  CheckExt(EXT_attachment_feedback_loop_layout, VKXX);
 
 #define HookInitVulkanInstanceExts_PhysDev()                                                         \
   HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                                \

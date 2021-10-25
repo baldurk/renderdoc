@@ -1260,6 +1260,8 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
     dst.shadingRateLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     dst.shadingRateTexelSize = VkExtent2D({1, 1});
 
+    dst.feedbackLoop = false;
+
     if(multiview && multiview->subpassCount > 0)
     {
       uint32_t mask = multiview->pViewMasks[subp];
@@ -1268,6 +1270,14 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
         if(mask & (1 << i))
           dst.multiviews.push_back(i);
       }
+    }
+  }
+
+  for(uint32_t i = 0; i < pCreateInfo->dependencyCount; i++)
+  {
+    if(pCreateInfo->pDependencies[i].dependencyFlags & VK_DEPENDENCY_FEEDBACK_LOOP_BIT_EXT)
+    {
+      subpasses[pCreateInfo->pDependencies[i].dstSubpass].feedbackLoop = true;
     }
   }
 }
