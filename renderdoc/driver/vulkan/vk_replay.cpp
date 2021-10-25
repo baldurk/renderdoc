@@ -1577,6 +1577,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
     rpState.dynamic = true;
     rpState.suspended = dyn.suspended;
+    rpState.feedbackLoop = false;
     rpState.resourceId = ResourceId();
     rpState.subpass = 0;
     rpState.fragmentDensityOffsets.clear();
@@ -1763,6 +1764,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
     ret.currentPass.renderpass.multiviews =
         c.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].multiviews;
+    ret.currentPass.renderpass.feedbackLoop =
+        c.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].feedbackLoop;
 
     ResourceId fb = state.GetFramebuffer();
 

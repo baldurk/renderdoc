@@ -25,6 +25,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_4444_formats`
 * `VK_EXT_acquire_xlib_display`
 * `VK_EXT_astc_decode_mode`
+* `VK_EXT_attachment_feedback_loop_layout`
 * `VK_EXT_buffer_device_address`
 * `VK_EXT_calibrated_timestamps`
 * `VK_EXT_color_write_enable`
@@ -230,7 +231,6 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 ## EXT Extensions
 
 * `VK_EXT_acquire_drm_display`
-* `VK_EXT_attachment_feedback_loop_layout`
 * `VK_EXT_blend_operation_advanced`
 * `VK_EXT_border_color_swizzle`
 * `VK_EXT_depth_clip_control`

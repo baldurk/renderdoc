@@ -2346,6 +2346,14 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       END_PHYS_EXT_CHECK();
 
       BEGIN_PHYS_EXT_CHECK(
+          VkPhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT,
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ATTACHMENT_FEEDBACK_LOOP_LAYOUT_FEATURES_EXT);
+      {
+        CHECK_PHYS_EXT_FEATURE(attachmentFeedbackLoopLayout);
+      }
+      END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(
           VkPhysicalDeviceFragmentShaderBarycentricFeaturesKHR,
           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_BARYCENTRIC_FEATURES_KHR);
       {

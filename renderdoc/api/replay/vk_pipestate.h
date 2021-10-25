@@ -992,6 +992,9 @@ struct RenderPass
   DOCUMENT("Whether or not dynamic rendering is currently suspended.");
   bool suspended = false;
 
+  DOCUMENT("Whether or not there is a potential feedback loop.");
+  bool feedbackLoop = false;
+
   DOCUMENT("The index of the current active subpass.");
   uint32_t subpass;
 

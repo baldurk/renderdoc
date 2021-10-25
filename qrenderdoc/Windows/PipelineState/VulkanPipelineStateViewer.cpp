@@ -2584,9 +2584,12 @@ void VulkanPipelineStateViewer::setState()
   }
   else
   {
-    ui->renderpass->setText(QFormatStr("Render Pass: %1 (Subpass %2)")
-                                .arg(ToQStr(state.currentPass.renderpass.resourceId))
-                                .arg(state.currentPass.renderpass.subpass));
+    QString text = QFormatStr("Render Pass: %1 (Subpass %2)")
+                       .arg(ToQStr(state.currentPass.renderpass.resourceId))
+                       .arg(state.currentPass.renderpass.subpass);
+    if(state.currentPass.renderpass.feedbackLoop)
+      text += tr(" (Feedback Loop)");
+    ui->renderpass->setText(text);
     ui->framebuffer->setText(
         QFormatStr("Framebuffer: %1").arg(ToQStr(state.currentPass.framebuffer.resourceId)));
   }
