@@ -1278,6 +1278,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_KHR_PIPELINE_EXECUTABLE_PROPERTIES_SPEC_VERSION,
     },
     {
+        VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME, VK_KHR_PIPELINE_LIBRARY_SPEC_VERSION,
+    },
+    {
         VK_KHR_PRESENT_ID_EXTENSION_NAME, VK_KHR_PRESENT_ID_SPEC_VERSION,
     },
     {

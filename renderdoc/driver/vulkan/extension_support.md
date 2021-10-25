@@ -149,6 +149,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_KHR_multiview`
 * `VK_KHR_performance_query`
 * `VK_KHR_pipeline_executable_properties`
+* `VK_KHR_pipeline_library`
 * `VK_KHR_present_id`
 * `VK_KHR_present_wait`
 * `VK_KHR_push_descriptor`
@@ -222,7 +223,6 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_KHR_ray_tracing_pipeline`
 * `VK_KHR_ray_query`
 * `VK_KHR_deferred_host_operations`
-* `VK_KHR_pipeline_library`
 
 ## EXT Extensions
 

@@ -878,7 +878,7 @@ private:
   template <class T>
   T UnwrapInfo(const T *info);
   template <class T>
-  T *UnwrapInfos(const T *infos, uint32_t count);
+  T *UnwrapInfos(CaptureState state, const T *infos, uint32_t count);
 
   void PatchAttachment(VkFramebufferAttachmentImageInfo *att, VkFormat imgFormat,
                        VkSampleCountFlagBits samples);

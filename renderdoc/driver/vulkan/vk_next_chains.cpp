@@ -831,7 +831,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_PIPELINE_COVERAGE_REDUCTION_STATE_CREATE_INFO_NV:                   \
   case VK_STRUCTURE_TYPE_PIPELINE_COVERAGE_TO_COLOR_STATE_CREATE_INFO_NV:                    \
   case VK_STRUCTURE_TYPE_PIPELINE_FRAGMENT_SHADING_RATE_ENUM_STATE_CREATE_INFO_NV:           \
-  case VK_STRUCTURE_TYPE_PIPELINE_LIBRARY_CREATE_INFO_KHR:                                   \
   case VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_PROVOKING_VERTEX_STATE_CREATE_INFO_EXT:      \
   case VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_RASTERIZATION_ORDER_AMD:               \
   case VK_STRUCTURE_TYPE_PIPELINE_REPRESENTATIVE_FRAGMENT_TEST_STATE_CREATE_INFO_NV:         \
@@ -1103,6 +1102,14 @@ size_t GetNextPatchSize(const void *pNext)
 
         VkPipelineLayoutCreateInfo *info = (VkPipelineLayoutCreateInfo *)next;
         memSize += info->setLayoutCount * sizeof(VkDescriptorSetLayout);
+        break;
+      }
+      case VK_STRUCTURE_TYPE_PIPELINE_LIBRARY_CREATE_INFO_KHR:
+      {
+        memSize += sizeof(VkPipelineLibraryCreateInfoKHR);
+
+        VkPipelineLibraryCreateInfoKHR *info = (VkPipelineLibraryCreateInfoKHR *)next;
+        memSize += info->libraryCount * sizeof(VkPipelineLibraryCreateInfoKHR);
         break;
       }
       case VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO:
@@ -2013,6 +2020,26 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
 
         break;
       }
+      case VK_STRUCTURE_TYPE_PIPELINE_LIBRARY_CREATE_INFO_KHR:
+      {
+        const VkPipelineLibraryCreateInfoKHR *in = (const VkPipelineLibraryCreateInfoKHR *)nextInput;
+        VkPipelineLibraryCreateInfoKHR *out = (VkPipelineLibraryCreateInfoKHR *)tempMem;
+
+        // append immediately so tempMem is incremented
+        AppendModifiedChainedStruct(tempMem, out, nextChainTail);
+
+        // allocate unwrapped array
+        VkPipeline *outLibraries = (VkPipeline *)tempMem;
+        tempMem += sizeof(VkPipeline) * in->libraryCount;
+
+        *out = *in;
+
+        out->pLibraries = outLibraries;
+        for(uint32_t i = 0; i < in->libraryCount; i++)
+          outLibraries[i] = Unwrap(in->pLibraries[i]);
+
+        break;
+      }
       case VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO:
       {
         const VkPipelineRenderingCreateInfo *in = (const VkPipelineRenderingCreateInfo *)nextInput;
@@ -2610,6 +2637,10 @@ void CopyNextChainForPatching(const char *structName, byte *&tempMem, VkBaseInSt
         break;
       case VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO:
         CopyNextChainedStruct(sizeof(VkPipelineLayoutCreateInfo), tempMem, nextInput, nextChainTail);
+        break;
+      case VK_STRUCTURE_TYPE_PIPELINE_LIBRARY_CREATE_INFO_KHR:
+        CopyNextChainedStruct(sizeof(VkPipelineLibraryCreateInfoKHR), tempMem, nextInput,
+                              nextChainTail);
         break;
       case VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO:
         CopyNextChainedStruct(sizeof(VkPipelineRenderingCreateInfo), tempMem, nextInput,

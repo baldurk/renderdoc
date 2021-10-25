@@ -147,7 +147,8 @@ RDOC_CONFIG(bool, Vulkan_GPUReadbackDeviceLocal, true,
 // Memory functions
 
 template <>
-VkBindBufferMemoryInfo *WrappedVulkan::UnwrapInfos(const VkBindBufferMemoryInfo *info, uint32_t count)
+VkBindBufferMemoryInfo *WrappedVulkan::UnwrapInfos(CaptureState state,
+                                                   const VkBindBufferMemoryInfo *info, uint32_t count)
 {
   VkBindBufferMemoryInfo *ret = GetTempArray<VkBindBufferMemoryInfo>(count);
 
@@ -163,7 +164,8 @@ VkBindBufferMemoryInfo *WrappedVulkan::UnwrapInfos(const VkBindBufferMemoryInfo 
 }
 
 template <>
-VkBindImageMemoryInfo *WrappedVulkan::UnwrapInfos(const VkBindImageMemoryInfo *info, uint32_t count)
+VkBindImageMemoryInfo *WrappedVulkan::UnwrapInfos(CaptureState state,
+                                                  const VkBindImageMemoryInfo *info, uint32_t count)
 {
   size_t memSize = sizeof(VkBindImageMemoryInfo) * count;
 
@@ -2704,7 +2706,7 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory2(SerialiserType &ser, VkDevice 
         return false;
     }
 
-    VkBindBufferMemoryInfo *unwrapped = UnwrapInfos(pBindInfos, bindInfoCount);
+    VkBindBufferMemoryInfo *unwrapped = UnwrapInfos(m_State, pBindInfos, bindInfoCount);
     ObjDisp(device)->BindBufferMemory2(Unwrap(device), bindInfoCount, unwrapped);
 
     for(uint32_t i = 0; i < bindInfoCount; i++)
@@ -2754,7 +2756,7 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory2(SerialiserType &ser, VkDevice 
 VkResult WrappedVulkan::vkBindBufferMemory2(VkDevice device, uint32_t bindInfoCount,
                                             const VkBindBufferMemoryInfo *pBindInfos)
 {
-  VkBindBufferMemoryInfo *unwrapped = UnwrapInfos(pBindInfos, bindInfoCount);
+  VkBindBufferMemoryInfo *unwrapped = UnwrapInfos(m_State, pBindInfos, bindInfoCount);
 
   VkResult ret;
   SERIALISE_TIME_CALL(
@@ -2875,7 +2877,7 @@ bool WrappedVulkan::Serialise_vkBindImageMemory2(SerialiserType &ser, VkDevice d
           imgInfo.linear ? VulkanCreationInfo::Memory::Linear : VulkanCreationInfo::Memory::Tiled);
     }
 
-    VkBindImageMemoryInfo *unwrapped = UnwrapInfos(pBindInfos, bindInfoCount);
+    VkBindImageMemoryInfo *unwrapped = UnwrapInfos(m_State, pBindInfos, bindInfoCount);
     ObjDisp(device)->BindImageMemory2(Unwrap(device), bindInfoCount, unwrapped);
   }
 
@@ -2885,7 +2887,7 @@ bool WrappedVulkan::Serialise_vkBindImageMemory2(SerialiserType &ser, VkDevice d
 VkResult WrappedVulkan::vkBindImageMemory2(VkDevice device, uint32_t bindInfoCount,
                                            const VkBindImageMemoryInfo *pBindInfos)
 {
-  VkBindImageMemoryInfo *unwrapped = UnwrapInfos(pBindInfos, bindInfoCount);
+  VkBindImageMemoryInfo *unwrapped = UnwrapInfos(m_State, pBindInfos, bindInfoCount);
   VkResult ret;
   SERIALISE_TIME_CALL(
       ret = ObjDisp(device)->BindImageMemory2(Unwrap(device), bindInfoCount, unwrapped));

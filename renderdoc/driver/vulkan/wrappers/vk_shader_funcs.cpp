@@ -26,7 +26,8 @@
 #include "driver/shaders/spirv/spirv_reflect.h"
 
 template <>
-VkComputePipelineCreateInfo *WrappedVulkan::UnwrapInfos(const VkComputePipelineCreateInfo *info,
+VkComputePipelineCreateInfo *WrappedVulkan::UnwrapInfos(CaptureState state,
+                                                        const VkComputePipelineCreateInfo *info,
                                                         uint32_t count)
 {
   VkComputePipelineCreateInfo *unwrapped = GetTempArray<VkComputePipelineCreateInfo>(count);
@@ -44,23 +45,29 @@ VkComputePipelineCreateInfo *WrappedVulkan::UnwrapInfos(const VkComputePipelineC
 }
 
 template <>
-VkGraphicsPipelineCreateInfo *WrappedVulkan::UnwrapInfos(const VkGraphicsPipelineCreateInfo *info,
+VkGraphicsPipelineCreateInfo *WrappedVulkan::UnwrapInfos(CaptureState state,
+                                                         const VkGraphicsPipelineCreateInfo *info,
                                                          uint32_t count)
 {
   // conservatively request memory for 5 stages on each pipeline
   // (worst case - can't have compute stage). Avoids needing to count
-  byte *unwrapped = GetTempMemory(sizeof(VkGraphicsPipelineCreateInfo) * count +
-                                  sizeof(VkPipelineShaderStageCreateInfo) * count * 5);
+  size_t memSize = sizeof(VkGraphicsPipelineCreateInfo) * count;
+  for(uint32_t i = 0; i < count; i++)
+  {
+    memSize += sizeof(VkPipelineShaderStageCreateInfo) * info[i].stageCount;
+    memSize += GetNextPatchSize(info[i].pNext);
+  }
+
+  byte *tempMem = GetTempMemory(memSize);
 
   // keep pipelines first in the memory, then the stages
-  VkGraphicsPipelineCreateInfo *unwrappedInfos = (VkGraphicsPipelineCreateInfo *)unwrapped;
-  VkPipelineShaderStageCreateInfo *nextUnwrappedStages =
-      (VkPipelineShaderStageCreateInfo *)(unwrappedInfos + count);
+  VkGraphicsPipelineCreateInfo *unwrappedInfos = (VkGraphicsPipelineCreateInfo *)tempMem;
+  tempMem = (byte *)(unwrappedInfos + count);
 
   for(uint32_t i = 0; i < count; i++)
   {
-    VkPipelineShaderStageCreateInfo *unwrappedStages = nextUnwrappedStages;
-    nextUnwrappedStages += info[i].stageCount;
+    VkPipelineShaderStageCreateInfo *unwrappedStages = (VkPipelineShaderStageCreateInfo *)tempMem;
+    tempMem = (byte *)(unwrappedStages + info[i].stageCount);
     for(uint32_t j = 0; j < info[i].stageCount; j++)
     {
       unwrappedStages[j] = info[i].pStages[j];
@@ -73,6 +80,9 @@ VkGraphicsPipelineCreateInfo *WrappedVulkan::UnwrapInfos(const VkGraphicsPipelin
     unwrappedInfos[i].renderPass = Unwrap(unwrappedInfos[i].renderPass);
     if(unwrappedInfos[i].flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
       unwrappedInfos[i].basePipelineHandle = Unwrap(unwrappedInfos[i].basePipelineHandle);
+
+    UnwrapNextChain(state, "VkGraphicsPipelineCreateInfo", tempMem,
+                    (VkBaseInStructure *)&unwrappedInfos[i]);
   }
 
   return unwrappedInfos;
@@ -433,7 +443,7 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
     // valid
     CreateInfo.flags &= ~VK_PIPELINE_CREATE_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT;
 
-    VkGraphicsPipelineCreateInfo *unwrapped = UnwrapInfos(&CreateInfo, 1);
+    VkGraphicsPipelineCreateInfo *unwrapped = UnwrapInfos(m_State, &CreateInfo, 1);
     VkResult ret = ObjDisp(device)->CreateGraphicsPipelines(Unwrap(device), Unwrap(pipelineCache),
                                                             1, unwrapped, NULL, &pipe);
 
@@ -474,7 +484,7 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
               m_CreationInfo.m_RenderPass[renderPassID].loadRPs[CreateInfo.subpass];
           CreateInfo.subpass = 0;
 
-          unwrapped = UnwrapInfos(&CreateInfo, 1);
+          unwrapped = UnwrapInfos(m_State, &CreateInfo, 1);
           ret = ObjDisp(device)->CreateGraphicsPipelines(Unwrap(device), Unwrap(pipelineCache), 1,
                                                          unwrapped, NULL, &pipeInfo.subpass0pipe);
           RDCASSERTEQUAL(ret, VK_SUCCESS);
@@ -514,7 +524,7 @@ VkResult WrappedVulkan::vkCreateGraphicsPipelines(VkDevice device, VkPipelineCac
                                                   const VkAllocationCallbacks *pAllocator,
                                                   VkPipeline *pPipelines)
 {
-  VkGraphicsPipelineCreateInfo *unwrapped = UnwrapInfos(pCreateInfos, count);
+  VkGraphicsPipelineCreateInfo *unwrapped = UnwrapInfos(m_State, pCreateInfos, count);
   VkResult ret;
 
   // to be extra sure just in case the driver doesn't, set pipelines to VK_NULL_HANDLE first.
@@ -610,6 +620,18 @@ VkResult WrappedVulkan::vkCreateGraphicsPipelines(VkDevice device, VkPipelineCac
           VkResourceRecord *modulerecord = GetRecord(pCreateInfos[i].pStages[s].module);
           record->AddParent(modulerecord);
         }
+
+        VkPipelineLibraryCreateInfoKHR *libraryInfo =
+            (VkPipelineLibraryCreateInfoKHR *)FindNextStruct(
+                &pCreateInfos[i], VK_STRUCTURE_TYPE_PIPELINE_LIBRARY_CREATE_INFO_KHR);
+
+        if(libraryInfo)
+        {
+          for(uint32_t l = 0; l < libraryInfo->libraryCount; l++)
+          {
+            record->AddParent(GetRecord(libraryInfo->pLibraries[l]));
+          }
+        }
       }
       else
       {
@@ -656,7 +678,7 @@ bool WrappedVulkan::Serialise_vkCreateComputePipelines(SerialiserType &ser, VkDe
                            VK_PIPELINE_CREATE_CAPTURE_INTERNAL_REPRESENTATIONS_BIT_KHR);
     }
 
-    VkComputePipelineCreateInfo *unwrapped = UnwrapInfos(&CreateInfo, 1);
+    VkComputePipelineCreateInfo *unwrapped = UnwrapInfos(m_State, &CreateInfo, 1);
     VkResult ret = ObjDisp(device)->CreateComputePipelines(Unwrap(device), Unwrap(pipelineCache), 1,
                                                            unwrapped, NULL, &pipe);
 
@@ -714,7 +736,7 @@ VkResult WrappedVulkan::vkCreateComputePipelines(VkDevice device, VkPipelineCach
   VkResult ret;
   SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateComputePipelines(
                           Unwrap(device), Unwrap(pipelineCache), count,
-                          UnwrapInfos(pCreateInfos, count), pAllocator, pPipelines));
+                          UnwrapInfos(m_State, pCreateInfos, count), pAllocator, pPipelines));
 
   if(ret == VK_SUCCESS)
   {
