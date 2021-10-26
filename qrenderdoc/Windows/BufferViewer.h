@@ -119,7 +119,6 @@ private slots:
   void on_byteRangeStart_valueChanged(double value);
   void on_byteRangeLength_valueChanged(double value);
   void on_axisMappingCombo_currentIndexChanged(int index);
-  void on_axisMappingButton_clicked();
 
   // manual slots
   void render_mouseMove(QMouseEvent *e);
@@ -214,6 +213,8 @@ private:
   int m_IdxColWidth;
   int m_DataColWidth;
   int m_DataRowHeight;
+
+  int previousAxisMappingIndex = 0;
 
   RichTextViewDelegate *m_delegate = NULL;
 

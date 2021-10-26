@@ -28,8 +28,29 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include "api/replay/data_types.h"
 #include "quat.h"
 #include "vec.h"
+
+Matrix4f::Matrix4f(const AxisMapping &axisMapping)
+{
+  f[0] = axisMapping.xAxis.x;
+  f[1] = axisMapping.xAxis.y;
+  f[2] = axisMapping.xAxis.z;
+  f[3] = axisMapping.xAxis.w;
+  f[4] = axisMapping.yAxis.x;
+  f[5] = axisMapping.yAxis.y;
+  f[6] = axisMapping.yAxis.z;
+  f[7] = axisMapping.yAxis.w;
+  f[8] = axisMapping.zAxis.x;
+  f[9] = axisMapping.zAxis.y;
+  f[10] = axisMapping.zAxis.z;
+  f[11] = axisMapping.zAxis.w;
+  f[12] = 0.0f;
+  f[13] = 0.0f;
+  f[14] = 0.0f;
+  f[15] = 1.0f;
+}
 
 Matrix4f Matrix4f::Mul(const Matrix4f &o) const
 {

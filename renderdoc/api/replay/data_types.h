@@ -74,6 +74,40 @@ struct FloatVector
 
 DECLARE_REFLECTION_STRUCT(FloatVector);
 
+DOCUMENT("A transform to map the x, y, and z axes to new directions.");
+struct AxisMapping
+{
+  AxisMapping()
+      : xAxis(1.0f, 0.0f, 0.0f, 0.0f), yAxis(0.0f, 1.0f, 0.0f, 0.0f), zAxis(0.0f, 0.0f, 1.0f, 0.0f)
+  {
+  }
+  AxisMapping(const FloatVector &XAxis, const FloatVector &YAxis, const FloatVector &ZAxis)
+      : xAxis(XAxis), yAxis(YAxis), zAxis(ZAxis)
+  {
+  }
+  AxisMapping(const AxisMapping &) = default;
+  AxisMapping &operator=(const AxisMapping &) = default;
+  DOCUMENT(R"(The mapping of the x axis.
+
+:type: FloatVector
+)");
+  FloatVector xAxis;
+
+  DOCUMENT(R"(The mapping of the y axis.
+
+:type: FloatVector
+)");
+  FloatVector yAxis;
+
+  DOCUMENT(R"(The mapping of the z axis.
+
+:type: FloatVector
+)");
+  FloatVector zAxis;
+};
+
+DECLARE_REFLECTION_STRUCT(AxisMapping);
+
 DOCUMENT("Properties of a path on a remote filesystem.");
 struct PathEntry
 {

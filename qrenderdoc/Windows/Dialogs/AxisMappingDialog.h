@@ -38,19 +38,15 @@ class AxisMappingDialog : public QDialog
 {
   Q_OBJECT
 public:
-  explicit AxisMappingDialog(ICaptureContext &Ctx, const MeshDisplay &m_config, QWidget *parent = 0);
-  FloatVector getXAxisMapping();
-  FloatVector getYAxisMapping();
-  FloatVector getZAxisMapping();
+  explicit AxisMappingDialog(ICaptureContext &Ctx, const MeshDisplay &config, QWidget *parent = 0);
+  const AxisMapping &getAxisMapping();
   ~AxisMappingDialog();
 
 private:
   Ui::AxisMappingDialog *ui;
   ICaptureContext &m_Ctx;
-  FloatVector xAxisMapping;
-  FloatVector yAxisMapping;
-  FloatVector zAxisMapping;
-  void setNewAxisMappings();
+  AxisMapping m_AxisMapping;
+  void setNewAxisMapping();
 
   static int getIndexFromVector(const FloatVector &v);
   static FloatVector getVectorFromIndex(int index);

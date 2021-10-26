@@ -129,23 +129,11 @@ struct MeshDisplay
 )");
   ICamera *cam = NULL;
 
-  DOCUMENT(R"(The mapping of the x axis of the mesh's coordinate system.
+  DOCUMENT(R"(The axis mapping to apply to the mesh.
 
-:type: FloatVector
+:type: AxisMapping
 )");
-  FloatVector xAxisMapping;
-
-  DOCUMENT(R"(The mapping of the y axis of the mesh's coordinate system.
-
-:type: FloatVector
-)");
-  FloatVector yAxisMapping;
-
-  DOCUMENT(R"(The mapping of the z axis of the mesh's coordinate system.
-
-:type: FloatVector
-)");
-  FloatVector zAxisMapping;
+  AxisMapping axisMapping;
 
   DOCUMENT(
       "``True`` if the projection matrix to use when unprojecting vertex positions is "

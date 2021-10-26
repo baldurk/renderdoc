@@ -27,6 +27,7 @@
 
 class Vec3f;
 class Quatf;
+struct AxisMapping;
 
 #include <string.h>
 
@@ -34,6 +35,7 @@ class Matrix4f
 {
 public:
   Matrix4f() {}
+  Matrix4f(const AxisMapping &axisMapping);
   //////////////////////////////////////////////////////
   // Matrix generation functions
 
