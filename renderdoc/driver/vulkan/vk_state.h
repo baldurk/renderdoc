@@ -196,8 +196,8 @@ struct VulkanRenderState
 
   // extended dynamic state 2
   VkBool32 depthBiasEnable = VK_FALSE;
-  VkLogicOp logicOp = VK_LOGIC_OP_MAX_ENUM;
-  uint32_t patchControlPoints = 0;
+  VkLogicOp logicOp = VK_LOGIC_OP_CLEAR;
+  uint32_t patchControlPoints = 3;
   VkBool32 primRestartEnable = VK_FALSE;
   VkBool32 rastDiscardEnable = VK_FALSE;
 
