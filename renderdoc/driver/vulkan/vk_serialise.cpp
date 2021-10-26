@@ -1497,6 +1497,9 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_VALVE)          \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_VALVE)
 
+static const rdcliteral pNextName = "pNext"_lit;
+static const rdcliteral pNextTypeName = "pNextType"_lit;
+
 template <typename SerialiserType>
 static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const void *&pNext)
 {
@@ -1538,19 +1541,20 @@ static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const voi
   }
 
 // if we come across a struct we should process, then serialise a pointer to it.
-#define PNEXT_STRUCT(StructType, StructName)        \
-  case StructType:                                  \
-  {                                                 \
-    StructName *nextStruct = NULL;                  \
-    ser.SerialiseNullable("pNext"_lit, nextStruct); \
-    pNext = nextStruct;                             \
-    handled = true;                                 \
-    break;                                          \
+#define PNEXT_STRUCT(StructType, StructName)                     \
+  case StructType:                                               \
+  {                                                              \
+    ser.SerialiseNullable(pNextName, (StructName *&)nextStruct); \
+    pNext = nextStruct;                                          \
+    handled = true;                                              \
+    break;                                                       \
   }
 
     // we don't want a default case to ensure we get a compile error if we forget to implement a
     // structure type, but we also want to error if the input is invalid, so have this flag here.
     bool handled = false;
+
+    void *nextStruct = NULL;
 
     // this serialises the pNext with the right type, as nullable. We already know from above that
     // there IS something here, so the nullable is redundant but convenient
@@ -1588,15 +1592,15 @@ static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const voi
 // We don't have to go any further, the act of serialising this struct will walk the chain further,
 // so we can return immediately.
 #undef PNEXT_STRUCT
-#define PNEXT_STRUCT(StructType, StructName)          \
-  case StructType:                                    \
-  {                                                   \
-    VkStructureType *nextType = &next->sType;         \
-    ser.SerialiseNullable("pNextType"_lit, nextType); \
-    StructName *actual = (StructName *)next;          \
-    ser.SerialiseNullable("pNext"_lit, actual);       \
-    handled = true;                                   \
-    return;                                           \
+#define PNEXT_STRUCT(StructType, StructName)                       \
+  case StructType:                                                 \
+  {                                                                \
+    nextType = &next->sType;                                       \
+    ser.SerialiseNullable(pNextTypeName, nextType);                \
+    actualStruct = (void *)next;                                   \
+    ser.SerialiseNullable(pNextName, (StructName *&)actualStruct); \
+    handled = true;                                                \
+    return;                                                        \
   }
 
     // we don't want a default case to ensure we get a compile error if we forget to implement a
@@ -1605,6 +1609,8 @@ static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const voi
 
     // walk the pNext chain, skipping any structs we don't care about serialising.
     VkBaseInStructure *next = (VkBaseInStructure *)pNext;
+    VkStructureType *nextType = NULL;
+    void *actualStruct = NULL;
 
     while(next)
     {
