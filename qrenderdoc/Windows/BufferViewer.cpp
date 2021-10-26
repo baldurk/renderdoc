@@ -2951,16 +2951,19 @@ void BufferViewer::populateBBox(PopulateBufferData *bufdata)
 QVariant BufferViewer::persistData()
 {
   QVariantMap state;
-  state[lit("dockarea")] = ui->dockarea->saveState();
+  state = ui->dockarea->saveState();
   state[lit("axisMappingIndex")] = ui->axisMappingCombo->currentIndex();
-  QVariantList xAxisMapping = {QVariant(m_Config.xAxisMapping.x), QVariant(m_Config.xAxisMapping.y),
-                               QVariant(m_Config.xAxisMapping.z)};
+  QVariantList xAxisMapping = {QVariant(m_Config.axisMapping.xAxis.x),
+                               QVariant(m_Config.axisMapping.xAxis.y),
+                               QVariant(m_Config.axisMapping.xAxis.z)};
   state[lit("xAxisMapping")] = xAxisMapping;
-  QVariantList yAxisMapping = {QVariant(m_Config.yAxisMapping.x), QVariant(m_Config.yAxisMapping.y),
-                               QVariant(m_Config.yAxisMapping.z)};
+  QVariantList yAxisMapping = {QVariant(m_Config.axisMapping.yAxis.x),
+                               QVariant(m_Config.axisMapping.yAxis.y),
+                               QVariant(m_Config.axisMapping.yAxis.z)};
   state[lit("yAxisMapping")] = yAxisMapping;
-  QVariantList zAxisMapping = {QVariant(m_Config.zAxisMapping.x), QVariant(m_Config.zAxisMapping.y),
-                               QVariant(m_Config.zAxisMapping.z)};
+  QVariantList zAxisMapping = {QVariant(m_Config.axisMapping.zAxis.x),
+                               QVariant(m_Config.axisMapping.zAxis.y),
+                               QVariant(m_Config.axisMapping.zAxis.z)};
   state[lit("zAxisMapping")] = zAxisMapping;
 
   return state;
@@ -2970,19 +2973,20 @@ void BufferViewer::setPersistData(const QVariant &persistData)
 {
   QVariantMap state = persistData.toMap();
 
-  ui->dockarea->restoreState(state[lit("dockarea")].toMap());
-  ui->axisMappingCombo->setCurrentIndex(state[lit("axisMappingIndex")].toInt());
+  ui->dockarea->restoreState(state);
+  previousAxisMappingIndex = state[lit("axisMappingIndex")].toInt();
+  ui->axisMappingCombo->setCurrentIndex(previousAxisMappingIndex);
   if(!state[lit("xAxisMapping")].toList().isEmpty())
   {
-    m_Config.xAxisMapping.x = state[lit("xAxisMapping")].toList()[0].toInt();
-    m_Config.xAxisMapping.y = state[lit("xAxisMapping")].toList()[1].toInt();
-    m_Config.xAxisMapping.z = state[lit("xAxisMapping")].toList()[2].toInt();
-    m_Config.yAxisMapping.x = state[lit("yAxisMapping")].toList()[0].toInt();
-    m_Config.yAxisMapping.y = state[lit("yAxisMapping")].toList()[1].toInt();
-    m_Config.yAxisMapping.z = state[lit("yAxisMapping")].toList()[2].toInt();
-    m_Config.zAxisMapping.x = state[lit("zAxisMapping")].toList()[0].toInt();
-    m_Config.zAxisMapping.y = state[lit("zAxisMapping")].toList()[1].toInt();
-    m_Config.zAxisMapping.z = state[lit("zAxisMapping")].toList()[2].toInt();
+    m_Config.axisMapping.xAxis.x = state[lit("xAxisMapping")].toList()[0].toInt();
+    m_Config.axisMapping.xAxis.y = state[lit("xAxisMapping")].toList()[1].toInt();
+    m_Config.axisMapping.xAxis.z = state[lit("xAxisMapping")].toList()[2].toInt();
+    m_Config.axisMapping.yAxis.x = state[lit("yAxisMapping")].toList()[0].toInt();
+    m_Config.axisMapping.yAxis.y = state[lit("yAxisMapping")].toList()[1].toInt();
+    m_Config.axisMapping.yAxis.z = state[lit("yAxisMapping")].toList()[2].toInt();
+    m_Config.axisMapping.zAxis.x = state[lit("zAxisMapping")].toList()[0].toInt();
+    m_Config.axisMapping.zAxis.y = state[lit("zAxisMapping")].toList()[1].toInt();
+    m_Config.axisMapping.zAxis.z = state[lit("zAxisMapping")].toList()[2].toInt();
   }
 }
 
@@ -3173,6 +3177,22 @@ void BufferViewer::UI_ResetArcball()
         mid.x = bbox.bounds[stage].Min[posEl].x + diag.x * 0.5f;
         mid.y = bbox.bounds[stage].Min[posEl].y + diag.y * 0.5f;
         mid.z = bbox.bounds[stage].Min[posEl].z + diag.z * 0.5f;
+
+        if(!isCurrentRasterOut())
+        {
+          // apply axis mapping to midpoint
+          FloatVector transformedMid;
+          transformedMid.x = m_Config.axisMapping.xAxis.x * mid.x +
+                             m_Config.axisMapping.yAxis.x * mid.y +
+                             m_Config.axisMapping.zAxis.x * mid.z;
+          transformedMid.y = m_Config.axisMapping.xAxis.y * mid.x +
+                             m_Config.axisMapping.yAxis.y * mid.y +
+                             m_Config.axisMapping.zAxis.y * mid.z;
+          transformedMid.z = m_Config.axisMapping.xAxis.z * mid.x +
+                             m_Config.axisMapping.yAxis.z * mid.y +
+                             m_Config.axisMapping.zAxis.z * mid.z;
+          mid = transformedMid;
+        }
 
         m_Arcball->Reset(mid, len * 0.7f);
 
@@ -4066,47 +4086,46 @@ void BufferViewer::on_axisMappingCombo_currentIndexChanged(int index)
     switch(index)
     {
       case 0:    // Y-up, Left Handed
-        m_Config.xAxisMapping = FloatVector(1.0f, 0.0f, 0.0f, 0.0f);
-        m_Config.yAxisMapping = FloatVector(0.0f, 1.0f, 0.0f, 0.0f);
-        m_Config.zAxisMapping = FloatVector(0.0f, 0.0f, 1.0f, 0.0f);
+        m_Config.axisMapping.xAxis = FloatVector(1.0f, 0.0f, 0.0f, 0.0f);
+        m_Config.axisMapping.yAxis = FloatVector(0.0f, 1.0f, 0.0f, 0.0f);
+        m_Config.axisMapping.zAxis = FloatVector(0.0f, 0.0f, 1.0f, 0.0f);
         break;
       case 1:    // Y-up, Right Handed
-        m_Config.xAxisMapping = FloatVector(1.0f, 0.0f, 0.0f, 0.0f);
-        m_Config.yAxisMapping = FloatVector(0.0f, 1.0f, 0.0f, 0.0f);
-        m_Config.zAxisMapping = FloatVector(0.0f, 0.0f, -1.0f, 0.0f);
+        m_Config.axisMapping.xAxis = FloatVector(1.0f, 0.0f, 0.0f, 0.0f);
+        m_Config.axisMapping.yAxis = FloatVector(0.0f, 1.0f, 0.0f, 0.0f);
+        m_Config.axisMapping.zAxis = FloatVector(0.0f, 0.0f, -1.0f, 0.0f);
         break;
       case 2:    // Z-up, Left Handed
-        m_Config.xAxisMapping = FloatVector(1.0f, 0.0f, 0.0f, 0.0f);
-        m_Config.yAxisMapping = FloatVector(0.0f, 0.0f, -1.0f, 0.0f);
-        m_Config.zAxisMapping = FloatVector(0.0f, 1.0f, 0.0f, 0.0f);
+        m_Config.axisMapping.xAxis = FloatVector(1.0f, 0.0f, 0.0f, 0.0f);
+        m_Config.axisMapping.yAxis = FloatVector(0.0f, 0.0f, -1.0f, 0.0f);
+        m_Config.axisMapping.zAxis = FloatVector(0.0f, 1.0f, 0.0f, 0.0f);
         break;
       case 3:    // Z-up, Right Handed
-        m_Config.xAxisMapping = FloatVector(1.0f, 0.0f, 0.0f, 0.0f);
-        m_Config.yAxisMapping = FloatVector(0.0f, 0.0f, 1.0f, 0.0f);
-        m_Config.zAxisMapping = FloatVector(0.0f, 1.0f, 0.0f, 0.0f);
+        m_Config.axisMapping.xAxis = FloatVector(1.0f, 0.0f, 0.0f, 0.0f);
+        m_Config.axisMapping.yAxis = FloatVector(0.0f, 0.0f, 1.0f, 0.0f);
+        m_Config.axisMapping.zAxis = FloatVector(0.0f, 1.0f, 0.0f, 0.0f);
         break;
       default: break;
     }
-    ui->axisMappingButton->setEnabled(false);
+    previousAxisMappingIndex = index;
+    on_resetCamera_clicked();
     INVOKE_MEMFN(RT_UpdateAndDisplay);
   }
-  else
+  else if(previousAxisMappingIndex != 4)
   {
-    ui->axisMappingButton->setEnabled(true);
-  }
-}
+    AxisMappingDialog dialog(m_Ctx, m_Config, this);
+    RDDialog::show(&dialog);
 
-void BufferViewer::on_axisMappingButton_clicked()
-{
-  AxisMappingDialog dialog(m_Ctx, m_Config, this);
-  RDDialog::show(&dialog);
-
-  if(dialog.result() == QDialog::Accepted)
-  {
-    m_Config.xAxisMapping = dialog.getXAxisMapping();
-    m_Config.yAxisMapping = dialog.getYAxisMapping();
-    m_Config.zAxisMapping = dialog.getZAxisMapping();
-    INVOKE_MEMFN(RT_UpdateAndDisplay);
+    if(dialog.result() == QDialog::Accepted)
+    {
+      m_Config.axisMapping = dialog.getAxisMapping();
+      on_resetCamera_clicked();
+      INVOKE_MEMFN(RT_UpdateAndDisplay);
+    }
+    else
+    {
+      ui->axisMappingCombo->setCurrentIndex(previousAxisMappingIndex);
+    }
   }
 }
 
@@ -4824,6 +4843,19 @@ void BufferViewer::on_autofitCamera_clicked()
     mid.x = bbox.bounds[stage].Min[posEl].x + diag.x * 0.5f;
     mid.y = bbox.bounds[stage].Min[posEl].y + diag.y * 0.5f;
     mid.z = bbox.bounds[stage].Min[posEl].z + diag.z * 0.5f;
+
+    if(!isCurrentRasterOut())
+    {
+      // apply axis mapping to midpoint
+      FloatVector transformedMid;
+      transformedMid.x = m_Config.axisMapping.xAxis.x * mid.x +
+                         m_Config.axisMapping.yAxis.x * mid.y + m_Config.axisMapping.zAxis.x * mid.z;
+      transformedMid.y = m_Config.axisMapping.xAxis.y * mid.x +
+                         m_Config.axisMapping.yAxis.y * mid.y + m_Config.axisMapping.zAxis.y * mid.z;
+      transformedMid.z = m_Config.axisMapping.xAxis.z * mid.x +
+                         m_Config.axisMapping.yAxis.z * mid.y + m_Config.axisMapping.zAxis.z * mid.z;
+      mid = transformedMid;
+    }
 
     mid.z -= len;
 

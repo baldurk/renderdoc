@@ -23,7 +23,7 @@
  ******************************************************************************/
 
 #include "AxisMappingDialog.h"
-#include <QMessageBox>
+#include "Code/QRDUtils.h"
 #include "ui_AxisMappingDialog.h"
 
 int AxisMappingDialog::getIndexFromVector(const FloatVector &v)
@@ -87,67 +87,100 @@ FloatVector AxisMappingDialog::getVectorFromIndex(int index)
   return v;
 }
 
-AxisMappingDialog::AxisMappingDialog(ICaptureContext &Ctx, const MeshDisplay &m_config,
-                                     QWidget *parent)
-    : QDialog(parent),
-      m_Ctx(Ctx),
-      xAxisMapping(m_config.xAxisMapping),
-      yAxisMapping(m_config.yAxisMapping),
-      zAxisMapping(m_config.zAxisMapping),
-      ui(new Ui::AxisMappingDialog)
+AxisMappingDialog::AxisMappingDialog(ICaptureContext &Ctx, const MeshDisplay &config, QWidget *parent)
+    : QDialog(parent), m_Ctx(Ctx), m_AxisMapping(config.axisMapping), ui(new Ui::AxisMappingDialog)
 {
   ui->setupUi(this);
   setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
-  const QStringList items{tr("Right"), tr("Left"),        tr("Up"),
-                          tr("Down"),  tr("Into Screen"), tr("Out of Screen")};
+  const QStringList items = {tr("Right"), tr("Left"),        tr("Up"),
+                             tr("Down"),  tr("Into Screen"), tr("Out of Screen")};
 
   ui->xAxisCombo->addItems(items);
   ui->yAxisCombo->addItems(items);
   ui->zAxisCombo->addItems(items);
-  ui->xAxisCombo->setCurrentIndex(getIndexFromVector(xAxisMapping));
-  ui->yAxisCombo->setCurrentIndex(getIndexFromVector(yAxisMapping));
-  ui->zAxisCombo->setCurrentIndex(getIndexFromVector(zAxisMapping));
+  ui->xAxisCombo->setCurrentIndex(getIndexFromVector(m_AxisMapping.xAxis));
+  ui->yAxisCombo->setCurrentIndex(getIndexFromVector(m_AxisMapping.yAxis));
+  ui->zAxisCombo->setCurrentIndex(getIndexFromVector(m_AxisMapping.zAxis));
 
-  connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &AxisMappingDialog::setNewAxisMappings);
+  connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &AxisMappingDialog::setNewAxisMapping);
   connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
 }
 
-void AxisMappingDialog::setNewAxisMappings()
+void AxisMappingDialog::setNewAxisMapping()
 {
   int xIndex = ui->xAxisCombo->currentIndex();
   int yIndex = ui->yAxisCombo->currentIndex();
   int zIndex = ui->zAxisCombo->currentIndex();
 
-  if(xIndex / 2 != yIndex / 2 && yIndex / 2 != zIndex / 2 && xIndex / 2 != zIndex / 2)
+  int xDirection = xIndex / 2;
+  int yDirection = yIndex / 2;
+  int zDirection = zIndex / 2;
+
+  if(xDirection != yDirection && yDirection != zDirection && xDirection != zDirection)
   {
-    xAxisMapping = getVectorFromIndex(xIndex);
-    yAxisMapping = getVectorFromIndex(yIndex);
-    zAxisMapping = getVectorFromIndex(zIndex);
+    m_AxisMapping.xAxis = getVectorFromIndex(xIndex);
+    m_AxisMapping.yAxis = getVectorFromIndex(yIndex);
+    m_AxisMapping.zAxis = getVectorFromIndex(zIndex);
     accept();
   }
   else
   {
-    QMessageBox messageBox;
-    messageBox.critical(0, tr("Error"), tr("Your axis mappings are not compatible."));
-    messageBox.setFixedSize(700, 150);
+    QString firstWrongAxis;
+    QString secondWrongAxis;
+    int duplicateDirection;
+    bool allAxesDegenerate = false;
+
+    if(xDirection == yDirection)
+    {
+      if(yDirection == zDirection)
+      {
+        allAxesDegenerate = true;
+      }
+      firstWrongAxis = tr("X");
+      secondWrongAxis = tr("Y");
+      duplicateDirection = xDirection;
+    }
+    else if(yDirection == zDirection)
+    {
+      firstWrongAxis = tr("Y");
+      secondWrongAxis = tr("Z");
+      duplicateDirection = yDirection;
+    }
+    else
+    {
+      firstWrongAxis = tr("X");
+      secondWrongAxis = tr("Z");
+      duplicateDirection = zDirection;
+    }
+
+    const QStringList directions = {tr("left/right"), tr("up/down"),
+                                    tr("into screen/out of screen")};
+
+    QString messageText;
+    if(allAxesDegenerate)
+    {
+      messageText = tr("The selected axis mappings are degenerate "
+                       "and do not cover all three directions:\n\n"
+                       "All axes are mapped to the %1 direction.")
+                        .arg(directions.at(duplicateDirection));
+    }
+    else
+    {
+      messageText = tr("The selected axis mappings are degenerate "
+                       "and do not cover all three directions:\n\n"
+                       "%1 and %2 are both mapped to the %3 direction.")
+                        .arg(firstWrongAxis)
+                        .arg(secondWrongAxis)
+                        .arg(directions.at(duplicateDirection));
+    }
+    RDDialog::critical(this, tr("Error mapping axes"), messageText);
   }
-  // insert error message logic here
 }
 
-FloatVector AxisMappingDialog::getXAxisMapping()
+const AxisMapping &AxisMappingDialog::getAxisMapping()
 {
-  return xAxisMapping;
-}
-
-FloatVector AxisMappingDialog::getYAxisMapping()
-{
-  return yAxisMapping;
-}
-
-FloatVector AxisMappingDialog::getZAxisMapping()
-{
-  return zAxisMapping;
+  return m_AxisMapping;
 }
 
 AxisMappingDialog::~AxisMappingDialog()
