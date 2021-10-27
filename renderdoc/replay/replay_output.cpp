@@ -755,7 +755,7 @@ void ReplayOutput::DisplayTex()
 
   if(m_RenderData.texDisplay.customShaderId != ResourceId())
   {
-    m_CustomShaderResourceId = m_pDevice->ApplyCustomShader(m_RenderData.texDisplay);
+    m_CustomShaderResourceId = m_pDevice->ApplyCustomShader(texDisplay);
     m_pController->FatalErrorCheck();
 
     texDisplay.resourceId = m_pDevice->GetLiveID(m_CustomShaderResourceId);

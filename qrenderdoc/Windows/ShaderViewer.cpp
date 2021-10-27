@@ -185,6 +185,7 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
     QAction *mip = new QAction(tr("Selected Mip Global"), this);
     QAction *slice = new QAction(tr("Selected Array Slice / Cubemap Face Global"), this);
     QAction *sample = new QAction(tr("Selected Sample Global"), this);
+    QAction *range = new QAction(tr("Selected TextureViewer Range Global"), this);
     QAction *type = new QAction(tr("Texture Type Global"), this);
     QAction *samplers = new QAction(tr("Point && Linear Samplers"), this);
     QAction *resources = new QAction(tr("Texture Resources"), this);
@@ -193,6 +194,7 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
     snippetsMenu->addAction(mip);
     snippetsMenu->addAction(slice);
     snippetsMenu->addAction(sample);
+    snippetsMenu->addAction(range);
     snippetsMenu->addAction(type);
     snippetsMenu->addSeparator();
     snippetsMenu->addAction(samplers);
@@ -202,8 +204,10 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
     QObject::connect(mip, &QAction::triggered, this, &ShaderViewer::snippet_selectedMip);
     QObject::connect(slice, &QAction::triggered, this, &ShaderViewer::snippet_selectedSlice);
     QObject::connect(sample, &QAction::triggered, this, &ShaderViewer::snippet_selectedSample);
+    QObject::connect(range, &QAction::triggered, this, &ShaderViewer::snippet_selectedRange);
     QObject::connect(type, &QAction::triggered, this, &ShaderViewer::snippet_selectedType);
     QObject::connect(samplers, &QAction::triggered, this, &ShaderViewer::snippet_samplers);
+    QObject::connect(resources, &QAction::triggered, this, &ShaderViewer::snippet_resources);
     QObject::connect(resources, &QAction::triggered, this, &ShaderViewer::snippet_resources);
 
     ui->snippets->setMenu(snippetsMenu);
@@ -4363,6 +4367,8 @@ layout(binding = 0, std140) uniform RENDERDOC_Uniforms
     int SelectedSample;
     uvec4 YUVDownsampleRate;
     uvec4 YUVAChannels;
+    float SelectedRangeMin;
+    float SelectedRangeMax;
 } RENDERDOC;
 
 #define RENDERDOC_TexDim RENDERDOC.TexDim
@@ -4372,6 +4378,8 @@ layout(binding = 0, std140) uniform RENDERDOC_Uniforms
 #define RENDERDOC_SelectedSample RENDERDOC.SelectedSample
 #define RENDERDOC_YUVDownsampleRate RENDERDOC.YUVDownsampleRate
 #define RENDERDOC_YUVAChannels RENDERDOC.YUVAChannels
+#define RENDERDOC_SelectedRangeMin RENDERDOC.SelectedRangeMin
+#define RENDERDOC_SelectedRangeMax RENDERDOC.SelectedRangeMax
 
 )");
   }
@@ -4387,6 +4395,8 @@ cbuffer RENDERDOC_Constants : register(b0)
     int RENDERDOC_SelectedSample;
     uint4 RENDERDOC_YUVDownsampleRate;
     uint4 RENDERDOC_YUVAChannels;
+    float RENDERDOC_SelectedRangeMin;
+    float RENDERDOC_SelectedRangeMax;
 };
 
 )");
@@ -4530,6 +4540,43 @@ int RENDERDOC_SelectedSample;
     text = lit(R"(
 // selected MSAA sample or -numSamples for resolve. See docs
 uniform int RENDERDOC_SelectedSample;
+
+)");
+  }
+  else if(encoding == ShaderEncoding::SPIRVAsm)
+  {
+    text = lit("; Can't insert snippets for SPIR-V ASM");
+  }
+
+  insertSnippet(text);
+}
+
+void ShaderViewer::snippet_selectedRange()
+{
+  ShaderEncoding encoding = currentEncoding();
+  GraphicsAPI api = m_Ctx.APIProps().localRenderer;
+
+  QString text;
+
+  if(api == GraphicsAPI::Vulkan)
+  {
+    text = vulkanUBO();
+  }
+  else if(encoding == ShaderEncoding::HLSL)
+  {
+    text = lit(R"(
+// selected range min/max in UI
+float RENDERDOC_SelectedRangeMin;
+float RENDERDOC_SelectedRangeMax;
+
+)");
+  }
+  else if(encoding == ShaderEncoding::GLSL)
+  {
+    text = lit(R"(
+// selected range minmax in UI
+float RENDERDOC_SelectedRangeMin;
+float RENDERDOC_SelectedRangeMax;
 
 )");
   }
