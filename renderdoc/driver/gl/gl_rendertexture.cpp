@@ -424,6 +424,14 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
       loc = drv.glGetUniformLocation(customProgram, "RENDERDOC_TextureType");
       if(loc >= 0)
         drv.glProgramUniform1ui(customProgram, loc, resType);
+
+      loc = drv.glGetUniformLocation(customProgram, "RENDERDOC_SelectedRangeMin");
+      if(loc >= 0)
+        drv.glProgramUniform1f(customProgram, loc, cfg.rangeMin);
+
+      loc = drv.glGetUniformLocation(customProgram, "RENDERDOC_SelectedRangeMax");
+      if(loc >= 0)
+        drv.glProgramUniform1f(customProgram, loc, cfg.rangeMax);
     }
   }
 

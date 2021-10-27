@@ -374,6 +374,8 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, const ImageState &i
       int32_t selectedSample;
       Vec4u YUVDownsampleRate;
       Vec4u YUVAChannels;
+      float selectedRangeMin;
+      float selectedRangeMax;
     };
 
     CustomTexDisplayUBOData *customData = (CustomTexDisplayUBOData *)data;
@@ -388,6 +390,8 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, const ImageState &i
     customData->texType = (uint32_t)textype;
     customData->YUVDownsampleRate = YUVDownsampleRate;
     customData->YUVAChannels = YUVAChannels;
+    customData->selectedRangeMin = cfg.rangeMin;
+    customData->selectedRangeMax = cfg.rangeMax;
   }
 
   m_TexRender.UBO.Unmap();

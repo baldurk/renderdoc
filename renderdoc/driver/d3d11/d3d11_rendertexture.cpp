@@ -702,6 +702,16 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flag
                           var.name.c_str());
                 }
               }
+              else if(var.name == "RENDERDOC_SelectedRangeMin")
+              {
+                float *d = (float *)(byteData + var.offset);
+                d[0] = cfg.rangeMin;
+              }
+              else if(var.name == "RENDERDOC_SelectedRangeMax")
+              {
+                float *d = (float *)(byteData + var.offset);
+                d[0] = cfg.rangeMax;
+              }
               else
               {
                 RDCWARN("Custom shader: Variable not recognised: %s", var.name.c_str());

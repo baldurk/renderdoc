@@ -648,6 +648,16 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
 
               d[0] = resType;
             }
+            else if(var.name == "RENDERDOC_SelectedRangeMin")
+            {
+              float *d = (float *)(byteData + var.offset);
+              d[0] = cfg.rangeMin;
+            }
+            else if(var.name == "RENDERDOC_SelectedRangeMax")
+            {
+              float *d = (float *)(byteData + var.offset);
+              d[0] = cfg.rangeMax;
+            }
             else
             {
               RDCWARN("Custom shader: Variable recognised but type wrong, expected uint: %s",

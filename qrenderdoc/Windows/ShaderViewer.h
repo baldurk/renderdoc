@@ -168,6 +168,7 @@ private slots:
   void snippet_selectedMip();
   void snippet_selectedSlice();
   void snippet_selectedSample();
+  void snippet_selectedRange();
   void snippet_selectedType();
   void snippet_samplers();
   void snippet_resources();

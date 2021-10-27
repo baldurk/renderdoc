@@ -79,6 +79,8 @@ There are several constant parameters available, each detailed below with the va
 		int SelectedSample;
 		uvec4 YUVDownsampleRate;
 		uvec4 YUVAChannels;
+		float SelectedRangeMin;
+		float SelectedRangeMax;
 	} RENDERDOC;
 
 In this way you can access the properties as ``RENDERDOC.TexDim`` instead of ``RENDERDOC_TexDim``.
@@ -155,6 +157,23 @@ Selected Multisample sample
 This variable will be filled out with the selected multisample sample index as chosen in the UI. If the UI has 'average value' selected, this variable will be negative and with an absolute value equal to the number of samples.
 
 So for example in a 4x MSAA texture, the valid values are ``0``, ``1``, ``2``, ``3`` to select a sample, or ``-4`` for 'average value'.
+
+
+Selected RangeMin, RangeMax
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. highlight:: c++
+.. code:: c++
+
+	float RENDERDOC_SelectedRangeMin; // hlsl
+	float RENDERDOC_SelectedRangeMax; // hlsl
+
+	uniform int RENDERDOC_SelectedRangeMin; // glsl
+	uniform int RENDERDOC_SelectedRangeMax; // glsl
+
+
+These variables will be filled out with the current Minimum and Maximum values for the Range-selector in the Texture Viewer.
+
 
 Current texture type
 ~~~~~~~~~~~~~~~~~~~~
