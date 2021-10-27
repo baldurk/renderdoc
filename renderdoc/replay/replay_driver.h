@@ -269,8 +269,7 @@ public:
                                  const rdcstr &entry, const ShaderCompileFlags &compileFlags,
                                  ShaderStage type, ResourceId &id, rdcstr &errors) = 0;
   virtual rdcarray<ShaderEncoding> GetCustomShaderEncodings() = 0;
-  virtual ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, const Subresource &sub,
-                                       CompType typeCast) = 0;
+  virtual ResourceId ApplyCustomShader(TextureDisplay &display) = 0;
   virtual void FreeCustomShader(ResourceId id) = 0;
 
   virtual void RenderCheckerboard(FloatVector dark, FloatVector light) = 0;

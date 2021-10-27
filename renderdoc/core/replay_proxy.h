@@ -418,17 +418,16 @@ public:
       m_Proxy->FreeTargetResource(id);
   }
 
-  ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, const Subresource &sub,
-                               CompType typeCast)
+  ResourceId ApplyCustomShader(TextureDisplay &display)
   {
     if(m_Proxy)
     {
-      EnsureTexCached(texid, typeCast, sub);
+      EnsureTexCached(display.resourceId, display.typeCast, display.subresource);
 
-      if(texid == ResourceId())
+      if(display.resourceId == ResourceId())
         return ResourceId();
 
-      ResourceId customResourceId = m_Proxy->ApplyCustomShader(shader, texid, sub, typeCast);
+      ResourceId customResourceId = m_Proxy->ApplyCustomShader(display);
       m_LocalTextures.insert(customResourceId);
       m_ProxyTextures[customResourceId] = customResourceId;
       return customResourceId;

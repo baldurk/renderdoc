@@ -167,8 +167,7 @@ public:
                          const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId &id,
                          rdcstr &errors);
   rdcarray<ShaderEncoding> GetCustomShaderEncodings();
-  ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, const Subresource &sub,
-                               CompType typeCast);
+  ResourceId ApplyCustomShader(TextureDisplay &display);
   void FreeCustomShader(ResourceId id);
 
   void RenderCheckerboard(FloatVector dark, FloatVector light);

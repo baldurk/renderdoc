@@ -481,8 +481,7 @@ rdcarray<ShaderEncoding> DummyDriver::GetCustomShaderEncodings()
   return {ShaderEncoding::HLSL, ShaderEncoding::GLSL};
 }
 
-ResourceId DummyDriver::ApplyCustomShader(ResourceId shader, ResourceId texid,
-                                          const Subresource &sub, CompType typeCast)
+ResourceId DummyDriver::ApplyCustomShader(TextureDisplay &display)
 {
   return ResourceId();
 }

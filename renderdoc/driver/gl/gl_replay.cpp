@@ -3024,13 +3024,12 @@ void GLReplay::BuildCustomShader(ShaderEncoding sourceEncoding, const bytebuf &s
   BuildTargetShader(sourceEncoding, source, entry, compileFlags, type, id, errors);
 }
 
-ResourceId GLReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, const Subresource &sub,
-                                       CompType typeCast)
+ResourceId GLReplay::ApplyCustomShader(TextureDisplay &display)
 {
-  if(shader == ResourceId() || texid == ResourceId())
+  if(display.customShaderId == ResourceId() || display.resourceId == ResourceId())
     return ResourceId();
 
-  auto &texDetails = m_pDriver->m_Textures[texid];
+  auto &texDetails = m_pDriver->m_Textures[display.resourceId];
 
   MakeCurrentReplayContext(m_DebugCtx);
 
@@ -3038,10 +3037,10 @@ ResourceId GLReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, cons
 
   m_pDriver->glBindFramebuffer(eGL_FRAMEBUFFER, DebugData.customFBO);
   m_pDriver->glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
-                                    DebugData.customTex, sub.mip);
+                                    DebugData.customTex, display.subresource.mip);
 
-  m_pDriver->glViewport(0, 0, RDCMAX(1, texDetails.width >> sub.mip),
-                        RDCMAX(1, texDetails.height >> sub.mip));
+  m_pDriver->glViewport(0, 0, RDCMAX(1, texDetails.width >> display.subresource.mip),
+                        RDCMAX(1, texDetails.height >> display.subresource.mip));
 
   DebugData.outWidth = float(RDCMAX(1, texDetails.width));
   DebugData.outHeight = float(RDCMAX(1, texDetails.height));
@@ -3054,12 +3053,12 @@ ResourceId GLReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, cons
   disp.flipY = false;
   disp.xOffset = 0.0f;
   disp.yOffset = 0.0f;
-  disp.customShaderId = shader;
-  disp.resourceId = texid;
-  disp.typeCast = typeCast;
+  disp.customShaderId = display.customShaderId;
+  disp.resourceId = display.resourceId;
+  disp.typeCast = display.typeCast;
   disp.hdrMultiplier = -1.0f;
   disp.linearDisplayAsGamma = false;
-  disp.subresource = sub;
+  disp.subresource = display.subresource;
   disp.overlay = DebugOverlay::NoOverlay;
   disp.rangeMin = 0.0f;
   disp.rangeMax = 1.0f;

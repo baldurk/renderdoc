@@ -409,8 +409,7 @@ public:
 
   ResourceId RenderOverlay(ResourceId texid, FloatVector clearCol, DebugOverlay overlay,
                            uint32_t eventId, const rdcarray<uint32_t> &passEvents);
-  ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, const Subresource &sub,
-                               CompType typeCast);
+  ResourceId ApplyCustomShader(TextureDisplay &display);
 
   ResourceId CreateProxyTexture(const TextureDescription &templateTex);
   void SetProxyTextureData(ResourceId texid, const Subresource &sub, byte *data, size_t dataSize);

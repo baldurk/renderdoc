@@ -3961,10 +3961,9 @@ void D3D12Replay::BuildCustomShader(ShaderEncoding sourceEncoding, const bytebuf
   BuildShader(sourceEncoding, source, entry, compileFlags, m_CustomShaderIncludes, type, id, errors);
 }
 
-ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid,
-                                          const Subresource &sub, CompType typeCast)
+ResourceId D3D12Replay::ApplyCustomShader(TextureDisplay &display)
 {
-  ID3D12Resource *resource = m_pDevice->GetResourceList()[texid];
+  ID3D12Resource *resource = m_pDevice->GetResourceList()[display.resourceId];
 
   if(resource == NULL)
     return ResourceId();
@@ -4023,7 +4022,7 @@ ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid,
   D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
   rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
   rtvDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
-  rtvDesc.Texture2D.MipSlice = sub.mip;
+  rtvDesc.Texture2D.MipSlice = display.subresource.mip;
 
   m_pDevice->CreateRenderTargetView(m_CustomShaderTex, &rtvDesc,
                                     GetDebugManager()->GetCPUHandle(CUSTOM_SHADER_RTV));
@@ -4042,12 +4041,12 @@ ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid,
   disp.flipY = false;
   disp.xOffset = 0.0f;
   disp.yOffset = 0.0f;
-  disp.customShaderId = shader;
-  disp.resourceId = texid;
-  disp.typeCast = typeCast;
+  disp.customShaderId = display.customShaderId;
+  disp.resourceId = display.resourceId;
+  disp.typeCast = display.typeCast;
   disp.hdrMultiplier = -1.0f;
   disp.linearDisplayAsGamma = false;
-  disp.subresource = sub;
+  disp.subresource = display.subresource;
   disp.overlay = DebugOverlay::NoOverlay;
   disp.rangeMin = 0.0f;
   disp.rangeMax = 1.0f;
@@ -4059,8 +4058,8 @@ ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid,
   m_OutputViewport = {
       0,
       0,
-      (float)RDCMAX(1ULL, resDesc.Width >> sub.mip),
-      (float)RDCMAX(1U, resDesc.Height >> sub.mip),
+      (float)RDCMAX(1ULL, resDesc.Width >> display.subresource.mip),
+      (float)RDCMAX(1U, resDesc.Height >> display.subresource.mip),
       0.0f,
       1.0f,
   };
