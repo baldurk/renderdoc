@@ -3375,10 +3375,10 @@ void D3D11Replay::CreateCustomShaderTex(uint32_t w, uint32_t h)
   }
 }
 
-ResourceId D3D11Replay::ApplyCustomShader(ResourceId shader, ResourceId texid,
-                                          const Subresource &sub, CompType typeCast)
+ResourceId D3D11Replay::ApplyCustomShader(TextureDisplay &display)
 {
-  TextureShaderDetails details = GetDebugManager()->GetShaderDetails(texid, typeCast, false);
+  TextureShaderDetails details =
+      GetDebugManager()->GetShaderDetails(display.resourceId, display.typeCast, false);
 
   CreateCustomShaderTex(details.texWidth, details.texHeight);
 
@@ -3391,7 +3391,7 @@ ResourceId D3D11Replay::ApplyCustomShader(ResourceId shader, ResourceId texid,
 
     desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
     desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-    desc.Texture2D.MipSlice = sub.mip;
+    desc.Texture2D.MipSlice = display.subresource.mip;
 
     WrappedID3D11Texture2D1 *wrapped = (WrappedID3D11Texture2D1 *)m_CustomShaderTex;
     HRESULT hr = m_pDevice->CreateRenderTargetView(wrapped, &desc, &customRTV);
@@ -3415,8 +3415,8 @@ ResourceId D3D11Replay::ApplyCustomShader(ResourceId shader, ResourceId texid,
 
   viewport.TopLeftX = 0;
   viewport.TopLeftY = 0;
-  viewport.Width = (float)RDCMAX(1U, details.texWidth >> sub.mip);
-  viewport.Height = (float)RDCMAX(1U, details.texHeight >> sub.mip);
+  viewport.Width = (float)RDCMAX(1U, details.texWidth >> display.subresource.mip);
+  viewport.Height = (float)RDCMAX(1U, details.texHeight >> display.subresource.mip);
 
   m_pImmediateContext->RSSetViewports(1, &viewport);
 
@@ -3425,13 +3425,13 @@ ResourceId D3D11Replay::ApplyCustomShader(ResourceId shader, ResourceId texid,
   disp.flipY = false;
   disp.xOffset = 0.0f;
   disp.yOffset = 0.0f;
-  disp.customShaderId = shader;
-  disp.resourceId = texid;
-  disp.typeCast = typeCast;
+  disp.customShaderId = display.customShaderId;
+  disp.resourceId = display.resourceId;
+  disp.typeCast = display.typeCast;
   disp.backgroundColor = FloatVector(0, 0, 0, 1.0);
   disp.hdrMultiplier = -1.0f;
   disp.linearDisplayAsGamma = false;
-  disp.subresource = sub;
+  disp.subresource = display.subresource;
   disp.overlay = DebugOverlay::NoOverlay;
   disp.rangeMin = 0.0f;
   disp.rangeMax = 1.0f;

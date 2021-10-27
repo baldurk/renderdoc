@@ -195,10 +195,9 @@ public:
     m_Proxy->BuildCustomShader(sourceEncoding, source, entry, compileFlags, type, id, errors);
   }
   void FreeCustomShader(ResourceId id) { m_Proxy->FreeTargetResource(id); }
-  ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, const Subresource &sub,
-                               CompType typeCast)
+  ResourceId ApplyCustomShader(TextureDisplay &display)
   {
-    m_CustomTexID = m_Proxy->ApplyCustomShader(shader, m_TextureID, sub, typeCast);
+    m_CustomTexID = m_Proxy->ApplyCustomShader(display);
     return m_CustomTexID;
   }
   rdcarray<ResourceDescription> GetResources() { return m_Resources; }

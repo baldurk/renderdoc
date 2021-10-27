@@ -3894,15 +3894,15 @@ void VulkanReplay::FreeCustomShader(ResourceId id)
   m_pDriver->ReleaseResource(GetResourceManager()->GetCurrentResource(id));
 }
 
-ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid,
-                                           const Subresource &sub, CompType typeCast)
+ResourceId VulkanReplay::ApplyCustomShader(TextureDisplay &display)
 {
-  if(shader == ResourceId() || texid == ResourceId())
+  if(display.customShaderId == ResourceId() || display.resourceId == ResourceId())
     return ResourceId();
 
-  VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[texid];
+  VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[display.resourceId];
 
-  GetDebugManager()->CreateCustomShaderTex(iminfo.extent.width, iminfo.extent.height, sub.mip);
+  GetDebugManager()->CreateCustomShaderTex(iminfo.extent.width, iminfo.extent.height,
+                                           display.subresource.mip);
 
   int oldW = m_DebugWidth, oldH = m_DebugHeight;
 
@@ -3914,12 +3914,12 @@ ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid,
   disp.flipY = false;
   disp.xOffset = 0.0f;
   disp.yOffset = 0.0f;
-  disp.customShaderId = shader;
-  disp.resourceId = texid;
-  disp.typeCast = typeCast;
+  disp.customShaderId = display.customShaderId;
+  disp.resourceId = display.resourceId;
+  disp.typeCast = display.typeCast;
   disp.hdrMultiplier = -1.0f;
   disp.linearDisplayAsGamma = false;
-  disp.subresource = sub;
+  disp.subresource = display.subresource;
   disp.overlay = DebugOverlay::NoOverlay;
   disp.rangeMin = 0.0f;
   disp.rangeMax = 1.0f;
@@ -3935,15 +3935,16 @@ ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid,
       {{
            0, 0,
        },
-       {RDCMAX(1U, iminfo.extent.width >> sub.mip), RDCMAX(1U, iminfo.extent.height >> sub.mip)}},
+       {RDCMAX(1U, iminfo.extent.width >> display.subresource.mip),
+        RDCMAX(1U, iminfo.extent.height >> display.subresource.mip)}},
       1,
       &clearval,
   };
 
-  LockedConstImageStateRef imageState = m_pDriver->FindConstImageState(texid);
+  LockedConstImageStateRef imageState = m_pDriver->FindConstImageState(display.resourceId);
   if(!imageState)
   {
-    RDCWARN("Could not find image info for image %s", ToStr(texid).c_str());
+    RDCWARN("Could not find image info for image %s", ToStr(display.resourceId).c_str());
     return ResourceId();
   }
   if(!imageState->isMemoryBound)
