@@ -3277,6 +3277,11 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
           {
             descsets[firstSet + i].pipeLayout = GetResID(layout);
             descsets[firstSet + i].descSet = GetResID(pDescriptorSets[i]);
+            descsets[firstSet + i].offsets.clear();
+
+            if(descSetLayouts[firstSet + i] == ResourceId())
+              continue;
+
             uint32_t dynCount =
                 m_CreationInfo.m_DescSetLayout[descSetLayouts[firstSet + i]].dynamicCount;
             descsets[firstSet + i].offsets.assign(offsIter, dynCount);
@@ -3340,8 +3345,11 @@ void WrappedVulkan::vkCmdBindDescriptorSets(VkCommandBuffer commandBuffer,
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
     record->MarkResourceFrameReferenced(GetResID(layout), eFrameRef_Read);
     for(uint32_t i = 0; i < setCount; i++)
-      record->cmdInfo->boundDescSets.insert(
-          {GetResID(pDescriptorSets[i]), GetRecord(pDescriptorSets[i])});
+    {
+      if(pDescriptorSets[i] != VK_NULL_HANDLE)
+        record->cmdInfo->boundDescSets.insert(
+            {GetResID(pDescriptorSets[i]), GetRecord(pDescriptorSets[i])});
+    }
   }
 }
 

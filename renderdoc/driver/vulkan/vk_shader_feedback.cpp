@@ -1413,17 +1413,28 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
     feedbackStorageSize += 16 + Vulkan_Debug_PrintfBufferSize() + 1024;
   }
 
+  ResourceId pipeLayouts[] = {pipeInfo.vertLayout, pipeInfo.fragLayout};
+  if(result.compute)
   {
-    const rdcarray<ResourceId> &descSetLayoutIds =
-        creationInfo.m_PipelineLayout[pipeInfo.layout].descSetLayouts;
+    pipeLayouts[0] = pipeInfo.compLayout;
+    pipeLayouts[1] = ResourceId();
+  }
+
+  if(pipeInfo.vertLayout == pipeInfo.fragLayout)
+    pipeLayouts[1] = ResourceId();
+
+  for(size_t i = 0; i < ARRAY_COUNT(pipeLayouts); i++)
+  {
+    if(pipeLayouts[i] == ResourceId())
+      continue;
 
     rdcspv::Binding key;
 
-    for(size_t set = 0; set < descSetLayoutIds.size(); set++)
+    for(size_t set = 0; set < pipeInfo.descSetLayouts.size(); set++)
     {
       key.set = (uint32_t)set;
 
-      const DescSetLayout &layout = creationInfo.m_DescSetLayout[descSetLayoutIds[set]];
+      const DescSetLayout &layout = creationInfo.m_DescSetLayout[pipeInfo.descSetLayouts[set]];
 
       for(size_t binding = 0; binding < layout.bindings.size(); binding++)
       {
@@ -1533,7 +1544,8 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
     // create pipeline layout with new descriptor set layouts
     {
       const rdcarray<VkPushConstantRange> &push =
-          creationInfo.m_PipelineLayout[pipeInfo.layout].pushRanges;
+          creationInfo.m_PipelineLayout[result.compute ? pipeInfo.compLayout : pipeInfo.vertLayout]
+              .pushRanges;
 
       VkPipelineLayoutCreateInfo pipeLayoutInfo = {
           VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,

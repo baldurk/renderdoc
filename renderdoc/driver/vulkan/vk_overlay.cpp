@@ -85,20 +85,20 @@ struct VulkanQuadOverdrawCallback : public VulkanActionCallback
       VkDescriptorSetLayout *descSetLayouts;
 
       // descSet will be the index of our new descriptor set
-      uint32_t descSet =
-          (uint32_t)m_pDriver->GetDebugManager()->GetPipelineLayoutInfo(p.layout).descSetLayouts.size();
+      uint32_t descSet = (uint32_t)p.descSetLayouts.size();
 
       descSetLayouts = new VkDescriptorSetLayout[descSet + 1];
 
       for(uint32_t i = 0; i < descSet; i++)
         descSetLayouts[i] = m_pDriver->GetResourceManager()->GetCurrentHandle<VkDescriptorSetLayout>(
-            m_pDriver->GetDebugManager()->GetPipelineLayoutInfo(p.layout).descSetLayouts[i]);
+            p.descSetLayouts[i]);
 
       // this layout has storage image and
       descSetLayouts[descSet] = m_DescSetLayout;
 
+      // don't have to handle separate vert/frag layouts as push constant ranges must be identical
       const rdcarray<VkPushConstantRange> &push =
-          m_pDriver->GetDebugManager()->GetPipelineLayoutInfo(p.layout).pushRanges;
+          m_pDriver->GetDebugManager()->GetPipelineLayoutInfo(p.vertLayout).pushRanges;
 
       VkPipelineLayoutCreateInfo pipeLayoutInfo = {
           VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,

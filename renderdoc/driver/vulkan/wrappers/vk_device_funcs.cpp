@@ -2872,6 +2872,13 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
       END_PHYS_EXT_CHECK();
 
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GRAPHICS_PIPELINE_LIBRARY_FEATURES_EXT);
+      {
+        CHECK_PHYS_EXT_FEATURE(graphicsPipelineLibrary);
+      }
+      END_PHYS_EXT_CHECK();
+
       BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceDynamicRenderingFeatures,
                            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES);
       {

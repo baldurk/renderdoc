@@ -957,6 +957,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_GLOBAL_PRIORITY_QUERY_EXTENSION_NAME, VK_EXT_GLOBAL_PRIORITY_QUERY_SPEC_VERSION,
     },
     {
+        VK_EXT_GRAPHICS_PIPELINE_LIBRARY_EXTENSION_NAME, VK_EXT_GRAPHICS_PIPELINE_LIBRARY_SPEC_VERSION,
+    },
+    {
         VK_EXT_HDR_METADATA_EXTENSION_NAME, VK_EXT_HDR_METADATA_SPEC_VERSION,
     },
     {
@@ -4554,7 +4557,7 @@ void WrappedVulkan::AddUsage(VulkanActionTreeNode &actionNode, rdcarray<DebugMes
         int32_t bindset = types[t].bindmap[i].bindset;
         int32_t bind = types[t].bindmap[i].bind;
 
-        if(bindset >= (int32_t)descSets.size())
+        if(bindset >= (int32_t)descSets.size() || descSets[bindset].descSet == ResourceId())
         {
           msg.description =
               StringFormat::Fmt("Shader referenced a descriptor set %i that was not bound", bindset);

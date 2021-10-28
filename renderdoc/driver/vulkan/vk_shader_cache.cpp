@@ -869,12 +869,50 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
       &ds,
       &cb,
       &dyn,
-      rm->GetCurrentHandle<VkPipelineLayout>(pipeInfo.layout),
+      VK_NULL_HANDLE,
       rm->GetCurrentHandle<VkRenderPass>(pipeInfo.renderpass),
       pipeInfo.subpass,
       VK_NULL_HANDLE,    // base pipeline handle
       0,                 // base pipeline index
   };
+
+  // if the layouts are the same object (non-library case) we can just use it directly
+  if(pipeInfo.vertLayout == pipeInfo.fragLayout)
+  {
+    ret.layout = rm->GetCurrentHandle<VkPipelineLayout>(pipeInfo.vertLayout);
+  }
+  else
+  {
+    ret.layout = m_CombinedPipeLayouts[pipeline];
+    if(ret.layout == VK_NULL_HANDLE)
+    {
+      rdcarray<VkDescriptorSetLayout> descSetLayouts;
+
+      for(ResourceId setLayout : pipeInfo.descSetLayouts)
+        descSetLayouts.push_back(rm->GetCurrentHandle<VkDescriptorSetLayout>(setLayout));
+
+      // don't have to handle separate vert/frag layouts as push constant ranges must be identical
+      const VulkanCreationInfo::PipelineLayout &pipeLayoutInfo =
+          m_pDriver->m_CreationInfo.m_PipelineLayout[pipeInfo.vertLayout];
+      const rdcarray<VkPushConstantRange> &push = pipeLayoutInfo.pushRanges;
+
+      VkPipelineLayoutCreateInfo pipeLayoutCreateInfo = {
+          VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+          NULL,
+          pipeLayoutInfo.flags,
+          (uint32_t)descSetLayouts.size(),
+          descSetLayouts.data(),
+          (uint32_t)push.size(),
+          push.data(),
+      };
+
+      VkResult vkr = m_pDriver->vkCreatePipelineLayout(m_pDriver->GetDev(), &pipeLayoutCreateInfo,
+                                                       NULL, &m_CombinedPipeLayouts[pipeline]);
+      m_pDriver->CheckVkResult(vkr);
+
+      ret.layout = m_CombinedPipeLayouts[pipeline];
+    }
+  }
 
   static VkFormat colFormats[16] = {};
   static VkPipelineRenderingCreateInfo dynRenderCreate = {
@@ -987,7 +1025,7 @@ void VulkanShaderCache::MakeComputePipelineInfo(VkComputePipelineCreateInfo &pip
       NULL,
       pipeInfo.flags,
       stage,
-      rm->GetCurrentHandle<VkPipelineLayout>(pipeInfo.layout),
+      rm->GetCurrentHandle<VkPipelineLayout>(pipeInfo.compLayout),
       VK_NULL_HANDLE,    // base pipeline handle
       0,                 // base pipeline index
   };

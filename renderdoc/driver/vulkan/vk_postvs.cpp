@@ -1585,7 +1585,8 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
   // VERTEX_BIT. Find it, and make it COMPUTE_BIT
   VkPushConstantRange push;
   uint32_t numPush = 0;
-  rdcarray<VkPushConstantRange> oldPush = creationInfo.m_PipelineLayout[pipeInfo.layout].pushRanges;
+  rdcarray<VkPushConstantRange> oldPush =
+      creationInfo.m_PipelineLayout[pipeInfo.vertLayout].pushRanges;
 
   // ensure the push range is visible to the compute shader
   for(const VkPushConstantRange &range : oldPush)
@@ -1632,7 +1633,8 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     // To get around this we patch descriptor set layouts at create time so that COMPUTE_BIT is
     // present wherever VERTEX_BIT was, so we can use the application's descriptor sets and layouts
 
-    const rdcarray<ResourceId> &sets = creationInfo.m_PipelineLayout[pipeInfo.layout].descSetLayouts;
+    const rdcarray<ResourceId> &sets =
+        creationInfo.m_PipelineLayout[pipeInfo.vertLayout].descSetLayouts;
 
     setLayouts.reserve(sets.size());
 

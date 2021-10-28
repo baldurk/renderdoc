@@ -1992,12 +1992,14 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VKPipe::Pipeline &el)
 {
   SERIALISE_MEMBER(pipelineResourceId);
-  SERIALISE_MEMBER(pipelineLayoutResourceId);
+  SERIALISE_MEMBER(pipelineComputeLayoutResourceId);
+  SERIALISE_MEMBER(pipelinePreRastLayoutResourceId);
+  SERIALISE_MEMBER(pipelineFragmentLayoutResourceId);
   SERIALISE_MEMBER(flags);
 
   SERIALISE_MEMBER(descriptorSets);
 
-  SIZE_CHECK(48);
+  SIZE_CHECK(64);
 }
 
 template <typename SerialiserType>
@@ -2346,7 +2348,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::State &el)
 
   SERIALISE_MEMBER(conditionalRendering);
 
-  SIZE_CHECK(2064);
+  SIZE_CHECK(2096);
 }
 
 #pragma endregion Vulkan pipeline state

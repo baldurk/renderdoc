@@ -124,6 +124,10 @@ private:
   WrappedVulkan *m_pDriver = NULL;
   VkDevice m_Device = VK_NULL_HANDLE;
 
+  // combined pipeline layouts constructed out of independent set pipeline layouts, for use in a
+  // single combined graphics pipeline create info
+  std::map<ResourceId, VkPipelineLayout> m_CombinedPipeLayouts;
+
   bytebuf m_PipeCacheBlob;
   VkPipelineCache m_PipelineCache = VK_NULL_HANDLE;
 

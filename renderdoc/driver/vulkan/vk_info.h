@@ -160,6 +160,9 @@ struct DescSetLayout
   uint32_t inlineCount;
   uint32_t inlineByteSize;
 
+  // the cummulative stageFlags for all bindings in this layout
+  VkShaderStageFlags anyStageFlags;
+
   bool operator==(const DescSetLayout &other) const;
   bool operator!=(const DescSetLayout &other) const { return !(*this == other); }
 };
@@ -254,7 +257,26 @@ struct VulkanCreationInfo
 
     bool graphicsPipe = false;
 
-    ResourceId layout;
+    //  VkGraphicsPipelineLibraryCreateInfoEXT
+    VkGraphicsPipelineLibraryFlagsEXT libraryFlags;
+    rdcarray<ResourceId> parentLibraries;
+
+    ResourceId compLayout;
+
+    // these will be the same in some cases, but can be different if the application is using
+    // INDEPENDENT_SETS_BIT_KHR
+    ResourceId vertLayout;
+    ResourceId fragLayout;
+
+    // this is the list of descriptor set layouts for a 'complete' pipeline.
+    // when vertLayout == fragLayout (i.e. no independent sets), for compute pipelines, or if only
+    // one is set, then this will be trivially equal to the set of layouts in the pipeline layout.
+    // when they are different and both non-empty, it will be the list of descriptor sets
+    // cherry-picked from each. Specifically all of the descriptor sets that have fragment shader
+    // bindings taken from the fragment layout, and then all of the remaining sets from the vertex
+    // layout
+    rdcarray<ResourceId> descSetLayouts;
+
     ResourceId renderpass;
     uint32_t subpass;
 
@@ -415,6 +437,7 @@ struct VulkanCreationInfo
     void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
               const VkPipelineLayoutCreateInfo *pCreateInfo);
 
+    VkPipelineLayoutCreateFlags flags;
     rdcarray<VkPushConstantRange> pushRanges;
     rdcarray<ResourceId> descSetLayouts;
   };

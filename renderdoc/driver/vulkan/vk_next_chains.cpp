@@ -168,6 +168,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
               VkFragmentShadingRateAttachmentInfoKHR);                                               \
   COPY_STRUCT(VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2, VkFormatProperties2);                           \
   COPY_STRUCT(VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_3, VkFormatProperties3);                           \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT,                           \
+              VkGraphicsPipelineLibraryCreateInfoEXT);                                               \
   COPY_STRUCT(VK_STRUCTURE_TYPE_HDR_METADATA_EXT, VkHdrMetadataEXT)                                  \
   COPY_STRUCT(VK_STRUCTURE_TYPE_IMAGE_BLIT_2, VkImageBlit2);                                         \
   COPY_STRUCT(VK_STRUCTURE_TYPE_IMAGE_COPY_2, VkImageCopy2);                                         \
@@ -254,6 +256,10 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
               VkPhysicalDeviceFragmentShaderBarycentricFeaturesNV)                                   \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GLOBAL_PRIORITY_QUERY_FEATURES_KHR,                  \
               VkPhysicalDeviceGlobalPriorityQueryFeaturesKHR)                                        \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GRAPHICS_PIPELINE_LIBRARY_FEATURES_EXT,              \
+              VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT)                                    \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GRAPHICS_PIPELINE_LIBRARY_PROPERTIES_EXT,            \
+              VkPhysicalDeviceGraphicsPipelineLibraryPropertiesEXT)                                  \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GROUP_PROPERTIES, VkPhysicalDeviceGroupProperties)   \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_FLOAT16_INT8_FEATURES,                        \
               VkPhysicalDeviceShaderFloat16Int8Features);                                            \
@@ -742,7 +748,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_GEOMETRY_NV:                                                        \
   case VK_STRUCTURE_TYPE_GEOMETRY_TRIANGLES_NV:                                              \
   case VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_SHADER_GROUPS_CREATE_INFO_NV:                     \
-  case VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT:                          \
   case VK_STRUCTURE_TYPE_GRAPHICS_SHADER_GROUP_CREATE_INFO_NV:                               \
   case VK_STRUCTURE_TYPE_HEADLESS_SURFACE_CREATE_INFO_EXT:                                   \
   case VK_STRUCTURE_TYPE_IMAGE_CONSTRAINTS_INFO_FUCHSIA:                                     \
@@ -791,8 +796,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_MEMORY_RDMA_FEATURES_NV:                   \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_ENUMS_FEATURES_NV:            \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_ENUMS_PROPERTIES_NV:          \
-  case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GRAPHICS_PIPELINE_LIBRARY_FEATURES_EXT:             \
-  case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GRAPHICS_PIPELINE_LIBRARY_PROPERTIES_EXT:           \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_2D_VIEW_OF_3D_FEATURES_EXT:                   \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_DRM_FORMAT_MODIFIER_INFO_EXT:                 \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_VIEW_MIN_LOD_FEATURES_EXT:                    \
@@ -1076,24 +1079,51 @@ size_t GetNextPatchSize(const void *pNext)
           memSize += GetNextPatchSize(info->pStages[s].pNext);
 
         // need to copy the base struct of each of these so we can potentially patch pNext inside it
-        memSize += sizeof(*info->pVertexInputState);
-        memSize += GetNextPatchSize(info->pVertexInputState->pNext);
-        memSize += sizeof(*info->pInputAssemblyState);
-        memSize += GetNextPatchSize(info->pInputAssemblyState->pNext);
-        memSize += sizeof(*info->pTessellationState);
-        memSize += GetNextPatchSize(info->pTessellationState->pNext);
-        memSize += sizeof(*info->pViewportState);
-        memSize += GetNextPatchSize(info->pViewportState->pNext);
-        memSize += sizeof(*info->pRasterizationState);
-        memSize += GetNextPatchSize(info->pRasterizationState->pNext);
-        memSize += sizeof(*info->pMultisampleState);
-        memSize += GetNextPatchSize(info->pMultisampleState->pNext);
-        memSize += sizeof(*info->pDepthStencilState);
-        memSize += GetNextPatchSize(info->pDepthStencilState->pNext);
-        memSize += sizeof(*info->pColorBlendState);
-        memSize += GetNextPatchSize(info->pColorBlendState->pNext);
-        memSize += sizeof(*info->pDynamicState);
-        memSize += GetNextPatchSize(info->pDynamicState->pNext);
+        if(info->pVertexInputState)
+        {
+          memSize += sizeof(*info->pVertexInputState);
+          memSize += GetNextPatchSize(info->pVertexInputState->pNext);
+        }
+        if(info->pInputAssemblyState)
+        {
+          memSize += sizeof(*info->pInputAssemblyState);
+          memSize += GetNextPatchSize(info->pInputAssemblyState->pNext);
+        }
+        if(info->pTessellationState)
+        {
+          memSize += sizeof(*info->pTessellationState);
+          memSize += GetNextPatchSize(info->pTessellationState->pNext);
+        }
+        if(info->pViewportState)
+        {
+          memSize += sizeof(*info->pViewportState);
+          memSize += GetNextPatchSize(info->pViewportState->pNext);
+        }
+        if(info->pRasterizationState)
+        {
+          memSize += sizeof(*info->pRasterizationState);
+          memSize += GetNextPatchSize(info->pRasterizationState->pNext);
+        }
+        if(info->pMultisampleState)
+        {
+          memSize += sizeof(*info->pMultisampleState);
+          memSize += GetNextPatchSize(info->pMultisampleState->pNext);
+        }
+        if(info->pDepthStencilState)
+        {
+          memSize += sizeof(*info->pDepthStencilState);
+          memSize += GetNextPatchSize(info->pDepthStencilState->pNext);
+        }
+        if(info->pColorBlendState)
+        {
+          memSize += sizeof(*info->pColorBlendState);
+          memSize += GetNextPatchSize(info->pColorBlendState->pNext);
+        }
+        if(info->pDynamicState)
+        {
+          memSize += sizeof(*info->pDynamicState);
+          memSize += GetNextPatchSize(info->pDynamicState->pNext);
+        }
         break;
       }
       case VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO:

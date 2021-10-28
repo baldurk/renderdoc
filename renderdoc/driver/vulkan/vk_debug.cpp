@@ -2416,16 +2416,13 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
     poolSizes[newBindings[i].descriptorType].descriptorCount += newBindings[i].descriptorCount;
   }
 
-  const rdcarray<ResourceId> &pipeDescSetLayouts =
-      creationInfo.m_PipelineLayout[pipeInfo.layout].descSetLayouts;
-
   // need to add our added bindings to the first descriptor set
   rdcarray<VkDescriptorSetLayoutBinding> bindings(newBindings, newBindingsCount);
 
   // if there are fewer sets bound than were declared in the pipeline layout, only process the
   // bound sets (as otherwise we'd fail to copy from them). Assume the application knew what it
   // was doing and the other sets are statically unused.
-  setLayouts.resize(RDCMIN(pipe.descSets.size(), pipeDescSetLayouts.size()));
+  setLayouts.resize(RDCMIN(pipe.descSets.size(), pipeInfo.descSetLayouts.size()));
 
   size_t boundDescs = setLayouts.size();
 
@@ -2572,9 +2569,15 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
 
     // if the shader had no descriptor sets at all, i will be invalid, so just skip and add a set
     // with only our own bindings.
-    if(i < pipeDescSetLayouts.size() && i < pipe.descSets.size() &&
+    if(i < pipeInfo.descSetLayouts.size() && i < pipe.descSets.size() &&
        pipe.descSets[i].pipeLayout != ResourceId())
     {
+      const VulkanCreationInfo::PipelineLayout &pipelineLayoutInfo =
+          creationInfo.m_PipelineLayout[pipe.descSets[i].pipeLayout];
+
+      if(pipelineLayoutInfo.descSetLayouts[i] == ResourceId())
+        continue;
+
       // use the descriptor set layout from when it was bound. If the pipeline layout declared a
       // descriptor set layout for this set, but it's statically unused, it may be complete
       // garbage and doesn't match what the shader uses. However the pipeline layout at descriptor
@@ -2582,8 +2585,7 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
       // then the pipeline layout at bind time must be compatible with the pipeline's pipeline
       // layout, so we're fine too.
       const DescSetLayout &origLayout =
-          creationInfo.m_DescSetLayout[creationInfo.m_PipelineLayout[pipe.descSets[i].pipeLayout]
-                                           .descSetLayouts[i]];
+          creationInfo.m_DescSetLayout[pipelineLayoutInfo.descSetLayouts[i]];
 
       WrappedVulkan::DescriptorSetInfo &setInfo =
           m_pDriver->m_DescriptorSetState[pipe.descSets[i].descSet];
@@ -2768,13 +2770,18 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
     if(pipe.descSets[i].descSet == ResourceId())
       continue;
 
+    const VulkanCreationInfo::PipelineLayout &pipelineLayoutInfo =
+        creationInfo.m_PipelineLayout[pipe.descSets[i].pipeLayout];
+
+    if(pipelineLayoutInfo.descSetLayouts[i] == ResourceId())
+      continue;
+
     // as above we use the pipeline layout that was originally used to bind this descriptor set
     // and not the pipeline layout from the pipeline, in case the pipeline statically doesn't use
     // this set and so its descriptor set layout is garbage (doesn't match the actual bound
     // descriptor set)
     const DescSetLayout &origLayout =
-        creationInfo.m_DescSetLayout[creationInfo.m_PipelineLayout[pipe.descSets[i].pipeLayout]
-                                         .descSetLayouts[i]];
+        creationInfo.m_DescSetLayout[pipelineLayoutInfo.descSetLayouts[i]];
 
     WrappedVulkan::DescriptorSetInfo &setInfo =
         m_pDriver->m_DescriptorSetState[pipe.descSets[i].descSet];

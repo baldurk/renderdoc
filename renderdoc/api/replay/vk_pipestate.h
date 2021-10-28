@@ -352,8 +352,18 @@ struct Pipeline
 
   DOCUMENT("The :class:`ResourceId` of the pipeline object.");
   ResourceId pipelineResourceId;
-  DOCUMENT("The :class:`ResourceId` of the pipeline layout object.");
-  ResourceId pipelineLayoutResourceId;
+  DOCUMENT("The :class:`ResourceId` of the compute pipeline layout object.");
+  ResourceId pipelineComputeLayoutResourceId;
+  DOCUMENT(R"(The :class:`ResourceId` of the pre-rasterization pipeline layout object.
+
+When not using pipeline libraries, this will be identical to :data:`pipelineFragmentLayoutResourceId`.
+)");
+  ResourceId pipelinePreRastLayoutResourceId;
+  DOCUMENT(R"(The :class:`ResourceId` of the fragment pipeline layout object.
+
+When not using pipeline libraries, this will be identical to :data:`pipelinePreRastLayoutResourceId`.
+)");
+  ResourceId pipelineFragmentLayoutResourceId;
   DOCUMENT("The flags used to create the pipeline object.");
   uint32_t flags = 0;
 

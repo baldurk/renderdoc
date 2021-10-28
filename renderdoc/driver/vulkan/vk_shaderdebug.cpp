@@ -165,21 +165,26 @@ public:
 
     const VulkanCreationInfo::Pipeline &pipe =
         m_Creation.m_Pipeline[compute ? state.compute.pipeline : state.graphics.pipeline];
-    const VulkanCreationInfo::PipelineLayout &pipeLayout = m_Creation.m_PipelineLayout[pipe.layout];
 
-    for(const VkPushConstantRange &range : pipeLayout.pushRanges)
     {
-      if(range.stageFlags & stage)
+      // don't have to handle separate vert/frag layouts as push constant ranges must be identical
+      const VulkanCreationInfo::PipelineLayout &pipeLayout =
+          m_Creation.m_PipelineLayout[compute ? pipe.compLayout : pipe.vertLayout];
+
+      for(const VkPushConstantRange &range : pipeLayout.pushRanges)
       {
-        pushData.resize(RDCMAX((uint32_t)pushData.size(), range.offset + range.size));
+        if(range.stageFlags & stage)
+        {
+          pushData.resize(RDCMAX((uint32_t)pushData.size(), range.offset + range.size));
 
-        RDCASSERT(range.offset + range.size < sizeof(state.pushconsts));
+          RDCASSERT(range.offset + range.size < sizeof(state.pushconsts));
 
-        memcpy(pushData.data() + range.offset, state.pushconsts + range.offset, range.size);
+          memcpy(pushData.data() + range.offset, state.pushconsts + range.offset, range.size);
+        }
       }
     }
 
-    m_DescSets.resize(RDCMIN(descSets.size(), pipeLayout.descSetLayouts.size()));
+    m_DescSets.resize(RDCMIN(descSets.size(), pipe.descSetLayouts.size()));
     for(size_t set = 0; set < m_DescSets.size(); set++)
     {
       uint32_t dynamicOffset = 0;
@@ -187,6 +192,12 @@ public:
       // skip invalid descriptor set binds, we assume these aren't present because they will not be
       // accessed statically
       if(descSets[set].descSet == ResourceId() || descSets[set].pipeLayout == ResourceId())
+        continue;
+
+      const VulkanCreationInfo::PipelineLayout &pipeLayoutInfo =
+          m_Creation.m_PipelineLayout[descSets[set].pipeLayout];
+
+      if(pipeLayoutInfo.descSetLayouts[set] == ResourceId())
         continue;
 
       DescSetSnapshot &dstSet = m_DescSets[set];
@@ -202,9 +213,7 @@ public:
       // set bind time must have been compatible and valid so we can use it. If this set *is* used
       // then the pipeline layout at bind time must be compatible with the pipeline's pipeline
       // layout, so we're fine too.
-      const DescSetLayout &setLayout =
-          m_Creation
-              .m_DescSetLayout[m_Creation.m_PipelineLayout[descSets[set].pipeLayout].descSetLayouts[set]];
+      const DescSetLayout &setLayout = m_Creation.m_DescSetLayout[pipeLayoutInfo.descSetLayouts[set]];
 
       for(size_t bind = 0; bind < setLayout.bindings.size(); bind++)
       {
@@ -4304,7 +4313,8 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     }
 
     // create pipeline layout with new descriptor set layouts
-    const rdcarray<VkPushConstantRange> &push = c.m_PipelineLayout[pipe.layout].pushRanges;
+    // don't have to handle separate vert/frag layouts as push constant ranges must be identical
+    const rdcarray<VkPushConstantRange> &push = c.m_PipelineLayout[pipe.vertLayout].pushRanges;
 
     VkPipelineLayoutCreateInfo pipeLayoutInfo = {
         VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,

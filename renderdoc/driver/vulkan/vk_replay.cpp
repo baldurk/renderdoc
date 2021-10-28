@@ -1096,9 +1096,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
   {
     const VulkanCreationInfo::Pipeline &p = c.m_Pipeline[state.compute.pipeline];
 
-    ret.compute.pipelineLayoutResourceId = rm->GetOriginalID(p.layout);
-
-    const VulkanCreationInfo::PipelineLayout &pl = c.m_PipelineLayout[p.layout];
+    ret.compute.pipelineComputeLayoutResourceId = rm->GetOriginalID(p.compLayout);
 
     ret.compute.flags = p.flags;
 
@@ -1116,7 +1114,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
         stage.reflection = p.shaders[i].refl;
 
       stage.pushConstantRangeByteOffset = stage.pushConstantRangeByteSize = 0;
-      for(const VkPushConstantRange &pr : pl.pushRanges)
+      for(const VkPushConstantRange &pr : c.m_PipelineLayout[p.compLayout].pushRanges)
       {
         if(pr.stageFlags & VK_SHADER_STAGE_COMPUTE_BIT)
         {
@@ -1166,7 +1164,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
   }
   else
   {
-    ret.compute.pipelineLayoutResourceId = ResourceId();
+    ret.compute.pipelineComputeLayoutResourceId = ResourceId();
     ret.compute.flags = 0;
     ret.computeShader = VKPipe::Shader();
   }
@@ -1175,9 +1173,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
   {
     const VulkanCreationInfo::Pipeline &p = c.m_Pipeline[state.graphics.pipeline];
 
-    ret.graphics.pipelineLayoutResourceId = rm->GetOriginalID(p.layout);
-
-    const VulkanCreationInfo::PipelineLayout &pl = c.m_PipelineLayout[p.layout];
+    ret.graphics.pipelinePreRastLayoutResourceId = rm->GetOriginalID(p.vertLayout);
+    ret.graphics.pipelineFragmentLayoutResourceId = rm->GetOriginalID(p.fragLayout);
 
     ret.graphics.flags = p.flags;
 
@@ -1235,7 +1232,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
         stages[i]->reflection = p.shaders[i].refl;
 
       stages[i]->pushConstantRangeByteOffset = stages[i]->pushConstantRangeByteSize = 0;
-      for(const VkPushConstantRange &pr : pl.pushRanges)
+      // don't have to handle separate vert/frag layouts as push constant ranges must be identical
+      for(const VkPushConstantRange &pr : c.m_PipelineLayout[p.vertLayout].pushRanges)
       {
         if(pr.stageFlags & ShaderMaskFromIndex(i))
         {
@@ -1543,7 +1541,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
   }
   else
   {
-    ret.graphics.pipelineLayoutResourceId = ResourceId();
+    ret.graphics.pipelinePreRastLayoutResourceId = ResourceId();
+    ret.graphics.pipelineFragmentLayoutResourceId = ResourceId();
 
     ret.graphics.flags = 0;
 
@@ -1900,6 +1899,16 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
         ResourceId src = (*srcs[p])[i].descSet;
         const uint32_t *srcOffset = (*srcs[p])[i].offsets.begin();
         VKPipe::DescriptorSet &dst = (*dsts[p])[i];
+
+        if(src == ResourceId())
+        {
+          dst.inlineData.clear();
+          dst.descriptorSetResourceId = ResourceId();
+          dst.pushDescriptor = false;
+          dst.layoutResourceId = ResourceId();
+          dst.bindings.clear();
+          continue;
+        }
 
         dst.inlineData = m_pDriver->m_DescriptorSetState[src].data.inlineBytes;
 

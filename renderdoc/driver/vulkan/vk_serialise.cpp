@@ -163,6 +163,7 @@ DECL_VKFLAG(VkSubmit);
 DECL_VKFLAG_EXT(VkPipelineStage, 2);
 DECL_VKFLAG_EXT(VkAccess, 2);
 DECL_VKFLAG_EXT(VkFormatFeature, 2);
+DECL_VKFLAG_EXT(VkGraphicsPipelineLibrary, EXT);
 DECL_VKFLAG(VkRendering);
 
 // serialise a member as flags - cast to the Bits enum for serialisation so the stringification
@@ -677,6 +678,14 @@ SERIALISE_VK_HANDLES();
   /* VK_EXT_fragment_shader_interlock */                                                               \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_INTERLOCK_FEATURES_EXT,               \
                VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT)                                     \
+                                                                                                       \
+  /* VK_EXT_graphics_pipeline_library */                                                               \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GRAPHICS_PIPELINE_LIBRARY_FEATURES_EXT,               \
+               VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT)                                     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GRAPHICS_PIPELINE_LIBRARY_PROPERTIES_EXT,             \
+               VkPhysicalDeviceGraphicsPipelineLibraryPropertiesEXT)                                   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT,                            \
+               VkGraphicsPipelineLibraryCreateInfoEXT)                                                 \
                                                                                                        \
   /* VK_EXT_hdr_metadata */                                                                            \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_HDR_METADATA_EXT, VkHdrMetadataEXT)                                   \
@@ -1354,11 +1363,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_VIEW_MIN_LOD_FEATURES_EXT)                 \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_VIEW_MIN_LOD_CREATE_INFO_EXT)                              \
                                                                                                        \
-  /* VK_EXT_graphics_pipeline_library */                                                               \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GRAPHICS_PIPELINE_LIBRARY_FEATURES_EXT)          \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GRAPHICS_PIPELINE_LIBRARY_PROPERTIES_EXT)        \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT)                       \
-                                                                                                       \
   /* VK_EXT_multi_draw */                                                                              \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTI_DRAW_FEATURES_EXT)                         \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTI_DRAW_PROPERTIES_EXT)                       \
@@ -1801,10 +1805,13 @@ void DoSerialise(SerialiserType &ser, VkDebugMarkerObjectTagInfoEXT &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkDebugUtilsObjectNameInfoEXT &el)
 {
-  RDCERR("Serialising VkDebugUtilsObjectNameInfoEXT - this should be handled specially");
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(objectType);
   // can't handle it here without duplicating objectType logic
-  RDCEraseEl(el);
-  el.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+  SERIALISE_MEMBER_EMPTY(objectHandle);
+  SERIALISE_MEMBER(pObjectName).Important();
 }
 
 template <>
@@ -3197,7 +3204,7 @@ void DoSerialise(SerialiserType &ser, VkGraphicsPipelineCreateInfo &el)
   // present.
 
   // this bool just means "we can use SERIALISE_MEMBER_OPT" - i.e. the struct is present, or NULL.
-  const bool hasValidRasterization =
+  bool hasValidRasterization =
       ser.IsReading() || (ser.IsWriting() && el.pRasterizationState &&
                           el.pRasterizationState->rasterizerDiscardEnable == VK_FALSE);
 
@@ -3240,16 +3247,52 @@ void DoSerialise(SerialiserType &ser, VkGraphicsPipelineCreateInfo &el)
 
   SERIALISE_MEMBER_OPT(pRasterizationState);
 
-  if(hasValidRasterization)
+  bool forceMSAAState = false;
+  bool forceDepthState = false;
+  bool forceBlendState = false;
+
+  const VkGraphicsPipelineLibraryCreateInfoEXT *graphicsLibraryCreate =
+      (const VkGraphicsPipelineLibraryCreateInfoEXT *)FindNextStruct(
+          &el, VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT);
+  if(graphicsLibraryCreate)
+  {
+    if(graphicsLibraryCreate->flags & VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT)
+    {
+      forceMSAAState = true;
+      forceDepthState = true;
+    }
+
+    if(graphicsLibraryCreate->flags & VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_OUTPUT_INTERFACE_BIT_EXT)
+    {
+      forceMSAAState = true;
+      forceBlendState = true;
+    }
+  }
+
+  if(hasValidRasterization || forceMSAAState)
   {
     SERIALISE_MEMBER_OPT(pMultisampleState);
-    SERIALISE_MEMBER_OPT(pDepthStencilState);
-    SERIALISE_MEMBER_OPT(pColorBlendState);
   }
   else
   {
     SERIALISE_MEMBER_OPT_EMPTY(pMultisampleState);
+  }
+
+  if(hasValidRasterization || forceDepthState)
+  {
+    SERIALISE_MEMBER_OPT(pDepthStencilState);
+  }
+  else
+  {
     SERIALISE_MEMBER_OPT_EMPTY(pDepthStencilState);
+  }
+
+  if(hasValidRasterization || forceBlendState)
+  {
+    SERIALISE_MEMBER_OPT(pColorBlendState);
+  }
+  else
+  {
     SERIALISE_MEMBER_OPT_EMPTY(pColorBlendState);
   }
 
@@ -6084,6 +6127,55 @@ void DoSerialise(SerialiserType &ser, VkDisplayNativeHdrSurfaceCapabilitiesAMD &
 
 template <>
 void Deserialise(const VkDisplayNativeHdrSurfaceCapabilitiesAMD &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GRAPHICS_PIPELINE_LIBRARY_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(graphicsPipelineLibrary);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceGraphicsPipelineLibraryPropertiesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GRAPHICS_PIPELINE_LIBRARY_PROPERTIES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(graphicsPipelineLibraryFastLinking);
+  SERIALISE_MEMBER(graphicsPipelineLibraryIndependentInterpolationDecoration);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceGraphicsPipelineLibraryPropertiesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkGraphicsPipelineLibraryCreateInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_VKFLAGS(VkGraphicsPipelineLibraryFlagsEXT, flags);
+}
+
+template <>
+void Deserialise(const VkGraphicsPipelineLibraryCreateInfoEXT &el)
 {
   DeserialiseNext(el.pNext);
 }
@@ -10309,6 +10401,7 @@ INSTANTIATE_SERIALISE_TYPE(VkFramebufferAttachmentImageInfo);
 INSTANTIATE_SERIALISE_TYPE(VkFramebufferAttachmentsCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkFramebufferCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkGraphicsPipelineCreateInfo);
+INSTANTIATE_SERIALISE_TYPE(VkGraphicsPipelineLibraryCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkHdrMetadataEXT);
 INSTANTIATE_SERIALISE_TYPE(VkImageBlit2);
 INSTANTIATE_SERIALISE_TYPE(VkImageCopy2);
@@ -10386,6 +10479,8 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMapOffsetPropertiesQCO
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentShaderBarycentricFeaturesNV);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceGlobalPriorityQueryFeaturesKHR);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceGraphicsPipelineLibraryPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceGroupProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceHostQueryResetFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentShadingRateKHR);

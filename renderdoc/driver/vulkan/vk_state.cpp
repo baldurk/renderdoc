@@ -286,7 +286,8 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
 
       ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(pipe));
 
-      ResourceId pipeLayoutId = pipeinfo.layout;
+      // don't have to handle separate vert/frag layouts as push constant ranges must be identical
+      ResourceId pipeLayoutId = pipeinfo.vertLayout;
       VkPipelineLayout layout =
           vk->GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeLayoutId);
 
@@ -524,7 +525,7 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
         Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
         Unwrap(vk->GetResourceManager()->GetCurrentHandle<VkPipeline>(compute.pipeline)));
 
-    ResourceId pipeLayoutId = vk->GetDebugManager()->GetPipelineInfo(compute.pipeline).layout;
+    ResourceId pipeLayoutId = vk->GetDebugManager()->GetPipelineInfo(compute.pipeline).compLayout;
     VkPipelineLayout layout =
         vk->GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeLayoutId);
 
@@ -544,9 +545,8 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
 void VulkanRenderState::BindDescriptorSets(WrappedVulkan *vk, VkCommandBuffer cmd,
                                            VulkanStatePipeline &pipe, VkPipelineBindPoint bindPoint)
 {
-  ResourceId pipeLayoutId = vk->GetDebugManager()->GetPipelineInfo(pipe.pipeline).layout;
   const rdcarray<ResourceId> &descSetLayouts =
-      vk->GetDebugManager()->GetPipelineLayoutInfo(pipeLayoutId).descSetLayouts;
+      vk->GetDebugManager()->GetPipelineInfo(pipe.pipeline).descSetLayouts;
 
   for(size_t i = 0; i < descSetLayouts.size(); i++)
   {
