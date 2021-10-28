@@ -113,9 +113,10 @@ BINDING(0) uniform MeshPickUBOData
 
   uint meshMode;    // triangles, triangle strip, fan, etc...
   uint unproject;
-  vec2 padding;
+  uint flipY;
+  uint ortho;
 
-  mat4 mvp;
+  mat4 transformMat;
 }
 INST_NAME(meshpick);
 

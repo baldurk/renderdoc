@@ -173,7 +173,7 @@ bool TriangleRayIntersect(float3 A, float3 B, float3 C, float3 RayPosition, floa
     if(u >= 0 && u <= 1 && v >= 0 && u + v <= 1)
     {
       float t = dot(v0v2, qvec) * invDet;
-      if(t > 0)
+      if(t >= 0)
       {
         HitPosition = RayPosition + (RayDirection * t);
         Result = true;
@@ -234,6 +234,13 @@ void trianglePath(uint threadID)
   bool hit;
   if(PickUnproject == 1)
   {
+    if(PickOrtho == 0)
+    {
+      pos0 = mul(pos0, PickTransformMat);
+      pos1 = mul(pos1, PickTransformMat);
+      pos2 = mul(pos2, PickTransformMat);
+    }
+
     pos0.xyz /= pos0.w;
     pos1.xyz /= pos1.w;
     pos2.xyz /= pos2.w;
@@ -275,12 +282,13 @@ void defaultPath(uint threadID)
 
   float4 pos = vertex[idx];
 
-  float4 wpos = mul(pos, PickMVP);
+  float4 wpos = mul(pos, PickTransformMat);
 
   if(PickUnproject == 1)
     wpos.xyz /= wpos.www;
 
-  wpos.xy *= float2(1.0f, -1.0f);
+  if(PickFlipY == 0)
+    wpos.xy *= float2(1.0f, -1.0f);
 
   float2 scr = (wpos.xy + 1.0f) * 0.5f * PickViewport;
 

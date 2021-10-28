@@ -2684,7 +2684,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
       float m = (B.y - A.y) / (B.x - A.x);
       float c = B.y - B.x * m;
 
-      if(m == 1.0f)
+      if(m == 1.0f || c == 0.0f)
         continue;
 
       if(-c / m <= 0.000001f)
@@ -3249,7 +3249,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
         float m = (B.y - A.y) / (B.x - A.x);
         float c = B.y - B.x * m;
 
-        if(m == 1.0f)
+        if(m == 1.0f || c == 0.0f)
           continue;
 
         if(-c / m <= 0.000001f)

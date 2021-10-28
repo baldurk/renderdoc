@@ -573,7 +573,10 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
         float m = (B.y - A.y) / (B.x - A.x);
         float c = B.y - B.x * m;
 
-        if(m == 1.0f)
+        if(m == 1.0f || c == 0.0f)
+          continue;
+
+        if(-c / m <= 0.000001f)
           continue;
 
         nearp = -c / m;
@@ -951,7 +954,10 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
         float m = (B.y - A.y) / (B.x - A.x);
         float c = B.y - B.x * m;
 
-        if(m == 1.0f)
+        if(m == 1.0f || c == 0.0f)
+          continue;
+
+        if(-c / m <= 0.000001f)
           continue;
 
         nearp = -c / m;

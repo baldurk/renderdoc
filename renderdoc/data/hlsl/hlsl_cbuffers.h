@@ -130,9 +130,10 @@ cbuffer MeshPickData REG(b0)
 
   uint PickMeshMode;
   uint PickUnproject;
-  float2 Padding;
+  uint PickFlipY;
+  uint PickOrtho;
 
-  row_major float4x4 PickMVP;
+  row_major float4x4 PickTransformMat;
 };
 
 #define HEATMAP_DISABLED 0

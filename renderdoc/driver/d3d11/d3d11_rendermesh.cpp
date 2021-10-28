@@ -365,6 +365,8 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
 
   if(cfg.highlightVert != ~0U)
   {
+    vertexData.homogenousInput = cfg.position.unproject;
+
     m_HighlightCache.CacheHighlightingData(eventId, cfg);
 
     D3D11_PRIMITIVE_TOPOLOGY meshtopo = topo;
@@ -531,6 +533,8 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
     if(cfg.position.unproject)
       m_pImmediateContext->VSSetShader(m_MeshRender.MeshVS, NULL, 0);
   }
+
+  vertexData.homogenousInput = 0U;
 
   // bounding box
   if(cfg.showBBox)

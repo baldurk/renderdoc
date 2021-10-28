@@ -87,7 +87,7 @@ bool TriangleRayIntersect(vec3 A, vec3 B, vec3 C, vec3 RayPosition, vec3 RayDire
     if(u >= 0.0f && u <= 1.0f && v >= 0.0f && u + v <= 1.0f)
     {
       float t = dot(v0v2, qvec) * invDet;
-      if(t > 0.0f)
+      if(t >= 0.0f)
       {
         HitPosition = RayPosition + (RayDirection * t);
         Result = true;
@@ -164,6 +164,13 @@ void trianglePath(uint threadID)
   bool hit;
   if(meshpick.unproject == 1u)
   {
+    if(meshpick.ortho == 0u)
+    {
+      pos0 = meshpick.transformMat * pos0;
+      pos1 = meshpick.transformMat * pos1;
+      pos2 = meshpick.transformMat * pos2;
+    }
+
     pos0.xyz /= pos0.w;
     pos1.xyz /= pos1.w;
     pos2.xyz /= pos2.w;
@@ -213,12 +220,13 @@ void defaultPath(uint threadID)
     pos = vec4(pos.x, -pos.y, pos.z, pos.w);
 #endif
 
-  vec4 wpos = meshpick.mvp * pos;
+  vec4 wpos = meshpick.transformMat * pos;
 
   if(meshpick.unproject == 1u)
     wpos.xyz /= wpos.www;
 
-  wpos.xy *= vec2(1.0f, -1.0f);
+  if(meshpick.flipY == 0u)
+    wpos.xy *= vec2(1.0f, -1.0f);
 
   vec2 scr = (wpos.xy + 1.0f) * 0.5f * meshpick.viewport;
 
