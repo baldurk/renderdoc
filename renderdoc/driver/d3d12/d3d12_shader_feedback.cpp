@@ -1235,3 +1235,55 @@ void D3D12Replay::ClearFeedbackCache()
 {
   m_BindlessFeedback.Usage.clear();
 }
+
+#if ENABLED(ENABLE_UNIT_TESTS) && 0
+
+#include "catch/catch.hpp"
+
+TEST_CASE("DO NOT COMMIT - convenience test", "[dxbc]")
+{
+  // this test loads a file from disk and does a no-op edit pass on it then an annotation pass on
+  // it. Useful for when you are iterating on a shader and don't want to have to load a whole
+  // capture.
+  bytebuf buf;
+  FileIO::ReadAll("/path/to/container_file.dxbc", buf);
+  bytebuf editedBlob;
+
+  {
+    DXBC::DXBCContainer dxbc(buf, rdcstr(), GraphicsAPI::D3D12, ~0U, ~0U);
+
+    DXIL::ProgramEditor editor(&dxbc, 1234, editedBlob);
+  }
+
+  {
+    DXBC::DXBCContainer container(editedBlob, rdcstr(), GraphicsAPI::D3D12, ~0U, ~0U);
+
+    rdcstr disasm = container.GetDisassembly();
+
+    RDCLOG("no edits - %s", disasm.c_str());
+  }
+
+  {
+    WrappedID3D12Device device(NULL, D3D12InitParams(), false);
+
+    D3D12_SHADER_BYTECODE desc;
+    desc.BytecodeLength = buf.size();
+    desc.pShaderBytecode = buf.data();
+
+    WrappedID3D12PipelineState::ShaderEntry shad(desc, &device);
+
+    std::map<D3D12FeedbackKey, D3D12FeedbackSlot> slots;
+    uint32_t numSlots = 4;
+    AddArraySlots(&shad, 123456, 1000000, slots, numSlots, editedBlob, desc);
+  }
+
+  {
+    DXBC::DXBCContainer container(editedBlob, rdcstr(), GraphicsAPI::D3D12, ~0U, ~0U);
+
+    rdcstr disasm = container.GetDisassembly();
+
+    RDCLOG("annotated - %s", disasm.c_str());
+  }
+}
+
+#endif

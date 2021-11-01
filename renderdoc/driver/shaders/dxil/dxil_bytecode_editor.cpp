@@ -215,6 +215,10 @@ void ProgramEditor::Fixup(Function *&f)
       }
     }
   }
+
+#if ENABLED(RDOC_DEVEL)
+  RDCASSERT(IN_ARRAY(m_Functions, f));
+#endif
 }
 
 void ProgramEditor::Fixup(Type *&t)
@@ -229,6 +233,10 @@ void ProgramEditor::Fixup(Type *&t)
     if(result)
       t = result;
   }
+
+#if ENABLED(RDOC_DEVEL)
+  RDCASSERT(IN_ARRAY(m_Types, t));
+#endif
 }
 
 void ProgramEditor::Fixup(Block *&b, Function *oldf, Function *newf)
@@ -240,6 +248,10 @@ void ProgramEditor::Fixup(Block *&b, Function *oldf, Function *newf)
     if(result)
       b = result;
   }
+
+#if ENABLED(RDOC_DEVEL)
+  RDCASSERT(IN_ARRAY(newf->blocks, b));
+#endif
 }
 
 // this variant fixes up the pointer itself only, but doesn't recurse. We don't recurse because we
@@ -264,6 +276,10 @@ void ProgramEditor::Fixup(Instruction *&i, Function *oldf, Function *newf)
     if(result)
       i = result;
   }
+
+#if ENABLED(RDOC_DEVEL)
+  RDCASSERT(IN_ARRAY(newf->args, i) || IN_ARRAY(newf->instructions, i));
+#endif
 }
 
 void ProgramEditor::Fixup(Constant *&c, Function *oldf, Function *newf)
@@ -286,6 +302,10 @@ void ProgramEditor::Fixup(Constant *&c, Function *oldf, Function *newf)
     if(result)
       c = result;
   }
+
+#if ENABLED(RDOC_DEVEL)
+  RDCASSERT(IN_ARRAY(m_Constants, c) || (newf && IN_ARRAY(newf->constants, c)));
+#endif
 }
 
 void ProgramEditor::Fixup(Metadata *&m, Function *oldf, Function *newf)
@@ -308,6 +328,10 @@ void ProgramEditor::Fixup(Metadata *&m, Function *oldf, Function *newf)
     if(result)
       m = result;
   }
+
+#if ENABLED(RDOC_DEVEL)
+  RDCASSERT(IN_ARRAY(m_Metadata, m) || (newf && IN_ARRAY(newf->metadata, m)));
+#endif
 }
 
 ProgramEditor::~ProgramEditor()
@@ -407,7 +431,7 @@ ProgramEditor::~ProgramEditor()
       Fixup(c.type);
       Fixup(c.inner);
       for(size_t i = 0; i < c.members.size(); i++)
-        Fixup(c.members[i]);
+        Fixup(c.members[i], &oldf, &f);
     }
 
     for(Value &v : f.values)
