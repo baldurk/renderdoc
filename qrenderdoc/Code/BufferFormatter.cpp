@@ -620,7 +620,7 @@ QString BufferFormatter::GetBufferFormatString(const ShaderResource &res,
         for(int i = 0; i < members.count() - 1; i++)
         {
           QString arraySize;
-          if(members[i].type.descriptor.elements > 1)
+          if(members[i].type.descriptor.elements > 1 && members[i].type.descriptor.elements != ~0U)
             arraySize = QFormatStr("[%1]").arg(members[i].type.descriptor.elements);
 
           QString varName = members[i].name;
@@ -767,7 +767,7 @@ uint32_t BufferFormatter::GetVarSize(const ShaderConstant &var)
   if(!var.type.members.empty())
     size = GetStructVarSize(var.type.members);
 
-  if(var.type.descriptor.elements > 1)
+  if(var.type.descriptor.elements > 1 && var.type.descriptor.elements != ~0U)
     size *= var.type.descriptor.elements;
 
   return size;
@@ -782,8 +782,9 @@ uint32_t BufferFormatter::GetStructVarSize(const rdcarray<ShaderConstant> &membe
   lastMemberStart += lastChild->byteOffset;
   while(!lastChild->type.members.isEmpty())
   {
-    lastMemberStart += (qMax(lastChild->type.descriptor.elements, 1U) - 1) *
-                       lastChild->type.descriptor.arrayByteStride;
+    if(lastChild->type.descriptor.elements != ~0U)
+      lastMemberStart += (qMax(lastChild->type.descriptor.elements, 1U) - 1) *
+                         lastChild->type.descriptor.arrayByteStride;
     lastChild = &lastChild->type.members.back();
     lastMemberStart += lastChild->byteOffset;
   }
@@ -840,7 +841,7 @@ QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QS
     offset = members[i].byteOffset + GetVarSize(members[i]);
 
     QString arraySize;
-    if(members[i].type.descriptor.elements > 1)
+    if(members[i].type.descriptor.elements > 1 && members[i].type.descriptor.elements != ~0U)
       arraySize = QFormatStr("[%1]").arg(members[i].type.descriptor.elements);
 
     QString varTypeName = members[i].type.descriptor.name;
@@ -1080,7 +1081,7 @@ ShaderVariable InterpretShaderVar(const ShaderConstant &elem, const byte *data, 
   {
     ret.rows = ret.columns = 0;
 
-    if(elem.type.descriptor.elements > 1)
+    if(elem.type.descriptor.elements > 1 && elem.type.descriptor.elements != ~0U)
     {
       rdcarray<ShaderVariable> arrayElements;
 
@@ -1119,7 +1120,7 @@ ShaderVariable InterpretShaderVar(const ShaderConstant &elem, const byte *data, 
       ret.members = members;
     }
   }
-  else if(elem.type.descriptor.elements > 1)
+  else if(elem.type.descriptor.elements > 1 && elem.type.descriptor.elements != ~0U)
   {
     rdcarray<ShaderVariable> arrayElements;
 
