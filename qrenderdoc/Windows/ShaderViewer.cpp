@@ -322,6 +322,7 @@ void ShaderViewer::editShader(ResourceId id, ShaderStage stage, const QString &e
 
     QWidget *w = (QWidget *)scintilla;
     w->setProperty("filename", kv.first);
+    w->setProperty("origText", kv.second);
 
     if(text.contains(entryPoint))
       sel = scintilla;
@@ -526,6 +527,9 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
   // hide edit buttons
   ui->refresh->hide();
+  ui->unrefresh->hide();
+  ui->resetEdits->hide();
+  ui->editStatusLabel->hide();
   ui->snippets->hide();
   ui->editSep->hide();
 
@@ -1130,7 +1134,7 @@ void ShaderViewer::gotoDisassemblyDebugging()
 
 ShaderViewer *ShaderViewer::LoadEditor(ICaptureContext &ctx, QVariantMap data,
                                        IShaderViewer::SaveCallback saveCallback,
-                                       IShaderViewer::CloseCallback closeCallback,
+                                       IShaderViewer::RevertCallback revertCallback,
                                        ModifyCallback modifyCallback, QWidget *parent)
 {
   if(data.isEmpty())
@@ -1181,7 +1185,7 @@ ShaderViewer *ShaderViewer::LoadEditor(ICaptureContext &ctx, QVariantMap data,
   }
 
   ShaderViewer *view = EditShader(ctx, id, stage, entryPoint, files, encoding, flags, saveCallback,
-                                  closeCallback, modifyCallback, parent);
+                                  revertCallback, modifyCallback, parent);
 
   int toolIndex = -1;
 
@@ -1266,8 +1270,8 @@ ShaderViewer::~ShaderViewer()
 
   m_Ctx.Replay().AsyncInvoke([trace](IReplayController *r) { r->FreeTrace(trace); });
 
-  if(m_CloseCallback)
-    m_CloseCallback(&m_Ctx, this, m_EditingShader);
+  if(m_RevertCallback)
+    m_RevertCallback(&m_Ctx, this, m_EditingShader);
 
   if(m_ModifyCallback)
     m_ModifyCallback(this, true);
@@ -2645,12 +2649,35 @@ bool ShaderViewer::getVar(RDTreeWidgetItem *item, ShaderVariable *var, QString *
   }
 }
 
-void ShaderViewer::setEditorWindowTitle()
+void ShaderViewer::updateEditState()
 {
   if(m_EditingShader != ResourceId())
   {
-    if(!m_Ctx.IsResourceReplaced(m_EditingShader))
-      m_Modified = true;
+    QString statusString, statusTooltip;
+
+    // check if the shader is replaced and update the status
+    if(m_Ctx.IsResourceReplaced(m_EditingShader))
+    {
+      statusString = tr("Status: Edited Shader Active");
+      statusTooltip = tr("The replay currently has the original shader active");
+    }
+    else
+    {
+      statusString = tr("Status: Original Shader Active");
+      statusTooltip = tr("The replay currently has an edited version of the shader active");
+
+      // if we expected it to be saved something went wrong
+      if(m_Saved)
+      {
+        // we're still 'modified' as in have unsaved changes
+        m_Modified = true;
+
+        statusTooltip.append(tr("\n\nSomething went wrong applying changes."));
+      }
+    }
+
+    ui->editStatusLabel->setText(statusString);
+    ui->editStatusLabel->setToolTip(statusTooltip);
 
     if(m_Modified)
     {
@@ -4257,7 +4284,7 @@ void ShaderViewer::ShowErrors(const rdcstr &errors)
       ToolWindowManager::raiseToolWindow(m_Errors);
   }
 
-  setEditorWindowTitle();
+  updateEditState();
 }
 
 void ShaderViewer::AddWatch(const rdcstr &variable)
@@ -4760,7 +4787,7 @@ void ShaderViewer::MarkModification()
 
   m_Modified = true;
 
-  setEditorWindowTitle();
+  updateEditState();
 }
 
 void ShaderViewer::disasm_tooltipShow(int x, int y)
@@ -5095,6 +5122,41 @@ bool ShaderViewer::ProcessIncludeDirectives(QString &source, const rdcstrpairs &
   return true;
 }
 
+void ShaderViewer::on_resetEdits_clicked()
+{
+  QMessageBox::StandardButton res = RDDialog::question(
+      this, tr("Are you sure?"), tr("Are you sure you want to reset all edits and restore the "
+                                    "shader source back to the original?"),
+      QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+
+  if(res != QMessageBox::Yes)
+    return;
+
+  for(ScintillaEdit *s : m_Scintillas)
+  {
+    QWidget *w = (QWidget *)s;
+    s->selectAll();
+    s->replaceSel(w->property("origText").toString().toUtf8().data());
+  }
+
+  m_RevertCallback(&m_Ctx, this, m_EditingShader);
+
+  m_Modified = false;
+  m_Saved = false;
+
+  updateEditState();
+}
+
+void ShaderViewer::on_unrefresh_clicked()
+{
+  m_RevertCallback(&m_Ctx, this, m_EditingShader);
+
+  m_Modified = true;
+  m_Saved = false;
+
+  updateEditState();
+}
+
 void ShaderViewer::on_refresh_clicked()
 {
   if(m_Trace)
@@ -5133,6 +5195,8 @@ void ShaderViewer::on_refresh_clicked()
       if(!success)
         return;
     }
+
+    m_Saved = true;
 
     bytebuf shaderBytes(source.toUtf8());
 

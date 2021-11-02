@@ -327,12 +327,32 @@
      </widget>
     </item>
     <item>
-     <widget class="QToolButton" name="refresh">
+     <widget class="QToolButton" name="resetEdits">
       <property name="toolTip">
-       <string>Compile Shader &amp; Refresh changes</string>
+       <string>Remove all source edits and restore original shader</string>
       </property>
       <property name="text">
-       <string>Refresh</string>
+       <string>Reset</string>
+      </property>
+      <property name="icon">
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/del.png</normaloff>:/del.png</iconset>
+      </property>
+      <property name="toolButtonStyle">
+       <enum>Qt::ToolButtonTextBesideIcon</enum>
+      </property>
+      <property name="autoRaise">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QToolButton" name="refresh">
+      <property name="toolTip">
+       <string>Compile shader &amp; apply changes</string>
+      </property>
+      <property name="text">
+       <string>Apply changes</string>
       </property>
       <property name="icon">
        <iconset resource="../Resources/resources.qrc">
@@ -343,6 +363,36 @@
       </property>
       <property name="autoRaise">
        <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QToolButton" name="unrefresh">
+      <property name="toolTip">
+       <string>Use original shader</string>
+      </property>
+      <property name="text">
+       <string>Remove changes</string>
+      </property>
+      <property name="icon">
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/arrow_undo.png</normaloff>:/arrow_undo.png</iconset>
+      </property>
+      <property name="toolButtonStyle">
+       <enum>Qt::ToolButtonTextBesideIcon</enum>
+      </property>
+      <property name="autoRaise">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QLabel" name="editStatusLabel">
+      <property name="text">
+       <string>Status: Original Shader Active</string>
+      </property>
+      <property name="toolTip">
+       <string>The replay currently has the original shader active</string>
       </property>
      </widget>
     </item>

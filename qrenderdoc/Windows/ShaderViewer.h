@@ -78,7 +78,7 @@ public:
 
   static ShaderViewer *LoadEditor(ICaptureContext &ctx, QVariantMap data,
                                   IShaderViewer::SaveCallback saveCallback,
-                                  IShaderViewer::CloseCallback closeCallback,
+                                  IShaderViewer::RevertCallback revertCallback,
                                   ModifyCallback modifyCallback, QWidget *parent);
   QVariantMap SaveEditor();
 
@@ -86,12 +86,12 @@ public:
                                   const QString &entryPoint, const rdcstrpairs &files,
                                   ShaderEncoding shaderEncoding, ShaderCompileFlags flags,
                                   IShaderViewer::SaveCallback saveCallback,
-                                  IShaderViewer::CloseCallback closeCallback,
+                                  IShaderViewer::RevertCallback revertCallback,
                                   ModifyCallback modifyCallback, QWidget *parent)
   {
     ShaderViewer *ret = new ShaderViewer(ctx, parent);
     ret->m_SaveCallback = saveCallback;
-    ret->m_CloseCallback = closeCallback;
+    ret->m_RevertCallback = revertCallback;
     ret->m_ModifyCallback = modifyCallback;
     ret->editShader(id, stage, entryPoint, files, shaderEncoding, flags);
     return ret;
@@ -140,6 +140,8 @@ private slots:
   // automatic slots
   void on_findReplace_clicked();
   void on_refresh_clicked();
+  void on_unrefresh_clicked();
+  void on_resetEdits_clicked();
   void on_intView_clicked();
   void on_floatView_clicked();
   void on_debugToggle_clicked();
@@ -261,10 +263,11 @@ private:
   } m_FindState;
 
   SaveCallback m_SaveCallback;
-  CloseCallback m_CloseCallback;
+  RevertCallback m_RevertCallback;
   ModifyCallback m_ModifyCallback;
 
   bool m_Modified = true;
+  bool m_Saved = false;
 
   ShaderDebugTrace *m_Trace = NULL;
   rdcarray<ShaderDebugState> m_States;
@@ -338,7 +341,7 @@ private:
 
   void find(bool down);
 
-  void setEditorWindowTitle();
+  void updateEditState();
 
   enum StepMode
   {

@@ -1096,9 +1096,9 @@ DOCUMENT(R"(A shader window used for viewing, editing, or debugging.
   :param bytes source: The byte buffer containing the source - may just be text depending on the
     encoding.
 
-.. function:: CloseCallback(context)
+.. function:: RevertCallback(context)
 
-  Not a member function - the signature for any ``CloseCallback`` callbacks.
+  Not a member function - the signature for any ``RevertCallback`` callbacks.
 
   Called whenever a shader viewer that was open for editing is closed.
 
@@ -1111,7 +1111,7 @@ struct IShaderViewer
   typedef std::function<void(ICaptureContext *, IShaderViewer *, ResourceId, ShaderStage,
                              ShaderEncoding, ShaderCompileFlags, rdcstr, bytebuf)>
       SaveCallback;
-  typedef std::function<void(ICaptureContext *, IShaderViewer *, ResourceId)> CloseCallback;
+  typedef std::function<void(ICaptureContext *, IShaderViewer *, ResourceId)> RevertCallback;
 
   DOCUMENT(R"(Retrieves the PySide2 QWidget for this :class:`ShaderViewer` if PySide2 is available, or otherwise
 returns a unique opaque pointer that can be passed back to any RenderDoc functions expecting a
@@ -2483,8 +2483,8 @@ place if needed.
 :param renderdoc.ShaderCompileFlags flags: The flags originally used to compile the shader.
 :param ShaderViewer.SaveCallback saveCallback: The callback function to call when a save/update is
   triggered.
-:param ShaderViewer.CloseCallback closeCallback: The callback function to call when the shader
-  viewer is closed.
+:param ShaderViewer.RevertCallback revertCallback: The callback function to call when the shader
+  is to be reverted - either by user request or because the shader viewer was closed.
 :return: The new :class:`ShaderViewer` window opened but not shown for editing.
 :rtype: ShaderViewer
 )");
@@ -2492,7 +2492,7 @@ place if needed.
                                     const rdcstrpairs &files, ShaderEncoding shaderEncoding,
                                     ShaderCompileFlags flags,
                                     IShaderViewer::SaveCallback saveCallback,
-                                    IShaderViewer::CloseCallback closeCallback) = 0;
+                                    IShaderViewer::RevertCallback revertCallback) = 0;
 
   DOCUMENT(R"(Show a new :class:`ShaderViewer` window, showing a read-only view of a debug trace
 through the execution of a given shader.

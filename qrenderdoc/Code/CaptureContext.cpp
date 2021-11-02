@@ -1973,14 +1973,14 @@ void CaptureContext::LoadEdits(const QString &data)
     ApplyShaderEdit(viewer, id, stage, shaderEncoding, flags, entryFunc, shaderBytes);
   };
 
-  auto replaceCloseCallback = [this](ICaptureContext *ctx, IShaderViewer *view, ResourceId id) {
+  auto replaceRevertCallback = [this](ICaptureContext *ctx, IShaderViewer *view, ResourceId id) {
     RevertShaderEdit(view, id);
   };
 
   for(QVariant e : editors)
   {
     ShaderViewer *edit =
-        ShaderViewer::LoadEditor(*this, e.toMap(), replaceSaveCallback, replaceCloseCallback,
+        ShaderViewer::LoadEditor(*this, e.toMap(), replaceSaveCallback, replaceRevertCallback,
                                  [this](ShaderViewer *view, bool closed) {
                                    SetModification(CaptureModifications::EditedShaders);
                                    if(closed)
@@ -2457,7 +2457,7 @@ IShaderViewer *CaptureContext::EditShader(ResourceId id, ShaderStage stage,
                                           const rdcstr &entryPoint, const rdcstrpairs &files,
                                           ShaderEncoding shaderEncoding, ShaderCompileFlags flags,
                                           IShaderViewer::SaveCallback saveCallback,
-                                          IShaderViewer::CloseCallback closeCallback)
+                                          IShaderViewer::RevertCallback revertCallback)
 {
   ShaderViewer *viewer = NULL;
 
@@ -2474,16 +2474,16 @@ IShaderViewer *CaptureContext::EditShader(ResourceId id, ShaderStage stage,
         saveCallback(ctx, viewer, id, stage, shaderEncoding, flags, entryFunc, shaderBytes);
     };
 
-    auto replaceCloseCallback = [this, closeCallback](ICaptureContext *ctx, IShaderViewer *view,
-                                                      ResourceId id) {
+    auto replaceRevertCallback = [this, revertCallback](ICaptureContext *ctx, IShaderViewer *view,
+                                                        ResourceId id) {
       RevertShaderEdit(view, id);
 
-      if(closeCallback)
-        closeCallback(ctx, view, id);
+      if(revertCallback)
+        revertCallback(ctx, view, id);
     };
 
     viewer = ShaderViewer::EditShader(*this, id, stage, entryPoint, files, shaderEncoding, flags,
-                                      replaceSaveCallback, replaceCloseCallback,
+                                      replaceSaveCallback, replaceRevertCallback,
                                       [this](ShaderViewer *view, bool closed) {
                                         SetModification(CaptureModifications::EditedShaders);
                                         if(closed)
@@ -2497,7 +2497,7 @@ IShaderViewer *CaptureContext::EditShader(ResourceId id, ShaderStage stage,
   else
   {
     viewer = ShaderViewer::EditShader(*this, id, stage, entryPoint, files, shaderEncoding, flags,
-                                      saveCallback, closeCallback, NULL, m_MainWindow->Widget());
+                                      saveCallback, revertCallback, NULL, m_MainWindow->Widget());
   }
 
   return viewer;
@@ -2546,12 +2546,18 @@ void CaptureContext::ApplyShaderEdit(IShaderViewer *viewer, ResourceId id, Shade
 
 void CaptureContext::RevertShaderEdit(IShaderViewer *viewer, ResourceId id)
 {
+  QPointer<QObject> ptr(viewer->Widget());
+
   // remove the replacement on close (we could make this more sophisticated if there
   // was a place to control replaced resources/shaders).
-  Replay().AsyncInvoke([this, id](IReplayController *r) {
+  Replay().AsyncInvoke([this, viewer, id, ptr](IReplayController *r) {
     if(IsCaptureLoaded())
       r->RemoveReplacement(id);
-    GUIInvoke::call(GetMainWindow()->Widget(), [this, id] { UnregisterReplacement(id); });
+    GUIInvoke::call(GetMainWindow()->Widget(), [this, viewer, id, ptr] {
+      UnregisterReplacement(id);
+      if(ptr)
+        viewer->ShowErrors(rdcstr());
+    });
   });
 }
 

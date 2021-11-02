@@ -42,7 +42,7 @@ Using the built-in shader editor
 
 When you have launched the shader editor, the main window will be filled with the source of your shader. In here you can make edits and changes with the basic controls and syntax highlighting available with the Scintilla editor.
 
-To compile the shader and apply your changes, either click the refresh button in the toolbar or press :kbd:`F5`. This will compile the shader and apply it, any warnings and errors will be added to the errors panel below the main source.
+To compile the shader and apply your changes, either click the Apply changes button in the toolbar or press :kbd:`F5`. This will compile the shader and apply it, any warnings and errors will be added to the errors panel below the main source.
 
 You can choose the tool used to compile in the lower section, as well as configure any parameters to it. See above for more information about shader processing tools.
 

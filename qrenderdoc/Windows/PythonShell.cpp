@@ -747,11 +747,11 @@ struct CaptureContextInvoker : ObjectForwarder<ICaptureContext>
                                     const rdcstrpairs &files, ShaderEncoding shaderEncoding,
                                     ShaderCompileFlags flags,
                                     IShaderViewer::SaveCallback saveCallback,
-                                    IShaderViewer::CloseCallback closeCallback) override
+                                    IShaderViewer::RevertCallback revertCallback) override
   {
     return InvokeRetFunction<IShaderViewer *>(&ICaptureContext::EditShader, id, stage, entryPoint,
                                               files, shaderEncoding, flags, saveCallback,
-                                              closeCallback);
+                                              revertCallback);
   }
 
   virtual IShaderViewer *DebugShader(const ShaderBindpointMapping *bind,
