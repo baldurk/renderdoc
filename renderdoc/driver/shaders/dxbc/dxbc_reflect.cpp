@@ -247,6 +247,8 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl,
 
     refl->debugInfo.encoding = ShaderEncoding::HLSL;
 
+    refl->debugInfo.sourceDebugInformation = true;
+
     refl->debugInfo.compileFlags = dxbc->GetDebugInfo()->GetShaderCompileFlags();
 
     refl->debugInfo.files.resize(dxbc->GetDebugInfo()->Files.size());

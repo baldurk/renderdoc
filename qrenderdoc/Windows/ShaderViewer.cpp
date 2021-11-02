@@ -542,10 +542,10 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       ui->floatView->hide();
     }
 
-    if(m_ShaderDetails->debugInfo.files.isEmpty())
+    if(!m_ShaderDetails->debugInfo.sourceDebugInformation)
     {
       ui->debugToggle->setEnabled(false);
-      ui->debugToggle->setText(tr("Source Unavailable"));
+      ui->debugToggle->setText(tr("Source debugging Unavailable"));
     }
 
     ui->debugVars->setColumns({tr("Name"), tr("Value")});

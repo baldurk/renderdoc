@@ -1298,6 +1298,10 @@ functionality
 )");
   bool debuggable = true;
 
+  DOCUMENT(R"(Indicates whether this shader has debug information to allow source-level debugging.
+)");
+  bool sourceDebugInformation = false;
+
   DOCUMENT(R"(If :data:`debuggable` is false then this contains a simple explanation of why the
 shader is not supported for debugging
 )");
