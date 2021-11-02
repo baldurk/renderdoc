@@ -1305,7 +1305,7 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
           VkWriteDescriptorSetInlineUniformBlockEXT *inlineWrite =
               (VkWriteDescriptorSetInlineUniformBlockEXT *)FindNextStruct(
                   &descWrite, VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT);
-          memcpy(inlineData.data() + bind.inlineOffset + descWrite.dstArrayElement,
+          memcpy(inlineData.data() + (*binding)->inlineOffset + descWrite.dstArrayElement,
                  inlineWrite->pData, inlineWrite->dataSize);
 
           // break now because the descriptorCount is not the number of descriptors
