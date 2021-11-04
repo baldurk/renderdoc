@@ -802,6 +802,9 @@ void DoVendorChecks(GLPlatform &platform, GLWindowingData context)
       RDCWARN("Detected Qualcomm driver version %u, Using hack to avoid glCopyImageSubData", ver);
       VendorCheck[VendorCheck_Qualcomm_avoid_glCopyImageSubData] = true;
     }
+
+    RDCWARN("Enabling Qualcomm driver hack to avoid reading cubemap mip faces directly", ver);
+    VendorCheck[VendorCheck_Qualcomm_emulate_cube_reads_mip1] = true;
   }
 
   if(IsGLES)

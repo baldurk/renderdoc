@@ -2705,6 +2705,26 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
     depthFormat = true;
   }
 
+  // Qualcomm drivers seem to barf if we try to read from cubemap faces after X+ for mips.
+  // X+ works on any mip, and all faces work on the first mip.
+  if(VendorCheck[VendorCheck_Qualcomm_emulate_cube_reads_mip1] && level > 0)
+  {
+    switch(target)
+    {
+      case eGL_TEXTURE_CUBE_MAP:
+      case eGL_TEXTURE_CUBE_MAP_POSITIVE_X:
+      case eGL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+      case eGL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+      case eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+      case eGL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+      case eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
+        RDCLOG("Forcing indirect read for cubemap face %s on level %d", ToStr(target).c_str(), level);
+        readDirectly = false;
+        break;
+      default: break;
+    }
+  }
+
   // if we can't attach the texture to a framebuffer, we can't readpixels it directly
   if(readDirectly)
   {
@@ -2863,11 +2883,30 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
     GLint baseLevel = 0;
     GLint maxLevel = 0;
 
+    // for cubemaps we read them back face by face so we blit to a 2D texture, but we still need to
+    // bind the source texture as a cubemap
+    GLenum origTarget = target;
+    GLenum bindTarget = target;
+    switch(target)
+    {
+      case eGL_TEXTURE_CUBE_MAP:
+      case eGL_TEXTURE_CUBE_MAP_POSITIVE_X:
+      case eGL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+      case eGL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+      case eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+      case eGL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+      case eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
+        target = eGL_TEXTURE_2D;
+        bindTarget = eGL_TEXTURE_CUBE_MAP;
+        break;
+      default: break;
+    }
+
     // sample from only the right level of the source texture
-    GL.glGetTexParameteriv(target, eGL_TEXTURE_BASE_LEVEL, &baseLevel);
-    GL.glGetTexParameteriv(target, eGL_TEXTURE_MAX_LEVEL, &maxLevel);
-    GL.glTexParameteri(target, eGL_TEXTURE_BASE_LEVEL, level);
-    GL.glTexParameteri(target, eGL_TEXTURE_MAX_LEVEL, level);
+    GL.glGetTexParameteriv(bindTarget, eGL_TEXTURE_BASE_LEVEL, &baseLevel);
+    GL.glGetTexParameteriv(bindTarget, eGL_TEXTURE_MAX_LEVEL, &maxLevel);
+    GL.glTexParameteri(bindTarget, eGL_TEXTURE_BASE_LEVEL, level);
+    GL.glTexParameteri(bindTarget, eGL_TEXTURE_MAX_LEVEL, level);
 
     // support 2D/Array/3D textures for now
     RDCASSERT((target == eGL_TEXTURE_2D) || (target == eGL_TEXTURE_2D_ARRAY) ||
@@ -2921,7 +2960,7 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
     }
 
     GL.glActiveTexture(eGL_TEXTURE0);
-    GL.glBindTexture(target, boundTexture);
+    GL.glBindTexture(bindTarget, boundTexture);
 
     GLuint prog;
 
@@ -2942,7 +2981,39 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
 
       rdcstr vssource;
       rdcstr fssource;
-      if(target == eGL_TEXTURE_2D)
+      if(bindTarget == eGL_TEXTURE_CUBE_MAP)
+      {
+        vssource =
+            "attribute vec2 pos;\n"
+            "void main() { gl_Position = vec4(pos, 0.5, 0.5); }";
+
+        rdcstr cubecoord = "\nvec3 CalcCubeCoord(vec2 uv) {\nuv -= vec2(0.5);\nvec3 coord;\n";
+
+        if(origTarget == eGL_TEXTURE_CUBE_MAP_POSITIVE_X)
+          cubecoord += "coord = vec3(0.5, -uv.y, -uv.x);\n";
+        else if(origTarget == eGL_TEXTURE_CUBE_MAP_NEGATIVE_X)
+          cubecoord += "coord = vec3(-0.5, -uv.y, uv.x);\n";
+        else if(origTarget == eGL_TEXTURE_CUBE_MAP_POSITIVE_Y)
+          cubecoord += "coord = vec3(uv.x, 0.5, uv.y);\n";
+        else if(origTarget == eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y)
+          cubecoord += "coord = vec3(uv.x, -0.5, -uv.y);\n";
+        else if(origTarget == eGL_TEXTURE_CUBE_MAP_POSITIVE_Z)
+          cubecoord += "coord = vec3(uv.x, -uv.y, 0.5);\n";
+        else    // origTarget == eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z
+          cubecoord += "coord = vec3(-uv.x, -uv.y, -0.5);\n";
+
+        cubecoord += "\nreturn coord;\n}\n";
+
+        fssource = rdcstr(
+                       "precision highp float;\n"
+                       "uniform vec3 res;\n"
+                       "uniform samplerCube srcTex;\n") +
+                   cubecoord +
+                   "void main() { gl_FragColor = textureCube(srcTex, "
+                   "CalcCubeCoord(vec2(gl_FragCoord.xy)/res.xy))." +
+                   swizzle + "; }";
+      }
+      else if(target == eGL_TEXTURE_2D)
       {
         vssource =
             "attribute vec2 pos;\n"
@@ -3050,7 +3121,7 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
     GLenum depthMode = eGL_DEPTH_COMPONENT;
     if(depthFormat && HasExt[ARB_stencil_texturing])
     {
-      GL.glGetTexParameteriv(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, (GLint *)&depthMode);
+      GL.glGetTexParameteriv(bindTarget, eGL_DEPTH_STENCIL_TEXTURE_MODE, (GLint *)&depthMode);
     }
 
     for(int32_t d = 0; d < depth; ++d)
@@ -3059,7 +3130,7 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
 
       if(depthFormat && HasExt[ARB_stencil_texturing])
       {
-        GL.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, eGL_DEPTH_COMPONENT);
+        GL.glTexParameteri(bindTarget, eGL_DEPTH_STENCIL_TEXTURE_MODE, eGL_DEPTH_COMPONENT);
       }
       if(target != eGL_TEXTURE_2D)
       {
@@ -3076,7 +3147,7 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
       // if we support reading stencil, read the stencil into green
       if(remapformat == eGL_DEPTH_STENCIL && HasExt[ARB_stencil_texturing])
       {
-        GL.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, eGL_STENCIL_INDEX);
+        GL.glTexParameteri(bindTarget, eGL_DEPTH_STENCIL_TEXTURE_MODE, eGL_STENCIL_INDEX);
         GL.glColorMask(GL_FALSE, GL_TRUE, GL_FALSE, GL_FALSE);
         GL.glDrawArrays(eGL_TRIANGLES, 0, 3);
       }
@@ -3096,13 +3167,13 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
     deltex = readtex;
 
     // restore base/max level as we changed them to sample from the right level above
-    GL.glBindTexture(target, boundTexture);
-    GL.glTexParameteri(target, eGL_TEXTURE_BASE_LEVEL, baseLevel);
-    GL.glTexParameteri(target, eGL_TEXTURE_MAX_LEVEL, maxLevel);
+    GL.glBindTexture(bindTarget, boundTexture);
+    GL.glTexParameteri(bindTarget, eGL_TEXTURE_BASE_LEVEL, baseLevel);
+    GL.glTexParameteri(bindTarget, eGL_TEXTURE_MAX_LEVEL, maxLevel);
 
     if(depthFormat && HasExt[ARB_stencil_texturing])
     {
-      GL.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, depthMode);
+      GL.glTexParameteri(bindTarget, eGL_DEPTH_STENCIL_TEXTURE_MODE, depthMode);
     }
 
     // read from the blitted texture from level 0, as red
