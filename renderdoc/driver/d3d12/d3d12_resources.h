@@ -938,7 +938,11 @@ public:
     return this;
   }
 
-  void SetHeap(ID3D12Heap *heap) { m_Heap = (WrappedID3D12Heap *)heap; }
+  void SetHeap(ID3D12Heap *heap)
+  {
+    m_Heap = (WrappedID3D12Heap *)heap;
+    SAFE_ADDREF(m_Heap);
+  }
   static void RefBuffers(D3D12ResourceManager *rm);
 
   static rdcarray<ID3D12Resource *> AddRefBuffersBeforeCapture(D3D12ResourceManager *rm);
