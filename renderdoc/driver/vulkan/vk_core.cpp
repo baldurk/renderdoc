@@ -1173,6 +1173,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME, VK_KHR_DRIVER_PROPERTIES_SPEC_VERSION,
     },
     {
+        VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME, VK_KHR_DYNAMIC_RENDERING_SPEC_VERSION,
+    },
+    {
         VK_KHR_EXTERNAL_FENCE_EXTENSION_NAME, VK_KHR_EXTERNAL_FENCE_SPEC_VERSION,
     },
     {
@@ -3507,6 +3510,11 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
     case VulkanChunk::vkCmdSetVertexInputEXT:
       return Serialise_vkCmdSetVertexInputEXT(ser, VK_NULL_HANDLE, 0, NULL, 0, NULL);
 
+    case VulkanChunk::vkCmdBeginRenderingKHR:
+      return Serialise_vkCmdBeginRenderingKHR(ser, VK_NULL_HANDLE, NULL);
+    case VulkanChunk::vkCmdEndRenderingKHR:
+      return Serialise_vkCmdEndRenderingKHR(ser, VK_NULL_HANDLE);
+
     // chunks that are reserved but not yet serialised
     case VulkanChunk::vkResetCommandPool:
     case VulkanChunk::vkCreateDepthTargetView:
@@ -3733,7 +3741,8 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
 
         // if a render pass was active, begin it and set up the partial replay state
         m_RenderState.BeginRenderPassAndApplyState(
-            this, cmd, rpUnneeded ? VulkanRenderState::BindNone : VulkanRenderState::BindGraphics);
+            this, cmd, rpUnneeded ? VulkanRenderState::BindNone : VulkanRenderState::BindGraphics,
+            false);
       }
       else
       {
@@ -4255,14 +4264,15 @@ void WrappedVulkan::AddAction(const ActionDescription &a)
 
   if(m_LastCmdBufferID != ResourceId())
   {
-    ResourceId fb = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.GetFramebuffer();
-    ResourceId rp = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass;
-    uint32_t sp = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass;
+    const VulkanRenderState &state = m_BakedCmdBufferInfo[m_LastCmdBufferID].state;
+
+    ResourceId fb = state.GetFramebuffer();
+    ResourceId rp = state.GetRenderPass();
+    uint32_t sp = state.subpass;
 
     if(fb != ResourceId() && rp != ResourceId())
     {
-      const rdcarray<ResourceId> &atts =
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].state.GetFramebufferAttachments();
+      const rdcarray<ResourceId> &atts = state.GetFramebufferAttachments();
 
       RDCASSERT(sp < m_CreationInfo.m_RenderPass[rp].subpasses.size());
 
@@ -4286,6 +4296,25 @@ void WrappedVulkan::AddAction(const ActionDescription &a)
         RDCASSERT(dsAtt < (int32_t)atts.size());
         action.depthOut =
             GetResourceManager()->GetOriginalID(m_CreationInfo.m_ImageView[atts[dsAtt]].image);
+      }
+    }
+    else if(state.dynamicRendering.active)
+    {
+      const VulkanRenderState::DynamicRendering &dyn = state.dynamicRendering;
+
+      for(size_t i = 0; i < ARRAY_COUNT(action.outputs) && i < dyn.color.size(); i++)
+      {
+        if(dyn.color[i].imageView == VK_NULL_HANDLE)
+          continue;
+
+        action.outputs[i] = GetResourceManager()->GetOriginalID(
+            m_CreationInfo.m_ImageView[GetResID(dyn.color[i].imageView)].image);
+      }
+
+      if(dyn.depth.imageView != VK_NULL_HANDLE)
+      {
+        action.depthOut = GetResourceManager()->GetOriginalID(
+            m_CreationInfo.m_ImageView[GetResID(dyn.depth.imageView)].image);
       }
     }
   }
@@ -4542,14 +4571,18 @@ void WrappedVulkan::AddUsage(VulkanActionTreeNode &actionNode, rdcarray<DebugMes
   //////////////////////////////
   // Framebuffer/renderpass
 
-  AddFramebufferUsage(actionNode, state.renderPass, state.GetFramebuffer(), state.subpass,
-                      state.GetFramebufferAttachments());
+  AddFramebufferUsage(actionNode, state);
 }
 
-void WrappedVulkan::AddFramebufferUsage(VulkanActionTreeNode &actionNode, ResourceId renderPass,
-                                        ResourceId framebuffer, uint32_t subpass,
-                                        const rdcarray<ResourceId> &fbattachments)
+void WrappedVulkan::AddFramebufferUsage(VulkanActionTreeNode &actionNode,
+                                        const VulkanRenderState &renderState)
 {
+  ResourceId renderPass = renderState.GetRenderPass();
+  ResourceId framebuffer = renderState.GetFramebuffer();
+
+  uint32_t subpass = renderState.subpass;
+  const rdcarray<ResourceId> &fbattachments = renderState.GetFramebufferAttachments();
+
   VulkanCreationInfo &c = m_CreationInfo;
   uint32_t e = actionNode.action.eventId;
 
@@ -4595,17 +4628,43 @@ void WrappedVulkan::AddFramebufferUsage(VulkanActionTreeNode &actionNode, Resour
       }
     }
   }
+  else if(renderState.dynamicRendering.active)
+  {
+    const VulkanRenderState::DynamicRendering &dyn = renderState.dynamicRendering;
+
+    for(size_t i = 0; i < dyn.color.size(); i++)
+    {
+      if(dyn.color[i].imageView == VK_NULL_HANDLE)
+        continue;
+
+      actionNode.resourceUsage.push_back(make_rdcpair(
+          c.m_ImageView[GetResID(dyn.color[i].imageView)].image,
+          EventUsage(e, ResourceUsage::ColorTarget, GetResID(dyn.color[i].imageView))));
+    }
+
+    if(dyn.depth.imageView != VK_NULL_HANDLE)
+    {
+      actionNode.resourceUsage.push_back(make_rdcpair(
+          c.m_ImageView[GetResID(dyn.depth.imageView)].image,
+          EventUsage(e, ResourceUsage::DepthStencilTarget, GetResID(dyn.depth.imageView))));
+    }
+
+    if(dyn.stencil.imageView != VK_NULL_HANDLE && dyn.depth.imageView != dyn.stencil.imageView)
+    {
+      actionNode.resourceUsage.push_back(make_rdcpair(
+          c.m_ImageView[GetResID(dyn.stencil.imageView)].image,
+          EventUsage(e, ResourceUsage::DepthStencilTarget, GetResID(dyn.stencil.imageView))));
+    }
+  }
 }
 
 void WrappedVulkan::AddFramebufferUsageAllChildren(VulkanActionTreeNode &actionNode,
-                                                   ResourceId renderPass, ResourceId framebuffer,
-                                                   uint32_t subpass,
-                                                   const rdcarray<ResourceId> &fbattachments)
+                                                   const VulkanRenderState &renderState)
 {
   for(VulkanActionTreeNode &c : actionNode.children)
-    AddFramebufferUsageAllChildren(c, renderPass, framebuffer, subpass, fbattachments);
+    AddFramebufferUsageAllChildren(c, renderState);
 
-  AddFramebufferUsage(actionNode, renderPass, framebuffer, subpass, fbattachments);
+  AddFramebufferUsage(actionNode, renderState);
 }
 
 void WrappedVulkan::AddEvent()

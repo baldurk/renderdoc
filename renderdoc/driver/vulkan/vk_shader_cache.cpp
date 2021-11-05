@@ -878,6 +878,22 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
       0,                 // base pipeline index
   };
 
+  static VkFormat colFormats[16] = {};
+  static VkPipelineRenderingCreateInfoKHR dynRenderCreate = {
+      VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR, NULL, pipeInfo.viewMask, 0, colFormats,
+  };
+
+  if(pipeInfo.renderpass == ResourceId())
+  {
+    dynRenderCreate.depthAttachmentFormat = pipeInfo.depthFormat;
+    dynRenderCreate.stencilAttachmentFormat = pipeInfo.depthFormat;
+    dynRenderCreate.colorAttachmentCount = (uint32_t)pipeInfo.colorFormats.size();
+    memcpy(colFormats, pipeInfo.colorFormats.data(), pipeInfo.colorFormats.byteSize());
+
+    dynRenderCreate.pNext = ret.pNext;
+    ret.pNext = &dynRenderCreate;
+  }
+
   static VkPipelineDiscardRectangleStateCreateInfoEXT discardRects = {
       VK_STRUCTURE_TYPE_PIPELINE_DISCARD_RECTANGLE_STATE_CREATE_INFO_EXT,
   };

@@ -956,12 +956,9 @@ private:
   void AddEvent();
 
   void AddUsage(VulkanActionTreeNode &actionNode, rdcarray<DebugMessage> &debugMessages);
-  void AddFramebufferUsage(VulkanActionTreeNode &actionNode, ResourceId renderPass,
-                           ResourceId framebuffer, uint32_t subpass,
-                           const rdcarray<ResourceId> &fbattachments);
-  void AddFramebufferUsageAllChildren(VulkanActionTreeNode &actionNode, ResourceId renderPass,
-                                      ResourceId framebuffer, uint32_t subpass,
-                                      const rdcarray<ResourceId> &fbattachments);
+  void AddFramebufferUsage(VulkanActionTreeNode &actionNode, const VulkanRenderState &renderState);
+  void AddFramebufferUsageAllChildren(VulkanActionTreeNode &actionNode,
+                                      const VulkanRenderState &renderState);
 
   // no copy semantics
   WrappedVulkan(const WrappedVulkan &);
@@ -2506,4 +2503,11 @@ public:
       const VkVertexInputBindingDescription2EXT *pVertexBindingDescriptions,
       uint32_t vertexAttributeDescriptionCount,
       const VkVertexInputAttributeDescription2EXT *pVertexAttributeDescriptions);
+
+  // VK_KHR_dynamic_rendering
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBeginRenderingKHR, VkCommandBuffer commandBuffer,
+                                const VkRenderingInfoKHR *pRenderingInfo);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdEndRenderingKHR, VkCommandBuffer commandBuffer);
 };

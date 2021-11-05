@@ -256,6 +256,12 @@ struct VulkanCreationInfo
     ResourceId renderpass;
     uint32_t subpass;
 
+    // VkPipelineRenderingCreateInfoKHR
+    uint32_t viewMask;
+    rdcarray<VkFormat> colorFormats;
+    VkFormat depthFormat;
+    VkFormat stencilFormat;
+
     // a variant of the pipeline that uses subpass 0, used for when we are replaying in isolation.
     // See loadRPs in the RenderPass info
     VkPipeline subpass0pipe;

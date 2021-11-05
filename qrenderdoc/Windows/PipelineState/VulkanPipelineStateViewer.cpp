@@ -2406,7 +2406,7 @@ void VulkanPipelineStateViewer::setState()
   ui->scissors->beginUpdate();
   ui->scissors->clear();
 
-  if(state.currentPass.renderpass.resourceId != ResourceId())
+  if(state.currentPass.renderpass.resourceId != ResourceId() || state.currentPass.renderpass.dynamic)
   {
     ui->scissors->addTopLevelItem(new RDTreeWidgetItem(
         {tr("Render Area"), state.currentPass.renderArea.x, state.currentPass.renderArea.y,
@@ -2542,11 +2542,23 @@ void VulkanPipelineStateViewer::setState()
 
   bool targets[32] = {};
 
-  ui->renderpass->setText(QFormatStr("Render Pass: %1 (Subpass %2)")
-                              .arg(ToQStr(state.currentPass.renderpass.resourceId))
-                              .arg(state.currentPass.renderpass.subpass));
-  ui->framebuffer->setText(
-      QFormatStr("Framebuffer: %1").arg(ToQStr(state.currentPass.framebuffer.resourceId)));
+  if(state.currentPass.renderpass.dynamic)
+  {
+    QString dynamic = tr("Dynamic", "Dynamic rendering renderpass name");
+    QString text = QFormatStr("Render Pass: %1").arg(dynamic);
+    if(state.currentPass.renderpass.suspended)
+      text += tr(" (Suspended)", "Dynamic rendering renderpass name");
+    ui->renderpass->setText(text);
+    ui->framebuffer->setText(tr("Framebuffer: %1").arg(dynamic));
+  }
+  else
+  {
+    ui->renderpass->setText(QFormatStr("Render Pass: %1 (Subpass %2)")
+                                .arg(ToQStr(state.currentPass.renderpass.resourceId))
+                                .arg(state.currentPass.renderpass.subpass));
+    ui->framebuffer->setText(
+        QFormatStr("Framebuffer: %1").arg(ToQStr(state.currentPass.framebuffer.resourceId)));
+  }
 
   vs = ui->fbAttach->verticalScrollBar()->value();
   ui->fbAttach->beginUpdate();
@@ -2621,9 +2633,9 @@ void VulkanPipelineStateViewer::setState()
         QString slotname;
 
         if(colIdx >= 0)
-          slotname = QFormatStr("Color %1").arg(i);
+          slotname = QFormatStr("Color %1").arg(colIdx);
         else if(resIdx >= 0)
-          slotname = QFormatStr("Resolve %1").arg(i);
+          slotname = QFormatStr("Resolve %1").arg(resIdx);
         else if(state.currentPass.renderpass.fragmentDensityAttachment == i)
           slotname = lit("Fragment Density Map");
         else

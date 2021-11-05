@@ -117,6 +117,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_KHR_display`
 * `VK_KHR_draw_indirect_count`
 * `VK_KHR_driver_properties`
+* `VK_KHR_dynamic_rendering`
 * `VK_KHR_external_fence_capabilities`
 * `VK_KHR_external_fence_fd`
 * `VK_KHR_external_fence_win32`

@@ -1628,8 +1628,13 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
 
   uint32_t numViews = 1;
 
+  if(state.dynamicRendering.active)
   {
-    const VulkanCreationInfo::RenderPass &rp = creationInfo.m_RenderPass[state.renderPass];
+    numViews = RDCMAX(numViews, Log2Ceil(state.dynamicRendering.viewMask + 1));
+  }
+  else
+  {
+    const VulkanCreationInfo::RenderPass &rp = creationInfo.m_RenderPass[state.GetRenderPass()];
 
     if(state.subpass < rp.subpasses.size())
     {
@@ -2806,7 +2811,8 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
     m_PostVS.Data[eventId].gsout.idxbufmem = VK_NULL_HANDLE;
   }
 
-  if(!creationInfo.m_RenderPass[state.renderPass].subpasses[state.subpass].multiviews.empty())
+  if(state.dynamicRendering.viewMask > 1 ||
+     !creationInfo.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].multiviews.empty())
   {
     RDCWARN("Multipass is active for this draw, no GS/Tess mesh output is available");
     return;
@@ -2951,7 +2957,8 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
 
   state.graphics.pipeline = GetResID(pipe);
   state.SetFramebuffer(m_pDriver, GetResID(fb));
-  state.renderPass = GetResID(rp);
+  state.SetRenderPass(GetResID(rp));
+  state.dynamicRendering = VulkanRenderState::DynamicRendering();
   state.subpass = 0;
   state.renderArea.offset.x = 0;
   state.renderArea.offset.y = 0;
@@ -3082,7 +3089,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
     // wait for the above fill to finish.
     DoPipelineBarrier(cmd, 1, &meshbufbarrier);
 
-    state.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics);
+    state.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
 
     ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), Unwrap(m_PostVS.XFBQueryPool), 0, 0);
 
@@ -3137,7 +3144,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
     ObjDisp(dev)->CmdResetQueryPool(Unwrap(cmd), Unwrap(m_PostVS.XFBQueryPool), 0,
                                     action->numInstances);
 
-    state.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics);
+    state.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
 
     ActionDescription act = *action;
 
@@ -3329,7 +3336,8 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId, VulkanRenderState state)
 
   VulkanCreationInfo &creationInfo = m_pDriver->m_CreationInfo;
 
-  if(state.graphics.pipeline == ResourceId() || state.renderPass == ResourceId())
+  if(state.graphics.pipeline == ResourceId() ||
+     (state.GetRenderPass() == ResourceId() && !state.dynamicRendering.active))
     return;
 
   const VulkanCreationInfo::Pipeline &pipeInfo = creationInfo.m_Pipeline[state.graphics.pipeline];

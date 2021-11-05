@@ -3882,7 +3882,12 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
       new VulkanAPIWrapper(m_pDriver, c, VK_SHADER_STAGE_VERTEX_BIT, eventId);
 
   // clamp the view index to the number of multiviews, just to be sure
-  size_t numViews = c.m_RenderPass[state.renderPass].subpasses[state.subpass].multiviews.size();
+  size_t numViews;
+
+  if(state.dynamicRendering.active)
+    numViews = Log2Ceil(state.dynamicRendering.viewMask + 1);
+  else
+    numViews = c.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].multiviews.size();
   if(numViews > 1)
     view = RDCMIN((uint32_t)numViews - 1, view);
   else
@@ -4522,7 +4527,8 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     // wait for the above fill to finish.
     DoPipelineBarrier(cmd, 1, &feedbackbufBarrier);
 
-    modifiedstate.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics);
+    modifiedstate.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics,
+                                               false);
 
     m_pDriver->ReplayDraw(cmd, *action);
 

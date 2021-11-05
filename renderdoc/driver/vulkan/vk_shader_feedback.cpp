@@ -1367,8 +1367,9 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   {
     m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(graphicsInfo, state.graphics.pipeline);
 
-    graphicsInfo.renderPass =
-        creationInfo.m_RenderPass[GetResID(graphicsInfo.renderPass)].loadRPs[graphicsInfo.subpass];
+    if(graphicsInfo.renderPass != VK_NULL_HANDLE)
+      graphicsInfo.renderPass =
+          creationInfo.m_RenderPass[GetResID(graphicsInfo.renderPass)].loadRPs[graphicsInfo.subpass];
     graphicsInfo.subpass = 0;
   }
 
@@ -1735,7 +1736,8 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
     }
     else
     {
-      modifiedstate.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics);
+      modifiedstate.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics,
+                                                 false);
 
       m_pDriver->ReplayDraw(cmd, *action);
 

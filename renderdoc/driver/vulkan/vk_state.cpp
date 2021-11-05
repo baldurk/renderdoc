@@ -35,49 +35,114 @@ VulkanRenderState::VulkanRenderState()
 }
 
 void VulkanRenderState::BeginRenderPassAndApplyState(WrappedVulkan *vk, VkCommandBuffer cmd,
-                                                     PipelineBinding binding)
+                                                     PipelineBinding binding, bool obeySuspending)
 {
-  RDCASSERT(renderPass != ResourceId());
-
-  // clear values don't matter as we're using the load renderpass here, that
-  // has all load ops set to load (as we're doing a partial replay - can't
-  // just clear the targets that are partially written to).
-
-  VkClearValue empty[16] = {};
-
-  RDCASSERT(ARRAY_COUNT(empty) >=
-            vk->GetDebugManager()->GetRenderPassInfo(renderPass).attachments.size());
-
-  VulkanCreationInfo::Framebuffer fbinfo = vk->GetDebugManager()->GetFramebufferInfo(framebuffer);
-
-  VkRenderPassBeginInfo rpbegin = {
-      VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-      NULL,
-      Unwrap(vk->GetDebugManager()->GetRenderPassInfo(renderPass).loadRPs[subpass]),
-      Unwrap(fbinfo.loadFBs[subpass]),
-      renderArea,
-      (uint32_t)vk->GetDebugManager()->GetRenderPassInfo(renderPass).attachments.size(),
-      empty,
-  };
-
-  VkRenderPassAttachmentBeginInfo imagelessAttachments = {
-      VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO,
-  };
-  rdcarray<VkImageView> imagelessViews;
-
-  if(fbinfo.imageless)
+  if(dynamicRendering.active)
   {
-    rpbegin.pNext = &imagelessAttachments;
-    imagelessAttachments.attachmentCount = (uint32_t)fbattachments.size();
+    VkRenderingInfoKHR info = {};
+    info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR;
 
-    for(size_t i = 0; i < fbattachments.size(); i++)
-      imagelessViews.push_back(
-          Unwrap(vk->GetResourceManager()->GetCurrentHandle<VkImageView>(fbattachments[i])));
+    // for action callbacks that want to stop the renderpass, do something, then start it with
+    // original state, we need to preserve the suspending flag instead of removing it. For other
+    // uses, we remove both flags as we're just doing a manual start/stop and we're not in a
+    // suspended pass
+    if(obeySuspending)
+    {
+      info.flags = dynamicRendering.flags & ~VK_RENDERING_RESUMING_BIT_KHR;
+    }
+    else
+    {
+      info.flags = dynamicRendering.flags &
+                   ~(VK_RENDERING_RESUMING_BIT_KHR | VK_RENDERING_SUSPENDING_BIT_KHR);
+    }
 
-    imagelessAttachments.pAttachments = imagelessViews.data();
+    info.layerCount = dynamicRendering.layerCount;
+    info.renderArea = renderArea;
+    info.viewMask = dynamicRendering.viewMask;
+
+    VkRenderingAttachmentInfoKHR depth = dynamicRendering.depth;
+    info.pDepthAttachment = &depth;
+    if(depth.imageLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+      info.pDepthAttachment = NULL;
+    VkRenderingAttachmentInfoKHR stencil = dynamicRendering.depth;
+    info.pStencilAttachment = &stencil;
+    if(stencil.imageLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+      info.pStencilAttachment = NULL;
+
+    rdcarray<VkRenderingAttachmentInfoKHR> color = dynamicRendering.color;
+
+    info.colorAttachmentCount = (uint32_t)color.size();
+    info.pColorAttachments = color.data();
+
+    // patch the load/store actions and unwrap
+    for(uint32_t i = 0; i < (uint32_t)color.size() + 2; i++)
+    {
+      VkRenderingAttachmentInfoKHR *att = (VkRenderingAttachmentInfoKHR *)info.pColorAttachments + i;
+
+      if(i == info.colorAttachmentCount)
+        att = (VkRenderingAttachmentInfoKHR *)info.pDepthAttachment;
+      else if(i == info.colorAttachmentCount + 1)
+        att = (VkRenderingAttachmentInfoKHR *)info.pStencilAttachment;
+
+      if(!att)
+        continue;
+
+      if(att->loadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+        att->loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+
+      if(att->storeOp != VK_ATTACHMENT_STORE_OP_NONE_EXT)
+        att->storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+      att->imageView = Unwrap(att->imageView);
+      att->resolveImageView = Unwrap(att->resolveImageView);
+    }
+
+    ObjDisp(cmd)->CmdBeginRenderingKHR(Unwrap(cmd), &info);
   }
+  else
+  {
+    RDCASSERT(renderPass != ResourceId());
 
-  ObjDisp(cmd)->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
+    // clear values don't matter as we're using the load renderpass here, that
+    // has all load ops set to load (as we're doing a partial replay - can't
+    // just clear the targets that are partially written to).
+
+    VkClearValue empty[16] = {};
+
+    RDCASSERT(ARRAY_COUNT(empty) >=
+              vk->GetDebugManager()->GetRenderPassInfo(renderPass).attachments.size());
+
+    VulkanCreationInfo::Framebuffer fbinfo = vk->GetDebugManager()->GetFramebufferInfo(framebuffer);
+
+    VkRenderPassBeginInfo rpbegin = {
+        VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+        NULL,
+        Unwrap(vk->GetDebugManager()->GetRenderPassInfo(renderPass).loadRPs[subpass]),
+        Unwrap(fbinfo.loadFBs[subpass]),
+        renderArea,
+        (uint32_t)vk->GetDebugManager()->GetRenderPassInfo(renderPass).attachments.size(),
+        empty,
+    };
+
+    VkRenderPassAttachmentBeginInfo imagelessAttachments = {
+        VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO,
+    };
+    rdcarray<VkImageView> imagelessViews;
+
+    if(fbinfo.imageless)
+    {
+      rpbegin.pNext = &imagelessAttachments;
+      imagelessAttachments.attachmentCount = (uint32_t)fbattachments.size();
+
+      for(size_t i = 0; i < fbattachments.size(); i++)
+        imagelessViews.push_back(
+            Unwrap(vk->GetResourceManager()->GetCurrentHandle<VkImageView>(fbattachments[i])));
+
+      imagelessAttachments.pAttachments = imagelessViews.data();
+    }
+
+    ObjDisp(cmd)->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
+  }
 
   BindPipeline(vk, cmd, binding, true);
 
@@ -97,7 +162,72 @@ void VulkanRenderState::BeginRenderPassAndApplyState(WrappedVulkan *vk, VkComman
 
 void VulkanRenderState::EndRenderPass(VkCommandBuffer cmd)
 {
-  ObjDisp(cmd)->CmdEndRenderPass(Unwrap(cmd));
+  if(dynamicRendering.active)
+  {
+    if(!dynamicRendering.suspended)
+      ObjDisp(cmd)->CmdEndRenderingKHR(Unwrap(cmd));
+  }
+  else
+  {
+    ObjDisp(cmd)->CmdEndRenderPass(Unwrap(cmd));
+  }
+}
+
+void VulkanRenderState::FinishSuspendedRenderPass(VkCommandBuffer cmd)
+{
+  if(dynamicRendering.active && dynamicRendering.suspended)
+  {
+    VkRenderingInfoKHR info = {};
+    info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR;
+
+    // still resume the existing pass, but don't suspend again after that
+    info.flags = dynamicRendering.flags & ~VK_RENDERING_SUSPENDING_BIT_KHR;
+
+    info.layerCount = dynamicRendering.layerCount;
+    info.renderArea = renderArea;
+    info.viewMask = dynamicRendering.viewMask;
+
+    VkRenderingAttachmentInfoKHR depth = dynamicRendering.depth;
+    info.pDepthAttachment = &depth;
+    if(depth.imageLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+      info.pDepthAttachment = NULL;
+    VkRenderingAttachmentInfoKHR stencil = dynamicRendering.depth;
+    info.pStencilAttachment = &stencil;
+    if(stencil.imageLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+      info.pStencilAttachment = NULL;
+
+    rdcarray<VkRenderingAttachmentInfoKHR> color = dynamicRendering.color;
+
+    info.colorAttachmentCount = (uint32_t)color.size();
+    info.pColorAttachments = color.data();
+
+    // patch the load/store actions and unwrap
+    for(uint32_t i = 0; i < (uint32_t)color.size() + 2; i++)
+    {
+      VkRenderingAttachmentInfoKHR *att = (VkRenderingAttachmentInfoKHR *)info.pColorAttachments + i;
+
+      if(i == info.colorAttachmentCount)
+        att = (VkRenderingAttachmentInfoKHR *)info.pDepthAttachment;
+      else if(i == info.colorAttachmentCount + 1)
+        att = (VkRenderingAttachmentInfoKHR *)info.pStencilAttachment;
+
+      if(!att)
+        continue;
+
+      if(att->loadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+        att->loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+
+      if(att->storeOp != VK_ATTACHMENT_STORE_OP_NONE_EXT)
+        att->storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+      att->imageView = Unwrap(att->imageView);
+      att->resolveImageView = Unwrap(att->resolveImageView);
+    }
+
+    // do nothing, just resume and then end without suspending
+    ObjDisp(cmd)->CmdBeginRenderingKHR(Unwrap(cmd), &info);
+    ObjDisp(cmd)->CmdEndRenderingKHR(Unwrap(cmd));
+  }
 }
 
 void VulkanRenderState::EndTransformFeedback(WrappedVulkan *vk, VkCommandBuffer cmd)
@@ -133,6 +263,13 @@ bool VulkanRenderState::IsConditionalRenderingEnabled()
 void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
                                      PipelineBinding binding, bool subpass0)
 {
+  // subpass0 is a patched version of the pipeline created against subpass 0, in case for old style
+  // renderpasses we need to use a pipeline that was previously in subpass 1 against our loadrp with
+  // only one subpass. It's not needed for dynamic rendering, we can always use the original
+  // pipeline
+  if(subpass0 && dynamicRendering.active)
+    subpass0 = false;
+
   if(binding == BindGraphics || binding == BindInitial)
   {
     bool dynamicStates[VkDynamicCount] = {};

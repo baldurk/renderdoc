@@ -161,7 +161,8 @@ bool WrappedVulkan::IsDrawInRenderPass()
 {
   BakedCmdBufferInfo &cmd = m_BakedCmdBufferInfo[m_LastCmdBufferID];
 
-  if(cmd.level == VK_COMMAND_BUFFER_LEVEL_PRIMARY && cmd.state.renderPass == ResourceId())
+  if(cmd.level == VK_COMMAND_BUFFER_LEVEL_PRIMARY && cmd.state.GetRenderPass() == ResourceId() &&
+     (!cmd.state.dynamicRendering.active || cmd.state.dynamicRendering.suspended))
   {
     // for primary command buffers, we just check the per-command buffer tracked state
     return false;
@@ -2503,9 +2504,9 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(SerialiserType &ser,
         VulkanActionTreeNode &actionNode = GetActionStack().back()->children.back();
         const VulkanRenderState &state = m_BakedCmdBufferInfo[m_LastCmdBufferID].state;
 
-        if(state.renderPass != ResourceId() && state.GetFramebuffer() != ResourceId())
+        if(state.GetRenderPass() != ResourceId() && state.GetFramebuffer() != ResourceId())
         {
-          VulkanCreationInfo::RenderPass &rp = m_CreationInfo.m_RenderPass[state.renderPass];
+          VulkanCreationInfo::RenderPass &rp = m_CreationInfo.m_RenderPass[state.GetRenderPass()];
 
           RDCASSERT(state.subpass < rp.subpasses.size());
 
@@ -2538,6 +2539,34 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(SerialiserType &ser,
                                state.GetFramebufferAttachments()[att])));
               }
             }
+          }
+        }
+        else if(state.dynamicRendering.active)
+        {
+          const VulkanRenderState::DynamicRendering &dyn = state.dynamicRendering;
+
+          for(size_t a = 0; a < dyn.color.size(); a++)
+          {
+            actionNode.resourceUsage.push_back(
+                make_rdcpair(m_CreationInfo.m_ImageView[GetResID(dyn.color[a].imageView)].image,
+                             EventUsage(actionNode.action.eventId, ResourceUsage::Clear,
+                                        GetResID(dyn.color[a].imageView))));
+          }
+
+          if(dyn.depth.imageView != VK_NULL_HANDLE)
+          {
+            actionNode.resourceUsage.push_back(
+                make_rdcpair(m_CreationInfo.m_ImageView[GetResID(dyn.depth.imageView)].image,
+                             EventUsage(actionNode.action.eventId, ResourceUsage::Clear,
+                                        GetResID(dyn.depth.imageView))));
+          }
+
+          if(dyn.stencil.imageView != VK_NULL_HANDLE && dyn.depth.imageView != dyn.stencil.imageView)
+          {
+            actionNode.resourceUsage.push_back(
+                make_rdcpair(m_CreationInfo.m_ImageView[GetResID(dyn.stencil.imageView)].image,
+                             EventUsage(actionNode.action.eventId, ResourceUsage::Clear,
+                                        GetResID(dyn.stencil.imageView))));
           }
         }
       }

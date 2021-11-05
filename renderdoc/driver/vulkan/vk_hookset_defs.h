@@ -532,7 +532,8 @@
   DeclExt(KHR_maintenance4);                    \
   DeclExt(EXT_color_write_enable);              \
   DeclExt(EXT_extended_dynamic_state2);         \
-  DeclExt(EXT_vertex_input_dynamic_state);
+  DeclExt(EXT_vertex_input_dynamic_state);      \
+  DeclExt(KHR_dynamic_rendering);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -637,7 +638,8 @@
   CheckExt(KHR_maintenance4, VKXX);                    \
   CheckExt(EXT_color_write_enable, VKXX);              \
   CheckExt(EXT_extended_dynamic_state2, VKXX);         \
-  CheckExt(EXT_vertex_input_dynamic_state, VKXX);
+  CheckExt(EXT_vertex_input_dynamic_state, VKXX);      \
+  CheckExt(KHR_dynamic_rendering, VKXX);
 
 #define HookInitVulkanInstanceExts_PhysDev()                                                         \
   HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                                \
@@ -890,6 +892,8 @@
   HookInitExtension(EXT_extended_dynamic_state2, CmdSetPrimitiveRestartEnableEXT);                 \
   HookInitExtension(EXT_extended_dynamic_state2, CmdSetRasterizerDiscardEnableEXT);                \
   HookInitExtension(EXT_vertex_input_dynamic_state, CmdSetVertexInputEXT);                         \
+  HookInitExtension(KHR_dynamic_rendering, CmdBeginRenderingKHR);                                  \
+  HookInitExtension(KHR_dynamic_rendering, CmdEndRenderingKHR);                                    \
   HookInitExtension_Device_Win32();                                                                \
   HookInitExtension_Device_Linux();                                                                \
   HookInitExtension_Device_GGP();                                                                  \
@@ -1600,6 +1604,9 @@
               vertexBindingDescriptionCount, const VkVertexInputBindingDescription2EXT *,            \
               pVertexBindingDescriptions, uint32_t, vertexAttributeDescriptionCount,                 \
               const VkVertexInputAttributeDescription2EXT *, pVertexAttributeDescriptions);          \
+  HookDefine2(void, vkCmdBeginRenderingKHR, VkCommandBuffer, commandBuffer,                          \
+              const VkRenderingInfoKHR *, pRenderingInfo);                                           \
+  HookDefine1(void, vkCmdEndRenderingKHR, VkCommandBuffer, commandBuffer);                           \
   HookDefine_Win32();                                                                                \
   HookDefine_Linux();                                                                                \
   HookDefine_GGP();                                                                                  \

@@ -945,6 +945,12 @@ struct RenderPass
   DOCUMENT("The :class:`ResourceId` of the render pass.");
   ResourceId resourceId;
 
+  DOCUMENT("Whether or not dynamic rendering is in use (no render pass or framebuffer objects).");
+  bool dynamic = false;
+
+  DOCUMENT("Whether or not dynamic rendering is currently suspended.");
+  bool suspended = false;
+
   DOCUMENT("The index of the current active subpass.");
   uint32_t subpass;
 

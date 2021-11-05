@@ -637,14 +637,85 @@ protected:
     dynState->dynamicStateCount = (uint32_t)m_DynamicStates.size();
   }
 
-  // CreateRenderPass creates a new VkRenderPass based on the original that has a separate
-  // depth-stencil attachment, and covers a single subpass. This will be used to replay
-  // a single draw. The new renderpass also replaces the depth stencil attachment, so
-  // it can be used to count the number of fragments. Optionally, the new renderpass
-  // changes the format for the color image that corresponds to colorIdx attachment.
-  VkRenderPass CreateRenderPass(ResourceId rp, bool &multiview,
-                                VkFormat newColorFormat = VK_FORMAT_UNDEFINED, uint32_t colorIdx = 0)
+  // PatchRenderPass creates a new VkRenderPass based on the original that has a separate
+  // depth-stencil attachment, and covers a single subpass. This will be used to replay a single
+  // draw. The new renderpass also replaces the depth stencil attachment, so it can be used to count
+  // the number of fragments. Optionally, the new renderpass changes the format for the color image
+  // that corresponds to colorIdx attachment. It also modifies the render state to use the new
+  // renderpass, and returns it for further use.
+  //
+  // When dynamic rendering is in use, it doesn't create a new renderpass it just modifies the
+  // passed in state and returns a NULL handle.
+  VkRenderPass PatchRenderPass(VulkanRenderState &pipestate, bool &multiview,
+                               VkFormat newColorFormat = VK_FORMAT_UNDEFINED, uint32_t colorIdx = 0)
   {
+    if(pipestate.dynamicRendering.active)
+    {
+      VulkanRenderState::DynamicRendering &dyn = pipestate.dynamicRendering;
+      // replicate work done below on renderpass objects.
+
+      multiview = false;
+      if(pipestate.dynamicRendering.viewMask > 1)
+      {
+        pipestate.dynamicRendering.viewMask = 1U << m_CallbackInfo.targetSubresource.slice;
+        multiview = true;
+      }
+
+      // strip any resolving, change load/store ops to load/store
+      for(size_t i = 0; i < dyn.color.size(); i++)
+      {
+        dyn.color[i].resolveMode = VK_RESOLVE_MODE_NONE;
+        dyn.color[i].resolveImageView = VK_NULL_HANDLE;
+
+        if(dyn.color[i].loadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+          dyn.color[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+        if(dyn.color[i].storeOp != VK_ATTACHMENT_STORE_OP_NONE_EXT)
+          dyn.color[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+        // nothing to do with newColorFormat here - we patch that when creating the pipeline
+      }
+
+      if(colorIdx >= (uint32_t)dyn.color.size())
+      {
+        VkRenderingAttachmentInfoKHR c = {
+            VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
+            NULL,
+            VK_NULL_HANDLE,    // the image view will be bound in PatchFramebuffer
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            VK_RESOLVE_MODE_NONE,
+            VK_NULL_HANDLE,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_ATTACHMENT_LOAD_OP_LOAD,
+            VK_ATTACHMENT_STORE_OP_STORE,
+            {},
+        };
+
+        dyn.color.push_back(c);
+      }
+
+      dyn.depth.resolveMode = VK_RESOLVE_MODE_NONE;
+      dyn.depth.resolveImageView = VK_NULL_HANDLE;
+      if(dyn.depth.loadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
+        dyn.depth.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+      if(dyn.depth.storeOp != VK_ATTACHMENT_STORE_OP_NONE_EXT)
+        dyn.depth.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+      dyn.stencil.resolveMode = VK_RESOLVE_MODE_NONE;
+      dyn.stencil.resolveImageView = VK_NULL_HANDLE;
+      dyn.stencil.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+      if(dyn.stencil.storeOp != VK_ATTACHMENT_STORE_OP_NONE_EXT)
+        dyn.stencil.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+      // we'll be using our own depth/stencil attachment but it will be updated in PatchFramebuffer.
+      // Just set the image layout here
+      dyn.depth.imageLayout = dyn.stencil.imageLayout =
+          VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+      return VK_NULL_HANDLE;
+    }
+
+    ResourceId rp = pipestate.GetRenderPass();
+
     const VulkanCreationInfo::RenderPass &rpInfo =
         m_pDriver->GetDebugManager()->GetRenderPassInfo(rp);
     // TODO: this should retrieve the correct subpass, once multiple subpasses
@@ -807,17 +878,46 @@ protected:
         m_pDriver->vkCreateRenderPass(m_pDriver->GetDev(), &rpCreateInfo, NULL, &renderpass);
     m_pDriver->CheckVkResult(vkr);
     m_RpsToDestroy.push_back(renderpass);
+
+    pipestate.SetRenderPass(GetResID(renderpass));
+
     return renderpass;
   }
 
-  // CreateFrambuffer creates a new VkFramebuffer that is based on the original, but
+  // PatchFramebuffer creates a new VkFramebuffer that is based on the original, but
   // substitutes the depth stencil image view. If there is no depth stencil attachment,
   // it will be added. Optionally, also substitutes the original target image view with
-  // the newColorAtt.
-  VkFramebuffer CreateFramebuffer(const VulkanRenderState &pipestate, VkRenderPass newRp,
-                                  VkImageView newColorAtt = VK_NULL_HANDLE, uint32_t colorIdx = 0)
+  // the newColorAtt. It also modifies the render state to use the new
+  // framebuffer, and returns it for further use.
+  //
+  // When dynamic rendering is in use, it doesn't create a new framebuffer it just modifies the
+  // passed in state and returns a NULL handle.
+  VkFramebuffer PatchFramebuffer(VulkanRenderState &pipestate, VkRenderPass newRp,
+                                 VkImageView newColorAtt = VK_NULL_HANDLE,
+                                 VkFormat newColorFormat = VK_FORMAT_UNDEFINED, uint32_t colorIdx = 0)
   {
-    ResourceId rp = pipestate.renderPass;
+    if(pipestate.dynamicRendering.active)
+    {
+      VulkanRenderState::DynamicRendering &dyn = pipestate.dynamicRendering;
+
+      // patch the color, if we're doing that
+      if(newColorAtt != VK_NULL_HANDLE)
+      {
+        // colorIdx shouldn't be greater as we pushed back a new attachment in PatchRenderPass, but
+        // just in case fixup here
+        if(colorIdx >= (uint32_t)dyn.color.size())
+          colorIdx = uint32_t(dyn.color.size() - 1);
+
+        dyn.color[colorIdx].imageView = newColorAtt;
+      }
+
+      // patch the D/S view
+      dyn.depth.imageView = dyn.stencil.imageView = m_CallbackInfo.dsImageView;
+
+      return VK_NULL_HANDLE;
+    }
+
+    ResourceId rp = pipestate.GetRenderPass();
     ResourceId origFb = pipestate.GetFramebuffer();
     const VulkanCreationInfo::RenderPass &rpInfo =
         m_pDriver->GetDebugManager()->GetRenderPassInfo(rp);
@@ -860,6 +960,9 @@ protected:
     VkResult vkr = m_pDriver->vkCreateFramebuffer(m_pDriver->GetDev(), &fbCI, NULL, &framebuffer);
     m_pDriver->CheckVkResult(vkr);
     m_FbsToDestroy.push_back(framebuffer);
+
+    pipestate.SetFramebuffer(m_pDriver, GetResID(framebuffer));
+
     return framebuffer;
   }
 
@@ -1040,7 +1143,7 @@ protected:
 
   bool HasMultipleSubpasses()
   {
-    ResourceId rp = m_pDriver->GetCmdRenderState().renderPass;
+    ResourceId rp = m_pDriver->GetCmdRenderState().GetRenderPass();
     if(rp == ResourceId())
       return false;
     const VulkanCreationInfo::RenderPass &rpInfo =
@@ -1050,12 +1153,10 @@ protected:
 
   // Returns teh color attachment index that corresponds to the target image for
   // pixel history.
-  uint32_t GetColorAttachmentIndex(const VulkanRenderState &renderstate)
+  uint32_t GetColorAttachmentIndex(const VulkanRenderState &renderstate,
+                                   uint32_t *framebufferIndex = NULL)
   {
-    if(IsDepthOrStencilFormat(m_CallbackInfo.targetImageFormat))
-      return 0;
-
-    uint32_t framebufferIndex = 0;
+    uint32_t fbIndex = 0;
     const rdcarray<ResourceId> &atts = renderstate.GetFramebufferAttachments();
 
     for(uint32_t i = 0; i < atts.size(); i++)
@@ -1063,17 +1164,45 @@ protected:
       ResourceId img = m_pDriver->GetDebugManager()->GetImageViewInfo(atts[i]).image;
       if(img == GetResID(m_CallbackInfo.targetImage))
       {
-        framebufferIndex = i;
+        fbIndex = i;
         break;
       }
     }
 
+    if(framebufferIndex)
+      *framebufferIndex = fbIndex;
+
+    if(IsDepthOrStencilFormat(m_CallbackInfo.targetImageFormat))
+    {
+      if(framebufferIndex && renderstate.dynamicRendering.active)
+        *framebufferIndex = ~0U;
+      return 0;
+    }
+
+    if(renderstate.dynamicRendering.active)
+    {
+      for(size_t i = 0; i < renderstate.dynamicRendering.color.size(); i++)
+      {
+        VkImageView v = renderstate.dynamicRendering.color[i].imageView;
+        if(v != VK_NULL_HANDLE)
+        {
+          ResourceId img = m_pDriver->GetDebugManager()->GetImageViewInfo(GetResID(v)).image;
+          if(img == GetResID(m_CallbackInfo.targetImage))
+          {
+            if(framebufferIndex)
+              *framebufferIndex = (uint32_t)i;
+            return (uint32_t)i;
+          }
+        }
+      }
+    }
+
     const VulkanCreationInfo::RenderPass &rpInfo =
-        m_pDriver->GetDebugManager()->GetRenderPassInfo(renderstate.renderPass);
+        m_pDriver->GetDebugManager()->GetRenderPassInfo(renderstate.GetRenderPass());
     const VulkanCreationInfo::RenderPass::Subpass &sub = rpInfo.subpasses.front();
     for(uint32_t i = 0; i < sub.colorAttachments.size(); i++)
     {
-      if(framebufferIndex == sub.colorAttachments[i])
+      if(fbIndex == sub.colorAttachments[i])
         return i;
     }
     return 0;
@@ -1270,22 +1399,19 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
     VulkanRenderState &pipestate = m_pDriver->GetCmdRenderState();
 
     pipestate.EndRenderPass(cmd);
+    // if dynamic rendering is in use and the renderpass just suspended, we need to be sure it is
+    // really finished. This will just store as we always patch the load/store ops.
+    pipestate.FinishSuspendedRenderPass(cmd);
 
     // Get pre-modification values
     size_t storeOffset = m_EventIndices.size() * sizeof(EventInfo);
 
     CopyPixel(eid, cmd, storeOffset);
 
-    ResourceId prevRenderpass = pipestate.renderPass;
-    ResourceId prevFramebuffer = pipestate.GetFramebuffer();
-    rdcarray<ResourceId> prevFBattachments = pipestate.GetFramebufferAttachments();
-
-    uint32_t prevSubpass = pipestate.subpass;
-
     {
       bool multiview = false;
-      VkRenderPass newRp = CreateRenderPass(pipestate.renderPass, multiview);
-      VkFramebuffer newFb = CreateFramebuffer(pipestate, newRp);
+      VkRenderPass newRp = PatchRenderPass(pipestate, multiview);
+      PatchFramebuffer(pipestate, newRp);
 
       PipelineReplacements replacements = GetPipelineReplacements(
           eid, pipestate.graphics.pipeline, newRp, GetColorAttachmentIndex(prevState));
@@ -1298,8 +1424,6 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
       // Replay the draw with a fixed color shader that never discards, and stencil
       // increment to count number of fragments. We will get the number of fragments
       // not accounting for shader discard.
-      pipestate.SetFramebuffer(m_pDriver, GetResID(newFb));
-      pipestate.renderPass = GetResID(newRp);
       pipestate.graphics.pipeline = GetResID(replacements.fixedShaderStencil);
       pipestate.front.compare = pipestate.front.write = 0xff;
       pipestate.front.ref = 0;
@@ -1327,14 +1451,11 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
     }
 
     // Restore the state.
-    m_pDriver->GetCmdRenderState() = prevState;
-    pipestate.SetFramebuffer(prevFramebuffer, prevFBattachments);
-    pipestate.renderPass = prevRenderpass;
-    pipestate.subpass = prevSubpass;
+    pipestate = prevState;
 
     // TODO: Need to re-start on the correct subpass.
     if(pipestate.graphics.pipeline != ResourceId())
-      pipestate.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics);
+      pipestate.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics, true);
   }
 
   bool PostDraw(uint32_t eid, VkCommandBuffer cmd)
@@ -1353,13 +1474,16 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
     }
 
     m_pDriver->GetCmdRenderState().EndRenderPass(cmd);
+    // if dynamic rendering is in use and the renderpass just suspended, we need to be sure it is
+    // really finished. This will just store as we always patch the load/store ops.
+    m_pDriver->GetCmdRenderState().FinishSuspendedRenderPass(cmd);
 
     size_t storeOffset = m_EventIndices.size() * sizeof(EventInfo);
 
     CopyPixel(eid, cmd, storeOffset + offsetof(struct EventInfo, postmod));
 
-    m_pDriver->GetCmdRenderState().BeginRenderPassAndApplyState(m_pDriver, cmd,
-                                                                VulkanRenderState::BindGraphics);
+    m_pDriver->GetCmdRenderState().BeginRenderPassAndApplyState(
+        m_pDriver, cmd, VulkanRenderState::BindGraphics, true);
 
     // Get post-modification values
     m_EventIndices.insert(std::make_pair(eid, m_EventIndices.size()));
@@ -1399,17 +1523,22 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
       return;
     }
 
-    if(m_pDriver->GetCmdRenderState().renderPass != ResourceId())
+    if(m_pDriver->GetCmdRenderState().ActiveRenderPass())
+    {
       m_pDriver->GetCmdRenderState().EndRenderPass(cmd);
+      // if dynamic rendering is in use and the renderpass just suspended, we need to be sure it is
+      // really finished. This will just store as we always patch the load/store ops.
+      m_pDriver->GetCmdRenderState().FinishSuspendedRenderPass(cmd);
+    }
 
     // Copy
     size_t storeOffset = m_EventIndices.size() * sizeof(EventInfo);
     CopyPixel(eventId, cmd, storeOffset);
     m_EventIndices.insert(std::make_pair(eventId, m_EventIndices.size()));
 
-    if(m_pDriver->GetCmdRenderState().renderPass != ResourceId())
-      m_pDriver->GetCmdRenderState().BeginRenderPassAndApplyState(m_pDriver, cmd,
-                                                                  VulkanRenderState::BindNone);
+    if(m_pDriver->GetCmdRenderState().ActiveRenderPass())
+      m_pDriver->GetCmdRenderState().BeginRenderPassAndApplyState(
+          m_pDriver, cmd, VulkanRenderState::BindNone, true);
   }
 
   void PostCmdExecute(uint32_t baseEid, uint32_t secondaryFirst, uint32_t secondaryLast,
@@ -1440,8 +1569,14 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
       return;
     }
 
-    if(m_pDriver->GetCmdRenderState().renderPass != ResourceId())
+    if(m_pDriver->GetCmdRenderState().ActiveRenderPass())
+    {
       m_pDriver->GetCmdRenderState().EndRenderPass(cmd);
+
+      // if dynamic rendering is in use and the renderpass just suspended, we need to be sure it is
+      // really finished. This will just store as we always patch the load/store ops.
+      m_pDriver->GetCmdRenderState().FinishSuspendedRenderPass(cmd);
+    }
 
     size_t storeOffset = 0;
     auto it = m_EventIndices.find(eventId);
@@ -1456,9 +1591,9 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
     }
     CopyPixel(eventId, cmd, storeOffset + offsetof(struct EventInfo, postmod));
 
-    if(m_pDriver->GetCmdRenderState().renderPass != ResourceId())
-      m_pDriver->GetCmdRenderState().BeginRenderPassAndApplyState(m_pDriver, cmd,
-                                                                  VulkanRenderState::BindNone);
+    if(m_pDriver->GetCmdRenderState().ActiveRenderPass())
+      m_pDriver->GetCmdRenderState().BeginRenderPassAndApplyState(
+          m_pDriver, cmd, VulkanRenderState::BindNone, true);
   }
 
   void PreDispatch(uint32_t eid, VkCommandBuffer cmd)
@@ -1507,13 +1642,19 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
       return false;
     }
     if(flags & ActionFlags::BeginPass)
+    {
       m_pDriver->GetCmdRenderState().EndRenderPass(cmd);
+
+      // if dynamic rendering is in use and the renderpass just suspended, we need to be sure it is
+      // really finished. This will just store as we always patch the load/store ops.
+      m_pDriver->GetCmdRenderState().FinishSuspendedRenderPass(cmd);
+    }
 
     bool ret = PostDispatch(eid, cmd);
 
     if(flags & ActionFlags::BeginPass)
-      m_pDriver->GetCmdRenderState().BeginRenderPassAndApplyState(m_pDriver, cmd,
-                                                                  VulkanRenderState::BindNone);
+      m_pDriver->GetCmdRenderState().BeginRenderPassAndApplyState(
+          m_pDriver, cmd, VulkanRenderState::BindNone, true);
 
     return ret;
   }
@@ -1575,28 +1716,52 @@ private:
 
     const VulkanRenderState &state = m_pDriver->GetCmdRenderState();
 
-    if(state.renderPass != ResourceId())
+    ResourceId depthImageId;
+    VkImageLayout depthLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+    if(state.dynamicRendering.active)
+    {
+      VkImageView dsView = state.dynamicRendering.depth.imageView;
+      depthLayout = state.dynamicRendering.depth.imageLayout;
+      if(dsView == VK_NULL_HANDLE && state.dynamicRendering.stencil.imageView != VK_NULL_HANDLE)
+      {
+        dsView = state.dynamicRendering.stencil.imageView;
+        depthLayout = state.dynamicRendering.stencil.imageLayout;
+      }
+
+      if(dsView != VK_NULL_HANDLE)
+      {
+        depthImageId = m_pDriver->GetDebugManager()->GetImageViewInfo(GetResID(dsView)).image;
+      }
+    }
+    else if(state.GetRenderPass() != ResourceId())
     {
       const VulkanCreationInfo::RenderPass &rpInfo =
-          m_pDriver->GetDebugManager()->GetRenderPassInfo(state.renderPass);
+          m_pDriver->GetDebugManager()->GetRenderPassInfo(state.GetRenderPass());
       const rdcarray<ResourceId> &atts = state.GetFramebufferAttachments();
 
       int32_t att = rpInfo.subpasses[state.subpass].depthstencilAttachment;
 
       if(att >= 0)
       {
-        ResourceId resId = m_pDriver->GetDebugManager()->GetImageViewInfo(atts[att]).image;
-        VkImage depthImage = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(resId);
-
-        const VulkanCreationInfo::Image &imginfo = m_pDriver->GetDebugManager()->GetImageInfo(resId);
-        CopyPixelParams depthCopyParams = targetCopyParams;
-        depthCopyParams.srcImage = depthImage;
-        depthCopyParams.srcImageLayout = rpInfo.subpasses[state.subpass].depthLayout;
-        depthCopyParams.srcImageFormat = imginfo.format;
-        depthCopyParams.multisampled = (imginfo.samples != VK_SAMPLE_COUNT_1_BIT);
-        CopyImagePixel(cmd, depthCopyParams, offset + offsetof(struct PixelHistoryValue, depth));
-        m_DepthFormats.insert(std::make_pair(eid, imginfo.format));
+        depthImageId = m_pDriver->GetDebugManager()->GetImageViewInfo(atts[att]).image;
+        depthLayout = rpInfo.subpasses[state.subpass].depthLayout;
       }
+    }
+
+    if(depthImageId != ResourceId())
+    {
+      VkImage depthImage = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(depthImageId);
+
+      const VulkanCreationInfo::Image &imginfo =
+          m_pDriver->GetDebugManager()->GetImageInfo(depthImageId);
+      CopyPixelParams depthCopyParams = targetCopyParams;
+      depthCopyParams.srcImage = depthImage;
+      depthCopyParams.srcImageLayout = depthLayout;
+      depthCopyParams.srcImageFormat = imginfo.format;
+      depthCopyParams.multisampled = (imginfo.samples != VK_SAMPLE_COUNT_1_BIT);
+      CopyImagePixel(cmd, depthCopyParams, offset + offsetof(struct PixelHistoryValue, depth));
+      m_DepthFormats.insert(std::make_pair(eid, imginfo.format));
     }
   }
 
@@ -1604,8 +1769,8 @@ private:
   // ends the renderpass.
   void ReplayDraw(VkCommandBuffer cmd, uint32_t eventId, bool clear = false)
   {
-    m_pDriver->GetCmdRenderState().BeginRenderPassAndApplyState(m_pDriver, cmd,
-                                                                VulkanRenderState::BindGraphics);
+    m_pDriver->GetCmdRenderState().BeginRenderPassAndApplyState(
+        m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
 
     ObjDisp(cmd)->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_AND_BACK, 0xff);
     ObjDisp(cmd)->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_AND_BACK, 0xff);
@@ -1809,14 +1974,26 @@ private:
         flags |= TestMustFail_Culling;
     }
 
-    // Depth and Stencil tests.
-    const VulkanCreationInfo::RenderPass &rpInfo =
-        m_pDriver->GetDebugManager()->GetRenderPassInfo(pipestate.renderPass);
-    // TODO: this should retrieve the correct subpass, once multiple subpasses
-    // are supported.
-    const VulkanCreationInfo::RenderPass::Subpass &sub = rpInfo.subpasses.front();
+    bool hasDepthStencil = false;
 
-    if(sub.depthstencilAttachment != -1)
+    if(pipestate.dynamicRendering.active)
+    {
+      hasDepthStencil = pipestate.dynamicRendering.depth.imageView != VK_NULL_HANDLE ||
+                        pipestate.dynamicRendering.stencil.imageView != VK_NULL_HANDLE;
+    }
+    else
+    {
+      // Depth and Stencil tests.
+      const VulkanCreationInfo::RenderPass &rpInfo =
+          m_pDriver->GetDebugManager()->GetRenderPassInfo(pipestate.GetRenderPass());
+      // TODO: this should retrieve the correct subpass, once multiple subpasses
+      // are supported.
+      const VulkanCreationInfo::RenderPass::Subpass &sub = rpInfo.subpasses.front();
+
+      hasDepthStencil = (sub.depthstencilAttachment != -1);
+    }
+
+    if(hasDepthStencil)
     {
       if(pipestate.depthBoundsTestEnable)
         flags |= TestEnabled_DepthBounds;
@@ -2221,51 +2398,41 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     VulkanRenderState &state = m_pDriver->GetCmdRenderState();
     ResourceId curPipeline = state.graphics.pipeline;
     state.EndRenderPass(cmd);
+    // if dynamic rendering is in use and the renderpass just suspended, we need to be sure it is
+    // really finished. This will just store as we always patch the load/store ops.
+    state.FinishSuspendedRenderPass(cmd);
 
     uint32_t numFragmentsInEvent = m_EventFragments[eid];
 
     uint32_t framebufferIndex = 0;
-    uint32_t colorOutputIndex = 0;
-    const rdcarray<ResourceId> &atts = prevState.GetFramebufferAttachments();
-    const VulkanCreationInfo::RenderPass &rpInfo =
-        m_pDriver->GetDebugManager()->GetRenderPassInfo(prevState.renderPass);
-    const VulkanCreationInfo::RenderPass::Subpass &sub = rpInfo.subpasses.front();
+    uint32_t colorOutputIndex = GetColorAttachmentIndex(prevState, &framebufferIndex);
 
     if(IsDepthOrStencilFormat(m_CallbackInfo.targetImageFormat))
     {
-      // Going to add another color attachment.
-      framebufferIndex = (uint32_t)atts.size();
-      colorOutputIndex = (uint32_t)sub.colorAttachments.size();
-    }
-    else
-    {
-      for(uint32_t i = 0; i < atts.size(); i++)
+      if(prevState.dynamicRendering.active)
       {
-        ResourceId img = m_pDriver->GetDebugManager()->GetImageViewInfo(atts[i]).image;
-        if(img == GetResID(m_CallbackInfo.targetImage))
-        {
-          framebufferIndex = i;
-          break;
-        }
+        framebufferIndex = colorOutputIndex = (uint32_t)prevState.dynamicRendering.color.size();
       }
-      for(uint32_t i = 0; i < sub.colorAttachments.size(); i++)
+      else
       {
-        if(framebufferIndex == sub.colorAttachments[i])
-        {
-          colorOutputIndex = i;
-          break;
-        }
+        const VulkanCreationInfo::RenderPass &rpInfo =
+            m_pDriver->GetDebugManager()->GetRenderPassInfo(prevState.GetRenderPass());
+        const VulkanCreationInfo::RenderPass::Subpass &sub = rpInfo.subpasses.front();
+
+        // Going to add another color attachment.
+        framebufferIndex = (uint32_t)prevState.GetFramebufferAttachments().size();
+        colorOutputIndex = (uint32_t)sub.colorAttachments.size();
       }
     }
 
     bool multiview = false;
-    VkRenderPass newRp = CreateRenderPass(state.renderPass, multiview,
-                                          VK_FORMAT_R32G32B32A32_SFLOAT, framebufferIndex);
+    VkRenderPass newRp =
+        PatchRenderPass(state, multiview, VK_FORMAT_R32G32B32A32_SFLOAT, framebufferIndex);
+    PatchFramebuffer(state, newRp, m_CallbackInfo.subImageView, VK_FORMAT_R32G32B32A32_SFLOAT,
+                     framebufferIndex);
 
-    VkFramebuffer newFb =
-        CreateFramebuffer(state, newRp, m_CallbackInfo.subImageView, framebufferIndex);
-
-    Pipelines pipes = CreatePerFragmentPipelines(curPipeline, newRp, eid, 0, colorOutputIndex);
+    Pipelines pipes = CreatePerFragmentPipelines(curPipeline, newRp, eid, 0,
+                                                 VK_FORMAT_R32G32B32A32_SFLOAT, colorOutputIndex);
 
     for(uint32_t i = 0; i < state.views.size(); i++)
     {
@@ -2275,9 +2442,6 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       state.scissors[i].offset.y &= ~0x1;
       state.scissors[i].extent = {2, 2};
     }
-
-    state.renderPass = GetResID(newRp);
-    state.SetFramebuffer(m_pDriver, GetResID(newFb));
 
     VkPipeline pipesIter[2];
     pipesIter[0] = pipes.primitiveIdPipe;
@@ -2386,7 +2550,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
         m_pDriver->GetCmdRenderState().graphics.pipeline = GetResID(pipesIter[i]);
 
         m_pDriver->GetCmdRenderState().BeginRenderPassAndApplyState(
-            m_pDriver, cmd, VulkanRenderState::BindGraphics);
+            m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
 
         // Update stencil reference to the current fragment index, so that we get values
         // for a single fragment only.
@@ -2416,18 +2580,47 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
 
     VkImage depthImage = VK_NULL_HANDLE;
     VkFormat depthFormat = VK_FORMAT_UNDEFINED;
-    int32_t depthAtt = rpInfo.subpasses[prevState.subpass].depthstencilAttachment;
-    if(depthAtt >= 0)
+    VkImageLayout depthLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+    if(prevState.dynamicRendering.active)
     {
-      ResourceId resId = m_pDriver->GetDebugManager()->GetImageViewInfo(atts[depthAtt]).image;
-      depthImage = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(resId);
-      const VulkanCreationInfo::Image &imginfo = m_pDriver->GetDebugManager()->GetImageInfo(resId);
-      depthFormat = imginfo.format;
+      VkImageView dsView = state.dynamicRendering.depth.imageView;
+      depthLayout = state.dynamicRendering.depth.imageLayout;
+      if(dsView == VK_NULL_HANDLE && state.dynamicRendering.stencil.imageView != VK_NULL_HANDLE)
+      {
+        dsView = state.dynamicRendering.stencil.imageView;
+        depthLayout = state.dynamicRendering.stencil.imageLayout;
+      }
+
+      if(dsView != VK_NULL_HANDLE)
+      {
+        ResourceId resId = m_pDriver->GetDebugManager()->GetImageViewInfo(GetResID(dsView)).image;
+        depthImage = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(resId);
+        const VulkanCreationInfo::Image &imginfo = m_pDriver->GetDebugManager()->GetImageInfo(resId);
+        depthFormat = imginfo.format;
+      }
+    }
+    else
+    {
+      const VulkanCreationInfo::RenderPass &rpInfo =
+          m_pDriver->GetDebugManager()->GetRenderPassInfo(prevState.GetRenderPass());
+      const rdcarray<ResourceId> &atts = prevState.GetFramebufferAttachments();
+
+      int32_t depthAtt = rpInfo.subpasses[prevState.subpass].depthstencilAttachment;
+      if(depthAtt >= 0)
+      {
+        ResourceId resId = m_pDriver->GetDebugManager()->GetImageViewInfo(atts[depthAtt]).image;
+        depthImage = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(resId);
+        const VulkanCreationInfo::Image &imginfo = m_pDriver->GetDebugManager()->GetImageInfo(resId);
+        depthFormat = imginfo.format;
+        depthLayout = rpInfo.subpasses[prevState.subpass].depthLayout;
+      }
     }
 
     // use the original renderpass and framebuffer attachment
-    state.renderPass = prevState.renderPass;
+    state.SetRenderPass(prevState.GetRenderPass());
     state.SetFramebuffer(prevState.GetFramebuffer(), prevState.GetFramebufferAttachments());
+    state.dynamicRendering = prevState.dynamicRendering;
 
     colourCopyParams.srcImage = m_CallbackInfo.targetImage;
     colourCopyParams.srcImageFormat = m_CallbackInfo.targetImageFormat;
@@ -2448,7 +2641,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
 
       // Get post-modification value, use the original framebuffer attachment.
       state.graphics.pipeline = GetResID(pipes.postModPipe);
-      state.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics);
+      state.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
       // Have to reset stencil.
       VkClearAttachment att = {};
       att.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
@@ -2495,7 +2688,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       {
         CopyPixelParams depthCopyParams = colourCopyParams;
         depthCopyParams.srcImage = depthImage;
-        depthCopyParams.srcImageLayout = sub.depthLayout;
+        depthCopyParams.srcImageLayout = depthLayout;
         depthCopyParams.srcImageFormat = depthFormat;
         CopyImagePixel(cmd, depthCopyParams, (fragsProcessed + f) * sizeof(PerFragmentInfo) +
                                                  offsetof(struct PerFragmentInfo, postMod) +
@@ -2507,14 +2700,15 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     fragsProcessed += numFragmentsInEvent;
 
     m_pDriver->GetCmdRenderState() = prevState;
-    m_pDriver->GetCmdRenderState().BeginRenderPassAndApplyState(m_pDriver, cmd,
-                                                                VulkanRenderState::BindGraphics);
+    m_pDriver->GetCmdRenderState().BeginRenderPassAndApplyState(
+        m_pDriver, cmd, VulkanRenderState::BindGraphics, true);
   }
   bool PostDraw(uint32_t eid, VkCommandBuffer cmd) { return false; }
   void PostRedraw(uint32_t eid, VkCommandBuffer cmd) {}
   // CreatePerFragmentPipelines for getting per fragment information.
   Pipelines CreatePerFragmentPipelines(ResourceId pipe, VkRenderPass rp, uint32_t eid,
-                                       uint32_t fragmentIndex, uint32_t colorOutputIndex)
+                                       uint32_t fragmentIndex, VkFormat colorOutputFormat,
+                                       uint32_t colorOutputIndex)
   {
     const VulkanCreationInfo::Pipeline &p = m_pDriver->GetDebugManager()->GetPipelineInfo(pipe);
     VkGraphicsPipelineCreateInfo pipeCreateInfo = {};
@@ -2522,6 +2716,30 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo, pipe);
 
     AddDynamicStates(pipeCreateInfo);
+
+    // if RP is null we need to patch the pipeline rendering info
+    if(rp == VK_NULL_HANDLE)
+    {
+      VkPipelineRenderingCreateInfoKHR *dynRenderCreate =
+          (VkPipelineRenderingCreateInfoKHR *)FindNextStruct(
+              &pipeCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR);
+
+      RDCASSERT(dynRenderCreate);
+
+      // if we're patching color, we know we can safely add a new attachment if needed
+      if(colorOutputFormat != VK_NULL_HANDLE)
+      {
+        if(colorOutputIndex >= dynRenderCreate->colorAttachmentCount)
+          dynRenderCreate->colorAttachmentCount++;
+
+        RDCASSERT(colorOutputIndex < dynRenderCreate->colorAttachmentCount);
+
+        VkFormat *fmts = (VkFormat *)dynRenderCreate->pColorAttachmentFormats;
+        fmts[colorOutputIndex] = colorOutputFormat;
+      }
+
+      dynRenderCreate->depthAttachmentFormat = m_CallbackInfo.dsFormat;
+    }
 
     VkPipelineDepthStencilStateCreateInfo *ds =
         (VkPipelineDepthStencilStateCreateInfo *)pipeCreateInfo.pDepthStencilState;

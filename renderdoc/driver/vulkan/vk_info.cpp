@@ -360,6 +360,25 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
   renderpass = GetResID(pCreateInfo->renderPass);
   subpass = pCreateInfo->subpass;
 
+  const VkPipelineRenderingCreateInfoKHR *dynRenderCreate =
+      (const VkPipelineRenderingCreateInfoKHR *)FindNextStruct(
+          pCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR);
+  if(dynRenderCreate)
+  {
+    viewMask = dynRenderCreate->viewMask;
+    colorFormats.assign(dynRenderCreate->pColorAttachmentFormats,
+                        dynRenderCreate->colorAttachmentCount);
+    depthFormat = dynRenderCreate->depthAttachmentFormat;
+    stencilFormat = dynRenderCreate->stencilAttachmentFormat;
+  }
+  else
+  {
+    viewMask = 0;
+    colorFormats.clear();
+    depthFormat = VK_FORMAT_UNDEFINED;
+    stencilFormat = VK_FORMAT_UNDEFINED;
+  }
+
   RDCEraseEl(dynamicStates);
   if(pCreateInfo->pDynamicState)
   {

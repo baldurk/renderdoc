@@ -1514,27 +1514,164 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     ret.colorBlend.blends.clear();
   }
 
-  if(state.renderPass != ResourceId())
+  if(state.dynamicRendering.active)
+  {
+    VKPipe::RenderPass &rpState = ret.currentPass.renderpass;
+    VKPipe::Framebuffer &fbState = ret.currentPass.framebuffer;
+    const VulkanRenderState::DynamicRendering &dyn = state.dynamicRendering;
+
+    rpState.dynamic = true;
+    rpState.suspended = dyn.suspended;
+    rpState.resourceId = ResourceId();
+    rpState.subpass = 0;
+
+    fbState.resourceId = ResourceId();
+    // dynamic rendering does not provide a framebuffer dimension, it's implicit from the image
+    // views
+    fbState.width = 0;
+    fbState.height = 0;
+    fbState.layers = dyn.layerCount;
+
+    fbState.attachments.clear();
+    rpState.inputAttachments.clear();
+    rpState.colorAttachments.clear();
+    rpState.resolveAttachments.clear();
+
+    size_t attIdx = 0;
+    for(size_t i = 0; i < dyn.color.size(); i++)
+    {
+      fbState.attachments.push_back({});
+
+      ResourceId viewid = GetResID(dyn.color[i].imageView);
+
+      if(viewid != ResourceId())
+      {
+        fbState.attachments.back().viewResourceId = rm->GetOriginalID(viewid);
+        ret.currentPass.framebuffer.attachments[attIdx].imageResourceId =
+            rm->GetOriginalID(c.m_ImageView[viewid].image);
+
+        fbState.attachments.back().viewFormat = MakeResourceFormat(c.m_ImageView[viewid].format);
+        fbState.attachments.back().firstMip = c.m_ImageView[viewid].range.baseMipLevel;
+        fbState.attachments.back().firstSlice = c.m_ImageView[viewid].range.baseArrayLayer;
+        fbState.attachments.back().numMips = c.m_ImageView[viewid].range.levelCount;
+        fbState.attachments.back().numSlices = c.m_ImageView[viewid].range.layerCount;
+
+        Convert(fbState.attachments.back().swizzle, c.m_ImageView[viewid].componentMapping);
+      }
+      else
+      {
+        fbState.attachments.back().viewResourceId = ResourceId();
+        fbState.attachments.back().imageResourceId = ResourceId();
+
+        fbState.attachments.back().firstMip = 0;
+        fbState.attachments.back().firstSlice = 0;
+        fbState.attachments.back().numMips = 1;
+        fbState.attachments.back().numSlices = 1;
+      }
+
+      rpState.colorAttachments.push_back(uint32_t(attIdx++));
+
+      if(dyn.color[i].resolveMode && dyn.color[i].resolveImageView != VK_NULL_HANDLE)
+      {
+        fbState.attachments.push_back({});
+
+        viewid = GetResID(dyn.color[i].resolveImageView);
+
+        fbState.attachments.back().viewResourceId = rm->GetOriginalID(viewid);
+        ret.currentPass.framebuffer.attachments[attIdx].imageResourceId =
+            rm->GetOriginalID(c.m_ImageView[viewid].image);
+
+        fbState.attachments.back().viewFormat = MakeResourceFormat(c.m_ImageView[viewid].format);
+        fbState.attachments.back().firstMip = c.m_ImageView[viewid].range.baseMipLevel;
+        fbState.attachments.back().firstSlice = c.m_ImageView[viewid].range.baseArrayLayer;
+        fbState.attachments.back().numMips = c.m_ImageView[viewid].range.levelCount;
+        fbState.attachments.back().numSlices = c.m_ImageView[viewid].range.layerCount;
+
+        Convert(fbState.attachments.back().swizzle, c.m_ImageView[viewid].componentMapping);
+
+        rpState.resolveAttachments.push_back(uint32_t(attIdx++));
+      }
+    }
+
+    if(dyn.depth.imageView != VK_NULL_HANDLE || dyn.stencil.imageView != VK_NULL_HANDLE)
+    {
+      fbState.attachments.push_back({});
+
+      ResourceId viewid = GetResID(dyn.depth.imageView);
+      if(dyn.depth.imageView == VK_NULL_HANDLE)
+        viewid = GetResID(dyn.stencil.imageView);
+
+      fbState.attachments.back().viewResourceId = rm->GetOriginalID(viewid);
+      ret.currentPass.framebuffer.attachments[attIdx].imageResourceId =
+          rm->GetOriginalID(c.m_ImageView[viewid].image);
+
+      fbState.attachments.back().viewFormat = MakeResourceFormat(c.m_ImageView[viewid].format);
+      fbState.attachments.back().firstMip = c.m_ImageView[viewid].range.baseMipLevel;
+      fbState.attachments.back().firstSlice = c.m_ImageView[viewid].range.baseArrayLayer;
+      fbState.attachments.back().numMips = c.m_ImageView[viewid].range.levelCount;
+      fbState.attachments.back().numSlices = c.m_ImageView[viewid].range.layerCount;
+
+      Convert(fbState.attachments.back().swizzle, c.m_ImageView[viewid].componentMapping);
+
+      rpState.depthstencilAttachment = int32_t(attIdx++);
+    }
+    else
+    {
+      rpState.depthstencilAttachment = -1;
+    }
+
+    if(dyn.fragmentDensityView != VK_NULL_HANDLE)
+    {
+      fbState.attachments.push_back({});
+
+      ResourceId viewid = GetResID(dyn.fragmentDensityView);
+
+      fbState.attachments.back().viewResourceId = rm->GetOriginalID(viewid);
+      ret.currentPass.framebuffer.attachments[attIdx].imageResourceId =
+          rm->GetOriginalID(c.m_ImageView[viewid].image);
+
+      fbState.attachments.back().viewFormat = MakeResourceFormat(c.m_ImageView[viewid].format);
+      fbState.attachments.back().firstMip = c.m_ImageView[viewid].range.baseMipLevel;
+      fbState.attachments.back().firstSlice = c.m_ImageView[viewid].range.baseArrayLayer;
+      fbState.attachments.back().numMips = c.m_ImageView[viewid].range.levelCount;
+      fbState.attachments.back().numSlices = c.m_ImageView[viewid].range.layerCount;
+
+      Convert(fbState.attachments.back().swizzle, c.m_ImageView[viewid].componentMapping);
+
+      rpState.fragmentDensityAttachment = int32_t(attIdx++);
+    }
+    else
+    {
+      rpState.fragmentDensityAttachment = -1;
+    }
+
+    rpState.multiviews.clear();
+    for(uint32_t v = 0; v < 32; v++)
+    {
+      if(dyn.viewMask & (1 << v))
+        rpState.multiviews.push_back(v);
+    }
+  }
+  else if(state.GetRenderPass() != ResourceId())
   {
     // Renderpass
-    ret.currentPass.renderpass.resourceId = rm->GetOriginalID(state.renderPass);
+    ret.currentPass.renderpass.dynamic = false;
+    ret.currentPass.renderpass.resourceId = rm->GetOriginalID(state.GetRenderPass());
     ret.currentPass.renderpass.subpass = state.subpass;
-    if(state.renderPass != ResourceId())
-    {
-      ret.currentPass.renderpass.inputAttachments =
-          c.m_RenderPass[state.renderPass].subpasses[state.subpass].inputAttachments;
-      ret.currentPass.renderpass.colorAttachments =
-          c.m_RenderPass[state.renderPass].subpasses[state.subpass].colorAttachments;
-      ret.currentPass.renderpass.resolveAttachments =
-          c.m_RenderPass[state.renderPass].subpasses[state.subpass].resolveAttachments;
-      ret.currentPass.renderpass.depthstencilAttachment =
-          c.m_RenderPass[state.renderPass].subpasses[state.subpass].depthstencilAttachment;
-      ret.currentPass.renderpass.fragmentDensityAttachment =
-          c.m_RenderPass[state.renderPass].subpasses[state.subpass].fragmentDensityAttachment;
 
-      ret.currentPass.renderpass.multiviews =
-          c.m_RenderPass[state.renderPass].subpasses[state.subpass].multiviews;
-    }
+    ret.currentPass.renderpass.inputAttachments =
+        c.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].inputAttachments;
+    ret.currentPass.renderpass.colorAttachments =
+        c.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].colorAttachments;
+    ret.currentPass.renderpass.resolveAttachments =
+        c.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].resolveAttachments;
+    ret.currentPass.renderpass.depthstencilAttachment =
+        c.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].depthstencilAttachment;
+    ret.currentPass.renderpass.fragmentDensityAttachment =
+        c.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].fragmentDensityAttachment;
+
+    ret.currentPass.renderpass.multiviews =
+        c.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].multiviews;
 
     ResourceId fb = state.GetFramebuffer();
 

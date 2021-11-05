@@ -58,6 +58,9 @@ static void CopyNextChainedStruct(const size_t structSize, byte *&tempMem,
 template <typename VkStruct>
 static VkStruct *AllocStructCopy(byte *&tempMem, const VkStruct *inputStruct)
 {
+  if(!inputStruct)
+    return NULL;
+
   VkStruct *ret = (VkStruct *)tempMem;
   tempMem = (byte *)(ret + 1);
 
@@ -229,6 +232,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
               VkPhysicalDeviceDiscardRectanglePropertiesEXT);                                        \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES,                                   \
               VkPhysicalDeviceDriverProperties);                                                     \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR,                      \
+              VkPhysicalDeviceDynamicRenderingFeaturesKHR)                                           \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT,                 \
               VkPhysicalDeviceExtendedDynamicStateFeaturesEXT);                                      \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT,               \
@@ -582,6 +587,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
                 VkConditionalRenderingBeginInfoEXT, UnwrapInPlace(out->buffer));                     \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_COPY_DESCRIPTOR_SET, VkCopyDescriptorSet,                          \
                 UnwrapInPlace(out->srcSet), UnwrapInPlace(out->dstSet));                             \
+  UNWRAP_STRUCT(VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_DENSITY_MAP_ATTACHMENT_INFO_EXT,                \
+                VkRenderingFragmentDensityMapAttachmentInfoEXT, UnwrapInPlace(out->imageView));      \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_MEMORY_ALLOCATE_INFO_NV,                      \
                 VkDedicatedAllocationMemoryAllocateInfoNV, UnwrapInPlace(out->buffer),               \
                 UnwrapInPlace(out->image));                                                          \
@@ -608,6 +615,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
                 UnwrapInPlace(out->pipeline));                                                       \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INFO_KHR, VkPipelineExecutableInfoKHR,         \
                 UnwrapInPlace(out->pipeline));                                                       \
+  UNWRAP_STRUCT(VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR, VkRenderingAttachmentInfoKHR,       \
+                UnwrapInPlace(out->imageView), UnwrapInPlace(out->resolveImageView));                \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, VkRenderPassBeginInfo,                     \
                 UnwrapInPlace(out->renderPass), UnwrapInPlace(out->framebuffer));                    \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO, VkSamplerYcbcrConversionInfo,       \
@@ -674,6 +683,7 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MOTION_INFO_NV:                         \
   case VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_VERSION_INFO_KHR:                       \
   case VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_FORMAT_PROPERTIES_2_ANDROID:           \
+  case VK_STRUCTURE_TYPE_ATTACHMENT_SAMPLE_COUNT_INFO_AMD:                              \
   case VK_STRUCTURE_TYPE_BIND_ACCELERATION_STRUCTURE_MEMORY_INFO_NV:                    \
   case VK_STRUCTURE_TYPE_BUFFER_COLLECTION_BUFFER_CREATE_INFO_FUCHSIA:                  \
   case VK_STRUCTURE_TYPE_BUFFER_COLLECTION_CONSTRAINTS_INFO_FUCHSIA:                    \
@@ -727,6 +737,7 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_MEMORY_GET_ZIRCON_HANDLE_INFO_FUCHSIA:                         \
   case VK_STRUCTURE_TYPE_MEMORY_HOST_POINTER_PROPERTIES_EXT:                            \
   case VK_STRUCTURE_TYPE_MEMORY_ZIRCON_HANDLE_PROPERTIES_FUCHSIA:                       \
+  case VK_STRUCTURE_TYPE_MULTIVIEW_PER_VIEW_ATTRIBUTES_INFO_NVX:                        \
   case VK_STRUCTURE_TYPE_MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_VALVE:                     \
   case VK_STRUCTURE_TYPE_PERFORMANCE_CONFIGURATION_ACQUIRE_INFO_INTEL:                  \
   case VK_STRUCTURE_TYPE_PERFORMANCE_MARKER_INFO_INTEL:                                 \
@@ -807,6 +818,7 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_INTERFACE_CREATE_INFO_KHR:                \
   case VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR:                      \
   case VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV:                       \
+  case VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR:           \
   case VK_STRUCTURE_TYPE_RENDER_PASS_TRANSFORM_BEGIN_INFO_QCOM:                         \
   case VK_STRUCTURE_TYPE_SAMPLER_BORDER_COLOR_COMPONENT_MAPPING_CREATE_INFO_EXT:        \
   case VK_STRUCTURE_TYPE_SCREEN_SURFACE_CREATE_INFO_QNX:                                \
@@ -875,6 +887,15 @@ size_t GetNextPatchSize(const void *pNext)
         memSize += info->regionCount * sizeof(VkImageBlit2KHR);
         for(uint32_t i = 0; i < info->regionCount; i++)
           memSize += GetNextPatchSize(info->pRegions[i].pNext);
+        break;
+      }
+      case VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_RENDERING_INFO_KHR:
+      {
+        memSize += sizeof(VkCommandBufferInheritanceRenderingInfoKHR);
+
+        VkCommandBufferInheritanceRenderingInfoKHR *info =
+            (VkCommandBufferInheritanceRenderingInfoKHR *)next;
+        memSize += info->colorAttachmentCount * sizeof(VkCommandBufferInheritanceRenderingInfoKHR);
         break;
       }
       case VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO:
@@ -1054,6 +1075,14 @@ size_t GetNextPatchSize(const void *pNext)
         memSize += info->setLayoutCount * sizeof(VkDescriptorSetLayout);
         break;
       }
+      case VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR:
+      {
+        memSize += sizeof(VkPipelineRenderingCreateInfoKHR);
+
+        VkPipelineRenderingCreateInfoKHR *info = (VkPipelineRenderingCreateInfoKHR *)next;
+        memSize += info->colorAttachmentCount * sizeof(VkPipelineRenderingCreateInfoKHR);
+        break;
+      }
       case VK_STRUCTURE_TYPE_PRESENT_INFO_KHR:
       {
         memSize += sizeof(VkPresentInfoKHR);
@@ -1061,6 +1090,26 @@ size_t GetNextPatchSize(const void *pNext)
         VkPresentInfoKHR *info = (VkPresentInfoKHR *)next;
         memSize += info->waitSemaphoreCount * sizeof(VkSemaphore);
         memSize += info->swapchainCount * sizeof(VkSwapchainKHR);
+        break;
+      }
+      case VK_STRUCTURE_TYPE_RENDERING_INFO_KHR:
+      {
+        memSize += sizeof(VkRenderingInfoKHR);
+
+        VkRenderingInfoKHR *info = (VkRenderingInfoKHR *)next;
+        memSize += info->colorAttachmentCount * sizeof(VkRenderingAttachmentInfoKHR);
+        for(uint32_t i = 0; i < info->colorAttachmentCount; i++)
+          memSize += GetNextPatchSize(info->pColorAttachments[i].pNext);
+        if(info->pDepthAttachment)
+        {
+          memSize += sizeof(*info->pDepthAttachment);
+          memSize += GetNextPatchSize(info->pStencilAttachment->pNext);
+        }
+        if(info->pStencilAttachment)
+        {
+          memSize += sizeof(*info->pStencilAttachment);
+          memSize += GetNextPatchSize(info->pStencilAttachment->pNext);
+        }
         break;
       }
       case VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO:
@@ -1292,6 +1341,9 @@ size_t GetNextPatchSize(const void *pNext)
 void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
                      VkBaseInStructure *infoStruct)
 {
+  if(!infoStruct)
+    return;
+
   // during capture, this walks the pNext chain and either copies structs that can be passed
   // straight through, or copies and modifies any with vulkan objects that need to be unwrapped.
   //
@@ -1477,6 +1529,28 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
           outRegions[i] = in->pRegions[i];
           UnwrapNextChain(state, "VkImageBlit2KHR", tempMem, (VkBaseInStructure *)&outRegions[i]);
         }
+
+        break;
+      }
+      case VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_RENDERING_INFO_KHR:
+      {
+        const VkCommandBufferInheritanceRenderingInfoKHR *in =
+            (const VkCommandBufferInheritanceRenderingInfoKHR *)nextInput;
+        VkCommandBufferInheritanceRenderingInfoKHR *out =
+            (VkCommandBufferInheritanceRenderingInfoKHR *)tempMem;
+
+        // append immediately so tempMem is incremented
+        AppendModifiedChainedStruct(tempMem, out, nextChainTail);
+
+        // allocate unwrapped array
+        VkFormat *outFormats = (VkFormat *)tempMem;
+        tempMem += sizeof(VkFormat) * in->colorAttachmentCount;
+
+        *out = *in;
+
+        out->pColorAttachmentFormats = outFormats;
+        for(uint32_t i = 0; i < in->colorAttachmentCount; i++)
+          outFormats[i] = in->pColorAttachmentFormats[i];
 
         break;
       }
@@ -1911,6 +1985,27 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
 
         break;
       }
+      case VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR:
+      {
+        const VkPipelineRenderingCreateInfoKHR *in =
+            (const VkPipelineRenderingCreateInfoKHR *)nextInput;
+        VkPipelineRenderingCreateInfoKHR *out = (VkPipelineRenderingCreateInfoKHR *)tempMem;
+
+        // append immediately so tempMem is incremented
+        AppendModifiedChainedStruct(tempMem, out, nextChainTail);
+
+        // allocate unwrapped array
+        VkFormat *outFormats = (VkFormat *)tempMem;
+        tempMem += sizeof(VkFormat) * in->colorAttachmentCount;
+
+        *out = *in;
+
+        out->pColorAttachmentFormats = outFormats;
+        for(uint32_t i = 0; i < in->colorAttachmentCount; i++)
+          outFormats[i] = in->pColorAttachmentFormats[i];
+
+        break;
+      }
       case VK_STRUCTURE_TYPE_PRESENT_INFO_KHR:
       {
         const VkPresentInfoKHR *in = (const VkPresentInfoKHR *)nextInput;
@@ -1933,6 +2028,70 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
           outSwapchains[i] = Unwrap(in->pSwapchains[i]);
         for(uint32_t i = 0; i < in->waitSemaphoreCount; i++)
           outWaitSemaphores[i] = Unwrap(in->pWaitSemaphores[i]);
+
+        break;
+      }
+      case VK_STRUCTURE_TYPE_RENDERING_INFO_KHR:
+      {
+        const VkRenderingInfoKHR *in = (const VkRenderingInfoKHR *)nextInput;
+        VkRenderingInfoKHR *out = (VkRenderingInfoKHR *)tempMem;
+
+        // append immediately so tempMem is incremented
+        AppendModifiedChainedStruct(tempMem, out, nextChainTail);
+
+        // allocate unwrapped array
+        VkRenderingAttachmentInfoKHR *outAttachs = (VkRenderingAttachmentInfoKHR *)tempMem;
+        tempMem += sizeof(VkRenderingAttachmentInfoKHR) * in->colorAttachmentCount;
+
+        out->sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR;
+        out->pNext = in->pNext;
+        out->flags = in->flags;
+        out->renderArea = in->renderArea;
+        out->layerCount = in->layerCount;
+        out->viewMask = in->viewMask;
+        out->colorAttachmentCount = in->colorAttachmentCount;
+        out->pColorAttachments = outAttachs;
+        for(uint32_t i = 0; i < in->colorAttachmentCount; i++)
+        {
+          outAttachs[i] = in->pColorAttachments[i];
+          UnwrapInPlace(outAttachs[i].imageView);
+          UnwrapInPlace(outAttachs[i].resolveImageView);
+          UnwrapNextChain(state, "VkRenderingAttachmentInfoKHR", tempMem,
+                          (VkBaseInStructure *)&outAttachs[i]);
+        }
+
+        if(in->pDepthAttachment)
+        {
+          VkRenderingAttachmentInfoKHR *depth = (VkRenderingAttachmentInfoKHR *)tempMem;
+          out->pDepthAttachment = depth;
+          tempMem += sizeof(VkRenderingAttachmentInfoKHR);
+
+          *depth = *in->pDepthAttachment;
+          UnwrapInPlace(depth->imageView);
+          UnwrapInPlace(depth->resolveImageView);
+          UnwrapNextChain(state, "VkRenderingAttachmentInfoKHR", tempMem, (VkBaseInStructure *)depth);
+        }
+        else
+        {
+          out->pDepthAttachment = NULL;
+        }
+
+        if(in->pStencilAttachment)
+        {
+          VkRenderingAttachmentInfoKHR *stencil = (VkRenderingAttachmentInfoKHR *)tempMem;
+          out->pStencilAttachment = stencil;
+          tempMem += sizeof(VkRenderingAttachmentInfoKHR);
+
+          *stencil = *in->pStencilAttachment;
+          UnwrapInPlace(stencil->imageView);
+          UnwrapInPlace(stencil->resolveImageView);
+          UnwrapNextChain(state, "VkRenderingAttachmentInfoKHR", tempMem,
+                          (VkBaseInStructure *)stencil);
+        }
+        else
+        {
+          out->pStencilAttachment = NULL;
+        }
 
         break;
       }
@@ -2367,6 +2526,13 @@ void CopyNextChainForPatching(const char *structName, byte *&tempMem, VkBaseInSt
       case VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2_KHR:
         CopyNextChainedStruct(sizeof(VkBlitImageInfo2KHR), tempMem, nextInput, nextChainTail);
         break;
+      case VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_RENDERING_INFO_KHR:
+        CopyNextChainedStruct(sizeof(VkCommandBufferInheritanceRenderingInfoKHR), tempMem,
+                              nextInput, nextChainTail);
+        break;
+      case VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO:
+        CopyNextChainedStruct(sizeof(VkComputePipelineCreateInfo), tempMem, nextInput, nextChainTail);
+        break;
       case VK_STRUCTURE_TYPE_COPY_BUFFER_INFO_2_KHR:
         CopyNextChainedStruct(sizeof(VkCopyBufferInfo2KHR), tempMem, nextInput, nextChainTail);
         break;
@@ -2416,14 +2582,18 @@ void CopyNextChainForPatching(const char *structName, byte *&tempMem, VkBaseInSt
         CopyNextChainedStruct(sizeof(VkGraphicsPipelineCreateInfo), tempMem, nextInput,
                               nextChainTail);
         break;
-      case VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO:
-        CopyNextChainedStruct(sizeof(VkComputePipelineCreateInfo), tempMem, nextInput, nextChainTail);
-        break;
       case VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO:
         CopyNextChainedStruct(sizeof(VkPipelineLayoutCreateInfo), tempMem, nextInput, nextChainTail);
         break;
+      case VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR:
+        CopyNextChainedStruct(sizeof(VkPipelineRenderingCreateInfoKHR), tempMem, nextInput,
+                              nextChainTail);
+        break;
       case VK_STRUCTURE_TYPE_PRESENT_INFO_KHR:
         CopyNextChainedStruct(sizeof(VkPresentInfoKHR), tempMem, nextInput, nextChainTail);
+        break;
+      case VK_STRUCTURE_TYPE_RENDERING_INFO_KHR:
+        CopyNextChainedStruct(sizeof(VkRenderingInfoKHR), tempMem, nextInput, nextChainTail);
         break;
       case VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO:
         CopyNextChainedStruct(sizeof(VkRenderPassAttachmentBeginInfo), tempMem, nextInput,

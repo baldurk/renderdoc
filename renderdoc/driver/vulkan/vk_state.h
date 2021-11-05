@@ -56,7 +56,8 @@ struct VulkanRenderState
 
   VulkanRenderState();
   bool IsConditionalRenderingEnabled();
-  void BeginRenderPassAndApplyState(WrappedVulkan *vk, VkCommandBuffer cmd, PipelineBinding binding);
+  void BeginRenderPassAndApplyState(WrappedVulkan *vk, VkCommandBuffer cmd, PipelineBinding binding,
+                                    bool obeySuspending);
   void BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd, PipelineBinding binding, bool subpass0);
 
   void BindDescriptorSets(WrappedVulkan *vk, VkCommandBuffer cmd, VulkanStatePipeline &pipe,
@@ -66,6 +67,7 @@ struct VulkanRenderState
                          VkPipelineBindPoint bindPoint, uint32_t setIndex, uint32_t *dynamicOffsets);
 
   void EndRenderPass(VkCommandBuffer cmd);
+  void FinishSuspendedRenderPass(VkCommandBuffer cmd);
 
   void EndTransformFeedback(WrappedVulkan *vk, VkCommandBuffer cmd);
 
@@ -113,7 +115,6 @@ struct VulkanRenderState
   // the actual number of bytes that have been uploaded
   uint32_t pushConstSize = 0;
 
-  ResourceId renderPass;
   uint32_t subpass = 0;
   VkSubpassContents subpassContents;
 
@@ -131,6 +132,14 @@ struct VulkanRenderState
   const rdcarray<ResourceId> &GetFramebufferAttachments() const { return fbattachments; }
   //
 
+  // same for renderpass
+  void SetRenderPass(ResourceId rp)
+  {
+    renderPass = rp;
+    dynamicRendering = DynamicRendering();
+  }
+  ResourceId GetRenderPass() const { return renderPass; }
+  bool ActiveRenderPass() const { return renderPass != ResourceId() || dynamicRendering.active; }
   VkRect2D renderArea = {};
 
   VulkanStatePipeline compute, graphics;
@@ -205,7 +214,24 @@ struct VulkanRenderState
   rdcarray<VkVertexInputBindingDescription2EXT> vertexBindings;
   rdcarray<VkVertexInputAttributeDescription2EXT> vertexAttributes;
 
+  // dynamic rendering
+  struct DynamicRendering
+  {
+    bool active = false;
+    bool suspended = false;
+    VkRenderingFlagsKHR flags = 0;
+    uint32_t layerCount = 0;
+    uint32_t viewMask = 0;
+    rdcarray<VkRenderingAttachmentInfoKHR> color = {};
+    VkRenderingAttachmentInfoKHR depth = {};
+    VkRenderingAttachmentInfoKHR stencil = {};
+
+    VkImageView fragmentDensityView = VK_NULL_HANDLE;
+    VkImageLayout fragmentDensityLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  } dynamicRendering;
+
 private:
+  ResourceId renderPass;
   ResourceId framebuffer;
   rdcarray<ResourceId> fbattachments;
 };

@@ -463,19 +463,23 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
 
         ResourceId renderPassID = GetResID(CreateInfo.renderPass);
 
-        CreateInfo.renderPass = m_CreationInfo.m_RenderPass[renderPassID].loadRPs[CreateInfo.subpass];
-        CreateInfo.subpass = 0;
+        if(CreateInfo.renderPass != VK_NULL_HANDLE)
+        {
+          CreateInfo.renderPass =
+              m_CreationInfo.m_RenderPass[renderPassID].loadRPs[CreateInfo.subpass];
+          CreateInfo.subpass = 0;
 
-        unwrapped = UnwrapInfos(&CreateInfo, 1);
-        ret = ObjDisp(device)->CreateGraphicsPipelines(Unwrap(device), Unwrap(pipelineCache), 1,
-                                                       unwrapped, NULL, &pipeInfo.subpass0pipe);
-        RDCASSERTEQUAL(ret, VK_SUCCESS);
+          unwrapped = UnwrapInfos(&CreateInfo, 1);
+          ret = ObjDisp(device)->CreateGraphicsPipelines(Unwrap(device), Unwrap(pipelineCache), 1,
+                                                         unwrapped, NULL, &pipeInfo.subpass0pipe);
+          RDCASSERTEQUAL(ret, VK_SUCCESS);
 
-        ResourceId subpass0id =
-            GetResourceManager()->WrapResource(Unwrap(device), pipeInfo.subpass0pipe);
+          ResourceId subpass0id =
+              GetResourceManager()->WrapResource(Unwrap(device), pipeInfo.subpass0pipe);
 
-        // register as a live-only resource, so it is cleaned up properly
-        GetResourceManager()->AddLiveResource(subpass0id, pipeInfo.subpass0pipe);
+          // register as a live-only resource, so it is cleaned up properly
+          GetResourceManager()->AddLiveResource(subpass0id, pipeInfo.subpass0pipe);
+        }
       }
     }
 
@@ -488,8 +492,10 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
       if(CreateInfo.basePipelineHandle != VK_NULL_HANDLE)
         DerivedResource(CreateInfo.basePipelineHandle, Pipeline);
     }
-    DerivedResource(origRP, Pipeline);
-    DerivedResource(CreateInfo.layout, Pipeline);
+    if(origRP != VK_NULL_HANDLE)
+      DerivedResource(origRP, Pipeline);
+    if(CreateInfo.layout != VK_NULL_HANDLE)
+      DerivedResource(CreateInfo.layout, Pipeline);
     for(uint32_t i = 0; i < CreateInfo.stageCount; i++)
       DerivedResource(CreateInfo.pStages[i].module, Pipeline);
   }
@@ -582,11 +588,17 @@ VkResult WrappedVulkan::vkCreateGraphicsPipelines(VkDevice device, VkPipelineCac
           record->AddParent(cacherecord);
         }
 
-        VkResourceRecord *rprecord = GetRecord(pCreateInfos[i].renderPass);
-        record->AddParent(rprecord);
+        if(pCreateInfos[i].renderPass != VK_NULL_HANDLE)
+        {
+          VkResourceRecord *rprecord = GetRecord(pCreateInfos[i].renderPass);
+          record->AddParent(rprecord);
+        }
 
-        VkResourceRecord *layoutrecord = GetRecord(pCreateInfos[i].layout);
-        record->AddParent(layoutrecord);
+        if(pCreateInfos[i].layout != VK_NULL_HANDLE)
+        {
+          VkResourceRecord *layoutrecord = GetRecord(pCreateInfos[i].layout);
+          record->AddParent(layoutrecord);
+        }
 
         for(uint32_t s = 0; s < pCreateInfos[i].stageCount; s++)
         {

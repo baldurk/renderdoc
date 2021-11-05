@@ -521,13 +521,18 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
   uint32_t multiviewMask = m_Overlay.MultiViewMask;
 
-  if(m_pDriver->m_RenderState.renderPass != ResourceId())
+  VulkanRenderState &state = m_pDriver->m_RenderState;
+  if(state.dynamicRendering.active)
+  {
+    multiviewMask = state.dynamicRendering.viewMask;
+  }
+  else if(state.GetRenderPass() != ResourceId())
   {
     const VulkanCreationInfo::RenderPass &rp =
-        m_pDriver->m_CreationInfo.m_RenderPass[m_pDriver->m_RenderState.renderPass];
+        m_pDriver->m_CreationInfo.m_RenderPass[state.GetRenderPass()];
 
     multiviewMask = 0;
-    for(uint32_t v : rp.subpasses[m_pDriver->m_RenderState.subpass].multiviews)
+    for(uint32_t v : rp.subpasses[state.subpass].multiviews)
       multiviewMask |= 1U << v;
   }
 
@@ -721,9 +726,9 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
   // bail out if the render area is outside our image.
   // This is an order-of-operations problem, if the overlay is set when the event is changed it is
   // refreshed before the UI layer can update the current texture.
-  if(m_pDriver->m_RenderState.renderArea.offset.x + m_pDriver->m_RenderState.renderArea.extent.width >
+  if(state.renderArea.offset.x + state.renderArea.extent.width >
          (m_Overlay.ImageDim.width >> sub.mip) ||
-     m_pDriver->m_RenderState.renderArea.offset.y + m_pDriver->m_RenderState.renderArea.extent.height >
+     state.renderArea.offset.y + state.renderArea.extent.height >
          (m_Overlay.ImageDim.height >> sub.mip))
   {
     return GetResID(m_Overlay.Image);
@@ -763,7 +768,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
   const ActionDescription *mainDraw = m_pDriver->GetAction(eventId);
 
   const VulkanCreationInfo::Pipeline &pipeInfo =
-      m_pDriver->m_CreationInfo.m_Pipeline[m_pDriver->m_RenderState.graphics.pipeline];
+      m_pDriver->m_CreationInfo.m_Pipeline[state.graphics.pipeline];
 
   // Secondary commands can't have render passes
   if((mainDraw && !(mainDraw->flags & ActionFlags::Drawcall)) ||
@@ -865,7 +870,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       CheckVkResult(vkr);
 
       // backup state
-      VulkanRenderState prevstate = m_pDriver->m_RenderState;
+      VulkanRenderState prevstate = state;
 
       // make patched shader
       VkShaderModule mod = VK_NULL_HANDLE;
@@ -892,12 +897,12 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       rs->rasterizerDiscardEnable = false;
 
       // disable tests in dynamic state too
-      m_pDriver->m_RenderState.depthTestEnable = VK_FALSE;
-      m_pDriver->m_RenderState.depthWriteEnable = VK_FALSE;
-      m_pDriver->m_RenderState.depthCompareOp = VK_COMPARE_OP_ALWAYS;
-      m_pDriver->m_RenderState.stencilTestEnable = VK_FALSE;
-      m_pDriver->m_RenderState.depthBoundsTestEnable = VK_FALSE;
-      m_pDriver->m_RenderState.cullMode = VK_CULL_MODE_NONE;
+      state.depthTestEnable = VK_FALSE;
+      state.depthWriteEnable = VK_FALSE;
+      state.depthCompareOp = VK_COMPARE_OP_ALWAYS;
+      state.stencilTestEnable = VK_FALSE;
+      state.depthBoundsTestEnable = VK_FALSE;
+      state.cullMode = VK_CULL_MODE_NONE;
 
       // disable all discard rectangles
       RemoveNextStruct(&pipeCreateInfo,
@@ -1031,29 +1036,29 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       CheckVkResult(vkr);
 
       // modify state
-      m_pDriver->m_RenderState.renderPass = GetResID(m_Overlay.NoDepthRP);
-      m_pDriver->m_RenderState.subpass = 0;
-      m_pDriver->m_RenderState.SetFramebuffer(m_pDriver, GetResID(m_Overlay.NoDepthFB));
+      state.SetRenderPass(GetResID(m_Overlay.NoDepthRP));
+      state.subpass = 0;
+      state.SetFramebuffer(m_pDriver, GetResID(m_Overlay.NoDepthFB));
 
-      m_pDriver->m_RenderState.graphics.pipeline = GetResID(pipe);
+      state.graphics.pipeline = GetResID(pipe);
 
       // set dynamic scissors in case pipeline was using them
       if(overlay == DebugOverlay::Drawcall)
       {
-        for(size_t i = 0; i < m_pDriver->m_RenderState.scissors.size(); i++)
+        for(size_t i = 0; i < state.scissors.size(); i++)
         {
-          m_pDriver->m_RenderState.scissors[i].offset.x = 0;
-          m_pDriver->m_RenderState.scissors[i].offset.y = 0;
-          m_pDriver->m_RenderState.scissors[i].extent.width = 16384;
-          m_pDriver->m_RenderState.scissors[i].extent.height = 16384;
+          state.scissors[i].offset.x = 0;
+          state.scissors[i].offset.y = 0;
+          state.scissors[i].extent.width = 16384;
+          state.scissors[i].extent.height = 16384;
         }
       }
 
       if(overlay == DebugOverlay::Wireframe)
-        m_pDriver->m_RenderState.lineWidth = 1.0f;
+        state.lineWidth = 1.0f;
 
       if(overlay == DebugOverlay::Drawcall || overlay == DebugOverlay::Wireframe)
-        m_pDriver->m_RenderState.conditionalRendering.forceDisable = true;
+        state.conditionalRendering.forceDisable = true;
 
       if(patchedIndexCount == 0)
       {
@@ -1073,14 +1078,13 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         CheckVkResult(vkr);
 
         // do single draw
-        m_pDriver->m_RenderState.BeginRenderPassAndApplyState(m_pDriver, cmd,
-                                                              VulkanRenderState::BindGraphics);
+        state.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
         ActionDescription action = *mainDraw;
         action.numIndices = patchedIndexCount;
         action.baseVertex = 0;
         action.indexOffset = 0;
         m_pDriver->ReplayDraw(cmd, action);
-        m_pDriver->m_RenderState.EndRenderPass(cmd);
+        state.EndRenderPass(cmd);
 
         vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
         CheckVkResult(vkr);
@@ -1099,7 +1103,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       CheckVkResult(vkr);
 
       // restore state
-      m_pDriver->m_RenderState = prevstate;
+      state = prevstate;
 
       patchedIB.Destroy();
 
@@ -1145,7 +1149,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       float highlightCol[] = {1.0f, 0.0f, 0.0f, 1.0f};
 
       // backup state
-      VulkanRenderState prevstate = m_pDriver->m_RenderState;
+      VulkanRenderState prevstate = state;
 
       // make patched shader
       VkShaderModule mod[2] = {0};
@@ -1180,12 +1184,12 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       rs->rasterizerDiscardEnable = false;
 
       // disable tests in dynamic state too
-      m_pDriver->m_RenderState.depthTestEnable = VK_FALSE;
-      m_pDriver->m_RenderState.depthWriteEnable = VK_FALSE;
-      m_pDriver->m_RenderState.depthCompareOp = VK_COMPARE_OP_ALWAYS;
-      m_pDriver->m_RenderState.stencilTestEnable = VK_FALSE;
-      m_pDriver->m_RenderState.depthBoundsTestEnable = VK_FALSE;
-      m_pDriver->m_RenderState.cullMode = VK_CULL_MODE_NONE;
+      state.depthTestEnable = VK_FALSE;
+      state.depthWriteEnable = VK_FALSE;
+      state.depthCompareOp = VK_COMPARE_OP_ALWAYS;
+      state.stencilTestEnable = VK_FALSE;
+      state.depthBoundsTestEnable = VK_FALSE;
+      state.cullMode = VK_CULL_MODE_NONE;
 
       if(m_pDriver->GetDeviceEnabledFeatures().depthClamp)
         rs->depthClampEnable = true;
@@ -1249,14 +1253,14 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       CheckVkResult(vkr);
 
       // modify state
-      m_pDriver->m_RenderState.renderPass = GetResID(m_Overlay.NoDepthRP);
-      m_pDriver->m_RenderState.subpass = 0;
-      m_pDriver->m_RenderState.SetFramebuffer(m_pDriver, GetResID(m_Overlay.NoDepthFB));
+      state.SetRenderPass(GetResID(m_Overlay.NoDepthRP));
+      state.subpass = 0;
+      state.SetFramebuffer(m_pDriver, GetResID(m_Overlay.NoDepthFB));
 
-      m_pDriver->m_RenderState.graphics.pipeline = GetResID(pipe[0]);
-      m_pDriver->m_RenderState.scissors = prevstate.scissors;
+      state.graphics.pipeline = GetResID(pipe[0]);
+      state.scissors = prevstate.scissors;
 
-      for(VkRect2D &sc : m_pDriver->m_RenderState.scissors)
+      for(VkRect2D &sc : state.scissors)
       {
         sc.offset.x = 0;
         sc.offset.y = 0;
@@ -1266,13 +1270,13 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
       m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
-      m_pDriver->m_RenderState.graphics.pipeline = GetResID(pipe[1]);
-      m_pDriver->m_RenderState.scissors = prevstate.scissors;
+      state.graphics.pipeline = GetResID(pipe[1]);
+      state.scissors = prevstate.scissors;
 
       m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
       // restore state
-      m_pDriver->m_RenderState = prevstate;
+      state = prevstate;
 
       cmd = m_pDriver->GetNextCmd();
 
@@ -1289,13 +1293,13 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
             NULL,
             Unwrap(m_Overlay.NoDepthRP),
             Unwrap(m_Overlay.NoDepthFB),
-            m_pDriver->m_RenderState.renderArea,
+            state.renderArea,
             1,
             &clearval,
         };
         vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
-        VkViewport viewport = m_pDriver->m_RenderState.views[0];
+        VkViewport viewport = state.views[0];
         vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
 
         uint32_t uboOffs = 0;
@@ -1334,12 +1338,11 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
         vt->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
 
-        if(!m_pDriver->m_RenderState.scissors.empty())
+        if(!state.scissors.empty())
         {
-          Vec4f scissor((float)m_pDriver->m_RenderState.scissors[0].offset.x,
-                        (float)m_pDriver->m_RenderState.scissors[0].offset.y,
-                        (float)m_pDriver->m_RenderState.scissors[0].extent.width,
-                        (float)m_pDriver->m_RenderState.scissors[0].extent.height);
+          Vec4f scissor((float)state.scissors[0].offset.x, (float)state.scissors[0].offset.y,
+                        (float)state.scissors[0].extent.width,
+                        (float)state.scissors[0].extent.height);
 
           ubo = (CheckerboardUBOData *)m_Overlay.m_CheckerUBO.Map(&uboOffs);
 
@@ -1432,7 +1435,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       CheckVkResult(vkr);
 
       // backup state
-      VulkanRenderState prevstate = m_pDriver->m_RenderState;
+      VulkanRenderState prevstate = state;
 
       // make patched shader
       VkShaderModule mod[2] = {0};
@@ -1471,12 +1474,12 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         rs->depthClampEnable = true;
 
       // disable tests in dynamic state too
-      m_pDriver->m_RenderState.depthTestEnable = VK_FALSE;
-      m_pDriver->m_RenderState.depthWriteEnable = VK_FALSE;
-      m_pDriver->m_RenderState.depthCompareOp = VK_COMPARE_OP_ALWAYS;
-      m_pDriver->m_RenderState.stencilTestEnable = VK_FALSE;
-      m_pDriver->m_RenderState.depthBoundsTestEnable = VK_FALSE;
-      m_pDriver->m_RenderState.cullMode = VK_CULL_MODE_NONE;
+      state.depthTestEnable = VK_FALSE;
+      state.depthWriteEnable = VK_FALSE;
+      state.depthCompareOp = VK_COMPARE_OP_ALWAYS;
+      state.stencilTestEnable = VK_FALSE;
+      state.depthBoundsTestEnable = VK_FALSE;
+      state.cullMode = VK_CULL_MODE_NONE;
 
       VkPipelineColorBlendStateCreateInfo *cb =
           (VkPipelineColorBlendStateCreateInfo *)pipeCreateInfo.pColorBlendState;
@@ -1538,16 +1541,16 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       CheckVkResult(vkr);
 
       // modify state
-      m_pDriver->m_RenderState.renderPass = GetResID(m_Overlay.NoDepthRP);
-      m_pDriver->m_RenderState.subpass = 0;
-      m_pDriver->m_RenderState.SetFramebuffer(m_pDriver, GetResID(m_Overlay.NoDepthFB));
+      state.SetRenderPass(GetResID(m_Overlay.NoDepthRP));
+      state.subpass = 0;
+      state.SetFramebuffer(m_pDriver, GetResID(m_Overlay.NoDepthFB));
 
-      m_pDriver->m_RenderState.graphics.pipeline = GetResID(pipe[0]);
+      state.graphics.pipeline = GetResID(pipe[0]);
 
       m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
-      m_pDriver->m_RenderState.graphics.pipeline = GetResID(pipe[1]);
-      m_pDriver->m_RenderState.cullMode = origCullMode;
+      state.graphics.pipeline = GetResID(pipe[1]);
+      state.cullMode = origCullMode;
 
       m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
@@ -1564,7 +1567,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       CheckVkResult(vkr);
 
       // restore state
-      m_pDriver->m_RenderState = prevstate;
+      state = prevstate;
 
       for(int i = 0; i < 2; i++)
       {
@@ -1607,17 +1610,32 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       VkFramebuffer depthFB = VK_NULL_HANDLE;
       VkRenderPass depthRP = VK_NULL_HANDLE;
 
-      const VulkanRenderState &state = m_pDriver->m_RenderState;
       VulkanCreationInfo &createinfo = m_pDriver->m_CreationInfo;
 
-      RDCASSERT(state.subpass < createinfo.m_RenderPass[state.renderPass].subpasses.size());
-      int32_t dsIdx =
-          createinfo.m_RenderPass[state.renderPass].subpasses[state.subpass].depthstencilAttachment;
+      ResourceId depthStencilView;
 
-      // make a renderpass and framebuffer for rendering to overlay color and using
-      // depth buffer from the orignial render
-      if(dsIdx >= 0 &&
-         dsIdx < (int32_t)createinfo.m_Framebuffer[state.GetFramebuffer()].attachments.size())
+      if(state.dynamicRendering.active)
+      {
+        depthStencilView = GetResID(state.dynamicRendering.depth.imageView);
+        if(depthStencilView == ResourceId())
+          depthStencilView = GetResID(state.dynamicRendering.stencil.imageView);
+      }
+      else
+      {
+        RDCASSERT(state.subpass < createinfo.m_RenderPass[state.GetRenderPass()].subpasses.size());
+        int32_t dsIdx =
+            createinfo.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].depthstencilAttachment;
+
+        // make a renderpass and framebuffer for rendering to overlay color and using
+        // depth buffer from the orignial render
+        if(dsIdx >= 0 &&
+           dsIdx < (int32_t)createinfo.m_Framebuffer[state.GetFramebuffer()].attachments.size())
+        {
+          depthStencilView = state.GetFramebufferAttachments()[dsIdx];
+        }
+      }
+
+      if(depthStencilView != ResourceId())
       {
         VkAttachmentDescription attDescs[] = {
             {0, overlayFormat, VK_SAMPLE_COUNT_1_BIT, VK_ATTACHMENT_LOAD_OP_LOAD,
@@ -1630,8 +1648,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
              VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL},
         };
 
-        ResourceId depthView = state.GetFramebufferAttachments()[dsIdx];
-        VulkanCreationInfo::ImageView &depthViewInfo = createinfo.m_ImageView[depthView];
+        VulkanCreationInfo::ImageView &depthViewInfo = createinfo.m_ImageView[depthStencilView];
 
         ResourceId depthIm = depthViewInfo.image;
         VulkanCreationInfo::Image &depthImageInfo = createinfo.m_Image[depthIm];
@@ -1684,7 +1701,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
         VkImageView views[] = {
             m_Overlay.ImageView,
-            m_pDriver->GetResourceManager()->GetCurrentHandle<VkImageView>(depthView),
+            m_pDriver->GetResourceManager()->GetCurrentHandle<VkImageView>(depthStencilView),
         };
 
         // Create framebuffer rendering just to overlay image, no depth
@@ -1712,7 +1729,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       highlightCol[3] = 1.0f;
 
       // backup state
-      VulkanRenderState prevstate = m_pDriver->m_RenderState;
+      VulkanRenderState prevstate = state;
 
       // make patched shader
       VkShaderModule failmod = {}, passmod = {};
@@ -1826,32 +1843,32 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       CheckVkResult(vkr);
 
       // modify state
-      m_pDriver->m_RenderState.renderPass = GetResID(m_Overlay.NoDepthRP);
-      m_pDriver->m_RenderState.subpass = 0;
-      m_pDriver->m_RenderState.SetFramebuffer(m_pDriver, GetResID(m_Overlay.NoDepthFB));
+      state.SetRenderPass(GetResID(m_Overlay.NoDepthRP));
+      state.subpass = 0;
+      state.SetFramebuffer(m_pDriver, GetResID(m_Overlay.NoDepthFB));
 
-      m_pDriver->m_RenderState.graphics.pipeline = GetResID(failpipe);
+      state.graphics.pipeline = GetResID(failpipe);
 
       // disable tests in dynamic state too
-      m_pDriver->m_RenderState.depthTestEnable = VK_FALSE;
-      m_pDriver->m_RenderState.depthWriteEnable = VK_FALSE;
-      m_pDriver->m_RenderState.stencilTestEnable = VK_FALSE;
-      m_pDriver->m_RenderState.depthBoundsTestEnable = VK_FALSE;
-      m_pDriver->m_RenderState.cullMode = VK_CULL_MODE_NONE;
+      state.depthTestEnable = VK_FALSE;
+      state.depthWriteEnable = VK_FALSE;
+      state.stencilTestEnable = VK_FALSE;
+      state.depthBoundsTestEnable = VK_FALSE;
+      state.cullMode = VK_CULL_MODE_NONE;
 
       m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
-      m_pDriver->m_RenderState.graphics.pipeline = GetResID(passpipe);
+      state.graphics.pipeline = GetResID(passpipe);
       if(depthRP != VK_NULL_HANDLE)
       {
-        m_pDriver->m_RenderState.renderPass = GetResID(depthRP);
-        m_pDriver->m_RenderState.SetFramebuffer(m_pDriver, GetResID(depthFB));
+        state.SetRenderPass(GetResID(depthRP));
+        state.SetFramebuffer(m_pDriver, GetResID(depthFB));
       }
 
       if(overlay == DebugOverlay::Depth)
-        m_pDriver->m_RenderState.depthTestEnable = origDepthTest;
+        state.depthTestEnable = origDepthTest;
       else
-        m_pDriver->m_RenderState.stencilTestEnable = origStencilTest;
+        state.stencilTestEnable = origStencilTest;
 
       m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
@@ -1868,7 +1885,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       CheckVkResult(vkr);
 
       // restore state
-      m_pDriver->m_RenderState = prevstate;
+      state = prevstate;
 
       m_pDriver->vkDestroyPipeline(m_Device, failpipe, NULL);
       m_pDriver->vkDestroyShaderModule(m_Device, failmod, NULL);
@@ -1969,30 +1986,39 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
       CheckVkResult(vkr);
 
-      m_pDriver->m_RenderState.BeginRenderPassAndApplyState(m_pDriver, cmd,
-                                                            VulkanRenderState::BindGraphics);
+      state.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
 
       VkClearAttachment clearatt = {VK_IMAGE_ASPECT_COLOR_BIT, 0, {}};
       memcpy(clearatt.clearValue.color.float32, &clearCol, sizeof(clearatt.clearValue.color.float32));
       rdcarray<VkClearAttachment> atts;
 
-      VulkanCreationInfo::Framebuffer &fb =
-          m_pDriver->m_CreationInfo.m_Framebuffer[m_pDriver->m_RenderState.GetFramebuffer()];
-      VulkanCreationInfo::RenderPass &rp =
-          m_pDriver->m_CreationInfo.m_RenderPass[m_pDriver->m_RenderState.renderPass];
-
-      for(size_t i = 0; i < rp.subpasses[m_pDriver->m_RenderState.subpass].colorAttachments.size();
-          i++)
+      if(state.dynamicRendering.active)
       {
-        clearatt.colorAttachment = (uint32_t)i;
-        atts.push_back(clearatt);
+        for(size_t i = 0; i < state.dynamicRendering.color.size(); i++)
+        {
+          if(state.dynamicRendering.color[i].imageView == VK_NULL_HANDLE)
+            continue;
+
+          clearatt.colorAttachment = (uint32_t)i;
+          atts.push_back(clearatt);
+        }
+      }
+      else
+      {
+        VulkanCreationInfo::RenderPass &rp =
+            m_pDriver->m_CreationInfo.m_RenderPass[state.GetRenderPass()];
+
+        for(size_t i = 0; i < rp.subpasses[state.subpass].colorAttachments.size(); i++)
+        {
+          clearatt.colorAttachment = (uint32_t)i;
+          atts.push_back(clearatt);
+        }
       }
 
       // Try to clear depth as well, to help debug shadow rendering
-      if(m_pDriver->m_RenderState.graphics.pipeline != ResourceId() &&
-         IsDepthOrStencilFormat(iminfo.format))
+      if(state.graphics.pipeline != ResourceId() && IsDepthOrStencilFormat(iminfo.format))
       {
-        VkCompareOp depthCompareOp = m_pDriver->m_RenderState.depthCompareOp;
+        VkCompareOp depthCompareOp = state.depthCompareOp;
 
         // If the depth func is equal or not equal, don't clear at all since the output would be
         // altered in an way that would cause replay to produce mostly incorrect results.
@@ -2016,12 +2042,12 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       }
 
       VkClearRect rect = {
-          {{0, 0}, {fb.width, fb.height}}, 0, 1,
+          state.renderArea, 0, 1,
       };
 
       vt->CmdClearAttachments(Unwrap(cmd), (uint32_t)atts.size(), &atts[0], 1, &rect);
 
-      m_pDriver->m_RenderState.EndRenderPass(cmd);
+      state.EndRenderPass(cmd);
 
       vkr = vt->EndCommandBuffer(Unwrap(cmd));
       CheckVkResult(vkr);
@@ -2047,7 +2073,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
   {
     if(m_Overlay.m_QuadResolvePipeline[0] != VK_NULL_HANDLE && !pipeInfo.rasterizerDiscardEnable)
     {
-      VulkanRenderState prevstate = m_pDriver->m_RenderState;
+      VulkanRenderState prevstate = state;
 
       SCOPED_TIMER("Quad Overdraw");
 
@@ -2242,7 +2268,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
               NULL,
               Unwrap(m_Overlay.NoDepthRP),
               Unwrap(m_Overlay.NoDepthFB),
-              m_pDriver->m_RenderState.renderArea,
+              state.renderArea,
               1,
               &clearval,
           };
@@ -2290,7 +2316,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
   {
     if(!pipeInfo.rasterizerDiscardEnable)
     {
-      VulkanRenderState prevstate = m_pDriver->m_RenderState;
+      VulkanRenderState prevstate = state;
 
       VkPipelineShaderStageCreateInfo stages[3] = {
           {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_VERTEX_BIT,
@@ -2359,8 +2385,6 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
         m_pDriver->ReplayLog(0, events[0], eReplay_WithoutDraw);
 
-        VulkanRenderState &state = m_pDriver->GetRenderState();
-
         uint32_t meshOffs = 0;
         MeshUBOData *data = (MeshUBOData *)m_MeshRender.UBO.Map(&meshOffs);
 
@@ -2406,19 +2430,31 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
         VulkanCreationInfo &createinfo = m_pDriver->m_CreationInfo;
 
-        RDCASSERT(state.subpass < createinfo.m_RenderPass[state.renderPass].subpasses.size());
-        int32_t dsIdx =
-            createinfo.m_RenderPass[state.renderPass].subpasses[state.subpass].depthstencilAttachment;
+        ResourceId depthStencilView;
 
-        bool depthUsed = false;
-
-        // make a renderpass and framebuffer for rendering to overlay color and using
-        // depth buffer from the orignial render
-        if(dsIdx >= 0 &&
-           dsIdx < (int32_t)createinfo.m_Framebuffer[state.GetFramebuffer()].attachments.size())
+        if(state.dynamicRendering.active)
         {
-          depthUsed = true;
+          depthStencilView = GetResID(state.dynamicRendering.depth.imageView);
+          if(depthStencilView == ResourceId())
+            depthStencilView = GetResID(state.dynamicRendering.stencil.imageView);
+        }
+        else
+        {
+          RDCASSERT(state.subpass < createinfo.m_RenderPass[state.GetRenderPass()].subpasses.size());
+          int32_t dsIdx =
+              createinfo.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].depthstencilAttachment;
 
+          // make a renderpass and framebuffer for rendering to overlay color and using
+          // depth buffer from the orignial render
+          if(dsIdx >= 0 &&
+             dsIdx < (int32_t)createinfo.m_Framebuffer[state.GetFramebuffer()].attachments.size())
+          {
+            depthStencilView = state.GetFramebufferAttachments()[dsIdx];
+          }
+        }
+
+        if(depthStencilView != ResourceId())
+        {
           VkAttachmentDescription attDescs[] = {
               {0, overlayFormat, VK_SAMPLE_COUNT_1_BIT, VK_ATTACHMENT_LOAD_OP_LOAD,
                VK_ATTACHMENT_STORE_OP_STORE, VK_ATTACHMENT_LOAD_OP_DONT_CARE,
@@ -2430,8 +2466,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL},
           };
 
-          ResourceId depthView = state.GetFramebufferAttachments()[dsIdx];
-          VulkanCreationInfo::ImageView &depthViewInfo = createinfo.m_ImageView[depthView];
+          VulkanCreationInfo::ImageView &depthViewInfo = createinfo.m_ImageView[depthStencilView];
 
           ResourceId depthIm = depthViewInfo.image;
           VulkanCreationInfo::Image &depthImageInfo = createinfo.m_Image[depthIm];
@@ -2484,7 +2519,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
           VkImageView views[] = {
               m_Overlay.ImageView,
-              m_pDriver->GetResourceManager()->GetCurrentHandle<VkImageView>(depthView),
+              m_pDriver->GetResourceManager()->GetCurrentHandle<VkImageView>(depthStencilView),
           };
 
           // Create framebuffer rendering just to overlay image, no depth
@@ -2840,7 +2875,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         m_pDriver->SubmitCmds();
         m_pDriver->FlushQ();
 
-        if(depthUsed)
+        if(depthStencilView != ResourceId())
         {
           m_pDriver->vkDestroyFramebuffer(m_Device, FB, NULL);
           m_pDriver->vkDestroyRenderPass(m_Device, RP, NULL);
@@ -2854,7 +2889,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       m_pDriver->ReplayLog(0, eventId, eReplay_WithoutDraw);
 
       // restore state
-      m_pDriver->m_RenderState = prevstate;
+      state = prevstate;
 
       cmd = m_pDriver->GetNextCmd();
 
