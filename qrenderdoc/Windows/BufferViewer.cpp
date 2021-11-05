@@ -4107,26 +4107,45 @@ void BufferViewer::on_axisMappingCombo_currentIndexChanged(int index)
         break;
       default: break;
     }
+    ui->axisMappingButton->setEnabled(false);
     previousAxisMappingIndex = index;
     on_resetCamera_clicked();
     INVOKE_MEMFN(RT_UpdateAndDisplay);
   }
-  else if(previousAxisMappingIndex != 4)
+  else
   {
-    AxisMappingDialog dialog(m_Ctx, m_Config, this);
-    RDDialog::show(&dialog);
+    ui->axisMappingButton->setEnabled(true);
+    if(previousAxisMappingIndex != 4)
+    {
+      bool validConfig = showAxisMappingDialog();
 
-    if(dialog.result() == QDialog::Accepted)
-    {
-      m_Config.axisMapping = dialog.getAxisMapping();
-      on_resetCamera_clicked();
-      INVOKE_MEMFN(RT_UpdateAndDisplay);
-    }
-    else
-    {
-      ui->axisMappingCombo->setCurrentIndex(previousAxisMappingIndex);
+      if(!validConfig)
+      {
+        ui->axisMappingCombo->setCurrentIndex(previousAxisMappingIndex);
+        ui->axisMappingButton->setEnabled(false);
+      }
     }
   }
+}
+
+bool BufferViewer::showAxisMappingDialog()
+{
+  AxisMappingDialog dialog(m_Ctx, m_Config, this);
+  RDDialog::show(&dialog);
+
+  if(dialog.result() == QDialog::Accepted)
+  {
+    m_Config.axisMapping = dialog.getAxisMapping();
+    on_resetCamera_clicked();
+    INVOKE_MEMFN(RT_UpdateAndDisplay);
+    return true;
+  }
+  return false;
+}
+
+void BufferViewer::on_axisMappingButton_clicked()
+{
+  showAxisMappingDialog();
 }
 
 void BufferViewer::processFormat(const QString &format)
@@ -4613,6 +4632,8 @@ void BufferViewer::on_outputTabs_currentChanged(int index)
   ui->autofitCamera->setEnabled(!isCurrentRasterOut());
 
   EnableCameraGuessControls();
+  ui->axisMappingCombo->setEnabled(index != 1);
+  ui->axisMappingButton->setEnabled(index != 1 && ui->axisMappingCombo->currentIndex() == 4);
 
   UpdateCurrentMeshConfig();
 

@@ -64,4 +64,7 @@ Mesh View
 .. autoclass:: CameraType
   :members:
 
+.. autoclass:: AxisMapping
+  :members:
+
 .. autofunction:: renderdoc.InitCamera
