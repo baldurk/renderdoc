@@ -36,6 +36,7 @@ static rdcstr ToHumanStr(const VkAttachmentLoadOp &el)
   {
     case VK_ATTACHMENT_LOAD_OP_LOAD: return "Load";
     case VK_ATTACHMENT_LOAD_OP_CLEAR: return "Clear";
+    case VK_ATTACHMENT_LOAD_OP_DONT_CARE: return "Don't Care";
     case VK_ATTACHMENT_LOAD_OP_NONE_EXT: return "None";
   }
   END_ENUM_STRINGISE();
