@@ -398,6 +398,9 @@ struct D3D12GPUTimerCallback : public D3D12ActionCallback
   ~D3D12GPUTimerCallback() { m_pDevice->GetQueue()->GetCommandData()->m_ActionCallback = NULL; }
   void PreDraw(uint32_t eid, ID3D12GraphicsCommandListX *cmd) override
   {
+    if(cmd->GetType() == D3D12_COMMAND_LIST_TYPE_COPY)
+      return;
+
     if(cmd->GetType() == D3D12_COMMAND_LIST_TYPE_DIRECT)
     {
       cmd->BeginQuery(m_OcclusionQueryHeap, D3D12_QUERY_TYPE_OCCLUSION, m_NumStatsQueries);
@@ -408,6 +411,9 @@ struct D3D12GPUTimerCallback : public D3D12ActionCallback
 
   bool PostDraw(uint32_t eid, ID3D12GraphicsCommandListX *cmd) override
   {
+    if(cmd->GetType() == D3D12_COMMAND_LIST_TYPE_COPY)
+      return false;
+
     cmd->EndQuery(m_TimerQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, m_NumTimestampQueries * 2 + 1);
     m_NumTimestampQueries++;
 
