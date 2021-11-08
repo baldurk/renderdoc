@@ -2705,9 +2705,11 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
     depthFormat = true;
   }
 
-  // Qualcomm drivers seem to barf if we try to read from cubemap faces after X+ for mips.
-  // X+ works on any mip, and all faces work on the first mip.
-  if(VendorCheck[VendorCheck_Qualcomm_emulate_cube_reads_mip1] && level > 0)
+  // Qualcomm drivers seem to barf if we try to read from cubemap faces above X+ for mips 64x64 or
+  // smaller. In testing X+ works on any mip, and all faces work on larger mips, but since the
+  // driver seems completely unreliable in this area we enable the workaround blanket for all
+  // cubemap reads as different formats may break in different ways.
+  if(VendorCheck[VendorCheck_Qualcomm_emulate_cube_reads])
   {
     switch(target)
     {

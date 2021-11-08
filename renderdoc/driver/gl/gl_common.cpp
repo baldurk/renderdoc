@@ -804,7 +804,7 @@ void DoVendorChecks(GLPlatform &platform, GLWindowingData context)
     }
 
     RDCWARN("Enabling Qualcomm driver hack to avoid reading cubemap mip faces directly", ver);
-    VendorCheck[VendorCheck_Qualcomm_emulate_cube_reads_mip1] = true;
+    VendorCheck[VendorCheck_Qualcomm_emulate_cube_reads] = true;
   }
 
   if(IsGLES)
