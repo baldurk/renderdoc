@@ -4632,8 +4632,9 @@ void BufferViewer::on_outputTabs_currentChanged(int index)
   ui->autofitCamera->setEnabled(!isCurrentRasterOut());
 
   EnableCameraGuessControls();
-  ui->axisMappingCombo->setEnabled(index != 1);
-  ui->axisMappingButton->setEnabled(index != 1 && ui->axisMappingCombo->currentIndex() == 4);
+  ui->axisMappingCombo->setEnabled(!isCurrentRasterOut());
+  ui->axisMappingButton->setEnabled(!isCurrentRasterOut() &&
+                                    ui->axisMappingCombo->currentIndex() == 4);
 
   UpdateCurrentMeshConfig();
 

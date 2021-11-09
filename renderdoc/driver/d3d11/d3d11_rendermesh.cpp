@@ -50,9 +50,12 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
   Matrix4f projMat = Matrix4f::Perspective(90.0f, 0.1f, 100000.0f, m_OutputWidth / m_OutputHeight);
 
   Matrix4f camMat = cfg.cam ? ((Camera *)cfg.cam)->GetMatrix() : Matrix4f::Identity();
+
+  Matrix4f axisMapMat = Matrix4f(cfg.axisMapping);
+
   Matrix4f guessProjInv;
 
-  vertexData.ModelViewProj = projMat.Mul(camMat);
+  vertexData.ModelViewProj = projMat.Mul(camMat.Mul(axisMapMat));
   vertexData.SpriteSize = Vec2f();
   vertexData.homogenousInput = cfg.position.unproject;
 
@@ -325,7 +328,7 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
 
   // set up state for drawing helpers
   {
-    vertexData.ModelViewProj = projMat.Mul(camMat);
+    vertexData.ModelViewProj = projMat.Mul(camMat.Mul(axisMapMat));
     GetDebugManager()->FillCBuffer(vsCBuf, &vertexData, sizeof(vertexData));
 
     m_pImmediateContext->RSSetState(m_MeshRender.SolidRasterState);
@@ -414,7 +417,7 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
       if(cfg.position.unproject)
         vertexData.ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
       else
-        vertexData.ModelViewProj = projMat.Mul(camMat);
+        vertexData.ModelViewProj = projMat.Mul(camMat.Mul(axisMapMat));
 
       m_pImmediateContext->IASetInputLayout(m_MeshRender.GenericLayout);
 
@@ -544,7 +547,7 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
     D3D11_MAPPED_SUBRESOURCE mapped;
 
     vertexData.SpriteSize = Vec2f();
-    vertexData.ModelViewProj = projMat.Mul(camMat);
+    vertexData.ModelViewProj = projMat.Mul(camMat.Mul(axisMapMat));
     GetDebugManager()->FillCBuffer(vsCBuf, &vertexData, sizeof(vertexData));
 
     HRESULT hr = m_pImmediateContext->Map(m_MeshRender.TriHighlightHelper, 0,
