@@ -263,9 +263,11 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
 
   Matrix4f camMat = cfg.cam ? ((Camera *)cfg.cam)->GetMatrix() : Matrix4f::Identity();
 
+  Matrix4f axisMapMat = Matrix4f(cfg.axisMapping);
+
   Matrix4f guessProjInv;
 
-  vertexData.ModelViewProj = projMat.Mul(camMat);
+  vertexData.ModelViewProj = projMat.Mul(camMat.Mul(axisMapMat));
   vertexData.SpriteSize = Vec2f();
   vertexData.homogenousInput = cfg.position.unproject;
 
@@ -725,7 +727,7 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
       if(cfg.position.unproject)
         vertexData.ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
       else
-        vertexData.ModelViewProj = projMat.Mul(camMat);
+        vertexData.ModelViewProj = projMat.Mul(camMat.Mul(axisMapMat));
 
       list->IASetPrimitiveTopology(MakeD3DPrimitiveTopology(helper.topology));
 

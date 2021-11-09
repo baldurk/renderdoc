@@ -484,7 +484,9 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
 
   Matrix4f camMat = cfg.cam ? ((Camera *)cfg.cam)->GetMatrix() : Matrix4f::Identity();
 
-  Matrix4f ModelViewProj = projMat.Mul(camMat);
+  Matrix4f axisMapMat = Matrix4f(cfg.axisMapping);
+
+  Matrix4f ModelViewProj = projMat.Mul(camMat.Mul(axisMapMat));
   Matrix4f guessProjInv;
 
   if(cfg.position.unproject)
@@ -1025,7 +1027,7 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
       if(cfg.position.unproject)
         ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
       else
-        ModelViewProj = projMat.Mul(camMat);
+        ModelViewProj = projMat.Mul(camMat.Mul(axisMapMat));
 
       MeshUBOData uniforms = {};
       uniforms.mvp = ModelViewProj;
