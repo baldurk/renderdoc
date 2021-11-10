@@ -536,7 +536,24 @@ protected:
     m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo, pipe);
 
     // make state we want to control dynamic
-    AddDynamicStates(pipeCreateInfo);
+    SetupDynamicStates(pipeCreateInfo);
+
+    // remove any dynamic states where we want to use exactly the fixed ones we're setting up
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE_EXT);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE_EXT);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_COMPARE_OP_EXT);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE_EXT);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE_EXT);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_STENCIL_OP_EXT);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_COLOR_WRITE_ENABLE_EXT);
+
+    if(disableTests)
+    {
+      m_DynamicStates.removeOne(VK_DYNAMIC_STATE_CULL_MODE_EXT);
+      m_DynamicStates.removeOne(VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE_EXT);
+    }
+
+    ApplyDynamicStates(pipeCreateInfo);
 
     VkPipelineRasterizationStateCreateInfo *rs =
         (VkPipelineRasterizationStateCreateInfo *)pipeCreateInfo.pRasterizationState;
@@ -611,11 +628,8 @@ protected:
 
   // ensures the state we want to control is dynamic, whether or not it was dynamic in the original
   // pipeline
-  void AddDynamicStates(VkGraphicsPipelineCreateInfo &pipeCreateInfo)
+  void SetupDynamicStates(VkGraphicsPipelineCreateInfo &pipeCreateInfo)
   {
-    // we need to add it. Check if the dynamic state is already pointing to our internal array (in
-    // the case of adding multiple dynamic states in a row), and otherwise initialise our array from
-    // it and repoint. Then we can add the new state
     VkPipelineDynamicStateCreateInfo *dynState =
         (VkPipelineDynamicStateCreateInfo *)pipeCreateInfo.pDynamicState;
 
@@ -631,6 +645,14 @@ protected:
       m_DynamicStates.push_back(VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK);
     if(!m_DynamicStates.contains(VK_DYNAMIC_STATE_STENCIL_WRITE_MASK))
       m_DynamicStates.push_back(VK_DYNAMIC_STATE_STENCIL_WRITE_MASK);
+
+    ApplyDynamicStates(pipeCreateInfo);
+  }
+
+  void ApplyDynamicStates(VkGraphicsPipelineCreateInfo &pipeCreateInfo)
+  {
+    VkPipelineDynamicStateCreateInfo *dynState =
+        (VkPipelineDynamicStateCreateInfo *)pipeCreateInfo.pDynamicState;
 
     // now point at our storage for the array
     dynState->pDynamicStates = m_DynamicStates.data();
@@ -1333,7 +1355,7 @@ private:
 
     VkGraphicsPipelineCreateInfo pipeCreateInfo = {};
     rdcarray<VkPipelineShaderStageCreateInfo> stages;
-    MakeIncrementStencilPipelineCI(eid, pipeline, pipeCreateInfo, stages, true);
+    MakeIncrementStencilPipelineCI(eid, pipeline, pipeCreateInfo, stages, true, false);
 
     for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
     {
@@ -1811,7 +1833,7 @@ private:
 
     VkGraphicsPipelineCreateInfo pipeCreateInfo = {};
     rdcarray<VkPipelineShaderStageCreateInfo> stages;
-    MakeIncrementStencilPipelineCI(eid, pipeline, pipeCreateInfo, stages, false);
+    MakeIncrementStencilPipelineCI(eid, pipeline, pipeCreateInfo, stages, false, true);
     // No need to change depth stencil state, it is already
     // set to always pass, and increment.
     pipeCreateInfo.renderPass = rp;
@@ -2282,7 +2304,22 @@ private:
     VkPipelineMultisampleStateCreateInfo *ms =
         (VkPipelineMultisampleStateCreateInfo *)ci.pMultisampleState;
 
-    AddDynamicStates(ci);
+    SetupDynamicStates(ci);
+
+    // remove any dynamic states where we want to use exactly the fixed ones we're setting up
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE_EXT);
+
+    if(pipeCreateFlags & PipelineCreationFlags_DisableDepthTest)
+      m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE_EXT);
+    if(pipeCreateFlags & PipelineCreationFlags_DisableDepthBoundsTest)
+      m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE_EXT);
+    if(pipeCreateFlags & PipelineCreationFlags_DisableStencilTest)
+      m_DynamicStates.removeOne(VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE_EXT);
+
+    if(pipeCreateFlags & PipelineCreationFlags_DisableCulling)
+      m_DynamicStates.removeOne(VK_DYNAMIC_STATE_CULL_MODE_EXT);
+
+    ApplyDynamicStates(ci);
 
     // Only interested in a single sample.
     ms->pSampleMask = &m_CallbackInfo.sampleMask;
@@ -2715,7 +2752,16 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     rdcarray<VkPipelineShaderStageCreateInfo> stages;
     m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo, pipe);
 
-    AddDynamicStates(pipeCreateInfo);
+    SetupDynamicStates(pipeCreateInfo);
+
+    // remove any dynamic states where we want to use exactly the fixed ones we're setting up
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE_EXT);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_STENCIL_OP_EXT);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_COLOR_WRITE_ENABLE_EXT);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE_EXT);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_COMPARE_OP_EXT);
+
+    ApplyDynamicStates(pipeCreateInfo);
 
     // if RP is null we need to patch the pipeline rendering info
     if(rp == VK_NULL_HANDLE)
@@ -2843,6 +2889,10 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       ds->depthTestEnable = VK_FALSE;
       ds->depthWriteEnable = VK_FALSE;
     }
+
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE_EXT);
+
+    ApplyDynamicStates(pipeCreateInfo);
 
     // Output the primitive ID.
     VkPipelineShaderStageCreateInfo stageCI = {};
@@ -2993,7 +3043,7 @@ struct VulkanPixelHistoryDiscardedFragmentsCallback : VulkanPixelHistoryCallback
   {
     rdcarray<VkPipelineShaderStageCreateInfo> stages;
     VkGraphicsPipelineCreateInfo pipeCreateInfo = {};
-    MakeIncrementStencilPipelineCI(eid, pipe, pipeCreateInfo, stages, false);
+    MakeIncrementStencilPipelineCI(eid, pipe, pipeCreateInfo, stages, false, false);
 
     {
       VkPipelineDepthStencilStateCreateInfo *ds =
