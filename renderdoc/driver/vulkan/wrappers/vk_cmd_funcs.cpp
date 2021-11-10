@@ -6823,6 +6823,30 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderingKHR(SerialiserType &ser,
         renderstate.SetFramebuffer(ResourceId(), attachments);
       }
 
+      for(size_t i = 0; i < renderstate.dynamicRendering.color.size() + 2; i++)
+      {
+        VkRenderingAttachmentInfoKHR *att =
+            (VkRenderingAttachmentInfoKHR *)&renderstate.dynamicRendering.color[i];
+
+        if(i == renderstate.dynamicRendering.color.size())
+          att = (VkRenderingAttachmentInfoKHR *)&renderstate.dynamicRendering.depth;
+        else if(i == renderstate.dynamicRendering.color.size() + 1)
+          att = (VkRenderingAttachmentInfoKHR *)&renderstate.dynamicRendering.stencil;
+
+        if(!att || att->imageView == VK_NULL_HANDLE)
+          continue;
+
+        if(att->loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ||
+           att->loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
+        {
+          ResourceId image = m_CreationInfo.m_ImageView[GetResID(att->imageView)].image;
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(make_rdcpair(
+              image, EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID,
+                                att->loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ? ResourceUsage::Clear
+                                                                           : ResourceUsage::Discard)));
+        }
+      }
+
       AddEvent();
       ActionDescription action;
       action.customName =
