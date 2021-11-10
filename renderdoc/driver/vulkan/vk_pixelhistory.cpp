@@ -530,7 +530,7 @@ protected:
   void MakeIncrementStencilPipelineCI(uint32_t eid, ResourceId pipe,
                                       VkGraphicsPipelineCreateInfo &pipeCreateInfo,
                                       rdcarray<VkPipelineShaderStageCreateInfo> &stages,
-                                      bool disableTests)
+                                      bool disableTests, bool patchDepthAttachment)
   {
     const VulkanCreationInfo::Pipeline &p = m_pDriver->GetDebugManager()->GetPipelineInfo(pipe);
     m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo, pipe);
@@ -554,6 +554,20 @@ protected:
     }
 
     ApplyDynamicStates(pipeCreateInfo);
+
+    // need to patch the pipeline rendering info if it exists and we're patching the depth
+    // attachment
+    VkPipelineRenderingCreateInfoKHR *dynRenderCreate =
+        (VkPipelineRenderingCreateInfoKHR *)FindNextStruct(
+            &pipeCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR);
+
+    if(patchDepthAttachment && dynRenderCreate)
+    {
+      RDCASSERT(dynRenderCreate);
+
+      dynRenderCreate->depthAttachmentFormat = m_CallbackInfo.dsFormat;
+      dynRenderCreate->stencilAttachmentFormat = m_CallbackInfo.dsFormat;
+    }
 
     VkPipelineRasterizationStateCreateInfo *rs =
         (VkPipelineRasterizationStateCreateInfo *)pipeCreateInfo.pRasterizationState;
@@ -2785,6 +2799,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       }
 
       dynRenderCreate->depthAttachmentFormat = m_CallbackInfo.dsFormat;
+      dynRenderCreate->stencilAttachmentFormat = m_CallbackInfo.dsFormat;
     }
 
     VkPipelineDepthStencilStateCreateInfo *ds =
