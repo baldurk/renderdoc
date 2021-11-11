@@ -105,7 +105,8 @@ void main()
   BUFFER_TEST(NonCoherentMapFlush)               \
   BUFFER_TEST(NonCoherentMapFlushUnsynchronised) \
   BUFFER_TEST(OffsetMapWrite)                    \
-  BUFFER_TEST(OffsetMapFlush)
+  BUFFER_TEST(OffsetMapFlush)                    \
+  BUFFER_TEST(PersistentBufferFrameMapped)
 
 #undef BUFFER_TEST
 #define BUFFER_TEST(name) name,
@@ -266,6 +267,11 @@ void main()
     for(int i = 0; i < 100; i++)
       glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), &cyan);
 
+    glBindBuffer(GL_UNIFORM_BUFFER, buffers[PersistentBufferFrameMapped]);
+    glBufferStorage(
+        GL_UNIFORM_BUFFER, sizeof(Vec4f), &red,
+        GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT | GL_DYNAMIC_STORAGE_BIT);
+
     // these buffers are used for indicating a CPU readback passed or failed
     GLuint pass = MakeBuffer();
     glBindBuffer(GL_UNIFORM_BUFFER, pass);
@@ -414,6 +420,15 @@ void main()
       if(ptr)
         ptr->x = 0.0f;
       glFlushMappedBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(float));
+      glUnmapBuffer(GL_UNIFORM_BUFFER);
+
+      glBindBuffer(GL_UNIFORM_BUFFER, buffers[PersistentBufferFrameMapped]);
+      glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Vec4f), &cyan);
+
+      ptr = (Vec4f *)glMapBufferRange(GL_UNIFORM_BUFFER, sizeof(float) * 2, sizeof(float),
+                                      GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT);
+      if(ptr)
+        ptr->x = 0.0f;
       glUnmapBuffer(GL_UNIFORM_BUFFER);
 
       const int squareSize = 50;
