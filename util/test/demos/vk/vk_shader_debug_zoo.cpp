@@ -2448,6 +2448,10 @@ void main()
         "%_out_float4 = OpVectorShuffle %float4 %float4_dyn_0000 %float4_dyn_1234 7 6 0 1",
         "%_out_float3 = OpVectorShuffle %float3 %float3_000 %float3_123 3 4 5",
         "%_out_float2 = OpVectorShuffle %float2 %float2_00 %float2_12 2 3",
+
+        // test 0xffffffff component inputs
+        "%_tmp = OpVectorShuffle %float4 %float4_0000 %float4_1234 5 4 4294967295 4294967295\n"
+        "%_out_float4 = OpVectorShuffle %float4 %_tmp %float4_dyn_1234 0 1 4 5",
     });
 
     // test OpVectorExtractDynamic
