@@ -769,11 +769,6 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
     SCOPED_LOCK(m_DeviceWrappersLock);
     m_DeviceWrappers[m_pDevice] = this;
   }
-
-  if(!RenderDoc::Inst().IsReplayApp())
-  {
-    FirstFrame(NULL);
-  }
 }
 
 WrappedID3D12Device::~WrappedID3D12Device()

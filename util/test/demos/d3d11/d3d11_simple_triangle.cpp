@@ -44,7 +44,13 @@ RD_TEST(D3D11_Simple_Triangle, D3D11GraphicsTest)
     ID3D11VertexShaderPtr vs = CreateVS(vsblob);
     ID3D11PixelShaderPtr ps = CreatePS(psblob);
 
-    ID3D11BufferPtr vb = MakeBuffer().Vertex().Data(DefaultTri);
+    ID3D11BufferPtr vb = MakeBuffer().Vertex().Mappable().Size(sizeof(DefaultTri));
+
+    D3D11_MAPPED_SUBRESOURCE mapped = Map(vb, 0, D3D11_MAP_WRITE_DISCARD);
+
+    memcpy(mapped.pData, DefaultTri, sizeof(DefaultTri));
+
+    ctx->Unmap(vb, 0);
 
     // make a simple texture so that the structured data includes texture initial states
     ID3D11Texture2DPtr fltTex = MakeTexture(DXGI_FORMAT_R32G32B32A32_FLOAT, 4, 4).RTV();
