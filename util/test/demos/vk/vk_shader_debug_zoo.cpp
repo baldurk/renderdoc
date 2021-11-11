@@ -3946,8 +3946,8 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
     Vec4f cbufferdata[64] = {};
 
     AllocatedBuffer cb(
-        this, vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
-                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this, vkh::BufferCreateInfo(sizeof(cbufferdata) * 2, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
+                                                                 VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     cbufferdata[1] = Vec4f(1.1f, 2.2f, 3.3f, 4.4f);
@@ -4058,9 +4058,9 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
         device,
         {
             vkh::WriteDescriptorSet(descset0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-                                    {vkh::DescriptorBufferInfo(cb.buffer)}),
+                                    {vkh::DescriptorBufferInfo(cb.buffer, 0, sizeof(cbufferdata))}),
             vkh::WriteDescriptorSet(descset0, 10, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-                                    {vkh::DescriptorBufferInfo(cb.buffer)}),
+                                    {vkh::DescriptorBufferInfo(cb.buffer, 0, sizeof(cbufferdata))}),
             vkh::WriteDescriptorSet(
                 descset0, 11, VK_DESCRIPTOR_TYPE_SAMPLER,
                 {vkh::DescriptorImageInfo(VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED, pointsampler)}),
