@@ -200,6 +200,10 @@ void main()
         vkh::vertexAttr(2, 1, DefaultA2V, uv),
     };
 
+    // uv will test reading from a NULL buffer with an offset, since we won't be reading data anyway
+    // test reading at offset 0
+    pipeCreateInfo.vertexInputState.vertexAttributeDescriptions[1].offset = 0;
+
     pipeCreateInfo.stages = {
         CompileShaderModule(common + vertex, ShaderLang::glsl, ShaderStage::vert, "main"),
         CompileShaderModule(common + pixel, ShaderLang::glsl, ShaderStage::frag, "main"),
