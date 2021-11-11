@@ -47,6 +47,22 @@ float4 main() : SV_Target0
     if(!Init())
       return 3;
 
+    LUID luid = dev->GetAdapterLuid();
+    IDXGIAdapterPtr pDXGIAdapter;
+    ID3D12DevicePtr devB;
+    {
+      HRESULT hr = EnumAdapterByLuid(dev->GetAdapterLuid(), pDXGIAdapter);
+      if(FAILED(hr))
+        return 2;
+
+      devB = CreateDevice({pDXGIAdapter}, D3D_FEATURE_LEVEL_11_0);
+      if(!devB)
+        return 2;
+    }
+
+    // create a buffer on another unrelated device
+    ID3D12ResourcePtr bufferB = D3D12BufferCreator(devB, this).Data(DefaultTri);
+
     ID3DBlobPtr vsblob = Compile(D3DDefaultVertex, "main", "vs_4_0");
     ID3DBlobPtr psblob = Compile(pixel, "main", "ps_4_0");
 
