@@ -767,6 +767,8 @@ void WrappedOpenGL::glTextureView(GLuint texture, GLenum target, GLuint origtext
     // illegal to re-type textures
     record->VerifyDataType(target);
 
+    record->datatype = TextureBinding(target);
+
     // mark the underlying resource as dirty to avoid tracking dirty across
     // aliased resources etc.
     GetResourceManager()->MarkDirtyResource(origrecord->GetResourceID());

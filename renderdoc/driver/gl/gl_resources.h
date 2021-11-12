@@ -251,9 +251,7 @@ struct GLResourceRecord : public ResourceRecord
 #if ENABLED(RDOC_DEVEL)
     if(target == eGL_NONE)
       return;    // target == GL_NONE means ARB_dsa, target was omitted
-    if(datatype == eGL_NONE)
-      datatype = TextureBinding(target);
-    else
+    if(datatype != eGL_NONE)
       RDCASSERT(datatype == TextureBinding(target));
 #endif
   }
