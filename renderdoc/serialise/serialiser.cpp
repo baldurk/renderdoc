@@ -341,6 +341,9 @@ void Serialiser<SerialiserMode::Writing>::SetChunkMetadataRecording(uint32_t fla
 template <>
 uint32_t Serialiser<SerialiserMode::Writing>::BeginChunk(uint32_t chunkID, uint64_t byteLength)
 {
+  // cannot start a chunk inside a chunk
+  RDCASSERTMSG("Beginning a chunk inside another chunk", m_Write->GetOffset() == 0,
+               m_Write->GetOffset());
   {
     // chunk index needs to be valid
     RDCASSERT(chunkID > 0);
