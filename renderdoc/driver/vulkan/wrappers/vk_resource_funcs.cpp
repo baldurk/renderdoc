@@ -1986,6 +1986,9 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
       }
     }
 
+    // create non-subsampled image to be able to copy its content
+    CreateInfo.flags &= ~VK_IMAGE_CREATE_SUBSAMPLED_BIT_EXT;
+
     APIProps.YUVTextures |= IsYUVFormat(CreateInfo.format);
 
     const bool isSparse = (CreateInfo.flags & (VK_IMAGE_CREATE_SPARSE_BINDING_BIT |
