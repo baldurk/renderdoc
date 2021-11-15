@@ -410,7 +410,16 @@ Usage: %s Test_Name [test_options]
   }
 
   std::string testchoice;
-  if(tests.size() == 1)
+
+#if 0
+  testchoice = "Hardcoded test name";
+#endif
+
+  if(!testchoice.empty())
+  {
+    // hardcoded test, ignore everything else
+  }
+  else if(tests.size() == 1)
   {
     // if there's only one test we've probably hardcoded this for a repro. Launch it
     testchoice = tests[0].Name;
