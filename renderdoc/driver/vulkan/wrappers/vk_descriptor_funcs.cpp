@@ -776,6 +776,12 @@ void WrappedVulkan::ReplayDescriptorSetWrite(VkDevice device, const VkWriteDescr
         {
           layoutBinding++;
           curIdx = 0;
+
+          // skip past invalid padding descriptors to get to the next real one
+          while(layoutBinding->descriptorType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
+          {
+            layoutBinding++;
+          }
         }
 
         valid &= (writeDesc.pImageInfo[i].sampler != VK_NULL_HANDLE) ||
@@ -844,6 +850,13 @@ void WrappedVulkan::ReplayDescriptorSetWrite(VkDevice device, const VkWriteDescr
             layoutBinding++;
             bind++;
             curIdx = 0;
+
+            // skip past invalid padding descriptors to get to the next real one
+            while(layoutBinding->descriptorType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
+            {
+              layoutBinding++;
+              bind++;
+            }
           }
 
           (*bind)[curIdx].texelBufferView = GetResID(writeDesc.pTexelBufferView[d]);
@@ -864,6 +877,13 @@ void WrappedVulkan::ReplayDescriptorSetWrite(VkDevice device, const VkWriteDescr
             layoutBinding++;
             bind++;
             curIdx = 0;
+
+            // skip past invalid padding descriptors to get to the next real one
+            while(layoutBinding->descriptorType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
+            {
+              layoutBinding++;
+              bind++;
+            }
           }
 
           bool sampler = true;
@@ -900,6 +920,13 @@ void WrappedVulkan::ReplayDescriptorSetWrite(VkDevice device, const VkWriteDescr
             layoutBinding++;
             bind++;
             curIdx = 0;
+
+            // skip past invalid padding descriptors to get to the next real one
+            while(layoutBinding->descriptorType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
+            {
+              layoutBinding++;
+              bind++;
+            }
           }
 
           (*bind)[curIdx].bufferInfo.SetFrom(writeDesc.pBufferInfo[d]);
