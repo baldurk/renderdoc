@@ -1193,6 +1193,7 @@ void WrappedOpenGL::glNamedCopyBufferSubDataEXT(GLuint readBuffer, GLuint writeB
     {
       GetContextRecord()->AddChunk(chunk);
       GetResourceManager()->MarkDirtyResource(writerecord->GetResourceID());
+      GetResourceManager()->MarkResourceFrameReferenced(readrecord->GetResourceID(), eFrameRef_Read);
       GetResourceManager()->MarkResourceFrameReferenced(writerecord->GetResourceID(),
                                                         eFrameRef_ReadBeforeWrite);
     }

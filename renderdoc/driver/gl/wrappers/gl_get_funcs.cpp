@@ -728,14 +728,9 @@ void WrappedOpenGL::glGetBufferSubData(GLenum target, GLintptr offset, GLsizeipt
   GL.glGetBufferSubData(target, offset, size, data);
 }
 
-void WrappedOpenGL::glGetQueryObjectuiv(GLuint id, GLenum pname, GLuint *params)
+void WrappedOpenGL::glGetQueryiv(GLenum target, GLenum pname, GLint *params)
 {
-  GL.glGetQueryObjectuiv(id, pname, params);
-}
-
-void WrappedOpenGL::glGetQueryObjectui64v(GLuint id, GLenum pname, GLuint64 *params)
-{
-  GL.glGetQueryObjectui64v(id, pname, params);
+  GL.glGetQueryiv(target, pname, params);
 }
 
 void WrappedOpenGL::glGetQueryIndexediv(GLenum target, GLuint index, GLenum pname, GLint *params)
@@ -743,40 +738,60 @@ void WrappedOpenGL::glGetQueryIndexediv(GLenum target, GLuint index, GLenum pnam
   GL.glGetQueryIndexediv(target, index, pname, params);
 }
 
+void WrappedOpenGL::glGetQueryObjectuiv(GLuint id, GLenum pname, GLuint *params)
+{
+  if(HasExt[ARB_query_buffer_object])
+  {
+    GLuint buf = 0;
+    GL.glGetIntegerv(eGL_QUERY_BUFFER_BINDING, (GLint *)&buf);
+
+    if(buf != 0)
+      return glGetQueryBufferObjectuiv(id, buf, pname, (GLintptr)params);
+  }
+
+  GL.glGetQueryObjectuiv(id, pname, params);
+}
+
+void WrappedOpenGL::glGetQueryObjectui64v(GLuint id, GLenum pname, GLuint64 *params)
+{
+  if(HasExt[ARB_query_buffer_object])
+  {
+    GLuint buf = 0;
+    GL.glGetIntegerv(eGL_QUERY_BUFFER_BINDING, (GLint *)&buf);
+
+    if(buf != 0)
+      return glGetQueryBufferObjectui64v(id, buf, pname, (GLintptr)params);
+  }
+
+  GL.glGetQueryObjectui64v(id, pname, params);
+}
+
 void WrappedOpenGL::glGetQueryObjecti64v(GLuint id, GLenum pname, GLint64 *params)
 {
+  if(HasExt[ARB_query_buffer_object])
+  {
+    GLuint buf = 0;
+    GL.glGetIntegerv(eGL_QUERY_BUFFER_BINDING, (GLint *)&buf);
+
+    if(buf != 0)
+      return glGetQueryBufferObjecti64v(id, buf, pname, (GLintptr)params);
+  }
+
   GL.glGetQueryObjecti64v(id, pname, params);
 }
 
 void WrappedOpenGL::glGetQueryObjectiv(GLuint id, GLenum pname, GLint *params)
 {
+  if(HasExt[ARB_query_buffer_object])
+  {
+    GLuint buf = 0;
+    GL.glGetIntegerv(eGL_QUERY_BUFFER_BINDING, (GLint *)&buf);
+
+    if(buf != 0)
+      return glGetQueryBufferObjectiv(id, buf, pname, (GLintptr)params);
+  }
+
   GL.glGetQueryObjectiv(id, pname, params);
-}
-
-void WrappedOpenGL::glGetQueryiv(GLenum target, GLenum pname, GLint *params)
-{
-  GL.glGetQueryiv(target, pname, params);
-}
-
-void WrappedOpenGL::glGetQueryBufferObjectui64v(GLuint id, GLuint buffer, GLenum pname,
-                                                GLintptr offset)
-{
-  GL.glGetQueryBufferObjectui64v(id, buffer, pname, offset);
-}
-
-void WrappedOpenGL::glGetQueryBufferObjectuiv(GLuint id, GLuint buffer, GLenum pname, GLintptr offset)
-{
-  GL.glGetQueryBufferObjectuiv(id, buffer, pname, offset);
-}
-
-void WrappedOpenGL::glGetQueryBufferObjecti64v(GLuint id, GLuint buffer, GLenum pname, GLintptr offset)
-{
-  GL.glGetQueryBufferObjecti64v(id, buffer, pname, offset);
-}
-
-void WrappedOpenGL::glGetQueryBufferObjectiv(GLuint id, GLuint buffer, GLenum pname, GLintptr offset)
-{
-  GL.glGetQueryBufferObjectiv(id, buffer, pname, offset);
 }
 
 void WrappedOpenGL::glGetSynciv(GLsync sync, GLenum pname, GLsizei bufSize, GLsizei *length,
