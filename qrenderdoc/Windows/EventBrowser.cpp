@@ -227,6 +227,7 @@ struct EventItemModel : public QAbstractItemModel
 
     m_Nodes.clear();
     m_RowInParentCache.clear();
+    m_MessageCounts.clear();
     m_EIDNameCache.clear();
     m_Actions.clear();
     m_Chunks.clear();
