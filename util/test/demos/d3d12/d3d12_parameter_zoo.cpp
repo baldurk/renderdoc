@@ -71,7 +71,52 @@ float4 main() : SV_Target0
     dev->CreateConstantBufferView(NULL, m_CBVUAVSRV->GetCPUDescriptorHandleForHeapStart());
 
     ID3D12ResourcePtr vb = MakeBuffer().Data(DefaultTri);
-    ID3D12ResourcePtr ib = MakeBuffer().Data(indices);
+
+    ID3D12HeapPtr ibHeap;
+    {
+      D3D12_HEAP_DESC heapDesc;
+      heapDesc.SizeInBytes = 4096;
+      heapDesc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
+      heapDesc.Alignment = 0;
+      heapDesc.Properties.Type = D3D12_HEAP_TYPE_DEFAULT;
+      heapDesc.Properties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+      heapDesc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+      heapDesc.Properties.CreationNodeMask = 1;
+      heapDesc.Properties.VisibleNodeMask = 1;
+
+      CHECK_HR(dev->CreateHeap(&heapDesc, __uuidof(ID3D12Heap), (void **)&ibHeap));
+    }
+    ID3D12Pageable *ibHeapPageable = (ID3D12Pageable *)ibHeap.GetInterfacePtr();
+
+    ID3D12ResourcePtr ib;
+    {
+      D3D12_RESOURCE_DESC desc;
+      desc.Alignment = 0;
+      desc.DepthOrArraySize = 1;
+      desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+      desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+      desc.Format = DXGI_FORMAT_UNKNOWN;
+      desc.Height = 1;
+      desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+      desc.Width = sizeof(indices);
+      desc.MipLevels = 1;
+      desc.SampleDesc.Count = 1;
+      desc.SampleDesc.Quality = 0;
+
+      CHECK_HR(dev->CreatePlacedResource(ibHeap, 0, &desc, D3D12_RESOURCE_STATE_COMMON, NULL,
+                                         __uuidof(ID3D12Resource), (void **)&ib));
+    }
+
+    SetBufferData(ib, D3D12_RESOURCE_STATE_COMMON, (const byte *)indices, sizeof(indices));
+
+    // test residency refcounting
+    ID3D12Pageable *vbPageable = (ID3D12Pageable *)vb.GetInterfacePtr();
+    dev->MakeResident(1, &vbPageable);
+    dev->MakeResident(1, &vbPageable);
+    dev->MakeResident(1, &vbPageable);
+    dev->Evict(1, &vbPageable);
+    dev->Evict(1, &vbPageable);
+    dev->Evict(1, &vbPageable);
 
     ID3D12RootSignaturePtr sig = MakeSig({
         // table that's larger than the descriptor heap we'll bind
@@ -361,7 +406,14 @@ float4 main() : SV_Target0
         GPUSync();
       }
 
+      // keep vertex/index buffer evicted across presents
+      dev->Evict(1, &vbPageable);
+      dev->Evict(1, &ibHeapPageable);
+
       Present();
+
+      dev->MakeResident(1, &vbPageable);
+      dev->MakeResident(1, &ibHeapPageable);
     }
 
     return 0;
