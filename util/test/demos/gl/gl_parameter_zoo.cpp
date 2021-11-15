@@ -122,6 +122,9 @@ void main()
       return 5;
     }
 
+    GLuint trashvao = MakeVAO();
+    glBindVertexArray(trashvao);
+
     GLuint vao = MakeVAO();
     glBindVertexArray(vao);
 
@@ -195,6 +198,14 @@ void main()
       glViewport(0, 0, GLsizei(screenWidth), GLsizei(screenHeight));
 
       glBindBuffersBase(GL_SHADER_STORAGE_BUFFER, 0, 4, NULL);
+
+      glBindVertexArray(trashvao);
+      glBindVertexBuffers(0, 4, NULL, NULL, NULL);
+      glBindTextures(0, 10, NULL);
+      glBindSamplers(0, 10, NULL);
+      glBindImageTextures(0, 4, NULL);
+
+      glBindVertexArray(vao);
 
       float col[] = {1.0f, 0.0f, 1.0f, 1.0f};
       glClearBufferfv(GL_COLOR, 0, col);
