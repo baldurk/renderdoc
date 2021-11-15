@@ -7,6 +7,10 @@
 <PropertyGroup>
 
 	<RenderDocLatestWin10SDKVersion>$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft SDKs\Windows\v10.0@ProductVersion)</RenderDocLatestWin10SDKVersion>
+
+	<!-- VS2022 is 64-bit and apparently the win10 SDK doesn't set up 64-bit registry keys. So to cover that case explicitly check the 32-bit node -->
+	<RenderDocLatestWin10SDKVersion Condition="'$(RenderDocLatestWin10SDKVersion)'==''">$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Microsoft SDKs\Windows\v10.0@ProductVersion)</RenderDocLatestWin10SDKVersion>
+
 	<!-- version needed has extra .0 -->
 	<RenderDocLatestWin10SDKVersion Condition="'$(RenderDocLatestWin10SDKVersion)'!=''">$(RenderDocLatestWin10SDKVersion).0</RenderDocLatestWin10SDKVersion>
 
