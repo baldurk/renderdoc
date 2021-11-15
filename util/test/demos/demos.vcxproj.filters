@@ -610,6 +610,9 @@
     <ClCompile Include="vk\vk_load_store_none.cpp">
       <Filter>Vulkan\demos</Filter>
     </ClCompile>
+    <ClCompile Include="vk\vk_shader_printf.cpp">
+      <Filter>Vulkan\demos</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D11">

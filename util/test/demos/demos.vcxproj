@@ -305,6 +305,7 @@
     <ClCompile Include="vk\vk_shader_debug_zoo.cpp" />
     <ClCompile Include="vk\vk_shader_editing.cpp" />
     <ClCompile Include="vk\vk_shader_isa.cpp" />
+    <ClCompile Include="vk\vk_shader_printf.cpp" />
     <ClCompile Include="vk\vk_spec_constants.cpp" />
     <ClCompile Include="vk\vk_spirv_13_shaders.cpp" />
     <ClCompile Include="vk\vk_sync2.cpp" />

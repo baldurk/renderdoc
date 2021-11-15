@@ -45,6 +45,7 @@ set(VULKAN_SRC
         vk/vk_shader_debug_zoo.cpp
         vk/vk_shader_editing.cpp
         vk/vk_shader_isa.cpp
+        vk/vk_shader_printf.cpp
         vk/vk_simple_triangle.cpp
         vk/vk_spec_constants.cpp
         vk/vk_spirv_13_shaders.cpp
