@@ -46,6 +46,9 @@ void main()
 
 layout(location = 0, index = 0) out vec4 Color;
 
+// glslang won't let us compile with a large value! we expand this by patching the SPIR-V
+layout(constant_id = 1234) const float some_float = 1.5;
+layout(constant_id = 5) const int NOT_numcols = 999;
 layout(constant_id = 0) const int numcols = 0;
 
 layout(set = 0, binding = 0, std140) uniform constsbuf
@@ -84,30 +87,111 @@ void main()
         vkh::vertexAttr(0, 0, DefaultA2V, pos),
     };
 
+    VkShaderModule frag = VK_NULL_HANDLE;
+
+    static const uint32_t largeConstID = 0xfedb4231;
+
+    {
+      std::vector<uint32_t> spirv = ::CompileShaderToSpv(
+          pixel, SPIRVTarget::vulkan, ShaderLang::glsl, ShaderStage::frag, "main", {});
+
+      if(spirv.empty())
+        return 4;
+
+      // do a super quick patch to find the OpDecorate (opcode 71) decorating constant ID 1234 and
+      // patch it to the one we really want, which glslang can't compile
+      for(size_t offs = 5; offs < spirv.size();)
+      {
+        uint32_t numWords = spirv[offs] >> 16;
+
+        if((spirv[offs] & 0xffff) == 71 && spirv[offs + 3] == 1234)
+        {
+          spirv[offs + 3] = largeConstID;
+          break;
+        }
+
+        offs += numWords;
+      }
+
+      CHECK_VKR(vkCreateShaderModule(device, vkh::ShaderModuleCreateInfo(spirv), NULL, &frag));
+
+      shaders.push_back(frag);
+    }
+
     pipeCreateInfo.stages = {
         CompileShaderModule(vertex, ShaderLang::glsl, ShaderStage::vert, "main"),
-        CompileShaderModule(pixel, ShaderLang::glsl, ShaderStage::frag, "main"),
+        vkh::PipelineShaderStageCreateInfo(frag, VK_SHADER_STAGE_FRAGMENT_BIT, "main"),
     };
 
-    VkSpecializationMapEntry specmap[1] = {
-        {0, 0, sizeof(uint32_t)},
-    };
+    struct SpecData
+    {
+      int NOT_numcols;
+      int numcols;
+      float floatval;
+    } specdata = {};
 
-    uint32_t specval = 0;
+    std::vector<VkSpecializationMapEntry> specmap;
 
     VkSpecializationInfo spec = {};
-    spec.mapEntryCount = 1;
-    spec.pMapEntries = specmap;
-    spec.dataSize = sizeof(specval);
-    spec.pData = &specval;
+    spec.dataSize = sizeof(specdata);
+    spec.pData = &specdata;
 
     pipeCreateInfo.stages[1].pSpecializationInfo = &spec;
 
     VkPipeline pipe[4] = {};
-    for(size_t i = 0; i < ARRAY_COUNT(pipe); i++)
+
     {
-      specval = (uint32_t)i;
-      pipe[i] = createGraphicsPipeline(pipeCreateInfo);
+      specmap = {
+          {0, offsetof(SpecData, numcols), sizeof(uint32_t)},
+      };
+      specdata.numcols = 0;
+
+      spec.mapEntryCount = (uint32_t)specmap.size();
+      spec.pMapEntries = specmap.data();
+
+      pipe[0] = createGraphicsPipeline(pipeCreateInfo);
+    }
+
+    {
+      specmap = {
+          {largeConstID, offsetof(SpecData, floatval), sizeof(uint32_t)},
+          {0, offsetof(SpecData, numcols), sizeof(uint32_t)},
+      };
+      specdata.numcols = 1;
+      specdata.floatval = 2.5f;
+
+      spec.mapEntryCount = (uint32_t)specmap.size();
+      spec.pMapEntries = specmap.data();
+
+      pipe[1] = createGraphicsPipeline(pipeCreateInfo);
+    }
+
+    {
+      specmap = {
+          {largeConstID, offsetof(SpecData, floatval), sizeof(uint32_t)},
+          {0, offsetof(SpecData, numcols), sizeof(uint32_t)},
+          {5, offsetof(SpecData, NOT_numcols), sizeof(uint32_t)},
+      };
+      specdata.numcols = 2;
+      specdata.NOT_numcols = 9999;
+      specdata.floatval = 16.5f;
+
+      spec.mapEntryCount = (uint32_t)specmap.size();
+      spec.pMapEntries = specmap.data();
+
+      pipe[2] = createGraphicsPipeline(pipeCreateInfo);
+    }
+
+    {
+      specmap = {
+          {0, offsetof(SpecData, numcols), sizeof(uint32_t)},
+      };
+      specdata.numcols = 3;
+
+      spec.mapEntryCount = (uint32_t)specmap.size();
+      spec.pMapEntries = specmap.data();
+
+      pipe[3] = createGraphicsPipeline(pipeCreateInfo);
     }
 
     Vec4f cbufferdata[4] = {

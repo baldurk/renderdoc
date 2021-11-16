@@ -63,6 +63,12 @@ struct SPIRVPatchData
   rdcarray<SPIRVInterfaceAccess> inputs;
   rdcarray<SPIRVInterfaceAccess> outputs;
 
+  // the spec IDs in order - these are the order of constants encountered while parsing, and are
+  // used for byte offsets into the resulting data blob (each constant takes 64-bits).
+  // The shader constants reported already have the write offset, but this allows looking up the
+  // offset of a spec ID.
+  rdcarray<uint32_t> specIDs;
+
   // the output topology for tessellation and geometry shaders
   Topology outTopo = Topology::Unknown;
 
@@ -135,7 +141,8 @@ private:
 
 };    // namespace rdcspv
 
-void FillSpecConstantVariables(ResourceId shader, const rdcarray<ShaderConstant> &invars,
+void FillSpecConstantVariables(ResourceId shader, const SPIRVPatchData &patchData,
+                               const rdcarray<ShaderConstant> &invars,
                                rdcarray<ShaderVariable> &outvars,
                                const rdcarray<SpecConstant> &specInfo);
 

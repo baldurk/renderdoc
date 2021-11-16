@@ -30,7 +30,8 @@
 #include "spirv_editor.h"
 #include "spirv_op_helpers.h"
 
-void FillSpecConstantVariables(ResourceId shader, const rdcarray<ShaderConstant> &invars,
+void FillSpecConstantVariables(ResourceId shader, const SPIRVPatchData &patchData,
+                               const rdcarray<ShaderConstant> &invars,
                                rdcarray<ShaderVariable> &outvars,
                                const rdcarray<SpecConstant> &specInfo)
 {
@@ -46,7 +47,11 @@ void FillSpecConstantVariables(ResourceId shader, const rdcarray<ShaderConstant>
   {
     for(size_t v = 0; v < invars.size() && v < outvars.size(); v++)
     {
-      if(specInfo[i].specID * sizeof(uint64_t) == invars[v].byteOffset)
+      int32_t idx = patchData.specIDs.indexOf(specInfo[i].specID);
+      if(idx == ~0U)
+        continue;
+
+      if(idx * sizeof(uint64_t) == invars[v].byteOffset)
       {
         outvars[v].value.u64v[0] = specInfo[i].value;
       }
@@ -1103,7 +1108,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
   for(auto it : constants)
   {
     const Constant &c = it.second;
-    if(decorations[c.id].specID != ~0U)
+    if(decorations[c.id].flags & Decorations::HasSpecId)
     {
       rdcstr name = strings[c.id];
       if(name.empty())
@@ -1112,9 +1117,11 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
       ShaderConstant spec;
       MakeConstantBlockVariable(spec, pointerTypes, dataTypes[c.type], name, decorations[c.id],
                                 specInfo);
-      spec.byteOffset = decorations[c.id].specID * sizeof(uint64_t);
+      spec.byteOffset = uint32_t(specblock.variables.size() * sizeof(uint64_t));
       spec.defaultValue = c.value.value.u64v[0];
       specblock.variables.push_back(spec);
+
+      patchData.specIDs.push_back(decorations[c.id].specID);
     }
   }
 

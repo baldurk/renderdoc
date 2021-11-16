@@ -1144,7 +1144,16 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       // apply any specializations
       for(const SpecConstant &s : p.shaders[i].specialization)
       {
-        size_t offs = s.specID * sizeof(uint64_t);
+        int32_t idx = p.shaders[i].patchData->specIDs.indexOf(s.specID);
+
+        if(idx == ~0U)
+        {
+          RDCERR("Couldn't find offset for spec ID %u", s.specID);
+          continue;
+        }
+
+        size_t offs = idx * sizeof(uint64_t);
+
         stage.specializationData.resize_for_index(offs + sizeof(uint64_t));
         memcpy(stage.specializationData.data() + offs, &s.value, s.dataSize);
       }
@@ -1253,7 +1262,16 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       // apply any specializations
       for(const SpecConstant &s : p.shaders[i].specialization)
       {
-        size_t offs = s.specID * sizeof(uint64_t);
+        int32_t idx = p.shaders[i].patchData->specIDs.indexOf(s.specID);
+
+        if(idx == ~0U)
+        {
+          RDCERR("Couldn't find offset for spec ID %u", s.specID);
+          continue;
+        }
+
+        size_t offs = idx * sizeof(uint64_t);
+
         stages[i]->specializationData.resize_for_index(offs + sizeof(uint64_t));
         memcpy(stages[i]->specializationData.data() + offs, &s.value, s.dataSize);
       }
@@ -2236,11 +2254,13 @@ void VulkanReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, 
 
       if(pipeIt != m_pDriver->m_CreationInfo.m_Pipeline.end())
       {
+        const VulkanCreationInfo::ShaderModuleReflection &reflection =
+            it->second.GetReflection(stage, entryPoint, pipeline);
         const rdcarray<SpecConstant> &specInfo =
-            pipeIt->second.shaders[it->second.GetReflection(stage, entryPoint, pipeline).stageIndex]
-                .specialization;
+            pipeIt->second.shaders[reflection.stageIndex].specialization;
 
-        FillSpecConstantVariables(refl.resourceId, c.variables, outvars, specInfo);
+        FillSpecConstantVariables(refl.resourceId, reflection.patchData, c.variables, outvars,
+                                  specInfo);
       }
     }
     else

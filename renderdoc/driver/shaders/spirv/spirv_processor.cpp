@@ -1488,7 +1488,7 @@ ShaderVariable Processor::EvaluateConstant(Id constID, const rdcarray<SpecConsta
 
   const Constant &c = it->second;
 
-  if(decorations[c.id].specID != ~0U)
+  if(decorations[c.id].flags & Decorations::HasSpecId)
   {
     for(const SpecConstant &spec : specInfo)
     {

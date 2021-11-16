@@ -2363,8 +2363,8 @@ void GLReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, Shad
         specconsts.push_back(spec);
       }
 
-      FillSpecConstantVariables(shaderDetails.reflection->resourceId, cblock.variables, outvars,
-                                specconsts);
+      FillSpecConstantVariables(shaderDetails.reflection->resourceId, shaderDetails.patchData,
+                                cblock.variables, outvars, specconsts);
     }
     else if(!cblock.bufferBacked)
     {
