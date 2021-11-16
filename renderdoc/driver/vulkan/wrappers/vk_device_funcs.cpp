@@ -180,7 +180,8 @@ static void StripUnwantedExtensions(rdcarray<rdcstr> &Extensions)
 
     // remove WSI-only extensions
     if(ext == "VK_GOOGLE_display_timing" || ext == "VK_KHR_display_swapchain" ||
-       ext == "VK_EXT_display_control" || ext == "VK_KHR_present_id")
+       ext == "VK_EXT_display_control" || ext == "VK_KHR_present_id" ||
+       ext == "VK_KHR_present_wait")
       return true;
 
     // remove fullscreen exclusive extension
