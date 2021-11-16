@@ -739,7 +739,8 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
       VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_STREAM_CREATE_INFO_EXT,
   };
 
-  if(m_pDriver->GetExtensions(GetRecord(m_Device)).ext_EXT_transform_feedback)
+  if(m_pDriver->GetExtensions(GetRecord(m_Device)).ext_EXT_transform_feedback &&
+     pipeInfo.rasterizationStream != 0)
   {
     rastStream.rasterizationStream = pipeInfo.rasterizationStream;
 
