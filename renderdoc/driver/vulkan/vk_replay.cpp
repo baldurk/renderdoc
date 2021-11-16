@@ -1146,7 +1146,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       {
         int32_t idx = p.shaders[i].patchData->specIDs.indexOf(s.specID);
 
-        if(idx == ~0U)
+        if(idx == -1)
         {
           RDCERR("Couldn't find offset for spec ID %u", s.specID);
           continue;
@@ -1264,7 +1264,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       {
         int32_t idx = p.shaders[i].patchData->specIDs.indexOf(s.specID);
 
-        if(idx == ~0U)
+        if(idx == -1)
         {
           RDCERR("Couldn't find offset for spec ID %u", s.specID);
           continue;

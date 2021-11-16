@@ -48,7 +48,7 @@ void FillSpecConstantVariables(ResourceId shader, const SPIRVPatchData &patchDat
     for(size_t v = 0; v < invars.size() && v < outvars.size(); v++)
     {
       int32_t idx = patchData.specIDs.indexOf(specInfo[i].specID);
-      if(idx == ~0U)
+      if(idx == -1)
         continue;
 
       if(idx * sizeof(uint64_t) == invars[v].byteOffset)
