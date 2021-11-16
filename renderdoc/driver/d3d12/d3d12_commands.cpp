@@ -1194,14 +1194,9 @@ bool WrappedID3D12GraphicsCommandList::ValidateRootGPUVA(D3D12_GPU_VIRTUAL_ADDRE
 {
   if(buffer == 0)
   {
-    // abort, we don't have this buffer. Print errors while reading
-    if(IsLoading(m_State))
-    {
-      m_pDevice->AddDebugMessage(MessageCategory::Resource_Manipulation, MessageSeverity::Medium,
-                                 MessageSource::IncorrectAPIUse,
-                                 "Binding 0 as a GPU Virtual Address in a root constant is "
-                                 "invalid. This call will be dropped during replay.");
-    }
+    // silently drop binds of 0 since this sometimes crashes drivers, and is not legal if the
+    // address is ever actually accessed (if it is accessed, whatever was bound or never bound here
+    // is just as illegal)
 
     return true;
   }
