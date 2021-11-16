@@ -32,6 +32,7 @@ set(VULKAN_SRC
         vk/vk_load_store_none.cpp
         vk/vk_mesh_zoo.cpp
         vk/vk_misaligned_dirty.cpp
+        vk/vk_multi_entry.cpp
         vk/vk_multi_thread_windows.cpp
         vk/vk_overlay_test.cpp
         vk/vk_parameter_zoo.cpp
