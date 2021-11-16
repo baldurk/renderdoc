@@ -979,7 +979,7 @@ protected:
     }
 
     // Either modify the existing depth stencil attachment, or add one.
-    if(sub.depthstencilAttachment != -1)
+    if(sub.depthstencilAttachment != -1 && sub.depthstencilAttachment < atts.size())
       atts[sub.depthstencilAttachment] = m_CallbackInfo.dsImageView;
     else
       atts.push_back(m_CallbackInfo.dsImageView);
