@@ -3007,6 +3007,19 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
       it++;
     }
 
+    it = editor.Begin(rdcspv::Section::ExecutionMode);
+    end = editor.End(rdcspv::Section::ExecutionMode);
+    while(it < end)
+    {
+      // this can also handle ExecutionModeId and we don't care about the difference
+      rdcspv::OpExecutionMode execMode(it);
+
+      // remove any execution modes not for our entry
+      if(execMode.entryPoint != entryID)
+        editor.Remove(it);
+      it++;
+    }
+
     // remove any OpName that refers to deleted IDs - functions or results
     it = editor.Begin(rdcspv::Section::DebugNames);
     end = editor.End(rdcspv::Section::DebugNames);

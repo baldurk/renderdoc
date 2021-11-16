@@ -483,6 +483,17 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
     editor.Remove(it);
   }
 
+  for(rdcspv::Iter it = editor.Begin(rdcspv::Section::ExecutionMode),
+                   end = editor.End(rdcspv::Section::ExecutionMode);
+      it < end; ++it)
+  {
+    // this can also handle ExecutionModeId and we don't care about the difference
+    rdcspv::OpExecutionMode execMode(it);
+
+    if(execMode.entryPoint != entryID)
+      editor.Remove(it);
+  }
+
   for(rdcspv::Iter it = editor.Begin(rdcspv::Section::DebugNames),
                    end2 = editor.End(rdcspv::Section::DebugNames);
       it < end2; ++it)
