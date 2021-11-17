@@ -3194,9 +3194,10 @@ void D3D11PipelineStateViewer::on_computeDebugSelector_clicked()
   if(!action)
     return;
 
-  ShaderReflection *shaderDetails = m_Ctx.CurD3D11PipelineState()->computeShader.reflection;
+  const ShaderReflection *shaderDetails =
+      m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Compute);
   const ShaderBindpointMapping &bindMapping =
-      m_Ctx.CurD3D11PipelineState()->computeShader.bindpointMapping;
+      m_Ctx.CurPipelineState().GetBindpointMapping(ShaderStage::Compute);
 
   if(!shaderDetails)
     return;
@@ -3212,9 +3213,10 @@ void D3D11PipelineStateViewer::computeDebugSelector_beginDebug(
   if(!action)
     return;
 
-  ShaderReflection *shaderDetails = m_Ctx.CurD3D12PipelineState()->computeShader.reflection;
+  const ShaderReflection *shaderDetails =
+      m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Compute);
   const ShaderBindpointMapping &bindMapping =
-      m_Ctx.CurD3D12PipelineState()->computeShader.bindpointMapping;
+      m_Ctx.CurPipelineState().GetBindpointMapping(ShaderStage::Compute);
 
   if(!shaderDetails)
     return;
