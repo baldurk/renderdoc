@@ -1071,6 +1071,31 @@ QWidget.
 )");
   virtual QWidget *Widget() = 0;
 
+  DOCUMENT(R"(Sets the current script in the python shell to the given string.
+
+:param str script: The text of the script to set.
+)");
+  virtual void SetScriptText(rdcstr script) = 0;
+
+  DOCUMENT(R"(Sets the current script in the python shell to the contents of the given file.
+
+:param str filename: The filename of the script to load.
+:return: Whether or not the script was successfully loaded.
+:rtype: bool
+)");
+  virtual bool LoadScriptFromFilename(rdcstr filename) = 0;
+
+  DOCUMENT(R"(Returns the current script text.
+
+:return: The current script text.
+:rtype: str
+)");
+  virtual rdcstr GetScriptText() = 0;
+
+  DOCUMENT(R"(Runs the current script in the python shell.
+)");
+  virtual void RunScript() = 0;
+
 protected:
   IPythonShell() = default;
   ~IPythonShell() = default;

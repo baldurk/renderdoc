@@ -228,7 +228,8 @@ CaptureContext::~CaptureContext()
   delete m_MainWindow;
 }
 
-void CaptureContext::Begin(QString paramFilename, QString remoteHost, uint32_t remoteIdent, bool temp)
+void CaptureContext::Begin(QString paramFilename, QString remoteHost, uint32_t remoteIdent,
+                           bool temp, QString scriptFilename)
 {
   m_MainWindow->show();
 
@@ -248,6 +249,14 @@ void CaptureContext::Begin(QString paramFilename, QString remoteHost, uint32_t r
       if(temp)
         m_MainWindow->takeCaptureOwnership();
     }
+  }
+
+  if(!scriptFilename.isEmpty())
+  {
+    ShowPythonShell();
+
+    if(GetPythonShell()->LoadScriptFromFilename(scriptFilename))
+      GetPythonShell()->RunScript();
   }
 }
 

@@ -935,6 +935,62 @@ PythonContext *PythonShell::GetScriptContext()
   return scriptContext;
 }
 
+void PythonShell::SetScriptText(rdcstr script)
+{
+  scriptEditor->setText(script.c_str());
+}
+
+bool PythonShell::LoadScriptFromFilename(rdcstr filename)
+{
+  if(!filename.isEmpty())
+  {
+    QFile f(filename);
+    if(f.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+      scriptEditor->setText(f.readAll().data());
+      return true;
+    }
+  }
+
+  return false;
+}
+
+rdcstr PythonShell::GetScriptText()
+{
+  return scriptEditor->getText(scriptEditor->textLength() + 1).data();
+}
+
+void PythonShell::RunScript()
+{
+  PythonContext *context = newContext();
+
+  ANALYTIC_SET(UIFeatures.PythonInterop, true);
+
+  ui->outputHelpTabs->setCurrentIndex(0);
+
+  ui->scriptOutput->clear();
+
+  QString script = QString::fromUtf8(scriptEditor->getText(scriptEditor->textLength() + 1));
+
+  enableButtons(false);
+
+  LambdaThread *thread = new LambdaThread([this, script, context]() {
+
+    scriptContext = context;
+    context->executeString(lit("script.py"), script);
+    scriptContext = NULL;
+
+    GUIInvoke::call(this, [this, context]() {
+      context->Finish();
+      enableButtons(true);
+    });
+  });
+
+  thread->setName(lit("Python script"));
+  thread->selfDelete(true);
+  thread->start();
+}
+
 void PythonShell::on_execute_clicked()
 {
   QString command = ui->lineInput->text();
@@ -999,18 +1055,9 @@ void PythonShell::on_openScript_clicked()
   QString filename = RDDialog::getOpenFileName(this, tr("Open Python Script"), QString(),
                                                tr("Python scripts (*.py)"));
 
-  if(!filename.isEmpty())
+  if(!LoadScriptFromFilename(filename))
   {
-    QFile f(filename);
-    if(f.open(QIODevice::ReadOnly | QIODevice::Text))
-    {
-      scriptEditor->setText(f.readAll().data());
-    }
-    else
-    {
-      RDDialog::critical(this, tr("Error loading script"),
-                         tr("Couldn't open path %1.").arg(filename));
-    }
+    RDDialog::critical(this, tr("Error loading script"), tr("Couldn't open path %1.").arg(filename));
   }
 }
 
@@ -1048,33 +1095,7 @@ void PythonShell::on_saveScript_clicked()
 
 void PythonShell::on_runScript_clicked()
 {
-  PythonContext *context = newContext();
-
-  ANALYTIC_SET(UIFeatures.PythonInterop, true);
-
-  ui->outputHelpTabs->setCurrentIndex(0);
-
-  ui->scriptOutput->clear();
-
-  QString script = QString::fromUtf8(scriptEditor->getText(scriptEditor->textLength() + 1));
-
-  enableButtons(false);
-
-  LambdaThread *thread = new LambdaThread([this, script, context]() {
-
-    scriptContext = context;
-    context->executeString(lit("script.py"), script);
-    scriptContext = NULL;
-
-    GUIInvoke::call(this, [this, context]() {
-      context->Finish();
-      enableButtons(true);
-    });
-  });
-
-  thread->setName(lit("Python script"));
-  thread->selfDelete(true);
-  thread->start();
+  RunScript();
 }
 
 void PythonShell::on_abortRun_clicked()

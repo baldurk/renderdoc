@@ -65,7 +65,8 @@ public:
   CaptureContext(PersistantConfig &cfg);
   ~CaptureContext();
 
-  void Begin(QString paramFilename, QString remoteHost, uint32_t remoteIdent, bool temp);
+  void Begin(QString paramFilename, QString remoteHost, uint32_t remoteIdent, bool temp,
+             QString scriptFilename);
   bool isRunning();
 
   rdcstr TempCaptureFilename(const rdcstr &appname) override;

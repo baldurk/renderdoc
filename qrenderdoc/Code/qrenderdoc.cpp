@@ -172,6 +172,11 @@ int main(int argc, char *argv[])
                             lit("filename.py"));
   parser.addOption(python);
 
+  QCommandLineOption uiscript({lit("ui-python"), lit("ui-script"), lit("ui-py")},
+                              tr("Run a python script after opening the main UI."),
+                              lit("filename.py"));
+  parser.addOption(uiscript);
+
   // secret non-described options
   QCommandLineOption installLayer(lit("install_vulkan_layer"), QString(), lit("root_or_not"));
   hideOption(installLayer);
@@ -287,6 +292,10 @@ int main(int argc, char *argv[])
   QString crashReportPath;
   if(parser.isSet(crashReport))
     crashReportPath = parser.value(crashReport);
+
+  QString uiscriptFile;
+  if(parser.isSet(uiscript))
+    uiscriptFile = parser.value(uiscript);
 
   QStringList pyscripts = parser.values(python);
 
@@ -520,7 +529,7 @@ int main(int argc, char *argv[])
 
       if(!pythonExited)
       {
-        ctx.Begin(filename, remoteHost, remoteIdent, temp);
+        ctx.Begin(filename, remoteHost, remoteIdent, temp, uiscriptFile);
 
         while(ctx.isRunning())
         {

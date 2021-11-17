@@ -52,6 +52,10 @@ public:
 
   // IPythonShell
   QWidget *Widget() override { return this; }
+  void SetScriptText(rdcstr script) override;
+  bool LoadScriptFromFilename(rdcstr filename) override;
+  rdcstr GetScriptText() override;
+  void RunScript() override;
 private slots:
   // automatic slots
   void on_execute_clicked();
