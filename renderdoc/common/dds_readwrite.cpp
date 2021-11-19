@@ -1061,6 +1061,7 @@ read_dds_data load_dds_from_file(StreamReader *reader)
       case MAKE_FOURCC('Y', 'U', 'Y', '2'):
         ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_YUY2);
         break;
+      case 21: ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_B8G8R8A8_UNORM); break;
       case 36: ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_R16G16B16A16_UNORM); break;
       case 82: ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_D32_FLOAT); break;
       case 110: ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_R16G16B16A16_SNORM); break;
