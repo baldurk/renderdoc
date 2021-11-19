@@ -1197,6 +1197,10 @@ bool operator==(const VkImageMemoryBarrier &a, const VkImageMemoryBarrier &b)
 {
   return memcmp(&a, &b, sizeof(VkImageMemoryBarrier)) == 0;
 }
+bool operator<(const VkImageMemoryBarrier &a, const VkImageMemoryBarrier &b)
+{
+  return memcmp(&a, &b, sizeof(VkImageMemoryBarrier)) < 0;
+}
 
 TEST_CASE("Validate CombineDepthStencilLayouts works", "[vulkan]")
 {
