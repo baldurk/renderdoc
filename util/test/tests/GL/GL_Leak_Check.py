@@ -5,7 +5,7 @@ import rdtest
 class GL_Leak_Check(rdtest.TestCase):
     demos_test_name = 'GL_Leak_Check'
     demos_frame_cap = 50000
-    demos_frame_count = 1
+    demos_frame_count = 10
     demos_timeout = 120
 
     def check_capture(self):
