@@ -72,42 +72,51 @@ float4 main() : SV_Target0
 
     ID3D12ResourcePtr vb = MakeBuffer().Data(DefaultTri);
 
-    ID3D12HeapPtr ibHeap;
-    {
-      D3D12_HEAP_DESC heapDesc;
-      heapDesc.SizeInBytes = 4096;
-      heapDesc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
-      heapDesc.Alignment = 0;
-      heapDesc.Properties.Type = D3D12_HEAP_TYPE_DEFAULT;
-      heapDesc.Properties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-      heapDesc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-      heapDesc.Properties.CreationNodeMask = 1;
-      heapDesc.Properties.VisibleNodeMask = 1;
+    D3D12_HEAP_DESC heapDesc;
+    heapDesc.SizeInBytes = 4096;
+    heapDesc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
+    heapDesc.Alignment = 0;
+    heapDesc.Properties.Type = D3D12_HEAP_TYPE_DEFAULT;
+    heapDesc.Properties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    heapDesc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    heapDesc.Properties.CreationNodeMask = 1;
+    heapDesc.Properties.VisibleNodeMask = 1;
 
-      CHECK_HR(dev->CreateHeap(&heapDesc, __uuidof(ID3D12Heap), (void **)&ibHeap));
-    }
+    D3D12_RESOURCE_DESC resDesc;
+    resDesc.Alignment = 0;
+    resDesc.DepthOrArraySize = 1;
+    resDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    resDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+    resDesc.Format = DXGI_FORMAT_UNKNOWN;
+    resDesc.Height = 1;
+    resDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    resDesc.Width = sizeof(indices);
+    resDesc.MipLevels = 1;
+    resDesc.SampleDesc.Count = 1;
+    resDesc.SampleDesc.Quality = 0;
+
+    ID3D12HeapPtr ibHeap;
+    CHECK_HR(dev->CreateHeap(&heapDesc, __uuidof(ID3D12Heap), (void **)&ibHeap));
+
     ID3D12Pageable *ibHeapPageable = (ID3D12Pageable *)ibHeap.GetInterfacePtr();
 
     ID3D12ResourcePtr ib;
-    {
-      D3D12_RESOURCE_DESC desc;
-      desc.Alignment = 0;
-      desc.DepthOrArraySize = 1;
-      desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-      desc.Flags = D3D12_RESOURCE_FLAG_NONE;
-      desc.Format = DXGI_FORMAT_UNKNOWN;
-      desc.Height = 1;
-      desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-      desc.Width = sizeof(indices);
-      desc.MipLevels = 1;
-      desc.SampleDesc.Count = 1;
-      desc.SampleDesc.Quality = 0;
-
-      CHECK_HR(dev->CreatePlacedResource(ibHeap, 0, &desc, D3D12_RESOURCE_STATE_COMMON, NULL,
-                                         __uuidof(ID3D12Resource), (void **)&ib));
-    }
+    CHECK_HR(dev->CreatePlacedResource(ibHeap, 0, &resDesc, D3D12_RESOURCE_STATE_COMMON, NULL,
+                                       __uuidof(ID3D12Resource), (void **)&ib));
 
     SetBufferData(ib, D3D12_RESOURCE_STATE_COMMON, (const byte *)indices, sizeof(indices));
+
+    ID3D12ResourcePtr vb2;
+
+    {
+      ID3D12HeapPtr vbReleasedHeap;
+      CHECK_HR(dev->CreateHeap(&heapDesc, __uuidof(ID3D12Heap), (void **)&vbReleasedHeap));
+
+      CHECK_HR(dev->CreatePlacedResource(vbReleasedHeap, 0, &resDesc, D3D12_RESOURCE_STATE_COMMON,
+                                         NULL, __uuidof(ID3D12Resource), (void **)&vb2));
+    }
+
+    SetBufferData(vb2, D3D12_RESOURCE_STATE_COMMON, (const byte *)DefaultTri, sizeof(DefaultTri));
 
     // test residency refcounting
     ID3D12Pageable *vbPageable = (ID3D12Pageable *)vb.GetInterfacePtr();
@@ -262,16 +271,6 @@ float4 main() : SV_Target0
       desc.SampleDesc.Count = 1;
       desc.SampleDesc.Quality = 0;
 
-      D3D12_HEAP_DESC heapDesc;
-      heapDesc.SizeInBytes = 4096;
-      heapDesc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
-      heapDesc.Alignment = 0;
-      heapDesc.Properties.Type = D3D12_HEAP_TYPE_DEFAULT;
-      heapDesc.Properties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-      heapDesc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-      heapDesc.Properties.CreationNodeMask = 1;
-      heapDesc.Properties.VisibleNodeMask = 1;
-
       CHECK_HR(dev4->CreateCommittedResource1(&heapDesc.Properties, D3D12_HEAP_FLAG_NONE, &desc,
                                               D3D12_RESOURCE_STATE_COMMON, NULL, NULL,
                                               __uuidof(ID3D12Resource), (void **)&vb));
@@ -321,6 +320,7 @@ float4 main() : SV_Target0
 
       cmd->SetDescriptorHeaps(1, &descHeap.GetInterfacePtr());
 
+      IASetVertexBuffer(cmd, vb2, sizeof(DefaultA2V), 0);
       IASetVertexBuffer(cmd, vb, sizeof(DefaultA2V), 0);
       D3D12_INDEX_BUFFER_VIEW view;
       view.BufferLocation = ib->GetGPUVirtualAddress();
