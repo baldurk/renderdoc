@@ -47,6 +47,21 @@ static int32_t movedDestructor = 0;
 static int32_t copyAssignment = 0;
 static int32_t moveAssignment = 0;
 
+struct NonTrivial
+{
+  NonTrivial(int v) : val(v) {}
+  int val = 6;
+
+  bool operator==(const NonTrivial &o) const { return val == o.val; }
+  bool operator<(const NonTrivial &o) const { return val > o.val; }
+};
+
+template <>
+rdcstr DoStringise(const NonTrivial &el)
+{
+  return "NonTrivial{" + DoStringise(el.val) + "}";
+}
+
 struct ConstructorCounter
 {
   int value;
@@ -108,12 +123,19 @@ TEST_CASE("Test array type", "[basictypes]")
   SECTION("Basic test")
   {
     rdcarray<int> test;
+    const rdcarray<int> &constTest = test;
 
     CHECK(test.size() == 0);
     CHECK(test.capacity() == 0);
     CHECK(test.empty());
     CHECK(test.isEmpty());
     CHECK(test.begin() == test.end());
+
+    CHECK(constTest.size() == 0);
+    CHECK(constTest.capacity() == 0);
+    CHECK(constTest.empty());
+    CHECK(constTest.isEmpty());
+    CHECK(constTest.begin() == constTest.end());
 
     test.clear();
 
@@ -134,11 +156,21 @@ TEST_CASE("Test array type", "[basictypes]")
 
     test.push_back(10);
 
+    CHECK(test.front() == 5);
+    CHECK(test.back() == 10);
     CHECK(test.size() == 2);
     CHECK(test.capacity() >= 2);
     CHECK_FALSE(test.empty());
     CHECK_FALSE(test.isEmpty());
     CHECK(test.begin() + 2 == test.end());
+
+    CHECK(constTest.front() == 5);
+    CHECK(constTest.back() == 10);
+    CHECK(constTest.size() == 2);
+    CHECK(constTest.capacity() >= 2);
+    CHECK_FALSE(constTest.empty());
+    CHECK_FALSE(constTest.isEmpty());
+    CHECK(constTest.begin() + 2 == constTest.end());
 
     int sum = 0;
     for(int x : test)
@@ -154,7 +186,7 @@ TEST_CASE("Test array type", "[basictypes]")
     CHECK(test.isEmpty());
     CHECK(test.begin() == test.end());
 
-    test = {4, 1, 77, 0, 0, 8, 20, 934};
+    test = {4, 1, 77, 6, 0, 8, 20, 934};
 
     CHECK(test.size() == 8);
     CHECK(test.capacity() >= 8);
@@ -166,7 +198,7 @@ TEST_CASE("Test array type", "[basictypes]")
     for(int x : test)
       sum += x;
 
-    CHECK(sum == 1044);
+    CHECK(sum == 1050);
 
     CHECK(test[2] == 77);
 
@@ -181,7 +213,87 @@ TEST_CASE("Test array type", "[basictypes]")
     CHECK_FALSE(test.empty());
     CHECK_FALSE(test.isEmpty());
     CHECK(test.begin() + 8 == test.end());
+
+    int x = test.takeAt(2);
+
+    CHECK(test.size() == 7);
+    CHECK(x == 10);
+    CHECK(test[2] == 6);
+  }
+
+  SECTION("Comparison test with trivial type")
+  {
+    rdcarray<int> test;
+    rdcarray<int> test2;
+
+    test = {1, 2, 3, 4, 5, 6};
+    test2 = {1, 2, 3, 5, 6, 6};
+
+    CHECK(test < test2);
+    CHECK(test != test2);
+    CHECK_FALSE(test2 < test);
+
+    test2[3]--;
+    test2[4]--;
+
+    CHECK(test == test2);
+
+    test.pop_back();
+
+    // smaller arrays are considered less-than if all elements are equal
+    CHECK(test < test2);
+    CHECK_FALSE(test2 < test);
+    CHECK_FALSE(test == test2);
+
+    // if however one of the common prefix is greater, that's not true
+    test[0] += 10;
+    CHECK(test2 < test);
+    CHECK_FALSE(test < test2);
+    CHECK_FALSE(test == test2);
   };
+
+  SECTION("Comparison test with non-trivial type")
+  {
+    rdcarray<NonTrivial> test;
+    rdcarray<NonTrivial> test2;
+
+    test.push_back(NonTrivial(1));
+    test.push_back(NonTrivial(2));
+    test.push_back(NonTrivial(3));
+    test.push_back(NonTrivial(4));
+    test.push_back(NonTrivial(5));
+    test.push_back(NonTrivial(6));
+
+    test2.push_back(NonTrivial(1));
+    test2.push_back(NonTrivial(2));
+    test2.push_back(NonTrivial(3));
+    test2.push_back(NonTrivial(3));
+    test2.push_back(NonTrivial(4));
+    test2.push_back(NonTrivial(6));
+
+    // order is reversed because custom NonTrivial < is reversed
+    CHECK(test < test2);
+    CHECK(test != test2);
+    CHECK_FALSE(test2 < test);
+
+    test2[3].val++;
+    test2[4].val++;
+
+    CHECK(test == test2);
+
+    test.pop_back();
+
+    // smaller arrays are considered less-than if all elements are equal
+    CHECK(test < test2);
+    CHECK_FALSE(test2 < test);
+    CHECK_FALSE(test == test2);
+
+    // if however one of the common prefix is greater, that's not true
+    test[0].val -= 10;
+    CHECK(test2 < test);
+    CHECK_FALSE(test < test2);
+    CHECK_FALSE(test == test2);
+  }
 
   SECTION("Test constructing/assigning from other types")
   {
@@ -366,6 +478,23 @@ TEST_CASE("Test array type", "[basictypes]")
     rdcarray<int> vec = {6, 3, 13, 5};
 
     vec.erase(2);
+
+    REQUIRE(vec.size() == 3);
+    REQUIRE(vec.capacity() >= 4);
+    CHECK(vec[0] == 6);
+    CHECK(vec[1] == 3);
+    CHECK(vec[2] == 5);
+
+    // do some empty/invalid erases
+    vec.erase(2, 0);
+
+    REQUIRE(vec.size() == 3);
+    REQUIRE(vec.capacity() >= 4);
+    CHECK(vec[0] == 6);
+    CHECK(vec[1] == 3);
+    CHECK(vec[2] == 5);
+
+    vec.erase(200, 5);
 
     REQUIRE(vec.size() == 3);
     REQUIRE(vec.capacity() >= 4);
@@ -913,6 +1042,30 @@ TEST_CASE("Test array type", "[basictypes]")
     CHECK(copyAssignment == 0);
     CHECK(moveAssignment == 0);
 
+    // insert an element at an invalid offset, this should do nothing
+    test.insert(100, &tmp, 1);
+
+    CHECK(test.size() == 6);
+    CHECK(valueConstructor == 4);
+    CHECK(copyConstructor == 2);
+    CHECK(moveConstructor == 6);
+    CHECK(destructor == 6);
+    CHECK(movedDestructor == 6);
+    CHECK(copyAssignment == 0);
+    CHECK(moveAssignment == 0);
+
+    // self-assignment should also do nothing
+    test = test;
+
+    CHECK(test.size() == 6);
+    CHECK(valueConstructor == 4);
+    CHECK(copyConstructor == 2);
+    CHECK(moveConstructor == 6);
+    CHECK(destructor == 6);
+    CHECK(movedDestructor == 6);
+    CHECK(copyAssignment == 0);
+    CHECK(moveAssignment == 0);
+
     // insert an element at 0, allowing it to move
     test.insert(4, ConstructorCounter(55));
 
@@ -934,6 +1087,82 @@ TEST_CASE("Test array type", "[basictypes]")
     CHECK(moveConstructor == 12);
     CHECK(destructor == 13);
     CHECK(movedDestructor == 12);
+    CHECK(copyAssignment == 0);
+    CHECK(moveAssignment == 0);
+
+    test[1].value = 10;
+
+    CHECK(test[0].value == 9);
+    CHECK(test[1].value == 10);
+    CHECK(test[2].value == 5);
+    CHECK(test[3].value == 55);
+    CHECK(test[4].value == 25);
+    CHECK(test[5].value == 35);
+
+    // this should move
+    test.push_back(std::move(test[0]));
+
+    CHECK(test.back().value == 9);
+    CHECK(test.size() == 7);
+    CHECK(valueConstructor == 5);
+    CHECK(copyConstructor == 2);
+    CHECK(moveConstructor == 13);
+    CHECK(destructor == 13);
+    CHECK(movedDestructor == 12);
+    CHECK(copyAssignment == 0);
+    CHECK(moveAssignment == 0);
+
+    // insert by moving at the end, this will only do the one move construct from [1] to [7]
+    test.insert(7, std::move(test[1]));
+
+    CHECK(test[7].value == 10);
+    CHECK(test.size() == 8);
+    CHECK(valueConstructor == 5);
+    CHECK(copyConstructor == 2);
+    CHECK(moveConstructor == 14);
+    CHECK(destructor == 13);
+    CHECK(movedDestructor == 12);
+    CHECK(copyAssignment == 0);
+    CHECK(moveAssignment == 0);
+
+    // insert with some moves required to shuffle up values, but the move itself still happens from
+    // the same element (lower to higher index)
+    test.insert(5, std::move(test[2]));
+
+    CHECK(test[5].value == 5);
+    CHECK(test.size() == 9);
+    CHECK(valueConstructor == 5);
+    CHECK(copyConstructor == 2);
+    CHECK(moveConstructor == 18);
+    CHECK(destructor == 16);
+    CHECK(movedDestructor == 15);
+    CHECK(copyAssignment == 0);
+    CHECK(moveAssignment == 0);
+
+    // insert with some moves required to shuffle up values, plus the move itself happens from one
+    // of the moved elements
+    test.insert(7, std::move(test[8]));
+
+    CHECK(test[7].value == 10);
+    CHECK(test.size() == 10);
+    CHECK(valueConstructor == 5);
+    CHECK(copyConstructor == 2);
+    CHECK(moveConstructor == 21);
+    CHECK(destructor == 18);
+    CHECK(movedDestructor == 17);
+    CHECK(copyAssignment == 0);
+    CHECK(moveAssignment == 0);
+
+    // invalid move insert
+    test.insert(100, std::move(test[8]));
+
+    CHECK(test[7].value == 10);
+    CHECK(test.size() == 10);
+    CHECK(valueConstructor == 5);
+    CHECK(copyConstructor == 2);
+    CHECK(moveConstructor == 21);
+    CHECK(destructor == 18);
+    CHECK(movedDestructor == 17);
     CHECK(copyAssignment == 0);
     CHECK(moveAssignment == 0);
   };
@@ -2062,6 +2291,7 @@ TEST_CASE("Test rdcfixedarray type", "[basictypes][rdcfixedarray]")
   SECTION("Basic test")
   {
     rdcfixedarray<int32_t, 8> test = {};
+    const rdcfixedarray<int32_t, 8> &constTest = test;
 
     CHECK(test.size() == 8);
     CHECK(test.byteSize() == 32);
@@ -2075,10 +2305,29 @@ TEST_CASE("Test rdcfixedarray type", "[basictypes][rdcfixedarray]")
     CHECK(!test.contains(2));
     CHECK(test.indexOf(8) == 5);
     CHECK(test.indexOf(9) == -1);
-
     CHECK(test[0] == 4);
     CHECK(test[2] == 77);
     CHECK(test[4] == 0);
+    CHECK(test.front() == 4);
+    CHECK(test.back() == 934);
+    CHECK(test.data()[0] == 4);
+    CHECK(test.data()[2] == 77);
+    CHECK(test.begin() != test.end());
+    CHECK(test.begin() + 8 == test.end());
+
+    CHECK(constTest.contains(1));
+    CHECK(!constTest.contains(2));
+    CHECK(constTest.indexOf(8) == 5);
+    CHECK(constTest.indexOf(9) == -1);
+    CHECK(constTest[0] == 4);
+    CHECK(constTest[2] == 77);
+    CHECK(constTest[4] == 0);
+    CHECK(constTest.front() == 4);
+    CHECK(constTest.back() == 934);
+    CHECK(constTest.data()[0] == 4);
+    CHECK(constTest.data()[2] == 77);
+    CHECK(constTest.begin() != constTest.end());
+    CHECK(constTest.begin() + 8 == constTest.end());
 
     int sum = 0;
     for(int x : test)
@@ -2097,6 +2346,40 @@ TEST_CASE("Test rdcfixedarray type", "[basictypes][rdcfixedarray]")
       sum += x;
 
     CHECK(sum == 1045);
+
+    rdcfixedarray<int32_t, 8> test2 = {1, 2, 3, 4};
+
+    CHECK(test2[0] == 1);
+    CHECK(test2[1] == 2);
+    CHECK(test2[2] == 3);
+    CHECK(test2[3] == 4);
+    CHECK(test2[4] == 0);
+    CHECK(test2[5] == 0);
+    CHECK(test2[6] == 0);
+    CHECK(test2[7] == 0);
+
+    int32_t arr[8] = {5, 6, 7, 8};
+
+    test2 = arr;
+
+    CHECK(test2[0] == 5);
+    CHECK(test2[1] == 6);
+    CHECK(test2[2] == 7);
+    CHECK(test2[3] == 8);
+    CHECK(test2[4] == 0);
+    CHECK(test2[5] == 0);
+    CHECK(test2[6] == 0);
+    CHECK(test2[7] == 0);
+
+    CHECK(test < test2);
+    CHECK_FALSE(test2 < test);
+    CHECK_FALSE(test == test2);
+    CHECK(test != test2);
+
+    test2[0] = 3;
+
+    CHECK(test2 < test);
+    CHECK_FALSE(test < test2);
   };
 
   SECTION("Test of rdcfixedarray of ResourceId")

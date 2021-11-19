@@ -185,3 +185,52 @@ CaptureOptions::CaptureOptions()
   captureAllCmdLists = false;
   debugOutputMute = true;
 }
+
+#if ENABLED(ENABLE_UNIT_TESTS)
+
+#undef None
+#undef Always
+
+#include "catch/catch.hpp"
+
+TEST_CASE("Check CaptureOptions de/serialise to string", "[serialise]")
+{
+  CaptureOptions opts;
+
+  bool *boolOpts[] = {
+      &opts.allowVSync,
+      &opts.allowFullscreen,
+      &opts.apiValidation,
+      &opts.captureCallstacks,
+      &opts.captureCallstacksOnlyActions,
+      &opts.verifyBufferAccess,
+      &opts.hookIntoChildren,
+      &opts.refAllResources,
+      &opts.captureAllCmdLists,
+      &opts.debugOutputMute,
+  };
+
+  for(uint32_t delay = 0; delay < 1000; delay++)
+  {
+    for(uint32_t variant = 0; variant < (1 << ARRAY_COUNT(boolOpts)); variant++)
+    {
+      opts.delayForDebugger = delay;
+      for(size_t o = 0; o < ARRAY_COUNT(boolOpts); o++)
+      {
+        *boolOpts[o] = (variant & (1 << o)) != 0;
+      }
+
+      rdcstr s = opts.EncodeAsString();
+      CaptureOptions decoded;
+      decoded.DecodeFromString(s);
+
+      CHECK(memcmp(&opts, &decoded, sizeof(decoded)) == 0);
+    }
+  }
+
+  // check that nothing explodes here
+  CaptureOptions a;
+  a.DecodeFromString("");
+}
+
+#endif

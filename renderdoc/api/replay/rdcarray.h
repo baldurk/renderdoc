@@ -45,22 +45,13 @@ struct ItemHelper
       new(first + i) T();
   }
 
-  static bool equalRange(const T *a, const T *b, size_t count)
+  static int compRange(const T *a, const T *b, size_t count)
   {
     for(size_t i = 0; i < count; i++)
       if(!(a[i] == b[i]))
-        return false;
+        return a[i] < b[i] ? -1 : 1;
 
-    return true;
-  }
-
-  static bool lessthanRange(const T *a, const T *b, size_t count)
-  {
-    for(size_t i = 0; i < count; i++)
-      if(!(a[i] == b[i]))
-        return a[i] < b[i];
-
-    return false;
+    return 0;
   }
 };
 
@@ -68,13 +59,9 @@ template <typename T>
 struct ItemHelper<T, true>
 {
   static void initRange(T *first, size_t itemCount) { memset(first, 0, itemCount * sizeof(T)); }
-  static bool equalRange(const T *a, const T *b, size_t count)
+  static int compRange(const T *a, const T *b, size_t count)
   {
-    return !memcmp(a, b, count * sizeof(T));
-  }
-  static bool lessthanRange(const T *a, const T *b, size_t count)
-  {
-    return memcmp(a, b, count * sizeof(T)) < 0;
+    return memcmp(a, b, count * sizeof(T));
   }
 };
 
@@ -184,14 +171,24 @@ public:
   const T &operator[](size_t i) const { return elems[i]; }
   bool operator==(const rdcarray<T> &o) const
   {
-    return usedCount == o.usedCount && ItemHelper<T>::equalRange(elems, o.elems, usedCount);
+    return usedCount == o.usedCount && ItemHelper<T>::compRange(elems, o.elems, usedCount) == 0;
   }
   bool operator!=(const rdcarray<T> &o) const { return !(*this == o); }
   bool operator<(const rdcarray<T> &o) const
   {
-    if(usedCount != o.usedCount)
-      return usedCount < o.usedCount;
-    return ItemHelper<T>::lessthanRange(elems, o.elems, usedCount);
+    // compare the subset of elements in both arrays
+    size_t c = usedCount;
+    if(o.usedCount < c)
+      c = o.usedCount;
+
+    // compare the range
+    int comp = ItemHelper<T>::compRange(elems, o.elems, usedCount);
+    // if it's not equal, we can return either true or false now
+    if(comp != 0)
+      return (comp < 0);
+
+    // if they compared equal, the smaller array is less-than (if they're different sizes)
+    return usedCount < o.usedCount;
   }
   T *data() { return elems; }
   const T *data() const { return elems; }
@@ -506,10 +503,38 @@ public:
     {
       // if we're inserting from within our range, save the index
       size_t idx = &el - begin();
+
       // do any potentially reallocating resize
       reserve(oldSize + 1);
-      // then move from the index in wherever elems now points
-      new(elems + offs) T(std::move(elems[idx]));
+
+      // fast path where offs == size(), for push_back
+      if(offs == oldSize)
+      {
+        new(elems + offs) T(std::move(elems[idx]));
+      }
+      else
+      {
+        // we need to shuffle everything up by one
+
+        // first pass, move construct elements and destruct as we go
+        const size_t moveCount = oldSize - offs;
+        for(size_t i = 0; i < moveCount; i++)
+        {
+          new(elems + oldSize - i) T(std::move(elems[oldSize - i - 1]));
+          ItemDestroyHelper<T>::destroyRange(elems + oldSize - i - 1, 1);
+        }
+
+        // if idx moved as a result of the insert, it will be coming from a different place
+        if(idx >= offs)
+          idx++;
+
+        // then move construct the new value.
+        new(elems + offs) T(std::move(elems[idx]));
+      }
+
+      // update new size
+      setUsedCount(usedCount + 1);
+
       return;
     }
 
@@ -830,12 +855,12 @@ public:
   const T &operator[](size_t i) const { return elems[i]; }
   bool operator==(const rdcfixedarray<T, N> &o) const
   {
-    return ItemHelper<T>::equalRange(elems, o.elems, N);
+    return ItemHelper<T>::compRange(elems, o.elems, N) == 0;
   }
   bool operator!=(const rdcfixedarray<T, N> &o) const { return !(*this == o); }
   bool operator<(const rdcfixedarray<T, N> &o) const
   {
-    return ItemHelper<T>::lessthanRange(elems, o.elems, N);
+    return ItemHelper<T>::compRange(elems, o.elems, N) < 0;
   }
   T *data() { return elems; }
   const T *data() const { return elems; }

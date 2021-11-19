@@ -101,6 +101,28 @@ bool Operand::operator==(const Operand &o) const
   return true;
 }
 
+bool Operand::operator<(const Operand &o) const
+{
+  if(type != o.type)
+    return type < o.type;
+  if(numComponents != o.numComponents)
+    return numComponents < o.numComponents;
+  int c = memcmp(comps, o.comps, 4);
+  if(c != 0)
+    return c < 0;
+  if((flags & (FLAG_ABS | FLAG_NEG)) != (o.flags & (FLAG_ABS | FLAG_NEG)))
+    return (flags & (FLAG_ABS | FLAG_NEG)) < (o.flags & (FLAG_ABS | FLAG_NEG));
+
+  if(indices != o.indices)
+    return indices < o.indices;
+
+  for(size_t i = 0; i < 4; i++)
+    if(values[i] != o.values[i])
+      return values[i] < o.values[i];
+
+  return false;
+}
+
 bool Operand::sameResource(const Operand &o) const
 {
   if(type != o.type)

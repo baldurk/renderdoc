@@ -750,6 +750,7 @@ struct Operand
   }
 
   bool operator==(const Operand &o) const;
+  bool operator<(const Operand &o) const;
 
   // helper function that compares operands by their type and first index (for resources the logical
   // identifier - excluding register range on SM5.1)
@@ -936,6 +937,16 @@ struct RegIndex
     }
 
     return false;
+  }
+  bool operator<(const RegIndex &o) const
+  {
+    if(absolute != o.absolute)
+      return absolute < o.absolute;
+    if(relative != o.relative)
+      return relative < o.relative;
+    if(index != o.index)
+      return index < o.index;
+    return operand < o.operand;
   }
 
   rdcstr toString(const DXBC::Reflection *reflection, ToString flags) const;
