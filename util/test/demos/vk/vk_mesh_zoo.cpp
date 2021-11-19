@@ -302,6 +302,10 @@ void main()
 
       vkCmdDraw(cmd, 1, 1, 0, 0);
 
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);
+      setMarker(cmd, "Empty");
+      vkCmdDraw(cmd, 0, 0, 0, 0);
+
       vkCmdEndRenderPass(cmd);
 
       FinishUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);

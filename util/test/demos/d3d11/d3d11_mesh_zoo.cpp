@@ -183,6 +183,10 @@ float4 main(v2f IN) : SV_Target0
 
       ctx->Draw(1, 0);
 
+      ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+      setMarker("Empty");
+      ctx->DrawInstanced(0, 0, 0, 0);
+
       Present();
     }
 

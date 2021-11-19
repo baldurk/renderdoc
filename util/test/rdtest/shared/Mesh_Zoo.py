@@ -384,3 +384,16 @@ class Mesh_Zoo():
         self.check_vertex(105, 65, (rd.ReplayOutput.NoResult, rd.ReplayOutput.NoResult))
         self.check_vertex(115, 135, (rd.ReplayOutput.NoResult, rd.ReplayOutput.NoResult))
 
+        self.controller.SetFrameEvent(self.find_action("Empty").next.eventId, False)
+
+        self.cfg.position = self.controller.GetPostVSData(0, 0, self.cfg.type)
+        self.cfg.position.nearPlane = 1.0
+        self.cfg.position.farPlane = 100.0
+
+        self.cache_output()
+
+        self.check_vertex(105, 65, (rd.ReplayOutput.NoResult, rd.ReplayOutput.NoResult))
+        self.check_vertex(115, 135, (rd.ReplayOutput.NoResult, rd.ReplayOutput.NoResult))
+
+        rdtest.log.success("Picking in empty draw is as expected")
+

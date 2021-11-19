@@ -197,6 +197,12 @@ float4 main(v2f IN) : SV_Target0
 
       cmd->DrawInstanced(1, 1, 0, 0);
 
+      cmd->SetPipelineState(pso);
+
+      setMarker(cmd, "Empty");
+
+      cmd->DrawInstanced(1, 0, 0, 0);
+
       FinishUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
       cmd->Close();

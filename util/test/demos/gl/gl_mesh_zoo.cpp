@@ -331,6 +331,10 @@ void main()
       glBlitFramebuffer(0, 0, screenWidth, screenHeight, 0, 0, screenWidth, screenHeight,
                         GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
+      setMarker("Empty");
+
+      glDrawArrays(GL_TRIANGLES, 0, 0);
+
       Present();
     }
 
