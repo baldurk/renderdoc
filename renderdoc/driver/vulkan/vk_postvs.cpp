@@ -876,9 +876,14 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
   // name :(.
   // editor.SetName(wrapperEntry, "RenderDoc_MeshFetch_Wrapper_Entrypoint");
 
-  // if we're not using all globals, this is only Input variables so only our invocation Id
+  // if we're not using all globals, this is only Input variables so only our invocation Id and any
+  // builtins we kept
   if(!editor.EntryPointAllGlobals())
+  {
     globals = {invocationId};
+    for(rdcspv::Id id : builtinKeeps)
+      globals.push_back(id);
+  }
 
   // insert the new patched entry point with the globals
   editor.AddOperation(editor.Begin(rdcspv::Section::EntryPoints),
