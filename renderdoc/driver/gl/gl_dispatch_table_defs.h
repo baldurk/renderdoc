@@ -506,7 +506,9 @@
   FUNC(glMapBuffer, glMapBufferARB); \
   FUNC(glMapBuffer, glMapBufferOES); \
   FUNC(glMapBufferRange, glMapBufferRange); \
+  FUNC(glMapBufferRange, glMapBufferRangeEXT); \
   FUNC(glFlushMappedBufferRange, glFlushMappedBufferRange); \
+  FUNC(glFlushMappedBufferRange, glFlushMappedBufferRangeEXT); \
   FUNC(glUnmapBuffer, glUnmapBuffer); \
   FUNC(glUnmapBuffer, glUnmapBufferARB); \
   FUNC(glUnmapBuffer, glUnmapBufferOES); \
@@ -1767,7 +1769,9 @@
   AliasWrapper2(void *, glMapBufferARB, glMapBuffer, GLenum, target, GLenum, access); \
   AliasWrapper2(void *, glMapBufferOES, glMapBuffer, GLenum, target, GLenum, access); \
   FuncWrapper4(void *, glMapBufferRange, GLenum, target, GLintptr, offset, GLsizeiptr, length, GLbitfield, access); \
+  AliasWrapper4(void *, glMapBufferRangeEXT, glMapBufferRange, GLenum, target, GLintptr, offset, GLsizeiptr, length, GLbitfield, access); \
   FuncWrapper3(void, glFlushMappedBufferRange, GLenum, target, GLintptr, offset, GLsizeiptr, length); \
+  AliasWrapper3(void, glFlushMappedBufferRangeEXT, glFlushMappedBufferRange, GLenum, target, GLintptr, offset, GLsizeiptr, length); \
   FuncWrapper1(GLboolean, glUnmapBuffer, GLenum, target); \
   AliasWrapper1(GLboolean, glUnmapBufferARB, glUnmapBuffer, GLenum, target); \
   AliasWrapper1(GLboolean, glUnmapBufferOES, glUnmapBuffer, GLenum, target); \
@@ -2925,7 +2929,6 @@
   FUNC(glFinishObjectAPPLE); \
   FUNC(glFinishTextureSUNX); \
   FUNC(glFlushMappedBufferRangeAPPLE); \
-  FUNC(glFlushMappedBufferRangeEXT); \
   FUNC(glFlushPixelDataRangeNV); \
   FUNC(glFlushRasterSGIX); \
   FUNC(glFlushStaticDataIBM); \
@@ -3387,7 +3390,6 @@
   FUNC(glMap2d); \
   FUNC(glMap2f); \
   FUNC(glMap2xOES); \
-  FUNC(glMapBufferRangeEXT); \
   FUNC(glMapControlPointsNV); \
   FUNC(glMapGrid1d); \
   FUNC(glMapGrid1f); \
@@ -4837,7 +4839,6 @@
   UnsupportedWrapper2(void, glFinishObjectAPPLE, GLenum, object, GLint, name); \
   UnsupportedWrapper0(void, glFinishTextureSUNX); \
   UnsupportedWrapper3(void, glFlushMappedBufferRangeAPPLE, GLenum, target, GLintptr, offset, GLsizeiptr, size); \
-  UnsupportedWrapper3(void, glFlushMappedBufferRangeEXT, GLenum, target, GLintptr, offset, GLsizeiptr, length); \
   UnsupportedWrapper1(void, glFlushPixelDataRangeNV, GLenum, target); \
   UnsupportedWrapper0(void, glFlushRasterSGIX); \
   UnsupportedWrapper1(void, glFlushStaticDataIBM, GLenum, target); \
@@ -5299,7 +5300,6 @@
   UnsupportedWrapper10(void, glMap2d, GLenum, target, GLdouble, u1, GLdouble, u2, GLint, ustride, GLint, uorder, GLdouble, v1, GLdouble, v2, GLint, vstride, GLint, vorder, const GLdouble *, points); \
   UnsupportedWrapper10(void, glMap2f, GLenum, target, GLfloat, u1, GLfloat, u2, GLint, ustride, GLint, uorder, GLfloat, v1, GLfloat, v2, GLint, vstride, GLint, vorder, const GLfloat *, points); \
   UnsupportedWrapper10(void, glMap2xOES, GLenum, target, GLfixed, u1, GLfixed, u2, GLint, ustride, GLint, uorder, GLfixed, v1, GLfixed, v2, GLint, vstride, GLint, vorder, GLfixed, points); \
-  UnsupportedWrapper4(void *, glMapBufferRangeEXT, GLenum, target, GLintptr, offset, GLsizeiptr, length, GLbitfield, access); \
   UnsupportedWrapper9(void, glMapControlPointsNV, GLenum, target, GLuint, index, GLenum, type, GLsizei, ustride, GLsizei, vstride, GLint, uorder, GLint, vorder, GLboolean, packed, const void *, points); \
   UnsupportedWrapper3(void, glMapGrid1d, GLint, un, GLdouble, u1, GLdouble, u2); \
   UnsupportedWrapper3(void, glMapGrid1f, GLint, un, GLfloat, u1, GLfloat, u2); \
