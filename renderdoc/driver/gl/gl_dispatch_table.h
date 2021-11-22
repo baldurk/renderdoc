@@ -337,8 +337,8 @@ struct GLDispatchTable
   PFNGLBINDBUFFERSBASEPROC glBindBuffersBase;
   PFNGLBINDBUFFERSRANGEPROC glBindBuffersRange;
   PFNGLMAPBUFFERPROC glMapBuffer;    // aliases glMapBufferARB, glMapBufferOES
-  PFNGLMAPBUFFERRANGEPROC glMapBufferRange;
-  PFNGLFLUSHMAPPEDBUFFERRANGEPROC glFlushMappedBufferRange;
+  PFNGLMAPBUFFERRANGEPROC glMapBufferRange;    // aliases glMapBufferRangeEXT
+  PFNGLFLUSHMAPPEDBUFFERRANGEPROC glFlushMappedBufferRange;    // aliases glFlushMappedBufferRangeEXT
   PFNGLUNMAPBUFFERPROC glUnmapBuffer;    // aliases glUnmapBufferARB, glUnmapBufferOES
   PFNGLTRANSFORMFEEDBACKVARYINGSPROC glTransformFeedbackVaryings;    // aliases glTransformFeedbackVaryingsEXT
   PFNGLGENTRANSFORMFEEDBACKSPROC glGenTransformFeedbacks;

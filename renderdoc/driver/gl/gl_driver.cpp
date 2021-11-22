@@ -3595,6 +3595,7 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::glUnmapNamedBufferEXT: return Serialise_glUnmapNamedBufferEXT(ser, 0);
     case GLChunk::CoherentMapWrite:
     case GLChunk::glFlushMappedBufferRange:
+    case GLChunk::glFlushMappedBufferRangeEXT:
     case GLChunk::glFlushMappedNamedBufferRange:
     case GLChunk::glFlushMappedNamedBufferRangeEXT:
       return Serialise_glFlushMappedNamedBufferRangeEXT(ser, 0, 0, 0);
@@ -5015,6 +5016,7 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::glMapBufferARB:
     case GLChunk::glMapBufferOES:
     case GLChunk::glMapBufferRange:
+    case GLChunk::glMapBufferRangeEXT:
     case GLChunk::glMapNamedBuffer:
     case GLChunk::glMapNamedBufferEXT:
     case GLChunk::glMapNamedBufferRange:
