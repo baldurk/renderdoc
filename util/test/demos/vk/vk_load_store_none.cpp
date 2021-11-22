@@ -84,7 +84,7 @@ void main()
     if(!Init())
       return 3;
 
-    VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo({}));
+    VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo());
 
     AllocatedImage img(
         this,
