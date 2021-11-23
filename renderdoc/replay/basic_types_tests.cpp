@@ -250,6 +250,13 @@ TEST_CASE("Test array type", "[basictypes]")
     CHECK(test2 < test);
     CHECK_FALSE(test < test2);
     CHECK_FALSE(test == test2);
+
+    // ensure in the case of comparing different sized arrays we don't read off the end of one
+    rdcarray<int> emptyTest;
+
+    CHECK(emptyTest < test);
+    CHECK_FALSE(test < emptyTest);
+    CHECK_FALSE(test == test2);
   };
 
   SECTION("Comparison test with non-trivial type")
@@ -292,6 +299,13 @@ TEST_CASE("Test array type", "[basictypes]")
     test[0].val -= 10;
     CHECK(test2 < test);
     CHECK_FALSE(test < test2);
+    CHECK_FALSE(test == test2);
+
+    // ensure in the case of comparing different sized arrays we don't read off the end of one
+    rdcarray<NonTrivial> emptyTest;
+
+    CHECK(emptyTest < test);
+    CHECK_FALSE(test < emptyTest);
     CHECK_FALSE(test == test2);
   }
 

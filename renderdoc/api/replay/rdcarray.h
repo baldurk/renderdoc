@@ -182,7 +182,7 @@ public:
       c = o.usedCount;
 
     // compare the range
-    int comp = ItemHelper<T>::compRange(elems, o.elems, usedCount);
+    int comp = ItemHelper<T>::compRange(elems, o.elems, c);
     // if it's not equal, we can return either true or false now
     if(comp != 0)
       return (comp < 0);
