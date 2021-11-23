@@ -298,6 +298,10 @@ if(APPLE)
 
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/lib")
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin")
+
+    # By default disable the python modules (brew python does not provide universal libraries)
+    message(STATUS "Disabling renderdoc python modules for Apple build")
+    set(ENABLE_PYRENDERDOC OFF CACHE BOOL "" FORCE)
 endif()
 
 if(ENABLE_GL)

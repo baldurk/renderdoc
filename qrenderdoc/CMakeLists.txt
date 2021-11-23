@@ -357,6 +357,6 @@ install (CODE "MESSAGE(\"NB: Your paths may vary.\")")
 endif() # if(ENABLE_QRENDERDOC)
 
 # Build python modules - primarily used for constructing documentation
-if(ENABLE_PYRENDERDOC AND UNIX AND NOT APPLE)
+if(ENABLE_PYRENDERDOC AND UNIX)
     add_subdirectory(Code/pyrenderdoc)
 endif()
