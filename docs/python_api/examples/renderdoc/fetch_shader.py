@@ -50,7 +50,7 @@ def sampleCode(controller):
 	print("Pixel shader:")
 	print(controller.DisassembleShader(pipe, ps, target))
 
-	cbufferVars = controller.GetCBufferVariableContents(pipe, ps.resourceId, entry, 0, cb.resourceId, 0, 0)
+	cbufferVars = controller.GetCBufferVariableContents(pipe, ps.resourceId, rd.ShaderStage.Pixel, entry, 0, cb.resourceId, 0, 0)
 
 	for v in cbufferVars:
 		printVar(v)
