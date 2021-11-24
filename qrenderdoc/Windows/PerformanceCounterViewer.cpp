@@ -285,8 +285,6 @@ PerformanceCounterViewer::PerformanceCounterViewer(ICaptureContext &ctx, QWidget
 {
   ui->setupUi(this);
 
-  m_Ctx.AddCaptureViewer(this);
-
   connect(ui->captureCounters, &QToolButton::clicked, this,
           &PerformanceCounterViewer::CaptureCounters);
 
@@ -306,6 +304,8 @@ PerformanceCounterViewer::PerformanceCounterViewer(ICaptureContext &ctx, QWidget
 
   ui->counterResults->setSortingEnabled(true);
   ui->counterResults->sortByColumn(0, Qt::AscendingOrder);
+
+  m_Ctx.AddCaptureViewer(this);
 }
 
 PerformanceCounterViewer::~PerformanceCounterViewer()
