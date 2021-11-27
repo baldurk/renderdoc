@@ -9,6 +9,8 @@
 #if defined(Q_OS_WIN32)
 
 #include <windows.h>
+#include <psapi.h>
+#include <winternl.h>
 
 #include <tlhelp32.h>
 
@@ -18,6 +20,11 @@ typedef BOOL(WINAPI *PFN_ISWINDOWVISIBLE)(HWND hWnd);
 typedef int(WINAPI *PFN_GETWINDOWTEXTLENGTHW)(HWND hWnd);
 typedef int(WINAPI *PFN_GETWINDOWTEXTW)(HWND hWnd, LPWSTR lpString, int nMaxCount);
 typedef BOOL(WINAPI *PFN_ENUMWINDOWS)(WNDENUMPROC lpEnumFunc, LPARAM lParam);
+typedef NTSTATUS(NTAPI *PFN_NTQUERYINFORMATIONPROCESS)(IN HANDLE ProcessHandle,
+                                                      IN PROCESSINFOCLASS ProcessInformationClass,
+                                                      OUT PVOID ProcessInformation,
+                                                      IN ULONG ProcessInformationLength,
+                                                      OUT PULONG ReturnLength OPTIONAL);
 
 namespace
 {
@@ -32,6 +39,7 @@ struct callbackContext
   PFN_GETWINDOWTEXTLENGTHW GetWindowTextLengthW = NULL;
   PFN_GETWINDOWTEXTW GetWindowTextW = NULL;
   PFN_ENUMWINDOWS EnumWindows = NULL;
+  PFN_NTQUERYINFORMATIONPROCESS NtQueryInformationProcess = NULL;
 };
 };
 
@@ -67,6 +75,49 @@ static BOOL CALLBACK fillWindowTitles(HWND hwnd, LPARAM lp)
   return TRUE;
 }
 
+static void getProcessCommandLine(QProcessInfo *info, callbackContext *ctx)
+{
+  HANDLE handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, info->pid());
+  wchar_t *cmd_line = NULL;
+  PPROCESS_BASIC_INFORMATION pbi = new PROCESS_BASIC_INFORMATION;
+  DWORD pbi_size = sizeof(PROCESS_BASIC_INFORMATION);
+  DWORD pbi_needed_size = 0;
+  NTSTATUS status = ctx->NtQueryInformationProcess(handle, ProcessBasicInformation, pbi, pbi_size,
+                                                   &pbi_needed_size);
+  if(status >= 0 && pbi_size < pbi_needed_size)
+  {
+    delete pbi;
+    pbi = (PPROCESS_BASIC_INFORMATION)::operator new(pbi_needed_size);
+    status = ctx->NtQueryInformationProcess(handle, ProcessBasicInformation, pbi, pbi_size,
+                                            &pbi_needed_size);
+  }
+
+  if(status >= 0)
+  {
+    PEB peb;
+    SIZE_T bytes_read = 0;
+    if(pbi->PebBaseAddress &&
+       ReadProcessMemory(handle, pbi->PebBaseAddress, &peb, sizeof(peb), &bytes_read))
+    {
+      RTL_USER_PROCESS_PARAMETERS process_params;
+      if(ReadProcessMemory(handle, peb.ProcessParameters, &process_params,
+                           sizeof(RTL_USER_PROCESS_PARAMETERS), &bytes_read))
+      {
+        if(process_params.CommandLine.Length > 0)
+        {
+          cmd_line = new wchar_t[process_params.CommandLine.Length];
+          if(!ReadProcessMemory(handle, process_params.CommandLine.Buffer, cmd_line,
+                                process_params.CommandLine.Length, &bytes_read))
+          {
+          }
+        }
+      }
+    }
+  }
+  if(cmd_line != NULL)
+    info->setCommandLine(QString::fromStdWString(std::wstring(cmd_line)));
+}
+
 QProcessList QProcessInfo::enumerate(bool includeWindowTitles)
 {
   QProcessList ret;
@@ -92,8 +143,9 @@ QProcessList QProcessInfo::enumerate(bool includeWindowTitles)
     return ret;
 
   HMODULE user32 = LoadLibraryA("user32.dll");
+  HMODULE ntDll = LoadLibraryA("ntdll.dll");
 
-  if(user32)
+  if(user32 && ntDll)
   {
     callbackContext ctx(ret);
 
@@ -105,14 +157,21 @@ QProcessList QProcessInfo::enumerate(bool includeWindowTitles)
         (PFN_GETWINDOWTEXTLENGTHW)GetProcAddress(user32, "GetWindowTextLengthW");
     ctx.GetWindowTextW = (PFN_GETWINDOWTEXTW)GetProcAddress(user32, "GetWindowTextW");
     ctx.EnumWindows = (PFN_ENUMWINDOWS)GetProcAddress(user32, "EnumWindows");
+    ctx.NtQueryInformationProcess =
+        (PFN_NTQUERYINFORMATIONPROCESS)GetProcAddress(ntDll, "NtQueryInformationProcess");
 
     if(ctx.GetWindowThreadProcessId && ctx.GetWindow && ctx.IsWindowVisible &&
-       ctx.GetWindowTextLengthW && ctx.GetWindowTextW && ctx.EnumWindows)
+       ctx.GetWindowTextLengthW && ctx.GetWindowTextW && ctx.EnumWindows && ctx.NtQueryInformationProcess)
     {
       ctx.EnumWindows(fillWindowTitles, (LPARAM)&ctx);
+      for(QProcessInfo &info : ret)
+      {
+        getProcessCommandLine(&info, &ctx);
+      }
     }
 
     FreeLibrary(user32);
+    FreeLibrary(ntDll);
   }
 
   return ret;

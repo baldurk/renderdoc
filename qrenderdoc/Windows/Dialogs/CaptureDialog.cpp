@@ -173,11 +173,12 @@ CaptureDialog::CaptureDialog(ICaptureContext &ctx, OnCaptureMethod captureCallba
 
   ui->envVar->setEnabled(false);
 
-  m_ProcessModel = new QStandardItemModel(0, 3, this);
+  m_ProcessModel = new QStandardItemModel(0, 4, this);
 
   m_ProcessModel->setHeaderData(0, Qt::Horizontal, tr("Name"));
   m_ProcessModel->setHeaderData(1, Qt::Horizontal, tr("PID"));
   m_ProcessModel->setHeaderData(2, Qt::Horizontal, tr("Window Title"));
+  m_ProcessModel->setHeaderData(3, Qt::Horizontal, tr("Command Line"));
 
   QSortFilterProxyModel *proxy = new QSortFilterProxyModel(this);
 
@@ -1090,6 +1091,7 @@ void CaptureDialog::fillProcessList()
     m_ProcessModel->setData(m_ProcessModel->index(n, 0), process.name());
     m_ProcessModel->setData(m_ProcessModel->index(n, 1), process.pid());
     m_ProcessModel->setData(m_ProcessModel->index(n, 2), process.windowTitle());
+    m_ProcessModel->setData(m_ProcessModel->index(n, 3), process.commandLine());
     n++;
   }
 }
