@@ -111,7 +111,7 @@ static void getProcessCommandLine(QProcessInfo *info, callbackContext *ctx)
           {
             info->setCommandLine(QString::fromWCharArray(cmd_line, process_params.CommandLine.Length));
           }
-          delete cmd_line;
+          delete[] cmd_line;
         }
       }
     }
