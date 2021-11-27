@@ -105,17 +105,17 @@ static void getProcessCommandLine(QProcessInfo *info, callbackContext *ctx)
       {
         if(process_params.CommandLine.Length > 0)
         {
-          cmd_line = new wchar_t[process_params.CommandLine.Length];
-          if(!ReadProcessMemory(handle, process_params.CommandLine.Buffer, cmd_line,
+          cmd_line = new wchar_t[process_params.CommandLine.Length]();
+          if(ReadProcessMemory(handle, process_params.CommandLine.Buffer, cmd_line,
                                 process_params.CommandLine.Length, &bytes_read))
           {
+            info->setCommandLine(QString::fromWCharArray(cmd_line, process_params.CommandLine.Length));
           }
+          delete cmd_line;
         }
       }
     }
   }
-  if(cmd_line != NULL)
-    info->setCommandLine(QString::fromStdWString(std::wstring(cmd_line)));
 }
 
 QProcessList QProcessInfo::enumerate(bool includeWindowTitles)
