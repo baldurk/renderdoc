@@ -1039,7 +1039,8 @@ void ImageState::RecordBarrier(VkImageMemoryBarrier barrier, uint32_t queueFamil
     if(!(barrier.srcQueueFamilyIndex == VK_QUEUE_FAMILY_IGNORED &&
          barrier.dstQueueFamilyIndex == VK_QUEUE_FAMILY_IGNORED))
     {
-      RDCWARN("Barrier contains invalid queue families for VK_SHARING_MODE_CONCURRENT");
+      RDCWARN("Barrier contains invalid queue families for VK_SHARING_MODE_CONCURRENT (%u %u)",
+              barrier.srcQueueFamilyIndex, barrier.dstQueueFamilyIndex);
     }
     barrier.srcQueueFamilyIndex = barrier.dstQueueFamilyIndex = queueFamilyIndex;
   }
