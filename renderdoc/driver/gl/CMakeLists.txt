@@ -54,6 +54,7 @@ list(APPEND sources gl_hooks.cpp)
 if(APPLE)
     list(APPEND sources
         apple_gl_hook_defs.h
+        apple_gl_hook_defs.cpp
         cgl_dispatch_table.h
         cgl_platform_helpers.mm
         cgl_platform.cpp
