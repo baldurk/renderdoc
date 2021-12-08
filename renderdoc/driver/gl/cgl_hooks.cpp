@@ -199,6 +199,9 @@ DECL_HOOK_EXPORT(CGLCreateContext);
 DECL_HOOK_EXPORT(CGLSetCurrentContext);
 DECL_HOOK_EXPORT(CGLFlushDrawable);
 
+extern void RegisterAppleGLSymbols();
+extern void AppleRegisterRealSymbol(const char *functionName, void *address);
+
 static void CGLHooked(void *handle)
 {
   RDCDEBUG("CGL library hooked");
@@ -207,6 +210,7 @@ static void CGLHooked(void *handle)
   // pointers
   cglhook.handle = handle;
 
+  RegisterAppleGLSymbols();
   // enable hooks immediately, we'll suppress them when calling into CGL
   EnableGLHooks();
 
@@ -229,8 +233,9 @@ void CGLHook::RegisterHooks()
   LibraryHooks::RegisterLibraryHook("libGL.dylib", NULL);
 
 // register CGL hooks
-#define CGL_REGISTER(func)            \
-  LibraryHooks::RegisterFunctionHook( \
+#define CGL_REGISTER(func)                                   \
+  AppleRegisterRealSymbol(STRINGIZE(func), (void *)&::func); \
+  LibraryHooks::RegisterFunctionHook(                        \
       "OpenGL", FunctionHook(STRINGIZE(func), (void **)&CGL.func, (void *)&GL_EXPORT_NAME(func)));
   CGL_HOOKED_SYMBOLS(CGL_REGISTER)
 #undef CGL_REGISTER
