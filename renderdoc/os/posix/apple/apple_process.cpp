@@ -68,8 +68,8 @@ int GetIdentPort(pid_t childPid)
   rdcstr lsof = StringFormat::Fmt("lsof -p %d -a -i 4 -F n", (int)childPid);
   rdcstr result;
   uint32_t wait = 1;
-  // Wait for a maximum of ~8 seconds
-  for(int i = 0; i < 13; ++i)
+  // Wait for a maximum of ~16 seconds
+  for(int i = 0; i < 14; ++i)
   {
     result = execcmd(lsof.c_str());
     if(!result.empty())
