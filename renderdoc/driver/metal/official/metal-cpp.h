@@ -5196,6 +5196,7 @@ _MTL_PRIVATE_DEF_SEL(writeMask,
 
 namespace MTL
 {
+class Drawable;
 using DrawablePresentedHandler = void (^)(class Drawable*);
 
 using DrawablePresentedHandlerFunction = std::function<void(class Drawable*)>;
