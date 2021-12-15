@@ -1,4 +1,6 @@
-set(sources )
+set(sources
+    official/metal-cpp.h
+    official/metal-cpp.cpp)
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 add_library(rdoc_metal OBJECT ${sources})
