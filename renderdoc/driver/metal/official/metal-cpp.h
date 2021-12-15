@@ -519,8 +519,8 @@ namespace NS
 {
 using TimeInterval = double;
 
-using Integer = std::intptr_t;
-using UInteger = std::uintptr_t;
+using Integer = std::int64_t;
+using UInteger = std::uint64_t;
 
 const Integer  IntegerMax = INTPTR_MAX;
 const Integer  IntegerMin = INTPTR_MIN;
