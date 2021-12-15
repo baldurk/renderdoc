@@ -14574,7 +14574,7 @@ public:
 
     class Buffer*                   newBuffer(const void* pointer, NS::UInteger length, MTL::ResourceOptions options);
 
-    class Buffer*                   newBuffer(const void* pointer, NS::UInteger length, MTL::ResourceOptions options, const void (^deallocator)(void*, NS::UInteger));
+    class Buffer*                   newBuffer(const void* pointer, NS::UInteger length, MTL::ResourceOptions options, void (^deallocator)(void*, NS::UInteger));
 
     class DepthStencilState*        newDepthStencilState(const class DepthStencilDescriptor* descriptor);
 
@@ -15059,7 +15059,7 @@ _MTL_INLINE MTL::Buffer* MTL::Device::newBuffer(const void* pointer, NS::UIntege
     return Object::sendMessage<MTL::Buffer*>(this, _MTL_PRIVATE_SEL(newBufferWithBytes_length_options_), pointer, length, options);
 }
 
-_MTL_INLINE MTL::Buffer* MTL::Device::newBuffer(const void* pointer, NS::UInteger length, MTL::ResourceOptions options, const void (^deallocator)(void*, NS::UInteger))
+_MTL_INLINE MTL::Buffer* MTL::Device::newBuffer(const void* pointer, NS::UInteger length, MTL::ResourceOptions options, void (^deallocator)(void*, NS::UInteger))
 {
     return Object::sendMessage<MTL::Buffer*>(this, _MTL_PRIVATE_SEL(newBufferWithBytesNoCopy_length_options_deallocator_), pointer, length, options, deallocator);
 }
