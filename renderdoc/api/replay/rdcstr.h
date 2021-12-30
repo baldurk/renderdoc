@@ -548,15 +548,19 @@ public:
   }
   size_t size() const
   {
-    if(is_alloc() || is_fixed())
+    if(is_alloc())
+      return d.alloc.size;
+    if(is_fixed())
       return d.fixed.size;
     return d.arr.get_size();
   }
   size_t length() const { return size(); }
   const char *c_str() const
   {
-    if(is_alloc() || is_fixed())
+    if(is_alloc())
       return d.alloc.str;
+    if(is_fixed())
+      return d.fixed.str;
     return d.arr.str;
   }
 
