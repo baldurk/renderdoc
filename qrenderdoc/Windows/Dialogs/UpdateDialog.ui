@@ -281,20 +281,10 @@
         <property name="horizontalSpacing">
          <number>10</number>
         </property>
-        <item row="1" column="1">
-         <widget class="QLabel" name="newLabel">
+        <item row="0" column="1">
+         <widget class="QLabel" name="curLabel">
           <property name="text">
-           <string>New Version:</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="1">
-         <widget class="QLabel" name="sizeLabel">
-          <property name="text">
-           <string>Download Size:</string>
+           <string>Current Version:</string>
           </property>
           <property name="alignment">
            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -321,6 +311,16 @@
           </property>
          </spacer>
         </item>
+        <item row="1" column="1">
+         <widget class="QLabel" name="newLabel">
+          <property name="text">
+           <string>New Version:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
         <item row="1" column="2">
          <widget class="QLabel" name="newVersion">
           <property name="text">
@@ -328,20 +328,20 @@
           </property>
          </widget>
         </item>
+        <item row="2" column="1">
+         <widget class="QLabel" name="sizeLabel">
+          <property name="text">
+           <string>Download Size:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
         <item row="2" column="2">
          <widget class="QLabel" name="downloadSize">
           <property name="text">
            <string>12.34 MB</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="1">
-         <widget class="QLabel" name="curLabel">
-          <property name="text">
-           <string>Current Version:</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
           </property>
          </widget>
         </item>

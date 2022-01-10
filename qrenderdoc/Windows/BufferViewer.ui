@@ -433,89 +433,10 @@
                </sizepolicy>
               </property>
               <layout class="QGridLayout" name="gridLayout_5">
-               <item row="6" column="0">
-                <widget class="QLabel" name="farGuessLabel">
-                 <property name="text">
-                  <string>Far Plane:</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="0" colspan="2">
-                <widget class="QLabel" name="guessInstructions">
-                 <property name="text">
-                  <string>Manually configure projection used by vertex pipeline.
-Enter 0.0 to use automatic/guessed value derived from data.</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="4" column="1">
-                <widget class="QDoubleSpinBox" name="aspectGuess">
-                 <property name="minimum">
-                  <double>0.000000000000000</double>
-                 </property>
-                 <property name="maximum">
-                  <double>10.000000000000000</double>
-                 </property>
-                 <property name="singleStep">
-                  <double>0.010000000000000</double>
-                 </property>
-                </widget>
-               </item>
-               <item row="3" column="1">
-                <widget class="QDoubleSpinBox" name="fovGuess">
-                 <property name="minimum">
-                  <double>1.000000000000000</double>
-                 </property>
-                 <property name="maximum">
-                  <double>180.000000000000000</double>
-                 </property>
-                 <property name="value">
-                  <double>90.000000000000000</double>
-                 </property>
-                </widget>
-               </item>
-               <item row="5" column="0">
-                <widget class="QLabel" name="nearGuessLabel">
-                 <property name="text">
-                  <string>Near Plane:</string>
-                 </property>
-                </widget>
-               </item>
                <item row="0" column="0">
                 <widget class="QLabel" name="camSpeedLabel">
                  <property name="text">
                   <string>Speed:</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="3" column="0">
-                <widget class="QLabel" name="fovGuessLabel">
-                 <property name="text">
-                  <string>Persp. FOV:</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="9" column="0" colspan="2">
-                <widget class="Line" name="line_2">
-                 <property name="orientation">
-                  <enum>Qt::Horizontal</enum>
-                 </property>
-                </widget>
-               </item>
-               <item row="4" column="0">
-                <widget class="QLabel" name="aspectGuessLabel">
-                 <property name="text">
-                  <string>Aspect Ratio:</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="6" column="1">
-                <widget class="QDoubleSpinBox" name="farGuess">
-                 <property name="maximum">
-                  <double>1000000.000000000000000</double>
-                 </property>
-                 <property name="singleStep">
-                  <double>10.000000000000000</double>
                  </property>
                 </widget>
                </item>
@@ -544,6 +465,21 @@ Enter 0.0 to use automatic/guessed value derived from data.</string>
                  </property>
                 </widget>
                </item>
+               <item row="1" column="0" colspan="2">
+                <widget class="QLabel" name="guessInstructions">
+                 <property name="text">
+                  <string>Manually configure projection used by vertex pipeline.
+Enter 0.0 to use automatic/guessed value derived from data.</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="0">
+                <widget class="QLabel" name="matrixTypeLabel">
+                 <property name="text">
+                  <string>Matrix Type:</string>
+                 </property>
+                </widget>
+               </item>
                <item row="2" column="1">
                 <widget class="QComboBox" name="matrixType">
                  <property name="maxVisibleItems">
@@ -560,17 +496,50 @@ Enter 0.0 to use automatic/guessed value derived from data.</string>
                  </property>
                 </widget>
                </item>
-               <item row="10" column="1">
-                <widget class="QLabel" name="minBoundsLabel">
+               <item row="3" column="0">
+                <widget class="QLabel" name="fovGuessLabel">
                  <property name="text">
-                  <string/>
+                  <string>Persp. FOV:</string>
                  </property>
                 </widget>
                </item>
-               <item row="2" column="0">
-                <widget class="QLabel" name="matrixTypeLabel">
+               <item row="3" column="1">
+                <widget class="QDoubleSpinBox" name="fovGuess">
+                 <property name="minimum">
+                  <double>1.000000000000000</double>
+                 </property>
+                 <property name="maximum">
+                  <double>180.000000000000000</double>
+                 </property>
+                 <property name="value">
+                  <double>90.000000000000000</double>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="0">
+                <widget class="QLabel" name="aspectGuessLabel">
                  <property name="text">
-                  <string>Matrix Type:</string>
+                  <string>Aspect Ratio:</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="1">
+                <widget class="QDoubleSpinBox" name="aspectGuess">
+                 <property name="minimum">
+                  <double>0.000000000000000</double>
+                 </property>
+                 <property name="maximum">
+                  <double>10.000000000000000</double>
+                 </property>
+                 <property name="singleStep">
+                  <double>0.010000000000000</double>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="0">
+                <widget class="QLabel" name="nearGuessLabel">
+                 <property name="text">
+                  <string>Near Plane:</string>
                  </property>
                 </widget>
                </item>
@@ -581,6 +550,71 @@ Enter 0.0 to use automatic/guessed value derived from data.</string>
                  </property>
                  <property name="singleStep">
                   <double>0.010000000000000</double>
+                 </property>
+                </widget>
+               </item>
+               <item row="6" column="0">
+                <widget class="QLabel" name="farGuessLabel">
+                 <property name="text">
+                  <string>Far Plane:</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="6" column="1">
+                <widget class="QDoubleSpinBox" name="farGuess">
+                 <property name="maximum">
+                  <double>1000000.000000000000000</double>
+                 </property>
+                 <property name="singleStep">
+                  <double>10.000000000000000</double>
+                 </property>
+                </widget>
+               </item>
+               <item row="7" column="0">
+                <widget class="QLabel" name="axisMappingLabel">
+                 <property name="text">
+                  <string>Axis Mapping:</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="7" column="1">
+                <widget class="QComboBox" name="axisMappingCombo"/>
+               </item>
+               <item row="8" column="1">
+                <widget class="QPushButton" name="axisMappingButton">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
+                 <property name="text">
+                  <string>Edit Custom Mapping</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="9" column="0" colspan="2">
+                <widget class="Line" name="line_2">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                </widget>
+               </item>
+               <item row="10" column="0">
+                <widget class="QLabel" name="label_3">
+                 <property name="text">
+                  <string>Bounding Box:</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="10" column="1">
+                <widget class="QLabel" name="minBoundsLabel">
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="11" column="1">
+                <widget class="QLabel" name="maxBoundsLabel">
+                 <property name="text">
+                  <string/>
                  </property>
                 </widget>
                </item>
@@ -596,40 +630,6 @@ Enter 0.0 to use automatic/guessed value derived from data.</string>
                   </size>
                  </property>
                 </spacer>
-               </item>
-               <item row="11" column="1">
-                <widget class="QLabel" name="maxBoundsLabel">
-                 <property name="text">
-                  <string/>
-                 </property>
-                </widget>
-               </item>
-               <item row="10" column="0">
-                <widget class="QLabel" name="label_3">
-                 <property name="text">
-                  <string>Bounding Box:</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="7" column="0">
-                <widget class="QLabel" name="axisMappingLabel">
-                 <property name="text">
-                  <string>Axis Mapping:</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="8" column="1">
-                <widget class="QPushButton" name="axisMappingButton">
-                 <property name="enabled">
-                  <bool>false</bool>
-                 </property>
-                 <property name="text">
-                  <string>Edit Custom Mapping</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="7" column="1">
-                <widget class="QComboBox" name="axisMappingCombo"/>
                </item>
               </layout>
              </widget>

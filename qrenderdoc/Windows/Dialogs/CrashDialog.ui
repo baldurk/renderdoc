@@ -229,6 +229,71 @@
         <string>Bug Report</string>
        </property>
        <layout class="QGridLayout" name="gridLayout">
+        <item row="0" column="0" colspan="2">
+         <widget class="QLabel" name="reportText">
+          <property name="text">
+           <string notr="true">Filled out at runtime</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+          <property name="openExternalLinks">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0" colspan="2">
+         <widget class="Line" name="line">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="0">
+         <widget class="QLabel" name="addressLabel">
+          <property name="text">
+           <string>Email Address</string>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="1">
+         <widget class="QLineEdit" name="email">
+          <property name="placeholderText">
+           <string>Enter your contact info to help fix this bug</string>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="1">
+         <widget class="QCheckBox" name="rememberEmail">
+          <property name="text">
+           <string>Remember email address for next time</string>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="0">
+         <widget class="QLabel" name="captureLabel">
+          <property name="text">
+           <string>Last Capture</string>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="1">
+         <widget class="QCheckBox" name="captureUpload">
+          <property name="text">
+           <string>Upload this capture with bug report</string>
+          </property>
+         </widget>
+        </item>
+        <item row="6" column="1">
+         <widget class="QLabel" name="captureFilename">
+          <property name="text">
+           <string>filename_of_capture.rdc</string>
+          </property>
+         </widget>
+        </item>
         <item row="7" column="1">
          <widget class="QFrame" name="capturePreviewFrame">
           <property name="frameShape">
@@ -278,6 +343,38 @@
           </layout>
          </widget>
         </item>
+        <item row="8" column="0">
+         <widget class="QLabel" name="descriptionLabel">
+          <property name="text">
+           <string>Description of Problem</string>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="8" column="1">
+         <widget class="QTextEdit" name="description">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>100</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>100</height>
+           </size>
+          </property>
+         </widget>
+        </item>
         <item row="9" column="1">
          <widget class="QFrame" name="frame_2">
           <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -321,103 +418,6 @@
             </widget>
            </item>
           </layout>
-         </widget>
-        </item>
-        <item row="4" column="1">
-         <widget class="QCheckBox" name="rememberEmail">
-          <property name="text">
-           <string>Remember email address for next time</string>
-          </property>
-         </widget>
-        </item>
-        <item row="6" column="1">
-         <widget class="QLabel" name="captureFilename">
-          <property name="text">
-           <string>filename_of_capture.rdc</string>
-          </property>
-         </widget>
-        </item>
-        <item row="8" column="1">
-         <widget class="QTextEdit" name="description">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>100</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>16777215</width>
-            <height>100</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="0" colspan="2">
-         <widget class="QLabel" name="reportText">
-          <property name="text">
-           <string notr="true">Filled out at runtime</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
-          </property>
-          <property name="wordWrap">
-           <bool>true</bool>
-          </property>
-          <property name="openExternalLinks">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item row="3" column="0">
-         <widget class="QLabel" name="addressLabel">
-          <property name="text">
-           <string>Email Address</string>
-          </property>
-         </widget>
-        </item>
-        <item row="5" column="0">
-         <widget class="QLabel" name="captureLabel">
-          <property name="text">
-           <string>Last Capture</string>
-          </property>
-         </widget>
-        </item>
-        <item row="5" column="1">
-         <widget class="QCheckBox" name="captureUpload">
-          <property name="text">
-           <string>Upload this capture with bug report</string>
-          </property>
-         </widget>
-        </item>
-        <item row="3" column="1">
-         <widget class="QLineEdit" name="email">
-          <property name="placeholderText">
-           <string>Enter your contact info to help fix this bug</string>
-          </property>
-         </widget>
-        </item>
-        <item row="8" column="0">
-         <widget class="QLabel" name="descriptionLabel">
-          <property name="text">
-           <string>Description of Problem</string>
-          </property>
-          <property name="wordWrap">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="0" colspan="2">
-         <widget class="Line" name="line">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
          </widget>
         </item>
        </layout>

@@ -197,6 +197,13 @@
       <property name="bottomMargin">
        <number>5</number>
       </property>
+      <item row="0" column="0" colspan="2">
+       <widget class="QCheckBox" name="exportAllMips">
+        <property name="text">
+         <string>Export All Mips</string>
+        </property>
+       </widget>
+      </item>
       <item row="1" column="0">
        <widget class="QCheckBox" name="oneMip">
         <property name="text">
@@ -206,13 +213,6 @@
       </item>
       <item row="1" column="1">
        <widget class="QComboBox" name="mipSelect"/>
-      </item>
-      <item row="0" column="0" colspan="2">
-       <widget class="QCheckBox" name="exportAllMips">
-        <property name="text">
-         <string>Export All Mips</string>
-        </property>
-       </widget>
       </item>
      </layout>
     </widget>
