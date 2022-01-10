@@ -25,6 +25,7 @@
 #include "SettingsDialog.h"
 #include <float.h>
 #include <math.h>
+#include <QFontDatabase>
 #include <QKeyEvent>
 #include <QTextEdit>
 #include <QToolButton>
@@ -46,6 +47,9 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
 
   m_ReplayOptions = new ReplayOptionsSelector(m_Ctx, false, this);
 
+  QStringList fontFamilies = QFontDatabase().families();
+  fontFamilies.insert(0, tr("Default (%1)").arg(Formatter::DefaultFontFamily()));
+
   ui->replayOptionsLayout->insertWidget(0, m_ReplayOptions);
 
   QString styleChooseTooltip = ui->UIStyle->toolTip();
@@ -59,11 +63,28 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
   for(int i = 0; i < StyleData::numAvailable; i++)
     ui->UIStyle->addItem(StyleData::availStyles[i].styleName);
 
+  ui->Font_Family->addItems(fontFamilies);
+
   ui->Font_GlobalScale->addItems({lit("50%"), lit("75%"), lit("100%"), lit("125%"), lit("150%"),
                                   lit("175%"), lit("200%"), lit("250%"), lit("300%"), lit("400%")});
 
   ui->Font_GlobalScale->setCurrentText(
       QString::number(ceil(m_Ctx.Config().Font_GlobalScale * 100)) + lit("%"));
+
+  int curFontOption = -1;
+  for(int i = 0; i < ui->Font_Family->count(); i++)
+  {
+    if(ui->Font_Family->itemText(i) == m_Ctx.Config().Font_Family)
+    {
+      curFontOption = i;
+      break;
+    }
+  }
+
+  if(m_Ctx.Config().Font_Family.isEmpty() || curFontOption < 0)
+    curFontOption = 0;
+
+  ui->Font_Family->setCurrentIndex(curFontOption);
 
   for(int i = 0; i < ui->Font_GlobalScale->count(); i++)
   {
@@ -309,6 +330,21 @@ void SettingsDialog::on_okButton_accepted()
 {
   setResult(1);
   accept();
+}
+
+void SettingsDialog::on_Font_Family_currentIndexChanged(int index)
+{
+  if(m_Init)
+    return;
+
+  if(index == 0)
+    m_Ctx.Config().Font_Family.clear();
+  else
+    m_Ctx.Config().Font_Family = ui->Font_Family->currentText();
+
+  m_Ctx.Config().SetupFormatting();
+
+  m_Ctx.Config().Save();
 }
 
 void SettingsDialog::on_Font_GlobalScale_currentIndexChanged(int index)

@@ -2400,6 +2400,7 @@ QFont *Formatter::m_Font = NULL;
 QFont *Formatter::m_FixedFont = NULL;
 float Formatter::m_FontBaseSize = 10.0f;    // this should always be overridden below, but just in
                                             // case let's pick a sensible value
+QString Formatter::m_DefaultFontFamily;
 float Formatter::m_FixedFontBaseSize = 10.0f;
 QColor Formatter::m_DarkChecker, Formatter::m_LightChecker;
 
@@ -2419,14 +2420,23 @@ void Formatter::setParams(const PersistantConfig &config)
     m_FontBaseSize = QApplication::font().pointSizeF();
     m_FixedFont = new QFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
     m_FixedFontBaseSize = m_FixedFont->pointSizeF();
+    m_DefaultFontFamily = QApplication::font().family();
   }
+
+  // this is only used for display to the user
+  if(m_DefaultFontFamily.isEmpty())
+    m_DefaultFontFamily = lit("System font");
 
   *m_Font =
       config.Font_PreferMonospaced ? QFontDatabase::systemFont(QFontDatabase::FixedFont) : QFont();
+  if(!config.Font_Family.isEmpty())
+    m_Font->setFamily(config.Font_Family);
 
   m_Font->setPointSizeF(m_FontBaseSize * config.Font_GlobalScale);
   QFont f = QApplication::font();
   f.setPointSizeF(m_FontBaseSize * config.Font_GlobalScale);
+  if(!config.Font_Family.isEmpty())
+    f.setFamily(config.Font_Family);
   QApplication::setFont(f);
 
   m_FixedFont->setPointSizeF(m_FixedFontBaseSize * config.Font_GlobalScale);

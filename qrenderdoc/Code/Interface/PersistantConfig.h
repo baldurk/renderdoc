@@ -492,6 +492,12 @@ DECLARE_REFLECTION_STRUCT(BugReport);
   CONFIG_SETTING_VAL(public, float, float, Font_GlobalScale, 1.0f)                                 \
                                                                                                    \
   DOCUMENT(                                                                                        \
+      "The font family to use in the UI.\n"                                                        \
+      "\n"                                                                                         \
+      "Defaults to an empty string which means to use the system default.");                       \
+  CONFIG_SETTING_VAL(public, QString, rdcstr, Font_Family, "")                                     \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
       "``True`` if a monospaced font should be used in all places where data is displayed, even "  \
       "if the data is not tabular such as names.\n"                                                \
       "\n"                                                                                         \

@@ -261,11 +261,13 @@ struct Formatter
   static const QFont &FixedFont() { return *m_FixedFont; }
   static const QColor DarkCheckerColor() { return m_DarkChecker; }
   static const QColor LightCheckerColor() { return m_LightChecker; }
+  static QString DefaultFontFamily() { return m_DefaultFontFamily; }
 private:
   static int m_minFigures, m_maxFigures, m_expNegCutoff, m_expPosCutoff;
   static double m_expNegValue, m_expPosValue;
   static QFont *m_Font, *m_FixedFont;
   static float m_FontBaseSize, m_FixedFontBaseSize;
+  static QString m_DefaultFontFamily;
   static QColor m_DarkChecker, m_LightChecker;
 };
 
