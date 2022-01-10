@@ -108,14 +108,14 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>CustomPaintWidget</class>
-   <extends>QWidget</extends>
-   <header>Widgets/CustomPaintWidget.h</header>
-  </customwidget>
-  <customwidget>
    <class>RDLabel</class>
    <extends>QLabel</extends>
    <header>Widgets/Extended/RDLabel.h</header>
+  </customwidget>
+  <customwidget>
+   <class>CustomPaintWidget</class>
+   <extends>QWidget</extends>
+   <header>Widgets/CustomPaintWidget.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

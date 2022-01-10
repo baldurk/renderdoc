@@ -646,8 +646,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>911</width>
-            <height>458</height>
+            <width>96</width>
+            <height>172</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_12">
@@ -958,8 +958,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>911</width>
-            <height>458</height>
+            <width>96</width>
+            <height>172</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_11">
@@ -1270,8 +1270,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>911</width>
-            <height>458</height>
+            <width>96</width>
+            <height>172</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_13">
@@ -1582,8 +1582,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>911</width>
-            <height>458</height>
+            <width>117</width>
+            <height>258</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_14">
@@ -2955,8 +2955,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>911</width>
-            <height>458</height>
+            <width>96</width>
+            <height>172</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_15">
@@ -3134,8 +3134,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>911</width>
-            <height>507</height>
+            <width>488</width>
+            <height>348</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_4">
@@ -3501,13 +3501,13 @@
               </item>
               <item row="2" column="1">
                <widget class="QLabel" name="depthWrite">
-                <property name="text">
-                 <string/>
-                </property>
                 <property name="font">
                  <font>
                   <pointsize>12</pointsize>
                  </font>
+                </property>
+                <property name="text">
+                 <string/>
                 </property>
                 <property name="pixmap">
                  <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
@@ -3724,8 +3724,7 @@
                </property>
                <property name="icon">
                 <iconset resource="../../Resources/resources.qrc">
-                 <normaloff>:/action.png</normaloff>:/action.png
-                </iconset>
+                 <normaloff>:/action.png</normaloff>:/action.png</iconset>
                </property>
                <property name="toolButtonStyle">
                 <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -3745,8 +3744,7 @@
                </property>
                <property name="icon">
                 <iconset resource="../../Resources/resources.qrc">
-                 <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png
-                </iconset>
+                 <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
                </property>
                <property name="popupMode">
                 <enum>QToolButton::MenuButtonPopup</enum>
@@ -3769,8 +3767,7 @@
                </property>
                <property name="icon">
                 <iconset resource="../../Resources/resources.qrc">
-                 <normaloff>:/save.png</normaloff>:/save.png
-                </iconset>
+                 <normaloff>:/save.png</normaloff>:/save.png</iconset>
                </property>
                <property name="toolButtonStyle">
                 <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -3810,8 +3807,7 @@
             </property>
             <property name="icon">
              <iconset resource="../../Resources/resources.qrc">
-              <normaloff>:/wrench.png</normaloff>:/wrench.png
-             </iconset>
+              <normaloff>:/wrench.png</normaloff>:/wrench.png</iconset>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -3925,8 +3921,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>911</width>
-            <height>394</height>
+            <width>96</width>
+            <height>172</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_16">

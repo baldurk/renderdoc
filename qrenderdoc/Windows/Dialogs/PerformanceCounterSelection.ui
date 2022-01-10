@@ -26,7 +26,7 @@
      <item>
       <widget class="RDTreeWidget" name="counterTree">
        <attribute name="headerDefaultSectionSize">
-        <number>0</number>
+        <number>31</number>
        </attribute>
       </widget>
      </item>
@@ -42,8 +42,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QTextEdit" name="counterDescription">
-      </widget>
+      <widget class="QTextEdit" name="counterDescription"/>
      </item>
      <item>
       <widget class="QLabel" name="enabledCountersLabel">

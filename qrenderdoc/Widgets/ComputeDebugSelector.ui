@@ -2,6 +2,9 @@
 <ui version="4.0">
  <class>ComputeDebugSelector</class>
  <widget class="QDialog" name="ComputeDebugSelector">
+  <property name="windowModality">
+   <enum>Qt::ApplicationModal</enum>
+  </property>
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -24,9 +27,6 @@
   </property>
   <property name="modal">
    <bool>true</bool>
-  </property>
-  <property name="windowModality">
-   <enum>Qt::ApplicationModal</enum>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="sizeConstraint">
@@ -96,18 +96,14 @@
    </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_buttons">
-     <property name="alignment">
-      <set>Qt::AlignRight</set>
-     </property>
      <item>
       <widget class="QPushButton" name="beginDebug">
        <property name="text">
         <string>Debug</string>
        </property>
        <property name="icon">
-        <iconset resource="../../Resources/resources.qrc">
-         <normaloff>:/wrench.png</normaloff>:/wrench.png
-        </iconset>
+        <iconset resource="../Resources/resources.qrc">
+         <normaloff>:/wrench.png</normaloff>:/wrench.png</iconset>
        </property>
       </widget>
      </item>
@@ -122,6 +118,8 @@
    </item>
   </layout>
  </widget>
- <resources/>
+ <resources>
+  <include location="../Resources/resources.qrc"/>
+ </resources>
  <connections/>
 </ui>

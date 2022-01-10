@@ -3812,7 +3812,7 @@
             <x>0</x>
             <y>0</y>
             <width>488</width>
-            <height>311</height>
+            <height>345</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_4">
@@ -4126,13 +4126,13 @@
               </item>
               <item row="3" column="1">
                <widget class="QLabel" name="depthBounds">
-                <property name="text">
-                 <string/>
-                </property>
                 <property name="font">
                  <font>
                   <pointsize>12</pointsize>
                  </font>
+                </property>
+                <property name="text">
+                 <string/>
                 </property>
                 <property name="pixmap">
                  <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
@@ -4157,13 +4157,13 @@
               </item>
               <item row="2" column="1">
                <widget class="QLabel" name="depthWrite">
-                <property name="text">
-                 <string/>
-                </property>
                 <property name="font">
                  <font>
                   <pointsize>12</pointsize>
                  </font>
+                </property>
+                <property name="text">
+                 <string/>
                 </property>
                 <property name="pixmap">
                  <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>

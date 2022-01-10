@@ -179,7 +179,7 @@
  <customwidgets>
   <customwidget>
    <class>RDTableView</class>
-   <extends>QTableWidget</extends>
+   <extends>QTableView</extends>
    <header>Widgets/Extended/RDTableView.h</header>
   </customwidget>
  </customwidgets>

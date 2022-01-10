@@ -319,6 +319,11 @@
  </widget>
  <customwidgets>
   <customwidget>
+   <class>RDTreeWidget</class>
+   <extends>QTreeView</extends>
+   <header>Widgets/Extended/RDTreeWidget.h</header>
+  </customwidget>
+  <customwidget>
    <class>RDLineEdit</class>
    <extends>QLineEdit</extends>
    <header>Widgets/Extended/RDLineEdit.h</header>
@@ -329,19 +334,14 @@
    <header>Widgets/Extended/RDTreeView.h</header>
   </customwidget>
   <customwidget>
-   <class>RDTreeWidget</class>
-   <extends>QTreeView</extends>
-   <header>Widgets/Extended/RDTreeWidget.h</header>
+   <class>ToolWindowManager</class>
+   <extends>QWidget</extends>
+   <header>3rdparty/toolwindowmanager/ToolWindowManager.h</header>
   </customwidget>
   <customwidget>
    <class>RDListView</class>
    <extends>QListView</extends>
    <header>Widgets/Extended/RDListView.h</header>
-  </customwidget>
-  <customwidget>
-   <class>ToolWindowManager</class>
-   <extends>QWidget</extends>
-   <header>3rdparty/toolwindowmanager/ToolWindowManager.h</header>
   </customwidget>
  </customwidgets>
  <resources>

@@ -296,7 +296,8 @@
       </item>
      </layout>
     </widget>
-   </item><item>
+   </item>
+   <item>
     <widget class="QWidget" name="filterStrip" native="true">
      <layout class="QHBoxLayout" name="horizontalLayout_7">
       <property name="spacing">
@@ -374,8 +375,7 @@
     </widget>
    </item>
    <item>
-    <widget class="QWidget" name="breadcrumbStrip" native="true">
-    </widget>
+    <widget class="QWidget" name="breadcrumbStrip" native="true"/>
    </item>
    <item>
     <widget class="QWidget" name="bookmarkStrip" native="true">
@@ -488,6 +488,11 @@
  </widget>
  <customwidgets>
   <customwidget>
+   <class>RDLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>Widgets/Extended/RDLineEdit.h</header>
+  </customwidget>
+  <customwidget>
    <class>RDTreeView</class>
    <extends>QTreeView</extends>
    <header>Widgets/Extended/RDTreeView.h</header>
@@ -496,11 +501,6 @@
    <class>RDTextEdit</class>
    <extends>QTextEdit</extends>
    <header>Widgets/Extended/RDTextEdit.h</header>
-  </customwidget>
-  <customwidget>
-   <class>RDLineEdit</class>
-   <extends>QLineEdit</extends>
-   <header>Widgets/Extended/RDLineEdit.h</header>
   </customwidget>
  </customwidgets>
  <resources>

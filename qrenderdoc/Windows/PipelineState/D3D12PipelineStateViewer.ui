@@ -219,8 +219,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>868</width>
-            <height>515</height>
+            <width>454</width>
+            <height>196</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_3">
@@ -627,8 +627,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>868</width>
-            <height>466</height>
+            <width>101</width>
+            <height>344</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_10">
@@ -1033,8 +1033,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>868</width>
-            <height>466</height>
+            <width>101</width>
+            <height>344</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_11">
@@ -1439,8 +1439,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>868</width>
-            <height>466</height>
+            <width>101</width>
+            <height>344</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_12">
@@ -1845,8 +1845,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>868</width>
-            <height>466</height>
+            <width>101</width>
+            <height>430</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_13">
@@ -2898,8 +2898,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>868</width>
-            <height>466</height>
+            <width>101</width>
+            <height>344</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_14">
@@ -3187,8 +3187,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>868</width>
-            <height>515</height>
+            <width>698</width>
+            <height>318</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_6">
@@ -3554,13 +3554,13 @@
               </item>
               <item row="2" column="1">
                <widget class="QLabel" name="depthWrite">
-                <property name="text">
-                 <string/>
-                </property>
                 <property name="font">
                  <font>
                   <pointsize>12</pointsize>
                  </font>
+                </property>
+                <property name="text">
+                 <string/>
                 </property>
                 <property name="pixmap">
                  <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
@@ -3958,8 +3958,7 @@
             </property>
             <property name="icon">
              <iconset resource="../../Resources/resources.qrc">
-              <normaloff>:/wrench.png</normaloff>:/wrench.png
-             </iconset>
+              <normaloff>:/wrench.png</normaloff>:/wrench.png</iconset>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -4283,11 +4282,6 @@
    <extends>QGroupBox</extends>
    <header>Widgets/CollapseGroupBox.h</header>
    <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>ToolWindowManager</class>
-   <extends>QWidget</extends>
-   <header>3rdparty/toolwindowmanager/ToolWindowManager.h</header>
   </customwidget>
  </customwidgets>
  <resources>

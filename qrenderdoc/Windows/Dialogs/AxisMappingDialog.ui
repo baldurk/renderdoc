@@ -81,7 +81,6 @@
    </item>
   </layout>
  </widget>
- <resources>
-  <include location="../../Resources/resources.qrc"/>
- </resources>
+ <resources/>
+ <connections/>
 </ui>

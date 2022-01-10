@@ -1096,24 +1096,24 @@ See FAQ on &quot;Gamma display of linear data&quot;</string>
         </property>
        </widget>
       </item>
-       <item>
-         <widget class="QLabel" name="texStatusFormat">
-           <property name="sizePolicy">
-             <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-             </sizepolicy>
-           </property>
-           <property name="font">
-             <font>
-               <family>Consolas</family>
-             </font>
-           </property>
-           <property name="text">
-             <string>texStatusFormat</string>
-           </property>
-         </widget>
-       </item>
+      <item>
+       <widget class="QLabel" name="texStatusFormat">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="font">
+         <font>
+          <family>Consolas</family>
+         </font>
+        </property>
+        <property name="text">
+         <string>texStatusFormat</string>
+        </property>
+       </widget>
+      </item>
       <item>
        <widget class="QWidget" name="pickSwatch" native="true">
         <property name="sizePolicy">
@@ -1213,7 +1213,7 @@ See FAQ on &quot;Gamma display of linear data&quot;</string>
          <string>History</string>
         </property>
         <property name="icon">
-         <iconset resource="../../Resources/resources.qrc">
+         <iconset resource="../Resources/resources.qrc">
           <normaloff>:/pixel_history.png</normaloff>:/pixel_history.png</iconset>
         </property>
        </widget>
@@ -1224,7 +1224,7 @@ See FAQ on &quot;Gamma display of linear data&quot;</string>
          <string>Debug</string>
         </property>
         <property name="icon">
-         <iconset resource="../../Resources/resources.qrc">
+         <iconset resource="../Resources/resources.qrc">
           <normaloff>:/wrench.png</normaloff>:/wrench.png</iconset>
         </property>
        </widget>
@@ -1317,21 +1317,20 @@ See FAQ on &quot;Gamma display of linear data&quot;</string>
        </widget>
       </item>
       <item>
-        <widget class="QToolButton" name="colSelect">
-          <property name="toolTip">
-            <string>Select visible columns</string>
-          </property>
-          <property name="icon">
-            <iconset resource="../Resources/resources.qrc">
-              <normaloff>:/timeline_marker.png</normaloff>:/timeline_marker.png
-            </iconset>
-          </property>
-          <property name="autoRaise">
-            <bool>true</bool>
-          </property>
-        </widget>
+       <widget class="QToolButton" name="colSelect">
+        <property name="toolTip">
+         <string>Select visible columns</string>
+        </property>
+        <property name="icon">
+         <iconset resource="../Resources/resources.qrc">
+          <normaloff>:/timeline_marker.png</normaloff>:/timeline_marker.png</iconset>
+        </property>
+        <property name="autoRaise">
+         <bool>true</bool>
+        </property>
+       </widget>
       </item>
-      </layout>
+     </layout>
     </item>
     <item>
      <widget class="RDTreeWidget" name="textureList">
@@ -1348,28 +1347,28 @@ See FAQ on &quot;Gamma display of linear data&quot;</string>
        <bool>false</bool>
       </property>
       <property name="indentation">
-        <number>0</number>
+       <number>0</number>
       </property>
       <property name="rootIsDecorated">
-        <bool>true</bool>
-      </property>
-      <property name="allColumnsShowFocus">
-        <bool>true</bool>
+       <bool>true</bool>
       </property>
       <property name="uniformRowHeights">
-        <bool>true</bool>
-      </property>
-      <property name="clearSelectionOnFocusLoss">
-        <bool>false</bool>
+       <bool>true</bool>
       </property>
       <property name="itemsExpandable">
-        <bool>false</bool>
+       <bool>false</bool>
       </property>
       <property name="sortingEnabled">
        <bool>true</bool>
       </property>
+      <property name="allColumnsShowFocus">
+       <bool>true</bool>
+      </property>
       <property name="wordWrap">
-        <bool>false</bool>
+       <bool>false</bool>
+      </property>
+      <property name="clearSelectionOnFocusLoss" stdset="0">
+       <bool>false</bool>
       </property>
      </widget>
     </item>
@@ -1378,9 +1377,9 @@ See FAQ on &quot;Gamma display of linear data&quot;</string>
  </widget>
  <customwidgets>
   <customwidget>
-   <class>ToolWindowManager</class>
-   <extends>QWidget</extends>
-   <header>3rdparty/toolwindowmanager/ToolWindowManager.h</header>
+   <class>RDTreeWidget</class>
+   <extends>QTreeView</extends>
+   <header>Widgets/Extended/RDTreeWidget.h</header>
   </customwidget>
   <customwidget>
    <class>CustomPaintWidget</class>
@@ -1393,15 +1392,15 @@ See FAQ on &quot;Gamma display of linear data&quot;</string>
    <header>Widgets/Extended/RDLineEdit.h</header>
   </customwidget>
   <customwidget>
+   <class>ToolWindowManager</class>
+   <extends>QWidget</extends>
+   <header>3rdparty/toolwindowmanager/ToolWindowManager.h</header>
+  </customwidget>
+  <customwidget>
    <class>ThumbnailStrip</class>
    <extends>QWidget</extends>
    <header>Widgets/ThumbnailStrip.h</header>
    <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>RDListView</class>
-   <extends>QListView</extends>
-   <header>Widgets/Extended/RDListView.h</header>
   </customwidget>
   <customwidget>
    <class>RangeHistogram</class>
@@ -1413,11 +1412,6 @@ See FAQ on &quot;Gamma display of linear data&quot;</string>
    <class>RDToolButton</class>
    <extends>QToolButton</extends>
    <header>Widgets/Extended/RDToolButton.h</header>
-  </customwidget>
-  <customwidget>
-    <class>RDTreeWidget</class>
-    <extends>QTreeView</extends>
-    <header>Widgets/Extended/RDTreeWidget.h</header>
   </customwidget>
  </customwidgets>
  <resources>

@@ -85,15 +85,15 @@
    <header>Widgets/Extended/RDTreeWidget.h</header>
   </customwidget>
   <customwidget>
+   <class>RDListWidget</class>
+   <extends>QListWidget</extends>
+   <header>Widgets/Extended/RDListWidget.h</header>
+  </customwidget>
+  <customwidget>
    <class>RDSplitter</class>
    <extends>QSplitter</extends>
    <header>Widgets/Extended/RDSplitter.h</header>
    <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>RDListWidget</class>
-   <extends>QListWidget</extends>
-   <header>Widgets/Extended/RDListWidget.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

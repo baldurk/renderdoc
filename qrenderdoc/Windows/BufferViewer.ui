@@ -422,8 +422,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>181</width>
-                <height>253</height>
+                <width>312</width>
+                <height>308</height>
                </rect>
               </property>
               <property name="sizePolicy">
@@ -938,7 +938,7 @@ Enter 0.0 to use automatic/guessed value derived from data.</string>
     <item>
      <widget class="QDoubleSpinBox" name="byteRangeStart">
       <property name="maximum">
-       <number>999123456</number>
+       <double>999123456.000000000000000</double>
       </property>
      </widget>
     </item>
@@ -952,7 +952,7 @@ Enter 0.0 to use automatic/guessed value derived from data.</string>
     <item>
      <widget class="QDoubleSpinBox" name="byteRangeLength">
       <property name="maximum">
-       <number>999123456</number>
+       <double>999123456.000000000000000</double>
       </property>
      </widget>
     </item>
@@ -1009,14 +1009,14 @@ Enter 0.0 to use automatic/guessed value derived from data.</string>
  </widget>
  <customwidgets>
   <customwidget>
-   <class>ToolWindowManager</class>
-   <extends>QWidget</extends>
-   <header>3rdparty/toolwindowmanager/ToolWindowManager.h</header>
-  </customwidget>
-  <customwidget>
    <class>CustomPaintWidget</class>
    <extends>QWidget</extends>
    <header>Widgets/CustomPaintWidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ToolWindowManager</class>
+   <extends>QWidget</extends>
+   <header>3rdparty/toolwindowmanager/ToolWindowManager.h</header>
   </customwidget>
   <customwidget>
    <class>RDTableView</class>
