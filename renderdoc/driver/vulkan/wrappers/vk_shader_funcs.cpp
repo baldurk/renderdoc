@@ -428,6 +428,11 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
                            VK_PIPELINE_CREATE_CAPTURE_INTERNAL_REPRESENTATIONS_BIT_KHR);
     }
 
+    // don't fail when a compile is required because we don't currently replay caches so this will
+    // always happen. This still allows application to use this flag at runtime where it will be
+    // valid
+    CreateInfo.flags &= ~VK_PIPELINE_CREATE_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT_EXT;
+
     VkGraphicsPipelineCreateInfo *unwrapped = UnwrapInfos(&CreateInfo, 1);
     VkResult ret = ObjDisp(device)->CreateGraphicsPipelines(Unwrap(device), Unwrap(pipelineCache),
                                                             1, unwrapped, NULL, &pipe);
