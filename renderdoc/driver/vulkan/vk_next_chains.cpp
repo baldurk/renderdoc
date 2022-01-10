@@ -1103,7 +1103,7 @@ size_t GetNextPatchSize(const void *pNext)
         if(info->pDepthAttachment)
         {
           memSize += sizeof(*info->pDepthAttachment);
-          memSize += GetNextPatchSize(info->pStencilAttachment->pNext);
+          memSize += GetNextPatchSize(info->pDepthAttachment->pNext);
         }
         if(info->pStencilAttachment)
         {
