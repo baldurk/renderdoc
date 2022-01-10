@@ -59,7 +59,11 @@ static ShaderConstantType MakeShaderConstantType(bool cbufferPacking, DXBC::CBuf
   {
     uint32_t stride = type.descriptor.bytesize / RDCMAX(1U, type.descriptor.elements);
     RDCASSERTMSG("Stride is too large for uint16_t", stride <= 0xffff);
-    ret.descriptor.arrayByteStride = AlignUp16(RDCMIN(stride, 0xffffu) & 0xffff);
+
+    ret.descriptor.arrayByteStride = RDCMIN(stride, 0xffffu) & 0xffff;
+    // in D3D only cbuffers have 16-byte aligned structs
+    if(cbufferPacking)
+      ret.descriptor.arrayByteStride = AlignUp16(ret.descriptor.arrayByteStride);
 
     ret.descriptor.rows = ret.descriptor.columns = 0;
   }
