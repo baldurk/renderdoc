@@ -2098,7 +2098,17 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
         state->isMemoryBound = true;
     }
 
-    const char *prefix = "Image";
+    rdcstr prefix = "Image";
+    rdcstr depth = "Depth";
+
+    if(CreateInfo.format == VK_FORMAT_S8_UINT)
+    {
+      depth = "Stencil";
+    }
+    else if(IsStencilFormat(CreateInfo.format))
+    {
+      depth = "Depth/Stencil";
+    }
 
     if(CreateInfo.imageType == VK_IMAGE_TYPE_1D)
     {
@@ -2107,7 +2117,7 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
       if(CreateInfo.usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
         prefix = "1D Color Attachment";
       else if(CreateInfo.usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
-        prefix = "1D Depth Attachment";
+        prefix = "1D " + depth + " Attachment";
     }
     else if(CreateInfo.imageType == VK_IMAGE_TYPE_2D)
     {
@@ -2116,7 +2126,7 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
       if(CreateInfo.usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
         prefix = "2D Color Attachment";
       else if(CreateInfo.usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
-        prefix = "2D Depth Attachment";
+        prefix = "2D " + depth + " Attachment";
       else if(CreateInfo.usage & VK_IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT)
         prefix = "2D Fragment Density Map Attachment";
     }
@@ -2127,10 +2137,10 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
       if(CreateInfo.usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
         prefix = "3D Color Attachment";
       else if(CreateInfo.usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
-        prefix = "3D Depth Attachment";
+        prefix = "3D " + depth + " Attachment";
     }
 
-    AddResource(Image, ResourceType::Texture, prefix);
+    AddResource(Image, ResourceType::Texture, prefix.c_str());
     DerivedResource(device, Image);
   }
 

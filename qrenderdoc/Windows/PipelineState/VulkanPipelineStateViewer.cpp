@@ -2633,13 +2633,32 @@ void VulkanPipelineStateViewer::setState()
         QString slotname;
 
         if(colIdx >= 0)
+        {
           slotname = QFormatStr("Color %1").arg(colIdx);
+        }
         else if(resIdx >= 0)
+        {
           slotname = QFormatStr("Resolve %1").arg(resIdx);
+        }
         else if(state.currentPass.renderpass.fragmentDensityAttachment == i)
+        {
           slotname = lit("Fragment Density Map");
+        }
         else
+        {
           slotname = lit("Depth");
+
+          if(p.viewFormat.type == ResourceFormatType::D16S8 ||
+             p.viewFormat.type == ResourceFormatType::D24S8 ||
+             p.viewFormat.type == ResourceFormatType::D32S8)
+          {
+            slotname = lit("Depth/Stencil");
+          }
+          else if(p.viewFormat.type == ResourceFormatType::S8)
+          {
+            slotname = lit("Stencil");
+          }
+        }
 
         if(state.fragmentShader.reflection != NULL)
         {
