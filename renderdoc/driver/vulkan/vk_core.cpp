@@ -1777,6 +1777,8 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
   frame.captureTime = Timing::GetUnixTimestamp();
   m_CapturedFrames.push_back(frame);
 
+  m_DebugMessages.clear();
+
   GetResourceManager()->ClearReferencedResources();
   GetResourceManager()->ClearReferencedMemory();
 
@@ -3977,9 +3979,22 @@ void WrappedVulkan::AddDebugMessage(MessageCategory c, MessageSeverity sv, Messa
 void WrappedVulkan::AddDebugMessage(DebugMessage msg)
 {
   if(IsLoading(m_State))
-    m_EventMessages.push_back(msg);
+  {
+    if(m_LastCmdBufferID != ResourceId())
+    {
+      msg.eventId = m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID;
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].debugMessages.push_back(msg);
+    }
+    else
+    {
+      msg.eventId = m_RootEventID;
+      m_RootEventMessages.push_back(msg);
+    }
+  }
   else
+  {
     m_DebugMessages.push_back(msg);
+  }
 }
 
 void WrappedVulkan::CheckErrorVkResult(VkResult vkr)
@@ -4034,7 +4049,7 @@ VkBool32 WrappedVulkan::DebugCallback(MessageSeverity severity, MessageCategory 
       // function calls are replayed after the call to Serialise_DebugMessages() so we don't have a
       // sync point to gather together all the messages from the sink. But instead we can just push
       // them directly into the list since we're linearised
-      if(IsReplayMode(m_State))
+      if(IsLoading(m_State))
       {
         ProcessDebugMessage(msg);
         AddDebugMessage(msg);
@@ -4678,13 +4693,9 @@ void WrappedVulkan::AddEvent()
 
   apievent.chunkIndex = uint32_t(m_StructuredFile->chunks.size() - 1);
 
-  for(size_t i = 0; i < m_EventMessages.size(); i++)
-    m_EventMessages[i].eventId = apievent.eventId;
-
   if(m_LastCmdBufferID != ResourceId())
   {
     m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents.push_back(apievent);
-    m_BakedCmdBufferInfo[m_LastCmdBufferID].debugMessages.append(m_EventMessages);
   }
   else
   {
@@ -4692,10 +4703,10 @@ void WrappedVulkan::AddEvent()
     m_Events.resize(apievent.eventId + 1);
     m_Events[apievent.eventId] = apievent;
 
-    m_DebugMessages.append(m_EventMessages);
-  }
+    m_DebugMessages.append(m_RootEventMessages);
 
-  m_EventMessages.clear();
+    m_RootEventMessages.clear();
+  }
 }
 
 const APIEvent &WrappedVulkan::GetEvent(uint32_t eventId)

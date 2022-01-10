@@ -2278,6 +2278,8 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
         RDCERR("NULL deferred context in resource record!");
     }
 
+    m_DebugMessages.clear();
+
     GetResourceManager()->ClearReferencedResources();
 
     GetResourceManager()->FreeInitialContents();

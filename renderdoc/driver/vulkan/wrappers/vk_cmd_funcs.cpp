@@ -967,7 +967,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
       InsertCommandQueueFamily(BakedCommandBuffer, cmdQueueFamilyIt->second);
     }
 
-    m_LastCmdBufferID = CommandBuffer;
+    m_LastCmdBufferID = BakedCommandBuffer;
 
     // when loading, allocate a new resource ID for each push descriptor slot in this command buffer
     if(IsLoading(m_State))
@@ -990,12 +990,12 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
       }
     }
 
-    m_BakedCmdBufferInfo[m_LastCmdBufferID].level = m_BakedCmdBufferInfo[BakedCommandBuffer].level =
+    m_BakedCmdBufferInfo[CommandBuffer].level = m_BakedCmdBufferInfo[BakedCommandBuffer].level =
         AllocateInfo.level;
-    m_BakedCmdBufferInfo[m_LastCmdBufferID].beginFlags =
+    m_BakedCmdBufferInfo[CommandBuffer].beginFlags =
         m_BakedCmdBufferInfo[BakedCommandBuffer].beginFlags = BeginInfo.flags;
-    m_BakedCmdBufferInfo[m_LastCmdBufferID].markerCount = 0;
-    m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates.clear();
+    m_BakedCmdBufferInfo[CommandBuffer].markerCount = 0;
+    m_BakedCmdBufferInfo[CommandBuffer].imageStates.clear();
     m_BakedCmdBufferInfo[BakedCommandBuffer].imageStates.clear();
 
     VkCommandBufferBeginInfo unwrappedBeginInfo = BeginInfo;
@@ -1042,7 +1042,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
           {
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
             RDCDEBUG("vkBegin - partial detected %u < %u < %u, %s -> %s", it->baseEvent,
-                     m_LastEventID, it->baseEvent + length, ToStr(m_LastCmdBufferID).c_str(),
+                     m_LastEventID, it->baseEvent + length, ToStr(CommandBuffer).c_str(),
                      ToStr(BakedCommandBuffer).c_str());
 #endif
 
@@ -1061,7 +1061,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
           {
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
             RDCDEBUG("vkBegin - full re-record detected %u < %u <= %u, %s -> %s", it->baseEvent,
-                     it->baseEvent + length, m_LastEventID, ToStr(m_LastCmdBufferID).c_str(),
+                     it->baseEvent + length, m_LastEventID, ToStr(CommandBuffer).c_str(),
                      ToStr(BakedCommandBuffer).c_str());
 #endif
 
@@ -1089,7 +1089,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
         }
 
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
-        RDCDEBUG("vkBegin - re-recording %s -> %s into %s", ToStr(m_LastCmdBufferID).c_str(),
+        RDCDEBUG("vkBegin - re-recording %s -> %s into %s", ToStr(CommandBuffer).c_str(),
                  ToStr(BakedCommandBuffer).c_str(), ToStr(GetResID(cmd)).c_str());
 #endif
 
@@ -1103,8 +1103,8 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
         // (even if it's baked to several command buffers in the frame)
         // there's no issue with clashes here.
         m_RerecordCmds[BakedCommandBuffer] = cmd;
-        m_RerecordCmds[m_LastCmdBufferID] = cmd;
-        InsertCommandQueueFamily(BakedCommandBuffer, FindCommandQueueFamily(m_LastCmdBufferID));
+        m_RerecordCmds[CommandBuffer] = cmd;
+        InsertCommandQueueFamily(BakedCommandBuffer, FindCommandQueueFamily(CommandBuffer));
 
         m_RerecordCmdList.push_back({AllocateInfo.commandPool, cmd});
 
@@ -1127,12 +1127,12 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
 
       // whenever a vkCmd command-building chunk asks for the command buffer, it
       // will get our baked version.
-      if(GetResourceManager()->HasReplacement(m_LastCmdBufferID))
-        GetResourceManager()->RemoveReplacement(m_LastCmdBufferID);
+      if(GetResourceManager()->HasReplacement(CommandBuffer))
+        GetResourceManager()->RemoveReplacement(CommandBuffer);
 
-      GetResourceManager()->ReplaceResource(m_LastCmdBufferID, BakedCommandBuffer);
+      GetResourceManager()->ReplaceResource(CommandBuffer, BakedCommandBuffer);
 
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID = 0;
+      m_BakedCmdBufferInfo[CommandBuffer].curEventID = 0;
       m_BakedCmdBufferInfo[BakedCommandBuffer].curEventID = 0;
     }
     else
@@ -1173,10 +1173,10 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
 
         // whenever a vkCmd command-building chunk asks for the command buffer, it
         // will get our baked version.
-        if(GetResourceManager()->HasReplacement(m_LastCmdBufferID))
-          GetResourceManager()->RemoveReplacement(m_LastCmdBufferID);
+        if(GetResourceManager()->HasReplacement(CommandBuffer))
+          GetResourceManager()->RemoveReplacement(CommandBuffer);
 
-        GetResourceManager()->ReplaceResource(m_LastCmdBufferID, BakedCommandBuffer);
+        GetResourceManager()->ReplaceResource(CommandBuffer, BakedCommandBuffer);
       }
       else
       {
@@ -1184,9 +1184,9 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
       }
 
       // propagate any name there might be
-      if(m_CreationInfo.m_Names.find(m_LastCmdBufferID) != m_CreationInfo.m_Names.end())
+      if(m_CreationInfo.m_Names.find(CommandBuffer) != m_CreationInfo.m_Names.end())
         m_CreationInfo.m_Names[GetResourceManager()->GetLiveID(BakedCommandBuffer)] =
-            m_CreationInfo.m_Names[m_LastCmdBufferID];
+            m_CreationInfo.m_Names[CommandBuffer];
 
       {
         VulkanActionTreeNode *action = new VulkanActionTreeNode;
