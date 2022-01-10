@@ -219,8 +219,9 @@ float4 main(v2f IN) : SV_Target0
       vbData[i].col.y = float(i) / 200.0f;
     }
 
-    ID3D12ResourcePtr vb =
-        MakeBuffer().Data(vbData).Size(UINT((vbData.size() + 100) * sizeof(DefaultA2V)));
+    vbData.resize(vbData.size() + 100);
+
+    ID3D12ResourcePtr vb = MakeBuffer().Data(vbData).Size(UINT(vbData.size() * sizeof(DefaultA2V)));
 
     Vec4f instData[256] = {};
     for(int i = 0; i < ARRAY_COUNT(instData); i++)
