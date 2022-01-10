@@ -6920,7 +6920,7 @@ void WrappedVulkan::vkCmdBeginRenderingKHR(VkCommandBuffer commandBuffer,
       else if(i == pRenderingInfo->colorAttachmentCount + 1)
         att = pRenderingInfo->pStencilAttachment;
 
-      if(!att || !att->imageView)
+      if(!att || att->imageView == VK_NULL_HANDLE)
         continue;
 
       FrameRefType refType = eFrameRef_ReadBeforeWrite;
