@@ -563,6 +563,105 @@ rdcstr WrappedVulkan::MakeRenderPassOpString(bool store)
   return opDesc;
 }
 
+void WrappedVulkan::ApplyRPLoadDiscards(VkCommandBuffer commandBuffer, VkRect2D renderArea)
+{
+  if(m_ReplayOptions.optimisation == ReplayOptimisationLevel::Fastest)
+    return;
+
+  const VulkanCreationInfo::RenderPass &rpinfo =
+      m_CreationInfo.m_RenderPass[GetCmdRenderState().GetRenderPass()];
+
+  const rdcarray<ResourceId> &attachments = GetCmdRenderState().GetFramebufferAttachments();
+
+  for(size_t i = 0; i < attachments.size(); i++)
+  {
+    const VulkanCreationInfo::ImageView &viewInfo = m_CreationInfo.m_ImageView[attachments[i]];
+    VkImage image = GetResourceManager()->GetCurrentHandle<VkImage>(viewInfo.image);
+    const VulkanCreationInfo::Image &imInfo = GetDebugManager()->GetImageInfo(GetResID(image));
+
+    VkImageLayout initialLayout = rpinfo.attachments[i].initialLayout;
+
+    bool depthDontCareLoad = (rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE);
+    bool stencilDifferentDontCare = false;
+    bool stencilDontCareLoad = false;
+
+    if(IsStencilFormat(viewInfo.format))
+    {
+      stencilDontCareLoad = (rpinfo.attachments[i].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE);
+
+      stencilDifferentDontCare = (depthDontCareLoad != stencilDontCareLoad);
+    }
+
+    bool dontCareLoad = depthDontCareLoad || stencilDontCareLoad;
+
+    // if it's used and has a don't care loadop, or undefined transition (i.e. discard) we
+    // need to fill a discard pattern)
+    if((dontCareLoad || initialLayout == VK_IMAGE_LAYOUT_UNDEFINED) && rpinfo.attachments[i].used)
+    {
+      // if originally it was UNDEFINED (which is fine with DONT_CARE) and we promoted to
+      // load so we could preserve the discard pattern, transition to general.
+      if(initialLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+      {
+        VkImageMemoryBarrier dstimBarrier = {
+            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            NULL,
+            0,
+            0,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_GENERAL,
+            VK_QUEUE_FAMILY_IGNORED,
+            VK_QUEUE_FAMILY_IGNORED,
+            Unwrap(image),
+            viewInfo.range,
+        };
+
+        DoPipelineBarrier(commandBuffer, 1, &dstimBarrier);
+
+        initialLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+        // undefined transitions apply to the whole subresource not just the render area.
+        // But we don't want to do an undefined discard pattern that will be completely
+        // overwritten, and it's common for the render area to be the whole subresource. So
+        // check that here now and only do the undefined if we're not about to DONT_CARE
+        // over it or if the render area is a subset
+        // note if there's a separate stencil op and only one of them is getting don't
+        // care'd then we still need the undefined for the other. stencilDifferentDontCare
+        // is only true if ONLY one of depth & stencil is being don't care'd. dontCareLoad
+        // is only false if nothing at all is getting don't care'd.
+        if(!dontCareLoad || stencilDifferentDontCare || renderArea.offset.x > 0 ||
+           renderArea.offset.y > 0 ||
+           renderArea.extent.width < RDCMAX(1U, imInfo.extent.width >> viewInfo.range.baseMipLevel) ||
+           renderArea.extent.height < RDCMAX(1U, imInfo.extent.height >> viewInfo.range.baseMipLevel))
+        {
+          GetDebugManager()->FillWithDiscardPattern(
+              commandBuffer, DiscardType::UndefinedTransition, image, initialLayout, viewInfo.range,
+              {{0, 0}, {imInfo.extent.width, imInfo.extent.height}});
+        }
+      }
+
+      if(!stencilDifferentDontCare && dontCareLoad)
+      {
+        GetDebugManager()->FillWithDiscardPattern(commandBuffer, DiscardType::RenderPassLoad, image,
+                                                  initialLayout, viewInfo.range, renderArea);
+      }
+      else if(stencilDifferentDontCare)
+      {
+        VkImageSubresourceRange range = viewInfo.range;
+
+        range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        if(depthDontCareLoad)
+          GetDebugManager()->FillWithDiscardPattern(commandBuffer, DiscardType::RenderPassLoad,
+                                                    image, initialLayout, range, renderArea);
+
+        range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+        if(stencilDontCareLoad)
+          GetDebugManager()->FillWithDiscardPattern(commandBuffer, DiscardType::RenderPassLoad,
+                                                    image, initialLayout, range, renderArea);
+      }
+    }
+  }
+}
+
 // Command pool functions
 
 template <typename SerialiserType>
@@ -1585,72 +1684,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
           DoPipelineBarrier(commandBuffer, imgBarriers.size(), imgBarriers.data());
         }
 
-        if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest)
-        {
-          const rdcarray<ResourceId> &attachments = GetCmdRenderState().GetFramebufferAttachments();
-
-          for(size_t i = 0; i < attachments.size(); i++)
-          {
-            const VulkanCreationInfo::ImageView &viewInfo =
-                m_CreationInfo.m_ImageView[attachments[i]];
-            VkImage image = GetResourceManager()->GetCurrentHandle<VkImage>(viewInfo.image);
-            const VulkanCreationInfo::Image &imInfo =
-                GetDebugManager()->GetImageInfo(GetResID(image));
-
-            VkImageLayout initialLayout = rpinfo.attachments[i].initialLayout;
-
-            VkRect2D rect = RenderPassBegin.renderArea;
-
-            if((rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE ||
-                initialLayout == VK_IMAGE_LAYOUT_UNDEFINED) &&
-               rpinfo.attachments[i].used)
-            {
-              // if originally it was UNDEFINED (which is fine with DONT_CARE) and we promoted to
-              // load so we could preserve the discard pattern, transition to general.
-              if(initialLayout == VK_IMAGE_LAYOUT_UNDEFINED)
-              {
-                VkImageMemoryBarrier dstimBarrier = {
-                    VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                    NULL,
-                    0,
-                    0,
-                    VK_IMAGE_LAYOUT_UNDEFINED,
-                    VK_IMAGE_LAYOUT_GENERAL,
-                    VK_QUEUE_FAMILY_IGNORED,
-                    VK_QUEUE_FAMILY_IGNORED,
-                    Unwrap(image),
-                    viewInfo.range,
-                };
-
-                DoPipelineBarrier(commandBuffer, 1, &dstimBarrier);
-
-                initialLayout = VK_IMAGE_LAYOUT_GENERAL;
-
-                // undefined transitions apply to the whole subresource not just the render area.
-                // But we don't want to do an undefined discard pattern that will be completely
-                // overwritten, and it's common for the render area to be the whole subresource. So
-                // check that here now and only do the undefined if we're not about to DONT_CARE
-                // over it or if the render area is a subset
-                if(rpinfo.attachments[i].loadOp != VK_ATTACHMENT_LOAD_OP_DONT_CARE ||
-                   rect.offset.x > 0 || rect.offset.y > 0 ||
-                   rect.extent.width < RDCMAX(1U, imInfo.extent.width >> viewInfo.range.baseMipLevel) ||
-                   rect.extent.height <
-                       RDCMAX(1U, imInfo.extent.height >> viewInfo.range.baseMipLevel))
-                {
-                  GetDebugManager()->FillWithDiscardPattern(
-                      commandBuffer, DiscardType::UndefinedTransition, image, initialLayout,
-                      viewInfo.range, {{0, 0}, {imInfo.extent.width, imInfo.extent.height}});
-                }
-              }
-
-              if(rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
-              {
-                GetDebugManager()->FillWithDiscardPattern(commandBuffer, DiscardType::RenderPassLoad,
-                                                          image, initialLayout, viewInfo.range, rect);
-              }
-            }
-          }
-        }
+        ApplyRPLoadDiscards(commandBuffer, RenderPassBegin.renderArea);
 
         ActionFlags drawFlags = ActionFlags::PassBoundary | ActionFlags::BeginPass;
         uint32_t eventId = HandlePreCallback(commandBuffer, drawFlags);
@@ -1692,7 +1726,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
 
               VkClearRect rect = {unwrappedInfo.renderArea, 0, viewinfo.range.layerCount};
               VkClearAttachment clear = {};
-              clear.aspectMask = FormatImageAspects(rpinfo.attachments[att].format);
+              clear.aspectMask = FormatImageAspects(rpinfo.attachments[att].format) & clearAspects;
               clear.colorAttachment = c;
               if(att < unwrappedInfo.clearValueCount)
                 clear.clearValue = unwrappedInfo.pClearValues[att];
@@ -1701,8 +1735,9 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
 
               // check that the actual aspects in the attachment overlap with those being cleared.
               // In particular this means we ignore stencil load op being CLEAR for a color
-              // attachment - that doesn't mean we should clear the color
-              if(clear.aspectMask & clearAspects)
+              // attachment - that doesn't mean we should clear the color. This also means we don't
+              // clear the stencil if it's not specified, even when clearing depth *is*
+              if(clear.aspectMask != 0)
               {
                 clearrects.push_back(rect);
                 clearatts.push_back(clear);
@@ -2057,12 +2092,48 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
         {
           for(size_t i = 0; i < attachments.size(); i++)
           {
+            if(!rpinfo.attachments[i].used)
+              continue;
+
             const VulkanCreationInfo::ImageView &viewInfo =
                 m_CreationInfo.m_ImageView[attachments[i]];
             VkImage image = GetResourceManager()->GetCurrentHandle<VkImage>(viewInfo.image);
 
-            if(rpinfo.attachments[i].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE &&
-               rpinfo.attachments[i].used)
+            if(IsStencilFormat(viewInfo.format))
+            {
+              // check to see if stencil and depth store ops are different and apply them
+              // individually here
+              const bool depthDontCareStore =
+                  (rpinfo.attachments[i].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE);
+              const bool stencilDontCareStore =
+                  (rpinfo.attachments[i].stencilStoreOp == VK_ATTACHMENT_STORE_OP_DONT_CARE);
+
+              // if they're both don't care then we can do a simple discard clear
+              if(depthDontCareStore && stencilDontCareStore)
+              {
+                GetDebugManager()->FillWithDiscardPattern(
+                    commandBuffer, DiscardType::RenderPassStore, image,
+                    rpinfo.attachments[i].finalLayout, viewInfo.range, renderArea);
+              }
+              else
+              {
+                // otherwise only don't care the appropriate aspects
+                VkImageSubresourceRange range = viewInfo.range;
+
+                range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+                if(depthDontCareStore)
+                  GetDebugManager()->FillWithDiscardPattern(
+                      commandBuffer, DiscardType::RenderPassStore, image,
+                      rpinfo.attachments[i].finalLayout, range, renderArea);
+
+                range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+                if(stencilDontCareStore)
+                  GetDebugManager()->FillWithDiscardPattern(
+                      commandBuffer, DiscardType::RenderPassStore, image,
+                      rpinfo.attachments[i].finalLayout, range, renderArea);
+              }
+            }
+            else if(rpinfo.attachments[i].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
             {
               GetDebugManager()->FillWithDiscardPattern(commandBuffer, DiscardType::RenderPassStore,
                                                         image, rpinfo.attachments[i].finalLayout,
@@ -2215,68 +2286,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
         const VulkanCreationInfo::RenderPass &rpinfo =
             m_CreationInfo.m_RenderPass[GetCmdRenderState().GetRenderPass()];
 
-        if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest)
-        {
-          const rdcarray<ResourceId> &attachments = GetCmdRenderState().GetFramebufferAttachments();
-
-          VkRect2D rect = RenderPassBegin.renderArea;
-
-          for(size_t i = 0; i < attachments.size(); i++)
-          {
-            const VulkanCreationInfo::ImageView &viewInfo =
-                m_CreationInfo.m_ImageView[attachments[i]];
-            VkImage image = GetResourceManager()->GetCurrentHandle<VkImage>(viewInfo.image);
-            const VulkanCreationInfo::Image &imInfo =
-                GetDebugManager()->GetImageInfo(GetResID(image));
-
-            if(rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE &&
-               rpinfo.attachments[i].used)
-            {
-              VkImageLayout initialLayout = rpinfo.attachments[i].initialLayout;
-              // if originally it was UNDEFINED (which is fine with DONT_CARE) and we promoted to
-              // load so we could preserve the discard pattern, transition to general.
-              if(initialLayout == VK_IMAGE_LAYOUT_UNDEFINED)
-              {
-                VkImageMemoryBarrier dstimBarrier = {
-                    VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                    NULL,
-                    0,
-                    0,
-                    VK_IMAGE_LAYOUT_UNDEFINED,
-                    VK_IMAGE_LAYOUT_GENERAL,
-                    VK_QUEUE_FAMILY_IGNORED,
-                    VK_QUEUE_FAMILY_IGNORED,
-                    Unwrap(image),
-                    viewInfo.range,
-                };
-
-                DoPipelineBarrier(commandBuffer, 1, &dstimBarrier);
-
-                initialLayout = VK_IMAGE_LAYOUT_GENERAL;
-
-                // undefined transitions apply to the whole subresource not just the render area.
-                // But we don't want to do an undefined discard pattern that will be completely
-                // overwritten, and it's common for the render area to be the whole subresource. So
-                // check that here now and only do the undefined if we're not about to DONT_CARE
-                // over it or if the render area is a subset
-                if(rpinfo.attachments[i].loadOp != VK_ATTACHMENT_LOAD_OP_DONT_CARE ||
-                   rect.offset.x > 0 || rect.offset.y > 0 ||
-                   rect.extent.width < RDCMAX(1U, imInfo.extent.width >> viewInfo.range.baseMipLevel) ||
-                   rect.extent.height <
-                       RDCMAX(1U, imInfo.extent.height >> viewInfo.range.baseMipLevel))
-                {
-                  GetDebugManager()->FillWithDiscardPattern(
-                      commandBuffer, DiscardType::UndefinedTransition, image, initialLayout,
-                      viewInfo.range, {{0, 0}, {imInfo.extent.width, imInfo.extent.height}});
-                }
-              }
-
-              GetDebugManager()->FillWithDiscardPattern(commandBuffer, DiscardType::RenderPassLoad,
-                                                        image, initialLayout, viewInfo.range,
-                                                        RenderPassBegin.renderArea);
-            }
-          }
-        }
+        ApplyRPLoadDiscards(commandBuffer, RenderPassBegin.renderArea);
 
         rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
 
@@ -2320,19 +2330,38 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
             if(att >= rpinfo.attachments.size())
               continue;
 
-            if(rpinfo.attachments[att].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ||
-               rpinfo.attachments[att].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
+            VkImageAspectFlags clearAspects = 0;
+
+            // loadOp governs color, and depth
+            if(rpinfo.attachments[att].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
+              clearAspects |= VK_IMAGE_ASPECT_COLOR_BIT | VK_IMAGE_ASPECT_DEPTH_BIT;
+            // stencilLoadOp governs the stencil
+            if(rpinfo.attachments[att].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
+              clearAspects |= VK_IMAGE_ASPECT_STENCIL_BIT;
+
+            // if any aspect is set to clear, go check it in more detail
+            if(clearAspects != 0)
             {
               VulkanCreationInfo::ImageView viewinfo = m_CreationInfo.m_ImageView[fbattachments[att]];
 
               VkClearRect rect = {unwrappedInfo.renderArea, 0, viewinfo.range.layerCount};
               VkClearAttachment clear = {};
-              clear.aspectMask = FormatImageAspects(rpinfo.attachments[att].format);
+              clear.aspectMask = FormatImageAspects(rpinfo.attachments[att].format) & clearAspects;
               clear.colorAttachment = c;
               if(att < unwrappedInfo.clearValueCount)
                 clear.clearValue = unwrappedInfo.pClearValues[att];
-              clearrects.push_back(rect);
-              clearatts.push_back(clear);
+              else
+                RDCWARN("Missing clear value for attachment %u", att);
+
+              // check that the actual aspects in the attachment overlap with those being cleared.
+              // In particular this means we ignore stencil load op being CLEAR for a color
+              // attachment - that doesn't mean we should clear the color. This also means we don't
+              // clear the stencil if it's not specified, even when clearing depth *is*
+              if(clear.aspectMask != 0)
+              {
+                clearrects.push_back(rect);
+                clearatts.push_back(clear);
+              }
             }
           }
 

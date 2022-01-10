@@ -880,6 +880,7 @@ private:
   void AddImplicitResolveResourceUsage(uint32_t subpass = 0);
   rdcarray<VkImageMemoryBarrier> GetImplicitRenderPassBarriers(uint32_t subpass = 0);
   rdcstr MakeRenderPassOpString(bool store);
+  void ApplyRPLoadDiscards(VkCommandBuffer commandBuffer, VkRect2D renderArea);
 
   bool IsDrawInRenderPass();
 
