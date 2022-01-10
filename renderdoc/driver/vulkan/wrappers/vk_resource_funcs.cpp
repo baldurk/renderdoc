@@ -1768,7 +1768,7 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
 
               record->resInfo->memreqs.size = RDCMAX(record->resInfo->memreqs.size, mrq.size);
               record->resInfo->memreqs.alignment =
-                  RDCMAX(record->resInfo->memreqs.size, mrq.alignment);
+                  RDCMAX(record->resInfo->memreqs.alignment, mrq.alignment);
               if((record->resInfo->memreqs.memoryTypeBits & mrq.memoryTypeBits) == 0)
               {
                 RDCWARN(
@@ -2385,7 +2385,7 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
                   mrq.size, mrq.alignment, mrq.memoryTypeBits);
 
               resInfo.memreqs.size = RDCMAX(resInfo.memreqs.size, mrq.size);
-              resInfo.memreqs.alignment = RDCMAX(resInfo.memreqs.size, mrq.alignment);
+              resInfo.memreqs.alignment = RDCMAX(resInfo.memreqs.alignment, mrq.alignment);
 
               if((resInfo.memreqs.memoryTypeBits & mrq.memoryTypeBits) == 0)
               {
