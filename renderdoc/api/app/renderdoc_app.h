@@ -525,6 +525,15 @@ typedef uint32_t(RENDERDOC_CC *pRENDERDOC_EndFrameCapture)(RENDERDOC_DevicePoint
 typedef uint32_t(RENDERDOC_CC *pRENDERDOC_DiscardFrameCapture)(RENDERDOC_DevicePointer device,
                                                                RENDERDOC_WindowHandle wndHandle);
 
+// Requests that the replay UI show itself (if hidden or not the current top window). This can be
+// used in conjunction with IsTargetControlConnected and LaunchReplayUI to intelligently handle
+// showing the UI after making a capture.
+//
+// This will return 1 if the request was successfully passed on, though it's not guaranteed that
+// the UI will be on top in all cases depending on OS rules. It will return 0 if there is no current
+// target control connection to make such a request, or if there was another error
+typedef uint32_t(RENDERDOC_CC *pRENDERDOC_ShowReplayUI)();
+
 //////////////////////////////////////////////////////////////////////////////////////////////////
 // RenderDoc API versions
 //
@@ -550,6 +559,7 @@ typedef enum RENDERDOC_Version {
   eRENDERDOC_API_Version_1_4_0 = 10400,    // RENDERDOC_API_1_4_0 = 1 04 00
   eRENDERDOC_API_Version_1_4_1 = 10401,    // RENDERDOC_API_1_4_1 = 1 04 01
   eRENDERDOC_API_Version_1_4_2 = 10402,    // RENDERDOC_API_1_4_2 = 1 04 02
+  eRENDERDOC_API_Version_1_5_0 = 10500,    // RENDERDOC_API_1_5_0 = 1 05 00
 } RENDERDOC_Version;
 
 // API version changelog:
@@ -577,8 +587,9 @@ typedef enum RENDERDOC_Version {
 //         capturing without saving anything to disk.
 // 1.4.1 - Refactor: Renamed Shutdown to RemoveHooks to better clarify what is happening
 // 1.4.2 - Refactor: Renamed 'draws' to 'actions' in callstack capture option.
+// 1.5.0 - Added feature: ShowReplayUI() to request that the replay UI show itself if connected
 
-typedef struct RENDERDOC_API_1_4_1
+typedef struct RENDERDOC_API_1_5_0
 {
   pRENDERDOC_GetAPIVersion GetAPIVersion;
 
@@ -650,18 +661,22 @@ typedef struct RENDERDOC_API_1_4_1
 
   // new function in 1.4.0
   pRENDERDOC_DiscardFrameCapture DiscardFrameCapture;
-} RENDERDOC_API_1_4_2;
 
-typedef RENDERDOC_API_1_4_2 RENDERDOC_API_1_0_0;
-typedef RENDERDOC_API_1_4_2 RENDERDOC_API_1_0_1;
-typedef RENDERDOC_API_1_4_2 RENDERDOC_API_1_0_2;
-typedef RENDERDOC_API_1_4_2 RENDERDOC_API_1_1_0;
-typedef RENDERDOC_API_1_4_2 RENDERDOC_API_1_1_1;
-typedef RENDERDOC_API_1_4_2 RENDERDOC_API_1_1_2;
-typedef RENDERDOC_API_1_4_2 RENDERDOC_API_1_2_0;
-typedef RENDERDOC_API_1_4_2 RENDERDOC_API_1_3_0;
-typedef RENDERDOC_API_1_4_2 RENDERDOC_API_1_4_0;
-typedef RENDERDOC_API_1_4_2 RENDERDOC_API_1_4_0;
+  // new function in 1.5.0
+  pRENDERDOC_ShowReplayUI ShowReplayUI;
+} RENDERDOC_API_1_5_0;
+
+typedef RENDERDOC_API_1_5_0 RENDERDOC_API_1_0_0;
+typedef RENDERDOC_API_1_5_0 RENDERDOC_API_1_0_1;
+typedef RENDERDOC_API_1_5_0 RENDERDOC_API_1_0_2;
+typedef RENDERDOC_API_1_5_0 RENDERDOC_API_1_1_0;
+typedef RENDERDOC_API_1_5_0 RENDERDOC_API_1_1_1;
+typedef RENDERDOC_API_1_5_0 RENDERDOC_API_1_1_2;
+typedef RENDERDOC_API_1_5_0 RENDERDOC_API_1_2_0;
+typedef RENDERDOC_API_1_5_0 RENDERDOC_API_1_3_0;
+typedef RENDERDOC_API_1_5_0 RENDERDOC_API_1_4_0;
+typedef RENDERDOC_API_1_5_0 RENDERDOC_API_1_4_1;
+typedef RENDERDOC_API_1_5_0 RENDERDOC_API_1_4_2;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 // RenderDoc API entry point

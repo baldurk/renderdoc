@@ -861,14 +861,24 @@ bool RenderDoc::DiscardFrameCapture(void *dev, void *wnd)
 
 bool RenderDoc::IsTargetControlConnected()
 {
-  SCOPED_LOCK(RenderDoc::Inst().m_SingleClientLock);
-  return !RenderDoc::Inst().m_SingleClientName.empty();
+  SCOPED_LOCK(m_SingleClientLock);
+  return !m_SingleClientName.empty();
 }
 
 rdcstr RenderDoc::GetTargetControlUsername()
 {
-  SCOPED_LOCK(RenderDoc::Inst().m_SingleClientLock);
-  return RenderDoc::Inst().m_SingleClientName;
+  SCOPED_LOCK(m_SingleClientLock);
+  return m_SingleClientName;
+}
+
+bool RenderDoc::ShowReplayUI()
+{
+  SCOPED_LOCK(m_SingleClientLock);
+  if(m_SingleClientName.empty())
+    return false;
+
+  m_RequestControllerShow = true;
+  return true;
 }
 
 void RenderDoc::Tick()

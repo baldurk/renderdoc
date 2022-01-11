@@ -1390,6 +1390,11 @@ void LiveCapture::connectionThreadEntry()
       uint32_t windows = msg.capturableWindowCount;
       GUIInvoke::call(this, [this, windows]() { ui->cycleActiveWindow->setEnabled(windows > 1); });
     }
+
+    if(msg.type == TargetControlMessageType::RequestShow)
+    {
+      GUIInvoke::call(this, [this]() { m_Main->BringToFront(); });
+    }
   }
 
   if(conn)

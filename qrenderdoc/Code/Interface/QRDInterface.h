@@ -187,6 +187,12 @@ See the documentation for :meth:`RegisterShortcut` for what these shortcuts are 
 )");
   virtual void UnregisterShortcut(const rdcstr &shortcut, QWidget *widget) = 0;
 
+  DOCUMENT(R"(Attempts to bring the main window to the front to the user's focus.
+
+This may not be possible on all OSs, so the function is not guaranteed to succeed.
+)");
+  virtual void BringToFront() = 0;
+
 protected:
   IMainWindow() = default;
   ~IMainWindow() = default;

@@ -522,6 +522,8 @@ public:
   bool IsTargetControlConnected();
   rdcstr GetTargetControlUsername();
 
+  bool ShowReplayUI();
+
   void Tick();
 
   void AddFrameCapturer(void *dev, void *wnd, IFrameCapturer *cap);
@@ -701,6 +703,7 @@ private:
   volatile bool m_ControlClientThreadShutdown;
   Threading::CriticalSection m_SingleClientLock;
   rdcstr m_SingleClientName;
+  bool m_RequestControllerShow = false;
 
   uint64_t m_TimeBase;
   double m_TimeFrequency;

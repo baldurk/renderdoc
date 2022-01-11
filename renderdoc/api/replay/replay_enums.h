@@ -3744,6 +3744,10 @@ DOCUMENT(R"(The type of message received from or sent to an application target c
 .. data:: CapturableWindowCount
 
   The number of capturable windows has changed.
+
+.. data:: RequestShow
+
+  The client has requested that the controller show itself (raise its window to the top).
 )");
 enum class TargetControlMessageType : uint32_t
 {
@@ -3756,7 +3760,8 @@ enum class TargetControlMessageType : uint32_t
   RegisterAPI,
   NewChild,
   CaptureProgress,
-  CapturableWindowCount
+  CapturableWindowCount,
+  RequestShow,
 };
 
 DECLARE_REFLECTION_ENUM(TargetControlMessageType);

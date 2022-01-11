@@ -1642,6 +1642,15 @@ ToolWindowManager::AreaReference MainWindow::leftToolArea()
   return ToolWindowManager::AreaReference(ToolWindowManager::LastUsedArea);
 }
 
+void MainWindow::BringToFront()
+{
+  // un-minimise if necessary
+  setWindowState(windowState() & ~Qt::WindowMinimized);
+  show();
+  raise();
+  activateWindow();
+}
+
 void MainWindow::LoadInitialLayout()
 {
   bool loaded = LoadLayout(0);

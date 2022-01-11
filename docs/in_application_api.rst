@@ -1,7 +1,7 @@
 In-application API
 ==================
 
-Reference for RenderDoc in-application API version 1.4.2. This API is not necessary to use RenderDoc by default, but if you would like more control or custom triggering of captures this API can provide the mechanism to do so.
+Reference for RenderDoc in-application API version 1.5.0. This API is not necessary to use RenderDoc by default, but if you would like more control or custom triggering of captures this API can provide the mechanism to do so.
 
 Make sure to use a matching API header for your build - if you use a newer header, the API version may not be available. All RenderDoc builds supporting this API ship the header in their root directory.
 
@@ -364,6 +364,18 @@ The path follows the template set in :cpp:func:`SetCaptureFilePathTemplate` so i
     :param const char* cmdline: is an optional UTF-8 null-terminated string to be appended to the command line, e.g. a capture filename. If this parameter is NULL, the command line will be unmodified.
     :return: If the UI was successfully launched, this function will return the PID of the new process. Otherwise it will return ``0``.
 
+.. cpp:function:: uint32_t ShowReplayUI()
+
+    This function request that the currently connected replay UI raise its window to the top. This is only possible if an instance of the replay UI is currently connected, otherwise this function does nothing. This can be used in conjunction with IsTargetControlConnected and LaunchReplayUI to intelligently handle showing the UI after making a capture.
+
+    Given OS differences it is not guaranteed that the UI will be successfully raised even if the request is passed on. On some OSs it may only be highlighted or otherwise indicated to the user.
+
+    :return: If the request to be shown was passed onto the UI successfully this function will return ``1``. If there is no UI connected currently or some other error occurred it will return ``0``.
+
+.. note::
+
+    Added in API version 1.5.0
+
 .. cpp:function:: void SetActiveWindow(RENDERDOC_DevicePointer device, RENDERDOC_WindowHandle wndHandle)
 
     This function will explicitly set which window is considered active. The active window is the one that will be captured when the keybind to trigger a capture is pressed.
@@ -443,6 +455,10 @@ The path follows the template set in :cpp:func:`SetCaptureFilePathTemplate` so i
 
     There will be undefined results if there is not an active frame capture for the device/window combination.
 
+.. note::
+
+    Added in API version 1.4.0
+
 .. cpp:function:: void TriggerMultiFrameCapture(uint32_t numFrames)
 
     This function will trigger multiple sequential frame captures as if the user had pressed one of the capture hotkeys before each frame. The captures will be taken from the next frames presented to whichever window is considered current.
@@ -451,9 +467,18 @@ The path follows the template set in :cpp:func:`SetCaptureFilePathTemplate` so i
 
     :param uint32_t numFrames: the number of frames to capture, as an unsigned integer.
 
+.. note::
+
+    Added in API version 1.1.0
+
 .. cpp:function:: void SetCaptureFileComments(const char *filePath, const char *comments)
 
     This function adds an arbitrary comments field to an existing capture on disk, which will then be displayed in the UI to anyone opening the capture.
 
     :param const char* filePath: specifies the path to the capture file to set comments in, as UTF-8 null-terminated string. If this path is ``NULL`` or an empty string, the most recent capture file that has been created will be used.
     :param const char* comments: specifies the comments to set in the capture file, as UTF-8 null-terminated string.
+    
+.. note::
+
+    Added in API version 1.2.0
+

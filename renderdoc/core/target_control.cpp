@@ -32,7 +32,7 @@
 #include "replay/replay_driver.h"
 #include "serialise/serialiser.h"
 
-static const uint32_t TargetControlProtocolVersion = 6;
+static const uint32_t TargetControlProtocolVersion = 7;
 
 static bool IsProtocolVersionSupported(const uint32_t protocolVersion)
 {
@@ -50,6 +50,10 @@ static bool IsProtocolVersionSupported(const uint32_t protocolVersion)
 
   // 5 -> 6 return byte size with new captures
   if(protocolVersion == 5)
+    return true;
+
+  // 6 -> 7 add 'request show' packet
+  if(protocolVersion == 6)
     return true;
 
   if(protocolVersion == TargetControlProtocolVersion)
@@ -72,7 +76,8 @@ enum PacketType : uint32_t
   ePacket_NewChild,
   ePacket_CaptureProgress,
   ePacket_CycleActiveWindow,
-  ePacket_CapturableWindowCount
+  ePacket_CapturableWindowCount,
+  ePacket_RequestShow
 };
 
 DECLARE_REFLECTION_ENUM(PacketType);
@@ -286,6 +291,27 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
       {
         SCOPED_SERIALISE_CHUNK(ePacket_CapturableWindowCount);
         SERIALISE_ELEMENT(curWindows);
+      }
+    }
+    else if(version >= 7)
+    {
+      bool requestShow = false;
+
+      {
+        SCOPED_LOCK(RenderDoc::Inst().m_SingleClientLock);
+        if(RenderDoc::Inst().m_RequestControllerShow)
+        {
+          requestShow = RenderDoc::Inst().m_RequestControllerShow;
+          RenderDoc::Inst().m_RequestControllerShow = false;
+        }
+      }
+
+      if(requestShow)
+      {
+        WRITE_DATA_SCOPE();
+        {
+          SCOPED_SERIALISE_CHUNK(ePacket_RequestShow);
+        }
       }
     }
 
@@ -869,6 +895,12 @@ public:
       READ_DATA_SCOPE();
       SERIALISE_ELEMENT(windows);
       msg.capturableWindowCount = windows;
+      reader.EndChunk();
+      return msg;
+    }
+    else if(type == ePacket_RequestShow)
+    {
+      msg.type = TargetControlMessageType::RequestShow;
       reader.EndChunk();
       return msg;
     }
