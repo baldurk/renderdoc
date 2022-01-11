@@ -61,6 +61,7 @@ public:
   const QString &hostname() { return m_Hostname; }
   void cleanItems();
   void fileSaved(QString from, QString to);
+  bool checkAllowClose(bool multipleClosures, bool &noToAll);
 
 public slots:
   bool checkAllowClose();

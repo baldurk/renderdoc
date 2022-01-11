@@ -685,12 +685,11 @@ QString LiveCapture::MakeText(Capture *cap)
   return text;
 }
 
-bool LiveCapture::checkAllowClose()
+bool LiveCapture::checkAllowClose(bool multipleClosures, bool &noToAll)
 {
   m_IgnoreThreadClosed = true;
 
   bool suppressRemoteWarning = false;
-  bool notoall = false;
 
   QMessageBox::StandardButtons msgFlags = RDDialog::YesNoCancel;
 
@@ -712,7 +711,7 @@ bool LiveCapture::checkAllowClose()
 
     QMessageBox::StandardButton res = QMessageBox::No;
 
-    if(!suppressRemoteWarning && !notoall)
+    if(!suppressRemoteWarning && !noToAll)
     {
       QString frameName = tr("Frame #%1").arg(cap->frameNumber);
       if(cap->frameNumber == ~0U)
@@ -727,7 +726,26 @@ bool LiveCapture::checkAllowClose()
 
       if(res == QMessageBox::NoToAll)
       {
-        notoall = true;
+        // if we're closing multiple connections make sure the user is sure of what they're doing
+        if(multipleClosures)
+        {
+          QMessageBox::StandardButton res2 =
+              RDDialog::question(this, tr("Discarding all captures"),
+                                 tr("Multiple connections open have potentially unsaved captures, "
+                                    "are you sure you wish to discard them all?"));
+
+          // if the user is sure, apply the no to all
+          if(res2 == QMessageBox::Yes)
+            noToAll = true;
+
+          // otherwise we'll treat this as a simple 'no' in case they changed their mind.
+        }
+        else
+        {
+          // if we're not closing multiple, we can just immediately accept the 'no to all'
+          noToAll = true;
+        }
+
         res = QMessageBox::No;
       }
     }
@@ -780,6 +798,12 @@ bool LiveCapture::checkAllowClose()
 
   m_IgnoreThreadClosed = false;
   return true;
+}
+
+bool LiveCapture::checkAllowClose()
+{
+  bool dummy = false;
+  return checkAllowClose(false, dummy);
 }
 
 void LiveCapture::openCapture(Capture *cap)
