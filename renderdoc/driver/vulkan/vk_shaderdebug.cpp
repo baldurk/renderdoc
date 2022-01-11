@@ -3499,7 +3499,7 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
     editor.AddDecoration(rdcspv::OpDecorate(bufBase, rdcspv::Decoration::Block));
   }
 
-  if(editor.EntryPointAllGlobals())
+  if(editor.EntryPointAllGlobals() && ssboVar != rdcspv::Id())
     addedInputs.push_back(ssboVar);
 
   // add our inputs to the entry point's ID list. Since we're expanding the list we have to copy,
