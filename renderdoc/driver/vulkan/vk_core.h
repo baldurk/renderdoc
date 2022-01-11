@@ -289,6 +289,7 @@ private:
   rdcarray<DebugMessage> GetDebugMessages();
   void AddDebugMessage(DebugMessage msg);
 
+  int m_OOMHandler = 0;
   ReplayStatus m_FatalError = ReplayStatus::Succeeded;
   CaptureState m_State;
   bool m_AppControlledCapture = false;
@@ -1110,6 +1111,13 @@ public:
   bool SelectGraphicsComputeQueue(const rdcarray<VkQueueFamilyProperties> &queueProps,
                                   VkDeviceCreateInfo &createInfo, uint32_t &queueFamilyIndex);
 
+  void HandleOOM(bool handle)
+  {
+    if(handle)
+      m_OOMHandler++;
+    else
+      m_OOMHandler--;
+  }
   ReplayStatus FatalErrorCheck() { return m_FatalError; }
   bool HasFatalError() { return m_FatalError != ReplayStatus::Succeeded; }
   inline void CheckVkResult(VkResult vkr)

@@ -600,6 +600,7 @@ private:
   SDFile *m_StructuredFile = NULL;
   SDFile *m_StoredStructuredData;
 
+  int m_OOMHandler = 0;
   rdcarray<DebugMessage> m_DebugMessages;
   ReplayStatus m_FatalError = ReplayStatus::Succeeded;
 
@@ -673,6 +674,13 @@ public:
   double GetTimeFrequency() { return m_TimeFrequency; }
   void FirstFrame(IDXGISwapper *swapper);
 
+  void HandleOOM(bool handle)
+  {
+    if(handle)
+      m_OOMHandler++;
+    else
+      m_OOMHandler--;
+  }
   void CheckHRESULT(HRESULT hr);
   void ReportFatalError(ReplayStatus error) { m_FatalError = error; }
   ReplayStatus FatalErrorCheck() { return m_FatalError; }

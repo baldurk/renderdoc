@@ -4009,8 +4009,15 @@ void WrappedVulkan::CheckErrorVkResult(VkResult vkr)
   }
   else if(vkr == VK_ERROR_OUT_OF_HOST_MEMORY || vkr == VK_ERROR_OUT_OF_DEVICE_MEMORY)
   {
-    RDCLOG("Logging out of memory fatal error for %s", ToStr(vkr).c_str());
-    m_FailedReplayStatus = m_FatalError = ReplayStatus::ReplayOutOfMemory;
+    if(m_OOMHandler)
+    {
+      RDCLOG("Ignoring out of memory error that will be handled");
+    }
+    else
+    {
+      RDCLOG("Logging out of memory fatal error for %s", ToStr(vkr).c_str());
+      m_FailedReplayStatus = m_FatalError = ReplayStatus::ReplayOutOfMemory;
+    }
   }
   else
   {

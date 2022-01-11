@@ -32,6 +32,18 @@
 #include "d3d12_replay.h"
 #include "d3d12_shader_cache.h"
 
+struct ScopedOOMHandle12
+{
+  ScopedOOMHandle12(WrappedID3D12Device *dev)
+  {
+    m_pDevice = dev;
+    m_pDevice->HandleOOM(true);
+  }
+
+  ~ScopedOOMHandle12() { m_pDevice->HandleOOM(false); }
+  WrappedID3D12Device *m_pDevice;
+};
+
 bool D3D12Replay::CreateSOBuffers()
 {
   HRESULT hr = S_OK;
@@ -169,6 +181,9 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
   if(m_PostVSData.find(eventId) != m_PostVSData.end())
     return;
+
+  // we handle out-of-memory errors while processing postvs, don't treat it as a fatal error
+  ScopedOOMHandle12 oom(m_pDevice);
 
   D3D12MarkerRegion postvs(m_pDevice->GetQueue(), StringFormat::Fmt("PostVS for %u", eventId));
 

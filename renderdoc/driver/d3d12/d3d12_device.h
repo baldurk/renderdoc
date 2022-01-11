@@ -667,6 +667,7 @@ private:
   rdcarray<TempMem *> m_ThreadTempMem;
 
   rdcarray<DebugMessage> m_DebugMessages;
+  int m_OOMHandler = 0;
   ReplayStatus m_FatalError = ReplayStatus::Succeeded;
 
   uint64_t m_TimeBase = 0;
@@ -801,6 +802,13 @@ public:
   void AddDebugMessage(const DebugMessage &msg);
   rdcarray<DebugMessage> GetDebugMessages();
 
+  void HandleOOM(bool handle)
+  {
+    if(handle)
+      m_OOMHandler++;
+    else
+      m_OOMHandler--;
+  }
   void CheckHRESULT(HRESULT hr);
   void ReportFatalError(ReplayStatus error) { m_FatalError = error; }
   ReplayStatus FatalErrorCheck() { return m_FatalError; }

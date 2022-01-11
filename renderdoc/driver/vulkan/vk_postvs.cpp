@@ -39,6 +39,18 @@ RDOC_EXTERN_CONFIG(bool, Vulkan_Debug_DisableBufferDeviceAddress);
 
 #undef None
 
+struct ScopedOOMHandleVk
+{
+  ScopedOOMHandleVk(WrappedVulkan *vk)
+  {
+    m_pDriver = vk;
+    m_pDriver->HandleOOM(true);
+  }
+
+  ~ScopedOOMHandleVk() { m_pDriver->HandleOOM(false); }
+  WrappedVulkan *m_pDriver;
+};
+
 struct VkXfbQueryResult
 {
   uint64_t numPrimitivesWritten;
@@ -3349,6 +3361,9 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId, VulkanRenderState state)
 
   if(m_PostVS.Data.find(eventId) != m_PostVS.Data.end())
     return;
+
+  // we handle out-of-memory errors while processing postvs, don't treat it as a fatal error
+  ScopedOOMHandleVk oom(m_pDriver);
 
   VulkanCreationInfo &creationInfo = m_pDriver->m_CreationInfo;
 

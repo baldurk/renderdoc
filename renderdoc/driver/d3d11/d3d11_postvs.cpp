@@ -32,6 +32,18 @@
 #include "d3d11_replay.h"
 #include "d3d11_resources.h"
 
+struct ScopedOOMHandle11
+{
+  ScopedOOMHandle11(WrappedID3D11Device *dev)
+  {
+    m_pDevice = dev;
+    m_pDevice->HandleOOM(true);
+  }
+
+  ~ScopedOOMHandle11() { m_pDevice->HandleOOM(false); }
+  WrappedID3D11Device *m_pDevice;
+};
+
 void D3D11Replay::InitStreamOut()
 {
   CreateSOBuffers();
@@ -178,6 +190,9 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
 {
   if(m_PostVSData.find(eventId) != m_PostVSData.end())
     return;
+
+  // we handle out-of-memory errors while processing postvs, don't treat it as a fatal error
+  ScopedOOMHandle11 oom(m_pDevice);
 
   D3D11MarkerRegion postvs(StringFormat::Fmt("PostVS for %u", eventId));
 
