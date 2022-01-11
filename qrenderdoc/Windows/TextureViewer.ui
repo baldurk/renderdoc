@@ -1068,11 +1068,6 @@ See FAQ on &quot;Gamma display of linear data&quot;</string>
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
-        <property name="font">
-         <font>
-          <family>Consolas</family>
-         </font>
-        </property>
         <property name="text">
          <string>texStatusName</string>
         </property>

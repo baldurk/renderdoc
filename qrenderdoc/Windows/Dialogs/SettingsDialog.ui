@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>564</width>
-    <height>554</height>
+    <height>580</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -66,7 +66,7 @@
       <enum>QTabWidget::West</enum>
      </property>
      <property name="currentIndex">
-      <number>3</number>
+      <number>0</number>
      </property>
      <property name="documentMode">
       <bool>true</bool>
@@ -129,12 +129,26 @@
             <property name="toolTip">
              <string>The default font family to be used for text. This will be overridden by the default monospace font if the below option for monospace override is chosen.</string>
             </property>
-            <property name="editable">
-             <bool>false</bool>
-            </property>
            </widget>
           </item>
           <item row="2" column="0">
+           <widget class="QLabel" name="label_21">
+            <property name="toolTip">
+             <string>The default font family to be used for monospaced text, typically code display or tables of buffer data. If the below option for monospace override is chosen this font will be used for those extra places.</string>
+            </property>
+            <property name="text">
+             <string>Monospaced font family (restart required)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QComboBox" name="Font_MonoFamily">
+            <property name="toolTip">
+             <string>The default font family to be used for monospaced text, typically code display or tables of buffer data. If the below option for monospace override is chosen this font will be used for those extra places.</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
            <widget class="QLabel" name="label_27">
             <property name="toolTip">
              <string>A global scale for all fonts in the program. This will only scale text, icons and other UI elements will be scaled according to DPI settings as normal.</string>
@@ -144,7 +158,7 @@
             </property>
            </widget>
           </item>
-          <item row="2" column="1">
+          <item row="3" column="1">
            <widget class="QComboBox" name="Font_GlobalScale">
             <property name="toolTip">
              <string>A global scale for all fonts in the program. This will only scale text, icons and other UI elements will be scaled according to DPI settings as normal.</string>
@@ -154,34 +168,34 @@
             </property>
            </widget>
           </item>
-          <item row="3" column="0">
+          <item row="4" column="0">
            <widget class="QLabel" name="label_9">
             <property name="toolTip">
-             <string>Wherever possible a monospaced font will be used instead of the default font</string>
+             <string>Prefer using a monospace font instead of the default font for places where resource names, action and marker names, and similar pieces of information are displayed.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;By default a monospaced font will only be used for places where fixed width is important such as code and numerical data displays.</string>
             </property>
             <property name="text">
              <string>Prefer monospaced fonts in UI (restart required)</string>
             </property>
            </widget>
           </item>
-          <item row="3" column="1">
+          <item row="4" column="1">
            <widget class="QCheckBox" name="Font_PreferMonospaced">
             <property name="toolTip">
-             <string>Wherever possible a monospaced font will be used instead of the default font</string>
+             <string>Prefer using a monospace font instead of the default font for places where resource names, action and marker names, and similar pieces of information are displayed.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;By default a monospaced font will only be used for places where fixed width is important such as code and numerical data displays.</string>
             </property>
             <property name="text">
              <string/>
             </property>
            </widget>
           </item>
-          <item row="4" column="0" colspan="2">
+          <item row="5" column="0" colspan="2">
            <widget class="Line" name="line">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
            </widget>
           </item>
-          <item row="5" column="0">
+          <item row="6" column="0">
            <widget class="QLabel" name="label">
             <property name="toolTip">
              <string>At least this many decimal places will be displayed on floats.
@@ -192,7 +206,7 @@ e.g. a value of 2 means 0 will display as 0.00, 0.5 as 0.50. A value of 5 would 
             </property>
            </widget>
           </item>
-          <item row="5" column="1">
+          <item row="6" column="1">
            <widget class="QSpinBox" name="Formatter_MinFigures">
             <property name="toolTip">
              <string>Decimals will display at least this many digits.
@@ -203,7 +217,7 @@ e.g. a value of 2 means 0 will display as 0.00, 0.5 as 0.50</string>
             </property>
            </widget>
           </item>
-          <item row="6" column="0">
+          <item row="7" column="0">
            <widget class="QLabel" name="label_2">
             <property name="toolTip">
              <string>No more decimal places than this will be displayed on floats.
@@ -214,7 +228,7 @@ e.g. a value of 5 means 0.123456789 will display as 0.12345</string>
             </property>
            </widget>
           </item>
-          <item row="6" column="1">
+          <item row="7" column="1">
            <widget class="QSpinBox" name="Formatter_MaxFigures">
             <property name="toolTip">
              <string>No more decimal places than this will be displayed on floats.
@@ -225,7 +239,7 @@ e.g. a value of 5 means 0.123456789 will display as 0.12345 and 123.123456789 wi
             </property>
            </widget>
           </item>
-          <item row="7" column="0">
+          <item row="8" column="0">
            <widget class="QLabel" name="label_3">
             <property name="toolTip">
              <string>Any numbers smaller than this exponent will be displayed in scientific notation.
@@ -236,7 +250,7 @@ E.g. a value of 3 means 0.005 / 10 = 5E-4</string>
             </property>
            </widget>
           </item>
-          <item row="7" column="1">
+          <item row="8" column="1">
            <widget class="QSpinBox" name="Formatter_NegExp">
             <property name="toolTip">
              <string>Any numbers smaller than this exponent will be displayed in scientific notation.
@@ -247,7 +261,7 @@ E.g. a value of 3 means 0.005 / 10 = 5E-4</string>
             </property>
            </widget>
           </item>
-          <item row="8" column="0">
+          <item row="9" column="0">
            <widget class="QLabel" name="label_4">
             <property name="toolTip">
              <string>Any numbers larger than this exponent will be displayed in scientific notation.
@@ -258,7 +272,7 @@ e.g. 1000 * 10 = 1e4</string>
             </property>
            </widget>
           </item>
-          <item row="8" column="1">
+          <item row="9" column="1">
            <widget class="QSpinBox" name="Formatter_PosExp">
             <property name="toolTip">
              <string>Any numbers larger than this exponent will be displayed in scientific notation.
@@ -272,7 +286,7 @@ e.g. 1000 * 10 = 1e4</string>
             </property>
            </widget>
           </item>
-          <item row="9" column="0">
+          <item row="10" column="0">
            <widget class="QLabel" name="label_5">
             <property name="toolTip">
              <string>Changes the directory where capture files are saved after being created, until saved manually or deleted.
@@ -284,7 +298,7 @@ Defaults to %TEMP%.</string>
             </property>
            </widget>
           </item>
-          <item row="10" column="0">
+          <item row="11" column="0">
            <widget class="QLineEdit" name="tempDirectory">
             <property name="toolTip">
              <string>Changes the directory where capture files are saved after being created, until saved manually or deleted.
@@ -293,7 +307,7 @@ Defaults to %TEMP%.</string>
             </property>
            </widget>
           </item>
-          <item row="10" column="1">
+          <item row="11" column="1">
            <widget class="QPushButton" name="browseTempCaptureDirectory">
             <property name="toolTip">
              <string>Changes the directory where capture files are saved after being created, until saved manually or deleted.
@@ -305,7 +319,7 @@ Defaults to %TEMP%.</string>
             </property>
            </widget>
           </item>
-          <item row="11" column="0">
+          <item row="12" column="0">
            <widget class="QLabel" name="label_6">
             <property name="toolTip">
              <string>Changes the default directory for the save dialog when saving capture files.
@@ -317,7 +331,7 @@ Defaults to blank, which follows system default behaviour.</string>
             </property>
            </widget>
           </item>
-          <item row="12" column="0">
+          <item row="13" column="0">
            <widget class="QLineEdit" name="saveDirectory">
             <property name="toolTip">
              <string>Changes the default directory for the save dialog when saving capture files.
@@ -326,7 +340,7 @@ Defaults to blank, which follows system default behaviour.</string>
             </property>
            </widget>
           </item>
-          <item row="12" column="1">
+          <item row="13" column="1">
            <widget class="QPushButton" name="browseSaveCaptureDirectory">
             <property name="toolTip">
              <string>Changes the default directory for the save dialog when saving capture files.
@@ -338,7 +352,7 @@ Defaults to blank, which follows system default behaviour.</string>
             </property>
            </widget>
           </item>
-          <item row="13" column="0">
+          <item row="14" column="0">
            <widget class="QLabel" name="globalHookLabel">
             <property name="toolTip">
              <string>Enables functionality on the capture application window that will insert RenderDoc automatically
@@ -353,7 +367,7 @@ Since this is a global system hook it must be used carefully and only when neces
             </property>
            </widget>
           </item>
-          <item row="13" column="1">
+          <item row="14" column="1">
            <widget class="QCheckBox" name="AllowGlobalHook">
             <property name="toolTip">
              <string>Enables functionality on the capture application window that will insert RenderDoc automatically
@@ -368,7 +382,7 @@ Since this is a global system hook it must be used carefully and only when neces
             </property>
            </widget>
           </item>
-          <item row="14" column="0">
+          <item row="15" column="0">
            <widget class="QLabel" name="injectProcLabel">
             <property name="toolTip">
              <string>Enables the ability to inject into processes on windows.
@@ -382,7 +396,7 @@ program should be launched through RenderDoc via the Launch Process panel.</stri
             </property>
            </widget>
           </item>
-          <item row="14" column="1">
+          <item row="15" column="1">
            <widget class="QCheckBox" name="AllowProcessInject">
             <property name="toolTip">
              <string>Enables the ability to inject into processes on windows.
@@ -396,7 +410,7 @@ program should be launched through RenderDoc via the Launch Process panel.</stri
             </property>
            </widget>
           </item>
-          <item row="15" column="0">
+          <item row="16" column="0">
            <widget class="QLabel" name="label_8">
             <property name="toolTip">
              <string>Allows RenderDoc to phone home to https://renderdoc.org to anonymously check for new versions.</string>
@@ -406,7 +420,7 @@ program should be launched through RenderDoc via the Launch Process panel.</stri
             </property>
            </widget>
           </item>
-          <item row="15" column="1">
+          <item row="16" column="1">
            <widget class="QCheckBox" name="CheckUpdate_AllowChecks">
             <property name="toolTip">
              <string>Allows RenderDoc to phone home to https://renderdoc.org to anonymously check for new versions.</string>
@@ -416,7 +430,7 @@ program should be launched through RenderDoc via the Launch Process panel.</stri
             </property>
            </widget>
           </item>
-          <item row="16" column="0">
+          <item row="17" column="0">
            <widget class="QLabel" name="label_10">
             <property name="toolTip">
              <string>If a capture is marked as being created on a significantly different system (different OS or platform)
@@ -429,7 +443,7 @@ This option overrides that and will always replay locally if the local context i
             </property>
            </widget>
           </item>
-          <item row="16" column="1">
+          <item row="17" column="1">
            <widget class="QCheckBox" name="AlwaysReplayLocally">
             <property name="toolTip">
              <string>If a capture is marked as being created on a significantly different system (different OS or platform)
@@ -442,7 +456,7 @@ This option overrides that and will always replay locally if the local context i
             </property>
            </widget>
           </item>
-          <item row="17" column="1">
+          <item row="18" column="1">
            <spacer name="verticalSpacer">
             <property name="orientation">
              <enum>Qt::Vertical</enum>

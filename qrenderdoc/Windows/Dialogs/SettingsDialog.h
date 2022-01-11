@@ -57,6 +57,7 @@ private slots:
 
   // general
   void on_Font_Family_currentIndexChanged(int index);
+  void on_Font_MonoFamily_currentIndexChanged(int index);
   void on_Font_GlobalScale_currentIndexChanged(int index);
   void Font_GlobalScale_returnPressed();
   void on_UIStyle_currentIndexChanged(int index);
