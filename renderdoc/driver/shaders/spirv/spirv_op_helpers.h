@@ -12672,9 +12672,9 @@ struct OpTerminateRayKHR
   // no operands
 };
 
-struct OpSDotKHR
+struct OpSDot
 {
-  OpSDotKHR(const ConstIter &it)
+  OpSDot(const ConstIter &it)
   {
     uint32_t word = 0;(void)word;
     this->op = OpCode;
@@ -12685,8 +12685,8 @@ struct OpSDotKHR
     this->vector2 = Id::fromWord(it.word(4));
     this->packedVectorFormat = (it.size() > 5) ? (PackedVectorFormat)it.word(5) : PackedVectorFormat::Invalid;
   }
-  OpSDotKHR(IdResultType resultType, IdResult result, Id vector1, Id vector2, PackedVectorFormat packedVectorFormat = PackedVectorFormat::Invalid)
-      : op(Op::SDotKHR)
+  OpSDot(IdResultType resultType, IdResult result, Id vector1, Id vector2, PackedVectorFormat packedVectorFormat = PackedVectorFormat::Invalid)
+      : op(Op::SDot)
       , wordCount(MinWordSize + OptionalWordCount(packedVectorFormat))
   {
     this->resultType = resultType;
@@ -12706,7 +12706,7 @@ struct OpSDotKHR
     return Operation(OpCode, words);
   }
 
-  static constexpr Op OpCode = Op::SDotKHR;
+  static constexpr Op OpCode = Op::SDot;
   static constexpr uint16_t MinWordSize = 5U;
   Op op;
   uint16_t wordCount;
@@ -12719,9 +12719,9 @@ struct OpSDotKHR
   bool HasPackedVectorFormat() const { return wordCount > 5; }
 };
 
-struct OpUDotKHR
+struct OpUDot
 {
-  OpUDotKHR(const ConstIter &it)
+  OpUDot(const ConstIter &it)
   {
     uint32_t word = 0;(void)word;
     this->op = OpCode;
@@ -12732,8 +12732,8 @@ struct OpUDotKHR
     this->vector2 = Id::fromWord(it.word(4));
     this->packedVectorFormat = (it.size() > 5) ? (PackedVectorFormat)it.word(5) : PackedVectorFormat::Invalid;
   }
-  OpUDotKHR(IdResultType resultType, IdResult result, Id vector1, Id vector2, PackedVectorFormat packedVectorFormat = PackedVectorFormat::Invalid)
-      : op(Op::UDotKHR)
+  OpUDot(IdResultType resultType, IdResult result, Id vector1, Id vector2, PackedVectorFormat packedVectorFormat = PackedVectorFormat::Invalid)
+      : op(Op::UDot)
       , wordCount(MinWordSize + OptionalWordCount(packedVectorFormat))
   {
     this->resultType = resultType;
@@ -12753,7 +12753,7 @@ struct OpUDotKHR
     return Operation(OpCode, words);
   }
 
-  static constexpr Op OpCode = Op::UDotKHR;
+  static constexpr Op OpCode = Op::UDot;
   static constexpr uint16_t MinWordSize = 5U;
   Op op;
   uint16_t wordCount;
@@ -12766,9 +12766,9 @@ struct OpUDotKHR
   bool HasPackedVectorFormat() const { return wordCount > 5; }
 };
 
-struct OpSUDotKHR
+struct OpSUDot
 {
-  OpSUDotKHR(const ConstIter &it)
+  OpSUDot(const ConstIter &it)
   {
     uint32_t word = 0;(void)word;
     this->op = OpCode;
@@ -12779,8 +12779,8 @@ struct OpSUDotKHR
     this->vector2 = Id::fromWord(it.word(4));
     this->packedVectorFormat = (it.size() > 5) ? (PackedVectorFormat)it.word(5) : PackedVectorFormat::Invalid;
   }
-  OpSUDotKHR(IdResultType resultType, IdResult result, Id vector1, Id vector2, PackedVectorFormat packedVectorFormat = PackedVectorFormat::Invalid)
-      : op(Op::SUDotKHR)
+  OpSUDot(IdResultType resultType, IdResult result, Id vector1, Id vector2, PackedVectorFormat packedVectorFormat = PackedVectorFormat::Invalid)
+      : op(Op::SUDot)
       , wordCount(MinWordSize + OptionalWordCount(packedVectorFormat))
   {
     this->resultType = resultType;
@@ -12800,7 +12800,7 @@ struct OpSUDotKHR
     return Operation(OpCode, words);
   }
 
-  static constexpr Op OpCode = Op::SUDotKHR;
+  static constexpr Op OpCode = Op::SUDot;
   static constexpr uint16_t MinWordSize = 5U;
   Op op;
   uint16_t wordCount;
@@ -12813,9 +12813,9 @@ struct OpSUDotKHR
   bool HasPackedVectorFormat() const { return wordCount > 5; }
 };
 
-struct OpSDotAccSatKHR
+struct OpSDotAccSat
 {
-  OpSDotAccSatKHR(const ConstIter &it)
+  OpSDotAccSat(const ConstIter &it)
   {
     uint32_t word = 0;(void)word;
     this->op = OpCode;
@@ -12827,8 +12827,8 @@ struct OpSDotAccSatKHR
     this->accumulator = Id::fromWord(it.word(5));
     this->packedVectorFormat = (it.size() > 6) ? (PackedVectorFormat)it.word(6) : PackedVectorFormat::Invalid;
   }
-  OpSDotAccSatKHR(IdResultType resultType, IdResult result, Id vector1, Id vector2, Id accumulator, PackedVectorFormat packedVectorFormat = PackedVectorFormat::Invalid)
-      : op(Op::SDotAccSatKHR)
+  OpSDotAccSat(IdResultType resultType, IdResult result, Id vector1, Id vector2, Id accumulator, PackedVectorFormat packedVectorFormat = PackedVectorFormat::Invalid)
+      : op(Op::SDotAccSat)
       , wordCount(MinWordSize + OptionalWordCount(packedVectorFormat))
   {
     this->resultType = resultType;
@@ -12850,7 +12850,7 @@ struct OpSDotAccSatKHR
     return Operation(OpCode, words);
   }
 
-  static constexpr Op OpCode = Op::SDotAccSatKHR;
+  static constexpr Op OpCode = Op::SDotAccSat;
   static constexpr uint16_t MinWordSize = 6U;
   Op op;
   uint16_t wordCount;
@@ -12864,9 +12864,9 @@ struct OpSDotAccSatKHR
   bool HasPackedVectorFormat() const { return wordCount > 6; }
 };
 
-struct OpUDotAccSatKHR
+struct OpUDotAccSat
 {
-  OpUDotAccSatKHR(const ConstIter &it)
+  OpUDotAccSat(const ConstIter &it)
   {
     uint32_t word = 0;(void)word;
     this->op = OpCode;
@@ -12878,8 +12878,8 @@ struct OpUDotAccSatKHR
     this->accumulator = Id::fromWord(it.word(5));
     this->packedVectorFormat = (it.size() > 6) ? (PackedVectorFormat)it.word(6) : PackedVectorFormat::Invalid;
   }
-  OpUDotAccSatKHR(IdResultType resultType, IdResult result, Id vector1, Id vector2, Id accumulator, PackedVectorFormat packedVectorFormat = PackedVectorFormat::Invalid)
-      : op(Op::UDotAccSatKHR)
+  OpUDotAccSat(IdResultType resultType, IdResult result, Id vector1, Id vector2, Id accumulator, PackedVectorFormat packedVectorFormat = PackedVectorFormat::Invalid)
+      : op(Op::UDotAccSat)
       , wordCount(MinWordSize + OptionalWordCount(packedVectorFormat))
   {
     this->resultType = resultType;
@@ -12901,7 +12901,7 @@ struct OpUDotAccSatKHR
     return Operation(OpCode, words);
   }
 
-  static constexpr Op OpCode = Op::UDotAccSatKHR;
+  static constexpr Op OpCode = Op::UDotAccSat;
   static constexpr uint16_t MinWordSize = 6U;
   Op op;
   uint16_t wordCount;
@@ -12915,9 +12915,9 @@ struct OpUDotAccSatKHR
   bool HasPackedVectorFormat() const { return wordCount > 6; }
 };
 
-struct OpSUDotAccSatKHR
+struct OpSUDotAccSat
 {
-  OpSUDotAccSatKHR(const ConstIter &it)
+  OpSUDotAccSat(const ConstIter &it)
   {
     uint32_t word = 0;(void)word;
     this->op = OpCode;
@@ -12929,8 +12929,8 @@ struct OpSUDotAccSatKHR
     this->accumulator = Id::fromWord(it.word(5));
     this->packedVectorFormat = (it.size() > 6) ? (PackedVectorFormat)it.word(6) : PackedVectorFormat::Invalid;
   }
-  OpSUDotAccSatKHR(IdResultType resultType, IdResult result, Id vector1, Id vector2, Id accumulator, PackedVectorFormat packedVectorFormat = PackedVectorFormat::Invalid)
-      : op(Op::SUDotAccSatKHR)
+  OpSUDotAccSat(IdResultType resultType, IdResult result, Id vector1, Id vector2, Id accumulator, PackedVectorFormat packedVectorFormat = PackedVectorFormat::Invalid)
+      : op(Op::SUDotAccSat)
       , wordCount(MinWordSize + OptionalWordCount(packedVectorFormat))
   {
     this->resultType = resultType;
@@ -12952,7 +12952,7 @@ struct OpSUDotAccSatKHR
     return Operation(OpCode, words);
   }
 
-  static constexpr Op OpCode = Op::SUDotAccSatKHR;
+  static constexpr Op OpCode = Op::SUDotAccSat;
   static constexpr uint16_t MinWordSize = 6U;
   Op op;
   uint16_t wordCount;
@@ -13982,20 +13982,20 @@ struct OpEndInvocationInterlockEXT
   // no operands
 };
 
-struct OpDemoteToHelperInvocationEXT
+struct OpDemoteToHelperInvocation
 {
-  OpDemoteToHelperInvocationEXT(const ConstIter &it)
+  OpDemoteToHelperInvocation(const ConstIter &it)
   {
     memcpy(this, it.words(), sizeof(*this));
   }
-  OpDemoteToHelperInvocationEXT()
-      : op(Op::DemoteToHelperInvocationEXT)
+  OpDemoteToHelperInvocation()
+      : op(Op::DemoteToHelperInvocation)
       , wordCount(FixedWordSize)
   {
     // no operands
   }
 
-  static constexpr Op OpCode = Op::DemoteToHelperInvocationEXT;
+  static constexpr Op OpCode = Op::DemoteToHelperInvocation;
   static constexpr uint16_t FixedWordSize = 1U;
   Op op;
   uint16_t wordCount;
@@ -14022,6 +14022,170 @@ struct OpIsHelperInvocationEXT
   uint16_t wordCount;
   IdResultType resultType;
   IdResult result;
+};
+
+struct OpConvertUToImageNV
+{
+  OpConvertUToImageNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpConvertUToImageNV(IdResultType resultType, IdResult result, Id operand)
+      : op(Op::ConvertUToImageNV)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->operand = operand;
+  }
+
+  static constexpr Op OpCode = Op::ConvertUToImageNV;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id operand;
+};
+
+struct OpConvertUToSamplerNV
+{
+  OpConvertUToSamplerNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpConvertUToSamplerNV(IdResultType resultType, IdResult result, Id operand)
+      : op(Op::ConvertUToSamplerNV)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->operand = operand;
+  }
+
+  static constexpr Op OpCode = Op::ConvertUToSamplerNV;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id operand;
+};
+
+struct OpConvertImageToUNV
+{
+  OpConvertImageToUNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpConvertImageToUNV(IdResultType resultType, IdResult result, Id operand)
+      : op(Op::ConvertImageToUNV)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->operand = operand;
+  }
+
+  static constexpr Op OpCode = Op::ConvertImageToUNV;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id operand;
+};
+
+struct OpConvertSamplerToUNV
+{
+  OpConvertSamplerToUNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpConvertSamplerToUNV(IdResultType resultType, IdResult result, Id operand)
+      : op(Op::ConvertSamplerToUNV)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->operand = operand;
+  }
+
+  static constexpr Op OpCode = Op::ConvertSamplerToUNV;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id operand;
+};
+
+struct OpConvertUToSampledImageNV
+{
+  OpConvertUToSampledImageNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpConvertUToSampledImageNV(IdResultType resultType, IdResult result, Id operand)
+      : op(Op::ConvertUToSampledImageNV)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->operand = operand;
+  }
+
+  static constexpr Op OpCode = Op::ConvertUToSampledImageNV;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id operand;
+};
+
+struct OpConvertSampledImageToUNV
+{
+  OpConvertSampledImageToUNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpConvertSampledImageToUNV(IdResultType resultType, IdResult result, Id operand)
+      : op(Op::ConvertSampledImageToUNV)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->operand = operand;
+  }
+
+  static constexpr Op OpCode = Op::ConvertSampledImageToUNV;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id operand;
+};
+
+struct OpSamplerImageAddressingModeNV
+{
+  OpSamplerImageAddressingModeNV(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpSamplerImageAddressingModeNV(uint32_t bitWidth)
+      : op(Op::SamplerImageAddressingModeNV)
+      , wordCount(FixedWordSize)
+  {
+    this->bitWidth = bitWidth;
+  }
+
+  static constexpr Op OpCode = Op::SamplerImageAddressingModeNV;
+  static constexpr uint16_t FixedWordSize = 2U;
+  Op op;
+  uint16_t wordCount;
+  uint32_t bitWidth;
 };
 
 struct OpSubgroupShuffleINTEL
@@ -14646,14 +14810,14 @@ struct OpUMul32x16INTEL
   Id operand2;
 };
 
-struct OpConstFunctionPointerINTEL
+struct OpConstantFunctionPointerINTEL
 {
-  OpConstFunctionPointerINTEL(const ConstIter &it)
+  OpConstantFunctionPointerINTEL(const ConstIter &it)
   {
     memcpy(this, it.words(), sizeof(*this));
   }
-  OpConstFunctionPointerINTEL(IdResultType resultType, IdResult result, Id function)
-      : op(Op::ConstFunctionPointerINTEL)
+  OpConstantFunctionPointerINTEL(IdResultType resultType, IdResult result, Id function)
+      : op(Op::ConstantFunctionPointerINTEL)
       , wordCount(FixedWordSize)
   {
     this->resultType = resultType;
@@ -14661,7 +14825,7 @@ struct OpConstFunctionPointerINTEL
     this->function = function;
   }
 
-  static constexpr Op OpCode = Op::ConstFunctionPointerINTEL;
+  static constexpr Op OpCode = Op::ConstantFunctionPointerINTEL;
   static constexpr uint16_t FixedWordSize = 4U;
   Op op;
   uint16_t wordCount;

@@ -71,9 +71,9 @@ namespace rdcspv
 {
 static const uint32_t MagicNumber = 0x07230203;
 static const uint32_t VersionMajor = 1;
-static const uint32_t VersionMinor = 5;
-static const uint32_t VersionRevision = 4;
-static const uint32_t VersionPacked = (1 << 16) | (5 << 8);
+static const uint32_t VersionMinor = 6;
+static const uint32_t VersionRevision = 1;
+static const uint32_t VersionPacked = (1 << 16) | (6 << 8);
 static const uint32_t OpCodeMask = 0xffff;
 static const uint32_t WordCountShift = 16;
 static const uint32_t FirstRealWord = 5;
@@ -120,6 +120,8 @@ enum class Generator : uint32_t
   MSPShaderCompiler = 29,
   SpvGenTwoSPIRVIRTools = 30,
   SkiaSkSL = 31,
+  SPIRVBeehiveToolkit = 32,
+  ShaderWriter = 33,
 };
 
 enum class ImageOperands : uint32_t
@@ -143,6 +145,7 @@ enum class ImageOperands : uint32_t
   VolatileTexelKHR = 0x0800,
   SignExtend = 0x1000,
   ZeroExtend = 0x2000,
+  Nontemporal = 0x4000,
   Offsets = 0x10000,
   Max,
   Invalid = ~0U,
@@ -744,6 +747,7 @@ enum class Decoration : uint32_t
   PerPrimitiveNV = 5271,
   PerViewNV = 5272,
   PerTaskNV = 5273,
+  PerVertexKHR = 5285,
   PerVertexNV = 5285,
   NonUniform = 5300,
   NonUniformEXT = 5300,
@@ -751,6 +755,10 @@ enum class Decoration : uint32_t
   RestrictPointerEXT = 5355,
   AliasedPointer = 5356,
   AliasedPointerEXT = 5356,
+  BindlessSamplerNV = 5398,
+  BindlessImageNV = 5399,
+  BoundSamplerNV = 5400,
+  BoundImageNV = 5401,
   SIMTCallINTEL = 5599,
   ReferencedIndirectlyINTEL = 5602,
   ClobberINTEL = 5607,
@@ -790,6 +798,7 @@ enum class Decoration : uint32_t
   FunctionFloatingPointModeINTEL = 6080,
   SingleElementVectorINTEL = 6085,
   VectorComputeCallableFunctionINTEL = 6087,
+  MediaBlockIOINTEL = 6140,
   Max,
   Invalid = ~0U,
 };
@@ -876,7 +885,9 @@ enum class BuiltIn : uint32_t
   LayerPerViewNV = 5279,
   MeshViewCountNV = 5280,
   MeshViewIndicesNV = 5281,
+  BaryCoordKHR = 5286,
   BaryCoordNV = 5286,
+  BaryCoordNoPerspKHR = 5287,
   BaryCoordNoPerspNV = 5287,
   FragSizeEXT = 5292,
   FragmentSizeNV = 5292,
@@ -1026,6 +1037,7 @@ enum class Capability : uint32_t
   GroupNonUniformQuad = 68,
   ShaderLayer = 69,
   ShaderViewportIndex = 70,
+  UniformDecoration = 71,
   FragmentShadingRateKHR = 4422,
   SubgroupBallotKHR = 4423,
   DrawParameters = 4427,
@@ -1074,6 +1086,7 @@ enum class Capability : uint32_t
   FragmentFullyCoveredEXT = 5265,
   MeshShadingNV = 5266,
   ImageFootprintNV = 5282,
+  FragmentBarycentricKHR = 5284,
   FragmentBarycentricNV = 5284,
   ComputeDerivativeGroupQuadsNV = 5288,
   FragmentDensityEXT = 5291,
@@ -1118,7 +1131,9 @@ enum class Capability : uint32_t
   FragmentShaderShadingRateInterlockEXT = 5372,
   ShaderSMBuiltinsNV = 5373,
   FragmentShaderPixelInterlockEXT = 5378,
+  DemoteToHelperInvocation = 5379,
   DemoteToHelperInvocationEXT = 5379,
+  BindlessTextureNV = 5390,
   SubgroupShuffleINTEL = 5568,
   SubgroupBufferBlockIOINTEL = 5569,
   SubgroupImageBlockIOINTEL = 5570,
@@ -1157,9 +1172,13 @@ enum class Capability : uint32_t
   IOPipesINTEL = 5943,
   BlockingPipesINTEL = 5945,
   FPGARegINTEL = 5948,
+  DotProductInputAll = 6016,
   DotProductInputAllKHR = 6016,
+  DotProductInput4x8Bit = 6017,
   DotProductInput4x8BitKHR = 6017,
+  DotProductInput4x8BitPacked = 6018,
   DotProductInput4x8BitPackedKHR = 6018,
+  DotProduct = 6019,
   DotProductKHR = 6019,
   BitInstructions = 6025,
   AtomicFloat32AddEXT = 6033,
@@ -1199,6 +1218,7 @@ enum class RayQueryCandidateIntersectionType : uint32_t
 
 enum class PackedVectorFormat : uint32_t
 {
+  PackedVectorFormat4x8Bit = 0,
   PackedVectorFormat4x8BitKHR = 0,
   Max,
   Invalid = ~0U,
@@ -1276,6 +1296,8 @@ struct ImageOperandsAndParamDatas
   void unsetSignExtend() { flags &= ~ImageOperands::SignExtend; }
   void setZeroExtend() { flags |= ImageOperands::ZeroExtend; }
   void unsetZeroExtend() { flags &= ~ImageOperands::ZeroExtend; }
+  void setNontemporal() { flags |= ImageOperands::Nontemporal; }
+  void unsetNontemporal() { flags &= ~ImageOperands::Nontemporal; }
   void setOffsets(Id offsetsParam) { flags |= ImageOperands::Offsets; offsets = offsetsParam; }
   void unsetOffsets() { flags &= ~ImageOperands::Offsets; }
 };
@@ -1874,11 +1896,17 @@ enum class Op : uint16_t
   ConvertUToAccelerationStructureKHR = 4447,
   IgnoreIntersectionKHR = 4448,
   TerminateRayKHR = 4449,
+  SDot = 4450,
   SDotKHR = 4450,
+  UDot = 4451,
   UDotKHR = 4451,
+  SUDot = 4452,
   SUDotKHR = 4452,
+  SDotAccSat = 4453,
   SDotAccSatKHR = 4453,
+  UDotAccSat = 4454,
   UDotAccSatKHR = 4454,
+  SUDotAccSat = 4455,
   SUDotAccSatKHR = 4455,
   TypeRayQueryKHR = 4472,
   RayQueryInitializeKHR = 4473,
@@ -1918,8 +1946,16 @@ enum class Op : uint16_t
   CooperativeMatrixLengthNV = 5362,
   BeginInvocationInterlockEXT = 5364,
   EndInvocationInterlockEXT = 5365,
+  DemoteToHelperInvocation = 5380,
   DemoteToHelperInvocationEXT = 5380,
   IsHelperInvocationEXT = 5381,
+  ConvertUToImageNV = 5391,
+  ConvertUToSamplerNV = 5392,
+  ConvertImageToUNV = 5393,
+  ConvertSamplerToUNV = 5394,
+  ConvertUToSampledImageNV = 5395,
+  ConvertSampledImageToUNV = 5396,
+  SamplerImageAddressingModeNV = 5397,
   SubgroupShuffleINTEL = 5571,
   SubgroupShuffleDownINTEL = 5572,
   SubgroupShuffleUpINTEL = 5573,
@@ -1944,7 +1980,7 @@ enum class Op : uint16_t
   USubSatINTEL = 5596,
   IMul32x16INTEL = 5597,
   UMul32x16INTEL = 5598,
-  ConstFunctionPointerINTEL = 5600,
+  ConstantFunctionPointerINTEL = 5600,
   FunctionPointerCallINTEL = 5601,
   AsmTargetINTEL = 5609,
   AsmINTEL = 5610,

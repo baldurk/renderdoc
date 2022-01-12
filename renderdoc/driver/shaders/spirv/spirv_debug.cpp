@@ -3731,7 +3731,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::VariableLengthArrayINTEL:
     case Op::TraceMotionNV:
     case Op::TraceRayMotionNV:
-    case Op::ConstFunctionPointerINTEL:
+    case Op::ConstantFunctionPointerINTEL:
     case Op::AsmTargetINTEL:
     case Op::AsmCallINTEL:
     case Op::SaveMemoryINTEL:
@@ -3794,6 +3794,13 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::TypeStructContinuedINTEL:
     case Op::ConstantCompositeContinuedINTEL:
     case Op::SpecConstantCompositeContinuedINTEL:
+    case Op::ConvertUToImageNV:
+    case Op::ConvertUToSamplerNV:
+    case Op::ConvertUToSampledImageNV:
+    case Op::ConvertImageToUNV:
+    case Op::ConvertSamplerToUNV:
+    case Op::ConvertSampledImageToUNV:
+    case Op::SamplerImageAddressingModeNV:
     {
       RDCERR("Unsupported extension opcode used %s", ToStr(opdata.op).c_str());
 

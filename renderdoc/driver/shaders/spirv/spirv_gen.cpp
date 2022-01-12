@@ -83,6 +83,7 @@ rdcstr DoStringise(const rdcspv::ImageOperands &el)
     STRINGISE_BITFIELD_CLASS_BIT(VolatileTexel);
     STRINGISE_BITFIELD_CLASS_BIT(SignExtend);
     STRINGISE_BITFIELD_CLASS_BIT(ZeroExtend);
+    STRINGISE_BITFIELD_CLASS_BIT(Nontemporal);
     STRINGISE_BITFIELD_CLASS_BIT(Offsets);
   }
   END_BITFIELD_STRINGISE();
@@ -738,10 +739,14 @@ rdcstr DoStringise(const rdcspv::Decoration &el)
     STRINGISE_ENUM_CLASS(PerPrimitiveNV);
     STRINGISE_ENUM_CLASS(PerViewNV);
     STRINGISE_ENUM_CLASS(PerTaskNV);
-    STRINGISE_ENUM_CLASS(PerVertexNV);
+    STRINGISE_ENUM_CLASS(PerVertexKHR);
     STRINGISE_ENUM_CLASS(NonUniform);
     STRINGISE_ENUM_CLASS(RestrictPointer);
     STRINGISE_ENUM_CLASS(AliasedPointer);
+    STRINGISE_ENUM_CLASS(BindlessSamplerNV);
+    STRINGISE_ENUM_CLASS(BindlessImageNV);
+    STRINGISE_ENUM_CLASS(BoundSamplerNV);
+    STRINGISE_ENUM_CLASS(BoundImageNV);
     STRINGISE_ENUM_CLASS(SIMTCallINTEL);
     STRINGISE_ENUM_CLASS(ReferencedIndirectlyINTEL);
     STRINGISE_ENUM_CLASS(ClobberINTEL);
@@ -779,6 +784,7 @@ rdcstr DoStringise(const rdcspv::Decoration &el)
     STRINGISE_ENUM_CLASS(FunctionFloatingPointModeINTEL);
     STRINGISE_ENUM_CLASS(SingleElementVectorINTEL);
     STRINGISE_ENUM_CLASS(VectorComputeCallableFunctionINTEL);
+    STRINGISE_ENUM_CLASS(MediaBlockIOINTEL);
   }
   END_ENUM_STRINGISE();
 }
@@ -863,8 +869,8 @@ rdcstr DoStringise(const rdcspv::BuiltIn &el)
     STRINGISE_ENUM_CLASS(LayerPerViewNV);
     STRINGISE_ENUM_CLASS(MeshViewCountNV);
     STRINGISE_ENUM_CLASS(MeshViewIndicesNV);
-    STRINGISE_ENUM_CLASS(BaryCoordNV);
-    STRINGISE_ENUM_CLASS(BaryCoordNoPerspNV);
+    STRINGISE_ENUM_CLASS(BaryCoordKHR);
+    STRINGISE_ENUM_CLASS(BaryCoordNoPerspKHR);
     STRINGISE_ENUM_CLASS(FragSizeEXT);
     STRINGISE_ENUM_CLASS(FragInvocationCountEXT);
     STRINGISE_ENUM_CLASS(LaunchIdNV);
@@ -1009,6 +1015,7 @@ rdcstr DoStringise(const rdcspv::Capability &el)
     STRINGISE_ENUM_CLASS(GroupNonUniformQuad);
     STRINGISE_ENUM_CLASS(ShaderLayer);
     STRINGISE_ENUM_CLASS(ShaderViewportIndex);
+    STRINGISE_ENUM_CLASS(UniformDecoration);
     STRINGISE_ENUM_CLASS(FragmentShadingRateKHR);
     STRINGISE_ENUM_CLASS(SubgroupBallotKHR);
     STRINGISE_ENUM_CLASS(DrawParameters);
@@ -1054,7 +1061,7 @@ rdcstr DoStringise(const rdcspv::Capability &el)
     STRINGISE_ENUM_CLASS(FragmentFullyCoveredEXT);
     STRINGISE_ENUM_CLASS(MeshShadingNV);
     STRINGISE_ENUM_CLASS(ImageFootprintNV);
-    STRINGISE_ENUM_CLASS(FragmentBarycentricNV);
+    STRINGISE_ENUM_CLASS(FragmentBarycentricKHR);
     STRINGISE_ENUM_CLASS(ComputeDerivativeGroupQuadsNV);
     STRINGISE_ENUM_CLASS(FragmentDensityEXT);
     STRINGISE_ENUM_CLASS(GroupNonUniformPartitionedNV);
@@ -1082,7 +1089,8 @@ rdcstr DoStringise(const rdcspv::Capability &el)
     STRINGISE_ENUM_CLASS(FragmentShaderShadingRateInterlockEXT);
     STRINGISE_ENUM_CLASS(ShaderSMBuiltinsNV);
     STRINGISE_ENUM_CLASS(FragmentShaderPixelInterlockEXT);
-    STRINGISE_ENUM_CLASS(DemoteToHelperInvocationEXT);
+    STRINGISE_ENUM_CLASS(DemoteToHelperInvocation);
+    STRINGISE_ENUM_CLASS(BindlessTextureNV);
     STRINGISE_ENUM_CLASS(SubgroupShuffleINTEL);
     STRINGISE_ENUM_CLASS(SubgroupBufferBlockIOINTEL);
     STRINGISE_ENUM_CLASS(SubgroupImageBlockIOINTEL);
@@ -1121,10 +1129,10 @@ rdcstr DoStringise(const rdcspv::Capability &el)
     STRINGISE_ENUM_CLASS(IOPipesINTEL);
     STRINGISE_ENUM_CLASS(BlockingPipesINTEL);
     STRINGISE_ENUM_CLASS(FPGARegINTEL);
-    STRINGISE_ENUM_CLASS(DotProductInputAllKHR);
-    STRINGISE_ENUM_CLASS(DotProductInput4x8BitKHR);
-    STRINGISE_ENUM_CLASS(DotProductInput4x8BitPackedKHR);
-    STRINGISE_ENUM_CLASS(DotProductKHR);
+    STRINGISE_ENUM_CLASS(DotProductInputAll);
+    STRINGISE_ENUM_CLASS(DotProductInput4x8Bit);
+    STRINGISE_ENUM_CLASS(DotProductInput4x8BitPacked);
+    STRINGISE_ENUM_CLASS(DotProduct);
     STRINGISE_ENUM_CLASS(BitInstructions);
     STRINGISE_ENUM_CLASS(AtomicFloat32AddEXT);
     STRINGISE_ENUM_CLASS(AtomicFloat64AddEXT);
@@ -1175,7 +1183,7 @@ rdcstr DoStringise(const rdcspv::PackedVectorFormat &el)
 {
   BEGIN_ENUM_STRINGISE(rdcspv::PackedVectorFormat);
   {
-    STRINGISE_ENUM_CLASS(PackedVectorFormat4x8BitKHR);
+    STRINGISE_ENUM_CLASS(PackedVectorFormat4x8Bit);
   }
   END_ENUM_STRINGISE();
 }
@@ -1541,12 +1549,12 @@ rdcstr DoStringise(const rdcspv::Op &el)
     STRINGISE_ENUM_CLASS(ConvertUToAccelerationStructureKHR);
     STRINGISE_ENUM_CLASS(IgnoreIntersectionKHR);
     STRINGISE_ENUM_CLASS(TerminateRayKHR);
-    STRINGISE_ENUM_CLASS(SDotKHR);
-    STRINGISE_ENUM_CLASS(UDotKHR);
-    STRINGISE_ENUM_CLASS(SUDotKHR);
-    STRINGISE_ENUM_CLASS(SDotAccSatKHR);
-    STRINGISE_ENUM_CLASS(UDotAccSatKHR);
-    STRINGISE_ENUM_CLASS(SUDotAccSatKHR);
+    STRINGISE_ENUM_CLASS(SDot);
+    STRINGISE_ENUM_CLASS(UDot);
+    STRINGISE_ENUM_CLASS(SUDot);
+    STRINGISE_ENUM_CLASS(SDotAccSat);
+    STRINGISE_ENUM_CLASS(UDotAccSat);
+    STRINGISE_ENUM_CLASS(SUDotAccSat);
     STRINGISE_ENUM_CLASS(TypeRayQueryKHR);
     STRINGISE_ENUM_CLASS(RayQueryInitializeKHR);
     STRINGISE_ENUM_CLASS(RayQueryTerminateKHR);
@@ -1583,8 +1591,15 @@ rdcstr DoStringise(const rdcspv::Op &el)
     STRINGISE_ENUM_CLASS(CooperativeMatrixLengthNV);
     STRINGISE_ENUM_CLASS(BeginInvocationInterlockEXT);
     STRINGISE_ENUM_CLASS(EndInvocationInterlockEXT);
-    STRINGISE_ENUM_CLASS(DemoteToHelperInvocationEXT);
+    STRINGISE_ENUM_CLASS(DemoteToHelperInvocation);
     STRINGISE_ENUM_CLASS(IsHelperInvocationEXT);
+    STRINGISE_ENUM_CLASS(ConvertUToImageNV);
+    STRINGISE_ENUM_CLASS(ConvertUToSamplerNV);
+    STRINGISE_ENUM_CLASS(ConvertImageToUNV);
+    STRINGISE_ENUM_CLASS(ConvertSamplerToUNV);
+    STRINGISE_ENUM_CLASS(ConvertUToSampledImageNV);
+    STRINGISE_ENUM_CLASS(ConvertSampledImageToUNV);
+    STRINGISE_ENUM_CLASS(SamplerImageAddressingModeNV);
     STRINGISE_ENUM_CLASS(SubgroupShuffleINTEL);
     STRINGISE_ENUM_CLASS(SubgroupShuffleDownINTEL);
     STRINGISE_ENUM_CLASS(SubgroupShuffleUpINTEL);
@@ -1609,7 +1624,7 @@ rdcstr DoStringise(const rdcspv::Op &el)
     STRINGISE_ENUM_CLASS(USubSatINTEL);
     STRINGISE_ENUM_CLASS(IMul32x16INTEL);
     STRINGISE_ENUM_CLASS(UMul32x16INTEL);
-    STRINGISE_ENUM_CLASS(ConstFunctionPointerINTEL);
+    STRINGISE_ENUM_CLASS(ConstantFunctionPointerINTEL);
     STRINGISE_ENUM_CLASS(FunctionPointerCallINTEL);
     STRINGISE_ENUM_CLASS(AsmTargetINTEL);
     STRINGISE_ENUM_CLASS(AsmINTEL);
@@ -1893,6 +1908,8 @@ rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcspv:
     ret += "SignExtend" ", ";
   if(el.flags & ImageOperands::ZeroExtend)
     ret += "ZeroExtend" ", ";
+  if(el.flags & ImageOperands::Nontemporal)
+    ret += "Nontemporal" ", ";
   if(el.flags & ImageOperands::Offsets)
     ret += "Offsets" "(" + idName(el.offsets) + ")" ", ";
 
@@ -4090,39 +4107,39 @@ void OpDecoder::ForEachID(const ConstIter &it, const std::function<void(Id,bool)
       break;
     case rdcspv::Op::TerminateRayKHR:
       break;
-    case rdcspv::Op::SDotKHR:
+    case rdcspv::Op::SDot:
       callback(Id::fromWord(it.word(1)), false);
       callback(Id::fromWord(it.word(2)), true);
       callback(Id::fromWord(it.word(3)), false);
       callback(Id::fromWord(it.word(4)), false);
       break;
-    case rdcspv::Op::UDotKHR:
+    case rdcspv::Op::UDot:
       callback(Id::fromWord(it.word(1)), false);
       callback(Id::fromWord(it.word(2)), true);
       callback(Id::fromWord(it.word(3)), false);
       callback(Id::fromWord(it.word(4)), false);
       break;
-    case rdcspv::Op::SUDotKHR:
+    case rdcspv::Op::SUDot:
       callback(Id::fromWord(it.word(1)), false);
       callback(Id::fromWord(it.word(2)), true);
       callback(Id::fromWord(it.word(3)), false);
       callback(Id::fromWord(it.word(4)), false);
       break;
-    case rdcspv::Op::SDotAccSatKHR:
-      callback(Id::fromWord(it.word(1)), false);
-      callback(Id::fromWord(it.word(2)), true);
-      callback(Id::fromWord(it.word(3)), false);
-      callback(Id::fromWord(it.word(4)), false);
-      callback(Id::fromWord(it.word(5)), false);
-      break;
-    case rdcspv::Op::UDotAccSatKHR:
+    case rdcspv::Op::SDotAccSat:
       callback(Id::fromWord(it.word(1)), false);
       callback(Id::fromWord(it.word(2)), true);
       callback(Id::fromWord(it.word(3)), false);
       callback(Id::fromWord(it.word(4)), false);
       callback(Id::fromWord(it.word(5)), false);
       break;
-    case rdcspv::Op::SUDotAccSatKHR:
+    case rdcspv::Op::UDotAccSat:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      break;
+    case rdcspv::Op::SUDotAccSat:
       callback(Id::fromWord(it.word(1)), false);
       callback(Id::fromWord(it.word(2)), true);
       callback(Id::fromWord(it.word(3)), false);
@@ -4340,11 +4357,43 @@ void OpDecoder::ForEachID(const ConstIter &it, const std::function<void(Id,bool)
       break;
     case rdcspv::Op::EndInvocationInterlockEXT:
       break;
-    case rdcspv::Op::DemoteToHelperInvocationEXT:
+    case rdcspv::Op::DemoteToHelperInvocation:
       break;
     case rdcspv::Op::IsHelperInvocationEXT:
       callback(Id::fromWord(it.word(1)), false);
       callback(Id::fromWord(it.word(2)), true);
+      break;
+    case rdcspv::Op::ConvertUToImageNV:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      break;
+    case rdcspv::Op::ConvertUToSamplerNV:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      break;
+    case rdcspv::Op::ConvertImageToUNV:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      break;
+    case rdcspv::Op::ConvertSamplerToUNV:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      break;
+    case rdcspv::Op::ConvertUToSampledImageNV:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      break;
+    case rdcspv::Op::ConvertSampledImageToUNV:
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      break;
+    case rdcspv::Op::SamplerImageAddressingModeNV:
       break;
     case rdcspv::Op::SubgroupShuffleINTEL:
       callback(Id::fromWord(it.word(1)), false);
@@ -4489,7 +4538,7 @@ void OpDecoder::ForEachID(const ConstIter &it, const std::function<void(Id,bool)
       callback(Id::fromWord(it.word(3)), false);
       callback(Id::fromWord(it.word(4)), false);
       break;
-    case rdcspv::Op::ConstFunctionPointerINTEL:
+    case rdcspv::Op::ConstantFunctionPointerINTEL:
       callback(Id::fromWord(it.word(1)), false);
       callback(Id::fromWord(it.word(2)), true);
       callback(Id::fromWord(it.word(3)), false);
@@ -8122,46 +8171,46 @@ rdcstr OpDecoder::Disassemble(const ConstIter &it, const std::function<rdcstr(Id
       ret += "TerminateRayKHR(" ")";
       break;
     }
-    case rdcspv::Op::SDotKHR:
+    case rdcspv::Op::SDot:
     {
-      OpSDotKHR decoded(it);
+      OpSDot decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SDotKHR(" + ParamToStr(idName, decoded.vector1) + ", " + ParamToStr(idName, decoded.vector2) + ", " + ParamToStr(idName, decoded.packedVectorFormat) + ")";
+      ret += "SDot(" + ParamToStr(idName, decoded.vector1) + ", " + ParamToStr(idName, decoded.vector2) + ", " + ParamToStr(idName, decoded.packedVectorFormat) + ")";
       break;
     }
-    case rdcspv::Op::UDotKHR:
+    case rdcspv::Op::UDot:
     {
-      OpUDotKHR decoded(it);
+      OpUDot decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "UDotKHR(" + ParamToStr(idName, decoded.vector1) + ", " + ParamToStr(idName, decoded.vector2) + ", " + ParamToStr(idName, decoded.packedVectorFormat) + ")";
+      ret += "UDot(" + ParamToStr(idName, decoded.vector1) + ", " + ParamToStr(idName, decoded.vector2) + ", " + ParamToStr(idName, decoded.packedVectorFormat) + ")";
       break;
     }
-    case rdcspv::Op::SUDotKHR:
+    case rdcspv::Op::SUDot:
     {
-      OpSUDotKHR decoded(it);
+      OpSUDot decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SUDotKHR(" + ParamToStr(idName, decoded.vector1) + ", " + ParamToStr(idName, decoded.vector2) + ", " + ParamToStr(idName, decoded.packedVectorFormat) + ")";
+      ret += "SUDot(" + ParamToStr(idName, decoded.vector1) + ", " + ParamToStr(idName, decoded.vector2) + ", " + ParamToStr(idName, decoded.packedVectorFormat) + ")";
       break;
     }
-    case rdcspv::Op::SDotAccSatKHR:
+    case rdcspv::Op::SDotAccSat:
     {
-      OpSDotAccSatKHR decoded(it);
+      OpSDotAccSat decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SDotAccSatKHR(" + ParamToStr(idName, decoded.vector1) + ", " + ParamToStr(idName, decoded.vector2) + ", " + ParamToStr(idName, decoded.accumulator) + ", " + ParamToStr(idName, decoded.packedVectorFormat) + ")";
+      ret += "SDotAccSat(" + ParamToStr(idName, decoded.vector1) + ", " + ParamToStr(idName, decoded.vector2) + ", " + ParamToStr(idName, decoded.accumulator) + ", " + ParamToStr(idName, decoded.packedVectorFormat) + ")";
       break;
     }
-    case rdcspv::Op::UDotAccSatKHR:
+    case rdcspv::Op::UDotAccSat:
     {
-      OpUDotAccSatKHR decoded(it);
+      OpUDotAccSat decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "UDotAccSatKHR(" + ParamToStr(idName, decoded.vector1) + ", " + ParamToStr(idName, decoded.vector2) + ", " + ParamToStr(idName, decoded.accumulator) + ", " + ParamToStr(idName, decoded.packedVectorFormat) + ")";
+      ret += "UDotAccSat(" + ParamToStr(idName, decoded.vector1) + ", " + ParamToStr(idName, decoded.vector2) + ", " + ParamToStr(idName, decoded.accumulator) + ", " + ParamToStr(idName, decoded.packedVectorFormat) + ")";
       break;
     }
-    case rdcspv::Op::SUDotAccSatKHR:
+    case rdcspv::Op::SUDotAccSat:
     {
-      OpSUDotAccSatKHR decoded(it);
+      OpSUDotAccSat decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "SUDotAccSatKHR(" + ParamToStr(idName, decoded.vector1) + ", " + ParamToStr(idName, decoded.vector2) + ", " + ParamToStr(idName, decoded.accumulator) + ", " + ParamToStr(idName, decoded.packedVectorFormat) + ")";
+      ret += "SUDotAccSat(" + ParamToStr(idName, decoded.vector1) + ", " + ParamToStr(idName, decoded.vector2) + ", " + ParamToStr(idName, decoded.accumulator) + ", " + ParamToStr(idName, decoded.packedVectorFormat) + ")";
       break;
     }
     case rdcspv::Op::TypeRayQueryKHR:
@@ -8402,10 +8451,10 @@ rdcstr OpDecoder::Disassemble(const ConstIter &it, const std::function<rdcstr(Id
       ret += "EndInvocationInterlockEXT(" ")";
       break;
     }
-    case rdcspv::Op::DemoteToHelperInvocationEXT:
+    case rdcspv::Op::DemoteToHelperInvocation:
     {
-      OpDemoteToHelperInvocationEXT decoded(it);
-      ret += "DemoteToHelperInvocationEXT(" ")";
+      OpDemoteToHelperInvocation decoded(it);
+      ret += "DemoteToHelperInvocation(" ")";
       break;
     }
     case rdcspv::Op::IsHelperInvocationEXT:
@@ -8413,6 +8462,54 @@ rdcstr OpDecoder::Disassemble(const ConstIter &it, const std::function<rdcstr(Id
       OpIsHelperInvocationEXT decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
       ret += "IsHelperInvocationEXT(" ")";
+      break;
+    }
+    case rdcspv::Op::ConvertUToImageNV:
+    {
+      OpConvertUToImageNV decoded(it);
+      ret += declName(decoded.resultType, decoded.result) + " = ";
+      ret += "ConvertUToImageNV(" + ParamToStr(idName, decoded.operand) + ")";
+      break;
+    }
+    case rdcspv::Op::ConvertUToSamplerNV:
+    {
+      OpConvertUToSamplerNV decoded(it);
+      ret += declName(decoded.resultType, decoded.result) + " = ";
+      ret += "ConvertUToSamplerNV(" + ParamToStr(idName, decoded.operand) + ")";
+      break;
+    }
+    case rdcspv::Op::ConvertImageToUNV:
+    {
+      OpConvertImageToUNV decoded(it);
+      ret += declName(decoded.resultType, decoded.result) + " = ";
+      ret += "ConvertImageToUNV(" + ParamToStr(idName, decoded.operand) + ")";
+      break;
+    }
+    case rdcspv::Op::ConvertSamplerToUNV:
+    {
+      OpConvertSamplerToUNV decoded(it);
+      ret += declName(decoded.resultType, decoded.result) + " = ";
+      ret += "ConvertSamplerToUNV(" + ParamToStr(idName, decoded.operand) + ")";
+      break;
+    }
+    case rdcspv::Op::ConvertUToSampledImageNV:
+    {
+      OpConvertUToSampledImageNV decoded(it);
+      ret += declName(decoded.resultType, decoded.result) + " = ";
+      ret += "ConvertUToSampledImageNV(" + ParamToStr(idName, decoded.operand) + ")";
+      break;
+    }
+    case rdcspv::Op::ConvertSampledImageToUNV:
+    {
+      OpConvertSampledImageToUNV decoded(it);
+      ret += declName(decoded.resultType, decoded.result) + " = ";
+      ret += "ConvertSampledImageToUNV(" + ParamToStr(idName, decoded.operand) + ")";
+      break;
+    }
+    case rdcspv::Op::SamplerImageAddressingModeNV:
+    {
+      OpSamplerImageAddressingModeNV decoded(it);
+      ret += "SamplerImageAddressingModeNV(" + ParamToStr(idName, decoded.bitWidth) + ")";
       break;
     }
     case rdcspv::Op::SubgroupShuffleINTEL:
@@ -8580,11 +8677,11 @@ rdcstr OpDecoder::Disassemble(const ConstIter &it, const std::function<rdcstr(Id
       ret += "UMul32x16INTEL(" + ParamToStr(idName, decoded.operand1) + ", " + ParamToStr(idName, decoded.operand2) + ")";
       break;
     }
-    case rdcspv::Op::ConstFunctionPointerINTEL:
+    case rdcspv::Op::ConstantFunctionPointerINTEL:
     {
-      OpConstFunctionPointerINTEL decoded(it);
+      OpConstantFunctionPointerINTEL decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += "ConstFunctionPointerINTEL(" + ParamToStr(idName, decoded.function) + ")";
+      ret += "ConstantFunctionPointerINTEL(" + ParamToStr(idName, decoded.function) + ")";
       break;
     }
     case rdcspv::Op::FunctionPointerCallINTEL:
@@ -10423,12 +10520,12 @@ OpDecoder::OpDecoder(const ConstIter &it)
     case rdcspv::Op::ConvertUToAccelerationStructureKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::IgnoreIntersectionKHR: result = Id(); resultType = Id(); break;
     case rdcspv::Op::TerminateRayKHR: result = Id(); resultType = Id(); break;
-    case rdcspv::Op::SDotKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
-    case rdcspv::Op::UDotKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
-    case rdcspv::Op::SUDotKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
-    case rdcspv::Op::SDotAccSatKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
-    case rdcspv::Op::UDotAccSatKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
-    case rdcspv::Op::SUDotAccSatKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::SDot: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::UDot: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::SUDot: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::SDotAccSat: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::UDotAccSat: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::SUDotAccSat: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::TypeRayQueryKHR: result = Id::fromWord(it.word(1)); resultType = Id(); break;
     case rdcspv::Op::RayQueryInitializeKHR: result = Id(); resultType = Id(); break;
     case rdcspv::Op::RayQueryTerminateKHR: result = Id(); resultType = Id(); break;
@@ -10465,8 +10562,15 @@ OpDecoder::OpDecoder(const ConstIter &it)
     case rdcspv::Op::CooperativeMatrixLengthNV: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::BeginInvocationInterlockEXT: result = Id(); resultType = Id(); break;
     case rdcspv::Op::EndInvocationInterlockEXT: result = Id(); resultType = Id(); break;
-    case rdcspv::Op::DemoteToHelperInvocationEXT: result = Id(); resultType = Id(); break;
+    case rdcspv::Op::DemoteToHelperInvocation: result = Id(); resultType = Id(); break;
     case rdcspv::Op::IsHelperInvocationEXT: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::ConvertUToImageNV: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::ConvertUToSamplerNV: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::ConvertImageToUNV: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::ConvertSamplerToUNV: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::ConvertUToSampledImageNV: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::ConvertSampledImageToUNV: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::SamplerImageAddressingModeNV: result = Id(); resultType = Id(); break;
     case rdcspv::Op::SubgroupShuffleINTEL: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::SubgroupShuffleDownINTEL: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::SubgroupShuffleUpINTEL: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
@@ -10491,7 +10595,7 @@ OpDecoder::OpDecoder(const ConstIter &it)
     case rdcspv::Op::USubSatINTEL: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::IMul32x16INTEL: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::UMul32x16INTEL: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
-    case rdcspv::Op::ConstFunctionPointerINTEL: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::ConstantFunctionPointerINTEL: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::FunctionPointerCallINTEL: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::AsmTargetINTEL: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::AsmINTEL: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
@@ -10826,6 +10930,8 @@ rdcstr DoStringise(const rdcspv::Generator &el)
     STRINGISE_ENUM_CLASS_NAMED(MSPShaderCompiler, "MSP Shader Compiler from Mikkosoft Productions - Contact Mikko Rasa, tdb@tdb.fi");
     STRINGISE_ENUM_CLASS_NAMED(SpvGenTwoSPIRVIRTools, "SpvGenTwo SPIR-V IR Tools from SpvGenTwo community - https://github.com/rAzoR8/SpvGenTwo");
     STRINGISE_ENUM_CLASS_NAMED(SkiaSkSL, "Skia SkSL from Google - Contact Ethan Nicholas, ethannicholas@google.com");
+    STRINGISE_ENUM_CLASS_NAMED(SPIRVBeehiveToolkit, "SPIRV Beehive Toolkit from TornadoVM - https://github.com/beehive-lab/spirv-beehive-toolkit");
+    STRINGISE_ENUM_CLASS_NAMED(ShaderWriter, "ShaderWriter from DragonJoker - Contact Sylvain Doremus, https://github.com/DragonJoker/ShaderWriter");
   }
   END_ENUM_STRINGISE();
 }
