@@ -175,6 +175,12 @@ void WrappedVulkan::vkGetDeviceQueue(VkDevice device, uint32_t queueFamilyIndex,
 
 void WrappedVulkan::DoSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo)
 {
+  // don't submit any semaphores
+  submitInfo.waitSemaphoreInfoCount = 0;
+  submitInfo.pWaitSemaphoreInfos = NULL;
+  submitInfo.signalSemaphoreInfoCount = 0;
+  submitInfo.pSignalSemaphoreInfos = NULL;
+
   if(GetExtensions(NULL).ext_KHR_synchronization2)
   {
     // if we have KHR_sync2 this is easy! unwrap, add our submit chain, and do it
