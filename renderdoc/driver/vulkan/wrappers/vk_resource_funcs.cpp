@@ -2668,6 +2668,28 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory2(SerialiserType &ser, VkDevice 
 
   if(IsReplayingAndReading())
   {
+    rdcarray<VkMemoryRequirements> mrqs;
+    mrqs.resize(bindInfoCount);
+    for(uint32_t i = 0; i < bindInfoCount; i++)
+    {
+      const VkBindBufferMemoryInfo &bindInfo = pBindInfos[i];
+      const VulkanCreationInfo::Buffer &bufInfo = m_CreationInfo.m_Buffer[GetResID(bindInfo.buffer)];
+
+      ResourceId resOrigId = GetResourceManager()->GetOriginalID(GetResID(bindInfo.buffer));
+
+      ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), Unwrap(bindInfo.buffer), &mrqs[i]);
+
+      bool ok =
+          CheckMemoryRequirements(("Buffer " + ToStr(resOrigId)).c_str(), GetResID(bindInfo.memory),
+                                  bindInfo.memoryOffset, mrqs[i], bufInfo.external);
+
+      if(!ok)
+        return false;
+    }
+
+    VkBindBufferMemoryInfo *unwrapped = UnwrapInfos(pBindInfos, bindInfoCount);
+    ObjDisp(device)->BindBufferMemory2(Unwrap(device), bindInfoCount, unwrapped);
+
     for(uint32_t i = 0; i < bindInfoCount; i++)
     {
       const VkBindBufferMemoryInfo &bindInfo = pBindInfos[i];
@@ -2676,16 +2698,6 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory2(SerialiserType &ser, VkDevice 
       ResourceId memOrigId = GetResourceManager()->GetOriginalID(GetResID(bindInfo.memory));
 
       VulkanCreationInfo::Buffer &bufInfo = m_CreationInfo.m_Buffer[GetResID(bindInfo.buffer)];
-
-      VkMemoryRequirements mrq = {};
-      ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), Unwrap(bindInfo.buffer), &mrq);
-
-      bool ok =
-          CheckMemoryRequirements(("Buffer " + ToStr(resOrigId)).c_str(), GetResID(bindInfo.memory),
-                                  bindInfo.memoryOffset, mrq, bufInfo.external);
-
-      if(!ok)
-        return false;
 
       GetResourceDesc(memOrigId).derivedResources.push_back(resOrigId);
       GetResourceDesc(resOrigId).parentResources.push_back(memOrigId);
@@ -2715,11 +2727,8 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory2(SerialiserType &ser, VkDevice 
       GetResourceManager()->MarkDirtyResource(GetResID(bindInfo.memory));
 
       m_CreationInfo.m_Memory[GetResID(bindInfo.memory)].BindMemory(
-          bindInfo.memoryOffset, mrq.size, VulkanCreationInfo::Memory::Linear);
+          bindInfo.memoryOffset, mrqs[i].size, VulkanCreationInfo::Memory::Linear);
     }
-
-    VkBindBufferMemoryInfo *unwrapped = UnwrapInfos(pBindInfos, bindInfoCount);
-    ObjDisp(device)->BindBufferMemory2(Unwrap(device), bindInfoCount, unwrapped);
   }
 
   return true;
