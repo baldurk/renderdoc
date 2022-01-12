@@ -827,14 +827,17 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
 
   std::unordered_set<ResourceId> refdIDs;
 
-  std::set<VkDescriptorSet> descriptorSets;
+  std::set<rdcpair<ResourceId, VkResourceRecord *>> capDescriptors;
+  std::set<rdcpair<ResourceId, VkResourceRecord *>> descriptorSets;
 
   // pull in any copy sources, conservatively
   if(capframe)
   {
     SCOPED_LOCK(m_CapDescriptorsLock);
-    descriptorSets.swap(m_CapDescriptors);
+    capDescriptors.swap(m_CapDescriptors);
   }
+
+  descriptorSets = capDescriptors;
 
   for(size_t i = 0; i < commandBuffers.size(); i++)
   {
@@ -941,9 +944,9 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
     // for each descriptor set, mark it referenced as well as all resources currently bound to it
     for(auto it = descriptorSets.begin(); it != descriptorSets.end(); ++it)
     {
-      rm->MarkResourceFrameReferenced(GetResID(*it), eFrameRef_Read);
+      rm->MarkResourceFrameReferenced(it->first, eFrameRef_Read);
 
-      VkResourceRecord *setrecord = GetRecord(*it);
+      VkResourceRecord *setrecord = it->second;
 
       DescriptorBindRefs refs;
 
@@ -1159,6 +1162,10 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
       }
     }
   }
+
+  for(const rdcpair<ResourceId, VkResourceRecord *> &it : capDescriptors)
+    it.second->Delete(GetResourceManager());
+  capDescriptors.clear();
 }
 
 template <typename SerialiserType>

@@ -3230,7 +3230,9 @@ void WrappedVulkan::vkCmdBindDescriptorSets(VkCommandBuffer commandBuffer,
 
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
     record->MarkResourceFrameReferenced(GetResID(layout), eFrameRef_Read);
-    record->cmdInfo->boundDescSets.insert(pDescriptorSets, pDescriptorSets + setCount);
+    for(uint32_t i = 0; i < setCount; i++)
+      record->cmdInfo->boundDescSets.insert(
+          {GetResID(pDescriptorSets[i]), GetRecord(pDescriptorSets[i])});
   }
 }
 

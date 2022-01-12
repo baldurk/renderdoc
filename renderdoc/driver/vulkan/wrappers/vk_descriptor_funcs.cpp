@@ -1222,9 +1222,13 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
         GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorCopies[i].srcSet),
                                                           eFrameRef_Read);
 
+        ResourceId id = GetResID(pDescriptorCopies[i].srcSet);
+        VkResourceRecord *record = GetRecord(pDescriptorCopies[i].srcSet);
+
         {
           SCOPED_LOCK(m_CapDescriptorsLock);
-          m_CapDescriptors.insert(pDescriptorCopies[i].srcSet);
+          record->AddRef();
+          m_CapDescriptors.insert({id, record});
         }
       }
     }

@@ -1827,6 +1827,8 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
 
     {
       SCOPED_LOCK(m_CapDescriptorsLock);
+      for(const rdcpair<ResourceId, VkResourceRecord *> &it : m_CapDescriptors)
+        it.second->Delete(GetResourceManager());
       m_CapDescriptors.clear();
     }
 

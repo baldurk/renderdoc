@@ -1071,7 +1071,7 @@ struct CmdBufferRecordingInfo
   // a list of descriptor sets that are bound at any point in this command buffer
   // used to look up all the frame refs per-desc set and apply them on queue
   // submit with latest binding refs.
-  std::set<VkDescriptorSet> boundDescSets;
+  std::set<rdcpair<ResourceId, VkResourceRecord *>> boundDescSets;
 
   // barriers to apply when the current render pass ends. Calculated at begin time in case the
   // framebuffer is imageless and we need to use the image views passed in at begin time to
