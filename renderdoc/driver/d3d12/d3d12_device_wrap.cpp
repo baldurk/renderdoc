@@ -3270,6 +3270,11 @@ HRESULT WrappedID3D12Device::SetStablePowerState(BOOL Enable)
 HRESULT WrappedID3D12Device::CheckFeatureSupport(D3D12_FEATURE Feature, void *pFeatureSupportData,
                                                  UINT FeatureSupportDataSize)
 {
+  HRESULT hr = m_pDevice->CheckFeatureSupport(Feature, pFeatureSupportData, FeatureSupportDataSize);
+
+  if(FAILED(hr))
+    return hr;
+
   if(Feature == D3D12_FEATURE_SHADER_MODEL)
   {
     D3D12_FEATURE_DATA_SHADER_MODEL *model = (D3D12_FEATURE_DATA_SHADER_MODEL *)pFeatureSupportData;
@@ -3294,45 +3299,31 @@ HRESULT WrappedID3D12Device::CheckFeatureSupport(D3D12_FEATURE Feature, void *pF
   }
   else if(Feature == D3D12_FEATURE_D3D12_OPTIONS5)
   {
-    HRESULT hr = m_pDevice->CheckFeatureSupport(Feature, pFeatureSupportData, FeatureSupportDataSize);
+    D3D12_FEATURE_DATA_D3D12_OPTIONS5 *opts =
+        (D3D12_FEATURE_DATA_D3D12_OPTIONS5 *)pFeatureSupportData;
+    if(FeatureSupportDataSize != sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS5))
+      return E_INVALIDARG;
 
-    if(SUCCEEDED(hr))
-    {
-      D3D12_FEATURE_DATA_D3D12_OPTIONS5 *opts =
-          (D3D12_FEATURE_DATA_D3D12_OPTIONS5 *)pFeatureSupportData;
-      if(FeatureSupportDataSize != sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS5))
-        return E_INVALIDARG;
+    // don't support raytracing
+    opts->RaytracingTier = D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
 
-      // don't support raytracing
-      opts->RaytracingTier = D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
-
-      return S_OK;
-    }
-
-    return hr;
+    return S_OK;
   }
   else if(Feature == D3D12_FEATURE_D3D12_OPTIONS7)
   {
-    HRESULT hr = m_pDevice->CheckFeatureSupport(Feature, pFeatureSupportData, FeatureSupportDataSize);
+    D3D12_FEATURE_DATA_D3D12_OPTIONS7 *opts =
+        (D3D12_FEATURE_DATA_D3D12_OPTIONS7 *)pFeatureSupportData;
+    if(FeatureSupportDataSize != sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS7))
+      return E_INVALIDARG;
 
-    if(SUCCEEDED(hr))
-    {
-      D3D12_FEATURE_DATA_D3D12_OPTIONS7 *opts =
-          (D3D12_FEATURE_DATA_D3D12_OPTIONS7 *)pFeatureSupportData;
-      if(FeatureSupportDataSize != sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS7))
-        return E_INVALIDARG;
+    // don't support mesh shading or sampler feedback
+    opts->MeshShaderTier = D3D12_MESH_SHADER_TIER_NOT_SUPPORTED;
+    opts->SamplerFeedbackTier = D3D12_SAMPLER_FEEDBACK_TIER_NOT_SUPPORTED;
 
-      // don't support mesh shading or sampler feedback
-      opts->MeshShaderTier = D3D12_MESH_SHADER_TIER_NOT_SUPPORTED;
-      opts->SamplerFeedbackTier = D3D12_SAMPLER_FEEDBACK_TIER_NOT_SUPPORTED;
-
-      return S_OK;
-    }
-
-    return hr;
+    return S_OK;
   }
 
-  return m_pDevice->CheckFeatureSupport(Feature, pFeatureSupportData, FeatureSupportDataSize);
+  return hr;
 }
 
 UINT WrappedID3D12Device::GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapType)
