@@ -880,8 +880,8 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
   };
 
   static VkFormat colFormats[16] = {};
-  static VkPipelineRenderingCreateInfoKHR dynRenderCreate = {
-      VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR, NULL, pipeInfo.viewMask, 0, colFormats,
+  static VkPipelineRenderingCreateInfo dynRenderCreate = {
+      VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO, NULL, pipeInfo.viewMask, 0, colFormats,
   };
 
   if(pipeInfo.renderpass == ResourceId())

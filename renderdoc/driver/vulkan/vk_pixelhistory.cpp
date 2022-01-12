@@ -539,27 +539,26 @@ protected:
     SetupDynamicStates(pipeCreateInfo);
 
     // remove any dynamic states where we want to use exactly the fixed ones we're setting up
-    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE_EXT);
-    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE_EXT);
-    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_COMPARE_OP_EXT);
-    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE_EXT);
-    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE_EXT);
-    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_STENCIL_OP_EXT);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_COMPARE_OP);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_STENCIL_OP);
     m_DynamicStates.removeOne(VK_DYNAMIC_STATE_COLOR_WRITE_ENABLE_EXT);
 
     if(disableTests)
     {
-      m_DynamicStates.removeOne(VK_DYNAMIC_STATE_CULL_MODE_EXT);
-      m_DynamicStates.removeOne(VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE_EXT);
+      m_DynamicStates.removeOne(VK_DYNAMIC_STATE_CULL_MODE);
+      m_DynamicStates.removeOne(VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE);
     }
 
     ApplyDynamicStates(pipeCreateInfo);
 
     // need to patch the pipeline rendering info if it exists and we're patching the depth
     // attachment
-    VkPipelineRenderingCreateInfoKHR *dynRenderCreate =
-        (VkPipelineRenderingCreateInfoKHR *)FindNextStruct(
-            &pipeCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR);
+    VkPipelineRenderingCreateInfo *dynRenderCreate = (VkPipelineRenderingCreateInfo *)FindNextStruct(
+        &pipeCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO);
 
     if(patchDepthAttachment && dynRenderCreate)
     {
@@ -705,7 +704,7 @@ protected:
 
         if(dyn.color[i].loadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
           dyn.color[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-        if(dyn.color[i].storeOp != VK_ATTACHMENT_STORE_OP_NONE_EXT)
+        if(dyn.color[i].storeOp != VK_ATTACHMENT_STORE_OP_NONE)
           dyn.color[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
         // nothing to do with newColorFormat here - we patch that when creating the pipeline
@@ -713,8 +712,8 @@ protected:
 
       if(colorIdx >= (uint32_t)dyn.color.size())
       {
-        VkRenderingAttachmentInfoKHR c = {
-            VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
+        VkRenderingAttachmentInfo c = {
+            VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
             NULL,
             VK_NULL_HANDLE,    // the image view will be bound in PatchFramebuffer
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -733,13 +732,13 @@ protected:
       dyn.depth.resolveImageView = VK_NULL_HANDLE;
       if(dyn.depth.loadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
         dyn.depth.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-      if(dyn.depth.storeOp != VK_ATTACHMENT_STORE_OP_NONE_EXT)
+      if(dyn.depth.storeOp != VK_ATTACHMENT_STORE_OP_NONE)
         dyn.depth.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
       dyn.stencil.resolveMode = VK_RESOLVE_MODE_NONE;
       dyn.stencil.resolveImageView = VK_NULL_HANDLE;
       dyn.stencil.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-      if(dyn.stencil.storeOp != VK_ATTACHMENT_STORE_OP_NONE_EXT)
+      if(dyn.stencil.storeOp != VK_ATTACHMENT_STORE_OP_NONE)
         dyn.stencil.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
       // we'll be using our own depth/stencil attachment but it will be updated in PatchFramebuffer.
@@ -796,12 +795,12 @@ protected:
       descs[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
       if(rpInfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_NONE_EXT)
         descs[i].loadOp = VK_ATTACHMENT_LOAD_OP_NONE_EXT;
-      if(rpInfo.attachments[i].storeOp == VK_ATTACHMENT_STORE_OP_NONE_EXT)
-        descs[i].storeOp = VK_ATTACHMENT_STORE_OP_NONE_EXT;
+      if(rpInfo.attachments[i].storeOp == VK_ATTACHMENT_STORE_OP_NONE)
+        descs[i].storeOp = VK_ATTACHMENT_STORE_OP_NONE;
       if(rpInfo.attachments[i].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_NONE_EXT)
         descs[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_NONE_EXT;
-      if(rpInfo.attachments[i].stencilStoreOp == VK_ATTACHMENT_STORE_OP_NONE_EXT)
-        descs[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_NONE_EXT;
+      if(rpInfo.attachments[i].stencilStoreOp == VK_ATTACHMENT_STORE_OP_NONE)
+        descs[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_NONE;
 
       descs[i].initialLayout = rpInfo.attachments[i].initialLayout;
       descs[i].finalLayout = rpInfo.attachments[i].finalLayout;
@@ -2321,17 +2320,17 @@ private:
     SetupDynamicStates(ci);
 
     // remove any dynamic states where we want to use exactly the fixed ones we're setting up
-    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE_EXT);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE);
 
     if(pipeCreateFlags & PipelineCreationFlags_DisableDepthTest)
-      m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE_EXT);
+      m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE);
     if(pipeCreateFlags & PipelineCreationFlags_DisableDepthBoundsTest)
-      m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE_EXT);
+      m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE);
     if(pipeCreateFlags & PipelineCreationFlags_DisableStencilTest)
-      m_DynamicStates.removeOne(VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE_EXT);
+      m_DynamicStates.removeOne(VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE);
 
     if(pipeCreateFlags & PipelineCreationFlags_DisableCulling)
-      m_DynamicStates.removeOne(VK_DYNAMIC_STATE_CULL_MODE_EXT);
+      m_DynamicStates.removeOne(VK_DYNAMIC_STATE_CULL_MODE);
 
     ApplyDynamicStates(ci);
 
@@ -2769,20 +2768,20 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     SetupDynamicStates(pipeCreateInfo);
 
     // remove any dynamic states where we want to use exactly the fixed ones we're setting up
-    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE_EXT);
-    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_STENCIL_OP_EXT);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_STENCIL_OP);
     m_DynamicStates.removeOne(VK_DYNAMIC_STATE_COLOR_WRITE_ENABLE_EXT);
-    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE_EXT);
-    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_COMPARE_OP_EXT);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_COMPARE_OP);
 
     ApplyDynamicStates(pipeCreateInfo);
 
     // if RP is null we need to patch the pipeline rendering info
     if(rp == VK_NULL_HANDLE)
     {
-      VkPipelineRenderingCreateInfoKHR *dynRenderCreate =
-          (VkPipelineRenderingCreateInfoKHR *)FindNextStruct(
-              &pipeCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR);
+      VkPipelineRenderingCreateInfo *dynRenderCreate =
+          (VkPipelineRenderingCreateInfo *)FindNextStruct(
+              &pipeCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO);
 
       RDCASSERT(dynRenderCreate);
 
@@ -2905,7 +2904,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       ds->depthWriteEnable = VK_FALSE;
     }
 
-    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE_EXT);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE);
 
     ApplyDynamicStates(pipeCreateInfo);
 

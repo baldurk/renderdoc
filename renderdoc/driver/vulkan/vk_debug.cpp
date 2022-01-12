@@ -2336,21 +2336,21 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
         delete[] a;
       for(VkBufferView *a : bufViewWrites)
         delete[] a;
-      for(VkWriteDescriptorSetInlineUniformBlockEXT *a : inlineWrites)
+      for(VkWriteDescriptorSetInlineUniformBlock *a : inlineWrites)
         delete a;
     }
 
     rdcarray<VkDescriptorImageInfo *> imgWrites;
     rdcarray<VkDescriptorBufferInfo *> bufWrites;
     rdcarray<VkBufferView *> bufViewWrites;
-    rdcarray<VkWriteDescriptorSetInlineUniformBlockEXT *> inlineWrites;
+    rdcarray<VkWriteDescriptorSetInlineUniformBlock *> inlineWrites;
   } alloced;
 
   rdcarray<VkDescriptorImageInfo *> &allocImgWrites = alloced.imgWrites;
   rdcarray<VkDescriptorBufferInfo *> &allocBufWrites = alloced.bufWrites;
   rdcarray<VkBufferView *> &allocBufViewWrites = alloced.bufViewWrites;
 
-  rdcarray<VkWriteDescriptorSetInlineUniformBlockEXT *> &allocInlineWrites = alloced.inlineWrites;
+  rdcarray<VkWriteDescriptorSetInlineUniformBlock *> &allocInlineWrites = alloced.inlineWrites;
 
   // one for each descriptor type. 1 of each to start with, we then increment for each descriptor
   // we need to allocate
@@ -2366,11 +2366,11 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
       {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1},
       {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1},
       {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1},
-      {VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT, 0},
+      {VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK, 0},
   };
 
-  VkDescriptorPoolInlineUniformBlockCreateInfoEXT inlineCreateInfo = {
-      VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_INLINE_UNIFORM_BLOCK_CREATE_INFO_EXT,
+  VkDescriptorPoolInlineUniformBlockCreateInfo inlineCreateInfo = {
+      VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_INLINE_UNIFORM_BLOCK_CREATE_INFO,
   };
 
   static const uint32_t InlinePoolIndex = 11;
@@ -2480,8 +2480,8 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
 
   if(m_pDriver->GetExtensions(NULL).ext_EXT_inline_uniform_block)
   {
-    VkPhysicalDeviceInlineUniformBlockPropertiesEXT inlineProps = {
-        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_PROPERTIES_EXT,
+    VkPhysicalDeviceInlineUniformBlockProperties inlineProps = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_PROPERTIES,
     };
 
     VkPhysicalDeviceProperties2 availBase = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
@@ -2570,7 +2570,7 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
           descriptorCount = setInfo.data.variableDescriptorCount;
 
         // make room in the pool
-        if(bind.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+        if(bind.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
         {
           poolSizes[InlinePoolIndex].descriptorCount += descriptorCount;
           inlineCreateInfo.maxInlineUniformBlockBindings++;
@@ -2648,7 +2648,7 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
             UPDATE_AND_CHECK_LIMIT(maxDescriptorSetInputAttachments);
             UPDATE_AND_CHECK_STAGE_LIMIT(maxPerStageDescriptorInputAttachments);
             break;
-          case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT:
+          case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK:
             descriptorCount = 1;
             UPDATE_AND_CHECK_LIMIT(maxDescriptorSetInlineUniformBlocks);
             UPDATE_AND_CHECK_STAGE_LIMIT(maxPerStageDescriptorInlineUniformBlocks);
@@ -2825,11 +2825,11 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
             allocBufWrites.push_back(out);
             break;
           }
-          case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT:
+          case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK:
           {
-            allocInlineWrites.push_back(new VkWriteDescriptorSetInlineUniformBlockEXT);
-            VkWriteDescriptorSetInlineUniformBlockEXT *inlineWrite = allocInlineWrites.back();
-            inlineWrite->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT;
+            allocInlineWrites.push_back(new VkWriteDescriptorSetInlineUniformBlock);
+            VkWriteDescriptorSetInlineUniformBlock *inlineWrite = allocInlineWrites.back();
+            inlineWrite->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK;
             inlineWrite->pNext = NULL;
             inlineWrite->dataSize = descriptorCount;
             inlineWrite->pData = setInfo.data.inlineBytes.data() + slot[0].inlineOffset;
@@ -2841,7 +2841,7 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
 
         // skip validity check for inline uniform block as the descriptor count means something
         // different
-        if(write.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+        if(write.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
         {
           write.descriptorCount = descriptorCount;
           descWrites.push_back(write);

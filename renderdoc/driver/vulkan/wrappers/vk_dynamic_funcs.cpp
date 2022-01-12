@@ -94,10 +94,10 @@ void WrappedVulkan::vkCmdSetViewport(VkCommandBuffer commandBuffer, uint32_t fir
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdSetViewportWithCountEXT(SerialiserType &ser,
-                                                           VkCommandBuffer commandBuffer,
-                                                           uint32_t viewportCount,
-                                                           const VkViewport *pViewports)
+bool WrappedVulkan::Serialise_vkCmdSetViewportWithCount(SerialiserType &ser,
+                                                        VkCommandBuffer commandBuffer,
+                                                        uint32_t viewportCount,
+                                                        const VkViewport *pViewports)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(viewportCount);
@@ -129,20 +129,19 @@ bool WrappedVulkan::Serialise_vkCmdSetViewportWithCountEXT(SerialiserType &ser,
     }
 
     if(commandBuffer != VK_NULL_HANDLE)
-      ObjDisp(commandBuffer)->CmdSetViewportWithCountEXT(Unwrap(commandBuffer), viewportCount, pViewports);
+      ObjDisp(commandBuffer)->CmdSetViewportWithCount(Unwrap(commandBuffer), viewportCount, pViewports);
   }
 
   return true;
 }
 
-void WrappedVulkan::vkCmdSetViewportWithCountEXT(VkCommandBuffer commandBuffer,
-                                                 uint32_t viewportCount, const VkViewport *pViewports)
+void WrappedVulkan::vkCmdSetViewportWithCount(VkCommandBuffer commandBuffer, uint32_t viewportCount,
+                                              const VkViewport *pViewports)
 {
   SCOPED_DBG_SINK();
 
   SERIALISE_TIME_CALL(
-      ObjDisp(commandBuffer)
-          ->CmdSetViewportWithCountEXT(Unwrap(commandBuffer), viewportCount, pViewports));
+      ObjDisp(commandBuffer)->CmdSetViewportWithCount(Unwrap(commandBuffer), viewportCount, pViewports));
 
   if(IsCaptureMode(m_State))
   {
@@ -150,8 +149,8 @@ void WrappedVulkan::vkCmdSetViewportWithCountEXT(VkCommandBuffer commandBuffer,
 
     CACHE_THREAD_SERIALISER();
 
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetViewportWithCountEXT);
-    Serialise_vkCmdSetViewportWithCountEXT(ser, commandBuffer, viewportCount, pViewports);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetViewportWithCount);
+    Serialise_vkCmdSetViewportWithCount(ser, commandBuffer, viewportCount, pViewports);
 
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
@@ -226,10 +225,10 @@ void WrappedVulkan::vkCmdSetScissor(VkCommandBuffer commandBuffer, uint32_t firs
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdSetScissorWithCountEXT(SerialiserType &ser,
-                                                          VkCommandBuffer commandBuffer,
-                                                          uint32_t scissorCount,
-                                                          const VkRect2D *pScissors)
+bool WrappedVulkan::Serialise_vkCmdSetScissorWithCount(SerialiserType &ser,
+                                                       VkCommandBuffer commandBuffer,
+                                                       uint32_t scissorCount,
+                                                       const VkRect2D *pScissors)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(scissorCount);
@@ -261,19 +260,19 @@ bool WrappedVulkan::Serialise_vkCmdSetScissorWithCountEXT(SerialiserType &ser,
     }
 
     if(commandBuffer != VK_NULL_HANDLE)
-      ObjDisp(commandBuffer)->CmdSetScissorWithCountEXT(Unwrap(commandBuffer), scissorCount, pScissors);
+      ObjDisp(commandBuffer)->CmdSetScissorWithCount(Unwrap(commandBuffer), scissorCount, pScissors);
   }
 
   return true;
 }
 
-void WrappedVulkan::vkCmdSetScissorWithCountEXT(VkCommandBuffer commandBuffer,
-                                                uint32_t scissorCount, const VkRect2D *pScissors)
+void WrappedVulkan::vkCmdSetScissorWithCount(VkCommandBuffer commandBuffer, uint32_t scissorCount,
+                                             const VkRect2D *pScissors)
 {
   SCOPED_DBG_SINK();
 
   SERIALISE_TIME_CALL(
-      ObjDisp(commandBuffer)->CmdSetScissorWithCountEXT(Unwrap(commandBuffer), scissorCount, pScissors));
+      ObjDisp(commandBuffer)->CmdSetScissorWithCount(Unwrap(commandBuffer), scissorCount, pScissors));
 
   if(IsCaptureMode(m_State))
   {
@@ -281,8 +280,8 @@ void WrappedVulkan::vkCmdSetScissorWithCountEXT(VkCommandBuffer commandBuffer,
 
     CACHE_THREAD_SERIALISER();
 
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetScissorWithCountEXT);
-    Serialise_vkCmdSetScissorWithCountEXT(ser, commandBuffer, scissorCount, pScissors);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetScissorWithCount);
+    Serialise_vkCmdSetScissorWithCount(ser, commandBuffer, scissorCount, pScissors);
 
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
@@ -945,8 +944,8 @@ void WrappedVulkan::vkCmdSetLineStippleEXT(VkCommandBuffer commandBuffer,
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdSetCullModeEXT(SerialiserType &ser, VkCommandBuffer commandBuffer,
-                                                  VkCullModeFlags cullMode)
+bool WrappedVulkan::Serialise_vkCmdSetCullMode(SerialiserType &ser, VkCommandBuffer commandBuffer,
+                                               VkCullModeFlags cullMode)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT_TYPED(VkCullModeFlagBits, cullMode).Important();
@@ -977,17 +976,17 @@ bool WrappedVulkan::Serialise_vkCmdSetCullModeEXT(SerialiserType &ser, VkCommand
     }
 
     if(commandBuffer != VK_NULL_HANDLE)
-      ObjDisp(commandBuffer)->CmdSetCullModeEXT(Unwrap(commandBuffer), cullMode);
+      ObjDisp(commandBuffer)->CmdSetCullMode(Unwrap(commandBuffer), cullMode);
   }
 
   return true;
 }
 
-void WrappedVulkan::vkCmdSetCullModeEXT(VkCommandBuffer commandBuffer, VkCullModeFlags cullMode)
+void WrappedVulkan::vkCmdSetCullMode(VkCommandBuffer commandBuffer, VkCullModeFlags cullMode)
 {
   SCOPED_DBG_SINK();
 
-  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)->CmdSetCullModeEXT(Unwrap(commandBuffer), cullMode));
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)->CmdSetCullMode(Unwrap(commandBuffer), cullMode));
 
   if(IsCaptureMode(m_State))
   {
@@ -995,16 +994,16 @@ void WrappedVulkan::vkCmdSetCullModeEXT(VkCommandBuffer commandBuffer, VkCullMod
 
     CACHE_THREAD_SERIALISER();
 
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetCullModeEXT);
-    Serialise_vkCmdSetCullModeEXT(ser, commandBuffer, cullMode);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetCullMode);
+    Serialise_vkCmdSetCullMode(ser, commandBuffer, cullMode);
 
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdSetFrontFaceEXT(SerialiserType &ser, VkCommandBuffer commandBuffer,
-                                                   VkFrontFace frontFace)
+bool WrappedVulkan::Serialise_vkCmdSetFrontFace(SerialiserType &ser, VkCommandBuffer commandBuffer,
+                                                VkFrontFace frontFace)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(frontFace).Important();
@@ -1035,17 +1034,17 @@ bool WrappedVulkan::Serialise_vkCmdSetFrontFaceEXT(SerialiserType &ser, VkComman
     }
 
     if(commandBuffer != VK_NULL_HANDLE)
-      ObjDisp(commandBuffer)->CmdSetFrontFaceEXT(Unwrap(commandBuffer), frontFace);
+      ObjDisp(commandBuffer)->CmdSetFrontFace(Unwrap(commandBuffer), frontFace);
   }
 
   return true;
 }
 
-void WrappedVulkan::vkCmdSetFrontFaceEXT(VkCommandBuffer commandBuffer, VkFrontFace frontFace)
+void WrappedVulkan::vkCmdSetFrontFace(VkCommandBuffer commandBuffer, VkFrontFace frontFace)
 {
   SCOPED_DBG_SINK();
 
-  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)->CmdSetFrontFaceEXT(Unwrap(commandBuffer), frontFace));
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)->CmdSetFrontFace(Unwrap(commandBuffer), frontFace));
 
   if(IsCaptureMode(m_State))
   {
@@ -1053,17 +1052,17 @@ void WrappedVulkan::vkCmdSetFrontFaceEXT(VkCommandBuffer commandBuffer, VkFrontF
 
     CACHE_THREAD_SERIALISER();
 
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetFrontFaceEXT);
-    Serialise_vkCmdSetFrontFaceEXT(ser, commandBuffer, frontFace);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetFrontFace);
+    Serialise_vkCmdSetFrontFace(ser, commandBuffer, frontFace);
 
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdSetPrimitiveTopologyEXT(SerialiserType &ser,
-                                                           VkCommandBuffer commandBuffer,
-                                                           VkPrimitiveTopology primitiveTopology)
+bool WrappedVulkan::Serialise_vkCmdSetPrimitiveTopology(SerialiserType &ser,
+                                                        VkCommandBuffer commandBuffer,
+                                                        VkPrimitiveTopology primitiveTopology)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(primitiveTopology).Important();
@@ -1098,19 +1097,19 @@ bool WrappedVulkan::Serialise_vkCmdSetPrimitiveTopologyEXT(SerialiserType &ser,
     }
 
     if(commandBuffer != VK_NULL_HANDLE)
-      ObjDisp(commandBuffer)->CmdSetPrimitiveTopologyEXT(Unwrap(commandBuffer), primitiveTopology);
+      ObjDisp(commandBuffer)->CmdSetPrimitiveTopology(Unwrap(commandBuffer), primitiveTopology);
   }
 
   return true;
 }
 
-void WrappedVulkan::vkCmdSetPrimitiveTopologyEXT(VkCommandBuffer commandBuffer,
-                                                 VkPrimitiveTopology primitiveTopology)
+void WrappedVulkan::vkCmdSetPrimitiveTopology(VkCommandBuffer commandBuffer,
+                                              VkPrimitiveTopology primitiveTopology)
 {
   SCOPED_DBG_SINK();
 
   SERIALISE_TIME_CALL(
-      ObjDisp(commandBuffer)->CmdSetPrimitiveTopologyEXT(Unwrap(commandBuffer), primitiveTopology));
+      ObjDisp(commandBuffer)->CmdSetPrimitiveTopology(Unwrap(commandBuffer), primitiveTopology));
 
   if(IsCaptureMode(m_State))
   {
@@ -1118,17 +1117,17 @@ void WrappedVulkan::vkCmdSetPrimitiveTopologyEXT(VkCommandBuffer commandBuffer,
 
     CACHE_THREAD_SERIALISER();
 
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetPrimitiveTopologyEXT);
-    Serialise_vkCmdSetPrimitiveTopologyEXT(ser, commandBuffer, primitiveTopology);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetPrimitiveTopology);
+    Serialise_vkCmdSetPrimitiveTopology(ser, commandBuffer, primitiveTopology);
 
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdSetDepthTestEnableEXT(SerialiserType &ser,
-                                                         VkCommandBuffer commandBuffer,
-                                                         VkBool32 depthTestEnable)
+bool WrappedVulkan::Serialise_vkCmdSetDepthTestEnable(SerialiserType &ser,
+                                                      VkCommandBuffer commandBuffer,
+                                                      VkBool32 depthTestEnable)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(depthTestEnable).Important();
@@ -1159,18 +1158,18 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthTestEnableEXT(SerialiserType &ser,
     }
 
     if(commandBuffer != VK_NULL_HANDLE)
-      ObjDisp(commandBuffer)->CmdSetDepthTestEnableEXT(Unwrap(commandBuffer), depthTestEnable);
+      ObjDisp(commandBuffer)->CmdSetDepthTestEnable(Unwrap(commandBuffer), depthTestEnable);
   }
 
   return true;
 }
 
-void WrappedVulkan::vkCmdSetDepthTestEnableEXT(VkCommandBuffer commandBuffer, VkBool32 depthTestEnable)
+void WrappedVulkan::vkCmdSetDepthTestEnable(VkCommandBuffer commandBuffer, VkBool32 depthTestEnable)
 {
   SCOPED_DBG_SINK();
 
   SERIALISE_TIME_CALL(
-      ObjDisp(commandBuffer)->CmdSetDepthTestEnableEXT(Unwrap(commandBuffer), depthTestEnable));
+      ObjDisp(commandBuffer)->CmdSetDepthTestEnable(Unwrap(commandBuffer), depthTestEnable));
 
   if(IsCaptureMode(m_State))
   {
@@ -1178,17 +1177,17 @@ void WrappedVulkan::vkCmdSetDepthTestEnableEXT(VkCommandBuffer commandBuffer, Vk
 
     CACHE_THREAD_SERIALISER();
 
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetDepthTestEnableEXT);
-    Serialise_vkCmdSetDepthTestEnableEXT(ser, commandBuffer, depthTestEnable);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetDepthTestEnable);
+    Serialise_vkCmdSetDepthTestEnable(ser, commandBuffer, depthTestEnable);
 
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdSetDepthWriteEnableEXT(SerialiserType &ser,
-                                                          VkCommandBuffer commandBuffer,
-                                                          VkBool32 depthWriteEnable)
+bool WrappedVulkan::Serialise_vkCmdSetDepthWriteEnable(SerialiserType &ser,
+                                                       VkCommandBuffer commandBuffer,
+                                                       VkBool32 depthWriteEnable)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(depthWriteEnable).Important();
@@ -1219,19 +1218,18 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthWriteEnableEXT(SerialiserType &ser,
     }
 
     if(commandBuffer != VK_NULL_HANDLE)
-      ObjDisp(commandBuffer)->CmdSetDepthWriteEnableEXT(Unwrap(commandBuffer), depthWriteEnable);
+      ObjDisp(commandBuffer)->CmdSetDepthWriteEnable(Unwrap(commandBuffer), depthWriteEnable);
   }
 
   return true;
 }
 
-void WrappedVulkan::vkCmdSetDepthWriteEnableEXT(VkCommandBuffer commandBuffer,
-                                                VkBool32 depthWriteEnable)
+void WrappedVulkan::vkCmdSetDepthWriteEnable(VkCommandBuffer commandBuffer, VkBool32 depthWriteEnable)
 {
   SCOPED_DBG_SINK();
 
   SERIALISE_TIME_CALL(
-      ObjDisp(commandBuffer)->CmdSetDepthWriteEnableEXT(Unwrap(commandBuffer), depthWriteEnable));
+      ObjDisp(commandBuffer)->CmdSetDepthWriteEnable(Unwrap(commandBuffer), depthWriteEnable));
 
   if(IsCaptureMode(m_State))
   {
@@ -1239,17 +1237,17 @@ void WrappedVulkan::vkCmdSetDepthWriteEnableEXT(VkCommandBuffer commandBuffer,
 
     CACHE_THREAD_SERIALISER();
 
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetDepthWriteEnableEXT);
-    Serialise_vkCmdSetDepthWriteEnableEXT(ser, commandBuffer, depthWriteEnable);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetDepthWriteEnable);
+    Serialise_vkCmdSetDepthWriteEnable(ser, commandBuffer, depthWriteEnable);
 
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdSetDepthCompareOpEXT(SerialiserType &ser,
-                                                        VkCommandBuffer commandBuffer,
-                                                        VkCompareOp depthCompareOp)
+bool WrappedVulkan::Serialise_vkCmdSetDepthCompareOp(SerialiserType &ser,
+                                                     VkCommandBuffer commandBuffer,
+                                                     VkCompareOp depthCompareOp)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(depthCompareOp).Important();
@@ -1280,19 +1278,18 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthCompareOpEXT(SerialiserType &ser,
     }
 
     if(commandBuffer != VK_NULL_HANDLE)
-      ObjDisp(commandBuffer)->CmdSetDepthCompareOpEXT(Unwrap(commandBuffer), depthCompareOp);
+      ObjDisp(commandBuffer)->CmdSetDepthCompareOp(Unwrap(commandBuffer), depthCompareOp);
   }
 
   return true;
 }
 
-void WrappedVulkan::vkCmdSetDepthCompareOpEXT(VkCommandBuffer commandBuffer,
-                                              VkCompareOp depthCompareOp)
+void WrappedVulkan::vkCmdSetDepthCompareOp(VkCommandBuffer commandBuffer, VkCompareOp depthCompareOp)
 {
   SCOPED_DBG_SINK();
 
   SERIALISE_TIME_CALL(
-      ObjDisp(commandBuffer)->CmdSetDepthCompareOpEXT(Unwrap(commandBuffer), depthCompareOp));
+      ObjDisp(commandBuffer)->CmdSetDepthCompareOp(Unwrap(commandBuffer), depthCompareOp));
 
   if(IsCaptureMode(m_State))
   {
@@ -1300,17 +1297,17 @@ void WrappedVulkan::vkCmdSetDepthCompareOpEXT(VkCommandBuffer commandBuffer,
 
     CACHE_THREAD_SERIALISER();
 
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetDepthCompareOpEXT);
-    Serialise_vkCmdSetDepthCompareOpEXT(ser, commandBuffer, depthCompareOp);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetDepthCompareOp);
+    Serialise_vkCmdSetDepthCompareOp(ser, commandBuffer, depthCompareOp);
 
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdSetDepthBoundsTestEnableEXT(SerialiserType &ser,
-                                                               VkCommandBuffer commandBuffer,
-                                                               VkBool32 depthBoundsTestEnable)
+bool WrappedVulkan::Serialise_vkCmdSetDepthBoundsTestEnable(SerialiserType &ser,
+                                                            VkCommandBuffer commandBuffer,
+                                                            VkBool32 depthBoundsTestEnable)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(depthBoundsTestEnable).Important();
@@ -1341,20 +1338,19 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthBoundsTestEnableEXT(SerialiserType &s
     }
 
     if(commandBuffer != VK_NULL_HANDLE)
-      ObjDisp(commandBuffer)->CmdSetDepthBoundsTestEnableEXT(Unwrap(commandBuffer), depthBoundsTestEnable);
+      ObjDisp(commandBuffer)->CmdSetDepthBoundsTestEnable(Unwrap(commandBuffer), depthBoundsTestEnable);
   }
 
   return true;
 }
 
-void WrappedVulkan::vkCmdSetDepthBoundsTestEnableEXT(VkCommandBuffer commandBuffer,
-                                                     VkBool32 depthBoundsTestEnable)
+void WrappedVulkan::vkCmdSetDepthBoundsTestEnable(VkCommandBuffer commandBuffer,
+                                                  VkBool32 depthBoundsTestEnable)
 {
   SCOPED_DBG_SINK();
 
   SERIALISE_TIME_CALL(
-      ObjDisp(commandBuffer)
-          ->CmdSetDepthBoundsTestEnableEXT(Unwrap(commandBuffer), depthBoundsTestEnable));
+      ObjDisp(commandBuffer)->CmdSetDepthBoundsTestEnable(Unwrap(commandBuffer), depthBoundsTestEnable));
 
   if(IsCaptureMode(m_State))
   {
@@ -1362,17 +1358,17 @@ void WrappedVulkan::vkCmdSetDepthBoundsTestEnableEXT(VkCommandBuffer commandBuff
 
     CACHE_THREAD_SERIALISER();
 
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetDepthBoundsTestEnableEXT);
-    Serialise_vkCmdSetDepthBoundsTestEnableEXT(ser, commandBuffer, depthBoundsTestEnable);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetDepthBoundsTestEnable);
+    Serialise_vkCmdSetDepthBoundsTestEnable(ser, commandBuffer, depthBoundsTestEnable);
 
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdSetStencilTestEnableEXT(SerialiserType &ser,
-                                                           VkCommandBuffer commandBuffer,
-                                                           VkBool32 stencilTestEnable)
+bool WrappedVulkan::Serialise_vkCmdSetStencilTestEnable(SerialiserType &ser,
+                                                        VkCommandBuffer commandBuffer,
+                                                        VkBool32 stencilTestEnable)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(stencilTestEnable).Important();
@@ -1403,19 +1399,19 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilTestEnableEXT(SerialiserType &ser,
     }
 
     if(commandBuffer != VK_NULL_HANDLE)
-      ObjDisp(commandBuffer)->CmdSetStencilTestEnableEXT(Unwrap(commandBuffer), stencilTestEnable);
+      ObjDisp(commandBuffer)->CmdSetStencilTestEnable(Unwrap(commandBuffer), stencilTestEnable);
   }
 
   return true;
 }
 
-void WrappedVulkan::vkCmdSetStencilTestEnableEXT(VkCommandBuffer commandBuffer,
-                                                 VkBool32 stencilTestEnable)
+void WrappedVulkan::vkCmdSetStencilTestEnable(VkCommandBuffer commandBuffer,
+                                              VkBool32 stencilTestEnable)
 {
   SCOPED_DBG_SINK();
 
   SERIALISE_TIME_CALL(
-      ObjDisp(commandBuffer)->CmdSetStencilTestEnableEXT(Unwrap(commandBuffer), stencilTestEnable));
+      ObjDisp(commandBuffer)->CmdSetStencilTestEnable(Unwrap(commandBuffer), stencilTestEnable));
 
   if(IsCaptureMode(m_State))
   {
@@ -1423,18 +1419,18 @@ void WrappedVulkan::vkCmdSetStencilTestEnableEXT(VkCommandBuffer commandBuffer,
 
     CACHE_THREAD_SERIALISER();
 
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetStencilTestEnableEXT);
-    Serialise_vkCmdSetStencilTestEnableEXT(ser, commandBuffer, stencilTestEnable);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetStencilTestEnable);
+    Serialise_vkCmdSetStencilTestEnable(ser, commandBuffer, stencilTestEnable);
 
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdSetStencilOpEXT(SerialiserType &ser, VkCommandBuffer commandBuffer,
-                                                   VkStencilFaceFlags faceMask, VkStencilOp failOp,
-                                                   VkStencilOp passOp, VkStencilOp depthFailOp,
-                                                   VkCompareOp compareOp)
+bool WrappedVulkan::Serialise_vkCmdSetStencilOp(SerialiserType &ser, VkCommandBuffer commandBuffer,
+                                                VkStencilFaceFlags faceMask, VkStencilOp failOp,
+                                                VkStencilOp passOp, VkStencilOp depthFailOp,
+                                                VkCompareOp compareOp)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT_TYPED(VkStencilFaceFlagBits, faceMask).Important();
@@ -1483,22 +1479,21 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilOpEXT(SerialiserType &ser, VkComman
 
     if(commandBuffer != VK_NULL_HANDLE)
       ObjDisp(commandBuffer)
-          ->CmdSetStencilOpEXT(Unwrap(commandBuffer), faceMask, failOp, passOp, depthFailOp,
-                               compareOp);
+          ->CmdSetStencilOp(Unwrap(commandBuffer), faceMask, failOp, passOp, depthFailOp, compareOp);
   }
 
   return true;
 }
 
-void WrappedVulkan::vkCmdSetStencilOpEXT(VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask,
-                                         VkStencilOp failOp, VkStencilOp passOp,
-                                         VkStencilOp depthFailOp, VkCompareOp compareOp)
+void WrappedVulkan::vkCmdSetStencilOp(VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask,
+                                      VkStencilOp failOp, VkStencilOp passOp,
+                                      VkStencilOp depthFailOp, VkCompareOp compareOp)
 {
   SCOPED_DBG_SINK();
 
   SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
-                          ->CmdSetStencilOpEXT(Unwrap(commandBuffer), faceMask, failOp, passOp,
-                                               depthFailOp, compareOp));
+                          ->CmdSetStencilOp(Unwrap(commandBuffer), faceMask, failOp, passOp,
+                                            depthFailOp, compareOp));
 
   if(IsCaptureMode(m_State))
   {
@@ -1506,9 +1501,8 @@ void WrappedVulkan::vkCmdSetStencilOpEXT(VkCommandBuffer commandBuffer, VkStenci
 
     CACHE_THREAD_SERIALISER();
 
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetStencilOpEXT);
-    Serialise_vkCmdSetStencilOpEXT(ser, commandBuffer, faceMask, failOp, passOp, depthFailOp,
-                                   compareOp);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetStencilOp);
+    Serialise_vkCmdSetStencilOp(ser, commandBuffer, faceMask, failOp, passOp, depthFailOp, compareOp);
 
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
@@ -1581,9 +1575,9 @@ void WrappedVulkan::vkCmdSetColorWriteEnableEXT(VkCommandBuffer commandBuffer,
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdSetDepthBiasEnableEXT(SerialiserType &ser,
-                                                         VkCommandBuffer commandBuffer,
-                                                         VkBool32 depthBiasEnable)
+bool WrappedVulkan::Serialise_vkCmdSetDepthBiasEnable(SerialiserType &ser,
+                                                      VkCommandBuffer commandBuffer,
+                                                      VkBool32 depthBiasEnable)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(depthBiasEnable).Important();
@@ -1614,18 +1608,18 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthBiasEnableEXT(SerialiserType &ser,
     }
 
     if(commandBuffer != VK_NULL_HANDLE)
-      ObjDisp(commandBuffer)->CmdSetDepthBiasEnableEXT(Unwrap(commandBuffer), depthBiasEnable);
+      ObjDisp(commandBuffer)->CmdSetDepthBiasEnable(Unwrap(commandBuffer), depthBiasEnable);
   }
 
   return true;
 }
 
-void WrappedVulkan::vkCmdSetDepthBiasEnableEXT(VkCommandBuffer commandBuffer, VkBool32 depthBiasEnable)
+void WrappedVulkan::vkCmdSetDepthBiasEnable(VkCommandBuffer commandBuffer, VkBool32 depthBiasEnable)
 {
   SCOPED_DBG_SINK();
 
   SERIALISE_TIME_CALL(
-      ObjDisp(commandBuffer)->CmdSetDepthBiasEnableEXT(Unwrap(commandBuffer), depthBiasEnable));
+      ObjDisp(commandBuffer)->CmdSetDepthBiasEnable(Unwrap(commandBuffer), depthBiasEnable));
 
   if(IsCaptureMode(m_State))
   {
@@ -1633,8 +1627,8 @@ void WrappedVulkan::vkCmdSetDepthBiasEnableEXT(VkCommandBuffer commandBuffer, Vk
 
     CACHE_THREAD_SERIALISER();
 
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetDepthBiasEnableEXT);
-    Serialise_vkCmdSetDepthBiasEnableEXT(ser, commandBuffer, depthBiasEnable);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetDepthBiasEnable);
+    Serialise_vkCmdSetDepthBiasEnable(ser, commandBuffer, depthBiasEnable);
 
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
@@ -1760,9 +1754,9 @@ void WrappedVulkan::vkCmdSetPatchControlPointsEXT(VkCommandBuffer commandBuffer,
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdSetPrimitiveRestartEnableEXT(SerialiserType &ser,
-                                                                VkCommandBuffer commandBuffer,
-                                                                VkBool32 primitiveRestartEnable)
+bool WrappedVulkan::Serialise_vkCmdSetPrimitiveRestartEnable(SerialiserType &ser,
+                                                             VkCommandBuffer commandBuffer,
+                                                             VkBool32 primitiveRestartEnable)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(primitiveRestartEnable).Important();
@@ -1793,21 +1787,20 @@ bool WrappedVulkan::Serialise_vkCmdSetPrimitiveRestartEnableEXT(SerialiserType &
     }
 
     if(commandBuffer != VK_NULL_HANDLE)
-      ObjDisp(commandBuffer)
-          ->CmdSetPrimitiveRestartEnableEXT(Unwrap(commandBuffer), primitiveRestartEnable);
+      ObjDisp(commandBuffer)->CmdSetPrimitiveRestartEnable(Unwrap(commandBuffer), primitiveRestartEnable);
   }
 
   return true;
 }
 
-void WrappedVulkan::vkCmdSetPrimitiveRestartEnableEXT(VkCommandBuffer commandBuffer,
-                                                      VkBool32 primitiveRestartEnable)
+void WrappedVulkan::vkCmdSetPrimitiveRestartEnable(VkCommandBuffer commandBuffer,
+                                                   VkBool32 primitiveRestartEnable)
 {
   SCOPED_DBG_SINK();
 
   SERIALISE_TIME_CALL(
       ObjDisp(commandBuffer)
-          ->CmdSetPrimitiveRestartEnableEXT(Unwrap(commandBuffer), primitiveRestartEnable));
+          ->CmdSetPrimitiveRestartEnable(Unwrap(commandBuffer), primitiveRestartEnable));
 
   if(IsCaptureMode(m_State))
   {
@@ -1815,17 +1808,17 @@ void WrappedVulkan::vkCmdSetPrimitiveRestartEnableEXT(VkCommandBuffer commandBuf
 
     CACHE_THREAD_SERIALISER();
 
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetPrimitiveRestartEnableEXT);
-    Serialise_vkCmdSetPrimitiveRestartEnableEXT(ser, commandBuffer, primitiveRestartEnable);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetPrimitiveRestartEnable);
+    Serialise_vkCmdSetPrimitiveRestartEnable(ser, commandBuffer, primitiveRestartEnable);
 
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdSetRasterizerDiscardEnableEXT(SerialiserType &ser,
-                                                                 VkCommandBuffer commandBuffer,
-                                                                 VkBool32 rasterizerDiscardEnable)
+bool WrappedVulkan::Serialise_vkCmdSetRasterizerDiscardEnable(SerialiserType &ser,
+                                                              VkCommandBuffer commandBuffer,
+                                                              VkBool32 rasterizerDiscardEnable)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(rasterizerDiscardEnable).Important();
@@ -1857,20 +1850,20 @@ bool WrappedVulkan::Serialise_vkCmdSetRasterizerDiscardEnableEXT(SerialiserType 
 
     if(commandBuffer != VK_NULL_HANDLE)
       ObjDisp(commandBuffer)
-          ->CmdSetRasterizerDiscardEnableEXT(Unwrap(commandBuffer), rasterizerDiscardEnable);
+          ->CmdSetRasterizerDiscardEnable(Unwrap(commandBuffer), rasterizerDiscardEnable);
   }
 
   return true;
 }
 
-void WrappedVulkan::vkCmdSetRasterizerDiscardEnableEXT(VkCommandBuffer commandBuffer,
-                                                       VkBool32 rasterizerDiscardEnable)
+void WrappedVulkan::vkCmdSetRasterizerDiscardEnable(VkCommandBuffer commandBuffer,
+                                                    VkBool32 rasterizerDiscardEnable)
 {
   SCOPED_DBG_SINK();
 
   SERIALISE_TIME_CALL(
       ObjDisp(commandBuffer)
-          ->CmdSetRasterizerDiscardEnableEXT(Unwrap(commandBuffer), rasterizerDiscardEnable));
+          ->CmdSetRasterizerDiscardEnable(Unwrap(commandBuffer), rasterizerDiscardEnable));
 
   if(IsCaptureMode(m_State))
   {
@@ -1878,8 +1871,8 @@ void WrappedVulkan::vkCmdSetRasterizerDiscardEnableEXT(VkCommandBuffer commandBu
 
     CACHE_THREAD_SERIALISER();
 
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetRasterizerDiscardEnableEXT);
-    Serialise_vkCmdSetRasterizerDiscardEnableEXT(ser, commandBuffer, rasterizerDiscardEnable);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetRasterizerDiscardEnable);
+    Serialise_vkCmdSetRasterizerDiscardEnable(ser, commandBuffer, rasterizerDiscardEnable);
 
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
   }
@@ -1925,50 +1918,50 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetDiscardRectangleEXT, VkCommandBuff
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetLineStippleEXT, VkCommandBuffer commandBuffer,
                                 uint32_t lineStippleFactor, uint16_t lineStipplePattern);
 
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetCullModeEXT, VkCommandBuffer commandBuffer,
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetCullMode, VkCommandBuffer commandBuffer,
                                 VkCullModeFlags cullMode);
 
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetFrontFaceEXT, VkCommandBuffer commandBuffer,
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetFrontFace, VkCommandBuffer commandBuffer,
                                 VkFrontFace frontFace);
 
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetPrimitiveTopologyEXT, VkCommandBuffer commandBuffer,
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetPrimitiveTopology, VkCommandBuffer commandBuffer,
                                 VkPrimitiveTopology primitiveTopology);
 
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetViewportWithCountEXT, VkCommandBuffer commandBuffer,
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetViewportWithCount, VkCommandBuffer commandBuffer,
                                 uint32_t viewportCount, const VkViewport *pViewports);
 
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetScissorWithCountEXT, VkCommandBuffer commandBuffer,
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetScissorWithCount, VkCommandBuffer commandBuffer,
                                 uint32_t scissorCount, const VkRect2D *pScissors);
 
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetDepthTestEnableEXT, VkCommandBuffer commandBuffer,
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetDepthTestEnable, VkCommandBuffer commandBuffer,
                                 VkBool32 depthTestEnable);
 
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetDepthWriteEnableEXT, VkCommandBuffer commandBuffer,
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetDepthWriteEnable, VkCommandBuffer commandBuffer,
                                 VkBool32 depthWriteEnable);
 
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetDepthCompareOpEXT, VkCommandBuffer commandBuffer,
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetDepthCompareOp, VkCommandBuffer commandBuffer,
                                 VkCompareOp depthCompareOp);
 
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetDepthBoundsTestEnableEXT,
-                                VkCommandBuffer commandBuffer, VkBool32 depthBoundsTestEnable);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetDepthBoundsTestEnable, VkCommandBuffer commandBuffer,
+                                VkBool32 depthBoundsTestEnable);
 
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetStencilTestEnableEXT, VkCommandBuffer commandBuffer,
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetStencilTestEnable, VkCommandBuffer commandBuffer,
                                 VkBool32 stencilTestEnable);
 
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetStencilOpEXT, VkCommandBuffer commandBuffer,
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetStencilOp, VkCommandBuffer commandBuffer,
                                 VkStencilFaceFlags faceMask, VkStencilOp failOp, VkStencilOp passOp,
                                 VkStencilOp depthFailOp, VkCompareOp compareOp);
 
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetColorWriteEnableEXT, VkCommandBuffer commandBuffer,
                                 uint32_t attachmentCount, const VkBool32 *pColorWriteEnables);
 
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetDepthBiasEnableEXT, VkCommandBuffer commandBuffer,
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetDepthBiasEnable, VkCommandBuffer commandBuffer,
                                 VkBool32 depthBiasEnable);
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetLogicOpEXT, VkCommandBuffer commandBuffer,
                                 VkLogicOp logicOp);
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetPatchControlPointsEXT, VkCommandBuffer commandBuffer,
                                 uint32_t patchControlPoints);
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetPrimitiveRestartEnableEXT,
-                                VkCommandBuffer commandBuffer, VkBool32 primitiveRestartEnable);
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetRasterizerDiscardEnableEXT,
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetPrimitiveRestartEnable, VkCommandBuffer commandBuffer,
+                                VkBool32 primitiveRestartEnable);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetRasterizerDiscardEnable,
                                 VkCommandBuffer commandBuffer, VkBool32 rasterizerDiscardEnable);

@@ -40,7 +40,7 @@ VkDynamicState ConvertDynamicState(VulkanDynamicStateIndex idx)
     case VkDynamicViewportWScalingNV: return VK_DYNAMIC_STATE_VIEWPORT_W_SCALING_NV;
     case VkDynamicDiscardRectangleEXT: return VK_DYNAMIC_STATE_DISCARD_RECTANGLE_EXT;
     case VkDynamicSampleLocationsEXT: return VK_DYNAMIC_STATE_SAMPLE_LOCATIONS_EXT;
-    case VkDynamicRayTracingStackSizeEXT:
+    case VkDynamicRayTracingStackSizeKHR:
       return VK_DYNAMIC_STATE_RAY_TRACING_PIPELINE_STACK_SIZE_KHR;
     case VkDynamicViewportShadingRatePaletteNV:
       return VK_DYNAMIC_STATE_VIEWPORT_SHADING_RATE_PALETTE_NV;
@@ -49,25 +49,24 @@ VkDynamicState ConvertDynamicState(VulkanDynamicStateIndex idx)
     case VkDynamicExclusiveScissorNV: return VK_DYNAMIC_STATE_EXCLUSIVE_SCISSOR_NV;
     case VkDynamicShadingRateKHR: return VK_DYNAMIC_STATE_FRAGMENT_SHADING_RATE_KHR;
     case VkDynamicLineStippleEXT: return VK_DYNAMIC_STATE_LINE_STIPPLE_EXT;
-    case VkDynamicCullModeEXT: return VK_DYNAMIC_STATE_CULL_MODE_EXT;
-    case VkDynamicFrontFaceEXT: return VK_DYNAMIC_STATE_FRONT_FACE_EXT;
-    case VkDynamicPrimitiveTopologyEXT: return VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY_EXT;
-    case VkDynamicViewportCountEXT: return VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT_EXT;
-    case VkDynamicScissorCountEXT: return VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT_EXT;
-    case VkDynamicVertexInputBindingStrideEXT:
-      return VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE_EXT;
-    case VkDynamicDepthTestEnableEXT: return VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE_EXT;
-    case VkDynamicDepthWriteEnableEXT: return VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE_EXT;
-    case VkDynamicDepthCompareOpEXT: return VK_DYNAMIC_STATE_DEPTH_COMPARE_OP_EXT;
-    case VkDynamicDepthBoundsTestEnableEXT: return VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE_EXT;
-    case VkDynamicStencilTestEnableEXT: return VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE_EXT;
-    case VkDynamicStencilOpEXT: return VK_DYNAMIC_STATE_STENCIL_OP_EXT;
+    case VkDynamicCullMode: return VK_DYNAMIC_STATE_CULL_MODE;
+    case VkDynamicFrontFace: return VK_DYNAMIC_STATE_FRONT_FACE;
+    case VkDynamicPrimitiveTopology: return VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY;
+    case VkDynamicViewportCount: return VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT;
+    case VkDynamicScissorCount: return VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT;
+    case VkDynamicVertexInputBindingStride: return VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE;
+    case VkDynamicDepthTestEnable: return VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE;
+    case VkDynamicDepthWriteEnable: return VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE;
+    case VkDynamicDepthCompareOp: return VK_DYNAMIC_STATE_DEPTH_COMPARE_OP;
+    case VkDynamicDepthBoundsTestEnable: return VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE;
+    case VkDynamicStencilTestEnable: return VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE;
+    case VkDynamicStencilOp: return VK_DYNAMIC_STATE_STENCIL_OP;
     case VkDynamicVertexInputEXT: return VK_DYNAMIC_STATE_VERTEX_INPUT_EXT;
     case VkDynamicControlPointsEXT: return VK_DYNAMIC_STATE_PATCH_CONTROL_POINTS_EXT;
-    case VkDynamicRastDiscardEXT: return VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE_EXT;
-    case VkDynamicDepthBiasEnableEXT: return VK_DYNAMIC_STATE_DEPTH_BIAS_ENABLE_EXT;
+    case VkDynamicRastDiscard: return VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE;
+    case VkDynamicDepthBiasEnable: return VK_DYNAMIC_STATE_DEPTH_BIAS_ENABLE;
     case VkDynamicLogicOpEXT: return VK_DYNAMIC_STATE_LOGIC_OP_EXT;
-    case VkDynamicPrimRestartEXT: return VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE_EXT;
+    case VkDynamicPrimRestart: return VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE;
     case VkDynamicColorWriteEXT: return VK_DYNAMIC_STATE_COLOR_WRITE_ENABLE_EXT;
     case VkDynamicCount: break;
   }
@@ -94,7 +93,7 @@ VulkanDynamicStateIndex ConvertDynamicState(VkDynamicState state)
     case VK_DYNAMIC_STATE_DISCARD_RECTANGLE_EXT: return VkDynamicDiscardRectangleEXT;
     case VK_DYNAMIC_STATE_SAMPLE_LOCATIONS_EXT: return VkDynamicSampleLocationsEXT;
     case VK_DYNAMIC_STATE_RAY_TRACING_PIPELINE_STACK_SIZE_KHR:
-      return VkDynamicRayTracingStackSizeEXT;
+      return VkDynamicRayTracingStackSizeKHR;
     case VK_DYNAMIC_STATE_VIEWPORT_SHADING_RATE_PALETTE_NV:
       return VkDynamicViewportShadingRatePaletteNV;
     case VK_DYNAMIC_STATE_VIEWPORT_COARSE_SAMPLE_ORDER_NV:
@@ -102,25 +101,24 @@ VulkanDynamicStateIndex ConvertDynamicState(VkDynamicState state)
     case VK_DYNAMIC_STATE_EXCLUSIVE_SCISSOR_NV: return VkDynamicExclusiveScissorNV;
     case VK_DYNAMIC_STATE_FRAGMENT_SHADING_RATE_KHR: return VkDynamicShadingRateKHR;
     case VK_DYNAMIC_STATE_LINE_STIPPLE_EXT: return VkDynamicLineStippleEXT;
-    case VK_DYNAMIC_STATE_CULL_MODE_EXT: return VkDynamicCullModeEXT;
-    case VK_DYNAMIC_STATE_FRONT_FACE_EXT: return VkDynamicFrontFaceEXT;
-    case VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY_EXT: return VkDynamicPrimitiveTopologyEXT;
-    case VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT_EXT: return VkDynamicViewportCountEXT;
-    case VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT_EXT: return VkDynamicScissorCountEXT;
-    case VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE_EXT:
-      return VkDynamicVertexInputBindingStrideEXT;
-    case VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE_EXT: return VkDynamicDepthTestEnableEXT;
-    case VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE_EXT: return VkDynamicDepthWriteEnableEXT;
-    case VK_DYNAMIC_STATE_DEPTH_COMPARE_OP_EXT: return VkDynamicDepthCompareOpEXT;
-    case VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE_EXT: return VkDynamicDepthBoundsTestEnableEXT;
-    case VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE_EXT: return VkDynamicStencilTestEnableEXT;
-    case VK_DYNAMIC_STATE_STENCIL_OP_EXT: return VkDynamicStencilOpEXT;
+    case VK_DYNAMIC_STATE_CULL_MODE: return VkDynamicCullMode;
+    case VK_DYNAMIC_STATE_FRONT_FACE: return VkDynamicFrontFace;
+    case VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY: return VkDynamicPrimitiveTopology;
+    case VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT: return VkDynamicViewportCount;
+    case VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT: return VkDynamicScissorCount;
+    case VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE: return VkDynamicVertexInputBindingStride;
+    case VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE: return VkDynamicDepthTestEnable;
+    case VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE: return VkDynamicDepthWriteEnable;
+    case VK_DYNAMIC_STATE_DEPTH_COMPARE_OP: return VkDynamicDepthCompareOp;
+    case VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE: return VkDynamicDepthBoundsTestEnable;
+    case VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE: return VkDynamicStencilTestEnable;
+    case VK_DYNAMIC_STATE_STENCIL_OP: return VkDynamicStencilOp;
     case VK_DYNAMIC_STATE_VERTEX_INPUT_EXT: return VkDynamicVertexInputEXT;
     case VK_DYNAMIC_STATE_PATCH_CONTROL_POINTS_EXT: return VkDynamicControlPointsEXT;
-    case VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE_EXT: return VkDynamicRastDiscardEXT;
-    case VK_DYNAMIC_STATE_DEPTH_BIAS_ENABLE_EXT: return VkDynamicDepthBiasEnableEXT;
+    case VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE: return VkDynamicRastDiscard;
+    case VK_DYNAMIC_STATE_DEPTH_BIAS_ENABLE: return VkDynamicDepthBiasEnable;
     case VK_DYNAMIC_STATE_LOGIC_OP_EXT: return VkDynamicLogicOpEXT;
-    case VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE_EXT: return VkDynamicPrimRestartEXT;
+    case VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE: return VkDynamicPrimRestart;
     case VK_DYNAMIC_STATE_COLOR_WRITE_ENABLE_EXT: return VkDynamicColorWriteEXT;
     case VK_DYNAMIC_STATE_MAX_ENUM: break;
   }
@@ -166,7 +164,7 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
        bindings[b].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
       dynamicCount++;
 
-    if(bindings[b].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+    if(bindings[b].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
     {
       inlineCount++;
       inlineByteSize = AlignUp4(inlineByteSize + bindings[b].descriptorCount);
@@ -202,7 +200,7 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
     if(bindings[b].variableSize)
       break;
 
-    if(bindings[b].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+    if(bindings[b].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
     {
       elemOffset++;
     }
@@ -238,7 +236,7 @@ void DescSetLayout::CreateBindingsArray(BindingStorage &bindingStorage, uint32_t
       {
         bindingStorage.binds[i] = bindingStorage.elems.data() + bindings[i].elemOffset;
 
-        if(bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+        if(bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
         {
           bindingStorage.binds[i]->inlineOffset = inlineOffset;
           inlineOffset = AlignUp4(inlineOffset + bindings[i].descriptorCount);
@@ -287,7 +285,7 @@ void DescSetLayout::UpdateBindingsArray(const DescSetLayout &prevLayout,
       {
         DescriptorSetSlot *newSlots = newElems.data() + bindings[i].elemOffset;
 
-        if(bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+        if(bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
         {
           bindingStorage.binds[i]->inlineOffset = inlineOffset;
           inlineOffset = AlignUp4(inlineOffset + bindings[i].descriptorCount);
@@ -362,9 +360,9 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
   renderpass = GetResID(pCreateInfo->renderPass);
   subpass = pCreateInfo->subpass;
 
-  const VkPipelineRenderingCreateInfoKHR *dynRenderCreate =
-      (const VkPipelineRenderingCreateInfoKHR *)FindNextStruct(
-          pCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR);
+  const VkPipelineRenderingCreateInfo *dynRenderCreate =
+      (const VkPipelineRenderingCreateInfo *)FindNextStruct(
+          pCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO);
   if(dynRenderCreate)
   {
     viewMask = dynRenderCreate->viewMask;
@@ -390,9 +388,9 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
     // if the viewports and counts are dynamic this supersets the viewport only being dynamic. For
     // ease of code elsewhere, turn off the older one if both are specified so that we don't call
     // vkCmdSetViewports when the count is also dynamic.
-    if(dynamicStates[VkDynamicViewportCountEXT])
+    if(dynamicStates[VkDynamicViewportCount])
       dynamicStates[VkDynamicViewport] = false;
-    if(dynamicStates[VkDynamicScissorCountEXT])
+    if(dynamicStates[VkDynamicScissorCount])
       dynamicStates[VkDynamicScissor] = false;
   }
 
@@ -965,10 +963,9 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
     dst.stencilFinalLayout = dst.finalLayout = pCreateInfo->pAttachments[i].finalLayout;
 
     // VK_KHR_separate_depth_stencil_layouts
-    const VkAttachmentDescriptionStencilLayoutKHR *separateStencil =
-        (const VkAttachmentDescriptionStencilLayoutKHR *)FindNextStruct(
-            &pCreateInfo->pAttachments[i],
-            VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_STENCIL_LAYOUT_KHR);
+    const VkAttachmentDescriptionStencilLayout *separateStencil =
+        (const VkAttachmentDescriptionStencilLayout *)FindNextStruct(
+            &pCreateInfo->pAttachments[i], VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_STENCIL_LAYOUT);
 
     if(separateStencil)
     {
@@ -995,9 +992,9 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
     {
       dst.inputAttachments[i] = src.pInputAttachments[i].attachment;
       dst.inputStencilLayouts[i] = dst.inputLayouts[i] = src.pInputAttachments[i].layout;
-      const VkAttachmentReferenceStencilLayoutKHR *stencilLayout =
-          (const VkAttachmentReferenceStencilLayoutKHR *)FindNextStruct(
-              &src.pInputAttachments[i], VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_STENCIL_LAYOUT_KHR);
+      const VkAttachmentReferenceStencilLayout *stencilLayout =
+          (const VkAttachmentReferenceStencilLayout *)FindNextStruct(
+              &src.pInputAttachments[i], VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_STENCIL_LAYOUT);
       if(stencilLayout != NULL)
         dst.inputStencilLayouts[i] = stencilLayout->stencilLayout;
     }
@@ -1033,9 +1030,9 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
       attachments[dst.depthstencilAttachment].used = true;
 
     // VK_KHR_separate_depth_stencil_layouts
-    const VkAttachmentReferenceStencilLayoutKHR *separateStencil =
-        (const VkAttachmentReferenceStencilLayoutKHR *)FindNextStruct(
-            src.pDepthStencilAttachment, VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_STENCIL_LAYOUT_KHR);
+    const VkAttachmentReferenceStencilLayout *separateStencil =
+        (const VkAttachmentReferenceStencilLayout *)FindNextStruct(
+            src.pDepthStencilAttachment, VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_STENCIL_LAYOUT);
 
     if(separateStencil)
       dst.stencilLayout = separateStencil->stencilLayout;
@@ -1434,7 +1431,7 @@ void DescUpdateTemplate::Init(VulkanResourceManager *resourceMan, VulkanCreation
 
       imageInfoCount += entry.descriptorCount;
     }
-    else if(entry.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+    else if(entry.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
     {
       // a bit of magic handling. The calculation is stride * descriptorCount bytes for the data,
       // plus the size of the 'base' structure. For inline uniform blocks there's no base structure
@@ -1540,12 +1537,12 @@ void DescUpdateTemplate::Apply(const void *pData, DescUpdateTemplateApplication 
 
       write.pImageInfo = &application.imgInfo[idx];
     }
-    else if(entry.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+    else if(entry.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
     {
       application.inlineUniform.push_back({});
 
-      VkWriteDescriptorSetInlineUniformBlockEXT &inlineWrite = application.inlineUniform.back();
-      inlineWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT;
+      VkWriteDescriptorSetInlineUniformBlock &inlineWrite = application.inlineUniform.back();
+      inlineWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK;
       inlineWrite.pNext = NULL;
       inlineWrite.dataSize = entry.descriptorCount;
 

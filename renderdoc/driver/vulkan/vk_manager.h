@@ -119,7 +119,7 @@ struct VkInitialContents
   DescriptorSetSlot *descriptorSlots;
   VkWriteDescriptorSet *descriptorWrites;
   VkDescriptorBufferInfo *descriptorInfo;
-  VkWriteDescriptorSetInlineUniformBlockEXT *inlineInfo;
+  VkWriteDescriptorSetInlineUniformBlock *inlineInfo;
   byte *inlineData;
   size_t inlineByteSize;
   uint32_t numDescriptors;
@@ -244,7 +244,7 @@ public:
   // VkImageMemoryBarrier2KHR. This includes new image layouts added (which should only be used if
   // the extension is supported).
   void RecordBarriers(rdcflatmap<ResourceId, ImageState> &states, uint32_t queueFamilyIndex,
-                      uint32_t numBarriers, const VkImageMemoryBarrier2KHR *barriers);
+                      uint32_t numBarriers, const VkImageMemoryBarrier2 *barriers);
 
   template <typename SerialiserType>
   void SerialiseImageStates(SerialiserType &ser, std::map<ResourceId, LockingImageState> &states);

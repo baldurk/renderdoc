@@ -431,7 +431,7 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
     // don't fail when a compile is required because we don't currently replay caches so this will
     // always happen. This still allows application to use this flag at runtime where it will be
     // valid
-    CreateInfo.flags &= ~VK_PIPELINE_CREATE_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT_EXT;
+    CreateInfo.flags &= ~VK_PIPELINE_CREATE_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT;
 
     VkGraphicsPipelineCreateInfo *unwrapped = UnwrapInfos(&CreateInfo, 1);
     VkResult ret = ObjDisp(device)->CreateGraphicsPipelines(Unwrap(device), Unwrap(pipelineCache),
@@ -525,7 +525,7 @@ VkResult WrappedVulkan::vkCreateGraphicsPipelines(VkDevice device, VkPipelineCac
       ret = ObjDisp(device)->CreateGraphicsPipelines(Unwrap(device), Unwrap(pipelineCache), count,
                                                      unwrapped, pAllocator, pPipelines));
 
-  if(ret == VK_SUCCESS || ret == VK_ERROR_PIPELINE_COMPILE_REQUIRED_EXT)
+  if(ret == VK_SUCCESS || ret == VK_PIPELINE_COMPILE_REQUIRED)
   {
     for(uint32_t i = 0; i < count; i++)
     {

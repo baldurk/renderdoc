@@ -274,7 +274,7 @@ public:
               }
               break;
             }
-            case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT:
+            case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK:
             {
               // push directly into the buffer cache from the inline data
               BindpointIndex idx;

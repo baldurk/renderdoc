@@ -934,11 +934,11 @@ private:
   void InsertActionsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo);
   void CaptureQueueSubmit(VkQueue queue, const rdcarray<VkCommandBuffer> &commandBuffers,
                           VkFence fence);
-  void ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo, rdcstr basename);
+  void ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2 submitInfo, rdcstr basename);
   void InternalFlushMemoryRange(VkDevice device, const VkMappedMemoryRange &memRange,
                                 bool internalFlush, bool capframe);
 
-  void DoSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo);
+  void DoSubmit(VkQueue queue, VkSubmitInfo2 submitInfo);
 
   rdcarray<VulkanActionTreeNode *> m_ActionStack;
 
@@ -2059,7 +2059,7 @@ public:
                                 VkDeviceSize dstOffset, uint32_t marker);
   // VK_KHR_synchronization2 interaction
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdWriteBufferMarker2AMD, VkCommandBuffer commandBuffer,
-                                VkPipelineStageFlags2KHR stage, VkBuffer dstBuffer,
+                                VkPipelineStageFlags2 stage, VkBuffer dstBuffer,
                                 VkDeviceSize dstOffset, uint32_t marker);
 
   // VK_EXT_debug_utils
@@ -2373,99 +2373,97 @@ public:
 
   // VK_EXT_tooling_info
 
-  VkResult vkGetPhysicalDeviceToolPropertiesEXT(VkPhysicalDevice physicalDevice, uint32_t *pToolCount,
-                                                VkPhysicalDeviceToolPropertiesEXT *pToolProperties);
+  VkResult vkGetPhysicalDeviceToolProperties(VkPhysicalDevice physicalDevice, uint32_t *pToolCount,
+                                             VkPhysicalDeviceToolProperties *pToolProperties);
 
   // VK_EXT_private_data
 
-  VkResult vkCreatePrivateDataSlotEXT(VkDevice device,
-                                      const VkPrivateDataSlotCreateInfoEXT *pCreateInfo,
-                                      const VkAllocationCallbacks *pAllocator,
-                                      VkPrivateDataSlotEXT *pPrivateDataSlot);
+  VkResult vkCreatePrivateDataSlot(VkDevice device, const VkPrivateDataSlotCreateInfo *pCreateInfo,
+                                   const VkAllocationCallbacks *pAllocator,
+                                   VkPrivateDataSlot *pPrivateDataSlot);
 
-  void vkDestroyPrivateDataSlotEXT(VkDevice device, VkPrivateDataSlotEXT privateDataSlot,
-                                   const VkAllocationCallbacks *pAllocator);
+  void vkDestroyPrivateDataSlot(VkDevice device, VkPrivateDataSlot privateDataSlot,
+                                const VkAllocationCallbacks *pAllocator);
 
-  VkResult vkSetPrivateDataEXT(VkDevice device, VkObjectType objectType, uint64_t objectHandle,
-                               VkPrivateDataSlotEXT privateDataSlot, uint64_t data);
+  VkResult vkSetPrivateData(VkDevice device, VkObjectType objectType, uint64_t objectHandle,
+                            VkPrivateDataSlot privateDataSlot, uint64_t data);
 
-  void vkGetPrivateDataEXT(VkDevice device, VkObjectType objectType, uint64_t objectHandle,
-                           VkPrivateDataSlotEXT privateDataSlot, uint64_t *pData);
+  void vkGetPrivateData(VkDevice device, VkObjectType objectType, uint64_t objectHandle,
+                        VkPrivateDataSlot privateDataSlot, uint64_t *pData);
 
   // VK_EXT_extended_dynamic_state
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetCullModeEXT, VkCommandBuffer commandBuffer,
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetCullMode, VkCommandBuffer commandBuffer,
                                 VkCullModeFlags cullMode);
 
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetFrontFaceEXT, VkCommandBuffer commandBuffer,
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetFrontFace, VkCommandBuffer commandBuffer,
                                 VkFrontFace frontFace);
 
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetPrimitiveTopologyEXT, VkCommandBuffer commandBuffer,
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetPrimitiveTopology, VkCommandBuffer commandBuffer,
                                 VkPrimitiveTopology primitiveTopology);
 
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetViewportWithCountEXT, VkCommandBuffer commandBuffer,
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetViewportWithCount, VkCommandBuffer commandBuffer,
                                 uint32_t viewportCount, const VkViewport *pViewports);
 
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetScissorWithCountEXT, VkCommandBuffer commandBuffer,
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetScissorWithCount, VkCommandBuffer commandBuffer,
                                 uint32_t scissorCount, const VkRect2D *pScissors);
 
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindVertexBuffers2EXT, VkCommandBuffer commandBuffer,
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindVertexBuffers2, VkCommandBuffer commandBuffer,
                                 uint32_t firstBinding, uint32_t bindingCount,
                                 const VkBuffer *pBuffers, const VkDeviceSize *pOffsets,
                                 const VkDeviceSize *pSizes, const VkDeviceSize *pStrides);
 
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetDepthTestEnableEXT, VkCommandBuffer commandBuffer,
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetDepthTestEnable, VkCommandBuffer commandBuffer,
                                 VkBool32 depthTestEnable);
 
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetDepthWriteEnableEXT, VkCommandBuffer commandBuffer,
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetDepthWriteEnable, VkCommandBuffer commandBuffer,
                                 VkBool32 depthWriteEnable);
 
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetDepthCompareOpEXT, VkCommandBuffer commandBuffer,
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetDepthCompareOp, VkCommandBuffer commandBuffer,
                                 VkCompareOp depthCompareOp);
 
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetDepthBoundsTestEnableEXT,
-                                VkCommandBuffer commandBuffer, VkBool32 depthBoundsTestEnable);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetDepthBoundsTestEnable, VkCommandBuffer commandBuffer,
+                                VkBool32 depthBoundsTestEnable);
 
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetStencilTestEnableEXT, VkCommandBuffer commandBuffer,
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetStencilTestEnable, VkCommandBuffer commandBuffer,
                                 VkBool32 stencilTestEnable);
 
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetStencilOpEXT, VkCommandBuffer commandBuffer,
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetStencilOp, VkCommandBuffer commandBuffer,
                                 VkStencilFaceFlags faceMask, VkStencilOp failOp, VkStencilOp passOp,
                                 VkStencilOp depthFailOp, VkCompareOp compareOp);
 
   // VK_KHR_copy_commands2
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyBuffer2KHR, VkCommandBuffer commandBuffer,
-                                const VkCopyBufferInfo2KHR *pCopyBufferInfo);
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyImage2KHR, VkCommandBuffer commandBuffer,
-                                const VkCopyImageInfo2KHR *pCopyImageInfo);
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyBufferToImage2KHR, VkCommandBuffer commandBuffer,
-                                const VkCopyBufferToImageInfo2KHR *pCopyBufferToImageInfo);
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyImageToBuffer2KHR, VkCommandBuffer commandBuffer,
-                                const VkCopyImageToBufferInfo2KHR *pCopyImageToBufferInfo);
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBlitImage2KHR, VkCommandBuffer commandBuffer,
-                                const VkBlitImageInfo2KHR *pBlitImageInfo);
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdResolveImage2KHR, VkCommandBuffer commandBuffer,
-                                const VkResolveImageInfo2KHR *pResolveImageInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyBuffer2, VkCommandBuffer commandBuffer,
+                                const VkCopyBufferInfo2 *pCopyBufferInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyImage2, VkCommandBuffer commandBuffer,
+                                const VkCopyImageInfo2 *pCopyImageInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyBufferToImage2, VkCommandBuffer commandBuffer,
+                                const VkCopyBufferToImageInfo2 *pCopyBufferToImageInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyImageToBuffer2, VkCommandBuffer commandBuffer,
+                                const VkCopyImageToBufferInfo2 *pCopyImageToBufferInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBlitImage2, VkCommandBuffer commandBuffer,
+                                const VkBlitImageInfo2 *pBlitImageInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdResolveImage2, VkCommandBuffer commandBuffer,
+                                const VkResolveImageInfo2 *pResolveImageInfo);
 
   // VK_KHR_synchronization2
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetEvent2KHR, VkCommandBuffer commandBuffer,
-                                VkEvent event, const VkDependencyInfoKHR *pDependencyInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetEvent2, VkCommandBuffer commandBuffer, VkEvent event,
+                                const VkDependencyInfo *pDependencyInfo);
 
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdResetEvent2KHR, VkCommandBuffer commandBuffer,
-                                VkEvent event, VkPipelineStageFlags2KHR stageMask);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdResetEvent2, VkCommandBuffer commandBuffer,
+                                VkEvent event, VkPipelineStageFlags2 stageMask);
 
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdWaitEvents2KHR, VkCommandBuffer commandBuffer,
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdWaitEvents2, VkCommandBuffer commandBuffer,
                                 uint32_t eventCount, const VkEvent *pEvents,
-                                const VkDependencyInfoKHR *pDependencyInfos);
+                                const VkDependencyInfo *pDependencyInfos);
 
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdPipelineBarrier2KHR, VkCommandBuffer commandBuffer,
-                                const VkDependencyInfoKHR *pDependencyInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdPipelineBarrier2, VkCommandBuffer commandBuffer,
+                                const VkDependencyInfo *pDependencyInfo);
 
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdWriteTimestamp2KHR, VkCommandBuffer commandBuffer,
-                                VkPipelineStageFlags2KHR stage, VkQueryPool queryPool,
-                                uint32_t query);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdWriteTimestamp2, VkCommandBuffer commandBuffer,
+                                VkPipelineStageFlags2 stage, VkQueryPool queryPool, uint32_t query);
 
-  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkQueueSubmit2KHR, VkQueue queue, uint32_t submitCount,
-                                const VkSubmitInfo2KHR *pSubmits, VkFence fence);
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkQueueSubmit2, VkQueue queue, uint32_t submitCount,
+                                const VkSubmitInfo2 *pSubmits, VkFence fence);
 
   // VK_KHR_present_wait
 
@@ -2473,16 +2471,16 @@ public:
                                 VkSwapchainKHR swapchain, uint64_t presentId, uint64_t timeout);
 
   // VK_KHR_maintenance4
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkGetDeviceBufferMemoryRequirementsKHR, VkDevice device,
-                                const VkDeviceBufferMemoryRequirementsKHR *pInfo,
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkGetDeviceBufferMemoryRequirements, VkDevice device,
+                                const VkDeviceBufferMemoryRequirements *pInfo,
                                 VkMemoryRequirements2 *pMemoryRequirements);
 
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkGetDeviceImageMemoryRequirementsKHR, VkDevice device,
-                                const VkDeviceImageMemoryRequirementsKHR *pInfo,
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkGetDeviceImageMemoryRequirements, VkDevice device,
+                                const VkDeviceImageMemoryRequirements *pInfo,
                                 VkMemoryRequirements2 *pMemoryRequirements);
 
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkGetDeviceImageSparseMemoryRequirementsKHR, VkDevice device,
-                                const VkDeviceImageMemoryRequirementsKHR *pInfo,
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkGetDeviceImageSparseMemoryRequirements, VkDevice device,
+                                const VkDeviceImageMemoryRequirements *pInfo,
                                 uint32_t *pSparseMemoryRequirementCount,
                                 VkSparseImageMemoryRequirements2 *pSparseMemoryRequirements);
 
@@ -2493,15 +2491,15 @@ public:
 
   // VK_EXT_extended_dynamic_state2
 
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetDepthBiasEnableEXT, VkCommandBuffer commandBuffer,
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetDepthBiasEnable, VkCommandBuffer commandBuffer,
                                 VkBool32 depthBiasEnable);
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetLogicOpEXT, VkCommandBuffer commandBuffer,
                                 VkLogicOp logicOp);
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetPatchControlPointsEXT, VkCommandBuffer commandBuffer,
                                 uint32_t patchControlPoints);
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetPrimitiveRestartEnableEXT,
-                                VkCommandBuffer commandBuffer, VkBool32 primitiveRestartEnable);
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetRasterizerDiscardEnableEXT,
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetPrimitiveRestartEnable, VkCommandBuffer commandBuffer,
+                                VkBool32 primitiveRestartEnable);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetRasterizerDiscardEnable,
                                 VkCommandBuffer commandBuffer, VkBool32 rasterizerDiscardEnable);
 
   // VK_EXT_vertex_input_dynamic_state
@@ -2515,8 +2513,8 @@ public:
 
   // VK_KHR_dynamic_rendering
 
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBeginRenderingKHR, VkCommandBuffer commandBuffer,
-                                const VkRenderingInfoKHR *pRenderingInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBeginRendering, VkCommandBuffer commandBuffer,
+                                const VkRenderingInfo *pRenderingInfo);
 
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdEndRenderingKHR, VkCommandBuffer commandBuffer);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdEndRendering, VkCommandBuffer commandBuffer);
 };

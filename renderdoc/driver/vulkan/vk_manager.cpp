@@ -255,7 +255,7 @@ void VulkanResourceManager::RecordBarriers(rdcarray<rdcpair<ResourceId, ImageReg
 
 void VulkanResourceManager::RecordBarriers(rdcflatmap<ResourceId, ImageState> &states,
                                            uint32_t queueFamilyIndex, uint32_t numBarriers,
-                                           const VkImageMemoryBarrier2KHR *barriers)
+                                           const VkImageMemoryBarrier2 *barriers)
 {
   rdcarray<VkImageMemoryBarrier> downcast;
   downcast.reserve(numBarriers);

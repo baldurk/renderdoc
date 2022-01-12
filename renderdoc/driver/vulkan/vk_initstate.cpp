@@ -1041,8 +1041,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
 
       if(layout.inlineCount > 0)
       {
-        initialContents.inlineInfo =
-            new VkWriteDescriptorSetInlineUniformBlockEXT[layout.inlineCount];
+        initialContents.inlineInfo = new VkWriteDescriptorSetInlineUniformBlock[layout.inlineCount];
         initialContents.inlineData = AllocAlignedBuffer(InlineData.size());
         RDCASSERTEQUAL(layout.inlineByteSize, InlineData.size());
         memcpy(initialContents.inlineData, InlineData.data(), InlineData.size());
@@ -1058,7 +1057,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
 
       VkWriteDescriptorSet *writes = initialContents.descriptorWrites;
       VkDescriptorBufferInfo *dstData = initialContents.descriptorInfo;
-      VkWriteDescriptorSetInlineUniformBlockEXT *dstInline = initialContents.inlineInfo;
+      VkWriteDescriptorSetInlineUniformBlock *dstInline = initialContents.inlineInfo;
       DescriptorSetSlot *srcData = Bindings;
 
       byte *srcInlineData = initialContents.inlineData;
@@ -1079,7 +1078,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
 
         uint32_t inlineSize = 0;
 
-        if(layout.bindings[j].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+        if(layout.bindings[j].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
         {
           inlineSize = descriptorCount;
           descriptorCount = 1;
@@ -1130,12 +1129,12 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
         // For the array case we batch up updates as much as possible, iterating along the array and
         // skipping any invalid descriptors.
 
-        if(writes[bind].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+        if(writes[bind].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
         {
           // handle inline uniform block specially because the descriptorCount doesn't mean what it
           // normally means in the write.
 
-          dstInline->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT;
+          dstInline->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK;
           dstInline->pNext = NULL;
           dstInline->pData = srcInlineData + src->inlineOffset;
           dstInline->dataSize = inlineSize;
@@ -1849,11 +1848,11 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
 
       DescriptorSetSlot *bind = bindings[writes[i].dstBinding];
 
-      if(writes[i].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+      if(writes[i].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
       {
-        VkWriteDescriptorSetInlineUniformBlockEXT *inlineWrite =
-            (VkWriteDescriptorSetInlineUniformBlockEXT *)FindNextStruct(
-                &writes[i], VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT);
+        VkWriteDescriptorSetInlineUniformBlock *inlineWrite =
+            (VkWriteDescriptorSetInlineUniformBlock *)FindNextStruct(
+                &writes[i], VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK);
         memcpy(inlineData.data() + bind->inlineOffset + writes[i].dstArrayElement,
                inlineWrite->pData, inlineWrite->dataSize);
         continue;

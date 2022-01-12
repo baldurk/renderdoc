@@ -51,25 +51,25 @@ enum VulkanDynamicStateIndex
   VkDynamicExclusiveScissorNV,
   VkDynamicShadingRateKHR,
   VkDynamicLineStippleEXT,
-  VkDynamicCullModeEXT,
-  VkDynamicFrontFaceEXT,
-  VkDynamicPrimitiveTopologyEXT,
-  VkDynamicViewportCountEXT,
-  VkDynamicScissorCountEXT,
-  VkDynamicVertexInputBindingStrideEXT,
-  VkDynamicDepthTestEnableEXT,
-  VkDynamicDepthWriteEnableEXT,
-  VkDynamicDepthCompareOpEXT,
-  VkDynamicDepthBoundsTestEnableEXT,
-  VkDynamicStencilTestEnableEXT,
-  VkDynamicStencilOpEXT,
-  VkDynamicRayTracingStackSizeEXT,
+  VkDynamicCullMode,
+  VkDynamicFrontFace,
+  VkDynamicPrimitiveTopology,
+  VkDynamicViewportCount,
+  VkDynamicScissorCount,
+  VkDynamicVertexInputBindingStride,
+  VkDynamicDepthTestEnable,
+  VkDynamicDepthWriteEnable,
+  VkDynamicDepthCompareOp,
+  VkDynamicDepthBoundsTestEnable,
+  VkDynamicStencilTestEnable,
+  VkDynamicStencilOp,
+  VkDynamicRayTracingStackSizeKHR,
   VkDynamicVertexInputEXT,
   VkDynamicControlPointsEXT,
-  VkDynamicRastDiscardEXT,
-  VkDynamicDepthBiasEnableEXT,
+  VkDynamicRastDiscard,
+  VkDynamicDepthBiasEnable,
   VkDynamicLogicOpEXT,
-  VkDynamicPrimRestartEXT,
+  VkDynamicPrimRestart,
   VkDynamicColorWriteEXT,
   VkDynamicCount,
 };
@@ -169,7 +169,7 @@ struct DescUpdateTemplateApplication
   rdcarray<VkDescriptorBufferInfo> bufInfo;
   rdcarray<VkDescriptorImageInfo> imgInfo;
   rdcarray<VkBufferView> bufView;
-  rdcarray<VkWriteDescriptorSetInlineUniformBlockEXT> inlineUniform;
+  rdcarray<VkWriteDescriptorSetInlineUniformBlock> inlineUniform;
   bytebuf inlineData;
 
   rdcarray<VkWriteDescriptorSet> writes;

@@ -173,7 +173,7 @@ void WrappedVulkan::vkGetDeviceQueue(VkDevice device, uint32_t queueFamilyIndex,
   }
 }
 
-void WrappedVulkan::DoSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo)
+void WrappedVulkan::DoSubmit(VkQueue queue, VkSubmitInfo2 submitInfo)
 {
   // don't submit any semaphores
   submitInfo.waitSemaphoreInfoCount = 0;
@@ -186,12 +186,12 @@ void WrappedVulkan::DoSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo)
     // if we have KHR_sync2 this is easy! unwrap, add our submit chain, and do it
 
     byte *tempMem = GetTempMemory(GetNextPatchSize(&submitInfo));
-    VkSubmitInfo2KHR *unwrapped = UnwrapStructAndChain(m_State, tempMem, &submitInfo);
+    VkSubmitInfo2 *unwrapped = UnwrapStructAndChain(m_State, tempMem, &submitInfo);
     AppendNextStruct(*unwrapped, m_SubmitChain);
 
     // don't submit the fence, since we have nothing to wait on it being signalled, and we
     // might not have it correctly in the unsignalled state.
-    ObjDisp(queue)->QueueSubmit2KHR(Unwrap(queue), 1, unwrapped, VK_NULL_HANDLE);
+    ObjDisp(queue)->QueueSubmit2(Unwrap(queue), 1, unwrapped, VK_NULL_HANDLE);
   }
   else
   {
@@ -208,7 +208,7 @@ void WrappedVulkan::DoSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo)
     // represent in this decomposed version
     RDCASSERTEQUAL((void *)submitInfo.pNext, (void *)NULL);
 
-    if(submitInfo.flags & VK_SUBMIT_PROTECTED_BIT_KHR)
+    if(submitInfo.flags & VK_SUBMIT_PROTECTED_BIT)
     {
       // we created the protected structure with the flag as TRUE since otherwise we just don't
       // chain it on at all
@@ -248,7 +248,7 @@ void WrappedVulkan::DoSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo)
   }
 }
 
-void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo, rdcstr basename)
+void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2 submitInfo, rdcstr basename)
 {
   if(IsLoading(m_State))
   {
@@ -395,11 +395,11 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2KHR submitInfo
 
       uint32_t eid = startEID;
 
-      rdcarray<VkCommandBufferSubmitInfoKHR> rerecordedCmds;
+      rdcarray<VkCommandBufferSubmitInfo> rerecordedCmds;
 
       for(uint32_t c = 0; c < submitInfo.commandBufferInfoCount; c++)
       {
-        VkCommandBufferSubmitInfoKHR info = submitInfo.pCommandBufferInfos[c];
+        VkCommandBufferSubmitInfo info = submitInfo.pCommandBufferInfos[c];
         ResourceId cmdId = GetResourceManager()->GetOriginalID(GetResID(info.commandBuffer));
 
         // account for the virtual vkBeginCommandBuffer label at the start of the events here
@@ -964,7 +964,7 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
 
         // skip empty bindings
         if(bind.descriptorType == VK_DESCRIPTOR_TYPE_MAX_ENUM ||
-           bind.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+           bind.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
           continue;
 
         uint32_t count = bind.descriptorCount;
@@ -1220,16 +1220,16 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
       m_ActionUses.insert(drawit - m_ActionUses.begin(), use);
     }
 
-    rdcarray<VkCommandBufferSubmitInfoKHR> cmds;
+    rdcarray<VkCommandBufferSubmitInfo> cmds;
 
     for(uint32_t sub = 0; sub < submitCount; sub++)
     {
-      // make a fake VkSubmitInfo2KHR. If KHR_synchronization2 isn't supported this may then decay
+      // make a fake VkSubmitInfo2. If KHR_synchronization2 isn't supported this may then decay
       // back down into separate structs but it keeps a lot of the processing the same in both paths
       // and it's easier to promote this then decay if necessary (knowing no unsupported features
       // will be used)
-      VkSubmitInfo2KHR submitInfo = {};
-      submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2_KHR;
+      VkSubmitInfo2 submitInfo = {};
+      submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
 
       const VkProtectedSubmitInfo *prot = (const VkProtectedSubmitInfo *)FindNextStruct(
           &pSubmits[sub], VK_STRUCTURE_TYPE_PROTECTED_SUBMIT_INFO);
@@ -1239,8 +1239,8 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
       cmds.resize(pSubmits[sub].commandBufferCount);
       for(uint32_t c = 0; c < pSubmits[sub].commandBufferCount; c++)
       {
-        VkCommandBufferSubmitInfoKHR &cmd = cmds[c];
-        cmd.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO_KHR;
+        VkCommandBufferSubmitInfo &cmd = cmds[c];
+        cmd.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
         cmd.commandBuffer = pSubmits[sub].pCommandBuffers[c];
 
         if(group && c < group->commandBufferCount)
@@ -1251,7 +1251,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
       submitInfo.pCommandBufferInfos = cmds.data();
 
       if(prot && prot->protectedSubmit)
-        submitInfo.flags |= VK_SUBMIT_PROTECTED_BIT_KHR;
+        submitInfo.flags |= VK_SUBMIT_PROTECTED_BIT;
 
       // don't replay any semaphores, this means we don't have to care about
       // VkD3D12FenceSubmitInfoKHR or VkTimelineSemaphoreSubmitInfo.
@@ -1381,9 +1381,8 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkQueueSubmit2KHR(SerialiserType &ser, VkQueue queue,
-                                                uint32_t submitCount,
-                                                const VkSubmitInfo2KHR *pSubmits, VkFence fence)
+bool WrappedVulkan::Serialise_vkQueueSubmit2(SerialiserType &ser, VkQueue queue, uint32_t submitCount,
+                                             const VkSubmitInfo2 *pSubmits, VkFence fence)
 {
   SERIALISE_ELEMENT(queue);
   SERIALISE_ELEMENT(submitCount);
@@ -1429,8 +1428,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit2KHR(SerialiserType &ser, VkQueue que
 
     for(uint32_t sub = 0; sub < submitCount; sub++)
     {
-      rdcstr basename =
-          StringFormat::Fmt("vkQueueSubmit2KHR(%u)", pSubmits[sub].commandBufferInfoCount);
+      rdcstr basename = StringFormat::Fmt("vkQueueSubmit2(%u)", pSubmits[sub].commandBufferInfoCount);
 
       ReplayQueueSubmit(queue, pSubmits[sub], basename);
     }
@@ -1439,8 +1437,8 @@ bool WrappedVulkan::Serialise_vkQueueSubmit2KHR(SerialiserType &ser, VkQueue que
   return true;
 }
 
-VkResult WrappedVulkan::vkQueueSubmit2KHR(VkQueue queue, uint32_t submitCount,
-                                          const VkSubmitInfo2KHR *pSubmits, VkFence fence)
+VkResult WrappedVulkan::vkQueueSubmit2(VkQueue queue, uint32_t submitCount,
+                                       const VkSubmitInfo2 *pSubmits, VkFence fence)
 {
   SCOPED_DBG_SINK();
 
@@ -1494,7 +1492,7 @@ VkResult WrappedVulkan::vkQueueSubmit2KHR(VkQueue queue, uint32_t submitCount,
 
     CaptureQueueSubmit(queue, commandBuffers, fence);
 
-    size_t tempmemSize = sizeof(VkSubmitInfo2KHR) * submitCount;
+    size_t tempmemSize = sizeof(VkSubmitInfo2) * submitCount;
 
     // because we pass the base struct this will calculate the patch size including it
     for(uint32_t i = 0; i < submitCount; i++)
@@ -1502,14 +1500,14 @@ VkResult WrappedVulkan::vkQueueSubmit2KHR(VkQueue queue, uint32_t submitCount,
 
     byte *memory = GetTempMemory(tempmemSize);
 
-    VkSubmitInfo2KHR *unwrappedSubmits = (VkSubmitInfo2KHR *)memory;
-    memory += sizeof(VkSubmitInfo2KHR) * submitCount;
+    VkSubmitInfo2 *unwrappedSubmits = (VkSubmitInfo2 *)memory;
+    memory += sizeof(VkSubmitInfo2) * submitCount;
 
     for(uint32_t i = 0; i < submitCount; i++)
       unwrappedSubmits[i] = *UnwrapStructAndChain(m_State, memory, &pSubmits[i]);
 
-    SERIALISE_TIME_CALL(ret = ObjDisp(queue)->QueueSubmit2KHR(Unwrap(queue), submitCount,
-                                                              unwrappedSubmits, Unwrap(fence)));
+    SERIALISE_TIME_CALL(ret = ObjDisp(queue)->QueueSubmit2(Unwrap(queue), submitCount,
+                                                           unwrappedSubmits, Unwrap(fence)));
 
     if(capframe)
     {
@@ -1517,8 +1515,8 @@ VkResult WrappedVulkan::vkQueueSubmit2KHR(VkQueue queue, uint32_t submitCount,
         CACHE_THREAD_SERIALISER();
 
         ser.SetActionChunk();
-        SCOPED_SERIALISE_CHUNK(VulkanChunk::vkQueueSubmit2KHR);
-        Serialise_vkQueueSubmit2KHR(ser, queue, submitCount, pSubmits, fence);
+        SCOPED_SERIALISE_CHUNK(VulkanChunk::vkQueueSubmit2);
+        Serialise_vkQueueSubmit2(ser, queue, submitCount, pSubmits, fence);
 
         m_FrameCaptureRecord->AddChunk(scope.Get());
       }
@@ -2184,5 +2182,5 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkQueueInsertDebugUtilsLabelEXT, VkQueue q
 INSTANTIATE_FUNCTION_SERIALISED(void, vkGetDeviceQueue2, VkDevice device,
                                 const VkDeviceQueueInfo2 *pQueueInfo, VkQueue *pQueue);
 
-INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkQueueSubmit2KHR, VkQueue queue, uint32_t submitCount,
-                                const VkSubmitInfo2KHR *pSubmits, VkFence fence);
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkQueueSubmit2, VkQueue queue, uint32_t submitCount,
+                                const VkSubmitInfo2 *pSubmits, VkFence fence);

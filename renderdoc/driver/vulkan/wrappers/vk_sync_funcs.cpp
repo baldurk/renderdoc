@@ -1146,9 +1146,8 @@ VkResult WrappedVulkan::vkSignalSemaphore(VkDevice device, const VkSemaphoreSign
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdSetEvent2KHR(SerialiserType &ser, VkCommandBuffer commandBuffer,
-                                                VkEvent event,
-                                                const VkDependencyInfoKHR *pDependencyInfo)
+bool WrappedVulkan::Serialise_vkCmdSetEvent2(SerialiserType &ser, VkCommandBuffer commandBuffer,
+                                             VkEvent event, const VkDependencyInfo *pDependencyInfo)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(event).Important();
@@ -1173,29 +1172,29 @@ bool WrappedVulkan::Serialise_vkCmdSetEvent2KHR(SerialiserType &ser, VkCommandBu
     }
 
     if(commandBuffer != VK_NULL_HANDLE)
-      ObjDisp(commandBuffer)->CmdSetEvent2KHR(Unwrap(commandBuffer), Unwrap(event), &DependencyInfo);
+      ObjDisp(commandBuffer)->CmdSetEvent2(Unwrap(commandBuffer), Unwrap(event), &DependencyInfo);
   }
 
   return true;
 }
 
-void WrappedVulkan::vkCmdSetEvent2KHR(VkCommandBuffer commandBuffer, VkEvent event,
-                                      const VkDependencyInfoKHR *pDependencyInfo)
+void WrappedVulkan::vkCmdSetEvent2(VkCommandBuffer commandBuffer, VkEvent event,
+                                   const VkDependencyInfo *pDependencyInfo)
 {
   SCOPED_DBG_SINK();
 
-  VkDependencyInfoKHR unwrappedInfo = *pDependencyInfo;
+  VkDependencyInfo unwrappedInfo = *pDependencyInfo;
 
   byte *tempMem = GetTempMemory(GetNextPatchSize(&unwrappedInfo));
 
   {
     VkBaseInStructure dummy = {};
     dummy.pNext = (const VkBaseInStructure *)&unwrappedInfo;
-    UnwrapNextChain(m_State, "VkDependencyInfoKHR", tempMem, &dummy);
+    UnwrapNextChain(m_State, "VkDependencyInfo", tempMem, &dummy);
   }
 
   SERIALISE_TIME_CALL(
-      ObjDisp(commandBuffer)->CmdSetEvent2KHR(Unwrap(commandBuffer), Unwrap(event), &unwrappedInfo));
+      ObjDisp(commandBuffer)->CmdSetEvent2(Unwrap(commandBuffer), Unwrap(event), &unwrappedInfo));
 
   if(IsCaptureMode(m_State))
   {
@@ -1203,8 +1202,8 @@ void WrappedVulkan::vkCmdSetEvent2KHR(VkCommandBuffer commandBuffer, VkEvent eve
 
     CACHE_THREAD_SERIALISER();
 
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetEvent2KHR);
-    Serialise_vkCmdSetEvent2KHR(ser, commandBuffer, event, pDependencyInfo);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetEvent2);
+    Serialise_vkCmdSetEvent2(ser, commandBuffer, event, pDependencyInfo);
 
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
     record->MarkResourceFrameReferenced(GetResID(event), eFrameRef_Read);
@@ -1212,13 +1211,12 @@ void WrappedVulkan::vkCmdSetEvent2KHR(VkCommandBuffer commandBuffer, VkEvent eve
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdResetEvent2KHR(SerialiserType &ser, VkCommandBuffer commandBuffer,
-                                                  VkEvent event, VkPipelineStageFlags2KHR stageMask)
+bool WrappedVulkan::Serialise_vkCmdResetEvent2(SerialiserType &ser, VkCommandBuffer commandBuffer,
+                                               VkEvent event, VkPipelineStageFlags2 stageMask)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(event).Important();
-  SERIALISE_ELEMENT_TYPED(VkPipelineStageFlagBits2KHR, stageMask)
-      .TypedAs("VkPipelineStageFlags2KHR"_lit);
+  SERIALISE_ELEMENT_TYPED(VkPipelineStageFlagBits2, stageMask).TypedAs("VkPipelineStageFlags2"_lit);
 
   Serialise_DebugMessages(ser);
 
@@ -1240,20 +1238,20 @@ bool WrappedVulkan::Serialise_vkCmdResetEvent2KHR(SerialiserType &ser, VkCommand
 
     if(commandBuffer != VK_NULL_HANDLE)
     {
-      // ObjDisp(commandBuffer)->CmdResetEvent2KHR(Unwrap(commandBuffer), Unwrap(event), stageMask);
+      // ObjDisp(commandBuffer)->CmdResetEvent2(Unwrap(commandBuffer), Unwrap(event), stageMask);
     }
   }
 
   return true;
 }
 
-void WrappedVulkan::vkCmdResetEvent2KHR(VkCommandBuffer commandBuffer, VkEvent event,
-                                        VkPipelineStageFlags2KHR stageMask)
+void WrappedVulkan::vkCmdResetEvent2(VkCommandBuffer commandBuffer, VkEvent event,
+                                     VkPipelineStageFlags2 stageMask)
 {
   SCOPED_DBG_SINK();
 
   SERIALISE_TIME_CALL(
-      ObjDisp(commandBuffer)->CmdResetEvent2KHR(Unwrap(commandBuffer), Unwrap(event), stageMask));
+      ObjDisp(commandBuffer)->CmdResetEvent2(Unwrap(commandBuffer), Unwrap(event), stageMask));
 
   if(IsCaptureMode(m_State))
   {
@@ -1261,8 +1259,8 @@ void WrappedVulkan::vkCmdResetEvent2KHR(VkCommandBuffer commandBuffer, VkEvent e
 
     CACHE_THREAD_SERIALISER();
 
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdResetEvent2KHR);
-    Serialise_vkCmdResetEvent2KHR(ser, commandBuffer, event, stageMask);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdResetEvent2);
+    Serialise_vkCmdResetEvent2(ser, commandBuffer, event, stageMask);
 
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
     record->MarkResourceFrameReferenced(GetResID(event), eFrameRef_Read);
@@ -1270,9 +1268,9 @@ void WrappedVulkan::vkCmdResetEvent2KHR(VkCommandBuffer commandBuffer, VkEvent e
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdWaitEvents2KHR(SerialiserType &ser, VkCommandBuffer commandBuffer,
-                                                  uint32_t eventCount, const VkEvent *pEvents,
-                                                  const VkDependencyInfoKHR *pDependencyInfos)
+bool WrappedVulkan::Serialise_vkCmdWaitEvents2(SerialiserType &ser, VkCommandBuffer commandBuffer,
+                                               uint32_t eventCount, const VkEvent *pEvents,
+                                               const VkDependencyInfo *pDependencyInfos)
 {
   SERIALISE_ELEMENT(commandBuffer);
 
@@ -1292,15 +1290,15 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents2KHR(SerialiserType &ser, VkCommand
   {
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
 
-    rdcarray<VkImageMemoryBarrier2KHR> imgBarriers;
-    rdcarray<VkBufferMemoryBarrier2KHR> bufBarriers;
+    rdcarray<VkImageMemoryBarrier2> imgBarriers;
+    rdcarray<VkBufferMemoryBarrier2> bufBarriers;
 
     for(uint32_t evIdx = 0; evIdx < eventCount; evIdx++)
     {
       imgBarriers.clear();
       bufBarriers.clear();
 
-      const VkDependencyInfoKHR &depInfo = pDependencyInfos[evIdx];
+      const VkDependencyInfo &depInfo = pDependencyInfos[evIdx];
 
       for(uint32_t i = 0; i < depInfo.bufferMemoryBarrierCount; i++)
       {
@@ -1338,7 +1336,7 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents2KHR(SerialiserType &ser, VkCommand
 
       ObjDisp(commandBuffer)->ResetEvent(Unwrap(GetDev()), ev);
 
-      VkDependencyInfoKHR UnwrappedDependencyInfo = depInfo;
+      VkDependencyInfo UnwrappedDependencyInfo = depInfo;
 
       UnwrappedDependencyInfo.pBufferMemoryBarriers = bufBarriers.data();
       UnwrappedDependencyInfo.bufferMemoryBarrierCount = (uint32_t)bufBarriers.size();
@@ -1363,7 +1361,7 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents2KHR(SerialiserType &ser, VkCommand
 
         for(uint32_t i = 0; i < depInfo.imageMemoryBarrierCount; i++)
         {
-          const VkImageMemoryBarrier2KHR &b = depInfo.pImageMemoryBarriers[i];
+          const VkImageMemoryBarrier2 &b = depInfo.pImageMemoryBarriers[i];
           if(b.image != VK_NULL_HANDLE && b.oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
              b.newLayout != VK_IMAGE_LAYOUT_UNDEFINED)
           {
@@ -1381,7 +1379,7 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents2KHR(SerialiserType &ser, VkCommand
       if(commandBuffer != VK_NULL_HANDLE)
       {
         // now sanitise layouts before passing to vulkan
-        for(VkImageMemoryBarrier2KHR &barrier : imgBarriers)
+        for(VkImageMemoryBarrier2 &barrier : imgBarriers)
         {
           if(barrier.oldLayout == barrier.newLayout)
           {
@@ -1403,14 +1401,14 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents2KHR(SerialiserType &ser, VkCommand
           SanitiseReplayImageLayout(barrier.newLayout);
         }
 
-        ObjDisp(commandBuffer)->CmdSetEvent2KHR(Unwrap(commandBuffer), ev, &UnwrappedDependencyInfo);
-        ObjDisp(commandBuffer)->CmdWaitEvents2KHR(Unwrap(commandBuffer), 1, &ev, &UnwrappedDependencyInfo);
+        ObjDisp(commandBuffer)->CmdSetEvent2(Unwrap(commandBuffer), ev, &UnwrappedDependencyInfo);
+        ObjDisp(commandBuffer)->CmdWaitEvents2(Unwrap(commandBuffer), 1, &ev, &UnwrappedDependencyInfo);
 
         if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest)
         {
           for(uint32_t i = 0; i < depInfo.imageMemoryBarrierCount; i++)
           {
-            const VkImageMemoryBarrier2KHR &b = depInfo.pImageMemoryBarriers[i];
+            const VkImageMemoryBarrier2 &b = depInfo.pImageMemoryBarriers[i];
             if(b.image != VK_NULL_HANDLE && b.oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
                b.newLayout != VK_IMAGE_LAYOUT_UNDEFINED)
             {
@@ -1427,21 +1425,20 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents2KHR(SerialiserType &ser, VkCommand
   return true;
 }
 
-void WrappedVulkan::vkCmdWaitEvents2KHR(VkCommandBuffer commandBuffer, uint32_t eventCount,
-                                        const VkEvent *pEvents,
-                                        const VkDependencyInfoKHR *pDependencyInfos)
+void WrappedVulkan::vkCmdWaitEvents2(VkCommandBuffer commandBuffer, uint32_t eventCount,
+                                     const VkEvent *pEvents, const VkDependencyInfo *pDependencyInfos)
 {
   {
-    size_t memSize = sizeof(VkEvent) * eventCount + sizeof(VkDependencyInfoKHR) * eventCount;
+    size_t memSize = sizeof(VkEvent) * eventCount + sizeof(VkDependencyInfo) * eventCount;
 
-    // because we pass in the base struct, this includes the size for the VkDependencyInfoKHR itself
+    // because we pass in the base struct, this includes the size for the VkDependencyInfo itself
     for(uint32_t i = 0; i < eventCount; i++)
       memSize += GetNextPatchSize((const void *)&pDependencyInfos[i]);
 
     byte *tempMem = GetTempMemory(memSize);
 
     VkEvent *ev = (VkEvent *)tempMem;
-    VkDependencyInfoKHR *depInfo = (VkDependencyInfoKHR *)(ev + eventCount);
+    VkDependencyInfo *depInfo = (VkDependencyInfo *)(ev + eventCount);
     tempMem = (byte *)(depInfo + eventCount);
 
     for(uint32_t i = 0; i < eventCount; i++)
@@ -1451,7 +1448,7 @@ void WrappedVulkan::vkCmdWaitEvents2KHR(VkCommandBuffer commandBuffer, uint32_t 
     }
 
     SERIALISE_TIME_CALL(
-        ObjDisp(commandBuffer)->CmdWaitEvents2KHR(Unwrap(commandBuffer), eventCount, ev, depInfo));
+        ObjDisp(commandBuffer)->CmdWaitEvents2(Unwrap(commandBuffer), eventCount, ev, depInfo));
   }
 
   if(IsCaptureMode(m_State))
@@ -1460,8 +1457,8 @@ void WrappedVulkan::vkCmdWaitEvents2KHR(VkCommandBuffer commandBuffer, uint32_t 
 
     CACHE_THREAD_SERIALISER();
 
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdWaitEvents2KHR);
-    Serialise_vkCmdWaitEvents2KHR(ser, commandBuffer, eventCount, pEvents, pDependencyInfos);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdWaitEvents2);
+    Serialise_vkCmdWaitEvents2(ser, commandBuffer, eventCount, pEvents, pDependencyInfos);
 
     for(uint32_t i = 0; i < eventCount; i++)
     {
@@ -1567,12 +1564,12 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkWaitSemaphores, VkDevice device,
 INSTANTIATE_FUNCTION_SERIALISED(void, vkSignalSemaphore, VkDevice device,
                                 const VkSemaphoreSignalInfo *pSignalInfo);
 
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetEvent2KHR, VkCommandBuffer commandBuffer,
-                                VkEvent event, const VkDependencyInfoKHR *pDependencyInfo);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetEvent2, VkCommandBuffer commandBuffer, VkEvent event,
+                                const VkDependencyInfo *pDependencyInfo);
 
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdResetEvent2KHR, VkCommandBuffer commandBuffer,
-                                VkEvent event, VkPipelineStageFlags2KHR stageMask);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdResetEvent2, VkCommandBuffer commandBuffer,
+                                VkEvent event, VkPipelineStageFlags2 stageMask);
 
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdWaitEvents2KHR, VkCommandBuffer commandBuffer,
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdWaitEvents2, VkCommandBuffer commandBuffer,
                                 uint32_t eventCount, const VkEvent *pEvents,
-                                const VkDependencyInfoKHR *pDependencyInfos);
+                                const VkDependencyInfo *pDependencyInfos);

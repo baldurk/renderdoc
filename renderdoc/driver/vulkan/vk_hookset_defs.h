@@ -30,6 +30,9 @@
 // extensions made core in 1.2
 #define VK12 VK_MAKE_VERSION(1, 2, 0)
 
+// extensions made core in 1.3
+#define VK13 VK_MAKE_VERSION(1, 3, 0)
+
 // extensions that are not core in any version
 #define VKXX VK_MAKE_VERSION(99, 99, 0)
 
@@ -623,23 +626,23 @@
   CheckExt(KHR_timeline_semaphore, VK12);              \
   CheckExt(KHR_performance_query, VKXX);               \
   CheckExt(KHR_buffer_device_address, VK12);           \
-  CheckExt(EXT_tooling_info, VKXX);                    \
+  CheckExt(EXT_tooling_info, VK13);                    \
   CheckExt(KHR_separate_depth_stencil_layouts, VK12);  \
-  CheckExt(KHR_shader_non_semantic_info, VKXX);        \
-  CheckExt(EXT_inline_uniform_block, VKXX);            \
+  CheckExt(KHR_shader_non_semantic_info, VK13);        \
+  CheckExt(EXT_inline_uniform_block, VK13);            \
   CheckExt(EXT_custom_border_color, VKXX);             \
   CheckExt(EXT_robustness2, VKXX);                     \
   CheckExt(EXT_pipeline_creation_cache_control, VKXX); \
-  CheckExt(EXT_private_data, VKXX);                    \
-  CheckExt(EXT_extended_dynamic_state, VKXX);          \
-  CheckExt(KHR_copy_commands2, VKXX);                  \
-  CheckExt(KHR_synchronization2, VKXX);                \
+  CheckExt(EXT_private_data, VK13);                    \
+  CheckExt(EXT_extended_dynamic_state, VK13);          \
+  CheckExt(KHR_copy_commands2, VK13);                  \
+  CheckExt(KHR_synchronization2, VK13);                \
   CheckExt(KHR_present_wait, VKXX);                    \
-  CheckExt(KHR_maintenance4, VKXX);                    \
+  CheckExt(KHR_maintenance4, VK13);                    \
   CheckExt(EXT_color_write_enable, VKXX);              \
-  CheckExt(EXT_extended_dynamic_state2, VKXX);         \
+  CheckExt(EXT_extended_dynamic_state2, VK13);         \
   CheckExt(EXT_vertex_input_dynamic_state, VKXX);      \
-  CheckExt(KHR_dynamic_rendering, VKXX);
+  CheckExt(KHR_dynamic_rendering, VK13);
 
 #define HookInitVulkanInstanceExts_PhysDev()                                                         \
   HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                                \
@@ -684,7 +687,7 @@
   HookInitExtension(KHR_performance_query,                                                           \
                     EnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR);                  \
   HookInitExtension(KHR_performance_query, GetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR);   \
-  HookInitExtension(EXT_tooling_info, GetPhysicalDeviceToolPropertiesEXT);                           \
+  HookInitPromotedExtension(EXT_tooling_info, GetPhysicalDeviceToolProperties, EXT);                 \
   HookInitExtension_PhysDev_Win32();                                                                 \
   HookInitExtension_PhysDev_Linux();                                                                 \
   HookInitExtension_PhysDev_GGP();                                                                   \
@@ -749,7 +752,7 @@
   HookInitExtension(KHR_performance_query,                                                           \
                     EnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR);                  \
   HookInitExtension(KHR_performance_query, GetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR);   \
-  HookInitExtension(EXT_tooling_info, GetPhysicalDeviceToolPropertiesEXT);                           \
+  HookInitPromotedExtension(EXT_tooling_info, GetPhysicalDeviceToolProperties, EXT);                 \
   HookInitExtension_Instance_Win32();                                                                \
   HookInitExtension_Instance_Linux();                                                                \
   HookInitExtension_Instance_GGP();                                                                  \
@@ -851,49 +854,49 @@
   HookInitPromotedExtension(KHR_buffer_device_address, GetBufferDeviceAddress, KHR);               \
   HookInitPromotedExtension(KHR_buffer_device_address, GetBufferOpaqueCaptureAddress, KHR);        \
   HookInitPromotedExtension(KHR_buffer_device_address, GetDeviceMemoryOpaqueCaptureAddress, KHR);  \
-  HookInitExtension(EXT_private_data, CreatePrivateDataSlotEXT);                                   \
-  HookInitExtension(EXT_private_data, DestroyPrivateDataSlotEXT);                                  \
-  HookInitExtension(EXT_private_data, SetPrivateDataEXT);                                          \
-  HookInitExtension(EXT_private_data, GetPrivateDataEXT);                                          \
-  HookInitExtension(EXT_extended_dynamic_state, CmdSetCullModeEXT);                                \
-  HookInitExtension(EXT_extended_dynamic_state, CmdSetFrontFaceEXT);                               \
-  HookInitExtension(EXT_extended_dynamic_state, CmdSetPrimitiveTopologyEXT);                       \
-  HookInitExtension(EXT_extended_dynamic_state, CmdSetViewportWithCountEXT);                       \
-  HookInitExtension(EXT_extended_dynamic_state, CmdSetScissorWithCountEXT);                        \
-  HookInitExtension(EXT_extended_dynamic_state, CmdBindVertexBuffers2EXT);                         \
-  HookInitExtension(EXT_extended_dynamic_state, CmdSetDepthTestEnableEXT);                         \
-  HookInitExtension(EXT_extended_dynamic_state, CmdSetDepthWriteEnableEXT);                        \
-  HookInitExtension(EXT_extended_dynamic_state, CmdSetDepthCompareOpEXT);                          \
-  HookInitExtension(EXT_extended_dynamic_state, CmdSetDepthBoundsTestEnableEXT);                   \
-  HookInitExtension(EXT_extended_dynamic_state, CmdSetStencilTestEnableEXT);                       \
-  HookInitExtension(EXT_extended_dynamic_state, CmdSetStencilOpEXT);                               \
-  HookInitExtension(KHR_copy_commands2, CmdCopyBuffer2KHR);                                        \
-  HookInitExtension(KHR_copy_commands2, CmdCopyImage2KHR);                                         \
-  HookInitExtension(KHR_copy_commands2, CmdCopyBufferToImage2KHR);                                 \
-  HookInitExtension(KHR_copy_commands2, CmdCopyImageToBuffer2KHR);                                 \
-  HookInitExtension(KHR_copy_commands2, CmdBlitImage2KHR);                                         \
-  HookInitExtension(KHR_copy_commands2, CmdResolveImage2KHR);                                      \
-  HookInitExtension(KHR_synchronization2, CmdSetEvent2KHR);                                        \
-  HookInitExtension(KHR_synchronization2, CmdResetEvent2KHR);                                      \
-  HookInitExtension(KHR_synchronization2, CmdWaitEvents2KHR);                                      \
-  HookInitExtension(KHR_synchronization2, CmdPipelineBarrier2KHR);                                 \
-  HookInitExtension(KHR_synchronization2, CmdWriteTimestamp2KHR);                                  \
-  HookInitExtension(KHR_synchronization2, QueueSubmit2KHR);                                        \
+  HookInitPromotedExtension(EXT_private_data, CreatePrivateDataSlot, EXT);                         \
+  HookInitPromotedExtension(EXT_private_data, DestroyPrivateDataSlot, EXT);                        \
+  HookInitPromotedExtension(EXT_private_data, SetPrivateData, EXT);                                \
+  HookInitPromotedExtension(EXT_private_data, GetPrivateData, EXT);                                \
+  HookInitPromotedExtension(EXT_extended_dynamic_state, CmdSetCullMode, EXT);                      \
+  HookInitPromotedExtension(EXT_extended_dynamic_state, CmdSetFrontFace, EXT);                     \
+  HookInitPromotedExtension(EXT_extended_dynamic_state, CmdSetPrimitiveTopology, EXT);             \
+  HookInitPromotedExtension(EXT_extended_dynamic_state, CmdSetViewportWithCount, EXT);             \
+  HookInitPromotedExtension(EXT_extended_dynamic_state, CmdSetScissorWithCount, EXT);              \
+  HookInitPromotedExtension(EXT_extended_dynamic_state, CmdBindVertexBuffers2, EXT);               \
+  HookInitPromotedExtension(EXT_extended_dynamic_state, CmdSetDepthTestEnable, EXT);               \
+  HookInitPromotedExtension(EXT_extended_dynamic_state, CmdSetDepthWriteEnable, EXT);              \
+  HookInitPromotedExtension(EXT_extended_dynamic_state, CmdSetDepthCompareOp, EXT);                \
+  HookInitPromotedExtension(EXT_extended_dynamic_state, CmdSetDepthBoundsTestEnable, EXT);         \
+  HookInitPromotedExtension(EXT_extended_dynamic_state, CmdSetStencilTestEnable, EXT);             \
+  HookInitPromotedExtension(EXT_extended_dynamic_state, CmdSetStencilOp, EXT);                     \
+  HookInitPromotedExtension(KHR_copy_commands2, CmdCopyBuffer2, KHR);                              \
+  HookInitPromotedExtension(KHR_copy_commands2, CmdCopyImage2, KHR);                               \
+  HookInitPromotedExtension(KHR_copy_commands2, CmdCopyBufferToImage2, KHR);                       \
+  HookInitPromotedExtension(KHR_copy_commands2, CmdCopyImageToBuffer2, KHR);                       \
+  HookInitPromotedExtension(KHR_copy_commands2, CmdBlitImage2, KHR);                               \
+  HookInitPromotedExtension(KHR_copy_commands2, CmdResolveImage2, KHR);                            \
+  HookInitPromotedExtension(KHR_synchronization2, CmdSetEvent2, KHR);                              \
+  HookInitPromotedExtension(KHR_synchronization2, CmdResetEvent2, KHR);                            \
+  HookInitPromotedExtension(KHR_synchronization2, CmdWaitEvents2, KHR);                            \
+  HookInitPromotedExtension(KHR_synchronization2, CmdPipelineBarrier2, KHR);                       \
+  HookInitPromotedExtension(KHR_synchronization2, CmdWriteTimestamp2, KHR);                        \
+  HookInitPromotedExtension(KHR_synchronization2, QueueSubmit2, KHR);                              \
   HookInitExtension(KHR_synchronization2 &&AMD_buffer_marker, CmdWriteBufferMarker2AMD);           \
   /* No GetQueueCheckpointData2NV without VK_NV_device_diagnostic_checkpoints */                   \
   HookInitExtension(KHR_present_wait, WaitForPresentKHR);                                          \
-  HookInitExtension(KHR_maintenance4, GetDeviceBufferMemoryRequirementsKHR);                       \
-  HookInitExtension(KHR_maintenance4, GetDeviceImageMemoryRequirementsKHR);                        \
-  HookInitExtension(KHR_maintenance4, GetDeviceImageSparseMemoryRequirementsKHR);                  \
+  HookInitPromotedExtension(KHR_maintenance4, GetDeviceBufferMemoryRequirements, KHR);             \
+  HookInitPromotedExtension(KHR_maintenance4, GetDeviceImageMemoryRequirements, KHR);              \
+  HookInitPromotedExtension(KHR_maintenance4, GetDeviceImageSparseMemoryRequirements, KHR);        \
   HookInitExtension(EXT_color_write_enable, CmdSetColorWriteEnableEXT);                            \
-  HookInitExtension(EXT_extended_dynamic_state2, CmdSetDepthBiasEnableEXT);                        \
+  HookInitPromotedExtension(EXT_extended_dynamic_state2, CmdSetDepthBiasEnable, EXT);              \
   HookInitExtension(EXT_extended_dynamic_state2, CmdSetLogicOpEXT);                                \
   HookInitExtension(EXT_extended_dynamic_state2, CmdSetPatchControlPointsEXT);                     \
-  HookInitExtension(EXT_extended_dynamic_state2, CmdSetPrimitiveRestartEnableEXT);                 \
-  HookInitExtension(EXT_extended_dynamic_state2, CmdSetRasterizerDiscardEnableEXT);                \
+  HookInitPromotedExtension(EXT_extended_dynamic_state2, CmdSetPrimitiveRestartEnable, EXT);       \
+  HookInitPromotedExtension(EXT_extended_dynamic_state2, CmdSetRasterizerDiscardEnable, EXT);      \
   HookInitExtension(EXT_vertex_input_dynamic_state, CmdSetVertexInputEXT);                         \
-  HookInitExtension(KHR_dynamic_rendering, CmdBeginRenderingKHR);                                  \
-  HookInitExtension(KHR_dynamic_rendering, CmdEndRenderingKHR);                                    \
+  HookInitPromotedExtension(KHR_dynamic_rendering, CmdBeginRendering, KHR);                        \
+  HookInitPromotedExtension(KHR_dynamic_rendering, CmdEndRendering, KHR);                          \
   HookInitExtension_Device_Win32();                                                                \
   HookInitExtension_Device_Linux();                                                                \
   HookInitExtension_Device_GGP();                                                                  \
@@ -1467,7 +1470,7 @@
   HookDefine4(void, vkResetQueryPool, VkDevice, device, VkQueryPool, queryPool, uint32_t,            \
               firstQuery, uint32_t, queryCount);                                                     \
   HookDefine2(VkDeviceAddress, vkGetBufferDeviceAddressEXT, VkDevice, device,                        \
-              VkBufferDeviceAddressInfoEXT *, pInfo);                                                \
+              VkBufferDeviceAddressInfo *, pInfo);                                                   \
   HookDefine4(void, vkSetHdrMetadataEXT, VkDevice, device, uint32_t, swapchainCount,                 \
               const VkSwapchainKHR *, pSwapchains, const VkHdrMetadataEXT *, pMetadata);             \
   HookDefine3(void, vkSetLocalDimmingAMD, VkDevice, device, VkSwapchainKHR, swapChain, VkBool32,     \
@@ -1514,99 +1517,98 @@
               VkBufferDeviceAddressInfo *, pInfo);                                                   \
   HookDefine2(uint64_t, vkGetDeviceMemoryOpaqueCaptureAddress, VkDevice, device,                     \
               VkDeviceMemoryOpaqueCaptureAddressInfo *, pInfo);                                      \
-  HookDefine3(VkResult, vkGetPhysicalDeviceToolPropertiesEXT, VkPhysicalDevice, physicalDevice,      \
-              uint32_t *, pToolCount, VkPhysicalDeviceToolPropertiesEXT *, pToolProperties);         \
-  HookDefine4(VkResult, vkCreatePrivateDataSlotEXT, VkDevice, device,                                \
-              const VkPrivateDataSlotCreateInfoEXT *, pCreateInfo, const VkAllocationCallbacks *,    \
-              pAllocator, VkPrivateDataSlotEXT *, pPrivateDataSlot);                                 \
-  HookDefine3(void, vkDestroyPrivateDataSlotEXT, VkDevice, device, VkPrivateDataSlotEXT,             \
+  HookDefine3(VkResult, vkGetPhysicalDeviceToolProperties, VkPhysicalDevice, physicalDevice,         \
+              uint32_t *, pToolCount, VkPhysicalDeviceToolProperties *, pToolProperties);            \
+  HookDefine4(VkResult, vkCreatePrivateDataSlot, VkDevice, device,                                   \
+              const VkPrivateDataSlotCreateInfo *, pCreateInfo, const VkAllocationCallbacks *,       \
+              pAllocator, VkPrivateDataSlot *, pPrivateDataSlot);                                    \
+  HookDefine3(void, vkDestroyPrivateDataSlot, VkDevice, device, VkPrivateDataSlot,                   \
               privateDataSlot, const VkAllocationCallbacks *, pAllocator);                           \
-  HookDefine5(VkResult, vkSetPrivateDataEXT, VkDevice, device, VkObjectType, objectType, uint64_t,   \
-              objectHandle, VkPrivateDataSlotEXT, privateDataSlot, uint64_t, data);                  \
-  HookDefine5(void, vkGetPrivateDataEXT, VkDevice, device, VkObjectType, objectType, uint64_t,       \
-              objectHandle, VkPrivateDataSlotEXT, privateDataSlot, uint64_t *, pData);               \
-  HookDefine2(void, vkCmdSetCullModeEXT, VkCommandBuffer, commandBuffer, VkCullModeFlags, cullMode); \
-  HookDefine2(void, vkCmdSetFrontFaceEXT, VkCommandBuffer, commandBuffer, VkFrontFace, frontFace);   \
-  HookDefine2(void, vkCmdSetPrimitiveTopologyEXT, VkCommandBuffer, commandBuffer,                    \
+  HookDefine5(VkResult, vkSetPrivateData, VkDevice, device, VkObjectType, objectType, uint64_t,      \
+              objectHandle, VkPrivateDataSlot, privateDataSlot, uint64_t, data);                     \
+  HookDefine5(void, vkGetPrivateData, VkDevice, device, VkObjectType, objectType, uint64_t,          \
+              objectHandle, VkPrivateDataSlot, privateDataSlot, uint64_t *, pData);                  \
+  HookDefine2(void, vkCmdSetCullMode, VkCommandBuffer, commandBuffer, VkCullModeFlags, cullMode);    \
+  HookDefine2(void, vkCmdSetFrontFace, VkCommandBuffer, commandBuffer, VkFrontFace, frontFace);      \
+  HookDefine2(void, vkCmdSetPrimitiveTopology, VkCommandBuffer, commandBuffer,                       \
               VkPrimitiveTopology, primitiveTopology);                                               \
-  HookDefine3(void, vkCmdSetViewportWithCountEXT, VkCommandBuffer, commandBuffer, uint32_t,          \
+  HookDefine3(void, vkCmdSetViewportWithCount, VkCommandBuffer, commandBuffer, uint32_t,             \
               viewportCount, const VkViewport *, pViewports);                                        \
-  HookDefine3(void, vkCmdSetScissorWithCountEXT, VkCommandBuffer, commandBuffer, uint32_t,           \
+  HookDefine3(void, vkCmdSetScissorWithCount, VkCommandBuffer, commandBuffer, uint32_t,              \
               scissorCount, const VkRect2D *, pScissors);                                            \
-  HookDefine7(void, vkCmdBindVertexBuffers2EXT, VkCommandBuffer, commandBuffer, uint32_t,            \
-              firstBinding, uint32_t, bindingCount, const VkBuffer *, pBuffers,                      \
-              const VkDeviceSize *, pOffsets, const VkDeviceSize *, pSizes, const VkDeviceSize *,    \
-              pStrides);                                                                             \
-  HookDefine2(void, vkCmdSetDepthTestEnableEXT, VkCommandBuffer, commandBuffer, VkBool32,            \
+  HookDefine7(void, vkCmdBindVertexBuffers2, VkCommandBuffer, commandBuffer, uint32_t, firstBinding, \
+              uint32_t, bindingCount, const VkBuffer *, pBuffers, const VkDeviceSize *, pOffsets,    \
+              const VkDeviceSize *, pSizes, const VkDeviceSize *, pStrides);                         \
+  HookDefine2(void, vkCmdSetDepthTestEnable, VkCommandBuffer, commandBuffer, VkBool32,               \
               depthTestEnable);                                                                      \
-  HookDefine2(void, vkCmdSetDepthWriteEnableEXT, VkCommandBuffer, commandBuffer, VkBool32,           \
+  HookDefine2(void, vkCmdSetDepthWriteEnable, VkCommandBuffer, commandBuffer, VkBool32,              \
               depthWriteEnable);                                                                     \
-  HookDefine2(void, vkCmdSetDepthCompareOpEXT, VkCommandBuffer, commandBuffer, VkCompareOp,          \
+  HookDefine2(void, vkCmdSetDepthCompareOp, VkCommandBuffer, commandBuffer, VkCompareOp,             \
               depthCompareOp);                                                                       \
-  HookDefine2(void, vkCmdSetDepthBoundsTestEnableEXT, VkCommandBuffer, commandBuffer, VkBool32,      \
+  HookDefine2(void, vkCmdSetDepthBoundsTestEnable, VkCommandBuffer, commandBuffer, VkBool32,         \
               depthBoundsTestEnable);                                                                \
-  HookDefine2(void, vkCmdSetStencilTestEnableEXT, VkCommandBuffer, commandBuffer, VkBool32,          \
+  HookDefine2(void, vkCmdSetStencilTestEnable, VkCommandBuffer, commandBuffer, VkBool32,             \
               stencilTestEnable);                                                                    \
-  HookDefine6(void, vkCmdSetStencilOpEXT, VkCommandBuffer, commandBuffer, VkStencilFaceFlags,        \
+  HookDefine6(void, vkCmdSetStencilOp, VkCommandBuffer, commandBuffer, VkStencilFaceFlags,           \
               faceMask, VkStencilOp, failOp, VkStencilOp, passOp, VkStencilOp, depthFailOp,          \
               VkCompareOp, compareOp);                                                               \
-  HookDefine2(void, vkCmdCopyBuffer2KHR, VkCommandBuffer, commandBuffer,                             \
-              const VkCopyBufferInfo2KHR *, pCopyBufferInfo);                                        \
-  HookDefine2(void, vkCmdCopyImage2KHR, VkCommandBuffer, commandBuffer,                              \
-              const VkCopyImageInfo2KHR *, pCopyImageInfo);                                          \
-  HookDefine2(void, vkCmdCopyBufferToImage2KHR, VkCommandBuffer, commandBuffer,                      \
-              const VkCopyBufferToImageInfo2KHR *, pCopyBufferToImageInfo);                          \
-  HookDefine2(void, vkCmdCopyImageToBuffer2KHR, VkCommandBuffer, commandBuffer,                      \
-              const VkCopyImageToBufferInfo2KHR *, pCopyImageToBufferInfo);                          \
-  HookDefine2(void, vkCmdBlitImage2KHR, VkCommandBuffer, commandBuffer,                              \
-              const VkBlitImageInfo2KHR *, pBlitImageInfo);                                          \
-  HookDefine2(void, vkCmdResolveImage2KHR, VkCommandBuffer, commandBuffer,                           \
-              const VkResolveImageInfo2KHR *, pResolveImageInfo);                                    \
-  HookDefine3(void, vkCmdSetEvent2KHR, VkCommandBuffer, commandBuffer, VkEvent, event,               \
-              const VkDependencyInfoKHR *, pDependencyInfo);                                         \
-  HookDefine3(void, vkCmdResetEvent2KHR, VkCommandBuffer, commandBuffer, VkEvent, event,             \
-              VkPipelineStageFlags2KHR, stageMask);                                                  \
-  HookDefine4(void, vkCmdWaitEvents2KHR, VkCommandBuffer, commandBuffer, uint32_t, eventCount,       \
-              const VkEvent *, pEvents, const VkDependencyInfoKHR *, pDependencyInfos);              \
-  HookDefine2(void, vkCmdPipelineBarrier2KHR, VkCommandBuffer, commandBuffer,                        \
-              const VkDependencyInfoKHR *, pDependencyInfo);                                         \
-  HookDefine4(void, vkCmdWriteTimestamp2KHR, VkCommandBuffer, commandBuffer,                         \
-              VkPipelineStageFlags2KHR, stage, VkQueryPool, queryPool, uint32_t, query);             \
-  HookDefine4(VkResult, vkQueueSubmit2KHR, VkQueue, queue, uint32_t, submitCount,                    \
-              const VkSubmitInfo2KHR *, pSubmits, VkFence, fence);                                   \
+  HookDefine2(void, vkCmdCopyBuffer2, VkCommandBuffer, commandBuffer, const VkCopyBufferInfo2 *,     \
+              pCopyBufferInfo);                                                                      \
+  HookDefine2(void, vkCmdCopyImage2, VkCommandBuffer, commandBuffer, const VkCopyImageInfo2 *,       \
+              pCopyImageInfo);                                                                       \
+  HookDefine2(void, vkCmdCopyBufferToImage2, VkCommandBuffer, commandBuffer,                         \
+              const VkCopyBufferToImageInfo2 *, pCopyBufferToImageInfo);                             \
+  HookDefine2(void, vkCmdCopyImageToBuffer2, VkCommandBuffer, commandBuffer,                         \
+              const VkCopyImageToBufferInfo2 *, pCopyImageToBufferInfo);                             \
+  HookDefine2(void, vkCmdBlitImage2, VkCommandBuffer, commandBuffer, const VkBlitImageInfo2 *,       \
+              pBlitImageInfo);                                                                       \
+  HookDefine2(void, vkCmdResolveImage2, VkCommandBuffer, commandBuffer,                              \
+              const VkResolveImageInfo2 *, pResolveImageInfo);                                       \
+  HookDefine3(void, vkCmdSetEvent2, VkCommandBuffer, commandBuffer, VkEvent, event,                  \
+              const VkDependencyInfo *, pDependencyInfo);                                            \
+  HookDefine3(void, vkCmdResetEvent2, VkCommandBuffer, commandBuffer, VkEvent, event,                \
+              VkPipelineStageFlags2, stageMask);                                                     \
+  HookDefine4(void, vkCmdWaitEvents2, VkCommandBuffer, commandBuffer, uint32_t, eventCount,          \
+              const VkEvent *, pEvents, const VkDependencyInfo *, pDependencyInfos);                 \
+  HookDefine2(void, vkCmdPipelineBarrier2, VkCommandBuffer, commandBuffer,                           \
+              const VkDependencyInfo *, pDependencyInfo);                                            \
+  HookDefine4(void, vkCmdWriteTimestamp2, VkCommandBuffer, commandBuffer, VkPipelineStageFlags2,     \
+              stage, VkQueryPool, queryPool, uint32_t, query);                                       \
+  HookDefine4(VkResult, vkQueueSubmit2, VkQueue, queue, uint32_t, submitCount,                       \
+              const VkSubmitInfo2 *, pSubmits, VkFence, fence);                                      \
   HookDefine5(void, vkCmdWriteBufferMarker2AMD, VkCommandBuffer, commandBuffer,                      \
-              VkPipelineStageFlags2KHR, stage, VkBuffer, dstBuffer, VkDeviceSize, dstOffset,         \
+              VkPipelineStageFlags2, stage, VkBuffer, dstBuffer, VkDeviceSize, dstOffset,            \
               uint32_t, marker);                                                                     \
   HookDefine4(VkResult, vkWaitForPresentKHR, VkDevice, device, VkSwapchainKHR, swapchain,            \
               uint64_t, presentId, uint64_t, timeout);                                               \
-  HookDefine3(void, vkGetDeviceBufferMemoryRequirementsKHR, VkDevice, device,                        \
-              const VkDeviceBufferMemoryRequirementsKHR *, pInfo, VkMemoryRequirements2 *,           \
+  HookDefine3(void, vkGetDeviceBufferMemoryRequirements, VkDevice, device,                           \
+              const VkDeviceBufferMemoryRequirements *, pInfo, VkMemoryRequirements2 *,              \
               pMemoryRequirements);                                                                  \
-  HookDefine3(void, vkGetDeviceImageMemoryRequirementsKHR, VkDevice, device,                         \
-              const VkDeviceImageMemoryRequirementsKHR *, pInfo, VkMemoryRequirements2 *,            \
+  HookDefine3(void, vkGetDeviceImageMemoryRequirements, VkDevice, device,                            \
+              const VkDeviceImageMemoryRequirements *, pInfo, VkMemoryRequirements2 *,               \
               pMemoryRequirements);                                                                  \
-  HookDefine4(void, vkGetDeviceImageSparseMemoryRequirementsKHR, VkDevice, device,                   \
-              const VkDeviceImageMemoryRequirementsKHR *, pInfo, uint32_t *,                         \
+  HookDefine4(void, vkGetDeviceImageSparseMemoryRequirements, VkDevice, device,                      \
+              const VkDeviceImageMemoryRequirements *, pInfo, uint32_t *,                            \
               pSparseMemoryRequirementCount, VkSparseImageMemoryRequirements2 *,                     \
               pSparseMemoryRequirements);                                                            \
   HookDefine3(void, vkCmdSetColorWriteEnableEXT, VkCommandBuffer, commandBuffer, uint32_t,           \
               attachmentCount, const VkBool32 *, pColorWriteEnables);                                \
-  HookDefine2(void, vkCmdSetDepthBiasEnableEXT, VkCommandBuffer, commandBuffer, VkBool32,            \
+  HookDefine2(void, vkCmdSetDepthBiasEnable, VkCommandBuffer, commandBuffer, VkBool32,               \
               depthBiasEnable);                                                                      \
   HookDefine2(void, vkCmdSetLogicOpEXT, VkCommandBuffer, commandBuffer, VkLogicOp, logicOp);         \
   HookDefine2(void, vkCmdSetPatchControlPointsEXT, VkCommandBuffer, commandBuffer, uint32_t,         \
               patchControlPoints);                                                                   \
-  HookDefine2(void, vkCmdSetPrimitiveRestartEnableEXT, VkCommandBuffer, commandBuffer, VkBool32,     \
+  HookDefine2(void, vkCmdSetPrimitiveRestartEnable, VkCommandBuffer, commandBuffer, VkBool32,        \
               primitiveRestartEnable);                                                               \
-  HookDefine2(void, vkCmdSetRasterizerDiscardEnableEXT, VkCommandBuffer, commandBuffer, VkBool32,    \
+  HookDefine2(void, vkCmdSetRasterizerDiscardEnable, VkCommandBuffer, commandBuffer, VkBool32,       \
               rasterizerDiscardEnable);                                                              \
   HookDefine5(void, vkCmdSetVertexInputEXT, VkCommandBuffer, commandBuffer, uint32_t,                \
               vertexBindingDescriptionCount, const VkVertexInputBindingDescription2EXT *,            \
               pVertexBindingDescriptions, uint32_t, vertexAttributeDescriptionCount,                 \
               const VkVertexInputAttributeDescription2EXT *, pVertexAttributeDescriptions);          \
-  HookDefine2(void, vkCmdBeginRenderingKHR, VkCommandBuffer, commandBuffer,                          \
-              const VkRenderingInfoKHR *, pRenderingInfo);                                           \
-  HookDefine1(void, vkCmdEndRenderingKHR, VkCommandBuffer, commandBuffer);                           \
+  HookDefine2(void, vkCmdBeginRendering, VkCommandBuffer, commandBuffer, const VkRenderingInfo *,    \
+              pRenderingInfo);                                                                       \
+  HookDefine1(void, vkCmdEndRendering, VkCommandBuffer, commandBuffer);                              \
   HookDefine_Win32();                                                                                \
   HookDefine_Linux();                                                                                \
   HookDefine_GGP();                                                                                  \

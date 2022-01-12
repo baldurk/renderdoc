@@ -39,8 +39,8 @@ void VulkanRenderState::BeginRenderPassAndApplyState(WrappedVulkan *vk, VkComman
 {
   if(dynamicRendering.active)
   {
-    VkRenderingInfoKHR info = {};
-    info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR;
+    VkRenderingInfo info = {};
+    info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
 
     // for action callbacks that want to stop the renderpass, do something, then start it with
     // original state, we need to preserve the suspending flag instead of removing it. For other
@@ -48,28 +48,28 @@ void VulkanRenderState::BeginRenderPassAndApplyState(WrappedVulkan *vk, VkComman
     // suspended pass
     if(obeySuspending)
     {
-      info.flags = dynamicRendering.flags & ~VK_RENDERING_RESUMING_BIT_KHR;
+      info.flags = dynamicRendering.flags & ~VK_RENDERING_RESUMING_BIT;
     }
     else
     {
-      info.flags = dynamicRendering.flags &
-                   ~(VK_RENDERING_RESUMING_BIT_KHR | VK_RENDERING_SUSPENDING_BIT_KHR);
+      info.flags =
+          dynamicRendering.flags & ~(VK_RENDERING_RESUMING_BIT | VK_RENDERING_SUSPENDING_BIT);
     }
 
     info.layerCount = dynamicRendering.layerCount;
     info.renderArea = renderArea;
     info.viewMask = dynamicRendering.viewMask;
 
-    VkRenderingAttachmentInfoKHR depth = dynamicRendering.depth;
+    VkRenderingAttachmentInfo depth = dynamicRendering.depth;
     info.pDepthAttachment = &depth;
     if(depth.imageLayout == VK_IMAGE_LAYOUT_UNDEFINED)
       info.pDepthAttachment = NULL;
-    VkRenderingAttachmentInfoKHR stencil = dynamicRendering.depth;
+    VkRenderingAttachmentInfo stencil = dynamicRendering.depth;
     info.pStencilAttachment = &stencil;
     if(stencil.imageLayout == VK_IMAGE_LAYOUT_UNDEFINED)
       info.pStencilAttachment = NULL;
 
-    rdcarray<VkRenderingAttachmentInfoKHR> color = dynamicRendering.color;
+    rdcarray<VkRenderingAttachmentInfo> color = dynamicRendering.color;
 
     info.colorAttachmentCount = (uint32_t)color.size();
     info.pColorAttachments = color.data();
@@ -77,12 +77,12 @@ void VulkanRenderState::BeginRenderPassAndApplyState(WrappedVulkan *vk, VkComman
     // patch the load/store actions and unwrap
     for(uint32_t i = 0; i < (uint32_t)color.size() + 2; i++)
     {
-      VkRenderingAttachmentInfoKHR *att = (VkRenderingAttachmentInfoKHR *)info.pColorAttachments + i;
+      VkRenderingAttachmentInfo *att = (VkRenderingAttachmentInfo *)info.pColorAttachments + i;
 
       if(i == info.colorAttachmentCount)
-        att = (VkRenderingAttachmentInfoKHR *)info.pDepthAttachment;
+        att = (VkRenderingAttachmentInfo *)info.pDepthAttachment;
       else if(i == info.colorAttachmentCount + 1)
-        att = (VkRenderingAttachmentInfoKHR *)info.pStencilAttachment;
+        att = (VkRenderingAttachmentInfo *)info.pStencilAttachment;
 
       if(!att)
         continue;
@@ -90,14 +90,14 @@ void VulkanRenderState::BeginRenderPassAndApplyState(WrappedVulkan *vk, VkComman
       if(att->loadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
         att->loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
 
-      if(att->storeOp != VK_ATTACHMENT_STORE_OP_NONE_EXT)
+      if(att->storeOp != VK_ATTACHMENT_STORE_OP_NONE)
         att->storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
       att->imageView = Unwrap(att->imageView);
       att->resolveImageView = Unwrap(att->resolveImageView);
     }
 
-    ObjDisp(cmd)->CmdBeginRenderingKHR(Unwrap(cmd), &info);
+    ObjDisp(cmd)->CmdBeginRendering(Unwrap(cmd), &info);
   }
   else
   {
@@ -165,7 +165,7 @@ void VulkanRenderState::EndRenderPass(VkCommandBuffer cmd)
   if(dynamicRendering.active)
   {
     if(!dynamicRendering.suspended)
-      ObjDisp(cmd)->CmdEndRenderingKHR(Unwrap(cmd));
+      ObjDisp(cmd)->CmdEndRendering(Unwrap(cmd));
   }
   else
   {
@@ -177,26 +177,26 @@ void VulkanRenderState::FinishSuspendedRenderPass(VkCommandBuffer cmd)
 {
   if(dynamicRendering.active && dynamicRendering.suspended)
   {
-    VkRenderingInfoKHR info = {};
-    info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR;
+    VkRenderingInfo info = {};
+    info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
 
     // still resume the existing pass, but don't suspend again after that
-    info.flags = dynamicRendering.flags & ~VK_RENDERING_SUSPENDING_BIT_KHR;
+    info.flags = dynamicRendering.flags & ~VK_RENDERING_SUSPENDING_BIT;
 
     info.layerCount = dynamicRendering.layerCount;
     info.renderArea = renderArea;
     info.viewMask = dynamicRendering.viewMask;
 
-    VkRenderingAttachmentInfoKHR depth = dynamicRendering.depth;
+    VkRenderingAttachmentInfo depth = dynamicRendering.depth;
     info.pDepthAttachment = &depth;
     if(depth.imageLayout == VK_IMAGE_LAYOUT_UNDEFINED)
       info.pDepthAttachment = NULL;
-    VkRenderingAttachmentInfoKHR stencil = dynamicRendering.depth;
+    VkRenderingAttachmentInfo stencil = dynamicRendering.depth;
     info.pStencilAttachment = &stencil;
     if(stencil.imageLayout == VK_IMAGE_LAYOUT_UNDEFINED)
       info.pStencilAttachment = NULL;
 
-    rdcarray<VkRenderingAttachmentInfoKHR> color = dynamicRendering.color;
+    rdcarray<VkRenderingAttachmentInfo> color = dynamicRendering.color;
 
     info.colorAttachmentCount = (uint32_t)color.size();
     info.pColorAttachments = color.data();
@@ -204,12 +204,12 @@ void VulkanRenderState::FinishSuspendedRenderPass(VkCommandBuffer cmd)
     // patch the load/store actions and unwrap
     for(uint32_t i = 0; i < (uint32_t)color.size() + 2; i++)
     {
-      VkRenderingAttachmentInfoKHR *att = (VkRenderingAttachmentInfoKHR *)info.pColorAttachments + i;
+      VkRenderingAttachmentInfo *att = (VkRenderingAttachmentInfo *)info.pColorAttachments + i;
 
       if(i == info.colorAttachmentCount)
-        att = (VkRenderingAttachmentInfoKHR *)info.pDepthAttachment;
+        att = (VkRenderingAttachmentInfo *)info.pDepthAttachment;
       else if(i == info.colorAttachmentCount + 1)
-        att = (VkRenderingAttachmentInfoKHR *)info.pStencilAttachment;
+        att = (VkRenderingAttachmentInfo *)info.pStencilAttachment;
 
       if(!att)
         continue;
@@ -217,7 +217,7 @@ void VulkanRenderState::FinishSuspendedRenderPass(VkCommandBuffer cmd)
       if(att->loadOp != VK_ATTACHMENT_LOAD_OP_NONE_EXT)
         att->loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
 
-      if(att->storeOp != VK_ATTACHMENT_STORE_OP_NONE_EXT)
+      if(att->storeOp != VK_ATTACHMENT_STORE_OP_NONE)
         att->storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
       att->imageView = Unwrap(att->imageView);
@@ -225,8 +225,8 @@ void VulkanRenderState::FinishSuspendedRenderPass(VkCommandBuffer cmd)
     }
 
     // do nothing, just resume and then end without suspending
-    ObjDisp(cmd)->CmdBeginRenderingKHR(Unwrap(cmd), &info);
-    ObjDisp(cmd)->CmdEndRenderingKHR(Unwrap(cmd));
+    ObjDisp(cmd)->CmdBeginRendering(Unwrap(cmd), &info);
+    ObjDisp(cmd)->CmdEndRendering(Unwrap(cmd));
   }
 }
 
@@ -327,33 +327,33 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
 
     if(vk->ExtendedDynamicState())
     {
-      if(!views.empty() && dynamicStates[VkDynamicViewportCountEXT])
+      if(!views.empty() && dynamicStates[VkDynamicViewportCount])
         ObjDisp(cmd)->CmdSetViewportWithCountEXT(Unwrap(cmd), (uint32_t)views.size(), views.data());
-      if(!scissors.empty() && dynamicStates[VkDynamicScissorCountEXT])
+      if(!scissors.empty() && dynamicStates[VkDynamicScissorCount])
         ObjDisp(cmd)->CmdSetScissorWithCountEXT(Unwrap(cmd), (uint32_t)scissors.size(),
                                                 scissors.data());
 
-      if(dynamicStates[VkDynamicCullModeEXT])
+      if(dynamicStates[VkDynamicCullMode])
         ObjDisp(cmd)->CmdSetCullModeEXT(Unwrap(cmd), cullMode);
-      if(dynamicStates[VkDynamicFrontFaceEXT])
+      if(dynamicStates[VkDynamicFrontFace])
         ObjDisp(cmd)->CmdSetFrontFaceEXT(Unwrap(cmd), frontFace);
-      if(dynamicStates[VkDynamicPrimitiveTopologyEXT])
+      if(dynamicStates[VkDynamicPrimitiveTopology])
         ObjDisp(cmd)->CmdSetPrimitiveTopologyEXT(Unwrap(cmd), primitiveTopology);
 
-      if(dynamicStates[VkDynamicDepthBoundsTestEnableEXT])
+      if(dynamicStates[VkDynamicDepthBoundsTestEnable])
         ObjDisp(cmd)->CmdSetDepthBoundsTestEnableEXT(Unwrap(cmd), depthBoundsTestEnable);
 
-      if(dynamicStates[VkDynamicDepthTestEnableEXT])
+      if(dynamicStates[VkDynamicDepthTestEnable])
         ObjDisp(cmd)->CmdSetDepthTestEnableEXT(Unwrap(cmd), depthTestEnable);
-      if(dynamicStates[VkDynamicDepthWriteEnableEXT])
+      if(dynamicStates[VkDynamicDepthWriteEnable])
         ObjDisp(cmd)->CmdSetDepthWriteEnableEXT(Unwrap(cmd), depthWriteEnable);
-      if(dynamicStates[VkDynamicDepthCompareOpEXT])
+      if(dynamicStates[VkDynamicDepthCompareOp])
         ObjDisp(cmd)->CmdSetDepthCompareOpEXT(Unwrap(cmd), depthCompareOp);
 
-      if(dynamicStates[VkDynamicStencilTestEnableEXT])
+      if(dynamicStates[VkDynamicStencilTestEnable])
         ObjDisp(cmd)->CmdSetStencilTestEnableEXT(Unwrap(cmd), stencilTestEnable);
 
-      if(dynamicStates[VkDynamicStencilOpEXT])
+      if(dynamicStates[VkDynamicStencilOp])
       {
         ObjDisp(cmd)->CmdSetStencilOpEXT(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, front.failOp,
                                          front.passOp, front.depthFailOp, front.compareOp);
@@ -364,15 +364,15 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
 
     if(vk->ExtendedDynamicState2())
     {
-      if(dynamicStates[VkDynamicDepthBiasEnableEXT])
+      if(dynamicStates[VkDynamicDepthBiasEnable])
         ObjDisp(cmd)->CmdSetDepthBiasEnableEXT(Unwrap(cmd), depthBiasEnable);
       if(dynamicStates[VkDynamicLogicOpEXT])
         ObjDisp(cmd)->CmdSetLogicOpEXT(Unwrap(cmd), logicOp);
       if(dynamicStates[VkDynamicControlPointsEXT])
         ObjDisp(cmd)->CmdSetPatchControlPointsEXT(Unwrap(cmd), patchControlPoints);
-      if(dynamicStates[VkDynamicPrimRestartEXT])
+      if(dynamicStates[VkDynamicPrimRestart])
         ObjDisp(cmd)->CmdSetPrimitiveRestartEnableEXT(Unwrap(cmd), primRestartEnable);
-      if(dynamicStates[VkDynamicRastDiscardEXT])
+      if(dynamicStates[VkDynamicRastDiscard])
         ObjDisp(cmd)->CmdSetRasterizerDiscardEnableEXT(Unwrap(cmd), rastDiscardEnable);
     }
 
@@ -447,7 +447,7 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
     }
 
     bool dynamicStride =
-        dynamicStates[VkDynamicVertexInputBindingStrideEXT] && vk->ExtendedDynamicState();
+        dynamicStates[VkDynamicVertexInputBindingStride] && vk->ExtendedDynamicState();
 
     for(size_t i = 0; i < vbuffers.size(); i++)
     {
@@ -632,7 +632,7 @@ void VulkanRenderState::BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout
     rdcarray<VkDescriptorImageInfo *> allocImgWrites;
     rdcarray<VkDescriptorBufferInfo *> allocBufWrites;
     rdcarray<VkBufferView *> allocBufViewWrites;
-    rdcarray<VkWriteDescriptorSetInlineUniformBlockEXT *> allocInlineWrites;
+    rdcarray<VkWriteDescriptorSetInlineUniformBlock *> allocInlineWrites;
 
     const WrappedVulkan::DescriptorSetInfo &setInfo = vk->GetDebugManager()->GetDescSetInfo(descSet);
 
@@ -687,11 +687,11 @@ void VulkanRenderState::BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout
         push.pImageInfo = dst;
         allocImgWrites.push_back(dst);
       }
-      else if(push.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+      else if(push.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
       {
-        allocInlineWrites.push_back(new VkWriteDescriptorSetInlineUniformBlockEXT);
-        VkWriteDescriptorSetInlineUniformBlockEXT *inlineWrite = allocInlineWrites.back();
-        inlineWrite->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT;
+        allocInlineWrites.push_back(new VkWriteDescriptorSetInlineUniformBlock);
+        VkWriteDescriptorSetInlineUniformBlock *inlineWrite = allocInlineWrites.back();
+        inlineWrite->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK;
         inlineWrite->pNext = NULL;
         inlineWrite->dataSize = bind.descriptorCount;
         inlineWrite->pData = setInfo.data.inlineBytes.data() + slots[0].inlineOffset;
@@ -772,7 +772,7 @@ void VulkanRenderState::BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout
       delete[] a;
     for(VkBufferView *a : allocBufViewWrites)
       delete[] a;
-    for(VkWriteDescriptorSetInlineUniformBlockEXT *a : allocInlineWrites)
+    for(VkWriteDescriptorSetInlineUniformBlock *a : allocInlineWrites)
       delete a;
   }
 }

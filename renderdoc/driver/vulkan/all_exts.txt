@@ -32,6 +32,7 @@
 041    VK_EXT_video_decode_h264
 042    VK_AMD_texture_gather_bias_lod
 043    VK_AMD_shader_info
+045    VK_KHR_dynamic_rendering
 047    VK_AMD_shader_image_load_store_lod
 050    VK_GGP_stream_descriptor_surface
 051    VK_NV_corner_sampled_image
@@ -145,6 +146,7 @@
 185    VK_EXT_calibrated_timestamps
 186    VK_AMD_shader_core_properties
 188    VK_EXT_video_decode_h265
+189    VK_KHR_global_priority
 190    VK_AMD_memory_overallocation_behavior
 191    VK_EXT_vertex_attribute_divisor
 192    VK_GGP_frame_token
@@ -237,6 +239,7 @@
 337    VK_KHR_workgroup_memory_explicit_layout
 338    VK_KHR_copy_commands2
 341    VK_EXT_4444_formats
+343    VK_ARM_rasterization_order_attachment_access
 345    VK_EXT_rgba10x6_formats
 346    VK_NV_acquire_winrt_display
 347    VK_EXT_directfb_surface
@@ -245,6 +248,7 @@
 352    VK_VALVE_mutable_descriptor_type
 353    VK_EXT_vertex_input_dynamic_state
 354    VK_EXT_physical_device_drm
+356    VK_EXT_depth_clip_control
 357    VK_EXT_primitive_topology_list_restart
 361    VK_KHR_format_feature_flags2
 365    VK_FUCHSIA_external_memory
@@ -257,8 +261,12 @@
 379    VK_QNX_screen_surface
 382    VK_EXT_color_write_enable
 389    VK_EXT_global_priority_query
+392    VK_EXT_image_view_min_lod
 393    VK_EXT_multi_draw
 401    VK_EXT_load_store_op_none
 412    VK_EXT_border_color_swizzle
 413    VK_EXT_pageable_device_local_memory
 414    VK_KHR_maintenance4
+426    VK_QCOM_fragment_density_map_offset
+431    VK_NV_linear_color_attachment
+434    VK_GOOGLE_surfaceless_query

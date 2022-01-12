@@ -1888,7 +1888,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
             case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
               dst.bindings[b].type = BindType::InputAttachment;
               break;
-            case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT:
+            case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK:
               dst.bindings[b].descriptorCount = 1;
               dst.bindings[b].type = BindType::ConstantBuffer;
               break;
@@ -2086,7 +2086,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
                 dst.bindings[b].binds[a].byteSize = 0;
               }
             }
-            else if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+            else if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
             {
               dst.bindings[b].binds[a].viewResourceId = ResourceId();
               dst.bindings[b].binds[a].resourceResourceId = ResourceId();
@@ -2230,7 +2230,7 @@ void VulkanReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, 
         const DescSetLayout::Binding &layoutBind =
             m_pDriver->m_CreationInfo.m_DescSetLayout[layoutId].bindings[bind.bind];
 
-        if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+        if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
         {
           bytebuf inlineData;
           inlineData.assign(

@@ -137,6 +137,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_KHR_get_memory_requirements2`
 * `VK_KHR_get_physical_device_properties2`
 * `VK_KHR_get_surface_capabilities2`
+* `VK_KHR_global_priority`
 * `VK_KHR_image_format_list`
 * `VK_KHR_imageless_framebuffer`
 * `VK_KHR_incremental_present`
@@ -226,9 +227,11 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_EXT_acquire_drm_display`
 * `VK_EXT_blend_operation_advanced`
 * `VK_EXT_border_color_swizzle`
+* `VK_EXT_depth_clip_control`
 * `VK_EXT_device_memory_report`
 * `VK_EXT_external_memory_host`
 * `VK_EXT_image_drm_format_modifier`
+* `VK_EXT_image_view_min_lod`
 * `VK_EXT_multi_draw`
 * `VK_EXT_pageable_device_local_memory`
 * `VK_EXT_physical_device_drm`
@@ -236,6 +239,10 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_EXT_provoking_vertex`
 
 ## Platform/IHV Extensions
+
+### ARM
+
+* `VK_ARM_rasterization_order_attachment_access`
 
 ### AMD
 
@@ -250,6 +257,10 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_FUCHSIA_external_memory`
 * `VK_FUCHSIA_external_semaphore`
 * `VK_FUCHSIA_buffer_collection`
+
+### Google
+
+* `VK_GOOGLE_surfaceless_query`
 
 ### Huawei
 
@@ -277,6 +288,7 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_NV_fragment_shading_rate_enums`
 * `VK_NV_framebuffer_mixed_samples`
 * `VK_NV_inherited_viewport_scissor`
+* `VK_NV_linear_color_attachment`
 * `VK_NV_mesh_shader`
 * `VK_NV_ray_tracing_motion_blur`
 * `VK_NV_representative_fragment_test`
@@ -287,6 +299,7 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 
 ### Qualcomm
 
+* `VK_QCOM_fragment_density_map_offset`
 * `VK_QCOM_render_pass_shader_resolve`
 * `VK_QCOM_render_pass_store_ops`
 * `VK_QCOM_render_pass_transform`

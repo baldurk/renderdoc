@@ -219,12 +219,12 @@ struct VulkanRenderState
   {
     bool active = false;
     bool suspended = false;
-    VkRenderingFlagsKHR flags = 0;
+    VkRenderingFlags flags = 0;
     uint32_t layerCount = 0;
     uint32_t viewMask = 0;
-    rdcarray<VkRenderingAttachmentInfoKHR> color = {};
-    VkRenderingAttachmentInfoKHR depth = {};
-    VkRenderingAttachmentInfoKHR stencil = {};
+    rdcarray<VkRenderingAttachmentInfo> color = {};
+    VkRenderingAttachmentInfo depth = {};
+    VkRenderingAttachmentInfo stencil = {};
 
     VkImageView fragmentDensityView = VK_NULL_HANDLE;
     VkImageLayout fragmentDensityLayout = VK_IMAGE_LAYOUT_UNDEFINED;

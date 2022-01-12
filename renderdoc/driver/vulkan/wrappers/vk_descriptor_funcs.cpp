@@ -109,7 +109,7 @@ VkWriteDescriptorSet WrappedVulkan::UnwrapInfo(const VkWriteDescriptorSet *write
   ret.dstSet = Unwrap(ret.dstSet);
 
   // nothing to unwrap for inline uniform block
-  if(ret.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+  if(ret.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
     return ret;
 
   RDCCOMPILE_ASSERT(sizeof(VkDescriptorBufferInfo) >= sizeof(VkDescriptorImageInfo),
@@ -817,7 +817,7 @@ void WrappedVulkan::ReplayDescriptorSetWrite(VkDevice device, const VkWriteDescr
         valid &= (writeDesc.pBufferInfo[i].buffer != VK_NULL_HANDLE);
       break;
     }
-    case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT: break;
+    case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK: break;
     default: RDCERR("Unexpected descriptor type %d", writeDesc.descriptorType);
   }
 
@@ -901,11 +901,11 @@ void WrappedVulkan::ReplayDescriptorSetWrite(VkDevice device, const VkWriteDescr
           (*bind)[curIdx].imageInfo.SetFrom(writeDesc.pImageInfo[d], sampler, imageView);
         }
       }
-      else if(writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+      else if(writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
       {
-        VkWriteDescriptorSetInlineUniformBlockEXT *inlineWrite =
-            (VkWriteDescriptorSetInlineUniformBlockEXT *)FindNextStruct(
-                &writeDesc, VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT);
+        VkWriteDescriptorSetInlineUniformBlock *inlineWrite =
+            (VkWriteDescriptorSetInlineUniformBlock *)FindNextStruct(
+                &writeDesc, VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK);
         memcpy(inlineData.data() + (*bind)->inlineOffset + writeDesc.dstArrayElement,
                inlineWrite->pData, inlineWrite->dataSize);
       }
@@ -972,7 +972,7 @@ void WrappedVulkan::ReplayDescriptorSetCopy(VkDevice device, const VkCopyDescrip
 
     for(uint32_t d = 0; d < copyDesc.descriptorCount; d++, curSrcIdx++, curDstIdx++)
     {
-      if(layoutSrcBinding->descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+      if(layoutSrcBinding->descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
       {
         // inline uniform blocks are special, the descriptor count is a byte count. The layouts may
         // not match so inline offsets might not match, so we just copy the data and break.
@@ -1144,7 +1144,7 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
           imInfos[j].imageLayout = pDescriptorWrites[i].pImageInfo[j].imageLayout;
         }
       }
-      else if(pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+      else if(pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
       {
         // nothing to unwrap, the next chain contains the data which we can leave as-is
       }
@@ -1331,11 +1331,11 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
 
           bind.imageInfo.SetFrom(descWrite.pImageInfo[d], sampler, imageView);
         }
-        else if(descWrite.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+        else if(descWrite.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
         {
-          VkWriteDescriptorSetInlineUniformBlockEXT *inlineWrite =
-              (VkWriteDescriptorSetInlineUniformBlockEXT *)FindNextStruct(
-                  &descWrite, VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT);
+          VkWriteDescriptorSetInlineUniformBlock *inlineWrite =
+              (VkWriteDescriptorSetInlineUniformBlock *)FindNextStruct(
+                  &descWrite, VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK);
           memcpy(inlineData.data() + (*binding)->inlineOffset + descWrite.dstArrayElement,
                  inlineWrite->pData, inlineWrite->dataSize);
 
@@ -1385,7 +1385,7 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
 
       for(uint32_t d = 0; d < pDescriptorCopies[i].descriptorCount; d++, curSrcIdx++, curDstIdx++)
       {
-        if(srclayoutBinding->descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+        if(srclayoutBinding->descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
         {
           // inline uniform blocks are special, the descriptor count is a byte count. The layouts
           // may not match so inline offsets might not match, so we just copy the data and break.
@@ -1617,7 +1617,7 @@ void WrappedVulkan::vkUpdateDescriptorSetWithTemplate(
           src += entry.stride;
         }
       }
-      else if(entry.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+      else if(entry.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
       {
         // memcpy the data
         memcpy(dst, src, entry.descriptorCount);
@@ -1748,7 +1748,7 @@ void WrappedVulkan::vkUpdateDescriptorSetWithTemplate(
 
           bind.imageInfo.SetFrom(srcInfo, sampler, imageView);
         }
-        else if(entry.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+        else if(entry.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
         {
           memcpy(inlineData.data() + bind.inlineOffset + entry.dstArrayElement, src,
                  entry.descriptorCount);

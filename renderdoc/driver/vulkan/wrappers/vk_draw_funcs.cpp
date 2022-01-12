@@ -3514,8 +3514,8 @@ void WrappedVulkan::vkCmdDrawIndirectByteCountEXT(VkCommandBuffer commandBuffer,
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdCopyBuffer2KHR(SerialiserType &ser, VkCommandBuffer commandBuffer,
-                                                  const VkCopyBufferInfo2KHR *pCopyBufferInfo)
+bool WrappedVulkan::Serialise_vkCmdCopyBuffer2(SerialiserType &ser, VkCommandBuffer commandBuffer,
+                                               const VkCopyBufferInfo2 *pCopyBufferInfo)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT_LOCAL(CopyInfo, *pCopyBufferInfo).Important();
@@ -3526,13 +3526,13 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer2KHR(SerialiserType &ser, VkCommand
 
   if(IsReplayingAndReading())
   {
-    VkCopyBufferInfo2KHR unwrappedInfo = CopyInfo;
+    VkCopyBufferInfo2 unwrappedInfo = CopyInfo;
     unwrappedInfo.srcBuffer = Unwrap(unwrappedInfo.srcBuffer);
     unwrappedInfo.dstBuffer = Unwrap(unwrappedInfo.dstBuffer);
 
     byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedInfo.pNext));
 
-    UnwrapNextChain(m_State, "VkCopyBufferInfo2KHR", tempMem, (VkBaseInStructure *)&unwrappedInfo);
+    UnwrapNextChain(m_State, "VkCopyBufferInfo2", tempMem, (VkBaseInStructure *)&unwrappedInfo);
 
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
 
@@ -3544,11 +3544,11 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer2KHR(SerialiserType &ser, VkCommand
 
         uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::Copy);
 
-        ObjDisp(commandBuffer)->CmdCopyBuffer2KHR(Unwrap(commandBuffer), &unwrappedInfo);
+        ObjDisp(commandBuffer)->CmdCopyBuffer2(Unwrap(commandBuffer), &unwrappedInfo);
 
         if(eventId && m_ActionCallback->PostMisc(eventId, ActionFlags::Copy, commandBuffer))
         {
-          ObjDisp(commandBuffer)->CmdCopyBuffer2KHR(Unwrap(commandBuffer), &unwrappedInfo);
+          ObjDisp(commandBuffer)->CmdCopyBuffer2(Unwrap(commandBuffer), &unwrappedInfo);
 
           m_ActionCallback->PostRemisc(eventId, ActionFlags::Copy, commandBuffer);
         }
@@ -3556,7 +3556,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer2KHR(SerialiserType &ser, VkCommand
     }
     else
     {
-      ObjDisp(commandBuffer)->CmdCopyBuffer2KHR(Unwrap(commandBuffer), &unwrappedInfo);
+      ObjDisp(commandBuffer)->CmdCopyBuffer2(Unwrap(commandBuffer), &unwrappedInfo);
 
       {
         AddEvent();
@@ -3598,21 +3598,20 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer2KHR(SerialiserType &ser, VkCommand
   return true;
 }
 
-void WrappedVulkan::vkCmdCopyBuffer2KHR(VkCommandBuffer commandBuffer,
-                                        const VkCopyBufferInfo2KHR *pCopyBufferInfo)
+void WrappedVulkan::vkCmdCopyBuffer2(VkCommandBuffer commandBuffer,
+                                     const VkCopyBufferInfo2 *pCopyBufferInfo)
 {
   SCOPED_DBG_SINK();
 
-  VkCopyBufferInfo2KHR unwrappedInfo = *pCopyBufferInfo;
+  VkCopyBufferInfo2 unwrappedInfo = *pCopyBufferInfo;
   unwrappedInfo.srcBuffer = Unwrap(unwrappedInfo.srcBuffer);
   unwrappedInfo.dstBuffer = Unwrap(unwrappedInfo.dstBuffer);
 
   byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedInfo.pNext));
 
-  UnwrapNextChain(m_State, "VkCopyBufferInfo2KHR", tempMem, (VkBaseInStructure *)&unwrappedInfo);
+  UnwrapNextChain(m_State, "VkCopyBufferInfo2", tempMem, (VkBaseInStructure *)&unwrappedInfo);
 
-  SERIALISE_TIME_CALL(
-      ObjDisp(commandBuffer)->CmdCopyBuffer2KHR(Unwrap(commandBuffer), &unwrappedInfo));
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)->CmdCopyBuffer2(Unwrap(commandBuffer), &unwrappedInfo));
 
   if(IsCaptureMode(m_State))
   {
@@ -3621,8 +3620,8 @@ void WrappedVulkan::vkCmdCopyBuffer2KHR(VkCommandBuffer commandBuffer,
     CACHE_THREAD_SERIALISER();
 
     ser.SetActionChunk();
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdCopyBuffer2KHR);
-    Serialise_vkCmdCopyBuffer2KHR(ser, commandBuffer, pCopyBufferInfo);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdCopyBuffer2);
+    Serialise_vkCmdCopyBuffer2(ser, commandBuffer, pCopyBufferInfo);
 
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
 
@@ -3639,8 +3638,8 @@ void WrappedVulkan::vkCmdCopyBuffer2KHR(VkCommandBuffer commandBuffer,
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdCopyImage2KHR(SerialiserType &ser, VkCommandBuffer commandBuffer,
-                                                 const VkCopyImageInfo2KHR *pCopyImageInfo)
+bool WrappedVulkan::Serialise_vkCmdCopyImage2(SerialiserType &ser, VkCommandBuffer commandBuffer,
+                                              const VkCopyImageInfo2 *pCopyImageInfo)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT_LOCAL(CopyInfo, *pCopyImageInfo).Important();
@@ -3651,13 +3650,13 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage2KHR(SerialiserType &ser, VkCommandB
 
   if(IsReplayingAndReading())
   {
-    VkCopyImageInfo2KHR unwrappedInfo = CopyInfo;
+    VkCopyImageInfo2 unwrappedInfo = CopyInfo;
     unwrappedInfo.srcImage = Unwrap(unwrappedInfo.srcImage);
     unwrappedInfo.dstImage = Unwrap(unwrappedInfo.dstImage);
 
     byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedInfo.pNext));
 
-    UnwrapNextChain(m_State, "VkCopyImageInfo2KHR", tempMem, (VkBaseInStructure *)&unwrappedInfo);
+    UnwrapNextChain(m_State, "VkCopyImageInfo2", tempMem, (VkBaseInStructure *)&unwrappedInfo);
 
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
 
@@ -3669,11 +3668,11 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage2KHR(SerialiserType &ser, VkCommandB
 
         uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::Copy);
 
-        ObjDisp(commandBuffer)->CmdCopyImage2KHR(Unwrap(commandBuffer), &unwrappedInfo);
+        ObjDisp(commandBuffer)->CmdCopyImage2(Unwrap(commandBuffer), &unwrappedInfo);
 
         if(eventId && m_ActionCallback->PostMisc(eventId, ActionFlags::Copy, commandBuffer))
         {
-          ObjDisp(commandBuffer)->CmdCopyImage2KHR(Unwrap(commandBuffer), &unwrappedInfo);
+          ObjDisp(commandBuffer)->CmdCopyImage2(Unwrap(commandBuffer), &unwrappedInfo);
 
           m_ActionCallback->PostRemisc(eventId, ActionFlags::Copy, commandBuffer);
         }
@@ -3681,7 +3680,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage2KHR(SerialiserType &ser, VkCommandB
     }
     else
     {
-      ObjDisp(commandBuffer)->CmdCopyImage2KHR(Unwrap(commandBuffer), &unwrappedInfo);
+      ObjDisp(commandBuffer)->CmdCopyImage2(Unwrap(commandBuffer), &unwrappedInfo);
 
       {
         AddEvent();
@@ -3723,20 +3722,20 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage2KHR(SerialiserType &ser, VkCommandB
   return true;
 }
 
-void WrappedVulkan::vkCmdCopyImage2KHR(VkCommandBuffer commandBuffer,
-                                       const VkCopyImageInfo2KHR *pCopyImageInfo)
+void WrappedVulkan::vkCmdCopyImage2(VkCommandBuffer commandBuffer,
+                                    const VkCopyImageInfo2 *pCopyImageInfo)
 {
   SCOPED_DBG_SINK();
 
-  VkCopyImageInfo2KHR unwrappedInfo = *pCopyImageInfo;
+  VkCopyImageInfo2 unwrappedInfo = *pCopyImageInfo;
   unwrappedInfo.srcImage = Unwrap(unwrappedInfo.srcImage);
   unwrappedInfo.dstImage = Unwrap(unwrappedInfo.dstImage);
 
   byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedInfo.pNext));
 
-  UnwrapNextChain(m_State, "VkCopyImageInfo2KHR", tempMem, (VkBaseInStructure *)&unwrappedInfo);
+  UnwrapNextChain(m_State, "VkCopyImageInfo2", tempMem, (VkBaseInStructure *)&unwrappedInfo);
 
-  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)->CmdCopyImage2KHR(Unwrap(commandBuffer), &unwrappedInfo));
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)->CmdCopyImage2(Unwrap(commandBuffer), &unwrappedInfo));
 
   if(IsCaptureMode(m_State))
   {
@@ -3745,14 +3744,14 @@ void WrappedVulkan::vkCmdCopyImage2KHR(VkCommandBuffer commandBuffer,
     CACHE_THREAD_SERIALISER();
 
     ser.SetActionChunk();
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdCopyImage2KHR);
-    Serialise_vkCmdCopyImage2KHR(ser, commandBuffer, pCopyImageInfo);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdCopyImage2);
+    Serialise_vkCmdCopyImage2(ser, commandBuffer, pCopyImageInfo);
 
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
 
     for(uint32_t i = 0; i < pCopyImageInfo->regionCount; i++)
     {
-      const VkImageCopy2KHR &region = pCopyImageInfo->pRegions[i];
+      const VkImageCopy2 &region = pCopyImageInfo->pRegions[i];
 
       ImageRange srcRange(region.srcSubresource);
       srcRange.offset = region.srcOffset;
@@ -3770,9 +3769,9 @@ void WrappedVulkan::vkCmdCopyImage2KHR(VkCommandBuffer commandBuffer,
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage2KHR(
+bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage2(
     SerialiserType &ser, VkCommandBuffer commandBuffer,
-    const VkCopyBufferToImageInfo2KHR *pCopyBufferToImageInfo)
+    const VkCopyBufferToImageInfo2 *pCopyBufferToImageInfo)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT_LOCAL(CopyInfo, *pCopyBufferToImageInfo);
@@ -3783,13 +3782,13 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage2KHR(
 
   if(IsReplayingAndReading())
   {
-    VkCopyBufferToImageInfo2KHR unwrappedInfo = CopyInfo;
+    VkCopyBufferToImageInfo2 unwrappedInfo = CopyInfo;
     unwrappedInfo.srcBuffer = Unwrap(unwrappedInfo.srcBuffer);
     unwrappedInfo.dstImage = Unwrap(unwrappedInfo.dstImage);
 
     byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedInfo.pNext));
 
-    UnwrapNextChain(m_State, "VkCopyBufferToImageInfo2KHR", tempMem,
+    UnwrapNextChain(m_State, "VkCopyBufferToImageInfo2", tempMem,
                     (VkBaseInStructure *)&unwrappedInfo);
 
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
@@ -3802,11 +3801,11 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage2KHR(
 
         uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::Copy);
 
-        ObjDisp(commandBuffer)->CmdCopyBufferToImage2KHR(Unwrap(commandBuffer), &unwrappedInfo);
+        ObjDisp(commandBuffer)->CmdCopyBufferToImage2(Unwrap(commandBuffer), &unwrappedInfo);
 
         if(eventId && m_ActionCallback->PostMisc(eventId, ActionFlags::Copy, commandBuffer))
         {
-          ObjDisp(commandBuffer)->CmdCopyBufferToImage2KHR(Unwrap(commandBuffer), &unwrappedInfo);
+          ObjDisp(commandBuffer)->CmdCopyBufferToImage2(Unwrap(commandBuffer), &unwrappedInfo);
 
           m_ActionCallback->PostRemisc(eventId, ActionFlags::Copy, commandBuffer);
         }
@@ -3814,7 +3813,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage2KHR(
     }
     else
     {
-      ObjDisp(commandBuffer)->CmdCopyBufferToImage2KHR(Unwrap(commandBuffer), &unwrappedInfo);
+      ObjDisp(commandBuffer)->CmdCopyBufferToImage2(Unwrap(commandBuffer), &unwrappedInfo);
 
       {
         AddEvent();
@@ -3851,22 +3850,21 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage2KHR(
   return true;
 }
 
-void WrappedVulkan::vkCmdCopyBufferToImage2KHR(VkCommandBuffer commandBuffer,
-                                               const VkCopyBufferToImageInfo2KHR *pCopyBufferToImageInfo)
+void WrappedVulkan::vkCmdCopyBufferToImage2(VkCommandBuffer commandBuffer,
+                                            const VkCopyBufferToImageInfo2 *pCopyBufferToImageInfo)
 {
   SCOPED_DBG_SINK();
 
-  VkCopyBufferToImageInfo2KHR unwrappedInfo = *pCopyBufferToImageInfo;
+  VkCopyBufferToImageInfo2 unwrappedInfo = *pCopyBufferToImageInfo;
   unwrappedInfo.srcBuffer = Unwrap(unwrappedInfo.srcBuffer);
   unwrappedInfo.dstImage = Unwrap(unwrappedInfo.dstImage);
 
   byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedInfo.pNext));
 
-  UnwrapNextChain(m_State, "VkCopyBufferToImageInfo2KHR", tempMem,
-                  (VkBaseInStructure *)&unwrappedInfo);
+  UnwrapNextChain(m_State, "VkCopyBufferToImageInfo2", tempMem, (VkBaseInStructure *)&unwrappedInfo);
 
   SERIALISE_TIME_CALL(
-      ObjDisp(commandBuffer)->CmdCopyBufferToImage2KHR(Unwrap(commandBuffer), &unwrappedInfo));
+      ObjDisp(commandBuffer)->CmdCopyBufferToImage2(Unwrap(commandBuffer), &unwrappedInfo));
 
   if(IsCaptureMode(m_State))
   {
@@ -3875,12 +3873,12 @@ void WrappedVulkan::vkCmdCopyBufferToImage2KHR(VkCommandBuffer commandBuffer,
     CACHE_THREAD_SERIALISER();
 
     ser.SetActionChunk();
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdCopyBufferToImage2KHR);
-    Serialise_vkCmdCopyBufferToImage2KHR(ser, commandBuffer, pCopyBufferToImageInfo);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdCopyBufferToImage2);
+    Serialise_vkCmdCopyBufferToImage2(ser, commandBuffer, pCopyBufferToImageInfo);
 
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
 
-    // downcast the VkBufferImageCopy2KHR to VkBufferImageCopy for ease of use, as we don't need
+    // downcast the VkBufferImageCopy2 to VkBufferImageCopy for ease of use, as we don't need
     // anything in the next chains here
 
     // we're done with temp memory above so we can reuse here
@@ -3903,9 +3901,9 @@ void WrappedVulkan::vkCmdCopyBufferToImage2KHR(VkCommandBuffer commandBuffer,
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer2KHR(
+bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer2(
     SerialiserType &ser, VkCommandBuffer commandBuffer,
-    const VkCopyImageToBufferInfo2KHR *pCopyImageToBufferInfo)
+    const VkCopyImageToBufferInfo2 *pCopyImageToBufferInfo)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT_LOCAL(CopyInfo, *pCopyImageToBufferInfo).Important();
@@ -3916,13 +3914,13 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer2KHR(
 
   if(IsReplayingAndReading())
   {
-    VkCopyImageToBufferInfo2KHR unwrappedInfo = CopyInfo;
+    VkCopyImageToBufferInfo2 unwrappedInfo = CopyInfo;
     unwrappedInfo.srcImage = Unwrap(unwrappedInfo.srcImage);
     unwrappedInfo.dstBuffer = Unwrap(unwrappedInfo.dstBuffer);
 
     byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedInfo.pNext));
 
-    UnwrapNextChain(m_State, "VkCopyImageToBufferInfo2KHR", tempMem,
+    UnwrapNextChain(m_State, "VkCopyImageToBufferInfo2", tempMem,
                     (VkBaseInStructure *)&unwrappedInfo);
 
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
@@ -3935,11 +3933,11 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer2KHR(
 
         uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::Copy);
 
-        ObjDisp(commandBuffer)->CmdCopyImageToBuffer2KHR(Unwrap(commandBuffer), &unwrappedInfo);
+        ObjDisp(commandBuffer)->CmdCopyImageToBuffer2(Unwrap(commandBuffer), &unwrappedInfo);
 
         if(eventId && m_ActionCallback->PostMisc(eventId, ActionFlags::Copy, commandBuffer))
         {
-          ObjDisp(commandBuffer)->CmdCopyImageToBuffer2KHR(Unwrap(commandBuffer), &unwrappedInfo);
+          ObjDisp(commandBuffer)->CmdCopyImageToBuffer2(Unwrap(commandBuffer), &unwrappedInfo);
 
           m_ActionCallback->PostRemisc(eventId, ActionFlags::Copy, commandBuffer);
         }
@@ -3947,7 +3945,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer2KHR(
     }
     else
     {
-      ObjDisp(commandBuffer)->CmdCopyImageToBuffer2KHR(Unwrap(commandBuffer), &unwrappedInfo);
+      ObjDisp(commandBuffer)->CmdCopyImageToBuffer2(Unwrap(commandBuffer), &unwrappedInfo);
 
       {
         AddEvent();
@@ -3984,22 +3982,21 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer2KHR(
   return true;
 }
 
-void WrappedVulkan::vkCmdCopyImageToBuffer2KHR(VkCommandBuffer commandBuffer,
-                                               const VkCopyImageToBufferInfo2KHR *pCopyImageToBufferInfo)
+void WrappedVulkan::vkCmdCopyImageToBuffer2(VkCommandBuffer commandBuffer,
+                                            const VkCopyImageToBufferInfo2 *pCopyImageToBufferInfo)
 {
   SCOPED_DBG_SINK();
 
-  VkCopyImageToBufferInfo2KHR unwrappedInfo = *pCopyImageToBufferInfo;
+  VkCopyImageToBufferInfo2 unwrappedInfo = *pCopyImageToBufferInfo;
   unwrappedInfo.srcImage = Unwrap(unwrappedInfo.srcImage);
   unwrappedInfo.dstBuffer = Unwrap(unwrappedInfo.dstBuffer);
 
   byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedInfo.pNext));
 
-  UnwrapNextChain(m_State, "VkCopyImageToBufferInfo2KHR", tempMem,
-                  (VkBaseInStructure *)&unwrappedInfo);
+  UnwrapNextChain(m_State, "VkCopyImageToBufferInfo2", tempMem, (VkBaseInStructure *)&unwrappedInfo);
 
   SERIALISE_TIME_CALL(
-      ObjDisp(commandBuffer)->CmdCopyImageToBuffer2KHR(Unwrap(commandBuffer), &unwrappedInfo));
+      ObjDisp(commandBuffer)->CmdCopyImageToBuffer2(Unwrap(commandBuffer), &unwrappedInfo));
 
   if(IsCaptureMode(m_State))
   {
@@ -4008,12 +4005,12 @@ void WrappedVulkan::vkCmdCopyImageToBuffer2KHR(VkCommandBuffer commandBuffer,
     CACHE_THREAD_SERIALISER();
 
     ser.SetActionChunk();
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdCopyImageToBuffer2KHR);
-    Serialise_vkCmdCopyImageToBuffer2KHR(ser, commandBuffer, pCopyImageToBufferInfo);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdCopyImageToBuffer2);
+    Serialise_vkCmdCopyImageToBuffer2(ser, commandBuffer, pCopyImageToBufferInfo);
 
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
 
-    // downcast the VkBufferImageCopy2KHR to VkBufferImageCopy for ease of use, as we don't need
+    // downcast the VkBufferImageCopy2 to VkBufferImageCopy for ease of use, as we don't need
     // anything in the next chains here
 
     // we're done with temp memory above so we can reuse here
@@ -4036,8 +4033,8 @@ void WrappedVulkan::vkCmdCopyImageToBuffer2KHR(VkCommandBuffer commandBuffer,
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdBlitImage2KHR(SerialiserType &ser, VkCommandBuffer commandBuffer,
-                                                 const VkBlitImageInfo2KHR *pBlitImageInfo)
+bool WrappedVulkan::Serialise_vkCmdBlitImage2(SerialiserType &ser, VkCommandBuffer commandBuffer,
+                                              const VkBlitImageInfo2 *pBlitImageInfo)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT_LOCAL(BlitInfo, *pBlitImageInfo).Important();
@@ -4048,13 +4045,13 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage2KHR(SerialiserType &ser, VkCommandB
 
   if(IsReplayingAndReading())
   {
-    VkBlitImageInfo2KHR unwrappedInfo = BlitInfo;
+    VkBlitImageInfo2 unwrappedInfo = BlitInfo;
     unwrappedInfo.srcImage = Unwrap(unwrappedInfo.srcImage);
     unwrappedInfo.dstImage = Unwrap(unwrappedInfo.dstImage);
 
     byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedInfo.pNext));
 
-    UnwrapNextChain(m_State, "VkBlitImageInfo2KHR", tempMem, (VkBaseInStructure *)&unwrappedInfo);
+    UnwrapNextChain(m_State, "VkBlitImageInfo2", tempMem, (VkBaseInStructure *)&unwrappedInfo);
 
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
 
@@ -4066,11 +4063,11 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage2KHR(SerialiserType &ser, VkCommandB
 
         uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::Resolve);
 
-        ObjDisp(commandBuffer)->CmdBlitImage2KHR(Unwrap(commandBuffer), &unwrappedInfo);
+        ObjDisp(commandBuffer)->CmdBlitImage2(Unwrap(commandBuffer), &unwrappedInfo);
 
         if(eventId && m_ActionCallback->PostMisc(eventId, ActionFlags::Resolve, commandBuffer))
         {
-          ObjDisp(commandBuffer)->CmdBlitImage2KHR(Unwrap(commandBuffer), &unwrappedInfo);
+          ObjDisp(commandBuffer)->CmdBlitImage2(Unwrap(commandBuffer), &unwrappedInfo);
 
           m_ActionCallback->PostRemisc(eventId, ActionFlags::Resolve, commandBuffer);
         }
@@ -4078,7 +4075,7 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage2KHR(SerialiserType &ser, VkCommandB
     }
     else
     {
-      ObjDisp(commandBuffer)->CmdBlitImage2KHR(Unwrap(commandBuffer), &unwrappedInfo);
+      ObjDisp(commandBuffer)->CmdBlitImage2(Unwrap(commandBuffer), &unwrappedInfo);
 
       {
         AddEvent();
@@ -4120,20 +4117,20 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage2KHR(SerialiserType &ser, VkCommandB
   return true;
 }
 
-void WrappedVulkan::vkCmdBlitImage2KHR(VkCommandBuffer commandBuffer,
-                                       const VkBlitImageInfo2KHR *pBlitImageInfo)
+void WrappedVulkan::vkCmdBlitImage2(VkCommandBuffer commandBuffer,
+                                    const VkBlitImageInfo2 *pBlitImageInfo)
 {
   SCOPED_DBG_SINK();
 
-  VkBlitImageInfo2KHR unwrappedInfo = *pBlitImageInfo;
+  VkBlitImageInfo2 unwrappedInfo = *pBlitImageInfo;
   unwrappedInfo.srcImage = Unwrap(unwrappedInfo.srcImage);
   unwrappedInfo.dstImage = Unwrap(unwrappedInfo.dstImage);
 
   byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedInfo.pNext));
 
-  UnwrapNextChain(m_State, "VkBlitImageInfo2KHR", tempMem, (VkBaseInStructure *)&unwrappedInfo);
+  UnwrapNextChain(m_State, "VkBlitImageInfo2", tempMem, (VkBaseInStructure *)&unwrappedInfo);
 
-  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)->CmdBlitImage2KHR(Unwrap(commandBuffer), &unwrappedInfo));
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)->CmdBlitImage2(Unwrap(commandBuffer), &unwrappedInfo));
 
   if(IsCaptureMode(m_State))
   {
@@ -4142,14 +4139,14 @@ void WrappedVulkan::vkCmdBlitImage2KHR(VkCommandBuffer commandBuffer,
     CACHE_THREAD_SERIALISER();
 
     ser.SetActionChunk();
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdBlitImage2KHR);
-    Serialise_vkCmdBlitImage2KHR(ser, commandBuffer, pBlitImageInfo);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdBlitImage2);
+    Serialise_vkCmdBlitImage2(ser, commandBuffer, pBlitImageInfo);
 
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
 
     for(uint32_t i = 0; i < pBlitImageInfo->regionCount; i++)
     {
-      const VkImageBlit2KHR &region = pBlitImageInfo->pRegions[i];
+      const VkImageBlit2 &region = pBlitImageInfo->pRegions[i];
 
       ImageRange srcRange(region.srcSubresource);
       srcRange.offset = {RDCMIN(region.srcOffsets[0].x, region.srcOffsets[1].x),
@@ -4177,9 +4174,8 @@ void WrappedVulkan::vkCmdBlitImage2KHR(VkCommandBuffer commandBuffer,
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdResolveImage2KHR(SerialiserType &ser,
-                                                    VkCommandBuffer commandBuffer,
-                                                    const VkResolveImageInfo2KHR *pResolveImageInfo)
+bool WrappedVulkan::Serialise_vkCmdResolveImage2(SerialiserType &ser, VkCommandBuffer commandBuffer,
+                                                 const VkResolveImageInfo2 *pResolveImageInfo)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT_LOCAL(ResolveInfo, *pResolveImageInfo).Important();
@@ -4190,13 +4186,13 @@ bool WrappedVulkan::Serialise_vkCmdResolveImage2KHR(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    VkResolveImageInfo2KHR unwrappedInfo = ResolveInfo;
+    VkResolveImageInfo2 unwrappedInfo = ResolveInfo;
     unwrappedInfo.srcImage = Unwrap(unwrappedInfo.srcImage);
     unwrappedInfo.dstImage = Unwrap(unwrappedInfo.dstImage);
 
     byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedInfo.pNext));
 
-    UnwrapNextChain(m_State, "VkResolveImageInfo2KHR", tempMem, (VkBaseInStructure *)&unwrappedInfo);
+    UnwrapNextChain(m_State, "VkResolveImageInfo2", tempMem, (VkBaseInStructure *)&unwrappedInfo);
 
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
 
@@ -4208,11 +4204,11 @@ bool WrappedVulkan::Serialise_vkCmdResolveImage2KHR(SerialiserType &ser,
 
         uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::Resolve);
 
-        ObjDisp(commandBuffer)->CmdResolveImage2KHR(Unwrap(commandBuffer), &unwrappedInfo);
+        ObjDisp(commandBuffer)->CmdResolveImage2(Unwrap(commandBuffer), &unwrappedInfo);
 
         if(eventId && m_ActionCallback->PostMisc(eventId, ActionFlags::Resolve, commandBuffer))
         {
-          ObjDisp(commandBuffer)->CmdResolveImage2KHR(Unwrap(commandBuffer), &unwrappedInfo);
+          ObjDisp(commandBuffer)->CmdResolveImage2(Unwrap(commandBuffer), &unwrappedInfo);
 
           m_ActionCallback->PostRemisc(eventId, ActionFlags::Resolve, commandBuffer);
         }
@@ -4220,7 +4216,7 @@ bool WrappedVulkan::Serialise_vkCmdResolveImage2KHR(SerialiserType &ser,
     }
     else
     {
-      ObjDisp(commandBuffer)->CmdResolveImage2KHR(Unwrap(commandBuffer), &unwrappedInfo);
+      ObjDisp(commandBuffer)->CmdResolveImage2(Unwrap(commandBuffer), &unwrappedInfo);
 
       {
         AddEvent();
@@ -4262,21 +4258,20 @@ bool WrappedVulkan::Serialise_vkCmdResolveImage2KHR(SerialiserType &ser,
   return true;
 }
 
-void WrappedVulkan::vkCmdResolveImage2KHR(VkCommandBuffer commandBuffer,
-                                          const VkResolveImageInfo2KHR *pResolveImageInfo)
+void WrappedVulkan::vkCmdResolveImage2(VkCommandBuffer commandBuffer,
+                                       const VkResolveImageInfo2 *pResolveImageInfo)
 {
   SCOPED_DBG_SINK();
 
-  VkResolveImageInfo2KHR unwrappedInfo = *pResolveImageInfo;
+  VkResolveImageInfo2 unwrappedInfo = *pResolveImageInfo;
   unwrappedInfo.srcImage = Unwrap(unwrappedInfo.srcImage);
   unwrappedInfo.dstImage = Unwrap(unwrappedInfo.dstImage);
 
   byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedInfo.pNext));
 
-  UnwrapNextChain(m_State, "VkResolveImageInfo2KHR", tempMem, (VkBaseInStructure *)&unwrappedInfo);
+  UnwrapNextChain(m_State, "VkResolveImageInfo2", tempMem, (VkBaseInStructure *)&unwrappedInfo);
 
-  SERIALISE_TIME_CALL(
-      ObjDisp(commandBuffer)->CmdResolveImage2KHR(Unwrap(commandBuffer), &unwrappedInfo));
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)->CmdResolveImage2(Unwrap(commandBuffer), &unwrappedInfo));
 
   if(IsCaptureMode(m_State))
   {
@@ -4285,14 +4280,14 @@ void WrappedVulkan::vkCmdResolveImage2KHR(VkCommandBuffer commandBuffer,
     CACHE_THREAD_SERIALISER();
 
     ser.SetActionChunk();
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdResolveImage2KHR);
-    Serialise_vkCmdResolveImage2KHR(ser, commandBuffer, pResolveImageInfo);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdResolveImage2);
+    Serialise_vkCmdResolveImage2(ser, commandBuffer, pResolveImageInfo);
 
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
 
     for(uint32_t i = 0; i < pResolveImageInfo->regionCount; i++)
     {
-      const VkImageResolve2KHR &region = pResolveImageInfo->pRegions[i];
+      const VkImageResolve2 &region = pResolveImageInfo->pRegions[i];
 
       ImageRange srcRange(region.srcSubresource);
       srcRange.offset = region.srcOffset;
@@ -4394,15 +4389,15 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdDrawIndirectByteCountEXT, VkCommandBu
                                 uint32_t instanceCount, uint32_t firstInstance,
                                 VkBuffer counterBuffer, VkDeviceSize counterBufferOffset,
                                 uint32_t counterOffset, uint32_t vertexStride);
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdCopyBuffer2KHR, VkCommandBuffer commandBuffer,
-                                const VkCopyBufferInfo2KHR *pCopyBufferInfo);
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdCopyImage2KHR, VkCommandBuffer commandBuffer,
-                                const VkCopyImageInfo2KHR *pCopyImageInfo);
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdCopyBufferToImage2KHR, VkCommandBuffer commandBuffer,
-                                const VkCopyBufferToImageInfo2KHR *pCopyBufferToImageInfo);
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdCopyImageToBuffer2KHR, VkCommandBuffer commandBuffer,
-                                const VkCopyImageToBufferInfo2KHR *pCopyImageToBufferInfo);
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdBlitImage2KHR, VkCommandBuffer commandBuffer,
-                                const VkBlitImageInfo2KHR *pBlitImageInfo);
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdResolveImage2KHR, VkCommandBuffer commandBuffer,
-                                const VkResolveImageInfo2KHR *pResolveImageInfo);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdCopyBuffer2, VkCommandBuffer commandBuffer,
+                                const VkCopyBufferInfo2 *pCopyBufferInfo);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdCopyImage2, VkCommandBuffer commandBuffer,
+                                const VkCopyImageInfo2 *pCopyImageInfo);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdCopyBufferToImage2, VkCommandBuffer commandBuffer,
+                                const VkCopyBufferToImageInfo2 *pCopyBufferToImageInfo);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdCopyImageToBuffer2, VkCommandBuffer commandBuffer,
+                                const VkCopyImageToBufferInfo2 *pCopyImageToBufferInfo);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdBlitImage2, VkCommandBuffer commandBuffer,
+                                const VkBlitImageInfo2 *pBlitImageInfo);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdResolveImage2, VkCommandBuffer commandBuffer,
+                                const VkResolveImageInfo2 *pResolveImageInfo);

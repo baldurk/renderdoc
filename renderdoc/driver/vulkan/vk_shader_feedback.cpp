@@ -1419,7 +1419,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
         // only process array bindings
         if(bindData.descriptorCount > 1 &&
-           bindData.descriptorType != VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+           bindData.descriptorType != VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
         {
           key.binding = (uint32_t)binding;
 

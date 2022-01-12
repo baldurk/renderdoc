@@ -1023,7 +1023,7 @@ FrameRefType GetRefType(VkDescriptorType descType)
     case VK_DESCRIPTOR_TYPE_SAMPLER:
     case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
     case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-    case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT:
+    case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK:
     case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
     case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
     case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
@@ -1040,7 +1040,7 @@ FrameRefType GetRefType(VkDescriptorType descType)
 
 bool IsValid(bool allowNULLDescriptors, const VkWriteDescriptorSet &write, uint32_t arrayElement)
 {
-  if(write.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+  if(write.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
     return true;
 
   // this makes assumptions that only hold within the context of Serialise_InitialState below,
@@ -1325,12 +1325,12 @@ TEST_CASE("Validate CombineDepthStencilLayouts works", "[vulkan]")
 
     // could merge, but different layouts
     b.image = imga;
-    b.oldLayout = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL_KHR;
+    b.oldLayout = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
     b.subresourceRange = {VK_IMAGE_ASPECT_DEPTH_BIT, 0, 2, 0, 1};
     barriers.push_back(b);
 
     b.image = imgb;
-    b.oldLayout = VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL_KHR;
+    b.oldLayout = VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL;
     b.subresourceRange = {VK_IMAGE_ASPECT_STENCIL_BIT, 0, 2, 0, 1};
     barriers.push_back(b);
 
@@ -1342,12 +1342,12 @@ TEST_CASE("Validate CombineDepthStencilLayouts works", "[vulkan]")
     barriers.clear();
 
     b.image = imga;
-    b.newLayout = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL_KHR;
+    b.newLayout = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
     b.subresourceRange = {VK_IMAGE_ASPECT_DEPTH_BIT, 0, 2, 0, 1};
     barriers.push_back(b);
 
     b.image = imgb;
-    b.newLayout = VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL_KHR;
+    b.newLayout = VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL;
     b.subresourceRange = {VK_IMAGE_ASPECT_STENCIL_BIT, 0, 2, 0, 1};
     barriers.push_back(b);
 
