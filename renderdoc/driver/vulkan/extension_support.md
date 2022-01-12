@@ -85,6 +85,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_subgroup_size_control`
 * `VK_EXT_swapchain_colorspace`
 * `VK_EXT_texel_buffer_alignment`
+* `VK_EXT_texture_compression_astc_hdr`
 * `VK_EXT_tooling_info`
 * `VK_EXT_transform_feedback`
 * `VK_EXT_validation_cache`
@@ -233,7 +234,6 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_EXT_physical_device_drm`
 * `VK_EXT_primitive_topology_list_restart`
 * `VK_EXT_provoking_vertex`
-* `VK_EXT_texture_compression_astc_hdr`
 
 ## Platform/IHV Extensions
 
