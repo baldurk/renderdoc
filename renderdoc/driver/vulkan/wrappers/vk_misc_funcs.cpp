@@ -955,13 +955,13 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(SerialiserType &ser, VkDevice d
     VkAttachmentDescription *att = (VkAttachmentDescription *)CreateInfo.pAttachments;
     for(uint32_t i = 0; i < CreateInfo.attachmentCount; i++)
     {
+      if(att[i].storeOp != VK_ATTACHMENT_STORE_OP_NONE_EXT)
+        att[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+      if(att[i].stencilStoreOp != VK_ATTACHMENT_STORE_OP_NONE_EXT)
+        att[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
+
       if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest)
       {
-        if(att[i].storeOp != VK_ATTACHMENT_STORE_OP_NONE_EXT)
-          att[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        if(att[i].stencilStoreOp != VK_ATTACHMENT_STORE_OP_NONE_EXT)
-          att[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
-
         if(att[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
         {
           att[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
