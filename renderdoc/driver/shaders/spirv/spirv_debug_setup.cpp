@@ -217,7 +217,7 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
   debuggable = true;
   debugStatus.clear();
 
-  if(m_MajorVersion > 1 || m_MinorVersion > 5)
+  if(m_MajorVersion > 1 || m_MinorVersion > 6)
   {
     debugStatus +=
         StringFormat::Fmt("Unsupported SPIR-V version %u.%u\n", m_MajorVersion, m_MinorVersion);
