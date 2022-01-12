@@ -864,6 +864,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_ANDROID_EXTERNAL_MEMORY_ANDROID_HARDWARE_BUFFER_SPEC_VERSION,
     },
 #endif
+    {
+        VK_EXT_4444_FORMATS_EXTENSION_NAME, VK_EXT_4444_FORMATS_SPEC_VERSION,
+    },
 #ifdef VK_EXT_acquire_xlib_display
     {
         VK_EXT_ACQUIRE_XLIB_DISPLAY_EXTENSION_NAME, VK_EXT_ACQUIRE_XLIB_DISPLAY_SPEC_VERSION,

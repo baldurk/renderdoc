@@ -543,6 +543,10 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_TEXTURE_LOD_GATHER_FORMAT_PROPERTIES_AMD,                             \
                VkTextureLODGatherFormatPropertiesAMD)                                                  \
                                                                                                        \
+  /* VK_EXT_4444_formats */                                                                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_4444_FORMATS_FEATURES_EXT,                            \
+               VkPhysicalDevice4444FormatsFeaturesEXT)                                                 \
+                                                                                                       \
   /* VK_EXT_astc_decode_mode */                                                                        \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_VIEW_ASTC_DECODE_MODE_EXT, VkImageViewASTCDecodeModeEXT)        \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ASTC_DECODE_FEATURES_EXT,                             \
@@ -1274,9 +1278,6 @@ SERIALISE_VK_HANDLES();
                                                                                                        \
   /* VK_AMD_shader_core_properties2 */                                                                 \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CORE_PROPERTIES_2_AMD)                    \
-                                                                                                       \
-  /* VK_EXT_4444_formats */                                                                            \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_4444_FORMATS_FEATURES_EXT)                       \
                                                                                                        \
   /* VK_EXT_blend_operation_advanced */                                                                \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BLEND_OPERATION_ADVANCED_FEATURES_EXT)           \
@@ -6009,6 +6010,23 @@ void Deserialise(const VkTextureLODGatherFormatPropertiesAMD &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDevice4444FormatsFeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_4444_FORMATS_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(formatA4R4G4B4);
+  SERIALISE_MEMBER(formatA4B4G4R4);
+}
+
+template <>
+void Deserialise(const VkPhysicalDevice4444FormatsFeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkImageViewASTCDecodeModeEXT &el)
 {
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_IMAGE_VIEW_ASTC_DECODE_MODE_EXT);
@@ -9983,6 +10001,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPerformanceCounterDescriptionKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPerformanceCounterKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPerformanceQuerySubmitInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevice16BitStorageFeatures);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevice4444FormatsFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevice8BitStorageFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceASTCDecodeFeaturesEXT)
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceBufferDeviceAddressFeatures);
