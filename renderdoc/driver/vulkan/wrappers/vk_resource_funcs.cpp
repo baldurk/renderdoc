@@ -1379,8 +1379,7 @@ VkResult WrappedVulkan::vkBindBufferMemory(VkDevice device, VkBuffer buffer, VkD
     {
       // in case we're currently capturing, immediately consider the buffer and backing memory as
       // read-before-write referenced
-      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
-                                                        eFrameRef_ReadBeforeWrite);
+      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
       GetResourceManager()->MarkMemoryFrameReferenced(id, memoryOffset, record->memSize,
                                                       eFrameRef_ReadBeforeWrite);
 
@@ -2773,8 +2772,7 @@ VkResult WrappedVulkan::vkBindBufferMemory2(VkDevice device, uint32_t bindInfoCo
       {
         // in case we're currently capturing, immediately consider the buffer and backing memory as
         // read-before-write referenced
-        GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(),
-                                                          eFrameRef_ReadBeforeWrite);
+        GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
         GetResourceManager()->MarkMemoryFrameReferenced(
             GetResID(pBindInfos[i].memory), pBindInfos[i].memoryOffset, bufrecord->memSize,
             eFrameRef_ReadBeforeWrite);
