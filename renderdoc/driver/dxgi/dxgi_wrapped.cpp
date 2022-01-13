@@ -619,16 +619,20 @@ WrappedIDXGIOutput6::~WrappedIDXGIOutput6()
 HRESULT STDMETHODCALLTYPE WrappedIDXGIOutput6::FindClosestMatchingMode(
     const DXGI_MODE_DESC *pModeToMatch, DXGI_MODE_DESC *pClosestMatch, IUnknown *pConcernedDevice)
 {
-  ID3DDevice *wrapDevice = GetD3DDevice(pConcernedDevice);
-
-  if(wrapDevice)
-    return m_pReal->FindClosestMatchingMode(pModeToMatch, pClosestMatch,
-                                            wrapDevice->GetRealIUnknown());
-
   if(pConcernedDevice)
+  {
+    ID3DDevice *wrapDevice = GetD3DDevice(pConcernedDevice);
+
+    if(wrapDevice)
+      return m_pReal->FindClosestMatchingMode(pModeToMatch, pClosestMatch,
+                                              wrapDevice->GetRealIUnknown());
+
     RDCERR("Unrecognised device in FindClosestMatchingMode()");
 
-  return E_INVALIDARG;
+    return E_INVALIDARG;
+  }
+
+  return m_pReal->FindClosestMatchingMode(pModeToMatch, pClosestMatch, NULL);
 }
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGIOutput6::TakeOwnership(IUnknown *pDevice, BOOL Exclusive)
@@ -646,16 +650,20 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIOutput6::TakeOwnership(IUnknown *pDevice, 
 HRESULT STDMETHODCALLTYPE WrappedIDXGIOutput6::FindClosestMatchingMode1(
     const DXGI_MODE_DESC1 *pModeToMatch, DXGI_MODE_DESC1 *pClosestMatch, IUnknown *pConcernedDevice)
 {
-  ID3DDevice *wrapDevice = GetD3DDevice(pConcernedDevice);
-
-  if(wrapDevice)
-    return m_pReal1->FindClosestMatchingMode1(pModeToMatch, pClosestMatch,
-                                              wrapDevice->GetRealIUnknown());
-
   if(pConcernedDevice)
+  {
+    ID3DDevice *wrapDevice = GetD3DDevice(pConcernedDevice);
+
+    if(wrapDevice)
+      return m_pReal1->FindClosestMatchingMode1(pModeToMatch, pClosestMatch,
+                                                wrapDevice->GetRealIUnknown());
+
     RDCERR("Unrecognised device in FindClosestMatchingMode1()");
 
-  return E_INVALIDARG;
+    return E_INVALIDARG;
+  }
+
+  return m_pReal1->FindClosestMatchingMode1(pModeToMatch, pClosestMatch, NULL);
 }
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGIOutput6::GetDisplaySurfaceData1(IDXGIResource *pDestination)
