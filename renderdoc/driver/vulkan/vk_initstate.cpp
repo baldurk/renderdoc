@@ -1989,8 +1989,9 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
 
         ImageBarrierSequence setupBarriers;
         state->DiscardContents();
-        state->Transition(m_QueueFamilyIdx, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0,
-                          VK_ACCESS_TRANSFER_WRITE_BIT, setupBarriers, GetImageTransitionInfo());
+        state->Transition(m_QueueFamilyIdx, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                          VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, setupBarriers,
+                          GetImageTransitionInfo());
         InlineSetupImageBarriers(cmd, setupBarriers);
         m_setupImageBarriers.Merge(setupBarriers);
 
@@ -2020,8 +2021,9 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
 
         ImageBarrierSequence setupBarriers;    // , cleanupBarriers;
         state->DiscardContents();
-        state->Transition(m_QueueFamilyIdx, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0,
-                          VK_ACCESS_TRANSFER_WRITE_BIT, setupBarriers, GetImageTransitionInfo());
+        state->Transition(m_QueueFamilyIdx, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                          VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, setupBarriers,
+                          GetImageTransitionInfo());
         InlineSetupImageBarriers(cmd, setupBarriers);
         m_setupImageBarriers.Merge(setupBarriers);
 
@@ -2068,7 +2070,8 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
 
       ImageBarrierSequence setupBarriers;    // , cleanupBarriers;
       state->DiscardContents();
-      state->Transition(m_QueueFamilyIdx, VK_IMAGE_LAYOUT_GENERAL, 0,
+      state->Transition(m_QueueFamilyIdx, VK_IMAGE_LAYOUT_GENERAL,
+                        VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
                         VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
                         setupBarriers, GetImageTransitionInfo());
       InlineSetupImageBarriers(cmd, setupBarriers);
@@ -2281,8 +2284,9 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
       VkMarkerRegion::Begin(StringFormat::Fmt("Initial state for %s", ToStr(orig).c_str()), cmd);
 
       ImageBarrierSequence setupBarriers;
-      state->Transition(m_QueueFamilyIdx, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0,
-                        VK_ACCESS_TRANSFER_WRITE_BIT, setupBarriers, GetImageTransitionInfo());
+      state->Transition(m_QueueFamilyIdx, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                        VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, setupBarriers,
+                        GetImageTransitionInfo());
       InlineSetupImageBarriers(cmd, setupBarriers);
       m_setupImageBarriers.Merge(setupBarriers);
 
