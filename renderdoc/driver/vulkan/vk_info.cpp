@@ -356,6 +356,8 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
 {
   flags = pCreateInfo->flags;
 
+  graphicsPipe = true;
+
   layout = GetResID(pCreateInfo->layout);
   renderpass = GetResID(pCreateInfo->renderPass);
   subpass = pCreateInfo->subpass;
@@ -740,6 +742,8 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
                                         ResourceId id, const VkComputePipelineCreateInfo *pCreateInfo)
 {
   flags = pCreateInfo->flags;
+
+  graphicsPipe = false;
 
   layout = GetResID(pCreateInfo->layout);
 

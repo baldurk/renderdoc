@@ -252,6 +252,8 @@ struct VulkanCreationInfo
     void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, ResourceId id,
               const VkComputePipelineCreateInfo *pCreateInfo);
 
+    bool graphicsPipe = false;
+
     ResourceId layout;
     ResourceId renderpass;
     uint32_t subpass;

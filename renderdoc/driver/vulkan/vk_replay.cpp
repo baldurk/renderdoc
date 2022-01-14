@@ -4253,7 +4253,8 @@ void VulkanReplay::RefreshDerivedReplacements()
     {
       VkPipeline pipe = VK_NULL_HANDLE;
 
-      if(pipeInfo.renderpass != ResourceId())    // check if this is a graphics or compute pipeline
+      // check if this is a graphics or compute pipeline
+      if(pipeInfo.graphicsPipe)
       {
         VkGraphicsPipelineCreateInfo pipeCreateInfo;
         m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo, it->first);
