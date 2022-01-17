@@ -434,6 +434,12 @@ struct IReplayController
 )");
   virtual IReplayOutput *CreateOutput(WindowingData window, ReplayOutputType type) = 0;
 
+  DOCUMENT(R"(Shuts down and destroys a previously created replay output
+
+:param ReplayOutput output: The :class:`ReplayOutput` to destroy.
+)");
+  virtual void ShutdownOutput(IReplayOutput *output) = 0;
+
   DOCUMENT("Shutdown and destroy the current interface and all outputs that have been created.");
   virtual void Shutdown() = 0;
 
