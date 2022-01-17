@@ -2387,7 +2387,7 @@ const DXIL::Type *Program::GetBoolType()
   }
 
   if(!m_BoolType)
-    RDCERR("Couldn't find void type");
+    RDCERR("Couldn't find bool type");
 
   return m_BoolType;
 }
@@ -2408,7 +2408,7 @@ const Type *Program::GetInt32Type()
   }
 
   if(!m_Int32Type)
-    RDCERR("Couldn't find void type");
+    RDCERR("Couldn't find int32 type");
 
   return m_Int32Type;
 }
@@ -2429,7 +2429,7 @@ const Type *Program::GetInt8Type()
   }
 
   if(!m_Int8Type)
-    RDCERR("Couldn't find void type");
+    RDCERR("Couldn't find int8 type");
 
   return m_Int8Type;
 }

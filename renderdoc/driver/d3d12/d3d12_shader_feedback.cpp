@@ -191,11 +191,7 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
                                const std::map<D3D12FeedbackKey, D3D12FeedbackSlot> &slots,
                                bytebuf &editedBlob)
 {
-  DXIL::ProgramEditor editor(dxbc, slots.size(), editedBlob);
-
-  const DXIL::Type *i32 = editor.GetInt32Type();
-  const DXIL::Type *i8 = editor.GetInt8Type();
-  const DXIL::Type *i1 = editor.GetBoolType();
+  DXIL::ProgramEditor editor(dxbc, slots.size() + 64, editedBlob);
 
   const DXIL::Type *handleType = editor.GetTypeByName("dx.types.Handle");
   const DXIL::Function *createHandle = editor.GetFunctionByName("dx.op.createHandle");
@@ -204,6 +200,10 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
   // feedback to get
   if(!handleType || !createHandle)
     return false;
+
+  const DXIL::Type *i32 = editor.GetInt32Type();
+  const DXIL::Type *i8 = editor.GetInt8Type();
+  const DXIL::Type *i1 = editor.GetBoolType();
 
   // get the atomic function we'll need
   const DXIL::Function *atomicBinOp = editor.GetFunctionByName("dx.op.atomicBinOp.i32");
