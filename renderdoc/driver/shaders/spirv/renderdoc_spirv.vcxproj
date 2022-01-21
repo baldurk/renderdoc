@@ -125,6 +125,7 @@
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\RemoveTree.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\Scan.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\ShaderLang.cpp" />
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\SpirvIntrinsics.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\SymbolTable.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\Versions.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\OSDependent\Unix\ossource.cpp">
@@ -213,6 +214,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\3rdparty\glslang\glslang\build_info.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\Include\arrays.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\Include\BaseTypes.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\Include\Common.h" />
@@ -222,8 +224,8 @@
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\Include\intermediate.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\Include\PoolAlloc.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\Include\ResourceLimits.h" />
-    <ClInclude Include="..\..\..\3rdparty\glslang\glslang\Include\revision.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\Include\ShHandle.h" />
+    <ClInclude Include="..\..\..\3rdparty\glslang\glslang\Include\SpirvIntrinsics.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\Include\Types.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\glslang_tab.cpp.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\gl_types.h" />

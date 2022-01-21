@@ -84,6 +84,9 @@
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\ShaderLang.cpp">
       <Filter>3rdparty\glslang</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\SpirvIntrinsics.cpp">
+      <Filter>3rdparty\glslang</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\SymbolTable.cpp">
       <Filter>3rdparty\glslang</Filter>
     </ClCompile>
@@ -166,6 +169,9 @@
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\spvIR.h">
       <Filter>3rdparty\glslang</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\3rdparty\glslang\glslang\build_info.h">
+      <Filter>3rdparty\glslang</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\Include\arrays.h">
       <Filter>3rdparty\glslang</Filter>
     </ClInclude>
@@ -193,10 +199,10 @@
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\Include\ResourceLimits.h">
       <Filter>3rdparty\glslang</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\3rdparty\glslang\glslang\Include\revision.h">
+    <ClInclude Include="..\..\..\3rdparty\glslang\glslang\Include\ShHandle.h">
       <Filter>3rdparty\glslang</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\3rdparty\glslang\glslang\Include\ShHandle.h">
+    <ClInclude Include="..\..\..\3rdparty\glslang\glslang\Include\SpirvIntrinsics.h">
       <Filter>3rdparty\glslang</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\Include\Types.h">

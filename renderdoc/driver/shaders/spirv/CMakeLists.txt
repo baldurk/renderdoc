@@ -19,6 +19,7 @@ set(glslang_sources
     ${glslang_dir}/SPIRV/SpvTools.h
     ${glslang_dir}/SPIRV/SpvPostProcess.cpp
     ${glslang_dir}/SPIRV/spvIR.h
+    ${glslang_dir}/glslang/build_info.h
     ${glslang_dir}/glslang/GenericCodeGen/CodeGen.cpp
     ${glslang_dir}/glslang/GenericCodeGen/Link.cpp
     ${glslang_dir}/glslang/Include/arrays.h
@@ -30,8 +31,8 @@ set(glslang_sources
     ${glslang_dir}/glslang/Include/intermediate.h
     ${glslang_dir}/glslang/Include/PoolAlloc.h
     ${glslang_dir}/glslang/Include/ResourceLimits.h
-    ${glslang_dir}/glslang/Include/revision.h
     ${glslang_dir}/glslang/Include/ShHandle.h
+    ${glslang_dir}/glslang/Include/SpirvIntrinsics.h
     ${glslang_dir}/glslang/Include/Types.h
     ${glslang_dir}/glslang/MachineIndependent/Constant.cpp
     ${glslang_dir}/glslang/MachineIndependent/glslang_tab.cpp
@@ -72,6 +73,7 @@ set(glslang_sources
     ${glslang_dir}/glslang/MachineIndependent/Scan.cpp
     ${glslang_dir}/glslang/MachineIndependent/Scan.h
     ${glslang_dir}/glslang/MachineIndependent/ShaderLang.cpp
+    ${glslang_dir}/glslang/MachineIndependent/SpirvIntrinsics.cpp
     ${glslang_dir}/glslang/MachineIndependent/SymbolTable.cpp
     ${glslang_dir}/glslang/MachineIndependent/SymbolTable.h
     ${glslang_dir}/glslang/MachineIndependent/Versions.cpp
@@ -123,7 +125,17 @@ if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 6.9)
         ${glslang_dir}/glslang/MachineIndependent/reflection.cpp
         ${glslang_dir}/glslang/MachineIndependent/Intermediate.cpp
         ${glslang_dir}/glslang/MachineIndependent/ParseHelper.cpp
+        ${glslang_dir}/glslang/MachineIndependent/SpirvIntrinsics.cpp
+        ${glslang_dir}/SPIRV/GlslangToSpv.cpp
+        ${glslang_dir}/SPIRV/SpvPostProcess.cpp
         APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-implicit-fallthrough")
+endif()
+
+# GCC 11.0 and above needs -Wno-sign-compare on these files
+if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 10.9)
+    set_property(SOURCE
+        ${glslang_sources}
+        APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-sign-compare")
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
