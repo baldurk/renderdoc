@@ -1624,26 +1624,18 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       Extensions.push_back(createInfo.ppEnabledExtensionNames[i]);
     }
 
-    rdcarray<rdcstr> Layers;
-    for(uint32_t i = 0; i < createInfo.enabledLayerCount; i++)
-      Layers.push_back(createInfo.ppEnabledLayerNames[i]);
-
-    StripUnwantedLayers(Layers);
     StripUnwantedExtensions(Extensions);
 
     std::set<rdcstr> supportedExtensions;
 
-    for(size_t i = 0; i <= Layers.size(); i++)
     {
-      const char *pLayerName = (i == 0 ? NULL : Layers[i - 1].c_str());
-
       uint32_t count = 0;
       ObjDisp(physicalDevice)
-          ->EnumerateDeviceExtensionProperties(Unwrap(physicalDevice), pLayerName, &count, NULL);
+          ->EnumerateDeviceExtensionProperties(Unwrap(physicalDevice), NULL, &count, NULL);
 
       VkExtensionProperties *props = new VkExtensionProperties[count];
       ObjDisp(physicalDevice)
-          ->EnumerateDeviceExtensionProperties(Unwrap(physicalDevice), pLayerName, &count, props);
+          ->EnumerateDeviceExtensionProperties(Unwrap(physicalDevice), NULL, &count, props);
 
       for(uint32_t e = 0; e < count; e++)
         supportedExtensions.insert(props[e].extensionName);
@@ -3282,12 +3274,12 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
     }
 
-    rdcarray<const char *> layerArray(Layers.size());
-    for(size_t i = 0; i < Layers.size(); i++)
-      layerArray[i] = Layers[i].c_str();
+    rdcarray<const char *> layerArray(m_InitParams.Layers.size());
+    for(size_t i = 0; i < m_InitParams.Layers.size(); i++)
+      layerArray[i] = m_InitParams.Layers[i].c_str();
 
-    createInfo.enabledLayerCount = (uint32_t)layerArray.size();
-    createInfo.ppEnabledLayerNames = layerArray.data();
+    createInfo.enabledLayerCount = 0;
+    createInfo.ppEnabledLayerNames = NULL;
 
     rdcarray<const char *> extArray(Extensions.size());
     for(size_t i = 0; i < Extensions.size(); i++)
