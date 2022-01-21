@@ -116,7 +116,8 @@ rdcstr GenerateGLSLShader(const rdcstr &shader, ShaderType type, int version, co
       type == ShaderType::Vulkan ? glslang::EShTargetVulkan_1_0 : glslang::EShTargetOpenGL_450;
 
   sh.setStrings(&c_src, 1);
-  sh.setEnvInput(glslang::EShSourceGlsl, EShLangFragment, client, 100);
+  int inputVersion = (type == ShaderType::Vulkan || type == ShaderType::GLSPIRV) ? 100 : 0;
+  sh.setEnvInput(glslang::EShSourceGlsl, EShLangFragment, client, inputVersion);
   sh.setEnvClient(client, targetversion);
   sh.setEnvTarget(glslang::EShTargetNone, glslang::EShTargetSpv_1_0);
 
