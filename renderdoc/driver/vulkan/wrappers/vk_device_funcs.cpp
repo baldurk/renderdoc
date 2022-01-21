@@ -1714,6 +1714,14 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       RDCLOG("Enabling VK_KHR_driver_properties");
     }
 
+    // enable VK_KHR_shader_non_semantic_info if it's available, to enable debug printf
+    if(supportedExtensions.find(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME) !=
+       supportedExtensions.end())
+    {
+      Extensions.push_back(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME);
+      RDCLOG("Enabling VK_KHR_shader_non_semantic_info");
+    }
+
     bool pipeExec = false;
 
     // enable VK_KHR_pipeline_executable_properties if it's available, to fetch disassembly and
