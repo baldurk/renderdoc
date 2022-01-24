@@ -4004,7 +4004,7 @@ void WrappedVulkan::AddDebugMessage(DebugMessage msg)
 
 void WrappedVulkan::CheckErrorVkResult(VkResult vkr)
 {
-  if(vkr == VK_SUCCESS || m_FatalError == ReplayStatus::Succeeded)
+  if(vkr == VK_SUCCESS || HasFatalError() || IsCaptureMode(m_State))
     return;
 
   if(vkr == VK_ERROR_INITIALIZATION_FAILED || vkr == VK_ERROR_DEVICE_LOST || vkr == VK_ERROR_UNKNOWN)
