@@ -437,7 +437,7 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
     VkResult ret = ObjDisp(device)->CreateGraphicsPipelines(Unwrap(device), Unwrap(pipelineCache),
                                                             1, unwrapped, NULL, &pipe);
 
-    if(ret != VK_SUCCESS)
+    if(ret != VK_SUCCESS && ret != VK_PIPELINE_COMPILE_REQUIRED_EXT)
     {
       RDCERR("Failed on resource serialise-creation, VkResult: %s", ToStr(ret).c_str());
       return false;
