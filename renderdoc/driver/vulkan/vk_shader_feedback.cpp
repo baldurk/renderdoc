@@ -235,11 +235,11 @@ rdcstr PatchFormatString(rdcstr format)
   return format;
 }
 
-void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchData,
-                    ShaderStage stage, const char *entryName,
-                    const std::map<rdcspv::Binding, feedbackData> &offsetMap, uint32_t maxSlot,
-                    bool usePrimitiveID, VkDeviceAddress addr, bool bufferAddressKHR,
-                    rdcarray<uint32_t> &modSpirv, std::map<uint32_t, PrintfData> &printfData)
+void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchData, ShaderStage stage,
+                    const char *entryName, const std::map<rdcspv::Binding, feedbackData> &offsetMap,
+                    uint32_t maxSlot, bool usePrimitiveID, VkDeviceAddress addr,
+                    bool bufferAddressKHR, bool usesMultiview, rdcarray<uint32_t> &modSpirv,
+                    std::map<uint32_t, PrintfData> &printfData)
 {
   // calculate offsets for IDs on the original unmodified SPIR-V. The editor may insert some nops,
   // so we do it manually here
@@ -356,6 +356,12 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
   }
 
   rdcspv::Id bufferAddressConst, ssboVar, uint32ptrtype;
+
+  if(usesMultiview && (stage == ShaderStage::Pixel || stage == ShaderStage::Vertex))
+  {
+    editor.AddCapability(rdcspv::Capability::MultiView);
+    editor.AddExtension("SPV_KHR_multiview");
+  }
 
   if(usePrimitiveID && stage == ShaderStage::Fragment && Vulkan_PrintfFetch())
   {
@@ -583,17 +589,12 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
       location = fetchOrAddGlobalInput("rdoc_invocation", ShaderBuiltin::DispatchThreadIndex,
                                        rdcspv::BuiltIn::GlobalInvocationId, uvec3Type);
     }
-    else if(stage == ShaderStage::Vertex)
+    else if(stage == ShaderStage::Vertex || stage == ShaderStage::Pixel)
     {
-      rdcspv::Id vtx = fetchOrAddGlobalInput("rdoc_vertexIndex", ShaderBuiltin::VertexIndex,
-                                             rdcspv::BuiltIn::VertexIndex, uint32Type);
-      rdcspv::Id inst = fetchOrAddGlobalInput("rdoc_instanceIndex", ShaderBuiltin::InstanceIndex,
-                                              rdcspv::BuiltIn::InstanceIndex, uint32Type);
-
       rdcspv::Id view;
 
       // only search for the view index is the multiview capability is declared, otherwise it's
-      // invalid and we just set 0
+      // invalid and we just set 0. Valid for both Vertex and Pixel shaders
       if(editor.HasCapability(rdcspv::Capability::MultiView))
       {
         view = fetchOrAddGlobalInput("rdoc_viewIndex", ShaderBuiltin::ViewportIndex,
@@ -604,68 +605,83 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
         view = editor.AddConstantImmediate<uint32_t>(0U);
       }
 
-      location = locationGather.add(
-          rdcspv::OpCompositeConstruct(uvec3Type, editor.MakeId(), {vtx, inst, view}));
-    }
-    else if(stage == ShaderStage::Pixel)
-    {
-      rdcspv::Id float2Type = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<float>(), 2));
-      rdcspv::Id float4Type = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<float>(), 4));
-
-      rdcspv::Id coord = fetchOrAddGlobalInput("rdoc_fragCoord", ShaderBuiltin::Position,
-                                               rdcspv::BuiltIn::FragCoord, float4Type);
-
-      // grab just the xy
-      coord = locationGather.add(
-          rdcspv::OpVectorShuffle(float2Type, editor.MakeId(), coord, coord, {0, 1}));
-
-      // convert to int
-      coord = locationGather.add(rdcspv::OpConvertFToU(uvec2Type, editor.MakeId(), coord));
-
-      rdcspv::Id x =
-          locationGather.add(rdcspv::OpCompositeExtract(uint32Type, editor.MakeId(), coord, {0}));
-      rdcspv::Id y =
-          locationGather.add(rdcspv::OpCompositeExtract(uint32Type, editor.MakeId(), coord, {1}));
-
-      // shift x up into top 16-bits
-      x = locationGather.add(rdcspv::OpShiftLeftLogical(
-          uint32Type, editor.MakeId(), x, editor.AddConstantImmediate<uint32_t>(16U)));
-
-      // OR together
-      coord = locationGather.add(rdcspv::OpBitwiseOr(uint32Type, editor.MakeId(), x, y));
-
-      rdcspv::Id samp;
-
-      // only grab the sample ID if sample shading is already enabled
-      for(size_t i = 0; i < refl.inputSignature.size(); i++)
+      if(stage == ShaderStage::Vertex)
       {
-        if(refl.inputSignature[i].systemValue == ShaderBuiltin::MSAASampleIndex ||
-           refl.inputSignature[i].systemValue == ShaderBuiltin::MSAASamplePosition)
+        rdcspv::Id vtx = fetchOrAddGlobalInput("rdoc_vertexIndex", ShaderBuiltin::VertexIndex,
+                                               rdcspv::BuiltIn::VertexIndex, uint32Type);
+        rdcspv::Id inst = fetchOrAddGlobalInput("rdoc_instanceIndex", ShaderBuiltin::InstanceIndex,
+                                                rdcspv::BuiltIn::InstanceIndex, uint32Type);
+
+        location = locationGather.add(
+            rdcspv::OpCompositeConstruct(uvec3Type, editor.MakeId(), {vtx, inst, view}));
+      }
+      else if(stage == ShaderStage::Pixel)
+      {
+        rdcspv::Id float2Type = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<float>(), 2));
+        rdcspv::Id float4Type = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<float>(), 4));
+
+        rdcspv::Id coord = fetchOrAddGlobalInput("rdoc_fragCoord", ShaderBuiltin::Position,
+                                                 rdcspv::BuiltIn::FragCoord, float4Type);
+
+        // grab just the xy
+        coord = locationGather.add(
+            rdcspv::OpVectorShuffle(float2Type, editor.MakeId(), coord, coord, {0, 1}));
+
+        // convert to int
+        coord = locationGather.add(rdcspv::OpConvertFToU(uvec2Type, editor.MakeId(), coord));
+
+        rdcspv::Id x =
+            locationGather.add(rdcspv::OpCompositeExtract(uint32Type, editor.MakeId(), coord, {0}));
+        rdcspv::Id y =
+            locationGather.add(rdcspv::OpCompositeExtract(uint32Type, editor.MakeId(), coord, {1}));
+
+        // shift x up into top 16-bits
+        x = locationGather.add(rdcspv::OpShiftLeftLogical(
+            uint32Type, editor.MakeId(), x, editor.AddConstantImmediate<uint32_t>(16U)));
+
+        // OR together
+        coord = locationGather.add(rdcspv::OpBitwiseOr(uint32Type, editor.MakeId(), x, y));
+
+        rdcspv::Id samp;
+
+        // only grab the sample ID if sample shading is already enabled
+        for(size_t i = 0; i < refl.inputSignature.size(); i++)
         {
-          samp = fetchOrAddGlobalInput("rdoc_sampleIndex", ShaderBuiltin::MSAASampleIndex,
-                                       rdcspv::BuiltIn::SampleId, uint32Type);
+          if(refl.inputSignature[i].systemValue == ShaderBuiltin::MSAASampleIndex ||
+             refl.inputSignature[i].systemValue == ShaderBuiltin::MSAASamplePosition)
+          {
+            samp = fetchOrAddGlobalInput("rdoc_sampleIndex", ShaderBuiltin::MSAASampleIndex,
+                                         rdcspv::BuiltIn::SampleId, uint32Type);
+          }
         }
-      }
 
-      if(samp == rdcspv::Id())
-      {
-        samp = editor.AddConstantImmediate<uint32_t>(~0U);
-      }
+        if(samp == rdcspv::Id())
+        {
+          samp = editor.AddConstantImmediate<uint32_t>(~0U);
+        }
 
-      rdcspv::Id prim;
+        // shift samp up into top 16-bits
+        samp = locationGather.add(rdcspv::OpShiftLeftLogical(
+            uint32Type, editor.MakeId(), samp, editor.AddConstantImmediate<uint32_t>(16U)));
 
-      if(usePrimitiveID)
-      {
-        prim = fetchOrAddGlobalInput("rdoc_primitiveIndex", ShaderBuiltin::PrimitiveIndex,
-                                     rdcspv::BuiltIn::PrimitiveId, uint32Type);
-      }
-      else
-      {
-        prim = editor.AddConstantImmediate<uint32_t>(~0U);
-      }
+        // OR samp and view together
+        view = locationGather.add(rdcspv::OpBitwiseOr(uint32Type, editor.MakeId(), samp, view));
 
-      location = locationGather.add(
-          rdcspv::OpCompositeConstruct(uvec3Type, editor.MakeId(), {coord, samp, prim}));
+        rdcspv::Id prim;
+
+        if(usePrimitiveID)
+        {
+          prim = fetchOrAddGlobalInput("rdoc_primitiveIndex", ShaderBuiltin::PrimitiveIndex,
+                                       rdcspv::BuiltIn::PrimitiveId, uint32Type);
+        }
+        else
+        {
+          prim = editor.AddConstantImmediate<uint32_t>(~0U);
+        }
+
+        location = locationGather.add(
+            rdcspv::OpCompositeConstruct(uvec3Type, editor.MakeId(), {coord, view, prim}));
+      }
     }
     else
     {
@@ -1584,7 +1600,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
     AnnotateShader(*pipeInfo.shaders[5].refl, *pipeInfo.shaders[5].patchData,
                    ShaderStage(StageIndex(stage.stage)), stage.pName, offsetMap, maxSlot, false,
-                   bufferAddress, useBufferAddressKHR, modSpirv, printfData[5]);
+                   bufferAddress, useBufferAddressKHR, false, modSpirv, printfData[5]);
 
     if(!Vulkan_Debug_FeedbackDumpDirPath().empty())
       FileIO::WriteAll(Vulkan_Debug_FeedbackDumpDirPath() + "/after_" + filename[5], modSpirv);
@@ -1616,6 +1632,10 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
     bool usePrimitiveID =
         !hasGeom && m_pDriver->GetDeviceEnabledFeatures().geometryShader != VK_FALSE;
 
+    bool usesMultiview =
+        creationInfo.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].multiviews.size() >
+        1;
+
     for(uint32_t i = 0; i < graphicsInfo.stageCount; i++)
     {
       VkPipelineShaderStageCreateInfo &stage =
@@ -1644,7 +1664,8 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
       AnnotateShader(*pipeInfo.shaders[idx].refl, *pipeInfo.shaders[idx].patchData,
                      ShaderStage(StageIndex(stage.stage)), stage.pName, offsetMap, maxSlot,
-                     usePrimitiveID, bufferAddress, useBufferAddressKHR, modSpirv, printfData[idx]);
+                     usePrimitiveID, bufferAddress, useBufferAddressKHR, usesMultiview, modSpirv,
+                     printfData[idx]);
 
       if(!Vulkan_Debug_FeedbackDumpDirPath().empty())
         FileIO::WriteAll(Vulkan_Debug_FeedbackDumpDirPath() + "/after_" + filename[idx], modSpirv);
@@ -1866,8 +1887,13 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
         {
           msg.location.pixel.x = location[0] >> 16U;
           msg.location.pixel.y = location[0] & 0xffff;
-          msg.location.pixel.sample = location[1];
+          msg.location.pixel.sample = location[1] >> 16U;
+          msg.location.pixel.view = location[1] & 0xffff;
           msg.location.pixel.primitive = location[2];
+          if(msg.location.pixel.sample == (~0U >> 16U))
+          {
+            msg.location.pixel.sample = ~0U;
+          }
         }
 
         msg.message = StringFormat::FmtArgs(fmt.effective_format.c_str(), args);

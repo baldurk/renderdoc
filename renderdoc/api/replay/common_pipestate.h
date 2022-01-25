@@ -590,6 +590,12 @@ struct ShaderPixelMessageLocation
 )");
   uint32_t primitive;
 
+  DOCUMENT(R"(The multiview view for this fragment, or ``0`` if multiview is disabled.
+
+:type: int
+)");
+  uint32_t view;
+
   static const uint32_t NoLocation = ~0U;
 };
 
