@@ -4092,7 +4092,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
         {
           depth++;
         }
-        else if(nextOp.operation == OPCODE_ENDSWITCH)
+        else if(depth > 0 && nextOp.operation == OPCODE_ENDSWITCH)
         {
           depth--;
         }
