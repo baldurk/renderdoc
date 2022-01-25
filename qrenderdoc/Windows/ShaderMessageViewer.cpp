@@ -397,6 +397,7 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
         m_Ctx.ShowTextureViewer();
         Subresource sub = m_Ctx.GetTextureViewer()->GetSelectedSubresource();
         sub.sample = msg.location.pixel.sample;
+        sub.slice = msg.location.pixel.view;
         m_Ctx.GetTextureViewer()->SetSelectedSubresource(sub);
 
         // select an actual output. Prefer the first colour output, but if there's no colour output
@@ -486,6 +487,8 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
               return aloc.y < bloc.y;
             if(aloc.primitive != bloc.primitive)
               return aloc.primitive < bloc.primitive;
+            if(aloc.view != bloc.view)
+              return aloc.view < bloc.view;
             return aloc.sample < bloc.sample;
           }
           else if(am.stage == ShaderStage::Compute)
@@ -778,12 +781,15 @@ void ShaderMessageViewer::refreshMessages()
       else
         location += lit(", Prim %1").arg(msg.location.pixel.primitive);
 
-      if(m_Multisampled)
+      // only show the view if the draw has multiview enabled
+      if(m_Multiview)
       {
-        if(msg.location.pixel.sample == ~0U)
-          location += lit(", Samp ?");
-        else
-          location += lit(", Samp %1").arg(msg.location.pixel.sample);
+        location += lit(", View %1").arg(msg.location.pixel.view);
+      }
+
+      if(m_Multisampled && msg.location.pixel.sample != ~0U)
+      {
+        location += lit(", Samp %1").arg(msg.location.pixel.sample);
       }
     }
     else if(msg.stage == ShaderStage::Compute)

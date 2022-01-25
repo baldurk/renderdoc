@@ -1049,8 +1049,9 @@ void DoSerialise(SerialiserType &ser, ShaderPixelMessageLocation &el)
   SERIALISE_MEMBER(y);
   SERIALISE_MEMBER(sample);
   SERIALISE_MEMBER(primitive);
+  SERIALISE_MEMBER(view);
 
-  SIZE_CHECK(16);
+  SIZE_CHECK(20);
 }
 
 template <typename SerialiserType>
