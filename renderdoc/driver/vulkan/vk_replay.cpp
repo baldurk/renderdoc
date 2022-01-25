@@ -782,6 +782,8 @@ void VulkanReplay::RenderCheckerboard(FloatVector dark, FloatVector light)
   if(m_Overlay.m_CheckerPipeline != VK_NULL_HANDLE)
   {
     CheckerboardUBOData *data = (CheckerboardUBOData *)m_Overlay.m_CheckerUBO.Map(&uboOffs);
+    if(!data)
+      return;
     data->BorderWidth = 0.0f;
     data->RectPosition = Vec2f();
     data->RectSize = Vec2f();
@@ -2401,6 +2403,12 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, const S
     CheckVkResult(vkr);
     if(vkr != VK_SUCCESS)
       return;
+    if(!pData)
+    {
+      RDCERR("Manually reporting failed memory map");
+      CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+      return;
+    }
 
     VkMappedMemoryRange range = {
         VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
@@ -2651,6 +2659,8 @@ bool VulkanReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType 
   vt->UpdateDescriptorSets(Unwrap(dev), (uint32_t)writeSets.size(), &writeSets[0], 0, NULL);
 
   HistogramUBOData *data = (HistogramUBOData *)m_Histogram.m_HistogramUBO.Map(NULL);
+  if(!data)
+    return false;
 
   data->HistogramTextureResolution.x = (float)RDCMAX(uint32_t(iminfo.extent.width) >> sub.mip, 1U);
   data->HistogramTextureResolution.y = (float)RDCMAX(uint32_t(iminfo.extent.height) >> sub.mip, 1U);
@@ -2775,6 +2785,8 @@ bool VulkanReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType 
   m_pDriver->FlushQ();
 
   Vec4f *minmax = (Vec4f *)m_Histogram.m_MinMaxReadback.Map(NULL);
+  if(!minmax)
+    return false;
 
   minval[0] = minmax[0].x;
   minval[1] = minmax[0].y;
@@ -2957,6 +2969,8 @@ bool VulkanReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompTy
   vt->UpdateDescriptorSets(Unwrap(dev), (uint32_t)writeSets.size(), &writeSets[0], 0, NULL);
 
   HistogramUBOData *data = (HistogramUBOData *)m_Histogram.m_HistogramUBO.Map(NULL);
+  if(!data)
+    return false;
 
   data->HistogramTextureResolution.x = (float)RDCMAX(uint32_t(iminfo.extent.width) >> sub.mip, 1U);
   data->HistogramTextureResolution.y = (float)RDCMAX(uint32_t(iminfo.extent.height) >> sub.mip, 1U);
@@ -3088,6 +3102,8 @@ bool VulkanReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompTy
   m_pDriver->FlushQ();
 
   uint32_t *buckets = (uint32_t *)m_Histogram.m_HistogramReadback.Map(NULL);
+  if(!buckets)
+    return false;
 
   histogram.assign(buckets, HGRAM_NUM_BUCKETS);
 
@@ -3870,6 +3886,12 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
   CheckVkResult(vkr);
   if(vkr != VK_SUCCESS)
     return;
+  if(!pData)
+  {
+    RDCERR("Manually reporting failed memory map");
+    CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+    return;
+  }
 
   VkMappedMemoryRange range = {
       VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, NULL, readbackMem, 0, VK_WHOLE_SIZE,

@@ -431,6 +431,8 @@ void VulkanDebugManager::PatchLineStripIndexBuffer(const ActionDescription *acti
                      GPUBuffer::eGPUBufferIBuffer);
 
   void *ptr = indexBuffer.Map(0, patchedIndices.size() * sizeof(uint32_t));
+  if(!ptr)
+    return;
   memcpy(ptr, patchedIndices.data(), patchedIndices.size() * sizeof(uint32_t));
   indexBuffer.Unmap();
 
@@ -1305,6 +1307,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         uint32_t uboOffs = 0;
 
         CheckerboardUBOData *ubo = (CheckerboardUBOData *)m_Overlay.m_CheckerUBO.Map(&uboOffs);
+        if(!ubo)
+          return ResourceId();
 
         ubo->BorderWidth = 3;
         ubo->CheckerSquareDimension = 16.0f;
@@ -1345,6 +1349,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
                         (float)state.scissors[0].extent.height);
 
           ubo = (CheckerboardUBOData *)m_Overlay.m_CheckerUBO.Map(&uboOffs);
+          if(!ubo)
+            return ResourceId();
 
           ubo->BorderWidth = 3;
           ubo->CheckerSquareDimension = 16.0f;
@@ -2387,6 +2393,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
         uint32_t meshOffs = 0;
         MeshUBOData *data = (MeshUBOData *)m_MeshRender.UBO.Map(&meshOffs);
+        if(!data)
+          return ResourceId();
 
         data->mvp = Matrix4f::Identity();
         data->invProj = Matrix4f::Identity();
@@ -2401,6 +2409,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
         uint32_t viewOffs = 0;
         Vec4f *ubo = (Vec4f *)m_Overlay.m_TriSizeUBO.Map(&viewOffs);
+        if(!ubo)
+          return ResourceId();
         *ubo = Vec4f(state.views[0].width, state.views[0].height);
         m_Overlay.m_TriSizeUBO.Unmap();
 

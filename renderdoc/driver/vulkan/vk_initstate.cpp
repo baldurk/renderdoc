@@ -1509,6 +1509,13 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
                                   (void **)&Contents);
       CheckVkResult(vkr);
 
+      if(!Contents)
+      {
+        RDCERR("Manually reporting failed memory map");
+        CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+        return false;
+      }
+
       if(vkr != VK_SUCCESS)
         return false;
     }

@@ -741,7 +741,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
 
       m_DiscardCB[i].Create(m_pDriver, m_Device, pattern.size(), 1, 0);
 
-      memcpy(m_DiscardCB[i].Map(), pattern.data(), pattern.size());
+      void *ptr = m_DiscardCB[i].Map();
+      if(!ptr)
+        return;
+      memcpy(ptr, pattern.data(), pattern.size());
       m_DiscardCB[i].Unmap();
 
       VkDescriptorBufferInfo bufInfo = {};
@@ -1210,6 +1213,8 @@ uint32_t VulkanReplay::PickVertex(uint32_t eventId, int32_t width, int32_t heigh
 
     uint32_t *outidxs = (uint32_t *)m_VertexPick.IBUpload.Map();
     uint32_t *mappedPtr = outidxs;
+    if(!mappedPtr)
+      return ~0U;
 
     memset(outidxs, 0, m_VertexPick.IBSize);
 
@@ -1329,6 +1334,8 @@ uint32_t VulkanReplay::PickVertex(uint32_t eventId, int32_t width, int32_t heigh
     bool valid = true;
 
     FloatVector *vbData = (FloatVector *)m_VertexPick.VBUpload.Map();
+    if(!vbData)
+      return ~0U;
 
     // the index buffer may refer to vertices past the start of the vertex buffer, so we can't just
     // conver the first N vertices we'll need.
@@ -1342,6 +1349,8 @@ uint32_t VulkanReplay::PickVertex(uint32_t eventId, int32_t width, int32_t heigh
   }
 
   MeshPickUBOData *ubo = (MeshPickUBOData *)m_VertexPick.UBO.Map();
+  if(!ubo)
+    return ~0U;
 
   ubo->rayPos = rayPos;
   ubo->rayDir = rayDir;
@@ -1543,6 +1552,8 @@ uint32_t VulkanReplay::PickVertex(uint32_t eventId, int32_t width, int32_t heigh
 
   uint32_t *pickResultData = (uint32_t *)m_VertexPick.ResultReadback.Map();
   uint32_t numResults = *pickResultData;
+  if(!pickResultData)
+    return ~0U;
 
   uint32_t ret = ~0U;
 
@@ -1821,6 +1832,12 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
     CheckVkResult(vkr);
     if(vkr != VK_SUCCESS)
       return;
+    if(!pData)
+    {
+      RDCERR("Manually reporting failed memory map");
+      CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+      return;
+    }
 
     VkMappedMemoryRange range = {
         VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, NULL, Unwrap(m_ReadbackWindow.mem), 0, VK_WHOLE_SIZE,
@@ -2306,6 +2323,11 @@ void VulkanDebugManager::InitReadbackBuffer(VkDeviceSize sz)
     VkResult vkr = ObjDisp(dev)->MapMemory(Unwrap(dev), Unwrap(m_ReadbackWindow.mem), 0,
                                            VK_WHOLE_SIZE, 0, (void **)&m_ReadbackPtr);
     CheckVkResult(vkr);
+    if(!m_ReadbackPtr)
+    {
+      RDCERR("Manually reporting failed memory map");
+      CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+    }
   }
 }
 
@@ -3657,7 +3679,8 @@ void VulkanReplay::MeshRendering::Init(WrappedVulkan *driver, VkDescriptorPool d
 
   Vec4f *axisData = (Vec4f *)AxisFrustumVB.Map();
 
-  memcpy(axisData, axisFrustum, sizeof(axisFrustum));
+  if(axisData)
+    memcpy(axisData, axisFrustum, sizeof(axisFrustum));
 
   AxisFrustumVB.Unmap();
 

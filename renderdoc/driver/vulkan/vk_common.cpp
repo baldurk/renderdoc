@@ -303,6 +303,12 @@ void *GPUBuffer::Map(uint32_t *bindoffset, VkDeviceSize usedsize)
   VkResult vkr = m_pDriver->vkMapMemory(device, mem, offset, size, 0, (void **)&ptr);
   m_pDriver->CheckVkResult(vkr);
 
+  if(!ptr)
+  {
+    RDCERR("Manually reporting failed memory map");
+    m_pDriver->CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+  }
+
   if(createFlags & eGPUBufferReadback)
   {
     VkMappedMemoryRange range = {

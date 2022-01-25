@@ -227,6 +227,9 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, const ImageState &i
 
   TexDisplayUBOData *data = (TexDisplayUBOData *)m_TexRender.UBO.Map(&uboOffs);
 
+  if(!data)
+    return false;
+
   data->Padding = 0;
 
   float x = cfg.xOffset;
@@ -422,6 +425,8 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, const ImageState &i
 
   {
     HeatmapData *ptr = (HeatmapData *)m_TexRender.HeatmapUBO.Map(&heatUboOffs);
+    if(!ptr)
+      return false;
     memcpy(ptr, &heatmapData, sizeof(HeatmapData));
     m_TexRender.HeatmapUBO.Unmap();
   }

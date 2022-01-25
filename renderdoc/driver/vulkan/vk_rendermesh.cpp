@@ -526,6 +526,8 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
         // TODO should move the color to a push constant so we don't have to map all the time
         uint32_t uboOffs = 0;
         MeshUBOData *data = (MeshUBOData *)m_MeshRender.UBO.Map(&uboOffs);
+        if(!data)
+          return;
 
         data->mvp = ModelViewProj;
         data->color = Vec4f(fmt.meshColor.x, fmt.meshColor.y, fmt.meshColor.z, fmt.meshColor.w);
@@ -695,6 +697,8 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
 
     uint32_t uboOffs = 0;
     MeshUBOData *data = (MeshUBOData *)m_MeshRender.UBO.Map(&uboOffs);
+    if(!data)
+      return;
 
     if(solidShadeMode == SolidShade::Lit)
       data->invProj = projMat.Inverse();
@@ -749,6 +753,8 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
 
     uint32_t uboOffs = 0;
     MeshUBOData *data = (MeshUBOData *)m_MeshRender.UBO.Map(&uboOffs);
+    if(!data)
+      return;
 
     data->mvp = ModelViewProj;
     data->color = wireCol;
@@ -829,6 +835,8 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
 
     VkDeviceSize vboffs = 0;
     Vec4f *ptr = (Vec4f *)m_MeshRender.BBoxVB.Map(vboffs);
+    if(!ptr)
+      return;
 
     memcpy(ptr, bbox, sizeof(bbox));
 
@@ -838,6 +846,8 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
 
     uint32_t uboOffs = 0;
     MeshUBOData *data = (MeshUBOData *)m_MeshRender.UBO.Map(&uboOffs);
+    if(!data)
+      return;
 
     data->mvp = ModelViewProj;
     data->color = Vec4f(0.2f, 0.2f, 1.0f, 1.0f);
@@ -866,6 +876,8 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
 
     uint32_t uboOffs = 0;
     MeshUBOData *data = (MeshUBOData *)m_MeshRender.UBO.Map(&uboOffs);
+    if(!data)
+      return;
 
     data->mvp = ModelViewProj;
     data->color = Vec4f(1.0f, 0.0f, 0.0f, 1.0f);
@@ -887,6 +899,8 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
 
     // poke the color (this would be a good candidate for a push constant)
     data = (MeshUBOData *)m_MeshRender.UBO.Map(&uboOffs);
+    if(!data)
+      return;
 
     data->mvp = ModelViewProj;
     data->color = Vec4f(0.0f, 1.0f, 0.0f, 1.0f);
@@ -903,6 +917,8 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
     vt->CmdDraw(Unwrap(cmd), 2, 1, 2, 0);
 
     data = (MeshUBOData *)m_MeshRender.UBO.Map(&uboOffs);
+    if(!data)
+      return;
 
     data->mvp = ModelViewProj;
     data->color = Vec4f(0.0f, 0.0f, 1.0f, 1.0f);
@@ -927,6 +943,8 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
 
     uint32_t uboOffs = 0;
     MeshUBOData *data = (MeshUBOData *)m_MeshRender.UBO.Map(&uboOffs);
+    if(!data)
+      return;
 
     data->mvp = ModelViewProj;
     data->color = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
@@ -1038,6 +1056,8 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
 
       uint32_t uboOffs = 0;
       MeshUBOData *ubodata = (MeshUBOData *)m_MeshRender.UBO.Map(&uboOffs);
+      if(!ubodata)
+        return;
       *ubodata = uniforms;
       m_MeshRender.UBO.Unmap();
 
@@ -1055,6 +1075,8 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
       uniforms.color = Vec4f(1.0f, 0.0f, 0.0f, 1.0f);
       // poke the color (this would be a good candidate for a push constant)
       ubodata = (MeshUBOData *)m_MeshRender.UBO.Map(&uboOffs);
+      if(!ubodata)
+        return;
       *ubodata = uniforms;
       m_MeshRender.UBO.Unmap();
       vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -1065,6 +1087,8 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
       {
         VkDeviceSize vboffs = 0;
         Vec4f *ptr = (Vec4f *)m_MeshRender.BBoxVB.Map(vboffs, sizeof(Vec4f) * primSize);
+        if(!ptr)
+          return;
 
         memcpy(ptr, &activePrim[0], sizeof(Vec4f) * primSize);
 
@@ -1079,6 +1103,8 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
       uniforms.color = Vec4f(0.0f, 1.0f, 0.0f, 1.0f);
       // poke the color (this would be a good candidate for a push constant)
       ubodata = (MeshUBOData *)m_MeshRender.UBO.Map(&uboOffs);
+      if(!ubodata)
+        return;
       *ubodata = uniforms;
       m_MeshRender.UBO.Unmap();
       vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -1090,6 +1116,8 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
         VkDeviceSize vboffs = 0;
         Vec4f *ptr =
             (Vec4f *)m_MeshRender.BBoxVB.Map(vboffs, sizeof(Vec4f) * adjacentPrimVertices.size());
+        if(!ptr)
+          return;
 
         memcpy(ptr, &adjacentPrimVertices[0], sizeof(Vec4f) * adjacentPrimVertices.size());
 
@@ -1111,6 +1139,8 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
       uniforms.color = Vec4f(0.0f, 0.0f, 1.0f, 1.0f);
       // poke the color (this would be a good candidate for a push constant)
       ubodata = (MeshUBOData *)m_MeshRender.UBO.Map(&uboOffs);
+      if(!ubodata)
+        return;
       *ubodata = uniforms;
       m_MeshRender.UBO.Unmap();
       vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -1135,6 +1165,8 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
       {
         VkDeviceSize vboffs = 0;
         Vec4f *ptr = (Vec4f *)m_MeshRender.BBoxVB.Map(vboffs, sizeof(vertSprite));
+        if(!ptr)
+          return;
 
         memcpy(ptr, &vertSprite[0], sizeof(vertSprite));
 
@@ -1149,6 +1181,8 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
       uniforms.color = Vec4f(0.0f, 1.0f, 0.0f, 1.0f);
       // poke the color (this would be a good candidate for a push constant)
       ubodata = (MeshUBOData *)m_MeshRender.UBO.Map(&uboOffs);
+      if(!ubodata)
+        return;
       *ubodata = uniforms;
       m_MeshRender.UBO.Unmap();
       vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -1159,6 +1193,8 @@ void VulkanReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &seco
       {
         VkDeviceSize vboffs = 0;
         FloatVector *ptr = (FloatVector *)m_MeshRender.BBoxVB.Map(vboffs, sizeof(vertSprite));
+        if(!ptr)
+          return;
 
         for(size_t i = 0; i < inactiveVertices.size(); i++)
         {

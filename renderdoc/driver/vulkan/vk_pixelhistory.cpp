@@ -3712,6 +3712,12 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
   CheckVkResult(vkr);
   if(vkr != VK_SUCCESS)
     return history;
+  if(!eventsInfo)
+  {
+    RDCERR("Manually reporting failed memory map");
+    CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+    return history;
+  }
 
   std::map<uint32_t, uint32_t> eventsWithFrags;
   std::map<uint32_t, ModificationValue> eventPremods;
@@ -3797,6 +3803,12 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
     CheckVkResult(vkr);
     if(vkr != VK_SUCCESS)
       return history;
+    if(!bp)
+    {
+      RDCERR("Manually reporting failed memory map");
+      CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+      return history;
+    }
 
     // Retrieve primitive ID values where fragment shader discarded some
     // fragments. For these primitives we are going to perform an occlusion

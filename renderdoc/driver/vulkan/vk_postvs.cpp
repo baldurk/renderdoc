@@ -1865,6 +1865,12 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     CheckVkResult(vkr);
     if(vkr != VK_SUCCESS)
       return;
+    if(!idxData)
+    {
+      RDCERR("Manually reporting failed memory map");
+      CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+      return;
+    }
 
     memcpy(idxData, &indices[0], indices.size() * sizeof(uint32_t));
 
@@ -1937,6 +1943,12 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     CheckVkResult(vkr);
     if(vkr != VK_SUCCESS)
       return;
+    if(!idxData)
+    {
+      RDCERR("Manually reporting failed memory map");
+      CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+      return;
+    }
 
     memcpy(idxData, idxdata.data(), idxdata.size());
 
@@ -2159,6 +2171,12 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
         CheckVkResult(vkr);
         if(vkr != VK_SUCCESS)
           return;
+        if(!dst)
+        {
+          RDCERR("Manually reporting failed memory map");
+          CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+          return;
+        }
 
         const byte *dstBase = dst;
         (void)dstBase;
@@ -2665,6 +2683,12 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
   CheckVkResult(vkr);
   if(vkr != VK_SUCCESS)
     return;
+  if(!byteData)
+  {
+    RDCERR("Manually reporting failed memory map");
+    CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+    return;
+  }
 
   VkMappedMemoryRange range = {
       VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, NULL, readbackMem, 0, VK_WHOLE_SIZE,

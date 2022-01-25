@@ -775,6 +775,12 @@ void VulkanReplay::GetOutputWindowData(uint64_t id, bytebuf &retData)
   m_pDriver->CheckVkResult(vkr);
   if(vkr != VK_SUCCESS)
     return;
+  if(!pData)
+  {
+    RDCERR("Manually reporting failed memory map");
+    CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+    return;
+  }
 
   VkMappedMemoryRange range = {
       VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, NULL, readbackMem, 0, VK_WHOLE_SIZE,
