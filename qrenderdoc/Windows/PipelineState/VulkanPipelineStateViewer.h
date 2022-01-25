@@ -125,7 +125,7 @@ private:
   template <typename viewType>
   bool setViewDetails(RDTreeWidgetItem *node, const viewType &view, TextureDescription *tex,
                       bool stageBitsIncluded, const QString &hiddenCombinedSampler,
-                      bool includeSampleLocations = false);
+                      bool includeSampleLocations = false, bool includeOffsets = false);
 
   template <typename viewType>
   bool setViewDetails(RDTreeWidgetItem *node, const viewType &view, BufferDescription *buf,

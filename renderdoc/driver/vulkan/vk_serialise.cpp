@@ -1268,6 +1268,14 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_IMAGE_FOOTPRINT_FEATURES_NV,                   \
                VkPhysicalDeviceShaderImageFootprintFeaturesNV)                                         \
                                                                                                        \
+  /* VK_QCOM_fragment_density_map_offset */                                                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_OFFSET_FEATURES_QCOM,            \
+               VkPhysicalDeviceFragmentDensityMapOffsetFeaturesQCOM)                                   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_OFFSET_PROPERTIES_QCOM,          \
+               VkPhysicalDeviceFragmentDensityMapOffsetPropertiesQCOM)                                 \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SUBPASS_FRAGMENT_DENSITY_MAP_OFFSET_END_INFO_QCOM,                    \
+               VkSubpassFragmentDensityMapOffsetEndInfoQCOM)                                           \
+                                                                                                       \
   /* Surface creation structs. These would pull in dependencies on OS-specific includes. */            \
   /* So treat them as unsupported. */                                                                  \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR)                                 \
@@ -1527,11 +1535,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PER_VIEW_ATTRIBUTES_PROPERTIES_NVX)    \
   /* Interaction with VK_KHR_dynamic_rendering */                                                      \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MULTIVIEW_PER_VIEW_ATTRIBUTES_INFO_NVX)                          \
-                                                                                                       \
-  /* VK_QCOM_fragment_density_map_offset */                                                            \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_OFFSET_FEATURES_QCOM)       \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_OFFSET_PROPERTIES_QCOM)     \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SUBPASS_FRAGMENT_DENSITY_MAP_OFFSET_END_INFO_QCOM)               \
                                                                                                        \
   /* VK_QCOM_render_pass_transform */                                                                  \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_RENDER_PASS_TRANSFORM_INFO_QCOM)      \
@@ -5650,6 +5653,56 @@ template <>
 void Deserialise(const VkPhysicalDeviceFragmentDensityMap2PropertiesEXT &el)
 {
   DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceFragmentDensityMapOffsetFeaturesQCOM &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_OFFSET_FEATURES_QCOM);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(fragmentDensityMapOffset);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceFragmentDensityMapOffsetFeaturesQCOM &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceFragmentDensityMapOffsetPropertiesQCOM &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_OFFSET_PROPERTIES_QCOM);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(fragmentDensityOffsetGranularity);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceFragmentDensityMapOffsetPropertiesQCOM &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkSubpassFragmentDensityMapOffsetEndInfoQCOM &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_SUBPASS_FRAGMENT_DENSITY_MAP_OFFSET_END_INFO_QCOM);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(fragmentDensityOffsetCount);
+  SERIALISE_MEMBER_ARRAY(pFragmentDensityOffsets, fragmentDensityOffsetCount);
+}
+
+template <>
+void Deserialise(const VkSubpassFragmentDensityMapOffsetEndInfoQCOM &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pFragmentDensityOffsets;
 }
 
 template <typename SerialiserType>
@@ -10283,6 +10336,8 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMapFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMapPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMap2FeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMap2PropertiesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMapOffsetFeaturesQCOM);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMapOffsetPropertiesQCOM);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentShaderBarycentricFeaturesNV);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceGlobalPriorityQueryFeaturesKHR);
@@ -10452,6 +10507,7 @@ INSTANTIATE_SERIALISE_TYPE(VkSubpassBeginInfo);
 INSTANTIATE_SERIALISE_TYPE(VkSubpassDependency2);
 INSTANTIATE_SERIALISE_TYPE(VkSubpassDescription2);
 INSTANTIATE_SERIALISE_TYPE(VkSubpassDescriptionDepthStencilResolve);
+INSTANTIATE_SERIALISE_TYPE(VkSubpassFragmentDensityMapOffsetEndInfoQCOM);
 INSTANTIATE_SERIALISE_TYPE(VkSubpassEndInfo);
 INSTANTIATE_SERIALISE_TYPE(VkSubpassSampleLocationsEXT);
 INSTANTIATE_SERIALISE_TYPE(VkSurfaceCapabilities2EXT);

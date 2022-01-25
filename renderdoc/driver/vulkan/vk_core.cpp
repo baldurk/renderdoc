@@ -1457,6 +1457,10 @@ static const VkExtensionProperties supportedExtensions[] = {
     },
 #endif
     {
+        VK_QCOM_FRAGMENT_DENSITY_MAP_OFFSET_EXTENSION_NAME,
+        VK_QCOM_FRAGMENT_DENSITY_MAP_OFFSET_SPEC_VERSION,
+    },
+    {
         VK_QCOM_RENDER_PASS_SHADER_RESOLVE_EXTENSION_NAME,
         VK_QCOM_RENDER_PASS_SHADER_RESOLVE_SPEC_VERSION,
     },

@@ -1575,6 +1575,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     rpState.suspended = dyn.suspended;
     rpState.resourceId = ResourceId();
     rpState.subpass = 0;
+    rpState.fragmentDensityOffsets.clear();
 
     fbState.resourceId = ResourceId();
     // dynamic rendering does not provide a framebuffer dimension, it's implicit from the image
@@ -1812,6 +1813,13 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       ret.currentPass.framebuffer.layers = 0;
     }
 
+    ret.currentPass.renderpass.fragmentDensityOffsets.resize(state.fragmentDensityMapOffsets.size());
+    for(size_t i = 0; i < state.fragmentDensityMapOffsets.size(); i++)
+    {
+      const VkOffset2D &o = state.fragmentDensityMapOffsets[i];
+      ret.currentPass.renderpass.fragmentDensityOffsets[i] = Offset(o.x, o.y);
+    }
+
     ret.currentPass.renderArea.x = state.renderArea.offset.x;
     ret.currentPass.renderArea.y = state.renderArea.offset.y;
     ret.currentPass.renderArea.width = state.renderArea.extent.width;
@@ -1824,6 +1832,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     ret.currentPass.renderpass.inputAttachments.clear();
     ret.currentPass.renderpass.colorAttachments.clear();
     ret.currentPass.renderpass.resolveAttachments.clear();
+    ret.currentPass.renderpass.fragmentDensityOffsets.clear();
     ret.currentPass.renderpass.depthstencilAttachment = -1;
     ret.currentPass.renderpass.depthstencilResolveAttachment = -1;
     ret.currentPass.renderpass.fragmentDensityAttachment = -1;

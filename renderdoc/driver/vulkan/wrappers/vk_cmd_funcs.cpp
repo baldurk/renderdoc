@@ -2835,6 +2835,21 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass2(SerialiserType &ser, VkCommand
 
         m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = false;
         m_BakedCmdBufferInfo[m_LastCmdBufferID].endBarriers.append(GetImplicitRenderPassBarriers(~0U));
+
+        VkSubpassFragmentDensityMapOffsetEndInfoQCOM *fragmentDensityOffsetStruct =
+            (VkSubpassFragmentDensityMapOffsetEndInfoQCOM *)FindNextStruct(
+                &unwrappedEndInfo,
+                VK_STRUCTURE_TYPE_SUBPASS_FRAGMENT_DENSITY_MAP_OFFSET_END_INFO_QCOM);
+
+        if(fragmentDensityOffsetStruct)
+        {
+          rdcarray<VkOffset2D> &stateOffsets = GetCmdRenderState().fragmentDensityMapOffsets;
+          stateOffsets.resize(fragmentDensityOffsetStruct->fragmentDensityOffsetCount);
+          for(uint32_t i = 0; i < fragmentDensityOffsetStruct->fragmentDensityOffsetCount; i++)
+          {
+            stateOffsets[i] = fragmentDensityOffsetStruct->pFragmentDensityOffsets[i];
+          }
+        }
       }
     }
     else
