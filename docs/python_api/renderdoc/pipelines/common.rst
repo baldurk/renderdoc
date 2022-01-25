@@ -8,6 +8,12 @@ Common Pipeline State Abstraction
 .. autoclass:: PipeState
   :members:
 
+General
+-------
+
+.. autoclass:: renderdoc.Offset
+  :members:
+
 Vertex Inputs
 -------------
 

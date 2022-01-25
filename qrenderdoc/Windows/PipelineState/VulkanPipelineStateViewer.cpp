@@ -377,11 +377,11 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
     ui->fbAttach->setHeader(header);
 
-    ui->fbAttach->setColumns({tr("Slot"), tr("Resource"), tr("Type"), tr("Width"), tr("Height"),
-                              tr("Depth"), tr("Array Size"), tr("Format"), tr("Go")});
-    header->setColumnStretchHints({2, 4, 2, 1, 1, 1, 1, 3, -1});
+    ui->fbAttach->setColumns(
+        {tr("Slot"), tr("Resource"), tr("Type"), tr("Dimensions"), tr("Format"), tr("Go")});
+    header->setColumnStretchHints({2, 4, 2, 2, 3, -1});
 
-    ui->fbAttach->setHoverIconColumn(8, action, action_hover);
+    ui->fbAttach->setHoverIconColumn(5, action, action_hover);
     ui->fbAttach->setClearSelectionOnFocusLoss(true);
     ui->fbAttach->setInstantTooltips(true);
 
@@ -593,7 +593,7 @@ template <typename bindType>
 bool VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bindType &view,
                                                TextureDescription *tex, bool stageBitsIncluded,
                                                const QString &hiddenCombinedSampler,
-                                               bool includeSampleLocations)
+                                               bool includeSampleLocations, bool includeOffsets)
 {
   if(tex == NULL)
     return false;
@@ -680,6 +680,21 @@ bool VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bin
     }
 
     viewdetails = true;
+  }
+
+  if(includeOffsets)
+  {
+    text += tr("Rendering with %1 offsets:\n")
+                .arg(state.currentPass.renderpass.fragmentDensityOffsets.size());
+    for(uint32_t j = 0; j < state.currentPass.renderpass.fragmentDensityOffsets.size(); j++)
+    {
+      const Offset &o = state.currentPass.renderpass.fragmentDensityOffsets[j];
+      if(j > 0)
+        text += tr(", ");
+
+      text += tr(" %1x%2").arg(o.x).arg(o.y);
+    }
+    text += lit("\n");
   }
 
   text = text.trimmed();
@@ -2606,10 +2621,10 @@ void VulkanPipelineStateViewer::setState()
 
       if(showNode(usedSlot, filledSlot))
       {
-        uint32_t w = 1, h = 1, d = 1;
-        uint32_t a = 1;
         QString format;
         QString typeName;
+        QString dimensions;
+        bool tooltipOffsets = false;
 
         if(p.imageResourceId != ResourceId())
         {
@@ -2620,16 +2635,18 @@ void VulkanPipelineStateViewer::setState()
         {
           format = lit("-");
           typeName = lit("-");
-          w = h = d = a = 0;
+          dimensions = lit("-");
         }
 
         TextureDescription *tex = m_Ctx.GetTexture(p.imageResourceId);
         if(tex)
         {
-          w = tex->width;
-          h = tex->height;
-          d = tex->depth;
-          a = tex->arraysize;
+          dimensions += tr("%1x%2").arg(tex->width).arg(tex->height);
+          if(tex->depth > 1)
+            dimensions += tr("x%1").arg(tex->depth);
+          if(tex->arraysize > 1)
+            dimensions += tr("[%1]").arg(tex->arraysize);
+
           typeName = ToQStr(tex->type);
         }
 
@@ -2661,6 +2678,22 @@ void VulkanPipelineStateViewer::setState()
         else if(state.currentPass.renderpass.fragmentDensityAttachment == i)
         {
           slotname = lit("Fragment Density Map");
+          if(state.currentPass.renderpass.fragmentDensityOffsets.size() > 2)
+          {
+            tooltipOffsets = true;
+          }
+          else if(state.currentPass.renderpass.fragmentDensityOffsets.size() > 0)
+          {
+            dimensions += tr(" : offsets");
+            for(uint32_t j = 0; j < state.currentPass.renderpass.fragmentDensityOffsets.size(); j++)
+            {
+              const Offset &o = state.currentPass.renderpass.fragmentDensityOffsets[j];
+              if(j > 0)
+                dimensions += tr(", ");
+
+              dimensions += tr(" %1x%2").arg(o.x).arg(o.y);
+            }
+          }
         }
         else if(state.currentPass.renderpass.shadingRateAttachment == i)
         {
@@ -2706,7 +2739,7 @@ void VulkanPipelineStateViewer::setState()
               tr(" (%1x%2 texels)").arg(shadingRateTexelSize.first).arg(shadingRateTexelSize.second);
 
         RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({slotname, resName, typeName, w, h, d, a, format, QString()});
+            new RDTreeWidgetItem({slotname, resName, typeName, dimensions, format, QString()});
 
         if(tex)
           node->setTag(
@@ -2725,7 +2758,8 @@ void VulkanPipelineStateViewer::setState()
           targets[i] = true;
         }
 
-        bool hasViewDetails = setViewDetails(node, p, tex, true, QString(), resIdx < 0);
+        bool hasViewDetails =
+            setViewDetails(node, p, tex, true, QString(), resIdx < 0, tooltipOffsets);
 
         if(hasViewDetails)
           node->setText(

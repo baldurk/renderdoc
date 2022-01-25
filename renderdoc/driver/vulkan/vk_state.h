@@ -234,6 +234,9 @@ struct VulkanRenderState
     VkExtent2D shadingRateTexelSize = {1, 1};
   } dynamicRendering;
 
+  // fdm offset
+  rdcarray<VkOffset2D> fragmentDensityMapOffsets;
+
   // shading rate
   VkExtent2D pipelineShadingRate = {1, 1};
   VkFragmentShadingRateCombinerOpKHR shadingRateCombiners[2] = {

@@ -1049,6 +1049,15 @@ If the list is empty, multiview is disabled and rendering is as normal.
 :type: List[int]
 )");
   rdcarray<uint32_t> multiviews;
+
+  DOCUMENT(R"(If VK_QCOM_fragment_density_map_offset is enabled, contains a list of offsets applied 
+to the fragment density map during rendering.
+
+If the list is empty, fdm_offset is disabled and rendering is as normal.
+
+:type: List[Offset]
+)");
+  rdcarray<Offset> fragmentDensityOffsets;
 };
 
 DOCUMENT("Describes a single attachment in a framebuffer object.");

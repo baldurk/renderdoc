@@ -814,6 +814,15 @@ void DoSerialise(SerialiserType &ser, MeshFormat &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, Offset &el)
+{
+  SERIALISE_MEMBER(x);
+  SERIALISE_MEMBER(y);
+
+  SIZE_CHECK(8);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, FloatVector &el)
 {
   SERIALISE_MEMBER(x);
@@ -2217,8 +2226,9 @@ void DoSerialise(SerialiserType &ser, VKPipe::RenderPass &el)
   SERIALISE_MEMBER(shadingRateAttachment);
   SERIALISE_MEMBER(shadingRateTexelSize);
   SERIALISE_MEMBER(multiviews);
+  SERIALISE_MEMBER(fragmentDensityOffsets);
 
-  SIZE_CHECK(136);
+  SIZE_CHECK(160);
 }
 
 template <typename SerialiserType>
@@ -2268,7 +2278,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::CurrentPass &el)
   SERIALISE_MEMBER(framebuffer);
   SERIALISE_MEMBER(renderArea);
 
-  SIZE_CHECK(200);
+  SIZE_CHECK(224);
 }
 
 template <typename SerialiserType>
@@ -2336,7 +2346,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::State &el)
 
   SERIALISE_MEMBER(conditionalRendering);
 
-  SIZE_CHECK(2040);
+  SIZE_CHECK(2064);
 }
 
 #pragma endregion Vulkan pipeline state
@@ -2391,6 +2401,7 @@ INSTANTIATE_SERIALISE_TYPE(FrameDescription)
 INSTANTIATE_SERIALISE_TYPE(FrameRecord)
 INSTANTIATE_SERIALISE_TYPE(MeshFormat)
 INSTANTIATE_SERIALISE_TYPE(FloatVector)
+INSTANTIATE_SERIALISE_TYPE(Offset);
 INSTANTIATE_SERIALISE_TYPE(Uuid)
 INSTANTIATE_SERIALISE_TYPE(CounterDescription)
 INSTANTIATE_SERIALISE_TYPE(PixelValue)
