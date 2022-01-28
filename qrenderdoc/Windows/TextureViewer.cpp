@@ -1338,6 +1338,7 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newAction)
   m_PrevSize = curSize;
 
   // refresh scroll position
+  UI_CalcScrollbars();
   setScrollPosition(getScrollPosition());
 
   UI_UpdateStatusText();
