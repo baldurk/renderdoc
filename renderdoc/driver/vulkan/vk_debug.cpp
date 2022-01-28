@@ -2052,12 +2052,17 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
 
     uint32_t pass = 0;
 
+    VkImageSubresourceRange barrierDiscardRange = discardRange;
+    barrierDiscardRange.aspectMask = imAspects;
+
     VkImageMemoryBarrier dstimBarrier = {
         VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
-        VK_ACCESS_ALL_READ_BITS | VK_ACCESS_ALL_WRITE_BITS, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+        VK_ACCESS_ALL_READ_BITS | VK_ACCESS_ALL_WRITE_BITS,
+        depth ? (VkAccessFlags)VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
+              : (VkAccessFlags)VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
         curLayout, depth ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
                          : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, Unwrap(image), discardRange,
+        VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, Unwrap(image), barrierDiscardRange,
     };
 
     DoPipelineBarrier(cmd, 1, &dstimBarrier);
