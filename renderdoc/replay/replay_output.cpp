@@ -542,7 +542,13 @@ void ReplayOutput::DisplayContext()
   disp.customShaderId = ResourceId();
 
   if(m_RenderData.texDisplay.customShaderId != ResourceId())
+  {
     disp.resourceId = m_CustomShaderResourceId;
+
+    disp.typeCast = CompType::Typeless;
+    disp.customShaderId = ResourceId();
+    disp.subresource.slice = 0;
+  }
 
   if((m_RenderData.texDisplay.overlay == DebugOverlay::QuadOverdrawDraw ||
       m_RenderData.texDisplay.overlay == DebugOverlay::QuadOverdrawPass ||
