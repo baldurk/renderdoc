@@ -1723,8 +1723,10 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
             if(clearAspects != 0)
             {
               VulkanCreationInfo::ImageView viewinfo = m_CreationInfo.m_ImageView[fbattachments[att]];
+              bool isMultiview = rpinfo.subpasses[0].multiviews.size() > 1;
 
-              VkClearRect rect = {unwrappedInfo.renderArea, 0, viewinfo.range.layerCount};
+              VkClearRect rect = {unwrappedInfo.renderArea, 0,
+                                  isMultiview ? 1 : viewinfo.range.layerCount};
               VkClearAttachment clear = {};
               clear.aspectMask = FormatImageAspects(rpinfo.attachments[att].format) & clearAspects;
               clear.colorAttachment = c;
@@ -2343,8 +2345,10 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
             if(clearAspects != 0)
             {
               VulkanCreationInfo::ImageView viewinfo = m_CreationInfo.m_ImageView[fbattachments[att]];
+              bool isMultiview = rpinfo.subpasses[0].multiviews.size() > 1;
 
-              VkClearRect rect = {unwrappedInfo.renderArea, 0, viewinfo.range.layerCount};
+              VkClearRect rect = {unwrappedInfo.renderArea, 0,
+                                  isMultiview ? 1 : viewinfo.range.layerCount};
               VkClearAttachment clear = {};
               clear.aspectMask = FormatImageAspects(rpinfo.attachments[att].format) & clearAspects;
               clear.colorAttachment = c;
