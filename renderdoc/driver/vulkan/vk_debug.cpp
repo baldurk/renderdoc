@@ -838,6 +838,7 @@ void VulkanDebugManager::CreateCustomShaderTex(uint32_t width, uint32_t height, 
     if(width == m_Custom.TexWidth && height == m_Custom.TexHeight)
     {
       // recreate framebuffer for this mip
+      m_pDriver->vkDestroyFramebuffer(dev, m_Custom.TexFB, NULL);
 
       // Create framebuffer rendering just to overlay image, no depth
       VkFramebufferCreateInfo fbinfo = {

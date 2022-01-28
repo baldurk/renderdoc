@@ -175,12 +175,56 @@ DESTROY_IMPL(VkFence, DestroyFence)
 DESTROY_IMPL(VkEvent, DestroyEvent)
 DESTROY_IMPL(VkCommandPool, DestroyCommandPool)
 DESTROY_IMPL(VkQueryPool, DestroyQueryPool)
-DESTROY_IMPL(VkFramebuffer, DestroyFramebuffer)
-DESTROY_IMPL(VkRenderPass, DestroyRenderPass)
 DESTROY_IMPL(VkDescriptorUpdateTemplate, DestroyDescriptorUpdateTemplate)
 DESTROY_IMPL(VkSamplerYcbcrConversion, DestroySamplerYcbcrConversion)
 
 #undef DESTROY_IMPL
+
+void WrappedVulkan::vkDestroyFramebuffer(VkDevice device, VkFramebuffer obj,
+                                         const VkAllocationCallbacks *pAllocator)
+{
+  if(obj == VK_NULL_HANDLE)
+    return;
+  VkFramebuffer unwrappedObj = Unwrap(obj);
+  m_ForcedReferences.removeOne(GetRecord(obj));
+  if(IsReplayMode(m_State))
+  {
+    const VulkanCreationInfo::Framebuffer &rpinfo = m_CreationInfo.m_Framebuffer[GetResID(obj)];
+
+    for(VkFramebuffer loadfb : rpinfo.loadFBs)
+    {
+      ObjDisp(device)->DestroyFramebuffer(Unwrap(device), Unwrap(loadfb), pAllocator);
+      GetResourceManager()->ReleaseWrappedResource(loadfb, true);
+    }
+
+    m_CreationInfo.erase(GetResID(obj));
+  }
+  GetResourceManager()->ReleaseWrappedResource(obj, true);
+  ObjDisp(device)->DestroyFramebuffer(Unwrap(device), unwrappedObj, pAllocator);
+}
+
+void WrappedVulkan::vkDestroyRenderPass(VkDevice device, VkRenderPass obj,
+                                        const VkAllocationCallbacks *pAllocator)
+{
+  if(obj == VK_NULL_HANDLE)
+    return;
+  VkRenderPass unwrappedObj = Unwrap(obj);
+  m_ForcedReferences.removeOne(GetRecord(obj));
+  if(IsReplayMode(m_State))
+  {
+    const VulkanCreationInfo::RenderPass &rpinfo = m_CreationInfo.m_RenderPass[GetResID(obj)];
+
+    for(VkRenderPass loadrp : rpinfo.loadRPs)
+    {
+      ObjDisp(device)->DestroyRenderPass(Unwrap(device), Unwrap(loadrp), pAllocator);
+      GetResourceManager()->ReleaseWrappedResource(loadrp, true);
+    }
+
+    m_CreationInfo.erase(GetResID(obj));
+  }
+  GetResourceManager()->ReleaseWrappedResource(obj, true);
+  ObjDisp(device)->DestroyRenderPass(Unwrap(device), unwrappedObj, pAllocator);
+}
 
 void WrappedVulkan::vkDestroyBuffer(VkDevice device, VkBuffer buffer,
                                     const VkAllocationCallbacks *pAllocator)
