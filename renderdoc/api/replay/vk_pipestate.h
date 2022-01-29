@@ -979,6 +979,11 @@ attachments.
 If there is no depth-stencil attachment, this index is ``-1``.
 )");
   int32_t depthstencilAttachment = -1;
+  DOCUMENT(R"(An index into the framebuffer attachments for the depth-stencil resolve attachment.
+
+If there is no depth-stencil resolve attachment, this index is ``-1``.
+)");
+  int32_t depthstencilResolveAttachment = -1;
 
   DOCUMENT(R"(An index into the framebuffer attachments for the fragment density attachment.
 

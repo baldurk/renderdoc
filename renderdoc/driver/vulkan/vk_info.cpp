@@ -1037,6 +1037,17 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
     if(separateStencil)
       dst.stencilLayout = separateStencil->stencilLayout;
 
+    // VK_KHR_depth_stencil_resolve
+    const VkSubpassDescriptionDepthStencilResolve *depthstencilResolve =
+        (const VkSubpassDescriptionDepthStencilResolve *)FindNextStruct(
+            &src, VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE);
+
+    dst.depthstencilResolveAttachment =
+        (depthstencilResolve &&
+                 depthstencilResolve->pDepthStencilResolveAttachment->attachment != VK_ATTACHMENT_UNUSED
+             ? depthstencilResolve->pDepthStencilResolveAttachment->attachment
+             : -1);
+
     dst.fragmentDensityAttachment =
         (fragmentDensity &&
                  fragmentDensity->fragmentDensityMapAttachment.attachment != VK_ATTACHMENT_UNUSED

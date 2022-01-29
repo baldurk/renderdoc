@@ -2589,7 +2589,8 @@ void VulkanPipelineStateViewer::setState()
       bool filledSlot = (p.imageResourceId != ResourceId());
       bool usedSlot =
           (colIdx >= 0 || resIdx >= 0 || state.currentPass.renderpass.depthstencilAttachment == i ||
-           state.currentPass.renderpass.fragmentDensityAttachment == i);
+           state.currentPass.renderpass.fragmentDensityAttachment == i ||
+           state.currentPass.renderpass.depthstencilResolveAttachment == i);
 
       if(showNode(usedSlot, filledSlot))
       {
@@ -2639,6 +2640,10 @@ void VulkanPipelineStateViewer::setState()
         else if(resIdx >= 0)
         {
           slotname = QFormatStr("Resolve %1").arg(resIdx);
+        }
+        else if(state.currentPass.renderpass.depthstencilResolveAttachment == i)
+        {
+          slotname = lit("Depth/Stencil Resolve");
         }
         else if(state.currentPass.renderpass.fragmentDensityAttachment == i)
         {
@@ -4039,6 +4044,14 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
       xml.writeStartElement(lit("p"));
       xml.writeCharacters(
           tr("Depth-stencil Attachment: %1").arg(pass.renderpass.depthstencilAttachment));
+      xml.writeEndElement();
+    }
+
+    if(pass.renderpass.depthstencilResolveAttachment >= 0)
+    {
+      xml.writeStartElement(lit("p"));
+      xml.writeCharacters(tr("Depth-stencil Resolve Attachment: %1")
+                              .arg(pass.renderpass.depthstencilResolveAttachment));
       xml.writeEndElement();
     }
 
