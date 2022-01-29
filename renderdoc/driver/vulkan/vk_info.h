@@ -449,6 +449,7 @@ struct VulkanCreationInfo
       rdcarray<uint32_t> colorAttachments;
       rdcarray<uint32_t> resolveAttachments;
       int32_t depthstencilAttachment;
+      int32_t depthstencilResolveAttachment;
       int32_t fragmentDensityAttachment;
 
       rdcarray<VkImageLayout> inputLayouts;

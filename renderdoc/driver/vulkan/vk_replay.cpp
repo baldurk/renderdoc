@@ -1687,6 +1687,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
         c.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].resolveAttachments;
     ret.currentPass.renderpass.depthstencilAttachment =
         c.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].depthstencilAttachment;
+    ret.currentPass.renderpass.depthstencilResolveAttachment =
+        c.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].depthstencilResolveAttachment;
     ret.currentPass.renderpass.fragmentDensityAttachment =
         c.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].fragmentDensityAttachment;
 
@@ -1759,6 +1761,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     ret.currentPass.renderpass.colorAttachments.clear();
     ret.currentPass.renderpass.resolveAttachments.clear();
     ret.currentPass.renderpass.depthstencilAttachment = -1;
+    ret.currentPass.renderpass.depthstencilResolveAttachment = -1;
     ret.currentPass.renderpass.fragmentDensityAttachment = -1;
 
     ret.currentPass.framebuffer.resourceId = ResourceId();
