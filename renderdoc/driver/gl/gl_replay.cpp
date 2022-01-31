@@ -25,6 +25,7 @@
 
 #include "gl_replay.h"
 #include "core/settings.h"
+#include "data/glsl_shaders.h"
 #include "driver/ihv/amd/amd_counters.h"
 #include "driver/ihv/arm/arm_counters.h"
 #include "driver/ihv/intel/intel_gl_counters.h"
@@ -3021,6 +3022,17 @@ void GLReplay::BuildCustomShader(ShaderEncoding sourceEncoding, const bytebuf &s
                                  const rdcstr &entry, const ShaderCompileFlags &compileFlags,
                                  ShaderStage type, ResourceId &id, rdcstr &errors)
 {
+  if(sourceEncoding == ShaderEncoding::GLSL)
+  {
+    rdcstr sourceText = InsertSnippetAfterVersion(ShaderType::GLSL, (const char *)source.data(),
+                                                  source.count(), GLSL_CUSTOM_PREFIX);
+
+    bytebuf patchedSource;
+    patchedSource.assign((byte *)sourceText.begin(), sourceText.size());
+
+    return BuildTargetShader(sourceEncoding, patchedSource, entry, compileFlags, type, id, errors);
+  }
+
   BuildTargetShader(sourceEncoding, source, entry, compileFlags, type, id, errors);
 }
 

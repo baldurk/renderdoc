@@ -368,33 +368,21 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, const ImageState &i
   {
     // must match struct declared in user shader (see documentation / Shader Viewer window helper
     // menus)
-    struct CustomTexDisplayUBOData
-    {
-      Vec4u texDim;
-      uint32_t selectedMip;
-      uint32_t texType;
-      uint32_t selectedSliceFace;
-      int32_t selectedSample;
-      Vec4u YUVDownsampleRate;
-      Vec4u YUVAChannels;
-      float selectedRangeMin;
-      float selectedRangeMax;
-    };
 
-    CustomTexDisplayUBOData *customData = (CustomTexDisplayUBOData *)data;
+    RD_CustomShader_UBO_Type *customData = (RD_CustomShader_UBO_Type *)data;
 
-    customData->texDim.x = iminfo.extent.width;
-    customData->texDim.y = iminfo.extent.height;
-    customData->texDim.z = iminfo.extent.depth;
-    customData->texDim.w = iminfo.mipLevels;
-    customData->selectedMip = cfg.subresource.mip;
-    customData->selectedSliceFace = cfg.subresource.slice;
-    customData->selectedSample = sampleIdx;
-    customData->texType = (uint32_t)textype;
+    customData->TexDim.x = iminfo.extent.width;
+    customData->TexDim.y = iminfo.extent.height;
+    customData->TexDim.z = iminfo.type == VK_IMAGE_TYPE_3D ? iminfo.extent.depth : iminfo.arrayLayers;
+    customData->TexDim.w = iminfo.mipLevels;
+    customData->SelectedMip = cfg.subresource.mip;
+    customData->SelectedSliceFace = cfg.subresource.slice;
+    customData->SelectedSample = sampleIdx;
+    customData->TextureType = (uint32_t)textype;
     customData->YUVDownsampleRate = YUVDownsampleRate;
     customData->YUVAChannels = YUVAChannels;
-    customData->selectedRangeMin = cfg.rangeMin;
-    customData->selectedRangeMax = cfg.rangeMax;
+    customData->SelectedRange.x = cfg.rangeMin;
+    customData->SelectedRange.y = cfg.rangeMax;
   }
 
   m_TexRender.UBO.Unmap();

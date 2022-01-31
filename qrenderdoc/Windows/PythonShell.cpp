@@ -430,6 +430,10 @@ struct CaptureContextInvoker : ObjectForwarder<ICaptureContext>
   {
     return m_Obj.CustomShaderEncodings();
   }
+  virtual rdcarray<ShaderSourcePrefix> CustomShaderSourcePrefixes() override
+  {
+    return m_Obj.CustomShaderSourcePrefixes();
+  }
   virtual uint32_t CurSelectedEvent() override { return m_Obj.CurSelectedEvent(); }
   virtual uint32_t CurEvent() override { return m_Obj.CurEvent(); }
   virtual const ActionDescription *CurSelectedAction() override

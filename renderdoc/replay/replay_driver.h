@@ -269,6 +269,7 @@ public:
                                  const rdcstr &entry, const ShaderCompileFlags &compileFlags,
                                  ShaderStage type, ResourceId &id, rdcstr &errors) = 0;
   virtual rdcarray<ShaderEncoding> GetCustomShaderEncodings() = 0;
+  virtual rdcarray<ShaderSourcePrefix> GetCustomShaderSourcePrefixes() = 0;
   virtual ResourceId ApplyCustomShader(TextureDisplay &display) = 0;
   virtual void FreeCustomShader(ResourceId id) = 0;
 

@@ -28,8 +28,9 @@
 #include <math.h>
 #include <algorithm>
 #include "core/settings.h"
+#include "data/glsl_shaders.h"
 #include "driver/ihv/amd/amd_rgp.h"
-#include "driver/shaders/spirv/spirv_compile.h"
+#include "driver/shaders/spirv/glslang_compile.h"
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
 #include "replay/dummy_driver.h"
@@ -4062,6 +4063,17 @@ void VulkanReplay::BuildCustomShader(ShaderEncoding sourceEncoding, const bytebu
                                      const rdcstr &entry, const ShaderCompileFlags &compileFlags,
                                      ShaderStage type, ResourceId &id, rdcstr &errors)
 {
+  if(sourceEncoding == ShaderEncoding::GLSL)
+  {
+    rdcstr sourceText = InsertSnippetAfterVersion(ShaderType::Vulkan, (const char *)source.data(),
+                                                  source.count(), GLSL_CUSTOM_PREFIX);
+
+    bytebuf patchedSource;
+    patchedSource.assign((byte *)sourceText.begin(), sourceText.size());
+
+    return BuildTargetShader(sourceEncoding, patchedSource, entry, compileFlags, type, id, errors);
+  }
+
   BuildTargetShader(sourceEncoding, source, entry, compileFlags, type, id, errors);
 }
 
@@ -4135,6 +4147,20 @@ ResourceId VulkanReplay::ApplyCustomShader(TextureDisplay &display)
   m_DebugHeight = oldH;
 
   return GetResID(GetDebugManager()->GetCustomTexture());
+}
+
+rdcarray<ShaderSourcePrefix> VulkanReplay::GetCustomShaderSourcePrefixes()
+{
+  // this is a complete hack, since we *do* want to define a prefix for GLSL. However GLSL sucks
+  // and has the #version as the first thing, so we can't do a simple prepend of some defines.
+  // Instead we will return no prefix and insert our own in BuildCustomShader if we see GLSL
+  // coming in.
+  // For SPIR-V no prefix is needed (or possible)
+  // For HLSL however we define our HLSL prefix so that custom-compiled HLSL to SPIR-V gets the
+  // right binding and helper definitions
+  return {
+      {ShaderEncoding::HLSL, HLSL_CUSTOM_PREFIX},
+  };
 }
 
 void VulkanReplay::BuildTargetShader(ShaderEncoding sourceEncoding, const bytebuf &source,

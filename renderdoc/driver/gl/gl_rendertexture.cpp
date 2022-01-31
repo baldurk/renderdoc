@@ -491,6 +491,8 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
 
   drv.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
 
+  RDCCOMPILE_ASSERT(sizeof(RD_CustomShader_UBO_Type) <= sizeof(TexDisplayUBOData),
+                    "Custom shader UBO is bigger than tex display UBO, map is not valid");
   TexDisplayUBOData *ubo =
       (TexDisplayUBOData *)drv.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(TexDisplayUBOData),
                                                 GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
@@ -625,6 +627,29 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
   ubo->DecodeYUV = 0;
   ubo->YUVDownsampleRate = {};
   ubo->YUVAChannels = {};
+
+  if(customProgram)
+  {
+    // overwrite with data for custom UBO
+    RD_CustomShader_UBO_Type customUBO = {};
+
+    customUBO.TexDim.x = texDetails.width;
+    customUBO.TexDim.y = texDetails.height;
+    customUBO.TexDim.z = texDetails.depth;
+    customUBO.TexDim.w = (uint32_t)numMips;
+    customUBO.SelectedMip = cfg.subresource.mip;
+    customUBO.TextureType = resType;
+    customUBO.SelectedSliceFace = cfg.subresource.slice;
+    if(cfg.subresource.sample == ~0U)
+      customUBO.SelectedSample = -texDetails.samples;
+    else
+      customUBO.SelectedSample = cfg.subresource.sample;
+    customUBO.YUVDownsampleRate = Vec4u(1, 1, 1, 8);
+    customUBO.YUVAChannels = Vec4u(0, 1, 2, 3);
+    customUBO.SelectedRange = Vec2f(cfg.rangeMin, cfg.rangeMax);
+
+    memcpy(ubo, &customUBO, sizeof(RD_CustomShader_UBO_Type));
+  }
 
   drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 

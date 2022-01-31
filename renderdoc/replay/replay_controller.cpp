@@ -1955,6 +1955,13 @@ rdcarray<ShaderEncoding> ReplayController::GetCustomShaderEncodings()
   return m_pDevice->GetCustomShaderEncodings();
 }
 
+rdcarray<ShaderSourcePrefix> ReplayController::GetCustomShaderSourcePrefixes()
+{
+  CHECK_REPLAY_THREAD();
+
+  return m_pDevice->GetCustomShaderSourcePrefixes();
+}
+
 rdcarray<ShaderEncoding> ReplayController::GetTargetShaderEncodings()
 {
   CHECK_REPLAY_THREAD();

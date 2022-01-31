@@ -637,6 +637,28 @@ of the compile process or using alternate/updated tools.
 )");
   virtual rdcarray<ShaderEncoding> GetCustomShaderEncodings() = 0;
 
+  DOCUMENT(R"(Retrieve a list of source prefixes that should be applied to custom shaders of each
+:class:`ShaderEncoding` before custom compilation prior to calling :meth:`BuildCustomShader`.
+
+This list provides source code prefixes which should be applied to a given custom shader in a
+:class:`ShaderEncoding` *if and only if* that shader is being compiled in a custom step to a
+different encoding, prior to being passed to :meth:`BuildCustomShader`. This allows source
+compatibility even when doing custom compilation.
+
+For example a shader written in :data:`ShaderEncoding.HLSL` may be custom compiled to
+:data:`ShaderEncoding.SPIRV` before being passed to :meth:`BuildCustomShader`. In this case any
+prefix for :data:`ShaderEncoding.HLSL` should be prepended to the source before custom compilation,
+to allow for defines and other helpers to be made available, since otherwise the shader may not
+compile.
+
+If a shader encoding is not in the list, no prefix is required. This may be possible even for a
+high level language such as :data:`ShaderEncoding.GLSL`.
+
+:return: A list of pairs, listing a prefix for each shader encoding referenced.
+:rtype: List[Tuple[ShaderEncoding,str]]
+)");
+  virtual rdcarray<ShaderSourcePrefix> GetCustomShaderSourcePrefixes() = 0;
+
   DOCUMENT(R"(Replace one resource with another for subsequent replay and analysis work.
 
 This is commonly used for modifying the capture by selectively replacing resources with newly

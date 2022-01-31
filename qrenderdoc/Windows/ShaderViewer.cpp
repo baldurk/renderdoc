@@ -181,33 +181,16 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
   {
     QMenu *snippetsMenu = new QMenu(this);
 
-    QAction *dim = new QAction(tr("Texture Dimensions Global"), this);
-    QAction *mip = new QAction(tr("Selected Mip Global"), this);
-    QAction *slice = new QAction(tr("Selected Array Slice / Cubemap Face Global"), this);
-    QAction *sample = new QAction(tr("Selected Sample Global"), this);
-    QAction *range = new QAction(tr("Selected TextureViewer Range Global"), this);
-    QAction *type = new QAction(tr("Texture Type Global"), this);
+    QAction *constants = new QAction(tr("Per-texture constants"), this);
     QAction *samplers = new QAction(tr("Point && Linear Samplers"), this);
     QAction *resources = new QAction(tr("Texture Resources"), this);
 
-    snippetsMenu->addAction(dim);
-    snippetsMenu->addAction(mip);
-    snippetsMenu->addAction(slice);
-    snippetsMenu->addAction(sample);
-    snippetsMenu->addAction(range);
-    snippetsMenu->addAction(type);
-    snippetsMenu->addSeparator();
+    snippetsMenu->addAction(constants);
     snippetsMenu->addAction(samplers);
     snippetsMenu->addAction(resources);
 
-    QObject::connect(dim, &QAction::triggered, this, &ShaderViewer::snippet_textureDimensions);
-    QObject::connect(mip, &QAction::triggered, this, &ShaderViewer::snippet_selectedMip);
-    QObject::connect(slice, &QAction::triggered, this, &ShaderViewer::snippet_selectedSlice);
-    QObject::connect(sample, &QAction::triggered, this, &ShaderViewer::snippet_selectedSample);
-    QObject::connect(range, &QAction::triggered, this, &ShaderViewer::snippet_selectedRange);
-    QObject::connect(type, &QAction::triggered, this, &ShaderViewer::snippet_selectedType);
+    QObject::connect(constants, &QAction::triggered, this, &ShaderViewer::snippet_constants);
     QObject::connect(samplers, &QAction::triggered, this, &ShaderViewer::snippet_samplers);
-    QObject::connect(resources, &QAction::triggered, this, &ShaderViewer::snippet_resources);
     QObject::connect(resources, &QAction::triggered, this, &ShaderViewer::snippet_resources);
 
     ui->snippets->setMenu(snippetsMenu);
@@ -282,7 +265,18 @@ void ShaderViewer::editShader(ResourceId id, ShaderStage stage, const QString &e
   ui->callstack->hide();
   ui->sourceVars->hide();
 
-  ui->snippets->setVisible(m_CustomShader);
+  if(m_CustomShader)
+  {
+    ui->snippets->show();
+    ui->refresh->setText(tr("Refresh"));
+    ui->resetEdits->hide();
+    ui->unrefresh->hide();
+    ui->editStatusLabel->hide();
+  }
+  else
+  {
+    ui->snippets->hide();
+  }
 
   // hide debugging toolbar buttons
   ui->editSep->hide();
@@ -4351,270 +4345,105 @@ void ShaderViewer::insertSnippet(const QString &text)
   m_Scintillas[0]->setSelection(0, 0);
 }
 
-QString ShaderViewer::vulkanUBO()
+void ShaderViewer::snippet_constants()
 {
   ShaderEncoding encoding = currentEncoding();
+
+  QString text;
 
   if(encoding == ShaderEncoding::GLSL)
   {
-    return lit(R"(
-layout(binding = 0, std140) uniform RENDERDOC_Uniforms
-{
-    uvec4 TexDim;
-    uint SelectedMip;
-    int TextureType; // 1 = 1D, 2 = 2D, 3 = 3D, 4 = 2DMS
-    uint SelectedSliceFace;
-    int SelectedSample;
-    uvec4 YUVDownsampleRate;
-    uvec4 YUVAChannels;
-    float SelectedRangeMin;
-    float SelectedRangeMax;
-} RENDERDOC;
+    text = lit(R"(
+// possible values (these are only return values from this function, NOT texture binding points):
+// RD_TextureType_1D
+// RD_TextureType_2D
+// RD_TextureType_3D
+// RD_TextureType_Cube (OpenGL only)
+// RD_TextureType_1D_Array (OpenGL only)
+// RD_TextureType_2D_Array (OpenGL only)
+// RD_TextureType_Cube_Array (OpenGL only)
+// RD_TextureType_Rect (OpenGL only)
+// RD_TextureType_Buffer (OpenGL only)
+// RD_TextureType_2DMS
+// RD_TextureType_2DMS_Array (OpenGL only)
+uint RD_TextureType();
 
-#define RENDERDOC_TexDim RENDERDOC.TexDim
-#define RENDERDOC_SelectedMip RENDERDOC.SelectedMip
-#define RENDERDOC_TextureType RENDERDOC.TextureType
-#define RENDERDOC_SelectedSliceFace RENDERDOC.SelectedSliceFace
-#define RENDERDOC_SelectedSample RENDERDOC.SelectedSample
-#define RENDERDOC_YUVDownsampleRate RENDERDOC.YUVDownsampleRate
-#define RENDERDOC_YUVAChannels RENDERDOC.YUVAChannels
-#define RENDERDOC_SelectedRangeMin RENDERDOC.SelectedRangeMin
-#define RENDERDOC_SelectedRangeMax RENDERDOC.SelectedRangeMax
+// selected sample, or -numSamples for resolve
+int RD_SelectedSample();
+
+uint RD_SelectedSliceFace();
+
+uint RD_SelectedMip();
+
+// xyz = width, height, depth (or array size). w = # mips
+uvec4 RD_TexDim();
+
+// x = horizontal downsample rate (1 full rate, 2 half rate)
+// y = vertical downsample rate
+// z = number of planes in input texture
+// w = number of bits per component (8, 10, 16)
+uvec4 RD_YUVDownsampleRate();
+
+// x = where Y channel comes from
+// y = where U channel comes from
+// z = where V channel comes from
+// w = where A channel comes from
+// each index will be [0,1,2,3] for xyzw in first plane,
+// [4,5,6,7] for xyzw in second plane texture, etc.
+// it will be 0xff = 255 if the channel does not exist.
+uvec4 RD_YUVAChannels();
+
+// a pair with minimum and maximum selected range values
+vec2 RD_SelectedRange();
 
 )");
   }
   else if(encoding == ShaderEncoding::HLSL)
   {
-    return lit(R"(
-cbuffer RENDERDOC_Constants : register(b0)
-{
-    uint4 RENDERDOC_TexDim;
-    uint RENDERDOC_SelectedMip;
-    int RENDERDOC_TextureType; // 1 = 1D, 2 = 2D, 3 = 3D, 4 = 2DMS
-    uint RENDERDOC_SelectedSliceFace;
-    int RENDERDOC_SelectedSample;
-    uint4 RENDERDOC_YUVDownsampleRate;
-    uint4 RENDERDOC_YUVAChannels;
-    float RENDERDOC_SelectedRangeMin;
-    float RENDERDOC_SelectedRangeMax;
-};
-
-)");
-  }
-  else if(encoding == ShaderEncoding::SPIRVAsm)
-  {
-    return lit("; Can't insert snippets for SPIR-V ASM");
-  }
-
-  return QString();
-}
-
-void ShaderViewer::snippet_textureDimensions()
-{
-  ShaderEncoding encoding = currentEncoding();
-  GraphicsAPI api = m_Ctx.APIProps().localRenderer;
-
-  QString text;
-
-  if(api == GraphicsAPI::Vulkan)
-  {
-    text = vulkanUBO();
-  }
-  else if(encoding == ShaderEncoding::HLSL)
-  {
     text = lit(R"(
-// xyz == width, height, depth. w == # mips
-uint4 RENDERDOC_TexDim;
-uint4 RENDERDOC_YUVDownsampleRate;
-uint4 RENDERDOC_YUVAChannels;
+/////////////////////////////////////
+//            Constants            //
+/////////////////////////////////////
 
-)");
-  }
-  else if(encoding == ShaderEncoding::GLSL)
-  {
-    text = lit(R"(
-// xyz == width, height, depth. w == # mips
-uniform uvec4 RENDERDOC_TexDim;
+// possible values (these are only return values from this function, NOT texture binding points):
+// RD_TextureType_1D
+// RD_TextureType_2D
+// RD_TextureType_3D
+// RD_TextureType_Depth
+// RD_TextureType_DepthStencil
+// RD_TextureType_DepthMS
+// RD_TextureType_DepthStencilMS
+uint RD_TextureType();
 
-)");
-  }
-  else if(encoding == ShaderEncoding::SPIRVAsm)
-  {
-    text = lit("; Can't insert snippets for SPIR-V ASM");
-  }
+// selected sample, or -numSamples for resolve
+int RD_SelectedSample();
 
-  insertSnippet(text);
-}
+uint RD_SelectedSliceFace();
 
-void ShaderViewer::snippet_selectedMip()
-{
-  ShaderEncoding encoding = currentEncoding();
-  GraphicsAPI api = m_Ctx.APIProps().localRenderer;
+uint RD_SelectedMip();
 
-  QString text;
+// xyz = width, height, depth. w = # mips
+uint4 RD_TexDim();
 
-  if(api == GraphicsAPI::Vulkan)
-  {
-    text = vulkanUBO();
-  }
-  else if(encoding == ShaderEncoding::HLSL)
-  {
-    text = lit(R"(
-// selected mip in UI
-uint RENDERDOC_SelectedMip;
+// x = horizontal downsample rate (1 full rate, 2 half rate)
+// y = vertical downsample rate
+// z = number of planes in input texture
+// w = number of bits per component (8, 10, 16)
+uint4 RD_YUVDownsampleRate();
 
-)");
-  }
-  else if(encoding == ShaderEncoding::GLSL)
-  {
-    text = lit(R"(
-// selected mip in UI
-uniform uint RENDERDOC_SelectedMip;
+// x = where Y channel comes from
+// y = where U channel comes from
+// z = where V channel comes from
+// w = where A channel comes from
+// each index will be [0,1,2,3] for xyzw in first plane,
+// [4,5,6,7] for xyzw in second plane texture, etc.
+// it will be 0xff = 255 if the channel does not exist.
+uint4 RD_YUVAChannels();
 
-)");
-  }
-  else if(encoding == ShaderEncoding::SPIRVAsm)
-  {
-    text = lit("; Can't insert snippets for SPIR-V ASM");
-  }
+// a pair with minimum and maximum selected range values
+float2 RD_SelectedRange();
 
-  insertSnippet(text);
-}
-
-void ShaderViewer::snippet_selectedSlice()
-{
-  ShaderEncoding encoding = currentEncoding();
-  GraphicsAPI api = m_Ctx.APIProps().localRenderer;
-
-  QString text;
-
-  if(api == GraphicsAPI::Vulkan)
-  {
-    text = vulkanUBO();
-  }
-  else if(encoding == ShaderEncoding::HLSL)
-  {
-    text = lit(R"(
-// selected array slice or cubemap face in UI
-uint RENDERDOC_SelectedSliceFace;
-
-)");
-  }
-  else if(encoding == ShaderEncoding::GLSL)
-  {
-    text = lit(R"(
-// selected array slice or cubemap face in UI
-uniform uint RENDERDOC_SelectedSliceFace;
-
-)");
-  }
-  else if(encoding == ShaderEncoding::SPIRVAsm)
-  {
-    text = lit("; Can't insert snippets for SPIR-V ASM");
-  }
-
-  insertSnippet(text);
-}
-
-void ShaderViewer::snippet_selectedSample()
-{
-  ShaderEncoding encoding = currentEncoding();
-  GraphicsAPI api = m_Ctx.APIProps().localRenderer;
-
-  QString text;
-
-  if(api == GraphicsAPI::Vulkan)
-  {
-    text = vulkanUBO();
-  }
-  else if(encoding == ShaderEncoding::HLSL)
-  {
-    text = lit(R"(
-// selected MSAA sample or -numSamples for resolve. See docs
-int RENDERDOC_SelectedSample;
-
-)");
-  }
-  else if(encoding == ShaderEncoding::GLSL)
-  {
-    text = lit(R"(
-// selected MSAA sample or -numSamples for resolve. See docs
-uniform int RENDERDOC_SelectedSample;
-
-)");
-  }
-  else if(encoding == ShaderEncoding::SPIRVAsm)
-  {
-    text = lit("; Can't insert snippets for SPIR-V ASM");
-  }
-
-  insertSnippet(text);
-}
-
-void ShaderViewer::snippet_selectedRange()
-{
-  ShaderEncoding encoding = currentEncoding();
-  GraphicsAPI api = m_Ctx.APIProps().localRenderer;
-
-  QString text;
-
-  if(api == GraphicsAPI::Vulkan)
-  {
-    text = vulkanUBO();
-  }
-  else if(encoding == ShaderEncoding::HLSL)
-  {
-    text = lit(R"(
-// selected range min/max in UI
-float RENDERDOC_SelectedRangeMin;
-float RENDERDOC_SelectedRangeMax;
-
-)");
-  }
-  else if(encoding == ShaderEncoding::GLSL)
-  {
-    text = lit(R"(
-// selected range minmax in UI
-float RENDERDOC_SelectedRangeMin;
-float RENDERDOC_SelectedRangeMax;
-
-)");
-  }
-  else if(encoding == ShaderEncoding::SPIRVAsm)
-  {
-    text = lit("; Can't insert snippets for SPIR-V ASM");
-  }
-
-  insertSnippet(text);
-}
-
-void ShaderViewer::snippet_selectedType()
-{
-  ShaderEncoding encoding = currentEncoding();
-  GraphicsAPI api = m_Ctx.APIProps().localRenderer;
-
-  QString text;
-
-  if(api == GraphicsAPI::Vulkan)
-  {
-    text = vulkanUBO();
-  }
-  else if(encoding == ShaderEncoding::HLSL)
-  {
-    text = lit(R"(
-// 1 = 1D, 2 = 2D, 3 = 3D, 4 = Depth, 5 = Depth + Stencil
-// 6 = Depth (MS), 7 = Depth + Stencil (MS), 9 = 2DMS
-uint RENDERDOC_TextureType;
-
-)");
-  }
-  else if(encoding == ShaderEncoding::GLSL)
-  {
-    text = lit(R"(
-// 1 = 1D, 2 = 2D, 3 = 3D, 4 = Cube
-// 5 = 1DArray, 6 = 2DArray, 7 = CubeArray
-// 8 = Rect, 9 = Buffer, 10 = 2DMS, 11 = 2DMSArray
-uniform uint RENDERDOC_TextureType;
+/////////////////////////////////////
 
 )");
   }
@@ -4629,28 +4458,38 @@ uniform uint RENDERDOC_TextureType;
 void ShaderViewer::snippet_samplers()
 {
   ShaderEncoding encoding = currentEncoding();
-  GraphicsAPI api = m_Ctx.APIProps().localRenderer;
 
   if(encoding == ShaderEncoding::HLSL)
   {
-    if(api == GraphicsAPI::Vulkan)
-    {
-      insertSnippet(lit(R"(
-// Samplers
-SamplerState pointSampler : register(s50);
-SamplerState linearSampler : register(s51);
-// End Samplers
+    insertSnippet(lit(R"(
+/////////////////////////////////////
+//            Samplers             //
+/////////////////////////////////////
+
+SamplerState pointSampler : register(RD_POINT_SAMPLER_BINDING);
+SamplerState linearSampler : register(RD_LINEAR_SAMPLER_BINDING);
+
+/////////////////////////////////////
+
 )"));
-    }
-    else
-    {
-      insertSnippet(lit(R"(
-// Samplers
-SamplerState pointSampler : register(s0);
-SamplerState linearSampler : register(s1);
-// End Samplers
+  }
+  else
+  {
+    insertSnippet(lit(R"(
+
+/////////////////////////////////////
+//            Samplers             //
+/////////////////////////////////////
+
+#ifdef VULKAN
+
+layout(binding = RD_POINT_SAMPLER_BINDING) uniform sampler pointSampler;
+layout(binding = RD_LINEAR_SAMPLER_BINDING) uniform sampler linearSampler;
+
+#endif
+
+/////////////////////////////////////
 )"));
-    }
   }
 }
 
@@ -4661,132 +4500,97 @@ void ShaderViewer::snippet_resources()
 
   if(encoding == ShaderEncoding::HLSL)
   {
-    if(api == GraphicsAPI::Vulkan)
-    {
-      insertSnippet(lit(R"(
-// Textures
-// Floating point
-Texture1DArray<float4> texDisplayTex1DArray : register(t6);
-Texture2DArray<float4> texDisplayTex2DArray : register(t7);
-Texture3D<float4> texDisplayTex3D : register(t8);
-Texture2DMSArray<float4> texDisplayTex2DMSArray : register(t9);
-Texture2DArray<float4> texDisplayYUVArray : register(t10);
+    insertSnippet(lit(R"(
+/////////////////////////////////////
+//           Resources             //
+/////////////////////////////////////
 
-// Unsigned int
-Texture1DArray<uint4> texDisplayUIntTex1DArray : register(t11);
-Texture2DArray<uint4> texDisplayUIntTex2DArray : register(t12);
-Texture3D<uint4> texDisplayUIntTex3D : register(t13);
-Texture2DMSArray<uint4> texDisplayUIntTex2DMSArray : register(t14);
+// Float Textures
+Texture1DArray<float4> texDisplayTex1DArray : register(RD_FLOAT_1D_ARRAY_BINDING);
+Texture2DArray<float4> texDisplayTex2DArray : register(RD_FLOAT_2D_ARRAY_BINDING);
+Texture3D<float4> texDisplayTex3D : register(RD_FLOAT_3D_BINDING);
+Texture2DMSArray<float4> texDisplayTex2DMSArray : register(RD_FLOAT_2DMS_ARRAY_BINDING);
+Texture2DArray<float4> texDisplayYUVArray : register(RD_FLOAT_YUV_ARRAY_BINDING);
 
-// Int
-Texture1DArray<int4> texDisplayIntTex1DArray : register(t16);
-Texture2DArray<int4> texDisplayIntTex2DArray : register(t17);
-Texture3D<int4> texDisplayIntTex3D : register(t18);
-Texture2DMSArray<int4> texDisplayIntTex2DMSArray : register(t19);
-// End Textures
+// only used on D3D
+Texture2DArray<float2> texDisplayTexDepthArray : register(RD_FLOAT_DEPTH_ARRAY_BINDING);
+Texture2DArray<uint2> texDisplayTexStencilArray : register(RD_FLOAT_STENCIL_ARRAY_BINDING);
+Texture2DMSArray<float2> texDisplayTexDepthMSArray : register(RD_FLOAT_DEPTHMS_ARRAY_BINDING);
+Texture2DMSArray<uint2> texDisplayTexStencilMSArray : register(RD_FLOAT_STENCILMS_ARRAY_BINDING);
+
+// Int Textures
+Texture1DArray<int4> texDisplayIntTex1DArray : register(RD_INT_1D_ARRAY_BINDING);
+Texture2DArray<int4> texDisplayIntTex2DArray : register(RD_INT_2D_ARRAY_BINDING);
+Texture3D<int4> texDisplayIntTex3D : register(RD_INT_3D_BINDING);
+Texture2DMSArray<int4> texDisplayIntTex2DMSArray : register(RD_INT_2DMS_ARRAY_BINDING);
+
+// Unsigned int Textures
+Texture1DArray<uint4> texDisplayUIntTex1DArray : register(RD_UINT_1D_ARRAY_BINDING);
+Texture2DArray<uint4> texDisplayUIntTex2DArray : register(RD_UINT_2D_ARRAY_BINDING);
+Texture3D<uint4> texDisplayUIntTex3D : register(RD_UINT_3D_BINDING);
+Texture2DMSArray<uint4> texDisplayUIntTex2DMSArray : register(RD_UINT_2DMS_ARRAY_BINDING);
+
+/////////////////////////////////////
+
 )"));
-    }
-    else
-    {
-      insertSnippet(lit(R"(
-// Textures
-Texture1DArray<float4> texDisplayTex1DArray : register(t1);
-Texture2DArray<float4> texDisplayTex2DArray : register(t2);
-Texture3D<float4> texDisplayTex3D : register(t3);
-Texture2DArray<float2> texDisplayTexDepthArray : register(t4);
-Texture2DArray<uint2> texDisplayTexStencilArray : register(t5);
-Texture2DMSArray<float2> texDisplayTexDepthMSArray : register(t6);
-Texture2DMSArray<uint2> texDisplayTexStencilMSArray : register(t7);
-Texture2DMSArray<float4> texDisplayTex2DMSArray : register(t9);
-Texture2DArray<float4> texDisplayYUVArray : register(t10);
-
-// Unsigned int
-Texture1DArray<uint4> texDisplayUIntTex1DArray : register(t11);
-Texture2DArray<uint4> texDisplayUIntTex2DArray : register(t12);
-Texture3D<uint4> texDisplayUIntTex3D : register(t13);
-Texture2DMSArray<uint4> texDisplayUIntTex2DMSArray : register(t19);
-
-// Int
-Texture1DArray<int4> texDisplayIntTex1DArray : register(t21);
-Texture2DArray<int4> texDisplayIntTex2DArray : register(t22);
-Texture3D<int4> texDisplayIntTex3D : register(t23);
-Texture2DMSArray<int4> texDisplayIntTex2DMSArray : register(t29);
-// End Textures
-)"));
-    }
   }
   else if(encoding == ShaderEncoding::GLSL)
   {
-    if(api == GraphicsAPI::Vulkan)
-    {
-      insertSnippet(lit(R"(
-// Textures
-// Floating point samplers
-layout(binding = 6) uniform sampler1DArray tex1DArray;
-layout(binding = 7) uniform sampler2DArray tex2DArray;
-layout(binding = 8) uniform sampler3D tex3D;
-layout(binding = 9) uniform sampler2DMS tex2DMS;
-layout(binding = 10) uniform sampler2DArray texYUVArray[2];
+    insertSnippet(lit(R"(
+/////////////////////////////////////
+//           Resources             //
+/////////////////////////////////////
 
-// Unsigned int samplers
-layout(binding = 11) uniform usampler1DArray texUInt1DArray;
-layout(binding = 12) uniform usampler2DArray texUInt2DArray;
-layout(binding = 13) uniform usampler3D texUInt3D;
-layout(binding = 14) uniform usampler2DMS texUInt2DMS;
+// Float Textures
+layout (binding = RD_FLOAT_1D_ARRAY_BINDING) uniform sampler1DArray tex1DArray;
+layout (binding = RD_FLOAT_2D_ARRAY_BINDING) uniform sampler2DArray tex2DArray;
+layout (binding = RD_FLOAT_3D_BINDING) uniform sampler3D tex3D;
+layout (binding = RD_FLOAT_2DMS_ARRAY_BINDING) uniform sampler2DMSArray tex2DMSArray;
 
-// Int samplers
-layout(binding = 16) uniform isampler1DArray texSInt1DArray;
-layout(binding = 17) uniform isampler2DArray texSInt2DArray;
-layout(binding = 18) uniform isampler3D texSInt3D;
-layout(binding = 19) uniform isampler2DMS texSInt2DMS;
-// End Textures
+// YUV textures only supported on vulkan
+#ifdef VULKAN
+layout(binding = RD_FLOAT_YUV_ARRAY_BINDING) uniform sampler2DArray texYUVArray[2];
+#endif
+
+// OpenGL has more texture types to match
+#ifndef VULKAN
+layout (binding = RD_FLOAT_1D_BINDING) uniform sampler1D tex1D;
+layout (binding = RD_FLOAT_2D_BINDING) uniform sampler2D tex2D;
+layout (binding = RD_FLOAT_CUBE_BINDING) uniform samplerCube texCube;
+layout (binding = RD_FLOAT_CUBE_ARRAY_BINDING) uniform samplerCubeArray texCubeArray;
+layout (binding = RD_FLOAT_RECT_BINDING) uniform sampler2DRect tex2DRect;
+layout (binding = RD_FLOAT_BUFFER_BINDING) uniform samplerBuffer texBuffer;
+layout (binding = RD_FLOAT_2DMS_BINDING) uniform sampler2DMS tex2DMS;
+#endif
+
+// Int Textures
+layout (binding = RD_INT_1D_ARRAY_BINDING) uniform isampler1DArray texSInt1DArray;
+layout (binding = RD_INT_2D_ARRAY_BINDING) uniform isampler2DArray texSInt2DArray;
+layout (binding = RD_INT_3D_BINDING) uniform isampler3D texSInt3D;
+layout (binding = RD_INT_2DMS_ARRAY_BINDING) uniform isampler2DMSArray texSInt2DMSArray;
+
+#ifndef VULKAN
+layout (binding = RD_INT_1D_BINDING) uniform isampler1D texSInt1D;
+layout (binding = RD_INT_2D_BINDING) uniform isampler2D texSInt2D;
+layout (binding = RD_INT_RECT_BINDING) uniform isampler2DRect texSInt2DRect;
+layout (binding = RD_INT_BUFFER_BINDING) uniform isamplerBuffer texSIntBuffer;
+layout (binding = RD_INT_2DMS_BINDING) uniform isampler2DMS texSInt2DMS;
+#endif
+
+// Unsigned int Textures
+layout (binding = RD_UINT_1D_ARRAY_BINDING) uniform usampler1DArray texSInt1DArray;
+layout (binding = RD_UINT_2D_ARRAY_BINDING) uniform usampler2DArray texSInt2DArray;
+layout (binding = RD_UINT_3D_BINDING) uniform usampler3D texSInt3D;
+layout (binding = RD_UINT_2DMS_ARRAY_BINDING) uniform usampler2DMSArray texSInt2DMSArray;
+
+#ifndef VULKAN
+layout (binding = RD_UINT_1D_BINDING) uniform usampler1D texSInt1D;
+layout (binding = RD_UINT_2D_BINDING) uniform usampler2D texSInt2D;
+layout (binding = RD_UINT_RECT_BINDING) uniform usampler2DRect texSInt2DRect;
+layout (binding = RD_UINT_BUFFER_BINDING) uniform usamplerBuffer texSIntBuffer;
+layout (binding = RD_UINT_2DMS_BINDING) uniform usampler2DMS texSInt2DMS;
+#endif
 )"));
-    }
-    else
-    {
-      insertSnippet(lit(R"(
-// Textures
-// Unsigned int samplers
-layout (binding = 1) uniform usampler1D texUInt1D;
-layout (binding = 2) uniform usampler2D texUInt2D;
-layout (binding = 3) uniform usampler3D texUInt3D;
-// cube = 4
-layout (binding = 5) uniform usampler1DArray texUInt1DArray;
-layout (binding = 6) uniform usampler2DArray texUInt2DArray;
-// cube array = 7
-layout (binding = 8) uniform usampler2DRect texUInt2DRect;
-layout (binding = 9) uniform usamplerBuffer texUIntBuffer;
-layout (binding = 10) uniform usampler2DMS texUInt2DMS;
-layout (binding = 11) uniform usampler2DMSArray texUInt2DMSArray;
-
-// Int samplers
-layout (binding = 1) uniform isampler1D texSInt1D;
-layout (binding = 2) uniform isampler2D texSInt2D;
-layout (binding = 3) uniform isampler3D texSInt3D;
-// cube = 4
-layout (binding = 5) uniform isampler1DArray texSInt1DArray;
-layout (binding = 6) uniform isampler2DArray texSInt2DArray;
-// cube array = 7
-layout (binding = 8) uniform isampler2DRect texSInt2DRect;
-layout (binding = 9) uniform isamplerBuffer texSIntBuffer;
-layout (binding = 10) uniform isampler2DMS texSInt2DMS;
-layout (binding = 11) uniform isampler2DMSArray texSInt2DMSArray;
-
-// Floating point samplers
-layout (binding = 1) uniform sampler1D tex1D;
-layout (binding = 2) uniform sampler2D tex2D;
-layout (binding = 3) uniform sampler3D tex3D;
-layout (binding = 4) uniform samplerCube texCube;
-layout (binding = 5) uniform sampler1DArray tex1DArray;
-layout (binding = 6) uniform sampler2DArray tex2DArray;
-layout (binding = 7) uniform samplerCubeArray texCubeArray;
-layout (binding = 8) uniform sampler2DRect tex2DRect;
-layout (binding = 9) uniform samplerBuffer texBuffer;
-layout (binding = 10) uniform sampler2DMS tex2DMS;
-layout (binding = 11) uniform sampler2DMSArray tex2DMSArray;
-// End Textures
-)"));
-    }
   }
 }
 

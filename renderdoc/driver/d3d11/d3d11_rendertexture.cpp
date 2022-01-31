@@ -579,7 +579,7 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flag
   vertexData.VertexScale.y = (tex_y / m_OutputHeight) * cfg.scale * 2.0f;
 
   ID3D11PixelShader *customPS = NULL;
-  ID3D11Buffer *customBuff = NULL;
+  ID3D11Buffer *customBuffs[2] = {};
 
   if(cfg.customShaderId != ResourceId())
   {
@@ -597,6 +597,24 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flag
         WrappedID3D11Shader<ID3D11PixelShader> *wrapped =
             (WrappedID3D11Shader<ID3D11PixelShader> *)m_pDevice->GetResourceManager()->GetLiveResource(
                 cfg.customShaderId);
+
+        RD_CustomShader_CBuffer_Type customCBuffer = {};
+
+        customCBuffer.TexDim.x = details.texWidth;
+        customCBuffer.TexDim.y = details.texHeight;
+        customCBuffer.TexDim.z =
+            details.texType == eTexType_3D ? details.texDepth : details.texArraySize;
+        customCBuffer.TexDim.w = details.texMips;
+        customCBuffer.SelectedMip = cfg.subresource.mip;
+        customCBuffer.SelectedSliceFace = cfg.subresource.slice;
+        customCBuffer.SelectedSample = sampleIdx;
+        customCBuffer.TextureType = (uint32_t)details.texType;
+        customCBuffer.YUVDownsampleRate = details.YUVDownsampleRate;
+        customCBuffer.YUVAChannels = details.YUVAChannels;
+        customCBuffer.SelectedRange.x = cfg.rangeMin;
+        customCBuffer.SelectedRange.y = cfg.rangeMax;
+
+        customBuffs[0] = GetDebugManager()->MakeCBuffer(&customCBuffer, sizeof(customCBuffer));
 
         customPS = wrapped;
 
@@ -679,7 +697,7 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flag
                 {
                   int32_t *d = (int32_t *)(byteData + var.offset);
 
-                  d[0] = cfg.subresource.sample;
+                  d[0] = sampleIdx;
                 }
                 else
                 {
@@ -718,7 +736,27 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flag
               }
             }
 
-            customBuff = GetDebugManager()->MakeCBuffer(cbufData, cbuf.descriptor.byteSize);
+            if(cbuf.reg == 0)
+            {
+              // with the prefix added, binding 0 should be 'reserved' for the modern cbuffer.
+              // we can still make this work, but it's unexpected
+              RDCWARN(
+                  "Unexpected globals cbuffer at binding 0, expected binding 1 after prefix "
+                  "cbuffer");
+              customBuffs[0] = GetDebugManager()->MakeCBuffer(cbufData, cbuf.descriptor.byteSize);
+            }
+            else if(cbuf.reg == 1)
+            {
+              customBuffs[1] = GetDebugManager()->MakeCBuffer(cbufData, cbuf.descriptor.byteSize);
+            }
+            else
+            {
+              RDCERR(
+                  "Globals cbuffer at binding %d, unexpected and not handled - these constants "
+                  "will be "
+                  "undefined",
+                  cbuf.reg);
+            }
 
             SAFE_DELETE_ARRAY(cbufData);
           }
@@ -820,7 +858,7 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flag
     if(customPS)
     {
       m_pImmediateContext->PSSetShader(customPS, NULL, 0);
-      m_pImmediateContext->PSSetConstantBuffers(0, 1, &customBuff);
+      m_pImmediateContext->PSSetConstantBuffers(0, 2, customBuffs);
     }
     else
     {

@@ -981,6 +981,7 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const Repla
     m_APIProps = r->GetAPIProperties();
 
     m_CustomEncodings = r->GetCustomShaderEncodings();
+    m_CustomPrefixes = r->GetCustomShaderSourcePrefixes();
     m_TargetEncodings = r->GetTargetShaderEncodings();
 
     m_PostloadProgress = 0.2f;

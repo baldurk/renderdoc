@@ -167,6 +167,7 @@ public:
                          const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId &id,
                          rdcstr &errors);
   rdcarray<ShaderEncoding> GetCustomShaderEncodings();
+  rdcarray<ShaderSourcePrefix> GetCustomShaderSourcePrefixes();
   ResourceId ApplyCustomShader(TextureDisplay &display);
   void FreeCustomShader(ResourceId id);
 
@@ -195,4 +196,5 @@ private:
   rdcarray<GPUDevice> m_GPUs;
   rdcarray<WindowingSystem> m_WindowSystems;
   rdcarray<ShaderEncoding> m_CustomEncodings;
+  rdcarray<ShaderSourcePrefix> m_CustomPrefixes;
 };

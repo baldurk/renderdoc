@@ -2546,6 +2546,13 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
   SAFE_RELEASE(dummyTex);
 }
 
+rdcarray<ShaderSourcePrefix> D3D11Replay::GetCustomShaderSourcePrefixes()
+{
+  return {
+      {ShaderEncoding::HLSL, HLSL_CUSTOM_PREFIX},
+  };
+}
+
 void D3D11Replay::ReplaceResource(ResourceId from, ResourceId to)
 {
   auto fromit = WrappedShader::m_ShaderList.find(from);

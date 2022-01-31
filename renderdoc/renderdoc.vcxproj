@@ -225,6 +225,7 @@
     <ClInclude Include="data\glsl\vk_texsample.h" />
     <ClInclude Include="data\glsl_shaders.h" />
     <ClInclude Include="data\hlsl\hlsl_cbuffers.h" />
+    <ClInclude Include="data\hlsl\hlsl_custom_prefix.h" />
     <ClInclude Include="data\resource.h" />
     <ClInclude Include="hooks\hooks.h" />
     <ClInclude Include="maths\camera.h" />

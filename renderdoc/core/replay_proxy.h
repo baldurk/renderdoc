@@ -412,6 +412,14 @@ public:
     return {};
   }
 
+  rdcarray<ShaderSourcePrefix> GetCustomShaderSourcePrefixes()
+  {
+    if(m_Proxy)
+      return m_Proxy->GetCustomShaderSourcePrefixes();
+
+    return {};
+  }
+
   void FreeCustomShader(ResourceId id)
   {
     if(m_Proxy)

@@ -1945,6 +1945,15 @@ building custom shaders for the currently loaded capture. See
 )");
   virtual rdcarray<ShaderEncoding> CustomShaderEncodings() = 0;
 
+  DOCUMENT(R"(Retrieve the list of prefixes for each :class:`~renderdoc.ShaderEncoding` that should
+be added to custom compiled shaders. See
+:meth:`~renderdoc.ReplayController.GetCustomShaderSourcePrefixes`.
+
+:return: A list of pairs, listing a prefix for each shader encoding referenced.
+:rtype: List[Tuple[ShaderEncoding,str]]
+)");
+  virtual rdcarray<ShaderSourcePrefix> CustomShaderSourcePrefixes() = 0;
+
   DOCUMENT(R"(Retrieve the currently selected :data:`eventId <renderdoc.APIEvent.eventId>`.
 
 In most cases, prefer using :meth:`CurEvent`. See :meth:`CaptureViewer.OnSelectedEventChanged` for more

@@ -573,6 +573,9 @@
     <ClInclude Include="replay\dummy_driver.h">
       <Filter>Replay</Filter>
     </ClInclude>
+    <ClInclude Include="data\hlsl\hlsl_custom_prefix.h">
+      <Filter>Resources\hlsl</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">

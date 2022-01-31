@@ -370,6 +370,7 @@ public:
   {
     return {ShaderEncoding::SPIRV, ShaderEncoding::GLSL};
   }
+  rdcarray<ShaderSourcePrefix> GetCustomShaderSourcePrefixes();
   rdcarray<ShaderEncoding> GetTargetShaderEncodings()
   {
     return {ShaderEncoding::SPIRV, ShaderEncoding::GLSL};

@@ -171,6 +171,91 @@ rdcstr GenerateGLSLShader(const rdcstr &shader, ShaderType type, int version, co
   return ret;
 }
 
+static bool isspacetab(char c)
+{
+  return c == '\t' || c == ' ';
+}
+
+static bool isnewline(char c)
+{
+  return c == '\r' || c == '\n';
+}
+
+rdcstr InsertSnippetAfterVersion(ShaderType type, const char *source, int len, const char *snippet)
+{
+  // we require these enums to be compatible elsewhere
+  glslang::TShader sh(EShLangFragment);
+
+  glslang::EShClient client =
+      type == ShaderType::Vulkan ? glslang::EShClientVulkan : glslang::EShClientNone;
+  glslang::EShTargetClientVersion targetversion =
+      type == ShaderType::Vulkan ? glslang::EShTargetVulkan_1_0 : glslang::EShTargetOpenGL_450;
+  int inputVersion = client != glslang::EShClientNone ? 100 : 0;
+
+  sh.setStringsWithLengths(&source, &len, 1);
+  sh.setEnvInput(glslang::EShSourceGlsl, EShLangFragment, client, inputVersion);
+  sh.setEnvClient(client, targetversion);
+  sh.setEnvTarget(glslang::EShTargetNone, glslang::EShTargetSpv_1_0);
+
+  glslang::TShader::ForbidIncluder incl;
+
+  bool success;
+
+  EShMessages flags = EShMsgOnlyPreprocessor;
+  if(type == ShaderType::Vulkan)
+    flags = EShMessages(flags | EShMsgSpvRules | EShMsgVulkanRules);
+  else if(type == ShaderType::GLSPIRV)
+    flags = EShMessages(flags | EShMsgSpvRules);
+
+  rdcstr src;
+  std::string outstr;
+  {
+    success =
+        sh.preprocess(GetDefaultResources(), 100, ENoProfile, false, false, flags, &outstr, incl);
+    src.assign(outstr.c_str(), outstr.size());
+  }
+
+  // find if this source contains a #version, accounting for whitespace. It must be the first thing
+  // (except for whitespace and comments, and comments have been removed)
+  int32_t it = src.find("#");
+  len = src.count();
+
+  if(it >= 0)
+  {
+    // advance past the #
+    ++it;
+
+    // skip whitespace
+    while(it < len && isspacetab(src[it]))
+      ++it;
+
+    if(it + 7 < len && !strncmp(&src[it], "version", 7))
+    {
+      it = src.find_first_of("\r\n", it);
+      while(it < len && isnewline(src[it]))
+        it++;
+
+      // it points after the #version statement
+    }
+    else
+    {
+      it = -1;
+    }
+  }
+
+  // no #version statement found - insert our own
+  if(it < 0)
+  {
+    rdcstr version = "#version 430 core\n\n";
+    src.insert(0, version);
+    it = version.count();
+  }
+
+  src.insert(it, snippet);
+
+  return src;
+}
+
 #if ENABLED(ENABLE_UNIT_TESTS)
 
 #include "catch/catch.hpp"

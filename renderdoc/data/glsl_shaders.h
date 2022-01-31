@@ -36,6 +36,8 @@ enum class ShaderType
 rdcstr GenerateGLSLShader(const rdcstr &shader, ShaderType type, int version,
                           const rdcstr &defines = "");
 
+rdcstr InsertSnippetAfterVersion(ShaderType type, const char *source, int len, const char *snippet);
+
 // for unit tests
 struct ShaderReflection;
 struct ShaderBindpointMapping;

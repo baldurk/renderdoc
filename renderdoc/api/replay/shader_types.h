@@ -1235,6 +1235,35 @@ struct ShaderCompileFlags
 
 DECLARE_REFLECTION_STRUCT(ShaderCompileFlags);
 
+DOCUMENT("Contains the source prefix to add to a given type of shader source");
+struct ShaderSourcePrefix
+{
+  DOCUMENT("");
+  ShaderSourcePrefix() = default;
+  ShaderSourcePrefix(const ShaderSourcePrefix &) = default;
+  ShaderSourcePrefix &operator=(const ShaderSourcePrefix &) = default;
+
+  bool operator==(const ShaderSourcePrefix &o) const
+  {
+    return encoding == o.encoding && prefix == o.prefix;
+  }
+  bool operator<(const ShaderSourcePrefix &o) const
+  {
+    if(!(encoding == o.encoding))
+      return encoding < o.encoding;
+    if(!(prefix == o.prefix))
+      return prefix < o.prefix;
+    return false;
+  }
+  DOCUMENT("The encoding of the language this prefix applies to.");
+  ShaderEncoding encoding;
+
+  DOCUMENT("The source prefix to add.");
+  rdcstr prefix;
+};
+
+DECLARE_REFLECTION_STRUCT(ShaderSourcePrefix);
+
 DOCUMENT("Contains a source file available in a debug-compiled shader.");
 struct ShaderSourceFile
 {

@@ -3953,6 +3953,13 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
   SAFE_RELEASE(tmpTexture);
 }
 
+rdcarray<ShaderSourcePrefix> D3D12Replay::GetCustomShaderSourcePrefixes()
+{
+  return {
+      {ShaderEncoding::HLSL, HLSL_CUSTOM_PREFIX},
+  };
+}
+
 void D3D12Replay::SetCustomShaderIncludes(const rdcarray<rdcstr> &directories)
 {
   m_CustomShaderIncludes = directories;

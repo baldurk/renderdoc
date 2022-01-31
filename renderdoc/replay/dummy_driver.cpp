@@ -42,6 +42,7 @@ DummyDriver::DummyDriver(IReplayDriver *original, const rdcarray<ShaderReflectio
   m_GPUs = original->GetAvailableGPUs();
   m_WindowSystems = original->GetSupportedWindowSystems();
   m_CustomEncodings = original->GetCustomShaderEncodings();
+  m_CustomPrefixes = original->GetCustomShaderSourcePrefixes();
 }
 
 DummyDriver::~DummyDriver()
@@ -478,7 +479,12 @@ void DummyDriver::BuildCustomShader(ShaderEncoding sourceEncoding, const bytebuf
 
 rdcarray<ShaderEncoding> DummyDriver::GetCustomShaderEncodings()
 {
-  return {ShaderEncoding::HLSL, ShaderEncoding::GLSL};
+  return m_CustomEncodings;
+}
+
+rdcarray<ShaderSourcePrefix> DummyDriver::GetCustomShaderSourcePrefixes()
+{
+  return m_CustomPrefixes;
 }
 
 ResourceId DummyDriver::ApplyCustomShader(TextureDisplay &display)

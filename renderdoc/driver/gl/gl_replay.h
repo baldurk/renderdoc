@@ -203,6 +203,14 @@ public:
                   const MeshDisplay &cfg);
 
   rdcarray<ShaderEncoding> GetCustomShaderEncodings() { return {ShaderEncoding::GLSL}; }
+  rdcarray<ShaderSourcePrefix> GetCustomShaderSourcePrefixes()
+  {
+    // this is a complete hack, since we *do* want to define a prefix for GLSL. However GLSL sucks
+    // and has the #version as the first thing, so we can't do a simple prepend of some defines.
+    // Instead we will return no prefix and insert our own in BuildCustomShader if we see GLSL
+    // coming in.
+    return {};
+  }
   rdcarray<ShaderEncoding> GetTargetShaderEncodings() { return {ShaderEncoding::GLSL}; }
   void BuildTargetShader(ShaderEncoding sourceEncoding, const bytebuf &source, const rdcstr &entry,
                          const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId &id,

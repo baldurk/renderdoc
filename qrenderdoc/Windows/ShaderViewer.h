@@ -166,12 +166,7 @@ private slots:
   void performReplace();
   void performReplaceAll();
 
-  void snippet_textureDimensions();
-  void snippet_selectedMip();
-  void snippet_selectedSlice();
-  void snippet_selectedSample();
-  void snippet_selectedRange();
-  void snippet_selectedType();
+  void snippet_constants();
   void snippet_samplers();
   void snippet_resources();
 
