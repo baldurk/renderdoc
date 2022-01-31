@@ -339,7 +339,14 @@ void rdclogprint_int(LogType type, const char *fullMsg, const char *msg)
   // don't output debug messages to stdout/stderr
   if(type != LogType::Debug && log_output_enabled)
     OSUtility::WriteOutput(OSUtility::Output_StdErr, msg);
+  else
 #endif
+  {
+    // always output fatal errors to stderr no matter what, even if not normally enabled, to catch
+    // errors during startup
+    if(type == LogType::Fatal)
+      OSUtility::WriteOutput(OSUtility::Output_StdErr, msg);
+  }
 #if ENABLED(OUTPUT_LOG_TO_DISK)
   if(logfileHandle)
   {
