@@ -546,6 +546,8 @@ static PROCESS_INFORMATION RunProcess(const rdcstr &app, const rdcstr &workingDi
                                  envString.empty() ? NULL : (void *)envString.data(),
                                  workdir.c_str(), &si, &pi);
 
+  DWORD err = GetLastError();
+
   if(phChildStdOutput_Rd)
   {
     CloseHandle(hChildStdOutput_Wr);
@@ -557,7 +559,7 @@ static PROCESS_INFORMATION RunProcess(const rdcstr &app, const rdcstr &workingDi
   if(!retValue)
   {
     if(!internal)
-      RDCWARN("Process %s could not be loaded.", app.c_str());
+      RDCWARN("Process %s could not be loaded (error %d).", app.c_str(), err);
     CloseHandle(pi.hProcess);
     CloseHandle(pi.hThread);
     RDCEraseEl(pi);
