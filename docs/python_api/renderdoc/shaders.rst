@@ -69,6 +69,9 @@ Debug Info
 .. autoclass:: renderdoc.ShaderCompileFlag
   :members:
 
+.. autoclass:: renderdoc.ShaderSourcePrefix
+  :members:
+
 Shader Constants
 ----------------
 
