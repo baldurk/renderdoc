@@ -44,6 +44,45 @@ void MakeFakeUUID()
   }
 }
 
+void ClampPhysDevAPIVersion(VkPhysicalDeviceProperties *pProperties, VkPhysicalDevice physicalDevice)
+{
+  // for Vulkan 1.3 bufferDeviceAddress is core. If the bufferDeviceAddressCaptureReplay feature is
+  // not available, we can't support it so we must clamp to version 1.2 for that physical device.
+  if(pProperties->apiVersion >= VK_API_VERSION_1_3)
+  {
+    // for 1.1 this is core so we should definitely have this function.
+    if(ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures2 != NULL)
+    {
+      VkPhysicalDeviceFeatures2 features = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+
+      // similarly this struct must be valid if the device is 1.3
+      VkPhysicalDeviceVulkan12Features vk12 = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
+
+      features.pNext = &vk12;
+
+      ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures2(Unwrap(physicalDevice), &features);
+
+      if(vk12.bufferDeviceAddressCaptureReplay == VK_FALSE)
+      {
+        RDCWARN(
+            "Vulkan feature bufferDeviceAddressCaptureReplay is not available. Clamping physical "
+            "device %s from reported version %d.%d to 1.2",
+            pProperties->deviceName, VK_VERSION_MAJOR(pProperties->apiVersion),
+            VK_VERSION_MINOR(pProperties->apiVersion));
+
+        pProperties->apiVersion = VK_API_VERSION_1_2;
+      }
+    }
+    else
+    {
+      // if we don't have GPDP2 the application has not initialised the instance at 1.3+
+      // let's clamp the version just to be safe since we can't check, and this will help protect
+      // against buggy applications
+      pProperties->apiVersion = VK_API_VERSION_1_2;
+    }
+  }
+}
+
 void WrappedVulkan::vkGetPhysicalDeviceFeatures(VkPhysicalDevice physicalDevice,
                                                 VkPhysicalDeviceFeatures *pFeatures)
 {
@@ -194,6 +233,8 @@ void WrappedVulkan::vkGetPhysicalDeviceProperties(VkPhysicalDevice physicalDevic
   MakeFakeUUID();
 
   memcpy(pProperties->pipelineCacheUUID, fakeRenderDocUUID, VK_UUID_SIZE);
+
+  ClampPhysDevAPIVersion(pProperties, physicalDevice);
 }
 
 void WrappedVulkan::vkGetPhysicalDeviceQueueFamilyProperties(
@@ -765,7 +806,13 @@ void WrappedVulkan::vkGetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice
 void WrappedVulkan::vkGetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
                                                    VkPhysicalDeviceProperties2 *pProperties)
 {
-  return ObjDisp(physicalDevice)->GetPhysicalDeviceProperties2(Unwrap(physicalDevice), pProperties);
+  ObjDisp(physicalDevice)->GetPhysicalDeviceProperties2(Unwrap(physicalDevice), pProperties);
+
+  MakeFakeUUID();
+
+  memcpy(pProperties->properties.pipelineCacheUUID, fakeRenderDocUUID, VK_UUID_SIZE);
+
+  ClampPhysDevAPIVersion(&pProperties->properties, physicalDevice);
 }
 
 void WrappedVulkan::vkGetPhysicalDeviceQueueFamilyProperties2(

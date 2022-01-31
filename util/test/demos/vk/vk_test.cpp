@@ -659,7 +659,8 @@ bool VulkanGraphicsTest::Init()
 
   vmaCreateAllocator(&allocInfo, &allocator);
 
-  TEST_LOG("Running Vulkan test on %s", physProperties.deviceName);
+  TEST_LOG("Running Vulkan test on %s (version %d.%d)", physProperties.deviceName,
+           VK_VERSION_MAJOR(physProperties.apiVersion), VK_VERSION_MINOR(physProperties.apiVersion));
 
   return true;
 }
