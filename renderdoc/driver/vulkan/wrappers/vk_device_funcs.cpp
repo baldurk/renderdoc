@@ -3171,7 +3171,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR,
     };
 
-    if(physProps.apiVersion >= VK_MAKE_VERSION(1, 2, 0))
+    if(RDCMIN(m_EnabledExtensions.vulkanVersion, physProps.apiVersion) >= VK_MAKE_VERSION(1, 2, 0))
     {
       VkPhysicalDeviceVulkan12Features avail12Features = {
           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
@@ -3376,11 +3376,13 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
     CheckDeviceExts();
 
+    uint32_t effectiveApiVersion = RDCMIN(m_EnabledExtensions.vulkanVersion, physProps.apiVersion);
+
 #undef CheckExt
-#define CheckExt(name, ver)                                                                      \
-  if(!strcmp(createInfo.ppEnabledExtensionNames[i], "VK_" #name) || physProps.apiVersion >= ver) \
-  {                                                                                              \
-    m_EnabledExtensions.ext_##name = true;                                                       \
+#define CheckExt(name, ver)                                                                     \
+  if(!strcmp(createInfo.ppEnabledExtensionNames[i], "VK_" #name) || effectiveApiVersion >= ver) \
+  {                                                                                             \
+    m_EnabledExtensions.ext_##name = true;                                                      \
   }
 
     for(uint32_t i = 0; i < createInfo.enabledExtensionCount; i++)
@@ -3391,7 +3393,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     // for cases where a promoted extension isn't supported as the extension itself, manually
     // disable them when the feature bit is false.
 
-    if(physProps.apiVersion >= VK_MAKE_VERSION(1, 2, 0))
+    if(effectiveApiVersion >= VK_MAKE_VERSION(1, 2, 0))
     {
       if(supportedExtensions.find(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME) ==
              supportedExtensions.end() &&
