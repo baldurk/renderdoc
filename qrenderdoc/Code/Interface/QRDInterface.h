@@ -1950,7 +1950,7 @@ be added to custom compiled shaders. See
 :meth:`~renderdoc.ReplayController.GetCustomShaderSourcePrefixes`.
 
 :return: A list of pairs, listing a prefix for each shader encoding referenced.
-:rtype: List[Tuple[ShaderEncoding,str]]
+:rtype: List[renderdoc.ShaderSourcePrefix]
 )");
   virtual rdcarray<ShaderSourcePrefix> CustomShaderSourcePrefixes() = 0;
 

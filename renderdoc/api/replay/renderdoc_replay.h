@@ -655,7 +655,7 @@ If a shader encoding is not in the list, no prefix is required. This may be poss
 high level language such as :data:`ShaderEncoding.GLSL`.
 
 :return: A list of pairs, listing a prefix for each shader encoding referenced.
-:rtype: List[Tuple[ShaderEncoding,str]]
+:rtype: List[ShaderSourcePrefix]
 )");
   virtual rdcarray<ShaderSourcePrefix> GetCustomShaderSourcePrefixes() = 0;
 
