@@ -1,6 +1,6 @@
 
-#define HLSL_CUSTOM_PREFIX \
-  R"EOPREFIX(
+const char HLSL_CUSTOM_PREFIX[] =
+    R"EOPREFIX(
 #define RD_FLOAT_1D_ARRAY_BINDING t1
 #define RD_FLOAT_1D_BINDING t1 // all textures treated as arrays, add macro aliases
 
@@ -150,4 +150,4 @@ float2 RD_SelectedRange()
   return RD_CBuffer_Data.SelectedRange;
 }
 
-)EOPREFIX"
+)EOPREFIX";
