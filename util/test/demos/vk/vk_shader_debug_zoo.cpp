@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <limits>
 #include "3rdparty/fmt/core.h"
 #include "vk_test.h"
 
@@ -110,7 +111,7 @@ layout(set = 0, binding = 10, std140) uniform constsbuf
   vec4 first;
   uint uniformIndex;
   vec4 second;
-  vec4 pad2;
+  vec4 nan;
   vec4 third;
   vec4 pad3;
   vec4 fourth;
@@ -317,6 +318,7 @@ void main()
   float  posinf = linearData.oneVal/linearData.zeroVal.x;
   float  neginf = linearData.negoneVal/linearData.zeroVal.x;
   float  nan = linearData.zeroVal.x/linearData.zeroVal.y;
+  nan *= cbuf.nan.x;
 
   float negone = linearData.negoneVal;
   float posone = linearData.oneVal;
@@ -507,7 +509,7 @@ void main()
     case 30:
     {
       Color = cbuf.first + cbuf.second + cbuf.third + cbuf.fourth +
-              cbuf.pad2 + cbuf.pad3;
+              cbuf.pad3;
       break;
     }
     case 31:
@@ -3163,7 +3165,7 @@ OpDecorate %cbuffer Binding 10
 OpMemberDecorate %cbuffer_struct 0 Offset 0       ; vec4 first
 OpMemberDecorate %cbuffer_struct 1 Offset 16      ; vec4 pad1
 OpMemberDecorate %cbuffer_struct 2 Offset 32      ; vec4 second
-OpMemberDecorate %cbuffer_struct 3 Offset 48      ; vec4 pad2
+OpMemberDecorate %cbuffer_struct 3 Offset 48      ; vec4 nan
 OpMemberDecorate %cbuffer_struct 4 Offset 64      ; vec4 third
 OpMemberDecorate %cbuffer_struct 5 Offset 80      ; vec4 pad3
 OpMemberDecorate %cbuffer_struct 6 Offset 96      ; vec4 fourth
@@ -3278,7 +3280,16 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
    %posinf = OpFDiv %float %oneVal %zerof
    %neginf = OpFDiv %float %negoneVal %zerof
-      %nan = OpFDiv %float %zerof %zerof
+
+ ; NaN generation is hard and we want to avoid compilers compiling it out, so generate
+ ; it in shader and multiply by one from a UBO so we get NaN either way
+ ; (since NaN * anything = NaN)
+ %nan_shad = OpFDiv %float %zerof %zerof
+
+  %nan_ptr = OpAccessChain %ptr_Uniform_float4 %cbuffer %uint_3
+  %nan_ubo = OpLoad %float4 %nan_ptr
+%nan_ubo_x = OpCompositeExtract %float %nan_ubo 0
+      %nan = OpFMul %float %nan_shad %nan_ubo_x
 
 %intval_ptr = OpAccessChain %ptr_Input_uint %flatData %flatv2f_intval_idx
     %intval = OpLoad %uint %intval_ptr
@@ -3952,6 +3963,7 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
     cbufferdata[1] = Vec4f(1.1f, 2.2f, 3.3f, 4.4f);
     cbufferdata[2] = Vec4f(5.5f, 6.6f, 7.7f, 8.8f);
+    cbufferdata[3] = Vec4f(std::numeric_limits<float>::quiet_NaN());
     cbufferdata[4] = Vec4f(9.9f, 9.99f, 9.999f, 9.999f);
     cbufferdata[6] = Vec4f(100.0f, 200.0f, 300.0f, 400.0f);
 
