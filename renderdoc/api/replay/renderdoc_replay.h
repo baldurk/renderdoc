@@ -47,10 +47,6 @@ typedef void(RENDERDOC_CC *pRENDERDOC_FreeArrayMem)(void *mem);
 
 extern "C" RENDERDOC_API void *RENDERDOC_CC RENDERDOC_AllocArrayMem(uint64_t sz);
 typedef void *(RENDERDOC_CC *pRENDERDOC_AllocArrayMem)(uint64_t sz);
-
-// similarly these need to be pre-declared for use in rdhalf
-extern "C" RENDERDOC_API float RENDERDOC_CC RENDERDOC_HalfToFloat(uint16_t half);
-extern "C" RENDERDOC_API uint16_t RENDERDOC_CC RENDERDOC_FloatToHalf(float flt);
 #endif
 
 // declare base types and stringise interface

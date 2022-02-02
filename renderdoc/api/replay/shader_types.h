@@ -109,6 +109,12 @@ struct BindpointIndex
 
 DECLARE_REFLECTION_STRUCT(BindpointIndex);
 
+#if !defined(SWIG)
+// similarly these need to be pre-declared for use in rdhalf
+extern "C" RENDERDOC_API float RENDERDOC_CC RENDERDOC_HalfToFloat(uint16_t half);
+extern "C" RENDERDOC_API uint16_t RENDERDOC_CC RENDERDOC_FloatToHalf(float flt);
+#endif
+
 struct rdhalf
 {
 #if !defined(SWIG)

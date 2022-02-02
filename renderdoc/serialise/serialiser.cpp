@@ -26,6 +26,7 @@
 #define SERIALISER_IMPL
 
 #include "serialiser.h"
+#include "api/replay/renderdoc_replay.h"
 #include "core/core.h"
 #include "strings/string_utils.h"
 
