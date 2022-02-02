@@ -285,6 +285,8 @@ RD_TEST(VK_Discard_Zoo, VulkanGraphicsTest)
     renderPassCreateInfo.attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
     renderPassCreateInfo.attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     renderPassCreateInfo.attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    renderPassCreateInfo.attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
+    renderPassCreateInfo.attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
     VkRenderPass undefLoadRP = createRenderPass(renderPassCreateInfo);
 
     VkFramebuffer fb = createFramebuffer(vkh::FramebufferCreateInfo(
