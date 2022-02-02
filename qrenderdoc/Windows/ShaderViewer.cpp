@@ -34,6 +34,7 @@
 #include <QToolTip>
 #include "Code/Resources.h"
 #include "Code/ScintillaSyntax.h"
+#include "Widgets/Extended/RDLabel.h"
 #include "Widgets/FindReplace.h"
 #include "scintilla/include/SciLexer.h"
 #include "scintilla/include/qt/ScintillaEdit.h"
@@ -1524,7 +1525,35 @@ void ShaderViewer::variables_contextMenu(const QPoint &pos)
   QAction copyValue(tr("Copy"), this);
   QAction addWatch(tr("Add Watch"), this);
   QAction deleteWatch(tr("Delete Watch"), this);
+  QMenu interpretMenu(tr("Interpret As..."), this);
   QAction clearAll(tr("Clear All"), this);
+
+  QAction interpDefault(tr("Default"), this);
+  QAction interpFloat(tr("Floating point"), this);
+  QAction interpSInt(tr("Signed decimal"), this);
+  QAction interpUInt(tr("Unsigned decimal"), this);
+  QAction interpHex(tr("Unsigned hexadecimal"), this);
+  QAction interpOctal(tr("Unsigned octal"), this);
+  QAction interpBinary(tr("Unsigned binary"), this);
+  QAction interpColor(tr("Float RGB color"), this);
+
+  interpDefault.setCheckable(true);
+  interpFloat.setCheckable(true);
+  interpSInt.setCheckable(true);
+  interpUInt.setCheckable(true);
+  interpHex.setCheckable(true);
+  interpOctal.setCheckable(true);
+  interpBinary.setCheckable(true);
+  interpColor.setCheckable(true);
+
+  interpretMenu.addAction(&interpDefault);
+  interpretMenu.addAction(&interpFloat);
+  interpretMenu.addAction(&interpSInt);
+  interpretMenu.addAction(&interpUInt);
+  interpretMenu.addAction(&interpHex);
+  interpretMenu.addAction(&interpOctal);
+  interpretMenu.addAction(&interpBinary);
+  interpretMenu.addAction(&interpColor);
 
   contextMenu.addAction(&copyValue);
   contextMenu.addSeparator();
@@ -1534,6 +1563,7 @@ void ShaderViewer::variables_contextMenu(const QPoint &pos)
   {
     QObject::connect(&copyValue, &QAction::triggered, [this] { ui->watch->copySelection(); });
 
+    contextMenu.addMenu(&interpretMenu);
     contextMenu.addAction(&deleteWatch);
     contextMenu.addSeparator();
     contextMenu.addAction(&clearAll);
@@ -1559,8 +1589,64 @@ void ShaderViewer::variables_contextMenu(const QPoint &pos)
     }
 
     // if we have a selected row that isn't the last one, we can add/delete this item
+    interpretMenu.setEnabled(selRow >= 0 && selRow < ui->watch->rowCount() - 1);
     deleteWatch.setEnabled(selRow >= 0 && selRow < ui->watch->rowCount() - 1);
     addWatch.setEnabled(selRow >= 0 && selRow < ui->watch->rowCount() - 1);
+
+    {
+      QTableWidgetItem *item = ui->watch->item(selRow, 0);
+      QTableWidgetItem *regNames = ui->watch->item(selRow, 1);
+
+      if(regNames->data(Qt::UserRole) == 1)
+      {
+        QString baseUninterpText = item->text();
+        int comma = baseUninterpText.lastIndexOf(QLatin1Char(','));
+
+        if(comma < 0)
+        {
+          interpDefault.setChecked(true);
+        }
+        else
+        {
+          QChar interp = baseUninterpText[comma + 1];
+          baseUninterpText = baseUninterpText.left(comma);
+
+          if(interp == QLatin1Char('f'))
+            interpFloat.setChecked(true);
+          else if(interp == QLatin1Char('c'))
+            interpColor.setChecked(true);
+          else if(interp == QLatin1Char('d') || interp == QLatin1Char('i'))
+            interpSInt.setChecked(true);
+          else if(interp == QLatin1Char('u'))
+            interpUInt.setChecked(true);
+          else if(interp == QLatin1Char('x'))
+            interpHex.setChecked(true);
+          else if(interp == QLatin1Char('o'))
+            interpOctal.setChecked(true);
+          else if(interp == QLatin1Char('b'))
+            interpBinary.setChecked(true);
+        }
+
+        QObject::connect(&interpFloat, &QAction::triggered,
+                         [item, baseUninterpText] { item->setText(baseUninterpText + lit(",f")); });
+        QObject::connect(&interpColor, &QAction::triggered,
+                         [item, baseUninterpText] { item->setText(baseUninterpText + lit(",c")); });
+        QObject::connect(&interpSInt, &QAction::triggered,
+                         [item, baseUninterpText] { item->setText(baseUninterpText + lit(",i")); });
+        QObject::connect(&interpUInt, &QAction::triggered,
+                         [item, baseUninterpText] { item->setText(baseUninterpText + lit(",u")); });
+        QObject::connect(&interpHex, &QAction::triggered,
+                         [item, baseUninterpText] { item->setText(baseUninterpText + lit(",x")); });
+        QObject::connect(&interpOctal, &QAction::triggered,
+                         [item, baseUninterpText] { item->setText(baseUninterpText + lit(",o")); });
+        QObject::connect(&interpBinary, &QAction::triggered,
+                         [item, baseUninterpText] { item->setText(baseUninterpText + lit(",b")); });
+      }
+      else
+      {
+        interpretMenu.setEnabled(false);
+      }
+    }
 
     QObject::connect(&addWatch, &QAction::triggered, [this, selRow] {
       QTableWidgetItem *item = ui->watch->item(selRow, 0);
@@ -1810,8 +1896,12 @@ void ShaderViewer::on_watch_itemChanged(QTableWidgetItem *item)
      !ui->watch->item(ui->watch->rowCount() - 1, 0)->text().isEmpty())
   {
     // add a new row if needed
+    bool newRow = false;
     if(ui->watch->rowCount() == 0 || ui->watch->item(ui->watch->rowCount() - 1, 0) != NULL)
+    {
+      newRow = true;
       ui->watch->insertRow(ui->watch->rowCount());
+    }
 
     for(int i = 0; i < ui->watch->columnCount(); i++)
     {
@@ -1819,6 +1909,9 @@ void ShaderViewer::on_watch_itemChanged(QTableWidgetItem *item)
       if(i > 0)
         newItem->setFlags(newItem->flags() & ~Qt::ItemIsEditable);
       ui->watch->setItem(ui->watch->rowCount() - 1, i, newItem);
+      newItem->setData(Qt::UserRole, 0);
+      if(i == 0 && newRow)
+        ui->watch->setCurrentItem(newItem);
     }
   }
 
@@ -3401,7 +3494,7 @@ void ShaderViewer::updateWatchVariables()
             "(\\[[0-9]+\\])?"           // a literal-indexed array expression
             "\\.?"                      // optional struct dot
             ")+)"                       // 1 or more chained identifiers
-            "(,[iduxbof])?"             // optional typecast
+            "(,[iduxbocf])?"            // optional typecast
             "$"));                      // end of the line
 
     QRegularExpression identifierSliceRE(
@@ -3512,6 +3605,9 @@ void ShaderViewer::updateWatchVariables()
 
             size_t dataSize = VarTypeByteSize(var.type);
 
+            if(var.type == VarType::Unknown || dataSize == 0)
+              dataSize = 4;
+
             if(regcast == QLatin1Char(' '))
             {
               switch(var.type)
@@ -3547,6 +3643,7 @@ void ShaderViewer::updateWatchVariables()
             }
 
             QString val;
+            QString swatchColor;
 
             for(int s = 0; s < swizzle.count(); s++)
             {
@@ -3583,14 +3680,28 @@ void ShaderViewer::updateWatchVariables()
                 else
                   val += Formatter::Format(value.s8v[0]);
               }
-              else if(regcast == QLatin1Char('f'))
+              else if(regcast == QLatin1Char('f') || regcast == QLatin1Char('c'))
               {
+                float f;
+
                 if(dataSize == 8)
+                {
                   val += Formatter::Format(value.f64v[0]);
+                  f = (float)value.f64v[0];
+                }
                 else if(dataSize == 4)
+                {
                   val += Formatter::Format(value.f32v[0]);
+                  f = (float)value.f32v[0];
+                }
                 else
+                {
                   val += Formatter::Format(value.f16v[0]);
+                  f = (float)value.f16v[0];
+                }
+
+                if(regcast == QLatin1Char('c') && s < 3)
+                  swatchColor += Formatter::Format(uint8_t(qBound(0.0f, f, 1.0f) * 255.0f), true);
               }
               else if(regcast == QLatin1Char('u'))
               {
@@ -3622,16 +3733,33 @@ void ShaderViewer::updateWatchVariables()
 
             item = new QTableWidgetItem(regNames);
             item->setFlags(item->flags() & ~Qt::ItemIsEditable);
+            item->setData(Qt::UserRole, 1);
             ui->watch->setItem(i, 1, item);
 
             item = new QTableWidgetItem(TypeString(var));
             item->setFlags(item->flags() & ~Qt::ItemIsEditable);
             ui->watch->setItem(i, 2, item);
 
+            if(swatchColor.isEmpty())
+            {
+              ui->watch->setCellWidget(i, 3, NULL);
+            }
+            else
+            {
+              if(swatchColor.size() < 6)
+                swatchColor.resize(6, QLatin1Char('0'));
+              RDLabel *lab = new RDLabel();
+              lab->setText(lit("<rdhtml>"
+                               "<div style='margin-left:1em;background-color:#%1'></div>"
+                               "</rdhtml>")
+                               .arg(swatchColor));
+              val = lit("     ") + val;
+              ui->watch->setCellWidget(i, 3, lab);
+            }
+
             item = new QTableWidgetItem(val);
             item->setData(Qt::UserRole, node->tag());
             item->setFlags(item->flags() & ~Qt::ItemIsEditable);
-
             ui->watch->setItem(i, 3, item);
 
             // success! continue
@@ -3648,6 +3776,7 @@ void ShaderViewer::updateWatchVariables()
     // if we got here, something went wrong.
     item = new QTableWidgetItem();
     item->setFlags(item->flags() & ~Qt::ItemIsEditable);
+    item->setData(Qt::UserRole, 0);
     ui->watch->setItem(i, 1, item);
 
     item = new QTableWidgetItem();
