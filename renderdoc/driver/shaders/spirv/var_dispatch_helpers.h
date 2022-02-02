@@ -48,7 +48,7 @@ template <>
 inline half_float::half &comp<half_float::half>(ShaderVariable &var, uint32_t c)
 {
   half_float::half *ret;
-  uint16_t *comp = &var.value.u16v[c];
+  rdhalf *comp = &var.value.f16v[c];
   memcpy(&ret, &comp, sizeof(ret));
   return *ret;
 }
@@ -72,7 +72,7 @@ template <>
 inline half_float::half comp<half_float::half>(const ShaderVariable &var, uint32_t c)
 {
   half_float::half ret;
-  uint16_t comp = var.value.u16v[c];
+  rdhalf comp = var.value.f16v[c];
   memcpy(&ret, &comp, sizeof(ret));
   return ret;
 }
@@ -116,7 +116,7 @@ inline float floatComp(const ShaderVariable &var, uint32_t c)
   if(var.type == VarType::Float)
     return var.value.f32v[c];
   else if(var.type == VarType::Half)
-    return ConvertFromHalf(var.value.u16v[c]);
+    return (float)var.value.f16v[c];
   else if(var.type == VarType::Double)
     return (float)var.value.f64v[c];
   else
@@ -158,7 +158,7 @@ inline void setFloatComp(ShaderVariable &var, uint32_t c, float f)
   if(var.type == VarType::Float)
     var.value.f32v[c] = f;
   else if(var.type == VarType::Half)
-    var.value.u16v[c] = ConvertToHalf(f);
+    var.value.f16v[c].set(f);
   else if(var.type == VarType::Double)
     var.value.f64v[c] = f;
 }
@@ -196,7 +196,7 @@ inline void set0001(ShaderVariable &result)
   if(result.type == VarType::Float)
     result.value.f32v[3] = 1.0f;
   else if(result.type == VarType::Half)
-    result.value.u16v[3] = ConvertToHalf(1.0f);
+    result.value.f16v[3].set(1.0f);
   else if(result.type == VarType::Double)
     result.value.f64v[3] = 1.0;
   else

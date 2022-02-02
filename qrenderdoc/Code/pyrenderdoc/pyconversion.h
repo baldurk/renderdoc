@@ -364,6 +364,25 @@ struct TypeConversion<double, false>
   static PyObject *ConvertToPy(const double &in) { return PyFloat_FromDouble(in); }
 };
 
+template <>
+struct TypeConversion<rdhalf, false>
+{
+  static int ConvertFromPy(PyObject *in, rdhalf &out)
+  {
+    if(!PyFloat_Check(in))
+      return SWIG_TypeError;
+
+    out.set(float(PyFloat_AsDouble(in)));
+
+    if(PyErr_Occurred())
+      return SWIG_OverflowError;
+
+    return SWIG_OK;
+  }
+
+  static PyObject *ConvertToPy(const rdhalf &in) { return PyFloat_FromDouble((float)in); }
+};
+
 // partial specialisation for enums, we just convert as their underlying type,
 // whatever integer size that happens to be
 template <typename T>

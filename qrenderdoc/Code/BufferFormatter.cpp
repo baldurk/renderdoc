@@ -1044,22 +1044,40 @@ static void FillShaderVarData(ShaderVariable &var, const ShaderConstant &elem, c
 
       src++;
 
-      if(var.type == VarType::Double)
-        var.value.f64v[dst] = o.toDouble();
-      if(var.type == VarType::Float || var.type == VarType::Half)
-        var.value.f32v[dst] = o.toFloat();
-      else if(var.type == VarType::ULong)
-        var.value.u64v[dst] = o.toULongLong();
-      else if(var.type == VarType::SLong)
-        var.value.s64v[dst] = o.toLongLong();
-      else if(var.type == VarType::Bool)
-        var.value.u32v[dst] = o.toBool() ? 1 : 0;
-      else if(var.type == VarType::UInt || var.type == VarType::UShort || var.type == VarType::UByte)
-        var.value.u32v[dst] = o.toUInt();
-      else if(var.type == VarType::SInt || var.type == VarType::SShort || var.type == VarType::SByte)
-        var.value.s32v[dst] = o.toInt();
-      else
-        var.value.f32v[dst] = o.toFloat();
+      switch(var.type)
+      {
+        case VarType::Float: var.value.f32v[dst] = o.toFloat(); break;
+        case VarType::Double: var.value.f64v[dst] = o.toDouble(); break;
+        case VarType::Half: var.value.f16v[dst] = rdhalf::make(o.toFloat()); break;
+        case VarType::Bool: var.value.u32v[dst] = o.toBool() ? 1 : 0; break;
+        case VarType::ULong: var.value.u64v[dst] = o.toULongLong(); break;
+        case VarType::UInt: var.value.u32v[dst] = o.toUInt(); break;
+        case VarType::UShort: var.value.u16v[dst] = o.toUInt() & 0xffff; break;
+        case VarType::UByte: var.value.u8v[dst] = o.toUInt() & 0xff; break;
+        case VarType::SLong: var.value.s64v[dst] = o.toLongLong(); break;
+        case VarType::SInt:
+          var.value.s32v[dst] = o.toInt();
+          break;
+          break;
+        case VarType::SShort:
+          var.value.u16v[dst] = (int16_t)qBound((int)INT16_MIN, o.toInt(), (int)INT16_MAX);
+          break;
+        case VarType::SByte:
+          var.value.u8v[dst] = (int8_t)qBound((int)INT8_MIN, o.toInt(), (int)INT8_MAX);
+          break;
+        case VarType::GPUPointer:
+          // treat this as a 64-bit unsigned integer
+          var.value.u64v[dst] = o.toULongLong();
+          break;
+        case VarType::ConstantBlock:
+        case VarType::ReadOnlyResource:
+        case VarType::ReadWriteResource:
+        case VarType::Sampler:
+        case VarType::Unknown:
+          qCritical() << "Unexpected variable type" << ToQStr(var.type) << "in variable"
+                      << (QString)var.name;
+          break;
+      }
     }
   }
 }
@@ -1469,7 +1487,7 @@ QVariantList GetVariants(ResourceFormat format, const ShaderConstantDescriptor &
           else if(format.compByteWidth == 4)
             ret.push_back(readObj<float>(data, end, ok));
           else if(format.compByteWidth == 2)
-            ret.push_back(RENDERDOC_HalfToFloat(readObj<uint16_t>(data, end, ok)));
+            ret.push_back((float)rdhalf::make(readObj<uint16_t>(data, end, ok)));
         }
         else if(format.compType == CompType::SInt)
         {
@@ -1638,36 +1656,67 @@ QString RowString(const ShaderVariable &v, uint32_t row, VarType type)
   if(v.type == VarType::GPUPointer)
     return ToQStr(v.GetPointer());
 
-  if(type == VarType::Double)
-    return RowValuesToString((int)v.columns, v.displayAsHex, v.value.f64v[row * v.columns + 0],
-                             v.value.f64v[row * v.columns + 1], v.value.f64v[row * v.columns + 2],
-                             v.value.f64v[row * v.columns + 3]);
-  else if(type == VarType::SLong)
-    return RowValuesToString((int)v.columns, v.displayAsHex, v.value.s64v[row * v.columns + 0],
-                             v.value.s64v[row * v.columns + 1], v.value.s64v[row * v.columns + 2],
-                             v.value.s64v[row * v.columns + 3]);
-  else if(type == VarType::ULong)
-    return RowValuesToString((int)v.columns, v.displayAsHex, v.value.u64v[row * v.columns + 0],
-                             v.value.u64v[row * v.columns + 1], v.value.u64v[row * v.columns + 2],
-                             v.value.u64v[row * v.columns + 3]);
-  else if(type == VarType::SInt || type == VarType::SShort || type == VarType::SByte)
-    return RowValuesToString((int)v.columns, v.displayAsHex, v.value.s32v[row * v.columns + 0],
-                             v.value.s32v[row * v.columns + 1], v.value.s32v[row * v.columns + 2],
-                             v.value.s32v[row * v.columns + 3]);
-  else if(type == VarType::UInt || type == VarType::UShort || type == VarType::UByte)
-    return RowValuesToString((int)v.columns, v.displayAsHex, v.value.u32v[row * v.columns + 0],
-                             v.value.u32v[row * v.columns + 1], v.value.u32v[row * v.columns + 2],
-                             v.value.u32v[row * v.columns + 3]);
-  else if(type == VarType::Bool)
-    return RowValuesToString((int)v.columns, v.displayAsHex,
-                             v.value.u32v[row * v.columns + 0] ? true : false,
-                             v.value.u32v[row * v.columns + 1] ? true : false,
-                             v.value.u32v[row * v.columns + 2] ? true : false,
-                             v.value.u32v[row * v.columns + 3] ? true : false);
-  else
-    return RowValuesToString((int)v.columns, v.displayAsHex, v.value.f32v[row * v.columns + 0],
-                             v.value.f32v[row * v.columns + 1], v.value.f32v[row * v.columns + 2],
-                             v.value.f32v[row * v.columns + 3]);
+  switch(type)
+  {
+    case VarType::Float:
+      return RowValuesToString((int)v.columns, v.displayAsHex, v.value.f32v[row * v.columns + 0],
+                               v.value.f32v[row * v.columns + 1], v.value.f32v[row * v.columns + 2],
+                               v.value.f32v[row * v.columns + 3]);
+    case VarType::Double:
+      return RowValuesToString((int)v.columns, v.displayAsHex, v.value.f64v[row * v.columns + 0],
+                               v.value.f64v[row * v.columns + 1], v.value.f64v[row * v.columns + 2],
+                               v.value.f64v[row * v.columns + 3]);
+    case VarType::Half:
+      return RowValuesToString((int)v.columns, v.displayAsHex, v.value.f16v[row * v.columns + 0],
+                               v.value.f16v[row * v.columns + 1], v.value.f16v[row * v.columns + 2],
+                               v.value.f16v[row * v.columns + 3]);
+    case VarType::Bool:
+      return RowValuesToString((int)v.columns, v.displayAsHex,
+                               v.value.u32v[row * v.columns + 0] ? true : false,
+                               v.value.u32v[row * v.columns + 1] ? true : false,
+                               v.value.u32v[row * v.columns + 2] ? true : false,
+                               v.value.u32v[row * v.columns + 3] ? true : false);
+    case VarType::ULong:
+      return RowValuesToString((int)v.columns, v.displayAsHex, v.value.u64v[row * v.columns + 0],
+                               v.value.u64v[row * v.columns + 1], v.value.u64v[row * v.columns + 2],
+                               v.value.u64v[row * v.columns + 3]);
+    case VarType::UInt:
+      return RowValuesToString((int)v.columns, v.displayAsHex, v.value.u32v[row * v.columns + 0],
+                               v.value.u32v[row * v.columns + 1], v.value.u32v[row * v.columns + 2],
+                               v.value.u32v[row * v.columns + 3]);
+    case VarType::UShort:
+      return RowValuesToString((int)v.columns, v.displayAsHex, v.value.u16v[row * v.columns + 0],
+                               v.value.u16v[row * v.columns + 1], v.value.u16v[row * v.columns + 2],
+                               v.value.u16v[row * v.columns + 3]);
+    case VarType::UByte:
+      return RowValuesToString((int)v.columns, v.displayAsHex, v.value.u8v[row * v.columns + 0],
+                               v.value.u8v[row * v.columns + 1], v.value.u8v[row * v.columns + 2],
+                               v.value.u8v[row * v.columns + 3]);
+    case VarType::SLong:
+      return RowValuesToString((int)v.columns, v.displayAsHex, v.value.s64v[row * v.columns + 0],
+                               v.value.s64v[row * v.columns + 1], v.value.s64v[row * v.columns + 2],
+                               v.value.s64v[row * v.columns + 3]);
+    case VarType::SInt:
+      return RowValuesToString((int)v.columns, v.displayAsHex, v.value.s32v[row * v.columns + 0],
+                               v.value.s32v[row * v.columns + 1], v.value.s32v[row * v.columns + 2],
+                               v.value.s32v[row * v.columns + 3]);
+    case VarType::SShort:
+      return RowValuesToString((int)v.columns, v.displayAsHex, v.value.s16v[row * v.columns + 0],
+                               v.value.s16v[row * v.columns + 1], v.value.s16v[row * v.columns + 2],
+                               v.value.s16v[row * v.columns + 3]);
+    case VarType::SByte:
+      return RowValuesToString((int)v.columns, v.displayAsHex, v.value.s8v[row * v.columns + 0],
+                               v.value.s8v[row * v.columns + 1], v.value.s8v[row * v.columns + 2],
+                               v.value.s8v[row * v.columns + 3]);
+    case VarType::GPUPointer: return ToQStr(v.GetPointer());
+    case VarType::ConstantBlock:
+    case VarType::ReadOnlyResource:
+    case VarType::ReadWriteResource:
+    case VarType::Sampler:
+    case VarType::Unknown: break;
+  }
+
+  return lit("???");
 }
 
 QString VarString(const ShaderVariable &v)

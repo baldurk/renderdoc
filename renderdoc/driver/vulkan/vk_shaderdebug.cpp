@@ -831,12 +831,8 @@ public:
     {
       const ShaderVariable &biasVar = lane.GetSrc(operands.bias);
 
-      float bias = biasVar.value.f32v[0];
       // silently cast parameters to 32-bit floats
-      if(biasVar.type == VarType::Half)
-        bias = ConvertFromHalf(biasVar.value.u16v[0]);
-      else if(biasVar.type == VarType::Double)
-        bias = (float)biasVar.value.f64v[0];
+      float bias = floatComp(biasVar, 0);
 
       if(bias != 0.0f)
       {
@@ -1001,24 +997,11 @@ public:
       case rdcspv::Op::ImageDrefGather:
       {
         // silently cast parameters to 32-bit floats
-        if(uv.type == VarType::Float)
-        {
-          for(int i = 0; i < coords; i++)
-            uniformParams.uvwa[i] = uv.value.f32v[i];
-        }
-        else if(uv.type == VarType::Half)
-        {
-          for(int i = 0; i < coords; i++)
-            uniformParams.uvwa[i] = ConvertFromHalf(uv.value.u16v[i]);
-        }
-        else if(uv.type == VarType::Double)
-        {
-          for(int i = 0; i < coords; i++)
-            uniformParams.uvwa[i] = (float)uv.value.f64v[i];
-        }
+        for(int i = 0; i < coords; i++)
+          uniformParams.uvwa[i] = floatComp(uv, i);
 
         if(useCompare)
-          uniformParams.compare = compare.value.f32v[0];
+          uniformParams.compare = floatComp(compare, 0);
 
         constParams.gatherChannel = gatherChannel;
 
@@ -1108,21 +1091,8 @@ public:
       case rdcspv::Op::ImageSampleProjDrefImplicitLod:
       {
         // silently cast parameters to 32-bit floats
-        if(uv.type == VarType::Float)
-        {
-          for(int i = 0; i < coords; i++)
-            uniformParams.uvwa[i] = uv.value.f32v[i];
-        }
-        else if(uv.type == VarType::Half)
-        {
-          for(int i = 0; i < coords; i++)
-            uniformParams.uvwa[i] = ConvertFromHalf(uv.value.u16v[i]);
-        }
-        else if(uv.type == VarType::Double)
-        {
-          for(int i = 0; i < coords; i++)
-            uniformParams.uvwa[i] = (float)uv.value.f64v[i];
-        }
+        for(int i = 0; i < coords; i++)
+          uniformParams.uvwa[i] = floatComp(uv, i);
 
         if(proj)
         {
@@ -1132,11 +1102,7 @@ public:
 
           // do the divide ourselves rather than severely complicating the sample shader (as proj
           // variants need non-arrayed textures)
-          float q = uv.value.f32v[coords];
-          if(uv.type == VarType::Half)
-            q = ConvertFromHalf(uv.value.u16v[coords]);
-          else if(uv.type == VarType::Double)
-            q = (float)uv.value.f64v[coords];
+          float q = floatComp(uv, coords);
 
           uniformParams.uvwa[0] /= q;
           uniformParams.uvwa[1] /= q;
@@ -1147,34 +1113,22 @@ public:
         {
           const ShaderVariable &minLodVar = lane.GetSrc(operands.minLod);
 
-          uniformParams.minlod = minLodVar.value.f32v[0];
           // silently cast parameters to 32-bit floats
-          if(minLodVar.type == VarType::Half)
-            uniformParams.minlod = ConvertFromHalf(minLodVar.value.u16v[0]);
-          else if(minLodVar.type == VarType::Double)
-            uniformParams.minlod = (float)minLodVar.value.f64v[0];
+          uniformParams.minlod = floatComp(minLodVar, 0);
         }
 
         if(useCompare)
         {
-          uniformParams.compare = compare.value.f32v[0];
           // silently cast parameters to 32-bit floats
-          if(compare.type == VarType::Half)
-            uniformParams.compare = ConvertFromHalf(compare.value.u16v[0]);
-          else if(compare.type == VarType::Double)
-            uniformParams.compare = (float)compare.value.f64v[0];
+          uniformParams.compare = floatComp(compare, 0);
         }
 
         if(operands.flags & rdcspv::ImageOperands::Lod)
         {
           const ShaderVariable &lodVar = lane.GetSrc(operands.lod);
 
-          uniformParams.lod = lodVar.value.f32v[0];
           // silently cast parameters to 32-bit floats
-          if(lodVar.type == VarType::Half)
-            uniformParams.lod = ConvertFromHalf(lodVar.value.u16v[0]);
-          else if(lodVar.type == VarType::Double)
-            uniformParams.lod = (float)lodVar.value.f64v[0];
+          uniformParams.lod = floatComp(lodVar, 0);
           constParams.useGradOrGatherOffsets = VK_FALSE;
         }
         else if(operands.flags & rdcspv::ImageOperands::Grad)
@@ -1186,29 +1140,10 @@ public:
 
           // silently cast parameters to 32-bit floats
           RDCASSERTEQUAL(ddx.type, ddy.type);
-          if(ddx.type == VarType::Float)
+          for(int i = 0; i < gradCoords; i++)
           {
-            for(int i = 0; i < gradCoords; i++)
-            {
-              uniformParams.ddx[i] = ddx.value.f32v[i];
-              uniformParams.ddy[i] = ddy.value.f32v[i];
-            }
-          }
-          else if(ddx.type == VarType::Half)
-          {
-            for(int i = 0; i < gradCoords; i++)
-            {
-              uniformParams.ddx[i] = ConvertFromHalf(ddx.value.u16v[i]);
-              uniformParams.ddy[i] = ConvertFromHalf(ddy.value.u16v[i]);
-            }
-          }
-          else if(ddx.type == VarType::Double)
-          {
-            for(int i = 0; i < gradCoords; i++)
-            {
-              uniformParams.ddx[i] = (float)ddx.value.f64v[i];
-              uniformParams.ddy[i] = (float)ddy.value.f64v[i];
-            }
+            uniformParams.ddx[i] = floatComp(ddx, i);
+            uniformParams.ddy[i] = floatComp(ddy, i);
           }
         }
 
@@ -1220,29 +1155,10 @@ public:
 
           // silently cast parameters to 32-bit floats
           RDCASSERTEQUAL(ddxCalc.type, ddyCalc.type);
-          if(ddxCalc.type == VarType::Float)
+          for(int i = 0; i < gradCoords; i++)
           {
-            for(int i = 0; i < gradCoords; i++)
-            {
-              uniformParams.ddx[i] = ddxCalc.value.f32v[i];
-              uniformParams.ddy[i] = ddyCalc.value.f32v[i];
-            }
-          }
-          else if(ddxCalc.type == VarType::Half)
-          {
-            for(int i = 0; i < gradCoords; i++)
-            {
-              uniformParams.ddx[i] = ConvertFromHalf(ddxCalc.value.u16v[i]);
-              uniformParams.ddy[i] = ConvertFromHalf(ddyCalc.value.u16v[i]);
-            }
-          }
-          else if(ddxCalc.type == VarType::Double)
-          {
-            for(int i = 0; i < gradCoords; i++)
-            {
-              uniformParams.ddx[i] = (float)ddxCalc.value.f64v[i];
-              uniformParams.ddy[i] = (float)ddyCalc.value.f64v[i];
-            }
+            uniformParams.ddx[i] = floatComp(ddxCalc, i);
+            uniformParams.ddy[i] = floatComp(ddyCalc, i);
           }
         }
 
@@ -1446,20 +1362,8 @@ public:
       return false;
 
     // convert float results, we did all sampling at 32-bit precision
-    if(output.type == VarType::Half)
-    {
-      for(uint8_t c = 0; c < 4; c++)
-        output.value.u16v[c] = ConvertToHalf(ret[c]);
-    }
-    else if(output.type == VarType::Double)
-    {
-      for(uint8_t c = 0; c < 4; c++)
-        output.value.f64v[c] = ret[c];
-    }
-    else
-    {
-      memcpy(output.value.u32v.data(), ret, sizeof(Vec4f));
-    }
+    for(uint8_t c = 0; c < 4; c++)
+      setFloatComp(output, c, ret[c]);
 
     m_DebugData.ReadbackBuffer.Unmap();
 

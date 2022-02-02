@@ -228,6 +228,7 @@ struct Formatter
   static void shutdown();
 
   static QString Format(double f, bool hex = false);
+  static QString Format(rdhalf f, bool hex = false) { return Format((float)f, hex); }
   static QString HumanFormat(uint64_t u);
   static QString Format(uint64_t u, bool hex = false)
   {

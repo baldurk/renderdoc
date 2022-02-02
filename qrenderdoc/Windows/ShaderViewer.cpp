@@ -2593,6 +2593,10 @@ bool ShaderViewer::getVar(RDTreeWidgetItem *item, ShaderVariable *var, QString *
 
       const QString xyzw = lit("xyzw");
 
+      size_t dataSize = VarTypeByteSize(ret.type);
+      if(dataSize == 0)
+        dataSize = 4;
+
       for(uint32_t i = 0; i < mapping.variables.size(); i++)
       {
         const DebugVariableReference &r = mapping.variables[i];
@@ -2628,10 +2632,14 @@ bool ShaderViewer::getVar(RDTreeWidgetItem *item, ShaderVariable *var, QString *
             }
           }
 
-          if(mapping.type == VarType::Double || mapping.type == VarType::ULong)
+          if(dataSize == 8)
             ret.value.u64v[i] = reg->value.u64v[r.component];
-          else
+          else if(dataSize == 4)
             ret.value.u32v[i] = reg->value.u32v[r.component];
+          else if(dataSize == 2)
+            ret.value.u16v[i] = reg->value.u16v[r.component];
+          else
+            ret.value.u8v[i] = reg->value.u8v[r.component];
         }
         else
         {
@@ -3393,7 +3401,7 @@ void ShaderViewer::updateWatchVariables()
             "(\\[[0-9]+\\])?"           // a literal-indexed array expression
             "\\.?"                      // optional struct dot
             ")+)"                       // 1 or more chained identifiers
-            "(,[xfiudb])?"              // optional typecast
+            "(,[iduxbof])?"             // optional typecast
             "$"));                      // end of the line
 
     QRegularExpression identifierSliceRE(
@@ -3404,7 +3412,7 @@ void ShaderViewer::updateWatchVariables()
             "(\\[[0-9]+\\])"             // or a literal-indexed array expression
             ")"));                       // end capture
 
-    QRegularExpression swizzleRE(lit("^\\.[xyzwrgba]+$"));
+    QRegularExpression swizzleRE(lit("^\\.?[xyzwrgba]+$"));
 
     QRegularExpressionMatch match = exprRE.match(expr);
 
@@ -3475,7 +3483,9 @@ void ShaderViewer::updateWatchVariables()
             // member
             if(swizzleRE.match(identifier).hasMatch() && identifiers.isEmpty())
             {
-              swizzle = identifier.mid(1);
+              swizzle = identifier;
+              if(swizzle[0] == QLatin1Char('.'))
+                swizzle = swizzle.mid(1);
               break;
             }
 
@@ -3500,21 +3510,40 @@ void ShaderViewer::updateWatchVariables()
             if(swizzle.isEmpty())
               swizzle = lit("xyzw").left((int)var.columns);
 
+            size_t dataSize = VarTypeByteSize(var.type);
+
             if(regcast == QLatin1Char(' '))
             {
-              if(var.type == VarType::Double)
-                regcast = QLatin1Char('d');
-              else if(var.type == VarType::Float || var.type == VarType::Half)
-                regcast = QLatin1Char('f');
-              else if(var.type == VarType::ULong || var.type == VarType::UInt ||
-                      var.type == VarType::UShort || var.type == VarType::UByte)
-                regcast = QLatin1Char('u');
-              else if(var.type == VarType::SLong || var.type == VarType::SInt ||
-                      var.type == VarType::SShort || var.type == VarType::SByte ||
-                      var.type == VarType::Bool)
-                regcast = QLatin1Char('i');
-              else if(var.type == VarType::Unknown)
-                regcast = ui->intView->isChecked() ? QLatin1Char('i') : QLatin1Char('f');
+              switch(var.type)
+              {
+                case VarType::Float:
+                case VarType::Double:
+                case VarType::Half: regcast = QLatin1Char('f'); break;
+                case VarType::Bool:
+                case VarType::ULong:
+                case VarType::UInt:
+                case VarType::UShort:
+                case VarType::UByte: regcast = QLatin1Char('u'); break;
+                case VarType::SLong:
+                case VarType::SInt:
+                case VarType::SShort:
+                case VarType::SByte: regcast = QLatin1Char('i'); break;
+                case VarType::GPUPointer:
+                  regcast = QLatin1Char('#');
+                  dataSize = 8;
+                  break;
+                case VarType::ConstantBlock:
+                case VarType::ReadOnlyResource:
+                case VarType::ReadWriteResource:
+                case VarType::Sampler:
+                  regcast = QLatin1Char('#');
+                  dataSize = 4;
+                  break;
+                case VarType::Unknown:
+                  regcast = ui->intView->isChecked() ? QLatin1Char('i') : QLatin1Char('f');
+                  dataSize = 4;
+                  break;
+              }
             }
 
             QString val;
@@ -3533,29 +3562,58 @@ void ShaderViewer::updateWatchVariables()
               if(swiz == QLatin1Char('w') || swiz == QLatin1Char('a'))
                 elindex = 3;
 
-              if(regcast == QLatin1Char('i'))
+              ShaderValue value = {};
+              memcpy(&value, var.value.u8v.data() + elindex * dataSize, dataSize);
+
+              if(regcast == QLatin1Char('#'))
               {
-                val += Formatter::Format(var.value.s32v[elindex]);
+                if(var.type == VarType::GPUPointer)
+                  val += ToQStr(var.GetPointer());
+                else
+                  val += stringRep(var, 0);
+              }
+              else if(regcast == QLatin1Char('i') || regcast == QLatin1Char('d'))
+              {
+                if(dataSize == 8)
+                  val += Formatter::Format(value.s64v[0]);
+                else if(dataSize == 4)
+                  val += Formatter::Format(value.s32v[0]);
+                else if(dataSize == 2)
+                  val += Formatter::Format(value.s16v[0]);
+                else
+                  val += Formatter::Format(value.s8v[0]);
               }
               else if(regcast == QLatin1Char('f'))
               {
-                val += Formatter::Format(var.value.f32v[elindex]);
+                if(dataSize == 8)
+                  val += Formatter::Format(value.f64v[0]);
+                else if(dataSize == 4)
+                  val += Formatter::Format(value.f32v[0]);
+                else
+                  val += Formatter::Format(value.f16v[0]);
               }
               else if(regcast == QLatin1Char('u'))
               {
-                val += Formatter::Format(var.value.u32v[elindex]);
+                val += Formatter::Format(value.u64v[0]);
               }
               else if(regcast == QLatin1Char('x'))
               {
-                val += Formatter::Format(var.value.u32v[elindex], true);
+                if(dataSize == 8)
+                  val += Formatter::Format(value.u64v[0], true);
+                else if(dataSize == 4)
+                  val += Formatter::Format(value.u32v[0], true);
+                else if(dataSize == 2)
+                  val += Formatter::Format(value.u16v[0], true);
+                else
+                  val += Formatter::Format(value.u8v[0], true);
               }
               else if(regcast == QLatin1Char('b'))
               {
-                val += QFormatStr("%1").arg(var.value.u32v[elindex], 32, 2, QLatin1Char('0'));
+                val += QFormatStr("%1").arg(value.u64v[0], (int)dataSize * 8, 2, QLatin1Char('0'));
               }
-              else if(regcast == QLatin1Char('d'))
+              else if(regcast == QLatin1Char('o'))
               {
-                val += Formatter::Format(var.value.f64v[elindex]);
+                val += QFormatStr("0%1").arg(value.u64v[0], 0, 8, QLatin1Char('0'));
               }
 
               if(s < swizzle.count() - 1)
@@ -3610,16 +3668,7 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const ShaderVariable &var
 {
   QString typeName;
 
-  if(var.type == VarType::UInt)
-    typeName = lit("uint");
-  else if(var.type == VarType::SInt)
-    typeName = lit("int");
-  else if(var.type == VarType::Float)
-    typeName = lit("float");
-  else if(var.type == VarType::Double)
-    typeName = lit("double");
-  else if(var.type == VarType::Bool)
-    typeName = lit("bool");
+  typeName = ToQStr(var.type);
 
   QString rowTypeName = typeName;
 
@@ -3673,16 +3722,7 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
   QString regNames, typeName;
   QString value;
 
-  if(l.type == VarType::UInt)
-    typeName = lit("uint");
-  else if(l.type == VarType::SInt)
-    typeName = lit("int");
-  else if(l.type == VarType::Float)
-    typeName = lit("float");
-  else if(l.type == VarType::Double)
-    typeName = lit("double");
-  else if(l.type == VarType::Bool)
-    typeName = lit("bool");
+  typeName = ToQStr(l.type);
 
   QList<RDTreeWidgetItem *> children;
 
@@ -3852,16 +3892,29 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
               regNames += QFormatStr("%1.%2").arg(r.name).arg(xyzw[r.component % 4]);
           }
 
-          if(l.type == VarType::UInt)
-            value += Formatter::Format(reg->value.u32v[r.component]);
-          else if(l.type == VarType::SInt)
-            value += Formatter::Format(reg->value.s32v[r.component]);
-          else if(l.type == VarType::Bool)
-            value += Formatter::Format(reg->value.u32v[r.component] ? true : false);
-          else if(l.type == VarType::Float)
-            value += Formatter::Format(reg->value.f32v[r.component]);
-          else if(l.type == VarType::Double)
-            value += Formatter::Format(reg->value.f64v[r.component]);
+          switch(l.type)
+          {
+            case VarType::Float: value += Formatter::Format(reg->value.f32v[r.component]); break;
+            case VarType::Double: value += Formatter::Format(reg->value.f64v[r.component]); break;
+            case VarType::Half: value += Formatter::Format(reg->value.f16v[r.component]); break;
+            case VarType::Bool: Formatter::Format(reg->value.u32v[r.component] ? true : false);
+            case VarType::ULong: value += Formatter::Format(reg->value.u64v[r.component]); break;
+            case VarType::UInt: value += Formatter::Format(reg->value.u32v[r.component]); break;
+            case VarType::UShort: value += Formatter::Format(reg->value.u16v[r.component]); break;
+            case VarType::UByte: value += Formatter::Format(reg->value.u8v[r.component]); break;
+            case VarType::SLong: value += Formatter::Format(reg->value.s64v[r.component]); break;
+            case VarType::SInt: value += Formatter::Format(reg->value.s32v[r.component]); break;
+            case VarType::SShort: value += Formatter::Format(reg->value.s16v[r.component]); break;
+            case VarType::SByte: value += Formatter::Format(reg->value.s8v[r.component]); break;
+            case VarType::GPUPointer: value += ToQStr(reg->GetPointer()); break;
+            case VarType::ConstantBlock:
+            case VarType::ReadOnlyResource:
+            case VarType::ReadWriteResource:
+            case VarType::Sampler: value += stringRep(*reg, 0); break;
+            case VarType::Unknown:
+              qCritical() << "Unexpected unknown variable" << (QString)l.name;
+              break;
+          }
         }
         else
         {

@@ -961,6 +961,12 @@ rdcstr DoStringise(const byte &el)
 }
 
 template <>
+rdcstr DoStringise(const int8_t &el)
+{
+  return StringFormat::Fmt("%hhd", el);
+}
+
+template <>
 rdcstr DoStringise(const uint16_t &el)
 {
   return StringFormat::Fmt("%hu", el);
@@ -982,6 +988,12 @@ template <>
 rdcstr DoStringise(const float &el)
 {
   return StringFormat::Fmt("%0.4f", el);
+}
+
+template <>
+rdcstr DoStringise(const rdhalf &el)
+{
+  return StringFormat::Fmt("%0.4f", (float)el);
 }
 
 template <>

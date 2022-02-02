@@ -42,15 +42,39 @@ class ShaderVariableCheck:
     def value(self, value_: list):
         count = len(value_)
         if isinstance(value_[0], float):
-            if list(self.var.value.f32v[0:count]) != list(value_):
+            vals = []
+            if self.var.type == rd.VarType.Float:
+                vals = list(self.var.value.f32v[0:count])
+            elif self.var.type == rd.VarType.Double:
+                vals = list(self.var.value.f64v[0:count])
+            elif self.var.type == rd.VarType.Half:
+                vals = list(self.var.value.f16v[0:count])
+
+            if vals != list(value_):
                 raise TestFailureException("Float variable {} value mismatch, expected {} but got {}"
                                            .format(self.var.name, value_, self.var.value.f32v[0:count]))
         else:
-            # hack - check signed and unsigned values
-            if list(self.var.value.s32v[0:count] ) != list(value_) and list(self.var.value.u32v[0:count]) != list(value_):
-                raise TestFailureException("Int variable {} value mismatch, expected {} but got {} / {}"
-                                           .format(self.var.name, value_, self.var.value.s32v[0:count],
-                                                   self.var.value.u32v[0:count]))
+            vals = []
+            if self.var.type == rd.VarType.UInt or self.var.type == rd.VarType.Bool:
+                vals = list(self.var.value.u32v[0:count])
+            elif self.var.type == rd.VarType.ULong:
+                vals = list(self.var.value.u64v[0:count])
+            elif self.var.type == rd.VarType.UShort:
+                vals = list(self.var.value.u16v[0:count])
+            elif self.var.type == rd.VarType.UByte:
+                vals = list(self.var.value.u8v[0:count])
+            elif self.var.type == rd.VarType.SInt:
+                vals = list(self.var.value.s32v[0:count])
+            elif self.var.type == rd.VarType.SLong:
+                vals = list(self.var.value.s64v[0:count])
+            elif self.var.type == rd.VarType.SShort:
+                vals = list(self.var.value.s16v[0:count])
+            elif self.var.type == rd.VarType.SByte:
+                vals = list(self.var.value.s8v[0:count])
+
+            if vals != list(value_):
+                raise TestFailureException("Int variable {} value mismatch, expected {} but got {}"
+                                           .format(self.var.name, value_, vals))
 
         return self
 

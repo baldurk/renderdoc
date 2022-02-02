@@ -100,6 +100,7 @@ VA_IGNORE_REST_OF_FILE
 %ignore rdcfixedarray::operator[];
 %ignore rdcliteral;
 %ignore rdcpair;
+%ignore rdhalf;
 %ignore bytebuf;
 
 // special handling for RENDERDOC_GetDefaultCaptureOptions to transform output parameter to a return value
@@ -331,6 +332,7 @@ TEMPLATE_FIXEDARRAY_INSTANTIATE(rdcfixedarray, ResourceId, 8)
 TEMPLATE_FIXEDARRAY_INSTANTIATE(rdcfixedarray, bool, 4)
 TEMPLATE_FIXEDARRAY_INSTANTIATE(rdcfixedarray, bool, 8)
 TEMPLATE_FIXEDARRAY_INSTANTIATE(rdcfixedarray, float, 16)
+TEMPLATE_FIXEDARRAY_INSTANTIATE(rdcfixedarray, rdhalf, 16)
 TEMPLATE_FIXEDARRAY_INSTANTIATE(rdcfixedarray, int32_t, 16)
 TEMPLATE_FIXEDARRAY_INSTANTIATE(rdcfixedarray, uint32_t, 16)
 TEMPLATE_FIXEDARRAY_INSTANTIATE(rdcfixedarray, double, 16)

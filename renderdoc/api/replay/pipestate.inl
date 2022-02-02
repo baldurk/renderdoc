@@ -820,9 +820,9 @@ rdcarray<VertexInputAttribute> PipeState::GetVertexInputs() const
 
             for(uint32_t c = 0; c < compCount; c++)
             {
-              if(varType == VarType::Float)
+              if(varType == VarType::Float || varType == VarType::Double)
                 ret[a].genericValue.floatValue[c] = attrs[i].genericValue.floatValue[c];
-              else if(varType == VarType::UInt)
+              else if(varType == VarType::UInt || varType == VarType::Bool)
                 ret[a].genericValue.uintValue[c] = attrs[i].genericValue.uintValue[c];
               else if(varType == VarType::SInt)
                 ret[a].genericValue.intValue[c] = attrs[i].genericValue.intValue[c];

@@ -295,7 +295,7 @@ ShaderVariable Determinant(ThreadState &state, uint32_t, const rdcarray<Id> &par
     if(!warned)
     {
       warned = true;
-      RDCLOG("Calculating determinant in floats instead of %s", ToStr(m.type).c_str());
+      RDCLOG("Calculating determinant at float precision instead of %s", ToStr(m.type).c_str());
     }
 
     for(uint8_t c = 0; c < m.rows * m.columns; c++)
@@ -346,7 +346,7 @@ ShaderVariable MatrixInverse(ThreadState &state, uint32_t, const rdcarray<Id> &p
     if(!warned)
     {
       warned = true;
-      RDCLOG("Calculating determinant in floats instead of %s", ToStr(m.type).c_str());
+      RDCLOG("Calculating matrix inverse at float precision instead of %s", ToStr(m.type).c_str());
     }
 
     for(uint8_t c = 0; c < m.rows * m.columns; c++)

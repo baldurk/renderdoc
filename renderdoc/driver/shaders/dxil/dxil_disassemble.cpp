@@ -1736,7 +1736,7 @@ static void floatAppendToString(const Type *t, const ShaderValue &val, uint32_t 
   // dxc/llvm always prints half floats as their 16-bit hex representation.
   if(t->bitWidth == 16)
   {
-    ret += StringFormat::Fmt("0xH%04X", val.u64v[i]);
+    ret += StringFormat::Fmt("0xH%04X", val.u32v[i]);
     return;
   }
 #endif

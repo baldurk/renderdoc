@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "common/formatting.h"
+#include "maths/half_convert.h"
 #include "spirv_op_helpers.h"
 #include "spirv_reflect.h"
 
@@ -434,16 +435,16 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
 
           switch(type.scalar().Type())
           {
-            case VarType::Float:
-            case VarType::Half: ret += ToStr(value.f32v[0]); break;
+            case VarType::Half: ret += ToStr(value.f16v[0]); break;
+            case VarType::Float: ret += ToStr(value.f32v[0]); break;
             case VarType::Double: ret += ToStr(value.f64v[0]); break;
-            case VarType::SInt:
-            case VarType::SShort:
-            case VarType::SByte: ret += ToStr(value.s32v[0]); break;
+            case VarType::SInt: ret += ToStr(value.s32v[0]); break;
+            case VarType::SShort: ret += ToStr(value.s16v[0]); break;
+            case VarType::SByte: ret += ToStr(value.s8v[0]); break;
             case VarType::Bool: ret += value.u32v[0] ? "true" : "false"; break;
-            case VarType::UInt:
-            case VarType::UShort:
-            case VarType::UByte: ret += ToStr(value.u32v[0]); break;
+            case VarType::UInt: ret += ToStr(value.u32v[0]); break;
+            case VarType::UShort: ret += ToStr(value.u16v[0]); break;
+            case VarType::UByte: ret += ToStr(value.u8v[0]); break;
             case VarType::SLong: ret += ToStr(value.s64v[0]); break;
             case VarType::Unknown:
             case VarType::GPUPointer:
@@ -1632,24 +1633,24 @@ rdcstr Reflector::StringiseConstant(rdcspv::Id id) const
 
     switch(value.type)
     {
-      case VarType::Float:
-      case VarType::Half: return ToStr(value.value.f32v[0]);
+      case VarType::Half: return ToStr(value.value.f16v[0]); break;
+      case VarType::Float: return ToStr(value.value.f32v[0]);
       case VarType::Double: return ToStr(value.value.f64v[0]);
-      case VarType::SInt:
-      case VarType::SShort:
-      case VarType::SByte: return ToStr(value.value.s32v[0]);
+      case VarType::SInt: return ToStr(value.value.s32v[0]);
+      case VarType::SShort: return ToStr(value.value.s16v[0]);
+      case VarType::SByte: return ToStr(value.value.s8v[0]);
       case VarType::Bool: return value.value.u32v[0] ? "true" : "false";
-      case VarType::UInt:
-      case VarType::UShort:
-      case VarType::UByte: return ToStr(value.value.u32v[0]);
+      case VarType::UInt: return ToStr(value.value.u32v[0]);
+      case VarType::UShort: return ToStr(value.value.u16v[0]);
+      case VarType::UByte: return ToStr(value.value.u8v[0]);
       case VarType::SLong: return ToStr(value.value.s64v[0]);
+      case VarType::ULong: return ToStr(value.value.u64v[0]);
       case VarType::Unknown:
       case VarType::GPUPointer:
       case VarType::ConstantBlock:
       case VarType::ReadOnlyResource:
       case VarType::ReadWriteResource:
-      case VarType::Sampler:
-      case VarType::ULong: return ToStr(value.value.u64v[0]);
+      case VarType::Sampler: return "???";
     }
   }
   else if(type.type == DataType::VectorType)
@@ -1659,24 +1660,24 @@ rdcstr Reflector::StringiseConstant(rdcspv::Id id) const
     {
       switch(value.type)
       {
-        case VarType::Float:
-        case VarType::Half: ret += ToStr(value.value.f32v[i]); break;
+        case VarType::Half: ret += ToStr(value.value.f16v[i]); break;
+        case VarType::Float: ret += ToStr(value.value.f32v[i]); break;
         case VarType::Double: ret += ToStr(value.value.f64v[i]); break;
-        case VarType::SInt:
-        case VarType::SShort:
-        case VarType::SByte: ret += ToStr(value.value.s32v[i]); break;
-        case VarType::UInt:
-        case VarType::UShort:
-        case VarType::UByte: ret += ToStr(value.value.u32v[i]); break;
+        case VarType::SInt: ret += ToStr(value.value.s32v[i]); break;
+        case VarType::SShort: ret += ToStr(value.value.s16v[i]); break;
+        case VarType::SByte: ret += ToStr(value.value.s8v[i]); break;
+        case VarType::Bool: ret += value.value.u32v[i] ? "true" : "false"; break;
+        case VarType::UInt: ret += ToStr(value.value.u32v[i]); break;
+        case VarType::UShort: ret += ToStr(value.value.u16v[i]); break;
+        case VarType::UByte: ret += ToStr(value.value.u8v[i]); break;
         case VarType::SLong: ret += ToStr(value.value.s64v[i]); break;
-        case VarType::Bool: return value.value.u32v[0] ? "true" : "false";
+        case VarType::ULong: ret += ToStr(value.value.u64v[i]); break;
         case VarType::Unknown:
         case VarType::GPUPointer:
         case VarType::ConstantBlock:
         case VarType::ReadOnlyResource:
         case VarType::ReadWriteResource:
-        case VarType::Sampler:
-        case VarType::ULong: ret += ToStr(value.value.u64v[i]); break;
+        case VarType::Sampler: ret += "???"; break;
       }
       if(i + 1 < value.columns)
         ret += ", ";

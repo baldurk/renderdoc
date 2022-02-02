@@ -2366,7 +2366,7 @@ uint32_t Debugger::ApplyDerivatives(uint32_t quadIndex, const Decorations &curDe
       ApplyDerivative<float>(activeLaneIndex, quadIndex, outVar.value.f32v.data(), derivs);
     else if(outVar.type == VarType::Half)
       ApplyDerivative<half_float::half>(activeLaneIndex, quadIndex,
-                                        (half_float::half *)outVar.value.u16v.data(), derivs);
+                                        (half_float::half *)outVar.value.f16v.data(), derivs);
     else if(outVar.type == VarType::Double)
       ApplyDerivative<double>(activeLaneIndex, quadIndex, outVar.value.f64v.data(), derivs);
   }

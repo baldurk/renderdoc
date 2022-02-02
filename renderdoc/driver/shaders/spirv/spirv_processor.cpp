@@ -26,6 +26,7 @@
 #include "common/formatting.h"
 #include "maths/half_convert.h"
 #include "spirv_op_helpers.h"
+#include "var_dispatch_helpers.h"
 
 namespace rdcspv
 {
@@ -39,15 +40,20 @@ static void ConstructCompositeConstant(ShaderVariable &v, const rdcarray<ShaderV
   }
   else
   {
+    size_t sz = VarTypeByteSize(v.type);
     for(uint32_t c = 0; c < v.columns; c++)
     {
       // if this is a vector, v.rows is 1 so r is always 0, meaning that it is irrelevant
       for(uint32_t r = 0; r < v.rows; r++)
       {
-        if(VarTypeByteSize(v.type) == 8)
+        if(sz == 8)
           v.value.u64v[r * v.columns + c] = members[c].value.u64v[r];
-        else
+        else if(sz == 4)
           v.value.u32v[r * v.columns + c] = members[c].value.u32v[r];
+        else if(sz == 2)
+          v.value.u16v[r * v.columns + c] = members[c].value.u16v[r];
+        else
+          v.value.u8v[r * v.columns + c] = members[c].value.u8v[r];
       }
     }
   }
@@ -59,7 +65,7 @@ Scalar scalar(VarType type)
   {
     case VarType::Float: return scalar<float>();
     case VarType::Double: return scalar<double>();
-    case VarType::Half: return Scalar(Op::TypeFloat, 16, false);
+    case VarType::Half: return scalar<half_float::half>();
     case VarType::SInt: return scalar<int32_t>();
     case VarType::UInt: return scalar<uint32_t>();
     case VarType::SShort: return scalar<int16_t>();
@@ -667,7 +673,7 @@ void Processor::RegisterOp(Iter it)
     else
     {
       // if it's signed, sign extend
-      if(type.scalar().signedness && type.scalar().width < 16)
+      if(type.scalar().signedness && type.scalar().width <= 16)
       {
         // is the top bit set?
         if(v.value.u32v[0] & (1 << (type.scalar().width - 1)))
@@ -1009,6 +1015,8 @@ ShaderVariable Processor::EvaluateConstant(Id constID, const rdcarray<SpecConsta
 
     const DataType &retType = dataTypes[specop.type];
 
+    ret.type = retType.scalar().Type();
+
     if(specop.params.empty())
     {
       RDCERR("Expected paramaters for SpecConstantOp %s", ToStr(specop.op).c_str());
@@ -1043,9 +1051,14 @@ ShaderVariable Processor::EvaluateConstant(Id constID, const rdcarray<SpecConsta
         if(retType.scalar().width == 64)
           ret.value.u64v[i] =
               params[0].value.u32v[i] ? params[1].value.u64v[i] : params[2].value.u64v[i];
-        else
+        else if(retType.scalar().width == 32)
           ret.value.u32v[i] =
               params[0].value.u32v[i] ? params[1].value.u32v[i] : params[2].value.u32v[i];
+        else if(retType.scalar().width == 16)
+          ret.value.u16v[i] =
+              params[0].value.u32v[i] ? params[1].value.u16v[i] : params[2].value.u16v[i];
+        else
+          ret.value.u8v[i] = params[0].value.u8v[i] ? params[1].value.u8v[i] : params[2].value.u8v[i];
       }
     }
     else if(specop.op == Op::CompositeExtract)
@@ -1074,8 +1087,12 @@ ShaderVariable Processor::EvaluateConstant(Id constID, const rdcarray<SpecConsta
           {
             if(retType.scalar().width == 64)
               ret.value.u64v[c] = composite.value.u64v[row * composite.columns + c];
-            else
+            else if(retType.scalar().width == 32)
               ret.value.u32v[c] = composite.value.u32v[row * composite.columns + c];
+            else if(retType.scalar().width == 16)
+              ret.value.u16v[c] = composite.value.u16v[row * composite.columns + c];
+            else
+              ret.value.u8v[c] = composite.value.u8v[row * composite.columns + c];
           }
         }
         else if(indices.size() == 2)
@@ -1086,8 +1103,12 @@ ShaderVariable Processor::EvaluateConstant(Id constID, const rdcarray<SpecConsta
 
           if(retType.scalar().width == 64)
             ret.value.u64v[0] = composite.value.u64v[row * composite.columns + col];
-          else
+          else if(retType.scalar().width == 32)
             ret.value.u32v[0] = composite.value.u32v[row * composite.columns + col];
+          else if(retType.scalar().width == 16)
+            ret.value.u16v[0] = composite.value.u16v[row * composite.columns + col];
+          else
+            ret.value.u8v[0] = composite.value.u8v[row * composite.columns + col];
         }
         else
         {
@@ -1106,8 +1127,12 @@ ShaderVariable Processor::EvaluateConstant(Id constID, const rdcarray<SpecConsta
           // vector returning a scalar
           if(retType.scalar().width == 64)
             ret.value.u64v[0] = composite.value.u64v[col];
-          else
+          else if(retType.scalar().width == 32)
             ret.value.u32v[0] = composite.value.u32v[col];
+          else if(retType.scalar().width == 16)
+            ret.value.u16v[0] = composite.value.u16v[col];
+          else
+            ret.value.u8v[0] = composite.value.u8v[col];
         }
         else
         {
@@ -1147,8 +1172,12 @@ ShaderVariable Processor::EvaluateConstant(Id constID, const rdcarray<SpecConsta
           {
             if(retType.scalar().width == 64)
               composite.value.u64v[row * composite.columns + c] = object.value.u64v[c];
-            else
+            else if(retType.scalar().width == 32)
               composite.value.u32v[row * composite.columns + c] = object.value.u32v[c];
+            else if(retType.scalar().width == 16)
+              composite.value.u16v[row * composite.columns + c] = object.value.u16v[c];
+            else if(retType.scalar().width == 8)
+              composite.value.u8v[row * composite.columns + c] = object.value.u8v[c];
           }
         }
         else if(indices.size() == 2)
@@ -1159,8 +1188,12 @@ ShaderVariable Processor::EvaluateConstant(Id constID, const rdcarray<SpecConsta
 
           if(retType.scalar().width == 64)
             composite.value.u64v[row * composite.columns + col] = object.value.u64v[0];
-          else
+          else if(retType.scalar().width == 32)
             composite.value.u32v[row * composite.columns + col] = object.value.u32v[0];
+          else if(retType.scalar().width == 16)
+            composite.value.u16v[row * composite.columns + col] = object.value.u16v[0];
+          else
+            composite.value.u8v[row * composite.columns + col] = object.value.u8v[0];
         }
         else
         {
@@ -1175,8 +1208,12 @@ ShaderVariable Processor::EvaluateConstant(Id constID, const rdcarray<SpecConsta
           // vector inserting a scalar
           if(retType.scalar().width == 64)
             composite.value.u64v[indices[0]] = object.value.u64v[0];
-          else
+          else if(retType.scalar().width == 32)
             composite.value.u32v[indices[0]] = object.value.u32v[0];
+          else if(retType.scalar().width == 16)
+            composite.value.u16v[indices[0]] = object.value.u16v[0];
+          else
+            composite.value.u8v[indices[0]] = object.value.u8v[0];
         }
         else
         {
@@ -1204,6 +1241,7 @@ ShaderVariable Processor::EvaluateConstant(Id constID, const rdcarray<SpecConsta
         indices.push_back(specop.params[i].value());
 
       ret = ShaderVariable("derived", 0, 0, 0, 0);
+      ret.type = retType.scalar().Type();
       ret.columns = (uint8_t)indices.size();
 
       for(size_t i = 0; i < indices.size(); i++)
@@ -1213,8 +1251,12 @@ ShaderVariable Processor::EvaluateConstant(Id constID, const rdcarray<SpecConsta
         {
           if(retType.scalar().width == 64)
             ret.value.u64v[i] = vec1.value.u64v[idx];
-          else
+          else if(retType.scalar().width == 32)
             ret.value.u32v[i] = vec1.value.u32v[idx];
+          else if(retType.scalar().width == 16)
+            ret.value.u16v[i] = vec1.value.u16v[idx];
+          else
+            ret.value.u8v[i] = vec1.value.u8v[idx];
         }
         else
         {
@@ -1222,8 +1264,12 @@ ShaderVariable Processor::EvaluateConstant(Id constID, const rdcarray<SpecConsta
 
           if(retType.scalar().width == 64)
             ret.value.u64v[i] = vec2.value.u64v[idx];
-          else
+          else if(retType.scalar().width == 32)
             ret.value.u32v[i] = vec2.value.u32v[idx];
+          else if(retType.scalar().width == 16)
+            ret.value.u16v[i] = vec2.value.u16v[idx];
+          else
+            ret.value.u8v[i] = vec2.value.u8v[idx];
         }
       }
 
@@ -1234,57 +1280,54 @@ ShaderVariable Processor::EvaluateConstant(Id constID, const rdcarray<SpecConsta
       ShaderVariable param = EvaluateConstant(specop.params[0], specInfo);
       ret = param;
 
-      const DataType &paramType = dataTypes[idTypes[specop.params[0]]];
-
       ret.name = "converted";
       RDCEraseEl(ret.value);
+      ret.type = retType.scalar().Type();
 
-      if(specop.op == Op::UConvert)
+      for(uint8_t i = 0; i < param.columns; i++)
       {
-        if(paramType.scalar().width == 8)
-          ret.value.u64v[0] = param.value.u32v[0] & 0xFFU;
-        else if(paramType.scalar().width == 16)
-          ret.value.u64v[0] = param.value.u32v[0] & 0xFFFFU;
-        else if(paramType.scalar().width == 32)
-          ret.value.u64v[0] = param.value.u32v[0];
-        else
-          ret.value.u64v[0] = param.value.u64v[0];
-      }
-      else if(specop.op == Op::SConvert)
-      {
-        if(paramType.scalar().width == 8)
-          ret.value.s64v[0] =
-              (int8_t)RDCCLAMP(param.value.s32v[0], (int32_t)INT8_MIN, (int32_t)INT8_MAX);
-        else if(paramType.scalar().width == 16)
-          ret.value.s64v[0] =
-              (int16_t)RDCCLAMP(param.value.s32v[0], (int32_t)INT16_MIN, (int32_t)INT16_MAX);
-        else if(paramType.scalar().width == 32)
-          ret.value.s64v[0] = param.value.s32v[0];
-        else
-          ret.value.s64v[0] = param.value.s64v[0];
-      }
-      else if(specop.op == Op::FConvert)
-      {
-        if(paramType.scalar().width == 16)
+        if(specop.op == Op::UConvert)
         {
-          if(retType.scalar().width == 64)
-            ret.value.f64v[0] = ConvertFromHalf(ConvertToHalf(param.value.f32v[0]));
-          else
-            ret.value.f32v[0] = ConvertFromHalf(ConvertToHalf(param.value.f32v[0]));
+          uint64_t x = 0;
+
+#undef _IMPL
+#define _IMPL(I, S, U) x = comp<U>(param, i);
+          IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, param.type);
+
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(ret, i) = (U)x;
+          IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, ret.type);
         }
-        else if(paramType.scalar().width == 32)
+        else if(specop.op == Op::SConvert)
         {
-          if(retType.scalar().width == 64)
-            ret.value.f64v[0] = param.value.f32v[0];
-          else
-            ret.value.f32v[0] = param.value.f32v[0];
+          int64_t x = 0;
+
+#undef _IMPL
+#define _IMPL(I, S, U) x = comp<S>(param, i);
+          IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, param.type);
+
+#undef _IMPL
+#define _IMPL(I, S, U) comp<S>(ret, i) = (S)x;
+          IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, ret.type);
         }
-        else
+        else if(specop.op == Op::FConvert)
         {
-          if(retType.scalar().width == 64)
-            ret.value.f64v[0] = param.value.f64v[0];
-          else
-            ret.value.f32v[0] = (float)param.value.f64v[0];
+          double x = 0.0;
+
+#undef _IMPL
+#define _IMPL(T) x = comp<T>(param, i);
+          IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, param.type);
+
+#undef _IMPL
+#define _IMPL(T) comp<T>(ret, i) = (T)x;
+          // IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, ret.type);
+
+          if(ret.type == VarType::Float)
+            comp<float>(ret, i) = (float)x;
+          else if(ret.type == VarType::Half)
+            comp<half_float::half>(ret, i) = (float)x;
+          else if(ret.type == VarType::Double)
+            comp<double>(ret, i) = (double)x;
         }
       }
 
@@ -1379,8 +1422,10 @@ ShaderVariable Processor::EvaluateConstant(Id constID, const rdcarray<SpecConsta
         {
           if(paramType.scalar().width == 64)
             val.f64v[0] = params[p].value.f64v[col];
-          else
+          else if(paramType.scalar().width == 32)
             val.f64v[0] = params[p].value.f32v[col];
+          else
+            val.f64v[0] = (float)params[p].value.f16v[col];
         }
         else
         {
@@ -1388,15 +1433,23 @@ ShaderVariable Processor::EvaluateConstant(Id constID, const rdcarray<SpecConsta
           {
             if(paramType.scalar().width == 64)
               val.s64v[0] = params[p].value.s64v[col];
-            else
+            else if(paramType.scalar().width == 32)
               val.s64v[0] = params[p].value.s32v[col];
+            else if(paramType.scalar().width == 16)
+              val.s64v[0] = params[p].value.s16v[col];
+            else
+              val.s64v[0] = params[p].value.s8v[col];
           }
           else
           {
             if(paramType.scalar().width == 64)
               val.u64v[0] = params[p].value.u64v[col];
-            else
+            else if(paramType.scalar().width == 32)
               val.u64v[0] = params[p].value.u32v[col];
+            else if(paramType.scalar().width == 16)
+              val.u64v[0] = params[p].value.u16v[col];
+            else
+              val.u64v[0] = params[p].value.u8v[col];
           }
         }
       }
@@ -1471,15 +1524,34 @@ ShaderVariable Processor::EvaluateConstant(Id constID, const rdcarray<SpecConsta
       {
         if(retType.scalar().width == 64)
           ret.value.f64v[col] = a.f64v[0];
-        else
+        else if(retType.scalar().width == 32)
           ret.value.f32v[col] = (float)a.f64v[0];
+        else
+          ret.value.f16v[col].set((float)a.f64v[0]);
+      }
+      else if(signedness)
+      {
+        if(retType.scalar().width == 64)
+          ret.value.s64v[col] = a.s64v[0];
+        else if(retType.scalar().width == 32)
+          ret.value.s32v[col] =
+              (int32_t)RDCCLAMP(a.s64v[col], (int64_t)INT32_MIN, (int64_t)INT32_MAX);
+        else if(retType.scalar().width == 16)
+          ret.value.s16v[col] =
+              (int16_t)RDCCLAMP(a.s64v[col], (int64_t)INT16_MIN, (int64_t)INT16_MAX);
+        else
+          ret.value.s8v[col] = (int8_t)RDCCLAMP(a.s64v[col], (int64_t)INT8_MIN, (int64_t)INT8_MAX);
       }
       else
       {
         if(retType.scalar().width == 64)
           ret.value.u64v[col] = a.u64v[0];
-        else
+        else if(retType.scalar().width == 32)
           ret.value.u32v[col] = a.u64v[0] & 0xFFFFFFFF;
+        else if(retType.scalar().width == 16)
+          ret.value.u16v[col] = a.u64v[0] & 0xFFFF;
+        else
+          ret.value.u8v[col] = a.u64v[0] & 0xFF;
       }
     }
 
@@ -1497,6 +1569,7 @@ ShaderVariable Processor::EvaluateConstant(Id constID, const rdcarray<SpecConsta
       {
         ShaderVariable ret = c.value;
 
+        // we can always just read into u64v - if the type is smaller the LSB maps nicely.
         ret.value.u64v[0] = spec.value;
 
         return ret;

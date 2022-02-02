@@ -373,7 +373,6 @@ void StandardFillCBufferVariable(ResourceId shader, const ShaderConstantDescript
     const size_t avail = data.size() - dataOffset;
 
     byte *dstData = outvar.value.u8v.data();
-    const size_t dstStride = elemByteSize == 8 ? 8 : 4;
 
     // each secondaryDim element (row or column) is stored in a primaryDim-vector.
     // We copy each vector member individually to account for smaller than uint32 sized types.
@@ -382,7 +381,7 @@ void StandardFillCBufferVariable(ResourceId shader, const ShaderConstantDescript
       for(uint32_t p = 0; p < primaryDim; p++)
       {
         const size_t srcOffset = matStride * s + p * elemByteSize;
-        const size_t dstOffset = (primaryDim * s + p) * dstStride;
+        const size_t dstOffset = (primaryDim * s + p) * elemByteSize;
 
         if(srcOffset + elemByteSize <= avail)
           memcpy(dstData + dstOffset, srcData + srcOffset, elemByteSize);
@@ -400,40 +399,23 @@ void StandardFillCBufferVariable(ResourceId shader, const ShaderConstantDescript
           for(size_t ci = 0; ci < cols; ci++)
             outvar.value.u64v[ri * cols + ci] = tmp.value.u64v[ci * rows + ri];
       }
-      else
+      else if(elemByteSize == 4)
       {
         for(size_t ri = 0; ri < rows; ri++)
           for(size_t ci = 0; ci < cols; ci++)
             outvar.value.u32v[ri * cols + ci] = tmp.value.u32v[ci * rows + ri];
       }
-    }
-
-    // special case - decode halfs in-place, sign extend signed < 4 byte integers
-    if(type == VarType::Half)
-    {
-      for(size_t ri = 0; ri < rows; ri++)
+      else if(elemByteSize == 2)
       {
-        for(size_t ci = 0; ci < cols; ci++)
-        {
-          outvar.value.f32v[ri * cols + ci] =
-              ConvertFromHalf((uint16_t)outvar.value.u32v[ri * cols + ci]);
-        }
+        for(size_t ri = 0; ri < rows; ri++)
+          for(size_t ci = 0; ci < cols; ci++)
+            outvar.value.u16v[ri * cols + ci] = tmp.value.u16v[ci * rows + ri];
       }
-    }
-    else if(type == VarType::SShort || type == VarType::SByte)
-    {
-      const uint32_t testMask = (type == VarType::SShort ? 0x8000 : 0x80);
-      const uint32_t extendMask = (type == VarType::SShort ? 0xffff0000 : 0xffffff00);
-
-      for(size_t ri = 0; ri < rows; ri++)
+      else if(elemByteSize == 1)
       {
-        for(size_t ci = 0; ci < cols; ci++)
-        {
-          uint32_t &u = outvar.value.u32v[ri * cols + ci];
-
-          if(u & testMask)
-            u |= extendMask;
-        }
+        for(size_t ri = 0; ri < rows; ri++)
+          for(size_t ci = 0; ci < cols; ci++)
+            outvar.value.u8v[ri * cols + ci] = tmp.value.u8v[ci * rows + ri];
       }
     }
   }
@@ -482,6 +464,8 @@ static void StandardFillCBufferVariables(ResourceId shader, const rdcarray<Shade
           vr.rowMajor = rowMajor;
 
           StandardFillCBufferVariables(shader, invars[v].type.members, vr.members, data, dataOffset);
+
+          var.type = vr.type;
 
           dataOffset += invars[v].type.descriptor.arrayByteStride;
 

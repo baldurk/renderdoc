@@ -109,6 +109,31 @@ struct BindpointIndex
 
 DECLARE_REFLECTION_STRUCT(BindpointIndex);
 
+struct rdhalf
+{
+#if !defined(SWIG)
+  static rdhalf make(const uint16_t &u)
+  {
+    rdhalf ret;
+    ret.storage = u;
+    return ret;
+  }
+  static rdhalf make(const float &f)
+  {
+    rdhalf ret;
+    ret.storage = RENDERDOC_FloatToHalf(f);
+    return ret;
+  }
+  void set(const uint16_t &u) { storage = u; }
+  void set(const float &f) { storage = RENDERDOC_FloatToHalf(f); }
+#endif
+  explicit operator float() const { return RENDERDOC_HalfToFloat(storage); }
+  explicit operator uint16_t() const { return storage; }
+private:
+  uint16_t storage;
+};
+DECLARE_STRINGISE_TYPE(rdhalf);
+
 DOCUMENT("A C union that holds 16 values, with each different basic variable type.");
 union ShaderValue
 {
@@ -135,6 +160,12 @@ union ShaderValue
 :type: Tuple[float,...]
 )");
   rdcfixedarray<double, 16> f64v;
+
+  DOCUMENT(R"(16-tuple of 16-bit half-precision float values.
+
+:type: Tuple[int,...]
+)");
+  rdcfixedarray<rdhalf, 16> f16v;
 
   DOCUMENT(R"(16-tuple of 64-bit unsigned integer values.
 
