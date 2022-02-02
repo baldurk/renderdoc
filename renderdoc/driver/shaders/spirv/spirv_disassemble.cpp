@@ -1633,7 +1633,7 @@ rdcstr Reflector::StringiseConstant(rdcspv::Id id) const
 
     switch(value.type)
     {
-      case VarType::Half: return ToStr(value.value.f16v[0]); break;
+      case VarType::Half: return ToStr(value.value.f16v[0]);
       case VarType::Float: return ToStr(value.value.f32v[0]);
       case VarType::Double: return ToStr(value.value.f64v[0]);
       case VarType::SInt: return ToStr(value.value.s32v[0]);
