@@ -1055,10 +1055,7 @@ static void FillShaderVarData(ShaderVariable &var, const ShaderConstant &elem, c
         case VarType::UShort: var.value.u16v[dst] = o.toUInt() & 0xffff; break;
         case VarType::UByte: var.value.u8v[dst] = o.toUInt() & 0xff; break;
         case VarType::SLong: var.value.s64v[dst] = o.toLongLong(); break;
-        case VarType::SInt:
-          var.value.s32v[dst] = o.toInt();
-          break;
-          break;
+        case VarType::SInt: var.value.s32v[dst] = o.toInt(); break;
         case VarType::SShort:
           var.value.u16v[dst] = (int16_t)qBound((int)INT16_MIN, o.toInt(), (int)INT16_MAX);
           break;
