@@ -245,8 +245,11 @@ private:
 enum class DebugScope
 {
   CompilationUnit,
+  Composite,
+  Function,
   Block,
 };
+
 struct ScopeData
 {
   DebugScope type;
@@ -256,8 +259,17 @@ struct ScopeData
   int32_t fileIndex;
   size_t end;
 
+  rdcstr name;
+
   rdcarray<Id> locals;
 };
+
+struct InlineData
+{
+  ScopeData *scope;
+  InlineData *parent;
+};
+
 struct LocalData
 {
   rdcstr name;
@@ -395,7 +407,9 @@ private:
     bool valid = false;
 
     SparseIdMap<ScopeData> scopes;
+    SparseIdMap<InlineData> inlined;
     ScopeData *curScope = NULL;
+    InlineData *curInline = NULL;
 
     rdcarray<Id> globals;
     rdcarray<Id> constants;
@@ -403,8 +417,10 @@ private:
     SparseIdMap<LocalData> locals;
 
     SparseIdMap<int32_t> sources;
+    SparseIdMap<rdcstr> filenames;
 
     std::map<size_t, ScopeData *> lineScope;
+    std::map<size_t, InlineData *> lineInline;
     std::map<size_t, LocalMapping> localMappings;
   } m_DebugInfo;
 };

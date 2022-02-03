@@ -1327,6 +1327,8 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
           thread.StepNext(&state, workgroup);
           state.stepIndex = steps;
 
+          thread.FillCallstack(state);
+
           if(m_DebugInfo.valid)
           {
             size_t startOffs = instOffs;
@@ -1403,6 +1405,37 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
 
               scope = scope->parent;
             }
+
+            // append any inlined functions to the top of the stack
+            InlineData *inlined = m_DebugInfo.lineInline[endOffs];
+
+            size_t insertPoint = state.callstack.size();
+
+            // start with the current scope, it refers to the *inlined* function
+            if(inlined)
+            {
+              scope = m_DebugInfo.lineScope[endOffs];
+              // find the function parent of the current scope
+              while(scope && scope->parent && scope->type == DebugScope::Block)
+                scope = scope->parent;
+
+              state.callstack.insert(insertPoint, scope->name);
+            }
+
+            // move to the next inline up on our inline stack. If we reach an actual function
+            // call, this parent will be NULL as there was no more inlining - the final scope will
+            // refer to the real function which is already on our stack
+            while(inlined && inlined->parent)
+            {
+              scope = inlined->scope;
+              // find the function parent of the current scope
+              while(scope && scope->parent && scope->type == DebugScope::Block)
+                scope = scope->parent;
+
+              state.callstack.insert(insertPoint, scope->name);
+
+              inlined = inlined->parent;
+            }
           }
           else
           {
@@ -1418,7 +1451,6 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
                       return thread.lastWrite[aId] < thread.lastWrite[bId];
                     });
 
-          thread.FillCallstack(state);
           ret.push_back(state);
 
           steps++;
@@ -2624,20 +2656,82 @@ void Debugger::RegisterOp(Iter it)
         int32_t fileIndex = (int32_t)m_DebugInfo.sources.size();
 
         m_DebugInfo.sources[dbg.result] = fileIndex;
+        m_DebugInfo.filenames[dbg.result] = strings[dbg.arg<Id>(0)];
       }
       else if(dbg.inst == ShaderDbg::CompilationUnit)
       {
-        m_DebugInfo.scopes[dbg.result] = {DebugScope::CompilationUnit,         NULL, 1, 1,
-                                          m_DebugInfo.sources[dbg.arg<Id>(2)], 0};
+        m_DebugInfo.scopes[dbg.result] = {
+            DebugScope::CompilationUnit,
+            NULL,
+            1,
+            1,
+            m_DebugInfo.sources[dbg.arg<Id>(2)],
+            0,
+            m_DebugInfo.filenames[dbg.arg<Id>(2)],
+        };
+      }
+      else if(dbg.inst == ShaderDbg::Function)
+      {
+        rdcstr name = strings[dbg.arg<Id>(0)];
+        // ignore arg 1 type
+        // don't use arg 2 source - assume the parent is in the same file so it's redundant
+        uint32_t line = EvaluateConstant(dbg.arg<Id>(3), {}).value.u32v[0];
+        uint32_t column = EvaluateConstant(dbg.arg<Id>(4), {}).value.u32v[0];
+        ScopeData *parent = &m_DebugInfo.scopes[dbg.arg<Id>(5)];
+        // ignore arg 6 linkage name
+        // ignore arg 7 flags
+        // ignore arg 8 scope line
+        // ignore arg 9 (optional) declaration
+
+        m_DebugInfo.scopes[dbg.result] = {
+            DebugScope::Function, parent, line, column, parent->fileIndex, 0, name,
+        };
+      }
+      else if(dbg.inst == ShaderDbg::TypeComposite)
+      {
+        rdcstr name = strings[dbg.arg<Id>(0)];
+        uint32_t tag = EvaluateConstant(dbg.arg<Id>(1), {}).value.u32v[0];
+        const rdcstr tagString[3] = {
+            "class ", "struct ", "union ",
+        };
+
+        // don't use arg 2 source - assume the parent is in the same file so it's redundant
+        uint32_t line = EvaluateConstant(dbg.arg<Id>(3), {}).value.u32v[0];
+        uint32_t column = EvaluateConstant(dbg.arg<Id>(4), {}).value.u32v[0];
+        ScopeData *parent = &m_DebugInfo.scopes[dbg.arg<Id>(5)];
+        // ignore arg 6 linkage name
+        // ignore arg 7 size
+        // ignore arg 8 flags
+        // ignore arg 9... members
+
+        name = tagString[tag % 3] + name;
+
+        m_DebugInfo.scopes[dbg.result] = {
+            DebugScope::Composite, parent, line, column, parent->fileIndex, 0, name,
+        };
       }
       else if(dbg.inst == ShaderDbg::LexicalBlock)
       {
-        ScopeData *parent = &m_DebugInfo.scopes[dbg.arg<Id>(3)];
+        // don't use arg 0 source - assume the parent is in the same file so it's redundant
         uint32_t line = EvaluateConstant(dbg.arg<Id>(1), {}).value.u32v[0];
         uint32_t column = EvaluateConstant(dbg.arg<Id>(2), {}).value.u32v[0];
-        int32_t fileIndex = parent ? parent->fileIndex : -1;
+        ScopeData *parent = &m_DebugInfo.scopes[dbg.arg<Id>(3)];
 
-        m_DebugInfo.scopes[dbg.result] = {DebugScope::Block, parent, line, column, fileIndex, 0};
+        rdcstr name;
+        if(dbg.params.count() >= 5)
+        {
+          name = strings[dbg.arg<Id>(4)];
+          if(name.isEmpty())
+            name = "anonymous_scope";
+        }
+        else
+        {
+          name = parent->name + ":" + ToStr(line);
+        }
+
+        m_DebugInfo.scopes[dbg.result] = {
+            DebugScope::Block, parent, line, column, parent->fileIndex, 0, name,
+        };
       }
       else if(dbg.inst == ShaderDbg::Scope)
       {
@@ -2646,7 +2740,10 @@ void Debugger::RegisterOp(Iter it)
 
         m_DebugInfo.curScope = &m_DebugInfo.scopes[dbg.arg<Id>(0)];
 
-        // TODO inline information
+        if(dbg.params.size() >= 2)
+          m_DebugInfo.curInline = &m_DebugInfo.inlined[dbg.arg<Id>(1)];
+        else
+          m_DebugInfo.curInline = NULL;
       }
       else if(dbg.inst == ShaderDbg::NoScope)
       {
@@ -2704,16 +2801,20 @@ void Debugger::RegisterOp(Iter it)
       }
       else if(dbg.inst == ShaderDbg::InlinedAt)
       {
-        // TODO inline information
+        // ignore arg 0 the line number
+        ScopeData *scope = &m_DebugInfo.scopes[dbg.arg<Id>(1)];
+
+        if(dbg.params.count() >= 3)
+          m_DebugInfo.inlined[dbg.result] = {scope, &m_DebugInfo.inlined[dbg.arg<Id>(2)]};
+        else
+          m_DebugInfo.inlined[dbg.result] = {scope, NULL};
       }
       else if(dbg.inst == ShaderDbg::InlinedVariable)
       {
-        // TODO inline information
+        // TODO handle inlined variables
       }
       else if(dbg.inst == ShaderDbg::Line)
       {
-        OpShaderDbg line(it);
-
         m_CurLineCol.lineStart = EvaluateConstant(dbg.arg<Id>(1), {}).value.u32v[0];
         m_CurLineCol.lineEnd = EvaluateConstant(dbg.arg<Id>(2), {}).value.u32v[0];
         if(Vulkan_Debug_UseDebugColumnInformation())
@@ -2787,7 +2888,10 @@ void Debugger::RegisterOp(Iter it)
   }
 
   if(m_DebugInfo.valid)
+  {
     m_DebugInfo.lineScope[it.offs()] = m_DebugInfo.curScope;
+    m_DebugInfo.lineInline[it.offs()] = m_DebugInfo.curInline;
+  }
 
   // if we're explicitly leaving the scope because of a DebugNoScope, or if we're leaving due to the
   // end of a block then set scope to NULL now.
@@ -2799,6 +2903,7 @@ void Debugger::RegisterOp(Iter it)
       m_DebugInfo.curScope->end = it.offs();
 
     m_DebugInfo.curScope = NULL;
+    m_DebugInfo.curInline = NULL;
   }
 
   if(opdata.op == Op::String)
