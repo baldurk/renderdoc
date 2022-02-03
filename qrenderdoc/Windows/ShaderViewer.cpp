@@ -1999,33 +1999,48 @@ bool ShaderViewer::step(bool forward, StepMode mode)
 
       // if we're in an invalid file, skip it as unmapped instructions
       if(curLine.fileIndex == -1)
-        break;
+        continue;
 
-      // we're on a different line but that might not be enough for Step Out or Step Over
+      // we're on a different line so we can probably stop, but that might not be enough for Step
+      // Out or Step Over
       rdcarray<rdcstr> curStack = GetCurrentState().callstack;
 
-      // mode is StepOver or StepOut
+      // first/last instruction may not have a stack - treat any change from no stack to stack as
+      // hitting the step condition
+      if(oldStack.empty() || curStack.empty())
+        break;
 
-      if(mode == StepOver)
+      // if we're stepping into, any line different from the previous is sufficient to stop stepping
+      if(mode == StepInto)
+        break;
+
+      // if the stack has shrunk we must have exited the function, don't continue stepping
+      if(curStack.size() < oldStack.size())
+        break;
+
+      // if the stack is identical we haven't left this function (to our knowledge. We can't
+      // differentiate between inlining causing us to immediately jump back into this function, a
+      // kind of A-B-A problem, but there's not much we can do about that here.
+      if(curStack == oldStack)
       {
-        // if the stack hasn't grown, we assume that we're still in the same function so return
-        if(curStack.size() <= oldStack.size())
+        // if we're stepping over, we can stop stepping now as we've gotten to a different line in
+        // the same function without going into a new one
+        if(mode == StepOver)
           break;
+
+        // if we're stepping out keep going - we want to leave this function.
+        if(mode == StepOut)
+          continue;
       }
 
-      if(mode == StepOut)
-      {
-        // if the stack has shrunk we must have exited the function
-        if(curStack.size() < oldStack.size())
-          break;
-      }
-
-      // if the stack is bigger (for stepover) or hasn't shrunk (for stepout) but the common subset
-      // is different, we have stepped into a different function due to inlining, so break
+      // if the stack common subset is different, we have stepped into a different function due to
+      // inlining, so stop stepping. This covers the case where StepOut hasn't seen a stack shrink
+      // yet as well as StepOver where the stack has grown but now has a different root from when we
+      // started.
       //
-      // E.g. A() -> B() stepover A() -> C() -> D()
+      // E.g. A() -> B() StepOver A() -> C() -> D()
       //
-      // Or A() -> B() stepout A() -> C()
+      // Or A() -> B() StepOut A() -> C()
       bool different = false;
       for(size_t i = 0; i < qMin(curStack.size(), oldStack.size()); i++)
       {
@@ -2038,6 +2053,9 @@ bool ShaderViewer::step(bool forward, StepMode mode)
 
       if(different)
         break;
+
+      // otherwise we either went into a bigger callstack and continue stepping over it, or else we
+      // haven't yet stepped out of the callstack that we started in
 
     } while(true);
 
