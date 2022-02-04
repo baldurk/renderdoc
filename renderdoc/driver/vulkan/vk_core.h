@@ -409,6 +409,7 @@ private:
   bool m_NULLDescriptorsAllowed = false;
   bool m_ExtendedDynState = false;
   bool m_ExtendedDynState2 = false;
+  bool m_FragmentShadingRate = false;
   bool m_DynColorWrite = false;
   bool m_DynVertexInput = false;
 
@@ -1132,6 +1133,7 @@ public:
   bool NULLDescriptorsAllowed() const { return m_NULLDescriptorsAllowed; }
   bool ExtendedDynamicState() const { return m_ExtendedDynState; }
   bool ExtendedDynamicState2() const { return m_ExtendedDynState2; }
+  bool FragmentShadingRate() const { return m_FragmentShadingRate; }
   bool DynamicColorWrite() const { return m_DynColorWrite; }
   bool DynamicVertexInput() const { return m_DynVertexInput; }
   VulkanRenderState &GetRenderState() { return m_RenderState; }
@@ -2517,4 +2519,13 @@ public:
                                 const VkRenderingInfo *pRenderingInfo);
 
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdEndRendering, VkCommandBuffer commandBuffer);
+
+  // VK_KHR_fragment_shading_rate
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetFragmentShadingRateKHR, VkCommandBuffer commandBuffer,
+                                const VkExtent2D *pFragmentSize,
+                                const VkFragmentShadingRateCombinerOpKHR combinerOps[2]);
+  VkResult vkGetPhysicalDeviceFragmentShadingRatesKHR(
+      VkPhysicalDevice physicalDevice, uint32_t *pFragmentShadingRateCount,
+      VkPhysicalDeviceFragmentShadingRateKHR *pFragmentShadingRates);
 };

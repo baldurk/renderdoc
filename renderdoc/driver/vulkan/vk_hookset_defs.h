@@ -536,7 +536,8 @@
   DeclExt(EXT_color_write_enable);              \
   DeclExt(EXT_extended_dynamic_state2);         \
   DeclExt(EXT_vertex_input_dynamic_state);      \
-  DeclExt(KHR_dynamic_rendering);
+  DeclExt(KHR_dynamic_rendering);               \
+  DeclExt(KHR_fragment_shading_rate);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -569,7 +570,8 @@
   CheckExt(EXT_headless_surface, VKXX);                \
   CheckExt(EXT_metal_surface, VKXX);                   \
   CheckExt(KHR_wayland_surface, VKXX);                 \
-  CheckExt(KHR_performance_query, VKXX);
+  CheckExt(KHR_performance_query, VKXX);               \
+  CheckExt(KHR_fragment_shading_rate, VKXX);
 
 #define CheckDeviceExts()                              \
   CheckExt(EXT_debug_marker, VKXX);                    \
@@ -642,7 +644,8 @@
   CheckExt(EXT_color_write_enable, VKXX);              \
   CheckExt(EXT_extended_dynamic_state2, VK13);         \
   CheckExt(EXT_vertex_input_dynamic_state, VKXX);      \
-  CheckExt(KHR_dynamic_rendering, VK13);
+  CheckExt(KHR_dynamic_rendering, VK13);               \
+  CheckExt(KHR_fragment_shading_rate, VKXX);
 
 #define HookInitVulkanInstanceExts_PhysDev()                                                         \
   HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                                \
@@ -688,6 +691,7 @@
                     EnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR);                  \
   HookInitExtension(KHR_performance_query, GetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR);   \
   HookInitPromotedExtension(EXT_tooling_info, GetPhysicalDeviceToolProperties, EXT);                 \
+  HookInitExtension(KHR_fragment_shading_rate, GetPhysicalDeviceFragmentShadingRatesKHR);            \
   HookInitExtension_PhysDev_Win32();                                                                 \
   HookInitExtension_PhysDev_Linux();                                                                 \
   HookInitExtension_PhysDev_GGP();                                                                   \
@@ -753,6 +757,7 @@
                     EnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR);                  \
   HookInitExtension(KHR_performance_query, GetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR);   \
   HookInitPromotedExtension(EXT_tooling_info, GetPhysicalDeviceToolProperties, EXT);                 \
+  HookInitExtension(KHR_fragment_shading_rate, GetPhysicalDeviceFragmentShadingRatesKHR);            \
   HookInitExtension_Instance_Win32();                                                                \
   HookInitExtension_Instance_Linux();                                                                \
   HookInitExtension_Instance_GGP();                                                                  \
@@ -897,6 +902,7 @@
   HookInitExtension(EXT_vertex_input_dynamic_state, CmdSetVertexInputEXT);                         \
   HookInitPromotedExtension(KHR_dynamic_rendering, CmdBeginRendering, KHR);                        \
   HookInitPromotedExtension(KHR_dynamic_rendering, CmdEndRendering, KHR);                          \
+  HookInitExtension(KHR_fragment_shading_rate, CmdSetFragmentShadingRateKHR);                      \
   HookInitExtension_Device_Win32();                                                                \
   HookInitExtension_Device_Linux();                                                                \
   HookInitExtension_Device_GGP();                                                                  \
@@ -1609,6 +1615,12 @@
   HookDefine2(void, vkCmdBeginRendering, VkCommandBuffer, commandBuffer, const VkRenderingInfo *,    \
               pRenderingInfo);                                                                       \
   HookDefine1(void, vkCmdEndRendering, VkCommandBuffer, commandBuffer);                              \
+  HookDefine3(void, vkCmdSetFragmentShadingRateKHR, VkCommandBuffer, commandBuffer,                  \
+              const VkExtent2D *, pFragmentSize, const VkFragmentShadingRateCombinerOpKHR *,         \
+              combinerOps);                                                                          \
+  HookDefine3(VkResult, vkGetPhysicalDeviceFragmentShadingRatesKHR, VkPhysicalDevice,                \
+              physicalDevice, uint32_t *, pFragmentShadingRateCount,                                 \
+              VkPhysicalDeviceFragmentShadingRateKHR *, pFragmentShadingRates);                      \
   HookDefine_Win32();                                                                                \
   HookDefine_Linux();                                                                                \
   HookDefine_GGP();                                                                                  \

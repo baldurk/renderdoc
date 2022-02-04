@@ -2141,6 +2141,8 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
         prefix = "2D " + depth + " Attachment";
       else if(CreateInfo.usage & VK_IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT)
         prefix = "2D Fragment Density Map Attachment";
+      else if(CreateInfo.usage & VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR)
+        prefix = "2D Fragment Shading Rate Attachment";
     }
     else if(CreateInfo.imageType == VK_IMAGE_TYPE_3D)
     {

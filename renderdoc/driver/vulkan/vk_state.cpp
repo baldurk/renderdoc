@@ -423,6 +423,13 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
     if(stippleFactor && dynamicStates[VkDynamicLineStippleEXT])
       ObjDisp(cmd)->CmdSetLineStippleEXT(Unwrap(cmd), stippleFactor, stipplePattern);
 
+    if(vk->FragmentShadingRate())
+    {
+      if(dynamicStates[VkDynamicShadingRateKHR])
+        ObjDisp(cmd)->CmdSetFragmentShadingRateKHR(Unwrap(cmd), &pipelineShadingRate,
+                                                   shadingRateCombiners);
+    }
+
     if(graphics.pipeline != ResourceId())
       BindDescriptorSets(vk, cmd, graphics, VK_PIPELINE_BIND_POINT_GRAPHICS);
 

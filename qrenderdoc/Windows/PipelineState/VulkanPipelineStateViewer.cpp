@@ -872,13 +872,15 @@ void VulkanPipelineStateViewer::clearState()
   ui->lineWidth->setText(lit("1.0"));
 
   ui->conservativeRaster->setText(tr("Disabled"));
-  ui->overestimationSize->setText(lit("0.0"));
   ui->multiview->setText(tr("Disabled"));
 
   ui->stippleFactor->setText(QString());
   ui->stippleFactor->setPixmap(cross);
   ui->stipplePattern->setText(QString());
   ui->stipplePattern->setPixmap(cross);
+
+  ui->pipelineShadingRate->setText(tr("1x1"));
+  ui->shadingRateCombiners->setText(tr("Keep, Keep"));
 
   ui->sampleCount->setText(lit("1"));
   ui->sampleShading->setPixmap(tick);
@@ -2470,9 +2472,10 @@ void VulkanPipelineStateViewer::setState()
   ui->rasterizerDiscard->setPixmap(state.rasterizer.rasterizerDiscardEnable ? tick : cross);
   ui->lineWidth->setText(Formatter::Format(state.rasterizer.lineWidth));
 
-  ui->conservativeRaster->setText(ToQStr(state.rasterizer.conservativeRasterization));
-  ui->overestimationSize->setText(
-      Formatter::Format(state.rasterizer.extraPrimitiveOverestimationSize));
+  QString conservRaster = ToQStr(state.rasterizer.conservativeRasterization);
+  if(state.rasterizer.conservativeRasterization == ConservativeRaster::Overestimate &&
+     state.rasterizer.extraPrimitiveOverestimationSize > 0.0f)
+    conservRaster += QFormatStr(" (+%1)").arg(state.rasterizer.extraPrimitiveOverestimationSize);
 
   if(state.rasterizer.lineStippleFactor == 0)
   {
@@ -2488,6 +2491,14 @@ void VulkanPipelineStateViewer::setState()
     ui->stipplePattern->setPixmap(QPixmap());
     ui->stipplePattern->setText(QString::number(state.rasterizer.lineStipplePattern, 2));
   }
+
+  ui->pipelineShadingRate->setText(QFormatStr("%1x%2")
+                                       .arg(state.rasterizer.pipelineShadingRate.first)
+                                       .arg(state.rasterizer.pipelineShadingRate.second));
+  ui->shadingRateCombiners->setText(
+      QFormatStr("%1, %2")
+          .arg(ToQStr(state.rasterizer.shadingRateCombiners.first, GraphicsAPI::Vulkan))
+          .arg(ToQStr(state.rasterizer.shadingRateCombiners.second, GraphicsAPI::Vulkan)));
 
   if(state.currentPass.renderpass.multiviews.isEmpty())
   {
@@ -2590,6 +2601,7 @@ void VulkanPipelineStateViewer::setState()
       bool usedSlot =
           (colIdx >= 0 || resIdx >= 0 || state.currentPass.renderpass.depthstencilAttachment == i ||
            state.currentPass.renderpass.fragmentDensityAttachment == i ||
+           state.currentPass.renderpass.shadingRateAttachment == i ||
            state.currentPass.renderpass.depthstencilResolveAttachment == i);
 
       if(showNode(usedSlot, filledSlot))
@@ -2631,6 +2643,7 @@ void VulkanPipelineStateViewer::setState()
                         .arg(ToQStr(p.swizzle.alpha));
         }
 
+        rdcpair<uint32_t, uint32_t> shadingRateTexelSize = {0, 0};
         QString slotname;
 
         if(colIdx >= 0)
@@ -2648,6 +2661,11 @@ void VulkanPipelineStateViewer::setState()
         else if(state.currentPass.renderpass.fragmentDensityAttachment == i)
         {
           slotname = lit("Fragment Density Map");
+        }
+        else if(state.currentPass.renderpass.shadingRateAttachment == i)
+        {
+          slotname = lit("Fragment Shading Rate Map");
+          shadingRateTexelSize = state.currentPass.renderpass.shadingRateTexelSize;
         }
         else
         {
@@ -2681,8 +2699,14 @@ void VulkanPipelineStateViewer::setState()
           }
         }
 
-        RDTreeWidgetItem *node = new RDTreeWidgetItem(
-            {slotname, p.imageResourceId, typeName, w, h, d, a, format, QString()});
+        QString resName = ToQStr(p.imageResourceId);
+
+        if(shadingRateTexelSize.first > 0)
+          resName +=
+              tr(" (%1x%2 texels)").arg(shadingRateTexelSize.first).arg(shadingRateTexelSize.second);
+
+        RDTreeWidgetItem *node =
+            new RDTreeWidgetItem({slotname, resName, typeName, w, h, d, a, format, QString()});
 
         if(tex)
           node->setTag(
@@ -4060,6 +4084,16 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
       xml.writeStartElement(lit("p"));
       xml.writeCharacters(
           tr("Fragment Density Attachment: %1").arg(pass.renderpass.fragmentDensityAttachment));
+      xml.writeEndElement();
+    }
+
+    if(pass.renderpass.shadingRateAttachment >= 0)
+    {
+      xml.writeStartElement(lit("p"));
+      xml.writeCharacters(tr("Fragment Shading Rate Attachment: %1 (texel size %2x%3)")
+                              .arg(pass.renderpass.shadingRateAttachment)
+                              .arg(pass.renderpass.shadingRateTexelSize.first)
+                              .arg(pass.renderpass.shadingRateTexelSize.second));
       xml.writeEndElement();
     }
   }

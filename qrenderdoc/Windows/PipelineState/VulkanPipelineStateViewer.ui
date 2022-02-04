@@ -2042,9 +2042,9 @@
              </widget>
             </item>
             <item row="1" column="6">
-             <widget class="QLabel" name="label_2">
+             <widget class="QLabel" name="label_3">
               <property name="text">
-               <string>Overestimate Size:</string>
+               <string>Multiview:</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -2055,14 +2055,14 @@
              </widget>
             </item>
             <item row="1" column="7">
-             <widget class="QLabel" name="overestimationSize">
+             <widget class="QLabel" name="multiview">
               <property name="font">
                <font>
                 <pointsize>12</pointsize>
                </font>
               </property>
               <property name="text">
-               <string>0.00</string>
+               <string>TextLabel</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
@@ -2175,9 +2175,9 @@
              </widget>
             </item>
             <item row="2" column="6">
-             <widget class="QLabel" name="label_3">
+             <widget class="QLabel" name="label_9">
               <property name="text">
-               <string>Multiview:</string>
+               <string>Pipeline shading rate:</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -2188,14 +2188,14 @@
              </widget>
             </item>
             <item row="2" column="7">
-             <widget class="QLabel" name="multiview">
+             <widget class="QLabel" name="pipelineShadingRate">
               <property name="font">
                <font>
                 <pointsize>12</pointsize>
                </font>
               </property>
               <property name="text">
-               <string>TextLabel</string>
+               <string>1x1</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
@@ -2256,8 +2256,8 @@
                 <pointsize>12</pointsize>
                </font>
               </property>
-              <property name="text">
-               <string>0000000000000000</string>
+              <property name="pixmap">
+               <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
@@ -2287,6 +2287,37 @@
               </property>
               <property name="pixmap">
                <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignCenter</set>
+              </property>
+              <property name="margin">
+               <number>4</number>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="6">
+             <widget class="QLabel" name="label_2">
+              <property name="text">
+               <string>Shading rate combiners:</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+              <property name="wordWrap">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="7">
+             <widget class="QLabel" name="shadingRateCombiners">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Keep, Keep</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>

@@ -909,6 +909,22 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
     ret.pNext = &discardRects;
   }
 
+  static VkPipelineFragmentShadingRateStateCreateInfoKHR shadingRate = {
+      VK_STRUCTURE_TYPE_PIPELINE_FRAGMENT_SHADING_RATE_STATE_CREATE_INFO_KHR,
+  };
+
+  if(pipeInfo.shadingRate.width != 1 || pipeInfo.shadingRate.height != 1 ||
+     pipeInfo.shadingRateCombiners[0] != VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR ||
+     pipeInfo.shadingRateCombiners[1] != VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR)
+  {
+    shadingRate.fragmentSize = pipeInfo.shadingRate;
+    shadingRate.combinerOps[0] = pipeInfo.shadingRateCombiners[0];
+    shadingRate.combinerOps[1] = pipeInfo.shadingRateCombiners[1];
+
+    shadingRate.pNext = ret.pNext;
+    ret.pNext = &shadingRate;
+  }
+
   // never create derivatives
   ret.flags &= ~VK_PIPELINE_CREATE_DERIVATIVE_BIT;
 

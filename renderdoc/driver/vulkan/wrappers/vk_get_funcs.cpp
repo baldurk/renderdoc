@@ -1095,3 +1095,12 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceToolProperties(VkPhysicalDevice physi
   (*pToolCount)++;
   return VK_SUCCESS;
 }
+
+VkResult WrappedVulkan::vkGetPhysicalDeviceFragmentShadingRatesKHR(
+    VkPhysicalDevice physicalDevice, uint32_t *pFragmentShadingRateCount,
+    VkPhysicalDeviceFragmentShadingRateKHR *pFragmentShadingRates)
+{
+  return ObjDisp(physicalDevice)
+      ->GetPhysicalDeviceFragmentShadingRatesKHR(Unwrap(physicalDevice), pFragmentShadingRateCount,
+                                                 pFragmentShadingRates);
+}

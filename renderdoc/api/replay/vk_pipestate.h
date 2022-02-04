@@ -824,6 +824,29 @@ See :data:`conservativeRasterizationMode`
   uint32_t lineStippleFactor = 0;
   DOCUMENT("The line stipple bit-pattern.");
   uint16_t lineStipplePattern = 0;
+  DOCUMENT(R"(The current pipeline fragment shading rate. This will always be 1x1 when a fragment
+shading rate has not been specified.
+
+:type: Tuple[int,int]
+)");
+  rdcpair<uint32_t, uint32_t> pipelineShadingRate = {1, 1};
+  DOCUMENT(R"(The fragment shading rate combiners.
+
+The combiners are applied as follows, according to the Vulkan spec:
+
+  ``intermediateRate = combiner[0] ( pipelineShadingRate,  shaderExportedShadingRate )``
+  ``finalRate        = combiner[1] ( intermediateRate,     imageBasedShadingRate     )``
+
+Where the first input is from :data:`pipelineShadingRate` and the second is the exported shading
+rate from the last pre-rasterization shader stage, which defaults to 1x1 if not exported.
+
+The intermediate result is then used as the first input to the second combiner, together with the
+shading rate sampled from the fragment shading rate attachment.
+
+:type: Tuple[ShadingRateCombiner,ShadingRateCombiner]
+)");
+  rdcpair<ShadingRateCombiner, ShadingRateCombiner> shadingRateCombiners = {
+      ShadingRateCombiner::Keep, ShadingRateCombiner::Keep};
 };
 
 DOCUMENT("Describes state of custom sample locations in the pipeline.");
@@ -988,8 +1011,35 @@ If there is no depth-stencil resolve attachment, this index is ``-1``.
   DOCUMENT(R"(An index into the framebuffer attachments for the fragment density attachment.
 
 If there is no fragment density attachment, this index is ``-1``.
+
+.. note::
+  Only one at most of :data:`fragmentDensityAttachment` and :data:`shadingRateAttachment` will be
+  set.
 )");
   int32_t fragmentDensityAttachment = -1;
+
+  DOCUMENT(R"(An index into the framebuffer attachments for the fragment shading rate attachment.
+
+If there is no fragment shading rate attachment, this index is ``-1``.
+
+.. note::
+  Only one at most of :data:`fragmentDensityAttachment` and :data:`shadingRateAttachment` will be
+  set.
+)");
+  int32_t shadingRateAttachment = -1;
+
+  DOCUMENT(R"(The size of the framebuffer region represented by each texel in
+:data:`shadingRateAttachment`.
+
+For example if this is (2,2) then every texel in the attachment gives the shading rate of a 2x2
+block in the framebuffer so the shading rate attachment is half the size of the other attachments in
+each dimension.
+
+If no attachment is set in :data:`shadingRateAttachment` this will be (1,1).
+
+:type: Tuple[int,int]
+)");
+  rdcpair<uint32_t, uint32_t> shadingRateTexelSize = {1, 1};
 
   DOCUMENT(R"(If multiview is enabled, contains a list of view indices to be broadcast to during
 rendering.

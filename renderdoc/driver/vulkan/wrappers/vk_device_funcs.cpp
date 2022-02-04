@@ -2877,6 +2877,19 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         CHECK_PHYS_EXT_FEATURE(textureCompressionASTC_HDR);
       }
       END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceFragmentShadingRateFeaturesKHR,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR);
+      {
+        CHECK_PHYS_EXT_FEATURE(pipelineFragmentShadingRate);
+        CHECK_PHYS_EXT_FEATURE(primitiveFragmentShadingRate);
+        CHECK_PHYS_EXT_FEATURE(attachmentFragmentShadingRate);
+
+        m_FragmentShadingRate = (ext->pipelineFragmentShadingRate != VK_FALSE) ||
+                                (ext->primitiveFragmentShadingRate != VK_FALSE) ||
+                                (ext->attachmentFragmentShadingRate != VK_FALSE);
+      }
+      END_PHYS_EXT_CHECK();
     }
 
     if(availFeatures.depthClamp)

@@ -196,6 +196,15 @@ rdcarray<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(uint
       atts.back().attachment = (uint32_t)rpinfo.subpasses[subpass].fragmentDensityAttachment;
       atts.back().layout = rpinfo.subpasses[subpass].fragmentDensityLayout;
     }
+
+    int32_t sr = rpinfo.subpasses[subpass].shadingRateAttachment;
+
+    if(sr != -1)
+    {
+      atts.push_back({});
+      atts.back().attachment = (uint32_t)rpinfo.subpasses[subpass].shadingRateAttachment;
+      atts.back().layout = rpinfo.subpasses[subpass].shadingRateLayout;
+    }
   }
 
   for(size_t i = 0; i < atts.size(); i++)
@@ -301,6 +310,12 @@ rdcarray<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(uint
       if((uint32_t)rpinfo.subpasses[s - 1].fragmentDensityAttachment == idx)
       {
         barrier.oldLayout = rpinfo.subpasses[s - 1].fragmentDensityLayout;
+        break;
+      }
+
+      if((uint32_t)rpinfo.subpasses[s - 1].shadingRateAttachment == idx)
+      {
+        barrier.oldLayout = rpinfo.subpasses[s - 1].shadingRateLayout;
         break;
       }
     }
@@ -1386,7 +1401,24 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
               };
 
               if(renderstate.dynamicRendering.fragmentDensityView != VK_NULL_HANDLE)
+              {
+                fragmentDensity.pNext = info.pNext;
                 info.pNext = &fragmentDensity;
+              }
+
+              VkRenderingFragmentShadingRateAttachmentInfoKHR shadingRate = {
+                  VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR,
+                  NULL,
+                  renderstate.dynamicRendering.shadingRateView,
+                  renderstate.dynamicRendering.shadingRateLayout,
+                  renderstate.dynamicRendering.shadingRateTexelSize,
+              };
+
+              if(renderstate.dynamicRendering.shadingRateView != VK_NULL_HANDLE)
+              {
+                shadingRate.pNext = info.pNext;
+                info.pNext = &shadingRate;
+              }
 
               byte *tempMem = GetTempMemory(GetNextPatchSize(&info));
               VkRenderingInfo *unwrappedInfo = UnwrapStructAndChain(m_State, tempMem, &info);
@@ -2942,6 +2974,12 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
             if(!pipeInfo.dynamicStates[VkDynamicDiscardRectangleEXT])
             {
               renderstate.discardRectangles = pipeInfo.discardRectangles;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicShadingRateKHR])
+            {
+              renderstate.pipelineShadingRate = pipeInfo.shadingRate;
+              renderstate.shadingRateCombiners[0] = pipeInfo.shadingRateCombiners[0];
+              renderstate.shadingRateCombiners[1] = pipeInfo.shadingRateCombiners[1];
             }
             if(!pipeInfo.dynamicStates[VkDynamicLineStippleEXT])
             {
@@ -6702,6 +6740,19 @@ bool WrappedVulkan::Serialise_vkCmdBeginRendering(SerialiserType &ser, VkCommand
                 fragmentDensityAttachment->imageLayout;
           }
 
+          VkRenderingFragmentShadingRateAttachmentInfoKHR *shadingRateAttachment =
+              (VkRenderingFragmentShadingRateAttachmentInfoKHR *)FindNextStruct(
+                  &RenderingInfo,
+                  VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR);
+
+          if(shadingRateAttachment)
+          {
+            renderstate.dynamicRendering.shadingRateView = shadingRateAttachment->imageView;
+            renderstate.dynamicRendering.shadingRateLayout = shadingRateAttachment->imageLayout;
+            renderstate.dynamicRendering.shadingRateTexelSize =
+                shadingRateAttachment->shadingRateAttachmentTexelSize;
+          }
+
           rdcarray<ResourceId> attachments;
 
           for(size_t i = 0; i < renderstate.dynamicRendering.color.size(); i++)
@@ -6833,6 +6884,19 @@ bool WrappedVulkan::Serialise_vkCmdBeginRendering(SerialiserType &ser, VkCommand
         {
           renderstate.dynamicRendering.fragmentDensityView = fragmentDensityAttachment->imageView;
           renderstate.dynamicRendering.fragmentDensityLayout = fragmentDensityAttachment->imageLayout;
+        }
+
+        VkRenderingFragmentShadingRateAttachmentInfoKHR *shadingRateAttachment =
+            (VkRenderingFragmentShadingRateAttachmentInfoKHR *)FindNextStruct(
+                &RenderingInfo,
+                VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR);
+
+        if(shadingRateAttachment)
+        {
+          renderstate.dynamicRendering.shadingRateView = shadingRateAttachment->imageView;
+          renderstate.dynamicRendering.shadingRateLayout = shadingRateAttachment->imageLayout;
+          renderstate.dynamicRendering.shadingRateTexelSize =
+              shadingRateAttachment->shadingRateAttachmentTexelSize;
         }
 
         rdcarray<ResourceId> attachments;

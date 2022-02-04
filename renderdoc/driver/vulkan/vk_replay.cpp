@@ -1375,6 +1375,34 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       default: break;
     }
 
+    ret.rasterizer.pipelineShadingRate = {state.pipelineShadingRate.width,
+                                          state.pipelineShadingRate.height};
+
+    ShadingRateCombiner combiners[2] = {};
+    for(int i = 0; i < 2; i++)
+    {
+      switch(state.shadingRateCombiners[i])
+      {
+        default:
+        case VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR:
+          combiners[i] = ShadingRateCombiner::Keep;
+          break;
+        case VK_FRAGMENT_SHADING_RATE_COMBINER_OP_REPLACE_KHR:
+          combiners[i] = ShadingRateCombiner::Replace;
+          break;
+        case VK_FRAGMENT_SHADING_RATE_COMBINER_OP_MIN_KHR:
+          combiners[i] = ShadingRateCombiner::Min;
+          break;
+        case VK_FRAGMENT_SHADING_RATE_COMBINER_OP_MAX_KHR:
+          combiners[i] = ShadingRateCombiner::Max;
+          break;
+        case VK_FRAGMENT_SHADING_RATE_COMBINER_OP_MUL_KHR:
+          combiners[i] = ShadingRateCombiner::Multiply;
+          break;
+      }
+    }
+    ret.rasterizer.shadingRateCombiners = {combiners[0], combiners[1]};
+
     ret.rasterizer.lineRasterMode = LineRaster::Default;
 
     // "VK_LINE_RASTERIZATION_MODE_DEFAULT_EXT is equivalent to
@@ -1666,6 +1694,34 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       rpState.fragmentDensityAttachment = -1;
     }
 
+    if(dyn.shadingRateView != VK_NULL_HANDLE)
+    {
+      fbState.attachments.push_back({});
+
+      ResourceId viewid = GetResID(dyn.shadingRateView);
+
+      fbState.attachments.back().viewResourceId = rm->GetOriginalID(viewid);
+      ret.currentPass.framebuffer.attachments[attIdx].imageResourceId =
+          rm->GetOriginalID(c.m_ImageView[viewid].image);
+
+      fbState.attachments.back().viewFormat = MakeResourceFormat(c.m_ImageView[viewid].format);
+      fbState.attachments.back().firstMip = c.m_ImageView[viewid].range.baseMipLevel;
+      fbState.attachments.back().firstSlice = c.m_ImageView[viewid].range.baseArrayLayer;
+      fbState.attachments.back().numMips = c.m_ImageView[viewid].range.levelCount;
+      fbState.attachments.back().numSlices = c.m_ImageView[viewid].range.layerCount;
+
+      Convert(fbState.attachments.back().swizzle, c.m_ImageView[viewid].componentMapping);
+
+      rpState.shadingRateAttachment = int32_t(attIdx++);
+      rpState.shadingRateTexelSize = {dyn.shadingRateTexelSize.width,
+                                      dyn.shadingRateTexelSize.height};
+    }
+    else
+    {
+      rpState.shadingRateAttachment = -1;
+      rpState.shadingRateTexelSize = {1, 1};
+    }
+
     rpState.multiviews.clear();
     for(uint32_t v = 0; v < 32; v++)
     {
@@ -1692,6 +1748,11 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
         c.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].depthstencilResolveAttachment;
     ret.currentPass.renderpass.fragmentDensityAttachment =
         c.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].fragmentDensityAttachment;
+    ret.currentPass.renderpass.shadingRateAttachment =
+        c.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].shadingRateAttachment;
+    VkExtent2D texelSize =
+        c.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].shadingRateTexelSize;
+    ret.currentPass.renderpass.shadingRateTexelSize = {texelSize.width, texelSize.height};
 
     ret.currentPass.renderpass.multiviews =
         c.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].multiviews;
@@ -1764,6 +1825,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     ret.currentPass.renderpass.depthstencilAttachment = -1;
     ret.currentPass.renderpass.depthstencilResolveAttachment = -1;
     ret.currentPass.renderpass.fragmentDensityAttachment = -1;
+    ret.currentPass.renderpass.shadingRateAttachment = -1;
+    ret.currentPass.renderpass.shadingRateTexelSize = {1, 1};
 
     ret.currentPass.framebuffer.resourceId = ResourceId();
     ret.currentPass.framebuffer.attachments.clear();

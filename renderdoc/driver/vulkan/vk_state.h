@@ -228,7 +228,17 @@ struct VulkanRenderState
 
     VkImageView fragmentDensityView = VK_NULL_HANDLE;
     VkImageLayout fragmentDensityLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+    VkImageView shadingRateView = VK_NULL_HANDLE;
+    VkImageLayout shadingRateLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    VkExtent2D shadingRateTexelSize = {1, 1};
   } dynamicRendering;
+
+  // shading rate
+  VkExtent2D pipelineShadingRate = {1, 1};
+  VkFragmentShadingRateCombinerOpKHR shadingRateCombiners[2] = {
+      VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR, VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR,
+  };
 
 private:
   ResourceId renderPass;

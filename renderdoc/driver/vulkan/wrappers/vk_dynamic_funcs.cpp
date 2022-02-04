@@ -1878,6 +1878,73 @@ void WrappedVulkan::vkCmdSetRasterizerDiscardEnable(VkCommandBuffer commandBuffe
   }
 }
 
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdSetFragmentShadingRateKHR(
+    SerialiserType &ser, VkCommandBuffer commandBuffer, const VkExtent2D *pFragmentSize,
+    const VkFragmentShadingRateCombinerOpKHR combinerOps[2])
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT_OPT(pFragmentSize).Important();
+  SERIALISE_ELEMENT_ARRAY(combinerOps, 4).Important();
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        {
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          renderstate.pipelineShadingRate = *pFragmentSize;
+          renderstate.shadingRateCombiners[0] = combinerOps[0];
+          renderstate.shadingRateCombiners[1] = combinerOps[1];
+        }
+      }
+      else
+      {
+        commandBuffer = VK_NULL_HANDLE;
+      }
+    }
+
+    if(commandBuffer != VK_NULL_HANDLE)
+      ObjDisp(commandBuffer)
+          ->CmdSetFragmentShadingRateKHR(Unwrap(commandBuffer), pFragmentSize, combinerOps);
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdSetFragmentShadingRateKHR(
+    VkCommandBuffer commandBuffer, const VkExtent2D *pFragmentSize,
+    const VkFragmentShadingRateCombinerOpKHR combinerOps[2])
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)
+          ->CmdSetFragmentShadingRateKHR(Unwrap(commandBuffer), pFragmentSize, combinerOps));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetFragmentShadingRateKHR);
+    Serialise_vkCmdSetFragmentShadingRateKHR(ser, commandBuffer, pFragmentSize, combinerOps);
+
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
+  }
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetViewport, VkCommandBuffer commandBuffer,
                                 uint32_t firstViewport, uint32_t viewportCount,
                                 const VkViewport *pViewports);
@@ -1965,3 +2032,7 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetPrimitiveRestartEnable, VkCommandB
                                 VkBool32 primitiveRestartEnable);
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetRasterizerDiscardEnable,
                                 VkCommandBuffer commandBuffer, VkBool32 rasterizerDiscardEnable);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetFragmentShadingRateKHR, VkCommandBuffer commandBuffer,
+                                const VkExtent2D *pFragmentSize,
+                                const VkFragmentShadingRateCombinerOpKHR combinerOps[2]);

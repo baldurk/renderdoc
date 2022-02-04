@@ -515,6 +515,19 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
       scissors[i] = pCreateInfo->pViewportState->pScissors[i];
   }
 
+  // VkPipelineFragmentShadingRateStateCreateInfoKHR
+  shadingRate = {1, 1};
+  shadingRateCombiners[0] = shadingRateCombiners[1] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR;
+  const VkPipelineFragmentShadingRateStateCreateInfoKHR *shadingRateInfo =
+      (const VkPipelineFragmentShadingRateStateCreateInfoKHR *)FindNextStruct(
+          pCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_FRAGMENT_SHADING_RATE_STATE_CREATE_INFO_KHR);
+  if(shadingRateInfo)
+  {
+    shadingRate = shadingRateInfo->fragmentSize;
+    shadingRateCombiners[0] = shadingRateInfo->combinerOps[0];
+    shadingRateCombiners[1] = shadingRateInfo->combinerOps[1];
+  }
+
   // VkPipelineDiscardRectangleStateCreateInfoEXT
   discardMode = VK_DISCARD_RECTANGLE_MODE_EXCLUSIVE_EXT;
 
@@ -1048,6 +1061,7 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
              ? depthstencilResolve->pDepthStencilResolveAttachment->attachment
              : -1);
 
+    // VK_EXT_fragment_density_map
     dst.fragmentDensityAttachment =
         (fragmentDensity &&
                  fragmentDensity->fragmentDensityMapAttachment.attachment != VK_ATTACHMENT_UNUSED
@@ -1059,6 +1073,25 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
                  fragmentDensity->fragmentDensityMapAttachment.attachment != VK_ATTACHMENT_UNUSED
              ? fragmentDensity->fragmentDensityMapAttachment.layout
              : VK_IMAGE_LAYOUT_UNDEFINED);
+
+    // VK_KHR_fragment_shading_rate
+    const VkFragmentShadingRateAttachmentInfoKHR *shadingRate =
+        (const VkFragmentShadingRateAttachmentInfoKHR *)FindNextStruct(
+            &src, VK_STRUCTURE_TYPE_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR);
+    dst.shadingRateAttachment =
+        (shadingRate && shadingRate->pFragmentShadingRateAttachment &&
+                 shadingRate->pFragmentShadingRateAttachment->attachment != VK_ATTACHMENT_UNUSED
+             ? shadingRate->pFragmentShadingRateAttachment->attachment
+             : -1);
+
+    dst.shadingRateLayout =
+        (shadingRate && shadingRate->pFragmentShadingRateAttachment &&
+                 shadingRate->pFragmentShadingRateAttachment->attachment != VK_ATTACHMENT_UNUSED
+             ? shadingRate->pFragmentShadingRateAttachment->layout
+             : VK_IMAGE_LAYOUT_UNDEFINED);
+
+    dst.shadingRateTexelSize =
+        shadingRate ? shadingRate->shadingRateAttachmentTexelSize : VkExtent2D({1, 1});
 
     for(uint32_t i = 0; i < 32; i++)
     {
