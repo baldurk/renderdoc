@@ -1454,7 +1454,7 @@ void ReplayProxy::Proxied_ReplaceResource(ParamSerialiser &paramser, ReturnSeria
   }
 
   if(paramser.IsWriting())
-    m_LiveIDs.erase(from);
+    m_LiveIDs.clear();
 
   SERIALISE_RETURN_VOID();
 }
@@ -1484,7 +1484,7 @@ void ReplayProxy::Proxied_RemoveReplacement(ParamSerialiser &paramser, ReturnSer
   }
 
   if(paramser.IsWriting())
-    m_LiveIDs.erase(id);
+    m_LiveIDs.clear();
 
   SERIALISE_RETURN_VOID();
 }
