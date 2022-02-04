@@ -1566,13 +1566,13 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
   if(m_pDevice->GetShaderCache()->GetShaderBlob(vsProgram.c_str(), "main", flags, {}, "vs_5_1",
                                                 &vsBlob) != "")
   {
-    RDCERR("Failed to create shader to extract inputs");
+    RDCERR("Failed to create vertex shader for CalculateSampleGather");
     return false;
   }
   if(m_pDevice->GetShaderCache()->GetShaderBlob(psProgram.c_str(), "main", flags, {}, "ps_5_1",
                                                 &psBlob) != "")
   {
-    RDCERR("Failed to create shader to extract inputs");
+    RDCERR("Failed to create pixel shader for CalculateSampleGather");
     SAFE_RELEASE(vsBlob);
     return false;
   }
@@ -1588,10 +1588,39 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
   WrappedID3D12RootSignature *pRootSig =
       m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(sigId);
 
+  // The root signature may deny access for certain shader types which will cause the
+  // PSO creation to fail, so ensure that VS/PS are allowed
+  D3D12RootSignature modsig = pRootSig->sig;
+  modsig.Flags &= ~(D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS |
+                    D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS);
+
+  ID3DBlob *pModifiedRoot = m_pDevice->GetShaderCache()->MakeRootSig(modsig);
+  if(!pModifiedRoot)
+  {
+    RDCERR("Failed to create root signature for CalculateSampleGather");
+    SAFE_RELEASE(vsBlob);
+    SAFE_RELEASE(psBlob);
+    return false;
+  }
+  ID3D12RootSignature *pModifiedRootSignature = NULL;
+  HRESULT hr = m_pDevice->CreateRootSignature(
+      0, pModifiedRoot->GetBufferPointer(), pModifiedRoot->GetBufferSize(),
+      __uuidof(ID3D12RootSignature), (void **)&pModifiedRootSignature);
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to create root signature for CalculateSampleGather HRESULT: %s",
+           ToStr(hr).c_str());
+    SAFE_RELEASE(pModifiedRoot);
+    SAFE_RELEASE(vsBlob);
+    SAFE_RELEASE(psBlob);
+    return false;
+  }
+  SAFE_RELEASE(pModifiedRoot);
+
   D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeDesc;
   ZeroMemory(&pipeDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 
-  pipeDesc.pRootSignature = pRootSig;
+  pipeDesc.pRootSignature = pModifiedRootSignature;
 
   pipeDesc.VS.BytecodeLength = vsBlob->GetBufferSize();
   pipeDesc.VS.pShaderBytecode = vsBlob->GetBufferPointer();
@@ -1610,8 +1639,8 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
   pipeDesc.SampleDesc.Count = 1;
 
   ID3D12PipelineState *samplePso = NULL;
-  HRESULT hr = m_pDevice->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
-                                                      (void **)&samplePso);
+  hr = m_pDevice->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
+                                              (void **)&samplePso);
   SAFE_RELEASE(vsBlob);
   SAFE_RELEASE(psBlob);
   if(FAILED(hr))
@@ -1629,14 +1658,13 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
   rs.views.push_back({0, 0, 1, 1, 0, 1});
   rs.scissors.clear();
   rs.scissors.push_back({0, 0, 1, 1});
-  if(isCompute)
-  {
-    // When debugging compute, we need to move the root sig and elems to the graphics portion
-    rs.graphics.rootsig = sigId;
-    rs.graphics.sigelems = rs.compute.sigelems;
-    rs.compute.rootsig = ResourceId();
-    rs.compute.sigelems.clear();
-  }
+
+  // Set our modified root signature, and transfer sigelems if we're debugging a compute shader
+  rs.graphics.rootsig = GetResID(pModifiedRootSignature);
+  rs.graphics.sigelems = isCompute ? rs.compute.sigelems : rs.graphics.sigelems;
+  rs.compute.rootsig = ResourceId();
+
+  rs.compute.sigelems.clear();
   rs.topo = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
   rs.ApplyState(m_pDevice, cmdList);
 
