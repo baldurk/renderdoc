@@ -2391,6 +2391,25 @@ struct Vec4u;
 
 void GetYUVShaderParameters(VkFormat f, Vec4u &YUVDownsampleRate, Vec4u &YUVAChannels);
 
+// The shape of blocks in (a plane of) an image format.
+// Non-block formats are considered to have 1x1 blocks.
+// For some planar formats, the block shape depends on the plane--
+// e.g. VK_FORMAT_G8_B8R8_2PLANE_422_UNORM has 8 bits per 1x1 block in plane 0, but 16 bits per 1x1
+// block in plane 1.
+struct BlockShape
+{
+  // the width of a block, in texels (or 1 for non-block formats)
+  uint32_t width;
+
+  // the height of a block, in texels (or 1 for non-block formats)
+  uint32_t height;
+
+  // the number of bytes used to encode the block
+  uint32_t bytes;
+};
+
+BlockShape GetBlockShape(VkFormat Format, uint32_t plane);
+
 uint32_t GetByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFormat Format, uint32_t mip);
 uint32_t GetPlaneByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFormat Format,
                           uint32_t mip, uint32_t plane);

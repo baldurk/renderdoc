@@ -188,4 +188,5 @@ private:
   VkDescriptorSet m_DiscardSet[(size_t)DiscardType::Count] = {};
   GPUBuffer m_DiscardCB[(size_t)DiscardType::Count];
   std::map<rdcpair<VkFormat, DiscardType>, VkBuffer> m_DiscardPatterns;
+  std::map<rdcpair<VkFormat, DiscardType>, GPUBuffer> m_DiscardStage;
 };

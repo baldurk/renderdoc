@@ -816,6 +816,8 @@ VulkanDebugManager::~VulkanDebugManager()
 
   for(auto it = m_DiscardPatterns.begin(); it != m_DiscardPatterns.end(); it++)
     m_pDriver->vkDestroyBuffer(dev, it->second, NULL);
+  for(auto it = m_DiscardStage.begin(); it != m_DiscardStage.end(); it++)
+    it->second.Destroy();
 
   for(size_t i = 0; i < ARRAY_COUNT(m_DepthMS2ArrayPipe); i++)
     m_pDriver->vkDestroyPipeline(dev, m_DepthMS2ArrayPipe[i], NULL);
@@ -2119,37 +2121,6 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
 
     DoPipelineBarrier(cmd, 1, &dstimBarrier);
 
-    /*
-    for(UINT sub = 0; sub < region->NumSubresources; sub++)
-    {
-      UINT subresource = region->FirstSubresource + sub;
-      if(depth)
-      {
-        dsvDesc.Texture2DMSArray.FirstArraySlice = GetSliceForSubresource(res, subresource);
-        m_pDevice->CreateDepthStencilView(res, &dsvDesc, dsv);
-        cmd->OMSetRenderTargets(0, NULL, FALSE, &dsv);
-      }
-      else
-      {
-        rtvDesc.Texture2DMSArray.FirstArraySlice = GetSliceForSubresource(res, subresource);
-        m_pDevice->CreateRenderTargetView(res, &rtvDesc, rtv);
-        cmd->OMSetRenderTargets(1, &rtv, FALSE, NULL);
-      }
-
-      UINT mip = GetMipForSubresource(res, subresource);
-      UINT plane = GetPlaneForSubresource(res, subresource);
-
-      for(D3D12_RECT r : rects)
-      {
-        r.right = RDCMIN(LONG(RDCMAX(1U, (UINT)desc.Width >> mip)), r.right);
-        r.bottom = RDCMIN(LONG(RDCMAX(1U, (UINT)desc.Height >> mip)), r.bottom);
-
-        cmd->RSSetScissorRects(1, &r);
-
-      }
-    }
-    */
-
     m_pDriver->GetCmdRenderState().BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics,
                                                 false);
 
@@ -2164,15 +2135,33 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
   VkBuffer buf = m_DiscardPatterns[key];
   VkResult vkr = VK_SUCCESS;
 
+  static const uint32_t PatternBatchWidth = 256;
+  static const uint32_t PatternBatchHeight = 256;
+
+  VkImageAspectFlags aspectFlags = discardRange.aspectMask & FormatImageAspects(imInfo.format);
+
   if(buf == VK_NULL_HANDLE)
   {
+    GPUBuffer &stage = m_DiscardStage[key];
     bytebuf pattern = GetDiscardPattern(key.second, MakeResourceFormat(key.first));
 
+    BlockShape shape = GetBlockShape(key.first, 0);
+
+    if(key.first == VK_FORMAT_D32_SFLOAT_S8_UINT)
+      shape = {1, 1, 4};
+
+    stage.Create(m_pDriver, m_Device, pattern.size(), 1, 0);
+
+    void *ptr = stage.Map();
+    if(!ptr)
+      return;
+    memcpy(ptr, pattern.data(), pattern.size());
+    stage.Unmap();
+
     VkBufferCreateInfo bufInfo = {
-        VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-        NULL,
-        0,
-        pattern.size(),
+        VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL, 0,
+        pattern.size() * (PatternBatchWidth / DiscardPatternWidth) *
+            (PatternBatchHeight / DiscardPatternHeight),
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
     };
 
@@ -2188,7 +2177,45 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
     vkr = vt->BindBufferMemory(Unwrap(dev), Unwrap(buf), Unwrap(alloc.mem), alloc.offs);
     CheckVkResult(vkr);
 
-    vt->CmdUpdateBuffer(Unwrap(cmd), Unwrap(buf), 0, pattern.size(), pattern.data());
+    rdcarray<VkBufferCopy> bufRegions;
+    VkBufferCopy bufCopy;
+    // copy one row at a time (row of blocks, for blocks)
+    bufCopy.size = shape.bytes * DiscardPatternWidth / shape.width;
+
+    const uint32_t numHorizBatches = PatternBatchWidth / DiscardPatternWidth;
+
+    for(uint32_t y = 0; y < PatternBatchHeight / shape.height; y++)
+    {
+      // copy from the rows sequentially
+      bufCopy.srcOffset = bufCopy.size * (y % (DiscardPatternHeight / shape.height));
+      for(uint32_t x = 0; x < numHorizBatches; x++)
+      {
+        bufCopy.dstOffset = y * bufCopy.size * numHorizBatches + x * bufCopy.size;
+        bufRegions.push_back(bufCopy);
+      }
+    }
+
+    // copy byte-packed second stencil pattern afterwards
+    if(aspectFlags & VK_IMAGE_ASPECT_STENCIL_BIT)
+    {
+      const VkDeviceSize srcDepthOffset = DiscardPatternWidth * DiscardPatternHeight * shape.bytes;
+      const VkDeviceSize dstDepthOffset = PatternBatchWidth * PatternBatchHeight * shape.bytes;
+
+      bufCopy.size = DiscardPatternWidth;
+      for(uint32_t y = 0; y < PatternBatchHeight; y++)
+      {
+        // copy from the rows sequentially. The source data is depth-pitched
+        bufCopy.srcOffset = srcDepthOffset + bufCopy.size * shape.bytes * (y % DiscardPatternHeight);
+        for(uint32_t x = 0; x < numHorizBatches; x++)
+        {
+          bufCopy.dstOffset = dstDepthOffset + y * bufCopy.size * numHorizBatches + x * bufCopy.size;
+          bufRegions.push_back(bufCopy);
+        }
+      }
+    }
+
+    vt->CmdCopyBuffer(Unwrap(cmd), Unwrap(stage.buf), Unwrap(buf), (uint32_t)bufRegions.size(),
+                      bufRegions.data());
 
     m_DiscardPatterns[key] = buf;
 
@@ -2206,8 +2233,6 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
 
     DoPipelineBarrier(cmd, 1, &bufBarrier);
   }
-
-  VkImageAspectFlags aspectFlags = discardRange.aspectMask & FormatImageAspects(imInfo.format);
 
   rdcarray<VkBufferImageCopy> mainCopies, stencilCopies;
 
@@ -2229,9 +2254,9 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
       {
         for(uint32_t z = 0; z < extent.depth; z++)
         {
-          for(uint32_t y = discardRect.offset.y; y < extent.height; y += DiscardPatternHeight)
+          for(uint32_t y = discardRect.offset.y; y < extent.height; y += PatternBatchHeight)
           {
-            for(uint32_t x = discardRect.offset.x; x < extent.width; x += DiscardPatternWidth)
+            for(uint32_t x = discardRect.offset.x; x < extent.width; x += PatternBatchWidth)
             {
               VkBufferImageCopy region = {
                   0,
@@ -2243,11 +2268,11 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
                   },
               };
 
-              region.imageExtent.width = RDCMIN(DiscardPatternWidth, extent.width - x);
-              region.imageExtent.height = RDCMIN(DiscardPatternHeight, extent.height - y);
+              region.imageExtent.width = RDCMIN(PatternBatchWidth, extent.width - x);
+              region.imageExtent.height = RDCMIN(PatternBatchHeight, extent.height - y);
               region.imageExtent.depth = 1;
 
-              region.bufferRowLength = DiscardPatternWidth;
+              region.bufferRowLength = PatternBatchWidth;
 
               // for depth/stencil copies, write depth first
               if(aspectFlags == (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT))
@@ -2259,9 +2284,11 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
               if(aspectFlags & VK_IMAGE_ASPECT_STENCIL_BIT)
               {
                 uint32_t depthStride = (imInfo.format == VK_FORMAT_D16_UNORM_S8_UINT ? 2 : 4);
+                VkDeviceSize depthOffset = PatternBatchWidth * PatternBatchHeight * depthStride;
+
                 // if it's a depth/stencil format, write stencil separately
-                region.bufferOffset = DiscardPatternWidth * DiscardPatternHeight * depthStride;
-                region.bufferRowLength = DiscardPatternWidth * depthStride;
+                region.bufferOffset = depthOffset;
+                region.bufferRowLength = PatternBatchWidth;
                 region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
 
                 stencilCopies.push_back(region);

@@ -42,7 +42,7 @@ RD_TEST(VK_Discard_Zoo, VulkanGraphicsTest)
        img.createInfo.format == VK_FORMAT_D24_UNORM_S8_UINT)
       range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
     else if(img.createInfo.format == VK_FORMAT_D32_SFLOAT ||
-            img.createInfo.format == VK_FORMAT_S8_UINT)
+            img.createInfo.format == VK_FORMAT_D16_UNORM)
       range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
     else if(img.createInfo.format == VK_FORMAT_S8_UINT)
       range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
@@ -109,7 +109,8 @@ RD_TEST(VK_Discard_Zoo, VulkanGraphicsTest)
     if(img.createInfo.format == VK_FORMAT_D32_SFLOAT_S8_UINT ||
        img.createInfo.format == VK_FORMAT_D24_UNORM_S8_UINT)
       range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
-    else if(img.createInfo.format == VK_FORMAT_D32_SFLOAT)
+    else if(img.createInfo.format == VK_FORMAT_D32_SFLOAT ||
+            img.createInfo.format == VK_FORMAT_D16_UNORM)
       range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
     else if(img.createInfo.format == VK_FORMAT_S8_UINT)
       range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
@@ -134,8 +135,9 @@ RD_TEST(VK_Discard_Zoo, VulkanGraphicsTest)
   AllocatedImage MakeTex2DMS(VkFormat fmt, uint32_t width, uint32_t height, uint32_t samples,
                              uint32_t arraySlices = 1)
   {
-    bool depth = (fmt == VK_FORMAT_D32_SFLOAT_S8_UINT || fmt == VK_FORMAT_D24_UNORM_S8_UINT ||
-                  fmt == VK_FORMAT_D32_SFLOAT || fmt == VK_FORMAT_S8_UINT);
+    bool depth = (fmt == VK_FORMAT_D32_SFLOAT_S8_UINT || fmt == VK_FORMAT_D32_SFLOAT ||
+                  fmt == VK_FORMAT_D24_UNORM_S8_UINT || fmt == VK_FORMAT_D16_UNORM ||
+                  fmt == VK_FORMAT_S8_UINT);
 
     return AllocatedImage(
         this, vkh::ImageCreateInfo(width, height, 0, fmt,
@@ -192,6 +194,11 @@ RD_TEST(VK_Discard_Zoo, VulkanGraphicsTest)
     vkGetPhysicalDeviceFormatProperties(phys, VK_FORMAT_D24_UNORM_S8_UINT, &props);
     if((props.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) == 0)
       d24s8 = false;
+
+    bool d16 = true;
+    vkGetPhysicalDeviceFormatProperties(phys, VK_FORMAT_D16_UNORM, &props);
+    if((props.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) == 0)
+      d16 = false;
 
     bool d32 = true;
     VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
@@ -442,6 +449,12 @@ RD_TEST(VK_Discard_Zoo, VulkanGraphicsTest)
         DiscardImage(cmd, tex);
       }
 
+      if(d16)
+      {
+        TEX_TEST("DiscardAll", MakeTex2D(VK_FORMAT_D16_UNORM, 300, 300));
+        DiscardImage(cmd, tex);
+      }
+
       TEX_TEST("DiscardAll", MakeTex2D(depthFormat, 300, 300, 5));
       DiscardImage(cmd, tex);
       TEX_TEST("DiscardAll", MakeTex2D(depthFormat, 300, 300, 1, 4));
@@ -454,9 +467,26 @@ RD_TEST(VK_Discard_Zoo, VulkanGraphicsTest)
       DiscardImage(cmd, tex);
       TEX_TEST("DiscardAll", MakeTex2D(depthStencilFormat, 300, 300, 5, 4));
       DiscardImage(cmd, tex);
+      TEX_TEST("DiscardAll", MakeTex2D(VK_FORMAT_S8_UINT, 300, 300, 5));
+      DiscardImage(cmd, tex);
+      TEX_TEST("DiscardAll", MakeTex2D(VK_FORMAT_S8_UINT, 300, 300, 1, 4));
+      DiscardImage(cmd, tex);
+      TEX_TEST("DiscardAll", MakeTex2D(VK_FORMAT_S8_UINT, 300, 300, 5, 4));
+      DiscardImage(cmd, tex);
       TEX_TEST("DiscardAll", MakeTex2DMS(depthStencilFormat, 300, 300, 4));
       DiscardImage(cmd, tex);
       TEX_TEST("DiscardAll", MakeTex2DMS(depthStencilFormat, 300, 300, 4, 5));
+      DiscardImage(cmd, tex);
+
+      // test large textures
+      uint32_t largeDim = 4096;
+      TEX_TEST("DiscardAll", MakeTex2D(VK_FORMAT_R16G16B16A16_SFLOAT, largeDim, largeDim));
+      DiscardImage(cmd, tex);
+      TEX_TEST("DiscardAll", MakeTex2D(VK_FORMAT_BC2_UNORM_BLOCK, largeDim, largeDim));
+      DiscardImage(cmd, tex);
+      TEX_TEST("DiscardAll", MakeTex2D(depthFormat, largeDim, largeDim));
+      DiscardImage(cmd, tex);
+      TEX_TEST("DiscardAll", MakeTex2D(depthStencilFormat, largeDim, largeDim));
       DiscardImage(cmd, tex);
 
       // if supported, test invalidating depth and stencil alone
