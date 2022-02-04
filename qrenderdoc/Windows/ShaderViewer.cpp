@@ -4101,7 +4101,9 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
             case VarType::Float: value += Formatter::Format(reg->value.f32v[r.component]); break;
             case VarType::Double: value += Formatter::Format(reg->value.f64v[r.component]); break;
             case VarType::Half: value += Formatter::Format(reg->value.f16v[r.component]); break;
-            case VarType::Bool: Formatter::Format(reg->value.u32v[r.component] ? true : false);
+            case VarType::Bool:
+              value += Formatter::Format(reg->value.u32v[r.component] ? true : false);
+              break;
             case VarType::ULong: value += Formatter::Format(reg->value.u64v[r.component]); break;
             case VarType::UInt: value += Formatter::Format(reg->value.u32v[r.component]); break;
             case VarType::UShort: value += Formatter::Format(reg->value.u16v[r.component]); break;
