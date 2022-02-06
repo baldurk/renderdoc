@@ -55,19 +55,35 @@ struct D3D12FeedbackBindIdentifier
   size_t rootEl;
   size_t rangeIndex;
   UINT descIndex;
+  ShaderStage shaderStage;    // Only used for direct access views
+  BindType bindType;          // Only used for direct access views
+  bool directAccess;
 
   bool operator<(const D3D12FeedbackBindIdentifier &o) const
   {
-    if(rootEl != o.rootEl)
-      return rootEl < o.rootEl;
-    if(rangeIndex != o.rangeIndex)
-      return rangeIndex < o.rangeIndex;
+    if(directAccess != o.directAccess)
+      return directAccess < o.directAccess;
+    if(!directAccess)
+    {
+      if(rootEl != o.rootEl)
+        return rootEl < o.rootEl;
+      if(rangeIndex != o.rangeIndex)
+        return rangeIndex < o.rangeIndex;
+    }
+    else
+    {
+      if(shaderStage != o.shaderStage)
+        return shaderStage < o.shaderStage;
+      if(bindType != o.bindType)
+        return bindType < o.bindType;
+    }
     return descIndex < o.descIndex;
   }
 
   bool operator==(const D3D12FeedbackBindIdentifier &o) const
   {
-    return rootEl == o.rootEl && rangeIndex == o.rangeIndex && descIndex == o.descIndex;
+    return rootEl == o.rootEl && rangeIndex == o.rangeIndex && descIndex == o.descIndex &&
+           directAccess == o.directAccess && shaderStage == o.shaderStage && bindType == o.bindType;
   }
 };
 
@@ -245,6 +261,7 @@ private:
                         const ShaderBindpointMapping *mappings[(uint32_t)ShaderStage::Count],
                         rdcarray<D3D12Pipe::RootSignatureRange> &rootElements);
   void FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor *desc);
+  void FillSampler(D3D12Pipe::Sampler &view, const D3D12_SAMPLER_DESC &desc);
 
   bool CreateSOBuffers();
   void ClearPostVSCache();

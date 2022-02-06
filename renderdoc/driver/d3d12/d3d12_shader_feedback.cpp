@@ -70,7 +70,20 @@ private:
 };
 
 static const uint32_t numReservedSlots = 4;
-static const uint32_t magicFeedbackValue = 0xbeebf33d;
+static const uint32_t magicFeedbackValue = 0xbeebf330;
+// keep the 4 lower bits to store the type of resource for direct heap access bindless
+static const uint32_t magicFeedbackTypeMask = 0x0000000f;
+
+static D3D12FeedbackKey GetDirectHeapAccessKey()
+{
+  Bindpoint bind;
+  bind.bind = -1;
+  bind.bindset = -1;
+  D3D12FeedbackKey key;
+  key.type = DXBCBytecode::OperandType::TYPE_RESOURCE;
+  key.bind = bind;
+  return key;
+}
 
 static bool AnnotateDXBCShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
                                const std::map<D3D12FeedbackKey, D3D12FeedbackSlot> &slots,
@@ -195,15 +208,80 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
 
   const DXIL::Type *handleType = editor.GetTypeByName("dx.types.Handle");
   const DXIL::Function *createHandle = editor.GetFunctionByName("dx.op.createHandle");
+  const DXIL::Function *createHandleFromBinding =
+      editor.GetFunctionByName("dx.op.createHandleFromBinding");
+  const DXIL::Function *createHandleFromHeap =
+      editor.GetFunctionByName("dx.op.createHandleFromHeap");
+  const DXIL::Function *annotateHandle = editor.GetFunctionByName("dx.op.annotateHandle");
+  bool isShaderModel6_6OrAbove =
+      dxbc->m_Version.Major > 6 || (dxbc->m_Version.Major == 6 && dxbc->m_Version.Minor >= 6);
 
   // if we don't have the handle type then this shader can't use any dynamically! we have no
   // feedback to get
-  if(!handleType || !createHandle)
+  if(!handleType || (!createHandle && !isShaderModel6_6OrAbove) ||
+     (isShaderModel6_6OrAbove && !createHandleFromHeap && !createHandleFromBinding))
     return false;
 
   const DXIL::Type *i32 = editor.GetInt32Type();
   const DXIL::Type *i8 = editor.GetInt8Type();
   const DXIL::Type *i1 = editor.GetBoolType();
+
+  // Create createHandleFromBinding we'll need to create the feedback UAV
+  if(!createHandleFromBinding && isShaderModel6_6OrAbove)
+  {
+    const DXIL::Type *resBindType = editor.GetTypeByName("dx.types.ResBind");
+    if(!resBindType)
+    {
+      DXIL::Type resBindTypeTmp;
+      resBindTypeTmp.type = DXIL::Type::Struct;
+      resBindTypeTmp.scalarType = DXIL::Type::Void;
+      resBindTypeTmp.name = "dx.types.ResBind";
+      resBindTypeTmp.members = {i32, i32, i32, i8};
+      resBindType = editor.AddType(resBindTypeTmp);
+    }
+
+    const DXIL::Type *funcType = NULL;
+    for(const DXIL::Type &type : editor.GetTypes())
+    {
+      if(type.type == DXIL::Type::Function && type.inner == handleType &&
+         type.members.size() == 4 && type.members[0] == i32 && type.members[1] == resBindType &&
+         type.members[2] == i32 && type.members[3] == i1)
+      {
+        funcType = &type;
+        break;
+      }
+    }
+
+    if(!funcType)
+    {
+      DXIL::Type funcTypeTmp;
+      funcTypeTmp.type = DXIL::Type::Function;
+      funcTypeTmp.inner = handleType;
+      funcTypeTmp.members = {i32, resBindType, i32, i1};
+      funcType = editor.AddType(funcTypeTmp);
+    }
+    DXIL::Type funcPtrType;
+    funcPtrType.type = DXIL::Type::Pointer;
+    funcPtrType.inner = funcType;
+
+    DXIL::Function createHandleBaseFunction;
+    createHandleBaseFunction.name = "dx.op.createHandleFromBinding";
+    createHandleBaseFunction.funcType = editor.AddType(funcPtrType);
+    createHandleBaseFunction.external = true;
+
+    for(const DXIL::AttributeSet &attrs : editor.GetAttributeSets())
+    {
+      if(attrs.functionSlot && attrs.functionSlot->params == DXIL::Attribute::NoUnwind)
+      {
+        createHandleBaseFunction.attrs = &attrs;
+        break;
+      }
+    }
+
+    if(!createHandleBaseFunction.attrs)
+      RDCWARN("Couldn't find existing nounwind attr set");
+    createHandleFromBinding = editor.DeclareFunction(createHandleBaseFunction);
+  }
 
   // get the atomic function we'll need
   const DXIL::Function *atomicBinOp = editor.GetFunctionByName("dx.op.atomicBinOp.i32");
@@ -284,7 +362,15 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
     }
 
     DXIL::Metadata *resources = editor.GetMetadataByName("dx.resources");
-
+    if(!resources)
+    {
+      DXIL::Metadata tmpResList;
+      tmpResList.children.resize(4);
+      DXIL::NamedMetadata tmpResources;
+      tmpResources.name = "dx.resources";
+      tmpResources.children.push_back(editor.AddMetadata(tmpResList));
+      resources = editor.AddNamedMetadata(tmpResources);
+    }
     // if there are no resources declared we can't have any dynamic indexing
     if(!resources)
       return false;
@@ -579,9 +665,14 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
     return false;
   }
 
+  // One ( and only one ) of createHandle or createHandleFromBinding should be defined
+  RDCASSERTNOTEQUAL(createHandle == NULL, createHandleFromBinding == NULL);
+  int startInst = 0;
   // create our handle first thing
-  DXIL::Instruction *handle;
+  DXIL::Instruction *handle = NULL;
+  if(createHandle)
   {
+    RDCASSERT(!isShaderModel6_6OrAbove);
     DXIL::Instruction inst;
     inst.op = DXIL::Operation::Call;
     inst.type = handleType;
@@ -599,7 +690,64 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
         DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i1, 0U))),
     };
 
-    handle = editor.AddInstruction(f, 0, inst);
+    handle = editor.AddInstruction(f, startInst++, inst);
+  }
+  else if(createHandleFromBinding)
+  {
+    RDCASSERT(isShaderModel6_6OrAbove);
+    const DXIL::Type *resBindType = editor.GetTypeByName("dx.types.ResBind");
+    DXIL::Constant resBindConstant(resBindType, 0U);
+    resBindConstant.members = {
+        // Lower id bound
+        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 0))),
+        // Upper id bound
+        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 0))),
+        // Space ID
+        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, space))),
+        // kind = UAV
+        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i8, (uint32_t)DXIL::HandleKind::UAV))),
+    };
+
+    DXIL::Instruction inst;
+    inst.op = DXIL::Operation::Call;
+    inst.type = handleType;
+    inst.funcCall = createHandleFromBinding;
+    inst.args = {
+        // dx.op.createHandleFromBinding opcode
+        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 217U))),
+        // resBind
+        DXIL::Value(editor.GetOrAddConstant(f, resBindConstant)),
+        // ID/slot
+        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 0U))),
+        // non-uniform
+        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i1, 0U))),
+    };
+
+    handle = editor.AddInstruction(f, startInst++, inst);
+
+    const DXIL::Type *resPropsType = editor.GetTypeByName("dx.types.ResourceProperties");
+    DXIL::Constant resPropConstant(resPropsType, 0U);
+    resPropConstant.members = {
+        // IsUav : (1 << 12)
+        DXIL::Value(editor.GetOrAddConstant(
+            f, DXIL::Constant(i32, (1 << 12) | (uint32_t)DXIL::ResourceKind::RawBuffer))),
+        //
+        DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 0))),
+    };
+
+    // Annotate handle
+    DXIL::Instruction inst2;
+    inst2.op = DXIL::Operation::Call;
+    inst2.type = handleType;
+    inst2.funcCall = editor.GetFunctionByName("dx.op.annotateHandle");
+    inst2.args = {// dx.op.annotateHandle opcode
+                  DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 216U))),
+                  // Resource handle
+                  DXIL::Value(handle),
+                  // Resource properties
+                  DXIL::Value(editor.GetOrAddConstant(f, resPropConstant))};
+
+    handle = editor.AddInstruction(f, startInst++, inst2);
   }
 
   const DXIL::Constant *undefi32;
@@ -633,41 +781,102 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
         DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, magicFeedbackValue))),
     };
 
-    editor.AddInstruction(f, 1, inst);
+    editor.AddInstruction(f, startInst++, inst);
   }
 
-  for(size_t i = 2; i < f->instructions.size(); i++)
+  for(size_t i = startInst; i < f->instructions.size(); i++)
   {
     const DXIL::Instruction &inst = f->instructions[i];
     // we want to annotate any calls to createHandle
-    if(inst.op == DXIL::Operation::Call && inst.funcCall->name == createHandle->name)
+    if(inst.op == DXIL::Operation::Call &&
+       ((createHandle && inst.funcCall->name == createHandle->name) ||
+        (createHandleFromBinding && inst.funcCall->name == createHandleFromBinding->name)))
     {
-      if(inst.args.size() != 5)
-      {
-        RDCERR("Unexpected number of arguments to createHandle");
-        continue;
-      }
-
-      DXIL::Value kindArg = inst.args[1];
-      DXIL::Value idArg = inst.args[2];
-      DXIL::Value idxArg = inst.args[3];
-
-      if(kindArg.type != DXIL::ValueType::Constant || idArg.type != DXIL::ValueType::Constant)
-      {
-        RDCERR("Unexpected non-constant argument to createHandle");
-        continue;
-      }
-
-      DXIL::HandleKind kind = (DXIL::HandleKind)kindArg.constant->val.u32v[0];
-      uint32_t id = idArg.constant->val.u32v[0];
-
+      DXIL::Value idxArg;
       rdcpair<uint32_t, int32_t> slotInfo = {0, 0};
+      if((createHandle && inst.funcCall->name == createHandle->name))
+      {
+        RDCASSERT(!isShaderModel6_6OrAbove);
+        if(inst.args.size() != 5)
+        {
+          RDCERR("Unexpected number of arguments to createHandle");
+          continue;
+        }
 
-      if(kind == DXIL::HandleKind::SRV && id < srvBaseSlots.size())
-        slotInfo = srvBaseSlots[id];
-      else if(kind == DXIL::HandleKind::UAV && id < uavBaseSlots.size())
-        slotInfo = uavBaseSlots[id];
+        DXIL::Value kindArg = inst.args[1];
+        DXIL::Value idArg = inst.args[2];
+        idxArg = inst.args[3];
 
+        if(kindArg.type != DXIL::ValueType::Constant || idArg.type != DXIL::ValueType::Constant)
+        {
+          RDCERR("Unexpected non-constant argument to createHandle");
+          continue;
+        }
+        DXIL::HandleKind kind = (DXIL::HandleKind)kindArg.constant->val.u32v[0];
+        uint32_t id = idArg.constant->val.u32v[0];
+        if(kind == DXIL::HandleKind::SRV && id < srvBaseSlots.size())
+          slotInfo = srvBaseSlots[id];
+        else if(kind == DXIL::HandleKind::UAV && id < uavBaseSlots.size())
+          slotInfo = uavBaseSlots[id];
+      }
+      else
+      {
+        RDCASSERT(isShaderModel6_6OrAbove);
+        if(inst.args.size() != 4)
+        {
+          RDCERR("Unexpected number of arguments to createHandleFromBinding");
+          continue;
+        }
+        DXIL::Value resBindArg = inst.args[1];
+        idxArg = inst.args[2];
+        if(resBindArg.type != DXIL::ValueType::Constant)
+        {
+          RDCERR("Unexpected non-constant argument to createHandleFromBinding");
+          continue;
+        }
+        if(resBindArg.constant->members.size() != 4 && !resBindArg.constant->nullconst)
+        {
+          RDCERR("Unexpected number of members to resBind");
+          continue;
+        }
+
+        D3D12FeedbackKey key;
+        if(resBindArg.constant->nullconst)
+        {
+          key.type = DXBCBytecode::TYPE_RESOURCE;
+          key.bind.bindset = 0;
+          key.bind.bind = 0;
+        }
+        else
+        {
+          DXIL::Value regArg = resBindArg.constant->members[0];
+          DXIL::Value spaceArg = resBindArg.constant->members[2];
+          DXIL::Value kindArg = resBindArg.constant->members[3];
+          if(regArg.type != DXIL::ValueType::Constant ||
+             spaceArg.type != DXIL::ValueType::Constant || kindArg.type != DXIL::ValueType::Constant)
+          {
+            RDCERR("Unexpected non-constant argument to createHandleFromBinding");
+            continue;
+          }
+
+          DXIL::HandleKind kind = (DXIL::HandleKind)kindArg.constant->val.u32v[0];
+          if(kind != DXIL::HandleKind::SRV && kind != DXIL::HandleKind::UAV)
+            continue;
+          key.type = kind == DXIL::HandleKind::UAV ? DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW
+                                                   : DXBCBytecode::TYPE_RESOURCE;
+          key.bind.bindset = spaceArg.constant->val.u32v[0];
+          key.bind.bind = regArg.constant->val.u32v[0];
+        }
+
+        auto it = slots.find(key);
+        // not annotated
+        if(it == slots.end())
+          continue;
+        // static used i.e. not arrayed? ignore
+        if(it->second.StaticUsed())
+          continue;
+        slotInfo = {it->second.Slot(), key.bind.bind};
+      }
       if(slotInfo.first == 0)
         continue;
 
@@ -732,6 +941,148 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
       editor.AddInstruction(f, i, op);
       i++;
     }
+    else if(inst.op == DXIL::Operation::Call && createHandleFromHeap &&
+            inst.funcCall->name == createHandleFromHeap->name)
+    {
+      RDCASSERT(isShaderModel6_6OrAbove);
+      if(inst.args.size() != 4)
+      {
+        RDCERR("Unexpected number of arguments to createHandleFromHeap");
+        continue;
+      }
+      DXIL::Value isSamplerArg = inst.args[2];
+      if(isSamplerArg.type != DXIL::ValueType::Constant)
+      {
+        RDCERR("Unexpected non-constant argument to createHandleFromHeap");
+        continue;
+      }
+      bool isSampler = isSamplerArg.constant->val.u32v[0] != 0;
+
+      D3D12FeedbackKey key = GetDirectHeapAccessKey();
+      auto it = slots.find(key);
+      if(it == slots.end())
+        continue;
+
+      // Look for annotation for the type of this view ( SRV/UAV/CBV/Sampler )
+      const DXIL::Instruction *annotateInst = NULL;
+      for(size_t nextInstIndex = i + 1; nextInstIndex < f->instructions.size(); nextInstIndex++)
+      {
+        const DXIL::Instruction &nextInst = f->instructions[nextInstIndex];
+        if(nextInst.op == DXIL::Operation::Call && annotateHandle &&
+           nextInst.funcCall->name == annotateHandle->name)
+        {
+          if(nextInst.args.size() != 3)
+          {
+            RDCERR("Unexpected number of arguments to annotateHandle");
+            continue;
+          }
+          DXIL::Value idxArg = nextInst.args[1];
+          DXIL::Value instValue(&inst);
+          if(idxArg.instruction->resultID == instValue.instruction->resultID)
+          {
+            annotateInst = &nextInst;
+            break;
+          }
+        }
+      }
+      if(annotateInst == NULL)
+      {
+        RDCERR("Unexpected, could not find annotateHandle for createHandleFromHeap");
+        continue;
+      }
+
+      DXIL::Value resPropArg = annotateInst->args[2];
+      if(resPropArg.type != DXIL::ValueType::Constant)
+      {
+        RDCERR("Unexpected non-constant argument for dx.types.ResourceProperties");
+        continue;
+      }
+      if(resPropArg.constant->members.size() != 2)
+      {
+        RDCERR("Unexpected number of arguments to dx.types.ResourceProperties");
+        continue;
+      }
+      DXIL::Value resKindArg = resPropArg.constant->members[0];
+      if(resKindArg.type != DXIL::ValueType::Constant)
+      {
+        RDCERR("Unexpected non-constant argument for dx.types.ResourceProperties's resource kind");
+        continue;
+      }
+      DXIL::HandleKind handleKind = DXIL::HandleKind::SRV;
+      DXIL::ResourceKind resKind = (DXIL::ResourceKind)(resKindArg.constant->val.u32v[0] & 0xFF);
+      bool isUav = (resKindArg.constant->val.u32v[0] & (1 << 12)) != 0;
+      if(resKind == DXIL::ResourceKind::Sampler || resKind == DXIL::ResourceKind::SamplerComparison)
+      {
+        handleKind = DXIL::HandleKind::Sampler;
+        RDCASSERT(isSampler);
+        RDCASSERT(!isUav);
+      }
+      else if(resKind == DXIL::ResourceKind::CBuffer)
+      {
+        handleKind = DXIL::HandleKind::CBuffer;
+        RDCASSERT(!isSampler);
+        RDCASSERT(!isUav);
+      }
+      else if(isUav)
+      {
+        handleKind = DXIL::HandleKind::UAV;
+        RDCASSERT(!isSampler);
+      }
+      else
+      {
+        handleKind = DXIL::HandleKind::SRV;
+        RDCASSERT(!isSampler);
+      }
+
+      DXIL::Value idxArg = inst.args[1];
+      DXIL::Instruction op;
+
+      op.op = DXIL::Operation::Add;
+      op.type = i32;
+      op.args = {
+          // idx to the createHandleFromHeap op
+          DXIL::Value(idxArg),
+          // base slot
+          DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, it->second.Slot()))),
+      };
+      // slotPlusBase = idx0Based + slot
+      DXIL::Instruction *slotPlusBase = editor.AddInstruction(f, i, op);
+      i++;
+
+      op.op = DXIL::Operation::ShiftLeft;
+      op.type = i32;
+      op.args = {
+          DXIL::Value(slotPlusBase), DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 2U))),
+      };
+      // byteOffset = slotPlusBase << 2
+      DXIL::Instruction *byteOffset = editor.AddInstruction(f, i, op);
+      i++;
+
+      uint32_t feedbackValue = magicFeedbackValue | (1 << (uint32_t)handleKind);
+      op.op = DXIL::Operation::Call;
+      op.type = i32;
+      op.funcCall = atomicBinOp;
+      op.args = {
+          // dx.op.atomicBinOp.i32 opcode
+          DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 78U))),
+          // feedback UAV handle
+          DXIL::Value(handle),
+          // operation OR
+          DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, 2U))),
+          // offset
+          DXIL::Value(byteOffset),
+          // offset 2
+          DXIL::Value(undefi32),
+          // offset 3
+          DXIL::Value(undefi32),
+          // value
+          DXIL::Value(editor.GetOrAddConstant(f, DXIL::Constant(i32, feedbackValue))),
+      };
+
+      // don't care about the return value from this
+      editor.AddInstruction(f, i, op);
+      i++;
+    }
   }
 
   return true;
@@ -740,7 +1091,7 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
 static void AddArraySlots(WrappedID3D12PipelineState::ShaderEntry *shad, uint32_t space,
                           uint32_t maxDescriptors,
                           std::map<D3D12FeedbackKey, D3D12FeedbackSlot> &slots, uint32_t &numSlots,
-                          bytebuf &editedBlob, D3D12_SHADER_BYTECODE &desc)
+                          bytebuf &editedBlob, D3D12_SHADER_BYTECODE &desc, bool directHeapAccess)
 {
   if(!shad)
     return;
@@ -800,6 +1151,21 @@ static void AddArraySlots(WrappedID3D12PipelineState::ShaderEntry *shad, uint32_
 
       slots[key].SetStaticUsed();
     }
+  }
+
+  if(shad->GetDXBC()->m_Version.Major < 6 ||
+     (shad->GetDXBC()->m_Version.Major == 6 && shad->GetDXBC()->m_Version.Minor < 6))
+  {
+    directHeapAccess = false;
+  }
+  if(directHeapAccess)
+    directHeapAccess = shad->GetDXBC()->GetDXILByteCode()->GetDirectHeapAcessCount() > 0;
+
+  if(directHeapAccess)
+  {
+    D3D12FeedbackKey key = GetDirectHeapAccessKey();
+    slots[key].SetSlot(numSlots);
+    numSlots += maxDescriptors;
   }
 
   // if we haven't encountered any array slots, no need to do any patching
@@ -892,7 +1258,7 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
     return;
   }
 
-  bytebuf editedBlob[5];
+  bytebuf editedBlob[(uint32_t)ShaderStage::Count];
 
   D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC pipeDesc;
   pipe->Fill(pipeDesc);
@@ -902,17 +1268,14 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
   uint32_t maxDescriptors = 0;
   for(ResourceId id : rs.heaps)
   {
-    D3D12_DESCRIPTOR_HEAP_DESC desc = rm->GetCurrentAs<ID3D12DescriptorHeap>(id)->GetDesc();
-
-    if(desc.Type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
-    {
-      maxDescriptors = desc.NumDescriptors;
-      RDCDEBUG("Clamping any unbounded ranges to %u descriptors", maxDescriptors);
-      break;
-    }
+    WrappedID3D12DescriptorHeap *heap =
+        (WrappedID3D12DescriptorHeap *)rm->GetCurrentAs<ID3D12DescriptorHeap>(id);
+    D3D12_DESCRIPTOR_HEAP_DESC desc = heap->GetDesc();
+    maxDescriptors = RDCMAX(maxDescriptors, desc.NumDescriptors);
   }
+  RDCDEBUG("Clamping any unbounded ranges to %u descriptors", maxDescriptors);
 
-  std::map<D3D12FeedbackKey, D3D12FeedbackSlot> slots[6];
+  std::map<D3D12FeedbackKey, D3D12FeedbackSlot> slots[(uint32_t)ShaderStage::Count];
 
   // reserve the first 4 dwords for debug info and a validity flag
   uint32_t numSlots = numReservedSlots;
@@ -929,10 +1292,13 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
       return;
 
     modsig = ((WrappedID3D12RootSignature *)sig)->sig;
-
+    bool directHeapAccess =
+        (modsig.Flags & (D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED |
+                         D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED)) != 0;
     space = modsig.maxSpaceIndex;
 
-    AddArraySlots(pipe->CS(), space, maxDescriptors, slots[0], numSlots, editedBlob[0], pipeDesc.CS);
+    AddArraySlots(pipe->CS(), space, maxDescriptors, slots[(uint32_t)ShaderStage::Compute], numSlots,
+                  editedBlob[(uint32_t)ShaderStage::Compute], pipeDesc.CS, directHeapAccess);
   }
   else
   {
@@ -942,14 +1308,22 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
       return;
 
     modsig = ((WrappedID3D12RootSignature *)sig)->sig;
+    bool directHeapAccess =
+        (modsig.Flags & (D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED |
+                         D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED)) != 0;
 
     space = modsig.maxSpaceIndex;
 
-    AddArraySlots(pipe->VS(), space, maxDescriptors, slots[0], numSlots, editedBlob[0], pipeDesc.VS);
-    AddArraySlots(pipe->HS(), space, maxDescriptors, slots[1], numSlots, editedBlob[1], pipeDesc.HS);
-    AddArraySlots(pipe->DS(), space, maxDescriptors, slots[2], numSlots, editedBlob[2], pipeDesc.DS);
-    AddArraySlots(pipe->GS(), space, maxDescriptors, slots[3], numSlots, editedBlob[3], pipeDesc.GS);
-    AddArraySlots(pipe->PS(), space, maxDescriptors, slots[4], numSlots, editedBlob[4], pipeDesc.PS);
+    AddArraySlots(pipe->VS(), space, maxDescriptors, slots[(uint32_t)ShaderStage::Vertex], numSlots,
+                  editedBlob[uint32_t(ShaderStage::Vertex)], pipeDesc.VS, directHeapAccess);
+    AddArraySlots(pipe->HS(), space, maxDescriptors, slots[(uint32_t)ShaderStage::Hull], numSlots,
+                  editedBlob[uint32_t(ShaderStage::Hull)], pipeDesc.HS, directHeapAccess);
+    AddArraySlots(pipe->DS(), space, maxDescriptors, slots[(uint32_t)ShaderStage::Domain], numSlots,
+                  editedBlob[uint32_t(ShaderStage::Domain)], pipeDesc.DS, directHeapAccess);
+    AddArraySlots(pipe->GS(), space, maxDescriptors, slots[(uint32_t)ShaderStage::Geometry], numSlots,
+                  editedBlob[uint32_t(ShaderStage::Geometry)], pipeDesc.GS, directHeapAccess);
+    AddArraySlots(pipe->PS(), space, maxDescriptors, slots[(uint32_t)ShaderStage::Pixel], numSlots,
+                  editedBlob[uint32_t(ShaderStage::Pixel)], pipeDesc.PS, directHeapAccess);
   }
 
   // if numSlots wasn't increased, none of the resources were arrayed so we have nothing to do.
@@ -1143,12 +1517,20 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
             // see which shader's binds we should look up for this range
             switch(p.ShaderVisibility)
             {
-              case D3D12_SHADER_VISIBILITY_ALL: visMask = result.compute ? 0x1 : 0xff; break;
-              case D3D12_SHADER_VISIBILITY_VERTEX: visMask = 1 << 0; break;
-              case D3D12_SHADER_VISIBILITY_HULL: visMask = 1 << 1; break;
-              case D3D12_SHADER_VISIBILITY_DOMAIN: visMask = 1 << 2; break;
-              case D3D12_SHADER_VISIBILITY_GEOMETRY: visMask = 1 << 3; break;
-              case D3D12_SHADER_VISIBILITY_PIXEL: visMask = 1 << 4; break;
+              case D3D12_SHADER_VISIBILITY_ALL:
+                visMask = result.compute ? (uint32_t)ShaderStageMask::Compute : 0xff;
+                break;
+              case D3D12_SHADER_VISIBILITY_VERTEX:
+                visMask = (uint32_t)ShaderStageMask::Vertex;
+                break;
+              case D3D12_SHADER_VISIBILITY_HULL: visMask = (uint32_t)ShaderStageMask::Hull; break;
+              case D3D12_SHADER_VISIBILITY_DOMAIN:
+                visMask = (uint32_t)ShaderStageMask::Domain;
+                break;
+              case D3D12_SHADER_VISIBILITY_GEOMETRY:
+                visMask = (uint32_t)ShaderStageMask::Geometry;
+                break;
+              case D3D12_SHADER_VISIBILITY_PIXEL: visMask = uint32_t(ShaderStageMask::Pixel); break;
               default: RDCERR("Unexpected shader visibility %d", p.ShaderVisibility); return;
             }
 
@@ -1158,7 +1540,7 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
             else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
               curKey.type = DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW;
 
-            for(uint32_t st = 0; st < 5; st++)
+            for(uint32_t st = 0; st < (uint32_t)ShaderStage::Count; st++)
             {
               if(visMask & (1 << st))
               {
@@ -1213,6 +1595,51 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
                     slotIt++;
                 }
               }
+            }
+          }
+        }
+      }
+
+      D3D12FeedbackKey directAccessKey = GetDirectHeapAccessKey();
+      for(uint32_t shaderStage = 0; shaderStage < (uint32_t)ShaderStage::Count; shaderStage++)
+      {
+        if(slots[shaderStage].find(directAccessKey) == slots[shaderStage].end())
+          continue;
+        D3D12FeedbackSlot &feedbackSlots = slots[shaderStage].at(directAccessKey);
+        for(uint32_t i = feedbackSlots.Slot(); i < feedbackSlots.Slot() + maxDescriptors; ++i)
+        {
+          if((slotsData[i] & magicFeedbackValue) == magicFeedbackValue)
+          {
+            uint32_t usedSlot = i - feedbackSlots.Slot();
+            D3D12FeedbackBindIdentifier directAccessIdentifier = {};
+            directAccessIdentifier.descIndex = usedSlot;
+            directAccessIdentifier.rootEl = ~0U;
+            directAccessIdentifier.rangeIndex = ~0U;
+            directAccessIdentifier.directAccess = true;
+            directAccessIdentifier.shaderStage = (ShaderStage)shaderStage;
+            uint32_t handleKind = slotsData[i] & magicFeedbackTypeMask;
+            if((handleKind & (1 << (uint32_t)DXIL::HandleKind::Sampler)) != 0)
+            {
+              directAccessIdentifier.bindType = BindType::Sampler;
+              result.used.push_back(directAccessIdentifier);
+            }
+            bool isCBV = (handleKind & (1 << (uint32_t)DXIL::HandleKind::CBuffer)) != 0;
+            bool isSRV = (handleKind & (1 << (uint32_t)DXIL::HandleKind::SRV)) != 0;
+            bool isUAV = (handleKind & (1 << (uint32_t)DXIL::HandleKind::UAV)) != 0;
+            if(isCBV || isSRV || isUAV)
+            {
+              if((isCBV && isSRV) || (isCBV && isUAV) || (isSRV && isUAV))
+              {
+                RDCERR("Unexpected, resource used with multiple incompatible types");
+                continue;
+              }
+              if(isCBV)
+                directAccessIdentifier.bindType = BindType::ConstantBuffer;
+              else if(isSRV)
+                directAccessIdentifier.bindType = BindType::ReadOnlyResource;
+              else if(isUAV)
+                directAccessIdentifier.bindType = BindType::ReadWriteResource;
+              result.used.push_back(directAccessIdentifier);
             }
           }
         }

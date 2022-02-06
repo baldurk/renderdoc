@@ -932,6 +932,24 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor 
   }
 }
 
+void D3D12Replay::FillSampler(D3D12Pipe::Sampler &samp, const D3D12_SAMPLER_DESC &sampDesc)
+{
+  samp.addressU = MakeAddressMode(sampDesc.AddressU);
+  samp.addressV = MakeAddressMode(sampDesc.AddressV);
+  samp.addressW = MakeAddressMode(sampDesc.AddressW);
+
+  samp.borderColor = sampDesc.BorderColor;
+
+  samp.compareFunction = MakeCompareFunc(sampDesc.ComparisonFunc);
+  samp.filter = MakeFilter(sampDesc.Filter);
+  samp.maxAnisotropy = 0;
+  if(samp.filter.minify == FilterMode::Anisotropic)
+    samp.maxAnisotropy = sampDesc.MaxAnisotropy;
+  samp.maxLOD = sampDesc.MaxLOD;
+  samp.minLOD = sampDesc.MinLOD;
+  samp.mipLODBias = sampDesc.MipLODBias;
+}
+
 ShaderStageMask ToShaderStageMask(D3D12_SHADER_VISIBILITY vis)
 {
   switch(vis)
@@ -959,7 +977,7 @@ void D3D12Replay::FillRootElements(uint32_t eventId, const D3D12RenderState::Roo
 
   const D3D12FeedbackBindIdentifier *curUsage = usage.used.begin();
   const D3D12FeedbackBindIdentifier *lastUsage = usage.used.end();
-  D3D12FeedbackBindIdentifier curIdentifier;
+  D3D12FeedbackBindIdentifier curIdentifier = {};
 
   WrappedID3D12RootSignature *sig =
       m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(rootSig.rootsig);
@@ -1232,22 +1250,7 @@ void D3D12Replay::FillRootElements(uint32_t eventId, const D3D12RenderState::Roo
             if(desc)
             {
               const D3D12_SAMPLER_DESC &sampDesc = desc->GetSampler();
-
-              samp.addressU = MakeAddressMode(sampDesc.AddressU);
-              samp.addressV = MakeAddressMode(sampDesc.AddressV);
-              samp.addressW = MakeAddressMode(sampDesc.AddressW);
-
-              samp.borderColor = sampDesc.BorderColor;
-
-              samp.compareFunction = MakeCompareFunc(sampDesc.ComparisonFunc);
-              samp.filter = MakeFilter(sampDesc.Filter);
-              samp.maxAnisotropy = 0;
-              if(samp.filter.minify == FilterMode::Anisotropic)
-                samp.maxAnisotropy = sampDesc.MaxAnisotropy;
-              samp.maxLOD = sampDesc.MaxLOD;
-              samp.minLOD = sampDesc.MinLOD;
-              samp.mipLODBias = sampDesc.MipLODBias;
-
+              FillSampler(samp, sampDesc);
               desc++;
             }
           }
@@ -1353,6 +1356,82 @@ void D3D12Replay::FillRootElements(uint32_t eventId, const D3D12RenderState::Roo
           }
         }
       }
+    }
+  }
+  // direct heap access resources
+  {
+    D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
+    WrappedID3D12DescriptorHeap *resourceHeap = NULL;
+    WrappedID3D12DescriptorHeap *samplerHeap = NULL;
+    for(ResourceId id : rs.heaps)
+    {
+      WrappedID3D12DescriptorHeap *heap =
+          (WrappedID3D12DescriptorHeap *)rm->GetCurrentAs<ID3D12DescriptorHeap>(id);
+      D3D12_DESCRIPTOR_HEAP_DESC desc = heap->GetDesc();
+      if(desc.Type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
+        resourceHeap = heap;
+      else
+        samplerHeap = heap;
+    }
+
+    D3D12Pipe::RootSignatureRange *element = NULL;
+    while(curUsage < lastUsage && curUsage->directAccess)
+    {
+      ShaderStageMask visibility = (ShaderStageMask)(1 << (int)curUsage->shaderStage);
+      if(element == NULL || (element->visibility != visibility) ||
+         (element->type != curUsage->bindType))
+      {
+        rootElements.resize_for_index(ridx);
+        element = &rootElements[ridx++];
+        element->immediate = false;
+        element->rootSignatureIndex = ~0U;
+        element->type = curUsage->bindType;
+        element->visibility = visibility;
+        element->registerSpace = ~0U;
+        element->dynamicallyUsedCount = 0;
+        element->samplers.clear();
+        element->constantBuffers.clear();
+        element->views.clear();
+      }
+      if(curUsage->bindType == BindType::Sampler)
+      {
+        D3D12Descriptor *desc =
+            (D3D12Descriptor *)samplerHeap->GetCPUDescriptorHandleForHeapStart().ptr;
+        desc += curUsage->descIndex;
+        element->samplers.push_back(D3D12Pipe::Sampler());
+        D3D12Pipe::Sampler &samp = element->samplers.back();
+        const D3D12_SAMPLER_DESC &sampDesc = desc->GetSampler();
+        FillSampler(samp, sampDesc);
+        samp.tableIndex = curUsage->descIndex;
+        element->dynamicallyUsedCount++;
+      }
+      else if(curUsage->bindType == BindType::ConstantBuffer)
+      {
+        D3D12Descriptor *desc =
+            (D3D12Descriptor *)resourceHeap->GetCPUDescriptorHandleForHeapStart().ptr;
+        desc += curUsage->descIndex;
+        element->constantBuffers.push_back(D3D12Pipe::ConstantBuffer());
+        D3D12Pipe::ConstantBuffer &cb = element->constantBuffers.back();
+
+        const D3D12_CONSTANT_BUFFER_VIEW_DESC &cbv = desc->GetCBV();
+        WrappedID3D12Resource::GetResIDFromAddr(cbv.BufferLocation, cb.resourceId, cb.byteOffset);
+        cb.resourceId = rm->GetOriginalID(cb.resourceId);
+        cb.byteSize = cbv.SizeInBytes;
+        cb.tableIndex = curUsage->descIndex;
+        element->dynamicallyUsedCount++;
+      }
+      else
+      {
+        D3D12Descriptor *desc =
+            (D3D12Descriptor *)resourceHeap->GetCPUDescriptorHandleForHeapStart().ptr;
+        desc += curUsage->descIndex;
+        D3D12Pipe::View view;
+        FillResourceView(view, desc);
+        view.tableIndex = curUsage->descIndex;
+        element->views.push_back(view);
+        element->dynamicallyUsedCount++;
+      }
+      curUsage++;
     }
   }
 

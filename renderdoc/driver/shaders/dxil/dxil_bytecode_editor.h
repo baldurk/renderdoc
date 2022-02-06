@@ -76,6 +76,7 @@ public:
 
   const rdcarray<AttributeSet> &GetAttributeSets() { return m_AttributeSets; }
   // find existing type or metadata by name, returns NULL if not found
+  const rdcarray<Type> &GetTypes() const { return m_Types; }
   const Type *GetTypeByName(const rdcstr &name);
   Function *GetFunctionByName(const rdcstr &name);
   Metadata *GetMetadataByName(const rdcstr &name);
@@ -85,6 +86,7 @@ public:
   const Type *AddType(const Type &t);
   const Function *DeclareFunction(const Function &f);
   Metadata *AddMetadata(const Metadata &m);
+  NamedMetadata *AddNamedMetadata(const NamedMetadata &m);
 
   // I think constants have to be unique, so this will return an existing constant (for simple cases
   // like integers or NULL) if it exists

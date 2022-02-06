@@ -91,15 +91,19 @@ struct D3D12ViewTag
     OMDepth,
   };
 
-  D3D12ViewTag() : type(SRV), space(0), rootSignatureIndex(0), immediate(false) {}
+  D3D12ViewTag()
+      : type(SRV), space(0), rootSignatureIndex(0), immediate(false), directHeapAccess(false)
+  {
+  }
   D3D12ViewTag(ResType t, int s, int el, bool imm, const D3D12Pipe::View &rs)
-      : type(t), space(s), rootSignatureIndex(el), immediate(imm), res(rs)
+      : type(t), space(s), rootSignatureIndex(el), immediate(imm), directHeapAccess(false), res(rs)
   {
   }
 
   ResType type;
   int space, rootSignatureIndex;
   bool immediate;
+  bool directHeapAccess;
   D3D12Pipe::View res;
 };
 
@@ -731,9 +735,10 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view, const Bi
 {
   const D3D12Pipe::View &r = view.res;
   bool uav = view.type == D3D12ViewTag::UAV;
+  bool directHeapAccess = view.directHeapAccess;
 
   bool filledSlot = (r.resourceId != ResourceId());
-  bool usedSlot = (bind && bind->used && r.dynamicallyUsed);
+  bool usedSlot = (bind && bind->used && r.dynamicallyUsed) || directHeapAccess;
 
   // if a target is set to RTVs or DSV, it is implicitly used
   if(filledSlot)
@@ -751,6 +756,9 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view, const Bi
 
     if(view.type == D3D12ViewTag::OMDepth)
       regname = tr("Depth");
+
+    if(directHeapAccess)
+      regname = tr("");
 
     uint32_t w = 1, h = 1, d = 1;
     uint32_t a = 1;
@@ -847,12 +855,20 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view, const Bi
     }
     else
     {
-      QString rootel = view.immediate
-                           ? tr("#%1 Direct").arg(view.rootSignatureIndex)
-                           : tr("#%1 Table[%2]").arg(view.rootSignatureIndex).arg(r.tableIndex);
+      QString spaceStr;
+      if(!directHeapAccess)
+        spaceStr = QString::number(view.space);
+
+      QString rootel;
+      if(directHeapAccess)
+        rootel = tr("ResourceDescriptorHeap[%1]").arg(r.tableIndex);
+      else if(view.immediate)
+        rootel = tr("#%1 Direct").arg(view.rootSignatureIndex);
+      else
+        rootel = tr("#%1 Table[%2]").arg(view.rootSignatureIndex).arg(r.tableIndex);
 
       node = new RDTreeWidgetItem(
-          {rootel, view.space, regname, r.resourceId, typeName, w, h, d, a, format, QString()});
+          {rootel, spaceStr, regname, r.resourceId, typeName, w, h, d, a, format, QString()});
     }
 
     node->setTag(QVariant::fromValue(view));
@@ -1076,6 +1092,8 @@ void D3D12PipelineStateViewer::setShaderState(
     tag.rootSignatureIndex = rootElements[i].rootSignatureIndex;
     tag.immediate = rootElements[i].immediate;
 
+    bool directHeapAccess = rootElements[i].registerSpace == ~0U;
+
     switch(rootElements[i].type)
     {
       case BindType::ReadOnlyResource:
@@ -1092,6 +1110,19 @@ void D3D12PipelineStateViewer::setShaderState(
         tag.type = srv ? D3D12ViewTag::SRV : D3D12ViewTag::UAV;
 
         const rdcarray<D3D12Pipe::View> &views = rootElements[i].views;
+
+        // add direct heap access resources
+        if(directHeapAccess)
+        {
+          for(size_t view = 0; view < views.size(); ++view)
+          {
+            tag.space = -1;
+            tag.res = views[view];
+            tag.directHeapAccess = directHeapAccess;
+            addResourceRow(tag, NULL, NULL, tree);
+          }
+          continue;
+        }
 
         size_t firstView = rootElements[i].firstUsedIndex;
         size_t lastView = qMin(views.size() - 1, size_t(rootElements[i].lastUsedIndex));
@@ -1219,7 +1250,7 @@ void D3D12PipelineStateViewer::setShaderState(
           const Bindpoint *bind = NULL;
           const ShaderSampler *shaderInput = NULL;
 
-          if(stage.reflection)
+          if(stage.reflection && !directHeapAccess)
           {
             for(int k = 0; k < stage.bindpointMapping.samplers.count(); ++k)
             {
@@ -1241,19 +1272,30 @@ void D3D12PipelineStateViewer::setShaderState(
               }
             }
           }
-
-          QString rootel =
-              rootElements[i].immediate
-                  ? tr("#%1 Static").arg(rootElements[i].rootSignatureIndex)
-                  : tr("#%1 Table[%2]").arg(rootElements[i].rootSignatureIndex).arg(s.tableIndex);
+          QString spaceStr = QString::number(rootElements[i].registerSpace);
+          QString rootel;
+          if(directHeapAccess)
+          {
+            rootel = tr("SamplerDescriptorHeap[%1]").arg(s.tableIndex);
+            spaceStr = tr("");
+          }
+          else if(rootElements[i].immediate)
+          {
+            rootel = tr("#%1 Static").arg(rootElements[i].rootSignatureIndex);
+          }
+          else
+          {
+            rootel = tr("#%1 Table[%2]").arg(rootElements[i].rootSignatureIndex).arg(s.tableIndex);
+          }
 
           bool filledSlot = s.filter.minify != FilterMode::NoFilter;
-          bool usedSlot = (bind && bind->used);
+          bool usedSlot = (bind && bind->used) || directHeapAccess;
 
           if(showNode(usedSlot, filledSlot))
           {
-            QString regname = QString::number(s.bind);
-
+            QString regname;
+            if(!directHeapAccess)
+              regname = QString::number(s.bind);
             if(shaderInput && !shaderInput->name.empty())
               regname += lit(": ") + shaderInput->name;
 
@@ -1307,7 +1349,7 @@ void D3D12PipelineStateViewer::setShaderState(
               filter += QFormatStr(" (%1)").arg(ToQStr(s.filter.filter));
 
             RDTreeWidgetItem *node = new RDTreeWidgetItem(
-                {rootel, rootElements[i].registerSpace, regname, addressing, filter,
+                {rootel, spaceStr, regname, addressing, filter,
                  QFormatStr("%1 - %2")
                      .arg(s.minLOD == -FLT_MAX ? lit("0") : QString::number(s.minLOD))
                      .arg(s.maxLOD == FLT_MAX ? lit("FLT_MAX") : QString::number(s.maxLOD)),
@@ -1335,7 +1377,7 @@ void D3D12PipelineStateViewer::setShaderState(
           const Bindpoint *bind = NULL;
           const ConstantBlock *shaderCBuf = NULL;
 
-          if(stage.reflection)
+          if(stage.reflection && !directHeapAccess)
           {
             for(int k = 0; k < stage.bindpointMapping.constantBlocks.count(); ++k)
             {
@@ -1360,14 +1402,19 @@ void D3D12PipelineStateViewer::setShaderState(
               }
             }
           }
-
+          if(directHeapAccess)
+            cbuftag = QVariant::fromValue(D3D12CBufTag(0, (uint32_t)j, (uint32_t)i));
           if(!cbuftag.isValid())
             cbuftag =
                 QVariant::fromValue(D3D12CBufTag(rootElements[i].registerSpace, b.bind, (uint32_t)i));
 
           QString rootel;
 
-          if(rootElements[i].immediate)
+          if(directHeapAccess)
+          {
+            rootel = tr("ResourceDescriptorHeap[%1]").arg(b.tableIndex);
+          }
+          else if(rootElements[i].immediate)
           {
             if(!b.rootValues.empty())
               rootel = tr("#%1 Consts").arg(rootElements[i].rootSignatureIndex);
@@ -1383,7 +1430,7 @@ void D3D12PipelineStateViewer::setShaderState(
           if(rootElements[i].immediate && !b.rootValues.empty())
             filledSlot = true;
 
-          bool usedSlot = (bind && bind->used);
+          bool usedSlot = (bind && bind->used) || directHeapAccess;
 
           if(showNode(usedSlot, filledSlot))
           {
@@ -1397,12 +1444,18 @@ void D3D12PipelineStateViewer::setShaderState(
 
             QString regname = QString::number(b.bind);
 
-            if(shaderCBuf && !shaderCBuf->name.empty())
-              regname += lit(": ") + shaderCBuf->name;
+            if(directHeapAccess)
+            {
+              regname = tr("");
+            }
+            else
+            {
+              if(shaderCBuf && !shaderCBuf->name.empty())
+                regname += lit(": ") + shaderCBuf->name;
 
-            if(bind != NULL && bind->arraySize > 1)
-              regname += tr("[%1]").arg(b.bind - bind->bind);
-
+              if(bind != NULL && bind->arraySize > 1)
+                regname += tr("[%1]").arg(b.bind - bind->bind);
+            }
             QString sizestr;
             if(bytesize == (uint32_t)length)
               sizestr = tr("%1 Variables, %2 bytes").arg(numvars).arg(length);
@@ -1413,8 +1466,11 @@ void D3D12PipelineStateViewer::setShaderState(
             if(length < bytesize)
               filledSlot = false;
 
+            QString spaceStr = QString::number(rootElements[i].registerSpace);
+            if(directHeapAccess)
+              spaceStr = tr("");
             RDTreeWidgetItem *node = new RDTreeWidgetItem(
-                {rootel, (qulonglong)rootElements[i].registerSpace, regname, b.resourceId,
+                {rootel, spaceStr, regname, b.resourceId,
                  QFormatStr("%1 - %2").arg(offset).arg(offset + bytesize), sizestr, QString()});
 
             node->setTag(cbuftag);
@@ -2703,6 +2759,10 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
   {
     if((els[i].visibility & MaskForStage(sh.stage)) == ShaderStageMask::Unknown)
       continue;
+    bool directHeapAccess = els[i].registerSpace == ~0U;
+    QString spaceStr;
+    if(!directHeapAccess)
+      spaceStr = QString::number(els[i].registerSpace);
 
     switch(els[i].type)
     {
@@ -2713,7 +2773,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
           const D3D12Pipe::View &v = els[i].views[j];
           const ShaderResource *shaderInput = NULL;
 
-          if(sh.reflection)
+          if(sh.reflection && !directHeapAccess)
           {
             for(int32_t k = 0; k < sh.bindpointMapping.readOnlyResources.count(); ++k)
             {
@@ -2737,13 +2797,17 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
             }
           }
 
-          QString rootel = els[i].immediate
-                               ? tr("#%1 Direct").arg(els[i].rootSignatureIndex)
-                               : tr("#%1 Table[%2]").arg(els[i].rootSignatureIndex).arg(v.tableIndex);
+          QString rootel;
+          if(directHeapAccess)
+            rootel = tr("ResourceDescriptorHeap[%1]").arg(v.tableIndex);
+          else if(els[i].immediate)
+            rootel = tr("#%1 Direct").arg(els[i].rootSignatureIndex);
+          else
+            rootel = tr("#%1 Table[%2]").arg(els[i].rootSignatureIndex).arg(v.tableIndex);
 
           QVariantList row = exportViewHTML(v, false, shaderInput, QString());
 
-          row.push_front(els[i].registerSpace);
+          row.push_front(spaceStr);
           row.push_front(rootel);
 
           rowsRO.push_back(row);
@@ -2757,7 +2821,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
           const D3D12Pipe::View &v = els[i].views[j];
           const ShaderResource *shaderInput = NULL;
 
-          if(sh.reflection)
+          if(sh.reflection && !directHeapAccess)
           {
             for(int32_t k = 0; k < sh.bindpointMapping.readWriteResources.count(); ++k)
             {
@@ -2780,14 +2844,16 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
               }
             }
           }
-
-          QString rootel = els[i].immediate
-                               ? tr("#%1 Direct").arg(els[i].rootSignatureIndex)
-                               : tr("#%1 Table[%2]").arg(els[i].rootSignatureIndex).arg(v.tableIndex);
-
+          QString rootel;
+          if(directHeapAccess)
+            rootel = tr("ResourceDescriptorHeap[%1]").arg(v.tableIndex);
+          else if(els[i].immediate)
+            rootel = tr("#%1 Direct").arg(els[i].rootSignatureIndex);
+          else
+            rootel = tr("#%1 Table[%2]").arg(els[i].rootSignatureIndex).arg(v.tableIndex);
           QVariantList row = exportViewHTML(v, true, shaderInput, QString());
 
-          row.push_front(els[i].registerSpace);
+          row.push_front(spaceStr);
           row.push_front(rootel);
 
           rowsRW.push_back(row);
@@ -2801,7 +2867,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
           const D3D12Pipe::Sampler &s = els[i].samplers[j];
           const ShaderSampler *shaderInput = NULL;
 
-          if(sh.reflection)
+          if(sh.reflection && !directHeapAccess)
           {
             for(int32_t k = 0; k < sh.bindpointMapping.samplers.count(); ++k)
             {
@@ -2824,14 +2890,18 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
               }
             }
           }
-
-          QString rootel = els[i].immediate
-                               ? tr("#%1 Static").arg(els[i].rootSignatureIndex)
-                               : tr("#%1 Table[%2]").arg(els[i].rootSignatureIndex).arg(s.tableIndex);
+          QString rootel;
+          if(directHeapAccess)
+            rootel = tr("SamplerDescriptorHeap[%1]").arg(s.tableIndex);
+          else if(els[i].immediate)
+            rootel = tr("#%1 Static").arg(els[i].rootSignatureIndex);
+          else
+            rootel = tr("#%1 Table[%2]").arg(els[i].rootSignatureIndex).arg(s.tableIndex);
 
           {
-            QString regname = QString::number(s.bind);
-
+            QString regname;
+            if(!directHeapAccess)
+              regname = QString::number(s.bind);
             if(shaderInput && !shaderInput->name.empty())
               regname += lit(": ") + shaderInput->name;
 
@@ -2885,7 +2955,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
               filter += QFormatStr(" (%1)").arg(ToQStr(s.filter.filter));
 
             rowsSampler.push_back(
-                {rootel, els[i].registerSpace, regname, addressing, filter,
+                {rootel, spaceStr, regname, addressing, filter,
                  QFormatStr("%1 - %2")
                      .arg(s.minLOD == -FLT_MAX ? lit("0") : QString::number(s.minLOD))
                      .arg(s.maxLOD == FLT_MAX ? lit("FLT_MAX") : QString::number(s.maxLOD)),
@@ -2901,7 +2971,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
           const D3D12Pipe::ConstantBuffer &b = els[i].constantBuffers[j];
           const ConstantBlock *shaderCBuf = NULL;
 
-          if(sh.reflection)
+          if(sh.reflection && !directHeapAccess)
           {
             for(int32_t k = 0; k < sh.bindpointMapping.constantBlocks.count(); ++k)
             {
@@ -2927,8 +2997,11 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
           }
 
           QString rootel;
-
-          if(els[i].immediate)
+          if(directHeapAccess)
+          {
+            rootel = tr("ResourceDescriptorHeap[%1]").arg(b.tableIndex);
+          }
+          else if(els[i].immediate)
           {
             if(!b.rootValues.empty())
               rootel = tr("#%1 Consts").arg(els[i].rootSignatureIndex);
@@ -2955,15 +3028,16 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
             else
               name = tr("Empty");
 
-            QString regname = QString::number(b.bind);
-
+            QString regname;
+            if(!directHeapAccess)
+              regname = QString::number(b.bind);
             if(shaderCBuf && !shaderCBuf->name.empty())
               regname += lit(": ") + shaderCBuf->name;
 
             length = qMin(length, (uint64_t)bytesize);
 
-            rowsCB.push_back({rootel, els[i].registerSpace, regname, name, (qulonglong)offset,
-                              (qulonglong)length, numvars});
+            rowsCB.push_back(
+                {rootel, spaceStr, regname, name, (qulonglong)offset, (qulonglong)length, numvars});
           }
         }
         break;
