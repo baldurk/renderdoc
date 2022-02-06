@@ -1300,6 +1300,8 @@ Program::Program(const byte *bytes, size_t length)
 
               if(!inst.type->isVoid())
                 m_Values.push_back(Value(&f.instructions.back()));
+              if(inst.funcCall->name == "dx.op.createHandleFromHeap")
+                m_directHeapAccessCount++;
             }
             else if(op.type == FunctionRecord::INST_CAST)
             {

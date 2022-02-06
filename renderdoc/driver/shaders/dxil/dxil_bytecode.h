@@ -673,6 +673,7 @@ public:
 
   const Metadata *GetMetadataByName(const rdcstr &name) const;
   size_t GetMetadataCount() const { return m_Metadata.size() + m_NamedMeta.size(); }
+  uint32_t GetDirectHeapAcessCount() const { return m_directHeapAccessCount; }
 protected:
   void MakeDisassemblyString();
 
@@ -703,6 +704,7 @@ protected:
   rdcarray<Alias> m_Aliases;
   rdcarray<Value> m_Values;
   rdcarray<rdcstr> m_Sections;
+  uint32_t m_directHeapAccessCount = 0;
 
   rdcarray<rdcstr> m_Kinds;
 

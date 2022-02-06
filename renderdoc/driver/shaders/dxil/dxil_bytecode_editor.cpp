@@ -722,6 +722,34 @@ Metadata *ProgramEditor::AddMetadata(const Metadata &m)
   return &m_Metadata.back();
 }
 
+NamedMetadata *ProgramEditor::AddNamedMetadata(const NamedMetadata &m)
+{
+  if(m.dwarf || m.debugLoc)
+  {
+    RDCERR("Metadata with debug information is not supported");
+    return NULL;
+  }
+
+  // check that inner pointers are valid
+  if(m.type && !IN_ARRAY(m_Types, m.type) && !IN_ARRAY(m_OldTypes, m.type))
+  {
+    RDCERR("Metadata references invalid type");
+    return NULL;
+  }
+
+  for(const Metadata *c : m.children)
+  {
+    if(c && !IN_ARRAY(m_Metadata, c) && !IN_ARRAY(m_OldMetadata, c))
+    {
+      RDCERR("New metadata references invalid member metadata");
+      return NULL;
+    }
+  }
+
+  m_NamedMeta.push_back(m);
+  return &m_NamedMeta.back();
+}
+
 const Constant *ProgramEditor::GetOrAddConstant(const Constant &c)
 {
   // check that inner pointers are valid
@@ -1974,28 +2002,40 @@ void ProgramEditor::RegisterUAV(DXILResourceType type, uint32_t space, uint32_t 
     if(cur >= end)
       return;
 
-    uint32_t *resourceBindSize = (uint32_t *)cur;
-    cur += sizeof(uint32_t);
-    if(cur >= end)
-      return;
-
-    // fortunately UAVs are the last entry so we don't need to walk the list to insert in the right
-    // place, we can just add it at the end
-    cur += (*resourceBindSize) * (*numResources);
-    if(cur >= end)
-      return;
-
-    // add an extra resource
-    (*numResources)++;
-
-    if(*resourceBindSize == sizeof(ResourceBind1) || *resourceBindSize == sizeof(ResourceBind0))
+    if(*numResources > 0)
     {
-      psv0blob.insert(cur - begin, (byte *)&bind, *resourceBindSize);
+      uint32_t *resourceBindSize = (uint32_t *)cur;
+      cur += sizeof(uint32_t);
+      if(cur >= end)
+        return;
+
+      // fortunately UAVs are the last entry so we don't need to walk the list to insert in the
+      // right place, we can just add it at the end
+      cur += (*resourceBindSize) * (*numResources);
+      if(cur >= end)
+        return;
+
+      // add an extra resource
+      (*numResources)++;
+
+      if(*resourceBindSize == sizeof(ResourceBind1) || *resourceBindSize == sizeof(ResourceBind0))
+      {
+        psv0blob.insert(cur - begin, (byte *)&bind, *resourceBindSize);
+      }
+      else
+      {
+        RDCERR("Unexpected resource bind size %u", *resourceBindSize);
+        return;
+      }
     }
     else
     {
-      RDCERR("Unexpected resource bind size %u", *resourceBindSize);
-      return;
+      // If there is no resource in the chunk we also need to insert the size of a resource bind
+      *numResources = 1;
+      size_t insertOffset = cur - begin;
+      uint32_t resourceBindSize = sizeof(ResourceBind1);
+      psv0blob.insert(insertOffset, (byte *)&resourceBindSize, sizeof(resourceBindSize));
+      psv0blob.insert(insertOffset + sizeof(resourceBindSize), (byte *)&bind, resourceBindSize);
     }
 
     DXBC::DXBCContainer::ReplaceChunk(m_OutBlob, DXBC::FOURCC_PSV0, psv0blob);
