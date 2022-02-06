@@ -86,6 +86,9 @@ void ComputeDebugSelector::SetThreadBounds(const rdcfixedarray<uint32_t, 3> &gro
 
 void ComputeDebugSelector::SyncGroupThreadValue()
 {
+  QSignalBlocker blockers[3] = {QSignalBlocker(ui->dispatchX), QSignalBlocker(ui->dispatchY),
+                                QSignalBlocker(ui->dispatchZ)};
+
   ui->dispatchX->setValue(ui->groupX->value() * m_threadGroupSize[0] + ui->threadX->value());
   ui->dispatchY->setValue(ui->groupY->value() * m_threadGroupSize[1] + ui->threadY->value());
   ui->dispatchZ->setValue(ui->groupZ->value() * m_threadGroupSize[2] + ui->threadZ->value());
@@ -99,6 +102,10 @@ void ComputeDebugSelector::SyncDispatchThreadValue()
   uint32_t thread[3] = {ui->dispatchX->value() % m_threadGroupSize[0],
                         ui->dispatchY->value() % m_threadGroupSize[1],
                         ui->dispatchZ->value() % m_threadGroupSize[2]};
+
+  QSignalBlocker blockers[6] = {QSignalBlocker(ui->groupX),  QSignalBlocker(ui->groupY),
+                                QSignalBlocker(ui->groupZ),  QSignalBlocker(ui->threadX),
+                                QSignalBlocker(ui->threadY), QSignalBlocker(ui->threadZ)};
 
   ui->groupX->setValue(group[0]);
   ui->groupY->setValue(group[1]);
