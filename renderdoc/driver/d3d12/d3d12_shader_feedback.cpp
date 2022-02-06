@@ -1184,7 +1184,7 @@ void D3D12Replay::FetchShaderFeedback(uint32_t eventId)
 
                   // if the next bind is definitely outside this range, early out now instead of
                   // iterating fruitlessly
-                  if((uint32_t)bind.bind > range.BaseShaderRegister + num)
+                  if(((uint32_t)bind.bind - range.BaseShaderRegister) > num)
                     break;
 
                   int32_t lastBind =
