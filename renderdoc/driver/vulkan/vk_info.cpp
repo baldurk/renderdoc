@@ -944,6 +944,10 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
              ? fragmentDensity->fragmentDensityMapAttachment.layout
              : VK_IMAGE_LAYOUT_UNDEFINED);
 
+    dst.shadingRateAttachment = -1;
+    dst.shadingRateLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    dst.shadingRateTexelSize = VkExtent2D({1, 1});
+
     if(multiview && multiview->subpassCount > 0)
     {
       uint32_t mask = multiview->pViewMasks[subp];
